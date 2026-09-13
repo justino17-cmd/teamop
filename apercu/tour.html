@@ -49,9 +49,10 @@ body{
   --amber:#F0A94A;--red:#F07470;--redText:#F58E8A;--on-red:#1A0606;--gray:#A2A9BA;--bleu:#8DB4FF;--violet:#C4A6FF;
   --vertBg:rgba(62,210,160,.14);--ambreBg:rgba(240,169,74,.15);--rougeBg:rgba(240,116,112,.15);--grisBg:rgba(150,165,195,.14);--bleuBg:rgba(91,141,239,.16);--violetBg:rgba(167,139,250,.16);
   /* ── tuiles d'icônes : identiques jour et nuit, glyphe blanc ≥ 3,6:1 ; Accueil = l'application (la maison, c'est l'application) ── */
-  --ic-accueil:var(--app-fill);--ic-surveillance:#566A8F;--ic-support:#2F6FE0;--ic-entreprises:#5B5BD6;--ic-connexions:#0F8A7E;
-  --ic-abonnements:#C2740A;--ic-devisia:#8E4EC6;--ic-acces:#D9541E;--ic-equipe:#C93A7B;--ic-journal:#6B7280;
+  --ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
+  --ic-abonnements:var(--ic-neutre);--ic-devisia:var(--ic-neutre);--ic-acces:var(--ic-neutre);--ic-equipe:var(--ic-neutre);--ic-journal:var(--ic-neutre);
   /* ── ombres : le filet fait le travail ; l'ombre n'est que pour ce qui flotte (menus, feuilles) ── */
+  --ic-neutre:rgba(150,165,195,.15);--ic-encre:var(--text2);
   --ombre-1:0 0 0 1px var(--border);
   --ombre-2:0 8px 24px rgba(0,0,0,.36),0 0 0 1px var(--border);
   --ombre-3:0 24px 64px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.07);
@@ -116,8 +117,9 @@ body.jour{
   --green:#0E7060;--green-txt:#0E7060;--vert:#0E7060;
   --amber:#8A5600;--red:#B42B2B;--redText:#B42B2B;--on-red:#FFFFFF;--gray:#5B6070;--bleu:#1B4FBF;--violet:#6D3FC7;
   --vertBg:#E4F1EE;--ambreBg:#F3EDE2;--rougeBg:#F8E9E9;--grisBg:#EEEFF2;--bleuBg:#E8EDF9;--violetBg:#F0ECF9;
-  --ic-accueil:var(--app-fill);--ic-surveillance:#566A8F;--ic-support:#2F6FE0;--ic-entreprises:#5B5BD6;--ic-connexions:#0F8A7E;
-  --ic-abonnements:#C2740A;--ic-devisia:#8E4EC6;--ic-acces:#D9541E;--ic-equipe:#C93A7B;--ic-journal:#6B7280;
+  --ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
+  --ic-abonnements:var(--ic-neutre);--ic-devisia:var(--ic-neutre);--ic-acces:var(--ic-neutre);--ic-equipe:var(--ic-neutre);--ic-journal:var(--ic-neutre);
+  --ic-neutre:rgba(24,24,27,.07);--ic-encre:var(--text2);
   --ombre-1:0 0 0 1px var(--border);
   --ombre-2:0 6px 20px rgba(24,24,27,.08),0 0 0 1px var(--border);
   --ombre-3:0 24px 64px rgba(24,24,27,.18),0 0 0 1px rgba(0,0,0,.06);
@@ -158,18 +160,18 @@ button:focus-visible,.item:focus-visible,.kpi.clic:focus-visible{box-shadow:var(
 .btn-plein,.btn-fant,.btn-icone,.pill-act,.mode-fixe{-webkit-tap-highlight-color:transparent;user-select:none;cursor:pointer;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),box-shadow var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
 .btn-plein:active,.btn-fant:active,.btn-icone:active,.pill-act:active,.mode-fixe:active{transform:scale(.96);transition-duration:var(--d-0)}
-.btn-plein{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--acc-fill);color:var(--on-acc);border:0;border-radius:var(--r-2);padding:0 16px;min-height:38px;font-weight:600;font-size:14.5px;letter-spacing:-.005em}
+.btn-plein{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--acc-fill);color:var(--on-acc);border:0;border-radius:var(--r-2);padding:0 16px;min-height:38px;font-weight:600;font-size:15px;letter-spacing:-.005em}
 .btn-plein:hover{background:var(--acc-fill-hover)}
 .btn-plein:active{background:var(--acc-fill-press)}
-.btn-plein.large{width:100%;min-height:46px;font-size:15.5px;border-radius:var(--r-3)}
+.btn-plein.large{width:100%;min-height:46px;font-size:15px;border-radius:var(--r-3)}
 .btn-plein.danger{background:var(--red);color:var(--on-red)}
-.btn-fant{display:inline-flex;align-items:center;gap:7px;background:var(--tint);color:var(--acc-txt);border:0;border-radius:var(--r-2);padding:0 13px;min-height:34px;font-size:13.5px;font-weight:600}
+.btn-fant{display:inline-flex;align-items:center;gap:7px;background:var(--tint);color:var(--acc-txt);border:0;border-radius:var(--r-2);padding:0 13px;min-height:34px;font-size:13px;font-weight:600}
 .btn-fant:hover{background:color-mix(in srgb,var(--tint) 100%,var(--acc) 10%)}
 .btn-fant.danger{background:var(--rougeBg);color:var(--redText)}
 .btn-icone{display:inline-flex;align-items:center;justify-content:center;background:var(--tint-gris);color:var(--text2);border:0;border-radius:50%;width:34px;height:34px;flex-shrink:0}
 .btn-icone:hover{background:var(--hover);color:var(--strong)}
 .mode-fixe{position:fixed;top:18px;right:18px;display:flex;align-items:center;justify-content:center;background:var(--surface);color:var(--text2);border:0;border-radius:50%;width:38px;height:38px;z-index:30;box-shadow:var(--ombre-2)}
-.pill-act{display:inline-flex;align-items:center;gap:6px;background:var(--tint-gris);color:var(--text2);border:0;border-radius:var(--r-pill);padding:0 12px;min-height:30px;font-size:12.5px;font-weight:600}
+.pill-act{display:inline-flex;align-items:center;gap:6px;background:var(--tint-gris);color:var(--text2);border:0;border-radius:var(--r-pill);padding:0 12px;min-height:30px;font-size:12px;font-weight:600}
 .pill-act:hover{background:var(--hover);color:var(--strong)}
 .pill-act.amb{background:var(--ambreBg);color:var(--amber)}
 .pill-act.vrt{background:var(--vertBg);color:var(--green)}
@@ -178,13 +180,13 @@ button:focus-visible,.item:focus-visible,.kpi.clic:focus-visible{box-shadow:var(
 
 /* ══ CHAMPS ═══ en creux, bord discret, focus = anneau ══ */
 .lbl{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
-.inp{width:100%;background:var(--inset);border:1px solid var(--inpBorder);border-radius:var(--r-2);color:var(--text);padding:9px 12px;min-height:38px;font-size:14.5px;outline:none;
+.inp{width:100%;background:var(--inset);border:1px solid var(--inpBorder);border-radius:var(--r-2);color:var(--text);padding:9px 12px;min-height:38px;font-size:15px;outline:none;
   transition:border-color var(--d-1) var(--e-sortie),box-shadow var(--d-1) var(--e-sortie)}
 .inp:hover{border-color:var(--trait-ui)}
 .inp:focus,.inp:focus-visible{border-color:var(--acc);box-shadow:var(--focus-champ)}
 .inp:user-invalid{border-color:var(--red)}
 textarea.inp{line-height:1.55;resize:vertical;min-height:92px}
-.sel-f{appearance:none;-webkit-appearance:none;background:var(--inset) var(--chevron) no-repeat right 10px center;border:1px solid var(--inpBorder);border-radius:var(--r-2);color:var(--text);padding:0 34px 0 12px;min-height:36px;font-size:13.5px;font-weight:500;outline:none;cursor:pointer}
+.sel-f{appearance:none;-webkit-appearance:none;background:var(--inset) var(--chevron) no-repeat right 10px center;border:1px solid var(--inpBorder);border-radius:var(--r-2);color:var(--text);padding:0 34px 0 12px;min-height:36px;font-size:13px;font-weight:500;outline:none;cursor:pointer}
 .sel-f:hover{border-color:var(--trait-ui)}
 .sel-f:focus-visible{border-color:var(--acc);box-shadow:var(--focus-champ)}
 input[type=date].inp{min-width:150px}
@@ -202,13 +204,13 @@ input[type=number].inp{font-variant-numeric:tabular-nums}
 .barre-act{background:var(--inset);border-radius:var(--r-3);padding:12px 13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 
 /* ══ PASTILLES & PUCES ══ */
-.past{display:inline-block;border-radius:var(--r-pill);font-size:11.5px;font-weight:600;padding:3px 10px;white-space:nowrap;letter-spacing:0}
+.past{display:inline-block;border-radius:var(--r-pill);font-size:11px;font-weight:600;padding:3px 10px;white-space:nowrap;letter-spacing:0}
 .p-info{background:var(--accBg);color:var(--acc-txt)}
 .p-vert{background:var(--vertBg);color:var(--green)}
 .p-ambre,.p-orange{background:var(--ambreBg);color:var(--amber)}
 .p-rouge{background:var(--rougeBg);color:var(--redText)}
 .p-gris{background:var(--grisBg);color:var(--gray)}
-.chip{display:inline-block;background:var(--chip);border-radius:var(--r-1);font-size:11.5px;font-weight:500;color:var(--text2);padding:3px 9px}
+.chip{display:inline-block;background:var(--chip);border-radius:var(--r-1);font-size:11px;font-weight:500;color:var(--text2);padding:3px 9px}
 .chip.acc{background:var(--accBg);color:var(--acc-txt)}
 .pt{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
 .bdg-r{display:none;background:var(--red);color:#fff;border-radius:var(--r-pill);font-size:11px;padding:1px 7px;font-weight:700;min-width:18px;text-align:center}
@@ -276,7 +278,7 @@ input[type=number].inp{font-variant-numeric:tabular-nums}
    tres longue ne l'etire pas absurdement. */
 .col-detail .vide.accueil{min-height:min(52vh,420px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 32px}
 .col-detail .vide.accueil p{margin:0;max-width:34ch}
-.code{background:var(--inset);border-radius:var(--r-2);padding:12px 13px;font-family:var(--fm);font-size:12.5px;color:var(--code);white-space:pre;overflow-x:auto;line-height:1.55}
+.code{background:var(--inset);border-radius:var(--r-2);padding:12px 13px;font-family:var(--fm);font-size:12px;color:var(--code);white-space:pre;overflow-x:auto;line-height:1.55}
 .encart{display:flex;gap:12px;align-items:flex-start;background:var(--accBg);border-radius:var(--r-3);padding:14px 16px;margin-top:16px}
 .encart-tx{font-size:13px;color:var(--muted);line-height:1.55}
 .encart-tx b{color:var(--text2);font-weight:600}
@@ -295,7 +297,7 @@ input[type=number].inp{font-variant-numeric:tabular-nums}
 #rouvrir:hover{background:var(--hover)}
 .kpi{background:var(--surface);border:0;border-radius:var(--r-4);padding:18px 20px;box-shadow:var(--ombre-1);transition:background-color var(--d-1) var(--e-sortie),box-shadow var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
 .kpi .n{font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.05;font-variant-numeric:tabular-nums}
-.kpi .l{font-family:var(--fs);font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:0;text-transform:none;margin-top:6px}
+.kpi .l{font-family:var(--fs);font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0;text-transform:none;margin-top:6px}
 /* Le seuil est réglable par écran (--kpi-min) : Entreprises en a SIX, et à 190 px la sixième
    tombait seule sur une deuxième rangée — une tuile orpheline qui casse la lecture d'un coup
    d'œil. Le défaut reste 190 px : les autres écrans ne changent pas. */
@@ -311,12 +313,12 @@ input[type=number].inp{font-variant-numeric:tabular-nums}
 .tbl{border:0;border-radius:var(--r-4);background:var(--surface);overflow:hidden;box-shadow:var(--ombre-1)}
 .tbl .scroll{overflow-x:auto}
 .tbl .hd,.tbl .rw{display:grid;gap:12px;padding:12px 18px;align-items:center}
-.tbl .hd{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--line)}
-.tbl .rw{border-top:1px solid var(--hairline);font-size:13.5px;transition:background-color var(--d-1) var(--e-sortie)}
+.tbl .hd{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.tbl .rw{border-top:1px solid var(--hairline);font-size:13px;transition:background-color var(--d-1) var(--e-sortie)}
 .tbl .rw:hover,tr.item:hover{background:var(--hover)}
 table.tbl,.tbl table{border-collapse:collapse;width:100%}
-.tbl th{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)}
-.tbl td{padding:11px 16px;border-top:1px solid var(--hairline);font-size:13.5px;vertical-align:middle}
+.tbl th{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)}
+.tbl td{padding:11px 16px;border-top:1px solid var(--hairline);font-size:13px;vertical-align:middle}
 
 /* ══ CHARPENTE ═══ barre du haut sur téléphone, barre latérale sur grand écran ══ */
 #app{min-height:100vh;display:none;flex-direction:column}
@@ -327,7 +329,7 @@ table.tbl,.tbl table{border-collapse:collapse;width:100%}
 .hlogo{width:32px;height:32px;border-radius:9px;display:block;object-fit:cover;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
 body.jour .hlogo{box-shadow:0 0 0 1px rgba(0,0,0,.08)}
 .hnom{font-weight:700;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
-.hbadge{font-size:10.5px;font-weight:600;color:var(--acc-txt);letter-spacing:.06em;background:var(--accBg);border-radius:var(--r-pill);padding:3px 9px}
+.hbadge{font-size:11px;font-weight:600;color:var(--acc-txt);letter-spacing:.06em;background:var(--accBg);border-radius:var(--r-pill);padding:3px 9px}
 .hd{display:flex;align-items:center;gap:10px}
 .hchip{display:flex;align-items:center;gap:9px;min-width:0}
 .hava{width:28px;height:28px;border-radius:50%;background:var(--avatar);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--blueSoft);flex-shrink:0}
@@ -379,9 +381,9 @@ main{width:100%;max-width:1200px;margin:0 auto;padding:28px 20px 96px;flex:1;min
   .bandeau::after{display:none}
   .hbar{display:contents}
   .hg{order:0;padding:4px 8px 14px;flex-wrap:wrap;gap:8px 10px}
-  .hnom{font-size:15.5px}
+  .hnom{font-size:15px}
   nav.tabs{order:1;flex-direction:column;align-items:stretch;gap:2px;padding:0;overflow:visible}
-  .tab{padding:8px 10px;border-radius:var(--r-1);font-size:13.5px;font-weight:500;color:var(--text);justify-content:flex-start}
+  .tab{padding:8px 10px;border-radius:var(--r-1);font-size:13px;font-weight:500;color:var(--text);justify-content:flex-start}
   .tab svg{width:17px;height:17px;color:var(--acc-txt);opacity:1}
   .tab:hover{background:var(--tint-gris);color:var(--strong)}
   .tab.on{background:var(--acc-fill);color:#fff}
@@ -466,7 +468,7 @@ input.inp,select.sel-f{display:block;line-height:normal}
 /* La phrase du groupe dit UNE fois ce que la ligne ne redira pas quinze fois. --muted et non
    --dim : --dim tombe à 4,27:1 sur le fond de page en thème jour, ce qui va pour un chevron,
    pas pour une phrase qu'on lit. */
-.reg-sous{margin-top:3px;font-size:12.5px;line-height:1.55;color:var(--muted);max-width:62ch}
+.reg-sous{margin-top:3px;font-size:12px;line-height:1.55;color:var(--muted);max-width:62ch}
 /* ── LE PLIAGE DES GROUPES ────────────────────────────────────────────────────────────────
    Justin, 8 septembre 2026 : « il y a beaucoup trop de choses pour que ça soit cohérent et
    logique ». Mesuré au banc, à 390 px : l'Accueil fait 2 405 px de haut — six écrans de
@@ -564,13 +566,13 @@ input.inp,select.sel-f{display:block;line-height:normal}
 .reg-l2 b{font-weight:600;color:var(--text)}
 /* Ligne 3 : l'activité, puis l'adresse EN DERNIER. C'est elle qui faisait varier les hauteurs de
    85 à 66 px sans que ça veuille rien dire ; elle se tronque désormais au lieu de gonfler la ligne. */
-.reg-l3{margin-top:2px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;
+.reg-l3{margin-top:2px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Le « +n » d'un débordement de pastilles : --text2 sur --tint-gris (6,02:1 sur le plan).
    Surtout pas .past.p-gris, dont l'encre --gray plafonne à 4,44:1 sur le plan élevé, quel que
    soit le taux de teinte qu'on essaie — c'est le seul couple qui ne se rattrape pas. */
 .reg-plus{background:var(--tint-gris);color:var(--text2);border-radius:var(--r-pill);
-  padding:3px 9px;font-size:11.5px;font-weight:600;white-space:nowrap}
+  padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap}
 
 /* ── GROUPES 2 ET 3 · CE QUI N'EST PAS UNE CLIENTE ─── posé sur la page, aucune surface ───
    Volontairement PAS --inset comme fond : le jour, #F4F5F9 est à un point de la page #F2F3F7,
@@ -584,7 +586,7 @@ input.inp,select.sel-f{display:block;line-height:normal}
 .reg-bloc>.reg-l:hover{background:var(--hover);border-radius:var(--r-2)}
 .reg-bloc .reg-t1{font-size:15px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:var(--text);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.reg-bloc .reg-l2,.reg-bloc .reg-l3{font-size:12.5px;color:var(--muted)}
+.reg-bloc .reg-l2,.reg-bloc .reg-l3{font-size:12px;color:var(--muted)}
 /* Un espace hors annuaire n'a pas d'initiales : sigle('teamopteste-7ir4') rend « TE », une
    initiale qui ment. Un carré vide et un « ? » disent la vérité : on ne sait pas qui c'est. */
 .reg-av.sans{width:38px;height:38px;border-radius:11px;background:transparent;
@@ -593,7 +595,7 @@ input.inp,select.sel-f{display:block;line-height:normal}
   box-shadow:none;color:var(--muted);font-size:12px}
 /* Quand le nom EST un identifiant, il se lit en mono, caractère par caractère : c'est une
    information sur sa nature, pas du chrome de gabarit. */
-.reg-bloc .reg-t1.ident{font-family:var(--fm);font-size:13.5px;font-weight:600;letter-spacing:var(--suivi-mono);color:var(--text)}
+.reg-bloc .reg-t1.ident{font-family:var(--fm);font-size:13px;font-weight:600;letter-spacing:var(--suivi-mono);color:var(--text)}
 /* Celui-là a bougé cette semaine : ce n'est peut-être pas un essai oublié, mais une cliente
    dont on a perdu le nom. La couleur ne parle jamais seule — l'encre du nom change AUSSI,
    donc l'information survit en niveaux de gris et chez un daltonien. */
@@ -609,11 +611,11 @@ input.inp,select.sel-f{display:block;line-height:normal}
    fin, pas un <details> — l'état ouvert/fermé d'un <details> est perdu à chaque render(), la
    vue étant reconstruite par innerHTML, et un pli qui se referme tout seul est un bug. */
 .reg-tech{margin-top:26px;padding:14px 16px;border-radius:var(--r-3);
-  box-shadow:inset 0 0 0 1px var(--hairline);font-size:12.5px;line-height:1.7;color:var(--muted)}
+  box-shadow:inset 0 0 0 1px var(--hairline);font-size:12px;line-height:1.7;color:var(--muted)}
 .reg-tech b{font-weight:600;color:var(--text2)}
 .reg-tech-l{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;margin:6px 8px 0 0;
   border-radius:var(--r-1);background:var(--tint-gris);color:var(--text2);
-  font-family:var(--fm);font-size:12.5px;cursor:pointer;border:0;
+  font-family:var(--fm);font-size:12px;cursor:pointer;border:0;
   transition:background-color var(--d-1) var(--e-sortie)}
 .reg-tech-l:hover{background:var(--hover);color:var(--strong)}
 
@@ -630,7 +632,7 @@ button.dsr-p:hover{background:var(--hover)}
 button.dsr-p:active{background:var(--sel);transition-duration:var(--d-0)}
 button.dsr-p:focus-visible{outline:none;box-shadow:var(--anneau)}
 .dsr-n{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
-.dsr-l{font-size:11.5px;color:var(--muted);line-height:1.35}
+.dsr-l{font-size:11px;color:var(--muted);line-height:1.35}
 /* Le chevron dit « ça s'ouvre » sans ajouter un mot : à cette taille, « voir le détail »
    ferait une deuxième ligne et mangerait le libellé. */
 .dsr-x{display:inline-block;margin-left:4px;color:var(--acc);font-weight:700;
@@ -647,7 +649,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 .ech-g+.ech-g{border-top:1px solid var(--line)}
 .ech-gt{font-size:13px;font-weight:600;color:var(--strong);line-height:1.4}
 .ech-gq{font-family:var(--fm);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.ech-gd{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:3px}
+.ech-gd{font-size:12px;color:var(--muted);line-height:1.55;margin-top:3px}
 .ech-gl{font-size:12px;color:var(--text2);line-height:1.6;margin-top:7px}
 .ech-gl b{font-weight:600;color:var(--strong)}
 .ech-h{font-family:var(--fm);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -674,7 +676,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
   /* Le nom d'une cliente ne se coupe plus : « Nettoyage Industriel du Grand Ouest » passe sur
      deux lignes, la carte grandit. Un nom tronqué cache une information — la règle de
      résilience du skill. C'est pour ça que la carte GAGNE 8 px au téléphone au lieu d'en perdre. */
-  .reg-l.cli .reg-t1,.reg-l.haut .reg-t1,#dia .dia-carte .reg-t1{font-size:16.5px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .reg-l.cli .reg-t1,.reg-l.haut .reg-t1,#dia .dia-carte .reg-t1{font-size:17px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .reg-l3{display:none}
   /* 96 px suffisaient à « 3 erreurs » ; « 🔑 Code d’accès requis » déborde de sa boîte et
      vient se peindre PAR-DESSUS le nom, parce que justify-content:flex-end pousse le
@@ -710,7 +712,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 .ac-aside{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:32px}
 .ac-bande{flex:1 1 100%;min-width:0}
 /* Le style de la pastille de tête sort du HTML : .past reste la seule référence. */
-.ac-total{font-size:12.5px;padding:5px 13px}
+.ac-total{font-size:12px;padding:5px 13px}
 
 /* La vignette d'une priorité : même géométrie que .reg-av, une teinte à la place d'un sigle.
    Elle lit --rougeBg / --ambreBg / --accBg et NON des rgba écrites en dur — c'est ce qui la
@@ -759,7 +761,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 .ac-jr>div{display:flex;gap:12px;align-items:baseline;min-height:34px;padding:6px 2px;
   font-size:13px;line-height:1.5;color:var(--text2)}
 .ac-jr>div+div{border-top:1px solid var(--hairline)}
-.ac-jr time{font-family:var(--fm);font-size:11.5px;color:var(--muted);flex-shrink:0;
+.ac-jr time{font-family:var(--fm);font-size:11px;color:var(--muted);flex-shrink:0;
   font-variant-numeric:tabular-nums;min-width:104px}
 
 /* ── LES TROIS ÉTATS QUE PERSONNE NE DESSINE ──
@@ -839,7 +841,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
    « Aucun incident ne correspond à ces filtres » laissait cinq sélecteurs à reparcourir à
    la main. Pas de tirets ici non plus : un filtre trop serré n'est pas une panne. */
 .svl-vide{margin-top:18px;padding:30px 24px;border-radius:var(--r-4);text-align:center;
-  box-shadow:inset 0 0 0 1px var(--hairline);color:var(--muted);font-size:13.5px;line-height:1.65}
+  box-shadow:inset 0 0 0 1px var(--hairline);color:var(--muted);font-size:13px;line-height:1.65}
 .svl-vide b{display:block;font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
 .svl-vide .btn-fant{margin-top:14px;min-height:44px}
 
@@ -872,7 +874,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 /* ── LE COMPTE ─── sous les filtres, et hors de --dim ───
    --dim tombe à 4,27:1 sur le fond de page en thème jour : le socle le réserve au chevron
    et au compteur de groupe. Une phrase qu'on lit passe en --muted. */
-.svl-compte{margin:0 2px 18px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.svl-compte{margin:0 2px 18px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .svl-sous{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45}
 /* La légende n'ouvre plus l'écran : elle le referme. */
 .svl-legende{margin-top:32px}
@@ -884,7 +886,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
   .svl-kpi .kpi{padding:13px 13px}
   .svl-kpi .kpi .n{font-size:23px}
   .svl-kpi .kpi .l{font-size:12px;margin-top:4px}
-  .svl-kpi .svl-sous{font-size:11.5px;line-height:1.4;margin-top:4px}
+  .svl-kpi .svl-sous{font-size:11px;line-height:1.4;margin-top:4px}
   .svl-kpi .kpi .bars{height:28px;margin-top:8px}
   /* Cinq sélecteurs en flex donnaient cinq lignes ; deux colonnes en donnent trois. */
   .svl-filtres{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 12px}
@@ -918,7 +920,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 .ac-act{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;gap:7px;
   min-height:44px;padding:0 15px;border:0;border-radius:var(--r-2);cursor:pointer;
   background:var(--tint);color:var(--acc-txt);
-  font-family:inherit;font-size:13.5px;font-weight:600;letter-spacing:-.005em;
+  font-family:inherit;font-size:13px;font-weight:600;letter-spacing:-.005em;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
   transition:background-color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
 .ac-act:hover{background:var(--hover)}
@@ -983,7 +985,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 .reg-l.inerte.ko .jr-ic{background:var(--rougeBg)}
 /* Quand le nom EST un identifiant tapé au clavier, il se lit caractère par caractère. C'est
    une saisie libre de 120 caractères côté serveur, possiblement sans un seul espace. */
-.reg-t1.ident{font-family:var(--fm);font-size:13.5px;letter-spacing:var(--suivi-mono);overflow-wrap:anywhere}
+.reg-t1.ident{font-family:var(--fm);font-size:13px;letter-spacing:var(--suivi-mono);overflow-wrap:anywhere}
 /* Le troisième groupe est plus léger : ce sont mes propres gestes, rien à y surveiller. */
 .reg-bloc.act .reg-l2{color:var(--text2)}
 
@@ -994,7 +996,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 
 /* Vide : une phrase, pas un cadre en pointillés — un journal sans tentative refusée est une
    bonne nouvelle, .vide en ferait le dessin d'une panne. */
-.jr-vide{padding:12px 2px;font-size:12.5px;line-height:1.6;color:var(--muted);max-width:62ch}
+.jr-vide{padding:12px 2px;font-size:12px;line-height:1.6;color:var(--muted);max-width:62ch}
 .jr-fin{margin-top:10px;padding:0 2px;font-size:12px;line-height:1.6;color:var(--muted)}
 /* Chargement : sans squelette, l'écran affiche « Aucune connexion enregistrée » pendant tout
    l'appel réseau. C'est un mensonge, pas un défaut de style. */
@@ -1035,7 +1037,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 .abn-eur{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;text-align:right;
   font-variant-numeric:tabular-nums;line-height:1.2}
 .abn-eur b{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.01em}
-.abn-eur i{font-style:normal;font-size:11.5px;font-weight:500;color:var(--muted);margin-top:2px;white-space:nowrap}
+.abn-eur i{font-style:normal;font-size:11px;font-weight:500;color:var(--muted);margin-top:2px;white-space:nowrap}
 /* Sur le plan élevé, le montant est la deuxième chose qu'on lit après le nom. */
 .reg-l.cli .abn-eur b{font-size:19px;color:var(--strong)}
 /* La couleur ne parle jamais seule : le mot « Impayé » est dans la pastille juste à côté,
@@ -1064,8 +1066,8 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
    filets fait onduler ses voisines. Le retour part quand même de la pression. */
 .abn-j:active{background:var(--sel);transition-duration:var(--d-0)}
 .abn-j .d{flex:0 0 78px;font-family:var(--fm);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.abn-j .q{flex:1;min-width:0;font-size:13.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.abn-j .m{font-size:13.5px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.abn-j .q{flex:1;min-width:0;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.abn-j .m{font-size:13px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap}
 /* Stripe ne renvoie pas toujours d'adresse de facture : sans destination, la rangée n'est pas
    un bouton et ne prétend pas l'être. Mieux vaut une ligne inerte qu'une promesse creuse. */
 .abn-j.mort{cursor:default}
@@ -1084,10 +1086,10 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
   .abn-kpi{grid-template-columns:1fr 1fr;gap:10px}
   .abn-kpi .kpi{padding:13px 14px}
   .abn-kpi .kpi .n{font-size:23px}
-  .abn-kpi .kpi .l{font-size:11.5px;margin-top:4px}
+  .abn-kpi .kpi .l{font-size:11px;margin-top:4px}
   .reg-l.cli .abn-eur b{font-size:17px}
   .abn-j{padding:8px 11px;gap:9px}
-  .abn-j .d{flex:0 0 62px;font-size:11.5px}
+  .abn-j .d{flex:0 0 62px;font-size:11px}
 }
 
 /* ══ ÉQUIPE ═══ qui détient une clé de la console ════════════════════════════════════════
@@ -1106,7 +1108,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 /* « vous » : une capsule, pas dix pixels et demi en --link. --text2 sur --tint-gris est le
    seul couple neutre mesuré qui tienne sur le plan élevé (6,02:1). */
 .eqp-moi{margin-left:8px;padding:2px 8px;border-radius:var(--r-pill);background:var(--tint-gris);
-  color:var(--text2);font-size:11.5px;font-weight:600;letter-spacing:0;vertical-align:middle}
+  color:var(--text2);font-size:11px;font-weight:600;letter-spacing:0;vertical-align:middle}
 /* Le compte du patron ne porte pas de bouton grisé : un bouton désactivé ferait croire à un
    droit refusé, alors que le serveur ne le permet simplement pas. */
 .eqp-fixe{font-size:12px;color:var(--muted);white-space:nowrap}
@@ -1127,7 +1129,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
    (1,4 pour le formulaire contre 1 pour la liste des gens qui ont les clés). */
 .eqp-deux>.col-liste{flex:1.6 1 420px}
 .eqp-deux>.col-detail{flex:1 1 330px}
-.eqp-note{font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:14px}
+.eqp-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:14px}
 .eqp-note b{color:var(--text2);font-weight:600}
 
 @media(max-width:640px){
@@ -1152,7 +1154,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 #dia .dia-alerte{display:flex;gap:12px;margin:18px 0 0;padding:14px 16px;border-radius:var(--r-3);
   background:var(--rougeBg);font-size:13px;line-height:1.6;color:var(--text2)}
 #dia .dia-alerte b{color:var(--redText);font-weight:600;display:block}
-#dia .dia-alerte .mono{font-family:var(--fm);font-size:12.5px;color:var(--text)}
+#dia .dia-alerte .mono{font-family:var(--fm);font-size:12px;color:var(--text)}
 
 #dia .dia-kpis{margin-top:18px}
 /* Une jauge dit ce qu'un ratio écrit en gris ne dit pas : s'il reste de la place. */
@@ -1196,7 +1198,7 @@ body.jour #dia .dia-ctrl{border-top-color:rgba(20,28,48,.09)}
 #dia .dia-pied .lbl{margin-bottom:6px}
 #dia .dia-pied .dia-champ{display:flex;gap:9px;flex-wrap:wrap;margin-top:4px}
 #dia .dia-pied .dia-champ .inp{flex:1 1 220px}
-#dia .dia-pied p{margin:12px 0 0;font-size:12.5px;line-height:1.6;color:var(--muted)}
+#dia .dia-pied p{margin:12px 0 0;font-size:12px;line-height:1.6;color:var(--muted)}
 
 @media(max-width:640px){
   #dia .dia-kpis{grid-template-columns:1fr 1fr}
@@ -1207,7 +1209,7 @@ body.jour #dia .dia-ctrl{border-top-color:rgba(20,28,48,.09)}
   /* Le segmenté prend la largeur et « Couper » passe dessous : à 390 px, quatre commandes
      sur une ligne dont une qui retire une fonction en service est un accident qui attend. */
   #dia .dia-seg{width:100%}
-  #dia .dia-seg button{flex:1;padding:0 6px;font-size:12.5px}
+  #dia .dia-seg button{flex:1;padding:0 6px;font-size:12px}
   #dia .dia-ctrl>.btn-fant{margin-left:0;width:100%;justify-content:center}
 }
 @media(prefers-reduced-motion:reduce){ #dia .dia-jauge i{transition:none} }
@@ -1234,7 +1236,7 @@ body.jour #dia .dia-ctrl{border-top-color:rgba(20,28,48,.09)}
 /* La ligne d'un message : nom à gauche, heure à droite, sur la même ligne. */
 .sup-l1{display:flex;align-items:baseline;gap:10px}
 .sup-l1 .reg-t1{flex:1;min-width:0}
-.sup-h{flex-shrink:0;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sup-h{flex-shrink:0;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 /* Un message non lu : le sujet passe en --strong EN PLUS d'être dans un groupe qui le dit.
    Le rond de non-lu disparaît : « non lu », c'est désormais le nom du groupe. */
 /* Sur une carte élevée, l’objet du message est la substance : il passe sur deux lignes
@@ -1247,7 +1249,7 @@ body.jour #dia .dia-ctrl{border-top-color:rgba(20,28,48,.09)}
 /* La navigation principale d'un écran ouvert au doigt faisait 35 px. Et un titre de section
    n'est pas une étiquette de champ : les petites capitales en monospace sont l'un des cinq
    réflexes d'interface générée. */
-.dos-t{font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none;
+.dos-t{font-family:inherit;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;
   color:var(--text2);margin:18px 0 6px 10px}
 .dos .n{font-variant-numeric:tabular-nums;min-width:18px;text-align:right}
 
@@ -1258,7 +1260,7 @@ body.jour #dia .dia-ctrl{border-top-color:rgba(20,28,48,.09)}
   color:var(--amber);border-radius:var(--r-3);padding:14px 16px;margin:0 0 12px;font-size:13px;line-height:1.55}
 .mail-panne svg{flex-shrink:0;margin-top:1px}
 .mail-panne>div{flex:1;min-width:180px}
-.mail-panne-l{color:var(--text2);font-size:12.5px;margin-top:4px;word-break:break-word}
+.mail-panne-l{color:var(--text2);font-size:12px;margin-top:4px;word-break:break-word}
 .mail-panne .btn-fant{flex-shrink:0}
 .sup-vide{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
   padding:38px 22px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
@@ -1336,7 +1338,7 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
    — un nom d'entreprise coupé en deux ne se reconnaît plus. */
 .dos-n{flex:1;min-width:0;overflow:hidden;overflow-wrap:break-word;
   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.25}
-.dos .n{flex:0 0 auto;font-size:11.5px;color:var(--muted);font-weight:700}
+.dos .n{flex:0 0 auto;font-size:11px;color:var(--muted);font-weight:700}
 .dos.on .n{color:var(--acc)}
 .dos-t{font-size:10px;letter-spacing:var(--suivi-mono);color:var(--muted);font-family:var(--fm);margin:14px 0 6px 10px}
 /* ── LE COURRIER RANGÉ PAR ENTREPRISE ──
@@ -1347,7 +1349,7 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
   border-left:1px solid var(--line);border-radius:0 var(--r-2) var(--r-2) 0;padding-left:11px}
 .dos.sous:hover{color:var(--text2)}
 .dos.sous.on{background:var(--tint-gris);color:var(--strong);font-weight:600;border-left-color:var(--acc)}
-.dos.sous .dos-i{font-size:12.5px}
+.dos.sous .dos-i{font-size:12px}
 .dos-note{font-size:12px;color:var(--muted);line-height:1.5;padding:4px 10px 8px}
 /* Les boîtes reliées ne sont plus une navigation : ce sont des témoins. Elles ne se cliquent
    donc pas, et ne doivent pas ressembler à ce qui se clique. */
@@ -1367,11 +1369,11 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 .mrow.lu .pastille{background:transparent}
 .m-txt{flex:1;min-width:0}
 .m-l1{display:flex;align-items:baseline;gap:8px}
-.m-de{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-de{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mrow.lu .m-de{font-weight:600;color:var(--text2)}
 .m-h{flex:0 0 auto;font-family:var(--fm);font-size:11px;color:var(--muted)}
 .m-l2{font-size:13px;color:var(--text);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.m-l3{font-size:11.5px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-l3{font-size:11px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .m-sig{margin-left:6px;font-size:11px;color:var(--muted)}
 .m-auto{margin-left:6px;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);background:var(--chip);border-radius:var(--r-pill);padding:1px 7px}
 .lec{padding:22px 24px}
@@ -1381,7 +1383,7 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 .lec-qui{display:flex;align-items:center;gap:11px;margin-top:13px;flex-wrap:wrap}
 .m-ava{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex:0 0 34px}   /* teintes inline (L1457) : blanc ≥ 5,3 sur chacune ✓ */
 .lec-id{min-width:0;flex:1 1 160px;display:flex;flex-direction:column}
-.lec-id b{font-size:13.5px;color:var(--strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lec-id b{font-size:13px;color:var(--strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lec-id span{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lec-h{font-size:12px;color:var(--muted);font-family:var(--fm);flex:0 0 auto}
 .lec-act{margin-top:13px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
@@ -1601,7 +1603,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
    (fixes, un mot dedans), et la TEINTE D'APPLICATION (--app-*) sur tout ce qui agit.
    ═══════════════════════════════════════════════════════════════════════════════════════ */
 html,body{font-size:14px;line-height:1.45;letter-spacing:var(--suivi-corps);font-variant-numeric:tabular-nums}
-@media(hover:hover) and (pointer:fine){html,body{font-size:13.5px}}
+@media(hover:hover) and (pointer:fine){html,body{font-size:13px}}
 .ttl-page{font-size:clamp(22px,2.2vw,26px);font-weight:600;letter-spacing:-.02em;line-height:1.15;display:flex;align-items:center;gap:12px}
 .ic-page{width:28px;height:28px;border-radius:8px;background:var(--ic,var(--inset));color:#fff;display:grid;place-items:center;flex-shrink:0}
 .ic-page svg{width:16px;height:16px;stroke-width:2.2}
@@ -1616,9 +1618,9 @@ html,body{font-size:14px;line-height:1.45;letter-spacing:var(--suivi-corps);font
 .kpi .n{order:1;font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.1;color:var(--text)}
 .kpi.ok .n{color:var(--green-txt)} .kpi.att .n{color:var(--amber)} .kpi.ko .n{color:var(--redText)}
 .kpi .n.vert{color:var(--green-txt)} .kpi .n.ambre{color:var(--amber)} .kpi .n.rouge{color:var(--redText)}
-.kpi .d{order:2;font-size:11.5px;color:var(--dim)} .kpi .d b{font-weight:600;color:inherit}
+.kpi .d{order:2;font-size:11px;color:var(--dim)} .kpi .d b{font-weight:600;color:inherit}
 .kpi.ok .d b{color:var(--green-txt)} .kpi.ko .d b{color:var(--redText)} .kpi.att .d b{color:var(--amber)}
-.kpi .s{order:2;font-size:11.5px;color:var(--dim)}
+.kpi .s{order:2;font-size:11px;color:var(--dim)}
 .kpi.clic{cursor:pointer} .kpi.clic:hover{border-color:var(--trait-ui);background:var(--hover);transform:none;box-shadow:none}
 .kpi.sel{border-color:var(--app-brd);background:var(--app-bg);box-shadow:none}
 .kpi .bars{order:3;height:28px;gap:3px;margin-top:6px}
@@ -1639,7 +1641,7 @@ html,body{font-size:14px;line-height:1.45;letter-spacing:var(--suivi-corps);font
 /* ── REGISTRE : tableau groupé — titre collant, bloc cerné, lignes à filet qui part après l'avatar ── */
 .reg{gap:24px}
 .reg-tete{position:sticky;top:0;z-index:2;background:var(--bg);padding:6px 2px;margin:0 0 6px}
-.reg-nom{font-size:14px;font-weight:600}.reg-n{font-size:12px;color:var(--dim)}.reg-sous{font-size:12.5px;color:var(--muted)}
+.reg-nom{font-size:14px;font-weight:600}.reg-n{font-size:12px;color:var(--dim)}.reg-sous{font-size:12px;color:var(--muted)}
 .reg-cli,.reg-haut,.reg-bloc{display:flex;flex-direction:column;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
 .reg-l{min-height:44px;padding:8px 12px;gap:12px;border-radius:0;background:transparent;box-shadow:none;transition:background-color var(--d-1) var(--e-sortie)}
 .reg-l+.reg-l::before{content:"";position:absolute;left:56px;right:0;top:0;height:1px;background:var(--hairline)}
@@ -1653,8 +1655,8 @@ html,body{font-size:14px;line-height:1.45;letter-spacing:var(--suivi-corps);font
 .reg-l.cli:active,.reg-l.haut:active{transform:none;background:var(--inset)}
 .reg-l.cli.on,.reg-l.haut.on{background:var(--sel);box-shadow:inset 3px 0 0 var(--app)}
 .reg-l.cli .reg-t1,.reg-l.haut .reg-t1,#dia .dia-carte .reg-t1{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
-.reg-l2{font-size:13px;color:var(--text2);margin-top:1px}.reg-l3{font-size:12.5px;color:var(--muted);margin-top:1px}
-.reg-av{width:32px;height:32px;border-radius:8px;background:var(--avatar);color:var(--app-txt);font-size:11.5px;font-weight:700;box-shadow:inset 0 0 0 1px var(--avatarBorder)}
+.reg-l2{font-size:13px;color:var(--text2);margin-top:1px}.reg-l3{font-size:12px;color:var(--muted);margin-top:1px}
+.reg-av{width:32px;height:32px;border-radius:8px;background:var(--avatar);color:var(--app-txt);font-size:11px;font-weight:700;box-shadow:inset 0 0 0 1px var(--avatarBorder)}
 .reg-av.sans{width:32px;height:32px;border-radius:8px;background:var(--inset);color:var(--muted);box-shadow:inset 0 0 0 1px var(--border)}
 .reg-fin{gap:6px}.reg-chev{color:var(--dim)}
 /* Sur bureau, la cliente passe en colonnes alignées — une grille à quatre colonnes dont la 3e (.reg-fin)
@@ -1691,13 +1693,13 @@ body.plans .reg-l.cli::before{display:none}
 .p-app{background:var(--app-bg);color:var(--app-txt)}
 .p-app.gestion{background:var(--app-gestion-bg);color:var(--app-gestion-txt)}.p-app.messages{background:var(--app-messages-bg);color:var(--app-messages-txt)}
 .past .pt{width:6px;height:6px;margin-right:5px;background:currentColor;vertical-align:1px}
-.chip{background:var(--inset);border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-weight:500;color:var(--text2);padding:2px 8px}
+.chip{background:var(--inset);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:500;color:var(--text2);padding:2px 8px}
 .chip.acc{background:var(--app-bg);border-color:var(--app-brd);color:var(--app-txt)}
 .bdg-r{background:var(--red);color:var(--on-red)}
 .bdg-b{background:var(--badge-bg);color:var(--badge-txt)}
 
 /* ── BOUTONS : l'action porte la teinte d'application ; le secondaire est blanc à filet, pas teinté ── */
-.btn-plein{background:var(--app-fill);color:var(--app-on);border-radius:var(--r-2);padding:0 14px;font-size:13.5px;font-weight:600;letter-spacing:-.005em;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.btn-plein{background:var(--app-fill);color:var(--app-on);border-radius:var(--r-2);padding:0 14px;font-size:13px;font-weight:600;letter-spacing:-.005em;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 .btn-plein:hover{background:var(--app-fill-hover);transform:none}.btn-plein:active{background:var(--app-fill-press);transform:scale(.98)}
 .btn-plein.danger{background:var(--red);color:var(--on-red)}
 .btn-fant{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--r-2);padding:0 12px;font-size:13px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.04)}
@@ -1711,7 +1713,7 @@ body.plans .reg-l.cli::before{display:none}
 .mode-fixe{display:none}
 
 /* ── CHAMPS : blanc à filet, anneau d'application au focus ── */
-.inp,.sel-f{background:var(--surface);border:1px solid var(--inpBorder);border-radius:var(--r-2);font-size:13.5px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.inp,.sel-f{background:var(--surface);border:1px solid var(--inpBorder);border-radius:var(--r-2);font-size:13px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .inp{padding:6px 10px}
 .inp:focus,.inp:focus-visible,.sel-f:focus-visible,.rech:focus-within{border-color:var(--app);box-shadow:0 0 0 3px var(--app-bg)}
 .rech{background:var(--surface);border:1px solid var(--inpBorder)}
@@ -1731,7 +1733,7 @@ body.plans .reg-l.cli::before{display:none}
 .tbl .scroll .rw>:first-child,.tbl .scroll .hd>:first-child,.tbl .scroll td:first-child,.tbl .scroll th:first-child{position:sticky;left:0;background:inherit;z-index:1}
 
 /* ── ÉTATS VIDES : un cadre plein, une tuile grise, un titre, un geste — et le NOM de la console ── */
-.vide{border:1px solid var(--border);background:var(--inset);border-radius:var(--r-3);padding:28px 20px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.5}
+.vide{border:1px solid var(--border);background:var(--inset);border-radius:var(--r-3);padding:28px 20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
 .vide .ic{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;margin:0 auto 10px;color:var(--dim)}
 .vide b{display:block;font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
 .vide .btn-fant{margin-top:12px}
@@ -1766,7 +1768,7 @@ body.plans .reg-l.cli::before{display:none}
   .hlogo{width:28px;height:28px;border-radius:8px;background:var(--marque);box-shadow:none} .hnom{font-size:14px;font-weight:600;flex:1}
   #replier-barre{width:32px;height:32px;min-height:32px;margin-left:auto}
   .app-pill,.titre-court{display:none}
-  .tab{display:flex;align-items:center;gap:10px;padding:0 8px;border-radius:var(--r-1);font-size:13.5px;font-weight:500;color:var(--text);justify-content:flex-start}
+  .tab{display:flex;align-items:center;gap:10px;padding:0 8px;border-radius:var(--r-1);font-size:13px;font-weight:500;color:var(--text);justify-content:flex-start}
   .tab .ic{width:20px;height:20px;border-radius:6px;background:var(--ic);display:grid;place-items:center;flex-shrink:0;color:#fff}
   .tab .ic svg{width:13px;height:13px;stroke-width:2.2;opacity:1;color:#fff}
   .tab:hover{background:var(--hover);color:var(--text)}
@@ -1791,7 +1793,7 @@ body.plans .reg-l.cli::before{display:none}
 .eqp-act.app.on{color:var(--text);background:var(--surface);box-shadow:inset 0 0 0 1px var(--border)} .eqp-act.app.on i{opacity:1}
 .eq-apps{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px} .eq-apps label{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface);font-size:13px;cursor:pointer}
 .eq-apps label i{width:10px;height:10px;border-radius:3px;background:var(--c)} .eq-apps .sous{color:var(--muted);font-size:12px} .eq-apps input{accent-color:var(--app)}
-.app-sw button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;min-height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;letter-spacing:-.005em;cursor:pointer}
+.app-sw button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;min-height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:-.005em;cursor:pointer}
 .app-sw button i{width:10px;height:10px;border-radius:3px;background:var(--c);flex-shrink:0}
 .app-sw button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--app-brd),0 1px 2px rgba(0,0,0,.06)}
 .app-sw button:focus-visible{box-shadow:var(--anneau)}
@@ -1816,7 +1818,7 @@ body.plans .reg-l.cli::before{display:none}
      la liste d'Entreprises commençait à 1 400 px — trois écrans de préambule avant le travail */
   .desc{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .page-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px} .page-act .btn-plein,.page-act .btn-fant{flex:1 1 auto;justify-content:center;font-size:13px}
-  .grille-kpi.simple .kpi{padding:10px 12px} .grille-kpi.simple .kpi .n{font-size:20px} .grille-kpi.simple .kpi .l{font-size:11.5px}
+  .grille-kpi.simple .kpi{padding:10px 12px} .grille-kpi.simple .kpi .n{font-size:20px} .grille-kpi.simple .kpi .l{font-size:11px}
   .reg-l2{font-size:14px} .reg-l3{font-size:13px}
   .reg-l.cli .reg-t1{font-size:16px} .reg-l.cli{min-height:60px}
   .reg-tete{top:56px}
@@ -1827,7 +1829,7 @@ body.plans .reg-l.cli::before{display:none}
 @media(min-width:900px){.barre-bas,.app-pill,.titre-court,.scrim,.feuille{display:none!important}}
 .barre-bas{position:fixed;bottom:0;left:0;right:0;z-index:25;display:none;grid-template-columns:repeat(5,1fr);height:calc(56px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--headerBg);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);border-top:1px solid var(--border)}
 @media(max-width:899px){#app.on~.barre-bas,body:has(#app.on) .barre-bas{display:grid}}
-.bb{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;border:0;background:transparent;color:var(--muted);font-size:10.5px;font-weight:600;-webkit-tap-highlight-color:transparent;cursor:pointer;font-family:var(--fs)}
+.bb{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:600;-webkit-tap-highlight-color:transparent;cursor:pointer;font-family:var(--fs)}
 .bb svg{width:22px;height:22px;stroke-width:1.8} .bb.on{color:var(--app-txt)} .bb.on svg{stroke-width:2.2}
 .bb:active svg{transform:scale(.9);transition:transform var(--d-0)}
 .bb .bdg-r{position:absolute;top:6px;left:calc(50% + 6px);display:block;min-width:16px;height:16px;line-height:16px;font-size:10px;padding:0 4px}
@@ -1838,14 +1840,14 @@ body.plans .reg-l.cli::before{display:none}
 .feuille[hidden]{display:none}
 .feuille.on{transform:none;transition:transform var(--d-4) var(--ressort)}
 .feuille .poignee{width:36px;height:5px;border-radius:3px;background:var(--trait-ui);margin:0 auto 14px;opacity:.5}
-.feuille .app-sw{margin:0 0 16px} .feuille .app-sw button{min-height:40px;font-size:13.5px}
+.feuille .app-sw{margin:0 0 16px} .feuille .app-sw button{min-height:40px;font-size:13px}
 .groupe{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-bottom:16px}
 .groupe button{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:0 14px;border:0;background:transparent;color:var(--text);font-size:15px;font-family:var(--fs);text-align:left;-webkit-tap-highlight-color:transparent;cursor:pointer}
 .groupe button+button{border-top:1px solid var(--hairline)} .groupe button:active{background:var(--hover)}
 .groupe .ic{width:28px;height:28px;border-radius:7px;background:var(--ic);color:#fff;display:grid;place-items:center;flex-shrink:0} .groupe .ic svg{width:16px;height:16px;stroke-width:2.2}
 .groupe .chev{margin-left:auto;color:var(--dim)} .groupe button.rouge{color:var(--redText);justify-content:center}
 .groupe button.on{background:var(--app-bg);color:var(--app-txt)} .groupe .coche{margin-left:auto;color:var(--app-txt)}
-.groupe .sous{display:block;font-size:12.5px;color:var(--muted);margin-top:1px}
+.groupe .sous{display:block;font-size:12px;color:var(--muted);margin-top:1px}
 @media(prefers-reduced-motion:reduce){.feuille{transition:opacity var(--d-2) ease;transform:none;opacity:0}.feuille.on{opacity:1}}
 
 /* ═══ PUPITRE — LES ÉCRANS PROFONDS ═══ 10 septembre 2026 ══════════════════
@@ -1871,8 +1873,8 @@ body.plans .reg-l.cli::before{display:none}
    teinte n'appartient qu'aux contrôles et aux repères. ── */
 .encart{background:var(--inset);border:1px solid var(--border);border-radius:var(--r-3);padding:14px 16px}
 .encart.bloc{display:block}
-.encart .tx{font-size:13.5px;line-height:1.65;color:var(--text2);margin-top:8px}
-.encart .n{font-size:12.5px;line-height:1.55;color:var(--muted);margin-top:8px}
+.encart .tx{font-size:13px;line-height:1.65;color:var(--text2);margin-top:8px}
+.encart .n{font-size:12px;line-height:1.55;color:var(--muted);margin-top:8px}
 
 /* ── L'EN-TÊTE D'UNE FICHE : le sujet dit une seule fois, en haut. Le carré reprend le rayon
    de la carte moins son rembourrage — concentrique, pas arrondi chacun de son côté. ── */
@@ -1882,7 +1884,7 @@ body.plans .reg-l.cli::before{display:none}
   box-shadow:inset 0 0 0 1px var(--avatarBorder)}
 .fiche-id{flex:1;min-width:180px}
 .fiche-nom{font-size:17px;font-weight:600;letter-spacing:-.015em;line-height:1.25;color:var(--text)}
-.fiche-sous{font-size:12.5px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.fiche-sous{font-size:12px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
 
 /* ── SOUS-SECTION : un filet, un titre .sec, du contenu. Il y avait cinq dessins pour cette
    même idée sur la seule fiche d'entreprise — dont un titre en 12,5 px/800 avec son propre
@@ -1892,7 +1894,7 @@ body.plans .reg-l.cli::before{display:none}
 .sec .n{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
 .sec.att{color:var(--amber)}
 /* la phrase qui explique une carte, toujours sous son contenu et jamais au-dessus */
-.note{font-size:12.5px;color:var(--dim);line-height:1.55;margin-top:10px}
+.note{font-size:12px;color:var(--dim);line-height:1.55;margin-top:10px}
 .note b{color:var(--muted);font-weight:600}
 
 /* ── LIGNE INERTE : la géométrie de .reg-l pour une ligne qui NE s'ouvre pas. Le survol et
@@ -1930,7 +1932,7 @@ body.plans .reg-l.cli::before{display:none}
   .cnx-tbl .rw .v{grid-column:2;grid-row:2;justify-self:end}
   .cnx-tbl .rw .a{grid-column:1;grid-row:3}
   .cnx-tbl .rw .c{grid-column:2;grid-row:3;justify-self:end}
-  .cnx-tbl .rw .a,.cnx-tbl .rw .c{font-size:12.5px;color:var(--muted)}
+  .cnx-tbl .rw .a,.cnx-tbl .rw .c{font-size:12px;color:var(--muted)}
 }
 
 /* ── ÉTAT VIDE : le glyphe de l'onglet, en gris, dans la tuile — l'écho de .ic-page, une
@@ -1947,7 +1949,7 @@ body.plans .reg-l.cli::before{display:none}
    coupe jamais — c'est le seul endroit où l'on lit ce qui a cassé. */
 .inc-titre{margin:0;font-size:clamp(17px,1.7vw,19.5px);font-weight:600;letter-spacing:-.018em;line-height:1.35;color:var(--text);overflow-wrap:anywhere}
 .inc-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.barre-act-l{font-size:12.5px;color:var(--muted);margin-right:2px}
+.barre-act-l{font-size:12px;color:var(--muted);margin-right:2px}
 .sous-corps{margin-top:9px}
 .inc-notes{font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.6;margin-bottom:10px}
 .inc-note-act{display:flex;justify-content:flex-end;margin-top:9px}
@@ -1963,7 +1965,7 @@ body.plans .reg-l.cli::before{display:none}
 .reg-h{flex-shrink:0;font-family:var(--fm);font-size:12px;font-variant-numeric:tabular-nums;
   letter-spacing:var(--suivi-mono);color:var(--muted);white-space:nowrap}
 .encart .tx{max-width:74ch}
-.inc-ou{margin-top:12px;font-size:12.5px;color:var(--text2)}
+.inc-ou{margin-top:12px;font-size:12px;color:var(--text2)}
 .inc-ou .k{color:var(--muted)}
 .inc-ou .mono{color:var(--code)}
 
@@ -1974,12 +1976,12 @@ body.plans .reg-l.cli::before{display:none}
 .ch-n{width:74px}.ch-d{width:auto}.ch-promo{width:230px;text-transform:uppercase}
 .v-act{margin-left:8px}
 /* ── ACTIVITÉ PAR ONGLET : une jauge par écran, la donnée dans la largeur ── */
-.act-bugs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--text2);margin-bottom:10px}
+.act-bugs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text2);margin-bottom:10px}
 .act-bugs .ko{color:var(--redText);font-weight:600}
-.act-tot{font-size:12.5px;color:var(--text2);margin-bottom:8px}
+.act-tot{font-size:12px;color:var(--text2);margin-bottom:8px}
 .act-liste{display:flex;flex-direction:column;gap:6px}
 .act-l{display:flex;align-items:center;gap:10px}
-.act-nom{flex:0 0 auto;width:clamp(96px,34%,150px);font-size:12.5px;color:var(--text2);overflow-wrap:anywhere}
+.act-nom{flex:0 0 auto;width:clamp(96px,34%,150px);font-size:12px;color:var(--text2);overflow-wrap:anywhere}
 .act-jauge{flex:1;min-width:40px;height:8px;border-radius:var(--r-pill);background:var(--inset);box-shadow:inset 0 0 0 1px var(--hairline);overflow:hidden}
 .act-jauge i{display:block;height:100%;border-radius:var(--r-pill);background:var(--app)}
 .act-n{flex:0 0 44px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
@@ -1987,7 +1989,7 @@ body.plans .reg-l.cli::before{display:none}
 /* ── CE QUI SE PASSE CHEZ EUX : les quatre chiffres, puis ce qu'ils ouvrent ── */
 .dsr-rang{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
 .dsr-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
-.dsr-promo{margin-top:12px;font-size:12.5px;color:var(--text2)}
+.dsr-promo{margin-top:12px;font-size:12px;color:var(--text2)}
 /* l'état se lit sur le CHIFFRE, jamais sur le fond — la même règle que les .kpi */
 .dsr-n.ko{color:var(--redText)}.dsr-n.att{color:var(--amber)}
 .sec.ko{color:var(--redText)}
@@ -2043,7 +2045,7 @@ body.plans .reg-l.cli::before{display:none}
 /* la cause et la correction : deux cartes de LECTURE — texte confortable, un seul geste */
 .inc-suite{margin-top:16px}
 .inc-suite .sec{margin:0}
-.inc-lire{font-size:13.5px;line-height:1.7;color:var(--text2);margin-top:10px;white-space:pre-wrap;max-width:74ch}
+.inc-lire{font-size:13px;line-height:1.7;color:var(--text2);margin-top:10px;white-space:pre-wrap;max-width:74ch}
 .inc-sujet{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--text);margin-top:10px}
 .inc-verif{margin-top:10px;font-size:13px;line-height:1.6;color:var(--text2);max-width:74ch}
 .inc-verif b{color:var(--muted);font-weight:600}
@@ -2063,6 +2065,64 @@ body.plans .reg-l.cli::before{display:none}
 .squel-l i{display:block;height:44px;margin:8px 12px;border-radius:var(--r-2)}
 .squel-l i+i{margin-top:0}
 @media(prefers-reduced-motion:reduce){.squel-l i{animation:none}}
+
+/* ══════════════════════════════════════════════════════════════════════════════════
+   PASSE DE DESIGN — 13 septembre 2026, skill `apple-design`
+   Style seul : pas une ligne de balisage, pas une ligne de JavaScript. Trois mesures
+   prises au navigateur avant d'écrire quoi que ce soit, et qui ont décidé du contenu
+   de ce bloc :
+     · 23 combinaisons taille/graisse par écran — la règle en veut trois
+     · 7 rayons distincts — la concentricité ne tient pas
+     · 10 couleurs sur les 10 pastilles de la barre latérale
+   ══════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1) LA COULEUR REDEVIENT UN ÉTAT ──────────────────────────────────────────────
+   Le violet d'Entreprises n'apprend rien de plus que le rose d'Équipe : dix teintes
+   décoratives qui se disputaient l'œil avec le vert de la rubrique ouverte — la seule
+   couleur de cet écran qui, elle, dit quelque chose. Les pastilles passent au neutre,
+   l'accent reste à la sélection. C'est le rangement des barres latérales d'Apple
+   (Mail, Finder) : glyphe monochrome, la teinte pour dire « vous êtes ici ».
+   Les valeurs sont dans --ic-neutre / --ic-encre, une par thème. */
+.tab .ic, .ic-page{ background:var(--ic-neutre); color:var(--ic-encre) }
+.tab .ic svg, .ic-page svg{ color:var(--ic-encre) }
+/* Sur la ligne sélectionnée, un chip neutre ferait une tache sourde dans le vert :
+   il se fond au contraire dans la sélection, comme sur iOS. */
+.tab.on .ic{ background:rgba(255,255,255,.20) }
+.tab.on .ic svg{ color:#fff }
+
+/* ── 2) LE TRACKING, QUE LE SYSTÈME FAIT TOUT SEUL ET QU'UNE PAGE WEB DOIT ÉCRIRE ──
+   SF resserre l'approche quand le corps grandit ; sans ça, un grand titre paraît
+   lâche et amateur. Ordres de grandeur du skill pour SF Pro : −0,43 px à 17, −0,45 à
+   20, et ça redevient positif au-delà de 24. .topbar h1 le faisait déjà — les titres
+   de page, non. */
+.ttl-page{ letter-spacing:-.021em }
+.hnom{ letter-spacing:-.01em }
+
+/* ── 3) LE TÉLÉPHONE : FAUSSE ALERTE, ET ELLE MÉRITE D'ÊTRE ÉCRITE ────────────────
+   Une première sonde annonçait que la dernière ligne passait sous la barre d'onglets
+   sans pouvoir remonter. C'ÉTAIT FAUX, et la faute était dans la sonde : elle comparait
+   le bas du dernier élément au haut de la barre SANS AVOIR DÉFILÉ. Sur une liste qui
+   défile, le dernier élément est évidemment sous la barre — ça ne dit rien du tout.
+   Remesuré après défilement jusqu'en bas : `main` porte déjà
+   `padding:14px 16px calc(72px + env(safe-area-inset-bottom))`, et le dernier élément
+   dégage le haut de la barre de 30 px sur Entreprises. Rien à corriger.
+   La règle qui avait été ajoutée ici recalculait exactement la même valeur : elle est
+   retirée. Une règle qui ne change rien fait croire qu'un défaut a été traité. */
+
+/* ── 4) LES FILTRES REDEVIENNENT DES FILTRES ──────────────────────────────────────
+   Mesuré : 44 px de haut, c'est la densité d'un écran tactile. Sur la Tour ouverte au
+   pointeur, cinq boîtes de 44 px alignées sous les compteurs pèsent autant que le
+   contenu qu'elles filtrent — l'œil les compte avant de lire la liste. La densité Mac
+   du skill dit 28 px pour un contrôle standard ; 34 laisse de la marge sans faire
+   maigre. En dessous de 900 px on ne touche à rien : là c'est un doigt, et le plancher
+   de 44 px n'est pas négociable. */
+@media(min-width:901px){
+  /* `.svl-filtres .sel-f{min-height:44px}` existe plus haut et gagne sur un sélecteur
+     simple : on reprend la même spécificité plutôt que de poser un !important. */
+  .sel-f, .svl-filtres .sel-f{ min-height:34px; font-size:12px; padding-right:30px;
+    background-position:right 8px center }
+  .filtres{ gap:8px; margin:14px 0 }
+}
 </style>
 </head>
 <body>
@@ -3428,12 +3488,12 @@ async function tourLienEntreprise(email,nom,neuf,identConnu){
       '<button class="btn-fant" onclick="tourAccesNeuf(\''+jsq(e.slug||e.nom)+'\')">🔄 Renouveler</button></div>'+
     '<div id="lg-acces-quand" style="color:var(--muted);font-size:12px;margin:-8px 0 14px"></div>'+
     '<div class="sec">SES IDENTIFIANTS DE DÉPART</div>'+
-    '<div style="margin:6px 0 14px;font-size:14.5px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b> <span style="color:var(--muted);font-size:12px">(son prénom)</span><br>Mot de passe provisoire : <b>'+esc(mdpAff)+'</b> <span style="color:var(--muted);font-size:12px">(son nom + « !! » — l\'app lui fait choisir son vrai mot de passe à la 1re connexion)</span></div>'+
+    '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b> <span style="color:var(--muted);font-size:12px">(son prénom)</span><br>Mot de passe provisoire : <b>'+esc(mdpAff)+'</b> <span style="color:var(--muted);font-size:12px">(son nom + « !! » — l\'app lui fait choisir son vrai mot de passe à la 1re connexion)</span></div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px"><button class="btn-plein" onclick="tourMailAcces(\''+jsq(e.nom)+'\',this)">📧 Envoyer par e-mail au client</button>'+
     (neuf?'':'<button class="btn-fant" style="color:var(--redText)" onclick="tourRepartirNeuf(\''+jsq(email)+'\',\''+jsq(e.nom)+'\')">🔄 Repartir à neuf</button>')+
     '<a class="btn-fant" id="lg-mailto" style="text-decoration:none;opacity:.45;pointer-events:none" href="#" title="Il faut d\'abord un code d\'accès">✉️ Ou ouvrir dans Mail</a></div>'+
     '<div class="sec">LE MESSAGE (si tu préfères le coller toi-même)</div>'+
-    '<textarea id="lg-msg" rows="8" class="inp" style="margin-top:6px;font-size:12.5px"></textarea>'+
+    '<textarea id="lg-msg" rows="8" class="inp" style="margin-top:6px;font-size:12px"></textarea>'+
     '<div style="margin-top:8px"><button class="btn-fant" onclick="tourCopie(\'lg-msg\',this)">Copier le message</button></div>');
   /* Le message et le lien mailto ne se posent qu'APRÈS le code d'accès : un courriel envoyé
      avec « __CODE__ » en toutes lettres, et le client n'a aucun moyen d'entrer chez lui. */
@@ -3506,7 +3566,7 @@ function tourIdentModifier(slug,nom,identActuel){
          entière pour un changement de prénom. */
       '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">L’adresse ne change pas. Redonne-lui simplement ses nouveaux identifiants.</div>'+
       '<div class="sec">LES IDENTIFIANTS</div>'+
-      '<div style="margin:6px 0 14px;font-size:14.5px;line-height:1.9">Identifiant : <b>'+esc(ident)+'</b><br>Mot de passe provisoire : <b>'+esc(mdp)+'</b></div>'+
+      '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(ident)+'</b><br>Mot de passe provisoire : <b>'+esc(mdp)+'</b></div>'+
       '<div class="encart"><div class="encart-tx">Valable tant que personne ne s’est connecté. Dès la première connexion, le mot de passe appartient à l’entreprise et ne se change plus d’ici.</div></div>');
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -3667,7 +3727,7 @@ async function tourAccepterDemande(email,nom){
       '<div style="margin:0 0 14px;font-size:13px;color:var(--muted)">Ensuite l\'identifiant suffit, pour tout le monde. Première connexion : <b style="color:inherit">'+esc(ident)+'</b> / <b style="color:inherit">'+esc(mdpAff)+'</b> (modifiables à sa première connexion)</div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px"><button class="btn-plein" onclick="tourMailAcces(\''+jsq(e.nom)+'\',this)">📧 Envoyer par e-mail au client</button></div>'+
       '<div class="sec">MESSAGE DE BIENVENUE À ENVOYER</div>'+
-      '<textarea id="acc-msg" rows="9" class="inp" style="margin-top:6px;font-size:12.5px;padding:10px"></textarea>'+
+      '<textarea id="acc-msg" rows="9" class="inp" style="margin-top:6px;font-size:12px;padding:10px"></textarea>'+
       '<div style="margin-top:8px"><button class="btn-plein" onclick="tourCopie(\'acc-msg\',this)">📋 Copier le message</button></div>');
     /* Le message attend son code d'accès : le copier maintenant mettrait « __CODE__ » dans le
        presse-papiers, et c'est ce qui partirait au client. On le pose quand le code arrive. */
@@ -4321,7 +4381,7 @@ function blocVersions(){
       p('minimum exigé', min?'v'+min:'aucun', min?'':'var(--amber)')+
       p('appareils bloqués · 7 j', nSous, nSous?'var(--amber)':'')+
     '</div>'+
-    '<div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-top:10px">Un appareil sous le minimum lit encore, mais <b>n’écrit plus</b> — le nuage refuse — et il se met à jour tout seul. L’application ne travaille qu’en ligne, sans option : sans réseau, elle affiche « Connexion requise » et n’enregistre rien. '+
+    '<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:10px">Un appareil sous le minimum lit encore, mais <b>n’écrit plus</b> — le nuage refuse — et il se met à jour tout seul. L’application ne travaille qu’en ligne, sans option : sans réseau, elle affiche « Connexion requise » et n’enregistre rien. '+
       (min?'':'<b>Aucun minimum n’est exigé : les vieilles versions écrivent encore.</b> ')+
       (d.cleAdmin?'':'<span style="color:var(--redText)">⚠️ La clé d’administration Firebase manque sur le serveur : le réglage n’atteint pas Firestore, seule l’application s’y conforme.</span>')+
     '</div>'+
@@ -4330,7 +4390,7 @@ function blocVersions(){
       (min?'<button class="btn-fant" onclick="versionLever()">Lever l’exigence</button>':'')+
     '</div>':'')+
     (sous.length?'<div style="margin-top:12px">'+sous.map(function(x){ return '<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13px"><span style="flex:1"><b>'+esc(x.nom||x.t)+'</b></span><span class="past p-ambre">'+x.n+' appareil'+(x.n>1?'s':'')+' bloqué'+(x.n>1?'s':'')+'</span></div>'; }).join('')+'</div>':'')+
-    (d.maj?'<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(d.maj))+(d.par?' par '+esc(d.par):'')+'</div>':'');
+    (d.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(d.maj))+(d.par?' par '+esc(d.par):'')+'</div>':'');
 }
 function vueSurveillance(){
   if(!INC.loaded) return enTete('Surveillance',SURV_DESC)+acSquel();
@@ -4829,7 +4889,11 @@ var MAIL_CATS=[
   {cle:'traiter',nom:'À traiter',         ico:'🕗'},
   {cle:'marques',nom:'Marqués',           ico:'🚩'},
   {cle:'pieces', nom:'Pièces jointes',    ico:'📎'},
-  {cle:'envoyes',nom:'Envoyés',           ico:'📤'}
+  /* ⛔ PAS « Envoyés » : il y a maintenant un DOSSIER « Envoyés » juste au-dessus, celui de la
+     boîte IMAP. Deux entrées du même nom dans la même barre, qui montrent des choses
+     différentes — le dossier Envoyés de support@, et le journal de ce que TeamOP a envoyé
+     depuis son propre SMTP — c'est une confusion garantie. Le nom dit maintenant ce que c'est. */
+  {cle:'envoyes',nom:'Envois TeamOP',     ico:'📤'}
 ];
 function mailDansCat(m,cle){
   if(cle==='traiter') return !m.lu && !m.auto;
@@ -4898,8 +4962,11 @@ function mailChoisirEnt(cle){
    toujours — c'est elle qu'on appelle, pagination comprise. La plomberie existait, il ne
    manquait que le clic. */
 function mailChoisirBoite(id,nom){
-  MSG.sel = id ? {boite:id,dossier:'',nom:(nom||'Boîte'),role:'inbox'}
-               : {boite:'toutes',dossier:'',nom:'Toutes les réceptions',role:'inbox'};
+  /* On pose le chemin de la RÉCEPTION, pas une chaîne vide. Le serveur retombe bien sur INBOX
+     tout seul, mais l'écran, lui, ne saurait pas quel dossier surligner : on aurait une boîte
+     ouverte et aucun dossier actif, ce qui se lit comme un bug. */
+  MSG.sel = id ? {boite:id,dossier:mailCheminInbox(id),nom:(nom||'Boîte'),role:'inbox',dosNom:'Réception'}
+               : {boite:'toutes',dossier:'',nom:'Toutes les réceptions',role:'inbox',dosNom:''};
   /* On repart de « toutes les entreprises » : l'entreprise ouverte n'écrit peut-être pas à
      cette boîte-là, et rester sur elle afficherait un écran vide sans dire pourquoi. */
   MSG.selEnt='toutes'; MSG.selCat='tout'; MSG.autoTout=false;
@@ -4911,6 +4978,33 @@ function mailChoisirBoite(id,nom){
   renderNav('fondu');
 }
 function mailBoiteChoisie(){ return (MSG.sel&&MSG.sel.boite!=='toutes') ? MSG.sel.boite : ''; }
+function mailDossierChoisi(){ return (MSG.sel&&MSG.sel.dossier)||''; }
+/* Les dossiers d'une boîte, tels que le serveur les a trouvés en IMAP : Réception, Brouillons,
+   Envoyés, Indésirables, Corbeille, Archives, plus ceux que l'entreprise a créés. Ils arrivaient
+   déjà dans /api/monitor/mail/dossiers et personne ne les lisait — la Tour jetait la moitié de
+   ce qu'elle demandait. */
+function mailDossiersDe(id){
+  var t=(MSG.boites||[]);
+  for(var i=0;i<t.length;i++){ var b=t[i].boite||{}; if(b.id===id) return t[i].dossiers||[]; }
+  return [];
+}
+function mailCheminInbox(id){
+  var d=mailDossiersDe(id);
+  for(var i=0;i<d.length;i++) if(d[i].role==='inbox') return d[i].chemin;
+  return '';
+}
+/* Une icône par rôle, comme dans Mail : le rôle est le même partout (inbox, envoyes…), les
+   noms de dossier, non — un serveur dit « Trash », l'autre « Corbeille ». */
+var MAIL_DOS_ICO={inbox:'📥',brouillons:'📝',envoyes:'📨',indesirables:'🚫',corbeille:'🗑️',archives:'📦'};
+function mailChoisirDossier(chemin,nom){
+  if(!MSG.sel||MSG.sel.boite==='toutes') return;
+  MSG.sel={boite:MSG.sel.boite,dossier:chemin||'',nom:MSG.sel.nom,role:'',dosNom:nom||''};
+  MSG.selEnt='toutes'; MSG.selCat='tout'; MSG.autoTout=false;
+  MSG.ouvert=null; MSG.lu=null; MSG.envSel=null;
+  MSG.messages=[]; MSG.total=0;
+  chargerMessages();
+  renderNav('fondu');
+}
 /* ⛔ L'ADRESSE, PAS L'IDENTIFIANT TECHNIQUE. Le serveur renvoie « boite: b.id » et rien d'autre :
    chaque ligne de message affichait donc « b-sup » ou « b-ctl » au lieu de
    « support@teamop.fr ». Défaut d'avant ce lot, vu en pilotant l'écran au navigateur — il ne se
@@ -5010,11 +5104,31 @@ function mailDossiers(){
     h+='<div class="dos-t">Boîte</div>'+
       d(!bSel, 'mailChoisirBoite(\'\')', '📬', 'Toutes les boîtes', bSel?0:MSG.nonLus);
     h+=MSG.boites.map(function(x){
-      var b=x.boite||{};
+      var b=x.boite||{}, ouverte=(bSel===b.id);
       /* Le compteur vient du serveur (x.nonLus) et vaut pour TOUTE la boîte, pas pour la
          tranche chargée : c'est le seul chiffre juste quand on n'a pas encore ouvert. */
-      return d(bSel===b.id, 'mailChoisirBoite(\''+jsq(b.id)+'\',\''+jsq(b.email||'')+'\')',
-               '✉️', b.email||'Boîte', Number(x.nonLus)||0);
+      var r=d(ouverte, 'mailChoisirBoite(\''+jsq(b.id)+'\',\''+jsq(b.email||'')+'\')',
+              '✉️', b.email||'Boîte', Number(x.nonLus)||0);
+      /* ⛔ LES DOSSIERS DE LA BOÎTE, COMME DANS MAIL — demandé par Justin le 13 septembre 2026,
+         capture d'Apple Mail à l'appui : Réception, Brouillons, Envoyés, Indésirables,
+         Corbeille, Archives. Ils arrivaient DÉJÀ dans /api/monitor/mail/dossiers, avec leur
+         rôle et leur chemin, déjà triés dans cet ordre — la Tour jetait la moitié de ce qu'elle
+         demandait. Aucun changement serveur.
+         Repliés par compte, comme Mail : seule la boîte ouverte montre ses dossiers. Trois
+         boîtes à six dossiers feraient dix-huit lignes permanentes, et c'est exactement ce que
+         Mail évite en repliant. */
+      if(!ouverte) return r;
+      var dos=(x.dossiers||[]);
+      if(!dos.length) return r;
+      return r+dos.map(function(f){
+        return '<button class="dos sous'+(mailDossierChoisi()===f.chemin?' on':'')+'" onclick="mailChoisirDossier(\''+jsq(f.chemin)+'\',\''+jsq(f.nom||'')+'\')">'+
+          '<span class="dos-i">'+(MAIL_DOS_ICO[f.role]||'📁')+'</span>'+
+          '<span class="dos-n">'+esc(f.nom||f.chemin)+'</span>'+
+          /* Le compteur de non-lus ne vaut que pour la RÉCEPTION : c'est le seul que le serveur
+             calcule. L'afficher sur Corbeille ou Archives serait un chiffre inventé. */
+          ((f.role==='inbox'&&Number(x.nonLus))?'<span class="n">'+Number(x.nonLus)+'</span>':'')+
+          '</button>';
+      }).join('');
     }).join('');
   }
   h+='<div class="dos-t">Rechercher</div>'+
@@ -5379,9 +5493,15 @@ function vueSupport(){
      reste n'existe pas. */
   var bCh=mailBoiteChoisie();
   var bNom=bCh?String((MSG.sel&&MSG.sel.nom)||'cette boîte'):'';
-  var tete=enTete(bCh?('Courrier · '+bNom):'Courrier',
+  /* Le dossier ne se dit que s'il n'est PAS la réception : écrire « · Réception » partout
+     ajouterait un mot à chaque titre sans rien apprendre. Mais dans la Corbeille ou les
+     Indésirables, ne pas le dire ferait croire qu'on lit le courrier normal. */
+  var dNom=(bCh&&MSG.sel&&MSG.sel.dosNom&&MSG.sel.dosNom!=='Réception')?String(MSG.sel.dosNom):'';
+  var tete=enTete(bCh?('Courrier · '+bNom+(dNom?(' · '+dNom):'')):'Courrier',
     bCh
-      ? 'Vous ne voyez que ce qui est arrivé sur <b>'+esc(bNom)+'</b>. Les entreprises restent rangées séparément à l’intérieur. <a href="#" onclick="mailChoisirBoite(\'\');return false">Voir toutes les boîtes</a>'
+      ? (dNom
+          ? 'Vous êtes dans <b>'+esc(dNom)+'</b> de <b>'+esc(bNom)+'</b> — ce n’est pas la réception. <a href="#" onclick="mailChoisirDossier(mailCheminInbox(mailBoiteChoisie()),\'Réception\');return false">Revenir à la réception</a> · <a href="#" onclick="mailChoisirBoite(\'\');return false">toutes les boîtes</a>'
+          : 'Vous ne voyez que ce qui est arrivé sur <b>'+esc(bNom)+'</b>. Les entreprises restent rangées séparément à l’intérieur. <a href="#" onclick="mailChoisirBoite(\'\');return false">Voir toutes les boîtes</a>')
       : 'Les messages reçus par les boîtes reliées, et tout ce que TeamOP a envoyé. La date et l’heure de chaque envoi sont conservées.',
     '<button class="btn-fant" onclick="supConnecterBoite()">Connecter une boîte</button>'+
     '<button class="btn-plein" onclick="compoOuvrir()">'+svg('crayon',15)+' Écrire</button>');
@@ -5463,8 +5583,8 @@ function cliCopierAdresses(btn){
   var txt=l.join('\n');
   var fini=function(){ if(btn){ var t=btn.textContent; btn.textContent='✅ '+l.length+' adresses copiées'; setTimeout(function(){ btn.textContent=t; },2200); } };
   try{
-    navigator.clipboard.writeText(txt).then(fini,function(){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+l.length+' adresse(s)</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12.5px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); });
-  }catch(e){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+l.length+' adresse(s)</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12.5px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); }
+    navigator.clipboard.writeText(txt).then(fini,function(){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+l.length+' adresse(s)</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); });
+  }catch(e){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+l.length+' adresse(s)</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); }
 }
 function vueEntreprises(){
   var st=ENT.stats||{};
@@ -5663,7 +5783,7 @@ function vueEntreprises(){
     '<div class="rech" style="margin-bottom:12px">'+svg('loupe',16)+'<input placeholder="Rechercher (nom, adresse, identifiant d’espace)…" value="'+esc(ENT.q)+'" oninput="entQ(this.value)"></div>'+
     '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
       '<span>'+l.length+' sur '+(ENT.liste||[]).length+'</span>'+
-      (ENT.filtre?'<button class="btn-fant" style="padding:2px 10px;font-size:11.5px" onclick="entFiltre(\''+ENT.filtre+'\')">'+
+      (ENT.filtre?'<button class="btn-fant" style="padding:2px 10px;font-size:11px" onclick="entFiltre(\''+ENT.filtre+'\')">'+
         esc({erreurs:'avec des erreurs',echecs:'avec des échecs de connexion',retard:'sans la dernière mise à jour',
              horsAnnuaire:'hors annuaire',migrer:'à migrer (clé partagée)'}[ENT.filtre]||'')+' ✕</button>':'')+
     '</div>'+
@@ -5693,7 +5813,7 @@ function blocOrphelin(o){
   var L=orphelinLecture(ORPH.d);
   if(!L.ev.length) return t+'<div style="margin-top:10px;font-size:13px;color:var(--text2)">Aucune connexion enregistrée. Cet espace n’a jamais servi — rien à perdre à le supprimer.</div>';
 
-  var puce=function(n,l,c){ return '<div style="flex:1;min-width:88px"><div style="font-size:19px;font-weight:700'+(c?';color:'+c:'')+'">'+n+'</div><div style="font-size:11.5px;color:var(--muted)">'+l+'</div></div>'; };
+  var puce=function(n,l,c){ return '<div style="flex:1;min-width:88px"><div style="font-size:19px;font-weight:700'+(c?';color:'+c:'')+'">'+n+'</div><div style="font-size:11px;color:var(--muted)">'+l+'</div></div>'; };
   t+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0 4px">'+
     puce(L.reussies,'connexion'+(L.reussies>1?'s':'')+' réussie'+(L.reussies>1?'s':''))+
     puce(L.nbLogins,'identifiant'+(L.nbLogins>1?'s':''))+
@@ -5702,7 +5822,7 @@ function blocOrphelin(o){
   '</div>';
   /* « Repéré le », jamais « créé le » : la liste des événements est plafonnée à 500, donc
      le plus ancien qu'on garde n'est pas forcément le premier qui a eu lieu. */
-  t+='<div style="font-size:12.5px;color:var(--text2);line-height:1.8;margin-top:8px">'+
+  t+='<div style="font-size:12px;color:var(--text2);line-height:1.8;margin-top:8px">'+
     'Repéré le <b>'+esc(fmtJour(L.premiere))+'</b>'+(L.derniere?', vu pour la dernière fois le <b>'+esc(fmtJour(L.derniere))+'</b>':'')+'.'+
     (L.versions.length?'<br>Version'+(L.versions.length>1?'s':'')+' : <span class="mono">v'+L.versions.map(esc).join(', v')+'</span>':'')+
   '</div>';
@@ -5714,7 +5834,7 @@ function blocOrphelin(o){
   else if(L.jamaisEntre) av=['p-ambre','⛔ Que des échecs, aucune connexion réussie : personne n’est jamais entré ici. C’est presque sûrement quelqu’un qui s’est trompé sur l’écran de connexion.'];
   else if(L.essai) av=['p-gris','Un seul identifiant, un seul appareil, peu de connexions : très probablement un essai. « Très probablement » — vérifiez la date avant de supprimer.'];
   else av=['p-rouge','⚠️ Plusieurs personnes ou beaucoup de connexions : quelqu’un travaille là-dedans. Un espace sans nom n’est pas forcément un espace sans client — ce peut être une entreprise dont l’annuaire a été perdu. Ne supprimez pas sans en être sûr.'];
-  t+='<div style="margin-top:12px;padding:11px 13px;border-radius:10px;background:var(--tint-gris);font-size:12.5px;line-height:1.65;color:var(--text2)">'+av[1]+'</div>';
+  t+='<div style="margin-top:12px;padding:11px 13px;border-radius:10px;background:var(--tint-gris);font-size:12px;line-height:1.65;color:var(--text2)">'+av[1]+'</div>';
 
   var der=L.ev.slice(0,6);
   if(der.length) t+='<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">Dernières connexions</div>'+
@@ -5792,9 +5912,9 @@ function entSupprimer(t,nm){
       '<div style="font-size:18px;font-weight:700;color:var(--redText)">🗑 Supprimer « '+esc(nm)+' » partout</div>'+
       '<div class="mono" style="font-size:12px;color:var(--muted);margin-top:4px">'+esc(t)+'</div>'+
       (rien
-        ? '<div style="margin-top:16px;font-size:13.5px;color:var(--text2)">Il ne reste rien à supprimer pour cet espace.</div>'
-        : '<div style="margin-top:16px;font-size:13.5px;color:var(--text2)">Voici ce qui va disparaître :</div>'+
-          '<ul style="margin:8px 0 0;padding-left:20px;font-size:13.5px;color:var(--text2);line-height:1.9">'+
+        ? '<div style="margin-top:16px;font-size:13px;color:var(--text2)">Il ne reste rien à supprimer pour cet espace.</div>'
+        : '<div style="margin-top:16px;font-size:13px;color:var(--text2)">Voici ce qui va disparaître :</div>'+
+          '<ul style="margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--text2);line-height:1.9">'+
             l((a.slugs||[]).length,'entrée d’annuaire','entrées d’annuaire')+
             l(a.comptesAnnuaire,'compte de connexion','comptes de connexion')+
             l(a.boites,'boîte mail reliée','boîtes mail reliées')+
@@ -6097,8 +6217,8 @@ function blocComptesDe(o){
    définitivement », qui efface aussi son espace et ses données. Le bouton le dit. */
 function blocComptesSite(){
   var t='<div style="margin-top:34px">'+
-    '<div style="font-size:12.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text);border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:8px">👤 Tous les comptes du site</div>'+
-    '<div style="font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.55">Les comptes de personnes, lus chez Firebase — y compris ceux qui n’ont jamais ouvert d’espace, invisibles partout ailleurs. Supprimer un compte retire son accès à l’application ; sa boîte mail n’est pas touchée.</div>';
+    '<div style="font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text);border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:8px">👤 Tous les comptes du site</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.55">Les comptes de personnes, lus chez Firebase — y compris ceux qui n’ont jamais ouvert d’espace, invisibles partout ailleurs. Supprimer un compte retire son accès à l’application ; sa boîte mail n’est pas touchée.</div>';
   if(!CS.loaded) return t+squelListe(4)+'</div>';
   if(CS.err) return t+videTour('Comptes illisibles',esc(CS.err),
     '<button type="button" class="btn-fant" onclick="chargerComptesSite()">Réessayer</button>')+'</div>';
@@ -6119,9 +6239,9 @@ function blocComptesSite(){
           /* L'identité AVANT tout le reste : on ne supprime pas un compte sur une date.
              Le nom et la société viennent de la fiche d'inscription ; quand elle manque,
              l'adresse reste le seul repère et on le dit plutôt que d'afficher un vide. */
-          '<div style="font-size:13.5px;font-weight:600">'+esc(c.nom||'(nom non renseigné)')+
+          '<div style="font-size:13px;font-weight:600">'+esc(c.nom||'(nom non renseigné)')+
             (c.societe?' <span style="font-weight:400;color:var(--muted)">— '+esc(c.societe)+'</span>':'')+'</div>'+
-          '<div class="mono" style="font-size:12.5px;color:var(--text2);word-break:break-all;margin-top:1px">'+esc(c.email)+'</div>'+
+          '<div class="mono" style="font-size:12px;color:var(--text2);word-break:break-all;margin-top:1px">'+esc(c.email)+'</div>'+
           '<div style="font-size:12px;color:var(--muted);margin-top:2px">'+
             (c.cree?'Créé le '+esc(fmtJour(c.cree)):'Date de création inconnue')+
             (c.derniere?' · dernière connexion '+esc(fmtJour(c.derniere)):' · jamais connecté')+
@@ -6142,8 +6262,8 @@ function blocComptesSite(){
 function blocEspacesSite(){
   var l=(PBL.liste||[]).filter(function(e){ return e.origine==='site'; });
   return '<div style="margin-top:34px">'+
-    '<div style="font-size:12.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text);border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:8px">🏢 Leurs espaces</div>'+
-    '<div style="font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.55">Ouverts par une inscription sur teamop.fr. Ce sont de vrais espaces d’entreprise, avec de vraies données : on les suspend, on ne les efface pas à la légère.</div>'+
+    '<div style="font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text);border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:8px">🏢 Leurs espaces</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.55">Ouverts par une inscription sur teamop.fr. Ce sont de vrais espaces d’entreprise, avec de vraies données : on les suspend, on ne les efface pas à la légère.</div>'+
     pubBloc(l,'Aucune entreprise inscrite depuis le site pour l’instant.')+
   '</div>';
 }
@@ -6679,7 +6799,7 @@ async function pbCreer(btn){
       '<div id="lg-acces-quand" style="color:var(--muted);font-size:12px;margin:0 0 10px"></div>'+
       '<div style="color:var(--muted);font-size:12px;margin:0 0 14px">Sur l\'adresse ci-dessus, « Première connexion de l\'entreprise ? », puis ce code. Ensuite l\'identifiant suffit.</div>'+
       '<div class="sec">LES IDENTIFIANTS</div>'+
-      '<div style="margin:6px 0 14px;font-size:14.5px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b><br>Mot de passe provisoire : <b>'+esc(e.mdp||mdp)+'</b> <span style="color:var(--muted);font-size:12px">(l’app fait choisir le vrai mot de passe à la 1re connexion)</span></div>'+
+      '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b><br>Mot de passe provisoire : <b>'+esc(e.mdp||mdp)+'</b> <span style="color:var(--muted);font-size:12px">(l’app fait choisir le vrai mot de passe à la 1re connexion)</span></div>'+
       '<div class="encart"><div class="encart-tx">Cette adresse ouvre la <b>version publique</b>, avec ses vraies données. Elle n’a rien à voir avec un accès bêta : la bêta n’ouvre que la bêta.</div></div>');
     /* Ce panneau n'a pas de message type : on oublie celui du panneau précédent, sinon
        lgMessagePoser irait réécrire une zone qui n'est plus à l'écran. */
@@ -6701,14 +6821,14 @@ function pubLigne(e){
   var qui=(r.utilisateurs7?' · '+r.utilisateurs7+' utilisateur'+(r.utilisateurs7>1?'s':'')+' sur 7 j':'');
   return '<div class="item" style="cursor:default">'+
     '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
-      '<div style="width:38px;height:38px;border-radius:10px;background:var(--avatar);border:1px solid var(--avatarBorder);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:var(--blueSoft);flex-shrink:0">'+esc(sigle(e.nom))+'</div>'+
+      '<div style="width:38px;height:38px;border-radius:10px;background:var(--avatar);border:1px solid var(--avatarBorder);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--blueSoft);flex-shrink:0">'+esc(sigle(e.nom))+'</div>'+
       /* min-width:200px, PAS 0 : l'avatar et les deux pastilles sont sur la même ligne flex, et
          avec min-width:0 le bloc de texte leur cédait toute la place — 152 px sur un écran de
          390, si bien que le nom et les dates tombaient en colonne d'un mot par ligne. Avec un
          minimum, flex-wrap fait passer les pastilles à la ligne suivante et le texte respire :
          278 px au lieu de 152, titre sur une seule ligne. Mesuré de 320 à 1400 px, sans
          débordement. */
-      '<div style="flex:1;min-width:200px"><div style="font-size:13.5px;font-weight:600">'+esc(e.nom||e.slug)+
+      '<div style="flex:1;min-width:200px"><div style="font-size:13px;font-weight:600">'+esc(e.nom||e.slug)+
         (e.email?' <span class="mono" style="font-size:12px;color:var(--muted);font-weight:400">'+esc(e.email)+'</span>':'')+'</div>'+
         '<div style="font-size:12px;color:var(--muted);margin-top:2px">'+
           (e.ident?'Identifiant <b class="mono" style="color:var(--text);font-weight:600">'+esc(e.ident)+'</b> · ':'')+quand+qui+
@@ -6936,7 +7056,7 @@ function vueEssais(){
   /* La deuxième porte. Volontairement dans un cadre à elle : les confondre reviendrait à
      donner un espace client à qui ne devait tester qu'un écran. */
   var formPub='<div class="carte ac-form" id="ac-f-pub" style="margin-top:16px"><div class="ttl-carte">🌍 Ouvrir un accès à la version publique</div>'+
-    '<div style="font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:6px">Crée un espace sur <b>teamop.fr/app.html</b> — l’application des clients. À utiliser pour avoir accès aux deux versions, ou pour faire essayer la vraie application.</div>'+
+    '<div style="font-size:12px;color:var(--muted);line-height:1.55;margin-top:6px">Crée un espace sur <b>teamop.fr/app.html</b> — l’application des clients. À utiliser pour avoir accès aux deux versions, ou pour faire essayer la vraie application.</div>'+
     '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
       '<div><div class="lbl">NOM DE L’ESPACE</div><input class="inp" value="'+esc(PB.nom)+'" oninput="pbChamp(\'nom\',this.value)" placeholder="ex. TEAM OP interne"></div>'+
       '<div><div class="lbl">E-MAIL</div><input class="inp mono" value="'+esc(PB.email)+'" oninput="pbChamp(\'email\',this.value)" placeholder="ex. controle@teamop.fr" autocapitalize="off" spellcheck="false"></div>'+
