@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><base href="/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a1020">
+<title>Créer votre application — TEAM OP</title>
+<meta name="description" content="Décrivez votre métier et vos besoins : nous étudions votre demande et construisons avec vous l'application qu'il vous faut.">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/teamop-favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── SOCLE DU SITE ────────────────────────────────────────────────────────────
+   Un seul bloc, identique sur toutes les pages du site. Ce qu'il porte et
+   pourquoi — chaque règle répare quelque chose de mesuré, rien n'est décoratif.
+
+   ⛔ LA LEÇON DU 13 SEPTEMBRE : la mise en page téléphone reposait sur des
+   sélecteurs d'ATTRIBUT, qui cherchaient une sous-chaîne — « repeat(3, 1fr) »,
+   « 1fr 0.72fr » — dans le TEXTE des styles inline. Quatre formes de grille y figuraient, le site en utilise seize :
+   douze ne s'empilaient donc pas, et c'est invisible à la lecture du CSS. D'où
+   les 33 px de débordement latéral de pourquoi.html sur un téléphone. Pire : une
+   espace retirée d'un attribut aurait décroché les quatre autres, en silence, sur
+   toutes les pages d'un coup. On passe donc par des CLASSES — g-pile, g-pile-4,
+   sec-x. Ne jamais revenir à un sélecteur qui dépend de l'orthographe d'un style. */
+
+:root{
+  /* Quatre niveaux de texte, pas sept. Le site en distinguait sept, dont trois
+     séparés de leur voisin par moins de dix points sur un canal : ils
+     n'ajoutaient pas de hiérarchie, seulement du hasard d'une page à l'autre.
+     La hiérarchie se porte par la graisse et la taille. Chacun est vérifié
+     ≥ 4,5:1 sur les trois fonds du site (page, carte, carte claire). */
+  --t1:rgb(242,247,255);   /* fort — titres, chiffres, valeurs        17,6:1 */
+  --t2:rgb(207,224,255);   /* libellé — intitulés, étiquettes en 600  14,2:1 */
+  --t3:rgb(168,188,228);   /* corps — le texte qu'on lit               9,9:1 */
+  --t4:rgb(112,134,177);   /* discret — légendes, méta, mentions       5,2:1 */
+
+  --fond:rgb(10,16,32); --fond-carte:rgb(13,23,48); --fond-carte-2:rgb(16,29,58);
+  --accent:rgb(56,189,248);       /* le bleu TEAM OP : action, lien, sélection */
+  --accent-fonce:rgb(37,99,235);
+  --lien:rgb(124,198,255); --lien-survol:rgb(183,225,255);
+  --bord:rgba(124,198,255,.12);
+
+  /* Grille d'espacement à 8 px, subdivision 4. Une seule échelle pour tout le site. */
+  --e1:4px; --e2:8px; --e3:16px; --e4:24px; --e5:32px; --e6:48px; --e7:64px;
+}
+
+html{ background:var(--fond); -webkit-text-size-adjust:100%; }
+body{
+  margin:0; padding:0; background:transparent;
+  /* Sans cette ligne, tout ce qui n'hérite pas du conteneur d'enrobage tombait
+     en Times New Roman — le défaut du navigateur, mesuré sur body. */
+  font-family:Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  color:var(--t3);
+}
+a{ color:var(--lien); text-decoration:none }
+
+/* Le mot du fond animé passe derrière l'accroche de chaque page. Mesuré à l'état de
+   repos — quatre relevés espacés, pour distinguer un trait POSÉ d'une étincelle qui
+   passe, et surfaces opaques exclues : « Prix HT par mois… » tombait à 2,2:1 sur le
+   trait, « Décrivez-nous votre métier… » à 3,05. Le seuil est 4,5.
+   Éteindre le mot n'est pas la réponse : le plafond posé dans fond-anime-teamop.js
+   suffit pour le ton de corps, mais le ton DISCRET exigerait de descendre à 0,08
+   d'opacité — autant le supprimer. On assombrit donc sous le texte, et seulement
+   là : le voile est dense au centre et disparu aux trois quarts du rayon, de sorte
+   que le mot reste entier autour de l'accroche. « Dim to focus » — on désigne, on
+   n'efface pas. */
+.accroche{
+  background:radial-gradient(86% 82% at 50% 50%,
+    rgba(10,16,32,.96) 0%, rgba(10,16,32,.93) 42%, rgba(10,16,32,.62) 68%, rgba(10,16,32,0) 88%);
+}
+a:hover{ color:var(--lien-survol) }
+
+/* Le site n'avait AUCUN état de focus : au clavier, on tabulait à l'aveugle.
+   :focus-visible ne se montre qu'au clavier — la souris ne déclenche rien. */
+:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; border-radius:6px }
+
+.nav-dd .dd{ opacity:0; visibility:hidden; transition:opacity .18s ease, visibility .18s }
+.nav-dd:hover .dd, .nav-dd:focus-within .dd{ opacity:1; visibility:visible }
+@keyframes fondCycle{ 0%{opacity:1} 28%{opacity:1} 36%{opacity:0} 92%{opacity:0} 100%{opacity:1} }
+
+@media (max-width:1100px){
+  .g-pile-4{ grid-template-columns:1fr 1fr !important }
+}
+@media (max-width:860px){
+  .topnav{ padding:12px 18px !important; gap:10px !important; flex-wrap:wrap !important }
+  .navlinks{ order:3; width:100%; gap:18px !important; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; white-space:nowrap }
+  .nav-dd .dd{ display:none !important }
+  h1{ font-size:36px !important; letter-spacing:-1px !important }
+
+  .g-pile, .g-pile-4{ grid-template-columns:1fr !important }
+  /* 40 px de marge de chaque côté sur un écran de 390, c'est un cinquième de
+     l'écran donné au vide. Vingt-quatre sections les portaient ; la règle
+     précédente n'en rattrapait que six, faute de connaître les autres écritures. */
+  .sec-x{ padding-left:20px !important; padding-right:20px !important }
+  .rang-boutons{ flex-wrap:wrap }
+
+  /* Les boutons d'action portent « flex: none » : dans une rangée, ils refusent de
+     rétrécir et poussent la page hors de l'écran — 44 px de débordement mesurés sur
+     creer.html. Sur téléphone ils peuvent rétrécir, et la rangée qui les contient
+     passe à la ligne plutôt que de déborder. */
+  .cta{ flex:0 1 auto !important; max-width:100%; padding-left:20px !important; padding-right:20px !important }
+  div:has(> .cta){ flex-wrap:wrap }
+}
+
+/* Une cible tactile ne descend pas sous 44 px : c'est la règle du terrain, une main,
+   parfois un gant. Les boutons d'action la tenaient déjà ; les liens de navigation,
+   non — la barre du haut était à 24 px de haut sur téléphone. */
+@media (pointer:coarse){
+  /* La barre du haut : le logo faisait 36 px de haut, « Tarifs » 40 px de large.
+     Le plancher vaut dans les deux sens — un pouce n'est pas plus fin que haut. */
+  .topnav a, .navlinks a{ min-height:44px; min-width:44px; display:inline-flex; align-items:center; justify-content:center }
+
+  /* Les liens du pied et les liens d'action des cartes (« Découvrir › »,
+     « Démarrer avec ce pack → ») faisaient 15 à 17 px de haut. Ils passent à 44.
+     On a d'abord essayé un pseudo-élément débordant — la cible grandit sans que le
+     dessin bouge, c'est l'idée d'Apple — mais dans une colonne de pied à 9 px
+     d'écart, les zones se chevauchent et le lien du dessous vole le tap de celui du
+     dessus. Une hauteur réelle ne ment pas : elle coûte quelques pixels de page et
+     ne prend le tap de personne. */
+  .lien-action, .lien-pied{ min-height:44px; display:inline-flex; align-items:center }
+  /* Sauf ceux qui occupent toute la largeur de leur carte : inline-flex les ferait
+     rétrécir au texte. Eux restent des blocs et grandissent en hauteur. */
+  a.btn-large, .cta, .lien-action.btn-large{ display:flex; align-items:center; justify-content:center; min-height:44px }
+
+  /* Formulaire de creer.html : douze boutons radio à 13 px et dix cases à 17 px.
+     La cible n'est pas la case, c'est le LIBELLÉ entier — cliquer un label bascule
+     déjà son entrée. Gonfler la case à 44 px serait laid et ne servirait personne. */
+  label.met-op, label.need{ min-height:44px }
+  label.met-op input, label.need input{ width:20px !important; height:20px !important }
+}
+
+/* Le site animait un fond 12 secondes en boucle, sans jamais demander l'avis de
+   personne. Les applications respectent ce réglage depuis longtemps ; le site,
+   lui, ne le lisait nulle part. Une boucle lente en fond d'écran est exactement
+   ce que ce réglage existe pour arrêter. */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; scroll-behavior:auto !important;
+  }
+}
+</style>
+</head>
+<body>
+<div style="min-height: 100vh; font-family: Manrope, sans-serif; color: rgb(168, 188, 228); position: relative;">
+
+  <div class="topnav" style="position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 15px 48px; border-bottom: 1px solid rgba(90, 140, 220, 0.18); background: rgba(10, 16, 32, 0.85); backdrop-filter: blur(10px);">
+    <a href="apercu/index.html" style="display: flex; align-items: center; gap: 12px;">
+      <img src="icons/teamop-512.png" alt="TEAM OP" width="36" height="36" style="border-radius: 9px; display: block;">
+      <span style="color: rgb(242, 247, 255); font-weight: 800; font-size: 17px;">TEAM OP</span>
+    </a>
+    <div class="navlinks" style="display: flex; gap: 28px; font-size: 15px; font-weight: 600;">
+      <a class="lien-action" href="apercu/index.html" style="color: rgb(168, 188, 228);">Accueil</a>
+      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="apercu/applications.html" style="color: rgb(56, 189, 248); border-bottom: 2px solid rgb(56, 189, 248); padding-bottom: 4px;">Applications</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="apercu/elan.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opgestion-512.png" alt="OP GESTION" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(37, 99, 235) 0%, rgb(29, 78, 216) 55%, rgb(37, 99, 235) 88%, rgb(56, 189, 248) 100%); color: rgb(242, 247, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>OP GESTION</span><span style="color: rgb(112, 134, 177); font-size: 12px; font-weight: 600;">Gestion tout-en-un : interventions, stock, compta</span></span></a><a href="apercu/opmessages.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opmsg-512.png" alt="OP MESSAGES" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(124, 58, 237) 0%, rgb(37, 99, 235) 88%, rgb(56, 189, 248) 100%); color: rgb(242, 247, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>OP MESSAGES</span><span style="color: rgb(112, 134, 177); font-size: 12px; font-weight: 600;">Messagerie d'équipe : chat, vocaux, sondages</span></span></a><a href="apercu/creer.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🚀</span><span style="display: flex; flex-direction: column;"><span>Créer votre application</span><span style="color: rgb(112, 134, 177); font-size: 12px; font-weight: 600;">Décrivez votre besoin, on le construit</span></span></a><a class="lien-action" href="apercu/applications.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 13px; font-weight: 700;">Toutes les applications →</a></div></div></div>
+      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="apercu/metiers.html" style="color: rgb(168, 188, 228);">Métiers</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="apercu/metiers.html#m-3d" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🐀</span><span style="display: flex; flex-direction: column;"><span>3D — Anti-nuisibles</span><span style="color: rgb(112, 134, 177); font-size: 12px; font-weight: 600;">Pack complet : registre sanitaire, biocides</span></span></a><a href="apercu/metiers.html#m-plomberie" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🔧</span><span style="display: flex; flex-direction: column;"><span>Plomberie</span></span></a><a href="apercu/metiers.html#m-electricite" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">⚡</span><span style="display: flex; flex-direction: column;"><span>Électricité</span></span></a><a href="apercu/metiers.html#m-chauffage" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🔥</span><span style="display: flex; flex-direction: column;"><span>Chauffage / Climatisation</span></span></a><a class="lien-action" href="apercu/metiers.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 13px; font-weight: 700;">Tous les métiers →</a></div></div></div>
+      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="apercu/tarifs.html" style="color: rgb(168, 188, 228);">Tarifs</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="apercu/tarifs.html#elan" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opgestion-512.png" alt="OP GESTION" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(37, 99, 235) 0%, rgb(29, 78, 216) 55%, rgb(37, 99, 235) 88%, rgb(56, 189, 248) 100%); color: rgb(242, 247, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>Tarifs OP GESTION</span><span style="color: rgb(112, 134, 177); font-size: 12px; font-weight: 600;">Gratuit · Pro 15 € · Business 25 € · Premium 50 €</span></span></a><a href="apercu/tarifs.html#opmessages" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opmsg-512.png" alt="OP MESSAGES" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(124, 58, 237) 0%, rgb(37, 99, 235) 88%, rgb(56, 189, 248) 100%); color: rgb(242, 247, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>Tarifs OP MESSAGES</span><span style="color: rgb(112, 134, 177); font-size: 12px; font-weight: 600;">Perso 0 € · Pro 15 € · Premium 25 €</span></span></a><a class="lien-action" href="apercu/tarifs.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 13px; font-weight: 700;">Comparer toutes les formules →</a></div></div></div>
+      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="apercu/pourquoi.html" style="color: rgb(168, 188, 228);">Pourquoi TEAM OP</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="apercu/pourquoi.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🤝</span><span style="display: flex; flex-direction: column;"><span>Au service des entreprises</span><span style="color: rgb(112, 134, 177); font-size: 12px; font-weight: 600;">On écoute, on adapte, on construit avec vous</span></span></a><a href="apercu/pourquoi.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🛡️</span><span style="display: flex; flex-direction: column;"><span>Sécurité &amp; engagements</span><span style="color: rgb(112, 134, 177); font-size: 12px; font-weight: 600;">Chiffrement AES-256, vos données à vous</span></span></a><a class="lien-action" href="apercu/pourquoi.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 13px; font-weight: 700;">Découvrir pourquoi TEAM OP →</a></div></div></div>
+    </div>
+    <a class="cta lien-action" href="espace.html" style="background: linear-gradient(135deg, rgb(56, 189, 248) 0%, rgb(37, 99, 235) 12%, rgb(29, 78, 216) 100%); color: rgb(242, 247, 255); font-weight: 700; font-size: 14px; padding: 10px 22px; border-radius: 10px;">Espace client →</a>
+  </div>
+
+  <div class="sec-x accroche" style="max-width: 900px; margin: 0 auto; padding: 64px 40px 30px;">
+    <div style="color: rgb(112, 134, 177); font-size: 13px; font-weight: 600;"><a href="apercu/index.html" style="color: rgb(112, 134, 177);">Accueil</a> / <a href="apercu/applications.html" style="color: rgb(112, 134, 177);">Applications</a> <span style="color: rgb(56, 189, 248);">/ Créer votre application</span></div>
+    <h1 style="margin: 18px 0 0; color: rgb(242, 247, 255); font-size: 44px; font-weight: 800; letter-spacing: -1.2px;">Créons votre application, de A à Z</h1>
+    <p style="margin: 16px 0 0; color: rgb(168, 188, 228); font-size: 17px; line-height: 1.65;">Décrivez-nous votre métier, votre quotidien et vos besoins : nous étudions votre demande et construisons avec vous l'outil qu'il vous faut. Plus vous êtes précis, plus notre première proposition sera juste.</p>
+    <div style="display: flex; gap: 20px; margin-top: 24px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: rgb(168, 188, 228);">
+        <span style="width: 26px; height: 26px; border-radius: 50%; background: rgb(56, 189, 248); color: rgb(6, 16, 31); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;">1</span> Vous décrivez votre besoin
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: rgb(168, 188, 228);">
+        <span style="width: 26px; height: 26px; border-radius: 50%; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.5); color: rgb(159, 220, 255); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;">2</span> On vous rappelle sous 48 h
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: rgb(168, 188, 228);">
+        <span style="width: 26px; height: 26px; border-radius: 50%; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.5); color: rgb(159, 220, 255); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;">3</span> On construit ensemble
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-x" style="max-width: 900px; margin: 0 auto; padding: 10px 40px 70px; display: flex; flex-direction: column; gap: 22px;">
+
+    <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 18px; padding: 30px 34px; display: flex; flex-direction: column; gap: 18px;">
+      <div style="color: rgb(56, 189, 248); font-size: 13px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">1 · Votre entreprise</div>
+      <div class="g-pile" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Nom</label>
+          <input type="text" placeholder="Votre nom" style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Prénom</label>
+          <input type="text" placeholder="Votre prénom" style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Email</label>
+          <input type="email" placeholder="vous@entreprise.fr" style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Téléphone</label>
+          <input type="tel" placeholder="06 12 34 56 78" style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Nom de l'entreprise</label>
+          <input type="text" placeholder="Ex. : Dératisation Dupont" style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none;">
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Taille de l'équipe</label>
+          <input type="text" placeholder="Ex. : 4 personnes dont 3 sur le terrain" style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none;">
+        </div>
+        <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid rgba(90, 140, 220, 0.18); padding-top: 16px; margin-top: 4px;">
+          <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Votre métier</label>
+          <span style="color: rgb(168, 188, 228); font-size: 13px; line-height: 1.55; margin-top: -3px;">Choisissez-le maintenant : votre application démarre avec les catégories d'intervention, la fiche de terrain et les modules de votre métier. Les métiers marqués <b style="color: rgb(110, 231, 183);">Pack prêt</b> sont livrés et activés dès la création de votre espace.</span>
+          <div id="met-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(196px, 1fr)); gap: 8px; margin-top: 3px;">
+            <label class="met-op" data-met="3d" data-nom="3D — Anti-nuisibles" data-pret="1" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="3d" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🐀 3D — Anti-nuisibles</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Dératisation · désinsectisation · désinfection</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(110, 231, 183);">Pack prêt</span></span></label><label class="met-op" data-met="plomberie" data-nom="Plomberie" data-pret="1" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="plomberie" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🔧 Plomberie</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Dépannage · sanitaire · réseaux</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(110, 231, 183);">Pack prêt</span></span></label><label class="met-op" data-met="electricite" data-nom="Électricité" data-pret="1" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="electricite" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">⚡ Électricité</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Installation · normes · dépannage</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(110, 231, 183);">Pack prêt</span></span></label><label class="met-op" data-met="chauffage" data-nom="Chauffage / Climatisation" data-pret="1" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="chauffage" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🔥 Chauffage / Climatisation</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">CVC · entretien · contrats</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(110, 231, 183);">Pack prêt</span></span></label><label class="met-op" data-met="serrurerie" data-nom="Serrurerie" data-pret="1" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="serrurerie" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🔑 Serrurerie</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Ouverture · sécurité · accès</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(110, 231, 183);">Pack prêt</span></span></label><label class="met-op" data-met="nettoyage" data-nom="Nettoyage / Propreté" data-pret="1" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="nettoyage" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🧽 Nettoyage / Propreté</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Bureaux · remise en état · vitrerie</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(110, 231, 183);">Pack prêt</span></span></label><label class="met-op" data-met="maconnerie" data-nom="Maçonnerie / Gros œuvre" data-pret="0" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="maconnerie" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🧱 Maçonnerie / Gros œuvre</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Construction · rénovation</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(168, 188, 228);">Sur mesure avec vous</span></span></label><label class="met-op" data-met="menuiserie" data-nom="Menuiserie" data-pret="0" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="menuiserie" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🪚 Menuiserie</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Pose · agencement · fermetures</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(168, 188, 228);">Sur mesure avec vous</span></span></label><label class="met-op" data-met="peinture" data-nom="Peinture / Revêtements" data-pret="0" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="peinture" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🎨 Peinture / Revêtements</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Intérieur · extérieur · sols</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(168, 188, 228);">Sur mesure avec vous</span></span></label><label class="met-op" data-met="paysagiste" data-nom="Paysagiste / Espaces verts" data-pret="0" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="paysagiste" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🌿 Paysagiste / Espaces verts</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Entretien · création · élagage</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(168, 188, 228);">Sur mesure avec vous</span></span></label><label class="met-op" data-met="couverture" data-nom="Couverture / Zinguerie" data-pret="0" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="couverture" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🏠 Couverture / Zinguerie</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Toiture · gouttières · étanchéité</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(168, 188, 228);">Sur mesure avec vous</span></span></label><label class="met-op" data-met="multiservices" data-nom="Multiservices / Maintenance" data-pret="0" style="position: relative; display: flex; align-items: flex-start; gap: 8px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 11px; padding: 10px 11px; cursor: pointer;"><input type="radio" name="metier-pack" value="multiservices" style="margin-top: 3px; accent-color: rgb(56, 189, 248); flex: none;"><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="color: rgb(242, 247, 255); font-size: 14px; font-weight: 700;">🧰 Multiservices / Maintenance</span><span style="color: rgb(168, 188, 228); font-size: 11px; line-height: 1.4;">Petits travaux · contrats</span><span style="font-size: 9px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; color: rgb(168, 188, 228);">Sur mesure avec vous</span></span></label>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+            <label style="color: rgb(168, 188, 228); font-size: 13px; font-weight: 700;">Votre métier n'est pas dans la liste ? Dites-le-nous</label>
+            <input type="text" id="met-autre" placeholder="Ex. : self-stockage, contrôle d'accès, ramonage…" style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none;">
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 18px; padding: 30px 34px; display: flex; flex-direction: column; gap: 18px;">
+      <div style="color: rgb(56, 189, 248); font-size: 13px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">2 · Ce dont vous avez besoin</div>
+      <span style="color: rgb(168, 188, 228); font-size: 14px; margin-top: -8px;">Cochez tout ce qui vous parle — on affine ensemble après.</span>
+      <div class="g-pile" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">🗓️ Planning &amp; rendez-vous</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — PLANNING</span><span style="display: block; background: rgb(13, 23, 48); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 9px; overflow: hidden;"><span style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid rgba(90, 140, 220, 0.2); color: rgb(112, 134, 177); font-size: 11px; font-weight: 700;">🗓️ Aujourd'hui</span><span style="display: flex; align-items: center; gap: 8px; padding: 8px 10px;"><span style="background: rgba(56, 189, 248, 0.15); color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">09:00</span><span style="color: rgb(207, 224, 255); font-size: 12px;">Dératisation — Restaurant Le Port</span><span style="margin-left: auto; color: rgb(134, 239, 172); font-size: 10px; font-weight: 800;">Confirmé</span></span><span style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid rgba(90, 140, 220, 0.12);"><span style="background: rgba(56, 189, 248, 0.15); color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">14:00</span><span style="color: rgb(207, 224, 255); font-size: 12px;">État des lieux — Box n°12</span><span style="margin-left: auto; color: rgb(252, 211, 77); font-size: 10px; font-weight: 800;">En attente</span></span></span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">🧰 Suivi d'interventions / chantiers</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — INTERVENTION</span><span style="display: block; background: rgb(13, 23, 48); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 9px; overflow: hidden;"><span style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid rgba(90, 140, 220, 0.2); color: rgb(112, 134, 177); font-size: 11px; font-weight: 700;">🧰 Intervention #248 — Boulangerie Petit</span><span style="display: flex; align-items: center; gap: 8px; padding: 9px 10px;"><span style="width: 40px; height: 30px; border-radius: 5px; background: rgba(56, 189, 248, 0.12); border: 1px dashed rgba(90, 140, 220, 0.4); display: flex; align-items: center; justify-content: center; font-size: 12px;">📷</span><span style="width: 40px; height: 30px; border-radius: 5px; background: rgba(56, 189, 248, 0.12); border: 1px dashed rgba(90, 140, 220, 0.4); display: flex; align-items: center; justify-content: center; font-size: 12px;">📷</span><span style="color: rgb(207, 224, 255); font-size: 11px;">Avant / Après</span><span style="margin-left: auto; color: rgb(134, 239, 172); font-size: 10px; font-weight: 800;">✍️ Signé</span></span><span style="display: block; padding: 0 10px 9px; color: rgb(168, 188, 228); font-size: 11px;">Produits : 2 × bloc raticide · 1 × gel</span></span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">📦 Stock / matériel / box</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — STOCK</span><span style="display: block; background: rgb(13, 23, 48); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 9px; overflow: hidden;"><span style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid rgba(90, 140, 220, 0.2); color: rgb(112, 134, 177); font-size: 11px; font-weight: 700;">📦 Stock — dépôt principal</span><span style="display: flex; align-items: center; gap: 8px; padding: 8px 10px;"><span style="color: rgb(207, 224, 255); font-size: 12px; width: 92px;">Bloc raticide</span><span style="flex: 1; height: 6px; border-radius: 4px; background: rgba(90, 140, 220, 0.18); overflow: hidden; display: block;"><span style="display: block; width: 22%; height: 100%; background: rgb(248, 113, 113);"></span></span><span style="color: rgb(248, 113, 113); font-size: 11px; font-weight: 800;">12 ⚠️</span></span><span style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid rgba(90, 140, 220, 0.12);"><span style="color: rgb(207, 224, 255); font-size: 12px; width: 92px;">Gants nitrile</span><span style="flex: 1; height: 6px; border-radius: 4px; background: rgba(90, 140, 220, 0.18); overflow: hidden; display: block;"><span style="display: block; width: 72%; height: 100%; background: rgb(74, 222, 128);"></span></span><span style="color: rgb(134, 239, 172); font-size: 11px; font-weight: 800;">84</span></span></span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">💳 Encaissements / facturation</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — ENCAISSEMENT</span><span style="display: block; background: rgb(13, 23, 48); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 9px; overflow: hidden;"><span style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid rgba(90, 140, 220, 0.2); color: rgb(112, 134, 177); font-size: 11px; font-weight: 700;">💳 Paiement</span><span style="display: flex; align-items: center; gap: 8px; padding: 9px 10px;"><span style="color: rgb(242, 247, 255); font-size: 16px; font-weight: 800;">128,00 €</span><span style="margin-left: auto; background: rgba(74, 222, 128, 0.15); border: 1px solid rgba(74, 222, 128, 0.4); color: rgb(134, 239, 172); font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px;">CB ✓ Accepté</span></span><span style="display: block; padding: 0 10px 9px; color: rgb(168, 188, 228); font-size: 11px;">Ticket envoyé par email · Télécollecte 19:00 ✓</span></span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">💬 Communication d'équipe</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — MESSAGERIE</span><span style="display: block; background: rgb(13, 23, 48); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 9px; overflow: hidden;"><span style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid rgba(90, 140, 220, 0.2); color: rgb(112, 134, 177); font-size: 11px; font-weight: 700;">💬 Groupe « Chantier Mairie » · 4 membres</span><span style="display: block; padding: 8px 10px;"><span style="display: inline-block; background: rgba(90, 140, 220, 0.18); color: rgb(207, 224, 255); font-size: 11px; padding: 5px 9px; border-radius: 9px 9px 9px 3px;">Tu peux m'envoyer une photo du compteur ?</span></span><span style="display: block; padding: 0 10px 9px; text-align: right;"><span style="display: inline-block; background: linear-gradient(135deg, rgb(56, 189, 248) 0%, rgb(37, 99, 235) 12%, rgb(29, 78, 216) 100%); color: rgb(242, 247, 255); font-size: 11px; padding: 5px 9px; border-radius: 9px 9px 3px 9px;">📷 Envoyée ✓</span></span></span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">📷 Photos &amp; comptes-rendus</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — COMPTE-RENDU</span><span style="display: block; background: rgb(13, 23, 48); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 9px; overflow: hidden;"><span style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid rgba(90, 140, 220, 0.2); color: rgb(112, 134, 177); font-size: 11px; font-weight: 700;">📷 Rapport photo</span><span style="display: flex; align-items: center; gap: 8px; padding: 9px 10px;"><span style="width: 46px; height: 34px; border-radius: 5px; background: rgba(56, 189, 248, 0.12); border: 1px dashed rgba(90, 140, 220, 0.4); display: flex; align-items: center; justify-content: center; font-size: 13px;">📷</span><span style="width: 46px; height: 34px; border-radius: 5px; background: rgba(56, 189, 248, 0.12); border: 1px dashed rgba(90, 140, 220, 0.4); display: flex; align-items: center; justify-content: center; font-size: 13px;">📷</span><span style="margin-left: auto; color: rgb(134, 239, 172); font-size: 11px; font-weight: 800;">Envoyé au client ✓</span></span></span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">👥 Gestion clients / contrats</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — CLIENTS</span><span style="display: block; background: rgb(13, 23, 48); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 9px; overflow: hidden;"><span style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid rgba(90, 140, 220, 0.2); color: rgb(112, 134, 177); font-size: 11px; font-weight: 700;">👥 Fiches clients</span><span style="display: flex; align-items: center; gap: 8px; padding: 8px 10px;"><span style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, rgb(37, 99, 235) 0%, rgb(29, 78, 216) 55%, rgb(37, 99, 235) 88%, rgb(56, 189, 248) 100%); color: rgb(242, 247, 255); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center;">LP</span><span style="color: rgb(207, 224, 255); font-size: 12px;">Le Port · 12 passages</span><span style="margin-left: auto; color: rgb(134, 239, 172); font-size: 10px; font-weight: 800;">Contrat ✓</span></span><span style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid rgba(90, 140, 220, 0.12);"><span style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, rgb(124, 58, 237) 0%, rgb(37, 99, 235) 88%, rgb(56, 189, 248) 100%); color: rgb(242, 247, 255); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center;">BP</span><span style="color: rgb(207, 224, 255); font-size: 12px;">Boulangerie Petit · 5 passages</span><span style="margin-left: auto; color: rgb(252, 211, 77); font-size: 10px; font-weight: 800;">Relance 🔔</span></span></span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">📊 Statistiques / tableau de bord</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — TABLEAU DE BORD</span><span style="display: block; background: rgb(13, 23, 48); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 9px; overflow: hidden;"><span style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid rgba(90, 140, 220, 0.2); color: rgb(112, 134, 177); font-size: 11px; font-weight: 700;">📊 Ce mois</span><span style="display: flex; align-items: flex-end; gap: 5px; padding: 10px 10px 0; height: 34px;"><span style="flex: 1; height: 40%; background: rgba(56, 189, 248, 0.35); border-radius: 3px 3px 0 0; display: block;"></span><span style="flex: 1; height: 60%; background: rgba(56, 189, 248, 0.5); border-radius: 3px 3px 0 0; display: block;"></span><span style="flex: 1; height: 45%; background: rgba(56, 189, 248, 0.4); border-radius: 3px 3px 0 0; display: block;"></span><span style="flex: 1; height: 85%; background: rgb(56, 189, 248); border-radius: 3px 3px 0 0; display: block;"></span></span><span style="display: block; padding: 6px 10px 9px; color: rgb(168, 188, 228); font-size: 11px;">CA 12 480 € · 42 interventions · box 70 %</span></span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">🌐 Travail hors-ligne (terrain)</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — HORS-LIGNE</span><span style="display: block; background: rgb(13, 23, 48); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 9px; overflow: hidden;"><span style="display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid rgba(90, 140, 220, 0.2); color: rgb(112, 134, 177); font-size: 11px; font-weight: 700;">🌐 Sous-sol — pas de réseau</span><span style="display: flex; align-items: center; gap: 7px; padding: 8px 10px;"><span style="color: rgb(252, 211, 77); font-size: 11px; font-weight: 700;">⚠️ 3 fiches en attente d'envoi</span></span><span style="display: flex; align-items: center; gap: 7px; padding: 0 10px 9px;"><span style="color: rgb(134, 239, 172); font-size: 11px; font-weight: 700;">↻ Synchronisées automatiquement au retour du réseau ✓</span></span></span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 10px; padding: 13px 15px; cursor: pointer; position: relative;" class="need">
+          <input type="checkbox" style="width: 17px; height: 17px; accent-color: rgb(56, 189, 248);"><span style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 600;">🧾 Autre (précisez ci-dessous)</span><span class="tip" style="position: absolute; left: 10px; right: 10px; bottom: calc(100% + 8px); background: rgb(16, 29, 58); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 10px; padding: 10px 14px; color: rgb(188, 211, 245); font-size: 13px; line-height: 1.5; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); z-index: 6;"><span style="display: block; color: rgb(159, 220, 255); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px;">APERÇU — VOTRE IDÉE</span><span style="display: block; background: rgb(13, 23, 48); border: 1px dashed rgba(90, 140, 220, 0.45); border-radius: 9px; padding: 12px 10px; text-align: center;"><span style="display: block; font-size: 16px;">➕</span><span style="display: block; color: rgb(207, 224, 255); font-size: 12px; font-weight: 700; margin-top: 4px;">Un besoin unique ?</span><span style="display: block; color: rgb(168, 188, 228); font-size: 11px; margin-top: 2px;">Décrivez-le dans la partie 3 — on le construit ensemble.</span></span></span>
+        </label>
+      </div>
+    </div>
+
+    <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.25); border-radius: 18px; padding: 30px 34px; display: flex; flex-direction: column; gap: 18px;">
+      <div style="color: rgb(56, 189, 248); font-size: 13px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">3 · Racontez-nous votre quotidien</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Comment travaillez-vous aujourd'hui, et qu'est-ce qui vous fait perdre du temps ?</label>
+        <textarea rows="5" placeholder="Ex. : on note les interventions sur un carnet, les photos partent sur WhatsApp, la facturation se fait le soir sur Excel… on perd le fil quand il y a plusieurs chantiers en même temps." style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none; resize: vertical;"></textarea>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Si l'application idéale existait, que ferait-elle pour vous ?</label>
+        <textarea rows="4" placeholder="Décrivez librement — même en vrac, tout nous intéresse." style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none; resize: vertical;"></textarea>
+      </div>
+      <div class="g-pile" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Sur quels appareils ?</label>
+          <input type="text" placeholder="Ex. : téléphones sur le terrain + PC au bureau" style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="color: rgb(207, 224, 255); font-size: 14px; font-weight: 700;">Pour quand ?</label>
+          <input type="text" placeholder="Ex. : dès que possible / d'ici 3 mois / on regarde" style="background: rgba(16, 28, 56, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 10px; padding: 13px 15px; color: rgb(242, 247, 255); font-size: 14px; font-family: Manrope, sans-serif; outline: none;">
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; background: rgba(13, 21, 42, 0.45); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 18px; padding: 24px 30px;">
+      <span style="color: rgb(168, 188, 228); font-size: 14px; line-height: 1.55;">Votre demande arrive directement chez nous (support@teamop.fr).<br>Réponse garantie sous 48 h ouvrées.</span>
+      <a class="cta lien-action" href="javascript:void(0)" id="send-demande" style="background: linear-gradient(135deg, rgb(56, 189, 248) 0%, rgb(37, 99, 235) 12%, rgb(29, 78, 216) 100%); color: rgb(242, 247, 255); font-weight: 700; font-size: 16px; padding: 15px 32px; border-radius: 12px; flex: none; box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);">Envoyer ma demande →</a>
+    </div>
+
+  </div>
+
+  <div style="border-top: 1px solid rgba(90, 140, 220, 0.15); background: rgba(10, 16, 32, 0.75);">
+    <div class="sec-x" style="max-width: 1180px; margin: 0 auto; padding: 30px 40px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: rgb(112, 134, 177);">
+      <span>© 2026 TEAM OP · Fondé et développé par Justin Biret</span>
+      <div style="display: flex; gap: 24px;">
+        <a class="lien-pied" href="mailto:support@teamop.fr">support@teamop.fr</a>
+        <a class="lien-pied" href="espace.html">Espace client</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+/* Survols (équivalent des style-hover des maquettes) */
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('[style-hover]').forEach(function (el) {
+    var base = el.getAttribute('style') || '', hov = el.getAttribute('style-hover');
+    el.addEventListener('mouseenter', function () { el.setAttribute('style', base + ';' + hov); });
+    el.addEventListener('mouseleave', function () { el.setAttribute('style', base); });
+  });
+});
+</script>
+<script>
+/* Envoi de la demande : ouvre un e-mail pré-rempli vers support@teamop.fr */
+document.addEventListener('DOMContentLoaded', function () {
+  var btn = document.getElementById('send-demande'); if (!btn) return;
+  btn.addEventListener('click', function (ev) {
+    ev.preventDefault();
+    var lines = [];
+    document.querySelectorAll('input[type=text], input[type=email], input[type=tel], textarea').forEach(function (inp) {
+      var wrap = inp.closest('div'); var lab = wrap ? wrap.querySelector('label') : null;
+      if (inp.value.trim()) lines.push((lab ? lab.textContent.trim() : 'Champ') + ' : ' + inp.value.trim());
+    });
+    var needs = [];
+    document.querySelectorAll('label.need input[type=checkbox]').forEach(function (cb) {
+      if (cb.checked) { var sp = cb.parentElement.querySelector('span'); if (sp) needs.push(sp.textContent.trim()); }
+    });
+    if (needs.length) lines.push('Besoins cochés : ' + needs.join(', '));
+    /* Le métier choisi part en tête et sous une forme sans ambiguïté :
+       c'est lui qui décide du pack activé à la création de l'espace. */
+    var pick = document.querySelector('input[name=metier-pack]:checked');
+    var autre = (document.getElementById('met-autre') || {}).value || '';
+    var met = [];
+    if (pick) {
+      var carte = pick.closest('.met-op');
+      met.push('MÉTIER CHOISI : ' + (carte ? carte.getAttribute('data-nom') : pick.value) + '  [pack ' + pick.value + ']');
+      met.push('Pack : ' + (carte && carte.getAttribute('data-pret') === '1' ? 'prêt — activable dès la création' : 'à construire sur mesure'));
+    } else {
+      met.push('MÉTIER CHOISI : aucun sélectionné');
+    }
+    if (autre.trim()) met.push('Métier précisé par le client : ' + autre.trim());
+    met.push('');
+    lines = met.concat(lines);
+    location.href = 'mailto:support@teamop.fr?subject=' + encodeURIComponent('Demande de création d\'application — TEAM OP') +
+      '&body=' + encodeURIComponent(lines.join('\n'));
+  });
+});
+</script>
+<script>
+/* Choix du métier : la carte sélectionnée se met en évidence */
+document.addEventListener('DOMContentLoaded', function () {
+  var cartes = [].slice.call(document.querySelectorAll('.met-op'));
+  if (!cartes.length) return;
+  function peindre() {
+    cartes.forEach(function (c) {
+      var on = c.querySelector('input').checked;
+      c.style.borderColor = on ? 'rgb(56, 189, 248)' : 'rgba(90, 140, 220, 0.3)';
+      c.style.background = on ? 'rgba(56, 189, 248, 0.12)' : 'rgba(16, 28, 56, 0.8)';
+      c.style.boxShadow = on ? '0 6px 20px rgba(37, 99, 235, 0.28)' : 'none';
+    });
+  }
+  cartes.forEach(function (c) { c.addEventListener('change', peindre); c.addEventListener('click', function () { setTimeout(peindre, 0); }); });
+  peindre();
+});
+</script>
+<script>/* Même hauteur que les autres pages intérieures. */ window.FOND_MOT = 'VOTRE APPLICATION'; window.FOND_Y = 0.3;</script>
+<script src="apercu/fond-anime-teamop.js" defer></script>
+<div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
+</html>
