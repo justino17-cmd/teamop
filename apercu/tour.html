@@ -5131,8 +5131,6 @@ function mailDossiers(){
       '<span class="dos-i">'+icone+'</span><span class="dos-n">'+esc(nom)+'</span>'+
       (n?'<span class="n">'+n+'</span>':'')+(suffixe||'')+'</button>';
   };
-  var groupes=courrierParEnt();
-  var attTot=(MSG.messages||[]).filter(mailAttente).length;
 
   /* ⛔ LES BOÎTES PASSENT EN PREMIER, ET ELLES SE CLIQUENT (12 septembre 2026, demande de
      Justin : « que je puisse choisir par mail »). Elles étaient en bas, en petit, décrites
@@ -5186,38 +5184,20 @@ function mailDossiers(){
     h+=d(mailEnvoyes(), 'mailChoisirCat(\'envoyes\')', '📤', 'Envois TeamOP',
          MSG.envoyes ? MSG.envoyes.length : 0);
   }
-  h+='<div class="dos-t">Rechercher</div>'+
-    d(MSG.selEnt==='toutes', 'mailChoisirEnt(\'toutes\')', '🗂️', 'Toutes les entreprises', attTot);
+  /* ⛔ « RECHERCHER » ET « ENTREPRISES » ONT QUITTÉ LA BARRE — 13 septembre 2026, capture de
+     Justin à l'appui : « je parle de ça à supprimer dans mail ». Il visait ces deux sections,
+     et il a raison pour la même raison que les filtres : le rangement par entreprise se fait
+     DANS LA LISTE, où chaque groupe porte son nom, son compte et son bouton « Voir les N
+     messages de X → ». La barre en était le doublon, et le doublon coûtait deux titres de
+     section pour une seule ligne utile — sur son écran, « Non rattachées » toute seule.
 
-  /* ⛔ LA SECTION « FILTRER » A ÉTÉ SUPPRIMÉE LE 13 SEPTEMBRE 2026. Décision de Justin, et
-     elle est juste : « on filtre par boîte mail, c'est largement suffisant ».
-     Ce qu'elle faisait est maintenant fait ailleurs, et mieux :
-       · « Tous les messages » — c'est l'état par défaut d'un dossier ouvert ;
-       · « À traiter », « Marqués », « Pièces jointes » — des tranches d'un même dossier, là où
-         les dossiers IMAP (Réception, Indésirables, Corbeille, Archives) découpent la VRAIE
-         matière, celle que le serveur de courrier connaît. Deux découpages concurrents dans la
-         même barre obligeaient à tenir les deux en tête pour savoir ce qu'on regardait ;
-       · « Envois TeamOP » — remonté dans « Boîte » juste au-dessus : ce n'était pas un filtre.
-     CE QUI RESTE ET CE QUI PART, compté après coup plutôt que supposé :
-       · MAIL_CATS et mailDansCat RESTENT — deux états vides lisent encore le libellé de la
-         catégorie courante, et le groupage par entreprise filtre toujours dessus ;
-       · mailChoisirCat RESTE — c'est lui qui porte le passage aux envois ;
-       · mailCadreMsgs et mailEnvoisDe sont PARTIES : elles ne servaient qu'aux compteurs des
-         filtres, et ne comptaient plus qu'une occurrence chacune — leur propre définition. */
-
-  h+='<div class="dos-t">Entreprises</div>';
-  if(!ENT.loaded&&!ENT.err) h+='<div class="dos-note">Chargement de l’annuaire…</div>';
-  else if(!groupes.length) h+='<div class="dos-note">Aucun message reçu pour l’instant.</div>';
-
-  groupes.forEach(function(g){
-    /* Les catégories ne sont PLUS imbriquées ici. L'ancien commentaire disait vrai — « les
-       afficher pour toutes ferait une barre de cinquante lignes » — mais il en tirait la
-       mauvaise conclusion : le problème n'était pas qu'elles soient visibles, c'est qu'elles
-       étaient RÉPÉTÉES. Une seule fois, en haut, et elles servent partout.
-       Ce qui manquait avant, demandé par Justin le 13 septembre en regardant support@ et ses
-       78 messages : filtrer « À traiter » SANS avoir à ouvrir une entreprise d'abord. */
-    h+=d(MSG.selEnt===g.cle, 'mailChoisirEnt(\''+jsq(g.cle)+'\')', (g.ent?'🏢':'❓'), g.nom, g.msgs.filter(mailAttente).length);
-  });
+     ⚠️ CE QUI A FAILLI PARTIR AVEC, ET QU'IL A FALLU REPLACER : le retour. « Toutes les
+     entreprises » dans la barre était le SEUL chemin de retour depuis la vue d'une entreprise
+     — celui du corps de page (« Revenir à toutes les entreprises ») ne s'affiche que dans
+     l'état VIDE, quand l'entreprise n'a plus aucun message. Supprimer la barre sans rien
+     faire d'autre transformait « Voir les N messages de X → » en cul-de-sac : on entrait, on
+     ne ressortait plus. Le retour est donc posé dans l'en-tête de la page, à côté de celui
+     des dossiers et de celui des envois. */
 
   /* L'ancienne liste « Boîtes reliées » en bas a été retirée : elle est maintenant EN HAUT et
      cliquable. La même chose à deux endroits, c'est un endroit de trop — et celui d'en bas ne
@@ -5563,9 +5543,20 @@ function vueSupport(){
      On ne touche QUE le titre et sa phrase : la structure de la vue (volets, lecteur,
      composeur) est déjà la bonne, c'est `env` qui l'aiguille plus bas. */
   var envVue=mailEnvoyes();
-  var tete=enTete(envVue?'Courrier · Envois TeamOP':(bCh?('Courrier · '+bNom+(dNom?(' · '+dNom):'')):'Courrier'),
+  /* ⛔ LE RETOUR DEPUIS UNE ENTREPRISE, désormais ici et nulle part ailleurs. La barre latérale
+     le portait (« Toutes les entreprises ») jusqu'au 13 septembre ; elle ne le porte plus, et
+     le bouton du corps de page ne sort que dans l'état vide. Sans cette ligne, « Voir les N
+     messages de X → » est une porte qui ne s'ouvre que dans un sens. */
+  var entVue=(!envVue&&MSG.selEnt&&MSG.selEnt!=='toutes');
+  var entNom=entVue?(function(){ var g=courrierParEnt().filter(function(x){ return x.cle===MSG.selEnt; })[0];
+    return g?g.nom:'cette entreprise'; })():'';
+  var tete=enTete(envVue?'Courrier · Envois TeamOP'
+      :entVue?('Courrier · '+entNom)
+      :(bCh?('Courrier · '+bNom+(dNom?(' · '+dNom):'')):'Courrier'),
     envVue
       ? 'Tout ce que TeamOP a envoyé depuis son propre serveur d’envoi — pas le dossier « Envoyés » d’une boîte reliée. <a href="#" onclick="mailChoisirCat(\'tout\');return false">Revenir aux messages reçus</a>'
+      : entVue
+      ? 'Vous ne voyez que les messages de <b>'+esc(entNom)+'</b>'+(bCh?(' sur <b>'+esc(bNom)+'</b>'):'')+'. <a href="#" onclick="mailChoisirEnt(\'toutes\');return false">Revenir à toutes les entreprises</a>'
       : bCh
       ? (dNom
           ? 'Vous êtes dans <b>'+esc(dNom)+'</b> de <b>'+esc(bNom)+'</b> — ce n’est pas la réception. <a href="#" onclick="mailChoisirDossier(mailCheminInbox(mailBoiteChoisie()),\'Réception\');return false">Revenir à la réception</a> · <a href="#" onclick="mailChoisirBoite(\'\');return false">toutes les boîtes</a>'
