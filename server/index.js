@@ -1261,7 +1261,7 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       const triage = veille ? 'veille' : (interne ? 'interne' : (transitoire ? 'transitoire' : ''));
       let issue = monIssues.find(i => i.signature === signature);
       if (!issue) {
-        issue = { id: 'i' + crypto.randomBytes(6).toString('hex'), signature, app: appName, version: monStr(r.version, 12), categorie: monStr(r.categorie, 40) || 'Général', type, message, stack: monStr(r.stack, 600), src: monStr(r.src, 200), line: parseInt(r.line, 10) || 0, entreprises: [], appareils: {}, count: 0, firstTs: now, lastTs: now, statut: triage || 'nouveau', triage: triage || undefined, notes: '', mailEnvoye: false };
+        issue = { id: 'i' + crypto.randomBytes(6).toString('hex'), signature, app: appName, version: monStr(r.version, 12), categorie: monCategorie(r.categorie), type, message, stack: monStr(r.stack, 600), src: monStr(r.src, 200), line: parseInt(r.line, 10) || 0, entreprises: [], appareils: {}, count: 0, firstTs: now, lastTs: now, statut: triage || 'nouveau', triage: triage || undefined, notes: '', mailEnvoye: false };
         monIssues.push(issue);
       }
       issue.count += count; issue.lastTs = now;
@@ -1291,6 +1291,36 @@ const TOUR_APP_NOM = { gestion: 'OP GESTION', messages: 'OP MESSAGES' };
 /* Les rapports d'incident portent des étiquettes historiques (« elan », « opmsg »…) : cette table
    les rattache à une application. Une étiquette absente vaut OP GESTION — l'application qui existe. */
 const TOUR_APP_DES_TAGS = { opgestion: 'gestion', elan: 'gestion', 'elan-gestion': 'gestion', elangestion: 'gestion', espace: 'gestion', stripe: 'gestion', inconnue: 'gestion', opmessages: 'messages', opmsg: 'messages', messages: 'messages' };
+/* ══════════ LA CATÉGORIE D'UN INCIDENT — seize, ou « Général » ══════════
+   Justin, 13 septembre 2026 : « revois toutes les catégories, que chaque catégorie
+   corresponde à chaque chose ».
+
+   ⛔ CE QUE LE SERVEUR NE FAIT PAS : traduire. La correspondance écran → catégorie vit dans
+   `TM_CAT` (app.html), et elle doit y rester seule. Deux tables qui doivent s'accorder
+   divergent toujours — c'est la leçon de `fbUidEquipe`, une seule définition partagée par la
+   signature et la coupure. Le serveur ne traduit rien : il VÉRIFIE.
+
+   CE QU'IL FAIT, ET POURQUOI ÇA CHANGE QUELQUE CHOSE TOUT DE SUITE : `tmCat()` retombe sur
+   `String(current).slice(0,30)` quand un écran manque à la table. Un écran oublié — il y en a
+   un aujourd'hui, `planningGeneral` — pose donc son IDENTIFIANT TECHNIQUE comme catégorie, et
+   la console de Justin affiche « planningGeneral » à côté de « Devis & Factures ». Chaque
+   écran ajouté sans penser à la table en ajoutera un autre. Le garde le rattrape ici, pour
+   TOUTES les versions de l'application déjà installées — sans rien publier.
+
+   Une catégorie inconnue devient « Général » : c'est un aveu honnête (« on ne sait pas dans
+   quoi ranger »), là où un slug technique est un faux renseignement. */
+const MON_CATEGORIES = ['Tableau de bord', 'Planning', 'Interventions', 'Clients', 'Rapports',
+  'Devis & Factures', 'Comptabilité', 'Stock', 'Plans', 'Commandes', 'Véhicules', 'Historique',
+  'Équipe', 'Paramètres', 'Messages', 'Statistiques', 'Paiements', 'Général'];
+function monCategorie(c) {
+  const v = monStr(c, 40).trim();
+  if (!v) return 'Général';
+  /* Comparaison insensible à la casse et aux accents : « comptabilite » d'une vieille version
+     et « Comptabilité » sont la même chose, et les séparer ferait deux rubriques pour une. */
+  const cle = espSlug(v);
+  const trouve = MON_CATEGORIES.find(x => espSlug(x) === cle);
+  return trouve || 'Général';
+}
 const monAppDeTag = t => TOUR_APP_DES_TAGS[String(t || '').toLowerCase()] || 'gestion';
 /* Seule source de vérité sur ce qu'un compte peut ouvrir. Le patron a TOUT, par calcul et non par
    donnée : son champ apps est ignoré ici et refusé à l'écriture — on ne peut pas se retirer une
