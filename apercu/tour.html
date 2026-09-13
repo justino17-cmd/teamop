@@ -2123,6 +2123,35 @@ body.plans .reg-l.cli::before{display:none}
     background-position:right 8px center }
   .filtres{ gap:8px; margin:14px 0 }
 }
+
+/* ── 5) LA PASTILLE DU JOUR N'EST PAS UNE ALERTE ──────────────────────────────────
+   « 12 points à traiter » était en ambre, et l'ambre veut dire AVERTISSEMENT partout
+   ailleurs dans cette console — c'est la couleur des incidents « en cours ». Ce chiffre
+   n'avertit de rien : il compte la journée. Posé en haut à droite, doré sur fond sombre,
+   il pesait plus lourd que les quatre incidents urgents rangés dessous. La gravité est
+   déjà portée par la section « Urgent » et ses pastilles rouges ; ce compte redevient ce
+   qu'il est, une information de contexte. */
+.past.ac-total{ background:var(--tint-gris); color:var(--text2); border-color:transparent }
+
+/* ── 6) LA COLONNE DE DROITE EST UN RAIL, PAS UNE SECONDE COLONNE ─────────────────
+   Elle prenait 40 % de la largeur (flex:1 1 300px contre 1.5 1 420px) pour quatre lignes
+   de résumé, à côté d'une liste d'incidents dense. D'où la moitié basse vide. Un rail
+   secondaire se dimensionne à son contenu — c'est ce que font l'inspecteur du Finder et
+   la troisième colonne de Mail : une largeur tenue, et tout le reste au contenu. */
+@media(min-width:1100px){
+  .ac-aside{ flex:0 1 340px }
+}
+
+/* ── 7) LE CHEVRON DU REPLI ───────────────────────────────────────────────────────
+   Justin, 13 septembre : « je clique elle se déroule, je reclique elle se replie ». Un pli
+   qu'aucun signe n'annonce ne se découvre pas — c'est la règle des gestes cachés. Le
+   chevron dit que la ligne s'ouvre, sa rotation dit dans quel état elle est. */
+.dos-chev{ flex:0 0 auto; margin-left:2px; color:var(--muted); font-size:15px; line-height:1;
+  transition:transform var(--d-1) var(--e-sortie) }
+.dos-chev.bas{ transform:rotate(90deg) }
+.dos.on .dos-chev{ color:inherit; opacity:.7 }
+@media(prefers-reduced-motion:reduce){ .dos-chev{ transition:none } }
+
 </style>
 </head>
 <body>
@@ -4152,7 +4181,16 @@ function vueAccueil(){
       '<div class="ac-aside">'+
         '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">En un coup d’œil</span></div>'+
           '<div class="reg-bloc">'+coup+'</div></div>'+
-        '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">Derniers paiements</span></div>'+
+        /* ⛔ UN GROUPE REPLIÉ DOIT DIRE CE QU'IL CACHE — 13 septembre 2026, mesuré au navigateur.
+           Ce bloc s'affichait comme un TITRE NU dans le rail : ni contenu, ni chiffre, juste
+           « Derniers paiements › ». Il n'était pas vide — 22 paiements chargés, quatre lignes
+           dans le DOM — il était REPLIÉ (display:none), à côté d'« En un coup d'œil » qui,
+           lui, est ouvert. Rien ne permettait de distinguer les deux cas : on lisait un vide
+           là où il y avait de la matière, et la moitié basse du rail paraissait morte.
+           Le compteur est le motif déjà employé partout ailleurs sur cet écran (« Urgent 4 »,
+           « À prendre 1 », « Support 4 sur 7 ») : le titre annonce, le pli ne ment plus. */
+        '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">Derniers paiements</span>'+
+          ((ABO.loaded&&(ABO.paiements||[]).length)?'<span class="reg-n">'+Math.min(4,(ABO.paiements||[]).length)+' sur '+(ABO.paiements||[]).length+'</span>':'')+'</div>'+
           '<div class="reg-bloc">'+pay+'</div>'+
           '<button type="button" class="ac-plus" onclick="setTab(\'abonnements\')">Tout voir →</button></div>'+
       '</div>'+
@@ -4420,8 +4458,17 @@ function vueSurveillance(){
     kpi('nouveau',incCompteurs().nouveau||0,'var(--redText)','Nouveaux','Personne ne s’en est encore occupé')+
     kpi('encours',incCompteurs().encours||0,'var(--amber)','En cours','Quelqu’un de l’équipe travaille dessus')+
     kpi('corrige',corrigesMois,'var(--green)','Corrigés ce mois','Réglés et refermés')+
-    '<div class="kpi clic'+(st===''?' sel':'')+'" onclick="incF(\'statut\',\'\')"><div class="l" style="margin-top:0">7 derniers jours</div><div class="bars">'+bars+'</div>'+
-      '<div class="svl-sous" style="color:var(--link)">Voir tout l’historique, corrigés inclus</div></div>'+
+    /* ⛔ MÊME ORDRE DE LECTURE QUE LES TROIS AUTRES — 13 septembre 2026. Cette carte lisait
+       « libellé → graphique » quand ses trois voisines lisent « chiffre → libellé → détail » :
+       quatre cadres identiques, trois contenus d'une forme et un d'une autre. L'œil bute
+       dessus sans savoir pourquoi, et la case du chiffre restait vide au milieu de la rangée.
+       Elle a maintenant son chiffre — le total des sept jours, déjà calculé pour les barres —
+       et la courbe descend en pied de carte, là où elle illustre au lieu de remplacer. */
+    '<div class="kpi clic'+(st===''?' sel':'')+'" onclick="incF(\'statut\',\'\')">'+
+      '<div class="n">'+j7.reduce(function(a,b){ return a+b; },0)+'</div>'+
+      '<div class="l">7 derniers jours</div>'+
+      '<div class="svl-sous" style="color:var(--link)">Voir tout l’historique, corrigés inclus</div>'+
+      '<div class="bars">'+bars+'</div></div>'+
   '</div>';
 
   /* la légende : chaque mot de cette page, expliqué. Elle descend en pied d'écran :
@@ -4902,17 +4949,6 @@ function mailDansCat(m,cle){
   return true;
 }
 function mailAttente(m){ return !m.lu && !m.auto; }
-/* ⛔ LE CADRE QU'ON REGARDE, à un instant donné : la boîte choisie (déjà appliquée par le
-   serveur, MSG.messages ne contient qu'elle) ET l'entreprise ouverte s'il y en a une.
-   C'est là-dessus que les filtres comptent — pas sur « tout ce qui existe ». Un compteur qui
-   annonce 12 « À traiter » alors que le cadre n'en montre que 3 ne sert à rien : il fait
-   chercher neuf messages qui ne sont pas là. */
-function mailCadreMsgs(){
-  var M=(MSG.messages||[]);
-  if(MSG.selEnt==='toutes') return M;
-  var g=courrierParEnt().filter(function(x){ return x.cle===MSG.selEnt; })[0];
-  return g?g.msgs:[];
-}
 
 /* Les messages reçus, groupés par entreprise. Le groupe « pas encore rattachées » est une
    corbeille de tri, pas une entreprise : il reste toujours en dernier, quoi qu'il contienne. */
@@ -4934,14 +4970,6 @@ function courrierParEnt(){
   });
   return ordre.map(function(k){ return par[k]; });
 }
-/* Ce que TeamOP a envoyé à cette entreprise-là. Le journal d'envois porte l'adresse dans
-   « a » — on la repasse par le même rattachement, sinon « Envoyés » redeviendrait le seul
-   endroit où tout est mélangé. */
-function mailEnvoisDe(cle){
-  return (MSG.envoyes||[]).filter(function(x){
-    var e=courrierEnt(x.a); return cle==='_autres' ? !e : (!!e && e.t===cle);
-  });
-}
 function mailChoisirEnt(cle){
   MSG.selEnt=cle; MSG.selCat='tout'; MSG.autoTout=false; MSG.ouvert=null; MSG.lu=null; MSG.envSel=null;
   renderNav('fondu');
@@ -4961,7 +4989,21 @@ function mailChoisirEnt(cle){
    laissant croire que la boîte ne contient que ça. La route serveur accepte « ?boite= » depuis
    toujours — c'est elle qu'on appelle, pagination comprise. La plomberie existait, il ne
    manquait que le clic. */
+/* ⛔ RECLIQUER SUR LA BOÎTE OUVERTE LA REPLIE, ET NE FAIT QUE ÇA. Demandé par Justin le
+   13 septembre 2026 : « je clique elle se déroule, je reclique elle se replie ». C'est le
+   comportement des comptes dans Mail.
+   Le point qui compte : replier est un geste d'AFFICHAGE. On ne recharge pas la liste, on ne
+   change pas de dossier, on ne touche à rien de ce qui est lu — sinon un simple pli coûterait
+   un aller-retour réseau et ferait perdre l'endroit où on était. On bascule un booléen et on
+   redessine la barre. */
+function mailReplier(){
+  MSG.deplie = (MSG.deplie===false);
+  renderNav('fondu');
+}
 function mailChoisirBoite(id,nom){
+  /* Reclic sur la boîte DÉJÀ ouverte : c'est un pli, pas un choix. */
+  if(id && id===mailBoiteChoisie()) return mailReplier();
+  MSG.deplie=true;
   /* On pose le chemin de la RÉCEPTION, pas une chaîne vide. Le serveur retombe bien sur INBOX
      tout seul, mais l'écran, lui, ne saurait pas quel dossier surligner : on aurait une boîte
      ouverte et aucun dossier actif, ce qui se lit comme un bug. */
@@ -5084,10 +5126,10 @@ function mailEnvoyes(){ return MSG.selCat==='envoyes'; }
 
 /* ── Volet 1 : les dossiers ─────────────────────────────────────────────────────────── */
 function mailDossiers(){
-  var d=function(actif, clic, icone, nom, n){
+  var d=function(actif, clic, icone, nom, n, suffixe){
     return '<button class="dos'+(actif?' on':'')+'" onclick="'+clic+'">'+
       '<span class="dos-i">'+icone+'</span><span class="dos-n">'+esc(nom)+'</span>'+
-      (n?'<span class="n">'+n+'</span>':'')+'</button>';
+      (n?'<span class="n">'+n+'</span>':'')+(suffixe||'')+'</button>';
   };
   var groupes=courrierParEnt();
   var attTot=(MSG.messages||[]).filter(mailAttente).length;
@@ -5107,8 +5149,12 @@ function mailDossiers(){
       var b=x.boite||{}, ouverte=(bSel===b.id);
       /* Le compteur vient du serveur (x.nonLus) et vaut pour TOUTE la boîte, pas pour la
          tranche chargée : c'est le seul chiffre juste quand on n'a pas encore ouvert. */
+      var dos0=(x.dossiers||[]), deplie=(MSG.deplie!==false);
+      /* Un pli qui ne se signale pas ne se devine pas : le chevron dit que la ligne s'ouvre,
+         et sa rotation dit dans quel état elle est. Même rôle que le triangle de Mail. */
+      var chev=(ouverte&&dos0.length)?'<span class="dos-chev'+(deplie?' bas':'')+'" aria-hidden="true">›</span>':'';
       var r=d(ouverte, 'mailChoisirBoite(\''+jsq(b.id)+'\',\''+jsq(b.email||'')+'\')',
-              '✉️', b.email||'Boîte', Number(x.nonLus)||0);
+              '✉️', b.email||'Boîte', Number(x.nonLus)||0, chev);
       /* ⛔ LES DOSSIERS DE LA BOÎTE, COMME DANS MAIL — demandé par Justin le 13 septembre 2026,
          capture d'Apple Mail à l'appui : Réception, Brouillons, Envoyés, Indésirables,
          Corbeille, Archives. Ils arrivaient DÉJÀ dans /api/monitor/mail/dossiers, avec leur
@@ -5117,8 +5163,8 @@ function mailDossiers(){
          Repliés par compte, comme Mail : seule la boîte ouverte montre ses dossiers. Trois
          boîtes à six dossiers feraient dix-huit lignes permanentes, et c'est exactement ce que
          Mail évite en repliant. */
-      if(!ouverte) return r;
-      var dos=(x.dossiers||[]);
+      if(!ouverte||!deplie) return r;
+      var dos=dos0;
       if(!dos.length) return r;
       return r+dos.map(function(f){
         return '<button class="dos sous'+(mailDossierChoisi()===f.chemin?' on':'')+'" onclick="mailChoisirDossier(\''+jsq(f.chemin)+'\',\''+jsq(f.nom||'')+'\')">'+
@@ -5130,23 +5176,34 @@ function mailDossiers(){
           '</button>';
       }).join('');
     }).join('');
+    /* ⛔ LES ENVOIS SONT UN ENDROIT OÙ DU COURRIER VIT, DONC ILS SONT DANS « BOÎTE ».
+       Ils étaient dans « Filtrer », supprimé le 13 septembre — et ce n'était pas un filtre :
+       les quatre autres restreignaient la liste courante, celui-ci CHANGEAIT de source (une
+       autre route, le SMTP de TeamOP, pas l'IMAP d'une boîte reliée). Rangé avec les boîtes,
+       il dit ce qu'il est : la sortie, à côté des entrées.
+       Sans ce déplacement, le seul chemin restant serait le bouton en bas du Journal de la
+       console — enfoui, et dont le libellé (« dans Support → Envoyés ») deviendrait faux. */
+    h+=d(mailEnvoyes(), 'mailChoisirCat(\'envoyes\')', '📤', 'Envois TeamOP',
+         MSG.envoyes ? MSG.envoyes.length : 0);
   }
   h+='<div class="dos-t">Rechercher</div>'+
     d(MSG.selEnt==='toutes', 'mailChoisirEnt(\'toutes\')', '🗂️', 'Toutes les entreprises', attTot);
 
-  /* ⛔ LES FILTRES S'APPLIQUENT À CE QU'ON REGARDE, boîte comprise. Ils vivaient imbriqués sous
-     l'entreprise ouverte : pour filtrer « À traiter » dans support@, il fallait d'abord choisir
-     une entreprise — alors que la question qu'on se pose en ouvrant une boîte de 78 messages,
-     c'est justement « lesquels attendent une réponse ? », toutes entreprises confondues.
-     Les compteurs portent sur le CADRE (boîte + entreprise ouverte), pas sur tout ce qui
-     existe : un compteur qui annonce plus que ce que la liste montre fait chercher dans le vide. */
-  var cadre=mailCadreMsgs();
-  h+='<div class="dos-t">Filtrer</div>'+MAIL_CATS.map(function(c){
-    var n=(c.cle==='envoyes')
-      ? (MSG.envoyes ? (MSG.selEnt==='toutes' ? MSG.envoyes.length : mailEnvoisDe(MSG.selEnt).length) : 0)
-      : cadre.filter(function(m){ return mailDansCat(m,c.cle); }).length;
-    return d(MSG.selCat===c.cle, 'mailChoisirCat(\''+jsq(c.cle)+'\')', c.ico, c.nom, n);
-  }).join('');
+  /* ⛔ LA SECTION « FILTRER » A ÉTÉ SUPPRIMÉE LE 13 SEPTEMBRE 2026. Décision de Justin, et
+     elle est juste : « on filtre par boîte mail, c'est largement suffisant ».
+     Ce qu'elle faisait est maintenant fait ailleurs, et mieux :
+       · « Tous les messages » — c'est l'état par défaut d'un dossier ouvert ;
+       · « À traiter », « Marqués », « Pièces jointes » — des tranches d'un même dossier, là où
+         les dossiers IMAP (Réception, Indésirables, Corbeille, Archives) découpent la VRAIE
+         matière, celle que le serveur de courrier connaît. Deux découpages concurrents dans la
+         même barre obligeaient à tenir les deux en tête pour savoir ce qu'on regardait ;
+       · « Envois TeamOP » — remonté dans « Boîte » juste au-dessus : ce n'était pas un filtre.
+     CE QUI RESTE ET CE QUI PART, compté après coup plutôt que supposé :
+       · MAIL_CATS et mailDansCat RESTENT — deux états vides lisent encore le libellé de la
+         catégorie courante, et le groupage par entreprise filtre toujours dessus ;
+       · mailChoisirCat RESTE — c'est lui qui porte le passage aux envois ;
+       · mailCadreMsgs et mailEnvoisDe sont PARTIES : elles ne servaient qu'aux compteurs des
+         filtres, et ne comptaient plus qu'une occurrence chacune — leur propre définition. */
 
   h+='<div class="dos-t">Entreprises</div>';
   if(!ENT.loaded&&!ENT.err) h+='<div class="dos-note">Chargement de l’annuaire…</div>';
@@ -5497,8 +5554,19 @@ function vueSupport(){
      ajouterait un mot à chaque titre sans rien apprendre. Mais dans la Corbeille ou les
      Indésirables, ne pas le dire ferait croire qu'on lit le courrier normal. */
   var dNom=(bCh&&MSG.sel&&MSG.sel.dosNom&&MSG.sel.dosNom!=='Réception')?String(MSG.sel.dosNom):'';
-  var tete=enTete(bCh?('Courrier · '+bNom+(dNom?(' · '+dNom):'')):'Courrier',
-    bCh
+  /* ⛔ LES ENVOIS NE SONT PAS UNE BOÎTE RELIÉE, ET LE TITRE DOIT LE DIRE. Depuis que
+     « Envois TeamOP » est rangé dans la section Boîte (13 septembre 2026), on l'ouvre souvent
+     alors qu'une boîte est sélectionnée — et l'écran titrait alors « Courrier ·
+     support@teamop.fr » au-dessus d'une liste qui ne vient pas de support@ du tout : elle
+     vient du SMTP de TeamOP. Mesuré à la sonde avant correction. Un titre qui nomme la
+     mauvaise source est pire que pas de titre.
+     On ne touche QUE le titre et sa phrase : la structure de la vue (volets, lecteur,
+     composeur) est déjà la bonne, c'est `env` qui l'aiguille plus bas. */
+  var envVue=mailEnvoyes();
+  var tete=enTete(envVue?'Courrier · Envois TeamOP':(bCh?('Courrier · '+bNom+(dNom?(' · '+dNom):'')):'Courrier'),
+    envVue
+      ? 'Tout ce que TeamOP a envoyé depuis son propre serveur d’envoi — pas le dossier « Envoyés » d’une boîte reliée. <a href="#" onclick="mailChoisirCat(\'tout\');return false">Revenir aux messages reçus</a>'
+      : bCh
       ? (dNom
           ? 'Vous êtes dans <b>'+esc(dNom)+'</b> de <b>'+esc(bNom)+'</b> — ce n’est pas la réception. <a href="#" onclick="mailChoisirDossier(mailCheminInbox(mailBoiteChoisie()),\'Réception\');return false">Revenir à la réception</a> · <a href="#" onclick="mailChoisirBoite(\'\');return false">toutes les boîtes</a>'
           : 'Vous ne voyez que ce qui est arrivé sur <b>'+esc(bNom)+'</b>. Les entreprises restent rangées séparément à l’intérieur. <a href="#" onclick="mailChoisirBoite(\'\');return false">Voir toutes les boîtes</a>')
