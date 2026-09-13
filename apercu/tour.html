@@ -4862,6 +4862,47 @@ function mailChoisirEnt(cle){
   MSG.selEnt=cle; MSG.selCat='tout'; MSG.autoTout=false; MSG.ouvert=null; MSG.lu=null; MSG.envSel=null;
   renderNav('fondu');
 }
+/* ══ CHOISIR UNE BOÎTE — demandé par Justin le 12 septembre 2026 ═══════════════════════════
+   « je veux que la Tour refasse tout le mail, que je puisse choisir par mail ».
+
+   ⚠️ Le commentaire d'à côté disait l'inverse : « les rendre cliquables ramènerait le mélange
+   qu'on vient de supprimer ». Il avait raison SUR SON POINT — ranger par boîte À LA PLACE des
+   entreprises remettrait ELAN et sa voisine dans la même colonne. Ce n'est pas ce qu'on fait
+   ici : la boîte devient un CADRE, et le rangement par entreprise continue à l'intérieur.
+   Trois boîtes reliées, une seule qu'on regarde à la fois — et les entreprises toujours
+   séparées dedans.
+
+   ⛔ ET CE N'EST PAS UN FILTRE DE PAGE. La vue fusionnée ne charge qu'une tranche de
+   messages : filtrer côté navigateur n'aurait montré que ce qui traînait déjà en mémoire, en
+   laissant croire que la boîte ne contient que ça. La route serveur accepte « ?boite= » depuis
+   toujours — c'est elle qu'on appelle, pagination comprise. La plomberie existait, il ne
+   manquait que le clic. */
+function mailChoisirBoite(id,nom){
+  MSG.sel = id ? {boite:id,dossier:'',nom:(nom||'Boîte'),role:'inbox'}
+               : {boite:'toutes',dossier:'',nom:'Toutes les réceptions',role:'inbox'};
+  /* On repart de « toutes les entreprises » : l'entreprise ouverte n'écrit peut-être pas à
+     cette boîte-là, et rester sur elle afficherait un écran vide sans dire pourquoi. */
+  MSG.selEnt='toutes'; MSG.selCat='tout'; MSG.autoTout=false;
+  MSG.ouvert=null; MSG.lu=null; MSG.envSel=null;
+  /* Les messages de la boîte précédente ne doivent pas rester sous les yeux pendant que les
+     nouveaux arrivent : on vide, l'écran dit qu'il charge, puis il dit ce qu'il a trouvé. */
+  MSG.messages=[]; MSG.total=0;
+  chargerMessages();
+  renderNav('fondu');
+}
+function mailBoiteChoisie(){ return (MSG.sel&&MSG.sel.boite!=='toutes') ? MSG.sel.boite : ''; }
+/* ⛔ L'ADRESSE, PAS L'IDENTIFIANT TECHNIQUE. Le serveur renvoie « boite: b.id » et rien d'autre :
+   chaque ligne de message affichait donc « b-sup » ou « b-ctl » au lieu de
+   « support@teamop.fr ». Défaut d'avant ce lot, vu en pilotant l'écran au navigateur — il ne se
+   voyait pas en relisant le code, parce que la ligne prévoit un « m.boiteNom » que personne
+   n'envoie. La correspondance vit déjà dans MSG.boites : aucune raison de la redemander au
+   serveur. On retombe sur l'identifiant seulement si la boîte a disparu de la liste. */
+function mailBoiteNom(id){
+  if(!id) return '';
+  var t=(MSG.boites||[]);
+  for(var i=0;i<t.length;i++){ var b=t[i].boite||{}; if(b.id===id) return b.email||id; }
+  return id;
+}
 function mailChoisirCat(cle){
   MSG.selCat=cle; MSG.ouvert=null; MSG.lu=null; MSG.envSel=null;
   /* Les envois viennent d'une autre route que les réceptions : on ne les charge qu'au
@@ -4879,7 +4920,10 @@ function chargerEnvois(){
 }
 
 function mailQ(v){ MSG.autoTout=false; MSG.q=v||''; chargerMessages(); }
-function mailActualiser(){ chargerMail(true); toast('Boîte support actualisée'); }
+/* Le message disait « Boîte support actualisée », toujours — y compris en relevant
+   controle@ ou les trois à la fois. Un mot juste coûte le même clic qu'un mot faux. */
+function mailActualiser(){ chargerMail(true);
+  toast(mailBoiteChoisie() ? (mailBoiteNom(mailBoiteChoisie())+' actualisée') : 'Toutes les boîtes actualisées'); }
 function compoOuvrir(dest){ MSG.compo=true; if(dest) MSG.cDest=dest; renderNav('lecture'); }
 function compoFermer(){ MSG.compo=false; renderNav('lecture-retour'); }
 function compoChamp(k,v){ MSG[k]=v; }
@@ -4934,7 +4978,26 @@ function mailDossiers(){
   var groupes=courrierParEnt();
   var attTot=(MSG.messages||[]).filter(mailAttente).length;
 
-  var h='<div class="dos-t">Rechercher</div>'+
+  /* ⛔ LES BOÎTES PASSENT EN PREMIER, ET ELLES SE CLIQUENT (12 septembre 2026, demande de
+     Justin : « que je puisse choisir par mail »). Elles étaient en bas, en petit, décrites
+     comme « la plomberie » — mais c'est le CADRE de tout ce qui suit : tant qu'on ne sait pas
+     quelle boîte on regarde, les entreprises en dessous ne veulent rien dire de précis.
+     Le rangement par entreprise ne bouge pas d'un pouce : il vit À L'INTÉRIEUR de la boîte
+     choisie. On ne remplace pas un rangement par l'autre, on les emboîte. */
+  var h='';
+  if(MSG.boites.length>1||mailBoiteChoisie()){
+    var bSel=mailBoiteChoisie();
+    h+='<div class="dos-t">Boîte</div>'+
+      d(!bSel, 'mailChoisirBoite(\'\')', '📬', 'Toutes les boîtes', bSel?0:MSG.nonLus);
+    h+=MSG.boites.map(function(x){
+      var b=x.boite||{};
+      /* Le compteur vient du serveur (x.nonLus) et vaut pour TOUTE la boîte, pas pour la
+         tranche chargée : c'est le seul chiffre juste quand on n'a pas encore ouvert. */
+      return d(bSel===b.id, 'mailChoisirBoite(\''+jsq(b.id)+'\',\''+jsq(b.email||'')+'\')',
+               '✉️', b.email||'Boîte', Number(x.nonLus)||0);
+    }).join('');
+  }
+  h+='<div class="dos-t">Rechercher</div>'+
     d(MSG.selEnt==='toutes', 'mailChoisirEnt(\'toutes\')', '🗂️', 'Toutes les entreprises', attTot);
 
   h+='<div class="dos-t">Entreprises</div>';
@@ -4956,13 +5019,10 @@ function mailDossiers(){
     }).join('');
   });
 
-  /* Les boîtes reliées restent visibles, en bas et en petit. Ce n'est plus le rangement,
-     c'est la plomberie : savoir laquelle est branchée et laquelle a du retard. Les rendre
-     cliquables ramènerait le mélange qu'on vient de supprimer. */
-  if(MSG.boites.length) h+='<div class="dos-t">Boîtes reliées</div>'+MSG.boites.map(function(x){
-    var b=x.boite||{};
-    return '<div class="dos-plomb"><span>'+esc(b.email||'Boîte')+'</span>'+(x.nonLus?'<b>'+x.nonLus+'</b>':'')+'</div>';
-  }).join('');
+  /* L'ancienne liste « Boîtes reliées » en bas a été retirée : elle est maintenant EN HAUT et
+     cliquable. La même chose à deux endroits, c'est un endroit de trop — et celui d'en bas ne
+     faisait rien. Une seule boîte reliée ? La section ne s'affiche pas du tout : il n'y a rien
+     à choisir, et un choix à une seule option est un faux choix. */
   return h;
 }
 
@@ -4985,7 +5045,11 @@ function supNature(m){ if(m.auto) return 'auto'; if(!m.lu) return 'att'; return 
    qui ne se ressemble pas d'une vue à l'autre est précisément ce qu'on corrige ici. */
 function mailLigneRecue(m,att){
   var cle=m.boite+'|'+m.dossier+'|'+m.uid;
-  var l3=[]; if(m.boiteNom||m.boite) l3.push(esc(m.boiteNom||m.boite));
+  var l3=[];
+  /* La boîte ne se répète PAS quand on n'en regarde qu'une : tout l'écran le dit déjà, du
+     titre à la barre latérale. Un élément qui répète ce qu'on sait ne porte rien — il
+     encombre une ligne où le nom, l'objet et l'heure, eux, comptent. */
+  if(!mailBoiteChoisie()){ var bn=m.boiteNom||mailBoiteNom(m.boite); if(bn) l3.push(esc(bn)); }
   if(m.deNom&&m.de&&m.deNom!==m.de) l3.push(esc(m.de));
   return supLigne({nom:m.deNom||m.de,adr:m.de,ts:m.ts,objet:m.objet,l3:l3.join(' · '),
     pieces:m.pieces,marque:m.marque,repondu:m.repondu,att:!!att,on:(MSG.lu===cle),
@@ -5122,6 +5186,14 @@ function mailListeEnvoyee(){
     '<button type="button" class="btn-fant" onclick="envoyesOuvrir()">Réessayer</button>');
   var L=MSG.envoyes;
   if(!L) return supSquel();
+  /* ⛔ LES ENVOIS NE SE FILTRENT PAS PAR BOÎTE, ET IL FAUT LE DIRE. Tout ce que TeamOP envoie
+     part de la MÊME adresse SMTP : le journal d'envoi (mailsLog) ne porte même pas de boîte
+     d'expédition, et il n'y en a qu'une. Laisser ce volet muet pendant que le titre annonce
+     « Courrier · support@ » ferait croire que ces envois sont ceux de cette boîte-là. Une
+     phrase suffit ; hausser les épaules ne suffit pas. */
+  var noteB = mailBoiteChoisie()
+    ? '<div class="dos-note" style="margin:2px 2px 8px">📤 Les envois ne se rangent pas par boîte : tout ce que TeamOP envoie part de la même adresse. Cette liste est donc complète, quelle que soit la boîte choisie.</div>'
+    : '';
   var q=String(MSG.envQ||'').toLowerCase();
   /* L'index d'origine est conservé : envoyeLire() pointe dans MSG.envoyes, pas dans le
      filtrage. Sans ça, ouvrir un envoi depuis une entreprise ouvrirait celui d'une autre. */
@@ -5132,11 +5204,11 @@ function mailListeEnvoyee(){
       if(MSG.selEnt==='_autres' ? !!e : (!e||e.t!==MSG.selEnt)) return false; }
     if(!q) return true;
     return (mailEnt(o.m.a)+' '+(o.m.a||'')+' '+(o.m.sujet||'')).toLowerCase().indexOf(q)>=0; });
-  if(!vus.length) return q
+  if(!vus.length) return noteB+(q
     ? supVide('avion','Aucun envoi ne correspond','Rien ne correspond à « '+esc(MSG.envQ)+' ».',
         '<button type="button" class="btn-fant" onclick="envoyesQ(\'\')">Effacer la recherche</button>')
     : supVide('avion','Aucun e-mail envoyé','Le journal se remplit à chaque envoi.',
-        '<button type="button" class="btn-plein" onclick="compoOuvrir()">Écrire</button>');
+        '<button type="button" class="btn-plein" onclick="compoOuvrir()">Écrire</button>'));
   /* Trois seaux par date, TOUS à plat : un journal d'envois ne demande aucune décision, il
      ne mérite donc aucun plan élevé — et le refuser ici est ce qui garde le plan crédible
      ailleurs. */
@@ -5144,7 +5216,7 @@ function mailListeEnvoyee(){
   var seaux=[{titre:'Aujourd’hui',l:[]},{titre:'Cette semaine',l:[]},{titre:'Plus ancien',l:[]}];
   vus.forEach(function(o){ var t=o.m.ts||0;
     seaux[t>=j0?0:(t>=s7?1:2)].l.push(o); });
-  return '<div class="reg" style="padding:4px 2px 12px">'+seaux.map(function(S){
+  return noteB+'<div class="reg" style="padding:4px 2px 12px">'+seaux.map(function(S){
     if(!S.l.length) return '';
     return supGroupe(S.titre,S.l.length,'',false,'reg-bloc',S.l.map(function(o){
       var m=o.m;
@@ -5257,8 +5329,16 @@ function vueSupport(){
     : '<input placeholder="Rechercher un message…" value="'+esc(MSG.q)+'" onchange="mailQ(this.value)">';
   var rafraichir=env?'envoyesOuvrir()':'mailActualiser()';
 
-  var tete=enTete('Courrier',
-    'Les messages reçus par les boîtes reliées, et tout ce que TeamOP a envoyé. La date et l’heure de chaque envoi sont conservées.',
+  /* ⛔ LE TITRE DIT QUELLE BOÎTE ON REGARDE. Sans ça, seul le surlignage de la barre latérale
+     le disait — et sur écran étroit cette barre se replie : on lisait une liste restreinte
+     sans aucun moyen de savoir à quoi. Un écran qui filtre sans le dire fait croire que le
+     reste n'existe pas. */
+  var bCh=mailBoiteChoisie();
+  var bNom=bCh?String((MSG.sel&&MSG.sel.nom)||'cette boîte'):'';
+  var tete=enTete(bCh?('Courrier · '+bNom):'Courrier',
+    bCh
+      ? 'Vous ne voyez que ce qui est arrivé sur <b>'+esc(bNom)+'</b>. Les entreprises restent rangées séparément à l’intérieur. <a href="#" onclick="mailChoisirBoite(\'\');return false">Voir toutes les boîtes</a>'
+      : 'Les messages reçus par les boîtes reliées, et tout ce que TeamOP a envoyé. La date et l’heure de chaque envoi sont conservées.',
     '<button class="btn-fant" onclick="supConnecterBoite()">Connecter une boîte</button>'+
     '<button class="btn-plein" onclick="compoOuvrir()">'+svg('crayon',15)+' Écrire</button>');
 
