@@ -1320,13 +1320,22 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 /* Une seule définition, ici : elle vivait en trois morceaux dans trois blocs différents, et
    les deux plus hauts perdaient la cascade contre celle-ci sans que rien ne le signale.
    C’est la navigation principale d’un écran qu’on ouvre au doigt : 44 px, plancher dur. */
-.dos{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;color:var(--text2);font-family:inherit;font-size:14px;text-align:left;min-height:44px;padding:0 10px;border-radius:var(--r-2);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie)}
+/* `padding:0` devient `padding:7px 10px` : un libellé qui passe à deux lignes doit pouvoir
+   grandir sans coller aux bords. min-height reste le plancher tactile de 44 px. */
+.dos{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;color:var(--text2);font-family:inherit;font-size:14px;text-align:left;min-height:44px;padding:7px 10px;border-radius:var(--r-2);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie)}
 .dos:hover{background:var(--hover);color:var(--strong)}
 .dos:active{background:var(--sel);transition-duration:var(--d-0)}
 .dos.on{background:var(--accBg);color:var(--strong);font-weight:600}
 .dos:focus-visible{outline:none;box-shadow:var(--anneau)}
 .dos-i{flex:0 0 auto;font-size:14px}
-.dos-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ⛔ LE LIBELLÉ SE REPLIE, IL NE SE COUPE PLUS. La colonne fait 238 px et « Toutes les
+   entreprises » s'affichait « Toutes les entrep… » — un libellé tronqué cache une information,
+   et il y en a d'autres qui arrivent (des noms d'entreprise, des adresses de boîte).
+   Deux lignes au plus : au-delà, on coupe quand même, sinon une seule ligne de la barre
+   pourrait manger tout l'écran. La coupure se fait entre les mots, jamais au milieu d'un mot
+   — un nom d'entreprise coupé en deux ne se reconnaît plus. */
+.dos-n{flex:1;min-width:0;overflow:hidden;overflow-wrap:break-word;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.25}
 .dos .n{flex:0 0 auto;font-size:11.5px;color:var(--muted);font-weight:700}
 .dos.on .n{color:var(--acc)}
 .dos-t{font-size:10px;letter-spacing:var(--suivi-mono);color:var(--muted);font-family:var(--fm);margin:14px 0 6px 10px}
@@ -4829,6 +4838,17 @@ function mailDansCat(m,cle){
   return true;
 }
 function mailAttente(m){ return !m.lu && !m.auto; }
+/* ⛔ LE CADRE QU'ON REGARDE, à un instant donné : la boîte choisie (déjà appliquée par le
+   serveur, MSG.messages ne contient qu'elle) ET l'entreprise ouverte s'il y en a une.
+   C'est là-dessus que les filtres comptent — pas sur « tout ce qui existe ». Un compteur qui
+   annonce 12 « À traiter » alors que le cadre n'en montre que 3 ne sert à rien : il fait
+   chercher neuf messages qui ne sont pas là. */
+function mailCadreMsgs(){
+  var M=(MSG.messages||[]);
+  if(MSG.selEnt==='toutes') return M;
+  var g=courrierParEnt().filter(function(x){ return x.cle===MSG.selEnt; })[0];
+  return g?g.msgs:[];
+}
 
 /* Les messages reçus, groupés par entreprise. Le groupe « pas encore rattachées » est une
    corbeille de tri, pas une entreprise : il reste toujours en dernier, quoi qu'il contienne. */
@@ -5000,23 +5020,32 @@ function mailDossiers(){
   h+='<div class="dos-t">Rechercher</div>'+
     d(MSG.selEnt==='toutes', 'mailChoisirEnt(\'toutes\')', '🗂️', 'Toutes les entreprises', attTot);
 
+  /* ⛔ LES FILTRES S'APPLIQUENT À CE QU'ON REGARDE, boîte comprise. Ils vivaient imbriqués sous
+     l'entreprise ouverte : pour filtrer « À traiter » dans support@, il fallait d'abord choisir
+     une entreprise — alors que la question qu'on se pose en ouvrant une boîte de 78 messages,
+     c'est justement « lesquels attendent une réponse ? », toutes entreprises confondues.
+     Les compteurs portent sur le CADRE (boîte + entreprise ouverte), pas sur tout ce qui
+     existe : un compteur qui annonce plus que ce que la liste montre fait chercher dans le vide. */
+  var cadre=mailCadreMsgs();
+  h+='<div class="dos-t">Filtrer</div>'+MAIL_CATS.map(function(c){
+    var n=(c.cle==='envoyes')
+      ? (MSG.envoyes ? (MSG.selEnt==='toutes' ? MSG.envoyes.length : mailEnvoisDe(MSG.selEnt).length) : 0)
+      : cadre.filter(function(m){ return mailDansCat(m,c.cle); }).length;
+    return d(MSG.selCat===c.cle, 'mailChoisirCat(\''+jsq(c.cle)+'\')', c.ico, c.nom, n);
+  }).join('');
+
   h+='<div class="dos-t">Entreprises</div>';
   if(!ENT.loaded&&!ENT.err) h+='<div class="dos-note">Chargement de l’annuaire…</div>';
   else if(!groupes.length) h+='<div class="dos-note">Aucun message reçu pour l’instant.</div>';
 
   groupes.forEach(function(g){
-    var ouvert=(MSG.selEnt===g.cle);
-    h+=d(ouvert, 'mailChoisirEnt(\''+jsq(g.cle)+'\')', (g.ent?'🏢':'❓'), g.nom, g.msgs.filter(mailAttente).length);
-    /* Les catégories n'apparaissent que sous l'entreprise ouverte : les afficher pour
-       toutes ferait une barre de cinquante lignes où plus rien ne se voit. */
-    if(!ouvert) return;
-    h+=MAIL_CATS.map(function(c){
-      var n=(c.cle==='envoyes') ? (MSG.envoyes?mailEnvoisDe(g.cle).length:0)
-                                : g.msgs.filter(function(m){ return mailDansCat(m,c.cle); }).length;
-      return '<button class="dos sous'+(MSG.selCat===c.cle?' on':'')+'" onclick="mailChoisirCat(\''+jsq(c.cle)+'\')">'+
-        '<span class="dos-i">'+c.ico+'</span><span class="dos-n">'+esc(c.nom)+'</span>'+
-        (n?'<span class="n">'+n+'</span>':'')+'</button>';
-    }).join('');
+    /* Les catégories ne sont PLUS imbriquées ici. L'ancien commentaire disait vrai — « les
+       afficher pour toutes ferait une barre de cinquante lignes » — mais il en tirait la
+       mauvaise conclusion : le problème n'était pas qu'elles soient visibles, c'est qu'elles
+       étaient RÉPÉTÉES. Une seule fois, en haut, et elles servent partout.
+       Ce qui manquait avant, demandé par Justin le 13 septembre en regardant support@ et ses
+       78 messages : filtrer « À traiter » SANS avoir à ouvrir une entreprise d'abord. */
+    h+=d(MSG.selEnt===g.cle, 'mailChoisirEnt(\''+jsq(g.cle)+'\')', (g.ent?'🏢':'❓'), g.nom, g.msgs.filter(mailAttente).length);
   });
 
   /* L'ancienne liste « Boîtes reliées » en bas a été retirée : elle est maintenant EN HAUT et
@@ -5122,7 +5151,22 @@ function mailListeRecueCorps(){
      C'est la demande, mot pour mot : « je ne veux pas que tout soit mélangé entre eux ».
      Une liste unique triée par date remettrait ELAN et sa voisine dans la même colonne. */
   if(MSG.selEnt==='toutes'){
-    var gr=courrierParEnt();
+    /* ⛔ LE FILTRE S'APPLIQUE ICI AUSSI. Cette vue l'ignorait complètement : choisir
+       « À traiter » ne changeait rien tant qu'on n'avait pas ouvert une entreprise, et la barre
+       montrait une catégorie sélectionnée pendant que la liste affichait tout. Un filtre qui
+       s'allume sans rien filtrer est pire qu'un filtre absent — on croit avoir trié. */
+    var catT=(MAIL_CATS.filter(function(c){ return c.cle===MSG.selCat; })[0])||MAIL_CATS[0];
+    var gr=courrierParEnt().map(function(g){
+      return { ent:g.ent, cle:g.cle, nom:g.nom,
+               msgs:g.msgs.filter(function(m){ return mailDansCat(m,catT.cle); }) };
+    }).filter(function(g){ return g.msgs.length; });
+    /* Rien dans cette catégorie : on le DIT, et on donne la sortie. Sinon l'écran reste vide
+       et on croit que la boîte l'est aussi. */
+    if(!gr.length) return supVide('support','Rien dans « '+esc(catT.nom)+' »',
+      mailBoiteChoisie()
+        ? 'Aucun message de '+esc(mailBoiteNom(mailBoiteChoisie()))+' ne correspond à ce filtre.'
+        : 'Aucun message ne correspond à ce filtre.',
+      '<button type="button" class="btn-fant" onclick="mailChoisirCat(\'tout\')">Voir tous les messages</button>');
     return '<div class="reg" style="padding:4px 2px 12px">'+gr.map(function(g,i){
       var att=g.msgs.filter(mailAttente).length;
       var sous=g.ent
