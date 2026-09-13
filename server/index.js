@@ -1383,7 +1383,7 @@ app.post('/api/monitor/login', (req, res) => {
    envoyés aux entreprises, et ses dossiers se lisent librement — une lecture de « Envoyés » y trouverait la
    clé d'équipe de n'importe quelle cliente. Les écritures support (répondre, envoyer, retirer, marquer)
    engagent l'adresse officielle : GESTION aussi. /mails (journal des e-mails, adresses des clientes) : GESTION. */
-const ROUTES_COMMUNES = /^\/api\/monitor\/(login|moi|users(\/.*)?|journal|issues(\/archive)?|status|expliquer|proposer|sante|support\/(box|mails|envoyes)|entreprises)$/;
+const ROUTES_COMMUNES = /^\/api\/monitor\/(login|moi|users(\/.*)?|journal|issues(\/(archive|contexte))?|status|expliquer|proposer|sante|support\/(box|mails|envoyes)|entreprises)$/;
 const ROUTES_MESSAGES = /^\/api\/monitor\/(espaces\/apps|messages(\/.*)?)$/;
 function monAppDeRoute(req) {
   /* Le chemin DÉCLARÉ de la route (req.route.path), pas l'URL reçue : Express accepte
@@ -2482,16 +2482,14 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
 //    Une seule adresse par entreprise (dédoublonnée), tout passe par le beau
 //    gabarit TeamOP et le journal des e-mails.
 const ANNONCE = {
-  version: '667',
+  version: '666',
   sujet: '⬆️ La mise à jour ne se reporte plus — et les messages d’erreur disent la vérité',
   intro: 'Bonjour,<br>votre application OP GESTION vient d\'être mise à jour. Elle s\'installe toute seule à la prochaine ouverture — vous n\'avez rien à faire.',
   points: [
     ['⬆️ La mise à jour s\'installe, elle ne se reporte plus', 'Jusqu\'ici, la petite bannière « mise à jour » se refermait d\'un doigt, et l\'appareil pouvait rester des semaines en retard sans que personne ne s\'en aperçoive — il lisait, mais il n\'enregistrait plus rien pour l\'équipe. Désormais un écran complet le dit, avec un seul bouton. Quelques secondes, et tout le monde travaille sur la même version. Ce qui est déjà enregistré part vers l\'équipe AVANT le redémarrage.'],
     ['⚠️ Une saisie non validée est perdue — validez avant de quitter', 'C\'est le revers de ce qui précède, et nous préférons vous le dire : si un formulaire est ouvert sans avoir été enregistré au moment où la mise à jour part, son contenu ne survit pas. Tout ce qui a été enregistré, lui, est conservé et envoyé.'],
     ['⛔ Une adresse qui n\'existe pas le dit tout de suite', 'Se tromper dans l\'adresse de l\'entreprise ouvrait quand même l\'écran de connexion, et l\'application répondait ensuite « identifiant ou mot de passe incorrect ». Des mots de passe ont été remis à zéro pour rien. Maintenant l\'adresse est vérifiée d\'abord : si elle n\'est pas chez nous, c\'est écrit, et l\'écran de connexion n\'apparaît pas.'],
-    ['🔎 Quand l\'application refuse d\'enregistrer, elle dit pourquoi', 'Elle annonçait parfois un retard de version qui n\'en était pas un, et poussait à refaire une mise à jour qui ne réparait rien. Elle distingue désormais les deux cas : « mise à jour nécessaire » quand c\'est vrai, « enregistrement refusé » quand la cause est ailleurs — avec, dans ce cas, la consigne de prévenir votre responsable plutôt que de tourner en rond.'],
-    ['🌙 Les mises à jour se font la nuit', 'Une nouvelle version qui n\'est pas obligatoire ne vous interrompt plus en pleine journée : elle s\'installe toute seule entre 22 h et 5 h, quand personne ne touche l\'appareil, et seulement si rien n\'est en cours de saisie. Vous retrouvez l\'application à jour le matin, sans rien avoir eu à faire.'],
-    ['🏢 Une seule adresse, plus de lien à conserver', 'Le lien de première connexion disparaît : il portait la clé de vos données dans une adresse web qui pouvait être transférée ou photographiée. Désormais, votre entreprise a SON adresse — chacun y tape son identifiant et son mot de passe — et un code d\'accès à usage unique pour la toute première ouverture. Rien ne change pour vos comptes existants.']
+    ['🔎 Quand l\'application refuse d\'enregistrer, elle dit pourquoi', 'Elle annonçait parfois un retard de version qui n\'en était pas un, et poussait à refaire une mise à jour qui ne réparait rien. Elle distingue désormais les deux cas : « mise à jour nécessaire » quand c\'est vrai, « enregistrement refusé » quand la cause est ailleurs — avec, dans ce cas, la consigne de prévenir votre responsable plutôt que de tourner en rond.']
   ],
   fin: 'Rien d\'autre ne change : mêmes données, mêmes écrans, mêmes habitudes. Votre adresse et vos identifiants continuent de fonctionner.'
 };
@@ -4375,6 +4373,104 @@ app.post('/api/monitor/status', monAdmin, async (req, res) => {
   res.json({ ok: true, issue, mails, mailsSimules });
 });
 
+
+/* ══════════ LE CONTEXTE D'UN INCIDENT — qui était là, par quelle porte, sur quoi ══════════
+   Demandé par Justin le 13 septembre 2026 : « je veux voir pourquoi, qui, le lien qu'il a
+   utilisé pour se connecter, l'appareil, le navigateur et la version — en gros pour aller
+   plus vite à régler les problèmes ».
+
+   ⛔ RIEN DE NOUVEAU N'EST COLLECTÉ, ET C'EST LE POINT QUI DÉCIDE DE TOUT. L'application
+   n'envoie avec une erreur que { teamId, app, version, msg, src, line, stack, ua } — son
+   commentaire le dit : « anonyme : aucune donnée métier ». Ajouter l'identité à ce flux
+   aurait voulu dire toucher app.html, donc une publication en production. Or tout est DÉJÀ
+   là, dans le journal des connexions (cnxData), écrit par la même application depuis des
+   mois : login, nom, rôle, via, appareil, os, navigateur, PWA, version. Cette route ne fait
+   que RAPPROCHER deux choses que la console tenait côte à côte sans jamais les relier.
+
+   ⚠️ LA RÈGLE DE RAPPROCHEMENT, ET POURQUOI CE N'EST PAS UNE FENÊTRE SYMÉTRIQUE. Une
+   connexion ne s'enregistre qu'à l'ENTRÉE (connexion, reprise de session) et à la sortie —
+   pas à chaque page. Chercher « ce qui s'est passé à ±15 minutes » ne trouverait donc
+   presque jamais rien : quelqu'un entré le matin plante à 16 h. On prend la DERNIÈRE session
+   ouverte avant l'erreur, et on rend l'écart — « connecté 3 h avant » n'est pas « connecté
+   à l'instant », et l'écran doit pouvoir le dire plutôt que de laisser croire à une
+   précision qu'on n'a pas.
+
+   On rend aussi les échecs et blocages survenus dans l'heure QUI SUIT : une erreur suivie de
+   trois échecs de connexion, c'est un enchaînement, pas deux faits séparés. */
+app.get('/api/monitor/issues/contexte', monAdmin, (req, res) => {
+  monPurge();   // le contexte ne se calcule pas sur un incident que la liste aurait déjà purgé
+  const issue = monIssues.find(i => i.id === String(req.query.id || ''));
+  if (!issue) return res.status(404).json({ error: 'problème introuvable' });
+  if (monIssueRefuse(req, res, issue)) return;
+
+  const APRES = 3600000;   // une heure après l'erreur : de quoi voir l'enchaînement, pas la journée
+  const SESSION = ['connexion', 'session'];
+  const MAX_ENT = 12, MAX_SUITE = 5;
+  /* ⛔ LE JOURNAL DES CONNEXIONS EST CLOISONNÉ PAR APPLICATION, COMME LE RESTE.
+     Un événement de cnxData porte son app (« gestion », « messages »). Sans ce filtre, un
+     compte OP MESSAGES ouvrant le contexte d'un incident MESSAGES recevrait les sessions
+     OP GESTION des salariés de l'entreprise — exactement ce que /api/monitor/issues se donne
+     du mal à empêcher. Le cloisonnement ne peut pas tenir uniquement sur la table de routage :
+     il tient ici, sur la donnée. */
+  const appIssue = monAppDeTag(issue.app);
+  const memeApp = x => (x.app || 'gestion') === appIssue;
+  /* Comparer deux noms d'entreprise à l'octet près rate « ELAN » contre « elan » et renvoie
+     « pas de journal » pour une entreprise qui en a un. Le slug est déjà la forme normalisée
+     que le reste du serveur emploie. */
+  const cle = n => espSlug(String(n || ''));
+  const sortie = [];
+
+  for (const ent of (issue.entreprises || []).slice(0, MAX_ENT)) {
+    /* Un incident porte le NOM de l'entreprise ; le journal des connexions est rangé par
+       identifiant technique. Sans ce pont, le rapprochement ne se fait jamais. */
+    let t = '';
+    const veut = cle(ent.nom);
+    for (const [slug, e] of Object.entries(espacesReg)) {
+      if (cle(e.nom || slug) !== veut) continue;
+      t = e.t || '';
+      if (!t) { try { t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {} }
+      if (t) break;
+    }
+    const quand = ent.lastTs || 0;
+    /* ⛔ TROIS CAUSES DE « RIEN », ET ELLES NE SE DISENT PAS PAREIL À L'ÉCRAN :
+       · inconnue  — le nom de l'incident ne correspond à aucune entreprise de l'annuaire ;
+       · sansJournal — elle y est, mais aucune connexion n'a jamais été enregistrée ;
+       · sansDate  — l'incident n'a pas d'horodatage : on ne peut RIEN chercher. */
+    if (!t) { sortie.push({ ent: ent.nom, quand, inconnue: true, session: null, suite: [], suiteTotal: 0 }); continue; }
+    if (!cnxData[t]) { sortie.push({ ent: ent.nom, quand, t, sansJournal: true, session: null, suite: [], suiteTotal: 0 }); continue; }
+    if (!quand) { sortie.push({ ent: ent.nom, quand: 0, t, sansDate: true, session: null, suite: [], suiteTotal: 0 }); continue; }
+
+    const l = cnxData[t].filter(memeApp);
+    const pub = x => ({ ts: x.ts, ev: x.ev, login: x.login || '', nom: x.nom || '', role: x.role || '',
+      via: x.via || '', appareil: x.appareil || '', os: x.os || '', nav: x.nav || '', pwa: !!x.pwa,
+      version: x.version || '', motif: x.motif || '' });
+
+    /* cnxData est rangé du plus récent au plus ancien (unshift) : le premier qui passe sous
+       la date de l'erreur est le bon. */
+    const s0 = l.find(x => SESSION.includes(x.ev) && (x.ts || 0) <= quand);
+    /* ⛔ « AUCUNE SESSION » NE SE DÉDUIT PAS D'UN JOURNAL PLEIN. cnxData est plafonné à 500
+       entrées par entreprise : chez une cliente active, une erreur de trois jours est déjà
+       sortie du journal, et `find` rend undefined. Dire « personne n'était connecté » serait
+       alors un mensonge — la vraie réponse est « le journal ne remonte pas jusque-là ».
+       C'est la faute déjà payée le 11 septembre (« jamais connecté » déduit d'un journal
+       plafonné, corrigé une heure après publication) ; on ne la refait pas. */
+    const plein = cnxData[t].length >= 500;
+    const plusVieux = cnxData[t].length ? (cnxData[t][cnxData[t].length - 1].ts || 0) : 0;
+    const horsJournal = !s0 && plein && plusVieux > quand;
+
+    const apres = l.filter(x => ['echec', 'bloque', 'refus'].includes(x.ev) && (x.ts || 0) > quand && (x.ts || 0) <= quand + APRES);
+
+    sortie.push({ ent: ent.nom, quand, t,
+      session: s0 ? Object.assign(pub(s0), { avantMs: quand - (s0.ts || 0) }) : null,
+      horsJournal,
+      suite: apres.slice(0, MAX_SUITE).map(pub), suiteTotal: apres.length });
+  }
+  /* ⛔ UNE TRONCATURE MUETTE SE LIT COMME UN TOTAL. issue.entreprises va jusqu'à 60 : en
+     n'en rendant que 12 sans le dire, l'écran annonçait « douze entreprises touchées » là où
+     il y en avait soixante. Le total voyage avec la tranche. */
+  res.json({ ok: true, id: issue.id, apresMin: APRES / 60000,
+    entreprises: sortie, total: (issue.entreprises || []).length, rendues: sortie.length });
+});
 
 /* ══════════ EXPLIQUE — d'un incident à sa cause, en français ══════════
    Un incident dit CE QUI a cassé. Il ne dit pas pourquoi, et c'est tout le travail :
