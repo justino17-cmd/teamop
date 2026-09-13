@@ -2720,7 +2720,45 @@ function setBdg(id,n){ var e=$(id); if(!e) return;
 }
 
 /* ═══ LES DONNÉES (toutes réelles) ═══ */
-var INC={list:[],cnt:{},nbEnt:0,loaded:false,err:'',sel:null,grp:null,f:{type:'',grav:'',statut:'actifs',app:'',ent:''}};
+/* ⛔ `ctx` PORTE TROIS ÉTATS, PAS DEUX. Pour un incident donné : absent du dictionnaire =
+   « pas encore demandé », {charge:true} = « en route », {err} = « on n'a pas pu savoir »,
+   {entreprises:[…]} = la réponse — et un tableau vide y est une VRAIE réponse (« personne
+   n'était connecté »), pas une panne. Confondre « je ne sais pas » et « il n'y a rien » est
+   l'erreur qui a fait réclamer son mot de passe à quelqu'un dont la boîte marchait très bien
+   (voir CLAUDE.md, 11 septembre) : on ne la refait pas ici. */
+var INC={list:[],cnt:{},nbEnt:0,loaded:false,err:'',sel:null,grp:null,ctx:{},f:{type:'',grav:'',statut:'actifs',app:'',ent:''}};
+/* Le contexte d'un incident : qui était connecté quand il est tombé, par quelle porte, sur
+   quoi. Demandé une seule fois par dossier — c'est une lecture, elle ne change pas sous nos
+   pieds — et jamais au chargement de la liste : 18 incidents feraient 18 requêtes pour des
+   dossiers que personne n'ouvrira. */
+function incCtxCharger(id){
+  if(!id || INC.ctx[id]) return;
+  INC.ctx[id]={charge:true};
+  apiGet('/api/monitor/issues/contexte?id='+encodeURIComponent(id)).then(function(d){
+    if(!d){ INC.ctx[id]={err:'Session expirée'}; return; }
+    /* ⛔ `total` et `rendues` viennent avec la réponse ET DOIVENT ÊTRE GARDÉS : sans eux,
+       l'avertissement de troncature ne s'affiche jamais et l'écran se remet à faire croire
+       que douze entreprises sont tout ce qu'il y a. Défaut trouvé par la sonde, pas par la
+       lecture — le code avait l'air juste des deux côtés. */
+    INC.ctx[id]={entreprises:d.entreprises||[],apresMin:d.apresMin||60,
+      total:d.total||0,rendues:(d.rendues!=null?d.rendues:(d.entreprises||[]).length)};
+    if(TAB==='surveillance') render();
+  }).catch(function(e){
+    INC.ctx[id]={err:msgErreur(e)};
+    if(TAB==='surveillance') render();
+  });
+}
+/* « il y a 3 h », « 12 min avant » — un écart brut en millisecondes ne se lit pas, et c'est
+   justement l'information qui empêche de croire à une précision qu'on n'a pas. */
+function incEcart(ms){
+  ms=Math.max(0,ms|0);
+  if(ms<60000) return 'au même moment';
+  var m=Math.round(ms/60000); if(m<60) return m+' min avant';
+  var h=Math.round(m/60); if(h<48) return h+' h avant';
+  return Math.round(h/24)+' j avant';
+}
+var CNX_VIA_L={adresse:'l’adresse de son entreprise',identifiants:'identifiant + mot de passe',
+  session:'une session déjà ouverte',email:'un lien reçu par e-mail',sms:'un lien reçu par SMS'};
 var MSG={boites:[],messages:[],nonLus:0,total:0,loaded:false,busy:false,err:'',errListe:'',autoTout:false,
          sel:{boite:'toutes',dossier:'',nom:'Toutes les réceptions',role:'inbox'},lu:null,ouvert:null,q:'',
          /* Le rangement par entreprise est un filtre de CETTE page, pas une requête : la
@@ -4664,6 +4702,56 @@ function vueIncident(i){
   /* Les entreprises touchées sont des LIGNES DE REGISTRE, pas des rangées maison : même
      hauteur, même filet, même colonne de fin que partout ailleurs. Inertes, parce qu'il n'y
      a pas de fiche derrière — le chevron promettrait une ouverture qui n'existe pas. */
+  /* ⛔ QUI ÉTAIT LÀ, PAR QUELLE PORTE, SUR QUOI — demandé par Justin le 13 septembre 2026 :
+     « je veux voir pourquoi, qui, le lien qu'il a utilisé pour se connecter, l'appareil, le
+     navigateur et la version — en gros pour aller plus vite à régler les problèmes ».
+     Rien de nouveau n'est collecté : tout vient du journal des connexions, que l'application
+     écrit depuis des mois. La console tenait les deux côte à côte sans jamais les relier. */
+  incCtxCharger(i.id);
+  var cx=INC.ctx[i.id];
+  var quiHtml;
+  if(!cx||cx.charge) quiHtml='<div style="font-size:13px;color:var(--muted);padding-top:6px">Recherche des sessions ouvertes au moment de l’erreur…</div>';
+  /* msgErreur rend déjà une phrase ponctuée : en recoller un point donnait « … dans un
+     instant.. ». On enlève la ponctuation finale avant de poursuivre la phrase. */
+  else if(cx.err) quiHtml='<div style="font-size:13px;color:var(--amber);padding-top:6px">Le journal des connexions n’a pas pu être lu — '+esc(String(cx.err).replace(/[.\s]+$/,''))+'. Ce n’est pas « personne n’était connecté » : on ne sait pas.</div>';
+  else {
+    var lignes=(cx.entreprises||[]).map(function(x){
+      var t1='<div style="font-size:13.5px;font-weight:600">'+esc(x.ent||'—')+'</div>';
+      var dit=function(txt,coul){ return '<div style="padding:9px 0;border-top:1px solid var(--hairline)">'+t1+
+        '<div style="font-size:12px;color:var(--'+(coul||'muted')+');margin-top:2px">'+txt+'</div></div>'; };
+      /* ⛔ QUATRE CAUSES DE « RIEN », QUATRE PHRASES. Les confondre, c'est envoyer chercher un
+         coupable qui n'existe pas — ou pire, affirmer que personne n'était là quand on n'en
+         sait rien. Relevé par l'agent `gardien` : le journal est plafonné à 500 entrées par
+         entreprise, donc chez une cliente active une erreur de trois jours en est déjà sortie.
+         « Aucune session » déduit d'un journal plein est exactement la faute du 11 septembre. */
+      if(x.inconnue)    return dit('Le nom porté par cet incident ne correspond à aucune entreprise de l’annuaire : rien à relier.');
+      if(x.sansJournal) return dit('Cette entreprise est dans l’annuaire, mais aucune connexion n’y a jamais été enregistrée.');
+      if(x.sansDate)    return dit('Cet incident n’a pas d’horodatage chez cette entreprise : impossible de chercher une session.');
+      if(x.horsJournal) return dit('Le journal de cette entreprise ne remonte pas jusqu’à cette erreur — il est plafonné à 500 connexions. Ce n’est pas « personne n’était là » : on ne sait pas.','amber');
+      if(!x.session)    return dit('Aucune session ouverte avant cette erreur dans le journal.');
+      var q=x.session;
+      var app=[q.appareil,q.os,q.nav].filter(Boolean).join(' · ');
+      var nSuite=x.suiteTotal||(x.suite||[]).length;
+      var suite=nSuite
+        ? '<div style="font-size:12px;color:var(--amber);margin-top:4px">↳ '+nSuite+' échec(s) de connexion dans l’heure qui a suivi</div>' : '';
+      return '<div style="padding:9px 0;border-top:1px solid var(--hairline)">'+t1+
+        '<div style="font-size:13px;margin-top:3px">'+esc(q.nom||q.login||'—')+
+          (q.login&&q.nom?'<span style="color:var(--muted)"> · '+esc(q.login)+'</span>':'')+
+          (q.role?'<span style="color:var(--muted)"> · '+esc(q.role)+'</span>':'')+'</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-top:2px">Entré par '+
+          esc(CNX_VIA_L[q.via]||q.via||'un chemin non précisé')+' — '+esc(incEcart(q.avantMs))+'</div>'+
+        (app||q.version?'<div style="font-size:12px;color:var(--muted);margin-top:2px">'+esc(app)+
+          (q.version?(app?' · ':'')+'v'+esc(q.version):'')+(q.pwa?' · installée':'')+'</div>':'')+
+        suite+'</div>';
+    }).join('');
+    /* ⛔ UNE TRONCATURE MUETTE SE LIT COMME UN TOTAL. Un incident touche jusqu'à 60
+       entreprises, la route en croise 12 : sans cette ligne, l'écran annonçait « douze
+       entreprises touchées » là où il y en avait soixante. */
+    var reste=(cx.total||0)-(cx.rendues||0);
+    quiHtml=(lignes||'<div style="font-size:13px;color:var(--muted);padding-top:6px">Aucune entreprise rattachée à un journal de connexion pour ce problème.</div>')
+      +(reste>0?'<div style="font-size:12px;color:var(--muted);padding-top:9px;border-top:1px solid var(--hairline);margin-top:2px">'+reste+' autre(s) entreprise(s) touchée(s) — non croisées ici, la recherche s’arrête à '+(cx.rendues||0)+'.</div>':'');
+  }
+
   var ents=(i.entreprises||[]);
   var entHtml=ents.length? '<div class="reg-bloc">'+ents.map(function(e){
       return '<div class="reg-l inerte">'+
@@ -4728,6 +4816,7 @@ function vueIncident(i){
       carte('OÙ ET QUAND','<div class="kv">'+ctx+freq+'</div>')+
       carte('ENTREPRISES TOUCHÉES',entHtml,'Les clients chez qui ce problème est apparu, et combien de fois chacun.')+
       carte('APPAREILS',appareils,'Le téléphone, la tablette ou l’ordinateur sur lequel le problème est apparu.')+
+      carte('QUI ÉTAIT CONNECTÉ',quiHtml,'La dernière session ouverte avant l’erreur, chez chaque entreprise touchée — et par quel chemin elle est entrée. L’écart est donné : quelqu’un entré le matin peut planter l’après-midi.')+
       carte('NOTES DE L’ÉQUIPE',notes,'Visible par toute l’équipe, gardé dans le dossier.')+
       carte('HISTORIQUE DU DOSSIER',histo)+
     '</div>'+
