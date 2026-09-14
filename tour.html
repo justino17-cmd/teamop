@@ -1314,6 +1314,16 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 .mail-rech{display:flex;gap:8px;padding:11px 12px;border-bottom:1px solid var(--line)}
 .mail-rech .rech{flex:1;min-width:0}
 .mail-rows{overflow-y:auto;flex:1}
+/* ⛔ LE DÉCALAGE DE 56 px NE VAUT QUE POUR LA PAGE. `.reg-tete{top:56px}` (bloc téléphone)
+   existe pour que le titre d'un groupe s'arrête SOUS la barre du haut, elle-même sticky sur
+   la page. Mais `.mail-rows` défile TOUT SEUL : il n'y a aucune barre à contourner dedans,
+   donc les 56 px ne décalent plus rien — ils POUSSENT l'en-tête, fond opaque compris,
+   par-dessus la première ligne de la liste. Mesuré au téléphone (390 px), Courrier, groupe
+   « Non rattachées » : en-tête bas à 400 px, première ligne haut à 355 px — 45 px de courrier
+   recouverts, et l'objet du premier message coupé en deux, sans avoir rien fait défiler.
+   Capture de Justin, 14 septembre 2026. Le même en-tête passé en `position:static` rend
+   −7 px : c'est bien le collage, pas la mise en page. */
+.mail-rows .reg-tete{top:0}
 .mail-lect{min-width:0}
 .mail-1{display:block}
 .dos-bar{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px}
