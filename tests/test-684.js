@@ -46,5 +46,17 @@ v('la liste des formules offertes porte le compte à rebours',
 v('la liste des entreprises aussi',
   /offert jusqu’au '\+esc\(e\.finLe\|\|'\?'\)\+' · '\+joursRestants\(e\.finLe\|\|''\)/.test(tour), true);
 
+/* ⛔ ET LA LIGNE DOIT MENER QUELQUE PART. Une formule offerte portée par un espace fantôme
+   (« elan-tzl2 », né du lien de première connexion fabriqué de travers le 12 septembre) ne
+   se retire QUE par la suppression de l'espace — et le seul chemin vers sa fiche depuis cet
+   écran est ce clic. Il posait bien ENT.sel mais restait sur Abonnements, un écran qui
+   n'affiche aucune fiche : le clic ne faisait rien de visible, donc rien à supprimer. */
+v('la ligne d\'une formule offerte change bien d\'écran',
+  /function abnVersEntreprise\(t\)\{[\s\S]{0,200}setTab\('entreprises'\);/.test(tour), true);
+v('… et attend la liste si elle n\'est pas chargée',
+  /function abnVersEntreprise\(t\)\{[\s\S]{0,900}if\(ENT\.loaded\) setTimeout\(ouvrir,60\);/.test(tour), true);
+v('… en le disant si l\'espace a disparu, au lieu d\'un clic muet',
+  /Cet espace n\\'est plus dans la liste des entreprises/.test(tour), true);
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

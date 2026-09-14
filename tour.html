@@ -6850,7 +6850,26 @@ function blocPromos(){
    remplissait jusqu'au rechargement de la page. */
 var ESP={loaded:false,err:'',list:[]};
 function abnStripe(id){ if(id) window.open('https://dashboard.stripe.com/subscriptions/'+encodeURIComponent(id),'_blank','noopener'); }
-function abnVersEntreprise(t){ if(!t) return; entSel(t); }
+/* ⛔ SÉLECTIONNER N'EST PAS OUVRIR. entSel() posait bien ENT.sel, mais on restait sur
+   Abonnements — un écran qui n'affiche aucune fiche. Le clic sur une ligne de formule
+   offerte ne faisait donc RIEN de visible, alors que c'est le seul chemin depuis cet écran
+   vers la fiche de l'espace, et donc vers « Supprimer » : un espace fantôme qui profite
+   d'un code promo restait affiché sans aucun moyen de le traiter.
+   Même méthode que voirClient() : on change d'écran, puis on ouvre la fiche — en attendant
+   la liste si elle n'est pas encore chargée, sinon le clic tombe dans le vide une fois sur
+   deux selon qu'on a déjà visité Entreprises. */
+function abnVersEntreprise(t){
+  if(!t) return;
+  setTab('entreprises');
+  var ouvrir=function(){
+    var o=(ENT.liste||[]).find(function(x){ return x&&x.t===t; });
+    if(!o){ toast('Cet espace n\'est plus dans la liste des entreprises'); return; }
+    if(ENT.sel!==t) entSel(t); else { renderNav('detail'); window.scrollTo(0,0); }
+  };
+  if(ENT.loaded) setTimeout(ouvrir,60);
+  else { chargerEntreprises(); var essais=0;
+    var attendre=setInterval(function(){ if(ENT.loaded||++essais>40){ clearInterval(attendre); ouvrir(); } },100); }
+}
 function abnEur(m,per,cls){
   return '<span class="abn-eur'+(cls?' '+cls:'')+'"><b>'+esc(fmtEur(m))+'</b>'+(per?'<i>'+esc(per)+'</i>':'')+'</span>';
 }
