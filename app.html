@@ -4857,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '673';
+const APP_VERSION = '674';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7185,7 +7185,11 @@ function syncSave(){ const cfgT=(($('sync-cfg')||{}).value||'').trim(); const te
   if(!team){ toast('Indique un code équipe (le même pour tous)'); return; }
   localStorage.setItem('elan_sync_cfg',JSON.stringify(cfg)); localStorage.setItem('elan_sync_team',team); localStorage.setItem('elan_sync_on','1');
   toast('Activation de la synchro…'); syncInit().then(()=>{ if(current==='parametres') views.parametres(); }); }
-function syncDisable(){ localStorage.setItem('elan_sync_on','0');
+/* Couper la synchro n'efface rien, mais l'appareil cesse de recevoir ET d'envoyer : le
+   travail fait ici ne rejoint plus l'équipe, et se perd s'il est réinstallé. Même barrière. */
+async function syncDisable(){
+  if(!await cleCodeExiger('Désactiver la synchronisation sur cet appareil')) return;
+  localStorage.setItem('elan_sync_on','0');
   try{ if(_fbUnsub) _fbUnsub(); }catch(e){} _fbUnsub=null; _fbDoc=null; _syncOn=false; _syncDemarre=false; _syncGotInitial=false;   // l'écoute est vraiment coupée ; « Réactiver » repart de zéro
   toast('Synchro désactivée sur cet appareil'); if(current==='parametres') views.parametres(); }
 /* ── Notifications push — serveur api.teamop.fr ── */
@@ -7224,8 +7228,42 @@ window.addEventListener('storage',e=>{ if(e.key!==STORE_KEY||!e.newValue||_syncA
     try{ refreshBadges(); updateBell(); const ov=document.querySelector('#overlay.open'); if(currentUser&&!ov) refreshEcran(); }catch(_){}
     _syncApplying=false; }catch(_){ _syncApplying=false; } });
 function syncReactivate(){ localStorage.removeItem('elan_sync_on'); toast('Réactivation de la synchro…'); syncInit().then(()=>{ if(current==='parametres') views.parametres(); }); }
-function syncSetSecret(){ const v=(($('sync-secret')||{}).value||'').trim();
+/* ⛔ UN CODE PAR COURRIEL AVANT DE TOUCHER À LA CLÉ. Demande de Justin, 15 septembre 2026.
+   C'est l'écran le plus destructeur de l'application : changer la clé rend TOUTES les données
+   de l'entreprise définitivement illisibles, sur tous ses appareils à la fois — le nuage ne
+   stocke que du chiffré. « Rétablir la clé par défaut » fait pire : il remet l'entreprise sur
+   la clé écrite en clair dans ce fichier. Et ce bouton-là ne demandait même pas confirmation.
+   Le code part à l'adresse enregistrée POUR L'ENTREPRISE : ce qu'on prouve, c'est qu'on est
+   bien celui qui répond de cet espace, pas qu'on a le téléphone en main.
+   ⚠️ Un échec de l'envoi ou du serveur NE LAISSE PAS PASSER : sur une action irréversible,
+   échouer fermé est la seule position tenable. */
+async function cleCodeExiger(quoi){
+  /* ⚠️ PAS sauvKh() : il rend null quand aucune clé PERSONNALISÉE n'est posée, c'est-à-dire
+     exactement le cas d'une entreprise encore sur la clé par défaut — celle qu'on veut
+     justement aider à en poser une propre. On prouve donc la clé EFFECTIVE (personnalisée
+     sinon celle par défaut), et le serveur reste seul juge de ce qu'il accepte. */
+  let c=null;
+  try{ const t=localStorage.getItem('elan_sync_team'); if(t) c={t:t,kh:await sha256(syncSecret())}; }catch(e){}
+  if(!c){ toast('Cet appareil n\'est rattaché à aucune entreprise — rien à protéger ici'); return false; }
+  let j={},st=0;
+  try{ const r=await fetch(PUSH_API+'/api/espaces/cle/code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)});
+       st=r.status; j=await r.json().catch(()=>({})); }
+  catch(e){ toast('Serveur injoignable — le changement de clé demande une confirmation par e-mail',7000); return false; }
+  if(!(j&&j.codeEnvoye)){ toast((j&&j.error)||'Confirmation impossible ('+st+')',9000); return false; }
+  const code=prompt(quoi+'\n\nUn code de confirmation vient d\'être envoyé à '+(j.dest||'l\'adresse de l\'entreprise')
+    +'.\n\n⛔ Cette action rend les données ILLISIBLES sur tous les appareils si la clé n\'est pas exactement la bonne.\n\nCode à 6 chiffres :');
+  if(!code) return false;
+  let v={};
+  try{ const r2=await fetch(PUSH_API+'/api/espaces/cle/code',{method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify(Object.assign({},c,{code:String(code).trim()}))});
+       v=await r2.json().catch(()=>({})); }
+  catch(e){ toast('Serveur injoignable — rien n\'a été changé',7000); return false; }
+  if(!(v&&v.valide)){ toast((v&&v.error)||'Code refusé — rien n\'a été changé',7000); return false; }
+  return true;
+}
+async function syncSetSecret(){ const v=(($('sync-secret')||{}).value||'').trim();
   if(v && v.length<8){ toast('La clé d\'équipe doit faire au moins 8 caractères'); return; }
+  if(!await cleCodeExiger(v?'Enregistrer une nouvelle clé d\'équipe':'Rétablir la clé PAR DÉFAUT (clé partagée)')) return;
   if(!v){ localStorage.removeItem('elan_sync_secret'); } else { localStorage.setItem('elan_sync_secret',v); }
   _ck={}; _syncTs=0; try{ lienLisibleOublier(); }catch(e){}   // le lien lisible dépend de la clé : à revérifier
   toast(v?'Clé d\'équipe enregistrée — la même doit être saisie sur chaque appareil':'Clé par défaut rétablie');

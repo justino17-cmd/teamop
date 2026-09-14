@@ -2277,6 +2277,59 @@ function sauvRefus(t, kh, quoi) {
   const ok = espaceCleOk(t, kh); if (ok === null) return { code: 404, error: 'espace inconnu' }; if (!ok) return { code: 403, error: 'clé d\'équipe incorrecte' };
   return null;
 }
+/* ══ CHANGER LA CLÉ D'ÉQUIPE DEMANDE UN CODE PAR COURRIEL ═════════════════════════════════
+   Demande de Justin, 15 septembre 2026 : « je veux que ça demande un code par mail pour
+   éviter les problèmes ».
+
+   ⛔ C'EST L'ÉCRAN LE PLUS DESTRUCTEUR DE L'APPLICATION, ET IL N'AVAIT AUCUNE BARRIÈRE.
+   « Enregistrer la clé » avec une autre valeur rend TOUTES les données de l'entreprise
+   définitivement illisibles, sur tous ses appareils à la fois — le nuage ne stocke que du
+   chiffré. « Rétablir la clé par défaut » fait pire encore : il remet l'entreprise sur la clé
+   écrite en clair dans app.html, ET rend illisible ce qui a été chiffré depuis. Ce second
+   bouton ne demandait même pas confirmation.
+
+   Le code part à l'adresse ENREGISTRÉE POUR L'ENTREPRISE, pas à celle de TEAM OP : ce qu'on
+   veut prouver, c'est que la personne devant l'écran est bien celle qui répond de cet espace.
+   Sans adresse enregistrée, on REFUSE — sur une action irréversible, échouer fermé est la
+   seule position tenable, et le message dit quoi faire.
+
+   Deux temps, le même mécanisme que la suppression d'un compte depuis la Tour : sans `code`
+   on envoie, avec `code` on vérifie. Cinq essais, dix minutes. */
+const cleCodes = new Map();   // 't' -> { code, exp, tries }
+app.post('/api/espaces/cle/code', async (req, res) => {
+  const b = req.body || {}; const t = monStr(b.t, 80), kh = monStr(b.kh, 64).toLowerCase();
+  if (!t || !/^[0-9a-f]{64}$/.test(kh)) return res.status(400).json({ error: 't et kh requis' });
+  /* La même garde que les copies et le jeton : preuve de la clé ACTUELLE, et refus de
+     l'espace de repli. On ne change pas la clé d'un espace dont on n'a pas déjà la clé. */
+  const refus = sauvRefus(t, kh, 'changement de clé'); if (refus) return res.status(refus.code).json({ error: refus.error });
+  if (!quotaOk(jetonQuota, 'cle:' + t, 12, 3600000)) return res.status(429).json({ error: 'trop de demandes — réessaie plus tard' });
+  const e = espaceParT(t);
+  const dest = String((e && e.email) || '').trim();
+  if (!dest) return res.status(409).json({ error: "Aucune adresse e-mail n'est enregistrée pour cette entreprise : le changement de clé ne peut pas être confirmé. Contacte TEAM OP." });
+  if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
+  const codeRecu = monStr(b.code, 10).trim();
+  if (!codeRecu) {
+    if (cleCodes.size > 500) for (const [k, v] of cleCodes) if (Date.now() > v.exp) cleCodes.delete(k);
+    const code = String(crypto.randomInt(100000, 1000000));
+    cleCodes.set(t, { code, exp: Date.now() + 10 * 60000, tries: 0 });
+    try {
+      await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
+        confidentiel: true, trace: 'code de changement de clé · espace ' + t.slice(0, 12),   // jamais le code au journal
+        subject: '🔐 Code de confirmation — clé de synchronisation de ' + (espNomPropre(e) || 'ton entreprise'),
+        text: 'Quelqu\'un vient de demander à CHANGER LA CLÉ DE SYNCHRONISATION de '
+          + (espNomPropre(e) || 'ton entreprise') + '.\n\nCode de confirmation : ' + code
+          + '\n\nValable 10 minutes.\n\n⛔ Si ce n\'est pas toi, N\'ENVOIE PAS CE CODE et préviens TEAM OP.'
+          + ' Changer cette clé rend les données de ton entreprise ILLISIBLES sur tous ses appareils, sans retour possible.'
+          + '\n\n— TEAM OP · teamop.fr' });
+    } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
+    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest) });
+  }
+  const c = cleCodes.get(t);
+  if (!c || Date.now() > c.exp) { cleCodes.delete(t); return res.status(400).json({ error: 'code expiré — recommence' }); }
+  if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) cleCodes.delete(t); return res.status(400).json({ error: 'code incorrect' }); }
+  cleCodes.delete(t);
+  return res.json({ ok: true, valide: true });
+});
 app.post('/api/espaces/sauvegarde', (req, res) => {
   const b = req.body || {}; const t = monStr(b.t, 80), kh = monStr(b.kh, 64).toLowerCase();
   if (!t) return res.status(400).json({ error: 't requis' });
