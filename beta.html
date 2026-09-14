@@ -4857,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '670-beta';
+const APP_VERSION = '671-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6779,11 +6779,14 @@ function usersTombesFusion(a,b){
 /* 680 Kio de texte clair → `enc` (base64 d'AES-GCM, ×4/3) ≈ 906 Ko, plus les petits champs :
    le document reste sous la limite dure de 1 Mio de Firestore avec ~120 Ko de marge. */
 const NUAGE_BUDGET=620*1024;
+const B_NUAGE_KO=NUAGE_BUDGET/1024;
+/* Une seule fois par session : voir la branche « impossible » de syncPush. */
+let _lourdDit=false;
 function syncAlleger(base, budget){
   const B=budget||(typeof NUAGE_BUDGET!=='undefined'?NUAGE_BUDGET:696320);
   const taille=s=>{ try{ return new TextEncoder().encode(s).length; }catch(e){ return s.length; } };
-  let t=0; try{ t=taille(JSON.stringify(base)); }catch(e){ return {copie:base,retirees:0,taille:0,impossible:false,gros:[]}; }
-  if(t<=B) return {copie:base,retirees:0,taille:t,impossible:false,gros:[]};
+  let t=0; try{ t=taille(JSON.stringify(base)); }catch(e){ return {copie:base,retirees:0,taille:0,impossible:false,gros:[],parColl:[]}; }
+  if(t<=B) return {copie:base,retirees:0,taille:t,impossible:false,gros:[],parColl:[]};
   /* TOUTES les collections, pas seulement les interventions : le poids peut être une signature
      de rapport, une photo de télécollecte, un logo — s'en tenir aux interventions laissait
      l'écriture trop grosse et la boucle repartait (mesuré chez ELAN le 11 septembre 2026). */
@@ -6813,7 +6816,17 @@ function syncAlleger(base, budget){
     n++; }
   clones.forEach(x=>{ if(Array.isArray(x.photos)&&x.photos.some(v=>v===null)) x.photos=x.photos.filter(v=>v!==null); });
   let t2=t; try{ t2=taille(JSON.stringify(copie)); }catch(e){}
-  return {copie,retirees:n,taille:t2,impossible:t2>B,gros};
+  /* ⛔ « TROP LOURDE » N'EST PAS UNE INFORMATION — on sait que ça ne rentre pas, pas ce qu'il
+     faut alléger. `gros` ne nomme que des PIÈCES JOINTES ; quand il n'y en a plus assez, il
+     est vide et on reste aveugle, ce qui est exactement le cas où l'écriture est abandonnée.
+     `parColl` pèse chaque collection de la copie poussée : six noms et six nombres suffisent
+     à savoir où chercher. ⚠️ Des NOMS DE COLLECTION et des octets — jamais du contenu : ces
+     lignes partent au journal de l'entreprise et à la Tour. */
+  const parColl=colls.map(c=>{ let n2=0; try{ n2=taille(JSON.stringify(copie[c]||base[c])); }catch(e){}
+      return {c,n:n2,l:(copie[c]||base[c]||[]).length}; })
+    .sort((a,b)=>b.n-a.n).slice(0,6)
+    .map(x=>x.c+' '+Math.round(x.n/1024)+' Ko/'+x.l+' l.');
+  return {copie,retirees:n,taille:t2,impossible:t2>B,gros,parColl};
 }
 function syncRegreffer(local, fusion){ try{
   let n=0;
@@ -6896,8 +6909,23 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
         try{ toast('📦 Base trop lourde pour le nuage : '+alle.retirees+' pièce(s) ou photo(s) restent sur cet appareil, non partagées — allège les pièces jointes des interventions',8000); }catch(_e){}
         try{ logEvent('Synchro allégée', alle.retirees+' pièce(s)/photo(s) gardées sur cet appareil — base '+Math.round(alle.taille/1024)+' Ko','sync'); }catch(_e){} } }
     if(alle.impossible){
-      try{ console.error('push : base trop lourde même sans pièces ('+Math.round(alle.taille/1024)+' Ko) — écriture non tentée'); }catch(_e){}
+      /* ⛔ « CONTACTE TEAM OP » ET TEAM OP N'EN SAIT RIEN. C'est le défaut de ce message : la
+         synchro de l'appareil est ARRÊTÉE — plus une seule écriture, les box et les stocks
+         divergent en silence d'un téléphone à l'autre — et la seule trace était un
+         console.error que personne n'ouvre. Constaté chez ELAN le 14 septembre 2026 : on
+         savait que ça ne rentrait pas, on ne savait pas ce qui pesait, et le client n'avait
+         rien à nous montrer.
+         Deux traces, une fois par session (répéter à chaque tentative gonflerait le journal
+         de l'entreprise, plafonné à 500, et ferait tourner la base qu'on essaie d'alléger) :
+         le Journal de l'application, que le client lit lui-même, et la Tour par
+         syncDiagnostic — le même chemin que l'écriture non acquittée en 15 s. */
+      const det='base '+Math.round(alle.taille/1024)+' Ko pour '+Math.round(B_NUAGE_KO)+' Ko permis · '
+        +((alle.parColl&&alle.parColl.length)?'plus lourdes : '+alle.parColl.join(', '):'aucune collection mesurée');
+      try{ console.error('push : base trop lourde même sans pièces — '+det+' — écriture non tentée'); }catch(_e){}
       try{ toast('⛔ La base est trop lourde pour le nuage même sans pièces jointes — contacte TEAM OP',8000); }catch(_e){}
+      if(!_lourdDit){ _lourdDit=true;
+        try{ logEvent('Synchro impossible','La base dépasse ce que le nuage accepte, rien n\'est plus envoyé — '+det,'sync'); }catch(_e){}
+        try{ syncDiagnostic('impossible : '+det); }catch(_e){} }
       return; }
     /* ⛔ LE REPÈRE `_syncTs` NE DOIT AVANCER QUE SUR UNE ÉCRITURE RÉELLEMENT ACQUITTÉE.
        Il sert à la réception : `if((d.ts||0)<=_syncTs) return;` — « ce que je reçois est plus

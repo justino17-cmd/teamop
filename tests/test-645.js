@@ -100,7 +100,52 @@ console.log('\nLa regreffe : ce qui arrive allégé ne prend pas nos pièces');
 
 console.log('\nLa garde est câblée aux bons endroits');
 v('l\'envoi chiffre la COPIE allégée, pas la base', /const e=await syncEncrypt\(JSON\.stringify\(alle\.copie\)\);/.test(APP), true);
-v('impossible → on n\'écrit pas', /if\(alle\.impossible\)\{[\s\S]{0,400}return; \}/.test(APP), true);
+/* ⛔ CE QUI COMPTE EST QUE LA BRANCHE NE CHIFFRE ET N'ÉCRIVE RIEN, pas qu'elle tienne en
+   400 caractères. La fenêtre fixe était un accident : elle a cassé le jour où la branche a
+   gagné un commentaire et deux traces (journal + Tour), alors que le comportement n'avait
+   pas bougé d'une ligne. On isole donc la branche par ses accolades et on éprouve son
+   contenu — un banc qui casse sur une longueur apprend à élargir un nombre, pas à vérifier. */
+(function(){
+  const d = APP.indexOf('if(alle.impossible){');
+  v('la branche « trop lourde » est trouvée dans app.html', d > 0, true);
+  if (d < 0) return;
+  let n = 0, f = d;
+  for (let i = APP.indexOf('{', d); i < APP.length; i++) {
+    if (APP[i] === '{') n++; else if (APP[i] === '}') { n--; if (!n) { f = i; break; } } }
+  const br = APP.slice(d, f + 1);
+  v('impossible → on sort par return, sans rien écrire', /return;\s*\}$/.test(br), true);
+  v('⛔ impossible → rien n\'est chiffré ni envoyé dans cette branche',
+    /syncEncrypt|setDoc|updateDoc|_fbDoc/.test(br), false);
+})();
+/* ══ v671 · « CONTACTE TEAM OP » ET TEAM OP N'EN SAIT RIEN ════════════════════════════════
+   Constaté chez ELAN le 14 septembre 2026, capture à l'appui. Quand la base dépasse le
+   budget même sans pièces, l'app ABANDONNE l'écriture : la synchro de l'appareil est
+   arrêtée, les box et les stocks divergent en silence d'un téléphone à l'autre. La seule
+   trace était un console.error que personne n'ouvre — donc on savait que ça ne rentrait
+   pas, jamais ce qui pesait, et le client n'avait rien à nous montrer.
+   Deux choses à tenir : que la mesure EXISTE (parColl), et qu'elle SORTE (journal + Tour). */
+console.log('\nL\'abandon d\'écriture dit ce qui pèse');
+v('syncAlleger pèse chaque collection de la copie poussée',
+  /const parColl=colls\.map\(c=>\{ let n2=0;/.test(APP), true);
+v('… en gardant les six plus lourdes, avec leur nombre de lignes',
+  /\.sort\(\(a,b\)=>b\.n-a\.n\)\.slice\(0,6\)/.test(APP) && /x\.c\+' '\+Math\.round\(x\.n\/1024\)\+' Ko\/'\+x\.l\+' l\.'/.test(APP), true);
+v('… et les sorties de la fonction la portent toutes',
+  (APP.match(/parColl/g) || []).length >= 5, true);
+/* ⛔ Le client doit pouvoir LIRE la panne dans son application, et la Tour doit la RECEVOIR.
+   L'un sans l'autre laisse quelqu'un dans le noir. */
+v('⛔ la panne s\'écrit dans le Journal de l\'entreprise',
+  /logEvent\('Synchro impossible'/.test(APP), true);
+v('⛔ et remonte à la Tour par le chemin déjà en place',
+  /syncDiagnostic\('impossible : '\+det\)/.test(APP), true);
+/* Une fois par session : répéter à chaque tentative gonflerait le journal — plafonné à 500 —
+   et ferait tourner la base qu'on essaie justement d'alléger. */
+v('⛔ une seule fois par session, pas à chaque tentative',
+  /if\(!_lourdDit\)\{ _lourdDit=true;/.test(APP) && /let _lourdDit=false;/.test(APP), true);
+/* ⚠️ Ces lignes partent au journal de l'entreprise ET à la Tour : des noms de collection et
+   des octets, jamais un nom de client, une adresse ou un contenu. */
+v('⛔ la trace ne porte que des noms de collection et des tailles',
+  /parColl\.join\(', '\)/.test(APP), true);
+
 v('regreffe à la réception ET avant l\'écriture', (APP.match(/syncRegreffer\((db|_localAvant),(remote|db)\)/g) || []).length, 2);
 v('ouvrir une pièce restée locale le dit au lieu de planter', /if\(!d\.data\)\{ toast\('Cette pièce est restée sur l/.test(APP), true);
 
