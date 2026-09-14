@@ -4857,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '674';
+const APP_VERSION = '675';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6855,6 +6855,34 @@ function syncAlleger(base, budget){
     else { if(!x[p.f]) continue; excedent-=p.n; x[p.f]=''; x.champsHorsNuage=(x.champsHorsNuage||[]).concat([p.f]); }
     n++; }
   clones.forEach(x=>{ if(Array.isArray(x.photos)&&x.photos.some(v=>v===null)) x.photos=x.photos.filter(v=>v!==null); });
+  /* ⛔ ET SI LES PIÈCES NE SUFFISENT PAS, ON RACCOURCIT LES JOURNAUX DE LA COPIE POUSSÉE.
+     Mesuré sur la base réelle d'ELAN le 15 septembre 2026 : 621,1 Ko pour 620,0 Ko permis —
+     un dépassement de 1,1 Ko, et toute la synchro de l'entreprise à l'arrêt. Aucune pièce
+     jointe à retirer : le poids est du contenu (box 195 Ko, mouvements 156 Ko, journal
+     104 Ko). syncAlleger abandonnait donc, et personne n'écrivait plus.
+     ⚠️ ON NE TOUCHE QU'AUX JOURNAUX D'ACTIVITÉ, et SEULEMENT dans la copie poussée — la base
+     locale garde ses 500 lignes. Ni les mouvements (registre biocide, dossier sanitaire), ni
+     les box, ni rien qui décrive le travail : ceux-là, on ne les ampute pas pour faire tenir
+     un document, ça se règle par la compression.
+     La fusion étant une UNION par identifiant, une copie poussée plus courte ne retire rien
+     à personne : chaque appareil garde son propre journal. */
+  const JOURNAUX=['journal','planJournal'];
+  let coupes=0;
+  for(const c of JOURNAUX){ if(excedent<=0) break;
+    const src=copie[c]||base[c]; if(!Array.isArray(src)||src.length<60) continue;
+    /* Du plus récent au plus ancien : ce qu'on coupe est ce qu'on regarde le moins. */
+    const tri=src.slice().sort((a,b)=>(b&&b.ts||0)-(a&&a.ts||0));
+    const unite=taille(JSON.stringify(tri))/tri.length;
+    /* ⚠️ ON NE VISE PAS LE MINIMUM. Couper juste ce qu'il faut pour passer laisse 5 Ko de
+       marge, c'est-à-dire deux jours de travail avant de rebloquer toute l'entreprise. On
+       dégage 48 Ko d'un coup : quelques centaines de lignes de journal d'activité contre des
+       semaines de tranquillité, et la base locale les garde de toute façon. */
+    let garder=Math.max(50,tri.length-Math.ceil((excedent+49152)/Math.max(1,unite)));
+    if(garder>=tri.length) continue;
+    coupes+=tri.length-garder;
+    excedent-=Math.round((tri.length-garder)*unite);
+    copie[c]=tri.slice(0,garder);
+  }
   let t2=t; try{ t2=taille(JSON.stringify(copie)); }catch(e){}
   /* ⛔ « TROP LOURDE » N'EST PAS UNE INFORMATION — on sait que ça ne rentre pas, pas ce qu'il
      faut alléger. `gros` ne nomme que des PIÈCES JOINTES ; quand il n'y en a plus assez, il
@@ -6866,7 +6894,7 @@ function syncAlleger(base, budget){
       return {c,n:n2,l:(copie[c]||base[c]||[]).length}; })
     .sort((a,b)=>b.n-a.n).slice(0,6)
     .map(x=>x.c+' '+Math.round(x.n/1024)+' Ko/'+x.l+' l.');
-  return {copie,retirees:n,taille:t2,impossible:t2>B,gros,parColl};
+  return {copie,retirees:n,taille:t2,impossible:t2>B,gros,parColl,journalCoupe:coupes};
 }
 function syncRegreffer(local, fusion){ try{
   let n=0;
@@ -25234,7 +25262,7 @@ function resetProdWipe(){
   logEvent('Mise en production','Toutes les données de test ont été effacées','admin');
   save(); if(typeof syncPush==='function') syncPush(true);
   toast('Application remise à zéro — prête pour la production'); go('dashboard'); }
-function exportData(){ const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='elan-gestion-'+todayISO()+'.json'; a.click(); URL.revokeObjectURL(a.href); toast('Exporté'); }
+function exportData(){ const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='teamop-'+(String(entrepriseNom()||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'espace')+'-'+todayISO()+'.json'; a.click(); URL.revokeObjectURL(a.href); toast('Exporté'); }
 function importData(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ db=migrate(JSON.parse(r.result));
       /* ⛔ RELEVER L'OMBRE AVANT save() — trouvé en relecture le 10 septembre 2026. Sans ça, estampiller()
          compare le fichier importé à l'ombre d'AVANT, et enterre tout ce que le fichier n'a pas : des

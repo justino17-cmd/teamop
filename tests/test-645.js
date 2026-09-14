@@ -67,12 +67,29 @@ console.log('\nSous le budget, rien ne bouge');
   v('pas impossible', r.impossible, false);
 }
 
-console.log('\nTrop lourde même sans pièce : on le dit, on n\'écrit pas');
+/* ⚠️ LE CONTRAT A CHANGÉ LE 15 SEPTEMBRE 2026, EXPRÈS. Une base lourde de JOURNAL n'est plus
+   un cul-de-sac : la copie poussée raccourcit les journaux d'activité (voir test-690), et
+   l'écriture passe. C'est ce qui a débloqué ELAN, arrêtée pour 1,1 Ko de dépassement.
+   La garantie « quand on ne peut rien retirer, on le DIT et on n'écrit pas » reste entière —
+   elle se vérifie désormais sur une donnée qu'on ne touche JAMAIS : les mouvements, qui
+   alimentent le registre biocide et le dossier sanitaire. */
+console.log('\nTrop lourde et rien à retirer : on le dit, on n\'écrit pas');
 {
-  const base = { journal: Array.from({ length: 4000 }, (_, k) => ({ id: 'j' + k, action: 'x'.repeat(100) })), interventions: [{ id: 'i1', photos: [photo(5000)] }] };
+  const base = { mouvements: Array.from({ length: 4000 }, (_, k) => ({ id: 'm' + k, motif: 'x'.repeat(100) })), interventions: [{ id: 'i1', photos: [photo(5000)] }] };
   const r = syncAlleger(base, 100 * 1024);
   v('toutes les pièces sont retirées', r.copie.interventions[0].photos.length, 0);
-  v('…et c\'est quand même impossible', r.impossible, true);
+  v('⛔ les mouvements ne sont JAMAIS raccourcis', r.copie.mouvements.length, 4000);
+  v('…et c\'est donc quand même impossible', r.impossible, true);
+}
+console.log('\nTrop lourde À CAUSE DU JOURNAL : on raccourcit la copie, et ça passe');
+{
+  const base = { journal: Array.from({ length: 4000 }, (_, k) => ({ id: 'j' + k, ts: k, action: 'x'.repeat(100) })),
+                 mouvements: Array.from({ length: 50 }, (_, k) => ({ id: 'm' + k, motif: 'y'.repeat(50) })) };
+  const r = syncAlleger(base, 100 * 1024);
+  v('⛔ l\'écriture n\'est plus abandonnée', r.impossible, false);
+  v('des lignes de journal ont été écartées de la copie', (r.journalCoupe || 0) > 0, true);
+  v('⛔ la base locale garde ses 4000 lignes', base.journal.length, 4000);
+  v('⛔ et les mouvements restent intacts', r.copie.mouvements.length, 50);
 }
 
 console.log('\nLa regreffe : ce qui arrive allégé ne prend pas nos pièces');
