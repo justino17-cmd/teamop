@@ -25,34 +25,34 @@ try{
   .bloc{width:100%;max-width:460px;background:#141f36;border:1px solid #243354;border-radius:16px;padding:22px 22px 18px;margin-bottom:22px}
   .titre{font-size:17px;font-weight:800;margin-bottom:6px}
   .aide{color:#93a9d4;font-size:13px;line-height:1.6;margin-bottom:16px}
-  .lbl{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7684a3;margin-bottom:5px}
+  .lbl{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a89a8;margin-bottom:5px}
   .inp{width:100%;box-sizing:border-box;background:#0d1526;border:1px solid #243354;border-radius:12px;outline:none;color:#eef2fa;font-size:15px;padding:13px 12px}
   .inp:focus{border-color:#34d399}
   /* L'adresse de l'entreprise, encadrée par son préfixe — on voit qu'on écrit DANS une adresse,
      pas dans un champ de recherche. Même idée que « https:// [       ] .organilog.com ». */
   .adr{display:flex;align-items:stretch;background:#0d1526;border:1px solid #243354;border-radius:12px;overflow:hidden}
   .adr:focus-within{border-color:#34d399}
-  .adr .pre{display:flex;align-items:center;padding:0 2px 0 13px;color:#7684a3;font-size:15px;font-family:ui-monospace,monospace;white-space:nowrap;user-select:none}
+  .adr .pre{display:flex;align-items:center;padding:0 2px 0 13px;color:#7a89a8;font-size:15px;font-family:ui-monospace,monospace;white-space:nowrap;user-select:none}
   .adr input{flex:1;min-width:60px;background:transparent;border:none;outline:none;color:#eef2fa;font-size:15px;font-family:ui-monospace,monospace;padding:13px 12px 13px 0}
   .btn{width:100%;margin-top:14px;background:#34d399;color:#08251a;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer}
-  .liens{border-top:1px solid #243354;margin-top:16px;padding-top:13px;color:#7684a3;font-size:12px;line-height:1.8}
+  .liens{border-top:1px solid #243354;margin-top:16px;padding-top:13px;color:#7a89a8;font-size:12px;line-height:1.8}
   .liens a{color:#7cc6ff;text-decoration:none}
   .chip{display:inline-flex;align-items:center;gap:8px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);border-radius:100px;padding:8px 16px;font-size:15px;font-weight:800;font-family:ui-monospace,monospace}
   .cartes{display:flex;flex-direction:column;gap:14px;width:100%;max-width:420px}
   a.carte{display:flex;align-items:center;gap:16px;background:#141f36;border:1px solid #243354;border-radius:16px;padding:18px 20px;text-decoration:none;color:#eef2fa;transition:.15s}
   a.carte:hover{border-color:#34d399;transform:translateY(-1px)}
   .ico{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
-  .carte .txt b{display:block;font-size:16.5px;margin-bottom:3px}
-  .carte .txt span{color:#93a9d4;font-size:12.5px;line-height:1.45;display:block}
-  .fleche{margin-left:auto;color:#7684a3;font-size:18px}
-  .note{margin-top:26px;color:#7684a3;font-size:12.5px;text-align:center;line-height:1.6;max-width:440px}
+  .carte .txt b{display:block;font-size:17px;margin-bottom:3px}
+  .carte .txt span{color:#93a9d4;font-size:13px;line-height:1.45;display:block}
+  .fleche{margin-left:auto;color:#7a89a8;font-size:18px}
+  .note{margin-top:26px;color:#7a89a8;font-size:13px;text-align:center;line-height:1.6;max-width:440px}
   .note a{color:#7cc6ff;text-decoration:none}
   /* Œil sur le mot de passe — le même geste que partout ailleurs sur le site. Sur un chantier,
      au téléphone, avec des gants, on ne voit pas ce qu'on tape : sans lui cet écran serait le
      seul du site à s'en passer, et c'est justement celui qu'on ouvre depuis un camion. */
   .mdp-wrap{position:relative;display:block;width:100%}
   .mdp-wrap>input{padding-right:44px!important;width:100%;box-sizing:border-box}
-  .mdp-oeil{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;padding:0;margin:0;background:transparent;color:#7684a3;border-radius:8px;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,color .12s ease}
+  .mdp-oeil{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;padding:0;margin:0;background:transparent;color:#7a89a8;border-radius:8px;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,color .12s ease}
   .mdp-oeil:hover{background:rgba(124,198,255,.10);color:#bcd8f5}
   .mdp-oeil:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(52,211,153,.40)}
   .mdp-oeil[aria-pressed="true"]{color:#34d399}
@@ -74,7 +74,7 @@ try{
       <span class="pre">https://teamop.fr/e/</span>
       <input id="adr-nom" placeholder="ton-entreprise" autocapitalize="off" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')adrAller()">
     </div>
-    <div id="adr-err" style="display:none;color:#f87171;font-size:12.5px;margin-top:10px;line-height:1.55"></div>
+    <div id="adr-err" style="display:none;color:#f87171;font-size:13px;margin-top:10px;line-height:1.55"></div>
     <button class="btn" id="adr-btn" onclick="adrAller()">Accéder à mon compte</button>
     <div class="liens">
       <a href="#" onclick="entLienColler();return false">J'ai un lien de connexion</a> — colle-le, il connecte directement.<br>
@@ -91,7 +91,7 @@ try{
     <div id="verif-sortie" style="display:none;margin-top:14px"></div>
   </div>
 
-  <div id="cx-favori" style="display:none;width:100%;max-width:460px;background:rgba(124,198,255,.10);border:1px solid rgba(124,198,255,.30);border-radius:14px;padding:13px 16px;margin-bottom:16px;color:#bcd8f5;font-size:12.5px;line-height:1.6">💡 Mets cette page en favori — c'est l'adresse de ton entreprise, elle te ramènera toujours ici.</div>
+  <div id="cx-favori" style="display:none;width:100%;max-width:460px;background:rgba(124,198,255,.10);border:1px solid rgba(124,198,255,.30);border-radius:14px;padding:13px 16px;margin-bottom:16px;color:#bcd8f5;font-size:13px;line-height:1.6">💡 Mets cette page en favori — c'est l'adresse de ton entreprise, elle te ramènera toujours ici.</div>
 
   <!-- ══ ÉTAPE 2 — l'écran de connexion de CETTE entreprise ═══════════════════════════════
        On est arrivé sur teamop.fr/son-nom : l'adresse reste dans la barre du navigateur, et
@@ -110,10 +110,10 @@ try{
     <div id="bloc-code" style="display:none;margin-top:12px">
       <label class="lbl" for="cx-code">Code d'accès de l'entreprise</label>
       <input id="cx-code" class="inp" placeholder="10 caractères" autocapitalize="characters" autocomplete="off" spellcheck="false" style="letter-spacing:.16em;font-family:ui-monospace,monospace" onkeydown="if(event.key==='Enter')cxEntrer()">
-      <div style="color:#7684a3;font-size:11.5px;margin-top:5px;line-height:1.5">Celui que ton responsable te donne. Une seule fois : ensuite ton identifiant suffira, partout.</div>
+      <div style="color:#7a89a8;font-size:12px;margin-top:5px;line-height:1.5">Celui que ton responsable te donne. Une seule fois : ensuite ton identifiant suffira, partout.</div>
     </div>
     <label style="display:flex;align-items:center;gap:9px;margin-top:14px;font-size:13px;color:#93a9d4;cursor:pointer"><input type="checkbox" id="cx-souvenir" checked style="width:18px;height:18px;accent-color:#34d399"> Se souvenir de moi</label>
-    <div id="cx-err" style="display:none;color:#f87171;font-size:12.5px;margin-top:10px;line-height:1.55"></div>
+    <div id="cx-err" style="display:none;color:#f87171;font-size:13px;margin-top:10px;line-height:1.55"></div>
     <button class="btn" id="cx-btn" onclick="cxEntrer()">Se connecter</button>
     <div class="liens">
       <a href="#" onclick="cxCodeAfficher();return false">Première connexion de l'entreprise ?</a> — utilise son code d'accès.<br>
@@ -298,16 +298,43 @@ try{
     var adr=adresseDemandee();
     try{
       var _ent=localStorage.getItem('elan_entreprise_nom'), _esp=localStorage.getItem('elan_sync_team');
-      /* Appareil déjà relié et pas d'adresse demandée : on ne redemande rien, on propose les
-         applications — c'est le cas de tous les jours. */
+      /* ⛔ L'ESPACE PAR DÉFAUT N'EST PAS UNE ENTREPRISE, ET CET ÉCRAN LE PRÉSENTAIT COMME TELLE.
+         Capture de Justin, 14 septembre 2026, sur son téléphone : « Ton appareil est déjà relié
+         à ton entreprise · 🏢 Ton espace : elan-gestion ». C'est l'espace de repli, partagé par
+         toutes les entreprises sans clé personnalisée — donc exactement là où PERSONNE ne doit
+         travailler. La page l'annonçait comme un fait acquis, proposait les applications, et
+         la seule issue était un lien bleu de douze pixels. Cinq personnes d'ELAN y travaillent
+         encore à cause de ça.
+         Quand l'appareil est sur le repli, on ne propose donc PLUS les applications : on
+         demande son adresse d'entreprise, et on dit pourquoi. */
+      var REPLI=['elan-gestion','elan-gestion-beta'];
+      if(_esp&&REPLI.indexOf(_esp)>=0&&!adr){
+        $id('sous').textContent='Cet appareil n’est relié à aucune entreprise.';
+        var br=$id('etape-adresse');
+        br.style.display='block';
+        /* ⛔ ON AJOUTE L'AVERTISSEMENT, ON NE REMPLACE PAS LE BLOC. Il porte déjà le champ
+           d'adresse, « J'ai un lien de connexion » et « Je ne connais pas l'adresse » — les
+           trois sorties. Écraser son contenu pour poser un message laisserait la personne
+           devant une explication sans aucun moyen d'en sortir, ce qui est précisément le
+           défaut qu'on corrige. */
+        var av=document.createElement('div');
+        av.style.cssText='background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.35);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:14px;line-height:1.6;color:#fbbf24';
+        av.innerHTML='⚠️ <b>Cet appareil travaille sur l’espace par défaut de l’application</b>, pas sur celui de ton entreprise — ce que tu y saisis ne rejoint pas ton équipe.<br>Entre ci-dessous l’adresse de ton entreprise pour le remettre au bon endroit.';
+        br.insertBefore(av,br.firstChild);
+        return;
+      }
+      /* Appareil relié à une VRAIE entreprise et pas d'adresse demandée : on ne redemande rien,
+         on propose les applications — c'est le cas de tous les jours. */
       if(_esp&&!adr){
         $id('sous').textContent='Ton appareil est déjà relié à ton entreprise.';
         var b=$id('etape-adresse');
         b.style.display='block';
         b.innerHTML='<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap">'+
           '<div style="font-size:14px">🏢 Ton espace : <b>'+String(_ent||_esp).replace(/</g,'&lt;')+'</b></div>'+
-          '<a href="#" onclick="localStorage.removeItem(\'elan_entreprise_nom\');localStorage.removeItem(\'elan_sync_team\');localStorage.removeItem(\'elan_sync_secret\');location.reload();return false" style="color:#7cc6ff;font-size:12px;text-decoration:none">changer d\'entreprise</a>'+
-          '<div style="width:100%;color:#93a9d4;font-size:12.5px;margin-top:4px">Ton adresse d\'entreprise te connecte à <b style="color:#eef2fa">OP GESTION</b> · <b style="color:#eef2fa">OP MESSAGES</b> est une application à part (compte personnel, abonnement séparé)</div></div>';
+          /* ⛔ « changer d'entreprise » n'est pas un cas limite : c'est la SEULE sortie quand
+             l'appareil est au mauvais endroit, et un lien de douze pixels ne la donnait pas. */
+          '<a href="#" onclick="localStorage.removeItem(\'elan_entreprise_nom\');localStorage.removeItem(\'elan_sync_team\');localStorage.removeItem(\'elan_sync_secret\');location.reload();return false" style="display:inline-block;color:#7cc6ff;font-size:13px;font-weight:700;text-decoration:none;border:1px solid rgba(124,198,255,.35);border-radius:10px;padding:9px 14px;min-height:44px;line-height:26px">Changer d\'entreprise</a>'+
+          '<div style="width:100%;color:#93a9d4;font-size:13px;margin-top:4px">Ton adresse d\'entreprise te connecte à <b style="color:#eef2fa">OP GESTION</b> · <b style="color:#eef2fa">OP MESSAGES</b> est une application à part (compte personnel, abonnement séparé)</div></div>';
         var cartes=$id('cartes-apps'); if(cartes) cartes.style.display='flex';
         return;
       }
