@@ -62,9 +62,16 @@ const carte = APP.slice(APP.lastIndexOf('<div class="card">', iCarte), APP.index
     /restent intactes pour tes collègues/.test(carte), true);
 }
 
-// ── 4) Le lien de connexion de l'entreprise, lui, ne bouge pas : c'est le seul à distribuer.
+// ── 4) L'adresse de l'entreprise, elle, ne bouge pas : c'est la seule chose à distribuer.
+/* ⚠️ Le libellé disait « LIEN DE CONNEXION DE TON ENTREPRISE » jusqu'au 14 septembre 2026. Il
+   dit « ADRESSE » depuis, parce que ce qu'on y montre a changé de nature : c'était un lien
+   porteur de la clé d'équipe (`#entreprise=…`), c'est désormais teamop.fr/e/<entreprise>, qui
+   n'ouvre rien toute seule — voir tests/test-678.js. Le BLOC, lui, doit toujours être là :
+   c'est ce que ce contrôle garde, et c'est pour ça qu'on vérifie AUSSI que la valeur affichée
+   passe par lienConnexionEntreprise() plutôt que de se contenter du titre. */
 {
-  v('le lien vérifié reste affiché', carte.indexOf('LIEN DE CONNEXION DE TON ENTREPRISE') > -1, true);
+  v('l’adresse de l’entreprise reste affichée', carte.indexOf('ADRESSE DE TON ENTREPRISE') > -1, true);
+  v('⛔ et c’est bien la fonction filtrée qui la fournit', /id="par-lien"[^>]*>\$\{esc\(lienConnexionEntreprise\(\)\)\}/.test(carte), true);
   v('et la carte se renomme pour un client installé',
     carte.indexOf('Le lien de connexion de ton entreprise') > -1, true);
 }

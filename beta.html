@@ -4765,7 +4765,17 @@ const STORE_KEY = 'elanB_gestion_v2';
 try{ if(localStorage.getItem('top_monitor_off')==='1') return; }catch(_){ }
 var TM_APP='opgestion', TM_KEY='top_monitor_q', TM_URL='https://api.teamop.fr/api/monitor/report';
 var tmLastSend=0, tmSending=false, tmT=Date.now();
-var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',chantiers:'Interventions',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Commandes',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',audit:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
+/* ⛔ TOUT ÉCRAN DOIT FIGURER ICI. `tmCat()` retombe sur `String(current).slice(0,30)` quand
+      un écran manque : son IDENTIFIANT TECHNIQUE devient alors une rubrique de la console, à
+      côté de « Devis & Factures ». Relevé le 13 septembre 2026 — `planningGeneral` manquait,
+      et la Tour affichait « planningGeneral » comme catégorie. Le serveur rattrape désormais
+      l'oubli (`monCategorie` : une catégorie est l'une des dix-huit, ou « Général »), mais il
+      ne peut que le RATTRAPER — il ne devinera jamais que cet écran-là, c'est le Planning.
+      Ajouter un écran sans l'ajouter ici, c'est perdre son rangement en silence.
+      Et la catégorie dit CE QU'EST L'ÉCRAN, pas où il est rangé dans le menu : « Boîte mail »
+      était classée dans « Commandes » parce qu'on y envoie les bons de commande. C'est une
+      boîte e-mail. */
+var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',chantiers:'Interventions',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',audit:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
 function tmCat(){ try{ return (typeof current!=='undefined'&&current&&(TM_CAT[current]||String(current).slice(0,30)))||'Général'; }catch(_){ return 'Général'; } }
 function tmVer(){ try{ return String(typeof APP_VERSION!=='undefined'?APP_VERSION:''); }catch(_){ return ''; } }
 function tmEnt(){ var nom='',email='';
@@ -4847,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '667-beta';
+const APP_VERSION = '668-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -23907,7 +23917,20 @@ function mdpProvisoire(){ const A='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwx
    Celui de l'annuaire TeamOP (demandé au serveur contre une preuve de clé, puis retenu sur
    l'appareil) dès que TEAM OP a activé l'espace ; sinon le lien construit ici. Les deux portent
    le CODE de l'espace (#entreprise=…) : le nom de l'entreprise n'ouvre plus rien. */
-function lienLisible(){ try{ const t=localStorage.getItem('elanB_sync_team'); const l=localStorage.getItem('elanB_lien_lisible')||''; return (t&&l&&localStorage.getItem('elanB_lien_lisible_t')===t)?l:''; }catch(e){ return ''; } }
+/* ⛔ UN LIEN QU'ON DONNE À QUELQU'UN NE PORTE JAMAIS DE SECRET — 14 septembre 2026, signalé
+   par Justin capture à l'appui : la fiche « Accès de … » affichée juste après la création d'un
+   compte montrait `teamop.fr/app.html#entreprise=eyJ0IjoiZWxhbi0zNG9j…`, et ce code base64
+   porte `k`, LA CLÉ QUI DÉCHIFFRE TOUTES LES DONNÉES DE L'ENTREPRISE. Ce lien se copie dans
+   un SMS, se colle dans WhatsApp, reste dans un téléphone.
+   Le serveur avait cessé de l'envoyer par courriel le 12 septembre ; l'application, elle,
+   continuait de l'AFFICHER — le correctif n'avait été fait que d'un côté.
+   Une seule adresse est donnée désormais : teamop.fr/e/<entreprise>, qui ne prouve rien et
+   n'ouvre rien. La personne y tape son identifiant et son mot de passe.
+   Cette garde filtre à la LECTURE, pas seulement à l'écriture : des appareils ont déjà l'ancien
+   lien en cache (`elan_lien_lisible`, 24 h), et sans elle ils continueraient de l'afficher
+   jusqu'à expiration. */
+function lienSansSecret(x){ const l=String(x||''); return /#(e|entreprise)=/.test(l) ? '' : l; }
+function lienLisible(){ try{ const t=localStorage.getItem('elanB_sync_team'); const l=localStorage.getItem('elanB_lien_lisible')||''; return (t&&l&&localStorage.getItem('elanB_lien_lisible_t')===t)?lienSansSecret(l):''; }catch(e){ return ''; } }
 /* le nom que l'écran de connexion affichera quand on arrive par le lien lisible (celui de l'annuaire TeamOP) */
 function lienLisibleNom(){ return lienLisible()?(localStorage.getItem('elanB_lien_lisible_nom')||''):''; }
 /* Les SEPT clés sont écrites ensemble par lienLisibleCharger : elles partent ensemble.
@@ -23929,20 +23952,25 @@ async function lienLisibleCharger(force){ try{
   const r=await fetch(PUSH_API+'/api/espaces/lien',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t,kh})});
   const j=await r.json().catch(()=>({}));
   if(r.status===429) return lienLisible();   // trop de demandes : on garde ce qu'on a
-  const lien=(r.ok&&j.ok&&j.cleOk&&j.lien)?String(j.lien):'';
+  /* `j.slug` et non `j.lien` : la route rend les deux, mais `lien` est le lien porteur de clé
+     (lienEspaceCode) et `slug` est l'adresse publique. C'est le slug qu'on garde. */
+  const lien=(r.ok&&j.ok&&j.cleOk&&j.slug)?('https://teamop.fr/e/'+encodeURIComponent(String(j.slug))):'';
   // l'annuaire dit qui est l'administrateur de cet espace : on le retient, et on rétablit tout de suite
   try{ if(j.identAdmin) localStorage.setItem('elanB_espace_admin',String(j.identAdmin)); }catch(e){}
   try{ if(adminAnnuaireRetablir()) save(); }catch(e){}
   localStorage.setItem('elanB_lien_lisible',lien); localStorage.setItem('elanB_lien_lisible_t',t); localStorage.setItem('elanB_lien_lisible_kh',kh); localStorage.setItem('elanB_lien_lisible_ts',String(Date.now())); localStorage.setItem('elanB_lien_lisible_nom',lien?String(j.nom||''):''); localStorage.setItem('elanB_lien_lisible_motif',lien?'':String(j.motif||''));
   if(lien&&j.nom&&!entrepriseNom()){ try{ localStorage.setItem('elanB_entreprise_nom',String(j.nom)); }catch(e){} }
   return lien; }catch(e){ return lienLisible(); } }
-function lienConnexionEntreprise(){ return lienLisible()||(typeof teamopLienActuel==='function'&&teamopLienActuel())||'https://teamop.fr/connexion.html'; }
+/* ⛔ PLUS DE REPLI SUR teamopLienActuel() : c'était lui, la fuite. Quand l'adresse d'annuaire
+   n'est pas encore connue, on envoie sur l'écran de connexion générique — la personne y tape
+   le nom de son entreprise. Un pas de plus pour elle, aucune clé dans la nature. */
+function lienConnexionEntreprise(){ return lienLisible()||'https://teamop.fr/connexion.html'; }
 /* Envoie identifiant + mot de passe provisoire + lien de connexion de l'entreprise à l'adresse de la fiche */
 async function identifiantsParMail(u,pwd){
   const to=(u.email||'').trim(); if(!to) return {sans:true};
   try{
     const r=await fetch(PUSH_API+'/api/compte/identifiants',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({teamId:syncTeam(),to,prenom:u.prenom||'',entreprise:entrepriseNom(),login:u.login,mdp:pwd,lien:(typeof teamopLienActuel==='function'&&teamopLienActuel())||lienConnexionEntreprise(),par:currentUser?fullName(currentUser):''})});
+      body:JSON.stringify({teamId:syncTeam(),to,prenom:u.prenom||'',entreprise:entrepriseNom(),login:u.login,mdp:pwd,lien:lienConnexionEntreprise(),   /* jamais teamopLienActuel() : il porte « k » (voir lienSansSecret) */par:currentUser?fullName(currentUser):''})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok) return {err:(j&&j.error)||('erreur '+r.status)};
     return {ok:true,to,lien:j.lien||'',entreprise:j.entreprise||''};
@@ -23950,24 +23978,26 @@ async function identifiantsParMail(u,pwd){
 }
 async function identifiantsRenvoyer(id,pwd){ const u=db.users.find(x=>x.id===id); if(!u) return; const z=$('ui-mail'); if(z) z.innerHTML='⏳ Envoi…'; const r=await identifiantsParMail(u,pwd); identifiantsMailEtat(r,id,pwd); }
 function identifiantsMailEtat(r,id,pwd){ const z=$('ui-mail'); if(!z) return;
-  if(r.ok){ const espace=/#(e|entreprise)=/.test(r.lien||''); z.innerHTML='✉️ <b>E-mail envoyé à '+esc(r.to)+'</b> — identifiant, mot de passe provisoire et '+(espace?'lien de connexion de l\'entreprise'+(r.entreprise?' « '+esc(r.entreprise)+' »':''):'lien vers l\'application')+'.';
+  if(r.ok){ const espace=/\/e\//.test(r.lien||''); z.innerHTML='✉️ <b>E-mail envoyé à '+esc(r.to)+'</b> — identifiant, mot de passe provisoire et '+(espace?'adresse de l\'entreprise'+(r.entreprise?' « '+esc(r.entreprise)+' »':''):'lien vers l\'écran de connexion')+'.';
     // le serveur connaît l'espace → le lien envoyé est celui de l'annuaire : on l'affiche tel quel
-    const l=$('ui-lien'); if(l&&r.lien){ l.textContent=r.lien; const b=document.querySelector('#overlay [data-t]'); if(b) b.dataset.t=String(b.dataset.t||'').replace(/Lien de connexion[^\n]*: .*$/, 'Lien de connexion (clique dessus, puis connecte-toi) : '+r.lien); } }
+    const adr=lienSansSecret(r.lien); const l=$('ui-lien'); if(l&&adr){ l.textContent=adr; const b=document.querySelector('#overlay [data-t]'); if(b) b.dataset.t=String(b.dataset.t||'').replace(/Adresse de l.entreprise[^\n]*: .*$/, 'Adresse de l\'entreprise : '+adr); } }
   else if(r.sans) z.innerHTML='Aucune adresse e-mail sur la fiche — transmets-lui ces accès toi-même (bouton ci-dessous).';
   else z.innerHTML='<span style="color:var(--red)">E-mail non envoyé ('+esc(r.err||'')+')</span> — <a onclick="identifiantsRenvoyer(\''+id+'\',\''+esc(pwd)+'\')" style="cursor:pointer;text-decoration:underline">réessayer</a>, ou transmets-lui ces accès toi-même.'; }
 /* Fiche « à transmettre » affichée juste après la création d'un compte (ou une réinitialisation) */
 function userIdentifiantsModal(u,pwd){
-  const lien=lienConnexionEntreprise(), ent=lienLisibleNom()||entrepriseNom(), espace=!!(typeof teamopLienActuel==='function'&&teamopLienActuel());
-  if(espace&&!lienLisible()) lienLisibleCharger().then(l=>{ const z=$('ui-lien'); if(l&&z&&!/#e=/.test(z.textContent)){ z.textContent=l; const b=document.querySelector('#overlay [data-t]'); if(b) b.dataset.t=String(b.dataset.t||'').replace(/Lien de connexion[^\n]*: .*$/,'Lien de connexion (clique dessus, puis connecte-toi) : '+l); } });
-  const texte='Connexion OP GESTION'+(ent?' — '+ent:'')+'\nIdentifiant : '+u.login+'\nMot de passe provisoire : '+pwd+'\nLien de connexion (clique dessus, puis connecte-toi) : '+lien;
+  const lien=lienConnexionEntreprise(), ent=lienLisibleNom()||entrepriseNom(), espace=!!lienLisible();
+  /* L'adresse n'est pas encore connue de cet appareil : on la demande, et on la pose dès
+     qu'elle arrive — la fiche reste ouverte pendant ce temps. */
+  if(!lienLisible()) lienLisibleCharger().then(l=>{ const a=lienSansSecret(l); const z=$('ui-lien'); if(a&&z){ z.textContent=a; const b=document.querySelector('#overlay [data-t]'); if(b) b.dataset.t=String(b.dataset.t||'').replace(/Adresse de l.entreprise[^\n]*: .*$/,'Adresse de l\'entreprise : '+a); } });
+  const texte='Connexion OP GESTION'+(ent?' — '+ent:'')+'\nIdentifiant : '+u.login+'\nMot de passe provisoire : '+pwd+'\nAdresse de l\'entreprise : '+lien;
   openModal(`<div class="modal-head"><h3>✅ Accès de ${esc(fullName(u))}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">${espace
-      ?`Le lien est <b>celui de l'entreprise${ent?' « '+esc(ent)+' »':''}</b> : en cliquant dessus, son appareil se met sur le bon espace et l'écran de connexion lui dit « <b>Vous allez vous connecter à l'entreprise ${esc(ent||'…')}</b> ».`
-      :`Cet appareil n'est relié à <b>aucun espace entreprise</b> (pas de lien d'entreprise) : la personne ouvre l'application via ce lien et se connecte avec son identifiant et son mot de passe.`} <b>À sa première connexion, l'app lui fera choisir son propre mot de passe</b>.</p>
+      ?`C'est <b>l'adresse de l'entreprise${ent?' « '+esc(ent)+' »':''}</b> — la même pour toute l'équipe, et elle ne change jamais. Elle n'ouvre rien toute seule : la personne y entre son identifiant et son mot de passe.`
+      :`L'adresse de l'entreprise n'est pas encore connue de cet appareil : la personne passe par l'écran de connexion et tape le nom de son entreprise, puis son identifiant et son mot de passe.`} <b>À sa première connexion, l'app lui fera choisir son propre mot de passe</b>.</p>
     <div class="fgroup" style="margin-bottom:12px">
       <div class="frow"><span class="frow-lbl">Identifiant</span><div class="frow-val"><b class="mono" style="font-size:16px">${esc(u.login)}</b></div></div>
       <div class="frow"><span class="frow-lbl">Mot de passe provisoire</span><div class="frow-val"><b class="mono" style="font-size:16px">${esc(pwd)}</b></div></div>
-      <div class="frow"><span class="frow-lbl">Lien de connexion</span><div class="frow-val" id="ui-lien" style="word-break:break-all;font-size:11.5px">${esc(lien)}</div></div>
+      <div class="frow"><span class="frow-lbl">Adresse de l'entreprise</span><div class="frow-val" id="ui-lien" style="word-break:break-all;font-size:13px;font-weight:700">${esc(lien)}</div></div>
     </div>
     <div id="ui-mail" style="font-size:12.5px;color:var(--t2);line-height:1.55;margin-bottom:12px">${(u.email||'').trim()?'⏳ Envoi de l\'e-mail à '+esc(u.email.trim())+'…':'Aucune adresse e-mail sur la fiche — transmets-lui ces accès toi-même (bouton ci-dessous).'}</div>
     <button class="btn block" onclick="copieIdentifiants(this)" data-t="${esc(texte)}">📋 Copier pour lui envoyer</button>
@@ -24713,7 +24743,7 @@ views.parametres=function(){
         ? `<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:8px">Ce lien met l'appareil de chacun sur <b>l'espace de ton entreprise</b>, celui où vivent tes données. C'est le seul à distribuer.</p>`
         : `<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:8px">Crée un <b>espace isolé</b> par entreprise cliente : chaque espace a ses <b>propres données</b>, chiffrées et séparées des autres. Donne le <b>Code espace</b> à l'entreprise pour qu'elle se connecte.</p>`}
       <p style="font-size:12.5px;color:var(--t3);margin-bottom:12px">Espace actuel de cet appareil : <b style="color:var(--t2)">${esc(teamopCurrentSpace())}</b></p>
-      ${teamopLienActuel()?`<div style="background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:10px 12px;margin-bottom:12px"><div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--t3);margin-bottom:5px">🔗 LIEN DE CONNEXION DE TON ENTREPRISE ${lienLisible()?'<span style="color:var(--acc)">· activé ✓</span>':''}</div><div id="par-lien" style="word-break:break-all;font-family:var(--mono,monospace);font-size:${lienLisible()?'14px;font-weight:700':'11.5px'};color:var(--acc);margin-bottom:8px">${esc(lienConnexionEntreprise())}</div><button class="btn sm" onclick="teamopCopy(document.getElementById('par-lien').textContent,this)">Copier le lien</button><span style="font-size:11.5px;color:var(--t3);margin-left:8px">le même lien pour tous tes utilisateurs, sur le site comme dans l'application : un clic et ils sont sur le bon espace — l'écran de connexion leur dit « Vous allez vous connecter à l'entreprise ${esc(lienLisibleNom()||entrepriseNom()||'…')} »</span><div style="margin-top:8px;font-size:12px;color:var(--t3)">${lienLisible()?'Lien vérifié auprès de TEAM OP (revérifié chaque jour, et à chaque changement de clé d\'équipe).':(localStorage.getItem('elanB_lien_lisible_motif')==='cle_changee'?'<span style="color:var(--org,#e8a33d);font-weight:700">⚠️ La clé d\'équipe a changé depuis l\'inscription chez TEAM OP : le lien de l\'annuaire est suspendu (il mènerait à un espace illisible). Demande à TEAM OP de réinscrire ton espace ; en attendant, ce lien-ci fonctionne.</span>':'Le lien vérifié par TEAM OP apparaîtra ici dès que ton espace sera activé ; en attendant, ce lien fonctionne exactement pareil.')} <a onclick="lienLisibleCharger(true).then(()=>views.parametres())" style="cursor:pointer;text-decoration:underline">Vérifier maintenant</a></div>${entrepriseNom()?'':`<div style="margin-top:8px;font-size:12px;color:var(--org,#e8a33d);font-weight:700">⚠️ Renseigne le nom de ton entreprise (« Mon entreprise », plus bas) : il est mis dans le lien et affiché à tes utilisateurs.</div>`}</div>`:''}
+      ${teamopLienActuel()?`<div style="background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:10px 12px;margin-bottom:12px"><div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--t3);margin-bottom:5px">🔗 ADRESSE DE TON ENTREPRISE ${lienLisible()?'<span style="color:var(--acc)">· activé ✓</span>':''}</div><div id="par-lien" style="word-break:break-all;font-family:var(--mono,monospace);font-size:${lienLisible()?'14px;font-weight:700':'11.5px'};color:var(--acc);margin-bottom:8px">${esc(lienConnexionEntreprise())}</div><button class="btn sm" onclick="teamopCopy(document.getElementById('par-lien').textContent,this)">Copier le lien</button><span style="font-size:11.5px;color:var(--t3);margin-left:8px">la même adresse pour toute ton équipe, et elle ne change jamais — chacun y entre SON identifiant et SON mot de passe. Elle n'ouvre rien toute seule : on peut la donner, l'écrire sur un devis, la mettre en favori</span><div style="margin-top:8px;font-size:12px;color:var(--t3)">${lienLisible()?'Adresse vérifiée auprès de TEAM OP (revérifiée chaque jour, et à chaque changement de clé d\'équipe).':(localStorage.getItem('elanB_lien_lisible_motif')==='cle_changee'?'<span style="color:var(--org,#e8a33d);font-weight:700">⚠️ La clé d\'équipe a changé depuis l\'inscription chez TEAM OP : le lien de l\'annuaire est suspendu (il mènerait à un espace illisible). Demande à TEAM OP de réinscrire ton espace ; en attendant, ce lien-ci fonctionne.</span>':'Le lien vérifié par TEAM OP apparaîtra ici dès que ton espace sera activé ; en attendant, ce lien fonctionne exactement pareil.')} <a onclick="lienLisibleCharger(true).then(()=>views.parametres())" style="cursor:pointer;text-decoration:underline">Vérifier maintenant</a></div>${entrepriseNom()?'':`<div style="margin-top:8px;font-size:12px;color:var(--org,#e8a33d);font-weight:700">⚠️ Renseigne le nom de ton entreprise (« Mon entreprise », plus bas) : il est mis dans le lien et affiché à tes utilisateurs.</div>`}</div>`:''}
       ${/* ⛔ « CRÉER UN ESPACE ENTREPRISE » N'A RIEN À FAIRE CHEZ UN CLIENT DÉJÀ INSTALLÉ.
              teamopCreateSpace() fabrique un espace NEUF et VIDE, en tire un lien, et l'enregistre
              sur l'appareil — sans rien demander à TEAM OP. Une entreprise qui a déjà le sien n'en
