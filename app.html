@@ -4857,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '671';
+const APP_VERSION = '672';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6377,12 +6377,52 @@ async function fbJetonEquipe(){ try{
      (tant que la règle Firestore n'a pas changé, il ne change rien) : mieux vaut abandonner
      vite et repartir en anonyme que faire attendre quelqu'un sur un chantier. */
   const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),4000);
-  let j={};
+  let j={},statut=0;
   try{ const r=await fetch(PUSH_API+'/api/fb/jeton',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:t,kh:kh}),signal:ctrl.signal});
-       j=await r.json().catch(()=>({})); }
+       statut=r.status; j=await r.json().catch(()=>({})); }
   finally{ clearTimeout(tm); }
+  /* ⛔ UN REFUS N'EST PAS UNE COUPURE RÉSEAU, ET LES CONFONDRE A COÛTÉ DES SEMAINES DE TRAVAIL
+     DANS LE VIDE. Cette fonction rendait `''` dans les deux cas : un serveur injoignable et un
+     « cet espace est banni » se ressemblaient trait pour trait. Or le serveur refuse le jeton à
+     DEUX populations, exprès et depuis longtemps — l'espace de repli (403) et toute entreprise
+     restée sur la clé écrite en clair dans ce fichier (409). Ces appareils repartaient en
+     anonyme, la règle Firestore ne leur donnait rien, et l'application continuait comme si de
+     rien n'était. Mesuré chez ELAN le 14 septembre 2026 : cinq personnes saisissaient tous les
+     jours dans un espace coupé, sans qu'aucun écran ne le dise.
+     403 et 409 sont DÉFINITIFS : ils ne passeront pas au prochain essai. On les remonte.
+     Tout le reste — délai, 500, hors ligne — reste muet et repart en anonyme, exprès : le
+     jeton n'est pas urgent et personne ne doit être arrêté sur un chantier par un réseau
+     capricieux. */
+  if(statut===403||statut===409){ _jetonRefus={statut:statut,motif:String((j&&j.error)||'')};
+    try{ jetonRefusEcran(); }catch(_e){} }
   return (j&&j.jeton)?String(j.jeton):'';
 }catch(e){ return ''; } }
+let _jetonRefus=null,_jetonEcranDit=false;
+/* L'écran du refus définitif. Il BLOQUE — laisser travailler serait reconduire le défaut qu'on
+   corrige — mais il ne prend rien en otage : la base locale est la SEULE copie de ce qui a été
+   saisi depuis la coupure, et rejoindre une entreprise passe par espaceQuitter(), qui l'efface.
+   D'où l'export en premier bouton, avant le rattachement. Perdre le travail de quelqu'un pour
+   réparer notre propre défaut serait la pire des corrections. */
+function jetonRefusEcran(){
+  if(_jetonEcranDit||!_jetonRefus) return; _jetonEcranDit=true;
+  /* La bêta vit sur l'espace de repli PAR CONSTRUCTION (préfixe elanB_, espace
+     elan-gestion-beta) : elle reçoit le même 403, et la bloquer arrêterait tout le
+     développement. Elle n'a jamais de données d'entreprise — rien à protéger, rien à dire. */
+  try{ if(String(STORE_KEY||'').indexOf('elanB_')===0) return; }catch(_e){ return; }
+  let e=document.getElementById('jr-ecran');
+  if(!e){ e=document.createElement('div'); e.id='jr-ecran';
+    e.style.cssText='position:fixed;inset:0;z-index:99998;background:var(--bg,#0D1624);color:var(--t1,#eef2fa);display:flex;align-items:center;justify-content:center;padding:28px;text-align:center';
+    document.body.appendChild(e); }
+  e.innerHTML='<div style="max-width:440px;width:100%"><div style="font-size:44px">🏢</div>'+
+    '<h2 style="margin:12px 0 6px;font-size:22px;letter-spacing:-.01em">Cet appareil n\'est rattaché à aucune entreprise</h2>'+
+    '<p style="color:var(--t3,#93a9d4);font-size:15px;line-height:1.6;margin:0 0 6px">Il travaille sur l\'espace par défaut de l\'application. <b>Rien de ce qui est saisi ici ne rejoint ton équipe</b>, et rien de ce qu\'elle fait n\'arrive jusqu\'ici.</p>'+
+    '<p style="color:var(--t3,#93a9d4);font-size:14px;line-height:1.6;margin:0 0 18px">Enregistre d\'abord ce qui n\'est que sur cet appareil, puis rattache-le à ton entreprise.</p>'+
+    '<div style="display:flex;flex-direction:column;gap:10px">'+
+      '<button class="btn ghost" onclick="exportData()">⬇️ Enregistrer mes données de cet appareil</button>'+
+      '<button class="btn" onclick="location.href=\'https://teamop.fr/connexion.html\'">Rattacher à mon entreprise</button>'+
+    '</div>'+
+    '<p style="color:var(--t3,#93a9d4);font-size:12.5px;line-height:1.6;margin:16px 0 0">Ton adresse ressemble à <b style="color:var(--t1,#eef2fa)">teamop.fr/e/ton-entreprise</b>. Identifiant et mot de passe suffisent ensuite, sur n\'importe quel téléphone.</p></div>';
+}
 /* Les règles Firestore exigent un utilisateur connecté. Jusqu'ici c'était une connexion
    ANONYME : Google savait qu'un appareil était là, jamais à quelle entreprise il appartenait
    — d'où une règle qui ne peut dire que « toute personne connectée », donc n'importe quel

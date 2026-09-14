@@ -59,5 +59,37 @@ v('… ni ne montre les cartes d\'applications', /cartes-apps/.test(bloc), false
 v('⛔ « Changer d\'entreprise » est une cible de 44 px, plus un lien de douze pixels',
   /Changer d\\'entreprise<\/a>/.test(cnx) && /min-height:44px[^']*">Changer d/.test(cnx), true);
 
+/* ══ L'ADRESSE SE TAPE COMME ON VEUT ══════════════════════════════════════════════════════
+   Justin, 14 septembre 2026 : « il faut que ça soit en minuscule et pas en grand, pour éviter
+   les bugs ». slugDe() abaissait DÉJÀ la casse, et le serveur aussi — « ELAN » a toujours
+   fonctionné. Ce qui manquait, c'est que le champ le MONTRE : il affichait « ELAN » en
+   capitales, donc plus rien ne disait que c'était bon, et on n'ose pas valider une adresse
+   qui a l'air fausse.
+   ⛔ Et la mesure au navigateur a trouvé un VRAI défaut au passage : coller l'adresse entière
+   — « https://teamop.fr/e/elan », celle qu'on donne aux équipes et qu'on met en favori —
+   rendait « eelan », le « e » du préfixe restant collé au nom. */
+(function(){
+  const src = cnx.match(/function slugDe\(v\)\{[\s\S]*?\n  \}/);
+  v('slugDe est trouvée dans connexion.html', !!src, true);
+  if (!src) return;
+  const f = new Function(src[0] + '; return slugDe;')();
+  v('⛔ une adresse tapée en capitales passe', f('ELAN'), 'elan');
+  v('… avec des espaces et des accents aussi', f('Élan Gestion'), 'elangestion');
+  v('⛔ et l\'adresse ENTIÈRE collée, préfixe /e/ compris', f('https://teamop.fr/e/ELAN'), 'elan');
+  v('… sous sa forme courte également', f('teamop.fr/elan'), 'elan');
+  v('un champ vide ne rend rien', f(''), '');
+})();
+v('le champ montre ce qu\'il va envoyer, à la frappe',
+  /oninput="adrNormaliser\(this\)"/.test(cnx) && /style="text-transform:lowercase"/.test(cnx), true);
+/* ⛔ Réécrire la valeur renvoie le curseur en fin de champ à chaque caractère : corriger le
+   milieu d'un mot devient impossible. La position se garde. */
+v('⛔ le curseur ne saute pas en fin de champ à chaque frappe',
+  /el\.setSelectionRange\(Math\.max\(0,pos-d\),Math\.max\(0,pos-d\)\)/.test(cnx), true);
+/* Précision de Justin : l'adresse d'entreprise n'ouvre QUE OP GESTION. */
+v('l\'adresse d\'entreprise n\'ouvre qu\'OP GESTION, et le dit',
+  /te connecte à <b style="color:#eef2fa">OP GESTION<\/b>, et à lui seul/.test(cnx), true);
+v('… et OP MESSAGES est annoncé hors forfait',
+  /ne fait pas partie du forfait/.test(cnx), true);
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

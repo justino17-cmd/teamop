@@ -72,7 +72,15 @@ try{
     <label class="lbl" for="adr-nom">Adresse de ton espace</label>
     <div class="adr">
       <span class="pre">https://teamop.fr/e/</span>
-      <input id="adr-nom" placeholder="ton-entreprise" autocapitalize="off" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')adrAller()">
+      <!-- ⛔ LE CHAMP MONTRE CE QU'IL VA ENVOYER. slugDe() abaisse déjà la casse, et le serveur
+           aussi (espSlug) : taper « ELAN » a toujours fonctionné. Mais le champ affichait
+           « ELAN » en capitales, donc plus rien ne disait que c'était bon — et on n'ose pas
+           valider une adresse qui a l'air fausse. Justin, 14 septembre 2026 : « il faut que ça
+           soit en minuscule et pas en grand, pour éviter les bugs ». On normalise donc À LA
+           FRAPPE : ce qui est à l'écran est exactement ce qui part, y compris quand on colle
+           une adresse entière (« https://teamop.fr/e/ELAN » se réduit sous les doigts).
+           `text-transform` seul ne suffirait pas : il change l'apparence, pas la valeur. -->
+      <input id="adr-nom" placeholder="ton-entreprise" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" inputmode="url" style="text-transform:lowercase" oninput="adrNormaliser(this)" onkeydown="if(event.key==='Enter')adrAller()">
     </div>
     <div id="adr-err" style="display:none;color:#f87171;font-size:13px;margin-top:10px;line-height:1.55"></div>
     <button class="btn" id="adr-btn" onclick="adrAller()">Accéder à mon compte</button>
@@ -126,6 +134,13 @@ try{
   function slugDe(v){
     return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
       .replace(/^https?:\/\//,'').replace(/^(www\.)?teamop\.fr\/?/,'')
+      /* ⛔ ET LE « /e/ » DE L'ADRESSE. Sans ce retrait, coller l'adresse entière —
+         « https://teamop.fr/e/elan », c'est-à-dire exactement ce qu'on donne aux équipes et
+         ce qu'on met en favori — rendait « eelan » : le « e » du préfixe restait collé au nom,
+         et l'entreprise devenait introuvable. Mesuré au navigateur le 14 septembre 2026, sur
+         les quatre saisies qu'une personne fait vraiment. Un « e/ » en tête ne peut venir que
+         du préfixe : aucun nom d'entreprise ne commence par une barre oblique. */
+      .replace(/^e\//,'')
       .replace(/^connexion\.html.*$/,'').replace(/[^a-z0-9]+/g,'').slice(0,60);
   }
   /* L'adresse de l'entreprise se lit dans ?e= (posé par 404.html quand on arrive sur
@@ -175,6 +190,17 @@ try{
     return '<span style="color:#f87171">⛔ <b>« '+String(n||'').slice(0,60).replace(/[<>&]/g,'')+' » n\'est pas une adresse TEAM OP.</b></span><br>'+
       '<span style="color:#93a9d4">Aucune entreprise de ce nom n\'est inscrite chez nous. Demande son adresse à ton responsable — c\'est lui qui a le lien de connexion de l\'entreprise.</span><br>'+
       '<a href="#" onclick="entRelance();return false" style="color:#7cc6ff;display:inline-block;margin-top:8px">✉️ me renvoyer le lien par e-mail</a>';
+  }
+  /* On garde la position du curseur : réécrire la valeur le renverrait en fin de champ à
+     chaque caractère, ce qui rend toute correction au milieu du mot impossible. */
+  function adrNormaliser(el){
+    try{
+      var av=el.value, pos=el.selectionStart, ap=slugDe(av);
+      if(ap===av) return;
+      el.value=ap;
+      var d=av.length-ap.length;
+      try{ el.setSelectionRange(Math.max(0,pos-d),Math.max(0,pos-d)); }catch(e){}
+    }catch(e){}
   }
   async function adrAller(){
     var v=slugDe(($id('adr-nom')||{}).value), btn=$id('adr-btn');
@@ -334,7 +360,11 @@ try{
           /* ⛔ « changer d'entreprise » n'est pas un cas limite : c'est la SEULE sortie quand
              l'appareil est au mauvais endroit, et un lien de douze pixels ne la donnait pas. */
           '<a href="#" onclick="localStorage.removeItem(\'elan_entreprise_nom\');localStorage.removeItem(\'elan_sync_team\');localStorage.removeItem(\'elan_sync_secret\');location.reload();return false" style="display:inline-block;color:#7cc6ff;font-size:13px;font-weight:700;text-decoration:none;border:1px solid rgba(124,198,255,.35);border-radius:10px;padding:9px 14px;min-height:44px;line-height:26px">Changer d\'entreprise</a>'+
-          '<div style="width:100%;color:#93a9d4;font-size:13px;margin-top:4px">Ton adresse d\'entreprise te connecte à <b style="color:#eef2fa">OP GESTION</b> · <b style="color:#eef2fa">OP MESSAGES</b> est une application à part (compte personnel, abonnement séparé)</div></div>';
+          /* ⛔ « ET À LUI SEUL » — précision de Justin, 14 septembre 2026 : « ça connecte que OP
+             GESTION, OP MESSAGES n'est plus dans les forfaits, ils sont à part ». La phrase
+             d'avant nommait les deux applications à la suite : on pouvait comprendre que
+             l'adresse d'entreprise ouvrait les deux. Elle n'en ouvre qu'une. */
+          '<div style="width:100%;color:#93a9d4;font-size:13px;margin-top:4px">Ton adresse d\'entreprise te connecte à <b style="color:#eef2fa">OP GESTION</b>, et à lui seul.<br><b style="color:#eef2fa">OP MESSAGES</b> ne fait pas partie du forfait : c\'est une application à part, avec son compte personnel et son abonnement.</div></div>';
         var cartes=$id('cartes-apps'); if(cartes) cartes.style.display='flex';
         return;
       }
