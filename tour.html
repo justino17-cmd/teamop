@@ -2831,6 +2831,21 @@ function chargerEntreprises(){
    À supprimer quand le serveur du VPS portera le champ depuis assez longtemps pour qu'aucune
    Tour ouverte ne puisse plus tomber sur l'ancien. */
 var ESPACES_TECHNIQUES=['elan-gestion','elan-gestion-beta'];
+/* ⛔ LE NOM ELAN N'APPARAÎT QUE LÀ OÙ ELAN EST LE CLIENT — Justin, 14 septembre 2026 : « je ne
+   veux plus le mot ELAN dans les tests ou autres ; ELAN c'est l'entreprise avec qui on
+   travaille, et nous, tout ce qu'on fait s'appelle TEAM OP ».
+   Ces deux espaces portent « elan-gestion » dans leur identifiant technique parce que le projet
+   Firebase s'appelle ainsi et qu'un identifiant Google ne se renomme pas — jamais, même chez
+   Google. Ce qu'on peut faire, c'est ne plus le MONTRER : la Tour nomme ce que ces espaces
+   sont, pas comment ils sont codés.
+   ⚠️ On garde l'identifiant technique en second, en petit : le jour où il faut chercher dans
+   un journal serveur ou une règle Firestore, c'est lui qu'on tape. Le cacher tout à fait
+   rendrait la console jolie et inutilisable. */
+function nomTechnique(t){
+  if(t==='elan-gestion') return 'Espace par défaut — TEAM OP';
+  if(t==='elan-gestion-beta') return 'Bêta TEAM OP';
+  return String(t||'');
+}
 /* De quelle NATURE est cet espace ? C'est la question que l'écran ne posait pas, et c'est
    pour ça que tout s'y ressemblait. Quatre réponses, quatre traitements. */
 function entNature(o){
@@ -2842,6 +2857,33 @@ function entNature(o){
      rattrapent — sans quoi une vraie cliente atterrirait dans « Mes essais ». */
   if(o.origine==='site'||(o.formule&&o.formule!=='gratuit')||(o.promo&&o.promo.actif)) return 'cliente';
   return 'mien';
+}
+/* Poser ou retirer le filigrane de remise à zéro. Le serveur n'efface rien — voir ZERO_PATH
+   dans server/index.js. On recharge la liste ET le dossier : les deux portent le chiffre, et
+   n'en rafraîchir qu'un laisserait l'écran se contredire lui-même. */
+function entZeroCompteurs(poser){
+  var t=ENT.sel; if(!t){ toast('Aucune entreprise sélectionnée'); return; }
+  if(poser && !confirm('Repartir à zéro les compteurs de cette entreprise ?\n\nRien n’est effacé : les problèmes déjà signalés restent consultables côté serveur, ils cessent seulement d’être comptés. Tout nouveau problème réapparaîtra aussitôt.')) return;
+  apiPost('/api/monitor/espaces/compteurs-zero',{t:t,annuler:!poser}).then(function(r){
+    if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
+    toast(poser?'Compteurs repartis de zéro':'Historique complet rétabli');
+    JR.actions.unshift({ts:Date.now(),tx:MYNOM+(poser?' a remis à zéro les compteurs d’une entreprise':' a rétabli l’historique complet d’une entreprise')});
+    chargerEntreprises(); entSel(t); entSel(t);   // entSel bascule : deux appels rouvrent la même fiche, rechargée
+  }).catch(function(){ toast('Serveur injoignable'); });
+}
+/* Remettre Surveillance à zéro : tout ce qui est « nouveau » ou « en cours » passe en
+   « ignoré ». Rien n'est effacé, rien n'est envoyé aux clients — « corrigé » aurait déclenché
+   un courriel par problème et par entreprise touchée. */
+function incToutIgnorer(){
+  var n=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
+  if(!n){ toast('Rien à classer'); return; }
+  if(!confirm('Remettre Surveillance à zéro ?\n\n'+n+' problème(s) passent en « ignoré ». Rien n’est effacé — ils restent consultables, et un problème qui se reproduit reviendra de lui-même en « nouveau ». Aucun courriel n’est envoyé aux clients.')) return;
+  apiPost('/api/monitor/issues/tout-ignorer',{}).then(function(r){
+    if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
+    toast((r.d.classes||0)+' problème(s) classé(s)');
+    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a remis Surveillance à zéro ('+(r.d.classes||0)+' problème(s))'});
+    chargerIncidents();
+  }).catch(function(){ toast('Serveur injoignable'); });
 }
 function entQ(v){ ENT.q=v; rafraichirSiConcerne(); }
 /* Cliquer un compteur restreint la liste ; le recliquer la rouvre. C'est le seul geste
@@ -3154,7 +3196,11 @@ function vueConnexions(){
     return '<button type="button" class="reg-l'+(CNX.sel===x.t?' on':'')+'" onclick="cnxSel(\''+jsq(x.t)+'\')">'+
       (x.slug?'<span class="reg-av gris">'+esc(sigle(x.nom||x.t))+'</span>'
              :'<span class="reg-av sans">?</span>')+
-      '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.nom||x.t)+'">'+esc(x.nom||x.t)+'</span>'+
+      /* Un espace technique se nomme par ce qu'il EST, pas par son identifiant Firebase —
+         voir nomTechnique(). Le nom brut « (espace hors annuaire) elan-gestion » laissait
+         croire à une entreprise cliente, et il portait le nom d'un client sur un espace qui
+         ne lui appartient pas. */
+      '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.t)+'">'+esc(x.technique===true?nomTechnique(x.t):(x.nom||x.t))+'</span>'+
         '<span class="reg-l2">'+muet+'</span></span>'+
       '<span class="reg-fin"><span class="reg-alertes">'+alertes+'</span>'+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>';
@@ -4651,7 +4697,14 @@ function vueSurveillance(){
 
   var ouverts=incOuverts().length;
   /* Un compte se lit APRÈS la commande qui le produit, pas au-dessus. */
-  return enTete('Surveillance',SURV_DESC)+kpis+filtres+
+  /* ⛔ LE BOUTON EST SOUS LES CHIFFRES, PAS DANS L'EN-TÊTE. Il ne se clique qu'après avoir lu
+     combien de problèmes on s'apprête à classer — le mettre en haut à droite en ferait un
+     réflexe, et une surveillance qu'on vide par réflexe ne surveille plus rien. Il disparaît
+     quand il n'y a rien à classer : un bouton qui ne fait rien apprend à cliquer pour rien. */
+  var _aClasser=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
+  var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
+    '<span style="font-size:12px;color:var(--muted);margin-left:10px">passe en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
+  return enTete('Surveillance',SURV_DESC)+kpis+zeroBtn+filtres+
     '<div class="svl-compte">'+nomsG.length+' entreprise'+(nomsG.length>1?'s':'')+' · '+l.length+' problème'+(l.length>1?'s':'')+' affiché'+(l.length>1?'s':'')+' · '+ouverts+' ouvert'+(ouverts>1?'s':'')+'</div>'+
     (groupesRendus?'<div class="reg">'+groupesRendus+'</div>':listeVide)+saines+legende+
     /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents,
@@ -5937,9 +5990,9 @@ function vueEntreprises(){
      Ils restent atteignables, ils ne sont simplement plus comptés comme des clientes. */
   var tech=l.filter(function(o){ return entNature(o)==='technique'; });
   var pave=tech.length? '<div class="reg-tech"><b>'+tech.length+' espace'+(tech.length>1?'s':'')+' technique'+(tech.length>1?'s':'')+' — jamais des entreprises.</b> '+
-    'Tout appareil qui n’a rejoint aucun espace signale ses connexions dans <span class="mono">elan-gestion</span> (l’application) ou '+
-    '<span class="mono">elan-gestion-beta</span> (la bêta), y compris un visiteur qui rate une connexion sur teamop.fr.<div>'+
-    tech.map(function(o){ return '<button type="button" class="reg-tech-l" onclick="entSel(\''+jsq(o.t)+'\')">'+esc(o.t)+'</button>'; }).join('')+
+    'Ce sont les espaces de TEAM OP, pas des clientes. Tout appareil qui n’a rejoint aucun espace y signale ses connexions — '+
+    'l’espace par défaut pour l’application, la bêta pour les essais — y compris un visiteur qui rate une connexion sur teamop.fr.<div>'+
+    tech.map(function(o){ return '<button type="button" class="reg-tech-l" onclick="entSel(\''+jsq(o.t)+'\')">'+esc(nomTechnique(o.t))+' <span class="mono" style="opacity:.55;margin-left:6px">'+esc(o.t)+'</span></button>'; }).join('')+
     '</div></div>' : '';
 
   /* Deux vides différents, deux phrases différentes : « rien ne correspond » suppose une
@@ -6615,6 +6668,25 @@ function blocDossier(){
       '<div class="reg-bloc">'+ech.slice(0,5).map(function(e){ return '<div class="reg-l inerte">'+
         '<span class="reg-txt"><span class="reg-l2"><b>'+esc(e.login||'identifiant inconnu')+'</b>'+(e.motif?' — '+esc(e.motif):'')+'</span></span>'+
         '<span class="reg-fin"><span class="reg-h">'+esc(fmtJour(e.ts))+'</span></span></div>'; }).join('')+'</div></div>';
+  /* ⛔ REPARTIR À ZÉRO — demandé par Justin le 14 septembre 2026, pastilles à l'appui :
+     « 🐛 142 · 🔑 1 ». Après une journée de correctifs, ces chiffres comptent surtout de
+     l'histoire ancienne, et un compteur qui ne redescend jamais finit par ne plus être lu —
+     c'est exactement ce qui est arrivé au compteur « à migrer », et ça a coûté une semaine.
+     Le serveur ne DÉTRUIT rien : il pose une date, et les compteurs ne comptent que ce qui
+     vient après. On le DIT ici, parce qu'un « 0 erreur » remis à zéro et un « 0 erreur » qui
+     veut dire « rien ne plante » ne sont pas la même information — et confondre les deux,
+     c'est se rassurer sur un écran qu'on a soi-même vidé. */
+  var _oZ=((ENT.liste||[]).find(function(x){ return x.t===ENT.sel; })||{});
+  var _depuis=+_oZ.zeroDepuis||0;
+  t+='<div class="sous-sec"><div class="encart"><div class="encart-tx">'+
+    (_depuis
+      ? '↺ <b>Compteurs repartis de zéro le '+esc(fmtJour(_depuis))+'.</b> Les problèmes d’avant ne sont pas effacés — ils ne sont plus comptés. Tout ce qui arrive depuis s’affiche normalement.'
+      : 'Les pastilles 🐛 et 🔑 cumulent depuis l’ouverture de l’espace. Repartir à zéro pose une date : rien n’est effacé, et tout nouveau problème réapparaît aussitôt.')+
+    '</div><div style="margin-top:10px">'+
+    (_depuis
+      ? '<button type="button" class="btn-fant" onclick="entZeroCompteurs(false)">Annuler — remontrer tout l’historique</button>'
+      : '<button type="button" class="btn-fant" onclick="entZeroCompteurs(true)">↺ Repartir à zéro pour cette entreprise</button>')+
+    '</div></div></div>';
   var er=(d.erreurs||[]);
   if(er.length) t+='<div class="sous-sec"><div class="sec ko">🐛 ERREURS RENCONTRÉES</div>'+
     '<div class="reg-bloc">'+er.slice(0,6).map(function(b){

@@ -4813,7 +4813,7 @@ window.addEventListener('unhandledrejection',function(e){ try{ var r=(e&&e.reaso
 /* lenteurs : tâche bloquante > 2 s (PerformanceObserver longtask), sinon trou > 2 s entre deux images (requestAnimationFrame) */
 try{
   if(window.PerformanceObserver&&PerformanceObserver.supportedEntryTypes&&PerformanceObserver.supportedEntryTypes.indexOf('longtask')>=0){
-    new PerformanceObserver(function(l){ try{ l.getEntries().forEach(function(en){ if(en.duration>2000) tmPush('lenteur','Interface bloquée pendant '+Math.round(en.duration)+' ms','','',0); }); }catch(_){ } }).observe({entryTypes:['longtask']});
+    new PerformanceObserver(function(l){ try{ l.getEntries().forEach(function(en){ /* ⛔ ET UN PLAFOND, exactement comme la branche requestAnimationFrame juste en dessous et pour la même raison — elle, l'avait, celle-ci ne l'a jamais eu. Une entrée « longtask » relevée au réveil d'une machine en veille porte TOUT le temps d'absence. Mesuré le 14 septembre 2026 dans la Tour : « Interface figée pendant 5 917 488 ms », soit 98 minutes — un ordinateur qu'on rouvre, pas un blocage. Au-delà de 15 s la page n'aurait pas survécu, donc ce n'est jamais une lenteur à signaler. */ if(en.duration>2000&&en.duration<15000) tmPush('lenteur','Interface bloquée pendant '+Math.round(en.duration)+' ms','','',0); }); }catch(_){ } }).observe({entryTypes:['longtask']});
   } else if(window.requestAnimationFrame){
     /* Safari suspend requestAnimationFrame quand la fenêtre perd le premier plan, même si
        l'onglet reste « visible » (autre application devant, écran en veille, fenêtre masquée).
@@ -4857,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '669';
+const APP_VERSION = '670';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -8324,12 +8324,29 @@ function rendreVueAnimee(view,sens){
    La classe ne vit sur <html> que le temps de la transition : gardée, elle enverrait le
    croisement suivant dans la même direction. Retirée sur « finished », donc aussi quand la
    transition est interrompue par une autre. */
+/* ⛔ UNE TRANSITION DE VUE REJETTE, ET C'EST NORMAL — 14 septembre 2026, relevé dans la Tour.
+   `vt.ready` rejette dès que le navigateur SAUTE la transition : onglet passé en arrière-plan,
+   transition remplacée par une suivante, état invalide. Ce n'est pas une panne, c'est le
+   contrat de l'API. Mais personne ne l'attrapait — `vt.finished` l'était, `vt.ready` jamais —
+   et chaque rejet remontait en « Promesse rejetée » dans la surveillance : 215 incidents en une
+   seule journée, tous faux, qui noyaient les vrais.
+   ⚠️ ON LES TAIT À LA SOURCE, PAS À L'ARRIVÉE. Filtrer sur le message dans le rapporteur
+   masquerait aussi un vrai rejet portant le même libellé — et surtout, ça laisserait le défaut
+   en place pour la prochaine transition qu'on écrira. Ici, la promesse est simplement traitée,
+   ce qu'elle aurait toujours dû être. */
+function vtTaire(vt){ try{ var rien=function(){};
+  if(vt&&vt.ready&&vt.ready.catch) vt.ready.catch(rien);
+  if(vt&&vt.finished&&vt.finished.catch) vt.finished.catch(rien);
+  if(vt&&vt.updateCallbackDone&&vt.updateCallbackDone.catch) vt.updateCallbackDone.catch(rien);
+}catch(e){} return vt; }
 function rendreDirige(sens,rendu){
   const sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(!document.startViewTransition||sobre){ rendu(); return; }
   const root=document.documentElement, cl=sens?'nav-'+sens:'';
   if(cl) root.classList.add(cl);
-  const vt=document.startViewTransition(rendu);
+  /* vtTaire AVANT tout le reste : sans direction, `cl` est vide et plus personne ne touchait
+     à vt.finished — la promesse repartait non traitée elle aussi. */
+  const vt=vtTaire(document.startViewTransition(rendu));
   if(cl){ const fin=()=>root.classList.remove(cl); vt.finished.then(fin,fin); }
 }
 /* Le try/catch d'origine, sorti de go() : dans une transition de vue le rendu s'exécute
@@ -29854,7 +29871,7 @@ function toggleTheme(ev){
     const root=document.documentElement;
     root.style.setProperty('--rx',x+'px'); root.style.setProperty('--ry',y+'px'); root.style.setProperty('--rr',rayon+'px');
     root.classList.add('theme-vt');
-    const vt=document.startViewTransition(()=>setThemePref(suivant));
+    const vt=vtTaire(document.startViewTransition(()=>setThemePref(suivant)));
     const fin=()=>root.classList.remove('theme-vt');
     vt.finished.then(fin,fin);
   }catch(e){ document.documentElement.classList.remove('theme-vt'); setThemePref(suivant); }

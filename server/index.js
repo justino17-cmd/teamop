@@ -381,6 +381,22 @@ app.post('/api/stripe/checkout', async (req, res) => {
 // ── Vigie : les applications signalent leurs erreurs JavaScript (par espace entreprise, anonyme)
 //    → e-mail d'alerte immédiat à l'admin de la plateforme, journal consultable, compteur dans /health
 const BUGS_PATH = path.join(DATA_DIR, 'bugs.jsonl');
+/* ══ REPARTIR À ZÉRO SUR UN ESPACE — 14 septembre 2026, demandé par Justin ═════════════════
+   Sur la fiche d'une entreprise, les deux pastilles « 🐛 142 » et « 🔑 1 » cumulent depuis
+   toujours. Après une journée de correctifs elles comptent surtout de l'histoire ancienne, et
+   un compteur qui ne redescend jamais finit par ne plus être lu — c'est ce qui est arrivé au
+   compteur « à migrer », et ça a coûté une semaine.
+   ⛔ ON N'EFFACE RIEN. `bugs.jsonl` est la trace, et une trace qu'on réécrit ne vaut plus
+   rien : le jour où un incident ressort, on veut pouvoir remonter avant la remise à zéro.
+   On pose donc un FILIGRANE — une date par espace — et les compteurs ne comptent que ce qui
+   vient APRÈS. Conséquence voulue : un problème qui se reproduit réapparaît à la seconde, il
+   n'est pas masqué ; seul le passé est mis de côté. */
+const ZERO_PATH = path.join(DATA_DIR, 'compteurs-zero.json');
+let compteursZero = {};
+try { compteursZero = JSON.parse(fs.readFileSync(ZERO_PATH, 'utf8')); } catch (e) {}
+function zeroDe(t) { return +compteursZero[t] || 0; }
+function zeroEcrire() { try { const tmp = ZERO_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(compteursZero)); fs.renameSync(tmp, ZERO_PATH); return true; }
+  catch (e) { console.error('compteurs-zero.json non écrit :', e.message); return false; } }
 let bugTimes = [];
 try { // recharge les dernières 24 h au démarrage
   const tail = fs.readFileSync(BUGS_PATH, 'utf8').trim().split('\n').slice(-500);
@@ -1921,7 +1937,9 @@ app.post('/api/monitor/entreprise/dossier', monAdmin, (req, res) => {
   try {
     erreurs = fs.readFileSync(BUGS_PATH, 'utf8').trim().split('\n')
       .map(l => { try { return JSON.parse(l); } catch (err) { return null; } })
-      .filter(b => b && b.team === t)
+      /* Même filigrane que la pastille. Sans ça la fiche dirait « 0 erreur » en haut et en
+         listerait 25 juste en dessous — pire que de ne rien remettre à zéro. */
+      .filter(b => b && b.team === t && (+b.ts || 0) > zeroDe(t))
       .sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 25)
       .map(b => ({ ts: b.ts, app: b.app, version: b.version, msg: b.msg, src: b.src, line: b.line, ua: b.ua }));
   } catch (err) {}
@@ -2009,6 +2027,22 @@ app.post('/api/connexions', (req, res) => {
    dossier de l'entreprise comme des utilisateurs : ils n'étaient que des échecs de connexion
    dans ce journal. Le patron les efface d'ici. Seuls les identifiants ABSENTS de l'annuaire sont
    touchés : les échecs d'un vrai compte sont une information (mot de passe oublié), on les garde. */
+/* Remettre à zéro les compteurs d'un espace. Réservé au patron : c'est un geste qui change ce
+   que TOUT LE MONDE lit ensuite sur cette fiche. Il ne détruit rien — voir ZERO_PATH. */
+app.post('/api/monitor/espaces/compteurs-zero', monPatronStrict, (req, res) => {
+  const b = req.body || {};
+  const t = monStr(b.t, 80).trim();
+  if (!t) return res.status(400).json({ error: 't requis' });
+  /* « Annuler » retire le filigrane et rend tout l'historique : une remise à zéro faite sur la
+     mauvaise fiche doit pouvoir se défaire, sinon personne n'ose s'en servir. */
+  const annuler = !!b.annuler;
+  const avant = compteursZero[t];
+  if (annuler) delete compteursZero[t]; else compteursZero[t] = Date.now();
+  if (!zeroEcrire()) { if (avant === undefined) delete compteursZero[t]; else compteursZero[t] = avant;
+    return res.status(500).json({ error: 'Rien n\'a été enregistré — réessaie.' }); }
+  console.log('Tour :', req.tourUser.nom, (annuler ? 'annule la remise à zéro' : 'remet à zéro les compteurs'), 'de l\'espace', t);
+  res.json({ ok: true, depuis: compteursZero[t] || 0 });
+});
 app.post('/api/monitor/connexions/effacer-tentatives', monPatronStrict, (req, res) => {
   const b = req.body || {};
   const t = monStr(b.t, 80); if (!t) return res.status(400).json({ error: 't requis' });
@@ -2303,7 +2337,8 @@ function cnxResume(t) {
   const ok = l.filter(e => e.ev === 'connexion' || e.ev === 'session');
   const u7 = new Set(ok.filter(e => e.ts > j7 && e.login).map(e => e.login)), u30 = new Set(ok.filter(e => e.ts > j30 && e.login).map(e => e.login));
   const d7 = new Set(ok.filter(e => e.ts > j7 && e.dev).map(e => e.dev));
-  const echecs24 = l.filter(e => e.ev === 'echec' && e.ts > h24).length;
+  const z = zeroDe(t);   // filigrane de remise à zéro (voir ZERO_PATH) : jamais une suppression
+  const echecs24 = l.filter(e => e.ev === 'echec' && e.ts > h24 && e.ts > z).length;
   const versions = {}; const vuDev = new Set();
   ok.forEach(e => { if (!e.dev || vuDev.has(e.dev) || !e.version) return; vuDev.add(e.dev); versions[e.version] = (versions[e.version] || 0) + 1; });
   const apps = {}; ok.forEach(e => { if (e.ts > j30) apps[e.app || 'gestion'] = (apps[e.app || 'gestion'] || 0) + 1; });
@@ -2343,7 +2378,9 @@ app.get('/api/monitor/entreprises', monAdmin, (req, res) => {
   const erreursPar = {};
   try {
     for (const l of fs.readFileSync(BUGS_PATH, 'utf8').trim().split('\n')) {
-      try { const b = JSON.parse(l); if (b && b.team) erreursPar[b.team] = (erreursPar[b.team] || 0) + 1; } catch (err) {}
+      /* Le filigrane (voir ZERO_PATH) : on ne compte que ce qui est arrivé APRÈS la remise à
+         zéro de cet espace. Rien n'est effacé du fichier. */
+      try { const b = JSON.parse(l); if (b && b.team && (+b.ts || 0) > zeroDe(b.team)) erreursPar[b.team] = (erreursPar[b.team] || 0) + 1; } catch (err) {}
     }
   } catch (err) {}
 
@@ -2410,6 +2447,10 @@ app.get('/api/monitor/entreprises', monAdmin, (req, res) => {
       echecs24: r.echecs24 || 0,
       versions: r.versions || {},
       erreurs: erreursPar[t] || 0,
+      /* Depuis quand les compteurs repartent (0 = jamais remis à zéro). La Tour en a besoin
+         pour le DIRE : un « 0 erreur » qui vient d'une remise à zéro et un « 0 erreur » qui
+         veut dire « rien ne plante » ne sont pas la même information. */
+      zeroDepuis: zeroDe(t),
       comptesAnnuaire: Object.keys((comptesReg[t] && comptesReg[t].c) || {}).length
     });
   };
@@ -4550,6 +4591,40 @@ app.get('/api/monitor/issues', monAdmin, (req, res) => {
   res.json({ issues: vis.slice().sort((a, b) => (b.lastTs || 0) - (a.lastTs || 0)), compteurs, entreprises: entSet.size });
 });
 
+/* ══ TOUT REMETTRE À ZÉRO SUR SURVEILLANCE — 14 septembre 2026, demandé par Justin ═════════
+   L'écran affichait 18 nouveaux répartis sur quatre espaces, dont 215 faux rejets de
+   transition de vue corrigés le jour même (v670). Les classer un par un n'a aucun sens, et un
+   écran qu'on n'arrive plus à vider finit par ne plus être ouvert.
+
+   ⛔ « IGNORÉ », JAMAIS « CORRIGÉ », ET CE N'EST PAS UN DÉTAIL : passer un problème en
+   « corrigé » ENVOIE UN COURRIEL aux entreprises touchées (voir juste en dessous). Un « tout à
+   zéro » sur 18 problèmes enverrait 18 courriels à des clients qui n'ont rien demandé, pour
+   des incidents dont la plupart n'étaient pas des pannes. « Ignoré » n'envoie rien — c'est
+   exactement ce qu'on veut dire : on a regardé, on passe.
+
+   ⛔ ET ON N'EFFACE RIEN : les problèmes changent de statut, ils restent consultables et leur
+   historique garde qui a fait le geste et quand. Un problème qui se reproduit revient en
+   « nouveau » de lui-même, il n'est pas masqué pour toujours.
+   Réservé au patron, comme « Ignorer » à l'unité. */
+app.post('/api/monitor/issues/tout-ignorer', monPatronStrict, (req, res) => {
+  const note = monStr((req.body || {}).note, 300);
+  const cibles = monIssues.filter(i => (i.statut === 'nouveau' || i.statut === 'encours')
+    && req.tourUser.apps.includes(monAppDeTag(i.app)));
+  if (!cibles.length) return res.json({ ok: true, classes: 0 });
+  const quand = Date.now();
+  for (const i of cibles) {
+    i.statut = 'ignore';
+    i.par = req.tourUser.nom;
+    i.historique = (i.historique || []).concat([{ ts: quand, par: req.tourUser.nom,
+      action: 'Ignoré (remise à zéro de l\'écran)', note }]).slice(-30);
+  }
+  /* ⚠️ monSave() est DIFFÉRÉE (setTimeout) et ne rend rien : tester sa valeur de retour
+     répondrait 500 à tous les coups alors que tout s'est bien passé. Les autres appelants ne
+     la testent pas non plus — c'est le contrat de cette fonction, pas un oubli. */
+  monSave();
+  console.log('Tour :', req.tourUser.nom, 'remet Surveillance à zéro :', cibles.length, 'problème(s) ignoré(s)');
+  res.json({ ok: true, classes: cibles.length });
+});
 // changement de statut (admin) — « corrige » déclenche l'e-mail automatique aux entreprises touchées
 app.post('/api/monitor/status', monAdmin, async (req, res) => {
   const { id, statut, note } = req.body || {};
