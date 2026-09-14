@@ -1734,7 +1734,15 @@ app.post('/api/monitor/espaces/lien-existant', monPatronStrict, (req, res) => {
     error: 'Cet espace est inscrit mais n\'a pas de code de connexion — à réinscrire, surtout pas à doubler.' });
   let ident = '';
   try { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); ident = String(o.a || ''); } catch (err) {}
-  res.json({ ok: true, existe: true, slug: (e.slug || slug), nom: espNomPropre(e), t: espaceT(e), ident });
+  /* ⛔ `annuaire` DÉCIDE SI LE CODE D'ACCÈS A ENCORE UNE RAISON D'EXISTER. Dès qu'un compte
+     est semé, l'adresse + identifiant + mot de passe suffisent : le code ne sert plus à rien
+     et la Tour cesse de le montrer et de l'envoyer. À zéro, il reste LA SEULE PORTE de cette
+     entreprise — la Tour doit alors continuer à le donner, sans quoi elle est enfermée
+     dehors. C'est ce compteur, et lui seul, qui rend le retrait du code sûr un espace à la
+     fois plutôt qu'en bloc. */
+  const tEsp = espaceT(e);
+  const annuaire = (() => { const a = comptesReg[tEsp]; return (a && a.c) ? Object.keys(a.c).length : 0; })();
+  res.json({ ok: true, existe: true, slug: (e.slug || slug), nom: espNomPropre(e), t: tEsp, ident, annuaire });
 });
 // le patron attribue la formule d'un espace (Gratuit/Pro/Business/Premium × quantité)
 app.post('/api/monitor/espaces/formule', monPatronStrict, (req, res) => {
