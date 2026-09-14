@@ -1686,6 +1686,10 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
     opMessages: prev.opMessages,
     formule: prev.formule, quantite: prev.quantite, formulePar: prev.formulePar, formuleTs: prev.formuleTs };
   espacesEcrire();
+  /* Le premier compte, pour que l'ADRESSE suffise dès maintenant (voir annuaireSemer). Sans
+     await : ~100 ms de PBKDF2 que personne n'attend, et un échec ne doit pas faire rater
+     l'inscription — il se dit au journal. */
+  annuaireSemerDepuisCode(t, code).catch(() => {});
   res.json({ ok: true, slug });
 });
 /* ══ LE LIEN D'UN ESPACE DÉJÀ INSCRIT — 12 septembre 2026 ══════════════════════════════
@@ -2387,6 +2391,16 @@ app.get('/api/monitor/entreprises', monAdmin, (req, res) => {
          leur clé n'ont rien à migrer. Booléen seulement — la clé ne sort pas d'ici. */
       cleePropre: cleEtat(e) === 'propre',
       cleEtat: cleEtat(e),   // 'propre' | 'partagee' | 'inconnue' — la Tour ne doit plus confondre les deux derniers
+      /* ⛔ CE N'EST PAS UNE ENTREPRISE — 14 septembre 2026, demandé par Justin : « pourquoi
+         elan-gestion est dans la Tour de contrôle alors que c'est pour le code et pas un
+         client ». Parce que cette liste part de DEUX sources : l'annuaire, et tout espace qui
+         s'est déjà connecté (la boucle sur cnxData, plus bas). L'espace par DÉFAUT de
+         l'application s'y connecte comme les autres — il entrait donc dans la liste, et dans
+         le total, sans que rien ne dise sa nature.
+         La Tour le savait déjà, mais par une copie de ESPACES_INTOUCHABLES écrite chez elle,
+         avec la note « le jour où le serveur renverra le champ, on l'utilisera ». Le voici :
+         la nature d'un espace se décide ici, au seul endroit qui définit la liste. */
+      technique: ESPACES_INTOUCHABLES.includes(t),
       suspendu: entFermes.espaces.includes(t),
       promo: promoPar[t] || null,
       metier: (cli && cli.metier) || '',
@@ -2416,13 +2430,24 @@ app.get('/api/monitor/entreprises', monAdmin, (req, res) => {
     const proj = liste.map(x => x.opMessages
       ? { t: x.t, slug: x.slug, nom: x.nom, email: x.email, opMessages: true, suspendu: x.suspendu, origine: x.origine, derniere: x.derniere }
       : { t: x.t, slug: x.slug, nom: x.nom, opMessages: false });
-    return res.json({ ok: true, entreprises: proj, total: proj.length, opMessages: proj.filter(x => x.opMessages).length });
+    /* Même règle pour un compte sans OP GESTION : son total comptait l'espace par défaut
+       exactement comme celui du patron. La projection ne porte pas `technique` (rien ne
+       l'affiche de ce côté), on filtre donc sur la liste d'origine. */
+    const projVraies = liste.filter(x => !x.technique).length;
+    return res.json({ ok: true, entreprises: proj, total: projVraies, opMessages: proj.filter(x => x.opMessages).length });
   }
+  /* Les espaces techniques restent DANS `entreprises` — la Tour a son pavé à part pour les
+     montrer, et les retirer d'ici les rendrait invisibles au lieu de les nommer. Mais ils
+     sortent de TOUS les compteurs : « 5 entreprises connues » dont une qui n'est pas une
+     entreprise, c'est le chiffre qui a fait croire à Justin qu'il avait un client de plus,
+     puis qu'un espace lui échappait. Un compteur nomme ce qu'il compte. */
+  const vraies = liste.filter(x => !x.technique);
   res.json({
-    ok: true, entreprises: liste, total: liste.length,
-    horsAnnuaire: liste.filter(x => !x.dansAnnuaire).length,
-    avecErreurs: liste.filter(x => x.erreurs > 0).length,
-    avecEchecs: liste.filter(x => x.echecs24 > 0).length
+    ok: true, entreprises: liste, total: vraies.length,
+    techniques: liste.length - vraies.length,
+    horsAnnuaire: vraies.filter(x => !x.dansAnnuaire).length,
+    avecErreurs: vraies.filter(x => x.erreurs > 0).length,
+    avecEchecs: vraies.filter(x => x.echecs24 > 0).length
   });
 });
 
@@ -2431,12 +2456,21 @@ app.get('/api/monitor/connexions', monAdmin, (req, res) => {
   for (const [slug, e] of Object.entries(espacesReg)) {
     let t = e.t; try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
     if (!t || vus.has(t)) continue; vus.add(t);
-    sortie.push({ slug, nom: e.nom || slug, t, formule: e.formule || '', resume: cnxResume(t) });
+    sortie.push({ slug, nom: e.nom || slug, t, formule: e.formule || '', technique: ESPACES_INTOUCHABLES.includes(t), resume: cnxResume(t) });
   }
-  for (const t of Object.keys(cnxData)) { if (vus.has(t)) continue; vus.add(t); sortie.push({ slug: '', nom: '(espace hors annuaire) ' + t, t, formule: '', resume: cnxResume(t) }); }
+  /* Même champ que /api/monitor/entreprises, et pour la même raison : cette liste part aussi de
+     DEUX sources — l'annuaire et tout espace qui s'est connecté — donc l'espace par défaut de
+     l'application y figure comme les autres. « Connexions clients » le comptait parmi les
+     entreprises actives, et Justin le lisait comme un client de plus. */
+  for (const t of Object.keys(cnxData)) { if (vus.has(t)) continue; vus.add(t); sortie.push({ slug: '', nom: '(espace hors annuaire) ' + t, t, formule: '', technique: ESPACES_INTOUCHABLES.includes(t), resume: cnxResume(t) }); }
   sortie.sort((a, b) => (b.resume.derniere || 0) - (a.resume.derniere || 0));
   const now = Date.now(); const tous = [].concat(...Object.values(cnxData));
-  res.json({ ok: true, espaces: sortie, global: { connexions24: tous.filter(e => e.ts > now - 86400000 && e.ev !== 'echec').length, echecs24: tous.filter(e => e.ts > now - 86400000 && e.ev === 'echec').length, actives7: sortie.filter(x => x.resume.derniere > now - 7 * 86400000).length } });
+  /* ⚠️ `actives7` ne compte que les VRAIES entreprises — mais les espaces techniques restent
+     dans `espaces` : l'écran les montre à part, nommés. Les retirer d'ici les rendrait
+     invisibles, et c'est justement l'invisibilité qui a laissé cinq personnes travailler une
+     semaine sur l'espace partagé sans que rien ne le signale. */
+  const vraies = sortie.filter(x => !x.technique);
+  res.json({ ok: true, espaces: sortie, global: { connexions24: tous.filter(e => e.ts > now - 86400000 && e.ev !== 'echec').length, echecs24: tous.filter(e => e.ts > now - 86400000 && e.ev === 'echec').length, actives7: vraies.filter(x => x.resume.derniere > now - 7 * 86400000).length, techniques: sortie.length - vraies.length } });
 });
 // repartir à neuf : libère le nom et EFFACE l'ancien espace (données Firestore comprises),
 // SANS bloquer l'entreprise — elle repart aussitôt sur un espace propre et vide
@@ -2774,6 +2808,9 @@ function espaceAutoPour(email, entreprise, formuleLabel, users, lienVoulu, preno
   espacesEcrire();
   let t = e.t;
   try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
+  /* Idem pour une entreprise qui s'inscrit seule depuis le site : son adresse doit marcher
+     avant qu'aucun appareil n'ait rien déposé. */
+  if (neuf) annuaireSemerDepuisCode(t, e.code).catch(() => {});
   return { slug, nom: e.nom, formule: e.formule || '', quantite: e.quantite || 1, neuf, t, ident, mdp: mdpProv };
 }
 /* nom d'entreprise présentable (jamais une adresse e-mail mise là faute de mieux) */
@@ -3031,6 +3068,10 @@ app.post('/api/monitor/espaces/identifiants', monPatronStrict, (req, res) => {
     return res.status(500).json({ error: 'Enregistrement impossible — rien n\'a changé.' });
   }
   console.log('Tour :', req.tourUser.nom, 'change les identifiants de départ de l\'espace', t);
+  /* REMPLACER : cette route refuse déjà tout espace ayant servi, donc ce qu'on écrase est
+     forcément le semis précédent. Sans ça, le patron dicterait un identifiant pendant que
+     l'ancien continuerait d'ouvrir. */
+  annuaireSemerDepuisCode(t, neuf, true).catch(() => {});
   res.json({ ok: true, ident: ident, lien: 'https://teamop.fr/app.html#entreprise=' + neuf });
 });
 /* ══ SE CONNECTER AVEC SON IDENTIFIANT, SANS LIEN NI CODE ═══════════════════════════════════
@@ -3142,6 +3183,114 @@ app.post('/api/espaces/comptes', (req, res) => {
   console.log('annuaire de connexion :', Object.keys(table).length, 'compte(s) pour l\'espace', t);
   res.json({ ok: true, n: Object.keys(table).length });
 });
+/* ══ SEMER LE PREMIER COMPTE D'UN ESPACE NEUF ══════════════════════════════════════════════
+   ⛔ CE QUI REND LE LIEN SUFFISANT. Décision de Justin, 14 septembre 2026 : « je ne veux plus
+   le code, je veux que tout passe par le lien ». Le lien ouvre teamop.fr/e/<adresse>, la
+   personne y tape son identifiant et son mot de passe, et /api/espaces/connexion tranche.
+   Sauf qu'un espace NEUF n'a aucun annuaire — il se remplit quand l'application dépose sa
+   liste, donc APRÈS la première connexion. La route répondait donc « Cette entreprise ne
+   connaît pas encore la connexion par identifiant. Utilise son code d'accès une première
+   fois. » L'œuf et la poule : sans le code, personne ne pouvait entrer la première fois, donc
+   le code ne pouvait pas être retiré.
+   Le serveur avait pourtant tout sous la main depuis le début : le code de l'espace porte
+   « a » (l'identifiant de départ) et « mh » (l'empreinte SHA-256 du mot de passe provisoire),
+   et c'est exactement cette empreinte que le navigateur envoie en « h ». Il n'y a qu'à en
+   dériver le vérificateur, comme l'application le fait pour ses propres comptes.
+
+   ⚠️ CE QUE ÇA N'OUVRE PAS. Le vérificateur ne se calcule qu'à partir de « mh », qui vit déjà
+   dans le code de l'espace ; et entrer exige toujours le mot de passe provisoire LUI-MÊME, que
+   seul le courriel de bienvenue porte. On ne rend donc lisible aucun secret qui ne l'était pas.
+   Ce qui change, et qu'il faut savoir : ce mot de passe est faible par construction
+   (« Durand!! », dérivé du nom), et il devient éprouvable depuis une route publique. Trois
+   choses le bornent — le plafond de 60 échecs par heure et par IP, le fait que l'application
+   impose un vrai mot de passe dès la première connexion, et qu'il ne vaut que jusque-là.
+
+   ⛔ N'ÉCRASE JAMAIS UN ANNUAIRE EXISTANT : la liste de l'application fait foi dès qu'elle
+   arrive. Ce semis ne vaut que pour l'intervalle entre la création et la première connexion.
+
+   Volontairement SANS await chez l'appelant : PBKDF2 à 120 000 tours prend ~100 ms, et
+   personne n'attend — le courriel part, la personne se connecte au mieux quelques secondes
+   plus tard. Un échec se dit au journal plutôt que de faire échouer une création d'espace. */
+function annuaireSemer(t, ident, mh, remplacer) {
+  const login = String(ident || '').toLowerCase().trim();
+  if (!t || !login || !/^[0-9a-f]{64}$/.test(String(mh || ''))) return Promise.resolve(false);
+  /* `remplacer` n'est vrai qu'au changement des identifiants de DÉPART, et cette route-là
+     refuse déjà tout espace ayant servi (« son mot de passe vit dans ses données chiffrées »).
+     Ce qu'on remplace alors est forcément un semis, jamais des comptes vivants. Sans ce
+     drapeau, changer l'identifiant de départ laissait l'ANCIEN semis en place : le patron
+     dictait un identifiant, et c'est le précédent qui ouvrait. */
+  const dejaLa = comptesReg[t] && comptesReg[t].c && Object.keys(comptesReg[t].c).length;
+  if (dejaLa && !remplacer) return Promise.resolve(false);
+  const sel = crypto.randomBytes(16).toString('hex');
+  return new Promise((ok) => {
+    crypto.pbkdf2(mh, Buffer.from(sel, 'hex'), CNX_ITER, 32, 'sha256', (err, d) => {
+      if (err) { console.error('semis d\'annuaire impossible pour l\'espace', t, ':', err.message); return ok(false); }
+      /* Relu APRÈS le calcul : 100 ms se sont écoulées, l'application a pu déposer sa vraie
+         liste entre-temps. L'écraser remplacerait des comptes vivants par une amorce. */
+      if (!remplacer && comptesReg[t] && comptesReg[t].c && Object.keys(comptesReg[t].c).length) return ok(false);
+      const avant = comptesReg[t];
+      const table = Object.create(null);
+      table[login] = { s: sel, e: d.toString('hex'), n: '' };
+      comptesReg[t] = { maj: Date.now(), c: table };
+      if (!comptesEcrire()) { if (avant) comptesReg[t] = avant; else delete comptesReg[t]; return ok(false); }
+      console.log('annuaire semé (1 compte de départ) pour l\'espace', t);
+      ok(true);
+    });
+  });
+}
+/* Semer depuis un code d'espace, quand on n'a pas « a » et « mh » sous la main séparément. */
+function annuaireSemerDepuisCode(t, code, remplacer) {
+  try { const o = JSON.parse(Buffer.from(code, 'base64').toString('utf8'));
+    return annuaireSemer(t, o.a, o.mh, remplacer); } catch (err) { return Promise.resolve(false); }
+}
+/* ══ RATTRAPAGE : LES ESPACES D'AVANT LE SEMIS ═════════════════════════════════════════════
+   Semer à la création ne suffit pas à retirer le code d'accès : les espaces inscrits AVANT
+   n'ont toujours pas d'annuaire tant que personne ne s'y est connecté, et leur seule porte
+   resterait le code. Enlever la route sans ce rattrapage enfermerait dehors, définitivement,
+   toute entreprise à qui on a ouvert un accès qu'elle n'a pas encore utilisé.
+   On repasse donc une fois au démarrage sur les espaces SANS annuaire. Un espace qui en a un
+   est ignoré — annuaireSemer le revérifie de toute façon.
+   ⚠️ UN PAR UN, ESPACÉS. Chaque semis est un PBKDF2 à 120 000 tours (~100 ms) : les lancer
+   ensemble gèlerait la boucle d'événements au pire moment, juste quand les appareils du matin
+   se reconnectent. Le rattrapage n'est pas urgent — il vise des espaces qui, par définition,
+   n'ont encore jamais servi. Il démarre après 10 s pour laisser le serveur répondre d'abord. */
+setTimeout(() => {
+  const aFaire = Object.values(espacesReg)
+    .filter(e => e && e.code)
+    .map(e => ({ t: espaceT(e), code: e.code }))
+    .filter(x => x.t && !ESPACES_INTOUCHABLES.includes(x.t)
+      && !(comptesReg[x.t] && comptesReg[x.t].c && Object.keys(comptesReg[x.t].c).length));
+  /* Un même espace porte plusieurs entrées d'annuaire (espaceParT) : sans ce dédoublonnage on
+     sèmerait deux fois le même, et le second passage écraserait le premier pour rien. */
+  const vus = new Set(); const liste = aFaire.filter(x => !vus.has(x.t) && vus.add(x.t));
+  if (!liste.length) return;
+  console.log('rattrapage d\'annuaire :', liste.length, 'espace(s) sans compte de départ');
+  let i = 0; const sansAmorce = [];
+  const suivant = () => {
+    if (i >= liste.length) {
+      /* ⛔ LA LISTE QU'IL FAUT LIRE AVANT DE SUPPRIMER LA ROUTE DU CODE D'ACCÈS. Un code
+         d'espace ancien peut n'avoir ni « a » ni « mh » — rien à dériver, donc pas de semis
+         possible, donc le code d'accès reste LA SEULE PORTE de cette entreprise. Retirer la
+         route sans avoir traité ces espaces-là (leur redonner un identifiant de départ depuis
+         la Tour) les enfermerait dehors définitivement.
+         Seuls les identifiants d'équipe sortent au journal : jamais un nom, jamais une
+         adresse — c'est assez pour les retrouver dans la Tour. */
+      if (sansAmorce.length)
+        console.warn('⛔ ' + sansAmorce.length + ' espace(s) SANS identifiant de départ dans leur code : '
+          + 'le code d\'accès reste leur seule porte, à traiter avant de retirer la route — ' + sansAmorce.join(', '));
+      return;
+    }
+    const x = liste[i++];
+    let amorce = false;
+    try { const o = JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')); amorce = !!(o && o.a && o.mh); } catch (err) {}
+    if (!amorce) { sansAmorce.push(x.t); return suivant(); }
+    annuaireSemerDepuisCode(x.t, x.code).catch(() => {}).then(() => setTimeout(suivant, 250));
+  };
+  suivant();
+  /* Le délai est réglable par l'environnement UNIQUEMENT pour que le banc d'essai puisse
+     l'éprouver sans attendre dix secondes : la production n'a pas cette variable, et un
+     rattrapage qu'on ne peut pas tester est un rattrapage qu'on croit sur parole. */
+}, parseInt(process.env.TEAMOP_RATTRAPAGE_MS, 10) || 10000).unref();
 let cnxQuota = new Map();
 setInterval(() => { cnxQuota = new Map(); }, 3600000).unref();
 let cnxEchecs = new Map();
@@ -3308,12 +3457,21 @@ app.post('/api/monitor/messages/etat', monPatronStrict, (req, res) => {
   console.log('Tour :', req.tourUser.nom, enTravaux ? 'remet OP MESSAGES en travaux' : 'déclare OP MESSAGES en service sur le projet ' + projet);
   res.json({ ok: true, enTravaux, projet: etat.projet, entreprisesOuvertes: opmsgOuvertes() });
 });
-/* ══ RENOMMER UN ESPACE — donc changer son ADRESSE ══════════════════════════════════════════
-   Le nom de l'espace n'est pas décoratif : c'est teamop.fr/ce-nom, l'adresse que l'entreprise
-   donne à ses équipes et met en favori. La changer se fait donc les yeux ouverts — l'ancienne
-   cesse de fonctionner le jour même. Le nom voyage aussi DANS le code de l'espace (champ « n »),
-   que l'application affiche : on le met à jour, sinon l'écran de connexion garderait l'ancien.
-   Les appareils déjà connectés ne bougent pas : eux ne se servent que de « t » et « k ». */
+/* ══ RENOMMER UN ESPACE — SANS TOUCHER À SON ADRESSE ════════════════════════════════════════
+   ⛔ 14 septembre 2026, décision de Justin, mot pour mot : « le lien une fois créé ne peut
+   plus être changé ». Jusqu'ici cette route DÉPLAÇAIT l'adresse : renommer « Elan » en
+   « Elan Gestion » faisait de teamop.fr/e/elan un lien mort, et l'entreprise l'avait donné à
+   ses équipes, mis en favori, écrit sur ses devis. Le bouton de la Tour le disait
+   (« ⚠️ Le nom EST l'adresse »), mais un avertissement n'est pas une garantie : il suffit
+   d'un clic distrait pour couper la porte d'entrée de toute une équipe, et le temps que
+   quelqu'un appelle, personne ne travaille.
+   Désormais l'adresse est POSÉE À LA CRÉATION ET NE BOUGE PLUS. Renommer ne change que ce qui
+   s'affiche : le nom dans l'annuaire, et le champ « n » du code de l'espace — que l'écran de
+   connexion montre, sinon il garderait l'ancien nom. Toutes les entrées qui pointent sur cet
+   espace sont mises à jour : une seule oubliée et le serveur servirait deux noms différents
+   selon le chemin d'accès.
+   Les appareils déjà connectés n'ont jamais bougé de toute façon : eux ne se servent que de
+   « t » et « k ». */
 app.post('/api/monitor/espaces/renommer', monPatronStrict, (req, res) => {
   const slug = espSlug(monStr((req.body || {}).slug || (req.body || {}).nom, 80));
   /* espaceAJour, PAS espacesReg[slug] : un même espace porte plusieurs noms dans l'annuaire
@@ -3323,13 +3481,12 @@ app.post('/api/monitor/espaces/renommer', monPatronStrict, (req, res) => {
   const e = espaceAJour(slug);
   if (!e || !e.code) return res.status(404).json({ error: 'Espace inconnu' });
   const nom = monStr((req.body || {}).nouveau, 80).trim();
-  const neufSlug = espSlug(nom);
-  if (!nom || !neufSlug) return res.status(400).json({ error: 'Il faut un nom qui contienne des lettres ou des chiffres' });
+  if (!nom) return res.status(400).json({ error: 'Il faut un nom' });
   const t = espaceT(e);
   if (!t) return res.status(409).json({ error: 'Cet espace n\'a pas d\'identifiant d\'équipe lisible : impossible de le renommer sans risque.' });
-  const occupe = espacesReg[neufSlug];
-  if (occupe && espaceT(occupe) !== t)
-    return res.status(409).json({ error: 'teamop.fr/' + neufSlug + ' est déjà l\'adresse d\'une autre entreprise — choisis une variante.' });
+  /* Plus de contrôle de collision d'adresse : il n'y a plus d'adresse à occuper. Deux
+     entreprises peuvent porter le même nom d'affichage — ce sont leurs adresses, posées à la
+     création, qui les distinguent, et elles ne bougent pas. */
   let code = e.code;
   try {
     const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8'));
@@ -3340,21 +3497,28 @@ app.post('/api/monitor/espaces/renommer', monPatronStrict, (req, res) => {
       code = Buffer.from(JSON.stringify(o), 'utf8').toString('base64').replace(/=+$/, '');
     }
   } catch (err) {}
-  /* TOUS les anciens noms de cet espace s'en vont : sans cela « l'ancienne adresse cesse de
-     fonctionner » serait faux, et l'écran de la Tour le promet. */
-  const anciens = Object.keys(espacesReg).filter(x => x !== neufSlug && espaceT(espacesReg[x]) === t);
-  const avant = {}; anciens.concat([neufSlug]).forEach(x => { avant[x] = espacesReg[x]; });
-  anciens.forEach(x => { delete espacesReg[x]; });
-  const copie = Object.assign({}, e, { nom, code });
-  delete copie.slug;   // espaceAJour peut rendre une copie porteuse de « slug » : il n'a rien à faire dans l'annuaire
-  espacesReg[neufSlug] = copie;
+  /* ⛔ AUCUNE CLÉ N'EST CRÉÉE NI SUPPRIMÉE : ce sont elles, les adresses. On réécrit chaque
+     entrée EN PLACE. Toutes celles qui pointent sur cet espace, pas seulement celle qu'on a
+     ouverte — un même espace en porte plusieurs (voir espaceParT), et n'en mettre qu'une à
+     jour ferait afficher deux noms différents selon le chemin. */
+  const cles = Object.keys(espacesReg).filter(x => espaceT(espacesReg[x]) === t);
+  if (!cles.length) return res.status(404).json({ error: 'Espace introuvable dans l\'annuaire' });
+  const avant = {}; cles.forEach(x => { avant[x] = espacesReg[x]; });
+  cles.forEach(x => {
+    const copie = Object.assign({}, espacesReg[x], { nom, code });
+    delete copie.slug;   // espaceAJour peut rendre une copie porteuse de « slug » : il n'a rien à faire dans l'annuaire
+    espacesReg[x] = copie;
+  });
   if (!espacesEcrire()) {
     // remise en place exacte : sinon le serveur servirait le nouveau nom jusqu'au redémarrage
-    Object.keys(avant).forEach(x => { if (avant[x] === undefined) delete espacesReg[x]; else espacesReg[x] = avant[x]; });
+    cles.forEach(x => { espacesReg[x] = avant[x]; });
     return res.status(500).json({ error: 'Enregistrement impossible — rien n\'a changé.' });
   }
-  console.log('Tour :', req.tourUser.nom, 'renomme l\'espace', t, '→', neufSlug, '(' + anciens.length + ' ancien(s) nom(s) retiré(s))');
-  res.json({ ok: true, slug: neufSlug, nom, anciens: anciens.length, adresse: 'https://teamop.fr/e/' + neufSlug, lien: lienEspaceCode(copie) });
+  /* L'adresse qu'on rend est celle qu'on a ouverte, inchangée — c'est tout l'objet du
+     changement, et l'écran doit pouvoir le montrer plutôt que l'affirmer. */
+  const adresse = e.slug || slug;
+  console.log('Tour :', req.tourUser.nom, 'renomme l\'espace', t, '(adresse inchangée, ' + cles.length + ' entrée(s) mise(s) à jour)');
+  res.json({ ok: true, slug: adresse, nom, adresseInchangee: true, adresse: 'https://teamop.fr/e/' + adresse, lien: lienEspaceCode(espacesReg[cles[0]]) });
 });
 /* ══ SUSPENDRE OU ROUVRIR UN ACCÈS, DEPUIS LA TOUR ══════════════════════════════════════════
    Couper un accès sans rien effacer. C'est le pendant de « Couper » sur un accès bêta, et la
@@ -3369,6 +3533,19 @@ app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => 
   const t = e ? espaceT(e) : '';
   if (!e || !t) return res.status(404).json({ error: 'Espace inconnu, ou sans identifiant d\'équipe lisible' });
   const rouvrir = !!(req.body || {}).rouvrir;
+  /* ⛔ ON NE SUSPEND PAS L'ESPACE PAR DÉFAUT — 14 septembre 2026, avant que ce soit fait.
+     La SUPPRESSION l'interdit depuis toujours (REFUS_INTOUCHABLE, deux routes) ; la
+     suspension, non — et elle coupe pourtant les mêmes appareils, par le même
+     fbRevoquerEquipe. L'asymétrie ne tenait qu'à un accident : `elan-gestion` est hors
+     annuaire, donc espaceAJour() rend null et la route répond 404 avant d'arriver ici. Le
+     jour où un espace de ce nom entre à l'annuaire — une entreprise qui s'inscrit sous ce
+     nom, une réparation d'annuaire — la garde disparaît sans prévenir, et suspendre « une
+     entreprise » couperait TOUS les appareils qui n'ont rejoint aucun espace : c'est ce que
+     REFUS_INTOUCHABLE décrit mot pour mot. Une garde ne se délègue pas à une coïncidence.
+     ⚠️ La RÉOUVERTURE reste ouverte, exprès : si l'identifiant se retrouvait un jour dans
+     entFermes (fichier réparé à la main, état hérité), l'interdire des deux côtés rendrait
+     la panne définitive. On empêche d'entrer dans l'état, jamais d'en sortir. */
+  if (!rouvrir && ESPACES_INTOUCHABLES.includes(t)) return res.status(403).json({ error: REFUS_INTOUCHABLE });
   /* DEUX états, pas un. « entFermes.espaces » sert aussi à la FERMETURE DÉFINITIVE d'une
      entreprise (/api/monitor/clients/retirer), qui exige un code de confirmation par e-mail.
      Sans liste à part, « Rouvrir » défaisait cette fermeture-là en un clic — et rendait à

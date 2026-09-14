@@ -75,10 +75,25 @@ v('⛔ le courriel n\'envoie plus le lien porteur de clé au serveur',
   /lien:\(typeof teamopLienActuel/.test(SRC), false);
 v('⛔ lienConnexionEntreprise n\'a plus de repli teamopLienActuel',
   /function lienConnexionEntreprise\(\)\{[^\n]*teamopLienActuel/.test(SRC), false);
-v('✅ la fiche dit « Adresse de l\'entreprise »', /frow-lbl">Adresse de l'entreprise</.test(SRC), true);
-v('✅ et le texte copié aussi', /Adresse de l\\'entreprise : '\+lien/.test(SRC), true);
+/* ── La fiche d'accès, telle que Justin l'a redessinée le 14 septembre ────────────────────
+   Une PAGE fixe et un NOM d'entreprise, jamais une adresse que le serveur doit résoudre. Son
+   argument, retenu tel quel : le jour où la résolution se trompe de slug, toute l'équipe est
+   dehors — alors que la personne, elle, connaît le nom de son entreprise. */
+v('✅ la fiche donne une page de connexion fixe', /frow-lbl">Page de connexion</.test(SRC), true);
+v('✅ et le nom de l\'entreprise à taper', /frow-lbl">Nom de l'entreprise</.test(SRC), true);
+v('✅ la page est bien la page générique', /const PAGE='https:\/\/teamop\.fr\/connexion\.html'/.test(SRC), true);
+v('✅ le texte copié donne les trois étapes dans l\'ordre',
+  /1\. Ouvre cette page[\s\S]{0,200}2\. Entre le nom de l[\s\S]{0,120}3\. Identifiant/.test(SRC), true);
+/* Sans nom d'entreprise, l'instruction « entre  » est inutilisable : la fiche doit le DIRE
+   plutôt que de livrer une consigne vide. */
+v('⛔ et il prévient quand le nom d\'entreprise manque', /non renseigné/.test(SRC), true);
 v('⛔ plus aucun libellé « Lien de connexion » sur la fiche d\'accès',
   /frow-lbl">Lien de connexion</.test(SRC), false);
+/* ⛔ Le point qui ne doit JAMAIS revenir : la fiche ne réinjecte plus d'adresse venue du
+   serveur. Deux sources pour la même information, dont une qui peut se tromper d'entreprise,
+   c'est exactement le défaut qu'on vient de fermer. */
+v('⛔ la fiche ne réécrit plus son lien avec ce que rend le serveur',
+  /l\.textContent\s*=\s*(adr|r\.lien)/.test(SRC), false);
 /* teamopLienActuel n'est PAS supprimée : elle sert encore de condition (« cet appareil est-il
    rattaché à un espace ? »). Ce qui est interdit, c'est d'en AFFICHER la valeur. */
 v('✅ teamopLienActuel existe toujours (elle sert de condition)', /function teamopLienActuel\(\)\{/.test(SRC), true);

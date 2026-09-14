@@ -1983,7 +1983,8 @@ var ESPACES_TECHNIQUES=['elan-gestion','elan-gestion-beta'];
 /* De quelle NATURE est cet espace ? C'est la question que l'écran ne posait pas, et c'est
    pour ça que tout s'y ressemblait. Quatre réponses, quatre traitements. */
 function entNature(o){
-  if(ESPACES_TECHNIQUES.indexOf(o.t)>=0) return 'technique';
+  if(o.technique===true) return 'technique';                  // le serveur l'a dit
+  if(ESPACES_TECHNIQUES.indexOf(o.t)>=0) return 'technique';  // repli : serveur d'avant le champ
   if(!o.dansAnnuaire) return 'inconnu';
   /* `origine` a un repli côté serveur : une entreprise d'avant ce champ, dont l'adresse
      n'est pas dans clientsData, retombe en 'tour'. La formule et le code promo la
@@ -2245,7 +2246,7 @@ function vueConnexions(){
   var natureDe=function(x){
     var o=(ENT.liste||[]).find(function(e){ return e.t===x.t; });
     if(o) return entNature(o);
-    if(ESPACES_TECHNIQUES.indexOf(x.t)>=0) return 'technique';
+    if(x.technique===true||ESPACES_TECHNIQUES.indexOf(x.t)>=0) return 'technique';
     if(!x.slug) return 'inconnu';
     return (x.formule&&x.formule!=='gratuit')?'cliente':'mien';
   };
@@ -2292,13 +2293,23 @@ function vueConnexions(){
      groupe vide n'est pas rendu — un titre suivi de rien ne dit rien. */
   var GR_CNX=[
     {cle:'active',titre:'Actives cette semaine',bloc:'reg-cli',
-     test:function(x){ return x.resume.derniere>now-7*86400000; }},
+     test:function(x){ return !x.technique && x.resume.derniere>now-7*86400000; }},
     {cle:'silence',titre:'Silencieuses depuis 7 jours',bloc:'reg-bloc',
      sous:'Elles se sont connectées un jour, plus depuis une semaine. À regarder si ça dure.',
-     test:function(x){ return x.resume.derniere>0 && !(x.resume.derniere>now-7*86400000); }},
+     test:function(x){ return !x.technique && x.resume.derniere>0 && !(x.resume.derniere>now-7*86400000); }},
     {cle:'jamais',titre:'Jamais connectées',bloc:'reg-bloc mien',opt:true,
      sous:'Aucune connexion n’est jamais remontée. Soit personne n’est entré, soit leur application est trop ancienne pour le signaler (avant la v550).',
-     test:function(x){ return !x.resume.derniere; }}
+     test:function(x){ return !x.technique && !x.resume.derniere; }},
+    /* ⛔ EN DERNIER, ET À PART. Demande de Justin, 14 septembre 2026 : « je ne veux plus les
+       autres connexions clients, ce ne sont pas des clients ». L'espace par DÉFAUT de
+       l'application et celui de la bêta se connectent comme tout le monde, donc ils figuraient
+       parmi les entreprises actives.
+       On les SÉPARE et on les NOMME, on ne les cache pas : l'espace partagé porte encore cinq
+       personnes qui travaillent, et c'est précisément parce que rien ne le signalait qu'elles y
+       sont restées une semaine. Un écran qui tait un problème est pire qu'un écran chargé. */
+    {cle:'technique',titre:'Espaces techniques — jamais des entreprises',bloc:'reg-bloc',opt:true,
+     sous:'L’espace par défaut de l’application et celui de la bêta. Tout appareil qui n’a rejoint aucun espace y signale ses connexions. Ils ne comptent pas dans les entreprises actives — mais s’il s’y connecte du monde, ce sont de vraies personnes au mauvais endroit.',
+     test:function(x){ return x.technique===true; }}
   ];
   var grCnx='';
   GR_CNX.forEach(function(g){
@@ -2792,10 +2803,13 @@ function espSlugJs(x){ return String(x||'').trim().toLowerCase().normalize('NFD'
    favoris et les liens déjà donnés cessent de fonctionner le jour même. */
 function tourAccesRenommer(slug,nom){
   if(!slug){ toast('Espace sans identifiant technique'); return; }
-  var v=prompt('Nouveau nom pour « '+(nom||slug)+' »\n\n⚠️ Le nom EST l’adresse : teamop.fr/e/'+espSlugJs(nom||slug)+' deviendra teamop.fr/e/<nouveau-nom>.\nL’ancienne adresse cessera de fonctionner — préviens l’entreprise.',nom||slug);
+  /* ⛔ L'ADRESSE NE BOUGE PLUS (14 septembre 2026, décision de Justin). Cet écran promettait
+     l'inverse, et la promesse était tenue : un clic distrait coupait la porte d'entrée de toute
+     une équipe, celle qu'elle a mise en favori et écrite sur ses devis. */
+  var v=prompt('Nouveau nom d’affichage pour « '+(nom||slug)+' »\n\n✅ Son adresse teamop.fr/e/'+(slug||espSlugJs(nom||slug))+' ne change PAS — elle est posée à la création et ne bouge plus jamais.\nSeul le nom affiché change, dans la Tour et sur son écran de connexion.',nom||slug);
   if(v===null) return;
-  v=String(v).trim(); if(!v||!espSlugJs(v)){ toast('Il faut un nom avec des lettres ou des chiffres'); return; }
-  if(espSlugJs(v)===espSlugJs(nom||slug)){ toast('C’est déjà ce nom'); return; }
+  v=String(v).trim(); if(!v){ toast('Il faut un nom'); return; }
+  if(v===String(nom||'').trim()){ toast('C’est déjà ce nom'); return; }
   apiPost('/api/monitor/espaces/renommer',{slug:slug,nouveau:v}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Renommage impossible.'); return; }
     JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a renommé l’espace « '+(nom||slug)+' » en « '+v+' »'});
@@ -4507,6 +4521,17 @@ function vueEntreprises(){
      condition impossible à tenir finit par être ignorée. Or c'est la condition n°3 avant de
      refermer la règle Firestore (voir firestore.rules). Elle doit pouvoir être tenue. */
   var aMigrer=(ENT.liste||[]).filter(function(x){ return x.cleEtat==='partagee'; }).length;
+  /* ⛔ UN ZÉRO N'EST PAS UNE PREUVE D'ABSENCE — 14 septembre 2026, payé comptant.
+     Ce compteur a affiché 0 pendant qu'ELAN entière travaillait sur la clé écrite en clair
+     dans app.html : son espace est HORS ANNUAIRE, donc cleEtat rend 'inconnue', donc il sort
+     du filtre ci-dessus. La tâche « déplacer les entreprises restées sur la clé partagée » a
+     été cochée sur ce zéro-là. On ne compte toujours QUE les clés réellement partagées, mais
+     un zéro ne peut plus se lire « chantier fini » tant qu'il reste des inconnues. */
+  var cleInconnues=(ENT.liste||[]).filter(function(x){ return x.cleEtat==='inconnue'; }).length;
+  var migrerLib='à migrer (clé partagée)'+
+    ((aMigrer===0&&cleInconnues>0)
+      ? '<span style="display:block;margin-top:4px;font-size:11px;line-height:1.45;color:var(--amber);font-weight:700">mesure incomplète — '+cleInconnues+' espace'+(cleInconnues>1?'s':'')+' dont la clé est inconnue</span>'
+      : '');
   var kpi='<div class="grille-kpi simple" style="margin-bottom:20px">'+
     compteur(st.total||0,'entreprises connues','','')+
     compteur(st.avecErreurs||0,'erreurs signalées','--redText','erreurs')+
@@ -4515,7 +4540,7 @@ function vueEntreprises(){
     compteur(st.horsAnnuaire||0,'hors annuaire','','horsAnnuaire')+
     /* Le chiffre qui dimensionne le chantier « un teamId par entreprise » : celles qui
        partagent encore la clé écrite en clair dans app.html. À zéro, le chantier est fini. */
-    compteur(aMigrer,'à migrer (clé partagée)',(aMigrer?'--amber':''),'migrer')+
+    compteur(aMigrer,migrerLib,(aMigrer?'--amber':''),'migrer')+
   '</div>'+
   (refKpi?'<div style="font-size:12px;color:var(--muted);margin:-12px 0 18px">Version en ligne : <b class="mono">v'+refKpi+'</b> <span style="color:var(--dim)">— déduite de la plus récente vue chez vos clientes</span></div>':'');
   var q=(ENT.q||'').toLowerCase().trim();
@@ -5665,7 +5690,7 @@ function pubLigne(e){
                  :'<button class="btn-fant" onclick="tourIdentModifier(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\',\''+jsq(e.ident||'')+'\')">✏️ Changer identifiant / mot de passe</button>')+
       '<button class="btn-fant" onclick="tourAccesSuspendre(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.suspendu?'true':'false')+')">'+(e.suspendu?'▶️ Rouvrir':'⏸ Suspendre')+'</button>'+
       '<button class="btn-fant" onclick="tourApps(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.opMessages?'false':'true')+')">'+(e.opMessages?'💬 Fermer OP MESSAGES':'💬 Ouvrir OP MESSAGES')+'</button>'+
-      '<button class="btn-fant" onclick="tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (change l’adresse)</button>'+
+      '<button class="btn-fant" onclick="tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (l’adresse ne bouge pas)</button>'+
       '<button class="btn-fant" style="color:var(--redText);border-color:rgba(255,107,107,.35)" onclick="tourAccesSupprimer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">🗑 Supprimer</button>'+
     '</div>'+
   '</div>';
@@ -5750,7 +5775,7 @@ function accFichePub(slug){
     (r.derniere?'':'<button type="button" class="btn-fant" onclick="'+F+'tourIdentModifier(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\',\''+jsq(e.ident||'')+'\')">✏️ Changer identifiant / mot de passe</button>')+
     '<button type="button" class="btn-fant" onclick="'+F+'tourAccesSuspendre(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.suspendu?'true':'false')+')">'+(e.suspendu?'▶️ Rouvrir':'⏸ Suspendre')+'</button>'+
     '<button type="button" class="btn-fant" onclick="'+F+'tourApps(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.opMessages?'false':'true')+')">'+(e.opMessages?'💬 Fermer OP MESSAGES':'💬 Ouvrir OP MESSAGES')+'</button>'+
-    '<button type="button" class="btn-fant" onclick="'+F+'tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (change l’adresse)</button>'+
+    '<button type="button" class="btn-fant" onclick="'+F+'tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (l’adresse ne bouge pas)</button>'+
     '<button type="button" class="btn-fant danger" onclick="'+F+'tourAccesSupprimer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">🗑 Supprimer</button>'+
   '</div>'+
   (r.derniere?'<div class="encart" style="margin-top:12px"><div class="encart-tx">Déjà utilisé — le mot de passe vit dans les données chiffrées de l’espace, le serveur ne peut plus le changer. Ouvre l’espace avec son lien et remets-le à zéro dans <b>Utilisateurs</b>.</div></div>':'');

@@ -4857,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '668';
+const APP_VERSION = '669';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -23978,27 +23978,49 @@ async function identifiantsParMail(u,pwd){
 }
 async function identifiantsRenvoyer(id,pwd){ const u=db.users.find(x=>x.id===id); if(!u) return; const z=$('ui-mail'); if(z) z.innerHTML='⏳ Envoi…'; const r=await identifiantsParMail(u,pwd); identifiantsMailEtat(r,id,pwd); }
 function identifiantsMailEtat(r,id,pwd){ const z=$('ui-mail'); if(!z) return;
-  if(r.ok){ const espace=/\/e\//.test(r.lien||''); z.innerHTML='✉️ <b>E-mail envoyé à '+esc(r.to)+'</b> — identifiant, mot de passe provisoire et '+(espace?'adresse de l\'entreprise'+(r.entreprise?' « '+esc(r.entreprise)+' »':''):'lien vers l\'écran de connexion')+'.';
+  if(r.ok){ z.innerHTML='✉️ <b>E-mail envoyé à '+esc(r.to)+'</b> — identifiant, mot de passe provisoire et page de connexion'+(r.entreprise?' de « '+esc(r.entreprise)+' »':'')+'.';
     // le serveur connaît l'espace → le lien envoyé est celui de l'annuaire : on l'affiche tel quel
-    const adr=lienSansSecret(r.lien); const l=$('ui-lien'); if(l&&adr){ l.textContent=adr; const b=document.querySelector('#overlay [data-t]'); if(b) b.dataset.t=String(b.dataset.t||'').replace(/Adresse de l.entreprise[^\n]*: .*$/, 'Adresse de l\'entreprise : '+adr); } }
+  /* ⛔ ON NE RÉÉCRIT PLUS LE LIEN AFFICHÉ avec ce que rend le serveur. La fiche montre une
+     page FIXE et le nom de l'entreprise ; y réinjecter une adresse résolue ailleurs ferait
+     revenir par la fenêtre le défaut qu'on vient de fermer — deux sources pour la même
+     information, dont une qui peut se tromper d'entreprise. */ }
   else if(r.sans) z.innerHTML='Aucune adresse e-mail sur la fiche — transmets-lui ces accès toi-même (bouton ci-dessous).';
   else z.innerHTML='<span style="color:var(--red)">E-mail non envoyé ('+esc(r.err||'')+')</span> — <a onclick="identifiantsRenvoyer(\''+id+'\',\''+esc(pwd)+'\')" style="cursor:pointer;text-decoration:underline">réessayer</a>, ou transmets-lui ces accès toi-même.'; }
 /* Fiche « à transmettre » affichée juste après la création d'un compte (ou une réinitialisation) */
 function userIdentifiantsModal(u,pwd){
-  const lien=lienConnexionEntreprise(), ent=lienLisibleNom()||entrepriseNom(), espace=!!lienLisible();
-  /* L'adresse n'est pas encore connue de cet appareil : on la demande, et on la pose dès
-     qu'elle arrive — la fiche reste ouverte pendant ce temps. */
-  if(!lienLisible()) lienLisibleCharger().then(l=>{ const a=lienSansSecret(l); const z=$('ui-lien'); if(a&&z){ z.textContent=a; const b=document.querySelector('#overlay [data-t]'); if(b) b.dataset.t=String(b.dataset.t||'').replace(/Adresse de l.entreprise[^\n]*: .*$/,'Adresse de l\'entreprise : '+a); } });
-  const texte='Connexion OP GESTION'+(ent?' — '+ent:'')+'\nIdentifiant : '+u.login+'\nMot de passe provisoire : '+pwd+'\nAdresse de l\'entreprise : '+lien;
+  /* ⛔ CE QU'ON DONNE À QUELQU'UN : UNE PAGE ET UN NOM, JAMAIS UNE ADRESSE À RÉSOUDRE.
+     Décision de Justin, 14 septembre 2026, après le retrait du lien porteur de clé (v668).
+     Son raisonnement, et il est meilleur que le mien : une adresse d'entreprise doit être
+     RETROUVÉE par le serveur (quel slug ? le plus récent ? celui de l'annuaire ?), et le jour
+     où elle se résout mal, toute l'équipe est dehors sans que personne comprenne. La page de
+     connexion générique, elle, ne peut pas se tromper d'entreprise : c'est la PERSONNE qui
+     tape le nom de la sienne, et elle le connaît — elle y travaille.
+     Corollaire qui compte pour la suite : ce panneau est identique pour toutes les entreprises,
+     présentes et futures. Rien à paramétrer par client, rien qui puisse dériver.
+     `slugDe` (connexion.html) et `espSlug` (serveur) normalisent pareil : « ELAN », « Elan »,
+     « elan », et même l'URL collée en entier retombent sur `elan`. Vérifié côte à côte. */
+  const ent=String(lienLisibleNom()||entrepriseNom()||'').trim();
+  const PAGE='https://teamop.fr/connexion.html';
+  /* Le nom de l'entreprise n'est pas renseigné : l'instruction « entre ELAN » deviendrait
+     « entre  », donc inutilisable. On le dit au patron plutôt que de livrer une consigne vide. */
+  const sansNom=!ent;
+  const texte='Connexion OP GESTION'+(ent?' — '+ent:'')+'\n\n'
+    +'1. Ouvre cette page : '+PAGE+'\n'
+    +'2. Entre le nom de l\'entreprise : '+(ent||'(demande-le à ton responsable)')+'\n'
+    +'3. Identifiant : '+u.login+'\n'
+    +'   Mot de passe provisoire : '+pwd+'\n\n'
+    +'À ta première connexion, l\'application te fera choisir ton propre mot de passe.';
   openModal(`<div class="modal-head"><h3>✅ Accès de ${esc(fullName(u))}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">${espace
-      ?`C'est <b>l'adresse de l'entreprise${ent?' « '+esc(ent)+' »':''}</b> — la même pour toute l'équipe, et elle ne change jamais. Elle n'ouvre rien toute seule : la personne y entre son identifiant et son mot de passe.`
-      :`L'adresse de l'entreprise n'est pas encore connue de cet appareil : la personne passe par l'écran de connexion et tape le nom de son entreprise, puis son identifiant et son mot de passe.`} <b>À sa première connexion, l'app lui fera choisir son propre mot de passe</b>.</p>
+    <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">Transmets-lui ces quatre lignes. Il ouvre la page, tape le nom de l'entreprise, puis ses identifiants — sur n'importe quel téléphone. <b>À sa première connexion, l'app lui fera choisir son propre mot de passe</b>.</p>
     <div class="fgroup" style="margin-bottom:12px">
+      <div class="frow"><span class="frow-lbl">Page de connexion</span><div class="frow-val" id="ui-lien" style="word-break:break-all;font-size:13px;font-weight:700">${esc(PAGE)}</div></div>
+      <div class="frow"><span class="frow-lbl">Nom de l'entreprise</span><div class="frow-val">${sansNom
+        ?`<span style="color:var(--org,#e8a33d);font-weight:700">⚠️ non renseigné</span>`
+        :`<b class="mono" style="font-size:16px">${esc(ent)}</b>`}</div></div>
       <div class="frow"><span class="frow-lbl">Identifiant</span><div class="frow-val"><b class="mono" style="font-size:16px">${esc(u.login)}</b></div></div>
       <div class="frow"><span class="frow-lbl">Mot de passe provisoire</span><div class="frow-val"><b class="mono" style="font-size:16px">${esc(pwd)}</b></div></div>
-      <div class="frow"><span class="frow-lbl">Adresse de l'entreprise</span><div class="frow-val" id="ui-lien" style="word-break:break-all;font-size:13px;font-weight:700">${esc(lien)}</div></div>
     </div>
+    ${sansNom?`<div style="font-size:12.5px;color:var(--org,#e8a33d);line-height:1.55;margin-bottom:12px;font-weight:700">⚠️ Le nom de ton entreprise n'est pas renseigné — sans lui, la personne ne saura pas quoi taper sur la page de connexion. Va le poser dans Paramètres → Mon entreprise, puis rouvre cette fiche.</div>`:''}
     <div id="ui-mail" style="font-size:12.5px;color:var(--t2);line-height:1.55;margin-bottom:12px">${(u.email||'').trim()?'⏳ Envoi de l\'e-mail à '+esc(u.email.trim())+'…':'Aucune adresse e-mail sur la fiche — transmets-lui ces accès toi-même (bouton ci-dessous).'}</div>
     <button class="btn block" onclick="copieIdentifiants(this)" data-t="${esc(texte)}">📋 Copier pour lui envoyer</button>
     <button class="btn ghost block" style="margin-top:8px" onclick="closeModal()">Fermer</button>`);
