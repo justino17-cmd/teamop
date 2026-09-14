@@ -2342,7 +2342,11 @@ app.post('/api/espaces/sauvegarde', (req, res) => {
   try {
     fs.mkdirSync(sauvDossier(t), { recursive: true });
     const tmp = path.join(sauvDossier(t), ts + '.json.tmp');
-    fs.writeFileSync(tmp, JSON.stringify({ ts, enc, iv, salt, ver: monStr(b.ver, 12), by: monStr(b.dev, 24) }));
+    /* ⛔ `z` EST STOCKÉ AVEC LA COPIE. Il dit si le contenu chiffré est compressé ; sans lui,
+       une copie restaurée serait déchiffrée puis lue comme du texte, et on rendrait des
+       octets gzip à JSON.parse. Le serveur ne sait toujours rien lire — il transporte un
+       drapeau, pas une clé. */
+    fs.writeFileSync(tmp, JSON.stringify({ ts, enc, iv, salt, z: (b.z ? 1 : 0), ver: monStr(b.ver, 12), by: monStr(b.dev, 24) }));
     fs.renameSync(tmp, path.join(sauvDossier(t), ts + '.json'));
     sauvElaguer(t);
   } catch (e) { console.error('sauvegarde non écrite :', e.message); return res.status(500).json({ error: 'copie non enregistrée' }); }

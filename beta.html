@@ -4857,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '675-beta';
+const APP_VERSION = '676-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6329,11 +6329,44 @@ async function syncKey(saltB64){ const ck=syncSecret()+'|'+saltB64; if(_ck[ck]) 
   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(syncSecret()),'PBKDF2',false,['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:_b64d(saltB64),iterations:120000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
   _ck[ck]=key; return key; }
+/* ══ COMPRESSION AVANT CHIFFREMENT ════════════════════════════════════════════════════════
+   Mesuré sur la base réelle d'ELAN le 15 septembre 2026 : 621 Ko de JSON → 67 Ko une fois
+   gzippés, soit −89 %. Une fois chiffré et mis en base64 (×4/3), le document passe de 828 Ko
+   à 89 Ko — sous la limite dure de 1 Mio de Firestore avec NEUF FOIS la marge actuelle.
+   Ces données compressent si bien parce qu'elles sont répétitives : les mêmes identifiants
+   produit reviennent dans les dix-sept box, les mêmes phrases dans le journal.
+
+   ⛔ ON COMPRESSE AVANT DE CHIFFRER, jamais l'inverse : du chiffré ne se compresse pas.
+   ⛔ ET LA LECTURE ARRIVE UNE VERSION AVANT L'ÉCRITURE. C'est la règle du dépôt — les
+   appareils d'abord, la porte ensuite. Un appareil qui ne saurait pas lire le format
+   compressé perdrait l'accès aux données de sa propre entreprise, sans rien pouvoir y faire.
+   Cette version LIT les deux formats et n'écrit encore qu'en clair ; l'écriture compressée
+   ne s'allumera qu'une fois le parc à jour et la version exigée depuis la Tour.
+
+   `CompressionStream` est natif au navigateur : aucune dépendance ajoutée, ce qui compte sur
+   une application déjà servie en un seul fichier de 3 Mo. Absent (Safari d'avant 16.4), on
+   écrit en clair comme aujourd'hui — la compression est un gain, jamais une exigence. */
+function gzipPossible(){ try{ return typeof CompressionStream==='function'&&typeof DecompressionStream==='function'; }catch(e){ return false; } }
+async function gzipper(txt){
+  if(!gzipPossible()) return null;
+  try{
+    const flux=new Blob([new TextEncoder().encode(txt)]).stream().pipeThrough(new CompressionStream('gzip'));
+    return new Uint8Array(await new Response(flux).arrayBuffer());
+  }catch(e){ return null; }
+}
+async function degzipper(buf){
+  const flux=new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new TextDecoder().decode(await new Response(flux).arrayBuffer());
+}
 async function syncEncrypt(plain){ const saltB64=SYNC_SALT;
   const key=await syncKey(saltB64); const iv=crypto.getRandomValues(new Uint8Array(12));
   const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(plain));
   return {enc:_b64e(ct),iv:_b64e(iv),salt:saltB64}; }
-async function syncDecrypt(o){ try{ const key=await syncKey(o.salt); const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_b64d(o.iv)},key,_b64d(o.enc)); return new TextDecoder().decode(pt); }catch(e){ return null; } }
+/* `o.z` marque un contenu compressé. Son absence = clair, donc tout ce qui existe déjà se lit
+   exactement comme avant : la rétrocompatibilité n'est pas un cas particulier, c'est le défaut. */
+async function syncDecrypt(o){ try{ const key=await syncKey(o.salt); const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_b64d(o.iv)},key,_b64d(o.enc));
+  if(o&&o.z) return await degzipper(pt);
+  return new TextDecoder().decode(pt); }catch(e){ return null; } }
 async function syncReadRemote(d){ if(!d) return null; if(d.enc) return await syncDecrypt(d); if(d.db) return d.db; /* rétrocompat (ancien format clair) */ return null; }
 /* Toutes les collections comptent — la liste de 12 d'avant ignorait les mouvements de stock, les
    bons, les pointages, les contrats : une base amputée de tout ça passait pour « aussi lourde ». */
@@ -7019,7 +7052,9 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
        panne qui n'existe pas. On accorde une seconde de plus par tranche de 50 Ko, plafonné à
        45 s : au-delà, il y a vraiment quelque chose à dire. */
     const _delai=Math.min(45000, 15000+Math.round((alle.taille||0)/50000)*1000);
-    const _ecriture=_fbDoc.set({enc:e.enc,iv:e.iv,salt:e.salt,ts,writer:syncDeviceId(),at:new Date().toISOString(),by:(currentUser?fullName(currentUser):''),ver:String(APP_VERSION||''),verNum:APP_VERSION_NUM});
+    /* `z` dit si le contenu est compressé. En phase 1 il vaut 0 partout : rien ne change pour
+       personne, mais le chemin complet est en place et éprouvé AVANT qu'on l'allume. */
+    const _ecriture=_fbDoc.set({enc:e.enc,iv:e.iv,salt:e.salt,z:(e.z?1:0),ts,writer:syncDeviceId(),at:new Date().toISOString(),by:(currentUser?fullName(currentUser):''),ver:String(APP_VERSION||''),verNum:APP_VERSION_NUM});
     /* ⛔ UNE ÉCRITURE QUI NE PASSE PAS N'EST PAS UNE PANNE DE RÉSEAU — et la confondre a enfermé
        ELAN dehors le 11 septembre 2026. Le document dépassait la limite de Firestore : l'écriture
        n'était jamais acquittée, l'application affichait « Connexion requise » PLEIN ÉCRAN puis se
@@ -7097,7 +7132,7 @@ async function sauvegardeDeposer(e){
   if(BETA_ESSAI||!e||!e.enc) return;
   if(Date.now()-_sauvDernier<1800000) return; _sauvDernier=Date.now();
   const c=await sauvKh(); if(!c) return;
-  try{ await fetch(PUSH_API+'/api/espaces/sauvegarde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:c.t,kh:c.kh,enc:e.enc,iv:e.iv,salt:e.salt,ver:String(APP_VERSION||''),dev:syncDeviceId()})}); }catch(_e){ _sauvDernier=0; }
+  try{ await fetch(PUSH_API+'/api/espaces/sauvegarde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:c.t,kh:c.kh,enc:e.enc,iv:e.iv,salt:e.salt,z:(e.z?1:0),ver:String(APP_VERSION||''),dev:syncDeviceId()})}); }catch(_e){ _sauvDernier=0; }
 }
 async function sauvegardesModal(){
   const c=await sauvKh(); if(!c){ toast('Pas d\'espace d\'équipe sur cet appareil'); return; }
@@ -7110,7 +7145,10 @@ async function sauvegardeOuvrir(ts){
   const c=await sauvKh(); if(!c) return;
   let cp=null; try{ const r=await fetch(PUSH_API+'/api/espaces/sauvegarde/lire',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:c.t,kh:c.kh,ts:ts})}); const j=await r.json(); cp=j&&j.copie; }catch(e){}
   if(!cp){ toast('Copie illisible'); return; }
-  let plain=null; try{ plain=await syncReadRemote({enc:cp.enc,iv:cp.iv,salt:cp.salt}); }catch(e){}
+  /* ⛔ `z` VOYAGE AVEC. Sans lui, une copie compressée serait déchiffrée puis lue comme du
+     texte : on rendrait des octets gzip à JSON.parse, et la restauration échouerait sans dire
+     pourquoi. Le champ se recopie ici comme les trois autres. */
+  let plain=null; try{ plain=await syncReadRemote({enc:cp.enc,iv:cp.iv,salt:cp.salt,z:cp.z}); }catch(e){}
   if(!plain){ toast('Cette copie a été chiffrée avec une autre clé'); return; }
   const base=JSON.parse(plain); window._sauvBase=base;
   const cles=collsFusion(base).concat(Array.isArray(base.users)?['users']:[]);
@@ -29282,12 +29320,26 @@ function renderLogin(){ $('app-root').style.display='none'; $('login').style.dis
   // le nom porté par le lien de connexion d'abord (c'est celui annoncé dans l'e-mail), sinon celui des données de l'équipe
   const _entNom=localStorage.getItem('elanB_entreprise_nom')||(typeof entrepriseNom==='function'?entrepriseNom():'')||'';
   const _surEspace=!!localStorage.getItem('elanB_sync_team');
+  /* ⛔ DEUX ÉCRANS DE CONNEXION D'AFFILÉE, MÊME QUAND TOUT MARCHE. Vidéo de Justin : on donne
+     son identifiant et son mot de passe sur la page de son entreprise, le serveur les vérifie
+     — et l'application affiche SON PROPRE écran de connexion, qu'elle remplace elle-même
+     quelques secondes plus tard. Le formulaire était dessiné d'abord, et cnxAutoTenter()
+     attendait derrière jusqu'à 12 s que les comptes de l'équipe arrivent par la synchro.
+     Ça ne se lit pas comme une attente : ça se lit comme « ma connexion n'a pas marché ».
+     Tant qu'une ouverture automatique est en route, on montre donc qu'on ouvre. Le formulaire
+     n'apparaît QUE si elle échoue — et alors il dit pourquoi (voir cnxAutoTenter). */
+  const _auto=cnxAutoEnAttente();
   $('login-box').innerHTML=`<img class="login-logo" src="${_logo}" alt="OP GESTION"><h2>OP GESTION <span style="font-size:12px;color:var(--org);vertical-align:middle">🧪 BÊTA</span></h2>
     ${_surEspace?`<div style="text-align:center;margin:2px 0 14px"><div style="font-size:13px;color:var(--t2);margin-bottom:7px">Vous allez vous connecter à l'entreprise</div><div id="li-entnom" style="display:inline-block;background:color-mix(in srgb,var(--acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:100px;padding:8px 20px;font-size:16px;font-weight:800">🏢 ${esc(_entNom||'…')}</div>
     ${(!_surEspace&&!BETA_ESSAI)?`<div id="li-orphelin" style="background:color-mix(in srgb,var(--amber) 12%,transparent);border:1px solid color-mix(in srgb,var(--amber) 45%,transparent);border-radius:12px;padding:11px 14px;margin:2px 0 12px;font-size:13px;line-height:1.55;color:var(--t1);text-align:left">⚠️ <b>Cet appareil n'est rattaché à aucune entreprise.</b><div style="color:var(--t2);margin-top:4px">Ce que tu saisiras ici <b>ne rejoindra pas ton équipe</b> et personne ne le verra. Demande le <b>lien de connexion</b> de ton entreprise, puis ouvre-le sur cet appareil.</div></div>`:''}
     ${localStorage.getItem('elanB_lien_ok')?`<div style="margin-top:8px;font-size:12.5px;color:var(--acc);font-weight:700">✅ Lien de connexion reconnu — entre ton identifiant et ton mot de passe.</div>`:(localStorage.getItem('elanB_ent_ok')?`<div style="margin-top:8px;font-size:12.5px;color:var(--acc);font-weight:700">✅ Entreprise reconnue — entre ton mot de passe.</div>`:'')}</div>`:''}
     ${(_surEspace&&!_syncGotInitial&&syncEnabled())?`<div id="li-sync" style="text-align:center;margin:-4px 0 12px;font-size:12px;color:var(--t3)">⏳ Chargement des comptes de l'entreprise…</div>`:''}
     ${_compteRetire?`<div id="li-retire" style="background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--t1);line-height:1.55;margin-bottom:12px">⛔ Ton compte a été <b>${_compteRetire==='supprime'?'supprimé':'désactivé'}</b> par ton entreprise : tu ne peux plus te connecter. Contacte ton administrateur.</div>`:''}
+    ${_auto?`<div id="li-attente" style="text-align:center;padding:26px 10px">
+      <div style="font-size:15px;font-weight:700;color:var(--t1)">Connexion de ${esc(_auto)}…</div>
+      <div style="font-size:13px;color:var(--t3);margin-top:8px;line-height:1.6">Ton identifiant et ton mot de passe ont été vérifiés.<br>On récupère les données de ton entreprise.</div>
+      <div class="sup-squel" style="margin-top:18px"></div></div>`:''}
+    <div id="li-form"${_auto?' style="display:none"':''}>
     <form onsubmit="doLogin(event)" autocomplete="off">
       <div class="login-card">
         <div class="login-card-title">Connexion</div>
@@ -29301,7 +29353,8 @@ function renderLogin(){ $('app-root').style.display='none'; $('login').style.dis
     </form>
     <div style="text-align:center;margin-top:12px"><a onclick="pwdForgotModal()" style="cursor:pointer;color:var(--t3);font-size:12.5px;text-decoration:underline">Mot de passe oublié ?</a></div>
     <div style="display:none"><a onclick="teamopJoinPrompt()" style="cursor:pointer;color:var(--t3);font-size:12.5px;text-decoration:underline">Rejoindre un espace TeamOP (code entreprise)</a>${(_surEspace&&_entNom)?` · <a href="connexion.html?choix=1" style="color:var(--t3);font-size:12.5px;text-decoration:underline">changer d'entreprise</a>`:''}</div>
-    <div style="text-align:center;margin-top:12px"><a href="index.html?hub=1" style="color:var(--t3);font-size:12.5px;text-decoration:none;border:1px solid var(--brd);border-radius:100px;padding:7px 14px;display:inline-block">🏠 Accueil TeamOP</a></div>`;
+    <div style="text-align:center;margin-top:12px"><a href="index.html?hub=1" style="color:var(--t3);font-size:12.5px;text-decoration:none;border:1px solid var(--brd);border-radius:100px;padding:7px 14px;display:inline-block">🏠 Accueil TeamOP</a></div>
+    </div>`;
   setTimeout(()=>{ const el=$(saved?'li-pin':'li-login'); if(el) el.focus(); },60);
   try{ cnxAutoTenter(); }catch(e){}
   (function tick(n){ const s=$('li-sync'); if(!s) return;
@@ -29324,12 +29377,35 @@ function renderLogin(){ $('app-root').style.display='none'; $('login').style.dis
    ce que vous avez le droit de voir, et c'est bien la seconde qui décide ici.
    Le jeton vit dans sessionStorage (même origine, même onglet), s'efface dès qu'il a servi,
    meurt avec l'onglet, et est refusé passé deux minutes. */
+/* Le jeton d'ouverture est-il là, valide et frais ? On le REGARDE sans le consommer : c'est
+   l'écran de connexion qui pose la question, avant de se dessiner, et cnxAutoTenter qui le
+   retire ensuite. Les deux appliquent exactement les mêmes conditions — sinon l'un montrerait
+   une attente que l'autre n'honorerait jamais, et on resterait sur un écran qui tourne. */
+function cnxAutoEnAttente(){
+  try{
+    const brut=sessionStorage.getItem('elanB_cnx_auto'); if(!brut) return '';
+    const j=JSON.parse(brut);
+    if(!j||!j.login||!/^[0-9a-f]{64}$/.test(String(j.h||''))) return '';
+    if(Date.now()-(+j.ts||0)>120000) return '';
+    return String(j.login);
+  }catch(e){ return ''; }
+}
+/* L'ouverture n'a pas abouti : on rend la main au formulaire. Toujours par ici, jamais en
+   touchant les deux blocs à la main — un seul point de sortie oublié laisse quelqu'un devant
+   un écran qui tourne indéfiniment. */
+function cnxAutoRevele(){
+  try{ const a=document.getElementById('li-attente'); if(a) a.remove();
+       const f=document.getElementById('li-form'); if(f) f.style.display=''; }catch(e){}
+}
 async function cnxAutoTenter(){
+  /* ⚠️ FILET : quoi qu'il arrive — exception, synchro qui ne rend jamais la main, cas non
+     prévu — le formulaire réapparaît. Personne ne doit rester devant une attente sans fin. */
+  try{ setTimeout(cnxAutoRevele,15000); }catch(e){}
   let j=null;
-  try{ const brut=sessionStorage.getItem('elanB_cnx_auto'); if(!brut) return; j=JSON.parse(brut); }catch(e){ return; }
+  try{ const brut=sessionStorage.getItem('elanB_cnx_auto'); if(!brut){ cnxAutoRevele(); return; } j=JSON.parse(brut); }catch(e){ cnxAutoRevele(); return; }
   try{ sessionStorage.removeItem('elanB_cnx_auto'); }catch(e){}
-  if(!j||!j.login||!/^[0-9a-f]{64}$/.test(String(j.h||''))) return;
-  if(Date.now()-(+j.ts||0)>120000) return;   // ce n'est plus la même arrivée : on laisse l'écran faire
+  if(!j||!j.login||!/^[0-9a-f]{64}$/.test(String(j.h||''))){ cnxAutoRevele(); return; }
+  if(Date.now()-(+j.ts||0)>120000){ cnxAutoRevele(); return; }   // ce n'est plus la même arrivée
   /* ⛔ ET SI ÇA NE MARCHE PAS, ON LE DIT. Cette fonction abandonnait en silence : la personne
      venait de donner son identifiant et son mot de passe sur la page de son entreprise, le
      serveur les avait vérifiés — et elle retombait sur un écran de connexion, sans un mot.
@@ -29337,6 +29413,10 @@ async function cnxAutoTenter(){
      « ça n'a pas marché », alors que l'authentification, elle, a parfaitement marché : ce qui
      manque, ce sont les comptes de l'entreprise, qui arrivent par la synchro. */
   const abandon=(quoi)=>{ try{ localStorage.setItem('elanB_savedLogin',String(j.login)); }catch(_e){}
+    cnxAutoRevele();
+    /* Le champ porte déjà l'identifiant : on le repose pour que le formulaire qui vient de
+       réapparaître l'affiche, au lieu d'être vide juste après qu'on l'a donné. */
+    try{ const el=document.getElementById('li-login'); if(el) el.value=String(j.login); }catch(_e){}
     try{ toast(quoi,7000); }catch(_e){} };
   try{ if(!_syncOn&&!_syncDemarre&&syncEnabled()) syncInit(); }catch(e){}
   await syncAttendre(12000);                 // les comptes de l'équipe arrivent par la synchro
