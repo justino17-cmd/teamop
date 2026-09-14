@@ -4857,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '672-beta';
+const APP_VERSION = '673-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -28835,6 +28835,21 @@ async function boot(){
   }catch(e){}
   if(ch) save();
   // identifiant de départ choisi par TeamOP (via le lien) : le compte « admin » jamais activé le prend
+  /* ⛔ MAIS IL N'ÉCRASE PAS CELUI DE QUELQU'UN QUI VIENT DE S'AUTHENTIFIER. Vidéo de Justin,
+     14 septembre 2026 : il se connecte en « justin » sur teamop.fr/e/elan, le serveur vérifie
+     son mot de passe, l'application s'ouvre — et son écran de connexion propose « florent ».
+     `elan_admin_login` porte l'identifiant DE DÉPART DE L'ESPACE (le champ « a » du code,
+     choisi le jour de sa création), et il écrasait `elan_savedLogin` que connexion.html venait
+     d'écrire avec la personne réelle. Résultat : on propose à quelqu'un d'entrer sous le
+     compte d'un autre, juste après lui avoir demandé le sien. Ce n'est pas un défaut
+     d'affichage, c'est une confusion d'identité.
+     L'identifiant de départ ne sert QUE quand personne n'a encore de compte ici : on ne
+     l'écrit donc que si rien n'est retenu, ou si ce qui l'est est le générique « admin ». */
+  const savedLoginPoser=(v)=>{ try{
+    const av=String(localStorage.getItem('elanB_savedLogin')||'').trim().toLowerCase();
+    if(av&&av!=='admin') return;            // quelqu'un s'est identifié : c'est lui qu'on propose
+    localStorage.setItem('elanB_savedLogin',v);
+  }catch(_e){} };
   try{
     const _al=localStorage.getItem('elanB_admin_login');
     if(_al&&_al!=='admin'){
@@ -28847,8 +28862,8 @@ async function boot(){
           // le lien ne porte plus le mot de passe, seulement son empreinte (_amdph) ;
           // _amdp reste accepte pour les liens deja partis avant ce correctif
           _u.pinHash=_amdph||await sha256(_amdp); delete _u.sansMdp; delete _u.compteSite;
-          try{ localStorage.setItem('elanB_savedLogin',_al); }catch(_e){}
-        } else if(_al.indexOf('@')>0){ _u.compteSite=true; delete _u.pinHash; delete _u.sansMdp; try{ localStorage.setItem('elanB_savedLogin',_al); }catch(_e){} }
+          savedLoginPoser(_al);
+        } else if(_al.indexOf('@')>0){ _u.compteSite=true; delete _u.pinHash; delete _u.sansMdp; savedLoginPoser(_al); }
         if(_amail&&!_u.email) _u.email=_amail;   // le « mot de passe oublié » marche dès le premier jour
         ch=true; }
       localStorage.removeItem('elanB_admin_login'); localStorage.removeItem('elanB_admin_mdp'); localStorage.removeItem('elanB_admin_mdph'); localStorage.removeItem('elanB_admin_mail');
@@ -29249,13 +29264,25 @@ async function cnxAutoTenter(){
   try{ sessionStorage.removeItem('elanB_cnx_auto'); }catch(e){}
   if(!j||!j.login||!/^[0-9a-f]{64}$/.test(String(j.h||''))) return;
   if(Date.now()-(+j.ts||0)>120000) return;   // ce n'est plus la même arrivée : on laisse l'écran faire
+  /* ⛔ ET SI ÇA NE MARCHE PAS, ON LE DIT. Cette fonction abandonnait en silence : la personne
+     venait de donner son identifiant et son mot de passe sur la page de son entreprise, le
+     serveur les avait vérifiés — et elle retombait sur un écran de connexion, sans un mot.
+     Vidéo de Justin, 14 septembre 2026. Un écran qui redemande sans expliquer se lit comme
+     « ça n'a pas marché », alors que l'authentification, elle, a parfaitement marché : ce qui
+     manque, ce sont les comptes de l'entreprise, qui arrivent par la synchro. */
+  const abandon=(quoi)=>{ try{ localStorage.setItem('elanB_savedLogin',String(j.login)); }catch(_e){}
+    try{ toast(quoi,7000); }catch(_e){} };
   try{ if(!_syncOn&&!_syncDemarre&&syncEnabled()) syncInit(); }catch(e){}
   await syncAttendre(12000);                 // les comptes de l'équipe arrivent par la synchro
   const l=String(j.login).toLowerCase();
   const u=(db.users||[]).find(x=>x&&x.actif!==false&&String(x.login||'').toLowerCase()===l);
-  if(!u) return;
+  if(!u){ abandon((db.users||[]).length
+      ? 'Ton identifiant « '+j.login+' » n\'existe pas encore dans les comptes de cette entreprise — demande à ton responsable de le créer.'
+      : 'Les comptes de l\'entreprise ne sont pas encore arrivés sur cet appareil. Entre ton mot de passe, ou réessaie dans un instant.');
+    return; }
   const emp=String(u.pwdHash||u.pinHash||'');
-  if(!/^[0-9a-f]{64}$/i.test(emp)||emp.toLowerCase()!==String(j.h).toLowerCase()) return;
+  if(!/^[0-9a-f]{64}$/i.test(emp)||emp.toLowerCase()!==String(j.h).toLowerCase()){
+    abandon('Ton mot de passe a changé depuis, ou il diffère de celui enregistré ici — entre-le ci-dessous.'); return; }
   try{
     sessionStorage.setItem('elanB_session',u.id);
     if(j.rester){ localStorage.setItem('elanB_session',u.id); localStorage.setItem('elanB_savedLogin',u.login); }
