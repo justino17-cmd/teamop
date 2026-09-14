@@ -6154,39 +6154,48 @@ app.post('/api/devis/generer', async (req, res) => {
    patron devait retrouver et retaper un code à la main — et se tromper, puisque
    celui qu'utilise l'application n'est pas forcément celui qu'il croit. */
 function espacesConnus() {
-  const out = []; const vus = new Set();
+  /* `vus` dit ce qui est RENDU, pas ce qui a été examiné. La nuance a coûté un écran :
+     un espace écarté faute de nom était quand même marqué vu, donc la troisième boucle
+     — celle qui existe précisément pour rattraper une entreprise activée — passait
+     par-dessus. Il finissait dans « espace jamais vu » avec 442 connexions au compteur.
+     `ecartes` garde l'autre moitié de l'intention : un espace technique tu ici ne doit pas
+     reparaître sous son slug par la boucle de l'annuaire. */
+  const out = []; const vus = new Set(); const ecartes = new Set();
+  /* Dernière connexion réussie d'un espace. Une seule définition : la lire à trois
+     endroits avec trois orthographes est exactement ce qui vient d'arriver. */
+  const vuDe = tc => { try { return (cnxResume(tc) || {}).derniere || null; } catch (err) { return null; } };
   /* Les espaces qui se connectent vraiment. cnxData est indexé par code
      d'équipe et se remplit à chaque connexion d'application : c'est la seule
      source réellement peuplée. espacesReg, lui, n'est alimenté que par une
      inscription manuelle que personne ne fait — d'où la liste vide. */
   for (const tc of Object.keys(cnxData)) {
     if (!tc || vus.has(tc)) continue;
-    vus.add(tc);
     let e = null; try { e = espaceParT(tc); } catch (err) {}
     const nom = (e && espNomPropre(e)) || '';
     /* Sans nom d'entreprise, c'est un espace technique — environnement de test,
        ancienne bascule. Il n'a rien à faire dans une liste de clients. On ne le
        garde que s'il est déjà activé : couper un accès en cours par simple
        ménage d'affichage serait pire que le bruit. */
-    if (!nom && !(devisAcces[tc] && devisAcces[tc].actif)) continue;
-    let vu = null; try { vu = (cnxResume(tc) || {}).dernier || null; } catch (err) {}
-    out.push({ t: tc, nom: nom, vu: vu });
+    if (!nom && !(devisAcces[tc] && devisAcces[tc].actif)) { ecartes.add(tc); continue; }
+    vus.add(tc);
+    out.push({ t: tc, nom: nom, vu: vuDe(tc) });
   }
   for (const slug of Object.keys(espacesReg)) {
     let e = null;
     try { e = espaceAJour(slug) || espacesReg[slug]; } catch (err) { e = espacesReg[slug]; }
     let t = ''; try { t = espaceT(e); } catch (err) {}
-    if (!t || vus.has(t)) continue;
+    if (!t || vus.has(t) || ecartes.has(t)) continue;
     vus.add(t);
-    out.push({ t: t, nom: espNomPropre(e) || slug });
+    out.push({ t: t, nom: espNomPropre(e) || slug, vu: vuDe(t) });
   }
   /* Une entreprise déjà activée doit rester visible même si elle ne s'est
-     jamais connectée depuis. */
+     jamais connectée depuis. `vu` se relit ici aussi : écrire null d'office disait
+     « jamais connectée » d'un espace qu'on n'avait pas regardé. */
   for (const tc of Object.keys(devisAcces)) {
     if (vus.has(tc)) continue;
     vus.add(tc);
     let e = null; try { e = espaceParT(tc); } catch (err) {}
-    out.push({ t: tc, nom: (e && espNomPropre(e)) || '', vu: null });
+    out.push({ t: tc, nom: (e && espNomPropre(e)) || '', vu: vuDe(tc) });
   }
   out.sort(function (a, b) { return (a.nom || a.t).localeCompare(b.nom || b.t, 'fr'); });
   return out;

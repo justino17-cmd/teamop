@@ -3311,14 +3311,23 @@ function diaToggle(t,on){
    On bascule d'un clic : même clé, même appel, seul le modèle change. */
 function diaMoteur(t,m){ diaEnvoyer({teamId:t,moteur:m}); }
 function diaRetirer(t){ var q=DIA.noms[t]?DIA.noms[t]+' ('+t+')':t; if(confirm('Retirer complètement « '+q+' » de la liste ?')) diaEnvoyer({teamId:t,supprimer:true}); }
-/* Trois natures, une seule fois, avant tout rendu. `x.vu==null` est vrai exactement pour les
-   entrées ajoutées par Object.keys(DIA.equipes) : un code activé à la main dont aucun espace
-   ne s'est jamais connecté. */
+/* Trois natures, une seule fois, avant tout rendu. `x.vu` est la dernière connexion RÉUSSIE
+   de l'espace, et c'est le seul critère : le groupe dit ce qu'il dit, ni plus ni moins.
+   Il a fallu le réparer des deux côtés le 14 septembre. Le serveur lisait `dernier` sur un
+   résumé qui écrit `derniere` — champ absent, donc `vu` vide pour TOUT LE MONDE, donc ELAN
+   et ses 442 connexions rangés parmi les « jamais vu ». Et le commentaire d'ici affirmait
+   que `vu==null` désignait exactement les codes tapés à la main : ce n'était pas vrai, et
+   c'est ce qui rendait la ligne d'ELAN inamovible — le seul bouton du groupe efface une
+   entrée d'ACTIVATION, et ELAN n'en avait aucune.
+   ⚠️ La provenance de la ligne ne peut PAS servir de critère : le serveur rend aussi les
+   codes activés à la main dans sa liste d'espaces (pour qu'une entreprise activée mais
+   jamais revue reste visible). Trier là-dessus vidait le groupe et enlevait à Justin le
+   seul moyen de supprimer une faute de frappe. */
 function diaNature(x){
   var e=DIA.equipes[x.t]||{};
   if(e.actif) return 'actif';
-  if(x.vu==null) return 'coupe';
-  return 'prete';
+  if(x.vu) return 'prete';
+  return 'jamaisvu';
 }
 function vueDevisIA(){
   var tete=enTete('Devis IA',
@@ -3328,11 +3337,13 @@ function vueDevisIA(){
 
   var vus={}, lignes=[];
   (DIA.entreprises||[]).forEach(function(x){ vus[x.t]=1; lignes.push({t:x.t,nom:x.nom,vu:x.vu}); });
+  /* Filet : le serveur rend déjà les codes activés dans sa liste d'espaces. Si l'un lui
+     échappait un jour, il apparaîtrait quand même ici plutôt que de disparaître en silence. */
   Object.keys(DIA.equipes).forEach(function(t){ if(!vus[t]) lignes.push({t:t,nom:DIA.noms[t]||'',vu:null}); });
 
   var actifs=lignes.filter(function(x){ return diaNature(x)==='actif'; });
   var pretes=lignes.filter(function(x){ return diaNature(x)==='prete'; });
-  var mortes=lignes.filter(function(x){ return diaNature(x)==='coupe'; });
+  var mortes=lignes.filter(function(x){ return diaNature(x)==='jamaisvu'; });
   actifs.sort(function(a,b){ return ((DIA.equipes[b.t]||{}).n||0)-((DIA.equipes[a.t]||{}).n||0) || (b.vu||0)-(a.vu||0); });
   pretes.sort(function(a,b){ return (b.vu||0)-(a.vu||0); });
 
@@ -3372,15 +3383,19 @@ function vueDevisIA(){
       '<div class="dia-ctrl"><div class="dia-seg" role="radiogroup" aria-label="Moteur">'+seg+'</div>'+
       '<button type="button" class="btn-fant danger" onclick="diaToggle(\''+jsq(t)+'\',false)">Couper</button></div></div>'; };
 
+  /* Deux boutons, deux questions distinctes — les confondre est ce qui a produit un bouton
+     inopérant. « Activer » s'offre à tout espace pas encore actif. « Retirer de la liste »
+     n'apparaît QUE s'il existe une entrée d'activation à effacer : c'est tout ce que la
+     route sait supprimer. Sur une entreprise qui n'en a jamais eu, il ne ferait rien. */
   var ligne=function(x,morte){
-    var t=x.t;
+    var t=x.t, aRetirer=!!DIA.equipes[t];
     return '<div class="reg-l eqp-l'+(morte?' off':'')+'">'+
       (x.vu==null?'<span class="reg-av sans">?</span>':'<span class="reg-av gris">'+esc(sigle(x.nom||t))+'</span>')+
       '<span class="reg-txt"><span class="reg-t1'+(x.nom?'':' ident')+'" title="'+esc(x.nom||t)+'">'+esc(x.nom||t)+'</span>'+
       '<span class="reg-l2"><span class="mono">'+esc(t)+'</span>'+(x.vu?' · vu le '+esc(fmtJour(x.vu)):'')+'</span></span>'+
       '<span class="reg-fin">'+
-      (morte?'<button type="button" class="eqp-act sup dia-act" onclick="diaRetirer(\''+jsq(t)+'\')">Retirer de la liste</button>'
-            :'<button type="button" class="eqp-act rou dia-act" onclick="diaToggle(\''+jsq(t)+'\',true)">✨ Activer</button>')+
+      '<button type="button" class="eqp-act rou dia-act" onclick="diaToggle(\''+jsq(t)+'\',true)">✨ Activer</button>'+
+      (aRetirer?'<button type="button" class="eqp-act sup dia-act" onclick="diaRetirer(\''+jsq(t)+'\')">Retirer de la liste</button>':'')+
       '</span></div>'; };
 
   var G=[];
@@ -3390,8 +3405,8 @@ function vueDevisIA(){
   if(pretes.length) G.push(jrGroupe('Prêtes à activer',pretes.length,
     'Ces espaces se connectent déjà à l’application. Activer est immédiat, et l’entreprise ne reçoit ni clé ni code : la fonction se met simplement à marcher chez elle.',true,
     '<div class="reg-bloc">'+pretes.map(function(x){ return ligne(x,false); }).join('')+'</div>'));
-  if(mortes.length) G.push(jrGroupe('Accès coupés, espace jamais vu',mortes.length,
-    'Un code activé à la main dont aucun espace ne s’est jamais connecté. Soit le code était faux, soit l’entreprise n’a jamais ouvert l’application.',false,
+  if(mortes.length) G.push(jrGroupe('Jamais connectées à l’application',mortes.length,
+    'Aucune connexion réussie n’a jamais été enregistrée pour ces espaces. Soit l’entreprise a reçu son lien et ne l’a pas encore ouvert, soit le code a été tapé avec une faute. « Retirer de la liste » efface l’activation du Devis IA — elle ne supprime ni l’espace ni l’entreprise.',false,
     '<div class="reg-bloc mien">'+mortes.map(function(x){ return ligne(x,true); }).join('')+'</div>'));
   var registre=G.length?'<div class="reg" style="margin-top:26px">'+G.join('')+'</div>'
     :'<div class="vide-espace">'+videTour('','Aucune entreprise connue pour l’instant. Les espaces apparaissent ici dès qu’ils se connectent à l’application ; en attendant, un code peut être activé à la main ci-dessous.','',false)+'</div>';
