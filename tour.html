@@ -1317,8 +1317,8 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 /* ⛔ LE DÉCALAGE DE 56 px NE VAUT QUE POUR LA PAGE. `.reg-tete{top:56px}` (bloc téléphone)
    existe pour que le titre d'un groupe s'arrête SOUS la barre du haut, elle-même sticky sur
    la page. Mais `.mail-rows` défile TOUT SEUL : il n'y a aucune barre à contourner dedans,
-   donc les 56 px ne décalent plus rien — ils POUSSENT l'en-tête, fond opaque compris,
-   par-dessus la première ligne de la liste. Mesuré au téléphone (390 px), Courrier, groupe
+   donc les 56 px ne décalent plus rien — ils POUSSENT l'en-tête, fond opaque compris, par
+   -dessus la première ligne de la liste. Mesuré au téléphone (390 px), Courrier, groupe
    « Non rattachées » : en-tête bas à 400 px, première ligne haut à 355 px — 45 px de courrier
    recouverts, et l'objet du premier message coupé en deux, sans avoir rien fait défiler.
    Capture de Justin, 14 septembre 2026. Le même en-tête passé en `position:static` rend
@@ -2856,6 +2856,15 @@ function nomTechnique(t){
   if(t==='elan-gestion-beta') return 'Bêta TEAM OP';
   return String(t||'');
 }
+/* ⛔ LE NOM AFFICHABLE D'UN ESPACE — une seule définition, et c'est tout l'intérêt.
+   Le 14 septembre, `nomTechnique()` a été branchée sur Entreprises et Connexions clients ;
+   le panneau VERSIONS, la fiche d'un code promo et deux replis du Courrier ont été oubliés,
+   et « elan-gestion » s'y affichait encore en liste avec les entreprises — le mot que Justin
+   demande justement de ne plus voir ailleurs que sur la fiche de son client.
+   `nomTechnique()` rend l'identifiant INCHANGÉ pour tout le reste : passer par ici ne coûte
+   donc rien nulle part, et l'oublier quelque part se voit. `tests/test-682.js` relit le
+   fichier et refuse tout repli « nom sinon identifiant » qui la court-circuiterait. */
+function nomEspace(nom,t){ return String(nom||'')||nomTechnique(t); }
 /* De quelle NATURE est cet espace ? C'est la question que l'écran ne posait pas, et c'est
    pour ça que tout s'y ressemblait. Quatre réponses, quatre traitements. */
 function entNature(o){
@@ -3191,8 +3200,8 @@ function vueConnexions(){
       var l3=join([ vers, r.dernierLogin?'dernier identifiant : '+esc(r.dernierLogin):'',
                     x.formule?esc(x.formule):'' ]);
       return '<button type="button" class="reg-l cli col'+(CNX.sel===x.t?' on':'')+'" onclick="cnxSel(\''+jsq(x.t)+'\')">'+
-        '<span class="reg-av">'+esc(sigle(x.nom||x.t))+'</span>'+
-        '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.nom||x.t)+'">'+esc(x.nom||x.t)+'</span>'+
+        '<span class="reg-av">'+esc(sigle(nomEspace(x.nom,x.t)))+'</span>'+
+        '<span class="reg-txt"><span class="reg-t1" title="'+esc(nomEspace(x.nom,x.t))+'">'+esc(nomEspace(x.nom,x.t))+'</span>'+
           (l2?'<span class="reg-l2">'+l2+'</span>':'')+
           (l3?'<span class="reg-l3">'+l3+'</span>':'')+'</span>'+
         '<span class="reg-fin"><span class="reg-alertes">'+alertes+'</span>'+
@@ -3204,13 +3213,13 @@ function vueConnexions(){
                r.utilisateurs7?r.utilisateurs7+' pers. / 7 j':'',
                r.dernierLogin?esc(r.dernierLogin):'' ]);
     return '<button type="button" class="reg-l'+(CNX.sel===x.t?' on':'')+'" onclick="cnxSel(\''+jsq(x.t)+'\')">'+
-      (x.slug?'<span class="reg-av gris">'+esc(sigle(x.nom||x.t))+'</span>'
+      (x.slug?'<span class="reg-av gris">'+esc(sigle(nomEspace(x.nom,x.t)))+'</span>'
              :'<span class="reg-av sans">?</span>')+
       /* Un espace technique se nomme par ce qu'il EST, pas par son identifiant Firebase —
          voir nomTechnique(). Le nom brut « (espace hors annuaire) elan-gestion » laissait
          croire à une entreprise cliente, et il portait le nom d'un client sur un espace qui
          ne lui appartient pas. */
-      '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.t)+'">'+esc(x.technique===true?nomTechnique(x.t):(x.nom||x.t))+'</span>'+
+      '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.t)+'">'+esc(x.technique===true?nomTechnique(x.t):nomEspace(x.nom,x.t))+'</span>'+
         '<span class="reg-l2">'+muet+'</span></span>'+
       '<span class="reg-fin"><span class="reg-alertes">'+alertes+'</span>'+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>';
@@ -4556,7 +4565,12 @@ function blocVersions(){
       '<button class="btn-plein" onclick="versionExigerLigne()"'+(ligne?'':' disabled')+'>Exiger la dernière version'+(ligne?' (v'+ligne+')':'')+' pour tout le monde</button>'+
       (min?'<button class="btn-fant" onclick="versionLever()">Lever l’exigence</button>':'')+
     '</div>':'')+
-    (sous.length?'<div style="margin-top:12px">'+sous.map(function(x){ return '<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13px"><span style="flex:1"><b>'+esc(x.nom||x.t)+'</b></span><span class="past p-ambre">'+x.n+' appareil'+(x.n>1?'s':'')+' bloqué'+(x.n>1?'s':'')+'</span></div>'; }).join('')+'</div>':'')+
+    /* ⛔ UN IDENTIFIANT TECHNIQUE N'ARRIVE JAMAIS À L'ÉCRAN COMME UN NOM. Le serveur rend
+       `nom:''` pour un espace hors annuaire, et ce panneau retombait alors sur `x.t` brut :
+       « elan-gestion » et « elan-gestion-beta » s'affichaient au milieu des entreprises, à
+       côté d'ELAN — qui est la seule vraie cliente des trois. C'est le mot qu'on retire
+       partout depuis le 14 septembre, et ce panneau était le dernier oubli. */
+    (sous.length?'<div style="margin-top:12px">'+sous.map(function(x){ return '<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13px"><span style="flex:1"><b>'+esc(nomEspace(x.nom,x.t))+'</b></span><span class="past p-ambre">'+x.n+' appareil'+(x.n>1?'s':'')+' bloqué'+(x.n>1?'s':'')+'</span></div>'; }).join('')+'</div>':'')+
     (d.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(d.maj))+(d.par?' par '+esc(d.par):'')+'</div>':'');
 }
 function vueSurveillance(){
@@ -5146,7 +5160,7 @@ function courrierParEnt(){
     /* « Non rattachées » et pas « Pas encore rattachées » : le nom passe dans une colonne de
        238 px, où la version longue se coupait en « Pas encore rattac… ». Un libellé tronqué
        cache une information — c'est la règle de résilience du skill, elle vaut ici aussi. */
-    if(!par[cle]){ par[cle]={ent:e,cle:cle,nom:e?(e.nom||e.t):'Non rattachées',msgs:[]}; ordre.push(cle); }
+    if(!par[cle]){ par[cle]={ent:e,cle:cle,nom:e?nomEspace(e.nom,e.t):'Non rattachées',msgs:[]}; ordre.push(cle); }
     par[cle].msgs.push(m);
   });
   ordre.sort(function(a,b){
@@ -5611,7 +5625,7 @@ function mailListeEnvoyee(){
 function mailEnt(a){ a=String(a||'').toLowerCase();
   /* Même rattachement que la barre latérale, et pas un second : un envoi rangé chez ELAN
      doit porter le nom « ELAN », pas l'adresse brute parce que la fiche client manquait. */
-  var e=courrierEnt(a); if(e) return e.nom||e.t||a;
+  var e=courrierEnt(a); if(e) return nomEspace(e.nom,e.t)||a;
   var c=(CLI.list||[]).find(function(x){ return String(x.email||'').toLowerCase()===a; });
   if(c) return c.entreprise||c.nom||a;
   return (/teamop\.fr$/i.test(a)?'TeamOP (interne)':'')||a||'—'; }
@@ -6772,9 +6786,13 @@ function blocPromos(){
     if(reste) p.push('<span class="reg-plus">+'+reste+'</span>');
     var lignes=usages.length
       ? '<div class="reg-bloc">'+usages.map(function(u){
+          /* `brut` = on n'a rien de mieux que l'identifiant : lui seul se lit en mono et se
+             tronque. Un nom d'espace technique est une phrase, pas un code — la tronquer à
+             24 caractères donnerait « Espace par défaut — TEAM ». */
+          var un=nomEspace(u.nom,u.t), brut=(un===String(u.t||''));
           return '<button type="button" class="reg-l" onclick="abnVersEntreprise(\''+jsq(u.t||'')+'\')">'+
-            '<span class="reg-av gris">'+esc(sigle(u.nom||u.t||'?'))+'</span>'+
-            '<span class="reg-txt"><span class="reg-t1'+(u.nom?'':' ident')+'">'+esc(u.nom||String(u.t||'').slice(0,24)||'(espace hors annuaire)')+'</span>'+
+            '<span class="reg-av gris">'+esc(sigle(un||'?'))+'</span>'+
+            '<span class="reg-txt"><span class="reg-t1'+(brut?' ident':'')+'">'+esc((brut?un.slice(0,24):un)||'(espace hors annuaire)')+'</span>'+
             '<span class="reg-l2">'+(u.actif?'offert jusqu’au '+esc(u.finLe||'?'):'terminé le '+esc(u.finLe||'?'))+'</span></span>'+
             '<span class="reg-fin">'+abnEur(0,'','off')+
             (u.actif?'':'<span class="past p-gris">Terminé</span>')+
