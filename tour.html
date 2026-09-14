@@ -6340,9 +6340,18 @@ function joursRestants(fin){
   try{
     var d=new Date(fin+'T00:00:00'), n=new Date(); n.setHours(0,0,0,0);
     var j=Math.round((d-n)/86400000);
+    /* ⛔ UNE DATE ILLISIBLE NE DOIT RIEN AFFICHER. Sans ce garde, une échéance vide donnait
+       « encore NaN mois » : NaN rate toutes les comparaisons ci-dessous et tombe sur la
+       dernière ligne. Invisible tant que la fonction ne servait que sur la fiche d'une
+       entreprise, dont la date est toujours posée ; elle sert maintenant sur la liste de
+       TOUTES les formules offertes, où `finLe` peut manquer. */
+    if(!fin||!isFinite(j)) return '';
     if(j<0) return 'terminé';
     if(j===0) return 'se termine aujourd’hui';
     if(j===1) return 'plus qu’un jour';
+    /* Sous quinze jours, c'est une relance à préparer : la couleur le dit avant qu'on lise
+       le chiffre. Au-delà, un délai en gris suffit — l'ambre partout ne signalerait rien. */
+    if(j<15) return '<b style="color:var(--amber)">encore '+j+' jours</b>';
     if(j<31) return 'encore '+j+' jours';
     return 'encore '+Math.round(j/30)+' mois';
   }catch(e){ return ''; }
@@ -6821,7 +6830,12 @@ function blocPromos(){
           return '<button type="button" class="reg-l" onclick="abnVersEntreprise(\''+jsq(u.t||'')+'\')">'+
             '<span class="reg-av gris">'+esc(sigle(un||'?'))+'</span>'+
             '<span class="reg-txt"><span class="reg-t1'+(brut?' ident':'')+'">'+esc((brut?un.slice(0,24):un)||'(espace hors annuaire)')+'</span>'+
-            '<span class="reg-l2">'+(u.actif?'offert jusqu’au '+esc(u.finLe||'?'):'terminé le '+esc(u.finLe||'?'))+'</span></span>'+
+            /* ⛔ UNE DATE N'EST PAS UN DÉLAI. « offert jusqu'au 2026-11-17 » oblige à compter
+               de tête pour savoir s'il faut relancer la cliente cette semaine ou dans deux
+               mois — donc on ne compte pas, et on découvre la fin le jour où elle tombe.
+               joursRestants() existait déjà sur la fiche d'une entreprise ; c'est ICI, sur
+               la liste de TOUTES les formules offertes, qu'il manquait. */
+            '<span class="reg-l2">'+(u.actif?'offert jusqu’au '+esc(u.finLe||'?')+' · <b>'+joursRestants(u.finLe||'')+'</b>':'terminé le '+esc(u.finLe||'?'))+'</span></span>'+
             '<span class="reg-fin">'+abnEur(0,'','off')+
             (u.actif?'':'<span class="past p-gris">Terminé</span>')+
             '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>'
@@ -7004,7 +7018,7 @@ function blocEspaces(){
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
         '<span class="reg-l2">'+esc(ABN_F[e.formule]||e.formule)+(e.quantite>1?' ×'+e.quantite:'')+
-        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?'):' · payé'):' · en attente de paiement')+'</span></span>'+
+        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'):' · en attente de paiement')+'</span></span>'+
         '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">💳 En attente</span>')+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>')+'</div>';
 }
