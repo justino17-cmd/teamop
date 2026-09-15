@@ -4886,7 +4886,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '677';
+const APP_VERSION = '678';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -5994,8 +5994,23 @@ function boxFusionFine(gagnante,perdante){
   const st={}, ms={};
   new Set([].concat(Object.keys(A),Object.keys(B),Object.keys(mA),Object.keys(mB))).forEach(pid=>{
     const tA=+mA[pid]||0, tB=+mB[pid]||0;
+    /* ⛔ SANS DATE DES DEUX CÔTÉS, IL N'Y A PAS DE DÉCISION — DONC PAS DE RETRAIT.
+       Justin, 15 septembre 2026 : « moi j'ai bien les quantités du box, eux ne voyaient rien,
+       ils voyaient tous les box vides ». Mesuré sur CETTE fonction, extraite du fichier livré :
+       une box de 200 lignes à 7 200 u fusionnée contre un appareil qui n'en a qu'une tombait
+       à 36 u — 199 lignes effacées ; avec un `_ms` vide des deux côtés, elle tombait à ZÉRO.
+       Le mécanisme : une ligne sans horodatage lisait `tA=0` et `tB=0`, donc `tA>=tB` désignait
+       la box gagnante, et `pid in cote` la déclarait « retirée » alors qu'elle n'avait jamais
+       été retirée — elle n'était simplement pas datée. Toutes les lignes de stock antérieures à
+       la maille fine sont dans ce cas, et la maille fine ne s'est vraiment allumée que le jour
+       où la version a été exigée depuis la Tour : le 15 septembre au matin.
+       ⚠️ La garde du haut ne protégeait pas : `{}` EST un objet, elle passait.
+       Un vrai retrait s'écrit dans `db.boxDecisions` (voir `boxDecider`) ET date sa ligne.
+       Une absence non datée n'est donc jamais une suppression : on garde, la gagnante d'abord.
+       `tests/test-695.js` rejoue les trois cas sur la vraie fonction. */
+    if(!tA&&!tB){ if(pid in A) st[pid]=A[pid]; else if(pid in B) st[pid]=B[pid]; return; }
     const cote=(tA>=tB)?A:B;                 // à égalité, la box gagnante — comme pour un enregistrement
-    if(pid in cote) st[pid]=cote[pid];       // absent du côté qui gagne = retiré : il ne revient pas
+    if(pid in cote) st[pid]=cote[pid];       // absent du côté qui gagne ET daté = retiré : il ne revient pas
     const t=Math.max(tA,tB); if(t) ms[pid]=t;
   });
   /* Les listes internes s'ajoutent au lieu de s'écraser : deux arrivages validés le même jour
