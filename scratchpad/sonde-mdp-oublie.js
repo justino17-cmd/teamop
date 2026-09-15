@@ -33,6 +33,31 @@ const L = (t, o) => console.log(t + ' ' + JSON.stringify(o));
   await p.goto('http://127.0.0.1:8197/beta.html', { timeout: 120000, waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => typeof pwdForgotMailEnvoi === 'function', { timeout: 60000 });
 
+  // ── D. Les deux erreurs que Justin a nommées, lues À L'ÉCRAN ────────────────────────
+  L('D · identifiant mal écrit, entreprise mal écrite', await p.evaluate(async () => {
+    const sleep = m => new Promise(r => setTimeout(r, m));
+    _syncGotInitial = true;
+    pwdForgotModal(); await sleep(150);
+    document.getElementById('pf-login').value = 'romainavgg';   // une lettre de trop
+    document.getElementById('pf-mail').value = 'x@y.fr';
+    await pwdForgotSend(); await sleep(250);
+    const e1 = document.getElementById('pf-err');
+    const msgIdent = (e1 && e1.style.display !== 'none') ? (e1.textContent || '') : '';
+
+    /* Entreprise mal écrite : le serveur répond « ne correspond pas ». */
+    closeModal(true); pwdForgot = {};
+    pwdForgotModal(); await sleep(150);
+    document.getElementById('pf-login').value = 'romainavg';
+    document.getElementById('pf-mail').value = 'romain.avignon@gmail.com';
+    await pwdForgotSend(); await sleep(250);
+    window.__refus = true;
+    document.getElementById('pf-ent').value = 'ELANN';
+    return { msgIdent: msgIdent.slice(0, 150),
+      ditSansMajuscule: /sans majuscule et sans espace/.test(msgIdent),
+      nommeLEntreprise: /ELAN/.test(msgIdent),
+      pasDeBalise: !/<[a-z]/i.test(msgIdent) };
+  }));
+
   L('B · un compte qui a déjà son adresse garde le chemin ordinaire', await p.evaluate(async () => {
     const sleep = m => new Promise(r => setTimeout(r, m));
     pwdForgotModal(); await sleep(150);

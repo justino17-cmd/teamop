@@ -13,6 +13,64 @@ de ligne du tout.
 
 ---
 
+## 🔑 v685 → v688 — « MOT DE PASSE OUBLIÉ » APPARTIENT À LA PERSONNE (15 septembre 2026)
+
+Justin, fin de journée, cinq comptes bloqués chez ELAN : « quand la personne oublie son mot de
+passe, c'est à lui de pouvoir le récupérer et pas l'admin. Ils perdent du temps, ils n'ont pas
+les codes en temps et en heure, ça va créer des problèmes. »
+
+### Ce qui marche maintenant
+
+« Mot de passe oublié ? » → identifiant + son adresse → nom de l'entreprise → **le code part
+chez la personne**. L'administrateur n'est plus dans la boucle.
+
+### ⛔ Le compromis, assumé, et il faut le connaître avant d'y toucher
+
+Les identifiants sont des **prénoms** et le nom d'une entreprise se lit sur un camion : qui
+devine les deux peut réclamer un compte **qui n'a pas encore d'adresse**, en donnant la sienne.
+Je l'ai opposé à Justin **trois fois**. Il a maintenu, en connaissance de cause : « je sais que
+j'avais été chiant sur la sécurité là-dessus, mais ça me paraît plus logique ». Ce n'est pas un
+oubli, et ça ne se « corrige » pas sans lui redemander.
+
+Ce qui protège quand même, et qu'il ne faut pas retirer en croyant simplifier :
+
+1. **Un compte qui a DÉJÀ son adresse n'a pas cette porte.** Il garde le chemin ordinaire, qui
+   refuse toute adresse autre que la sienne. Mesuré en sonde.
+2. Le **nom de l'entreprise doit correspondre** avant qu'on propose quoi que ce soit.
+3. L'adresse n'est posée sur la fiche **qu'après** validation du code reçu à cette adresse.
+4. Entrer par là **ne vaut pas la campagne sécurité** : `secu` n'est pas posé, donc
+   l'application redemande à l'ouverture un mot de passe DIFFÉRENT et l'adresse.
+5. **Ce n'est pas silencieux** : ligne au journal de l'entreprise, et notification push à toute
+   l'équipe — « si ce n'est pas lui, change son mot de passe (Utilisateurs → 🔑) ».
+6. La fenêtre **se referme d'elle-même** : dès qu'une personne a son adresse, elle repasse par
+   le chemin ordinaire.
+
+### Le geste groupé a vécu une heure, puis a été retiré
+
+`resetPwdLot` refaisait en un geste les mots de passe de toute l'équipe, depuis l'écran
+Utilisateurs. Justin : « je veux pas un bouton dans le truc utilisateur, je veux un bouton moi
+dans la Tour. C'est à nous de gérer ces problèmes-là. » Retirée **pour de bon**, pas débranchée.
+
+⛔ **CE QUI RESTE À FAIRE, ET POURQUOI CE N'EST PAS UNE CASE À COCHER** : la base d'une
+entreprise est CHIFFRÉE, le serveur ne peut ni lire ni écrire ses comptes. La Tour **ne peut pas**
+refaire un mot de passe — elle ne peut qu'**ORDONNER**, et le premier appareil de l'entreprise
+qui s'ouvre EXÉCUTE, puis confirme. C'est le mécanisme d'`ordres.json`, déjà en place pour les
+suppressions de compte. Chantier serveur + Tour + application. Le texte de `resetPwdLot` est
+dans l'historique git, commit v685 : la moitié « exécution » s'en inspirera.
+
+### Au passage
+
+Le bouton 🔑 **unitaire** ne vérifiait pas que le serveur avait pris le nouveau mot de passe —
+oublié par la v680. Le patron repartait avec un mot de passe que la page de connexion ne
+connaissait pas, et la certitude d'avoir agi. C'est probablement l'origine des cinq comptes
+bloqués. Réparé.
+
+Preuves : `tests/test-700.js` (81 vérifications) et `scratchpad/sonde-mdp-oublie.js`, quatre
+cas lus à l'écran — identifiant mal écrit, compte avec adresse, compte sans adresse, et ce que
+l'application redemande ensuite.
+
+---
+
 ## 🚪 v683 — LES TROIS PORTES QUE JUSTIN A TROUVÉES LUI-MÊME (15 septembre 2026)
 
 Trois captures, trois phrases, trois défauts réels. Aucun n'a été trouvé par un test : ils ont

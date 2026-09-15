@@ -4912,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '687';
+const APP_VERSION = '688';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -29869,7 +29869,7 @@ async function pwdForgotSend(){
   }
   const u=db.users.find(x=>x.login && x.login.toLowerCase()===login && x.actif);
   if(!u){ const inact=db.users.find(x=>x.login && x.login.toLowerCase()===login && !x.actif);
-    show(inact?'Ce compte a été désactivé par ton entreprise — contacte ton administrateur.':((!_syncGotInitial&&syncEnabled())?'Les comptes de l\'entreprise ne sont pas encore arrivés sur cet appareil — vérifie ta connexion internet, puis réessaie.':'Identifiant inconnu sur cet espace.')); return; }
+    show(inact?'Ce compte a été désactivé par ton entreprise — contacte ton administrateur.':((!_syncGotInitial&&syncEnabled())?'Les comptes de l\'entreprise ne sont pas encore arrivés sur cet appareil — vérifie ta connexion internet, puis réessaie.':('L\'identifiant « '+login+' » n\'existe pas chez '+(localStorage.getItem('elan_entreprise_nom')||'cette entreprise')+'. Vérifie qu\'il est bien écrit : c\'est celui qu\'on t\'a donné, pas ton adresse e-mail, et il s\'écrit sans majuscule et sans espace.'))); return; }
   if(!(u.email||'').trim()){
     const entNom=localStorage.getItem('elan_entreprise_nom')||'';
     if(!entNom||!localStorage.getItem('elan_sync_team')){ show('Aucune adresse e-mail n\'est enregistrée pour ce compte. Demande à un administrateur de te poser un mot de passe provisoire (Utilisateurs → 🔑), puis d\'ajouter ton e-mail sur ta fiche (✎).'); return; }
@@ -29909,7 +29909,7 @@ async function pwdForgotEntreprise(uid){
        dirait qui est client de TEAM OP. */
     const r0=await fetch(PUSH_API+'/api/espaces/verifie-nom',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:syncTeam(),nom:nomTape})});
     const j0=await r0.json().catch(()=>({}));
-    if(!r0.ok||!j0.correspond){ show('« '+nomTape+' » ne correspond pas à l\'entreprise de ce compte.'); if(btn){btn.disabled=false;btn.textContent='Vérifier et envoyer le code';} return; }
+    if(!r0.ok||!j0.correspond){ show('⛔ « '+nomTape+' » ne correspond pas à l\'entreprise de ce compte. Vérifie l\'orthographe — c\'est le nom exact de ton entreprise, celui qu\'on t\'a donné avec ton identifiant.'); if(btn){btn.disabled=false;btn.textContent='Vérifier et envoyer le code';} return; }
     /* ══ SE DÉPANNER SOI-MÊME QUAND ON N'A JAMAIS PU ENTRER ═══════════════════════════════
        Demande de Justin, 15 septembre 2026, répétée après que je lui aie opposé le risque :
        « une personne n'arrive pas à se connecter, si son identifiant est enregistré dans une

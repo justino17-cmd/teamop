@@ -242,6 +242,19 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
   v('⛔ et il ne déduit rien du journal', /db\.journal/.test(ent), false);
   v('⛔ il faut d\'abord que le nom de l\'entreprise corresponde',
     ent.indexOf('verifie-nom') < ent.indexOf("!(u.email||'').trim() && !_pfViaEnt"), true);
+  /* ⛔ LES DEUX ERREURS QUE JUSTIN A NOMMÉES DOIVENT DIRE QUOI VÉRIFIER. « Si les identifiants
+     existent pas ou mal écrit, ça ne marche pas, ça met un message : vérifie ton identifiant
+     s'il est bien écrit — ou entreprise incorrecte, ça peut arriver. »
+     ⚠️ `show()` écrit en textContent : une balise ou une entité HTML s'afficherait EN CLAIR.
+     Première écriture de ce message, il portait un <br> et un <span> — lus à l'écran, ils
+     seraient apparus tels quels. Le contrôle ci-dessous garde cette leçon. */
+  v('l\'identifiant inconnu nomme l\'entreprise et dit quoi vérifier',
+    /n\\'existe pas chez '\+\(localStorage\.getItem\('elan_entreprise_nom'\)/.test(APP), true);
+  v('… et dit comment il s\'écrit', /sans majuscule et sans espace/.test(APP), true);
+  v('⛔ … sans une seule balise, puisque c\'est du texte brut',
+    /Vérifie qu\\'il est bien écrit : c\\'est celui qu\\'on t\\'a donné[^']*'/.test(APP) && !/n\\'existe pas chez[^;]{0,400}<br>/.test(APP), true);
+  v('l\'entreprise mal écrite invite à vérifier l\'orthographe',
+    /Vérifie l\\'orthographe — c\\'est le nom exact de ton entreprise/.test(APP), true);
   /* Le chemin « code à l'entreprise » reste offert, pour qui ne veut pas donner son adresse. */
   v('l\'ancien chemin reste accessible', /Je préfère que le code parte à mon entreprise/.test(APP), true);
   v('… et il ne rouvre pas la branche perso en boucle', /_pfViaEnt=true;/.test(APP), true);
