@@ -4811,6 +4811,24 @@ function tmEnt(){ var nom='',email='';
   try{ var D=(typeof db!=='undefined'&&db)||{}; nom=(((D.entreprise||{}).nom)||'').trim()||((D.mailFrom||'').trim()); email=((D.mailReply||'').trim())||((typeof currentUser!=='undefined'&&currentUser&&(currentUser.mailReply||'').trim())||''); }catch(_){ }
   try{ if(!nom) nom=localStorage.getItem('elan_sync_team')||''; }catch(_){ }
   return {nom:nom||'inconnue',email:email}; }
+/* ⛔ QUI A VU L'ERREUR, PAS QUI S'EST CONNECTÉ EN DERNIER. La Tour ne recevait que le nom de
+   l'entreprise : elle DEVINAIT donc la personne, en prenant la dernière session ouverte avant
+   l'horodatage. Chez une équipe de onze, c'est faux une fois sur deux — et un dossier qui nomme
+   quelqu'un à tort envoie chercher la panne au mauvais endroit, chez la mauvaise personne.
+   Constaté par Justin le 15 septembre 2026 sur le dossier « Interface figée pendant 3 285 ms ».
+   On envoie l'identifiant, le nom et le rôle — les trois que la Tour affiche DÉJÀ pour chaque
+   connexion. Ni e-mail, ni téléphone, ni rien d'autre : ça reste un rapport technique.
+   ⚠️ Entièrement sous try/catch, et rendant toujours un objet : cette sentinelle ne doit
+   JAMAIS faire tomber l'application, c'est sa première règle. */
+function tmQui(){
+  try{
+    var u=(typeof currentUser!=='undefined')&&currentUser;
+    if(!u||typeof u!=='object') return {login:'',nom:'',role:''};
+    return { login:String(u.login||'').slice(0,40),
+             nom:String(((u.prenom||'')+' '+(u.nom||'')).replace(/\s+/g,' ').trim()).slice(0,60),
+             role:String(u.role||'').slice(0,20) };
+  }catch(_){ return {login:'',nom:'',role:''}; }
+}
 function tmUA(){ try{ var u=navigator.userAgent||'', ap=/iPhone|iPad|iPod/i.test(u)?'iPhone':(/Android/i.test(u)?'Android':'PC'), nv=/Edg\//.test(u)?'Edge':(/OPR\//.test(u)?'Opera':(/Chrome\//.test(u)?'Chrome':(/Firefox\//.test(u)?'Firefox':(/Safari\//.test(u)?'Safari':'Navigateur')))); return ap+' · '+nv; }catch(_){ return '?'; } }
 function tmLoad(){ try{ var q=JSON.parse(localStorage.getItem(TM_KEY)||'[]'); return Array.isArray(q)?q:[]; }catch(_){ return []; } }
 function tmSaveQ(q){ try{ localStorage.setItem(TM_KEY,JSON.stringify(q.slice(-40))); }catch(_){ } }
@@ -4822,7 +4840,7 @@ function tmPush(type,message,stack,src,line){ try{
   var q=tmLoad(), e=null;
   for(var i=0;i<q.length;i++){ if(q[i].signature===sig){ e=q[i]; break; } }
   if(e){ e.count=(e.count||1)+1; }
-  else{ var ent=tmEnt(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),count:1,ts:Date.now()}); }
+  else{ var ent=tmEnt(), qui=tmQui(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),user:qui.login,userNom:qui.nom,userRole:qui.role,count:1,ts:Date.now()}); }
   tmSaveQ(q); setTimeout(tmFlush,500);
 }catch(_){ } }
 function tmFlush(){ try{
@@ -4886,7 +4904,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '682';
+const APP_VERSION = '683';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -29459,8 +29477,20 @@ function renderLogin(){ $('app-root').style.display='none'; $('login').style.dis
   const _auto=cnxAutoEnAttente();
   $('login-box').innerHTML=`<img class="login-logo" src="${_logo}" alt="OP GESTION"><h2>OP GESTION</h2>
     ${_surEspace?`<div style="text-align:center;margin:2px 0 14px"><div style="font-size:13px;color:var(--t2);margin-bottom:7px">Vous allez vous connecter à l'entreprise</div><div id="li-entnom" style="display:inline-block;background:color-mix(in srgb,var(--acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:100px;padding:8px 20px;font-size:16px;font-weight:800">🏢 ${esc(_entNom||'…')}</div>
-    ${(!_surEspace&&!BETA_ESSAI)?`<div id="li-orphelin" style="background:color-mix(in srgb,var(--amber) 12%,transparent);border:1px solid color-mix(in srgb,var(--amber) 45%,transparent);border-radius:12px;padding:11px 14px;margin:2px 0 12px;font-size:13px;line-height:1.55;color:var(--t1);text-align:left">⚠️ <b>Cet appareil n'est rattaché à aucune entreprise.</b><div style="color:var(--t2);margin-top:4px">Ce que tu saisiras ici <b>ne rejoindra pas ton équipe</b> et personne ne le verra. Demande le <b>lien de connexion</b> de ton entreprise, puis ouvre-le sur cet appareil.</div></div>`:''}
     ${localStorage.getItem('elan_lien_ok')?`<div style="margin-top:8px;font-size:12.5px;color:var(--acc);font-weight:700">✅ Lien de connexion reconnu — entre ton identifiant et ton mot de passe.</div>`:(localStorage.getItem('elan_ent_ok')?`<div style="margin-top:8px;font-size:12.5px;color:var(--acc);font-weight:700">✅ Entreprise reconnue — entre ton mot de passe.</div>`:'')}</div>`:''}
+    <!-- ⛔ CET AVERTISSEMENT ÉTAIT ÉCRIT DEPUIS DES MOIS ET NE S'EST JAMAIS AFFICHÉ.
+         Il vivait À L'INTÉRIEUR de la branche « cet appareil EST sur un espace », alors que sa
+         propre condition dit « cet appareil N'EST PAS sur un espace » : deux choses qui ne
+         peuvent pas être vraies ensemble, donc rien ne sortait jamais. Second signe que
+         personne ne l'a jamais vu à l'écran : sa couleur tirait sur la variable --amber,
+         qui n'existe dans AUCUN des deux thèmes — scripts/verifier-theme.js la signalait,
+         et c'était le seul endroit du fichier à l'employer.
+         Ce qu'il coûtait : quelqu'un arrivait sur cet écran, lisait « Compte local sur cet
+         appareil : laisse vide », laissait vide, et travaillait sur une base qui n'appartient
+         à personne et que son équipe ne verra jamais — sans un mot. C'est le défaut que Justin
+         a vu de ses yeux le 15 septembre 2026 : « c'est quoi cette page, je trouve ça pas bien ».
+         Il est désormais FRÈRE de la branche, plus son enfant. ⚠️ Ne jamais le remettre dedans. -->
+    ${(!_surEspace&&!BETA_ESSAI)?`<div id="li-orphelin" style="background:color-mix(in srgb,var(--org) 13%,transparent);border:1px solid color-mix(in srgb,var(--org) 48%,transparent);border-radius:12px;padding:12px 14px;margin:2px 0 14px;font-size:13px;line-height:1.55;color:var(--t1);text-align:left">⚠️ <b>Cet appareil n'est rattaché à aucune entreprise.</b><div style="color:var(--t2);margin-top:5px">Écris le <b>nom de ton entreprise</b> ci-dessous — sinon ce que tu saisiras <b>ne rejoindra pas ton équipe</b> et personne ne le verra.</div></div>`:''}
     ${(_surEspace&&!_syncGotInitial&&syncEnabled())?`<div id="li-sync" style="text-align:center;margin:-4px 0 12px;font-size:12px;color:var(--t3)">⏳ Chargement des comptes de l'entreprise…</div>`:''}
     ${_compteRetire?`<div id="li-retire" style="background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--t1);line-height:1.55;margin-bottom:12px">⛔ Ton compte a été <b>${_compteRetire==='supprime'?'supprimé':'désactivé'}</b> par ton entreprise : tu ne peux plus te connecter. Contacte ton administrateur.</div>`:''}
     ${_auto?`<div id="li-attente" style="text-align:center;padding:26px 10px">
@@ -29471,7 +29501,7 @@ function renderLogin(){ $('app-root').style.display='none'; $('login').style.dis
     <form onsubmit="doLogin(event)" autocomplete="off">
       <div class="login-card">
         <div class="login-card-title">Connexion</div>
-        ${_surEspace?'':`<div class="field"><label>Entreprise <span style="font-weight:400;color:var(--t3)">— si ton compte est chez une entreprise TeamOP</span></label><input id="li-ent" placeholder="Nom de ton entreprise (ex : GCI)" autocomplete="organization" autocapitalize="off"><div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">Écris le nom de ton entreprise, puis ton identifiant et ton mot de passe : tu arrives directement dans son espace, sans lien ni code. Tu as un lien de connexion ? Colle-le ici, il marche aussi. Compte local sur cet appareil : laisse vide.</div></div>`}
+        ${_surEspace?'':`<div class="field"><label>Entreprise <span style="font-weight:400;color:var(--t3)">— si ton compte est chez une entreprise TeamOP</span></label><input id="li-ent" placeholder="Nom de ton entreprise (ex : GCI)" autocomplete="organization" autocapitalize="off"><div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">Écris le nom de ton entreprise, puis ton identifiant et ton mot de passe : tu arrives directement dans son espace, sans lien ni code. Tu as un lien de connexion ? Colle-le ici, il marche aussi.</div></div>`}
         <div class="field"><label>Identifiant</label><input id="li-login" value="${esc(saved)}" placeholder="Votre identifiant" autocomplete="username" required></div>
         <div class="field"><label>Mot de passe</label><input id="li-pin" type="password" placeholder="••••••••" autocomplete="current-password" required><div style="font-size:11px;color:var(--t3);margin-top:4px">Ancien compte à code PIN ? Tape ton PIN — on te fera créer ton mot de passe juste après.</div></div>
         <label class="login-remember"><input type="checkbox" id="li-remember" ${saved?'checked':''}> Rester connecté</label>
@@ -29609,6 +29639,21 @@ async function doLogin(e){ e.preventDefault();
   // Champ « Entreprise » (connexion à la Organilog) : si le nom tapé n'est pas l'espace
   // actuel de l'appareil, on demande son code au serveur et on bascule d'espace d'abord.
   const _entSaisi=(($('li-ent')||{}).value||'').trim();
+  /* ⛔ LE CHAMP VIDE N'EST PLUS UN ACCIDENT. L'aide disait « Compte local sur cet appareil :
+     laisse vide » — donc on laissait vide, on entrait, et on travaillait sur une base qui
+     n'appartient à personne, que l'équipe ne verra JAMAIS. Sans un mot : l'avertissement
+     prévu pour ce cas vivait dans une branche morte et ne s'affichait pas (corrigé juste
+     au-dessus, dans renderLogin).
+     On ne FERME pas ce chemin — quelqu'un qui découvre l'application seul en a besoin, et
+     des comptes locaux existent déjà. On exige un geste conscient, une seule fois, à la
+     connexion. Ni pour la bêta (elle n'a pas de champ Entreprise), ni pour un appareil
+     déjà rattaché (il n'a pas ce champ non plus : `_surEspace` le retire). */
+  if(!_entSaisi && $('li-ent') && !BETA_ESSAI){
+    if(!confirm('Tu n\'as pas écrit le nom de ton entreprise.\n\nTu vas travailler SUR CET APPAREIL SEULEMENT : ton équipe ne verra rien de ce que tu saisiras, et tu ne verras rien de ce qu\'elle fait.\n\nSi tu appartiens à une entreprise TeamOP, annule et écris son nom.\n\nContinuer sans entreprise ?')){
+      const el=$('li-ent'); if(el) el.focus();
+      return;
+    }
+  }
   /* L'empreinte se calcule AVANT : c'est elle que le serveur vérifie pour ouvrir l'espace de
      l'entreprise tapée. Le mot de passe lui-même ne quitte jamais l'appareil. */
   const h=await sha256(pin);

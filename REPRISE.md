@@ -13,6 +13,68 @@ de ligne du tout.
 
 ---
 
+## 🚪 v683 — LES TROIS PORTES QUE JUSTIN A TROUVÉES LUI-MÊME (15 septembre 2026)
+
+Trois captures, trois phrases, trois défauts réels. Aucun n'a été trouvé par un test : ils ont
+été trouvés par quelqu'un qui REGARDE ses écrans.
+
+### 1. « c'est quoi cette page, je trouve ça pas bien »
+
+L'écran de connexion d'`app.html` sur un appareil neuf. Il portait un avertissement — « Cet
+appareil n'est rattaché à aucune entreprise, ce que tu saisiras ne rejoindra pas ton équipe » —
+**qui ne s'est jamais affiché une seule fois** : il vivait À L'INTÉRIEUR de la branche « cet
+appareil EST sur un espace » alors que sa propre condition dit l'inverse. Deux choses qui ne
+peuvent pas être vraies ensemble.
+
+Second signe que personne ne l'avait jamais vu : sa couleur tirait sur `--amber`, absente des
+DEUX thèmes. `scripts/verifier-theme.js` la signalait depuis des semaines, et c'était le seul
+endroit du fichier à l'employer.
+
+Ce que ça coûtait : l'aide disait « Compte local sur cet appareil : laisse vide ». On laissait
+vide, on entrait, et on travaillait sur une base qui n'appartient à personne — sans un mot.
+Corrigé : l'avertissement est sorti de sa branche, la phrase-piège a disparu, et partir sans
+entreprise demande maintenant une confirmation explicite (jamais pour la bêta, jamais pour un
+appareil déjà rattaché — dans les deux cas le champ n'existe pas).
+
+### 2. « le lien de connexion, je le trouve dangereux »
+
+Il avait raison, et c'était pire. `tourIdentDefaut` rendait le **prénom** du client,
+`tourMdpDefaut` son **nom de famille + « !! »**. Florian Duflot → `florian` / `Duflot!!` — sur
+`/api/espaces/connexion`, qui est PUBLIQUE, pour une entreprise dont l'adresse s'écrit sur un
+camion. Prénom et nom sont sur son site, sur son devis, sur LinkedIn.
+
+Le mot de passe provisoire est désormais **tiré au sort** (`OP-` + 10 caractères, sans O/0/I/l/1
+— il se dicte au téléphone). ⚠️ Conséquence à connaître : **il n'est plus recalculable**. Un
+espace existant dont ce navigateur n'a pas gardé la trace affiche « inconnu sur cet appareil »
+au lieu d'inventer une valeur — qui était de toute façon fausse dès que le client avait changé
+son mot de passe. La sortie est nommée à l'écran : « Mot de passe oublié ? », qui marche
+maintenant que chaque compte doit avoir une adresse (v681).
+
+### 3. « quand on a ça je veux voir quel utilisateur »
+
+Le dossier d'erreur de la Tour affichait « QUI ÉTAIT CONNECTÉ » — mais c'était une **déduction**,
+la dernière session ouverte avant l'horodatage, lue dans le journal des connexions. Chez une
+équipe de onze, ça désigne le mauvais une fois sur deux, et on va chercher la panne chez
+quelqu'un qui n'y était pour rien.
+
+L'application dit maintenant qui elle avait devant elle (`tmQui` → `user`/`userNom`/`userRole`,
+les trois champs que porte DÉJÀ le journal des connexions — ni e-mail, ni téléphone). Le serveur
+les range par entreprise (`ent.gens`, plafonné à 12, sans doublon). La Tour montre le FAIT en
+premier, et quand elle ne l'a pas, elle écrit noir sur blanc que ce qui suit est une déduction.
+Les deux ne doivent jamais se lire pareil.
+
+Preuves : `tests/test-700.js` (39 vérifications) et `scratchpad/sonde-ecran-connexion.js`, qui
+mesure l'écran avant/après sur le fichier livré, servi en local avec un profil VIDE — aucune
+donnée de client, ce qui le rend compatible avec la règle « le navigateur piloté ne va pas sur
+app.html en production ».
+
+Deux tests ont dû être réécrits, et c'est le même piège que la veille : `test-655` épinglait la
+formulation de l'avertissement (« demande le lien de connexion »), `test-672` épinglait
+`carte('QUI ÉTAIT CONNECTÉ',quiHtml`. Les deux sont tombés **parce que le produit s'était
+amélioré**. Un test qui épingle une ligne pousse à remettre l'ancienne : on éprouve la garantie.
+
+---
+
 ## 🔐 v681 → v682 — MOT DE PASSE + E-MAIL OBLIGATOIRES POUR TOUT LE MONDE (publié le 15 septembre 2026)
 
 Quatre demandes de Justin dans la même heure, toutes nées de la même journée : une équipe

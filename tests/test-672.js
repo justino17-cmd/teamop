@@ -124,8 +124,16 @@ console.log('D’un incident à la personne qui l’a vécu');
   /* ⚠️ Les chaînes de tour.html sont en UTF-8 LITTÉRAL depuis la refonte, plus en \uXXXX.
      Une garde écrite avec les échappements passait au rouge sur du code juste — vu en
      rejouant ce lot sur la bonne branche. On vise le texte tel qu'il est écrit. */
-  v('⛔ la carte est dans le dossier', /carte\('QUI ÉTAIT CONNECTÉ',quiHtml/.test(f), true);
-  v('…et elle dit que l’écart compte', /quelqu’un entré le matin peut planter l’après-midi/.test(f), true);
+  /* ⚠️ LA CARTE A CHANGÉ DE CONTENU, PAS DE RAISON D'ÊTRE. Le 15 septembre 2026 elle ne
+     montrait qu'une DÉDUCTION — la dernière session ouverte avant l'horodatage — et Justin a
+     demandé à voir la vraie personne. Elle porte donc maintenant le FAIT (`quiExact`, envoyé
+     par l'application depuis la v683) AVANT la déduction. Ce test épinglait `carte('QUI ÉTAIT
+     CONNECTÉ',quiHtml` : il est tombé alors que la carte s'était enrichie. On vérifie
+     l'invariant — la carte existe, et les deux sources y sont — pas l'ordre des caractères. */
+  v('⛔ la carte est dans le dossier', /carte\('QUI ÉTAIT CONNECTÉ',/.test(f), true);
+  v('⛔ elle porte la déduction…', /quiHtml,/.test(f), true);
+  v('⛔ …et le fait, quand l’application l’a dit', /carte\('QUI ÉTAIT CONNECTÉ',quiExact/.test(f), true);
+  v('…et on ne peut pas confondre les deux', /Ce qui suit est une <b>déduction<\/b>/.test(f), true);
 
   /* Le chemin d'entrée traduit en français : « adresse » ou « identifiants » ne se lit pas
      dans une console qu'on ouvre à 7 h du matin. */

@@ -1248,6 +1248,15 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       const entNom = monStr(r.entreprise, 80) || 'inconnue';
       const entEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(monStr(r.email, 120)) ? monStr(r.email, 120).toLowerCase() : '';
       const appareil = monStr(r.appareil, 60) || '?';
+      /* ⛔ QUI ÉTAIT CONNECTÉ — LE FAIT, PAS LA DÉDUCTION. La Tour n'avait que le nom de
+         l'entreprise : elle nommait donc la personne en prenant la dernière session ouverte
+         avant l'horodatage. Chez une équipe de onze, ça désigne le mauvais une fois sur deux,
+         et on va chercher la panne chez quelqu'un qui n'y était pour rien. L'application dit
+         maintenant qui elle avait devant elle (v683). Trois champs, les mêmes que ceux que
+         porte déjà le journal des connexions — rien de plus personnel n'entre ici. */
+      const qui = monStr(r.user, 40).toLowerCase().trim();
+      const quiNom = monStr(r.userNom, 60).trim();
+      const quiRole = monStr(r.userRole, 20).trim();
       const count = Math.min(500, Math.max(1, parseInt(r.count, 10) || 1));
       const now = Date.now();
       /* Tri à l'entrée : un « gel » de plus d'une minute n'est pas un gel.
@@ -1286,6 +1295,16 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       let ent = issue.entreprises.find(e => e.nom === entNom);
       if (!ent) { ent = { nom: entNom, email: entEmail, count: 0, lastTs: now }; if (issue.entreprises.length < 60) issue.entreprises.push(ent); }
       ent.count += count; ent.lastTs = now; if (entEmail && !ent.email) ent.email = entEmail;
+      /* Les personnes touchées, par entreprise — au plus 12, et sans doublon. On garde la
+         PREMIÈRE vue et on met à jour son horodatage : c'est une liste de qui a rencontré le
+         problème, pas un journal de passage. Une version antérieure à la v683 n'envoie rien :
+         la liste reste vide, et la Tour le dit au lieu de deviner. */
+      if (qui) {
+        ent.gens = Array.isArray(ent.gens) ? ent.gens : [];
+        let g = ent.gens.find(x => x && x.login === qui);
+        if (!g && ent.gens.length < 12) { g = { login: qui, nom: quiNom, role: quiRole, count: 0, lastTs: now }; ent.gens.push(g); }
+        if (g) { g.count += count; g.lastTs = now; if (quiNom && !g.nom) g.nom = quiNom; if (quiRole && !g.role) g.role = quiRole; }
+      }
       if (Object.keys(issue.appareils).length < 20 || issue.appareils[appareil]) issue.appareils[appareil] = (issue.appareils[appareil] || 0) + count;
     }
     monSave();

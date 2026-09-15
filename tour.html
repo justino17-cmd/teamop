@@ -2191,7 +2191,7 @@ body.plans .reg-l.cli::before{display:none}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.59</div>
+    <div class="lg-pied">console interne · v2.60</div>
   </div>
 </div>
 
@@ -2230,13 +2230,13 @@ body.plans .reg-l.cli::before{display:none}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.59</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.60</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
   </div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.59</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.60</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2300,7 +2300,7 @@ function setApp(app,sansAnim,tabVoulu){
   if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; }catch(e){} }
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
   var nom=APPS_TOUR[app].nom;
-  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.59';
+  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.60';
   var pn=$('app-pill-nom'); if(pn) pn.textContent=APPS_TOUR[app].court;
   /* l'onglet demandé par le hash prime (un lien #gestion/entreprises tapé depuis MESSAGES) ; sinon
      le dernier onglet ouvert dans cette console ; sinon l'accueil */
@@ -3554,12 +3554,26 @@ function tourIdentDefaut(email){
   p=p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
   return p||'admin';
 }
-function tourMdpDefaut(email){
-  var c=(CLI.list||[]).find(function(x){ return x.email===email; })||{};
-  var n=String(c.nomFam||String(c.nom||'').trim().split(/\s+/).slice(1).join(' ')||'').trim();
-  n=n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
-  n=n?(n.charAt(0).toUpperCase()+n.slice(1)):'Teamop';
-  return n+'!!';
+/* ⛔ UN MOT DE PASSE PROVISOIRE NE SE DEVINE PAS. Signalé par Justin le 15 septembre 2026 :
+   « le lien de connexion, je le trouve dangereux ». Il avait raison, et c'était pire que ça en
+   avait l'air. Cette fonction rendait le NOM DE FAMILLE du client suivi de « !! », pendant que
+   `tourIdentDefaut` rend son PRÉNOM. Pour Florian Duflot chez une entreprise dont l'adresse
+   s'écrit sur un camion, ça donne : identifiant `florian`, mot de passe `Duflot!!` — et
+   /api/espaces/connexion est une route PUBLIQUE. Prénom et nom sont sur le site du client, sur
+   son devis, sur LinkedIn : n'importe qui pouvait entrer chez lui tant qu'il n'avait pas changé
+   son mot de passe. Et on a découvert le même jour que des comptes ne l'avaient jamais changé.
+   Désormais tiré au sort, avec l'alphabet des choses qu'on dicte au téléphone : ni O/0, ni I/l/1.
+   ⚠️ Conséquence à connaître : il n'est plus RECALCULABLE. Un espace déjà créé dont ce
+   navigateur n'a pas gardé la trace n'a plus de mot de passe à afficher — et c'est honnête,
+   voir `mdpInconnu` dans tourLienEntreprise. Avant, on en affichait un qui était de toute façon
+   faux dès que le client avait changé le sien. */
+function tourMdpDefaut(){
+  var al='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', m='', i;
+  try{
+    var b=new Uint8Array(10); crypto.getRandomValues(b);
+    for(i=0;i<10;i++) m+=al[b[i]%al.length];
+  }catch(e){ for(i=0;i<10;i++) m+=al[Math.floor(Math.random()*al.length)]; }
+  return 'OP-'+m;
 }
 function tourPromoEntreprise(nomEnt,btn){
   var inp=document.getElementById('pack-promo'); var code=((inp&&inp.value)||'').trim().toUpperCase();
@@ -3621,7 +3635,14 @@ async function tourLienEntreprise(email,nom,neuf,identConnu){
   var mdp=tourMdpDefaut(email);
   var e=await tourEspaceDe(email,nom,ident,mdp,neuf);
   if(!e) return;   // refus du serveur ou serveur injoignable : tourEspaceDe a déjà dit quoi
-  var mdpAff=e.mdp||mdp;
+  /* ⛔ ON NE FABRIQUE PAS UN MOT DE PASSE QUE LE SERVEUR N'A JAMAIS HACHÉ. Quand l'espace
+     existe déjà et que CE navigateur n'en a pas gardé la trace (la Tour ouverte depuis le
+     téléphone plutôt que depuis le Mac), il n'y a rien à afficher — et depuis que le mot de
+     passe est tiré au sort, le recalculer donnerait une valeur inventée que le client
+     taperait en vain. On le dit. Le chemin de secours existe : « Mot de passe oublié ? » sur
+     l'écran de connexion, maintenant que chaque compte doit avoir une adresse e-mail. */
+  var mdpInconnu=!e.mdp && (e.annuaire||0)>0;
+  var mdpAff=e.mdp||(mdpInconnu?'':mdp);
   var debut=neuf?'Bonjour,\n\nPour des questions de sécurité et une mise à jour exceptionnelle, ton espace OP GESTION a été RÉINITIALISÉ : tu repars sur une version toute propre, stable et finie. Tout est à recréer (utilisateurs, clients…), mais sur une base saine — et clique le nouveau lien sur CHAQUE appareil de l\'équipe.\n\n':'Bienvenue sur OP GESTION !\n\n';
   var adr='teamop.fr/e/'+(e.slug||espSlugJs(e.nom));
   /* ⛔ LE CODE D'ACCÈS NE SORT PLUS DÈS QUE L'ESPACE PEUT S'EN PASSER — demande de Justin,
@@ -3640,7 +3661,7 @@ async function tourLienEntreprise(email,nom,neuf,identConnu){
      d'afficher un message incomplet, ou de faire attendre tout le panneau pour une ligne. */
   var txt=debut+'UNE SEULE ADRESSE À RETENIR, pour toi et pour toute ton équipe :\n'+adr
     +(sansCode?'' :'\n\nTA TOUTE PREMIÈRE CONNEXION — une seule fois, pour ouvrir l\'espace :\nSur cette adresse, touche « Première connexion de l\'entreprise ? » et entre ton code d\'accès :\n\n     __CODE__')
-    +'\n\n'+(sansCode?'POUR ENTRER :':'Puis :')+'\n• Identifiant : '+e.ident+'\n• Mot de passe provisoire : '+mdpAff+'\n\nL\'app te fait alors choisir TON vrai mot de passe.\n\nPOUR TOUTE TON ÉQUIPE — la même adresse :\n'+adr
+    +'\n\n'+(sansCode?'POUR ENTRER :':'Puis :')+'\n• Identifiant : '+e.ident+'\n• Mot de passe provisoire : '+(mdpInconnu?'(à te faire redonner — voir plus bas)':mdpAff)+'\n\nL\'app te fait alors choisir TON vrai mot de passe.\n\nPOUR TOUTE TON ÉQUIPE — la même adresse :\n'+adr
     +'\n\nChacun y va, tape SON identifiant et SON mot de passe, et arrive dans ton espace. Rien à conserver, ça marche sur n\'importe quel téléphone — mets-la en favori.\nTu crées les comptes de ton équipe dans Utilisateurs.'
     +(sansCode?'':'\n\nGarde ce code pour toi : il ouvre ton espace. On peut le renouveler quand quelqu\'un part.')
     +'\n\nBonne prise en main !\n— TEAM OP · teamop.fr';
@@ -3675,7 +3696,9 @@ async function tourLienEntreprise(email,nom,neuf,identConnu){
     '<div id="lg-acces-quand" style="color:var(--muted);font-size:12px;margin:-8px 0 14px"></div>'
     )+
     '<div class="sec">SES IDENTIFIANTS DE DÉPART</div>'+
-    '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b> <span style="color:var(--muted);font-size:12px">(son prénom)</span><br>Mot de passe provisoire : <b>'+esc(mdpAff)+'</b> <span style="color:var(--muted);font-size:12px">(son nom + « !! » — l\'app lui fait choisir son vrai mot de passe à la 1re connexion)</span></div>'+
+    '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b> <span style="color:var(--muted);font-size:12px">(son prénom)</span><br>Mot de passe provisoire : '+(mdpInconnu
+      ? '<span style="color:var(--amber,#B45309);font-weight:700">inconnu sur cet appareil</span> <span style="color:var(--muted);font-size:12px">— il a été montré depuis un autre navigateur. Si la personne ne l\'a plus : « Mot de passe oublié ? » sur l\'écran de connexion lui envoie un code par e-mail.</span>'
+      : '<b>'+esc(mdpAff)+'</b> <span style="color:var(--muted);font-size:12px">(tiré au sort — l\'app lui fait choisir son vrai mot de passe à la 1re connexion)</span>')+'</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px"><button class="btn-plein" onclick="tourMailAcces(\''+jsq(e.nom)+'\',this)">📧 Envoyer par e-mail au client</button>'+
     (neuf?'':'<button class="btn-fant" style="color:var(--redText)" onclick="tourRepartirNeuf(\''+jsq(email)+'\',\''+jsq(e.nom)+'\')">🔄 Repartir à neuf</button>')+
     '<a class="btn-fant" id="lg-mailto" style="text-decoration:none;opacity:.45;pointer-events:none" href="#" title="Il faut d\'abord un code d\'accès">✉️ Ou ouvrir dans Mail</a></div>'+
@@ -4849,6 +4872,34 @@ function vueIncident(i){
      écrit depuis des mois. La console tenait les deux côte à côte sans jamais les relier. */
   incCtxCharger(i.id);
   var cx=INC.ctx[i.id];
+  /* ⛔ LE FAIT D'ABORD, LA DÉDUCTION ENSUITE — ET ON DIT LAQUELLE DES DEUX ON LIT.
+     Justin, 15 septembre 2026, sur le dossier « Interface figée pendant 3 285 ms » : « je veux
+     voir quel utilisateur ». Cette carte ne montrait qu'une DÉDUCTION — la dernière session
+     ouverte avant l'horodatage, prise dans le journal des connexions. Chez une équipe de onze
+     c'est faux une fois sur deux, et ça nomme quelqu'un qui n'y était pour rien.
+     Depuis la v683, l'application dit elle-même qui elle avait devant elle (`ent.gens`). Quand
+     c'est là, c'est un FAIT et ça passe en premier ; quand ce n'est pas là — incident ancien,
+     appareil encore sur une version antérieure — on garde la déduction, mais on écrit noir sur
+     blanc que c'en est une. Les deux ne doivent jamais se lire pareil. */
+  var quiExact='';
+  try{
+    var gensVus=[];
+    (i.entreprises||[]).forEach(function(e){
+      ((e&&e.gens)||[]).forEach(function(g){ if(g&&g.login) gensVus.push({ent:e.nom||'—',g:g}); });
+    });
+    gensVus.sort(function(a,b){ return (b.g.lastTs||0)-(a.g.lastTs||0); });
+    if(gensVus.length) quiExact='<div style="padding-bottom:4px">'+
+      '<div style="font-size:12px;font-weight:700;color:var(--vert,#1E7A4E);letter-spacing:.02em">✅ SIGNALÉ PAR L’APPLICATION — ce n’est pas une déduction</div>'+
+      gensVus.map(function(x){
+        return '<div style="padding:9px 0;border-top:1px solid var(--hairline)">'+
+          '<div style="font-size:13.5px;font-weight:600">'+esc(x.ent)+'</div>'+
+          '<div style="font-size:13px;margin-top:2px">'+esc(x.g.nom||x.g.login)+
+            ' <span class="mono" style="color:var(--muted)">'+esc(x.g.login)+'</span>'+
+            (x.g.role?' <span style="color:var(--muted)">· '+esc(x.g.role)+'</span>':'')+'</div>'+
+          '<div style="font-size:12px;color:var(--muted);margin-top:2px">'+
+            (x.g.count>1?x.g.count+' fois':'1 fois')+(x.g.lastTs?' · dernière '+esc(fmtJour(x.g.lastTs)):'')+'</div></div>';
+      }).join('')+'</div>';
+  }catch(e){ quiExact=''; }
   var quiHtml;
   if(!cx||cx.charge) quiHtml='<div style="font-size:13px;color:var(--muted);padding-top:6px">Recherche des sessions ouvertes au moment de l’erreur…</div>';
   /* msgErreur rend déjà une phrase ponctuée : en recoller un point donnait « … dans un
@@ -4956,7 +5007,7 @@ function vueIncident(i){
       carte('OÙ ET QUAND','<div class="kv">'+ctx+freq+'</div>')+
       carte('ENTREPRISES TOUCHÉES',entHtml,'Les clients chez qui ce problème est apparu, et combien de fois chacun.')+
       carte('APPAREILS',appareils,'Le téléphone, la tablette ou l’ordinateur sur lequel le problème est apparu.')+
-      carte('QUI ÉTAIT CONNECTÉ',quiHtml,'La dernière session ouverte avant l’erreur, chez chaque entreprise touchée — et par quel chemin elle est entrée. L’écart est donné : quelqu’un entré le matin peut planter l’après-midi.')+
+      carte('QUI ÉTAIT CONNECTÉ',quiExact+'<div style="font-size:11.5px;color:var(--muted);margin:'+(quiExact?'10px 0 0':'0 0 2px')+';line-height:1.5">'+(quiExact?'Ci-dessous, à titre indicatif : la dernière session ouverte avant l’erreur.':'⚠️ L’application qui a signalé cette erreur ne disait pas encore qui était connecté (avant la v683). Ce qui suit est une <b>déduction</b> — la dernière session ouverte avant l’horodatage, pas forcément la personne qui a vu le problème.')+'</div>'+quiHtml,'Qui a rencontré le problème. Quand l’application l’a dit elle-même, c’est un fait ; sinon, c’est la dernière session ouverte avant l’erreur, et c’est écrit.')+
       carte('NOTES DE L’ÉQUIPE',notes,'Visible par toute l’équipe, gardé dans le dossier.')+
       carte('HISTORIQUE DU DOSSIER',histo)+
     '</div>'+

@@ -28,7 +28,19 @@ console.log('Un appareil non rattaché le dit, sur l\'écran de connexion');
   /* La bêta est un canal interne, sans espace d'entreprise : l'avertissement y serait faux. */
   v('⛔ la bêta en est exclue', /&&!BETA_ESSAI\)\?`<div id="li-orphelin"/.test(APP), true);
   v('il dit la CONSÉQUENCE, pas seulement l\'état', /ne rejoindra pas ton équipe/.test(APP), true);
-  v('…et il dit quoi faire', /lien de connexion<\/b> de ton entreprise/.test(APP), true);
+  /* ⚠️ ON ÉPROUVE « IL DIT QUOI FAIRE », PAS UNE PHRASE PRÉCISE. Ce test cherchait
+     « lien de connexion de ton entreprise » — le geste a changé le 15 septembre 2026, et il a
+     changé pour de BONNES raisons : le lien porteur de clé a été retiré (v668), la voie normale
+     est maintenant le nom de l'entreprise, tapé sur place. Un test qui épingle la formulation
+     casse quand le produit s'améliore, et pousse à remettre l'ancienne. On vérifie donc qu'un
+     GESTE est nommé, et qu'il pointe vers le champ qui est juste en dessous. */
+  v('…et il dit quoi faire', /nom de ton entreprise<\/b> ci-dessous/.test(APP), true);
+  /* ⛔ ET IL S'AFFICHE POUR DE VRAI. C'est tout le défaut du 15 septembre : écrit depuis des
+     mois, enfermé dans la branche « cet appareil EST sur un espace », donc jamais rendu.
+     Mesuré au navigateur : scratchpad/sonde-ecran-connexion.js. Le contrôle mécanique vit
+     dans tests/test-700.js, qui compare sa position à la fermeture de cette branche. */
+  v('⛔ et il n\'est pas enfermé dans la branche qui l\'empêchait de sortir',
+    APP.indexOf('id="li-orphelin"') > APP.indexOf('Entreprise reconnue — entre ton mot de passe.'), true);
 }
 
 console.log('\nOn n\'annonce jamais l\'existence d\'une entreprise');
