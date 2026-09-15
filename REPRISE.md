@@ -249,6 +249,83 @@ mesures au navigateur, sur la bêta). Suite complète : 1 598.
 
 ---
 
+## 🔑 v691 — REFAIRE LES MOTS DE PASSE DEPUIS LA TOUR (15 septembre 2026 au soir)
+
+Justin : « Je veux pas un bouton dans le truc utilisateur. Je veux un bouton MOI dans la tour de
+contrôle s'il y a des erreurs comme ça. C'est à nous de gérer ces problèmes-là. »
+
+### Ce que ça répare
+
+Des comptes qui ne peuvent plus entrer. L'administrateur refaisait leurs mots de passe depuis
+l'application, mais l'annuaire ne recevait rien (défaut corrigé en v685) : il distribuait des
+mots de passe que la page de connexion ne connaissait pas.
+
+### ⛔ DEUX GESTES RESTENT À FAIRE, DANS CET ORDRE, ET LE BOUTON NE MARCHE PAS AVANT
+
+1. la v691 publiée (fait) ;
+2. **« Exiger la dernière version » depuis la Tour**, pour que `version.min` passe à 691.
+
+La route **refuse** tant que le minimum du parc est en dessous, et elle dit quoi faire. Ce n'est
+pas de la prudence décorative : les appareils d'avant la v691 ne savent pas EXÉCUTER un ordre de
+ce type — voir le défaut n° 1 plus bas.
+
+### Le mécanisme, et ses deux moitiés
+
+La base d'une entreprise est CHIFFRÉE : le serveur ne peut pas y écrire un mot de passe. On
+réemploie `ordres.json` — la Tour ORDONNE, le premier appareil de l'entreprise qui s'ouvre
+EXÉCUTE — jusque-là réservé aux suppressions de compte.
+
+- **Le mot de passe ne quitte jamais le navigateur de la Tour.** Il y est tiré, seule son
+  empreinte SHA-256 part. Ni le serveur, ni `ordres.json`, ni les journaux, ni les courriels ne
+  le voient. Il s'affiche une fois au patron ; personne ne pourra le retrouver.
+- **L'annuaire change tout de suite** (la page d'entrée accepte le mot de passe neuf), **la fiche
+  suit au premier appareil ouvert**. Entre les deux, la personne passe l'entrée et se fait
+  refuser DANS l'application. La Tour le dit — promettre « c'est fait » ferait un client au
+  téléphone.
+
+### ⛔ SIX DÉFAUTS TROUVÉS PAR `gardien` AVANT DÉPLOIEMENT — aucun n'était visible à l'écran
+
+Le typage des ordres (le risque que j'avais vu) était juste. Le reste, non.
+
+1. **STRUCTUREL, et c'était le vrai risque.** `ordreMdpAttente` n'avait aucune borne de temps, et
+   **les appareils déjà déployés ne savent pas acquitter un ordre de ce type**. L'ordre restait
+   donc `fait:0` pour toujours, l'annuaire gelé pour toujours, et la personne coincée entre une
+   page d'entrée qui veut le mot de passe neuf et une application qui veut l'ancien — **sans
+   issue**. Trois réponses : péremption à 30 jours, une route d'annulation
+   (`/api/monitor/compte/mdp-annuler`) avec son lien dans la Tour, et la règle du dépôt **gravée
+   dans la route**. Les appareils d'abord, la porte ensuite, vérifié par le code et pas par un
+   commentaire.
+2. **`h` n'est pas un identifiant, c'est le mot de passe** : `/api/espaces/connexion` le lit
+   directement du corps de la requête. `ordres.json` — un fichier qui ne portait que des
+   identifiants — devenait un entrepôt de secrets utilisables, rediffusés 7 jours après usage.
+   L'empreinte s'efface maintenant à l'acquittement, n'est plus servie ensuite, et la purge au
+   chargement **réécrit le fichier** : sinon les secrets périmés dormaient sur le disque.
+3. Le dossier de monitoring affichait un mot de passe refait comme un compte **banni**
+   (`undefined !== false`) — sur la seule ligne que mon diff n'avait pas visitée.
+4. `/api/monitor/compte/reautoriser` rendait `ok:true` sur un ordre `mdp` sans rien réparer : la
+   Tour annonçait « réautorisé » sur une opération qui n'avait rien fait.
+5. Les deux écritures sur disque n'étaient pas contrôlées — un disque qui tousse séparait les
+   deux moitiés que la route exige « ou aucune ». On restaure et on rend 500.
+6. La clé d'équipe **partagée** ne prouve rien, et la route sert désormais des secrets. On ferme
+   la moitié qui en porte un, **et seulement elle** : refuser la route entière aurait coupé les
+   suppressions d'une entreprise restée sur cette clé, le jour du déploiement, pour une raison
+   sans rapport avec ce qu'on ajoutait.
+
+### Éprouvé
+
+`tests/test-702.js` (64 vérifications) lance le VRAI serveur isolé et rejoue les deux
+catastrophes : un ordre de mot de passe n'apparaît PAS dans `suppressions` (sinon le parc
+déployé effacerait le compte) et ne bannit personne. Plus la péremption, l'effacement du secret,
+le gel et sa levée, le corps hostile, et le refus « parc trop ancien ».
+
+`scratchpad/sonde-ordre-mdp.js` exécute l'ordre dans un vrai navigateur.
+⚠️ **Elle sert une copie de `beta.html` avec `BETA_ESSAI` retourné** — mesuré, pas deviné : ce
+drapeau est la PREMIÈRE condition de sortie d'`ordresVerifier`, et la sonde rendait « rien n'a
+bougé » sur du code juste. La garde est voulue (la bêta n'appartient à aucune entreprise) et
+reste dans le fichier livré ; c'est `test-702` qui la garde.
+
+---
+
 ## ⚡ « ÇA RAME » — **PUBLIÉ en v690** le 15 septembre 2026 au soir
 
 Justin : « il y a aussi un bug d'interface, ça rame beaucoup / application lente ». Aucun écran
