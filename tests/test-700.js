@@ -285,5 +285,56 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
   v('l\'état d\'avant emporte l\'e-mail, pour le retour en arrière', /secu:u\.secu,email:u\.email\}/.test(sav), true);
 }
 
+/* ══ 7. CHANGER SON ADRESSE E-MAIL, CONFIRMÉ SUR L'ANCIENNE ══════════════════════════
+   Justin, 15 septembre 2026 : « fais ça pour tous les utilisateurs même s'ils ont déjà une
+   adresse mail, et s'ils changent il faut que ça mette : nous trouvons cette adresse mail,
+   voulez-vous la changer ? Et ça envoie un code sur l'ancien pour confirmer le changement. »
+   Avant, une adresse qui ne correspondait pas était un refus sec, et la personne restait
+   dehors sans savoir laquelle était la bonne. */
+{
+  const mm = extraire(APP, 'function mailMasque(m)');
+  v('mailMasque est trouvée', !!mm, true);
+  const mailMasque = new Function(mm + '; return mailMasque;')();
+  /* Assez pour RECONNAÎTRE l'adresse, jamais assez pour la lire. */
+  v('une adresse ordinaire est masquée', mailMasque('marc.durand@gmail.com'), 'ma•••@gmail.com');
+  v('⛔ un préfixe très court ne se dévoile pas entier', mailMasque('jb@exemple.fr'), 'j•••@exemple.fr');
+  v('⛔ une entrée vide ne rend rien', mailMasque(''), '');
+  v('⛔ et une chaîne sans arobase ne fuit pas', mailMasque('pas-une-adresse'), '•••');
+
+  const snd = extraire(APP, 'async function pwdForgotSend()');
+  v('⛔ l\'adresse différente n\'est plus un refus sec',
+    /Cette adresse ne correspond pas à celle enregistrée pour ce compte/.test(snd), false);
+  v('… c\'est une proposition de changement', /Une autre adresse est enregistrée/.test(snd), true);
+  v('… qui montre l\'ancienne masquée et la nouvelle en clair',
+    /esc\(mailMasque\(mailFiche\)\)/.test(snd) && /Tu viens d'écrire <b>\$\{esc\(mail\)\}/.test(snd), true);
+  v('… et annonce où part le code', /le code part à <b>l'ancienne adresse<\/b>/.test(snd), true);
+
+  const anc = extraire(APP, 'async function pwdForgotCodeAncienne(remplacer)');
+  v('pwdForgotCodeAncienne est trouvée', !!anc, true);
+  /* ⛔ LE CŒUR DE LA SÉCURITÉ : le code part à l'ANCIENNE adresse, dans les DEUX branches.
+     Seul celui qui lit l'ancienne boîte peut déplacer l'adresse d'un compte installé. */
+  v('⛔ le code part toujours à l\'ancienne adresse',
+    /const nouvelle=String\(pwdForgot\.mail\|\|''\)\.trim\(\), ancienne=\(u\.email\|\|''\)\.trim\(\);/.test(anc)
+    && /body:JSON\.stringify\(\{teamId:syncTeam\(\),email:ancienne,purpose:'mdp-'\+u\.id\}\)/.test(anc), true);
+  v('⛔ … et jamais à la nouvelle', /email:nouvelle/.test(anc), false);
+  /* `remplacer` ne décide QUE de ce qu'on fait après : garder l'adresse, ou la remplacer. */
+  v('⛔ « garder » n\'emporte aucune adresse à écrire',
+    /pwdForgot=\{uid:u\.id,mail:\(remplacer\?nouvelle:''\)\};/.test(anc), true);
+  v('l\'écran annonce le remplacement à venir', /ton adresse deviendra/.test(anc), true);
+  /* ⛔ ET L'ÉCRITURE N'A LIEU QU'APRÈS LE CODE — c'est `pwdForgotSave` qui pose `u.email`. */
+  v('⛔ l\'envoi du code n\'écrit rien sur la fiche', /u\.email=/.test(anc), false);
+
+  /* ⚠️ UNE ADRESSE E-MAIL N'A RIEN À FAIRE DANS UN LIBELLÉ DE BOUTON. Mesuré en capture à
+     420 px : « Remplacer par marc.nouveau@orange.fr » débordait de la carte des deux côtés.
+     Un bouton porte une ACTION, pas une donnée. Invisible à la relecture du code — c'est en
+     REGARDANT l'écran que ça se voit, et c'est la règle du dépôt. */
+  v('⛔ le bouton ne porte plus l\'adresse', /onclick="pwdForgotCodeAncienne\(1\)">Remplacer par \$\{esc\(mail\)\}/.test(APP), false);
+  v('… il porte une action, et l\'adresse vit en dessous',
+    /onclick="pwdForgotCodeAncienne\(1\)">Remplacer mon adresse<\/button>/.test(APP)
+    && /par <b style="color:var\(--t2\)">\$\{esc\(mail\)\}<\/b>/.test(APP), true);
+  v('… et les deux boutons ont le droit de passer à la ligne',
+    (APP.match(/white-space:normal;height:auto;line-height:1\.35/g) || []).length >= 2, true);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

@@ -4912,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '688';
+const APP_VERSION = '689';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -29828,6 +29828,11 @@ function compteRetire(motif){ _compteRetire=motif;
    sur le compte (Utilisateurs → ✎, ou saisi à la 1ère connexion), valable 10 minutes,
    puis l'utilisateur choisit son nouveau mot de passe et est connecté. */
 let pwdForgot={};
+/* On montre assez de l'adresse pour que la personne la RECONNAISSE, jamais assez pour qu'un
+   inconnu la lise. Même esprit que `masqueMail` côté serveur. */
+function mailMasque(m){ m=String(m||'').trim(); const a=m.indexOf('@'); if(a<1) return m?'•••':'';
+  const g=m.slice(0,a), d=m.slice(a);
+  return (g.length<=2?g.charAt(0):g.slice(0,2))+'•••'+d; }
 function pwdForgotModal(){
   pwdForgot={};
   const saved=(($('li-login')||{}).value||'').trim()||localStorage.getItem('elan_savedLogin')||'';
@@ -29881,7 +29886,30 @@ async function pwdForgotSend(){
       <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotEntreprise('${u.id}')">Vérifier et envoyer le code</button>`,'carte');
     setTimeout(()=>{ const el=$('pf-ent'); if(el) el.focus(); },60);
     return; }
-  if((u.email||'').trim().toLowerCase()!==mail){ show('Cette adresse ne correspond pas à celle enregistrée pour ce compte.'); return; }
+  /* ══ L'ADRESSE TAPÉE N'EST PAS CELLE DU COMPTE ═══════════════════════════════════════
+     Demande de Justin, 15 septembre 2026 : « si il change, il faut que ça mette : nous
+     trouvons cette adresse mail, voulez-vous la changer ? Et ça envoie un code sur l'ancien
+     pour confirmer le changement. »
+     Avant, c'était un refus sec — « cette adresse ne correspond pas » — et la personne
+     restait dehors sans savoir laquelle était la bonne.
+     ⛔ LE CODE PART TOUJOURS À L'ANCIENNE ADRESSE, dans les deux cas. C'est ce qui rend le
+     changement sûr : seul celui qui LIT l'ancienne boîte peut déplacer l'adresse du compte.
+     Sans ça, taper une adresse quelconque suffirait à s'approprier un compte installé —
+     exactement ce que le chemin « sans e-mail » accepte, mais celui-là ne concerne que des
+     comptes que personne n'utilise encore. Un compte qui SERT ne se déplace pas si
+     facilement. */
+  const mailFiche=(u.email||'').trim();
+  if(mailFiche && mailFiche.toLowerCase()!==mail){
+    pwdForgot={uid:u.id,mail:mail};
+    openModal(`<div class="modal-head"><h3>✉️ Une autre adresse est enregistrée</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <p style="color:var(--t2);font-size:13px;line-height:1.7;margin-bottom:12px">Ton compte <b>${esc(u.login)}</b> utilise aujourd'hui <b>${esc(mailMasque(mailFiche))}</b>.<br>Tu viens d'écrire <b>${esc(mail)}</b>.</p>
+      <div style="background:color-mix(in srgb,var(--org,#e8a33d) 12%,transparent);border:1px solid color-mix(in srgb,var(--org,#e8a33d) 34%,transparent);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--t1);margin-bottom:14px">Dans les deux cas, le code part à <b>l'ancienne adresse</b> : c'est elle qui autorise le changement. Si tu n'y as plus accès, demande à ton responsable.</div>
+      <div id="pf-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
+      <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px;white-space:normal;height:auto;line-height:1.35" onclick="pwdForgotCodeAncienne(1)">Remplacer mon adresse</button>
+      <div style="text-align:center;font-size:12px;color:var(--t3);margin:6px 0 10px;word-break:break-all">par <b style="color:var(--t2)">${esc(mail)}</b></div>
+      <button class="btn ghost" style="width:100%;justify-content:center;white-space:normal;height:auto;line-height:1.35;padding:11px" onclick="pwdForgotCodeAncienne(0)">Garder mon adresse, je veux juste mon mot de passe</button>`,'carte');
+    return;
+  }
   const btn=$('pf-go'); if(btn){ btn.disabled=true; btn.textContent='⏳ Envoi du code…'; }
   try{
     const r=await fetch(PUSH_API+'/api/sendcode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),email:(u.email||'').trim(),purpose:'mdp-'+u.id})});
@@ -29960,6 +29988,27 @@ async function pwdForgotEntreprise(uid){
       <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotCheck()">Vérifier le code</button>`,'carte');
     setTimeout(()=>{ const el=$('pf-code'); if(el) el.focus(); },60);
   }catch(e){ show('Le serveur ne répond pas — vérifie ta connexion internet.'); if(btn){btn.disabled=false;btn.textContent='📧 Envoyer le code à l\'entreprise';} }
+}
+/* Le code part à l'ANCIENNE adresse. `remplacer` dit seulement ce qu'on fera APRÈS : garder
+   l'adresse du compte, ou la remplacer par celle qui vient d'être tapée. Dans les deux cas,
+   c'est l'ancienne boîte qui décide — on ne fait que lui demander. */
+async function pwdForgotCodeAncienne(remplacer){
+  const u=db.users.find(x=>x.id===pwdForgot.uid); if(!u){ closeModal(); return; }
+  const nouvelle=String(pwdForgot.mail||'').trim(), ancienne=(u.email||'').trim();
+  const err=$('pf-err'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
+  const btn=$('pf-go'); if(btn){ btn.disabled=true; btn.textContent='⏳ Envoi du code…'; }
+  try{
+    const r=await fetch(PUSH_API+'/api/sendcode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),email:ancienne,purpose:'mdp-'+u.id})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){ show(j.error==='email_off'?'L\'envoi d\'e-mails n\'est pas configuré sur le serveur TeamOP.':(j.error||('Erreur '+r.status))); if(btn){btn.disabled=false;btn.textContent='Réessayer';} return; }
+    pwdForgot={uid:u.id,mail:(remplacer?nouvelle:'')};
+    openModal(`<div class="modal-head"><h3>🔑 Code envoyé à ${esc(mailMasque(ancienne))}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px">Un code à 6 chiffres vient d'être envoyé à <b>${esc(mailMasque(ancienne))}</b> (regarde aussi les indésirables). Il expire dans <b>10 minutes</b>.${remplacer?'<br><br>Une fois le code validé, ton adresse deviendra <b>'+esc(nouvelle)+'</b>.':''}</p>
+      <div class="field"><label>Code reçu</label><input id="pf-code" inputmode="numeric" maxlength="6" placeholder="123456" style="letter-spacing:6px;text-align:center;font-size:20px"></div>
+      <div id="pf-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
+      <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotCheck()">Vérifier le code</button>`,'carte');
+    setTimeout(()=>{ const el=$('pf-code'); if(el) el.focus(); },60);
+  }catch(e){ show('Le serveur ne répond pas — vérifie ta connexion internet.'); if(btn){btn.disabled=false;btn.textContent='Réessayer';} }
 }
 /* La sortie de secours de la sortie de secours : quelqu'un qui ne veut pas donner son adresse
    — ou qui n'en a pas — fait toujours partir le code chez son entreprise, comme avant. */

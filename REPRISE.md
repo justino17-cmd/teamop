@@ -45,6 +45,28 @@ Ce qui protège quand même, et qu'il ne faut pas retirer en croyant simplifier 
 6. La fenêtre **se referme d'elle-même** : dès qu'une personne a son adresse, elle repasse par
    le chemin ordinaire.
 
+### v689 — changer d'adresse se confirme sur l'ANCIENNE
+
+Justin, même soirée : « fais ça pour tous les utilisateurs même s'ils ont déjà une adresse
+mail, et s'ils changent il faut que ça mette : nous trouvons cette adresse mail, voulez-vous
+la changer ? Et ça envoie un code sur l'ancien pour confirmer le changement. »
+
+Une adresse qui ne correspondait pas était un **refus sec** — la personne restait dehors sans
+savoir laquelle était la bonne. C'est maintenant une proposition : « Ton compte marc utilise
+aujourd'hui ma•••@gmail.com. Tu viens d'écrire marc.nouveau@orange.fr. » Deux boutons :
+remplacer, ou garder et ne changer que le mot de passe.
+
+⛔ **DANS LES DEUX CAS LE CODE PART À L'ANCIENNE ADRESSE**, et c'est toute la sécurité du
+geste : seul celui qui LIT l'ancienne boîte peut déplacer l'adresse d'un compte. Sans ça,
+taper une adresse quelconque suffirait à s'approprier un compte installé. Le chemin « sans
+e-mail », lui, ne concerne que des comptes que personne n'utilise encore.
+
+⚠️ **Un défaut d'affichage attrapé EN FAISANT LES CAPTURES, invisible autrement** : le bouton
+« Remplacer par marc.nouveau@orange.fr » **débordait de la carte** à 420 px, des deux côtés.
+Une adresse e-mail n'a rien à faire dans un libellé de bouton — un bouton porte une ACTION,
+pas une donnée. C'est la règle du dépôt appliquée : on va REGARDER l'écran, on ne relit pas le
+code. Justin avait demandé les captures avant publication ; c'est ce qui l'a révélé.
+
 ### Le geste groupé a vécu une heure, puis a été retiré
 
 `resetPwdLot` refaisait en un geste les mots de passe de toute l'équipe, depuis l'écran
