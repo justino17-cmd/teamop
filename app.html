@@ -4886,7 +4886,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '678';
+const APP_VERSION = '679';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -28773,7 +28773,7 @@ async function annuairePbkdf2(motif,sel,tours){
 }
 /* « var » et non « let » : save() appelle annuaireVeille() et peut le faire avant que cette
    ligne du fichier ne soit exécutée — une déclaration « let » lèverait alors. */
-var _annuaireTimer=null,_annuaireEnCours=false,_annuaireSig='';
+var _annuaireTimer=null,_annuaireEnCours=false,_annuaireSig='',_annuaireDit=false;
 function annuaireVeille(){ try{ clearTimeout(_annuaireTimer); _annuaireTimer=setTimeout(function(){ annuaireDeposer(); },5000); }catch(e){} }
 /* Seuls les comptes à empreinte moderne (64 hexadécimaux) sont déposés. Les vieux comptes dont
    « pinHash » porte encore le PIN EN CLAIR en sont exclus : leur vérificateur ne pourrait pas
@@ -28824,7 +28824,28 @@ async function annuaireDeposer(){
          refusés dès qu'un minimum existait. Mesuré chez ELAN le 11 septembre 2026 — dernière
          erreur restante dans l'onglet Réseau une fois la synchro rétablie. */
       body:JSON.stringify({t:t,kh:kh,comptes:envoi,ver:String(APP_VERSION||'')})});
-    if(r&&r.ok){ _annuaireSig=sig; try{ localStorage.setItem('elan_annuaire_cache',JSON.stringify(neuf)); }catch(e){} }
+    if(r&&r.ok){ _annuaireSig=sig; _annuaireDit=false; try{ localStorage.setItem('elan_annuaire_cache',JSON.stringify(neuf)); }catch(e){} }
+    /* ⛔ UN DÉPÔT REFUSÉ EN SILENCE COÛTE UNE JOURNÉE — ELAN, 15 septembre 2026.
+       La v678 a été exigée depuis la Tour ; l'appareil de l'administrateur était encore en
+       v677. Le serveur refuse alors le dépôt en 426 (« version trop ancienne »), et ce `if`
+       n'avait pas de `else` : rien à l'écran, rien au journal. L'administrateur réglait donc
+       les mots de passe de son équipe, les voyait justes dans SON application — et personne
+       n'arrivait à se connecter, parce que la page de connexion, elle, n'interroge que le
+       serveur. Une heure perdue à chercher un mot de passe qui n'avait jamais été faux.
+       ⚠️ Le 426 est le cas le plus traître parce qu'il vient d'un geste VOLONTAIRE (exiger une
+       version), et qu'il frappe d'abord celui qui l'a fait. On le nomme donc à part, et on dit
+       quoi faire — pas seulement que ça a raté. Une fois par session tant que ça échoue, remis
+       à zéro dès qu'un dépôt passe. */
+    else if(r){
+      try{ console.error('annuaire : dépôt refusé ('+r.status+') — les identifiants de cette entreprise ne sont PAS à jour sur le serveur'); }catch(_e){}
+      if(!_annuaireDit){ _annuaireDit=true;
+        const m=(r.status===426)
+          ? '⛔ Cet appareil est sur une version trop ancienne : les identifiants que tu règles ici N\'ARRIVENT PAS au serveur. Mets l\'application à jour, puis refais le réglage.'
+          : '⛔ Les identifiants n\'ont pas pu être envoyés au serveur ('+r.status+') : tes collègues ne pourront pas se connecter avec.';
+        try{ toast(m,12000); }catch(_e){}
+        try{ logEvent('Identifiants non déposés','Le serveur a refusé ('+r.status+') — ce qui est réglé sur cet appareil n\'est pas ce que la page de connexion utilise.','auth'); }catch(_e){}
+      }
+    }
   }catch(e){}
   finally{ _annuaireEnCours=false; }
 }
