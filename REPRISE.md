@@ -13,6 +13,142 @@ de ligne du tout.
 
 ---
 
+## ⛔ DÉCISION DU 15 SEPTEMBRE 2026 AU SOIR — LE SERVEUR DOIT POUVOIR LIRE LES DONNÉES
+
+Justin, après une soirée où j'ai diagnostiqué à l'aveugle un incident chez ELAN parce que leurs
+données sont chiffrées avec une clé que ni moi ni le serveur n'avons :
+
+> « Je pense qu'au niveau du chiffrement, il faut que tout soit chiffré au niveau du serveur.
+> Comme ça, peu importe le problème qu'on aura dans le futur, on pourra tout voir. Et ça ira
+> beaucoup plus vite pour corriger les problèmes. Donc là, il faut refaire une refonte totale. »
+
+Et, dans le même échange : **« je veux qu'on mette toute l'application sur le serveur »**, en
+référence à `CHANTIER-SORTIR-DU-DOCUMENT-UNIQUE.md`, qu'il a lu et validé.
+
+C'est **l'option B** de ce document — celle que j'avais signalée comme un changement de métier.
+Il l'a choisie en connaissance de cause, pour une raison qui tient : aujourd'hui, quand un
+client a un problème, on est aveugle. **Ce n'est pas un oubli, ça ne se « corrige » pas sans
+lui redemander.**
+
+### ⛔ Les quatre choses à savoir avant d'écrire une ligne
+
+1. **Le serveur ne peut PAS convertir l'existant.** Ce qui est dans le nuage est chiffré avec
+   une clé que seuls les appareils détiennent. Il n'existe aucune migration côté serveur :
+   **chaque appareil déchiffre localement et renvoie**. Un téléphone éteint trois semaines
+   n'est pas migré. Les deux formats doivent donc coexister, et c'est ça qui pilote tout le
+   calendrier — pas la vitesse d'écriture du code.
+2. **`sous-traitance.html` et `confidentialite.html` deviennent FAUX** le jour de la bascule.
+   Ce sont des phrases publiques dans un contrat. À réécrire, et les clients à prévenir.
+   Changement contractuel, pas ligne de code.
+3. **Un VPS compromis livrera des fichiers clients lisibles**, là où il livrait des blocs
+   illisibles. À accompagner : chiffrement au repos avec clé détenue par TeamOP, accès
+   restreint et journalisé, sauvegardes chiffrées hors du VPS.
+4. ⛔ **On ne touche à AUCUN moment à `SYNC_SECRET_DEFAULT` ni `SYNC_SALT`** pendant toute la
+   migration : ce sont les seules choses qui permettent encore de LIRE ce qui existe.
+
+### Et la correction que Justin m'a faite le même soir, à garder
+
+J'avais proposé, pour débloquer des techniciens qui ne voyaient plus leurs box, de cocher
+« visible par toute l'équipe ». Sa réponse :
+
+> « Si on a fait plusieurs accès, plusieurs permissions, plusieurs choses pour que certaines
+> personnes voient que ça, c'est qu'il y a un but. Tout ce qu'on a implanté dans
+> l'application, de chaque catégorie, ça doit fonctionner selon les permissions qu'ils
+> mettent. »
+
+Il a raison. **Élargir un droit n'est pas un correctif, c'est débrancher la fonctionnalité pour
+faire disparaître le symptôme.** Règle générale à appliquer partout : un remède répare le
+mécanisme, jamais le périmètre. Un audit complet du système de droits a été lancé le soir même.
+
+---
+
+## 🩹 v693 — UNE SYNCHRO N'EFFACE PLUS LE TRAVAIL D'UN COLLÈGUE (15 septembre 2026, soir)
+
+Justin, remonté d'ELAN : « dès qu'on fait un truc, il y a toujours un rechargement, toujours
+une synchronisation », « quand ils se déplacent dans un endroit, ça synchronise et ça efface
+tout ce qu'ils sont en train de faire », « on doit taper une lettre par lettre ».
+
+### ⛔ Ce qui effaçait, et pourquoi personne ne l'avait vu
+
+`syncPush` prend une copie de `db`, puis **attend** : compression (allumée en v690) puis
+chiffrement. Cette attente est passée de ~178 ms à ~433 ms sur la base d'ELAN le jour où la
+compression a servi. Pendant ce temps, l'écoute Firestore est libre de recevoir le document
+d'un collègue et de faire `db=remote` — c'est écrit noir sur blanc au commentaire de la
+ligne 5437 d'`app.html`, et c'était vrai. Au réveil, `syncPush` écrivait l'instantané d'AVANT
+cette réception, et **`_fbDoc.set()` REMPLACE le document de l'équipe**, il ne le fusionne pas.
+
+`_syncApplying` ne protégeait rien : il n'est lu qu'à la **première ligne** de `syncPush`,
+jamais après l'attente. La v690 n'a pas créé le défaut — elle a triplé la fenêtre où il se
+déclenche. C'est pour ça qu'il est remonté ce jour-là et pas avant.
+
+**La garde** : `_dbGen` est incrémenté sur la même ligne que `db=remote`, aux DEUX endroits où
+une réception remplace la base ; `_genAvant` est relevé juste avant l'attente ; si les deux
+diffèrent au moment d'écrire, on abandonne, on remet `_syncTs` où il était (sinon l'appareil
+devient sourd à tout ce que l'équipe publie) et on reprogramme à 400 ms. `db` porte déjà la
+fusion : rien n'est perdu, et la tentative suivante relit le nuage avant d'écrire, donc elle
+converge au lieu de boucler.
+
+### La preuve, parce qu'une garde « logiquement juste » ne vaut rien
+
+`tests/test-707.js` **extrait la vraie `syncPush` du fichier livré et l'exécute** (méthode des
+quatorze autres suites), avec une réception simulée pendant l'attente :
+
+| | v691, servie ce jour-là | v693 |
+|---|---|---|
+| écriture partie pendant la réception | **1** | **0** — abandonnée |
+| elle portait le travail du collègue | **non** | — |
+| écriture finale | — | **1, base fusionnée** |
+| `_syncTs` après abandon | avancé à tort | **remis** |
+
+⚠️ **Le contre-test compte autant que le test** : sans réception concurrente, l'écriture doit
+toujours partir. Une garde qui bloquerait tout tuerait la synchro **en silence**, ce qui est
+pire que le défaut qu'elle corrige.
+
+⚠️ **Et la sonde qui ne prouvait rien** : `scratchpad/sonde-course-synchro.js` a été écrite
+avant, au navigateur, et donnait 0 écriture **aussi sur la version sans la garde**. Cause :
+`_fbDoc` est un `let` de portée script, pas sur `window` ; `window._fbDoc=…` crée une AUTRE
+variable et `syncPush` sort à sa première ligne. Le fichier est gardé avec ce constat en
+en-tête — c'est le même piège que `window.clientName=` déjà noté plus bas.
+
+### Taper une lettre ne redessine plus une liste entière
+
+Le profileur a désigné autre chose que la recherche : **60 % du temps dans le navigateur**
+(mise en page et peinture d'une liste reconstruite en entier) et **10,8 % dans `icones`**, qui
+reparcourt tous les nœuds de texte du sous-arbre à chaque rendu. Filtrer 220 produits ne coûte
+presque rien ; le refaire sept fois pour un mot de sept lettres, si.
+
+`rechDiffere` pose la variable **tout de suite** — le champ reste juste, le curseur ne bouge
+pas — et ne **redessine** qu'une fois la frappe finie (170 ms). Sept champs : produits,
+catalogue fournisseurs, produits d'une box, ajout à une box, bons de commande, consommations,
+recherche globale. Mesuré, base aux proportions d'ELAN, processeur bridé ×4 : **première lettre
+1 230 ms → 103 ms**, suivantes ~300 ms → 62 ms, **médiane 262 → 63 ms**.
+
+### Ce qui a été VÉRIFIÉ et écarté le même soir
+
+- **« Plus personne n'a ses box »** : la cause est `boxFusionFine`, corrigée le matin même en
+  **v678** (une ligne de stock non datée n'est pas une ligne supprimée). Vérifié que le
+  correctif est **servi ET exigé** : `GET api.teamop.fr/api/version` rend `{"min":691}`, et
+  691 > 678 — aucun appareil ELAN sous 691 ne peut écrire. Piste close, mesure à l'appui.
+- **« L'application fait que recharger »** : mesuré au navigateur, `location.reload()`
+  intercepté → **zéro appel**. Ce que j'avais pris pour « 4 rechargements » étaient des
+  changements de `#hash` (navigation interne). Corrigé avant d'en parler à Justin.
+
+### ⛔ Ce qui reste, et qui n'est PAS dans ce correctif
+
+Un correctif arrête une cause, **il ne range pas derrière lui**. Ce qu'une écriture périmée a
+déjà effacé chez ELAN ne revient pas tout seul. Personne n'a encore regardé ce qui manque.
+
+### Au passage — une borne de test qui a menti au pire moment
+
+`tests/test-660.js` bornait sa fenêtre de lecture par un **nombre de caractères** (4 400). Le
+bloc a grandi de 700 caractères, la fenêtre a cessé d'atteindre l'accusé de réception, et
+**huit contrôles sont passés au rouge sur du code parfaitement juste** — au milieu d'une panne
+client, quand on a le moins besoin d'un faux signal. C'est exactement la leçon de `test-637`,
+refaite. La borne est désormais un repère de texte (`console.error('encrypt',er)`, unique dans
+le fichier). **Ne plus jamais borner une fenêtre de test par une longueur.**
+
+---
+
 ## 🔑 v685 → v688 — « MOT DE PASSE OUBLIÉ » APPARTIENT À LA PERSONNE (15 septembre 2026)
 
 Justin, fin de journée, cinq comptes bloqués chez ELAN : « quand la personne oublie son mot de

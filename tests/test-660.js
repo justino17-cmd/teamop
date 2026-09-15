@@ -31,8 +31,21 @@ console.log('Une alerte de synchro sait se démentir, et son délai suit le poid
 const i = APP.indexOf("let _acquitte=false");
 v('le bloc d’écriture existe', i > -1, true);
 /* La fenêtre doit couvrir jusqu'à l'accusé de réception : trop courte, les contrôles du
-   démenti passent au vert pour la seule raison qu'ils regardent hors du bloc. */
-const bloc = APP.slice(i, i + 4400);
+   démenti passent au vert pour la seule raison qu'ils regardent hors du bloc.
+   ⛔ RÉEXPRIMÉ, PAS AFFAIBLI — 15 septembre 2026 au soir. Cette borne était un NOMBRE DE
+   CARACTÈRES (4 400). Le jour où le bloc a grandi de 700 caractères (la garde contre l'écriture
+   d'un instantané périmé), la fenêtre a cessé d'atteindre `_ecriture.then(` et HUIT contrôles
+   sont passés au rouge sur du code parfaitement juste — au milieu d'une panne client, quand on
+   a le moins besoin d'un faux signal. C'est la leçon de test-637, refaite ici.
+   On borne donc par un REPÈRE DE TEXTE : la fin du traitement de l'écriture. La garantie est la
+   même, elle ne dépend plus de la longueur du code qu'elle surveille. */
+const _fin = APP.indexOf("console.error('encrypt',er)", i);
+v('la fin du bloc d’écriture est retrouvée', _fin > i, true);
+/* Repère introuvable : on élargit jusqu’à la fin du fichier plutôt que de retomber sur un
+   nombre de caractères. Une fenêtre trop LARGE fait passer un contrôle au vert à tort — on le
+   saura par la ligne rouge ci-dessus ; une fenêtre trop COURTE fait passer du code juste au
+   rouge, et c’est ce faux signal-là qu’on refuse de reproduire. */
+const bloc = APP.slice(i, _fin > i ? _fin + 200 : APP.length);
 v('la fenêtre de lecture atteint bien l’accusé de réception', bloc.indexOf('_ecriture.then(') > -1, true);
 
 // ── 1) Le délai est calculé, et il est BRANCHÉ sur le setTimeout.

@@ -55,6 +55,28 @@ function get(url) {
     if (typeof j.bugs1h === 'number' && j.bugs1h > 0) problems.push(j.bugs1h + ' erreur(s) signalée(s) par les applications des entreprises dans la dernière heure (vigie) — voir l\'e-mail d\'alerte et corriger au plus vite');
   } catch (e) { problems.push('api.teamop.fr/health : injoignable — ' + e.message); }
 
+  /* ⛔ 4. LE PLANCHER CRITIQUE — la seule chose qui manquait le 15 septembre 2026 au soir.
+     Ce jour-là, un défaut de synchro faisait effacer le travail d'un collègue par un appareil
+     qui écrivait un instantané périmé. Le correctif a été publié dans l'heure — mais un
+     correctif de ce genre ne protège QUE l'appareil qui le porte : tant qu'un seul téléphone
+     de l'équipe tourne en version antérieure, il peut encore effacer les données de TOUS les
+     autres. Refermer le trou demande un second geste, dans la Tour : exiger la version.
+     Ce geste est manuel, il se prend trois fois par an, et rien ne rappelait de le faire.
+     D'où ce plancher. Il ne dit pas « la dernière version » — ça hurlerait après chaque
+     publication. Il dit : EN DESSOUS DE CE NUMÉRO, UN APPAREIL PEUT ABÎMER LES DONNÉES DES
+     AUTRES. On ne le monte donc que pour un correctif de cette nature, jamais pour une
+     amélioration, et la surveillance ne se tait qu'une fois la Tour à jour. */
+  const PLANCHER = 693;
+  const PLANCHER_POURQUOI = 'v693 : en dessous, un appareil peut écrire un instantané périmé par-dessus le document de l\'équipe et effacer le travail des autres (course de synchro du 15 septembre 2026)';
+  try {
+    const rv = await get('https://api.teamop.fr/api/version');
+    const jv = JSON.parse(rv.body);
+    const min = parseInt(jv && jv.min, 10) || 0;
+    if (!min) problems.push('aucun minimum de version n\'est exigé : toutes les vieilles versions écrivent encore dans le nuage');
+    else if (min < PLANCHER) problems.push('minimum exigé v' + min + ', plancher critique v' + PLANCHER + ' — ' + PLANCHER_POURQUOI + '. À corriger dans la Tour : console OP GESTION → Surveillance → VERSIONS → « Exiger la dernière version »');
+    else console.log('Minimum exigé : v' + min + ' (plancher critique v' + PLANCHER + ') — conforme');
+  } catch (e) { problems.push('api.teamop.fr/api/version : illisible — ' + e.message); }
+
   if (problems.length) {
     console.error('PROBLÈMES DÉTECTÉS :\n- ' + problems.join('\n- '));
     process.exit(1);
