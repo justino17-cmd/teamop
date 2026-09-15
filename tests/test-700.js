@@ -239,5 +239,54 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
   v('… en gardant l\'état d\'avant, secu compris', /secu:u\.secu\}/.test(un), true);
 }
 
+/* ══ 6. SE DÉPANNER QUAND ON N'A JAMAIS PU ENTRER ════════════════════════════════════
+   Justin, 15 septembre 2026, après avoir vu l'écran « Code envoyé à l'entreprise » : « une
+   personne n'arrive pas à se connecter, si son identifiant est enregistré dans une société,
+   quand il va rentrer la société on voit son identifiant, il met son e-mail, ça lui envoie un
+   code, ça demande de changer le mot de passe et de confirmer le mail. Fais ça tout de suite. »
+   Je lui ai opposé le risque de prise de compte (les identifiants sont des prénoms), il a
+   maintenu. C'est sa décision, elle est assumée, et elle est écrite ici pour qui relira.
+   ⛔ LA PORTE EST LA PLUS ÉTROITE QUI RÉPONDE QUAND MÊME À LA DEMANDE. Ce qui suit vérifie
+   justement l'étroitesse — c'est la seule chose qui rend ce chemin acceptable. */
+{
+  const ent = extraire(APP, 'async function pwdForgotEntreprise(uid)');
+  v('pwdForgotEntreprise est trouvée', !!ent, true);
+  /* ⛔ DEUX CONDITIONS, ET LES DEUX SONT NÉCESSAIRES : encore sur le mot de passe provisoire,
+     ET sans adresse. C'est exactement la population bloquée — et elle se vide toute seule :
+     dès que quelqu'un est entré, son compte sort du cas. */
+  v('⛔ le chemin ne s\'ouvre QUE sur un compte encore provisoire ET sans e-mail',
+    /if\(u\.mustChangePwd && !\(u\.email\|\|''\)\.trim\(\)\)\{/.test(ent), true);
+  /* ⚠️ `mustChangePwd` est un FAIT porté par la fiche. Le déduire du journal — plafonné à 500
+     entrées — est la faute que ce dépôt a déjà payée une fois. */
+  v('⛔ et il ne déduit rien du journal', /db\.journal/.test(ent), false);
+  v('… il faut d\'abord que le nom de l\'entreprise corresponde',
+    ent.indexOf('verifie-nom') < ent.indexOf('u.mustChangePwd &&'), true);
+  v('l\'adresse déjà tapée est reprise, pas retapée', /const dejaTape=String\(pwdForgot\.mailSaisi\|\|''\)\.trim\(\);/.test(ent), true);
+
+  const env = extraire(APP, 'async function pwdForgotMailEnvoi()');
+  v('pwdForgotMailEnvoi est trouvée', !!env, true);
+  v('l\'adresse est validée avant l\'envoi', /\^\[\^@\\s\]\+@\[\^@\\s\]\+\\\.\[\^@\\s\]\+\$/.test(env), true);
+  v('le code part à CETTE adresse', /body:JSON\.stringify\(\{teamId:syncTeam\(\),email:mail,purpose:'mdp-'\+u\.id\}\)/.test(env), true);
+  /* ⛔ DEMANDER NE SUFFIT PAS À S'INSCRIRE SUR LE COMPTE D'UN AUTRE : l'adresse n'est posée sur
+     la fiche qu'après validation du code reçu à cette adresse. */
+  v('⛔ l\'envoi n\'écrit RIEN sur la fiche', /u\.email=/.test(env), false);
+
+  const sav = extraire(APP, 'async function pwdForgotSave()');
+  v('l\'adresse n\'est posée qu\'après le code', /if\(mailNeuf\)\{/.test(sav) && /u\.email=mailNeuf;/.test(sav), true);
+  /* ⛔ LA DEUXIÈME BARRIÈRE, mot pour mot ce que Justin a demandé : « ça demande de changer le
+     mot de passe et de confirmer le mail ». On ne pose donc PAS `secu` — la campagne sécurité
+     rouvre à l'ouverture et redemande les deux, dont un mot de passe DIFFÉRENT. */
+  v('⛔ entrer par cette porte ne vaut PAS la campagne sécurité',
+    sav.indexOf('u.email=mailNeuf;') > 0 && !/u\.email=mailNeuf;[\s\S]{0,200}u\.secu=SECU_MDP/.test(sav), true);
+  v('… alors qu\'une adresse DÉJÀ enregistrée, elle, la vaut',
+    /else if\(\(u\.email\|\|''\)\.trim\(\)\)\{[\s\S]{0,400}u\.secu=SECU_MDP;/.test(sav), true);
+  /* ⛔ ET CE CHEMIN N'EST PAS SILENCIEUX : il s'ouvre sur un prénom, l'équipe doit l'apprendre
+     tout de suite — pas au prochain audit. */
+  v('⛔ l\'équipe est prévenue sur ses téléphones', /pushNotify\('🔑 Accès récupéré'/.test(sav), true);
+  v('… et la notification dit quoi faire si ce n\'est pas lui', /Utilisateurs → 🔑/.test(sav), true);
+  v('le journal de l\'entreprise le garde', /adresse enregistrée par la personne elle-même/.test(sav), true);
+  v('l\'état d\'avant emporte l\'e-mail, pour le retour en arrière', /secu:u\.secu,email:u\.email\}/.test(sav), true);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

@@ -79,7 +79,12 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
   v('… et le retour en arrière l’emporte aussi', /secu:currentUser\.secu\}/.test(mcs), true);
   const pfs = extraire(APP, 'async function pwdForgotSave()');
   v('une réinitialisation par e-mail vaut la campagne', /u\.secu=SECU_MDP;/.test(pfs), true);
-  v('… et son retour en arrière aussi', /secu:u\.secu\}/.test(pfs), true);
+  /* ⚠️ ÉPINGLER UNE ACCOLADE, C'EST ÉPINGLER UNE LIGNE. Ce test cherchait `secu:u.secu}` :
+     il est tombé le jour où l'état d'avant s'est mis à emporter AUSSI l'e-mail (v686, la porte
+     de secours qui enregistre l'adresse de la personne) — donc le jour où la garantie s'est
+     RENFORCÉE. On vérifie que le retour en arrière emporte les deux, sans dire dans quel ordre. */
+  v('… et son retour en arrière aussi', /const avant=\{[^}]*secu:u\.secu/.test(pfs), true);
+  v('⛔ … e-mail compris, depuis qu\'il peut être posé par ce chemin', /const avant=\{[^}]*email:u\.email/.test(pfs), true);
 
   /* ⛔ ET LES DEUX CHEMINS QUI CRÉENT UN MOT DE PASSE NEUF, pas seulement les trois qui en
      CHANGENT un. Oubliés à la première livraison, trouvés par `relecteur` : la toute première

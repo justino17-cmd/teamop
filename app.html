@@ -4912,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '685';
+const APP_VERSION = '686';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -29911,6 +29911,7 @@ async function pwdForgotSend(){
   if(!(u.email||'').trim()){
     const entNom=localStorage.getItem('elan_entreprise_nom')||'';
     if(!entNom||!localStorage.getItem('elan_sync_team')){ show('Aucune adresse e-mail n\'est enregistrée pour ce compte. Demande à un administrateur de te poser un mot de passe provisoire (Utilisateurs → 🔑), puis d\'ajouter ton e-mail sur ta fiche (✎).'); return; }
+    pwdForgot={uid:u.id,mailSaisi:mail};
     openModal(`<div class="modal-head"><h3>🏢 Pas d'e-mail sur ce compte</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
       <p style="color:var(--t2);font-size:13px;line-height:1.7;margin-bottom:14px">Ton compte <b>${esc(u.login)}</b> n'a pas d'adresse e-mail enregistrée.<br><br>Écris le <b>nom exact de ton entreprise</b> : on vérifie que ton identifiant y est bien rattaché, puis le code part à l'adresse de l'entreprise — ton responsable te le transmettra.</p>
       <div class="field"><label>Nom de ton entreprise</label><input id="pf-ent" placeholder="Nom exact de ton entreprise" autocapitalize="off"></div>
@@ -29947,6 +29948,37 @@ async function pwdForgotEntreprise(uid){
     const r0=await fetch(PUSH_API+'/api/espaces/verifie-nom',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:syncTeam(),nom:nomTape})});
     const j0=await r0.json().catch(()=>({}));
     if(!r0.ok||!j0.correspond){ show('« '+nomTape+' » ne correspond pas à l\'entreprise de ce compte.'); if(btn){btn.disabled=false;btn.textContent='Vérifier et envoyer le code';} return; }
+    /* ══ SE DÉPANNER SOI-MÊME QUAND ON N'A JAMAIS PU ENTRER ═══════════════════════════════
+       Demande de Justin, 15 septembre 2026, répétée après que je lui aie opposé le risque :
+       « une personne n'arrive pas à se connecter, si son identifiant est enregistré dans une
+       société, quand il va rentrer la société on voit son identifiant, il met son e-mail, ça
+       lui envoie un code, ça demande de changer le mot de passe et de confirmer le mail ».
+       Avant, le code partait à l'adresse de L'ENTREPRISE : le patron devait transmettre un
+       code qui expire en dix minutes, pour cinq personnes, un mercredi après-midi.
+
+       ⛔ CE QUE ÇA COÛTE, ÉCRIT NOIR SUR BLANC pour qui relira. Les identifiants sont des
+       PRÉNOMS et le nom de l'entreprise se lit sur un camion : qui devine les deux peut
+       réclamer le compte en donnant SA propre adresse. C'est un vrai risque de prise de
+       compte, et c'est une décision assumée de Justin, pas un oubli.
+       ⛔ D'OÙ LA PORTE LA PLUS ÉTROITE QUI RÉPONDE QUAND MÊME À LA DEMANDE : ce chemin ne
+       s'ouvre QUE pour un compte qui porte encore son mot de passe provisoire (`mustChangePwd`)
+       ET n'a aucune adresse. C'est exactement la population bloquée — et elle se vide toute
+       seule : dès que chacun est entré, son compte sort de ce cas et retombe sur le chemin
+       sûr. Un compte dont quelqu'un se sert vraiment n'est JAMAIS concerné.
+       ⚠️ `mustChangePwd` est un FAIT porté par la fiche, pas une déduction tirée du journal :
+       celui-ci est plafonné à 500 entrées, et en déduire « jamais connecté » est une faute que
+       ce dépôt a déjà payée. */
+    if(u.mustChangePwd && !(u.email||'').trim()){
+      const dejaTape=String(pwdForgot.mailSaisi||'').trim();
+      pwdForgot={uid:u.id,ent:nomTape};
+      openModal(`<div class="modal-head"><h3>✔ Compte trouvé chez ${esc(nomTape)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+        <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px"><b>${esc(u.login)}</b> est bien rattaché à « <b>${esc(nomTape)}</b> », et n'a pas encore d'adresse e-mail.<br>Entre <b>la tienne</b> : le code de récupération y sera envoyé, et elle restera enregistrée sur ton compte pour la prochaine fois.</p>
+        <div class="field"><label>Ton adresse e-mail</label><input id="pf-mail2" type="email" value="${esc(dejaTape)}" placeholder="prenom@entreprise.fr" autocapitalize="off" autocomplete="email" onkeydown="if(event.key==='Enter')pwdForgotMailEnvoi()"></div>
+        <div id="pf-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
+        <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotMailEnvoi()">Recevoir le code</button>`,'carte');
+      setTimeout(()=>{ const el=$('pf-mail2'); if(el) el.focus(); },60);
+      return;
+    }
     if(btn) btn.textContent='⏳ Envoi du code…';
     const r=await fetch(PUSH_API+'/api/sendcode-entreprise',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({teamId:syncTeam(),purpose:'mdp-'+u.id,login:u.login})});
@@ -29960,6 +29992,28 @@ async function pwdForgotEntreprise(uid){
       <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotCheck()">Vérifier le code</button>`,'carte');
     setTimeout(()=>{ const el=$('pf-code'); if(el) el.focus(); },60);
   }catch(e){ show('Le serveur ne répond pas — vérifie ta connexion internet.'); if(btn){btn.disabled=false;btn.textContent='📧 Envoyer le code à l\'entreprise';} }
+}
+/* Le code part à l'adresse que la personne vient de donner. Elle n'est PAS encore posée sur
+   la fiche : elle ne le sera qu'une fois le code validé — sinon il suffirait de demander pour
+   inscrire son adresse sur le compte d'un autre. */
+async function pwdForgotMailEnvoi(){
+  const u=db.users.find(x=>x.id===pwdForgot.uid); if(!u){ closeModal(); return; }
+  const mail=(($('pf-mail2')||{}).value||'').trim();
+  const err=$('pf-err'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){ show('Entre une adresse e-mail valide.'); return; }
+  const btn=$('pf-go'); if(btn){ btn.disabled=true; btn.textContent='⏳ Envoi du code…'; }
+  try{
+    const r=await fetch(PUSH_API+'/api/sendcode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),email:mail,purpose:'mdp-'+u.id})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){ show(j.error==='email_off'?'L\'envoi d\'e-mails n\'est pas configuré sur le serveur TeamOP.':(j.error||('Erreur '+r.status))); if(btn){btn.disabled=false;btn.textContent='Recevoir le code';} return; }
+    pwdForgot={uid:u.id,mail:mail,ent:pwdForgot.ent||''};
+    openModal(`<div class="modal-head"><h3>🔑 Code envoyé</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px">Un code à 6 chiffres vient d'être envoyé à <b>${esc(mail)}</b> (regarde aussi les indésirables). Il expire dans <b>10 minutes</b>.</p>
+      <div class="field"><label>Code reçu</label><input id="pf-code" inputmode="numeric" maxlength="6" placeholder="123456" style="letter-spacing:6px;text-align:center;font-size:20px"></div>
+      <div id="pf-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
+      <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotCheck()">Vérifier le code</button>`,'carte');
+    setTimeout(()=>{ const el=$('pf-code'); if(el) el.focus(); },60);
+  }catch(e){ show('Le serveur ne répond pas — vérifie ta connexion internet.'); if(btn){btn.disabled=false;btn.textContent='Recevoir le code';} }
 }
 async function pwdForgotCheck(){
   const code=(($('pf-code')||{}).value||'').trim();
@@ -29986,16 +30040,34 @@ async function pwdForgotSave(){
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
   if(/^\d{4,8}$/.test(p1)){ show('Choisis mieux qu\'une suite de chiffres (mélange lettres et chiffres).'); return; }
   const u=db.users.find(x=>x.id===pwdForgot.uid); if(!u){ closeModal(); return; }
-  const avant={pwdHash:u.pwdHash,mustChangePwd:u.mustChangePwd,pinHash:u.pinHash,secu:u.secu};
+  const mailNeuf=String(pwdForgot.mail||'').trim();
+  const avant={pwdHash:u.pwdHash,mustChangePwd:u.mustChangePwd,pinHash:u.pinHash,secu:u.secu,email:u.email};
   u.pwdHash=await sha256(p1); delete u.mustChangePwd; delete u.pinHash;
-  /* Une réinitialisation par e-mail PROUVE les deux à la fois : le mot de passe vient d'être
-     choisi par la personne, et l'adresse a bien reçu le code. La campagne est faite. */
-  if((u.email||'').trim()) u.secu=SECU_MDP;
+  if(mailNeuf){
+    /* L'adresse n'est posée sur la fiche QU'ICI, après que le code reçu à cette adresse a été
+       validé : demander ne suffit pas à s'inscrire sur le compte d'un autre.
+       ⛔ ET ON NE POSE PAS `secu`. C'est la demande de Justin, mot pour mot : « ça demande de
+       changer le mot de passe et de confirmer le mail ». La personne vient d'entrer par une
+       porte de secours ouverte sur un simple prénom : l'application lui redemande donc, à
+       l'ouverture, un mot de passe DIFFÉRENT de celui qu'elle vient de poser et la
+       confirmation de son adresse. Une deuxième barrière, à l'intérieur cette fois. */
+    u.email=mailNeuf;
+  }
+  else if((u.email||'').trim()){
+    /* Une réinitialisation sur une adresse DÉJÀ enregistrée prouve les deux à la fois : le mot
+       de passe vient d'être choisi par la personne, et l'adresse était bien la sienne. */
+    u.secu=SECU_MDP;
+  }
   /* ⛔ Ici plus qu'ailleurs : la personne n'est pas encore connectée. L'ouvrir sur un mot de
      passe que le serveur n'a pas pris, c'est la renvoyer dehors au prochain démarrage. */
   const pb=await identifiantsDeposer(u,avant);
   if(pb){ show(pb); return; }
-  logEvent('Mot de passe réinitialisé par e-mail','@'+(u.login||''),'auth');
+  logEvent('Mot de passe réinitialisé par e-mail','@'+(u.login||'')+(mailNeuf?' — adresse enregistrée par la personne elle-même : '+mailNeuf:''),'auth');
+  /* ⛔ CE CHEMIN NE DOIT PAS ÊTRE SILENCIEUX. Il s'ouvre sur un prénom et un nom d'entreprise :
+     si quelqu'un s'en sert pour réclamer le compte d'un autre, l'équipe doit l'apprendre tout
+     de suite, pas au prochain audit. La ligne de journal ci-dessus le dit dans l'application,
+     la notification le dit sur les téléphones — dont celui de l'administrateur. */
+  if(mailNeuf){ try{ pushNotify('🔑 Accès récupéré','« '+(u.login||'?')+' » vient de récupérer son accès et d\'enregistrer l\'adresse '+mailNeuf+'. Si ce n\'est pas lui, change son mot de passe (Utilisateurs → 🔑).','/app.html#v=utilisateurs'); }catch(_e){} }
   pwdForgot={}; closeModal();
   sessionStorage.setItem('elan_session',u.id);
   toast('🔐 Mot de passe changé — te voilà connecté');
