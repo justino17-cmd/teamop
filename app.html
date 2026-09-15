@@ -4886,7 +4886,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '679';
+const APP_VERSION = '680';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -28787,13 +28787,19 @@ function annuaireComptes(){
    l'identifiant, on lit qui c'est. C'est la seule donnée de plus ; ni adresse, ni téléphone. */
 function annuaireNom(u){ return String(((u&&u.prenom)||'')+' '+((u&&u.nom)||'')).trim().slice(0,60); }
 function annuaireSignature(l){ return l.map(u=>String(u.login).toLowerCase().trim()+':'+annuaireEmpreinte(u)+':'+annuaireNom(u)).sort().join('|'); }
+/* ⛔ ELLE REND UN VERDICT DEPUIS LA v680, ET IL EST ATTENDU. Trois écrans changent un mot de
+   passe ; tous les trois annonçaient « enregistré » sans jamais regarder si le serveur l'avait
+   pris. `{ok:true}` déposé · `{ok:false,status}` refusé · `{ok:null}` rien à déposer (bêta,
+   appareil sans espace, pas de PBKDF2, aucun compte, signature inchangée) — et « rien à
+   déposer » n'est PAS un échec : sur un appareil sans entreprise, un mot de passe local est
+   exactement ce qu'on veut. */
 async function annuaireDeposer(){
-  if(_annuaireEnCours||BETA_ESSAI) return;          // la bêta n'ouvre que la bêta : rien à déposer
+  if(_annuaireEnCours||BETA_ESSAI) return {ok:null};   // la bêta n'ouvre que la bêta : rien à déposer
   const t=localStorage.getItem('elan_sync_team'), k=localStorage.getItem('elan_sync_secret');
-  if(!t||!k) return;                                // appareil sans espace : aucune entreprise à ouvrir
-  if(!window.crypto||!crypto.subtle) return;        // pas de PBKDF2 ici : mieux vaut rien qu'un vérificateur bancal
-  const gens=annuaireComptes(); if(!gens.length) return;
-  const sig=annuaireSignature(gens); if(sig===_annuaireSig) return;
+  if(!t||!k) return {ok:null};                        // appareil sans espace : aucune entreprise à ouvrir
+  if(!window.crypto||!crypto.subtle) return {ok:null}; // pas de PBKDF2 ici : mieux vaut rien qu'un vérificateur bancal
+  const gens=annuaireComptes(); if(!gens.length) return {ok:null};
+  const sig=annuaireSignature(gens); if(sig===_annuaireSig) return {ok:null};
   _annuaireEnCours=true;
   try{
     /* Le cache évite de refaire 120 000 tours par compte à chaque changement : un mot de passe
@@ -28846,8 +28852,42 @@ async function annuaireDeposer(){
         try{ logEvent('Identifiants non déposés','Le serveur a refusé ('+r.status+') — ce qui est réglé sur cet appareil n\'est pas ce que la page de connexion utilise.','auth'); }catch(_e){}
       }
     }
-  }catch(e){}
+    return (r&&r.ok)?{ok:true}:{ok:false,status:(r&&r.status)||0};
+  }catch(e){ return {ok:false,status:0}; }   // réseau : on ne SAIT pas, donc on ne promet pas
   finally{ _annuaireEnCours=false; }
+}
+/* Le dépôt TOUT DE SUITE, et son verdict — pour qui doit savoir avant d'annoncer quoi que ce
+   soit. `annuaireVeille()` attend 5 s : c'est bien pour un enregistrement ordinaire, c'est
+   exactement ce qu'il ne faut pas quand on s'apprête à dire « mot de passe enregistré ».
+   On laisse au dépôt en cours le temps de finir plutôt que de rendre un verdict qui n'est pas
+   le nôtre. */
+async function annuaireMaintenant(){
+  try{ clearTimeout(_annuaireTimer); }catch(e){}
+  for(let i=0;i<25&&_annuaireEnCours;i++) await new Promise(r=>setTimeout(r,150));
+  return await annuaireDeposer();
+}
+/* ⛔ ON N'ANNONCE PAS UN MOT DE PASSE ENREGISTRÉ AVANT QUE LE SERVEUR L'AIT PRIS.
+   Florian, 15 septembre 2026 : il change son mot de passe, l'application lui répond
+   « enregistré », `mustChangePwd` est effacé donc elle ne le redemandera jamais — et Justin ne
+   peut se connecter qu'avec le mot de passe PROVISOIRE, celui passé par WhatsApp. Le serveur
+   n'avait jamais reçu le nouveau : le dépôt partait 5 s plus tard, sans que personne ne
+   regarde s'il aboutissait. Deux conséquences, et la seconde est une faille : la personne croit
+   son mot de passe changé, et le provisoire reste valable pour toujours.
+   C'est la même règle que `_syncTs` ailleurs dans ce fichier — un repère n'avance que sur une
+   écriture ACQUITTÉE. Ici : on applique, on dépose, et si le serveur refuse on REMET TOUT
+   COMME AVANT. Un demi-changement serait pire que pas de changement : deux vérités, celle de
+   l'appareil et celle de la connexion.
+   Rend `null` quand c'est bon (rien à dire), sinon la phrase à afficher. */
+async function identifiantsDeposer(u,avant){
+  save();
+  const v=await annuaireMaintenant();
+  if(!v||v.ok!==false) return null;             // déposé, ou rien à déposer : c'est bon
+  Object.keys(avant).forEach(k=>{ if(avant[k]===undefined) delete u[k]; else u[k]=avant[k]; });
+  save();
+  return v.status===426
+    ? 'Cet appareil est sur une version trop ancienne : ton mot de passe n\'a PAS été enregistré. Mets l\'application à jour (recharge la page), puis recommence.'
+    : (v.status ? 'Le serveur a refusé l\'enregistrement ('+v.status+') : ton mot de passe n\'a PAS été changé. Préviens ton administrateur.'
+                : 'Pas de réseau : ton mot de passe n\'a PAS été enregistré. Réessaie dès que tu as du réseau.');
 }
 function getSession(){ return localStorage.getItem('elan_session')||sessionStorage.getItem('elan_session'); }
 /* ⛔ UN PRODUIT DÉSIGNE SON FOURNISSEUR PAR SON NOM — DONC LA CASSE NE DOIT PAS COMPTER.
@@ -29793,8 +29833,13 @@ async function pwdForgotSave(){
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
   if(/^\d{4,8}$/.test(p1)){ show('Choisis mieux qu\'une suite de chiffres (mélange lettres et chiffres).'); return; }
   const u=db.users.find(x=>x.id===pwdForgot.uid); if(!u){ closeModal(); return; }
+  const avant={pwdHash:u.pwdHash,mustChangePwd:u.mustChangePwd,pinHash:u.pinHash};
   u.pwdHash=await sha256(p1); delete u.mustChangePwd; delete u.pinHash;
-  logEvent('Mot de passe réinitialisé par e-mail','@'+(u.login||''),'auth'); save();
+  /* ⛔ Ici plus qu'ailleurs : la personne n'est pas encore connectée. L'ouvrir sur un mot de
+     passe que le serveur n'a pas pris, c'est la renvoyer dehors au prochain démarrage. */
+  const pb=await identifiantsDeposer(u,avant);
+  if(pb){ show(pb); return; }
+  logEvent('Mot de passe réinitialisé par e-mail','@'+(u.login||''),'auth');
   pwdForgot={}; closeModal();
   sessionStorage.setItem('elan_session',u.id);
   toast('🔐 Mot de passe changé — te voilà connecté');
@@ -29820,8 +29865,11 @@ async function monComptePwdSave(){ if(!currentUser) return;
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
   if(/^\d{4,8}$/.test(p1)){ show('Choisis mieux qu\'une suite de chiffres (mélange lettres et chiffres).'); return; }
   if(p0&&p1===p0){ show('Choisis un mot de passe différent de l\'actuel.'); return; }
+  const avant={pwdHash:currentUser.pwdHash,mustChangePwd:currentUser.mustChangePwd,pinHash:currentUser.pinHash,sansMdp:currentUser.sansMdp};
   currentUser.pwdHash=await sha256(p1); delete currentUser.mustChangePwd; delete currentUser.pinHash; delete currentUser.sansMdp;
-  logEvent('Mot de passe modifié','','auth'); save(); closeModal(); toast('🔑 Mot de passe modifié ✓'); if(current==='parametres') views.parametres(); }
+  const pb=await identifiantsDeposer(currentUser,avant);
+  if(pb){ show(pb); return; }   // rien n'a changé : la fenêtre reste ouverte, il peut réessayer
+  logEvent('Mot de passe modifié','','auth'); closeModal(); toast('🔑 Mot de passe modifié ✓'); if(current==='parametres') views.parametres(); }
 function monCompteMail(){ if(!currentUser) return;
   openModal(`<div class="modal-head"><h3>✉️ Mon e-mail de récupération</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t2);font-size:13.5px;line-height:1.55;margin-bottom:12px">Si tu oublies ton mot de passe, « Mot de passe oublié ? » (écran de connexion) t'envoie un <b>code</b> à cette adresse. Mets une adresse que tu es seul à lire.</p>
@@ -29842,7 +29890,8 @@ function forcePwdModal(){ if(!currentUser) return;
     <div class="field"><label>Confirme-le</label><input id="fp-p2" type="password" minlength="8" placeholder="Le même, une deuxième fois" autocomplete="new-password"></div>
     <div class="field" style="background:color-mix(in srgb,var(--acc) 10%,transparent);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);border-radius:10px;padding:10px 12px"><label>✉️ Ton adresse e-mail *</label><input id="fp-mail" type="email" required value="${esc(mail)}" placeholder="prenom@entreprise.fr" autocapitalize="off" autocomplete="email" style="width:100%"><div style="font-size:11px;color:var(--t3);margin-top:4px"><b>Obligatoire</b> : si un jour tu oublies ton mot de passe, l'app t'enverra un <b>code de récupération</b> à cette adresse (« Mot de passe oublié ? » sur l'écran de connexion).${mail?' Vérifie qu\'elle est bien la tienne.':''}</div></div>
     <div id="fp-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
-    <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="forcePwdSave()">Enregistrer mon mot de passe</button>`); }
+    <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="forcePwdSave()">Enregistrer mon mot de passe</button>
+    <button id="fp-sortie" class="btn ghost" style="display:none;width:100%;justify-content:center;margin-top:8px" onclick="closeModal()">Continuer sans changer — on te le redemandera</button>`); }
 async function forcePwdSave(){ const p1=($('fp-p1')||{}).value||'', p2=($('fp-p2')||{}).value||'';
   const err=$('fp-err'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
   if(p1.length<8){ show('8 caractères minimum.'); return; }
@@ -29859,10 +29908,21 @@ async function forcePwdSave(){ const p1=($('fp-p1')||{}).value||'', p2=($('fp-p2
   // e-mail de récupération obligatoire : sans lui, « Mot de passe oublié » ne peut pas aider
   const fm=(($('fp-mail')||{}).value||'').trim();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fm)){ show('Entre une adresse e-mail valide — elle sert à récupérer ton mot de passe si tu l\'oublies.'); const el=$('fp-mail'); if(el) el.focus(); return; }
+  /* ⛔ ON GARDE L'ÉTAT D'AVANT : si le serveur refuse, on remet tout. Voir identifiantsDeposer. */
+  const avant={pwdHash:currentUser.pwdHash,mustChangePwd:currentUser.mustChangePwd,pinHash:currentUser.pinHash,
+               sansMdp:currentUser.sansMdp,email:currentUser.email,login:currentUser.login};
   currentUser.pwdHash=await sha256(p1); delete currentUser.mustChangePwd; delete currentUser.pinHash; delete currentUser.sansMdp;
   currentUser.email=fm;
+  const pb=await identifiantsDeposer(currentUser,avant);
+  if(pb){ show(pb);
+    /* ⚠️ ET ON NE L'ENFERME PAS DEDANS. Cette fenêtre n'a pas de croix : la laisser forcée sur
+       un appareil trop vieux, c'est quelqu'un qui ne peut plus travailler du tout. Il continue
+       avec son mot de passe provisoire, et `mustChangePwd` étant remis, on le lui redemandera
+       à la prochaine connexion. */
+    _modalForcee=false; const s=$('fp-sortie'); if(s) s.style.display='';
+    return; }
   _modalForcee=false;
-  logEvent('Mot de passe défini','@'+(currentUser.login||''),'auth'); save(); closeModal();
+  logEvent('Mot de passe défini','@'+(currentUser.login||''),'auth'); closeModal();
   toast('🔐 Mot de passe enregistré, e-mail de récupération aussi — c\'est ce mot de passe qu\'il faudra taper désormais'); }
 /* ── Rappel à la connexion : un compte sans e-mail ne peut pas utiliser
    « Mot de passe oublié » — on propose de l'enregistrer (10 secondes, refusable) ── */

@@ -58,7 +58,10 @@ v('… et la route concernée est bien le dépôt d\'annuaire',
 /* ⛔ Ce qui n'a PAS changé : un dépôt réussi reste silencieux, et le cache est posé. */
 v('un dépôt réussi ne dit toujours rien à l\'utilisateur',
   /if\(r&&r\.ok\)\{ _annuaireSig=sig; _annuaireDit=false; try\{ localStorage\.setItem\('elan_annuaire_cache'/.test(DEP), true);
-v('⛔ la bêta ne dépose toujours rien', /if\(_annuaireEnCours\|\|BETA_ESSAI\) return;/.test(DEP), true);
+/* ⚠️ On vise la SORTIE ANTICIPÉE, pas ce qu'elle rend : `annuaireDeposer` a gagné un verdict
+   en v680 (`return {ok:null}`), et une expression collée à `return;` a fait croire à une
+   régression alors que la garantie n'avait pas bougé d'un pouce. */
+v('⛔ la bêta ne dépose toujours rien', /if\(_annuaireEnCours\|\|BETA_ESSAI\) return\b/.test(DEP), true);
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

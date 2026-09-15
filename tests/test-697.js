@@ -63,7 +63,10 @@ v('sauvRefus refuse toujours l\'espace de repli',
 v('⛔ /api/fb/jeton passe toujours par sauvRefus', /const refus = sauvRefus\(t, kh, 'jeton'\)/.test(SRV), true);
 
 /* ⚠️ La bêta : rien ne doit changer pour elle. */
-v('⛔ la bêta ne dépose toujours aucun annuaire', /if\(_annuaireEnCours\|\|BETA_ESSAI\) return;/.test(APP), true);
+/* ⚠️ On vise la SORTIE ANTICIPÉE, pas ce qu'elle rend : `annuaireDeposer` a gagné un verdict
+   en v680 (`return {ok:null}`), et une expression collée à `return;` a fait croire à une
+   régression alors que la garantie n'avait pas bougé d'un pouce. */
+v('⛔ la bêta ne dépose toujours aucun annuaire', /if\(_annuaireEnCours\|\|BETA_ESSAI\) return\b/.test(APP), true);
 v('… et les deux espaces techniques sont bien les mêmes qu\'avant',
   /const ESPACES_INTOUCHABLES = \['elan-gestion', 'elan-gestion-beta'\];/.test(SRV), true);
 
