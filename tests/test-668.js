@@ -71,9 +71,18 @@ console.log('Le lien d’une entreprise vient du serveur, jamais du navigateur')
   v('quand le serveur connaît l’espace, c’est SON espace qu’on rend', /return \{ nom:\(connu\.nom\|\|nom\|\|email\), slug:connu\.slug,/.test(t), true);
   v('⛔ et on ne rapporte plus de lien dans le navigateur', /lien:connu\.lien/.test(t), false);
   v('l’existence se lit sur « existe », pas sur la présence d’un lien', /if\(r&&r\.ok&&d\.existe\) return d;/.test(TOUR), true);
-  /* Le mot de passe provisoire ne revient pas du serveur (codeMdpHache l'a retiré) : on garde
-     celui qu'on a, sinon celui que la fiche recalcule. Sans ça le panneau l'affichait vide. */
-  v('le mot de passe provisoire ne se perd pas au passage', /mdp:\(\(sp&&sp\.m\)\|\|mdp\|\|''\)/.test(t), true);
+  /* Le mot de passe provisoire ne revient pas du serveur (codeMdpHache l'a retiré) : on rend
+     celui qu'on a sous la main.
+     ⚠️ CE TEST EXIGEAIT `||mdp||''` — le repli sur « celui que la fiche recalcule ». Il était
+     juste tant que `tourMdpDefaut` était DÉTERMINISTE. Le 15 septembre 2026 il est devenu un
+     tirage au sort (le précédent se devinait : nom de famille + « !! », l'identifiant étant le
+     prénom), et ce repli s'est mis à FABRIQUER un mot de passe que le serveur n'a jamais haché
+     — affiché avec confiance, et expédié au client par le bouton « Envoyer par e-mail ».
+     La garantie n'a pas changé : un mot de passe connu ne se perd pas au passage. Ce qui
+     disparaît, c'est l'invention quand on ne le connaît pas. Les deux sont vérifiés en
+     EXÉCUTANT la vraie ligne dans tests/test-700.js. */
+  v('le mot de passe provisoire connu ne se perd pas au passage', /mdp:\(\(sp&&sp\.m\)\|\|''\)/.test(t), true);
+  v('⛔ et on n\'en invente pas un quand on ne l\'a pas', /mdp:\(\(sp&&sp\.m\)\|\|mdp/.test(t), false);
   /* Le fabricant reste — un nom vraiment neuf doit pouvoir obtenir son espace. Le supprimer
      fermerait la porte à toute nouvelle entreprise : ce n'est pas la création qui était
      fautive, c'est de créer SANS avoir demandé. */

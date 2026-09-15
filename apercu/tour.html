@@ -3454,12 +3454,23 @@ function tourIdentDefaut(email){
   p=p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
   return p||'admin';
 }
-function tourMdpDefaut(email){
-  var c=(CLI.list||[]).find(function(x){ return x.email===email; })||{};
-  var n=String(c.nomFam||String(c.nom||'').trim().split(/\s+/).slice(1).join(' ')||'').trim();
-  n=n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
-  n=n?(n.charAt(0).toUpperCase()+n.slice(1)):'Teamop';
-  return n+'!!';
+/* ⛔ MÊME CORRECTIF QUE DANS tour.html, ET IL EST OBLIGATOIRE ICI AUSSI. Cet aperçu est une
+   COPIE de conception, figée au 13 septembre 2026 — mais il est réellement servi sur
+   teamop.fr/apercu/tour.html, avec la même API de production. Il est protégé par
+   l'authentification patron, donc inexploitable par un visiteur ; ce qui compte, c'est qu'un
+   clic de travers dessus au lieu de la vraie Tour GÉNÉRAIT des mots de passe devinables pour
+   de vrais clients. Signalé par l'agent `relecteur` le 15 septembre 2026.
+   Le défaut : cette fonction rendait le NOM DE FAMILLE du client + « !! » pendant que
+   `tourIdentDefaut` rend son PRÉNOM — sur une route de connexion publique, pour une entreprise
+   dont l'adresse s'écrit sur un camion. On ne touche RIEN d'autre dans ce fichier : c'est un
+   aperçu de design, sa mise en page doit rester celle qu'on compare. */
+function tourMdpDefaut(){
+  var al='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', m='', i;
+  try{
+    var b=new Uint8Array(10); crypto.getRandomValues(b);
+    for(i=0;i<10;i++) m+=al[b[i]%al.length];
+  }catch(e){ for(i=0;i<10;i++) m+=al[Math.floor(Math.random()*al.length)]; }
+  return 'OP-'+m;
 }
 function tourPromoEntreprise(nomEnt,btn){
   var inp=document.getElementById('pack-promo'); var code=((inp&&inp.value)||'').trim().toUpperCase();
@@ -3518,7 +3529,7 @@ async function tourLienEntreprise(email,nom,neuf,identConnu){
     ident=prompt('Identifiant de départ (son prénom — il pourra le changer à sa première connexion) :',tourIdentDefaut(email));
     if(ident===null) return; ident=(ident||'admin').toLowerCase().replace(/[^a-z0-9.]/g,'')||'admin';
   }
-  var mdp=tourMdpDefaut(email);
+  var mdp=tourMdpDefaut();
   var e=await tourEspaceDe(email,nom,ident,mdp,neuf);
   if(!e) return;   // refus du serveur ou serveur injoignable : tourEspaceDe a déjà dit quoi
   var mdpAff=e.mdp||mdp;
@@ -3769,7 +3780,7 @@ async function tourAccepterDemande(email,nom){
   var q=Math.max(1,parseInt(dm.users,10)||1);
   var ident=prompt('Identifiant de départ (son prénom — il pourra le changer à sa première connexion) :',tourIdentDefaut(email));
   if(ident===null) return; ident=(ident||'admin').toLowerCase().replace(/[^a-z0-9.]/g,'')||'admin';
-  var mdp=tourMdpDefaut(email);
+  var mdp=tourMdpDefaut();
   var e=await tourEspaceDe(email,nom,ident,mdp);
   if(!e) return;
   var mdpAff=e.mdp||mdp;

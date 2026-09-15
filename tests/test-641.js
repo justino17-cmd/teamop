@@ -438,6 +438,54 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
       comptes: [compte('jb', 0, 1)] });
     const cA5 = (((JSON.parse(fs.readFileSync(path.join(banc, 'data', 'comptes.json'), 'utf8'))['ent-a-9x'] || {}).c || {}).jb) || {};
     v('⛔ une version à jour a toujours le dernier mot', [cA5.p, cA5.m], [0, 1]);
+
+    /* ══ v683 · « QUI ÉTAIT CONNECTÉ » NE SE FORGE PAS ══════════════════════════════════
+       /api/monitor/report n'exige AUCUNE preuve — c'est la sentinelle des applications, et
+       elle doit pouvoir parler même quand rien ne va. Un nom d'entreprise, lui, est public.
+       La première écriture de ce correctif laissait donc n'importe qui poster « ELAN · Jean
+       Dupont · patron », et la Tour l'affichait sous « ✅ ce n'est pas une déduction » :
+       une certitude entièrement fabriquée, ce qui est pire qu'une déduction avouée.
+       Rejoué ici sur le VRAI serveur, dans l'ordre où ça compte. */
+    const rapport = (o) => poster('/api/monitor/report', { reports: [Object.assign({
+      type: 'erreur', message: 'Interface figee pendant 3285 ms', signature: 'sig-683',
+      app: 'opgestion', entreprise: 'A', count: 1 }, o)] });
+    const gensDe = () => { try {
+      /* ⚠️ monitor.json vit à côté de la CONFIGURATION, pas dans le dossier de données
+         (`MONITOR_PATH = path.dirname(CONFIG_PATH)`). Première écriture de ce test, il le
+         cherchait dans data/ et lisait donc « rien » partout — quatre contrôles au rouge sur
+         du code juste. C'est le même piège que d'habitude : on vérifie ce qu'on croit. */
+      const m = JSON.parse(fs.readFileSync(path.join(banc, 'monitor.json'), 'utf8'));
+      const i = (m.issues || []).find(x => x && String(x.signature || '').indexOf('sig-683') >= 0);
+      const e = i && (i.entreprises || []).find(x => x && x.nom === 'A');
+      return (e && e.gens) || null; } catch (err) { return null; } };
+    const attendre = () => new Promise(r => setTimeout(r, 900));   // monSave est différé de 500 ms
+
+    await rapport({ user: 'flo', espace: 'ent-a-9x', userNom: 'Jean Dupont (inventé)', userRole: 'patron' });
+    await attendre();
+    v('⛔ un identifiant que le journal ne connaît pas n\'entre PAS', gensDe(), null);
+
+    /* La même personne ouvre vraiment une session : le journal la connaît désormais. */
+    await poster('/api/connexions', { t: 'ent-a-9x', ev: 'connexion', login: 'flo', nom: 'Florian Duflot', role: 'tech' });
+    await rapport({ user: 'flo', espace: 'ent-a-9x', userNom: 'Jean Dupont (inventé)', userRole: 'patron' });
+    await attendre();
+    const g1 = gensDe() || [];
+    v('un identifiant corroboré entre', g1.length, 1);
+    /* ⛔ ET LE NOM AFFICHÉ VIENT DU JOURNAL, PAS DU CORPS DE LA REQUÊTE. C'est tout le
+       correctif : le rapport DÉSIGNE, il n'AFFIRME pas. */
+    v('⛔ le nom vient du journal, pas du rapport', g1[0] && g1[0].nom, 'Florian Duflot');
+    v('⛔ le rôle aussi', g1[0] && g1[0].role, 'tech');
+
+    /* ⛔ ET UN ÉCHEC DE CONNEXION NE CORROBORE RIEN : taper un identifiant ne prouve pas
+       qu'on est la personne. Sinon il suffirait d'essayer un prénom au hasard. */
+    await poster('/api/connexions', { t: 'ent-a-9x', ev: 'echec', login: 'intrus', nom: 'Qui Sait' });
+    await rapport({ user: 'intrus', espace: 'ent-a-9x' });
+    await attendre();
+    v('⛔ un échec de connexion ne fait entrer personne', (gensDe() || []).length, 1);
+
+    /* Sans espace, rien : le nom d'entreprise seul ne suffit plus à désigner quelqu'un. */
+    await rapport({ user: 'flo' });
+    await attendre();
+    v('⛔ sans identifiant d\'espace, rien n\'est retenu', (gensDe() || []).length, 1);
   } catch (e) { ko++; console.log('  ✗ le banc n\'a pas pu tourner : ' + e.message); }
 
   stop();

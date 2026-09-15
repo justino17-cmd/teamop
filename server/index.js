@@ -1204,7 +1204,21 @@ try { const d = JSON.parse(fs.readFileSync(MONITOR_PATH, 'utf8')); monIssues = d
 function monArchiver(list) {
   if (!list.length) return;
   const vus = new Set(monArchive.map(i => i.id));
-  list.forEach(i => { if (!vus.has(i.id)) monArchive.push(i); });
+  /* ⛔ LES PERSONNES NE PARTENT PAS À L'ARCHIVE. `ent.gens` nomme des salariés de nos clients ;
+     la liste vivante est plafonnée à 500 incidents, mais l'archive en garde 5 000 et n'a AUCUNE
+     purge par âge — ces noms y resteraient pour toujours. Le journal des connexions, d'où ils
+     sortent, tourne lui à 500 entrées par entreprise : garder plus longtemps une copie que la
+     source n'est pas une décision qu'on prend par accident.
+     Mesuré par l'agent `gardien` : sans ce retrait, le plafond théorique de monitor.json passe
+     de ~82 Mo à ~838 Mo, et `monSave` sérialise le fichier ENTIER à chaque écriture — au-delà
+     de la limite de chaîne de V8 il jette, le catch avale, et toute la Tour cesse de se
+     persister EN SILENCE : incidents, comptes de la Tour et journal compris.
+     Un incident archivé garde donc ses entreprises et ses compteurs, pas ses gens. */
+  list.forEach(i => {
+    if (vus.has(i.id)) return;
+    try { (i.entreprises || []).forEach(e => { if (e && e.gens) delete e.gens; }); } catch (err) {}
+    monArchive.push(i);
+  });
   monArchive.sort((a, b) => (b.lastTs || 0) - (a.lastTs || 0));
   if (monArchive.length > 5000) monArchive = monArchive.slice(0, 5000);
 }
@@ -1248,15 +1262,22 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       const entNom = monStr(r.entreprise, 80) || 'inconnue';
       const entEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(monStr(r.email, 120)) ? monStr(r.email, 120).toLowerCase() : '';
       const appareil = monStr(r.appareil, 60) || '?';
-      /* ⛔ QUI ÉTAIT CONNECTÉ — LE FAIT, PAS LA DÉDUCTION. La Tour n'avait que le nom de
-         l'entreprise : elle nommait donc la personne en prenant la dernière session ouverte
-         avant l'horodatage. Chez une équipe de onze, ça désigne le mauvais une fois sur deux,
-         et on va chercher la panne chez quelqu'un qui n'y était pour rien. L'application dit
-         maintenant qui elle avait devant elle (v683). Trois champs, les mêmes que ceux que
-         porte déjà le journal des connexions — rien de plus personnel n'entre ici. */
+      /* ⛔ QUI ÉTAIT CONNECTÉ — ET POURQUOI ON NE CROIT PAS CE CORPS DE REQUÊTE SUR PAROLE.
+         La Tour n'avait que le nom de l'entreprise : elle nommait donc la personne en prenant
+         la dernière session ouverte avant l'horodatage. Chez une équipe de onze, ça désigne le
+         mauvais une fois sur deux, et on va chercher la panne chez quelqu'un qui n'y est pour
+         rien. L'application dit maintenant qui elle avait devant elle (v683).
+         ⛔ MAIS CETTE ROUTE N'EXIGE AUCUNE PREUVE, et un nom d'entreprise est public — il se
+         lit sur un camion. Rejoué par l'agent `gardien` : un inconnu postait « ELAN · Jean
+         Dupont · patron » et la Tour l'affichait comme un fait établi. On avait remplacé une
+         déduction fausse une fois sur deux par une certitude FORGEABLE, ce qui est pire.
+         On ne garde donc du corps que deux choses qui ne sont pas des affirmations : un
+         IDENTIFIANT (il désigne) et un ESPACE (il situe). Le nom et le rôle, eux, sont lus
+         dans le journal des connexions du serveur — qui s'écrit contre `t`, l'identifiant
+         d'espace, pas contre un nom public. Si le journal ne connaît pas cet identifiant, on
+         n'écrit RIEN : la Tour retombe sur la déduction, qu'elle sait déjà annoncer comme telle. */
       const qui = monStr(r.user, 40).toLowerCase().trim();
-      const quiNom = monStr(r.userNom, 60).trim();
-      const quiRole = monStr(r.userRole, 20).trim();
+      const quiEspace = monStr(r.espace, 80).trim();
       const count = Math.min(500, Math.max(1, parseInt(r.count, 10) || 1));
       const now = Date.now();
       /* Tri à l'entrée : un « gel » de plus d'une minute n'est pas un gel.
@@ -1295,15 +1316,38 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       let ent = issue.entreprises.find(e => e.nom === entNom);
       if (!ent) { ent = { nom: entNom, email: entEmail, count: 0, lastTs: now }; if (issue.entreprises.length < 60) issue.entreprises.push(ent); }
       ent.count += count; ent.lastTs = now; if (entEmail && !ent.email) ent.email = entEmail;
-      /* Les personnes touchées, par entreprise — au plus 12, et sans doublon. On garde la
-         PREMIÈRE vue et on met à jour son horodatage : c'est une liste de qui a rencontré le
-         problème, pas un journal de passage. Une version antérieure à la v683 n'envoie rien :
-         la liste reste vide, et la Tour le dit au lieu de deviner. */
-      if (qui) {
-        ent.gens = Array.isArray(ent.gens) ? ent.gens : [];
-        let g = ent.gens.find(x => x && x.login === qui);
-        if (!g && ent.gens.length < 12) { g = { login: qui, nom: quiNom, role: quiRole, count: 0, lastTs: now }; ent.gens.push(g); }
-        if (g) { g.count += count; g.lastTs = now; if (quiNom && !g.nom) g.nom = quiNom; if (quiRole && !g.role) g.role = quiRole; }
+      /* Les personnes touchées, par entreprise. TROIS RÈGLES, et les trois viennent d'un
+         défaut rejoué plutôt que supposé :
+         1. ⛔ CORROBORÉ. On ne retient l'identifiant que si le journal des connexions de CET
+            espace le connaît. Le nom et le rôle affichés sortent de ce journal, jamais du
+            corps de la requête : c'est ce qui rend « Jean Dupont (inexistant) » impossible.
+         2. ⛔ LE DERNIER VU GAGNE. La première écriture gardait la PREMIÈRE vue (`!g.nom`) :
+            douze envois suffisaient à préempter les douze places, et un rapport légitime ne
+            pouvait plus jamais corriger ce qui y était écrit. Un premier-arrivé-premier-servi
+            sur une route publique est un squat.
+         3. ⛔ LA PLACE LA PLUS ANCIENNE CÈDE. Refuser au-delà de douze fige la liste ; on
+            remplace la plus vieille, pour qu'un incident qui dure reste à jour. */
+      if (qui && quiEspace) {
+        const jrn = cnxData[quiEspace];
+        const vu = Array.isArray(jrn)
+          ? jrn.find(x => x && String(x.login || '').toLowerCase().trim() === qui && x.ev !== 'echec')
+          : null;
+        if (vu) {
+          ent.gens = Array.isArray(ent.gens) ? ent.gens : [];
+          let g = ent.gens.find(x => x && x.login === qui);
+          if (!g) {
+            g = { login: qui, nom: '', role: '', count: 0, lastTs: now };
+            if (ent.gens.length >= 12) {
+              let vieux = 0;
+              for (let k = 1; k < ent.gens.length; k++) if ((ent.gens[k].lastTs || 0) < (ent.gens[vieux].lastTs || 0)) vieux = k;
+              ent.gens.splice(vieux, 1);
+            }
+            ent.gens.push(g);
+          }
+          g.count += count; g.lastTs = now;
+          g.nom = monStr(vu.nom, 60).trim();     // du JOURNAL, pas du corps
+          g.role = monStr(vu.role, 16).trim();
+        }
       }
       if (Object.keys(issue.appareils).length < 20 || issue.appareils[appareil]) issue.appareils[appareil] = (issue.appareils[appareil] || 0) + count;
     }

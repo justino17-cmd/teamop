@@ -4816,18 +4816,26 @@ function tmEnt(){ var nom='',email='';
    l'horodatage. Chez une équipe de onze, c'est faux une fois sur deux — et un dossier qui nomme
    quelqu'un à tort envoie chercher la panne au mauvais endroit, chez la mauvaise personne.
    Constaté par Justin le 15 septembre 2026 sur le dossier « Interface figée pendant 3 285 ms ».
-   On envoie l'identifiant, le nom et le rôle — les trois que la Tour affiche DÉJÀ pour chaque
-   connexion. Ni e-mail, ni téléphone, ni rien d'autre : ça reste un rapport technique.
+
+   ⛔ ON N'ENVOIE QUE L'IDENTIFIANT ET L'ESPACE — PAS LE NOM, PAS LE RÔLE. Première écriture de
+   ce correctif, on envoyait aussi `userNom` et `userRole` ; l'agent `gardien` l'a rejoué :
+   `/api/monitor/report` n'exige AUCUNE preuve, et un nom d'entreprise est public. N'importe qui
+   pouvait donc poster « ELAN · Jean Dupont · patron » et la Tour l'affichait sous l'étiquette
+   « ✅ ce n'est pas une déduction ». On avait remplacé une déduction fausse une fois sur deux
+   par une certitude entièrement forgeable — c'est pire, parce que c'est cru.
+   Le nom et le rôle viennent désormais du JOURNAL DES CONNEXIONS, côté serveur, qui s'écrit
+   contre l'identifiant d'espace (`t`) et pas contre un nom public. L'identifiant qu'on envoie
+   ici ne sert qu'à DÉSIGNER une ligne que le serveur possède déjà ; s'il n'en trouve aucune,
+   il n'écrit rien. Rien de personnel ne transite donc plus par ce corps de requête.
    ⚠️ Entièrement sous try/catch, et rendant toujours un objet : cette sentinelle ne doit
    JAMAIS faire tomber l'application, c'est sa première règle. */
 function tmQui(){
   try{
     var u=(typeof currentUser!=='undefined')&&currentUser;
-    if(!u||typeof u!=='object') return {login:'',nom:'',role:''};
-    return { login:String(u.login||'').slice(0,40),
-             nom:String(((u.prenom||'')+' '+(u.nom||'')).replace(/\s+/g,' ').trim()).slice(0,60),
-             role:String(u.role||'').slice(0,20) };
-  }catch(_){ return {login:'',nom:'',role:''}; }
+    var esp=''; try{ esp=String(localStorage.getItem('elan_sync_team')||'').slice(0,80); }catch(_e){}
+    if(!u||typeof u!=='object') return {login:'',espace:esp};
+    return { login:String(u.login||'').slice(0,40), espace:esp };
+  }catch(_){ return {login:'',espace:''}; }
 }
 function tmUA(){ try{ var u=navigator.userAgent||'', ap=/iPhone|iPad|iPod/i.test(u)?'iPhone':(/Android/i.test(u)?'Android':'PC'), nv=/Edg\//.test(u)?'Edge':(/OPR\//.test(u)?'Opera':(/Chrome\//.test(u)?'Chrome':(/Firefox\//.test(u)?'Firefox':(/Safari\//.test(u)?'Safari':'Navigateur')))); return ap+' · '+nv; }catch(_){ return '?'; } }
 function tmLoad(){ try{ var q=JSON.parse(localStorage.getItem(TM_KEY)||'[]'); return Array.isArray(q)?q:[]; }catch(_){ return []; } }
@@ -4840,7 +4848,7 @@ function tmPush(type,message,stack,src,line){ try{
   var q=tmLoad(), e=null;
   for(var i=0;i<q.length;i++){ if(q[i].signature===sig){ e=q[i]; break; } }
   if(e){ e.count=(e.count||1)+1; }
-  else{ var ent=tmEnt(), qui=tmQui(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),user:qui.login,userNom:qui.nom,userRole:qui.role,count:1,ts:Date.now()}); }
+  else{ var ent=tmEnt(), qui=tmQui(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),user:qui.login,espace:qui.espace,count:1,ts:Date.now()}); }
   tmSaveQ(q); setTimeout(tmFlush,500);
 }catch(_){ } }
 function tmFlush(){ try{
@@ -4904,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '683';
+const APP_VERSION = '684';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;

@@ -79,35 +79,60 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
   v('⛔ la bêta n\'est pas concernée', /&& !BETA_ESSAI\)\{/.test(dl), true);
 }
 
-/* ══ 3. QUI A VU L'ERREUR — LE FAIT, PLUS LA DÉDUCTION ════════════════════════════════ */
+/* ══ 3. QUI A VU L'ERREUR — ET POURQUOI ON NE CROIT PAS LE RAPPORT SUR PAROLE ═════════
+   Première écriture de ce correctif : l'application envoyait `user`, `userNom` et `userRole`,
+   et la Tour les affichait sous « ✅ ce n'est pas une déduction ». L'agent `gardien` l'a
+   REJOUÉ sur un vrai serveur : `/api/monitor/report` n'exige aucune preuve et un nom
+   d'entreprise est public, donc un inconnu posait « ELAN · Jean Dupont · patron » et la Tour
+   le présentait comme établi. On avait remplacé une déduction fausse une fois sur deux par
+   une certitude forgeable — c'est pire, parce qu'on la croit.
+   Le corps ne porte donc plus que ce qui DÉSIGNE (un identifiant) et ce qui SITUE (l'espace).
+   Le nom et le rôle sont lus dans le journal des connexions du serveur, qui s'écrit contre
+   l'identifiant d'espace et non contre un nom public. La preuve fonctionnelle — un rapport
+   forgé n'écrit rien, un rapport corroboré écrit le nom DU JOURNAL — vit dans test-641, qui
+   lance le vrai serveur. */
 {
-  /* Côté application : trois champs, les mêmes que porte déjà le journal des connexions. */
   const tq = extraire(APP, 'function tmQui()');
   v('tmQui est trouvée', !!tq, true);
-  const tmQui = new Function('currentUser', tq + '; return tmQui;');
-  v('elle rend l\'identifiant, le nom et le rôle',
-    tmQui({ login: 'ben', prenom: 'Ben', nom: 'Ali', role: 'dr' })(),
-    { login: 'ben', nom: 'Ben Ali', role: 'dr' });
-  v('⛔ personne de connecté : trois chaînes vides, jamais une exception',
-    tmQui(null)(), { login: '', nom: '', role: '' });
+  const tmQui = new Function('currentUser', 'localStorage', tq + '; return tmQui;');
+  const faux = { getItem: () => 'elan-34oc' };
+  v('elle rend l\'identifiant et l\'espace',
+    tmQui({ login: 'ben', prenom: 'Ben', nom: 'Ali', role: 'dr' }, faux)(),
+    { login: 'ben', espace: 'elan-34oc' });
+  /* ⛔ ET RIEN D'AUTRE. Le nom d'un salarié ne doit plus transiter par une route publique. */
+  v('⛔ le nom ne part plus', /nom:/.test(tq), false);
+  v('⛔ le rôle non plus', /role:/.test(tq), false);
+  v('⛔ personne de connecté : l\'espace seul, jamais une exception',
+    tmQui(null, faux)(), { login: '', espace: 'elan-34oc' });
   /* ⛔ LA SENTINELLE NE DOIT JAMAIS FAIRE TOMBER L'APPLICATION : c'est sa première règle. */
   v('⛔ un objet biscornu ne la fait pas jeter',
-    tmQui({ get login() { throw new Error('boum'); } })(), { login: '', nom: '', role: '' });
-  v('⛔ et rien de plus personnel ne part : ni e-mail, ni téléphone',
-    /function tmQui\(\)[\s\S]{0,700}?email|function tmQui\(\)[\s\S]{0,700}?tel\b/.test(APP.slice(APP.indexOf('function tmQui()'), APP.indexOf('function tmQui()') + 700)), false);
-  v('le rapport les emporte', /user:qui\.login,userNom:qui\.nom,userRole:qui\.role/.test(APP), true);
+    tmQui({ get login() { throw new Error('boum'); } }, faux)(), { login: '', espace: '' });
+  v('⛔ un stockage qui refuse non plus',
+    tmQui({ login: 'ben' }, { getItem: () => { throw new Error('bloqué'); } })(), { login: 'ben', espace: '' });
+  v('le rapport les emporte', /user:qui\.login,espace:qui\.espace,/.test(APP), true);
 
-  /* Côté serveur : bornés comme tout le reste, et rangés par entreprise. */
+  /* Côté serveur : on lit deux champs, et on ne CROIT que ce que le journal confirme. */
   v('le serveur borne l\'identifiant', /const qui = monStr\(r\.user, 40\)\.toLowerCase\(\)\.trim\(\);/.test(SRV), true);
-  v('… le nom aussi', /const quiNom = monStr\(r\.userNom, 60\)\.trim\(\);/.test(SRV), true);
-  v('⛔ la liste des personnes est plafonnée', /ent\.gens\.length < 12/.test(SRV), true);
-  v('⛔ et sans doublon : on retrouve la personne avant de l\'ajouter',
-    /let g = ent\.gens\.find\(x => x && x\.login === qui\);/.test(SRV), true);
-  v('une version antérieure n\'écrit rien', /if \(qui\) \{/.test(SRV), true);
+  v('… et l\'espace', /const quiEspace = monStr\(r\.espace, 80\)\.trim\(\);/.test(SRV), true);
+  v('⛔ il exige une ligne du journal de CET espace',
+    /const jrn = cnxData\[quiEspace\];/.test(SRV) && /String\(x\.login \|\| ''\)\.toLowerCase\(\)\.trim\(\) === qui/.test(SRV), true);
+  v('⛔ un échec de connexion ne corrobore rien', /x\.ev !== 'echec'/.test(SRV), true);
+  v('⛔ le nom affiché vient du JOURNAL, jamais du corps',
+    /g\.nom = monStr\(vu\.nom, 60\)\.trim\(\);/.test(SRV), true);
+  v('⛔ le rôle aussi', /g\.role = monStr\(vu\.role, 16\)\.trim\(\);/.test(SRV), true);
+  /* ⛔ ET LE DERNIER VU GAGNE. La première écriture gardait la PREMIÈRE vue : douze envois
+     préemptaient les douze places, et plus aucun rapport légitime ne pouvait corriger. */
+  v('⛔ la place la plus ancienne cède au lieu de refuser', /ent\.gens\.splice\(vieux, 1\);/.test(SRV), true);
+  v('… et la liste reste plafonnée', /ent\.gens\.length >= 12/.test(SRV), true);
+  /* ⛔ LES NOMS NE PARTENT PAS À L'ARCHIVE : elle garde 5 000 incidents et n'a aucune purge
+     par âge, là où le journal dont ils sortent tourne à 500 entrées par entreprise. */
+  v('⛔ l\'archive est débarrassée des personnes',
+    /\(i\.entreprises \|\| \[\]\)\.forEach\(e => \{ if \(e && e\.gens\) delete e\.gens; \}\);/.test(SRV), true);
 
   /* Côté Tour : le fait d'abord, la déduction ensuite — et on écrit laquelle on lit. */
-  v('la Tour construit le bloc « signalé par l\'application »', /var quiExact='';/.test(TOUR), true);
-  v('… en le disant explicitement', /ce n’est pas une déduction/.test(TOUR), true);
+  v('la Tour construit le bloc corroboré', /var quiExact='';/.test(TOUR), true);
+  v('⛔ et elle ne promet que ce que la donnée vaut', /CONFIRMÉ PAR LE JOURNAL DES CONNEXIONS/.test(TOUR), true);
+  v('⛔ l\'ancienne promesse a disparu', /ce n’est pas une déduction<\/div>/.test(TOUR), false);
   v('⛔ et quand elle n\'a que la déduction, elle l\'annonce comme telle',
     /Ce qui suit est une <b>déduction<\/b>/.test(TOUR), true);
   v('⛔ le bloc ne peut pas faire tomber la fiche', /\}catch\(e\)\{ quiExact=''; \}/.test(TOUR), true);
@@ -144,6 +169,31 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
   v('⛔ et on n\'invente rien à la place', /var mdpAff=e\.mdp\|\|\(mdpInconnu\?'':mdp\);/.test(TOUR), true);
   v('l\'écran le dit', /inconnu sur cet appareil/.test(TOUR), true);
   v('… et donne la sortie', /Mot de passe oublié \?ature|Mot de passe oublié \?/.test(TOUR), true);
+  /* ⛔ ET MAINTENANT LE COMPORTEMENT, PAS LE TEXTE. Les deux relectures ont fait le même
+     reproche à la première version de ce fichier : il vérifiait que les LIGNES existent, pas
+     qu'elles font ce qu'elles disent. C'est ce qui a laissé passer le vrai défaut — devenu
+     aléatoire, `tourMdpDefaut` transformait `if(mdp&&sp.m!==mdp){ sp.m=mdp; }` d'un no-op en
+     une CORRUPTION : à chaque ouverture du panneau, le vrai mot de passe mémorisé était
+     remplacé par un tirage neuf, et le bouton « Envoyer par e-mail » expédiait au client un
+     mot de passe qui ne marche pas. On exécute donc les deux lignes réelles, extraites du
+     fichier livré. */
+  {
+    const ligneSp = (TOUR.match(/^\s*if\(mdp&&[^\n]*sp\.m[^\n]*$/m) || [''])[0].trim();
+    v('la ligne qui met à jour le mot de passe mémorisé est trouvée', !!ligneSp, true);
+    const majSp = new Function('sp', 'mdp', 'var maj=false; ' + ligneSp + ' return {m:sp.m,maj:maj};');
+    v('⛔ un mot de passe déjà mémorisé n\'est JAMAIS écrasé par un tirage neuf',
+      majSp({ m: 'VRAI-MDP-DONNE-AU-CLIENT' }, 'OP-hasard1234'),
+      { m: 'VRAI-MDP-DONNE-AU-CLIENT', maj: false });
+    v('… mais un trou se comble', majSp({ m: '' }, 'OP-hasard1234'), { m: 'OP-hasard1234', maj: true });
+
+    const ligneRet = (TOUR.match(/^\s*ident:\(connu\.ident[^\n]*$/m) || [''])[0].trim();
+    v('la ligne de retour d\'un espace connu est trouvée', !!ligneRet, true);
+    const ret = new Function('connu', 'ident', 'sp', 'mdp', 'return {' + ligneRet.replace(/,\s*$/, '') + '};');
+    v('⛔ sans trace locale, on ne rend RIEN — c\'est ce qui allume « inconnu sur cet appareil »',
+      ret({ ident: 'flo' }, 'flo', null, 'OP-hasard1234').mdp, '');
+    v('avec la trace, on rend le VRAI mot de passe',
+      ret({ ident: 'flo' }, 'flo', { m: 'VRAI-MDP' }, 'OP-hasard1234').mdp, 'VRAI-MDP');
+  }
   v('le message envoyé au client ne porte pas un blanc',
     /mdpInconnu\?'\(à te faire redonner — voir plus bas\)':mdpAff/.test(TOUR), true);
 }
