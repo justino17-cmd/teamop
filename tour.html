@@ -2191,7 +2191,7 @@ body.plans .reg-l.cli::before{display:none}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.57</div>
+    <div class="lg-pied">console interne · v2.58</div>
   </div>
 </div>
 
@@ -2230,13 +2230,13 @@ body.plans .reg-l.cli::before{display:none}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.57</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.58</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
   </div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.57</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.58</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2300,7 +2300,7 @@ function setApp(app,sansAnim,tabVoulu){
   if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; }catch(e){} }
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
   var nom=APPS_TOUR[app].nom;
-  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.57';
+  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.58';
   var pn=$('app-pill-nom'); if(pn) pn.textContent=APPS_TOUR[app].court;
   /* l'onglet demandé par le hash prime (un lien #gestion/entreprises tapé depuis MESSAGES) ; sinon
      le dernier onglet ouvert dans cette console ; sinon l'accueil */
@@ -6438,6 +6438,16 @@ function blocUtilisateurs(){
   var ligne=function(u){
       var jamais=!u.derniere;
       var p='';
+      /* ⛔ QUI A CHANGÉ SON MOT DE PASSE, ET QUI EST ENCORE SUR LE PROVISOIRE — demande de
+         Justin, 15 septembre 2026. L'information vient de l'annuaire déposé par l'application
+         (la base de l'entreprise est chiffrée, ce serveur ne peut pas la lire) : `provisoire`
+         et `mail` valent true, false, ou `null` quand l'annuaire a été déposé par une version
+         antérieure à la v681. ⚠️ `null` ne s'affiche PAS en vert : « on ne sait pas » et
+         « c'est fait » sont deux choses, et les confondre ferait croire une équipe en règle
+         alors qu'elle n'a rien fait. On n'affiche alors rien du tout. */
+      if(u.provisoire===true) p+='<span class="past p-rouge" title="cette personne n’a pas encore choisi son mot de passe : elle utilise encore celui qu’on lui a donné">⛔ mot de passe provisoire</span>';
+      else if(u.provisoire===false) p+='<span class="past p-vert" title="mot de passe personnel choisi par la personne, et e-mail de récupération enregistré">🔐 mot de passe changé</span>';
+      if(u.mail===false) p+='<span class="past p-ambre" title="sans adresse e-mail, « Mot de passe oublié » ne peut rien faire pour cette personne">✉️ sans e-mail</span>';
       if(u.echecs>0) p+='<span class="past p-ambre" title="échecs de connexion">🔑 '+u.echecs+'</span>';
       if(u.bloques) p+='<span class="past p-ambre" title="écritures refusées : version bloquée ou appareil en retard">🔒 '+u.bloques+'</span>';
       if(jamais&&u.dansAnnuaire) p+='<span class="past p-gris">inutilisé</span>';
@@ -6459,8 +6469,21 @@ function blocUtilisateurs(){
         '</span></div>'; };
   var sv=d.sauvegarde||{}, bannis=d.bannis||[];
   var inut=vrais.filter(function(u){ return u.dansAnnuaire&&!u.derniere&&!u.attente&&!u.supprime; });
+  /* Le compte en tête de section, pour ne pas avoir à lire onze lignes pour savoir où en est
+     l'entreprise. Seulement ce qu'on SAIT : les `null` (annuaire d'avant la v681) ne comptent
+     ni d'un côté ni de l'autre, et on le dit plutôt que de les passer sous silence. */
+  var prov=vrais.filter(function(u){ return u.provisoire===true; }).length;
+  var faits=vrais.filter(function(u){ return u.provisoire===false; }).length;
+  var sansMail=vrais.filter(function(u){ return u.mail===false; }).length;
+  var inconnus=vrais.filter(function(u){ return u.dansAnnuaire&&u.provisoire===null; }).length;
   return '<div class="sous-sec">'+
     '<div class="sec">LEURS UTILISATEURS <span class="n">— '+vrais.length+'</span></div>'+
+    ((prov||faits||sansMail||inconnus)?'<div class="note">🔐 <b>Sécurité des accès</b> : '+
+      [ faits?faits+' ont changé leur mot de passe':'',
+        prov?'<b class="att">'+prov+' encore sur le mot de passe provisoire</b>':'',
+        sansMail?'<b class="att">'+sansMail+' sans e-mail de récupération</b>':'',
+        inconnus?'<span class="g">'+inconnus+' inconnu'+(inconnus>1?'s':'')+' — leur annuaire date d’avant la v681, l’état arrivera à leur prochaine connexion</span>':'' ]
+      .filter(Boolean).join(' · ')+'</div>':'')+
     '<div class="reg-bloc">'+vrais.map(ligne).join('')+'</div>'+
     /* Le lot n'apparaît qu'à partir de DEUX : pour un seul compte, le bouton « Supprimer » de
        sa ligne fait déjà le travail, et deux chemins pour un même geste sèment le doute. */

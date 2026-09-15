@@ -1971,7 +1971,13 @@ app.post('/api/monitor/entreprise/dossier', monAdmin, (req, res) => {
      un compte oublié, ou quelqu'un qui n'arrive pas à entrer. */
   const annu = (comptesReg[t] && comptesReg[t].c) || {};
   const parLogin = {};
-  for (const l of Object.keys(annu)) parLogin[l] = { login: l, dansAnnuaire: true, nom: (annu[l] && annu[l].n) || '', attente: ordreAttente(t, l), supprime: ordreFait(t, l), derniere: 0, role: '', version: '', appareils: 0, echecs: 0, connexions: 0 };
+  /* `provisoire` / `mail` viennent de l'annuaire, déposé par l'application (v681) : un compte
+     encore sur son mot de passe provisoire, ou sans adresse de récupération, est exactement
+     celui qui appellera le patron un matin. Un annuaire déposé par une version ANTÉRIEURE ne
+     porte ni l'un ni l'autre — d'où `null`, « on ne sait pas », qui ne doit pas s'afficher
+     comme « tout va bien ». */
+  const etatBool = (a, k) => (a && typeof a[k] !== 'undefined') ? !!a[k] : null;
+  for (const l of Object.keys(annu)) parLogin[l] = { login: l, dansAnnuaire: true, nom: (annu[l] && annu[l].n) || '', provisoire: etatBool(annu[l], 'p'), mail: etatBool(annu[l], 'm'), attente: ordreAttente(t, l), supprime: ordreFait(t, l), derniere: 0, role: '', version: '', appareils: 0, echecs: 0, connexions: 0 };
   const devs = {};
   for (const x of (cnxData[t] || [])) {
     const l = String(x.login || '').toLowerCase().trim(); if (!l) continue;
@@ -3269,7 +3275,20 @@ app.post('/api/espaces/comptes', (req, res) => {
     if (!login || INTERDITS.includes(login)) continue;
     if (!/^[0-9a-f]{32}$/.test(sel) || !/^[0-9a-f]{64}$/.test(emp)) continue;
     if (ordreBanni(t, login)) continue;   // supprimé depuis la Tour : la porte reste fermée tant que le patron ne réautorise pas
+    /* ⛔ DEUX BOOLÉENS, ET RIEN DE PERSONNEL — Justin, 15 septembre 2026 : « on voit les
+       identifiants qui changent leur mot de passe, et on voit ceux qui sont toujours en mot de
+       passe provisoire ». La base de l'entreprise est chiffrée : ce serveur ne peut PAS la
+       lire, et l'application est la seule à connaître cet état. Elle envoie donc 1 ou 0 —
+       `p` : la campagne sécurité lui reste à faire · `m` : une adresse e-mail est enregistrée.
+       Jamais l'adresse elle-même : ça resterait un annuaire de connexion, pas un fichier du
+       personnel, et une fuite de comptes.json ne doit pas devenir une fuite d'e-mails. */
     table[login] = { s: sel, e: emp, n: monStr(c.n, 60).trim() };
+    /* ⚠️ ON POSE LES DEUX CLÉS MÊME À 0. Les omettre quand c'est faux économiserait trois
+       octets et rendrait « fait » indistinguable de « déposé par une version qui ne le disait
+       pas » — la Tour afficherait « tout va bien » sur une information qu'elle n'a pas. La
+       PRÉSENCE de la clé dit « cette version sait répondre », sa valeur dit quoi. */
+    if (typeof c.p !== 'undefined') table[login].p = c.p ? 1 : 0;
+    if (typeof c.m !== 'undefined') table[login].m = c.m ? 1 : 0;
   }
   /* Un annuaire vide ne remplace JAMAIS un annuaire garni : un bogue de l'application, une
      synchro pas encore descendue, et toute l'entreprise se retrouvait dehors sans rien avoir

@@ -13,6 +13,72 @@ de ligne du tout.
 
 ---
 
+## 🔐 v681 — MOT DE PASSE + E-MAIL OBLIGATOIRES POUR TOUT LE MONDE (publié le 15 septembre 2026)
+
+Quatre demandes de Justin dans la même heure, toutes nées de la même journée : une équipe
+entière dehors pendant qu'il redonnait des accès à la main.
+
+> « tout le monde va se connecter, leur obliger à changer leur mot de passe ET leur mail, sinon
+> rien marche » · « ça met une page changez votre mot de passe pour une histoire de sécurité,
+> ajoutez bien un e-mail pour pouvoir récupérer votre mot de passe perdu dans le futur ; si cela
+> n'est pas fait, votre accès n'est pas activé » · « on voit les identifiants qui changent leur
+> mot de passe, et on voit ceux qui sont toujours en mot de passe provisoire » · « j'ai changé
+> les couleurs, sur mon iPhone ça n'a pas changé, il faut que ça synchronise »
+
+### Ce qui est en place
+
+1. **La campagne sécurité** (`SECU_MDP='2026-09'`, marqueur `u.secu` SUR LA FICHE, donc il suit
+   la personne d'un téléphone à l'autre et la Tour peut le lire). À la connexion,
+   `secuAFaire(u)` ouvre la fenêtre forcée tant que : pas de mot de passe · mot de passe
+   provisoire · campagne pas faite. Elle exige un mot de passe **différent de l'actuel** —
+   sinon retaper celui reçu par message aurait suffi — et une **adresse e-mail valide**.
+   Les trois chemins de mot de passe marquent la campagne (fenêtre forcée, Mon compte,
+   réinitialisation par e-mail) et **tous les trois remettent `secu` en arrière si le serveur
+   refuse le dépôt** (règle v680 : on n'annonce pas « enregistré » sans le serveur).
+2. **L'e-mail n'est plus refusable.** `emailRappelModal` n'a plus de croix ni de « Plus tard »,
+   et ne RENONCE plus quand une autre fenêtre est ouverte (elle repasse, 8 fois max). Une seule
+   sortie : se déconnecter — sur un téléphone partagé, enfermer quelqu'un sur le compte d'un
+   collègue serait pire que le défaut qu'on corrige.
+3. **La Tour voit qui a fait quoi.** L'annuaire porte deux booléens de plus — `p` (campagne à
+   faire) et `m` (e-mail enregistré), **jamais l'adresse elle-même**. Le serveur les garde
+   MÊME À 0 : l'absence de la clé veut dire « annuaire déposé par une version antérieure », et
+   « on ne sait pas » ne doit pas s'afficher comme « tout va bien ». Sur la fiche d'un client :
+   ⛔ mot de passe provisoire · 🔐 mot de passe changé · ✉️ sans e-mail, plus un compte en tête
+   de section.
+4. **L'apparence suit la personne** (`u.pref` : thème, couleur d'accent, couleur libre, langue).
+   ⚠️ **Rien ne s'écrit au chargement** : `prefAppliquer` POSE sur l'appareil ce que la fiche dit
+   déjà, il ne remonte jamais les réglages de l'appareil vers la fiche — deux téléphones ouverts
+   se repousseraient leur thème à tour de rôle. Conséquence à dire à l'utilisateur : **un
+   réglage choisi avant la v681 ne voyage qu'après avoir été retapé une fois.**
+5. **`connexion.html` ramène à la consigne.** Sur un téléphone DÉJÀ relié à un espace, la
+   bannière « Ton espace : … » ÉCRASAIT le bloc « Comment te connecter ? » : ni champ d'adresse
+   ni consigne, alors que c'est exactement la page qu'on donne avec des identifiants. Les deux
+   cohabitent désormais — bannière d'abord, consigne juste en dessous, champ compris.
+
+### Ce qui reste à faire, et par qui
+
+- **Justin doit exiger la v681 depuis la Tour** (Versions → exiger la dernière). Sans ça, les
+  appareils restés en v680 n'affichent pas la campagne — et, min réglé, leur dépôt d'annuaire
+  est refusé en 426 (message explicite depuis la v679).
+- Les mots de passe distribués aujourd'hui cessent d'être valables dès que chacun choisit le
+  sien : c'est le but, mais il faut le dire à l'équipe avant.
+
+### Pièges rencontrés en le faisant
+
+- **La fermeture d'une fenêtre est ANIMÉE** : `closeModal` pose `.ferme` et ne retire `open`
+  qu'au bout de 210 ms (vers la ligne 31509). Mesurer juste après l'appel fait lire « encore
+  ouverte » sur une fenêtre qui se ferme — la sonde a cru voir un défaut qui n'existait pas.
+- **Sur la bêta, les clés de stockage sont préfixées `elanB_`.** Une sonde qui lit `elan_accent`
+  en dur lit son propre décor et annonce le contraire de la vérité. Lire `PREF_CLES`.
+- **Un test qui épingle une LIGNE casse quand le code s'améliore.** `test-665` exigeait le texte
+  exact `if(!u.pwdHash||u.mustChangePwd) setTimeout(forcePwdModal,600);` : il est tombé le jour
+  où la condition a été nommée et RENFORCÉE. Réécrit pour éprouver la fonction réelle.
+
+Preuves : `tests/test-699.js` (65 vérifications) et `scratchpad/sonde-secu-681.js` (cinq
+mesures au navigateur, sur la bêta).
+
+---
+
 ## ⚡ « ÇA RAME » — 15 septembre 2026, **corrigé sur la bêta, PAS publié**
 
 Justin : « il y a aussi un bug d'interface, ça rame beaucoup / application lente ». Aucun écran

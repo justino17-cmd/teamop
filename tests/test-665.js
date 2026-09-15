@@ -147,8 +147,24 @@ console.log('Fournisseurs sans doublon, liens vérifiés, première connexion co
 {
   const i = APP.indexOf('async function forcePwdSave()');
   const fn = APP.slice(i, i + 1800);
-  v('la fenêtre s’ouvre dès qu’il manque un mot de passe personnel',
-    /if\(!u\.pwdHash\|\|u\.mustChangePwd\) setTimeout\(forcePwdModal,600\);/.test(APP), true);
+  /* ⚠️ ON ÉPROUVE LA GARANTIE, PAS LA LIGNE. Ce test cherchait le texte exact
+     `if(!u.pwdHash||u.mustChangePwd) setTimeout(forcePwdModal,600);` — il est tombé le jour où
+     la condition a été nommée (`secuAFaire`, v681) alors que la garantie, elle, s'était
+     RENFORCÉE. Un test qui casse quand le code s'améliore pousse à affaiblir le code. On lit
+     donc la vraie fonction et on lui pose les quatre questions qui comptent. */
+  v('la porte est bien gardée par secuAFaire', /if\(secuAFaire\(u\)\) setTimeout\(forcePwdModal,600\);/.test(APP), true);
+  {
+    const d = APP.indexOf('function secuAFaire(');
+    let n = 0, f = d;
+    for (let j = APP.indexOf('{', d); j < APP.length; j++) {
+      if (APP[j] === '{') n++; else if (APP[j] === '}') { n--; if (!n) { f = j; break; } } }
+    const SECU = (APP.match(/const SECU_MDP='([^']+)'/) || [])[1] || '';
+    const secuAFaire = new Function("const SECU_MDP='" + SECU + "';" + APP.slice(d, f + 1) + '; return secuAFaire;')();
+    v('⛔ elle s’ouvre quand il manque un mot de passe personnel', secuAFaire({ email: 'a@b.fr', secu: SECU }), true);
+    v('⛔ … quand le mot de passe est provisoire', secuAFaire({ pwdHash: 'x', mustChangePwd: true, email: 'a@b.fr', secu: SECU }), true);
+    v('⛔ … et quand la campagne sécurité n’a pas été faite', secuAFaire({ pwdHash: 'x', email: 'a@b.fr' }), true);
+    v('elle ne rouvre pas sur un compte en règle', secuAFaire({ pwdHash: 'x', email: 'a@b.fr', secu: SECU }), false);
+  }
   v('⛔ elle ne se ferme pas à la main', /function closeModal\(force\)\{ if\(_modalForcee&&force!==true\) return;/.test(APP), true);
   v('elle se marque forcée en s’ouvrant', /function forcePwdModal\(\)\{ if\(!currentUser\) return;\n  _modalForcee=true;/.test(APP), true);
   v('huit caractères minimum', /if\(p1\.length<8\)/.test(fn), true);

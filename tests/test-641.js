@@ -378,6 +378,37 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
     /* /health est PUBLIQUE : un slug ou un teamId y dirait au monde quelles entreprises
        existent. Seule /api/mail/cles, protégée par la clé du serveur, les ventile. */
     v('⛔ /health ne nomme AUCUN espace', /ent-a-9x|ent-b-7y|entreprise-a|elan-gestion/.test(JSON.stringify(h)), false);
+
+    /* ══ v681 · L'ÉTAT DES COMPTES FAIT L'ALLER-RETOUR ══════════════════════════════════
+       La Tour doit voir qui est encore sur un mot de passe provisoire (`p`) et qui n'a pas
+       d'e-mail (`m`). Le serveur ne peut pas le DÉDUIRE — la base de l'entreprise est
+       chiffrée — donc l'application le lui dit, et le fichier doit le rendre tel quel.
+       Éprouvé sur le VRAI serveur, pas sur une lecture du code : c'est un aller-retour
+       HTTP + écriture de fichier, exactement ce qu'un contrôle de texte ne voit pas. */
+    const poster = async (c, corps) => { const r = await fetch(B + c, { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps) });
+      let j = null; try { j = await r.json(); } catch (e) {} return { statut: r.status, json: j }; };
+    const compte = (login, p, m) => ({ login, s: 'a'.repeat(32), e: 'b'.repeat(64), n: 'Jean Bon', p, m });
+    let d = await poster('/api/espaces/comptes', { t: 'ent-a-9x', kh: kh(CLE_A), ver: '681',
+      comptes: [compte('jb', 1, 0), compte('marc', 0, 1)] });
+    v('le dépôt d’annuaire passe', d.statut, 200);
+    const lu = JSON.parse(fs.readFileSync(path.join(banc, 'data', 'comptes.json'), 'utf8'));
+    const cA = (lu['ent-a-9x'] || {}).c || {};
+    v('⛔ « encore provisoire » est gardé', [cA.jb && cA.jb.p, cA.jb && cA.jb.m], [1, 0]);
+    v('⛔ « à jour » aussi, ET À 0 — sinon « fait » se confondrait avec « version qui ne sait pas répondre »',
+      [cA.marc && cA.marc.p, cA.marc && cA.marc.m], [0, 1]);
+    /* ⛔ ET RIEN D'AUTRE NE PASSE : un corps hostile ne pose pas ce qu'il veut dans le fichier. */
+    d = await poster('/api/espaces/comptes', { t: 'ent-a-9x', kh: kh(CLE_A), ver: '681',
+      comptes: [Object.assign(compte('jb', { sale: 1 }, 'oui'), { role: 'admin', email: 'fuite@exemple.fr' })] });
+    const cA2 = ((JSON.parse(fs.readFileSync(path.join(banc, 'data', 'comptes.json'), 'utf8'))['ent-a-9x'] || {}).c || {}).jb || {};
+    v('⛔ p et m ne peuvent valoir que 0 ou 1', [cA2.p, cA2.m], [1, 1]);
+    v('⛔ aucun autre champ ne s’invite dans l’annuaire', Object.keys(cA2).sort(), ['e', 'm', 'n', 'p', 's']);
+    /* ⛔ ET UNE VERSION ANCIENNE N'EFFACE PAS L'ÉTAT EN MENTANT : elle n'envoie ni p ni m, donc
+       les clés disparaissent — et la Tour lira « on ne sait pas », pas « tout va bien ». */
+    d = await poster('/api/espaces/comptes', { t: 'ent-a-9x', kh: kh(CLE_A), ver: '681',
+      comptes: [{ login: 'jb', s: 'a'.repeat(32), e: 'b'.repeat(64), n: 'Jean Bon' }] });
+    const cA3 = ((JSON.parse(fs.readFileSync(path.join(banc, 'data', 'comptes.json'), 'utf8'))['ent-a-9x'] || {}).c || {}).jb || {};
+    v('un dépôt sans état laisse « on ne sait pas »', [('p' in cA3), ('m' in cA3)], [false, false]);
   } catch (e) { ko++; console.log('  ✗ le banc n\'a pas pu tourner : ' + e.message); }
 
   stop();

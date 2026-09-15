@@ -350,12 +350,23 @@ try{
         return;
       }
       /* Appareil relié à une VRAIE entreprise et pas d'adresse demandée : on ne redemande rien,
-         on propose les applications — c'est le cas de tous les jours. */
+         on propose les applications — c'est le cas de tous les jours.
+         ⛔ MAIS ON NE MANGE PLUS LA CONSIGNE. Justin, 15 septembre 2026 : « ici le lien il faut
+         vraiment que ça les ramène à la 2e photo et que les utilisateurs suivent les consignes ».
+         Cette page EST ce qu'on donne à quelqu'un avec ses identifiants (`userIdentifiantsModal`,
+         app.html) — et sur un téléphone déjà relié à un espace, elle écrasait le bloc « Comment
+         te connecter ? » par cette bannière : ni champ d'adresse, ni consigne. La personne ne
+         POUVAIT pas suivre les quatre lignes qu'elle venait de recevoir, et repartait dans
+         l'espace où son téléphone était déjà — le mauvais, dans le cas qui a coûté la journée.
+         Les deux cohabitent maintenant : le raccourci du quotidien en premier, la consigne
+         juste en dessous, champ compris, mot pour mot celle d'un appareil neuf. */
       if(_esp&&!adr){
         $id('sous').textContent='Ton appareil est déjà relié à ton entreprise.';
         var b=$id('etape-adresse');
         b.style.display='block';
-        b.innerHTML='<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap">'+
+        var ban=document.createElement('div'); ban.className='bloc'; ban.id='bloc-relie';
+        b.parentNode.insertBefore(ban,b);
+        ban.innerHTML='<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap">'+
           '<div style="font-size:14px">🏢 Ton espace : <b>'+String(_ent||_esp).replace(/</g,'&lt;')+'</b></div>'+
           /* ⛔ « changer d'entreprise » n'est pas un cas limite : c'est la SEULE sortie quand
              l'appareil est au mauvais endroit, et un lien de douze pixels ne la donnait pas. */
@@ -366,6 +377,11 @@ try{
              l'adresse d'entreprise ouvrait les deux. Elle n'en ouvre qu'une. */
           '<div style="width:100%;color:#93a9d4;font-size:13px;margin-top:4px">Ton adresse d\'entreprise te connecte à <b style="color:#eef2fa">OP GESTION</b>, et à lui seul.<br><b style="color:#eef2fa">OP MESSAGES</b> ne fait pas partie du forfait : c\'est une application à part, avec son compte personnel et son abonnement.</div></div>';
         var cartes=$id('cartes-apps'); if(cartes) cartes.style.display='flex';
+        /* La consigne reçue par message dit « ouvre la page, tape le nom de l'entreprise » :
+           sur un appareil déjà relié, il faut dire pourquoi ce champ est là malgré la bannière,
+           sinon on croit que la question ne nous concerne pas. */
+        var aide=b.querySelector('.aide');
+        if(aide) aide.innerHTML='<b style="color:#eef2fa">On vient de te donner des identifiants ?</b> Entre ci-dessous l’adresse de l’entreprise qu’on t’a indiquée — <b style="color:#eef2fa">même si cet appareil est déjà relié</b> à un autre espace. C’est juste son nom, après <b style="color:#eef2fa">teamop.fr/e/</b>.';
         return;
       }
       if(!_esp){ var lec=$id('lien-espace-client'); if(lec) lec.style.display='block'; }

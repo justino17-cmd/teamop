@@ -4886,7 +4886,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '680';
+const APP_VERSION = '681';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -5767,7 +5767,7 @@ function startI18n(){ if(_i18nObs||!window.MutationObserver) return;
   _i18nObs=new MutationObserver(ms=>{ if(getLang()==='fr')return; ms.forEach(m=>m.addedNodes.forEach(n=>translateNode(n))); });
   ['content','modal','modal2','nav','page-head','topbar-actions','overlay','overlay2'].forEach(id=>{ const el=$(id); if(el) _i18nObs.observe(el,{childList:true,subtree:true}); });
 }
-function setLang(l){ localStorage.setItem('elan_lang',l); if(currentUser){ renderNav(); if(current) go(current); setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },30); } toast(LANG_FLAG[l]+' '+LANGS[l]); }
+function setLang(l){ localStorage.setItem('elan_lang',l); prefEcrire('lang',l); if(currentUser){ renderNav(); if(current) go(current); setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },30); } toast(LANG_FLAG[l]+' '+LANGS[l]); }
 function openLangPicker(){ openModal(`<div class="modal-head"><h3>🌍 ${t('Langue')} / Language / Idioma</h3></div>
   <div style="padding:2px"><p style="color:var(--t2);font-size:14px;margin-bottom:14px">Choisis ta langue · Choose your language · Elige tu idioma</p>
   <div style="display:flex;flex-direction:column;gap:10px">${Object.entries(LANGS).map(([k,v])=>`<button type="button" class="btn ${getLang()===k?'':'ghost'}" style="justify-content:flex-start" onclick="setLang('${k}');closeModal()">${LANG_FLAG[k]} ${v}</button>`).join('')}</div></div>`); }
@@ -6723,6 +6723,9 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
         if(_repousser) setTimeout(()=>{ try{ syncPush(true); }catch(e){} },1200);
         try{ localStorage.removeItem('elan_frais'); }catch(e){}
         if(currentUser&&!compteVerifier()){ _syncApplying=false; return; }   // supprimé / désactivé par l'entreprise → déconnecté
+        /* Thème, couleur ou langue changés sur un AUTRE appareil : `compteVerifier()` vient de
+           repointer `currentUser` sur la fiche fusionnée, on peut la relire. */
+        try{ if(currentUser) prefAppliquer(currentUser); }catch(e){}
         try{ refreshBadges&&refreshBadges(); updateBell&&updateBell();
           if(currentUser){ if(planEnGlissement()&&current==='planning'){ window._planPending=true; } else refreshEcran(); } }catch(e){}
         _syncApplying=false; if(currentUser){ try{ toast(diffMsg||'Données de l\'équipe mises à jour'); }catch(e){} }
@@ -28786,7 +28789,15 @@ function annuaireComptes(){
 /* Le nom part avec l'annuaire depuis le 10 septembre 2026 — décision de Justin : dans la Tour, sous
    l'identifiant, on lit qui c'est. C'est la seule donnée de plus ; ni adresse, ni téléphone. */
 function annuaireNom(u){ return String(((u&&u.prenom)||'')+' '+((u&&u.nom)||'')).trim().slice(0,60); }
-function annuaireSignature(l){ return l.map(u=>String(u.login).toLowerCase().trim()+':'+annuaireEmpreinte(u)+':'+annuaireNom(u)).sort().join('|'); }
+/* ⛔ DEUX BOOLÉENS, ET RIEN DE PERSONNEL. Justin, 15 septembre 2026 : « on voit les
+   identifiants qui changent leur mot de passe, et on voit ceux qui sont toujours en mot de
+   passe provisoire ». La Tour n'a aucun autre moyen de le savoir — la base de l'entreprise est
+   chiffrée, le serveur ne peut pas la lire. On fait donc voyager 1 ou 0, jamais l'adresse
+   e-mail elle-même : l'annuaire reste un annuaire de connexion, pas un fichier du personnel.
+   `p` = il lui reste à faire la campagne sécurité · `m` = une adresse est enregistrée. */
+function annuaireEtatP(u){ return secuAFaire(u)?1:0; }
+function annuaireEtatM(u){ return (u&&String(u.email||'').trim())?1:0; }
+function annuaireSignature(l){ return l.map(u=>String(u.login).toLowerCase().trim()+':'+annuaireEmpreinte(u)+':'+annuaireNom(u)+':'+annuaireEtatP(u)+annuaireEtatM(u)).sort().join('|'); }
 /* ⛔ ELLE REND UN VERDICT DEPUIS LA v680, ET IL EST ATTENDU. Trois écrans changent un mot de
    passe ; tous les trois annonçaient « enregistré » sans jamais regarder si le serveur l'avait
    pris. `{ok:true}` déposé · `{ok:false,status}` refusé · `{ok:null}` rien à déposer (bêta,
@@ -28813,12 +28824,12 @@ async function annuaireDeposer(){
       const trace=await sha256(emp+'|annuaire');
       const c=cache[login];
       if(c&&c.f===trace&&/^[0-9a-f]{32}$/.test(c.s||'')&&/^[0-9a-f]{64}$/.test(c.e||'')){
-        neuf[login]=c; envoi.push({login:login,s:c.s,e:c.e,n:annuaireNom(u)}); continue;
+        neuf[login]=c; envoi.push({login:login,s:c.s,e:c.e,n:annuaireNom(u),p:annuaireEtatP(u),m:annuaireEtatM(u)}); continue;
       }
       const selB=crypto.getRandomValues(new Uint8Array(16));
       const selHex=[...selB].map(x=>x.toString(16).padStart(2,'0')).join('');
       const ver=await annuairePbkdf2(emp,selB,ANNUAIRE_TOURS);
-      neuf[login]={f:trace,s:selHex,e:ver}; envoi.push({login:login,s:selHex,e:ver,n:annuaireNom(u)});
+      neuf[login]={f:trace,s:selHex,e:ver}; envoi.push({login:login,s:selHex,e:ver,n:annuaireNom(u),p:annuaireEtatP(u),m:annuaireEtatM(u)});
     }
     if(!envoi.length) return;
     const kh=await sha256(k);
@@ -29355,6 +29366,9 @@ function suiteRefresh(){ if(!currentUser) return;
   const so=$('suite-opmsg'); if(so) so.style.display=soOn?'flex':'none';
   try{ const sb=$('suite-box'); if(sb){ sb.style.display=soOn?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=soOn?'':'none'; } }catch(e){} }
 function enterApp(u){ currentUser=u;
+  /* Le thème, la couleur et la langue choisis sur un AUTRE appareil arrivent avec la fiche :
+     on les pose avant de dessiner quoi que ce soit, sinon l'écran se repeindrait sous les yeux. */
+  try{ prefAppliquer(u); }catch(e){}
   /* Les comptes de l'équipe viennent d'arriver par la synchro : c'est le bon moment pour
      (re)déposer l'annuaire de connexion, sans bloquer l'ouverture. */
   try{ setTimeout(function(){ annuaireDeposer(); },4000); }catch(e){}
@@ -29399,8 +29413,8 @@ function enterApp(u){ currentUser=u;
   if(!maybeWelcome()) maybeRappels();
   setTimeout(()=>{ try{ planFdrCheck(); }catch(e){} },1200);       // P7 : rappel de la journée le matin (techniciens)
   setTimeout(()=>{ try{ garAlertCheck(); }catch(e){} },2600);      // P11 : garanties qui expirent sous 30 j (admin)
-  if(!u.pwdHash||u.mustChangePwd) setTimeout(forcePwdModal,600);   // sécurité : mot de passe personnel obligatoire
-  else if(!(u.email||'').trim()) setTimeout(emailRappelModal,1100); // sans e-mail, « Mot de passe oublié » ne peut pas aider → on le demande gentiment
+  if(secuAFaire(u)) setTimeout(forcePwdModal,600);                 // ⛔ mot de passe personnel + e-mail : sans les deux, l'accès n'est pas activé
+  else if(!(u.email||'').trim()) setTimeout(emailRappelModal,1100); // ⛔ e-mail OBLIGATOIRE aussi : sans lui, « Mot de passe oublié » ne peut rien faire
   setTimeout(()=>{ try{ promoEssaiCheck(); }catch(e){} },1500);    // essai gratuit : rappels et fin
   try{ const pm=location.hash.match(/promo=([A-Za-z0-9_-]{2,40})/); if(pm){ const c=pm[1]; setTimeout(()=>{ try{ history.replaceState(null,'','#v='+current); promoAppliquer(c); }catch(e){} },1200); } }catch(e){}
   setTimeout(maybeProfilePhoto,900); setTimeout(avatarAccentSync,1600);
@@ -29833,8 +29847,11 @@ async function pwdForgotSave(){
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
   if(/^\d{4,8}$/.test(p1)){ show('Choisis mieux qu\'une suite de chiffres (mélange lettres et chiffres).'); return; }
   const u=db.users.find(x=>x.id===pwdForgot.uid); if(!u){ closeModal(); return; }
-  const avant={pwdHash:u.pwdHash,mustChangePwd:u.mustChangePwd,pinHash:u.pinHash};
+  const avant={pwdHash:u.pwdHash,mustChangePwd:u.mustChangePwd,pinHash:u.pinHash,secu:u.secu};
   u.pwdHash=await sha256(p1); delete u.mustChangePwd; delete u.pinHash;
+  /* Une réinitialisation par e-mail PROUVE les deux à la fois : le mot de passe vient d'être
+     choisi par la personne, et l'adresse a bien reçu le code. La campagne est faite. */
+  if((u.email||'').trim()) u.secu=SECU_MDP;
   /* ⛔ Ici plus qu'ailleurs : la personne n'est pas encore connectée. L'ouvrir sur un mot de
      passe que le serveur n'a pas pris, c'est la renvoyer dehors au prochain démarrage. */
   const pb=await identifiantsDeposer(u,avant);
@@ -29865,8 +29882,12 @@ async function monComptePwdSave(){ if(!currentUser) return;
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
   if(/^\d{4,8}$/.test(p1)){ show('Choisis mieux qu\'une suite de chiffres (mélange lettres et chiffres).'); return; }
   if(p0&&p1===p0){ show('Choisis un mot de passe différent de l\'actuel.'); return; }
-  const avant={pwdHash:currentUser.pwdHash,mustChangePwd:currentUser.mustChangePwd,pinHash:currentUser.pinHash,sansMdp:currentUser.sansMdp};
+  const avant={pwdHash:currentUser.pwdHash,mustChangePwd:currentUser.mustChangePwd,pinHash:currentUser.pinHash,sansMdp:currentUser.sansMdp,secu:currentUser.secu};
   currentUser.pwdHash=await sha256(p1); delete currentUser.mustChangePwd; delete currentUser.pinHash; delete currentUser.sansMdp;
+  /* Changer son mot de passe de son plein gré vaut la campagne — sinon on le redemanderait à
+     la connexion suivante à quelqu'un qui vient de le faire. L'e-mail, lui, reste exigé à
+     part : cette fenêtre-ci ne le demande pas. */
+  if((currentUser.email||'').trim()) currentUser.secu=SECU_MDP;
   const pb=await identifiantsDeposer(currentUser,avant);
   if(pb){ show(pb); return; }   // rien n'a changé : la fenêtre reste ouverte, il peut réessayer
   logEvent('Mot de passe modifié','','auth'); closeModal(); toast('🔑 Mot de passe modifié ✓'); if(current==='parametres') views.parametres(); }
@@ -29880,11 +29901,39 @@ function monCompteMail(){ if(!currentUser) return;
 function monCompteMailSave(){ if(!currentUser) return; const v=(($('mc-mail')||{}).value||'').trim();
   const err=$('mc-err'); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ if(err){ err.textContent='⚠ Entre une adresse e-mail valide.'; err.style.display='block'; } return; }
   currentUser.email=v; logEvent('E-mail de récupération modifié',v,'auth'); save(); closeModal(); toast('✉️ E-mail de récupération enregistré ✓'); if(current==='parametres') views.parametres(); }
+/* ⛔ LA CAMPAGNE SÉCURITÉ — TOUT LE MONDE REPASSE PAR LÀ, UNE FOIS ────────────────────────
+   Justin, 15 septembre 2026 : « maintenant obligation qu'ils changent leur mot de passe,
+   ajouter un e-mail pour quoi que ce soit […] ça met une page "changez votre mot de passe
+   pour une histoire de sécurité, ajoutez bien un e-mail pour pouvoir récupérer votre mot de
+   passe perdu" ; si cela n'est pas fait, votre accès n'est pas activé ».
+   Ce n'est pas une précaution de principe : les mots de passe provisoires circulent en clair
+   par message, et un compte sans e-mail ne peut pas récupérer le sien — c'est la boucle qui a
+   occupé la journée entière du 15 septembre, et qui a fini par bloquer une équipe.
+   Le marqueur vit SUR LA FICHE (`u.secu`), pas dans `localStorage` : il doit suivre la
+   personne d'un téléphone à l'autre, et la Tour doit pouvoir le lire. Changer la valeur
+   ci-dessous relance la campagne pour tout le monde — à ne faire que pour une vraie raison. */
+const SECU_MDP='2026-09';
+/* ⚠️ L'E-MAIL N'EST PAS DANS CE TEST, ET C'EST VOULU : la campagne l'exige au passage
+   (`forcePwdSave` le refuse vide), mais une adresse effacée plus tard sur la fiche par un
+   administrateur ne doit pas redemander un CHANGEMENT DE MOT DE PASSE — juste l'adresse.
+   C'est `emailRappelModal`, forcé lui aussi, qui tient ce cas. */
+/* ⛔ ET JAMAIS SUR UN ACCÈS D'ESSAI (bêta). Son mot de passe ne vit pas sur la fiche mais sur
+   le serveur (`beta-comptes.json`, géré depuis la Tour) : le changer ici ne changerait RIEN —
+   la fiche locale et la vraie porte se mettraient à dire deux choses différentes, et on
+   réclamerait en plus une adresse e-mail à quelqu'un dont le compte n'a pas de récupération
+   par e-mail. Le reste du code traite déjà ces comptes à part (`annuaireComptes` les exclut). */
+function secuAFaire(u){ return !!u && !u.essai && (!u.pwdHash || !!u.mustChangePwd || u.secu!==SECU_MDP); }
 function forcePwdModal(){ if(!currentUser) return;
   _modalForcee=true;
   const mail=(currentUser.email||'').trim(), ent=(typeof entrepriseNom==='function'?entrepriseNom():'');
-  openModal(`<div class="modal-head"><h3>🔐 Bienvenue${currentUser.prenom?' '+esc(currentUser.prenom):''} — crée ton mot de passe</h3></div>
-    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">${ent?'Tu es connecté à l\'entreprise <b>'+esc(ent)+'</b>. ':''}${currentUser.pwdHash?'Ton mot de passe provisoire doit être remplacé par le tien.':'Ton compte passe du code PIN au mot de passe — plus sûr.'} Choisis un mot de passe d'au moins <b>8 caractères</b>, connu de toi seul.</p>
+  /* Trois situations, trois phrases : l'ancien compte à code PIN, le mot de passe provisoire
+     reçu par message, et le compte déjà en règle que la campagne rappelle une fois. Dire
+     « ton mot de passe provisoire » à quelqu'un qui a choisi le sien lui ferait croire à un
+     bogue — et il irait déranger son responsable pour rien. */
+  const camp=!!currentUser.pwdHash&&!currentUser.mustChangePwd;
+  openModal(`<div class="modal-head"><h3>🔐 ${camp?'Sécurité — active ton accès':'Bienvenue'+(currentUser.prenom?' '+esc(currentUser.prenom):'')+' — crée ton mot de passe'}</h3></div>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">${ent?'Tu es connecté à l\'entreprise <b>'+esc(ent)+'</b>. ':''}${camp?'Pour des raisons de <b>sécurité</b>, choisis un <b>nouveau mot de passe</b> et vérifie ton adresse e-mail.':(currentUser.pwdHash?'Ton mot de passe provisoire doit être remplacé par le tien.':'Ton compte passe du code PIN au mot de passe — plus sûr.')} Choisis un mot de passe d'au moins <b>8 caractères</b>, connu de toi seul.</p>
+    <div style="background:color-mix(in srgb,var(--org,#e8a33d) 12%,transparent);border:1px solid color-mix(in srgb,var(--org,#e8a33d) 34%,transparent);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--t1);margin-bottom:14px">⚠️ <b>Tant que ce n'est pas fait, ton accès n'est pas activé.</b> Mot de passe personnel + adresse e-mail : les deux, une seule fois.</div>
     ${(!currentUser.pwdHash)?`<div class="field"><label>Ton identifiant de connexion</label><input id="fp-login" value="${esc(currentUser.login||'')}" autocapitalize="off" placeholder="ex : marc"><div style="font-size:11px;color:var(--t3);margin-top:4px">C'est lui que tu taperas pour te connecter — garde-le ou change-le maintenant.</div></div>`:''}
     <div class="field"><label>Nouveau mot de passe</label><input id="fp-p1" type="password" minlength="8" placeholder="8 caractères minimum" autocomplete="new-password"></div>
     <div class="field"><label>Confirme-le</label><input id="fp-p2" type="password" minlength="8" placeholder="Le même, une deuxième fois" autocomplete="new-password"></div>
@@ -29897,6 +29946,11 @@ async function forcePwdSave(){ const p1=($('fp-p1')||{}).value||'', p2=($('fp-p2
   if(p1.length<8){ show('8 caractères minimum.'); return; }
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
   if(/^\d{4,8}$/.test(p1)){ show('Choisis mieux qu\'une suite de chiffres (mélange lettres et chiffres).'); return; }
+  /* ⛔ « CHANGER » VEUT DIRE CHANGER. Sans ce contrôle, retaper le mot de passe provisoire
+     reçu par message referme la fenêtre et marque la campagne faite — alors que le mot de
+     passe du compte reste celui qui circule dans une conversation WhatsApp. */
+  const neufH=await sha256(p1);
+  if(currentUser.pwdHash&&neufH===currentUser.pwdHash){ show('Choisis un mot de passe DIFFÉRENT de celui que tu utilises aujourd\'hui.'); const e1=$('fp-p1'); if(e1) e1.focus(); return; }
   const fl=($('fp-login')||{}).value;
   if(fl!==undefined){
     const nv=String(fl||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9.]/g,'');
@@ -29910,9 +29964,9 @@ async function forcePwdSave(){ const p1=($('fp-p1')||{}).value||'', p2=($('fp-p2
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fm)){ show('Entre une adresse e-mail valide — elle sert à récupérer ton mot de passe si tu l\'oublies.'); const el=$('fp-mail'); if(el) el.focus(); return; }
   /* ⛔ ON GARDE L'ÉTAT D'AVANT : si le serveur refuse, on remet tout. Voir identifiantsDeposer. */
   const avant={pwdHash:currentUser.pwdHash,mustChangePwd:currentUser.mustChangePwd,pinHash:currentUser.pinHash,
-               sansMdp:currentUser.sansMdp,email:currentUser.email,login:currentUser.login};
-  currentUser.pwdHash=await sha256(p1); delete currentUser.mustChangePwd; delete currentUser.pinHash; delete currentUser.sansMdp;
-  currentUser.email=fm;
+               sansMdp:currentUser.sansMdp,email:currentUser.email,login:currentUser.login,secu:currentUser.secu};
+  currentUser.pwdHash=neufH; delete currentUser.mustChangePwd; delete currentUser.pinHash; delete currentUser.sansMdp;
+  currentUser.email=fm; currentUser.secu=SECU_MDP;   // la campagne est faite pour cette personne — la Tour le lira dans l'annuaire
   const pb=await identifiantsDeposer(currentUser,avant);
   if(pb){ show(pb);
     /* ⚠️ ET ON NE L'ENFERME PAS DEDANS. Cette fenêtre n'a pas de croix : la laisser forcée sur
@@ -29924,22 +29978,42 @@ async function forcePwdSave(){ const p1=($('fp-p1')||{}).value||'', p2=($('fp-p2
   _modalForcee=false;
   logEvent('Mot de passe défini','@'+(currentUser.login||''),'auth'); closeModal();
   toast('🔐 Mot de passe enregistré, e-mail de récupération aussi — c\'est ce mot de passe qu\'il faudra taper désormais'); }
-/* ── Rappel à la connexion : un compte sans e-mail ne peut pas utiliser
-   « Mot de passe oublié » — on propose de l'enregistrer (10 secondes, refusable) ── */
-function emailRappelModal(){ if(!currentUser||(currentUser.email||'').trim()) return;
-  if($('overlay').classList.contains('open')) return;   // un autre message est déjà affiché : on retentera à la prochaine connexion
-  openModal(`<div class="modal-head"><h3>✉️ Enregistre ton e-mail</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <p style="color:var(--t2);font-size:13.5px;line-height:1.7;margin-bottom:14px">Si un jour tu <b>oublies ton mot de passe</b>, l'app t'enverra un <b>code de récupération par e-mail</b> pour en choisir un nouveau, sans déranger personne.<br>Sans adresse enregistrée, il faudra passer par un administrateur. Ça prend 10 secondes :</p>
-    <div class="field"><label>Ton adresse e-mail</label><input id="er-mail" type="email" placeholder="prenom@entreprise.fr" autocapitalize="off"></div>
+/* ── ⛔ L'E-MAIL EST OBLIGATOIRE, AU MÊME TITRE QUE LE MOT DE PASSE ───────────────────────
+   Justin, 15 septembre 2026 : « tout le monde va se connecter, leur obliger à changer leur
+   mot de passe ET leur mail, sinon rien marche ». Ce n'est pas un durcissement de confort :
+   sans adresse sur la fiche, « Mot de passe oublié ? » ne peut RIEN faire. Il tombe sur le
+   chemin de secours — nom exact de l'entreprise, code envoyé au responsable, mot de passe
+   provisoire posé à la main — et c'est exactement la boucle qui a bloqué une équipe entière
+   ce jour-là, pendant que l'administrateur passait sa matinée à redonner des accès.
+   La fenêtre n'a donc plus de croix ni de « Plus tard ». Une seule sortie : se déconnecter.
+   ⚠️ CETTE SORTIE COMPTE — sur un téléphone partagé, quelqu'un qui s'est trompé de compte
+   serait sinon enfermé devant un écran qui lui demande l'adresse d'un autre. On exige
+   l'e-mail pour TRAVAILLER, on n'emprisonne personne. */
+/* ⚠️ Le paramètre compte les PASSAGES, il n'a rien à voir avec `currentUser.essai` (un accès
+   bêta) — deux sens pour le mot « essai » sur la même ligne, c'est une relecture perdue. */
+function emailRappelModal(passe){ if(!currentUser||currentUser.essai) return;   // accès bêta : voir secuAFaire
+  if((currentUser.email||'').trim()){ _modalForcee=false; return; }
+  /* Une autre fenêtre est déjà ouverte (bienvenue, rappels…) : on ne l'écrase pas, on repasse.
+     ⚠️ ON NE RENONCE PLUS. C'était le comportement d'avant — et un compte sans e-mail passait
+     donc au travers à chaque connexion où un autre message s'affichait, c'est-à-dire souvent.
+     Borné quand même : après ~20 s on laisse tomber pour cette session plutôt que de tourner
+     en boucle derrière une fenêtre qui ne se ferme pas. */
+  if($('overlay').classList.contains('open')){ const n=(passe||0)+1; if(n<=8) setTimeout(()=>emailRappelModal(n),2500); return; }
+  _modalForcee=true;
+  openModal(`<div class="modal-head"><h3>✉️ Ton e-mail, pour ne jamais rester dehors</h3></div>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.7;margin-bottom:14px">Si un jour tu <b>oublies ton mot de passe</b>, l'app t'enverra un <b>code par e-mail</b> pour en choisir un nouveau, tout seul, tout de suite.<br>Sans adresse, il faut passer par ton responsable et attendre. <b>C'est pour ça qu'elle est obligatoire.</b></p>
+    <div class="field"><label>Ton adresse e-mail *</label><input id="er-mail" type="email" required placeholder="prenom@entreprise.fr" autocapitalize="off" autocomplete="email" onkeydown="if(event.key==='Enter')emailRappelSave()"></div>
     <div id="er-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
     <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="emailRappelSave()">Enregistrer mon e-mail</button>
-    <button class="btn ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="closeModal()">Plus tard</button>`);
+    <div style="text-align:center;margin-top:12px"><a onclick="logout()" style="cursor:pointer;color:var(--t3);font-size:12.5px;text-decoration:underline">Ce n'est pas mon compte — me déconnecter</a></div>`);
   setTimeout(()=>{ const el=$('er-mail'); if(el) el.focus(); },80);
 }
-function emailRappelSave(){ const m=(($('er-mail')||{}).value||'').trim();
+function emailRappelSave(){ if(!currentUser) return;
+  const m=(($('er-mail')||{}).value||'').trim();
   const err=$('er-err'); const show=t=>{ if(err){ err.textContent='⚠ '+t; err.style.display='block'; } };
-  if(!/.+@.+\..+/.test(m)){ show('Entre une adresse e-mail valide.'); return; }
-  currentUser.email=m; logEvent('E-mail de récupération enregistré','@'+(currentUser.login||''),'auth'); save(); closeModal();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){ show('Entre une adresse e-mail valide — c\'est elle qui te rendra ton mot de passe le jour où tu l\'oublieras.'); return; }
+  currentUser.email=m; logEvent('E-mail de récupération enregistré','@'+(currentUser.login||''),'auth'); save();
+  _modalForcee=false; closeModal();
   toast('✉️ E-mail enregistré — « Mot de passe oublié » fonctionnera pour toi'); }
 /* ── Multitâche : OP MESSAGES en écran partagé dans la même fenêtre ── */
 function splitOpen(url){
@@ -30190,6 +30264,39 @@ const THEME_LBL = { auto:'Auto (système)', light:'Mode jour', dark:'Mode sombre
 const THEME_ICO = { auto:'🌗', light:'☀️', dark:'🌙' };
 function getThemePref(){ return localStorage.getItem('elan_theme')||'auto'; }
 function getAccent(){ return localStorage.getItem('elan_accent')||'green'; }
+/* ⛔ L'APPARENCE SUIT LA PERSONNE, PAS LE TÉLÉPHONE. Justin, 15 septembre 2026, capture à
+   l'appui : violet choisi sur son Mac, iPhone resté vert — « il faut que ça synchronise bien
+   entre chaque appareil ». Thème, couleur d'accent et langue ne vivaient que dans
+   `localStorage`, donc sur UN appareil, invisibles partout ailleurs. Ils sont désormais rangés
+   AUSSI sur la fiche de la personne (`u.pref`), qui se synchronise comme le reste de la base.
+   Deux règles à ne pas casser :
+   1. `localStorage` reste la source de l'AFFICHAGE : `applyTheme()` tourne avant toute
+      connexion, quand il n'y a encore ni base ni `currentUser`. La fiche ne fait que le
+      repeupler à l'ouverture de session.
+   2. ⚠️ RIEN NE S'ÉCRIT AU SEUL CHARGEMENT. `prefAppliquer` POSE sur l'appareil ce que la
+      fiche dit déjà ; il ne remonte JAMAIS les réglages de l'appareil vers la fiche — sinon
+      deux téléphones ouverts se repousseraient leur thème à tour de rôle, chacun estampillant
+      la fiche de l'autre. C'est un tap qui écrit. Conséquence assumée, et à dire : un réglage
+      choisi AVANT cette version ne voyage qu'une fois retapé une seule fois. */
+const PREF_CLES={theme:'elan_theme',accent:'elan_accent',accentHex:'elan_accent_hex',lang:'elan_lang'};
+function prefEcrire(cle,val){
+  if(!currentUser||!PREF_CLES[cle]||typeof val!=='string') return;
+  const u=(db&&db.users&&db.users.find(x=>x.id===currentUser.id))||currentUser;
+  if(!u.pref||typeof u.pref!=='object') u.pref={};
+  if(u.pref[cle]===val) return;
+  u.pref[cle]=val;
+  if(u!==currentUser) currentUser.pref=u.pref;
+  save();
+}
+function prefAppliquer(u){
+  const p=u&&u.pref; if(!p||typeof p!=='object') return false;
+  let change=false;
+  Object.keys(PREF_CLES).forEach(k=>{ const v=p[k];
+    if(typeof v!=='string'||!v) return;
+    try{ if(localStorage.getItem(PREF_CLES[k])===v) return; localStorage.setItem(PREF_CLES[k],v); change=true; }catch(e){} });
+  if(change){ try{ applyTheme(); }catch(e){} try{ avatarAccentSync(); }catch(e){} }
+  return change;
+}
 function systemDark(){ return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }
 function effectiveTheme(){ const p=getThemePref(); return p==='auto' ? (systemDark()?'dark':'light') : p; }
 function applyTheme(){
@@ -30221,7 +30328,7 @@ function applyTheme(){
   // La carte suit le mode jour/nuit
   if(current==='carteInt') views.carteInt(); else if(current==='carteBox') views.carteBox();
 }
-function setThemePref(p){ localStorage.setItem('elan_theme',p); applyTheme(); toast(THEME_ICO[p]+' '+THEME_LBL[p]); if(current==='parametres') views.parametres(); }
+function setThemePref(p){ localStorage.setItem('elan_theme',p); prefEcrire('theme',p); applyTheme(); toast(THEME_ICO[p]+' '+THEME_LBL[p]); if(current==='parametres') views.parametres(); }
 function toggleTheme(ev){
   const o=['auto','light','dark'], suivant=o[(o.indexOf(getThemePref())+1)%3];
   const sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -30610,10 +30717,11 @@ function avatarAccentSync(){ try{ if(!currentUser) return; const u=db.users.find
   else if(m.type==='avb'&&m.avb){ _avb=JSON.parse(JSON.stringify(m.avb)); avbSave(true); }
   else if(m.type==='insta'&&m.ava){ _ig=JSON.parse(JSON.stringify(m.ava)); igSave(true); }
 }catch(e){} }
-function setAccent(a){ localStorage.setItem('elan_accent',a); applyTheme(); avatarAccentSync();
+function setAccent(a){ localStorage.setItem('elan_accent',a); prefEcrire('accent',a); applyTheme(); avatarAccentSync();
   toast('Couleur « '+(ACCENTS[a]||'personnalisée')+' » appliquée'); if(current==='parametres') views.parametres(); }
 function setAccentCustom(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
   localStorage.setItem('elan_accent_hex',hex); localStorage.setItem('elan_accent','custom');
+  prefEcrire('accentHex',hex); prefEcrire('accent','custom');
   applyTheme(); avatarAccentSync(); toast('🎨 Couleur personnalisée appliquée'); }
 /* Suit le thème système en direct quand le réglage est sur « Auto » */
 if(window.matchMedia){ try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){} }
