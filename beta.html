@@ -4912,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '691-beta';
+const APP_VERSION = '693-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -5428,6 +5428,28 @@ const eur = n => { const v=Number(n)||0;
    monter plus haut sans mesurer — au-delà, la liste paraît en retard sur le doigt.
    ⚠️ Les sept fonctions de rendu concernées commencent toutes par `const el=$('…'); if(!el)
    return;` — un rendu différé qui arrive après un changement d'écran ne fait donc rien. */
+/* ══ LA GÉNÉRATION DE LA BASE — ce qui dit qu'on n'écrit pas un instantané périmé ═══════════
+   ⛔ Signalé chez ELAN le 15 septembre 2026 au soir : « quand il se déplace dans un endroit, ça
+   synchronise et ça efface tout ce qu'ils sont en train de faire », « plus rien dans les box ».
+
+   LE MÉCANISME, et il est simple une fois vu. `syncPush` vérifie `_syncApplying` À SON ENTRÉE,
+   puis fige une copie de `db`, puis ATTEND — mesure, compression, chiffrement. Pendant cette
+   attente, le récepteur (`onSnapshot`) est libre de recevoir l'écriture d'un autre appareil et
+   de REMPLACER `db` par un objet neuf. La copie figée, elle, reste attachée à l'ancien objet :
+   `fusionnerBases` ne mute jamais en place. On écrit donc `_fbDoc.set(...)` — qui REMPLACE le
+   document en entier, sans `merge` — avec une base d'AVANT. Tout ce que le collègue venait de
+   pousser disparaît du document canonique, donc de l'équipe entière à la réception suivante.
+
+   ⛔ ET C'EST NOUS QUI L'AVONS AGGRAVÉ. La fenêtre existait déjà (l'ancien `syncEncrypt`
+   attendait ~178 ms), mais la compression de la v690 l'a portée à ~433 ms sur un téléphone de
+   terrain — deux à trois fois plus large, exactement sur le profil d'appareil qui se déplace en
+   4G. Le symptôme est apparu le jour de cette publication ; ce n'est pas une coïncidence.
+
+   La parade tient en un compteur : il avance à CHAQUE remplacement de `db`. `syncPush` le note
+   avant d'attendre et le relit juste avant d'écrire. S'il a bougé, on n'écrit pas — on repart
+   d'une base fraîche. Rien n'est perdu : ce qu'on voulait pousser est toujours dans `db`, qui
+   vient d'être fusionnée avec ce qui arrivait. */
+let _dbGen=0;
 let _rechT=0;
 function rechDiffere(fn){ clearTimeout(_rechT); _rechT=setTimeout(function(){ try{ fn(); }catch(e){} },170); }
 const initials = name => (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
@@ -6831,7 +6853,7 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
              échec, c'est retomber exactement dans la panne d'origine — en silence. */
           _syncApplying=false; return;
         }
-        _syncApplying=true; db=remote; localStorage.setItem(STORE_KEY,JSON.stringify(db)); _syncTs=d.ts||Date.now();
+        _syncApplying=true; db=remote; _dbGen++; localStorage.setItem(STORE_KEY,JSON.stringify(db)); _syncTs=d.ts||Date.now();
         try{ ombreRelever(); }catch(e){}   // ce qu'on vient de recevoir n'est pas « modifié ici » : sans ça, le prochain save() le re-tamponnerait et il gagnerait à tort
         if(_repousser) setTimeout(()=>{ try{ syncPush(true); }catch(e){} },1200);
         try{ localStorage.removeItem('elanB_frais'); }catch(e){}
@@ -7199,7 +7221,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
             try{ await miseDeCote(db,'retrait refusé — '+manque.coll+' : '+manque.n+' sur '+manque.sur+' manquants'); }catch(e){}
             try{ cnxSignaler('refus',{motif:manque.coll+' : '+manque.n+'/'+manque.sur+' manquants'}); }catch(e){}
             try{
-              const gardes=db.users; _syncApplying=true; db=remote;
+              const gardes=db.users; _syncApplying=true; db=remote; _dbGen++;
               db.users=usersFusionner(gardes,remote.users,tomb,true); if(tomb.length) db.usersSupprimes=tomb;
               localStorage.setItem(STORE_KEY,JSON.stringify(db)); _syncTs=d.ts||Date.now();
               try{ logEvent('Synchro refusée','cet appareil était en retard ('+manque.n+' '+manque.coll+' manquants) — la base de l\'équipe a été reprise','sync'); }catch(e){}
@@ -7218,6 +7240,9 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
     _retraitVoulu=0;
     try{ ombreRelever(); }catch(e){}   // l'ombre = ce qu'on pousse
     /* La copie poussée tient dans le document Firestore — la base locale, elle, garde tout. */
+    /* Le repère est pris AVANT la première attente : c'est lui qui dira, tout à l'heure, si la
+       base qu'on s'apprête à écrire est encore celle qu'on a mesurée. */
+    const _genAvant=_dbGen;
     const alle=await syncAllegerNuage(db);
     if(alle.retirees!==_allegeDit){ _allegeDit=alle.retirees;
       if(alle.retirees){ try{ console.warn('synchro allégée : '+alle.retirees+' pièce(s) retirée(s) de la copie poussée · base '+Math.round(alle.taille/1024)+' Ko'+(alle.gros&&alle.gros.length?' · plus lourds : '+alle.gros.join(', '):'')); }catch(_e){}
@@ -7277,6 +7302,19 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
     const _delai=Math.min(45000, 15000+Math.round((alle.taille||0)/50000)*1000);
     /* `z` dit si le contenu est compressé. En phase 1 il vaut 0 partout : rien ne change pour
        personne, mais le chemin complet est en place et éprouvé AVANT qu'on l'allume. */
+    /* ⛔ LE DERNIER CONTRÔLE, ET C'EST CELUI QUI COMPTE. Entre la mesure et ici, il s'est écoulé
+       la compression et le chiffrement — des centaines de millisecondes sur un téléphone. Si une
+       réception a remplacé `db` pendant ce temps, l'instantané qu'on tient est PÉRIMÉ, et
+       `_fbDoc.set` remplacerait le document de l'équipe par une base d'avant. On abandonne donc
+       cette écriture et on en reprogramme une : `db` porte déjà la fusion, donc le prochain
+       passage poussera l'état complet. Rien n'est perdu, et le repère `_syncTs` n'a pas bougé —
+       il n'avance qu'à l'accusé de réception. */
+    if(_dbGen!==_genAvant){
+      _syncTs=_tsAvant;
+      try{ console.warn('push abandonné : la base a changé pendant la compression (réception concurrente) — on repousse'); }catch(_e){}
+      clearTimeout(_syncTimer); _syncTimer=setTimeout(()=>{ try{ syncPush(true); }catch(_e){} },400);
+      return;
+    }
     const _ecriture=_fbDoc.set({enc:e.enc,iv:e.iv,salt:e.salt,z:(e.z?1:0),ts,writer:syncDeviceId(),at:new Date().toISOString(),by:(currentUser?fullName(currentUser):''),ver:String(APP_VERSION||''),verNum:APP_VERSION_NUM});
     /* ⛔ UNE ÉCRITURE QUI NE PASSE PAS N'EST PAS UNE PANNE DE RÉSEAU — et la confondre a enfermé
        ELAN dehors le 11 septembre 2026. Le document dépassait la limite de Firestore : l'écriture
