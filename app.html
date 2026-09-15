@@ -4912,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '684';
+const APP_VERSION = '685';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -23741,7 +23741,15 @@ views.utilisateurs=function(){
         <span class="usr-ch" aria-hidden="true">${ouv?'⌄':'›'}</span>
       </div>${ouv?usrDroitsHtml(u,admin):''}</div>`;}).join('');
   $('content').innerHTML=`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">👇 <b>Touche une personne</b> : ses droits se déroulent. Coche, décoche, puis <b>Valider</b> — c'est actif immédiatement, sur tous ses appareils. « ✎ Modifier » ne sert qu'à l'identité (nom, e-mail, rôle, rattachements).</div>`
-    +`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">À la création d'un compte, un <b>mot de passe provisoire</b> est généré et <b>envoyé par e-mail</b> avec le lien de connexion de l'entreprise ; la personne choisit ensuite son mot de passe personnel à sa première connexion. ${admin?'« 🔑 » pose un nouveau mot de passe provisoire (et le renvoie par e-mail), et l\'<b>e-mail</b> de chaque fiche sert aussi au « Mot de passe oublié ? ».':'Tu peux créer des comptes ; leur modification reste réservée à l\'administrateur.'}</div>`+rows;
+    +`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">À la création d'un compte, un <b>mot de passe provisoire</b> est généré et <b>envoyé par e-mail</b> avec le lien de connexion de l'entreprise ; la personne choisit ensuite son mot de passe personnel à sa première connexion. ${admin?'« 🔑 » pose un nouveau mot de passe provisoire (et le renvoie par e-mail), et l\'<b>e-mail</b> de chaque fiche sert aussi au « Mot de passe oublié ? ».':'Tu peux créer des comptes ; leur modification reste réservée à l\'administrateur.'}</div>`
+    /* ⛔ LE GESTE GROUPÉ N'APPARAÎT QUE S'IL A QUELQUE CHOSE À FAIRE, et il dit combien.
+       Justin, 15 septembre 2026, capture de la Tour à l'appui : cinq comptes « jamais
+       connecté · mot de passe provisoire · sans e-mail », dont un avec deux échecs — « ils
+       peuvent pas se connecter ». Les reprendre un par un, c'est cinq fenêtres, cinq
+       copier-coller, et une occasion de se tromper de ligne à chaque fois. */
+    +(admin&&db.users.filter(u=>u&&u.actif!==false&&!u.essai&&u.id!==currentUser.id&&secuAFaire(u)).length
+      ? `<div style="margin:0 2px 12px"><button class="btn ghost block" onclick="resetPwdLot()">🔑 Refaire les mots de passe provisoires (${db.users.filter(u=>u&&u.actif!==false&&!u.essai&&u.id!==currentUser.id&&secuAFaire(u)).length} compte${db.users.filter(u=>u&&u.actif!==false&&!u.essai&&u.id!==currentUser.id&&secuAFaire(u)).length>1?'s':''} qui n'ont pas encore choisi le leur)</button></div>`
+      : '')+rows;
 };
 /* ══════════ LES DROITS SE LISENT DANS LA LISTE ══════════════════════════════════════════
    Demande de Justin, 8 septembre 2026 : « la catégorie permission doit être directement dans
@@ -24380,10 +24388,77 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
   save(); closeModal(); views.utilisateurs();
 }
 async function resetPwd(id){ const p=prompt('Nouveau mot de passe provisoire (8 caractères minimum) — laisse vide pour en générer un :'); if(p===null)return; if(p&&p.length<8){toast('8 caractères minimum');return;}
-  const u=db.users.find(x=>x.id===id); const pwd=p||mdpProvisoire(); u.pwdHash=await sha256(pwd); u.mustChangePwd=true; delete u.pinHash; delete u.sansMdp;
+  const u=db.users.find(x=>x.id===id); if(!u) return;
+  /* ⛔ ET ON VÉRIFIE QUE LE SERVEUR L'A PRIS, comme les trois autres écrans depuis la v680.
+     Celui-ci avait été oublié : il faisait `save()` puis affichait la fiche d'accès, sans
+     jamais regarder si l'annuaire avait accepté. Le patron repartait donc avec un mot de passe
+     provisoire tout neuf que la page de connexion ne connaissait pas — et c'est exactement la
+     panne qu'il venait réparer, avec en plus la certitude d'avoir agi. */
+  const avant={pwdHash:u.pwdHash,mustChangePwd:u.mustChangePwd,pinHash:u.pinHash,sansMdp:u.sansMdp,secu:u.secu};
+  const pwd=p||mdpProvisoire(); u.pwdHash=await sha256(pwd); u.mustChangePwd=true; delete u.pinHash; delete u.sansMdp; delete u.secu;
+  const pb=await identifiantsDeposer(u,avant);
+  if(pb){ toast('⛔ '+pb,9000); return; }
   logEvent('Mot de passe réinitialisé','@'+(u.login||''),'auth'); save(); userIdentifiantsModal(u,pwd); }
 /* rétrocompat : les vieux boutons « PIN » pointent maintenant sur le mot de passe */
 function resetPin(id){ return resetPwd(id); }
+/* ══ REFAIRE LES MOTS DE PASSE PROVISOIRES, EN UN GESTE ═══════════════════════════════════
+   Demande de Justin, 15 septembre 2026 : « tu peux faire pour tous les utilisateurs des mots
+   de passe provisoires, pour ceux qui n'ont pas changé, car là ils peuvent pas se connecter ».
+   ⛔ TROIS RÈGLES, ET AUCUNE N'EST DÉCORATIVE :
+   1. On ne touche QU'À CEUX QUI N'ONT PAS ENCORE CHOISI LE LEUR (`secuAFaire`). Refaire le mot
+      de passe de quelqu'un qui a déjà le sien, c'est le mettre dehors sans prévenir.
+   2. UN SEUL DÉPÔT D'ANNUAIRE POUR TOUT LE LOT, et on attend son verdict. C'est la règle de la
+      v680 : on n'annonce pas « voilà les nouveaux accès » sans savoir si le serveur les a pris.
+      Sur un refus, ON REMET TOUT EN ÉTAT — sinon le patron distribue des mots de passe que la
+      page de connexion ne connaît pas, ce qui est exactement la panne qu'on répare.
+   3. LA LISTE S'AFFICHE ET SE COPIE. Ces comptes-là n'ont pas d'adresse e-mail : les envoyer
+      par courriel ne mènerait nulle part, et une fenêtre par personne serait cinq occasions de
+      se tromper de ligne. */
+async function resetPwdLot(){
+  if(!currentUser||currentUser.role!=='admin'){ toast('Réservé à l\'administrateur'); return; }
+  const cibles=db.users.filter(u=>u&&u.actif!==false&&!u.essai&&u.id!==currentUser.id&&secuAFaire(u));
+  if(!cibles.length){ toast('Personne n\'est concerné : tout le monde a choisi son mot de passe ✓'); return; }
+  if(!confirm('Refaire le mot de passe provisoire de '+cibles.length+' compte'+(cibles.length>1?'s':'')+' ?\n\n'
+    +cibles.map(u=>'• '+(u.login||'?')+' — '+fullName(u)).join('\n')
+    +'\n\nLeur ancien mot de passe provisoire cessera de marcher. Ceux qui ont déjà choisi le leur ne sont PAS touchés.')) return;
+  /* L'état d'avant, pour pouvoir tout remettre si le serveur refuse le dépôt. */
+  const avant=cibles.map(u=>({u:u,pwdHash:u.pwdHash,mustChangePwd:u.mustChangePwd,pinHash:u.pinHash,sansMdp:u.sansMdp,secu:u.secu}));
+  const faits=[];
+  for(const u of cibles){
+    const pwd=mdpProvisoire();
+    u.pwdHash=await sha256(pwd); u.mustChangePwd=true; delete u.pinHash; delete u.sansMdp; delete u.secu;
+    faits.push({login:u.login||'', nom:fullName(u), pwd:pwd});
+  }
+  save();
+  const v=await annuaireMaintenant();
+  if(v&&v.ok===false){
+    avant.forEach(a=>{ ['pwdHash','mustChangePwd','pinHash','sansMdp','secu'].forEach(k=>{ if(a[k]===undefined) delete a.u[k]; else a.u[k]=a[k]; }); });
+    save();
+    toast(v.status===426
+      ? '⛔ Cet appareil est sur une version trop ancienne : RIEN n\'a été changé. Mets l\'application à jour et recommence.'
+      : '⛔ Le serveur a refusé d\'enregistrer les nouveaux mots de passe : RIEN n\'a été changé. Réessaie dans un instant.',9000);
+    return;
+  }
+  logEvent('Mots de passe provisoires refaits',faits.length+' compte(s)','auth');
+  const ent=String(lienLisibleNom()||entrepriseNom()||'').trim();
+  const PAGE='https://teamop.fr/connexion.html';
+  const texte='Connexion OP GESTION'+(ent?' — '+ent:'')+'\n\n'
+    +'1. Ouvre cette page : '+PAGE+'\n'
+    +'2. Entre le nom de l\'entreprise : '+(ent||'(à demander)')+'\n'
+    +'3. Ton identifiant et ton mot de passe provisoire ci-dessous.\n\n'
+    +faits.map(f=>'• '+f.nom+'\n   Identifiant : '+f.login+'\n   Mot de passe provisoire : '+f.pwd).join('\n\n')
+    +'\n\nÀ la première connexion, l\'application fait choisir un vrai mot de passe et demande une adresse e-mail.';
+  openModal(`<div class="modal-head"><h3>🔑 ${faits.length} ${faits.length>1?'nouveaux accès':'nouvel accès'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">Les anciens mots de passe provisoires ne marchent plus. Transmets à chacun <b>la page, le nom de l'entreprise, son identifiant et son mot de passe</b> — l'application lui fera choisir le sien, et lui demandera une adresse e-mail.</p>
+    <div class="fgroup" style="margin-bottom:12px">
+      <div class="frow"><span class="frow-lbl">Page de connexion</span><div class="frow-val" style="word-break:break-all;font-size:13px;font-weight:700">${esc(PAGE)}</div></div>
+      <div class="frow"><span class="frow-lbl">Nom de l'entreprise</span><div class="frow-val">${ent?`<b class="mono" style="font-size:16px">${esc(ent)}</b>`:`<span style="color:var(--org,#e8a33d);font-weight:700">⚠️ non renseigné</span>`}</div></div>
+    </div>
+    <div class="fgroup" style="margin-bottom:12px">${faits.map(f=>`<div class="frow"><span class="frow-lbl">${esc(f.nom)}</span><div class="frow-val"><b class="mono">${esc(f.login)}</b> · <b class="mono" style="font-size:16px">${esc(f.pwd)}</b></div></div>`).join('')}</div>
+    <button class="btn block" onclick="copieIdentifiants(this)" data-t="${esc(texte)}">📋 Copier la liste pour l'envoyer</button>
+    <button class="btn ghost block" style="margin-top:8px" onclick="closeModal()">Fermer</button>`);
+  if(current==='utilisateurs') views.utilisateurs();
+}
 /* ── Suppression d'un compte : confirmée par un code envoyé par e-mail à CELUI qui supprime.
    Sans e-mail enregistré sur son propre compte, impossible de supprimer. ── */
 let delUserCible='';

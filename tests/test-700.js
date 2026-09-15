@@ -198,5 +198,46 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
     /mdpInconnu\?'\(à te faire redonner — voir plus bas\)':mdpAff/.test(TOUR), true);
 }
 
+/* ══ 5. REFAIRE LES MOTS DE PASSE PROVISOIRES EN UN GESTE ═════════════════════════════
+   Justin, 15 septembre 2026, capture de la Tour : cinq comptes « jamais connecté · mot de
+   passe provisoire · sans e-mail », dont un avec deux échecs — « ils peuvent pas se
+   connecter ». Un par un, c'est cinq fenêtres et cinq occasions de se tromper de ligne. */
+{
+  const fn = extraire(APP, 'async function resetPwdLot()');
+  v('resetPwdLot est trouvée', !!fn, true);
+  /* ⛔ ON NE TOUCHE QU'À CEUX QUI N'ONT PAS ENCORE CHOISI LE LEUR. Refaire le mot de passe de
+     quelqu'un qui a déjà le sien, c'est le mettre dehors sans prévenir. */
+  v('⛔ la cible est « n\'a pas encore choisi son mot de passe »', /secuAFaire\(u\)\)/.test(fn), true);
+  v('⛔ … et jamais soi-même', /u\.id!==currentUser\.id/.test(fn), true);
+  v('… ni un compte désactivé ou d\'essai', /u\.actif!==false&&!u\.essai/.test(fn), true);
+  v('réservé à l\'administrateur', /currentUser\.role!=='admin'/.test(fn), true);
+  v('… et il faut confirmer, en voyant la liste', /if\(!confirm\(/.test(fn) && /cibles\.map\(u=>'• '/.test(fn), true);
+  /* ⛔ UN SEUL DÉPÔT POUR TOUT LE LOT, ET ON ATTEND SON VERDICT — règle de la v680 : on
+     n'annonce pas « voilà les nouveaux accès » sans savoir si le serveur les a pris. */
+  v('⛔ un seul dépôt d\'annuaire pour le lot', (fn.match(/annuaireMaintenant\(\)/g) || []).length, 1);
+  v('⛔ et son verdict décide', /if\(v&&v\.ok===false\)\{/.test(fn), true);
+  /* ⛔ SUR UN REFUS, ON REMET TOUT. Sinon le patron distribue des mots de passe que la page de
+     connexion ne connaît pas — exactement la panne qu'il vient réparer. */
+  v('⛔ le refus remet chaque compte en état',
+    /avant\.forEach\(a=>\{ \['pwdHash','mustChangePwd','pinHash','sansMdp','secu'\]\.forEach/.test(fn), true);
+  v('… et le dit sans ambiguïté', /RIEN n\\'a été changé/.test(fn), true);
+  v('le cas « version trop ancienne » a sa phrase', /v\.status===426/.test(fn), true);
+  /* La liste s'affiche ET se copie : ces comptes n'ont pas d'e-mail, l'envoyer ne mènerait nulle part. */
+  v('la liste est copiable', /onclick="copieIdentifiants\(this\)"/.test(fn), true);
+  v('… et porte la page et le nom de l\'entreprise', /teamop\.fr\/connexion\.html/.test(fn) && /lienLisibleNom\(\)/.test(fn), true);
+  /* Le bouton n'apparaît que s'il a quelque chose à faire, et il dit combien. */
+  v('le bouton compte ce qu\'il va faire', /🔑 Refaire les mots de passe provisoires \(\$\{/.test(APP), true);
+  v('… et disparaît quand personne n\'est concerné', /\? `<div style="margin:0 2px 12px"><button class="btn ghost block" onclick="resetPwdLot\(\)"/.test(APP), true);
+
+  /* ⛔ ET LE BOUTON UNITAIRE VÉRIFIE AUSSI, DÉSORMAIS. Il avait été oublié par la v680 : il
+     faisait `save()` puis affichait la fiche d'accès sans regarder si l'annuaire avait
+     accepté — le patron repartait avec un mot de passe que la page de connexion ne
+     connaissait pas, et la certitude d'avoir agi. */
+  const un = extraire(APP, 'async function resetPwd(id)');
+  v('resetPwd passe par le dépôt vérifié', /const pb=await identifiantsDeposer\(u,avant\);/.test(un), true);
+  v('… et n\'affiche la fiche QUE si le serveur a pris', un.indexOf('if(pb){') < un.indexOf('userIdentifiantsModal'), true);
+  v('… en gardant l\'état d\'avant, secu compris', /secu:u\.secu\}/.test(un), true);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
