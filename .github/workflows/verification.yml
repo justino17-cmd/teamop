@@ -72,21 +72,30 @@ jobs:
       - name: Les suites du dépôt passent
         if: always()
         run: |
+          # ⛔ `bash -e` EST ACTIF ICI (GitHub lance « /usr/bin/bash -e {0} »). Toute commande
+          # qui rend non-zéro tue l'étape sur place. Premier jet : un `grep -q … && {…}` a fait
+          # mourir cette étape EN ZÉRO SECONDE, sans lancer une seule suite — et la CI l'a
+          # comptée comme un échec de tests. Chaque commande qui peut légitimement ne rien
+          # trouver est donc soit dans un `if`, soit suivie de `|| true`.
           total=0; rouge=0
           for f in tests/test-*.js; do
-            sortie=$(node "$f" 2>&1) || rouge=1
+            if sortie=$(node "$f" 2>&1); then :; else rouge=1; echo "::error::$f échoue"; fi
             echo "$sortie" | tail -1
-            n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+')
+            n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+' || true)
             total=$((total + ${n:-0}))
-            echo "$sortie" | grep -qi 'SAUTÉE' && { echo "::error::$f a SAUTÉ une partie en silence"; rouge=1; }
+            if echo "$sortie" | grep -qi 'SAUTÉE'; then
+              echo "::error::$f a SAUTÉ une partie en silence"; rouge=1
+            fi
           done
           echo "── $total vérifications sur $(ls tests/test-*.js | wc -l) suites"
           # ⛔ UN PLANCHER, parce qu'une suite qui se saute elle-même sort en 0 sans rien dire.
-          # Mesuré le 15 septembre : sans server/node_modules, six suites sautent leur partie
-          # exécutée et le total tombe de 1 923 à 1 758 — vert, et aveugle sur 165 contrôles.
-          if [ "$total" -lt 1900 ]; then echo "::error::$total vérifications seulement — il en manque"; rouge=1; fi
+          # Mesuré le 15 septembre 2026 : sans server/node_modules, six suites sautent leur
+          # partie exécutée et le total tombe de 1 923 à 1 758 — vert, et aveugle sur 165
+          # vérifications. Le plancher tient même si quelqu'un déplace à nouveau les étapes.
+          if [ "$total" -lt 1900 ]; then
+            echo "::error::$total vérifications seulement — il en manque"; rouge=1
+          fi
           exit $rouge
-
 
       - name: Le nom d'une entreprise ne rend pas sa clé
         if: always()
