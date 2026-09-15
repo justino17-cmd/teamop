@@ -249,6 +249,39 @@ mesures au navigateur, sur la bêta). Suite complète : 1 598.
 
 ---
 
+## ⛔ « PRÊT, NON DÉPLOYÉ » N'EXISTE PAS SUR CE DÉPÔT (constaté le 15 septembre 2026 au soir)
+
+**Le piège, et il a tenu une journée entière.** Le commit `674d52f` — « Serveur — on ne se
+connecte plus à l'espace par défaut (**PRÊT, non déployé**) » — a été poussé sur `main` le
+15 septembre à **8 h 53**. Or `.github/workflows/deploiement.yml` déploie le VPS à **tout push
+sur main touchant `server/**`**. Le message était donc faux à la seconde où il a été écrit : la
+porte était fermée en production depuis ce matin-là.
+
+Pendant toute la soirée, la fiche de reprise et moi avons répété que ce correctif « attendait le
+feu vert *JB est passé* ». Justin s'apprêtait à me donner une autorisation pour quelque chose de
+déjà fait. Personne n'avait regardé.
+
+### La règle, à ne plus jamais contourner
+
+> Sur ce dépôt, **« poussé sur main » = « déployé »** pour tout ce qui touche `server/**`.
+> Un commit ne peut pas être « prêt, non déployé » s'il est sur `main`.
+
+Ce qui peut légitimement attendre, ce sont `app.html` et `sw.js` — servis par GitHub Pages, donc
+publiés aussi, mais dont on retient le report **sur une branche de travail**. Retenir du serveur
+veut dire : **ne pas le pousser du tout**.
+
+⚠️ **Comment le vérifier en trente secondes** plutôt que de croire un message de commit :
+`git log --oneline -S "<une ligne du changement>" -- server/index.js` dit si c'est sur main, et
+`curl -s https://api.teamop.fr/health | grep uptime` dit si le VPS a redémarré depuis.
+
+### Ce qu'on ne sait toujours pas, et qu'il faut demander
+
+Les deux gardes tournent depuis le 15 au matin. **Personne n'a vérifié si quelqu'un s'est
+retrouvé dehors ce jour-là** — JB était censé être en train de basculer. `/health` ne montre rien
+d'anormal, mais il ne compte pas ça. À poser à Justin.
+
+---
+
 ## 🔑 v691 — REFAIRE LES MOTS DE PASSE DEPUIS LA TOUR (15 septembre 2026 au soir)
 
 Justin : « Je veux pas un bouton dans le truc utilisateur. Je veux un bouton MOI dans la tour de
