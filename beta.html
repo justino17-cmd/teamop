@@ -4805,7 +4805,50 @@ var tmLastSend=0, tmSending=false, tmT=Date.now();
       était classée dans « Commandes » parce qu'on y envoie les bons de commande. C'est une
       boîte e-mail. */
 var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',chantiers:'Interventions',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',audit:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
+/* ⛔ CE QUE CETTE VALEUR EST, ET CE QU'ELLE N'EST PAS. `tmCat()` nomme L'ÉCRAN OUVERT au moment
+   de l'incident. Ce n'est PAS l'endroit d'où vient l'erreur, et rien ne le garantit : une
+   promesse rejetée par un travail de fond (le poll IndexedDB de Firebase Auth, par exemple)
+   tombe sous l'écran que la personne regardait, quel qu'il soit.
+   Constaté le 15 septembre 2026 : un rejet d'IndexedDB rangé sous « Plans », un écran qui ne
+   contient pas une ligne d'IndexedDB. Le diagnostic est parti chercher au mauvais endroit, et
+   le courriel de clôture allait annoncer au client « un dysfonctionnement sur Plans ».
+   On garde l'information — savoir ce que la personne regardait AIDE — mais elle s'appelle
+   désormais ce qu'elle est, et elle voyage à côté de la VRAIE origine, lue dans la pile. */
 function tmCat(){ try{ return (typeof current!=='undefined'&&current&&(TM_CAT[current]||String(current).slice(0,30)))||'Général'; }catch(_){ return 'Général'; } }
+/* ⛔ L'ORIGINE RÉELLE : LE PREMIER CADRE NOMMÉ DE LA PILE. Elle, elle désigne le coupable.
+   L'application n'est pas minifiée — c'est la contrepartie du fichier unique — donc les noms de
+   fonctions sont les vrais, et `boxPoserProduits` dans un dossier vaut dix minutes de recherche.
+   Deux écritures de pile à lire, parce qu'il y a deux familles de navigateurs et que les
+   téléphones de terrain sont des deux côtés :
+     · Chrome/Edge  «     at boxPoserProduits (https://teamop.fr/app.html:12345:67) »
+     · Safari/Firefox  « boxPoserProduits@https://teamop.fr/app.html:12345:67 »
+   On saute les cadres de la sentinelle elle-même : elle est TOUJOURS en haut de la pile d'un
+   signalement, et rendre « tmPush » comme origine serait exactement la même faute qu'avant —
+   une valeur qui a l'air d'une réponse et n'en est pas une.
+   Rien de personnel n'en sort : ce sont les noms de nos propres fonctions. */
+function tmOrigine(stack){
+  try{
+    var lignes=String(stack||'').split('\n');
+    for(var i=0;i<lignes.length&&i<14;i++){
+      var m=/^\s*at\s+(?:async\s+|new\s+)?([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(/.exec(lignes[i])
+         || /^\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)@/.exec(lignes[i]);
+      if(!m) continue;
+      var n=m[1];
+      /* ⛔ ON FILTRE SUR LA RACINE DU NOM, PAS SUR LE NOM ENTIER. Premier jet : le filtre testait
+         `n` en bloc, donc `Promise$` ne mordait pas sur « Promise.then » — et la sentinelle
+         rendait « Promise.then » comme origine d'une erreur venue de `boxAdj`, deux cadres plus
+         bas. Exactement la faute qu'on corrige, refaite en la corrigeant. Attrapé par
+         `tests/test-703.js`, pas par une relecture. */
+      var racine=n.split('.')[0];
+      /* La sentinelle, les enveloppes anonymes et les natifs ne sont l'origine de rien. */
+      if(/^tm[A-Z0-9_]/.test(racine)) continue;
+      if(racine==='rep'||racine==='Object'||racine==='Array'||racine==='Promise'||racine==='Function'||racine==='eval'||racine==='globalThis'||racine==='window') continue;
+      if(n.length<2) continue;
+      return n.slice(0,60);
+    }
+    return '';
+  }catch(_){ return ''; }
+}
 function tmVer(){ try{ return String(typeof APP_VERSION!=='undefined'?APP_VERSION:''); }catch(_){ return ''; } }
 function tmEnt(){ var nom='',email='';
   try{ var D=(typeof db!=='undefined'&&db)||{}; nom=(((D.entreprise||{}).nom)||'').trim()||((D.mailFrom||'').trim()); email=((D.mailReply||'').trim())||((typeof currentUser!=='undefined'&&currentUser&&(currentUser.mailReply||'').trim())||''); }catch(_){ }
@@ -4848,7 +4891,7 @@ function tmPush(type,message,stack,src,line){ try{
   var q=tmLoad(), e=null;
   for(var i=0;i<q.length;i++){ if(q[i].signature===sig){ e=q[i]; break; } }
   if(e){ e.count=(e.count||1)+1; }
-  else{ var ent=tmEnt(), qui=tmQui(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),user:qui.login,espace:qui.espace,count:1,ts:Date.now()}); }
+  else{ var ent=tmEnt(), qui=tmQui(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),origine:tmOrigine(stack),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),user:qui.login,espace:qui.espace,count:1,ts:Date.now()}); }
   tmSaveQ(q); setTimeout(tmFlush,500);
 }catch(_){ } }
 function tmFlush(){ try{
@@ -4912,7 +4955,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '691-beta';
+const APP_VERSION = '692-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
