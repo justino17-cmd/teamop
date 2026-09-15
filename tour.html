@@ -2191,7 +2191,7 @@ body.plans .reg-l.cli::before{display:none}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.62</div>
+    <div class="lg-pied">console interne · v2.63</div>
   </div>
 </div>
 
@@ -2230,13 +2230,13 @@ body.plans .reg-l.cli::before{display:none}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.62</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.63</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
   </div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.62</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.63</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2300,7 +2300,7 @@ function setApp(app,sansAnim,tabVoulu){
   if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; }catch(e){} }
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
   var nom=APPS_TOUR[app].nom;
-  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.62';
+  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.63';
   var pn=$('app-pill-nom'); if(pn) pn.textContent=APPS_TOUR[app].court;
   /* l'onglet demandé par le hash prime (un lien #gestion/entreprises tapé depuis MESSAGES) ; sinon
      le dernier onglet ouvert dans cette console ; sinon l'accueil */
@@ -4269,7 +4269,9 @@ function incDeLaConsole(){ return INC.list.filter(function(i){ return appVisible
    accueil qui n'en montre que 2, c'est ce qu'on aurait lu. */
 function incCompteurs(){ var c={}; incDeLaConsole().forEach(function(i){ var k=i.statut||'nouveau'; c[k]=(c[k]||0)+1; }); return c; }
 function incOuverts(){ return incDeLaConsole().filter(function(i){ return i.statut==='nouveau'||i.statut==='encours'; }); }
-function incTitre(i){ return String(i.message||i.categorie||'Incident').split('\n')[0].slice(0,120); }
+/* Le titre part du MESSAGE ; à défaut, l'origine (qui désigne le coupable) avant l'écran
+   ouvert (qui ne désigne rien). */
+function incTitre(i){ return String(i.message||i.origine||i.categorie||'Incident').split('\n')[0].slice(0,120); }
 function entNom(i){ var e=(i.entreprises||[])[0]; return (e&&(e.nom||e.entreprise))||'—'; }
 function paieOk(p){ var s=String(p.statut||'').toLowerCase(); return s==='reussi'||s==='paye'||s==='succeeded'||s==='paid'; }
 
@@ -4992,7 +4994,13 @@ function vueIncident(i){
     fait('Dernière fois',esc(fmtDate(i.lastTs))+' ('+esc(fmtAgo(i.lastTs))+')');
   var ctx=fait('Application',esc(APP_L[i.app]||i.app||'—'))+
     fait('Version signalée',i.version?('v'+esc(i.version)):'non transmise')+
-    fait('Catégorie',esc(i.categorie||'—'))+
+    /* ⛔ « Catégorie » MENTAIT PAR CONSTRUCTION, et ça a envoyé un diagnostic au mauvais endroit
+       le 15 septembre 2026 : ce champ nomme l'écran qui était OUVERT, jamais celui d'où vient
+       l'erreur. Un rejet d'IndexedDB rangé sous « Plans », où il n'y a pas une ligne
+       d'IndexedDB. Le libellé dit maintenant ce que la valeur est — et l'ORIGINE, elle, la
+       vraie, arrive à côté quand l'application sait la calculer (v692+). */
+    fait('Écran ouvert',esc(i.categorie||'—')+' <span class="g">— ce que la personne regardait, pas forcément la cause</span>')+
+    (i.origine?fait('Origine','<b class="mono">'+esc(i.origine)+'</b> <span class="g">— la fonction en haut de la pile, celle qui a vraiment échoué</span>'):'')+
     fait('Page / fichier',i.src?('<span class="mono">'+esc(String(i.src).split('/').pop())+(i.line?' · ligne '+esc(String(i.line)):'')+'</span>'):'non transmis');
 
   return '<div class="ent-retour"><button type="button" class="btn-fant" onclick="incRetour()">← Retour'+(INC.grp?' à '+esc(INC.grp):' à la surveillance')+'</button></div>'+
@@ -5126,7 +5134,8 @@ function incCopier(id){
   var i=INC.list.filter(function(y){ return y.id===id; })[0]; if(!i) return;
   var d=['CORRECTION DEMAND\u00c9E \u2014 dossier pr\u00e9par\u00e9 depuis la console TEAM OP',''];
   d.push('APPLICATION : '+(APP_L[i.app]||i.app||'\u2014')+(i.version?' \u2014 signal\u00e9 en v'+i.version:''));
-  d.push('CAT\u00c9GORIE   : '+(i.categorie||'\u2014'));
+  d.push('\u00c9CRAN OUVERT: '+(i.categorie||'\u2014')+'  (ce que la personne regardait, PAS forc\u00e9ment la cause)');
+  if(i.origine) d.push('ORIGINE     : '+i.origine+'  (la fonction qui a vraiment \u00e9chou\u00e9)');
   d.push('TYPE        : '+(TYPE_L[i.type]||i.type||'\u2014')+' \u00b7 gravit\u00e9 '+GRAV_L[gravite(i)]);
   d.push('MESSAGE     : '+(i.message||''));
   if(i.src) d.push('FICHIER     : '+i.src+(i.line?' ligne '+i.line:''));

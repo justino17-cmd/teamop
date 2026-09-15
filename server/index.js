@@ -1307,7 +1307,12 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       const triage = veille ? 'veille' : (interne ? 'interne' : (transitoire ? 'transitoire' : ''));
       let issue = monIssues.find(i => i.signature === signature);
       if (!issue) {
-        issue = { id: 'i' + crypto.randomBytes(6).toString('hex'), signature, app: appName, version: monStr(r.version, 12), categorie: monCategorie(r.categorie), type, message, stack: monStr(r.stack, 600), src: monStr(r.src, 200), line: parseInt(r.line, 10) || 0, entreprises: [], appareils: {}, count: 0, firstTs: now, lastTs: now, statut: triage || 'nouveau', triage: triage || undefined, notes: '', mailEnvoye: false };
+        /* `origine` : le premier cadre nommé de la pile, calculé par l'application (v692+).
+           C'est le SEUL des deux champs qui désigne le coupable — `categorie` ne dit que ce que
+           la personne regardait. Borné et filtré ici comme tout ce qui vient du dehors : cette
+           route n'exige aucune preuve, donc rien de ce qu'elle reçoit n'est cru sur parole.
+           Absent des versions antérieures : la Tour ne l'affiche que s'il est là. */
+        issue = { id: 'i' + crypto.randomBytes(6).toString('hex'), signature, app: appName, version: monStr(r.version, 12), categorie: monCategorie(r.categorie), origine: monStr(r.origine, 60).replace(/[^A-Za-z0-9_.$]/g, '').slice(0, 60) || undefined, type, message, stack: monStr(r.stack, 600), src: monStr(r.src, 200), line: parseInt(r.line, 10) || 0, entreprises: [], appareils: {}, count: 0, firstTs: now, lastTs: now, statut: triage || 'nouveau', triage: triage || undefined, notes: '', mailEnvoye: false };
         monIssues.push(issue);
       }
       issue.count += count; issue.lastTs = now;
@@ -5128,7 +5133,15 @@ app.post('/api/monitor/status', monAdmin, async (req, res) => {
   if (statut === 'corrige' && !issue.mailEnvoye) {
     const dests = (issue.entreprises || []).filter(e => e.email);
     const sujet = 'Votre application a été améliorée ✅';
-    const texte = 'Bonjour,\n\nNotre système de surveillance a détecté puis corrigé un dysfonctionnement mineur sur ' + (issue.categorie || 'votre application') + '. Votre application est déjà à jour — vous n\'avez rien à faire.\n\n— L\'équipe TEAM OP';
+    /* ⛔ ON NE NOMME PLUS L'ÉCRAN DANS CE COURRIEL. `issue.categorie` n'est pas l'endroit d'où
+       vient l'erreur : c'est l'écran qui se trouvait OUVERT quand elle est survenue. Une
+       promesse rejetée par un travail de fond tombe sous n'importe lequel. Le 15 septembre
+       2026, un rejet d'IndexedDB était rangé sous « Plans » — et ce courriel aurait annoncé à
+       un client qu'on avait réparé quelque chose sur Plans, où il n'y avait rien de cassé.
+       Deux dégâts : c'est faux, et ça fait douter d'un écran qui marche.
+       Ne rien nommer vaut mieux que nommer au hasard : le client n'a de toute façon rien à
+       faire de cette information, il a besoin de savoir que c'est réglé. */
+    const texte = 'Bonjour,\n\nNotre système de surveillance a détecté puis corrigé un dysfonctionnement mineur sur votre application. Elle est déjà à jour — vous n\'avez rien à faire.\n\n— L\'équipe TEAM OP';
     for (const d of dests) {
       if (mailer) {
         try { await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: d.email, subject: sujet, text: texte }); mails++; }
@@ -5314,7 +5327,8 @@ app.post('/api/monitor/expliquer', monAdmin, async (req, res) => {
       + "« confiance » : « haute » seulement si l'extrait montre la cause noir sur blanc ; « faible » si tu raisonnes sans voir le code fautif. Une explication plausible mais invérifiable est de confiance faible, dis-le.";
     const contexte = 'Incident\n'
       + '- application : ' + (issue.app || '?') + (issue.version ? ' v' + issue.version : '') + '\n'
-      + '- type : ' + (issue.type || '?') + ' · rubrique : ' + (issue.categorie || '?') + '\n'
+      + '- type : ' + (issue.type || '?') + ' · écran ouvert : ' + (issue.categorie || '?')
+      + (issue.origine ? ' · origine : ' + issue.origine : '') + '\n'
       + '- message : ' + (issue.message || '') + '\n'
       + '- vu ' + (issue.count || 1) + ' fois, sur ' + Object.keys(issue.appareils || {}).length + ' appareil(s)\n'
       + (issue.stack ? '- trace :\n' + issue.stack + '\n' : '')
