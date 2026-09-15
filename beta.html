@@ -7462,8 +7462,40 @@ async function sauvegardeOuvrir(ts){
   const base=JSON.parse(plain); window._sauvBase=base;
   const cles=collsFusion(base).concat(Array.isArray(base.users)?['users']:[]);
   const lignes=cles.map(k=>{ const ici=new Set((db[k]||[]).map(r=>r&&r.id).filter(x=>x!=null).map(String)); const manque=(base[k]||[]).filter(r=>r&&r.id!=null&&!ici.has(String(r.id))).length; return {k:k,n:(base[k]||[]).length,manque:manque}; }).filter(x=>x.n).sort((a,b)=>b.manque-a.manque);
+  /* ⛔ UNE BOX VIDÉE N'EST PAS UNE BOX MANQUANTE — et cet écran ne savait pas le dire.
+     Justin, 15 septembre 2026 au soir, chez ELAN : « il n'y a que les box ». Le défaut de
+     `boxFusionFine` corrigé le matin même (v678) n'avait pas SUPPRIMÉ les box : il avait vidé
+     leur stock, ligne par ligne. Or « Remettre » ne compare que des IDENTIFIANTS — une box
+     vidée existe toujours, avec le sien. L'écran annonçait donc « rien ne manque » et ne
+     proposait aucun bouton : le stock de toute une entreprise était dans les copies, et
+     illisible depuis l'écran censé le rendre. Un outil de secours qui ne couvre pas la panne
+     du jour n'est pas un outil de secours.
+     On compte donc aussi les LIGNES DE STOCK présentes dans la copie et absentes ici. Deux
+     règles, et elles ne sont pas négociables :
+     — ce que l'équipe a retiré EXPRÈS (`db.boxDecisions`) n'est pas compté : une restauration
+       ne ressuscite pas une décision, sinon on rend à trente équipes ce qu'elles ont écarté ;
+     — une ligne qui existe aujourd'hui n'est JAMAIS touchée — c'est la règle « le stock d'une
+       box ne se réécrit jamais en bloc », appliquée ici. */
+  let boxLignes=[], boxTotal=0;
+  try{
+    const bIci=new Map((db.boxes||[]).map(b=>[String(b&&b.id),b]));
+    (base.boxes||[]).forEach(bc=>{ if(!bc||bc.id==null) return;
+      const b=bIci.get(String(bc.id)); if(!b) return;   // box absente en entier : « Remettre » s'en charge déjà
+      const d=boxDecision(b), ec=(d&&d.ecartes)||{};
+      const st=b.stock||{}, sc=bc.stock||{};
+      const abs=Object.keys(sc).filter(pid=>!(pid in st)&&!ec[pid]);
+      if(abs.length){ boxLignes.push({id:String(bc.id),nom:bc.nom||'box sans nom',n:abs.length}); boxTotal+=abs.length; }
+    });
+  }catch(e){}
+  window._sauvBoxLignes=boxLignes;
+  const boxBloc=boxTotal?'<div style="margin-top:14px;padding:12px;border:1px solid var(--org);border-radius:10px">'
+    +'<b style="color:var(--org)">📦 '+boxTotal+' ligne(s) de stock manquante(s) dans '+boxLignes.length+' box</b>'
+    +'<div style="font-size:12.5px;color:var(--t3);line-height:1.5;margin:6px 0 10px">Ces box existent toujours, mais des produits qu\'elles contenaient dans cette copie n\'y sont plus. On remet seulement ce qui manque : aucune quantité actuelle n\'est modifiée, et ce que l\'équipe a retiré exprès n\'est pas remis.</div>'
+    +boxLignes.slice(0,12).map(x=>'<div style="font-size:13px;padding:2px 0">· '+esc(x.nom)+' — <b>'+x.n+'</b></div>').join('')
+    +(boxLignes.length>12?'<div style="font-size:12.5px;color:var(--t3);padding-top:4px">… et '+(boxLignes.length-12)+' autre(s) box</div>':'')
+    +'<button class="btn block" style="margin-top:10px" onclick="sauvegardeRemettreStock()">Remettre les '+boxTotal+' ligne(s) de stock</button></div>':'';
   const li=lignes.map(x=>'<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--brd)"><div><b>'+x.k+'</b> <span style="color:var(--t3);font-size:12.5px">· '+x.n+' dans la copie'+(x.manque?' · <b style="color:var(--org)">'+x.manque+' absent(s) ici</b>':' · rien ne manque')+'</span></div>'+(x.manque?'<button class="btn ghost sm" onclick="sauvegardeRemettre(\''+x.k+'\')">Remettre les '+x.manque+'</button>':'')+'</div>').join('');
-  openModal('<h3 style="margin:0 0 10px">Copie du '+new Date(ts).toLocaleString('fr-FR')+'</h3><p style="font-size:13.5px;color:var(--t3);line-height:1.5">« Remettre » ajoute ce que cette copie contient et que la base actuelle n\'a plus. Ce qui existe déjà n\'est pas touché ; ce que l\'équipe a fait depuis reste.</p>'+li);
+  openModal('<h3 style="margin:0 0 10px">Copie du '+new Date(ts).toLocaleString('fr-FR')+'</h3><p style="font-size:13.5px;color:var(--t3);line-height:1.5">« Remettre » ajoute ce que cette copie contient et que la base actuelle n\'a plus. Ce qui existe déjà n\'est pas touché ; ce que l\'équipe a fait depuis reste.</p>'+boxBloc);
 }
 function sauvegardeRemettre(k){
   const base=window._sauvBase; if(!base||!Array.isArray(base[k])) return;
@@ -7479,6 +7511,38 @@ function sauvegardeRemettre(k){
   else if(db._tombes&&db._tombes[k]){ base[k].forEach(r=>{ if(r&&r.id!=null) delete db._tombes[k][String(r.id)]; }); }
   save(); try{ logEvent('Restauration depuis une copie',k+' : '+n+' remis','sync'); }catch(e){}
   toast(n+' enregistrement(s) remis dans « '+k+' »',3200); closeModal();
+}
+/* ⛔ REMETTRE DES LIGNES DE STOCK, PAS DES BOX. Voir le bloc ⛔ de `sauvegardeOuvrir` : une box
+   vidée garde son identifiant, donc la remise par identifiant ne la voit pas. Ici on travaille
+   à la LIGNE, comme `boxFusionFine`, et on ne touche que ce qui n'existe plus.
+   `_ms[pid]` est daté de MAINTENANT : sans ça, la remise serait une ligne non datée, et le
+   premier appareil qui porte une suppression datée la reprendrait à la fusion suivante — le
+   stock reviendrait puis repartirait, sans que personne comprenne. Remettre est un geste
+   délibéré : il doit gagner. */
+function sauvegardeRemettreStock(){
+  const base=window._sauvBase; if(!base||!Array.isArray(base.boxes)) return;
+  const bIci=new Map((db.boxes||[]).map(b=>[String(b&&b.id),b]));
+  const now=Date.now(); let n=0, nb=0;
+  base.boxes.forEach(bc=>{ if(!bc||bc.id==null) return;
+    const b=bIci.get(String(bc.id)); if(!b) return;
+    const d=boxDecision(b), ec=(d&&d.ecartes)||{};
+    const sc=bc.stock||{}; b.stock=b.stock||{}; b._ms=b._ms||{};
+    let k=0;
+    Object.keys(sc).forEach(pid=>{
+      if(pid in b.stock) return;   // ⛔ une quantité vivante ne se réécrit jamais
+      if(ec[pid]) return;          // retirée exprès : elle reste retirée
+      b.stock[pid]=JSON.parse(JSON.stringify(sc[pid]));
+      b._ms[pid]=now; k++;
+    });
+    if(k){ n+=k; nb++; }
+  });
+  if(!n){ toast('Rien à remettre dans les box'); return; }
+  save();
+  /* Une ligne de journal par GESTE, jamais par box : `db.journal` est plafonné à 500, et une
+     remise de trente box effacerait tout l'historique de l'entreprise en un passage. */
+  try{ logEvent('Restauration depuis une copie', n+' ligne(s) de stock remise(s) dans '+nb+' box','sync'); }catch(e){}
+  toast(n+' ligne(s) de stock remise(s) dans '+nb+' box',4200); closeModal();
+  try{ refreshEcran(); }catch(e){}
 }
 /* ══ LES ORDRES DE LA TOUR — supprimer un compte depuis la Tour de contrôle (Justin, 10 septembre 2026) ══
    La base est chiffrée : le serveur ne peut pas y retirer un compte. La Tour ORDONNE (après un code
