@@ -249,6 +249,33 @@ mesures au navigateur, sur la bêta). Suite complète : 1 598.
 
 ---
 
+## 🧹 DEUX CHANTIERS QUI TRAÎNAIENT EN « EN COURS » — tranchés le 15 septembre 2026 au soir
+
+Justin : « finis tout ce qu'il y avait à faire et après tu me dis ». Deux entrées traînaient
+depuis des jours sans que personne ne les rouvre. Une fiche qui ment sur ce qui reste à faire
+est pire qu'une fiche vide : on planifie contre elle.
+
+### ✅ « Restaurer la clé Firebase serveur » — c'était déjà réglé, PROUVÉ PAR LA MESURE
+
+Pas par lecture de code, par un raisonnement sur des chiffres relevés :
+- `firestore.rules` ligne 40, **règle publiée** : `request.auth.token.get('t','') == teamId`.
+  Un appareil anonyme n'obtient **rien**.
+- Console Firebase du jour : **2 200 écritures, 12 000 lectures**.
+→ Donc le serveur SIGNE les jetons, donc `/opt/teamop/firebase-admin.json` est en place et
+valide. La synchro d'ELAN fonctionne. **Chantier clos.**
+
+### 🔭 « Jeton par appareil » — ce n'est pas un chantier en cours, c'est un manque de conception
+
+Reformulé pour ce qu'il est. Aujourd'hui `fbRevoquerEquipe(t)` pose `validSince` sur le compte
+Firebase **de l'entreprise** : couper un appareil volé coupe les onze autres, qui doivent tous
+se reconnecter. Un jeton par APPAREIL n'en couperait qu'un.
+
+Coût : un identifiant Firebase par appareil, une durée de vie, et la Tour doit lister les
+appareils pour qu'on puisse en désigner un. **Rien ne presse tant que personne ne perd un
+téléphone** — mais le jour où ça arrive, on le découvrira au mauvais moment.
+
+---
+
 ## ⛔ « PRÊT, NON DÉPLOYÉ » N'EXISTE PAS SUR CE DÉPÔT (constaté le 15 septembre 2026 au soir)
 
 **Le piège, et il a tenu une journée entière.** Le commit `674d52f` — « Serveur — on ne se
