@@ -13,6 +13,55 @@ de ligne du tout.
 
 ---
 
+## ⛔ DÉCISION DU 15 SEPTEMBRE 2026 AU SOIR — LE SERVEUR DOIT POUVOIR LIRE LES DONNÉES
+
+Justin, après une soirée où j'ai diagnostiqué à l'aveugle un incident chez ELAN parce que leurs
+données sont chiffrées avec une clé que ni moi ni le serveur n'avons :
+
+> « Je pense qu'au niveau du chiffrement, il faut que tout soit chiffré au niveau du serveur.
+> Comme ça, peu importe le problème qu'on aura dans le futur, on pourra tout voir. Et ça ira
+> beaucoup plus vite pour corriger les problèmes. Donc là, il faut refaire une refonte totale. »
+
+Et, dans le même échange : **« je veux qu'on mette toute l'application sur le serveur »**, en
+référence à `CHANTIER-SORTIR-DU-DOCUMENT-UNIQUE.md`, qu'il a lu et validé.
+
+C'est **l'option B** de ce document — celle que j'avais signalée comme un changement de métier.
+Il l'a choisie en connaissance de cause, pour une raison qui tient : aujourd'hui, quand un
+client a un problème, on est aveugle. **Ce n'est pas un oubli, ça ne se « corrige » pas sans
+lui redemander.**
+
+### ⛔ Les quatre choses à savoir avant d'écrire une ligne
+
+1. **Le serveur ne peut PAS convertir l'existant.** Ce qui est dans le nuage est chiffré avec
+   une clé que seuls les appareils détiennent. Il n'existe aucune migration côté serveur :
+   **chaque appareil déchiffre localement et renvoie**. Un téléphone éteint trois semaines
+   n'est pas migré. Les deux formats doivent donc coexister, et c'est ça qui pilote tout le
+   calendrier — pas la vitesse d'écriture du code.
+2. **`sous-traitance.html` et `confidentialite.html` deviennent FAUX** le jour de la bascule.
+   Ce sont des phrases publiques dans un contrat. À réécrire, et les clients à prévenir.
+   Changement contractuel, pas ligne de code.
+3. **Un VPS compromis livrera des fichiers clients lisibles**, là où il livrait des blocs
+   illisibles. À accompagner : chiffrement au repos avec clé détenue par TeamOP, accès
+   restreint et journalisé, sauvegardes chiffrées hors du VPS.
+4. ⛔ **On ne touche à AUCUN moment à `SYNC_SECRET_DEFAULT` ni `SYNC_SALT`** pendant toute la
+   migration : ce sont les seules choses qui permettent encore de LIRE ce qui existe.
+
+### Et la correction que Justin m'a faite le même soir, à garder
+
+J'avais proposé, pour débloquer des techniciens qui ne voyaient plus leurs box, de cocher
+« visible par toute l'équipe ». Sa réponse :
+
+> « Si on a fait plusieurs accès, plusieurs permissions, plusieurs choses pour que certaines
+> personnes voient que ça, c'est qu'il y a un but. Tout ce qu'on a implanté dans
+> l'application, de chaque catégorie, ça doit fonctionner selon les permissions qu'ils
+> mettent. »
+
+Il a raison. **Élargir un droit n'est pas un correctif, c'est débrancher la fonctionnalité pour
+faire disparaître le symptôme.** Règle générale à appliquer partout : un remède répare le
+mécanisme, jamais le périmètre. Un audit complet du système de droits a été lancé le soir même.
+
+---
+
 ## 🩹 v693 — UNE SYNCHRO N'EFFACE PLUS LE TRAVAIL D'UN COLLÈGUE (15 septembre 2026, soir)
 
 Justin, remonté d'ELAN : « dès qu'on fait un truc, il y a toujours un rechargement, toujours
