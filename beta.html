@@ -4912,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '693-beta';
+const APP_VERSION = '694-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -24357,7 +24357,7 @@ function nuBoxHtml(){
         <input type="checkbox" ${nuBoxes.has(b.id)?'checked':''} onchange="this.checked?nuBoxes.add('${b.id}'):nuBoxes.delete('${b.id}')" style="width:18px;height:18px;accent-color:var(--acc)">
         <span style="flex:1;min-width:0">🧱 ${esc(b.nom||b.numero||'Box')}${b.visibleTous?' <span style="color:var(--t3);font-size:11.5px">· ouverte à toute l\'équipe</span>':''}</span></label>`).join('')}
     </div>
-    <div style="font-size:11px;color:var(--t3);margin-top:4px">Il n'ouvrira <b>que</b> les box cochées. Décocher une box <b>ouverte à toute l'équipe</b> la lui ferme à lui seul, sans rien changer pour les autres. Modifiable ensuite depuis sa ligne.</div></div>
+    <div style="font-size:11px;color:var(--t3);margin-top:4px">Coche les box à lui ouvrir <b>en plus</b> de celles qui sont déjà ouvertes à toute l'équipe — celles-là, il les aura de toute façon. Pour lui en <b>retirer</b> une, ça se fait depuis sa fiche juste après : les cases y montrent ce qu'il voit vraiment. Modifiable ensuite depuis sa ligne.</div></div>
     <div id="nu-box-tout" style="display:${nuBoxTout?'block':'none'}"><div class="fgroup" style="padding:12px 14px;font-size:12.5px;color:var(--t2);line-height:1.55">📦 Ce profil donne <b>« Tout voir »</b> : ce compte ouvrira <b>toutes</b> les box, y compris celles créées plus tard. Il n'y a rien à cocher.</div></div>`;
 }
 let nuVehs=new Set();
@@ -24647,15 +24647,39 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
     }
     const nu={id:uid(),prenom:d.prenom,nom:d.nom,login:loginNorm,email:(d.email||'').trim(),drId:(d.drId||''),chefId:(d.chefId||''),role:d.role,techId,actif:true,acces,boxValidDR:(d.boxValidDR!==undefined),pwdHash:await sha256(pwd),mustChangePwd:true};
     db.users.push(nu);
-    /* Les box se posent APRÈS la création : userBoxVoit a besoin de l'identifiant du compte.
-       On passe TOUTES les box, cochées ou non — décocher une box ouverte à toute l'équipe doit
-       poser une exception, c'est précisément ce que fait userBoxVoit avec `false`. */
+    /* ⛔ À LA CRÉATION, UNE CASE NON COCHÉE N'EST PAS UN RETRAIT — c'est « je n'ai pas
+       regardé ». Mesuré chez ELAN le 15 septembre 2026, et c'est la cause de « certains
+       utilisateurs ne voient plus les box dans leur espace, alors que les box ne sont pas
+       vides » : le formulaire de création rend TOUTES les cases décochées (`nuBoxes=new Set()`
+       plus haut), puis cette boucle appelait `userBoxVoit(…, false)` sur chacune. Or `false`
+       sur une box ouverte à toute l'équipe — ou qui coche la fiche technicien qu'on vient de
+       lui attribuer — calcule `auto=true` et POUSSE la personne dans `b.userIdsExclus`. Et
+       `visibleBoxes` teste `!boxExclu(…)` EN PREMIER : l'exclusion passe avant tout, y compris
+       avant les congés. Résultat mesuré sur les vraies fonctions : trois box d'équipe visibles
+       avant, ZÉRO après, sans qu'une seule box ait été vidée ni qu'un message soit affiché.
+       L'administrateur qui ne déroule pas la liste ferme donc l'application au compte qu'il
+       vient d'ouvrir.
+
+       ⛔ ON NE RÉPARE PAS EN ÉLARGISSANT UN DROIT. Justin, le même soir : « si on a fait
+       plusieurs accès, plusieurs permissions, c'est qu'il y a un but ». Décocher reste un
+       retrait volontaire — la fonctionnalité ne bouge pas d'un pouce. Ce qu'on retire, c'est
+       la capacité de RETIRER SANS GESTE : à la création, il n'y a rien à retirer, la personne
+       n'a encore aucune visibilité. On ne pose donc que ce qui est COCHÉ. Le retrait volontaire
+       se fait depuis sa fiche, juste après, où les cases montrent enfin l'état réel.
+       `tests/test-710.js` rejoue les deux sens : l'oubli ne retire plus rien, le geste retire
+       toujours. Les véhicules portaient le même défaut, à la ligne près. */
     let _nBox=0;
     let _nVeh=0;
     if(!acces.caps.voirTout){ (db.boxes||[]).filter(b=>b&&b.actif!==false).forEach(b=>{
-      const on=nuBoxes.has(b.id); userBoxVoit(nu.id,b.id,on); if(on) _nBox++; });
+      if(!nuBoxes.has(b.id)) return;                    // pas coché = pas encore décidé, surtout pas « exclu »
+      userBoxVoit(nu.id,b.id,true);
+      /* On ne compte QUE ce qui a réellement été ouvert : une box déjà visible par l'équipe
+         n'entre pas dans `userIds`, l'annoncer gonflerait le journal d'un droit non donné. */
+      if((b.userIds||[]).includes(nu.id)) _nBox++; });
       (db.vehicules||[]).filter(v=>v&&v.actif!==false).forEach(v=>{
-        const on=nuVehs.has(v.id); userVehiculeVoit(nu.id,v.id,on); if(on) _nVeh++; }); }
+        if(!nuVehs.has(v.id)) return;
+        userVehiculeVoit(nu.id,v.id,true);
+        if((v.userIds||[]).includes(nu.id)) _nVeh++; }); }
     logEvent('Utilisateur créé',`@${loginNorm}`+(_profilPose?' — profil « '+_profilPose+' »':'')+(acces.caps.voirTout?' — toutes les box':_nBox?' — '+_nBox+' box':''),'auth');
     save(); closeModal(); views.utilisateurs();
     setTimeout(()=>userIdentifiantsModal(nu,pwd),120);
