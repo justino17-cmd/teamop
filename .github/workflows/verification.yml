@@ -77,9 +77,9 @@ jobs:
           # mourir cette étape EN ZÉRO SECONDE, sans lancer une seule suite — et la CI l'a
           # comptée comme un échec de tests. Chaque commande qui peut légitimement ne rien
           # trouver est donc soit dans un `if`, soit suivie de `|| true`.
-          total=0; rouge=0
+          total=0; rouge=0; echecs=""
           for f in tests/test-*.js; do
-            if sortie=$(node "$f" 2>&1); then :; else rouge=1; echo "::error::$f échoue"; fi
+            if sortie=$(node "$f" 2>&1); then :; else rouge=1; echecs="$echecs $f"; echo "::error::$f échoue"; echo "$sortie" | grep -E '✗|✘' | head -5; fi
             echo "$sortie" | tail -1
             n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+' || true)
             total=$((total + ${n:-0}))
@@ -87,6 +87,14 @@ jobs:
               echo "::error::$f a SAUTÉ une partie en silence"; rouge=1
             fi
           done
+          echo ""
+          echo "══ RÉCAPITULATIF ══"
+          # ⛔ LE RÉCAPITULATIF EST À LA FIN, ET C'EST TOUT L'INTÉRÊT. Le journal d'un job fait
+          # des centaines de lignes ; une étape qui noie le nom de la suite fautive au milieu
+          # oblige à tout dérouler pour savoir quoi réparer. Mesuré le 15 septembre 2026 : il a
+          # fallu quatre allers-retours pour retrouver une suite rouge. Les dernières lignes
+          # doivent suffire.
+          if [ -n "$echecs" ]; then echo "SUITES EN ÉCHEC :$echecs"; else echo "aucune suite en échec"; fi
           echo "── $total vérifications sur $(ls tests/test-*.js | wc -l) suites"
           # ⛔ UN PLANCHER, parce qu'une suite qui se saute elle-même sort en 0 sans rien dire.
           # Mesuré le 15 septembre 2026 : sans server/node_modules, six suites sautent leur
