@@ -274,11 +274,15 @@ veut dire : **ne pas le pousser du tout**.
 `git log --oneline -S "<une ligne du changement>" -- server/index.js` dit si c'est sur main, et
 `curl -s https://api.teamop.fr/health | grep uptime` dit si le VPS a redémarré depuis.
 
-### Ce qu'on ne sait toujours pas, et qu'il faut demander
+### ✅ La question est refermée
 
-Les deux gardes tournent depuis le 15 au matin. **Personne n'a vérifié si quelqu'un s'est
-retrouvé dehors ce jour-là** — JB était censé être en train de basculer. `/health` ne montre rien
-d'anormal, mais il ne compte pas ça. À poser à Justin.
+Les deux gardes tournent depuis le 15 au matin. Restait à savoir si quelqu'un s'était retrouvé
+dehors entre-temps — JB était censé être en train de basculer. **Justin, le 15 au soir : « JB a
+fini de basculer. »** Plus personne ne vit sur l'espace par défaut, et la porte fermée ce matin
+ne gêne donc personne. Relevé au même moment : `/health` sans aucun refus (`lastRefus: null`),
+zéro échec de clé, 2 rapports d'erreur sur 24 h.
+
+**Ce chantier est clos.** Il n'y a rien à publier : c'était déjà en ligne.
 
 ---
 
