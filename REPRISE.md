@@ -13,6 +13,365 @@ de ligne du tout.
 
 ---
 
+## 🩹 v677 — **PUBLIÉE** le 15 septembre 2026 : un bug qui n'en était pas un
+
+Dossier de la console TEAM OP : ELAN, iPhone · Safari, rubrique **Plans**, gravité Moyenne,
+1 occurrence à 9 h 11. « Promesse rejetée : Attempt to get records from database without an
+in-progress transaction ».
+
+**Le vrai défaut était le RAPPORT.** `tmCat()` nomme l'écran **ouvert** au moment du rejet,
+jamais le coupable — il n'y a pas une ligne d'IndexedDB dans Plans. Le diagnostic automatique
+a donc conclu « reproduire l'action dans la rubrique Plans », et envoyé chercher là où il n'y
+avait rien.
+
+**Ce que ça était, constaté et non déduit.** Le message n'existe nulle part dans les 340 Ko du
+SDK Firebase (téléchargé et relu avant de conclure) : c'est un message **natif de WebKit**.
+Dans `firebase-auth-compat.js` 10.12.2 :
+
+```js
+startPolling(){ this.pollTimer = setInterval(async()=>this._poll(), 800) }
+async _poll(){ await this._withRetries(e => { var t = kr(e,!1).getAll(); … }) }
+```
+
+La persistance d'authentification interroge sa base IndexedDB toutes les 800 ms pour repérer
+une session changée dans un autre onglet. **La promesse de cette fonction fléchée `async`
+n'est consommée par personne** — pas un `.catch()`, pas un `await`. WebKit tue les
+transactions IndexedDB quand la page passe en arrière-plan sur iPhone : le poll en vol se
+rejette, et le rejet remonte jusqu'à notre vigie.
+
+**Ça ne casse rien** : le tour suivant rouvre la base (`_withRetries`), la session vit en
+mémoire, Firestore ne s'arrête pas. Même famille que `requestAnimationFrame` suspendu en
+arrière-plan, déjà écarté pour la même raison.
+
+**Le correctif** : `BRUIT_IDB`, écarté des deux signalements — mais ⛔ **seulement sur un
+REJET**, jamais sur `window.onerror` (une erreur IndexedDB synchrone reste un bug), et jamais
+effacé (ça reste dans la console du navigateur). Ce que ça ne peut pas cacher : nos trois
+usages d'IndexedDB sont tous dans un `try/catch` qui **rend une valeur** — aucun ne produit de
+rejet. `tests/test-693.js` (27 vérifications) le relit et **bloque une quatrième ouverture
+d'IndexedDB non gardée**.
+
+**Mesuré au navigateur, avant et après** (`scratchpad/sonde-idb.js`) : avant, le rejet WebKit
+partait vers `/api/bug` ET la Tour ; après, il est écarté des deux, et « boum — vraie erreur
+applicative » passe toujours dans les deux.
+
+### ⚠️ Ce qui reste ouvert, et qui n'est pas à moi
+
+- **La rubrique d'un rapport ment par construction.** Tant que `tmCat()` nommera l'écran
+  ouvert, tout rejet venu d'une minuterie de fond sera classé au hasard. Ça se règle côté
+  Tour/serveur (dire « rubrique : écran ouvert, pas forcément la cause »), pas dans un
+  correctif client.
+- **⛔ PIÈGE GIT, constaté ce jour-là** : `main` et `claude/op-gestion-interface-yb6p32`
+  portent la v676 sous **deux commits différents**. `git merge main` ne trouve donc plus de
+  base commune sur `app.html` et met tout le fichier en conflit. **Reporter les hunks à la
+  main**, ne jamais résoudre 3 Mo dans un éditeur de conflits.
+
+---
+
+## 📦 LA COMPRESSION DU NUAGE — 15 septembre 2026, **phase 2 prête (v678), PAS publiée**
+
+Justin : « fait la comprésion », puis « mais il faudra prevoir plus de place dans le future ».
+C'est la réponse de fond au « base trop lourde pour le nuage » qui a arrêté ELAN le
+15 septembre au matin pour **1,1 Ko** (621,1 Ko pour 620,0 Ko permis).
+
+### Ce qui est déjà chez les clients
+
+**v676 — publiée.** L'application sait **LIRE** le format compressé (`o.z`) ; elle écrit encore
+en clair. C'est la règle du dépôt appliquée telle quelle : les appareils d'abord, la porte
+ensuite. Le drapeau `z` voyage partout — document Firestore, sauvegarde serveur, et la
+**relecture** de la sauvegarde (elle le perdait, c'était le piège).
+
+**v675 — publiée.** Le correctif d'urgence : la copie poussée raccourcit les **journaux
+d'activité** quand la base dépasse. Juste, mais il coûte — l'historique de l'équipe ne monte
+plus en entier dans le nuage. La v678 le lui rend.
+
+### ✅ Ce qui est fait (branche de travail, **non publié**) — v678
+
+1. **`syncEncrypt` compresse pour de bon**, `z:1`. Sans `CompressionStream` (Safari d'avant
+   16.4) on écrit en clair comme avant : la compression est un gain, jamais une exigence.
+2. **`NUAGE_ENC_MAX = 780 Kio` — le budget porte enfin sur le DOCUMENT**, pas sur le texte
+   clair. `NUAGE_BUDGET` (620 Kio) reste, il ne sert plus que quand la compression manque.
+3. **`syncAllegerNuage(base)`** : on **mesure** le document compressé avant de retirer quoi que
+   ce soit. Ça tient → la base part **entière**, zéro pièce retirée, zéro ligne de journal
+   coupée. Ça ne tient pas → on allège avec un budget de texte clair **déduit de la mesure**
+   (taux réel × 0,95), puis on **re-mesure**. ⛔ Jamais un taux supposé : ces données
+   compressent à −89 %, une base pleine de photos en base64 ne compresserait presque pas.
+4. **⛔ `_nuageIllisible` — celui qui ne sait pas lire n'écrit plus.** C'est le seul vrai danger
+   de la compression, et il est invisible : un navigateur sans `DecompressionStream` déchiffre
+   le document et rend quand même `null`, exactement comme une clé étrangère. Sans garde il
+   pousserait sa propre base par-dessus celle de l'équipe — la fusion ne peut pas réunir ce
+   qu'on n'a pas lu. La cause est **certaine** (`d.z` posé ET fonction absente), donc on la
+   nomme, on coupe l'écriture, et on le DIT (écran + journal de l'entreprise).
+5. Le message « trop lourde » se dit désormais dans l'unité qui décide : la taille du document.
+
+### Pourquoi c'était permis maintenant, et pas la veille
+
+La phase 2 était suspendue à **deux** conditions, et les deux sont remplies :
+
+- le parc sur la v676 ;
+- **la v676 exigée depuis la Tour** — relevé public le 15 septembre :
+  `GET https://api.teamop.fr/api/version` → `{"ok":true,"min":676,"enLigne":"enLigne"}`.
+  Sous ce numéro, un appareil ne peut plus ni se connecter (426 sur `/api/espaces/comptes`)
+  ni écrire (la règle Firestore compare `verNum` au minimum publié).
+
+### Mesuré, pas supposé
+
+- **Au navigateur, sur une base réelle** (`scratchpad/preuve-phase2.js`, sur `beta.html`) :
+  461,1 Ko de clair → document Firestore **118,7 Ko** pour 1024 Ko de limite, **905 Ko de
+  marge**. Relu **identique caractère par caractère**, `JSON.parse` passe, 1051 lignes, aucune
+  erreur de page. 39 ms de mesure, 71 ms d'écriture, 11 ms de lecture.
+- `nuageDocOctets()` a prédit **118,5 Ko** contre 118,5 Ko réels : la taille est **calculée**
+  (sceau de 16 octets + base64 à 4 pour 3), pas approchée.
+- Sur la base complète d'ELAN, mesure du 15 septembre : 930,9 Ko → 77,5 Ko compressés (−92 %).
+- `tests/test-692.js` (30 vérifications) exécute les **vraies** fonctions extraites du fichier
+  livré, sur les deux cas : base compressible → part entière ; base incompressible → allégée
+  puis re-mesurée.
+
+### ⛔ CE QUI RESTE, ET QUI N'EST PAS À MOI
+
+**`app.html` et `sw.js` attendent une phrase de Justin.** La règle du 11 septembre au soir ne
+souffre pas d'interprétation : « il a demandé la compression avant-hier » n'est pas « publie ».
+`beta.html` (v678-beta), lui, est en ligne — c'est son rôle, et c'est là qu'on teste.
+
+⚠️ **Et la place gagnée ne règle pas la dette de fond** (« prévoir plus de place ») : on reste
+sur **un seul document par entreprise**. La compression achète beaucoup de temps, pas
+l'infini — voir la tâche #50 et la #41 (pièces jointes vers Firebase Storage).
+
+---
+
+## 🔗 PLUS DE CODE D'ACCÈS, TOUT PAR LE LIEN — 14 septembre 2026, **aux trois quarts fait**
+
+Justin : « je ne veux plus le code, je veux que tout passe par le lien si il est reconnu par
+nous, et le lien une fois créé ne peut plus être changé ». Deux décisions prises :
+**le lien identifie l'entreprise, la personne s'identifie ensuite**, et **le code et sa route
+sont supprimés**.
+
+### Ce qui est fait (branche de travail, **non publié**)
+
+1. ✅ **Le lien existe déjà et marche.** `teamop.fr/e/<adresse>` → `404.html` (GitHub Pages sert
+   ce fichier pour toute adresse inconnue, avec le statut 404 mais le corps s'exécute) →
+   `connexion.html?e=<adresse>`. ⚠️ **Ne pas conclure d'un `curl` qui rend 404 que rien ne
+   sert cette adresse** — c'est l'erreur que j'ai faite, le corps porte l'aiguillage.
+2. ✅ **L'adresse est figée.** `/api/monitor/espaces/renommer` ne crée ni ne supprime plus
+   aucune clé d'annuaire — ce sont elles, les adresses. Renommer ne change que le nom affiché
+   (annuaire + champ `n` du code, celui que l'écran de connexion montre).
+3. ✅ **Une entreprise neuve entre sans code.** C'était l'œuf et la poule : un espace neuf n'a
+   pas d'annuaire, donc `/api/espaces/connexion` renvoyait 409 « utilise son code d'accès une
+   première fois ». `annuaireSemer()` dérive le premier vérificateur de `mh` (l'empreinte du
+   mot de passe provisoire, déjà portée par le code de l'espace), aux trois points de
+   naissance : Tour, inscription automatique, changement d'identifiants de départ.
+4. ✅ **Rattrapage au démarrage** pour les espaces inscrits avant, un par un, espacés de
+   250 ms, l'espace par défaut exclu.
+
+### ⛔ CE QUI RESTE, ET QUI DOIT PASSER AVANT LA SUPPRESSION DE LA ROUTE
+
+- **Les espaces dont le code n'a ni `a` ni `mh`** ne peuvent PAS être semés : le code d'accès
+  reste leur SEULE porte. Le serveur les compte et les nomme au journal au démarrage
+  (`⛔ N espace(s) SANS identifiant de départ dans leur code`). Il faut leur redonner un
+  identifiant de départ depuis la Tour **avant** de retirer la route — sinon elles sont
+  enfermées dehors définitivement.
+- **Retirer le code de ce qui le montre** : le champ « 10 caractères » de `connexion.html`,
+  le courriel de bienvenue, les ~37 mentions de `tour.html`.
+- **Puis seulement** : `/api/monitor/espaces/acces`, `accesReg`, `accesCodeDe`, `ACCES_LONGUEUR`.
+
+⚠️ **Ce que le semis change, et qu'il ne faut pas se cacher** : le mot de passe provisoire est
+faible par construction (dérivé du nom de famille) et devient éprouvable depuis une route
+publique. Trois choses le bornent — 60 échecs/heure/IP, l'application qui impose un vrai mot de
+passe dès la première connexion, et sa durée de vie qui s'arrête là.
+
+---
+
+## ⛔ ELAN TRAVAILLE ENCORE SUR LA CLÉ PARTAGÉE — constaté le 14 septembre 2026, **non résolu**
+
+> ### ✅ 14 septembre, fin de journée — LE CHEMIN EST OUVERT, il reste à le faire emprunter
+>
+> Justin : « donne-moi le lien d'ELAN et que je les refasse tout connecter ».
+>
+> **Le lien : https://teamop.fr/e/elan** — vérifié en direct, deux sondes :
+> `POST /api/espaces/libre {nom:'elan'}` rend `libre:false` (l'espace existe), et
+> `POST /api/espaces/connexion` avec un identifiant inexistant rend **403** et non
+> **409 `sans-annuaire`** : l'annuaire d'ELAN est peuplé, chacun entre avec son
+> identifiant et son mot de passe. Aucun code d'accès nécessaire.
+>
+> **Pourquoi ça tiendra** : `espaceHerite()` ne rattache au partagé que les appareils
+> **sans** `elan_sync_team`. Après la bascule cette clé porte `elan-34oc`, la fonction sort
+> à la première ligne. Ça ne peut pas se redéfaire tout seul. Et `APPAREIL_DEJA_VU` gèle
+> son verdict dans `elan_repli_v1` : un stockage entièrement vidé passe pour un appareil
+> NEUF, qui n'hérite de rien.
+>
+> **Ce que « je croyais que c'était réglé » veut dire** : ELAN A BIEN eu son espace propre
+> (7 personnes, 11 appareils, `elan-34oc`). Ces 5 appareils-là n'ont jamais été déplacés,
+> et rien ne les y forçait. Ce n'est pas une régression, c'est un reste.
+>
+> ⚠️ **LE SEUL POINT QUI COÛTE** : basculer **n'emporte pas leur travail** — `espaceQuitter()`
+> vide la base locale, ils arrivent dans ELAN avec le contenu d'ELAN. Or ils travaillent
+> vraiment sur le partagé (59 connexions sur 7 jours, la dernière il y a 22 minutes). Faire
+> `Paramètres → Exporter` sur UN de leurs appareils AVANT la bascule. Rien n'est détruit de
+> toute façon : le document `elan_teams/elan-gestion` reste intact tant qu'on ne le supprime
+> pas — d'où l'ordre, la suppression en DERNIER.
+
+Justin, capture à l'appui : la Tour affiche **« (espace hors annuaire) elan-gestion »** avec
+**5 utilisateurs actifs sur 7 jours, 59 connexions, la dernière il y a 22 minutes** — florent
+(admin), jb, mathieu, justin (chefEquipe), en v667. Ce n'est pas un résidu : c'est l'équipe qui
+travaille, aujourd'hui.
+
+⚠️ La tâche « Déplacer les entreprises restées sur la clé partagée » était marquée FAITE.
+Elle ne l'est pas. Un compteur à zéro ne prouve rien ici — voir pourquoi au point 3.
+
+### 1. Ce que `elan-gestion` est vraiment
+
+Ce n'est **pas une entreprise** : c'est `FB_TEAM` (`app.html:6277`), l'espace **par défaut** de
+l'application. `espaceHerite()` (`app.html:6354`) y rattache tout appareil **déjà vu** qui n'a pas
+d'`elan_sync_team`, et lui pose `SYNC_SECRET_DEFAULT` — le mot de passe de chiffrement **écrit en
+clair dans app.html**.
+
+Conséquence : les données de travail d'ELAN vivent dans le document **partagé**
+`elan_teams/elan-gestion`, déchiffrable par quiconque ouvre le fichier public. Leurs **comptes**
+aussi : `_cnxVia='identifiants'` (`app.html:29193`) signifie qu'ils se connectent **sans taper de
+nom d'entreprise**, donc contre la liste d'utilisateurs de ce document-là.
+
+### 2. Le chemin de sortie existe, et il est PIÉGÉ
+
+Taper le nom de l'entreprise à la connexion appelle `espaceDepuisNom` → `/api/espaces/connexion`
+→ `location.hash='entreprise='+code` + `reload()`. Ce chemin passe par `espaceQuitter()`, qui
+**vide la base locale** (CLAUDE.md, les quatre portes). Si le travail vivant est dans le document
+partagé, **basculer avant de l'avoir migré le perd**.
+
+⛔ Ne jamais faire basculer un appareil d'ELAN sans avoir traité l'ordre du point 4.
+
+### 3. Pourquoi le compteur « clé partagée » ne les voit pas
+
+`cleEtat(e)` (`server/index.js:2065`) exige une **fiche d'annuaire**. `elan-gestion` est hors
+annuaire → `cleEtat` rend `'inconnue'` → `cleEstPublique()` rend **false**, c'est-à-dire
+« laisse passer ». Le compteur peut donc afficher zéro pendant qu'une entreprise entière travaille
+sur la clé publique. **Un chiffre à zéro n'est pas une preuve d'absence** tant que la mesure ne
+couvre pas les espaces hors annuaire.
+
+### 4. Ce que Justin a proposé le 14 septembre, et pourquoi l'ordre est inversé
+
+> « si on suspend leur serveur on va déconnecter tous leurs appareils et on envoie tout sur
+> ELAN et après on supprime le reste »
+
+Les trois quarts sont justes. C'est l'ORDRE qui coûterait cher, et il y avait un piège :
+
+- **Suspendre `elan-gestion` ne part même pas aujourd'hui** : l'espace est hors annuaire, donc
+  `espaceAJour()` rend `null` et la route répond **404 « Espace inconnu »**.
+- **Ce n'est pas « leur serveur »** : c'est `FB_TEAM`, l'espace par défaut de l'application.
+  ⚠️ La suspension n'avait **aucune garde** contre lui, là où la suppression en a une depuis
+  toujours. Mesuré garde retirée : la route répond **200 et écrit l'identifiant dans
+  `entFermes`** — tous les appareils n'ayant rejoint aucun espace tombaient avec. **Fermé le
+  14 septembre 2026** (`ESPACES_INTOUCHABLES` dans `/api/monitor/espaces/suspendre`,
+  `tests/test-675.js`). La réouverture reste ouverte : on empêche d'entrer dans l'état, jamais
+  d'en sortir.
+- **Suspendre n'envoie personne sur ELAN.** Il n'existe aucun renvoi : ça coupe. La personne
+  tape ensuite le nom de son entreprise, ce qui passe par `espaceQuitter()` qui **vide la base
+  locale**. Couper avant d'avoir migré perd le travail des deux côtés.
+
+**L'ordre sûr — les données d'abord, les gens ensuite, la coupure en dernier :**
+
+1. Tour → Entreprises : **l'espace propre d'ELAN existe-t-il** (`elan-34oc` ?) et que
+   contient-il ? Les mêmes utilisateurs y apparaissent-ils **aussi** — auquel cas le parc est
+   coupé en deux, ce qui expliquerait le « encore » de Justin.
+2. Si le travail vivant est sur `elan-gestion` : **exporter** la base depuis un appareil à jour
+   (`exportData()`, `app.html:25072` — JSON complet), puis l'**importer** dans l'espace propre.
+3. **Ensuite seulement**, faire basculer chaque appareil : connexion en tapant le nom de
+   l'entreprise.
+4. Vérifier que plus personne ne signale sur `elan-gestion`. **Alors** seulement, couper.
+
+### 5. Pourquoi le compteur ne pourra plus faire croire que c'est réglé
+
+`aMigrer` ne comptait que `cleEtat === 'partagee'` — un espace hors annuaire rend `'inconnue'`
+et en sortait. Depuis le 14 septembre, quand le compte tombe à 0 **alors qu'il reste des clés
+inconnues**, le libellé le dit en ambre : « mesure incomplète — N espaces dont la clé est
+inconnue ». Le chiffre reste juste, il ne peut plus se lire « chantier fini ».
+
+⛔ **`cleEtat` n'a PAS été touchée, et il ne faut pas la toucher** : lui faire rendre
+`'partagee'` pour `elan-gestion` ferait refuser `/api/fb/jeton` (`server/index.js`, garde
+`cleEstPublique`) aux appareils qui y travaillent — leur synchro Firestore mourrait le jour
+même.
+
+Tant que ce n'est pas fait, la règle Firestore **ne peut pas se refermer** (CLAUDE.md : « les
+entreprises restées sur l'espace de repli doivent avoir déménagé »), et ELAN travaille sur une clé
+que n'importe qui peut lire.
+
+---
+
+## 💶 TARIFS ET MARGE — mesuré le 14 septembre 2026, **rien n'est décidé**
+
+Justin : « Prix pour les abonnements, tu me proposes quoi pour être rentable, faire prix par
+utilisateur ». Calculateur publié (artefact « Marge par utilisateur »), et trois constats qui
+survivent à la conversation.
+
+### 1. Le coût d'une entreprise monte en CARRÉ du nombre d'utilisateurs
+
+Ce n'est pas une estimation de volume, c'est la forme du mécanisme. `syncPush` (`app.html:6829`)
+relit le document avant d'écrire, puis écrit l'objet **entier** ; `onSnapshot` (`app.html:6535`)
+le redescend **entier** chez chaque appareil connecté. Donc : N utilisateurs × N appareils qui
+reçoivent = N² en sortie réseau.
+
+Chiffré sur une base de 0,6 Mo, 200 enregistrements/personne/jour, tarifs publics europe-west
+(lectures 0,06 $/100k, écritures 0,18 $/100k, sortie 0,12 $/Go) :
+
+| équipe | sortie réseau / mois | coût Firestore / mois |
+|---|---|---|
+| 1 | 3,5 Go | 0,40 € |
+| 5 | 88 Go | 9,77 € |
+| 10 | 352 Go | 38,94 € |
+| 20 | 1 406 Go | 155,51 € |
+
+⛔ **Aucune grille tarifaire ne rattrape une courbe en N².** À 20 personnes, un prix de 15 €/pers.
+rapporte 300 € et il en reste 145 ; à 30, on travaille pour Google. Le levier de marge n'est pas
+le prix, c'est la synchro.
+
+### 2. Le chantier « synchro incrémentale » est PLUS PETIT qu'il n'en a l'air
+
+Vérifié dans le code : **la fusion est déjà par enregistrement.** `fusionnerBases`
+(`app.html:5997`) unit par `id`, chaque enregistrement porte son `_m`, les pierres tombales sont
+par `id`, `boxFusionFine` descend jusqu'à la ligne de produit, `COLLS_DICT` + `dictFusion`
+traitent les dictionnaires. `estampiller()` pose déjà `_m` partout.
+
+Ce qui manque n'est donc **pas** le modèle de données — c'est le TRANSPORT. Aujourd'hui on envoie
+tout l'objet ; il faudrait n'envoyer que les enregistrements dont `_m` a bougé (sous-collection
+Firestore, un document par enregistrement, `onSnapshot` filtré sur `_m > dernierVu`).
+`fusionnerBases` n'a pas à changer d'une ligne.
+
+Gain attendu : le delta d'un enregistrement pèse ~8 Ko contre 600 Ko — deux ordres de grandeur.
+Une équipe de 20 coûterait alors moins qu'une équipe de 5 aujourd'hui. Et la limite dure de 1 Mo
+par document (`app.html:6758`) disparaît au passage, ce qui clôt aussi le chantier « sortir les
+pièces jointes du document ».
+
+⚠️ **C'est le code le plus dangereux du dépôt** — c'est lui qui a causé la panne d'ELAN du
+9 septembre. Bêta d'abord, longuement, et jamais sans avoir relu les règles de fusion de
+`CLAUDE.md` (pierres tombales, `_ms` hors de `recEmpreinte`, `numMaxUnion` par le MAXIMUM).
+
+### 3. La mécanique « par utilisateur » EXISTE DÉJÀ — c'est le prix qui ne la suit pas
+
+Vérifié de bout en bout : Stripe facture en `mode: subscription` avec
+`line_items[0][price]` + `line_items[0][quantity]` (`server/index.js:363-369`, plafond 50) ;
+le serveur porte `e.formule` + `e.quantite` (1..50) et les renvoie à l'application
+(`/api/clients/sync`) ; l'application les applique — `planPlaces() = PLANS[f].maxU × forfaitQty`
+(`app.html:7688`), et `planPlaceLibre()` **bloque déjà** la création d'un compte de trop.
+
+Passer au prix par personne ne demande donc **aucune plomberie nouvelle**, seulement :
+1. les montants des objets `price` Stripe (aujourd'hui un forfait de 1/2/3 places) ;
+2. `PLANS[…].maxU` → 1 partout, pour que `quantite` veuille dire « personnes » et non
+   « abonnements » ;
+3. le texte du site (`tarifs.html`, `recap-abonnement.html`) — « ajoutez simplement un
+   abonnement » disparaît.
+
+⛔ Un socle fixe + un prix par personne demanderait, LUI, un second `line_items[1]` dans
+`/api/stripe/checkout` : la route n'en envoie qu'un. Un prix par personne seul, avec un minimum
+de places imposé par la page, ne touche pas au serveur.
+
+### Ce qui n'est pas chiffré, et que personne ici ne peut chiffrer
+
+- **La vraie facture Firebase.** Les tarifs ci-dessus sont les tarifs publics. La console
+  Firebase → Usage donne les octets sortis et le nombre de lectures/écritures par jour : c'est
+  ce chiffre qui confirme ou démolit le tableau du point 1.
+- **Le temps de Justin.** Une heure de support par client et par mois pèse plus lourd que toute
+  la colonne technique.
+
+---
+
 ## ✅ PLUS DE LIEN DE PREMIÈRE CONNEXION — **PUBLIÉ** le 12 septembre 2026, 19 h 32 UTC
 
 ✅ Parti avec la v667 (« fait les 3 »). Vérifié sur les fichiers **servis** : `teamop.fr/tour.html`

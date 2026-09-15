@@ -4743,6 +4743,33 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
    Données locales (localStorage). Auth PIN SHA-256.
    ═══════════════════════════════════════════════════════════ */
 const STORE_KEY = 'elanB_gestion_v2';
+/* ⛔ CE N'EST PAS UNE ERREUR D'OP GESTION, ET LA SIGNALER COMME TELLE COÛTE UNE ENQUÊTE.
+   Relevé chez ELAN le 15 septembre 2026 à 9 h 11, iPhone · Safari, rubrique « Plans » :
+   « Promesse rejetée : Attempt to get records from database without an in-progress
+   transaction ». La rubrique ne désigne rien — `tmCat()` nomme l'écran OUVERT au moment du
+   rejet, pas le coupable — et le diagnostic automatique envoyait donc chercher dans Plans,
+   où il n'y a pas une ligne d'IndexedDB.
+
+   D'OÙ ÇA VIENT, vérifié dans le fichier réellement servi (firebase-auth-compat.js 10.12.2,
+   téléchargé et relu) : la persistance d'authentification de Firebase interroge sa base
+   IndexedDB toutes les 800 ms pour repérer une session changée dans un autre onglet —
+   `startPolling(){ this.pollTimer=setInterval(async()=>this._poll(),800) }`. Cette promesse
+   n'est CONSOMMÉE PAR PERSONNE : pas un `.catch()`, pas un `await`. Or WebKit tue les
+   transactions IndexedDB quand la page passe en arrière-plan sur iPhone — le poll en vol se
+   rejette, et le rejet arrive ici. Le message est celui de WEBKIT, pas de Firebase : il
+   n'existe nulle part dans les 340 Ko du SDK, on a cherché avant de conclure.
+
+   CE QUE ÇA CASSE : rien. Le tour suivant rouvre la base (`_withRetries` la ferme et la
+   rouvre), la session vit en mémoire, Firestore ne s'arrête pas. C'est le MÊME phénomène que
+   `requestAnimationFrame` suspendu en arrière-plan, déjà écarté plus bas pour la même raison.
+
+   ⛔ ON N'ÉCARTE QUE CELUI-LÀ, ET SEULEMENT SUR UNE PROMESSE. `window.onerror` n'est pas
+   touché. Nos TROIS usages d'IndexedDB — `miseDeCote`, `miseDeCoteListe`, le ménage des clés
+   « :opgestion » de `espaceQuitter` — sont tous dans un `try/catch` qui rend une valeur :
+   aucun ne peut produire un REJET. Ce filtre ne peut donc rien cacher de ce qui est à nous,
+   et `tests/test-693.js` le relit à chaque fois.
+   Écarté du signalement n'est pas effacé : ça reste dans la console du navigateur. */
+const BRUIT_IDB=/in-progress transaction|transaction is not active|transaction which is currently not active|TransactionInactiveError|Indexed Database server/i;
 /* ── Vigie : toute erreur JavaScript est signalée au serveur TeamOP avec l'espace entreprise concerné
       (anonyme : aucune donnée métier — juste le message d'erreur, la version et l'appareil) ── */
 (function(){ const sent={};
@@ -4757,7 +4784,9 @@ const STORE_KEY = 'elanB_gestion_v2';
     fetch('https://api.teamop.fr/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:team,app:'opgestion',version:ver,msg:msg.slice(0,300),src:src.slice(0,200),line:line||0,stack:String(stack||'').slice(0,800),ua:navigator.userAgent.slice(0,150)})}).catch(()=>{});
   }catch(_){}}
   window.addEventListener('error',e=>rep(e.message,e.filename,e.lineno,e.error&&e.error.stack));
-  window.addEventListener('unhandledrejection',e=>{ const r=e.reason||{}; rep('Promesse rejetée : '+(r.message||String(r)),'',0,r.stack); });
+  window.addEventListener('unhandledrejection',e=>{ const r=e.reason||{}; const m=String(r.message||String(r));
+    if(BRUIT_IDB.test(m)){ try{ console.warn('IndexedDB suspendu en arrière-plan (poll de Firebase Auth) — non signalé :',m.slice(0,140)); }catch(_){} return; }
+    rep('Promesse rejetée : '+m,'',0,r.stack); });
 })();
 /* ── 🗼 Tour de contrôle : sentinelle technique (bugs, lenteurs, réseau) — isolée, aucune donnée métier,
       désactivable via localStorage 'top_monitor_off'. Ne doit JAMAIS faire planter l'application. ── */
@@ -4809,7 +4838,7 @@ function tmFlush(){ try{
   fetch(TM_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:payload,keepalive:true}).then(function(r){ tmSending=false; if(r&&r.ok) tmSaveQ([]); },function(){ tmSending=false; });
 }catch(_){ tmSending=false; } }
 window.addEventListener('error',function(e){ try{ tmPush('erreur',e&&e.message,e&&e.error&&e.error.stack,e&&e.filename,e&&e.lineno); }catch(_){ } });
-window.addEventListener('unhandledrejection',function(e){ try{ var r=(e&&e.reason)||{}; var m=String((r&&r.message)||r||''); if(/Failed to fetch|NetworkError|Load failed|network connection was lost|annulé/i.test(m)) return; tmPush('erreur','Promesse rejetée : '+m,r&&r.stack,'',0); }catch(_){ } });
+window.addEventListener('unhandledrejection',function(e){ try{ var r=(e&&e.reason)||{}; var m=String((r&&r.message)||r||''); if(/Failed to fetch|NetworkError|Load failed|network connection was lost|annulé/i.test(m)) return; if(BRUIT_IDB.test(m)) return; tmPush('erreur','Promesse rejetée : '+m,r&&r.stack,'',0); }catch(_){ } });
 /* lenteurs : tâche bloquante > 2 s (PerformanceObserver longtask), sinon trou > 2 s entre deux images (requestAnimationFrame) */
 try{
   if(window.PerformanceObserver&&PerformanceObserver.supportedEntryTypes&&PerformanceObserver.supportedEntryTypes.indexOf('longtask')>=0){
@@ -4857,7 +4886,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '677-beta';
+const APP_VERSION = '678-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6877,7 +6906,7 @@ function usersTombesFusion(a,b){
    le document reste sous la limite dure de 1 Mio de Firestore avec ~120 Ko de marge. */
 const NUAGE_BUDGET=620*1024;
 const B_NUAGE_KO=NUAGE_BUDGET/1024;
-/* ══ LE BUDGET QUI COMPTE VRAIMENT, DEPUIS LA v677 ═══════════════════════════════════════════
+/* ══ LE BUDGET QUI COMPTE VRAIMENT, DEPUIS LA v678 ═══════════════════════════════════════════
    `NUAGE_BUDGET` pèse du TEXTE CLAIR. C'était juste tant qu'on écrivait en clair ; ça ne l'est
    plus. Ce que Firestore refuse, c'est un DOCUMENT de plus d'1 Mio — et le document, maintenant,
    c'est du gzip chiffré en base64. Continuer à juger la base sur son texte clair reviendrait à
@@ -6970,7 +6999,7 @@ function syncAlleger(base, budget){
 /* ══ CE QU'ON POUSSE VRAIMENT — mesuré compressé, jamais supposé ═════════════════════════════
    Trois issues, dans l'ordre où elles coûtent le moins à l'entreprise :
    1. La base ENTIÈRE tient une fois compressée → on la pousse entière. Aucune pièce retirée,
-      aucun journal raccourci : c'est le cas normal depuis la v677, et c'est ce qui rend à ELAN
+      aucun journal raccourci : c'est le cas normal depuis la v678, et c'est ce qui rend à ELAN
       son historique complet dans le nuage.
    2. Elle ne tient pas → on allège, mais avec un budget de texte clair DÉDUIT DE LA MESURE
       qu'on vient de faire (taux réel × marge), pas du vieux plafond de 620 Kio qui amputerait
@@ -7013,7 +7042,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
        au retour du réseau avec une base d'entre-temps — le mécanisme exact de la panne d'ELAN ;
      — écran de connexion : rien à pousser. */
   if(_versionBloquee) return;
-  /* — et la quatrième depuis la v677 : on n'a pas su LIRE le document de l'équipe parce qu'il est
+  /* — et la quatrième depuis la v678 : on n'a pas su LIRE le document de l'équipe parce qu'il est
      compressé et que ce navigateur ne sait pas décompresser. Écrire ici, c'est écraser. */
   if(_nuageIllisible) return;
   if(_horsLigne){ _horsLignePush=true; return; }
@@ -7089,7 +7118,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
          de l'entreprise, plafonné à 500, et ferait tourner la base qu'on essaie d'alléger) :
          le Journal de l'application, que le client lit lui-même, et la Tour par
          syncDiagnostic — le même chemin que l'écriture non acquittée en 15 s. */
-      /* Depuis la v677 le refus se dit dans l'unité qui le décide : la taille du DOCUMENT
+      /* Depuis la v678 le refus se dit dans l'unité qui le décide : la taille du DOCUMENT
          compressé. Dire « base 621 Ko pour 620 Ko permis » quand le document réel en fait 90
          enverrait chercher au mauvais endroit. Sans compression (vieux navigateur), l'ancienne
          phrase est la bonne et reste. */
