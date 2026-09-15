@@ -31,7 +31,13 @@ jobs:
     # plafond anti-abus par minute — c'est le prix de l'éprouver sur le vrai serveur.
     timeout-minutes: 10
     steps:
+      # ⛔ `fetch-depth: 2` N'EST PAS DU CONFORT. Par défaut, actions/checkout ne ramène QU'UN
+      # commit : « verifier-version.js » n'aurait alors aucun point de comparaison et ne
+      # pourrait plus dire si APP_VERSION a monté. Il échouerait franchement (il refuse de se
+      # taire en CI), mais autant lui donner ce qu'il lui faut.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -40,6 +46,16 @@ jobs:
         if: always()
         run: node scripts/verifier-syntaxe.js
 
+      # Les deux numéros qui font arriver une version sur le téléphone d'un technicien.
+      # Sans APP_VERSION plus grand, la Tour ne peut plus exiger la nouvelle version — et un
+      # seul appareil resté en arrière peut encore abîmer les données de toute l'équipe. Sans
+      # cache de service worker plus grand, le téléphone ressert l'ancienne page et le
+      # correctif n'atteint personne. Aucune erreur visible dans les deux cas : on croit avoir
+      # publié. Éprouvé par tests/test-709.js, sur les oublis ET sur ce qui doit rester vert.
+      - name: Les numéros de version montent quand app.html change
+        if: always()
+        run: node scripts/verifier-version.js
+
       # Les dépendances du serveur : les suites ci-dessous démarrent le serveur LIVRÉ et
       # interrogent ses vraies routes — un test qui rejoue une copie du code ne dit rien
       # de ce qui part en production.
@@ -47,6 +63,30 @@ jobs:
         if: always()
         run: npm install --no-audit --no-fund
         working-directory: server
+
+      # ⛔ APRÈS LES DÉPENDANCES, ET CE N'EST PAS UN DÉTAIL D'ORDRE. Six suites LANCENT le vrai
+      # serveur et sautent d'elles-mêmes leur partie exécutée si server/node_modules manque.
+      # Mesuré le 15 septembre 2026 : le total tombe alors de 1 923 à 1 758, sortie 0, sans un
+      # mot — la CI serait verte sur 165 vérifications qui n'ont pas eu lieu. Placé ici, et le
+      # plancher numérique ci-dessous le tient même si quelqu'un déplace à nouveau les étapes.
+      - name: Les suites du dépôt passent
+        if: always()
+        run: |
+          total=0; rouge=0
+          for f in tests/test-*.js; do
+            sortie=$(node "$f" 2>&1) || rouge=1
+            echo "$sortie" | tail -1
+            n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+')
+            total=$((total + ${n:-0}))
+            echo "$sortie" | grep -qi 'SAUTÉE' && { echo "::error::$f a SAUTÉ une partie en silence"; rouge=1; }
+          done
+          echo "── $total vérifications sur $(ls tests/test-*.js | wc -l) suites"
+          # ⛔ UN PLANCHER, parce qu'une suite qui se saute elle-même sort en 0 sans rien dire.
+          # Mesuré le 15 septembre : sans server/node_modules, six suites sautent leur partie
+          # exécutée et le total tombe de 1 923 à 1 758 — vert, et aveugle sur 165 contrôles.
+          if [ "$total" -lt 1900 ]; then echo "::error::$total vérifications seulement — il en manque"; rouge=1; fi
+          exit $rouge
+
 
       - name: Le nom d'une entreprise ne rend pas sa clé
         if: always()
