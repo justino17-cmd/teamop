@@ -80,6 +80,14 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
   const pfs = extraire(APP, 'async function pwdForgotSave()');
   v('une réinitialisation par e-mail vaut la campagne', /u\.secu=SECU_MDP;/.test(pfs), true);
   v('… et son retour en arrière aussi', /secu:u\.secu\}/.test(pfs), true);
+
+  /* ⛔ ET LES DEUX CHEMINS QUI CRÉENT UN MOT DE PASSE NEUF, pas seulement les trois qui en
+     CHANGENT un. Oubliés à la première livraison, trouvés par `relecteur` : la toute première
+     inscription d'une entreprise se voyait répondre, 600 ms après avoir choisi son mot de
+     passe, « Sécurité — active ton accès : choisis un mot de passe DIFFÉRENT ». Ça ne bloquait
+     pas — mais c'était le premier contact d'un client avec le produit. */
+  v('⛔ la création du compte administrateur marque la campagne', /admin\.actif=true; admin\.secu=SECU_MDP;/.test(APP), true);
+  v('⛔ le rattachement d’un compte teamop.fr aussi', /_site\.pwdHash=await sha256\(pin\); _site\.secu=SECU_MDP;/.test(APP), true);
 }
 
 /* ══ 2. L'E-MAIL : PLUS DE « PLUS TARD » ═══════════════════════════════════════════════ */
@@ -129,6 +137,19 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
   v('⛔ un annuaire d’avant la v681 rend « on ne sait pas »', etatBool({ s: 'x' }, 'p'), null);
   v('… et non « tout va bien »', etatBool({ p: 0 }, 'p'), false);
   v('un compte encore provisoire est vu', etatBool({ p: 1 }, 'p'), true);
+
+  /* ⛔ L'ÉTAT DES MOTS DE PASSE NE SORT QUE POUR LE PATRON. La route de dossier est sous
+     `monAdmin`, donc un collaborateur de la Tour la lit aussi — et « encore sur le mot de passe
+     provisoire » sur un compte qui a DÉJÀ servi est une information qu'il n'avait pas : le mot
+     de passe provisoire se dérive du nom, et la route de connexion est publique. Signalé par
+     `gardien`. On RETIRE les champs, on ne pose pas un drapeau que l'écran respecterait : un
+     drapeau laisse l'information dans la réponse, il suffirait de la lire. */
+  v('⛔ les champs sont retirés pour un non-patron',
+    /if \(!voitEtat\) utilisateurs\.forEach\(u => \{ delete u\.provisoire; delete u\.mail; \}\);/.test(SRV), true);
+  v('… et c’est bien le rôle patron qui ouvre', /const voitEtat = !!\(req\.tourUser && req\.tourUser\.role === 'patron'\);/.test(SRV), true);
+  /* Le compte de départ d'un espace neuf : le serveur CONNAÎT la réponse (le vérificateur est
+     dérivé du mot de passe provisoire), rendre « on ne sait pas » serait se taire par paresse. */
+  v('le compte semé est marqué provisoire', /table\[login\] = \{ s: sel, e: d\.toString\('hex'\), n: '', p: 1, m: 0 \};/.test(SRV), true);
 
   /* Côté Tour : trois états à l'écran, et le « on ne sait pas » ne se peint pas en vert. */
   v('la Tour marque le mot de passe provisoire', /u\.provisoire===true\) p\+='<span class="past p-rouge"/.test(TOUR), true);

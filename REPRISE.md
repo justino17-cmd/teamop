@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-## 🔐 v681 — MOT DE PASSE + E-MAIL OBLIGATOIRES POUR TOUT LE MONDE (publié le 15 septembre 2026)
+## 🔐 v681 → v682 — MOT DE PASSE + E-MAIL OBLIGATOIRES POUR TOUT LE MONDE (publié le 15 septembre 2026)
 
 Quatre demandes de Justin dans la même heure, toutes nées de la même journée : une équipe
 entière dehors pendant qu'il redonnait des accès à la main.
@@ -74,8 +74,36 @@ entière dehors pendant qu'il redonnait des accès à la main.
   exact `if(!u.pwdHash||u.mustChangePwd) setTimeout(forcePwdModal,600);` : il est tombé le jour
   où la condition a été nommée et RENFORCÉE. Réécrit pour éprouver la fonction réelle.
 
-Preuves : `tests/test-699.js` (65 vérifications) et `scratchpad/sonde-secu-681.js` (cinq
-mesures au navigateur, sur la bêta).
+### ⛔ Ce que la relecture a rattrapé APRÈS la publication de la v681 (corrigé en v682)
+
+Les deux agents ont rendu leur rapport une fois la v681 en ligne. Trois défauts réels, tous
+corrigés dans l'heure — et la leçon vaut d'être écrite : **publier avant la relecture, c'est
+publier ses erreurs aussi.**
+
+1. **`relecteur`** — `secu` était posé sur les trois écrans qui CHANGENT un mot de passe, et
+   oublié sur les deux qui en CRÉENT un neuf (`submitCreateAdmin`, rattachement d'un compte
+   `teamop.fr`). Une entreprise qui s'inscrivait s'entendait répondre, 600 ms après avoir
+   choisi son mot de passe : « Sécurité — choisis un mot de passe DIFFÉRENT ». Premier contact
+   d'un client avec le produit.
+2. **`gardien`** — l'état `p`/`m` était ÉCRASÉ par tout appareil en v641→v680 (le minimum
+   exigé est 641, et `comptes.json` est remplacé en entier). Chez une entreprise au parc mixte,
+   l'indicateur de la Tour CLIGNOTAIT selon qui allumait son téléphone en dernier. Un
+   indicateur de sécurité instable est pire que pas d'indicateur. L'état est désormais
+   REPORTÉ quand le dépôt ne le porte pas — et une version à jour garde le dernier mot.
+3. **`gardien`** — l'état sortait aussi pour un COLLABORATEUR de la Tour (route sous
+   `monAdmin`). Or le mot de passe provisoire se dérive du nom et la route de connexion est
+   publique : « encore provisoire » sur un compte qui a déjà servi transformait une attaque
+   bruyante (des échecs au compteur) en attaque silencieuse. Les champs sont maintenant
+   RETIRÉS de la réponse pour un non-patron — pas masqués par un drapeau que l'écran
+   respecterait.
+
+Plus deux rangements : `annuaireSemer` marque le compte de départ `p:1` (le serveur connaît la
+réponse, il ne doit pas répondre « je ne sais pas »), et l'infobulle verte ne promet plus
+l'e-mail, qui a son propre drapeau.
+
+Preuves : `tests/test-699.js` (72 vérifications), `tests/test-641.js` étendu (93, dont
+l'aller-retour réel du dépôt sur un vrai serveur) et `scratchpad/sonde-secu-681.js` (cinq
+mesures au navigateur, sur la bêta). Suite complète : 1 598.
 
 ---
 

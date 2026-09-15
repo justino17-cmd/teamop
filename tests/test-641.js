@@ -403,12 +403,41 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
     const cA2 = ((JSON.parse(fs.readFileSync(path.join(banc, 'data', 'comptes.json'), 'utf8'))['ent-a-9x'] || {}).c || {}).jb || {};
     v('⛔ p et m ne peuvent valoir que 0 ou 1', [cA2.p, cA2.m], [1, 1]);
     v('⛔ aucun autre champ ne s’invite dans l’annuaire', Object.keys(cA2).sort(), ['e', 'm', 'n', 'p', 's']);
-    /* ⛔ ET UNE VERSION ANCIENNE N'EFFACE PAS L'ÉTAT EN MENTANT : elle n'envoie ni p ni m, donc
-       les clés disparaissent — et la Tour lira « on ne sait pas », pas « tout va bien ». */
+    /* ⛔ ET UN APPAREIL QUI NE SAIT PAS RÉPONDRE N'EFFACE PAS LA RÉPONSE DES AUTRES.
+       Le vrai défaut de la première livraison, trouvé par `gardien` : le minimum exigé est 641,
+       donc toute version 641→680 dépose SANS `p` ni `m` — et `comptes.json` est remplacé EN
+       ENTIER. Chez une entreprise au parc mixte, l'indicateur de la Tour se mettait à
+       CLIGNOTER : « 8 encore sur le mot de passe provisoire » après l'ouverture d'un téléphone
+       à jour, « 8 inconnus » après celle d'un téléphone en retard. Un indicateur de sécurité
+       instable est pire que pas d'indicateur — le patron croit la campagne faite et ne la
+       relance pas. L'état est donc REPORTÉ, pas perdu. */
+    /* ⚠️ On repose les DEUX comptes avec leur état : le dépôt hostile ci-dessus n'envoyait que
+       « jb », et l'annuaire est remplacé en entier — « marc » n'y était donc plus. Sans cette
+       ligne, le test suivant mesurerait un compte absent et non un état reporté. */
+    await poster('/api/espaces/comptes', { t: 'ent-a-9x', kh: kh(CLE_A), ver: '681',
+      comptes: [compte('jb', 1, 1), compte('marc', 0, 1)] });
+    d = await poster('/api/espaces/comptes', { t: 'ent-a-9x', kh: kh(CLE_A), ver: '670',
+      comptes: [{ login: 'jb', s: 'a'.repeat(32), e: 'b'.repeat(64), n: 'Jean Bon' },
+                { login: 'marc', s: 'a'.repeat(32), e: 'b'.repeat(64), n: 'Marc D' }] });
+    const cA3 = ((JSON.parse(fs.readFileSync(path.join(banc, 'data', 'comptes.json'), 'utf8'))['ent-a-9x'] || {}).c || {});
+    v('⛔ un appareil en retard n’efface pas l’état déposé par un appareil à jour',
+      [cA3.jb && cA3.jb.p, cA3.jb && cA3.jb.m], [1, 1]);
+    v('⛔ … pour tous les comptes, pas seulement le premier',
+      [cA3.marc && cA3.marc.p, cA3.marc && cA3.marc.m], [0, 1]);
+    /* Et un compte JAMAIS déposé avec l'état reste « on ne sait pas » : on reporte ce qu'on
+       sait, on n'invente pas ce qu'on n'a jamais su. */
+    d = await poster('/api/espaces/comptes', { t: 'ent-a-9x', kh: kh(CLE_A), ver: '670',
+      comptes: [{ login: 'jb', s: 'a'.repeat(32), e: 'b'.repeat(64), n: 'Jean Bon' },
+                { login: 'nouveau', s: 'a'.repeat(32), e: 'b'.repeat(64), n: 'Sans état' }] });
+    const cA4 = ((JSON.parse(fs.readFileSync(path.join(banc, 'data', 'comptes.json'), 'utf8'))['ent-a-9x'] || {}).c || {});
+    v('un compte jamais déposé avec l’état reste inconnu',
+      [('p' in (cA4.nouveau || {})), ('m' in (cA4.nouveau || {}))], [false, false]);
+    /* ⛔ ET UN v681 QUI DIT « c'est fait » ÉCRASE BIEN L'ANCIEN « à faire » : reporter ne doit
+       pas devenir figer, sinon l'indicateur ne redescendrait jamais. */
     d = await poster('/api/espaces/comptes', { t: 'ent-a-9x', kh: kh(CLE_A), ver: '681',
-      comptes: [{ login: 'jb', s: 'a'.repeat(32), e: 'b'.repeat(64), n: 'Jean Bon' }] });
-    const cA3 = ((JSON.parse(fs.readFileSync(path.join(banc, 'data', 'comptes.json'), 'utf8'))['ent-a-9x'] || {}).c || {}).jb || {};
-    v('un dépôt sans état laisse « on ne sait pas »', [('p' in cA3), ('m' in cA3)], [false, false]);
+      comptes: [compte('jb', 0, 1)] });
+    const cA5 = (((JSON.parse(fs.readFileSync(path.join(banc, 'data', 'comptes.json'), 'utf8'))['ent-a-9x'] || {}).c || {}).jb) || {};
+    v('⛔ une version à jour a toujours le dernier mot', [cA5.p, cA5.m], [0, 1]);
   } catch (e) { ko++; console.log('  ✗ le banc n\'a pas pu tourner : ' + e.message); }
 
   stop();

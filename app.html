@@ -4886,7 +4886,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '681';
+const APP_VERSION = '682';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -29151,7 +29151,16 @@ async function submitCreateAdmin(e){ e.preventDefault();
   if(pin!==pin2){ show('Les deux mots de passe ne correspondent pas.'); return; }
   let admin=db.users.find(u=>u.role==='admin');
   if(!admin){ admin={id:uid(),role:'admin',actif:true}; db.users.push(admin); }
-  admin.prenom=prenom; admin.nom=nom; admin.login=login||'admin'; admin.pwdHash=await sha256(pin); delete admin.pinHash; admin.actif=true;
+  /* ⛔ ON NE RÉCLAME PAS DE CHANGER UN MOT DE PASSE QU'ON VIENT DE CHOISIR. Signalé par
+     `relecteur` le 15 septembre 2026, et c'est le défaut classique du travail à moitié fait :
+     `secu` a été posé sur les trois écrans qui CHANGENT un mot de passe, et oublié sur les
+     deux qui en CRÉENT un neuf. Sans cette ligne, la toute première inscription d'une
+     entreprise se voyait répondre, 600 ms après avoir choisi son mot de passe, « Sécurité —
+     active ton accès : choisis un mot de passe DIFFÉRENT ». Ça ne bloquait pas, mais c'était
+     le premier contact d'un client avec le produit.
+     ⚠️ L'e-mail, lui, reste exigé : cet écran ne le demande pas, donc `emailRappelModal`
+     prendra le relais — ce qui est exactement ce qu'on veut. */
+  admin.prenom=prenom; admin.nom=nom; admin.login=login||'admin'; admin.pwdHash=await sha256(pin); delete admin.pinHash; admin.actif=true; admin.secu=SECU_MDP;
   sessionStorage.removeItem('elan_create_admin');
   sessionStorage.setItem('elan_session',admin.id); localStorage.setItem('elan_session',admin.id); localStorage.setItem('elan_savedLogin',admin.login);
   save();
@@ -29663,7 +29672,9 @@ async function doLogin(e){ e.preventDefault();
         const p=$('li-pin'); if(p){ p.value=''; p.focus(); } return;
       }
     }catch(_e){ if(er){ er.textContent='Connexion internet requise pour ta toute première connexion'; er.style.display='block'; } return; }
-    _site.pwdHash=await sha256(pin); delete _site.compteSite; delete _site.sansMdp; delete _site.pinHash; save();
+    /* Même raison qu'à la création du compte administrateur : la personne vient de choisir ce
+       mot de passe, on ne lui en redemande pas un autre dans la foulée. L'e-mail reste exigé. */
+    _site.pwdHash=await sha256(pin); _site.secu=SECU_MDP; delete _site.compteSite; delete _site.sansMdp; delete _site.pinHash; save();
     sessionStorage.setItem('elan_session',_site.id);
     if(remember){ localStorage.setItem('elan_session',_site.id); localStorage.setItem('elan_savedLogin',_site.login); }
     enterApp(_site);

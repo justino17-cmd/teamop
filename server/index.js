@@ -1976,12 +1976,20 @@ app.post('/api/monitor/entreprise/dossier', monAdmin, (req, res) => {
      celui qui appellera le patron un matin. Un annuaire déposé par une version ANTÉRIEURE ne
      porte ni l'un ni l'autre — d'où `null`, « on ne sait pas », qui ne doit pas s'afficher
      comme « tout va bien ». */
-  const etatBool = (a, k) => (a && typeof a[k] !== 'undefined') ? !!a[k] : null;
+  /* `hasOwnProperty` et pas `a[k]` nu : c'est la discipline du reste du fichier pour tout ce
+     qui vient d'un annuaire, et le commentaire de la route de connexion dit pourquoi elle a
+     été payée cher. Signalé par `gardien`, 15 septembre 2026. */
+  const etatBool = (a, k) => (a && Object.prototype.hasOwnProperty.call(a, k)) ? !!a[k] : null;
   for (const l of Object.keys(annu)) parLogin[l] = { login: l, dansAnnuaire: true, nom: (annu[l] && annu[l].n) || '', provisoire: etatBool(annu[l], 'p'), mail: etatBool(annu[l], 'm'), attente: ordreAttente(t, l), supprime: ordreFait(t, l), derniere: 0, role: '', version: '', appareils: 0, echecs: 0, connexions: 0 };
   const devs = {};
   for (const x of (cnxData[t] || [])) {
     const l = String(x.login || '').toLowerCase().trim(); if (!l) continue;
-    const o = parLogin[l] || (parLogin[l] = { login: l, dansAnnuaire: false, nom: '', attente: ordreAttente(t, l), supprime: ordreFait(t, l), derniere: 0, role: '', version: '', appareils: 0, echecs: 0, connexions: 0 });
+    /* `provisoire`/`mail` à null EXPLICITEMENT : sans eux, `JSON.stringify` omet les clés et le
+       client reçoit `undefined` là où l'autre branche rend `null` — deux « on ne sait pas »
+       différents dans la même réponse, et le jour où un écran teste l'un et pas l'autre, il se
+       trompe. Un identifiant vu seulement dans le journal des échecs n'est dans aucun annuaire :
+       on ne sait rien de son mot de passe, et c'est ce qu'on dit. */
+    const o = parLogin[l] || (parLogin[l] = { login: l, dansAnnuaire: false, nom: '', provisoire: null, mail: null, attente: ordreAttente(t, l), supprime: ordreFait(t, l), derniere: 0, role: '', version: '', appareils: 0, echecs: 0, connexions: 0 });
     if (x.ev === 'echec') { o.echecs++; continue; }
     if (x.ev === 'bloque' || x.ev === 'refus') { o.bloques = (o.bloques || 0) + 1; continue; }   // la porte a joué : ce n'est ni une connexion ni un échec de mot de passe
     o.connexions++;
@@ -1990,6 +1998,11 @@ app.post('/api/monitor/entreprise/dossier', monAdmin, (req, res) => {
   }
   for (const l of Object.keys(parLogin)) parLogin[l].appareils = devs[l] ? devs[l].size : 0;
   const utilisateurs = Object.values(parLogin).sort((a, b) => (b.derniere || 0) - (a.derniere || 0)).slice(0, 60);
+  /* ⛔ ET ON RETIRE VRAIMENT LES CHAMPS, on ne se contente pas d'un drapeau que l'écran
+     respecterait. Un drapeau, c'est une politique côté client : la réponse porterait quand
+     même l'information, et il suffirait de la lire. */
+  const voitEtat = !!(req.tourUser && req.tourUser.role === 'patron');
+  if (!voitEtat) utilisateurs.forEach(u => { delete u.provisoire; delete u.mail; });
 
   res.json({
     ok: true, t, slug,
@@ -1997,6 +2010,15 @@ app.post('/api/monitor/entreprise/dossier', monAdmin, (req, res) => {
     usage: { total: u.total || 0, dernier: u.dernier || 0, version: u.version || '', vues },
     connexions: { resume: cnxResume(t), evenements: evts, echecs },
     utilisateurs, erreurs, promo,
+    /* ⛔ L'ÉTAT DES MOTS DE PASSE NE SORT QUE POUR LE PATRON. Cette route est sous `monAdmin`,
+       donc un collaborateur de la Tour la lit aussi — et `provisoire:true` sur un compte qui a
+       DÉJÀ servi est une information qu'il n'avait pas : le mot de passe provisoire se dérive
+       du nom (`tour.html`), et `/api/espaces/connexion` est publique. Sans ça, il fallait
+       essayer, donc laisser des échecs au compteur ; avec ça, on sait sans essayer. Signalé
+       par `gardien`, 15 septembre 2026. Le drapeau dit à la Tour de ne RIEN afficher plutôt
+       que d'afficher « on ne sait pas » — un écran qui se tait est honnête, un écran qui dit
+       « inconnu » à quelqu'un qui n'a simplement pas le droit de savoir, non. */
+    etatComptes: voitEtat,
     sauvegarde: { n: sauvListe(t).length, derniere: (sauvListe(t)[0] || 0), possible: !!(espaceParT(t) && espaceParT(t).code) },
     bannis: (ordresData[t] || []).filter(o => o.banni !== false).map(o => ({ login: o.login, ts: o.ts, fait: o.fait || 0, par: o.par || '' }))
   });
@@ -3268,6 +3290,7 @@ app.post('/api/espaces/comptes', (req, res) => {
      compte ne s'appelle pas ainsi, et les garder ne servirait qu'à piéger la route voisine. */
   const table = Object.create(null);
   const INTERDITS = ['__proto__', 'constructor', 'prototype'];
+  const ancien = (comptesReg[t] && comptesReg[t].c) || Object.create(null);   // pour reporter l'état connu, voir plus bas
   for (const c of recu) {
     if (!c || typeof c !== 'object' || Array.isArray(c)) continue;
     const login = monStr(c.login, 40).toLowerCase().trim();
@@ -3286,9 +3309,23 @@ app.post('/api/espaces/comptes', (req, res) => {
     /* ⚠️ ON POSE LES DEUX CLÉS MÊME À 0. Les omettre quand c'est faux économiserait trois
        octets et rendrait « fait » indistinguable de « déposé par une version qui ne le disait
        pas » — la Tour afficherait « tout va bien » sur une information qu'elle n'a pas. La
-       PRÉSENCE de la clé dit « cette version sait répondre », sa valeur dit quoi. */
+       PRÉSENCE de la clé dit « cette version sait répondre », sa valeur dit quoi.
+       ⛔ ET UN APPAREIL QUI NE SAIT PAS RÉPONDRE N'EFFACE PAS LA RÉPONSE DES AUTRES. Signalé
+       par `gardien` le 15 septembre 2026, et c'était le vrai défaut de la livraison : le
+       minimum exigé est 641, donc toute version 641→680 dépose SANS `p` ni `m`, et
+       `comptes.json` est remplacé EN ENTIER. Chez une entreprise au parc mixte, l'indicateur
+       de la Tour se mettait donc à clignoter — « 8 encore sur le mot de passe provisoire »
+       après l'ouverture d'un téléphone à jour, « 8 inconnus » après celle d'un téléphone en
+       retard, au gré de qui allume quoi. Un indicateur de SÉCURITÉ instable est pire que pas
+       d'indicateur : le patron croit une campagne faite et ne la relance pas. On REPORTE donc
+       l'état connu au lieu de le perdre — ce que la v681 a dit reste vrai tant qu'une v681 ne
+       dit pas autre chose. (`hasOwnProperty` et pas `ancien[login]` nu : `login` vient du
+       corps de la requête, et c'est la discipline du reste du fichier.) */
+    const prec = Object.prototype.hasOwnProperty.call(ancien, login) ? ancien[login] : null;
     if (typeof c.p !== 'undefined') table[login].p = c.p ? 1 : 0;
+    else if (prec && typeof prec.p !== 'undefined') table[login].p = prec.p ? 1 : 0;
     if (typeof c.m !== 'undefined') table[login].m = c.m ? 1 : 0;
+    else if (prec && typeof prec.m !== 'undefined') table[login].m = prec.m ? 1 : 0;
   }
   /* Un annuaire vide ne remplace JAMAIS un annuaire garni : un bogue de l'application, une
      synchro pas encore descendue, et toute l'entreprise se retrouvait dehors sans rien avoir
@@ -3360,7 +3397,12 @@ function annuaireSemer(t, ident, mh, remplacer) {
       if (!remplacer && comptesReg[t] && comptesReg[t].c && Object.keys(comptesReg[t].c).length) return ok(false);
       const avant = comptesReg[t];
       const table = Object.create(null);
-      table[login] = { s: sel, e: d.toString('hex'), n: '' };
+      /* `p: 1` n'est pas une supposition : ce compte de départ est semé À PARTIR de `mh`,
+         l'empreinte du mot de passe PROVISOIRE du blob d'espace. Le serveur connaît donc la
+         réponse — rendre « on ne sait pas » sur le seul cas où il sait ferait afficher
+         « 1 inconnu » à une entreprise qui vient d'être créée, c'est-à-dire au cas que cet
+         indicateur vise en premier. `m: 0` de même : aucune adresse n'a encore été donnée. */
+      table[login] = { s: sel, e: d.toString('hex'), n: '', p: 1, m: 0 };
       comptesReg[t] = { maj: Date.now(), c: table };
       if (!comptesEcrire()) { if (avant) comptesReg[t] = avant; else delete comptesReg[t]; return ok(false); }
       console.log('annuaire semé (1 compte de départ) pour l\'espace', t);
