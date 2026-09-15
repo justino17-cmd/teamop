@@ -61,10 +61,27 @@ v('gzipper et degzipper existent', /async function gzipper\(txt\)\{/.test(APP) &
 v('… sans aucune dépendance ajoutée', /new CompressionStream\('gzip'\)/.test(APP) && /new DecompressionStream\('gzip'\)/.test(APP), true);
 v('⛔ un navigateur sans CompressionStream n\'est pas bloqué', /if\(!gzipPossible\(\)\) return null;/.test(APP), true);
 v('⛔ la LECTURE comprend les deux formats', /if\(o&&o\.z\) return await degzipper\(pt\);/.test(APP), true);
-/* ⛔ Phase 1 : on ne doit PAS encore écrire compressé. La version suivante l'allumera. */
-const enc = APP.slice(APP.indexOf('async function syncEncrypt(plain){'), APP.indexOf('async function syncDecrypt(o){'));
-v('⛔ PHASE 1 : l\'écriture reste en clair, le parc n\'est pas encore à jour',
-  /gzipper\(/.test(enc), false);
+/* ⛔ LE CONTRAT A CHANGÉ EXPRÈS, LE 15 SEPTEMBRE 2026 — et il ne faut pas le lire comme un test
+   qu'on a « fait passer ». La phase 1 exigeait que l'écriture reste en clair TANT QUE le parc
+   n'était pas à jour ; cette condition est aujourd'hui remplie, relevé public à l'appui :
+   `GET https://api.teamop.fr/api/version` → `{"ok":true,"min":689,"enLigne":"enLigne"}`. Un
+   appareil sous ce numéro ne peut plus ni se connecter (426 sur /api/espaces/comptes) ni écrire
+   (la règle Firestore compare `verNum` au minimum publié). La garantie qu'on tenait reste donc
+   tenue — c'est son échéance qui est arrivée. On l'exprime maintenant à l'endroit où elle
+   continue de coûter : la lecture existe, et personne ne peut écrire sans savoir lire. */
+/* ⚠️ L'ancre suit la SIGNATURE, qui a gagné `gzPret` en v690. Une ancre trop précise se casse
+   à chaque refactor juste et fait croire à une régression : on vise le nom, pas les arguments. */
+const _iEnc = APP.indexOf('async function syncEncrypt(');
+v('syncEncrypt est trouvée dans app.html', _iEnc > 0, true);
+const enc = APP.slice(_iEnc, APP.indexOf('/* `o.z` marque un contenu compressé'));
+v('⛔ PHASE 2 : l\'écriture compresse pour de bon', /await gzipper\(plain\)/.test(enc), true);
+v('… et le drapeau dit la vérité sur ce qui est écrit', /z:gz\?1:0/.test(enc), true);
+v('⛔ sans CompressionStream on écrit en clair, on n\'est pas exclu', /gz\|\|new TextEncoder\(\)\.encode\(plain/.test(enc), true);
+/* v690 : les octets déjà compressés par syncAllegerNuage sont repris tels quels — un seul gzip
+   par envoi au lieu de deux (433 ms → 195 ms par enregistrement, mesuré à processeur ralenti
+   ×4). Et le repli existe toujours quand l'appelant n'en a pas. */
+v('⛔ les octets déjà compressés sont repris, pas recompressés',
+  /const gz=gzPret\|\|\(plain==null\?null:await gzipper\(plain\)\);/.test(enc), true);
 /* Le drapeau voyage partout, sinon une copie compressée serait relue comme du texte. */
 v('le document Firestore porte le drapeau', /_fbDoc\.set\(\{enc:e\.enc,iv:e\.iv,salt:e\.salt,z:\(e\.z\?1:0\)/.test(APP), true);
 v('la sauvegarde serveur aussi', /enc:e\.enc,iv:e\.iv,salt:e\.salt,z:\(e\.z\?1:0\)/.test(APP), true);

@@ -55,9 +55,16 @@ const mouvements = Array.from({ length: 900 }, (_, i) => ({
   intervention: 'i' + tir(300),
 }));
 
+/* ⛔ LE SCHÉMA EST CELUI QUE `logEvent()` ÉCRIT, PAS UN SCHÉMA PLAUSIBLE. Ce générateur posait
+   `titre`/`cat`/`par` ; la vraie ligne de journal porte `action`/`type`/`userNom` (app.html,
+   `logEvent`). Conséquence mesurée le 15 septembre 2026 : 498 lignes sur 500 sortaient avec un
+   `type` à `undefined`, l'écran Historique affichait une puce de filtre « undefined », et tout
+   test de filtrage bâti dessus jugeait autre chose que l'application. Un banc qui ne parle pas
+   le schéma réel ne prouve rien — c'est la même faute que mesurer `go()` au lieu du rendu. */
 const journal = Array.from({ length: 500 }, (_, i) => ({
-  id: 'j' + i, ts: J - tir(60) * 86400000, titre: phrase(3), detail: phrase(16),
-  cat: pick(['stock', 'sync', 'auth', 'finance', 'plan']), par: 'u' + tir(7),
+  id: 'j' + i, ts: J - tir(60) * 86400000, action: phrase(3), detail: phrase(16),
+  type: pick(['stock', 'sync', 'auth', 'finance', 'plan']),
+  userId: 'u' + tir(7), userNom: 'Prénom' + tir(7) + ' Nom' + tir(7),
 }));
 
 const users = Array.from({ length: 14 }, (_, i) => ({

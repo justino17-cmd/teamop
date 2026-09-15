@@ -4,6 +4,13 @@
    texte relu au texte de départ, caractère par caractère.
    ⛔ beta.html et pas app.html : c'est la règle du dépôt pour tout navigateur piloté.
    La base d'essai est un fichier LOCAL ; rien ne sort de la machine.
+
+   ⛔ ET ON MESURE LE CHEMIN RÉEL, PAS UN CHEMIN VOISIN. La première écriture de cette sonde
+   appelait `syncEncrypt(JSON.stringify(alle.copie))` — ce que `syncPush` ne fait PLUS depuis
+   qu'elle reprend les octets déjà pesés (`alle.gz`). Une sonde qui mesure autre chose que le
+   code livré donne une preuve de rien : elle aurait applaudi les deux gzip par envoi.
+   On joue donc les deux, l'un après l'autre, pour que l'économie soit un CHIFFRE et pas une
+   affirmation — processeur ralenti ×4, c'est-à-dire un téléphone de terrain.
    Usage : node preuve-phase2.js <base.json> */
 const { chromium } = require('playwright-core');
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -24,6 +31,10 @@ const srv = http.createServer((q, r) => {
   await p.waitForFunction(() => typeof syncAllegerNuage === 'function' && typeof syncEncrypt === 'function'
     && typeof syncDecrypt === 'function' && typeof nuageDocOctets === 'function', { timeout: 30000 });
 
+  /* Un téléphone de terrain, pas le conteneur : sans ça les millisecondes ne veulent rien dire. */
+  const cdp = await p.context().newCDPSession(p);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+
   const r = await p.evaluate(async () => {
     const txt = await (await fetch('/base.json')).text();
     let base = JSON.parse(txt);
@@ -34,9 +45,15 @@ const srv = http.createServer((q, r) => {
     const alle = await syncAllegerNuage(base);
     const tMesure = performance.now() - t0;
 
+    /* ── LE CHEMIN RÉEL : les octets pesés sont ceux qu'on chiffre, exactement comme syncPush ── */
     const t1 = performance.now();
-    const e = await syncEncrypt(JSON.stringify(alle.copie));
+    const e = await syncEncrypt(alle.gz ? null : JSON.stringify(alle.copie), alle.gz);
     const tEcrit = performance.now() - t1;
+
+    /* ── LE CHEMIN D'AVANT, pour chiffrer l'économie : on recompresse, comme la v677 le faisait ── */
+    const t1b = performance.now();
+    await syncEncrypt(JSON.stringify(alle.copie));
+    const tEcritAvant = performance.now() - t1b;
 
     const t2 = performance.now();
     const relu = await syncDecrypt({ enc: e.enc, iv: e.iv, salt: e.salt, z: e.z });
@@ -46,17 +63,17 @@ const srv = http.createServer((q, r) => {
     try { const o = JSON.parse(relu); parse = true; lignes = Object.keys(o).reduce((n, k) => n + (Array.isArray(o[k]) ? o[k].length : 0), 0); } catch (_) {}
 
     /* Le document Firestore complet, champ par champ — c'est lui que la limite de 1 Mio vise. */
-    const docv = { enc: e.enc, iv: e.iv, salt: e.salt, z: e.z, ts: Date.now(), writer: 'x'.repeat(24), at: new Date().toISOString(), by: 'Prénom Nom', ver: '677', verNum: 677 };
+    const docv = { enc: e.enc, iv: e.iv, salt: e.salt, z: e.z, ts: Date.now(), writer: 'x'.repeat(24), at: new Date().toISOString(), by: 'Prénom Nom', ver: '690', verNum: 690 };
     const doc = new TextEncoder().encode(JSON.stringify(docv)).length;
 
     return {
       clair, z: e.z, enc: e.enc.length, doc,
-      docPrevu: nuageDocOctets ? null : null,
       identique: relu === JSON.stringify(alle.copie),
       memeBase: alle.copie === base,
+      gzRendu: !!alle.gz,
       retirees: alle.retirees, journalCoupe: alle.journalCoupe, impossible: alle.impossible,
       mesure: alle.doc, parse, lignes,
-      ms: { mesure: Math.round(tMesure), ecrit: Math.round(tEcrit), lu: Math.round(tLu) },
+      ms: { mesure: Math.round(tMesure), ecrit: Math.round(tEcrit), ecritAvant: Math.round(tEcritAvant), lu: Math.round(tLu) },
     };
   });
 
@@ -76,8 +93,15 @@ const srv = http.createServer((q, r) => {
   console.log('  relu IDENTIQUE au départ     : ' + (r.identique ? 'OUI, caractère par caractère' : '⛔ NON'));
   console.log('  JSON.parse du relu           : ' + (r.parse ? 'passe — ' + r.lignes + ' lignes' : '⛔ ÉCHOUE'));
   console.log('  ─────────────────────────────');
-  console.log('  mesure ' + r.ms.mesure + ' ms · écriture ' + r.ms.ecrit + ' ms · lecture ' + r.ms.lu + ' ms');
+  console.log('  ⏱  processeur ralenti ×4 (téléphone de terrain)');
+  console.log('  mesure (pèse + compresse)    : ' + r.ms.mesure + ' ms');
+  console.log('  écriture, CHEMIN RÉEL        : ' + r.ms.ecrit + ' ms   (les octets pesés repris : ' + (r.gzRendu ? 'oui' : '⛔ NON') + ')');
+  console.log('  écriture, chemin d\'avant     : ' + r.ms.ecritAvant + ' ms   (recompression — c\'est ce qu\'on a retiré)');
+  console.log('  → un enregistrement          : ' + (r.ms.mesure + r.ms.ecrit) + ' ms   au lieu de ' + (r.ms.mesure + r.ms.ecritAvant) + ' ms');
+  console.log('  lecture                      : ' + r.ms.lu + ' ms');
   console.log('  erreurs de page              : ' + (err.length ? err.join(' | ') : 'aucune'));
   await nav.close(); srv.close();
-  process.exit(r.identique && r.parse && r.z === 1 && !err.length ? 0 : 1);
+  const ok = r.identique && r.parse && r.z === 1 && r.gzRendu && r.memeBase && !err.length;
+  console.log('\n  ' + (ok ? '✅ PREUVE FAITE' : '⛔ ÉCHEC'));
+  process.exit(ok ? 0 : 1);
 })();

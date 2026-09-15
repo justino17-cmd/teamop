@@ -4912,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '689-beta';
+const APP_VERSION = '690-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -5371,21 +5371,59 @@ async function aiTestKey(){ toast('Test en cours…'); try{ const r=await callCl
 const $ = id => document.getElementById(id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = s => (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const eur = n => (Number(n)||0).toLocaleString('fr-FR') + ' €';
+/* ══ UN FORMATEUR DE DATE SE CONSTRUIT UNE FOIS, PAS À CHAQUE LIGNE ══════════════════════════
+   ⛔ C'est LA cause de la lenteur des listes, et ce n'est pas celle qu'on croyait. Profil CPU
+   pris au navigateur le 15 septembre 2026 sur l'écran Rapports, base aux proportions d'ELAN,
+   processeur ralenti ×4 (un téléphone de terrain) : `fmtShort` = **56 % du temps de rendu**.
+   `clientName`, le suspect évident avec son `db.clients.find()` par ligne, en faisait 1 %.
+   Le profileur a tranché contre l'hypothèse ; on l'a suivi.
+   `date.toLocaleDateString(loc,opts)` CONSTRUIT un `Intl.DateTimeFormat` neuf à chaque appel —
+   chargement des données de locale comprises. Sur un écran qui affiche 300 dates, c'est
+   300 constructions. Le même formateur gardé et réutilisé rend exactement la même chaîne.
+   ⚠️ EXACTEMENT LA MÊME, et ça se vérifie, ça ne se suppose pas : `todayISO` et `jourDe`
+   servent de CLÉS DE DONNÉES (le jour d'un pointage, d'un mouvement). Un écart d'un caractère
+   déplacerait des enregistrements de jour. `tests/test-694.js` compare les deux écritures sur
+   des centaines de dates, changements d'heure compris.
+   Le repli existe pour un navigateur sans `Intl` : on retombe sur l'ancien appel. */
+const _FMT={};
+function _F(cle,loc,opts){ let f=_FMT[cle];
+  if(f===undefined){ try{ f=new Intl.DateTimeFormat(loc,opts); }catch(e){ f=null; } _FMT[cle]=f; }
+  return f; }
+const _O_JM={day:'2-digit',month:'short'},
+      _O_LONG={weekday:'long',day:'numeric',month:'long',year:'numeric'},
+      _O_JC={weekday:'long',day:'numeric',month:'short'},
+      _O_TS={day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'};
+const _fd=(d,cle,loc,opts)=>{ const f=_F(cle,loc,opts); return f?f.format(d):d.toLocaleDateString(loc,opts); };
+/* ⛔ CELLE-CI N'A PAS BESOIN D'`Intl` DU TOUT, et c'est la plus appelée de toutes.
+   « AAAA-MM-JJ » dans le fuseau local, c'est exactement ce que rend `toLocaleDateString('sv-SE')`
+   — le suédois écrit les dates en ISO. Mais c'est aussi trois lectures de la Date et deux
+   `padStart` : rien qu'un moteur de formatage international n'a besoin de faire.
+   C'est l'écriture qui sert de CLÉ partout (jour d'un pointage, d'une tournée, d'une case de
+   planning) et elle est construite en BOUCLE : sept fois par semaine affichée, trente fois par
+   mois, et le profil du 15 septembre 2026 montrait `_fd` à 21 % du rendu du Planning après même
+   avoir gardé les formateurs.
+   ⛔ Équivalence prouvée, pas supposée — `tests/test-694.js` la compare à l'ancienne écriture
+   sur 18 000 jours (2000→2050) et minute par minute sur les deux bascules d'heure. C'est une
+   clé de données : un caractère d'écart déplacerait des enregistrements de jour. */
+const isoDe = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+let _NF;
+const eur = n => { const v=Number(n)||0;
+  if(_NF===undefined){ try{ _NF=new Intl.NumberFormat('fr-FR'); }catch(e){ _NF=null; } }
+  return (_NF?_NF.format(v):v.toLocaleString('fr-FR')) + ' €'; };
 const initials = name => (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-const todayISO = () => new Date().toLocaleDateString('sv-SE');
+const todayISO = () => isoDe(new Date());
 /* Le jour d'un horodatage, DANS LE FUSEAU DE LA PERSONNE. new Date(ts).toISOString() range en
    UTC : un arrivage saisi le 10/09 à 01h30 à Paris ressortait daté du 09/09. La fenêtre est
    étroite (00h–02h l'été, 00h–01h l'hiver) mais elle tombe pile sur les tournées de nuit. */
-const jourDe = ts => new Date(ts||0).toLocaleDateString('sv-SE');
-function fmtDate(iso){ if(!iso) return '—'; return new Date(iso+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
-function fmtShort(iso){ if(!iso) return '—'; return new Date(iso+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}); }
-function fmtJourCourt(iso){ if(!iso) return '—';
-  const d=new Date(iso+'T00:00:00');
-  return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'short'}); }
-function fmtLong(iso){ if(!iso) return '—'; return new Date(iso+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+const jourDe = ts => isoDe(new Date(ts||0));
+function fmtDate(iso){ if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'long','fr-FR',_O_LONG); }
+function fmtShort(iso){ if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'jm','fr-FR',_O_JM); }
+function fmtJourCourt(iso){ if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'jc','fr-FR',_O_JC); }
+function fmtLong(iso){ if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'long','fr-FR',_O_LONG); }
 function addMin(hhmm,min){ const p=String(hhmm||'00:00').split(':'); let t=(parseInt(p[0])||0)*60+(parseInt(p[1])||0)+(min||0); t=((t%1440)+1440)%1440; return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); }
-function fmtTs(ts){ return new Date(ts).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+/* Celui-ci porte une HEURE : son repli est toLocaleString, pas toLocaleDateString. */
+function fmtTs(ts){ const d=new Date(ts); const f=_F('ts','fr-FR',_O_TS);
+  return f?f.format(d):d.toLocaleString('fr-FR',_O_TS); }
 
 /* ── Constantes statuts ── */
 const STATUT_INT = { aplanifier:{l:'À planifier',c:'st-grey'}, planifiee:{l:'Planifiée',c:'st-blue'}, encours:{l:'En cours',c:'st-org'}, terminee:{l:'Terminée',c:'st-green'}, annulee:{l:'Annulée',c:'st-red'} };
@@ -6428,16 +6466,45 @@ async function degzipper(buf){
   const flux=new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
   return new TextDecoder().decode(await new Response(flux).arrayBuffer());
 }
-async function syncEncrypt(plain){ const saltB64=SYNC_SALT;
+/* PHASE 2, 15 septembre 2026 : on compresse VRAIMENT. La phase 1 (v676) n'a fait que semer la
+   LECTURE ; elle est aujourd'hui dans tout le parc, et la Tour exige bien plus haut que ça —
+   relevé sur `/api/version` le 15 septembre au soir : `{"min":689}`. Sous ce numéro un appareil
+   ne peut plus ni se connecter (426 sur /api/espaces/comptes) ni écrire (la règle Firestore
+   compare `verNum`) : personne ne reçoit donc ce format sans savoir le lire. C'est l'ordre du
+   dépôt, tenu — les appareils d'abord, la porte ensuite.
+   `z:0` reste possible et reste lu : un navigateur sans `CompressionStream` écrit en clair comme
+   avant. La compression est un gain, jamais une exigence. */
+/* `gzPret` : les octets déjà compressés par `syncAllegerNuage`, qui vient de les peser pour
+   décider. Les recompresser coûtait 169 ms de plus par envoi sur un téléphone — et surtout,
+   après l'`await` qui les sépare, ça pouvait écrire un instantané autre que celui qu'on avait
+   jugé. Sans eux (chemin de secours, ou appelant qui n'en a pas), on compresse ici. */
+async function syncEncrypt(plain,gzPret){ const saltB64=SYNC_SALT;
   const key=await syncKey(saltB64); const iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(plain));
-  return {enc:_b64e(ct),iv:_b64e(iv),salt:saltB64}; }
+  const gz=gzPret||(plain==null?null:await gzipper(plain));
+  const corps=gz||new TextEncoder().encode(plain==null?'':plain);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,corps);
+  return {enc:_b64e(ct),iv:_b64e(iv),salt:saltB64,z:gz?1:0}; }
 /* `o.z` marque un contenu compressé. Son absence = clair, donc tout ce qui existe déjà se lit
    exactement comme avant : la rétrocompatibilité n'est pas un cas particulier, c'est le défaut. */
 async function syncDecrypt(o){ try{ const key=await syncKey(o.salt); const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_b64d(o.iv)},key,_b64d(o.enc));
   if(o&&o.z) return await degzipper(pt);
   return new TextDecoder().decode(pt); }catch(e){ return null; } }
-async function syncReadRemote(d){ if(!d) return null; if(d.enc) return await syncDecrypt(d); if(d.db) return d.db; /* rétrocompat (ancien format clair) */ return null; }
+/* ⛔ UN APPAREIL QUI NE SAIT PAS LIRE NE DOIT PLUS JAMAIS ÉCRIRE. C'est le seul vrai danger de
+   la compression, et il ne se voit pas : un navigateur sans `DecompressionStream` (Safari
+   d'avant 16.4) DÉCHIFFRE parfaitement le document et rend quand même `null` — exactement
+   comme une clé étrangère. Sans garde il continuerait à POUSSER sa propre base, et comme la
+   fusion ne peut pas réunir ce qu'on n'a pas lu, il effacerait tout ce que l'équipe a fait
+   depuis. On lui coupe donc l'écriture et on le DIT, plutôt que de le laisser écraser en
+   silence. La cause est CERTAINE, pas devinée : `d.z` est posé ET la fonction manque. */
+let _nuageIllisible=false;
+function nuageIllisible(){ if(_nuageIllisible) return; _nuageIllisible=true;
+  try{ console.error('nuage : document compressé et ce navigateur ne sait pas le décompresser — écriture arrêtée'); }catch(e){}
+  try{ toast('⛔ Ce navigateur est trop ancien pour lire les données de l\'équipe. Rien n\'est écrasé : ouvre OP GESTION depuis un appareil plus récent.',12000); }catch(e){}
+  try{ logEvent('Synchro arrêtée','Navigateur sans décompression : les données de l\'équipe ne sont pas lisibles ici, et rien n\'est écrit depuis cet appareil.','sync'); }catch(e){}
+}
+async function syncReadRemote(d){ if(!d) return null;
+  if(d.enc){ const p=await syncDecrypt(d); if(p===null&&d.z&&!gzipPossible()) nuageIllisible(); return p; }
+  if(d.db) return d.db; /* rétrocompat (ancien format clair) */ return null; }
 /* Toutes les collections comptent — la liste de 12 d'avant ignorait les mouvements de stock, les
    bons, les pointages, les contrats : une base amputée de tout ça passait pour « aussi lourde ». */
 function dbWeight(d){ if(!d) return 0; let n=0; ['users'].concat(COLLECTIONS_DONNEES).forEach(k=>{ n+=(d[k]&&d[k].length)||0; }); return n; }
@@ -6926,6 +6993,20 @@ function usersTombesFusion(a,b){
    le document reste sous la limite dure de 1 Mio de Firestore avec ~120 Ko de marge. */
 const NUAGE_BUDGET=620*1024;
 const B_NUAGE_KO=NUAGE_BUDGET/1024;
+/* ══ LE BUDGET QUI COMPTE VRAIMENT, DEPUIS LA v690 ═══════════════════════════════════════════
+   `NUAGE_BUDGET` pèse du TEXTE CLAIR. C'était juste tant qu'on écrivait en clair ; ça ne l'est
+   plus. Ce que Firestore refuse, c'est un DOCUMENT de plus d'1 Mio — et le document, maintenant,
+   c'est du gzip chiffré en base64. Continuer à juger la base sur son texte clair reviendrait à
+   amputer les journaux d'ELAN pour 1,1 Ko de trop pendant que le document réel pèse 90 Ko.
+   On mesure donc le document, on ne le déduit pas d'un taux : ces données compressent à −89 %
+   (mesuré le 15 septembre sur la base réelle), mais une base pleine de photos en base64
+   compresserait à peine — un taux supposé se retournerait exactement le jour où ça compte.
+   780 Kio de base64 laissent ~260 Kio de marge sous la limite dure, pour les neuf autres champs
+   du document (quelques centaines d'octets) et pour tout ce qu'on n'a pas prévu. */
+const NUAGE_ENC_MAX=780*1024;
+/* base64 d'AES-GCM : le chiffré fait la taille du clair + 16 octets de sceau, et le base64
+   quatre caractères pour trois octets. Pas d'approximation, c'est exact. */
+function nuageDocOctets(n){ return Math.ceil((n+16)/3)*4; }
 /* Une seule fois par session : voir la branche « impossible » de syncPush. */
 let _lourdDit=false;
 function syncAlleger(base, budget){
@@ -7002,6 +7083,43 @@ function syncAlleger(base, budget){
     .map(x=>x.c+' '+Math.round(x.n/1024)+' Ko/'+x.l+' l.');
   return {copie,retirees:n,taille:t2,impossible:t2>B,gros,parColl,journalCoupe:coupes};
 }
+/* ══ CE QU'ON POUSSE VRAIMENT — mesuré compressé, jamais supposé ═════════════════════════════
+   Trois issues, dans l'ordre où elles coûtent le moins à l'entreprise :
+   1. La base ENTIÈRE tient une fois compressée → on la pousse entière. Aucune pièce retirée,
+      aucun journal raccourci : c'est le cas normal depuis la v690, et c'est ce qui rend à ELAN
+      son historique complet dans le nuage.
+   2. Elle ne tient pas → on allège, mais avec un budget de texte clair DÉDUIT DE LA MESURE
+      qu'on vient de faire (taux réel × marge), pas du vieux plafond de 620 Kio qui amputerait
+      des pièces jointes sans raison. Puis on RE-MESURE : une déduction qu'on ne vérifie pas est
+      une hypothèse.
+   3. Pas de `CompressionStream` (Safari d'avant 16.4) → exactement l'ancien chemin, au mot près.
+   `syncAlleger` n'est pas touchée : elle reste synchrone, testable seule, et `tests/test-645.js`
+   comme `tests/test-690.js` continuent de l'éprouver telle quelle. */
+/* ⛔ ON NE COMPRESSE QU'UNE FOIS, ET LES OCTETS MESURÉS SONT CEUX QU'ON ÉCRIT.
+   La première écriture de cette fonction mesurait le document, puis `syncEncrypt` recompressait
+   la même base pour de bon : DEUX gzip par envoi. Mesuré au navigateur sur une base de 694 Ko,
+   processeur ralenti ×4 (un téléphone de terrain) : 255 ms de mesure + 178 ms de chiffrement,
+   soit **433 ms ajoutés à chaque enregistrement** — la compression aurait rendu l'application
+   plus lente, exactement le reproche qu'elle devait aider à lever.
+   On rend donc les octets compressés avec le verdict, et `syncEncrypt` les reprend tels quels.
+   Ce n'est pas qu'une économie : entre la mesure et le chiffrement il y a un `await`, donc la
+   base peut changer. Recompresser pouvait écrire un instantané DIFFÉRENT de celui qu'on venait
+   de juger tenir dans le budget. Une seule compression = un seul instantané, jugé et écrit. */
+async function syncAllegerNuage(base){
+  if(!gzipPossible()) return syncAlleger(base);
+  const mesurer=async(o)=>{ let s=null; try{ s=JSON.stringify(o); }catch(e){ return null; }
+    const gz=await gzipper(s); return gz?{gz:gz,doc:nuageDocOctets(gz.length),clair:s.length?new TextEncoder().encode(s).length:0}:null; };
+  let m0=null; try{ m0=await mesurer(base); }catch(e){}
+  if(m0===null) return syncAlleger(base);   // compression indisponible en vol : ancien chemin
+  if(m0.doc<=NUAGE_ENC_MAX) return {copie:base,retirees:0,taille:m0.clair,impossible:false,gros:[],parColl:[],journalCoupe:0,doc:m0.doc,gz:m0.gz};
+  /* Le taux est celui de CETTE base, à cet instant : clair ÷ document. 5 % de moins pour ne pas
+     viser le bord, et jamais en dessous de l'ancien budget — on n'allège pas plus qu'avant. */
+  const budget=Math.max(NUAGE_BUDGET, Math.floor(m0.clair*(NUAGE_ENC_MAX/m0.doc)*0.95));
+  const a=syncAlleger(base,budget);
+  let m1=null; try{ m1=await mesurer(a.copie); }catch(e){}
+  if(m1===null) return a;
+  return Object.assign({},a,{impossible:m1.doc>NUAGE_ENC_MAX,doc:m1.doc,gz:m1.gz});
+}
 function syncRegreffer(local, fusion){ try{
   let n=0;
   Object.keys(fusion||{}).forEach(c=>{ if(!Array.isArray(fusion[c])||!Array.isArray(local&&local[c])) return;
@@ -7020,6 +7138,9 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
        au retour du réseau avec une base d'entre-temps — le mécanisme exact de la panne d'ELAN ;
      — écran de connexion : rien à pousser. */
   if(_versionBloquee) return;
+  /* — et la quatrième depuis la v690 : on n'a pas su LIRE le document de l'équipe parce qu'il est
+     compressé et que ce navigateur ne sait pas décompresser. Écrire ici, c'est écraser. */
+  if(_nuageIllisible) return;
   if(_horsLigne){ _horsLignePush=true; return; }
   const go=async()=>{ try{
     /* ON RELIT AVANT D'ÉCRIRE. Entre notre dernière réception et cet instant, un autre
@@ -7077,7 +7198,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
     _retraitVoulu=0;
     try{ ombreRelever(); }catch(e){}   // l'ombre = ce qu'on pousse
     /* La copie poussée tient dans le document Firestore — la base locale, elle, garde tout. */
-    const alle=syncAlleger(db);
+    const alle=await syncAllegerNuage(db);
     if(alle.retirees!==_allegeDit){ _allegeDit=alle.retirees;
       if(alle.retirees){ try{ console.warn('synchro allégée : '+alle.retirees+' pièce(s) retirée(s) de la copie poussée · base '+Math.round(alle.taille/1024)+' Ko'+(alle.gros&&alle.gros.length?' · plus lourds : '+alle.gros.join(', '):'')); }catch(_e){}
         try{ toast('📦 Base trop lourde pour le nuage : '+alle.retirees+' pièce(s) ou photo(s) restent sur cet appareil, non partagées — allège les pièces jointes des interventions',8000); }catch(_e){}
@@ -7093,7 +7214,12 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
          de l'entreprise, plafonné à 500, et ferait tourner la base qu'on essaie d'alléger) :
          le Journal de l'application, que le client lit lui-même, et la Tour par
          syncDiagnostic — le même chemin que l'écriture non acquittée en 15 s. */
-      const det='base '+Math.round(alle.taille/1024)+' Ko pour '+Math.round(B_NUAGE_KO)+' Ko permis · '
+      /* Depuis la v690 le refus se dit dans l'unité qui le décide : la taille du DOCUMENT
+         compressé. Dire « base 621 Ko pour 620 Ko permis » quand le document réel en fait 90
+         enverrait chercher au mauvais endroit. Sans compression (vieux navigateur), l'ancienne
+         phrase est la bonne et reste. */
+      const det=(alle.doc?('document '+Math.round(alle.doc/1024)+' Ko compressé pour '+Math.round(NUAGE_ENC_MAX/1024)+' Ko permis · base '+Math.round(alle.taille/1024)+' Ko en clair')
+                        :('base '+Math.round(alle.taille/1024)+' Ko pour '+Math.round(B_NUAGE_KO)+' Ko permis'))+' · '
         +((alle.parColl&&alle.parColl.length)?'plus lourdes : '+alle.parColl.join(', '):'aucune collection mesurée');
       try{ console.error('push : base trop lourde même sans pièces — '+det+' — écriture non tentée'); }catch(_e){}
       try{ toast('⛔ La base est trop lourde pour le nuage même sans pièces jointes — contacte TEAM OP',8000); }catch(_e){}
@@ -7110,7 +7236,11 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
        paraissaient plus anciens que ses propres échecs. Un appareil sourd, en silence, qui
        n'affiche ni les ajouts de produits ni les stocks à jour. On garde donc l'ancienne valeur
        et on ne l'avance qu'à l'accusé de réception ; en cas d'échec, on la remet. */
-    const ts=Date.now(); const _tsAvant=_syncTs; _syncTs=ts; const e=await syncEncrypt(JSON.stringify(alle.copie));
+    /* `alle.gz` est déjà là quand la compression a servi à décider : on ne refait NI le
+       JSON.stringify NI le gzip. Sur une base de 694 Ko et un téléphone de terrain, ces deux
+       lignes valaient 433 ms à chaque enregistrement. */
+    const ts=Date.now(); const _tsAvant=_syncTs; _syncTs=ts;
+    const e=await syncEncrypt(alle.gz?null:JSON.stringify(alle.copie), alle.gz);
     /* `verNum` est ce que la règle Firestore compare au minimum exigé. Un refus « permission-denied »
        ici ne veut plus dire « pas authentifié » : il veut dire « cette version n'est plus acceptée ». */
     /* Une écriture que le serveur n'a pas acquittée en 15 s est une écriture en file d'attente
@@ -7661,7 +7791,7 @@ function defaultPerms(){
 function seed(){
   const t1=uid(),t2=uid(),t3=uid(), c1=uid(),c2=uid(),c3=uid();
   const v1=uid(),v2=uid();
-  const today=new Date(); const d=o=>{const x=new Date(today);x.setDate(x.getDate()+o);return x.toLocaleDateString('sv-SE');};
+  const today=new Date(); const d=o=>{const x=new Date(today);x.setDate(x.getDate()+o);return isoDe(x);};
   const adminId=uid();
   // Catalogue produits officiel OP GESTION (110 réf.)
   /* Identifiant déduit du nom, jamais uid() : ce semis est rejoué à CHAQUE ouverture d'un espace
@@ -9070,8 +9200,8 @@ function pgFocusBande(p,jours,mesInts,mesAbs){
    raccourcis, et un point sur les jours déjà occupés par la personne.
    ═══════════════════════════════════════════════════════════════════════════ */
 let DP={du:'',au:'',mois:'',sel:'du',plage:true,tech:'',titre:'',cb:null};
-function dpMoisPrem(iso){ const d=new Date(iso+'T00:00:00'); return new Date(d.getFullYear(),d.getMonth(),1).toLocaleDateString('sv-SE'); }
-function dpMoisDecale(iso,n){ const d=new Date(iso+'T00:00:00'); return new Date(d.getFullYear(),d.getMonth()+n,1).toLocaleDateString('sv-SE'); }
+function dpMoisPrem(iso){ const d=new Date(iso+'T00:00:00'); return isoDe(new Date(d.getFullYear(),d.getMonth(),1)); }
+function dpMoisDecale(iso,n){ const d=new Date(iso+'T00:00:00'); return isoDe(new Date(d.getFullYear(),d.getMonth()+n,1)); }
 function dpOuvre(o){
   o=o||{};
   DP={du:o.du||todayISO(), au:o.au||o.du||todayISO(), mois:dpMoisPrem(o.du||todayISO()),
@@ -9104,7 +9234,7 @@ function dpMoisHtml(mois,occ,nav){
   ['L','M','M','J','V','S','D'].forEach(x=>{ g+=`<div class="dp-jn">${x}</div>`; });
   for(let k=prem-1;k>=0;k--) g+=`<div class="dp-j hors">${nbPrec-k}</div>`;
   for(let j=1;j<=nb;j++){
-    const iso=new Date(an,mo,j).toLocaleDateString('sv-SE');
+    const iso=isoDe(new Date(an,mo,j));
     const dow=(new Date(an,mo,j).getDay()+6)%7;
     const cls=[
       dow>=5?'we':'',
@@ -9179,7 +9309,7 @@ function tdbJours(){
   const n=p==='jour'?1:p==='7'?7:p==='14'?14:0;
   if(n){ for(let k=0;k<n;k++) out.push(shiftDay(j0,k)); return out; }
   const d=new Date(j0+'T00:00:00'), fin=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
-  for(let k=d.getDate();k<=fin;k++) out.push(new Date(d.getFullYear(),d.getMonth(),k).toLocaleDateString('sv-SE'));
+  for(let k=d.getDate();k<=fin;k++) out.push(isoDe(new Date(d.getFullYear(),d.getMonth(),k)));
   return out;
 }
 /* en retard : tout ce qui devait être fait avant aujourd’hui et ne l’est pas */
@@ -9921,17 +10051,36 @@ function planSearchApply(){ document.querySelectorAll('[data-drag-int]').forEach
    Les jours sont numérotés 1 = lundi … 7 = dimanche.                                    */
 const JS_NOMS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 const JS_COURT=['LUN','MAR','MER','JEU','VEN','SAM','DIM'];
+/* ⛔ DEUX CLÉS NOURRISSENT CE CACHE, PAS UNE. `elan_plan_jsem` d'abord ; à défaut — quelqu'un
+   qui n'a jamais touché au sélecteur de jours — le REPLI lit `elan_plan_hidewe`. Les deux
+   doivent donc l'oublier quand elles changent. Le commentaire d'origine disait « le seul
+   endroit qui l'écrit », et c'était vrai de la première clé seulement : « ✕ Tout effacer »
+   remettait `elan_plan_hidewe` à 0 pendant que le cache gardait `[1,2,3,4,5]`, si bien que le
+   week-end restait masqué jusqu'au rechargement — un bouton qui prétend tout réinitialiser et
+   ne le fait pas. L'événement `storage` ne rattrape rien ici : il ne se déclenche QUE dans les
+   AUTRES onglets, jamais dans celui qui vient d'écrire.
+   ⛔ CE RÉGLAGE EST LU EN BOUCLE, ET IL LISAIT LE STOCKAGE À CHAQUE FOIS. `planJourVisible(iso)`
+   l'appelle par DATE testée ; dessiner un mois, c'est trente `localStorage.getItem`, chacun
+   suivi d'un `split`, d'un `map` et d'un `sort`. Profil CPU du 15 septembre 2026 sur l'écran
+   Planning (processeur ralenti ×4) : `planJoursSem` + `jourSem` = 16 % du rendu.
+   On garde donc la liste, et le SEUL endroit qui l'écrit l'oublie — plus un `storage` pour
+   l'onglet d'à côté. Un réglage d'affichage propre à l'appareil : rien de métier ne dépend
+   de ce cache, et un rechargement le refait de toute façon. */
+let _jsemCache=null;
+try{ window.addEventListener('storage',e=>{ if(!e||!e.key||/plan_jsem|plan_hidewe/.test(e.key)) _jsemCache=null; }); }catch(e){}
 function planJoursSem(){
+  if(_jsemCache) return _jsemCache;
   let v=null; try{ v=localStorage.getItem('elanB_plan_jsem'); }catch(e){}
-  if(v){ const l=v.split(',').map(Number).filter(x=>x>=1&&x<=7); if(l.length) return l.sort((a,b)=>a-b); }
+  if(v){ const l=v.split(',').map(Number).filter(x=>x>=1&&x<=7); if(l.length) return (_jsemCache=l.sort((a,b)=>a-b)); }
   /* premier passage : on reprend l'ancien réglage « masquer samedi / dimanche » */
   let we=false; try{ we=localStorage.getItem('elanB_plan_hidewe')==='1'; }catch(e){}
-  return we?[1,2,3,4,5]:[1,2,3,4,5,6,7];
+  return (_jsemCache=we?[1,2,3,4,5]:[1,2,3,4,5,6,7]);
 }
 function planJoursSemSet(l){
   l=(l||[]).filter(x=>x>=1&&x<=7).sort((a,b)=>a-b);
   if(!l.length){ toast('Il faut garder au moins un jour'); return; }
   try{ localStorage.setItem('elanB_plan_jsem',l.join(',')); }catch(e){}
+  _jsemCache=null;   // `elan_plan_jsem` change : le cache l'oublie (voir aussi `elan_plan_hidewe`)
   views.planning();
 }
 function planJourSemToggle(n){
@@ -10258,6 +10407,7 @@ function planOptToggle(cle){
   const k=(cle==='we')?'elanB_plan_hidewe':'elanB_plan_hidedone';
   const v=localStorage.getItem(k)==='1';
   try{ localStorage.setItem(k,v?'0':'1'); }catch(e){}
+  if(cle==='we') _jsemCache=null;   // le repli de planJoursSem lit cette clé
   views.planning();
 }
 function planFiltresRaz(){
@@ -10267,6 +10417,7 @@ function planFiltresRaz(){
   planTypeS.clear();
   planQ=''; planFocusT='';
   try{ localStorage.setItem('elanB_plan_hidewe','0'); localStorage.setItem('elanB_plan_hidedone','0'); localStorage.setItem('elanB_plan_horaires','complet'); }catch(e){}
+  _jsemCache=null;   // sinon « tout effacer » laissait le week-end masqué jusqu'au rechargement
   views.planning();
   toast('Tous les filtres sont effacés');
 }
@@ -10672,7 +10823,7 @@ function planJoursCarte(){
   if(planMode==='multi'){ planJoursInit(); return planJours.slice(); }
   if(planMode==='semaine'){ const d=weekDays(planWeekRef||planSel||todayISO()); return d.filter(planJourVisible); }
   if(planMode==='mois'){ const ref=new Date((planSel||todayISO())+'T00:00:00'); const y=ref.getFullYear(), m=ref.getMonth();
-    const out=[], d=new Date(y,m,1); while(d.getMonth()===m){ out.push(d.toLocaleDateString('sv-SE')); d.setDate(d.getDate()+1); } return out; }
+    const out=[], d=new Date(y,m,1); while(d.getMonth()===m){ out.push(isoDe(d)); d.setDate(d.getDate()+1); } return out; }
   return [planSel||todayISO()];
 }
 function planCarteInt(i){ return planMode==='multi'? planTechVisible(i) : true; }
@@ -11294,7 +11445,7 @@ function planCalHtml(){
   let cases='';
   for(let k=0;k<42;k++){
     const d=new Date(dep); d.setDate(dep.getDate()+k);
-    const iso=d.toLocaleDateString('sv-SE'), dans=(d.getMonth()===mo-1), we=(d.getDay()===0||d.getDay()===6);
+    const iso=isoDe(d), dans=(d.getMonth()===mo-1), we=(d.getDay()===0||d.getDay()===6);
     const on=planJours.indexOf(iso)>=0, auj=(iso===todayISO()), n=cnt[iso]||0;
     cases+=`<div class="pcal-d${on?' on':''}${dans?'':' hors'}${we&&!on?' we':''}${auj?' auj':''}" onclick="planJourToggle('${iso}')" title="${esc(fmtLong(iso))}${n?' · '+n+' intervention'+(n>1?'s':''):''}">${d.getDate()}${n?`<small>${n}</small>`:''}</div>`;
   }
@@ -13701,7 +13852,7 @@ function exportClientsCsv(){ const rows=db.clients.map(c=>[c.nom||'',c.contact||
 /* ═══════════════ INTERVENTIONS ═══════════════ */
 let intFilter='all', intSearch='', intTechF='', intPeriod='tout', intGroup='jour', intHistF='toutes';
 let intView='semaine', intSelDay=null, intWeekRef=null;
-function weekDays(ref){ const d=new Date(ref+'T00:00:00'); const dow=(d.getDay()+6)%7; const mon=new Date(d); mon.setDate(d.getDate()-dow); return Array.from({length:7},(_,k)=>{const x=new Date(mon);x.setDate(mon.getDate()+k);return x.toLocaleDateString('sv-SE');}); }
+function weekDays(ref){ const d=new Date(ref+'T00:00:00'); const dow=(d.getDay()+6)%7; const mon=new Date(d); mon.setDate(d.getDate()-dow); return Array.from({length:7},(_,k)=>{const x=new Date(mon);x.setDate(mon.getDate()+k);return isoDe(x);}); }
 views.interventions=function(){
   // Un technicien arrive d'abord sur « Ma journée » (liste) ; la vue semaine reste accessible
   if(!can('voirTout') && !window._intViewInit){ window._intViewInit=1; intView='liste'; }
@@ -23623,16 +23774,38 @@ function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
   if(v&&v!==current){ go(v); return; }
   toast('Aucune fiche liée à cet évènement');
 }
+/* ⛔ 500 LIGNES D'UN COUP, C'ÉTAIT L'ÉCRAN LE PLUS LENT DE L'APPLICATION. Mesuré au navigateur
+   sur une base aux proportions d'ELAN, processeur ralenti ×4 (un téléphone de terrain) :
+   282 ms pour dessiner, 4 513 nœuds dans la page, et le défilement tombait à 425 ms par image
+   — c'est-à-dire qu'on voyait le doigt bouger avant l'écran. Trois fois plus lourd que
+   n'importe quelle autre rubrique.
+   `db.journal` est plafonné à 500 et rempli par `unshift` : les plus récentes sont en tête,
+   donc en prendre 80 donne bien les 80 dernières — pas 80 au hasard.
+   ⚠️ ON NE CACHE RIEN. Le bouton dit combien il en reste et les ajoute par paquets ; les
+   filtres, eux, portent toujours sur la TOTALITÉ du journal, pas sur la tranche affichée —
+   sinon filtrer sur « stock » ne montrerait que les lignes de stock des 80 dernières. */
+const HIST_PAS=80;
+let _histMax=HIST_PAS, _histVue='';
+function histPlus(n){ _histMax+=n; try{ go(current); }catch(e){} }
 function journalView(title,sub){
+  /* ⛔ LA TRANCHE APPARTIENT À L'ÉCRAN QU'ON REGARDE. `journalView` sert Historique ET Audit :
+     sans ce repère, déplier l'Historique à 240 lignes ouvrait ensuite l'Audit à 240 aussi —
+     la lenteur qu'on vient de retirer, réintroduite par la porte d'à côté. On compare à
+     `current` et non à un drapeau posé par l'appelant, parce que `histPlus` re-rend le MÊME
+     écran (`go(current)`) : remettre la tranche à 80 à chaque passage annulerait le bouton. */
+  if(_histVue!==current){ _histVue=current; _histMax=HIST_PAS; }
   setHeader(title,sub);
   const src=visibleJournal([...db.journal]);   // sans « voir tout » : uniquement ce que la personne a fait, et ce que le DR a validé/refusé pour elle
   let list=src;
   if(histFilter!=='all') list=list.filter(j=>j.type===histFilter);
   const types=['all',...new Set(src.map(j=>j.type))];
-  $('content').innerHTML=`<div class="filters">${types.map(t=>`<div class="chip ${histFilter===t?'active':''}" onclick="histFilter='${t}';go('${current}')">${t==='all'?'Tout':t}</div>`).join('')}</div>
-    <div class="card">${list.length? list.map(j=>`<div class="tl-item" style="cursor:pointer" onclick="journalGo('${j.id}')"><div class="tl-dot">${TYPE_ICO[j.type]||'•'}</div>
+  const vis=list.slice(0,_histMax), reste=list.length-vis.length;
+  $('content').innerHTML=`<div class="filters">${types.map(t=>`<div class="chip ${histFilter===t?'active':''}" onclick="histFilter='${t}';_histMax=${HIST_PAS};go('${current}')">${t==='all'?'Tout':t}</div>`).join('')}</div>
+    <div class="card">${vis.length? vis.map(j=>`<div class="tl-item" style="cursor:pointer" onclick="journalGo('${j.id}')"><div class="tl-dot">${TYPE_ICO[j.type]||'•'}</div>
       <div class="tl-body"><div class="tl-act">${esc(j.action)}</div><div class="tl-det">${esc(j.detail)||''} · 👤 ${esc(j.userNom)}</div></div>
-      <div class="tl-time">${fmtTs(j.ts)}</div></div>`).join('') : emptyState('🕘','Aucun évènement.','','')}</div>`;
+      <div class="tl-time">${fmtTs(j.ts)}</div></div>`).join('')
+      +(reste?`<div style="padding:14px 0 4px;text-align:center"><button class="btn ghost" onclick="histPlus(${HIST_PAS*2})">Afficher la suite · ${reste} évènement(s) plus anciens</button></div>`:'')
+      : emptyState('🕘','Aucun évènement.','','')}</div>`;
 }
 views.historique=function(){ journalView('Historique','Activité récente de l\'application'); };
 views.audit=function(){ journalView('Audit','Journal de traçabilité (lecture seule)'); };
@@ -25201,7 +25374,7 @@ function genDemoData(){
   // Box / poste d'appâtage
   if(!db.boxes.some(b=>b.numero==='BX-DEMO')){ const st={}; db.produits.slice(0,2).forEach(p=>st[p.id]={ctn:0,u:r(6)}); db.boxes.push({id:uid(),numero:'BX-DEMO',nom:'Poste cuisine',categorie:'TP14 — Rodenticide',ville:'Paris',codePostal:'75002',etage:'RDC',techIds:[],actif:true,codesAcces:[{type:'Code entrée',valeur:'A1234'}],stock:st,groupe:'Sans groupe',passages:[]}); }
   const tech=db.techniciens[0]?db.techniciens[0].id:'';
-  const today=new Date(); const d=o=>{const x=new Date(today);x.setDate(x.getDate()+o);return x.toLocaleDateString('sv-SE');};
+  const today=new Date(); const d=o=>{const x=new Date(today);x.setDate(x.getDate()+o);return isoDe(x);};
   const samples=[
     {titre:'Dératisation cuisine',type:'Dératisation',nuisible:'Rats',statut:'terminee',off:-7,heure:'09:00',constat:{infestation:'Moyen',indices:['Déjections','Traces de passage'],conformite:'Conforme avec réserves',recommandations:'Boucher les accès en sous-sol'},cr:'3 postes recontrôlés, réappât posé.'},
     {titre:'Désinsectisation cafards',type:'Désinsectisation',nuisible:'Cafards / Blattes',statut:'terminee',off:-4,heure:'14:00',constat:{infestation:'Fort',indices:['Individus vivants'],conformite:'Non conforme',recommandations:'2ᵉ passage sous 15 jours'},cr:'Gel appliqué en cuisine et réserve.'},

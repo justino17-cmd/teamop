@@ -116,7 +116,16 @@ console.log('\nLa regreffe : ce qui arrive allégé ne prend pas nos pièces');
 }
 
 console.log('\nLa garde est câblée aux bons endroits');
-v('l\'envoi chiffre la COPIE allégée, pas la base', /const e=await syncEncrypt\(JSON\.stringify\(alle\.copie\)\);/.test(APP), true);
+/* ⛔ LA GARANTIE N'A PAS CHANGÉ, SON ÉCRITURE SI — v690, 15 septembre 2026. Depuis que la
+   compression est allumée, `syncAllegerNuage` rend AUSSI les octets gzip qu'elle vient de peser
+   pour décider, et l'envoi les reprend tels quels au lieu de recompresser (433 ms de moins par
+   enregistrement sur un téléphone). Ces octets sont issus de `alle.copie` dans les deux
+   branches de la fonction — jamais de `db`. Donc : ou bien on chiffre `alle.gz`, ou bien, à
+   défaut, `JSON.stringify(alle.copie)`. Ce qui reste interdit, et c'est ça qu'on garde sous
+   surveillance, c'est de chiffrer `db` directement. */
+v('l\'envoi chiffre la COPIE allégée, pas la base',
+  /const e=await syncEncrypt\(alle\.gz\?null:JSON\.stringify\(alle\.copie\), alle\.gz\);/.test(APP), true);
+v('⛔ et rien ne chiffre `db` en direct', /syncEncrypt\(JSON\.stringify\(db\)\)/.test(APP), false);
 /* ⛔ CE QUI COMPTE EST QUE LA BRANCHE NE CHIFFRE ET N'ÉCRIVE RIEN, pas qu'elle tienne en
    400 caractères. La fenêtre fixe était un accident : elle a cassé le jour où la branche a
    gagné un commentaire et deux traces (journal + Tour), alors que le comportement n'avait

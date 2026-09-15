@@ -249,7 +249,7 @@ mesures au navigateur, sur la bêta). Suite complète : 1 598.
 
 ---
 
-## ⚡ « ÇA RAME » — 15 septembre 2026, **corrigé sur la bêta, PAS publié**
+## ⚡ « ÇA RAME » — **PUBLIÉ en v690** le 15 septembre 2026 au soir
 
 Justin : « il y a aussi un bug d'interface, ça rame beaucoup / application lente ». Aucun écran
 nommé — donc on mesure tout, on ne devine rien.
@@ -288,16 +288,31 @@ constructions.
    dessiner un mois) — cache, oublié par le seul point d'écriture et par un `storage`.
 5. **`weekDays` et les grilles de mois** passent par `isoDe`.
 
-### Mesuré, à processeur ralenti ×4
+### Mesuré, à processeur ralenti ×4 — **v689 contre v690, même machine, même banc**
 
-| écran | avant | après |
+Le premier relevé venait de la branche de travail. Celui-ci compare les deux bêtas générées à la
+suite depuis le même dépôt : c'est l'écart que la publication apporte vraiment.
+
+| écran | v689 (avant) | v690 (après) |
 |---|---|---|
-| Historique | 282 ms | **11 ms** |
-| Rapports | 190 ms | **32 ms** |
-| Planning | 76 ms | **34 ms** |
-| Factures | 54 ms | **26 ms** |
-| Devis | 41 ms | **20 ms** |
-| défilement, pire image | 425 ms | **55 ms** |
+| **Historique** | 303 ms · 5 623 nœuds | **14 ms · 902 nœuds** |
+| **Rapports** | 171 ms | **25 ms** |
+| Planning | 73 ms | **32 ms** |
+| Factures | 59 ms | **27 ms** |
+| Devis | 39 ms | **23 ms** |
+| défilement, pire image | 516 ms (Historique) | **76 ms** (Clients) |
+
+⚠️ La dernière ligne compare deux écrans différents, et il faut le dire : à partir de la v690
+l'Historique n'est plus le plus lourd à faire défiler — c'est Clients qui le devient, et Clients
+n'a pas changé. L'écrire autrement laisserait croire à un gain sur Clients ; il n'y en a pas.
+
+⛔ **ET LE BANC LUI-MÊME ÉTAIT FAUX — troisième erreur de banc de la série.** `testeur` l'a vu au
+navigateur : `scratchpad/base-elan-like.js` fabriquait le journal avec `titre`/`cat`/`par`, alors
+que `logEvent()` écrit `action`/`type`/`userNom`. 498 lignes sur 500 sortaient donc avec un
+`type` à `undefined`, l'écran affichait une puce de filtre « undefined », et tout test de
+filtrage bâti dessus jugeait autre chose que l'application. Corrigé, puis **les deux colonnes
+ci-dessus refaites** — c'est pour ça que les chiffres ne sont pas ceux de la branche. Un banc qui
+ne parle pas le schéma réel ne prouve rien ; c'est la même faute que chronométrer `go()`.
 
 ### ⛔ Et une régression que la v678 allait publier — trouvée en mesurant, pas en relisant
 
@@ -376,7 +391,7 @@ applicative » passe toujours dans les deux.
 
 ---
 
-## 📦 LA COMPRESSION DU NUAGE — 15 septembre 2026, **phase 2 prête (v678), PAS publiée**
+## 📦 LA COMPRESSION DU NUAGE — **PHASE 2 PUBLIÉE en v690** le 15 septembre 2026 au soir
 
 Justin : « fait la comprésion », puis « mais il faudra prevoir plus de place dans le future ».
 C'est la réponse de fond au « base trop lourde pour le nuage » qui a arrêté ELAN le
@@ -393,7 +408,7 @@ ensuite. Le drapeau `z` voyage partout — document Firestore, sauvegarde serveu
 d'activité** quand la base dépasse. Juste, mais il coûte — l'historique de l'équipe ne monte
 plus en entier dans le nuage. La v678 le lui rend.
 
-### ✅ Ce qui est fait (branche de travail, **non publié**) — v678
+### ✅ Ce qui est publié — v690 (la branche l'appelait v678 ; ce numéro n'a jamais existé chez personne)
 
 1. **`syncEncrypt` compresse pour de bon**, `z:1`. Sans `CompressionStream` (Safari d'avant
    16.4) on écrit en clair comme avant : la compression est un gain, jamais une exigence.
@@ -414,20 +429,30 @@ plus en entier dans le nuage. La v678 le lui rend.
 
 ### Pourquoi c'était permis maintenant, et pas la veille
 
-La phase 2 était suspendue à **deux** conditions, et les deux sont remplies :
+La phase 2 était suspendue à **deux** conditions, et les deux sont largement remplies :
 
 - le parc sur la v676 ;
-- **la v676 exigée depuis la Tour** — relevé public le 15 septembre :
-  `GET https://api.teamop.fr/api/version` → `{"ok":true,"min":676,"enLigne":"enLigne"}`.
+- **le minimum exigé depuis la Tour est BIEN au-dessus** — relevé public le 15 septembre au
+  soir : `GET https://api.teamop.fr/api/version` → `{"ok":true,"min":689,"enLigne":"enLigne"}`.
   Sous ce numéro, un appareil ne peut plus ni se connecter (426 sur `/api/espaces/comptes`)
-  ni écrire (la règle Firestore compare `verNum` au minimum publié).
+  ni écrire (la règle Firestore compare `verNum` au minimum publié). Personne ne peut donc
+  recevoir un document compressé sans savoir le lire.
 
-### Mesuré, pas supposé
+### Mesuré, pas supposé — **refait ce soir sur le fichier qui part**
 
-- **Au navigateur, sur une base réelle** (`scratchpad/preuve-phase2.js`, sur `beta.html`) :
-  461,1 Ko de clair → document Firestore **118,7 Ko** pour 1024 Ko de limite, **905 Ko de
-  marge**. Relu **identique caractère par caractère**, `JSON.parse` passe, 1051 lignes, aucune
-  erreur de page. 39 ms de mesure, 71 ms d'écriture, 11 ms de lecture.
+- **Au navigateur** (`scratchpad/preuve-phase2.js`, sur `beta.html` v690-beta, base aux
+  proportions d'ELAN, **processeur ralenti ×4**) : **695,8 Ko de clair → document Firestore
+  106,1 Ko** pour 1024 Ko de limite, **917,9 Ko de marge**. Base poussée **entière** : 0 pièce
+  retirée, 0 ligne de journal coupée. Relu **identique caractère par caractère**, `JSON.parse`
+  passe, 2 200 lignes, aucune erreur de page. `nuageDocOctets()` avait prédit 105,9 Ko contre
+  105,9 Ko réels : la taille est **calculée**, pas approchée.
+- ⛔ **La sonde mesure maintenant le CHEMIN RÉEL, pas un chemin voisin.** Sa première écriture
+  appelait `syncEncrypt(JSON.stringify(alle.copie))` — ce que `syncPush` ne fait PLUS depuis
+  qu'elle reprend `alle.gz`. Une sonde qui mesure autre chose que le code livré aurait applaudi
+  les deux gzip par envoi. Elle joue donc les deux, pour que l'économie soit un chiffre :
+  **un enregistrement = 238 ms au lieu de 320 ms** (écriture 65 ms contre 147 ms).
+- Mesure précédente, sur une base plus petite (461,1 Ko → 118,7 Ko) : conservée pour mémoire,
+  c'est le même verdict.
 - `nuageDocOctets()` a prédit **118,5 Ko** contre 118,5 Ko réels : la taille est **calculée**
   (sceau de 16 octets + base64 à 4 pour 3), pas approchée.
 - Sur la base complète d'ELAN, mesure du 15 septembre : 930,9 Ko → 77,5 Ko compressés (−92 %).
@@ -435,11 +460,43 @@ La phase 2 était suspendue à **deux** conditions, et les deux sont remplies :
   livré, sur les deux cas : base compressible → part entière ; base incompressible → allégée
   puis re-mesurée.
 
-### ⛔ CE QUI RESTE, ET QUI N'EST PAS À MOI
+### ✅ La phrase est arrivée
 
-**`app.html` et `sw.js` attendent une phrase de Justin.** La règle du 11 septembre au soir ne
-souffre pas d'interprétation : « il a demandé la compression avant-hier » n'est pas « publie ».
-`beta.html` (v678-beta), lui, est en ligne — c'est son rôle, et c'est là qu'on teste.
+Justin, le 15 septembre au soir : **« Fait la compression la et les 2 autres se soir. »**
+`app.html` v690 et `sw.js` v889 sont donc partis — et **rien d'autre n'a voyagé avec** : la
+passe de performance était déjà dans le même lot sur la bêta, les deux autres chantiers (le
+bouton de la Tour, Firebase) attendent leur tour.
+
+### ⛔ Ce que la relecture a trouvé, et qui serait parti sans elle
+
+Trois défauts, tous corrigés **avant** publication — c'est précisément ce que la v681 avait raté
+en publiant sans attendre les agents :
+
+1. **Une ligne dupliquée** (`console.error('push : base trop lourde…')`) : mon bloc de report
+   allait une ligne trop loin. Invisible à l'écran, mais un diagnostic futur aurait compté deux
+   pannes là où il n'y en a qu'une.
+2. **`_jsemCache` n'était oublié que par une clé sur deux.** `planJoursSem()` lit
+   `elan_plan_jsem`, et à défaut se replie sur `elan_plan_hidewe` — le commentaire affirmait
+   « le seul endroit qui l'écrit l'oublie », vrai de la première clé, faux de la seconde. Pour
+   quelqu'un qui n'a jamais touché au sélecteur de jours, « ✕ Tout effacer » laissait le week-end
+   masqué jusqu'au rechargement : un bouton qui prétend tout réinitialiser et ne le fait pas.
+   ⛔ L'événement `storage` ne rattrape rien ici — il ne se déclenche QUE dans les autres onglets.
+3. **La tranche d'historique débordait sur l'Audit** : déplier l'Historique à 240 lignes ouvrait
+   ensuite l'Audit à 240 aussi, réintroduisant par la porte d'à côté la lenteur qu'on venait de
+   retirer. ⚠️ La correction a son propre piège : remettre la tranche à 80 à chaque passage
+   annulerait le bouton « Afficher la suite », qui re-rend le même écran — d'où le repère sur
+   `current`.
+
+`tests/test-701.js` (25 vérifications) cloue les trois. Et `tests/test-694.js` a dû être
+**réexprimé** : il épinglait le TEXTE du commentaire mensonger, donc corriger le mensonge le
+cassait — le piège « un test qui teste son propre décor », déjà rencontré quatre fois ce mois-ci.
+
+⛔ **Le report s'est fait à la MAIN, et il faut savoir pourquoi** : main et la branche de
+travail portent la v676 sous **deux commits différents**, donc `git merge` ne trouve plus de
+base commune sur `app.html` et met 3 Mo en conflit. Le script de report
+(`scratchpad/porter-v690.js`, conservé) affirme chaque ancre **unique** avant de remplacer et
+extrait le texte neuf du fichier de la branche — jamais retapé. Une ancre a été trouvée quatre
+fois (`if(_versionBloquee) return;`) : c'est l'assertion qui l'a dit, pas une relecture.
 
 ⚠️ **Et la place gagnée ne règle pas la dette de fond** (« prévoir plus de place ») : on reste
 sur **un seul document par entreprise**. La compression achète beaucoup de temps, pas
