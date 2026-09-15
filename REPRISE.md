@@ -13,6 +13,79 @@ de ligne du tout.
 
 ---
 
+## ⚡ « ÇA RAME » — 15 septembre 2026, **corrigé sur la bêta, PAS publié**
+
+Justin : « il y a aussi un bug d'interface, ça rame beaucoup / application lente ». Aucun écran
+nommé — donc on mesure tout, on ne devine rien.
+
+### Le banc, et pourquoi il a fallu le réparer deux fois
+
+Base fabriquée aux **proportions mesurées chez ELAN** (220 produits, 18 box, 300 interventions,
+900 mouvements, 500 lignes de journal — 694 Ko), **processeur ralenti ×4** pour approcher un
+téléphone de terrain. Une bêta vide se rend en 2 ms et ne prouve rien.
+
+⚠️ **Deux erreurs de banc, à ne pas refaire** :
+1. Chronométrer `go(vue)` ne mesure RIEN : `go` passe par `document.startViewTransition` et rend
+   la main avant que l'écran soit dessiné. Tous les écrans sortaient à 15-20 ms, et le compteur
+   de nœuds rendait le même chiffre partout — c'était le signe. Il faut appeler `rendreVueSure`.
+2. Remplacer `clientName` par `window.clientName=…` ne remplace rien : c'est un `const` de
+   module. L'A/B a compté **0 appel** et ses deux colonnes étaient le même code.
+
+### ⛔ Ce que le profileur a dit, contre l'hypothèse
+
+Profil CPU (CDP Profiler) de l'écran Rapports : **`fmtShort` = 56 % du rendu**. `clientName` et
+son `db.clients.find()` par ligne — le suspect évident, celui qu'on allait corriger — pesait
+**1 %**. La cause n'était pas la recherche mais le FORMATAGE : `toLocaleDateString(loc,opts)`
+**construit un `Intl.DateTimeFormat` neuf à chaque appel**. Trois cents dates = trois cents
+constructions.
+
+### Ce qui est corrigé (branche de travail + bêta)
+
+1. **Formateurs gardés** (`_FMT` / `_F` / `_fd`) pour les six fonctions de date et `eur`.
+2. **`isoDe()` se passe entièrement d'`Intl`** — « AAAA-MM-JJ » s'assemble à la main. C'est la
+   fonction la plus appelée (sept fois par semaine affichée, trente par mois) et elle sert de
+   CLÉ de données. ⛔ Équivalence prouvée sur **18 628 jours (2000→2050)**, 8 760 horodatages et
+   les deux bascules d'heure **minute par minute** : `tests/test-694.js`, 29 vérifications.
+3. **L'Historique ne rend plus 500 lignes d'un coup** : 80, puis un bouton qui dit combien il en
+   reste. Les filtres portent toujours sur la totalité, pas sur la tranche.
+4. **`planJoursSem()` ne relit plus `localStorage` à chaque date testée** (30 lectures pour
+   dessiner un mois) — cache, oublié par le seul point d'écriture et par un `storage`.
+5. **`weekDays` et les grilles de mois** passent par `isoDe`.
+
+### Mesuré, à processeur ralenti ×4
+
+| écran | avant | après |
+|---|---|---|
+| Historique | 282 ms | **11 ms** |
+| Rapports | 190 ms | **32 ms** |
+| Planning | 76 ms | **34 ms** |
+| Factures | 54 ms | **26 ms** |
+| Devis | 41 ms | **20 ms** |
+| défilement, pire image | 425 ms | **55 ms** |
+
+### ⛔ Et une régression que la v678 allait publier — trouvée en mesurant, pas en relisant
+
+La compression telle qu'écrite **gzippait la base DEUX FOIS par envoi** (une fois pour peser,
+une fois pour chiffrer) : **+433 ms par enregistrement** sur un téléphone. Elle aurait aggravé
+exactement ce dont Justin se plaignait. `syncAllegerNuage` rend maintenant les octets qu'elle a
+pesés et `syncEncrypt` les reprend : **433 → 195 ms**. Ce n'est pas qu'une économie — entre les
+deux il y a un `await`, donc on pouvait écrire un instantané DIFFÉRENT de celui qu'on venait de
+juger tenir dans le budget.
+
+### Ce qui reste, mesuré et non traité
+
+- **Ouvrir l'application : 1 801 ms d'analyse et d'exécution** à ×4, réseau exclu, pour
+  3,16 Mo (905 Ko une fois compressés sur le fil). C'est le plus gros chiffre de tous et il se
+  paie à chaque ouverture à froid. Le seul vrai remède est de découper le fichier — un chantier,
+  pas un correctif.
+- **`save()` : 90 ms par geste** (`JSON.stringify` 44 ms + écriture `localStorage` **synchrone**
+  31 ms, sur 694 Ko). Retarder l'écriture la rendrait plus rapide et moins sûre : c'est la
+  durabilité locale. **Décision de Justin, pas d'agent.**
+- **`clients` (39 ms) et le défilement** sont désormais bornés par la mise en page du
+  navigateur (`(program)` ≈ 48 % du profil), pas par notre code.
+
+---
+
 ## 🩹 v677 — **PUBLIÉE** le 15 septembre 2026 : un bug qui n'en était pas un
 
 Dossier de la console TEAM OP : ELAN, iPhone · Safari, rubrique **Plans**, gravité Moyenne,
