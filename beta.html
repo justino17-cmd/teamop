@@ -4857,7 +4857,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '676-beta';
+const APP_VERSION = '677-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6358,16 +6358,40 @@ async function degzipper(buf){
   const flux=new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
   return new TextDecoder().decode(await new Response(flux).arrayBuffer());
 }
+/* PHASE 2, 15 septembre 2026 : on compresse VRAIMENT. La phase 1 (v676) n'a fait que semer la
+   LECTURE ; elle est aujourd'hui dans tout le parc et la Tour exige la v676 — relevé sur
+   `/api/version` le 15 septembre : `{"min":676}`. Un appareil sous ce numéro ne peut plus ni se
+   connecter (426 sur /api/espaces/comptes) ni écrire (la règle Firestore compare `verNum`) :
+   personne ne reçoit donc ce format sans savoir le lire. C'est l'ordre du dépôt, tenu — les
+   appareils d'abord, la porte ensuite.
+   `z:0` reste possible et reste lu : un navigateur sans `CompressionStream` écrit en clair comme
+   avant. La compression est un gain, jamais une exigence. */
 async function syncEncrypt(plain){ const saltB64=SYNC_SALT;
   const key=await syncKey(saltB64); const iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(plain));
-  return {enc:_b64e(ct),iv:_b64e(iv),salt:saltB64}; }
+  const gz=await gzipper(plain);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,gz||new TextEncoder().encode(plain));
+  return {enc:_b64e(ct),iv:_b64e(iv),salt:saltB64,z:gz?1:0}; }
 /* `o.z` marque un contenu compressé. Son absence = clair, donc tout ce qui existe déjà se lit
    exactement comme avant : la rétrocompatibilité n'est pas un cas particulier, c'est le défaut. */
 async function syncDecrypt(o){ try{ const key=await syncKey(o.salt); const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_b64d(o.iv)},key,_b64d(o.enc));
   if(o&&o.z) return await degzipper(pt);
   return new TextDecoder().decode(pt); }catch(e){ return null; } }
-async function syncReadRemote(d){ if(!d) return null; if(d.enc) return await syncDecrypt(d); if(d.db) return d.db; /* rétrocompat (ancien format clair) */ return null; }
+/* ⛔ UN APPAREIL QUI NE SAIT PAS LIRE NE DOIT PLUS JAMAIS ÉCRIRE. C'est le seul vrai danger de
+   la compression, et il ne se voit pas : un navigateur sans `DecompressionStream` (Safari
+   d'avant 16.4) DÉCHIFFRE parfaitement le document et rend quand même `null` — exactement
+   comme une clé étrangère. Sans garde il continuerait à POUSSER sa propre base, et comme la
+   fusion ne peut pas réunir ce qu'on n'a pas lu, il effacerait tout ce que l'équipe a fait
+   depuis. On lui coupe donc l'écriture et on le DIT, plutôt que de le laisser écraser en
+   silence. La cause est CERTAINE, pas devinée : `d.z` est posé ET la fonction manque. */
+let _nuageIllisible=false;
+function nuageIllisible(){ if(_nuageIllisible) return; _nuageIllisible=true;
+  try{ console.error('nuage : document compressé et ce navigateur ne sait pas le décompresser — écriture arrêtée'); }catch(e){}
+  try{ toast('⛔ Ce navigateur est trop ancien pour lire les données de l\'équipe. Rien n\'est écrasé : ouvre OP GESTION depuis un appareil plus récent.',12000); }catch(e){}
+  try{ logEvent('Synchro arrêtée','Navigateur sans décompression : les données de l\'équipe ne sont pas lisibles ici, et rien n\'est écrit depuis cet appareil.','sync'); }catch(e){}
+}
+async function syncReadRemote(d){ if(!d) return null;
+  if(d.enc){ const p=await syncDecrypt(d); if(p===null&&d.z&&!gzipPossible()) nuageIllisible(); return p; }
+  if(d.db) return d.db; /* rétrocompat (ancien format clair) */ return null; }
 /* Toutes les collections comptent — la liste de 12 d'avant ignorait les mouvements de stock, les
    bons, les pointages, les contrats : une base amputée de tout ça passait pour « aussi lourde ». */
 function dbWeight(d){ if(!d) return 0; let n=0; ['users'].concat(COLLECTIONS_DONNEES).forEach(k=>{ n+=(d[k]&&d[k].length)||0; }); return n; }
@@ -6853,6 +6877,20 @@ function usersTombesFusion(a,b){
    le document reste sous la limite dure de 1 Mio de Firestore avec ~120 Ko de marge. */
 const NUAGE_BUDGET=620*1024;
 const B_NUAGE_KO=NUAGE_BUDGET/1024;
+/* ══ LE BUDGET QUI COMPTE VRAIMENT, DEPUIS LA v677 ═══════════════════════════════════════════
+   `NUAGE_BUDGET` pèse du TEXTE CLAIR. C'était juste tant qu'on écrivait en clair ; ça ne l'est
+   plus. Ce que Firestore refuse, c'est un DOCUMENT de plus d'1 Mio — et le document, maintenant,
+   c'est du gzip chiffré en base64. Continuer à juger la base sur son texte clair reviendrait à
+   amputer les journaux d'ELAN pour 1,1 Ko de trop pendant que le document réel pèse 90 Ko.
+   On mesure donc le document, on ne le déduit pas d'un taux : ces données compressent à −89 %
+   (mesuré le 15 septembre sur la base réelle), mais une base pleine de photos en base64
+   compresserait à peine — un taux supposé se retournerait exactement le jour où ça compte.
+   780 Kio de base64 laissent ~260 Kio de marge sous la limite dure, pour les neuf autres champs
+   du document (quelques centaines d'octets) et pour tout ce qu'on n'a pas prévu. */
+const NUAGE_ENC_MAX=780*1024;
+/* base64 d'AES-GCM : le chiffré fait la taille du clair + 16 octets de sceau, et le base64
+   quatre caractères pour trois octets. Pas d'approximation, c'est exact. */
+function nuageDocOctets(n){ return Math.ceil((n+16)/3)*4; }
 /* Une seule fois par session : voir la branche « impossible » de syncPush. */
 let _lourdDit=false;
 function syncAlleger(base, budget){
@@ -6929,6 +6967,34 @@ function syncAlleger(base, budget){
     .map(x=>x.c+' '+Math.round(x.n/1024)+' Ko/'+x.l+' l.');
   return {copie,retirees:n,taille:t2,impossible:t2>B,gros,parColl,journalCoupe:coupes};
 }
+/* ══ CE QU'ON POUSSE VRAIMENT — mesuré compressé, jamais supposé ═════════════════════════════
+   Trois issues, dans l'ordre où elles coûtent le moins à l'entreprise :
+   1. La base ENTIÈRE tient une fois compressée → on la pousse entière. Aucune pièce retirée,
+      aucun journal raccourci : c'est le cas normal depuis la v677, et c'est ce qui rend à ELAN
+      son historique complet dans le nuage.
+   2. Elle ne tient pas → on allège, mais avec un budget de texte clair DÉDUIT DE LA MESURE
+      qu'on vient de faire (taux réel × marge), pas du vieux plafond de 620 Kio qui amputerait
+      des pièces jointes sans raison. Puis on RE-MESURE : une déduction qu'on ne vérifie pas est
+      une hypothèse.
+   3. Pas de `CompressionStream` (Safari d'avant 16.4) → exactement l'ancien chemin, au mot près.
+   `syncAlleger` n'est pas touchée : elle reste synchrone, testable seule, et `tests/test-645.js`
+   comme `tests/test-690.js` continuent de l'éprouver telle quelle. */
+async function syncAllegerNuage(base){
+  if(!gzipPossible()) return syncAlleger(base);
+  const mesurer=async(o)=>{ let s=null; try{ s=JSON.stringify(o); }catch(e){ return null; }
+    const gz=await gzipper(s); return gz?nuageDocOctets(gz.length):null; };
+  let d0=null; try{ d0=await mesurer(base); }catch(e){}
+  if(d0===null) return syncAlleger(base);   // compression indisponible en vol : ancien chemin
+  let clair=0; try{ clair=new TextEncoder().encode(JSON.stringify(base)).length; }catch(e){}
+  if(d0<=NUAGE_ENC_MAX) return {copie:base,retirees:0,taille:clair,impossible:false,gros:[],parColl:[],journalCoupe:0,doc:d0};
+  /* Le taux est celui de CETTE base, à cet instant : clair ÷ document. 5 % de moins pour ne pas
+     viser le bord, et jamais en dessous de l'ancien budget — on n'allège pas plus qu'avant. */
+  const budget=Math.max(NUAGE_BUDGET, Math.floor(clair*(NUAGE_ENC_MAX/d0)*0.95));
+  const a=syncAlleger(base,budget);
+  let d1=null; try{ d1=await mesurer(a.copie); }catch(e){}
+  if(d1===null) return a;
+  return Object.assign({},a,{impossible:d1>NUAGE_ENC_MAX,doc:d1});
+}
 function syncRegreffer(local, fusion){ try{
   let n=0;
   Object.keys(fusion||{}).forEach(c=>{ if(!Array.isArray(fusion[c])||!Array.isArray(local&&local[c])) return;
@@ -6947,6 +7013,9 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
        au retour du réseau avec une base d'entre-temps — le mécanisme exact de la panne d'ELAN ;
      — écran de connexion : rien à pousser. */
   if(_versionBloquee) return;
+  /* — et la quatrième depuis la v677 : on n'a pas su LIRE le document de l'équipe parce qu'il est
+     compressé et que ce navigateur ne sait pas décompresser. Écrire ici, c'est écraser. */
+  if(_nuageIllisible) return;
   if(_horsLigne){ _horsLignePush=true; return; }
   const go=async()=>{ try{
     /* ON RELIT AVANT D'ÉCRIRE. Entre notre dernière réception et cet instant, un autre
@@ -7004,7 +7073,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
     _retraitVoulu=0;
     try{ ombreRelever(); }catch(e){}   // l'ombre = ce qu'on pousse
     /* La copie poussée tient dans le document Firestore — la base locale, elle, garde tout. */
-    const alle=syncAlleger(db);
+    const alle=await syncAllegerNuage(db);
     if(alle.retirees!==_allegeDit){ _allegeDit=alle.retirees;
       if(alle.retirees){ try{ console.warn('synchro allégée : '+alle.retirees+' pièce(s) retirée(s) de la copie poussée · base '+Math.round(alle.taille/1024)+' Ko'+(alle.gros&&alle.gros.length?' · plus lourds : '+alle.gros.join(', '):'')); }catch(_e){}
         try{ toast('📦 Base trop lourde pour le nuage : '+alle.retirees+' pièce(s) ou photo(s) restent sur cet appareil, non partagées — allège les pièces jointes des interventions',8000); }catch(_e){}
@@ -7020,7 +7089,12 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
          de l'entreprise, plafonné à 500, et ferait tourner la base qu'on essaie d'alléger) :
          le Journal de l'application, que le client lit lui-même, et la Tour par
          syncDiagnostic — le même chemin que l'écriture non acquittée en 15 s. */
-      const det='base '+Math.round(alle.taille/1024)+' Ko pour '+Math.round(B_NUAGE_KO)+' Ko permis · '
+      /* Depuis la v677 le refus se dit dans l'unité qui le décide : la taille du DOCUMENT
+         compressé. Dire « base 621 Ko pour 620 Ko permis » quand le document réel en fait 90
+         enverrait chercher au mauvais endroit. Sans compression (vieux navigateur), l'ancienne
+         phrase est la bonne et reste. */
+      const det=(alle.doc?('document '+Math.round(alle.doc/1024)+' Ko compressé pour '+Math.round(NUAGE_ENC_MAX/1024)+' Ko permis · base '+Math.round(alle.taille/1024)+' Ko en clair')
+                        :('base '+Math.round(alle.taille/1024)+' Ko pour '+Math.round(B_NUAGE_KO)+' Ko permis'))+' · '
         +((alle.parColl&&alle.parColl.length)?'plus lourdes : '+alle.parColl.join(', '):'aucune collection mesurée');
       try{ console.error('push : base trop lourde même sans pièces — '+det+' — écriture non tentée'); }catch(_e){}
       try{ toast('⛔ La base est trop lourde pour le nuage même sans pièces jointes — contacte TEAM OP',8000); }catch(_e){}
