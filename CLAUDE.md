@@ -513,6 +513,36 @@ worker comme avant, on régénère `beta.html`, on fait passer les suites — et
 Le report sur `main` de `app.html`/`sw.js` attend sa phrase. La bêta, elle, se publie librement :
 c'est son rôle.
 
+### ⛔ REDURCIE LE 15 SEPTEMBRE 2026 AU SOIR — RIEN NE PART SANS ÊTRE ÉPROUVÉ
+
+Justin, après une soirée à trois publications (v690, v691, serveur+Tour) : **« avant d'envoyer
+quoi que ce soit en mise à jour, je veux que tu vérifies que tu testes. Et chaque chose que tu
+vas faire maintenant, je veux que ça soit vérifié et testé avant que ça soit envoyé en mise à
+jour. Et le développement maintenant va se concentrer pour OP GESTION sur la bêta avant de
+publier au public. »**
+
+Deux exigences, et la première est un GESTE, pas une intention :
+
+1. **Rien ne part sans preuve.** Avant tout push qui atteint un client, dans cet ordre :
+   - la suite complète passe (`for f in tests/test-*.js; do node "$f"; done`) — et un banc qui
+     ne couvre pas le changement ne compte pas : on en écrit un ;
+   - le contrôle de syntaxe (`node scripts/verifier-syntaxe.js`) ;
+   - **le comportement est MESURÉ au navigateur** quand le changement se voit ou s'exécute
+     (sonde du scratchpad sur `beta.html`) — pas relu, mesuré ;
+   - le fichier RÉELLEMENT SERVI est vérifié après coup (`curl teamop.fr/... | grep APP_VERSION`).
+   ⛔ Et on le DIT dans la réponse, avec les chiffres. « C'est testé » sans chiffre n'est pas
+   une vérification, c'est une affirmation.
+
+2. **OP GESTION se développe sur la bêta.** `app.html` et `sw.js` ne rejoignent `main` que sur
+   une phrase de Justin pour CE changement-là. La bêta, elle, se publie librement : c'est son
+   rôle, et c'est là qu'il regarde.
+
+⛔ **ET `server/` EST UNE PUBLICATION AUSSI** — la leçon du même jour, qui a coûté une journée de
+croyance fausse : `.github/workflows/deploiement.yml` déploie le VPS à **tout push sur `main`
+touchant `server/**`**. Un commit ne peut donc pas être « prêt, non déployé » s'il est sur
+`main` ; retenir du serveur veut dire ne pas le pousser du tout. Les mêmes preuves sont donc
+exigées avant un push serveur qu'avant une version d'application.
+
 ## La bêta : un outil de développement, jamais un canal public
 
 `beta.html` n'est **pas** une version d'essai pour les clients et ne le sera jamais. C'est
