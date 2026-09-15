@@ -29,12 +29,45 @@ const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; co
 
 console.log('\n── 706 · le compteur de génération ──');
 v('_dbGen est déclaré une seule fois', (APP.match(/^let _dbGen=0;$/gm) || []).length, 1);
-/* ⛔ LE POINT QUI COMPTE : les DEUX endroits qui remplacent `db` doivent l'incrémenter. Un seul
-   oublié et la garde devient une loterie — elle protégerait un chemin sur deux, et le défaut
-   reviendrait sans qu'on comprenne pourquoi il ne se reproduit qu'une fois sur deux. */
-const remplacements = APP.match(/db=remote;[^\n]*/g) || [];
-v('il y a exactement deux endroits qui remplacent `db`', remplacements.length, 2);
-remplacements.forEach((l, i) => v('… le ' + (i + 1) + 'ᵉ fait avancer le compteur', /_dbGen\+\+/.test(l), true));
+/* ⛔ LE POINT QUI COMPTE : TOUT endroit qui remplace `db` doit l'incrémenter. Un seul oublié
+   et la garde devient une loterie — elle protégerait un chemin sur deux, et le défaut reviendrait
+   sans qu'on comprenne pourquoi il ne se reproduit qu'une fois sur deux.
+
+   ⛔ CE BANC A DÉJÀ MENTI UNE FOIS, LE JOUR MÊME OÙ IL A ÉTÉ ÉCRIT. Il ne cherchait que le motif
+   littéral `db=remote;` et annonçait « exactement deux endroits ». Il y en avait QUATRE, et deux
+   lui échappaient par construction : le canal multi-onglets (`db=nd`, événement `storage`) et
+   l'import d'un fichier de sauvegarde (`db=migrate(...)`, dans un `FileReader.onload`) — tous
+   deux asynchrones, donc tous deux capables de remplacer la base sous un envoi en cours.
+   Trouvé par `relecteur`. On énumère donc TOUTES les affectations de `db` du fichier, et
+   chacune doit soit faire avancer le compteur, soit figurer dans la liste des exceptions
+   justifiées ci-dessous. Un cinquième site ajouté un jour fera rougir ce test au lieu de passer
+   inaperçu. */
+const lignes = APP.split('\n');
+const affect = [];
+/* Les commentaires de ce dépôt CITENT le code (« … et l'applique en bloc (`db=remote`) ») :
+   sans les écarter, le banc exige un compteur sur une phrase française. On suit donc les blocs
+   `/* … *\/` ligne à ligne. Si ce suivi se dérèglait et avalait le fichier, le banc deviendrait
+   AVEUGLE au lieu de rougir — c'est le contrôle de plancher juste en dessous qui l'interdit. */
+let dansComm = false;
+lignes.forEach((l, n) => {
+  const etait = dansComm;
+  const o = l.lastIndexOf('/*'), f = l.lastIndexOf('*/');
+  if (o > f) dansComm = true; else if (f > o) dansComm = false;
+  if (etait || /^\s*(\/\*|\*|\/\/)/.test(l)) return;
+  if (/(^|[^.\w$])db=[^=]/.test(l)) affect.push({ n: n + 1, l: l.trim() });
+});
+v('les affectations de `db` sont retrouvées dans le fichier', affect.length >= 5, true);
+
+/* La SEULE exception, et elle se justifie par la chronologie, pas par le confort : cette
+   fusion-là vit DANS `syncPush`, de façon synchrone, AVANT que `_genAvant` ne soit relevé.
+   Elle fait partie de l'instantané qu'on s'apprête à écrire — la compter reviendrait à
+   abandonner chaque envoi à cause de son propre travail. */
+const EXCEPTIONS = [/db=fusionnerBases\(db,remote,true\);/];
+affect.forEach(a => {
+  if (EXCEPTIONS.some(r => r.test(a.l))) { ok++; console.log('  ✓ ligne ' + a.n + ' : exception justifiée (fusion interne à syncPush, avant le repère)'); return; }
+  v('ligne ' + a.n + ' : le remplacement de `db` fait avancer le compteur', /_dbGen\+\+/.test(a.l), true);
+});
+v('⛔ au moins les quatre remplacements connus sont couverts', affect.filter(a => /_dbGen\+\+/.test(a.l)).length >= 4, true);
 
 console.log('\n── 706 · la garde, avant d\'écrire ──');
 v('le repère est pris AVANT la compression',

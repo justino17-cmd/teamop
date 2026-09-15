@@ -5445,7 +5445,12 @@ const eur = n => { const v=Number(n)||0;
    terrain — deux à trois fois plus large, exactement sur le profil d'appareil qui se déplace en
    4G. Le symptôme est apparu le jour de cette publication ; ce n'est pas une coïncidence.
 
-   La parade tient en un compteur : il avance à CHAQUE remplacement de `db`. `syncPush` le note
+   La parade tient en un compteur : il avance à CHAQUE remplacement de `db` — la réception
+   Firestore (deux chemins), le canal multi-onglets et l'import d'un fichier. Une seule
+   affectation ne le fait pas avancer, et c'est voulu : la fusion interne à `syncPush`, qui est
+   synchrone et ANTÉRIEURE au repère — la compter reviendrait à faire abandonner chaque envoi
+   à cause de son propre travail. `tests/test-706.js` énumère les cinq et n'en tolère pas une
+   sixième sans décision. `syncPush` le note
    avant d'attendre et le relit juste avant d'écrire. S'il a bougé, on n'écrit pas — on repart
    d'une base fraîche. Rien n'est perdu : ce qu'on voulait pousser est toujours dans `db`, qui
    vient d'être fusionnée avec ce qui arrivait. */
@@ -7572,8 +7577,14 @@ function pushPropose(){ try{ if(!pushSupported()||!currentUser) return; if(Notif
     <button class="btn block ghost" style="margin-top:8px" onclick="closeModal()">Plus tard</button>`);
 }catch(e){} }
 /* Multitâche : plusieurs onglets/fenêtres de la même machine restent synchronisés en direct */
+/* ⛔ CE CANAL AUSSI REMPLACE `db`, ET IL EST ASYNCHRONE. Signalé par `relecteur` le
+   15 septembre 2026 au soir : `_syncApplying` ne protège pas la fenêtre de compression de
+   `syncPush` (il n'y est jamais posé), donc un autre onglet de la MÊME machine pouvait
+   remplacer la base sous un envoi en cours sans que le compteur ne bouge. Fenêtre plus
+   étroite que celle du défaut d'ELAN — il faut deux onglets ouverts — mais c'est le même
+   mécanisme, et un commentaire qui promet « à CHAQUE remplacement de db » doit être vrai. */
 window.addEventListener('storage',e=>{ if(e.key!==STORE_KEY||!e.newValue||_syncApplying) return;
-  try{ const nd=JSON.parse(e.newValue); _syncApplying=true; db=nd;
+  try{ const nd=JSON.parse(e.newValue); _syncApplying=true; db=nd; _dbGen++;
     if(currentUser&&!compteVerifier()){ _syncApplying=false; return; }
     try{ refreshBadges(); updateBell(); const ov=document.querySelector('#overlay.open'); if(currentUser&&!ov) refreshEcran(); }catch(_){}
     _syncApplying=false; }catch(_){ _syncApplying=false; } });
@@ -25665,7 +25676,7 @@ function resetProdWipe(){
   save(); if(typeof syncPush==='function') syncPush(true);
   toast('Application remise à zéro — prête pour la production'); go('dashboard'); }
 function exportData(){ const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='teamop-'+(String(entrepriseNom()||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'espace')+'-'+todayISO()+'.json'; a.click(); URL.revokeObjectURL(a.href); toast('Exporté'); }
-function importData(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ db=migrate(JSON.parse(r.result));
+function importData(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ db=migrate(JSON.parse(r.result)); _dbGen++;   // remplacement asynchrone : un envoi en cours ne doit pas écrire l'ancienne base par-dessus
       /* ⛔ RELEVER L'OMBRE AVANT save() — trouvé en relecture le 10 septembre 2026. Sans ça, estampiller()
          compare le fichier importé à l'ombre d'AVANT, et enterre tout ce que le fichier n'a pas : des
          tombes datées de maintenant, qui voyageraient chez toute l'équipe et effaceraient ce qu'elle a

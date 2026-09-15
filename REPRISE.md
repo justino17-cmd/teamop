@@ -13,6 +13,93 @@ de ligne du tout.
 
 ---
 
+## 🩹 v693 — UNE SYNCHRO N'EFFACE PLUS LE TRAVAIL D'UN COLLÈGUE (15 septembre 2026, soir)
+
+Justin, remonté d'ELAN : « dès qu'on fait un truc, il y a toujours un rechargement, toujours
+une synchronisation », « quand ils se déplacent dans un endroit, ça synchronise et ça efface
+tout ce qu'ils sont en train de faire », « on doit taper une lettre par lettre ».
+
+### ⛔ Ce qui effaçait, et pourquoi personne ne l'avait vu
+
+`syncPush` prend une copie de `db`, puis **attend** : compression (allumée en v690) puis
+chiffrement. Cette attente est passée de ~178 ms à ~433 ms sur la base d'ELAN le jour où la
+compression a servi. Pendant ce temps, l'écoute Firestore est libre de recevoir le document
+d'un collègue et de faire `db=remote` — c'est écrit noir sur blanc au commentaire de la
+ligne 5437 d'`app.html`, et c'était vrai. Au réveil, `syncPush` écrivait l'instantané d'AVANT
+cette réception, et **`_fbDoc.set()` REMPLACE le document de l'équipe**, il ne le fusionne pas.
+
+`_syncApplying` ne protégeait rien : il n'est lu qu'à la **première ligne** de `syncPush`,
+jamais après l'attente. La v690 n'a pas créé le défaut — elle a triplé la fenêtre où il se
+déclenche. C'est pour ça qu'il est remonté ce jour-là et pas avant.
+
+**La garde** : `_dbGen` est incrémenté sur la même ligne que `db=remote`, aux DEUX endroits où
+une réception remplace la base ; `_genAvant` est relevé juste avant l'attente ; si les deux
+diffèrent au moment d'écrire, on abandonne, on remet `_syncTs` où il était (sinon l'appareil
+devient sourd à tout ce que l'équipe publie) et on reprogramme à 400 ms. `db` porte déjà la
+fusion : rien n'est perdu, et la tentative suivante relit le nuage avant d'écrire, donc elle
+converge au lieu de boucler.
+
+### La preuve, parce qu'une garde « logiquement juste » ne vaut rien
+
+`tests/test-707.js` **extrait la vraie `syncPush` du fichier livré et l'exécute** (méthode des
+quatorze autres suites), avec une réception simulée pendant l'attente :
+
+| | v691, servie ce jour-là | v693 |
+|---|---|---|
+| écriture partie pendant la réception | **1** | **0** — abandonnée |
+| elle portait le travail du collègue | **non** | — |
+| écriture finale | — | **1, base fusionnée** |
+| `_syncTs` après abandon | avancé à tort | **remis** |
+
+⚠️ **Le contre-test compte autant que le test** : sans réception concurrente, l'écriture doit
+toujours partir. Une garde qui bloquerait tout tuerait la synchro **en silence**, ce qui est
+pire que le défaut qu'elle corrige.
+
+⚠️ **Et la sonde qui ne prouvait rien** : `scratchpad/sonde-course-synchro.js` a été écrite
+avant, au navigateur, et donnait 0 écriture **aussi sur la version sans la garde**. Cause :
+`_fbDoc` est un `let` de portée script, pas sur `window` ; `window._fbDoc=…` crée une AUTRE
+variable et `syncPush` sort à sa première ligne. Le fichier est gardé avec ce constat en
+en-tête — c'est le même piège que `window.clientName=` déjà noté plus bas.
+
+### Taper une lettre ne redessine plus une liste entière
+
+Le profileur a désigné autre chose que la recherche : **60 % du temps dans le navigateur**
+(mise en page et peinture d'une liste reconstruite en entier) et **10,8 % dans `icones`**, qui
+reparcourt tous les nœuds de texte du sous-arbre à chaque rendu. Filtrer 220 produits ne coûte
+presque rien ; le refaire sept fois pour un mot de sept lettres, si.
+
+`rechDiffere` pose la variable **tout de suite** — le champ reste juste, le curseur ne bouge
+pas — et ne **redessine** qu'une fois la frappe finie (170 ms). Sept champs : produits,
+catalogue fournisseurs, produits d'une box, ajout à une box, bons de commande, consommations,
+recherche globale. Mesuré, base aux proportions d'ELAN, processeur bridé ×4 : **première lettre
+1 230 ms → 103 ms**, suivantes ~300 ms → 62 ms, **médiane 262 → 63 ms**.
+
+### Ce qui a été VÉRIFIÉ et écarté le même soir
+
+- **« Plus personne n'a ses box »** : la cause est `boxFusionFine`, corrigée le matin même en
+  **v678** (une ligne de stock non datée n'est pas une ligne supprimée). Vérifié que le
+  correctif est **servi ET exigé** : `GET api.teamop.fr/api/version` rend `{"min":691}`, et
+  691 > 678 — aucun appareil ELAN sous 691 ne peut écrire. Piste close, mesure à l'appui.
+- **« L'application fait que recharger »** : mesuré au navigateur, `location.reload()`
+  intercepté → **zéro appel**. Ce que j'avais pris pour « 4 rechargements » étaient des
+  changements de `#hash` (navigation interne). Corrigé avant d'en parler à Justin.
+
+### ⛔ Ce qui reste, et qui n'est PAS dans ce correctif
+
+Un correctif arrête une cause, **il ne range pas derrière lui**. Ce qu'une écriture périmée a
+déjà effacé chez ELAN ne revient pas tout seul. Personne n'a encore regardé ce qui manque.
+
+### Au passage — une borne de test qui a menti au pire moment
+
+`tests/test-660.js` bornait sa fenêtre de lecture par un **nombre de caractères** (4 400). Le
+bloc a grandi de 700 caractères, la fenêtre a cessé d'atteindre l'accusé de réception, et
+**huit contrôles sont passés au rouge sur du code parfaitement juste** — au milieu d'une panne
+client, quand on a le moins besoin d'un faux signal. C'est exactement la leçon de `test-637`,
+refaite. La borne est désormais un repère de texte (`console.error('encrypt',er)`, unique dans
+le fichier). **Ne plus jamais borner une fenêtre de test par une longueur.**
+
+---
+
 ## 🔑 v685 → v688 — « MOT DE PASSE OUBLIÉ » APPARTIENT À LA PERSONNE (15 septembre 2026)
 
 Justin, fin de journée, cinq comptes bloqués chez ELAN : « quand la personne oublie son mot de
