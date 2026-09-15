@@ -4912,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '690';
+const APP_VERSION = '691';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7387,7 +7387,16 @@ async function ordresVerifier(){
     const kh=await sha256(k);
     const r=await fetch(PUSH_API+'/api/espaces/ordres',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:t,kh:kh})});
     const j=await r.json().catch(()=>null); if(!j||!j.ok) return;
-    const logins=(j.suppressions||[]).map(x=>String(x||'').toLowerCase().trim()).filter(Boolean); if(!logins.length) return;
+    const logins=(j.suppressions||[]).map(x=>String(x||'').toLowerCase().trim()).filter(Boolean);
+    /* ⛔ DEUX SORTES D'ORDRES DEPUIS LE 15 SEPTEMBRE 2026, et la seconde ne supprime RIEN.
+       Refaire un mot de passe provisoire depuis la Tour (Justin : « c'est à nous de gérer ces
+       problèmes-là ») demande d'écrire dans la base CHIFFRÉE de l'entreprise — que le serveur ne
+       peut ni lire ni écrire. Il ordonne donc, et c'est ici qu'on exécute.
+       ⚠️ L'empreinte est re-vérifiée ICI, même si le serveur l'a déjà fait : poser
+       `pwdHash: undefined` rendrait le compte inconnectable, et c'est nous qui écrivons. */
+    const mdps=(Array.isArray(j.mdp)?j.mdp:[]).map(x=>({login:String((x&&x.login)||'').toLowerCase().trim(),h:String((x&&x.h)||'').toLowerCase()}))
+      .filter(x=>x.login&&/^[0-9a-f]{64}$/.test(x.h));
+    if(!logins.length&&!mdps.length) return;
     const faits=[]; let moi=false;
     logins.forEach(l=>{ const u=(db.users||[]).find(x=>x&&String(x.login||'').toLowerCase().trim()===l); if(!u) return;
       db.users=db.users.filter(x=>x.id!==u.id);
@@ -7395,11 +7404,25 @@ async function ordresVerifier(){
       try{ utilisateurNettoyer(u); }catch(e){}
       try{ logEvent('Utilisateur supprimé depuis la Tour de contrôle','@'+(u.login||''),'auth'); }catch(e){}
       faits.push(l); if(currentUser&&u.id===currentUser.id) moi=true; });
-    if(!faits.length) return;
+    /* Le mot de passe neuf remplace l'ancien et RELANCE la campagne sécurité : `secu` effacé,
+       `mustChangePwd` posé — la personne choisira le sien à l'ouverture, et redonnera son
+       adresse. On retire aussi `pinHash` et `sansMdp`, sinon un ancien PIN continuerait
+       d'ouvrir le compte en parallèle : ce serait refaire un mot de passe sans fermer la porte
+       d'à côté. C'est exactement ce que fait `resetPwd` sur la fiche, au même endroit. */
+    const faitsMdp=[]; let moiMdp=false;
+    mdps.forEach(o=>{ const u=(db.users||[]).find(x=>x&&String(x.login||'').toLowerCase().trim()===o.login); if(!u) return;
+      if(u.pwdHash===o.h){ faitsMdp.push(o.login); return; }   // déjà posé : on acquitte sans réécrire
+      u.pwdHash=o.h; u.mustChangePwd=true; delete u.pinHash; delete u.sansMdp; delete u.secu;
+      try{ logEvent('Mot de passe refait depuis la Tour de contrôle','@'+(u.login||''),'auth'); }catch(e){}
+      faitsMdp.push(o.login); if(currentUser&&u.id===currentUser.id) moiMdp=true; });
+    if(!faits.length&&!faitsMdp.length) return;
     save();
-    try{ await fetch(PUSH_API+'/api/espaces/ordre-fait',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:t,kh:kh,logins:faits})}); }catch(e){}
-    try{ toast(faits.length+' compte(s) supprimé(s) à la demande de TEAM OP',3600); }catch(e){}
-    if(moi){ setTimeout(()=>{ try{ logout(); }catch(e){ try{ location.reload(); }catch(_e){} } },1200); }
+    try{ await fetch(PUSH_API+'/api/espaces/ordre-fait',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:t,kh:kh,logins:faits,mdp:faitsMdp})}); }catch(e){}
+    if(faits.length){ try{ toast(faits.length+' compte(s) supprimé(s) à la demande de TEAM OP',3600); }catch(e){} }
+    if(faitsMdp.length){ try{ toast('🔑 '+faitsMdp.length+' mot(s) de passe provisoire(s) refait(s) par TEAM OP',4200); }catch(e){} }
+    /* Si c'est MON mot de passe qui vient de changer, ma session ne vaut plus : on sort, sinon
+       on travaillerait sous une identité dont l'accès a été révoqué il y a une seconde. */
+    if(moi||moiMdp){ setTimeout(()=>{ try{ logout(); }catch(e){ try{ location.reload(); }catch(_e){} } },1200); }
     else { try{ if(current==='utilisateurs') views.utilisateurs(); }catch(e){} }
   }catch(e){}
 }

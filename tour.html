@@ -2191,7 +2191,7 @@ body.plans .reg-l.cli::before{display:none}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.61</div>
+    <div class="lg-pied">console interne · v2.62</div>
   </div>
 </div>
 
@@ -2230,13 +2230,13 @@ body.plans .reg-l.cli::before{display:none}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.61</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.62</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
   </div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.61</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.62</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2300,7 +2300,7 @@ function setApp(app,sansAnim,tabVoulu){
   if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; }catch(e){} }
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
   var nom=APPS_TOUR[app].nom;
-  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.61';
+  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.62';
   var pn=$('app-pill-nom'); if(pn) pn.textContent=APPS_TOUR[app].court;
   /* l'onglet demandé par le hash prime (un lien #gestion/entreprises tapé depuis MESSAGES) ; sinon
      le dernier onglet ouvert dans cette console ; sinon l'accueil */
@@ -6446,6 +6446,20 @@ function compteSupprimer(login){
       toast('Suppression ordonnée — l’identifiant ne peut plus entrer ; le compte part au prochain appareil ouvert'); chargerDossier(DOS.nom); });
   }).catch(function(){ toast('Serveur injoignable'); });
 }
+/* ⛔ LA PORTE DE SORTIE D'UN MOT DE PASSE ORDONNÉ, ET ELLE DOIT ÊTRE VISIBLE. Tant que l'ordre
+   vit, l'annuaire de ce compte est GELÉ sur l'empreinte qu'on vient d'écrire : aucun dépôt de
+   l'entreprise ne le change. C'est ce qui rend l'opération sûre quel que soit l'ordre d'arrivée
+   — et c'est aussi ce qui coincerait quelqu'un si l'ordre n'aboutissait pas. Il se périme tout
+   seul au bout de trente jours ; ça évite d'enfermer à vie, ça ne dépanne personne aujourd'hui.
+   D'où ce lien. Un gel qu'on ne voit pas est une panne silencieuse. */
+function compteMdpAnnuler(login){
+  var d=(DOS&&DOS.d)||{}; if(!d.t) return;
+  if(!confirm('Annuler le mot de passe provisoire ordonné pour « '+login+' » ?\n\nCelui que tu lui as donné ne marchera plus, et son entreprise reprend la main sur son annuaire. À faire si la personne s’est débrouillée autrement, ou si le mot de passe a été perdu.')) return;
+  apiPost('/api/monitor/compte/mdp-annuler',{t:d.t,login:login}).then(function(x){
+    if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
+    toast('Mot de passe ordonné annulé — l’entreprise reprend la main'); chargerDossier(DOS.nom);
+  }).catch(function(){ toast('Serveur injoignable'); });
+}
 function compteReautoriser(login){
   var d=(DOS&&DOS.d)||{}; if(!d.t) return;
   if(!confirm('Réautoriser l’identifiant « '+login+' » ?\n\nIl pourra de nouveau être déposé dans l’annuaire par l’entreprise (un nouveau salarié du même nom, par exemple).')) return;
@@ -6474,6 +6488,75 @@ function comptesInutilisesSupprimer(){
     return apiPost('/api/monitor/comptes/supprimer',{t:d.t,logins:logins,code:String(code).trim()}).then(function(y){
       if(!(y&&y.ok)){ toast('⚠️ '+((y&&y.d&&y.d.error)||'refusé')); return; }
       toast((y.d&&y.d.n||0)+' compte(s) supprimé(s) — ils ne peuvent plus entrer ; ils partent de l’application au prochain appareil ouvert'); chargerDossier(DOS.nom); });
+  }).catch(function(){ toast('Serveur injoignable'); });
+}
+/* ══ REFAIRE UN MOT DE PASSE PROVISOIRE, DEPUIS ICI ═══════════════════════════════════════
+   Justin, 15 septembre 2026, cinq comptes bloqués chez ELAN : « je veux pas un bouton dans le
+   truc utilisateur. Je veux un bouton MOI dans la tour de contrôle s'il y a des erreurs comme
+   ça. C'est à nous de gérer ces problèmes-là. »
+
+   ⛔ LE MOT DE PASSE NE SORT PAS D'ICI. Il est tiré dans ce navigateur, on n'envoie que son
+   empreinte SHA-256 — le serveur ne le voit jamais, `ordres.json` non plus. Il s'affiche une
+   fois, au patron, et il faut le noter : personne ne pourra le redonner.
+
+   ⚠️ ET L'EFFET N'EST PAS INSTANTANÉ, il faut le DIRE et pas le laisser deviner. L'annuaire
+   (la page d'entrée) est à nous, il change tout de suite ; la fiche de la personne vit dans la
+   base CHIFFRÉE de son entreprise, que notre serveur ne peut pas écrire. Elle suit au premier
+   appareil de l'entreprise qui s'ouvre. Entre les deux, la personne passe l'entrée et se fait
+   refuser dans l'application — promettre « c'est fait » ferait un client au téléphone. */
+function mdpTirer(n){ var l=[], i; for(i=0;i<n;i++) l.push(tourMdpDefaut()); return l; }
+function mdpFiche(titre, lignes){
+  tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">'+esc(titre)+'</div>'+
+    '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">Note-les <b>maintenant</b> : ils ne sont écrits nulle part, et personne — nous compris — ne pourra les retrouver.</div>'+
+    '<div class="reg-bloc">'+lignes.map(function(x){
+        return '<div class="reg-l"><span class="reg-txt"><span class="reg-t1 mono">'+esc(x.login)+'</span>'
+             + (x.nom?'<span class="reg-l2">'+esc(x.nom)+'</span>':'')+'</span>'
+             + '<span class="reg-fin"><b class="mono" style="font-size:16px;user-select:all;letter-spacing:.04em">'+esc(x.mdp)+'</b></span></div>'; }).join('')+'</div>'+
+    '<div class="note">⏳ La page de connexion les accepte <b>dès maintenant</b>. Dans l’application, le changement prend effet <b>au premier appareil de l’entreprise qui s’ouvre</b> — quelques minutes en général. Chacun choisira ensuite son vrai mot de passe.</div>');
+}
+/* Un seul compte : le geste de dépannage courant, quand une personne appelle. */
+function compteMdpRefaire(login){
+  var d=(DOS&&DOS.d)||{}; if(!d.t) return;
+  var mdp=tourMdpDefaut();
+  if(!confirm('Refaire le mot de passe de « '+login+' » chez '+(DOS.nom||'cette entreprise')+' ?\n\nSon mot de passe actuel ne marchera plus.\nUn code de confirmation va t’être envoyé par mail.')) return;
+  tourSha256(mdp).then(function(h){
+    return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:[{login:login,h:h}]}).then(function(x){
+      if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
+      var code=prompt('Code reçu par mail'+((x.d&&x.d.dest)?' ('+x.d.dest+')':'')+' :'); if(!code) return;
+      return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:[{login:login,h:h}],code:String(code).trim()}).then(function(y){
+        if(!(y&&y.ok)){ toast('⚠️ '+((y&&y.d&&y.d.error)||'refusé')); return; }
+        mdpFiche('🔑 Mot de passe provisoire — '+login,[{login:login,mdp:mdp}]);
+        chargerDossier(DOS.nom); });
+    });
+  }).catch(function(){ toast('Serveur injoignable'); });
+}
+/* Le lot : tous ceux qui n'ont jamais choisi le leur. C'est le cas d'ELAN — l'administrateur
+   avait refait leurs mots de passe depuis l'application, mais l'annuaire n'avait rien reçu
+   (défaut corrigé en v685), donc il distribuait des mots de passe que la page de connexion ne
+   connaissait pas. Un seul mail, un seul code, tout le lot. */
+function comptesMdpRefaire(){
+  var d=(DOS&&DOS.d)||{}; if(!d.t) return;
+  var cibles=(d.utilisateurs||[]).filter(function(u){ return u.dansAnnuaire&&u.provisoire===true&&!u.attente&&!u.supprime; });
+  if(!cibles.length){ toast('Aucun compte encore sur un mot de passe provisoire'); return; }
+  var mdps=mdpTirer(cibles.length);
+  var lignes=cibles.map(function(u,i){ return {login:u.login, nom:u.nom||'', mdp:mdps[i]}; });
+  var liste=lignes.map(function(x){ return '  · '+x.login+(x.nom?'  ('+x.nom+')':''); }).join('\n');
+  if(!confirm('Refaire le mot de passe provisoire de ces '+lignes.length+' compte(s) chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun n’a encore choisi le sien : personne ne perd un mot de passe qu’il utilise.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
+  Promise.all(lignes.map(function(x){ return tourSha256(x.mdp).then(function(h){ return {login:x.login,h:h}; }); })).then(function(comptes){
+    return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:comptes}).then(function(x){
+      if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
+      var code=prompt('Code reçu par mail'+((x.d&&x.d.dest)?' ('+x.d.dest+')':'')+' :'); if(!code) return;
+      return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:comptes,code:String(code).trim()}).then(function(y){
+        if(!(y&&y.ok)){ toast('⚠️ '+((y&&y.d&&y.d.error)||'refusé')); return; }
+        /* ⛔ ON N'AFFICHE QUE CE QUE LE SERVEUR A VRAIMENT PRIS. Montrer les huit quand il en a
+           accepté six ferait dicter au téléphone deux mots de passe qui n'ouvrent rien. */
+        var pris={}; (y.d&&y.d.logins||[]).forEach(function(l){ pris[l]=1; });
+        var sortis=lignes.filter(function(x2){ return pris[x2.login]; });
+        mdpFiche('🔑 '+sortis.length+' mot(s) de passe provisoire(s)', sortis);
+        var ref=(y.d&&y.d.refuses)||[];
+        if(ref.length) toast('⚠️ '+ref.length+' refusé(s) : '+ref.map(function(r){ return r.login+' — '+r.raison; }).join(' · '),9000);
+        chargerDossier(DOS.nom); });
+    });
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 /* Le bouton demandé par Justin devant la liste d'ELAN (« supprime bien tout ici ») : ces
@@ -6539,6 +6622,7 @@ function blocUtilisateurs(){
             (u.appareils?' · '+u.appareils+' appareil'+(u.appareils>1?'s':''):'')+
             (u.version?' · v'+esc(u.version):'')+'</span></span>'+
         '<span class="reg-fin"><span class="reg-alertes">'+p+'</span>'+
+          (MYROLE==='patron'&&u.dansAnnuaire&&!u.attente&&!u.supprime?'<button type="button" class="pill-act" title="Refaire le mot de passe provisoire de « '+esc(u.login)+' » — son mot de passe actuel ne marchera plus" onclick="compteMdpRefaire(\''+jsq(u.login)+'\')">Mot de passe</button>':'')+
           (MYROLE==='patron'&&!u.attente&&!u.supprime?'<button type="button" class="pill-act" title="Supprimer le compte « '+esc(u.login)+' »" onclick="compteSupprimer(\''+jsq(u.login)+'\')">Supprimer</button>':'')+
         '</span></div>'; };
   var sv=d.sauvegarde||{}, bannis=d.bannis||[];
@@ -6564,12 +6648,21 @@ function blocUtilisateurs(){
     '<div class="reg-bloc">'+vrais.map(ligne).join('')+'</div>'+
     /* Le lot n'apparaît qu'à partir de DEUX : pour un seul compte, le bouton « Supprimer » de
        sa ligne fait déjà le travail, et deux chemins pour un même geste sèment le doute. */
-    (MYROLE==='patron'&&inut.length>1?'<div class="sous-act"><button type="button" class="btn-fant" onclick="comptesInutilisesSupprimer()">Supprimer les '+inut.length+' comptes jamais utilisés</button></div>':'')+
+    /* Même règle que le lot de suppression : à partir de DEUX. Pour un seul compte, le bouton
+       « Mot de passe » de sa ligne fait déjà le travail, et deux chemins pour un même geste
+       sèment le doute au moment où on en a le moins besoin. */
+    ((MYROLE==='patron'&&(inut.length>1||prov>1))?'<div class="sous-act">'+
+      (prov>1?'<button type="button" class="btn-fant" onclick="comptesMdpRefaire()">Refaire les '+prov+' mots de passe provisoires</button>':'')+
+      (inut.length>1?'<button type="button" class="btn-fant" onclick="comptesInutilisesSupprimer()">Supprimer les '+inut.length+' comptes jamais utilisés</button>':'')+
+    '</div>':'')+
     '<div class="note">🗂 Copies de sauvegarde chiffrées sur notre serveur : '+
       (sv.possible===false?'<b class="att">impossible — espace hors annuaire, aucune clé d’équipe connue du serveur</b>':((sv.n||0)+(sv.derniere?' · dernière '+cnxDepuis(sv.derniere):' · aucune encore (elles arrivent avec la v621, au plus une par demi-heure et par appareil)')))+'</div>'+
     /* Les identifiants supprimés depuis la Tour restent bannis de l'annuaire — un appareil ne peut
        pas lever ça, seul le patron le peut, ici. Sans ce bloc, un ban invisible serait un ban
        qu'on ne comprend plus le jour où l'entreprise embauche quelqu'un du même nom. */
+    /* Les mots de passe en attente d'exécution : tant qu'ils vivent, l'annuaire de ces comptes
+       est gelé. Le dire, et donner le moyen d'en sortir — sinon on cherche une panne ailleurs. */
+    ((d.mdpAttente&&d.mdpAttente.length)?'<div class="note">🔑 Mot(s) de passe provisoire(s) <b class="att">en attente d’exécution</b> — leur annuaire est gelé jusqu’à ce qu’un appareil de l’entreprise s’ouvre (ou 30 jours) : '+d.mdpAttente.map(function(m){ return '<span class="mono">'+esc(m.login)+'</span>'+(MYROLE==='patron'?' <a onclick="compteMdpAnnuler(\''+jsq(m.login)+'\')">annuler</a>':''); }).join(' · ')+'</div>':'')+
     (bannis.length?'<div class="note">🚫 Identifiants bannis de l’annuaire (supprimés depuis la Tour) : '+bannis.map(function(b){ return '<span class="mono">'+esc(b.login)+'</span>'+(b.fait?'':' <b class="att">(pas encore exécuté)</b>')+(MYROLE==='patron'?' <a onclick="compteReautoriser(\''+jsq(b.login)+'\')">réautoriser</a>':''); }).join(' · ')+'</div>':'')+
     (tapes.length?'<div class="sous-sec"><div class="sec att">'+tapes.length+' IDENTIFIANT'+(tapes.length>1?'S':'')+' TAPÉ'+(tapes.length>1?'S':'')+' QUI N’EXISTE'+(tapes.length>1?'NT':'')+' PAS</div>'+
       '<div class="note">Quelqu’un a tapé ces identifiants et ça a échoué. Ce ne sont pas des comptes : il n’y a rien à supprimer — le compte n’a jamais été créé, ou il a été perdu avant d’être déposé dans l’annuaire. Si la personne doit travailler, l’entreprise crée son compte.</div>'+

@@ -2083,7 +2083,13 @@ app.post('/api/monitor/entreprise/dossier', monAdmin, (req, res) => {
        « inconnu » à quelqu'un qui n'a simplement pas le droit de savoir, non. */
     etatComptes: voitEtat,
     sauvegarde: { n: sauvListe(t).length, derniere: (sauvListe(t)[0] || 0), possible: !!(espaceParT(t) && espaceParT(t).code) },
-    bannis: (ordresData[t] || []).filter(o => o.banni !== false).map(o => ({ login: o.login, ts: o.ts, fait: o.fait || 0, par: o.par || '' }))
+    /* ⛔ `estSuppr` ici aussi : un ordre de mot de passe n'a pas de champ `banni`, donc
+       `undefined !== false` le faisait entrer dans la liste des BANNIS. Le patron refaisait un
+       mot de passe et voyait la personne apparaître comme supprimée. C'était la troisième
+       catastrophe du typage, sur la seule ligne que le diff n'avait pas visitée. */
+    bannis: (ordresData[t] || []).filter(o => estSuppr(o) && o.banni !== false).map(o => ({ login: o.login, ts: o.ts, fait: o.fait || 0, par: o.par || '' })),
+    /* Un mot de passe en attente se DIT, lui aussi : sinon le gel d'annuaire serait invisible. */
+    mdpAttente: (ordresData[t] || []).filter(o => o && o.type === 'mdp' && !o.fait && (o.ts || 0) > Date.now() - ORDRE_MDP_VIE).map(o => ({ login: o.login, ts: o.ts, par: o.par || '' }))
   });
 });
 
@@ -2172,12 +2178,84 @@ try { ordresData = JSON.parse(fs.readFileSync(ORDRES_PATH, 'utf8')) || {}; } cat
    identifiant supprimé depuis la Tour reste banni de l'annuaire tant que le patron ne le
    réautorise pas, et l'ordre continue d'être servi sept jours après le premier acquittement,
    pour que chaque appareil l'exécute (supprimer un compte absent ne coûte rien). */
-for (const t of Object.keys(ordresData)) { ordresData[t] = (ordresData[t] || []).filter(o => o && o.login).slice(-500); if (!ordresData[t].length) delete ordresData[t]; }
-function ordreBanni(t, login) { return (ordresData[t] || []).some(o => o.login === login && o.banni !== false); }
-function ordresServis(t) { const lim = Date.now() - 7 * 86400000; return (ordresData[t] || []).filter(o => o.banni !== false && (!o.fait || o.fait > lim)).map(o => o.login); }
+/* ⛔ Un ordre de mot de passe SANS empreinte ne vaut rien et serait pire que rien : l'application
+   poserait `pwdHash: undefined` et le compte deviendrait inconnectable. On le jette au chargement
+   plutôt que de le servir. */
+/* ⛔ ET UN ORDRE DE MOT DE PASSE A UNE DURÉE DE VIE. Trouvé par `gardien` le 15 septembre 2026,
+   avant déploiement, et c'était le défaut structurel de la livraison : `ordreMdpAttente` n'avait
+   AUCUNE borne, et les appareils déjà déployés ne savent pas acquitter un ordre de ce type. Un
+   ordre restait donc `fait:0` pour toujours, l'annuaire restait gelé sur l'empreinte de la Tour
+   pour toujours, et la personne se retrouvait coincée des DEUX côtés — la page d'entrée voulant
+   le mot de passe neuf, l'application l'ancien, et l'administrateur incapable de rien y changer
+   puisque son dépôt était gelé. Sans issue, et sans que rien ne le signale.
+   Trente jours, donc : passé ce délai l'ordre disparaît, le gel tombe, et l'entreprise reprend
+   la main sur son annuaire. Un dépannage qui n'a pas abouti en un mois n'aboutira pas. */
+const ORDRE_MDP_VIE = 30 * 86400000;
+/* La version de l'application qui sait EXÉCUTER un ordre de mot de passe. Le serveur refuse
+   d'en poser un tant que le minimum exigé du parc est en dessous — voir /api/monitor/comptes/mdp. */
+const MDP_ORDRE_VER_MIN = 691;
+{
+  const lim = Date.now() - ORDRE_MDP_VIE;
+  let jete = 0;
+  for (const t of Object.keys(ordresData)) {
+    const avant = (ordresData[t] || []).length;
+    ordresData[t] = (ordresData[t] || []).filter(o => {
+      if (!o || !o.login) return false;
+      if (o.type !== 'mdp') return true;
+      /* Une empreinte qui n'en est pas une poserait `pwdHash: undefined` sur la fiche : le
+         compte deviendrait inconnectable. Et passé la péremption, l'ordre ne vaut plus rien. */
+      if (!/^[0-9a-f]{64}$/.test(String(o.h || ''))) return false;
+      /* Un ordre ACQUITTÉ n'a plus de secret à porter : `/api/espaces/ordre-fait` efface `h`.
+         S'il en reste un, c'est un fichier d'avant cette version — on l'efface ici aussi. */
+      if (o.fait) { delete o.h; return true; }
+      return (o.ts || 0) > lim;
+    }).slice(-500);
+    jete += avant - ordresData[t].length;
+    if (!ordresData[t].length) delete ordresData[t];
+  }
+  /* ⛔ ET ON RÉÉCRIT LE FICHIER TOUT DE SUITE. Purger en mémoire seulement laissait les
+     empreintes périmées DORMIR SUR LE DISQUE jusqu'à la prochaine écriture — c'est-à-dire
+     peut-être des mois. Pour des identifiants c'était sans conséquence ; pour un équivalent de
+     mot de passe, c'est la différence entre un fichier de traces et une réserve de secrets. */
+  if (jete) { ordresSave(); console.log('ordres : ' + jete + ' ordre(s) périmé(s) ou invalide(s) retiré(s)'); }
+}
+/* ══ DEUX SORTES D'ORDRES, ET IL A FALLU TYPER AVANT D'EN AJOUTER UNE ═══════════════════════
+   Jusqu'au 15 septembre 2026 `ordres.json` ne portait qu'une chose : « supprime ce compte ».
+   Les cinq fonctions ci-dessous filtraient donc par IDENTIFIANT SEUL. Y glisser un ordre d'une
+   autre nature sans les toucher aurait produit trois catastrophes silencieuses, dans cet ordre
+   de gravité :
+     1. `ordresServis` rend une liste de logins que l'application SUPPRIME. Une application déjà
+        déployée (v690 et avant) ne connaît pas les types : elle aurait effacé le compte dont on
+        voulait seulement refaire le mot de passe.
+     2. `ordreBanni` ferme la porte de l'annuaire. Le compte aurait été mis DEHORS — l'exact
+        contraire de ce que le bouton promet.
+     3. `ordreAttente` / `ordreFait` auraient affiché « suppression en attente » dans la Tour, et
+        refusé une vraie suppression au motif qu'elle était « déjà en cours ».
+   ⛔ `estSuppr` est donc la SEULE définition de « cet ordre est une suppression », et un ordre
+   sans `type` en est une — c'est ce qui rend les lignes déjà écrites dans `ordres.json` lisibles
+   sans migration. Toute troisième sorte d'ordre devra passer par ici, ou n'existera pas. */
+function estSuppr(o) { return !!o && o.type !== 'mdp'; }
+function ordreBanni(t, login) { return (ordresData[t] || []).some(o => estSuppr(o) && o.login === login && o.banni !== false); }
+function ordresServis(t) { const lim = Date.now() - 7 * 86400000; return (ordresData[t] || []).filter(o => estSuppr(o) && o.banni !== false && (!o.fait || o.fait > lim)).map(o => o.login); }
+/* ⛔ `h` N'EST PAS UN IDENTIFIANT, C'EST LE MOT DE PASSE. `/api/espaces/connexion` lit `b.h`
+   DIRECTEMENT du corps de la requête et le compare par PBKDF2 : connaître `h`, c'est pouvoir
+   entrer. `ordres.json` — un fichier qui ne portait jusqu'ici que des identifiants — devient
+   donc un entrepôt de secrets utilisables, et il faut le traiter comme tel :
+     · servi UNIQUEMENT tant que l'ordre n'est pas acquitté (contrairement aux suppressions, qui
+       se rediffusent sept jours : supprimer un compte absent ne coûte rien, rediffuser un mot de
+       passe déjà posé, si) ;
+     · effacé du fichier dès l'acquittement (voir /api/espaces/ordre-fait).
+   Un appareil qui dormait ne perd rien : la fiche lui arrive par la SYNCHRO, comme tout le reste.
+   (Signalé par `gardien` le 15 septembre 2026.) */
+function ordresMdp(t) {
+  return (ordresData[t] || []).filter(o => o && o.type === 'mdp' && !o.fait && /^[0-9a-f]{64}$/.test(String(o.h || ''))).map(o => ({ login: o.login, h: o.h })); }
+/* Le gel d'annuaire ne dure que tant que l'ordre est VIVANT : ni acquitté, ni périmé. Sans la
+   borne de temps, un ordre que personne n'exécute enfermerait le compte pour toujours. */
+function ordreMdpAttente(t, login) { const lim = Date.now() - ORDRE_MDP_VIE;
+  return (ordresData[t] || []).some(o => o && o.type === 'mdp' && o.login === login && !o.fait && (o.ts || 0) > lim); }
 function ordresSave() { try { const tmp = ORDRES_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(ordresData)); fs.renameSync(tmp, ORDRES_PATH); return true; } catch (e) { console.error('ordres.json non écrit :', e.message); return false; } }
-function ordreAttente(t, login) { return (ordresData[t] || []).some(o => o.login === login && !o.fait && o.banni !== false); }
-function ordreFait(t, login) { return (ordresData[t] || []).some(o => o.login === login && o.fait && o.banni !== false); }
+function ordreAttente(t, login) { return (ordresData[t] || []).some(o => estSuppr(o) && o.login === login && !o.fait && o.banni !== false); }
+function ordreFait(t, login) { return (ordresData[t] || []).some(o => estSuppr(o) && o.login === login && o.fait && o.banni !== false); }
 /* La clé d'équipe, comme pour l'annuaire : kh = sha256 de la clé. null = espace inconnu, false = mauvaise clé. */
 function espaceCleOk(t, kh) {
   const e = espaceParT(t); if (!e || !e.code) return null;
@@ -2241,7 +2319,7 @@ app.post('/api/monitor/compte/supprimer', monPatronStrict, async (req, res) => {
   if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
   retraitCodes.delete(cle);
   const l = ordresData[t] = ordresData[t] || [];
-  l.forEach(o => { if (o.login === login) o.banni = false; });   // un ancien ordre réautorisé ne compte plus : celui-ci prend le relais
+  l.forEach(o => { if (estSuppr(o) && o.login === login) o.banni = false; });   // un ancien ordre réautorisé ne compte plus : celui-ci prend le relais
   l.push({ login, ts: Date.now(), par: (req.tourUser && req.tourUser.nom) || '', fait: 0 });
   ordresSave();
   if (comptesReg[t] && comptesReg[t].c && Object.prototype.hasOwnProperty.call(comptesReg[t].c, login)) { delete comptesReg[t].c[login]; comptesReg[t].maj = Date.now(); comptesEcrire(); }
@@ -2322,7 +2400,7 @@ app.post('/api/monitor/comptes/supprimer', monPatronStrict, async (req, res) => 
   const ords = ordresData[t] = ordresData[t] || [];
   let touche = false;
   for (const login of logins) {
-    ords.forEach(o => { if (o.login === login) o.banni = false; });   // un ancien ordre réautorisé ne compte plus : celui-ci prend le relais
+    ords.forEach(o => { if (estSuppr(o) && o.login === login) o.banni = false; });   // un ancien ordre réautorisé ne compte plus : celui-ci prend le relais
     ords.push({ login, ts: Date.now(), par: (req.tourUser && req.tourUser.nom) || '', fait: 0 });
     if (comptesReg[t] && comptesReg[t].c && Object.prototype.hasOwnProperty.call(comptesReg[t].c, login)) { delete comptesReg[t].c[login]; touche = true; }
   }
@@ -2330,6 +2408,142 @@ app.post('/api/monitor/comptes/supprimer', monPatronStrict, async (req, res) => 
   if (touche) { comptesReg[t].maj = Date.now(); comptesEcrire(); }
   monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'suppression de ' + logins.length + ' compte(s) inutilisé(s) ordonnée');
   res.json({ ok: true, attente: true, n: logins.length, logins, refuses });
+});
+/* ══ REFAIRE LES MOTS DE PASSE PROVISOIRES, DEPUIS LA TOUR (Justin, 15 septembre 2026) ══════
+   « Je veux pas un bouton dans le truc utilisateur. Je veux un bouton moi dans la tour de
+   contrôle s'il y a des erreurs comme ça. C'est à nous de gérer ces problèmes-là. »
+
+   Ce que ça répare : des comptes qui ne peuvent PLUS ENTRER. L'administrateur avait refait leurs
+   mots de passe depuis l'application, mais l'annuaire n'avait rien reçu (défaut corrigé en v685)
+   — il distribuait donc des mots de passe que la page de connexion ne connaissait pas.
+
+   ⛔ LE SERVEUR NE VOIT JAMAIS LE MOT DE PASSE. La Tour le tire, en calcule l'empreinte SHA-256
+   et n'envoie QUE l'empreinte — exactement ce que l'application appelle `pwdHash`. Le mot de
+   passe en clair s'affiche une fois au patron, et nulle part ailleurs : ni ici, ni dans
+   `ordres.json`, ni dans un journal. C'est la même chaîne que partout : clair → SHA-256 côté
+   client → PBKDF2 côté serveur pour l'annuaire.
+
+   ⛔ IL FAUT LES DEUX MOITIÉS, ET ELLES N'ARRIVENT PAS ENSEMBLE :
+     · l'ANNUAIRE (`comptes.json`) est à nous, on l'écrit tout de suite — c'est lui qui laisse la
+       personne franchir la page d'entrée et trouver son entreprise ;
+     · la FICHE (`db.users[].pwdHash`) vit dans la base CHIFFRÉE de l'entreprise, que le serveur
+       ne peut ni lire ni écrire. On dépose donc un ordre, et le premier appareil de l'entreprise
+       qui s'ouvre l'exécute.
+   Entre les deux, la personne passe l'entrée mais se fait refuser DANS l'application. La Tour
+   doit le DIRE — « actif dès qu'un appareil de l'entreprise s'ouvre » — au lieu de laisser
+   croire à un effet immédiat. Une demi-vérité ici, c'est un client au téléphone.
+
+   Le code par courriel : refaire un mot de passe INVALIDE celui qui marchait. Ça se confirme
+   comme une suppression, et pour la même raison. */
+app.post('/api/monitor/comptes/mdp', monPatronStrict, async (req, res) => {
+  const b = req.body || {};
+  const t = monStr(b.t, 80);
+  if (!t) return res.status(400).json({ error: 't requis' });
+  const e = espaceParT(t); if (!e) return res.status(404).json({ error: 'espace inconnu' });
+  /* ⛔ LES APPAREILS D'ABORD, LA PORTE ENSUITE — la règle du dépôt, appliquée mécaniquement.
+     Un ordre de mot de passe n'a d'effet que si un appareil de l'entreprise sait l'EXÉCUTER, et
+     ce savoir arrive avec la v691. Tant que le minimum exigé est en dessous, le parc peut
+     contenir des appareils qui ne l'exécuteront jamais : l'annuaire porterait le mot de passe
+     neuf, la fiche l'ancien, et la personne serait coincée entre les deux — jusqu'à la
+     péremption de l'ordre, trente jours plus tard. On refuse donc le geste plutôt que de le
+     laisser fabriquer une panne silencieuse, et on dit QUOI FAIRE.
+     Écrit ici, dans la route, et pas dans la page qui l'appelle : aucun bouton ne peut le
+     contourner. (Défaut structurel signalé par `gardien` le 15 septembre 2026, avant
+     déploiement — c'était le vrai risque de cette livraison.) */
+  /* Et on ne POSE pas un ordre qui ne pourra jamais être servi : mieux vaut le dire au patron
+     tout de suite que lui laisser croire à un dépannage qui n'arrivera pas. */
+  if (cleEstPublique(t)) return res.status(409).json({
+    error: 'Cette entreprise est encore sur la clé d\'équipe partagée : un mot de passe ne peut pas lui être transmis en sécurité. Déménage-la sur sa propre clé d\'abord.' });
+  if (!versionsCfg.min || versionsCfg.min < MDP_ORDRE_VER_MIN) return res.status(409).json({
+    error: 'Les appareils d\'abord : publie la v' + MDP_ORDRE_VER_MIN + ' et exige-la depuis la Tour (minimum actuel : '
+      + (versionsCfg.min || 'aucun') + '). Avant ça, un mot de passe refait d\'ici ne serait exécuté par aucun appareil, et la personne resterait bloquée.' });
+  const bruts = Array.isArray(b.comptes) ? b.comptes.slice(0, 40) : [];
+  if (!bruts.length) return res.status(400).json({ error: 'comptes requis' });
+  const annu = (comptesReg[t] && comptesReg[t].c) || {};
+  const refuses = [], cibles = [], vus = new Set();
+  for (const x of bruts) {
+    const login = monStr(x && x.login, 40).toLowerCase().trim();
+    const h = monStr(x && x.h, 64).toLowerCase();
+    if (!login || vus.has(login)) continue;
+    vus.add(login);
+    /* ⛔ Une empreinte qui n'en est pas une poserait `pwdHash` à n'importe quoi, et le compte
+       deviendrait inconnectable — on refuse, on ne « nettoie » pas. */
+    if (!/^[0-9a-f]{64}$/.test(h)) { refuses.push({ login, raison: 'empreinte invalide' }); continue; }
+    if (!Object.prototype.hasOwnProperty.call(annu, login)) { refuses.push({ login, raison: 'absent de l\'annuaire' }); continue; }
+    if (ordreBanni(t, login)) { refuses.push({ login, raison: 'compte supprimé depuis la Tour — réautorise-le d\'abord' }); continue; }
+    if (ordreMdpAttente(t, login)) { refuses.push({ login, raison: 'mot de passe déjà en attente' }); continue; }
+    cibles.push({ login, h });
+  }
+  cibles.sort((x, y) => x.login < y.login ? -1 : x.login > y.login ? 1 : 0);
+  if (!cibles.length) return res.status(409).json({ error: 'aucun compte à refaire dans cette liste', refuses });
+  /* La clé du code porte l'empreinte de la LISTE : un code reçu pour cinq comptes ne peut pas
+     en servir six. Même règle que la suppression en lot, et pour la même raison. */
+  const emp = crypto.createHash('sha256').update(cibles.map(x => x.login).join(',')).digest('hex').slice(0, 16);
+  const cle = 'mdp:' + t + ':' + emp;
+  const codeRecu = monStr(b.code, 10).trim();
+  if (!codeRecu) {   // 1er temps : le code part par mail
+    if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
+    if (retraitCodes.size > 500) for (const [k, v] of retraitCodes) if (Date.now() > v.exp) retraitCodes.delete(k);
+    const code = String(crypto.randomInt(100000, 1000000));
+    retraitCodes.set(cle, { code, exp: Date.now() + 10 * 60000, tries: 0 });
+    const dest = config.notifDemandes || config.smtp.from || config.smtp.user;
+    try {
+      await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
+        confidentiel: true, trace: 'code de remise à zéro de ' + cibles.length + ' mot(s) de passe · espace ' + t.slice(0, 12),   // ni les identifiants ni le code au journal
+        subject: '🔑 Code de confirmation — ' + cibles.length + ' mot(s) de passe provisoire(s) chez ' + espNomPropre(e),
+        text: 'Tu es sur le point de REFAIRE le mot de passe de ' + cibles.length + ' compte(s) de l\'entreprise ' + espNomPropre(e) + ' :\n\n' + cibles.map(x => '  · ' + x.login).join('\n') + '\n\nLeur mot de passe actuel ne marchera plus. Chacun devra en choisir un nouveau à sa prochaine ouverture.\n\nCode de confirmation : ' + code + '\n\nValable 10 minutes. Après validation : l\'annuaire est mis à jour tout de suite (la page de connexion accepte le nouveau mot de passe), et les fiches suivent au premier appareil de l\'entreprise qui s\'ouvre.\n\nSi ce n\'est pas toi, ignore ce message : rien ne se passe sans le code.' });
+    } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
+    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest), logins: cibles.map(x => x.login), refuses });
+  }
+  const c = retraitCodes.get(cle);   // 2e temps : le code revient
+  if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance l\'opération' }); }
+  if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
+  retraitCodes.delete(cle);
+  /* L'annuaire d'abord, et par PBKDF2 sur l'empreinte reçue — la même dérivation qu'`annuaireSemer`,
+     sinon la page de connexion refuserait le mot de passe qu'on vient de donner. On garde le NOM
+     et le drapeau d'adresse (`m`) : refaire un mot de passe n'efface pas ce qu'on savait de la
+     personne. `p: 1` dit la vérité — ce mot de passe est provisoire, et la Tour doit l'afficher. */
+  const derive = (h) => new Promise((ok) => {
+    const sel = crypto.randomBytes(16).toString('hex');
+    crypto.pbkdf2(h, Buffer.from(sel, 'hex'), CNX_ITER, 32, 'sha256', (err, d) => ok(err ? null : { s: sel, e: d.toString('hex') }));
+  });
+  const reg = comptesReg[t] = comptesReg[t] || { c: Object.create(null), maj: 0 };
+  reg.c = reg.c || Object.create(null);
+  const ords = ordresData[t] = ordresData[t] || [];
+  /* L'instantané d'AVANT, pris avant la moindre écriture — jamais reconstruit après coup par
+     une arithmétique de longueurs, qui se casserait au premier ajout dans la boucle. */
+  const regAvant = JSON.parse(JSON.stringify(comptesReg[t]));
+  const ordsAvant = ords.slice();
+  const faits = [], rates = [];
+  for (const x of cibles) {
+    const d = await derive(x.h);
+    /* ⛔ SI LA DÉRIVATION ÉCHOUE, ON N'ORDONNE RIEN. Poser l'ordre sans l'annuaire donnerait un
+       mot de passe qui ouvre l'application mais pas la page d'entrée : une panne de plus, pas
+       une de moins. Les deux moitiés, ou aucune. */
+    if (!d) { rates.push({ login: x.login, raison: 'dérivation impossible' }); continue; }
+    const prec = reg.c[x.login] || {};
+    reg.c[x.login] = { s: d.s, e: d.e, n: prec.n || '', p: 1, m: (typeof prec.m !== 'undefined' ? prec.m : 0) };
+    ords.push({ login: x.login, type: 'mdp', h: x.h, ts: Date.now(), par: (req.tourUser && req.tourUser.nom) || '', fait: 0 });
+    faits.push(x.login);
+  }
+  if (!faits.length) return res.status(500).json({ error: 'aucun mot de passe n\'a pu être enregistré', refuses: refuses.concat(rates) });
+  /* ⛔ LES DEUX MOITIÉS, OU AUCUNE — Y COMPRIS SUR DISQUE. Le commentaire en tête de cette route
+     l'exige, et jeter les valeurs de retour le démentait : si `ordresSave()` échouait, l'annuaire
+     portait le mot de passe neuf et la fiche ne le recevrait JAMAIS ; si `comptesEcrire()`
+     échouait, l'inverse au prochain redémarrage. On restaure et on rend 500, comme le fait déjà
+     `/api/espaces/comptes`. (Signalé par `gardien` le 15 septembre 2026.) */
+  reg.maj = Date.now();
+  if (!comptesEcrire()) { comptesReg[t] = regAvant; ordresData[t] = ordsAvant; return res.status(500).json({ error: 'annuaire non enregistré — rien n\'a changé, réessaie' }); }
+  if (!ordresSave()) {
+    /* L'annuaire est déjà écrit : on le remet comme il était, et on le réécrit. Si CE second
+       tour échoue aussi, le disque est vraiment mort — on le dit plutôt que de laisser croire. */
+    comptesReg[t] = regAvant; ordresData[t] = ordsAvant;
+    const remis = comptesEcrire();
+    return res.status(500).json({ error: remis ? 'ordre non enregistré — rien n\'a changé, réessaie'
+      : 'ÉCRITURE IMPOSSIBLE sur le serveur : l\'annuaire porte les nouveaux mots de passe mais l\'application ne les recevra pas. Préviens TEAM OP avant de les distribuer.' });
+  }
+  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, faits.length + ' mot(s) de passe provisoire(s) refait(s)');
+  res.json({ ok: true, n: faits.length, logins: faits, refuses: refuses.concat(rates) });
 });
 /* ══ LES COPIES DE SAUVEGARDE — le filet demandé par Justin le 9 septembre 2026 ══
    « Il faudrait une sauvegarde sur le cloud de chaque chose qu'ils font, pour chaque entreprise. »
@@ -2466,26 +2680,81 @@ app.post('/api/espaces/ordres', (req, res) => {
   if (!t) return res.status(400).json({ error: 't requis' });
   if (entFermes.espaces.includes(t)) return res.status(403).json({ error: 'espace fermé' });
   const ok = espaceCleOk(t, kh); if (ok === null) return res.status(404).json({ error: 'espace inconnu' }); if (!ok) return res.status(403).json({ error: 'clé d\'équipe incorrecte' });
-  res.json({ ok: true, suppressions: ordresServis(t) });
+  /* ⛔ LA CLÉ PARTAGÉE NE PROUVE RIEN, ET CETTE ROUTE SERT DÉSORMAIS DES ÉQUIVALENTS DE MOT DE
+     PASSE. `cleEstPublique(t)` est vraie quand la clé de l'espace est celle écrite EN CLAIR dans
+     `app.html` : la présenter ne prouve rien, et le nom d'une entreprise se lit sur un camion.
+     ⚠️ MAIS ON NE FERME QUE LA MOITIÉ QUI PORTE UN SECRET. Refuser la route entière couperait
+     aussi les SUPPRESSIONS d'une entreprise restée sur cette clé — un changement de comportement
+     pour elle, le jour du déploiement, sans rapport avec ce qu'on ajoute. Les suppressions ne
+     donnent rien à qui les lit (une liste d'identifiants qu'on connaît déjà en devinant le nom
+     de l'entreprise) ; les mots de passe, si. On rend donc `mdp: []` et on laisse le reste
+     exactement comme avant. (Garde signalée par `gardien` le 15 septembre 2026.) */
+  const secretOk = !cleEstPublique(t);
+  /* `suppressions` garde son nom et son sens exacts : une application d'avant le 15 septembre
+     2026 lit ce champ et ignore le reste, donc elle continue de marcher sans rien recevoir
+     qu'elle ne sache traiter. */
+  res.json({ ok: true, suppressions: ordresServis(t), mdp: secretOk ? ordresMdp(t) : [] });
 });
 app.post('/api/espaces/ordre-fait', (req, res) => {
   const b = req.body || {}; const t = monStr(b.t, 80), kh = monStr(b.kh, 64).toLowerCase();
   if (!t) return res.status(400).json({ error: 't requis' });
   const ok = espaceCleOk(t, kh); if (ok === null) return res.status(404).json({ error: 'espace inconnu' }); if (!ok) return res.status(403).json({ error: 'clé d\'équipe incorrecte' });
-  const faits = new Set((Array.isArray(b.logins) ? b.logins : []).map(x => monStr(x, 40).toLowerCase().trim()).filter(Boolean));
-  let n = 0; for (const o of (ordresData[t] || [])) { if (!o.fait && faits.has(o.login)) { o.fait = Date.now(); n++; } }
-  if (n) { ordresSave(); console.log('ordre de suppression exécuté :', n, 'compte(s) · espace', t.slice(0, 12)); }
-  res.json({ ok: true, n });
+  const lst = x => new Set((Array.isArray(x) ? x : []).map(y => monStr(y, 40).toLowerCase().trim()).filter(Boolean));
+  const faits = lst(b.logins), faitsMdp = lst(b.mdp);
+  /* ⛔ ON N'ACQUITTE QUE CE QU'ON A FAIT, ET CHAQUE SORTE SÉPARÉMENT. Avant le typage, un
+     acquittement de suppression marquait « fait » TOUT ordre portant le même identifiant : un
+     mot de passe en attente pour cette personne aurait été classé sans jamais avoir été posé,
+     et personne n'aurait rien vu. Une application d'avant le 15 septembre 2026 n'envoie que
+     `logins` — elle n'acquitte donc que des suppressions, ce qui est exactement ce qu'elle sait
+     faire. */
+  let n = 0, nm = 0;
+  for (const o of (ordresData[t] || [])) {
+    if (o.fait) continue;
+    if (estSuppr(o) && faits.has(o.login)) { o.fait = Date.now(); n++; }
+    /* ⛔ L'EMPREINTE PART AVEC L'ACQUITTEMENT. C'est un équivalent de mot de passe (voir
+       `ordresMdp`) : une fois posée sur la fiche, la garder ne sert plus à rien et transforme
+       `ordres.json` en réserve de secrets utilisables. On garde la trace du geste (qui, quand),
+       jamais de quoi s'en servir. */
+    else if (o.type === 'mdp' && faitsMdp.has(o.login)) { o.fait = Date.now(); delete o.h; nm++; }
+  }
+  if (n || nm) { ordresSave();
+    if (n) console.log('ordre de suppression exécuté :', n, 'compte(s) · espace', t.slice(0, 12));
+    if (nm) console.log('ordre de mot de passe exécuté :', nm, 'compte(s) · espace', t.slice(0, 12)); }
+  res.json({ ok: true, n, nm });
 });
 /* Le patron peut rendre un identifiant à l'entreprise (un nouveau salarié qui porte le même) :
    c'est la seule façon de lever le ban — jamais un appareil. */
 app.post('/api/monitor/compte/reautoriser', monPatronStrict, (req, res) => {
   const b = req.body || {}; const t = monStr(b.t, 80), login = monStr(b.login, 40).toLowerCase().trim();
   if (!t || !login) return res.status(400).json({ error: 't et login requis' });
-  let n = 0; for (const o of (ordresData[t] || [])) { if (o.login === login && o.banni !== false) { o.banni = false; n++; } }
+  /* ⛔ `estSuppr` : un ordre de MOT DE PASSE n'est pas un ban. Sans ce filtre, la route rendait
+     `ok:true` sur un compte qui n'en avait aucun, posait `banni:false` sur l'ordre de mot de
+     passe — et ne réparait rien, puisque le gel d'annuaire ignore `banni`. La Tour disait
+     « réautorisé » sur une opération qui n'avait rien fait. */
+  let n = 0; for (const o of (ordresData[t] || [])) { if (estSuppr(o) && o.login === login && o.banni !== false) { o.banni = false; n++; } }
   if (!n) return res.status(404).json({ error: 'aucun ban pour cet identifiant' });
   ordresSave(); monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'identifiant réautorisé');
   res.json({ ok: true });
+});
+/* ══ ANNULER UN MOT DE PASSE ORDONNÉ — la porte de sortie, et elle est obligatoire ══════════
+   Tant qu'un ordre de mot de passe est vivant, l'annuaire de ce compte est GELÉ sur l'empreinte
+   écrite par la Tour : aucun dépôt de l'entreprise ne le change (voir /api/espaces/comptes).
+   C'est ce qui rend l'opération sûre dans n'importe quel ordre d'arrivée — et c'est aussi ce qui
+   enfermerait quelqu'un si l'ordre n'était jamais exécuté. Les trente jours de péremption
+   suffisent à ne plus enfermer PERSONNE À VIE ; ils ne suffisent pas à dépanner quelqu'un tout
+   de suite. D'où cette route : le patron abandonne l'ordre, le gel tombe immédiatement, et
+   l'entreprise reprend la main sur son annuaire dès son prochain dépôt.
+   (Manquait à la livraison du 15 septembre 2026 — signalé par `gardien` avant déploiement.) */
+app.post('/api/monitor/compte/mdp-annuler', monPatronStrict, (req, res) => {
+  const b = req.body || {}; const t = monStr(b.t, 80), login = monStr(b.login, 40).toLowerCase().trim();
+  if (!t || !login) return res.status(400).json({ error: 't et login requis' });
+  /* On marque `fait` plutôt que de retirer la ligne : la trace du geste reste (qui, quand), et
+     l'empreinte part — c'est un équivalent de mot de passe, il n'a plus rien à faire là. */
+  let n = 0; for (const o of (ordresData[t] || [])) { if (o && o.type === 'mdp' && o.login === login && !o.fait) { o.fait = Date.now(); o.annule = 1; delete o.h; n++; } }
+  if (!n) return res.status(404).json({ error: 'aucun mot de passe en attente pour cet identifiant' });
+  if (!ordresSave()) return res.status(500).json({ error: 'annulation non enregistrée — réessaie' });
+  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'mot de passe ordonné annulé');
+  res.json({ ok: true, n });
 });
 /* Résumé lisible d'un espace : dernière connexion, utilisateurs et appareils actifs, échecs, versions */
 function cnxResume(t) {
@@ -3361,6 +3630,15 @@ app.post('/api/espaces/comptes', (req, res) => {
     if (!login || INTERDITS.includes(login)) continue;
     if (!/^[0-9a-f]{32}$/.test(sel) || !/^[0-9a-f]{64}$/.test(emp)) continue;
     if (ordreBanni(t, login)) continue;   // supprimé depuis la Tour : la porte reste fermée tant que le patron ne réautorise pas
+    /* ⛔ UN MOT DE PASSE REFAIT DEPUIS LA TOUR NE SE FAIT PAS DÉFAIRE PAR UN DÉPÔT. Cette route
+       remplace `comptes.json` EN ENTIER à partir des fiches de l'appareil qui dépose. Or l'ordre
+       de mot de passe met un moment à être exécuté : entre-temps, n'importe quel appareil qui
+       ajoute un utilisateur redéposerait l'ANCIENNE empreinte, et l'annuaire reperdrait le mot
+       de passe que le patron vient de dicter au téléphone — sans que rien ne le signale.
+       On garde donc l'entrée telle que la Tour l'a écrite tant que l'ordre est en attente.
+       Ce n'est pas une exception de confort : c'est la seule façon de rendre les deux moitiés
+       (annuaire tout de suite, fiche plus tard) sûres dans n'importe quel ordre d'arrivée. */
+    if (ordreMdpAttente(t, login) && Object.prototype.hasOwnProperty.call(ancien, login)) { table[login] = ancien[login]; continue; }
     /* ⛔ DEUX BOOLÉENS, ET RIEN DE PERSONNEL — Justin, 15 septembre 2026 : « on voit les
        identifiants qui changent leur mot de passe, et on voit ceux qui sont toujours en mot de
        passe provisoire ». La base de l'entreprise est chiffrée : ce serveur ne peut PAS la
