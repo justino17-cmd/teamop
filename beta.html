@@ -4805,50 +4805,7 @@ var tmLastSend=0, tmSending=false, tmT=Date.now();
       était classée dans « Commandes » parce qu'on y envoie les bons de commande. C'est une
       boîte e-mail. */
 var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',chantiers:'Interventions',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',audit:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
-/* ⛔ CE QUE CETTE VALEUR EST, ET CE QU'ELLE N'EST PAS. `tmCat()` nomme L'ÉCRAN OUVERT au moment
-   de l'incident. Ce n'est PAS l'endroit d'où vient l'erreur, et rien ne le garantit : une
-   promesse rejetée par un travail de fond (le poll IndexedDB de Firebase Auth, par exemple)
-   tombe sous l'écran que la personne regardait, quel qu'il soit.
-   Constaté le 15 septembre 2026 : un rejet d'IndexedDB rangé sous « Plans », un écran qui ne
-   contient pas une ligne d'IndexedDB. Le diagnostic est parti chercher au mauvais endroit, et
-   le courriel de clôture allait annoncer au client « un dysfonctionnement sur Plans ».
-   On garde l'information — savoir ce que la personne regardait AIDE — mais elle s'appelle
-   désormais ce qu'elle est, et elle voyage à côté de la VRAIE origine, lue dans la pile. */
 function tmCat(){ try{ return (typeof current!=='undefined'&&current&&(TM_CAT[current]||String(current).slice(0,30)))||'Général'; }catch(_){ return 'Général'; } }
-/* ⛔ L'ORIGINE RÉELLE : LE PREMIER CADRE NOMMÉ DE LA PILE. Elle, elle désigne le coupable.
-   L'application n'est pas minifiée — c'est la contrepartie du fichier unique — donc les noms de
-   fonctions sont les vrais, et `boxPoserProduits` dans un dossier vaut dix minutes de recherche.
-   Deux écritures de pile à lire, parce qu'il y a deux familles de navigateurs et que les
-   téléphones de terrain sont des deux côtés :
-     · Chrome/Edge  «     at boxPoserProduits (https://teamop.fr/app.html:12345:67) »
-     · Safari/Firefox  « boxPoserProduits@https://teamop.fr/app.html:12345:67 »
-   On saute les cadres de la sentinelle elle-même : elle est TOUJOURS en haut de la pile d'un
-   signalement, et rendre « tmPush » comme origine serait exactement la même faute qu'avant —
-   une valeur qui a l'air d'une réponse et n'en est pas une.
-   Rien de personnel n'en sort : ce sont les noms de nos propres fonctions. */
-function tmOrigine(stack){
-  try{
-    var lignes=String(stack||'').split('\n');
-    for(var i=0;i<lignes.length&&i<14;i++){
-      var m=/^\s*at\s+(?:async\s+|new\s+)?([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(/.exec(lignes[i])
-         || /^\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)@/.exec(lignes[i]);
-      if(!m) continue;
-      var n=m[1];
-      /* ⛔ ON FILTRE SUR LA RACINE DU NOM, PAS SUR LE NOM ENTIER. Premier jet : le filtre testait
-         `n` en bloc, donc `Promise$` ne mordait pas sur « Promise.then » — et la sentinelle
-         rendait « Promise.then » comme origine d'une erreur venue de `boxAdj`, deux cadres plus
-         bas. Exactement la faute qu'on corrige, refaite en la corrigeant. Attrapé par
-         `tests/test-703.js`, pas par une relecture. */
-      var racine=n.split('.')[0];
-      /* La sentinelle, les enveloppes anonymes et les natifs ne sont l'origine de rien. */
-      if(/^tm[A-Z0-9_]/.test(racine)) continue;
-      if(racine==='rep'||racine==='Object'||racine==='Array'||racine==='Promise'||racine==='Function'||racine==='eval'||racine==='globalThis'||racine==='window') continue;
-      if(n.length<2) continue;
-      return n.slice(0,60);
-    }
-    return '';
-  }catch(_){ return ''; }
-}
 function tmVer(){ try{ return String(typeof APP_VERSION!=='undefined'?APP_VERSION:''); }catch(_){ return ''; } }
 function tmEnt(){ var nom='',email='';
   try{ var D=(typeof db!=='undefined'&&db)||{}; nom=(((D.entreprise||{}).nom)||'').trim()||((D.mailFrom||'').trim()); email=((D.mailReply||'').trim())||((typeof currentUser!=='undefined'&&currentUser&&(currentUser.mailReply||'').trim())||''); }catch(_){ }
@@ -4891,7 +4848,7 @@ function tmPush(type,message,stack,src,line){ try{
   var q=tmLoad(), e=null;
   for(var i=0;i<q.length;i++){ if(q[i].signature===sig){ e=q[i]; break; } }
   if(e){ e.count=(e.count||1)+1; }
-  else{ var ent=tmEnt(), qui=tmQui(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),origine:tmOrigine(stack),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),user:qui.login,espace:qui.espace,count:1,ts:Date.now()}); }
+  else{ var ent=tmEnt(), qui=tmQui(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),user:qui.login,espace:qui.espace,count:1,ts:Date.now()}); }
   tmSaveQ(q); setTimeout(tmFlush,500);
 }catch(_){ } }
 function tmFlush(){ try{
@@ -4955,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '692-beta';
+const APP_VERSION = '691-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -5453,6 +5410,26 @@ let _NF;
 const eur = n => { const v=Number(n)||0;
   if(_NF===undefined){ try{ _NF=new Intl.NumberFormat('fr-FR'); }catch(e){ _NF=null; } }
   return (_NF?_NF.format(v):v.toLocaleString('fr-FR')) + ' €'; };
+/* ══ UNE FRAPPE NE REDESSINE PLUS UNE LISTE ENTIÈRE ═════════════════════════════════════════
+   ⛔ Signalé par Justin le 15 septembre 2026 au soir, chez ELAN : « dès qu'ils cherchent un
+   produit, où ils écrivent, l'application rame, on doit taper lettre par lettre ».
+   MESURÉ, base aux proportions d'ELAN, processeur ralenti ×4 (un téléphone de terrain) : taper
+   « rongeur » dans la recherche de produits coûtait **1 230 ms à la première lettre puis ~300 ms
+   à chacune des six suivantes**. Le doigt va plus vite que l'écran : on tape, rien ne bouge, on
+   attend, on tape la lettre d'après. C'est exactement ce qu'il décrit.
+   ⛔ ET LE PROFILEUR A DÉSIGNÉ AUTRE CHOSE QUE LA RECHERCHE — comme ce matin. 60 % du temps est
+   passé DANS LE NAVIGATEUR (mise en page et peinture d'une liste reconstruite en entier), et
+   10,8 % dans `icones`, qui reparcourt TOUS les nœuds de texte du sous-arbre à chaque rendu.
+   Filtrer 220 produits ne coûte presque rien ; le refaire SEPT FOIS, si.
+   On pose donc la variable tout de suite — le champ reste juste, le curseur ne bouge pas — et
+   on ne REDESSINE qu'une fois la frappe finie. Un seul minuteur suffit : un seul champ a le
+   focus à la fois.
+   ⚠️ 170 ms : assez pour avaler une rafale de frappe, trop court pour se remarquer. Ne pas
+   monter plus haut sans mesurer — au-delà, la liste paraît en retard sur le doigt.
+   ⚠️ Les sept fonctions de rendu concernées commencent toutes par `const el=$('…'); if(!el)
+   return;` — un rendu différé qui arrive après un changement d'écran ne fait donc rien. */
+let _rechT=0;
+function rechDiffere(fn){ clearTimeout(_rechT); _rechT=setTimeout(function(){ try{ fn(); }catch(e){} },170); }
 const initials = name => (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 const todayISO = () => isoDe(new Date());
 /* Le jour d'un horodatage, DANS LE FUSEAU DE LA PERSONNE. new Date(ts).toISOString() range en
@@ -17581,7 +17558,7 @@ function fcPlus(){ fcMax+=120; renderFourCat(); }
 function openFourCat(){ fcFour=''; fcQ=''; fcMax=80;
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Fermer</button><h3>🏭 Catalogues fournisseurs</h3><span style="width:58px"></span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px" id="fc-chips"></div>
-    <input class="search-inp" id="fc-q" style="margin:0 0 10px" placeholder="Rechercher parmi ${CATFOUR.length} produits…" oninput="fcQ=this.value;fcMax=80;renderFourCat()">
+    <input class="search-inp" id="fc-q" style="margin:0 0 10px" placeholder="Rechercher parmi ${CATFOUR.length} produits…" oninput="fcQ=this.value;fcMax=80;rechDiffere(renderFourCat)">
     <div id="fc-list"></div>`);
   renderFourCatChips(); renderFourCat();
 }
@@ -17659,7 +17636,7 @@ views.produits=function(){
   setHeader('Produits',`Catalogue · ${db.produits.length} références`,`<button class="btn ghost" onclick="openFourCat()">🏭 Fournisseurs</button> ${(_np&&currentUser&&currentUser.role==='admin')?`<button class="btn ghost" onclick="prixEffacer()" title="Retirer les tarifs venus du catalogue fournisseur">💶 Effacer les prix (${_np})</button> `:''}${catalogueEnPlace()?'<button class="btn ghost" onclick="restoreCatalogue()">↻ Catalogue OP</button> ':''}<button class="btn ghost" onclick="openScanner()">Scanner</button> <button class="btn ghost" onclick="produitsCopier()" title="Copier la liste affichée, pour la coller dans un autre espace avec « ＋ Liste »">⧉ Copier la liste</button> <button class="btn ghost" onclick="formProduitsListe()">＋ Liste</button> <button class="btn" onclick="formProduit()">＋ Produit</button>`);
   const nbP=db.produits.filter(p=>p.perso).length;
   $('content').innerHTML=produitsDoublonsBandeau()+produitsDistinctsLigne()+`<div class="filters" style="margin:0 0 8px">${[['tous','Tous · '+db.produits.length],['perso','Mes produits · '+nbP],['catalogue','Catalogue 3D (nuisibles) · '+(db.produits.length-nbP)]].map(([k,l])=>`<div class="chip ${prdOnglet===k?'active':''}" onclick="prdOnglet='${k}';renderProduitsList()">${l}</div>`).join('')}</div>
-    <input class="search-inp" id="prd-search" placeholder="Rechercher un produit, une référence, un fournisseur…" value="${esc(prdSearch)}" oninput="prdSearch=this.value;renderProduitsList()">
+    <input class="search-inp" id="prd-search" placeholder="Rechercher un produit, une référence, un fournisseur…" value="${esc(prdSearch)}" oninput="prdSearch=this.value;rechDiffere(renderProduitsList)">
     <div id="prd-list"></div>`;
   renderProduitsList();
 };
@@ -18935,7 +18912,7 @@ function renderBoxDetail(){
          tape, et on avait un pavé au milieu. Ils sont hors de #boxprod-list, donc dans leur
          propre conteneur, que renderBoxProdList() remplit en même temps. -->
     <div id="boxprod-haut"></div>
-    <input class="search-inp" id="boxprod-search" placeholder="Rechercher un produit…" value="${esc(boxProdSearch)}" oninput="boxProdSearch=this.value;renderBoxProdList()">
+    <input class="search-inp" id="boxprod-search" placeholder="Rechercher un produit…" value="${esc(boxProdSearch)}" oninput="boxProdSearch=this.value;rechDiffere(renderBoxProdList)">
     <div id="boxprod-list"></div>
     <div class="card-head" style="margin:18px 2px 6px"><h3>Arrivages (${(b.arrivages||[]).length})</h3></div>
     ${(b.arrivages&&b.arrivages.length)? b.arrivages.map(a=>`<div class="pl-row" style="cursor:default">
@@ -20210,7 +20187,7 @@ function bxpRendreAjout(b,c){ const el=$('bxp-corps'); const nouv=c.nouv; const 
   const ecartesHtml=ecartes.length?`<div class="bxp-ecartes"><span>${ecartes.length} produit${ecartes.length>1?'s':''} écarté${ecartes.length>1?'s':''} pour cette box</span><button type="button" class="btn ghost sm" onclick="bxpEcartesVoir=!bxpEcartesVoir;bxpRendre()">${bxpEcartesVoir?'Masquer':'Revoir'}</button>
       ${bxpEcartesVoir?ecartes.map(pid=>`<div class="pl-row bxp-l bxp-garde" style="cursor:default"><div class="pl-info"><div class="pl-title">${esc(produit(pid).nom||'')}</div></div><button type="button" class="btn ghost sm" onclick="bxpProposerANouveau('${pid}')">Proposer à nouveau</button></div>`).join(''):''}</div>`:'';
   el.innerHTML=bandePack+groupe+`<div class="abp-etat"><span><b>${deja}</b> déjà dans la box</span><span><b>${c.dispo.length}</b> à ajouter</span></div>
-    <div class="bxp-rech"><input class="search-inp" id="abp-search" placeholder="Rechercher un produit…" value="${esc(bxpQ)}" oninput="bxpQ=this.value;renderAbpList()" autocomplete="off"><button type="button" class="btn ghost sm" id="abp-tout" onclick="abpToggleAll()">Tout cocher</button></div>
+    <div class="bxp-rech"><input class="search-inp" id="abp-search" placeholder="Rechercher un produit…" value="${esc(bxpQ)}" oninput="bxpQ=this.value;rechDiffere(renderAbpList)" autocomplete="off"><button type="button" class="btn ghost sm" id="abp-tout" onclick="abpToggleAll()">Tout cocher</button></div>
     <div id="abp-list"></div>${ecartesHtml}
     <div class="bl-pied bxp-pied" id="bxp-pose-pied"></div>`;
   renderAbpList(); }
@@ -22027,7 +22004,7 @@ function bonCatOpen(){ if(!peutCommander()){ refusCommander(); return; } _bonCat
       <b style="flex:1;text-align:center;font-size:15px">📖 Catalogue</b>
       <button type="button" class="btn sm" onclick="bonCatApply()">Valider (<span id="bcat-n">0</span>)</button></div>
     <div id="bcat-chips" style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0"></div>
-    <div style="padding:10px 16px 0"><input class="search-inp" id="bcat-q" style="margin:0" placeholder="Rechercher un produit, une réf, un fournisseur…" oninput="bonCatList()"></div>
+    <div style="padding:10px 16px 0"><input class="search-inp" id="bcat-q" style="margin:0" placeholder="Rechercher un produit, une réf, un fournisseur…" oninput="rechDiffere(bonCatList)"></div>
     <div id="bcat-list" style="flex:1;overflow-y:auto;padding:10px 16px calc(30px + env(safe-area-inset-bottom))"></div>`;
   document.body.appendChild(ov); bonCatChips(); bonCatList();
 }
@@ -28286,7 +28263,7 @@ views.saisieConso=function(){
 };
 function renderConso(){ const el=$('conso-wrap'); if(!el) return;
   if(!consoBox){ el.innerHTML=`<div class="card">${emptyState('📋','Choisis une box pour saisir la consommation.','','')}</div>`; return; }
-  el.innerHTML=`<input class="search-inp" placeholder="Rechercher un produit…" value="${esc(consoSearch)}" oninput="consoSearch=this.value;renderConsoRows()"><div id="conso-rows"></div>`;
+  el.innerHTML=`<input class="search-inp" placeholder="Rechercher un produit…" value="${esc(consoSearch)}" oninput="consoSearch=this.value;rechDiffere(renderConsoRows)"><div id="conso-rows"></div>`;
   renderConsoRows();
 }
 function renderConsoRows(){ const el=$('conso-rows'); if(!el) return; const b=db.boxes.find(x=>x.id===consoBox); if(!b) return; b.stock=b.stock||{};
@@ -28721,7 +28698,7 @@ views.secteurs=function(){
 
 /* ═══════════════ RECHERCHE GLOBALE ═══════════════ */
 function openSearch(){ openModal(`<div class="modal-head"><h3>Rechercher partout</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <input class="search-inp" id="gsearch" placeholder="Client, intervention, produit, box, véhicule, devis…" oninput="renderSearch(this.value)">
+    <input class="search-inp" id="gsearch" placeholder="Client, intervention, produit, box, véhicule, devis…" oninput="var _v=this.value;rechDiffere(function(){ renderSearch(_v); })">
     <div id="gsearch-res"><div style="color:var(--t3);font-size:13px;padding:8px">Tapez au moins 2 lettres…</div></div>`);
   setTimeout(()=>{ const i=$('gsearch'); if(i) i.focus(); },60); }
 function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=norm(qq);

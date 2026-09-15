@@ -5410,6 +5410,26 @@ let _NF;
 const eur = n => { const v=Number(n)||0;
   if(_NF===undefined){ try{ _NF=new Intl.NumberFormat('fr-FR'); }catch(e){ _NF=null; } }
   return (_NF?_NF.format(v):v.toLocaleString('fr-FR')) + ' €'; };
+/* ══ UNE FRAPPE NE REDESSINE PLUS UNE LISTE ENTIÈRE ═════════════════════════════════════════
+   ⛔ Signalé par Justin le 15 septembre 2026 au soir, chez ELAN : « dès qu'ils cherchent un
+   produit, où ils écrivent, l'application rame, on doit taper lettre par lettre ».
+   MESURÉ, base aux proportions d'ELAN, processeur ralenti ×4 (un téléphone de terrain) : taper
+   « rongeur » dans la recherche de produits coûtait **1 230 ms à la première lettre puis ~300 ms
+   à chacune des six suivantes**. Le doigt va plus vite que l'écran : on tape, rien ne bouge, on
+   attend, on tape la lettre d'après. C'est exactement ce qu'il décrit.
+   ⛔ ET LE PROFILEUR A DÉSIGNÉ AUTRE CHOSE QUE LA RECHERCHE — comme ce matin. 60 % du temps est
+   passé DANS LE NAVIGATEUR (mise en page et peinture d'une liste reconstruite en entier), et
+   10,8 % dans `icones`, qui reparcourt TOUS les nœuds de texte du sous-arbre à chaque rendu.
+   Filtrer 220 produits ne coûte presque rien ; le refaire SEPT FOIS, si.
+   On pose donc la variable tout de suite — le champ reste juste, le curseur ne bouge pas — et
+   on ne REDESSINE qu'une fois la frappe finie. Un seul minuteur suffit : un seul champ a le
+   focus à la fois.
+   ⚠️ 170 ms : assez pour avaler une rafale de frappe, trop court pour se remarquer. Ne pas
+   monter plus haut sans mesurer — au-delà, la liste paraît en retard sur le doigt.
+   ⚠️ Les sept fonctions de rendu concernées commencent toutes par `const el=$('…'); if(!el)
+   return;` — un rendu différé qui arrive après un changement d'écran ne fait donc rien. */
+let _rechT=0;
+function rechDiffere(fn){ clearTimeout(_rechT); _rechT=setTimeout(function(){ try{ fn(); }catch(e){} },170); }
 const initials = name => (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 const todayISO = () => isoDe(new Date());
 /* Le jour d'un horodatage, DANS LE FUSEAU DE LA PERSONNE. new Date(ts).toISOString() range en
@@ -17538,7 +17558,7 @@ function fcPlus(){ fcMax+=120; renderFourCat(); }
 function openFourCat(){ fcFour=''; fcQ=''; fcMax=80;
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Fermer</button><h3>🏭 Catalogues fournisseurs</h3><span style="width:58px"></span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px" id="fc-chips"></div>
-    <input class="search-inp" id="fc-q" style="margin:0 0 10px" placeholder="Rechercher parmi ${CATFOUR.length} produits…" oninput="fcQ=this.value;fcMax=80;renderFourCat()">
+    <input class="search-inp" id="fc-q" style="margin:0 0 10px" placeholder="Rechercher parmi ${CATFOUR.length} produits…" oninput="fcQ=this.value;fcMax=80;rechDiffere(renderFourCat)">
     <div id="fc-list"></div>`);
   renderFourCatChips(); renderFourCat();
 }
@@ -17616,7 +17636,7 @@ views.produits=function(){
   setHeader('Produits',`Catalogue · ${db.produits.length} références`,`<button class="btn ghost" onclick="openFourCat()">🏭 Fournisseurs</button> ${(_np&&currentUser&&currentUser.role==='admin')?`<button class="btn ghost" onclick="prixEffacer()" title="Retirer les tarifs venus du catalogue fournisseur">💶 Effacer les prix (${_np})</button> `:''}${catalogueEnPlace()?'<button class="btn ghost" onclick="restoreCatalogue()">↻ Catalogue OP</button> ':''}<button class="btn ghost" onclick="openScanner()">Scanner</button> <button class="btn ghost" onclick="produitsCopier()" title="Copier la liste affichée, pour la coller dans un autre espace avec « ＋ Liste »">⧉ Copier la liste</button> <button class="btn ghost" onclick="formProduitsListe()">＋ Liste</button> <button class="btn" onclick="formProduit()">＋ Produit</button>`);
   const nbP=db.produits.filter(p=>p.perso).length;
   $('content').innerHTML=produitsDoublonsBandeau()+produitsDistinctsLigne()+`<div class="filters" style="margin:0 0 8px">${[['tous','Tous · '+db.produits.length],['perso','Mes produits · '+nbP],['catalogue','Catalogue 3D (nuisibles) · '+(db.produits.length-nbP)]].map(([k,l])=>`<div class="chip ${prdOnglet===k?'active':''}" onclick="prdOnglet='${k}';renderProduitsList()">${l}</div>`).join('')}</div>
-    <input class="search-inp" id="prd-search" placeholder="Rechercher un produit, une référence, un fournisseur…" value="${esc(prdSearch)}" oninput="prdSearch=this.value;renderProduitsList()">
+    <input class="search-inp" id="prd-search" placeholder="Rechercher un produit, une référence, un fournisseur…" value="${esc(prdSearch)}" oninput="prdSearch=this.value;rechDiffere(renderProduitsList)">
     <div id="prd-list"></div>`;
   renderProduitsList();
 };
@@ -18892,7 +18912,7 @@ function renderBoxDetail(){
          tape, et on avait un pavé au milieu. Ils sont hors de #boxprod-list, donc dans leur
          propre conteneur, que renderBoxProdList() remplit en même temps. -->
     <div id="boxprod-haut"></div>
-    <input class="search-inp" id="boxprod-search" placeholder="Rechercher un produit…" value="${esc(boxProdSearch)}" oninput="boxProdSearch=this.value;renderBoxProdList()">
+    <input class="search-inp" id="boxprod-search" placeholder="Rechercher un produit…" value="${esc(boxProdSearch)}" oninput="boxProdSearch=this.value;rechDiffere(renderBoxProdList)">
     <div id="boxprod-list"></div>
     <div class="card-head" style="margin:18px 2px 6px"><h3>Arrivages (${(b.arrivages||[]).length})</h3></div>
     ${(b.arrivages&&b.arrivages.length)? b.arrivages.map(a=>`<div class="pl-row" style="cursor:default">
@@ -20167,7 +20187,7 @@ function bxpRendreAjout(b,c){ const el=$('bxp-corps'); const nouv=c.nouv; const 
   const ecartesHtml=ecartes.length?`<div class="bxp-ecartes"><span>${ecartes.length} produit${ecartes.length>1?'s':''} écarté${ecartes.length>1?'s':''} pour cette box</span><button type="button" class="btn ghost sm" onclick="bxpEcartesVoir=!bxpEcartesVoir;bxpRendre()">${bxpEcartesVoir?'Masquer':'Revoir'}</button>
       ${bxpEcartesVoir?ecartes.map(pid=>`<div class="pl-row bxp-l bxp-garde" style="cursor:default"><div class="pl-info"><div class="pl-title">${esc(produit(pid).nom||'')}</div></div><button type="button" class="btn ghost sm" onclick="bxpProposerANouveau('${pid}')">Proposer à nouveau</button></div>`).join(''):''}</div>`:'';
   el.innerHTML=bandePack+groupe+`<div class="abp-etat"><span><b>${deja}</b> déjà dans la box</span><span><b>${c.dispo.length}</b> à ajouter</span></div>
-    <div class="bxp-rech"><input class="search-inp" id="abp-search" placeholder="Rechercher un produit…" value="${esc(bxpQ)}" oninput="bxpQ=this.value;renderAbpList()" autocomplete="off"><button type="button" class="btn ghost sm" id="abp-tout" onclick="abpToggleAll()">Tout cocher</button></div>
+    <div class="bxp-rech"><input class="search-inp" id="abp-search" placeholder="Rechercher un produit…" value="${esc(bxpQ)}" oninput="bxpQ=this.value;rechDiffere(renderAbpList)" autocomplete="off"><button type="button" class="btn ghost sm" id="abp-tout" onclick="abpToggleAll()">Tout cocher</button></div>
     <div id="abp-list"></div>${ecartesHtml}
     <div class="bl-pied bxp-pied" id="bxp-pose-pied"></div>`;
   renderAbpList(); }
@@ -21984,7 +22004,7 @@ function bonCatOpen(){ if(!peutCommander()){ refusCommander(); return; } _bonCat
       <b style="flex:1;text-align:center;font-size:15px">📖 Catalogue</b>
       <button type="button" class="btn sm" onclick="bonCatApply()">Valider (<span id="bcat-n">0</span>)</button></div>
     <div id="bcat-chips" style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0"></div>
-    <div style="padding:10px 16px 0"><input class="search-inp" id="bcat-q" style="margin:0" placeholder="Rechercher un produit, une réf, un fournisseur…" oninput="bonCatList()"></div>
+    <div style="padding:10px 16px 0"><input class="search-inp" id="bcat-q" style="margin:0" placeholder="Rechercher un produit, une réf, un fournisseur…" oninput="rechDiffere(bonCatList)"></div>
     <div id="bcat-list" style="flex:1;overflow-y:auto;padding:10px 16px calc(30px + env(safe-area-inset-bottom))"></div>`;
   document.body.appendChild(ov); bonCatChips(); bonCatList();
 }
@@ -28243,7 +28263,7 @@ views.saisieConso=function(){
 };
 function renderConso(){ const el=$('conso-wrap'); if(!el) return;
   if(!consoBox){ el.innerHTML=`<div class="card">${emptyState('📋','Choisis une box pour saisir la consommation.','','')}</div>`; return; }
-  el.innerHTML=`<input class="search-inp" placeholder="Rechercher un produit…" value="${esc(consoSearch)}" oninput="consoSearch=this.value;renderConsoRows()"><div id="conso-rows"></div>`;
+  el.innerHTML=`<input class="search-inp" placeholder="Rechercher un produit…" value="${esc(consoSearch)}" oninput="consoSearch=this.value;rechDiffere(renderConsoRows)"><div id="conso-rows"></div>`;
   renderConsoRows();
 }
 function renderConsoRows(){ const el=$('conso-rows'); if(!el) return; const b=db.boxes.find(x=>x.id===consoBox); if(!b) return; b.stock=b.stock||{};
@@ -28678,7 +28698,7 @@ views.secteurs=function(){
 
 /* ═══════════════ RECHERCHE GLOBALE ═══════════════ */
 function openSearch(){ openModal(`<div class="modal-head"><h3>Rechercher partout</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <input class="search-inp" id="gsearch" placeholder="Client, intervention, produit, box, véhicule, devis…" oninput="renderSearch(this.value)">
+    <input class="search-inp" id="gsearch" placeholder="Client, intervention, produit, box, véhicule, devis…" oninput="var _v=this.value;rechDiffere(function(){ renderSearch(_v); })">
     <div id="gsearch-res"><div style="color:var(--t3);font-size:13px;padding:8px">Tapez au moins 2 lettres…</div></div>`);
   setTimeout(()=>{ const i=$('gsearch'); if(i) i.focus(); },60); }
 function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=norm(qq);
