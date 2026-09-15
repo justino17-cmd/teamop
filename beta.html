@@ -4912,7 +4912,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '686-beta';
+const APP_VERSION = '687-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -23742,14 +23742,24 @@ views.utilisateurs=function(){
       </div>${ouv?usrDroitsHtml(u,admin):''}</div>`;}).join('');
   $('content').innerHTML=`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">👇 <b>Touche une personne</b> : ses droits se déroulent. Coche, décoche, puis <b>Valider</b> — c'est actif immédiatement, sur tous ses appareils. « ✎ Modifier » ne sert qu'à l'identité (nom, e-mail, rôle, rattachements).</div>`
     +`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">À la création d'un compte, un <b>mot de passe provisoire</b> est généré et <b>envoyé par e-mail</b> avec le lien de connexion de l'entreprise ; la personne choisit ensuite son mot de passe personnel à sa première connexion. ${admin?'« 🔑 » pose un nouveau mot de passe provisoire (et le renvoie par e-mail), et l\'<b>e-mail</b> de chaque fiche sert aussi au « Mot de passe oublié ? ».':'Tu peux créer des comptes ; leur modification reste réservée à l\'administrateur.'}</div>`
-    /* ⛔ LE GESTE GROUPÉ N'APPARAÎT QUE S'IL A QUELQUE CHOSE À FAIRE, et il dit combien.
-       Justin, 15 septembre 2026, capture de la Tour à l'appui : cinq comptes « jamais
-       connecté · mot de passe provisoire · sans e-mail », dont un avec deux échecs — « ils
-       peuvent pas se connecter ». Les reprendre un par un, c'est cinq fenêtres, cinq
-       copier-coller, et une occasion de se tromper de ligne à chaque fois. */
-    +(admin&&db.users.filter(u=>u&&u.actif!==false&&!u.essai&&u.id!==currentUser.id&&secuAFaire(u)).length
-      ? `<div style="margin:0 2px 12px"><button class="btn ghost block" onclick="resetPwdLot()">🔑 Refaire les mots de passe provisoires (${db.users.filter(u=>u&&u.actif!==false&&!u.essai&&u.id!==currentUser.id&&secuAFaire(u)).length} compte${db.users.filter(u=>u&&u.actif!==false&&!u.essai&&u.id!==currentUser.id&&secuAFaire(u)).length>1?'s':''} qui n'ont pas encore choisi le leur)</button></div>`
-      : '')+rows;
+    /* ⛔ LE GESTE GROUPÉ N'EST PAS ICI, ET C'EST UNE DÉCISION. Il y a été une heure, le
+       15 septembre 2026, puis Justin l'a retiré : « je veux pas un bouton dans le truc
+       utilisateur, je veux un bouton moi dans la Tour de contrôle. C'est à nous de gérer ces
+       problèmes-là, c'est nous qui devons avoir la surveillance là-dessus. »
+       Il a raison sur le fond : débloquer une équipe entière est un geste de SUPPORT, pas un
+       geste de client — et le mettre sous la main d'un administrateur qui n'en comprend pas
+       la portée, c'est un jour où quelqu'un refait les mots de passe de toute sa boîte par
+       curiosité. Le bouton unitaire 🔑, lui, reste : il traite UNE personne, c'est un geste
+       de patron.
+       ⚠️ CE QUI LE REMPLACE EN ATTENDANT, et qui rend le retrait sans danger : depuis la v687,
+       une personne sans adresse récupère son accès TOUTE SEULE par « Mot de passe oublié ? ».
+       Elle n'a plus besoin qu'on lui repose un mot de passe.
+       ⛔ ET POURQUOI LE BOUTON DE LA TOUR N'EST PAS ENCORE LÀ : la base d'une entreprise est
+       CHIFFRÉE, le serveur ne peut ni lire ni écrire ses comptes. La Tour ne peut donc pas
+       refaire un mot de passe — elle ne peut qu'ORDONNER, et le premier appareil de
+       l'entreprise qui s'ouvre EXÉCUTE (c'est déjà le mécanisme des suppressions de compte,
+       `ordres.json`). C'est un chantier serveur + Tour + application, pas une case à cocher. */
+    +rows;
 };
 /* ══════════ LES DROITS SE LISENT DANS LA LISTE ══════════════════════════════════════════
    Demande de Justin, 8 septembre 2026 : « la catégorie permission doit être directement dans
@@ -24401,64 +24411,16 @@ async function resetPwd(id){ const p=prompt('Nouveau mot de passe provisoire (8 
   logEvent('Mot de passe réinitialisé','@'+(u.login||''),'auth'); save(); userIdentifiantsModal(u,pwd); }
 /* rétrocompat : les vieux boutons « PIN » pointent maintenant sur le mot de passe */
 function resetPin(id){ return resetPwd(id); }
-/* ══ REFAIRE LES MOTS DE PASSE PROVISOIRES, EN UN GESTE ═══════════════════════════════════
-   Demande de Justin, 15 septembre 2026 : « tu peux faire pour tous les utilisateurs des mots
-   de passe provisoires, pour ceux qui n'ont pas changé, car là ils peuvent pas se connecter ».
-   ⛔ TROIS RÈGLES, ET AUCUNE N'EST DÉCORATIVE :
-   1. On ne touche QU'À CEUX QUI N'ONT PAS ENCORE CHOISI LE LEUR (`secuAFaire`). Refaire le mot
-      de passe de quelqu'un qui a déjà le sien, c'est le mettre dehors sans prévenir.
-   2. UN SEUL DÉPÔT D'ANNUAIRE POUR TOUT LE LOT, et on attend son verdict. C'est la règle de la
-      v680 : on n'annonce pas « voilà les nouveaux accès » sans savoir si le serveur les a pris.
-      Sur un refus, ON REMET TOUT EN ÉTAT — sinon le patron distribue des mots de passe que la
-      page de connexion ne connaît pas, ce qui est exactement la panne qu'on répare.
-   3. LA LISTE S'AFFICHE ET SE COPIE. Ces comptes-là n'ont pas d'adresse e-mail : les envoyer
-      par courriel ne mènerait nulle part, et une fenêtre par personne serait cinq occasions de
-      se tromper de ligne. */
-async function resetPwdLot(){
-  if(!currentUser||currentUser.role!=='admin'){ toast('Réservé à l\'administrateur'); return; }
-  const cibles=db.users.filter(u=>u&&u.actif!==false&&!u.essai&&u.id!==currentUser.id&&secuAFaire(u));
-  if(!cibles.length){ toast('Personne n\'est concerné : tout le monde a choisi son mot de passe ✓'); return; }
-  if(!confirm('Refaire le mot de passe provisoire de '+cibles.length+' compte'+(cibles.length>1?'s':'')+' ?\n\n'
-    +cibles.map(u=>'• '+(u.login||'?')+' — '+fullName(u)).join('\n')
-    +'\n\nLeur ancien mot de passe provisoire cessera de marcher. Ceux qui ont déjà choisi le leur ne sont PAS touchés.')) return;
-  /* L'état d'avant, pour pouvoir tout remettre si le serveur refuse le dépôt. */
-  const avant=cibles.map(u=>({u:u,pwdHash:u.pwdHash,mustChangePwd:u.mustChangePwd,pinHash:u.pinHash,sansMdp:u.sansMdp,secu:u.secu}));
-  const faits=[];
-  for(const u of cibles){
-    const pwd=mdpProvisoire();
-    u.pwdHash=await sha256(pwd); u.mustChangePwd=true; delete u.pinHash; delete u.sansMdp; delete u.secu;
-    faits.push({login:u.login||'', nom:fullName(u), pwd:pwd});
-  }
-  save();
-  const v=await annuaireMaintenant();
-  if(v&&v.ok===false){
-    avant.forEach(a=>{ ['pwdHash','mustChangePwd','pinHash','sansMdp','secu'].forEach(k=>{ if(a[k]===undefined) delete a.u[k]; else a.u[k]=a[k]; }); });
-    save();
-    toast(v.status===426
-      ? '⛔ Cet appareil est sur une version trop ancienne : RIEN n\'a été changé. Mets l\'application à jour et recommence.'
-      : '⛔ Le serveur a refusé d\'enregistrer les nouveaux mots de passe : RIEN n\'a été changé. Réessaie dans un instant.',9000);
-    return;
-  }
-  logEvent('Mots de passe provisoires refaits',faits.length+' compte(s)','auth');
-  const ent=String(lienLisibleNom()||entrepriseNom()||'').trim();
-  const PAGE='https://teamop.fr/connexion.html';
-  const texte='Connexion OP GESTION'+(ent?' — '+ent:'')+'\n\n'
-    +'1. Ouvre cette page : '+PAGE+'\n'
-    +'2. Entre le nom de l\'entreprise : '+(ent||'(à demander)')+'\n'
-    +'3. Ton identifiant et ton mot de passe provisoire ci-dessous.\n\n'
-    +faits.map(f=>'• '+f.nom+'\n   Identifiant : '+f.login+'\n   Mot de passe provisoire : '+f.pwd).join('\n\n')
-    +'\n\nÀ la première connexion, l\'application fait choisir un vrai mot de passe et demande une adresse e-mail.';
-  openModal(`<div class="modal-head"><h3>🔑 ${faits.length} ${faits.length>1?'nouveaux accès':'nouvel accès'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">Les anciens mots de passe provisoires ne marchent plus. Transmets à chacun <b>la page, le nom de l'entreprise, son identifiant et son mot de passe</b> — l'application lui fera choisir le sien, et lui demandera une adresse e-mail.</p>
-    <div class="fgroup" style="margin-bottom:12px">
-      <div class="frow"><span class="frow-lbl">Page de connexion</span><div class="frow-val" style="word-break:break-all;font-size:13px;font-weight:700">${esc(PAGE)}</div></div>
-      <div class="frow"><span class="frow-lbl">Nom de l'entreprise</span><div class="frow-val">${ent?`<b class="mono" style="font-size:16px">${esc(ent)}</b>`:`<span style="color:var(--org,#e8a33d);font-weight:700">⚠️ non renseigné</span>`}</div></div>
-    </div>
-    <div class="fgroup" style="margin-bottom:12px">${faits.map(f=>`<div class="frow"><span class="frow-lbl">${esc(f.nom)}</span><div class="frow-val"><b class="mono">${esc(f.login)}</b> · <b class="mono" style="font-size:16px">${esc(f.pwd)}</b></div></div>`).join('')}</div>
-    <button class="btn block" onclick="copieIdentifiants(this)" data-t="${esc(texte)}">📋 Copier la liste pour l'envoyer</button>
-    <button class="btn ghost block" style="margin-top:8px" onclick="closeModal()">Fermer</button>`);
-  if(current==='utilisateurs') views.utilisateurs();
-}
+/* ⛔ `resetPwdLot` A VÉCU UNE HEURE, LE 15 SEPTEMBRE 2026, ET A ÉTÉ RETIRÉE. Elle refaisait
+   en un geste les mots de passe provisoires de toute l'équipe, depuis l'écran Utilisateurs.
+   Justin : « je veux pas un bouton dans le truc utilisateur, je veux un bouton moi dans la
+   Tour de contrôle. C'est à nous de gérer ces problèmes-là. »
+   On ne laisse pas une fonction qui refait les accès de toute une entreprise sans appelant :
+   du code mort, c'est du code que personne ne relit et que quelqu'un rappelle un jour.
+   Elle revivra côté Tour, mais autrement — la base d'une entreprise est CHIFFRÉE, le serveur
+   ne peut ni lire ni écrire ses comptes : la Tour ORDONNE, et le premier appareil de
+   l'entreprise qui s'ouvre EXÉCUTE (mécanisme d'`ordres.json`, déjà en place pour les
+   suppressions de compte). Son texte est dans l'historique git, commit v685. */
 /* ── Suppression d'un compte : confirmée par un code envoyé par e-mail à CELUI qui supprime.
    Sans e-mail enregistré sur son propre compte, impossible de supprimer. ── */
 let delUserCible='';
@@ -29960,22 +29922,28 @@ async function pwdForgotEntreprise(uid){
        PRÉNOMS et le nom de l'entreprise se lit sur un camion : qui devine les deux peut
        réclamer le compte en donnant SA propre adresse. C'est un vrai risque de prise de
        compte, et c'est une décision assumée de Justin, pas un oubli.
-       ⛔ D'OÙ LA PORTE LA PLUS ÉTROITE QUI RÉPONDE QUAND MÊME À LA DEMANDE : ce chemin ne
-       s'ouvre QUE pour un compte qui porte encore son mot de passe provisoire (`mustChangePwd`)
-       ET n'a aucune adresse. C'est exactement la population bloquée — et elle se vide toute
-       seule : dès que chacun est entré, son compte sort de ce cas et retombe sur le chemin
-       sûr. Un compte dont quelqu'un se sert vraiment n'est JAMAIS concerné.
-       ⚠️ `mustChangePwd` est un FAIT porté par la fiche, pas une déduction tirée du journal :
-       celui-ci est plafonné à 500 entrées, et en déduire « jamais connecté » est une faute que
-       ce dépôt a déjà payée. */
-    if(u.mustChangePwd && !(u.email||'').trim()){
+       ⛔ J'AI D'ABORD RESTREINT AUX COMPTES ENCORE PROVISOIRES (v686). Justin a tranché une
+       troisième fois, et sa raison est opérationnelle, pas théorique : « ils n'ont pas les
+       codes en temps et en heure, ça va créer des problèmes ». Un code qui expire en dix
+       minutes et qui transite par le téléphone du patron n'arrive pas. La porte s'ouvre donc
+       pour TOUT compte de l'entreprise qui n'a pas encore d'adresse enregistrée.
+       Ce qui reste, et qui n'est pas rien :
+       · le nom de l'entreprise doit CORRESPONDRE avant qu'on propose quoi que ce soit ;
+       · l'adresse n'est posée sur la fiche qu'APRÈS validation du code reçu à cette adresse ;
+       · entrer par là ne vaut PAS la campagne sécurité — l'application redemande tout ;
+       · l'équipe est prévenue sur ses téléphones, et le journal de l'entreprise le garde ;
+       · le chemin « code à l'entreprise » reste offert juste en dessous, pour qui préfère.
+       Et cette population se vide d'elle-même : dès qu'une personne a son adresse, elle
+       repasse par le chemin ordinaire, celui qui vérifie que l'adresse tapée est la sienne. */
+    if(!(u.email||'').trim() && !_pfViaEnt){
       const dejaTape=String(pwdForgot.mailSaisi||'').trim();
       pwdForgot={uid:u.id,ent:nomTape};
       openModal(`<div class="modal-head"><h3>✔ Compte trouvé chez ${esc(nomTape)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
         <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px"><b>${esc(u.login)}</b> est bien rattaché à « <b>${esc(nomTape)}</b> », et n'a pas encore d'adresse e-mail.<br>Entre <b>la tienne</b> : le code de récupération y sera envoyé, et elle restera enregistrée sur ton compte pour la prochaine fois.</p>
         <div class="field"><label>Ton adresse e-mail</label><input id="pf-mail2" type="email" value="${esc(dejaTape)}" placeholder="prenom@entreprise.fr" autocapitalize="off" autocomplete="email" onkeydown="if(event.key==='Enter')pwdForgotMailEnvoi()"></div>
         <div id="pf-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
-        <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotMailEnvoi()">Recevoir le code</button>`,'carte');
+        <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotMailEnvoi()">Recevoir le code</button>
+        <div style="text-align:center;margin-top:12px"><a onclick="pwdForgotViaEntreprise()" style="cursor:pointer;color:var(--t3);font-size:12.5px;text-decoration:underline">Je préfère que le code parte à mon entreprise</a></div>`,'carte');
       setTimeout(()=>{ const el=$('pf-mail2'); if(el) el.focus(); },60);
       return;
     }
@@ -29992,6 +29960,17 @@ async function pwdForgotEntreprise(uid){
       <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotCheck()">Vérifier le code</button>`,'carte');
     setTimeout(()=>{ const el=$('pf-code'); if(el) el.focus(); },60);
   }catch(e){ show('Le serveur ne répond pas — vérifie ta connexion internet.'); if(btn){btn.disabled=false;btn.textContent='📧 Envoyer le code à l\'entreprise';} }
+}
+/* La sortie de secours de la sortie de secours : quelqu'un qui ne veut pas donner son adresse
+   — ou qui n'en a pas — fait toujours partir le code chez son entreprise, comme avant. */
+let _pfViaEnt=false;
+function pwdForgotViaEntreprise(){ _pfViaEnt=true; const u=db.users.find(x=>x.id===pwdForgot.uid); if(!u) return;
+  const nom=String(pwdForgot.ent||'').trim();
+  openModal(`<div class="modal-head"><h3>🏢 Pas d'e-mail sur ce compte</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="color:var(--t2);font-size:13px;line-height:1.7;margin-bottom:14px">Le code partira à l'adresse de ton entreprise — ton responsable te le transmettra. Il expire dans <b>10 minutes</b>.</p>
+    <div class="field"><label>Nom de ton entreprise</label><input id="pf-ent" value="${esc(nom)}" placeholder="Nom exact de ton entreprise" autocapitalize="off"></div>
+    <div id="pf-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
+    <button id="pf-go" class="btn" style="width:100%;justify-content:center;padding:13px" onclick="pwdForgotEntreprise('${u.id}')">Vérifier et envoyer le code</button>`,'carte');
 }
 /* Le code part à l'adresse que la personne vient de donner. Elle n'est PAS encore posée sur
    la fiche : elle ne le sera qu'une fois le code validé — sinon il suffirait de demander pour

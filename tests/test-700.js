@@ -198,42 +198,23 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
     /mdpInconnu\?'\(à te faire redonner — voir plus bas\)':mdpAff/.test(TOUR), true);
 }
 
-/* ══ 5. REFAIRE LES MOTS DE PASSE PROVISOIRES EN UN GESTE ═════════════════════════════
-   Justin, 15 septembre 2026, capture de la Tour : cinq comptes « jamais connecté · mot de
-   passe provisoire · sans e-mail », dont un avec deux échecs — « ils peuvent pas se
-   connecter ». Un par un, c'est cinq fenêtres et cinq occasions de se tromper de ligne. */
+/* ══ 5. LE GESTE GROUPÉ N'EST PAS DANS L'APPLICATION ══════════════════════════════════
+   Il y a été une heure, le 15 septembre 2026. Justin l'a retiré : « je veux pas un bouton
+   dans le truc utilisateur, je veux un bouton moi dans la Tour de contrôle. C'est à nous de
+   gérer ces problèmes-là, c'est nous qui devons avoir la surveillance là-dessus. »
+   Ce test garde le RETRAIT, pas seulement l'absence : une fonction qui refait les accès de
+   toute une entreprise ne doit pas traîner sans appelant — du code mort est du code que
+   personne ne relit et que quelqu'un rappelle un jour. */
 {
-  const fn = extraire(APP, 'async function resetPwdLot()');
-  v('resetPwdLot est trouvée', !!fn, true);
-  /* ⛔ ON NE TOUCHE QU'À CEUX QUI N'ONT PAS ENCORE CHOISI LE LEUR. Refaire le mot de passe de
-     quelqu'un qui a déjà le sien, c'est le mettre dehors sans prévenir. */
-  v('⛔ la cible est « n\'a pas encore choisi son mot de passe »', /secuAFaire\(u\)\)/.test(fn), true);
-  v('⛔ … et jamais soi-même', /u\.id!==currentUser\.id/.test(fn), true);
-  v('… ni un compte désactivé ou d\'essai', /u\.actif!==false&&!u\.essai/.test(fn), true);
-  v('réservé à l\'administrateur', /currentUser\.role!=='admin'/.test(fn), true);
-  v('… et il faut confirmer, en voyant la liste', /if\(!confirm\(/.test(fn) && /cibles\.map\(u=>'• '/.test(fn), true);
-  /* ⛔ UN SEUL DÉPÔT POUR TOUT LE LOT, ET ON ATTEND SON VERDICT — règle de la v680 : on
-     n'annonce pas « voilà les nouveaux accès » sans savoir si le serveur les a pris. */
-  v('⛔ un seul dépôt d\'annuaire pour le lot', (fn.match(/annuaireMaintenant\(\)/g) || []).length, 1);
-  v('⛔ et son verdict décide', /if\(v&&v\.ok===false\)\{/.test(fn), true);
-  /* ⛔ SUR UN REFUS, ON REMET TOUT. Sinon le patron distribue des mots de passe que la page de
-     connexion ne connaît pas — exactement la panne qu'il vient réparer. */
-  v('⛔ le refus remet chaque compte en état',
-    /avant\.forEach\(a=>\{ \['pwdHash','mustChangePwd','pinHash','sansMdp','secu'\]\.forEach/.test(fn), true);
-  v('… et le dit sans ambiguïté', /RIEN n\\'a été changé/.test(fn), true);
-  v('le cas « version trop ancienne » a sa phrase', /v\.status===426/.test(fn), true);
-  /* La liste s'affiche ET se copie : ces comptes n'ont pas d'e-mail, l'envoyer ne mènerait nulle part. */
-  v('la liste est copiable', /onclick="copieIdentifiants\(this\)"/.test(fn), true);
-  v('… et porte la page et le nom de l\'entreprise', /teamop\.fr\/connexion\.html/.test(fn) && /lienLisibleNom\(\)/.test(fn), true);
-  /* Le bouton n'apparaît que s'il a quelque chose à faire, et il dit combien. */
-  v('le bouton compte ce qu\'il va faire', /🔑 Refaire les mots de passe provisoires \(\$\{/.test(APP), true);
-  v('… et disparaît quand personne n\'est concerné', /\? `<div style="margin:0 2px 12px"><button class="btn ghost block" onclick="resetPwdLot\(\)"/.test(APP), true);
-
-  /* ⛔ ET LE BOUTON UNITAIRE VÉRIFIE AUSSI, DÉSORMAIS. Il avait été oublié par la v680 : il
-     faisait `save()` puis affichait la fiche d'accès sans regarder si l'annuaire avait
-     accepté — le patron repartait avec un mot de passe que la page de connexion ne
-     connaissait pas, et la certitude d'avoir agi. */
+  v('⛔ la fonction groupée n\'existe plus', /async function resetPwdLot\(\)/.test(APP), false);
+  v('⛔ … et aucun bouton ne l\'appelle', /onclick="resetPwdLot\(\)"/.test(APP), false);
+  v('le retrait est expliqué là où elle vivait', /`resetPwdLot` A VÉCU UNE HEURE/.test(APP), true);
+  /* Le bouton UNITAIRE reste : il traite une personne, c'est un geste de patron. */
   const un = extraire(APP, 'async function resetPwd(id)');
+  v('le 🔑 unitaire est toujours là', !!un, true);
+  /* ⛔ ET IL VÉRIFIE QUE LE SERVEUR A PRIS. Oublié par la v680, réparé depuis : il enregistrait
+     puis affichait la fiche d'accès sans jamais regarder si l'annuaire avait accepté — le
+     patron repartait avec un mot de passe que la page de connexion ne connaissait pas. */
   v('resetPwd passe par le dépôt vérifié', /const pb=await identifiantsDeposer\(u,avant\);/.test(un), true);
   v('… et n\'affiche la fiche QUE si le serveur a pris', un.indexOf('if(pb){') < un.indexOf('userIdentifiantsModal'), true);
   v('… en gardant l\'état d\'avant, secu compris', /secu:u\.secu\}/.test(un), true);
@@ -251,16 +232,19 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
 {
   const ent = extraire(APP, 'async function pwdForgotEntreprise(uid)');
   v('pwdForgotEntreprise est trouvée', !!ent, true);
-  /* ⛔ DEUX CONDITIONS, ET LES DEUX SONT NÉCESSAIRES : encore sur le mot de passe provisoire,
-     ET sans adresse. C'est exactement la population bloquée — et elle se vide toute seule :
-     dès que quelqu'un est entré, son compte sort du cas. */
-  v('⛔ le chemin ne s\'ouvre QUE sur un compte encore provisoire ET sans e-mail',
-    /if\(u\.mustChangePwd && !\(u\.email\|\|''\)\.trim\(\)\)\{/.test(ent), true);
-  /* ⚠️ `mustChangePwd` est un FAIT porté par la fiche. Le déduire du journal — plafonné à 500
-     entrées — est la faute que ce dépôt a déjà payée une fois. */
+  /* ⚠️ J'AVAIS D'ABORD RESTREINT AUX COMPTES ENCORE PROVISOIRES, et ce test l'exigeait.
+     Justin a tranché une troisième fois, pour une raison opérationnelle : « ils n'ont pas les
+     codes en temps et en heure, ça va créer des problèmes ». Un code qui expire en dix minutes
+     et transite par le téléphone du patron n'arrive pas. La porte s'ouvre donc pour TOUT
+     compte sans adresse enregistrée. Ce test garde ce qui protège encore. */
+  v('le chemin s\'ouvre pour un compte sans e-mail',
+    /if\(!\(u\.email\|\|''\)\.trim\(\) && !_pfViaEnt\)\{/.test(ent), true);
   v('⛔ et il ne déduit rien du journal', /db\.journal/.test(ent), false);
-  v('… il faut d\'abord que le nom de l\'entreprise corresponde',
-    ent.indexOf('verifie-nom') < ent.indexOf('u.mustChangePwd &&'), true);
+  v('⛔ il faut d\'abord que le nom de l\'entreprise corresponde',
+    ent.indexOf('verifie-nom') < ent.indexOf("!(u.email||'').trim() && !_pfViaEnt"), true);
+  /* Le chemin « code à l'entreprise » reste offert, pour qui ne veut pas donner son adresse. */
+  v('l\'ancien chemin reste accessible', /Je préfère que le code parte à mon entreprise/.test(APP), true);
+  v('… et il ne rouvre pas la branche perso en boucle', /_pfViaEnt=true;/.test(APP), true);
   v('l\'adresse déjà tapée est reprise, pas retapée', /const dejaTape=String\(pwdForgot\.mailSaisi\|\|''\)\.trim\(\);/.test(ent), true);
 
   const env = extraire(APP, 'async function pwdForgotMailEnvoi()');

@@ -1,7 +1,8 @@
 /* « Mot de passe oublié » pour quelqu'un qui n'a JAMAIS pu entrer — demande de Justin,
    15 septembre 2026. Trois choses à prouver, et la troisième est la plus importante :
    A. un compte ENCORE PROVISOIRE et sans e-mail peut enregistrer le sien et recevoir le code ;
-   B. un compte dont quelqu'un SE SERT VRAIMENT ne passe pas par là (chemin sûr conservé) ;
+   B. un compte QUI A DÉJÀ SON ADRESSE garde le chemin ordinaire — celui qui exige que
+      l'adresse tapée soit bien la sienne, et refuse toute autre ;
    C. après coup, l'application REDEMANDE mot de passe + e-mail — la 2e barrière de Justin. */
 const { chromium } = require('playwright-core');
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -11,7 +12,7 @@ const srv = http.createServer((q, r) => { const x = path.join(R, q.url.split('?'
 const H = 'd'.repeat(64);
 const base = { users: [
   { id: 'u2', prenom: 'Romain', nom: 'Avignon', login: 'romainavg', role: 'tech', actif: true, pwdHash: H, mustChangePwd: true, acces: { caps: {}, modules: {} } },
-  { id: 'u9', prenom: 'Sert', nom: 'Sen', login: 'sersen', role: 'tech', actif: true, pwdHash: H, acces: { caps: {}, modules: {} } } ],
+  { id: 'u9', prenom: 'Sert', nom: 'Sen', login: 'sersen', role: 'tech', actif: true, pwdHash: H, email: 'sersen@ex.fr', acces: { caps: {}, modules: {} } } ],
   produits: [], boxes: [], clients: [], interventions: [], mouvements: [], journal: [], techniciens: [] };
 const L = (t, o) => console.log(t + ' ' + JSON.stringify(o));
 (async () => {
@@ -32,18 +33,16 @@ const L = (t, o) => console.log(t + ' ' + JSON.stringify(o));
   await p.goto('http://127.0.0.1:8197/beta.html', { timeout: 120000, waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => typeof pwdForgotMailEnvoi === 'function', { timeout: 60000 });
 
-  L('B · un compte dont on se sert ne passe PAS par là', await p.evaluate(async () => {
+  L('B · un compte qui a déjà son adresse garde le chemin ordinaire', await p.evaluate(async () => {
     const sleep = m => new Promise(r => setTimeout(r, m));
     pwdForgotModal(); await sleep(150);
     document.getElementById('pf-login').value = 'sersen';
-    document.getElementById('pf-mail').value = 'pirate@ailleurs.fr';
-    await pwdForgotSend(); await sleep(250);
-    document.getElementById('pf-ent').value = 'ELAN';
-    await pwdForgotEntreprise('u9'); await sleep(300);
-    const t = (document.getElementById('overlay').textContent || '');
-    return { champMailPerso: !!document.getElementById('pf-mail2'),
-      titre: ((document.querySelector('#overlay h3') || {}).textContent || '').trim(),
-      codeChezLEntreprise: /entreprise/.test(t) };
+    document.getElementById('pf-mail').value = 'pirate@ailleurs.fr';   // pas la sienne
+    await pwdForgotSend(); await sleep(300);
+    const err = document.getElementById('pf-err');
+    return { refusAdresseEtrangere: (err && err.style.display !== 'none') ? (err.textContent || '').slice(0, 60) : '',
+      pasDePorteDeSecours: !document.getElementById('pf-mail2'),
+      titre: ((document.querySelector('#overlay h3') || {}).textContent || '').trim() };
   }));
 
   L('A · compte provisoire sans e-mail', await p.evaluate(async () => {
