@@ -652,6 +652,35 @@ route renvoie. `gardien` relit `server/` (80 routes exposées sur Internet, donn
 réels) ; `relecteur` relit le diff avant qu'il parte sur `main`, qui est servi aux clients en
 quelques minutes.
 
+### ⛔ ET LA MÊME RÈGLE VAUT POUR LES AGENTS D'UN WORKFLOW — posée le 15 septembre 2026 au soir
+
+Un agent lancé par l'outil Workflow **hérite du modèle de la session** si on ne lui dit rien.
+Trois chantiers lancés le même soir l'ont appris à leurs dépens : **plus de 5 millions de
+jetons, tous en Opus**, dont la moitié pour de la LECTURE — recenser des écrans, lire un
+workflow, compter des occurrences dans un fichier. Justin l'a vu passer et a tranché :
+« pour la vérification, tu es obligé d'utiliser Opus si y en a besoin ; si y a pas besoin,
+prends un truc plus léger pour pas que ça mange toutes les ressources. »
+
+La règle est la même que pour les sous-agents nommés, et elle tient en une phrase :
+**Opus là où le JUGEMENT est le produit ; Sonnet ou Haiku là où la RIGUEUR suffit.**
+
+| ce que fait l'agent | modèle | effort | pourquoi |
+|---|---|---|---|
+| recenser, cartographier, lire un fichier et en rendre la structure | `sonnet` | `medium` | il constate ; une erreur se voit au premier contrôle |
+| vérifier une affirmation mécanique (ce motif est-il là ? ce fichier contient-il X ?) | `haiku` | `low` | c'est un `grep` qui rédige |
+| attaquer une proposition, chercher la faille | `sonnet` | `high` | systématique plus que créatif — mais il faut de la profondeur |
+| concevoir une architecture, trancher entre deux options, synthétiser | `opus` | `high` | c'est un jugement, et il se paie une fois |
+| sécurité et conformité | `opus` | `high` | penser comme un attaquant se juge ; le coût se compare à celui d'une fuite |
+
+Concrètement, dans un script de workflow : `agent(prompt, {model:'sonnet', effort:'medium'})`.
+**Ne jamais omettre `model` sur une phase de lecture** — l'omission coûte cher et ne se voit
+qu'après coup, sur la facture.
+
+⚠️ Corollaire à connaître AVANT de vouloir « corriger » un workflow déjà lancé : changer le
+modèle change les options de l'agent, donc invalide le cache de reprise. Relancer moins cher un
+chantier en cours coûte PLUS que de le laisser finir. On règle le modèle à l'écriture, pas en
+cours de route.
+
 Tout autre sous-agent (recherche, revue de code, exploration) retombe sur
 `CLAUDE_CODE_SUBAGENT_MODEL` dans `.claude/settings.json` — Sonnet. La session
 principale, elle, garde le modèle choisi dans le terminal : ce fichier ne la touche pas.
