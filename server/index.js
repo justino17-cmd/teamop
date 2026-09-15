@@ -3240,6 +3240,11 @@ app.post('/api/espaces/comptes', (req, res) => {
   if (entFermes.espaces.includes(t)) return res.status(403).json({ error: 'espace fermé' });
   const recu = Array.isArray(b.comptes) ? b.comptes.slice(0, 300) : null;
   if (!recu) return res.status(400).json({ error: 'comptes requis' });
+  /* ⛔ ET RIEN NE SE DÉPOSE SUR L'ESPACE PAR DÉFAUT — même décision que la route de connexion.
+     Fermer l'entrée sans fermer le dépôt laisserait un appareil y réinscrire des comptes que
+     plus personne ne pourrait utiliser : de l'annuaire mort, qui se répare pendant des mois. */
+  if (ESPACES_INTOUCHABLES.includes(t))
+    return res.status(403).json({ error: 'Espace par défaut de l\'application : aucun compte ne s\'y dépose.' });
   /* Même porte que le nuage : une version sous le minimum ne dépose plus l'annuaire — c'est
      par ce chemin qu'un appareil périmé remplaçait 11 comptes par 3 (comptes.json est remplacé
      en entier). Une version d'avant ce verrou n'envoie pas `ver` : elle passe tant qu'aucun
@@ -3422,6 +3427,20 @@ app.post('/api/espaces/connexion', async (req, res) => {
   const e = espaceAJour(slug);
   const t = e ? espaceT(e) : '';
   const refus = () => res.status(403).json({ error: 'Entreprise, identifiant ou mot de passe incorrect.' });
+  /* ⛔ ON NE SE CONNECTE PLUS À L'ESPACE PAR DÉFAUT — décision de Justin, 15 septembre 2026 :
+     « je veux que plus personne ne se connecte et que ce ne soit pas n'importe où ».
+     La synchro y était déjà morte depuis la v672 (`/api/fb/jeton` rend 403 via `sauvRefus`),
+     mais la PORTE, elle, était restée ouverte : on pouvait encore s'y connecter par identifiant
+     et y déposer des comptes. Un espace sans nuage où des gens travaillent quand même est pire
+     qu'un espace fermé — ils saisissent, rien ne part, et personne ne le voit.
+     ⚠️ La bêta est dans la même liste et ne perd rien : elle n'a jamais déposé d'annuaire
+     (`annuaireDeposer` sort sur `BETA_ESSAI`), donc cette route lui répondait déjà
+     « sans-annuaire ». Ses accès vivent dans `beta-comptes.json`, par la Tour.
+     Le message NOMME la cause au lieu de se fondre dans le refus générique : ce n'est pas un
+     mot de passe à retrouver, c'est une adresse à changer. */
+  if (t && ESPACES_INTOUCHABLES.includes(t))
+    return res.status(403).json({ motif: 'technique',
+      error: 'Cette adresse n\'est pas celle d\'une entreprise : c\'est l\'espace par défaut de l\'application, et il est fermé. Utilise le lien de ton entreprise.' });
   /* Clé d'équipe périmée (constatée par /api/espaces/lien) : le code de l'annuaire ne
      déchiffre plus les données. Rendre « k » quand même ferait entrer la personne dans un
      espace vide, sans un mot d'explication. */
