@@ -1,5 +1,5 @@
 /* Le contrat de versionEnLigne : cache d'une minute, lecture fraîche à la demande, refus si illisible. */
-const fs=require('fs'); const SRC=fs.readFileSync('/home/user/teamop/server/index.js','utf8');
+const fs=require('fs'); const path=require('path'); const SRC=fs.readFileSync(path.join(__dirname,'..','server/index.js'),'utf8');
 function decoupe(deb,fin){ const i=SRC.indexOf(deb); if(i<0) throw new Error('introuvable : '+deb); const j=SRC.indexOf(fin,i); if(j<0) throw new Error('fin introuvable'); return SRC.slice(i,j+fin.length); }
 let ok=0,ko=0; const v=(t,a,b)=>{ if(JSON.stringify(a)===JSON.stringify(b)){ok++;console.log('  ✓ '+t);} else {ko++;console.log('  ✗ '+t+' attendu '+JSON.stringify(b)+' obtenu '+JSON.stringify(a));} };
 const code=decoupe('const versionLigne = { v: 0, ts: 0, encours: null };','  return versionLigne.encours;\n}');

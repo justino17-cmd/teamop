@@ -79,7 +79,14 @@ jobs:
           # trouver est donc soit dans un `if`, soit suivie de `|| true`.
           total=0; rouge=0; echecs=""
           for f in tests/test-*.js; do
-            if sortie=$(node "$f" 2>&1); then :; else rouge=1; echecs="$echecs $f"; echo "::error::$f échoue"; echo "$sortie" | grep -E '✗|✘' | head -5; fi
+            # ⛔ ON MONTRE LES DERNIÈRES LIGNES, PAS SEULEMENT LES ✗. Mesuré le 15 septembre :
+            # six suites PLANTAIENT (chemin absolu codé en dur), donc n'imprimaient aucun ✗ —
+            # le filtre ne montrait que « Node.js v22.23.2 », la dernière ligne d'une pile
+            # d'erreur. Un échec silencieux déguisé en échec illisible.
+            if sortie=$(node "$f" 2>&1); then :; else
+              rouge=1; echecs="$echecs $f"; echo "::error::$f échoue"
+              echo "$sortie" | tail -8 | sed 's/^/      /'
+            fi
             echo "$sortie" | tail -1
             n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+' || true)
             total=$((total + ${n:-0}))
