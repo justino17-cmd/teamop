@@ -1,4 +1,4 @@
-const fs=require('fs'); const APP=fs.readFileSync('/home/user/teamop/app.html','utf8');
+const fs=require('fs'); const path=require('path'); const APP=fs.readFileSync(path.join(__dirname,'..','app.html'),'utf8');
 function decoupe(entete){ const deb=APP.indexOf(entete); if(deb<0) throw new Error('introuvable : '+entete);
   for(let i=deb;i<deb+40000;i++){ if(APP[i]!=='}'&&APP[i]!==';') continue; const bout=APP.slice(deb,i+1); try{ new Function(bout); return bout; }catch(e){} }
   throw new Error('fin introuvable : '+entete); }

@@ -1,4 +1,4 @@
-const fs=require('fs'); const APP=fs.readFileSync('/home/user/teamop/app.html','utf8');
+const fs=require('fs'); const path=require('path'); const APP=fs.readFileSync(path.join(__dirname,'..','app.html'),'utf8');
 function dec(h){ const d=APP.indexOf(h); if(d<0) throw new Error(h); for(let i=d;i<d+14000;i++){ if(APP[i]!=='}'&&APP[i]!==';') continue; const b=APP.slice(d,i+1); try{ new Function(b); return b; }catch(e){} } throw new Error('fin '+h); }
 const code=['const norm = s =>','function idCatalogue(nom,prefixe){','function produitCle(p){','function slugNom(nom){','function idProduit(nom){','function produitMemeNom(a,b){','function empreinteNom(s){','function produitCreer(fiche,opts){','function produitsDoublons(){','function uidTs(id){','function produitCree(p){','function produitsDistinctIds(cle){','function produitDistinct(p){'].map(dec).join('\n');
 const bac=new Function('etat',`let db=etat.db, poussees=[];

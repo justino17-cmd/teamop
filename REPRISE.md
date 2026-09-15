@@ -32,11 +32,26 @@ lui redemander.**
 
 ### ⛔ Les quatre choses à savoir avant d'écrire une ligne
 
-1. **Le serveur ne peut PAS convertir l'existant.** Ce qui est dans le nuage est chiffré avec
-   une clé que seuls les appareils détiennent. Il n'existe aucune migration côté serveur :
-   **chaque appareil déchiffre localement et renvoie**. Un téléphone éteint trois semaines
-   n'est pas migré. Les deux formats doivent donc coexister, et c'est ça qui pilote tout le
-   calendrier — pas la vitesse d'écriture du code.
+1. ⛔ **LE SERVEUR PEUT CONVERTIR L'EXISTANT LUI-MÊME — et j'avais écrit le contraire.**
+   Corrigé le soir même, après que Justin ait refusé la réponse : « pourquoi c'est à eux de
+   convertir les données et pas à nous ? ». Il avait raison, et la vérification le confirme
+   noir sur blanc :
+   — **la clé de chiffrement de chaque entreprise est sur le VPS, EN CLAIR.** `espaces.json`
+     porte `e.code`, base64 d'un JSON qui contient `k` — la clé elle-même.
+     `cleEquipeVerdict()` la relit pour vérifier une empreinte (`server/index.js:3161`) ;
+   — **le serveur atteint déjà les documents Firestore des entreprises** : il détient
+     `fbAdminCle` et `FB_CLE`, et il envoie aujourd'hui des requêtes authentifiées sur
+     `elan_teams/<t>` (`server/index.js:5040` — un DELETE ; lire est le même appel avec un
+     autre verbe).
+   Clé + accès au chiffré = **le serveur peut déchiffrer**. Personne n'avait écrit les vingt
+   lignes, c'est tout. La migration est donc entièrement de NOTRE côté : aucun téléphone n'a
+   rien à faire, les appareils basculent simplement sur la nouvelle API en se mettant à jour.
+   ⚠️ **Et ça dit autre chose, qu'il faut regarder en face** : la phrase « TEAM OP ne peut pas
+   lire vos données » n'est PAS une garantie cryptographique. Elle ne tient que parce que la
+   clé est sur le VPS et les données chez Google — **deux endroits séparés**. Mettre les deux
+   au même endroit supprime cette séparation. C'est cohérent avec ce que Justin veut, mais
+   alors la clé ne doit plus dormir en clair à côté des données, et les pages publiques
+   doivent être réécrites de toute façon.
 2. **`sous-traitance.html` et `confidentialite.html` deviennent FAUX** le jour de la bascule.
    Ce sont des phrases publiques dans un contrat. À réécrire, et les clients à prévenir.
    Changement contractuel, pas ligne de code.

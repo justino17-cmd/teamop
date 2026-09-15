@@ -3,6 +3,16 @@
 # Le 3 septembre 2026, un commentaire « // » posé au milieu d'une instruction tenant sur une
 # seule ligne a mis app.html hors service : la page est restée BLANCHE en production pour
 # toutes les entreprises. Rien ne vérifiait que le fichier livré était encore analysable.
+# ⛔ POURQUOI `if: always()` SUR CHAQUE ÉTAPE — posé le 15 septembre 2026 au soir.
+# Sans lui, la PREMIÈRE étape rouge saute toutes les suivantes. Mesuré ce soir-là : l'étape
+# « La connexion par identifiant tient » échouait à chaque push depuis le 14 septembre 14 h 38
+# — 48 exécutions d'affilée, ~26 heures — et pendant tout ce temps « Le code d'accès tient » et
+# « beta.html est bien la génération de app.html » n'ont pas tourné UNE SEULE FOIS. Le second
+# est précisément le garde-fou de la règle « tout se développe sur la bêta » que Justin venait
+# de durcir. Un contrôle rouge qui en éteint deux autres coûte plus qu'il ne rapporte : on veut
+# le tableau complet à chaque passage, pas le premier échec.
+# (Vérifié après coup : « Le code d'accès tient » passe — 31 cas. Le silence ne cachait pas un
+#  second défaut cette fois-ci. La prochaine fois, on le saura tout de suite.)
 name: Vérification des pages
 
 on:
@@ -21,34 +31,105 @@ jobs:
     # plafond anti-abus par minute — c'est le prix de l'éprouver sur le vrai serveur.
     timeout-minutes: 10
     steps:
+      # ⛔ `fetch-depth: 2` N'EST PAS DU CONFORT. Par défaut, actions/checkout ne ramène QU'UN
+      # commit : « verifier-version.js » n'aurait alors aucun point de comparaison et ne
+      # pourrait plus dire si APP_VERSION a monté. Il échouerait franchement (il refuse de se
+      # taire en CI), mais autant lui donner ce qu'il lui faut.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Syntaxe des blocs <script>
+        if: always()
         run: node scripts/verifier-syntaxe.js
+
+      # Les deux numéros qui font arriver une version sur le téléphone d'un technicien.
+      # Sans APP_VERSION plus grand, la Tour ne peut plus exiger la nouvelle version — et un
+      # seul appareil resté en arrière peut encore abîmer les données de toute l'équipe. Sans
+      # cache de service worker plus grand, le téléphone ressert l'ancienne page et le
+      # correctif n'atteint personne. Aucune erreur visible dans les deux cas : on croit avoir
+      # publié. Éprouvé par tests/test-709.js, sur les oublis ET sur ce qui doit rester vert.
+      - name: Les numéros de version montent quand app.html change
+        if: always()
+        run: node scripts/verifier-version.js
 
       # Les dépendances du serveur : les suites ci-dessous démarrent le serveur LIVRÉ et
       # interrogent ses vraies routes — un test qui rejoue une copie du code ne dit rien
       # de ce qui part en production.
       - name: Dépendances du serveur
+        if: always()
         run: npm install --no-audit --no-fund
         working-directory: server
 
+      # ⛔ APRÈS LES DÉPENDANCES, ET CE N'EST PAS UN DÉTAIL D'ORDRE. Six suites LANCENT le vrai
+      # serveur et sautent d'elles-mêmes leur partie exécutée si server/node_modules manque.
+      # Mesuré le 15 septembre 2026 : le total tombe alors de 1 923 à 1 758, sortie 0, sans un
+      # mot — la CI serait verte sur 165 vérifications qui n'ont pas eu lieu. Placé ici, et le
+      # plancher numérique ci-dessous le tient même si quelqu'un déplace à nouveau les étapes.
+      - name: Les suites du dépôt passent
+        if: always()
+        run: |
+          # ⛔ `bash -e` EST ACTIF ICI (GitHub lance « /usr/bin/bash -e {0} »). Toute commande
+          # qui rend non-zéro tue l'étape sur place. Premier jet : un `grep -q … && {…}` a fait
+          # mourir cette étape EN ZÉRO SECONDE, sans lancer une seule suite — et la CI l'a
+          # comptée comme un échec de tests. Chaque commande qui peut légitimement ne rien
+          # trouver est donc soit dans un `if`, soit suivie de `|| true`.
+          total=0; rouge=0; echecs=""
+          for f in tests/test-*.js; do
+            # ⛔ ON MONTRE LES DERNIÈRES LIGNES, PAS SEULEMENT LES ✗. Mesuré le 15 septembre :
+            # six suites PLANTAIENT (chemin absolu codé en dur), donc n'imprimaient aucun ✗ —
+            # le filtre ne montrait que « Node.js v22.23.2 », la dernière ligne d'une pile
+            # d'erreur. Un échec silencieux déguisé en échec illisible.
+            if sortie=$(node "$f" 2>&1); then :; else
+              rouge=1; echecs="$echecs $f"; echo "::error::$f échoue"
+              echo "$sortie" | tail -8 | sed 's/^/      /'
+            fi
+            echo "$sortie" | tail -1
+            n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+' || true)
+            total=$((total + ${n:-0}))
+            if echo "$sortie" | grep -qi 'SAUTÉE'; then
+              echo "::error::$f a SAUTÉ une partie en silence"; rouge=1
+            fi
+          done
+          echo ""
+          echo "══ RÉCAPITULATIF ══"
+          # ⛔ LE RÉCAPITULATIF EST À LA FIN, ET C'EST TOUT L'INTÉRÊT. Le journal d'un job fait
+          # des centaines de lignes ; une étape qui noie le nom de la suite fautive au milieu
+          # oblige à tout dérouler pour savoir quoi réparer. Mesuré le 15 septembre 2026 : il a
+          # fallu quatre allers-retours pour retrouver une suite rouge. Les dernières lignes
+          # doivent suffire.
+          if [ -n "$echecs" ]; then echo "SUITES EN ÉCHEC :$echecs"; else echo "aucune suite en échec"; fi
+          echo "── $total vérifications sur $(ls tests/test-*.js | wc -l) suites"
+          # ⛔ UN PLANCHER, parce qu'une suite qui se saute elle-même sort en 0 sans rien dire.
+          # Mesuré le 15 septembre 2026 : sans server/node_modules, six suites sautent leur
+          # partie exécutée et le total tombe de 1 923 à 1 758 — vert, et aveugle sur 165
+          # vérifications. Le plancher tient même si quelqu'un déplace à nouveau les étapes.
+          if [ "$total" -lt 1900 ]; then
+            echo "::error::$total vérifications seulement — il en manque"; rouge=1
+          fi
+          exit $rouge
+
       - name: Le nom d'une entreprise ne rend pas sa clé
+        if: always()
         run: node scripts/verifier-lien-jeton.js
 
       - name: EXPLIQUE n'ouvre que les pages du dépôt
+        if: always()
         run: node scripts/verifier-explique.js
 
       - name: PROPOSE ne laisse pas passer un correctif qui casse la page
+        if: always()
         run: node scripts/verifier-propose.js
 
       - name: Chacun ne voit que ce qui le concerne
+        if: always()
         run: node scripts/verifier-permissions.js
 
       - name: Le Devis IA ne fait pas sortir le client
+        if: always()
         run: node scripts/verifier-devis-gemini.js
 
       # Le 7 septembre 2026, le nom du plus gros client — « elan » — est tombé sur le fichier
@@ -57,19 +138,23 @@ jobs:
       # exécute le vrai script de 404.html et NOMME les noms que la forme courte ne peut pas
       # servir — pour qu'ajouter une page au site ne recrée jamais la panne en silence.
       - name: L'adresse d'une entreprise mène bien à sa connexion
+        if: always()
         run: node scripts/verifier-adresses.js
 
       # La porte la plus sensible du serveur : elle rend la clé des données d'une entreprise
       # contre un identifiant et un mot de passe. Les deux suites démarrent un serveur isolé.
       - name: La connexion par identifiant tient
+        if: always()
         run: node server/test-connexion.js
 
       - name: Le code d'accès tient
+        if: always()
         run: node server/test-acces.js
 
       # beta.html est GÉNÉRÉE depuis app.html par beta-build.js. Si quelqu'un modifie beta.html
       # à la main, ou oublie de la régénérer, la bêta et la production divergent en silence.
       - name: beta.html est bien la génération de app.html
+        if: always()
         run: |
           node beta-build.js
           if ! git diff --quiet -- beta.html; then

@@ -1,5 +1,5 @@
 /* Le pont entre deux espaces : ce qu'on copie d'un côté doit se relire à l'identique de l'autre. */
-const fs=require('fs'); const APP=fs.readFileSync('/home/user/teamop/app.html','utf8');
+const fs=require('fs'); const path=require('path'); const APP=fs.readFileSync(path.join(__dirname,'..','app.html'),'utf8');
 function dec(h){ const d=APP.indexOf(h); if(d<0) throw new Error('introuvable : '+h);
   for(let i=d;i<d+9000;i++){ if(APP[i]!=='}'&&APP[i]!==';') continue; const b=APP.slice(d,i+1); try{ new Function(b); return b; }catch(e){} } throw new Error('fin : '+h); }
 function cst(n){ const i=APP.indexOf('const '+n+'='); const fin=APP.indexOf('];',i); return APP.slice(i,fin+2); }
