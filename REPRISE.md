@@ -61,6 +61,34 @@ lui redemander.**
 4. ⛔ **On ne touche à AUCUN moment à `SYNC_SECRET_DEFAULT` ni `SYNC_SALT`** pendant toute la
    migration : ce sont les seules choses qui permettent encore de LIRE ce qui existe.
 
+### 📐 Ce que font les autres — relevé du 16 septembre (`COMMENT-FONT-LES-AUTRES.md`)
+
+Justin, le 16 septembre : *« il faut fait tout sur des serveur comme tout les entreprise ok donc
+regard comment les autres travaille gere organilog comme tout les application de gestion »*.
+Fait, sources à l'appui. Quatre résultats qui changent quelque chose ici :
+
+1. ✅ **Le serveur qui LIT est le standard, pas une exception.** Organilog, Praxedo : aucun ne
+   fait de chiffrement de bout en bout, tous sont sous-traitants au sens de l'article 28. La
+   CNIL le dit même explicitement pour le SaaS. La position actuelle de TeamOP est **plus
+   stricte que le marché** — et c'est elle qui rend un diagnostic impossible. La décision de
+   Justin nous met **au niveau**, pas en dessous.
+2. ✅ **Un fichier par entreprise est le modèle recommandé à notre taille** (< 50 clients) : la
+   littérature le réserve aux formules haut de gamme et aux secteurs réglementés, pour
+   « zéro risque de fuite entre clients ». `PLAN-OP-SOCLE.md` §2.2 est donc bien dessiné. Deux
+   corrections y ont été portées le même jour : effacer une entreprise fait **trois** fichiers
+   en WAL, et un comptage inter-entreprises est **21× plus lent** — la Tour lit l'annuaire,
+   jamais les fichiers.
+3. ✅ **Sur l'offline, TeamOP est DEVANT.** Organilog synchronise **toutes les 15 minutes** et
+   *conseille* un geste manuel après chaque modification ; TeamOP envoie à chaque `save()`.
+4. ⛔ **Deux manques qui ne sont PAS des choix, et que le marché vend :**
+   — **les photos et pièces jointes.** Organilog facture le stockage par paliers — 100 Go à
+     19 €, 400 Go à 35 €, 600 Go à 59 € par utilisateur et par mois. Chez nous, `syncAlleger`
+     les **retire de la synchro** pour tenir dans le plafond : elles ne quittent jamais
+     l'appareil qui les a prises ;
+   — **la sauvegarde des données métier.** Organilog : journalière. Praxedo : trois serveurs.
+     TeamOP : celle de Google, **jamais restaurée par nous**. Le jour où les données passent
+     sur le VPS, ça devient le risque n° 1 et il n'existe rien.
+
 ### Et la correction que Justin m'a faite le même soir, à garder
 
 J'avais proposé, pour débloquer des techniciens qui ne voyaient plus leurs box, de cocher
