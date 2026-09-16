@@ -28,6 +28,64 @@ comptait : créer un compte n'exclut plus la personne des box de l'équipe. `APP
 que personne n'ouvre « 🔎 Box retirées » dans Utilisateurs. Le correctif arrête la cause, il ne
 range pas derrière lui — c'est un geste à demander à ELAN, pas une case cochée.
 
+### ⛔ CE QUE LA MESURE DU DISQUE A CHANGÉ, ET LES QUATRE DÉFAUTS QU'ELLE A FAIT TROUVER
+
+Justin a lancé la commande le 16 au soir : **116 Go, 4,9 Go utilisés, 111 Go LIBRES**, et
+`/opt/teamop/data` = **11 Mo** pour toutes les entreprises réunies. La place n'est pas le sujet ;
+le garde-fou l'est.
+
+**Poids réel d'une pièce, mesuré de bout en bout** (JPEG → data URL → gzip → AES-GCM → base64
+→ fichier) : **×1,34 du JPEG binaire**, stable sur quatre tailles. Une photo de chantier de
+180 Ko pèse **241 Ko** sur le disque, soit **~4 350 photos par Go**. ⚠️ Le facteur n'est ×1,34
+que parce que gzip annule la première expansion base64 ; **sans gzip** (Safari d'avant 16.4) il
+monte à **×1,78** — c'est ce qui a fait corriger la garde de taille côté application, qui
+comparait le CLAIR à une estimation. Elle mesure désormais la SORTIE du chiffrement contre la
+même constante que le serveur, et un banc croisé lit les deux fichiers pour que les deux
+nombres ne puissent plus diverger.
+
+**Plafonds retenus** : 5 Gio par entreprise (≈ 21 700 photos), 60 Gio au total (il reste 51 Go
+pour le système), 10 Gio de plancher sur le disque réel, 40 000 pièces par entreprise. Les
+quatre sont posés par `install.sh` sur une configuration neuve — une réinstallation ne peut plus
+retomber en silence sur les défauts du code.
+
+#### Les quatre défauts trouvés en attaquant la première version, dont deux mesurés
+
+1. ⛔ **Le dossier était balayé à chaque dépôt, deux fois, en synchrone.** MESURÉ :
+   100 fichiers → 0,9 ms · 1 000 → 5,9 ms · 5 000 → 17,6 ms · **21 000 → 73 ms**, donc
+   **146 ms par photo** — sur la boucle d'événements, donc tout le serveur gelé pour TOUTES les
+   entreprises. Une journée de terrain à plusieurs techniciens aurait transformé le partage de
+   photos en panne générale. Le poids est désormais tenu en incrémental.
+   **Après correctif, mesuré contre le vrai serveur à volume identique : 2,1 ms de médiane**
+   (1,1 min · 3,7 max), soit ~70×. Un seul balayage par redémarrage, sur la première route qui
+   touche le stockage.
+2. ⛔ **`/health` déclenchait ce balayage, et elle est PUBLIQUE et sans clé.** Elle lit
+   maintenant le total tenu en mémoire (6,8 ms mesurés) et ne publie qu'un **pourcentage
+   arrondi à 5 %** : le poids exact des pièces est un journal de l'activité de terrain de tous
+   les clients — il monte quand les techniciens photographient, il stagne le dimanche.
+3. ⛔ **Un `.tmp` orphelin empêchait d'effacer une entreprise.** MESURÉ : `rmdirSync` échoue en
+   `ENOTEMPTY`, le dossier SURVIT avec la pièce dedans, et la fonction annonçait quand même
+   « 1 effacée ». Le temporaire vit désormais dans `tmp/`, vidé au démarrage, et l'effacement
+   est un `rmSync` récursif comme pour les copies de sauvegarde.
+4. ⛔ **Il n'y avait aucune route de suppression** : le stockage était un cliquet, alors que
+   `sous-traitance.html` annonce une durée de conservation. `/api/pieces/supprimer` existe, et
+   rend 404 sur une pièce déjà absente — un 200 ferait croire à un ménage qui n'a pas eu lieu.
+
+Plus : un plancher sur l'espace disque RÉEL (`fs.statfsSync`, `bavail` et non `bfree` qui
+compterait la réserve du superutilisateur ; dans un try/catch avec une politique d'échec
+**écrite** — on laisse passer et on le DIT au journal) ; un plafond en NOMBRE de pièces ;
+l'identifiant qui porte l'entreprise (`sha256(t + iv + enc)`) pour qu'un identifiant émis par A
+ne puisse jamais nommer un fichier de B ; et l'élagage du quota au lieu d'une remise à zéro de
+toutes les entreprises d'un coup.
+
+⚠️ **Ce qui n'a PAS été établi** : l'amplification par blocs de 4 Kio n'a **pas pu être
+reproduite** dans l'atelier (facteur ×1 — ce conteneur n'a pas ce plancher). Elle reste
+plausible sur l'ext4 du VPS ; le plafond en nombre et `statfs` la couvrent, mais le chiffre
+avancé par l'analyse n'est pas une mesure.
+
+⚠️ **Reporté hors du périmètre de l'étape 0** : un budget de lecture en OCTETS (le quota compte
+des requêtes), la lecture en flux plutôt qu'en JSON, une clé de quota par APPAREIL et non par
+entreprise, et l'alignement de la durée de conservation sur ce qu'annonce `sous-traitance.html`.
+
 ### Ce qui est ÉCRIT mais N'EST PAS DÉPLOYÉ
 
 **Étape 0 du socle, côté serveur** — `server/pieces.js` (198 lignes) + trois portes d'effacement
