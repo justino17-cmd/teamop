@@ -13,6 +13,62 @@ de ligne du tout.
 
 ---
 
+## ✅ 16 SEPTEMBRE 2026 — LA v695 EST PUBLIÉE, ET L'ÉTAPE 0 DU SOCLE EST COMMENCÉE
+
+Justin, dans l'ordre : « bon aller ont commence go », puis, sur la question posée en clair,
+**« Publie la v695 maintenant »** et **« Les pièces jointes → ton VPS »**. Puis, le même soir :
+*« là ont fait tout je veux que demain ou au plu tard vendredit tout marche »*.
+
+### Ce qui est PARTI chez les clients
+
+**v695** — quatre correctifs, détaillés dans `VERSION-STABLE.md`. Le premier est celui qui
+comptait : créer un compte n'exclut plus la personne des box de l'équipe. `APP_VERSION` 693 →
+695, cache du service worker v893 → v895, `beta.html` régénérée en 695-beta.
+⚠️ **Le rangement n'est PAS fait** : les `userIdsExclus` déjà écrits chez ELAN y restent tant
+que personne n'ouvre « 🔎 Box retirées » dans Utilisateurs. Le correctif arrête la cause, il ne
+range pas derrière lui — c'est un geste à demander à ELAN, pas une case cochée.
+
+### Ce qui est ÉCRIT mais N'EST PAS DÉPLOYÉ
+
+**Étape 0 du socle, côté serveur** — `server/pieces.js` (198 lignes) + trois portes d'effacement
+branchées dans `server/index.js` + `tests/test-711.js` (**53 ✓ 0 ✗**, lance le vrai serveur).
+Trois routes : `/api/pieces/deposer`, `/lire`, `/etat`. Un dossier par entreprise
+(`DATA_DIR/pieces/<t>/<id>.bin`), la même garde que les copies de sauvegarde (`sauvRefus`),
+l'identifiant recalculé à la réception, des plafonds (512 Mio par entreprise, 4 Gio au total),
+et chaque refus avec un motif machine que l'écran peut dire.
+
+⛔ **Sur la branche `claude/op-gestion-interface-yb6p32`, PAS sur `main`** — un push sur `main`
+qui touche `server/**` déploie le VPS tout seul. Il attend sa phrase.
+
+⛔ **ET LE CÔTÉ APPLICATION N'EXISTE PAS ENCORE.** Aucune photo ne part vers le VPS : `app.html`
+et `beta.html` ne connaissent pas ces routes. Tant que ce n'est pas écrit, l'étape 0 ne change
+RIEN pour un technicien. Ne pas lire « étape 0 commencée » comme « les photos se partagent ».
+
+### Ce qui est réaliste pour jeudi / vendredi, et ce qui ne l'est pas
+
+⚠️ Justin veut « que tout marche » pour vendredi. Il faut dire lesquels des deux :
+- **Réaliste** : l'étape 0 entière — côté application sur la bêta, mesurée au navigateur, puis
+  déployée sur sa phrase. Les photos se partagent, ELAN repasse très en dessous du plafond.
+- **PAS réaliste** : le socle complet (étapes 1 à 4 de `PLAN-OP-SOCLE.md`). Le chiffrage est de
+  8 à 11 jours de travail effectif, sur 2 à 3 semaines de calendrier à cause de la règle
+  « bêta d'abord ». Promettre vendredi, c'est promettre une publication non éprouvée chez un
+  client qui travaille — exactement ce que la règle du 15 septembre au soir interdit.
+
+### Ce qui bloque encore, et qui ne dépend pas de moi
+
+1. ⛔ **La place disque du VPS n'a jamais été mesurée.** Il n'y a même pas de client `ssh` dans
+   l'atelier (`ssh: command not found`, vérifié). Une seule commande la donne, et elle débloque
+   le réglage des plafonds :
+   `ssh root@api.teamop.fr "df -h /opt && du -sh /opt/teamop/data"`
+2. **Le renommage d'entreprise** — `server/test-connexion.js`, 6 cas sur 65, seul rouge de la
+   CI. Décision produit, pas correctif.
+3. **La sauvegarde des données métier** — il n'y en a aucune de notre côté. Proposition faite
+   à Justin et non encore tranchée : **garder Firebase comme second exemplaire** au lieu de le
+   retirer à l'étape 4 (~0,50 €/mois, hors du VPS). ⚠️ À concevoir, pas à supposer : un
+   document Firestore plafonne à 1 Mio, la sauvegarde passera donc par Firebase Storage.
+
+---
+
 ## ⛔ DÉCISION DU 15 SEPTEMBRE 2026 AU SOIR — LE SERVEUR DOIT POUVOIR LIRE LES DONNÉES
 
 Justin, après une soirée où j'ai diagnostiqué à l'aveugle un incident chez ELAN parce que leurs
