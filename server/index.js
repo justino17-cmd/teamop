@@ -330,7 +330,13 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      sans espace ni adresse — c'est ce compteur qui dit, en une seconde et sans clé, si la
      fermeture a pris une vraie entreprise au passage. S'il monte, l'interrupteur
      « mailPreuve: false » rouvre le temps de comprendre (voir cleEquipeExige). */
-  mailRefus: { n: mailRefus.n, parMotif: mailRefus.parMotif, ts: mailRefus.ts } }));
+  mailRefus: { n: mailRefus.n, parMotif: mailRefus.parMotif, ts: mailRefus.ts },
+  /* Étape 0 du socle : le poids TOTAL des pièces jointes sur le VPS, et le plafond global.
+     ⛔ AGRÉGÉ, JAMAIS PAR ESPACE — /health est publique, y nommer une entreprise dirait au
+     monde laquelle existe (même règle que `mailRefus`). Ces deux entiers répondent à la seule
+     question qu'on se posera en exploitation : « reste-t-il de la place ? ». Sans eux, on
+     l'apprendrait le jour où un technicien ne peut plus envoyer une photo. */
+  pieces: pieces ? pieces.total() : null }));
 
 // ── Assistant devis : l'agent qui compose un devis à partir d'une conversation.
 //    Il ne fait que parler à Claude ; c'est OP GESTION qui enregistre le devis
@@ -2975,8 +2981,14 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
      la genèse que ce fichier décrit plus bas. Ici l'ajouter est gratuit : l'ancien espace est
      mort, personne n'a besoin de sa session. */
   const cut = t ? await fbRevoquerEquipe(t) : { fait: true, motif: 'aucun ancien espace' };
-  console.log('Tour :', req.tourUser.nom, 'fait repartir « ' + slug + ' » à neuf — ancien espace', t, efface ? 'effacé' : 'NON effacé');
-  res.json({ ok: true, ancien: t, efface, coupure: cut.fait, coupureMotif: cut.motif });
+  /* ⛔ ET SES PIÈCES JOINTES (16 septembre 2026). Cette porte-ci efface le document de
+     l'ANCIEN espace : les photos qu'il avait déposées doivent partir avec, sinon elles
+     survivent à un espace que plus rien ne référence — un orphelin que personne ne saura plus
+     rattacher à une entreprise, donc que personne n'effacera jamais. */
+  let piecesEffacees = 0;
+  if (t && pieces) { try { piecesEffacees = pieces.effacerEntreprise(t); } catch (e) { console.error('renaitre pièces :', e.message); } }
+  console.log('Tour :', req.tourUser.nom, 'fait repartir « ' + slug + ' » à neuf — ancien espace', t, efface ? 'effacé' : 'NON effacé', '· pièces :', piecesEffacees);
+  res.json({ ok: true, ancien: t, efface, piecesEffacees, coupure: cut.fait, coupureMotif: cut.motif });
 });
 // le patron active un code promo pour une entreprise, directement depuis la Tour
 app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
@@ -3305,6 +3317,19 @@ function quotaOk(map, cle, max, fenetre) {
   if (Date.now() > q.reset) { q.n = 0; q.reset = Date.now() + fenetre; }
   q.n++; map.set(cle, q);
   return q.n <= max;
+}
+/* ══ ÉTAPE 0 DU SOCLE : LES PIÈCES JOINTES ET LES PHOTOS SORTENT DU DOCUMENT ════════════
+   Monté ICI, et pas plus haut, parce que le module reçoit `sauvRefus` et `quotaOk` : la
+   première est une déclaration de fonction donc hissée, la seconde est juste au-dessus. Aucun
+   chemin `/api/pieces/*` n'existait avant : pas de collision possible avec une route déjà
+   enregistrée (le piège de `/api/devis/etat`, déclarée deux fois, où la seconde n'a jamais
+   répondu). Si le module ne se monte pas, le reste du serveur fonctionne : les pièces
+   redeviennent simplement ce qu'elles sont aujourd'hui, prisonnières de leur appareil. */
+let pieces = null;
+try {
+  pieces = require('./pieces').monterPieces(app, { config, DATA_DIR, sauvRefus, quotaOk, monStr });
+} catch (e) {
+  console.error('pièces jointes non montées :', e.message);
 }
 /* Plusieurs inscriptions peuvent porter le même espace : la plus récente fait foi. */
 function espaceAJour(slug) {
@@ -4652,6 +4677,13 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
       if (r.ok) effaces++; else console.error('effacement firestore', t, ': HTTP', r.status);
     } catch (e) { console.error('effacement firestore', t, ':', e.message); }
   }
+  /* ⛔ LES PIÈCES JOINTES PARTENT AVEC LE DOCUMENT (16 septembre 2026). Le commentaire
+     au-dessus promet « plus rien n'est enregistré, la place est libérée » : à partir du moment
+     où des photos vivent sur le VPS, cette phrase devient fausse si on ne les efface pas ici.
+     Aucun appel réseau, aucun jeton : c'est du disque local, ça ne peut pas faire traîner la
+     route (la même raison qui a fait passer les coupures en parallèle). */
+  let piecesEffacees = 0;
+  if (pieces) for (const t of espacesAEffacer) { try { piecesEffacees += pieces.effacerEntreprise(t); } catch (e) { console.error('effacement pièces', t, ':', e.message); } }
   if (jeton && !jetonAdmin) { try { await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
   // et le compte créé sur le site (connexion espace client) : supprimé aussi, si la clé admin est là
@@ -4664,7 +4696,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      « sessions coupées » alors que rien n'avait été tenté. C'est la même famille d'affirmation
      sans fait derrière que ce correctif combat — elle ne s'autorise pas ici non plus. */
   const coupOk = coupures.every(c => c.fait);
-  res.json({ ok: true, supprime: true, espaces: espacesAEffacer.length, donneesEffacees: effaces, compteSite,
+  res.json({ ok: true, supprime: true, espaces: espacesAEffacer.length, donneesEffacees: effaces, piecesEffacees, compteSite,
     coupure: coupOk,
     coupureMotif: !coupures.length ? 'aucun espace relié — rien à couper'
       : coupOk ? 'sessions Firebase coupées — effectif sous une heure'
@@ -4929,6 +4961,12 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.comptesAnnuaire = inv.comptesAnnuaire;
   if (usageData[t]) { delete usageData[t]; usageSave(); }
   try { fs.rmSync(sauvDossier(t), { recursive: true, force: true }); } catch (e) { ecrit = false; console.error('suppression : copies de sauvegarde non effacées :', e.message); }   // « plus rien n'est enregistré nulle part » doit rester vrai
+  /* ⛔ ET LES PIÈCES JOINTES AVEC. Ajoutées le 16 septembre 2026 : tout stockage neuf doit
+     être effacé partout où les données de l'entreprise le sont, sinon on crée un orphelin de
+     plus — des photos de sites de clients qui survivent à la suppression de leur entreprise.
+     `effacerEntreprise` rend un NOMBRE, jamais `true` : 0 veut dire « rien trouvé », ce qui
+     est une information, là où `true` aurait menti. */
+  if (pieces) { try { fait.piecesJointes = pieces.effacerEntreprise(t); } catch (e) { ecrit = false; console.error('suppression : pièces jointes non effacées :', e.message); } }
   if (ordresData[t]) { delete ordresData[t]; ordresSave(); }
   fait.ecransOuverts = inv.ecransOuverts;
   if (cnxData[t]) { delete cnxData[t]; cnxSave(); }
