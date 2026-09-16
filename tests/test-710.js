@@ -148,5 +148,42 @@ const troisBox = () => [
   v('…et il ne la voit toujours pas, ce qui est juste', c.visibleBoxes(db.boxes).length, 0);
 }
 
+/* ── 5) L'ÉCRAN DE REMISE EN ÉTAT — il montre ce qui prive, et RIEN d'autre ──
+   Le correctif arrête la cause ; les comptes déjà créés portent toujours leur exclusion.
+   ⚠️ Cet écran ne prétend PAS distinguer un retrait accidentel d'un retrait voulu : rien ne
+   les distingue dans les données. Il liste ce qui PRIVE, et l'humain tranche. Ce que le banc
+   garde, c'est qu'il ne noie pas le signal — une exclusion qui ne retire rien n'y figure pas. */
+{
+  const SRC_PRIV = extraire('exclusionsPrivantes');
+  v('⛔ exclusionsPrivantes est extraite du fichier livré', !!SRC_PRIV, true);
+  const nu = { id: 'u9', prenom: 'Nouveau', nom: 'Tech', role: 'technicien', techId: 't3' };
+  const db = { boxes: [
+    { id: 'b1', nom: 'Équipe', visibleTous: true, actif: true, userIdsExclus: ['u9'] },
+    { id: 'b2', nom: 'Sa tournée', techIds: ['t3'], actif: true, userIdsExclus: ['u9'] },
+    { id: 'b3', nom: 'Dont il répond', respUserId: 'u9', actif: true, userIdsExclus: ['u9'] },
+    { id: 'b4', nom: 'Jamais la sienne', actif: true, userIdsExclus: ['u9'] },
+    { id: 'b5', nom: 'Désactivée', visibleTous: true, actif: false, userIdsExclus: ['u9'] },
+    { id: 'b6', nom: 'Rien à signaler', visibleTous: true, actif: true },
+  ], users: [nu] };
+  const c = banc(db, nu);
+  c.userCap = () => false;
+  vm.runInContext(SRC_PRIV, c);
+
+  const l = c.exclusionsPrivantes(nu).map(b => b.id);
+  v('⛔ les trois exclusions qui PRIVENT sont listées', l, ['b1', 'b2', 'b3']);
+  v('⚠️ une exclusion sur une box qu’il ne verrait pas n’y figure PAS — elle ne retire rien', l.includes('b4'), false);
+  v('⚠️ une box désactivée non plus', l.includes('b5'), false);
+  v('⚠️ ni une box sans exclusion', l.includes('b6'), false);
+
+  c.userCap = (u, cap) => cap === 'voirTout';
+  v('⚠️ et « Tout voir » ne fait rien remonter — l’exclusion n’y joue pas', c.exclusionsPrivantes(nu).length, 0);
+  c.userCap = () => false;
+
+  c.userBoxVoit('u9', 'b1', true);
+  v('⛔ rendre une box la rend vraiment visible', c.visibleBoxes(db.boxes).map(b => b.id).includes('b1'), true);
+  v('…et les autres restent privées tant qu’on n’y touche pas', c.exclusionsPrivantes(nu).map(b => b.id), ['b2', 'b3']);
+  v('⚠️ rendre n’ouvre AUCUNE box qui ne lui était pas destinée', (db.boxes[3].userIdsExclus || []).includes('u9'), true);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 if (ko) process.exitCode = 1;

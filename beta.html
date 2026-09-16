@@ -4955,7 +4955,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '694-beta';
+const APP_VERSION = '695-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -8636,6 +8636,60 @@ function visibleBoxes(list){ const p=can('voirTout')?perimetreTechIds():null; if
    en basculant `currentUser` le temps du test et en le remettant TOUJOURS, même si ça lève.
    Réécrire la règle de visibilité ici en produirait une seconde, qui divergerait un jour — et
    l'écran mentirait à nouveau, dans l'autre sens. */
+/* ⛔ CE QUI A ÉTÉ RETIRÉ SANS GESTE — l'écran de remise en état après le défaut du 15 septembre.
+   Jusqu'à la v694, créer un compte l'INSCRIVAIT dans `userIdsExclus` de toutes les box ouvertes
+   à l'équipe (voir le bloc ⛔ de saveUser). Le correctif arrête la cause ; il ne range pas
+   derrière : les comptes déjà créés portent toujours leur exclusion.
+
+   ⚠️ ET ON NE PEUT PAS LA NETTOYER TOUT SEUL. Rien ne distingue, dans les données, une
+   exclusion POSÉE PAR ACCIDENT d'une exclusion VOULUE : ni date, ni auteur, ni motif. Un
+   nettoyage en masse effacerait les vrais retraits — exactement ce que Justin a refusé
+   (« si on a fait plusieurs permissions, c'est qu'il y a un but »). Cet écran MONTRE et
+   propose ; il n'agit qu'au tap, une personne à la fois.
+
+   On ne liste que les exclusions qui PRIVENT de quelque chose : celles posées sur une box que
+   la personne verrait autrement (ouverte à l'équipe, sa fiche technicien cochée, ou elle en
+   est responsable). Une exclusion sur une box qu'elle ne voyait de toute façon pas ne retire
+   rien — l'afficher noierait le signal. */
+function exclusionsPrivantes(u){
+  if(!u||!u.id) return [];
+  if(userCap(u,'voirTout')) return [];                       // « Tout voir » : l'exclusion ne joue pas
+  return (db.boxes||[]).filter(b=>b&&b.actif!==false&&boxExclu(b,u.id)&&(
+    b.visibleTous || (u.techId&&(b.techIds||[]).includes(u.techId)) || b.respUserId===u.id));
+}
+function exclusionsRendre(userId,boxId){
+  const u=(db.users||[]).find(x=>x.id===userId); if(!u) return;
+  userBoxVoit(userId,boxId,true);                            // retire des exclus ; n'ajoute rien si la box est déjà ouverte d'office
+  const b=(db.boxes||[]).find(x=>x.id===boxId)||{};
+  save(); try{ logEvent('Box rendue','à @'+(u.login||u.id)+' — '+(b.nom||b.numero||'box'),'auth'); }catch(e){}
+  toast('Box rendue à '+fullName(u),2600); revueExclusions();
+}
+function exclusionsRendreTout(userId){
+  const u=(db.users||[]).find(x=>x.id===userId); if(!u) return;
+  const l=exclusionsPrivantes(u); if(!l.length) return;
+  if(!confirm('Rendre à '+fullName(u)+' les '+l.length+' box que l\'équipe voit ?\n\nCe geste ne change rien pour les autres, et n\'ouvre aucune box qui ne lui serait pas déjà destinée.')) return;
+  l.forEach(b=>userBoxVoit(userId,b.id,true));
+  /* Une ligne de journal par GESTE, jamais par box : `db.journal` est plafonné à 500. */
+  save(); try{ logEvent('Box rendues',l.length+' box rendues à @'+(u.login||u.id),'auth'); }catch(e){}
+  toast(l.length+' box rendues à '+fullName(u),3200); revueExclusions();
+}
+function revueExclusions(){
+  const gens=(db.users||[]).filter(u=>u&&u.actif!==false).map(u=>({u,l:exclusionsPrivantes(u)})).filter(x=>x.l.length);
+  const total=gens.reduce((n,x)=>n+x.l.length,0);
+  if(!gens.length){ openModal('<h3 style="margin:0 0 10px">🔎 Box retirées à quelqu\'un</h3>'
+    +'<p style="color:var(--t3);font-size:13.5px;line-height:1.55">Personne n\'est privé d\'une box que l\'équipe voit. Rien à remettre en état.</p>'); return; }
+  const li=gens.map(x=>`<div style="padding:10px 0;border-top:1px solid var(--brd)">
+      <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <b>${esc(fullName(x.u))}</b>
+        <button class="btn ghost sm" onclick="exclusionsRendreTout('${x.u.id}')">Tout rendre — ${x.l.length}</button></div>
+      ${x.l.map(b=>`<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:4px 0 4px 10px;font-size:13px">
+        <span>🧱 ${esc(b.nom||b.numero||'Box')} <span style="color:var(--t3);font-size:11.5px">· ${b.visibleTous?'ouverte à toute l\'équipe':((x.u.techId&&(b.techIds||[]).includes(x.u.techId))?'sa fiche technicien y est cochée':'il en est responsable')}</span></span>
+        <button class="btn ghost sm" onclick="exclusionsRendre('${x.u.id}','${b.id}')">Rendre</button></div>`).join('')}
+    </div>`).join('');
+  openModal('<h3 style="margin:0 0 10px">🔎 Box retirées à quelqu\'un</h3>'
+    +'<p style="color:var(--t3);font-size:13px;line-height:1.55">'+total+' box ne s\'ouvrent pas à '+gens.length+' personne(s), alors que l\'équipe les voit. '
+    +'<b>Certaines ont pu être retirées exprès</b> — rien ne permet de le savoir dans les données. Regarde avant de rendre.</p>'+li);
+}
 function usrSansBox(u){
   if(!u||u.actif===false) return false;
   if(!(db.boxes||[]).length) return false;        // l'entreprise n'a pas de box : ce n'est pas un oubli
@@ -24097,6 +24151,10 @@ views.utilisateurs=function(){
   const peutCreer=admin||can('creerUtilisateurs');   // voir la rubrique ne suffit pas pour créer des comptes
   setHeader('Utilisateurs',`${db.users.length} / ${places} place(s) de l'abonnement`,
     (currentUser&&currentUser.role==='admin'?`<button class="btn ghost" onclick="profilsGerer()">🎛 Profils${profilsDroits().length?' · '+profilsDroits().length:''}</button> `:'')
+    /* ⛔ LE BOUTON N'APPARAÎT QUE S'IL Y A QUELQUE CHOSE À VOIR. Un bouton qui ne fait rien
+       apprend à cliquer pour rien — même raison que le « Tout remettre à zéro » de la Tour. */
+    +((admin&&(db.users||[]).some(u=>u&&u.actif!==false&&exclusionsPrivantes(u).length))
+        ?`<button class="btn ghost" style="border-color:var(--org)" onclick="revueExclusions()">🔎 Box retirées</button> `:'')
     +((peutCreer&&db.users.length<500)?`<button class="btn" onclick="formUser()">＋ Utilisateur</button>`:''));
   const rows=db.users.map(u=>{ const moi=u.id===currentUser.id; const ouv=(usrOuvert===u.id);
     return `<div class="card usr-c${ouv?' on':''}" style="padding:13px 16px;margin-bottom:10px;${u.actif?'':'opacity:.6'}">
