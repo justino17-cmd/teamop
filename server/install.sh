@@ -55,6 +55,10 @@ if [ ! -f /opt/teamop/config.json ]; then
   "contactEmail": "contact@teamop.fr",
   "origins": ["https://teamop.fr", "https://www.teamop.fr"],
   "mailPreuveExigee": true,
+  "piecesMaxOctets": 5368709120,
+  "piecesMaxTotal": 64424509440,
+  "piecesPlancherDisque": 10737418240,
+  "piecesMaxNombre": 40000,
   "smtp": {},
   "anthropic": {
     "cleApi": "",

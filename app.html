@@ -7456,17 +7456,33 @@ async function sauvKh(){ const t=localStorage.getItem('elan_sync_team'), k=local
    « cette photo n'existe plus » à quelqu'un qui est simplement hors réseau — et sur le terrain,
    hors réseau est la situation NORMALE. `pieceLire` rend donc {dataUrl} | {absente:true} |
    {inconnu:true, motif}, jamais une chaîne nue. */
-const PIECE_CLAIR_MAX=3*1024*1024;   // avant chiffrement : au-delà, le serveur refuserait (413)
+/* ⛔ LA LIMITE QUI COMPTE EST CELLE DU CHIFFRÉ, ET ELLE SE MESURE — elle ne se devine pas.
+   Premier jet : on comparait le CLAIR à `3 Mio × 4/3`, ce qui suppose que gzip a fonctionné
+   (facteur net ×1,34, mesuré). Sur un navigateur sans `CompressionStream` (Safari d'avant
+   16.4), gzip n'a PAS lieu : les deux expansions base64 s'empilent vraiment, le facteur devient
+   ×1,78, et une photo de 3 Mio produit ~5,3 Mio de chiffré — acceptée ici, refusée là-bas
+   après être montée en 4G. On garde donc un pré-contrôle large (pour ne pas chiffrer 10 Mo
+   pour rien) et on RE-CONTRÔLE la taille réelle du chiffré contre la même constante que le
+   serveur. */
+const PIECE_CLAIR_MAX=3*1024*1024;   // pré-contrôle large, avant chiffrement
+const PIECE_ENC_MAX=4*1024*1024;     // ≡ PIECE_MAX_B64 dans server/pieces.js
 const _pieceCache=new Map();         // id → dataUrl, pour la session : une photo ouverte deux fois ne se retire qu'une
 /* Rend {id} quand c'est parti, sinon {erreur:true, motif} — JAMAIS une exception, et jamais
    `null` tout court : l'appelant doit pouvoir dire à l'utilisateur POURQUOI ça n'est pas parti,
    sans quoi on retombe sur « erreur » générique, qui n'aide personne. */
+/* ⛔ INVARIANT POUR QUI BRANCHERA CECI SUR UN ÉCRAN : ne JAMAIS remplacer ni effacer la
+   donnée locale (le data URL) avant d'avoir reçu un {id}. Un depôt peut échouer pour six
+   raisons dont cinq sont temporaires ; écraser le clair avant la confirmation, c'est perdre la
+   photo d'un technicien parce qu'il était dans une cave. Le clair reste, l'identifiant s'ajoute. */
 async function pieceDeposer(dataUrl){
   const d=String(dataUrl||''); if(!d) return {erreur:true,motif:'vide'};
-  if(d.length>PIECE_CLAIR_MAX*4/3) return {erreur:true,motif:'trop-gros'};
+  if(d.length>PIECE_CLAIR_MAX*16/9) return {erreur:true,motif:'trop-gros'};   // large : le cas sans gzip
   const c=await sauvKh(); if(!c) return {erreur:true,motif:'sans-espace'};
   let e=null; try{ e=await syncEncrypt(d); }catch(_e){}
   if(!e||!e.enc) return {erreur:true,motif:'chiffrement'};
+  /* La vraie limite, sur la vraie taille : même nombre des deux côtés, et on évite de faire
+     monter en 4G une pièce dont on sait déjà qu'elle sera refusée. */
+  if(e.enc.length>PIECE_ENC_MAX) return {erreur:true,motif:'trop-gros'};
   try{
     const r=await fetch(PUSH_API+'/api/pieces/deposer',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({t:c.t,kh:c.kh,iv:e.iv,enc:e.enc,z:(e.z?1:0)})});

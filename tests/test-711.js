@@ -35,10 +35,10 @@ const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; co
 
 /* ══ 1. CE QUI SE LIT DANS LE FICHIER ═══════════════════════════════════════════════════════ */
 console.log('\n── 711 · aucune porte neuve : tout passe par la garde des copies ──');
-v('les trois routes existent', ['deposer', 'lire', 'etat'].every(r => MOD.indexOf("'/api/pieces/" + r + "'") > 0), true);
+v('les quatre routes existent', ['deposer', 'lire', 'supprimer', 'etat'].every(r => MOD.indexOf("'/api/pieces/" + r + "'") > 0), true);
 /* ⛔ `porte()` fait l'identité, `sauvRefus` et le quota. Une route qui l'oublierait s'ouvrirait
    sans preuve de clé — et le module entier deviendrait un dépôt public. */
-v('⛔ chaque route commence par porte()', (MOD.match(/const p = porte\(req, res,/g) || []).length, 3);
+v('⛔ chaque route commence par porte()', (MOD.match(/const p = porte\(req, res,/g) || []).length, 4);
 v('⛔ et porte() appelle sauvRefus — pas une garde réécrite à sa façon', /sauvRefus\(t, kh/.test(MOD), true);
 v('⛔ sauvRefus n\'est PAS redéfinie dans ce module', /function sauvRefus/.test(MOD), false);
 v('un identifiant est 64 hexadécimaux, rien d\'autre', /\^\[0-9a-f\]\{64\}\$/.test(MOD), true);
@@ -64,11 +64,17 @@ v('effacerEntreprise rend un NOMBRE, jamais true', /return n;\s*\n\s*\},/.test(M
 
 console.log('\n── 711 · /health reste agrégé (il est public) ──');
 { const i = SRV.indexOf("app.get('/health'"); const bloc = SRV.slice(i, i + 3000);
-  v('/health porte le poids des pièces', bloc.indexOf('pieces.total()') > 0, true);
-  /* ⛔ `total()` ne rend que deux entiers. S'il rendait un détail par espace, /health dirait au
-     monde quelles entreprises existent — la règle qui vaut déjà pour `mailRefus`. */
-  const t = MOD.slice(MOD.indexOf('total()'), MOD.indexOf('total()') + 120);
-  v('⛔ total() ne rend que des entiers, aucun nom d\'espace', /octets: peseTout\(\), plafond: maxTot/.test(t), true); }
+  v('/health passe par sante(), pas par le total exact', bloc.indexOf('pieces.sante()') > 0, true);
+  v('⛔ et surtout PAS par total() — il est publique', bloc.indexOf('pieces.total()') < 0, true);
+  /* ⛔ `sante()` ne rend qu'un palier arrondi. Le poids exact des pièces est un journal de
+     l'activité de terrain de tous les clients : il monte quand les techniciens photographient,
+     il stagne le dimanche. Même règle que `mailRefus`. */
+  const t = MOD.slice(MOD.indexOf('sante()'), MOD.indexOf('sante()') + 200);
+  v('⛔ sante() arrondit à 5 %', /Math\.round\(\(total\(\) \/ maxTot\) \* 20\) \* 5/.test(t), true);
+  /* Sur l'objet RENDU, pas sur un voisinage de texte : un premier jet découpait 200 caractères
+     et attrapait la fonction `total()` qui suit, donc le contrôle rougissait pour rien. */
+  const ret = /return \{ remplissage: pct, plafond: maxTot \};/.exec(t);
+  v('⛔ … et ne rend QUE le palier et le plafond, aucun compte d\'octets', !!ret, true); }
 
 /* ══ 2. LE VRAI SERVEUR ═════════════════════════════════════════════════════════════════════ */
 const banc = path.join(require('os').tmpdir(), 'teamop-test-711-' + process.pid);
@@ -95,7 +101,7 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
     vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, adminPassHash: sha('mdp-du-banc'),
     /* Un plafond minuscule : on veut EXERCER le refus « plein », pas écrire 512 Mio sur le
        disque d'un banc d'essai. C'est le réglage réel, pas un chemin de test à part. */
-    piecesMaxOctets: 6000 }));
+    piecesMaxOctets: 6000, piecesMaxNombre: 5, piecesPlancherDisque: 1 }));
   fs.writeFileSync(path.join(banc, 'data', 'espaces.json'), JSON.stringify({
     a: { slug: 'a', nom: 'A', email: 'a@exemple.fr', t: TA, code: b64({ t: TA, k: CLE_A }), ts: 1 },
     b: { slug: 'b', nom: 'B', email: 'b@exemple.fr', t: TB, code: b64({ t: TB, k: CLE_B }), ts: 1 },
@@ -142,8 +148,13 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
     /* ⛔ LE SERVEUR RECALCULE : l'identifiant n'est pas un nom donné par l'appareil, c'est
        l'empreinte de ce qui est arrivé. Un corps rangé sous un faux nom n'a pas d'endroit
        où naître. */
-    v('⛔ et c\'est bien le sha-256 de ce qui a été reçu',
-      id, crypto.createHash('sha256').update(PIECE.iv + '.' + PIECE.enc, 'utf8').digest('hex'));
+    /* ⛔ L'IDENTIFIANT PORTE L'ENTREPRISE. Recalculé à la réception, il prouve le contenu ET le
+       propriétaire : un identifiant émis pour A ne peut plus, même par accident, nommer un
+       fichier du dossier de B. */
+    v('⛔ c\'est le sha-256 de l\'entreprise ET de ce qui a été reçu',
+      id, crypto.createHash('sha256').update(TA + '.' + PIECE.iv + '.' + PIECE.enc, 'utf8').digest('hex'));
+    v('⛔ … donc PAS calculable sans l\'entreprise',
+      id === crypto.createHash('sha256').update(PIECE.iv + '.' + PIECE.enc, 'utf8').digest('hex'), false);
     v('le fichier est dans le dossier de SON entreprise',
       fs.existsSync(path.join(banc, 'data', 'pieces', TA, id + '.bin')), true);
     r = await post('/api/pieces/lire', { t: TA, kh: KHA, id });
@@ -166,6 +177,13 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
       fs.readFileSync(path.join(banc, 'data', 'pieces', TA, id + '.bin'), 'utf8').indexOf('photo-chiffree') < 0, true);
 
     console.log('\n── 711 · LE CLOISONNEMENT : B ne lit pas la pièce de A ──');
+    /* ⛔ LE CONTRE-TEST DE L'IDENTIFIANT : le MÊME contenu déposé par deux entreprises doit
+       donner DEUX identifiants. Sinon B pourrait, en devinant un contenu, nommer un fichier
+       de A — et le jour où quelqu'un déplace la lecture hors du dossier par entreprise, la
+       fuite serait immédiate. */
+    { const ra = await post('/api/pieces/deposer', { t: TA, kh: KHA, iv: PIECE.iv, enc: Buffer.from('meme-contenu').toString('base64'), z: 0 });
+      const rb = await post('/api/pieces/deposer', { t: TB, kh: KHB, iv: PIECE.iv, enc: Buffer.from('meme-contenu').toString('base64'), z: 0 });
+      v('⛔ le même contenu chez A et chez B donne DEUX identifiants', ra.j.id === rb.j.id, false); }
     r = await post('/api/pieces/lire', { t: TB, kh: KHB, id });
     v('⛔ B présente SA clé et demande l\'identifiant de A → introuvable', r.statut, 404);
     r = await post('/api/pieces/lire', { t: TA, kh: KHB, id });
@@ -197,19 +215,81 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
 
     console.log('\n── 711 · l\'état, et /health ──');
     r = await post('/api/pieces/etat', { t: TA, kh: KHA });
-    v('A compte ses pièces', r.j && r.j.n, 3);
+    v('A compte ses pièces', r.j && r.j.n, 4);
     v('… et pèse plus de 3 000 octets', (r.j && r.j.octets) > 3000, true);
     const h = await (await fetch(B + '/health')).json();
-    v('/health porte le total', typeof h.pieces.octets, 'number');
+    /* ⛔ /health EST PUBLIQUE. Le poids exact des pièces est un journal de l'activité de
+       terrain de tous les clients : il monte quand les techniciens photographient. On ne
+       publie qu'un palier arrondi à 5 %. */
+    v('/health porte un pourcentage de remplissage', typeof h.pieces.remplissage, 'number');
+    v('⛔ … arrondi à 5 %, jamais un compte d\'octets', [h.pieces.remplissage % 5, h.pieces.octets], [0, undefined]);
     v('⛔ … et ne nomme AUCUNE entreprise', JSON.stringify(h.pieces).indexOf(TA) < 0 && JSON.stringify(h.pieces).indexOf(TB) < 0, true);
 
+    console.log('\n── 711 · supprimer une pièce — sans ça, le stockage est un cliquet ──');
+    /* ⛔ Une pièce retirée d'une intervention resterait sur le VPS pour toujours, alors que
+       `sous-traitance.html` annonce une durée de conservation. C'est une obligation. */
+    { const dep = await post('/api/pieces/deposer', { t: TB, kh: KHB, iv: PIECE.iv, enc: Buffer.from('a-supprimer').toString('base64'), z: 0 });
+      v('une pièce de B est déposée', dep.statut, 200);
+      let r2 = await post('/api/pieces/supprimer', { t: TA, kh: KHA, id: dep.j.id });
+      v('⛔ A ne supprime PAS une pièce de B', r2.statut, 404);
+      r2 = await post('/api/pieces/supprimer', { t: TB, kh: KHB, id: dep.j.id });
+      v('B supprime la sienne', r2.statut, 200);
+      r2 = await post('/api/pieces/lire', { t: TB, kh: KHB, id: dep.j.id });
+      v('… et elle n\'est plus lisible', r2.statut, 404);
+      r2 = await post('/api/pieces/supprimer', { t: TB, kh: KHB, id: dep.j.id });
+      /* ⛔ Un 200 sur une pièce déjà absente ferait croire à un ménage qui n'a pas eu lieu. */
+      v('⛔ resupprimer rend 404, pas un 200 rassurant', r2.statut, 404);
+      v('… avec le motif « absente »', r2.j && r2.j.motif, 'absente'); }
+
+    console.log('\n── 711 · le plafond en NOMBRE, séparé du plafond en octets ──');
+    /* ⚠️ Un quota en octets ne voit pas ce que coûtent des milliers de fichiers minuscules sur
+       un système de fichiers à blocs. L'amplification n'a PAS pu être reproduite dans l'atelier
+       (facteur ×1, ce conteneur n'a pas le plancher de bloc) — elle reste plausible sur l'ext4
+       du VPS, et ce plafond coûte trois lignes. Le banc est réglé à 5 pièces. */
+    { let n200 = 0, dernier = null;
+      for (let k = 0; k < 12; k++) { const r3 = await post('/api/pieces/deposer', { t: TB, kh: KHB, iv: PIECE.iv, enc: Buffer.from('petite-' + k).toString('base64'), z: 0 }); if (r3.statut === 200) n200++; dernier = r3; }
+      v('⛔ au-delà du plafond en nombre, on refuse', dernier.statut, 507);
+      v('… avec le motif « trop-nombreuses », pas « plein »', dernier.j && dernier.j.motif, 'trop-nombreuses');
+      v('… et le compte n\'a jamais dépassé le plafond', (await post('/api/pieces/etat', { t: TB, kh: KHB })).j.n <= 5, true); }
+
+    console.log('\n── 711 · le poids est TENU, jamais recalculé sur le chemin d\'une requête ──');
+    /* ⛔ LE CORRECTIF QUI A DEMANDÉ UNE MESURE. La première version balayait le dossier (un
+       readdirSync + un statSync par fichier) DEUX FOIS par dépôt, en synchrone, sur la boucle
+       d'événements : 100 fichiers → 0,9 ms, 1 000 → 5,9 ms, 5 000 → 17,6 ms,
+       21 000 → 73 ms, donc 146 ms par photo, tout le serveur gelé pour toutes les entreprises.
+       Ce banc épingle la propriété dans le SOURCE : aucun balayage depuis une route. */
+    { const MOD = fs.readFileSync(path.join(RACINE, 'server', 'pieces.js'), 'utf8');
+      const routes = MOD.slice(MOD.indexOf("app.post('/api/pieces/deposer'"), MOD.indexOf('return {'));
+      v('⛔ aucune route n\'appelle balayer()', routes.indexOf('balayer(') < 0, true);
+      v('⛔ ni readdirSync', routes.indexOf('readdirSync') < 0, true);
+      v('⛔ le total de /health ne balaie pas non plus (il est tenu)', /function total\(\) \{\s*if \(totalOctets === null\)/.test(MOD), true); }
+
+    console.log('\n── 711 · le plancher sur le disque RÉEL ──');
+    /* ⛔ Les plafonds comptent des octets LOGIQUES ; le disque perd des blocs et peut se
+       remplir pour une raison sans rapport. `statfsSync` est le seul contrôle qui voie la
+       vérité — et il lit `bavail`, pas `bfree` (qui compterait la réserve du superutilisateur
+       et laisserait accepter des écritures qui échouent). */
+    { const MOD = fs.readFileSync(path.join(RACINE, 'server', 'pieces.js'), 'utf8');
+      v('⛔ il lit bavail, pas bfree', /s\.bavail/.test(MOD) && !/s\.bfree/.test(MOD), true);
+      v('⛔ il est dans un try/catch — une exception ne doit pas casser le service', /try \{ const s = fs\.statfsSync/.test(MOD), true);
+      v('⛔ et son échec se DIT au journal, il ne passe pas en silence', /le plancher disque est INACTIF/.test(MOD), true);
+      /* ⚠️ Il n'est PAS dans porte() : sinon un disque plein empêcherait aussi de RELIRE une
+         pièce déjà déposée — précisément au moment où on en a besoin. */
+      const pt = MOD.slice(MOD.indexOf('function porte('), MOD.indexOf("app.post('/api/pieces/deposer'"));
+      v('⚠️ le plancher n\'est PAS dans porte() : lire reste possible sur un disque plein', pt.indexOf('disqueLibre') < 0, true); }
+
     console.log('\n── 711 · effacer une entreprise emporte ses pièces, et SEULEMENT les siennes ──');
+    /* ⛔ MESURÉ : avec un `.tmp` laissé par un renameSync interrompu, `rmdirSync` échouait en
+       ENOTEMPTY, le dossier SURVIVAIT avec la pièce dedans, et la fonction annonçait quand
+       même « 1 effacée ». Sur une fermeture d'entreprise, c'est de la donnée de client qui
+       reste. On sabote donc le dossier exprès avant d'effacer. */
+    try { fs.writeFileSync(path.join(banc, 'data', 'pieces', TA, 'c'.repeat(64) + '.bin.tmp'), '{}'); } catch (e) {}
     const mod = require(path.join(RACINE, 'server', 'pieces.js'));
     /* On appelle la fonction exportée sur le même dossier de données que le serveur : c'est
        exactement ce que font les trois portes de la Tour. */
     const faux = mod.monterPieces({ post() {}, get() {} }, { config: {}, DATA_DIR: path.join(banc, 'data'), sauvRefus: () => null, quotaOk: () => true, monStr: (x, n) => String(x == null ? '' : x).slice(0, n) });
     const n = faux.effacerEntreprise(TA);
-    v('elle rend le nombre de pièces effacées', n, 3);
+    v('elle rend le nombre de pièces effacées', n, 4);
     v('⛔ le dossier de A a disparu', fs.existsSync(path.join(banc, 'data', 'pieces', TA)), false);
     v('⚠️ celui de B est intact', fs.existsSync(path.join(banc, 'data', 'pieces', TB)), true);
     v('effacer une entreprise sans pièce rend 0, pas true', faux.effacerEntreprise('jamais-vue'), 0);

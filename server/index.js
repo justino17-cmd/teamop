@@ -331,12 +331,17 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      fermeture a pris une vraie entreprise au passage. S'il monte, l'interrupteur
      « mailPreuve: false » rouvre le temps de comprendre (voir cleEquipeExige). */
   mailRefus: { n: mailRefus.n, parMotif: mailRefus.parMotif, ts: mailRefus.ts },
-  /* Étape 0 du socle : le poids TOTAL des pièces jointes sur le VPS, et le plafond global.
-     ⛔ AGRÉGÉ, JAMAIS PAR ESPACE — /health est publique, y nommer une entreprise dirait au
-     monde laquelle existe (même règle que `mailRefus`). Ces deux entiers répondent à la seule
-     question qu'on se posera en exploitation : « reste-t-il de la place ? ». Sans eux, on
-     l'apprendrait le jour où un technicien ne peut plus envoyer une photo. */
-  pieces: pieces ? pieces.total() : null }));
+  /* Étape 0 du socle : où en est le stockage des pièces jointes.
+     ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
+     PUBLIQUE : le poids exact des pièces est un journal de l'activité de terrain de tous les
+     clients — il monte quand les techniciens photographient, il stagne le dimanche. Un palier
+     répond à la seule question qu'on se pose en exploitation (« reste-t-il de la place ? »)
+     sans rien dire de personne.
+     ⛔ ET `sante()` NE TOUCHE PAS AU DISQUE : le total est tenu en mémoire. La première
+     version balayait tous les dossiers d'entreprises depuis cette route publique et sans clé —
+     mesuré : 73 ms pour 21 000 fichiers, sur la boucle d'événements, donc tout le serveur gelé
+     pour tout le monde, à la demande de n'importe qui. */
+  pieces: pieces ? pieces.sante() : null }));
 
 // ── Assistant devis : l'agent qui compose un devis à partir d'une conversation.
 //    Il ne fait que parler à Claude ; c'est OP GESTION qui enregistre le devis

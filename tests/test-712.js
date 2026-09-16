@@ -36,6 +36,16 @@ v('il porte pieceLire', /async function pieceLire\(/.test(SRC), true);
 /* ⛔ Le drapeau de compression doit VOYAGER. Sans lui, la relecture rend du charabia sans
    erreur — la panne la plus difficile à diagnostiquer de toute la famille. */
 v('⛔ le dépôt envoie le drapeau de compression', /z:\(e\.z\?1:0\)/.test(SRC), true);
+/* ⛔ La limite se mesure sur la SORTIE du chiffrement, pas sur une estimation depuis le clair. */
+v('⛔ la vraie limite porte sur e.enc.length', /e\.enc\.length>PIECE_ENC_MAX/.test(SRC), true);
+/* ⛔ ET ON LE VÉRIFIE SUR LES DEUX FICHIERS, pas sur un nombre recopié dans le banc : deux
+   constantes qui doivent être égales et qui vivent dans deux fichiers finissent par diverger,
+   et la divergence se paie en pièces montées en 4G pour rien. */
+{ const SRV = fs.readFileSync(path.join(__dirname, '..', 'server', 'pieces.js'), 'utf8');
+  const cli = /PIECE_ENC_MAX=(\d+)\*(\d+)\*(\d+)/.exec(SRC);
+  const srv = /PIECE_MAX_B64 = (\d+) \* (\d+) \* (\d+)/.exec(SRV);
+  const val = m => m ? Number(m[1]) * Number(m[2]) * Number(m[3]) : null;
+  v('⛔ la limite du client et celle du serveur sont le MÊME nombre', [val(cli), val(srv)], [4194304, 4194304]); }
 v('⛔ la relecture le repasse à syncDecrypt', /z:j\.z/.test(SRC), true);
 
 /* ── le banc : de vrais appels, avec un serveur simulé ───────────────────────────────────── */
@@ -49,7 +59,7 @@ function banc(opts) {
     /* ⛔ LE FAUX CHIFFREMENT NE RECOPIE PAS LE CLAIR — premier jet de ce banc, et il rendait le
        contrôle « le clair ne part pas » incapable de distinguer un vrai chiffrement d'une
        absence de chiffrement. Il rend une valeur OPAQUE, et note à part ce qu'on lui a donné. */
-    syncEncrypt: async (clair) => { chiffres.push(clair); return o.chiffrementCasse ? null : { enc: 'OPAQUE-' + chiffres.length, iv: 'IV', salt: 'sel-du-banc', z: 1 }; },
+    syncEncrypt: async (clair) => { chiffres.push(clair); return o.chiffrementCasse ? null : { enc: (o.encGros ? 'E'.repeat(5 * 1024 * 1024) : 'OPAQUE-' + chiffres.length), iv: 'IV', salt: 'sel-du-banc', z: o.encGros ? 0 : 1 }; },
     syncDecrypt: async (x) => (o.dechiffrementCasse ? null : (o.clair != null ? o.clair : String(x.enc))),
     fetch: async (url, init) => {
       envois.push({ url, corps: JSON.parse(init.body) });
@@ -83,9 +93,17 @@ function banc(opts) {
     v('une pièce vide est refusée ici, sans appeler le serveur', (await b.ctx.pieceDeposer('')).motif, 'vide');
     v('… et rien n\'a été envoyé', b.envois.length, 0); }
   { const b = banc({});
-    const r = await b.ctx.pieceDeposer('x'.repeat(5 * 1024 * 1024));
+    const r = await b.ctx.pieceDeposer('x'.repeat(7 * 1024 * 1024));
     v('une pièce trop lourde est refusée AVANT le réseau', r.motif, 'trop-gros');
-    v('… et rien n\'a été envoyé (on ne fait pas monter 5 Mo pour se faire dire non)', b.envois.length, 0); }
+    v('… et rien n\'a été envoyé (on ne fait pas monter 7 Mo pour se faire dire non)', b.envois.length, 0); }
+  /* ⛔ LE CAS DU NAVIGATEUR SANS COMPRESSION, qui a fait corriger la garde. Le pré-contrôle sur
+     le CLAIR suppose gzip actif (facteur ×1,34 mesuré) ; sans gzip le facteur réel est ×1,78,
+     et une pièce qui passe le pré-contrôle produit un chiffré trop gros. Sans le second
+     contrôle, elle montait en 4G pour se faire refuser à l'arrivée. */
+  { const b = banc({ encGros: true });
+    const r = await b.ctx.pieceDeposer('photo');
+    v('⛔ un chiffré au-dessus de la limite est refusé APRÈS chiffrement, avant le réseau', r.motif, 'trop-gros');
+    v('⛔ … et rien n\'est monté : la limite est la MÊME des deux côtés', b.envois.length, 0); }
   { const b = banc({ sansEspace: true });
     v('sans espace d\'équipe : motif « sans-espace »', (await b.ctx.pieceDeposer('abc')).motif, 'sans-espace'); }
   { const b = banc({ chiffrementCasse: true });
