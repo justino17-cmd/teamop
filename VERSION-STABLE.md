@@ -1,5 +1,64 @@
 # Point stable TeamOP
 
+**Version stable : v695** — gravée le 16 septembre 2026.
+
+v695 — les box d'ELAN, l'écran de secours, et l'origine d'une erreur.
+
+⛔ **Créer un compte ne lui ferme plus les box de l'équipe.** C'est la cause de l'incident
+d'ELAN, et elle était entièrement dans le code livré. Justin, le 15 septembre : « certains
+utilisateurs ne voient plus les box dans leur espace. Mais les box ne sont pas vides. Ils les
+voient plus, c'est tout. » Le mécanisme, en trois temps : le formulaire de création rend
+**toutes** les cases de box décochées (`nuBoxes=new Set()` quand il n'y a pas d'identifiant) ;
+à l'enregistrement, `saveUser` bouclait sur **toutes** les box actives en appelant
+`userBoxVoit(nu.id, b.id, false)` pour chaque case non cochée ; et `userBoxVoit` avec
+`on=false` **POUSSE la personne dans `b.userIdsExclus`** dès que la box lui serait venue toute
+seule (visible par toute l'équipe, sa fiche technicien cochée, ou elle en est responsable).
+Mesuré sur les vraies fonctions extraites du fichier livré : **trois box d'équipe visibles
+avant, zéro après**, et la personne inscrite dans les exclus des trois.
+
+Une case non cochée à la création veut désormais dire **« pas encore décidé », jamais
+« exclu »** : seules les cases COCHÉES écrivent. Le texte de l'écran le dit aussi — « coche
+les box à lui ouvrir **en plus** de celles qui sont déjà ouvertes à toute l'équipe », au lieu
+de « il n'ouvrira **que** les box cochées », qui décrivait fidèlement le défaut.
+
+⚠️ **Et le remède répare le mécanisme, pas le périmètre.** La première proposition était de
+cocher « visible par toute l'équipe » pour débloquer les techniciens. Justin l'a refusée :
+« si on a fait plusieurs accès, plusieurs permissions… c'est qu'il y a un but ». Élargir un
+droit n'est pas un correctif, c'est débrancher la fonctionnalité pour faire disparaître le
+symptôme.
+
+⛔ **UN CORRECTIF ARRÊTE UNE CAUSE, IL NE RANGE PAS DERRIÈRE LUI.** Les `userIdsExclus` déjà
+écrits chez ELAN y restent tant que personne ne fait le geste — d'où l'écran suivant.
+
+**Un écran pour rendre les box retirées.** Bouton « 🔎 Box retirées » dans Utilisateurs,
+affiché **seulement s'il y a quelque chose à réparer**. Il liste, personne par personne, les
+box qu'une exclusion écrite lui cache alors qu'elle lui reviendrait toute seule, et les rend —
+une par une ou toutes d'un coup. Sans lui, la seule issue était de rouvrir chaque box à la
+main, sans savoir lesquelles.
+
+**L'écran de secours voit une box VIDÉE, pas seulement une box DISPARUE.** Le défaut de
+`boxFusionFine` corrigé en v678 n'avait supprimé aucune box : il avait vidé leur STOCK, ligne
+par ligne. Or « Remettre » ne comparait que des identifiants, et une box vidée garde le sien :
+l'écran des copies de sauvegarde annonçait « rien ne manque » et ne proposait aucun bouton,
+pendant que le stock de toute l'entreprise dormait dans les copies. Mesuré sur le calcul exact
+de l'écran, avant correction : une box de 3 lignes ramenée à 0 donnait `manque = 0`.
+
+**L'origine d'une erreur se lit dans la pile, pas dans l'écran ouvert.** `tmOrigine(stack)`
+rend le premier cadre NOMMÉ de la pile. L'application n'est pas minifiée — contrepartie du
+fichier unique — donc les noms sont les vrais, et `boxPoserProduits` dans un dossier vaut dix
+minutes de recherche. N'apporte rien aux clients ; améliore le diagnostic.
+
+**Ce qui a été vérifié avant de publier**, et c'est la règle du 15 septembre au soir : suite
+complète à **2 018 ✓ 0 ✗ sur 67 suites**, contrôle de syntaxe à 27 pages / 50 blocs / 0 erreur,
+et les deux bancs neufs éprouvés À L'ENVERS, sur le fichier d'AVANT correctif — les deux y
+sortent en 1. ⚠️ Mais pas de la même façon, et la nuance compte : `tests/test-710.js` extrait
+les vraies fonctions du vieux fichier et **MESURE le défaut** — *« APRÈS création, il voit
+toujours les trois box de l'équipe : attendu 3, obtenu **0** »* ; `tests/test-708.js`, lui,
+rougit seulement parce que le détecteur et la fonction de remise **n'existent pas encore** dans
+le vieux fichier. Le premier est une preuve du défaut, le second une preuve de présence.
+
+## Ancien point
+
 **Version stable : v666** — gravée le 11 septembre 2026 au soir.
 
 v666 — la mise à jour ne se remet plus à plus tard, et le journal dit la vérité.

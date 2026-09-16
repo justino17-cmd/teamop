@@ -4805,7 +4805,50 @@ var tmLastSend=0, tmSending=false, tmT=Date.now();
       était classée dans « Commandes » parce qu'on y envoie les bons de commande. C'est une
       boîte e-mail. */
 var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',chantiers:'Interventions',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',audit:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
+/* ⛔ CE QUE CETTE VALEUR EST, ET CE QU'ELLE N'EST PAS. `tmCat()` nomme L'ÉCRAN OUVERT au moment
+   de l'incident. Ce n'est PAS l'endroit d'où vient l'erreur, et rien ne le garantit : une
+   promesse rejetée par un travail de fond (le poll IndexedDB de Firebase Auth, par exemple)
+   tombe sous l'écran que la personne regardait, quel qu'il soit.
+   Constaté le 15 septembre 2026 : un rejet d'IndexedDB rangé sous « Plans », un écran qui ne
+   contient pas une ligne d'IndexedDB. Le diagnostic est parti chercher au mauvais endroit, et
+   le courriel de clôture allait annoncer au client « un dysfonctionnement sur Plans ».
+   On garde l'information — savoir ce que la personne regardait AIDE — mais elle s'appelle
+   désormais ce qu'elle est, et elle voyage à côté de la VRAIE origine, lue dans la pile. */
 function tmCat(){ try{ return (typeof current!=='undefined'&&current&&(TM_CAT[current]||String(current).slice(0,30)))||'Général'; }catch(_){ return 'Général'; } }
+/* ⛔ L'ORIGINE RÉELLE : LE PREMIER CADRE NOMMÉ DE LA PILE. Elle, elle désigne le coupable.
+   L'application n'est pas minifiée — c'est la contrepartie du fichier unique — donc les noms de
+   fonctions sont les vrais, et `boxPoserProduits` dans un dossier vaut dix minutes de recherche.
+   Deux écritures de pile à lire, parce qu'il y a deux familles de navigateurs et que les
+   téléphones de terrain sont des deux côtés :
+     · Chrome/Edge  «     at boxPoserProduits (https://teamop.fr/app.html:12345:67) »
+     · Safari/Firefox  « boxPoserProduits@https://teamop.fr/app.html:12345:67 »
+   On saute les cadres de la sentinelle elle-même : elle est TOUJOURS en haut de la pile d'un
+   signalement, et rendre « tmPush » comme origine serait exactement la même faute qu'avant —
+   une valeur qui a l'air d'une réponse et n'en est pas une.
+   Rien de personnel n'en sort : ce sont les noms de nos propres fonctions. */
+function tmOrigine(stack){
+  try{
+    var lignes=String(stack||'').split('\n');
+    for(var i=0;i<lignes.length&&i<14;i++){
+      var m=/^\s*at\s+(?:async\s+|new\s+)?([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(/.exec(lignes[i])
+         || /^\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)@/.exec(lignes[i]);
+      if(!m) continue;
+      var n=m[1];
+      /* ⛔ ON FILTRE SUR LA RACINE DU NOM, PAS SUR LE NOM ENTIER. Premier jet : le filtre testait
+         `n` en bloc, donc `Promise$` ne mordait pas sur « Promise.then » — et la sentinelle
+         rendait « Promise.then » comme origine d'une erreur venue de `boxAdj`, deux cadres plus
+         bas. Exactement la faute qu'on corrige, refaite en la corrigeant. Attrapé par
+         `tests/test-703.js`, pas par une relecture. */
+      var racine=n.split('.')[0];
+      /* La sentinelle, les enveloppes anonymes et les natifs ne sont l'origine de rien. */
+      if(/^tm[A-Z0-9_]/.test(racine)) continue;
+      if(racine==='rep'||racine==='Object'||racine==='Array'||racine==='Promise'||racine==='Function'||racine==='eval'||racine==='globalThis'||racine==='window') continue;
+      if(n.length<2) continue;
+      return n.slice(0,60);
+    }
+    return '';
+  }catch(_){ return ''; }
+}
 function tmVer(){ try{ return String(typeof APP_VERSION!=='undefined'?APP_VERSION:''); }catch(_){ return ''; } }
 function tmEnt(){ var nom='',email='';
   try{ var D=(typeof db!=='undefined'&&db)||{}; nom=(((D.entreprise||{}).nom)||'').trim()||((D.mailFrom||'').trim()); email=((D.mailReply||'').trim())||((typeof currentUser!=='undefined'&&currentUser&&(currentUser.mailReply||'').trim())||''); }catch(_){ }
@@ -4848,7 +4891,7 @@ function tmPush(type,message,stack,src,line){ try{
   var q=tmLoad(), e=null;
   for(var i=0;i<q.length;i++){ if(q[i].signature===sig){ e=q[i]; break; } }
   if(e){ e.count=(e.count||1)+1; }
-  else{ var ent=tmEnt(), qui=tmQui(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),user:qui.login,espace:qui.espace,count:1,ts:Date.now()}); }
+  else{ var ent=tmEnt(), qui=tmQui(); q.push({signature:sig,app:TM_APP,version:tmVer(),categorie:tmCat(),origine:tmOrigine(stack),type:type,message:message,stack:String(stack||'').slice(0,600),src:String(src||'').slice(0,200),line:line||0,entreprise:ent.nom,email:ent.email,appareil:tmUA(),user:qui.login,espace:qui.espace,count:1,ts:Date.now()}); }
   tmSaveQ(q); setTimeout(tmFlush,500);
 }catch(_){ } }
 function tmFlush(){ try{
@@ -4912,7 +4955,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '693';
+const APP_VERSION = '695';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7419,8 +7462,40 @@ async function sauvegardeOuvrir(ts){
   const base=JSON.parse(plain); window._sauvBase=base;
   const cles=collsFusion(base).concat(Array.isArray(base.users)?['users']:[]);
   const lignes=cles.map(k=>{ const ici=new Set((db[k]||[]).map(r=>r&&r.id).filter(x=>x!=null).map(String)); const manque=(base[k]||[]).filter(r=>r&&r.id!=null&&!ici.has(String(r.id))).length; return {k:k,n:(base[k]||[]).length,manque:manque}; }).filter(x=>x.n).sort((a,b)=>b.manque-a.manque);
+  /* ⛔ UNE BOX VIDÉE N'EST PAS UNE BOX MANQUANTE — et cet écran ne savait pas le dire.
+     Justin, 15 septembre 2026 au soir, chez ELAN : « il n'y a que les box ». Le défaut de
+     `boxFusionFine` corrigé le matin même (v678) n'avait pas SUPPRIMÉ les box : il avait vidé
+     leur stock, ligne par ligne. Or « Remettre » ne compare que des IDENTIFIANTS — une box
+     vidée existe toujours, avec le sien. L'écran annonçait donc « rien ne manque » et ne
+     proposait aucun bouton : le stock de toute une entreprise était dans les copies, et
+     illisible depuis l'écran censé le rendre. Un outil de secours qui ne couvre pas la panne
+     du jour n'est pas un outil de secours.
+     On compte donc aussi les LIGNES DE STOCK présentes dans la copie et absentes ici. Deux
+     règles, et elles ne sont pas négociables :
+     — ce que l'équipe a retiré EXPRÈS (`db.boxDecisions`) n'est pas compté : une restauration
+       ne ressuscite pas une décision, sinon on rend à trente équipes ce qu'elles ont écarté ;
+     — une ligne qui existe aujourd'hui n'est JAMAIS touchée — c'est la règle « le stock d'une
+       box ne se réécrit jamais en bloc », appliquée ici. */
+  let boxLignes=[], boxTotal=0;
+  try{
+    const bIci=new Map((db.boxes||[]).map(b=>[String(b&&b.id),b]));
+    (base.boxes||[]).forEach(bc=>{ if(!bc||bc.id==null) return;
+      const b=bIci.get(String(bc.id)); if(!b) return;   // box absente en entier : « Remettre » s'en charge déjà
+      const d=boxDecision(b), ec=(d&&d.ecartes)||{};
+      const st=b.stock||{}, sc=bc.stock||{};
+      const abs=Object.keys(sc).filter(pid=>!(pid in st)&&!ec[pid]);
+      if(abs.length){ boxLignes.push({id:String(bc.id),nom:bc.nom||'box sans nom',n:abs.length}); boxTotal+=abs.length; }
+    });
+  }catch(e){}
+  window._sauvBoxLignes=boxLignes;
+  const boxBloc=boxTotal?'<div style="margin-top:14px;padding:12px;border:1px solid var(--org);border-radius:10px">'
+    +'<b style="color:var(--org)">📦 '+boxTotal+' ligne(s) de stock manquante(s) dans '+boxLignes.length+' box</b>'
+    +'<div style="font-size:12.5px;color:var(--t3);line-height:1.5;margin:6px 0 10px">Ces box existent toujours, mais des produits qu\'elles contenaient dans cette copie n\'y sont plus. On remet seulement ce qui manque : aucune quantité actuelle n\'est modifiée, et ce que l\'équipe a retiré exprès n\'est pas remis.</div>'
+    +boxLignes.slice(0,12).map(x=>'<div style="font-size:13px;padding:2px 0">· '+esc(x.nom)+' — <b>'+x.n+'</b></div>').join('')
+    +(boxLignes.length>12?'<div style="font-size:12.5px;color:var(--t3);padding-top:4px">… et '+(boxLignes.length-12)+' autre(s) box</div>':'')
+    +'<button class="btn block" style="margin-top:10px" onclick="sauvegardeRemettreStock()">Remettre les '+boxTotal+' ligne(s) de stock</button></div>':'';
   const li=lignes.map(x=>'<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--brd)"><div><b>'+x.k+'</b> <span style="color:var(--t3);font-size:12.5px">· '+x.n+' dans la copie'+(x.manque?' · <b style="color:var(--org)">'+x.manque+' absent(s) ici</b>':' · rien ne manque')+'</span></div>'+(x.manque?'<button class="btn ghost sm" onclick="sauvegardeRemettre(\''+x.k+'\')">Remettre les '+x.manque+'</button>':'')+'</div>').join('');
-  openModal('<h3 style="margin:0 0 10px">Copie du '+new Date(ts).toLocaleString('fr-FR')+'</h3><p style="font-size:13.5px;color:var(--t3);line-height:1.5">« Remettre » ajoute ce que cette copie contient et que la base actuelle n\'a plus. Ce qui existe déjà n\'est pas touché ; ce que l\'équipe a fait depuis reste.</p>'+li);
+  openModal('<h3 style="margin:0 0 10px">Copie du '+new Date(ts).toLocaleString('fr-FR')+'</h3><p style="font-size:13.5px;color:var(--t3);line-height:1.5">« Remettre » ajoute ce que cette copie contient et que la base actuelle n\'a plus. Ce qui existe déjà n\'est pas touché ; ce que l\'équipe a fait depuis reste.</p>'+boxBloc);
 }
 function sauvegardeRemettre(k){
   const base=window._sauvBase; if(!base||!Array.isArray(base[k])) return;
@@ -7436,6 +7511,38 @@ function sauvegardeRemettre(k){
   else if(db._tombes&&db._tombes[k]){ base[k].forEach(r=>{ if(r&&r.id!=null) delete db._tombes[k][String(r.id)]; }); }
   save(); try{ logEvent('Restauration depuis une copie',k+' : '+n+' remis','sync'); }catch(e){}
   toast(n+' enregistrement(s) remis dans « '+k+' »',3200); closeModal();
+}
+/* ⛔ REMETTRE DES LIGNES DE STOCK, PAS DES BOX. Voir le bloc ⛔ de `sauvegardeOuvrir` : une box
+   vidée garde son identifiant, donc la remise par identifiant ne la voit pas. Ici on travaille
+   à la LIGNE, comme `boxFusionFine`, et on ne touche que ce qui n'existe plus.
+   `_ms[pid]` est daté de MAINTENANT : sans ça, la remise serait une ligne non datée, et le
+   premier appareil qui porte une suppression datée la reprendrait à la fusion suivante — le
+   stock reviendrait puis repartirait, sans que personne comprenne. Remettre est un geste
+   délibéré : il doit gagner. */
+function sauvegardeRemettreStock(){
+  const base=window._sauvBase; if(!base||!Array.isArray(base.boxes)) return;
+  const bIci=new Map((db.boxes||[]).map(b=>[String(b&&b.id),b]));
+  const now=Date.now(); let n=0, nb=0;
+  base.boxes.forEach(bc=>{ if(!bc||bc.id==null) return;
+    const b=bIci.get(String(bc.id)); if(!b) return;
+    const d=boxDecision(b), ec=(d&&d.ecartes)||{};
+    const sc=bc.stock||{}; b.stock=b.stock||{}; b._ms=b._ms||{};
+    let k=0;
+    Object.keys(sc).forEach(pid=>{
+      if(pid in b.stock) return;   // ⛔ une quantité vivante ne se réécrit jamais
+      if(ec[pid]) return;          // retirée exprès : elle reste retirée
+      b.stock[pid]=JSON.parse(JSON.stringify(sc[pid]));
+      b._ms[pid]=now; k++;
+    });
+    if(k){ n+=k; nb++; }
+  });
+  if(!n){ toast('Rien à remettre dans les box'); return; }
+  save();
+  /* Une ligne de journal par GESTE, jamais par box : `db.journal` est plafonné à 500, et une
+     remise de trente box effacerait tout l'historique de l'entreprise en un passage. */
+  try{ logEvent('Restauration depuis une copie', n+' ligne(s) de stock remise(s) dans '+nb+' box','sync'); }catch(e){}
+  toast(n+' ligne(s) de stock remise(s) dans '+nb+' box',4200); closeModal();
+  try{ refreshEcran(); }catch(e){}
 }
 /* ══ LES ORDRES DE LA TOUR — supprimer un compte depuis la Tour de contrôle (Justin, 10 septembre 2026) ══
    La base est chiffrée : le serveur ne peut pas y retirer un compte. La Tour ORDONNE (après un code
@@ -8529,6 +8636,60 @@ function visibleBoxes(list){ const p=can('voirTout')?perimetreTechIds():null; if
    en basculant `currentUser` le temps du test et en le remettant TOUJOURS, même si ça lève.
    Réécrire la règle de visibilité ici en produirait une seconde, qui divergerait un jour — et
    l'écran mentirait à nouveau, dans l'autre sens. */
+/* ⛔ CE QUI A ÉTÉ RETIRÉ SANS GESTE — l'écran de remise en état après le défaut du 15 septembre.
+   Jusqu'à la v694, créer un compte l'INSCRIVAIT dans `userIdsExclus` de toutes les box ouvertes
+   à l'équipe (voir le bloc ⛔ de saveUser). Le correctif arrête la cause ; il ne range pas
+   derrière : les comptes déjà créés portent toujours leur exclusion.
+
+   ⚠️ ET ON NE PEUT PAS LA NETTOYER TOUT SEUL. Rien ne distingue, dans les données, une
+   exclusion POSÉE PAR ACCIDENT d'une exclusion VOULUE : ni date, ni auteur, ni motif. Un
+   nettoyage en masse effacerait les vrais retraits — exactement ce que Justin a refusé
+   (« si on a fait plusieurs permissions, c'est qu'il y a un but »). Cet écran MONTRE et
+   propose ; il n'agit qu'au tap, une personne à la fois.
+
+   On ne liste que les exclusions qui PRIVENT de quelque chose : celles posées sur une box que
+   la personne verrait autrement (ouverte à l'équipe, sa fiche technicien cochée, ou elle en
+   est responsable). Une exclusion sur une box qu'elle ne voyait de toute façon pas ne retire
+   rien — l'afficher noierait le signal. */
+function exclusionsPrivantes(u){
+  if(!u||!u.id) return [];
+  if(userCap(u,'voirTout')) return [];                       // « Tout voir » : l'exclusion ne joue pas
+  return (db.boxes||[]).filter(b=>b&&b.actif!==false&&boxExclu(b,u.id)&&(
+    b.visibleTous || (u.techId&&(b.techIds||[]).includes(u.techId)) || b.respUserId===u.id));
+}
+function exclusionsRendre(userId,boxId){
+  const u=(db.users||[]).find(x=>x.id===userId); if(!u) return;
+  userBoxVoit(userId,boxId,true);                            // retire des exclus ; n'ajoute rien si la box est déjà ouverte d'office
+  const b=(db.boxes||[]).find(x=>x.id===boxId)||{};
+  save(); try{ logEvent('Box rendue','à @'+(u.login||u.id)+' — '+(b.nom||b.numero||'box'),'auth'); }catch(e){}
+  toast('Box rendue à '+fullName(u),2600); revueExclusions();
+}
+function exclusionsRendreTout(userId){
+  const u=(db.users||[]).find(x=>x.id===userId); if(!u) return;
+  const l=exclusionsPrivantes(u); if(!l.length) return;
+  if(!confirm('Rendre à '+fullName(u)+' les '+l.length+' box que l\'équipe voit ?\n\nCe geste ne change rien pour les autres, et n\'ouvre aucune box qui ne lui serait pas déjà destinée.')) return;
+  l.forEach(b=>userBoxVoit(userId,b.id,true));
+  /* Une ligne de journal par GESTE, jamais par box : `db.journal` est plafonné à 500. */
+  save(); try{ logEvent('Box rendues',l.length+' box rendues à @'+(u.login||u.id),'auth'); }catch(e){}
+  toast(l.length+' box rendues à '+fullName(u),3200); revueExclusions();
+}
+function revueExclusions(){
+  const gens=(db.users||[]).filter(u=>u&&u.actif!==false).map(u=>({u,l:exclusionsPrivantes(u)})).filter(x=>x.l.length);
+  const total=gens.reduce((n,x)=>n+x.l.length,0);
+  if(!gens.length){ openModal('<h3 style="margin:0 0 10px">🔎 Box retirées à quelqu\'un</h3>'
+    +'<p style="color:var(--t3);font-size:13.5px;line-height:1.55">Personne n\'est privé d\'une box que l\'équipe voit. Rien à remettre en état.</p>'); return; }
+  const li=gens.map(x=>`<div style="padding:10px 0;border-top:1px solid var(--brd)">
+      <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <b>${esc(fullName(x.u))}</b>
+        <button class="btn ghost sm" onclick="exclusionsRendreTout('${x.u.id}')">Tout rendre — ${x.l.length}</button></div>
+      ${x.l.map(b=>`<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:4px 0 4px 10px;font-size:13px">
+        <span>🧱 ${esc(b.nom||b.numero||'Box')} <span style="color:var(--t3);font-size:11.5px">· ${b.visibleTous?'ouverte à toute l\'équipe':((x.u.techId&&(b.techIds||[]).includes(x.u.techId))?'sa fiche technicien y est cochée':'il en est responsable')}</span></span>
+        <button class="btn ghost sm" onclick="exclusionsRendre('${x.u.id}','${b.id}')">Rendre</button></div>`).join('')}
+    </div>`).join('');
+  openModal('<h3 style="margin:0 0 10px">🔎 Box retirées à quelqu\'un</h3>'
+    +'<p style="color:var(--t3);font-size:13px;line-height:1.55">'+total+' box ne s\'ouvrent pas à '+gens.length+' personne(s), alors que l\'équipe les voit. '
+    +'<b>Certaines ont pu être retirées exprès</b> — rien ne permet de le savoir dans les données. Regarde avant de rendre.</p>'+li);
+}
 function usrSansBox(u){
   if(!u||u.actif===false) return false;
   if(!(db.boxes||[]).length) return false;        // l'entreprise n'a pas de box : ce n'est pas un oubli
@@ -23990,6 +24151,10 @@ views.utilisateurs=function(){
   const peutCreer=admin||can('creerUtilisateurs');   // voir la rubrique ne suffit pas pour créer des comptes
   setHeader('Utilisateurs',`${db.users.length} / ${places} place(s) de l'abonnement`,
     (currentUser&&currentUser.role==='admin'?`<button class="btn ghost" onclick="profilsGerer()">🎛 Profils${profilsDroits().length?' · '+profilsDroits().length:''}</button> `:'')
+    /* ⛔ LE BOUTON N'APPARAÎT QUE S'IL Y A QUELQUE CHOSE À VOIR. Un bouton qui ne fait rien
+       apprend à cliquer pour rien — même raison que le « Tout remettre à zéro » de la Tour. */
+    +((admin&&(db.users||[]).some(u=>u&&u.actif!==false&&exclusionsPrivantes(u).length))
+        ?`<button class="btn ghost" style="border-color:var(--org)" onclick="revueExclusions()">🔎 Box retirées</button> `:'')
     +((peutCreer&&db.users.length<500)?`<button class="btn" onclick="formUser()">＋ Utilisateur</button>`:''));
   const rows=db.users.map(u=>{ const moi=u.id===currentUser.id; const ouv=(usrOuvert===u.id);
     return `<div class="card usr-c${ouv?' on':''}" style="padding:13px 16px;margin-bottom:10px;${u.actif?'':'opacity:.6'}">
@@ -24357,7 +24522,7 @@ function nuBoxHtml(){
         <input type="checkbox" ${nuBoxes.has(b.id)?'checked':''} onchange="this.checked?nuBoxes.add('${b.id}'):nuBoxes.delete('${b.id}')" style="width:18px;height:18px;accent-color:var(--acc)">
         <span style="flex:1;min-width:0">🧱 ${esc(b.nom||b.numero||'Box')}${b.visibleTous?' <span style="color:var(--t3);font-size:11.5px">· ouverte à toute l\'équipe</span>':''}</span></label>`).join('')}
     </div>
-    <div style="font-size:11px;color:var(--t3);margin-top:4px">Il n'ouvrira <b>que</b> les box cochées. Décocher une box <b>ouverte à toute l'équipe</b> la lui ferme à lui seul, sans rien changer pour les autres. Modifiable ensuite depuis sa ligne.</div></div>
+    <div style="font-size:11px;color:var(--t3);margin-top:4px">Coche les box à lui ouvrir <b>en plus</b> de celles qui sont déjà ouvertes à toute l'équipe — celles-là, il les aura de toute façon. Pour lui en <b>retirer</b> une, ça se fait depuis sa fiche juste après : les cases y montrent ce qu'il voit vraiment. Modifiable ensuite depuis sa ligne.</div></div>
     <div id="nu-box-tout" style="display:${nuBoxTout?'block':'none'}"><div class="fgroup" style="padding:12px 14px;font-size:12.5px;color:var(--t2);line-height:1.55">📦 Ce profil donne <b>« Tout voir »</b> : ce compte ouvrira <b>toutes</b> les box, y compris celles créées plus tard. Il n'y a rien à cocher.</div></div>`;
 }
 let nuVehs=new Set();
@@ -24647,15 +24812,39 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
     }
     const nu={id:uid(),prenom:d.prenom,nom:d.nom,login:loginNorm,email:(d.email||'').trim(),drId:(d.drId||''),chefId:(d.chefId||''),role:d.role,techId,actif:true,acces,boxValidDR:(d.boxValidDR!==undefined),pwdHash:await sha256(pwd),mustChangePwd:true};
     db.users.push(nu);
-    /* Les box se posent APRÈS la création : userBoxVoit a besoin de l'identifiant du compte.
-       On passe TOUTES les box, cochées ou non — décocher une box ouverte à toute l'équipe doit
-       poser une exception, c'est précisément ce que fait userBoxVoit avec `false`. */
+    /* ⛔ À LA CRÉATION, UNE CASE NON COCHÉE N'EST PAS UN RETRAIT — c'est « je n'ai pas
+       regardé ». Mesuré chez ELAN le 15 septembre 2026, et c'est la cause de « certains
+       utilisateurs ne voient plus les box dans leur espace, alors que les box ne sont pas
+       vides » : le formulaire de création rend TOUTES les cases décochées (`nuBoxes=new Set()`
+       plus haut), puis cette boucle appelait `userBoxVoit(…, false)` sur chacune. Or `false`
+       sur une box ouverte à toute l'équipe — ou qui coche la fiche technicien qu'on vient de
+       lui attribuer — calcule `auto=true` et POUSSE la personne dans `b.userIdsExclus`. Et
+       `visibleBoxes` teste `!boxExclu(…)` EN PREMIER : l'exclusion passe avant tout, y compris
+       avant les congés. Résultat mesuré sur les vraies fonctions : trois box d'équipe visibles
+       avant, ZÉRO après, sans qu'une seule box ait été vidée ni qu'un message soit affiché.
+       L'administrateur qui ne déroule pas la liste ferme donc l'application au compte qu'il
+       vient d'ouvrir.
+
+       ⛔ ON NE RÉPARE PAS EN ÉLARGISSANT UN DROIT. Justin, le même soir : « si on a fait
+       plusieurs accès, plusieurs permissions, c'est qu'il y a un but ». Décocher reste un
+       retrait volontaire — la fonctionnalité ne bouge pas d'un pouce. Ce qu'on retire, c'est
+       la capacité de RETIRER SANS GESTE : à la création, il n'y a rien à retirer, la personne
+       n'a encore aucune visibilité. On ne pose donc que ce qui est COCHÉ. Le retrait volontaire
+       se fait depuis sa fiche, juste après, où les cases montrent enfin l'état réel.
+       `tests/test-710.js` rejoue les deux sens : l'oubli ne retire plus rien, le geste retire
+       toujours. Les véhicules portaient le même défaut, à la ligne près. */
     let _nBox=0;
     let _nVeh=0;
     if(!acces.caps.voirTout){ (db.boxes||[]).filter(b=>b&&b.actif!==false).forEach(b=>{
-      const on=nuBoxes.has(b.id); userBoxVoit(nu.id,b.id,on); if(on) _nBox++; });
+      if(!nuBoxes.has(b.id)) return;                    // pas coché = pas encore décidé, surtout pas « exclu »
+      userBoxVoit(nu.id,b.id,true);
+      /* On ne compte QUE ce qui a réellement été ouvert : une box déjà visible par l'équipe
+         n'entre pas dans `userIds`, l'annoncer gonflerait le journal d'un droit non donné. */
+      if((b.userIds||[]).includes(nu.id)) _nBox++; });
       (db.vehicules||[]).filter(v=>v&&v.actif!==false).forEach(v=>{
-        const on=nuVehs.has(v.id); userVehiculeVoit(nu.id,v.id,on); if(on) _nVeh++; }); }
+        if(!nuVehs.has(v.id)) return;
+        userVehiculeVoit(nu.id,v.id,true);
+        if((v.userIds||[]).includes(nu.id)) _nVeh++; }); }
     logEvent('Utilisateur créé',`@${loginNorm}`+(_profilPose?' — profil « '+_profilPose+' »':'')+(acces.caps.voirTout?' — toutes les box':_nBox?' — '+_nBox+' box':''),'auth');
     save(); closeModal(); views.utilisateurs();
     setTimeout(()=>userIdentifiantsModal(nu,pwd),120);
