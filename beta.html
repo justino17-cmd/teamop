@@ -4955,7 +4955,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '695-beta';
+const APP_VERSION = '696-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7437,6 +7437,66 @@ function syncRetraitVoulu(){ _retraitVoulu=Date.now(); }
    manque, on ne touche pas à ce qui existe, l'équipe garde ce qu'elle a fait depuis. */
 let _sauvDernier=0;
 async function sauvKh(){ const t=localStorage.getItem('elanB_sync_team'), k=localStorage.getItem('elanB_sync_secret'); if(!t||!k) return null; return {t:t,kh:await sha256(k)}; }
+/* ══ ÉTAPE 0 DU SOCLE : UNE PIÈCE JOINTE VIT SUR LE SERVEUR, PAS DANS LE DOCUMENT ══════════
+   Justin, 16 septembre 2026 : « Les pièces jointes → ton VPS ». Aujourd'hui `syncAlleger` RETIRE
+   les pièces et les photos de la copie poussée pour tenir sous le plafond de 1 Mio d'un document
+   Firestore : elles restent sur l'appareil qui les a prises et ne sont JAMAIS partagées. Un
+   technicien photographie un poste, son collègue ne verra jamais la photo. Organilog, lui, VEND
+   ce stockage — 100 Go à 19 € par utilisateur et par mois (`COMMENT-FONT-LES-AUTRES.md`).
+
+   Le corps est CHIFFRÉ ICI, avec la clé de l'équipe, par `syncEncrypt` — le même chemin que la
+   base et que les copies de sauvegarde. Le serveur range un bloc qu'il ne lit pas.
+   ⛔ `z` VOYAGE AVEC : `syncEncrypt` compresse avant de chiffrer. Sans ce drapeau, la relecture
+   déchiffre parfaitement puis passe des octets gzip à `TextDecoder` — du charabia, PAS une
+   erreur. `tests/test-711.js` l'éprouve côté serveur.
+
+   ⛔ TROIS ÉTATS, JAMAIS DEUX — la leçon de `_mailboxes` et `_mailReplies`, paruée le
+   11 septembre. Une pièce est : rendue, ABSENTE pour de bon (le serveur dit 404), ou
+   « on n'a pas pu savoir » (réseau, clé, entreprise fermée). Les confondre ferait dire
+   « cette photo n'existe plus » à quelqu'un qui est simplement hors réseau — et sur le terrain,
+   hors réseau est la situation NORMALE. `pieceLire` rend donc {dataUrl} | {absente:true} |
+   {inconnu:true, motif}, jamais une chaîne nue. */
+const PIECE_CLAIR_MAX=3*1024*1024;   // avant chiffrement : au-delà, le serveur refuserait (413)
+const _pieceCache=new Map();         // id → dataUrl, pour la session : une photo ouverte deux fois ne se retire qu'une
+/* Rend {id} quand c'est parti, sinon {erreur:true, motif} — JAMAIS une exception, et jamais
+   `null` tout court : l'appelant doit pouvoir dire à l'utilisateur POURQUOI ça n'est pas parti,
+   sans quoi on retombe sur « erreur » générique, qui n'aide personne. */
+async function pieceDeposer(dataUrl){
+  const d=String(dataUrl||''); if(!d) return {erreur:true,motif:'vide'};
+  if(d.length>PIECE_CLAIR_MAX*4/3) return {erreur:true,motif:'trop-gros'};
+  const c=await sauvKh(); if(!c) return {erreur:true,motif:'sans-espace'};
+  let e=null; try{ e=await syncEncrypt(d); }catch(_e){}
+  if(!e||!e.enc) return {erreur:true,motif:'chiffrement'};
+  try{
+    const r=await fetch(PUSH_API+'/api/pieces/deposer',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({t:c.t,kh:c.kh,iv:e.iv,enc:e.enc,z:(e.z?1:0)})});
+    let j=null; try{ j=await r.json(); }catch(_e){}
+    if(!r.ok||!j||!j.id) return {erreur:true,motif:(j&&j.motif)||'reseau',message:(j&&j.error)||''};
+    _pieceCache.set(j.id,d);
+    return {id:j.id,octets:j.octets,plafond:j.plafond};
+  }catch(_e){ return {erreur:true,motif:'reseau'}; }
+}
+/* ⛔ LA DISTINCTION QUI COMPTE EST ENTRE 404 ET TOUT LE RESTE. Un 404 dit « cette pièce n'est
+   plus là » et c'est un fait. Un échec réseau, une clé refusée, une entreprise fermée ne
+   disent RIEN sur la pièce — et l'écran ne doit surtout pas les traduire en « supprimée ». */
+async function pieceLire(id){
+  const i=String(id||''); if(!/^[0-9a-f]{64}$/.test(i)) return {inconnu:true,motif:'identifiant'};
+  if(_pieceCache.has(i)) return {dataUrl:_pieceCache.get(i)};
+  const c=await sauvKh(); if(!c) return {inconnu:true,motif:'sans-espace'};
+  let r=null;
+  try{ r=await fetch(PUSH_API+'/api/pieces/lire',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({t:c.t,kh:c.kh,id:i})}); }catch(_e){ return {inconnu:true,motif:'reseau'}; }
+  if(r.status===404) return {absente:true};
+  if(!r.ok){ let j=null; try{ j=await r.json(); }catch(_e){} return {inconnu:true,motif:(j&&j.motif)||'refus'}; }
+  let j=null; try{ j=await r.json(); }catch(_e){}
+  if(!j||!j.enc) return {inconnu:true,motif:'reponse'};
+  let clair=null; try{ clair=await syncDecrypt({iv:j.iv,enc:j.enc,salt:SYNC_SALT,z:j.z}); }catch(_e){}
+  /* `syncDecrypt` rend `null` pour TROIS causes distinctes — clé étrangère, bloc abîmé,
+     navigateur sans décompression. Aucune ne veut dire « la pièce n'existe pas ». */
+  if(clair===null) return {inconnu:true,motif:(j.z&&!gzipPossible())?'sans-decompression':'dechiffrement'};
+  _pieceCache.set(i,clair);
+  return {dataUrl:clair};
+}
 async function sauvegardeDeposer(e){
   if(BETA_ESSAI||!e||!e.enc) return;
   if(Date.now()-_sauvDernier<1800000) return; _sauvDernier=Date.now();

@@ -128,6 +128,14 @@ function monterPieces(app, deps) {
     const p = porte(req, res, 'd', 600); if (!p) return;
     const enc = String(p.b.enc || ''), iv = String(p.b.iv || '');
     if (!enc || !iv || iv.length > 128) return res.status(400).json({ error: 'bloc chiffré requis', motif: 'inconnu' });
+    /* ⛔ `z` EST STOCKÉ AVEC LA PIÈCE, exactement comme avec les copies de sauvegarde
+       (`server/index.js`, route /api/espaces/sauvegarde) — et pour la même raison, qui a déjà
+       été payée une fois. `syncEncrypt` (app.html) COMPRESSE avant de chiffrer et pose `z:1`.
+       Sans ce drapeau, l'appareil qui relit déchiffre correctement puis passe des octets gzip
+       à `TextDecoder` : il obtient du charabia, PAS une erreur. Une photo reviendrait illisible
+       sans que rien ne dise pourquoi. Le serveur ne sait toujours rien lire — il transporte un
+       drapeau, pas une clé. */
+    const z = p.b.z ? 1 : 0;
     if (enc.length > PIECE_MAX_B64)
       return res.status(413).json({ error: 'pièce trop lourde (' + Math.round(PIECE_MAX_B64 / 1048576) + ' Mo au plus)', motif: 'trop-gros' });
 
@@ -144,7 +152,7 @@ function monterPieces(app, deps) {
     try {
       fs.mkdirSync(dir, { recursive: true });
       const tmp = fichier(p.t, id) + '.tmp';
-      fs.writeFileSync(tmp, JSON.stringify({ iv, enc, ts: Date.now() }));
+      fs.writeFileSync(tmp, JSON.stringify({ iv, enc, z, ts: Date.now() }));
       fs.renameSync(tmp, fichier(p.t, id));
       totCache.ts = 0;   // le total vient de bouger : qu'il se relise
     } catch (e) {
@@ -164,7 +172,7 @@ function monterPieces(app, deps) {
     if (!idOk(id)) return res.status(400).json({ error: 'identifiant de pièce invalide', motif: 'inconnu' });
     let j; try { j = JSON.parse(fs.readFileSync(fichier(p.t, id), 'utf8')); }
     catch (e) { return res.status(404).json({ error: 'pièce introuvable', motif: 'absente' }); }
-    res.json({ ok: true, id, iv: j.iv, enc: j.enc, ts: j.ts || 0 });
+    res.json({ ok: true, id, iv: j.iv, enc: j.enc, z: j.z ? 1 : 0, ts: j.ts || 0 });
   });
 
   /* ── état ────────────────────────────────────────────────────────────────────────────── */

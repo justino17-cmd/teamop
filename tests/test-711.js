@@ -149,6 +149,18 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
     r = await post('/api/pieces/lire', { t: TA, kh: KHA, id });
     v('on la relit', r.statut, 200);
     v('… octet pour octet', [r.j.iv, r.j.enc], [PIECE.iv, PIECE.enc]);
+    /* ⛔ LE DRAPEAU DE COMPRESSION REVIENT AVEC LA PIÈCE. `syncEncrypt` (app.html) compresse
+       avant de chiffrer et pose `z:1`. Perdu en route, l'appareil déchiffre parfaitement puis
+       passe des octets gzip à `TextDecoder` : du charabia, pas une erreur — une photo revient
+       illisible sans que rien ne dise pourquoi. Le même piège a déjà été payé une fois sur les
+       copies de sauvegarde ; son commentaire est encore dans `server/index.js`. */
+    v('⛔ le drapeau de compression est rendu tel qu'+"'"+'il a été déposé', r.j.z, 0);
+    { const rz = await post('/api/pieces/deposer', { t: TA, kh: KHA, iv: PIECE.iv, enc: Buffer.from('compressee').toString('base64'), z: 1 });
+      const rl = await post('/api/pieces/lire', { t: TA, kh: KHA, id: rz.j.id });
+      v('⛔ … et `z:1` revient bien à 1', rl.j.z, 1);
+      /* Le dépôt rejoué écrit le MÊME fichier : l'identifiant est l'empreinte du contenu. */
+      const rz2 = await post('/api/pieces/deposer', { t: TA, kh: KHA, iv: PIECE.iv, enc: Buffer.from('compressee').toString('base64'), z: 1 });
+      v('un dépôt rejoué rend le même identifiant (pas un doublon)', rz2.j.id, rz.j.id); }
     /* ⛔ Le serveur n'a RIEN pour l'ouvrir : il a rangé un bloc, il rend le même bloc. */
     v('⛔ le fichier sur le disque ne contient pas le clair',
       fs.readFileSync(path.join(banc, 'data', 'pieces', TA, id + '.bin'), 'utf8').indexOf('photo-chiffree') < 0, true);
@@ -185,7 +197,7 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
 
     console.log('\n── 711 · l\'état, et /health ──');
     r = await post('/api/pieces/etat', { t: TA, kh: KHA });
-    v('A compte ses deux pièces', r.j && r.j.n, 2);
+    v('A compte ses pièces', r.j && r.j.n, 3);
     v('… et pèse plus de 3 000 octets', (r.j && r.j.octets) > 3000, true);
     const h = await (await fetch(B + '/health')).json();
     v('/health porte le total', typeof h.pieces.octets, 'number');
@@ -197,7 +209,7 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
        exactement ce que font les trois portes de la Tour. */
     const faux = mod.monterPieces({ post() {}, get() {} }, { config: {}, DATA_DIR: path.join(banc, 'data'), sauvRefus: () => null, quotaOk: () => true, monStr: (x, n) => String(x == null ? '' : x).slice(0, n) });
     const n = faux.effacerEntreprise(TA);
-    v('elle rend le nombre de pièces effacées', n, 2);
+    v('elle rend le nombre de pièces effacées', n, 3);
     v('⛔ le dossier de A a disparu', fs.existsSync(path.join(banc, 'data', 'pieces', TA)), false);
     v('⚠️ celui de B est intact', fs.existsSync(path.join(banc, 'data', 'pieces', TB)), true);
     v('effacer une entreprise sans pièce rend 0, pas true', faux.effacerEntreprise('jamais-vue'), 0);
