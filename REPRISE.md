@@ -13,6 +13,72 @@ de ligne du tout.
 
 ---
 
+## ✅ 17 SEPTEMBRE 2026, SOIR — L'ESPACE BÊTA S'APPELLE `opgestion-beta` (EN LIGNE)
+
+Justin : « on peut pas le renommer ça elan-gestion-beta » → « oui op gestion beta » → « ok ont
+fait le renomage ». Le nom mentait depuis que le dépôt s'appelle TeamOP.
+
+### Ce qui est EN LIGNE (vérifié sur les fichiers servis, pas sur le dépôt)
+
+| | servi | |
+|---|---|---|
+| `beta.html` | **701-beta · `opgestion-beta`** | déménagée |
+| `app.html` | **695 · `elan-gestion`** | ⛔ production INTACTE |
+| `tour.html`, `connexion.html` | les trois espaces | propagé à 18:50:48 UTC |
+| API | déploiement n° 85, `91a0a6e`, *success* | 18:46:56 UTC |
+
+### ⛔ POURQUOI C'ÉTAIT SANS DANGER — une seule raison, vérifiée avant d'écrire une ligne
+
+`syncKey()` dérive de `syncSecret()` et `SYNC_SALT`, **JAMAIS de l'identifiant d'espace**
+(`app.html`, ~ligne 6575). Renommer déplace le document Firestore **sans rien rendre illisible**.
+Sans cette vérification, le renommage était indéfendable — et c'est la question à reposer avant
+tout autre renommage du même genre.
+
+⛔ **ET CE RAISONNEMENT NE S'ÉTEND PAS À `elan-gestion` TOUT COURT** : c'est le document
+**PARTAGÉ** de toutes les entreprises sans clé personnalisée. Le renommer les orphelinerait
+toutes d'un coup. `app.html` pointe toujours dessus, et `tests/test-719.js` l'exige.
+
+### Une barrière neuve, et c'est la plus utile du lot
+
+`beta-build.js` **REFUSE désormais de produire une bêta** dont `SYNC_SECRET_DEFAULT` ou
+`SYNC_SALT` auraient changé. Éprouvé en remettant le défaut : « ÉCHEC : SYNC_SECRET_DEFAULT a
+été modifié — c'est le MOT DE PASSE de chiffrement, pas un nom ». C'est la dernière barrière
+avant un fichier publié, et elle ferme le piège que `CLAUDE.md` décrit comme « se refermant dans
+les deux sens ».
+
+### ⛔ DEUX LEÇONS DE MÉTHODE, PAYÉES CE SOIR
+
+1. **`git commit` prend TOUT ce qui est en attente, pas ce qu'on nomme.** Le commit « serveur
+   seul » annonçait « trois lignes de code » : il portait AUSSI `beta.html` et quatre bancs,
+   parce qu'un `git checkout <branche> -- …` les avait mis en attente plus tôt. **La bêta a donc
+   déménagé EN MÊME TEMPS que le serveur, pas après** — la discipline d'ordre annoncée n'a pas
+   été exécutée. Rien n'a cassé (le VPS a fini 16 s après le push, avant que Pages ne serve la
+   bêta), mais par la chronologie, pas par la méthode. **Vérifier `git status` juste avant
+   `git commit`, toujours, et ne jamais décrire un commit sans avoir lu son `--stat`.**
+2. **Un report sur `main` n'est PAS un `git checkout <branche> -- <fichier>` quand la branche
+   contient autre chose.** `server/index.js` de la branche portait tout le chantier des pièces
+   jointes (309 + 154 lignes, routes `/api/pieces/*`, trois portes d'effacement) : le pousser
+   aurait déployé chez ELAN un chantier jamais éprouvé en production. Les lignes du renommage
+   ont donc été **reportées une par une** sur la version de `main`. Le contrôle qui a sauvé :
+   lire le `git diff origin/main..HEAD -- server/` AVANT de pousser.
+
+### ⚠️ UN PIÈGE OUVERT, À FERMER
+
+**`node beta-build.js` lancé depuis `main` produit une bêta 695-beta** — parce que l'`app.html`
+de `main` est encore en v695, alors que la bêta publiée (701) vient de la branche. Le relancer
+sur `main` **rétrograderait silencieusement la bêta de 701 à 695**. C'est arrivé pendant les
+contrôles de ce soir, vu et restauré. À fermer par une garde de non-régression de version dans
+le générateur (~5 lignes) — proposé à Justin, pas encore fait.
+
+### Ce qui reste du chantier
+
+L'ancien espace `elan-gestion-beta` **reste protégé** dans les trois listes (serveur, Tour,
+`connexion.html`) : son document Firestore existe toujours. On ne l'en retirera que le jour où
+plus aucun appareil n'y signale. La Tour le nomme « Bêta TEAM OP (ancien espace) » pour qu'il ne
+passe pas pour un doublon du nouveau.
+
+---
+
 ## ✅ 17 SEPTEMBRE 2026 — LE POINT 7 EST FINI, ET LE JETON GITHUB A ÉTÉ TOURNÉ
 
 ### ⛔ CE QUI DOIT ÊTRE RELU AVANT TOUT — deux échéances et une clé à considérer comme brûlée
