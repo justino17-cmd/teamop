@@ -261,13 +261,13 @@ function monterSauvegarde(app, deps) {
       if (faite.octets > MAX_OCTETS) return noter(false, 'trop-volumineuse', { octets: faite.octets });
 
       const corps = fs.readFileSync(tmp);
-      const dep = await client.poser('', cleObjet, corps);
+      const dep = await client.poserCle(cleObjet, corps);
       if (!dep.ok) return noter(false, 'depot-' + (dep.statut || 'erreur'), { octets: faite.octets });
 
       /* ── LA RELECTURE, qui est le vrai sujet ────────────────────────────────────────────
          On retélécharge ce qui vient d'être déposé — pas le fichier local. Trois contrôles,
          du moins cher au plus probant : la taille, l'empreinte, puis l'ouverture réelle. */
-      const relu = await client.lire('', cleObjet);
+      const relu = await client.lireCle(cleObjet);
       if (!relu.ok) return noter(false, 'relecture-' + (relu.statut || 'absente'), { octets: faite.octets });
       if (relu.corps.length !== faite.octets) return noter(false, 'taille-differente', { octets: faite.octets, relu: relu.corps.length });
       if (sha256hex(relu.corps) !== faite.empreinte) return noter(false, 'empreinte-differente', { octets: faite.octets });
@@ -281,7 +281,7 @@ function monterSauvegarde(app, deps) {
       let elaguees = 0;
       const liste = await client.lister(PREFIXE);
       if (liste && liste.ok) {
-        for (const c of aElaguer(liste.objets, GARDER)) { const r = await client.effacer('', c); if (r.ok) elaguees++; }
+        for (const c of aElaguer(liste.objets, GARDER)) { const r = await client.effacerCle(c); if (r.ok) elaguees++; }
       }
       return noter(true, '', { octets: faite.octets, entrees: ouverte.entrees, empreinte: faite.empreinte.slice(0, 16), elaguees, gardees: liste && liste.ok ? Math.min(GARDER, (liste.objets || []).length + 1) : null });
     } catch (e) {

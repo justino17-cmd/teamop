@@ -17,25 +17,64 @@
  */
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), readline = require('readline');
 const s3mod = require('./s3');
-const { cleDepuis } = require('./sauvegarde');
+const { cleDepuis, monterSauvegarde } = require('./sauvegarde');
 
 const CONFIG_PATH = process.env.TEAMOP_CONFIG || '/opt/teamop/config.json';
 
 /* La saisie masquée : rien ne s'affiche, rien ne reste dans l'historique du terminal. On
    n'utilise pas d'argument de ligne de commande pour un secret — `ps` les montre à tout le
-   monde sur la machine, et l'historique du shell les garde. */
-function demander(question, masque) {
+   monde sur la machine, et l'historique du shell les garde.
+
+   ⛔ ET ELLE NE MARCHE QU'AVEC UN VRAI TERMINAL, ce qui a failli rendre ce programme
+   invérifiable. Premier jet : `terminal: true` en dur. Lancé avec une entrée redirigée — la
+   seule façon de l'éprouver de bout en bout avant de le confier à quelqu'un — il s'arrêtait
+   à la deuxième question, sans un mot. On aurait donc découvert ses défauts EN DIRECT sur le
+   VPS, ce qui est précisément ce que ce projet refuse de faire. `terminal` suit maintenant
+   `isTTY` : au clavier, le masquage ; en entrée redirigée, une lecture simple, et on le DIT
+   pour que personne ne croie ses secrets masqués alors qu'ils viennent d'un fichier. */
+const AU_CLAVIER = !!process.stdin.isTTY;
+
+/* ⛔ DEUX CHEMINS DE LECTURE, ET IL A FALLU TROIS ESSAIS POUR L'ADMETTRE. Au clavier, readline
+   avec masquage. En entrée redirigée — la seule façon d'ÉPROUVER ce programme avant de le
+   confier à quelqu'un — `rl.question()` ne répond QU'UNE FOIS : mesuré sur une reproduction
+   minimale, la première question reçoit sa réponse, la deuxième ne rend jamais la main, et le
+   programme s'arrête sans un mot. Deux corrections successives (le `terminal:true` en dur, puis
+   une interface par question) n'ont rien changé parce qu'aucune ne visait la vraie cause.
+   La troisième la vise : quand l'entrée n'est pas un clavier, on la lit ENTIÈREMENT d'un bloc
+   et on distribue les lignes. Plus de rappel, plus de flux, rien à réarmer.
+   ⚠️ Le chemin redirigé sert à l'épreuve, pas à l'exploitation : sur le VPS c'est un vrai
+   clavier, donc le masquage, et le programme le dit quand ce n'est pas le cas. */
+let rl = null, lignes = null;
+if (AU_CLAVIER) rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+
+function lireToutStdin() {
   return new Promise(resolve => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+    let d = ''; process.stdin.setEncoding('utf8');
+    process.stdin.on('data', c => { d += c; });
+    process.stdin.on('end', () => resolve(d.split('\n')));
+    /* Entrée fermée d'emblée (aucune redirection, pas de clavier) : on ne reste pas suspendu. */
+    if (process.stdin.readableEnded) resolve(d.split('\n'));
+  });
+}
+
+async function demander(question, masque) {
+  if (!AU_CLAVIER) {
+    if (lignes === null) lignes = await lireToutStdin();
+    const r = lignes.length ? lignes.shift() : '';
+    process.stdout.write(question + String(r).trim() + '\n');
+    return String(r).trim();
+  }
+  return new Promise(resolve => {
     if (masque) {
       const ecrire = rl._writeToOutput;
       rl._writeToOutput = function (s) { if (s.includes(question)) ecrire.call(rl, s); else ecrire.call(rl, ''); };
-      rl.question(question, r => { rl._writeToOutput = ecrire; process.stdout.write('\n'); rl.close(); resolve(String(r).trim()); });
+      rl.question(question, r => { rl._writeToOutput = ecrire; process.stdout.write('\n'); resolve(String(r).trim()); });
     } else {
-      rl.question(question, r => { rl.close(); resolve(String(r).trim()); });
+      rl.question(question, r => resolve(String(r).trim()));
     }
   });
 }
+const fermer = () => { if (rl) rl.close(); };
 
 (async () => {
   let config = {};
@@ -46,7 +85,8 @@ function demander(question, masque) {
   console.log('\n══ Sauvegarde hors site de TeamOP ══\n');
   if (avant.bucket) console.log('Une configuration existe déjà (coffre « ' + avant.bucket + ' »). Ce script va la remplacer.\n');
   console.log('Il faut quatre valeurs, prises dans la console de l\'hébergeur d\'objets.');
-  console.log('Les deux clés ne s\'afficheront PAS pendant la frappe — c\'est normal.\n');
+  if (AU_CLAVIER) console.log('Les deux clés ne s\'afficheront PAS pendant la frappe — c\'est normal.\n');
+  else console.log('⚠ Entrée redirigée : les valeurs ne sont PAS masquées. Au clavier, elles le sont.\n');
 
   const endpoint = await demander('Endpoint (ex. https://s3.eu-central-4.ionoscloud.com) : ', false);
   const bucket = await demander('Nom du coffre (bucket)                              : ', false);
@@ -69,7 +109,7 @@ function demander(question, masque) {
   const client = s3mod.client(conf);
   const temoin = Buffer.from('teamop-essai-' + Date.now());
   const cleEssai = (conf.prefixe || '') + '.essai-configuration';
-  const p = await client.poser('', cleEssai, temoin);
+  const p = await client.poserCle(cleEssai, temoin);
   if (!p.ok) {
     console.error('✗ DÉPÔT REFUSÉ (HTTP ' + p.statut + '). Rien n\'a été écrit dans config.json.');
     console.error('  403 : clés fausses, ou pas le droit d\'écrire dans ce coffre.');
@@ -77,7 +117,7 @@ function demander(question, masque) {
     console.error('  Un nom d\'hôte introuvable : vérifier l\'endpoint (il change selon la région).');
     process.exit(1);
   }
-  const l = await client.lire('', cleEssai);
+  const l = await client.lireCle(cleEssai);
   /* ⛔ ON RELIT ET ON COMPARE. Un coffre en écriture seule accepte le dépôt et rend 403 à la
      lecture : la sauvegarde partirait tous les jours et ne serait jamais restaurable. C'est
      précisément la panne muette que ce projet ne veut plus jamais avoir. */
@@ -85,10 +125,10 @@ function demander(question, masque) {
     console.error('✗ RELECTURE IMPOSSIBLE' + (l.statut ? ' (HTTP ' + l.statut + ')' : '') + ' — le dépôt a marché mais pas la lecture.');
     console.error('  Les droits doivent couvrir la LECTURE autant que l\'écriture, sinon la sauvegarde ne sera jamais restaurable.');
     console.error('  Rien n\'a été écrit dans config.json.');
-    await client.effacer('', cleEssai);
+    await client.effacerCle(cleEssai);
     process.exit(1);
   }
-  const e = await client.effacer('', cleEssai);
+  const e = await client.effacerCle(cleEssai);
   if (!e.ok) console.log('⚠ l\'objet d\'essai n\'a pas pu être effacé (droit de suppression manquant ?) — la rétention ne marchera pas non plus.');
   console.log('✅ coffre joignable : dépôt, relecture identique, effacement.');
 
@@ -119,9 +159,43 @@ function demander(question, masque) {
     console.log('    archives déjà déposées illisibles)');
   }
 
-  console.log('Pour finir :');
+  /* ⛔ LA PREMIÈRE SAUVEGARDE SE LANCE MAINTENANT, PAS À 3 H DU MATIN. Sans ça, on configure
+     le soir et on apprend le lendemain — ou pas — si la chaîne entière fonctionne. Le pire
+     moment pour découvrir qu'une sauvegarde ne part pas est celui où on en a besoin ; le
+     meilleur est celui où on vient de la brancher et où on a encore le terminal ouvert. Elle
+     passe par le module RÉEL, le même que la minuterie : ce qui marche ici marchera la nuit. */
+  const rep = (await demander('\nLancer une première sauvegarde maintenant ? [O/n] ', false)).toLowerCase();
+  if (rep === 'n' || rep === 'non') {
+    console.log('\nD\'accord. Elle partira d\'elle-même cette nuit. Pour finir :');
+    console.log('   systemctl restart teamop-api');
+    console.log('   node /opt/teamop/repo/server/restaurer.js essai   # une fois la première faite\n');
+    fermer(); return;
+  }
+
+  console.log('\n── Première sauvegarde (fabrication, dépôt, RELECTURE) ──');
+  console.log('   Sur une grosse installation, ça peut prendre une minute ou deux.');
+  const DATA_DIR = process.env.TEAMOP_DATA || '/opt/teamop/data';
+  const mod = monterSauvegarde(null, { config, DATA_DIR, CONFIG_PATH });
+  if (!mod.actif) { console.error('✗ le module se monte inerte alors que la configuration vient d\'être écrite — à signaler, ce ne devrait pas arriver.'); process.exit(1); }
+  const r = await mod.lancer('configuration');
+  if (!r.ok) {
+    /* On ne maquille pas un échec en « c'est configuré ». La configuration, elle, est bien
+       écrite : c'est la sauvegarde qui n'est pas passée, et le motif dit laquelle des étapes. */
+    console.error('\n✗ LA PREMIÈRE SAUVEGARDE A ÉCHOUÉ — motif : ' + r.motif);
+    console.error('  La configuration est écrite ; c\'est la sauvegarde qui n\'est pas passée.');
+    console.error('  « depot-… » : le coffre a refusé l\'envoi (droits d\'écriture, ou coffre plein).');
+    console.error('  « relecture-… » : envoi accepté, lecture refusée — les droits doivent couvrir LES DEUX,');
+    console.error('  sinon la sauvegarde ne sera jamais restaurable.');
+    console.error('  « empreinte-differente » / « taille-differente » : ce qui est relu n\'est pas ce qui a été envoyé.');
+    process.exit(1);
+  }
+  console.log('✅ sauvegarde déposée ET RELUE : ' + Math.round((r.octets || 0) / 1024) + ' Kio, ' + (r.entrees || 0) + ' entrées, en ' + Math.round((r.ms || 0) / 1000) + ' s.');
+
+  console.log('\nPour finir :');
   console.log('   systemctl restart teamop-api');
   console.log('   curl -s localhost:8080/health | grep -o \'"sauvegarde":{[^}]*}\'');
-  console.log('   # puis, une fois la première sauvegarde faite :');
-  console.log('   node /opt/teamop/repo/server/restaurer.js essai\n');
-})().catch(e => { console.error('✗ ' + e.message); process.exit(1); });
+  console.log('\n⛔ ET SURTOUT, LE CONTRÔLE QUI COMPTE VRAIMENT — rouvrir ce qu\'on vient d\'écrire :');
+  console.log('   node /opt/teamop/repo/server/restaurer.js essai');
+  console.log('   (à refaire une fois par trimestre : une sauvegarde qu\'on n\'a jamais su rouvrir');
+  console.log('    est une croyance, pas une sauvegarde)\n');
+})().then(fermer, e => { console.error('✗ ' + e.message); fermer(); process.exit(1); });

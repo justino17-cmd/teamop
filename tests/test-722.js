@@ -152,15 +152,25 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
     const objets = new Map();
     const c = {
       pannes: {},
-      async poser(t, k, corps) { if (c.pannes.poser) return { ok: false, statut: c.pannes.poser }; objets.set(k, Buffer.from(corps)); return { ok: true, octets: corps.length }; },
-      async lire(t, k) {
+      /* ⛔ `poserCle`/`lireCle`/`effacerCle`, PAS `poser`/`lire`/`effacer` — et ce n'est pas un
+         détail de nommage. Les seconds sont faits pour les pièces jointes : deux segments
+         (entreprise, identifiant) encodés CHACUN EN ENTIER. La sauvegarde range sous
+         `teamop/<date>`, donc sa clé contient une barre oblique : passée à `lire('', cle)`
+         elle devenait `%2F`, donc une clé DIFFÉRENTE de celle déposée. Mesuré le 17 septembre
+         en faisant tourner la chaîne pour de vrai : le dépôt réussissait, la liste montrait
+         l'archive, et le téléchargement répondait « objet absent ». Une sauvegarde quotidienne
+         IMPOSSIBLE À RESTAURER — la panne même que ce chantier existe pour empêcher. Ce coffre
+         n'expose donc QUE les verbes « clé complète » : si quelqu'un revenait aux autres, tout
+         ce bloc rougirait au lieu de laisser passer. */
+      async poserCle(k, corps) { if (c.pannes.poser) return { ok: false, statut: c.pannes.poser }; objets.set(k, Buffer.from(corps)); return { ok: true, octets: corps.length }; },
+      async lireCle(k) {
         if (c.pannes.lire) return { ok: false, statut: c.pannes.lire };
         if (c.pannes.lireAbime && objets.has(k)) { const b = Buffer.from(objets.get(k)); b[10] ^= 0xFF; return { ok: true, corps: b }; }
         if (c.pannes.lireCourt && objets.has(k)) return { ok: true, corps: objets.get(k).subarray(0, 50) };
         if (!objets.has(k)) return { ok: false, absente: true };
         return { ok: true, corps: objets.get(k) };
       },
-      async effacer(t, k) { objets.delete(k); return { ok: true }; },
+      async effacerCle(k) { objets.delete(k); return { ok: true }; },
       async lister() { return { ok: true, objets: [...objets.keys()].map(k => ({ cle: k, octets: objets.get(k).length, modifie: '' })) }; },
       _n: () => objets.size, _cles: () => [...objets.keys()],
     };
@@ -219,7 +229,7 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
   /* La rétention en vrai : quatre sauvegardes, on en garde deux. Les noms portant la seconde,
      on force des instants différents en déposant à la main entre deux. */
   coffre = coffreNeuf(); mod = monter(coffre, { garder: 2 });
-  for (const j of ['2026-09-01', '2026-09-02', '2026-09-03']) coffre.poser('', 'teamop/' + j + 'T03-00-00Z.tar.gz.chiffre', Buffer.from('vieille'));
+  for (const j of ['2026-09-01', '2026-09-02', '2026-09-03']) coffre.poserCle('teamop/' + j + 'T03-00-00Z.tar.gz.chiffre', Buffer.from('vieille'));
   v('trois vieilles copies déposées à la main', coffre._n(), 3);
   r = await mod.lancer('banc');
   v('la nouvelle sauvegarde réussit', r.ok, true);
@@ -250,6 +260,29 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
   const surLeDisque = JSON.parse(fs.readFileSync(path.join(DATA, 'sauvegardes-hors-site.json'), 'utf8'));
   vrai('l\'historique est gardé', (surLeDisque.histo || []).length >= 1);
   v('⛔ l\'état ne porte aucun secret', /[0-9a-f]{64}/.test(JSON.stringify(surLeDisque).replace(/"empreinte":"[0-9a-f]{16}"/g, '')), false);
+
+  /* ── 8 bis. ⛔ LA FORME DE L'URL D'UNE CLÉ COMPLÈTE — le défaut qui rendait la restauration
+     impossible, et qu'aucune relecture n'avait vu. Ce bloc vise `server/s3.js` directement :
+     une clé de sauvegarde contient une barre oblique, et elle doit rester une barre dans
+     l'URL, sinon la clé relue n'est pas la clé déposée. */
+  console.log('\n── 722 · l\'URL d\'une clé de sauvegarde ──');
+  {
+    const s3 = require(path.join(RACINE, 'server', 's3.js'));
+    const cl = s3.client({ endpoint: 'https://coffre.example', bucket: 'teamop-sauvegardes', accessKey: 'a', secretKey: 'b' });
+    const u = cl._urlCle('teamop/2026-09-17T03-00-00Z.tar.gz.chiffre');
+    v('⛔ la barre oblique RESTE une barre (pas de %2F)', /%2F/i.test(u), false);
+    v('⛔ aucune double barre dans le chemin (le segment vide de l\'ancienne forme)', /[^:]\/\//.test(u), false);
+    v('l\'URL est exactement celle attendue', u, 'https://coffre.example/teamop-sauvegardes/teamop/2026-09-17T03-00-00Z.tar.gz.chiffre');
+    v('une barre de tête est retirée, pas encodée', cl._urlCle('/teamop/x.bin'), 'https://coffre.example/teamop-sauvegardes/teamop/x.bin');
+    /* Et ce qui n'est PAS une barre reste bel et bien encodé : on n'a pas ouvert la porte en
+       grand pour régler un cas particulier. */
+    vrai('un espace reste encodé', cl._urlCle('teamop/a b.bin').includes('a%20b'));
+    vrai('⛔ une tentative de remonter d\'un cran n\'est pas interprétée par nous', cl._urlCle('teamop/../x').includes('..'));
+    /* La forme des pièces jointes, elle, n'a pas bougé — c'est `test-716` qui la tient, mais
+       une confusion entre les deux est exactement ce qui vient d'arriver. */
+    v('la forme « pièce jointe » encode TOUJOURS ses deux segments en entier',
+      cl._url('ent-a', 'id/avec/barres'), 'https://coffre.example/teamop-sauvegardes/ent-a/id%2Favec%2Fbarres');
+  }
 
   /* ── 9. L'ÉCHÉANCE DU JETON GITHUB, extraite du fichier réel ─────────────────────────
      La fonction vit dans `server/index.js` et n'est pas exportée : on l'extrait du fichier

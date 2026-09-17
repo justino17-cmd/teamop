@@ -122,6 +122,18 @@ function client(conf) {
   /* ⛔ LA CLÉ D'OBJET PORTE L'ENTREPRISE, comme le nom de fichier sur le disque : le
      cloisonnement reste structurel même quand le stockage change de nature. */
   const url = (t, id) => base + '/' + uriEncode(conf.bucket, false) + '/' + uriEncode(String(t), false) + '/' + uriEncode(String(id), false);
+  /* ⛔ UNE CLÉ COMPLÈTE, AVEC SES BARRES OBLIQUES — et ce n'est pas un raffinement, c'est un
+     défaut trouvé EN FAISANT TOURNER la chaîne pour de vrai, le 17 septembre 2026. `url(t, id)`
+     est fait pour les pièces jointes : l'entreprise puis l'identifiant, deux segments sans
+     barre, chacun encodé en entier. La sauvegarde, elle, range sous `teamop/<date>…`, donc sa
+     clé CONTIENT une barre. Passée à `url('', cle)` elle donnait deux défauts d'un coup : un
+     segment vide (`/coffre//teamop/…`, double barre), et à la relecture des barres transformées
+     en `%2F` — donc une clé DIFFÉRENTE de celle déposée. Résultat mesuré : le dépôt réussissait,
+     la liste montrait bien l'archive, et le téléchargement répondait « objet absent ». Autrement
+     dit une sauvegarde qui part tous les jours et qu'on ne peut PAS restaurer — la panne exacte
+     que ce chantier existe pour empêcher, découverte seulement parce qu'on a lancé le programme
+     au lieu de le relire. */
+  const urlCle = (cle) => base + '/' + uriEncode(conf.bucket, false) + '/' + uriEncode(String(cle).replace(/^\/+/, ''), true);
   const commun = { region, accessKey: conf.accessKey, secretKey: conf.secretKey };
 
   async function envoyer(o, tempsMax) {
@@ -161,6 +173,26 @@ function client(conf) {
        des noms d'objets que nous avons nous-mêmes choisis. Ajouté pour la sauvegarde hors site
        (17 septembre 2026) : sans liste, la rétention ne peut pas savoir quoi effacer, et une
        restauration sur un VPS neuf ne peut pas savoir ce qui existe. */
+    /* Les trois mêmes verbes, mais sur une clé complète. Ce sont ceux qu'emploient la
+       sauvegarde et la restauration ; `poser`/`lire`/`effacer` restent aux pièces jointes. */
+    async poserCle(cle, corps, tempsMax) {
+      const octets = Buffer.byteLength(corps);
+      const r = await envoyer({ methode: 'PUT', url: urlCle(cle), corps: Buffer.from(corps), enTetes: { 'content-type': 'application/octet-stream' } },
+        tempsMax || Math.min(600000, 15000 + Math.ceil(octets / 50)));
+      if (!r.ok) { console.error('objet non posé : HTTP ' + r.status); return { ok: false, statut: r.status }; }
+      return { ok: true, octets };
+    },
+    async lireCle(cle, tempsMax) {
+      const r = await envoyer({ methode: 'GET', url: urlCle(cle) }, tempsMax || 600000);
+      if (r.status === 404) return { ok: false, absente: true };
+      if (!r.ok) { console.error('objet non lu : HTTP ' + r.status); return { ok: false, statut: r.status }; }
+      return { ok: true, corps: Buffer.from(await r.arrayBuffer()) };
+    },
+    async effacerCle(cle) {
+      const r = await envoyer({ methode: 'DELETE', url: urlCle(cle) });
+      if (r.status === 204 || r.status === 200 || r.status === 404) return { ok: true };
+      console.error('objet non effacé : HTTP ' + r.status); return { ok: false, statut: r.status };
+    },
     async lister(prefixe) {
       const objets = []; let suite = '';
       for (let page = 0; page < 200; page++) {
@@ -181,7 +213,7 @@ function client(conf) {
       }
       return { ok: true, objets };
     },
-    _url: url,
+    _url: url, _urlCle: urlCle,
   };
 }
 

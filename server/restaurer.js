@@ -68,7 +68,7 @@ async function lister(ctx) {
 }
 
 async function telecharger(ctx, cle, vers) {
-  const r = await ctx.client.lire('', cle);
+  const r = await ctx.client.lireCle(cle);
   if (!r.ok) { console.error('✗ téléchargement impossible : ' + (r.absente ? 'objet absent' : 'HTTP ' + r.statut)); process.exit(1); }
   fs.writeFileSync(vers, r.corps);
   return r.corps.length;
