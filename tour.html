@@ -3245,7 +3245,24 @@ function vueConnexions(){
        sont restées une semaine. Un écran qui tait un problème est pire qu'un écran chargé. */
     {cle:'technique',titre:'Espaces techniques — jamais des entreprises',bloc:'reg-bloc',opt:true,
      sous:'L’espace par défaut de l’application et celui de la bêta. Tout appareil qui n’a rejoint aucun espace y signale ses connexions. Ils ne comptent pas dans les entreprises actives — mais s’il s’y connecte du monde, ce sont de vraies personnes au mauvais endroit.',
-     test:function(x){ return x.technique===true; }}
+     /* ⛔ UN ESPACE TECHNIQUE ÉTEINT DISPARAÎT ; UN ESPACE OÙ IL SE PASSE QUELQUE CHOSE RESTE.
+        Justin, 17 septembre 2026 : « je veux que tout ça disparaisse de la Tour, étant donné
+        qu'il n'y a plus de compte ». Il a raison sur le principe — un espace où plus personne
+        ne va n'est pas une nouvelle, et le laisser affiché fait passer une trace du passé pour
+        un problème en cours.
+        ⛔ MAIS ON NE LE DÉBRANCHE PAS. Le commentaire juste au-dessus dit pourquoi ce panneau
+        existe : cinq personnes sont restées une semaine sur l'espace partagé parce que RIEN ne
+        le signalait. Faire disparaître l'alarme n'éteint pas la cause — c'est la règle que
+        Justin a lui-même posée le 15 septembre : un remède répare le mécanisme, jamais le
+        périmètre.
+        Le critère est donc l'ACTIVITÉ RÉELLE, pas l'existence : rien depuis 7 jours et aucun
+        échec récent → l'espace sort de l'écran tout seul, sans qu'on ait rien à supprimer.
+        Dès que quelqu'un y revient, il reparaît. */
+     test:function(x){
+       if(x.technique!==true) return false;
+       var r=x.resume||{}, j7=Date.now()-7*86400000;
+       return (r.derniere>j7) || (r.utilisateurs7>0) || (r.echecs24>0);
+     }}
   ];
   var grCnx='';
   GR_CNX.forEach(function(g){

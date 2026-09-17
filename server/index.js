@@ -2775,10 +2775,21 @@ app.post('/api/monitor/compte/mdp-annuler', monPatronStrict, (req, res) => {
 /* Résumé lisible d'un espace : dernière connexion, utilisateurs et appareils actifs, échecs, versions */
 function cnxResume(t) {
   const l = cnxData[t] || []; const now = Date.now(), j7 = now - 7 * 86400000, j30 = now - 30 * 86400000, h24 = now - 86400000;
-  const ok = l.filter(e => e.ev === 'connexion' || e.ev === 'session');
+  const z = zeroDe(t);   // filigrane de remise à zéro (voir ZERO_PATH) : jamais une suppression
+  /* ⛔ LE FILIGRANE VAUT POUR TOUT, PAS SEULEMENT POUR LES ÉCHECS.
+     Défaut trouvé le 17 septembre 2026, sur une capture de Justin : il avait supprimé des
+     entreprises deux jours plus tôt, et la Tour affichait toujours « 4 pers. / 7 j » sur
+     l'espace par défaut. Normal — la fenêtre fait SEPT jours, elle contenait encore les
+     connexions d'AVANT la suppression. Mais le bouton « remise à zéro », lui, ne remettait à
+     zéro QUE `echecs24` : appuyer dessus ne changeait rien à ce qu'on regardait.
+     Un bouton qui ne fait pas ce qu'il promet est pire qu'un bouton absent — on appuie, il ne
+     se passe rien, et on conclut que l'écran est cassé. Le filigrane s'applique donc à TOUS
+     les compteurs de cette fiche.
+     ⚠️ Il n'EFFACE toujours rien : `l` garde tout l'historique sur disque, et « Annuler »
+     rend la totalité. Le jour où un incident ressort, on peut remonter avant la remise à zéro. */
+  const ok = l.filter(e => (e.ev === 'connexion' || e.ev === 'session') && e.ts > z);
   const u7 = new Set(ok.filter(e => e.ts > j7 && e.login).map(e => e.login)), u30 = new Set(ok.filter(e => e.ts > j30 && e.login).map(e => e.login));
   const d7 = new Set(ok.filter(e => e.ts > j7 && e.dev).map(e => e.dev));
-  const z = zeroDe(t);   // filigrane de remise à zéro (voir ZERO_PATH) : jamais une suppression
   const echecs24 = l.filter(e => e.ev === 'echec' && e.ts > h24 && e.ts > z).length;
   const versions = {}; const vuDev = new Set();
   ok.forEach(e => { if (!e.dev || vuDev.has(e.dev) || !e.version) return; vuDev.add(e.dev); versions[e.version] = (versions[e.version] || 0) + 1; });
