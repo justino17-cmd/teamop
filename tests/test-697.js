@@ -67,8 +67,25 @@ v('⛔ /api/fb/jeton passe toujours par sauvRefus', /const refus = sauvRefus\(t,
    en v680 (`return {ok:null}`), et une expression collée à `return;` a fait croire à une
    régression alors que la garantie n'avait pas bougé d'un pouce. */
 v('⛔ la bêta ne dépose toujours aucun annuaire', /if\(_annuaireEnCours\|\|BETA_ESSAI\) return\b/.test(APP), true);
-v('… et les deux espaces techniques sont bien les mêmes qu\'avant',
-  /const ESPACES_INTOUCHABLES = \['elan-gestion', 'elan-gestion-beta'\];/.test(SRV), true);
+/* ⛔ RÉ-EXPRIMÉ LE 17 SEPTEMBRE 2026, AU RENOMMAGE DE L'ESPACE BÊTA — et RENFORCÉ.
+   Il épinglait le tableau littéral, donc il rougissait dès qu'on ajoutait un espace, sans rien
+   dire du vrai danger. Le vrai danger, c'est la DÉRIVE : la Tour garde sa PROPRE copie de
+   cette liste (voir le commentaire de server/index.js ligne ~2889). Deux copies qui divergent,
+   et un espace technique s'affiche comme une entreprise cliente d'un côté pendant qu'il reste
+   intouchable de l'autre. On compare donc les deux, en ensembles. */
+{
+  const fsx = require('fs'), pathx = require('path');
+  const tourSrc = fsx.readFileSync(pathx.join(__dirname, '..', 'tour.html'), 'utf8');
+  const lire = (re, src) => { const m = re.exec(src); return m ? JSON.parse(m[1].replace(/'/g, '"')) : null; };
+  const srv = lire(/const ESPACES_INTOUCHABLES = (\[[^\]]*\]);/, SRV);
+  const tour = lire(/var ESPACES_TECHNIQUES=(\[[^\]]*\]);/, tourSrc);
+  v('la liste des espaces techniques est lisible côté serveur', Array.isArray(srv) && srv.length > 0, true);
+  v('… et côté Tour', Array.isArray(tour) && tour.length > 0, true);
+  v('⛔ les deux copies contiennent EXACTEMENT les mêmes espaces',
+    !!(srv && tour) && srv.length === tour.length && srv.every(x => tour.includes(x)), true);
+  v('l\'espace de production en fait partie', !!srv && srv.includes('elan-gestion'), true);
+  v('l\'espace bêta courant aussi', !!srv && srv.includes('opgestion-beta'), true);
+}
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

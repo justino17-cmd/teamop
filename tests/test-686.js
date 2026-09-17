@@ -25,8 +25,21 @@ console.log('\n── 686 · l\'espace de repli n\'est plus présenté comme une
 
 /* Les deux identifiants de repli sont nommés ici comme côté serveur (ESPACES_INTOUCHABLES).
    Une seule oubliée et la moitié des appareils garde le défaut. */
-v('les deux espaces de repli sont reconnus',
-  /var REPLI=\['elan-gestion','elan-gestion-beta'\];/.test(cnx), true);
+/* ⛔ RÉ-EXPRIMÉ AU RENOMMAGE DE L'ESPACE BÊTA (17 septembre 2026). Épingler le tableau
+   littéral ne disait rien du danger réel : qu'un espace de repli soit connu du serveur mais
+   PAS de connexion.html, auquel cas l'appareil qui y atterrit s'entend dire qu'il est relié à
+   son entreprise alors qu'il ne l'est pas. On vérifie donc l'accord entre les deux fichiers. */
+{
+  const fsy = require('fs'), pathy = require('path');
+  const srvSrc = fsy.readFileSync(pathy.join(__dirname, '..', 'server', 'index.js'), 'utf8');
+  const lire2 = (re, src) => { const m = re.exec(src); return m ? JSON.parse(m[1].replace(/'/g, '"')) : null; };
+  const repli = lire2(/var REPLI=(\[[^\]]*\]);/, cnx);
+  const srv2 = lire2(/const ESPACES_INTOUCHABLES = (\[[^\]]*\]);/, srvSrc);
+  v('la liste de repli est lisible', Array.isArray(repli) && repli.length > 0, true);
+  v('⛔ elle reconnaît TOUS les espaces que le serveur juge techniques',
+    !!(repli && srv2) && srv2.every(x => repli.includes(x)), true);
+  v('… dont l\'espace bêta courant', !!repli && repli.includes('opgestion-beta'), true);
+}
 v('⛔ un appareil sur le repli ne s\'entend plus dire qu\'il est relié à son entreprise',
   /if\(_esp&&REPLI\.indexOf\(_esp\)>=0&&!adr\)\{[\s\S]{0,200}Cet appareil n’est relié à aucune entreprise/.test(cnx), true);
 v('… on lui dit ce que ça change pour son travail, pas juste « erreur »',
