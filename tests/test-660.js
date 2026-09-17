@@ -93,8 +93,14 @@ v('la fenêtre de lecture atteint bien l’accusé de réception', bloc.indexOf(
    sens : l'une n'a jamais dit que c'était passé, l'autre l'a toujours dit.
    Il annonce maintenant l'ACTION, et c'est l'accusé de réception qui annonce le RÉSULTAT. */
 {
+  /* ⛔ LA FENÊTRE FIXE DE 900 CARACTÈRES ÉTAIT UNE BOMBE À RETARDEMENT : ajouter un
+     commentaire en tête de syncNow suffisait à faire sortir la ligne cherchée de la fenêtre,
+     donc à faire rougir un banc sur du code intact. Arrivé le 17 septembre 2026. On prend la
+     fonction ENTIÈRE, par comptage d'accolades — c'est plus juste ET plus strict. */
   const iN = APP.indexOf('function syncNow()');
-  const fn = APP.slice(iN, iN + 900);
+  const fn = (() => { let p = 0; for (let k = APP.indexOf('{', iN); k < APP.length; k++) {
+    if (APP[k] === '{') p++; else if (APP[k] === '}') { p--; if (!p) return APP.slice(iN, k + 1); } } return ''; })();
+  v('syncNow est extraite en entier', fn.length > 200 && fn.trim().endsWith('}'), true);
   v('⛔ le bouton n’annonce plus un résultat qu’il n’a pas',
     /toast\('Synchronisé avec l\\'équipe'\);/.test(fn), false);
   v('il dit ce qu’il fait', /_pushManuel=true; syncPush\(true\); toast\('Envoi à l\\'équipe…',1800\);/.test(fn), true);
@@ -104,7 +110,18 @@ v('la fenêtre de lecture atteint bien l’accusé de réception', bloc.indexOf(
      il en dit plus. Le `else if` est donc la forme JUSTE, pas un raccourci d'écriture. */
   v('un seul message : le démenti passe devant la confirmation',
     bloc.indexOf("if(_alerte){") < bloc.indexOf("else if(_pushManuel)"), true);
-  v('le drapeau retombe sur l’accusé de réception', /_pushManuel=false;\n      try\{ sauvegardeDeposer/.test(bloc), true);
+  /* ⛔ RÉ-EXPRIMÉ SUR L'ORDRE, PAS SUR L'ADJACENCE (17 septembre 2026) : ce qui compte est que
+     le drapeau retombe APRÈS le message et AVANT la sauvegarde — pas qu'aucune ligne ne vienne
+     jamais s'intercaler. Vérifié comme un ordre, ce fait est aussi fort et ne casse plus pour
+     rien. */
+  v('le drapeau retombe après le message de confirmation',
+    bloc.indexOf('else if(_pushManuel)') < bloc.indexOf('_pushManuel=false;'), true);
+  v('… et avant la sauvegarde', bloc.indexOf('_pushManuel=false;') < bloc.indexOf('sauvegardeDeposer'), true);
+  /* DEUX fois, et c'est la bonne réponse : une sur le succès, une sur l'échec. Un drapeau qui
+     ne retomberait que dans un cas laisserait le message du prochain envoi manuel se déclencher
+     tout seul — c'est exactement le défaut que ce banc surveille, vu de l'autre côté. */
+  v('le drapeau retombe dans LES DEUX issues, succès et échec',
+    (bloc.match(/_pushManuel=false;/g) || []).length, 2);
   v('⛔ et il retombe aussi quand l’écriture échoue', /\.catch\(er=>\{ _acquitte=true; _pushManuel=false;/.test(bloc), true);
   v('le drapeau part à faux', /^let _pushManuel=false;$/m.test(APP), true);
 }

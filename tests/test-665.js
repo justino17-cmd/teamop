@@ -145,7 +145,9 @@ console.log('Fournisseurs sans doublon, liens vérifiés, première connexion co
 
 // ── 5) Première connexion : mot de passe ET e-mail, et on ne peut pas s'en échapper.
 {
-  const i = APP.indexOf('async function forcePwdSave()');
+  /* Ancrage sans la parenthèse fermante : un paramètre ajouté à la signature ne doit pas
+     faire rougir un banc qui ne parle pas de la signature (17 septembre 2026). */
+  const i = APP.indexOf('async function forcePwdSave(');
   const fn = APP.slice(i, i + 1800);
   /* ⚠️ ON ÉPROUVE LA GARANTIE, PAS LA LIGNE. Ce test cherchait le texte exact
      `if(!u.pwdHash||u.mustChangePwd) setTimeout(forcePwdModal,600);` — il est tombé le jour où

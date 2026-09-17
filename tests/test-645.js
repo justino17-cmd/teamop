@@ -225,7 +225,19 @@ console.log('\nLa regreffe couvre aussi ces champs et ces collections');
 
 console.log('\nUne écriture non acquittée ne bloque plus si le réseau répond');
 v('on mesure le réseau avant de décider', /const r2=await fetch\(PUSH_API\+'\/health',\{method:'HEAD'/.test(APP), true);
-v('réseau absent → écran hors ligne (inchangé)', /if\(!reseau\)\{ _horsLignePush=true; try\{ horsLigneDebut\('écriture sans réponse'\)/.test(APP), true);
+/* ⛔ RÉ-EXPRIMÉ SUR L'INTENTION LE 17 SEPTEMBRE 2026 — et RENFORCÉ. Il épinglait l'adjacence
+   exacte de deux instructions ; une ligne insérée entre elles le faisait rougir alors que le
+   comportement était intact. On vérifie maintenant ce qui compte vraiment : dans la branche
+   « pas de réseau », le travail est marqué en attente ET l'écran hors ligne est appelé avec
+   son motif — et la fonction sort sans écrire. Trois faits au lieu d'une chaîne de caractères. */
+{
+  const iB = APP.indexOf('if(!reseau){');
+  const br = iB < 0 ? '' : APP.slice(iB, iB + 400);
+  v('réseau absent → la branche existe', iB > 0, true);
+  v('réseau absent → le travail est marqué en attente', /_horsLignePush=true/.test(br), true);
+  v('réseau absent → écran hors ligne, avec son motif', /horsLigneDebut\('écriture sans réponse'\)/.test(br), true);
+  v('réseau absent → et on sort sans écrire', /horsLigneDebut\('écriture sans réponse'\)[\s\S]{0,60}return;/.test(br), true);
+}
 v('réseau présent → on prévient, on ne bloque pas', /Tes modifications ne partent pas encore vers l/.test(APP), true);
 
 

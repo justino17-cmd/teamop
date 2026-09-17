@@ -59,7 +59,7 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
   v('⛔ un accès bêta n’est jamais retenu', secuAFaire({ login: 'testeur', essai: true }), false);
   v('… et la fenêtre d’e-mail non plus', /function emailRappelModal\(passe\)\{ if\(!currentUser\|\|currentUser\.essai\) return;/.test(APP), true);
 
-  const fps = extraire(APP, 'async function forcePwdSave()');
+  const fps = extraire(APP, 'async function forcePwdSave(');
   v('⛔ « changer » veut dire changer : le même mot de passe est refusé',
     /if\(currentUser\.pwdHash&&neufH===currentUser\.pwdHash\)/.test(fps), true);
   v('⛔ l’e-mail reste exigé, et validé pour de bon',
@@ -74,7 +74,7 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
 
   /* Les deux autres chemins de mot de passe marquent aussi la campagne — sinon on la
      redemanderait à quelqu'un qui vient de la faire. */
-  const mcs = extraire(APP, 'async function monComptePwdSave()');
+  const mcs = extraire(APP, 'async function monComptePwdSave(');
   v('changer son mot de passe soi-même vaut la campagne', /currentUser\.secu=SECU_MDP;/.test(mcs), true);
   v('… et le retour en arrière l’emporte aussi', /secu:currentUser\.secu\}/.test(mcs), true);
   const pfs = extraire(APP, 'async function pwdForgotSave()');
