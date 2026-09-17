@@ -4835,14 +4835,25 @@ function entInventaire(t) {
 
 /* Les deux espaces par défaut de l'application ne sont PAS des entreprises : syncTeam()
    (app.html:5096) rend `localStorage.elan_sync_team || FB_TEAM`, et FB_TEAM vaut
-   'elan-gestion' dans app.html, 'elan-gestion-beta' dans beta.html. Tout appareil qui n'a
+   'elan-gestion' dans app.html, 'opgestion-beta' dans beta.html. Tout appareil qui n'a
    rejoint aucun espace signale donc là — y compris un visiteur qui rate une connexion. Ils
    apparaissent dans la Tour comme des entreprises ordinaires, ce qu'ils ne sont pas.
    Les supprimer serait doublement catastrophique : `elan_teams/elan-gestion` est le document
    PARTAGÉ de toutes les entreprises sans clé personnalisée (le périmètre de
    SYNC_SECRET_DEFAULT, voir CLAUDE.md), et les ajouter à entFermes viderait TOUS leurs
    appareils au prochain lancement. Le refus explique, sinon on le prend pour une panne. */
-const ESPACES_INTOUCHABLES = ['elan-gestion', 'elan-gestion-beta'];
+/* ⛔ L'ANCIEN NOM DE LA BÊTA RESTE DANS CETTE LISTE, ET CE N'EST PAS UN OUBLI. Renommage
+   demandé par Justin le 17 septembre 2026 : « elan-gestion-beta » ment depuis que le dépôt
+   s'appelle TeamOP. Le nouveau nom est `opgestion-beta` — c'est la bêta de l'application
+   OP GESTION, pas de la société TEAM OP.
+   L'ORDRE EST LE MÊME QUE POUR LA RÈGLE FIRESTORE : la porte d'abord, le déménagement ensuite.
+   Cette liste refuse toute suppression ou fermeture à 11 endroits de ce fichier ; si la bêta
+   déménageait avant que le serveur connaisse son nouveau nom, le nouvel espace deviendrait
+   supprimable comme une entreprise ordinaire et la Tour l'afficherait comme une cliente.
+   L'ancien document Firestore, lui, continue d'exister : le garder protégé empêche qu'on
+   l'efface depuis la Tour en croyant faire du ménage. On ne le retirera d'ici que le jour où
+   plus aucun appareil n'y signale. */
+const ESPACES_INTOUCHABLES = ['elan-gestion', 'elan-gestion-beta', 'opgestion-beta'];
 const REFUS_INTOUCHABLE = 'Cet identifiant n\'est pas une entreprise : c\'est l\'espace par défaut de l\'application. '
   + 'Tout appareil qui n\'a rejoint aucun espace y signale ses connexions, et ses données sont partagées par toutes '
   + 'les entreprises qui n\'ont jamais reçu de clé personnalisée. Le supprimer les effacerait toutes à la fois.';

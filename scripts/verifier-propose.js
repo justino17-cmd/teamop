@@ -54,7 +54,7 @@ try { beta = betaDepuis(appCorrigee); } catch (e) { erreurBeta = e.message; }
 verifie('la bêta se régénère depuis l\'application corrigée', !!beta, erreurBeta);
 verifie('… elle emporte la correction', !!(beta && beta.indexOf(marque) > 0), 'marque absente de la bêta');
 verifie('… et reste isolée (stockage propre à la bêta)', !!(beta && beta.indexOf("'elanB_gestion_v2'") > 0), 'isolation du stockage perdue');
-verifie('… et isolée aussi côté synchro', !!(beta && beta.indexOf("FB_TEAM='elan-gestion-beta'") > 0), 'isolation de la synchro perdue');
+verifie('… et isolée aussi côté synchro', !!(beta && beta.indexOf("FB_TEAM='opgestion-beta'") > 0), 'isolation de la synchro perdue');
 /* Le générateur livré refuse une app qui perdrait l'isolation : ce refus doit remonter. */
 let refus = '';
 try { betaDepuis('<html>rien du tout</html>'); } catch (e) { refus = e.message; }

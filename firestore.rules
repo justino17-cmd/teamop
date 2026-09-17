@@ -119,7 +119,8 @@ service cloud.firestore {
     // données locales de la bêta ; la substitution touche aussi le nom de la
     // collection Firestore, qui devient 'elanB_teams'.
     // ⚠️ VOLONTAIREMENT LAISSÉ OUVERT AUX COMPTES ANONYMES, et ce n'est pas un
-    // oubli : la bêta vit sur l'espace « elan-gestion-beta », que le serveur
+    // oubli : la bêta vit sur l'espace « opgestion-beta » (« elan-gestion-beta » jusqu'au
+    // 17 septembre 2026), que le serveur
     // refuse d'authentifier par construction (ESPACES_INTOUCHABLES — sa clé est
     // publique, une preuve venant de lui ne prouverait rien). Ses appareils n'ont
     // donc pas de jeton. Resserrer ici couperait l'outil de développement sans

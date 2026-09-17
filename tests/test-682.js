@@ -29,7 +29,10 @@ v('nomTechnique est trouvée dans tour.html', !!src, true);
 if (src) {
   const f = new Function(src[0] + '; return nomTechnique;')();
   v('l\'espace par défaut porte le nom de TEAM OP', f('elan-gestion'), 'Espace par défaut — TEAM OP');
-  v('la bêta aussi', f('elan-gestion-beta'), 'Bêta TEAM OP');
+  /* Au renommage du 17 septembre 2026 : l'espace courant porte le nom simple, l'ancien se
+     dit ancien — sinon deux lignes identiques dans la Tour passeraient pour un doublon. */
+  v('la bêta courante aussi', f('opgestion-beta'), 'Bêta TEAM OP');
+  v('⛔ et l\'ancien espace bêta se distingue à l\'écran', f('elan-gestion-beta'), 'Bêta TEAM OP (ancien espace)');
   /* Le point qui rend l'ajout SANS RISQUE partout : elle ne touche à rien d'autre. */
   v('⛔ elle rend tout autre identifiant inchangé', f('elan-34oc'), 'elan-34oc');
   v('… y compris une chaîne vide', f(''), '');
@@ -47,7 +50,8 @@ v('nomEspace est définie en un seul endroit', !!src2, true);
 if (src2 && src) {
   const g = new Function(src[0] + '\n' + src2[0] + '; return nomEspace;')();
   v('un espace technique sans nom prend le nom de TEAM OP', g('', 'elan-gestion'), 'Espace par défaut — TEAM OP');
-  v('la bêta aussi', g('', 'elan-gestion-beta'), 'Bêta TEAM OP');
+  v('la bêta courante aussi', g('', 'opgestion-beta'), 'Bêta TEAM OP');
+  v('⛔ et l\'ancien reste distinct', g('', 'elan-gestion-beta'), 'Bêta TEAM OP (ancien espace)');
   v('⛔ un vrai nom d\'entreprise passe devant tout', g('ELAN', 'elan-34oc'), 'ELAN');
   v('⛔ un espace ordinaire sans nom garde son identifiant', g('', 'elan-34oc'), 'elan-34oc');
 }
