@@ -13,6 +13,113 @@ de ligne du tout.
 
 ---
 
+## ✅ 17 SEPTEMBRE 2026, NUIT — LA SAUVEGARDE HORS SITE EXISTE (ÉCRITE, ÉPROUVÉE, PAS DÉPLOYÉE)
+
+Justin : « je veux faire tout ce qu'on doit faire pour les serveurs, la sauvegarde et tout, et
+après on publie les versions. Tant que rien n'est fait sur les serveurs VPS ou autres, on fait
+pas de publication. On finit, on teste tout les deux la version bêta de A à Z, et là on publie. »
+**L'ordre est donc : serveur d'abord, bêta éprouvée à deux ensuite, publication en dernier.**
+
+### Ce qui manquait et qui n'existait pas du tout
+
+Le relevé du 16 septembre le disait déjà : **aucune sauvegarde de notre côté**. Organilog en
+fait une par jour, Praxedo tient trois serveurs ; nous avions celle de Google, **jamais
+restaurée par nous**. Et depuis l'étape 0 du socle, une photo d'intervention ne vit plus que sur
+**un seul disque, sur une seule machine**.
+
+**`server/sauvegarde.js`** — chaque nuit, `DATA_DIR` + `config.json` en archive tar/gzip
+**chiffrée AES-256-GCM** vers un coffre d'objets. `config.json` est dedans parce qu'il porte ce
+qu'une réinstallation ne reconstruit pas : perdre les clés VAPID, c'est perdre **tous** les
+abonnements aux notifications, sans recours.
+
+⛔ **Chaque dépôt est RELU** : on retélécharge l'objet, on compare taille et empreinte, on
+déchiffre, on décompresse, on compte les entrées. Tant que les quatre n'ont pas abouti, la
+sauvegarde est **en échec** même si le dépôt a répondu 200. Le succès de l'envoi ne prouve que
+l'envoi — c'est exactement la panne muette déjà payée avec Firebase.
+
+⛔ **Inerte sans configuration** : sans bloc `sauvegarde` dans `config.json`, aucune minuterie,
+aucun appel réseau, `/health` dit `active:false`. Un banc ne part jamais écrire chez un
+hébergeur par accident (vérifié sur le vrai serveur par `test-711`).
+
+**`server/restaurer.js`** — `liste`, **`essai`** (télécharge, déchiffre, déballe, vérifie que
+`data/` et `config.json` sont là, efface son dossier), `extraire`. Il n'écrit **jamais** dans
+`/opt/teamop` : remettre en service est un geste conscient, service arrêté. ⚠️ **À lancer une
+fois par trimestre** — une sauvegarde qu'on n'a jamais su rouvrir est une croyance.
+
+**`server/configurer-sauvegarde.js`** — saisie **masquée** des deux clés (un secret se saisit,
+il ne se colle pas : la clé IONOS du 17 septembre est brûlée pour l'avoir été), **essai réel du
+coffre avant d'écrire** (dépôt, relecture comparée, effacement), écriture atomique relue — la
+panne de `nano` (accolade manquante, service à l'arrêt) rendue impossible. La clé de chiffrement
+s'affiche **une seule fois**. ⛔ **Elle doit vivre hors du VPS** : elle est dans `config.json`,
+donc dans l'archive ; un VPS perdu sans cette copie rend les sauvegardes **définitivement
+illisibles**.
+
+### Ce qui surveille, maintenant
+
+`/health` porte `sauvegarde:{active,ok,ageH,motif}` — agrégé, **jamais le poids** (le volume de
+données de tous les clients réunis est un journal de leur activité, même discipline que le
+compteur des pièces) ni le nom du coffre. La surveillance horaire échoue si elle est inactive,
+si la dernière a raté, ou si elle dépasse **26 h** (24 h + deux heures de glissement toléré).
+
+Et **`ghJours`** : l'échéance du jeton GitHub du VPS, que **rien** ne surveillait. Alerte à
+15 jours. ⚠️ **Il faut renseigner `github.expire: "2026-10-17"` dans `config.json`** — sans la
+date, le champ vaut `null` et personne n'est prévenu. Rappel de ce que ce jeton fait, et de ce
+qu'il ne fait pas : il ne sert QU'À `/api/monitor/proposer` (le bouton « proposer un correctif »
+de la Tour). **Aucun client ne voit rien s'il expire.** Le déploiement du VPS passe par une clé
+SSH (`secrets.VPS_SSH_KEY`), la surveillance par le jeton d'Actions.
+
+### ⛔ TROIS DÉFAUTS DE MON PROPRE CODE, TROUVÉS PAR LE BANC AVANT TOUTE MISE EN SERVICE
+
+1. **`tar.on('close')` était posé DANS `gz.on('end')`** — `tar` a presque toujours déjà fini à
+   cet instant, donc l'événement était passé et l'écouteur jamais appelé : **la promesse ne se
+   résolvait jamais**. En production : une minuterie qui part à 3 h du matin et ne revient pas,
+   sur le mécanisme dont le rôle est précisément de ne pas être muet. Vu parce que le banc s'est
+   **arrêté net** au lieu de finir.
+2. **`ghJoursRestants` arrondissait depuis « maintenant »** : 30 jours le matin, 29 le soir. Le
+   banc aurait été vert à 1 h et rouge à 20 h — **un banc qui change d'avis selon l'heure est
+   pire qu'absent**, on finit par le croire capricieux. Passé en jours de **calendrier** (deux
+   minuits UTC). Mesuré sur six heures : `30 30 30 30 30 30` contre `30 30 30 29 29 29` avant.
+3. Le commentaire de la rétention disait « `garder:0` → on garde la dernière ». Mauvais réflexe :
+   un zéro dans `config.json` est une **faute de frappe**, pas un ordre, et l'honorer coûterait
+   tout l'historique. Le code retombait sur le défaut (30) — **c'est le test qui avait tort**.
+
+### ⛔ ET LA CI DE LA BRANCHE ÉTAIT ROUGE DEPUIS L'APRÈS-MIDI, SANS QUE JE LA REGARDE
+
+Six commits rouges (runs 794 → 808), une seule cause : `tests/test-716.js` porte la clé
+d'exemple **publiée par AWS**, et `verif-secrets.sh` cherche `AKIA` + 16 caractères. **Il a
+raison de la chercher** — il ne peut pas savoir qu'une valeur est un exemple de documentation.
+Le bon geste n'était pas d'ouvrir une exception pour `tests/` (porte ouverte à un vrai secret
+dans un vrai banc) mais d'assembler la chaîne : le vecteur reste exact au caractère près.
+**Leçon : un banc vert en local ne dit rien de la CI. Regarder la CI après chaque push.**
+
+### Vérifications de la nuit
+
+`tests/test-722.js`, **neuf : 96 ✓ 0 ✗**. Il ne lit pas le code : il **fabrique** une archive
+depuis de vrais fichiers, la dépose dans un coffre en mémoire, la relit, la déballe et **compare
+les octets**. Puis il l'abîme de six façons (clé fausse, un octet retourné, tronquée, étrangère,
+vide, absente) et exige un refus à chaque fois. Il joue aussi les pannes **qui mentent** : un
+coffre qui répond 200 au dépôt et rend autre chose à la lecture, un coffre en écriture seule, un
+dépôt en 503 — et prouve qu'une sauvegarde **ratée n'efface rien**.
+⛔ Contre-épreuve, trois gardes retirées : **8 ✗**.
+`test-711` (vrai serveur lancé) : **82 ✓**. `test-716` : **52 ✓**.
+Suite complète : **79 suites · 2 636 vérifications · 0 échec · 104 s**.
+Syntaxe : 27 pages, 50 blocs, 0 erreur · `server/*.js` OK · `install.sh` OK · surveillance OK.
+`verif-secrets.sh` : 0 · `npm audit --omit=dev` : **0 faille**.
+
+### ⛔ CE QUI RESTE À FAIRE, ET DANS CET ORDRE
+
+**Justin, dans la console IONOS** : créer le bucket `teamop-sauvegardes` (Francfort,
+eu-central-4) et **régénérer** la paire de clés (l'ancienne est brûlée). ⛔ Ne rien coller dans
+une conversation : `configurer-sauvegarde.js` les demande en saisie masquée.
+Puis, dans l'ordre : ① déployer `server/` (sa phrase — ça déploie le VPS) ; ② lancer
+`configurer-sauvegarde.js` sur le VPS et **ranger la clé affichée hors du serveur** ; ③ ajouter
+`github.expire` ; ④ première sauvegarde et **`restaurer.js essai`** ; ⑤ redémarrage système du
+VPS (mises à jour de sécurité en attente) ; ⑥ `df -h /opt && du -sh /opt/teamop/data` pour régler
+les plafonds sur un vrai chiffre.
+**Ensuite seulement** : la bêta éprouvée de A à Z à deux, puis la publication.
+
+---
+
 ## ✅ 17 SEPTEMBRE 2026, TARD — REVUE SUR LA VRAIE BÊTA, v702, ET UN EFFET DE BORD DU RENOMMAGE
 
 Justin : « fais tout ce qu'il faut pour que l'application marche bien, les serveurs, teste
