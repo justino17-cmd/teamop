@@ -3191,12 +3191,12 @@ function vueConnexions(){
       .slice(0,2).map(function(v){ return 'v'+esc(v); }).join(', ');
     var join=function(t){ return t.filter(Boolean).join(' · '); };
     var alertes=r.echecs24
-      ? '<span class="past p-rouge" title="échecs de connexion sur 24 h">🔑 '+r.echecs24+'</span>' : '';
+      ? '<span class="past p-rouge" title="essais de connexion refusés sur 24 h">🔑 '+r.echecs24+' refus</span>' : '';
     if(cliente){
       var l2=join([ r.derniere?'<b>'+cnxDepuis(r.derniere)+'</b>':'',
-                    r.utilisateurs7?r.utilisateurs7+' personne'+(r.utilisateurs7>1?'s':''):'',
+                    r.utilisateurs7?r.utilisateurs7+' pers. connectée'+(r.utilisateurs7>1?'s':''):'',
                     r.appareils7?r.appareils7+' appareil'+(r.appareils7>1?'s':''):'',
-                    r.connexions7?r.connexions7+' connexions / 7 j':'' ]);
+                    r.connexions7?r.connexions7+' connexion'+(r.connexions7>1?'s':'')+' / 7 j':'' ]);
       var l3=join([ vers, r.dernierLogin?'dernier identifiant : '+esc(r.dernierLogin):'',
                     x.formule?esc(x.formule):'' ]);
       return '<button type="button" class="reg-l cli col'+(CNX.sel===x.t?' on':'')+'" onclick="cnxSel(\''+jsq(x.t)+'\')">'+
@@ -3210,7 +3210,7 @@ function vueConnexions(){
     var muet=(nature==='jamais')
       ? 'aucune connexion remontée (les applications le font à partir de la v550)'
       : join([ r.derniere?cnxDepuis(r.derniere):'jamais connectée',
-               r.utilisateurs7?r.utilisateurs7+' pers. / 7 j':'',
+               r.utilisateurs7?r.utilisateurs7+' pers. connectée'+(r.utilisateurs7>1?'s':'')+' / 7 j':'',
                r.dernierLogin?esc(r.dernierLogin):'' ]);
     return '<button type="button" class="reg-l'+(CNX.sel===x.t?' on':'')+'" onclick="cnxSel(\''+jsq(x.t)+'\')">'+
       (x.slug?'<span class="reg-av gris">'+esc(sigle(nomEspace(x.nom,x.t)))+'</span>'
@@ -6069,12 +6069,23 @@ function vueEntreprises(){
        l'écran est le piège classique des filtres. */
     var al=[];
     if(o.erreurs) al.push('<span class="past p-rouge" title="'+o.erreurs+' erreur(s) signalée(s)">🐛 '+o.erreurs+'</span>');
-    if(o.echecs24) al.push('<span class="past p-ambre" title="échecs de connexion sur 24 h">🔑 '+o.echecs24+'</span>');
+    if(o.echecs24) al.push('<span class="past p-ambre" title="essais de connexion refusés sur 24 h">🔑 '+o.echecs24+' refus</span>');
     if(eV.retard) al.push('<span class="past p-ambre" title="Version en ligne : v'+refV+'">⬇ v'+eV.haute+' en retard</span>');
     /* Ces deux-là ne portaient qu'un pictogramme : « ⏸ » pour un espace suspendu — le fait le
        plus grave qu'une fiche puisse porter — et « 🎁 » pour une formule offerte. En niveaux de
        gris, ou pour qui ne distingue pas le rouge du vert, ils ne disaient rien. Le socle est
-       clair : la couleur ne parle jamais seule, toute pastille porte un mot ou un chiffre. */
+       clair : la couleur ne parle jamais seule, toute pastille porte un mot ou un chiffre.
+       ⛔ ET UN CHIFFRE SEUL NE SUFFIT PAS NON PLUS — « 🔑 1 » a mis Justin en erreur le
+       17 septembre 2026 : il y a lu une clé, ou un compte restant, là où on comptait un essai
+       de connexion REFUSÉ. Un `title` n'a jamais sauvé personne sur un téléphone, où il
+       n'existe pas : il n'y a pas de survol au doigt. Une pastille porte donc un MOT.
+       ⛔ MAIS ELLE RESTE COURTE, ET C'EST MESURÉ. Premier essai : « 🔑 1 échec / 24 h ».
+       Au navigateur, à 390 px : la pastille passe de 39 px à 112 px, s'y fait ROGNER (« 🔑 24
+       échecs / 24 h » rendait exactement la même largeur que « 🔑 1 échec / 24 h »), et vole
+       assez de place pour tronquer le NOM de l'espace et sa deuxième ligne, qui tenaient
+       toutes les deux avant. On avait échangé une ambiguïté contre une troncature.
+       « refus » dit la même chose, est invariable au pluriel, et tient en ~70 px. La fenêtre
+       de 24 h vit dans le `title` et dans la fiche : elle précise, elle ne désambiguïse pas. */
     if(o.suspendu) al.push('<span class="past p-rouge" title="Espace suspendu">⏸ Suspendue</span>');
     if(o.promo&&o.promo.actif) al.push('<span class="past p-vert" title="Formule offerte jusqu’au '+esc(o.promo.finLe)+'">🎁 Offerte</span>');
     var alertes=al.slice(0,2).join('')+(al.length>2?'<span class="reg-plus">+'+(al.length-2)+'</span>':'');
@@ -6085,7 +6096,7 @@ function vueEntreprises(){
 
     if(nature==='cliente'){
       var l2=join([ o.formule?'<b>'+esc(o.formule)+'</b>':'',
-                    o.utilisateurs7?o.utilisateurs7+' personne'+(o.utilisateurs7>1?'s':''):'',
+                    o.utilisateurs7?o.utilisateurs7+' pers. connectée'+(o.utilisateurs7>1?'s':''):'',
                     o.appareils7?o.appareils7+' appareil'+(o.appareils7>1?'s':''):'' ]);
       var l3=join([ o.derniere?esc(fmtJour(o.derniere)):'jamais connectée',
                     eV.aucune?'':'v'+eV.haute,
