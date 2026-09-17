@@ -2298,6 +2298,24 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .btn.sm{min-height:32px;padding:0 12px!important;font-size:13.5px!important}
 .btn.danger{background:var(--danger-bg)!important;color:var(--danger-ink)!important}
 .btn.danger:hover{background:var(--red)!important;color:#FFFFFF!important}
+/* ⛔ UNE ACTION DESTRUCTIVE TIENT LE PLANCHER TACTILE, MÊME QUAND LE RESTE NE LE TIENT PAS.
+   Mesuré le 17 septembre 2026 sur la bêta, à 390 px, sur les 42 écrans : 1 109 cibles sur
+   1 810 sont sous 44 px — c'est un compromis de DENSITÉ, assumé et documenté (`.btn.sm` est
+   volontairement bas). Mais 88 de ces cibles étaient des `.btn.danger` à 38 px.
+   La densité se discute ; effacer par erreur, non. Sur un chantier — écran au soleil, une
+   main, parfois un gant — un tap manqué sur un bouton de suppression coûte une donnée, pas
+   une seconde. C'est la seule classe de boutons où le compromis ne se défend pas.
+   ⚠️ On monte la HAUTEUR, pas la largeur : élargir déplacerait les barres d'outils et ferait
+   passer des boutons à la ligne sur les écrans denses (Devis, Factures, Clients). */
+.btn.danger,html[data-refonte] .btn.danger,
+html[data-refonte] .btn.danger.sm{min-height:44px!important}
+/* ⛔ PAS D'EXCEPTION POUR LES LIGNES DE LISTE, ET C'EST UNE CORRECTION DE MA PROPRE PRUDENCE.
+   Premier essai : une dérogation à 40 px pour les `.btn.danger.sm` dans une `.list-row`, au
+   motif supposé que 44 px « repousserait le texte de la ligne ». Mesuré juste après : les 20
+   boutons 🗑 concernés rendaient 43 px — donc l'exception maintenait sous le plancher
+   exactement les boutons qu'on voulait protéger, et pour une raison que personne n'avait
+   vérifiée. Mesure faite sans elle : les 60 boutons sont à 44 px et AUCUN des 42 écrans ne
+   déborde. La prudence inventée coûtait plus que ce qu'elle évitait. */
 .btn:disabled,.btn[aria-disabled=true]{opacity:.45;cursor:not-allowed;transform:none!important}
 /* ⛔ L'ACCUSÉ DE RÉCEPTION NE PASSE PAS PAR `disabled`. La règle juste au-dessus efface un
    bouton désactivé à 45 % — soit exactement l'inverse de ce qu'on veut d'une confirmation, qui
@@ -3652,8 +3670,17 @@ html[data-refonte] .content{padding-top:10px}
   html[data-refonte] .ph-actions{flex:1 1 100%}
   html[data-refonte] .ph-row > div:first-child{flex:1 1 100%}
   html[data-refonte] .ph-actions .btn{min-height:46px;font-size:15px!important}
-  html[data-refonte] .ph-actions .btn.ghost,html[data-refonte] .ph-actions .btn.danger{
+  /* ⛔ `danger` A ÉTÉ SORTI DE CE GROUPE le 17 septembre 2026. La hiérarchie « principale à
+     46 px, secondaires à 42 » est juste — mais une action DESTRUCTIVE n'est pas une action
+     secondaire au doigt. Elle l'était ici par voisinage de classe, pas par décision.
+     ⚠️ Le plancher de 44 px gagnait déjà, parce qu'il porte `!important` et pas ce 42 px : les
+     80 boutons mesurés sur la bêta étaient bien à 44. Ce qu'on corrige, c'est donc une règle
+     qui DIT le contraire de ce qui s'applique — et qui ferait retomber les boutons en silence
+     le jour où quelqu'un retirerait cet `!important` en croyant nettoyer. */
+  html[data-refonte] .ph-actions .btn.ghost{
     min-height:42px;padding:0 14px!important;font-size:14px!important}
+  html[data-refonte] .ph-actions .btn.danger{
+    min-height:44px;padding:0 14px!important;font-size:14px!important}
 }
 
 @media (max-width:780px){
@@ -4998,7 +5025,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '701';
+const APP_VERSION = '702';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
