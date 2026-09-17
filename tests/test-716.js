@@ -172,13 +172,23 @@ vrai("la clé secrète n'apparaît nulle part dans l'objet rendu", JSON.stringif
 /* Le module ne doit pas journaliser le contenu d'une pièce : ce sont des photos de sites. */
 const src = require('fs').readFileSync(path.join(__dirname, '..', 'server', 's3.js'), 'utf8');
 vrai('aucun console.log dans le module (seulement des erreurs sans contenu)', src.indexOf('console.log') === -1);
-/* ⛔ Une trace ne doit porter QUE le statut : ni le corps de la pièce, ni sa clé, ni
-   l'entreprise. Une photo de site client dans journalctl est une fuite, pas un journal. */
+/* ⛔ Une trace doit porter UNE CAUSE DIAGNOSTIQUABLE ET RIEN D'AUTRE : ni le corps de la pièce,
+   ni sa clé, ni l'entreprise, ni un chemin de fichier. Une photo de site client dans journalctl
+   est une fuite, pas un journal.
+   ⚠️ Cette règle disait « chaque trace porte `r.status` », et elle a rougi le 17 septembre 2026
+   quand les verbes en flux sont arrivés : leurs échecs réseau n'ONT pas de réponse HTTP, donc
+   pas de statut — ils portent `e.code` (ECONNRESET, ENOTFOUND) ou « délai dépassé ». Le banc
+   n'a pas été assoupli pour autant : l'invariant qui compte n'a jamais été « le mot r.status »
+   mais « on peut diagnostiquer sans rien exposer ». Il est ré-exprimé là-dessus, et RENFORCÉ —
+   un chemin de fichier est désormais refusé lui aussi, parce qu'il nomme l'entreprise
+   (`.../pieces/<espace>/…`), leçon payée dans `pieces.js` le même soir. */
 const traces = src.match(/console\.error\([^)]*\)/g) || [];
 vrai('il y a bien des traces d\'erreur à vérifier', traces.length >= 3);
-vrai('chaque trace porte le statut HTTP', traces.every(l => l.indexOf('r.status') !== -1));
-vrai('aucune trace ne porte le corps, la clé ou l\'entreprise',
-  traces.every(l => !/\bcorps\b/.test(l) && !/\bid\b/.test(l) && !/\bt\b(?!\w)/.test(l) && !/\bsecretKey\b/.test(l)));
+vrai('chaque trace porte une cause diagnostiquable (statut HTTP, code système, ou délai)',
+  traces.every(l => /r\.status|e\.code|délai dépassé/.test(l)));
+vrai('aucune trace ne porte le corps, la clé, l\'entreprise ou un chemin',
+  traces.every(l => !/\bcorps\b/.test(l) && !/\bid\b/.test(l) && !/\bt\b(?!\w)/.test(l)
+    && !/\bsecretKey\b/.test(l) && !/\bchemin\b/.test(l) && !/\bsortie\b/.test(l) && !/e\.message/.test(l)));
 
 console.log('\n════ test-716 : ' + ok + ' ✓  ' + ko + ' ✗ ════');
 if (ko) process.exit(1);

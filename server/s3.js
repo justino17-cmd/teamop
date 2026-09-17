@@ -29,7 +29,7 @@
  * Le rôle de ce module est donc la COPIE DE SÛRETÉ, pas le service des pièces. Tant qu'elle n'est
  * pas en place, l'étape 0 a échangé une contrainte de place contre un risque de perte.
  */
-const crypto = require('crypto');
+const crypto = require('crypto'), fs = require('fs');
 
 const sha256hex = (x) => crypto.createHash('sha256').update(x).digest('hex');
 const hmac = (cle, msg) => crypto.createHmac('sha256', cle).update(msg, 'utf8').digest();
@@ -192,6 +192,48 @@ function client(conf) {
       const r = await envoyer({ methode: 'DELETE', url: urlCle(cle) });
       if (r.status === 204 || r.status === 200 || r.status === 404) return { ok: true };
       console.error('objet non effacé : HTTP ' + r.status); return { ok: false, statut: r.status };
+    },
+    /* ⛔ ET LES MÊMES EN FLUX, parce qu'une archive ne tient pas en mémoire. Relevé par
+       `gardien` le 17 septembre 2026 : `lancer()` lisait l'archive ENTIÈRE dans un Buffer, puis
+       la relisait ENTIÈRE dans un autre — l'en-tête du module promettait « rien n'est tenu en
+       mémoire », ce qui était vrai de la fabrication et faux de l'envoi. Sans conséquence à
+       11 Mo de données ; avec le plafond de pièces jointes à 60 Gio posé par `install.sh`, c'est
+       l'API par terre pour tout le monde, au milieu de la nuit.
+       L'empreinte est FOURNIE (calculée pendant la fabrication) : S3 exige `x-amz-content-sha256`
+       avant d'envoyer le corps, donc on ne peut pas la découvrir en chemin. */
+    async poserCleFlux(cle, chemin, octets, empreinteHex, tempsMax) {
+      const { Readable } = require('stream');
+      const s = signer(Object.assign({}, commun, {
+        methode: 'PUT', url: urlCle(cle), empreinteCorps: empreinteHex,
+        enTetes: { 'content-type': 'application/octet-stream', 'content-length': String(octets) },
+      }));
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), tempsMax || Math.min(3600000, 60000 + Math.ceil(octets / 20)));
+      try {
+        const r = await fetch(s.url, { method: 'PUT', headers: s.headers, body: Readable.toWeb(fs.createReadStream(chemin)), duplex: 'half', signal: ctrl.signal });
+        if (!r.ok) { console.error('objet non posé : HTTP ' + r.status); return { ok: false, statut: r.status }; }
+        return { ok: true, octets };
+      } catch (e) { console.error('objet non posé : ' + (e.name === 'AbortError' ? 'délai dépassé' : e.code || 'erreur réseau')); return { ok: false, statut: 0 }; }
+      finally { clearTimeout(tm); }
+    },
+    /* Écrit l'objet dans un fichier et rend son poids ET son empreinte, calculée AU PASSAGE :
+       c'est ce qui permet de comparer à ce qui a été envoyé sans jamais tout tenir en mémoire. */
+    async lireCleVers(cle, sortie, tempsMax) {
+      const { pipeline } = require('stream/promises');
+      const { Readable, Transform } = require('stream');
+      const s = signer(Object.assign({}, commun, { methode: 'GET', url: urlCle(cle) }));
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), tempsMax || 3600000);
+      try {
+        const r = await fetch(s.url, { method: 'GET', headers: s.headers, signal: ctrl.signal });
+        if (r.status === 404) return { ok: false, absente: true };
+        if (!r.ok) { console.error('objet non lu : HTTP ' + r.status); return { ok: false, statut: r.status }; }
+        const h = crypto.createHash('sha256'); let n = 0;
+        const compteur = new Transform({ transform(c, e, cb) { n += c.length; h.update(c); cb(null, c); } });
+        await pipeline(Readable.fromWeb(r.body), compteur, fs.createWriteStream(sortie));
+        return { ok: true, octets: n, empreinte: h.digest('hex') };
+      } catch (e) { console.error('objet non lu : ' + (e.name === 'AbortError' ? 'délai dépassé' : e.code || 'erreur réseau')); return { ok: false, statut: 0 }; }
+      finally { clearTimeout(tm); }
     },
     async lister(prefixe) {
       const objets = []; let suite = '';

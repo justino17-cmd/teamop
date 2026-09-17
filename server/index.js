@@ -354,7 +354,12 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      fiche. Un entier de jours restants ne dit rien de personne et permet à la surveillance
      horaire de prévenir DEUX SEMAINES avant. `null` quand la date n'est pas renseignée : on ne
      prétend pas savoir ce qu'on ignore. */
-  ghJours: ghJoursRestants() }));
+  /* ⛔ UN BOOLÉEN, PAS LE NOMBRE DE JOURS. `gardien` l'a relevé : /health est publique et sans
+     identité, et « le jeton GitHub du VPS expire dans 30 jours » date un identifiant interne et
+     révèle son existence à qui passe. « Bientôt ou pas » suffit à la surveillance, qui n'a
+     besoin que de savoir s'il faut prévenir. `null` tant que la date n'est pas renseignée : on
+     ne prétend pas savoir ce qu'on ignore. */
+  ghExpireBientot: (j => (j === null ? null : j <= 15))(ghJoursRestants()) }));
 
 /* Jours avant l'expiration du jeton GitHub, d'après `github.expire` (AAAA-MM-JJ) dans
    config.json. Une date absente ou illisible rend null — jamais 0, qui voudrait dire
@@ -4751,7 +4756,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      Aucun appel réseau, aucun jeton : c'est du disque local, ça ne peut pas faire traîner la
      route (la même raison qui a fait passer les coupures en parallèle). */
   let piecesEffacees = 0;
-  if (pieces) for (const t of espacesAEffacer) { try { piecesEffacees += pieces.effacerEntreprise(t); } catch (e) { console.error('effacement pièces', t, ':', e.message); } }
+  if (pieces) for (const t of espacesAEffacer) { try { piecesEffacees += pieces.effacerEntreprise(t); } catch (e) { console.error('effacement pièces :', e.code || 'erreur disque');   /* ⛔ ni `t` ni le chemin : ce journal se relit à plusieurs et se copie-colle */ } }
   if (jeton && !jetonAdmin) { try { await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
   // et le compte créé sur le site (connexion espace client) : supprimé aussi, si la clé admin est là

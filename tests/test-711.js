@@ -235,9 +235,12 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
     v('⛔ … inactive tant que rien n\'est configuré', h.sauvegarde.active, false);
     v('⛔ … et /health ne publie NI le poids NI le coffre (elle est publique)',
       ['octets' in h.sauvegarde, JSON.stringify(h.sauvegarde).includes('bucket')], [false, false]);
-    /* L'échéance du jeton GitHub : `null` quand la date n'est pas renseignée. Jamais 0, qui
-       voudrait dire « il expire aujourd'hui » et ferait hurler la surveillance à tort. */
-    v('⛔ échéance du jeton GitHub non renseignée → null, pas 0', h.ghJours, null);
+    /* L'échéance du jeton GitHub : `null` quand la date n'est pas renseignée — on ne prétend pas
+       savoir ce qu'on ignore, et `false` laisserait croire « tout va bien ».
+       ⛔ ET C'EST UN BOOLÉEN, PAS UN NOMBRE DE JOURS : /health est publique et sans identité,
+       et « expire dans 30 jours » date un identifiant interne pour qui passe. */
+    v('⛔ échéance non renseignée → null (ni 0, ni false)', h.ghExpireBientot, null);
+    v('⛔ … et le nombre exact de jours n\'est PAS publié', 'ghJours' in h, false);
     v('⛔ … et /health ne laisse échapper aucun jeton', /gh[pousr]_|github_pat_/.test(JSON.stringify(h)), false);
 
     console.log('\n── 711 · supprimer une pièce — sans ça, le stockage est un cliquet ──');

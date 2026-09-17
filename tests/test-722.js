@@ -120,6 +120,27 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
     fs.readFileSync(path.join(sortie, 'data', 'pieces', 'ent-a', 'photo1.bin')).equals(fs.readFileSync(path.join(DATA, 'pieces', 'ent-a', 'photo1.bin'))), true);
   v('… y compris le journal ligne à ligne', fs.readFileSync(path.join(sortie, 'data', 'bugs.jsonl'), 'utf8'), '{"m":"un"}\n{"m":"deux"}\n');
 
+  /* ── 4 bis. ⛔ L'ARCHIVE NE S'AVALE PAS ELLE-MÊME, ET NE RÉAVALE PAS SES RESTES ──────────
+     Mesuré par `gardien` sur la première version : un temporaire de 5 Mo resté dans le dossier
+     source faisait passer une archive de 200 Ko à 5,2 Mo — et chaque nuit ré-archivait le reste
+     de la veille, en cumulant. Le temporaire vit désormais À CÔTÉ de `DATA_DIR`, et l'ancien nom
+     est exclu pour qu'un reste d'une version antérieure ne voyage pas à vie. */
+  console.log('\n── 722 · un reste de sauvegarde n\'entre pas dans l\'archive ──');
+  {
+    fs.writeFileSync(path.join(DATA, '.sauvegarde-999.tmp'), crypto.randomBytes(400000));
+    const avec = path.join(banc, 'avec-reste.bin');
+    const sans = await S.fabriquer(avec, cle, [DATA], ['.sauvegarde-*.tmp', '.sauvegarde-*.tmp.relu']);
+    const brut2 = path.join(banc, 'sans-exclusion.bin');
+    const tout = await S.fabriquer(brut2, cle, [DATA]);
+    vrai('⛔ sans exclusion, le reste de 400 Ko gonfle bien l\'archive (le défaut existe)', tout.octets > sans.octets + 300000);
+    vrai('⛔ avec exclusion, l\'archive retrouve sa taille utile', sans.octets < 100000);
+    const ou = path.join(banc, 'sortie-exclue'); fs.mkdirSync(ou);
+    await S.relire(avec, cle, ou);
+    v('⛔ … et le reste n\'est PAS dans ce qu\'on déballe', fs.existsSync(path.join(ou, 'data', '.sauvegarde-999.tmp')), false);
+    vrai('… alors que les vraies données y sont', fs.existsSync(path.join(ou, 'data', 'espaces.json')));
+    fs.unlinkSync(path.join(DATA, '.sauvegarde-999.tmp'));
+  }
+
   /* ── 5. LES QUATRE FAÇONS DE L'ABÎMER, et le refus attendu à chaque fois ─────────────── */
   console.log('\n── 722 · une archive abîmée doit être REFUSÉE, jamais acceptée à moitié ──');
   const echoue = async (nom, fn) => { try { await fn(); ko++; console.log('  ✗ ' + nom + ' — ACCEPTÉE alors qu\'elle aurait dû être refusée'); } catch (e) { ok++; } };
@@ -146,6 +167,15 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
   await echoue('fichier vide : refusé', () => S.relire(vide, cle, null));
   await echoue('fichier inexistant : refusé sans exception non gérée', () => S.relire(path.join(banc, 'jamais.bin'), cle, null));
 
+  /* ⛔ ET LE CAS QUI TUAIT LE SERVEUR. `fs.createWriteStream` n'avait AUCUN écouteur d'erreur :
+     un disque plein, un droit manquant, une erreur d'entrée-sortie, et Node 22 transforme
+     l'événement sans écouteur en ARRÊT DU PROCESSUS — reproduit, code de sortie 9. L'API
+     tombait donc pour tous les clients au milieu de la nuit, et repartait en boucle toutes les
+     dix minutes puisque l'échec n'était même pas enregistré. Relevé par `gardien`, confirmé par
+     la mesure. Ici on exige un REJET, c'est-à-dire quelque chose qu'un appelant peut attraper. */
+  await echoue('⛔ écriture impossible : REJET propre, jamais un arrêt du processus',
+    () => S.fabriquer('/nexistepas/impossible/archive.bin', cle, [DATA]));
+
   /* ── 6. LE MODULE ENTIER, avec un coffre en mémoire qui sait aussi tomber en panne ───── */
   console.log('\n── 722 · le cycle complet : déposer, relire, élaguer ──');
   const coffreNeuf = () => {
@@ -162,14 +192,23 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
          IMPOSSIBLE À RESTAURER — la panne même que ce chantier existe pour empêcher. Ce coffre
          n'expose donc QUE les verbes « clé complète » : si quelqu'un revenait aux autres, tout
          ce bloc rougirait au lieu de laisser passer. */
-      async poserCle(k, corps) { if (c.pannes.poser) return { ok: false, statut: c.pannes.poser }; objets.set(k, Buffer.from(corps)); return { ok: true, octets: corps.length }; },
-      async lireCle(k) {
-        if (c.pannes.lire) return { ok: false, statut: c.pannes.lire };
-        if (c.pannes.lireAbime && objets.has(k)) { const b = Buffer.from(objets.get(k)); b[10] ^= 0xFF; return { ok: true, corps: b }; }
-        if (c.pannes.lireCourt && objets.has(k)) return { ok: true, corps: objets.get(k).subarray(0, 50) };
-        if (!objets.has(k)) return { ok: false, absente: true };
-        return { ok: true, corps: objets.get(k) };
+      /* Les verbes EN FLUX : ce sont ceux que `lancer()` emploie depuis que l'archive ne tient
+         plus en mémoire. Le coffre du banc n'expose qu'eux — revenir à une lecture en bloc
+         ferait rougir tout ce qui suit au lieu de passer inaperçu. */
+      async poserCleFlux(k, chemin, octets, empreinte) {
+        if (c.pannes.poser) return { ok: false, statut: c.pannes.poser };
+        objets.set(k, fs.readFileSync(chemin)); return { ok: true, octets };
       },
+      async lireCleVers(k, sortie) {
+        if (c.pannes.lire) return { ok: false, statut: c.pannes.lire };
+        if (!objets.has(k)) return { ok: false, absente: true };
+        let b = objets.get(k);
+        if (c.pannes.lireAbime) { b = Buffer.from(b); b[10] ^= 0xFF; }
+        if (c.pannes.lireCourt) b = b.subarray(0, 50);
+        fs.writeFileSync(sortie, b);
+        return { ok: true, octets: b.length, empreinte: crypto.createHash('sha256').update(b).digest('hex') };
+      },
+      async poserCle(k, corps) { if (c.pannes.poser) return { ok: false, statut: c.pannes.poser }; objets.set(k, Buffer.from(corps)); return { ok: true, octets: corps.length }; },
       async effacerCle(k) { objets.delete(k); return { ok: true }; },
       async lister() { return { ok: true, objets: [...objets.keys()].map(k => ({ cle: k, octets: objets.get(k).length, modifie: '' })) }; },
       _n: () => objets.size, _cles: () => [...objets.keys()],
@@ -191,6 +230,9 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
   vrai('… l\'archive relue contenait des entrées', r.entrees >= 6);
   v('⛔ … et /health la dit fraîche', mod.sante().ok, true);
   v('⛔ … sans jamais donner son POIDS (c\'est le volume de données de tous les clients)', 'octets' in mod.sante(), false);
+  /* ⛔ NI LE MOTIF D'ÉCHEC : « la dernière a raté, motif depot-403 » dit à qui interroge cette
+     route publique si la plateforme saurait se relever. Il est servi à la Tour, sous le patron. */
+  v('⛔ … ni le motif de l\'échec', 'motif' in mod.sante(), false);
   v('… ni le nom du coffre', JSON.stringify(mod.sante()).includes('bucket'), false);
 
   /* ⛔ LA PANNE LA PLUS TRAÎTRE : le dépôt répond OK, mais ce qu'on relit n'est pas ce qu'on a
@@ -305,7 +347,16 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
     /* Et la surveillance doit VRAIMENT le lire : un champ ajouté dans /health que personne
        ne regarde ne prévient personne. */
     const SURV = fs.readFileSync(path.join(RACINE, '.github', 'scripts', 'surveillance.js'), 'utf8');
-    vrai('⛔ la surveillance horaire lit ghJours', /j\.ghJours/.test(SURV));
+    /* ⛔ Ce que /health PUBLIE n'est plus le nombre de jours mais un booléen : le nombre exact
+       datait un identifiant interne pour qui interroge une route publique. La surveillance doit
+       donc lire le booléen — et surtout, les deux noms doivent CONCORDER : une faute de frappe
+       entre ce que le serveur écrit et ce que la surveillance lit rendrait l'alarme muette pour
+       toujours, sans que rien ne le signale. C'est pour ça que ce banc compare les deux fichiers. */
+    const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
+    vrai('⛔ /health publie un booléen, pas le nombre de jours', /ghExpireBientot:/.test(IDX) && !/\bghJours:/.test(IDX));
+    vrai('⛔ la surveillance lit EXACTEMENT ce nom', /j\.ghExpireBientot/.test(SURV));
+    vrai('⛔ … et le rappel « pas encore branchée » ne part qu\'une fois par jour', /getUTCHours\(\) === 9/.test(SURV));
+    vrai('⛔ … alors qu\'un ÉCHEC reste horaire', /sauvegarde\.ok === false/.test(SURV));
     vrai('⛔ … et l\'état de la sauvegarde', /j\.sauvegarde/.test(SURV));
     vrai('⛔ … et elle échoue quand la sauvegarde est inactive', /sauvegarde\.active === false/.test(SURV));
   }

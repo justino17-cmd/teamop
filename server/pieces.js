@@ -237,7 +237,12 @@ function monterPieces(app, deps) {
          clients. Et on retire le temporaire tout de suite plutôt que d'attendre le prochain
          démarrage. */
       try { fs.unlinkSync(tmp); } catch (e2) {}
-      console.error('pièce non écrite :', err.message);
+      /* ⛔ LE CODE, PAS LE MESSAGE. Le message d'un `renameSync` qui échoue CONTIENT le chemin,
+         donc `.../pieces/<identifiant d'espace>/<id>.bin` : l'en-tête de ce fichier promet de ne
+         jamais journaliser le nom d'origine, et l'espace passait quand même. Relevé par
+         `gardien` le 17 septembre 2026. `err.code` (ENOSPC, EACCES…) dit tout ce dont
+         l'exploitant a besoin et ne nomme personne. */
+      console.error('pièce non écrite :', err.code || 'erreur disque');
       return res.status(500).json({ error: 'pièce non enregistrée', motif: 'ecriture' });
     }
     let taille = 0; try { taille = fs.statSync(dest).size; } catch (err) {}
@@ -290,7 +295,7 @@ function monterPieces(app, deps) {
     effacerEntreprise(t) {
       const dir = dossier(t); let n = 0;
       try { for (const f of fs.readdirSync(dir)) if (EST_PIECE.test(f)) n++; } catch (e) { return 0; }
-      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { console.error('pièces non effacées :', e.message); return 0; }
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { console.error('pièces non effacées :', e.code || 'erreur disque'); return 0; }
       const k = sain(t), avant = (etats.get(k) || { octets: 0 }).octets;
       etats.delete(k);
       if (totalOctets !== null) totalOctets = Math.max(0, totalOctets - avant);

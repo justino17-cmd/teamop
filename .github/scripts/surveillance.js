@@ -58,19 +58,28 @@ function get(url) {
        elle n'est pas configurée du tout, la dernière a échoué, ou elle est trop vieille.
        26 heures, pas 24 : une sauvegarde quotidienne a le droit de glisser de deux heures
        (redémarrage, coffre lent) sans réveiller personne pour rien. */
-    if (j.sauvegarde && j.sauvegarde.active === false) problems.push('SAUVEGARDE HORS SITE INACTIVE — les données du serveur ne sont copiées nulle part (bloc « sauvegarde » absent de config.json)');
-    else if (j.sauvegarde) {
-      if (j.sauvegarde.ok === false) problems.push('la dernière sauvegarde hors site a ÉCHOUÉ (motif : ' + (j.sauvegarde.motif || 'inconnu') + ') — détail dans la Tour, ou : node server/restaurer.js liste');
-      else if (j.sauvegarde.ok === null) problems.push('aucune sauvegarde hors site n\'a jamais été faite depuis le dernier démarrage');
+    if (j.sauvegarde && j.sauvegarde.active === false) {
+      /* ⛔ UNE FOIS PAR JOUR, PAS TOUTES LES HEURES — et la distinction n'est pas cosmétique.
+         « Pas encore configurée » est un état d'INSTALLATION : il dure tant que personne n'a
+         branché le coffre, et une alarme horaire sur un état stable devient du bruit, puis une
+         alarme qu'on ignore, puis une alarme qui ne sert plus à rien le jour où elle dit vrai.
+         Ce dépôt connaît déjà la leçon : « une condition impossible à remplir finit par être
+         ignorée ». Un rappel quotidien suffit à ne pas l'oublier. Une sauvegarde CONFIGURÉE qui
+         ÉCHOUE ou qui VIEILLIT, elle, reste horaire : c'est une panne, pas un état. */
+      if (new Date().getUTCHours() === 9) problems.push('SAUVEGARDE HORS SITE PAS ENCORE BRANCHÉE — les données du serveur ne sont copiées nulle part. Sur le VPS : node /opt/teamop/repo/server/configurer-sauvegarde.js');
+      else console.log('Sauvegarde hors site : pas encore branchée (rappel une fois par jour, à 9 h UTC)');
+    } else if (j.sauvegarde) {
+      /* Le motif n'est plus publié sur /health (c'est du renseignement d'exploitation) : il est
+         dans la Tour et dans le journal du VPS, qui sont les deux endroits où on va le chercher. */
+      if (j.sauvegarde.ok === false) problems.push('la dernière sauvegarde hors site a ÉCHOUÉ — motif dans la Tour (Surveillance) ou : journalctl -u teamop-api | grep sauvegarde');
+      else if (j.sauvegarde.ok === null) problems.push('aucune sauvegarde hors site n\'a jamais réussi depuis le dernier démarrage');
       else if (typeof j.sauvegarde.ageH === 'number' && j.sauvegarde.ageH > 26) problems.push('la dernière sauvegarde hors site date de ' + j.sauvegarde.ageH + ' h (plus de 26 h) — la minuterie ne tourne plus');
       else console.log('Sauvegarde hors site : OK, il y a ' + j.sauvegarde.ageH + ' h');
     }
     /* ⛔ L'ÉCHÉANCE DU JETON GITHUB. Elle ne casse rien chez un client — le jeton ne sert qu'à
        « proposer un correctif » depuis la Tour — mais elle tombe en 401 sans prévenir personne,
        et on cherche une heure. Quinze jours d'avance suffisent à le remplacer tranquillement. */
-    if (typeof j.ghJours === 'number' && j.ghJours <= 15) problems.push(j.ghJours <= 0
-      ? 'le jeton GitHub du VPS a EXPIRÉ : « proposer un correctif » depuis la Tour répond 401. Le remplacer (fine-grained, dépôt teamop seul, Contents RW + Pull requests RW), le poser dans /opt/teamop/config.json, puis systemctl restart teamop-api'
-      : 'le jeton GitHub du VPS expire dans ' + j.ghJours + ' jour(s) — le remplacer avant, sinon « proposer un correctif » tombera en 401 sans prévenir');
+    if (j.ghExpireBientot === true) problems.push('le jeton GitHub du VPS expire sous quinze jours (ou a expiré) — le remplacer : fine-grained, dépôt teamop seul, Contents RW + Pull requests RW, à poser dans /opt/teamop/config.json avec sa date dans github.expire, puis systemctl restart teamop-api. Sinon « proposer un correctif » depuis la Tour tombera en 401 sans prévenir personne (aucun client n\'est touché).');
     if (typeof j.bugs1h === 'number' && j.bugs1h > 0) problems.push(j.bugs1h + ' erreur(s) signalée(s) par les applications des entreprises dans la dernière heure (vigie) — voir l\'e-mail d\'alerte et corriger au plus vite');
   } catch (e) { problems.push('api.teamop.fr/health : injoignable — ' + e.message); }
 

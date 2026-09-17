@@ -40,8 +40,11 @@
  * d'essai, une installation neuve et le serveur d'un développeur ne partent donc jamais écrire
  * chez un hébergeur d'objets par accident.
  */
-const fs = require('fs'), path = require('path'), crypto = require('crypto'), zlib = require('zlib');
+const fs = require('fs'), path = require('path'), crypto = require('crypto'), zlib = require('zlib'), os = require('os');
 const { spawn } = require('child_process');
+const { pipeline } = require('stream/promises');
+const { Transform } = require('stream');
+const gzip = () => zlib.createGzip({ level: 6 });
 const s3mod = require('./s3');
 
 /* Le format est écrit en toutes lettres en tête d'archive, parce que celui qui la lira un jour
@@ -51,7 +54,6 @@ const s3mod = require('./s3');
 const ENTETE = Buffer.from('TEAMOP-SAUV-1 aes-256-gcm gzip tar\n', 'utf8');
 const TAILLE_IV = 12, TAILLE_TAG = 16;
 
-const sha256hex = b => crypto.createHash('sha256').update(b).digest('hex');
 const nombre = (x, d) => (Number.isFinite(x) && x > 0 ? x : d);
 
 /* La clé : 64 caractères hexadécimaux, ni plus ni moins. Une chaîne courte ou un mot de passe
@@ -91,57 +93,54 @@ function aElaguer(objets, garder) {
    `tar` écrit dans gzip qui écrit dans le chiffreur qui écrit sur le disque. Rien n'est tenu en
    mémoire — une archive de plusieurs centaines de mégaoctets ferait tomber le serveur pour tous
    les clients, et elle grossira avec les photos. */
-function fabriquer(sortie, cle, sources) {
-  return new Promise((resolve, reject) => {
-    const iv = crypto.randomBytes(TAILLE_IV);
-    const chiffreur = crypto.createCipheriv('aes-256-gcm', cle, iv);
-    const fichier = fs.createWriteStream(sortie);
-    const empreinte = crypto.createHash('sha256');
-    let octets = 0;
-    /* L'empreinte se calcule SUR CE QUI PART, en passant : la recalculer en relisant le fichier
-       doublerait la lecture disque et, surtout, mesurerait un autre fichier que celui envoyé. */
-    const compter = c => { octets += c.length; empreinte.update(c); };
+async function fabriquer(sortie, cle, sources, exclure) {
+  const iv = crypto.randomBytes(TAILLE_IV);
+  const chiffreur = crypto.createCipheriv('aes-256-gcm', cle, iv);
+  const fichier = fs.createWriteStream(sortie);
+  const empreinte = crypto.createHash('sha256');
+  let octets = 0;
+  /* L'empreinte se calcule SUR CE QUI PART, en passant : la recalculer en relisant le fichier
+     doublerait la lecture disque et, surtout, mesurerait un autre fichier que celui envoyé. */
+  const compter = c => { octets += c.length; empreinte.update(c); };
+  const compteur = new Transform({ transform(c, e, cb) { compter(c); cb(null, c); } });
 
+  const args = ['-c', '--warning=no-file-changed', '--warning=no-file-removed'];
+  /* ⛔ ON S'EXCLUT SOI-MÊME. L'archive temporaire est écrite hors de `DATA_DIR` (voir `lancer`),
+     mais cette exclusion est la ceinture en plus des bretelles : `gardien` a MESURÉ, le
+     17 septembre 2026, qu'un fichier temporaire resté dans le dossier source faisait passer une
+     archive de 200 Ko à 5,2 Mo — chaque nuit ré-archivant le reste de la veille, en cumulant. */
+  (exclure || []).forEach(x => args.push('--exclude=' + x));
+  sources.forEach(s2 => { args.push('-C', path.dirname(s2), path.basename(s2)); });
+  const tar = spawn('tar', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  let erreurTar = '';
+  tar.stderr.on('data', d => { erreurTar += String(d).slice(0, 400); });
+  /* Le code de sortie de `tar` se capte AVANT d'attendre le flux : posé plus tard, l'événement
+     est déjà passé et l'écouteur n'est jamais appelé — la promesse ne se résout alors JAMAIS,
+     et la minuterie part à 3 h du matin sans revenir. C'est le premier défaut que ce fichier a
+     eu, trouvé parce que le banc s'est arrêté net au lieu de finir. */
+  const codeTar = new Promise((res, rej) => { tar.on('close', res); tar.on('error', rej); });
+
+  try {
     fichier.write(ENTETE); compter(ENTETE);
     fichier.write(iv); compter(iv);
-
-    const args = ['-c', '--warning=no-file-changed', '--warning=no-file-removed'];
-    sources.forEach(s => { args.push('-C', path.dirname(s), path.basename(s)); });
-    const tar = spawn('tar', args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    let erreurTar = '';
-    tar.stderr.on('data', d => { erreurTar += String(d).slice(0, 400); });
-
-    const gz = zlib.createGzip({ level: 6 });
-    let fini = false;
-    const echouer = e => { if (fini) return; fini = true; try { tar.kill('SIGKILL'); } catch (x) {} fichier.destroy(); reject(e); };
-
-    tar.stdout.pipe(gz);
-    gz.on('data', c => { const x = chiffreur.update(c); if (x.length) { fichier.write(x); compter(x); } });
-    gz.on('error', echouer);
-    tar.on('error', echouer);
-
-    /* ⛔ LES DEUX ÉCOUTEURS SONT POSÉS TOUT DE SUITE, ET LA CLÔTURE ATTEND LES DEUX. Au premier
-       jet, `tar.on('close')` était installé DANS `gz.on('end')` — et `tar` a presque toujours
-       déjà fini à cet instant, donc l'événement était passé et l'écouteur n'a jamais été
-       appelé : la promesse ne se résolvait jamais et la sauvegarde restait suspendue pour
-       toujours. Trouvé par `tests/test-722.js`, qui s'est arrêté net au lieu de finir. En
-       production, ça aurait donné une minuterie qui part à 3 h du matin et ne revient pas —
-       une panne muette, sur le mécanisme dont le rôle est précisément de ne pas être muet.
-       On attend le code de sortie de `tar` AVANT de clore : une archive tronquée par une
-       erreur de lecture partirait sinon comme une sauvegarde valable, le flux se terminant
-       proprement dans les deux cas. */
-    let fluxFini = false, codeTar = null;
-    const peutClore = () => {
-      if (fini || !fluxFini || codeTar === null) return;
-      if (codeTar !== 0 && codeTar !== 1) return echouer(new Error('tar a rendu ' + codeTar + (erreurTar ? ' : ' + erreurTar.trim() : '')));
-      const reste = chiffreur.final(); if (reste.length) { fichier.write(reste); compter(reste); }
-      const tag = chiffreur.getAuthTag(); fichier.write(tag); compter(tag);
-      fichier.end();
-      fichier.on('close', () => { if (fini) return; fini = true; resolve({ octets, empreinte: empreinte.digest('hex') }); });
-    };
-    gz.on('end', () => { fluxFini = true; peutClore(); });
-    tar.on('close', code => { codeTar = code; peutClore(); });
-  });
+    /* ⛔ `pipeline` PLUTÔT QU'UN CHAÎNAGE D'ÉCOUTEURS, et c'est `gardien` qui l'a exigé : le
+       flux d'écriture n'avait AUCUN écouteur `error`. Un disque plein, un droit manquant, une
+       erreur d'entrée-sortie, et Node 22 transforme l'événement sans écouteur en ARRÊT DU
+       PROCESSUS — reproduit, code de sortie 9. L'API tombait donc pour ELAN au milieu de la
+       nuit, et repartait en boucle toutes les dix minutes puisque l'échec n'était même pas
+       enregistré. `pipeline` surveille CHAQUE maillon et respecte la contre-pression : sans
+       elle, un disque plus lent que la compression fait enfler le tampon en mémoire sans borne. */
+    await pipeline(tar.stdout, gzip(), chiffreur, compteur, fichier, { end: false });
+    const code = await codeTar;
+    if (code !== 0 && code !== 1) throw new Error('tar a rendu ' + code + (erreurTar ? ' : ' + erreurTar.trim() : ''));
+    const tag = chiffreur.getAuthTag(); compter(tag);
+    await new Promise((res, rej) => fichier.end(tag, e => (e ? rej(e) : res())));
+    return { octets, empreinte: empreinte.digest('hex') };
+  } catch (e) {
+    try { tar.kill('SIGKILL'); } catch (x) {}
+    try { fichier.destroy(); } catch (x) {}
+    throw e;
+  }
 }
 
 /* Relit une archive chiffrée : déchiffre, décompresse, et COMPTE les entrées avec `tar -t`.
@@ -225,6 +224,12 @@ function monterSauvegarde(app, deps) {
     console.error('sauvegarde hors site NON active : ' + (!cle ? 'sauvegarde.cle doit faire 64 caractères hexadécimaux' : 'endpoint, bucket, accessKey ou secretKey manquant'));
   }
 
+  /* À CÔTÉ de DATA_DIR, jamais dedans. Et on vide ce qui traîne AU MONTAGE, comme `pieces.js`
+     le fait de son propre dossier temporaire : sans ce ménage, un plantage laisse un fichier de
+     plusieurs gigaoctets que plus personne ne réclame. */
+  const TMP_DIR = path.join(path.dirname(DATA_DIR), '.teamop-sauvegarde-tmp');
+  try { fs.rmSync(TMP_DIR, { recursive: true, force: true }); } catch (e) {}
+  try { fs.mkdirSync(TMP_DIR, { recursive: true }); } catch (e) {}
   const PREFIXE = (conf && conf.prefixe) || 'teamop/';
   const GARDER = nombre(conf && conf.garder, 30);
   /* `nombre()` traite 0 comme « absent » — ce qui est juste pour une taille, faux pour une
@@ -240,7 +245,13 @@ function monterSauvegarde(app, deps) {
     const t0 = Date.now();
     const nom = nomArchive(new Date());
     const cleObjet = PREFIXE + nom + '.tar.gz.chiffre';
-    const tmp = path.join(DATA_DIR, '.sauvegarde-' + process.pid + '.tmp');
+    /* ⛔ LE TEMPORAIRE NE VIT PAS DANS LE DOSSIER QU'ON ARCHIVE. Il y était au premier jet, et
+       `gardien` l'a mesuré : un `.sauvegarde-*.tmp` de 5 Mo resté dans `data/` faisait passer
+       l'archive de 200 Ko à 5,2 Mo — chaque nuit ré-archivant le reste de la veille. Un
+       plantage, un manque de mémoire ou un déploiement en pleine sauvegarde suffisait à le
+       laisser là. On écrit donc À CÔTÉ de `DATA_DIR` : même partition (donc la place disque
+       reste prévisible) mais hors de l'arbre archivé. */
+    const tmp = path.join(TMP_DIR, 'sauvegarde-' + process.pid + '.tmp');
     const tmpRelu = tmp + '.relu';
     const noter = (ok, motif, extra) => {
       const ligne = Object.assign({ ts: Date.now(), ms: Date.now() - t0, ok, motif: motif || '', raison: raison || '', cle: cleObjet }, extra || {});
@@ -257,22 +268,29 @@ function monterSauvegarde(app, deps) {
       const sources = [DATA_DIR];
       try { if (CONFIG_PATH && fs.statSync(CONFIG_PATH).isFile()) sources.push(CONFIG_PATH); } catch (e) {}
 
-      const faite = await fabriquer(tmp, cle, sources);
+      /* Deux exclusions : le dossier temporaire actuel (il est SIBLING de DATA_DIR, donc hors
+         de l'archive de toute façon — ceinture en plus des bretelles si quelqu'un règle
+         `TEAMOP_DATA` autrement), et le NOM QUE PORTAIT le temporaire avant correction. Sans la
+         seconde, un reste laissé par une version antérieure serait ré-archivé chaque nuit, pour
+         toujours, en grossissant l'archive de son propre poids. */
+      const faite = await fabriquer(tmp, cle, sources, [path.basename(TMP_DIR), '.sauvegarde-*.tmp', '.sauvegarde-*.tmp.relu']);
       if (faite.octets > MAX_OCTETS) return noter(false, 'trop-volumineuse', { octets: faite.octets });
 
-      const corps = fs.readFileSync(tmp);
-      const dep = await client.poserCle(cleObjet, corps);
+      /* ⛔ ENVOI ET RELECTURE EN FLUX. Ils lisaient l'archive ENTIÈRE en mémoire, deux fois —
+         l'en-tête de ce fichier promettait le contraire, ce qui était vrai de la fabrication et
+         faux ici. Sans effet à 11 Mo de données, mais le plafond des pièces jointes est à
+         60 Gio : c'était l'API par terre pour tous les clients, la nuit, sans personne. */
+      const dep = await client.poserCleFlux(cleObjet, tmp, faite.octets, faite.empreinte);
       if (!dep.ok) return noter(false, 'depot-' + (dep.statut || 'erreur'), { octets: faite.octets });
 
       /* ── LA RELECTURE, qui est le vrai sujet ────────────────────────────────────────────
          On retélécharge ce qui vient d'être déposé — pas le fichier local. Trois contrôles,
          du moins cher au plus probant : la taille, l'empreinte, puis l'ouverture réelle. */
-      const relu = await client.lireCle(cleObjet);
+      const relu = await client.lireCleVers(cleObjet, tmpRelu);
       if (!relu.ok) return noter(false, 'relecture-' + (relu.statut || 'absente'), { octets: faite.octets });
-      if (relu.corps.length !== faite.octets) return noter(false, 'taille-differente', { octets: faite.octets, relu: relu.corps.length });
-      if (sha256hex(relu.corps) !== faite.empreinte) return noter(false, 'empreinte-differente', { octets: faite.octets });
+      if (relu.octets !== faite.octets) return noter(false, 'taille-differente', { octets: faite.octets, relu: relu.octets });
+      if (relu.empreinte !== faite.empreinte) return noter(false, 'empreinte-differente', { octets: faite.octets });
 
-      fs.writeFileSync(tmpRelu, relu.corps);
       const ouverte = await relire(tmpRelu, cle, null);
       if (!ouverte.entrees) return noter(false, 'archive-vide', { octets: faite.octets });
 
@@ -298,13 +316,24 @@ function monterSauvegarde(app, deps) {
      leur activité, exactement ce que le compteur des pièces jointes arrondit déjà pour la même
      raison. Il est servi à la Tour, qui exige le patron. */
   function sante() {
+    /* ⛔ PAS DE MOTIF ICI. `gardien` l'a relevé : /health est publique et sans identité, et
+       « la dernière sauvegarde a échoué, motif depot-403 » est du renseignement d'exploitation —
+       ça dit à qui l'interroge si la plateforme saurait se relever. Trois valeurs suffisent à la
+       surveillance ; le motif est servi à la Tour, qui exige le patron. */
     const d = etat.derniere;
-    return { active: actif, ageH: d && d.ok ? Math.round((Date.now() - d.ts) / 3600000) : null, ok: d ? !!d.ok : null, motif: d && !d.ok ? d.motif : '' };
+    return { active: actif, ageH: d && d.ok ? Math.round((Date.now() - d.ts) / 3600000) : null, ok: d ? !!d.ok : null };
   }
 
   if (app && garde) {
     app.get('/api/monitor/sauvegarde/etat', garde, (req, res) => res.json({ ok: true, active: actif, garder: GARDER, heureUTC: HEURE, derniere: etat.derniere, histo: (etat.histo || []).slice(0, 20) }));
-    app.post('/api/monitor/sauvegarde/lancer', garde, async (req, res) => { const r = await lancer('tour'); res.json(r); });
+    /* ⛔ LE try/catch N'EST PAS DÉCORATIF. Ce serveur n'a ni `unhandledRejection` ni middleware
+       d'erreur : un rejet non traité dans une route `async` ARRÊTE LE PROCESSUS sous Node 22.
+       `lancer()` avale tout aujourd'hui — mais faire dépendre la survie de l'API de la
+       discipline d'une fonction voisine est un pari qu'on finit par perdre. */
+    app.post('/api/monitor/sauvegarde/lancer', garde, async (req, res) => {
+      try { res.json(await lancer('tour')); }
+      catch (e) { console.error('sauvegarde (route) : ' + e.message); res.status(500).json({ ok: false, motif: 'exception' }); }
+    });
   }
 
   /* La minuterie : un réveil toutes les dix minutes, une sauvegarde si l'heure est passée et
