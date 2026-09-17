@@ -348,6 +348,24 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
        écrite en clair dans app.html. Le kh est JUSTE, et pourtant la porte reste fermée. */
     r = await q('/api/replies?teamId=ent-b-7y', { 'x-teamop-kh': kh(CLE_PARTAGEE) });
     v('⛔ clé partagée : kh juste, mais refusé quand même', r.statut, 403);
+
+    /* ⛔ UN ESPACE TECHNIQUE EST REFUSÉ COMME « technique », JAMAIS COMME « inconnu » — ajouté le
+       17 septembre 2026, le soir du renommage de la bêta. `opgestion-beta` est dans
+       ESPACES_INTOUCHABLES (constante du code) mais PAS dans l'annuaire de ce banc, exactement
+       comme sur le VPS le soir de sa naissance. Avant correction, sa preuve bien formée tombait
+       en `inconnu` — la case que /health désigne comme alarme pour « de vrais appareils qui
+       tombent ». Mesuré en production : 12 `inconnu` en une heure, tous des connexions à la
+       bêta, +2 par connexion. L'alarme comptait du bruit. Le refus est le même ; c'est le
+       MOTIF qui doit dire la vérité, parce que c'est lui qu'on surveille. */
+    let sante = (await q('/health')).json || {};
+    const pm = () => ((sante.mailRefus || {}).parMotif || {});
+    const avantTech = pm().technique || 0, avantInc = pm().inconnu || 0;
+    r = await q('/api/replies?teamId=opgestion-beta', { 'x-teamop-kh': kh('PREUVE-BIEN-FORMEE-MAIS-SANS-OBJET') });
+    v('espace technique hors annuaire, preuve bien formée : refusé', r.statut, 403);
+    v('… en text/plain, comme tout refus de cette route', /^text\/plain/.test(r.ct), true);
+    sante = (await q('/health')).json || {};
+    v('⛔ … compté comme « technique »', (pm().technique || 0) - avantTech, 1);
+    v('⛔ … et PAS comme « inconnu » — l\'alarme reste propre', (pm().inconnu || 0) - avantInc, 0);
     v('le courrier de B ne sort pas', /Facture/.test(r.txt), false);
     r = await q('/api/replies?teamId=elan-gestion', { 'x-teamop-kh': kh(CLE_PARTAGEE) });
     v('espace technique (repli, bêta) : refusé', r.statut, 403);

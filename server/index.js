@@ -627,12 +627,21 @@ function cleEquipeExige(req, res, next) {
   const src = (req.method === 'GET') ? (req.query || {}) : (req.body || {});
   const t = String(src.teamId || src.t || '');
   let motif = '';
-  if (req.cleEquipe !== 'valide') motif = req.cleEquipe || 'absent';
-  /* Ces deux-là ne sont vérifiables qu'APRÈS `valide` : il garantit que l'espace est dans
-     l'annuaire avec un code lisible, ce dont cleEstPublique() a besoin pour ne pas rendre
-     « laisse passer » par défaut (voir sa mise en garde). Un espace dont la clé est écrite
-     en clair dans app.html ne prouve rien en la présentant : n'importe qui la calcule. */
-  else if (ESPACES_INTOUCHABLES.includes(t)) motif = 'technique';
+  /* ⛔ L'ESPACE TECHNIQUE EST JUGÉ EN PREMIER, AVANT MÊME DE LIRE LE VERDICT DE CLÉ — corrigé
+     le 17 septembre 2026, le soir du renommage de la bêta. Avant, il n'était reconnu
+     « technique » qu'APRÈS un verdict `valide`, donc seulement s'il figurait dans l'annuaire.
+     L'espace bêta neuf (`opgestion-beta`) n'y est pas : sa preuve, bien formée, tombait en
+     `inconnu` — la case même que /health désigne comme alarme pour « de vrais appareils qui
+     tombent ». Mesuré : 12 `inconnu` en une heure, tous des connexions à la bêta, +2 par
+     connexion, reproduits à l'identique avec un en-tête forgé. L'alarme comptait du bruit.
+     ESPACES_INTOUCHABLES est une liste statique : on peut la consulter sans annuaire. Seule
+     cleEstPublique() a besoin du verdict `valide` avant, et elle reste après. */
+  if (ESPACES_INTOUCHABLES.includes(t)) motif = 'technique';
+  else if (req.cleEquipe !== 'valide') motif = req.cleEquipe || 'absent';
+  /* cleEstPublique() n'est vérifiable qu'APRÈS `valide` : il garantit que l'espace est dans
+     l'annuaire avec un code lisible, ce dont elle a besoin pour ne pas rendre « laisse
+     passer » par défaut (voir sa mise en garde). Un espace dont la clé est écrite en clair
+     dans app.html ne prouve rien en la présentant : n'importe qui la calcule. */
   else if (cleEstPublique(t)) motif = 'partagee';
   if (!motif) return next();
   mailRefus.n++; mailRefus.parMotif[motif] = (mailRefus.parMotif[motif] || 0) + 1; mailRefus.ts = Date.now();

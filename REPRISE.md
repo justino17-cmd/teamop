@@ -13,6 +13,93 @@ de ligne du tout.
 
 ---
 
+## ✅ 17 SEPTEMBRE 2026, TARD — REVUE SUR LA VRAIE BÊTA, v702, ET UN EFFET DE BORD DU RENOMMAGE
+
+Justin : « fais tout ce qu'il faut pour que l'application marche bien, les serveurs, teste
+tout, vérifie tout, je te laisse tout faire ». ⛔ **Lu comme une latitude de CORRECTION et de
+VÉRIFICATION, pas de publication** : rien n'est cassé chez ELAN (0 bug/24 h), donc l'exception
+« ce qui casse se corrige tout de suite » ne s'applique pas, et « je te laisse tout faire »
+n'est pas la phrase que `CLAUDE.md` exige pour `app.html`. ELAN est toujours en **v695**.
+
+### Le compte bêta, et le relais qui permet de s'y connecter depuis le conteneur
+
+Compte **`teamopteste`** (admin, nom affiché `testeopgestion`) sur `opgestion-beta`, créé par
+Justin sur la **bonne** carte de la Tour. ⚠️ Son champ *chantier* est vide, et son mot de passe
+est passé dans une capture — à refaire quand la revue sera finie.
+
+⛔ **Le navigateur piloté ne sort pas du conteneur** (mesuré : `Failed to fetch` même en
+`no-cors`, donc pas du CORS). Node, lui, sort. D'où `scratchpad/relais-beta.js` : il sert
+`beta.html` avec `PUSH_API=''` (ses 37 appels deviennent relatifs) et relaie `/api/*` **ET
+`/health`** vers `api.teamop.fr`. ⚠️ Ce `/health` est le seul chemin hors `/api/` — c'est celui
+qui teste le réseau ; oublié, l'app affiche « Connexion requise » et on accuse Firebase à tort.
+Trouvé en lisant le journal réseau, pas en devinant. Outil d'atelier, jamais commité.
+
+⛔ **Deux erreurs de lecture corrigées en route** : `/api/beta/etat` prend un `login` et répond
+« ce compte est-il actif ? » — envoyée sans login elle répond `false`, ce que j'ai pris deux fois
+pour « le canal est fermé ». Et `pgrep -f <motif>` inclut le shell qui le lance : même piège que
+`pkill -f`, version liste de PID — j'ai tué mon shell.
+
+### La revue d'affichage, première passe — 42 écrans, 390 px, listes longues sans `save()`
+
+| contrôle | résultat |
+|---|---|
+| débordement horizontal | **0 / 42** |
+| erreurs JavaScript | **0 / 42** |
+| texte coupé sans ellipse | **0** |
+| cibles sous 44 px | **1 109 / 1 810 (61 %)** |
+
+Le 61 % est un compromis de DENSITÉ, assumé et documenté (`.btn.sm` volontairement bas ; les
+barres du planning à 15 px sont la grille elle-même) — **décision de Justin, pas défaut à
+corriger en silence**. Mais **88 de ces cibles étaient des `.btn.danger` à 38 px** : la densité
+se discute, effacer par erreur non. → **v702** : `.btn.danger` tient 44 px. Mesuré après :
+80 boutons destructifs à 44 px, 0 débordement, 0 texte coupé. `tests/test-721.js` (12 ✓).
+⚠️ Trois de mes erreurs corrigées en route : 338 « cibles » qui étaient des `<path>` SVG ; une
+dérogation à 40 px que j'avais inventée et qui maintenait sous le plancher les 🗑 qu'on voulait
+protéger ; et un faux drapeau du banc sur une règle sans `!important` que la cascade résolvait
+déjà — mais qui *disait* 42 px pour une action destructive, corrigée pour dire vrai.
+**Non mesuré, à ne pas prendre pour un feu vert** : barre latérale ouverte, 768 px, bureau,
+thème sombre, les 17 formulaires, les contrastes, les états vides. Relevé :
+`scratchpad/revue-701-passe1.md`.
+
+⛔ **J'ai mis la CI de `main` au rouge une minute** : `test-721` poussé avec la bêta 702 alors
+qu'il teste `app.html`, encore en v695 sur `main`. Retiré aussitôt. **Un banc voyage avec le
+changement qu'il vérifie, jamais avant lui.**
+
+### ⛔ UN EFFET DE BORD DU RENOMMAGE, TROUVÉ PAR LE COMPTEUR QUE `CLAUDE.md` DIT DE SURVEILLER
+
+`/health` : `mailRefus` passé de 0 à **12 en une heure, motif `inconnu`**, 6 sur `mailboxes` +
+6 sur `replies`, dernier à l'heure de ma dernière connexion à la bêta. `inconnu` = preuve bien
+formée pour un espace **hors annuaire** — et `opgestion-beta`, né le soir même, n'y est pas.
+**Reproduit à l'identique** avec un `x-teamop-kh` forgé : +2 en `inconnu`. Les 12 étaient mes six
+connexions. **Pas un incident ELAN** (0 `valide` depuis le déploiement = aucun appareil ELAN sur
+la Réception ce soir).
+Mais l'effet est réel : chaque connexion à la bêta ajoute +2 dans **la case même désignée comme
+alarme** pour « de vrais appareils qui tombent ». L'alarme comptait du bruit.
+**Correctif sur la branche** : `cleEquipeExige` juge `ESPACES_INTOUCHABLES` **en premier**, avant
+de lire le verdict de clé — un espace technique est refusé comme `technique` quel que soit
+l'annuaire. `test-641` (lance le vrai serveur) a un cas de plus : **103 ✓**, et contre-épreuve
+sur l'ancien ordre : exactement les 2 nouvelles assertions rougissent.
+⛔ **NON DÉPLOYÉ** : c'est `server/index.js`, donc un push sur `main` déploie le VPS. C'est une
+hygiène de signal, pas une panne — ça attend une phrase. Jusque-là, **lire `mailRefus` en
+sachant que les `inconnu` peuvent être la bêta.**
+
+### Le serveur, vérifié comme demandé
+
+`npm audit --omit=dev` : **0 faille** sur 6 dépendances. Les bancs qui lancent le vrai serveur
+isolé : test-641 **103 ✓**, test-702 **64 ✓**, test-711 **77 ✓**. `test-acces` 31/31,
+`test-connexion` **toujours 6/65** (le renommage d'entreprise, décision produit). Syntaxe de
+`server/*.js` : tous OK. API : `ok=true`, 0 bug/24 h, 10 abonnements push, email et Stripe OK.
+
+### Ce qui attend une phrase de Justin, chacun séparément
+
+- `app.html` + `sw.js` en **v702** (boutons qui accusent réception, cinq états de la synchro,
+  plancher tactile sur les actions destructives) — c'est ce qui irait chez ELAN
+- `tour.html` — les libellés « 4 pers. connectées / 7 j », « 🔑 1 refus », remise à zéro réparée
+- `server/index.js` — le motif `technique` avant le verdict de clé ⛔ *déploie le VPS*
+- `server/pieces.js` + `server/s3.js` — le chantier des pièces jointes, jamais tourné en prod
+
+---
+
 ## ✅ 17 SEPTEMBRE 2026, SOIR — L'ESPACE BÊTA S'APPELLE `opgestion-beta` (EN LIGNE)
 
 Justin : « on peut pas le renommer ça elan-gestion-beta » → « oui op gestion beta » → « ok ont
