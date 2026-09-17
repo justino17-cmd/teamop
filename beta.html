@@ -4955,7 +4955,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '698-beta';
+const APP_VERSION = '699-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7140,6 +7140,10 @@ function photoMarquer(pid,data){ return pid?('piece:'+pid+(data?(':'+data):'')):
    base telle qu'elle est arrivée. La pièce vit sur le VPS ; la recopier dans la base la
    ferait repartir dans le document de l'équipe à la première écriture, ce qui déferait tout
    le chantier sans que rien ne le signale. */
+/* ✅ MESURÉ AU NAVIGATEUR le 17 septembre 2026, sur cette fonction-ci, dans un vrai Chromium :
+   résolution d'une photo de 180 Ko en 11 ms, identique à elle-même (245 783 octets reçus =
+   attendus), la photo SANS identifiant laissée intacte à côté. Détail et banc reproductible :
+   `scratchpad/sonde-pieces-navigateur.md`. */
 async function photosResoudre(liste){
   if(!Array.isArray(liste)) return 0;
   let n=0;
@@ -7575,6 +7579,11 @@ const _pieceCache=new Map();         // id → dataUrl, pour la session : une ph
    donnée locale (le data URL) avant d'avoir reçu un {id}. Un depôt peut échouer pour six
    raisons dont cinq sont temporaires ; écraser le clair avant la confirmation, c'est perdre la
    photo d'un technicien parce qu'il était dans une cave. Le clair reste, l'identifiant s'ajoute. */
+/* ✅ MESURÉ AU NAVIGATEUR le 17 septembre 2026 : dépôt d'une photo de chantier de 180 Ko en
+   49 ms (gzip + PBKDF2 120 000 tours + AES-GCM + réseau), relecture serveur en 15 ms, identique
+   octet pour octet, gonflement réel ×1,34 — exactement le facteur calculé hors navigateur.
+   Les trois états éprouvés en coupant vraiment le réseau : réseau coupe → `inconnu`, jamais
+   `absente`. Banc reproductible : `scratchpad/sonde-pieces-navigateur.md`. */
 async function pieceDeposer(dataUrl){
   const d=String(dataUrl||''); if(!d) return {erreur:true,motif:'vide'};
   if(d.length>PIECE_CLAIR_MAX*16/9) return {erreur:true,motif:'trop-gros'};   // large : le cas sans gzip
