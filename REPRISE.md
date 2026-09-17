@@ -13,6 +13,153 @@ de ligne du tout.
 
 ---
 
+## ✅ 17 SEPTEMBRE 2026 — LE POINT 7 EST FINI, ET LE JETON GITHUB A ÉTÉ TOURNÉ
+
+### ⛔ CE QUI DOIT ÊTRE RELU AVANT TOUT — deux échéances et une clé à considérer comme brûlée
+
+1. ⏳ **Le jeton GitHub du VPS EXPIRE LE 17 OCTOBRE 2026.** Ce jour-là, `/api/monitor/proposer`
+   (la Tour → « proposer un correctif ») tombera en erreur GitHub **sans prévenir personne** :
+   rien ne surveille cette échéance. Rien d'autre ne casse — c'est une route patron uniquement.
+   Le remplacer = un jeton *fine-grained*, dépôt `justino17-cmd/teamop` seul, **Contents: RW +
+   Pull requests: RW, rien d'autre**, puis `systemctl restart teamop-api` (la configuration est
+   lue UNE SEULE FOIS au démarrage, `server/index.js:12`).
+2. ⛔ **LA CLÉ IONOS OBJECT STORAGE EST À CONSIDÉRER COMME COMPROMISE.** Une valeur de
+   94 caractères — longueur d'une *Secret Key*, pas d'une Access Key — est passée en clair dans
+   une conversation le 17 septembre, et **on n'a jamais confirmé qu'elle avait été régénérée**.
+   Le bloc `objectStorage` que Justin avait collé dans `config.json` a été perdu (nano
+   interrompu) puis **délibérément NON récupéré** pour cette raison. ⛔ Ne pas le ressusciter
+   depuis une vieille copie : régénérer la paire dans la console IONOS et coller du neuf.
+   Aucune urgence — **aucun code ne lit `objectStorage` aujourd'hui**.
+3. ⚠️ **Le VPS attend un redémarrage système** (« System restart required », 6 mises à jour dont
+   une de sécurité). À faire sur une heure creuse : ça coupe l'API d'ELAN.
+
+### Le jeton GitHub, et le ménage qu'il a fait remonter
+
+Un jeton `github_pat_` est apparu en clair dans une capture d'écran. Tourné le jour même :
+nouveau jeton créé (`teamop-api — proposer (VPS)`), posé dans `/opt/teamop/config.json`,
+service redémarré, **ancien supprimé**. Vérifié par la mesure, pas par la confiance :
+
+· `GET /repos/justino17-cmd/teamop` → **HTTP 200**, `push: true` — il peut écrire.
+· `GET …/actions/permissions` → **HTTP 403** — il n'a PAS Administration.
+  ⚠️ **Le champ `permissions` d'une réponse GitHub décrit le rôle de l'UTILISATEUR, pas les
+  droits du jeton.** Il affichait `admin: true` alors que le jeton est bridé. Ne pas s'y fier :
+  seul un appel à une route qui EXIGE la permission tranche.
+· De l'extérieur : `/health` `uptime` retombé à 20 s → c'est bien le nouveau processus.
+
+⛔ **ET LE VPS PORTAIT SIX COPIES PÉRIMÉES DE `config.json`** (`.save`, `.save.1`,
+`.avant-courrier`, `.bak.avant-firebase`, deux `.bak.2026-08-18-*`), chacune une photo des
+secrets de son époque : **clé VAPID privée, clé Anthropic, secret Stripe, code devis d'équipe —
+tous encore vivants**. Toutes en `600`, donc pas une fuite : une surface inutile. Les six sont
+effacées. `nano` en fabrique à chaque interruption (`.save`) — **regarder et nettoyer après
+chaque édition de la configuration**, sinon ça repousse tout seul.
+⚠️ Constat laissé de côté, non traité : `monitor.json` est en **644** (lisible par tout compte
+local) et porte les rapports d'incident. Risque faible sur une machine où seul root se connecte.
+
+### ⛔ Une leçon d'outil, tombée trois fois dans la même heure
+
+Le prompt de mot de passe de `ssh` **avale ce qui est tapé avant que la connexion soit établie**.
+Taper `ssh …` puis `nano …` d'affilée : la seconde commande est perdue en silence, on croit que
+nano n'a pas voulu s'ouvrir. Et une commande lancée depuis le Mac au lieu du VPS échoue en
+`ENOENT` sur `/opt/teamop/config.json` — inoffensif, mais déroutant.
+**Le repère : `justino@air-de-justino ~ %` = le Mac. `root@ubuntu:~#` = le serveur.**
+Corollaire qui a sauvé la journée : **toujours enchaîner par `&&`**, jamais par `;`. Le
+`JSON.parse … && systemctl restart` a refusé de redémarrer sur une configuration cassée —
+`teamop-api` a continué de tourner 47 h d'affilée sur l'ancienne, valide.
+
+### Point 7 — les quatre volets, faits et mesurés (v700, SUR LA BRANCHE)
+
+Demande de Justin : « une fois cliqué dessus ça met droits validés », « pour tous les boutons
+qu'on valide », « quand ils changent leur mot de passe ça valide bien le changement », et la
+question « faut-il obliger les gens à synchroniser ? ».
+
+1. **`btnFait(el,texte,ms)` et `btnOccupe(el,texte)`** — le bouton dit ce qu'il a fait, et ce
+   qu'il est en train de faire. Le toast ne suffisait pas : il s'affiche AILLEURS que sous le
+   doigt, dure 2,2 s, et sur un chantier on relâche sans savoir si le tap a porté — alors on
+   retape. ⛔ Aucun des deux ne passe par `disabled` : `.btn:disabled` tombe à **45 % d'opacité**,
+   l'inverse de ce qu'on veut d'une confirmation. Le clic est coupé par `pointer-events`.
+   ⛔ Et `views.utilisateurs()` DÉTRUIT le bouton : le redessin est retardé de 1,7 s, sinon la
+   confirmation est effacée dans la même image. Le `save()`, lui, reste avant.
+2. **Mot de passe** : trois chemins, traités différemment. `forcePwdSave` (la campagne que toute
+   l'équipe traverse) avait la phrase la plus longue de l'application pour la durée la plus
+   courte → 6 s. `monComptePwdSave` → 5 s. `pwdForgotSave` **n'a PAS d'accusé sur le bouton** :
+   `enterApp()` remplace tout l'écran, il n'existe pas de confirmation plus forte.
+3. ⛔ **SUR LA SYNCHRO, LA RÉPONSE EST NON.** On n'oblige pas : OP GESTION marche hors ligne par
+   conception (l'avance sur Organilog, qui synchronise toutes les 15 min). Forcer un envoi qu'on
+   ne PEUT pas faire empêche quelqu'un de finir sa journée pour une raison qui ne dépend pas de
+   lui. Le bouton dit son état à la place — cinq cas, dans l'ordre de ce qui demande une action.
+   ⛔ Et **la rotation suivait un minuteur de 1 200 ms, pas l'envoi** : elle s'arrêtait que
+   l'écriture soit passée ou non. `_syncDernierOk` est posé à l'endroit du SUCCÈS, jamais au
+   clic — le poser au clic aurait refait le 11 septembre en pire, en couleur et en permanence.
+   Plus un filet de 12 s : `syncPush` a six sorties silencieuses qui ne rappelleraient jamais
+   `updateSyncBtn`, et le bouton tournerait pour toujours.
+4. **Les libellés de la Tour** : « 4 pers. **connectées** / 7 j », « 🔑 1 **refus** ».
+
+### ⛔ Deux régressions que la MESURE a arrêtées, et que la relecture n'aurait pas vues
+
+· **« 🔑 1 échec / 24 h »** paraissait mieux. Au navigateur, à 390 px : la pastille passe de
+  **39 px à 112 px**, et « 🔑 24 échecs / 24 h » rendait **exactement la même largeur** que
+  « 🔑 1 échec / 24 h » — donc elle était ROGNÉE, donc moins informative qu'avant dans le pire
+  cas. Elle volait en plus assez de place pour tronquer le NOM de l'espace ET sa deuxième ligne,
+  qui tenaient toutes les deux. **On avait échangé une ambiguïté contre une troncature.**
+  « refus » est invariable au pluriel et tient en 75 px.
+· **Le point d'état était stylé `#sync-btn .sync-pt`**, lié à un IDENTIFIANT : intestable
+  ailleurs que sur ce nœud, et mort en silence au premier renommage. Passé sur des classes.
+⚠️ **Prix assumé, à ne pas cacher** : sur les deux rangées TECHNIQUES de la Tour, le nom produit
+par `nomTechnique()` est désormais tronqué en ellipse (la pastille coûte 36 px). Les rangées
+CLIENTES ne sont pas touchées.
+⚠️ **Préexistant, hors périmètre** : la deuxième ligne des rangées clientes était DÉJÀ tronquée
+avant (386 px de contenu pour 257 px de place). À traiter avec la passe de densité de la Tour.
+
+### ⛔ Cinq bancs ont rougi, et AUCUN ne disait une régression
+
+645, 660, 665, 698, 699 épinglaient la **forme** : une signature exacte (`forcePwdSave()`), une
+adjacence de deux lignes, et — le plus fragile — **une fenêtre fixe de 900 caractères** qu'un
+commentaire ajouté en tête de fonction suffisait à faire déborder. **Aucun n'a été assoupli** :
+les cinq sont ré-exprimés sur l'intention et RENFORCÉS (l'ordre plutôt que l'adjacence, la
+fonction entière par comptage d'accolades plutôt qu'une tranche, trois faits là où il y en avait
+un). **La leçon, à retenir en écrivant un banc : ancrer sur ce que le code DOIT faire, jamais
+sur la façon dont il est écrit aujourd'hui.**
+
+### `server/s3.js` — écrit, prouvé, PAS branché (et il ne le sera pas sur le chemin chaud)
+
+Justin a créé le bucket IONOS `teamop-pieces` (eu-central-4, Francfort). `server/s3.js` signe en
+SigV4 **à la main**, sans SDK — même calcul que Stripe. Endpoint **mesuré, pas deviné** :
+`s3.eu-central-4.ionoscloud.com` répond en S3 ; les variantes en tiret ne résolvent pas.
+`tests/test-716.js` (**52 ✓**) le fait passer sur les exemples publiés par AWS.
+
+⛔ **Le banc a trouvé un défaut avant toute mise en service** : un DOUBLE ENCODAGE du chemin.
+`client.url()` encodait, puis `signer` ré-encodait le `%` en `%25` — `/test$file.text` partait
+en `/test%2524file.text`. **Quatre vecteurs sur cinq passaient quand même** ; seul celui dont le
+chemin porte un caractère spécial le voyait. En production : un 403 sans message, sur le premier
+identifiant d'entreprise contenant autre chose qu'une lettre. Contre-épreuve : 8 ✗ / 0 ✗.
+
+⚠️ **ET LA MESURE A TRANCHÉ CONTRE LE BASCULEMENT.** Le disque du VPS dépose une pièce en
+**2,1 ms**, avec **111 Go libres pour 11 Mo occupés**. Un aller-retour vers Francfort sur chaque
+photo serait plus lent, plus fragile, et ne réparerait rien. `server/pieces.js` garde le disque
+et **ne dépend pas** de `s3.js`.
+⛔ **Ce que le stockage objet répare, c'est un défaut qu'on a créé nous-mêmes aux points 4 et 5** :
+depuis que `syncSortirPieces` retire la photo du document Firestore, elle ne vit plus que sur
+**un seul disque, sur une seule machine** — avant, elle était répliquée par Google et présente
+sur chaque appareil. Son rôle est la **COPIE DE SÛRETÉ**, pas le service des pièces. Tant qu'elle
+n'existe pas, l'étape 0 a échangé une contrainte de place contre un **risque de perte**.
+
+### ⛔ CE QUI EST SUR LA BRANCHE ET ATTEND UNE PHRASE DE JUSTIN
+
+Branche `claude/op-gestion-interface-yb6p32`, poussée. **Rien n'est publié.**
+· `app.html` + `sw.js` — **v700 / cache v900** (point 7, volets 1-3)
+· `tour.html` — point 7, volet 4 + la remise à zéro qui ne remettait que les échecs
+· `server/s3.js` + `tests/test-716.js` — ⛔ un push de `server/**` sur `main` **déploie le VPS**
+· **`beta.html` est régénérée en 700-beta mais N'EST PAS sur `main`** : Justin ne peut donc pas
+  la regarder sur `teamop.fr/beta.html`. La pousser demande son accord (règle : ne jamais
+  pousser sur une autre branche que celle de travail sans permission).
+
+**Vérifications de la journée** : 75 suites · **2 422 vérifications** · 0 échec · 12,5 s.
+Syntaxe : 27 pages, 50 blocs, 0 erreur. `server/test-acces.js` 31/31.
+⚠️ `server/test-connexion.js` : **toujours 6 cas sur 65** — le renommage d'entreprise, décision
+produit, seul rouge de la CI, inchangé depuis des jours.
+
+---
+
 ## ✅ 16 SEPTEMBRE 2026 — LA v695 EST PUBLIÉE, ET L'ÉTAPE 0 DU SOCLE EST COMMENCÉE
 
 Justin, dans l'ordre : « bon aller ont commence go », puis, sur la question posée en clair,
