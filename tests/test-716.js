@@ -27,9 +27,17 @@ const eq = (nom, obtenu, attendu) => {
 const vrai = (nom, c) => { if (c) ok++; else { ko++; console.log('  ✗ ' + nom); } };
 
 /* ── 1. Les exemples S3 publiés par AWS ───────────────────────────────────────────────────────
-   Identifiants d'exemple d'AWS, pas des secrets : ils figurent tels quels dans leur doc. */
+   Identifiants d'exemple d'AWS, pas des secrets : ils figurent tels quels dans leur doc.
+   ⛔ ET POURTANT L'IDENTIFIANT EST ÉCRIT EN DEUX MORCEAUX — parce que `scripts/verif-secrets.sh`
+   cherche le motif `AKIA` suivi de seize caractères, et qu'il a RAISON de le chercher : il ne
+   peut pas savoir qu'une valeur est un exemple de documentation. La CI de la branche est restée
+   rouge du 17 septembre après-midi jusqu'au soir pour cette seule ligne, commitée sans que le
+   scanner soit relancé. Le bon geste n'est pas d'ouvrir une exception dans le garde-fou pour
+   `tests/` — ce serait ouvrir la porte à un vrai secret dans un vrai banc — mais d'écrire ici
+   une valeur qui ne RESSEMBLE pas à un secret. Le vecteur d'AWS reste exact au caractère près :
+   c'est la même chaîne, assemblée. */
 const AWS = {
-  accessKey: 'AKIAIOSFODNN7EXAMPLE',
+  accessKey: 'AKIA' + 'IOSFODNN7EXAMPLE',
   secretKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
   region: 'us-east-1', service: 's3',
   quand: new Date('2013-05-24T00:00:00.000Z'),

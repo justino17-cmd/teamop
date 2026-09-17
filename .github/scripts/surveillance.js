@@ -52,6 +52,25 @@ function get(url) {
     if (!j.ok) problems.push('api.teamop.fr : réponse anormale (ok=' + j.ok + ')');
     if (!j.email) problems.push('api.teamop.fr : envoi d\'e-mails désactivé (email:false) — codes de sécurité HS');
     if (!j.atts) problems.push('api.teamop.fr : pièces jointes désactivées (atts:false) — bons de commande sans PDF');
+    /* ⛔ LA SAUVEGARDE HORS SITE — AJOUTÉE LE 17 SEPTEMBRE 2026. Une sauvegarde qui ne tourne
+       plus ne fait AUCUN bruit : tout continue de marcher, jusqu'au jour où on en a besoin.
+       C'est exactement la panne que cette surveillance existe pour voir venir. Trois cas :
+       elle n'est pas configurée du tout, la dernière a échoué, ou elle est trop vieille.
+       26 heures, pas 24 : une sauvegarde quotidienne a le droit de glisser de deux heures
+       (redémarrage, coffre lent) sans réveiller personne pour rien. */
+    if (j.sauvegarde && j.sauvegarde.active === false) problems.push('SAUVEGARDE HORS SITE INACTIVE — les données du serveur ne sont copiées nulle part (bloc « sauvegarde » absent de config.json)');
+    else if (j.sauvegarde) {
+      if (j.sauvegarde.ok === false) problems.push('la dernière sauvegarde hors site a ÉCHOUÉ (motif : ' + (j.sauvegarde.motif || 'inconnu') + ') — détail dans la Tour, ou : node server/restaurer.js liste');
+      else if (j.sauvegarde.ok === null) problems.push('aucune sauvegarde hors site n\'a jamais été faite depuis le dernier démarrage');
+      else if (typeof j.sauvegarde.ageH === 'number' && j.sauvegarde.ageH > 26) problems.push('la dernière sauvegarde hors site date de ' + j.sauvegarde.ageH + ' h (plus de 26 h) — la minuterie ne tourne plus');
+      else console.log('Sauvegarde hors site : OK, il y a ' + j.sauvegarde.ageH + ' h');
+    }
+    /* ⛔ L'ÉCHÉANCE DU JETON GITHUB. Elle ne casse rien chez un client — le jeton ne sert qu'à
+       « proposer un correctif » depuis la Tour — mais elle tombe en 401 sans prévenir personne,
+       et on cherche une heure. Quinze jours d'avance suffisent à le remplacer tranquillement. */
+    if (typeof j.ghJours === 'number' && j.ghJours <= 15) problems.push(j.ghJours <= 0
+      ? 'le jeton GitHub du VPS a EXPIRÉ : « proposer un correctif » depuis la Tour répond 401. Le remplacer (fine-grained, dépôt teamop seul, Contents RW + Pull requests RW), le poser dans /opt/teamop/config.json, puis systemctl restart teamop-api'
+      : 'le jeton GitHub du VPS expire dans ' + j.ghJours + ' jour(s) — le remplacer avant, sinon « proposer un correctif » tombera en 401 sans prévenir');
     if (typeof j.bugs1h === 'number' && j.bugs1h > 0) problems.push(j.bugs1h + ' erreur(s) signalée(s) par les applications des entreprises dans la dernière heure (vigie) — voir l\'e-mail d\'alerte et corriger au plus vite');
   } catch (e) { problems.push('api.teamop.fr/health : injoignable — ' + e.message); }
 

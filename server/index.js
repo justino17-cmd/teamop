@@ -341,7 +341,36 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      version balayait tous les dossiers d'entreprises depuis cette route publique et sans clé —
      mesuré : 73 ms pour 21 000 fichiers, sur la boucle d'événements, donc tout le serveur gelé
      pour tout le monde, à la demande de n'importe qui. */
-  pieces: pieces ? pieces.sante() : null }));
+  pieces: pieces ? pieces.sante() : null,
+  /* La sauvegarde hors site, en trois champs et rien de plus : est-elle active, la dernière
+     a-t-elle réussi, et quel âge a-t-elle. ⛔ Jamais son POIDS — c'est le volume de données de
+     tous les clients réunis, donc un journal de leur activité, exactement ce que le compteur
+     des pièces jointes arrondit déjà pour cette raison. Ni le nom du coffre : /health est
+     publique. Le détail est servi à la Tour, qui exige le patron. */
+  sauvegarde: sauvegarde ? sauvegarde.sante() : { active: false },
+  /* ⛔ L'ÉCHÉANCE DU JETON GITHUB, PARCE QUE RIEN NE LA SURVEILLAIT. Le jeton du VPS expire à
+     date fixe ; le jour venu, « proposer un correctif » depuis la Tour tombe en 401 et personne
+     n'est prévenu — on cherche, on accuse le réseau, on finit par retrouver la date dans une
+     fiche. Un entier de jours restants ne dit rien de personne et permet à la surveillance
+     horaire de prévenir DEUX SEMAINES avant. `null` quand la date n'est pas renseignée : on ne
+     prétend pas savoir ce qu'on ignore. */
+  ghJours: ghJoursRestants() }));
+
+/* Jours avant l'expiration du jeton GitHub, d'après `github.expire` (AAAA-MM-JJ) dans
+   config.json. Une date absente ou illisible rend null — jamais 0, qui voudrait dire
+   « il expire aujourd'hui » et déclencherait une fausse alerte. */
+function ghJoursRestants() {
+  const d = Date.parse(String((config.github || {}).expire || '') + 'T00:00:00Z');
+  if (!Number.isFinite(d)) return null;
+  /* ⛔ EN JOURS DE CALENDRIER, PAS EN DURÉE. On compare deux minuits UTC, jamais « maintenant »
+     à un minuit : sinon le résultat dépend de l'HEURE à laquelle on interroge — une échéance à
+     30 jours annonce 30 le matin et 29 le soir. Trouvé par `tests/test-722.js`, qui aurait été
+     vert à 1 h et rouge à 20 h : un banc qui change d'avis selon l'heure est pire qu'absent, on
+     finit par le croire capricieux et on cesse de le lire. Zéro veut dire « expire aujourd'hui »,
+     et la surveillance traite zéro comme expiré — c'est le bon côté pour se tromper. */
+  const minuitAujourdhui = Date.parse(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+  return Math.round((d - minuitAujourdhui) / 86400000);
+}
 
 // ── Assistant devis : l'agent qui compose un devis à partir d'une conversation.
 //    Il ne fait que parler à Claude ; c'est OP GESTION qui enregistre le devis
@@ -3355,6 +3384,20 @@ try {
   pieces = require('./pieces').monterPieces(app, { config, DATA_DIR, sauvRefus, quotaOk, monStr });
 } catch (e) {
   console.error('pièces jointes non montées :', e.message);
+}
+/* ══ LA SAUVEGARDE HORS SITE ═══════════════════════════════════════════════════════════════
+   Montée ICI parce qu'elle a besoin de `monPatronStrict` pour ses deux routes — une
+   déclaration de fonction, donc hissée, mais on garde la proximité avec les pièces jointes :
+   c'est le même sujet, la durabilité de ce que le serveur détient.
+   ⛔ INERTE SANS BLOC `sauvegarde` DANS `config.json` : aucune minuterie, aucun appel réseau.
+   Un serveur de développement et un banc d'essai ne partent donc jamais écrire chez un
+   hébergeur d'objets. Et si le module refuse de se monter, le reste du serveur continue —
+   on perd la sauvegarde, pas la plateforme, et `/health` le dit. */
+let sauvegarde = null;
+try {
+  sauvegarde = require('./sauvegarde').monterSauvegarde(app, { config, DATA_DIR, CONFIG_PATH, garde: monPatronStrict });
+} catch (e) {
+  console.error('sauvegarde hors site non montée :', e.message);
 }
 /* Plusieurs inscriptions peuvent porter le même espace : la plus récente fait foi. */
 function espaceAJour(slug) {

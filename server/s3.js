@@ -112,6 +112,9 @@ function signer(o) {
 }
 
 /* ── le client, trois verbes, rien de plus ────────────────────────────────────────────────── */
+/* Les cinq entités XML que S3 peut mettre dans un nom d'objet ou un jeton de suite. */
+const dexml = x => String(x).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+
 function client(conf) {
   if (!conf || !conf.endpoint || !conf.bucket || !conf.accessKey || !conf.secretKey) return null;
   const base = String(conf.endpoint).replace(/\/+$/, '');
@@ -128,14 +131,19 @@ function client(conf) {
     finally { clearTimeout(tm); }
   }
   return {
-    async poser(t, id, corps) {
-      const r = await envoyer({ methode: 'PUT', url: url(t, id), corps: Buffer.from(corps), enTetes: { 'content-type': 'application/octet-stream' } });
+    async poser(t, id, corps, tempsMax) {
+      /* Le délai suit la taille : 15 s suffisent à une photo, pas à une archive de sauvegarde
+         de plusieurs dizaines de Mo vers Francfort. 50 octets par milliseconde, c'est un débit
+         de 400 kbit/s — en dessous, c'est le réseau qui est en panne, pas le délai. */
+      const octets = Buffer.byteLength(corps);
+      const r = await envoyer({ methode: 'PUT', url: url(t, id), corps: Buffer.from(corps), enTetes: { 'content-type': 'application/octet-stream' } },
+        tempsMax || Math.min(600000, 15000 + Math.ceil(octets / 50)));
       /* ⛔ ON NE JOURNALISE NI LE CONTENU NI LA CLÉ : ce sont des photos de sites de clients. */
       if (!r.ok) { console.error('objet non posé : HTTP ' + r.status); return { ok: false, statut: r.status }; }
       return { ok: true, octets: Buffer.byteLength(corps) };
     },
-    async lire(t, id) {
-      const r = await envoyer({ methode: 'GET', url: url(t, id) });
+    async lire(t, id, tempsMax) {
+      const r = await envoyer({ methode: 'GET', url: url(t, id) }, tempsMax);
       if (r.status === 404) return { ok: false, absente: true };
       if (!r.ok) { console.error('objet non lu : HTTP ' + r.status); return { ok: false, statut: r.status }; }
       return { ok: true, corps: Buffer.from(await r.arrayBuffer()) };
@@ -146,6 +154,32 @@ function client(conf) {
          est le même, on ne fabrique pas une différence qui n'existe pas côté serveur. */
       if (r.status === 204 || r.status === 200 || r.status === 404) return { ok: true };
       console.error('objet non effacé : HTTP ' + r.status); return { ok: false, statut: r.status };
+    },
+    /* Liste ce qui se trouve sous un préfixe (ListObjectsV2), page après page. Le XML de S3 se
+       lit avec trois expressions régulières — Key, LastModified, Size — pas avec une
+       bibliothèque : c'est le seul endroit du serveur qui reçoive du XML, et il ne porte que
+       des noms d'objets que nous avons nous-mêmes choisis. Ajouté pour la sauvegarde hors site
+       (17 septembre 2026) : sans liste, la rétention ne peut pas savoir quoi effacer, et une
+       restauration sur un VPS neuf ne peut pas savoir ce qui existe. */
+    async lister(prefixe) {
+      const objets = []; let suite = '';
+      for (let page = 0; page < 200; page++) {
+        const u = base + '/' + uriEncode(conf.bucket, false) + '?list-type=2&prefix=' + uriEncode(String(prefixe || ''), false)
+          + (suite ? '&continuation-token=' + uriEncode(suite, false) : '');
+        const r = await envoyer({ methode: 'GET', url: u });
+        if (!r.ok) { console.error('objets non listés : HTTP ' + r.status); return { ok: false, statut: r.status }; }
+        const xml = await r.text();
+        for (const m of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+          const cle = (m[1].match(/<Key>([\s\S]*?)<\/Key>/) || [])[1];
+          if (cle == null) continue;
+          objets.push({ cle: dexml(cle), modifie: (m[1].match(/<LastModified>([^<]*)<\/LastModified>/) || [])[1] || '',
+            octets: parseInt((m[1].match(/<Size>(\d+)<\/Size>/) || [])[1] || '0', 10) });
+        }
+        if (!/<IsTruncated>\s*true\s*<\/IsTruncated>/.test(xml)) break;
+        suite = dexml((xml.match(/<NextContinuationToken>([^<]*)<\/NextContinuationToken>/) || [])[1] || '');
+        if (!suite) break;
+      }
+      return { ok: true, objets };
     },
     _url: url,
   };

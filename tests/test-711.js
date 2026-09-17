@@ -225,6 +225,21 @@ function stop() { try { if (enfant && enfant.pid) process.kill(enfant.pid); } ca
     v('⛔ … arrondi à 5 %, jamais un compte d\'octets', [h.pieces.remplissage % 5, h.pieces.octets], [0, undefined]);
     v('⛔ … et ne nomme AUCUNE entreprise', JSON.stringify(h.pieces).indexOf(TA) < 0 && JSON.stringify(h.pieces).indexOf(TB) < 0, true);
 
+    /* ⛔ LA SAUVEGARDE HORS SITE EST INERTE SANS CONFIGURATION — vérifié sur le VRAI serveur,
+       pas sur le module isolé (c'est `tests/test-722.js` qui l'éprouve pièce par pièce). Ce
+       banc démarre avec une configuration qui ne porte AUCUN bloc `sauvegarde` : si le montage
+       allumait quoi que ce soit par défaut, un serveur de développement — ou ce banc — partirait
+       écrire chez un hébergeur d'objets. Le champ doit donc exister (la surveillance le lit)
+       et dire `false`. */
+    v('/health porte l\'état de la sauvegarde hors site', typeof h.sauvegarde, 'object');
+    v('⛔ … inactive tant que rien n\'est configuré', h.sauvegarde.active, false);
+    v('⛔ … et /health ne publie NI le poids NI le coffre (elle est publique)',
+      ['octets' in h.sauvegarde, JSON.stringify(h.sauvegarde).includes('bucket')], [false, false]);
+    /* L'échéance du jeton GitHub : `null` quand la date n'est pas renseignée. Jamais 0, qui
+       voudrait dire « il expire aujourd'hui » et ferait hurler la surveillance à tort. */
+    v('⛔ échéance du jeton GitHub non renseignée → null, pas 0', h.ghJours, null);
+    v('⛔ … et /health ne laisse échapper aucun jeton', /gh[pousr]_|github_pat_/.test(JSON.stringify(h)), false);
+
     console.log('\n── 711 · supprimer une pièce — sans ça, le stockage est un cliquet ──');
     /* ⛔ Une pièce retirée d'une intervention resterait sur le VPS pour toujours, alors que
        `sous-traitance.html` annonce une durée de conservation. C'est une obligation. */
