@@ -35,7 +35,14 @@ let n = 0, f = d;
 for (let i = APP.indexOf('{', d); i < APP.length; i++) {
   if (APP[i] === '{') n++; else if (APP[i] === '}') { n--; if (!n) { f = i; break; } } }
 const BUDGET = 620 * 1024;
-const syncAlleger = new Function('NUAGE_BUDGET', 'TextEncoder', APP.slice(d, f + 1) + '; return syncAlleger;')(BUDGET, TextEncoder);
+/* ⛔ ET SA DÉPENDANCE, depuis le point 4 de l'étape 0 : `syncAlleger` sort d'abord les pièces
+   déjà déposées sur le VPS. Sans elle, le banc plante au lieu de mesurer. */
+const dsp = APP.indexOf('function syncSortirPieces(base){');
+v('syncSortirPieces est trouvée dans app.html', dsp > 0, true);
+let nsp = 0, fsp = dsp;
+for (let i = APP.indexOf('{', dsp); i < APP.length; i++) {
+  if (APP[i] === '{') nsp++; else if (APP[i] === '}') { nsp--; if (!nsp) { fsp = i; break; } } }
+const syncAlleger = new Function('NUAGE_BUDGET', 'TextEncoder', APP.slice(dsp, fsp + 1) + '\n' + APP.slice(d, f + 1) + '; return syncAlleger;')(BUDGET, TextEncoder);
 
 /* Une base fabriquée à l'image de celle d'ELAN : le poids est du CONTENU, pas des pièces. */
 const gros = (k, nb, taille) => Array.from({ length: nb }, (_, i) =>

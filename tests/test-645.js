@@ -25,6 +25,13 @@ function extraire(nom) {
   for (let k = j; k < APP.length; k++) { const c = APP[k]; if (c === '{') p++; else if (c === '}') { p--; if (p === 0) { j = k; break; } } }
   return APP.slice(i, j + 1);
 }
+/* ⛔ `syncAlleger` APPELLE `syncSortirPieces` DEPUIS LE POINT 4 de l'étape 0 : une pièce
+   déjà déposée sur le VPS n'a plus à voyager dans le document de l'équipe. Sans cette ligne,
+   ce banc PLANTE — et c'est ce qu'il a fait, immédiatement, ce qui est le comportement
+   voulu : un banc qui exécute la vraie fonction doit tomber quand elle change de dépendances,
+   pas continuer à certifier une version qu'il n'exécute plus. */
+// eslint-disable-next-line no-eval
+eval(extraire('syncSortirPieces'));
 // eslint-disable-next-line no-eval
 eval(extraire('syncAlleger'));
 // eslint-disable-next-line no-eval
@@ -173,7 +180,16 @@ v('⛔ la trace ne porte que des noms de collection et des tailles',
   /parColl\.join\(', '\)/.test(APP), true);
 
 v('regreffe à la réception ET avant l\'écriture', (APP.match(/syncRegreffer\((db|_localAvant),(remote|db)\)/g) || []).length, 2);
-v('ouvrir une pièce restée locale le dit au lieu de planter', /if\(!d\.data\)\{ toast\('Cette pièce est restée sur l/.test(APP), true);
+/* ⚠️ RÉEXPRIMÉ, PAS AFFAIBLI. Cette ligne épinglait la FORME exacte de l'ancienne condition
+   (`if(!d.data){ toast(…`). Le point 4 de l'étape 0 l'a changée — une pièce sans `data` peut
+   désormais être sur le VPS — et le contrôle rougissait pour une réécriture juste. Épingler une
+   forme, c'est se condamner à rouvrir le banc à chaque amélioration, donc à apprendre à passer
+   outre. On demande donc ce qui compte vraiment, et il y en a PLUS qu'avant : les trois issues
+   doivent être dites, et distinctes. */
+{ const open = APP.slice(APP.indexOf('async function intDocOpen('), APP.indexOf('function intDocDel('));
+  v('ouvrir une pièce restée locale le dit au lieu de planter', /Cette pièce est restée sur l/.test(open), true);
+  v('⛔ … une pièce supprimée du serveur le dit AUTREMENT', /supprimé du serveur/.test(open), true);
+  v('⛔ … et un échec de réseau ne dit NI l\'un NI l\'autre', /Impossible de récupérer/.test(open), true); }
 
 
 /* ── v646 : l'allègement couvre TOUTES les collections, et une écriture qui ne passe pas

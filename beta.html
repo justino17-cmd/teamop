@@ -4955,7 +4955,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '696-beta';
+const APP_VERSION = '697-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7099,9 +7099,45 @@ const NUAGE_ENC_MAX=780*1024;
 function nuageDocOctets(n){ return Math.ceil((n+16)/3)*4; }
 /* Une seule fois par session : voir la branche « impossible » de syncPush. */
 let _lourdDit=false;
+/* ══ UN DOCUMENT QUI EST SUR LE SERVEUR N'A PLUS À VOYAGER DANS LE DOCUMENT FIRESTORE ════
+   C'est le gain de l'étape 0, et il est structurel : ce qui a un `pid` est en sûreté sur le
+   VPS, donc sa copie base64 dans le document de l'équipe ne sert plus qu'à consommer le
+   plafond de 1 Mio. Mesuré : une pièce jointe de 1,5 Mo pèse 2 Mo de base64 — à elle seule,
+   le double du plafond entier.
+
+   ⛔ DEUX GARDES, ET AUCUNE N'EST OPTIONNELLE :
+   1. On ne vide QUE ce qui porte un `pid`. Sans identifiant, le clair est le seul exemplaire
+      qui existe : le vider serait une perte de données, pas un allègement.
+   2. LA BASE LOCALE N'EST JAMAIS TOUCHÉE. On travaille sur des copies, même discipline que
+      `syncAlleger` — ce que l'appareil a pris reste sur l'appareil.
+
+   ⚠️ Ce que voit un appareil en VIEILLE version : un document sans `data`, donc le message
+   « restée sur l'appareil qui l'a jointe » qu'il affiche déjà aujourd'hui pour tout document
+   allégé. Pas de plantage, pas d'écran cassé — et la Tour exige la version, donc le parc
+   suit. C'est l'ordre du dépôt : les appareils d'abord, la porte ensuite. */
+function syncSortirPieces(base){
+  let copie=base, n=0;
+  try{
+    Object.keys(base||{}).forEach(c=>{ if(!Array.isArray(base[c])) return;
+      base[c].forEach((r,ix)=>{
+        if(!r||typeof r!=='object'||!Array.isArray(r.docs)) return;
+        if(!r.docs.some(d=>d&&d.pid&&d.data)) return;
+        if(copie===base) copie=Object.assign({},base);
+        if(copie[c]===base[c]) copie[c]=base[c].slice();
+        const x=Object.assign({},r);
+        x.docs=r.docs.map(d=>{ if(!d||!d.pid||!d.data) return d;
+          n++; return Object.assign({},d,{data:'',surServeur:true}); });
+        copie[c][ix]=x;
+      }); });
+  }catch(e){ return {copie:base,sorties:0}; }
+  return {copie:copie,sorties:n};
+}
 function syncAlleger(base, budget){
   const B=budget||(typeof NUAGE_BUDGET!=='undefined'?NUAGE_BUDGET:696320);
   const taille=s=>{ try{ return new TextEncoder().encode(s).length; }catch(e){ return s.length; } };
+  /* ⛔ AVANT DE MESURER, et pas après : ce qui est sur le serveur ne doit pas peser dans la
+     décision. Mesurer d'abord ferait alléger des documents qui n'en avaient pas besoin. */
+  { const sp=syncSortirPieces(base); base=sp.copie; }
   let t=0; try{ t=taille(JSON.stringify(base)); }catch(e){ return {copie:base,retirees:0,taille:0,impossible:false,gros:[],parColl:[]}; }
   if(t<=B) return {copie:base,retirees:0,taille:t,impossible:false,gros:[],parColl:[]};
   /* TOUTES les collections, pas seulement les interventions : le poids peut être une signature
@@ -7197,6 +7233,11 @@ function syncAlleger(base, budget){
    de juger tenir dans le budget. Une seule compression = un seul instantané, jugé et écrit. */
 async function syncAllegerNuage(base){
   if(!gzipPossible()) return syncAlleger(base);
+  /* ⛔ LE MÊME GESTE ICI, et il est facile à oublier : ce chemin-ci mesure la base AVANT
+     d'appeler `syncAlleger`, et rend tôt quand ça tient. Sans cette ligne, une base qui tient
+     dans le budget partirait avec toutes ses pièces jointes en base64 — c'est-à-dire le cas
+     NORMAL, donc le gain de l'étape 0 ne serait jamais obtenu. */
+  { const sp=syncSortirPieces(base); base=sp.copie; }
   const mesurer=async(o)=>{ let s=null; try{ s=JSON.stringify(o); }catch(e){ return null; }
     const gz=await gzipper(s); return gz?{gz:gz,doc:nuageDocOctets(gz.length),clair:s.length?new TextEncoder().encode(s).length:0}:null; };
   let m0=null; try{ m0=await mesurer(base); }catch(e){}
@@ -7216,7 +7257,10 @@ function syncRegreffer(local, fusion){ try{
     const L=new Map(); local[c].forEach(r=>{ if(r&&r.id!=null) L.set(String(r.id),r); });
     fusion[c].forEach(r=>{ if(!r||r.id==null) return; const l=L.get(String(r.id)); if(!l||l===r) return;
       if(r.photosHorsNuage>0 && Array.isArray(l.photos) && l.photos.length>((r.photos&&r.photos.length)||0)){ r.photos=l.photos.slice(); n++; }
-      if(Array.isArray(r.docs)&&Array.isArray(l.docs)) r.docs.forEach(d=>{ if(!d||!d.horsNuage||d.data) return;
+      /* `surServeur` autant que `horsNuage` : l'appareil qui A le fichier l'affiche tout de
+         suite au lieu d'aller le rechercher — sur le terrain, c'est la différence entre voir
+         le document et attendre un réseau qu'on n'a pas. */
+      if(Array.isArray(r.docs)&&Array.isArray(l.docs)) r.docs.forEach(d=>{ if(!d||d.data||!(d.horsNuage||d.surServeur)) return;
         const ld=l.docs.find(x=>x&&x.data&&x.nom===d.nom&&x.ts===d.ts); if(ld){ d.data=ld.data; n++; } });
       (Array.isArray(r.champsHorsNuage)?r.champsHorsNuage:[]).forEach(f=>{ if(!r[f]&&typeof l[f]==='string'&&l[f]){ r[f]=l[f]; n++; } });
     }); });
@@ -7491,6 +7535,20 @@ async function pieceDeposer(dataUrl){
     _pieceCache.set(j.id,d);
     return {id:j.id,octets:j.octets,plafond:j.plafond};
   }catch(_e){ return {erreur:true,motif:'reseau'}; }
+}
+/* Retire une pièce du serveur. Rend true si elle n'y est plus (effacée, ou déjà absente — le
+   résultat voulu est le même), false si on n'a pas pu savoir. L'appelant ne doit JAMAIS faire
+   dépendre une suppression locale de ce retour : l'utilisateur a demandé à supprimer, on
+   supprime ; le ménage du serveur se rattrape. */
+async function pieceSupprimer(id){
+  const i=String(id||''); if(!/^[0-9a-f]{64}$/.test(i)) return false;
+  const c=await sauvKh(); if(!c) return false;
+  try{
+    const r=await fetch(PUSH_API+"/api/pieces/supprimer",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({t:c.t,kh:c.kh,id:i})});
+    _pieceCache.delete(i);
+    return r.ok||r.status===404;
+  }catch(e){ return false; }
 }
 /* ⛔ LA DISTINCTION QUI COMPTE EST ENTRE 404 ET TOUT LE RESTE. Un 404 dit « cette pièce n'est
    plus là » et c'est un fait. Un échec réseau, une clé refusée, une entreprise fermée ne
@@ -16384,7 +16442,7 @@ function renderIntDetail(id){
       <input type="file" id="int-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="intPhotoAdd(event,'${id}')">
       <input type="file" id="int-photo-file" accept="image/*" multiple style="display:none" onchange="intPhotoAdd(event,'${id}')">
       <div class="dt-lbl" style="margin:6px 2px 8px">Documents (PDF, plans…)</div>
-      ${i.docs.length? i.docs.map((d,ix)=>`<div class="pl-row" style="cursor:pointer" onclick="intDocOpen('${id}',${ix})"><div class="pl-info"><div class="pl-title">📄 ${esc(d.nom)}</div><div class="pl-meta">${d.ts?new Date(d.ts).toLocaleDateString('fr-FR'):''} · ${Math.round((d.data||'').length*3/4/1024)} Ko</div></div>${canDelM?`<button class="btn danger sm" onclick="event.stopPropagation();intDocDel('${id}',${ix})">✕</button>`:''}</div>`).join('') : '<p style="color:var(--t3);font-size:13px;margin-bottom:8px">Aucun document.</p>'}
+      ${i.docs.length? i.docs.map((d,ix)=>`<div class="pl-row" style="cursor:pointer" onclick="intDocOpen('${id}',${ix})"><div class="pl-info"><div class="pl-title">📄 ${esc(d.nom)}</div><div class="pl-meta">${d.ts?new Date(d.ts).toLocaleDateString('fr-FR'):''} · ${Math.round((d.octets||((d.data||'').length*3/4))/1024)} Ko${d.pid?' · ☁️':''}</div></div>${canDelM?`<button class="btn danger sm" onclick="event.stopPropagation();intDocDel('${id}',${ix})">✕</button>`:''}</div>`).join('') : '<p style="color:var(--t3);font-size:13px;margin-bottom:8px">Aucun document.</p>'}
       <input type="file" id="int-doc-file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*,application/pdf" style="display:none" onchange="intDocAdd(event,'${id}')">
       ${canDelM?'':'<p style="font-size:11px;color:var(--t3);margin-top:8px">🔒 Suppression des médias réservée (intervention terminée — droit « Supprimer » requis).</p>'}`;
     } else {
@@ -16879,16 +16937,64 @@ function envoyerAvisPassage(id){ const i=db.interventions.find(x=>x.id===id); if
   if(!c.email){ toast('Ajoutez un e-mail à la fiche client'); return; }
   const t=_avisTexte(i,c); intHisto(i,'Avis de passage envoyé par e-mail à '+c.email); save();
   srvMail(c.email,t.subj,t.body,'✉️ Avis de passage envoyé à '+c.email,'avis',null,intSocMailOpts(i)); }
+/* ⛔ LE DOCUMENT EST ENREGISTRÉ D'ABORD, DÉPOSÉ ENSUITE — jamais l'inverse.
+   Un dépôt peut échouer pour six raisons dont cinq sont temporaires (réseau, entreprise
+   fermée, espace plein…). Écraser ou retenir le clair en attendant la confirmation, c'est
+   perdre le document d'un technicien parce qu'il était dans une cave. On écrit le clair tout
+   de suite, exactement comme avant ce chantier ; l'identifiant s'AJOUTE après, s'il arrive.
+   Sans lui, tout se comporte comme aujourd'hui : le document vit sur cet appareil. */
 function intDocAdd(e,id){ const f=e.target.files[0]; if(!f) return; e.target.value='';
   if(f.size>1500000){ toast('Fichier trop volumineux (max 1,5 Mo)'); return; }
-  const r=new FileReader(); r.onload=()=>{ const i=db.interventions.find(x=>x.id===id); if(!i) return; i.docs=i.docs||[];
-    i.docs.push({nom:f.name,type:f.type||'',data:r.result,ts:Date.now()}); intHisto(i,'Document joint : '+f.name); save(); renderIntDetail(id); toast('Document joint'); };
+  const r=new FileReader(); r.onload=async()=>{ const i=db.interventions.find(x=>x.id===id); if(!i) return; i.docs=i.docs||[];
+    const d={nom:f.name,type:f.type||'',data:r.result,ts:Date.now(),octets:f.size};
+    i.docs.push(d); intHisto(i,'Document joint : '+f.name); save(); renderIntDetail(id); toast('Document joint');
+    const dep=await pieceDeposer(r.result);
+    if(dep&&dep.id){ d.pid=dep.id; save(); renderIntDetail(id); }
+    else if(dep&&dep.erreur){
+      /* ⛔ ON LE DIT, ET ON DIT QUOI. Un « document non partagé » muet ferait croire au
+         technicien que son collègue l'a reçu. Chaque motif a sa phrase : la leçon du
+         11 septembre, où un refus sans mot juste a fait réclamer un mot de passe à quelqu'un
+         dont tout marchait. */
+      toast(pieceMotifTexte(dep.motif),7000);
+    } };
   r.readAsDataURL(f); }
-function intDocOpen(id,ix){ const i=db.interventions.find(x=>x.id===id); const d=i&&i.docs&&i.docs[ix]; if(!d) return;
-  if(!d.data){ toast('Cette pièce est restée sur l\'appareil qui l\'a jointe — trop lourde pour être partagée'); return; }   // allégée par syncAlleger
-  try{ const bin=atob(d.data.split(',')[1]); const arr=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++)arr[k]=bin.charCodeAt(k);
+/* Une phrase par motif, et une seule qui reste vague — celle qu'on n'a pas su nommer. */
+function pieceMotifTexte(m){
+  switch(m){
+    case 'reseau': return "📶 Document gardé sur cet appareil : pas de réseau. Il partira à la prochaine occasion.";
+    case 'plein': return "⚠️ Document gardé ici : l'espace de pièces jointes de l'entreprise est plein. Préviens TEAM OP.";
+    case 'trop-nombreuses': return "⚠️ Document gardé ici : trop de pièces enregistrées pour l'entreprise. Préviens TEAM OP.";
+    case 'plein-global': case 'disque': return "⚠️ Document gardé ici : le serveur n'a plus de place. Préviens TEAM OP.";
+    case 'trop-gros': return "⚠️ Document gardé sur cet appareil : trop lourd pour être partagé.";
+    case 'quota': return "⏳ Document gardé ici : trop d'envois cette heure-ci. Il partira plus tard.";
+    case 'ferme': return "⛔ Document gardé ici : l'espace de l'entreprise est fermé.";
+    case 'cle': case 'repli': case 'sans-espace': return "⚠️ Document gardé sur cet appareil : il n'est rattaché à aucun espace d'entreprise.";
+    default: return "⚠️ Document gardé sur cet appareil : il n'a pas pu être partagé.";
+  } }
+/* ⛔ TROIS ÉTATS, JAMAIS DEUX. Avant ce chantier, un document sans `data` ne pouvait être
+   qu'une chose : resté sur l'appareil qui l'a joint. Maintenant il peut aussi être SUR LE
+   SERVEUR — et un échec de réseau ne veut dire NI l'un NI l'autre. Confondre « je n'ai pas
+   pu savoir » avec « ça n'existe plus », c'est la dette du 11 septembre ; elle ne se
+   reproduit pas ici. */
+async function intDocOpen(id,ix){ const i=db.interventions.find(x=>x.id===id); const d=i&&i.docs&&i.docs[ix]; if(!d) return;
+  let clair=d.data;
+  if(!clair&&d.pid){
+    toast('⬇️ Téléchargement…',1500);
+    const r=await pieceLire(d.pid);
+    if(r&&r.dataUrl) clair=r.dataUrl;
+    else if(r&&r.absente){ toast('⛔ Ce document a été supprimé du serveur.',6000); return; }
+    else { toast("📶 Impossible de récupérer ce document pour l'instant — réessaie quand tu auras du réseau.",6000); return; }
+  }
+  if(!clair){ toast('Cette pièce est restée sur l\'appareil qui l\'a jointe — trop lourde pour être partagée'); return; }   // allégée par syncAlleger, sans identifiant
+  try{ const bin=atob(clair.split(',')[1]); const arr=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++)arr[k]=bin.charCodeAt(k);
     const url=URL.createObjectURL(new Blob([arr],{type:d.type||'application/octet-stream'})); window.open(url,'_blank'); }catch(e){ toast('Ouverture impossible'); } }
-function intDocDel(id,ix){ if(!confirm('Supprimer ce document ?')) return; const i=db.interventions.find(x=>x.id===id); i.docs.splice(ix,1); save(); renderIntDetail(id); }
+/* ⛔ SUPPRIMER RETIRE AUSSI LA PIÈCE DU SERVEUR. Sans ça le stockage est un cliquet : le
+   document disparaît de l'écran et reste sur le VPS pour toujours, sous un identifiant que
+   plus rien ne référence. L'échec du retrait distant n'annule PAS la suppression locale —
+   l'utilisateur a demandé à supprimer, on supprime ; le ménage du serveur se rattrapera. */
+function intDocDel(id,ix){ if(!confirm('Supprimer ce document ?')) return; const i=db.interventions.find(x=>x.id===id);
+  const pid=(i.docs[ix]||{}).pid; i.docs.splice(ix,1); save(); renderIntDetail(id);
+  if(pid) pieceSupprimer(pid); }
 function intComAdd(id){ const inp=$('com-new'); const v=(inp&&inp.value||'').trim(); if(!v) return; const i=db.interventions.find(x=>x.id===id); if(!i) return;
   i.comments=i.comments||[]; i.comments.push({ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',txt:v.slice(0,300)}); save(); renderIntDetail(id); }
 function intComDel(id,ix){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.comments) return; i.comments.splice(ix,1); save(); renderIntDetail(id); }
