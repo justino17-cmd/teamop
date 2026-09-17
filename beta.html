@@ -134,6 +134,23 @@
   .topbar-brand{display:none;} .topbar-ava{display:none;} .page-head{display:none;}
   #sync-btn.spin svg{animation:syncspin 1s linear infinite;}
   @keyframes syncspin{to{transform:rotate(360deg)}}
+  /* ⛔ LA ROTATION EST UN CONFORT, PAS LE MESSAGE. Sans elle, l'état reste lisible : c'est la
+     COULEUR du point et le `title` qui portent le sens, jamais le mouvement seul. */
+  @media (prefers-reduced-motion: reduce){ #sync-btn.spin svg{animation:none} }
+  /* Le point d'état : un seul pixel d'information, mais à l'endroit où l'œil passe déjà.
+     ⛔ Il ne parle JAMAIS par la seule couleur — le `title` du bouton dit la même chose en
+     toutes lettres, et le texte de Paramètres → Synchroniser aussi. */
+  /* ⛔ SUR DES CLASSES, PAS SUR L'IDENTIFIANT. Écrit d'abord en « #sync-btn .sync-pt », ce style
+     ne s'appliquait qu'à un seul nœud nommé : impossible à éprouver ailleurs que sur lui, et
+     silencieusement mort au premier renommage. Mesuré le 17 septembre 2026 — la sonde navigateur
+     n'a pas pu montrer les trois points tant que le sélecteur tenait à un nom.
+     C'est la règle du dépôt appliquée au CSS : un style qui ne tient qu'à un nom finit par
+     mentir sur ce qu'il fait. */
+  .sync-pt{position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;
+    border:2px solid var(--toolbar,var(--bg2));box-sizing:content-box;display:none}
+  .st-attente>.sync-pt{display:block;background:var(--org)}
+  .st-bloque >.sync-pt{display:block;background:var(--red)}
+  .st-ajour  >.sync-pt{display:block;background:var(--acc)}
   .ph-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
   .ph-title{font-family:'Archivo',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.4px;}
   .ph-sub{font-size:13px;color:var(--t3);margin-top:3px;}
@@ -2267,6 +2284,17 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .btn.danger{background:var(--danger-bg)!important;color:var(--danger-ink)!important}
 .btn.danger:hover{background:var(--red)!important;color:#FFFFFF!important}
 .btn:disabled,.btn[aria-disabled=true]{opacity:.45;cursor:not-allowed;transform:none!important}
+/* ⛔ L'ACCUSÉ DE RÉCEPTION NE PASSE PAS PAR `disabled`. La règle juste au-dessus efface un
+   bouton désactivé à 45 % — soit exactement l'inverse de ce qu'on veut d'une confirmation, qui
+   doit être la chose la PLUS lisible de l'écran à cet instant. On coupe donc l'interaction par
+   `pointer-events`, ce qui ne déclenche aucun style d'inactif, et on force l'opacité pleine.
+   Pas d'animation : le changement de mot et de couleur suffit, et il se voit au soleil. */
+.btn.btn-fait,html[data-refonte] .btn.btn-fait{background:var(--acc2)!important;color:var(--on-acc,#FFFFFF)!important;
+  opacity:1!important;pointer-events:none;transform:none!important;box-shadow:none!important}
+/* Occupé : même raison de ne pas passer par `disabled` — il faut rester LISIBLE. On assombrit
+   d'un cran, sans descendre au gris d'inactif : le bouton travaille, il n'est pas éteint. */
+.btn.btn-occupe,html[data-refonte] .btn.btn-occupe{background:var(--acc2)!important;color:var(--on-acc,#FFFFFF)!important;
+  opacity:.88!important;pointer-events:none;transform:none!important;box-shadow:none!important;cursor:progress}
 .bell,.menu-btn,.modal-close{background:var(--tint-gris)!important;color:var(--t2)!important;border:0!important;border-radius:50%!important;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
 .bell:hover,.menu-btn:hover,.modal-close:hover{background:var(--hover)!important;color:var(--t1)!important}
@@ -4719,7 +4747,7 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
       </div>
       <div class="gsrch" onclick="event.stopPropagation()"><span style="display:inline-flex;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input id="gsrch-in" placeholder="Rechercher client, intervention, chantier…" oninput="gsearch(this.value)" onfocus="gsearch(this.value)"><div id="gsrch-res"></div></div>
       <div class="topbar-actions" id="topbar-actions"></div>
-      <button class="bell" id="sync-btn" onclick="syncNow()" title="Synchroniser"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+      <button class="bell" id="sync-btn" onclick="syncNow()" title="Synchroniser"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span class="sync-pt" aria-hidden="true"></span></button>
       <button class="bell" id="theme-btn" onclick="toggleTheme(event)" title="Mode jour / sombre"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <div class="topbar-bell">
         <button class="bell" onclick="toggleNotif(event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bell-count" id="bell-count" style="display:none">0</span></button>
@@ -4955,7 +4983,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '695-beta';
+const APP_VERSION = '700-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6482,6 +6510,9 @@ let _fbFileSaturee=false;   /* la file d'écriture Firestore a saturé : une seu
    soit soit parti, et disait donc exactement la même chose pendant que le quota Firebase
    bloquait toutes les écritures (11 septembre 2026). */
 let _pushManuel=false;
+/* Quand l'équipe a reçu notre travail pour la dernière fois. C'est la seule chose que la
+   personne veut vraiment savoir devant ce bouton — pas « la synchro est-elle activée ». */
+let _syncDernierOk=0,_syncEnCours=false;
 /* Version minimale exigée par TeamOP (Tour de contrôle). Et une décision sans option : l'application
    ne travaille QU'EN LIGNE (Justin, 9 septembre 2026 : « le mode hors ligne crée trop de problèmes,
    on l'oublie complètement »). La v616 gardait un interrupteur d'urgence dans la Tour ; il est retiré
@@ -7099,9 +7130,106 @@ const NUAGE_ENC_MAX=780*1024;
 function nuageDocOctets(n){ return Math.ceil((n+16)/3)*4; }
 /* Une seule fois par session : voir la branche « impossible » de syncPush. */
 let _lourdDit=false;
+/* ⚠️ CE BLOC EST ICI, ET PAS À CÔTÉ DE `pieceDeposer`, POUR UNE RAISON PRÉCISE.
+   `PH_MARQUE` est un `const` : il n'est pas hissé, il a une zone morte temporelle.
+   `syncSortirPieces`, juste en dessous, s'en sert. Le laisser plus bas dans le fichier
+   « marchait » par chance — la fonction n'est appelée qu'à la synchro, donc bien après que
+   le script a fini de s'exécuter. Ce dépôt a déjà payé ce pari une fois : une zone morte
+   temporelle a rendu tout le rangement de catégories silencieusement inopérant, le
+   10 septembre au matin (CLAUDE.md). On ne s'appuie donc pas sur l'ordre des appels, on
+   rend l'ordre du FICHIER juste. `tests/test-714.js` le vérifie mécaniquement. */
+/* ══ UNE PHOTO PORTE SON IDENTIFIANT DANS SA PROPRE CHAÎNE ═════════════════════════
+   Point 5 de l'étape 0, et le choix de format est TOUT le problème — pas le réseau.
+
+   `i.photos` est un tableau de CHAÎNES (des data URL), pas d'objets : il n'y a nulle part où
+   poser un identifiant. Les deux évidences ne marchent pas :
+   • un tableau parallèle (`photoPids[ix]`) désynchronise, parce que `syncAlleger` RETIRE une
+     photo du tableau (`x.photos[k]=null` puis `.filter(v=>v!==null)`) au lieu de la vider sur
+     place comme un document — tous les index glissent, et l'identifiant désigne la voisine.
+     ⚠️ Le dépôt en porte déjà la trace : `intPhotoDel` fait `i.photos.splice(ix,1)` sans
+     toucher à `i.photoTags`, donc les étiquettes glissent déjà aujourd'hui — un tableau
+     parallèle de plus aurait hérité du même défaut ;
+   • passer `photos` en objets casserait les six endroits qui mettent la chaîne directement
+     dans un `<img src>` ou dans un PDF.
+
+   Donc : L'IDENTIFIANT VIT DANS LA CHAÎNE. Une photo est
+     "data:image/jpeg;base64,…"                      — comme aujourd'hui, locale seulement
+     "piece:<64 hex>:data:image/jpeg;base64,…"        — déposée, contenu encore là
+     "piece:<64 hex>"                                 — déposée, contenu à aller chercher
+   L'identifiant faisant exactement 64 hexadécimaux, la découpe est sans ambiguïté même si le
+   data URL contient des `:`. Aucun tableau parallèle, donc aucune désynchronisation POSSIBLE :
+   supprimer une photo emporte son identifiant, par construction. */
+const PH_MARQUE=/^piece:([0-9a-f]{64})(?::([\s\S]*))?$/;
+function photoPid(ph){ const m=PH_MARQUE.exec(String(ph||'')); return m?m[1]:''; }
+/* Ce qu'on met dans un `<img src>` ou dans un PDF. Rend '' quand le contenu n'est pas là :
+   un `<img src="">` ne charge rien et ne casse pas la page, là où `src="piece:abc…"` déclencherait
+   une requête vers un schéma inconnu. */
+function photoSrc(ph){ const t=String(ph||''); const m=PH_MARQUE.exec(t); return m?(m[2]||''):t; }
+function photoMarquer(pid,data){ return pid?('piece:'+pid+(data?(':'+data):'')):String(data||''); }
+/* ⛔ RÉSOUDRE NE SAUVEGARDE JAMAIS. « Rien ne s'écrit dans les données d'une entreprise au seul
+   chargement » (CLAUDE.md) : on remplit le contenu EN MÉMOIRE pour l'afficher, et on laisse la
+   base telle qu'elle est arrivée. La pièce vit sur le VPS ; la recopier dans la base la
+   ferait repartir dans le document de l'équipe à la première écriture, ce qui déferait tout
+   le chantier sans que rien ne le signale. */
+/* ✅ MESURÉ AU NAVIGATEUR le 17 septembre 2026, sur cette fonction-ci, dans un vrai Chromium :
+   résolution d'une photo de 180 Ko en 11 ms, identique à elle-même (245 783 octets reçus =
+   attendus), la photo SANS identifiant laissée intacte à côté. Détail et banc reproductible :
+   `scratchpad/sonde-pieces-navigateur.md`. */
+async function photosResoudre(liste){
+  if(!Array.isArray(liste)) return 0;
+  let n=0;
+  for(let k=0;k<liste.length;k++){
+    const m=PH_MARQUE.exec(String(liste[k]||''));
+    if(!m||m[2]) continue;                 // pas un marqueur, ou contenu déjà présent
+    const r=await pieceLire(m[1]);
+    if(r&&r.dataUrl){ liste[k]=photoMarquer(m[1],r.dataUrl); n++; }
+  }
+  return n;
+}
+/* ══ UN DOCUMENT QUI EST SUR LE SERVEUR N'A PLUS À VOYAGER DANS LE DOCUMENT FIRESTORE ════
+   C'est le gain de l'étape 0, et il est structurel : ce qui a un `pid` est en sûreté sur le
+   VPS, donc sa copie base64 dans le document de l'équipe ne sert plus qu'à consommer le
+   plafond de 1 Mio. Mesuré : une pièce jointe de 1,5 Mo pèse 2 Mo de base64 — à elle seule,
+   le double du plafond entier.
+
+   ⛔ DEUX GARDES, ET AUCUNE N'EST OPTIONNELLE :
+   1. On ne vide QUE ce qui porte un `pid`. Sans identifiant, le clair est le seul exemplaire
+      qui existe : le vider serait une perte de données, pas un allègement.
+   2. LA BASE LOCALE N'EST JAMAIS TOUCHÉE. On travaille sur des copies, même discipline que
+      `syncAlleger` — ce que l'appareil a pris reste sur l'appareil.
+
+   ⚠️ Ce que voit un appareil en VIEILLE version : un document sans `data`, donc le message
+   « restée sur l'appareil qui l'a jointe » qu'il affiche déjà aujourd'hui pour tout document
+   allégé. Pas de plantage, pas d'écran cassé — et la Tour exige la version, donc le parc
+   suit. C'est l'ordre du dépôt : les appareils d'abord, la porte ensuite. */
+function syncSortirPieces(base){
+  let copie=base, n=0;
+  try{
+    Object.keys(base||{}).forEach(c=>{ if(!Array.isArray(base[c])) return;
+      base[c].forEach((r,ix)=>{
+        if(!r||typeof r!=='object') return;
+        const docsASortir=Array.isArray(r.docs)&&r.docs.some(d=>d&&d.pid&&d.data);
+        /* Une photo déposée porte son identifiant DANS sa chaîne : on ne garde que lui. */
+        const phASortir=Array.isArray(r.photos)&&r.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&m[2]; });
+        if(!docsASortir&&!phASortir) return;
+        if(copie===base) copie=Object.assign({},base);
+        if(copie[c]===base[c]) copie[c]=base[c].slice();
+        const x=Object.assign({},r);
+        if(docsASortir) x.docs=r.docs.map(d=>{ if(!d||!d.pid||!d.data) return d;
+          n++; return Object.assign({},d,{data:'',surServeur:true}); });
+        if(phASortir) x.photos=r.photos.map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
+          if(!m||!m[2]) return ph; n++; return 'piece:'+m[1]; });
+        copie[c][ix]=x;
+      }); });
+  }catch(e){ return {copie:base,sorties:0}; }
+  return {copie:copie,sorties:n};
+}
 function syncAlleger(base, budget){
   const B=budget||(typeof NUAGE_BUDGET!=='undefined'?NUAGE_BUDGET:696320);
   const taille=s=>{ try{ return new TextEncoder().encode(s).length; }catch(e){ return s.length; } };
+  /* ⛔ AVANT DE MESURER, et pas après : ce qui est sur le serveur ne doit pas peser dans la
+     décision. Mesurer d'abord ferait alléger des documents qui n'en avaient pas besoin. */
+  { const sp=syncSortirPieces(base); base=sp.copie; }
   let t=0; try{ t=taille(JSON.stringify(base)); }catch(e){ return {copie:base,retirees:0,taille:0,impossible:false,gros:[],parColl:[]}; }
   if(t<=B) return {copie:base,retirees:0,taille:t,impossible:false,gros:[],parColl:[]};
   /* TOUTES les collections, pas seulement les interventions : le poids peut être une signature
@@ -7197,6 +7325,11 @@ function syncAlleger(base, budget){
    de juger tenir dans le budget. Une seule compression = un seul instantané, jugé et écrit. */
 async function syncAllegerNuage(base){
   if(!gzipPossible()) return syncAlleger(base);
+  /* ⛔ LE MÊME GESTE ICI, et il est facile à oublier : ce chemin-ci mesure la base AVANT
+     d'appeler `syncAlleger`, et rend tôt quand ça tient. Sans cette ligne, une base qui tient
+     dans le budget partirait avec toutes ses pièces jointes en base64 — c'est-à-dire le cas
+     NORMAL, donc le gain de l'étape 0 ne serait jamais obtenu. */
+  { const sp=syncSortirPieces(base); base=sp.copie; }
   const mesurer=async(o)=>{ let s=null; try{ s=JSON.stringify(o); }catch(e){ return null; }
     const gz=await gzipper(s); return gz?{gz:gz,doc:nuageDocOctets(gz.length),clair:s.length?new TextEncoder().encode(s).length:0}:null; };
   let m0=null; try{ m0=await mesurer(base); }catch(e){}
@@ -7216,7 +7349,10 @@ function syncRegreffer(local, fusion){ try{
     const L=new Map(); local[c].forEach(r=>{ if(r&&r.id!=null) L.set(String(r.id),r); });
     fusion[c].forEach(r=>{ if(!r||r.id==null) return; const l=L.get(String(r.id)); if(!l||l===r) return;
       if(r.photosHorsNuage>0 && Array.isArray(l.photos) && l.photos.length>((r.photos&&r.photos.length)||0)){ r.photos=l.photos.slice(); n++; }
-      if(Array.isArray(r.docs)&&Array.isArray(l.docs)) r.docs.forEach(d=>{ if(!d||!d.horsNuage||d.data) return;
+      /* `surServeur` autant que `horsNuage` : l'appareil qui A le fichier l'affiche tout de
+         suite au lieu d'aller le rechercher — sur le terrain, c'est la différence entre voir
+         le document et attendre un réseau qu'on n'a pas. */
+      if(Array.isArray(r.docs)&&Array.isArray(l.docs)) r.docs.forEach(d=>{ if(!d||d.data||!(d.horsNuage||d.surServeur)) return;
         const ld=l.docs.find(x=>x&&x.data&&x.nom===d.nom&&x.ts===d.ts); if(ld){ d.data=ld.data; n++; } });
       (Array.isArray(r.champsHorsNuage)?r.champsHorsNuage:[]).forEach(f=>{ if(!r[f]&&typeof l[f]==='string'&&l[f]){ r[f]=l[f]; n++; } });
     }); });
@@ -7231,7 +7367,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
   /* — et la quatrième depuis la v690 : on n'a pas su LIRE le document de l'équipe parce qu'il est
      compressé et que ce navigateur ne sait pas décompresser. Écrire ici, c'est écraser. */
   if(_nuageIllisible) return;
-  if(_horsLigne){ _horsLignePush=true; return; }
+  if(_horsLigne){ _horsLignePush=true; try{ updateSyncBtn(); }catch(_e){} return; }
   const go=async()=>{ try{
     /* ON RELIT AVANT D'ÉCRIRE. Entre notre dernière réception et cet instant, un autre
        appareil a pu créer des comptes ; écrire notre base telle quelle les effacerait. Une
@@ -7377,7 +7513,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
       try{ const c2=new AbortController(); const t2=setTimeout(()=>c2.abort(),6000);
         const r2=await fetch(PUSH_API+'/health',{method:'HEAD',cache:'no-store',signal:c2.signal}); clearTimeout(t2); reseau=!!(r2&&r2.ok); }catch(_e){}
       if(_acquitte) return;
-      if(!reseau){ _horsLignePush=true; try{ horsLigneDebut('écriture sans réponse'); }catch(_e){} return; }
+      if(!reseau){ _horsLignePush=true; _syncEnCours=false; try{ updateSyncBtn(); }catch(_e){} try{ horsLigneDebut('écriture sans réponse'); }catch(_e){} return; }
       try{ console.warn('synchro : écriture non acquittée en 15 s alors que le réseau répond — base '+Math.round(alle.taille/1024)+' Ko'+(alle.gros&&alle.gros.length?' · plus lourds : '+alle.gros.join(', '):'')); }catch(_e){}
       _alerte=true;
       try{ toast('⚠️ Tes modifications ne partent pas encore vers l\'équipe — elles sont enregistrées sur cet appareil',7000); }catch(_e){}
@@ -7398,8 +7534,13 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
       if(_alerte){ try{ toast('✅ C\'est parti — l\'équipe a bien reçu tes modifications',5000); }catch(_e){} }
       else if(_pushManuel){ try{ toast('✅ Synchronisé avec l\'équipe',4000); }catch(_e){} }
       _pushManuel=false;
+      /* ⛔ C'EST ICI, ET NULLE PART AILLEURS, QU'UN ENVOI EST RÉUSSI. Poser cette date au
+         moment du clic aurait redonné le défaut que le commentaire de syncNow décrit : un
+         écran qui annonce un résultat qu'il n'a pas. */
+      _syncDernierOk=Date.now(); _horsLignePush=false; _syncEnCours=false;
+      try{ updateSyncBtn(); }catch(_e){}
       try{ sauvegardeDeposer(e); }catch(_e){} })
-      .catch(er=>{ _acquitte=true; _pushManuel=false; console.error('push',er);
+      .catch(er=>{ _acquitte=true; _pushManuel=false; _syncEnCours=false; try{ updateSyncBtn(); }catch(_e){} console.error('push',er);
         /* L'écriture n'a PAS eu lieu : le repère ne doit pas rester en avant, sinon on ignore
            les publications de toute l'équipe (voir le bloc ⛔ au-dessus de `_tsAvant`). */
         try{ if(_syncTs===ts) _syncTs=_tsAvant; }catch(_e){}
@@ -7437,6 +7578,101 @@ function syncRetraitVoulu(){ _retraitVoulu=Date.now(); }
    manque, on ne touche pas à ce qui existe, l'équipe garde ce qu'elle a fait depuis. */
 let _sauvDernier=0;
 async function sauvKh(){ const t=localStorage.getItem('elanB_sync_team'), k=localStorage.getItem('elanB_sync_secret'); if(!t||!k) return null; return {t:t,kh:await sha256(k)}; }
+/* ══ ÉTAPE 0 DU SOCLE : UNE PIÈCE JOINTE VIT SUR LE SERVEUR, PAS DANS LE DOCUMENT ══════════
+   Justin, 16 septembre 2026 : « Les pièces jointes → ton VPS ». Aujourd'hui `syncAlleger` RETIRE
+   les pièces et les photos de la copie poussée pour tenir sous le plafond de 1 Mio d'un document
+   Firestore : elles restent sur l'appareil qui les a prises et ne sont JAMAIS partagées. Un
+   technicien photographie un poste, son collègue ne verra jamais la photo. Organilog, lui, VEND
+   ce stockage — 100 Go à 19 € par utilisateur et par mois (`COMMENT-FONT-LES-AUTRES.md`).
+
+   Le corps est CHIFFRÉ ICI, avec la clé de l'équipe, par `syncEncrypt` — le même chemin que la
+   base et que les copies de sauvegarde. Le serveur range un bloc qu'il ne lit pas.
+   ⛔ `z` VOYAGE AVEC : `syncEncrypt` compresse avant de chiffrer. Sans ce drapeau, la relecture
+   déchiffre parfaitement puis passe des octets gzip à `TextDecoder` — du charabia, PAS une
+   erreur. `tests/test-711.js` l'éprouve côté serveur.
+
+   ⛔ TROIS ÉTATS, JAMAIS DEUX — la leçon de `_mailboxes` et `_mailReplies`, paruée le
+   11 septembre. Une pièce est : rendue, ABSENTE pour de bon (le serveur dit 404), ou
+   « on n'a pas pu savoir » (réseau, clé, entreprise fermée). Les confondre ferait dire
+   « cette photo n'existe plus » à quelqu'un qui est simplement hors réseau — et sur le terrain,
+   hors réseau est la situation NORMALE. `pieceLire` rend donc {dataUrl} | {absente:true} |
+   {inconnu:true, motif}, jamais une chaîne nue. */
+/* ⛔ LA LIMITE QUI COMPTE EST CELLE DU CHIFFRÉ, ET ELLE SE MESURE — elle ne se devine pas.
+   Premier jet : on comparait le CLAIR à `3 Mio × 4/3`, ce qui suppose que gzip a fonctionné
+   (facteur net ×1,34, mesuré). Sur un navigateur sans `CompressionStream` (Safari d'avant
+   16.4), gzip n'a PAS lieu : les deux expansions base64 s'empilent vraiment, le facteur devient
+   ×1,78, et une photo de 3 Mio produit ~5,3 Mio de chiffré — acceptée ici, refusée là-bas
+   après être montée en 4G. On garde donc un pré-contrôle large (pour ne pas chiffrer 10 Mo
+   pour rien) et on RE-CONTRÔLE la taille réelle du chiffré contre la même constante que le
+   serveur. */
+const PIECE_CLAIR_MAX=3*1024*1024;   // pré-contrôle large, avant chiffrement
+const PIECE_ENC_MAX=4*1024*1024;     // ≡ PIECE_MAX_B64 dans server/pieces.js
+const _pieceCache=new Map();         // id → dataUrl, pour la session : une photo ouverte deux fois ne se retire qu'une
+/* Rend {id} quand c'est parti, sinon {erreur:true, motif} — JAMAIS une exception, et jamais
+   `null` tout court : l'appelant doit pouvoir dire à l'utilisateur POURQUOI ça n'est pas parti,
+   sans quoi on retombe sur « erreur » générique, qui n'aide personne. */
+/* ⛔ INVARIANT POUR QUI BRANCHERA CECI SUR UN ÉCRAN : ne JAMAIS remplacer ni effacer la
+   donnée locale (le data URL) avant d'avoir reçu un {id}. Un depôt peut échouer pour six
+   raisons dont cinq sont temporaires ; écraser le clair avant la confirmation, c'est perdre la
+   photo d'un technicien parce qu'il était dans une cave. Le clair reste, l'identifiant s'ajoute. */
+/* ✅ MESURÉ AU NAVIGATEUR le 17 septembre 2026 : dépôt d'une photo de chantier de 180 Ko en
+   49 ms (gzip + PBKDF2 120 000 tours + AES-GCM + réseau), relecture serveur en 15 ms, identique
+   octet pour octet, gonflement réel ×1,34 — exactement le facteur calculé hors navigateur.
+   Les trois états éprouvés en coupant vraiment le réseau : réseau coupe → `inconnu`, jamais
+   `absente`. Banc reproductible : `scratchpad/sonde-pieces-navigateur.md`. */
+async function pieceDeposer(dataUrl){
+  const d=String(dataUrl||''); if(!d) return {erreur:true,motif:'vide'};
+  if(d.length>PIECE_CLAIR_MAX*16/9) return {erreur:true,motif:'trop-gros'};   // large : le cas sans gzip
+  const c=await sauvKh(); if(!c) return {erreur:true,motif:'sans-espace'};
+  let e=null; try{ e=await syncEncrypt(d); }catch(_e){}
+  if(!e||!e.enc) return {erreur:true,motif:'chiffrement'};
+  /* La vraie limite, sur la vraie taille : même nombre des deux côtés, et on évite de faire
+     monter en 4G une pièce dont on sait déjà qu'elle sera refusée. */
+  if(e.enc.length>PIECE_ENC_MAX) return {erreur:true,motif:'trop-gros'};
+  try{
+    const r=await fetch(PUSH_API+'/api/pieces/deposer',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({t:c.t,kh:c.kh,iv:e.iv,enc:e.enc,z:(e.z?1:0)})});
+    let j=null; try{ j=await r.json(); }catch(_e){}
+    if(!r.ok||!j||!j.id) return {erreur:true,motif:(j&&j.motif)||'reseau',message:(j&&j.error)||''};
+    _pieceCache.set(j.id,d);
+    return {id:j.id,octets:j.octets,plafond:j.plafond};
+  }catch(_e){ return {erreur:true,motif:'reseau'}; }
+}
+/* Retire une pièce du serveur. Rend true si elle n'y est plus (effacée, ou déjà absente — le
+   résultat voulu est le même), false si on n'a pas pu savoir. L'appelant ne doit JAMAIS faire
+   dépendre une suppression locale de ce retour : l'utilisateur a demandé à supprimer, on
+   supprime ; le ménage du serveur se rattrape. */
+async function pieceSupprimer(id){
+  const i=String(id||''); if(!/^[0-9a-f]{64}$/.test(i)) return false;
+  const c=await sauvKh(); if(!c) return false;
+  try{
+    const r=await fetch(PUSH_API+"/api/pieces/supprimer",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({t:c.t,kh:c.kh,id:i})});
+    _pieceCache.delete(i);
+    return r.ok||r.status===404;
+  }catch(e){ return false; }
+}
+/* ⛔ LA DISTINCTION QUI COMPTE EST ENTRE 404 ET TOUT LE RESTE. Un 404 dit « cette pièce n'est
+   plus là » et c'est un fait. Un échec réseau, une clé refusée, une entreprise fermée ne
+   disent RIEN sur la pièce — et l'écran ne doit surtout pas les traduire en « supprimée ». */
+async function pieceLire(id){
+  const i=String(id||''); if(!/^[0-9a-f]{64}$/.test(i)) return {inconnu:true,motif:'identifiant'};
+  if(_pieceCache.has(i)) return {dataUrl:_pieceCache.get(i)};
+  const c=await sauvKh(); if(!c) return {inconnu:true,motif:'sans-espace'};
+  let r=null;
+  try{ r=await fetch(PUSH_API+'/api/pieces/lire',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({t:c.t,kh:c.kh,id:i})}); }catch(_e){ return {inconnu:true,motif:'reseau'}; }
+  if(r.status===404) return {absente:true};
+  if(!r.ok){ let j=null; try{ j=await r.json(); }catch(_e){} return {inconnu:true,motif:(j&&j.motif)||'refus'}; }
+  let j=null; try{ j=await r.json(); }catch(_e){}
+  if(!j||!j.enc) return {inconnu:true,motif:'reponse'};
+  let clair=null; try{ clair=await syncDecrypt({iv:j.iv,enc:j.enc,salt:SYNC_SALT,z:j.z}); }catch(_e){}
+  /* `syncDecrypt` rend `null` pour TROIS causes distinctes — clé étrangère, bloc abîmé,
+     navigateur sans décompression. Aucune ne veut dire « la pièce n'existe pas ». */
+  if(clair===null) return {inconnu:true,motif:(j.z&&!gzipPossible())?'sans-decompression':'dechiffrement'};
+  _pieceCache.set(i,clair);
+  return {dataUrl:clair};
+}
 async function sauvegardeDeposer(e){
   if(BETA_ESSAI||!e||!e.enc) return;
   if(Date.now()-_sauvDernier<1800000) return; _sauvDernier=Date.now();
@@ -8166,6 +8402,63 @@ function toastAnnuler(msg,appel,ms){
   /* 7 s par défaut — assez pour se dédire d'un geste sur une box. Une pose sur douze box passe 20 s :
      le temps de comprendre ce qui vient d'arriver avant que le seul moyen de revenir en arrière parte. */
   t._t=setTimeout(()=>{ t.classList.remove('show'); t.innerHTML=''; },ms||7000);
+}
+/* ⛔ UN BOUTON QUI NE CHANGE PAS N'A PAS ACCUSÉ RÉCEPTION — et le toast ne le remplace pas.
+   Demande de Justin, 17 septembre 2026, capture à l'appui : « quand on valide les droits il
+   faudrait qu'une fois cliqué dessus ça mette droits validés », puis, tout de suite après :
+   « tu vois ça pour tous les boutons qu'on valide ou autre ». D'où un MÉCANISME, pas un cas
+   particulier.
+   Le toast existait déjà sur ces gestes. Il ne suffit pas, pour trois raisons mesurables : il
+   s'affiche AILLEURS que sous le doigt (donc hors du point que l'œil regarde), il dure 2 à 3 s,
+   et sur un chantier — écran au soleil, une main, parfois un gant — on relâche sans savoir si
+   le tap a porté. Alors on retape. Sur « Valider ses droits », retaper est sans dommage ; sur
+   un geste qui écrit, ça ne l'est pas. Le bouton dit donc lui-même ce qui vient de se passer,
+   À L'ENDROIT EXACT où on a appuyé.
+   ⚠️ `ms` n'est pas un délai d'animation : c'est le temps pendant lequel la confirmation reste
+   lisible. Ne pas le descendre sous ~1,2 s — c'est le temps qu'il faut pour remonter les yeux
+   sur le bouton après avoir regardé ailleurs. */
+function btnFait(el,texte,ms){
+  if(!el||el.nodeType!==1) return false;
+  if(el._faitT) return false;                       /* déjà confirmé : un second tap ne relance rien */
+  const large=Math.ceil(el.getBoundingClientRect().width);
+  el._faitHtml=el.innerHTML;
+  /* La largeur est FIGÉE avant l'échange : « ✓ Valider ses droits » et « ✓ Droits validés »
+     n'ont pas la même longueur, et un bouton qui rétrécit sous le doigt déplace ce qu'il y a
+     autour — on lit alors un mouvement au lieu de lire une confirmation. */
+  if(large) el.style.minWidth=large+'px';
+  el.innerHTML='✓ '+esc(texte);
+  el.classList.add('btn-fait');
+  el._faitT=setTimeout(()=>{
+    el._faitT=null;
+    /* La vue a pu être redessinée entre-temps : ce bouton-ci n'est plus à l'écran, il n'y a
+       rien à remettre en état, et y toucher réveillerait un nœud détaché pour rien. */
+    if(!el.isConnected) return;
+    el.innerHTML=el._faitHtml; el.style.minWidth=''; el.classList.remove('btn-fait');
+  },ms||1600);
+  return true;
+}
+/* ⛔ ET LE PIRE MOMENT N'EST PAS APRÈS, C'EST PENDANT. Entre le tap et la réponse du serveur
+   il se passe parfois plus d'une seconde — `identifiantsDeposer` fait un aller-retour réseau —
+   et pendant tout ce temps le bouton ne dit RIEN. Alors on retape. C'est le même défaut que
+   celui que Justin a décrit, vu de l'autre côté : un écran qui ne dit pas ce qu'il est en train
+   de faire est un écran qui ne dit pas ce qu'il a fait.
+   Rend une fonction qui relâche le bouton, à appeler dans TOUS les cas — succès comme échec,
+   sinon un refus laisserait le bouton mort et la personne bloquée devant sa fenêtre. */
+function btnOccupe(el,texte){
+  if(!el||el.nodeType!==1||el._occupe||el._faitT) return ()=>{};
+  const large=Math.ceil(el.getBoundingClientRect().width);
+  const html=el.innerHTML;
+  if(large) el.style.minWidth=large+'px';
+  el.innerHTML=esc(texte||'Enregistrement…');
+  el.classList.add('btn-occupe'); el._occupe=true;
+  return ()=>{
+    el._occupe=false;
+    if(!el.isConnected) return;
+    /* On remet le libellé d'origine AVANT que btnFait ne prenne éventuellement le relais :
+       les deux écritures étant synchrones, le navigateur ne peint pas entre les deux — il n'y
+       a donc aucun clignotement, et btnFait capture bien le vrai libellé à restaurer. */
+    el.innerHTML=html; el.style.minWidth=''; el.classList.remove('btn-occupe');
+  };
 }
 function openModal(html,taille){ const m=$('modal');
   if(taille==='carte'){ m.className='modal carte'; $('overlay').classList.remove('full'); $('overlay').classList.add('centre'); }
@@ -15707,7 +16000,7 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
     body=`<div class="form-sec" style="margin-top:0">4 · Photos avant / après</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:9px;margin-bottom:10px">
       <div onclick="document.getElementById('as-file').click()" style="aspect-ratio:1;border-radius:12px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-weight:800;font-size:12px"><span style="font-size:28px">＋</span>Photo</div>
-      ${rapPhotos.map((p,ix)=>{ const tg=rapTags[ix]||'';
+      ${rapPhotos.map((p,ix)=>{ const tg=rapTags[ix]||''; p=photoSrc(p);
         return `<div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--brd)"><img src="${p}" style="width:100%;height:100%;object-fit:cover">
         <button type="button" onclick="rapPhotos.splice(${ix},1);rapTags.splice(${ix},1);assistRender()" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>
         <button type="button" onclick="rapTags[${ix}]='${tg==='avant'?'apres':tg==='apres'?'':'avant'}';assistRender()" style="position:absolute;left:4px;bottom:4px;border:none;border-radius:8px;padding:3px 8px;font-size:10.5px;font-weight:800;cursor:pointer;background:${tg==='avant'?'var(--org)':tg==='apres'?'var(--acc)':'rgba(0,0,0,.55)'};color:#fff">${tg==='avant'?'AVANT':tg==='apres'?'APRÈS':'étiqueter'}</button></div>`; }).join('')}
@@ -16127,6 +16420,24 @@ function fic(n,sz=18){ const P={
   trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
   scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/>' };
   return `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px">${P[n]||''}</svg>`; }
+/* ⛔ RÉSOUDRE APRÈS AVOIR AFFICHÉ, JAMAIS AVANT. L'écran doit s'ouvrir tout de suite, avec les
+   photos qu'on a déjà ; celles qui vivent sur le VPS arrivent ensuite et l'écran se redessine.
+   L'inverse ferait attendre un technicien devant un écran vide, sur un réseau de chantier —
+   et sur une fiche où tout est déjà local, l'attente serait pure perte.
+   ⛔ ET ÇA N'ÉCRIT RIEN : `photosResoudre` remplit la mémoire, pas la base. « Rien ne s'écrit
+   dans les données d'une entreprise au seul chargement » — il n'y a donc AUCUN `save()` ici,
+   et il ne faut pas en ajouter : une photo recopiée dans la base repartirait dans le document
+   de l'équipe à la première écriture, ce qui déferait tout le chantier en silence. */
+let _phEnCours=new Set();
+function intPhotosCombler(id){
+  if(_phEnCours.has(id)) return;
+  const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.photos)) return;
+  if(!i.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })) return;
+  _phEnCours.add(id);
+  photosResoudre(i.photos).then(n=>{ _phEnCours.delete(id);
+    if(n&&document.getElementById('int-detail-photos')) renderIntDetail(id); })
+   .catch(()=>{ _phEnCours.delete(id); });
+}
 function renderIntDetail(id){
   const i=db.interventions.find(x=>x.id===id); if(!i)return; window._curIntId=id;
   i.produitsUtilises=i.produitsUtilises||[]; i.equipements=i.equipements||[];
@@ -16297,18 +16608,19 @@ function renderIntDetail(id){
         <button class="btn" onclick="intAddEquip('${id}')">＋</button></div>`;
   } else if(intTab==='docs'){
     i.photos=i.photos||[];
+    intPhotosCombler(id);   // les photos qui vivent sur le VPS arrivent après coup, sans bloquer l'écran
     const sub=`<div class="tabs" style="margin-bottom:12px"><div class="tab ${fsTab==='medias'?'active':''}" onclick="fsTab='medias';renderIntDetail('${id}')">Médias</div><div class="tab ${fsTab==='sign'?'active':''}" onclick="fsTab='sign';renderIntDetail('${id}')">Signatures</div></div>`;
     if(fsTab==='medias'){
       const canDelM=intEdit&&intMediaCanDel(i);
       body=`${sub}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
-        ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${ph}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
+        ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div id="int-detail-photos" onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
+        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
       </div>
       <input type="file" id="int-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="intPhotoAdd(event,'${id}')">
       <input type="file" id="int-photo-file" accept="image/*" multiple style="display:none" onchange="intPhotoAdd(event,'${id}')">
       <div class="dt-lbl" style="margin:6px 2px 8px">Documents (PDF, plans…)</div>
-      ${i.docs.length? i.docs.map((d,ix)=>`<div class="pl-row" style="cursor:pointer" onclick="intDocOpen('${id}',${ix})"><div class="pl-info"><div class="pl-title">📄 ${esc(d.nom)}</div><div class="pl-meta">${d.ts?new Date(d.ts).toLocaleDateString('fr-FR'):''} · ${Math.round((d.data||'').length*3/4/1024)} Ko</div></div>${canDelM?`<button class="btn danger sm" onclick="event.stopPropagation();intDocDel('${id}',${ix})">✕</button>`:''}</div>`).join('') : '<p style="color:var(--t3);font-size:13px;margin-bottom:8px">Aucun document.</p>'}
+      ${i.docs.length? i.docs.map((d,ix)=>`<div class="pl-row" style="cursor:pointer" onclick="intDocOpen('${id}',${ix})"><div class="pl-info"><div class="pl-title">📄 ${esc(d.nom)}</div><div class="pl-meta">${d.ts?new Date(d.ts).toLocaleDateString('fr-FR'):''} · ${Math.round((d.octets||((d.data||'').length*3/4))/1024)} Ko${d.pid?' · ☁️':''}</div></div>${canDelM?`<button class="btn danger sm" onclick="event.stopPropagation();intDocDel('${id}',${ix})">✕</button>`:''}</div>`).join('') : '<p style="color:var(--t3);font-size:13px;margin-bottom:8px">Aucun document.</p>'}
       <input type="file" id="int-doc-file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*,application/pdf" style="display:none" onchange="intDocAdd(event,'${id}')">
       ${canDelM?'':'<p style="font-size:11px;color:var(--t3);margin-top:8px">🔒 Suppression des médias réservée (intervention terminée — droit « Supprimer » requis).</p>'}`;
     } else {
@@ -16398,7 +16710,7 @@ function renderIntDetail(id){
       <div class="card" style="margin-top:12px"><div class="card-head" style="margin-bottom:8px"><h3>Aperçu du rapport <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t3);font-size:12px">— texte envoyé au client</span></h3></div>
         <div style="white-space:pre-wrap;font-size:13px;color:var(--t2);line-height:1.6;background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:14px">${esc(genRapportTexte(i))}</div></div>
       ${champsV}
-      ${(i.photos&&i.photos.length)?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:8px">Photos</div><div style="display:flex;gap:8px;flex-wrap:wrap">${i.photos.map(p=>`<img src="${p}" onclick="window.open(this.src)" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--brd);cursor:pointer">`).join('')}</div></div>`:''}
+      ${(i.photos&&i.photos.length)?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:8px">Photos</div><div style="display:flex;gap:8px;flex-wrap:wrap">${i.photos.map(p=>`<img src="${photoSrc(p)}" onclick="window.open(this.src)" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--brd);cursor:pointer">`).join('')}</div></div>`:''}
       ${(i.signature||i.signatureTech)?`<div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap">${i.signature?`<div><div class="dt-lbl" style="margin-bottom:8px">Signature client</div><img src="${i.signature}" style="background:#fff;border-radius:8px;max-width:220px;border:1px solid var(--brd)"></div>`:''}${i.signatureTech?`<div><div class="dt-lbl" style="margin-bottom:8px">Signature technicien</div><img src="${i.signatureTech}" style="background:#fff;border-radius:8px;max-width:220px;border:1px solid var(--brd)"></div>`:''}</div>`:''}
       ${(i.montant||i.moyenPaiement||i.tpePhoto)?`<div class="card" style="margin-top:14px"><div class="card-head" style="margin-bottom:8px"><h3>Paiement</h3></div>
         ${i.montant?`<div class="frow"><span class="frow-lbl">Montant encaissé</span><div class="frow-val"><b style="color:var(--acc)">${eur(i.montant)}</b></div></div>`:''}
@@ -16669,9 +16981,21 @@ function intChronoReset(id){ const i=db.interventions.find(x=>x.id===id); if(!i)
 async function intPhotoAdd(e,id){ const files=[...(e.target.files||[])]; e.target.value=''; if(!files.length) return;
   const i=db.interventions.find(x=>x.id===id); if(!i) return; i.photos=i.photos||[];
   let n=0;
-  for(const f of files){ const d=await compressImage(f,1200,0.72); if(d){ i.photos.push(d); n++; } }
+  const rang=[];
+  for(const f of files){ const d=await compressImage(f,1200,0.72); if(d){ rang.push(i.photos.length); i.photos.push(d); n++; } }
   if(!n){ toast('Image illisible'); return; }
-  intHisto(i,n+' média(s) ajouté(s)'); save(); renderIntDetail(id); toast('📷 '+n+' média(s) ajouté(s)'); }
+  /* ⛔ MÊME INVARIANT QUE POUR LES DOCUMENTS : la photo est ENREGISTRÉE d'abord, déposée
+     ensuite, et le marqueur s'AJOUTE au retour. Sans identifiant, elle se comporte exactement
+     comme avant ce chantier — elle vit sur cet appareil. */
+  intHisto(i,n+' média(s) ajouté(s)'); save(); renderIntDetail(id); toast('📷 '+n+' média(s) ajouté(s)');
+  let rate='';
+  for(const k of rang){
+    const dep=await pieceDeposer(photoSrc(i.photos[k]));
+    if(dep&&dep.id) i.photos[k]=photoMarquer(dep.id,photoSrc(i.photos[k]));
+    else if(dep&&dep.erreur) rate=dep.motif;
+  }
+  save(); renderIntDetail(id);
+  if(rate) toast(pieceMotifTexte(rate).replace('Document','Média').replace('document','média'),7000); }
 /* Suppression de médias : libre tant que l'intervention n'est pas terminée, ensuite droit « Supprimer » */
 function intMediaCanDel(i){ return can('supprimer')||(i&&i.statut!=='terminee'); }
 /* Bottom-sheet « ＋ Ajouter un média » : photo, galerie ou fichier */
@@ -16765,7 +17089,17 @@ function intPlanAdd(e,id){ const f=e.target.files[0]; if(!f) return; e.target.va
     const i=db.interventions.find(x=>x.id===id); if(!i) return; i.plans=i.plans||[]; i.plans.push(cv.toDataURL('image/jpeg',0.75));
     intHisto(i,'Plan ajouté'); save(); renderIntDetail(id); }; img.src=r.result; }; r.readAsDataURL(f); }
 function intPlanDel(id,ix){ if(!confirm('Supprimer ce plan ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.plans) return; i.plans.splice(ix,1); save(); renderIntDetail(id); }
-function intPhotoDel(id,ix){ if(!confirm('Supprimer ce média ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.photos) return; i.photos.splice(ix,1); save(); renderIntDetail(id); }
+/* ⛔ ET L'ÉTIQUETTE SUIT LA PHOTO. Défaut préexistant, trouvé en écrivant le point 5 :
+   `i.photos.splice(ix,1)` ne touchait pas à `i.photoTags`, donc supprimer la première photo
+   décalait TOUTES les légendes d'un cran — sur un rapport sanitaire, une photo légendée
+   « poste 12 » devient « poste 11 » sans que personne ne s'en aperçoive. Corrigé ici parce
+   qu'on ne pose pas une mécanique neuve à côté d'une désynchronisation connue. */
+function intPhotoDel(id,ix){ if(!confirm('Supprimer ce média ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.photos) return;
+  const pid=photoPid(i.photos[ix]);
+  i.photos.splice(ix,1);
+  if(Array.isArray(i.photoTags)&&i.photoTags.length>ix) i.photoTags.splice(ix,1);
+  save(); renderIntDetail(id);
+  if(pid) pieceSupprimer(pid); }
 function saveInlineSigs(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   const c1=$('sigl-cli'), c2=$('sigl-tech');
   if(c1&&c1.dataset.has) i.signature=c1.toDataURL('image/png');
@@ -16803,16 +17137,64 @@ function envoyerAvisPassage(id){ const i=db.interventions.find(x=>x.id===id); if
   if(!c.email){ toast('Ajoutez un e-mail à la fiche client'); return; }
   const t=_avisTexte(i,c); intHisto(i,'Avis de passage envoyé par e-mail à '+c.email); save();
   srvMail(c.email,t.subj,t.body,'✉️ Avis de passage envoyé à '+c.email,'avis',null,intSocMailOpts(i)); }
+/* ⛔ LE DOCUMENT EST ENREGISTRÉ D'ABORD, DÉPOSÉ ENSUITE — jamais l'inverse.
+   Un dépôt peut échouer pour six raisons dont cinq sont temporaires (réseau, entreprise
+   fermée, espace plein…). Écraser ou retenir le clair en attendant la confirmation, c'est
+   perdre le document d'un technicien parce qu'il était dans une cave. On écrit le clair tout
+   de suite, exactement comme avant ce chantier ; l'identifiant s'AJOUTE après, s'il arrive.
+   Sans lui, tout se comporte comme aujourd'hui : le document vit sur cet appareil. */
 function intDocAdd(e,id){ const f=e.target.files[0]; if(!f) return; e.target.value='';
   if(f.size>1500000){ toast('Fichier trop volumineux (max 1,5 Mo)'); return; }
-  const r=new FileReader(); r.onload=()=>{ const i=db.interventions.find(x=>x.id===id); if(!i) return; i.docs=i.docs||[];
-    i.docs.push({nom:f.name,type:f.type||'',data:r.result,ts:Date.now()}); intHisto(i,'Document joint : '+f.name); save(); renderIntDetail(id); toast('Document joint'); };
+  const r=new FileReader(); r.onload=async()=>{ const i=db.interventions.find(x=>x.id===id); if(!i) return; i.docs=i.docs||[];
+    const d={nom:f.name,type:f.type||'',data:r.result,ts:Date.now(),octets:f.size};
+    i.docs.push(d); intHisto(i,'Document joint : '+f.name); save(); renderIntDetail(id); toast('Document joint');
+    const dep=await pieceDeposer(r.result);
+    if(dep&&dep.id){ d.pid=dep.id; save(); renderIntDetail(id); }
+    else if(dep&&dep.erreur){
+      /* ⛔ ON LE DIT, ET ON DIT QUOI. Un « document non partagé » muet ferait croire au
+         technicien que son collègue l'a reçu. Chaque motif a sa phrase : la leçon du
+         11 septembre, où un refus sans mot juste a fait réclamer un mot de passe à quelqu'un
+         dont tout marchait. */
+      toast(pieceMotifTexte(dep.motif),7000);
+    } };
   r.readAsDataURL(f); }
-function intDocOpen(id,ix){ const i=db.interventions.find(x=>x.id===id); const d=i&&i.docs&&i.docs[ix]; if(!d) return;
-  if(!d.data){ toast('Cette pièce est restée sur l\'appareil qui l\'a jointe — trop lourde pour être partagée'); return; }   // allégée par syncAlleger
-  try{ const bin=atob(d.data.split(',')[1]); const arr=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++)arr[k]=bin.charCodeAt(k);
+/* Une phrase par motif, et une seule qui reste vague — celle qu'on n'a pas su nommer. */
+function pieceMotifTexte(m){
+  switch(m){
+    case 'reseau': return "📶 Document gardé sur cet appareil : pas de réseau. Il partira à la prochaine occasion.";
+    case 'plein': return "⚠️ Document gardé ici : l'espace de pièces jointes de l'entreprise est plein. Préviens TEAM OP.";
+    case 'trop-nombreuses': return "⚠️ Document gardé ici : trop de pièces enregistrées pour l'entreprise. Préviens TEAM OP.";
+    case 'plein-global': case 'disque': return "⚠️ Document gardé ici : le serveur n'a plus de place. Préviens TEAM OP.";
+    case 'trop-gros': return "⚠️ Document gardé sur cet appareil : trop lourd pour être partagé.";
+    case 'quota': return "⏳ Document gardé ici : trop d'envois cette heure-ci. Il partira plus tard.";
+    case 'ferme': return "⛔ Document gardé ici : l'espace de l'entreprise est fermé.";
+    case 'cle': case 'repli': case 'sans-espace': return "⚠️ Document gardé sur cet appareil : il n'est rattaché à aucun espace d'entreprise.";
+    default: return "⚠️ Document gardé sur cet appareil : il n'a pas pu être partagé.";
+  } }
+/* ⛔ TROIS ÉTATS, JAMAIS DEUX. Avant ce chantier, un document sans `data` ne pouvait être
+   qu'une chose : resté sur l'appareil qui l'a joint. Maintenant il peut aussi être SUR LE
+   SERVEUR — et un échec de réseau ne veut dire NI l'un NI l'autre. Confondre « je n'ai pas
+   pu savoir » avec « ça n'existe plus », c'est la dette du 11 septembre ; elle ne se
+   reproduit pas ici. */
+async function intDocOpen(id,ix){ const i=db.interventions.find(x=>x.id===id); const d=i&&i.docs&&i.docs[ix]; if(!d) return;
+  let clair=d.data;
+  if(!clair&&d.pid){
+    toast('⬇️ Téléchargement…',1500);
+    const r=await pieceLire(d.pid);
+    if(r&&r.dataUrl) clair=r.dataUrl;
+    else if(r&&r.absente){ toast('⛔ Ce document a été supprimé du serveur.',6000); return; }
+    else { toast("📶 Impossible de récupérer ce document pour l'instant — réessaie quand tu auras du réseau.",6000); return; }
+  }
+  if(!clair){ toast('Cette pièce est restée sur l\'appareil qui l\'a jointe — trop lourde pour être partagée'); return; }   // allégée par syncAlleger, sans identifiant
+  try{ const bin=atob(clair.split(',')[1]); const arr=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++)arr[k]=bin.charCodeAt(k);
     const url=URL.createObjectURL(new Blob([arr],{type:d.type||'application/octet-stream'})); window.open(url,'_blank'); }catch(e){ toast('Ouverture impossible'); } }
-function intDocDel(id,ix){ if(!confirm('Supprimer ce document ?')) return; const i=db.interventions.find(x=>x.id===id); i.docs.splice(ix,1); save(); renderIntDetail(id); }
+/* ⛔ SUPPRIMER RETIRE AUSSI LA PIÈCE DU SERVEUR. Sans ça le stockage est un cliquet : le
+   document disparaît de l'écran et reste sur le VPS pour toujours, sous un identifiant que
+   plus rien ne référence. L'échec du retrait distant n'annule PAS la suppression locale —
+   l'utilisateur a demandé à supprimer, on supprime ; le ménage du serveur se rattrapera. */
+function intDocDel(id,ix){ if(!confirm('Supprimer ce document ?')) return; const i=db.interventions.find(x=>x.id===id);
+  const pid=(i.docs[ix]||{}).pid; i.docs.splice(ix,1); save(); renderIntDetail(id);
+  if(pid) pieceSupprimer(pid); }
 function intComAdd(id){ const inp=$('com-new'); const v=(inp&&inp.value||'').trim(); if(!v) return; const i=db.interventions.find(x=>x.id===id); if(!i) return;
   i.comments=i.comments||[]; i.comments.push({ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',txt:v.slice(0,300)}); save(); renderIntDetail(id); }
 function intComDel(id,ix){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.comments) return; i.comments.splice(ix,1); save(); renderIntDetail(id); }
@@ -17413,7 +17795,7 @@ function saveChamp(e){ e.preventDefault(); const d=Object.fromEntries(new FormDa
   if(d.type==='liste') f.options=parts; if(d.type==='tableau') f.colonnes=parts.length?parts:['Colonne 1','Colonne 2'];
   db.champsPerso.push(f); logEvent('Champ personnalisé créé',d.label,'crud'); save(); closeModal(); views.parametres(); }
 function renderRapPhotos(){ const el=$('rap-photos'); if(!el) return;
-  el.innerHTML = rapPhotos.map((p,idx)=>`<div style="position:relative"><img src="${p}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--brd)"><button type="button" onclick="rapPhotos.splice(${idx},1);renderRapPhotos()" style="position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px">✕</button></div>`).join('');
+  el.innerHTML = rapPhotos.map((p,idx)=>`<div style="position:relative"><img src="${photoSrc(p)}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--brd)"><button type="button" onclick="rapPhotos.splice(${idx},1);renderRapPhotos()" style="position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px">✕</button></div>`).join('');
 }
 /* Compresse/redimensionne une image avant stockage (évite de saturer le stockage local) */
 function compressImage(file, maxDim, quality){ maxDim=maxDim||1200; quality=quality||0.72;
@@ -17486,14 +17868,23 @@ function saveRapport(e,id){ e.preventDefault(); const f=e.target; const data=Obj
   } else { closeModal(); toast('Rapport enregistré'); go(current); } }
 
 /* ── Export PDF d'un rapport d'intervention ── */
-function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
+/* ⛔ LE PDF ATTEND LES PHOTOS, là où l'écran ne les attend pas — et la différence est
+   volontaire. Un écran incomplet se recomplète une seconde plus tard ; un PDF envoyé à un
+   client avec des cadres vides est définitif, et c'est un rapport sanitaire. */
+async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return;
+  if(Array.isArray(i.photos)&&i.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })){
+    toast('⬇️ Récupération des photos…',2500);
+    await photosResoudre(i.photos);
+    const reste=i.photos.filter(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; }).length;
+    if(reste&&!confirm(reste+' photo(s) n\'ont pas pu être récupérées — elles manqueront dans le PDF.\n\nContinuer quand même ?')) return;
+  } const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
   // les produits rattachés à un type de traitement apparaissent dans leur section ; ici, les lignes « libres »
   const prod=(i.produitsUtilises||[]).filter(l=>!l.categorie||!(((i.quest||{})[l.categorie]||{}).actif)).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td><td>${esc(prodLineAmm(l)||'—')}</td><td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(l.unite||'')}</td></tr>`;}).join('');
   const equip=(i.equipements||[]).map(e=>`<tr><td>${esc(e.nom)}</td><td>${esc(e.reference)||''}</td></tr>`).join('');
   const champs=(db.champsPerso||[]).filter(f=>i.champs&&i.champs[f.id]!=null&&(!Array.isArray(i.champs[f.id])||i.champs[f.id].length)).map(f=>{ const v=i.champs[f.id];
     if(f.type==='tableau'&&Array.isArray(v)) return `<div class="box"><b>${esc(f.label)}</b><table style="margin-top:6px"><thead><tr>${(f.colonnes||[]).map(co=>`<th>${esc(co)}</th>`).join('')}</tr></thead><tbody>${v.map(r=>`<tr>${(f.colonnes||[]).map((co,ci)=>`<td>${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     return `<p style="margin:4px 0"><b>${esc(f.label)} :</b> ${esc(v)}</p>`; }).join('');
-  const photos=(i.photos||[]).map((p,ix)=>{ const tg=(i.photoTags||[])[ix];
+  const photos=(i.photos||[]).map((p,ix)=>{ p=photoSrc(p); const tg=(i.photoTags||[])[ix];
     return `<span style="display:inline-block;text-align:center;margin:4px">${tg?`<span style="display:block;font-size:10px;font-weight:bold;color:${tg==='avant'?'#C26A10':'#1E7A4E'};text-transform:uppercase">${tg==='avant'?'Avant':'Après'}</span>`:''}<img src="${p}" style="width:150px;height:150px;object-fit:cover;border-radius:6px"></span>`; }).join('');
   let planApp=''; try{ planApp=paPdfHtml(i); }catch(e){ planApp=''; }
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
@@ -17595,7 +17986,7 @@ function envoiRapportClient(id){ const i=db.interventions.find(x=>x.id===id); if
       </div>
       <p style="color:var(--t3);font-size:12px;margin-top:10px">Par email, le PDF (avec photos) s'ouvre pour que tu puisses le joindre.</p>
     </div>`); }
-function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
+async function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
   if(canal==='sms'){ const raw=$('rap-tel')?$('rap-tel').value.trim():(c.tel||''); const tel=raw.replace(/[^\d+]/g,''); if(!tel){ toast('Entrez un numéro de téléphone'); return; }
     if($('rap-save')&&$('rap-save').checked&&c.id){ c.tel=raw; toast('Numéro enregistré sur la fiche client'); }
     const msg='Bonjour, votre rapport d\'intervention du '+fmtShort(i.date)+' ('+soc+') est disponible. Nous restons à votre disposition.';
@@ -17604,7 +17995,11 @@ function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id); if(!
   if(!c.email){ toast('Ajoute l\'email du client dans sa fiche'); return; }
   const sujet='Rapport d\'intervention — '+fmtShort(i.date)+(i.type?' ('+i.type+')':'');
   const corps=genRapportTexte(i); i.rapportEnvoye={ts:Date.now(),via:'email',a:c.email}; intHisto(i,'Rapport envoyé par e-mail à '+c.email); save();
-  closeModal(); printRapport(id); setTimeout(()=>{ srvMail(c.email,sujet,corps,'✉️ Rapport envoyé à '+c.email,'rapport',null,intSocMailOpts(i)); },700); }
+  /* ⛔ ON ATTEND LE PDF. Depuis le point 5, `printRapport` peut aller chercher des photos
+     sur le VPS : sans `await`, le courriel partait pendant le téléchargement, donc avant
+     que le client ait son rapport sous les yeux. Le délai de 700 ms reste, il sert à
+     laisser la fenêtre d'impression s'ouvrir. */
+  closeModal(); await printRapport(id); setTimeout(()=>{ srvMail(c.email,sujet,corps,'✉️ Rapport envoyé à '+c.email,'rapport',null,intSocMailOpts(i)); },700); }
 
 /* ═══════════════ PRODUITS ═══════════════ */
 let prdCat='all';
@@ -24278,7 +24673,7 @@ function usrDroitsHtml(u,admin){
       <button type="button" class="btn ghost sm" onclick="profilEnregistrer('${u.id}')" title="Garder ces droits comme modèle réutilisable">💾 Enregistrer comme profil</button>
       ${profilsDroits().length?`<button type="button" class="btn ghost sm" onclick="profilsGerer()">Gérer</button>`:''}
     </div>
-    <div class="usr-b"><button type="button" class="btn" onclick="usrDroitsValider('${u.id}')">✓ Valider ses droits</button>${perso?`<a class="usr-lk" onclick="usrDroitsRole('${u.id}')">↩ Effacer ce qui est réglé à part — revenir au rôle</a>`:''}</div>`:'<div class="usr-x" style="margin-top:10px">Seul un administrateur peut modifier les droits.</div>'}
+    <div class="usr-b"><button type="button" class="btn" onclick="usrDroitsValider('${u.id}',this)">✓ Valider ses droits</button>${perso?`<a class="usr-lk" onclick="usrDroitsRole('${u.id}')">↩ Effacer ce qui est réglé à part — revenir au rôle</a>`:''}</div>`:'<div class="usr-x" style="margin-top:10px">Seul un administrateur peut modifier les droits.</div>'}
   </div>`;
 }
 /* ══════════ PROFILS DE DROITS ═══════════════════════════════════════════════════════════
@@ -24442,7 +24837,7 @@ function usrVoirTout(cb){ const d=cb.closest('.usr-d'); const bx=d&&d.querySelec
 /* Tout ce qui est affiché est écrit, pour CETTE personne : c'est la règle « la fiche fait
    loi » du matin, déplacée là où l'on coche. Un interrupteur absent (une box qu'il voit
    d'office, par exemple) ne s'écrit pas — on n'invente pas de réglage. */
-function usrDroitsValider(uid){
+function usrDroitsValider(uid,btn){
   if(!currentUser||currentUser.role!=='admin'){ toast('Réservé aux administrateurs'); return; }
   const u=(db.users||[]).find(x=>x.id===uid); if(!u) return;
   const zone=document.getElementById('usr-d-'+uid); if(!zone) return;
@@ -24455,7 +24850,13 @@ function usrDroitsValider(uid){
     (db.vehicules||[]).forEach(vh=>{ const v=val('veh_'+vh.id); if(v!==null) userVehiculeVoit(u.id,vh.id,v); }); }
   logEvent('Droits modifiés','@'+(u.login||'')+' — depuis la liste des utilisateurs','auth');
   save(); toast('✓ Droits de '+fullName(u)+' enregistrés — actifs immédiatement',3500);
-  views.utilisateurs();
+  /* ⛔ LE REDESSIN ATTEND QUE LA CONFIRMATION AIT ÉTÉ VUE. `views.utilisateurs()` reconstruit
+     la liste, donc DÉTRUIT le bouton sur lequel on vient d'appuyer : appelé tout de suite, il
+     effaçait l'accusé de réception dans la même image, et c'est très exactement ce que Justin
+     décrivait. Les données, elles, sont déjà enregistrées par le save() ci-dessus — ce délai
+     ne retient aucune écriture, il ne retient qu'un rendu. */
+  if(btnFait(btn,'Droits validés')) setTimeout(()=>views.utilisateurs(),1700);
+  else views.utilisateurs();
 }
 function usrDroitsRole(uid){
   if(!currentUser||currentUser.role!=='admin') return;
@@ -27458,7 +27859,7 @@ function interTout(i,l){
   if(i.noteInterne) mots.push(['🔒','Note interne',txt(i.noteInterne)]);
   const tags=i.photoTags||[], med=[];
   if(i.tpePhoto) med.push([i.tpePhoto,'Ticket TPE']);
-  (i.photos||[]).forEach((p,ix)=>med.push([p,String(tags[ix]||('Photo '+(ix+1)))]));
+  (i.photos||[]).forEach((p,ix)=>med.push([photoSrc(p),String(tags[ix]||('Photo '+(ix+1)))]));
   if(i.signature) med.push([i.signature,'Signature du client']);
   if(i.signatureTech) med.push([i.signatureTech,'Signature du technicien']);
   return `<div class="form-sec">Ce qui a été écrit (${mots.length})</div>
@@ -30552,7 +30953,10 @@ async function pwdForgotSave(){
   if(mailNeuf){ try{ pushNotify('🔑 Accès récupéré','« '+(u.login||'?')+' » vient de récupérer son accès et d\'enregistrer l\'adresse '+mailNeuf+'. Si ce n\'est pas lui, change son mot de passe (Utilisateurs → 🔑).','/app.html#v=utilisateurs'); }catch(_e){} }
   pwdForgot={}; closeModal();
   sessionStorage.setItem('elanB_session',u.id);
-  toast('🔐 Mot de passe changé — te voilà connecté');
+  /* Ici on N'ajoute PAS d'accusé sur le bouton : `enterApp()` remplace tout l'écran, et il
+     n'existe pas de confirmation plus forte que ça. On donne seulement à la phrase le temps
+     d'être lue par-dessus l'application qui apparaît. */
+  toast('🔐 Mot de passe changé — te voilà connecté',5000);
   enterApp(u);
 }
 /* ── SÉCURITÉ : chaque compte a SON mot de passe ──
@@ -30565,9 +30969,9 @@ function monComptePwd(){ if(!currentUser) return; const aDejaMdp=!!(currentUser.
     <div class="field"><label>Nouveau mot de passe</label><input id="mc-p1" type="password" minlength="8" placeholder="8 caractères minimum" autocomplete="new-password"></div>
     <div class="field"><label>Confirme-le</label><input id="mc-p2" type="password" minlength="8" placeholder="Le même, une deuxième fois" autocomplete="new-password"></div>
     <div id="mc-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
-    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn" onclick="monComptePwdSave()">Enregistrer</button></div>`);
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn" onclick="monComptePwdSave(this)">Enregistrer</button></div>`);
   setTimeout(()=>{ const el=$(aDejaMdp?'mc-p0':'mc-p1'); if(el) el.focus(); },50); }
-async function monComptePwdSave(){ if(!currentUser) return;
+async function monComptePwdSave(btn){ if(!currentUser) return;
   const p0=($('mc-p0')||{}).value||'', p1=($('mc-p1')||{}).value||'', p2=($('mc-p2')||{}).value||'';
   const err=$('mc-err'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
   if(currentUser.pwdHash||currentUser.pinHash){ const h=await sha256(p0); const ok=currentUser.pwdHash?h===currentUser.pwdHash:(h===currentUser.pinHash||p0===currentUser.pinHash); if(!ok){ show('Mot de passe actuel incorrect.'); return; } }
@@ -30581,9 +30985,18 @@ async function monComptePwdSave(){ if(!currentUser) return;
      la connexion suivante à quelqu'un qui vient de le faire. L'e-mail, lui, reste exigé à
      part : cette fenêtre-ci ne le demande pas. */
   if((currentUser.email||'').trim()) currentUser.secu=SECU_MDP;
+  const relacher=btnOccupe(btn,'Enregistrement…');
   const pb=await identifiantsDeposer(currentUser,avant);
+  relacher();
   if(pb){ show(pb); return; }   // rien n'a changé : la fenêtre reste ouverte, il peut réessayer
-  logEvent('Mot de passe modifié','','auth'); closeModal(); toast('🔑 Mot de passe modifié ✓'); if(current==='parametres') views.parametres(); }
+  logEvent('Mot de passe modifié','','auth');
+  /* ⛔ LA FENÊTRE NE SE FERME PLUS DANS LA MÊME IMAGE. Elle se fermait avant que l'œil ait eu
+     le temps de revenir sur le bouton : il ne restait qu'un toast de 2,2 s, ailleurs sur
+     l'écran, pour dire qu'un MOT DE PASSE venait de changer. C'est le geste où une personne a
+     le plus besoin d'être sûre — se tromper ici, c'est ne plus pouvoir entrer demain. */
+  toast('🔑 Mot de passe modifié — c\'est celui-là qu\'il faudra taper la prochaine fois',5000);
+  if(btnFait(btn,'Mot de passe modifié')) setTimeout(()=>{ closeModal(); if(current==='parametres') views.parametres(); },1700);
+  else { closeModal(); if(current==='parametres') views.parametres(); } }
 function monCompteMail(){ if(!currentUser) return;
   openModal(`<div class="modal-head"><h3>✉️ Mon e-mail de récupération</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t2);font-size:13.5px;line-height:1.55;margin-bottom:12px">Si tu oublies ton mot de passe, « Mot de passe oublié ? » (écran de connexion) t'envoie un <b>code</b> à cette adresse. Mets une adresse que tu es seul à lire.</p>
@@ -30632,9 +31045,9 @@ function forcePwdModal(){ if(!currentUser) return;
     <div class="field"><label>Confirme-le</label><input id="fp-p2" type="password" minlength="8" placeholder="Le même, une deuxième fois" autocomplete="new-password"></div>
     <div class="field" style="background:color-mix(in srgb,var(--acc) 10%,transparent);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);border-radius:10px;padding:10px 12px"><label>✉️ Ton adresse e-mail *</label><input id="fp-mail" type="email" required value="${esc(mail)}" placeholder="prenom@entreprise.fr" autocapitalize="off" autocomplete="email" style="width:100%"><div style="font-size:11px;color:var(--t3);margin-top:4px"><b>Obligatoire</b> : si un jour tu oublies ton mot de passe, l'app t'enverra un <b>code de récupération</b> à cette adresse (« Mot de passe oublié ? » sur l'écran de connexion).${mail?' Vérifie qu\'elle est bien la tienne.':''}</div></div>
     <div id="fp-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
-    <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="forcePwdSave()">Enregistrer mon mot de passe</button>
+    <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="forcePwdSave(this)">Enregistrer mon mot de passe</button>
     <button id="fp-sortie" class="btn ghost" style="display:none;width:100%;justify-content:center;margin-top:8px" onclick="closeModal()">Continuer sans changer — on te le redemandera</button>`); }
-async function forcePwdSave(){ const p1=($('fp-p1')||{}).value||'', p2=($('fp-p2')||{}).value||'';
+async function forcePwdSave(btn){ const p1=($('fp-p1')||{}).value||'', p2=($('fp-p2')||{}).value||'';
   const err=$('fp-err'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
   if(p1.length<8){ show('8 caractères minimum.'); return; }
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
@@ -30660,7 +31073,9 @@ async function forcePwdSave(){ const p1=($('fp-p1')||{}).value||'', p2=($('fp-p2
                sansMdp:currentUser.sansMdp,email:currentUser.email,login:currentUser.login,secu:currentUser.secu};
   currentUser.pwdHash=neufH; delete currentUser.mustChangePwd; delete currentUser.pinHash; delete currentUser.sansMdp;
   currentUser.email=fm; currentUser.secu=SECU_MDP;   // la campagne est faite pour cette personne — la Tour le lira dans l'annuaire
+  const relacher=btnOccupe(btn,'Enregistrement…');
   const pb=await identifiantsDeposer(currentUser,avant);
+  relacher();
   if(pb){ show(pb);
     /* ⚠️ ET ON NE L'ENFERME PAS DEDANS. Cette fenêtre n'a pas de croix : la laisser forcée sur
        un appareil trop vieux, c'est quelqu'un qui ne peut plus travailler du tout. Il continue
@@ -30669,8 +31084,15 @@ async function forcePwdSave(){ const p1=($('fp-p1')||{}).value||'', p2=($('fp-p2
     _modalForcee=false; const s=$('fp-sortie'); if(s) s.style.display='';
     return; }
   _modalForcee=false;
-  logEvent('Mot de passe défini','@'+(currentUser.login||''),'auth'); closeModal();
-  toast('🔐 Mot de passe enregistré, e-mail de récupération aussi — c\'est ce mot de passe qu\'il faudra taper désormais'); }
+  logEvent('Mot de passe défini','@'+(currentUser.login||''),'auth');
+  /* ⛔ C'EST LA FENÊTRE QUE TOUTE L'ÉQUIPE TRAVERSE À SA PREMIÈRE CONNEXION, et son message
+     était le plus long de l'application pour la durée la plus courte : `toast()` sans argument
+     vaut 2 200 ms. Une phrase de cette longueur ne se lit pas en deux secondes, surtout à
+     l'instant où l'application apparaît derrière et où l'œil part ailleurs. 6 s, et le bouton
+     le dit aussi — là où le doigt vient d'appuyer. */
+  toast('🔐 Mot de passe enregistré, e-mail de récupération aussi — c\'est ce mot de passe qu\'il faudra taper désormais',6000);
+  if(btnFait(btn,'Mot de passe enregistré')) setTimeout(()=>closeModal(),1700);
+  else closeModal(); }
 /* ── ⛔ L'E-MAIL EST OBLIGATOIRE, AU MÊME TITRE QUE LE MOT DE PASSE ───────────────────────
    Justin, 15 septembre 2026 : « tout le monde va se connecter, leur obliger à changer leur
    mot de passe ET leur mail, sinon rien marche ». Ce n'est pas un durcissement de confort :
@@ -31043,16 +31465,65 @@ function toggleTheme(ev){
   }catch(e){ document.documentElement.classList.remove('theme-vt'); setThemePref(suivant); }
 }
 /* Bouton Synchroniser (barre du haut) */
-function syncNow(){ const b=$('sync-btn'); if(b){ b.classList.add('spin'); setTimeout(()=>{ const x=$('sync-btn'); if(x) x.classList.remove('spin'); },1200); }
+function syncNow(){
+  /* ⛔ LA ROTATION SUIVAIT UN MINUTEUR DE 1 200 ms, PAS L'ENVOI. Elle s'arrêtait donc au bout
+     d'1,2 s que l'écriture soit passée ou non — exactement le défaut que le commentaire
+     ci-dessous reproche au message. `_syncEnCours` est remis à faux par le succès ET par
+     l'échec, aux deux seuls endroits qui savent ce qui s'est réellement passé. */
+  _syncEnCours=true; try{ updateSyncBtn(); }catch(e){}
   /* ⛔ ON N'ANNONCE PAS UN RÉSULTAT QU'ON N'A PAS. syncPush() n'est pas attendue : le message
      partait dans la foulée de l'appel, donc il disait « Synchronisé avec l'équipe » aussi bien
      quand l'écriture passait que quand elle restait bloquée — et c'est précisément ce qu'il a
      dit toute la soirée du 11 septembre 2026 pendant que le quota Firebase refusait tout.
      On dit ce qu'on fait, et c'est l'accusé de réception qui dira que c'est fait. */
   if(_syncOn){ _pushManuel=true; syncPush(true); toast('Envoi à l\'équipe…',1800); }
-  else if(typeof syncEnabled==='function' && syncEnabled()){ syncInit().then(()=>toast('Reconnexion à l\'équipe…')); }
-  else { toast('Active la synchro temps réel dans Paramètres'); go('parametres'); } }
-function updateSyncBtn(){ const b=$('sync-btn'); if(!b) return; b.style.color=_syncOn?'var(--acc)':''; b.title=_syncOn?'Synchro temps réel active — toucher pour forcer':'Synchroniser'; }
+  else if(typeof syncEnabled==='function' && syncEnabled()){ _syncEnCours=false; try{updateSyncBtn();}catch(e){} syncInit().then(()=>toast('Reconnexion à l\'équipe…')); }
+  else { _syncEnCours=false; try{updateSyncBtn();}catch(e){} toast('Active la synchro temps réel dans Paramètres'); go('parametres'); }
+  /* ⚠️ FILET : syncPush() a six portes de sortie silencieuses (version bloquée, nuage
+     illisible, hors ligne, écran de connexion, premier instantané non reçu, application en
+     cours). Aucune ne rappellera jamais updateSyncBtn. Sans ce filet, le bouton tournerait
+     pour toujours — une panne d'affichage bien pire que l'absence d'indicateur. */
+  setTimeout(()=>{ if(_syncEnCours){ _syncEnCours=false; try{ updateSyncBtn(); }catch(e){} } },12000); }
+/* ⛔ « FAUT-IL OBLIGER LES GENS À SYNCHRONISER EN FIN DE JOURNÉE ? » — question de Justin,
+   17 septembre 2026, et la réponse est NON. OP GESTION fonctionne hors ligne par conception :
+   c'est son avance sur Organilog, qui synchronise toutes les 15 minutes et a besoin du réseau
+   (voir COMMENT-FONT-LES-AUTRES.md). Obliger à un envoi qu'on ne PEUT PAS faire — sous-sol,
+   zone industrielle, forfait épuisé — c'est empêcher quelqu'un de finir sa journée pour une
+   raison qui ne dépend pas de lui. Et CLAUDE.md le dit déjà : « un travail non synchronisé
+   doit se voir, sans affoler : l'app fonctionne hors ligne, c'est une fonctionnalité, pas une
+   panne. »
+   Ce qu'on fait à la place, et qui règle le VRAI problème : le bouton DIT son état. On ne
+   force pas, on rend impossible de ne pas voir. Cinq cas, dans l'ordre de ce qui demande une
+   action de la personne — le premier qui s'applique gagne. */
+function syncEtat(){
+  if(_versionBloquee) return {c:'st-bloque',t:'Envoi impossible : mise à jour requise — ton travail est gardé sur l\'appareil'};
+  if(_nuageIllisible) return {c:'st-bloque',t:'Envoi impossible : ce navigateur ne sait pas lire le dossier de l\'équipe — ton travail est gardé sur l\'appareil'};
+  if(_horsLignePush)  return {c:'st-attente',t:'Travail en attente d\'envoi'+(_horsLigneDepuis?' — hors ligne depuis '+syncDepuis(_horsLigneDepuis):'')+'. Il repartira tout seul au retour du réseau.'};
+  if(_horsLigne)      return {c:'st-attente',t:'Hors ligne — rien en attente d\'envoi'};
+  if(_syncEnCours)    return {c:'spin',t:'Envoi en cours…'};
+  if(_syncOn)         return {c:'st-ajour',t:_syncDernierOk?('À jour — dernier envoi '+syncDepuis(_syncDernierOk)):'Synchro active — rien à envoyer pour l\'instant'};
+  return {c:'',t:'Synchro non active — toucher pour l\'activer'};
+}
+/* « il y a 3 min », pas un horodatage : personne ne soustrait des heures de tête sur un
+   chantier. Au-delà d'un jour on cesse de compter — « hier » suffit à dire que c'est vieux. */
+function syncDepuis(ts){
+  const s=Math.max(0,Math.round((Date.now()-ts)/1000));
+  if(s<45) return 'à l\'instant';
+  if(s<5400) return 'il y a '+Math.round(s/60)+' min';
+  const h=Math.round(s/3600);
+  if(h<24) return 'il y a '+h+' h';
+  return 'il y a plus d\'un jour';
+}
+function updateSyncBtn(){ const b=$('sync-btn'); if(!b) return;
+  const e=syncEtat();
+  b.classList.remove('st-attente','st-bloque','st-ajour');
+  if(e.c&&e.c!=='spin') b.classList.add(e.c);
+  b.classList.toggle('spin',e.c==='spin');
+  b.style.color=(e.c==='st-bloque')?'var(--red)':(e.c==='st-attente')?'var(--org)':(_syncOn?'var(--acc)':'');
+  /* ⛔ LE TITRE PORTE LE SENS EN TOUTES LETTRES. Le point de couleur ne parle jamais seul :
+     en niveaux de gris, ou pour qui ne distingue pas l'orange du vert, il ne dirait rien. */
+  b.title=e.t; b.setAttribute('aria-label','Synchroniser — '+e.t);
+}
 /* Bannière « nouvelle version » */
 /* ⛔ LA BANNIÈRE REFERMABLE EST REMPLACÉE PAR L'ÉCRAN BLOQUANT. Elle portait une croix ✕ :
    un geste, et la mise à jour attendait indéfiniment. C'était la première des deux portes de
@@ -31200,7 +31671,7 @@ async function versionVerifier(force){ try{
    SDK aurait mise en file. Partout, sans exception — l'écran de connexion compris : sans réseau,
    il n'y a ni espace à reconnaître ni annuaire à interroger. */
 function horsLigneDebut(motif){
-  if(_horsLigne) return; _horsLigne=true; _horsLigneDepuis=Date.now(); _horsLignePush=false;
+  if(_horsLigne) return; _horsLigne=true; _horsLigneDepuis=Date.now(); _horsLignePush=false; try{ updateSyncBtn(); }catch(e){}
   let e=$('hl-ecran');
   if(!e){ e=document.createElement('div'); e.id='hl-ecran';
     e.style.cssText='position:fixed;inset:0;z-index:99997;background:var(--bg,#0D1624);color:var(--t1,#eef2fa);display:flex;align-items:center;justify-content:center;padding:28px;text-align:center';
@@ -31211,7 +31682,7 @@ function horsLigneDebut(motif){
     '<div id="hl-etat" style="font-size:13px;color:var(--t3,#93a9d4)">En attente du réseau…</div>'+
     '<div style="margin-top:18px"><button class="btn" onclick="horsLigneReprise(true)">Réessayer</button></div></div>';
 }
-function horsLigneFin(){ _horsLigne=false; try{ const e=$('hl-ecran'); if(e) e.remove(); }catch(e){} try{ toast('Connexion rétablie',1800); }catch(e){} }
+function horsLigneFin(){ _horsLigne=false; try{ const e=$('hl-ecran'); if(e) e.remove(); }catch(e){} try{ updateSyncBtn(); }catch(e){} try{ toast('Connexion rétablie',1800); }catch(e){} }
 let _hlEssai=null;
 async function horsLigneReprise(manuel){
   if(!_horsLigne) return; clearTimeout(_hlEssai);
