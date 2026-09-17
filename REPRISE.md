@@ -62,13 +62,34 @@ les deux sens ».
    ont donc été **reportées une par une** sur la version de `main`. Le contrôle qui a sauvé :
    lire le `git diff origin/main..HEAD -- server/` AVANT de pousser.
 
-### ⚠️ UN PIÈGE OUVERT, À FERMER
+### ✅ LE PIÈGE DE LA RÉTROGRADATION EST FERMÉ — et il m'a repris pendant la démonstration
 
-**`node beta-build.js` lancé depuis `main` produit une bêta 695-beta** — parce que l'`app.html`
-de `main` est encore en v695, alors que la bêta publiée (701) vient de la branche. Le relancer
-sur `main` **rétrograderait silencieusement la bêta de 701 à 695**. C'est arrivé pendant les
-contrôles de ce soir, vu et restauré. À fermer par une garde de non-régression de version dans
-le générateur (~5 lignes) — proposé à Justin, pas encore fait.
+**`node beta-build.js` lancé depuis `main` produisait une bêta 695-beta** et écrasait la 701
+publiée, sans un mot. Ce n'est pas un cas tordu : la bêta est EN AVANCE sur l'`app.html` de
+`main` **par construction** — c'est son rôle. Donc dès qu'on se trompe de branche, on rétrograde.
+
+⛔ **Déclenché DEUX FOIS dans la même soirée.** La première pendant les contrôles du renommage,
+vue parce qu'un `cmp` traînait dans la commande. La seconde une heure plus tard, **en voulant
+reproduire l'incident pour prouver le correctif** : la garde était écrite mais **pas commitée**,
+donc `git checkout <branche> -- beta-build.js` a restauré la version sans garde, et la
+rétrogradation a traversé le changement de branche jusque dans l'arbre de travail. Rien de
+publié n'a été touché. **Leçon jumelle de celle du même soir : un correctif non commité n'existe
+pas pour git.**
+
+**La garde** (dans `beta-build.js`, sur `main` ET sur la branche) : refus d'écrire une bêta dont
+le numéro est INFÉRIEUR à celle qu'elle remplace. Le message nomme les deux versions, dit la
+cause probable et la sortie de secours. `BETA_RETROGRADER=1` lève le refus — il faut le VOULOIR.
+
+⛔ **Et la route PROPOSE du serveur ne tombe pas dessus**, ce qui était le vrai risque du
+correctif : elle exécute le générateur dans un bac à sable pour fabriquer une bêta candidate
+depuis une app corrigée, donc souvent d'une version plus basse. Deux raisons de la laisser
+passer, et la seconde suffirait seule : son faux `process` n'a QUE `exit()` (donc `process.env`
+est `undefined`), et son faux `writeFileSync` ne touche jamais le disque. `tests/test-720.js`
+reproduit ce bac à sable à l'identique et vérifie les deux.
+
+`tests/test-720.js` (23 ✓) **EXÉCUTE** le vrai générateur six fois — une garde qu'on lit peut
+être juste et ne jamais se déclencher. Contre-épreuve garde retirée : 6 ✗. Et l'incident réel
+rejoué sur `main` : refus, code 1, `beta.html` intacte en 701-beta.
 
 ### Ce qui reste du chantier
 
