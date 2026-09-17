@@ -2840,7 +2840,9 @@ function chargerEntreprises(){
    défaut qu'on vient de corriger, réapparu pendant l'écart de déploiement.
    À supprimer quand le serveur du VPS portera le champ depuis assez longtemps pour qu'aucune
    Tour ouverte ne puisse plus tomber sur l'ancien. */
-var ESPACES_TECHNIQUES=['elan-gestion','elan-gestion-beta'];
+/* L'ancien nom de la bêta reste listé pendant la transition : son document existe encore,
+   et sans lui il réapparaîtrait au milieu des entreprises. Voir ESPACES_INTOUCHABLES. */
+var ESPACES_TECHNIQUES=['elan-gestion','elan-gestion-beta','opgestion-beta'];
 /* ⛔ LE NOM ELAN N'APPARAÎT QUE LÀ OÙ ELAN EST LE CLIENT — Justin, 14 septembre 2026 : « je ne
    veux plus le mot ELAN dans les tests ou autres ; ELAN c'est l'entreprise avec qui on
    travaille, et nous, tout ce qu'on fait s'appelle TEAM OP ».
@@ -2853,7 +2855,8 @@ var ESPACES_TECHNIQUES=['elan-gestion','elan-gestion-beta'];
    rendrait la console jolie et inutilisable. */
 function nomTechnique(t){
   if(t==='elan-gestion') return 'Espace par défaut — TEAM OP';
-  if(t==='elan-gestion-beta') return 'Bêta TEAM OP';
+  if(t==='opgestion-beta') return 'Bêta TEAM OP';
+  if(t==='elan-gestion-beta') return 'Bêta TEAM OP (ancien espace)';
   return String(t||'');
 }
 /* ⛔ LE NOM AFFICHABLE D'UN ESPACE — une seule définition, et c'est tout l'intérêt.

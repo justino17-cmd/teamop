@@ -1,14 +1,21 @@
 /* Génère beta.html — le canal d'essai isolé d'OP GESTION.
    Usage : node beta-build.js   (à relancer à chaque version à tester)
    La bêta a SES données locales (préfixe elanB_), SON espace de synchro par défaut
-   (elan-gestion-beta) et un bandeau 🧪 BÊTA : elle ne touche jamais aux données
-   de l'app réelle ni à celles des clients. Première connexion : admin / 1234. */
+   (opgestion-beta) et un bandeau 🧪 BÊTA : elle ne touche jamais aux données
+   de l'app réelle ni à celles des clients. Première connexion : admin / 1234.
+   ⛔ L'espace s'appelait « elan-gestion-beta » jusqu'au 17 septembre 2026. Le renommer est
+   sans danger POUR UNE SEULE RAISON, vérifiée et non supposée : la clé de chiffrement est
+   dérivée de syncSecret() et SYNC_SALT, JAMAIS de l'identifiant d'espace (app.html,
+   syncKey()). Renommer déplace donc le document Firestore sans rien rendre illisible.
+   ⛔ ET CE RAISONNEMENT NE S'ÉTEND PAS À « elan-gestion » TOUT COURT : celui-là est le
+   document PARTAGÉ de toutes les entreprises sans clé personnalisée. Le renommer les
+   orphelinerait toutes d'un coup. */
 const fs = require('fs');
 let s = fs.readFileSync('app.html', 'utf8');
 s = s.split("'elan_").join("'elanB_");
 s = s.split('"elan_').join('"elanB_');
 s = s.split("'op_devis_code'").join("'opB_devis_code'");
-s = s.split("FB_TEAM='elan-gestion'").join("FB_TEAM='elan-gestion-beta'");
+s = s.split("FB_TEAM='elan-gestion'").join("FB_TEAM='opgestion-beta'");
 s = s.replace(/const APP_VERSION = '([0-9]+)'/, "const APP_VERSION = '$1-beta'");
 // La porte serveur : la bêta ne connaît aucun compte de départ et demande à api.teamop.fr
 // avant d'ouvrir. Les accès se créent et se coupent depuis la Tour de contrôle (Accès bêta).
@@ -51,7 +58,14 @@ s = s.replace(/<link rel="manifest"[^>]*>/, '');
 s = s.split('<div class="topbar-brand mono">OP GESTION</div>').join('<div class="topbar-brand mono" style="color:var(--org)">OP GESTION</div>');
 s = s.split('<h2>OP GESTION</h2>').join('<h2>OP GESTION <span style="font-size:12px;color:var(--org);vertical-align:middle">🧪 BÊTA</span></h2>');
 if (s.indexOf("'elanB_gestion_v2'") < 0) { console.error('ÉCHEC : le stockage local de la bêta n\'est pas isolé (STORE_KEY)'); process.exit(1); }
-if (s.indexOf("FB_TEAM='elan-gestion-beta'") < 0) { console.error('ÉCHEC : l\'espace de synchro bêta n\'est pas isolé (FB_TEAM)'); process.exit(1); }
+if (s.indexOf("FB_TEAM='opgestion-beta'") < 0) { console.error('ÉCHEC : l\'espace de synchro bêta n\'est pas isolé (FB_TEAM)'); process.exit(1); }
+/* ⛔ ET LA GARDE QUI COMPTE LE PLUS : le mot de passe et le sel de chiffrement CONTIENNENT
+   « ELAN-GESTION » mais ne sont PAS des noms. Un renommage global les emporterait et rendrait
+   les données de toutes les entreprises sans clé personnalisée définitivement illisibles, sur
+   tous leurs appareils à la fois. Le générateur refuse de produire une bêta qui les aurait
+   perdus — c'est la dernière barrière avant un fichier publié. */
+if (s.indexOf("SYNC_SECRET_DEFAULT='ELAN-GESTION-7F3A9C2E-cloud-2026'") < 0) { console.error('ÉCHEC : SYNC_SECRET_DEFAULT a été modifié — c\'est le MOT DE PASSE de chiffrement, pas un nom'); process.exit(1); }
+if (s.indexOf("SYNC_SALT='RUxBTi1HRVNUSU9OLXNhbHQtdjE='") < 0) { console.error('ÉCHEC : SYNC_SALT a été modifié — c\'est le SEL de chiffrement, pas un nom'); process.exit(1); }
 // Sortie par défaut : beta.html. Un chemin en argument sert au canal d'aperçu
 // (scripts/apercu.sh), qui veut la même isolation des données sous /apercu/.
 // La route PROPOSE du serveur exécute ce fichier dans un bac à sable dont le faux
