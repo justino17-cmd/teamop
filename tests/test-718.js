@@ -145,12 +145,12 @@ vrai('le changement volontaire laisse 5 s', /prochaine fois',5000\)/.test(SRC));
 vrai('« mot de passe oublié » laisse 5 s', /Mot de passe changé — te voilà connecté',5000\)/.test(SRC));
 
 /* ── 8. Le bouton de synchro : cinq états, le premier qui s'applique gagne ─────────────────── */
-console.log('8. syncEtat — cinq états, dans l\'ordre de ce qui demande une action');
+console.log('8. syncEtat — le geste d\'abord, puis ce qui demande une action');
 const mkEtat = (v) => new Function(
-  '_versionBloquee,_nuageIllisible,_horsLignePush,_horsLigne,_horsLigneDepuis,_syncEnCours,_syncOn,_syncDernierOk,syncDepuis',
+  '_versionBloquee,_nuageIllisible,_horsLignePush,_horsLigne,_horsLigneDepuis,_syncEnCours,_syncOn,_syncDernierOk,_syncOkJusqu,syncDepuis',
   extraire('function syncEtat(){') + '\nreturn syncEtat;')(
     v.bloquee || false, v.illisible || false, v.attente || false, v.horsLigne || false,
-    v.depuis || 0, v.enCours || false, v.on || false, v.dernierOk || 0,
+    v.depuis || 0, v.enCours || false, v.on || false, v.dernierOk || 0, v.okJusqu || 0,
     new Function('ts', extraire('function syncDepuis(ts){') + '\nreturn syncDepuis;')());
 
 eq('rien d\'actif → on propose de l\'activer', mkEtat({})().c, '');
@@ -169,13 +169,53 @@ dedans('… et il le DIT en toutes lettres', att.t, 'Travail en attente d\'envoi
 dedans('… avec depuis quand', att.t, 'hors ligne depuis il y a 20 min');
 dedans('… et il rassure : ça repartira tout seul', att.t, 'repartira tout seul');
 
-eq('version bloquée → rouge, et il prime sur tout le reste',
-  mkEtat({ bloquee: true, on: true, attente: true, enCours: true })().c, 'st-bloque');
+/* ⛔ « Prime sur tout le reste » était trop fort, et c'est ce qui a masqué le défaut : le
+   blocage prime sur tous les états PERMANENTS — c'est ce qui compte, sinon on croirait pouvoir
+   envoyer — mais pas sur le retour d'un GESTE, qui dure au plus 12 s et laisse le rouge
+   revenir juste après. La règle est donc vérifiée dans les deux sens. */
+eq('version bloquée prime sur le travail en attente',
+  mkEtat({ bloquee: true, on: true, attente: true })().c, 'st-bloque');
+eq('… sur le hors-ligne', mkEtat({ bloquee: true, on: true, horsLigne: true })().c, 'st-bloque');
+eq('… et sur « à jour »', mkEtat({ bloquee: true, on: true, dernierOk: Date.now() })().c, 'st-bloque');
+eq('… mais PAS sur le retour du tap', mkEtat({ bloquee: true, on: true, enCours: true })().c, 'spin');
+eq('… et le rouge revient dès que le tap est retombé',
+  mkEtat({ bloquee: true, on: true, enCours: false })().c, 'st-bloque');
 dedans('… et il dit que le travail n\'est pas perdu',
   mkEtat({ bloquee: true })().t, 'gardé sur l\'appareil');
 eq('nuage illisible → rouge aussi', mkEtat({ illisible: true, on: true })().c, 'st-bloque');
-/* L'attente prime sur « en cours » : ce qui demande une action passe avant ce qui se passe. */
-eq('travail en attente prime sur envoi en cours', mkEtat({ on: true, attente: true, enCours: true })().c, 'st-attente');
+/* ⛔ CORRIGÉ LE 17 SEPTEMBRE 2026, LE JOUR MÊME, SUR UN RETOUR DE JUSTIN DEPUIS LA BÊTA.
+   Ce banc affirmait exactement l'inverse : « travail en attente prime sur envoi en cours ».
+   C'était juste pour un état PERMANENT et faux pour le retour d'un GESTE — et le banc, en
+   l'affirmant, verrouillait le défaut au lieu de l'attraper. Mesuré avant correction : hors
+   ligne, travail en attente et version bloquée rendaient la MÊME classe avant et après le tap.
+   Dans TROIS cas sur quatre, appuyer sur le bouton ne faisait rien voir.
+   La règle est maintenant une PROPRIÉTÉ, vérifiée depuis chaque état de départ, et non plus
+   un cas particulier : un tap doit TOUJOURS changer ce que l'écran montre. */
+console.log('8b. Un tap change TOUJOURS ce qui est affiché — depuis n\'importe quel état');
+[['en ligne, rien en attente', { on: true }],
+ ['hors ligne', { on: true, horsLigne: true }],
+ ['travail en attente', { on: true, horsLigne: true, attente: true, depuis: Date.now() - 6e5 }],
+ ['version bloquée', { on: true, bloquee: true }],
+ ['nuage illisible', { on: true, illisible: true }],
+ ['synchro non active', {}],
+].forEach(([nom, v]) => {
+  const avant = mkEtat(v)(), apres = mkEtat(Object.assign({}, v, { enCours: true }))();
+  vrai('depuis « ' + nom +' » : le tap se voit', avant.c !== apres.c);
+  eq('depuis « ' + nom + ' » : et c\'est la rotation', apres.c, 'spin');
+});
+
+console.log('8c. Et il existe un moment « c\'est fini », pas seulement un « je travaille »');
+const fini = mkEtat({ on: true, okJusqu: Date.now() + 1500 })();
+eq('après un envoi réussi, le bouton le DIT', fini.c, 'st-ok');
+dedans('… en toutes lettres', fini.t, 'Envoyé');
+/* Le ✓ est transitoire : passé son échéance, on retombe sur l'état réel. */
+eq('… et il s\'éteint tout seul', mkEtat({ on: true, okJusqu: Date.now() - 1 })().c, 'st-ajour');
+/* ⛔ Mais il ne masque JAMAIS une rotation en cours : un second envoi lancé pendant le ✓
+   doit reprendre la main, sinon on croirait fini ce qui recommence. */
+eq('un nouvel envoi reprend la main sur le ✓', mkEtat({ on: true, okJusqu: Date.now() + 1500, enCours: true })().c, 'spin');
+/* ⚠️ En revanche le ✓ passe devant « hors ligne » : il vient d'être allumé par un SUCCÈS, donc
+   il dit une vérité plus récente que le drapeau hors ligne, qui n'a pas encore été rebaissé. */
+eq('le ✓ passe devant un drapeau hors ligne périmé', mkEtat({ on: true, okJusqu: Date.now() + 1500, horsLigne: true })().c, 'st-ok');
 
 console.log('9. syncDepuis — « il y a 3 min », jamais un horodatage à soustraire de tête');
 const dep = new Function('ts', extraire('function syncDepuis(ts){') + '\nreturn syncDepuis;')();
@@ -207,6 +247,21 @@ vrai('le point est masqué aux lecteurs d\'écran (le titre porte déjà le sens
 /* On vise une RÈGLE (un sélecteur suivi de son accolade), pas le commentaire qui cite
    l'ancienne forme pour expliquer pourquoi elle a été abandonnée. */
 vrai('le point est stylé par classes, pas par #sync-btn', !/#sync-btn[^{}\n]*\.sync-pt\s*\{/.test(SRC));
+/* ⛔ Le ✓ ne s'allume QUE là où l'on sait qu'une écriture est passée. L'allumer au clic
+   referait le 11 septembre 2026 : l'écran annonçait « Synchronisé » pendant que le quota
+   Firebase refusait tout. */
+vrai('_syncOkJusqu est posé à l\'endroit du succès', /_syncOkJusqu=Date\.now\(\)\+1800;/.test(SRC));
+vrai('… et syncNow ne l\'allume PAS', !/_syncOkJusqu\s*=/.test(extraire('function syncNow(){')));
+vrai('… et un rappel l\'éteint, sinon il resterait des heures', /setTimeout\(\(\)=>\{ try\{ updateSyncBtn\(\); \}catch\(_e\)\{\} \},1900\);/.test(SRC));
+vrai('le ✓ existe dans le balisage du bouton', /class="sync-ok"[^>]*viewBox="0 0 24 24"/.test(SRC));
+vrai('… et il remplace l\'icône plutôt que de s\'ajouter à côté', /\.st-ok>svg\{display:none\}/.test(SRC));
+vrai('updateSyncBtn nettoie aussi st-ok', /remove\('st-attente','st-bloque','st-ajour','st-ok'\)/.test(SRC));
+/* ⛔ MÊME RÈGLE POUR LE FOND QUE POUR LE POINT : aucune de ces règles ne doit tenir à un
+   identifiant. Écrite « #sync-btn.st-ok », elle a été prise en défaut par la sonde le même
+   jour — le fond ne changeait pas et rien ne le signalait. */
+vrai('le fond de « envoyé » est stylé par classe', /\.bell\.st-ok\{/.test(SRC));
+vrai('le fond de « en cours » est stylé par classe', /\.bell\.spin\{/.test(SRC));
+vrai('aucune règle de fond ne tient à #sync-btn', !/#sync-btn\.(st-ok|spin)\s*\{/.test(SRC));
 vrai('les trois états du point existent en classes',
   /\.st-ajour\s*>\s*\.sync-pt\s*\{/.test(SRC) && /\.st-attente\s*>\s*\.sync-pt\s*\{/.test(SRC) && /\.st-bloque\s*>\s*\.sync-pt\s*\{/.test(SRC));
 vrai('le point est masqué par défaut', /\.sync-pt\{[^}]*display:none/.test(SRC));

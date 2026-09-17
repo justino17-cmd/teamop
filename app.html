@@ -151,6 +151,21 @@
   .st-attente>.sync-pt{display:block;background:var(--org)}
   .st-bloque >.sync-pt{display:block;background:var(--red)}
   .st-ajour  >.sync-pt{display:block;background:var(--acc)}
+  /* ⛔ IL MANQUAIT LE MOMENT « C'EST FINI ». Justin, 17 septembre 2026 : « quand on clique il
+     faudrait un chargement pour être sûr que tout se synchronise bien ». La rotation disait
+     « je travaille » ; rien ne disait « c'est passé » — sauf un toast, ailleurs sur l'écran.
+     Le bouton montre donc un ✓ pendant 1,8 s, À LA PLACE de son icône, après un envoi
+     RÉELLEMENT réussi. Même discipline que btnFait sur les autres boutons. */
+  .sync-ok{display:none}
+  .st-ok>svg{display:none} .st-ok>.sync-ok{display:block} .st-ok>.sync-pt{display:none}
+  /* ⛔ SUR DES CLASSES — et je viens de refaire l'erreur que le commentaire du point d'état
+     dénonce vingt lignes plus haut : écrites « #sync-btn.st-ok », ces deux règles ne
+     s'appliquaient qu'au nœud nommé, la sonde ne voyait aucun changement de fond, et elles
+     seraient mortes en silence au premier renommage. Le fond, lui, change VRAIMENT — c'est ce
+     qui rend « c'est fini » lisible d'un coup d'œil, plus sûrement qu'une icône de 19 px. */
+  .bell.st-ok{background:var(--acc-fill)!important;border-color:transparent!important;color:var(--on-acc,#FFF)!important}
+  /* Et « en cours » se voit : la rotation seule, sur une icône de 18 px, se rate. */
+  .bell.spin{background:var(--tint)!important;border-color:var(--acc)!important}
   .ph-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
   .ph-title{font-family:'Archivo',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.4px;}
   .ph-sub{font-size:13px;color:var(--t3);margin-top:3px;}
@@ -4747,7 +4762,7 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
       </div>
       <div class="gsrch" onclick="event.stopPropagation()"><span style="display:inline-flex;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input id="gsrch-in" placeholder="Rechercher client, intervention, chantier…" oninput="gsearch(this.value)" onfocus="gsearch(this.value)"><div id="gsrch-res"></div></div>
       <div class="topbar-actions" id="topbar-actions"></div>
-      <button class="bell" id="sync-btn" onclick="syncNow()" title="Synchroniser"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span class="sync-pt" aria-hidden="true"></span></button>
+      <button class="bell" id="sync-btn" onclick="syncNow()" title="Synchroniser"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span class="sync-pt" aria-hidden="true"></span><svg class="sync-ok" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></button>
       <button class="bell" id="theme-btn" onclick="toggleTheme(event)" title="Mode jour / sombre"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <div class="topbar-bell">
         <button class="bell" onclick="toggleNotif(event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bell-count" id="bell-count" style="display:none">0</span></button>
@@ -4983,7 +4998,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '700';
+const APP_VERSION = '701';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6513,6 +6528,9 @@ let _pushManuel=false;
 /* Quand l'équipe a reçu notre travail pour la dernière fois. C'est la seule chose que la
    personne veut vraiment savoir devant ce bouton — pas « la synchro est-elle activée ». */
 let _syncDernierOk=0,_syncEnCours=false;
+/* Jusqu'à quand le ✓ reste affiché. Une DATE et non un booléen : si deux envois s'enchaînent,
+   le second repousse l'échéance au lieu d'éteindre le ✓ du premier en plein milieu. */
+let _syncOkJusqu=0;
 /* Version minimale exigée par TeamOP (Tour de contrôle). Et une décision sans option : l'application
    ne travaille QU'EN LIGNE (Justin, 9 septembre 2026 : « le mode hors ligne crée trop de problèmes,
    on l'oublie complètement »). La v616 gardait un interrupteur d'urgence dans la Tour ; il est retiré
@@ -7538,7 +7556,14 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
          moment du clic aurait redonné le défaut que le commentaire de syncNow décrit : un
          écran qui annonce un résultat qu'il n'a pas. */
       _syncDernierOk=Date.now(); _horsLignePush=false; _syncEnCours=false;
+      /* ⛔ LE ✓ NE S'ALLUME QU'ICI. C'est le seul endroit du fichier qui sait qu'une écriture
+         est vraiment passée — l'allumer au clic referait le 11 septembre 2026, où l'écran a
+         annoncé « Synchronisé avec l'équipe » toute une soirée pendant que le quota refusait
+         tout. Le rappel de 1,9 s est ce qui l'éteint : sans lui, il resterait jusqu'au
+         prochain redessin, donc potentiellement des heures. */
+      _syncOkJusqu=Date.now()+1800;
       try{ updateSyncBtn(); }catch(_e){}
+      setTimeout(()=>{ try{ updateSyncBtn(); }catch(_e){} },1900);
       try{ sauvegardeDeposer(e); }catch(_e){} })
       .catch(er=>{ _acquitte=true; _pushManuel=false; _syncEnCours=false; try{ updateSyncBtn(); }catch(_e){} console.error('push',er);
         /* L'écriture n'a PAS eu lieu : le repère ne doit pas rester en avant, sinon on ignore
@@ -31496,11 +31521,20 @@ function syncNow(){
    force pas, on rend impossible de ne pas voir. Cinq cas, dans l'ordre de ce qui demande une
    action de la personne — le premier qui s'applique gagne. */
 function syncEtat(){
+  /* ⛔ CE QUE LA PERSONNE VIENT DE FAIRE PASSE TOUJOURS DEVANT — corrigé le 17 septembre 2026,
+     le jour même, sur un retour de Justin depuis la bêta. Les états étaient rangés par « ce qui
+     demande une action », ce qui est juste pour un état PERMANENT et faux pour le retour d'un
+     GESTE. Mesuré avant correction : hors ligne, travail en attente et version bloquée
+     rendaient la MÊME classe avant et après le tap — donc, dans TROIS cas sur quatre, appuyer
+     sur le bouton ne faisait rien voir. Et le seul cas qui marchait était celui où on en a le
+     moins besoin. Ces deux états-ci sont brefs et bornés (12 s de filet, 1,8 s pour le ✓) :
+     ils ne peuvent pas masquer durablement un blocage, qui réapparaît juste après. */
+  if(_syncEnCours)        return {c:'spin',t:'Envoi en cours…'};
+  if(_syncOkJusqu>Date.now()) return {c:'st-ok',t:'Envoyé — l\'équipe a bien reçu'};
   if(_versionBloquee) return {c:'st-bloque',t:'Envoi impossible : mise à jour requise — ton travail est gardé sur l\'appareil'};
   if(_nuageIllisible) return {c:'st-bloque',t:'Envoi impossible : ce navigateur ne sait pas lire le dossier de l\'équipe — ton travail est gardé sur l\'appareil'};
   if(_horsLignePush)  return {c:'st-attente',t:'Travail en attente d\'envoi'+(_horsLigneDepuis?' — hors ligne depuis '+syncDepuis(_horsLigneDepuis):'')+'. Il repartira tout seul au retour du réseau.'};
   if(_horsLigne)      return {c:'st-attente',t:'Hors ligne — rien en attente d\'envoi'};
-  if(_syncEnCours)    return {c:'spin',t:'Envoi en cours…'};
   if(_syncOn)         return {c:'st-ajour',t:_syncDernierOk?('À jour — dernier envoi '+syncDepuis(_syncDernierOk)):'Synchro active — rien à envoyer pour l\'instant'};
   return {c:'',t:'Synchro non active — toucher pour l\'activer'};
 }
@@ -31516,10 +31550,10 @@ function syncDepuis(ts){
 }
 function updateSyncBtn(){ const b=$('sync-btn'); if(!b) return;
   const e=syncEtat();
-  b.classList.remove('st-attente','st-bloque','st-ajour');
+  b.classList.remove('st-attente','st-bloque','st-ajour','st-ok');
   if(e.c&&e.c!=='spin') b.classList.add(e.c);
   b.classList.toggle('spin',e.c==='spin');
-  b.style.color=(e.c==='st-bloque')?'var(--red)':(e.c==='st-attente')?'var(--org)':(_syncOn?'var(--acc)':'');
+  b.style.color=(e.c==='st-ok')?'':(e.c==='st-bloque')?'var(--red)':(e.c==='st-attente')?'var(--org)':(_syncOn?'var(--acc)':'');
   /* ⛔ LE TITRE PORTE LE SENS EN TOUTES LETTRES. Le point de couleur ne parle jamais seul :
      en niveaux de gris, ou pour qui ne distingue pas l'orange du vert, il ne dirait rien. */
   b.title=e.t; b.setAttribute('aria-label','Synchroniser — '+e.t);
