@@ -71,5 +71,36 @@ if (s.indexOf("SYNC_SALT='RUxBTi1HRVNUSU9OLXNhbHQtdjE='") < 0) { console.error('
 // La route PROPOSE du serveur exécute ce fichier dans un bac à sable dont le faux
 // `process` n'a que exit() : on ne suppose jamais argv.
 const sortie = (process.argv && process.argv[2]) || 'beta.html';
+
+/* ⛔ GARDE DE NON-RÉGRESSION DE VERSION — posée le 17 septembre 2026, après l'avoir déclenchée
+   pour de vrai pendant une vérification.
+   La bêta publiée est souvent EN AVANCE sur `app.html` de `main` : c'est tout son rôle, elle
+   est le canal d'essai. Le soir du renommage, beta.html servait la 701 alors que l'app.html de
+   `main` était encore en 695. Lancer `node beta-build.js` depuis `main` a donc produit une
+   695-beta et ÉCRASÉ la 701 — sans un mot, sans une erreur. Vu et restauré ce jour-là parce
+   qu'un `cmp` traînait dans la commande ; la fois suivante, ça part en production.
+   Le générateur refuse donc d'écrire une bêta dont le numéro est INFÉRIEUR à celle qu'il
+   remplace. Revenir en arrière reste possible, mais il faut le VOULOIR : `BETA_RETROGRADER=1`.
+
+   ⚠️ ET LA ROUTE PROPOSE DU SERVEUR NE DOIT PAS TOMBER DESSUS. Elle exécute ce fichier dans un
+   bac à sable (server/index.js, `betaDepuis`) pour fabriquer une bêta candidate à partir d'une
+   app corrigée — donc souvent d'une version plus basse que celle du dépôt. Deux raisons de la
+   laisser passer, et la seconde suffirait seule : son faux `process` n'a QUE `exit()`, donc
+   `process.env` est `undefined` ; et son faux `writeFileSync` ne touche jamais le disque, il
+   capte la sortie en mémoire pour une pull request. Il n'y a rien à y rétrograder.
+   ⚠️ Le faux `fs` n'a pas non plus `existsSync` : on lit dans un try/catch, jamais autrement. */
+if (process.env && !process.env.BETA_RETROGRADER) {
+  let ancienne = '';
+  try { ancienne = String(fs.readFileSync(sortie, 'utf8')); } catch (e) { /* premier passage : rien à comparer */ }
+  const numero = (t) => { const m = /APP_VERSION = '(\d+)/.exec(t || ''); return m ? parseInt(m[1], 10) : 0; };
+  const vNeuve = numero(s), vAncienne = numero(ancienne);
+  if (vAncienne && vNeuve < vAncienne) {
+    console.error('ÉCHEC : refus d\'écrire ' + sortie + ' en v' + vNeuve + ' par-dessus une v' + vAncienne + '.'
+      + ' La bêta publiée est plus récente que l\'app.html de cette branche — tu es probablement sur main'
+      + ' alors que la bêta vient de la branche de travail. Si le retour en arrière est voulu :'
+      + ' BETA_RETROGRADER=1 node beta-build.js');
+    process.exit(1);
+  }
+}
 fs.writeFileSync(sortie, s);
 console.log(sortie + ' générée (' + Math.round(s.length / 1024) + ' Ko) — version ' + (s.match(/APP_VERSION = '([^']+)'/) || [])[1]);
