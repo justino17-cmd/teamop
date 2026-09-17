@@ -4955,7 +4955,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '697';
+const APP_VERSION = '698';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7099,6 +7099,58 @@ const NUAGE_ENC_MAX=780*1024;
 function nuageDocOctets(n){ return Math.ceil((n+16)/3)*4; }
 /* Une seule fois par session : voir la branche « impossible » de syncPush. */
 let _lourdDit=false;
+/* ⚠️ CE BLOC EST ICI, ET PAS À CÔTÉ DE `pieceDeposer`, POUR UNE RAISON PRÉCISE.
+   `PH_MARQUE` est un `const` : il n'est pas hissé, il a une zone morte temporelle.
+   `syncSortirPieces`, juste en dessous, s'en sert. Le laisser plus bas dans le fichier
+   « marchait » par chance — la fonction n'est appelée qu'à la synchro, donc bien après que
+   le script a fini de s'exécuter. Ce dépôt a déjà payé ce pari une fois : une zone morte
+   temporelle a rendu tout le rangement de catégories silencieusement inopérant, le
+   10 septembre au matin (CLAUDE.md). On ne s'appuie donc pas sur l'ordre des appels, on
+   rend l'ordre du FICHIER juste. `tests/test-714.js` le vérifie mécaniquement. */
+/* ══ UNE PHOTO PORTE SON IDENTIFIANT DANS SA PROPRE CHAÎNE ═════════════════════════
+   Point 5 de l'étape 0, et le choix de format est TOUT le problème — pas le réseau.
+
+   `i.photos` est un tableau de CHAÎNES (des data URL), pas d'objets : il n'y a nulle part où
+   poser un identifiant. Les deux évidences ne marchent pas :
+   • un tableau parallèle (`photoPids[ix]`) désynchronise, parce que `syncAlleger` RETIRE une
+     photo du tableau (`x.photos[k]=null` puis `.filter(v=>v!==null)`) au lieu de la vider sur
+     place comme un document — tous les index glissent, et l'identifiant désigne la voisine.
+     ⚠️ Le dépôt en porte déjà la trace : `intPhotoDel` fait `i.photos.splice(ix,1)` sans
+     toucher à `i.photoTags`, donc les étiquettes glissent déjà aujourd'hui — un tableau
+     parallèle de plus aurait hérité du même défaut ;
+   • passer `photos` en objets casserait les six endroits qui mettent la chaîne directement
+     dans un `<img src>` ou dans un PDF.
+
+   Donc : L'IDENTIFIANT VIT DANS LA CHAÎNE. Une photo est
+     "data:image/jpeg;base64,…"                      — comme aujourd'hui, locale seulement
+     "piece:<64 hex>:data:image/jpeg;base64,…"        — déposée, contenu encore là
+     "piece:<64 hex>"                                 — déposée, contenu à aller chercher
+   L'identifiant faisant exactement 64 hexadécimaux, la découpe est sans ambiguïté même si le
+   data URL contient des `:`. Aucun tableau parallèle, donc aucune désynchronisation POSSIBLE :
+   supprimer une photo emporte son identifiant, par construction. */
+const PH_MARQUE=/^piece:([0-9a-f]{64})(?::([\s\S]*))?$/;
+function photoPid(ph){ const m=PH_MARQUE.exec(String(ph||'')); return m?m[1]:''; }
+/* Ce qu'on met dans un `<img src>` ou dans un PDF. Rend '' quand le contenu n'est pas là :
+   un `<img src="">` ne charge rien et ne casse pas la page, là où `src="piece:abc…"` déclencherait
+   une requête vers un schéma inconnu. */
+function photoSrc(ph){ const t=String(ph||''); const m=PH_MARQUE.exec(t); return m?(m[2]||''):t; }
+function photoMarquer(pid,data){ return pid?('piece:'+pid+(data?(':'+data):'')):String(data||''); }
+/* ⛔ RÉSOUDRE NE SAUVEGARDE JAMAIS. « Rien ne s'écrit dans les données d'une entreprise au seul
+   chargement » (CLAUDE.md) : on remplit le contenu EN MÉMOIRE pour l'afficher, et on laisse la
+   base telle qu'elle est arrivée. La pièce vit sur le VPS ; la recopier dans la base la
+   ferait repartir dans le document de l'équipe à la première écriture, ce qui déferait tout
+   le chantier sans que rien ne le signale. */
+async function photosResoudre(liste){
+  if(!Array.isArray(liste)) return 0;
+  let n=0;
+  for(let k=0;k<liste.length;k++){
+    const m=PH_MARQUE.exec(String(liste[k]||''));
+    if(!m||m[2]) continue;                 // pas un marqueur, ou contenu déjà présent
+    const r=await pieceLire(m[1]);
+    if(r&&r.dataUrl){ liste[k]=photoMarquer(m[1],r.dataUrl); n++; }
+  }
+  return n;
+}
 /* ══ UN DOCUMENT QUI EST SUR LE SERVEUR N'A PLUS À VOYAGER DANS LE DOCUMENT FIRESTORE ════
    C'est le gain de l'étape 0, et il est structurel : ce qui a un `pid` est en sûreté sur le
    VPS, donc sa copie base64 dans le document de l'équipe ne sert plus qu'à consommer le
@@ -7120,13 +7172,18 @@ function syncSortirPieces(base){
   try{
     Object.keys(base||{}).forEach(c=>{ if(!Array.isArray(base[c])) return;
       base[c].forEach((r,ix)=>{
-        if(!r||typeof r!=='object'||!Array.isArray(r.docs)) return;
-        if(!r.docs.some(d=>d&&d.pid&&d.data)) return;
+        if(!r||typeof r!=='object') return;
+        const docsASortir=Array.isArray(r.docs)&&r.docs.some(d=>d&&d.pid&&d.data);
+        /* Une photo déposée porte son identifiant DANS sa chaîne : on ne garde que lui. */
+        const phASortir=Array.isArray(r.photos)&&r.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&m[2]; });
+        if(!docsASortir&&!phASortir) return;
         if(copie===base) copie=Object.assign({},base);
         if(copie[c]===base[c]) copie[c]=base[c].slice();
         const x=Object.assign({},r);
-        x.docs=r.docs.map(d=>{ if(!d||!d.pid||!d.data) return d;
+        if(docsASortir) x.docs=r.docs.map(d=>{ if(!d||!d.pid||!d.data) return d;
           n++; return Object.assign({},d,{data:'',surServeur:true}); });
+        if(phASortir) x.photos=r.photos.map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
+          if(!m||!m[2]) return ph; n++; return 'piece:'+m[1]; });
         copie[c][ix]=x;
       }); });
   }catch(e){ return {copie:base,sorties:0}; }
@@ -15841,7 +15898,7 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
     body=`<div class="form-sec" style="margin-top:0">4 · Photos avant / après</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:9px;margin-bottom:10px">
       <div onclick="document.getElementById('as-file').click()" style="aspect-ratio:1;border-radius:12px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-weight:800;font-size:12px"><span style="font-size:28px">＋</span>Photo</div>
-      ${rapPhotos.map((p,ix)=>{ const tg=rapTags[ix]||'';
+      ${rapPhotos.map((p,ix)=>{ const tg=rapTags[ix]||''; p=photoSrc(p);
         return `<div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--brd)"><img src="${p}" style="width:100%;height:100%;object-fit:cover">
         <button type="button" onclick="rapPhotos.splice(${ix},1);rapTags.splice(${ix},1);assistRender()" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>
         <button type="button" onclick="rapTags[${ix}]='${tg==='avant'?'apres':tg==='apres'?'':'avant'}';assistRender()" style="position:absolute;left:4px;bottom:4px;border:none;border-radius:8px;padding:3px 8px;font-size:10.5px;font-weight:800;cursor:pointer;background:${tg==='avant'?'var(--org)':tg==='apres'?'var(--acc)':'rgba(0,0,0,.55)'};color:#fff">${tg==='avant'?'AVANT':tg==='apres'?'APRÈS':'étiqueter'}</button></div>`; }).join('')}
@@ -16261,6 +16318,24 @@ function fic(n,sz=18){ const P={
   trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
   scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/>' };
   return `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px">${P[n]||''}</svg>`; }
+/* ⛔ RÉSOUDRE APRÈS AVOIR AFFICHÉ, JAMAIS AVANT. L'écran doit s'ouvrir tout de suite, avec les
+   photos qu'on a déjà ; celles qui vivent sur le VPS arrivent ensuite et l'écran se redessine.
+   L'inverse ferait attendre un technicien devant un écran vide, sur un réseau de chantier —
+   et sur une fiche où tout est déjà local, l'attente serait pure perte.
+   ⛔ ET ÇA N'ÉCRIT RIEN : `photosResoudre` remplit la mémoire, pas la base. « Rien ne s'écrit
+   dans les données d'une entreprise au seul chargement » — il n'y a donc AUCUN `save()` ici,
+   et il ne faut pas en ajouter : une photo recopiée dans la base repartirait dans le document
+   de l'équipe à la première écriture, ce qui déferait tout le chantier en silence. */
+let _phEnCours=new Set();
+function intPhotosCombler(id){
+  if(_phEnCours.has(id)) return;
+  const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.photos)) return;
+  if(!i.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })) return;
+  _phEnCours.add(id);
+  photosResoudre(i.photos).then(n=>{ _phEnCours.delete(id);
+    if(n&&document.getElementById('int-detail-photos')) renderIntDetail(id); })
+   .catch(()=>{ _phEnCours.delete(id); });
+}
 function renderIntDetail(id){
   const i=db.interventions.find(x=>x.id===id); if(!i)return; window._curIntId=id;
   i.produitsUtilises=i.produitsUtilises||[]; i.equipements=i.equipements||[];
@@ -16431,13 +16506,14 @@ function renderIntDetail(id){
         <button class="btn" onclick="intAddEquip('${id}')">＋</button></div>`;
   } else if(intTab==='docs'){
     i.photos=i.photos||[];
+    intPhotosCombler(id);   // les photos qui vivent sur le VPS arrivent après coup, sans bloquer l'écran
     const sub=`<div class="tabs" style="margin-bottom:12px"><div class="tab ${fsTab==='medias'?'active':''}" onclick="fsTab='medias';renderIntDetail('${id}')">Médias</div><div class="tab ${fsTab==='sign'?'active':''}" onclick="fsTab='sign';renderIntDetail('${id}')">Signatures</div></div>`;
     if(fsTab==='medias'){
       const canDelM=intEdit&&intMediaCanDel(i);
       body=`${sub}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
-        ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${ph}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
+        ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div id="int-detail-photos" onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
+        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
       </div>
       <input type="file" id="int-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="intPhotoAdd(event,'${id}')">
       <input type="file" id="int-photo-file" accept="image/*" multiple style="display:none" onchange="intPhotoAdd(event,'${id}')">
@@ -16532,7 +16608,7 @@ function renderIntDetail(id){
       <div class="card" style="margin-top:12px"><div class="card-head" style="margin-bottom:8px"><h3>Aperçu du rapport <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t3);font-size:12px">— texte envoyé au client</span></h3></div>
         <div style="white-space:pre-wrap;font-size:13px;color:var(--t2);line-height:1.6;background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:14px">${esc(genRapportTexte(i))}</div></div>
       ${champsV}
-      ${(i.photos&&i.photos.length)?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:8px">Photos</div><div style="display:flex;gap:8px;flex-wrap:wrap">${i.photos.map(p=>`<img src="${p}" onclick="window.open(this.src)" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--brd);cursor:pointer">`).join('')}</div></div>`:''}
+      ${(i.photos&&i.photos.length)?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:8px">Photos</div><div style="display:flex;gap:8px;flex-wrap:wrap">${i.photos.map(p=>`<img src="${photoSrc(p)}" onclick="window.open(this.src)" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--brd);cursor:pointer">`).join('')}</div></div>`:''}
       ${(i.signature||i.signatureTech)?`<div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap">${i.signature?`<div><div class="dt-lbl" style="margin-bottom:8px">Signature client</div><img src="${i.signature}" style="background:#fff;border-radius:8px;max-width:220px;border:1px solid var(--brd)"></div>`:''}${i.signatureTech?`<div><div class="dt-lbl" style="margin-bottom:8px">Signature technicien</div><img src="${i.signatureTech}" style="background:#fff;border-radius:8px;max-width:220px;border:1px solid var(--brd)"></div>`:''}</div>`:''}
       ${(i.montant||i.moyenPaiement||i.tpePhoto)?`<div class="card" style="margin-top:14px"><div class="card-head" style="margin-bottom:8px"><h3>Paiement</h3></div>
         ${i.montant?`<div class="frow"><span class="frow-lbl">Montant encaissé</span><div class="frow-val"><b style="color:var(--acc)">${eur(i.montant)}</b></div></div>`:''}
@@ -16803,9 +16879,21 @@ function intChronoReset(id){ const i=db.interventions.find(x=>x.id===id); if(!i)
 async function intPhotoAdd(e,id){ const files=[...(e.target.files||[])]; e.target.value=''; if(!files.length) return;
   const i=db.interventions.find(x=>x.id===id); if(!i) return; i.photos=i.photos||[];
   let n=0;
-  for(const f of files){ const d=await compressImage(f,1200,0.72); if(d){ i.photos.push(d); n++; } }
+  const rang=[];
+  for(const f of files){ const d=await compressImage(f,1200,0.72); if(d){ rang.push(i.photos.length); i.photos.push(d); n++; } }
   if(!n){ toast('Image illisible'); return; }
-  intHisto(i,n+' média(s) ajouté(s)'); save(); renderIntDetail(id); toast('📷 '+n+' média(s) ajouté(s)'); }
+  /* ⛔ MÊME INVARIANT QUE POUR LES DOCUMENTS : la photo est ENREGISTRÉE d'abord, déposée
+     ensuite, et le marqueur s'AJOUTE au retour. Sans identifiant, elle se comporte exactement
+     comme avant ce chantier — elle vit sur cet appareil. */
+  intHisto(i,n+' média(s) ajouté(s)'); save(); renderIntDetail(id); toast('📷 '+n+' média(s) ajouté(s)');
+  let rate='';
+  for(const k of rang){
+    const dep=await pieceDeposer(photoSrc(i.photos[k]));
+    if(dep&&dep.id) i.photos[k]=photoMarquer(dep.id,photoSrc(i.photos[k]));
+    else if(dep&&dep.erreur) rate=dep.motif;
+  }
+  save(); renderIntDetail(id);
+  if(rate) toast(pieceMotifTexte(rate).replace('Document','Média').replace('document','média'),7000); }
 /* Suppression de médias : libre tant que l'intervention n'est pas terminée, ensuite droit « Supprimer » */
 function intMediaCanDel(i){ return can('supprimer')||(i&&i.statut!=='terminee'); }
 /* Bottom-sheet « ＋ Ajouter un média » : photo, galerie ou fichier */
@@ -16899,7 +16987,17 @@ function intPlanAdd(e,id){ const f=e.target.files[0]; if(!f) return; e.target.va
     const i=db.interventions.find(x=>x.id===id); if(!i) return; i.plans=i.plans||[]; i.plans.push(cv.toDataURL('image/jpeg',0.75));
     intHisto(i,'Plan ajouté'); save(); renderIntDetail(id); }; img.src=r.result; }; r.readAsDataURL(f); }
 function intPlanDel(id,ix){ if(!confirm('Supprimer ce plan ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.plans) return; i.plans.splice(ix,1); save(); renderIntDetail(id); }
-function intPhotoDel(id,ix){ if(!confirm('Supprimer ce média ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.photos) return; i.photos.splice(ix,1); save(); renderIntDetail(id); }
+/* ⛔ ET L'ÉTIQUETTE SUIT LA PHOTO. Défaut préexistant, trouvé en écrivant le point 5 :
+   `i.photos.splice(ix,1)` ne touchait pas à `i.photoTags`, donc supprimer la première photo
+   décalait TOUTES les légendes d'un cran — sur un rapport sanitaire, une photo légendée
+   « poste 12 » devient « poste 11 » sans que personne ne s'en aperçoive. Corrigé ici parce
+   qu'on ne pose pas une mécanique neuve à côté d'une désynchronisation connue. */
+function intPhotoDel(id,ix){ if(!confirm('Supprimer ce média ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.photos) return;
+  const pid=photoPid(i.photos[ix]);
+  i.photos.splice(ix,1);
+  if(Array.isArray(i.photoTags)&&i.photoTags.length>ix) i.photoTags.splice(ix,1);
+  save(); renderIntDetail(id);
+  if(pid) pieceSupprimer(pid); }
 function saveInlineSigs(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   const c1=$('sigl-cli'), c2=$('sigl-tech');
   if(c1&&c1.dataset.has) i.signature=c1.toDataURL('image/png');
@@ -17595,7 +17693,7 @@ function saveChamp(e){ e.preventDefault(); const d=Object.fromEntries(new FormDa
   if(d.type==='liste') f.options=parts; if(d.type==='tableau') f.colonnes=parts.length?parts:['Colonne 1','Colonne 2'];
   db.champsPerso.push(f); logEvent('Champ personnalisé créé',d.label,'crud'); save(); closeModal(); views.parametres(); }
 function renderRapPhotos(){ const el=$('rap-photos'); if(!el) return;
-  el.innerHTML = rapPhotos.map((p,idx)=>`<div style="position:relative"><img src="${p}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--brd)"><button type="button" onclick="rapPhotos.splice(${idx},1);renderRapPhotos()" style="position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px">✕</button></div>`).join('');
+  el.innerHTML = rapPhotos.map((p,idx)=>`<div style="position:relative"><img src="${photoSrc(p)}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--brd)"><button type="button" onclick="rapPhotos.splice(${idx},1);renderRapPhotos()" style="position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px">✕</button></div>`).join('');
 }
 /* Compresse/redimensionne une image avant stockage (évite de saturer le stockage local) */
 function compressImage(file, maxDim, quality){ maxDim=maxDim||1200; quality=quality||0.72;
@@ -17668,14 +17766,23 @@ function saveRapport(e,id){ e.preventDefault(); const f=e.target; const data=Obj
   } else { closeModal(); toast('Rapport enregistré'); go(current); } }
 
 /* ── Export PDF d'un rapport d'intervention ── */
-function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
+/* ⛔ LE PDF ATTEND LES PHOTOS, là où l'écran ne les attend pas — et la différence est
+   volontaire. Un écran incomplet se recomplète une seconde plus tard ; un PDF envoyé à un
+   client avec des cadres vides est définitif, et c'est un rapport sanitaire. */
+async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return;
+  if(Array.isArray(i.photos)&&i.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })){
+    toast('⬇️ Récupération des photos…',2500);
+    await photosResoudre(i.photos);
+    const reste=i.photos.filter(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; }).length;
+    if(reste&&!confirm(reste+' photo(s) n\'ont pas pu être récupérées — elles manqueront dans le PDF.\n\nContinuer quand même ?')) return;
+  } const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
   // les produits rattachés à un type de traitement apparaissent dans leur section ; ici, les lignes « libres »
   const prod=(i.produitsUtilises||[]).filter(l=>!l.categorie||!(((i.quest||{})[l.categorie]||{}).actif)).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td><td>${esc(prodLineAmm(l)||'—')}</td><td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(l.unite||'')}</td></tr>`;}).join('');
   const equip=(i.equipements||[]).map(e=>`<tr><td>${esc(e.nom)}</td><td>${esc(e.reference)||''}</td></tr>`).join('');
   const champs=(db.champsPerso||[]).filter(f=>i.champs&&i.champs[f.id]!=null&&(!Array.isArray(i.champs[f.id])||i.champs[f.id].length)).map(f=>{ const v=i.champs[f.id];
     if(f.type==='tableau'&&Array.isArray(v)) return `<div class="box"><b>${esc(f.label)}</b><table style="margin-top:6px"><thead><tr>${(f.colonnes||[]).map(co=>`<th>${esc(co)}</th>`).join('')}</tr></thead><tbody>${v.map(r=>`<tr>${(f.colonnes||[]).map((co,ci)=>`<td>${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     return `<p style="margin:4px 0"><b>${esc(f.label)} :</b> ${esc(v)}</p>`; }).join('');
-  const photos=(i.photos||[]).map((p,ix)=>{ const tg=(i.photoTags||[])[ix];
+  const photos=(i.photos||[]).map((p,ix)=>{ p=photoSrc(p); const tg=(i.photoTags||[])[ix];
     return `<span style="display:inline-block;text-align:center;margin:4px">${tg?`<span style="display:block;font-size:10px;font-weight:bold;color:${tg==='avant'?'#C26A10':'#1E7A4E'};text-transform:uppercase">${tg==='avant'?'Avant':'Après'}</span>`:''}<img src="${p}" style="width:150px;height:150px;object-fit:cover;border-radius:6px"></span>`; }).join('');
   let planApp=''; try{ planApp=paPdfHtml(i); }catch(e){ planApp=''; }
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
@@ -17777,7 +17884,7 @@ function envoiRapportClient(id){ const i=db.interventions.find(x=>x.id===id); if
       </div>
       <p style="color:var(--t3);font-size:12px;margin-top:10px">Par email, le PDF (avec photos) s'ouvre pour que tu puisses le joindre.</p>
     </div>`); }
-function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
+async function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
   if(canal==='sms'){ const raw=$('rap-tel')?$('rap-tel').value.trim():(c.tel||''); const tel=raw.replace(/[^\d+]/g,''); if(!tel){ toast('Entrez un numéro de téléphone'); return; }
     if($('rap-save')&&$('rap-save').checked&&c.id){ c.tel=raw; toast('Numéro enregistré sur la fiche client'); }
     const msg='Bonjour, votre rapport d\'intervention du '+fmtShort(i.date)+' ('+soc+') est disponible. Nous restons à votre disposition.';
@@ -17786,7 +17893,11 @@ function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id); if(!
   if(!c.email){ toast('Ajoute l\'email du client dans sa fiche'); return; }
   const sujet='Rapport d\'intervention — '+fmtShort(i.date)+(i.type?' ('+i.type+')':'');
   const corps=genRapportTexte(i); i.rapportEnvoye={ts:Date.now(),via:'email',a:c.email}; intHisto(i,'Rapport envoyé par e-mail à '+c.email); save();
-  closeModal(); printRapport(id); setTimeout(()=>{ srvMail(c.email,sujet,corps,'✉️ Rapport envoyé à '+c.email,'rapport',null,intSocMailOpts(i)); },700); }
+  /* ⛔ ON ATTEND LE PDF. Depuis le point 5, `printRapport` peut aller chercher des photos
+     sur le VPS : sans `await`, le courriel partait pendant le téléchargement, donc avant
+     que le client ait son rapport sous les yeux. Le délai de 700 ms reste, il sert à
+     laisser la fenêtre d'impression s'ouvrir. */
+  closeModal(); await printRapport(id); setTimeout(()=>{ srvMail(c.email,sujet,corps,'✉️ Rapport envoyé à '+c.email,'rapport',null,intSocMailOpts(i)); },700); }
 
 /* ═══════════════ PRODUITS ═══════════════ */
 let prdCat='all';
@@ -27640,7 +27751,7 @@ function interTout(i,l){
   if(i.noteInterne) mots.push(['🔒','Note interne',txt(i.noteInterne)]);
   const tags=i.photoTags||[], med=[];
   if(i.tpePhoto) med.push([i.tpePhoto,'Ticket TPE']);
-  (i.photos||[]).forEach((p,ix)=>med.push([p,String(tags[ix]||('Photo '+(ix+1)))]));
+  (i.photos||[]).forEach((p,ix)=>med.push([photoSrc(p),String(tags[ix]||('Photo '+(ix+1)))]));
   if(i.signature) med.push([i.signature,'Signature du client']);
   if(i.signatureTech) med.push([i.signatureTech,'Signature du technicien']);
   return `<div class="form-sec">Ce qui a été écrit (${mots.length})</div>
