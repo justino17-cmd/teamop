@@ -9,12 +9,26 @@ rules_version = '2';
 //  des règles : ce n'est jamais « ajouter un bloc », c'est « tout coller ».
 //  La console garde l'historique des versions publiées, avec retour arrière.
 //
-//  PUBLIÉ LE 11 SEPTEMBRE 2026, 2 h 30 — chaque entreprise est enfin enfermée
-//  chez elle. Vérifié dans la foulée avec un compte anonyme, sur un identifiant
-//  d'espace INEXISTANT pour ne toucher aucune donnée réelle :
-//    · elan_teams        → 403 PERMISSION_DENIED   (la dette est fermée)
-//    · teamop_config     → 200, min: 640           (la porte de version tient)
-//    · elanB_teams       → 200                     (la bêta marche toujours)
+//  ⛔ CE FICHIER A MENTI PENDANT UNE SEMAINE, ET IL FAUT QUE ÇA RESTE ÉCRIT.
+//  Il a porté, du 11 au 18 septembre 2026, la mention « PUBLIÉ LE 11 SEPTEMBRE
+//  2026, 2 h 30 », suivie d'un relevé de vérification détaillé (elan_teams →
+//  403 PERMISSION_DENIED). Le 18 septembre, la règle RÉELLEMENT servie par
+//  Google a été lue depuis le serveur : elle datait du 28 JUIN 2026 et disait
+//  encore `allow read: if connecte()`. La publication n'a jamais eu lieu.
+//  Personne n'a menti sciemment : le fichier a été écrit, le collage dans la
+//  console ne s'est pas fait — et RIEN ne pouvait le signaler, parce que la
+//  seule façon de comparer était d'ouvrir la console et de lire à l'œil.
+//  Pendant sept jours, une note de bas de page a tenu lieu de preuve, et tout
+//  ce qui reposait dessus (« l'appareil révoqué retombe en anonyme, et c'est la
+//  règle qui ne lui donne rien ») était faux.
+//
+//  ⛔ LA LEÇON, ET ELLE VAUT AU-DELÀ DE FIREBASE : un fichier du dépôt ne
+//  prouve RIEN de ce qui tourne ailleurs. Écrire « publié » n'est pas publier.
+//  D'où `server/firebase-console.js` : `regles` LIT ce que Google sert et le
+//  compare à ce fichier ; `regles-publier` publie DEPUIS ce fichier. Le dépôt
+//  devient la source, la console un reflet — l'écart ne peut plus s'installer.
+//  Ne plus jamais écrire ici une date de publication à la main : c'est l'outil
+//  qui la lit, et lui seul qui peut la dire.
 //
 //  OP MESSAGES n'est plus ici — décision de Justin, 10 septembre 2026 : la
 //  messagerie n'est pas en service, elle aura son propre projet Firebase (ses
