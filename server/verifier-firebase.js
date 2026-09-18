@@ -125,7 +125,11 @@ const sha = x => crypto.createHash('sha256').update(String(x)).digest('hex');
       if (!app.has(x.dev) || (x.ts || 0) > app.get(x.dev).ts) app.set(x.dev, { ts: x.ts || 0, v });
     }
     if (!app.size) continue;
-    if (!connus.has(t)) horsAnnuaire.push({ t, n: app.size });
+    if (!connus.has(t)) {
+      let dernier = 0;
+      for (const d of app.values()) if (d.ts > dernier) dernier = d.ts;
+      horsAnnuaire.push({ t, n: app.size, dernier, heures: Math.round((Date.now() - dernier) / 3600000) });
+    }
     for (const d of app.values()) {
       if (!d.v) sansVersion++;
       else if (d.v < PLANCHER_JETON) vieux++;
@@ -136,6 +140,19 @@ const sha = x => crypto.createHash('sha256').update(String(x)).digest('hex');
   if (vieux) console.log('  ⛔ ' + vieux + ' appareil(s) SOUS la v' + PLANCHER_JETON + ' — ils seraient coupés');
   if (sansVersion) console.log('  ⚠ ' + sansVersion + ' appareil(s) sans version connue — à regarder dans la Tour');
   if (!recents && !vieux && !sansVersion) console.log('  (aucune connexion enregistrée sur 7 jours — rien à conclure)');
+  /* ⛔ UNE TRACE N'EST PAS QUELQU'UN QUI TRAVAILLE, et confondre les deux rend cette liste de
+     contrôle inutilisable. Mesuré le 18 septembre : `elan-gestion` portait 4 appareils « sur
+     7 jours » — dont la dernière connexion remontait à 83 HEURES, toutes en versions
+     antérieures. C'était le déménagement d'ELAN vers son propre espace, pas des gens coupés.
+     Bloquer là-dessus, c'était bloquer pour toujours — et finir par publier en passant outre,
+     ce qui vide l'outil de son sens. Même leçon que l'alarme de sauvegarde corrigée le matin :
+     une alarme qui crie toujours ne protège plus personne.
+     Le seuil est 48 heures : au-delà, plus personne n'a ouvert l'application deux jours de
+     suite, on le SIGNALE sans bloquer. En deçà, quelqu'un s'en sert — on bloque.
+     ⚠️ Et le canal d'essai ne bloque jamais : la règle laisse `elanB_teams` ouverte EXPRÈS,
+     ses appareils n'ont pas de jeton et n'en ont pas besoin. */
+  const RECENT_H = 48;
+  const vivants = horsAnnuaire.filter(h => h.heures < RECENT_H && !/beta/i.test(h.t));
   if (horsAnnuaire.length) {
     /* ⛔ ON DIT QUI, PAS SEULEMENT COMBIEN. « 5 appareils sur un espace hors annuaire » ne se
        traite pas : on ne sait pas s'il s'agit d'une entreprise qui travaille, d'un téléphone
@@ -147,9 +164,12 @@ const sha = x => crypto.createHash('sha256').update(String(x)).digest('hex');
        cohabitent avec celles des autres — et que la règle fermée couperait tous ensemble. */
     console.log('  ⛔ ' + horsAnnuaire.length + ' espace(s) ACTIFS mais HORS ANNUAIRE — sans code enregistré, jamais de jeton :');
     for (const h of horsAnnuaire) {
-      const quoi = h.t === 'elan-gestion' ? '  ⚠️ DOCUMENT PARTAGÉ de toutes les entreprises sans clé'
-        : /beta/i.test(h.t) ? '  (canal d\'essai)' : '';
-      console.log('      · ' + h.t + ' — ' + h.n + ' appareil(s) sur 7 j' + quoi);
+      const quoi = /beta/i.test(h.t) ? '  (canal d\'essai — la règle le laisse ouvert, il ne bloque pas)'
+        : h.t === 'elan-gestion' ? '  ⚠️ DOCUMENT PARTAGÉ de toutes les entreprises sans clé' : '';
+      const etat = /beta/i.test(h.t) ? '' : (h.heures < RECENT_H
+        ? '   ⛔ QUELQU\'UN S\'EN SERT ENCORE'
+        : '   · trace ancienne (' + h.heures + ' h) — déménagement, pas quelqu\'un de coupé');
+      console.log('      · ' + h.t + ' — ' + h.n + ' appareil(s) sur 7 j' + quoi + etat);
       const logins = new Map(); const versions = new Set(); let dernier = 0;
       for (const x of (cnx[h.t] || [])) {
         if ((x.ts || 0) < j7) continue;
@@ -173,14 +193,15 @@ const sha = x => crypto.createHash('sha256').update(String(x)).digest('hex');
   console.log('  ' + techniques.length + ' espace(s) technique(s) — sans jeton par construction, aucune entreprise dessus');
   console.log('  ' + autres.length + ' espace(s) en anomalie');
   autres.forEach(a => console.log('      · ' + a.t + ' — ' + a.motif));
-  console.log('  ' + recents + ' appareil(s) prêts · ' + vieux + ' trop anciens · ' + horsAnnuaire.length + ' espace(s) actifs hors annuaire');
+  console.log('  ' + recents + ' appareil(s) prêts · ' + vieux + ' trop anciens · ' + vivants.length + ' espace(s) hors annuaire ENCORE UTILISÉS (moins de ' + RECENT_H + ' h)');
+  if (horsAnnuaire.length - vivants.length) console.log('  (' + (horsAnnuaire.length - vivants.length) + ' autre(s) espace(s) hors annuaire : traces anciennes ou canal d\'essai — sans effet)');
   console.log();
-  if (partagee.length || autres.length || vieux || horsAnnuaire.length) {
+  if (partagee.length || autres.length || vieux || vivants.length) {
     console.log('⛔ NE PAS PUBLIER LA RÈGLE EN L\'ÉTAT.');
     console.log('   Ce qui est signalé ci-dessus perdrait l\'accès à ses propres données.');
     if (partagee.length) console.log('   · clé partagée : donner sa clé personnelle depuis la Tour, puis rouvrir l\'application une fois.');
     if (vieux) console.log('   · appareils trop anciens : les faire rouvrir l\'application (elle se met à jour seule).');
-    if (horsAnnuaire.length) console.log('   · espace hors annuaire : l\'inscrire, ou vérifier que plus personne ne s\'en sert.');
+    if (vivants.length) console.log('   · espace hors annuaire ENCORE UTILISÉ : l\'inscrire, ou faire passer ses appareils sur leur vrai espace.');
     console.log();
     process.exit(2);
   }
