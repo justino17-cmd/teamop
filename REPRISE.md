@@ -13,6 +13,68 @@ de ligne du tout.
 
 ---
 
+## 🔨 18 SEPTEMBRE 2026 — **LE SOCLE : ÉTAPE 1 ÉCRITE ET ÉPROUVÉE** (inerte, rien n'est branché)
+
+Justin a tranché le 18 : on sort de Firestore et **tout se pose sur le serveur** — les règles,
+les mots de passe oubliés, les mails, les annonces. Raison décisive, qu'il faut se rappeler
+avant d'en rediscuter : **le travail est le même dans les deux cas.** Ce qui casse n'est pas
+Firebase, c'est le **document unique** — une entreprise entière dans UN document plafonné à
+1 Mo, réécrit en entier à chaque geste. ELAN a déjà tapé le plafond. En sortir demande de
+réécrire la couche de synchro quel que soit le magasin qu'on garde derrière ; autant finir
+chez nous, où vivent déjà le paiement, les promos, les accès et les versions.
+
+`server/socle.js` — étape 1 du `PLAN-OP-SOCLE.md` (§2.2 stockage, §2.3 chiffrement au repos).
+Un fichier SQLite **par entreprise**, chiffré au repos (AES-256-GCM, DEK par entreprise scellée
+sous une clé maître qui vit HORS de `/opt`). ⛔ **Livré INERTE** : sans `socle.actif: true`
+dans la configuration, aucune route ne le monte. Le retour arrière n'est pas un déploiement,
+c'est un drapeau qu'on éteint.
+
+### Mesuré, pas estimé — 8 350 enregistrements, 4,12 Mo en clair (l'ordre de grandeur d'ELAN)
+
+| | |
+|---|---|
+| écrire les 8 350 | **552 ms** (0,07 ms/ligne) |
+| lire la base entière (21 pages de 400) | **216 ms** |
+| une écriture isolée (un geste de technicien) | **3,6 ms** |
+| `etat()` — le contrôle à chaque synchro | **15 ms** |
+| **3 processus qui écrivent en même temps** | 600 lignes, **0 perdue**, rang exact |
+| tout se relit après coup | `verifier()` : **ok** |
+| sur le disque | 4,22 Mo + WAL **plafonné** à 4 Mo |
+| banc `tests/test-723.js` | **55 ✓ 0 ✗** — les 80 suites du dépôt au vert |
+
+### ⛔ Cinq défauts trouvés en L'EXÉCUTANT, aucun déduit en le lisant
+
+1. **Deux entreprises pouvaient partager un fichier.** `a.b` et `a_b` retombaient sur le même
+   `socle/a_b/base.db` : tout le cloisonnement structurel percé par une fonction de
+   « nettoyage » qui rapprochait deux identifiants distincts. **On refuse un identifiant sale,
+   on ne le nettoie pas** — et le contre-test exige que `elan-34oc` et `opgestion-beta` passent.
+2. **Une seule ligne trafiquée bloquait TOUTE l'entreprise, pour toujours.** `depuis()` jetait :
+   plus de synchro, ni pour ses 20 000 autres lignes, ni pour sa Réception, et sans moyen de
+   savoir laquelle. L'AAD est là pour rendre une ligne **visible**, pas pour murer un client :
+   elle est maintenant écartée, comptée et nommée à l'appelant. Un corps douteux n'est jamais
+   servi.
+3. **Le curseur se prenait sur les lignes RENDUES.** Une ligne illisible en fin de page et
+   l'appareil redemandait la même page à l'infini. Il se prend sur la base.
+4. **Un refus d'écriture consommait quand même un rang** — un compteur qui ment est un
+   compteur qu'on cesse de croire.
+5. **Le WAL restait à 4,3 Mo après son point de reprise**, pour une base de 4,2 Mo : chaque
+   entreprise occupait **le double** sur le seul disque du VPS. `journal_size_limit` le tronque.
+
+Le témoin de clé tient, éprouvé dans de VRAIS autres processus : même clé → lu ; clé neuve →
+refus explicite ; **pas de clé alors que des bases existent → refus qui dit que c'est un
+INCIDENT**, pas une installation neuve, et qu'il ne faut PAS en générer une autre.
+
+### Ce qui reste sur l'étape 1
+
+- `server/op-socle.js` — les routes `/api/op/*`, derrière `socle.actif: false`
+- le montage dans `server/index.js` + `socle.sante()` dans `/health`
+- ⛔ **Sur le chemin critique et ce n'est pas technique : le courrier à ELAN.**
+  `sous-traitance.html` promet que TeamOP ne peut pas lire les données. Les mettre chez nous
+  change ça : **préavis de 30 jours, ou accord écrit d'ELAN qui le remplace.** Tant que ce
+  n'est pas parti, l'étape 4 ne peut pas commencer, quel que soit l'avancement du code.
+
+---
+
 ## ✅ 18 SEPTEMBRE 2026 — **TEAMOP A UNE SAUVEGARDE, ET ELLE A ÉTÉ ROUVERTE**
 
 Le risque n° 1 du projet, écrit depuis le 16 septembre (« aucune sauvegarde de notre côté »),
