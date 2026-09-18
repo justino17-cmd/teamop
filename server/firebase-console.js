@@ -145,6 +145,98 @@ async function cmdReglesPublier(tok) {
     : '  ⚠️ ce qui est relu ne correspond PAS au dépôt — à regarder tout de suite.\n');
 }
 
+/* ── L'INVENTAIRE COMPLET ────────────────────────────────────────────────────────────────
+   ⛔ POURQUOI CETTE COMMANDE EXISTE. Justin, le 18 septembre 2026 : « je trouve qu'il y a
+   beaucoup d'endroits avec beaucoup de trucs, et je sais pas à quoi ça correspond ». C'est la
+   vraie difficulté de Firebase : une douzaine d'écrans, chacun avec ses réglages, aucun qui
+   dise lequel compte pour CE produit-ci. Une console qu'on ne comprend pas est une console
+   qu'on n'ouvre pas — et c'est comme ça qu'une règle reste non publiée pendant une semaine.
+   Cette commande répond à « qu'est-ce qu'on doit faire, exactement ». Elle lit tout ce qui est
+   lisible, dit ce que chaque chose PROTÈGE, et tranche : ça va, ou il faut agir.
+   ⚠️ Elle dégrade proprement : un réglage que les droits actuels ne laissent pas lire est
+   annoncé comme tel, jamais deviné. « Je ne sais pas » vaut mieux qu'une fausse assurance. */
+async function cmdEtat(tok) {
+  console.log('\n╔══════════════════════════════════════════════════════════════════╗');
+  console.log('║  FIREBASE — TOUT CE QUI COMPTE POUR TEAMOP, ET RIEN D\'AUTRE     ║');
+  console.log('╚══════════════════════════════════════════════════════════════════╝');
+  console.log('  projet : ' + PROJET);
+  let aFaire = [];
+
+  /* 1. La règle : ce qui décide qui peut lire les données des clients. */
+  console.log('\n── 1. LA RÈGLE — qui a le droit de lire les données de tes clients ──');
+  try {
+    const pub = await reglesPubliees(tok);
+    const local = fs.readFileSync(path.join(RACINE, 'firestore.rules'), 'utf8');
+    const lp = ligneQuiDecide(pub.source), ll = ligneQuiDecide(local);
+    console.log('   publiée le ' + String(pub.quand).slice(0, 10) + ' : ' + (lp || '?'));
+    if (/allow\s+read\s*:\s*if\s+connecte\(\)\s*;/.test(lp || '')) {
+      console.log('   ⛔ OUVERTE — n\'importe quel compte anonyme lit n\'importe quelle entreprise.');
+      aFaire.push('regles-publier   ← LE PLUS IMPORTANT : referme la porte');
+    } else if (lp === ll) console.log('   ✅ fermée, et identique au dépôt.');
+    else { console.log('   ⚠️ différente du dépôt (' + ll + ')'); aFaire.push('regles           ← comparer, puis décider'); }
+  } catch (e) { console.log('   ⚠ non lisible : ' + e.message); }
+
+  /* 2. Les sauvegardes de Firestore : Google n'en fait AUCUNE par défaut. */
+  console.log('\n── 2. LES SAUVEGARDES — ce qui te sauve d\'une suppression accidentelle ──');
+  const db = await api(BASE_DB(), null, tok);
+  if (db.statut === 200) {
+    const pitr = /ENABLED/.test(db.j.pointInTimeRecoveryEnablement || '');
+    console.log('   emplacement : ' + (db.j.locationId || '?') + ' · retour dans le temps : ' + (pitr ? '✅ activé (7 j)' : '⛔ DÉSACTIVÉ'));
+    const sch = await api(BASE_DB() + '/backupSchedules', null, tok);
+    if (sch.statut === 200) {
+      const l = sch.j.backupSchedules || [];
+      console.log('   sauvegardes programmées : ' + (l.length ? '✅ ' + l.length : '⛔ AUCUNE'));
+      if (!pitr || !l.length) aFaire.push('sauvegardes-activer  ← Google ne sauvegarde RIEN pour toi par défaut');
+    } else { console.log('   sauvegardes programmées : non lisibles (droits) — il manque « Propriétaire Cloud Datastore »'); aFaire.push('IAM : ajouter roles/datastore.owner au compte de service'); }
+  } else console.log('   ⚠ non lisible (droits)');
+
+  /* 3. Les comptes : qui peut se créer une identité, et d'où. */
+  console.log('\n── 3. LES COMPTES — qui peut se présenter, et depuis quel site ──');
+  const cfg = await api('https://identitytoolkit.googleapis.com/admin/v2/projects/' + PROJET + '/config', null, tok);
+  if (cfg.statut === 200) {
+    const si = cfg.j.signIn || {};
+    const anon = !!(si.anonymous && si.anonymous.enabled);
+    console.log('   comptes anonymes : ' + (anon ? '✅ activés (l\'application en a BESOIN)' : '⛔ désactivés — la synchro ne peut plus démarrer'));
+    const auto = cfg.j.autodeleteAnonymousUsers;
+    console.log('   ménage des comptes anonymes : ' + (auto ? '✅ automatique après 30 jours' : '⚠ aucun — ils s\'accumulent pour toujours'));
+    if (!auto) aFaire.push('comptes-menage       ← supprime les comptes anonymes inactifs (gratuit, sans risque)');
+    const dom = cfg.j.authorizedDomains || [];
+    console.log('   sites autorisés (' + dom.length + ') : ' + dom.join(', '));
+    const inconnus = dom.filter(d => !/teamop\.fr$|firebaseapp\.com$|web\.app$|^localhost$/.test(d));
+    if (inconnus.length) { console.log('   ⚠ à vérifier : ' + inconnus.join(', ')); aFaire.push('retirer les sites inconnus dans la console Authentication'); }
+  } else console.log('   ⚠ non lisible (droits) — il manque un rôle d\'administration de l\'authentification');
+
+  /* 4. App Check : le niveau au-dessus, à ne pas activer à la légère. */
+  console.log('\n── 4. APP CHECK — refuser tout ce qui ne vient pas de ta vraie application ──');
+  const ac = await api('https://firebaseappcheck.googleapis.com/v1/projects/' + PROJET + '/services', null, tok);
+  if (ac.statut === 200) {
+    const l = (ac.j.services || []).filter(x => /ENFORCED|UNENFORCED/.test(x.enforcementMode || ''));
+    const actif = l.some(x => x.enforcementMode === 'ENFORCED');
+    console.log('   ' + (actif ? '✅ exigé' : '· non exigé — c\'est le cas aujourd\'hui, et c\'est normal'));
+  } else console.log('   · non lisible (droits) — sans importance tant qu\'on ne s\'en sert pas');
+  console.log('   ⚠️ NE PAS l\'activer sans modifier l\'application d\'abord : tout serait refusé.');
+
+  /* ── CE QU'IL RESTE À FAIRE, et rien d'autre ─────────────────────────────────────────── */
+  console.log('\n╔══════════════════════════════════════════════════════════════════╗');
+  if (!aFaire.length) { console.log('║  ✅ RIEN À FAIRE — tout ce qui compte est en place.              ║');
+    console.log('╚══════════════════════════════════════════════════════════════════╝\n'); return; }
+  console.log('║  CE QU\'IL RESTE À FAIRE, DANS CET ORDRE                         ║');
+  console.log('╚══════════════════════════════════════════════════════════════════╝');
+  aFaire.forEach((x, i) => console.log('  ' + (i + 1) + '. ' + x));
+  console.log('\n  (chaque ligne qui commence par un mot simple est une commande :');
+  console.log('   node server/firebase-console.js <ce mot>)\n');
+}
+
+/* Le ménage des comptes anonymes : gratuit, réversible, sans effet sur qui travaille — un
+   appareil actif s'en recrée un tout seul à l'ouverture suivante. */
+async function cmdComptesMenage(tok) {
+  const r = await api('https://identitytoolkit.googleapis.com/admin/v2/projects/' + PROJET + '/config?updateMask=autodeleteAnonymousUsers',
+    { method: 'PATCH', body: JSON.stringify({ autodeleteAnonymousUsers: true }) }, tok);
+  if (r.statut !== 200) { expliquerRefus(r); process.exit(1); }
+  console.log('\n✅ Les comptes anonymes inactifs depuis 30 jours seront supprimés automatiquement.');
+  console.log('   Sans effet sur qui travaille : un appareil actif s\'en recrée un à l\'ouverture.\n');
+}
+
 /* ── LES SAUVEGARDES FIRESTORE ──────────────────────────────────────────────────────────── */
 const BASE_DB = () => 'https://firestore.googleapis.com/v1/projects/' + PROJET + '/databases/(default)';
 
@@ -186,15 +278,19 @@ async function cmdSauvegardesActiver(tok) {
 
 (async () => {
   const cmd = (process.argv[2] || '').toLowerCase();
-  if (!['regles', 'regles-publier', 'sauvegardes', 'sauvegardes-activer'].includes(cmd)) {
+  if (!['etat', 'regles', 'regles-publier', 'sauvegardes', 'sauvegardes-activer', 'comptes-menage'].includes(cmd)) {
     console.log('\nCommandes :');
+    console.log('  etat                ⇦ TOUT ce qui compte, et ce qu\'il reste à faire');
     console.log('  regles              ce qui est VRAIMENT publié, comparé au dépôt');
     console.log('  regles-publier      publie firestore.rules (confirmation demandée)');
     console.log('  sauvegardes         état des sauvegardes Firestore');
-    console.log('  sauvegardes-activer récupération à un instant donné + une sauvegarde par jour\n');
+    console.log('  sauvegardes-activer retour dans le temps + une sauvegarde par jour');
+    console.log('  comptes-menage      supprime les comptes anonymes inactifs (30 j)\n');
     process.exit(1);
   }
   const tok = await jeton();
+  if (cmd === 'etat') return cmdEtat(tok);
+  if (cmd === 'comptes-menage') return cmdComptesMenage(tok);
   if (cmd === 'regles') return cmdRegles(tok);
   if (cmd === 'regles-publier') return cmdReglesPublier(tok);
   if (cmd === 'sauvegardes') return cmdSauvegardes(tok);
