@@ -330,7 +330,52 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      sans espace ni adresse — c'est ce compteur qui dit, en une seconde et sans clé, si la
      fermeture a pris une vraie entreprise au passage. S'il monte, l'interrupteur
      « mailPreuve: false » rouvre le temps de comprendre (voir cleEquipeExige). */
-  mailRefus: { n: mailRefus.n, parMotif: mailRefus.parMotif, ts: mailRefus.ts } }));
+  mailRefus: { n: mailRefus.n, parMotif: mailRefus.parMotif, ts: mailRefus.ts },
+  /* Étape 0 du socle : où en est le stockage des pièces jointes.
+     ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
+     PUBLIQUE : le poids exact des pièces est un journal de l'activité de terrain de tous les
+     clients — il monte quand les techniciens photographient, il stagne le dimanche. Un palier
+     répond à la seule question qu'on se pose en exploitation (« reste-t-il de la place ? »)
+     sans rien dire de personne.
+     ⛔ ET `sante()` NE TOUCHE PAS AU DISQUE : le total est tenu en mémoire. La première
+     version balayait tous les dossiers d'entreprises depuis cette route publique et sans clé —
+     mesuré : 73 ms pour 21 000 fichiers, sur la boucle d'événements, donc tout le serveur gelé
+     pour tout le monde, à la demande de n'importe qui. */
+  pieces: pieces ? pieces.sante() : null,
+  /* La sauvegarde hors site, en trois champs et rien de plus : est-elle active, la dernière
+     a-t-elle réussi, et quel âge a-t-elle. ⛔ Jamais son POIDS — c'est le volume de données de
+     tous les clients réunis, donc un journal de leur activité, exactement ce que le compteur
+     des pièces jointes arrondit déjà pour cette raison. Ni le nom du coffre : /health est
+     publique. Le détail est servi à la Tour, qui exige le patron. */
+  sauvegarde: sauvegarde ? sauvegarde.sante() : { active: false },
+  /* ⛔ L'ÉCHÉANCE DU JETON GITHUB, PARCE QUE RIEN NE LA SURVEILLAIT. Le jeton du VPS expire à
+     date fixe ; le jour venu, « proposer un correctif » depuis la Tour tombe en 401 et personne
+     n'est prévenu — on cherche, on accuse le réseau, on finit par retrouver la date dans une
+     fiche. Un entier de jours restants ne dit rien de personne et permet à la surveillance
+     horaire de prévenir DEUX SEMAINES avant. `null` quand la date n'est pas renseignée : on ne
+     prétend pas savoir ce qu'on ignore. */
+  /* ⛔ UN BOOLÉEN, PAS LE NOMBRE DE JOURS. `gardien` l'a relevé : /health est publique et sans
+     identité, et « le jeton GitHub du VPS expire dans 30 jours » date un identifiant interne et
+     révèle son existence à qui passe. « Bientôt ou pas » suffit à la surveillance, qui n'a
+     besoin que de savoir s'il faut prévenir. `null` tant que la date n'est pas renseignée : on
+     ne prétend pas savoir ce qu'on ignore. */
+  ghExpireBientot: (j => (j === null ? null : j <= 15))(ghJoursRestants()) }));
+
+/* Jours avant l'expiration du jeton GitHub, d'après `github.expire` (AAAA-MM-JJ) dans
+   config.json. Une date absente ou illisible rend null — jamais 0, qui voudrait dire
+   « il expire aujourd'hui » et déclencherait une fausse alerte. */
+function ghJoursRestants() {
+  const d = Date.parse(String((config.github || {}).expire || '') + 'T00:00:00Z');
+  if (!Number.isFinite(d)) return null;
+  /* ⛔ EN JOURS DE CALENDRIER, PAS EN DURÉE. On compare deux minuits UTC, jamais « maintenant »
+     à un minuit : sinon le résultat dépend de l'HEURE à laquelle on interroge — une échéance à
+     30 jours annonce 30 le matin et 29 le soir. Trouvé par `tests/test-722.js`, qui aurait été
+     vert à 1 h et rouge à 20 h : un banc qui change d'avis selon l'heure est pire qu'absent, on
+     finit par le croire capricieux et on cesse de le lire. Zéro veut dire « expire aujourd'hui »,
+     et la surveillance traite zéro comme expiré — c'est le bon côté pour se tromper. */
+  const minuitAujourdhui = Date.parse(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+  return Math.round((d - minuitAujourdhui) / 86400000);
+}
 
 // ── Assistant devis : l'agent qui compose un devis à partir d'une conversation.
 //    Il ne fait que parler à Claude ; c'est OP GESTION qui enregistre le devis
@@ -616,12 +661,21 @@ function cleEquipeExige(req, res, next) {
   const src = (req.method === 'GET') ? (req.query || {}) : (req.body || {});
   const t = String(src.teamId || src.t || '');
   let motif = '';
-  if (req.cleEquipe !== 'valide') motif = req.cleEquipe || 'absent';
-  /* Ces deux-là ne sont vérifiables qu'APRÈS `valide` : il garantit que l'espace est dans
-     l'annuaire avec un code lisible, ce dont cleEstPublique() a besoin pour ne pas rendre
-     « laisse passer » par défaut (voir sa mise en garde). Un espace dont la clé est écrite
-     en clair dans app.html ne prouve rien en la présentant : n'importe qui la calcule. */
-  else if (ESPACES_INTOUCHABLES.includes(t)) motif = 'technique';
+  /* ⛔ L'ESPACE TECHNIQUE EST JUGÉ EN PREMIER, AVANT MÊME DE LIRE LE VERDICT DE CLÉ — corrigé
+     le 17 septembre 2026, le soir du renommage de la bêta. Avant, il n'était reconnu
+     « technique » qu'APRÈS un verdict `valide`, donc seulement s'il figurait dans l'annuaire.
+     L'espace bêta neuf (`opgestion-beta`) n'y est pas : sa preuve, bien formée, tombait en
+     `inconnu` — la case même que /health désigne comme alarme pour « de vrais appareils qui
+     tombent ». Mesuré : 12 `inconnu` en une heure, tous des connexions à la bêta, +2 par
+     connexion, reproduits à l'identique avec un en-tête forgé. L'alarme comptait du bruit.
+     ESPACES_INTOUCHABLES est une liste statique : on peut la consulter sans annuaire. Seule
+     cleEstPublique() a besoin du verdict `valide` avant, et elle reste après. */
+  if (ESPACES_INTOUCHABLES.includes(t)) motif = 'technique';
+  else if (req.cleEquipe !== 'valide') motif = req.cleEquipe || 'absent';
+  /* cleEstPublique() n'est vérifiable qu'APRÈS `valide` : il garantit que l'espace est dans
+     l'annuaire avec un code lisible, ce dont elle a besoin pour ne pas rendre « laisse
+     passer » par défaut (voir sa mise en garde). Un espace dont la clé est écrite en clair
+     dans app.html ne prouve rien en la présentant : n'importe qui la calcule. */
   else if (cleEstPublique(t)) motif = 'partagee';
   if (!motif) return next();
   mailRefus.n++; mailRefus.parMotif[motif] = (mailRefus.parMotif[motif] || 0) + 1; mailRefus.ts = Date.now();
@@ -2764,10 +2818,21 @@ app.post('/api/monitor/compte/mdp-annuler', monPatronStrict, (req, res) => {
 /* Résumé lisible d'un espace : dernière connexion, utilisateurs et appareils actifs, échecs, versions */
 function cnxResume(t) {
   const l = cnxData[t] || []; const now = Date.now(), j7 = now - 7 * 86400000, j30 = now - 30 * 86400000, h24 = now - 86400000;
-  const ok = l.filter(e => e.ev === 'connexion' || e.ev === 'session');
+  const z = zeroDe(t);   // filigrane de remise à zéro (voir ZERO_PATH) : jamais une suppression
+  /* ⛔ LE FILIGRANE VAUT POUR TOUT, PAS SEULEMENT POUR LES ÉCHECS.
+     Défaut trouvé le 17 septembre 2026, sur une capture de Justin : il avait supprimé des
+     entreprises deux jours plus tôt, et la Tour affichait toujours « 4 pers. / 7 j » sur
+     l'espace par défaut. Normal — la fenêtre fait SEPT jours, elle contenait encore les
+     connexions d'AVANT la suppression. Mais le bouton « remise à zéro », lui, ne remettait à
+     zéro QUE `echecs24` : appuyer dessus ne changeait rien à ce qu'on regardait.
+     Un bouton qui ne fait pas ce qu'il promet est pire qu'un bouton absent — on appuie, il ne
+     se passe rien, et on conclut que l'écran est cassé. Le filigrane s'applique donc à TOUS
+     les compteurs de cette fiche.
+     ⚠️ Il n'EFFACE toujours rien : `l` garde tout l'historique sur disque, et « Annuler »
+     rend la totalité. Le jour où un incident ressort, on peut remonter avant la remise à zéro. */
+  const ok = l.filter(e => (e.ev === 'connexion' || e.ev === 'session') && e.ts > z);
   const u7 = new Set(ok.filter(e => e.ts > j7 && e.login).map(e => e.login)), u30 = new Set(ok.filter(e => e.ts > j30 && e.login).map(e => e.login));
   const d7 = new Set(ok.filter(e => e.ts > j7 && e.dev).map(e => e.dev));
-  const z = zeroDe(t);   // filigrane de remise à zéro (voir ZERO_PATH) : jamais une suppression
   const echecs24 = l.filter(e => e.ev === 'echec' && e.ts > h24 && e.ts > z).length;
   const versions = {}; const vuDev = new Set();
   ok.forEach(e => { if (!e.dev || vuDev.has(e.dev) || !e.version) return; vuDev.add(e.dev); versions[e.version] = (versions[e.version] || 0) + 1; });
@@ -2975,8 +3040,14 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
      la genèse que ce fichier décrit plus bas. Ici l'ajouter est gratuit : l'ancien espace est
      mort, personne n'a besoin de sa session. */
   const cut = t ? await fbRevoquerEquipe(t) : { fait: true, motif: 'aucun ancien espace' };
-  console.log('Tour :', req.tourUser.nom, 'fait repartir « ' + slug + ' » à neuf — ancien espace', t, efface ? 'effacé' : 'NON effacé');
-  res.json({ ok: true, ancien: t, efface, coupure: cut.fait, coupureMotif: cut.motif });
+  /* ⛔ ET SES PIÈCES JOINTES (16 septembre 2026). Cette porte-ci efface le document de
+     l'ANCIEN espace : les photos qu'il avait déposées doivent partir avec, sinon elles
+     survivent à un espace que plus rien ne référence — un orphelin que personne ne saura plus
+     rattacher à une entreprise, donc que personne n'effacera jamais. */
+  let piecesEffacees = 0;
+  if (t && pieces) { try { piecesEffacees = pieces.effacerEntreprise(t); } catch (e) { console.error('renaitre pièces :', e.message); } }
+  console.log('Tour :', req.tourUser.nom, 'fait repartir « ' + slug + ' » à neuf — ancien espace', t, efface ? 'effacé' : 'NON effacé', '· pièces :', piecesEffacees);
+  res.json({ ok: true, ancien: t, efface, piecesEffacees, coupure: cut.fait, coupureMotif: cut.motif });
 });
 // le patron active un code promo pour une entreprise, directement depuis la Tour
 app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
@@ -3305,6 +3376,33 @@ function quotaOk(map, cle, max, fenetre) {
   if (Date.now() > q.reset) { q.n = 0; q.reset = Date.now() + fenetre; }
   q.n++; map.set(cle, q);
   return q.n <= max;
+}
+/* ══ ÉTAPE 0 DU SOCLE : LES PIÈCES JOINTES ET LES PHOTOS SORTENT DU DOCUMENT ════════════
+   Monté ICI, et pas plus haut, parce que le module reçoit `sauvRefus` et `quotaOk` : la
+   première est une déclaration de fonction donc hissée, la seconde est juste au-dessus. Aucun
+   chemin `/api/pieces/*` n'existait avant : pas de collision possible avec une route déjà
+   enregistrée (le piège de `/api/devis/etat`, déclarée deux fois, où la seconde n'a jamais
+   répondu). Si le module ne se monte pas, le reste du serveur fonctionne : les pièces
+   redeviennent simplement ce qu'elles sont aujourd'hui, prisonnières de leur appareil. */
+let pieces = null;
+try {
+  pieces = require('./pieces').monterPieces(app, { config, DATA_DIR, sauvRefus, quotaOk, monStr });
+} catch (e) {
+  console.error('pièces jointes non montées :', e.message);
+}
+/* ══ LA SAUVEGARDE HORS SITE ═══════════════════════════════════════════════════════════════
+   Montée ICI parce qu'elle a besoin de `monPatronStrict` pour ses deux routes — une
+   déclaration de fonction, donc hissée, mais on garde la proximité avec les pièces jointes :
+   c'est le même sujet, la durabilité de ce que le serveur détient.
+   ⛔ INERTE SANS BLOC `sauvegarde` DANS `config.json` : aucune minuterie, aucun appel réseau.
+   Un serveur de développement et un banc d'essai ne partent donc jamais écrire chez un
+   hébergeur d'objets. Et si le module refuse de se monter, le reste du serveur continue —
+   on perd la sauvegarde, pas la plateforme, et `/health` le dit. */
+let sauvegarde = null;
+try {
+  sauvegarde = require('./sauvegarde').monterSauvegarde(app, { config, DATA_DIR, CONFIG_PATH, garde: monPatronStrict });
+} catch (e) {
+  console.error('sauvegarde hors site non montée :', e.message);
 }
 /* Plusieurs inscriptions peuvent porter le même espace : la plus récente fait foi. */
 function espaceAJour(slug) {
@@ -4652,6 +4750,13 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
       if (r.ok) effaces++; else console.error('effacement firestore', t, ': HTTP', r.status);
     } catch (e) { console.error('effacement firestore', t, ':', e.message); }
   }
+  /* ⛔ LES PIÈCES JOINTES PARTENT AVEC LE DOCUMENT (16 septembre 2026). Le commentaire
+     au-dessus promet « plus rien n'est enregistré, la place est libérée » : à partir du moment
+     où des photos vivent sur le VPS, cette phrase devient fausse si on ne les efface pas ici.
+     Aucun appel réseau, aucun jeton : c'est du disque local, ça ne peut pas faire traîner la
+     route (la même raison qui a fait passer les coupures en parallèle). */
+  let piecesEffacees = 0;
+  if (pieces) for (const t of espacesAEffacer) { try { piecesEffacees += pieces.effacerEntreprise(t); } catch (e) { console.error('effacement pièces :', e.code || 'erreur disque');   /* ⛔ ni `t` ni le chemin : ce journal se relit à plusieurs et se copie-colle */ } }
   if (jeton && !jetonAdmin) { try { await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
   // et le compte créé sur le site (connexion espace client) : supprimé aussi, si la clé admin est là
@@ -4664,7 +4769,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      « sessions coupées » alors que rien n'avait été tenté. C'est la même famille d'affirmation
      sans fait derrière que ce correctif combat — elle ne s'autorise pas ici non plus. */
   const coupOk = coupures.every(c => c.fait);
-  res.json({ ok: true, supprime: true, espaces: espacesAEffacer.length, donneesEffacees: effaces, compteSite,
+  res.json({ ok: true, supprime: true, espaces: espacesAEffacer.length, donneesEffacees: effaces, piecesEffacees, compteSite,
     coupure: coupOk,
     coupureMotif: !coupures.length ? 'aucun espace relié — rien à couper'
       : coupOk ? 'sessions Firebase coupées — effectif sous une heure'
@@ -4804,11 +4909,7 @@ function entInventaire(t) {
    supprimable comme une entreprise ordinaire et la Tour l'afficherait comme une cliente.
    L'ancien document Firestore, lui, continue d'exister : le garder protégé empêche qu'on
    l'efface depuis la Tour en croyant faire du ménage. On ne le retirera d'ici que le jour où
-   plus aucun appareil n'y signale.
-   ⛔ Le renommage est sans danger POUR UNE SEULE RAISON, vérifiée et non supposée : la clé de
-   chiffrement est dérivée de syncSecret() et SYNC_SALT, JAMAIS de l'identifiant d'espace
-   (app.html, syncKey()). Et ce raisonnement NE S'ÉTEND PAS à `elan-gestion` tout court, qui
-   est le document PARTAGÉ de toutes les entreprises sans clé personnalisée. */
+   plus aucun appareil n'y signale. */
 const ESPACES_INTOUCHABLES = ['elan-gestion', 'elan-gestion-beta', 'opgestion-beta'];
 const REFUS_INTOUCHABLE = 'Cet identifiant n\'est pas une entreprise : c\'est l\'espace par défaut de l\'application. '
   + 'Tout appareil qui n\'a rejoint aucun espace y signale ses connexions, et ses données sont partagées par toutes '
@@ -4944,6 +5045,12 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.comptesAnnuaire = inv.comptesAnnuaire;
   if (usageData[t]) { delete usageData[t]; usageSave(); }
   try { fs.rmSync(sauvDossier(t), { recursive: true, force: true }); } catch (e) { ecrit = false; console.error('suppression : copies de sauvegarde non effacées :', e.message); }   // « plus rien n'est enregistré nulle part » doit rester vrai
+  /* ⛔ ET LES PIÈCES JOINTES AVEC. Ajoutées le 16 septembre 2026 : tout stockage neuf doit
+     être effacé partout où les données de l'entreprise le sont, sinon on crée un orphelin de
+     plus — des photos de sites de clients qui survivent à la suppression de leur entreprise.
+     `effacerEntreprise` rend un NOMBRE, jamais `true` : 0 veut dire « rien trouvé », ce qui
+     est une information, là où `true` aurait menti. */
+  if (pieces) { try { fait.piecesJointes = pieces.effacerEntreprise(t); } catch (e) { ecrit = false; console.error('suppression : pièces jointes non effacées :', e.message); } }
   if (ordresData[t]) { delete ordresData[t]; ordresSave(); }
   fait.ecransOuverts = inv.ecransOuverts;
   if (cnxData[t]) { delete cnxData[t]; cnxSave(); }

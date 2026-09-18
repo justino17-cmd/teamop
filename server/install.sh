@@ -47,6 +47,11 @@ if [ ! -f /opt/teamop/config.json ]; then
   # Code d'accès de l'assistant devis : généré ici, jamais écrit dans le dépôt.
   # C'est ce code que l'équipe saisit une fois par appareil dans OP GESTION.
   SECRET_DEVIS=$(openssl rand -hex 8)
+  # Clé de chiffrement des sauvegardes hors site : générée une seule fois, ici, et JAMAIS
+  # dans le dépôt. Le coffre lui-même (endpoint, bucket, clés d'accès) se branche ensuite
+  # avec `node server/configurer-sauvegarde.js`, qui l'éprouve avant d'écrire quoi que ce soit.
+  # Tant que le coffre est vide, le module se monte INERTE : rien ne part nulle part.
+  SAUV=$(openssl rand -hex 32)
   cat > /opt/teamop/config.json <<EOF
 {
   "vapidPublicKey": "$PUB",
@@ -55,7 +60,27 @@ if [ ! -f /opt/teamop/config.json ]; then
   "contactEmail": "contact@teamop.fr",
   "origins": ["https://teamop.fr", "https://www.teamop.fr"],
   "mailPreuveExigee": true,
+  "piecesMaxOctets": 5368709120,
+  "piecesMaxTotal": 64424509440,
+  "piecesPlancherDisque": 10737418240,
+  "piecesMaxNombre": 40000,
   "smtp": {},
+  "github": {
+    "depot": "justino17-cmd/teamop",
+    "token": "",
+    "expire": ""
+  },
+  "sauvegarde": {
+    "cle": "$SAUV",
+    "endpoint": "",
+    "bucket": "",
+    "accessKey": "",
+    "secretKey": "",
+    "region": "eu-central-4",
+    "prefixe": "teamop/",
+    "garder": 30,
+    "heureUTC": 3
+  },
   "anthropic": {
     "cleApi": "",
     "secretDevis": "$SECRET_DEVIS",
@@ -121,6 +146,21 @@ if(!a.secretDevis){
   console.log(a.cleApi ? '  Clé Anthropic : configurée.'
     : '  Clé Anthropic MANQUANTE — colle-la dans anthropic.cleApi de /opt/teamop/config.json,');
   if(!a.cleApi) console.log('  puis : systemctl restart teamop-api');
+}
+" 2>/dev/null || echo "  (config.json illisible)"
+echo ""
+echo "  ── Sauvegarde hors site ────────────────────────────────────────"
+node -e "
+const c=JSON.parse(require('fs').readFileSync('/opt/teamop/config.json'));
+const s=c.sauvegarde||{};
+if(!s.bucket){
+  console.log('  ⛔ PAS ENCORE BRANCHÉE — les données de ce serveur ne sont copiées nulle part.');
+  console.log('     node /opt/teamop/repo/server/configurer-sauvegarde.js');
+  console.log('     (il demande les 4 valeurs du coffre, les éprouve, puis affiche UNE FOIS');
+  console.log('      la clé de chiffrement à ranger hors de ce serveur)');
+} else {
+  console.log('  Coffre configuré. Éprouver la restauration :');
+  console.log('     node /opt/teamop/repo/server/restaurer.js essai');
 }
 " 2>/dev/null || echo "  (config.json illisible)"
 echo ""
