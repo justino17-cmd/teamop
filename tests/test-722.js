@@ -326,6 +326,36 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
       cl._url('ent-a', 'id/avec/barres'), 'https://coffre.example/teamop-sauvegardes/ent-a/id%2Favec%2Fbarres');
   }
 
+  /* ── 8 ter. ⛔ L'OUTIL DE CONFIGURATION DOIT REFUSER CE QU'UN HUMAIN TAPE VRAIMENT ───────
+     Appris en direct le 18 septembre 2026, première mise en service : « Object Storage » (le
+     nom du MENU de l'hébergeur) donné comme nom de coffre, et l'adresse complète donnée comme
+     région. Le programme allait jusqu'au bout, récoltait un HTTP 400 nu, et listait trois
+     causes dont AUCUNE n'était la bonne — on cherche alors du côté des droits et des clés
+     pendant que le nom porte simplement un espace. Un refus qui ne nomme pas la vraie cause
+     est presque pire qu'un refus muet. */
+  console.log('\n── 722 · l\'outil de configuration refuse une saisie de travers ──');
+  {
+    const src = fs.readFileSync(path.join(RACINE, 'server', 'configurer-sauvegarde.js'), 'utf8');
+    vrai('⛔ le nom de coffre est vérifié AVANT tout appel au coffre', /\[a-z0-9\]\[a-z0-9\.-\]\{1,61\}\[a-z0-9\]/.test(src));
+    vrai('⛔ la région aussi', /\[a-z\]\{2\}-\[a-z\]\+-\\d\+/.test(src));
+    /* Et les deux contrôles doivent tomber AVANT `poserCle` : après, le coffre a déjà été
+       dérangé et le message est déjà celui d'un HTTP nu. */
+    vrai('⛔ … et les deux passent avant le premier appel réseau',
+      Math.max(src.indexOf('n\'est pas un nom de coffre valable'), src.indexOf('n\'est pas une région')) < src.indexOf('poserCle('));
+    vrai('le message du dépôt refusé explique aussi le 400', /400 : la requête a déplu/.test(src));
+    /* La forme exacte, éprouvée sur les valeurs qui ont VRAIMENT été tapées ce jour-là. */
+    const nomOk = n => /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(n);
+    v('⛔ « Object Storage » refusé', nomOk('Object Storage'), false);
+    v('⛔ un nom avec majuscule refusé', nomOk('TeamOP-Sauvegardes'), false);
+    v('⛔ un nom avec accent refusé', nomOk('sauvegardés'), false);
+    v('un nom valable accepté', nomOk('teamop-sauvegardes'), true);
+    v('… avec des chiffres et des points aussi', nomOk('teamop.sauv-2026'), true);
+    const regOk = r => /^[a-z]{2}-[a-z]+-\d+$/.test(r);
+    v('⛔ une adresse donnée comme région : refusée', regOk('https://s3.eu-central-4.ionoscloud.com'), false);
+    v('la vraie région acceptée', regOk('eu-central-4'), true);
+    v('… une autre région aussi', regOk('eu-south-2'), true);
+  }
+
   /* ── 9. L'ÉCHÉANCE DU JETON GITHUB, extraite du fichier réel ─────────────────────────
      La fonction vit dans `server/index.js` et n'est pas exportée : on l'extrait du fichier
      LIVRÉ et on l'exécute, comme les autres bancs de ce dépôt le font depuis `app.html`.
