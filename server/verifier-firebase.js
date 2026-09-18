@@ -101,7 +101,47 @@ const sha = x => crypto.createHash('sha256').update(String(x)).digest('hex');
     } catch (err) { console.log('  ⚠ échange impossible (réseau) : ' + err.message); }
   }
 
-  /* ── 5. LE VERDICT ──────────────────────────────────────────────────────────────────────
+  /* ── 5. LES APPAREILS — LA CONDITION QUI PEUT COUPER UN CLIENT QUI TRAVAILLE ────────────
+     C'est la quatrième condition du 11 septembre, et la seule que ce programme ne rejouait pas :
+     « tous les appareils présentent le jeton ». Le seuil qui compte n'est PAS la version exigée
+     du moment (695 aujourd'hui) mais la **v640** — celle à partir de laquelle l'application
+     DEMANDE un jeton. Un appareil en dessous se connectera en anonyme, et la règle fermée ne
+     lui donnera rien : il perdra l'accès aux données de sa propre entreprise sans comprendre
+     pourquoi. Un appareil au-dessus se met à jour tout seul et va bien.
+     ⛔ Et l'autre moitié du même risque : un espace ACTIF qui n'est pas dans l'annuaire n'a
+     aucun code enregistré, donc aucune preuve vérifiable, donc jamais de jeton. */
+  const PLANCHER_JETON = 640;
+  console.log('\n── Les appareils vus ces 7 derniers jours savent-ils demander un jeton ? ──');
+  const cnx = lire(path.join(DATA_DIR, 'connexions.json'), {});
+  const j7 = Date.now() - 7 * 86400000;
+  const connus = new Set(lignes.map(e => { try { return e.t || JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t; } catch (err) { return e.t || ''; } }));
+  let vieux = 0, recents = 0, sansVersion = 0;
+  const horsAnnuaire = [];
+  for (const t of Object.keys(cnx || {})) {
+    const app = new Map();
+    for (const x of (cnx[t] || [])) {
+      if ((x.ts || 0) < j7 || !x.dev) continue;
+      const v = parseInt(String(x.version || '').replace(/[^0-9]/g, ''), 10) || 0;
+      if (!app.has(x.dev) || (x.ts || 0) > app.get(x.dev).ts) app.set(x.dev, { ts: x.ts || 0, v });
+    }
+    if (!app.size) continue;
+    if (!connus.has(t)) horsAnnuaire.push({ t, n: app.size });
+    for (const d of app.values()) {
+      if (!d.v) sansVersion++;
+      else if (d.v < PLANCHER_JETON) vieux++;
+      else recents++;
+    }
+  }
+  console.log('  ' + recents + ' appareil(s) en v' + PLANCHER_JETON + ' ou plus — ils demanderont un jeton');
+  if (vieux) console.log('  ⛔ ' + vieux + ' appareil(s) SOUS la v' + PLANCHER_JETON + ' — ils seraient coupés');
+  if (sansVersion) console.log('  ⚠ ' + sansVersion + ' appareil(s) sans version connue — à regarder dans la Tour');
+  if (!recents && !vieux && !sansVersion) console.log('  (aucune connexion enregistrée sur 7 jours — rien à conclure)');
+  if (horsAnnuaire.length) {
+    console.log('  ⛔ ' + horsAnnuaire.length + ' espace(s) ACTIFS mais HORS ANNUAIRE — sans code enregistré, jamais de jeton :');
+    horsAnnuaire.forEach(h => console.log('      · ' + h.t + ' (' + h.n + ' appareil(s) sur 7 j)'));
+  } else console.log('  ✓ aucun espace actif hors annuaire');
+
+  /* ── 6. LE VERDICT ──────────────────────────────────────────────────────────────────────
      Une liste de contrôle ne sert à rien si elle laisse le lecteur décider. Elle tranche. */
   console.log('\n══ VERDICT ══');
   console.log('  ' + bons.length + ' espace(s) passeraient la règle fermée');
@@ -109,13 +149,15 @@ const sha = x => crypto.createHash('sha256').update(String(x)).digest('hex');
   console.log('  ' + techniques.length + ' espace(s) technique(s) — sans jeton par construction, aucune entreprise dessus');
   console.log('  ' + autres.length + ' espace(s) en anomalie');
   autres.forEach(a => console.log('      · ' + a.t + ' — ' + a.motif));
-  console.log('  version minimale exigée : ' + (sante.annonce ? 'annonce v' + sante.annonce : '?') + ' — vérifier dans la Tour qu\'aucun appareil n\'est en dessous');
+  console.log('  ' + recents + ' appareil(s) prêts · ' + vieux + ' trop anciens · ' + horsAnnuaire.length + ' espace(s) actifs hors annuaire');
   console.log();
-  if (partagee.length || autres.length) {
+  if (partagee.length || autres.length || vieux || horsAnnuaire.length) {
     console.log('⛔ NE PAS PUBLIER LA RÈGLE EN L\'ÉTAT.');
-    console.log('   Les espaces ci-dessus perdraient l\'accès à leurs propres données.');
-    console.log('   Une entreprise sur la clé partagée doit d\'abord recevoir sa clé personnelle');
-    console.log('   (Tour → sa fiche → clé d\'équipe), et rouvrir l\'application une fois.\n');
+    console.log('   Ce qui est signalé ci-dessus perdrait l\'accès à ses propres données.');
+    if (partagee.length) console.log('   · clé partagée : donner sa clé personnelle depuis la Tour, puis rouvrir l\'application une fois.');
+    if (vieux) console.log('   · appareils trop anciens : les faire rouvrir l\'application (elle se met à jour seule).');
+    if (horsAnnuaire.length) console.log('   · espace hors annuaire : l\'inscrire, ou vérifier que plus personne ne s\'en sert.');
+    console.log();
     process.exit(2);
   }
   console.log('✅ TOUT EST PRÊT. La règle de firestore.rules peut être publiée dans la console.');
