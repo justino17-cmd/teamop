@@ -80,8 +80,13 @@ console.log('\nUn refus porte un motif que l\'écran peut dire');
      daté 0 est tuable par n'importe quelle tombe de n'importe quelle époque. */
   v('daté 0 — tuable par n\'importe quelle tombe', S.pousser(T, [{ c: 'clients', id: 'y', m: 0, r: {} }]).refus[0].motif, 'non_date');
   v('corps manquant hors suppression', S.pousser(T, [{ c: 'clients', id: 'z', m: 5 }]).refus[0].motif, 'corps_absent');
+  /* ⛔ LE REFUS PORTE LA VERSION DU SERVEUR, PAS SEULEMENT SA DATE. Sans le corps, l'appareil
+     ne pourrait qu'effacer le sien ou ignorer le refus : il ADOPTE celle-ci et met la sienne
+     de côté. On ne détruit jamais ce qu'on refuse d'écrire, et on dit où le retrouver.
+     (L'arbitrage complet du §2.6 est éprouvé plus bas, section 11.) */
   const c = S.pousser(T, [{ c: 'clients', id: 'c1', m: 1000, r: { nom: 'PIRATE' } }]).refus[0];
-  v('à date égale, le serveur garde ce qu\'il a', [c.motif, c.serveur], ['conflit', 1000]);
+  v('à date égale, le serveur garde ce qu\'il a', [c.motif, c.serveur.m], ['conflit', 1000]);
+  v('   et il rend SA version, pas seulement sa date', c.serveur.r, { nom: 'Boulangerie', ville: 'La Rochelle' });
   v('le refusé n\'a rien écrasé', S.depuis(T, 0, 400).enr.find(e => e.id === 'c1').r.nom, 'Boulangerie');
   /* ⛔ 18 septembre 2026 : un refus `corps_absent` faisait quand même monter `meta.seq`. */
   v('⛔ quatre refus n\'ont brûlé aucun rang', S.etat(T).seq, avant);
@@ -219,6 +224,145 @@ console.log('\nLes invariants de structure');
      d'accès d'espace, et ce dépôt a déjà supprimé quelque chose sur la foi d'un nom. */
   v('⛔ la table de diagnostic ne s\'appelle pas `acces`', /CREATE TABLE IF NOT EXISTS acces\b/.test(src), false);
   vrai('⛔ elle s\'appelle `diagnostic`', /CREATE TABLE IF NOT EXISTS diagnostic\b/.test(src));
+}
+
+/* ══ 11. L'ARBITRAGE DU §2.6 — QUATRE CAS, PAS UN ═══════════════════════════════════ */
+console.log('\n⛔ Le serveur ne tranche jamais une égalité en silence');
+{
+  const A = 'arbitrage';
+  const p = l => S.pousser(A, [l]);
+  p({ c: 'box', id: 'b1', m: 5000, e: 'ENTIERE', r: { nom: 'Cave', photos: ['p1', 'p2', 'p3', 'p4'] } });
+
+  v('plus récent → accepté', p({ c: 'box', id: 'b1', m: 5001, e: 'B', r: { nom: 'Cave 2' } }).acceptes, 1);
+  const noop = p({ c: 'box', id: 'b1', m: 5001, e: 'B', r: { nom: 'Cave 2' } });
+  v('même date + même empreinte → renvoi gratuit', [noop.acceptes, noop.refus.length], [1, 0]);
+  v('   et le rang n\'a pas bougé', S.etat(A).seq, 2);
+
+  /* ⛔ LE CAS QUI COÛTE DES PHOTOS. `syncAlleger` marque `horsNuage`/`photosHorsNuage` des
+     enregistrements qui portent le MÊME id et le MÊME `_m` avec deux contenus différents —
+     l'un avec ses quatre photos, l'autre amputé. Un départage alphabétique sur l'appareil
+     ferait gagner la version amputée une fois sur deux, et les PDF signés comme les photos
+     de chantier disparaîtraient de TOUS les appareils à la fois, sans un message. */
+  p({ c: 'box', id: 'b2', m: 6000, e: 'ENTIERE', r: { nom: 'Cuisine', photos: ['p1', 'p2', 'p3', 'p4'] } });
+  const conf = p({ c: 'box', id: 'b2', m: 6000, e: 'AMPUTEE', r: { nom: 'Cuisine', photos: [] } });
+  v('⛔ même date + empreinte différente → conflit', conf.refus[0].motif, 'conflit');
+  v('⛔ et le serveur rend SA version, entière', conf.refus[0].serveur.r.photos.length, 4);
+  v('   la base garde la version entière', S.depuis(A, 0, 10).enr.find(e => e.id === 'b2').r.photos.length, 4);
+
+  const per = p({ c: 'box', id: 'b2', m: 5999, e: 'VIEILLE', r: { nom: 'vieux' } });
+  v('plus ancien → perime, avec la version serveur', [per.refus[0].motif, per.refus[0].serveur.m], ['perime', 6000]);
+
+  /* Sans empreinte des deux côtés, on ne SAIT pas que les contenus sont les mêmes. « Je ne
+     sais pas » se tranche vers le conflit — qui coûte un aller-retour — jamais vers
+     l'acceptation, qui coûte une donnée. */
+  p({ c: 'x', id: 'y', m: 7000, r: { a: 1 } });
+  v('sans empreinte, l\'égalité est un conflit', p({ c: 'x', id: 'y', m: 7000, r: { a: 1 } }).refus[0].motif, 'conflit');
+  v('une tombe rejouée à l\'identique est un renvoi gratuit',
+    (p({ c: 'x', id: 'y', m: 8000, sup: 8000 }), p({ c: 'x', id: 'y', m: 8000, sup: 8000 })).acceptes, 1);
+
+  /* ⛔ UNE HORLOGE DE TÉLÉPHONE EST FAUSSE PLUS SOUVENT QU'ON NE CROIT, et une date en avance
+     gagne TOUS les arbitrages jusqu'à ce qu'elle soit rattrapée — des mois si l'écart est de
+     six mois. Aujourd'hui c'est totalement invisible. */
+  const hor = p({ c: 'box', id: 'b3', m: Date.now() + 600000, e: 'E', r: {} });
+  v('⛔ horloge en avance → refusée, avec l\'écart', [hor.refus[0].motif, hor.refus[0].ecartMin], ['horlogeAvancee', 10]);
+  v('   deux minutes d\'avance restent tolérées', p({ c: 'box', id: 'b4', m: Date.now() + 120000, e: 'E', r: {} }).acceptes, 1);
+  /* ⛔ Le compteur vit dans `meta`, pas dans une Map en mémoire : celle-ci repart à zéro à
+     chaque redémarrage, donc à chaque déploiement — plusieurs fois par jour les jours chargés. */
+  v('⛔ le compteur d\'horloge survit et remonte à la Tour', S.etat(A).horlogeAvancee, 1);
+}
+
+/* ══ 12. LES SESSIONS D'APPAREIL ════════════════════════════════════════════════════ */
+console.log('\n⛔ L\'identité d\'un appareil est allouée par le serveur');
+{
+  const E = 'sessions-x', sha = x => crypto.createHash('sha256').update(x).digest('hex');
+  const a = S.sessionOuvrir(E, { jetonSha: sha('j1'), nom: 'iPhone de Jean' });
+  vrai('un app_id est alloué', /^[0-9a-f]{32}$/.test(a.app_id));
+  v('le jeton retrouve son entreprise', S.sessionParJeton(sha('j1')).t, E);
+  v('un jeton inconnu ne retrouve rien', S.sessionParJeton(sha('inconnu')), null);
+
+  /* ⛔ Trois raisons, toutes payantes : un appareil révoqué qui invente un app_id reprendrait
+     une session (la Tour afficherait « révoqué » pendant qu'il lit) ; un appareil qui se
+     nomme `zzzz` gagnerait toutes les égalités ; et se déclarer avec l'app_id d'un collègue
+     remplacerait son jeton_sha et le déconnecterait sans un mot. */
+  const pirate = S.sessionOuvrir(E, { jetonSha: sha('j2'), appId: 'ff'.repeat(16) });
+  v('⛔ un app_id inventé n\'est pas honoré', pirate.app_id === 'ff'.repeat(16), false);
+  v('⛔ le premier appareil reste connecté', !!S.sessionParJeton(sha('j1')), true);
+
+  const renouv = S.sessionOuvrir(E, { jetonSha: sha('j3'), appId: a.app_id });
+  v('un app_id CONNU se renouvelle sur la même ligne', [renouv.app_id === a.app_id, renouv.nouveau], [true, false]);
+  v('   et l\'ancien jeton ne vaut plus rien', S.sessionParJeton(sha('j1')), null);
+
+  S.sessionOuvrir(E, { jetonSha: sha('vieux'), exp: Date.now() - 1 });
+  v('un jeton périmé est refusé', S.sessionParJeton(sha('vieux')), null);
+
+  /* ⛔ COUPER DOIT COUPER, ET NE COUPER QUE LÀ. Croire une entreprise coupée alors qu'elle ne
+     l'est pas est la panne silencieuse type de ce dépôt — d'où un nombre rendu, pas un
+     booléen : l'appelant doit pouvoir le REMONTER. */
+  S.sessionOuvrir('voisine', { jetonSha: sha('voisine') });
+  const n = S.sessionsCouper(E);
+  v('⛔ la coupure rend un NOMBRE, pas un booléen', typeof n, 'number');
+  v('   les sessions de l\'entreprise sont coupées', S.sessionParJeton(sha('j3')), null);
+  v('⛔ celles de la voisine sont intactes', !!S.sessionParJeton(sha('voisine')), true);
+  v('   recouper ne coupe rien de plus', S.sessionsCouper(E), 0);
+  const revenu = S.sessionOuvrir(E, { jetonSha: sha('j4'), appId: a.app_id });
+  v('⛔ un appareil révoqué ne reprend pas sa ligne', revenu.app_id === a.app_id, false);
+}
+
+/* ══ 13. LE JOURNAL CHAÎNÉ ══════════════════════════════════════════════════════════ */
+console.log('\n⛔ Un journal écrit par celui qu\'il surveille doit être vérifiable');
+{
+  const J = 'journal-x';
+  for (let i = 0; i < 5; i++) S.diagnostic(J, { qui: 'justin', motif: 'dépannage ' + i, portee: 'box', n: i, ipH: 'h'.repeat(32) });
+  /* ⛔ LE PIÈGE MESURÉ : la chaîne était d'abord ordonnée par (ts, id). Cinq lignes écrites
+     dans la MÊME milliseconde se relisaient dans l'ordre de leurs id tirés au hasard, donc
+     pas dans l'ordre où elles avaient été chaînées — `ancreVerifier()` criait au loup sur un
+     journal intact. Un journal qui crie au loup en permanence est un journal qu'on débranche. */
+  v('⛔ un journal intact se vérifie (il criait au loup le 18 au matin)', S.ancreVerifier().ok, true);
+  v('l\'ancre porte le dernier maillon', [S.ancre().lignes, S.ancre().rang], [5, 5]);
+  v('⛔ le journal rendu au client ne porte aucune adresse', 'ip_h' in S.diagnosticsDe(J, 1)[0], false);
+
+  const chemin = path.join(DIR, 'socle-annuaire.db');
+  const modifier = sql => { const db = new (require('node:sqlite').DatabaseSync)(chemin); db.exec(sql); db.close(); };
+  modifier("UPDATE diagnostic SET motif='rien du tout' WHERE n=2");
+  const cassee = S.ancreVerifier();
+  v('⛔ une ligne réécrite casse la chaîne', [cassee.ok, cassee.motif], [false, 'empreinte']);
+  vrai('   et elle est NOMMÉE', !!cassee.casse);
+
+  /* ⛔ Une ligne EFFACÉE ne casserait aucune empreinte : chaque maillon ne connaît que son
+     prédécesseur immédiat. C'est le rang manquant qui la trahit — sans ce second contrôle,
+     « chaîné » ne voudrait rien dire contre qui efface plutôt que de réécrire. */
+  /* ⚠️ On efface une ligne AVANT celle qu'on vient de réécrire : la vérification s'arrête au
+     PREMIER maillon cassé, donc effacer après ne prouverait rien — c'est le contrôle
+     d'empreinte qui répondrait, et on croirait tester le rang. */
+  modifier("DELETE FROM diagnostic WHERE n=0");
+  v('⛔ une ligne EFFACÉE est vue aussi', S.ancreVerifier().motif, 'rang manquant');
+}
+
+/* ══ 14. LES INVARIANTS DE L'ANNUAIRE ET DE LA PREUVE DE CLÉ ═══════════════════════ */
+console.log('\nLes invariants qui tiennent le cloisonnement');
+{
+  const src = fs.readFileSync(SOCLE_JS, 'utf8');
+  /* ⛔ L'annuaire est LE point faible par construction : c'est la seule table qui porte une
+     colonne `t`, donc le seul endroit où un `WHERE t=?` peut manquer. On compte les requêtes
+     qui la visent sans `t` et on en exige UNE SEULE — la recherche par jeton, qui ne peut pas
+     en avoir puisque c'est elle qui FAIT NAÎTRE `t`. Une seconde, écrite un jour « pour aller
+     plus vite », rouvrirait la porte. */
+  const requetes = (src.match(/'[^']*\b(FROM|INTO|UPDATE)\s+(appareil|entreprise)\b[^']*'/g) || [])
+    .concat(src.match(/`[^`]*\b(FROM|INTO|UPDATE)\s+(appareil|entreprise)\b[^`]*`/g) || []);
+  const sansT = requetes.filter(q => !/\bt\s*=\s*\?/.test(q) && !/\(t\s*,/.test(q));
+  v('⛔ UNE SEULE requête d\'annuaire sans `t` — celle du jeton', sansT.length, 1);
+  vrai('⛔ et c\'est bien la recherche par jeton', /jeton_sha\s*=\s*\?/.test(sansT[0] || ''));
+  vrai('   elle est nommée comme l\'exception dans le fichier', /L'EXCEPTION, NOMMÉE/.test(src));
+
+  /* ⛔ Le serveur portait DEUX implémentations de la preuve de clé — `espaceCleOk` en `!==`,
+     `cleEquipeVerdict` en `timingSafeEqual` — et elles avaient DÉJÀ divergé (l'une acceptait
+     un kh en majuscules, l'autre non). Le socle s'appuie sur `sauvRefus`, donc sur la
+     première : on unifie AVANT d'ouvrir une cinquième porte dessus, pas après. */
+  const idx = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
+  const bloc = idx.slice(idx.indexOf('function espaceCleOk('), idx.indexOf('function cleEtat('));
+  vrai('⛔ espaceCleOk DÉLÈGUE la comparaison', /cleEquipeVerdict\(t, kh\) === 'valide'/.test(bloc));
+  v('⛔ elle ne compare plus de hachage elle-même', /createHash\('sha256'\)/.test(bloc), false);
+  vrai('⛔ et la comparaison est en temps constant', /timingSafeEqual/.test(idx.slice(idx.indexOf('function cleEquipeVerdict('), idx.indexOf('function cleEquipeVerdict(') + 900)));
 }
 
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}

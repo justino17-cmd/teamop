@@ -64,10 +64,77 @@ Le témoin de clé tient, éprouvé dans de VRAIS autres processus : même clé 
 refus explicite ; **pas de clé alors que des bases existent → refus qui dit que c'est un
 INCIDENT**, pas une installation neuve, et qu'il ne faut PAS en générer une autre.
 
+### Les routes, le 18 au soir — `server/op-socle.js`, 71 ✓ sur le VRAI serveur
+
+`tests/test-724.js` est la **deuxième suite du dépôt qui lance le vrai serveur** (après
+`test-641.js`), isolé — sa configuration, ses données, sa clé maître, son port. Ce qu'elle
+tient, et qu'aucune relecture n'aurait donné :
+
+| ce qui est éprouvé | pourquoi ça compte |
+|---|---|
+| ⛔ **`t` dans le corps est IGNORÉ** — jeton de A + `{t:'B'}` → l'écriture reste chez A | une écriture chez le voisin ne fait PLANTER personne : elle a lieu, et ne se voit jamais |
+| ⛔ **clé partagée → 409** | une clé écrite en clair dans `app.html` ne prouve rien quand on la présente |
+| ⛔ **`app_id` alloué par le serveur** ; un `app_id` inventé ouvre une ligne NEUVE | sinon on déconnecte un collègue en se déclarant avec le sien |
+| ⛔ **sans le drapeau, `/api/op/*` n'existe pas** — 404 partout, **aucun fichier créé** | un push sur `main` déploie : « déployé et inerte » est la seule forme de « pas encore » |
+| ⛔ **SIGTERM fusionne le WAL** | SIGTERM arrive à chaque déploiement |
+| ⛔ **les 5 routes Tour refusent à l'IDENTIQUE**, espace inexistant compris | une réponse différente ferait de la Tour un annuaire des clients, lisible sans être la Tour |
+| ⛔ **145 routes, zéro déclarée deux fois** (mesuré sur le vrai serveur) | c'est la panne de `/api/devis/etat`, invisible des mois |
+
+⚠️ **Écart assumé au plan, et il faut le connaître** : §2.4 dit « REFUSE de démarrer » sur une
+route déclarée deux fois. **Je ne l'ai pas fait**, parce qu'un push sur `main` touchant
+`server/**` déploie : un serveur qui refuse de démarrer, c'est ELAN sans API du tout — bien
+pire qu'une route fantôme. Le refus est donc dans le BANC (donc en CI, donc avant le
+déploiement) ; au démarrage, ça crie au journal et sur `/health` (`routesDoublons`), donc dans
+la surveillance horaire. Bruyant et vivant plutôt que muet ou mort.
+
+### ⛔ Trois défauts de plus, tous trouvés en EXÉCUTANT
+
+1. **L'arbitrage était faux** — il confondait trois cas et en ratait un quatrième. Le §2.6 en
+   demande quatre : plus récent → accepté ; **même date + même empreinte → renvoi gratuit** ;
+   **même date + empreinte différente → conflit, et le serveur rend SA version** ; plus ancien
+   → `perime`. Le cas qui coûte est le troisième : `syncAlleger` produit deux versions du
+   **même** enregistrement au **même `_m`**, l'une avec ses photos, l'autre amputée — un
+   départage silencieux aurait fait gagner l'amputée une fois sur deux, et les photos de
+   chantier auraient disparu de tous les appareils à la fois, sans un message. Éprouvé : le
+   serveur rend bien ses 4 photos avec le refus.
+2. **`horlogeAvancee` n'existait pas.** Une horloge de téléphone en avance gagne TOUS les
+   arbitrages jusqu'à être rattrapée — des mois, si l'écart est de six mois — et c'est
+   aujourd'hui **totalement invisible**. Refusé au-delà de 5 min, compté dans `meta` (donc
+   survit au redémarrage, contrairement à une Map remise à zéro à chaque déploiement), remonté
+   par `/api/op/etat`.
+3. **⛔ Le journal « chaîné » était cassé sans qu'on y touche.** Cinq lignes écrites dans la
+   MÊME milliseconde se relisaient dans l'ordre de leurs identifiants tirés au hasard :
+   `ancreVerifier()` criait au loup sur un journal intact. **Un journal qui crie au loup en
+   permanence est un journal qu'on débranche** — et c'est la seule chose opposable du
+   dispositif. Ordonné par un rang monotone (`AUTOINCREMENT`, pour qu'un rang effacé ne soit
+   jamais réemployé), plus un contrôle de rang manquant : sans lui, effacer une ligne ne
+   casserait AUCUNE empreinte, puisque chaque maillon ne connaît que son prédécesseur.
+
+### Le prérequis d'étape 0 qui bloquait tout : une seule preuve de clé
+
+Le serveur portait **DEUX implémentations de la preuve de clé d'équipe** — `espaceCleOk` en
+`!==`, `cleEquipeVerdict` en `crypto.timingSafeEqual()` — et elles avaient **déjà divergé**.
+Le socle s'appuie sur `sauvRefus`, donc sur la première : on unifie AVANT d'ouvrir une
+cinquième porte dessus. `espaceCleOk` délègue désormais.
+
+**Mesuré avant de toucher** (différentiel ancienne/nouvelle sur 42 cas — 6 formes de `kh` × 7
+espaces) : **une seule différence**, un `kh` en hexadécimal MAJUSCULE désormais accepté. C'est
+la divergence qu'on supprime, elle n'accorde rien (il faut toujours le bon haché), et les neuf
+appelants passent tous par `.toLowerCase()` — donc elle est **inatteignable aujourd'hui**. Le
+contrat 404/403 des trois appelants ne bouge pas d'un iota.
+
 ### Ce qui reste sur l'étape 1
 
-- `server/op-socle.js` — les routes `/api/op/*`, derrière `socle.actif: false`
-- le montage dans `server/index.js` + `socle.sante()` dans `/health`
+- ~~`server/op-socle.js`~~ ✅ fait — sessions, `depuis`, `pousser`, `flux`, `etat`, `numero`,
+  et cinq routes Tour (aperçu, ouvrir, journal, couper, diagnostics)
+- ~~le montage + `/health`~~ ✅ fait, plus `PLAFOND_DONNEES` (1 200/min/IP, **réel**, jamais
+  « exempté ») et l'arrêt propre SIGTERM
+- ⛔ **`POST /api/monitor/op/revenir` est volontairement ABSENT** : c'est la seule route qui
+  ÉCRIVE dans la base d'un client depuis la Tour, et le plan exige le code à six chiffres
+  envoyé à l'adresse de l'entreprise — par la fonction existante, pas par une copie. Cette
+  fonction n'existe pas : elle est écrite à la main dans `/api/espaces/cle/code`. La factoriser
+  d'abord. Changer la clé d'équipe, geste qui n'écrit AUCUNE donnée métier, l'exige déjà.
+- `/api/op/fichier` → étape 3 ; `/api/op/atteste` → étape 7
 - ⛔ **Sur le chemin critique et ce n'est pas technique : le courrier à ELAN.**
   `sous-traitance.html` promet que TeamOP ne peut pas lire les données. Les mettre chez nous
   change ça : **préavis de 30 jours, ou accord écrit d'ELAN qui le remplace.** Tant que ce

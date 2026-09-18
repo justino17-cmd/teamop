@@ -146,6 +146,15 @@ const MAX_IP_SUIVIES = 20000;  // borne mémoire (voir plus bas)
    600/min laisse vingt appareils en pleine reprise (20 × 10 relances + 20 × 3 battements = 260)
    très en dessous, et reste une borne : /health est une réponse JSON sans lecture disque. */
 const PLAFOND_BATTEMENT = 600; // /health seule, par minute et par IP, hors budget global
+/* ⛔ LE SOCLE A SON PROPRE COMPTEUR, ET IL EST RÉEL — jamais « exempté ». Un appareil en
+   synchro fait beaucoup plus de requêtes qu'un écran : 120/min/IP l'étranglerait, et toute une
+   équipe derrière la box du bureau partage une seule IP. Mais exempter `/api/op/*` ferait de
+   `/api/op/session` la SEULE route du serveur sans aucun plafond avant preuve — c'est-à-dire
+   une porte ouverte pour épuiser la machine. 1 200/min/IP est généreux et reste une borne.
+   ⚠️ C'est un plafond par IP, donc avant toute preuve. Le budget PAR ESPACE, lui, se compte
+   APRÈS la preuve, dans `op-socle.js` : compté avant, il deviendrait une arme de déni de
+   service — n'importe qui épuiserait le quota d'une entreprise en tapant son identifiant. */
+const PLAFOND_DONNEES = 1200;  // /api/op/* seules, par minute et par IP
 
 /* « espaces/(ouvrir|relance) » et non « espaces » tout court : /api/espaces/etat est appelé à
    chaque reprise d'onglet par une entreprise en attente de paiement, et le palier strict est
@@ -181,6 +190,14 @@ app.use((req, res, next) => {
     const bat = (compteurs.get('h:' + ip) || 0) + 1;
     compteurs.set('h:' + ip, bat);
     if (bat > PLAFOND_BATTEMENT) return tropDeRequetes(res);
+    return next();
+  }
+
+  /* Le socle compte à part, comme le battement : voir PLAFOND_DONNEES. */
+  if (req.path.startsWith('/api/op/')) {
+    const d = (compteurs.get('d:' + ip) || 0) + 1;
+    compteurs.set('d:' + ip, d);
+    if (d > PLAFOND_DONNEES) return tropDeRequetes(res);
     return next();
   }
 
@@ -331,6 +348,12 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      fermeture a pris une vraie entreprise au passage. S'il monte, l'interrupteur
      « mailPreuve: false » rouvre le temps de comprendre (voir cleEquipeExige). */
   mailRefus: { n: mailRefus.n, parMotif: mailRefus.parMotif, ts: mailRefus.ts },
+  /* Le socle : allumé ou non, combien de bases, la clé maître est-elle là, combien de flux
+     tenus. ⛔ AUCUN NOM D'ENTREPRISE, AUCUN POIDS — /health est publique, et y nommer un
+     espace dirait au monde quelles entreprises existent. Et `routesDoublons` : voir le
+     contrôle au démarrage, plus bas. */
+  socle: (opSocle && opSocle.sante) ? opSocle.sante() : { actif: false },
+  routesDoublons: routesDoublons.length,
   /* Étape 0 du socle : où en est le stockage des pièces jointes.
      ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
      PUBLIQUE : le poids exact des pièces est un journal de l'activité de terrain de tous les
@@ -2315,12 +2338,22 @@ function ordreMdpAttente(t, login) { const lim = Date.now() - ORDRE_MDP_VIE;
 function ordresSave() { try { const tmp = ORDRES_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(ordresData)); fs.renameSync(tmp, ORDRES_PATH); return true; } catch (e) { console.error('ordres.json non écrit :', e.message); return false; } }
 function ordreAttente(t, login) { return (ordresData[t] || []).some(o => estSuppr(o) && o.login === login && !o.fait && o.banni !== false); }
 function ordreFait(t, login) { return (ordresData[t] || []).some(o => estSuppr(o) && o.login === login && o.fait && o.banni !== false); }
-/* La clé d'équipe, comme pour l'annuaire : kh = sha256 de la clé. null = espace inconnu, false = mauvaise clé. */
+/* La clé d'équipe, comme pour l'annuaire : kh = sha256 de la clé. null = espace inconnu, false = mauvaise clé.
+   ⛔ ELLE DÉLÈGUE, ELLE NE COMPARE PLUS ELLE-MÊME. Le serveur portait DEUX implémentations de
+   la même preuve — celle-ci en `!==`, `cleEquipeVerdict()` en `crypto.timingSafeEqual()` — et
+   elles avaient DÉJÀ divergé : l'une acceptait un kh en hexadécimal majuscule, l'autre non.
+   C'est la leçon des quatre portes de `fbRevoquerEquipe`, appliquée avant d'en ouvrir une
+   cinquième : deux contrôles de sécurité qui disent la même chose finissent toujours par ne
+   plus la dire pareil, et c'est celui qu'on a oublié de corriger qui décide. Le socle
+   (`/api/op/session`) s'appuie sur `sauvRefus`, donc sur cette fonction : on unifie AVANT d'y
+   brancher quoi que ce soit, pas après.
+   ⚠️ Le contrat des trois appelants ne bouge pas d'un iota — `null` UNIQUEMENT quand l'espace
+   ou son code manquent (404), `false` pour tout le reste (403), code illisible compris. C'est
+   ce que promet le commentaire de `cleEstPublique` juste en dessous, et c'est ce qui la rend
+   sûre : on ne change pas la sémantique en même temps qu'on unifie la comparaison. */
 function espaceCleOk(t, kh) {
   const e = espaceParT(t); if (!e || !e.code) return null;
-  let cle = ''; try { cle = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).k || ''); } catch (err) {}
-  if (!cle || !/^[0-9a-f]{64}$/.test(String(kh || '')) || crypto.createHash('sha256').update(cle).digest('hex') !== kh) return false;
-  return true;
+  return cleEquipeVerdict(t, kh) === 'valide';
 }
 /* ⛔ LA CLÉ ÉCRITE EN CLAIR DANS app.html. La connaître ici n'ajoute AUCUN secret — c'est
    justement le problème qu'elle pose. Elle ne sert qu'à répondre à une question : cet espace
@@ -3404,6 +3437,24 @@ try {
 } catch (e) {
   console.error('sauvegarde hors site non montée :', e.message);
 }
+/* ══ LE SOCLE — LE STOCKAGE QUI REMPLACERA FIRESTORE ═══════════════════════════════════════
+   Monté ICI parce qu'il reçoit `sauvRefus`, `cleEstPublique`, `monPatronStrict` (déclarations
+   de fonctions, donc hissées) et `quotaOk`, juste au-dessus.
+   ⛔ INERTE SANS `"socle": {"actif": true}` DANS `config.json` : pas une seule route déclarée,
+   pas un fichier ouvert, pas une minuterie. C'est ce qui permet de le déployer chez un client
+   qui travaille sans rien risquer — et de faire marche arrière SANS déploiement, en éteignant
+   le drapeau. Si le module refuse de se monter, le reste du serveur continue : on perd le
+   socle, pas la plateforme, et `/health` le dit. */
+let opSocle = null;
+try {
+  opSocle = require('./op-socle').monterOpSocle(app, {
+    config, socle: require('./socle'), sauvRefus, cleEstPublique, quotaOk, monStr,
+    garde: monPatronStrict, mailerEnvoi: (o) => mailerEnvoi(o),
+  });
+} catch (e) {
+  console.error('socle non monté :', e.message);
+}
+
 /* Plusieurs inscriptions peuvent porter le même espace : la plus récente fait foi. */
 function espaceAJour(slug) {
   let e = espacesReg[slug]; if (!e) return null;
@@ -7009,5 +7060,56 @@ function rappelsEcheances() {
 setTimeout(rappelsEcheances, 90 * 1000);      // un premier passage peu après le démarrage
 setInterval(rappelsEcheances, 6 * 3600000);   // puis toutes les 6 heures
 
+/* ══ AUCUNE ROUTE NE DOIT ÊTRE DÉCLARÉE DEUX FOIS ══════════════════════════════════════════
+   ⛔ LA PREMIÈRE ENREGISTRÉE GAGNE, ET LA SECONDE NE RÉPOND JAMAIS — sans un mot. C'est arrivé :
+   `/api/devis/etat` était déclarée dans `agent-devis.js` ET ici ; la seconde, plus riche, n'a
+   jamais servi, et personne ne l'a vu pendant des mois. Avec 145 routes sur cinq fichiers, une
+   route ajoutée en fin de fichier peut être masquée en silence.
+
+   ⚠️ ON NE REFUSE PAS DE DÉMARRER, ET C'EST UN ÉCART ASSUMÉ AU PLAN (§2.4 dit « REFUSE de
+   démarrer »). La raison est mesurée : un push sur `main` touchant `server/**` DÉPLOIE
+   (`.github/workflows/deploiement.yml`). Un serveur qui refuse de démarrer, c'est ELAN sans API
+   du tout — une panne bien pire qu'une route fantôme. L'endroit où il faut refuser, c'est AVANT
+   le déploiement : `tests/test-723.js` lance le vrai serveur et exige zéro doublon, donc la CI
+   tombe et le commit ne part pas. Ici, on crie : au journal, et sur `/health` (donc dans la
+   surveillance horaire). Bruyant et vivant plutôt que muet ou mort. */
+const routesDoublons = (() => {
+  const vu = new Map(), doubles = [];
+  for (const c of (app._router && app._router.stack) || []) {
+    if (!c.route || !c.route.path) continue;
+    for (const m of Object.keys(c.route.methods || {})) {
+      const k = m.toUpperCase() + ' ' + c.route.path;
+      if (vu.has(k)) doubles.push(k); else vu.set(k, 1);
+    }
+  }
+  if (doubles.length) {
+    console.error('⛔ ROUTES DÉCLARÉES DEUX FOIS — la seconde ne répondra JAMAIS :');
+    for (const d of doubles) console.error('   ' + d);
+  }
+  return doubles;
+})();
+
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '127.0.0.1', () => console.log('TeamOP API sur 127.0.0.1:' + PORT));
+const serveur = app.listen(PORT, '127.0.0.1', () => console.log('TeamOP API sur 127.0.0.1:' + PORT));
+
+/* ══ L'ARRÊT PROPRE ════════════════════════════════════════════════════════════════════════
+   ⛔ SIGTERM ARRIVE À CHAQUE DÉPLOIEMENT, et un push sur `main` touchant `server/**` déploie —
+   donc plusieurs fois par jour les jours chargés. Sans fermeture, les bases SQLite du socle
+   laissent leur journal WAL non fusionné : rien n'est perdu (c'est tout l'intérêt du WAL), mais
+   le démarrage suivant doit le rejouer et les fichiers `-wal`/`-shm` traînent.
+   ⚠️ LE MINUTEUR EST LA PARTIE QUI COMPTE : si une fermeture s'éternise, systemd envoie SIGKILL
+   et on perd le bénéfice. On se donne 5 secondes, puis on sort quand même — un arrêt imparfait
+   vaut mieux qu'un arrêt qui pend. */
+let enArret = false;
+function arretPropre(signal) {
+  if (enArret) return; enArret = true;
+  console.log('arrêt (' + signal + ') — fermeture en cours');
+  const secours = setTimeout(() => { console.error('arrêt : délai dépassé, sortie forcée'); process.exit(0); }, 5000);
+  secours.unref();
+  try { serveur.close(); } catch (e) {}
+  try { if (opSocle && opSocle.fermer) console.log('socle fermé :', JSON.stringify(opSocle.fermer())); } catch (e) { console.error('socle non fermé :', e.message); }
+  clearTimeout(secours);
+  process.exit(0);
+}
+process.on('SIGTERM', () => arretPropre('SIGTERM'));
+process.on('SIGINT', () => arretPropre('SIGINT'));

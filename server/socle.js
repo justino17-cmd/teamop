@@ -38,6 +38,8 @@ const DATA_DIR = process.env.TEAMOP_DATA || '/opt/teamop/data';
 const SOCLE_DIR = path.join(DATA_DIR, 'socle');
 const ANNUAIRE_PATH = path.join(DATA_DIR, 'socle-annuaire.db');
 const SCHEMA_VERSION = '1';
+/* Cinq minutes : au-delà, une date vient d'une horloge déréglée, pas d'un appareil hors ligne. */
+const HORLOGE_MARGE_MS = 5 * 60000;
 
 /* `node:sqlite` est intégré à Node : zéro dépendance npm, donc zéro surface d'attaque de plus
    sur le composant le plus critique, et aucun module natif à compiler au déploiement — un
@@ -149,7 +151,17 @@ function annuaire() {
   db.exec(`CREATE TABLE IF NOT EXISTS appareil (t TEXT NOT NULL, app_id TEXT NOT NULL, jeton_sha TEXT NOT NULL,
              exp INTEGER NOT NULL, cree_le INTEGER NOT NULL, vu_le INTEGER NOT NULL DEFAULT 0, nom TEXT NOT NULL DEFAULT '',
              revoque_le INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (t, app_id))`);
-  db.exec(`CREATE TABLE IF NOT EXISTS diagnostic (id TEXT PRIMARY KEY, ts INTEGER NOT NULL, qui TEXT NOT NULL,
+  /* ⛔ `rang` N'EST PAS DÉCORATIF, ET IL A COÛTÉ UNE SONDE. La chaîne était d'abord ordonnée
+     par `(ts, id)` : MESURÉ le 18 septembre 2026, cinq lignes écrites dans la MÊME
+     milliseconde se relisaient dans l'ordre de leurs `id` tirés au hasard, donc pas dans
+     l'ordre où elles avaient été chaînées — `ancreVerifier()` rendait `ok:false` sur un
+     journal parfaitement intact. Un journal qui crie au loup en permanence est un journal
+     qu'on débranche, et c'est très exactement comme ça qu'on perd la seule chose opposable
+     du dispositif. Le rowid de SQLite, lui, est monotone et n'a besoin ni d'horloge ni de
+     hasard. ⚠️ AUTOINCREMENT (et pas le rowid nu) : sans lui, SQLite RÉEMPLOIE le rang d'une
+     ligne effacée, et une chaîne dont les rangs reculent ne prouve plus rien. */
+  db.exec(`CREATE TABLE IF NOT EXISTS diagnostic (rang INTEGER PRIMARY KEY AUTOINCREMENT,
+             id TEXT NOT NULL UNIQUE, ts INTEGER NOT NULL, qui TEXT NOT NULL,
              t TEXT NOT NULL, motif TEXT NOT NULL, portee TEXT NOT NULL DEFAULT '', n INTEGER NOT NULL DEFAULT 0,
              ip_h TEXT NOT NULL DEFAULT '', chaine_sha TEXT NOT NULL DEFAULT '')`);
   db.exec('CREATE INDEX IF NOT EXISTS diagnostic_t ON diagnostic(t, ts DESC)');
@@ -256,10 +268,22 @@ function pousser(t, lignes, ctx) {
   const db = ouvrir(t), dek = dekDe(t);
   const c = ctx || {};
   const acceptes = [], refus = [];
+  const maintenant = Date.now();
+  let horlogeVues = 0;
   db.exec('BEGIN IMMEDIATE');
   try {
     const suivant = db.prepare("UPDATE meta SET val=val+1 WHERE cle='seq' RETURNING val");
-    const actuel = db.prepare('SELECT maj_le, supprime_le, seq FROM enr WHERE coll=? AND id=?');
+    const actuel = db.prepare('SELECT maj_le, supprime_le, seq, empreinte, corps FROM enr WHERE coll=? AND id=?');
+    /* La version du serveur, rendue AVEC le refus. ⛔ On ne détruit jamais ce qu'on refuse
+       d'écrire et on dit où le retrouver : l'appareil adopte celle-ci et met la sienne de côté.
+       Sans le corps, il ne pourrait qu'effacer le sien ou ignorer le refus. */
+    const versionServeur = (a, coll, id) => {
+      const o = { m: a.maj_le, sup: a.supprime_le, e: a.empreinte || '' };
+      if (a.supprime_le || !a.corps) { o.r = null; return o; }
+      try { o.r = desceller_corps(dek, t, coll, id, a.maj_le, a.supprime_le, a.corps); }
+      catch (e) { o.r = null; o.illisible = true; }
+      return o;
+    };
     const poser = db.prepare(`INSERT INTO enr (coll,id,maj_le,seq,supprime_le,par,corps,empreinte,octets)
       VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(coll,id) DO UPDATE SET
       maj_le=excluded.maj_le, seq=excluded.seq, supprime_le=excluded.supprime_le, par=excluded.par,
@@ -278,8 +302,39 @@ function pousser(t, lignes, ctx) {
          un refus silencieux ferait disparaître du travail sans que personne comprenne. */
       if (majLe < 1) { refus.push({ c: coll, id, motif: 'non_date' }); continue; }
 
+      /* ⛔ UNE HORLOGE DE TÉLÉPHONE EST FAUSSE PLUS SOUVENT QU'ON NE CROIT, et une date en
+         avance gagne TOUS les arbitrages jusqu'à ce qu'elle soit rattrapée — des mois, si
+         l'écart est de six mois. Aujourd'hui c'est totalement invisible. On refuse au-delà de
+         cinq minutes, et on COMPTE, par entreprise, dans `meta` : le compteur est
+         transactionnel de toute façon, et il survit au redémarrage — contrairement à une Map
+         en mémoire, remise à zéro à chaque déploiement, donc plusieurs fois par jour. */
+      if (majLe > maintenant + HORLOGE_MARGE_MS) {
+        refus.push({ c: coll, id, motif: 'horlogeAvancee', ecartMin: Math.round((majLe - maintenant) / 60000) });
+        horlogeVues++; continue;
+      }
+
       const a = actuel.get(coll, id);
-      if (a && a.maj_le >= majLe) { refus.push({ c: coll, id, motif: 'conflit', serveur: a.maj_le }); continue; }
+      if (a) {
+        /* ⛔ L'ÉGALITÉ N'EST PAS TRANCHÉE PAR UN DÉPARTAGE SILENCIEUX. Un départage
+           alphabétique sur l'appareil ferait gagner une version AMPUTÉE une fois sur deux :
+           `syncAlleger` marque `horsNuage`/`photosHorsNuage` des enregistrements qui portent le
+           MÊME id et le MÊME `_m` avec deux contenus différents — l'un avec ses quatre photos,
+           l'autre sans. Les PDF signés et les photos de chantier disparaîtraient de tous les
+           appareils à la fois, sans message. Le serveur NE TRANCHE PAS : il rend sa version. */
+        if (majLe < a.maj_le) { refus.push({ c: coll, id, motif: 'perime', serveur: versionServeur(a, coll, id) }); continue; }
+        if (majLe === a.maj_le) {
+          /* Le renvoi idempotent est GRATUIT et il faut qu'il le reste : un appareil qui
+             réémet son lot après une coupure ne doit pas récolter un mur de conflits.
+             ⚠️ Il exige une empreinte DES DEUX CÔTÉS. Sans empreinte, on ne SAIT pas que les
+             deux contenus sont les mêmes — et « je ne sais pas » se tranche vers le conflit,
+             qui coûte un aller-retour, jamais vers l'acceptation, qui coûte une donnée. */
+          const emp = String(l.e || '');
+          const memeTombe = !!supprimeLe && !!a.supprime_le;
+          const memeCorps = !supprimeLe && !a.supprime_le && emp && a.empreinte && emp === a.empreinte;
+          if (memeTombe || memeCorps) { acceptes.push({ c: coll, id, seq: a.seq, noop: true }); continue; }
+          refus.push({ c: coll, id, motif: 'conflit', serveur: versionServeur(a, coll, id) }); continue;
+        }
+      }
 
       /* ⛔ LE RANG S'ALLOUE APRÈS LE DERNIER REFUS POSSIBLE, jamais avant. Mesuré le
          18 septembre 2026 : un refus `corps_absent` faisait quand même monter `meta.seq`
@@ -304,6 +359,10 @@ function pousser(t, lignes, ctx) {
       tracer.run(seq, Date.now(), coll, id, majLe, supprimeLe ? 1 : 0, String(c.app_id || ''),
         String(c.utilisateur || ''), String(c.ver || ''), octets, String(c.origine || 'appareil'), empreinte, corps);
       acceptes.push({ c: coll, id, seq });
+    }
+    if (horlogeVues) {
+      db.prepare("INSERT INTO meta (cle,val) VALUES ('horloge_avancee',?) ON CONFLICT(cle) DO UPDATE SET val=CAST(val AS INTEGER)+?")
+        .run(String(horlogeVues), horlogeVues);
     }
     db.exec('COMMIT');
   } catch (e) { try { db.exec('ROLLBACK'); } catch (x) {} throw e; }
@@ -387,7 +446,8 @@ function etat(t) {
   }
   const seq = parseInt(db.prepare("SELECT val FROM meta WHERE cle='seq'").get().val, 10);
   const octets = db.prepare('SELECT COALESCE(SUM(octets),0) AS o FROM enr').get().o || 0;
-  return { seq, parColl, octets, signature: h.digest('hex') };
+  const hv = db.prepare("SELECT val FROM meta WHERE cle='horloge_avancee'").get();
+  return { seq, parColl, octets, signature: h.digest('hex'), horlogeAvancee: parseInt(hv && hv.val, 10) || 0 };
 }
 
 /* ══ EFFACER UNE ENTREPRISE ═════════════════════════════════════════════════════════════════
@@ -423,6 +483,207 @@ function effacerEntreprise(t) {
   return { ok: !dossier && annuaireReste === 0, dossier, restes, annuaire: annuaireReste };
 }
 
+/* ══ L'HISTORIQUE D'UN ENREGISTREMENT ═══════════════════════════════════════════════════════
+ * ⛔ C'EST LA ROUTE QUI JUSTIFIE LE CHANTIER. « Qui a vidé cette box, et quand » devient une
+ * réponse en trois secondes au lieu d'une enquête — Firestore ne garde aucun historique, donc
+ * la question n'avait tout simplement pas de réponse.
+ * Le corps est rendu DÉCHIFFRÉ : cette fonction n'est appelée que derrière une ouverture de
+ * diagnostic motivée et tracée. Une version illisible est marquée, jamais avalée — même règle
+ * que `depuis()`, et pour la même raison : un trou silencieux dans un historique vaut moins
+ * que pas d'historique du tout. */
+function journalDe(t, coll, id, max) {
+  t = exigerT(t);
+  const db = ouvrir(t), dek = dekDe(t);
+  const n = Math.min(200, Math.max(1, parseInt(max, 10) || 50));
+  const ou = [], arg = [];
+  if (coll) { ou.push('coll=?'); arg.push(String(coll)); }
+  if (id) { ou.push('id=?'); arg.push(String(id)); }
+  const lignes = db.prepare('SELECT seq,ts,coll,id,maj_le,supprime,par,utilisateur,ver,octets,origine,empreinte,corps,corps_purge_le'
+    + ' FROM journal' + (ou.length ? ' WHERE ' + ou.join(' AND ') : '') + ' ORDER BY seq DESC LIMIT ?').all(...arg, n);
+  return lignes.map(l => {
+    const o = { s: l.seq, ts: l.ts, c: l.coll, id: l.id, m: l.maj_le, sup: !!l.supprime,
+      par: l.par, u: l.utilisateur, ver: l.ver, octets: l.octets, origine: l.origine };
+    if (l.supprime) { o.r = null; return o; }
+    /* Le corps du journal se purge à 90 jours ; le reste de la ligne, lui, ne s'efface pas —
+       l'historique de QUI a fait QUOI reste, sans le contenu. Dire lequel des deux cas on a
+       sous les yeux évite de prendre une purge pour une avarie. */
+    if (l.corps_purge_le || !l.corps) { o.r = null; o.purge = !!l.corps_purge_le; return o; }
+    try { o.r = desceller_corps(dek, t, l.coll, l.id, l.maj_le, 0, l.corps); }
+    catch (e) { o.r = null; o.illisible = true; }
+    return o;
+  });
+}
+
+/* ══ LES NUMÉROS DE DOCUMENT — ON RÉSERVE UNE PLAGE, ON NE RENUMÉROTE JAMAIS ════════════════
+ * ⛔ UN NUMÉRO ÉMIS NE SE RÉUTILISE PAS ET NE SE CORRIGE PAS. Le PDF est déjà fabriqué et déjà
+ * parti (`envoiDoc()`, le comptable) : le client détient un document portant un numéro que la
+ * base ne connaîtrait plus. Et les deux sources du client sont AMNÉSIQUES — l'archive est
+ * plafonnée à 500, donc « le plus grand numéro existant » redescend.
+ * On rend donc une PLAGE que l'appareil réserve quand il a du réseau et consomme hors ligne :
+ * le doublon disparaît vraiment, au lieu d'être rattrapé après coup.
+ * ⛔ `plancher` MONTE, IL NE DESCEND JAMAIS — c'est `db.numMax` côté client, même esprit : un
+ * appareil en retard ne peut pas faire redescendre le compteur et réémettre un numéro déjà
+ * sorti. On prend le MAXIMUM, jamais « le plus récent gagne ». */
+function numeroReserver(t, prefixe, annee, n, plancher) {
+  t = exigerT(t);
+  const db = ouvrir(t);
+  const p = String(prefixe || '').slice(0, 16), an = parseInt(annee, 10) || 0;
+  if (!p || !an) throw new Error('prefixe et annee obligatoires');
+  const combien = Math.min(200, Math.max(1, parseInt(n, 10) || 1));
+  const sol = Math.max(0, parseInt(plancher, 10) || 0);
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const l = db.prepare('SELECT dernier FROM numero WHERE prefixe=? AND annee=?').get(p, an);
+    const dernier = Math.max(l ? (l.dernier || 0) : 0, sol);
+    const de = dernier + 1, a = dernier + combien;
+    db.prepare('INSERT INTO numero (prefixe,annee,dernier) VALUES (?,?,?) ON CONFLICT(prefixe,annee) DO UPDATE SET dernier=excluded.dernier')
+      .run(p, an, a);
+    db.exec('COMMIT');
+    return { de, a };
+  } catch (e) { try { db.exec('ROLLBACK'); } catch (x) {} throw e; }
+}
+
+/* ══ LES SESSIONS D'APPAREIL ════════════════════════════════════════════════════════════════
+ * ⛔ `app_id` EST ALLOUÉ PAR LE SERVEUR, jamais choisi par l'appareil. Trois raisons, toutes
+ * payantes : un appareil révoqué qui invente un `app_id` neuf reprendrait une session (la Tour
+ * afficherait « révoqué » pendant qu'il lit) ; un appareil qui se nomme `zzzz` gagnerait toutes
+ * les égalités d'arbitrage ; et se déclarer avec l'`app_id` d'un collègue remplacerait son
+ * `jeton_sha` et le déconnecterait sans un mot.
+ * ⛔ SEUL LE sha256 DU JETON EST RANGÉ. Une base volée ne donne aucune session utilisable, et
+ * une échéance rend la révocation par rotation possible — un jeton éternel ne se révoque pas.
+ */
+function sessionOuvrir(t, o) {
+  t = exigerT(t);
+  const db = annuaire(), n = Date.now();
+  const c = o || {};
+  const sha = String(c.jetonSha || '');
+  if (!/^[0-9a-f]{64}$/.test(sha)) throw new Error('jetonSha attendu en sha256 hexadécimal');
+  /* ⛔ L'`app_id` PRÉSENTÉ N'EST HONORÉ QUE S'IL EXISTE DÉJÀ POUR CETTE ENTREPRISE ET N'EST PAS
+     RÉVOQUÉ. Sinon on en alloue un neuf — on ne « crée » jamais la ligne que l'appareil réclame,
+     sans quoi choisir son identité redeviendrait possible par la porte de derrière. */
+  let appId = String(c.appId || '');
+  let connu = null;
+  if (/^[0-9a-f]{32}$/.test(appId)) {
+    connu = db.prepare('SELECT app_id, revoque_le FROM appareil WHERE t=? AND app_id=?').get(t, appId) || null;
+    if (!connu || connu.revoque_le) { appId = ''; connu = null; }
+  } else appId = '';
+  if (!appId) appId = crypto.randomBytes(16).toString('hex');
+  const exp = parseInt(c.exp, 10) || (n + 30 * 86400000);
+  db.prepare(`INSERT INTO appareil (t,app_id,jeton_sha,exp,cree_le,vu_le,nom) VALUES (?,?,?,?,?,?,?)
+    ON CONFLICT(t,app_id) DO UPDATE SET jeton_sha=excluded.jeton_sha, exp=excluded.exp,
+    vu_le=excluded.vu_le, nom=excluded.nom, revoque_le=0`)
+    .run(t, appId, sha, exp, n, n, String(c.nom || '').slice(0, 60));
+  return { app_id: appId, exp, nouveau: !connu };
+}
+
+/* ⛔ L'EXCEPTION, NOMMÉE : LA SEULE REQUÊTE D'ANNUAIRE SANS `t` — parce que c'est elle qui le
+ * FAIT NAÎTRE. Tout le reste du socle reçoit `t` en premier argument ; ici on part d'un jeton et
+ * on cherche à quelle entreprise il appartient. Il ne peut pas en être autrement : si l'appelant
+ * annonçait `t`, une valeur du CORPS déciderait de ce qu'on lui sert — exactement l'interdit de
+ * `CLAUDE.md`, généralisé aux données. `t` sort d'ici, il n'entre jamais par la requête.
+ * ⚠️ IL N'Y EN A QU'UNE. `tests/test-723.js` compte les requêtes d'annuaire sans `t` et en
+ * exige UNE SEULE — celle-ci. Une seconde, écrite un jour « pour aller plus vite », rouvrirait
+ * la porte qu'on vient de fermer. */
+function sessionParJeton(jetonSha) {
+  const sha = String(jetonSha || '');
+  if (!/^[0-9a-f]{64}$/.test(sha)) return null;
+  const l = annuaire().prepare('SELECT t, app_id, exp, revoque_le FROM appareil WHERE jeton_sha=?').get(sha);
+  if (!l || l.revoque_le || Date.now() > l.exp) return null;
+  return { t: l.t, app_id: l.app_id, exp: l.exp };
+}
+
+/* Battement : on note qu'un appareil vit, sans toucher au jeton. Une écriture par requête
+   coûterait cher pour rien — on ne réécrit que si la dernière trace a plus d'une minute. */
+function sessionVue(t, appId) {
+  t = exigerT(t);
+  const n = Date.now();
+  annuaire().prepare('UPDATE appareil SET vu_le=? WHERE t=? AND app_id=? AND vu_le < ?').run(n, t, String(appId || ''), n - 60000);
+}
+
+/* ⛔ COUPER DOIT COUPER, ET LE DIRE. La leçon des quatre portes de `fbRevoquerEquipe` : une
+   coupure qui échoue en silence fait afficher « fermée » sur une entreprise qui lit et écrit
+   encore. On rend le nombre de sessions coupées, et l'appelant le REMONTE. */
+function sessionsCouper(t) {
+  t = exigerT(t);
+  const r = annuaire().prepare('UPDATE appareil SET revoque_le=? WHERE t=? AND revoque_le=0').run(Date.now(), t);
+  return Number(r.changes || 0);
+}
+
+function appareilsDe(t) {
+  t = exigerT(t);
+  return annuaire().prepare('SELECT app_id, nom, cree_le, vu_le, exp, revoque_le FROM appareil WHERE t=? ORDER BY vu_le DESC').all(t);
+}
+
+/* ══ LE JOURNAL DE DIAGNOSTIC — CHAÎNÉ PAR EMPREINTE ════════════════════════════════════════
+ * ⛔ UN JOURNAL ÉCRIT PAR CELUI QU'IL SURVEILLE, SUR LA MACHINE QU'IL SURVEILLE, N'EST
+ * OPPOSABLE À PERSONNE. Chaque ligne porte le sha256 de la précédente : retirer ou modifier une
+ * ligne casse la chaîne de toutes les suivantes. Ça n'empêche pas de tout réécrire — c'est
+ * l'ancre du jour, sortie de la machine (courriel), qui rend la réécriture détectable.
+ * ⚠️ `ip_h` est un HACHÉ, jamais une adresse : ce journal est lisible par le client depuis son
+ * espace (c'est le seul geste qui rende vérifiable la promesse de `sous-traitance.html`), et
+ * une adresse IP y désignerait une personne. */
+function diagnostic(t, o) {
+  t = exigerT(t);
+  const db = annuaire(), c = o || {};
+  const prec = db.prepare('SELECT chaine_sha FROM diagnostic ORDER BY rang DESC LIMIT 1').get();
+  const id = crypto.randomBytes(12).toString('hex');
+  const ts = Date.now();
+  const l = { id, ts, qui: String(c.qui || '').slice(0, 60), t, motif: String(c.motif || '').slice(0, 300),
+    portee: String(c.portee || '').slice(0, 120), n: parseInt(c.n, 10) || 0, ip_h: String(c.ipH || '').slice(0, 64) };
+  const chaine = crypto.createHash('sha256')
+    .update(String((prec && prec.chaine_sha) || '') + '\n' + [l.id, l.ts, l.qui, l.t, l.motif, l.portee, l.n, l.ip_h].join('\u0000'))
+    .digest('hex');
+  db.prepare('INSERT INTO diagnostic (id,ts,qui,t,motif,portee,n,ip_h,chaine_sha) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(l.id, l.ts, l.qui, l.t, l.motif, l.portee, l.n, l.ip_h, chaine);
+  return { ...l, chaine_sha: chaine };
+}
+
+function diagnosticsDe(t, max) {
+  t = exigerT(t);
+  return annuaire().prepare('SELECT rang,id,ts,qui,motif,portee,n,chaine_sha FROM diagnostic WHERE t=? ORDER BY rang DESC LIMIT ?')
+    .all(t, Math.min(500, Math.max(1, parseInt(max, 10) || 100)));
+}
+
+/* L'ancre : le dernier maillon, plus le nombre de lignes. C'est ce qui part par courriel —
+   deux nombres et une empreinte, aucun nom d'entreprise, aucun motif. */
+function ancre() {
+  const db = annuaire();
+  const d = db.prepare('SELECT rang, chaine_sha, ts FROM diagnostic ORDER BY rang DESC LIMIT 1').get();
+  const n = db.prepare('SELECT COUNT(*) AS n FROM diagnostic').get().n;
+  return { lignes: n, rang: (d && d.rang) || 0, sha: (d && d.chaine_sha) || '', dernier: (d && d.ts) || 0 };
+}
+
+/* ⛔ RELIRE LA CHAÎNE. Sans ce contrôle, « chaîné » est une affirmation, pas une propriété.
+   Il recalcule chaque maillon depuis le premier et nomme la ligne où ça casse. */
+function ancreVerifier() {
+  const lignes = annuaire().prepare('SELECT rang,id,ts,qui,t,motif,portee,n,ip_h,chaine_sha FROM diagnostic ORDER BY rang').all();
+  let prec = '', attenduRang = 0;
+  for (const l of lignes) {
+    /* Un rang qui saute est une ligne EFFACÉE : la chaîne des empreintes ne la verrait pas,
+       puisque chaque maillon ne connaît que son prédécesseur immédiat. C'est le contrôle qui
+       manquerait pour que « chaîné » veuille dire quelque chose. */
+    if (l.rang !== ++attenduRang) return { ok: false, lignes: lignes.length, casse: l.id, le: l.ts, motif: 'rang manquant' };
+    const attendu = crypto.createHash('sha256')
+      .update(prec + '\n' + [l.id, l.ts, l.qui, l.t, l.motif, l.portee, l.n, l.ip_h].join('\u0000')).digest('hex');
+    if (attendu !== l.chaine_sha) return { ok: false, lignes: lignes.length, casse: l.id, le: l.ts, motif: 'empreinte' };
+    prec = l.chaine_sha;
+  }
+  return { ok: true, lignes: lignes.length };
+}
+
+/* ══ FERMER PROPREMENT ══════════════════════════════════════════════════════════════════════
+ * ⛔ SIGTERM ARRIVE À CHAQUE DÉPLOIEMENT — et un push sur `main` touchant `server/**` déploie.
+ * Sans fermeture, le WAL n'est pas fusionné : la base reste cohérente (c'est tout l'intérêt du
+ * WAL), mais le premier démarrage suivant doit le rejouer, et `-wal`/`-shm` traînent. On ferme. */
+function fermer() {
+  let bases = 0;
+  for (const [t, db] of _bases) { try { db.close(); bases++; } catch (e) {} }
+  _bases.clear();
+  let annu = false;
+  try { if (_annuaire) { _annuaire.close(); _annuaire = null; annu = true; } } catch (e) {}
+  return { bases, annuaire: annu };
+}
+
 /* ══ LA SANTÉ, POUR /health — AGRÉGÉE, JAMAIS NOMINATIVE ════════════════════════════════════
  * `/health` est publique : elle ne dit jamais quelles entreprises existent. Un nombre et un
  * état, rien d'autre. Même discipline que le compteur de pièces jointes et celui des refus. */
@@ -433,8 +694,10 @@ function sante() {
 }
 
 module.exports = {
-  ouvrir, annuaire, dekDe, pousser, depuis, etat, verifier, effacerEntreprise, sante,
-  exigerT,
+  ouvrir, annuaire, dekDe, pousser, depuis, etat, verifier, effacerEntreprise, sante, fermer,
+  exigerT, numeroReserver, journalDe,
+  sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
+  diagnostic, diagnosticsDe, ancre, ancreVerifier,
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,
   kekDepuis, exigerKek, SOCLE_DIR, ANNUAIRE_PATH, SCHEMA_VERSION,
 };
