@@ -97,6 +97,27 @@ const fermer = () => { if (rl) rl.close(); };
   if (!endpoint || !bucket || !accessKey || !secretKey) { console.error('\n✗ Une valeur manque. Rien n\'a été modifié.'); process.exit(1); }
   if (!/^https?:\/\//.test(endpoint)) { console.error('\n✗ L\'endpoint doit commencer par https://. Rien n\'a été modifié.'); process.exit(1); }
 
+  /* ⛔ ON VÉRIFIE LA FORME AVANT D'ALLER DÉRANGER LE COFFRE — appris en direct le 18 septembre
+     2026, première mise en service réelle. Justin a tapé « Object Storage » (le nom du MENU
+     IONOS) comme nom de coffre, et l'adresse complète comme région. Le programme est allé
+     jusqu'au bout, a reçu un HTTP 400 nu, et a listé trois causes possibles dont AUCUNE n'était
+     la bonne. Un refus qui ne nomme pas la vraie cause est presque pire que pas de refus : on
+     va chercher du côté des droits et des clés alors que le nom porte simplement un espace.
+     Ces deux contrôles coûtent deux lignes et disent exactement quoi corriger. */
+  if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket)) {
+    console.error('\n✗ « ' + bucket + ' » n\'est pas un nom de coffre valable. Rien n\'a été modifié.');
+    console.error('  Un nom de coffre s\'écrit en minuscules, sans espace ni accent (lettres, chiffres, tirets, points).');
+    console.error('  C\'est le nom que TU as donné au bucket à sa création — pas le nom du menu de l\'hébergeur.');
+    console.error('  Console IONOS → Object Storage → la liste de tes coffres : c\'est la colonne « Name ».');
+    process.exit(1);
+  }
+  if (!/^[a-z]{2}-[a-z]+-\d+$/.test(region)) {
+    console.error('\n✗ « ' + region + ' » n\'est pas une région. Rien n\'a été modifié.');
+    console.error('  Une région s\'écrit comme « eu-central-4 » — ce n\'est PAS l\'adresse du serveur.');
+    console.error('  Elle est affichée à côté du coffre dans la console, et elle doit correspondre à l\'endpoint.');
+    process.exit(1);
+  }
+
   const conf = Object.assign({ prefixe: 'teamop/', garder: 30, heureUTC: 3 }, avant, { endpoint, bucket, region, accessKey, secretKey });
 
   /* La clé de chiffrement : gardée si elle existe déjà (la changer rendrait TOUTES les archives
@@ -112,8 +133,10 @@ const fermer = () => { if (rl) rl.close(); };
   const p = await client.poserCle(cleEssai, temoin);
   if (!p.ok) {
     console.error('✗ DÉPÔT REFUSÉ (HTTP ' + p.statut + '). Rien n\'a été écrit dans config.json.');
+    console.error('  400 : la requête a déplu au coffre — presque toujours un nom de coffre mal écrit.');
     console.error('  403 : clés fausses, ou pas le droit d\'écrire dans ce coffre.');
     console.error('  404 : le coffre n\'existe pas sous ce nom, ou la région ne correspond pas.');
+    console.error('  0   : le coffre n\'a pas répondu du tout (réseau, ou endpoint introuvable).');
     console.error('  Un nom d\'hôte introuvable : vérifier l\'endpoint (il change selon la région).');
     process.exit(1);
   }
