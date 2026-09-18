@@ -13,7 +13,77 @@ de ligne du tout.
 
 ---
 
-## ✅ 17 SEPTEMBRE 2026, NUIT — LA SAUVEGARDE HORS SITE EXISTE (ÉCRITE, ÉPROUVÉE, PAS DÉPLOYÉE)
+## ✅ 18 SEPTEMBRE 2026 — LE SERVEUR EST DÉPLOYÉ (déploiement n° 86). LE COFFRE ATTEND JUSTIN.
+
+⛔ **La sauvegarde n'existe TOUJOURS PAS tant que le coffre n'est pas branché.** Le code est
+en production, le module est **inerte** : sans bloc `sauvegarde` dans `/opt/teamop/config.json`,
+aucune minuterie, aucun appel réseau. C'est exactement ce qu'on voulait pour un déploiement,
+et c'est aussi pourquoi le chantier n'est pas fini. Justin a créé le bucket ; il reste à le
+brancher sur le VPS.
+
+### Vérifié EN PRODUCTION, pas au banc
+
+| contrôle | résultat |
+|---|---|
+| déploiement | **n° 86, réussi**, commit `d0e78f3` |
+| `/health` | `ok:true`, redémarré (95 s), e-mail ✓, Stripe ✓, **10 abonnements push intacts** |
+| bugs 1 h / 24 h | **0 / 0** |
+| `/api/version` | `min:695` — inchangé, la protection d'ELAN tient |
+| refus de `/api/replies` | **403 en `text/plain`** avec sa phrase — l'invariant de `CLAUDE.md` tient |
+| le motif « technique » | **2 refus comptés `technique`, ZÉRO `inconnu`** — le correctif marche en vrai |
+| fuite sur `/health` | aucun nom d'espace, aucun jeton, aucun poids (cherchés par expression) |
+
+⚠️ **`boite:false` sur `/health`** : la boîte IMAP n'est pas configurée côté serveur. **Ce n'est
+pas une conséquence du déploiement** — `config.json` n'a pas été touché (`install.sh` ne l'écrit
+que s'il est absent) et ce champ ne lit que `config.imap`. État antérieur, à regarder un jour
+pour lui-même.
+
+### ⛔ CE QU'IL RESTE À FAIRE, ET SANS QUOI TOUT CE TRAVAIL NE SAUVEGARDE RIEN
+
+Sur le VPS, dans cet ordre — le détail est dans `scratchpad/vps-sauvegarde-pas-a-pas.md` :
+
+1. `node /opt/teamop/repo/server/configurer-sauvegarde.js` — il demande les quatre valeurs du
+   coffre (les deux clés **en saisie masquée**), **éprouve le coffre AVANT d'écrire** (dépôt,
+   relecture comparée, effacement), écrit `config.json` de façon atomique et relue, puis
+   **propose de lancer la première sauvegarde tout de suite**.
+2. ⛔ **RANGER LA CLÉ DE CHIFFREMENT AFFICHÉE, HORS DU VPS.** Elle ne s'affiche qu'une fois.
+   Elle vit dans `config.json`, donc DANS l'archive : un VPS perdu sans cette copie rend toutes
+   les sauvegardes **définitivement illisibles**. C'est le seul point irrattrapable de la chaîne.
+3. `node /opt/teamop/repo/server/restaurer.js essai` — **le contrôle qui compte**. À refaire une
+   fois par trimestre.
+4. Poser `github.expire: "2026-10-17"` dans `config.json`, sinon `ghExpireBientot` reste `null`
+   et personne ne sera prévenu de l'expiration du jeton.
+5. `df -h /opt && du -sh /opt/teamop/data` (jamais mesuré), puis `reboot` (mises à jour de
+   sécurité en attente) à une heure creuse.
+
+⚠️ **La chaîne n'a JAMAIS tourné contre le vrai coffre IONOS** — seulement contre un coffre en
+mémoire, avec de vrais `tar`, `gzip` et AES. Tant que l'étape 3 n'a pas réussi en vrai, on a une
+sauvegarde *probable*, pas une sauvegarde.
+
+### Deux garde-fous que le déploiement vient d'armer
+
+- **La surveillance horaire** échoue désormais si la sauvegarde est configurée mais **en échec**,
+  ou **plus vieille que 26 h**. Tant qu'elle n'est **pas branchée**, c'est un rappel **une fois
+  par jour à 9 h UTC** — délibérément pas horaire : une alarme qui sonne sur un état stable
+  devient du bruit, puis une alarme qu'on ignore.
+- **L'échéance du jeton GitHub** est surveillée (15 jours d'avance), ce que rien ne faisait.
+
+### Ce que le déploiement a emporté, et qui ne sert encore à personne
+
+`server/pieces.js` + `server/s3.js` : les quatre routes `/api/pieces/*` sont en production mais
+**aucun client ne les appelle** — `app.html` en v695 n'en porte aucune occurrence. Le côté
+application reste à écrire, sur la bêta.
+
+### ⛔ Le report sur `main` a été REFUSÉ deux fois par le harnais
+
+Motif « Production Deploy », puis « Self-Modification » quand j'ai voulu écrire ma propre règle
+de permission. C'est le bon comportement : un agent qui peut élargir ses droits tout seul n'a
+plus de droits. Il a fallu que Justin pose la règle. À se rappeler avant de promettre un
+déploiement : **le geste final n'est pas à la main d'un agent.**
+
+---
+
+## ✅ 17 SEPTEMBRE 2026, NUIT — LA SAUVEGARDE HORS SITE EXISTE (déployée le 18, voir ci-dessus)
 
 Justin : « je veux faire tout ce qu'on doit faire pour les serveurs, la sauvegarde et tout, et
 après on publie les versions. Tant que rien n'est fait sur les serveurs VPS ou autres, on fait
