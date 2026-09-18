@@ -40,6 +40,32 @@ const ANNUAIRE_PATH = path.join(DATA_DIR, 'socle-annuaire.db');
 const SCHEMA_VERSION = '1';
 /* Cinq minutes : au-delà, une date vient d'une horloge déréglée, pas d'un appareil hors ligne. */
 const HORLOGE_MARGE_MS = 5 * 60000;
+/* Bornes de forme. Généreuses — une fiche produit avec ses photos en base64 passe — mais
+   RÉELLES : sans elles, un seul appareil authentifié remplit le disque du VPS, et le disque
+   du VPS est celui de tous les clients. Les pièces jointes sortiront du corps à l'étape 3 ;
+   ces bornes baisseront alors. */
+const COLL_MAX = 40, ID_MAX = 200, CORPS_MAX = 512 * 1024;
+/* ⛔ LE CLOISONNEMENT NE S'ARRÊTE PAS AU FICHIER. Un fichier par entreprise sépare les
+ * DONNÉES ; il ne sépare pas le DISQUE, et le disque du VPS est celui de TOUS les clients.
+ * Sans plafond, un seul appareil authentifié écrit ~7 Go/h dans les limites du quota horaire,
+ * remplit le disque, et ce n'est pas son entreprise qui tombe : c'est la plateforme. Deux
+ * bornes, donc, et elles disent deux choses différentes :
+ *   · `OCTETS_MAX` — ce qu'une entreprise a le droit d'occuper. Son problème, son message.
+ *   · `DISQUE_PLANCHER` — ce qu'il reste sur le disque, quelle qu'en soit la cause (journaux,
+ *     copies de sauvegarde, images). C'est le seul contrôle qui voie la VÉRITÉ, et il protège
+ *     les autres. On lit `bavail` (ce qu'un non-root peut vraiment prendre) et PAS `bfree`,
+ *     qui compte la réserve du superutilisateur. Même geste que `pieces.js`.
+ * ⚠️ ET IL A UNE POLITIQUE D'ÉCHEC ÉCRITE : si `statfs` lève, on LAISSE PASSER et on le dit au
+ * journal. Un contrôle de confort qui casserait le service en tombant serait pire que son
+ * absence — mais un contrôle qui tombe en silence ne contrôle rien. */
+const OCTETS_MAX_DEFAUT = 512 * 1024 * 1024;
+const DISQUE_PLANCHER_DEFAUT = 2 * 1024 * 1024 * 1024;
+function disquePlein(plancher) {
+  try {
+    const st = fs.statfsSync(SOCLE_DIR.replace(/\/socle$/, '') || '/');
+    return (st.bavail * st.bsize) < (plancher || DISQUE_PLANCHER_DEFAUT);
+  } catch (e) { console.error('socle: espace disque non mesurable, écriture laissée passer —', e.code || 'erreur'); return false; }
+}
 
 /* `node:sqlite` est intégré à Node : zéro dépendance npm, donc zéro surface d'attaque de plus
    sur le composant le plus critique, et aucun module natif à compiler au déploiement — un
@@ -209,6 +235,7 @@ function ouvrir(t) {
   t = exigerT(t);
   if (_bases.has(t)) return _bases.get(t);
   const K = exigerKek();
+  const neuve = !fs.existsSync(baseDe(t));
   fs.mkdirSync(dossierDe(t), { recursive: true });
   const db = new (moteur().DatabaseSync)(baseDe(t));
   /* `journal_size_limit` n'est pas un détail d'exploitation : MESURÉ le 18 septembre 2026, le
@@ -249,6 +276,7 @@ function ouvrir(t) {
       + '  (deux copies scellées, voir PLAN-OP-SOCLE §2.3), ou restaurer la base qui va avec.');
   }
   _bases.set(t, db);
+  if (neuve) { semerCompteurs(); _nbBases++; }
   return db;
 }
 
@@ -270,6 +298,21 @@ function pousser(t, lignes, ctx) {
   const acceptes = [], refus = [];
   const maintenant = Date.now();
   let horlogeVues = 0;
+
+  /* Les deux plafonds se lisent AVANT la transaction : refuser un lot entier coûte un
+     aller-retour, écrire à moitié coûterait une base incohérente. Le poids est celui que
+     `majAnnuaire` tient déjà à jour — aucune relecture de la base ici. */
+  const octetsMax = parseInt(c.octetsMax, 10) || OCTETS_MAX_DEFAUT;
+  if (disquePlein(c.disquePlancher)) {
+    return { seq: rang(t), acceptes: 0, refus: (lignes || []).map(l => ({ c: String((l && l.c) || ''), id: String((l && l.id) || ''), motif: 'disque_plein' })) };
+  }
+  let occupe = 0;
+  try { occupe = (annuaire().prepare('SELECT octets FROM entreprise WHERE t=?').get(t) || {}).octets || 0; } catch (e) {}
+  if (occupe > octetsMax) {
+    return { seq: rang(t), acceptes: 0, plein: true, octets: occupe, octetsMax,
+      refus: (lignes || []).map(l => ({ c: String((l && l.c) || ''), id: String((l && l.id) || ''), motif: 'espace_plein' })) };
+  }
+
   db.exec('BEGIN IMMEDIATE');
   try {
     const suivant = db.prepare("UPDATE meta SET val=val+1 WHERE cle='seq' RETURNING val");
@@ -295,7 +338,14 @@ function pousser(t, lignes, ctx) {
       const coll = String((l && l.c) || ''), id = String((l && l.id) || '');
       const majLe = parseInt(l && l.m, 10) || 0;
       const supprimeLe = parseInt(l && l.sup, 10) || 0;
-      if (!coll || !id) { refus.push({ c: coll, id, motif: 'identite' }); continue; }
+      /* ⛔ TOUT LE DÉPÔT BORNE SES CHAÎNES (`monStr(x, n)`) ; ici rien ne les bornait. Un `id`
+         d'un mégaoctet devenait une clé primaire, et `LOT_MAX` borne le NOMBRE de lignes, pas
+         leur poids : 400 lignes peuvent peser les 6 Mo d'`express.json`. Le VPS n'a qu'un
+         disque, et un disque plein ce n'est pas une entreprise à terre, c'est toutes. */
+      if (!coll || !id) { refus.push({ c: coll.slice(0, 40), id: id.slice(0, 80), motif: 'identite' }); continue; }
+      if (coll.length > COLL_MAX || id.length > ID_MAX) {
+        refus.push({ c: coll.slice(0, 40), id: id.slice(0, 80), motif: 'identite_trop_longue' }); continue;
+      }
       /* ⛔ `maj_le` A UN PLANCHER À 1. La règle d'écartement par tombe du client est
          `tombe >= (enr._m || 0)` : un enregistrement daté 0 est tuable par n'importe quelle
          tombe de n'importe quelle époque. On refuse, avec un motif que l'écran peut dire —
@@ -351,6 +401,7 @@ function pousser(t, lignes, ctx) {
       if (!supprimeLe) {
         corps = sceller_corps(dek, t, coll, id, majLe, supprimeLe, l.r);
         octets = corps.length;
+        if (octets > CORPS_MAX) { refus.push({ c: coll, id, motif: 'corps_trop_gros', octets, max: CORPS_MAX }); continue; }
       }
       poser.run(coll, id, majLe, seq, supprimeLe, String(c.app_id || ''), corps, empreinte, octets);
       /* Le journal garde le corps SCELLÉ : c'est lui qui permet de revenir à une version, et
@@ -378,6 +429,27 @@ function majAnnuaire(t, seq) {
   const db = ouvrir(t);
   const o = db.prepare('SELECT COALESCE(SUM(octets),0) AS o FROM enr').get().o || 0;
   annuaire().prepare('UPDATE entreprise SET seq=?, octets=? WHERE t=?').run(seq, o, t);
+}
+
+/* ⛔ LE RANG SEUL, À COÛT CONSTANT. `etat()` relit et hache TOUTE la base : MESURÉ 45 ms sur
+ * 20 000 enregistrements, en synchrone. Le long-poll n'a besoin que de ce nombre-là, et il est
+ * appelé à chaque sondage de chaque appareil : à 1 200 sondages/min, `etat()` bloquerait
+ * 54 secondes de boucle d'événements sur 60 — le serveur mort pour TOUS les clients, depuis un
+ * seul jeton parfaitement légitime. `etat()` reste pour le contrôle de non-régression, qui est
+ * rare et qui, lui, a besoin de la signature. */
+function rang(t) {
+  t = exigerT(t);
+  return parseInt(ouvrir(t).prepare("SELECT val FROM meta WHERE cle='seq'").get().val, 10) || 0;
+}
+
+/* ⛔ EXISTE-T-ELLE ? — SANS LA CRÉER. `ouvrir()` crée la base : toute garde écrite
+ * `try { etat(t) } catch { 404 }` est donc du CODE MORT, et une faute de frappe dans la Tour
+ * fabriquait une base vide, une ligne au journal opposable pour un `t` fantôme, et un
+ * compteur qui monte sur `/health`. L'annuaire sait répondre sans rien ouvrir. */
+function existe(t) {
+  t = exigerT(t);
+  if (annuaire().prepare('SELECT 1 FROM entreprise WHERE t=?').get(t)) return true;
+  return fs.existsSync(baseDe(t));
 }
 
 /* ══ LIRE — LE DELTA, PAGINÉ PAR `seq` STRICTEMENT CROISSANTE ═══════════════════════════════ */
@@ -469,6 +541,7 @@ function effacerEntreprise(t) {
   try { fs.rmSync(dossierDe(t), { recursive: true, force: true }); } catch (e) {}
   try { annuaire().prepare('DELETE FROM entreprise WHERE t=?').run(t); } catch (e) {}
   try { annuaire().prepare('DELETE FROM appareil WHERE t=?').run(t); } catch (e) {}
+  if (_nbBases !== null && _nbBases > 0) _nbBases--;
 
   /* ⛔ ON CONSTATE, ON NE SUPPOSE PAS. Compter les `unlink` réussis ne dit rien : la réponse
      à « est-ce effacé ? » est « qu'est-ce qui reste sur le disque ? ». L'appelant ne doit
@@ -481,6 +554,50 @@ function effacerEntreprise(t) {
   let annuaireReste = 1;
   try { annuaireReste = annuaire().prepare('SELECT COUNT(*) AS n FROM entreprise WHERE t=?').get(t).n; } catch (e) {}
   return { ok: !dossier && annuaireReste === 0, dossier, restes, annuaire: annuaireReste };
+}
+
+/* ⛔ LE COMPTEUR D'ÉCHECS D'ENRÔLEMENT VIT DANS `meta`, PAS EN MÉMOIRE. Une `Map` repart à zéro
+ * à chaque redémarrage, donc à chaque push touchant `server/**` — plusieurs fois par jour les
+ * jours chargés. Une campagne d'énumération ne laisserait alors aucune trace. Ici elle survit,
+ * et la Tour la voit par `/api/op/etat`. */
+function echecEnrolement(t) {
+  try {
+    t = exigerT(t);
+    if (!existe(t)) return 0;   // ⛔ ne pas créer une base pour compter un échec sur un espace qui n'existe pas
+    const db = ouvrir(t);
+    db.prepare("INSERT INTO meta (cle,val) VALUES ('echecs_enrolement','1') ON CONFLICT(cle) DO UPDATE SET val=CAST(val AS INTEGER)+1").run();
+    return parseInt(db.prepare("SELECT val FROM meta WHERE cle='echecs_enrolement'").get().val, 10) || 0;
+  } catch (e) { return 0; }
+}
+
+/* ══ LA PURGE DU JOURNAL — ELLE EXISTE VRAIMENT MAINTENANT ══════════════════════════════════
+ * ⛔ DEUX COMMENTAIRES DE CE FICHIER AFFIRMAIENT AU PRÉSENT QUE LE CORPS « SE PURGE À 90 JOURS ».
+ * La colonne était créée, lue, et JAMAIS ÉCRITE : `gardien` l'a relevé le 18 septembre 2026.
+ * C'est la règle « un nom n'est pas un contenu » appliquée à un commentaire, et le coût n'était
+ * pas que de la confiance : chaque version de chaque enregistrement restait déchiffrable pour
+ * toujours par la route de diagnostic, alors que `sous-traitance.html` promet une conservation
+ * bornée. Le reste de la ligne n'est PAS effacé — l'historique de QUI a fait QUOI demeure, sans
+ * le contenu. C'est ça, et seulement ça, que la promesse permet de garder. */
+const JOURNAL_VIE_MS = 90 * 86400000;
+function purgerJournal(t, avant) {
+  t = exigerT(t);
+  const db = ouvrir(t);
+  const lim = parseInt(avant, 10) || (Date.now() - JOURNAL_VIE_MS);
+  const r = db.prepare('UPDATE journal SET corps=NULL, corps_purge_le=? WHERE ts < ? AND corps IS NOT NULL AND corps_purge_le=0')
+    .run(Date.now(), lim);
+  return Number(r.changes || 0);
+}
+
+/* Toutes les entreprises, pour la minuterie quotidienne. Ne crée aucune base : ne visite que
+   celles qui existent déjà sur le disque. */
+function purgerToutesLesEntreprises() {
+  let n = 0, bases = 0;
+  let noms = []; try { noms = fs.readdirSync(SOCLE_DIR); } catch (e) { return { bases: 0, purgees: 0 }; }
+  for (const d of noms) {
+    if (!RE_T.test(d) || !fs.existsSync(path.join(SOCLE_DIR, d, 'base.db'))) continue;
+    bases++; try { n += purgerJournal(d); } catch (e) {}
+  }
+  return { bases, purgees: n };
 }
 
 /* ══ L'HISTORIQUE D'UN ENREGISTREMENT ═══════════════════════════════════════════════════════
@@ -543,12 +660,52 @@ function numeroReserver(t, prefixe, annee, n, plancher) {
   } catch (e) { try { db.exec('ROLLBACK'); } catch (x) {} throw e; }
 }
 
+/* ══ L'ÉTAT D'UNE ENTREPRISE — CE QUI COUPE VRAIMENT ════════════════════════════════════════
+ * ⛔ COUPER LES SESSIONS NE COUPE RIEN. Trouvé par `gardien` le 18 septembre 2026 et REPRODUIT :
+ * `sessionsCouper()` révoque les jetons existants, puis l'appareil rappelle `/api/op/session`
+ * avec LA MÊME CLÉ D'ÉQUIPE dans la seconde qui suit, reçoit un `app_id` neuf et un jeton de
+ * 30 jours. La route répondait `{ok:true, coupees:1}` et la Tour affichait « révoqué » à côté
+ * d'une ligne vivante du même nom — la panne nommée dans `CLAUDE.md` (« croire une entreprise
+ * coupée alors qu'elle ne l'est pas »), avec un écran qui la maquille.
+ * La cause : la coupure portait sur les SESSIONS, alors que le droit d'en ouvrir une vient de
+ * la CLÉ, que la coupure ne touchait pas. C'est exactement la leçon de Firebase — un jeton
+ * s'échange contre une session renouvelable, et refuser les nouveaux jetons ne suffit pas —
+ * rejouée un an plus tard sur un second stockage. L'état vit donc dans l'annuaire, et
+ * `/api/op/session` comme chaque requête authentifiée le relisent. */
+function entrepriseEtat(t) {
+  t = exigerT(t);
+  const l = annuaire().prepare('SELECT etat, ferme_le FROM entreprise WHERE t=?').get(t);
+  return l ? { etat: l.etat || 'actif', ferme_le: l.ferme_le || 0 } : { etat: 'actif', ferme_le: 0 };
+}
+
+/* `ouvert:false` ferme ET coupe : les deux vont toujours ensemble, sinon on rejoue le défaut.
+   ⛔ Rend le nombre de sessions coupées ET l'état obtenu — l'appelant doit pouvoir REMONTER
+   un échec. Une coupure silencieusement ratée est pire que pas de coupure. */
+function entrepriseOuvrir(t, ouvert) {
+  t = exigerT(t);
+  const db = annuaire(), n = Date.now();
+  db.prepare(`INSERT INTO entreprise (t,dek,cree_le,etat,ferme_le) VALUES (?,?,?,?,?)
+    ON CONFLICT(t) DO UPDATE SET etat=excluded.etat, ferme_le=excluded.ferme_le`)
+    .run(t, sceller(exigerKek(), crypto.randomBytes(32), t), n, ouvert ? 'actif' : 'ferme', ouvert ? 0 : n);
+  const coupees = ouvert ? 0 : sessionsCouper(t);
+  return { etat: ouvert ? 'actif' : 'ferme', coupees };
+}
+
 /* ══ LES SESSIONS D'APPAREIL ════════════════════════════════════════════════════════════════
- * ⛔ `app_id` EST ALLOUÉ PAR LE SERVEUR, jamais choisi par l'appareil. Trois raisons, toutes
- * payantes : un appareil révoqué qui invente un `app_id` neuf reprendrait une session (la Tour
- * afficherait « révoqué » pendant qu'il lit) ; un appareil qui se nomme `zzzz` gagnerait toutes
- * les égalités d'arbitrage ; et se déclarer avec l'`app_id` d'un collègue remplacerait son
- * `jeton_sha` et le déconnecterait sans un mot.
+ * ⛔ `app_id` EST ALLOUÉ PAR LE SERVEUR, jamais choisi par l'appareil. Deux raisons, toutes
+ * deux payantes : un appareil RÉVOQUÉ qui invente un `app_id` neuf reprendrait une session (la
+ * Tour afficherait « révoqué » pendant qu'il lit) ; et un appareil qui se nomme `zzzz`
+ * gagnerait toutes les égalités d'arbitrage.
+ * ⚠️ CE QUE ÇA N'EMPÊCHE PAS, ET QU'UN COMMENTAIRE D'ICI A AFFIRMÉ À TORT : présenter l'`app_id`
+ * d'un collègue VIVANT remplace bien son `jeton_sha` et le déconnecte. C'est le mécanisme
+ * légitime de ré-enrôlement — un appareil qui réinstalle l'application a perdu son jeton mais
+ * garde son `app_id`, et doit reprendre sa ligne — donc on ne peut pas le fermer sans casser
+ * ce cas. `gardien` l'a mesuré le 18 septembre 2026 ; la phrase fausse est retirée plutôt que
+ * le comportement, parce que c'est elle qui aurait empêché quelqu'un d'aller regarder.
+ * Ce que ça coûte est borné : il faut DÉJÀ la clé d'équipe pour arriver ici, donc l'attaquant
+ * a déjà accès à toutes les données de l'entreprise — il gagne une nuisance, pas un droit.
+ * ⛔ C'est l'argument central de la tâche « révoquer UN appareil » : tant que l'identité d'un
+ * appareil est un identifiant public et pas un secret à lui, elle ne peut pas porter de droit.
  * ⛔ SEUL LE sha256 DU JETON EST RANGÉ. Une base volée ne donne aucune session utilisable, et
  * une échéance rend la révocation par rotation possible — un jeton éternel ne se révoque pas.
  */
@@ -687,15 +844,29 @@ function fermer() {
 /* ══ LA SANTÉ, POUR /health — AGRÉGÉE, JAMAIS NOMINATIVE ════════════════════════════════════
  * `/health` est publique : elle ne dit jamais quelles entreprises existent. Un nombre et un
  * état, rien d'autre. Même discipline que le compteur de pièces jointes et celui des refus. */
-function sante() {
-  let bases = 0;
-  try { bases = fs.readdirSync(SOCLE_DIR).filter(d => fs.existsSync(path.join(SOCLE_DIR, d, 'base.db'))).length; } catch (e) {}
-  return { actif: true, bases, cle: !!kek() };
+/* ⛔ ELLE NE TOUCHE PAS AU DISQUE, ET C'EST ÉCRIT HUIT LIGNES AU-DESSUS DE SON APPEL. La
+ * première version faisait `readdirSync(SOCLE_DIR)` plus un `existsSync` PAR ENTREPRISE, en
+ * synchrone, à chaque `/health` — route PUBLIQUE et sans clé. C'est mot pour mot le défaut que
+ * les pièces jointes avaient déjà payé (mesuré alors : 73 ms, tout le serveur gelé pour tout le
+ * monde), réintroduit au même endroit, et il est LINÉAIRE DANS LE NOMBRE DE CLIENTS — donc
+ * invisible aujourd'hui et grave quand ça marche. `gardien`, 18 septembre 2026.
+ * ⚠️ `kek()` non plus : avec `LoadCredential`, c'était un `readFileSync` de la CLÉ MAÎTRE 600
+ * fois par minute, à la demande de n'importe qui. On la lit une fois, au premier besoin. */
+let _nbBases = null, _cle0 = null;
+function semerCompteurs() {
+  if (_nbBases !== null) return;
+  /* UN SEUL balayage, à la première demande après un démarrage — le même geste que le
+     compteur de poids des pièces jointes. Ensuite, on tient le nombre en incrémental. */
+  try { _nbBases = fs.readdirSync(SOCLE_DIR).filter(d => RE_T.test(d) && fs.existsSync(path.join(SOCLE_DIR, d, 'base.db'))).length; }
+  catch (e) { _nbBases = 0; }
+  _cle0 = !!kek();
 }
+function sante() { semerCompteurs(); return { actif: true, bases: _nbBases, cle: _cle0 }; }
 
 module.exports = {
-  ouvrir, annuaire, dekDe, pousser, depuis, etat, verifier, effacerEntreprise, sante, fermer,
+  ouvrir, annuaire, dekDe, pousser, depuis, etat, rang, existe, verifier, effacerEntreprise, sante, fermer,
   exigerT, numeroReserver, journalDe,
+  entrepriseEtat, entrepriseOuvrir, echecEnrolement, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
   diagnostic, diagnosticsDe, ancre, ancreVerifier,
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,

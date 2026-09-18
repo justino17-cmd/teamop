@@ -352,7 +352,10 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      tenus. ⛔ AUCUN NOM D'ENTREPRISE, AUCUN POIDS — /health est publique, et y nommer un
      espace dirait au monde quelles entreprises existent. Et `routesDoublons` : voir le
      contrôle au démarrage, plus bas. */
-  socle: (opSocle && opSocle.sante) ? opSocle.sante() : { actif: false },
+  /* ⛔ TROIS ÉTATS, PAS DEUX. `{actif:false}` seul ne distingue pas « éteint par décision » de
+     « cassé au démarrage » — et ce dépôt a payé DEUX fois pour cette confusion précise
+     (`_mailboxes`, `syncDecrypt`). Un socle qui refuse de se monter doit se voir. */
+  socle: (opSocle && opSocle.sante) ? opSocle.sante() : (opSocle ? { actif: false } : { actif: false, erreur: 'montage' }),
   routesDoublons: routesDoublons.length,
   /* Étape 0 du socle : où en est le stockage des pièces jointes.
      ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
@@ -3073,6 +3076,7 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
      la genèse que ce fichier décrit plus bas. Ici l'ajouter est gratuit : l'ancien espace est
      mort, personne n'a besoin de sa session. */
   const cut = t ? await fbRevoquerEquipe(t) : { fait: true, motif: 'aucun ancien espace' };
+  const cutSocle = socleCouper(t, 'repartir à neuf'); if (!cutSocle.fait) { cut.fait = false; cut.motif = (cut.motif || '') + ' — ' + cutSocle.motif; }
   /* ⛔ ET SES PIÈCES JOINTES (16 septembre 2026). Cette porte-ci efface le document de
      l'ANCIEN espace : les photos qu'il avait déposées doivent partir avec, sinon elles
      survivent à un espace que plus rien ne référence — un orphelin que personne ne saura plus
@@ -3437,6 +3441,31 @@ try {
 } catch (e) {
   console.error('sauvegarde hors site non montée :', e.message);
 }
+/* ⛔ LE SOCLE SE COUPE AUX MÊMES QUATRE PORTES QUE FIREBASE, PAR UNE SEULE FONCTION.
+   `gardien` l'a relevé le 18 septembre 2026 : les quatre portes appelaient `fbRevoquerEquipe`
+   et AUCUNE ne touchait le socle. Une entreprise fermée aurait continué de lire et d'écrire
+   par `/api/op/*` pendant les 30 jours de son jeton, pendant que la Tour affichait « fermée ».
+   C'est mot pour mot la panne de `fbRevoquerEquipe`, un an plus tard, sur un second stockage —
+   et la raison pour laquelle il n'y a ici qu'UNE fonction : deux copies calculeraient un jour
+   deux choses différentes, et c'est celle qu'on a oublié de corriger qui déciderait.
+   ⛔ ELLE REND UN VERDICT, ET L'APPELANT LE REMONTE. Croire une entreprise coupée alors
+   qu'elle ne l'est pas est la panne silencieuse type de ce dépôt. */
+function socleCouper(t, quoi) {
+  if (!opSocle || !opSocle.actif || !t) return { fait: true, motif: 'socle éteint' };
+  try {
+    const r = require('./socle').entrepriseOuvrir(t, false);
+    return { fait: true, motif: 'espace ' + r.etat + ', ' + r.coupees + ' session(s) coupée(s)' };
+  } catch (e) {
+    console.error('⛔ socle NON coupé (' + (quoi || '?') + ') :', e.code || 'erreur');
+    return { fait: false, motif: 'socle NON coupé — les appareils lisent et écrivent toujours' };
+  }
+}
+function socleEffacer(t) {
+  if (!opSocle || !opSocle.actif || !t) return { ok: true, motif: 'socle éteint' };
+  try { const r = require('./socle').effacerEntreprise(t); return { ok: r.ok, motif: r.ok ? 'effacé' : 'RESTES SUR LE DISQUE' }; }
+  catch (e) { console.error('⛔ socle NON effacé :', e.code || 'erreur'); return { ok: false, motif: 'socle NON effacé' }; }
+}
+
 /* ══ LE SOCLE — LE STOCKAGE QUI REMPLACERA FIRESTORE ═══════════════════════════════════════
    Monté ICI parce qu'il reçoit `sauvRefus`, `cleEstPublique`, `monPatronStrict` (déclarations
    de fonctions, donc hissées) et `quotaOk`, juste au-dessus.
@@ -4253,6 +4282,7 @@ app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => 
      appareils redemanderont un jeton et l'obtiendront. */
   if (rouvrir) return res.json({ ok: true, suspendu: false });
   const cut = await fbRevoquerEquipe(t);
+  const cutSocle = socleCouper(t, 'fermeture'); if (!cutSocle.fait) { cut.fait = false; cut.motif = (cut.motif || '') + ' — ' + cutSocle.motif; }
   res.json({ ok: true, suspendu: true, coupure: cut.fait, coupureMotif: cut.motif });
 });
 app.post('/api/espaces/relance', (req, res) => {
@@ -4774,6 +4804,12 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      n'est borné par rien, et nginx rend 504 à 60 s — en série, trois espaces suffisaient à
      faire croire la route plantée pendant qu'elle détruisait. */
   const coupures = await Promise.all(espacesAEffacer.map(tf => fbRevoquerEquipe(tf)));
+  /* Suppression : on COUPE d'abord, on efface ensuite — un appareil qui tient encore un jeton
+     valable recréerait sinon ce qu'on vient d'enlever. */
+  for (let i = 0; i < espacesAEffacer.length; i++) {
+    const cs = socleCouper(espacesAEffacer[i], 'suppression'); if (!cs.fait) coupures[i] = { fait: false, motif: cs.motif };
+    const ef = socleEffacer(espacesAEffacer[i]); if (!ef.ok) coupures[i] = { fait: false, motif: ef.motif };
+  }
   // Effacement DÉFINITIF des données chiffrées de l'entreprise sur Firestore :
   // plus rien n'est enregistré, la place est libérée. (Les appareils reliés se
   // vident de toute façon au prochain lancement via le blocage entFermes.)
@@ -5064,7 +5100,9 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
      retire le droit d'écrire à un appareil qui ne redemande rien — c'est ce qui empêche la base
      chiffrée de revenir après tout ce qu'on efface en dessous. Elle se dit aussi : `fait` est
      recopié tel quel dans la réponse, donc dans ce que la Tour affiche. */
-  { const c = await fbRevoquerEquipe(t); fait.coupure = c.fait; fait.coupureMotif = c.motif; }
+  { const c = await fbRevoquerEquipe(t); const cs = socleCouper(t, 'suppression'); const ef = socleEffacer(t);
+    fait.coupure = c.fait && cs.fait && ef.ok;
+    fait.coupureMotif = [c.motif, cs.fait ? null : cs.motif, ef.ok ? null : ef.motif].filter(Boolean).join(' — '); }
 
   // ── 2. LES BOÎTES MAIL. releveBoite() les relit toutes les 120 s : tant qu'elles sont là,
   //       le serveur se reconnecte et réécrit dans replies.jsonl ce qu'on va en retirer.
@@ -7106,10 +7144,20 @@ function arretPropre(signal) {
   console.log('arrêt (' + signal + ') — fermeture en cours');
   const secours = setTimeout(() => { console.error('arrêt : délai dépassé, sortie forcée'); process.exit(0); }, 5000);
   secours.unref();
-  try { serveur.close(); } catch (e) {}
-  try { if (opSocle && opSocle.fermer) console.log('socle fermé :', JSON.stringify(opSocle.fermer())); } catch (e) { console.error('socle non fermé :', e.message); }
-  clearTimeout(secours);
-  process.exit(0);
+  /* ⛔ `close()` EST ASYNCHRONE. La première version appelait `clearTimeout` et `process.exit`
+     sur le MÊME tick : le minuteur de secours ne pouvait jamais se déclencher, et rien
+     n'attendait les requêtes en vol — le commentaire décrivait un comportement que le code
+     n'avait pas. `gardien`, 18 septembre 2026. On ferme le socle dans le RAPPEL de `close()`,
+     et le secours sert enfin à quelque chose : si une connexion tenue (un long-poll) empêche
+     `close()` de rendre la main, on sort quand même au bout de cinq secondes plutôt que de
+     pendre jusqu'au SIGKILL de systemd. */
+  const fermerSocle = () => {
+    try { if (opSocle && opSocle.fermer) console.log('socle fermé :', JSON.stringify(opSocle.fermer())); }
+    catch (e) { console.error('socle non fermé :', e.code || 'erreur'); }
+    clearTimeout(secours);
+    process.exit(0);
+  };
+  try { serveur.close(fermerSocle); } catch (e) { fermerSocle(); }
 }
 process.on('SIGTERM', () => arretPropre('SIGTERM'));
 process.on('SIGINT', () => arretPropre('SIGINT'));

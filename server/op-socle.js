@@ -100,6 +100,14 @@ function monterOpSocle(app, deps) {
     let s = null;
     try { s = socle.sessionParJeton(crypto.createHash('sha256').update(m[1]).digest('hex')); } catch (e) { s = null; }
     if (!s) return res.status(401).json({ error: 'session expirée — reconnecte-toi', motif: 'jeton_invalide' });
+    /* ⛔ L'ÉTAT DE L'ENTREPRISE SE RELIT À CHAQUE REQUÊTE, JAMAIS DANS LE JETON. Sinon une
+       entreprise fermée continue de lire et d'écrire pendant les 30 jours de validité du
+       jeton, et personne ne le voit — la leçon de Firebase (« un jeton s'échange contre une
+       session renouvelable ») rejouée sur notre propre stockage. Même règle que `monAdmin`,
+       qui relit rôle/actif/apps dans `monUsers` à chaque appel. */
+    let e;
+    try { e = socle.entrepriseEtat(s.t); } catch (err) { return res.status(503).json({ error: 'état indisponible', motif: 'base' }); }
+    if (e.etat !== 'actif') return res.status(403).json({ error: 'Cet espace est fermé.', motif: 'ferme' });
     req.op = s;
     try { socle.sessionVue(s.t, s.app_id); } catch (e) {}
     /* Le budget par espace se compte APRÈS la preuve. Avant, ce serait une arme de déni de
@@ -125,8 +133,21 @@ function monterOpSocle(app, deps) {
     const refus = sauvRefus(t, kh, 'session');
     if (refus) {
       const motif = refus.code === 404 ? 'inconnu' : /repli/.test(refus.error) ? 'repli' : /ferm/.test(refus.error) ? 'ferme' : 'cle';
+      /* ⛔ LE COMPTEUR D'ÉCHECS D'ENRÔLEMENT VIT DANS `meta` DE LA BASE, pas dans une Map : une
+         Map repart à zéro à chaque redémarrage, donc à chaque déploiement, donc une campagne
+         d'énumération ne laisserait aucune trace. Il ne crée jamais de base — un espace qui
+         n'existe pas ne se met pas à exister parce qu'on a frappé à sa porte. */
+      if (motif === 'cle') { try { socle.echecEnrolement(t); } catch (e) {} }
       return res.status(refus.code).json({ error: refus.error, motif });
     }
+    /* ⛔ ET L'ÉTAT DU SOCLE, QUE `sauvRefus` NE CONNAÎT PAS. `sauvRefus` lit `entFermes`, qui
+       est la fermeture côté annuaire ; `entrepriseEtat` est la coupure côté socle, posée par
+       `/api/monitor/op/couper`. Sans ce contrôle, couper ne coupait RIEN : l'appareil rappelait
+       cette route avec la même clé dans la seconde et repartait pour 30 jours. Reproduit par
+       `gardien` le 18 septembre 2026. */
+    try {
+      if (socle.entrepriseEtat(t).etat !== 'actif') return res.status(403).json({ error: 'Cet espace est fermé.', motif: 'ferme' });
+    } catch (e) { return res.status(503).json({ error: 'état indisponible', motif: 'base' }); }
     /* ⛔ UNE CLÉ ÉCRITE EN CLAIR DANS `app.html` NE PROUVE RIEN QUAND ON LA PRÉSENTE. Un espace
        resté sur la clé partagée peut être ouvert par n'importe qui l'ayant lue dans le fichier
        public — il n'a donc pas sa place sur le socle, dont tout le cloisonnement repose sur
@@ -189,7 +210,12 @@ function monterOpSocle(app, deps) {
     if (!lignes) return res.status(400).json({ error: 'enr attendu', motif: 'forme' });
     if (lignes.length > LOT_MAX) return res.status(413).json({ error: 'lot trop grand — ' + LOT_MAX + ' lignes au plus', motif: 'lot', lotMax: LOT_MAX });
     let r;
-    try { r = socle.pousser(req.op.t, lignes, { app_id: req.op.app_id, utilisateur: monStr(b.u, 60), ver: monStr(b.ver, 12), origine: 'appareil' }); }
+    try {
+      r = socle.pousser(req.op.t, lignes, { app_id: req.op.app_id, utilisateur: monStr(b.u, 60), ver: monStr(b.ver, 12), origine: 'appareil',
+        /* Les deux plafonds sont réglables sur le VPS sans toucher au code : une entreprise
+           qui grossit se règle, elle ne se dépanne pas en urgence. */
+        octetsMax: (config.socle && config.socle.octetsMax), disquePlancher: (config.socle && config.socle.disquePlancher) });
+    }
     catch (e) { console.error('socle: pousse impossible —', e.code || 'erreur'); return res.status(503).json({ error: 'écriture indisponible — rien n\'a été enregistré', motif: 'base' }); }
     if (r.acceptes) reveiller(req.op.t, r.seq, req.op.app_id);
     res.json(r);
@@ -198,10 +224,16 @@ function monterOpSocle(app, deps) {
   /* ══ GET /api/op/flux ═════════════════════════════════════════════════════════════════════ */
   poser('GET', '/api/op/flux', opJeton, (req, res) => {
     const t = req.op.t;
-    let e;
-    try { e = socle.etat(t); } catch (err) { return res.status(503).json({ error: 'flux indisponible', motif: 'base' }); }
+    /* ⛔ `rang()` ET PAS `etat()`. `etat()` relit et hache TOUTE la base : MESURÉ 45 ms sur
+       20 000 enregistrements, en synchrone, et c'est la route la plus appelée de toutes
+       (chaque appareil, en permanence). À 1 200 sondages/min ça bloquait 54 secondes de boucle
+       d'événements sur 60 — le serveur mort pour TOUS les clients, depuis un seul jeton
+       parfaitement légitime. `rang()` lit un entier dans `meta`. `gardien`, 18 septembre. */
+    let seq;
+    try { seq = socle.rang(t); } catch (err) { return res.status(503).json({ error: 'flux indisponible', motif: 'base' }); }
     const depuis = parseInt(req.query.depuis, 10) || 0;
-    if (e.seq > depuis) return res.json({ seq: e.seq });   // déjà en retard : on répond tout de suite
+    if (seq > depuis) return res.json({ seq });   // déjà en retard : on répond tout de suite
+    const e = { seq };
 
     const s = attentes.get(t) || (attentes.set(t, new Set()), attentes.get(t));
     /* Borne mémoire : un appareil qui rouvrirait mille flux sans les fermer ne doit pas faire
@@ -225,8 +257,17 @@ function monterOpSocle(app, deps) {
   /* ══ POST /api/op/numero — une PLAGE, jamais un numéro ════════════════════════════════════ */
   poser('POST', '/api/op/numero', opJeton, (req, res) => {
     const b = req.body || {};
-    try { res.json(socle.numeroReserver(req.op.t, monStr(b.prefixe, 16), b.annee, b.n, b.plancher)); }
-    catch (e) { res.status(400).json({ error: String(e.message).slice(0, 160), motif: 'numero' }); }
+    const annee = parseInt(b.annee, 10) || 0, plancher = parseInt(b.plancher, 10) || 0;
+    /* ⛔ `plancher` VIENT DU CORPS ET DÉCIDE D'UN ÉTAT IRRÉVERSIBLE — le compteur ne redescend
+       jamais, par conception. Sans borne, `{plancher: 999999999}` poussait définitivement la
+       numérotation d'une entreprise à un milliard, et rien ne pouvait la ramener. La borne est
+       très au-dessus de tout usage réel et referme quand même la porte. Même chose pour
+       `annee`, qui ouvrirait autant de lignes qu'on lui envoie de valeurs. */
+    if (annee < 2000 || annee > 2200) return res.status(400).json({ error: 'année hors bornes', motif: 'numero' });
+    if (plancher < 0 || plancher > 1000000) return res.status(400).json({ error: 'plancher hors bornes', motif: 'numero' });
+    /* ⚠️ Jamais `e.message` au client : sur une erreur SQLite il porte le chemin du fichier. */
+    try { res.json(socle.numeroReserver(req.op.t, monStr(b.prefixe, 16), annee, b.n, plancher)); }
+    catch (e) { console.error('socle: numéro non réservé —', e.code || 'erreur'); res.status(400).json({ error: 'réservation impossible', motif: 'numero' }); }
   });
 
   /* ══ LES ROUTES DE LA TOUR ════════════════════════════════════════════════════════════════
@@ -239,10 +280,22 @@ function monterOpSocle(app, deps) {
   poser('GET', '/api/monitor/op/apercu', garde, (req, res) => {
     const t = monStr(req.query.t, 80);
     if (!t) return res.status(400).json({ error: 't requis' });
-    let e, appareils;
-    try { e = socle.etat(t); appareils = socle.appareilsDe(t); }
-    catch (err) { return res.status(404).json({ error: 'aucun stockage pour cet espace' }); }
+    /* ⛔ `existe()` ET PAS `try { etat(t) } catch`. `ouvrir()` CRÉE la base : la garde était du
+       code mort, et `?t=faute-de-frappe` répondait 200 avec un état vide — la Tour affichait un
+       stockage sain pour un espace inexistant, écrivait une ligne au journal opposable pour un
+       `t` fantôme, et laissait une base vide sur le disque. `gardien`, 18 septembre 2026. */
+    let e, appareils, etatEnt, verif;
+    try {
+      if (!socle.existe(t)) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
+      e = socle.etat(t); appareils = socle.appareilsDe(t); etatEnt = socle.entrepriseEtat(t); verif = socle.verifier(t);
+    } catch (err) { return res.status(503).json({ error: 'stockage illisible' }); }
     res.json({ seq: e.seq, octets: e.octets, signature: e.signature, parColl: e.parColl,
+      etat: etatEnt.etat, ferme_le: etatEnt.ferme_le, horlogeAvancee: e.horlogeAvancee,
+      /* ⛔ « COMBIEN » NE SUFFIT PAS, IL FAUT « LESQUELLES ». Le journal du serveur ne nomme
+         aucun espace (c'est la bonne règle), donc sans cette remontée on saurait qu'une ligne
+         ne se déchiffre plus et jamais chez qui — une alerte anonyme sur laquelle on ne peut
+         pas agir. Ici on est déjà derrière `monPatronStrict`. */
+      illisibles: verif.illisibles, relues: verif.lues,
       appareils: appareils.map(a => ({ nom: a.nom, cree_le: a.cree_le, vu_le: a.vu_le, revoque: !!a.revoque_le })),
       ouvert: !!sessionDiag(t) });
   });
@@ -255,7 +308,9 @@ function monterOpSocle(app, deps) {
     const t = monStr(b.t, 80), motif = monStr(b.motif, 300).trim();
     if (!t) return res.status(400).json({ error: 't requis' });
     if (motif.length < 10) return res.status(400).json({ error: 'Un motif d\'au moins 10 caractères est obligatoire : il sera lisible par le client.' });
-    try { socle.etat(t); } catch (e) { return res.status(404).json({ error: 'aucun stockage pour cet espace' }); }
+    let existe = false;
+    try { existe = socle.existe(t); } catch (e) {}
+    if (!existe) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
     const qui = String((req.tourUser && req.tourUser.nom) || 'tour').slice(0, 60);
     let ligne;
     /* ⛔ LA TRACE D'ABORD, L'OUVERTURE ENSUITE. Si le journal n'écrit pas, on n'ouvre pas :
@@ -285,13 +340,17 @@ function monterOpSocle(app, deps) {
   poser('POST', '/api/monitor/op/couper', garde, (req, res) => {
     const t = monStr((req.body || {}).t, 80);
     if (!t) return res.status(400).json({ error: 't requis' });
-    let n;
-    try { n = socle.sessionsCouper(t); }
-    catch (e) { return res.status(503).json({ ok: false, error: 'coupure IMPOSSIBLE — les appareils de cet espace lisent et écrivent toujours.' }); }
-    diagSessions.delete(t);
-    reveiller(t, -1);   // les flux en cours se referment : leur jeton ne vaut plus rien
-    try { socle.diagnostic(t, { qui: String((req.tourUser && req.tourUser.nom) || 'tour'), motif: 'coupure des sessions', portee: 'couper', n, ipH: hachIp(req) }); } catch (e) {}
-    res.json({ ok: true, coupees: n });
+    /* ⛔ ON FERME L'ENTREPRISE, ON NE COUPE PAS QUE SES SESSIONS. Couper les sessions seules
+       ne coupait RIEN : l'appareil rappelait `/api/op/session` avec la même clé d'équipe dans
+       la seconde et repartait pour 30 jours, pendant que la Tour affichait « révoqué ». Le
+       droit d'ouvrir une session vient de la CLÉ ; la coupure doit donc porter sur l'ÉTAT. */
+    const ouvrir = (req.body || {}).ouvrir === true;
+    let r;
+    try { r = socle.entrepriseOuvrir(t, ouvrir); }
+    catch (e) { return res.status(503).json({ ok: false, error: 'coupure IMPOSSIBLE — les appareils de cet espace lisent et écrivent toujours. NE PAS considérer cet espace comme coupé.' }); }
+    if (!ouvrir) { diagSessions.delete(t); reveiller(t, -1); }
+    try { socle.diagnostic(t, { qui: String((req.tourUser && req.tourUser.nom) || 'tour'), motif: ouvrir ? 'réouverture de l\'espace' : 'fermeture de l\'espace', portee: 'couper', n: r.coupees, ipH: hachIp(req) }); } catch (e) {}
+    res.json({ ok: true, etat: r.etat, coupees: r.coupees });
   });
 
   /* ⛔ LISIBLE AUSSI PAR LE CLIENT DEPUIS SON ESPACE (étape ultérieure, même source). C'est le
@@ -326,25 +385,51 @@ function monterOpSocle(app, deps) {
       + 'lignes : ' + a.lignes + '\nrang   : ' + a.rang + '\nempreinte : ' + a.sha
       + '\n\nConserver ce message. Il ne contient aucune donnée de client.\n'
       + 'Si une ancre future ne se raccorde pas à celle-ci, le journal a été réécrit.\n';
-    if (deps.mailerEnvoi && config.smtp && config.alerteEmail) {
-      deps.mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: config.alerteEmail,
-        subject: '🔗 Ancre du journal OP SOCLE — ' + a.lignes + ' lignes', text: texte,
-        trace: 'ancre socle' }).catch(e => console.error('ancre non envoyée :', e.code || 'erreur'));
+    /* ⛔ LE RÉGLAGE S'APPELLE `notifDemandes`, ET C'EST LE SEUL QUI EXISTE. La première version
+       lisait `config.alerteEmail` — un nom que j'avais inventé, que `install.sh` n'écrit pas et
+       qui n'apparaît nulle part ailleurs dans le dépôt. La garde était donc TOUJOURS fausse :
+       l'ancre ne sortait jamais de la machine, une fois par jour, pour toujours, en silence.
+       Or c'est précisément la sortie par courriel qui rend le journal chaîné opposable — la
+       chaîne rend une modification détectable, seule l'ancre rend une RÉÉCRITURE COMPLÈTE
+       détectable. Le dispositif se réduisait à sa moitié inutile. `gardien`, 18 septembre 2026.
+       ⛔ ET `mailerEnvoi` JETTE EN SYNCHRONE si le courriel n'est pas configuré (`mailer` n'est
+       créé que si `config.smtp.host`) : le `.catch()` ne s'attachait jamais, l'exception
+       remontait d'un `setInterval`, et LE PROCESSUS SORTAIT. D'où le `try` autour de l'appel
+       lui-même, et pas seulement autour de la promesse. */
+    const dest = String((config && config.notifDemandes) || '').trim();
+    if (deps.mailerEnvoi && dest) {
+      try {
+        const envoi = deps.mailerEnvoi({ from: (config.smtp && (config.smtp.from || config.smtp.user)) || dest, to: dest,
+          subject: '🔗 Ancre du journal OP SOCLE — ' + a.lignes + ' lignes', text: texte, trace: 'ancre socle' });
+        if (envoi && typeof envoi.catch === 'function') envoi.catch(e => console.error('ancre non envoyée :', e.code || 'erreur'));
+      } catch (e) { console.error('ancre non envoyée :', e.code || 'erreur'); }
     } else {
-      /* ⚠️ Sans courriel configuré, l'ancre part au journal système — qui vit sur la MÊME
-         machine, donc ne prouve rien contre elle. On le dit plutôt que de laisser croire. */
-      console.log('ancre socle (NON SORTIE DE LA MACHINE — courriel non configuré) : ' + a.lignes + ' lignes, ' + a.sha);
+      /* ⚠️ Sans courriel configuré, l'ancre ne part qu'au journal système — qui vit sur la MÊME
+         machine, donc ne prouve rien contre elle. On le DIT plutôt que de laisser croire que
+         le dispositif tourne. */
+      console.log('ancre socle (NON SORTIE DE LA MACHINE — notifDemandes non configuré) : ' + a.lignes + ' lignes, ' + a.sha);
     }
   }
   minuteurAncre = setInterval(ancreEnvoyer, 86400000);
   minuteurAncre.unref && minuteurAncre.unref();
+
+  /* ⛔ LA PURGE À 90 JOURS, QUI N'EXISTAIT PAS ALORS QUE DEUX COMMENTAIRES L'AFFIRMAIENT AU
+     PRÉSENT. Sans elle, chaque version de chaque enregistrement reste déchiffrable POUR
+     TOUJOURS par `/api/monitor/op/journal`, et le disque porte deux copies de tout. Ce qu'un
+     client supprime doit finir par disparaître : c'est ce que promet `sous-traitance.html`.
+     ⚠️ Seul le CORPS part ; l'historique de qui a fait quoi reste, sans le contenu. */
+  const minuteurPurge = setInterval(() => {
+    try { const r = socle.purgerToutesLesEntreprises(); if (r.purgees) console.log('socle: journal purgé — ' + r.purgees + ' corps sur ' + r.bases + ' base(s)'); }
+    catch (e) { console.error('socle: purge du journal impossible —', e.code || 'erreur'); }
+  }, 6 * 3600000);
+  minuteurPurge.unref && minuteurPurge.unref();
 
   etat.sante = () => {
     const s = socle.sante();
     return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length };
   };
   etat.fermer = () => {
-    clearInterval(minuteurAncre);
+    clearInterval(minuteurAncre); clearInterval(minuteurPurge);
     for (const [t, s] of attentes) for (const a of s) { clearTimeout(a.minuteur); a.resoudre({ seq: 0, arret: true }); }
     attentes.clear();
     return socle.fermer();

@@ -72,12 +72,16 @@ jobs:
 
             systemctl restart teamop-api
             sleep 3
-            systemctl is-active --quiet teamop-api || { echo "le service n'est pas actif"; journalctl -u teamop-api -n 30 --no-pager; exit 1; }
+            # ⛔ PAS DE journalctl ICI. Ce dépôt est PUBLIC, et les journaux d'un run GitHub
+            # Actions sont lisibles par n'importe qui et conservés 90 jours. Le journal du VPS
+            # porte des identifiants d'espace : les recopier ici, c'est publier qui sont nos
+            # clients. Le journal se lit SUR le VPS, par quelqu'un qui y a accès.
+            systemctl is-active --quiet teamop-api || { echo "le service n'est pas actif — lire le journal SUR le VPS : journalctl -u teamop-api -n 50"; exit 1; }
             echo "--- /health ---"
             curl -sf --max-time 10 localhost:8080/health || { echo "health injoignable"; exit 1; }
             echo
             echo "--- journal ---"
-            journalctl -u teamop-api -n 15 --no-pager
+            echo "démarré. Journal : journalctl -u teamop-api -n 50 (sur le VPS — voir plus haut)"
           DISTANT
 
       # Le contrôle qui manquait : le 2 septembre le serveur a redémarré sur l'ancien code sans

@@ -66,6 +66,14 @@ fs.writeFileSync(path.join(banc, 'data', 'espaces.json'), JSON.stringify({
   'elan-gestion': { slug: 'elan-gestion', nom: 'Repli', email: 'r@exemple.fr', t: 'elan-gestion', code: b64({ t: 'elan-gestion', k: CLE_PARTAGEE }), ts: 4 },
 }));
 
+/* ⛔ AVANT TOUT `require` DE `socle.js` : le module capture `TEAMOP_DATA` à son chargement.
+   Le banc parle au MÊME fichier sur le disque que le serveur enfant — deux processus, une
+   base, ce que WAL + `busy_timeout` gèrent (éprouvé à trois processus dans `test-723`). C'est
+   ce qui permet d'éprouver « couper » sans avoir à fabriquer une session de Tour : on coupe
+   par le module, on constate par HTTP. */
+process.env.TEAMOP_DATA = path.join(banc, 'data');
+process.env.TEAMOP_KEK = KEK;
+
 const PORT = 8300 + (process.pid % 600);
 const B = 'http://127.0.0.1:' + PORT;
 let enfant = null, sortie = '';
@@ -129,7 +137,7 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
     }
 
     console.log('\nLa session rend un jeton, et le serveur alloue l\'identité de l\'appareil');
-    let jetonA = '', appA = '';
+    var jetonA = '', appA = '';
     {
       const r = await session('ent-a-9x', CLE_A, { nom: 'iPhone de Jean' });
       v('session ouverte', r.code, 200);
@@ -292,6 +300,142 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
       const src = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
       vrai('⛔ le plafond du socle est nommé et chiffré', /const PLAFOND_DONNEES = \d+;/.test(src));
       vrai('⛔ il est appliqué, pas seulement déclaré', /d > PLAFOND_DONNEES\) return tropDeRequetes/.test(src));
+    }
+
+    /* ══ 9bis. ⛔ COUPER DOIT COUPER — LES SIX CONTRÔLES QUI MANQUAIENT ════════════════
+       Relecture `gardien` du 18 septembre 2026, REPRODUITE : `sessionsCouper()` révoquait les
+       jetons, puis l'appareil rappelait `/api/op/session` avec LA MÊME CLÉ dans la seconde et
+       repartait pour 30 jours. La route répondait `{ok:true}`, la Tour affichait « révoqué »
+       à côté d'une ligne vivante du même nom. Le droit d'ouvrir une session vient de la CLÉ,
+       que la coupure ne touchait pas. C'est la leçon de Firebase — « un jeton s'échange contre
+       une session renouvelable » — rejouée sur notre propre stockage, un an plus tard. */
+    console.log('\n⛔ Couper une entreprise doit VRAIMENT la couper');
+    {
+      const socle = require(path.join(RACINE, 'server', 'socle.js'));
+      /* Le banc parle au module avec la MÊME configuration que le serveur : c'est le même
+         fichier sur le disque, donc le même état — pas une simulation. */
+      const avant = (await session('ent-a-9x', CLE_A)).j.jeton;
+      v('avant la coupure, l\'appareil lit', (await appel('GET', '/api/op/etat', { jeton: avant })).code, 200);
+
+      socle.entrepriseOuvrir('ent-a-9x', false);
+      /* ⛔ 1 — le jeton déjà émis ne vaut plus rien, TOUT DE SUITE. Pas dans 30 jours.
+         ⚠️ Il répond 401 et non 403 : la fermeture révoque aussi les jetons, donc le porteur
+         est arrêté au premier étage (jeton inconnu) sans qu'on ait besoin de lire l'état. Le
+         banc a d'abord attendu 403 — c'est le BANC qui se trompait d'étage. Ce qui compte est
+         qu'il soit arrêté, et que ce soit la RÉOUVERTURE de session qui lui dise pourquoi,
+         avec un message qu'un écran peut afficher. */
+      const apres = await appel('GET', '/api/op/etat', { jeton: avant });
+      v('⛔ le jeton émis AVANT ne lit plus rien', apres.code, 401);
+      v('⛔ ni ne peut écrire', (await appel('POST', '/api/op/pousser', { jeton: avant, corps: { enr: [{ c: 'x', id: '1', m: Date.now(), e: 'h', r: {} }] } })).code, 401);
+
+      /* ⛔ 1bis — LE SECOND ÉTAGE, ET IL FAUT L'ÉPROUVER SÉPARÉMENT. Si la révocation des
+         jetons échouait (disque, incident), l'appareil garderait un jeton VALABLE. `opJeton`
+         relit donc l'état de l'entreprise à CHAQUE requête — comme `monAdmin` relit
+         rôle/actif/apps. Sans ce second étage, la fermeture reposerait entièrement sur une
+         écriture qui peut rater : exactement le défaut de Firebase, où refuser les nouveaux
+         jetons ne suffisait pas. On remet donc un jeton vivant sur un espace fermé. */
+      socle.entrepriseOuvrir('ent-a-9x', true);
+      const vivant = (await session('ent-a-9x', CLE_A)).j.jeton;
+      socle.annuaire().prepare("UPDATE entreprise SET etat='ferme' WHERE t=?").run('ent-a-9x');   // ferme SANS révoquer
+      const bloque = await appel('GET', '/api/op/etat', { jeton: vivant });
+      v('⛔ un jeton VALABLE sur un espace fermé est refusé quand même', [bloque.code, bloque.j.motif], [403, 'ferme']);
+      v('⛔ et il ne peut pas écrire non plus', (await appel('POST', '/api/op/pousser', { jeton: vivant, corps: { enr: [{ c: 'x', id: '2', m: Date.now(), e: 'h', r: {} }] } })).j.motif, 'ferme');
+      /* ⛔ 2 — ET IL NE PEUT PAS S'EN REFAIRE UN avec la même clé d'équipe. C'est LE contrôle
+         qui manquait : sans lui, tout ce qui précède ne coûte qu'un aller-retour à l'appareil. */
+      const rouvrir = await session('ent-a-9x', CLE_A);
+      v('⛔ il ne peut PAS rouvrir de session avec la même clé', [rouvrir.code, rouvrir.j.motif], [403, 'ferme']);
+      /* ⛔ 3 — et une entreprise coupée n'en coupe pas une autre. */
+      v('⛔ la voisine n\'est pas touchée', (await session('ent-b-7y', CLE_B)).code, 200);
+
+      socle.entrepriseOuvrir('ent-a-9x', true);
+      const reouvert = await session('ent-a-9x', CLE_A);
+      v('rouvrir la laisse revenir', reouvert.code, 200);
+      jetonA = reouvert.j.jeton;
+    }
+
+    /* ══ 9ter. ⛔ LES BORNES — UN SEUL APPAREIL NE DOIT PAS POUVOIR REMPLIR LE DISQUE ════
+       Un fichier par entreprise sépare les DONNÉES ; il ne sépare pas le DISQUE, et le disque
+       du VPS est celui de TOUS les clients. Sans bornes, un appareil authentifié écrit des
+       gigaoctets dans les limites de son quota horaire, et ce n'est pas son entreprise qui
+       tombe : c'est la plateforme. */
+    console.log('\n⛔ Une entreprise ne peut pas remplir le disque des autres');
+    {
+      const pousse = enr => appel('POST', '/api/op/pousser', { jeton: jetonA, corps: { enr: [enr] } });
+      const M = 1700000000000;
+      v('⛔ un identifiant de 500 caractères est refusé', (await pousse({ c: 'p', id: 'i'.repeat(500), m: M, e: 'h', r: {} })).j.refus[0].motif, 'identite_trop_longue');
+      v('⛔ une collection de 100 caractères est refusée', (await pousse({ c: 'c'.repeat(100), id: 'x', m: M, e: 'h', r: {} })).j.refus[0].motif, 'identite_trop_longue');
+      /* Incompressible exprès : un corps de 2 Mo de texte répété passerait sous la borne
+         après gzip, et on croirait la borne inopérante. */
+      const gros = crypto.randomBytes(900000).toString('hex');
+      v('⛔ un corps d\'un mégaoctet est refusé', (await pousse({ c: 'p', id: 'gros', m: M, e: 'h', r: { n: gros } })).j.refus[0].motif, 'corps_trop_gros');
+      v('   une fiche normale passe toujours', (await pousse({ c: 'p', id: 'normal', m: M, e: 'h', r: { nom: 'Gel', stock: 12 } })).j.acceptes, 1);
+      /* ⛔ `plancher` vient du CORPS et décide d'un état IRRÉVERSIBLE : le compteur de numéros
+         ne redescend jamais, par conception. Sans borne, un milliard, définitivement. */
+      v('⛔ un plancher d\'un milliard est refusé', (await appel('POST', '/api/op/numero', { jeton: jetonA, corps: { prefixe: 'FA', annee: 2026, n: 1, plancher: 999999999 } })).code, 400);
+      v('⛔ une année absurde est refusée', (await appel('POST', '/api/op/numero', { jeton: jetonA, corps: { prefixe: 'FA', annee: 99999, n: 1 } })).code, 400);
+      /* ⚠️ Et le message d'erreur ne rend pas le chemin du fichier sur le VPS. */
+      const err = await appel('POST', '/api/op/numero', { jeton: jetonA, corps: { prefixe: '', annee: 2026, n: 1 } });
+      v('⚠️ une erreur ne publie aucun chemin de fichier', /\/opt\/|base\.db|\/tmp\//.test(JSON.stringify(err.j)), false);
+    }
+
+    /* ══ 9quater. ⛔ LE COÛT DU FLUX NE DOIT PAS CROÎTRE AVEC LA BASE ═════════════════
+       `/api/op/flux` est la route la plus appelée de toutes : chaque appareil, en permanence.
+       Elle appelait `etat()`, qui relit et hache TOUTE la base — mesuré 42 ms sur 20 000
+       enregistrements, en synchrone. À 1 200 sondages/min ça bloquait 50 secondes de boucle
+       d'événements sur 60 : le serveur mort pour TOUS les clients, depuis un seul jeton
+       parfaitement légitime. */
+    console.log('\n⛔ Le flux coûte le même prix sur une grosse base');
+    {
+      /* ⚠️ `depuis=0` — L'APPAREIL EST EN RETARD, DONC LE SERVEUR RÉPOND TOUT DE SUITE. La
+         première version de ce banc envoyait `depuis=999999999` : le serveur n'avait rien de
+         neuf à annoncer, tenait le long-poll ses 25 secondes pleines des DEUX côtés, et le
+         rapport tombait à 1,00. Le contrôle passait — en ne mesurant rien du tout. Un banc qui
+         passe pour une mauvaise raison est pire qu'un banc qui échoue : il fait croire le
+         terrain couvert. */
+      const une = async (chemin) => { const a = process.hrtime.bigint(); const r = await appel('GET', chemin, { jeton: jetonA }); return [Number(process.hrtime.bigint() - a) / 1e6, r]; };
+      /* ⚠️ MÉDIANE DE SEPT, PAS UN TIR. Mesuré au premier essai : 1,2 ms puis 12,9 ms (×11) —
+         et ce n'était PAS le coût de la route. Juste après 4 000 écritures, SQLite fusionne son
+         WAL à la première lecture : un coût UNIQUE, qu'un tir isolé attribue à la route. On
+         prend la médiane, qui l'ignore, et on compare au même geste sur `/health` pour
+         distinguer « cette route a grossi » de « le serveur est occupé ». */
+      const mediane = async (chemin) => { const v = []; for (let i = 0; i < 7; i++) v.push((await une(chemin))[0]); return v.sort((a, b) => a - b)[3]; };
+      const [petite0, r0] = await une('/api/op/flux?depuis=0');
+      v('   le flux répond immédiatement quand l\'appareil est en retard', petite0 < 5000, true);
+      v('   et il ne porte que {seq}', Object.keys(r0.j), ['seq']);
+      const petite = await mediane('/api/op/flux?depuis=0');
+      const refPetite = await mediane('/health');
+      for (let p = 0; p < 10; p++) await appel('POST', '/api/op/pousser', { jeton: jetonA,
+        corps: { enr: Array.from({ length: 400 }, (_, i) => ({ c: 'masse', id: 'm' + p + '-' + i, m: 1700000000000 + p * 400 + i, e: 'h', r: { nom: 'x' + i } })) } });
+      const grosse = await mediane('/api/op/flux?depuis=0');
+      const refGrosse = await mediane('/health');
+      const e = await appel('GET', '/api/op/etat', { jeton: jetonA });
+      v('4 000 enregistrements de plus sont bien là', e.j.seq > 4000, true);
+      /* On ne compare pas à une constante (une machine de CI est capricieuse) mais au RAPPORT,
+         et on le CORRIGE du bruit de fond mesuré sur `/health` au même moment. */
+      const rapport = (grosse / Math.max(petite, 0.01)) / Math.max(refGrosse / Math.max(refPetite, 0.01), 0.2);
+      console.log('      flux : ' + petite.toFixed(2) + ' → ' + grosse.toFixed(2) + ' ms   (/health : '
+        + refPetite.toFixed(2) + ' → ' + refGrosse.toFixed(2) + ' ms)   rapport corrigé ×' + rapport.toFixed(2));
+      v('⛔ le flux ne coûte pas plus cher sur 4 000 enregistrements', rapport < 3, true);
+      /* ⛔ ET LA COMPARAISON QUI DIT TOUT : `etat()`, elle, relit et hache TOUTE la base. Si le
+         flux passait par elle — ce qu'il faisait — il porterait ce coût-là à chaque sondage de
+         chaque appareil. C'est le contrôle qui empêchera quelqu'un de « simplifier » en
+         réunissant les deux routes. */
+      const coutEtat = await mediane('/api/op/etat');
+      console.log('      etat() : ' + coutEtat.toFixed(2) + ' ms sur la même base');
+      v('⛔ le flux reste bien moins cher que etat()', grosse < coutEtat, true);
+    }
+
+    /* ══ 9quinquies. ⛔ LA TOUR NE FABRIQUE PAS DE BASE SUR UNE FAUTE DE FRAPPE ═══════
+       `ouvrir()` CRÉE la base : la garde `try { etat(t) } catch { 404 }` était du code mort.
+       `?t=faute-de-frappe` répondait 200 avec un état vide — la Tour affichait un stockage sain
+       pour un espace inexistant, écrivait une ligne au journal opposable pour un `t` fantôme,
+       et laissait une base vide sur le disque à chaque appel. */
+    console.log('\n⛔ Une faute de frappe dans la Tour ne crée pas de base');
+    {
+      const socle = require(path.join(RACINE, 'server', 'socle.js'));
+      const avant = fs.readdirSync(path.join(banc, 'data', 'socle')).length;
+      v('⛔ existe() dit non sans rien créer', socle.existe('faute-de-frappe'), false);
+      v('⛔ et aucun dossier n\'est apparu', fs.readdirSync(path.join(banc, 'data', 'socle')).length, avant);
     }
 
     /* ══ 10. ⛔ LE DÉFAUT : INERTE ═════════════════════════════════════════════════════

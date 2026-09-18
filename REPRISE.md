@@ -110,6 +110,62 @@ la surveillance horaire. Bruyant et vivant plutôt que muet ou mort.
    jamais réemployé), plus un contrôle de rang manquant : sans lui, effacer une ligne ne
    casserait AUCUNE empreinte, puisque chaque maillon ne connaît que son prédécesseur.
 
+### ⛔ LA RELECTURE `gardien` DU 18 AU SOIR — 15 constats, et elle a payé
+
+Elle n'a **rien trouvé sur l'axe n° 1** (fuite d'une entreprise vers une autre) et le dit :
+`t` vient du jeton sur les six routes d'appareil, `exigerT` refuse au lieu de nettoyer, l'AAD
+lie le bloc à sa place, la DEK est scellée sous `t`, une seule requête d'annuaire sans `t`.
+**Le cloisonnement structurel tient.** Tout ce qui suit est ailleurs — et c'est lourd.
+
+**Les trois bloquants :**
+
+1. ⛔ **`/api/monitor/op/couper` ne coupait RIEN.** Reproduit : la coupure révoquait les
+   sessions, puis l'appareil rappelait `/api/op/session` **avec la même clé d'équipe** dans la
+   seconde et repartait pour 30 jours. La route répondait `{ok:true, coupees:1}` et la Tour
+   affichait « révoqué » à côté d'une ligne vivante du même nom, qui ressemblait à un doublon
+   d'affichage. **C'est la leçon de Firebase — « un jeton s'échange contre une session
+   renouvelable » — rejouée un an plus tard sur notre propre stockage.** La cause : la coupure
+   portait sur les SESSIONS, le droit d'en ouvrir une vient de la CLÉ. Corrigé : l'état vit
+   dans l'annuaire (`entrepriseOuvrir`), `/api/op/session` **et** chaque requête authentifiée
+   le relisent — deux étages, parce qu'une révocation peut rater.
+2. ⛔ **Les QUATRE PORTES ignoraient le socle.** `grep sessionsCouper server/index.js` → zéro.
+   Suspendre, fermer, supprimer, « repartir à neuf » coupaient Firebase et rien d'autre : une
+   entreprise fermée aurait lu et écrit par `/api/op/*` pendant 30 jours pendant que la Tour
+   affichait « fermée ». `effacerEntreprise` n'était appelé de nulle part non plus — supprimer
+   laissait `base.db` et sa DEK sur le disque. Corrigé par **une seule** fonction
+   (`socleCouper`/`socleEffacer`), appelée aux quatre, qui rend un verdict que l'appelant
+   remonte. Deux copies divergeraient un jour.
+3. ⛔ **La purge à 90 jours n'existait pas — et le code l'affirmait DEUX FOIS, au présent.**
+   La colonne `corps_purge_le` était créée, lue, **jamais écrite**. C'est « un nom n'est pas un
+   contenu » appliqué à un commentaire, et ça coûtait : chaque version de chaque enregistrement
+   restait déchiffrable pour toujours par la route de diagnostic, alors que `sous-traitance.html`
+   promet une conservation bornée. Écrite pour de bon, minuterie toutes les 6 h.
+
+**Quatre autres qui auraient fait mal, toutes mesurées :**
+
+| | mesuré | corrigé en |
+|---|---|---|
+| `/api/op/flux` appelait `etat()`, qui **hache toute la base** | **42 ms** sur 20 000 lignes ; à 1 200 sondages/min = **50 s de boucle bloquée sur 60**, le serveur mort pour TOUS depuis un seul jeton légitime | `rang()`, **0,07 ms — 586× moins cher** |
+| `sante()` **balayait le disque** depuis `/health`, publique et sans clé | le défaut que les pièces jointes avaient DÉJÀ payé (73 ms, serveur gelé), réintroduit huit lignes sous le commentaire qui l'interdit — et **linéaire dans le nombre de clients** | compteur incrémental, un seul balayage au démarrage |
+| l'ancre du journal lisait `config.alerteEmail` — **un réglage que j'avais inventé** | la garde était TOUJOURS fausse : l'ancre ne sortait **jamais** de la machine, une fois par jour, en silence. Et `mailerEnvoi` **jette en synchrone** sans courriel configuré → exception dans un `setInterval` → **le processus sort** | `config.notifDemandes`, et le `try` autour de l'appel |
+| `pousser` ne bornait **ni `coll`, ni `id`, ni le corps, ni le disque** | un `id` d'un mégaoctet devenait une clé primaire ; ~7 Go/h par un seul appareil authentifié sur le disque unique du VPS | bornes + quota par entreprise + **plancher disque** (`statfs`, `bavail`) |
+
+**Et trois affirmations fausses dans mes propres commentaires**, toutes retirées ou rendues
+vraies : la purge (ci-dessus) ; « se déclarer avec l'`app_id` d'un collègue le déconnecterait »
+— **si, ça le déconnecte**, c'est le mécanisme de ré-enrôlement et on ne peut pas le fermer
+sans casser la réinstallation (le coût est borné : il faut déjà la clé d'équipe, donc déjà
+tout l'accès) ; et « on se donne 5 secondes » à l'arrêt — `close()` est asynchrone, le
+`process.exit` tombait sur le même tick et le minuteur ne pouvait jamais servir.
+
+⛔ **Et « on crie sur `/health` » ne voulait rien dire : personne n'écoutait.**
+`.github/scripts/surveillance.js` ne lisait ni `routesDoublons` ni `socle`. Trois alarmes
+ajoutées, dont celle qui compte : **socle actif sans sa clé maître** — un incident où il ne
+faut surtout PAS générer une clé neuve.
+
+⛔ **Les deux `journalctl` de `deploiement.yml` sont retirés.** Le dépôt est PUBLIC, les
+journaux d'un run sont lisibles par n'importe qui et gardés 90 jours, et le journal du VPS
+porte des identifiants d'espace. Il se lit SUR le VPS.
+
 ### Le prérequis d'étape 0 qui bloquait tout : une seule preuve de clé
 
 Le serveur portait **DEUX implémentations de la preuve de clé d'équipe** — `espaceCleOk` en

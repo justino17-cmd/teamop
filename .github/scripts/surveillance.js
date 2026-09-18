@@ -80,6 +80,15 @@ function get(url) {
        « proposer un correctif » depuis la Tour — mais elle tombe en 401 sans prévenir personne,
        et on cherche une heure. Quinze jours d'avance suffisent à le remplacer tranquillement. */
     if (j.ghExpireBientot === true) problems.push('le jeton GitHub du VPS expire sous quinze jours (ou a expiré) — le remplacer : fine-grained, dépôt teamop seul, Contents RW + Pull requests RW, à poser dans /opt/teamop/config.json avec sa date dans github.expire, puis systemctl restart teamop-api. Sinon « proposer un correctif » depuis la Tour tombera en 401 sans prévenir personne (aucun client n\'est touché).');
+    /* ⛔ LE SOCLE — AJOUTÉ LE 18 SEPTEMBRE 2026, PARCE QUE « ON CRIE SUR /health » NE VEUT RIEN
+       DIRE SI PERSONNE N'ÉCOUTE. Le serveur publie `routesDoublons` et `socle` depuis l'étape 1
+       du chantier de sortie de Firestore ; ce fichier ne les lisait pas. `gardien` l'a relevé :
+       l'arbitrage « on ne refuse pas de démarrer, on crie » n'était fait qu'à moitié. */
+    if (typeof j.routesDoublons === 'number' && j.routesDoublons > 0) problems.push('⛔ ' + j.routesDoublons + ' route(s) de l\'API déclarée(s) DEUX FOIS — la seconde ne répond JAMAIS, en silence. C\'est la panne de /api/devis/etat. Voir le journal du VPS au démarrage : journalctl -u teamop-api | grep "DEUX FOIS"');
+    if (j.socle && j.socle.erreur) problems.push('⛔ le socle (stockage serveur) n\'a PAS pu se monter au démarrage — ce n\'est pas « éteint », c\'est CASSÉ : journalctl -u teamop-api | grep "socle non monté"');
+    /* Une clé maître absente alors que le socle tourne, c'est un INCIDENT, pas une installation
+       neuve : les bases existantes ne se déchiffreront plus. Ne JAMAIS en générer une autre. */
+    if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre et redémarrer.');
     if (typeof j.bugs1h === 'number' && j.bugs1h > 0) problems.push(j.bugs1h + ' erreur(s) signalée(s) par les applications des entreprises dans la dernière heure (vigie) — voir l\'e-mail d\'alerte et corriger au plus vite');
   } catch (e) { problems.push('api.teamop.fr/health : injoignable — ' + e.message); }
 
