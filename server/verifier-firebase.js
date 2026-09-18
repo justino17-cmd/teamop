@@ -137,8 +137,32 @@ const sha = x => crypto.createHash('sha256').update(String(x)).digest('hex');
   if (sansVersion) console.log('  ⚠ ' + sansVersion + ' appareil(s) sans version connue — à regarder dans la Tour');
   if (!recents && !vieux && !sansVersion) console.log('  (aucune connexion enregistrée sur 7 jours — rien à conclure)');
   if (horsAnnuaire.length) {
+    /* ⛔ ON DIT QUI, PAS SEULEMENT COMBIEN. « 5 appareils sur un espace hors annuaire » ne se
+       traite pas : on ne sait pas s'il s'agit d'une entreprise qui travaille, d'un téléphone
+       oublié ou d'un essai. Or la décision n'est pas la même — couper une entreprise qui
+       travaille est exactement ce que cette liste de contrôle existe pour empêcher. Le détail
+       vient du journal de connexions du serveur, que la Tour affiche déjà à son patron.
+       ⚠️ `elan-gestion` mérite une mention à part : c'est le document PARTAGÉ de toutes les
+       entreprises sans clé personnelle. Des appareils dessus, ce sont des gens dont les données
+       cohabitent avec celles des autres — et que la règle fermée couperait tous ensemble. */
     console.log('  ⛔ ' + horsAnnuaire.length + ' espace(s) ACTIFS mais HORS ANNUAIRE — sans code enregistré, jamais de jeton :');
-    horsAnnuaire.forEach(h => console.log('      · ' + h.t + ' (' + h.n + ' appareil(s) sur 7 j)'));
+    for (const h of horsAnnuaire) {
+      const quoi = h.t === 'elan-gestion' ? '  ⚠️ DOCUMENT PARTAGÉ de toutes les entreprises sans clé'
+        : /beta/i.test(h.t) ? '  (canal d\'essai)' : '';
+      console.log('      · ' + h.t + ' — ' + h.n + ' appareil(s) sur 7 j' + quoi);
+      const logins = new Map(); const versions = new Set(); let dernier = 0;
+      for (const x of (cnx[h.t] || [])) {
+        if ((x.ts || 0) < j7) continue;
+        const l = String(x.login || '(sans identifiant)');
+        if (!logins.has(l) || (x.ts || 0) > logins.get(l).ts) logins.set(l, { ts: x.ts || 0, v: x.version || '?', ap: x.appareil || '?', ev: x.ev || '' });
+        if (x.version) versions.add(String(x.version));
+        if ((x.ts || 0) > dernier) dernier = x.ts || 0;
+      }
+      const depuis = dernier ? Math.round((Date.now() - dernier) / 3600000) : null;
+      console.log('        dernière connexion : ' + (depuis === null ? '?' : 'il y a ' + depuis + ' h') + ' · versions : ' + ([...versions].join(', ') || '?'));
+      [...logins.entries()].sort((a, b) => b[1].ts - a[1].ts).slice(0, 8)
+        .forEach(([l, d]) => console.log('        · ' + l.padEnd(18) + 'v' + String(d.v).padEnd(6) + d.ap.padEnd(10) + 'il y a ' + Math.round((Date.now() - d.ts) / 3600000) + ' h' + (d.ev === 'echec' ? '  (échec de connexion)' : '')));
+    }
   } else console.log('  ✓ aucun espace actif hors annuaire');
 
   /* ── 6. LE VERDICT ──────────────────────────────────────────────────────────────────────
