@@ -106,7 +106,38 @@ async function telecharger(ctx, cle, vers) {
       const attendus = ['espaces.json', 'comptes.json'];
       const manquants = data ? attendus.filter(f => !data.includes(f)) : attendus;
       if (manquants.length) console.log('  ⚠ absents de l\'archive : ' + manquants.join(', ') + ' (normal si ce serveur ne les a jamais écrits)');
-      console.log('\n✅ CETTE SAUVEGARDE EST RESTAURABLE. ' + (r.entrees || data && data.length || 0) + ' entrée(s) relues.');
+      /* ⛔ COMPTER DES FICHIERS N'EST PAS RELIRE. C'est ce qui a permis d'écrire « ✅
+         restaurable » sur des archives dont les bases SQLite étaient corrompues : `tar -t`
+         liste des noms, il n'ouvre rien. MESURÉ le 18 septembre 2026 sur l'ancien chemin
+         d'archivage : 5 bases sur 6 rendaient `database disk image is malformed` au premier
+         SELECT, et la relecture les déclarait bonnes. On OUVRE donc chaque base du socle et
+         on lui fait parcourir ses pages (`PRAGMA quick_check`).
+         ⚠️ On vérifie l'INTÉGRITÉ DU FICHIER, pas qu'on sache le déchiffrer : ce sont deux
+         questions distinctes, et seule la première est du ressort de la sauvegarde. Sans clé
+         maître, ce contrôle reste entièrement valable. */
+      const dSocle = path.join(sortie, 'socle-instantane');
+      let bases = [];
+      try { bases = fs.readdirSync(dSocle).filter(f => f.endsWith('.db')); } catch (e) {}
+      let cassees = 0;
+      if (bases.length) {
+        /* ⛔ PAR `socle.controlerFichier` : une seule porte pour tout l'accès SQL du produit. */
+        const socle = require('./socle');
+        for (const f of bases) {
+          const v = socle.controlerFichier(path.join(dSocle, f));
+          if (!v.ok) { cassees++; console.log('  ⛔ base ILLISIBLE dans l\'archive : ' + f + ' — ' + v.motif); }
+        }
+        console.log('  socle : ' + bases.length + ' base(s) ouverte(s) et parcourue(s), ' + cassees + ' illisible(s)');
+      } else {
+        console.log('  socle : aucune base dans l\'archive (normal tant que socle.actif vaut false)');
+      }
+      if (cassees) {
+        console.log('\n⛔ CETTE SAUVEGARDE N\'EST PAS RESTAURABLE : ' + cassees + ' base(s) d\'entreprise illisible(s).');
+        console.log('   NE PAS s\'en servir. Essayer une copie plus ancienne, et prévenir.');
+        process.exitCode = 1;
+      } else {
+        console.log('\n✅ CETTE SAUVEGARDE EST RESTAURABLE. ' + (r.entrees || data && data.length || 0) + ' entrée(s) relues'
+          + (bases.length ? ', ' + bases.length + ' base(s) d\'entreprise ouverte(s) et saine(s)' : '') + '.');
+      }
     } finally { try { fs.rmSync(dossier, { recursive: true, force: true }); } catch (e) {} }
     return;
   }
@@ -125,6 +156,12 @@ async function telecharger(ctx, cle, vers) {
       console.log('   systemctl stop teamop-api');
       console.log('   mv /opt/teamop/data /opt/teamop/data.avant-restauration');
       console.log('   mv ' + path.join(a2, 'data') + ' /opt/teamop/data');
+      console.log('   # ⛔ LE SOCLE : les bases sont dans socle-instantane/, PAS dans data/socle/.');
+      console.log('   #    C\'est voulu — une copie cohérente prise par VACUUM INTO, sans WAL à côté.');
+      console.log('   #    Les remettre en place :');
+      console.log('   node -e "require(\'/opt/teamop/repo/server/socle\').restaurerDepuis(\'' + path.join(a2, 'socle-instantane') + '\')"');
+      console.log('   # ⛔ ET LA CLÉ MAÎTRE : sans elle (/etc/teamop/kek), le serveur démarrera VERT et');
+      console.log('   #    aucune donnée de client ne sera lisible. Vérifier AVANT de redémarrer.');
       console.log('   # config.json : compare AVANT de remplacer, il a pu changer depuis la sauvegarde');
       console.log('   systemctl start teamop-api && curl -s localhost:8080/health');
     } finally { try { fs.unlinkSync(archive); } catch (e) {} }

@@ -202,9 +202,15 @@ console.log('\nLes invariants de structure');
   /* ⛔ UNE SEULE PORTE POUR LE SQL. Même discipline que `espacesEcrire()` : un cloisonnement
      qui n'a qu'une porte se surveille — et si `node:sqlite` change (le module est marqué
      expérimental par Node), l'adaptation tient à un seul endroit. */
+  /* ⚠️ ON RETIRE LES COMMENTAIRES AVANT DE CHERCHER. Ce contrôle a d'abord mis au rouge un
+     fichier parfaitement conforme, parce qu'un COMMENTAIRE y disait « pas par un
+     `require('node:sqlite')` local » — c'est-à-dire qu'il échouait sur la phrase qui explique
+     la règle. Un banc qui punit un bon commentaire est un banc qu'on finit par affaiblir ;
+     celui-ci regarde le code. */
+  const sansCommentaires = src => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
   const ailleurs = fs.readdirSync(path.join(RACINE, 'server'))
     .filter(f => f.endsWith('.js') && f !== 'socle.js')
-    .filter(f => /require\(['"]node:sqlite['"]\)/.test(fs.readFileSync(path.join(RACINE, 'server', f), 'utf8')));
+    .filter(f => /require\(['"]node:sqlite['"]\)/.test(sansCommentaires(fs.readFileSync(path.join(RACINE, 'server', f), 'utf8'))));
   v('⛔ `node:sqlite` n\'est requis QUE par socle.js', ailleurs, []);
   /* ⛔ L'AAD lie le bloc à sa place ET à sa fraîcheur. La retirer se voit ici. */
   vrai('⛔ l\'AAD d\'un corps porte t, coll, id, maj_le et supprime_le',
@@ -363,6 +369,79 @@ console.log('\nLes invariants qui tiennent le cloisonnement');
   vrai('⛔ espaceCleOk DÉLÈGUE la comparaison', /cleEquipeVerdict\(t, kh\) === 'valide'/.test(bloc));
   v('⛔ elle ne compare plus de hachage elle-même', /createHash\('sha256'\)/.test(bloc), false);
   vrai('⛔ et la comparaison est en temps constant', /timingSafeEqual/.test(idx.slice(idx.indexOf('function cleEquipeVerdict('), idx.indexOf('function cleEquipeVerdict(') + 900)));
+}
+
+/* ══ 15. ⛔ CE QUE LA VÉRIFICATION DU 18 SEPTEMBRE A TROUVÉ ═════════════════════════
+   Douze bloquants, tous prouvés par sonde avant d'être retenus. Ce bloc les empêche de
+   revenir — chacun a coûté assez cher pour mériter sa ligne. */
+console.log('\n⛔ Les douze bloquants de la vérification du 18 septembre');
+{
+  const V = 'verif-x';
+  /* ⛔ 1. Un annuaire plus ancien que les bases ne doit PAS faire fabriquer une clé neuve.
+     Sans ce refus, toutes les données d'une entreprise devenaient illisibles d'un coup, le
+     serveur restait VERT, et les écritures suivantes empêchaient tout retour en arrière. */
+  S.pousser(V, [{ c: 'p', id: '1', m: 1700000000000, e: 'h', r: { v: 'secret' } }]);
+  S.fermer();
+  const annu = path.join(DIR, 'socle-annuaire.db');
+  { const db = new (require('node:sqlite').DatabaseSync)(annu); db.exec("DELETE FROM entreprise WHERE t='" + V + "'"); db.close(); }
+  delete require.cache[require.resolve(SOCLE_JS)];
+  const S2 = require(SOCLE_JS);
+  let refus = '';
+  try { S2.depuis(V, 0, 10); } catch (e) { refus = e.message; }
+  vrai('⛔ annuaire désynchronisé → REFUS, pas une clé neuve', /sa clé n'est PAS dans l'annuaire/.test(refus));
+  vrai('   et il dit de ne rien écrire', /Ne rien écrire/.test(refus));
+  let ecrit = false;
+  try { S2.pousser(V, [{ c: 'p', id: '2', m: 1700000009999, e: 'h', r: {} }]); ecrit = true; } catch (e) {}
+  v('⛔ et l\'écriture par-dessus est refusée AUSSI', ecrit, false);
+  /* ⚠️ Le contre-test : une entreprise vraiment neuve doit toujours pouvoir naître. */
+  v('⚠️ une entreprise neuve naît toujours', S2.pousser('neuve-ok', [{ c: 'x', id: '1', m: 1700000000000, e: 'h', r: {} }]).acceptes, 1);
+
+  /* ⛔ 2. Un refus de taille ne consomme PAS de rang. Le rang consommé faisait répondre
+     `/api/op/flux` « du neuf » à chaque sondage, sans jamais rien livrer : la boucle serrée
+     épuisait le quota horaire de toute l'entreprise, irréversiblement. */
+  const av = S2.etat('neuve-ok').seq;
+  const gros = S2.pousser('neuve-ok', [{ c: 'p', id: 'g', m: 1700000000001, e: 'h', r: { n: crypto.randomBytes(900000).toString('hex') } }]);
+  v('⛔ un corps trop gros est refusé', gros.refus[0].motif, 'corps_trop_gros');
+  v('⛔ et il ne brûle AUCUN rang (le flux tournerait en boucle)', S2.etat('neuve-ok').seq, av);
+
+  /* ⛔ 3. Le plafond compte ce que le DISQUE porte, journal compris — il en comptait le
+     vingtième sur une base qui change souvent. */
+  for (let i = 0; i < 20; i++) S2.pousser('poids', [{ c: 'p', id: 'x', m: 1700000000000 + i, e: 'h' + i, r: { n: 'y'.repeat(3000), i } }]);
+  const pz = S2.etat('poids');
+  v('⛔ le total compté = vivant + journal', pz.octets, pz.octetsVivants + pz.octetsJournal);
+  vrai('⛔ et le journal pèse lourd (ici ×10 au moins)', pz.octetsJournal > pz.octetsVivants * 10);
+  v('⛔ la purge rend la place au compteur', (S2.purgerJournal('poids', Date.now() + 1000), S2.etat('poids').octets), pz.octetsVivants);
+
+  /* ⛔ 4. `existe()` ne crée rien, et `etat()` remonte ce qui était écrit-jamais-lu. */
+  v('⛔ existe() sur un inconnu ne crée pas de base', S2.existe('jamais-vue-du-tout'), false);
+  S2.echecEnrolement('poids'); S2.echecEnrolement('poids');
+  v('⛔ le compteur d\'échecs d\'enrôlement est LISIBLE', S2.etat('poids').echecsEnrolement, 2);
+
+  /* ⛔ 5. Fermer et ROUVRIR. Une fermeture sans réouverture n'est pas une suspension. */
+  S2.entrepriseOuvrir('poids', false);
+  v('⛔ fermée', S2.entrepriseEtat('poids').etat, 'ferme');
+  S2.entrepriseOuvrir('poids', true);
+  v('⛔ et REOUVRABLE (sinon un client qui repaie reste bloqué pour toujours)', S2.entrepriseEtat('poids').etat, 'actif');
+
+  /* ⛔ 6. L'instantané de sauvegarde : cohérent, sans WAL, et relisible.
+     MESURÉ le 18 septembre : l'ancien chemin (tar sur les fichiers vivants) rendait 5 bases
+     corrompues sur 6 pendant des écritures concurrentes, et la relecture les déclarait
+     bonnes parce qu'elle comptait des NOMS DE FICHIERS. */
+  const inst = path.join(DIR, 'inst-banc');
+  const r = S2.instantanerVers(inst);
+  vrai('⛔ l\'instantané prend l\'annuaire et les bases', r.bases >= 2 && r.fichiers.includes('socle-annuaire.db'));
+  v('⛔ aucun -wal ni -shm à côté (c\'est ça qui cassait)', fs.readdirSync(inst).filter(f => /-wal$|-shm$/.test(f)).length, 0);
+  const ctl = S2.controlerFichier(path.join(inst, 'poids.db'));
+  v('⛔ et chaque base s\'OUVRE et se parcourt vraiment', ctl.ok, true);
+  v('⛔ une base abîmée est VUE (pas juste comptée)',
+    (fs.writeFileSync(path.join(inst, 'casse.db'), Buffer.alloc(9000, 3)), S2.controlerFichier(path.join(inst, 'casse.db')).ok), false);
+  const cible = path.join(DIR, 'cible'); fs.mkdirSync(cible, { recursive: true });
+  vrai('⛔ et le chemin de retour remet les bases en place', S2.restaurerDepuis(inst, cible) >= 2);
+
+  /* ⛔ 7. Le réglage qui survit au redémarrage — une minuterie de 24 h sur un serveur qui
+     redémarre plusieurs fois par jour ne se déclenche JAMAIS. */
+  S2.reglagePoser('ancre_envoyee_le', 1234567890);
+  v('⛔ un réglage se relit après coup', S2.reglageLire('ancre_envoyee_le'), '1234567890');
 }
 
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}

@@ -23,8 +23,12 @@
  * et silencieuse. `effacerEntreprise` les enlève tous les trois, et le banc l'exige.
  *
  * ⚠️ L'EXCEPTION, NOMMÉE COMME TELLE : `socle-annuaire.db` est commun et porte une colonne `t`.
- * C'est exactement là que les trous se creusent, donc elle n'a QU'UN SEUL accesseur, dont le
- * PREMIER ARGUMENT EST `t`, obligatoire. Elle n'est pas qu'une commodité : un comptage
+ * C'est exactement là que les trous se creusent. L'invariant n'est PAS « un seul accesseur » —
+ * une version de ce commentaire l'a écrit et c'était faux, il y en a dix-huit : c'est que
+ * TOUTE requête visant ses tables par entreprise (`entreprise`, `appareil`) porte un `t=?`,
+ * à UNE exception près, la recherche par jeton, qui ne peut pas en avoir puisque c'est elle
+ * qui fait naître `t`. C'est cet invariant-là que `tests/test-723.js` vérifie, en comptant les
+ * requêtes sans `t` et en en exigeant exactement une. Elle n'est pas qu'une commodité : un comptage
  * inter-entreprises est 21× plus lent en fichier-par-client, et la Tour agrège sur toutes les
  * entreprises. Elle lit donc l'annuaire et ne balaie JAMAIS les fichiers par entreprise.
  *
@@ -38,6 +42,9 @@ const DATA_DIR = process.env.TEAMOP_DATA || '/opt/teamop/data';
 const SOCLE_DIR = path.join(DATA_DIR, 'socle');
 const ANNUAIRE_PATH = path.join(DATA_DIR, 'socle-annuaire.db');
 const SCHEMA_VERSION = '1';
+/* Le nom du dossier d'instantané DANS l'archive. `sauvegarde.js` et `restaurer.js` s'en
+   servent tous les deux : une seule constante, sinon les deux divergeront un jour. */
+const SOCLE_INSTANTANE = 'socle-instantane';
 /* Cinq minutes : au-delà, une date vient d'une horloge déréglée, pas d'un appareil hors ligne. */
 const HORLOGE_MARGE_MS = 5 * 60000;
 /* Bornes de forme. Généreuses — une fiche produit avec ses photos en base64 passe — mais
@@ -190,6 +197,11 @@ function annuaire() {
              id TEXT NOT NULL UNIQUE, ts INTEGER NOT NULL, qui TEXT NOT NULL,
              t TEXT NOT NULL, motif TEXT NOT NULL, portee TEXT NOT NULL DEFAULT '', n INTEGER NOT NULL DEFAULT 0,
              ip_h TEXT NOT NULL DEFAULT '', chaine_sha TEXT NOT NULL DEFAULT '')`);
+  /* Les réglages de l'annuaire — ce qui doit survivre à un redémarrage. Il n'y en a qu'un
+     aujourd'hui (la date du dernier envoi d'ancre) et c'est déjà une raison suffisante : une
+     minuterie de 24 h sur un serveur qui redémarre plusieurs fois par jour ne se déclenche
+     JAMAIS. Mémoire = remis à zéro à chaque déploiement ; disque = tenu. */
+  db.exec('CREATE TABLE IF NOT EXISTS reglage (cle TEXT PRIMARY KEY, val TEXT)');
   db.exec('CREATE INDEX IF NOT EXISTS diagnostic_t ON diagnostic(t, ts DESC)');
   db.exec('CREATE INDEX IF NOT EXISTS appareil_jeton ON appareil(jeton_sha)');
   _annuaire = db;
@@ -199,12 +211,45 @@ function annuaire() {
 /* La DEK d'une entreprise : 32 octets tirés au hasard, scellés sous la clé maître avec `t` en
    AAD — donc la clé d'une entreprise ne peut pas être présentée comme celle d'une autre.
    Créée à la première ouverture, jamais régénérée : la régénérer rendrait ses lignes illisibles. */
-function dekDe(t) {
+function dekDe(t, baseNeuve) {
   t = exigerT(t);
   const K = exigerKek();
   const db = annuaire();
   const l = db.prepare('SELECT dek FROM entreprise WHERE t=?').get(t);
-  if (l && l.dek) return desceller(K, l.dek, t);
+  if (l && l.dek) {
+    /* ⛔ UN REFUS DOIT DIRE QUOI FAIRE. Sans ce `catch`, une clé maître qui ne correspond pas
+       remonte l'erreur brute de GCM (« Unsupported state or unable to authenticate data ») —
+       exacte, illisible, et qui ressemble à de la corruption. Le témoin plus bas produisait le
+       bon message, mais on n'y arrivait jamais : on échoue ICI, plus tôt. */
+    try { return desceller(K, l.dek, t); }
+    catch (e) {
+      throw new Error('⛔ la clé maître ne correspond PAS à l\'annuaire de « ' + t + ' ».\n'
+        + '  Cette installation a été faite avec une AUTRE clé. Ne rien écrire : les données\n'
+        + '  existantes deviendraient un mélange illisible.\n'
+        + '  Récupérer la bonne clé dans le séquestre (deux copies scellées, PLAN-OP-SOCLE §2.3).');
+    }
+  }
+  /* ⛔ UNE CLÉ ABSENTE N'EST PAS UNE ENTREPRISE NEUVE QUAND SA BASE EXISTE DÉJÀ. Sans ce
+     contrôle, un annuaire plus ancien que les fichiers — restauration partielle,
+     `socle-annuaire.db` abîmé — faisait TIRER UNE CLÉ NEUVE sans un mot : toutes les données
+     de l'entreprise devenaient illisibles d'un coup, le serveur restait VERT, l'application
+     affichait une base vide, et les écritures suivantes étaient acceptées par-dessus — ce qui
+     rendait le retour à l'ancien annuaire impossible sans perdre le travail du jour.
+     REPRODUIT le 18 septembre 2026 : une ligne d'annuaire effacée, et `pousser()` acceptait
+     une écriture scellée sous la clé neuve dans la même table que les anciennes.
+     C'est le symétrique du témoin de clé maître, qui existait pour la KEK et manquait pour la
+     DEK. ⛔ « Je n'ai rien » et « je ne sais plus lire » ne doivent JAMAIS rendre la même
+     réponse — c'est la règle des trois états, appliquée au stockage.
+     ⚠️ `baseNeuve` est passé par `ouvrir()`, qui SAIT si le fichier existait avant lui : à ce
+     moment-là `new DatabaseSync()` l'a déjà créé, donc un `existsSync` ici dirait « elle
+     existe » sur une entreprise parfaitement neuve et refuserait de la créer. */
+  if (!baseNeuve && fs.existsSync(baseDe(t))) {
+    throw new Error('⛔ la base de « ' + t + ' » existe mais sa clé n\'est PAS dans l\'annuaire.\n'
+      + '  Ne rien écrire : une clé neuve rendrait ses données définitivement illisibles, et les\n'
+      + '  écritures suivantes empêcheraient tout retour en arrière.\n'
+      + '  L\'annuaire (socle-annuaire.db) est plus ancien que les bases, ou abîmé.\n'
+      + '  Restaurer l\'annuaire qui va AVEC ces bases — voir PLAN-OP-SOCLE §2.3.');
+  }
   const dek = crypto.randomBytes(32);
   db.prepare('INSERT INTO entreprise (t,dek,cree_le) VALUES (?,?,?)').run(t, sceller(K, dek, t), Date.now());
   return dek;
@@ -236,6 +281,11 @@ function ouvrir(t) {
   if (_bases.has(t)) return _bases.get(t);
   const K = exigerKek();
   const neuve = !fs.existsSync(baseDe(t));
+  /* ⛔ ON SÈME LE COMPTEUR AVANT DE CRÉER LE FICHIER. Semé après, le balayage initial voyait
+     déjà la base neuve, et le `_nbBases++` d'en bas la comptait une SECONDE fois : `/health`
+     annonçait une base de trop, pour toujours, après le premier démarrage. Un compteur qui se
+     trompe d'une unité est un compteur qu'on cesse de croire. */
+  semerCompteurs();
   fs.mkdirSync(dossierDe(t), { recursive: true });
   const db = new (moteur().DatabaseSync)(baseDe(t));
   /* `journal_size_limit` n'est pas un détail d'exploitation : MESURÉ le 18 septembre 2026, le
@@ -265,18 +315,37 @@ function ouvrir(t) {
      comparé à chaque ouverture. Sans lui, une réinstallation qui tire une clé neuve démarre
      VERT — le serveur répond, SQLite ouvre — et l'échec ne se voit qu'au déchiffrement, ligne
      par ligne, où il ressemble à de la corruption. On refuse d'ouvrir, et on dit quoi faire. */
+  /* ⛔ DEUX TÉMOINS, PAS UN — ils répondent à deux questions différentes et disent quoi faire
+     dans deux cas différents. Celui de la KEK : « ce serveur a-t-il la bonne clé maître ? ».
+     Celui de la DEK : « cette base va-t-elle avec CETTE ligne d'annuaire ? ». Les confondre
+     reviendrait à rendre la même réponse à deux pannes distinctes. */
+  const temoinDek = crypto.createHmac('sha256', dekDe(t, neuve)).update('teamop-socle-dek-v1').digest('hex');
+  const vuDek = lire('dek_temoin');
+  if (vuDek === null) poser('dek_temoin', temoinDek);
+  else if (vuDek !== temoinDek) {
+    try { db.close(); } catch (e) {}
+    _bases.delete(t);
+    throw new Error('⛔ la clé de « ' + t + ' » ne correspond PAS à sa base.\n'
+      + '  L\'annuaire porte une clé, la base en attend une autre : ils viennent de deux moments\n'
+      + '  différents (restauration partielle, annuaire abîmé, base recopiée d\'ailleurs).\n'
+      + '  ⛔ NE RIEN ÉCRIRE : chaque écriture mélangerait deux générations de clés dans la même\n'
+      + '  table et rendrait le retour en arrière impossible.\n'
+      + '  Restaurer l\'annuaire et les bases du MÊME instantané — voir PLAN-OP-SOCLE §2.3.');
+  }
+
   const temoin = crypto.createHmac('sha256', K).update('teamop-socle-temoin-v1').digest('hex');
   const vu = lire('kek_temoin');
   if (vu === null) poser('kek_temoin', temoin);
   else if (vu !== temoin) {
     try { db.close(); } catch (e) {}
+    _bases.delete(t);
     throw new Error('⛔ la clé maître ne correspond PAS à la base de « ' + t +' ».\n'
       + '  Cette base a été créée avec une AUTRE clé. Ne rien écrire : les lignes existantes\n'
       + '  deviendraient un mélange illisible. Récupérer la bonne clé dans le séquestre\n'
       + '  (deux copies scellées, voir PLAN-OP-SOCLE §2.3), ou restaurer la base qui va avec.');
   }
   _bases.set(t, db);
-  if (neuve) { semerCompteurs(); _nbBases++; }
+  if (neuve) _nbBases++;
   return db;
 }
 
@@ -396,13 +465,23 @@ function pousser(t, lignes, ctx) {
       if (!supprimeLe) {
         if (l.r === undefined || l.r === null) { refus.push({ c: coll, id, motif: 'corps_absent' }); continue; }
         empreinte = String(l.e || '');
-      }
-      const seq = parseInt(suivant.get().val, 10);
-      if (!supprimeLe) {
+        /* ⛔ ON SCELLE AVANT D'ALLOUER LE RANG, parce que la TAILLE n'est connue qu'APRÈS le
+           scellement et qu'elle peut encore refuser. La première version allouait entre les
+           deux, et le commentaire d'à côté déclarait pourtant le défaut fermé. MESURÉ : cinq
+           pousses d'un enregistrement de 800 Ko portaient `meta.seq` à 6 alors que le plus
+           grand rang réellement en base restait 1. Et la conséquence était pire qu'un compteur
+           qui ment : `/api/op/flux` compare `rang(t) > depuis` tandis que l'appareil reçoit
+           `curseur` — donc le long-poll de CHAQUE appareil de l'entreprise répondait
+           immédiatement, pour toujours, et dégénérait en boucle serrée jusqu'à épuiser le
+           quota horaire de toute la boîte. Un seul enregistrement trop gros, envoyé par
+           n'importe quel appareil authentifié, suffisait — et c'était irréversible sans
+           intervention en base. Sceller pour rien quand on refuse coûte un peu de calcul :
+           c'est le bon prix. */
         corps = sceller_corps(dek, t, coll, id, majLe, supprimeLe, l.r);
         octets = corps.length;
         if (octets > CORPS_MAX) { refus.push({ c: coll, id, motif: 'corps_trop_gros', octets, max: CORPS_MAX }); continue; }
       }
+      const seq = parseInt(suivant.get().val, 10);
       poser.run(coll, id, majLe, seq, supprimeLe, String(c.app_id || ''), corps, empreinte, octets);
       /* Le journal garde le corps SCELLÉ : c'est lui qui permet de revenir à une version, et
          c'est lui que la purge à 90 jours videra (le reste de la ligne, lui, ne s'efface pas —
@@ -424,10 +503,21 @@ function pousser(t, lignes, ctx) {
 }
 
 /* Le compteur de l'annuaire suit, pour que la Tour n'ait jamais à ouvrir les bases. */
+/* Le poids du journal : chaque version conservée porte une COPIE scellée du corps, pendant
+   90 jours. C'est de la place réelle sur le disque du VPS. */
+function journalOctets(db) {
+  return db.prepare('SELECT COALESCE(SUM(LENGTH(corps)),0) AS o FROM journal WHERE corps IS NOT NULL').get().o || 0;
+}
 function majAnnuaire(t, seq) {
   t = exigerT(t);
   const db = ouvrir(t);
-  const o = db.prepare('SELECT COALESCE(SUM(octets),0) AS o FROM enr').get().o || 0;
+  /* ⛔ LE PLAFOND DOIT COMPTER CE QUE LE DISQUE PORTE, PAS LA MOITIÉ. La première version ne
+     sommait que `enr.octets` — les lignes VIVANTES — en ignorant la table `journal`, qui garde
+     une copie scellée de CHAQUE version pendant 90 jours. MESURÉ : 21,3× en dessous du réel
+     sur une base qui a beaucoup changé. Un plafond qui compte le tiers de ce qu'il protège
+     n'est pas un plafond de sécurité, c'est une décoration — et le disque du VPS est celui de
+     tous les clients. */
+  const o = (db.prepare('SELECT COALESCE(SUM(octets),0) AS o FROM enr').get().o || 0) + journalOctets(db);
   annuaire().prepare('UPDATE entreprise SET seq=?, octets=? WHERE t=?').run(seq, o, t);
 }
 
@@ -485,9 +575,15 @@ function depuis(t, apresSeq, max) {
 }
 
 /* ══ VÉRIFIER — LE CONTRÔLE COMPLET, HORS CHEMIN CHAUD ══════════════════════════════════════
- * `etat()` compte et signe sans rien déchiffrer : c'est ce qu'on appelle à chaque synchro.
- * `verifier()` déchiffre TOUT — c'est cher, donc c'est une route d'administration, jamais le
- * chemin d'un appareil. Il répond à la seule question qui compte après une restauration ou un
+ * Trois niveaux, du moins cher au plus cher, et il ne faut pas les confondre :
+ *   · `rang()`     — un entier lu dans `meta`. C'est ce que le long-poll appelle, en permanence.
+ *   · `etat()`     — compte et SIGNE sans rien déchiffrer. Mesuré 42 ms sur 20 000 lignes :
+ *                    c'est le contrôle de non-régression, pas le chemin d'une synchro.
+ *   · `verifier()` — déchiffre TOUT. Route d'administration, sur demande explicite, jamais
+ *                    subie à l'ouverture d'un écran.
+ * ⛔ Une version de ce commentaire disait que `etat()` était « ce qu'on appelle à chaque
+ * synchro » : c'était vrai du code d'alors, et c'est précisément ce qui gelait le serveur
+ * 50 secondes par minute. Il répond à la seule question qui compte après une restauration ou un
  * doute sur la clé : est-ce que tout se relit ? */
 function verifier(t) {
   t = exigerT(t);
@@ -517,9 +613,20 @@ function etat(t) {
     h.update(l.coll + '\u0000' + l.id + '\u0000' + l.maj_le + '\u0000' + l.supprime_le + '\n');
   }
   const seq = parseInt(db.prepare("SELECT val FROM meta WHERE cle='seq'").get().val, 10);
-  const octets = db.prepare('SELECT COALESCE(SUM(octets),0) AS o FROM enr').get().o || 0;
-  const hv = db.prepare("SELECT val FROM meta WHERE cle='horloge_avancee'").get();
-  return { seq, parColl, octets, signature: h.digest('hex'), horlogeAvancee: parseInt(hv && hv.val, 10) || 0 };
+  /* ⛔ UN SEUL MOT, UN SEUL SENS. `octets` désignait ici les lignes VIVANTES et là-bas, dans le
+     plafond, le total disque : deux comptes sous le même nom, c'est le genre d'ambiguïté qui
+     fait qu'on règle un plafond en croyant en régler un autre. `octets` est désormais CE QUE
+     LE PLAFOND COMPTE, et le détail est donné à côté. */
+  const octetsVivants = db.prepare('SELECT COALESCE(SUM(octets),0) AS o FROM enr').get().o || 0;
+  const octetsJournal = journalOctets(db);
+  const octets = octetsVivants + octetsJournal;
+  const lireMeta = c => { const l = db.prepare('SELECT val FROM meta WHERE cle=?').get(c); return parseInt(l && l.val, 10) || 0; };
+  /* ⛔ ÉCRIT ET JAMAIS LU EST AUSSI GRAVE QUE CRÉÉ ET JAMAIS ÉCRIT. `echecs_enrolement` était
+     rangé dans `meta` avec un commentaire affirmant que « la Tour la voit par /api/op/etat » —
+     et `etat()` ne le rendait pas. Quelqu'un cherchant si un espace est mitraillé aurait ouvert
+     la route, ne rien vu, et conclu qu'il ne l'était pas. */
+  return { seq, parColl, octets, octetsVivants, octetsJournal, signature: h.digest('hex'),
+    horlogeAvancee: lireMeta('horloge_avancee'), echecsEnrolement: lireMeta('echecs_enrolement') };
 }
 
 /* ══ EFFACER UNE ENTREPRISE ═════════════════════════════════════════════════════════════════
@@ -585,7 +692,14 @@ function purgerJournal(t, avant) {
   const lim = parseInt(avant, 10) || (Date.now() - JOURNAL_VIE_MS);
   const r = db.prepare('UPDATE journal SET corps=NULL, corps_purge_le=? WHERE ts < ? AND corps IS NOT NULL AND corps_purge_le=0')
     .run(Date.now(), lim);
-  return Number(r.changes || 0);
+  const n = Number(r.changes || 0);
+  /* ⛔ LA PURGE DOIT RENDRE LA PLACE AU COMPTEUR, sinon le plafond ne redescend jamais et une
+     entreprise ancienne reste bloquée pour toujours alors qu'on vient de libérer son disque. */
+  if (n) {
+    const seq = parseInt(db.prepare("SELECT val FROM meta WHERE cle='seq'").get().val, 10) || 0;
+    majAnnuaire(t, seq);
+  }
+  return n;
 }
 
 /* Toutes les entreprises, pour la minuterie quotidienne. Ne crée aucune base : ne visite que
@@ -803,6 +917,9 @@ function diagnosticsDe(t, max) {
 
 /* L'ancre : le dernier maillon, plus le nombre de lignes. C'est ce qui part par courriel —
    deux nombres et une empreinte, aucun nom d'entreprise, aucun motif. */
+function reglageLire(cle) { const l = annuaire().prepare('SELECT val FROM reglage WHERE cle=?').get(cle); return l ? l.val : null; }
+function reglagePoser(cle, val) { annuaire().prepare('INSERT INTO reglage (cle,val) VALUES (?,?) ON CONFLICT(cle) DO UPDATE SET val=excluded.val').run(cle, String(val)); }
+
 function ancre() {
   const db = annuaire();
   const d = db.prepare('SELECT rang, chaine_sha, ts FROM diagnostic ORDER BY rang DESC LIMIT 1').get();
@@ -826,6 +943,100 @@ function ancreVerifier() {
     prec = l.chaine_sha;
   }
   return { ok: true, lignes: lignes.length };
+}
+
+/* ══ L'INSTANTANÉ POUR LA SAUVEGARDE ════════════════════════════════════════════════════════
+ * ⛔ ON NE MET JAMAIS UN FICHIER SQLite VIVANT DANS UNE ARCHIVE. C'est le constat le plus grave
+ * de la vérification du 18 septembre 2026, et il touchait quelque chose de DÉJÀ DÉPLOYÉ : la
+ * sauvegarde nocturne archive `DATA_DIR` avec `tar`, à chaud. Les `.json` du dépôt supportent
+ * ça (temporaire puis renommage, donc atomiques) et les `.jsonl` aussi (ajout en fin). SQLite
+ * en WAL est une TROISIÈME famille, et c'est celle qui casse : `tar` lit `base.db`, un point de
+ * reprise a lieu pendant l'archivage, `tar` lit ensuite `-wal` — et les deux moitiés ne vont
+ * plus ensemble. MESURÉ : la base restaurée lève `database disk image is malformed` au premier
+ * SELECT. ⛔ Et rien ne le voyait : la relecture COMPTE les entrées de `tar -t`, elle n'ouvre
+ * aucune base — l'archive était déclarée « restaurable » toutes les nuits.
+ *
+ * `VACUUM INTO` est la réponse de SQLite à exactement cette question : il écrit une copie
+ * COHÉRENTE, dans une transaction, sans WAL à côté, sans figer les écritures en cours. On
+ * archive l'instantané et on EXCLUT les fichiers vivants.
+ */
+function instantanerVers(dossier) {
+  fs.mkdirSync(dossier, { recursive: true });
+  for (const f of fs.readdirSync(dossier)) { try { fs.unlinkSync(path.join(dossier, f)); } catch (e) {} }
+  const fait = [], echecs = [];
+  const copier = (db, vers) => {
+    /* Le chemin passe dans le SQL : on n'y met que des chemins qu'on a construits nous-mêmes,
+       et l'apostrophe est doublée par principe — une seule porte, une seule règle. */
+    db.exec("VACUUM INTO '" + String(vers).replace(/'/g, "''") + "'");
+    return fs.statSync(vers).size;
+  };
+  let octets = 0;
+  if (fs.existsSync(ANNUAIRE_PATH)) {
+    const v = path.join(dossier, 'socle-annuaire.db');
+    octets += copier(annuaire(), v); fait.push('socle-annuaire.db');
+  }
+  let noms = []; try { noms = fs.readdirSync(SOCLE_DIR); } catch (e) {}
+  for (const d of noms) {
+    if (!RE_T.test(d) || !fs.existsSync(path.join(SOCLE_DIR, d, 'base.db'))) continue;
+    const v = path.join(dossier, d + '.db');
+    try {
+      /* On passe par `ouvrir()` — donc par les deux témoins de clé. */
+      octets += copier(ouvrir(d), v); fait.push(d + '.db');
+    } catch (e) {
+      /* ⛔ UNE BASE QU'ON NE SAIT PLUS OUVRIR NE DOIT PAS FAIRE ÉCHOUER LA SAUVEGARDE DES
+         QUARANTE-NEUF AUTRES. La première version jetait : une seule entreprise au témoin de
+         clé cassé — c'est-à-dire précisément une entreprise EN DIFFICULTÉ — et plus personne
+         n'était sauvegardé, toutes les nuits, jusqu'à ce qu'on s'en aperçoive. C'est la même
+         faute que « une ligne illisible bloquait toute l'entreprise », d'un cran au-dessus.
+         ⛔ ET ON NE LA LAISSE PAS TOMBER POUR AUTANT : on recopie ses octets bruts. Un fichier
+         abîmé se répare parfois ; un fichier absent de l'archive, jamais. Il est marqué, donc
+         la restauration saura qu'il n'est pas passé par un instantané cohérent. */
+      try { fs.copyFileSync(path.join(SOCLE_DIR, d, 'base.db'), v + '.brut'); octets += fs.statSync(v + '.brut').size; } catch (x) {}
+      echecs.push(d);
+      console.error('socle: instantané impossible pour une base — copie brute à la place (' + (e.code || 'témoin de clé'), ')');
+    }
+  }
+  return { bases: fait.length, octets, fichiers: fait, echecs };
+}
+
+/* Le chemin inverse, pour la restauration : un instantané redevient une arborescence vivante. */
+function restaurerDepuis(dossier, versDataDir) {
+  const cible = versDataDir || DATA_DIR;
+  let n = 0;
+  for (const f of fs.readdirSync(dossier)) {
+    if (!f.endsWith('.db')) continue;
+    if (f === 'socle-annuaire.db') { fs.copyFileSync(path.join(dossier, f), path.join(cible, 'socle-annuaire.db')); n++; continue; }
+    const t = f.slice(0, -3);
+    if (!RE_T.test(t)) continue;
+    fs.mkdirSync(path.join(cible, 'socle', t), { recursive: true });
+    fs.copyFileSync(path.join(dossier, f), path.join(cible, 'socle', t, 'base.db'));
+    n++;
+  }
+  return n;
+}
+
+/* ⛔ LE CONTRÔLE D'INTÉGRITÉ D'UN FICHIER PASSE AUSSI PAR ICI. La sauvegarde et la restauration
+ * ont besoin d'OUVRIR une base pour dire si elle est saine — et c'est justement ce qui manquait
+ * (elles comptaient des noms de fichiers). Mais leur laisser faire leur propre `require('node:
+ * sqlite')` rouvrirait la porte que ce fichier existe pour tenir fermée : `tests/test-723.js`
+ * compte les requérants et en exige UN SEUL.
+ * ⚠️ Cette fonction NE DÉCHIFFRE RIEN et n'a besoin d'aucune clé : « ce fichier est-il intact »
+ * et « sais-je le lire » sont deux questions distinctes, et seule la première est du ressort
+ * d'une sauvegarde. `quick_check` parcourt réellement les pages — c'est lui qui voit un
+ * « database disk image is malformed » qu'un `SELECT 1` ne verrait pas. */
+function controlerFichier(chemin) {
+  let db = null;
+  try {
+    db = new (moteur().DatabaseSync)(chemin, { readOnly: true });
+    const q = db.prepare('PRAGMA quick_check').get();
+    const v = q && (q.quick_check || Object.values(q)[0]);
+    if (String(v) !== 'ok') return { ok: false, motif: String(v).slice(0, 120) };
+    return { ok: true, lignes: db.prepare('SELECT COUNT(*) AS n FROM enr').get().n };
+  } catch (e) {
+    /* Une base d'annuaire n'a pas de table `enr` : ce n'est pas une corruption. */
+    if (/no such table/i.test(e.message)) return { ok: true, lignes: null };
+    return { ok: false, motif: e.message.slice(0, 120) };
+  } finally { try { if (db) db.close(); } catch (e) {} }
 }
 
 /* ══ FERMER PROPREMENT ══════════════════════════════════════════════════════════════════════
@@ -866,7 +1077,7 @@ function sante() { semerCompteurs(); return { actif: true, bases: _nbBases, cle:
 module.exports = {
   ouvrir, annuaire, dekDe, pousser, depuis, etat, rang, existe, verifier, effacerEntreprise, sante, fermer,
   exigerT, numeroReserver, journalDe,
-  entrepriseEtat, entrepriseOuvrir, echecEnrolement, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
+  entrepriseEtat, entrepriseOuvrir, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
   diagnostic, diagnosticsDe, ancre, ancreVerifier,
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,

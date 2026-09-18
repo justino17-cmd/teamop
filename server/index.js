@@ -3076,7 +3076,14 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
      la genèse que ce fichier décrit plus bas. Ici l'ajouter est gratuit : l'ancien espace est
      mort, personne n'a besoin de sa session. */
   const cut = t ? await fbRevoquerEquipe(t) : { fait: true, motif: 'aucun ancien espace' };
+  /* ⛔ ON COUPE PUIS ON EFFACE — les deux, comme les trois autres portes. Celle-ci n'effaçait
+     pas, et c'est précisément la porte qui, dix lignes plus haut, supprime le document Firestore
+     de l'ancien espace et le retire des registres : la base du socle serait restée sur le
+     disque avec toutes ses données et sa clé, **sans qu'aucun registre ne porte plus ce `t`** —
+     un orphelin que personne ne saurait plus rattacher à une entreprise, donc que personne
+     n'effacerait jamais. C'est le mot pour mot du commentaire voisin sur les pièces jointes. */
   const cutSocle = socleCouper(t, 'repartir à neuf'); if (!cutSocle.fait) { cut.fait = false; cut.motif = (cut.motif || '') + ' — ' + cutSocle.motif; }
+  if (t) { const efS = socleEffacer(t); if (!efS.ok) { cut.fait = false; cut.motif = (cut.motif || '') + ' — ' + efS.motif; } }
   /* ⛔ ET SES PIÈCES JOINTES (16 septembre 2026). Cette porte-ci efface le document de
      l'ANCIEN espace : les photos qu'il avait déposées doivent partir avec, sinon elles
      survivent à un espace que plus rien ne référence — un orphelin que personne ne saura plus
@@ -3437,7 +3444,12 @@ try {
    on perd la sauvegarde, pas la plateforme, et `/health` le dit. */
 let sauvegarde = null;
 try {
-  sauvegarde = require('./sauvegarde').monterSauvegarde(app, { config, DATA_DIR, CONFIG_PATH, garde: monPatronStrict });
+  /* ⛔ `socle` EST PASSÉ À LA SAUVEGARDE, et ce n'est pas une commodité : sans lui, l'archive
+     nocturne emporterait les bases SQLite VIVANTES et les restaurerait corrompues, en se
+     déclarant valide. Il est passé même quand le socle est éteint : il n'y a alors aucune base
+     à instantaner, la fonction rend 0, et rien n'est exclu de l'archive — donc aucun changement
+     pour la production d'aujourd'hui. */
+  sauvegarde = require('./sauvegarde').monterSauvegarde(app, { config, DATA_DIR, CONFIG_PATH, garde: monPatronStrict, socle: require('./socle') });
 } catch (e) {
   console.error('sauvegarde hors site non montée :', e.message);
 }
@@ -3458,6 +3470,19 @@ function socleCouper(t, quoi) {
   } catch (e) {
     console.error('⛔ socle NON coupé (' + (quoi || '?') + ') :', e.code || 'erreur');
     return { fait: false, motif: 'socle NON coupé — les appareils lisent et écrivent toujours' };
+  }
+}
+/* Le geste inverse, et il DOIT exister : une fermeture sans réouverture n'est pas une
+   suspension, c'est une condamnation. Même forme que `socleCouper` — un verdict que
+   l'appelant remonte, jamais un booléen muet. */
+function socleOuvrir(t) {
+  if (!opSocle || !opSocle.actif || !t) return { fait: true, motif: 'socle éteint' };
+  try {
+    const r = require('./socle').entrepriseOuvrir(t, true);
+    return { fait: true, motif: 'espace ' + r.etat };
+  } catch (e) {
+    console.error('⛔ socle NON rouvert :', e.code || 'erreur');
+    return { fait: false, motif: 'socle NON rouvert — cette entreprise ne pourra PAS synchroniser' };
   }
 }
 function socleEffacer(t) {
@@ -4280,7 +4305,19 @@ app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => 
      Firebase — et on le DIT, parce qu'une suspension qu'on croit effective alors qu'elle ne
      l'est pas est pire que pas de suspension du tout. Rien à faire à la réouverture : les
      appareils redemanderont un jeton et l'obtiendront. */
-  if (rouvrir) return res.json({ ok: true, suspendu: false });
+  /* ⛔ ROUVRIR DOIT ROUVRIR LE SOCLE, ET C'EST LA MOITIÉ QU'ON AVAIT OUBLIÉE. Le commentaire
+     d'origine disait « rien à faire à la réouverture : les appareils redemanderont un jeton et
+     l'obtiendront » — c'est vrai de Firebase, dont la coupure est un état volatil, et FAUX du
+     socle, dont l'état est ÉCRIT SUR DISQUE. La ligne de fermeture a été ajoutée sous ce
+     commentaire sans le rejuger. Conséquence mesurée : une entreprise suspendue pour impayé
+     qui régularise restait bloquée POUR TOUJOURS — 403 sur tous ses appareils — pendant que la
+     Tour, l'annuaire et Firebase la disaient active. C'est « croire une entreprise ouverte
+     alors qu'elle est fermée », l'exact symétrique de la panne que ce dépôt nomme, et il n'y
+     avait aucun écran pour la rouvrir. */
+  if (rouvrir) {
+    const ouv = socleOuvrir(t);
+    return res.json({ ok: true, suspendu: false, socle: ouv.fait, socleMotif: ouv.motif });
+  }
   const cut = await fbRevoquerEquipe(t);
   const cutSocle = socleCouper(t, 'fermeture'); if (!cutSocle.fait) { cut.fait = false; cut.motif = (cut.motif || '') + ' — ' + cutSocle.motif; }
   res.json({ ok: true, suspendu: true, coupure: cut.fait, coupureMotif: cut.motif });
@@ -7108,8 +7145,8 @@ setInterval(rappelsEcheances, 6 * 3600000);   // puis toutes les 6 heures
    démarrer »). La raison est mesurée : un push sur `main` touchant `server/**` DÉPLOIE
    (`.github/workflows/deploiement.yml`). Un serveur qui refuse de démarrer, c'est ELAN sans API
    du tout — une panne bien pire qu'une route fantôme. L'endroit où il faut refuser, c'est AVANT
-   le déploiement : `tests/test-723.js` lance le vrai serveur et exige zéro doublon, donc la CI
-   tombe et le commit ne part pas. Ici, on crie : au journal, et sur `/health` (donc dans la
+   le déploiement : `tests/test-724.js` lance le vrai serveur et exige zéro doublon (723, lui,
+   exerce le module sans serveur), donc la CI tombe et le commit ne part pas. Ici, on crie : au journal, et sur `/health` (donc dans la
    surveillance horaire). Bruyant et vivant plutôt que muet ou mort. */
 const routesDoublons = (() => {
   const vu = new Map(), doubles = [];
@@ -7151,6 +7188,12 @@ function arretPropre(signal) {
      et le secours sert enfin à quelque chose : si une connexion tenue (un long-poll) empêche
      `close()` de rendre la main, on sort quand même au bout de cinq secondes plutôt que de
      pendre jusqu'au SIGKILL de systemd. */
+  /* ⛔ ON RELÂCHE LES FLUX AVANT DE FERMER LE SERVEUR. `close()` attend que TOUTES les
+     connexions se terminent ; un long-poll est tenu 25 s et il y en a toujours au moins un en
+     production. Mesuré : avec un seul flux ouvert, `close()` ne rappelait jamais, le secours
+     de 5 s sortait, « socle fermé » n'était jamais écrit et le WAL restait sur le disque — à
+     chaque déploiement. Relâcher d'abord fait aboutir `close()` en quelques millisecondes. */
+  try { if (opSocle && opSocle.relacher) console.log('flux relâchés :', opSocle.relacher()); } catch (e) {}
   const fermerSocle = () => {
     try { if (opSocle && opSocle.fermer) console.log('socle fermé :', JSON.stringify(opSocle.fermer())); }
     catch (e) { console.error('socle non fermé :', e.code || 'erreur'); }

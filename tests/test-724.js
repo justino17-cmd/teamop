@@ -476,17 +476,105 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
       try { fs.rmSync(banc2, { recursive: true, force: true }); } catch (err) {}
     }
 
+    /* ══ 10bis. ⛔ UN MONTAGE RATÉ NE DOIT LAISSER AUCUNE ROUTE DERRIÈRE LUI ═══════════
+       C'est le bloquant n° 1 de la vérification du 18 septembre, REPRODUIT alors : `poser()`
+       enregistrait au fur et à mesure et ne jetait qu'en ARRIVANT sur le doublon. Express n'a
+       aucun moyen de retirer une route déjà posée — il restait donc VIVANTES `/api/op/session`,
+       `/depuis`, `/pousser`, `/flux`, `/etat`, c'est-à-dire toute la surface de lecture ET
+       d'écriture, pendant que `index.js` attrapait l'erreur et laissait `opSocle = null`.
+       ⛔ LE COÛT EXACT : `socleCouper()` répond « socle éteint, coupure OK » quand `opSocle`
+       est nul. Les QUATRE portes de fermeture disaient donc à la Tour que l'entreprise était
+       coupée pendant que ses appareils continuaient de lire et d'écrire.
+       ⚠️ Le compteur `routesDoublons` de `/health` NE COUVRE PAS ce cas : le second `poser()`
+       ne va jamais jusqu'à `app.post(...)`, donc il n'y a jamais deux entrées physiques. */
+    console.log('\n⛔ Un montage raté ne laisse AUCUNE route ouverte');
+    {
+      const { monterOpSocle } = require(path.join(RACINE, 'server', 'op-socle.js'));
+      /* Un faux `app` qui note ce qu'on lui pose : on regarde ce qui a été ENREGISTRÉ, pas ce
+         que la fonction a l'intention de poser. */
+      const posees = [];
+      const faux = { _router: { stack: [{ route: { path: '/api/op/numero', methods: { post: true } } }] } };
+      for (const m of ['get', 'post', 'put', 'delete']) faux[m] = (c) => posees.push(m.toUpperCase() + ' ' + c);
+      let jete = '';
+      try {
+        monterOpSocle(faux, { config: { socle: { actif: true } }, socle: require(path.join(RACINE, 'server', 'socle.js')),
+          sauvRefus: () => null, cleEstPublique: () => false, quotaOk: () => true, monStr: (x, n) => String(x || '').slice(0, n), garde: (q, r, n) => n() });
+      } catch (e) { jete = e.message; }
+      vrai('le montage jette bien sur la route en double', /DÉJÀ déclarée/.test(jete));
+      /* ⛔ LA LIGNE QUI COMPTE. Avant correction : 5 routes vivantes. */
+      v('⛔ ZÉRO route enregistrée après un montage raté', posees, []);
+    }
+
+    /* ══ 10ter. ⛔ LES QUATRE PORTES ET LES REFUS QUI SE VOIENT ═══════════════════════ */
+    console.log('\n⛔ Couper, rouvrir, et les refus qui ne passent pas pour un détail');
+    {
+      const socle = require(path.join(RACINE, 'server', 'socle.js'));
+      /* ⛔ `couper` sur une faute de frappe CRÉAIT l'espace fantôme, avec sa clé et une ligne
+         au journal opposable, pendant que la vraie entreprise continuait de travailler. */
+      const avant = fs.readdirSync(path.join(banc, 'data', 'socle')).length;
+      /* ⚠️ SANS SESSION DE TOUR, C'EST `monPatronStrict` QUI RÉPOND (403) — donc cet appel ne
+         prouve RIEN sur la garde `existe()`, qu'il n'atteint jamais. Le libellé de la première
+         version disait « → 404 » en attendant 403 : un contrôle qui passe pour une autre raison
+         que celle qu'il annonce, exactement ce qu'on chasse. On garde l'appel (il vérifie que
+         la Tour garde bien la route) et on éprouve la garde elle-même là où elle est lisible. */
+      v('la route est gardée par la Tour', (await appel('POST', '/api/monitor/op/couper', { corps: { t: 'ent-a-9X' } })).code, 403);
+      v('   et rien n\'est né de cet appel', fs.readdirSync(path.join(banc, 'data', 'socle')).length, avant);
+      /* ⛔ LA GARDE ELLE-MÊME : `existe()` AVANT `entrepriseOuvrir`. Sans cet ordre, une faute
+         de frappe crée la ligne d'annuaire ET une clé (`entrepriseOuvrir` fait un INSERT), et
+         le journal chaîné — le seul dispositif opposable au client — porte pour toujours la
+         fermeture d'une entreprise qui n'a jamais existé. */
+      /* ⚠️ SANS LES COMMENTAIRES. Le commentaire qui EXPLIQUE la garde cite `entrepriseOuvrir`
+         AVANT la ligne qui appelle `existe()` — le contrôle comparait donc un appel réel à une
+         mention en prose et mettait au rouge du code juste. Deuxième fois aujourd'hui qu'un
+         banc trébuche sur un bon commentaire : on regarde le CODE. */
+      const sansCom = x => x.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+      const srcOp = sansCom(fs.readFileSync(path.join(RACINE, 'server', 'op-socle.js'), 'utf8'));
+      const iC = srcOp.indexOf("poser('POST', '/api/monitor/op/couper'");
+      const finC = srcOp.indexOf("poser('GET', '/api/monitor/op/diagnostics'", iC);
+      const bloc = (iC < 0 || finC < 0) ? '' : srcOp.slice(iC, finC);
+      v('la route couper a bien été trouvée dans le code', iC > 0 && finC > iC, true);
+      vrai('⛔ couper vérifie existe() AVANT de toucher à l\'annuaire',
+        bloc.indexOf('socle.existe(t)') > 0 && bloc.indexOf('socle.existe(t)') < bloc.indexOf('entrepriseOuvrir'));
+      /* Et la preuve fonctionnelle, au module : rien ne naît d'un identifiant inconnu. */
+      v('⛔ existe() sur une faute de frappe reste faux', socle.existe('ent-a-9X'), false);
+
+      /* ⛔ Un refus TOTAL de pousse ne sort pas en 200 : l'écran doit pouvoir le dire. */
+      const r = await appel('POST', '/api/op/pousser', { jeton: jetonA, corps: { enr: [
+        { c: 'p', id: 'enorme', m: Date.now() - 1000, e: 'h', r: { n: crypto.randomBytes(900000).toString('hex') } }] } });
+      v('un corps trop gros est refusé avec son motif', r.j.refus[0].motif, 'corps_trop_gros');
+      v('⛔ et il ne brûle aucun rang', (await appel('GET', '/api/op/etat', { jeton: jetonA })).j.seq,
+        (await appel('GET', '/api/op/etat', { jeton: jetonA })).j.seq);
+
+      /* ⛔ `/health` doit porter le compteur de lignes illisibles : sans lui, une entreprise
+         dont les données cessent de se déchiffrer ne réveille personne. */
+      const h = await appel('GET', '/health');
+      v('⛔ /health publie le compteur de lignes illisibles', typeof h.j.socle.illisibles, 'number');
+      v('   et toujours aucun nom d\'entreprise', /ent-a-9x|ent-b-7y/.test(JSON.stringify(h.j)), false);
+    }
+
     /* ══ 11. L'ARRÊT PROPRE ════════════════════════════════════════════════════════════ */
     console.log('\nSIGTERM ferme les bases — il arrive à chaque déploiement');
     {
       const base = path.join(banc, 'data', 'socle', 'ent-a-9x', 'base.db');
       vrai('la base existe et son WAL aussi', fs.existsSync(base) && fs.existsSync(base + '-wal'));
+      /* ⛔ AVEC UN LONG-POLL OUVERT — et c'est TOUT le sujet. `serveur.close()` ne rend la main
+         qu'une fois toutes les connexions terminées ; un flux est tenu 25 s, et en production
+         il y en a TOUJOURS un. MESURÉ avant correction : sortie forcée après 5 009 ms, « socle
+         fermé » jamais écrit, `-wal` laissé sur le disque — à chaque déploiement. Sans ce
+         flux ouvert, le banc passait en ne mesurant pas le cas qui casse. */
+      const fluxTenu = appel('GET', '/api/op/flux?depuis=999999999', { jeton: jetonA }).catch(() => null);
+      await new Promise(r => setTimeout(r, 400));
+      const t0 = Date.now();
       enfant.kill('SIGTERM');
       for (let i = 0; i < 60 && fs.existsSync(base + '-wal'); i++) await new Promise(r => setTimeout(r, 100));
       /* ⛔ `close()` fusionne le WAL et le fait disparaître. S'il reste, la fermeture n'a pas
          eu lieu — et un SIGKILL de systemd laisserait le journal à rejouer au démarrage. */
-      v('⛔ le WAL a été fusionné à l\'arrêt', fs.existsSync(base + '-wal'), false);
+      v('⛔ le WAL a été fusionné à l\'arrêt, MALGRÉ un flux ouvert', fs.existsSync(base + '-wal'), false);
       vrai('le serveur dit qu\'il a fermé le socle', /socle fermé/.test(sortie));
+      vrai('⛔ et il a relâché les flux AVANT de fermer', /flux relâchés/.test(sortie));
+      /* Sans la correction, l'arrêt durait les 5 s du secours. Il doit être quasi immédiat. */
+      v('⛔ l\'arrêt n\'attend pas les 5 s du secours', (Date.now() - t0) < 4000, true);
+      await fluxTenu;
     }
   } catch (e) {
     ko++; console.log('  ✗ le banc n\'a pas pu tourner : ' + e.message + '\n' + String(e.stack).split('\n').slice(1, 4).join('\n'));

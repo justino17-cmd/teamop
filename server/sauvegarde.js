@@ -148,6 +148,34 @@ async function fabriquer(sortie, cle, sources, exclure) {
    sauvegarde. Rend le nombre d'entrées, ou lève. Sert à la vérification après dépôt ET à
    `restaurer.js`, qui n'a donc pas sa propre copie de ce code (une seconde définition finirait
    par diverger, et c'est le jour de la restauration qu'on s'en apercevrait). */
+/* ⛔ RELIRE UNE BASE, C'EST L'OUVRIR — pas compter des lignes de `tar -t`. Cette fonction
+ * existe parce que la relecture précédente déclarait « restaurable » une archive dont les
+ * bases SQLite étaient illisibles : elle comptait des NOMS DE FICHIERS. On déballe donc
+ * l'instantané dans un temporaire, on ouvre chaque base et on fait un vrai SELECT dedans.
+ * ⚠️ On n'ouvre PAS par le socle (qui exigerait la clé maître et les deux témoins) : ce qu'on
+ * vérifie ici, c'est l'INTÉGRITÉ DU FICHIER, pas qu'on sache le déchiffrer. Les deux questions
+ * sont distinctes et une seule est du ressort de la sauvegarde. */
+async function verifierSocle(archive, cle, socle) {
+  const dossier = archive + '.socle';
+  try { fs.rmSync(dossier, { recursive: true, force: true }); } catch (e) {}
+  fs.mkdirSync(dossier, { recursive: true });
+  try {
+    await relire(archive, cle, dossier);
+    const dedans = path.join(dossier, socle.SOCLE_INSTANTANE);
+    let noms = []; try { noms = fs.readdirSync(dedans).filter(f => f.endsWith('.db')); } catch (e) {}
+    if (!noms.length) return { ok: false, bases: 0, cassees: -1 };   // l'instantané devait y être
+    /* ⛔ PAR `socle.controlerFichier`, PAS PAR UN `require('node:sqlite')` LOCAL. Tout l'accès
+       SQL du produit a UNE seule porte, et `tests/test-723.js` compte les requérants. */
+    let cassees = 0;
+    for (const f of noms) if (!socle.controlerFichier(path.join(dedans, f)).ok) cassees++;
+    return { ok: cassees === 0, bases: noms.length, cassees };
+  } catch (e) {
+    return { ok: false, bases: 0, cassees: -1 };
+  } finally {
+    try { fs.rmSync(dossier, { recursive: true, force: true }); } catch (e) {}
+  }
+}
+
 function relire(chemin, cle, extraireVers) {
   return new Promise((resolve, reject) => {
     let stat; try { stat = fs.statSync(chemin); } catch (e) { return reject(new Error('archive introuvable')); }
@@ -268,12 +296,48 @@ function monterSauvegarde(app, deps) {
       const sources = [DATA_DIR];
       try { if (CONFIG_PATH && fs.statSync(CONFIG_PATH).isFile()) sources.push(CONFIG_PATH); } catch (e) {}
 
+      /* ⛔ LES BASES SQLite DU SOCLE NE PARTENT PAS VIVANTES. `tar` lit `base.db`, un point de
+         reprise a lieu pendant l'archivage, `tar` lit ensuite `-wal` : les deux moitiés ne vont
+         plus ensemble. MESURÉ le 18 septembre 2026 — la base restaurée lève `database disk
+         image is malformed` au premier SELECT. Et rien ne le voyait, parce que la relecture
+         plus bas COMPTE des entrées de `tar -t` sans jamais ouvrir une base : l'archive était
+         déclarée « restaurable » toutes les nuits. On prend donc un instantané cohérent
+         (`VACUUM INTO`, la réponse de SQLite à exactement cette question) et on EXCLUT les
+         fichiers vivants de l'archive.
+         ⚠️ Si l'instantané échoue, on ÉCHOUE LA SAUVEGARDE — on ne dépose pas une archive
+         amputée du socle en la déclarant bonne. Une sauvegarde qui ment est pire que pas de
+         sauvegarde : on ne la découvre que le jour où on en a besoin. */
+      let instantane = null;
+      if (deps.socle) {
+        try {
+          const dossier = path.join(TMP_DIR, deps.socle.SOCLE_INSTANTANE);
+          instantane = deps.socle.instantanerVers(dossier);
+          if (instantane.bases || (instantane.echecs && instantane.echecs.length)) sources.push(dossier);
+          /* ⛔ UNE BASE QU'ON N'A PAS PU INSTANTANER EST UN INCIDENT, PAS UN DÉTAIL — mais elle
+             ne fait pas échouer la sauvegarde des autres. Ses octets bruts partent quand même
+             (un fichier abîmé se répare parfois ; absent de l'archive, jamais) et le nombre
+             remonte : `/health` le publie, la surveillance horaire le voit. */
+          if (instantane.echecs && instantane.echecs.length) {
+            etat.instantaneEchecs = instantane.echecs.length;
+            console.error('⛔ sauvegarde : ' + instantane.echecs.length + ' base(s) non instantanée(s) — copie brute, à examiner');
+          } else etat.instantaneEchecs = 0;
+        } catch (e) {
+          console.error('sauvegarde : instantané du socle IMPOSSIBLE —', e.code || 'erreur');
+          return noter(false, 'socle-instantane', {});
+        }
+      }
+
       /* Deux exclusions : le dossier temporaire actuel (il est SIBLING de DATA_DIR, donc hors
          de l'archive de toute façon — ceinture en plus des bretelles si quelqu'un règle
          `TEAMOP_DATA` autrement), et le NOM QUE PORTAIT le temporaire avant correction. Sans la
          seconde, un reste laissé par une version antérieure serait ré-archivé chaque nuit, pour
          toujours, en grossissant l'archive de son propre poids. */
-      const faite = await fabriquer(tmp, cle, sources, [path.basename(TMP_DIR), '.sauvegarde-*.tmp', '.sauvegarde-*.tmp.relu']);
+      /* Les fichiers VIVANTS du socle sont exclus : seul l'instantané entre dans l'archive.
+         Les trois suffixes, pas seulement `base.db` — un `-wal` orphelin dans l'archive ferait
+         croire à une base en cours d'écriture au moment de la restauration. */
+      const faite = await fabriquer(tmp, cle, sources,
+        [path.basename(TMP_DIR), '.sauvegarde-*.tmp', '.sauvegarde-*.tmp.relu',
+         'socle', 'socle-annuaire.db', 'socle-annuaire.db-wal', 'socle-annuaire.db-shm']);
       if (faite.octets > MAX_OCTETS) return noter(false, 'trop-volumineuse', { octets: faite.octets });
 
       /* ⛔ ENVOI ET RELECTURE EN FLUX. Ils lisaient l'archive ENTIÈRE en mémoire, deux fois —
@@ -293,6 +357,13 @@ function monterSauvegarde(app, deps) {
 
       const ouverte = await relire(tmpRelu, cle, null);
       if (!ouverte.entrees) return noter(false, 'archive-vide', { octets: faite.octets });
+      /* ⛔ COMPTER DES ENTRÉES N'EST PAS RELIRE. C'est ce qui a laissé passer des bases
+         corrompues pendant qu'on écrivait « ✅ restaurable » : `tar -t` liste des noms, il
+         n'ouvre rien. On DÉBALLE l'instantané et on fait un vrai SELECT dans chaque base. */
+      if (instantane && instantane.bases) {
+        const v = await verifierSocle(tmpRelu, cle, deps.socle);
+        if (!v.ok) return noter(false, 'socle-illisible', { octets: faite.octets, bases: v.bases, cassees: v.cassees });
+      }
 
       /* La rétention seulement après une sauvegarde RÉUSSIE : on n'efface jamais une ancienne
          copie sur la foi d'une nouvelle qu'on n'a pas pu rouvrir. */

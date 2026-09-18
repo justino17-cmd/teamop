@@ -103,6 +103,12 @@ Restart=always
 RestartSec=3
 User=root
 Environment=PORT=8080
+# ⛔ LA CLÉ MAÎTRE DU SOCLE VIT HORS DE /opt, ET C'EST TOUT L'INTÉRÊT. Un instantané IONOS est
+# une image de VOLUME, un disque volé aussi : ranger la clé dans l'arborescence qu'elle protège
+# ne protège que d'un disque éteint qu'on aurait démonté à la main. systemd la charge depuis
+# /etc/teamop/kek (chmod 600) et la dépose dans un répertoire éphémère, effacé à l'arrêt du
+# service — le serveur la lit par $CREDENTIALS_DIRECTORY et ne la voit nulle part ailleurs.
+LoadCredential=teamop_kek:/etc/teamop/kek
 
 [Install]
 WantedBy=multi-user.target
@@ -113,6 +119,35 @@ $DOMAIN {
     reverse_proxy 127.0.0.1:8080
 }
 EOF
+
+# ══ LA CLÉ MAÎTRE DU SOCLE ═══════════════════════════════════════════════════════════════════
+# ⛔ SANS ELLE, CE N'EST PAS LE SOCLE QUI CASSE EN PREMIER, CE SONT LES QUATRE PORTES DE LA TOUR.
+# Le jour où `socle.actif` passe à true, `socleCouper()` appelle une fonction qui exige la clé :
+# suspendre, fermer un client, supprimer une entreprise et « repartir à neuf » remontent alors
+# un échec — c'est-à-dire que fermer une entreprise devient impossible. D'où : on la pose À
+# L'INSTALLATION, avant que quiconque puisse allumer le drapeau.
+# ⛔ ON NE LA RÉGÉNÈRE JAMAIS SI ELLE EXISTE. Une clé neuve sur des bases existantes rendrait
+# les données de toutes les entreprises définitivement illisibles — c'est exactement ce que le
+# serveur refuse de faire au démarrage, et une réinstallation ne doit pas pouvoir contourner ce
+# refus en silence.
+echo "── Clé maître du socle…"
+mkdir -p /etc/teamop
+chmod 700 /etc/teamop
+if [ -s /etc/teamop/kek ]; then
+  echo "  clé déjà présente — ON N'Y TOUCHE PAS (la régénérer rendrait les données illisibles)"
+else
+  node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))" > /etc/teamop/kek
+  chmod 600 /etc/teamop/kek
+  echo ""
+  echo "  ⛔⛔ CLÉ MAÎTRE GÉNÉRÉE — À METTRE EN SÉQUESTRE MAINTENANT, PAS PLUS TARD :"
+  echo ""
+  echo "      $(cat /etc/teamop/kek)"
+  echo ""
+  echo "  Sans elle, un VPS perdu = des sauvegardes définitivement illisibles. Le nuage ne"
+  echo "  stocke que du chiffré. La ranger dans DEUX endroits distincts (gestionnaire de mots"
+  echo "  de passe + copie scellée hors ligne), puis vérifier qu'on sait la relire."
+  echo ""
+fi
 
 echo "── [6/6] Démarrage des services…"
 systemctl daemon-reload

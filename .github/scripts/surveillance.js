@@ -88,6 +88,11 @@ function get(url) {
     if (j.socle && j.socle.erreur) problems.push('⛔ le socle (stockage serveur) n\'a PAS pu se monter au démarrage — ce n\'est pas « éteint », c\'est CASSÉ : journalctl -u teamop-api | grep "socle non monté"');
     /* Une clé maître absente alors que le socle tourne, c'est un INCIDENT, pas une installation
        neuve : les bases existantes ne se déchiffreront plus. Ne JAMAIS en générer une autre. */
+    /* ⛔ DES LIGNES QUI NE SE DÉCHIFFRENT PLUS, C'EST UN INCIDENT, PAS UNE STATISTIQUE. Le
+       journal du serveur ne nomme aucun espace (règle du dépôt) : sans cette alarme, on
+       saurait qu'il y a des lignes illisibles et jamais chez qui, donc on ne ferait rien. Le
+       « chez qui » est dans la Tour, qui est gardée. */
+    if (j.socle && j.socle.illisibles > 0) problems.push('⛔ ' + j.socle.illisibles + ' ligne(s) du socle ne se déchiffrent PLUS — trafic, restauration mal ciblée ou bloc abîmé. Voir la Tour (aperçu d\'un espace, « vérifier ») pour savoir chez qui.');
     if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre et redémarrer.');
     if (typeof j.bugs1h === 'number' && j.bugs1h > 0) problems.push(j.bugs1h + ' erreur(s) signalée(s) par les applications des entreprises dans la dernière heure (vigie) — voir l\'e-mail d\'alerte et corriger au plus vite');
   } catch (e) { problems.push('api.teamop.fr/health : injoignable — ' + e.message); }

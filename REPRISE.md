@@ -110,6 +110,46 @@ la surveillance horaire. Bruyant et vivant plutôt que muet ou mort.
    jamais réemployé), plus un contrôle de rang manquant : sans lui, effacer une ligne ne
    casserait AUCUNE empreinte, puisque chaque maillon ne connaît que son prédécesseur.
 
+### ⛔⛔ LA VÉRIFICATION EXHAUSTIVE DU 18 AU SOIR — 42 RELECTURES, 36 CONSTATS, 12 BLOQUANTS
+
+Justin, après la première annonce d'« étape 1 finie » : **« on vérifie à chaque étape qu'elles
+sont faites »**. Six axes indépendants (le plan, les commentaires, les interdits de `CLAUDE.md`,
+les bancs, la sécurité, la complétude), chaque constat réfuté par défaut avant d'être retenu.
+**L'étape n'était pas finie.** Ce qui a été trouvé, et corrigé :
+
+| ⛔ | ce qui se serait passé | mesuré |
+|---|---|---|
+| **La sauvegarde ne sauvegardait pas le socle** | les bases SQLite partaient VIVANTES dans l'archive nocturne, restaurées corrompues, **et la relecture les déclarait bonnes** (elle comptait des noms de fichiers) | **5 bases corrompues sur 6** archivages pendant des écritures ; **0 sur 3** après correction |
+| **Fermer ne se rouvrait pas** | trois portes fermaient le socle, **aucune ne le rouvrait** : un client suspendu qui repaie restait bloqué **pour toujours**, Tour au vert | reproduit |
+| **« Repartir à neuf » n'effaçait pas** | la base de l'ancien espace survivait, orpheline, avec sa clé, sans qu'aucun registre ne porte plus son identifiant | reproduit |
+| **Un montage raté laissait 5 routes ouvertes** | lecture ET écriture vivantes pendant que les quatre portes répondaient « coupure OK » à la Tour | reproduit par sonde |
+| **Aucun témoin de clé d'entreprise** | un annuaire plus ancien que les bases faisait **fabriquer une clé neuve en silence** : tout devient illisible, le serveur reste vert, et les écritures suivantes interdisent le retour | reproduit |
+| **`corps_trop_gros` brûlait un rang** | le flux répondait « du neuf » sans rien livrer → **boucle serrée** jusqu'à épuiser le quota horaire de toute l'entreprise, irréversiblement | reproduit |
+| **SIGTERM ne fermait jamais rien** | un seul long-poll ouvert — donc toujours, en production — et l'arrêt sortait en force après 5 s sans fusionner le WAL, **à chaque déploiement** | mesuré : 5 009 ms |
+| **`install.sh` ne posait pas la clé maître** | au premier `socle.actif: true`, ce ne sont pas les données qui cassent, ce sont **les quatre portes de fermeture de la Tour** | — |
+| **Le flux rehachait toute la base** | 42 ms × 1 200 sondages/min = **50 s de blocage sur 60**, pour tous les clients, depuis un seul jeton légitime | **586× moins cher** après |
+| **`sante()` balayait le disque depuis `/health`** (publique) | le défaut que les pièces jointes avaient déjà payé, réintroduit huit lignes sous le commentaire qui l'interdit | linéaire dans le nombre de clients |
+| **Le quota comptait le vingtième du réel** | il ignorait le journal de 90 jours, qui garde une copie scellée de chaque version | **×19,9** mesuré |
+| **L'aperçu de la Tour déchiffrait tout** | 368 ms de serveur gelé à chaque ouverture d'écran | sur demande explicite désormais |
+
+**Et trois affirmations fausses dans les commentaires**, toutes corrigées : la purge à 90 jours
+(qui n'existait pas), « présenter l'`app_id` d'un collègue ne le déconnecte pas » (si), « on se
+donne 5 secondes » (le minuteur ne pouvait pas servir). Plus : l'ancre du journal lisait un
+réglage inventé (`alerteEmail`) qui n'existe nulle part — elle ne partait **jamais**, en
+silence ; et sa minuterie de 24 h ne se déclenchait de toute façon jamais sur un serveur qui
+redémarre plusieurs fois par jour.
+
+⚠️ **Deux défauts introduits PAR les correctifs, et rattrapés** : une base illisible faisait
+échouer la sauvegarde de **toutes** les autres (même faute qu'« une ligne illisible bloquait
+toute l'entreprise », d'un cran au-dessus — elle est maintenant copiée brute et signalée) ; et
+un refus de clé maître rendait l'erreur brute de GCM au lieu du message qui dit quoi faire.
+
+⚠️ **Trois bancs trébuchaient sur des COMMENTAIRES** (le mot `require('node:sqlite')` cité dans
+une phrase, `entrepriseOuvrir` mentionné dans l'explication de sa propre garde) et un figeait
+une ligne à la lettre. Corrigés pour regarder le code — jamais affaiblis.
+
+**Après correction : 2 886 vérifications, 0 échec** (`test-723` 112 ✓, `test-724` 106 ✓).
+
 ### ⛔ LA RELECTURE `gardien` DU 18 AU SOIR — 15 constats, et elle a payé
 
 Elle n'a **rien trouvé sur l'axe n° 1** (fuite d'une entreprise vers une autre) et le dit :

@@ -56,6 +56,23 @@ function monterOpSocle(app, deps) {
     if (!c.route || !c.route.path) continue;
     for (const m of Object.keys(c.route.methods || {})) dejaDeclarees.add(m.toUpperCase() + ' ' + c.route.path);
   }
+  /* ⛔ DEUX PASSES : ON COLLECTE, ON VALIDE TOUT, PUIS SEULEMENT ON ENREGISTRE. La première
+     version enregistrait au fur et à mesure et ne jetait qu'en ARRIVANT sur le doublon —
+     REPRODUIT le 18 septembre 2026 : `monterOpSocle` jetait, `index.js` attrapait, `opSocle`
+     restait `null`, et il restait VIVANTES `/api/op/session`, `/depuis`, `/pousser`, `/flux`,
+     `/etat` — toute la surface de lecture ET d'écriture. Express n'a aucun moyen de retirer une
+     route déjà posée : il n'y avait donc plus d'interrupteur du tout.
+     ⛔ LE COÛT EXACT : `socleCouper()` teste `if (!opSocle || !opSocle.actif) return {fait:true}`.
+     Les QUATRE portes de fermeture répondaient donc « coupure OK » à la Tour pendant que les
+     appareils lisaient et écrivaient par les routes restées ouvertes. C'est mot pour mot la
+     panne que ce fichier dénonce, avec l'écran qui la maquille. En prime, ni la minuterie
+     d'ancre ni celle de purge n'étaient créées, et `etat.fermer` n'était jamais câblé — donc
+     SIGTERM ne fermait plus les bases.
+     ⚠️ Le compteur global `routesDoublons` de `/health` NE COUVRE PAS ce cas : il compte les
+     chemins réellement enregistrés deux fois, or ici le second `poser()` ne va jamais jusqu'à
+     `app.post(...)`. Il n'y a donc jamais deux entrées physiques. C'est pour ça que la garde
+     doit être ici, en deux passes, et pas seulement là-bas. */
+  const aPoser = [];
   const poser = (methode, chemin, ...suite) => {
     const cle = methode.toUpperCase() + ' ' + chemin;
     if (dejaDeclarees.has(cle)) {
@@ -64,8 +81,13 @@ function monterOpSocle(app, deps) {
         + "l'autre — c'est la panne de /api/devis/etat, restée invisible des mois.");
     }
     dejaDeclarees.add(cle);
-    etat.routes.push(cle);
-    app[methode.toLowerCase()](chemin, ...suite);
+    aPoser.push({ methode: methode.toLowerCase(), chemin, suite, cle });
+  };
+  /* Appelée UNE FOIS, tout à la fin, quand plus rien ne peut jeter. Avant elle, aucune route
+     du socle n'existe sur `app` — donc un échec de montage laisse le serveur exactement comme
+     si le drapeau était éteint, ce qui est le seul état sûr. */
+  const enregistrer = () => {
+    for (const r of aPoser) { app[r.methode](r.chemin, ...r.suite); etat.routes.push(r.cle); }
   };
 
   /* ══ LE TEMPS RÉEL — LE FLUX NE TRANSPORTE QUE `{seq}` ════════════════════════════════════
@@ -73,6 +95,15 @@ function monterOpSocle(app, deps) {
      rappelle `/api/op/depuis`. Conséquence : un message perdu, doublé, réordonné ou coupé ne
      peut RIEN casser, une reconnexion reprend exactement où elle en était, et le serveur n'a
      pas à re-chiffrer le même corps pour chaque auditeur. */
+  /* ⛔ UNE ENTREPRISE QUI CESSE DE SE DÉCHIFFRER NE FAISAIT SONNER AUCUNE ALARME. Le journal du
+     serveur ne nomme aucun espace — c'est la bonne règle — mais du coup on savait « il y a des
+     lignes illisibles » et jamais « chez qui ». On compte donc par entreprise EN MÉMOIRE (la
+     Tour le lit, elle est déjà gardée) et on publie l'AGRÉGÉ sur `/health` (publique : un
+     nombre, jamais un nom). Une ligne qui cesse de se déchiffrer, c'est un incident — trafic,
+     restauration mal ciblée, bloc abîmé — et il doit réveiller quelqu'un. */
+  const illisibles = new Map();     // t -> nombre vu depuis le démarrage
+  const illisiblesDe = t => illisibles.get(t) || 0;
+  const noterIllisibles = (t, n) => { if (n) illisibles.set(t, (illisibles.get(t) || 0) + n); };
   const attentes = new Map();       // t -> Set<{resoudre, app_id, minuteur}>
   const diagSessions = new Map();   // t -> { qui, exp } — une ouverture de diagnostic motivée
   function sessionDiag(t) { const d = diagSessions.get(t); return (d && Date.now() < d.exp) ? d : null; }
@@ -199,7 +230,7 @@ function monterOpSocle(app, deps) {
        déchiffre plus est un incident (trafic, restauration mal ciblée, bloc abîmé) : elle ne
        doit ni faire tomber la synchro de l'entreprise, ni disparaître sans bruit. L'écran peut
        dire « 1 enregistrement illisible » ; le journal du serveur ne nomme personne. */
-    if (d.illisibles.length) console.error('socle: ' + d.illisibles.length + ' ligne(s) illisible(s) à la lecture');
+    if (d.illisibles.length) { noterIllisibles(req.op.t, d.illisibles.length); console.error('socle: ' + d.illisibles.length + ' ligne(s) illisible(s) à la lecture'); }
     res.json({ seq: d.seq, curseur: d.curseur, reste: d.reste, enr: d.enr, illisibles: d.illisibles.length });
   });
 
@@ -218,6 +249,16 @@ function monterOpSocle(app, deps) {
     }
     catch (e) { console.error('socle: pousse impossible —', e.code || 'erreur'); return res.status(503).json({ error: 'écriture indisponible — rien n\'a été enregistré', motif: 'base' }); }
     if (r.acceptes) reveiller(req.op.t, r.seq, req.op.app_id);
+    /* ⛔ UN REFUS TOTAL NE SORT PAS EN 200. Quand la place manque, RIEN n'a été écrit : rendre
+       200 avec une liste de refus laisse l'écran libre de n'y voir qu'un détail, et c'est
+       exactement « un refus ne se montre pas tout seul ». Deux codes distincts parce que les
+       deux causes appellent deux gestes différents : 507 c'est CETTE entreprise qui déborde
+       (on règle son plafond), 503 c'est le DISQUE du serveur (personne n'écrit plus, c'est
+       nous qui devons agir). Le motif voyage dans les deux cas. */
+    if (!r.acceptes && r.refus.length && r.refus.every(x => x.motif === 'espace_plein'))
+      return res.status(507).json(Object.assign({}, r, { error: 'L\'espace de stockage de cette entreprise est plein. Rien n\'a été enregistré. Contacte TEAM OP.' }));
+    if (!r.acceptes && r.refus.length && r.refus.every(x => x.motif === 'disque_plein'))
+      return res.status(503).json(Object.assign({}, r, { error: 'Le serveur manque de place. Rien n\'a été enregistré, ton travail est conservé sur l\'appareil. Réessaie plus tard.' }));
     res.json(r);
   });
 
@@ -284,18 +325,26 @@ function monterOpSocle(app, deps) {
        code mort, et `?t=faute-de-frappe` répondait 200 avec un état vide — la Tour affichait un
        stockage sain pour un espace inexistant, écrivait une ligne au journal opposable pour un
        `t` fantôme, et laissait une base vide sur le disque. `gardien`, 18 septembre 2026. */
-    let e, appareils, etatEnt, verif;
+    let e, appareils, etatEnt, verif = null;
     try {
       if (!socle.existe(t)) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
-      e = socle.etat(t); appareils = socle.appareilsDe(t); etatEnt = socle.entrepriseEtat(t); verif = socle.verifier(t);
+      e = socle.etat(t); appareils = socle.appareilsDe(t); etatEnt = socle.entrepriseEtat(t);
+      /* ⛔ LE CONTRÔLE COMPLET NE SE FAIT PAS À L'OUVERTURE D'UN ÉCRAN. `verifier()` DÉCHIFFRE
+         toute la base : MESURÉ 368 ms de boucle d'événements gelée — pour TOUS les clients, à
+         chaque fois que quelqu'un ouvre cet écran de la Tour. C'est le défaut que les pièces
+         jointes ont déjà payé, une troisième fois. Il se demande explicitement (`?verifier=1`),
+         il ne se subit pas. Le compteur pas cher (`illisiblesVus`) suffit à savoir s'il faut
+         le demander. */
+      if (req.query.verifier === '1') verif = socle.verifier(t);
     } catch (err) { return res.status(503).json({ error: 'stockage illisible' }); }
     res.json({ seq: e.seq, octets: e.octets, signature: e.signature, parColl: e.parColl,
       etat: etatEnt.etat, ferme_le: etatEnt.ferme_le, horlogeAvancee: e.horlogeAvancee,
-      /* ⛔ « COMBIEN » NE SUFFIT PAS, IL FAUT « LESQUELLES ». Le journal du serveur ne nomme
-         aucun espace (c'est la bonne règle), donc sans cette remontée on saurait qu'une ligne
-         ne se déchiffre plus et jamais chez qui — une alerte anonyme sur laquelle on ne peut
-         pas agir. Ici on est déjà derrière `monPatronStrict`. */
-      illisibles: verif.illisibles, relues: verif.lues,
+      /* ⛔ ÉCRIT ET JAMAIS LU EST AUSSI GRAVE QUE CRÉÉ ET JAMAIS ÉCRIT. Le compteur d'échecs
+         d'enrôlement existait sur le disque et AUCUNE route ne le rendait : quelqu'un cherchant
+         si un espace est mitraillé aurait conclu qu'il ne l'était pas. Il est ici, avec le
+         nombre de lignes qu'on n'a pas su déchiffrer depuis le démarrage. */
+      echecsEnrolement: e.echecsEnrolement, illisiblesVus: illisiblesDe(t),
+      verif: verif ? { lues: verif.lues, illisibles: verif.illisibles, ok: verif.ok } : null,
       appareils: appareils.map(a => ({ nom: a.nom, cree_le: a.cree_le, vu_le: a.vu_le, revoque: !!a.revoque_le })),
       ouvert: !!sessionDiag(t) });
   });
@@ -331,7 +380,13 @@ function monterOpSocle(app, deps) {
     let l;
     try { l = socle.journalDe(t, monStr(req.query.coll, 40), monStr(req.query.id, 80), req.query.max); }
     catch (e) { return res.status(503).json({ error: 'journal indisponible' }); }
-    try { socle.diagnostic(t, { qui: d.qui, motif: 'lecture du journal', portee: monStr(req.query.coll, 40) || 'tout', n: l.length, ipH: hachIp(req) }); } catch (e) {}
+    /* ⛔ ON TRACE CELUI QUI LIT, PAS CELUI QUI A OUVERT. La session de diagnostic dure 30
+       minutes et n'est pas nominative : attribuer la lecture à `d.qui` (celui qui a saisi le
+       motif) nommerait la mauvaise personne dans le SEUL journal opposable au client, dès
+       qu'il y aura deux comptes dans la Tour. `req.tourUser` est relu à chaque requête par
+       `monPatronStrict` — c'est lui qui dit qui est devant l'écran maintenant. */
+    const lecteur = String((req.tourUser && req.tourUser.nom) || d.qui || 'tour').slice(0, 60);
+    try { socle.diagnostic(t, { qui: lecteur, motif: 'lecture du journal', portee: monStr(req.query.coll, 40) || 'tout', n: l.length, ipH: hachIp(req) }); } catch (e) {}
     res.json({ lignes: l });
   });
 
@@ -340,6 +395,16 @@ function monterOpSocle(app, deps) {
   poser('POST', '/api/monitor/op/couper', garde, (req, res) => {
     const t = monStr((req.body || {}).t, 80);
     if (!t) return res.status(400).json({ error: 't requis' });
+    /* ⛔ LA QUATRIÈME PORTE AVAIT OUBLIÉ LA GARDE. `apercu` et `ouvrir` vérifiaient `existe()`,
+       pas `couper` — et `entrepriseOuvrir()` fait un INSERT qui CRÉE la ligne d'annuaire ET une
+       clé pour un `t` qui n'existe pas. MESURÉ : une faute de frappe (`elan-34oX`) faisait
+       naître l'espace fantôme, la route répondait `{ok:true, etat:'ferme'}`, et le journal
+       chaîné — le seul dispositif opposable au client — portait pour toujours la fermeture
+       d'une entreprise qui n'a jamais existé. Pendant ce temps la vraie, correctement
+       orthographiée, lisait et écrivait toujours. */
+    let la = false;
+    try { la = socle.existe(t); } catch (e) {}
+    if (!la) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
     /* ⛔ ON FERME L'ENTREPRISE, ON NE COUPE PAS QUE SES SESSIONS. Couper les sessions seules
        ne coupait RIEN : l'appareil rappelait `/api/op/session` avec la même clé d'équipe dans
        la seconde et repartait pour 30 jours, pendant que la Tour affichait « révoqué ». Le
@@ -353,8 +418,11 @@ function monterOpSocle(app, deps) {
     res.json({ ok: true, etat: r.etat, coupees: r.coupees });
   });
 
-  /* ⛔ LISIBLE AUSSI PAR LE CLIENT DEPUIS SON ESPACE (étape ultérieure, même source). C'est le
-     seul geste qui rende vérifiable ce que promet `sous-traitance.html`. */
+  /* ⚠️ PAS ENCORE LISIBLE PAR LE CLIENT — et il faut l'écrire au futur tant que ça l'est. Une
+     version de ce commentaire l'affirmait au présent ; aucune route client n'expose ce journal
+     aujourd'hui. C'est pourtant le seul geste qui rendrait vérifiable ce que promet
+     `sous-traitance.html`, donc c'est une dette nommée, à livrer avant d'allumer le drapeau
+     chez un client. ⛔ Ne pas re-écrire cette phrase au présent avant que la route existe. */
   poser('GET', '/api/monitor/op/diagnostics', garde, (req, res) => {
     const t = monStr(req.query.t, 80);
     if (!t) return res.status(400).json({ error: 't requis' });
@@ -378,9 +446,22 @@ function monterOpSocle(app, deps) {
      ancre SORTIE DE LA MACHINE rend une RÉÉCRITURE COMPLÈTE détectable. Deux nombres et une
      empreinte partent par courriel : aucun nom d'entreprise, aucun motif, aucune adresse. */
   let minuteurAncre = null;
-  function ancreEnvoyer() {
+  const ANCRE_MS = 86400000;
+  function ancreEnvoyer(force) {
     let a; try { a = socle.ancre(); } catch (e) { return; }
     if (!a.lignes) return;   // rien à ancrer : on n'envoie pas un courriel vide chaque jour
+    /* ⛔ UNE MINUTERIE DE 24 HEURES NE SE DÉCLENCHE JAMAIS SUR CE SERVEUR. Un push sur `main`
+       touchant `server/**` déploie, donc redémarre — plusieurs fois par jour les jours chargés,
+       et le minuteur repart de zéro à chaque fois. L'ancre ne serait donc JAMAIS partie, en
+       silence, alors que c'est elle qui rend le journal chaîné opposable. La date du dernier
+       envoi vit sur DISQUE et on regarde toutes les heures s'il est temps. Même famille de
+       défaut que le compteur d'horloge : ce qui doit survivre au déploiement ne tient pas dans
+       une variable. */
+    if (!force) {
+      let dernier = 0;
+      try { dernier = parseInt(socle.reglageLire('ancre_envoyee_le'), 10) || 0; } catch (e) {}
+      if (Date.now() - dernier < ANCRE_MS) return;
+    }
     const texte = 'Ancre du journal de diagnostic OP SOCLE\n\n'
       + 'lignes : ' + a.lignes + '\nrang   : ' + a.rang + '\nempreinte : ' + a.sha
       + '\n\nConserver ce message. Il ne contient aucune donnée de client.\n'
@@ -409,8 +490,14 @@ function monterOpSocle(app, deps) {
          le dispositif tourne. */
       console.log('ancre socle (NON SORTIE DE LA MACHINE — notifDemandes non configuré) : ' + a.lignes + ' lignes, ' + a.sha);
     }
+    try { socle.reglagePoser('ancre_envoyee_le', Date.now()); } catch (e) {}
   }
-  minuteurAncre = setInterval(ancreEnvoyer, 86400000);
+  /* Toutes les heures on REGARDE s'il est temps ; c'est la date sur disque qui décide, pas le
+     minuteur. Et un premier regard 90 s après le démarrage, pour qu'un serveur redémarré à
+     répétition finisse quand même par envoyer son ancre. */
+  const premier = setTimeout(() => { try { ancreEnvoyer(); } catch (e) {} }, 90000);
+  premier.unref && premier.unref();
+  minuteurAncre = setInterval(() => { try { ancreEnvoyer(); } catch (e) {} }, 3600000);
   minuteurAncre.unref && minuteurAncre.unref();
 
   /* ⛔ LA PURGE À 90 JOURS, QUI N'EXISTAIT PAS ALORS QUE DEUX COMMENTAIRES L'AFFIRMAIENT AU
@@ -424,16 +511,35 @@ function monterOpSocle(app, deps) {
   }, 6 * 3600000);
   minuteurPurge.unref && minuteurPurge.unref();
 
+  /* ⛔ ICI, ET NULLE PART AVANT : c'est la seule ligne qui fasse exister les routes. Tout ce qui
+     précède ne fait que les décrire. Si quoi que ce soit a jeté au-dessus, le serveur est
+     exactement dans l'état « drapeau éteint », qui est le seul état sûr. */
+  enregistrer();
+
   etat.sante = () => {
     const s = socle.sante();
-    return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length };
+    /* ⛔ `/health` est PUBLIQUE : un NOMBRE de lignes illisibles, jamais chez qui. Le « chez
+       qui » est dans la Tour, qui est gardée. Mais le nombre doit sortir : sans lui, une
+       entreprise dont les données cessent de se déchiffrer ne réveille personne. */
+    let ill = 0; for (const n of illisibles.values()) ill += n;
+    return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length, illisibles: ill };
   };
-  etat.fermer = () => {
-    clearInterval(minuteurAncre); clearInterval(minuteurPurge);
-    for (const [t, s] of attentes) for (const a of s) { clearTimeout(a.minuteur); a.resoudre({ seq: 0, arret: true }); }
+  /* ⛔ DEUX TEMPS, ET L'ORDRE EST TOUT. `serveur.close()` ne rend la main qu'une fois TOUTES les
+     connexions terminées — or un long-poll est tenu 25 secondes, et en production il y a
+     TOUJOURS au moins un appareil qui en tient un. La première version appelait `etat.fermer()`
+     DANS le rappel de `close()` : MESURÉ sur le vrai serveur avec UN SEUL flux ouvert, sortie
+     forcée après 5 009 ms, « socle fermé » jamais écrit, et le `-wal` laissé sur le disque —
+     exactement ce que le bloc était censé empêcher, à chaque déploiement.
+     On libère donc les flux D'ABORD (`relacher`), ce qui laisse `close()` aboutir, et on ferme
+     les bases ENSUITE (`fermer`). */
+  etat.relacher = () => {
+    clearInterval(minuteurAncre); clearInterval(minuteurPurge); clearTimeout(premier);
+    let n = 0;
+    for (const [t, s] of attentes) for (const a of s) { clearTimeout(a.minuteur); a.resoudre({ seq: 0, arret: true }); n++; }
     attentes.clear();
-    return socle.fermer();
+    return n;
   };
+  etat.fermer = () => { etat.relacher(); return socle.fermer(); };
   etat.ancreEnvoyer = ancreEnvoyer;
   return etat;
 }
