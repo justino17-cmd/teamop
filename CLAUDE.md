@@ -575,6 +575,39 @@ worker comme avant, on régénère `beta.html`, on fait passer les suites — et
 Le report sur `main` de `app.html`/`sw.js` attend sa phrase. La bêta, elle, se publie librement :
 c'est son rôle.
 
+### ⛔ LES APPAREILS D'ABORD, LA PORTE ENSUITE — APPLIQUÉ AUX PHOTOS (19 septembre 2026)
+
+La règle existait déjà pour la clé Firestore. Personne ne l'avait appliquée aux **pièces
+jointes**, et c'est un bloquant de publication mesuré.
+
+Depuis l'étape 0, une photo ne vit plus dans le document d'équipe : `syncSortirPieces` y
+laisse le seul marqueur `piece:<64 hexa>`, le contenu part sur le VPS, et `photoSrc()` le
+retrouve. **`photoSrc()` n'existe pas avant la v702.**
+
+Un appareil resté en version antérieure met donc la chaîne `piece:aaa…` telle quelle dans un
+`<img src>` — et `printRapport()` la met **dans le PDF que ce technicien envoie au client**.
+Mesuré sur une copie d'aperçu de la v695 : `pdfContientPiece = true`, et la ligne du document
+affiche « 0 Ko ». Le client ne reçoit pas un rapport incomplet : il reçoit un rapport cassé,
+envoyé par quelqu'un qui croyait bien faire.
+
+⛔ **L'ORDRE, sans exception :**
+
+1. publier `app.html` et `sw.js` ;
+2. **attendre que la Tour ne montre plus AUCUN appareil sous la nouvelle version** (écran
+   Connexions) ;
+3. **seulement alors** poser `teamop_config/version.min` à cette version, dans Firestore
+   **et** côté API — les deux, pas l'un des deux ;
+4. et tant que (2) n'est pas vrai, **ne pas prendre de photo depuis un appareil à jour** sur
+   une entreprise dont le parc est mélangé.
+
+⚠️ Le point qui coûte est le (2) : c'est une ATTENTE, et une attente se saute. La v702 a été
+prête le 19 septembre au matin ; publier `app.html` le jour même sans exiger la version
+aurait envoyé des PDF cassés à des clients d'ELAN dans la journée.
+
+⚠️ Corollaire pour toute fonctionnalité future qui ALLÈGE un enregistrement synchronisé : se
+demander d'abord **ce qu'en fait la version d'AVANT**. Un allègement n'est jamais neutre pour
+un parc mélangé — et un parc est toujours mélangé pendant quelques jours.
+
 ### ⛔ REDURCIE LE 15 SEPTEMBRE 2026 AU SOIR — RIEN NE PART SANS ÊTRE ÉPROUVÉ
 
 Justin, après une soirée à trois publications (v690, v691, serveur+Tour) : **« avant d'envoyer

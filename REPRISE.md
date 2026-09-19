@@ -22,6 +22,22 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ⚠️ AVANT DE PUBLIER `app.html` — LA CONDITION QUI N'EST PAS DANS LE CODE
+
+Trois bloquants de publication ont été trouvés le 19 septembre au soir, tous dans les photos.
+**Deux sont corrigés** (le budget anti-abus des pièces, la regreffe des photos). Le troisième
+n'est pas un défaut de code : c'est un ORDRE, et il ne se corrige pas, il se RESPECTE.
+
+Un appareil resté en v695 met `piece:aaa…` dans un `<img>` **et dans le PDF qu'il envoie au
+client** — mesuré sur une copie d'aperçu de la v695. Donc :
+
+1. publier `app.html` + `sw.js` ;
+2. **attendre que la Tour ne montre plus aucun appareil sous la version** (écran Connexions) ;
+3. **puis seulement** poser `version.min` dans Firestore ET côté API.
+
+Le (2) est une ATTENTE, et une attente se saute. C'est le point qui coûte.
+Détail complet dans `CLAUDE.md`, section « les appareils d'abord, la porte ensuite ».
+
 ## A. Ce qui tourne chez les clients EN CE MOMENT — mesuré, pas supposé
 
 | | servi | source |
