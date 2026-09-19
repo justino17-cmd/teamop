@@ -6150,6 +6150,94 @@ function collsFusion(d){ return Object.keys(d||{}).filter(k=>Array.isArray(d[k])
 const COLLS_DICT=['plansSite','planNotes','permissions'];
 function dictFusion(prio,autre){ const out=Object.assign({},autre&&typeof autre==='object'?autre:{});
   Object.keys(prio&&typeof prio==='object'?prio:{}).forEach(k=>{ out[k]=prio[k]; }); return out; }
+/* ══ LE CLASSEMENT DES 83 CLÉS DE `db` — ÉTAPE 2 DU SOCLE ═══════════════════════════════════
+   ⛔ POURQUOI CETTE TABLE EXISTE, ET POURQUOI ELLE EST LA PREMIÈRE CHOSE ÉCRITE DE L'ÉTAPE 2.
+   `collsFusion` prend « toute clé qui se trouve être un tableau » (ligne ~6137) : la règle est
+   IMPLICITE, donc invisible, donc impossible à vérifier. Un inventaire bâti sur
+   `COLLECTIONS_DONNEES` (27 entrées) ou sur les 28 de `migrate()` rate `boxDecisions`,
+   `produitsDistincts`, `bonsRemise`, `interventionsArchive`, `indispos`, `activites`,
+   `mailSent`. Le convertisseur qui vient ensuite touche TOUTES ces clés : une seule oubliée,
+   et l'aller-retour perd des données sans bruit.
+   ⚠️ Ce n'est PAS une liste blanche des clés autorisées : c'est un CLASSEMENT de celles qui
+   existent. `tests/test-731.js` énumère les clés d'une base vivante et REFUSE toute clé non
+   classée — en créer une demain oblige donc à dire de quel genre elle est, une fois, par écrit.
+   C'est la règle implicite rendue explicite, sans devenir une liste figée qui raterait en
+   silence ce qu'on écrira après.
+
+   Les genres, et ce que chacun devient côté socle :
+
+     liste      un tableau d'enregistrements portant `id` → une LIGNE par enregistrement,
+                `enr(coll=<clé>, id=r.id)`. C'est le cas de loin le plus courant.
+     liste_cle  pareil, mais l'identifiant s'appelle autrement (`roles` porte `cle`).
+     liste_ts   ⛔ un tableau SANS identifiant : `mailSent` et `planJournal` n'ont que `ts`.
+                Le convertisseur leur en donne un, dérivé du contenu — pas `uid()`, qui
+                changerait à chaque passage et ferait renaître la même ligne indéfiniment.
+     box        `boxes` seule. Elle ÉCLATE : la box d'un côté, son stock ligne à ligne de
+                l'autre (`box_stock`, id `<boxId>|<produitId>`), marques de retrait comprises.
+                C'est tout l'intérêt du chantier — voir `boxFusionFine`.
+     dict       un dictionnaire → une ligne par CLÉ. Les réunir en bloc écraserait le plan
+                d'appâtage d'un client par celui d'un autre (la panne de `plansSite`).
+     tombes     `_tombes` et `usersSupprimes` : ce ne sont pas des données, ce sont des
+                pierres tombales → `supprime_le` sur la ligne visée.
+     reglage    un scalaire ou un petit objet propre à l'entreprise. ⚠️ PHASE A : transporté
+                en UN SEUL bloc opaque, parce qu'`estampiller()` ne pose pas de `_m` sur un
+                objet — les découper maintenant les rendrait refusés à jamais (`non_date`).
+                Ils passeront ligne à ligne en phase B, après extension d'`estampiller()`.
+
+   ⛔ RIEN N'EST « LOCAL ». Même les drapeaux de semis (`foursSeeded`, `prixSeededV`,
+   `permsRepris`, `dashV2`, `_regMigre`) sont classés : ils vivent dans `db`, donc ils
+   voyagent déjà aujourd'hui, et les laisser tomber ferait échouer l'aller-retour identique —
+   silencieusement, sur un champ dont personne ne se souvient. */
+const OP_CLASSES = {
+  /* ── Les listes d'enregistrements, identifiées par `id` ────────────────────────────── */
+  absences: 'liste', activites: 'liste', bons: 'liste', bonsRemise: 'liste',
+  boxDecisions: 'liste', boxMvtAttente: 'liste', brouillons: 'liste', champsPerso: 'liste',
+  chantiers: 'liste', clients: 'liste', conducteurs: 'liste', contrats: 'liste',
+  demandes: 'liste', devis: 'liste', enveloppes: 'liste', factures: 'liste',
+  fournisseurs: 'liste', groupes: 'liste', indispos: 'liste', interventions: 'liste',
+  interventionsArchive: 'liste', journal: 'liste', mailBoxes: 'liste', messages: 'liste',
+  mouvements: 'liste', pointages: 'liste', produits: 'liste', produitsDistincts: 'liste',
+  produitsDonnes: 'liste', profilsDroits: 'liste', registres: 'liste', taches: 'liste',
+  techArchive: 'liste', techniciens: 'liste', telecollectes: 'liste', users: 'liste',
+  vehicules: 'liste',
+
+  /* ── La même chose, sous un autre nom d'identifiant ────────────────────────────────── */
+  roles: 'liste_cle',
+
+  /* ── ⛔ Les deux tableaux SANS identifiant ─────────────────────────────────────────────
+     `mailSent` est un journal d'envois (`{ts,to,subject,…}`), `planJournal` un journal de
+     déplacements de planning (`{ts,par,titre,…}`). Les deux sont plafonnés (200 et 400) et
+     n'ont jamais eu besoin d'identité tant qu'ils vivaient dans un document unique. Une
+     ligne en a besoin : sans identifiant stable, chaque synchro en recrée une copie. */
+  mailSent: 'liste_ts', planJournal: 'liste_ts',
+
+  /* ── La box, qui éclate ────────────────────────────────────────────────────────────── */
+  boxes: 'box',
+
+  /* ── Les dictionnaires : une ligne par clé, jamais en bloc ─────────────────────────── */
+  permissions: 'dict', planNotes: 'dict', plansSite: 'dict', numMax: 'dict',
+  mailAssign: 'dict', ctrlValide: 'dict', planOrga: 'dict', planOrgaRef: 'dict',
+  roleMasques: 'dict', roleNoms: 'dict', societesStyle: 'dict',
+
+  /* ── Les pierres tombales ──────────────────────────────────────────────────────────── */
+  _tombes: 'tombes', usersSupprimes: 'tombes',
+
+  /* ── Les réglages de l'entreprise (phase A : un bloc opaque) ───────────────────────── */
+  _regMigre: 'reglage', armosaMailV1: 'reglage', bonsRemiseOff: 'reglage',
+  comptableEmail: 'reglage', dashLayout: 'reglage', dashV2: 'reglage',
+  devisIACode: 'reglage', entreprise: 'reglage', factAuto: 'reglage', factTva: 'reglage',
+  forfait: 'reglage', forfaitEssai: 'reglage', forfaitQty: 'reglage', forfaitSrv: 'reglage',
+  formuleAttente: 'reglage', foursEmailsV2: 'reglage', foursEmailsV3: 'reglage',
+  foursSeeded: 'reglage', foursSeededV: 'reglage', mailFrom: 'reglage', mailReply: 'reglage',
+  metier: 'reglage', orgaCanal: 'reglage', orgaMarge: 'reglage', orgaMsg: 'reglage',
+  permsRepris: 'reglage', prixSeededV: 'reglage', societes: 'reglage',
+  validDRTous: 'reglage',
+};
+/* Le nom du champ qui porte l'identité, par genre. Une seule définition : deux copies
+   calculeraient un jour deux identifiants différents, et la ligne viserait un enregistrement
+   qui n'existe pas — c'est la leçon de `fbUidEquipe`. */
+const OP_ID_DE = { liste: 'id', liste_cle: 'cle', box: 'id' };
+function opGenre(cle){ return OP_CLASSES[cle] || ''; }
 function recEmpreinte(r){ let h=2166136261; const t=JSON.stringify(r,(k,v)=>(k==='_m'||k==='_ms')?undefined:v)||''; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36); }
 /* ⛔ LA MAILLE DE LA FUSION : UNE BOX EST UN ENREGISTREMENT, MAIS DEUX PERSONNES Y TRAVAILLENT.
    Demande de Justin, 10 septembre 2026 : « il faut que personne n'écrase rien ». Le défaut est
