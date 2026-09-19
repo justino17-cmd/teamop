@@ -220,10 +220,16 @@ app.use((req, res, next) => {
   }
 
   /* Les pièces comptent à part, comme le battement et le socle — voir PLAFOND_PIECES.
-     ⛔ Et SEULEMENT si le module est monté : sans cette condition, des chemins qui répondent
-     404 bénéficieraient d'un plafond plus large que le reste du serveur, pour rien. C'est la
-     leçon déjà écrite pour `/api/op/*` juste au-dessus. */
-  if (pieces && req.path.startsWith('/api/pieces/')) {
+     ⛔ LES QUATRE CHEMINS QUI EXISTENT, PAS LE PRÉFIXE. La première version testait
+     `req.path.startsWith('/api/pieces/')` en promettant, dans son propre commentaire, que
+     « des chemins qui répondent 404 ne bénéficieraient pas d'un plafond plus large ». La
+     condition `pieces &&` ne couvrait que le cas où le module n'est PAS monté — c'est-à-dire
+     jamais en production. `GET /api/pieces/nimporte-quoi` en boucle passait donc dans le seau
+     à 900 au lieu du budget global à 120, pour un 404. Un commentaire n'est pas une garde.
+     ⚠️ Et `/i`, parce qu'Express route SANS tenir compte de la casse : `/api/PIECES/lire`
+     atteint le vrai gestionnaire. Sans le drapeau, il était compté dans le mauvais seau — une
+     faute de frappe suffisait à changer de plafond. */
+  if (pieces && /^\/api\/pieces\/(deposer|lire|supprimer|etat)\/?$/i.test(req.path)) {
     const p2 = (compteurs.get('p:' + ip) || 0) + 1;
     compteurs.set('p:' + ip, p2);
     if (p2 > PLAFOND_PIECES) return tropDeRequetes(res);
@@ -2086,7 +2092,13 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
   const sortie = [];
   for (const [slug, e] of Object.entries(espacesReg)) {
     let p = { paye: false, motif: '' };
-    try { p = await espacePaye(e); } catch (err) {}
+    /* ⛔ `Object.assign({ slug }, e)` ET PAS `e` : l'entrée brute du registre NE PORTE PAS de
+       champ `slug` (la ligne qui l'écrit ne le pose pas), alors qu'`espacePaye()` rattache un
+       abonnement Stripe par `[e.slug, e.t]`. Seul `/api/espaces/etat` passait une entrée
+       enrichie, via `espaceParT()` : la Tour, elle, rattachait par le `t` seul. Le jour où la
+       référence gravée vaut le SLUG, l'application dirait « payé » et la Tour « impayé »,
+       sur la même entreprise, au même instant — et on chercherait du côté de Stripe. */
+    try { p = await espacePaye(Object.assign({ slug }, e)); } catch (err) {}
     sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', quantite: e.quantite || 1,
       paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
       // qui a ouvert l'espace et quand : la Tour en a besoin pour lister les accès publics
@@ -2130,7 +2142,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
   const e = espacesReg[slug];
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
-  const p = await espacePaye(e);
+  const p = await espacePaye(Object.assign({ slug }, e));   // le slug n'est pas dans l'entrée — voir /liste
   res.json({ ok: true, formule: e.formule || '', quantite: e.quantite || 1, email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
 });
 // ── Activité par onglet (anonyme : noms d'écrans + compteurs, par espace) ──

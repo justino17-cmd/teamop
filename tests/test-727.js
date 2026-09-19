@@ -205,6 +205,45 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ une r\u00e9f\u00e9rence mal form\u00e9e n\'est PAS grav\u00e9e', /subscription_data/.test(r.envoye), false);
   }
 
+  /* 6. ⛔ ET LES TROIS APPELANTS DOIVENT VOIR LA MÊME ENTREPRISE.
+     `espacePaye()` rattache par `[e.slug, e.t]`. Or l'entrée brute du registre NE PORTE PAS de
+     champ `slug` : la ligne d'`/api/espaces/ouvrir` qui l'écrit ne le pose pas. Seul
+     `/api/espaces/etat` passait une entrée enrichie (par `espaceParT()`) ; les deux appels de
+     la Tour passaient l'entrée brute. Le commentaire « On compare le slug ET le `t` » était
+     donc faux sur deux appels sur trois — et le jour où la référence gravée vaut le SLUG,
+     l'application dirait « payé » et la Tour « impayé » sur la même entreprise, au même
+     instant. On chercherait du côté de Stripe, qui n'y serait pour rien. */
+  {
+    /* On liste les APPELS (jamais la définition) et ce que chacun passe. Un appelant qui passe
+       une variable nue doit tenir son entrée d'`espaceParT()`, la seule fonction qui pose le
+       slug ; tous les autres doivent le recoller eux-mêmes. */
+    /* ⛔ ON SCANNE LE CODE, PAS LES COMMENTAIRES. `espacePaye()` est citée huit fois dans des
+       explications de ce fichier — et un motif qui les attrape rend huit faux appelants, donc
+       un banc qui crie pour rien. C'est la troisième fois ce soir qu'un motif de banc tombe
+       sur une phrase au lieu d'une ligne de code : les commentaires s'enlèvent d'abord. */
+    const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const appels = [];
+    const re = /(?<!function )espacePaye\(([^)]+)\)/g;
+    let m;
+    while ((m = re.exec(CODE))) {
+      const avant = CODE.slice(Math.max(0, m.index - 600), m.index);
+      appels.push({ arg: m[1].trim(), parT: /espaceParT\(/.test(avant) });
+    }
+    vrai('   il y a bien plusieurs appelants à garder', appels.length >= 3);
+    const sansSlug = appels.filter(a2 => !/slug/.test(a2.arg) && !a2.parT).map(a2 => a2.arg);
+    v('⛔ aucun appelant ne passe l\'entrée BRUTE du registre (sans slug)', sansSlug, []);
+    /* Et `espaceParT` doit vraiment le poser — c'est ce sur quoi la dérogation ci-dessus
+       repose. Le jour où elle cesse, le contrôle d'au-dessus deviendrait une autorisation. */
+    vrai('⛔ et espaceParT pose bien le slug (sinon la dérogation ne vaut rien)',
+      /function espaceParT[\s\S]{0,800}?Object\.assign\(\{ slug \}/.test(SRC));
+    /* Le rattachement par slug, exécuté : sans le champ, il ne marche pas — c'est ce que la
+       Tour faisait. */
+    const avecSlug = await avec([ABO({ customer: { email: 'compta@ailleurs.fr' }, metadata: { espace: 'monclient' } })])({ slug: 'monclient', t: 'ent-x', email: '', formule: 'premium' });
+    v('⛔ une entrée AVEC slug se rattache par le slug', avecSlug.paye, true);
+    const sans = await avec([ABO({ customer: { email: 'compta@ailleurs.fr' }, metadata: { espace: 'monclient' } })])({ t: 'ent-x', email: '', formule: 'premium' });
+    v('   la même SANS slug ne se rattache pas (le défaut de la Tour)', sans.paye, false);
+  }
+
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exitCode = ko ? 1 : 0;
 })();

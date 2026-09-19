@@ -223,10 +223,29 @@ async function assembler(nom, opts) {
   }
   const port = await portLibre();
   let sortie = '';
+  /* ⛔ FAIRE ÉCHOUER UN MODULE AU MONTAGE, SANS TOUCHER AU CODE LIVRÉ. `opts.casser` nomme des
+     modules dont le `require` jettera : c'est la seule façon d'atteindre les branches de repli
+     d'`index.js` (`pieces ? … : null`, `sauvegarde ? … : {…}`), et ce sont précisément celles
+     que la panne du 19 septembre a empruntées — une zone morte temporelle avait laissé
+     `sauvegarde` à `null` avec une configuration PARFAITE. Sans ce levier, le banc assemblait
+     toujours un serveur où les modules se montent, donc ne voyait JAMAIS ces branches : il
+     gardait un chemin qu'il n'exécutait pas.
+     Un préchargement, pas une variable lue par le serveur : rien de ce mécanisme n'existe dans
+     le code de production, donc rien ne peut y être déclenché par accident. */
+  const envSup = { TEAMOP_CONFIG: cfgPath, TEAMOP_DATA: data, PORT: String(port), TEAMOP_KEK: KEK };
+  if (opts.casser && opts.casser.length) {
+    const pre = path.join(dir, 'casser.js');
+    fs.writeFileSync(pre, 'const M = require(\'module\');\n'
+      + 'const vrai = M.prototype.require;\n'
+      + 'const morts = ' + JSON.stringify(opts.casser) + ';\n'
+      + 'M.prototype.require = function (n) {\n'
+      + '  if (morts.includes(n)) throw new Error(\'module cass\\u00e9 par le banc : \' + n);\n'
+      + '  return vrai.apply(this, arguments);\n'
+      + '};\n');
+    envSup.NODE_OPTIONS = ((process.env.NODE_OPTIONS || '') + ' --require ' + pre).trim();
+  }
   const enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
-    env: Object.assign({}, process.env, {
-      TEAMOP_CONFIG: cfgPath, TEAMOP_DATA: data, PORT: String(port), TEAMOP_KEK: KEK,
-    }), stdio: ['ignore', 'pipe', 'pipe'],
+    env: Object.assign({}, process.env, envSup), stdio: ['ignore', 'pipe', 'pipe'],
   });
   enfant.stdout.on('data', d => { sortie += d; });
   enfant.stderr.on('data', d => { sortie += d; });
@@ -555,6 +574,20 @@ const menage = async () => {
       v('⛔ et une route sans rapport répond encore', ailleurs.code, 200);
       const tour = await A.appel('GET', '/api/monitor/sauvegarde/etat', { jeton: JETON_TOUR });
       v('   la Tour aussi', tour.code, 200);
+
+      /* ⛔ ET LE PLAFOND LARGE NE S'ATTRAPE PAS AVEC UNE FAUTE DE FRAPPE. Il testait
+         `req.path.startsWith('/api/pieces/')` — donc N'IMPORTE QUEL chemin sous ce préfixe,
+         404 compris — en promettant l'inverse dans son propre commentaire. Taper en boucle
+         `/api/pieces/nimporte-quoi` passait dans le seau à 900 au lieu du budget global à
+         120, pour des réponses 404. On vérifie ici que ces chemins-là retombent bien dans le
+         budget commun : c'est le seul moyen de distinguer les deux seaux de l'extérieur. */
+      let n404 = 0, refus404 = 0;
+      for (let i = 0; i < 140; i++) {
+        const r = await A.appel('POST', '/api/pieces/route-qui-nexiste-pas', { corps: {} });
+        if (r.code === 429) refus404++; else if (r.code === 404) n404++;
+      }
+      console.log('      140 appels à un chemin INEXISTANT sous /api/pieces/ → ' + n404 + ' × 404, ' + refus404 + ' × 429');
+      vrai('⛔ un chemin inexistant retombe dans le budget COMMUN (429 avant la 140ᵉ)', refus404 > 0);
     }
 
     await A.arreter();
@@ -833,6 +866,56 @@ const menage = async () => {
       faux('et aucun instantané, puisqu\'il n\'y avait rien', l3.some(f => f.startsWith('socle-instantane/')));
     }
     await I.arreter();
+
+    /* ══ 7. ⛔ QUAND UN MODULE NE SE MONTE PAS — LA BRANCHE DE REPLI DE /health ══════════
+       C'est le chemin exact de la panne du 19 septembre 2026, et AUCUN banc ne l'exécutait.
+       Une zone morte temporelle a laissé `sauvegarde` à `null` avec une configuration
+       PARFAITE ; `/health` répondait `{active:false}` et la surveillance a classé la panne en
+       « installation pas encore faite ». Les assemblages précédents montent toujours les
+       modules : dans tous, `atts: !!pieces` et `atts: true` rendent la MÊME valeur, donc le
+       contrôle écrit pour garder l'alarme `if (!j.atts)` ne pouvait rien garder du tout.
+       Ici on casse le montage pour de vrai, et on regarde ce que /health ose dire. */
+    console.log('\n⛔ Un module qui ne se monte pas : /health dit-il la vérité ?');
+    await dormir(1100);
+    {
+      const M = await assembler('modules-morts', { socle: false, endpoint: ENDPOINT, casser: ['./pieces', './sauvegarde'] });
+      vrai('le serveur démarre quand même (on perd un module, pas la plateforme)', M.vivant);
+      if (M.vivant) {
+        const { j } = await M.appel('GET', '/health');
+        /* ⛔ `atts` ÉTAIT ÉCRIT `true` EN DUR. L'alarme « pièces jointes désactivées, bons de
+           commande sans PDF » de surveillance.js ne pouvait donc JAMAIS se déclencher. C'est
+           le seul assemblage où la différence se voit — et il fallait l'écrire pour la voir. */
+        v('⛔ atts dit FAUX quand les pièces ne sont pas montées', j.atts, false);
+        const pj = await M.appel('POST', '/api/pieces/etat', { corps: {} });
+        v('   et les routes répondent 404, cohérentes avec lui', pj.code, 404);
+        v('   /health ne prétend pas connaître leur remplissage', j.pieces, null);
+
+        /* ⛔ TROIS ÉTATS, PAS DEUX — et c'est ICI que la règle se vérifie. `configuree:true`
+           avec `active:false` veut dire : quelqu'un a réglé la sauvegarde et elle NE MARCHE
+           PAS. C'est ce que la surveillance lit désormais pour crier toutes les heures au
+           lieu de murmurer une fois par jour. */
+        v('⛔ la sauvegarde se dit inactive', j.sauvegarde && j.sauvegarde.active, false);
+        v('⛔ MAIS configurée — c\'est une PANNE, pas une installation', j.sauvegarde && j.sauvegarde.configuree, true);
+        v('   et elle en donne le motif', j.sauvegarde && j.sauvegarde.erreur, 'montage');
+        vrai('⛔ le journal nomme la panne', /sauvegarde hors site non montée/.test(M.journal()));
+        vrai('   et celle des pièces aussi', /pièces jointes non montées/.test(M.journal()));
+      }
+      await M.arreter();
+    }
+    {
+      /* La contre-épreuve : sans bloc `sauvegarde` dans la configuration, ce n'est PAS une
+         panne — c'est une installation qu'on n'a pas encore faite, et la surveillance a
+         raison de n'en parler qu'une fois par jour. Sans cette ligne, on pourrait écrire
+         `configuree: true` en dur et tout passerait au vert. */
+      await dormir(1100);
+      const N2 = await assembler('sans-coffre-ni-module', { socle: false, sansCoffre: true, casser: ['./sauvegarde'] });
+      if (N2.vivant) {
+        const { j } = await N2.appel('GET', '/health');
+        v('⛔ sans bloc de configuration : inactive ET non configurée', [j.sauvegarde.active, j.sauvegarde.configuree], [false, false]);
+        v('   et aucun motif de panne à annoncer', j.sauvegarde.erreur, '');
+      }
+      await N2.arreter();
+    }
 
   } catch (e) {
     ko++; console.log('  ✗ banc interrompu : ' + e.message + '\n' + String(e.stack || '').split('\n').slice(1, 4).join('\n'));
