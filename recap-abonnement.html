@@ -339,7 +339,12 @@
   .puce-formule.active { background: var(--bleu-fond); border-color: var(--bleu); color: var(--texte); }
 
   @media (max-width: 860px) {
-    .grille { grid-template-columns: 1fr; }
+    /* ⛔ `minmax(0, 1fr)` ET PAS `1fr`. Une piste `1fr` a pour taille minimale `auto`, donc
+       elle ne descend PAS sous la largeur intrinsèque de son contenu : mesuré à 390 px, la
+       grille faisait 342 px et ses deux cartes 375 — la page débordait de 9 px et le
+       récapitulatif de prix glissait sous le bord de l'écran, sur un iPhone 12 à 15. C'est la
+       page où un prospect PAIE. `minmax(0, 1fr)` autorise la piste à rétrécir. */
+    .grille { grid-template-columns: minmax(0, 1fr); }
     .carte-paiement { position: static; }
     .titre-page { font-size: 24px; }
   }
