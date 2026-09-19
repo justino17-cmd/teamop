@@ -163,6 +163,25 @@ node server/restaurer.js essai                    # ouvre la dernière, compte, 
 node server/restaurer.js extraire <clé> /tmp/vps  # pose le contenu où on veut
 ```
 
+⛔ **Sur un VPS MORT, `config.json` n'existe plus — et c'est justement le cas de cette
+section.** `TEAMOP_SAUV_CLE` ne suffit alors pas : elle déchiffre l'archive, mais elle ne dit
+pas OÙ est le coffre. Sans l'adresse, le client S3 ne se construit même pas, et la commande
+échoue avant d'avoir rien téléchargé. Il faut **les deux** :
+
+```bash
+export TEAMOP_SAUV_CLE=<les 64 caractères>
+export TEAMOP_SAUV_COFFRE=<endpoint>,<bucket>,<accessKey>,<secretKey>
+node server/restaurer.js liste
+```
+
+Dans cet ordre, séparés par des virgules (une cinquième valeur, la région, est facultative).
+⚠️ **Ces quatre valeurs doivent être au séquestre À CÔTÉ des deux clés.** Elles vivent
+aujourd'hui dans `/opt/teamop/config.json` — c'est-à-dire sur la machine qu'on est en train de
+supposer perdue. Les y laisser seules, c'est avoir trois clés parfaites et aucune porte.
+Tant que `config.json` est lisible, `restaurer.js` les y prend tout seul : c'est pour cela que
+l'essai en répétition (section 6) passe sans elles, et que leur absence ne se remarque pas
+avant le jour où elle coûte tout.
+
 ⚠️ **Deux clés différentes, à ne jamais confondre :**
 
 | | ce qu'elle protège | où elle vit |
@@ -197,9 +216,16 @@ proprement : elles sont remises quand même, et elles demandent un examen. Ne pa
 ## 6. La liste avant de dire « c'est allumé »
 
 - [ ] la clé maître est en séquestre à DEUX endroits, et on sait la relire
+- [ ] la clé de SAUVEGARDE y est aussi — ce n'est pas la même (voir le tableau, section 5)
+- [ ] ⛔ **les quatre coordonnées du coffre** (endpoint, bucket, accessKey, secretKey) y sont
+      également : elles ne vivent aujourd'hui que dans `/opt/teamop/config.json`, c'est-à-dire
+      sur la machine qu'un sinistre fait disparaître. Trois clés parfaites et aucune porte,
+      c'est un coffre perdu.
 - [ ] `/health` → `socle.actif:true`, `socle.cle:true`
 - [ ] `/health` → `sauvegarde.active:true` et une sauvegarde a réussi depuis l'allumage
 - [ ] une restauration a été essayée POUR DE FAUX depuis l'allumage
+- [ ] ⚠️ et au moins une fois **sans `config.json`**, avec les deux variables d'environnement
+      seules : c'est le seul essai qui ressemble au sinistre réel
 - [ ] la première entreprise servie n'est pas ELAN
 - [ ] `socle.refus` est vide et `socle.illisibles` vaut 0 après 24 h
 - [ ] la surveillance horaire voit les compteurs (`.github/scripts/surveillance.js`)

@@ -876,11 +876,18 @@ async function promoValider() {
        est mémorisé pour que le champ de l'application soit pré-rempli le jour venu — il n'est
        PAS appliqué tout seul : une activation reste un geste de la personne. */
     try { localStorage.setItem('teamop_promo_en_attente', code); } catch (e) {}
+    /* ⛔ ON NE SE PORTE PAS GARANT DE CE QU'ON NE TIENT QUE SUR UN NAVIGATEUR. « Nous avons
+       noté votre code » était faux dès que la personne changeait d'appareil : elle valide
+       depuis son ordinateur, demande son accès, ouvre le lien sur son téléphone — le champ
+       est vide et rien ne lui rappelle le code. C'est la même classe de défaut que celle
+       qu'on vient de fermer deux lignes plus haut : dire au visiteur qu'une chose est faite
+       alors qu'elle ne l'est qu'à moitié. On lui donne donc le code EN CLAIR, à noter — le
+       pré-remplissage reste un confort quand c'est le même navigateur, pas une promesse. */
     dis('✓ Code valide : <b>' + j.mois + ' mois offert(s)</b>.<br>'
+      + 'Notez-le : <b style="font-size:16px;letter-spacing:.04em">' + code + '</b><br>'
       + 'Un code s\'applique à <b>votre espace</b> : ouvrez-le d\'abord avec votre lien de connexion, '
       + 'puis entrez ce code dans <b>Paramètres → Abonnement</b>.<br>'
-      + 'Pas encore d\'espace ? <a href="espace.html" style="color:#7ee2b8;text-decoration:underline">Demandez votre accès ici</a> — '
-      + 'nous avons noté votre code.', true);
+      + 'Pas encore d\'espace ? <a href="espace.html" style="color:#7ee2b8;text-decoration:underline">Demandez votre accès ici</a>.', true);
     if (btn) { btn.disabled = false; btn.textContent = 'Activer'; }
   } catch (e) { dis('Le serveur ne répond pas — réessayez.', false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } }
 }
