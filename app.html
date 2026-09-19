@@ -7394,6 +7394,21 @@ function syncRegreffer(local, fusion){ try{
     const L=new Map(); local[c].forEach(r=>{ if(r&&r.id!=null) L.set(String(r.id),r); });
     fusion[c].forEach(r=>{ if(!r||r.id==null) return; const l=L.get(String(r.id)); if(!l||l===r) return;
       if(r.photosHorsNuage>0 && Array.isArray(l.photos) && l.photos.length>((r.photos&&r.photos.length)||0)){ r.photos=l.photos.slice(); n++; }
+      /* ⛔ ET LES PHOTOS DÉPOSÉES SUR LE SERVEUR, APPARIÉES PAR LEUR IDENTIFIANT. La règle
+         au-dessus ne voit QUE l'ancien allègement : elle exige `photosHorsNuage>0` et des
+         tableaux de LONGUEURS DIFFÉRENTES. Or `syncSortirPieces` ne retire aucune entrée — il
+         remplace « piece:HEX:contenu » par « piece:HEX ». Même longueur, aucun `photosHorsNuage` :
+         la condition n'était donc JAMAIS remplie, et l'appareil qui venait de prendre six photos
+         les perdait de sa propre base à la première synchro. MESURÉ : le document revenait, la
+         photo non — le correctif avait été appliqué aux docs (juste en dessous) et oublié ici.
+         On apparie donc par le `pid`, comme les docs le font par (nom, ts) : c'est tout
+         l'intérêt du choix « l'identifiant vit DANS la chaîne ». Jamais par l'index — deux
+         appareils peuvent avoir rangé les mêmes photos dans un ordre différent. */
+      if(Array.isArray(r.photos)&&Array.isArray(l.photos)){
+        const clair={}; l.photos.forEach(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); if(m&&m[2]&&!clair[m[1]]) clair[m[1]]=ph; });
+        r.photos=r.photos.map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
+          if(!m||m[2]||!clair[m[1]]) return ph; n++; return clair[m[1]]; });
+      }
       /* `surServeur` autant que `horsNuage` : l'appareil qui A le fichier l'affiche tout de
          suite au lieu d'aller le rechercher — sur le terrain, c'est la différence entre voir
          le document et attendre un réseau qu'on n'a pas. */

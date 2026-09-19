@@ -151,5 +151,62 @@ console.log('\n── 714 · l\'écran n\'attend pas, le PDF si ──');
   v('⛔ … et demande confirmation s\'il en manque encore', /n\\'ont pas pu .*tre r.*cup.*Continuer quand m/s.test(pdf), true); }
 { v('⛔ l\'envoi au client attend le PDF', /await printRapport\(id\)/.test(APP), true); }
 
+/* ══ LE TRAJET COMPLET : UNE PHOTO DÉPOSÉE REVIENT-ELLE DANS LA BASE DE CELUI QUI L'A PRISE ?
+   ⛔ BLOQUANT DE PUBLICATION, trouvé le 19 septembre 2026 en éprouvant ce qui attend de partir.
+   Un technicien prend six photos, elles montent sur le VPS, il synchronise — et sa PROPRE base
+   ne les a plus. `syncRegreffer` ne rendait ses pièces qu'à deux conditions : `photosHorsNuage>0`
+   ET des tableaux de LONGUEURS DIFFÉRENTES. Or `syncSortirPieces` ne retire aucune entrée : il
+   remplace « piece:HEX:contenu » par « piece:HEX ». Même longueur, aucun `photosHorsNuage` — la
+   condition n'était donc JAMAIS remplie.
+   ⚠️ L'asymétrie était le constat : le même correctif avait été appliqué aux DOCUMENTS (appariés
+   par nom et horodatage) et oublié aux PHOTOS. On apparie donc par le `pid`, ce qui est tout
+   l'intérêt du choix défendu en tête de ce fichier — l'identifiant vit DANS la chaîne. */
+console.log('\n── 714 · ⛔ le trajet complet : déposer, synchroniser, retrouver ──');
+{
+  const iRegreffer = APP.indexOf('function syncRegreffer(');
+  v('syncRegreffer est trouvée', iRegreffer > 0, true);
+  const finR = (() => { let d = 0; for (let k = APP.indexOf('{', iRegreffer); k < APP.length; k++) {
+    if (APP[k] === '{') d++; else if (APP[k] === '}') { d--; if (!d) return k + 1; } } return -1; })();
+  const ctx2 = { console: { log() {}, warn() {}, error() {} } };
+  vm.createContext(ctx2);
+  vm.runInContext(SRC + '\n' + APP.slice(iRegreffer, finR), ctx2);
+  v('la tranche s\'exécute', typeof ctx2.syncRegreffer, 'function');
+
+  const PID = 'a'.repeat(64), PID2 = 'b'.repeat(64);
+  const PHOTO = 'data:image/jpeg;base64,' + 'Z'.repeat(4000);
+  const j = (o) => JSON.parse(JSON.stringify(o));
+  const local = { interventions: [{ id: 'i1', _m: 1000,
+    photos: ['piece:' + PID + ':' + PHOTO],
+    docs: [{ pid: PID2, nom: 'rapport.pdf', ts: 5, data: 'DOC'.repeat(1000) }] }] };
+
+  /* Ce qui PART vers l'équipe : allégé des deux côtés. */
+  const parti = ctx2.syncSortirPieces(j(local)).copie;
+  v('la photo part allégée (marqueur nu)', parti.interventions[0].photos[0], 'piece:' + PID);
+  v('le document aussi', parti.interventions[0].docs[0].data, '');
+
+  /* Ce qui REVIENT après fusion : le distant a gagné (même `_m`), donc la version allégée. */
+  const revenu = j(parti);
+  ctx2.syncRegreffer(local, revenu);
+  /* ⛔ LES DEUX CONTRÔLES, ET C'EST L'ASYMÉTRIE QUI ÉTAIT LE DÉFAUT. */
+  v('⛔ la photo est RENDUE à celui qui l\'a prise', revenu.interventions[0].photos[0], 'piece:' + PID + ':' + PHOTO);
+  v('   et le document aussi (il l\'était déjà)', revenu.interventions[0].docs[0].data.length, 3000);
+
+  /* ⚠️ LA CONTRE-ÉPREUVE : on ne regreffe QUE ce dont on a le clair. Une photo qu'un COLLÈGUE a
+     déposée — dont on n'a jamais eu le contenu — doit rester un marqueur nu, sinon on
+     inventerait des données. */
+  const vide = { interventions: [{ id: 'i1', _m: 1000, photos: [], docs: [] }] };
+  const distant = { interventions: [{ id: 'i1', _m: 1000, photos: ['piece:' + PID], docs: [] }] };
+  ctx2.syncRegreffer(vide, distant);
+  v('⛔ la photo d\'un collègue reste un marqueur nu', distant.interventions[0].photos[0], 'piece:' + PID);
+
+  /* ⚠️ ET L'ORDRE NE COMPTE PAS : deux appareils peuvent avoir rangé les mêmes photos
+     différemment. L'appariement se fait par identifiant, jamais par index. */
+  const l2 = { interventions: [{ id: 'i1', _m: 1000, photos: ['piece:' + PID2 + ':B', 'piece:' + PID + ':A'], docs: [] }] };
+  const r2 = { interventions: [{ id: 'i1', _m: 1000, photos: ['piece:' + PID, 'piece:' + PID2], docs: [] }] };
+  ctx2.syncRegreffer(l2, r2);
+  v('⛔ l\'appariement se fait par identifiant, pas par index',
+    r2.interventions[0].photos, ['piece:' + PID + ':A', 'piece:' + PID2 + ':B']);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
