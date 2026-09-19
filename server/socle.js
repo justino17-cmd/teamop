@@ -1041,6 +1041,16 @@ function ancreVerifier() {
  * archive l'instantané et on EXCLUT les fichiers vivants.
  */
 function instantanerVers(dossier) {
+  /* ⛔ RIEN À COPIER = RIEN À CRÉER. C'est ICI que se décide l'inertie, pas dans l'appelant :
+     tant que le socle dort, il n'y a ni annuaire ni base, donc cette fonction ne touche pas au
+     disque et rend `{bases:0}`. L'en-tête de ce fichier promet « rien ne l'appelle » ; ce
+     qu'elle doit vraiment promettre, c'est « rien ne se passe ». La version précédente mettait
+     cette décision dans une condition d'`index.js` — qui s'est révélée être une zone morte
+     temporelle et a tué toute la sauvegarde. La garde est plus sûre près de la donnée. */
+  const annuaireLa = fs.existsSync(ANNUAIRE_PATH);
+  let aFaire = [];
+  try { aFaire = fs.readdirSync(SOCLE_DIR).filter(d => RE_T.test(d) && fs.existsSync(path.join(SOCLE_DIR, d, 'base.db'))); } catch (e) {}
+  if (!annuaireLa && !aFaire.length) return { bases: 0, octets: 0, fichiers: [], echecs: [] };
   fs.mkdirSync(dossier, { recursive: true });
   for (const f of fs.readdirSync(dossier)) { try { fs.unlinkSync(path.join(dossier, f)); } catch (e) {} }
   const fait = [], echecs = [];
@@ -1055,9 +1065,7 @@ function instantanerVers(dossier) {
     const v = path.join(dossier, 'socle-annuaire.db');
     octets += copier(annuaire(), v); fait.push('socle-annuaire.db');
   }
-  let noms = []; try { noms = fs.readdirSync(SOCLE_DIR); } catch (e) {}
-  for (const d of noms) {
-    if (!RE_T.test(d) || !fs.existsSync(path.join(SOCLE_DIR, d, 'base.db'))) continue;
+  for (const d of aFaire) {
     const v = path.join(dossier, d + '.db');
     try {
       /* On passe par `ouvrir()` — donc par les deux témoins de clé. */

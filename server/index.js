@@ -3473,13 +3473,22 @@ try {
      déclarant valide. Il est passé même quand le socle est éteint : il n'y a alors aucune base
      à instantaner, la fonction rend 0, et rien n'est exclu de l'archive — donc aucun changement
      pour la production d'aujourd'hui. */
-  /* ⛔ LE SOCLE N'EST PASSÉ QUE S'IL EST ALLUMÉ. La première version le passait toujours : la
-     sauvegarde nocturne appelait donc `instantanerVers()` à CHAQUE passage, drapeau éteint,
-     et créait un dossier dans `DATA_DIR` en production — pendant que l'en-tête de `socle.js`
-     promettait « aucune route ne le monte et rien ne l'appelle ». Une promesse d'inertie qui
-     souffre une exception n'est plus une promesse : c'est le drapeau qui décide, entièrement. */
+  /* ⛔⛔ CETTE LIGNE A ÉTÉ CONDITIONNELLE PENDANT UN COMMIT, ET ÇA A TUÉ TOUTE LA SAUVEGARDE.
+     Elle lisait `(opSocle && opSocle.actif)` — or `let opSocle` est déclaré 56 lignes PLUS BAS,
+     donc en ZONE MORTE TEMPORELLE ici : `ReferenceError: Cannot access 'opSocle' before
+     initialization`, avalée par le `catch` juste en dessous, et `sauvegarde` restait `null`
+     POUR TOUJOURS, quelle que soit la configuration. MESURÉ sur le vrai serveur : journal
+     « sauvegarde hors site non montée », `/health` → `{active:false}`, les deux routes de la
+     Tour en 404. Le seul dispositif qui protège TeamOP d'un VPS perdu, éteint en silence — et
+     la surveillance le classait « pas encore branchée », donc un murmure une fois par jour.
+     ⛔ `CLAUDE.md` NOMME CE PIÈGE, sous ce nom exact (« zone morte temporelle », 10 septembre).
+     ⛔ LA LEÇON, PLUS LARGE QUE LE BOGUE : le besoin réel était que la sauvegarde ne réveille
+     pas le socle quand il dort. La bonne place pour cette décision est LÀ OÙ VIVENT LES
+     DONNÉES (`instantanerVers` ne crée plus rien quand il n'y a rien à copier), pas dans une
+     expression d'index.js sensible à l'ordre de chargement. Une garde posée au mauvais endroit
+     coûte plus cher que le défaut qu'elle corrige. */
   sauvegarde = require('./sauvegarde').monterSauvegarde(app, { config, DATA_DIR, CONFIG_PATH,
-    garde: monPatronStrict, socle: (opSocle && opSocle.actif) ? require('./socle') : null });
+    garde: monPatronStrict, socle: require('./socle') });
 } catch (e) {
   console.error('sauvegarde hors site non montée :', e.message);
 }

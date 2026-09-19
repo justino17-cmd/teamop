@@ -305,7 +305,16 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
          40 000 appels/h à une route à 42 ms : un seul jeton légitime gelait le serveur pour
          tous les clients. Trois budgets, trois coûts. */
       const src724 = fs.readFileSync(path.join(RACINE, 'server', 'op-socle.js'), 'utf8');
-      vrai('⛔ `etat()` a un budget distinct des lectures bon marché', /const cher = req\.path === '\/api\/op\/etat'/.test(src724));
+      /* ⚠️ ON VÉRIFIE LA PROPRIÉTÉ, PAS L'ÉCRITURE. Ce contrôle figeait la ligne exacte
+         `req.path === '/api/op/etat'` — et il est tombé sur le correctif qui a REMPLACÉ cette
+         ligne parce qu'elle se contournait avec une barre oblique finale. Ce qui doit rester
+         vrai : `etat()` a son propre budget, et la route est identifiée par son CHEMIN DÉCLARÉ,
+         jamais par l'URL reçue (Express est monté sans `strict routing` : `/api/op/etat/` et
+         `/API/OP/ETAT` atteignent le même gestionnaire). */
+      vrai('⛔ `etat()` a un budget distinct des lectures bon marché', /const cher = /.test(src724) && /etatsParHeure/.test(src724));
+      vrai('⛔ et la route est reconnue par son chemin DÉCLARÉ, pas par l\'URL reçue',
+        /req\.route && typeof req\.route\.path === 'string'/.test(src724));
+      v('⛔ aucune comparaison directe contre `req.path` pour ce budget', /cher = req\.path ===/.test(src724), false);
       /* ⚠️ ON COMPARE LES DEUX NOMBRES, pas des littéraux. Une assertion sur « || 500 » fige un
          chiffre qu'on a le droit de régler ; ce qui doit rester vrai, c'est que la route CHÈRE
          soit bien plus serrée que les routes bon marché. */

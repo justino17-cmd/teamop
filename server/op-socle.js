@@ -158,7 +158,19 @@ function monterOpSocle(app, deps) {
        parfaitement légitime gelait alors le serveur pour tous les clients. Le long-poll et le
        delta sont bon marché et fréquents ; `etat()` est cher et rare (c'est un contrôle de
        non-régression, pas un chemin de synchro) ; l'écriture est au milieu. */
-    const cher = req.path === '/api/op/etat';
+    /* ⛔ LE CHEMIN DÉCLARÉ DE LA ROUTE, PAS L'URL REÇUE. Express est monté sans `strict routing`
+       ni `case sensitive routing` : `/api/op/etat/` et `/API/OP/ETAT` atteignent le MÊME
+       gestionnaire et font le MÊME travail — mais `req.path` rend l'orthographe brute, donc une
+       comparaison exacte les classait « bon marché ». MESURÉ sur le vrai serveur, budget cher
+       abaissé à 5/h : 20 appels à `/api/op/etat` → 5 passent, 15 refusés ; 20 appels à
+       `/api/op/etat/` → **20 passent**. Le budget se contournait avec une barre oblique, et on
+       retrouvait les 28 minutes de gel par heure que ce budget existe pour empêcher.
+       ⛔ `server/index.js` porte DÉJÀ cette leçon, écrite noir sur blanc dans `monAppDeRoute` :
+       « Le chemin DÉCLARÉ de la route (req.route.path), pas l'URL reçue ». On applique la même
+       règle, avec le même repli normalisé si le garde tournait un jour hors d'une route. */
+    const chemin = String(req.route && typeof req.route.path === 'string' ? req.route.path : req.path)
+      .toLowerCase().replace(/\/+$/, '');
+    const cher = chemin === '/api/op/etat';
     const cle = cher ? 'c:' : req.method === 'GET' ? 'l:' : 'e:';
     /* 500/h : le plan appelle `etat()` UNE FOIS PAR NUIT ET PAR APPAREIL (le contrôle de
        non-régression de l'étape 5), donc 36 appareils en consomment 36. Cinq cents laisse la
