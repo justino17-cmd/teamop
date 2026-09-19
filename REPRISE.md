@@ -110,6 +110,74 @@ la surveillance horaire. Bruyant et vivant plutôt que muet ou mort.
    jamais réemployé), plus un contrôle de rang manquant : sans lui, effacer une ligne ne
    casserait AUCUNE empreinte, puisque chaque maillon ne connaît que son prédécesseur.
 
+### ⛔⛔ 19 SEPTEMBRE — QUATRIÈME VÉRIFICATION : LA SAUVEGARDE HORS SITE ÉTAIT MORTE
+
+41 constats, **21 bloquants, 29 régressions de la passe précédente**. Et le pire est à moi.
+
+⛔ **Le correctif d'hier « le drapeau décide entièrement » avait éteint TOUTE la sauvegarde
+hors site.** Il écrivait `socle: (opSocle && opSocle.actif) ? … : null` — or `let opSocle` est
+déclaré **56 lignes plus bas**. Zone morte temporelle, `ReferenceError` avalée par le `catch`
+voisin, et `sauvegarde` restait `null` POUR TOUJOURS, quelle que soit la configuration.
+Mesuré sur un vrai serveur : journal « sauvegarde hors site non montée », `/health` →
+`{"active": false}`, les deux routes de la Tour en **404**. Le seul dispositif qui protège
+TeamOP d'un VPS perdu, éteint en silence — et la surveillance le classait « pas encore
+branchée », donc un murmure une fois par jour. ⛔ `CLAUDE.md` nomme ce piège, **sous ce nom
+exact**.
+
+La leçon est plus large que le bogue : le besoin réel était que la sauvegarde ne réveille pas
+le socle endormi. Cette décision appartient **là où vivent les données** (`instantanerVers` ne
+crée plus rien quand il n'y a rien), pas à une expression d'`index.js` sensible à l'ordre de
+chargement. **Une garde posée au mauvais endroit coûte plus cher que le défaut qu'elle
+corrige.**
+
+Second bloquant : le budget de `/api/op/etat` se comparait à `req.path` — **contourné par une
+barre oblique finale** (20/20 passaient au lieu de 5/20). Express est monté sans `strict
+routing` : on lit `req.route.path`, jamais l'URL reçue.
+
+### 🔧 19 SEPTEMBRE — LE BANC DE CÂBLAGE (`tests/test-726.js`), ET POURQUOI IL MANQUAIT
+
+⚠️ **Quatre tours : 12 → 21 → 16 → 21 bloquants. Ça ne converge pas.** À chaque tour, le pire
+constat se trouve dans du code que le tour précédent venait d'écrire. La vérification elle-même
+a fini par nommer la cause : **aucun banc n'éprouvait le CÂBLAGE.**
+
+Les 82 autres suites injectent leurs dépendances et appellent les fonctions en direct. Elles
+prouvent que chaque pièce est juste. **Aucune ne démarrait le serveur tel qu'il sera déployé
+pour constater que les pièces sont branchées entre elles** — et les trois pires régressions de
+la semaine étaient exactement ça : une expression sensible à l'ordre de chargement, un motif
+`tar`, une comparaison de chaîne contre une URL. `test-725` passait au vert pendant que la
+sauvegarde était morte, parce qu'il monte le module lui-même.
+
+`tests/test-726.js` monte donc **l'assemblage** : le vrai `server/index.js`, une vraie
+configuration, et **un vrai coffre qui parle S3 en HTTP sur 127.0.0.1** — donc la vraie
+signature SigV4, le vrai module de sauvegarde, le vrai socle, branchés par le vrai `index.js`.
+Quatre assemblages, **62 vérifications, 5,7 s** :
+
+| | ce qui est éprouvé |
+|---|---|
+| socle **allumé**, sauvegarde complète | `/health` dit `active:true`, les deux routes de la Tour répondent **403** (montées ET gardées), le journal ne porte aucun « non montée » |
+| **de bout en bout** | une fiche écrite par `/api/op/pousser` → archive déposée → déchiffrée → **restaurée sur un « VPS neuf »** → relue au champ près |
+| **contre-épreuves** | un coffre qui refuse → échec ; un OCTET retourné → échec par l'empreinte, et **l'archive recalée retirée du coffre** |
+| socle **éteint**, bases existantes | le **retour en arrière documenté** : l'annuaire et les bases partent quand même |
+| socle **éteint**, aucune base | **rien n'est créé sur le disque**, et l'archive porte quand même les données du serveur |
+
+⛔ **Le banc a été éprouvé en REMETTANT les quatre défauts qu'il garde**, un par un — c'est la
+seule chose qui distingue un banc d'une affirmation :
+
+| défaut remis | ce que le banc a rendu |
+|---|---|
+| zone morte temporelle sur `opSocle` | **11 ✗**, dont « /health annonce la sauvegarde ACTIVE » |
+| motifs `--exclude` non ancrés | archive déposée refusée, contrôles d'archive impossibles |
+| **les deux à la fois** (l'état EXACT du 19/09 : archive amputée **et** auto-contrôle aveugle) | **✗ sur l'annuaire, et l'exercice de sinistre avec** — le banc ne dépend donc PAS de l'auto-contrôle du serveur |
+| inertie du socle retirée | **2 ✗** : « la sauvegarde n'a créé AUCUN annuaire » |
+| recalage retiré | **1 ✗**, exactement le bon |
+
+⚠️ **Et le banc a trouvé deux défauts dans son propre squelette avant de servir** : il
+attendait un événement `exit` déjà passé, donc **sortait en silence avec le code 0 avant
+d'afficher son total** — une suite qui se tait passe pour verte. Et `process.exit()` coupait
+la dernière ligne quand la sortie est un tube. Les deux corrigés.
+
+**Suite complète après coup : 83 suites · 2 598 vérifications · 0 échec · 114 s.**
+
 ### ⛔ 19 SEPTEMBRE — TROISIÈME VÉRIFICATION : 16 BLOQUANTS, ENCORE MES CORRECTIFS
 
 43 relectures, 37 constats, **16 bloquants — et 26 sur 37 étaient des régressions de la

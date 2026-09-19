@@ -47,15 +47,37 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**Quinze suites dans `tests/`**, sans dépendance ni installation : quatorze extraient les
-fonctions réelles d'`app.html` et les exécutent — elles testent donc le fichier livré. `test-641.js`
-est la seule qui vise `server/` : elle LANCE le vrai serveur,
-isolé (configuration, données et port à lui), et lui parle en HTTP. Elle saute d'elle-même sa
-partie exécutée si `server/node_modules` manque, et ⚠️ ne vise jamais `api.teamop.fr`.
+**83 suites dans `tests/`**, sans dépendance ni installation (recompté le 19 septembre 2026 —
+ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
+réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
+
+Trois familles visent `server/`, et elles ne se remplacent pas :
+
+| | ce qu'elle monte | ce qu'elle peut voir |
+|---|---|---|
+| `test-716`, `test-722`, `test-723`, `test-725` | un MODULE, dépendances injectées | la logique d'une pièce |
+| `test-641`, `test-724` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
+| `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces sont BRANCHÉES |
+
+⛔ La troisième ligne existe parce que les deux premières ne peuvent pas voir un défaut de
+CÂBLAGE — et c'est là que naissent les pires. Le 19 septembre 2026, une seule expression
+d'`index.js` en zone morte temporelle a éteint TOUTE la sauvegarde hors site : `test-725`
+passait au vert pendant ce temps, parce qu'il monte le module lui-même. Voir l'en-tête de
+`test-726`, qui porte les trois régressions de ce genre et ce qu'elles ont coûté.
+
+Toutes sautent d'elles-mêmes si `server/node_modules` manque, et ⚠️ aucune ne vise
+`api.teamop.fr` : tout se passe sur 127.0.0.1, coffre de sauvegarde compris.
 
 ```bash
-for f in tests/test-*.js; do node "$f"; done   # 514 vérifications, 2,2 s (mesuré)
+for f in tests/test-*.js; do node "$f"; done   # 2 598 vérifications, 114 s (mesuré le 19/09/2026)
+node tests/test-726.js                         # le câblage seul : 62 vérifications, 5,7 s
 ```
+
+⛔ **Un banc qui passe ne prouve rien tant qu'on ne l'a pas vu ÉCHOUER.** `test-726` a été
+éprouvé en REMETTANT les quatre défauts qu'il garde, un par un : zone morte temporelle
+(11 ✗), motifs `--exclude` non ancrés (✗ sur l'annuaire, et l'exercice de sinistre avec),
+inertie du socle retirée (2 ✗), recalage retiré (1 ✗). Faire la même chose avant de croire un
+banc neuf — le banc qui manquait le 19 septembre passait au vert sur une archive illisible.
 
 Quand une suite ne peut pas exécuter (un ordre d'opérations, un balisage, une fonction qui touche
 le DOM), elle lit le texte du fichier réel — et la preuve fonctionnelle vit alors dans une sonde
