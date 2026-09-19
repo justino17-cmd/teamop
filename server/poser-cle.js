@@ -84,19 +84,29 @@ dit('  Clé maître du socle — ' + CHEMIN);
 dit('  bases d\'entreprise présentes : ' + n);
 dit('');
 
-/* Le réglage systemd se pose (ou se constate) DANS TOUS LES CAS : la clé peut être là depuis
-   longtemps sans que le service sache la lire — c'est justement le scénario du VPS actuel. */
-let unite = unitePrete();
-if (!unite) {
-  try { poserUnite(); unite = true; dit('  → réglage systemd ajouté : ' + DROPIN);
+/* ⛔ LE RÉGLAGE SYSTEMD NE SE POSE QU'UNE FOIS LA CLÉ ÉCRITE, ET JAMAIS AVANT. Il était posé
+   EN PREMIER, avant même de savoir si une clé existait — et il restait en place sur les
+   chemins qui sortent en erreur. Conséquence : l'opérateur lance ce script sans avoir la clé
+   du séquestre sous la main (ou colle une valeur mal formée), le script refuse et sort en 1 —
+   mais le drop-in `LoadCredential=teamop_kek:/etc/teamop/kek` est déjà là, pointant sur un
+   fichier qui n'existe pas. ⚠️ systemd REFUSE de démarrer une unité dont une source de
+   `LoadCredential` manque : au prochain redémarrage, l'API ne repart plus DU TOUT. Un outil
+   censé réparer une clé absente mettait donc toute la plateforme à terre — les ~30 personnes
+   d'ELAN comprises — pour avoir été lancé une minute trop tôt.
+   La règle est simple et vaut aussi pour `install.sh` : **la clé d'abord, le réglage qui la
+   lit ensuite.** Jamais l'inverse, jamais sur un chemin d'erreur. */
+function assurerUnite() {
+  if (unitePrete()) { dit('  → réglage systemd déjà en place (le service lira la clé)'); return; }
+  try { poserUnite(); dit('  → réglage systemd ajouté : ' + DROPIN);
         dit('    ⚠️ il ne prendra effet qu\'après : systemctl daemon-reload && systemctl restart teamop-api'); }
   catch (e) { dit('  ⚠️ réglage systemd NON posé (' + (e.code || 'erreur') + ') — le serveur ne lira PAS la clé.');
               dit('     À ajouter à la main dans [Service] de teamop-api.service :');
               dit('        LoadCredential=teamop_kek:' + CHEMIN); }
-} else dit('  → réglage systemd déjà en place (le service lira la clé)');
-dit('');
+}
 
 if (deja) {
+  assurerUnite();   // la clé est là : le réglage qui la lit peut l'être aussi
+  dit('');
   dit('  ✅ Une clé est DÉJÀ posée. On n\'y touche pas.');
   dit('');
   dit('     La remplacer rendrait les données de toutes les entreprises définitivement');
@@ -116,6 +126,8 @@ if (arg) {
     process.exit(1);
   }
   poser(arg.toLowerCase());
+  assurerUnite();   // ⛔ APRÈS l'écriture, jamais avant
+  dit('');
   dit('  ✅ Clé du séquestre posée.');
   dit('');
   dit('     systemctl restart teamop-api');
@@ -140,6 +152,8 @@ if (n > 0) {
 
 const neuve = crypto.randomBytes(32).toString('hex');
 poser(neuve);
+assurerUnite();   // ⛔ APRÈS l'écriture, jamais avant
+dit('');
 dit('  ✅ Clé maître générée (aucune base n\'existait encore).');
 dit('');
 dit('  ⛔⛔ À METTRE EN SÉQUESTRE MAINTENANT, PAS PLUS TARD :');

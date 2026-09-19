@@ -91,34 +91,16 @@ EOF
   chmod 600 /opt/teamop/config.json
 fi
 
-cat > /etc/systemd/system/teamop-api.service <<'EOF'
-[Unit]
-Description=TeamOP API (push + e-mails)
-After=network.target
-
-[Service]
-WorkingDirectory=/opt/teamop/repo/server
-ExecStart=/usr/bin/node index.js
-Restart=always
-RestartSec=3
-User=root
-Environment=PORT=8080
-# ⛔ LA CLÉ MAÎTRE DU SOCLE VIT HORS DE /opt, ET C'EST TOUT L'INTÉRÊT. Un instantané IONOS est
-# une image de VOLUME, un disque volé aussi : ranger la clé dans l'arborescence qu'elle protège
-# ne protège que d'un disque éteint qu'on aurait démonté à la main. systemd la charge depuis
-# /etc/teamop/kek (chmod 600) et la dépose dans un répertoire éphémère, effacé à l'arrêt du
-# service — le serveur la lit par $CREDENTIALS_DIRECTORY et ne la voit nulle part ailleurs.
-LoadCredential=teamop_kek:/etc/teamop/kek
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-cat > /etc/caddy/Caddyfile <<EOF
-$DOMAIN {
-    reverse_proxy 127.0.0.1:8080
-}
-EOF
+# ⛔ LA CLÉ AVANT L'UNITÉ QUI LA CITE, ET C'EST UN ORDRE, PAS UNE PRÉFÉRENCE. Ce bloc était
+# 28 LIGNES PLUS BAS, après l'écriture de l'unité systemd qui porte
+# `LoadCredential=teamop_kek:/etc/teamop/kek`. Avec `set -e` et le mode d'emploi
+# « curl … | bash », tout ce qui échouait entre les deux — un réseau qui coupe, un paquet
+# manquant, une commande refusée — laissait sur le disque une unité pointant vers un fichier
+# qui n'existe pas. ⚠️ systemd REFUSE de démarrer une unité dont une source de
+# `LoadCredential` manque : le service ne repart alors plus DU TOUT, et on cherche du côté du
+# serveur alors que le problème est un fichier absent.
+# Même règle que dans `server/poser-cle.js`, corrigé le même jour : la clé d'abord, le réglage
+# qui la lit ensuite.
 
 # ══ LA CLÉ MAÎTRE DU SOCLE ═══════════════════════════════════════════════════════════════════
 # ⛔ SANS ELLE, CE N'EST PAS LE SOCLE QUI CASSE EN PREMIER, CE SONT LES QUATRE PORTES DE LA TOUR.
@@ -148,6 +130,35 @@ else
   echo "  de passe + copie scellée hors ligne), puis vérifier qu'on sait la relire."
   echo ""
 fi
+
+cat > /etc/systemd/system/teamop-api.service <<'EOF'
+[Unit]
+Description=TeamOP API (push + e-mails)
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/teamop/repo/server
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=3
+User=root
+Environment=PORT=8080
+# ⛔ LA CLÉ MAÎTRE DU SOCLE VIT HORS DE /opt, ET C'EST TOUT L'INTÉRÊT. Un instantané IONOS est
+# une image de VOLUME, un disque volé aussi : ranger la clé dans l'arborescence qu'elle protège
+# ne protège que d'un disque éteint qu'on aurait démonté à la main. systemd la charge depuis
+# /etc/teamop/kek (chmod 600) et la dépose dans un répertoire éphémère, effacé à l'arrêt du
+# service — le serveur la lit par $CREDENTIALS_DIRECTORY et ne la voit nulle part ailleurs.
+LoadCredential=teamop_kek:/etc/teamop/kek
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > /etc/caddy/Caddyfile <<EOF
+$DOMAIN {
+    reverse_proxy 127.0.0.1:8080
+}
+EOF
 
 echo "── [6/6] Démarrage des services…"
 systemctl daemon-reload
