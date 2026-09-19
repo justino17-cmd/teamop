@@ -58,7 +58,17 @@ function get(url) {
        elle n'est pas configurée du tout, la dernière a échoué, ou elle est trop vieille.
        26 heures, pas 24 : une sauvegarde quotidienne a le droit de glisser de deux heures
        (redémarrage, coffre lent) sans réveiller personne pour rien. */
-    if (j.sauvegarde && j.sauvegarde.active === false) {
+    /* ⛔ « RÉGLÉE ET À L'ARRÊT » N'EST PAS « PAS ENCORE BRANCHÉE », ET LES CONFONDRE A COÛTÉ
+       UNE JOURNÉE. Le 19 septembre 2026, une zone morte temporelle a laissé `sauvegarde` à
+       `null` avec une configuration PARFAITE : plus rien ne partait hors site. /health rendait
+       `active:false` — et cette surveillance, qui ne regardait QUE `active`, a classé la panne
+       en « installation pas encore faite » et murmuré une fois par jour.
+       `configuree` dit la différence : le bloc `sauvegarde` est dans config.json, donc
+       quelqu'un l'a branché pour de bon. Si elle est réglée et qu'elle ne tourne pas, c'est
+       une PANNE, et une panne se crie toutes les heures. */
+    if (j.sauvegarde && j.sauvegarde.active === false && j.sauvegarde.configuree === true) {
+      problems.push('⛔⛔ LA SAUVEGARDE HORS SITE EST RÉGLÉE ET NE TOURNE PAS (' + (j.sauvegarde.erreur || 'motif inconnu') + ') — c\'est une PANNE, pas une installation : le coffre est configuré et le module ne s\'est pas monté. Plus rien ne part hors site. Sur le VPS : journalctl -u teamop-api | grep sauvegarde');
+    } else if (j.sauvegarde && j.sauvegarde.active === false) {
       /* ⛔ UNE FOIS PAR JOUR, PAS TOUTES LES HEURES — et la distinction n'est pas cosmétique.
          « Pas encore configurée » est un état d'INSTALLATION : il dure tant que personne n'a
          branché le coffre, et une alarme horaire sur un état stable devient du bruit, puis une
@@ -78,6 +88,12 @@ function get(url) {
       /* ⛔ UNE BASE NON INSTANTANÉE EST UNE ENTREPRISE EN DIFFICULTÉ. Elle part dans l'archive
          en copie brute — donc récupérable, mais pas garantie — et c'est exactement celle dont
          il ne faut pas perdre la trace. Le compteur était écrit et lu par personne. */
+      /* ⛔ UN COFFRE QUI NE S'ÉLAGUE PLUS GROSSIT POUR TOUJOURS, ET PERSONNE NE L'APPREND.
+         Une clé d'accès sans `ListBucket` fait échouer l'élagage une fois par nuit : les
+         archives s'empilent, la facture monte, et la sauvegarde elle-même continue de dire
+         « OK ». Le compteur existait depuis ce soir et n'était lu par personne.
+         Plus d'un : une nuit qui glisse n'est pas une panne, deux le sont. */
+      if (j.sauvegarde.elagageEchecs > 1) problems.push('⛔ l\'élagage du coffre échoue depuis ' + j.sauvegarde.elagageEchecs + ' nuits — les vieilles archives ne sont plus supprimées, le coffre grossit sans fin. Le plus souvent : la clé d\'accès n\'a pas le droit de LISTER le bucket. journalctl -u teamop-api | grep sauvegarde');
       if (j.sauvegarde.instantaneEchecs > 0) problems.push('⛔ ' + j.sauvegarde.instantaneEchecs + ' base(s) d\'entreprise n\'ont PAS pu être copiées proprement dans la sauvegarde (copie brute à la place) — voir la Tour, aperçu de l\'espace. C\'est le signe d\'une base abîmée ou d\'une clé qui ne correspond plus.');
     }
     /* ⛔ L'ÉCHÉANCE DU JETON GITHUB. Elle ne casse rien chez un client — le jeton ne sert qu'à
@@ -97,6 +113,24 @@ function get(url) {
        saurait qu'il y a des lignes illisibles et jamais chez qui, donc on ne ferait rien. Le
        « chez qui » est dans la Tour, qui est gardée. */
     if (j.socle && j.socle.illisibles > 0) problems.push('⛔ ' + j.socle.illisibles + ' ligne(s) du socle ne se déchiffrent PLUS — trafic, restauration mal ciblée ou bloc abîmé. Voir la Tour (aperçu d\'un espace, « vérifier ») pour savoir chez qui.');
+    /* ⛔ LA PLACE POUR LES PIÈCES JOINTES. Quand le coffre à photos est plein, le dépôt est
+       refusé : le technicien photographie son intervention et la photo ne part pas. C'est une
+       panne de TERRAIN, et elle arrive par une pente douce — personne ne la voit venir si
+       personne ne regarde le pourcentage. Le champ existait, lu par personne.
+       80 % laisse le temps d'agrandir ou d'élaguer ; 95 % est déjà tard, on le dit plus fort. */
+    if (j.pieces && typeof j.pieces.remplissage === 'number') {
+      if (j.pieces.remplissage >= 95) problems.push('⛔⛔ LE STOCKAGE DES PIÈCES JOINTES EST À ' + j.pieces.remplissage + ' % — les prochains dépôts de photos seront REFUSÉS sur le terrain. Agrandir le disque du VPS ou relever piecesMaxTotal dans /opt/teamop/config.json.');
+      else if (j.pieces.remplissage >= 80) problems.push('le stockage des pièces jointes est à ' + j.pieces.remplissage + ' % du plafond — prévoir de la place avant que les dépôts soient refusés.');
+      else console.log('Pièces jointes : ' + j.pieces.remplissage + ' % du plafond.');
+    }
+    /* ⛔ L'ANCRE DU JOURNAL CHAÎNÉ EST LA SEULE MOITIÉ OPPOSABLE DU DISPOSITIF. La chaîne rend
+       une MODIFICATION détectable ; seule l'ancre sortie de la machine rend une RÉÉCRITURE
+       COMPLÈTE détectable. Elle part par courriel une fois par jour — et si le courriel n'est
+       pas configuré, ou que l'envoi jette, elle ne part JAMAIS, en silence, pour toujours.
+       `ancreJours` est l'âge du dernier envoi RÉUSSI (`null` : aucun depuis le démarrage).
+       Huit jours, pas deux : un serveur redémarré souvent a le droit de glisser, et une
+       alarme qui crie pour rien finit ignorée — la leçon est déjà écrite plus haut. */
+    if (j.socle && j.socle.actif === true && typeof j.socle.ancreJours === 'number' && j.socle.ancreJours > 8) problems.push('⛔ l\'ancre du journal de diagnostic n\'est pas sortie de la machine depuis ' + j.socle.ancreJours + ' jours — le journal chaîné ne prouve plus rien contre une réécriture complète. Vérifier `notifDemandes` et le SMTP dans /opt/teamop/config.json.');
     if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre, la poser avec « node /opt/teamop/repo/server/poser-cle.js » sur le VPS, puis systemctl restart teamop-api.');
     if (typeof j.bugs1h === 'number' && j.bugs1h > 0) problems.push(j.bugs1h + ' erreur(s) signalée(s) par les applications des entreprises dans la dernière heure (vigie) — voir l\'e-mail d\'alerte et corriger au plus vite');
   } catch (e) { problems.push('api.teamop.fr/health : injoignable — ' + e.message); }

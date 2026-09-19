@@ -297,6 +297,40 @@ const menage = async () => {
          déclencher. On exige maintenant que le champ et les routes disent la même chose. */
       const pj = await A.appel('POST', '/api/pieces/etat', { corps: {} });
       v('⛔ atts dit la vérité : annoncé ET les routes répondent', [j.atts, pj.code !== 404], [true, true]);
+
+      /* ⛔ UN CHAMP DE /health QUE PERSONNE NE LIT EST DU CODE MORT QUI A L'AIR D'UNE GARDE.
+         C'est la panne du 19 septembre, vue par l'autre bout : `sauvegarde.configuree`,
+         `elagageEchecs` et `socle.ancreJours` ont été ajoutés le soir même, chacun avec un
+         commentaire disant pourquoi c'était vital — et `.github/scripts/surveillance.js`, le
+         SEUL fichier qui décide de crier, n'a pas été touché. Trois champs justes, lus par
+         personne : la surveillance horaire continuait de classer une PANNE en « installation
+         pas encore faite » et de murmurer une fois par jour.
+         Ce contrôle part du /health VIVANT — pas d'une liste recopiée, qui vieillirait — et
+         exige que chaque champ soit ou bien surveillé, ou bien NOMMÉ ici comme « vu et pas
+         surveillé ». Ajouter un champ oblige donc à trancher, une fois, par écrit. */
+      const SURV = fs.readFileSync(path.join(__dirname, '..', '.github', 'scripts', 'surveillance.js'), 'utf8');
+      /* Ceux-là sont du renseignement d'ÉTAT, pas des alarmes : ils se lisent dans la Tour, ils
+         datent une réponse, ou ils donnent le contexte d'un champ déjà surveillé. Les y
+         laisser est une DÉCISION, écrite une fois — pas un oubli qu'on découvre en panne :
+           ok, ts, uptime, version, annonce    la réponse elle-même et sa date
+           histo, subs, boite, stripe          des capacités que la Tour affiche
+           bugs24h, lastRefus                  du diagnostic, consulté quand on cherche
+           cles.absent, mailRefus              la porte du courrier : c'est `mailRefus.parMotif`
+                                               qui alerte, `cles` lui sert de contexte
+           socle.flux, socle.routes            gardés par ce banc-ci, pas par une alarme
+           pieces.plafond                      le contexte de `pieces.remplissage`, surveillé
+           actif, lignes, entreprises, octets, seq, ageH, active, instantanes, archives,
+           prochaine, refus, derniere          des compteurs dont un VOISIN porte l'alarme */
+      const VUS_NON_SURVEILLES = ['ok', 'ts', 'uptime', 'version', 'annonce', 'histo', 'subs',
+        'boite', 'stripe', 'bugs24h', 'lastRefus', 'absent', 'mailRefus', 'flux', 'routes',
+        'plafond', 'actif', 'lignes', 'entreprises', 'octets', 'seq', 'ageH', 'active',
+        'instantanes', 'archives', 'prochaine', 'refus', 'derniere'];
+      const feuilles = (o, prefixe) => Object.entries(o || {}).flatMap(([k, val]) =>
+        (val && typeof val === 'object' && !Array.isArray(val)) ? feuilles(val, k) : [[prefixe, k]]);
+      const orphelins = feuilles(j, '').filter(([, k]) =>
+        !VUS_NON_SURVEILLES.includes(k) && !new RegExp('\\b' + k + '\\b').test(SURV));
+      v('⛔ aucun champ de /health n\'est publié sans que personne ne le lise',
+        orphelins.map(([p2, k]) => (p2 ? p2 + '.' : '') + k), []);
     }
     /* ⛔ ET LE JOURNAL LE DIT AUSSI. `/health` pourrait mentir par un autre chemin ; le message
        exact qu'affichait le serveur cassé est « sauvegarde hors site non montée ». Le
