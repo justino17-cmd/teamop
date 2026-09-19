@@ -496,6 +496,33 @@ const menage = async () => {
       const ko = await A.appel('POST', '/api/op/session', { corps: { t: T_B, kh: sha(CLE_B) } });
       v('   elle est bien coupée', ko.code, 403);
     }
+    /* ══ 4bis. LES PHOTOS NE DOIVENT PAS METTRE TOUTE L'API À TERRE ═══════════════════ */
+    /* ⛔ BLOQUANT DE PUBLICATION, MESURÉ. Depuis que les photos sortent du document Firestore,
+       AFFICHER une photo coûte un `POST /api/pieces/lire` et en AJOUTER une coûte un dépôt —
+       `intPhotoAdd` en fait un par photo. Six interventions à cinq photos = trente requêtes
+       pour UNE personne, et tout le bureau d'ELAN partage une seule IP publique.
+       Avant ce plafond : 200 requêtes depuis une IP → premier 429 à la 121ᵉ, et juste après
+       une route SANS AUCUN RAPPORT répondait 429 elle aussi. Ce n'est donc pas « les photos ne
+       s'affichent plus » : c'est toute l'API par terre pour ce bureau — les bons de commande
+       ne partent plus, l'assistant devis ne répond plus. La spirale du 11 septembre, par une
+       autre porte. */
+    console.log('⛔ Cent quarante photos ne doivent pas couper les bons de commande');
+    {
+      let n429 = 0;
+      for (let i = 0; i < 140; i++) {
+        const r = await A.appel('POST', '/api/pieces/lire', { corps: { t: T_A, id: 'x'.repeat(64) } });
+        if (r.code === 429) n429++;
+      }
+      console.log('      140 lectures de pièces → ' + n429 + ' refus');
+      v('⛔ aucune n\'est refusée pour cause de budget', n429, 0);
+      /* ⛔ LE CONTRÔLE QUI COMPTE : une route étrangère aux pièces répond toujours. C'est elle
+         qui tombait, et c'est elle qui fait la différence entre une gêne et une panne. */
+      const ailleurs = await A.appel('GET', '/health');
+      v('⛔ et une route sans rapport répond encore', ailleurs.code, 200);
+      const tour = await A.appel('GET', '/api/monitor/sauvegarde/etat', { jeton: JETON_TOUR });
+      v('   la Tour aussi', tour.code, 200);
+    }
+
     await A.arreter();
 
     /* ══ 5. LE RETOUR EN ARRIÈRE : SOCLE ÉTEINT, BASES EXISTANTES ═══════════════════════ */

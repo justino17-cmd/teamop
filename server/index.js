@@ -146,6 +146,20 @@ const MAX_IP_SUIVIES = 20000;  // borne mémoire (voir plus bas)
    600/min laisse vingt appareils en pleine reprise (20 × 10 relances + 20 × 3 battements = 260)
    très en dessous, et reste une borne : /health est une réponse JSON sans lecture disque. */
 const PLAFOND_BATTEMENT = 600; // /health seule, par minute et par IP, hors budget global
+/* ⛔ LES PIÈCES JOINTES AUSSI, ET C'EST UN BLOQUANT DE PUBLICATION, PAS UN CONFORT. Depuis que
+   les photos sortent du document Firestore (étape 0), AFFICHER une photo coûte une requête
+   `POST /api/pieces/lire`, et en AJOUTER une coûte un dépôt — `intPhotoAdd` en fait un par
+   photo. Six interventions à cinq photos, c'est trente requêtes pour UNE personne, et tout le
+   bureau d'ELAN partage une seule IP publique.
+   ⛔ MESURÉ sur le vrai serveur : 200 `POST /api/pieces/lire` depuis une seule IP → premier 429
+   à la requête n° 121, et juste après `GET /api/espaces/etat` répond 429 lui aussi. Ce n'est
+   donc pas « les photos ne s'affichent plus » : c'est TOUTE l'API par terre pour ce bureau —
+   les bons de commande ne partent plus, l'assistant devis ne répond plus. Exactement la
+   spirale du 11 septembre, par une autre porte.
+   ⚠️ Un plafond RÉEL, jamais une exemption — même raisonnement que pour le socle. 900/min/IP
+   laisse dix personnes ouvrir trois interventions à dix photos dans la même minute (300) très
+   en dessous, et reste une borne : une pièce est un fichier sur disque, pas une réponse JSON. */
+const PLAFOND_PIECES = 900;    // /api/pieces/* seules, par minute et par IP, hors budget global
 /* ⛔ LE SOCLE A SON PROPRE COMPTEUR, ET IL EST RÉEL — jamais « exempté ». Un appareil en
    synchro fait beaucoup plus de requêtes qu'un écran : 120/min/IP l'étranglerait, et toute une
    équipe derrière la box du bureau partage une seule IP. Mais exempter `/api/op/*` ferait de
@@ -202,6 +216,17 @@ app.use((req, res, next) => {
     const d = (compteurs.get('d:' + ip) || 0) + 1;
     compteurs.set('d:' + ip, d);
     if (d > PLAFOND_DONNEES) return tropDeRequetes(res);
+    return next();
+  }
+
+  /* Les pièces comptent à part, comme le battement et le socle — voir PLAFOND_PIECES.
+     ⛔ Et SEULEMENT si le module est monté : sans cette condition, des chemins qui répondent
+     404 bénéficieraient d'un plafond plus large que le reste du serveur, pour rien. C'est la
+     leçon déjà écrite pour `/api/op/*` juste au-dessus. */
+  if (pieces && req.path.startsWith('/api/pieces/')) {
+    const p2 = (compteurs.get('p:' + ip) || 0) + 1;
+    compteurs.set('p:' + ip, p2);
+    if (p2 > PLAFOND_PIECES) return tropDeRequetes(res);
     return next();
   }
 
