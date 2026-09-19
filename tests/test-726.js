@@ -291,6 +291,12 @@ const menage = async () => {
       v('le socle est actif', j.socle && j.socle.actif, true);
       v('la clé maître est lue', j.socle && j.socle.cle, true);
       v('aucune route déclarée deux fois', j.routesDoublons, 0);
+      /* ⛔ `/health` N'ANNONCE PAS UNE CAPACITÉ QUE LE SERVEUR N'A PAS. `atts` était écrit
+         `true` EN DUR : l'alarme `if (!j.atts)` de `.github/scripts/surveillance.js:54` —
+         « pièces jointes désactivées, bons de commande sans PDF » — ne pouvait donc JAMAIS se
+         déclencher. On exige maintenant que le champ et les routes disent la même chose. */
+      const pj = await A.appel('POST', '/api/pieces/etat', { corps: {} });
+      v('⛔ atts dit la vérité : annoncé ET les routes répondent', [j.atts, pj.code !== 404], [true, true]);
     }
     /* ⛔ ET LE JOURNAL LE DIT AUSSI. `/health` pourrait mentir par un autre chemin ; le message
        exact qu'affichait le serveur cassé est « sauvegarde hors site non montée ». Le
@@ -552,6 +558,30 @@ const menage = async () => {
       faux('   et son dossier avec', fs.existsSync(path.join(R.data, 'socle', T_A)));
     }
     await R.arreter();
+
+    /* ══ 5-0. UNE SAUVEGARDE RÉGLÉE QUI NE MARCHE PAS DOIT SE DISTINGUER D'UNE ABSENTE ═ */
+    /* ⛔ C'EST LA PANNE DU 19 SEPTEMBRE, VUE DEPUIS LA SURVEILLANCE. `active:false` seul ne
+       distingue pas « personne ne l'a réglée » de « quelqu'un l'a réglée et elle est morte » :
+       la surveillance a donc classé une sauvegarde hors site TOTALEMENT ÉTEINTE en « pas
+       encore branchée », et murmuré une fois par jour pendant qu'elle ne tournait plus. */
+    console.log('⛔ Une sauvegarde réglée et cassée ne doit pas passer pour une absente');
+    {
+      /* Une clé de 10 caractères au lieu de 64 : le bloc EST configuré, le module refuse. */
+      const C = await assembler('cassee', { socle: false, endpoint: ENDPOINT,
+        config: { sauvegarde: { cle: 'trop-court', endpoint: ENDPOINT, bucket: BUCKET, accessKey: 'A', secretKey: 'B' } } });
+      vrai('le serveur démarre quand même', C.vivant);
+      const { j } = await C.appel('GET', '/health');
+      v('⛔ la sauvegarde se dit INACTIVE', j.sauvegarde.active, false);
+      v('⛔ mais CONFIGURÉE — donc c\'est une PANNE, pas un choix', j.sauvegarde.configuree, true);
+      await C.arreter();
+
+      /* ⚠️ LA CONTRE-ÉPREUVE : sans bloc du tout, `configuree` doit être FAUX. Sinon le champ
+         dirait « panne » sur tout serveur de développement, et on cesserait de le croire. */
+      const N = await assembler('sans-coffre', { socle: false, sansCoffre: true });
+      const r = await N.appel('GET', '/health');
+      v('⛔ sans aucun bloc : ni active, ni configurée', [r.j.sauvegarde.active, r.j.sauvegarde.configuree], [false, false]);
+      await N.arreter();
+    }
 
     /* ══ 5ter. LES BUDGETS ANTI-ABUS, MESURÉS — PAS RELUS ══════════════════════════════ */
     /* ⛔ ILS N'ÉTAIENT GARDÉS QUE PAR DES EXPRESSIONS RÉGULIÈRES SUR LE TEXTE d'`op-socle.js`,

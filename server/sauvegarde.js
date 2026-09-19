@@ -469,7 +469,14 @@ function monterSauvegarde(app, deps) {
        affirmait « /health le publie, la surveillance horaire le voit ». Une base qu'on n'a pas
        su instantaner est une entreprise DÉJÀ en difficulté : c'est précisément celle dont on
        doit entendre parler. Un NOMBRE, jamais un nom : /health est publique. */
-    return { active: actif, ageH: d && d.ok ? Math.round((Date.now() - d.ts) / 3600000) : null,
+    /* ⛔ `configuree` EST LE TROISIÈME ÉTAT, ET IL VAUT UNE ALARME. Sans lui, « personne n'a
+       réglé la sauvegarde » et « quelqu'un l'a réglée et elle ne marche pas » rendent le MÊME
+       `active:false` — donc la surveillance classe les deux « pas encore branchée » et
+       murmure une fois par jour. Ce dépôt a payé pour cette confusion le 19 septembre : la
+       sauvegarde hors site est restée morte une journée entière avec une configuration
+       parfaite. Réglée et inactive, c'est une PANNE ; jamais réglée, c'est un choix. */
+    return { active: actif, configuree: !!conf,
+      ageH: d && d.ok ? Math.round((Date.now() - d.ts) / 3600000) : null,
       ok: d ? !!d.ok : null, instantaneEchecs: etat.instantaneEchecs || 0 };
   }
 

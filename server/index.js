@@ -360,7 +360,7 @@ function refusSmtp(e) {
     : 'autre';
   return 'SMTP: ' + famille + (code ? ' (' + code + ')' : '');
 }
-app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: true, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
+app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
      la suite se déciderait à l'aveugle : /api/mail/cles est protégée par une clé de
@@ -397,7 +397,14 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      tous les clients réunis, donc un journal de leur activité, exactement ce que le compteur
      des pièces jointes arrondit déjà pour cette raison. Ni le nom du coffre : /health est
      publique. Le détail est servi à la Tour, qui exige le patron. */
-  sauvegarde: sauvegarde ? sauvegarde.sante() : { active: false },
+  /* ⛔ TROIS ÉTATS, PAS DEUX — la même règle que le socle vingt lignes plus haut, qui n'avait
+     pas été appliquée ICI, c'est-à-dire précisément là où la panne a eu lieu. Le 19 septembre,
+     une zone morte temporelle a laissé `sauvegarde` à `null` avec une configuration PARFAITE :
+     `/health` rendait `{active:false}`, et la surveillance a classé ça « pas encore branchée »
+     — donc un murmure une fois par jour, au lieu d'une alarme. `configuree:true` avec
+     `active:false` veut dire : quelqu'un a réglé la sauvegarde et elle NE MARCHE PAS. */
+  sauvegarde: sauvegarde ? sauvegarde.sante()
+    : { active: false, configuree: !!(config.sauvegarde), erreur: config.sauvegarde ? 'montage' : '' },
   /* ⛔ L'ÉCHÉANCE DU JETON GITHUB, PARCE QUE RIEN NE LA SURVEILLAIT. Le jeton du VPS expire à
      date fixe ; le jour venu, « proposer un correctif » depuis la Tour tombe en 401 et personne
      n'est prévenu — on cherche, on accuse le réseau, on finit par retrouver la date dans une
