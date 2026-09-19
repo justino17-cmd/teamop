@@ -497,7 +497,19 @@ app.post('/api/stripe/checkout', async (req, res) => {
     p.append('allow_promotion_codes', 'true');
     p.append('success_url', 'https://teamop.fr/merci.html');
     p.append('cancel_url', 'https://teamop.fr/recap-abonnement.html');
-    if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) p.append('client_reference_id', ref);
+    /* ⛔ LA RÉFÉRENCE DOIT VOYAGER JUSQU'À L'ABONNEMENT, PAS S'ARRÊTER À LA SESSION.
+       `client_reference_id` vit sur la SESSION de paiement ; `espacePaye()`, lui, lit la liste
+       des ABONNEMENTS — qui ne la portent pas. Le rattachement se faisait donc sur la seule
+       ÉGALITÉ EXACTE de l'adresse e-mail : l'entreprise paie, la comptable saisit l'adresse de
+       facturation sur la page Stripe, et comme ce n'est pas celle avec laquelle l'espace a été
+       créé, l'abonnement n'est JAMAIS rattaché. Le client a payé et son application reste
+       bloquée — sans que rien, nulle part, ne dise pourquoi.
+       `subscription_data[metadata][espace]` grave la référence sur l'abonnement, où elle
+       survit au renouvellement et à tout changement d'adresse. */
+    if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
+      p.append('client_reference_id', ref);
+      p.append('subscription_data[metadata][espace]', ref);
+    }
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.url) return res.status(502).json({ error: (d.error && d.error.message) || 'stripe erreur' });
@@ -2023,12 +2035,35 @@ async function espacePaye(e) {
     }
   } catch (err) {}
   const sk = config.stripe && config.stripe.secretKey;
-  if (sk && e.email) {
+  /* ⚠️ PLUS `&& e.email`. Le rattachement par RÉFÉRENCE n'a besoin d'aucune adresse : exiger
+     un e-mail ici aurait laissé sans paiement reconnu, justement, les espaces créés sans
+     adresse — ceux de la Tour. Le repli par e-mail se garde tout seul plus bas. */
+  if (sk) {
     try {
       if (Date.now() - espStripeCache.ts > 5 * 60000 || !espStripeCache.data) { espStripeCache.data = await stripeAbosBruts(sk); espStripeCache.ts = Date.now(); }
-      const abo = (espStripeCache.data || []).find(sb => ['active', 'trialing', 'past_due'].includes(sb.status) &&
-        sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').toLowerCase() === e.email);
-      if (abo) return { paye: true, motif: 'abonnement Stripe (' + abo.status + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
+      /* ⛔ DEUX RATTACHEMENTS, DANS CET ORDRE, ET LE PREMIER EST LE SEUL FIABLE.
+         1. LA RÉFÉRENCE D'ESPACE, gravée sur l'abonnement à la création de la page de paiement
+            (`subscription_data[metadata][espace]`). Elle ne dépend d'aucune adresse et survit
+            au renouvellement.
+         2. L'ADRESSE E-MAIL, gardée en REPLI — et c'est nécessaire : tous les abonnements
+            souscrits AVANT ce correctif n'ont aucune métadonnée. La retirer couperait des
+            clients qui paient. Elle reste ce qu'elle a toujours été, une correspondance
+            fragile : l'entreprise paie, la comptable saisit l'adresse de facturation de la
+            société, et comme ce n'est pas celle avec laquelle l'espace a été créé, rien ne se
+            rattache. Le client a payé et son application reste bloquée, sans un mot.
+         ⚠️ On compare le slug ET le `t` : la référence envoyée par le site peut être l'un ou
+         l'autre selon la page, et se tromper ici coûte un client qui a payé. */
+      const refs = [String(e.slug || '').toLowerCase(), String(e.t || '').toLowerCase()].filter(Boolean);
+      const vivant = sb => ['active', 'trialing', 'past_due'].includes(sb.status);
+      let abo = refs.length ? (espStripeCache.data || []).find(sb => vivant(sb)
+        && sb.metadata && refs.includes(String(sb.metadata.espace || '').toLowerCase())) : null;
+      let parQuoi = 'référence d\'espace';
+      if (!abo) {
+        abo = (espStripeCache.data || []).find(sb => vivant(sb)
+          && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').toLowerCase() === e.email);
+        parQuoi = 'adresse e-mail';
+      }
+      if (abo) return { paye: true, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
     } catch (err) { console.error('espacePaye stripe:', err.message); }
   }
   return { paye: false, motif: 'aucun paiement ni code promo' };
