@@ -38,3 +38,53 @@ jobs:
       # faille connue de niveau élevé ou critique.
       - name: Failles connues (dépendances du serveur)
         run: npm audit --omit=dev --audit-level=high --prefix server
+
+  # ⛔ CE JOB N'EXISTAIT PAS, ET C'EST LE PLUS COÛTEUX DES MANQUES. Un push sur `main` touchant
+  # `server/**` DÉPLOIE LE VPS automatiquement — sans qu'une seule ligne de test ait tourné.
+  # La CI ne vérifiait que les secrets et les failles de dépendances : pas même la syntaxe. Un
+  # bug LOGIQUE dans `espacePaye()`, dans une route de promo ou dans l'anti-abus partait donc
+  # chez tous les clients en deux minutes, et on l'apprenait par un appel.
+  # Les 83 suites tournent sans installation ni dépendance : il n'y avait aucune raison de
+  # s'en priver. Elles sautent d'elles-mêmes ce qui exige `server/node_modules`, d'où le
+  # `npm ci` ci-dessous — sans lui, les six suites qui lancent le VRAI serveur (641, 716, 722,
+  # 723, 724, 725, 726) se déclareraient vertes sans rien avoir exécuté.
+  tests:
+    name: Syntaxe et bancs d'essai
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # ⚠️ Les suites serveur montent le vrai `server/index.js` : sans ses dépendances, elles
+      # sautent leur partie exécutée et passent au vert sans rien prouver.
+      - name: Dépendances du serveur
+        run: npm ci --omit=dev --no-audit --no-fund --prefix server
+
+      # La syntaxe du JavaScript embarqué dans les 27 pages, que `node --check` ne voit pas.
+      - name: Syntaxe des pages
+        run: node scripts/verifier-syntaxe.js
+
+      - name: Syntaxe des fichiers serveur
+        run: for f in server/*.js; do node --check "$f" || exit 1; done
+
+      # ⛔ ON COMPTE SUITE PAR SUITE, en prenant le DERNIER total de chaque sortie. Un
+      # `grep -c` sur les ✓ ment EN MOINS : sept suites impriment leur total dans un bandeau
+      # d'un autre format et sont sautées en silence — c'est ainsi qu'un chiffre faux de 391
+      # contrôles a été écrit dans CLAUDE.md le 19 septembre.
+      - name: Les 83 suites
+        run: |
+          echecs=0; total=0
+          for f in tests/test-*.js; do
+            sortie=$(node "$f" 2>&1) || true
+            ligne=$(printf '%s\n' "$sortie" | grep -oE '[0-9]+ ✓ +[0-9]+ ✗' | tail -1)
+            if [ -z "$ligne" ]; then echo "::error::$f n'a rendu AUCUN total — il s'est interrompu"; echecs=$((echecs+1)); continue; fi
+            ok=$(echo "$ligne" | grep -oE '^[0-9]+'); ko=$(echo "$ligne" | grep -oE '[0-9]+ ✗' | grep -oE '[0-9]+')
+            total=$((total+ok))
+            if [ "$ko" != "0" ]; then echo "::error::$f : $ko échec(s)"; printf '%s\n' "$sortie" | grep '✗' | head -20; echecs=$((echecs+1)); fi
+          done
+          echo "total : $total vérifications"
+          [ "$echecs" = "0" ] || { echo "::error::$echecs suite(s) en échec — rien ne part chez un client."; exit 1; }

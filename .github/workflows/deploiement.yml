@@ -45,8 +45,12 @@ jobs:
 
       - name: Mettre à jour et redémarrer
         run: |
+          # ⚠️ Le SHA passe en ARGUMENT de `bash -s`, pas par interpolation dans le heredoc :
+          # celui-ci est protégé (<<'DISTANT') exprès, pour que `$AVANT`, `$APRES` et les autres
+          # soient évalués SUR LE VPS et non ici. Un seul endroit où la valeur entre.
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
-              root@api.teamop.fr 'bash -euo pipefail -s' <<'DISTANT'
+              root@api.teamop.fr "bash -euo pipefail -s ${{ github.sha }}" <<'DISTANT'
+            ATTENDU="${1:?le SHA attendu n'a pas été transmis}"
             cd /opt/teamop/repo
 
             # Les trois pannes du 2 septembre, neutralisées : adresse de dépôt remise au propre,
@@ -63,6 +67,18 @@ jobs:
             git -c credential.helper= merge --ff-only --quiet origin/main
             APRES=$(git rev-parse HEAD)
             echo "dépôt : ${AVANT:0:8} → ${APRES:0:8}"
+
+            # ⛔ LE VPS EST-IL VRAIMENT SUR LE COMMIT QU'ON DÉPLOIE ? C'est la question que
+            # l'étape finale croyait poser et ne posait pas : elle comparait ANNONCE.version à
+            # elle-même (666 = 666), un nombre qui ne change qu'à la main — donc elle ne
+            # pouvait RIEN détecter, ni un `merge --ff-only` refusé, ni un arbre divergent.
+            # Ici on compare au SHA que GitHub Actions a en main : il change à CHAQUE commit,
+            # et personne ne peut l'oublier.
+            if [ "$APRES" != "$ATTENDU" ]; then
+              echo "le VPS est sur ${APRES:0:8}, le commit déployé est ${ATTENDU:0:8} — arbre divergent, fetch incomplet, ou merge --ff-only refusé"
+              exit 1
+            fi
+            echo "commit vérifié : ${APRES:0:8}"
 
             # Dépendances : seulement si le verrou a bougé, sinon on ne perd pas 40 s à chaque fois.
             if ! git diff --quiet "$AVANT" "$APRES" -- server/package-lock.json server/package.json; then
@@ -84,12 +100,21 @@ jobs:
             echo "démarré. Journal : journalctl -u teamop-api -n 50 (sur le VPS — voir plus haut)"
           DISTANT
 
-      # Le contrôle qui manquait : le 2 septembre le serveur a redémarré sur l'ancien code sans
-      # que rien ne le signale. On compare la version d'annonce servie à celle du dépôt.
-      - name: Vérifier que le serveur sert bien ce commit
+      # ⛔ CE CONTRÔLE COMPARAIT 666 À 666, ET NE POUVAIT DONC RIEN DÉTECTER. Il lisait
+      # `ANNONCE.version` dans le dépôt et la même valeur sur /health — un nombre qui ne bouge
+      # qu'à la main, et qui n'a pas bougé depuis des mois. Le `merge --ff-only` pouvait
+      # échouer, systemd redémarrer sur l'ancien code, l'arbre du VPS diverger : l'étape
+      # passait au vert. C'est exactement la panne du 2 septembre qu'elle était censée
+      # empêcher. La comparaison de commit se fait désormais SUR LE VPS (voir l'étape
+      # précédente), contre un SHA qui change à chaque poussée.
+      # Ici on ne vérifie plus que ce que le VPS ne peut pas vérifier lui-même : que l'API
+      # répond bien depuis l'EXTÉRIEUR, à travers nginx.
+      - name: Vérifier que l'API répond de l'extérieur
         run: |
-          ATTENDU=$(grep -m1 -oE "version: '[0-9]+'" server/index.js | grep -oE "[0-9]+")
-          SERVI=$(curl -sf --max-time 10 https://api.teamop.fr/health | grep -oE '"annonce":"[0-9]+"' | grep -oE '[0-9]+')
-          echo "annonce attendue : $ATTENDU · servie : $SERVI"
-          [ -n "$SERVI" ] && [ "$ATTENDU" = "$SERVI" ] || { echo "::error::Le serveur ne sert pas ce commit — déploiement à reprendre à la main."; exit 1; }
-          echo "Le serveur tourne bien sur ce commit."
+          SANTE=$(curl -sf --max-time 10 https://api.teamop.fr/health) || { echo "::error::api.teamop.fr ne répond pas après le déploiement."; exit 1; }
+          echo "$SANTE" | grep -q '"ok":true' || { echo "::error::api.teamop.fr répond, mais pas ok:true."; exit 1; }
+          # Deux capacités qu'un mauvais déploiement éteint en silence — et qu'on ne découvre
+          # sinon que le jour où un client s'en plaint.
+          echo "$SANTE" | grep -q '"stripe":true' || echo "::warning::stripe:false — les paiements ne marchent pas."
+          echo "$SANTE" | grep -q '"email":true'  || echo "::warning::email:false — aucun courriel ne part."
+          echo "API en ligne et saine."
