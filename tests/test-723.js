@@ -620,7 +620,15 @@ console.log('\n⛔ L\'ancre du journal chaîné : envoyée, ou pas ?');
   const OP = require(path.join(__dirname, '..', 'server', 'op-socle.js'));
   const fauxApp = { get() {}, post() {} };
   const TA = 'ent-ancre';
-  S.pousser(TA, [{ c: 'produits', id: 'a1', m: 1700000000000, e: 'ea', r: { nom: 'A' } }]);
+  /* ⛔ L'IDENTIFIANT EST VOLONTAIREMENT NON HEXADÉCIMAL, ET C'EST UN CORRECTIF DE BANC.
+     Il valait `a1`, et le contrôle plus bas cherchait `a1` dans le texte du courriel — qui
+     porte une empreinte SHA-256 en hexadécimal. Deux caractères hexa ont environ 22 % de
+     chances d'apparaître dans 64 : le banc tombait donc UNE FOIS SUR CINQ, au hasard, en
+     accusant le serveur de fuiter une donnée de client qu'il n'a jamais écrite. Un banc qui
+     crie faux se fait ignorer, puis désactiver — c'est comme ça qu'on perd un garde-fou.
+     Le jeton porte donc maintenant des lettres hors de `[0-9a-f]`, il ne peut plus coïncider
+     avec une empreinte. */
+  S.pousser(TA, [{ c: 'produits', id: 'zz-fiche-client-zz', m: 1700000000000, e: 'ea', r: { nom: 'A' } }]);
 
   const monter = (mailerEnvoi, dest) => OP.monterOpSocle(fauxApp, {
     config: { socle: { actif: true }, notifDemandes: dest, smtp: { from: 'moi@exemple.fr' } },
@@ -649,7 +657,13 @@ console.log('\n⛔ L\'ancre du journal chaîné : envoyée, ou pas ?');
   monter((m) => { vu = m; return { then: (ok2) => { ok2(); return { then() {} } } }; }, 'moi@exemple.fr').ancreEnvoyer(true);
   vrai('⛔ envoi réussi : « envoyée » EST posé', lireDate('ancre_envoyee_le') > 0);
   vrai('   et le message part bien au destinataire réglé', vu && vu.to === 'moi@exemple.fr');
-  v('⛔ et il ne porte AUCUNE donnée de client', /produits|ent-ancre|a1/.test(String(vu && vu.text)), false);
+  const FUITE = /produits|ent-ancre|zz-fiche-client-zz/;
+  v('⛔ et il ne porte AUCUNE donnée de client', FUITE.test(String(vu && vu.text)), false);
+  /* Et la preuve que le contrôle ci-dessus n'est pas vide : le même motif, sur un texte où
+     la fuite EST présente, la trouve. Sans cette ligne, un motif cassé passerait au vert
+     pour toujours — exactement ce qu'on vient de reprocher à ce banc. */
+  vrai('   (et le motif saurait la voir : contrôle du contrôle)',
+    FUITE.test('empreinte : 0123 \u2014 zz-fiche-client-zz'));
 }
 
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
