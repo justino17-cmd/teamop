@@ -104,6 +104,24 @@ function monterOpSocle(app, deps) {
   const illisibles = new Map();     // t -> nombre vu depuis le démarrage
   const illisiblesDe = t => illisibles.get(t) || 0;
   const noterIllisibles = (t, n) => { if (n) illisibles.set(t, (illisibles.get(t) || 0) + n); };
+  /* ⛔ LES REFUS D'ÉCRITURE SE COMPTENT PAR MOTIF, ET LE NOMBRE SORT SUR `/health`. Relevé par
+     la cinquième vérification, et c'est la pire famille de pannes de ce dépôt : celle qui ne
+     se voit pas. Deux scénarios MESURÉS, tous deux totalement muets avant ce compteur.
+       · Le disque du VPS se remplit — journaux, pièces jointes, un temporaire oublié. À partir
+         de cet instant CHAQUE pousse de CHAQUE appareil de CHAQUE entreprise rend 503 et rien
+         n'est écrit. Pendant ce temps `/health` répondait `ok:true` avec un bloc socle
+         rigoureusement identique à celui d'un serveur sain, et `journalctl` restait vide.
+         Personne ne l'apprenait — on le découvrait par un client qui appelle.
+       · L'horloge du VPS recule (NTP décroche, saut au redémarrage). Les téléphones ont
+         l'heure juste, donc CHAQUE ligne dépasse `maintenant + 5 min` et se fait refuser :
+         100 % des écritures de tout le monde, refusées, pour une panne côté serveur.
+     ⛔ UN NOMBRE, JAMAIS UN NOM D'ESPACE — `/health` est publique, y nommer une entreprise
+     dirait au monde lesquelles existent. C'est le même dessin que `mailRefus`, déjà publié
+     par `/health` pour la même raison. `surveillance.js` peut alors alarmer sur le MOTIF :
+     `disque_plein` est une panne de plateforme (tout le monde à l'arrêt), `horlogeAvancee`
+     une horloge à remettre, `espace_plein` un seul client dont le plafond est à régler. */
+  const refus = new Map();          // motif -> nombre depuis le démarrage
+  const noterRefus = (liste) => { for (const x of (liste || [])) { const m = String((x && x.motif) || 'autre'); refus.set(m, (refus.get(m) || 0) + 1); } };
   const attentes = new Map();       // t -> Set<{resoudre, app_id, minuteur}>
   const diagSessions = new Map();   // t -> { qui, exp } — une ouverture de diagnostic motivée
   function sessionDiag(t) { const d = diagSessions.get(t); return (d && Date.now() < d.exp) ? d : null; }
@@ -283,6 +301,7 @@ function monterOpSocle(app, deps) {
     }
     catch (e) { console.error('socle: pousse impossible —', e.code || 'erreur'); return res.status(503).json({ error: 'écriture indisponible — rien n\'a été enregistré', motif: 'base' }); }
     if (r.acceptes) reveiller(req.op.t, r.seq, req.op.app_id);
+    noterRefus(r.refus);
     /* ⛔ UN REFUS TOTAL NE SORT PAS EN 200. Quand la place manque, RIEN n'a été écrit : rendre
        200 avec une liste de refus laisse l'écran libre de n'y voir qu'un détail, et c'est
        exactement « un refus ne se montre pas tout seul ». Deux codes distincts parce que les
@@ -293,6 +312,18 @@ function monterOpSocle(app, deps) {
       return res.status(507).json(Object.assign({}, r, { error: 'L\'espace de stockage de cette entreprise est plein. Rien n\'a été enregistré. Contacte TEAM OP.' }));
     if (!r.acceptes && r.refus.length && r.refus.every(x => x.motif === 'disque_plein'))
       return res.status(503).json(Object.assign({}, r, { error: 'Le serveur manque de place. Rien n\'a été enregistré, ton travail est conservé sur l\'appareil. Réessaie plus tard.' }));
+    /* ⛔ ET L'HORLOGE EST LE TROISIÈME REFUS TOTAL, OUBLIÉ DES DEUX AUTRES. Il sortait en 200
+       avec `acceptes:0` — donc l'écran était libre de n'y voir qu'un détail, alors que RIEN
+       n'avait été écrit. Quand le serveur retarde, c'est 100 % des écritures de TOUS les
+       appareils qui tombent ici : le pire moment pour se taire. 409 parce que ce n'est ni un
+       manque de place (507/503) ni un refus d'accès — c'est un DÉSACCORD sur l'heure, et
+       l'écart est dit en minutes pour que le message nomme la cause réelle. */
+    if (!r.acceptes && r.refus.length && r.refus.every(x => x.motif === 'horlogeAvancee')) {
+      const ecart = Math.max(...r.refus.map(x => parseInt(x.ecartMin, 10) || 0));
+      return res.status(409).json(Object.assign({}, r, { ecartMin: ecart,
+        error: 'L\'heure de cet appareil ou celle du serveur est fausse de ' + ecart + ' minute(s). '
+          + 'Rien n\'a été enregistré, ton travail est conservé sur l\'appareil. Contacte TEAM OP.' }));
+    }
     res.json(r);
   });
 
@@ -568,7 +599,9 @@ function monterOpSocle(app, deps) {
        qui » est dans la Tour, qui est gardée. Mais le nombre doit sortir : sans lui, une
        entreprise dont les données cessent de se déchiffrer ne réveille personne. */
     let ill = 0; for (const n of illisibles.values()) ill += n;
-    return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length, illisibles: ill };
+    /* Agrégé par motif, sans aucun espace nommé — voir le commentaire de `refus` plus haut. */
+    const parMotif = {}; for (const [m, n] of refus) parMotif[m] = n;
+    return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length, illisibles: ill, refus: parMotif };
   };
   /* ⛔ DEUX TEMPS, ET L'ORDRE EST TOUT. `serveur.close()` ne rend la main qu'une fois TOUTES les
      connexions terminées — or un long-poll est tenu 25 secondes, et en production il y a

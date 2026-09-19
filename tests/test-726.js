@@ -545,6 +545,99 @@ const menage = async () => {
     }
     await R.arreter();
 
+    /* ══ 5ter. LES BUDGETS ANTI-ABUS, MESURÉS — PAS RELUS ══════════════════════════════ */
+    /* ⛔ ILS N'ÉTAIENT GARDÉS QUE PAR DES EXPRESSIONS RÉGULIÈRES SUR LE TEXTE d'`op-socle.js`,
+       dans `test-724`. MESURÉ par la cinquième vérification : écrire `const cher = false`
+       laisse les SEPT suites vertes, et fait passer 20 appels sur 20 là où 5 devraient passer.
+       C'est la panne que ce budget existe pour empêcher : `etat()` relit et SIGNE toute la
+       base (42 ms sur 20 000 lignes), donc 40 000 appels par heure font 28 MINUTES de boucle
+       d'événements gelée par heure — tout le serveur, tous les clients, à partir d'un seul
+       jeton parfaitement légitime.
+       ⛔ ET LA BARRE OBLIQUE FINALE EST LE CŒUR DU CONTRÔLE. Express est monté sans
+       `strict routing` : `/api/op/etat/` atteint le MÊME gestionnaire. Le budget doit donc
+       être le MÊME COMPTEUR — c'est exactement la régression que l'en-tête de ce fichier cite
+       comme l'une de ses raisons d'être, et qu'il ne gardait pas. */
+    console.log('⛔ Les budgets : on les MESURE, on ne relit pas leur écriture');
+    {
+      const B = await assembler('budgets', { socle: true, endpoint: ENDPOINT,
+        config: { socle: { actif: true, etatsParHeure: 5, lecturesParHeure: 50, ecrituresParHeure: 50 } } });
+      vrai('le serveur démarre avec des budgets bas', B.vivant);
+      const sb = await B.appel('POST', '/api/op/session', { corps: { t: T_A, kh: sha(CLE_A) } });
+      v('la session s\'ouvre', sb.code, 200);
+      const jb = sb.j && sb.j.jeton;
+      const taper = async (chemin, n) => {
+        const c = { 200: 0, 429: 0, autre: 0 };
+        for (let i = 0; i < n; i++) {
+          const r = await B.appel('GET', chemin, { jeton: jb });
+          c[r.code === 200 ? 200 : r.code === 429 ? 429 : 'autre']++;
+        }
+        return c;
+      };
+      const cher = await taper('/api/op/etat', 20);
+      console.log('      /api/op/etat  → ' + JSON.stringify(cher));
+      v('⛔ le budget cher s\'applique : 5 passent, 15 refusés', [cher[200], cher[429]], [5, 15]);
+
+      /* ⛔ LE CONTRÔLE QUI MANQUAIT. Même compteur, donc plus AUCUN passage. */
+      const oblique = await taper('/api/op/etat/', 20);
+      console.log('      /api/op/etat/ → ' + JSON.stringify(oblique));
+      v('⛔ la barre oblique finale ne rouvre RIEN', oblique[200], 0);
+
+      /* ⚠️ LA CONTRE-ÉPREUVE, sans laquelle « 0 passage » serait aussi vrai d\'un serveur mort :
+         une route de lecture BON MARCHÉ, au budget séparé, doit continuer de répondre. */
+      const bonMarche = await B.appel('GET', '/api/op/depuis?seq=0', { jeton: jb });
+      v('⛔ et la lecture bon marché, elle, passe encore', bonMarche.code, 200);
+      await B.arreter();
+    }
+
+    /* ══ 5quater. LES DEUX PANNES MUETTES : DISQUE PLEIN, HORLOGE FAUSSE ═══════════════ */
+    /* ⛔ LA PIRE FAMILLE DE CE DÉPÔT : celle qui ne se voit pas. Avant ce contrôle, les deux
+       scénarios ci-dessous arrêtaient l'écriture de TOUS les clients pendant que `/health`
+       répondait exactement comme un serveur sain et que `journalctl` restait vide. On ne
+       l'apprenait que par un client qui appelle. */
+    console.log('⛔ Disque plein et horloge fausse : est-ce que ça SE VOIT ?');
+    {
+      /* Le plancher de disque se règle : on le met au-dessus de la place réelle, ce qui met le
+         serveur dans l'état « disque plein » sans avoir à remplir un disque. */
+      const D = await assembler('muet', { socle: true, endpoint: ENDPOINT,
+        config: { socle: { actif: true, disquePlancher: 9e18 } } });
+      vrai('le serveur démarre', D.vivant);
+      const sd = await D.appel('POST', '/api/op/session', { corps: { t: T_A, kh: sha(CLE_A) } });
+      v('la session s\'ouvre malgré tout', sd.code, 200);
+      const pd = await D.appel('POST', '/api/op/pousser', { jeton: sd.j && sd.j.jeton,
+        corps: { enr: [{ c: 'produits', id: 'd1', m: 1758200000000, e: 'ed', r: { nom: 'D' } }] } });
+      v('⛔ disque plein : la pousse est REFUSÉE, et en 503', pd.code, 503);
+      v('   rien n\'a été accepté', pd.j && pd.j.acceptes, 0);
+      {
+        const { j } = await D.appel('GET', '/health');
+        v('⛔ et /health le PUBLIE', (j.socle.refus || {}).disque_plein, 1);
+        faux('⛔ sans nommer aucune entreprise', /ent-a-9x|entreprise/.test(JSON.stringify(j.socle)));
+      }
+      await D.arreter();
+
+      /* L'horloge : un appareil à l'heure juste contre un serveur qui retarde revient au même
+         qu'un appareil en avance — c'est la date de la ligne qui dépasse `maintenant + 5 min`. */
+      const H = await assembler('horloge', { socle: true, endpoint: ENDPOINT });
+      const sh = await H.appel('POST', '/api/op/session', { corps: { t: T_A, kh: sha(CLE_A) } });
+      const dansUneHeure = Date.now() + 3600000;
+      const ph = await H.appel('POST', '/api/op/pousser', { jeton: sh.j && sh.j.jeton,
+        corps: { enr: [{ c: 'produits', id: 'h1', m: dansUneHeure, e: 'eh', r: { nom: 'H' } }] } });
+      /* ⛔ 409, PAS 200. Il sortait en 200 avec `acceptes:0` : l'écran était libre de n'y voir
+         qu'un détail alors que RIEN n'avait été écrit, pour 100 % des appareils. */
+      v('⛔ horloge en avance : refus total en 409, jamais 200', ph.code, 409);
+      v('   rien n\'a été accepté', ph.j && ph.j.acceptes, 0);
+      vrai('   et le message nomme l\'écart en minutes', ph.j && ph.j.ecartMin >= 55);
+      {
+        const { j } = await H.appel('GET', '/health');
+        v('⛔ /health publie le compteur d\'horloge', (j.socle.refus || {}).horlogeAvancee, 1);
+      }
+      /* ⚠️ LA CONTRE-ÉPREUVE : une ligne à l'heure juste doit passer sur le MÊME serveur,
+         sinon « tout est refusé » passerait ce contrôle au vert. */
+      const ok2 = await H.appel('POST', '/api/op/pousser', { jeton: sh.j && sh.j.jeton,
+        corps: { enr: [{ c: 'produits', id: 'h2', m: Date.now(), e: 'eh2', r: { nom: 'H2' } }] } });
+      v('⛔ et une ligne à l\'heure juste passe', [ok2.code, ok2.j && ok2.j.acceptes], [200, 1]);
+      await H.arreter();
+    }
+
     /* ══ 5bis. RALLUMAGE : LA RÉOUVERTURE FAITE DRAPEAU ÉTEINT A-T-ELLE PRIS ? ═════════ */
     /* ⛔ LE SEUL CONTRÔLE QUI VOIT CE BLOQUANT. `socleOuvrir` rendait `fait:true` drapeau
        éteint SANS RIEN FAIRE, et la Tour retirait quand même l'entreprise d'`entFermes` : au
