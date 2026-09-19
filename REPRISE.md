@@ -43,7 +43,7 @@ Détail complet dans `CLAUDE.md`, section « les appareils d'abord, la porte ens
 | | servi | source |
 |---|---|---|
 | `teamop.fr/app.html` | **APP_VERSION 695** | `curl` |
-| `teamop.fr/beta.html` | 702 | `curl` |
+| `teamop.fr/beta.html` | **702-beta** (la branche est en 703-beta) | `curl` |
 | `teamop.fr/sw.js` | cache `elan-gestion-v895` | `curl` |
 | `api.teamop.fr` | **serveur SANS socle** (aucun champ `socle` dans `/health`) | `curl /health` |
 
@@ -56,11 +56,16 @@ pas connectée) et **`bugs24h:1`**.
 n'est chez un client.** Le socle, la sauvegarde chiffrée, les 26 bancs neufs — tout est sur la
 branche. Ce qui peut buguer chez ELAN aujourd'hui, c'est la v695 et le serveur d'avant.
 
-## B. Ce qui ATTEND d'être publié — 55 commits d'avance sur `main`
+⚠️ `sauvegarde {ageH:9}` était la mesure du matin ; reprise le 19 au soir : **`ageH:12`,
+`ok:true`, toujours vert**. Et le contrôle qui compte : **la surveillance horaire réelle**
+(`node .github/scripts/surveillance.js`) lancée contre la production rend « ✅ Tout est OK —
+12 fichiers en ligne + serveur vérifiés », app v695 · cache v895, pièces 0 % du plafond.
+
+## B. Ce qui ATTEND d'être publié — **81 commits** d'avance sur `main` (19/09 au soir)
 
 | fichier | écart | ce que ça veut dire |
 |---|---|---|
-| `app.html` | **+620 lignes** (695 → 702) | **le vrai risque** : 7 versions de travail que les équipes verront d'un coup |
+| `app.html` | **+620 lignes** (695 → **703**) | **le vrai risque** : 7 versions de travail que les équipes verront d'un coup |
 | `server/index.js` | +282 l. | dont une partie N'EST PAS le socle : des routes qu'ELAN utilise déjà |
 | `server/socle.js` | +1 212 l. | inerte (`socle.actif:false`) |
 | `server/op-socle.js` | +633 l. | inerte |
@@ -141,6 +146,59 @@ de correction sur du code que personne n'exécute. Aucun ne touche un client auj
   avant) n'a **aucun mécanisme** : `ferme_le` est écrit et jamais relu, `purge_le` n'existe pas.
   Aujourd'hui c'est tenu sans rien faire ; avec le socle, il faudra l'EXÉCUTER.
 
+## D bis. ✅ LA TROISIÈME VÉRIFICATION (tour 6) — 32 constats, TOUS TRAITÉS
+
+Lancée sur les 16 commits de la soirée du 19 septembre : 16 agents, 2,38 M de jetons, 51 min.
+**32 constats retenus, 0 réfuté — et 24 étaient des RÉGRESSIONS de la soirée même.** C'est le
+chiffre à retenir : une soirée de correctifs justes a introduit trois bloquants.
+
+**Les 3 bloquants — fermés, chacun prouvé en remettant le défaut :**
+
+| | ce que c'était | preuve |
+|---|---|---|
+| `deploiement.yml` | une **apostrophe** dans `${1:?le SHA n'a pas été transmis}` cassait le parse du corps ENTIER : **tout correctif serveur poussé sur `main` n'arrivait nulle part, en silence** | `bash -n` : code 2 avec, 0 sans ; lancé comme le fait ssh, il va jusqu'au `cd` |
+| `espacePaye()` | un espace à `email:''` (**tout espace ouvert depuis la Tour**) se rattachait au premier abonnement Stripe dont le client n'a pas d'adresse — l'abonnement d'une entreprise payait pour une autre | vrai serveur isolé, Stripe simulé : `paye:true` avant, `paye:false` après |
+| `test-723` | cherchait « a1 » dans un texte qui porte un SHA-256 : **il accusait le serveur une fois sur cinq, au hasard** | 21,8 % des empreintes contiennent « a1 » (mesuré sur 20 000) ; 1 échec sur 6 avant, 0 sur 12 après |
+
+**Les 20 graves se ramenaient à 7 sujets distincts (chaque axe avait trouvé les mêmes). Tous fermés :**
+
+1. ⛔ **Le VPS partait chez les clients pendant que les bancs tournaient encore.** Le job
+   « tests » vivait dans `ci.yml`, un workflow SÉPARÉ : pas de `needs` entre workflows, donc
+   les deux partaient en parallèle et le déploiement finissait 50 à 100 s AVANT. → job `bancs`
+   DANS `deploiement.yml`, et `deployer: needs: bancs`. Compteur unique : `scripts/bancs-ci.sh`.
+2. ⛔ **`TEAMOP3MOIS` était en clair dans `tour.html`**, servi à n'importe qui (633 Ko sans
+   en-tête ni cookie), et le code était **VIVANT** (aperçu public : 200, premium, 3 mois).
+   Retiré des trois fichiers. ⚠️ **RESTE À FAIRE PAR JUSTIN** — voir section F.
+3. ⛔ **Le correctif Stripe était INERTE** : `recap-abonnement.html`, seule page du site qui
+   ouvre une page de paiement, n'envoyait pas `ref`. Elle lit maintenant `elan_sync_team`.
+4. ⛔ **Les deux contrôles de `test-727` qui gardaient ce correctif matchaient un COMMENTAIRE.**
+   On pouvait supprimer les deux lignes de code : le banc restait vert.
+5. ⛔ **Trois champs de `/health` écrits le soir même n'étaient lus par personne.**
+   `surveillance.js` n'avait pas bougé : une PANNE de sauvegarde était classée « installation
+   pas encore faite », donc un murmure une fois par jour. Six autres champs orphelins trouvés
+   au passage — dont `pieces.remplissage`, qui dit quand les photos vont cesser de partir.
+6. ⛔ **`install.sh` régénérait la clé maître sur des bases déjà chiffrées** — l'inverse exact
+   de ce que son propre commentaire promettait. → il délègue à `poser-cle.js`.
+7. ⛔ **`ALLUMER-LE-SOCLE.md` omettait `TEAMOP_SAUV_COFFRE`** : sur un VPS mort — le cas même
+   de cette section — la clé seule ne dit pas OÙ est le coffre.
+
+**Les 9 mineurs sont fermés aussi** : plafond des pièces ancré sur les 4 routes réelles (et
+insensible à la casse), slug passé aux deux appels de la Tour, contrôle de SHA en « au moins
+ce commit », code de sortie des bancs regardé par la CI, assemblage où un module NE SE MONTE
+PAS (c'est le chemin exact de la panne du 19), « nous avons noté votre code » remplacé par le
+code en clair, et les cinq correctifs sans banc — gardés par `test-729` et `test-730`.
+
+**Trois bancs neufs** : `test-728` (les scripts de la CI se parsent VRAIMENT, et la porte du
+déploiement), `test-729` (la clé maître, exécutée en bac à sable), `test-730` (les correctifs
+d'interface de la soirée). **87 suites · 3 208 vérifications · 0 ✗ · 73 s.**
+
+⚠️ **Ce qui RESTE ouvert de ce tour, et qui n'est pas à moi :** le plafond anti-abus des pièces
+jointes (`PLAFOND_PIECES`) est sur la branche, pas sur `main` — or la bêta **publiée**
+(702-beta) appelle déjà `/api/pieces` (vérifié : 3 appels dans le fichier servi). Ces requêtes
+tombent donc dans le budget global à 120/min/IP : quelqu'un qui ouvre plusieurs interventions
+à photos sur la bêta peut se faire plafonner **toute l'API**, devis et bons de commande
+compris. Pousser `server/` déploie le VPS — c'est une décision de Justin, pas d'un agent.
+
 ## E. Les étapes 2 à 9 du plan — ce qui n'a pas commencé
 
 `PLAN-OP-SOCLE.md` §4. **L'étape 2 est la plus dangereuse de toutes** : le convertisseur
@@ -159,6 +217,17 @@ de correction sur du code que personne n'exécute. Aucun ne touche un client auj
 
 ## F. Ce qui dépend de JUSTIN, et que personne d'autre ne peut faire
 
+- ⛔⛔ **RENOUVELER OU PLAFONNER `TEAMOP3MOIS` dans `config.promos`, sur le VPS.** Le code a
+  été lisible publiquement dans `tour.html` — on ne sait pas depuis quand, ni par qui. Il est
+  retiré des fichiers, mais **un correctif arrête une cause, il ne range pas derrière lui** :
+  tant qu'il est vivant dans `config.promos`, n'importe qui qui l'a noté s'offre trois mois de
+  premium. Deux gestes possibles : changer le code, ou lui poser un `maxUtilisations` bas.
+  Vérifier ensuite : `POST /api/promo/valider {"code":"TEAMOP3MOIS","apercu":true}` doit
+  rendre **404**. Et regarder `data/promos-usages.json` pour savoir combien l'ont déjà pris.
+- ⚠️ **Décider pour le plafond des pièces jointes** (voir la fin de la section D bis) : la bêta
+  publiée appelle `/api/pieces` alors que la borne est restée sur la branche. Soit on pousse
+  `server/` (ce qui déploie le VPS), soit on sait qu'un test de bêta un peu chargé peut
+  plafonner toute l'API pour cette IP.
 - ⛔ **Le préavis de 30 jours / l'accord écrit à ELAN** — chemin critique de l'étape 4. Rien ne
   peut avancer au-delà de l'étape 3 sans ça.
 - ⛔ **La phrase qui autorise la publication d'`app.html`** — 7 versions attendent.

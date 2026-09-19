@@ -47,7 +47,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**83 suites dans `tests/`**, sans dépendance ni installation (recompté le 19 septembre 2026 —
+**87 suites dans `tests/`**, sans dépendance ni installation (recompté le 19 septembre 2026 au soir —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -68,9 +68,15 @@ passait au vert pendant ce temps, parce qu'il monte le module lui-même. Voir l'
 Toutes sautent d'elles-mêmes si `server/node_modules` manque, et ⚠️ aucune ne vise
 `api.teamop.fr` : tout se passe sur 127.0.0.1, coffre de sauvegarde compris.
 
+⛔ **NE PAS LANCER LA BOUCLE À LA MAIN : `scripts/bancs-ci.sh` EST LE COMPTEUR, ET IL EST
+UNIQUE.** La CI et le déploiement du VPS lancent CE fichier ; deux copies d'un compteur
+divergent toujours, et c'est un compteur recopié qui a fait écrire « 2 598 » pour 2 989. Il
+porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt APRÈS son total)
+et sort en 1 dès qu'une suite tombe.
+
 ```bash
-for f in tests/test-*.js; do node "$f"; done   # 2 989 vérifications, ~158 s (mesuré le 19/09/2026)
-node tests/test-726.js                         # le câblage seul : 62 vérifications, 5,7 s
+bash scripts/bancs-ci.sh        # 87 suites · 3 208 vérifications, ~73 s (mesuré le 19/09/2026 au soir)
+node tests/test-726.js          # le câblage seul : 126 vérifications, ~12 s
 ```
 
 ⛔ **COMPTER LES ✓ AVEC `grep` DONNE UN CHIFFRE FAUX, ET FAUX EN MOINS.** Sept suites (716 à
@@ -83,6 +89,12 @@ sortie :
 ```bash
 for f in tests/test-*.js; do node "$f" | grep -oE '[0-9]+ ✓ +[0-9]+ ✗' | tail -1; done
 ```
+
+⛔ **ET LE BANDEAU NE SUFFIT PAS NON PLUS : REGARDER LE CODE DE SORTIE.** Un banc qui imprime
+« 12 ✓ 0 ✗ » puis MEURT (une exception dans du code asynchrone, un fichier manquant après le
+total) a l'air vert et ne l'est pas. La première version du compteur de la CI faisait
+`sortie=$(node "$f" 2>&1) || true` : elle jetait le code de sortie. `scripts/bancs-ci.sh` le
+regarde désormais et nomme le coupable.
 
 ⛔⛔ **COMMITER LE CORRECTIF AVANT DE MUTER — SINON `git checkout` EFFACE LES DEUX.** La façon
 d'éprouver un banc est de remettre le défaut puis de restaurer par `git checkout <fichier>`.
@@ -118,6 +130,39 @@ banc. Et l'inverse : ⛔ **`test-726` NE couvre PAS les budgets anti-abus** (zé
 `quota`, `429`, `etatsParHeure`), alors que son en-tête cite la barre oblique finale de
 `/api/op/etat` parmi ses raisons d'être. Ce budget-là n'est gardé que par des expressions
 régulières sur le texte de `op-socle.js`, dans `test-724` — voir `REPRISE.md`.
+
+⛔⛔ **UN MOTIF DE BANC DOIT VISER DU CODE, JAMAIS UNE PHRASE — pris TROIS fois le
+19 septembre 2026 au soir, dans trois fichiers différents.** Ce dépôt est très commenté : le
+nom d'une fonction, un chemin de route, un paramètre Stripe apparaissent presque toujours dans
+le COMMENTAIRE qui explique le correctif, juste au-dessus du code. Trois conséquences réelles :
+
+- `test-727` gardait le correctif Stripe par deux `grep` sur le texte du serveur — les deux
+  motifs étaient dans le commentaire. On pouvait **supprimer les deux lignes de code** et le
+  banc restait vert : il gardait une explication, pas un comportement.
+- un banc qui cherchait `/api/stripe/checkout` dans la page est tombé sur le commentaire vingt
+  lignes plus haut, et a évalué le mauvais corps.
+- un recensement des appelants d'une fonction en a trouvé huit qui n'existent pas.
+
+La parade tient en deux gestes : **enlever les commentaires avant de chercher**
+(`SRC.replace(/\/\*[\s\S]*?\*\//g,' ').replace(/^[ \t]*\/\/.*$/gm,' ')`), et **ancrer sur la
+forme du CODE** (`fetch('https://…'`) plutôt que sur la chaîne toute seule. Et la contre-épreuve
+qui les attrape tous : **muter le code et vérifier que le banc tombe** — un motif qui vise un
+commentaire ne bouge jamais.
+
+⛔ **UN JETON DE RECHERCHE COURT TOMBE AU HASARD DANS UNE EMPREINTE.** `test-723` cherchait
+« a1 » (l'identifiant d'un enregistrement) dans un texte qui porte un SHA-256 hexadécimal.
+Mesuré : **21,8 % des empreintes contiennent « a1 »** — le banc accusait donc le serveur de
+fuiter une donnée de client environ une fois sur cinq, au hasard. Un banc qui crie faux se fait
+ignorer, puis désactiver : c'est comme ça qu'on perd un garde-fou. Tout jeton cherché dans une
+sortie qui peut contenir une empreinte doit porter des lettres **hors de `[0-9a-f]`**.
+
+⛔ **UNE APOSTROPHE DANS LE MOT DE `${var:?mot}` CASSE LE PARSE DU SCRIPT ENTIER.** Bash
+re-interprète les quotes à l'intérieur du mot, **même entre guillemets doubles** :
+`"${1:?le SHA n'a pas été transmis}"` ouvre une simple quote qui ne se referme jamais, et le
+fichier ne se parse plus du tout (`unexpected EOF while looking for matching '"'`, code 2,
+aucune commande exécutée). ⚠️ Le message d'erreur ne nomme ni la variable ni la ligne fautive :
+il pointe la fin du fichier. `tests/test-728.js` refuse désormais toute quote dans le mot d'un
+`${var:?…}` des workflows, et passe à `bash -n` le corps de chaque heredoc destiné à un shell.
 
 Quand une suite ne peut pas exécuter (un ordre d'opérations, un balisage, une fonction qui touche
 le DOM), elle lit le texte du fichier réel — et la preuve fonctionnelle vit alors dans une sonde
@@ -226,6 +271,37 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   des clients sans leur Réception. Le compteur `mailRefus` de `/health` le voit venir : un
   motif autre qu'`absent` qui monte, ce sont de vrais appareils qui tombent. Il reste agrégé —
   `/health` est publique, y nommer un espace dirait au monde quelles entreprises existent.
+- ⛔ **UN CODE PROMO NE S'ÉCRIT DANS AUCUN FICHIER SERVI, PAS MÊME COMME EXEMPLE.** Le
+  19 septembre 2026, `TEAMOP3MOIS` était dans le placeholder d'un champ de `tour.html`. La Tour
+  demande un mot de passe, mais **son authentification est côté JavaScript** : elle n'empêche
+  pas de télécharger la page. Mesuré : `curl -s https://teamop.fr/tour.html` rend 633 Ko à un
+  anonyme, sans en-tête ni cookie — et l'aperçu public de `/api/promo/valider` (qui n'écrit
+  rien) confirmait le code VIVANT, premium, 3 mois. Le même code avait déjà été retiré
+  d'`espace.html` pour cette raison exacte : il avait simplement **changé de fichier**.
+  `scripts/verif-secrets.sh` le refuse désormais dans tout fichier suivi ; les exemples FICTIFS
+  y sont nommés un par un, parce que le script ne peut pas connaître `config.promos`, qui vit
+  sur le VPS. En ajouter un doit être un geste conscient, et se vérifie en une commande (un
+  aperçu qui rend 404). ⚠️ Et un correctif ne range pas derrière lui : **un code qui a circulé
+  se renouvelle ou se plafonne**, dans `config.promos`, sur le VPS.
+- ⛔ **`install.sh` NE DÉCIDE PLUS DE LA CLÉ MAÎTRE — `server/poser-cle.js` le fait.** Le bloc
+  d'origine testait `[ -s /etc/teamop/kek ]`, c'est-à-dire la présence du FICHIER, jamais celle
+  des BASES, alors que son propre commentaire promettait « ON NE LA RÉGÉNÈRE JAMAIS SI ELLE
+  EXISTE ». Or la clé vit hors de `/opt` EXPRÈS : un volume restauré, un VPS rebâti depuis une
+  sauvegarde d'`/opt`, un `/etc` écrasé — et les bases chiffrées reviennent SANS la clé.
+  Relancer `install.sh` (c'est le mode d'emploi du dépôt) posait une clé neuve et l'affichait
+  comme une installation vierge : toutes les bases définitivement indéchiffrables.
+  **Un commentaire n'est pas une garde.** Le refus existait déjà, à un seul endroit, et il
+  compte l'ANNUAIRE autant que les bases. Corollaire : l'unité systemd ne porte plus
+  `LoadCredential` — c'est `poser-cle.js` qui pose le drop-in, APRÈS l'écriture de la clé et
+  jamais sur un chemin d'erreur, parce que ⚠️ **systemd refuse de démarrer une unité dont une
+  source de `LoadCredential` manque**. `tests/test-729.js` l'exécute dans un bac à sable complet.
+- ⛔ **UN CHAMP DE `/health` QUE PERSONNE NE LIT EST DU CODE MORT QUI A L'AIR D'UNE GARDE.**
+  `atts` était écrit `true` EN DUR : l'alarme « pièces jointes désactivées » de
+  `.github/scripts/surveillance.js` ne pouvait donc JAMAIS se déclencher. Trois champs ajoutés
+  le 19 septembre au soir (`sauvegarde.configuree`, `elagageEchecs`, `socle.ancreJours`) étaient
+  dans le même cas : justes, commentés, lus par personne. `tests/test-726.js` part du `/health`
+  VIVANT et exige que **chaque champ soit ou bien surveillé, ou bien NOMMÉ comme « vu et pas
+  surveillé »** — en ajouter un oblige à trancher, une fois, par écrit.
 - ⛔ **Fermer une entreprise doit COUPER ses sessions Firebase, et le DIRE.** Refuser les
   nouveaux jetons ne suffit pas : un jeton s'échange contre une session **renouvelable
   indéfiniment**, rangée sur l'appareil — après un seul échange réussi, l'appareil ne repasse
@@ -637,6 +713,17 @@ croyance fausse : `.github/workflows/deploiement.yml` déploie le VPS à **tout 
 touchant `server/**`**. Un commit ne peut donc pas être « prêt, non déployé » s'il est sur
 `main` ; retenir du serveur veut dire ne pas le pousser du tout. Les mêmes preuves sont donc
 exigées avant un push serveur qu'avant une version d'application.
+
+✅ **DEPUIS LE 19 SEPTEMBRE 2026 AU SOIR, LE VPS ATTEND LES BANCS.** `deploiement.yml` porte un
+job `bancs` et le job qui parle au VPS le déclare en `needs`. Avant ça, le job « tests » vivait
+dans `ci.yml` — un workflow SÉPARÉ, et GitHub Actions n'a pas de `needs` entre workflows : sur
+la même poussée, les deux partaient en parallèle et **le déploiement finissait 50 à
+100 secondes AVANT les bancs**. Le serveur atteignait les clients pendant que les tests
+tournaient, et leur échec ne rattrapait rien.
+⚠️ La porte est **dans le workflow qui déploie**, pas ailleurs : elle ne peut pas se faire
+contourner par une modification de `ci.yml`. `tests/test-728.js` lit la DÉPENDANCE entre jobs,
+pas l'intention — retirer le `needs` fait tomber le banc. **Cela ne remplace pas la règle
+ci-dessus** : les bancs verts autorisent le déploiement, ils ne décident pas de le faire.
 
 ## La bêta : un outil de développement, jamais un canal public
 
