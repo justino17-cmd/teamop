@@ -16679,9 +16679,17 @@ function renderIntDetail(id){
     const sub=`<div class="tabs" style="margin-bottom:12px"><div class="tab ${fsTab==='medias'?'active':''}" onclick="fsTab='medias';renderIntDetail('${id}')">Médias</div><div class="tab ${fsTab==='sign'?'active':''}" onclick="fsTab='sign';renderIntDetail('${id}')">Signatures</div></div>`;
     if(fsTab==='medias'){
       const canDelM=intEdit&&intMediaCanDel(i);
+      /* ⛔ L'IDENTIFIANT DE REDESSIN VIT SUR LA GRILLE, QUI EXISTE DANS LES DEUX MODES. Il était
+         posé sur la tuile « 🔒 Stylo ✏️ pour ajouter », c'est-à-dire sur UNE SEULE branche d'un
+         ternaire — celle de la lecture seule. En mode ÉDITION (le stylo, là où un technicien
+         travaille vraiment), `getElementById('int-detail-photos')` rendait donc `null`, et
+         `intPhotosCombler` téléchargeait les photos du VPS, les mettait en mémoire… et ne
+         redessinait JAMAIS l'écran. Les photos d'un collègue restaient invisibles tant qu'on
+         ne changeait pas d'onglet. Un identifiant qui ne vit que dans une branche d'un ternaire
+         est un identifiant sur lequel on ne peut pas s'appuyer. */
       body=`${sub}
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
-        ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div id="int-detail-photos" onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
+      <div id="int-detail-photos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
+        ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
         ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
       </div>
       <input type="file" id="int-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="intPhotoAdd(event,'${id}')">
