@@ -71,20 +71,10 @@ jobs:
       - name: Syntaxe des fichiers serveur
         run: for f in server/*.js; do node --check "$f" || exit 1; done
 
-      # ⛔ ON COMPTE SUITE PAR SUITE, en prenant le DERNIER total de chaque sortie. Un
-      # `grep -c` sur les ✓ ment EN MOINS : sept suites impriment leur total dans un bandeau
-      # d'un autre format et sont sautées en silence — c'est ainsi qu'un chiffre faux de 391
-      # contrôles a été écrit dans CLAUDE.md le 19 septembre.
-      - name: Les 83 suites
-        run: |
-          echecs=0; total=0
-          for f in tests/test-*.js; do
-            sortie=$(node "$f" 2>&1) || true
-            ligne=$(printf '%s\n' "$sortie" | grep -oE '[0-9]+ ✓ +[0-9]+ ✗' | tail -1)
-            if [ -z "$ligne" ]; then echo "::error::$f n'a rendu AUCUN total — il s'est interrompu"; echecs=$((echecs+1)); continue; fi
-            ok=$(echo "$ligne" | grep -oE '^[0-9]+'); ko=$(echo "$ligne" | grep -oE '[0-9]+ ✗' | grep -oE '[0-9]+')
-            total=$((total+ok))
-            if [ "$ko" != "0" ]; then echo "::error::$f : $ko échec(s)"; printf '%s\n' "$sortie" | grep '✗' | head -20; echecs=$((echecs+1)); fi
-          done
-          echo "total : $total vérifications"
-          [ "$echecs" = "0" ] || { echo "::error::$echecs suite(s) en échec — rien ne part chez un client."; exit 1; }
+      # ⛔ LE COMPTEUR VIT DANS UN SEUL FICHIER, ET C'EST VOULU. `deploiement.yml` lance le
+      # MÊME script avant de toucher au VPS : deux copies d'un compteur divergent toujours, et
+      # c'est précisément un compteur recopié qui a fait écrire « 2 598 » pour 2 989 dans
+      # CLAUDE.md. Le fichier porte aussi les deux pièges du comptage (bandeaux d'un autre
+      # format, banc qui meurt après son total).
+      - name: Les bancs d'essai
+        run: bash scripts/bancs-ci.sh

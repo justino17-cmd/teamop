@@ -153,6 +153,53 @@ if (fs.existsSync(dep)) {
   }
 }
 
+/* ⛔ ET LA PORTE : LE VPS NE PART PAS SANS QU'UN BANC AIT RENDU SON VERDICT.
+   Le job « tests » a été écrit le 19 septembre 2026 dans `ci.yml` — un WORKFLOW SÉPARÉ. Sur la
+   même poussée, les deux partaient en parallèle et le déploiement finissait 50 à 100 secondes
+   AVANT les bancs : le serveur atteignait les clients pendant que les tests tournaient encore,
+   et leur échec ne rattrapait rien. Cinq des six axes de la troisième vérification l'ont relevé
+   séparément — c'est dire si ça se voyait, une fois qu'on regardait.
+   Ce contrôle-ci lit la DÉPENDANCE, pas l'intention : le job qui parle au VPS doit être précédé
+   d'un job qui lance les bancs. Retirer le `needs` fait tomber le banc. */
+{
+  const src = fs.readFileSync(dep, 'utf8');
+  const nomDuJob = (l) => /^  ([A-Za-z0-9_-]+):\s*$/.exec(l);
+  const L = src.split('\n');
+  let courant = '', jobs = {};
+  for (const l of L) {
+    const m = nomDuJob(l);
+    if (m) { courant = m[1]; jobs[courant] = []; continue; }
+    if (courant) jobs[courant].push(l);
+  }
+  /* La commande ssh est coupée en deux lignes par une contre-oblique : chercher le nom de la
+     commande et l'adresse du compte sur la MÊME ligne ne trouvait rien, et le banc se taisait
+     au lieu de garder quoi que ce soit. Un banc muet a l'air d'un banc vert. */
+  const vpsJob = Object.keys(jobs).find(j => jobs[j].some(l => /root@[a-z0-9.-]+/.test(l)));
+  vrai('⛔ un job du déploiement parle bien au VPS', !!vpsJob);
+  if (vpsJob) {
+    const mNeeds = /needs:\s*\[?\s*([A-Za-z0-9_, -]+?)\s*\]?\s*$/m.exec(jobs[vpsJob].join('\n'));
+    vrai('⛔ ce job ATTEND un autre job (needs)', !!mNeeds);
+    const attendus = mNeeds ? mNeeds[1].split(',').map(x => x.trim()).filter(Boolean) : [];
+    const lanceLesBancs = attendus.some(j => jobs[j] && jobs[j].some(l => /bancs-ci\.sh/.test(l)));
+    vrai('⛔ et l\'un des jobs attendus lance VRAIMENT les bancs', lanceLesBancs);
+  }
+}
+
+/* Le compteur des bancs ne vit qu'à UN endroit : deux copies divergent toujours, et c'est un
+   compteur recopié qui a fait écrire « 2 598 » pour 2 989 dans CLAUDE.md. */
+{
+  const runner = path.join(__dirname, '..', 'scripts', 'bancs-ci.sh');
+  vrai('le compteur partagé existe', fs.existsSync(runner));
+  if (fs.existsSync(runner)) {
+    const t = fs.readFileSync(runner, 'utf8');
+    vrai('   il prend le DERNIER bandeau de chaque sortie (les 716-722 en ont un autre format)', /tail -1/.test(t));
+    vrai('   ⛔ et il regarde le code de sortie, pas seulement le bandeau', /rc=\$\?/.test(t) && /\$rc/.test(t));
+    v('   ⛔ il ne jette PAS le code de sortie de chaque banc', /node "\$f" 2>&1\) \|\| true/.test(t), false);
+  }
+  const utilise = fichiers.filter(f => /bancs-ci\.sh/.test(fs.readFileSync(path.join(DIR, f), 'utf8')));
+  v('   et les deux workflows l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement.yml']);
+}
+
 try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exitCode = ko ? 1 : 0;

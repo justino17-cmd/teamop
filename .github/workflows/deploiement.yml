@@ -22,7 +22,39 @@ permissions:
   contents: read
 
 jobs:
+  # ⛔ LE VPS NE PART PLUS SANS QU'UN BANC AIT RENDU SON VERDICT, ET C'EST UN JOB D'ICI, PAS
+  # D'AILLEURS. Le job « tests » de `ci.yml` existe depuis le 19 septembre 2026 — mais c'est un
+  # WORKFLOW SÉPARÉ : sur la même poussée, les deux partaient EN PARALLÈLE, et le déploiement
+  # finissait 50 à 100 secondes AVANT les bancs. Le serveur atteignait donc les clients pendant
+  # que les tests tournaient encore, et un échec ne rattrapait rien : c'était déjà en ligne.
+  # GitHub Actions n'a pas de `needs` entre workflows ; `workflow_run` existe mais ne porte ni
+  # les filtres de chemin ni le SHA de la poussée sans contorsion. La porte est donc ICI, dans
+  # le workflow qui déploie : il ne peut pas se faire contourner par une modification de
+  # `ci.yml`, et il reste lisible d'un seul fichier.
+  # Le coût est de rejouer les bancs (~70 s) sur une poussée serveur. C'est le prix d'une
+  # publication, et il se compare à une journée de terrain perdue.
+  bancs:
+    name: Bancs d'essai (avant de toucher au VPS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # ⚠️ Sans les dépendances, les suites qui montent le VRAI serveur SAUTENT d'elles-mêmes
+      # et se déclarent vertes sans rien avoir exécuté — le pire des faux verts.
+      - name: Dépendances du serveur
+        run: npm ci --omit=dev --no-audit --no-fund --prefix server
+      - name: Syntaxe des pages
+        run: node scripts/verifier-syntaxe.js
+      - name: Syntaxe des fichiers serveur
+        run: for f in server/*.js; do node --check "$f" || exit 1; done
+      - name: Les bancs d'essai
+        run: bash scripts/bancs-ci.sh
+
   deployer:
+    needs: bancs
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
@@ -81,9 +113,19 @@ jobs:
             # pouvait RIEN détecter, ni un `merge --ff-only` refusé, ni un arbre divergent.
             # Ici on compare au SHA que GitHub Actions a en main : il change à CHAQUE commit,
             # et personne ne peut l'oublier.
-            if [ "$APRES" != "$ATTENDU" ]; then
-              echo "le VPS est sur ${APRES:0:8}, le commit déployé est ${ATTENDU:0:8} — arbre divergent, fetch incomplet, ou merge --ff-only refusé"
+            # ⛔ « AU MOINS CE COMMIT », PAS « EXACTEMENT CE COMMIT ». Deux poussées serveur à
+            # quelques secondes d'intervalle : le workflow de la PREMIÈRE fait un `fetch` qui
+            # ramène les DEUX commits, donc `$APRES` vaut le SHA de la seconde. Une égalité
+            # stricte sortait alors en 1 ICI — c'est-à-dire APRÈS le merge et AVANT le
+            # `systemctl restart` : le VPS se retrouvait avec le code neuf sur le DISQUE et
+            # l'ancien EN MÉMOIRE, ce qui est le pire des deux états. On demande donc ce qu'on
+            # veut vraiment savoir : le commit déployé est-il dans l'histoire du VPS ?
+            if ! git merge-base --is-ancestor "$ATTENDU" "$APRES"; then
+              echo "le VPS est sur ${APRES:0:8}, qui ne descend PAS de ${ATTENDU:0:8} — arbre divergent, fetch incomplet, ou merge --ff-only refusé"
               exit 1
+            fi
+            if [ "$APRES" != "$ATTENDU" ]; then
+              echo "le VPS porte ${APRES:0:8}, plus récent que ${ATTENDU:0:8} — une poussée suivante est déjà là, on redémarre dessus"
             fi
             echo "commit vérifié : ${APRES:0:8}"
 
