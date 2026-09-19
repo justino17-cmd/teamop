@@ -50,7 +50,14 @@ jobs:
           # soient évalués SUR LE VPS et non ici. Un seul endroit où la valeur entre.
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
               root@api.teamop.fr "bash -euo pipefail -s ${{ github.sha }}" <<'DISTANT'
-            ATTENDU="${1:?le SHA attendu n'a pas été transmis}"
+            # ⛔ PAS D’APOSTROPHE DANS LE MOT DE `${var:?mot}` — bash y RE-INTERPRÈTE les
+            # quotes, y compris entre guillemets doubles. « n'a pas été transmis » ouvrait donc
+            # une simple quote qui ne se refermait jamais : le corps entier ne se parsait plus
+            # (`unexpected EOF while looking for matching '"'`), et AUCUNE commande ne
+            # s’exécutait sur le VPS. Un correctif serveur poussé sur `main` n’arrivait nulle
+            # part, en silence. Mesuré le 19 septembre 2026 : `bash -n` rc=2 avec l’apostrophe,
+            # rc=0 sans. Garder ce mot sans apostrophe, et le relire à chaque modification.
+            ATTENDU="${1:?SHA attendu non transmis}"
             cd /opt/teamop/repo
 
             # Les trois pannes du 2 septembre, neutralisées : adresse de dépôt remise au propre,
