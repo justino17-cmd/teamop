@@ -843,8 +843,32 @@ async function promoValider() {
     const r = await fetch('https://api.teamop.fr/api/promo/valider', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code, apercu: true }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { dis('⚠ ' + (j.error || 'Code invalide'), false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } return; }
-    dis('✓ Code valide : <b>' + j.mois + ' mois offert(s)</b> — activation dans l\'application…', true);
-    setTimeout(() => { window.location.href = 'app.html#promo=' + encodeURIComponent(code); }, 900);
+    /* ⛔ ON NE PROMET PAS UNE ACTIVATION QU'ON NE PEUT PAS TENIR. La page félicitait le
+       visiteur — « activation dans l'application… » — puis le renvoyait vers `app.html#promo=`.
+       Or `promoAppliquer` EXIGE la preuve de la clé d'équipe : un code ne s'active que SUR UN
+       ESPACE. Un prospect qui n'en a pas encore atterrissait donc sur l'écran de connexion,
+       le code perdu avec le hash, et sans jamais comprendre pourquoi. C'est quelqu'un qui
+       allait payer, et à qui on venait de dire que c'était fait.
+       ⚠️ `elan_sync_team` est le marqueur d'espace rattaché (`espaceRattache()` dans app.html),
+       et cette page est servie par la MÊME origine : elle peut donc le lire. Deux chemins,
+       deux messages vrais. */
+    var aUnEspace = false;
+    try { aUnEspace = !!String(localStorage.getItem('elan_sync_team') || '').trim(); } catch (e) {}
+    if (aUnEspace) {
+      dis('✓ Code valide : <b>' + j.mois + ' mois offert(s)</b> — activation dans l\'application…', true);
+      setTimeout(() => { window.location.href = 'app.html#promo=' + encodeURIComponent(code); }, 900);
+      return;
+    }
+    /* Pas d'espace sur cet appareil : on dit la vérité, et on donne le geste suivant. Le code
+       est mémorisé pour que le champ de l'application soit pré-rempli le jour venu — il n'est
+       PAS appliqué tout seul : une activation reste un geste de la personne. */
+    try { localStorage.setItem('teamop_promo_en_attente', code); } catch (e) {}
+    dis('✓ Code valide : <b>' + j.mois + ' mois offert(s)</b>.<br>'
+      + 'Un code s\'applique à <b>votre espace</b> : ouvrez-le d\'abord avec votre lien de connexion, '
+      + 'puis entrez ce code dans <b>Paramètres → Abonnement</b>.<br>'
+      + 'Pas encore d\'espace ? <a href="espace.html" style="color:#7ee2b8;text-decoration:underline">Demandez votre accès ici</a> — '
+      + 'nous avons noté votre code.', true);
+    if (btn) { btn.disabled = false; btn.textContent = 'Activer'; }
   } catch (e) { dis('Le serveur ne répond pas — réessayez.', false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } }
 }
 

@@ -8640,6 +8640,10 @@ function planOpMsg(){ return true; }        // OP MESSAGES : application indépe
 /* ── CODE PROMO ── on tape le code chez nous (pas sur la page de paiement) :
    la formule s'active pour X mois offerts, sans carte bancaire. Un rappel
    prévient avant la fin ; passé la date, l'espace repasse en Gratuit. */
+/* Le code saisi sur la page d'abonnement par quelqu'un qui n'avait pas encore d'espace. Il ne
+   sert qu'à pré-remplir le champ : il n'active rien, et il s'efface dès qu'un code a été
+   appliqué, pour ne pas ressurgir des mois plus tard. */
+function promoEnAttente(){ try{ return String(localStorage.getItem('teamop_promo_en_attente')||'').trim().toUpperCase().slice(0,40); }catch(e){ return ''; } }
 async function promoAppliquer(codeDirect){
   const code=String(codeDirect||($('promo-inp')||{}).value||'').trim().toUpperCase();
   if(!code){ toast('Entre ton code promo'); return; }
@@ -8654,6 +8658,7 @@ async function promoAppliquer(codeDirect){
     const j=await r.json().catch(()=>({}));
     if(!r.ok){ toast('⚠ '+(j.error||('Erreur '+r.status))); return; }
     if(!j.finLe||!j.mois){ toast('Réponse du serveur incomplète — réessaie'); return; }
+    try{ localStorage.removeItem('teamop_promo_en_attente'); }catch(e){}   // il a servi : il ne doit pas ressurgir
     const f=PLANS[j.formule]?j.formule:'premium';
     db.forfait=f;
     db.forfaitEssai={code,formule:f,debut:todayISO(),finLe:j.finLe,mois:j.mois,rappels:{}};
@@ -25943,7 +25948,13 @@ views.parametres=function(){
       <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">🎁 Code promo</span><div class="frow-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
         ${db.forfaitEssai&&!db.forfaitEssai.termine
           ?`<span style="font-size:12.5px;color:var(--t3)">🔒 Tu utilises déjà le code <b>${esc(db.forfaitEssai.code)}</b> — un seul code à la fois.</span>`
-          :`<input id="promo-inp" placeholder="Ex : BIENVENUE3" style="text-transform:uppercase;width:160px" onkeydown="if(event.key==='Enter')promoAppliquer()"><button class="btn sm" onclick="promoAppliquer()">Activer</button>`}</div></div></div>
+          /* ⛔ PRÉ-REMPLI, JAMAIS APPLIQUÉ TOUT SEUL. Un prospect qui a saisi son code sur
+             `recap-abonnement.html` sans avoir encore d'espace le voyait disparaître : la page
+             le renvoyait vers `app.html#promo=`, où `promoAppliquer` exige la preuve de clé
+             qu'il n'avait pas. Le code est donc mémorisé par la page d'abonnement et retrouvé
+             ICI, le jour où l'espace existe. ⚠️ On le POSE dans le champ, on ne l'active pas :
+             « rien ne s'écrit au seul chargement », et une activation reste un geste. */
+          :`<input id="promo-inp" placeholder="Ex : BIENVENUE3" value="${esc(promoEnAttente())}" style="text-transform:uppercase;width:160px" onkeydown="if(event.key==='Enter')promoAppliquer()"><button class="btn sm" onclick="promoAppliquer()">Activer</button>`}</div></div></div>
       <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">Places utilisateur</span><div class="frow-val" style="display:flex;align-items:center;gap:10px;justify-content:flex-end">
         <b>${db.users.length} / ${planPlaces()}</b><span style="color:var(--t3);font-size:12px">· ${Math.max(1,db.forfaitQty||1)} abonnement(s)</span>
         <button class="btn ghost sm" onclick="setForfaitQty(-1)">−</button><button class="btn sm" onclick="setForfaitQty(1)">＋ Abonnement</button></div></div></div>
