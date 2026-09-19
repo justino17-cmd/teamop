@@ -66,6 +66,7 @@ const BUCKET = 'coffre-du-banc';
 const MDP = 'mot-de-passe-du-banc-2026';
 const CLE_A = 'cle-propre-de-A-2026';
 const T_A = 'ent-a-9x';
+const SLUG_A = 'entreprisea';   // un slug, pas un nom : voir espSlug dans index.js
 const sha = k => crypto.createHash('sha256').update(k).digest('hex');
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64');
 const dormir = ms => new Promise(r => setTimeout(r, ms));
@@ -206,8 +207,13 @@ async function assembler(nom, opts) {
     },
   }, opts.config || {})));
   if (!fs.existsSync(path.join(data, 'espaces.json'))) {
+    /* ⛔ LA CLÉ DE L'ANNUAIRE EST UN SLUG, ET `espSlug` RETIRE TOUT CE QUI N'EST PAS
+       ALPHANUMÉRIQUE. Écrite « entreprise-a », elle devient « entreprisea » côté Tour, et les
+       portes répondent 404 sans qu'on comprenne pourquoi — le banc croit alors mesurer une
+       coupure alors qu'il mesure un espace introuvable. `test-724` ne le voit pas : ses routes
+       cherchent par `t`, jamais par slug. */
     fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
-      'entreprise-a': { slug: 'entreprise-a', nom: 'A', email: 'a@exemple.fr', t: T_A, code: b64({ t: T_A, k: CLE_A }), ts: 1 },
+      [SLUG_A]: { slug: SLUG_A, nom: 'Entreprise A', email: 'a@exemple.fr', t: T_A, code: b64({ t: T_A, k: CLE_A }), ts: 1 },
     }));
   }
   const port = await portLibre();
@@ -416,9 +422,49 @@ const menage = async () => {
       vrai('la Tour voit l\'historique des échecs', (e.j && e.j.histo || []).length >= 3);
       v('le dernier échec y garde son motif', e.j && e.j.derniere && e.j.derniere.motif, 'empreinte-differente');
     }
+    /* ══ 4. LES PORTES DE LA TOUR COUPENT-ELLES VRAIMENT ? ═════════════════════════════ */
+    /* ⛔ AUCUN BANC NE LES GARDAIT — relevé par la cinquième vérification, et c'est mot pour mot
+       la règle des quatre portes de `CLAUDE.md`, rejouée sur le socle : on pouvait retirer
+       `socleCouper` d'une porte, ou le faire mentir, sans qu'une seule suite bronche. La Tour
+       aurait affiché « fermée » pendant que les 30 appareils du client lisaient et écrivaient
+       encore, jusqu'à 30 jours — la durée du jeton.
+       ⚠️ On ne relit PAS `index.js` pour compter des appels : on FERME depuis la Tour et on
+       demande à l'appareil s'il passe encore. Un contrôle de texte aurait laissé passer une
+       coupure qui échoue en silence. */
+    console.log('⛔ Fermer depuis la Tour coupe-t-il l\'appareil, pour de vrai ?');
+    {
+      /* La contre-épreuve d'abord : sans elle, un banc qui refuse tout passerait au vert. */
+      const avant = await A.appel('GET', '/api/op/etat', { jeton: JETON_OP });
+      v('avant la fermeture, l\'appareil travaille', avant.code, 200);
+
+      const susp = await A.appel('POST', '/api/monitor/espaces/suspendre',
+        { jeton: JETON_TOUR, corps: { slug: SLUG_A } });
+      v('la Tour suspend l\'espace', susp.code, 200);
+
+      /* ⛔ LE CONTRÔLE QUI COMPTE. Le jeton est le MÊME, il est encore valable 30 jours.
+         ⚠️ ON EXIGE LA PROPRIÉTÉ, PAS UN CODE. Mesuré : c'est 401, pas 403 — la SESSION
+         elle-même a été coupée (`sessionsCouper`), donc le jeton ne se résout plus du tout ;
+         403 serait « l'espace est fermé », un cran plus faible. Figer 403 ici ferait tomber le
+         banc le jour où la coupure devient PLUS stricte, ce qui est exactement à l'envers. */
+      const apres = await A.appel('GET', '/api/op/etat', { jeton: JETON_OP });
+      v('⛔ le jeton déjà délivré ne passe PLUS (401 session coupée, ou 403 espace fermé)',
+        [apres.code === 200, [401, 403].includes(apres.code)], [false, true]);
+      console.log('      mesuré : ' + apres.code);
+      const neuve = await A.appel('POST', '/api/op/session', { corps: { t: T_A, kh: sha(CLE_A) } });
+      v('⛔ et on ne peut pas en ouvrir une autre', neuve.code, 403);
+      v('   avec le motif que l\'écran peut dire', neuve.j && neuve.j.motif, 'ferme');
+
+      /* ⛔ ET ROUVRIR DOIT ROUVRIR. Une suspension qui ne se lève pas n'est pas une
+         suspension, c'est une condamnation — et elle serait invisible côté Tour. */
+      const rouv = await A.appel('POST', '/api/monitor/espaces/suspendre',
+        { jeton: JETON_TOUR, corps: { slug: SLUG_A, rouvrir: true } });
+      v('la Tour rouvre l\'espace', rouv.code, 200);
+      const reprise = await A.appel('POST', '/api/op/session', { corps: { t: T_A, kh: sha(CLE_A) } });
+      v('⛔ l\'appareil retravaille', reprise.code, 200);
+    }
     await A.arreter();
 
-    /* ══ 4. LE RETOUR EN ARRIÈRE : SOCLE ÉTEINT, BASES EXISTANTES ═══════════════════════ */
+    /* ══ 5. LE RETOUR EN ARRIÈRE : SOCLE ÉTEINT, BASES EXISTANTES ═══════════════════════ */
     /* ⛔ LE SCÉNARIO DOCUMENTÉ, ET LE PLUS FACILE À CASSER. On éteint `socle.actif` sur un
        serveur qui a DÉJÀ des bases. Si la sauvegarde cessait alors de les emporter, on aurait
        éteint le socle ET la seule copie de ses données, le même jour, sans que rien ne le dise.
@@ -450,9 +496,29 @@ const menage = async () => {
       vrai('⛔ la base de l\'entreprise AUSSI', i2.includes('socle-instantane/' + T_A + '.db'));
       faux('et la base vivante reste exclue', l2.some(f => /(^|\/)socle\/.+\/base\.db$/.test(f)));
     }
+
+    /* ⛔ ET LES PORTES AGISSENT ENCORE, DRAPEAU ÉTEINT. C'est LE bloquant de la cinquième
+       vérification, et c'est la leçon du 19 septembre matin non appliquée : `socleCouper`,
+       `socleOuvrir` et `socleEffacer` gardaient sur le DRAPEAU au lieu de garder sur les
+       DONNÉES, et rendaient toutes trois un SUCCÈS. Supprimer une entreprise répondait donc
+       `ok` — courriel de confirmation compris — pendant que `socle/<t>/base.db` restait sur le
+       disque avec les données du client dedans, repartait dans CHAQUE archive nocturne, et
+       ressuscitait l'entreprise au rallumage du drapeau. */
+    console.log('⛔ Drapeau éteint : supprimer une entreprise l\'efface-t-il VRAIMENT ?');
+    {
+      const base = path.join(R.data, 'socle', T_A, 'base.db');
+      vrai('la base du client est bien là avant', fs.existsSync(base));
+      const rn = await R.appel('POST', '/api/monitor/espaces/renaitre',
+        { jeton: co2 && co2.token, corps: { nom: SLUG_A } });
+      v('la Tour fait repartir l\'espace à neuf', rn.code, 200);
+      /* ⛔ ON REGARDE LE DISQUE, PAS LA RÉPONSE. La réponse disait déjà `ok` avant le
+         correctif — c'est précisément ce qui rendait le défaut invisible. */
+      faux('⛔ la base du client a DISPARU du disque', fs.existsSync(base));
+      faux('   et son dossier avec', fs.existsSync(path.join(R.data, 'socle', T_A)));
+    }
     await R.arreter();
 
-    /* ══ 5. L'INERTIE : SOCLE ÉTEINT, AUCUNE BASE ══════════════════════════════════════ */
+    /* ══ 6. L'INERTIE : SOCLE ÉTEINT, AUCUNE BASE ══════════════════════════════════════ */
     /* ⛔ C'EST LA PRODUCTION D'AUJOURD'HUI. Le socle n'y est pas allumé ; la sauvegarde, si. Si
        le simple fait de sauvegarder faisait naître un annuaire, le socle s'allumerait tout seul
        sur le VPS d'ELAN, un fichier chiffré sous une clé maître que personne n'a encore mise en
@@ -478,6 +544,25 @@ const menage = async () => {
     const apres = arbre(I.data);
     faux('⛔ la sauvegarde n\'a créé AUCUN annuaire', apres.some(f => /socle-annuaire\.db/.test(f)));
     faux('⛔ ni aucune base', apres.some(f => /^socle\//.test(f)));
+
+    /* ⛔ ET LES PORTES DE LA TOUR NE RÉVEILLENT PAS LE SOCLE NON PLUS. C'est la contre-épreuve
+       du correctif d'à côté : ces portes se décident maintenant sur les DONNÉES, donc elles
+       vont regarder le disque. Si elles y allaient par `existe()`, qui passe par `annuaire()`,
+       elles CRÉERAIENT `socle-annuaire.db` — un fichier chiffré sous une clé maître que
+       personne n'a encore mise en séquestre, né d'un simple clic dans la Tour, sur le VPS
+       d'un client dont le socle n'a jamais tourné. La garde regarde le disque, sans rien
+       ouvrir ; ce contrôle est ce qui l'oblige à le rester. */
+    {
+      const susp = await I.appel('POST', '/api/monitor/espaces/suspendre',
+        { jeton: co3 && co3.token, corps: { slug: SLUG_A } });
+      v('la Tour suspend, socle éteint et sans base', susp.code, 200);
+      const rn = await I.appel('POST', '/api/monitor/espaces/renaitre',
+        { jeton: co3 && co3.token, corps: { nom: SLUG_A } });
+      v('et fait repartir à neuf', rn.code, 200);
+      const apresPortes = arbre(I.data);
+      faux('⛔ AUCUN annuaire de socle n\'est né des portes', apresPortes.some(f => /socle-annuaire\.db/.test(f)));
+      faux('⛔ ni aucun dossier de base', apresPortes.some(f => /^socle\//.test(f)));
+    }
     {
       const cle3 = [...coffre.objets.keys()].sort().pop();
       fs.writeFileSync(arch, coffre.objets.get(cle3));

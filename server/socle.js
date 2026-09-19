@@ -584,6 +584,22 @@ function existe(t) {
   return fs.existsSync(baseDe(t));
 }
 
+/* ⛔ Y A-T-IL QUELQUE CHOSE À COUPER, À ROUVRIR OU À EFFACER — SANS RIEN OUVRIR NI CRÉER.
+ * `existe()` répond mieux, mais il passe par `annuaire()`, qui CRÉE `socle-annuaire.db` quand
+ * il manque : appelé sur un serveur où le socle n'a jamais tourné, il ferait NAÎTRE le socle
+ * tout seul, drapeau éteint — exactement ce que l'étape 1 promet de ne pas faire.
+ * Celle-ci ne fait que regarder le disque. Elle répond « peut-être », jamais « sûrement » :
+ * un annuaire présent suffit à dire « va voir pour de bon », parce qu'une entreprise peut être
+ * inscrite sans avoir encore de base. Les appelants traitent déjà `code:'ABSENT'` comme un
+ * succès, donc un « peut-être » de trop ne coûte rien ; un « non » de trop coûterait la
+ * coupure d'une entreprise. ⚠️ Elle NE LÈVE PAS sur un `t` invalide : elle répond non. C'est
+ * une question sur le disque, pas une porte d'écriture. */
+function presentSurDisque(t) {
+  try { t = exigerT(t); } catch (e) { return false; }
+  try { if (fs.existsSync(baseDe(t))) return true; } catch (e) {}
+  try { return fs.existsSync(ANNUAIRE_PATH); } catch (e) { return false; }
+}
+
 /* ══ LIRE — LE DELTA, PAGINÉ PAR `seq` STRICTEMENT CROISSANTE ═══════════════════════════════ */
 function depuis(t, apresSeq, max) {
   t = exigerT(t);
@@ -1186,7 +1202,7 @@ function semerCompteurs() {
 function sante() { semerCompteurs(); return { actif: true, bases: _nbBases, cle: _cle0 }; }
 
 module.exports = {
-  ouvrir, annuaire, dekDe, pousser, depuis, etat, rang, existe, verifier, effacerEntreprise, sante, fermer,
+  ouvrir, annuaire, dekDe, pousser, depuis, etat, rang, existe, presentSurDisque, verifier, effacerEntreprise, sante, fermer,
   exigerT, numeroReserver, journalDe,
   entrepriseEtat, entrepriseOuvrir, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,

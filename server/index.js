@@ -3501,8 +3501,30 @@ try {
    deux choses différentes, et c'est celle qu'on a oublié de corriger qui déciderait.
    ⛔ ELLE REND UN VERDICT, ET L'APPELANT LE REMONTE. Croire une entreprise coupée alors
    qu'elle ne l'est pas est la panne silencieuse type de ce dépôt. */
+/* ⛔ LA GARDE PORTE SUR LES DONNÉES, PAS SUR LE DRAPEAU — ET C'EST LA MÊME LEÇON QUE CELLE DU
+   19 SEPTEMBRE AU MATIN, QUI AVAIT ÉTEINT TOUTE LA SAUVEGARDE. Elle a été écrite, puis
+   appliquée à un SEUL endroit : ces trois fonctions-ci avaient gardé le défaut, et la
+   cinquième vérification les a reproduites. Ce qu'elles donnaient, drapeau éteint sur un
+   serveur qui avait DÉJÀ des bases — c'est-à-dire le retour en arrière que le plan documente :
+     · supprimer une entreprise → la Tour répond `ok`, le courriel de confirmation part, et
+       `data/socle/<t>/base.db` reste sur le disque avec les données du client dedans. Il repart
+       dans CHAQUE archive nocturne, et rallumer le drapeau ressuscite l'entreprise supprimée.
+     · rouvrir une entreprise suspendue → la Tour répond `ok` et la retire d'`entFermes`, mais
+       l'état `ferme` reste écrit SUR DISQUE. Au rallumage l'entreprise est en 403 définitif, et
+       le bouton « Rouvrir » ne peut plus rien : elle n'est plus dans `entFermes`, donc il n'y a
+       plus rien à rouvrir. Une suspension devenue une condamnation.
+   ⚠️ `presentSurDisque` et pas `existe` : le second passe par `annuaire()`, qui CRÉE le fichier
+   quand il manque — sur un serveur où le socle n'a jamais tourné, un simple clic dans la Tour
+   ferait naître un annuaire chiffré sous une clé que personne n'a encore mise en séquestre.
+   `tests/test-726.js` tient les deux bouts : la base DISPARAÎT drapeau éteint, et rien ne
+   naît sur un serveur vierge. */
+const socleDonneesLa = (t) => {
+  if (!t) return false;
+  try { return require('./socle').presentSurDisque(t); } catch (e) { return false; }
+};
 function socleCouper(t, quoi) {
-  if (!opSocle || !opSocle.actif || !t) return { fait: true, motif: 'socle éteint' };
+  if (!t) return { fait: true, motif: 'sans espace' };
+  if (!socleDonneesLa(t)) return { fait: true, motif: 'aucun stockage pour cet espace' };
   try {
     const r = require('./socle').entrepriseOuvrir(t, false);
     return { fait: true, motif: 'espace ' + r.etat + ', ' + r.coupees + ' session(s) coupée(s)' };
@@ -3520,7 +3542,8 @@ function socleCouper(t, quoi) {
    suspension, c'est une condamnation. Même forme que `socleCouper` — un verdict que
    l'appelant remonte, jamais un booléen muet. */
 function socleOuvrir(t) {
-  if (!opSocle || !opSocle.actif || !t) return { fait: true, motif: 'socle éteint' };
+  if (!t) return { fait: true, motif: 'sans espace' };
+  if (!socleDonneesLa(t)) return { fait: true, motif: 'aucun stockage pour cet espace' };
   try {
     const r = require('./socle').entrepriseOuvrir(t, true);
     return { fait: true, motif: 'espace ' + r.etat };
@@ -3531,7 +3554,8 @@ function socleOuvrir(t) {
   }
 }
 function socleEffacer(t) {
-  if (!opSocle || !opSocle.actif || !t) return { ok: true, motif: 'socle éteint' };
+  if (!t) return { ok: true, motif: 'sans espace' };
+  if (!socleDonneesLa(t)) return { ok: true, motif: 'aucun stockage pour cet espace' };
   try { const r = require('./socle').effacerEntreprise(t); return { ok: r.ok, motif: r.ok ? 'effacé' : 'RESTES SUR LE DISQUE' }; }
   catch (e) { console.error('⛔ socle NON effacé :', e.code || 'erreur'); return { ok: false, motif: 'socle NON effacé' }; }
 }
