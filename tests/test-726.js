@@ -420,6 +420,14 @@ const menage = async () => {
          compte comme une copie valable : trente nuits et il ne reste plus rien de sain. */
       v('⛔ l\'archive recalée est retirée du coffre', coffre.objets.size, 1);
       vrai('et c\'est bien la bonne qui reste', coffre.objets.has(CLE_BONNE));
+      /* ⛔ ET L'INSTANTANÉ NE SURVIT PAS À L'ÉCHEC. C'est une copie EN CLAIR de toutes les
+         bases ET de l'annuaire — donc des clés de toutes les entreprises — à plat dans un
+         seul dossier, hors du cloisonnement. Il n'était effacé que sur le chemin de SUCCÈS :
+         le coffre refuse une nuit (un 403 sur une clé mal réglée, un 503 un mauvais jour) et
+         il restait là jusqu'à la sauvegarde suivante. C'est exactement l'inverse de ce qu'on
+         veut : il traîne précisément les nuits où quelque chose va déjà mal. */
+      faux('⛔ l\'instantané en clair ne survit PAS à une sauvegarde ratée',
+        fs.existsSync(path.join(tmpSauv, 'socle-instantane')));
     }
     coffre.regler('normal');
     {

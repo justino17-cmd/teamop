@@ -427,12 +427,6 @@ function monterSauvegarde(app, deps) {
         if (v.degrade) console.error('⚠️ sauvegarde DÉGRADÉE mais conservée : ' + v.motif);
       }
 
-      /* ⛔ ON EFFACE L'INSTANTANÉ. C'est une copie LISIBLE de toutes les bases ET de l'annuaire,
-         donc de toutes les clés d'entreprise, hors du cloisonnement par dossier. La laisser
-         entre deux sauvegardes double la place occupée sur le seul disque du VPS et met à plat,
-         en un seul endroit, tout ce que le produit passe son temps à séparer. */
-      try { fs.rmSync(path.join(TMP_DIR, deps.socle ? deps.socle.SOCLE_INSTANTANE : 'socle-instantane'), { recursive: true, force: true }); } catch (e) {}
-
       /* La rétention seulement après une sauvegarde RÉUSSIE : on n'efface jamais une ancienne
          copie sur la foi d'une nouvelle qu'on n'a pas pu rouvrir. */
       let elaguees = 0;
@@ -446,6 +440,17 @@ function monterSauvegarde(app, deps) {
     } finally {
       enCours = false;
       for (const f of [tmp, tmpRelu]) { try { fs.unlinkSync(f); } catch (e) {} }
+      /* ⛔ L'INSTANTANÉ S'EFFACE SUR TOUS LES CHEMINS, Y COMPRIS LES RATÉS — et c'est pour ça
+         qu'il est ICI et plus sur le chemin de succès. C'est une copie EN CLAIR de toutes les
+         bases ET de l'annuaire, donc des clés de toutes les entreprises, à plat dans un seul
+         dossier : exactement ce que le produit passe son temps à séparer, réuni en un point.
+         ⛔ Posé sur le seul chemin de succès, il survivait à CHAQUE échec : le coffre refuse
+         une nuit (403 sur une clé mal réglée, 503 un mauvais jour), et la copie restait sur le
+         disque du VPS jusqu'à la sauvegarde suivante. C'est l'inverse de ce qu'on veut — elle
+         traînait précisément les nuits où quelque chose allait déjà mal. Relevé par la
+         cinquième vérification ; `tests/test-726.js` l'exige après une sauvegarde RATÉE, pas
+         seulement après une réussie. */
+      try { fs.rmSync(path.join(TMP_DIR, deps.socle ? deps.socle.SOCLE_INSTANTANE : 'socle-instantane'), { recursive: true, force: true }); } catch (e) {}
     }
   }
 
