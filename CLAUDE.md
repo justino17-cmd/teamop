@@ -69,15 +69,43 @@ Toutes sautent d'elles-mêmes si `server/node_modules` manque, et ⚠️ aucune 
 `api.teamop.fr` : tout se passe sur 127.0.0.1, coffre de sauvegarde compris.
 
 ```bash
-for f in tests/test-*.js; do node "$f"; done   # 2 598 vérifications, 114 s (mesuré le 19/09/2026)
+for f in tests/test-*.js; do node "$f"; done   # 2 989 vérifications, ~158 s (mesuré le 19/09/2026)
 node tests/test-726.js                         # le câblage seul : 62 vérifications, 5,7 s
 ```
 
+⛔ **COMPTER LES ✓ AVEC `grep` DONNE UN CHIFFRE FAUX, ET FAUX EN MOINS.** Sept suites (716 à
+722) impriment leur total dans un bandeau `════ test-71x : N ✓ 0 ✗ ════` et leurs contrôles
+dans un autre format : `grep -c '^  ✓'` les saute EN SILENCE. C'est ainsi que « 2 598 » a été
+écrit ici le 19 septembre au matin — **391 contrôles et 7 suites entières manquants**, sans
+que rien ne le signale. Compter suite par suite, en prenant le DERNIER `N ✓ M ✗` de chaque
+sortie :
+
+```bash
+for f in tests/test-*.js; do node "$f" | grep -oE '[0-9]+ ✓ +[0-9]+ ✗' | tail -1; done
+```
+
 ⛔ **Un banc qui passe ne prouve rien tant qu'on ne l'a pas vu ÉCHOUER.** `test-726` a été
-éprouvé en REMETTANT les quatre défauts qu'il garde, un par un : zone morte temporelle
-(11 ✗), motifs `--exclude` non ancrés (✗ sur l'annuaire, et l'exercice de sinistre avec),
-inertie du socle retirée (2 ✗), recalage retiré (1 ✗). Faire la même chose avant de croire un
-banc neuf — le banc qui manquait le 19 septembre passait au vert sur une archive illisible.
+éprouvé en REMETTANT les défauts qu'il garde, un par un — chiffres re-mesurés le 19 septembre
+au soir, les précédents étaient faux :
+
+| défaut remis | ce que `test-726` rend |
+|---|---|
+| zone morte temporelle sur `opSocle` | **9 ✓ · 9 ✗** (et les six autres suites serveur restent vertes) |
+| motifs `--exclude` non ancrés | **15 ✓ · 3 ✗** — l'annuaire manque, l'exercice de sinistre tombe avec |
+| base VIVANTE plus exclue de l'archive | **60 ✓ · 2 ✗** |
+| empreinte de relecture plus contrôlée | **59 ✓ · 3 ✗** |
+| archive recalée laissée au coffre | **61 ✓ · 1 ✗** |
+| les deux routes de la Tour montées SANS garde | **60 ✓ · 2 ✗** |
+| ⚠️ garde d'inertie d'`instantanerVers` retirée SEULE | **62 ✓ · 0 ✗** — rien. Le second
+`existsSync` la couvre ; il faut retirer **les deux** pour obtenir 60 ✓ · 2 ✗ |
+
+⚠️ La dernière ligne est la leçon de méthode : **une mutation qui ne casse rien ne prouve pas
+que le banc est aveugle** — elle peut simplement être neutralisée par une autre garde. Vérifier
+que la mutation change vraiment le COMPORTEMENT avant d'en conclure quoi que ce soit sur le
+banc. Et l'inverse : ⛔ **`test-726` NE couvre PAS les budgets anti-abus** (zéro occurrence de
+`quota`, `429`, `etatsParHeure`), alors que son en-tête cite la barre oblique finale de
+`/api/op/etat` parmi ses raisons d'être. Ce budget-là n'est gardé que par des expressions
+régulières sur le texte de `op-socle.js`, dans `test-724` — voir `REPRISE.md`.
 
 Quand une suite ne peut pas exécuter (un ordre d'opérations, un balisage, une fonction qui touche
 le DOM), elle lit le texte du fichier réel — et la preuve fonctionnelle vit alors dans une sonde

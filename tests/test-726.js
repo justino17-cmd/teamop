@@ -1,7 +1,7 @@
 /* ⛔ CE QUE CE FICHIER GARDE — L'ASSEMBLAGE, PAS LES PIÈCES.
 
    Il existe parce qu'une quatrième vérification a nommé la cause racine des trois pires
-   régressions de la semaine : **aucun banc n'éprouvait le CÂBLAGE.** Les quinze autres suites
+   régressions de la semaine : **aucun banc n'éprouvait le CÂBLAGE.** Les 82 autres suites
    injectent leurs dépendances et appellent les fonctions en direct — elles prouvent que chaque
    pièce est juste. Aucune ne DÉMARRE le serveur tel qu'il sera déployé pour constater que les
    pièces sont réellement branchées entre elles. Or les trois régressions étaient des défauts de
@@ -23,6 +23,14 @@
    HTTP sur 127.0.0.1 — donc la VRAIE signature SigV4, le VRAI module de sauvegarde, le VRAI
    socle, branchés par le VRAI `index.js`. Et on va jusqu'au bout : la donnée d'un client écrite
    par l'API se relit dans l'archive, après restauration, avec la clé maître.
+
+   ⛔ CE QU'IL NE COUVRE PAS, ET QU'IL FAUT SAVOIR AVANT DE S'Y FIER. Son en-tête cite trois
+   régressions ; il n'en garde que DEUX. Le budget de `/api/op/etat` contourné par une barre
+   oblique finale n'est éprouvé NULLE PART ici — zéro occurrence de `quota`, `429` ou
+   `etatsParHeure` dans ce fichier — et dans `test-724` il ne l'est que par des expressions
+   régulières sur le TEXTE d'`op-socle.js` : mettre `const cher = false` laisse les sept suites
+   vertes. Mesuré le 19 septembre au soir. Ne comptent pas non plus ici : les quatre portes de
+   fermeture d'une entreprise, SIGTERM, et les deux plafonds de place de `pousser()`.
 
    ⚠️ Chaque affirmation a sa contre-épreuve. Un banc qui refuse tout passe au vert — c'est
    exactement ce qui a gravé « une base en copie brute doit faire échouer la sauvegarde », donc

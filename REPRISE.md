@@ -134,6 +134,87 @@ Second bloquant : le budget de `/api/op/etat` se comparait à `req.path` — **c
 barre oblique finale** (20/20 passaient au lieu de 5/20). Express est monté sans `strict
 routing` : on lit `req.route.path`, jamais l'URL reçue.
 
+### ⛔ 19 SEPTEMBRE, SOIR — CINQUIÈME VÉRIFICATION : 6 BLOQUANTS, ET LE CODE, LUI, S'EST STABILISÉ
+
+15 agents, 2,8 M jetons, 69 min. **32 constats, 31 retenus après contre-expertise, 1 réfuté —
+tous REPRODUITS.** 6 bloquants, 18 graves, 7 mineurs.
+
+⚠️ **Le chiffre qui compte n'est pas 31, c'est zéro : aucun bloquant n'est une régression du
+tour 4.** Les quatre tours précédents trouvaient leur pire défaut dans du code écrit la veille
+(12 → 21 → 16 → 21, dont 26 puis 29 régressions). Cette fois le code du socle a tenu — l'axe
+« bancs » a joué **64 mutations** sur les sources et le banc de câblage attrape bien, à
+l'identique, la régression du 19 septembre matin (9 ✓ · 9 ✗ pendant que les six autres suites
+serveur restent vertes). Ce qui reste n'est plus de la logique cassée : c'est **de la COUVERTURE
+qui manque et des CHEMINS QU'ON N'AVAIT JAMAIS PARCOURUS.**
+
+#### ⛔ Le bloquant qui fait mal : la leçon d'hier n'a été appliquée qu'à un seul endroit
+
+Hier, `index.js` a éteint toute la sauvegarde parce qu'une garde était posée **sur le drapeau**
+au lieu d'être posée **sur les données**. La leçon a été écrite dans ce fichier et dans le
+commentaire du correctif. **Trois fonctions du MÊME fichier ont exactement le même défaut, et
+personne ne les a regardées** (`index.js` 3505, 3523, 3534) :
+
+```js
+function socleCouper(t)  { if (!opSocle || !opSocle.actif || !t) return { fait: true,  … } }
+function socleOuvrir(t)  { if (!opSocle || !opSocle.actif || !t) return { fait: true,  … } }
+function socleEffacer(t) { if (!opSocle || !opSocle.actif || !t) return { ok:   true,  … } }
+```
+
+Les trois rendent un **SUCCÈS** quand le drapeau est éteint. Conséquences mesurées, dans le
+scénario de retour arrière que le plan documente (le socle a tourné, on éteint le drapeau) :
+
+- **Supprimer une entreprise** (ou « Repartir à neuf », ou « Retirer un client ») : la Tour
+  répond `ok`, le courriel de confirmation part — et `data/socle/<t>/base.db` reste sur le
+  disque, chiffré, avec les données du client dedans. Il repart dans CHAQUE archive nocturne.
+  Rallumer le drapeau ressuscite l'entreprise supprimée.
+- **Rouvrir une entreprise suspendue** : la Tour répond `ok` et retire `t` d'`entFermes` — mais
+  l'état `ferme` reste écrit SUR DISQUE côté socle. Au rallumage, l'entreprise est en 403
+  définitif, et le bouton « Rouvrir » ne peut plus rien pour elle : elle n'est plus dans
+  `entFermes`, donc il n'y a plus rien à rouvrir. **Une suspension devenue une condamnation.**
+
+Le correctif est le même que celui d'hier, appliqué au bon endroit : décider sur
+`socle.existe(t)`, pas sur `opSocle.actif`. `sauvegarde.js` prouve déjà que le module
+s'importe et répond parfaitement drapeau éteint.
+
+#### Les cinq autres bloquants
+
+| | |
+|---|---|
+| **Les trois budgets d'`op-socle` ne sont gardés que par des regex sur le TEXTE** | `const cher = false` laisse **les sept suites vertes**. Mesuré à l'assemblage avec `etatsParHeure:5` : dépôt sain 5 passages / 15 refus ; muté **20 passages / 0 refus**. C'est la panne des 28 min de gel par heure, à partir d'un seul jeton légitime |
+| **Les quatre portes de coupure ne sont gardées par AUCUN banc** | on peut retirer `socleCouper` d'une porte, ou le faire mentir, sans qu'une suite bronche. C'est mot pour mot la règle des quatre portes de `CLAUDE.md`, rejouée sur le socle |
+| **Disque plein = écriture arrêtée pour TOUS les clients, invisible** | `/health` répond `ok:true`, le bloc socle est identique à celui d'un serveur sain, rien dans `journalctl`. Personne ne l'apprend |
+| **Horloge du VPS qui retarde = 100 % des écritures refusées, en réponse 200** | les deux autres refus totaux rendent 507 et 503 ; celui-là rend **200 avec `acceptes:0`**, et le compteur `horlogeAvancee` n'est lisible nulle part |
+
+#### Ce que ça dit du banc de câblage, écrit le matin même
+
+Il fait ce qu'il annonce — les 64 mutations le confirment — **mais son périmètre est plus étroit
+que son en-tête ne le laissait croire**, et j'ai écrit des chiffres faux en le livrant :
+
+- il cite trois régressions comme raisons d'être et n'en garde que **deux** : le budget
+  `/api/op/etat` contourné par une barre oblique finale n'est éprouvé NULLE PART ;
+- « inertie retirée → 2 ✗ » : retirer la garde d'inertie SEULE donne **0 ✗** (le second
+  `existsSync` la couvre). Il faut retirer les deux ;
+- « zone morte temporelle → 11 ✗ » : c'est **9 ✗** (le 11 datait d'avant deux correctifs du
+  banc lui-même, faits le même après-midi) ;
+- **« 2 598 vérifications » était faux : c'est 2 989.** `grep -c '^  ✓'` saute EN SILENCE les
+  sept suites (716 à 722) qui impriment leur total dans un bandeau `════ … ════`. **391
+  contrôles et 7 suites entières manquants**, et rien ne le signalait. Corrigé, avec la bonne
+  méthode de comptage écrite dans `CLAUDE.md`.
+
+⚠️ La leçon de méthode, qui vaut plus que les chiffres : **une mutation qui ne casse rien ne
+prouve pas qu'un banc est aveugle** — elle peut être neutralisée par une autre garde. Et un
+outil de comptage qui échoue doit échouer BRUYAMMENT : celui-là rendait un nombre plausible.
+
+#### Ce que la contre-expertise a REFUSÉ
+
+Un seul constat sur 32 : « rien ne périme une ligne `appareil`, la condition (a) de l'étape 5 ne
+pourra jamais converger » — réfuté par exécution, `sessionParJeton()` rend bien `null` sur un
+jeton expiré. C'est le bon ratio : des axes qui trouvent, une contre-expertise qui ne trouve
+presque rien à jeter, c'est le signe que les constats sont solides — pas que la contre-expertise
+dort (elle a re-mesuré chacun).
+
+---
+
 ### 🔧 19 SEPTEMBRE — LE BANC DE CÂBLAGE (`tests/test-726.js`), ET POURQUOI IL MANQUAIT
 
 ⚠️ **Quatre tours : 12 → 21 → 16 → 21 bloquants. Ça ne converge pas.** À chaque tour, le pire
@@ -165,10 +246,10 @@ seule chose qui distingue un banc d'une affirmation :
 
 | défaut remis | ce que le banc a rendu |
 |---|---|
-| zone morte temporelle sur `opSocle` | **11 ✗**, dont « /health annonce la sauvegarde ACTIVE » |
+| zone morte temporelle sur `opSocle` | **9 ✓ · 9 ✗**, dont « /health annonce la sauvegarde ACTIVE » |
 | motifs `--exclude` non ancrés | archive déposée refusée, contrôles d'archive impossibles |
 | **les deux à la fois** (l'état EXACT du 19/09 : archive amputée **et** auto-contrôle aveugle) | **✗ sur l'annuaire, et l'exercice de sinistre avec** — le banc ne dépend donc PAS de l'auto-contrôle du serveur |
-| inertie du socle retirée | **2 ✗** : « la sauvegarde n'a créé AUCUN annuaire » |
+| inertie retirée — les DEUX gardes | **60 ✓ · 2 ✗**. ⚠️ La garde d'inertie SEULE : **0 ✗**, le second `existsSync` la couvre |
 | recalage retiré | **1 ✗**, exactement le bon |
 
 ⚠️ **Et le banc a trouvé deux défauts dans son propre squelette avant de servir** : il
@@ -176,7 +257,7 @@ attendait un événement `exit` déjà passé, donc **sortait en silence avec le
 d'afficher son total** — une suite qui se tait passe pour verte. Et `process.exit()` coupait
 la dernière ligne quand la sortie est un tube. Les deux corrigés.
 
-**Suite complète après coup : 83 suites · 2 598 vérifications · 0 échec · 114 s.**
+**Suite complète après coup : 83 suites · 2 989 vérifications · 0 échec · ~158 s.**
 
 ### ⛔ 19 SEPTEMBRE — TROISIÈME VÉRIFICATION : 16 BLOQUANTS, ENCORE MES CORRECTIFS
 
