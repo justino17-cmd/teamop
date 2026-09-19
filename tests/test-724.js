@@ -539,11 +539,14 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
       v('⛔ existe() sur une faute de frappe reste faux', socle.existe('ent-a-9X'), false);
 
       /* ⛔ Un refus TOTAL de pousse ne sort pas en 200 : l'écran doit pouvoir le dire. */
+      /* ⚠️ LE RANG SE MESURE AVANT ET APRÈS. La première version de ce contrôle comparait deux
+         lectures prises TOUTES LES DEUX APRÈS la pousse : il passait quoi qu'il arrive, même
+         si le rang avait brûlé. Un banc qui se compare à lui-même ne garde rien. */
+      const avantRang = (await appel('GET', '/api/op/etat', { jeton: jetonA })).j.seq;
       const r = await appel('POST', '/api/op/pousser', { jeton: jetonA, corps: { enr: [
         { c: 'p', id: 'enorme', m: Date.now() - 1000, e: 'h', r: { n: crypto.randomBytes(900000).toString('hex') } }] } });
       v('un corps trop gros est refusé avec son motif', r.j.refus[0].motif, 'corps_trop_gros');
-      v('⛔ et il ne brûle aucun rang', (await appel('GET', '/api/op/etat', { jeton: jetonA })).j.seq,
-        (await appel('GET', '/api/op/etat', { jeton: jetonA })).j.seq);
+      v('⛔ et il ne brûle aucun rang', (await appel('GET', '/api/op/etat', { jeton: jetonA })).j.seq, avantRang);
 
       /* ⛔ `/health` doit porter le compteur de lignes illisibles : sans lui, une entreprise
          dont les données cessent de se déchiffrer ne réveille personne. */

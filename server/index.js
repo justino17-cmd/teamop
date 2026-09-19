@@ -193,8 +193,12 @@ app.use((req, res, next) => {
     return next();
   }
 
-  /* Le socle compte à part, comme le battement : voir PLAFOND_DONNEES. */
-  if (req.path.startsWith('/api/op/')) {
+  /* Le socle compte à part, comme le battement : voir PLAFOND_DONNEES.
+     ⛔ MAIS SEULEMENT S'IL EST ALLUMÉ. Sans cette condition, `/api/op/*` sortait du budget
+     global de 120/min/IP DÈS AUJOURD'HUI, drapeau éteint : des chemins qui répondent 404
+     bénéficiaient d'un plafond dix fois plus large que le reste du serveur, en production,
+     pour rien. Un assouplissement qui ne sert personne ne doit pas exister. */
+  if (opSocle && opSocle.actif && req.path.startsWith('/api/op/')) {
     const d = (compteurs.get('d:' + ip) || 0) + 1;
     compteurs.set('d:' + ip, d);
     if (d > PLAFOND_DONNEES) return tropDeRequetes(res);
@@ -3468,6 +3472,11 @@ function socleCouper(t, quoi) {
     const r = require('./socle').entrepriseOuvrir(t, false);
     return { fait: true, motif: 'espace ' + r.etat + ', ' + r.coupees + ' session(s) coupée(s)' };
   } catch (e) {
+    /* ⛔ UNE ENTREPRISE QUI N'A JAMAIS TOUCHÉ AU SOCLE N'EST PAS UN ÉCHEC DE COUPURE — il n'y a
+       rien à couper, et c'est le résultat voulu. Même raisonnement que `fbRevoquerEquipe`, qui
+       compte `USER_NOT_FOUND` comme coupé. Le confondre avec une vraie panne ferait hurler la
+       Tour à chaque fermeture d'un client d'avant la bascule. */
+    if (e.code === 'ABSENT') return { fait: true, motif: 'aucun stockage pour cet espace' };
     console.error('⛔ socle NON coupé (' + (quoi || '?') + ') :', e.code || 'erreur');
     return { fait: false, motif: 'socle NON coupé — les appareils lisent et écrivent toujours' };
   }
@@ -3481,6 +3490,7 @@ function socleOuvrir(t) {
     const r = require('./socle').entrepriseOuvrir(t, true);
     return { fait: true, motif: 'espace ' + r.etat };
   } catch (e) {
+    if (e.code === 'ABSENT') return { fait: true, motif: 'aucun stockage pour cet espace' };
     console.error('⛔ socle NON rouvert :', e.code || 'erreur');
     return { fait: false, motif: 'socle NON rouvert — cette entreprise ne pourra PAS synchroniser' };
   }

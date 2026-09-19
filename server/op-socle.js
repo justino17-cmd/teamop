@@ -145,7 +145,14 @@ function monterOpSocle(app, deps) {
        service : n'importe qui épuiserait le quota d'une entreprise en tapant son identifiant.
        ⚠️ `quotaOk` vit en mémoire et repart à zéro à chaque redémarrage, donc à chaque push
        touchant `server/**`. C'est un quota de CONFORT, pas une détection. */
-    const cout = req.method === 'GET' ? 4000 : 1200;
+    /* ⛔ LE BUDGET PAR ESPACE PLAFONNAIT LA SYNCHRO À ENVIRON 27 APPAREILS. Au repos, un
+       appareil fait ~2,4 sondages/minute, soit ~144 lectures/heure : 4 000 lectures/h par
+       entreprise tombent à 27 appareils sans qu'une seule écriture ait lieu. ELAN en a 36. Le
+       plafond aurait donc étranglé le client pilote le jour de l'allumage, et le motif
+       (`quota`) aurait ressemblé à une attaque. Réglable sur le VPS — une entreprise qui
+       grossit se règle, elle ne se dépanne pas en urgence. */
+    const cfg = (config && config.socle) || {};
+    const cout = req.method === 'GET' ? (parseInt(cfg.lecturesParHeure, 10) || 40000) : (parseInt(cfg.ecrituresParHeure, 10) || 6000);
     if (!quotaOk(opQuota, (req.method === 'GET' ? 'l:' : 'e:') + s.t, cout, 3600000)) {
       return res.status(429).json({ error: 'trop de demandes — réessaie dans une heure', motif: 'quota' });
     }
@@ -265,9 +272,9 @@ function monterOpSocle(app, deps) {
   /* ══ GET /api/op/flux ═════════════════════════════════════════════════════════════════════ */
   poser('GET', '/api/op/flux', opJeton, (req, res) => {
     const t = req.op.t;
-    /* ⛔ `rang()` ET PAS `etat()`. `etat()` relit et hache TOUTE la base : MESURÉ 45 ms sur
+    /* ⛔ `rang()` ET PAS `etat()`. `etat()` relit et hache TOUTE la base : MESURÉ 42 ms sur
        20 000 enregistrements, en synchrone, et c'est la route la plus appelée de toutes
-       (chaque appareil, en permanence). À 1 200 sondages/min ça bloquait 54 secondes de boucle
+       (chaque appareil, en permanence). À 1 200 sondages/min ça bloquait 50 secondes de boucle
        d'événements sur 60 — le serveur mort pour TOUS les clients, depuis un seul jeton
        parfaitement légitime. `rang()` lit un entier dans `meta`. `gardien`, 18 septembre. */
     let seq;
@@ -495,7 +502,7 @@ function monterOpSocle(app, deps) {
   /* Toutes les heures on REGARDE s'il est temps ; c'est la date sur disque qui décide, pas le
      minuteur. Et un premier regard 90 s après le démarrage, pour qu'un serveur redémarré à
      répétition finisse quand même par envoyer son ancre. */
-  const premier = setTimeout(() => { try { ancreEnvoyer(); } catch (e) {} }, 90000);
+  const premier = setTimeout(() => { try { ancreEnvoyer(); } catch (e) {} try { purger(); } catch (e) {} }, 90000);
   premier.unref && premier.unref();
   minuteurAncre = setInterval(() => { try { ancreEnvoyer(); } catch (e) {} }, 3600000);
   minuteurAncre.unref && minuteurAncre.unref();
@@ -505,10 +512,22 @@ function monterOpSocle(app, deps) {
      TOUJOURS par `/api/monitor/op/journal`, et le disque porte deux copies de tout. Ce qu'un
      client supprime doit finir par disparaître : c'est ce que promet `sous-traitance.html`.
      ⚠️ Seul le CORPS part ; l'historique de qui a fait quoi reste, sans le contenu. */
-  const minuteurPurge = setInterval(() => {
-    try { const r = socle.purgerToutesLesEntreprises(); if (r.purgees) console.log('socle: journal purgé — ' + r.purgees + ' corps sur ' + r.bases + ' base(s)'); }
-    catch (e) { console.error('socle: purge du journal impossible —', e.code || 'erreur'); }
-  }, 6 * 3600000);
+  /* ⛔ MÊME DÉFAUT QUE L'ANCRE, ET IL FALLAIT LE VOIR DEUX FOIS : une minuterie de 6 h sur un
+     serveur qui redémarre à chaque déploiement ne se déclenche jamais un jour chargé. La date
+     du dernier passage vit sur DISQUE, et on regarde toutes les heures. Une purge qui ne tourne
+     pas, c'est la promesse de conservation bornée de `sous-traitance.html` qui ne tient pas —
+     en silence, et d'autant plus les jours où l'on travaille le plus. */
+  const PURGE_MS = 6 * 3600000;
+  const purger = () => {
+    try {
+      const dernier = parseInt(socle.reglageLire('purge_faite_le'), 10) || 0;
+      if (Date.now() - dernier < PURGE_MS) return;
+      const r = socle.purgerToutesLesEntreprises();
+      socle.reglagePoser('purge_faite_le', Date.now());
+      if (r.purgees) console.log('socle: journal purgé — ' + r.purgees + ' corps sur ' + r.bases + ' base(s)');
+    } catch (e) { console.error('socle: purge du journal impossible —', e.code || 'erreur'); }
+  };
+  const minuteurPurge = setInterval(purger, 3600000);
   minuteurPurge.unref && minuteurPurge.unref();
 
   /* ⛔ ICI, ET NULLE PART AVANT : c'est la seule ligne qui fasse exister les routes. Tout ce qui
@@ -535,7 +554,14 @@ function monterOpSocle(app, deps) {
   etat.relacher = () => {
     clearInterval(minuteurAncre); clearInterval(minuteurPurge); clearTimeout(premier);
     let n = 0;
-    for (const [t, s] of attentes) for (const a of s) { clearTimeout(a.minuteur); a.resoudre({ seq: 0, arret: true }); n++; }
+    for (const [t, s] of attentes) for (const a of s) {
+      clearTimeout(a.minuteur);
+      /* ⛔ PAS DE `seq: 0`. L'appareil lit `seq` pour savoir où il en est : un zéro à l'arrêt
+         lui dit « le serveur est revenu au début » et déclenche un rembobinage COMPLET de la
+         base — à chaque déploiement, sur chaque appareil connecté. On n'annonce donc aucun
+         rang : `arret:true` seul, que l'appareil traite comme « rappelle plus tard ». */
+      a.resoudre({ arret: true }); n++;
+    }
     attentes.clear();
     return n;
   };

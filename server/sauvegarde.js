@@ -148,29 +148,43 @@ async function fabriquer(sortie, cle, sources, exclure) {
    sauvegarde. Rend le nombre d'entrées, ou lève. Sert à la vérification après dépôt ET à
    `restaurer.js`, qui n'a donc pas sa propre copie de ce code (une seconde définition finirait
    par diverger, et c'est le jour de la restauration qu'on s'en apercevrait). */
-/* ⛔ RELIRE UNE BASE, C'EST L'OUVRIR — pas compter des lignes de `tar -t`. Cette fonction
- * existe parce que la relecture précédente déclarait « restaurable » une archive dont les
- * bases SQLite étaient illisibles : elle comptait des NOMS DE FICHIERS. On déballe donc
- * l'instantané dans un temporaire, on ouvre chaque base et on fait un vrai SELECT dedans.
- * ⚠️ On n'ouvre PAS par le socle (qui exigerait la clé maître et les deux témoins) : ce qu'on
- * vérifie ici, c'est l'INTÉGRITÉ DU FICHIER, pas qu'on sache le déchiffrer. Les deux questions
- * sont distinctes et une seule est du ressort de la sauvegarde. */
+/* ⛔ CE QUI DOIT ÊTRE LÀ, PAS SEULEMENT CE QUI EST LÀ. La première version de ce contrôle
+ * ouvrait chaque fichier `.db` qu'elle trouvait et concluait « saine » — sur une archive
+ * AMPUTÉE DE L'ANNUAIRE, elle disait donc ✅. Elle fermait « compter des fichiers n'est pas
+ * relire » et laissait entière la question « est-ce que tout ce qu'il faut est là ».
+ * Trois exigences, et chacune a sa panne derrière :
+ *   · l'ANNUAIRE est présent — sans lui, aucune clé, donc aucune donnée lisible ;
+ *   · chaque base s'OUVRE et se parcourt (`quick_check`), 0 octet compris ;
+ *   · aucune copie `.brut` n'est passée en silence — c'est une base qu'on n'a PAS su
+ *     instantaner, donc une entreprise en difficulté, donc exactement celle qu'il ne faut pas
+ *     perdre de vue.
+ * ⚠️ On vérifie l'INTÉGRITÉ DES FICHIERS, pas qu'on sache les déchiffrer : ce sont deux
+ * questions distinctes et une seule est du ressort d'une sauvegarde. */
+function verifierInstantane(dossier, socle) {
+  let noms = [];
+  try { noms = fs.readdirSync(dossier); } catch (e) { return { ok: false, motif: 'instantané absent de l\'archive', bases: 0, cassees: 0, brutes: 0 }; }
+  const bases = noms.filter(f => f.endsWith('.db'));
+  const brutes = noms.filter(f => f.endsWith('.db.brut'));
+  if (!bases.some(f => f === 'socle-annuaire.db')) {
+    return { ok: false, motif: 'ANNUAIRE ABSENT — les clés de toutes les entreprises manquent, rien ne sera lisible', bases: bases.length, cassees: 0, brutes: brutes.length };
+  }
+  let cassees = 0;
+  for (const f of bases.concat(brutes)) if (!socle.controlerFichier(path.join(dossier, f)).ok) cassees++;
+  if (cassees) return { ok: false, motif: cassees + ' base(s) illisible(s) dans l\'archive', bases: bases.length, cassees, brutes: brutes.length };
+  if (brutes.length) return { ok: false, motif: brutes.length + ' base(s) n\'ont PAS pu être instantanées (copie brute) — à examiner', bases: bases.length, cassees, brutes: brutes.length };
+  return { ok: true, motif: '', bases: bases.length, cassees: 0, brutes: 0 };
+}
+
+/* Le même contrôle, mais en partant d'une archive chiffrée : on la déballe dans un temporaire. */
 async function verifierSocle(archive, cle, socle) {
   const dossier = archive + '.socle';
   try { fs.rmSync(dossier, { recursive: true, force: true }); } catch (e) {}
   fs.mkdirSync(dossier, { recursive: true });
   try {
     await relire(archive, cle, dossier);
-    const dedans = path.join(dossier, socle.SOCLE_INSTANTANE);
-    let noms = []; try { noms = fs.readdirSync(dedans).filter(f => f.endsWith('.db')); } catch (e) {}
-    if (!noms.length) return { ok: false, bases: 0, cassees: -1 };   // l'instantané devait y être
-    /* ⛔ PAR `socle.controlerFichier`, PAS PAR UN `require('node:sqlite')` LOCAL. Tout l'accès
-       SQL du produit a UNE seule porte, et `tests/test-723.js` compte les requérants. */
-    let cassees = 0;
-    for (const f of noms) if (!socle.controlerFichier(path.join(dedans, f)).ok) cassees++;
-    return { ok: cassees === 0, bases: noms.length, cassees };
+    return verifierInstantane(path.join(dossier, socle.SOCLE_INSTANTANE), socle);
   } catch (e) {
-    return { ok: false, bases: 0, cassees: -1 };
+    return { ok: false, motif: 'archive illisible', bases: 0, cassees: -1, brutes: 0 };
   } finally {
     try { fs.rmSync(dossier, { recursive: true, force: true }); } catch (e) {}
   }
@@ -332,12 +346,23 @@ function monterSauvegarde(app, deps) {
          `TEAMOP_DATA` autrement), et le NOM QUE PORTAIT le temporaire avant correction. Sans la
          seconde, un reste laissé par une version antérieure serait ré-archivé chaque nuit, pour
          toujours, en grossissant l'archive de son propre poids. */
-      /* Les fichiers VIVANTS du socle sont exclus : seul l'instantané entre dans l'archive.
-         Les trois suffixes, pas seulement `base.db` — un `-wal` orphelin dans l'archive ferait
-         croire à une base en cours d'écriture au moment de la restauration. */
+      /* ⛔ LES MOTIFS D'EXCLUSION SONT ANCRÉS SUR LE DOSSIER DE DONNÉES, ET C'EST TOUT LE
+         SUJET. Les motifs `--exclude` de GNU tar ne sont PAS ancrés quand ils ne contiennent
+         pas de barre oblique : ils filtrent N'IMPORTE QUEL composant de chemin, dans TOUTES
+         les sources. Écrits nus (`socle-annuaire.db`) pour retirer le fichier VIVANT, ils
+         retiraient aussi l'INSTANTANÉ du même nom, dans l'autre source.
+         ⛔ MESURÉ le 19 septembre 2026, avec le vrai module : l'archive contenait
+         `socle-instantane/elan-34oc.db` et `socle-instantane/entreprise-b.db` — et AUCUN
+         annuaire. Or l'annuaire porte les CLÉS de toutes les entreprises. L'archive contenait
+         donc les données de tous les clients, parfaitement intactes et définitivement
+         illisibles, et la relecture la déclarait bonne. Le correctif était PIRE que le défaut
+         qu'il réparait : l'ancien rendait des bases parfois corrompues, celui-là rendait des
+         bases jamais restaurables.
+         ⚠️ `path.basename(DATA_DIR)` et pas « data » en dur : `TEAMOP_DATA` se règle. */
+      const dd = path.basename(DATA_DIR);
       const faite = await fabriquer(tmp, cle, sources,
         [path.basename(TMP_DIR), '.sauvegarde-*.tmp', '.sauvegarde-*.tmp.relu',
-         'socle', 'socle-annuaire.db', 'socle-annuaire.db-wal', 'socle-annuaire.db-shm']);
+         dd + '/socle', dd + '/socle-annuaire.db*']);
       if (faite.octets > MAX_OCTETS) return noter(false, 'trop-volumineuse', { octets: faite.octets });
 
       /* ⛔ ENVOI ET RELECTURE EN FLUX. Ils lisaient l'archive ENTIÈRE en mémoire, deux fois —
@@ -347,23 +372,48 @@ function monterSauvegarde(app, deps) {
       const dep = await client.poserCleFlux(cleObjet, tmp, faite.octets, faite.empreinte);
       if (!dep.ok) return noter(false, 'depot-' + (dep.statut || 'erreur'), { octets: faite.octets });
 
+      /* ⛔ UNE ARCHIVE RECALÉE NE RESTE PAS DANS LE COFFRE. À partir d'ici l'objet EST déposé :
+         tout échec qui suit laisse dans le coffre une archive dont on SAIT qu'elle est mauvaise,
+         et la rétention la compte comme une copie valable. Trente nuits de suite et il ne reste
+         plus une seule copie saine — sans que rien ne l'ait jamais dit. Chaque refus passe donc
+         par ici, et chaque refus l'efface. */
+      const recaler = async (motif, extra) => {
+        try { await client.effacerCle(cleObjet); } catch (e) { console.error('sauvegarde : objet recalé NON retiré du coffre — il compte comme une copie valable'); }
+        return noter(false, motif, extra);
+      };
+
       /* ── LA RELECTURE, qui est le vrai sujet ────────────────────────────────────────────
          On retélécharge ce qui vient d'être déposé — pas le fichier local. Trois contrôles,
          du moins cher au plus probant : la taille, l'empreinte, puis l'ouverture réelle. */
       const relu = await client.lireCleVers(cleObjet, tmpRelu);
-      if (!relu.ok) return noter(false, 'relecture-' + (relu.statut || 'absente'), { octets: faite.octets });
-      if (relu.octets !== faite.octets) return noter(false, 'taille-differente', { octets: faite.octets, relu: relu.octets });
-      if (relu.empreinte !== faite.empreinte) return noter(false, 'empreinte-differente', { octets: faite.octets });
+      if (!relu.ok) return recaler('relecture-' + (relu.statut || 'absente'), { octets: faite.octets });
+      if (relu.octets !== faite.octets) return recaler('taille-differente', { octets: faite.octets, relu: relu.octets });
+      if (relu.empreinte !== faite.empreinte) return recaler('empreinte-differente', { octets: faite.octets });
 
       const ouverte = await relire(tmpRelu, cle, null);
-      if (!ouverte.entrees) return noter(false, 'archive-vide', { octets: faite.octets });
+      if (!ouverte.entrees) return recaler('archive-vide', { octets: faite.octets });
       /* ⛔ COMPTER DES ENTRÉES N'EST PAS RELIRE. C'est ce qui a laissé passer des bases
          corrompues pendant qu'on écrivait « ✅ restaurable » : `tar -t` liste des noms, il
          n'ouvre rien. On DÉBALLE l'instantané et on fait un vrai SELECT dans chaque base. */
-      if (instantane && instantane.bases) {
+      /* ⛔ ON VÉRIFIE DÈS QU'IL Y AVAIT QUELQUE CHOSE À INSTANTANER — succès OU échecs. La
+         première version testait `if (instantane.bases)` : si TOUTES les bases échouaient leur
+         instantané (`bases:0`), c'est-à-dire le pire cas, celui où on a le plus besoin du
+         contrôle, la vérification était purement SAUTÉE et la sauvegarde déclarée réussie
+         sans qu'une seule base ait été ouverte. */
+      if (instantane && (instantane.bases || (instantane.echecs && instantane.echecs.length))) {
         const v = await verifierSocle(tmpRelu, cle, deps.socle);
-        if (!v.ok) return noter(false, 'socle-illisible', { octets: faite.octets, bases: v.bases, cassees: v.cassees });
+        if (!v.ok) {
+          console.error('⛔ sauvegarde recalée : ' + v.motif);
+          return recaler('socle-' + (v.brutes ? 'copies-brutes' : v.bases ? 'illisible' : 'incomplet'),
+            { octets: faite.octets, bases: v.bases, cassees: v.cassees, brutes: v.brutes });
+        }
       }
+
+      /* ⛔ ON EFFACE L'INSTANTANÉ. C'est une copie LISIBLE de toutes les bases ET de l'annuaire,
+         donc de toutes les clés d'entreprise, hors du cloisonnement par dossier. La laisser
+         entre deux sauvegardes double la place occupée sur le seul disque du VPS et met à plat,
+         en un seul endroit, tout ce que le produit passe son temps à séparer. */
+      try { fs.rmSync(path.join(TMP_DIR, deps.socle ? deps.socle.SOCLE_INSTANTANE : 'socle-instantane'), { recursive: true, force: true }); } catch (e) {}
 
       /* La rétention seulement après une sauvegarde RÉUSSIE : on n'efface jamais une ancienne
          copie sur la foi d'une nouvelle qu'on n'a pas pu rouvrir. */
@@ -392,7 +442,12 @@ function monterSauvegarde(app, deps) {
        ça dit à qui l'interroge si la plateforme saurait se relever. Trois valeurs suffisent à la
        surveillance ; le motif est servi à la Tour, qui exige le patron. */
     const d = etat.derniere;
-    return { active: actif, ageH: d && d.ok ? Math.round((Date.now() - d.ts) / 3600000) : null, ok: d ? !!d.ok : null };
+    /* ⛔ `instantaneEchecs` ÉTAIT ÉCRIT ET LU PAR PERSONNE — et le commentaire d'à côté
+       affirmait « /health le publie, la surveillance horaire le voit ». Une base qu'on n'a pas
+       su instantaner est une entreprise DÉJÀ en difficulté : c'est précisément celle dont on
+       doit entendre parler. Un NOMBRE, jamais un nom : /health est publique. */
+    return { active: actif, ageH: d && d.ok ? Math.round((Date.now() - d.ts) / 3600000) : null,
+      ok: d ? !!d.ok : null, instantaneEchecs: etat.instantaneEchecs || 0 };
   }
 
   if (app && garde) {
@@ -432,4 +487,4 @@ function monterSauvegarde(app, deps) {
   return { actif, lancer, sante, etat: () => etat, _minuterie: () => minuterie };
 }
 
-module.exports = { monterSauvegarde, fabriquer, relire, aElaguer, cleDepuis, nomArchive, ENTETE, TAILLE_IV, TAILLE_TAG };
+module.exports = { monterSauvegarde, fabriquer, relire, verifierInstantane, aElaguer, cleDepuis, nomArchive, ENTETE, TAILLE_IV, TAILLE_TAG };

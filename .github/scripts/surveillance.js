@@ -75,6 +75,10 @@ function get(url) {
       else if (j.sauvegarde.ok === null) problems.push('aucune sauvegarde hors site n\'a jamais réussi depuis le dernier démarrage');
       else if (typeof j.sauvegarde.ageH === 'number' && j.sauvegarde.ageH > 26) problems.push('la dernière sauvegarde hors site date de ' + j.sauvegarde.ageH + ' h (plus de 26 h) — la minuterie ne tourne plus');
       else console.log('Sauvegarde hors site : OK, il y a ' + j.sauvegarde.ageH + ' h');
+      /* ⛔ UNE BASE NON INSTANTANÉE EST UNE ENTREPRISE EN DIFFICULTÉ. Elle part dans l'archive
+         en copie brute — donc récupérable, mais pas garantie — et c'est exactement celle dont
+         il ne faut pas perdre la trace. Le compteur était écrit et lu par personne. */
+      if (j.sauvegarde.instantaneEchecs > 0) problems.push('⛔ ' + j.sauvegarde.instantaneEchecs + ' base(s) d\'entreprise n\'ont PAS pu être copiées proprement dans la sauvegarde (copie brute à la place) — voir la Tour, aperçu de l\'espace. C\'est le signe d\'une base abîmée ou d\'une clé qui ne correspond plus.');
     }
     /* ⛔ L'ÉCHÉANCE DU JETON GITHUB. Elle ne casse rien chez un client — le jeton ne sert qu'à
        « proposer un correctif » depuis la Tour — mais elle tombe en 401 sans prévenir personne,
@@ -93,7 +97,7 @@ function get(url) {
        saurait qu'il y a des lignes illisibles et jamais chez qui, donc on ne ferait rien. Le
        « chez qui » est dans la Tour, qui est gardée. */
     if (j.socle && j.socle.illisibles > 0) problems.push('⛔ ' + j.socle.illisibles + ' ligne(s) du socle ne se déchiffrent PLUS — trafic, restauration mal ciblée ou bloc abîmé. Voir la Tour (aperçu d\'un espace, « vérifier ») pour savoir chez qui.');
-    if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre et redémarrer.');
+    if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre, la poser avec « node /opt/teamop/repo/server/poser-cle.js » sur le VPS, puis systemctl restart teamop-api.');
     if (typeof j.bugs1h === 'number' && j.bugs1h > 0) problems.push(j.bugs1h + ' erreur(s) signalée(s) par les applications des entreprises dans la dernière heure (vigie) — voir l\'e-mail d\'alerte et corriger au plus vite');
   } catch (e) { problems.push('api.teamop.fr/health : injoignable — ' + e.message); }
 

@@ -52,6 +52,8 @@ const HORLOGE_MARGE_MS = 5 * 60000;
    du VPS est celui de tous les clients. Les pièces jointes sortiront du corps à l'étape 3 ;
    ces bornes baisseront alors. */
 const COLL_MAX = 40, ID_MAX = 200, CORPS_MAX = 512 * 1024;
+/* Le plafond du corps DÉCOMPRESSÉ — voir `desceller_corps`. */
+const CLAIR_MAX = 16 * 1024 * 1024;
 /* ⛔ LE CLOISONNEMENT NE S'ARRÊTE PAS AU FICHIER. Un fichier par entreprise sépare les
  * DONNÉES ; il ne sépare pas le DISQUE, et le disque du VPS est celui de TOUS les clients.
  * Sans plafond, un seul appareil authentifié écrit ~7 Go/h dans les limites du quota horaire,
@@ -165,7 +167,16 @@ function sceller_corps(dek, t, coll, id, majLe, supprimeLe, valeur) {
   return sceller(dek, zlib.gzipSync(Buffer.from(JSON.stringify(valeur), 'utf8')), aadCorps(t, coll, id, majLe, supprimeLe));
 }
 function desceller_corps(dek, t, coll, id, majLe, supprimeLe, blob) {
-  return JSON.parse(zlib.gunzipSync(desceller(dek, blob, aadCorps(t, coll, id, majLe, supprimeLe))).toString('utf8'));
+  /* ⛔ LA BORNE D'ÉCRITURE PORTE SUR LE COMPRESSÉ, LA LECTURE DÉCOMPRESSE — il fallait donc
+     une seconde borne, ici. `CORPS_MAX` accepte 512 Ko SCELLÉS ; du texte répété se comprime
+     par mille, donc 512 Ko de chiffré peuvent rendre des centaines de mégaoctets en mémoire,
+     en SYNCHRONE, sur la boucle d'événements de tous les clients. MESURÉ : 2,3 Go et 4,9 s de
+     serveur gelé pour UNE requête — et il suffit d'avoir écrit la ligne une fois pour la
+     rejouer à chaque lecture. `maxOutputLength` fait jeter zlib au lieu d'allouer.
+     ⚠️ La borne est GÉNÉREUSE (16 Mo) : elle n'est pas là pour contraindre un usage réel,
+     elle est là pour qu'il existe un plafond. */
+  const clair = zlib.gunzipSync(desceller(dek, blob, aadCorps(t, coll, id, majLe, supprimeLe)), { maxOutputLength: CLAIR_MAX });
+  return JSON.parse(clair.toString('utf8'));
 }
 
 /* ══ L'ANNUAIRE — L'EXCEPTION, ET SA PORTE UNIQUE ═══════════════════════════════════════════
@@ -513,18 +524,18 @@ function majAnnuaire(t, seq) {
   const db = ouvrir(t);
   /* ⛔ LE PLAFOND DOIT COMPTER CE QUE LE DISQUE PORTE, PAS LA MOITIÉ. La première version ne
      sommait que `enr.octets` — les lignes VIVANTES — en ignorant la table `journal`, qui garde
-     une copie scellée de CHAQUE version pendant 90 jours. MESURÉ : 21,3× en dessous du réel
-     sur une base qui a beaucoup changé. Un plafond qui compte le tiers de ce qu'il protège
+     une copie scellée de CHAQUE version pendant 90 jours. MESURÉ : ×19,9 en dessous du réel
+     sur une base qui a beaucoup changé. Un plafond qui compte le vingtième de ce qu'il protège
      n'est pas un plafond de sécurité, c'est une décoration — et le disque du VPS est celui de
      tous les clients. */
   const o = (db.prepare('SELECT COALESCE(SUM(octets),0) AS o FROM enr').get().o || 0) + journalOctets(db);
   annuaire().prepare('UPDATE entreprise SET seq=?, octets=? WHERE t=?').run(seq, o, t);
 }
 
-/* ⛔ LE RANG SEUL, À COÛT CONSTANT. `etat()` relit et hache TOUTE la base : MESURÉ 45 ms sur
+/* ⛔ LE RANG SEUL, À COÛT CONSTANT. `etat()` relit et hache TOUTE la base : MESURÉ 42 ms sur
  * 20 000 enregistrements, en synchrone. Le long-poll n'a besoin que de ce nombre-là, et il est
  * appelé à chaque sondage de chaque appareil : à 1 200 sondages/min, `etat()` bloquerait
- * 54 secondes de boucle d'événements sur 60 — le serveur mort pour TOUS les clients, depuis un
+ * 50 secondes de boucle d'événements sur 60 — le serveur mort pour TOUS les clients, depuis un
  * seul jeton parfaitement légitime. `etat()` reste pour le contrôle de non-régression, qui est
  * rare et qui, lui, a besoin de la signature. */
 function rang(t) {
@@ -797,10 +808,27 @@ function entrepriseEtat(t) {
    un échec. Une coupure silencieusement ratée est pire que pas de coupure. */
 function entrepriseOuvrir(t, ouvert) {
   t = exigerT(t);
-  const db = annuaire(), n = Date.now();
-  db.prepare(`INSERT INTO entreprise (t,dek,cree_le,etat,ferme_le) VALUES (?,?,?,?,?)
-    ON CONFLICT(t) DO UPDATE SET etat=excluded.etat, ferme_le=excluded.ferme_le`)
-    .run(t, sceller(exigerKek(), crypto.randomBytes(32), t), n, ouvert ? 'actif' : 'ferme', ouvert ? 0 : n);
+  /* ⛔ FERMER UNE ENTREPRISE NE DOIT PAS LA FAIRE NAÎTRE. La première version faisait un
+     `INSERT … VALUES (?, sceller(kek, randomBytes(32), t), …)` : elle CRÉAIT la ligne
+     d'annuaire ET une clé neuve pour un `t` qui n'existait pas. Deux conséquences, chacune
+     grave :
+       · une faute de frappe dans la Tour fabriquait un espace fantôme, avec sa clé et une
+         ligne au journal opposable, pendant que la vraie entreprise travaillait toujours ;
+       · sur une entreprise dont l'annuaire a été perdu mais dont la base existe, elle
+         FABRIQUAIT une clé neuve — court-circuitant exactement la garde de `dekDe` qu'on
+         venait d'ajouter pour empêcher ça, et rendant ses données illisibles pour toujours.
+     Elle ne crée donc plus rien : elle exige que l'entreprise existe, et passe par `dekDe`,
+     qui porte la garde. */
+  if (!existe(t)) {
+    const e = new Error('aucun stockage pour « ' + t + ' » — rien à ouvrir ni à fermer');
+    e.code = 'ABSENT'; throw e;
+  }
+  const n = Date.now();
+  dekDe(t);   // ⛔ passe par la garde : une base sans sa clé d'annuaire s'arrête ICI
+  const db = annuaire();
+  const r = db.prepare('UPDATE entreprise SET etat=?, ferme_le=? WHERE t=?')
+    .run(ouvert ? 'actif' : 'ferme', ouvert ? 0 : n, t);
+  if (!Number(r.changes || 0)) { const e = new Error('ligne d\'annuaire introuvable pour « ' + t + ' »'); e.code = 'ABSENT'; throw e; }
   const coupees = ouvert ? 0 : sessionsCouper(t);
   return { etat: ouvert ? 'actif' : 'ferme', coupees };
 }
@@ -890,9 +918,11 @@ function appareilsDe(t) {
  * OPPOSABLE À PERSONNE. Chaque ligne porte le sha256 de la précédente : retirer ou modifier une
  * ligne casse la chaîne de toutes les suivantes. Ça n'empêche pas de tout réécrire — c'est
  * l'ancre du jour, sortie de la machine (courriel), qui rend la réécriture détectable.
- * ⚠️ `ip_h` est un HACHÉ, jamais une adresse : ce journal est lisible par le client depuis son
- * espace (c'est le seul geste qui rende vérifiable la promesse de `sous-traitance.html`), et
- * une adresse IP y désignerait une personne. */
+ * ⚠️ `ip_h` est un HACHÉ, jamais une adresse. ⛔ Ce journal est DESTINÉ à être lu par le client
+ * depuis son espace — il ne l'est pas encore, aucune route client ne l'expose, et il faut
+ * l'écrire au futur tant que c'est vrai. C'est pourtant le seul geste qui rendrait vérifiable
+ * la promesse de `sous-traitance.html` : dette nommée, à livrer avant d'allumer chez un client.
+ * En attendant, une adresse IP y désignerait une personne — d'où le haché. */
 function diagnostic(t, o) {
   t = exigerT(t);
   const db = annuaire(), c = o || {};
@@ -1002,16 +1032,33 @@ function instantanerVers(dossier) {
 /* Le chemin inverse, pour la restauration : un instantané redevient une arborescence vivante. */
 function restaurerDepuis(dossier, versDataDir) {
   const cible = versDataDir || DATA_DIR;
-  let n = 0;
+  let n = 0; const brutes = [];
+  const poser = (source, vers) => {
+    /* ⛔ ON N'ÉCRASE PAS UNE BASE VIVANTE EN LAISSANT SON JOURNAL À CÔTÉ. Un `-wal` orphelin
+       appartient à l'ANCIENNE base : SQLite le rejouerait par-dessus la nouvelle et rendrait
+       « database disk image is malformed ». Une restauration qui fabrique la corruption
+       qu'elle répare est la pire des restaurations. */
+    for (const suffixe of ['-wal', '-shm']) { try { fs.unlinkSync(vers + suffixe); } catch (e) {} }
+    fs.copyFileSync(source, vers);
+  };
   for (const f of fs.readdirSync(dossier)) {
-    if (!f.endsWith('.db')) continue;
-    if (f === 'socle-annuaire.db') { fs.copyFileSync(path.join(dossier, f), path.join(cible, 'socle-annuaire.db')); n++; continue; }
-    const t = f.slice(0, -3);
-    if (!RE_T.test(t)) continue;
-    fs.mkdirSync(path.join(cible, 'socle', t), { recursive: true });
-    fs.copyFileSync(path.join(dossier, f), path.join(cible, 'socle', t, 'base.db'));
-    n++;
+    /* ⛔ LES COPIES BRUTES AUSSI. Une base en `.brut` est une base qu'on n'a PAS su instantaner
+       — donc une entreprise DÉJÀ en difficulté. L'ignorer, c'est faire repartir précisément
+       celle-là à VIDE, en silence : le pire résultat possible d'une restauration. On la remet,
+       et on la NOMME à l'appelant pour qu'il sache qu'elle demande un examen. */
+    const brut = f.endsWith('.db.brut');
+    if (!f.endsWith('.db') && !brut) continue;
+    const base = brut ? f.slice(0, -('.db.brut'.length)) : f.slice(0, -3);
+    if (f === 'socle-annuaire.db' || f === 'socle-annuaire.db.brut') {
+      poser(path.join(dossier, f), path.join(cible, 'socle-annuaire.db'));
+      n++; if (brut) brutes.push('socle-annuaire.db'); continue;
+    }
+    if (!RE_T.test(base)) continue;
+    fs.mkdirSync(path.join(cible, 'socle', base), { recursive: true });
+    poser(path.join(dossier, f), path.join(cible, 'socle', base, 'base.db'));
+    n++; if (brut) brutes.push(base);
   }
+  if (brutes.length) console.error('⛔ ' + brutes.length + ' base(s) restaurée(s) depuis une COPIE BRUTE — à examiner : ' + brutes.join(', '));
   return n;
 }
 
@@ -1026,7 +1073,13 @@ function restaurerDepuis(dossier, versDataDir) {
  * « database disk image is malformed » qu'un `SELECT 1` ne verrait pas. */
 function controlerFichier(chemin) {
   let db = null;
+  /* ⛔ UN FICHIER DE 0 OCTET N'EST PAS UNE BASE SAINE — et c'est exactement ce que laisse un
+     disque plein pendant `VACUUM INTO`. SQLite OUVRE un fichier vide sans broncher (il y voit
+     une base neuve), et `quick_check` répond « ok ». On l'aurait donc archivé, vérifié, et
+     déclaré restaurable, pour zéro octet de données. */
   try {
+    let taille = 0; try { taille = fs.statSync(chemin).size; } catch (e) {}
+    if (taille < 512) return { ok: false, motif: 'fichier vide ou tronqué (' + taille + ' octets) — disque plein pendant la copie ?' };
     db = new (moteur().DatabaseSync)(chemin, { readOnly: true });
     const q = db.prepare('PRAGMA quick_check').get();
     const v = q && (q.quick_check || Object.values(q)[0]);

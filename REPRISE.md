@@ -36,7 +36,7 @@ c'est un drapeau qu'on éteint.
 | écrire les 8 350 | **552 ms** (0,07 ms/ligne) |
 | lire la base entière (21 pages de 400) | **216 ms** |
 | une écriture isolée (un geste de technicien) | **3,6 ms** |
-| `etat()` — le contrôle à chaque synchro | **15 ms** |
+| `etat()` — le contrôle de non-régression (PAS appelé à chaque synchro) | **15 ms** |
 | **3 processus qui écrivent en même temps** | 600 lignes, **0 perdue**, rang exact |
 | tout se relit après coup | `verifier()` : **ok** |
 | sur le disque | 4,22 Mo + WAL **plafonné** à 4 Mo |
@@ -109,6 +109,55 @@ la surveillance horaire. Bruyant et vivant plutôt que muet ou mort.
    dispositif. Ordonné par un rang monotone (`AUTOINCREMENT`, pour qu'un rang effacé ne soit
    jamais réemployé), plus un contrôle de rang manquant : sans lui, effacer une ligne ne
    casserait AUCUNE empreinte, puisque chaque maillon ne connaît que son prédécesseur.
+
+### ⛔⛔⛔ 19 SEPTEMBRE — LA DEUXIÈME VÉRIFICATION : MON CORRECTIF ÉTAIT PIRE QUE LE DÉFAUT
+
+47 relectures, 40 constats, **21 bloquants — et 33 sur 40 étaient des régressions introduites
+par les correctifs de la veille.** La leçon, avant tout le reste :
+
+⛔ **Le correctif de sauvegarde du 18 au soir rendait les archives DÉFINITIVEMENT illisibles.**
+Les motifs `--exclude` de GNU tar ne sont pas ancrés quand ils ne portent pas de barre oblique :
+`--exclude=socle-annuaire.db`, écrit pour retirer le fichier VIVANT, retirait aussi
+l'INSTANTANÉ du même nom. **Mesuré, avec le vrai module** : l'archive contenait
+`socle-instantane/elan-34oc.db` et `socle-instantane/entreprise-b.db`, **et aucun annuaire** —
+or l'annuaire porte les clés de toutes les entreprises. L'ancien défaut rendait des bases
+*parfois* corrompues ; le mien rendait des bases *jamais* restaurables. Et le contrôle ajouté
+en même temps — « on ouvre vraiment les bases » — déclarait cette archive **✅ RESTAURABLE**,
+parce qu'il vérifiait les fichiers PRÉSENTS sans jamais vérifier que ceux qui comptent sont là.
+
+⛔ **La cause racine des deux, c'est `tests/test-725.js` qui n'existait pas.** Les bancs
+s'arrêtaient à « l'instantané s'écrit sur le disque ». Aucun ne fabriquait une VRAIE archive et
+ne regardait dedans. **Une sauvegarde ne se relit pas en lisant le code qui l'écrit.** Le banc a
+été écrit AVANT les correctifs, on l'a fait échouer, puis on a corrigé jusqu'à ce qu'il passe.
+Il exige maintenant : l'annuaire présent, chaque base ouverte et parcourue, aucune copie brute
+en silence, aucune base de 0 octet, l'instantané effacé après coup, l'archive recalée retirée du
+coffre — et surtout **les données d'un client relues pour de vrai depuis la restauration**.
+
+| ⛔ corrigé | ce que ça donnait |
+|---|---|
+| l'annuaire hors de l'archive | toutes les données, aucune clé — et « ✅ restaurable » |
+| la vérif sautée si TOUT échouait | le pire cas était le seul non contrôlé |
+| `restaurerDepuis` ignorait les `.brut` | l'entreprise **déjà en difficulté** repartait à vide, en silence |
+| `controlerFichier` disait « saine » d'un fichier de 0 octet | ce que laisse un disque plein pendant la copie |
+| une restauration laissait le `-wal` de l'ancienne base | elle **fabriquait** la corruption qu'elle répare |
+| l'instantané ne s'effaçait jamais | une copie lisible de toutes les bases **et de toutes les clés**, en permanence |
+| une archive recalée restait dans le coffre | 30 nuits et plus une seule copie saine, sans un mot |
+| `entrepriseOuvrir` fabriquait une clé neuve | fermer une entreprise la **faisait naître** ; et sur un annuaire perdu, ça **court-circuitait la garde** posée la veille |
+| `CORPS_MAX` bornait le compressé | **2,3 Go et 4,9 s de serveur gelé** pour une requête |
+| le flux annonçait `seq:0` à l'arrêt | rembobinage complet de chaque appareil à chaque déploiement |
+| la purge : minuterie de 6 h | ne se déclenchait jamais un jour de déploiements — comme l'ancre, **deux fois la même faute** |
+| budget 4 000 lectures/h par espace | la synchro plafonnait à **27 appareils** ; ELAN en a 36 |
+| `/api/op/*` hors du budget global **drapeau éteint** | un assouplissement en production qui ne servait à personne |
+| `install.sh` n'est **jamais** lancé par le déploiement | la clé maître n'atteindrait jamais le VPS → `server/poser-cle.js` |
+
+**Après correction : 2 909 vérifications, 0 échec** (`test-725` 23 ✓ neuf, `test-723` 112 ✓,
+`test-724` 106 ✓, `test-722` 124 ✓).
+
+⚠️ **Ce qu'il faut retenir, et qui vaut pour la suite du chantier** : deux tours de vérification
+ont été nécessaires, et le second a trouvé pire que le premier. Un correctif écrit vite sur un
+mécanisme de secours est plus dangereux que le défaut qu'il répare, parce que personne ne le
+rejoue avant le jour où tout le reste a échoué. **Sur la sauvegarde et la restauration : le banc
+d'abord, le correctif ensuite.**
 
 ### ⛔⛔ LA VÉRIFICATION EXHAUSTIVE DU 18 AU SOIR — 42 RELECTURES, 36 CONSTATS, 12 BLOQUANTS
 
