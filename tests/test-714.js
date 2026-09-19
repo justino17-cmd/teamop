@@ -35,6 +35,13 @@ const iAlleger = APP.indexOf('function syncAlleger(base, budget){');
 v('les trois repères sont trouvés', iMarque > 0 && iSortir > 0 && iAlleger > 0, true);
 v('⛔ PH_MARQUE est AVANT syncSortirPieces', iMarque < iSortir, true);
 v('⛔ … et syncSortirPieces avant syncAlleger', iSortir < iAlleger, true);
+/* ⛔ ET AVANT `syncRegreffer`, QUI S'EN SERT DEPUIS LE 19 SEPTEMBRE. Le danger n'est pas un
+   plantage : `syncRegreffer` est enveloppée d'un `try/catch` qui rend 0. Si la constante
+   repassait sous elle, la fonction rendrait 0 EN SILENCE — et pas seulement pour les photos :
+   pour les DOCUMENTS aussi, qui ne sont regreffés que plus bas dans le même corps. Un
+   technicien perdrait ses pièces sans qu'une seule ligne d'erreur n'apparaisse. */
+const iRegr = APP.indexOf('function syncRegreffer(');
+v('⛔ … et PH_MARQUE avant syncRegreffer, qui s\'en sert aussi', iRegr > 0 && iMarque < iRegr, true);
 
 /* On exécute la tranche telle qu'elle est écrite, sans réordonner quoi que ce soit. */
 const SRC = APP.slice(iMarque, iAlleger);

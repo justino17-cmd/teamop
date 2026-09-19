@@ -30,6 +30,22 @@ function extraire(nom) {
    ce banc PLANTE — et c'est ce qu'il a fait, immédiatement, ce qui est le comportement
    voulu : un banc qui exécute la vraie fonction doit tomber quand elle change de dépendances,
    pas continuer à certifier une version qu'il n'exécute plus. */
+/* ⛔ `PH_MARQUE` EST UNE DÉPENDANCE DE CES TROIS FONCTIONS, ET ELLE SE PREND DANS LE FICHIER.
+   Depuis que `syncRegreffer` apparie les photos par leur identifiant, elle en a besoin comme
+   les deux autres. Ce banc est tombé au moment exact où la dépendance est apparue — c'est le
+   comportement voulu, écrit juste au-dessus. ⚠️ On l'EXTRAIT, on ne la recopie pas : une copie
+   figée dirait « ça marche » sur une expression que le fichier n'utilise plus.
+   ⚠️ Et le silence est le vrai danger ici : `syncRegreffer` est enveloppée d'un `try/catch` qui
+   rend 0. Une constante manquante ne plante donc pas — elle fait rendre 0 à TOUTE la fonction,
+   documents compris, sans un mot. C'est exactement ce qu'on a vu : trois contrôles rouges dont
+   DEUX sur les documents, qu'on n'avait pas touchés. `tests/test-714.js` exige donc aussi que
+   la constante soit déclarée AVANT la fonction dans le fichier. */
+/* ⚠️ `const` → `var`, ET C'EST INDISPENSABLE : un `const` déclaré dans un `eval` ne sort PAS
+   de la portée de l'eval, alors qu'un `var` la rejoint. Sans cette substitution, la constante
+   restait invisible pour les fonctions évaluées juste après, et les trois contrôles restaient
+   rouges — en accusant les documents, qu'on n'avait pas touchés. */
+// eslint-disable-next-line no-eval
+eval(((APP.match(/const PH_MARQUE=[^\n]+/) || [''])[0]).replace('const ', 'var '));
 // eslint-disable-next-line no-eval
 eval(extraire('syncSortirPieces'));
 // eslint-disable-next-line no-eval
