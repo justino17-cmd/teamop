@@ -91,6 +91,34 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('un essai en cours paie, lui', r.paye, true);
   }
 
+  /* 4 bis. ⛔ L'ADRESSE VIDE N'EST PAS UNE ADRESSE. C'est la régression exacte du
+     19 septembre 2026 au soir, introduite en retirant `&& e.email` de la garde : le repli
+     comparait `String(sb.customer.email || '').toLowerCase()` à `e.email`, donc `''` à `''`.
+     Or `email: … || ''` est ce qu'écrit la Tour à CHAQUE ouverture d'espace, et un client
+     Stripe peut très bien n'avoir aucune adresse (effacé, paiement par lien, saisie
+     incomplète). Résultat mesuré sur le vrai serveur : l'abonnement d'une entreprise payait
+     pour une autre, et le motif affiché disait tranquillement « par adresse e-mail ».
+     Ces trois contrôles sont la raison d'être du `&& mel` : ne pas les perdre. */
+  {
+    const r = await avec([ABO({ customer: { email: null }, metadata: { espace: 'une-autre' } })])(ESP({ email: '' }));
+    v('⛔ espace SANS adresse + client Stripe SANS adresse : ne paie RIEN', r.paye, false);
+  }
+  {
+    const r = await avec([ABO({ customer: { deleted: true }, metadata: { espace: 'une-autre' } })])(ESP({ email: '' }));
+    v('⛔ un client Stripe EFFACÉ ne paie pour personne', r.paye, false);
+  }
+  {
+    const r = await avec([ABO({ customer: { email: '   ' }, metadata: { espace: 'une-autre' } })])(ESP({ email: '  ' }));
+    v('⛔ deux adresses d\'espaces blanches ne se rattachent pas non plus', r.paye, false);
+  }
+  /* Et l'inverse, qui compte autant : resserrer ne doit pas COUPER un client qui paie. Une
+     majuscule sur la page Stripe ou une espace colée en trop ne bloquent plus personne —
+     l'adresse d'un espace n'est nulle part mise en minuscules à l'écriture. */
+  {
+    const r = await avec([ABO({ customer: { email: ' Patron@Client.FR ' } })])(ESP());
+    v('une adresse à la casse ou aux espaces près paie quand même', r.paye, true);
+  }
+
   /* 5. ET LA RÉFÉRENCE DOIT ÊTRE ENVOYÉE À STRIPE. Sans cette ligne, la métadonnée n'existe
      sur aucun abonnement et tout ce qui précède ne sert à rien. */
   vrai('⛔ la page de paiement grave la référence sur l\'ABONNEMENT',

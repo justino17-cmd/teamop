@@ -2058,9 +2058,22 @@ async function espacePaye(e) {
       let abo = refs.length ? (espStripeCache.data || []).find(sb => vivant(sb)
         && sb.metadata && refs.includes(String(sb.metadata.espace || '').toLowerCase())) : null;
       let parQuoi = 'référence d\'espace';
-      if (!abo) {
+      /* ⛔ LE REPLI NE SE TENTE QUE S'IL Y A UNE ADRESSE DES DEUX CÔTÉS, ET C'EST TOUT
+         L'INTÉRÊT DE CETTE LIGNE. `String(null || '').toLowerCase()` vaut `''` : un espace
+         sans adresse — c'est-à-dire TOUT espace ouvert depuis la Tour, qui écrit
+         `email: … || ''` — se rattachait alors au premier abonnement vivant dont le client
+         Stripe n'a pas d'adresse (client effacé, paiement par lien, saisie sans e-mail).
+         Mesuré : un espace à `email:''` rendait `{paye:true, par adresse e-mail}` contre
+         l'abonnement d'une AUTRE entreprise. Deux clients, un seul paiement — et celui qui
+         paie ne le sait pas.
+         On normalise aussi les deux côtés : l'adresse de l'espace n'est nulle part mise en
+         minuscules à l'écriture, et une majuscule sur la page Stripe suffisait à bloquer un
+         client qui avait pourtant payé. */
+      const mel = String(e.email || '').trim().toLowerCase();
+      if (!abo && mel) {
         abo = (espStripeCache.data || []).find(sb => vivant(sb)
-          && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').toLowerCase() === e.email);
+          && sb.customer && typeof sb.customer === 'object'
+          && String(sb.customer.email || '').trim().toLowerCase() === mel);
         parQuoi = 'adresse e-mail';
       }
       if (abo) return { paye: true, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
