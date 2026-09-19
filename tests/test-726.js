@@ -652,6 +652,32 @@ const menage = async () => {
       }
       await D.arreter();
 
+      /* ⛔ ET LA BORNE PAR ENTREPRISE — le 507, que la section de `test-724` intitulée « une
+         entreprise ne peut pas remplir le disque des autres » annonçait sans jamais l'exécuter :
+         elle éprouvait les bornes de FORME (identifiant trop long, corps d'un mégaoctet) et
+         AUCUNE des deux bornes de PLACE. Ce sont pourtant les seules qui empêchent une
+         entreprise d'écrire jusqu'à remplir le disque du VPS — et le disque du VPS est celui
+         de tous les clients. 507 et pas 503 : c'est CETTE entreprise qui déborde, on règle son
+         plafond ; 503 c'est le disque du serveur, et c'est nous qui devons agir. */
+      const E = await assembler('plein', { socle: true, endpoint: ENDPOINT,
+        config: { socle: { actif: true, octetsMax: 1 } } });
+      const se = await E.appel('POST', '/api/op/session', { corps: { t: T_A, kh: sha(CLE_A) } });
+      v('la session s\'ouvre', se.code, 200);
+      /* Une première pousse remplit le compteur d'octets de l'entreprise… */
+      await E.appel('POST', '/api/op/pousser', { jeton: se.j && se.j.jeton,
+        corps: { enr: [{ c: 'produits', id: 'e1', m: 1758200000000, e: 'e1', r: { nom: 'E' } }] } });
+      /* …et la suivante doit être refusée, parce que le plafond est à 1 octet. */
+      const pe = await E.appel('POST', '/api/op/pousser', { jeton: se.j && se.j.jeton,
+        corps: { enr: [{ c: 'produits', id: 'e2', m: 1758200000001, e: 'e2', r: { nom: 'E2' } }] } });
+      v('⛔ espace plein : refus total en 507, pas en 200', pe.code, 507);
+      v('   rien n\'a été accepté', pe.j && pe.j.acceptes, 0);
+      vrai('   et le motif est lisible', (pe.j.refus || []).every(x => x.motif === 'espace_plein'));
+      {
+        const { j } = await E.appel('GET', '/health');
+        v('⛔ /health le compte aussi', (j.socle.refus || {}).espace_plein, 1);
+      }
+      await E.arreter();
+
       /* L'horloge : un appareil à l'heure juste contre un serveur qui retarde revient au même
          qu'un appareil en avance — c'est la date de la ligne qui dépasse `maintenant + 5 min`. */
       const H = await assembler('horloge', { socle: true, endpoint: ENDPOINT });

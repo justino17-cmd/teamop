@@ -510,6 +510,101 @@ console.log('\n⛔ Les bloquants de la troisième vérification');
   }
 }
 
+/* ══ LES GARDES DE DERNIER RECOURS, QUE RIEN N'ÉPROUVAIT ══════════════════════════════════
+   ⛔ Relevé par la cinquième vérification : l'AAD n'était gardée que par une EXPRESSION
+   RÉGULIÈRE SUR LE TEXTE (plus haut dans ce fichier). Remplacer l'AAD par une constante ne
+   faisait donc tomber aucun banc — et l'AAD est ce qui lie la clé d'une entreprise à SON
+   IDENTIFIANT, c'est-à-dire le dernier verrou du cloisonnement quand tout le reste a cédé :
+   un annuaire trafiqué, une ligne déplacée d'une base à l'autre, une restauration mal ciblée.
+   On l'EXERCE maintenant, dans les deux sens. */
+console.log('\n⛔ Le cloisonnement cryptographique, exercé et non relu');
+{
+  const K = crypto.randomBytes(32);
+  const dek = crypto.randomBytes(32);
+
+  /* 1. LA CLÉ D'UNE ENTREPRISE, SCELLÉE SOUS SON IDENTITÉ. */
+  const scelle = S.sceller(K, dek, 'entreprise-a');
+  v('la clé se rouvre sous la BONNE entreprise', S.desceller(K, scelle, 'entreprise-a').equals(dek), true);
+  {
+    /* ⛔ LE CONTRÔLE QUI MANQUAIT. Présenter la clé de A en disant « je suis B » doit ÉCHOUER.
+       Sans l'AAD, l'annuaire devient un simple sac de clés : qui peut y écrire une ligne peut
+       donner la clé de n'importe qui à n'importe qui. */
+    let jete = false;
+    try { S.desceller(K, scelle, 'entreprise-b'); } catch (e) { jete = true; }
+    vrai('⛔ la clé de A ne s\'ouvre PAS sous l\'identité de B', jete);
+  }
+  {
+    let jete = false;
+    try { S.desceller(crypto.randomBytes(32), scelle, 'entreprise-a'); } catch (e) { jete = true; }
+    vrai('   ni sous une autre clé maître', jete);
+  }
+
+  /* 2. LE CORPS D'UN ENREGISTREMENT, LIÉ À SA PLACE EXACTE. */
+  const corps = S.sceller_corps(dek, 'entreprise-a', 'produits', 'p1', 1700000000000, 0, { nom: 'Gel' });
+  v('le corps se rouvre à sa place', S.desceller_corps(dek, 'entreprise-a', 'produits', 'p1', 1700000000000, 0, corps).nom, 'Gel');
+  /* ⛔ CINQ DÉPLACEMENTS, CINQ REFUS. Chacun est un scénario réel : une ligne recopiée dans la
+     base d'une autre entreprise, rangée sous une autre collection, réétiquetée avec un autre
+     identifiant, redatée pour gagner un arbitrage, ou ressuscitée en effaçant sa tombe. */
+  const deplacements = [
+    ['une autre entreprise', ['entreprise-b', 'produits', 'p1', 1700000000000, 0]],
+    ['une autre collection', ['entreprise-a', 'factures', 'p1', 1700000000000, 0]],
+    ['un autre identifiant', ['entreprise-a', 'produits', 'p2', 1700000000000, 0]],
+    ['une autre date', ['entreprise-a', 'produits', 'p1', 1700000000001, 0]],
+    ['une tombe effacée', ['entreprise-a', 'produits', 'p1', 1700000000000, 1]],
+  ];
+  for (const [quoi, args] of deplacements) {
+    /* ⚠️ UN SEUL APPEL, ET BIEN FORMÉ. Le premier jet en faisait deux, dont un à la mauvaise
+       arité : il jetait pour une raison qui n'avait rien à voir, donc le contrôle passait
+       QUOI QU'IL ARRIVE — précisément le défaut de banc que ce fichier existe pour traquer. */
+    let jete = false, rendu;
+    try { rendu = S.desceller_corps(dek, args[0], args[1], args[2], args[3], args[4], corps); }
+    catch (e) { jete = true; }
+    v('⛔ un corps déplacé vers ' + quoi + ' est REFUSÉ', [jete, rendu], [true, undefined]);
+  }
+}
+
+/* ══ RESTAURER : LE JOUR OÙ ON EN A BESOIN, ON NE RÉPÈTE PAS L'ESSAI ══════════════════════
+   ⛔ Ni la reprise des copies `.brut` ni le nettoyage des `-wal` orphelins n'était gardé, et
+   le code lui-même nomme les deux comme le PIRE résultat possible d'une restauration :
+   faire repartir à vide, en silence, précisément l'entreprise déjà en difficulté ; et
+   fabriquer la corruption qu'on répare en laissant SQLite rejouer le journal de l'ancienne
+   base par-dessus la neuve. */
+console.log('\n⛔ La restauration : les deux pièges que le code nomme lui-même');
+{
+  const src = path.join(DIR, 'inst-banc'), cible = path.join(DIR, 'cible-banc');
+  fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(cible, { recursive: true, force: true });
+  fs.mkdirSync(src, { recursive: true }); fs.mkdirSync(cible, { recursive: true });
+  fs.writeFileSync(path.join(src, 'socle-annuaire.db'), Buffer.alloc(4096, 1));
+  fs.writeFileSync(path.join(src, 'ent-saine.db'), Buffer.alloc(4096, 2));
+  /* Une entreprise dont l'instantané a ÉCHOUÉ : elle part en copie brute. */
+  fs.writeFileSync(path.join(src, 'ent-abimee.db.brut'), Buffer.alloc(4096, 3));
+  /* Et une base vivante qui traîne un `-wal` de l'ANCIENNE version. */
+  fs.mkdirSync(path.join(cible, 'socle', 'ent-saine'), { recursive: true });
+  fs.writeFileSync(path.join(cible, 'socle', 'ent-saine', 'base.db'), Buffer.alloc(100, 9));
+  fs.writeFileSync(path.join(cible, 'socle', 'ent-saine', 'base.db-wal'), Buffer.alloc(512, 9));
+
+  const n = S.restaurerDepuis(src, cible);
+  v('les trois fichiers sont remis', n, 3);
+  vrai('l\'annuaire est là', fs.existsSync(path.join(cible, 'socle-annuaire.db')));
+  vrai('l\'entreprise saine est là', fs.existsSync(path.join(cible, 'socle', 'ent-saine', 'base.db')));
+  /* ⛔ LA COPIE BRUTE AUSSI. L'ignorer ferait repartir À VIDE l'entreprise déjà en difficulté —
+     le pire résultat possible d'une restauration, et le plus silencieux. */
+  vrai('⛔ l\'entreprise en copie BRUTE est restaurée elle aussi',
+    fs.existsSync(path.join(cible, 'socle', 'ent-abimee', 'base.db')));
+  /* ⚠️ ON LIT DÉFENSIVEMENT. La première version faisait un `readFileSync` nu : quand la
+     reprise des `.brut` était retirée, le banc S'ÉCROULAIT sur un ENOENT au lieu d'ÉCHOUER, et
+     une suite qui plante ne dit pas ce qu'elle gardait. Même leçon que dans `test-726`. */
+  const lire1 = (c) => { try { return fs.readFileSync(c); } catch (e) { return null; } };
+  v('   et c\'est bien son contenu', (lire1(path.join(cible, 'socle', 'ent-abimee', 'base.db')) || [])[0], 3);
+  /* ⛔ ET LE JOURNAL ORPHELIN A DISPARU. Laissé là, SQLite le rejoue par-dessus la base
+     restaurée et rend « database disk image is malformed » : la restauration FABRIQUE la
+     corruption qu'elle répare. */
+  v('⛔ le `-wal` orphelin de l\'ancienne base est effacé',
+    fs.existsSync(path.join(cible, 'socle', 'ent-saine', 'base.db-wal')), false);
+  v('   et la base restaurée a bien remplacé l\'ancienne',
+    (lire1(path.join(cible, 'socle', 'ent-saine', 'base.db')) || { length: -1 }).length, 4096);
+}
+
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
