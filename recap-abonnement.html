@@ -808,6 +808,19 @@ function rendrePaiement() {
       window.location.href = CONFIG_STRIPE.inscriptionGratuite;
       return;
     }
+    /* ⛔ SANS CETTE RÉFÉRENCE, LE CORRECTIF STRIPE DU SERVEUR NE SERT À RIEN.
+       `/api/stripe/checkout` ne grave `subscription_data[metadata][espace]` sur l'abonnement
+       que si la page lui envoie un `ref` — et cette page, la SEULE du site qui ouvre une page
+       de paiement, ne l'envoyait pas. Le rattachement retombait donc sur l'égalité EXACTE des
+       adresses : la comptable paie avec l'adresse de facturation de la société, l'espace a été
+       créé avec celle de la personne qui avait demandé l'accès, et l'application reste
+       bloquée après le paiement, sans un mot.
+       `elan_sync_team` est le marqueur d'espace rattaché, le même que lit `promoValider()`
+       plus bas. Il peut être vide — un prospect paie avant d'avoir un espace — et c'est
+       prévu : le serveur ignore un `ref` vide, et le repli par adresse reste en place. */
+    const espaceRattacheRef = () => {
+      try { return String(localStorage.getItem('elan_sync_team') || '').trim(); } catch (e) { return ''; }
+    };
     const btn = document.getElementById('btnPayer');
     // 1) Paiement automatique via le serveur TeamOP : quantité déjà réglée + champ code promo
     const priceId = (STRIPE_PRICES[formuleActive] || {})[cycleAnnuel ? 'annuel' : 'mensuel'];
@@ -816,7 +829,7 @@ function rendrePaiement() {
       btn.disabled = true; btn.innerHTML = 'Préparation du paiement…';
       try {
         const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 7000);
-        const r = await fetch('https://api.teamop.fr/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: priceId, quantity: nbAbos }), signal: ctl.signal });
+        const r = await fetch('https://api.teamop.fr/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef() }), signal: ctl.signal });
         clearTimeout(to);
         if (r.ok) { const j = await r.json(); if (j && j.url) { window.location.href = j.url; return; } }
       } catch (e) {}

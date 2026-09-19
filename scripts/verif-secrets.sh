@@ -59,6 +59,37 @@ for f in "${fichiers[@]}"; do
   done
 done
 
+# ⛔ UN CODE PROMO DANS UN FICHIER SERVI EST UN ABONNEMENT OFFERT AU PREMIER CURIEUX.
+# Le 19 septembre 2026 : `TEAMOP3MOIS` était écrit en clair dans le placeholder d'un champ de
+# `tour.html`. La Tour demande un mot de passe, mais son authentification est côté JavaScript :
+# `curl -s https://teamop.fr/tour.html` rend 633 Ko à un anonyme, sans en-tête ni cookie.
+# Mesuré le même jour, en lecture seule : `POST /api/promo/valider {"code":"TEAMOP3MOIS",
+# "apercu":true}` → 200, premium, 3 mois. Le code était VIVANT.
+# Le même code avait déjà été retiré d'`espace.html` pour cette raison exacte — il avait
+# simplement changé de fichier. D'où ce contrôle : un exemple de code promo n'est jamais un
+# code qui marche.
+# ⚠️ LES EXEMPLES FICTIFS SONT NOMMÉS ICI, UN PAR UN, ET C'EST DÉLIBÉRÉ : le script ne peut pas
+# savoir ce que contient `config.promos`, qui vit sur le VPS. En ajouter un doit donc être un
+# geste conscient — et se vérifie en une commande, celle ci-dessus, qui doit rendre 404.
+# Vérifiés inconnus du serveur le 19 septembre 2026 : BIENVENUE3 (404), TEST3 (exemple de
+# journal). Les revoir si un jour un vrai code leur ressemble.
+promo_fictifs='BIENVENUE3|TEST3'
+for f in "${fichiers[@]}"; do
+  [ -f "$f" ] || continue
+  case "$f" in
+    node_modules/*|*/node_modules/*|scripts/verif-secrets.sh|REPRISE.md|CLAUDE.md) continue ;;
+    *.html|*.js|*.md) ;;
+    *) continue ;;
+  esac
+  if resultat=$(grep -nE "[Pp]romo[^<>]{0,40}\b[A-Z]{4,}[0-9]+[A-Z0-9]*\b" "$f" 2>/dev/null \
+                | grep -vE "$promo_fictifs"); then
+    while IFS= read -r ligne; do
+      printf '  %s:%s  → code promo dans un fichier servi\n' "$f" "${ligne%%:*}"
+    done <<< "$resultat"
+    trouve=1
+  fi
+done
+
 # Un fichier d'environnement n'a rien à faire dans un commit.
 for f in "${fichiers[@]}"; do
   base="$(basename "$f")"

@@ -6876,7 +6876,14 @@ function blocGestionClient(){
       '<button type="button" class="btn-fant" onclick="tourStatutPack(\''+jsq(nm)+'\')">💳 Statut paiement</button></div>'+
       '<div id="pack-info" class="note">Chargement du statut…</div>'+
       '<div class="form-rang">'+
-      '<input id="pack-promo" placeholder="Code promo (ex. TEAMOP3MOIS)" aria-label="Code promo" class="inp ch-promo">'+
+      /* ⛔ PAS DE CODE PROMO RÉEL DANS UN EXEMPLE. `tour.html` est un fichier statique servi par
+         GitHub Pages : l'authentification de la Tour est côté JavaScript, elle n'empêche pas de
+         télécharger la page. Mesuré le 19 septembre 2026 : `curl -s https://teamop.fr/tour.html`
+         rend 633 Ko à un anonyme, sans en-tête ni cookie, et le code y était en clair — vivant,
+         vérifié le même jour par l'aperçu public de /api/promo/valider. Le même code avait été
+         retiré d'`espace.html` pour cette raison exacte : il avait simplement changé de fichier.
+         Un exemple de code promo n'est jamais un code qui marche. */
+      '<input id="pack-promo" placeholder="Code promo" aria-label="Code promo" class="inp ch-promo">'+
       '<button type="button" class="btn-fant" onclick="tourPromoEntreprise(\''+jsq(nm)+'\',this)">🎁 Activer le code</button></div></div>'+
     /* Les applications de cette entreprise : ce qu'elle a DÉCLARÉ à l'inscription (chips), ce
        qui lui est OUVERT par TEAM OP, et ce qu'elle UTILISE vraiment (bloc CONNEXIONS plus bas).

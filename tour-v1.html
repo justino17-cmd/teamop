@@ -1403,7 +1403,7 @@ function msgRemplace(t,m){
     .replace(/\{nom\}/g,nom||c.nom||'')
     .replace(/\{entreprise\}/g,c.entreprise||c.nom||'')
     .replace(/\{formule\}/g,abo.formule||c.plan||'votre formule')
-    .replace(/\{promo\}/g,c.promo||'TEAMOP3MOIS')
+    .replace(/\{promo\}/g,c.promo||'')   // jamais un code réel par défaut : la page est publique
     .replace(/\s{2,}/g,' ').replace(/^ | $/g,'');
 }
 function msgAppliquerModele(id){
