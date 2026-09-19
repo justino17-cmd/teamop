@@ -54,6 +54,8 @@ const HORLOGE_MARGE_MS = 5 * 60000;
 const COLL_MAX = 40, ID_MAX = 200, CORPS_MAX = 512 * 1024;
 /* Le plafond du corps DÉCOMPRESSÉ — voir `desceller_corps`. */
 const CLAIR_MAX = 16 * 1024 * 1024;
+/* Le plafond du POIDS D'UNE RÉPONSE, compté sur le CLAIR — voir `depuis()`. */
+const REPONSE_MAX = 8 * 1024 * 1024;
 /* ⛔ LE CLOISONNEMENT NE S'ARRÊTE PAS AU FICHIER. Un fichier par entreprise sépare les
  * DONNÉES ; il ne sépare pas le DISQUE, et le disque du VPS est celui de TOUS les clients.
  * Sans plafond, un seul appareil authentifié écrit ~7 Go/h dans les limites du quota horaire,
@@ -165,6 +167,12 @@ const aadFichier = (t, sha) => t + '|' + sha;
 
 function sceller_corps(dek, t, coll, id, majLe, supprimeLe, valeur) {
   return sceller(dek, zlib.gzipSync(Buffer.from(JSON.stringify(valeur), 'utf8')), aadCorps(t, coll, id, majLe, supprimeLe));
+}
+/* Le clair, sans l'analyse JSON : `depuis()` en a besoin pour PESER ce qu'il vient de
+   décompresser, et décompresser deux fois pour mesurer serait payer deux fois le coût qu'on
+   cherche justement à borner. */
+function desceller_clair(dek, t, coll, id, majLe, supprimeLe, blob) {
+  return zlib.gunzipSync(desceller(dek, blob, aadCorps(t, coll, id, majLe, supprimeLe)), { maxOutputLength: CLAIR_MAX });
 }
 function desceller_corps(dek, t, coll, id, majLe, supprimeLe, blob) {
   /* ⛔ LA BORNE D'ÉCRITURE PORTE SUR LE COMPRESSÉ, LA LECTURE DÉCOMPRESSE — il fallait donc
@@ -299,6 +307,19 @@ function ouvrir(t) {
   semerCompteurs();
   fs.mkdirSync(dossierDe(t), { recursive: true });
   const db = new (moteur().DatabaseSync)(baseDe(t));
+  /* ⛔ TOUT CE QUI SUIT EST SOUS UN `try` QUI FERME. La base est OUVERTE à la ligne du dessus :
+     à partir d'ici, n'importe quelle exception — un témoin qui refuse, `dekDe` qui refuse, une
+     table qui ne se crée pas — emporte le descripteur de fichier avec elle. Et la base n'est
+     pas encore dans `_bases`, donc PERSONNE ne peut plus la fermer.
+     ⛔ MESURÉ le 19 septembre 2026, sur exactement le cas que la garde vise (base présente,
+     annuaire absent) : **277 descripteurs pour 200 requêtes refusées**, plus un `-wal` laissé
+     à côté. La limite systemd par défaut est à 1024 : quelques centaines de synchros retentées
+     par une entreprise mal restaurée, et c'est `EMFILE` — plus AUCUNE route ne répond, pour
+     tous les clients. La minuterie horaire de purge en fuyait un de plus par heure, seule.
+     ⚠️ Les deux `try { db.close() }` des témoins plus bas deviennent redondants ; on les garde
+     parce qu'ils ferment AVANT de lever, ce qui est plus clair à lire — mais c'est ce `catch`
+     qui rend la propriété vraie sur TOUS les chemins, y compris ceux qu'on n'a pas prévus. */
+  try {
   /* `journal_size_limit` n'est pas un détail d'exploitation : MESURÉ le 18 septembre 2026, le
      WAL d'une base de 4,2 Mo restait à 4,3 Mo APRÈS son point de reprise, et ne redescendait
      jamais — chaque entreprise occupait le DOUBLE de sa taille sur un disque qui est le seul
@@ -358,6 +379,16 @@ function ouvrir(t) {
   _bases.set(t, db);
   if (neuve) _nbBases++;
   return db;
+  } catch (e) {
+    /* ⛔ ON FERME, PUIS ON RELÈVE TELLE QUELLE. Le message de refus porte ce qu'il faut faire :
+       l'avaler ou le remplacer ferait perdre la seule chose utile de cette panne. */
+    try { db.close(); } catch (x) {}
+    _bases.delete(t);
+    /* Une base NEUVE dont l'ouverture a échoué ne doit pas laisser un fichier vide derrière
+       elle : au prochain passage, `neuve` vaudrait false et `dekDe` refuserait pour de bon. */
+    if (neuve) { for (const sx of ['', '-wal', '-shm']) { try { fs.unlinkSync(baseDe(t) + sx); } catch (x) {} } }
+    throw e;
+  }
 }
 
 /* ══ ÉCRIRE — UNE SEULE TRANSACTION, TOUT OU RIEN ═══════════════════════════════════════════
@@ -567,22 +598,41 @@ function depuis(t, apresSeq, max) {
      moyen de savoir laquelle. L'AAD est là pour rendre une ligne trafiquée VISIBLE, pas pour
      murer un client. On l'écarte, on la compte, et l'appelant remonte le compte. Ce qui ne se
      déchiffre pas ne se sert pas : on ne rend jamais un corps douteux. */
+  /* ⛔ LA BORNE DE DÉCOMPRESSION EST PAR LIGNE ; LA RÉPONSE EN PORTE QUATRE CENTS. 16 Mo par
+     ligne × 400 = 6,4 Go par requête, en synchrone, sur la boucle d'événements de tous les
+     clients — et il suffit d'avoir écrit ces lignes une fois pour les rejouer à chaque lecture.
+     On borne donc aussi le TOTAL : la page s'arrête là où elle devient trop lourde, et
+     l'appareil reçoit un curseur qui lui fait redemander la suite. Rien n'est perdu, la
+     pagination fait son travail — c'est précisément à ça qu'elle sert.
+     ⛔ ON COMPTE LE CLAIR, PAS LE SCELLÉ, et une première version comptait le scellé « parce
+     que la base le connaît sans rien déchiffrer ». C'était vrai et inutile : MESURÉ, 400 lignes
+     de 400 Ko de texte répété pèsent presque rien une fois compressées, la borne ne se
+     déclenchait jamais, et la requête gelait quand même le serveur 1 396 ms. Le coût qu'on veut
+     borner est celui de la DÉCOMPRESSION — donc c'est lui qu'il faut mesurer. On décompresse de
+     toute façon : on compte au passage, et on s'arrête à la ligne SUIVANTE. Le dépassement est
+     donc borné par `CLAIR_MAX`, une seule fois. */
   const enr = []; const illisibles = [];
+  let poids = 0, tronquee = false, dernierRendu = parseInt(apresSeq, 10) || 0;
   for (const l of lignes) {
-    if (l.supprime_le) { enr.push({ c: l.coll, id: l.id, m: l.maj_le, s: l.seq, sup: l.supprime_le, r: null }); continue; }
-    let r;
-    try { r = desceller_corps(dek, t, l.coll, l.id, l.maj_le, l.supprime_le, l.corps); }
-    catch (e) { illisibles.push({ c: l.coll, id: l.id, s: l.seq }); continue; }
+    if (poids > REPONSE_MAX) { tronquee = true; break; }
+    if (l.supprime_le) { enr.push({ c: l.coll, id: l.id, m: l.maj_le, s: l.seq, sup: l.supprime_le, r: null }); dernierRendu = l.seq; continue; }
+    let r, clair;
+    try { clair = desceller_clair(dek, t, l.coll, l.id, l.maj_le, l.supprime_le, l.corps); r = JSON.parse(clair.toString('utf8')); }
+    catch (e) { illisibles.push({ c: l.coll, id: l.id, s: l.seq }); dernierRendu = l.seq; continue; }
+    poids += clair.length;
     enr.push({ c: l.coll, id: l.id, m: l.maj_le, s: l.seq, sup: l.supprime_le, r });
+    dernierRendu = l.seq;
   }
 
   const seq = parseInt(db.prepare("SELECT val FROM meta WHERE cle='seq'").get().val, 10);
   /* ⛔ LE CURSEUR SE PREND SUR LES LIGNES LUES EN BASE, PAS SUR CELLES QU'ON REND. Le prendre
      sur `enr` ferait piétiner l'appareil pour toujours dès qu'une ligne illisible termine une
      page : il redemanderait éternellement la même page. */
-  const dernier = lignes.length ? lignes[lignes.length - 1].seq : (parseInt(apresSeq, 10) || 0);
+  /* ⚠️ QUAND LA PAGE EST TRONQUÉE PAR LE POIDS, le curseur s'arrête à la DERNIÈRE ligne
+     RÉELLEMENT RENDUE — pas à la dernière ligne lue en base, qui ferait sauter les suivantes. */
+  const dernier = tronquee ? dernierRendu : (lignes.length ? lignes[lignes.length - 1].seq : (parseInt(apresSeq, 10) || 0));
   const reste = db.prepare('SELECT COUNT(*) AS n FROM enr WHERE seq>?').get(dernier).n;
-  return { seq, curseur: dernier, reste, enr, illisibles };
+  return { seq, curseur: dernier, reste, enr, illisibles, tronquee };
 }
 
 /* ══ VÉRIFIER — LE CONTRÔLE COMPLET, HORS CHEMIN CHAUD ══════════════════════════════════════

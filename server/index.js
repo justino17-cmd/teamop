@@ -340,6 +340,26 @@ app.post('/api/checkcode', (req, res) => {
 });
 
 let lastRefus = null;   // dernier refus d'envoi d'e-mail (diagnostic) : { ts, raison }
+/* ⛔ UN REFUS SMTP NE VOYAGE PAS EN CLAIR SUR `/health`. `lastRefus` est publié par `/health`,
+   qui est PUBLIQUE et sans clé — et un refus de serveur de messagerie porte presque toujours
+   l'adresse concernée : « 550 5.1.1 <client@exemple.fr>: Recipient address rejected ». Deux
+   points d'appel y mettaient `e.message` tel quel, DEUX LIGNES sous le commentaire qui
+   l'interdit (« ni identifiant, ni slug, ni adresse — un motif générique »). On rend donc le
+   CODE du refus, qui suffit au dépannage (auth, connexion, destinataire, quota) et ne désigne
+   personne. Le message entier reste dans la réponse HTTP à l'appelant — qui, lui, est déjà
+   l'expéditeur — et dans le journal du VPS, qui n'est pas public.
+   ⚠️ Relevé le 19 septembre 2026, et il est DÉPLOYÉ : c'est le seul défaut de cette série qui
+   touche une exposition réelle aujourd'hui. */
+function refusSmtp(e) {
+  const code = String((e && (e.code || e.responseCode)) || '').slice(0, 24).replace(/[^A-Za-z0-9_-]/g, '');
+  const m = String((e && e.message) || '');
+  const famille = /auth/i.test(m) ? 'authentification'
+    : /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|ECONNRESET/i.test(code + m) ? 'connexion'
+    : /recipient|mailbox|user unknown|550|553/i.test(m) ? 'destinataire refusé'
+    : /quota|rate|too many|421|450/i.test(m) ? 'quota du serveur de messagerie'
+    : 'autre';
+  return 'SMTP: ' + famille + (code ? ' (' + code + ')' : '');
+}
 app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: true, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
@@ -1084,7 +1104,7 @@ app.post('/api/sendmail', async (req, res) => {
     }
     if (meta && (meta.bonNum || meta.track)) rememberSent(teamId, meta.bonNum || '', to);   // pour rattacher la future réponse
     res.json({ ok: true });
-  } catch (e) { lastRefus = { ts: Date.now(), raison: 'SMTP: ' + String(e.message || e).slice(0, 200) }; res.status(500).json({ error: e.message }); }
+  } catch (e) { lastRefus = { ts: Date.now(), raison: refusSmtp(e) }; res.status(500).json({ error: e.message }); }
 });
 
 // Accès d'un compte créé par l'entreprise : identifiant + mot de passe provisoire + lien de connexion
@@ -1159,7 +1179,7 @@ app.post('/api/compte/identifiants', async (req, res) => {
         ],
         boutonTxt: lienEspace ? 'Ouvrir mon espace' : 'Ouvrir OP GESTION', boutonUrl: url }) });
     res.json({ ok: true, lien: url, entreprise: ent });
-  } catch (e) { lastRefus = { ts: Date.now(), raison: 'SMTP: ' + String(e.message || e).slice(0, 200) }; res.status(500).json({ error: e.message }); }
+  } catch (e) { lastRefus = { ts: Date.now(), raison: refusSmtp(e) }; res.status(500).json({ error: e.message }); }
 });
 
 /* ── Gabarit d'e-mail TEAM OP (modèle « Suivi ») : logo, pastille d'état, frise,
@@ -3453,7 +3473,13 @@ try {
      déclarant valide. Il est passé même quand le socle est éteint : il n'y a alors aucune base
      à instantaner, la fonction rend 0, et rien n'est exclu de l'archive — donc aucun changement
      pour la production d'aujourd'hui. */
-  sauvegarde = require('./sauvegarde').monterSauvegarde(app, { config, DATA_DIR, CONFIG_PATH, garde: monPatronStrict, socle: require('./socle') });
+  /* ⛔ LE SOCLE N'EST PASSÉ QUE S'IL EST ALLUMÉ. La première version le passait toujours : la
+     sauvegarde nocturne appelait donc `instantanerVers()` à CHAQUE passage, drapeau éteint,
+     et créait un dossier dans `DATA_DIR` en production — pendant que l'en-tête de `socle.js`
+     promettait « aucune route ne le monte et rien ne l'appelle ». Une promesse d'inertie qui
+     souffre une exception n'est plus une promesse : c'est le drapeau qui décide, entièrement. */
+  sauvegarde = require('./sauvegarde').monterSauvegarde(app, { config, DATA_DIR, CONFIG_PATH,
+    garde: monPatronStrict, socle: (opSocle && opSocle.actif) ? require('./socle') : null });
 } catch (e) {
   console.error('sauvegarde hors site non montée :', e.message);
 }

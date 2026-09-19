@@ -292,9 +292,28 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
     {
       /* 130 requêtes : au-delà des 120/min/IP du budget global. Si `/api/op/*` y était, la
          synchro d'un seul appareil s'étranglerait toute seule au bout d'une minute. */
+      /* ⚠️ SUR LE FLUX, PAS SUR `etat()`. Ce contrôle porte sur le plafond GLOBAL de 120/min/IP,
+         et il martelait `/api/op/etat` — qui a depuis son propre budget, bien plus serré parce
+         qu'elle est chère. Il tombait donc sur le bon refus, pour la mauvaise raison, et faisait
+         échouer les trois contrôles suivants au passage. Le flux est la route réellement
+         martelée en production : c'est elle qu'il faut éprouver ici. */
       let refusees = 0;
-      for (let i = 0; i < 130; i++) if ((await appel('GET', '/api/op/etat', { jeton: jetonA })).code === 429) refusees++;
+      for (let i = 0; i < 130; i++) if ((await appel('GET', '/api/op/flux?depuis=0', { jeton: jetonA })).code === 429) refusees++;
       v('⛔ 130 requêtes passent (le plafond global ne s\'applique pas)', refusees, 0);
+      /* ⛔ ET `etat()`, ELLE, A SON PROPRE BUDGET — parce qu'elle relit et SIGNE toute la base.
+         Sans lui, relever le budget des lectures pour que 36 appareils tiennent autorisait
+         40 000 appels/h à une route à 42 ms : un seul jeton légitime gelait le serveur pour
+         tous les clients. Trois budgets, trois coûts. */
+      const src724 = fs.readFileSync(path.join(RACINE, 'server', 'op-socle.js'), 'utf8');
+      vrai('⛔ `etat()` a un budget distinct des lectures bon marché', /const cher = req\.path === '\/api\/op\/etat'/.test(src724));
+      /* ⚠️ ON COMPARE LES DEUX NOMBRES, pas des littéraux. Une assertion sur « || 500 » fige un
+         chiffre qu'on a le droit de régler ; ce qui doit rester vrai, c'est que la route CHÈRE
+         soit bien plus serrée que les routes bon marché. */
+      const nb = (n) => { const m = new RegExp(n + '[^|]*\\|\\|\\s*(\\d+)').exec(src724); return m ? parseInt(m[1], 10) : null; };
+      const bEtat = nb('etatsParHeure'), bLect = nb('lecturesParHeure');
+      v('   les deux budgets sont lisibles dans la source', [typeof bEtat, typeof bLect], ['number', 'number']);
+      v('⛔ et celui de `etat()` est au moins dix fois plus serré', bEtat * 10 <= bLect, true);
+      console.log('      mesuré : etat ' + bEtat + '/h contre lectures ' + bLect + '/h');
       /* Et la borne existe : la source la nomme et la chiffre. Un plafond « exempté » ferait
          de /api/op/session la seule route du serveur sans aucune borne avant preuve. */
       const src = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');

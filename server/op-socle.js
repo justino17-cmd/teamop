@@ -152,8 +152,23 @@ function monterOpSocle(app, deps) {
        (`quota`) aurait ressemblé à une attaque. Réglable sur le VPS — une entreprise qui
        grossit se règle, elle ne se dépanne pas en urgence. */
     const cfg = (config && config.socle) || {};
-    const cout = req.method === 'GET' ? (parseInt(cfg.lecturesParHeure, 10) || 40000) : (parseInt(cfg.ecrituresParHeure, 10) || 6000);
-    if (!quotaOk(opQuota, (req.method === 'GET' ? 'l:' : 'e:') + s.t, cout, 3600000)) {
+    /* ⛔ TROIS BUDGETS, PARCE QUE CES ROUTES NE COÛTENT PAS LA MÊME CHOSE. Relever le budget de
+       lecture à 40 000/h pour que 36 appareils tiennent, c'est aussi autoriser 40 000 appels à
+       `/api/op/etat` — qui relit et SIGNE toute la base, 42 ms sur 20 000 lignes. Un seul jeton
+       parfaitement légitime gelait alors le serveur pour tous les clients. Le long-poll et le
+       delta sont bon marché et fréquents ; `etat()` est cher et rare (c'est un contrôle de
+       non-régression, pas un chemin de synchro) ; l'écriture est au milieu. */
+    const cher = req.path === '/api/op/etat';
+    const cle = cher ? 'c:' : req.method === 'GET' ? 'l:' : 'e:';
+    /* 500/h : le plan appelle `etat()` UNE FOIS PAR NUIT ET PAR APPAREIL (le contrôle de
+       non-régression de l'étape 5), donc 36 appareils en consomment 36. Cinq cents laisse la
+       place aux reprises, à la Tour et à un mauvais jour, et coûte au pire 21 s de boucle par
+       HEURE (42 ms × 500) — contre 28 MINUTES par heure au budget des lectures bon marché,
+       qui est le chiffre qui rendait cette route capable de tuer le serveur. */
+    const cout = cher ? (parseInt(cfg.etatsParHeure, 10) || 500)
+      : req.method === 'GET' ? (parseInt(cfg.lecturesParHeure, 10) || 40000)
+      : (parseInt(cfg.ecrituresParHeure, 10) || 6000);
+    if (!quotaOk(opQuota, cle + s.t, cout, 3600000)) {
       return res.status(429).json({ error: 'trop de demandes — réessaie dans une heure', motif: 'quota' });
     }
     next();

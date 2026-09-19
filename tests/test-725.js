@@ -165,12 +165,21 @@ async function contenu(coffre, cle) {
       v('⛔ sans l\'annuaire → REFUSÉE', verdict.ok, false);
       vrai('   et le motif le dit', /annuaire/i.test(verdict.motif || ''));
 
-      /* ⛔ Une base copiée BRUTE (celle qu'on n'a pas su instantaner) doit être VUE. */
+      /* ⛔ CE QUI MANQUE INVALIDE, CE QUI EST DÉGRADÉ ALARME — et la nuance vaut la sauvegarde
+         de toute la plateforme. La première version de ce banc gravait l'inverse : elle
+         exigeait `ok:false` sur une simple copie brute, donc elle GRAVAIT le défaut qui faisait
+         effacer du coffre l'archive de toutes les entreprises saines dès qu'UNE seule avait un
+         témoin de clé cassé. Un banc peut figer une panne aussi sûrement qu'il en garde une. */
       fs.copyFileSync(path.join(sortie, 'socle-instantane', 'socle-annuaire.db'), path.join(faux, 'socle-instantane', 'socle-annuaire.db'));
-      fs.writeFileSync(path.join(faux, 'socle-instantane', 'malade.db.brut'), Buffer.alloc(9000, 3));
+      fs.copyFileSync(path.join(sortie, 'socle-instantane', 'entreprise-b.db'), path.join(faux, 'socle-instantane', 'malade.db.brut'));
       const v2 = S.verifierInstantane(path.join(faux, 'socle-instantane'), socle);
-      v('⛔ une base en copie BRUTE est vue, pas ignorée', v2.brutes, 1);
-      v('   et l\'archive n\'est pas déclarée saine', v2.ok, false);
+      v('⛔ une base en copie BRUTE est VUE', v2.brutes, 1);
+      v('⛔ et l\'archive est CONSERVÉE (les entreprises saines ne paient pas pour elle)', v2.ok, true);
+      v('   mais elle est marquée DÉGRADÉE', v2.degrade, true);
+      /* ⛔ En revanche, une copie brute ILLISIBLE, ça, c'est une archive qu'on refuse. */
+      fs.writeFileSync(path.join(faux, 'socle-instantane', 'malade.db.brut'), Buffer.alloc(9000, 3));
+      v('⛔ une copie brute ILLISIBLE, elle, invalide l\'archive', S.verifierInstantane(path.join(faux, 'socle-instantane'), socle).ok, false);
+      fs.unlinkSync(path.join(faux, 'socle-instantane', 'malade.db.brut'));
 
       /* ⛔ Une base de 0 octet — ce que laisse un disque plein pendant VACUUM INTO. */
       fs.writeFileSync(path.join(faux, 'socle-instantane', 'vide.db'), Buffer.alloc(0));

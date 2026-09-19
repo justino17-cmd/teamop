@@ -26,9 +26,39 @@ const SOCLE_DIR = path.join(DATA_DIR, 'socle');
 
 const dit = (...a) => console.log(...a);
 
+/* ⛔ « INSTALLATION NEUVE » NE SE DÉCIDE PAS SUR LES SEULES BASES. L'annuaire porte les clés
+   de toutes les entreprises : s'il existe, des données chiffrées existent, même si aucun
+   `base.db` n'est encore là (une entreprise créée sans écriture, une restauration en cours).
+   Générer une clé neuve là-dessus rendrait ces DEK illisibles pour toujours. */
 function bases() {
-  try { return fs.readdirSync(SOCLE_DIR).filter(d => fs.existsSync(path.join(SOCLE_DIR, d, 'base.db'))).length; }
-  catch (e) { return 0; }
+  let n = 0;
+  try { n = fs.readdirSync(SOCLE_DIR).filter(d => fs.existsSync(path.join(SOCLE_DIR, d, 'base.db'))).length; } catch (e) {}
+  if (!n && fs.existsSync(path.join(DATA_DIR, 'socle-annuaire.db'))) n = 1;   // l'annuaire compte
+  return n;
+}
+
+/* ⛔ POSER LA CLÉ NE SUFFIT PAS : ENCORE FAUT-IL QUE LE SERVICE LA LISE. La ligne
+   `LoadCredential=` vit dans `install.sh`, qui ne tourne QU'À L'INSTALLATION — jamais au
+   déploiement. Sur le VPS de production, installé avant que le socle existe, la clé serait
+   donc posée dans un fichier que le serveur ne regarde pas, pendant que cet outil annonce
+   « ✅ posée ». Un `drop-in` systemd est ADDITIF : il complète l'unité sans la réécrire, donc
+   sans risquer d'effacer ce que `install.sh` y a mis d'autre. */
+const DROPIN_DIR = process.env.TEAMOP_DROPIN_DIR || '/etc/systemd/system/teamop-api.service.d';
+const DROPIN = path.join(DROPIN_DIR, 'kek.conf');
+function unitePrete() {
+  try { return /LoadCredential\s*=\s*teamop_kek:/.test(fs.readFileSync(DROPIN, 'utf8')); } catch (e) {}
+  /* Une unité principale qui porte déjà la ligne (installation faite après le socle) suffit. */
+  for (const u of ['/etc/systemd/system/teamop-api.service', '/lib/systemd/system/teamop-api.service']) {
+    try { if (/LoadCredential\s*=\s*teamop_kek:/.test(fs.readFileSync(u, 'utf8'))) return true; } catch (e) {}
+  }
+  return false;
+}
+function poserUnite() {
+  fs.mkdirSync(DROPIN_DIR, { recursive: true });
+  fs.writeFileSync(DROPIN, '# Posé par server/poser-cle.js — la clé maître du socle vit HORS de /opt.\n'
+    + '# systemd la dépose dans un répertoire éphémère, effacé à l\'arrêt du service ; le serveur\n'
+    + '# la lit par $CREDENTIALS_DIRECTORY et ne la voit nulle part ailleurs.\n'
+    + '[Service]\nLoadCredential=teamop_kek:' + CHEMIN + '\n');
 }
 
 function existante() {
@@ -52,6 +82,18 @@ const n = bases();
 dit('');
 dit('  Clé maître du socle — ' + CHEMIN);
 dit('  bases d\'entreprise présentes : ' + n);
+dit('');
+
+/* Le réglage systemd se pose (ou se constate) DANS TOUS LES CAS : la clé peut être là depuis
+   longtemps sans que le service sache la lire — c'est justement le scénario du VPS actuel. */
+let unite = unitePrete();
+if (!unite) {
+  try { poserUnite(); unite = true; dit('  → réglage systemd ajouté : ' + DROPIN);
+        dit('    ⚠️ il ne prendra effet qu\'après : systemctl daemon-reload && systemctl restart teamop-api'); }
+  catch (e) { dit('  ⚠️ réglage systemd NON posé (' + (e.code || 'erreur') + ') — le serveur ne lira PAS la clé.');
+              dit('     À ajouter à la main dans [Service] de teamop-api.service :');
+              dit('        LoadCredential=teamop_kek:' + CHEMIN); }
+} else dit('  → réglage systemd déjà en place (le service lira la clé)');
 dit('');
 
 if (deja) {

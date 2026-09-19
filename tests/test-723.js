@@ -444,6 +444,72 @@ console.log('\n⛔ Les douze bloquants de la vérification du 18 septembre');
   v('⛔ un réglage se relit après coup', S2.reglageLire('ancre_envoyee_le'), '1234567890');
 }
 
+/* ══ 16. ⛔ LA TROISIÈME VÉRIFICATION — CE QUE LES CORRECTIFS DE LA VEILLE AVAIENT CASSÉ ══ */
+console.log('\n⛔ Les bloquants de la troisième vérification');
+{
+  const T3 = 'tour3';
+  delete require.cache[require.resolve(SOCLE_JS)];
+  const S3 = require(SOCLE_JS);
+
+  /* ⛔ 1. UN REFUS D'OUVERTURE NE FUIT PLUS DE DESCRIPTEUR. Le témoin de clé ajouté la veille
+     s'exécutait APRÈS `new DatabaseSync` : chaque refus emportait le descripteur, et la base
+     n'étant pas encore dans le cache, personne ne pouvait plus la fermer. MESURÉ avant
+     correction : 277 descripteurs pour 200 requêtes refusées. La limite systemd est à 1 024 —
+     quelques centaines de synchros retentées par une entreprise mal restaurée, et c'est EMFILE,
+     donc PLUS AUCUNE route ne répond, pour tous les clients. */
+  S3.pousser(T3, [{ c: 'p', id: '1', m: 1700000000000, e: 'h', r: { v: 1 } }]);
+  S3.fermer();
+  { const db = new (require('node:sqlite').DatabaseSync)(path.join(DIR, 'socle-annuaire.db')); db.exec("DELETE FROM entreprise WHERE t='" + T3 + "'"); db.close(); }
+  delete require.cache[require.resolve(SOCLE_JS)];
+  const S4 = require(SOCLE_JS);
+  const fds = () => { try { return fs.readdirSync('/proc/self/fd').length; } catch (e) { return -1; } };
+  let refus = 0;
+  const base0 = (() => { for (let i = 0; i < 50; i++) { try { S4.ouvrir(T3); } catch (e) { refus++; } } return fds(); })();
+  for (let i = 0; i < 300; i++) { try { S4.ouvrir(T3); } catch (e) { refus++; } }
+  v('les 350 ouvertures sont bien refusées', refus, 350);
+  v('⛔ et AUCUN descripteur ne fuit (277 fuyaient pour 200 refus)', fds(), base0);
+  v('   ni aucun -wal laissé à côté', fs.existsSync(path.join(DIR, 'socle', T3, 'base.db-wal')), false);
+
+  /* ⛔ 2. LE POIDS D'UNE RÉPONSE EST BORNÉ — SUR LE CLAIR, PAS SUR LE SCELLÉ. La borne de
+     décompression était PAR LIGNE (16 Mo) et la réponse en porte 400 : 6,4 Go possibles en
+     synchrone. Et la première borne totale comptait les octets SCELLÉS : MESURÉ, 400 lignes de
+     400 Ko de texte répété pèsent presque rien compressées, la borne ne se déclenchait jamais,
+     et la requête gelait quand même le serveur 1 396 ms. On compte donc ce qu'on décompresse. */
+  const lourd = [];
+  for (let i = 0; i < 400; i++) lourd.push({ c: 'p', id: 'z' + i, m: 1700000000000 + i, e: 'h' + i, r: { n: 'A'.repeat(400000), i } });
+  S4.pousser('lourde', lourd);
+  const p1 = S4.depuis('lourde', 0, 400);
+  v('⛔ la page est TRONQUÉE par le poids', p1.tronquee, true);
+  vrai('⛔ et elle rend beaucoup moins que 400 lignes', p1.enr.length < 100);
+  /* ⚠️ RIEN N'EST PERDU : c'est à ça que sert la pagination. Une borne qui perdrait des
+     enregistrements serait pire que l'absence de borne. */
+  let cur = p1.curseur, tot = p1.enr.length, pages = 1;
+  while (pages < 60) { const p = S4.depuis('lourde', cur, 400); if (!p.enr.length) break; cur = p.curseur; tot += p.enr.length; pages++; }
+  v('⛔ et la base entière se relit quand même, page par page', tot, 400);
+  /* ⚠️ LE CONTRE-TEST : une base NORMALE ne doit jamais être tronquée, sinon on a fabriqué
+     une pagination inutile sur le dos de tous les clients. */
+  const normal = [];
+  for (let i = 0; i < 400; i++) normal.push({ c: 'p', id: 'n' + i, m: 1700000000000 + i, e: 'h' + i, r: { nom: 'Produit ' + i, notes: 'terrain '.repeat(20) } });
+  S4.pousser('normale', normal);
+  const pn = S4.depuis('normale', 0, 400);
+  v('⚠️ une base normale n\'est PAS tronquée', [pn.enr.length, pn.tronquee], [400, false]);
+
+  /* ⛔ 3. LE REFUS SMTP NE PORTE PLUS D'ADRESSE. `/health` est PUBLIQUE et publie `lastRefus` :
+     un refus de serveur de messagerie porte presque toujours l'adresse concernée. Deux points
+     d'appel y mettaient `e.message` tel quel — DEUX LIGNES sous le commentaire qui l'interdit.
+     C'est le seul défaut de cette série qui touchait une exposition RÉELLE en production. */
+  const idx = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
+  const sansCom2 = x => x.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  v('⛔ plus aucun message SMTP brut dans `lastRefus`', /lastRefus = \{[^}]*'SMTP: ' \+ String\(e\.message/.test(sansCom2(idx)), false);
+  vrai('⛔ il passe par `refusSmtp`, qui ne rend qu\'une famille et un code', /lastRefus = \{ ts: Date\.now\(\), raison: refusSmtp\(e\) \}/.test(idx));
+  {
+    const f = new Function('e', sansCom2(idx).match(/function refusSmtp[\s\S]*?\n\}/)[0] + '\nreturn refusSmtp(e);');
+    const sortie = f({ message: '550 5.1.1 <client-reel@exemple.fr>: Recipient address rejected', responseCode: 550 });
+    v('⛔ et l\'adresse du client n\'y est PAS', /exemple\.fr|client-reel/.test(sortie), false);
+    v('   mais le motif reste utile au dépannage', sortie, 'SMTP: destinataire refusé (550)');
+  }
+}
+
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

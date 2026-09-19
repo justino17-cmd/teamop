@@ -170,9 +170,22 @@ function verifierInstantane(dossier, socle) {
   }
   let cassees = 0;
   for (const f of bases.concat(brutes)) if (!socle.controlerFichier(path.join(dossier, f)).ok) cassees++;
-  if (cassees) return { ok: false, motif: cassees + ' base(s) illisible(s) dans l\'archive', bases: bases.length, cassees, brutes: brutes.length };
-  if (brutes.length) return { ok: false, motif: brutes.length + ' base(s) n\'ont PAS pu être instantanées (copie brute) — à examiner', bases: bases.length, cassees, brutes: brutes.length };
-  return { ok: true, motif: '', bases: bases.length, cassees: 0, brutes: 0 };
+  if (cassees) return { ok: false, degrade: false, motif: cassees + ' base(s) illisible(s) dans l\'archive', bases: bases.length, cassees, brutes: brutes.length };
+  /* ⛔ UNE COPIE BRUTE DÉGRADE L'ARCHIVE, ELLE NE L'INVALIDE PAS — et la nuance vaut la
+     sauvegarde de toute la plateforme. La première version rendait `ok:false` dès qu'une
+     `.brut` était là ; `lancer()` traitait ce verdict par `recaler()`, qui EFFACE l'objet du
+     coffre. REPRODUIT le 19 septembre 2026 : trois entreprises, on casse le témoin de clé
+     d'UNE SEULE → `objets au coffre = 0`. Les deux saines, correctement instantanées et
+     correctement déposées, étaient jetées avec elle. Avec `garder: 30`, un seul témoin cassé
+     chez un client et plus AUCUNE sauvegarde n'était conservée, pour personne, nuit après
+     nuit, jusqu'à intervention manuelle.
+     ⛔ C'est mot pour mot la faute que `instantanerVers` venait de fermer un étage plus bas
+     (« une base illisible ne fait pas échouer les quarante-neuf autres »), remontée d'un
+     cran — et cette fois avec une suppression active. La règle, une bonne fois : **ce qui
+     manque invalide, ce qui est dégradé alarme.** Une `.brut` qui S'OUVRE est une vraie base
+     de secours ; on la garde, et on crie. */
+  if (brutes.length) return { ok: true, degrade: true, motif: brutes.length + ' base(s) n\'ont PAS pu être instantanées (copie brute, mais lisible) — à examiner', bases: bases.length, cassees, brutes: brutes.length };
+  return { ok: true, degrade: false, motif: '', bases: bases.length, cassees: 0, brutes: 0 };
 }
 
 /* Le même contrôle, mais en partant d'une archive chiffrée : on la déballe dans un temporaire. */
@@ -404,9 +417,14 @@ function monterSauvegarde(app, deps) {
         const v = await verifierSocle(tmpRelu, cle, deps.socle);
         if (!v.ok) {
           console.error('⛔ sauvegarde recalée : ' + v.motif);
-          return recaler('socle-' + (v.brutes ? 'copies-brutes' : v.bases ? 'illisible' : 'incomplet'),
+          return recaler('socle-' + (v.bases ? 'illisible' : 'incomplet'),
             { octets: faite.octets, bases: v.bases, cassees: v.cassees, brutes: v.brutes });
         }
+        /* ⛔ DÉGRADÉE, DONC GARDÉE, DONC CRIÉE. L'archive est valable pour toutes les
+           entreprises saines ; celle qui est en copie brute a une vraie base de secours. Le
+           compteur remonte sur `/health` et `surveillance.js` en fait une alarme nominative
+           côté Tour — c'est ça, agir, plutôt que de tout jeter. */
+        if (v.degrade) console.error('⚠️ sauvegarde DÉGRADÉE mais conservée : ' + v.motif);
       }
 
       /* ⛔ ON EFFACE L'INSTANTANÉ. C'est une copie LISIBLE de toutes les bases ET de l'annuaire,

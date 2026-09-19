@@ -110,6 +110,49 @@ la surveillance horaire. Bruyant et vivant plutôt que muet ou mort.
    jamais réemployé), plus un contrôle de rang manquant : sans lui, effacer une ligne ne
    casserait AUCUNE empreinte, puisque chaque maillon ne connaît que son prédécesseur.
 
+### ⛔ 19 SEPTEMBRE — TROISIÈME VÉRIFICATION : 16 BLOQUANTS, ENCORE MES CORRECTIFS
+
+43 relectures, 37 constats, **16 bloquants — et 26 sur 37 étaient des régressions de la
+passe 2**. Trois tours, trois fois le même motif : ce que je corrige casse autre chose.
+
+**Les deux pires, tous deux reproduits par sonde :**
+
+1. ⛔ **Une seule entreprise abîmée faisait SUPPRIMER la sauvegarde de toutes les autres.**
+   `verifierInstantane` refusait l'archive dès qu'une base était en copie brute, et `recaler()`
+   l'effaçait du coffre. Mesuré : trois entreprises, on casse le témoin de clé d'UNE →
+   `objets au coffre = 0`. Avec `garder: 30`, un seul témoin cassé chez un client et **plus
+   aucune sauvegarde conservée, pour personne, nuit après nuit**. C'est la faute que
+   `instantanerVers` venait de fermer un étage plus bas, remontée d'un cran, avec une
+   suppression active en prime. **La règle, une bonne fois : ce qui MANQUE invalide, ce qui est
+   DÉGRADÉ alarme.**
+2. ⛔ **`ouvrir()` fuyait un descripteur à chaque refus.** Le témoin de clé ajouté la veille
+   s'exécute après `new DatabaseSync` : la base n'était jamais fermée, et n'étant pas encore
+   dans le cache, personne ne pouvait plus la fermer. **Mesuré : 277 descripteurs pour 200
+   refus.** Limite systemd 1 024 → `EMFILE`, plus AUCUNE route ne répond, pour tous les
+   clients. Après correction : **constant à +3 sur 1 500 refus** (c'est l'annuaire).
+
+**⛔ Et un défaut qui, lui, est DÉPLOYÉ AUJOURD'HUI** : `/health` est publique et publie
+`lastRefus`, où deux points d'appel mettaient le message SMTP brut — qui porte l'adresse du
+client refusé (« 550 … <client@exemple.fr> … »), **deux lignes sous le commentaire qui
+l'interdit**. Remplacé par une famille et un code (`SMTP: destinataire refusé (550)`).
+
+| ⛔ autre correction | ce que ça donnait |
+|---|---|
+| `CORPS_MAX` bornait par ligne, la réponse en porte 400 | 6,4 Go possibles ; **1 396 ms → 94 ms**, 400/400 conservés en 20 pages |
+| la première borne comptait le SCELLÉ | 400 Ko de texte répété ne pèsent rien compressés : **la borne ne se déclenchait jamais**. On compte ce qu'on décompresse |
+| budget de lecture à 40 000/h | autorisait 40 000 appels à `etat()` (42 ms) = **28 min de gel par heure**. Trois budgets : 500/h pour `etat()`, 40 000 pour le flux, 6 000 en écriture |
+| `poser-cle.js` posait la clé où le serveur ne la lit pas | la ligne `LoadCredential` vit dans `install.sh`, **jamais relancé** → l'outil pose un drop-in systemd additif |
+| il jugeait « installation neuve » sur les bases seules | l'annuaire porte les clés : il compte aussi |
+| la sauvegarde appelait le socle **drapeau éteint** | `socle.js` promettait « rien ne l'appelle » — c'est le drapeau qui décide, entièrement |
+
+**Après correction : 2 925 vérifications, 0 échec.**
+
+⚠️ **Deux bancs ont dû être corrigés parce qu'ils gravaient le MAUVAIS comportement** : celui
+de `test-725` exigeait `ok:false` sur une copie brute — il figeait donc la suppression de
+l'archive de toutes les entreprises saines. **Un banc peut figer une panne aussi sûrement
+qu'il en garde une.** Et celui de `test-724` martelait `/api/op/etat` pour éprouver le plafond
+GLOBAL : il tombait sur le bon refus, pour la mauvaise raison.
+
 ### ⛔⛔⛔ 19 SEPTEMBRE — LA DEUXIÈME VÉRIFICATION : MON CORRECTIF ÉTAIT PIRE QUE LE DÉFAUT
 
 47 relectures, 40 constats, **21 bloquants — et 33 sur 40 étaient des régressions introduites
