@@ -67,6 +67,10 @@ const MDP = 'mot-de-passe-du-banc-2026';
 const CLE_A = 'cle-propre-de-A-2026';
 const T_A = 'ent-a-9x';
 const SLUG_A = 'entreprisea';   // un slug, pas un nom : voir espSlug dans index.js
+/* Une SECONDE entreprise, pour le seul scénario qui ne tient pas sur une seule : suspendue
+   drapeau ALLUMÉ, rouverte drapeau ÉTEINT, puis rallumage. A sert au chemin destructif
+   (« repartir à neuf »), qui efface sa base et ne peut donc pas servir deux fois. */
+const T_B = 'ent-b-7y', SLUG_B = 'entrepriseb', CLE_B = 'cle-propre-de-B-2026';
 const sha = k => crypto.createHash('sha256').update(k).digest('hex');
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64');
 const dormir = ms => new Promise(r => setTimeout(r, ms));
@@ -214,6 +218,7 @@ async function assembler(nom, opts) {
        cherchent par `t`, jamais par slug. */
     fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
       [SLUG_A]: { slug: SLUG_A, nom: 'Entreprise A', email: 'a@exemple.fr', t: T_A, code: b64({ t: T_A, k: CLE_A }), ts: 1 },
+      [SLUG_B]: { slug: SLUG_B, nom: 'Entreprise B', email: 'b@exemple.fr', t: T_B, code: b64({ t: T_B, k: CLE_B }), ts: 2 },
     }));
   }
   const port = await portLibre();
@@ -462,6 +467,21 @@ const menage = async () => {
       const reprise = await A.appel('POST', '/api/op/session', { corps: { t: T_A, kh: sha(CLE_A) } });
       v('⛔ l\'appareil retravaille', reprise.code, 200);
     }
+    /* ⛔ ET LE SCÉNARIO QUI NE TIENT PAS SUR UN SEUL SERVEUR : suspendre ALLUMÉ, rouvrir
+       ÉTEINT, rallumer. C'est le second bloquant de la cinquième vérification, et il est
+       invisible tant qu'on ne traverse pas le drapeau : rouvrir avec le socle allumé marchait
+       très bien, y compris AVANT le correctif. On prépare ici la première moitié — B est
+       suspendue et on la laisse ainsi. */
+    {
+      const s2 = await A.appel('POST', '/api/op/session', { corps: { t: T_B, kh: sha(CLE_B) } });
+      v('la seconde entreprise a bien un stockage', s2.code, 200);
+      await A.appel('POST', '/api/op/pousser', { jeton: s2.j && s2.j.jeton,
+        corps: { enr: [{ c: 'produits', id: 'b1', m: 1758200000000, e: 'eb', r: { nom: 'B' } }] } });
+      const su = await A.appel('POST', '/api/monitor/espaces/suspendre', { jeton: JETON_TOUR, corps: { slug: SLUG_B } });
+      v('la Tour la suspend, et on l\'y laisse', su.code, 200);
+      const ko = await A.appel('POST', '/api/op/session', { corps: { t: T_B, kh: sha(CLE_B) } });
+      v('   elle est bien coupée', ko.code, 403);
+    }
     await A.arreter();
 
     /* ══ 5. LE RETOUR EN ARRIÈRE : SOCLE ÉTEINT, BASES EXISTANTES ═══════════════════════ */
@@ -504,6 +524,13 @@ const menage = async () => {
        `ok` — courriel de confirmation compris — pendant que `socle/<t>/base.db` restait sur le
        disque avec les données du client dedans, repartait dans CHAQUE archive nocturne, et
        ressuscitait l'entreprise au rallumage du drapeau. */
+    console.log('⛔ Drapeau éteint : rouvrir une entreprise la rouvre-t-il VRAIMENT ?');
+    {
+      const rouv = await R.appel('POST', '/api/monitor/espaces/suspendre',
+        { jeton: co2 && co2.token, corps: { slug: SLUG_B, rouvrir: true } });
+      v('la Tour rouvre l\'entreprise, drapeau éteint', rouv.code, 200);
+    }
+
     console.log('⛔ Drapeau éteint : supprimer une entreprise l\'efface-t-il VRAIMENT ?');
     {
       const base = path.join(R.data, 'socle', T_A, 'base.db');
@@ -517,6 +544,21 @@ const menage = async () => {
       faux('   et son dossier avec', fs.existsSync(path.join(R.data, 'socle', T_A)));
     }
     await R.arreter();
+
+    /* ══ 5bis. RALLUMAGE : LA RÉOUVERTURE FAITE DRAPEAU ÉTEINT A-T-ELLE PRIS ? ═════════ */
+    /* ⛔ LE SEUL CONTRÔLE QUI VOIT CE BLOQUANT. `socleOuvrir` rendait `fait:true` drapeau
+       éteint SANS RIEN FAIRE, et la Tour retirait quand même l'entreprise d'`entFermes` : au
+       rallumage elle restait `ferme` SUR DISQUE, donc 403 définitif — et le bouton « Rouvrir »
+       ne pouvait plus rien pour elle, puisqu'elle n'était plus dans `entFermes`. Une
+       suspension devenue une condamnation, sans un mot. */
+    console.log('⛔ Rallumage : l\'entreprise rouverte drapeau éteint peut-elle travailler ?');
+    {
+      const R2 = await assembler('rallume', { socle: true, endpoint: ENDPOINT, data: R.data });
+      vrai('le serveur redémarre, socle rallumé', R2.vivant);
+      const s3 = await R2.appel('POST', '/api/op/session', { corps: { t: T_B, kh: sha(CLE_B) } });
+      v('⛔ elle ouvre une session — la réouverture avait bien eu lieu', s3.code, 200);
+      await R2.arreter();
+    }
 
     /* ══ 6. L'INERTIE : SOCLE ÉTEINT, AUCUNE BASE ══════════════════════════════════════ */
     /* ⛔ C'EST LA PRODUCTION D'AUJOURD'HUI. Le socle n'y est pas allumé ; la sauvegarde, si. Si
