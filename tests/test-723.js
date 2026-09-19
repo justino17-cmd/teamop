@@ -605,6 +605,53 @@ console.log('\n⛔ La restauration : les deux pièges que le code nomme lui-mêm
     (lire1(path.join(cible, 'socle', 'ent-saine', 'base.db')) || { length: -1 }).length, 4096);
 }
 
+/* ══ L'ANCRE NE SE DÉCLARE PAS ENVOYÉE SI ELLE N'EST PAS SORTIE ═══════════════════════════
+   ⛔ Le journal `diagnostic` est chaîné par empreinte, et le fichier le dit lui-même : la
+   chaîne rend une MODIFICATION détectable, seule l'ancre sortie de la machine rend une
+   RÉÉCRITURE COMPLÈTE détectable. C'est donc la seule moitié opposable du dispositif.
+   `ancre_envoyee_le` était pourtant posé INCONDITIONNELLEMENT, après le `catch` : un envoi qui
+   jette, ou aucun courriel configuré du tout, laissait quand même « envoyée aujourd'hui » sur
+   le disque. Un dispositif qui se déclare vivant sans l'être est pire que pas de dispositif —
+   on cesse de le surveiller. Relevé par la cinquième vérification.
+   On monte donc le VRAI module de routes, avec un faux `app` et un `mailerEnvoi` qu'on fait
+   réussir, jeter, ou manquer, et on regarde ce qui est écrit sur le disque. */
+console.log('\n⛔ L\'ancre du journal chaîné : envoyée, ou pas ?');
+{
+  const OP = require(path.join(__dirname, '..', 'server', 'op-socle.js'));
+  const fauxApp = { get() {}, post() {} };
+  const TA = 'ent-ancre';
+  S.pousser(TA, [{ c: 'produits', id: 'a1', m: 1700000000000, e: 'ea', r: { nom: 'A' } }]);
+
+  const monter = (mailerEnvoi, dest) => OP.monterOpSocle(fauxApp, {
+    config: { socle: { actif: true }, notifDemandes: dest, smtp: { from: 'moi@exemple.fr' } },
+    socle: S, sauvRefus: () => null, cleEstPublique: () => false,
+    quotaOk: () => true, monStr: (x, n) => String(x == null ? '' : x).slice(0, n),
+    garde: (q, r, n) => n(), mailerEnvoi,
+  });
+  const lireDate = (c) => { try { return parseInt(S.reglageLire(c), 10) || 0; } catch (e) { return 0; } };
+  const oublier = () => { S.reglagePoser('ancre_envoyee_le', ''); S.reglagePoser('ancre_tentee_le', ''); };
+
+  /* 1. AUCUN COURRIEL CONFIGURÉ — rien ne sort, donc rien ne doit se dire sorti. */
+  oublier();
+  monter(null, '').ancreEnvoyer(true);
+  v('⛔ sans courriel : « envoyée » n\'est PAS posé', lireDate('ancre_envoyee_le'), 0);
+  vrai('   mais la tentative est datée (sinon on réessaie toutes les heures)', lireDate('ancre_tentee_le') > 0);
+
+  /* 2. L'ENVOI JETTE — le cas qui a motivé le constat. */
+  oublier();
+  monter(() => { throw new Error('smtp mort'); }, 'moi@exemple.fr').ancreEnvoyer(true);
+  v('⛔ envoi qui JETTE : « envoyée » n\'est PAS posé', lireDate('ancre_envoyee_le'), 0);
+  vrai('   et la tentative est datée quand même', lireDate('ancre_tentee_le') > 0);
+
+  /* 3. L'ENVOI RÉUSSIT — la contre-épreuve, sans laquelle « jamais posé » passerait au vert. */
+  oublier();
+  let vu = null;
+  monter((m) => { vu = m; return { then: (ok2) => { ok2(); return { then() {} } } }; }, 'moi@exemple.fr').ancreEnvoyer(true);
+  vrai('⛔ envoi réussi : « envoyée » EST posé', lireDate('ancre_envoyee_le') > 0);
+  vrai('   et le message part bien au destinataire réglé', vu && vu.to === 'moi@exemple.fr');
+  v('⛔ et il ne porte AUCUNE donnée de client', /produits|ent-ancre|a1/.test(String(vu && vu.text)), false);
+}
+
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

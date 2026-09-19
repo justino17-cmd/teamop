@@ -84,6 +84,18 @@ sortie :
 for f in tests/test-*.js; do node "$f" | grep -oE '[0-9]+ ✓ +[0-9]+ ✗' | tail -1; done
 ```
 
+⛔⛔ **COMMITER LE CORRECTIF AVANT DE MUTER — SINON `git checkout` EFFACE LES DEUX.** La façon
+d'éprouver un banc est de remettre le défaut puis de restaurer par `git checkout <fichier>`.
+Mais `git checkout` restaure depuis **HEAD** : s'il reste un correctif NON COMMITÉ dans ce
+fichier, il part avec la mutation, sans un mot. **Pris deux fois le 19 septembre 2026**, et la
+seconde a été la pire : le correctif de l'ancre a disparu AVANT le `git add`, donc le commit
+n'a capturé que le banc — un commit qui annonce un correctif et ne contient que son test. Les
+deux suites sont reparties au rouge une heure plus tard, sur du code que je croyais corrigé.
+
+L'ordre est donc : **correctif → banc → `git commit` → mutation → `git checkout`.** Et après
+chaque tour de mutations, relire ce que le commit contient VRAIMENT (`git show --stat`), pas ce
+qu'on croit y avoir mis.
+
 ⛔ **Un banc qui passe ne prouve rien tant qu'on ne l'a pas vu ÉCHOUER.** `test-726` a été
 éprouvé en REMETTANT les défauts qu'il garde, un par un — chiffres re-mesurés le 19 septembre
 au soir, les précédents étaient faux :

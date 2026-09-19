@@ -214,6 +214,35 @@ async function contenu(coffre, cle) {
          la rétention à 30 : trente nuits de suite et il ne reste plus une seule copie saine. */
       v('⛔ et l\'objet recalé ne reste PAS dans le coffre', c2._objets.size, 0);
     }
+
+    /* ══ UNE RÉTENTION QUI NE PEUT PAS TOURNER DOIT LE DIRE ═══════════════════════════════
+       ⛔ `lister()` est le SEUL organe de la rétention. S'il échoue, l'élagage est sauté — et
+       la sauvegarde se notait quand même `ok:true`, sans un mot. Le cas n'est pas théorique,
+       c'est même le plus courant : une clé d'accès qui a `PutObject` et `GetObject` mais pas
+       `ListBucket`, c'est-à-dire le réglage qu'on obtient en resserrant les droits « pour
+       faire propre ». Le coffre grossit alors d'une archive par nuit, pour toujours. */
+    console.log('\n⛔ Le coffre ne doit pas grossir sans fin en silence');
+    {
+      const c3 = coffreNeuf();
+      c3.lister = async () => ({ ok: false, statut: 403 });   // exactement le cas IAM
+      const m3 = monter(c3);
+      const r3 = await m3.lancer('banc');
+      /* ⚠️ LA SAUVEGARDE RÉUSSIT QUAND MÊME, ET C'EST VOULU : l'archive de cette nuit est
+         bonne et déposée. La jeter parce qu'on n'a pas pu élaguer serait pire que le défaut. */
+      v('la sauvegarde RÉUSSIT quand même', r3.ok, true);
+      v('   et l\'archive est bien au coffre', c3._objets.size, 1);
+      /* ⛔ MAIS LE DÉFAUT REMONTE, aux deux endroits qui comptent. */
+      v('⛔ la ligne servie à la Tour nomme le refus', r3.elagage, 'liste-403');
+      v('⛔ et /health compte les nuits sans rétention', m3.sante().elagageEchecs, 1);
+
+      /* ⚠️ LA CONTRE-ÉPREUVE : un coffre qui liste normalement doit remettre le compteur à
+         zéro, sinon l'alarme resterait allumée pour toujours après un seul mauvais jour. */
+      const c4 = coffreNeuf();
+      const m4 = monter(c4);
+      const r4 = await m4.lancer('banc');
+      v('⛔ quand la rétention tourne, elle le dit aussi', [r4.ok, r4.elagage], [true, 'ok']);
+      v('   et le compteur est à zéro', m4.sante().elagageEchecs, 0);
+    }
   } catch (e) {
     ko++; console.log('  ✗ le banc n\'a pas pu tourner : ' + e.message + '\n' + String(e.stack).split('\n').slice(1, 5).join('\n'));
   }

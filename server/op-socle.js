@@ -522,11 +522,21 @@ function monterOpSocle(app, deps) {
        envoi vit sur DISQUE et on regarde toutes les heures s'il est temps. Même famille de
        défaut que le compteur d'horloge : ce qui doit survivre au déploiement ne tient pas dans
        une variable. */
+    /* ⛔ DEUX DATES, ET C'EST TOUT LE SUJET. `ancre_tentee_le` porte la CADENCE — sinon une
+       boîte mail en panne ferait réessayer toutes les heures, pour toujours. `ancre_envoyee_le`
+       porte la VÉRITÉ : elle n'est posée que si l'ancre a réellement QUITTÉ LA MACHINE.
+       La première version posait `ancre_envoyee_le` inconditionnellement, APRÈS le `catch` —
+       donc un envoi qui jetait, ou une absence totale de courriel configuré, laissait quand
+       même « envoyée aujourd'hui » sur le disque. Or l'ancre est la SEULE moitié opposable du
+       journal chaîné : la chaîne rend une modification détectable, seule l'ancre sortie de la
+       machine rend une RÉÉCRITURE COMPLÈTE détectable. Un dispositif qui se déclare vivant
+       sans l'être est pire que pas de dispositif — on cesse de le surveiller. */
     if (!force) {
       let dernier = 0;
-      try { dernier = parseInt(socle.reglageLire('ancre_envoyee_le'), 10) || 0; } catch (e) {}
+      try { dernier = parseInt(socle.reglageLire('ancre_tentee_le'), 10) || 0; } catch (e) {}
       if (Date.now() - dernier < ANCRE_MS) return;
     }
+    try { socle.reglagePoser('ancre_tentee_le', Date.now()); } catch (e) {}
     const texte = 'Ancre du journal de diagnostic OP SOCLE\n\n'
       + 'lignes : ' + a.lignes + '\nrang   : ' + a.rang + '\nempreinte : ' + a.sha
       + '\n\nConserver ce message. Il ne contient aucune donnée de client.\n'
@@ -543,11 +553,18 @@ function monterOpSocle(app, deps) {
        remontait d'un `setInterval`, et LE PROCESSUS SORTAIT. D'où le `try` autour de l'appel
        lui-même, et pas seulement autour de la promesse. */
     const dest = String((config && config.notifDemandes) || '').trim();
+    const reussi = () => { try { socle.reglagePoser('ancre_envoyee_le', Date.now()); } catch (e) {} };
     if (deps.mailerEnvoi && dest) {
       try {
         const envoi = deps.mailerEnvoi({ from: (config.smtp && (config.smtp.from || config.smtp.user)) || dest, to: dest,
           subject: '🔗 Ancre du journal OP SOCLE — ' + a.lignes + ' lignes', text: texte, trace: 'ancre socle' });
-        if (envoi && typeof envoi.catch === 'function') envoi.catch(e => console.error('ancre non envoyée :', e.code || 'erreur'));
+        /* ⛔ ON NE MARQUE « ENVOYÉE » QUE QUAND L'ENVOI A ABOUTI. Une promesse : on attend son
+           issue. Autre chose sans jeter : l'appel est passé, on l'accepte. Un jet : rien n'est
+           posé, et la prochaine tentative aura lieu demain — la cadence est portée par
+           `ancre_tentee_le`, pas par celle-ci. */
+        if (envoi && typeof envoi.then === 'function') {
+          envoi.then(reussi, e => console.error('ancre non envoyée :', e.code || 'erreur'));
+        } else reussi();
       } catch (e) { console.error('ancre non envoyée :', e.code || 'erreur'); }
     } else {
       /* ⚠️ Sans courriel configuré, l'ancre ne part qu'au journal système — qui vit sur la MÊME
@@ -555,7 +572,6 @@ function monterOpSocle(app, deps) {
          le dispositif tourne. */
       console.log('ancre socle (NON SORTIE DE LA MACHINE — notifDemandes non configuré) : ' + a.lignes + ' lignes, ' + a.sha);
     }
-    try { socle.reglagePoser('ancre_envoyee_le', Date.now()); } catch (e) {}
   }
   /* Toutes les heures on REGARDE s'il est temps ; c'est la date sur disque qui décide, pas le
      minuteur. Et un premier regard 90 s après le démarrage, pour qu'un serveur redémarré à
@@ -601,7 +617,13 @@ function monterOpSocle(app, deps) {
     let ill = 0; for (const n of illisibles.values()) ill += n;
     /* Agrégé par motif, sans aucun espace nommé — voir le commentaire de `refus` plus haut. */
     const parMotif = {}; for (const [m, n] of refus) parMotif[m] = n;
-    return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length, illisibles: ill, refus: parMotif };
+    /* ⛔ L'ÂGE DE LA DERNIÈRE ANCRE RÉELLEMENT SORTIE DE LA MACHINE, en jours. Rien ne le
+       surveillait : le journal chaîné pouvait cesser d'être opposable pendant des semaines
+       sans que personne l'apprenne. Un ENTIER, qui ne dit rien de personne. `null` quand
+       aucune n'est jamais partie — l'état d'un socle qu'on vient d'allumer. */
+    let ancreJours = null;
+    try { const d = parseInt(socle.reglageLire('ancre_envoyee_le'), 10) || 0; if (d) ancreJours = Math.floor((Date.now() - d) / 86400000); } catch (e) {}
+    return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length, illisibles: ill, refus: parMotif, ancreJours };
   };
   /* ⛔ DEUX TEMPS, ET L'ORDRE EST TOUT. `serveur.close()` ne rend la main qu'une fois TOUTES les
      connexions terminées — or un long-poll est tenu 25 secondes, et en production il y a

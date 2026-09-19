@@ -429,12 +429,25 @@ function monterSauvegarde(app, deps) {
 
       /* La rétention seulement après une sauvegarde RÉUSSIE : on n'efface jamais une ancienne
          copie sur la foi d'une nouvelle qu'on n'a pas pu rouvrir. */
-      let elaguees = 0;
+      /* ⛔ UNE RÉTENTION QUI NE PEUT PAS TOURNER DOIT LE DIRE. `lister()` est le SEUL organe de
+         la rétention : s'il échoue, on saute l'élagage — et la sauvegarde se notait quand même
+         `ok:true`, sans un mot. Le cas n'est pas théorique, c'est même le plus courant : une
+         clé d'accès qui a `PutObject` et `GetObject` mais pas `ListBucket`, c'est-à-dire le
+         réglage qu'on obtient en resserrant les droits « pour faire propre ». Le coffre grossit
+         alors d'une archive par nuit, pour toujours, jusqu'à la facture ou le quota.
+         ⚠️ Ça ne fait PAS échouer la sauvegarde : l'archive de cette nuit est bonne et déposée,
+         la jeter serait pire. On garde le succès ET on remonte le défaut. */
+      let elaguees = 0, elagage = 'ok';
       const liste = await client.lister(PREFIXE);
       if (liste && liste.ok) {
         for (const c of aElaguer(liste.objets, GARDER)) { const r = await client.effacerCle(c); if (r.ok) elaguees++; }
+        etat.elagageEchecs = 0;
+      } else {
+        elagage = 'liste-' + ((liste && liste.statut) || 'erreur');
+        etat.elagageEchecs = (etat.elagageEchecs || 0) + 1;
+        console.error('⛔ sauvegarde : rétention NON appliquée (' + elagage + ') — le coffre grossit d\'une archive par nuit');
       }
-      return noter(true, '', { octets: faite.octets, entrees: ouverte.entrees, empreinte: faite.empreinte.slice(0, 16), elaguees, gardees: liste && liste.ok ? Math.min(GARDER, (liste.objets || []).length + 1) : null });
+      return noter(true, '', { octets: faite.octets, entrees: ouverte.entrees, empreinte: faite.empreinte.slice(0, 16), elaguees, elagage, gardees: liste && liste.ok ? Math.min(GARDER, (liste.objets || []).length + 1) : null });
     } catch (e) {
       return noter(false, 'exception', { erreur: String(e.message).slice(0, 200) });
     } finally {
@@ -477,7 +490,10 @@ function monterSauvegarde(app, deps) {
        parfaite. Réglée et inactive, c'est une PANNE ; jamais réglée, c'est un choix. */
     return { active: actif, configuree: !!conf,
       ageH: d && d.ok ? Math.round((Date.now() - d.ts) / 3600000) : null,
-      ok: d ? !!d.ok : null, instantaneEchecs: etat.instantaneEchecs || 0 };
+      ok: d ? !!d.ok : null, instantaneEchecs: etat.instantaneEchecs || 0,
+      /* Un ENTIER : combien de nuits de suite la rétention n'a pas pu tourner. Zéro quand
+         elle tourne. Sans lui, le coffre grossit sans fin et personne ne l'apprend. */
+      elagageEchecs: etat.elagageEchecs || 0 };
   }
 
   if (app && garde) {
