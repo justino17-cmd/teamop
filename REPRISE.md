@@ -13,6 +13,156 @@ de ligne du tout.
 
 ---
 
+# 🧭 INVENTAIRE — RIEN NE DOIT ÊTRE OUBLIÉ (19 septembre 2026, soir)
+
+Écrit à la demande de Justin : **« il faut qu'on oublie vraiment rien. Je fais pas un truc pour
+qu'après il y ait des erreurs… j'ai pas envie de me retrouver encore à avoir des retours
+d'entreprise : ça bug ici, il y a des bugs là, ça marche pas. Même par rapport au site, pour
+les abonnements. »**
+
+Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
+
+## A. Ce qui tourne chez les clients EN CE MOMENT — mesuré, pas supposé
+
+| | servi | source |
+|---|---|---|
+| `teamop.fr/app.html` | **APP_VERSION 695** | `curl` |
+| `teamop.fr/beta.html` | 702 | `curl` |
+| `teamop.fr/sw.js` | cache `elan-gestion-v895` | `curl` |
+| `api.teamop.fr` | **serveur SANS socle** (aucun champ `socle` dans `/health`) | `curl /health` |
+
+`/health` en production : `ok:true`, `stripe:true`, `email:true`, `atts:true`,
+`sauvegarde {active:true, ok:true, ageH:9}` ✅ — **la sauvegarde hors site fonctionne vraiment
+chez le client.** Deux points à regarder : **`boite:false`** (la réception de courriels n'est
+pas connectée) et **`bugs24h:1`**.
+
+⛔ **Conséquence à ne jamais perdre de vue : RIEN de ce qui a été écrit depuis le 17 septembre
+n'est chez un client.** Le socle, la sauvegarde chiffrée, les 26 bancs neufs — tout est sur la
+branche. Ce qui peut buguer chez ELAN aujourd'hui, c'est la v695 et le serveur d'avant.
+
+## B. Ce qui ATTEND d'être publié — 55 commits d'avance sur `main`
+
+| fichier | écart | ce que ça veut dire |
+|---|---|---|
+| `app.html` | **+620 lignes** (695 → 702) | **le vrai risque** : 7 versions de travail que les équipes verront d'un coup |
+| `server/index.js` | +282 l. | dont une partie N'EST PAS le socle : des routes qu'ELAN utilise déjà |
+| `server/socle.js` | +1 212 l. | inerte (`socle.actif:false`) |
+| `server/op-socle.js` | +633 l. | inerte |
+| `server/sauvegarde.js` | +158 l. | ⚠️ la sauvegarde tourne DÉJÀ en production |
+| `server/poser-cle.js`, `restaurer.js`, `s3.js` | +193 l. | outils d'exploitation |
+| `tour.html` | +44 l. | l'outil de Justin |
+| `sw.js` | 2 l. | le cache du service worker |
+| `install.sh`, `deploiement.yml`, `surveillance.js` | +61 l. | le déploiement et la surveillance |
+
+⛔ **Un push sur `main` touchant `server/**` DÉPLOIE LE VPS automatiquement.** Il n'existe donc
+pas d'état « poussé mais pas déployé » pour le serveur.
+
+## C. Le socle — étape 1 : où on en est vraiment
+
+**Cinq vérifications adversariales** (12 → 21 → 16 → 21 → 6 bloquants). Le tour 5 est le
+premier dont AUCUN bloquant n'est une régression du tour précédent — 64 mutations jouées sur
+les sources, le code a tenu.
+
+✅ **Les six bloquants du tour 5 sont fermés**, chacun prouvé en remettant le défaut :
+
+1. `socleCouper` / `socleOuvrir` / `socleEffacer` gardaient sur le **drapeau** et pas sur les
+   **données** — supprimer une entreprise répondait `ok` en laissant sa base sur le disque ;
+   rouvrir une suspension la condamnait définitivement. → `presentSurDisque(t)`.
+2. Les **quatre portes de fermeture** n'étaient gardées par aucun banc. → on ferme depuis la
+   Tour et on demande à l'appareil s'il passe encore.
+3. et 4. les deux chemins « socle éteint » ci-dessus, éprouvés en traversant le drapeau.
+5. Les **trois budgets anti-abus** n'étaient gardés que par des regex sur le texte. → mesurés
+   à l'assemblage, barre oblique finale comprise.
+6. **Disque plein** et **horloge fausse** étaient totalement muets. → compteur de refus par
+   motif sur `/health` (un nombre, jamais un nom), et 409 au lieu de 200 sur l'horloge.
+
+## D. Les 25 constats NON bloquants du tour 5 — la liste complète, rien d'omis
+
+⚠️ **Ce ne sont pas des bugs qui attendent : ce sont surtout des GESTES DE DÉPLOIEMENT et de la
+COUVERTURE DE BANC.** Ils appartiennent à la liste « avant d'allumer le socle », pas à un tour
+de correction sur du code que personne n'exécute. Aucun ne touche un client aujourd'hui.
+
+**Sauvegarde et restauration (5)**
+- `sauvegarde.js:434` — l'instantané EN CLAIR de toutes les bases et de l'annuaire (donc toutes
+  les clés d'entreprise) **survit à toute sauvegarde recalée** : il n'est effacé que sur le
+  chemin de succès. ⚠️ **Le plus sérieux des 25.**
+- `s3.js:238` — `lister()` est le seul organe de la rétention ; s'il échoue (une clé IAM sans
+  `ListBucket`, le réglage le plus courant), le coffre grossit d'une archive par nuit en silence.
+- `socle.js:1099` — `restaurerDepuis` : ni la reprise des copies `.brut` ni le nettoyage des
+  `-wal` orphelins n'est gardé. Le jour de l'exercice de sinistre.
+- `index.js:7248` — SIGTERM pendant une sauvegarde : sortie forcée à 5 s, le socle jamais fermé.
+- `index.js:400` — `/health` ne distingue pas une sauvegarde **non configurée** d'une sauvegarde
+  **cassée au démarrage**. C'est la panne du 19 septembre, non refermée là où elle a eu lieu.
+
+**Couverture de banc manquante (5)**
+- `socle.js:417` — les deux plafonds qui protègent le disque du VPS : aucun banc.
+- `test-724.js:389` — les deux bornes de place (507 / 503) : jamais exécutées.
+- `test-724.js:329` — `PLAFOND_DONNEES` : deux regex sur le texte.
+- `socle.js:273` — le liage de la DEK à son entreprise (AAD) : aucun banc. Le cloisonnement.
+- `test-726.js` / `CLAUDE.md` — trois chiffres que j'avais écrits étaient faux, **corrigés**.
+
+**Visibilité et exploitation (5)**
+- `index.js:363` — `/health` annonce `atts: true` **en dur** : les pièces jointes peuvent ne pas
+  être montées sans que l'alarme puisse se déclencher. ⚠️ Celui-ci touche la PRODUCTION.
+- `surveillance.js:81` — zéro écran de Tour pour le socle et pour la sauvegarde ; trois alarmes
+  renvoient vers des écrans qui n'existent pas.
+- `op-socle.js:527` — l'ancre du journal chaîné se marque « envoyée » alors que l'envoi a jeté.
+- `socle.js:344` — `meta.schema` écrit et jamais relu : aucune migration possible.
+- `index.js:4980` — l'aperçu de suppression d'une entreprise ne comptera jamais le socle.
+
+**Sécurité, mineurs (2)**
+- `op-socle.js:200` — `/api/op/session` distingue 404 (espace inconnu) de 403 (clé fausse) : un
+  inconnu peut énumérer les identifiants d'entreprise.
+- `op-socle.js:205` — une requête non authentifiée déclenche une écriture SQLite avant tout
+  budget par espace.
+
+**Exploitation et juridique (3)**
+- `install.sh:18` — Node n'est pas épinglé en version mineure alors que `node:sqlite` est un
+  module **expérimental**.
+- `REPRISE.md` — **aucune procédure d'allumage écrite**, et aucun moyen de vérifier qu'on est
+  prêt avant de basculer le drapeau.
+- `socle.js:202` — la rétention promise par `mentions-legales.html` (24 mois + courriel 30 jours
+  avant) n'a **aucun mécanisme** : `ferme_le` est écrit et jamais relu, `purge_le` n'existe pas.
+  Aujourd'hui c'est tenu sans rien faire ; avec le socle, il faudra l'EXÉCUTER.
+
+## E. Les étapes 2 à 9 du plan — ce qui n'a pas commencé
+
+`PLAN-OP-SOCLE.md` §4. **L'étape 2 est la plus dangereuse de toutes** : le convertisseur
+`db` ↔ lignes, avec 83 clés `db.*` non déclarées. Rien n'a commencé.
+
+| | | |
+|---|---|---|
+| 2 | le convertisseur et sa preuve, bêta, drapeau éteint | **⚠️ le vrai risque du chantier** |
+| 3 | les pièces jointes, seules | |
+| 4 | double écriture, lecture toujours Firestore | ⚠️ dépend du préavis à ELAN |
+| 5 | bascule de la lecture, la bêta d'abord | |
+| 6 | le miroir, une semaine | |
+| 7 | relecture depuis les appareils | |
+| 8 | retrait de Firestore | |
+| 9 | lever les plafonds, un par un | |
+
+## F. Ce qui dépend de JUSTIN, et que personne d'autre ne peut faire
+
+- ⛔ **Le préavis de 30 jours / l'accord écrit à ELAN** — chemin critique de l'étape 4. Rien ne
+  peut avancer au-delà de l'étape 3 sans ça.
+- ⛔ **La phrase qui autorise la publication d'`app.html`** — 7 versions attendent.
+- **Le séquestre de la clé maître** du socle, le jour de l'allumage (deux endroits distincts).
+- `firebase-console.js etat` à lancer, et `roles/datastore.owner` à ajouter pour les
+  sauvegardes Firestore.
+- **La réception de courriels (`boite:false`)** — à reconnecter, ou à décider qu'on la laisse.
+
+## G. Les autres chantiers ouverts, hors socle
+
+- Refonte de la Tour (direction visuelle, téléphone, une console par application) — en aperçu
+- Site `teamop.fr` : refonte du style, et revoir les textes contre ce que font vraiment les
+  applications
+- Remettre la Tour à zéro sauf les connexions client d'ELAN
+- Révoquer UN appareil au lieu de toute l'entreprise
+- Ouverture de l'application : 1 801 ms d'analyse pour 3,16 Mo en un fichier
+- `save()` coûte 90 ms par geste — décision de Justin
+
+---
+
 ## 🔨 18 SEPTEMBRE 2026 — **LE SOCLE : ÉTAPE 1 ÉCRITE ET ÉPROUVÉE** (inerte, rien n'est branché)
 
 Justin a tranché le 18 : on sort de Firestore et **tout se pose sur le serveur** — les règles,
