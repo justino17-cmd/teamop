@@ -124,6 +124,26 @@ function monterComptes(app, deps) {
     if (reg.j[k]) { delete reg.j[k]; ecrire(); }
   }
 
+  /* ⛔ CHANGER DE MOT DE PASSE COUPE LES SESSIONS — PAS LA VÉRIFICATION D'ADRESSE.
+     Première écriture : `for (k of reg.j) if (reg.j[k].m === mail) delete reg.j[k]`, c'est-à-
+     dire TOUS les jetons du compte, quel que soit leur genre. Mesuré le 20 septembre 2026 par
+     `tests/test-741.js` : quelqu'un qui crée son compte, ne confirme pas son adresse tout de
+     suite, puis fait une remise à zéro de mot de passe (le cas le plus banal des premières
+     minutes) voyait son lien de confirmation MOURIR — et aucune route ne permet d'en
+     redemander un. Il restait non vérifié pour toujours, sans rien pouvoir y faire.
+     Ce qu'on coupe, et pourquoi :
+     · `session` — c'est le geste qu'on fait quand on pense s'être fait voler quelque chose ;
+     · `mdp`     — un AUTRE lien de remise à zéro encore vivant est une porte ouverte : celui
+                    qui a déclenché la demande ne doit pas garder la sienne en réserve ;
+     · `verif`   — NON. Confirmer son adresse n'a rien à voir avec le mot de passe, et le lien
+                    vit sept jours exprès. */
+  function couperSessions(mail) {
+    for (const k of Object.keys(reg.j)) {
+      const e = reg.j[k];
+      if (e && e.m === mail && (e.g === 'session' || e.g === 'mdp')) delete reg.j[k];
+    }
+  }
+
   const vue = (mail) => {
     const c = compte(mail);
     return c ? { email: mail, prenom: c.pr || '', nom: c.no || '', societe: c.so || '', verifie: !!c.v } : null;
@@ -303,7 +323,7 @@ function monterComptes(app, deps) {
        On rend ensuite un jeton NEUF à l'appelant — sinon la personne qui vient de changer son
        mot de passe se fait déconnecter de la page où elle se tient, ce qui ressemble à une
        panne. Les autres appareils, eux, repassent par la connexion : c'est le but. */
-    for (const k of Object.keys(reg.j)) if (reg.j[k] && reg.j[k].m === e.m) delete reg.j[k];
+    couperSessions(e.m);
     const jeton = jetonNeuf(e.m, 'session', SESSION_VIE_MS);
     ecrire();
     return res.json({ ok: true, jeton });
@@ -342,11 +362,11 @@ function monterComptes(app, deps) {
     try { cle = await deriver(emp, sel); }
     catch (err) { journal('dérivation impossible —', err.code || 'erreur'); return res.status(503).json({ error: 'indisponible' }); }
     c.s = sel; c.e = cle; c.ech = 0; c.bloq = 0; c.maj = Date.now();
-    /* ⛔ CHANGER DE MOT DE PASSE COUPE LES SESSIONS EN COURS. C'est le geste qu'on fait quand
-       on pense s'être fait voler quelque chose : laisser vivre les sessions ouvertes le
-       viderait de son sens, et c'est exactement la faute que ce dépôt a déjà payée côté
-       Firebase (refuser les nouveaux jetons sans couper les sessions déjà échangées). */
-    for (const k of Object.keys(reg.j)) if (reg.j[k] && reg.j[k].m === e.m) delete reg.j[k];
+    /* Les sessions en cours tombent — c'est le geste qu'on fait quand on pense s'être fait
+       voler quelque chose, et c'est la faute déjà payée côté Firebase (refuser les nouveaux
+       jetons sans couper les sessions déjà échangées). Le lien de VÉRIFICATION, lui, survit :
+       voir `couperSessions`. */
+    couperSessions(e.m);
     ecrire();
     jetonBruler(brut);
     return res.json({ ok: true });

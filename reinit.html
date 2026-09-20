@@ -55,41 +55,124 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   <div id="etape-ko" style="display:none"><h1>Lien invalide ou expiré</h1><p id="ko-txt">Ce lien de réinitialisation ne fonctionne plus : il a peut-être déjà servi, ou il date de plus d'une heure. Redemande un nouveau lien depuis « Mot de passe oublié ».</p><a href="espace.html" style="color:#34d399;font-weight:700;font-size:14px">Retour à Mon espace →</a></div>
   <div class="pied">TEAM OP · la suite de gestion des pros du terrain · teamop.fr</div>
 </div>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
 /* Page d'action des e-mails Firebase (réinitialisation de mot de passe, vérification d'e-mail) — en français,
    sur teamop.fr. À régler dans la console Firebase : Authentication → Templates → « URL d'action » = https://teamop.fr/reinit.html */
 var FB_CONFIG={ apiKey:"AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8", authDomain:"elan-gestion.firebaseapp.com", projectId:"elan-gestion" };
-var Q=new URLSearchParams(location.search), MODE=Q.get('mode')||'', CODE=Q.get('oobCode')||'', SUITE=Q.get('continueUrl')||'';
+var Q=new URLSearchParams(location.search), MODE=Q.get('mode')||'', CODE=Q.get('oobCode')||'', JETON=Q.get('jeton')||'', SUITE=Q.get('continueUrl')||'';
+
+/* ⛔ C'EST LE PARAMÈTRE QUI DÉCIDE, PAS UN INTERRUPTEUR.
+   Cette page reçoit deux familles de liens, et elle doit servir LES DEUX en même temps :
+   · `?oobCode=…` — un courriel envoyé par Firebase ;
+   · `?jeton=…`   — un courriel envoyé par notre serveur (`server/comptes.js`).
+   Un interrupteur global aurait tué les liens DÉJÀ PARTIS le jour où on le bascule : un
+   courriel de mot de passe vit une heure, un courriel de vérification SEPT JOURS. Quelqu'un
+   qui a demandé son lien hier soir le clique demain matin, et il doit marcher.
+   ⚠️ Et c'est la panne qui attendait : le serveur envoie `?jeton=` depuis le début,
+   cette page ne lisait que `oobCode` — tout lien du serveur tombait sur « Lien invalide ».
+   Firebase n'est donc chargé QUE pour un `oobCode` : sinon on garde une connexion ouverte
+   vers Google pour rien, ce que tout ce chantier cherche à arrêter. */
+var MAISON = !!JETON;
+/* ⛔ FIREBASE NE SE TÉLÉCHARGE MÊME PAS SUR UN LIEN MAISON. Les deux balises `<script>`
+   vers `gstatic.com` étaient en tête de page : tout client arrivant par un courriel de NOTRE
+   serveur allait quand même chercher 300 Ko chez Google, et le lui annonçait. Dire « tout est
+   sur le serveur » pendant que la page appelle Google est exactement le genre d'écart que ce
+   dépôt a déjà payé. Ces trois lignes disparaîtront avec l'étape F. */
+function chargerFirebase(){
+  var srcs=['https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+            'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'];
+  return srcs.reduce(function(chaine,src){ return chaine.then(function(){ return new Promise(function(ok,non){
+    var e=document.createElement('script'); e.src=src; e.onload=ok; e.onerror=function(){ non(new Error('firebase')); };
+    document.head.appendChild(e);
+  }); }); }, Promise.resolve());
+}
+var API = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? '' : 'https://api.teamop.fr';
 var auth=null;
 function montre(id){ ['etape-chargement','etape-form','etape-ok','etape-ko'].forEach(function(x){ var e=document.getElementById(x); if(e) e.style.display=(x===id)?'block':'none'; }); }
 function ko(txt){ if(txt){ var t=document.getElementById('ko-txt'); if(t) t.textContent=txt; } montre('etape-ko'); }
 function suiteHref(){ try{ if(SUITE&&/^https:\/\/(www\.)?teamop\.fr\//.test(SUITE)) return SUITE; }catch(e){} return 'espace.html'; }
+
+/* ⛔ LA MÊME EMPREINTE QUE `espace.html`, AU CARACTÈRE PRÈS.
+   Le mot de passe ne quitte jamais le navigateur : on envoie `SHA-256('teamop-portail:'+mdp)`,
+   et le serveur la repasse au PBKDF2 avec son sel. Ces deux pages ne partagent AUCUN code —
+   c'est donc une couture, la pire espèce de ce dépôt. Un préfixe qui change d'un côté et pas
+   de l'autre donnerait un client qui pose son mot de passe ICI et ne peut plus se connecter
+   LÀ-BAS, sans qu'aucune erreur ne s'affiche nulle part. `tests/test-741.js` fait poser le
+   mot de passe par la vraie fonction de CETTE page, puis connecter par celle d'`espace.html`. */
+async function empreinte(mdp){
+  var b=new TextEncoder().encode('teamop-portail:'+String(mdp));
+  var h=await crypto.subtle.digest('SHA-256',b);
+  return Array.from(new Uint8Array(h)).map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+}
+async function appelApi(chemin,corps){
+  var r=await fetch(API+chemin,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps)});
+  var j=null; try{ j=await r.json(); }catch(e){}
+  return { code:r.status, j:j||{} };
+}
+
 (function(){
-  try{ firebase.initializeApp(FB_CONFIG); auth=firebase.auth(); }catch(e){ ko('Impossible de charger le service de connexion — réessaie dans un instant.'); return; }
   var s=document.getElementById('suite'); if(s) s.href=suiteHref();
-  if(!CODE){ ko(); return; }
+  if(!CODE && !JETON){ ko(); return; }
+
+  if(MAISON){
+    if(MODE==='resetPassword'){
+      /* ⚠️ ON NE VÉRIFIE PAS LE JETON D'AVANCE, ET C'EST VOULU : il ne sert QU'UNE FOIS.
+         Le brûler pour afficher le formulaire le rendrait inutilisable au moment de valider.
+         On montre donc le formulaire tout de suite, et c'est l'enregistrement qui tranche. */
+      document.getElementById('qui').textContent='votre compte';
+      montre('etape-form'); setTimeout(function(){ var e=document.getElementById('p1'); if(e) e.focus(); },80);
+    } else if(MODE==='verifyEmail'){
+      appelApi('/api/compte/verifier',{ jeton:JETON }).then(function(r){
+        if(r.code!==200){ ko('Ce lien de v\u00e9rification ne fonctionne plus : il a d\u00e9j\u00e0 servi, ou il date de plus de sept jours.'); return; }
+        var o=document.getElementById('etape-ok');
+        o.innerHTML='\u2705 <b>Adresse e-mail v\u00e9rifi\u00e9e.</b>'+(r.j.email?('<br>'+String(r.j.email).replace(/[<>&]/g,'')):'')+'<br><br><a href="'+suiteHref()+'" style="color:#34d399;font-weight:700">Continuer \u2192</a>';
+        montre('etape-ok');
+      }).catch(function(){ ko('Service indisponible \u2014 r\u00e9essaie dans un instant.'); });
+    } else { ko(); }
+    return;
+  }
+
+  /* ── la moitié Firebase, pour les courriels déjà partis ── */
+  chargerFirebase().then(suiteFirebase).catch(function(){ ko('Impossible de charger le service de connexion \u2014 r\u00e9essaie dans un instant.'); });
+})();
+
+function suiteFirebase(){
+  try{ firebase.initializeApp(FB_CONFIG); auth=firebase.auth(); }catch(e){ ko('Impossible de charger le service de connexion \u2014 r\u00e9essaie dans un instant.'); return; }
   if(MODE==='resetPassword'){
     auth.verifyPasswordResetCode(CODE).then(function(email){ document.getElementById('qui').textContent=email; montre('etape-form'); setTimeout(function(){ document.getElementById('p1').focus(); },80); })
       .catch(function(){ ko(); });
   } else if(MODE==='verifyEmail'){
-    auth.applyActionCode(CODE).then(function(){ var o=document.getElementById('etape-ok'); o.innerHTML='✅ <b>Adresse e-mail vérifiée.</b><br><br><a href="'+suiteHref()+'" style="color:#34d399;font-weight:700">Continuer →</a>'; montre('etape-ok'); }).catch(function(){ ko('Ce lien de vérification ne fonctionne plus.'); });
+    auth.applyActionCode(CODE).then(function(){ var o=document.getElementById('etape-ok'); o.innerHTML='\u2705 <b>Adresse e-mail v\u00e9rifi\u00e9e.</b><br><br><a href="'+suiteHref()+'" style="color:#34d399;font-weight:700">Continuer \u2192</a>'; montre('etape-ok'); }).catch(function(){ ko('Ce lien de v\u00e9rification ne fonctionne plus.'); });
   } else if(MODE==='recoverEmail'){
-    auth.applyActionCode(CODE).then(function(){ var o=document.getElementById('etape-ok'); o.innerHTML='✅ <b>Ton ancienne adresse e-mail a été rétablie.</b><br>Pense à changer ton mot de passe si tu n\'es pas à l\'origine de ce changement.<br><br><a href="'+suiteHref()+'" style="color:#34d399;font-weight:700">Continuer →</a>'; montre('etape-ok'); }).catch(function(){ ko(); });
+    /* Propre à Firebase : rétablir une ancienne adresse. Notre serveur ne change pas encore
+       l'adresse de connexion, donc ce mode n'a pas d'équivalent maison — et n'en a pas besoin. */
+    auth.applyActionCode(CODE).then(function(){ var o=document.getElementById('etape-ok'); o.innerHTML='\u2705 <b>Ton ancienne adresse e-mail a \u00e9t\u00e9 r\u00e9tablie.</b><br>Pense \u00e0 changer ton mot de passe si tu n\'es pas \u00e0 l\'origine de ce changement.<br><br><a href="'+suiteHref()+'" style="color:#34d399;font-weight:700">Continuer \u2192</a>'; montre('etape-ok'); }).catch(function(){ ko(); });
   } else { ko(); }
-})();
+}
+
 function enregistrer(){
   var p1=document.getElementById('p1').value, p2=document.getElementById('p2').value, err=document.getElementById('err'), b=document.getElementById('go');
-  var show=function(m){ err.textContent='⚠ '+m; err.style.display='block'; };
+  var show=function(m){ err.textContent='\u26a0 '+m; err.style.display='block'; b.disabled=false; b.textContent='Enregistrer mon mot de passe'; };
   err.style.display='none';
-  if(p1.length<8){ show('8 caractères minimum.'); return; }
+  if(p1.length<8){ show('8 caract\u00e8res minimum.'); return; }
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
-  if(/^\d{4,8}$/.test(p1)){ show('Choisis mieux qu\'une suite de chiffres (mélange lettres et chiffres).'); return; }
-  b.disabled=true; b.textContent='⏳ Enregistrement…';
+  if(/^\d{4,8}$/.test(p1)){ show('Choisis mieux qu\'une suite de chiffres (m\u00e9lange lettres et chiffres).'); return; }
+  b.disabled=true; b.textContent='\u23f3 Enregistrement\u2026';
+  if(MAISON){
+    empreinte(p1).then(function(h){ return appelApi('/api/compte/mdp/poser',{ jeton:JETON, h:h }); }).then(function(r){
+      if(r.code===200){ montre('etape-ok'); return; }
+      /* ⛔ CHAQUE REFUS DIT SA RAISON. Un lien mort et un serveur en panne ne se soignent pas
+         pareil : l'un se redemande, l'autre s'attend. C'est la leçon `_mailboxes` de ce
+         dépôt — un refus qui ne nomme rien fait chercher au mauvais endroit. */
+      if(r.j.error==='lien_expire'){ ko('Ce lien a expir\u00e9 ou a d\u00e9j\u00e0 servi \u2014 redemande un nouveau lien depuis « Mot de passe oubli\u00e9 ».'); return; }
+      if(r.code===503){ show('Service momentan\u00e9ment indisponible \u2014 r\u00e9essaie dans un instant.'); return; }
+      show('Impossible d\'enregistrer \u2014 r\u00e9essaie dans un instant.');
+    }).catch(function(){ show('Impossible d\'enregistrer \u2014 r\u00e9essaie dans un instant.'); });
+    return;
+  }
   auth.confirmPasswordReset(CODE,p1).then(function(){ montre('etape-ok'); })
-    .catch(function(e){ b.disabled=false; b.textContent='Enregistrer mon mot de passe';
-      var c=(e&&e.code)||''; show(c==='auth/weak-password'?'Mot de passe trop faible : 8 caractères minimum.':(c==='auth/expired-action-code'||c==='auth/invalid-action-code')?'Ce lien a expiré ou a déjà servi — redemande un nouveau lien.':'Impossible d\'enregistrer — réessaie dans un instant.'); });
+    .catch(function(e){
+      var c=(e&&e.code)||''; show(c==='auth/weak-password'?'Mot de passe trop faible : 8 caract\u00e8res minimum.':(c==='auth/expired-action-code'||c==='auth/invalid-action-code')?'Ce lien a expir\u00e9 ou a d\u00e9j\u00e0 servi \u2014 redemande un nouveau lien.':'Impossible d\'enregistrer \u2014 r\u00e9essaie dans un instant.'); });
 }
 </script>
 <script>
