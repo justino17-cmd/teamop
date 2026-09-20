@@ -6444,7 +6444,20 @@ function opDecomposer(base, opts) {
        jamais `uid()`, qui changerait à chaque passage et ferait renaître indéfiniment la même
        ligne, une copie par synchro. */
     if (genre === 'liste_ts') {
-      (val || []).forEach(r => { if (r) ecrire(cle, opIdDerive(r), r._m, opSansTampon(r)); });
+      /* ⛔ LEUR DATE EST `ts`, ET C'EST LA SEULE QU'ELLES AURONT JAMAIS. MESURÉ le 20 septembre
+         2026 : `ombreRelever()` n'indexe que les enregistrements portant un `id`, donc
+         `estampiller()` ne tamponne JAMAIS `mailSent` ni `planJournal` — qui n'en ont pas, par
+         construction, et c'est précisément pour ça qu'`opIdDerive` existe. Sans `_m`, leurs
+         lignes partaient à `m:0`, le serveur les refusait en `non_date`, et elles ne
+         pouvaient donc JAMAIS atteindre le socle. Invisible pendant l'étape 4 (Firestore reste
+         la référence) ; le jour où le socle est la source de vérité, un appareil qui relit sa
+         base recevrait `mailSent` VIDE — c'est-à-dire la trace de tout ce qu'une entreprise a
+         envoyé à ses clients, disparue.
+         ⚠️ On ne touche PAS à `estampiller()` pour autant : c'est le chemin d'écriture de
+         vrais clients, et le tamponner changerait la fusion de ces deux collections. La date
+         d'un enregistrement horodaté est son `ts` — `opIdDerive` le dit déjà, puisqu'elle en
+         fait la moitié de son identifiant. On la lit, on n'en invente pas. */
+      (val || []).forEach(r => { if (r) ecrire(cle, opIdDerive(r), (+r._m || +r.ts || 0), opSansTampon(r)); });
       return;
     }
 

@@ -513,13 +513,33 @@ function basePetite(m) {
        d'identité propre : `opRecomposer` faisait `push` sans regarder, donc une reprise depuis
        le curseur zéro doublait toute la correspondance envoyée. `opIdDerive` LEUR DONNE une
        identité stable — il suffisait de s'en servir. */
-    const avantN = (db2.clients || []).length + (db2.interventions || []).length + (db2.produits || []).length;
+    /* ⛔ ET IL FAUT DES COLLECTIONS SANS IDENTITÉ PROPRE POUR QUE CE CONTRÔLE VEUILLE DIRE
+       QUELQUE CHOSE. Retirer la garde ne cassait RIEN au premier jet : la base du banc n'avait
+       ni `mailSent` ni `planJournal`, les deux SEULES collections classées `liste_ts`. Le banc
+       gardait donc une ligne qu'il n'exerçait pas. C'est la question à se poser chaque fois
+       qu'une mutation ne tombe pas : qu'est-ce que le banc ne joue PAS ? */
+    /* ⚠️ DES `ts` RÉALISTES. Un `ts: 4242` est sous la borne haute (un horodatage courant), donc
+       la ligne ne repasse jamais le filtre — et le banc accuserait le code d'un défaut qui
+       n'existe pas. Ces collections portent des `Date.now()` dans la vraie vie. */
+    const tsBase = api.opHautLire(T) + 1000;
+    db.mailSent = [{ to: 'client@exemple.fr', ts: tsBase, sujet: 'Rapport' },
+                   { to: 'autre@exemple.fr', ts: tsBase + 1, sujet: 'Devis' }];
+    db.planJournal = [{ ts: tsBase + 2, txt: 'poste 12 relevé' }];
+    await api.opSoclePousser();
+
+    const compter = () => (db2.clients || []).length + (db2.interventions || []).length
+      + (db2.produits || []).length + (db2.mailSent || []).length + (db2.planJournal || []).length;
+    stock2.setItem('elan_op_seq_' + T, '0');
+    await api2.opSocleLire();
+    vrai('⛔ le second appareil reçoit les collections SANS identité propre', (db2.mailSent || []).length === 2);
+    vrai('   et le journal de plan aussi', (db2.planJournal || []).length === 1);
+    const avantN = compter();
     stock2.setItem('elan_op_seq_' + T, '0');
     await api2.opSocleLire();
     stock2.setItem('elan_op_seq_' + T, '0');
     await api2.opSocleLire();
-    v('⛔ deux relectures depuis zéro n\'ajoutent AUCUN doublon',
-      (db2.clients || []).length + (db2.interventions || []).length + (db2.produits || []).length, avantN);
+    v('⛔ deux relectures depuis zéro n\'ajoutent AUCUN doublon', compter(), avantN);
+    v('   `mailSent` en particulier, qui n\'a pas d\'identifiant à lui', (db2.mailSent || []).length, 2);
   }
 
   /* ══ (k) LES QUATRE CONDITIONS DE L'ÉTAPE 5, CALCULÉES ════════════════════════════════════
