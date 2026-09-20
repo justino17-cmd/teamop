@@ -13,7 +13,15 @@
    passe ICI et ne peut plus se connecter LÀ-BAS, sans qu'aucune erreur ne s'affiche nulle
    part : les deux pages fonctionnent, le serveur fonctionne, et le client est dehors.
    Ce banc EXTRAIT les deux fonctions réelles et les fait travailler ensemble contre le VRAI
-   serveur — poser d'un côté, se connecter de l'autre. C'est la seule preuve qui tienne. */
+   serveur — poser d'un côté, se connecter de l'autre. C'est la seule preuve qui tienne.
+
+   ⚠️ CE QU'IL NE GARDE PAS, ET QUI EST GARDÉ AILLEURS — à savoir avant de « ranger » l'autre.
+   Mesuré par mutation le 20 septembre 2026 : retirer la coupure des sessions de `mdp/poser`
+   laisse CE banc tout vert. Ce n'est pas un trou, c'est un partage : `tests/test-738.js` le
+   tient (« ⛔⛔ et la session d'AVANT est coupée », mesuré — 47 ✓ 1 ✗ quand on l'enlève), et
+   `tests/test-740.js` tient la même chose pour `/api/compte/mdp/changer`. Ici on garde le
+   GENRE de ce qui est coupé : que le lien de vérification, lui, SURVIVE. Les deux moitiés
+   sont nécessaires — l'une dit « coupe », l'autre dit « pas ça ». */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const { spawn } = require('child_process');
 
