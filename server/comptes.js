@@ -239,6 +239,75 @@ function monterComptes(app, deps) {
     return res.json({ ok: true, email: e.m });
   });
 
+  /* ── CONFIRMER SON MOT DE PASSE, ET EN CHANGER ────────────────────────────────
+     ⛔ CES DEUX ROUTES EXISTENT PARCE QU'`accReauth()` MENTAIT. Dans `espace.html`, trois
+     écrans redemandent le mot de passe avant un geste grave — changer d'adresse, changer de
+     mot de passe, supprimer le compte. Avec Firebase, `reauthenticateWithCredential` le
+     vérifiait vraiment. Avec l'adaptateur, `accReauth` rendait `true` sans rien contrôler :
+     le champ « mot de passe actuel » était devenu un décor. Un formulaire qui demande un
+     secret et ne le regarde pas est pire que pas de formulaire du tout — il fait croire à
+     une garde.
+     ⚠️ `confirmer` COMPTE LES ÉCHECS comme la connexion : sans ça, une session volée
+     donnerait un oracle pour deviner le mot de passe tranquillement, puis le changer. */
+  const confirmerMdp = async (mail, emp) => {
+    const c = compte(mail);
+    const maintenant = Date.now();
+    /* Même dérivation à vide que la connexion : la durée ne doit rien dire. */
+    const sel = c ? c.s : crypto.randomBytes(SEL_OCTETS).toString('hex');
+    let cle;
+    try { cle = await deriver(emp, sel); }
+    catch (e) { journal('dérivation impossible —', e.code || 'erreur'); return 'indisponible'; }
+    if (!c || (c.bloq && c.bloq > maintenant) || !memeSecret(cle, c.e)) {
+      if (c) {
+        c.ech = (c.ech || 0) + 1;
+        if (c.ech >= ECHECS_MAX) { c.bloq = maintenant + BLOCAGE_MS; c.ech = 0; }
+        ecrire();
+      }
+      return 'refuse';
+    }
+    c.ech = 0; c.bloq = 0; ecrire();
+    return '';
+  };
+
+  app.post('/api/compte/mdp/confirmer', async (req, res) => {
+    const e = jetonLire(porteur(req), 'session');
+    if (!e) return res.status(401).json({ error: 'session_refusee' });
+    const emp = borne((req.body || {}).h, 200);
+    if (emp.length < 16) return res.status(400).json({ error: 'empreinte_invalide' });
+    if (!quotaOk(quota, 'cfm:' + e.m, 30, 3600000)) return res.status(429).json({ error: 'trop_de_tentatives' });
+    const mal = await confirmerMdp(e.m, emp);
+    if (mal === 'indisponible') return res.status(503).json({ error: 'indisponible' });
+    if (mal) return res.status(401).json({ error: 'identifiants_refuses' });
+    return res.json({ ok: true });
+  });
+
+  app.post('/api/compte/mdp/changer', async (req, res) => {
+    const e = jetonLire(porteur(req), 'session');
+    if (!e) return res.status(401).json({ error: 'session_refusee' });
+    const b = req.body || {};
+    const emp = borne(b.h, 200), neuve = borne(b.hNouveau, 200);
+    if (emp.length < 16 || neuve.length < 16) return res.status(400).json({ error: 'empreinte_invalide' });
+    if (memeSecret(emp, neuve)) return res.status(400).json({ error: 'mot_de_passe_identique' });
+    if (!quotaOk(quota, 'cfm:' + e.m, 30, 3600000)) return res.status(429).json({ error: 'trop_de_tentatives' });
+    const mal = await confirmerMdp(e.m, emp);
+    if (mal === 'indisponible') return res.status(503).json({ error: 'indisponible' });
+    if (mal) return res.status(401).json({ error: 'identifiants_refuses' });
+    const c = compte(e.m);
+    if (!c) return res.status(401).json({ error: 'session_refusee' });
+    const sel = crypto.randomBytes(SEL_OCTETS).toString('hex');
+    let cle;
+    try { cle = await deriver(neuve, sel); }
+    catch (err) { journal('dérivation impossible —', err.code || 'erreur'); return res.status(503).json({ error: 'indisponible' }); }
+    c.s = sel; c.e = cle; c.ech = 0; c.bloq = 0; c.maj = Date.now();
+    /* ⛔ MÊME RÈGLE QUE `mdp/poser` : on coupe TOUTES les sessions, celle qui parle comprise.
+       On rend ensuite un jeton NEUF à l'appelant — sinon la personne qui vient de changer son
+       mot de passe se fait déconnecter de la page où elle se tient, ce qui ressemble à une
+       panne. Les autres appareils, eux, repassent par la connexion : c'est le but. */
+    for (const k of Object.keys(reg.j)) if (reg.j[k] && reg.j[k].m === e.m) delete reg.j[k];
+    const jeton = jetonNeuf(e.m, 'session', SESSION_VIE_MS);
+    ecrire();
+    return res.json({ ok: true, jeton });
+  });
   /* ── MOT DE PASSE OUBLIÉ ────────────────────────────────────────────────────────────────── */
   app.post('/api/compte/mdp/demander', async (req, res) => {
     const mail = normMail((req.body || {}).email);

@@ -131,6 +131,7 @@ const arreter = async () => {
   vrai('⛔ `portailMaison` s\'extrait d\'espace.html', !!A && !!A.api && !!A.api.auth && !!A.api.fs);
   if (!A) { console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); await arreter(); process.exit(1); }
   const { auth, fs: base, FieldValue } = A.api;
+  let jeton0 = '';   // le jeton d'avant le changement de mot de passe — il doit mourir
 
   console.log('\n══ 3. CRÉER UN COMPTE, DEPUIS LA VRAIE PAGE ══\n');
   {
@@ -164,6 +165,7 @@ const arreter = async () => {
   {
     await auth.signInWithEmailAndPassword('zoe@exemple.fr', 'un-mot-de-passe-solide');
     const uid = auth.currentUser.uid;
+    jeton0 = A.bac.localStorage.getItem('teamop_portail_jeton');
     await base.collection('teamop_requests').doc(uid).set({
       prenom: 'Zoé', nom: 'Bernard', company: 'Bernard Hygiène', app: 'elan', users: 3,
       createdAt: FieldValue.serverTimestamp(),
@@ -245,6 +247,68 @@ const arreter = async () => {
     v('⛔ publier une nouveauté refuse CLAIREMENT (c\'était muet chez Firestore)', codeNews, 'portail/tour-seule');
   }
 
+  console.log('\n══ 5 bis. ⛔ LE MOT DE PASSE ACTUEL EST VRAIMENT VÉRIFIÉ ══\n');
+  {
+    /* ⛔ `accReauth()` A RENDU `true` SANS RIEN CONTRÔLER PENDANT UNE JOURNÉE. Trois écrans
+       d'`espace.html` redemandent le mot de passe avant un geste grave ; avec Firebase,
+       `reauthenticateWithCredential` le vérifiait. Un champ « mot de passe actuel » qui ne
+       regarde rien est pire qu'un champ absent : il fait croire à une garde. */
+    vrai('⛔ `accReauth` NE rend plus `true` sans contrôler (le fichier servi)',
+      /if\(_pv\)\{\s*await _pv\.auth\.confirmerMdp\(pass\); return true; \}/.test(PAGE));
+    vrai('   l\'adaptateur porte `confirmerMdp`', typeof auth.confirmerMdp === 'function');
+    let mauvais = '';
+    try { await auth.confirmerMdp('pas-le-bon-du-tout'); } catch (e) { mauvais = e.code || ''; }
+    v('⛔ un mot de passe faux est REFUSÉ, avec un code que la page traduit', mauvais, 'auth/wrong-password');
+    v('   le bon passe', await auth.confirmerMdp('un-mot-de-passe-solide'), true);
+
+    /* ⛔ CHANGER LE MOT DE PASSE DOIT MARCHER, PAS ENVOYER UN COURRIEL À LA FIN. L'écran fait
+       saisir l'ancien, envoie un code à six chiffres, le fait retaper, puis demande le nouveau
+       DEUX FOIS. Refuser après tout ça, c'est faire croire que ça a marché jusqu'au bout. */
+    v('⛔ le changement de mot de passe aboutit', await auth.currentUser.updatePassword('un-autre-mot-de-passe-solide'), true);
+    /* Le serveur coupe TOUTES les sessions et en rend une neuve : sans ça, la personne se
+       ferait déconnecter de la page juste après avoir réussi son changement. */
+    const jetonApres = A.bac.localStorage.getItem('teamop_portail_jeton');
+    vrai('⛔ et la session de la page SURVIT (un jeton neuf est rangé)', /^[a-f0-9]{64}$/.test(String(jetonApres)));
+    const moiApres = await (await fetch(S.B + '/api/compte/moi', { headers: { Authorization: 'Bearer ' + jetonApres } })).json();
+    v('   et il vaut', (moiApres.compte || {}).email, 'zoe@exemple.fr');
+    vrai('⛔ l\'ANCIEN mot de passe ne marche plus', await (async () => {
+      try { await auth.confirmerMdp('un-mot-de-passe-solide'); return false; } catch (e) { return e.code === 'auth/wrong-password'; }
+    })());
+    v('   et le nouveau, oui', await auth.confirmerMdp('un-autre-mot-de-passe-solide'), true);
+    /* ⚠️ Le jeton d'AVANT le changement doit être mort : c'est le geste qu'on fait quand on
+       pense s'être fait voler quelque chose. */
+    const vieux = await fetch(S.B + '/api/compte/moi', { headers: { Authorization: 'Bearer ' + jeton0 } });
+    v('⛔ le jeton d\'AVANT le changement est coupé', vieux.status, 401);
+
+    /* ⛔ ET SANS CONFIRMATION FRAÎCHE, ON NE CHANGE RIEN. Un adaptateur neuf n'a pas de
+       fenêtre ouverte : `updatePassword` doit refuser, pas passer. */
+    const C = fabriquer(S.B, { teamop_portail_jeton: A.bac.localStorage.getItem('teamop_portail_jeton') });
+    let sansReauth = '';
+    C.api.auth.onAuthStateChanged(() => {});
+    await dormir(300);
+    try { await C.api.auth.currentUser.updatePassword('encore-un-autre-solide'); }
+    catch (e) { sansReauth = e.code || ''; }
+    v('⛔ sans confirmation fraîche, le changement est refusé', sansReauth, 'auth/requires-recent-login');
+
+    /* Remettre le mot de passe de départ : la section 7 se reconnecte avec. */
+    await auth.confirmerMdp('un-autre-mot-de-passe-solide');
+    await auth.currentUser.updatePassword('un-mot-de-passe-solide');
+  }
+
+  console.log('\n══ 5 ter. ⛔ LES DEUX ÉCRANS QUI REFUSENT LE FONT AVANT LA CÉRÉMONIE ══\n');
+  {
+    /* ⛔ `emSend` envoyait un code à six chiffres, le faisait retaper, et SEULEMENT LÀ
+       `updateEmail` répondait « voyez le support ». C'est la leçon `_mailboxes` de ce dépôt :
+       un refus tardif est un écran qui ment jusqu'à la dernière seconde. On lit le fichier
+       SERVI, commentaires retirés — le motif ne doit pas tomber dans l'explication. */
+    const nu = PAGE.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const corps = (nom) => { const i = nu.indexOf('async function ' + nom + '('); return i < 0 ? '' : nu.slice(i, i + 900); };
+    const em = corps('emSend'), del = corps('delGo');
+    vrai('⛔ `emSend` refuse AVANT d\'envoyer le code', /if\(_pv\) return _err\(/.test(em) &&
+      em.indexOf('if(_pv) return _err(') < em.indexOf('_sendCode'));
+    vrai('⛔ `delGo` refuse AVANT de supprimer quoi que ce soit', /if\(_pv\) return _err\(/.test(del) &&
+      del.indexOf('if(_pv) return _err(') < del.indexOf('.delete()'));
+  }
   console.log('\n══ 6. ⛔ L\'ÉCRAN D\'ADMINISTRATION MORT REFUSE SANS TOUT EMPORTER ══\n');
   {
     /* ⛔ Il est mort depuis le 18 septembre (`firestore.rules:59` — `allow read: if cestMoi`).

@@ -312,6 +312,12 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     let moi = null;                 // { uid, email, ... }
     const ecouteursAuth = [];
     let sondeDossier = null, sondeFil = null;
+    /* ⛔ LA FENÊTRE DE RÉAUTHENTIFICATION. Firebase en ouvrait une après
+       `reauthenticateWithCredential` ; on fait pareil, et on la BORNE. Sans elle,
+       `updatePassword(nouveau)` n'aurait aucun moyen de prouver l'ancien : la page appelle
+       `accReauth(actuel)` dans un écran, puis `updatePassword` dans le suivant. */
+    const REAUTH_VIE_MS = 10 * 60000;
+    let reauth = null;                 // { h, ts }
 
     /* Le mot de passe ne quitte JAMAIS le navigateur : on envoie une empreinte, comme le fait
        déjà la page de connexion d'OP GESTION. Le serveur la repasse au PBKDF2 avec son sel. */
@@ -353,7 +359,27 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
            courriel. On ne réauthentifie pas au mot de passe côté page — c'est le serveur qui
            tient l'identité, et un lien prouve l'adresse mieux qu'un formulaire. */
         updateEmail: async () => jeter('auth/operation-not-allowed', "Le changement d'adresse se fait depuis le support."),
-        updatePassword: async () => { await appel('/api/compte/mdp/demander', { email:c.email }); jeter('auth/lien-envoye', 'Un lien vient de vous être envoyé par courriel.'); },
+        /* ⛔ IL CHANGE VRAIMENT LE MOT DE PASSE. Première version : on envoyait un lien par
+           courriel et on jetait. L'écran, lui, venait de faire saisir le mot de passe actuel,
+           d'envoyer un code à six chiffres, de le faire retaper, puis le nouveau mot de passe
+           DEUX FOIS — pour finir sur « consultez vos courriels ». Une cérémonie complète qui
+           refuse à la fin est pire que pas de cérémonie : elle fait croire que ça a marché
+           jusqu'à la dernière seconde. */
+        updatePassword: async (nouveau) => {
+          if(!reauth || (Date.now() - reauth.ts) > REAUTH_VIE_MS)
+            jeter('auth/requires-recent-login', 'Ressaisissez votre mot de passe actuel, la confirmation a expiré.');
+          const hn = await empreinte(nouveau);
+          const r = await appel('/api/compte/mdp/changer', { h: reauth.h, hNouveau: hn });
+          if(r.code === 400 && r.j.error === 'mot_de_passe_identique') jeter('auth/weak-password', 'Le nouveau mot de passe doit être différent de l\'ancien.');
+          if(r.code === 429) jeter('auth/too-many-requests', 'Trop de tentatives — réessayez plus tard.');
+          if(r.code !== 200) jeter('auth/wrong-password', 'Mot de passe actuel incorrect.');
+          /* Le serveur a coupé TOUTES les sessions, y compris la nôtre, et nous en rend une
+             neuve : sans la ranger, la personne se ferait déconnecter de la page où elle se
+             tient, juste après avoir réussi son changement. */
+          poserJeton(r.j.jeton || '');
+          reauth = null;
+          return true;
+        },
         delete: async () => jeter('auth/operation-not-allowed', 'La suppression du compte se demande au support.'),
         reauthenticateWithCredential: async () => true,
       };
@@ -386,6 +412,18 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         return { user: moi };
       },
       async sendPasswordResetEmail(email){ await appel('/api/compte/mdp/demander', { email }); return true; },
+      /* ⛔ CE QUE `accReauth()` APPELAIT DANS LE VIDE. Trois écrans d'`espace.html` redemandent
+         le mot de passe avant un geste grave ; avec Firebase, `reauthenticateWithCredential`
+         le vérifiait. Ici il faut le demander au serveur — sinon le champ « mot de passe
+         actuel » n'est qu'un décor, et la page ment à celui qui le remplit. */
+      async confirmerMdp(pass){
+        const h = await empreinte(pass);
+        const r = await appel('/api/compte/mdp/confirmer', { h });
+        if(r.code === 429) jeter('auth/too-many-requests', 'Trop de tentatives — réessayez plus tard.');
+        if(r.code !== 200) jeter('auth/wrong-password', 'Mot de passe incorrect.');
+        reauth = { h, ts: Date.now() };
+        return true;
+      },
     };
 
     /* ── LES DONNÉES ───────────────────────────────────────────────────────────────────────
@@ -942,9 +980,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   }
 
     async function accReauth(pass){ const u=auth.currentUser; if(!u) throw {message:'Session expirée, reconnectez-vous.'};
-    /* Avec le portail maison, l'identité est tenue par le serveur : il n'y a pas
-       d'identifiant Firebase à représenter, et `firebase.auth` n'est pas initialisé. */
-    if(_pv) return true;
+    /* ⛔ AVEC LE PORTAIL MAISON, C'EST LE SERVEUR QUI TIENT L'IDENTITÉ — mais il faut quand
+       même le lui DEMANDER. Cette ligne a rendu `true` sans rien contrôler pendant une
+       journée : les trois écrans qui redemandent le mot de passe avant un geste grave
+       (adresse, mot de passe, suppression) n'en vérifiaient plus aucun. `firebase.auth`
+       n'étant pas initialisé dans ce mode, on ne peut pas non plus tomber sur la ligne
+       d'après — d'où le retour, mais après le vrai contrôle. */
+    if(_pv){ await _pv.auth.confirmerMdp(pass); return true; }
     const cred=firebase.auth.EmailAuthProvider.credential(u.email,pass); await u.reauthenticateWithCredential(cred); }
   function _err(id,t){ const e=$(id); if(e) e.innerHTML='<div class="err">'+esc(t)+'</div>'; }
   function _ok(id,t){ const e=$(id); if(e){ e.innerHTML='<div class="ok">'+esc(t)+'</div>'; setTimeout(()=>{ const x=$(id); if(x) x.innerHTML=''; },4000); } }
@@ -971,6 +1013,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     catch(e){ _err('info-msg',e.message||'Erreur'); } }
 
   async function emSend(){ const em=($('em-new').value||'').trim(),pass=$('em-pass').value||'';
+    /* ⛔ ON REFUSE AVANT LA CÉRÉMONIE, PAS APRÈS. Avec le portail maison, l'adresse est la CLÉ
+       du compte : en changer veut dire déménager le compte, le dossier et le fil de messages,
+       qui vivent dans DEUX fichiers tenus par deux modules. Tant que ce déménagement n'est pas
+       écrit et éprouvé, on le dit tout de suite — envoyer un code à six chiffres, le faire
+       retaper, puis refuser, c'est faire croire que ça marche jusqu'à la dernière seconde.
+       Voir REPRISE.md : le déménagement d'adresse est un chantier nommé, pas un oubli. */
+    if(_pv) return _err('em-err','Le changement d\'adresse se fait avec le support pour le moment — écrivez-nous depuis « Messages », on s\'en occupe.');
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return _err('em-err','Adresse e-mail invalide.');
     if(!pass) return _err('em-err','Entrez votre mot de passe actuel.');
     try{ $('em-send').disabled=true; await accReauth(pass); await _sendCode('email');
@@ -997,6 +1046,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     }catch(e){ _err('pw-err',authMsg(e)); } }
 
   async function delGo(){ const pass=$('del-pass').value||''; if(!pass) return _err('del-err','Entrez votre mot de passe.');
+    /* Même règle : on ne fait pas confirmer une suppression définitive pour refuser ensuite.
+       Supprimer le compte d'un client qui paye est un geste de support, pas un bouton. */
+    if(_pv) return _err('del-err','La suppression d\'un compte se fait avec le support — écrivez-nous depuis « Messages ».');
     if(!confirm('Supprimer définitivement votre compte ? Cette action est irréversible.')) return;
     try{ await accReauth(pass); const uid=auth.currentUser.uid; try{ await fs.collection('teamop_requests').doc(uid).delete(); }catch(_){}
       await auth.currentUser.delete(); alert('Compte supprimé.');
