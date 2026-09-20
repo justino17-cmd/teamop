@@ -5097,3 +5097,55 @@ skill `performance-budget-monitor` avant d'y toucher.
   les outils MCP. Éprouvé quatre fois ; le tableau est dans `CLAUDE.md`. Et quand la session
   principale mesure : **bêta ou copie d'aperçu uniquement**, jamais `app.html` en production,
   qui porte des noms et des adresses de vrais clients.
+
+---
+
+# 🌙 NUIT DU 20 AU 21 SEPTEMBRE 2026 — CE QUI A BOUGÉ PENDANT QUE JUSTIN DORMAIT
+
+Rien n'est parti sur `main`. Tout est sur `claude/op-gestion-interface-yb6p32`.
+`PORTAIL_SERVEUR` reste **FERMÉ** dans `espace.html` : un client d'aujourd'hui ne voit aucune
+différence.
+
+**Mesures finales : 100 suites · 4 120 vérifications, code de sortie 0.**
+`node scripts/verifier-syntaxe.js` → 27 pages, 50 blocs `<script>`, 0 en erreur.
+
+## Les gardes qui n'en étaient pas
+
+Trois affirmations de `CLAUDE.md` étaient **fausses**, et c'est la leçon qui vaut le plus cher
+de la nuit : **une garde décrite dans un fichier n'est pas une garde.**
+
+| ce qui était écrit | ce qui était vrai |
+|---|---|
+| « le compteur `mailRefus` de `/health` le voit venir » | `mailRefus` n'apparaissait **pas une seule fois** dans `surveillance.js`, le seul fichier qui décide de crier |
+| `test-726` « exige que chaque champ soit surveillé ou nommé » | il comparait le **nom de feuille** cherché n'importe où, commentaires compris — un nom d'une lettre (`n`) passe toujours, un sous-arbre entier passe si ses feuilles portent un nom déjà listé |
+| `test-711` gardait `/health` contre la publication du poids exact | sa fenêtre faisait 3 000 caractères pour un gestionnaire de 7 210 : l'assertion **négative** passait au vert parce que le texte manquait |
+
+Les trois sont réparées et éprouvées par mutation. ⚠️ **La méthode qui les a trouvées :
+vérifier qu'un banc attrape bien ce qu'il prétend attraper, en le cassant exprès.** Aucune
+relecture ne les aurait vues — les trois fichiers se lisent très bien.
+
+## Ce qui attend Justin, et rien d'autre ne peut avancer sans lui
+
+1. ⛔ **L'écran d'administration d'`espace.html`** — mort depuis le 18 septembre
+   (`firestore.rules:59`). Je ne l'ai pas porté ; l'adaptateur le fait refuser bruyamment.
+   **Confirmer au navigateur avec un compte `@teamop.fr`** avant qu'on le retire pour de bon.
+2. ⛔ **Le DNS de l'étape G** — et avant lui, **ce qui se passe quand le VPS tombe**. Trois
+   réponses possibles : un second VPS, garder GitHub Pages en secours, ou accepter le risque
+   et le dire. Aujourd'hui une panne du VPS coupe l'API ; après G, elle coupe **tout**.
+3. ⛔ **L'étape E** (couper Firestore) — elle publie `app.html`, donc elle attend une phrase.
+4. ⛔ **Le contenu de la suspension** : quels onglets grisent au bout de sept jours, ce qu'est
+   exactement le forfait gratuit, à quoi ressemble le rappel quotidien réservé au compte
+   admin. La **mécanique** est écrite et éprouvée (la date de départ, le calcul du sursis) ;
+   la **politique** est à lui.
+5. ⛔ **Le changement d'adresse de connexion** d'un client du portail. L'écran refuse
+   proprement pour le moment. Le faire marcher veut dire déménager le compte, le dossier et le
+   fil entre deux fichiers tenus par deux modules — si l'un renomme et pas l'autre, le client
+   perd son dossier **en silence**. Chantier à part.
+
+## Ce qui est prêt et attend son tour
+
+- **A (OP MESSAGES)** est bloqué par les **88,5 % de transfert inutile** mesurés cette nuit
+  (voir plus haut). Deux solutions, toutes deux à mesurer avant d'être écrites.
+- **G** est préparé, éprouvé, et **branché sur rien** — `test-742` le vérifie, et ce contrôle
+  tombera le jour où on branchera l'étape. C'est son rôle.
+
