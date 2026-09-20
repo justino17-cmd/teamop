@@ -998,7 +998,7 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
      · une ligne présente au JOURNAL et absente d'`enr` — `pousser()` écrit toujours les deux,
        donc seule une base réparée à la main, ou restaurée à moitié, se trouve dans cet état.
    Le module, lui, s'exerce directement. C'est exactement la raison d'être de ce fichier. */
-{
+(async () => {
   console.log('\n── 723 · revenir en arrière : les cas que la route ne peut pas produire ──');
   /* ⛔⛔ L'INSTANT VISÉ EST CELUI DU SERVEUR, PAS LE `_m` DE L'APPAREIL — et ce banc s'est
      trompé en premier, ce qui vaut la peine d'être écrit ici. Le journal date chaque version de
@@ -1037,13 +1037,13 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   v('   et il ne prétend plus pouvoir le restaurer', ap1.nRestaurer, 0);
   vrai('   les identifiants sont nommés, pas seulement comptés', (ap1.illisibles[0] || {}).id === 'k1');
   let jete = null;
-  try { S.retourAppliquer(T, SAIN, { utilisateur: 'banc' }); } catch (e) { jete = e; }
+  try { await S.retourAppliquer(T, SAIN, { utilisateur: 'banc' }); } catch (e) { jete = e; }
   vrai('⛔ et l\'application REFUSE au lieu de rendre un retour partiel', !!jete && jete.code === 'PURGE');
   vrai('   le refus porte l\'aperçu, pour que l\'écran puisse dire quoi', !!(jete && jete.apercu && jete.apercu.nIllisibles >= 1));
   /* ⚠️ LE CONTRE-TEST : le refus doit pouvoir être LEVÉ explicitement. Un retour partiel peut
      être le bon choix — il ne peut pas être le choix par DÉFAUT. Un garde-fou qu'on ne peut pas
      franchir en connaissance de cause finit par être retiré. */
-  const forcé = S.retourAppliquer(T, SAIN, { utilisateur: 'banc', sansLesIllisibles: true });
+  const forcé = await S.retourAppliquer(T, SAIN, { utilisateur: 'banc', sansLesIllisibles: true });
   v('⛔ … mais il se lève explicitement, et alors ça passe', forcé.ok, true);
   v('   sans rien restaurer d\'illisible', forcé.restaures, 0);
 
@@ -1061,7 +1061,7 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   S.ouvrir(T2).prepare('DELETE FROM enr WHERE coll=? AND id=?').run('clients', 'z1');
   const ap2 = S.retourApercu(T2, SAIN2);
   v('⛔ l\'aperçu voit la ligne disparue d\'`enr` et la compte à restaurer', ap2.nRestaurer, 1);
-  const r2 = S.retourAppliquer(T2, SAIN2, { utilisateur: 'banc' });
+  const r2 = await S.retourAppliquer(T2, SAIN2, { utilisateur: 'banc' });
   v('   et le retour la remet', r2.restaures, 1);
   const rendu = S.depuis(T2, 0, 400).enr.filter(l => l.id === 'z1' && !l.sup);
   v('⛔ elle est de nouveau servie aux appareils', rendu.length, 1);
@@ -1091,18 +1091,22 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   const ap3 = S.retourApercu(T3, SAIN3);
   v('l\'aperçu voit une fiche à remettre', ap3.nRestaurer, 1);
   /* `octetsMax: 1` : l'espace est déjà au-delà, donc `pousser()` refuse tout, en bloc. */
-  const plein = S.retourAppliquer(T3, SAIN3, { utilisateur: 'banc', octetsMax: 1 });
+  const plein = await S.retourAppliquer(T3, SAIN3, { utilisateur: 'banc', octetsMax: 1 });
   v('⛔ un espace plein ne fait pas mentir le compte', plein.restaures, 0);
   v('   ni celui des enterrements', plein.enterres, 0);
   vrai('⛔ et le refus est NOMMÉ, avec son motif', plein.refus.length >= 1 && /plein/.test(String(plein.refus[0].motif)));
   v('   le compte de refus suit', plein.nRefuses, plein.refus.length);
   /* ⚠️ LE CONTRE-TEST : sans plafond, le même retour passe. Un contrôle qui ne verrait que le
      refus ne dirait pas si on vient de casser le chemin normal. */
-  const passe = S.retourAppliquer(T3, SAIN3, { utilisateur: 'banc' });
+  const passe = await S.retourAppliquer(T3, SAIN3, { utilisateur: 'banc' });
   v('… et sans plafond, le même retour passe', passe.restaures, 1);
   v('   sans refus', passe.nRefuses, 0);
-}
 
-try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
-console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
-process.exit(ko ? 1 : 0);
+  /* ⛔ LE NETTOYAGE ET LA SORTIE SONT DANS LE BLOC ASYNCHRONE. `retourAppliquer` rend la main
+     entre ses lots depuis le 20 septembre 2026 (elle gelait le serveur 448 ms) : laissés
+     dehors, ils s'exécuteraient AVANT que le dernier retour ait fini, et le banc se noterait
+     vert sur des contrôles jamais joués. */
+  try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
+  console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
+  process.exit(ko ? 1 : 0);
+})().catch(e => { console.log('  ✗ le banc lui-même a jeté : ' + (e && e.stack || e)); process.exit(1); });

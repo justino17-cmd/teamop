@@ -718,8 +718,12 @@ function monterOpSocle(app, deps) {
     if (!verdict.ok) return res.status(verdict.code).json({ error: verdict.error });
 
     let r;
-    try { r = socle.retourAppliquer(t, instant, { utilisateur: monStr(b.par, 40) || 'tour', ver: 'tour', sansLesIllisibles: b.sansLesIllisibles === true }); }
+    try { r = await socle.retourAppliquer(t, instant, { utilisateur: monStr(b.par, 40) || 'tour', ver: 'tour', sansLesIllisibles: b.sansLesIllisibles === true }); }
     catch (err) {
+      /* ⛔ DEUX RETOURS EN MÊME TEMPS POSERAIENT DEUX DATES SUR LA MÊME BASE : chacun défferait
+         l'autre à moitié. Le second est refusé, et il le DIT — un refus muet ferait croire au
+         patron que son second geste a été pris. */
+      if (err && err.code === 'ENCOURS') return res.status(409).json({ error: 'un retour est déjà en cours sur cet espace — attends qu\'il finisse' });
       if (err && (err.code === 'PURGE' || err.code === 'TROPLOIN')) {
         return res.status(409).json({ error: err.code === 'PURGE'
           ? 'des enregistrements ne peuvent pas être ramenés (corps purgés après 90 jours) — confirme `sansLesIllisibles` pour revenir quand même, sans eux'

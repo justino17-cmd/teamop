@@ -1013,11 +1013,49 @@ function retourApercu(t, instant) {
   };
 }
 
+/* ⛔⛔ LE RETOUR REND LA MAIN ENTRE CHAQUE LOT, ET C'EST UNE MESURE QUI L'A EXIGÉ. Tout ce que
+   fait cette fonction est SYNCHRONE — `node:sqlite` l'est, gunzip et AES le sont — donc tant
+   qu'elle tourne, la boucle d'événements de Node ne tourne pas, et AUCUN client d'AUCUNE
+   entreprise n'est servi. Mesuré le 20 septembre 2026 sur une base aux proportions d'ELAN
+   (3 000 fiches, toutes touchées) : le retour prenait 442 ms et une horloge battant toutes les
+   10 ms dans le même processus a sauté pendant **448 ms**. Autrement dit : une demi-seconde
+   pendant laquelle chaque technicien de chaque entreprise attend. Et ça monte linéairement —
+   1 738 ms mesurées sur 10 000 fiches, et les bases grossissent.
+   La parade tient en un `await` : `pousser()` travaille déjà par lots de 100, il suffit de
+   laisser respirer entre deux. Un `setImmediate` place la reprise APRÈS les entrées/sorties en
+   attente — donc après les requêtes des clients, qui sont exactement ce qu'on veut servir.
+
+   ⚠️ CE QUI RESTE, MESURÉ, ET POURQUOI ON S'ARRÊTE LÀ. Après découpage :
+
+   | base        | durée totale | pire bloc |
+   |-------------|--------------|-----------|
+   | 3 000 (ELAN)| ~500 ms      | **55 ms** |
+   | 10 000      | ~1 700 ms    | **181 ms**|
+
+   Le total ne bouge pas — il est juste rendu par morceaux. Le pire bloc, lui, n'est plus un lot
+   mais un BALAYAGE du journal : une seule requête SQL, indivisible, qui grandit avec la base.
+   Et il y en a DEUX par retour, parce que `retourAppliquer` appelle `retourApercu` puis
+   reparcourt lui-même — le même travail, fait deux fois. On le laisse : mutualiser les deux
+   demanderait de retoucher la fonction la plus délicate de ce fichier, juste après l'avoir
+   éprouvée par mutation, pour gagner 150 ms sur un geste rare et délibéré. C'est un coût connu,
+   pas un coût ignoré — et le jour où une base dépasse 30 000 lignes, c'est ICI qu'il faut
+   revenir : le plafond monte linéairement.
+   ⚠️ Conséquence à connaître et à ne pas prendre pour un défaut : rendre la main autorise un
+   appareil à écrire PENDANT le retour. Sa ligne portera une date plus récente que celle du
+   retour, donc `pousser()` refusera la nôtre (`perime`) — et ce refus est COMPTÉ et RENDU.
+   C'est le bon arbitrage : quelqu'un qui travaille en ce moment gagne contre un retour, et on
+   le dit au lieu de l'écraser en silence.
+   ⛔ UN SEUL RETOUR À LA FOIS PAR ESPACE. Deux retours qui s'entrelacent poseraient deux dates
+   différentes sur la même base : chacun défferait l'autre à moitié, et le journal deviendrait
+   illisible pour celui qui voudrait revenir sur le retour. */
+const _retoursEnVol = new Set();
+
 /* Applique le retour. Écrit par `pousser()`, la MÊME porte qu'un appareil — donc les mêmes
    plafonds, les mêmes refus, la même trace au journal, et rien de neuf à auditer. */
-function retourAppliquer(t, instant, ctx) {
+async function retourAppliquer(t, instant, ctx) {
   t = exigerT(t);
   const c = ctx || {};
+  if (_retoursEnVol.has(t)) { const e = new Error('un retour est déjà en cours'); e.code = 'ENCOURS'; throw e; }
   const ap = retourApercu(t, instant);
   /* ⛔ ON REFUSE PAR DÉFAUT QUAND IL MANQUE DES CORPS. `sansLesIllisibles` est une décision
      explicite de celui qui déclenche, pas un réglage : un retour partiel peut être le bon
@@ -1029,11 +1067,24 @@ function retourAppliquer(t, instant, ctx) {
     const e = new Error('instant antérieur au plus vieux corps gardé'); e.code = 'TROPLOIN'; e.apercu = ap; throw e;
   }
 
+  _retoursEnVol.add(t);
+  try {
+  /* ⛔ APRÈS les entrées/sorties en attente, pas avant : `setImmediate` reprend une fois les
+     requêtes des clients servies, ce qui est le but. `setTimeout(…, 0)` reprendrait avant. */
+  const respirer = () => new Promise(r => setImmediate(r));
+  /* ⛔ ON RESPIRE APRÈS CHAQUE BALAYAGE, PAS SEULEMENT ENTRE LES LOTS — et c'est la mesure qui
+     l'a montré. Le découpage en lots de 100 avait ramené le pire gel de 448 à 82 ms, mais un
+     bloc restait deux fois plus gros que les autres. En l'isolant : le balayage du journal
+     coûte 30 ms à lui seul, et `retourAppliquer` en fait DEUX (celui de l'aperçu qu'il appelle
+     en tête, puis le sien) avant d'arriver au premier `await`. Trois coûts collés en un seul
+     gel. Séparés, chacun redevient un bloc ordinaire. */
+  await respirer();
   const db = ouvrir(t), dek = dekDe(t);
   const ts = ap.instant;
   const avant = etatAuJournal(db, ts);
   const parCle = new Map();
   for (const j of avant) parCle.set(j.coll + '\u0000' + j.id, j);
+  await respirer();
 
   /* ⛔ PAR LOTS, PARCE QUE LE CORPS DE CHAQUE LIGNE EST EN MÉMOIRE PENDANT QU'ON POUSSE. Une
      base d'entreprise fait des milliers d'enregistrements et un corps peut peser 512 Ko
@@ -1099,7 +1150,7 @@ function retourAppliquer(t, instant, ctx) {
       catch (err) { refuses.push({ c: j.coll, id: j.id, motif: 'illisible' }); continue; }
       pousserAuLot({ c: j.coll, id: j.id, m: quand, e: j.empreinte || '', r }, 'corps');
     }
-    if (lot.length >= LOT) { envoyer(lot); lot = []; }
+    if (lot.length >= LOT) { envoyer(lot); lot = []; await respirer(); }
   }
   for (const j of avant) {
     const cle = j.coll + '\u0000' + j.id;
@@ -1109,7 +1160,7 @@ function retourAppliquer(t, instant, ctx) {
     try { r = JSON.parse(desceller_clair(dek, t, j.coll, j.id, j.maj_le, j.supprime, j.corps).toString('utf8')); }
     catch (err) { refuses.push({ c: j.coll, id: j.id, motif: 'illisible' }); continue; }
     pousserAuLot({ c: j.coll, id: j.id, m: quand, e: j.empreinte || '', r }, 'corps');
-    if (lot.length >= LOT) { envoyer(lot); lot = []; }
+    if (lot.length >= LOT) { envoyer(lot); lot = []; await respirer(); }
   }
   envoyer(lot);
 
@@ -1132,6 +1183,7 @@ function retourAppliquer(t, instant, ctx) {
   db.prepare("INSERT INTO meta (cle,val) VALUES ('retours',?) ON CONFLICT(cle) DO UPDATE SET val=excluded.val").run(JSON.stringify(liste));
 
   return Object.assign({ ok: true, seq: rang(t) }, trace, { refus: refuses.slice(0, 50) });
+  } finally { _retoursEnVol.delete(t); }
 }
 
 function retoursDe(t) {
