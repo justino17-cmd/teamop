@@ -101,6 +101,47 @@ console.log('\n⛔ Aller-retour sur le semis RÉEL');
   v('⛔ aucun corps ne porte `_m` ni `_ms` (ils entreraient dans recEmpreinte)', tampons.length, 0);
 }
 
+/* ══ ⛔ LA SIGNATURE NE DOIT PAS DÉPENDRE DE L'HEURE ═══════════════════════════════════════
+   MESURÉ le 20 septembre 2026, et c'est le défaut le plus coûteux qu'ait produit ce chantier —
+   introduit par un correctif, ce qui le rend d'autant plus facile à réintroduire.
+
+   `opSignature` inclut `l.m`. `dateBase` est la seule date que portent le bloc de réglages, les
+   dictionnaires et la liste des vides. Une première version PLAFONNAIT `dateBase` à
+   `Date.now()` pour qu'une fiche à l'horloge folle n'emporte pas les réglages dans son refus —
+   et rendait du même coup la signature de TOUTE la base dépendante de l'heure : deux appels à
+   trente millisecondes d'écart, deux signatures différentes.
+
+   Ce que ça aurait coûté en production : le contrôle de nuit criant une divergence CHAQUE NUIT,
+   pour toujours, sur toute base contenant UN SEUL enregistrement daté dans le futur — et, depuis
+   l'étape 5, cette divergence remet la borne haute à zéro, donc toute la base repoussée chaque
+   nuit. Un correctif qui fabrique, en plus grand, la panne qu'il prétend éviter. */
+{
+  console.log('\n⛔ La signature ne dépend pas de l\'heure');
+  const sig = (b) => api.opSignature(api.opDecomposer(b)).sig;
+  /* ⛔ UNE ATTENTE, PAS DEUX APPELS COLLÉS. La première sonde écrite pour ce défaut appelait
+     deux fois de suite et concluait « stable » — les deux tombaient dans la même milliseconde.
+     Elle a donc validé le code fautif. On attend franchement. */
+  const attendre = (ms) => { const t = Date.now(); while (Date.now() - t < ms) ; };
+
+  const saine = { clients: [{ id: 'c1', nom: 'A', _m: 1700000000000 }] };
+  const s1 = sig(saine); attendre(30); v('une base saine signe pareil trente millisecondes plus tard', sig(saine), s1);
+
+  const futur = { clients: [{ id: 'c1', nom: 'A', _m: Date.now() + 3600000 }] };
+  const f1 = sig(futur); attendre(30);
+  v('⛔ une base portant un `_m` FUTUR aussi', sig(futur), f1);
+
+  /* Et le but d'origine tient toujours : la fiche folle ne doit pas emporter les réglages. */
+  const melange = { metier: '3d', clients: [
+    { id: 'sain', nom: 'A', _m: 1700000000000 },
+    { id: 'fou', nom: 'B', _m: Date.now() + 3600000 },
+  ] };
+  const lignes = api.opDecomposer(melange);
+  const reg = lignes.find(l => l.c === '_reglages');
+  v('⛔ le bloc de réglages prend la date SAINE, pas la folle', reg && reg.m, 1700000000000);
+  const fou = lignes.find(l => l.id === 'fou');
+  vrai('   et la fiche folle garde la sienne — elle sera refusée, et c\'est juste', fou && fou.m > Date.now());
+}
+
 /* ══ 1. (b) UNE BASE SYNTHÉTIQUE PORTANT LES 83 CLÉS ══════════════════════════════════════
    Le semis n'en a que 34 : les autres naissent à l'usage. Sans ce cas-ci, la moitié du
    classement ne serait jamais exercée — et c'est la moitié exotique. */

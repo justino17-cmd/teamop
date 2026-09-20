@@ -6354,27 +6354,42 @@ function opDecomposer(base, opts) {
      dictionnaire portent alors la même date, et c'est le dernier arrivé qui gagne — par CLÉ,
      pas en bloc, donc aucun plan n'écrase l'autre. La maille fine par clé attend la phase B et
      l'extension d'`estampiller()` aux objets. */
+  /* ⛔⛔ `_maintenant` SE DÉCLARE AVANT LA BOUCLE QUI S'EN SERT. Écrit après, c'est une zone
+     morte temporelle — le piège exact qui a éteint toute la sauvegarde hors site le
+     19 septembre 2026, et que `test-726` existe pour attraper. */
+  const _maintenant = Date.now();
   let dateBase = 0;
   try {
     Object.keys(src || {}).forEach(k => { if (!Array.isArray(src[k])) return;
-      src[k].forEach(r => { const m = +(r && r._m) || 0; if (m > dateBase) dateBase = m; }); });
+      src[k].forEach(r => { const m = +(r && r._m) || 0; if (m > dateBase && m <= _maintenant) dateBase = m; }); });
   } catch (e) {}
   /* Une base qui n'a JAMAIS été tamponnée (aucun `_m` nulle part) garde 0 : on n'invente pas
      une date pour elle. Ses lignes seront refusées, et c'est juste — rien n'a encore été
-     réconcilié, donc rien ne doit partir. */
-  /* ⛔ MAIS ON PLAFONNE À MAINTENANT, ET C'EST UN DÉFAUT MESURÉ, PAS UNE PRUDENCE. `dateBase`
-     est le plus haut `_m` de la base, et c'est la SEULE date que puissent porter les trois
-     choses qui n'en ont pas : le bloc de réglages, les dictionnaires (`plansSite`, `planNotes`,
-     `permissions`) et la liste des collections vides. Or il suffit d'UN enregistrement à
-     l'horloge folle — un téléphone mal réglé, et son `_m` part chez toute l'équipe par la
-     synchro — pour que `dateBase` passe dans le futur. Le serveur refuse alors ces lignes-là en
-     `horlogeAvancee`, sur TOUS les appareils à la fois, et pour toujours : personne ne va
-     rééditer la fiche fautive, et rien ne le dit. Le plan d'appâtage de 24 postes d'un client
-     n'arriverait jamais au socle.
-     Plafonner ne cache rien : la fiche fautive, ELLE, reste refusée et se voit dans les refus.
-     On refuse juste qu'elle emporte avec elle des données qui n'y sont pour rien. */
-  const _maintenant = Date.now();
-  if (dateBase > _maintenant) dateBase = _maintenant;
+     réconcilié, donc rien ne doit partir.
+
+     ⛔ POURQUOI ON ÉCARTE LES DATES FUTURES DU MAXIMUM. `dateBase` est la SEULE date que
+     puissent porter les trois choses qui n'en ont pas : le bloc de réglages, les dictionnaires
+     (`plansSite`, `planNotes`, `permissions`) et la liste des collections vides. Or il suffit
+     d'UN enregistrement à l'horloge folle — un téléphone mal réglé, et son `_m` part chez toute
+     l'équipe par la synchro — pour que le maximum passe dans le futur. Le serveur refuserait
+     alors ces lignes-là en `horlogeAvancee`, sur TOUS les appareils à la fois et pour
+     toujours : personne ne va rééditer la fiche fautive, et rien ne le dirait. Le plan
+     d'appâtage de 24 postes d'un client n'arriverait jamais au socle.
+     ⚠️ La fiche fautive, ELLE, reste refusée et se voit dans les refus. On refuse juste
+     qu'elle emporte avec elle des données qui n'y sont pour rien.
+
+     ⛔⛔ ET ON ÉCARTE PLUTÔT QUE DE PLAFONNER LE RÉSULTAT — la première version faisait
+     `if (dateBase > maintenant) dateBase = maintenant`, ce qui atteignait le but mais en
+     fabriquait un pire, MESURÉ le 20 septembre 2026 : `opSignature` inclut `l.m`, donc
+     `dateBase = Date.now()` rendait la signature de TOUTE la base dépendante de l'heure. Deux
+     appels à trente millisecondes d'écart rendaient deux signatures différentes.
+     En production, une fois l'étape 4 allumée : le contrôle de nuit aurait crié une divergence
+     CHAQUE NUIT, pour toujours, sur toute base contenant un seul enregistrement daté dans le
+     futur — et depuis l'étape 5, cette divergence remet la borne haute à zéro, donc toute la
+     base serait repoussée chaque nuit. Un correctif qui fabrique, en plus grand, la panne qu'il
+     prétend éviter. Écarter les futurs du maximum donne le même effet et reste déterministe :
+     la frontière ne bouge qu'au rythme où un `_m` cesse d'être futur, jamais entre deux appels
+     rapprochés. */
   const ecrire = (c, id, m, r) => {
     const l = { c: c, id: String(id), m: +m || 0, r: r, e: opEmpreinte(r) };
     /* `f` n'est posé que s'il y a quelque chose à dire : une ligne sur cent en porte, et un
@@ -8362,6 +8377,16 @@ function opSoclePousser() {
 async function opSoclePousserVraiment() {
   try {
     const s = await opSocleSession(); if (!s || !s.double) return null;
+    /* ⛔ LA PHOTO DE L'ÉTAPE 7 SE PREND ICI, ET NULLE PART AILLEURS. C'est le seul instant qui
+       convienne : la double écriture vient d'être allumée pour cet espace, donc la base locale
+       est encore ce qu'elle était AVANT que le socle ait quoi que ce soit à dire. Prise plus
+       tard — après la bascule de la lecture — elle refléterait un `db` déjà recomposé depuis le
+       VPS, et la relecture comparerait le VPS à lui-même : le piège de circularité par la porte
+       de derrière. C'est aussi le seul élément du chantier qui ait une date de péremption : le
+       jour où on en a besoin, il est trop tard pour la prendre.
+       ⚠️ Jamais attendue, et une seule fois par espace : `opPhotoPrendre` rend la photo
+       existante sans rien réécrire. */
+    try { opPhotoPrendre(s.t); } catch (e) {}
     const haut = opHautLire(s.t);
     let lignes = null, retenus = [];
     try { lignes = opDecomposer(db); retenus = lignes.retenus || []; } catch (e) { return null; }
@@ -8672,6 +8697,217 @@ async function opSocleControle() {
     return { ok, ecarts, muettes: muettes.length };
   } catch (e) { return null; }
 }
+/* ══ ÉTAPE 7 — LA RELECTURE, CONTRE LA PHOTO PRISE AVANT ═══════════════════════════════════
+   ⛔ LE PIÈGE DE CIRCULARITÉ, ET C'EST LE CŒUR DE CETTE ÉTAPE. Depuis l'étape 5, le `db` de
+   l'appareil EST la recomposition du VPS : comparer `db` au VPS, c'est comparer le VPS à
+   lui-même, et ça passe toujours. Les trois architectures proposées au départ avaient ce
+   défaut. La relecture se fait donc contre une PHOTO horodatée, prise à l'étape 4 — c'est-à-dire
+   AVANT que la lecture bascule — et gardée sur l'appareil.
+
+   ⛔ ET UNE PHOTO NE SE PREND PAS APRÈS COUP. C'est le seul élément de tout le chantier qui ait
+   une date de péremption : le jour où on en a besoin, il est trop tard pour la prendre. Elle
+   part donc automatiquement, UNE SEULE FOIS, au moment où le serveur annonce la double écriture
+   pour cet espace.
+   ⚠️ Ça n'enfreint pas « rien ne s'écrit dans les données d'une entreprise au seul chargement » :
+   la photo va dans un magasin À PART (`elan_photo`), qui n'est pas synchronisé, ne porte aucune
+   pierre tombale et ne ressuscite rien. C'est une copie de sauvegarde locale, pas un contenu. */
+const OP_PHOTO_BASE = 'elan_photo';
+
+/* ⛔ ON COMPTE DES PIÈCES, PAS DES LIGNES — et c'est toute la différence entre un contrôle qui
+   rassure et un contrôle qui sert. Un décompte d'enregistrements ne peut PAS voir disparaître le
+   CONTENU d'un enregistrement : l'intervention est là, elle a le bon numéro, le bon client, la
+   bonne date — et il lui manque ses deux signatures et ses six photos. Le compte tombe juste, et
+   le rapport envoyé au client est vide. */
+function opRecensement(base) {
+  const src = base || db;
+  const out = { photos: 0, docs: 0, signatures: 0, total: 0, par: {} };
+  const compterRec = (r) => {
+    if (!r || typeof r !== 'object') return 0;
+    let n = 0;
+    /* Une photo compte qu'elle soit encore un base64 local ou déjà un marqueur `piece:` : ce
+       qu'on suit, c'est la PRÉSENCE de la pièce, pas l'endroit où son contenu dort. */
+    if (Array.isArray(r.photos)) { const k = r.photos.filter(x => x != null && String(x) !== '').length; out.photos += k; n += k; }
+    if (Array.isArray(r.docs)) {
+      const k = r.docs.filter(d => d && (String(d.data || '') !== '' || String(d.pid || '') !== '')).length;
+      out.docs += k; n += k;
+    }
+    /* `signature`, `signatureClient`, `signatureTech`… — on ne fige pas une liste de noms, elle
+       vieillirait en silence à la première signature ajoutée. */
+    Object.keys(r).forEach(cle => {
+      if (cle.indexOf('signature') !== 0) return;
+      const v = r[cle];
+      if (v && String(v) !== '' && String(v) !== 'null') { out.signatures++; n++; }
+    });
+    return n;
+  };
+  Object.keys(src || {}).forEach(cle => {
+    const val = src[cle];
+    let n = 0;
+    if (Array.isArray(val)) val.forEach(r => { n += compterRec(r); });
+    else if (val && typeof val === 'object') Object.keys(val).forEach(k => { n += compterRec(val[k]); });
+    if (n) out.par[cle] = n;
+  });
+  out.total = out.photos + out.docs + out.signatures;
+  return out;
+}
+
+/* La photo : la base entière, son recensement, sa signature, et la date. En IndexedDB parce que
+   `localStorage` n'a pas la place — une base réaliste fait 300 Ko et davantage. */
+function opPhotoPoser(o) { return new Promise(res => { try {
+  const q = indexedDB.open(OP_PHOTO_BASE, 1);
+  q.onupgradeneeded = e => { const d = e.target.result; if (!d.objectStoreNames.contains('photos')) d.createObjectStore('photos', { keyPath: 't' }); };
+  q.onerror = () => res(false);
+  q.onsuccess = e => { const d = e.target.result; try {
+    const tx = d.transaction('photos', 'readwrite');
+    tx.objectStore('photos').put(o);
+    tx.oncomplete = () => res(true); tx.onerror = () => res(false);
+  } catch (err) { res(false); } };
+} catch (err) { res(false); } }); }
+
+function opPhotoLire(t) { return new Promise(res => { try {
+  const q = indexedDB.open(OP_PHOTO_BASE, 1);
+  q.onupgradeneeded = e => { const d = e.target.result; if (!d.objectStoreNames.contains('photos')) d.createObjectStore('photos', { keyPath: 't' }); };
+  q.onerror = () => res(null);
+  q.onsuccess = e => { const d = e.target.result; try {
+    const g = d.transaction('photos', 'readonly').objectStore('photos').get(String(t));
+    g.onsuccess = () => res(g.result || null); g.onerror = () => res(null);
+  } catch (err) { res(null); } };
+} catch (err) { res(null); } }); }
+
+/* ⛔ UNE SEULE FOIS DANS LA VIE DE L'APPAREIL, POUR CET ESPACE. Reprendre la photo plus tard la
+   rendrait inutile : elle refléterait un `db` déjà recomposé depuis le VPS, donc elle
+   comparerait le VPS à lui-même — le piège de circularité, par la porte de derrière. */
+async function opPhotoPrendre(t) {
+  try {
+    const deja = await opPhotoLire(t);
+    if (deja && deja.ts) return deja;
+    let lignes = null;
+    try { lignes = opDecomposer(db); } catch (e) { return null; }
+    const sig = opSignature(lignes);
+    const rec = opRecensement(db);
+    const photo = { t: String(t), ts: Date.now(), ver: String(typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''),
+      dev: syncDeviceId(), sig: sig.sig, par: sig.par, recens: rec, json: JSON.stringify(db) };
+    const ok = await opPhotoPoser(photo);
+    return ok ? photo : null;
+  } catch (e) { return null; }
+}
+
+/* ⛔ CHAQUE APPAREIL DÉPOSE SON ATTESTATION, ET LA TOUR NOMME LES MANQUANTS. « 9 appareils sur
+   12 ont attesté » ne ferme aucune porte : ce qu'il faut, c'est savoir LESQUELS manquent, pour
+   pouvoir demander à ces trois personnes-là d'ouvrir l'application. On ne ferme pas sur un
+   chiffre agrégé, on ferme sur une liste nominative.
+   ⚠️ L'attestation ne porte que des NOMBRES et une empreinte — jamais un contenu. */
+async function opAttester(t, photo, relu) {
+  try {
+    const s = await opSocleSession(); if (!s) return null;
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 10000);
+    const r = await fetch(PUSH_API + '/api/op/atteste', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.jeton },
+      body: JSON.stringify({
+        dev: syncDeviceId(), ver: String(typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''),
+        photoTs: (photo && photo.ts) || 0, photoSig: (photo && photo.sig) || '',
+        pieces: (photo && photo.recens && photo.recens.total) || 0,
+        relu: relu ? { ok: !!relu.ok, manquants: relu.manquants.length, piecesPerdues: relu.piecesPerdues } : null,
+      }), signal: ctl.signal });
+    clearTimeout(to);
+    if (!r.ok) return null;
+    return await r.json().catch(() => null);
+  } catch (e) { return null; }
+}
+
+/* ══ LA RELECTURE ELLE-MÊME ════════════════════════════════════════════════════════════════
+   ⛔ ELLE TÉLÉCHARGE DANS UNE BASE NEUVE, JAMAIS DANS `db`. Recomposer dans `db` ferait deux
+   choses également fatales : ça écraserait le travail du technicien, et ça rendrait la
+   comparaison tautologique. On monte une base à part, on la compare à la photo, on jette. */
+async function opRelecture(surPhoto) {
+  try {
+    const s = await opSocleSession(); if (!s) return null;
+    const photo = surPhoto || await opPhotoLire(s.t);
+    if (!photo || !photo.json) return { erreur: 'aucune photo prise sur cet appareil avant la bascule' };
+
+    /* ⛔ LA PHOTO DOIT ÊTRE CELLE QU'ON A DÉPOSÉE. Une photo modifiée depuis — un import, une
+       main malheureuse — comparerait le socle à autre chose que ce qui existait, et rendrait un
+       verdict qui ne veut rien dire. On la re-signe et on compare à l'empreinte gardée. */
+    let avant = null;
+    try { avant = JSON.parse(photo.json); } catch (e) { return { erreur: 'photo illisible' }; }
+    let sigAvant = '';
+    try { sigAvant = opSignature(opDecomposer(avant)).sig; } catch (e) {}
+    if (photo.sig && sigAvant && photo.sig !== sigAvant) return { erreur: 'la photo a changé depuis qu\'elle a été prise' };
+
+    /* On télécharge TOUT, depuis zéro, dans une base neuve. */
+    const apres = {};
+    let curseur = 0, pages = 0, illisibles = 0;
+    for (pages = 0; pages < 200; pages++) {
+      const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 20000);
+      let r = null;
+      try { r = await fetch(PUSH_API + '/api/op/depuis?seq=' + curseur + '&max=400',
+        { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal }); }
+      catch (e) { clearTimeout(to); return { erreur: 'le serveur n\'a pas répondu' }; }
+      clearTimeout(to);
+      if (!r.ok) return { erreur: 'lecture refusée (' + r.status + ')' };
+      const j = await r.json().catch(() => null);
+      if (!j || !Array.isArray(j.enr)) return { erreur: 'réponse illisible' };
+      illisibles += (+j.illisibles || 0);
+      if (j.enr.length) opRecomposer(j.enr, apres, { ecraser: true });
+      const suite = parseInt(j.curseur, 10);
+      if (!isFinite(suite) || suite <= curseur) break;
+      curseur = suite;
+      if (!j.reste) break;
+    }
+
+    /* ══ LA COMPARAISON, ENREGISTREMENT PAR ENREGISTREMENT ══════════════════════════════════ */
+    const manquants = [], differents = [];
+    const idDe = (c, r) => String(r[(OP_ID_DE[OP_CLASSES[c]] || 'id')] == null ? '' : r[(OP_ID_DE[OP_CLASSES[c]] || 'id')]);
+    Object.keys(avant || {}).forEach(c => {
+      const a = avant[c];
+      if (!Array.isArray(a)) return;
+      const genre = OP_CLASSES[c] || '';
+      if (genre === 'liste_ts') {
+        /* Pas d'identité propre : on compare par identifiant DÉRIVÉ, le même que la pousse. */
+        const vus = new Set((apres[c] || []).map(r => { try { return opIdDerive(r); } catch (e) { return ''; } }));
+        a.forEach(r => { let id = ''; try { id = opIdDerive(r); } catch (e) {}
+          if (id && !vus.has(id)) manquants.push({ coll: c, id: id }); });
+        return;
+      }
+      const parId = new Map();
+      (apres[c] || []).forEach(r => { if (r) parId.set(idDe(c, r), r); });
+      a.forEach(r => {
+        if (!r) return;
+        const id = idDe(c, r);
+        const b2 = parId.get(id);
+        if (!b2) { manquants.push({ coll: c, id: id }); return; }
+        /* ⛔ CHAMP À CHAMP, et sur l'empreinte CANONIQUE — pas sur `JSON.stringify`, qui
+           dépend de l'ordre d'insertion des clés et crierait au loup en permanence. */
+        let ea = '', eb = '';
+        try { ea = opEmpreinte(opSansTampon(r)); eb = opEmpreinte(opSansTampon(b2)); } catch (e) {}
+        if (ea && eb && ea !== eb) differents.push({ coll: c, id: id });
+      });
+    });
+
+    /* ⛔ ET LE RECENSEMENT DES PIÈCES, QUI EST L'AUTRE MOITIÉ. Zéro enregistrement manquant ne
+       dit RIEN sur les signatures et les photos qu'ils portaient. */
+    const recAvant = photo.recens || opRecensement(avant);
+    const recApres = opRecensement(apres);
+    const piecesPerdues = Math.max(0, (recAvant.total || 0) - (recApres.total || 0));
+    const piecesPar = {};
+    Object.keys(recAvant.par || {}).forEach(c => {
+      const d = (recAvant.par[c] || 0) - ((recApres.par || {})[c] || 0);
+      if (d > 0) piecesPar[c] = d;
+    });
+
+    const ok = !manquants.length && !differents.length && !piecesPerdues && !illisibles;
+    const verdict = { ok, pages, illisibles,
+      manquants: manquants.slice(0, 200), differents: differents.slice(0, 200),
+      nManquants: manquants.length, nDifferents: differents.length,
+      piecesAvant: recAvant.total || 0, piecesApres: recApres.total || 0, piecesPerdues, piecesPar,
+      photoTs: photo.ts, photoVer: photo.ver };
+    /* On atteste dans la foulée : une relecture dont le résultat ne remonte nulle part ne
+       ferme aucune porte. */
+    try { verdict.attestee = !!(await opAttester(s.t, photo, { ok, manquants, piecesPerdues })); } catch (e) {}
+    return verdict;
+  } catch (e) { return { erreur: String((e && e.message) || e) }; }
+}
+
 /* ══ ÉTAPE 0 DU SOCLE : UNE PIÈCE JOINTE VIT SUR LE SERVEUR, PAS DANS LE DOCUMENT ══════════
    Justin, 16 septembre 2026 : « Les pièces jointes → ton VPS ». Aujourd'hui `syncAlleger` RETIRE
    les pièces et les photos de la copie poussée pour tenir sous le plafond de 1 Mio d'un document
@@ -9177,6 +9413,11 @@ function espaceQuitter(){
     lienLisibleOublier();
   }catch(e){}
   try{ indexedDB.deleteDatabase(P+'cote'); }catch(e){}
+  /* ⛔ ET LA PHOTO DE L'ÉTAPE 7 AUSSI — c'est la base ENTIÈRE d'une entreprise, en clair, dans
+     IndexedDB. La laisser derrière sur un appareil qu'on rend, qu'on quitte ou dont la Tour
+     ferme l'espace, ce serait laisser les noms, les adresses et les coordonnées de tous les
+     clients de cette entreprise à qui reprend l'appareil. Elle part avec le reste. */
+  try{ indexedDB.deleteDatabase(P+'photo'); }catch(e){}
   /* ⛔ ET LA SESSION FIREBASE PART AVEC — c'est le secret le plus VIVANT de tous. Depuis la
      v640, elle porte l'entreprise dans son jeton, et elle se renouvelle indéfiniment toute
      seule : retirer les clés du stockage local n'y change rien, elle vit ailleurs. Sans ce

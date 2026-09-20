@@ -159,6 +159,9 @@ const code = [
   ligne('const OP_SEQ_CLE ='), ligne('function opSeqLire('), ligne('function opSeqPoser('),
   ligne('let _opLectureEnVol ='),
   bloc('function opSocleLire('), bloc('async function opSocleLireVraiment('),
+  /* ── ÉTAPE 7 : LA RELECTURE ── */
+  ligne('const OP_PHOTO_BASE ='), bloc('function opRecensement('),
+  bloc('async function opAttester('), bloc('async function opRelecture('),
 ].join('\n');
 
 /* ⛔ UN `fetch` QUI COMPTE, ET C'EST UNE MUTATION QUI L'A EXIGÉ. « Une seconde pousse ne
@@ -262,7 +265,7 @@ function basePetite(m) {
   let compte = fetchCompteur();
   const allumer = () => new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
     'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
-    code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire};')
+    code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire,opRecensement,opRelecture,opAttester,opEmpreinte,opSansTampon,opIdDerive};')
     (compte, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
      (motif) => diagnostics.push(motif), 703, { id: 'u-banc' }, db,
      { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
@@ -514,7 +517,7 @@ function basePetite(m) {
     const db2 = {};
     const api2 = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
       'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
-      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire};')
+      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire,opRecensement,opRelecture,opAttester,opEmpreinte,opSansTampon,opIdDerive};')
       (compte, stock2, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-2',
        (motif) => diagnostics.push(motif), 703, { id: 'u-banc-2' }, db2,
        { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
@@ -604,7 +607,7 @@ function basePetite(m) {
     const stock3 = stockNeuf(), db3 = {};
     const api3 = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
       'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
-      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire};')
+      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire,opRecensement,opRelecture,opAttester,opEmpreinte,opSansTampon,opIdDerive};')
       (compte, stock3, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-3',
        (motif) => diagnostics.push(motif), 703, { id: 'u-banc-3' }, db3,
        { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
@@ -790,6 +793,145 @@ function basePetite(m) {
     await appel('POST', '/api/monitor/espaces/suspendre', { jeton: JETON_TOUR, corps: { slug: SLUG, rouvrir: true } });
     const ok = await appel('POST', '/api/op/session', { corps: { t: T, kh: sha(CLE), app_id: '', nom: 'dev-rouvert' } });
     v('rouvrir remet tout en place', ok.code, 200);
+  }
+
+  /* ══ (n) ÉTAPE 7 — LA RELECTURE, CONTRE LA PHOTO PRISE AVANT ═════════════════════════════
+     ⛔ LE PIÈGE DE CIRCULARITÉ EST TOUT LE SUJET. Depuis l'étape 5, le `db` de l'appareil EST la
+     recomposition du VPS : comparer `db` au VPS, c'est comparer le VPS à lui-même, et ça passe
+     TOUJOURS. Ce banc doit donc prouver deux choses opposées — que la relecture dit « tout va
+     bien » quand tout va bien, ET qu'elle CRIE quand il manque quelque chose. La seconde est la
+     seule qui ait de la valeur : un contrôle qui ne sait pas échouer ne contrôle rien. */
+  console.log('\n⛔ Étape 7 — la relecture contre la photo, et sa contre-épreuve');
+  {
+    /* ⛔ ON COMPTE DES PIÈCES, PAS DES LIGNES. Un décompte d'enregistrements ne peut pas voir
+       disparaître le CONTENU d'un enregistrement : l'intervention est là, il lui manque ses
+       deux signatures et ses six photos. */
+    const avecPieces = {
+      interventions: [
+        { id: 'ri1', num: 'INT-R1', photos: ['piece:' + 'a'.repeat(64), 'piece:' + 'b'.repeat(64)],
+          docs: [{ nom: 'rapport', data: 'xx' }, { nom: 'vide' }],
+          signatureClient: 'sig-c', signatureTech: 'sig-t', _m: 1 },
+        { id: 'ri2', num: 'INT-R2', photos: [], docs: [], _m: 1 },
+      ],
+    };
+    const rec = api.opRecensement(avecPieces);
+    v('⛔ deux photos comptées', rec.photos, 2);
+    v('⛔ un document avec contenu, pas celui qui est vide', rec.docs, 1);
+    v('⛔ et les deux signatures', rec.signatures, 2);
+    v('   soit cinq pièces au total', rec.total, 5);
+    v('   rangées par collection', rec.par.interventions, 5);
+    /* ⚠️ La liste des champs de signature n'est PAS figée : elle vieillirait à la première
+       signature ajoutée. Tout champ qui COMMENCE par `signature` compte. */
+    const rec2 = api.opRecensement({ interventions: [{ id: 'x', signatureDR: 'oui', _m: 1 }] });
+    v('⛔ un champ de signature INCONNU compte aussi', rec2.signatures, 1);
+    v('   mais un champ vide ne compte pas', api.opRecensement({ interventions: [{ id: 'y', signatureDR: '', _m: 1 }] }).signatures, 0);
+
+    /* ══ LA RELECTURE, SUR LE VRAI SERVEUR ═════════════════════════════════════════════════ */
+    await appel('POST', '/api/monitor/op/lecture', { jeton: JETON_TOUR, corps: { t: T, source: 'socle' } });
+    await api.opSocleSession(true);
+    await api.opSoclePousser();
+
+    /* La photo : on la fabrique à la main, parce que `opPhotoPrendre` passe par IndexedDB, qui
+       n'existe pas ici. C'est la MÊME structure, produite par les mêmes fonctions. */
+    const photoDe = (base) => ({ t: T, ts: Date.now(), ver: '703', dev: 'dev-banc-1',
+      sig: api.opSignature(api.opDecomposer(base)).sig,
+      recens: api.opRecensement(base), json: JSON.stringify(base) });
+
+    const bonne = photoDe(db);
+    const r1 = await api.opRelecture(bonne);
+    v('⛔ la relecture ne rend AUCUNE erreur', r1.erreur, undefined);
+    v('⛔ et elle dit que tout est là', r1.ok, true);
+    v('   aucun enregistrement manquant', r1.nManquants, 0);
+    v('   aucun différent', r1.nDifferents, 0);
+    v('   aucune pièce perdue', r1.piecesPerdues, 0);
+    vrai('   et l\'appareil a ATTESTÉ dans la foulée', r1.attestee === true);
+
+    /* ⛔⛔ LA CONTRE-ÉPREUVE, ET C'EST ELLE QUI COMPTE. Un contrôle qui ne sait pas échouer ne
+       contrôle rien — et c'est exactement ce qu'aurait donné une comparaison de `db` au VPS.
+       On fabrique une photo qui contient PLUS que ce que le socle détient : c'est très
+       précisément la forme qu'aurait une perte de données. */
+    const avecEnPlus = JSON.parse(JSON.stringify(db));
+    avecEnPlus.clients.push({ id: 'jamais-pousse', nom: 'Fiche perdue', ville: 'Niort', _m: 1 });
+    const r2 = await api.opRelecture(photoDe(avecEnPlus));
+    v('⛔ une fiche que le socle n\'a PAS est vue comme manquante', r2.ok, false);
+    v('   et elle est NOMMÉE', (r2.manquants[0] || {}).id, 'jamais-pousse');
+    v('   avec sa collection', (r2.manquants[0] || {}).coll, 'clients');
+
+    /* ⛔ ET UNE FICHE PRÉSENTE MAIS AMPUTÉE. C'est le cas que le comptage de lignes ne peut pas
+       voir : l'intervention est là, le compte tombe juste, et ses signatures ont disparu. */
+    const ampute = JSON.parse(JSON.stringify(db));
+    ampute.clients[0].ville = 'UNE-AUTRE-VILLE';
+    const r3 = await api.opRelecture(photoDe(ampute));
+    v('⛔ une fiche PRÉSENTE mais différente est vue', r3.ok, false);
+    v('   aucune n\'est déclarée manquante', r3.nManquants, 0);
+    vrai('   mais elle est comptée comme DIFFÉRENTE', r3.nDifferents >= 1);
+
+    const piecesEnMoins = JSON.parse(JSON.stringify(db));
+    piecesEnMoins.interventions[0].signatureClient = 'une-signature-qui-existait';
+    const r4 = await api.opRelecture(photoDe(piecesEnMoins));
+    v('⛔ une PIÈCE perdue est vue, même si l\'enregistrement est là', r4.piecesPerdues, 1);
+    v('   et la collection est nommée', r4.piecesPar.interventions, 1);
+    v('   le verdict tombe', r4.ok, false);
+
+    /* ⛔ UNE PHOTO QUI A CHANGÉ NE PROUVE RIEN. Si on peut la retoucher après coup, la
+       relecture compare le socle à autre chose que ce qui existait — et rend un verdict qui ne
+       veut rien dire. */
+    const trafiquee = photoDe(db);
+    const dedans = JSON.parse(trafiquee.json);
+    dedans.clients.push({ id: 'ajoutee-apres', nom: 'X', _m: 1 });
+    trafiquee.json = JSON.stringify(dedans);
+    const r5 = await api.opRelecture(trafiquee);
+    vrai('⛔ une photo retouchée est REFUSÉE, pas comparée', /a chang/.test(String(r5.erreur)));
+
+    /* ⛔ ET SANS PHOTO, ON NE DIT PAS « TOUT VA BIEN ». C'est le pire verdict possible : il
+       ferme la porte sur rien. */
+    const r6 = await api.opRelecture({ t: T, ts: 0, sig: '', json: '' });
+    vrai('⛔ sans photo, la relecture REFUSE de conclure', /aucune photo/.test(String(r6.erreur)));
+    v('   et elle ne prétend pas que tout va bien', r6.ok, undefined);
+  }
+
+  /* ══ (o) LES ATTESTATIONS — LA TOUR NOMME LES MANQUANTS ══════════════════════════════════ */
+  console.log('\n⛔ Étape 7 — la Tour nomme les appareils qui n\'ont pas attesté');
+  {
+    const etat = async () => (await appel('GET', '/api/monitor/op/attestations?t=' + encodeURIComponent(T), { jeton: JETON_TOUR })).j;
+    const e1 = await etat();
+    vrai('la Tour lit les attestations', !!e1 && typeof e1.appareils === 'number');
+    vrai('⛔ et elle voit celle qui vient d\'être déposée', e1.attestations.some(a => a.dev === 'dev-banc-1'));
+    /* ⛔ LE CONTRÔLE QUI COMPTE : on ne ferme pas sur « 1 sur 3 », on ferme sur QUI manque. */
+    vrai('⛔ elle NOMME les appareils qui n\'ont pas attesté', Array.isArray(e1.manquants));
+    vrai('   et il en manque, puisque trois appareils ont ouvert une session', e1.manquants.length >= 1);
+    v('⛔ donc ce n\'est PAS complet', e1.complet, false);
+
+    /* ⛔ ATTESTER NE SUFFIT PAS : une attestation qui dit « j'ai relu et il manque 12 fiches »
+       est un ÉCHEC, pas une case cochée. Sans ça, « tout le monde a attesté » se lirait « tout
+       va bien » alors que tout le monde signale un manque. */
+    /* ⛔ UNE ATTESTATION PAR APPAREIL, LA DERNIÈRE ÉCRASE — et c'est le banc qui s'est trompé
+       la première fois en attendant un cumul. Ce qu'on veut savoir est « cet appareil a-t-il
+       attesté, et que disait-il la DERNIÈRE fois », pas l'historique : un appareil qui relit
+       une seconde fois après un correctif ne doit pas traîner son ancien échec. */
+    const ses2 = await appel('POST', '/api/op/session', { corps: { t: T, kh: sha(CLE), app_id: '', nom: 'dev-second' } });
+    const avant = (await etat()).enEchec;
+    const nAvant = (await etat()).attestations.length;
+    await appel('POST', '/api/op/atteste', { jeton: ses2.j.jeton,
+      corps: { dev: 'dev-second', ver: '703', photoTs: Date.now(), photoSig: 'zz', pieces: 3,
+        relu: { ok: false, manquants: 2, piecesPerdues: 12 } } });
+    const e2 = await etat();
+    v('⛔ un SECOND appareil en échec fait monter le compte', e2.enEchec, avant + 1);
+    v('   et il ajoute bien une attestation', e2.attestations.length, nAvant + 1);
+    v('   qui empêche le « complet »', e2.complet, false);
+
+    /* ⛔ ET LE MÊME APPAREIL QUI RE-ATTESTE REMPLACE, IL N'AJOUTE PAS. Sans ça, un appareil qui
+       relit dix fois pèserait dix fois dans le compte — et « 12 appareils sur 9 » ne veut rien
+       dire. */
+    await appel('POST', '/api/op/atteste', { jeton: ses2.j.jeton,
+      corps: { dev: 'dev-second', ver: '703', photoTs: Date.now(), photoSig: 'yy', pieces: 3,
+        relu: { ok: true, manquants: 0, piecesPerdues: 0 } } });
+    const e3 = await etat();
+    v('⛔ re-attester REMPLACE, ça n\'ajoute pas', e3.attestations.length, nAvant + 1);
+    v('   et l\'échec précédent de CET appareil ne traîne plus', e3.enEchec, avant);
+    /* ⚠️ Une attestation ne porte que des nombres — jamais un contenu. */
+    v('⛔ aucune donnée de client dans les attestations',
+      /Niort|Client |La Rochelle/.test(JSON.stringify(e2.attestations)), false);
   }
 
   /* ══ (i) LE SERVEUR TOMBE : LA SYNCHRO DE L'ENTREPRISE NE DOIT PAS LE SENTIR ══════════════

@@ -408,6 +408,25 @@ function monterOpSocle(app, deps) {
     res.json({ ok: true, gardes: n });
   });
 
+  /* ══ POST /api/op/atteste ═════════════════════════════════════════════════════════════════
+     ⛔ L'ÉTAPE 7 : chaque appareil dépose ce qu'il a relu et ce qu'il détient. C'est la
+     dernière étape avant le retrait de Firestore, donc la dernière où un oubli se rattrape —
+     et on ne la ferme pas sur un chiffre agrégé. Bon marché : elle range des nombres, elle ne
+     déchiffre rien. */
+  poser('POST', '/api/op/atteste', opJeton, (req, res) => {
+    const b = req.body || {};
+    let n = 0;
+    try { n = socle.attesterNoter(req.op.t, Object.assign({}, b, { app_id: req.op.app_id })); }
+    catch (e) {
+      if (e && e.code === 'DEV') return res.status(400).json({ error: 'dev requis', motif: 'identite' });
+      console.error('socle: attestation non notée —', (e && e.code) || 'erreur');
+      return res.status(503).json({ error: 'attestation non enregistrée', motif: 'base' });
+    }
+    /* ⚠️ Une relecture EN ÉCHEC se voit dans le journal du serveur, sans nommer l'espace. */
+    if (b.relu && b.relu.ok !== true) console.error('socle : un appareil a relu et signale un MANQUE');
+    res.json({ ok: true, attestations: n });
+  });
+
   /* ══ GET /api/op/flux ═════════════════════════════════════════════════════════════════════ */
   poser('GET', '/api/op/flux', opJeton, (req, res) => {
     const t = req.op.t;
@@ -591,6 +610,21 @@ function monterOpSocle(app, deps) {
       /* ⛔ UNE SEULE FAUSSE = ON NE BASCULE PAS. Le plan l'écrit ; on le CALCULE, pour que
          personne n'ait à recompter quatre booléens un soir de fatigue. */
       pret: !!(a.ok && b2.ok && c.ok && d.ok && e5.ok) });
+  });
+
+  /* ══ GET /api/monitor/op/attestations ═════════════════════════════════════════════════════
+     ⛔ LA TOUR NOMME LES MANQUANTS. « 9 appareils sur 12 ont attesté » ne dit pas quoi faire ;
+     « il manque ces trois-là » permet de demander à ces trois personnes d'ouvrir l'application.
+     ⚠️ Un identifiant d'appareil est un jeton local tiré au hasard, pas une personne — et cette
+     route est derrière le mot de passe du patron. */
+  poser('GET', '/api/monitor/op/attestations', garde, (req, res) => {
+    const t = monStr(req.query.t, 80);
+    if (!t) return res.status(400).json({ error: 't requis' });
+    if (!socle.existe(t)) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
+    let e;
+    try { e = socle.attestationEtat(t, 14 * 86400000); }
+    catch (err) { return res.status(503).json({ error: 'stockage illisible' }); }
+    res.json(e);
   });
 
   poser('GET', '/api/monitor/op/apercu', garde, (req, res) => {

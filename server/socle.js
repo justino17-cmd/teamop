@@ -1201,6 +1201,65 @@ function controleNoter(t, o) {
   return liste.length;
 }
 
+/* ══ LES ATTESTATIONS — ÉTAPE 7 ════════════════════════════════════════════════════════════
+ * ⛔ ON NE FERME PAS LA PORTE SUR UN CHIFFRE AGRÉGÉ, ON LA FERME SUR UNE LISTE NOMINATIVE.
+ * « 9 appareils sur 12 ont attesté » ne dit pas quoi faire ; « il manque ces trois-là » permet
+ * de demander à ces trois personnes d'ouvrir l'application. C'est la même leçon que la
+ * condition (a) de l'étape 5, et elle vaut ici davantage : l'étape 7 est la dernière avant le
+ * retrait de Firestore, donc la dernière où un oubli se rattrape.
+ * ⚠️ Une attestation ne porte que des NOMBRES et une empreinte — jamais un contenu. Le `dev`
+ * est l'identifiant local tiré au hasard par l'appareil, pas une personne.
+ * ⚠️ Une par appareil, la dernière écrase la précédente : ce qu'on veut savoir est « cet
+ * appareil a-t-il attesté, et que disait-il la dernière fois », pas l'historique. */
+function attesterNoter(t, o) {
+  t = exigerT(t);
+  const db = ouvrir(t), c = o || {};
+  const dev = String(c.dev || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 24);
+  if (!dev) { const e = new Error('dev requis'); e.code = 'DEV'; throw e; }
+  let liste = [];
+  try { liste = JSON.parse((db.prepare("SELECT val FROM meta WHERE cle='attestations'").get() || {}).val || '[]'); } catch (e) { liste = []; }
+  if (!Array.isArray(liste)) liste = [];
+  liste = liste.filter(x => x && x.dev !== dev);
+  liste.unshift({
+    dev, ts: Date.now(),
+    ver: String(c.ver || '').replace(/[^0-9A-Za-z.-]/g, '').slice(0, 12),
+    app: String(c.app_id || '').slice(0, 32),
+    photoTs: parseInt(c.photoTs, 10) || 0,
+    photoSig: String(c.photoSig || '').replace(/[^0-9a-z]/gi, '').slice(0, 32),
+    pieces: parseInt(c.pieces, 10) || 0,
+    relu: c.relu ? { ok: c.relu.ok === true,
+      manquants: parseInt(c.relu.manquants, 10) || 0,
+      piecesPerdues: parseInt(c.relu.piecesPerdues, 10) || 0 } : null,
+  });
+  if (liste.length > 200) liste.length = 200;
+  db.prepare("INSERT INTO meta (cle,val) VALUES ('attestations',?) ON CONFLICT(cle) DO UPDATE SET val=excluded.val").run(JSON.stringify(liste));
+  return liste.length;
+}
+
+function attestationsDe(t) {
+  t = exigerT(t);
+  try { const l = JSON.parse((ouvrir(t).prepare("SELECT val FROM meta WHERE cle='attestations'").get() || {}).val || '[]');
+    return Array.isArray(l) ? l : []; } catch (e) { return []; }
+}
+
+/* ⛔ QUI MANQUE À L'APPEL. On compare les appareils qui ont ATTESTÉ à ceux qui sont VIVANTS
+ * (vus dans la fenêtre, non révoqués) — et on rend les identifiants des manquants, parce que
+ * c'est la seule forme qui permette d'agir. L'appariement passe par `appareil.nom`, qui porte
+ * le `dev-…` local : le même pont que la condition (a) de l'étape 5. */
+function attestationEtat(t, fenetreMs) {
+  const vivants = appareilsVivants(t, fenetreMs).map(a => String(a.nom || '')).filter(Boolean);
+  const att = attestationsDe(t);
+  const ontAtteste = new Set(att.map(a => a.dev));
+  const manquants = vivants.filter(d => !ontAtteste.has(d));
+  /* ⚠️ Attester ne suffit pas : une attestation qui dit « j'ai relu et il manque 12 fiches »
+     est un ÉCHEC, pas une case cochée. On les compte à part. */
+  const enEchec = att.filter(a => a.relu && !a.relu.ok);
+  return { appareils: vivants.length, attestes: vivants.filter(d => ontAtteste.has(d)).length,
+    manquants, enEchec: enEchec.length,
+    complet: vivants.length > 0 && manquants.length === 0 && enEchec.length === 0,
+    attestations: att };
+}
+
 function controlesDe(t) {
   t = exigerT(t);
   try { const l = JSON.parse((ouvrir(t).prepare("SELECT val FROM meta WHERE cle='controles'").get() || {}).val || '[]');
@@ -1604,7 +1663,8 @@ module.exports = {
   ouvrir, annuaire, dekDe, pousser, depuis, etat, rang, existe, presentSurDisque, verifier, effacerEntreprise, sante, fermer,
   exigerT, numeroReserver, journalDe,
   entrepriseEtat, entrepriseOuvrir, entrepriseDouble, entrepriseLecture, appareilsVivants, PEREMPTION_MS, controleNoter, controlesDe, controleSuite,
-  obsNoter, obsVerser, obsTotaux, latNoter, latQuantiles, divergences, OBS_JOURS, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
+  obsNoter, obsVerser, obsTotaux, latNoter, latQuantiles, divergences, OBS_JOURS,
+  attesterNoter, attestationsDe, attestationEtat, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
   diagnostic, diagnosticsDe, ancre, ancreVerifier,
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,
