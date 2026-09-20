@@ -171,20 +171,25 @@ function basePetite(m) {
   const JETON_TOUR = co && co.token;
   vrai('le patron ouvre une session de Tour', !!JETON_TOUR);
 
-  /* ── L'appareil : les vraies fonctions, le vrai `fetch`, un stockage de banc ── */
+  /* ── L'appareil : les vraies fonctions, le vrai `fetch`, un stockage de banc ──
+     ⛔ ON LE CONSTRUIT PAR UNE FONCTION, ET C'EST UNE MUTATION QUI L'A EXIGÉ. Retirer le cache
+     du verdict négatif ne cassait RIEN — parce que `_opJeton`, en mémoire, le neutralise tant
+     qu'on ne recharge pas. Or le cache n'existe QUE pour le rechargement : un téléphone de
+     terrain rouvre l'application dix fois par jour, et c'est là que les 120 sessions/h par
+     espace se remplissent. Un « allumer » perd la mémoire et garde le stockage — exactement
+     ce que fait un navigateur. Sans ça, le banc gardait une ligne qu'il n'exerçait jamais. */
   let stock = stockNeuf();
   let db = basePetite(1000);
   const diagnostics = [];
   let compte = fetchCompteur();
+  const allumer = () => new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
+    'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
+    code + '\nreturn {opDecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opHautLire,opNonLire};')
+    (compte, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
+     (motif) => diagnostics.push(motif), 703, { id: 'u-banc' }, db,
+     { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
   let api = null;
-  try {
-    api = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
-      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
-      code + '\nreturn {opDecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opHautLire,opNonLire};')
-      (compte, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
-       (motif) => diagnostics.push(motif), 703, { id: 'u-banc' }, db,
-       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
-  } catch (e) { console.log('      (extraction : ' + e.message + ')'); }
+  try { api = allumer(); } catch (e) { console.log('      (extraction : ' + e.message + ')'); }
   vrai('⛔ le bloc socle du fichier livré s\'extrait et s\'exécute', !!(api && api.opSoclePousser && api.opSocleControle));
   if (!api) { console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); await arreter(); process.exit(1); }
 
@@ -204,7 +209,15 @@ function basePetite(m) {
     const sessionsAvant = compte.combien('/api/op/session');
     const r2 = await api.opSoclePousser();
     v('   une seconde pousse rend null elle aussi', r2, null);
-    v('⛔ et elle n\'a PAS redemandé de session (le plafond de 120/h est épargné)',
+    v('   et elle n\'a pas redemandé de session', compte.combien('/api/op/session'), sessionsAvant);
+    /* ⛔ ET VOICI LE CAS QUI COMPTE VRAIMENT : LE RECHARGEMENT. Le contrôle au-dessus est
+       neutralisé par `_opJeton`, qui vit en mémoire — retirer le cache de `localStorage` ne le
+       faisait pas tomber. Un téléphone de terrain rouvre l'application dix fois par jour, et
+       c'est LÀ que trente appareils remplissent les 120 sessions/h d'un espace. */
+    api = allumer();   // mémoire perdue, stockage gardé : exactement un rechargement
+    const r3 = await api.opSoclePousser();
+    v('   après rechargement, la pousse rend null elle aussi', r3, null);
+    v('⛔ et l\'appareil RECHARGÉ ne redemande toujours PAS de session',
       compte.combien('/api/op/session'), sessionsAvant);
   }
 
@@ -214,12 +227,7 @@ function basePetite(m) {
   v('la Tour allume la double écriture de cet espace', [on.code, on.j && on.j.double], [200, true]);
   stock = stockNeuf();   // un appareil neuf : le « non » d'avant ne doit pas le figer
   compte = fetchCompteur();
-  api = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
-    'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
-    code + '\nreturn {opDecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opHautLire,opNonLire};')
-    (compte, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
-     (motif) => diagnostics.push(motif), 703, { id: 'u-banc' }, db,
-     { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
+  api = allumer();
 
   {
     const attendues = api.opDecomposer(db).length;
