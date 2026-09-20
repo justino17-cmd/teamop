@@ -72,7 +72,10 @@ globalThis.fetch = async (url, opts) => {
   }
   if (url.indexOf('firestore.googleapis.com') >= 0) {
     if (S.dbStatut && S.dbStatut !== 200) return rep(S.dbStatut, S.dbCorps || {});
-    if (url.indexOf('backupSchedules') >= 0) return rep(200, { backupSchedules: S.planifiees || [] });
+    if (url.indexOf('backupSchedules') >= 0) {
+      if (S.schStatut && S.schStatut !== 200) return rep(S.schStatut, S.schCorps || {});
+      return rep(200, { backupSchedules: S.planifiees || [] });
+    }
     return rep(200, { locationId: 'eur3', pointInTimeRecoveryEnablement: 'POINT_IN_TIME_RECOVERY_DISABLED' });
   }
   return rep(200, {});
@@ -231,6 +234,33 @@ console.log('\n══ 2. « droits » MESURE, IL NE DEVINE PAS ══\n');
   vrai('une durée que Google exprimerait autrement passe telle quelle', /gardée P30D/.test(r.sortie));
 }
 
+console.log('\n══ 2 bis. LE TABLEAU DE BORD NE DIAGNOSTIQUE PAS NON PLUS ══\n');
+{
+  /* ⛔ `etat` portait QUATRE fois « (droits) » pour une cause jamais constatée, dont une qui
+     nommait le rôle à ajouter et le poussait dans la liste des choses à faire. C'est la même
+     faute qu'`expliquerRefus`, au même endroit du fichier, et elle a coûté deux rôles
+     ajoutés pour rien alors que la cause réelle était une propagation IAM en cours. */
+  const r = lancer('etat', { schStatut: 403, schCorps: REFUS_SERVICE });
+  vrai('un refus des sauvegardes rapporte les mots de Google', /SERVICE_DISABLED/.test(r.sortie));
+  vrai("et ne nomme plus un rôle qu'on n'a pas constaté manquant",
+    r.sortie.indexOf('il manque « Propriétaire Cloud Datastore »') < 0);
+  vrai("la liste des choses à faire renvoie à la MESURE, pas à la console",
+    /droits\s+← pourquoi les sauvegardes refusent/.test(r.sortie));
+  vrai("et ne pousse plus un geste d'IAM non justifié",
+    r.sortie.indexOf('IAM : ajouter roles/datastore.owner') < 0);
+}
+{
+  const r = lancer('etat', { dbStatut: 403, dbCorps: REFUS_PERMISSION });
+  vrai('un refus de la base rapporte la permission que Google nomme',
+    r.sortie.indexOf("Permission 'datastore.databases.update' denied") >= 0);
+  vrai("et là aussi la suite proposée est la mesure", /droits\s+← pourquoi Firestore refuse/.test(r.sortie));
+}
+{
+  const r = lancer('etat', { planifiees: [{ dailyRecurrence: {}, retention: '1209600s' }] });
+  vrai('un tableau de bord SAIN ne parle ni de droits ni de mesure',
+    !/non lisible/.test(r.sortie) && !/pourquoi les sauvegardes refusent/.test(r.sortie));
+}
+
 console.log('\n══ 3. LA COMMANDE EST ATTEIGNABLE — SANS QUOI RIEN DE CE QUI PRÉCÈDE NE SERT ══\n');
 {
   const r = lancer('', {});
@@ -247,6 +277,11 @@ console.log('\n══ 3. LA COMMANDE EST ATTEIGNABLE — SANS QUOI RIEN DE CE QU
     .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   vrai("aucune cause de 403 n'est plus écrite en dur dans le code",
     SRC.indexOf("n'a pas le droit de faire ça") < 0);
+  /* ⛔ Le mot « (droits) » ne doit plus apparaître comme DIAGNOSTIC dans du code — il en
+     restait quatre dans `etat`, tous affirmés sans mesure. Le nom de la commande `droits`,
+     lui, est légitime : on l'écarte en visant la forme exacte du diagnostic. */
+  vrai("plus aucun « (droits) » affirmé sans mesure", SRC.indexOf('(droits)') < 0);
+  vrai('et un refus du tableau de bord passe par les mots de Google', /pourquoiPas\s*=/.test(SRC));
   vrai('`droits` est bien branché dans le répartiteur', /cmd === 'droits'\s*\)\s*return cmdDroits/.test(SRC));
   vrai("et `expliquerRefus` affiche bien le corps de la réponse", /motsDeGoogle\(r\)/.test(SRC));
 }

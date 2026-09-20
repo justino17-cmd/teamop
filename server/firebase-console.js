@@ -76,7 +76,10 @@ function motsDeGoogle(r) {
   const det = (e.details || []).map(d => [d.reason, d.metadata && d.metadata.service]
     .filter(Boolean).join(' · ')).filter(Boolean);
   const msg = String(e.message || r.txt || '').replace(/\s+/g, ' ').trim().slice(0, 400);
-  return [msg, det.length ? '(' + det.join(' | ') + ')' : ''].filter(Boolean).join(' ');
+  /* Le motif technique EN TÊTE, pas en queue : c'est lui qui distingue une API éteinte d'un
+     droit absent, et le seul appelant qui abrège coupait justement la fin. Mis devant, il
+     survit à toute troncature — ce qui est le propre d'un renseignement qui décide. */
+  return [det.length ? '(' + det.join(' | ') + ')' : '', msg].filter(Boolean).join(' ');
 }
 
 function expliquerRefus(r) {
@@ -212,8 +215,8 @@ async function cmdEtat(tok) {
       const l = sch.j.backupSchedules || [];
       console.log('   sauvegardes programmées : ' + (l.length ? '✅ ' + l.length : '⛔ AUCUNE'));
       if (!pitr || !l.length) aFaire.push('sauvegardes-activer  ← Google ne sauvegarde RIEN pour toi par défaut');
-    } else { console.log('   sauvegardes programmées : non lisibles (droits) — il manque « Propriétaire Cloud Datastore »'); aFaire.push('IAM : ajouter roles/datastore.owner au compte de service'); }
-  } else console.log('   ⚠ non lisible (droits)');
+    } else { console.log('   sauvegardes programmées : ' + pourquoiPas(sch)); aFaire.push('droits               ← pourquoi les sauvegardes refusent, MESURÉ'); }
+  } else { console.log('   ⚠ ' + pourquoiPas(db)); aFaire.push('droits               ← pourquoi Firestore refuse, MESURÉ'); }
 
   /* 3. Les comptes : qui peut se créer une identité, et d'où. */
   console.log('\n── 3. LES COMPTES — qui peut se présenter, et depuis quel site ──');
@@ -229,7 +232,7 @@ async function cmdEtat(tok) {
     console.log('   sites autorisés (' + dom.length + ') : ' + dom.join(', '));
     const inconnus = dom.filter(d => !/teamop\.fr$|firebaseapp\.com$|web\.app$|^localhost$/.test(d));
     if (inconnus.length) { console.log('   ⚠ à vérifier : ' + inconnus.join(', ')); aFaire.push('retirer les sites inconnus dans la console Authentication'); }
-  } else console.log('   ⚠ non lisible (droits) — il manque un rôle d\'administration de l\'authentification');
+  } else console.log('   ⚠ ' + pourquoiPas(cfg));
 
   /* 4. App Check : le niveau au-dessus, à ne pas activer à la légère. */
   console.log('\n── 4. APP CHECK — refuser tout ce qui ne vient pas de ta vraie application ──');
@@ -238,7 +241,7 @@ async function cmdEtat(tok) {
     const l = (ac.j.services || []).filter(x => /ENFORCED|UNENFORCED/.test(x.enforcementMode || ''));
     const actif = l.some(x => x.enforcementMode === 'ENFORCED');
     console.log('   ' + (actif ? '✅ exigé' : '· non exigé — c\'est le cas aujourd\'hui, et c\'est normal'));
-  } else console.log('   · non lisible (droits) — sans importance tant qu\'on ne s\'en sert pas');
+  } else console.log('   · ' + pourquoiPas(ac) + ' — sans importance tant qu\'on ne s\'en sert pas');
   console.log('   ⚠️ NE PAS l\'activer sans modifier l\'application d\'abord : tout serait refusé.');
 
   /* ── CE QU'IL RESTE À FAIRE, et rien d'autre ─────────────────────────────────────────── */
@@ -261,6 +264,16 @@ async function cmdComptesMenage(tok) {
   console.log('\n✅ Les comptes anonymes inactifs depuis 30 jours seront supprimés automatiquement.');
   console.log('   Sans effet sur qui travaille : un appareil actif s\'en recrée un à l\'ouverture.\n');
 }
+
+/* ⛔ MÊME RÈGLE QUE POUR `expliquerRefus`, EN UNE LIGNE. Le tableau de bord d'`etat` portait
+   quatre fois le mot « (droits) » pour une cause jamais constatée — dont une qui nommait le
+   rôle à ajouter et le poussait dans la liste des choses à faire. Le 20 septembre 2026, la
+   même phrase dans `expliquerRefus` a fait ajouter deux rôles pour rien : la cause réelle était
+   une propagation IAM en cours. Un tableau de bord dit ce qu'il a VU. */
+const pourquoiPas = (r) => {
+  const m = motsDeGoogle(r);
+  return 'non lisible — Google : « ' + (m.slice(0, 140) || 'sans message') + (m.length > 140 ? '…' : '') + ' »';
+};
 
 /* ── LES SAUVEGARDES FIRESTORE ──────────────────────────────────────────────────────────── */
 const BASE_DB = () => 'https://firestore.googleapis.com/v1/projects/' + PROJET + '/databases/(default)';
