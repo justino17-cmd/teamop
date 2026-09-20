@@ -22,6 +22,42 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ⚠ TOUT SUR LE SERVEUR — ÉTAPE C : LA MOITIÉ SERVEUR EST FAITE, LA PAGE NON
+
+`server/portail.js` (214 lignes) + `tests/test-739.js` (**53 contrôles**, 6 mutations éprouvées).
+Monté **seulement si les comptes le sont** — la dépendance est explicite : sans identité, ces
+routes répondraient à n'importe qui.
+
+### Ce que la mesure a appris, et qui n'était pas dans le plan
+
+- **La Tour n'a AUCUN Firebase** : elle passe déjà par le serveur, qui lit et écrit
+  `teamop_requests` par `fbAdminFetch`. Le serveur connaît donc déjà ces données ; ce module
+  arrête juste de les ranger chez Google.
+- ⚠ **Le budget anti-abus borne la TOUR à ~94 écritures par heure** sur `/api/monitor/*`
+  (mesuré : 520 requêtes → 94×200, 426×429). À savoir avant d'imaginer une opération en lot
+  depuis un écran de la Tour — et c'est pourquoi deux contrôles s'éprouvent sur le MODULE.
+- ⛔ **Le dossier devait être LIBRE, pas une liste fermée.** Première conception : prénom, nom,
+  société, formule. Le relevé d'`espace.html` l'a démentie — la page écrit aussi `plan`,
+  `docs`, `demandes`, `tel`, l'adresse de facturation, le SIRET, la TVA. Une liste fermée
+  aurait fait **disparaître en silence** tout ce qu'elle ne connaît pas, et personne ne
+  l'aurait vu avant qu'un client réclame sa facture.
+- ⛔⛔ **`app` (ce que le client DEMANDE) n'est pas `apps` (ce que la Tour ACCORDE).** Les
+  confondre laisserait un client s'attribuer les applications qu'il veut — la faute déjà
+  payée sur `/api/clients/sync`.
+
+### ⛔ CE QUI RESTE, ET CE N'EST PAS UN DÉTAIL
+
+**`espace.html` appelle encore Firebase, partout.** Le relevé : ~40 points d'appel, cinq
+méthodes d'authentification (dont `updateEmail`, `updatePassword`,
+`reauthenticateWithCredential`, `delete`), **et un ÉCRAN D'ADMINISTRATION à l'intérieur de la
+page** (lignes 947–986 : liste de toutes les demandes, attribution d'applications, plan,
+documents). Ce n'est pas un adaptateur de 150 lignes — c'est la réécriture d'une page de
+production, et elle mérite son propre passage : adaptateur derrière un interrupteur, banc qui
+extrait les VRAIES fonctions de la page, mesure au navigateur.
+
+⚠ **Et elle ne peut pas basculer seule** : les routes sont derrière `comptes.actif`, faux en
+production. La page et l'interrupteur se lèvent dans le même geste, ou la page parle à des 404.
+
 ## ✅ TOUT SUR LE SERVEUR — ÉTAPE B : L'IDENTITÉ MAISON EST ÉCRITE (20 septembre 2026, nuit)
 
 `server/comptes.js` (294 lignes) + `tests/test-738.js` (**48 contrôles**, vrai serveur, vrai
