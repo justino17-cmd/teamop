@@ -69,8 +69,12 @@ pendant 90 jours. Pas besoin d'une photo par heure — on a la seconde près.
   donc dans l'archive — à garder AILLEURS) **et** la clé maître `/etc/teamop/kek`, qui vit hors
   de `/opt` exprès et n'est donc **PAS dans l'archive**. Avec la première seule : `config.json`,
   les pièces jointes, des SQLite qui s'ouvrent parfaitement, et **pas une ligne de données
-  client**. → **Action pour Justin : ranger ces deux clés hors du VPS** avant d'emporter une
-  copie mensuelle.
+  client**.
+  ✅ **Justin a rangé sa clé le 20 septembre 2026** (« j'ai déjà mes clés »).
+  ⚠️ Et il faut être précis sur CE QUI est rangé, sinon on se croira couvert deux fois : à cette
+  date, **seule `sauvegarde.cle` existe**. La clé maître n'a jamais été créée — `/etc/teamop/kek`
+  est absent, `socle.actif` vaut `false`. Elle naîtra au premier `poser-cle.js`, qui l'affichera
+  **une seule fois** : c'est CE jour-là qu'il faudra la ranger, et le rappeler alors.
 
 **Relu par `gardien` et `relecteur` le 20 septembre au soir, avant toute publication.** Douze
 trouvailles, toutes corrigées et éprouvées. Les trois qui comptent, parce qu'elles disent
