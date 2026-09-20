@@ -542,6 +542,51 @@ function basePetite(m) {
     v('   `mailSent` en particulier, qui n\'a pas d\'identifiant à lui', (db2.mailSent || []).length, 2);
   }
 
+  /* ══ (j bis) LA PAGINATION — ET POURQUOI LE CURSEUR N'EST PAS LE RANG ═════════════════════
+     ⛔ CE BLOC EXISTE PARCE QU'UNE MUTATION N'A RIEN CASSÉ. Remplacer `j.curseur` par `j.seq`
+     dans la boucle de lecture ne faisait tomber AUCUN des 89 contrôles — la base du banc
+     tenait dans une seule page, où les deux valeurs sont égales. Or les deux ne disent pas la
+     même chose : `seq` est le rang le plus haut de TOUTE la base, `curseur` est le rang de la
+     dernière ligne que CETTE page a réellement servie. Dès qu'une page est tronquée (trop
+     lourde, ou des lignes illisibles écartées), les poser l'un pour l'autre fait sauter tout
+     ce que la page n'a pas rendu — définitivement, et sans un mot.
+     Il faut donc une base qui PAGINE : le serveur sert 400 lignes au plus. */
+  console.log('\n⛔ Étape 5 — la lecture PAGINE, et ne saute rien au passage');
+  {
+    const N = 900;
+    const base = api.opHautLire(T) + 1000;
+    db.clients = (db.clients || []).slice(0, 2);
+    for (let i = 0; i < N; i++) db.clients.push({ id: 'pg' + i, nom: 'Paginé ' + i, ville: 'V' + i, _m: base + i });
+    const pousse = await api.opSoclePousser();
+    vrai('les 900 fiches sont poussées', pousse && pousse.envoyees >= N);
+
+    const stock3 = stockNeuf(), db3 = {};
+    const api3 = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
+      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
+      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire};')
+      (compte, stock3, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-3',
+       (motif) => diagnostics.push(motif), 703, { id: 'u-banc-3' }, db3,
+       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
+
+    const lu = await api3.opSocleLire();
+    vrai('⛔ la lecture a demandé PLUSIEURS pages', lu && lu.pages > 1);
+    /* ⛔ LE CONTRÔLE QUI ATTRAPE LA MUTATION : avec `j.seq` au lieu de `j.curseur`, le curseur
+       saute au bout dès la première page et tout le reste est perdu. */
+    /* ⚠️ ON COMPTE LES FICHES PAGINÉES, PAS TOUT `clients` — et c'est le banc qui avait tort
+       la première fois. La contre-épreuve de la section (f) a poussé un « Client Trois » puis
+       l'a retiré LOCALEMENT, sans pierre tombale : le serveur le détient toujours, donc un
+       appareil neuf le reçoit légitimement. Comparer les deux totaux accusait le code d'une
+       ligne en trop qui est, en réalité, exactement ce que le socle doit rendre. */
+    const pagines = (db3.clients || []).filter(c => c && String(c.id).indexOf('pg') === 0);
+    v('⛔ et le troisième appareil a TOUTES les fiches paginées', pagines.length, N);
+    const manquantes = [];
+    for (let i = 0; i < N; i++) if (!pagines.some(c => c.id === 'pg' + i)) manquantes.push(i);
+    v('   aucune ne manque, et on saurait lesquelles', manquantes.slice(0, 5), []);
+    /* Le contenu, pas seulement le compte : une fiche tronquée passerait le compte. */
+    const abimees = pagines.filter(c => c.nom !== 'Paginé ' + String(c.id).slice(2) || !c._m);
+    v('   et aucune n\'est abîmée', abimees.length, 0);
+  }
+
   /* ══ (k) LES QUATRE CONDITIONS DE L'ÉTAPE 5, CALCULÉES ════════════════════════════════════
      ⛔ Le plan les écrit ; sans cette route elles resteraient une intention, et on basculerait
      « parce que ça avait l'air bon ». L'annexe disait de l'une d'elles qu'elle ne pouvait
