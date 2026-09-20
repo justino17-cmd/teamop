@@ -6362,6 +6362,19 @@ function opDecomposer(base, opts) {
   /* Une base qui n'a JAMAIS été tamponnée (aucun `_m` nulle part) garde 0 : on n'invente pas
      une date pour elle. Ses lignes seront refusées, et c'est juste — rien n'a encore été
      réconcilié, donc rien ne doit partir. */
+  /* ⛔ MAIS ON PLAFONNE À MAINTENANT, ET C'EST UN DÉFAUT MESURÉ, PAS UNE PRUDENCE. `dateBase`
+     est le plus haut `_m` de la base, et c'est la SEULE date que puissent porter les trois
+     choses qui n'en ont pas : le bloc de réglages, les dictionnaires (`plansSite`, `planNotes`,
+     `permissions`) et la liste des collections vides. Or il suffit d'UN enregistrement à
+     l'horloge folle — un téléphone mal réglé, et son `_m` part chez toute l'équipe par la
+     synchro — pour que `dateBase` passe dans le futur. Le serveur refuse alors ces lignes-là en
+     `horlogeAvancee`, sur TOUS les appareils à la fois, et pour toujours : personne ne va
+     rééditer la fiche fautive, et rien ne le dit. Le plan d'appâtage de 24 postes d'un client
+     n'arriverait jamais au socle.
+     Plafonner ne cache rien : la fiche fautive, ELLE, reste refusée et se voit dans les refus.
+     On refuse juste qu'elle emporte avec elle des données qui n'y sont pour rien. */
+  const _maintenant = Date.now();
+  if (dateBase > _maintenant) dateBase = _maintenant;
   const ecrire = (c, id, m, r) => {
     const l = { c: c, id: String(id), m: +m || 0, r: r, e: opEmpreinte(r) };
     /* `f` n'est posé que s'il y a quelque chose à dire : une ligne sur cent en porte, et un
@@ -8099,7 +8112,16 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
       _syncOkJusqu=Date.now()+1800;
       try{ updateSyncBtn(); }catch(_e){}
       setTimeout(()=>{ try{ updateSyncBtn(); }catch(_e){} },1900);
-      try{ sauvegardeDeposer(e); }catch(_e){} })
+      try{ sauvegardeDeposer(e); }catch(_e){}
+      /* ⛔ LA SECONDE ÉCRITURE — ET ELLE EST ICI POUR LA MÊME RAISON QUE `sauvegardeDeposer` :
+         c'est le SEUL endroit du fichier qui sache qu'une écriture Firestore est vraiment
+         passée, donc le seul instant où la base locale et celle de l'équipe disent la même
+         chose. Pousser au clic enverrait au socle des lignes que l'équipe n'a jamais reçues.
+         ⛔ JAMAIS `await`, JAMAIS DANS LE CHEMIN D'ERREUR. La synchro de l'entreprise ne doit
+         pas pouvoir tomber parce qu'un chantier interne a hoqueté : `opSoclePousser` n'échoue
+         jamais vers l'extérieur (tout son corps est en `try`), et le `catch` ci-dessous garde
+         la ligne même si une modification future venait à casser cette promesse. */
+      try{ opSoclePousser(); }catch(_e){} })
       .catch(er=>{ _acquitte=true; _pushManuel=false; _syncEnCours=false; try{ updateSyncBtn(); }catch(_e){} console.error('push',er);
         /* L'écriture n'a PAS eu lieu : le repère ne doit pas rester en avant, sinon on ignore
            les publications de toute l'équipe (voir le bloc ⛔ au-dessus de `_tsAvant`). */
@@ -8138,6 +8160,228 @@ function syncRetraitVoulu(){ _retraitVoulu=Date.now(); }
    manque, on ne touche pas à ce qui existe, l'équipe garde ce qu'elle a fait depuis. */
 let _sauvDernier=0;
 async function sauvKh(){ const t=localStorage.getItem('elanB_sync_team'), k=localStorage.getItem('elanB_sync_secret'); if(!t||!k) return null; return {t:t,kh:await sha256(k)}; }
+
+/* ══ LA SECONDE ÉCRITURE — ÉTAPE 4 DU SOCLE ════════════════════════════════════════════════
+   L'appareil écrit Firestore COMME AUJOURD'HUI et pousse EN PLUS ses lignes sur le VPS.
+   ⛔ LA LECTURE RESTE 100 % FIRESTORE. Personne ne lit le socle, sauf le contrôle de nuit.
+
+   ⛔ CETTE SECONDE ÉCRITURE NE DOIT JAMAIS POUVOIR CASSER LA PREMIÈRE, et c'est la seule règle
+   qui compte ici. Tout est en `try`, rien n'est attendu, aucun échec ne remonte : si le VPS
+   répond mal, est lent, ou ne répond pas, l'appareil écrit Firestore et continue comme si de
+   rien n'était. Le contraire — une synchro d'entreprise qui tombe parce qu'un chantier interne
+   a hoqueté — est exactement ce que ce dépôt a déjà payé le 11 septembre 2026, quand une
+   écriture non acquittée affichait « Connexion requise » plein écran en boucle.
+
+   ⛔ ET C'EST LE SERVEUR QUI DÉCIDE, ESPACE PAR ESPACE. `POST /api/op/session` rend `double`.
+   Sans lui, rien ne part. Un drapeau côté client demanderait de publier une version et
+   d'attendre que vingt téléphones se mettent à jour : ce n'est pas un retour arrière, c'est
+   une panne longue. Aujourd'hui le drapeau est éteint pour tout le monde — ce code est écrit,
+   éprouvé, et INERTE.
+
+   ⚠️ On ne pousse que ce qui a BOUGÉ. Une base réaliste fait 9 862 lignes : les renvoyer à
+   chaque `save()` serait absurde sur un téléphone en 4G. `_m` est déjà la date de dernière
+   modification calculée par `estampiller()` — on garde le plus haut `_m` déjà poussé et on
+   n'envoie que ce qui le dépasse. Le premier envoi passe donc tout, et les suivants presque
+   rien. */
+let _opJeton = null;          // { jeton, exp, double, lotMax } — EN MÉMOIRE SEULEMENT
+let _opEnVol = null;          // la pousse en cours, s'il y en a une
+const OP_HAUT_CLE = 'elanB_op_haut';   // le plus haut `_m` déjà poussé, par espace
+const OP_NON_CLE = 'elanB_op_non';     // jusqu'à quand le serveur a dit « pas de double écriture »
+
+function opHautLire(t) { try { return parseInt(localStorage.getItem(OP_HAUT_CLE + '_' + t), 10) || 0; } catch (e) { return 0; } }
+function opHautPoser(t, m) { try { localStorage.setItem(OP_HAUT_CLE + '_' + t, String(m)); } catch (e) {} }
+
+/* ⛔ LE VERDICT « NON » SE GARDE SUR L'APPAREIL, LE JETON JAMAIS. Sans ce cache, chaque
+   rechargement de page vide `_opJeton` et redemande une session : `/api/op/session` plafonne à
+   120 par heure et par espace, et ELAN a une trentaine d'appareils dont les téléphones de
+   terrain rechargent plusieurs fois par heure. On épuiserait le plafond POUR RIEN, puisque le
+   drapeau est éteint — et le jour où il s'allume, ce sont les vrais appareils qui trouveraient
+   la porte fermée. Trente minutes de retard à l'allumage est un prix que personne ne sent.
+   ⚠️ Seul le NON se range ici. Un jeton est une preuve d'accès : le poser dans `localStorage`
+   le laisserait traîner après la déconnexion, et `espaceQuitter()` devrait le connaître. */
+function opNonLire(t) { try { return parseInt(localStorage.getItem(OP_NON_CLE + '_' + t), 10) || 0; } catch (e) { return 0; } }
+function opNonPoser(t) { try { localStorage.setItem(OP_NON_CLE + '_' + t, String(Date.now() + 1800000)); } catch (e) {} }
+
+/* Ouvre (ou réutilise) une session de socle. Rend `null` sur TOUT échec — l'appelant n'a alors
+   rien à faire, ce qui est le comportement voulu tant que le drapeau est éteint. */
+async function opSocleSession(force) {
+  try {
+    if (!force && _opJeton && _opJeton.exp - Date.now() > 120000) return _opJeton;
+    const c = await sauvKh(); if (!c) return null;
+    if (!force && opNonLire(c.t) > Date.now()) return null;
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(PUSH_API + '/api/op/session', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ t: c.t, kh: c.kh, app_id: syncDeviceId(), nom: '' }), signal: ctl.signal });
+    clearTimeout(to);
+    if (!r.ok) { _opJeton = null; return null; }
+    const j = await r.json();
+    if (!j || !j.jeton) { _opJeton = null; return null; }
+    _opJeton = { jeton: j.jeton, exp: j.exp || (Date.now() + 1800000), double: !!j.double, lotMax: j.lotMax || 400, t: c.t };
+    if (!_opJeton.double) opNonPoser(c.t);
+    return _opJeton;
+  } catch (e) { _opJeton = null; return null; }
+}
+
+/* ⛔ APPELÉE APRÈS UNE ÉCRITURE FIRESTORE RÉUSSIE, ET JAMAIS ATTENDUE. Le `then` de l'écriture
+   est le seul endroit du fichier qui sache qu'une écriture est VRAIMENT passée — c'est donc le
+   seul moment où la base locale et celle de l'équipe disent la même chose, et le seul où
+   pousser les mêmes lignes a un sens. */
+/* ⛔ UNE SEULE POUSSE À LA FOIS, ET C'EST UN DÉFAUT MESURABLE, PAS UNE PRÉCAUTION. Dix-sept
+   endroits du fichier appellent `syncPush`, et rien n'empêche deux enregistrements de
+   s'acquitter coup sur coup. Le PREMIER envoi d'une entreprise est le pire cas : 9 862 lignes
+   en 25 allers-retours de 400, soit plusieurs secondes de réseau. Pendant ce temps, trois
+   `save()` lanceraient trois pousses concurrentes des MÊMES lignes — décomposition comprise
+   (18 ms chacune), trois fois le trafic, et une course sur la borne haute où la dernière
+   écriture gagne. La façade rend la promesse déjà en vol : l'appelant attend la même chose,
+   ce qui est exactement ce qu'il voulait. */
+function opSoclePousser() {
+  if (_opEnVol) return _opEnVol;
+  _opEnVol = opSoclePousserVraiment().catch(() => null);
+  /* ⚠️ Le `finally` est ce qui fait qu'un échec ne condamne pas la suite : sans lui, une
+     pousse qui casse laisserait `_opEnVol` figé sur une promesse morte, et plus RIEN ne
+     partirait jusqu'au prochain rechargement — une panne bien pire que celle qu'on garde. */
+  const fin = _opEnVol;
+  fin.finally(() => { if (_opEnVol === fin) _opEnVol = null; });
+  return fin;
+}
+
+async function opSoclePousserVraiment() {
+  try {
+    const s = await opSocleSession(); if (!s || !s.double) return null;
+    const haut = opHautLire(s.t);
+    let lignes = null, retenus = [];
+    try { lignes = opDecomposer(db); retenus = lignes.retenus || []; } catch (e) { return null; }
+    /* ⚠️ `>` et pas `>=` : la borne est le plus haut DÉJÀ poussé. Un `>=` renverrait à chaque
+       fois la dernière ligne, pour rien — et un `>` sur une ligne dont le `_m` n'a pas bougé
+       est exactement ce qu'on veut, puisque son contenu n'a pas bougé non plus. */
+    const aEnvoyer = lignes.filter(l => (+l.m || 0) > haut);
+    if (!aEnvoyer.length) return { envoyees: 0, retenus: retenus.length };
+    let acceptes = 0, refus = [], plusHaut = haut;
+    for (let i = 0; i < aEnvoyer.length; i += s.lotMax) {
+      const lot = aEnvoyer.slice(i, i + s.lotMax);
+      const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 15000);
+      let r = null;
+      try {
+        /* ⛔ LE CHAMP S'APPELLE `enr`, ET C'EST UN DÉFAUT DE CÂBLAGE QUI NE SE VOIT PAS.
+           `/api/op/pousser` fait `Array.isArray(b.enr) ? b.enr : null` : un `{lignes:…}` rend
+           400 « enr attendu », le `!r.ok` ci-dessous sort de la boucle, et la double écriture
+           est ENTIÈREMENT inerte sans qu'aucun banc de module ne s'en aperçoive — chacun des
+           deux côtés est juste tout seul. `tests/test-735.js` parle au VRAI serveur. */
+        r = await fetch(PUSH_API + '/api/op/pousser', { method: 'POST',
+          /* ⛔ `Authorization: Bearer`, PAS UN EN-TÊTE MAISON. Le garde `opJeton` du serveur fait
+             `/^Bearer\s+([0-9a-f]{64})$/` sur `authorization` : un `X-OP-Jeton` rend 401
+             `jeton_absent`, le `if (r.status === 401)` ci-dessous vide le jeton et sort — donc
+             la double écriture était ENTIÈREMENT muette, deuxième fois, pour une autre raison.
+             Deux moitiés justes ne se parlent pas toutes seules : `tests/test-735.js`. */
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.jeton },
+          body: JSON.stringify({ enr: lot, ver: String(typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''),
+            u: (typeof currentUser !== 'undefined' && currentUser) ? String(currentUser.id || '') : '' }),
+          signal: ctl.signal });
+      } catch (e) { clearTimeout(to); break; }
+      clearTimeout(to);
+      /* Un jeton périmé : on en reprend un et on retentera au prochain envoi. Insister ici
+         ferait boucler un appareil hors ligne sur un serveur qui répond 401. */
+      if (r.status === 401) { _opJeton = null; break; }
+      if (!r.ok) break;
+      let j = null; try { j = await r.json(); } catch (e) { break; }
+      acceptes += (j && j.acceptes) || 0;
+      if (j && j.refus && j.refus.length) refus = refus.concat(j.refus.slice(0, 20));
+      /* ⛔ LA BORNE NE MONTE QUE SUR CE QUI A ÉTÉ ACCEPTÉ. La poser sur tout le lot ferait
+         sauter DÉFINITIVEMENT les lignes refusées : elles ne repasseraient plus jamais sous
+         le filtre, et la divergence serait permanente — invisible jusqu'au contrôle de nuit,
+         et inexplicable après. */
+      /* ⚠️ LE SERVEUR NE REND PAS LA LISTE DES ACCEPTÉS — il rend `acceptes` (un NOMBRE) et
+         `refus` (la liste détaillée, `{c,id,motif}`). On déduit donc l'acceptation par
+         soustraction : ce qui n'est pas nommé dans les refus DE CE LOT est passé. Écrire une
+         branche sur un `acceptes_ids` imaginaire aurait été pire que de ne rien écrire : elle
+         n'aurait jamais tourné, et se serait lue comme une garde. */
+      const refusLot = new Set(((j && j.refus) || []).map(x => String(x && x.c) + '|' + String(x && x.id)));
+      lot.forEach(l => {
+        const m = +l.m || 0;
+        if (!refusLot.has(String(l.c) + '|' + String(l.id)) && m > plusHaut) plusHaut = m;
+      });
+    }
+    if (plusHaut > haut) opHautPoser(s.t, plusHaut);
+    /* ⚠️ Les refus se DISENT, dans la console et dans la Tour — jamais à l'écran du client :
+       la double écriture est un chantier interne, et l'entreprise n'a rien à en savoir tant
+       que sa synchro marche. Mais les taire complètement ferait diverger en silence. */
+    if (refus.length) { try { console.warn('socle : ' + refus.length + ' ligne(s) refusée(s) — ' + refus.slice(0, 3).map(x => x.c + '/' + x.motif).join(', ')); } catch (e) {} }
+    if (retenus.length) { try { console.warn('socle : ' + retenus.length + ' enregistrement(s) retenu(s) — pièce jointe pas encore téléversée'); } catch (e) {} }
+    /* ⛔ LE CONTRÔLE SE DÉCLENCHE ICI, ET PAS SUR UNE MINUTERIE. Une application web n'est pas
+       ouverte la nuit : un `setInterval` de 24 h ne se déclencherait jamais sur un téléphone de
+       terrain, qu'on referme entre deux chantiers. On l'accroche donc à la première pousse qui
+       suit 24 h de silence — un appareil qui synchronise se contrôle, un appareil éteint n'a
+       rien à contrôler.
+       ⚠️ Et on l'ÉTALE. `/api/op/etat` relit et signe TOUTE la base (42 ms sur 20 000 lignes) ;
+       trente appareils tombant sur la même heure ronde, c'est une seconde et demie de boucle
+       d'événements bloquée d'un coup, pour tous les clients à la fois. Vingt heures plus un
+       tirage jusqu'à huit les dispersent d'eux-mêmes au bout de quelques jours. */
+    try {
+      const ctlCle = 'elanB_op_ctl_' + s.t;
+      const du = parseInt(localStorage.getItem(ctlCle), 10) || 0;
+      if (Date.now() > du) {
+        localStorage.setItem(ctlCle, String(Date.now() + 72000000 + Math.floor(Math.random() * 28800000)));
+        opSocleControle();
+      }
+    } catch (e) {}
+    return { envoyees: acceptes, refus: refus.length, retenus: retenus.length };
+  } catch (e) { return null; }
+}
+
+/* ⛔ LE CONTRÔLE — LA SEULE CHOSE QUI PUISSE DIRE QU'UNE ÉCRITURE S'EST PERDUE.
+   Personne ne LIT le socle pendant l'étape 4 : si une ligne n'arrive pas, rien ne le montre.
+   L'appareil calcule donc la signature de ce qu'il a, demande la sienne au serveur, et compare.
+   ⚠️ Il compare COLLECTION PAR COLLECTION : « ça diverge » sans dire OÙ fait chercher une
+   heure. Et il ne compare QUE les collections que l'appareil a réellement poussées — celles
+   dont le `_m` dépasse encore la borne n'ont pas eu leur chance. */
+async function opSocleControle() {
+  try {
+    const s = await opSocleSession(); if (!s || !s.double) return null;
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 12000);
+    let r = null;
+    try { r = await fetch(PUSH_API + '/api/op/etat', { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal }); }
+    catch (e) { clearTimeout(to); return null; }
+    clearTimeout(to);
+    if (!r || !r.ok) return null;
+    const j = await r.json().catch(() => null);
+    if (!j || !j.canon) return null;
+    let lignes = null;
+    try { lignes = opDecomposer(db); } catch (e) { return null; }
+    /* Les enregistrements retenus (pièce pas encore téléversée) ne sont pas dans les lignes,
+       donc pas dans notre signature : les deux côtés parlent bien de la même chose. */
+    const moi = opSignature(lignes);
+    const ecarts = [];
+    const toutes = new Set(Object.keys(moi.par).concat(Object.keys(j.canon.par || {})));
+    toutes.forEach(c => {
+      const a = moi.par[c] || { n: 0, sig: '' }, b = (j.canon.par || {})[c] || { n: 0, sig: '' };
+      if (a.sig !== b.sig) ecarts.push({ coll: c, appareil: a.n, serveur: b.n });
+    });
+    const ok = moi.sig === j.canon.sig;
+    if (!ok) {
+      try { console.warn('socle : DIVERGENCE sur ' + ecarts.length + ' collection(s) — ' + ecarts.slice(0, 4).map(e => e.coll + ' (' + e.appareil + ' ici / ' + e.serveur + ' là-bas)').join(', ')); } catch (e) {}
+      /* ⛔ ET ON LE REMONTE À LA TOUR. Une divergence que seul le navigateur du client connaît
+         est une divergence que personne ne corrigera — c'est la leçon de l'écriture non
+         acquittée, qui n'existait que dans un `console.error` que personne n'ouvre.
+         ⚠️ On envoie les NOMS DE COLLECTION et des NOMBRES, jamais un identifiant ni un
+         contenu : la Tour doit savoir QUOI regarder, pas lire les données du client. */
+      try { syncDiagnostic('socle divergence — ' + ecarts.slice(0, 6).map(e => e.coll + ':' + e.appareil + '/' + e.serveur).join(' ')); } catch (e) {}
+      /* ⛔ ET ON RÉPARE, PAS SEULEMENT ON CONSTATE. La borne haute est un SEUL nombre pour toute
+         la base : elle suppose que ce qui est plus vieux qu'elle est déjà parti. Cette
+         supposition tombe dès qu'un enregistrement ARRIVE du passé — et il y en a, pendant les
+         quelques jours où un parc est mélangé : un appareil resté en version ancienne écrit
+         dans Firestore sans rien pousser au socle, sa fiche se fusionne ici avec son `_m`
+         d'origine, plus bas que notre borne, et elle ne passerait donc PLUS JAMAIS le filtre.
+         Un trou silencieux et définitif, exactement ce que ce contrôle existe pour voir.
+         Remettre la borne à zéro fait tout repartir à la pousse suivante : le serveur classe
+         en `noop` tout corps identique, donc la reprise coûte du réseau, pas des données.
+         ⚠️ Et elle ne peut pas s'emballer : ce contrôle ne tourne qu'une fois par vingt heures
+         au plus, donc une divergence que la reprise ne répare pas coûte une reprise par jour,
+         pas une par enregistrement — et ses refus se lisent dans la console. */
+      try { opHautPoser(s.t, 0); } catch (e) {}
+    }
+    return { ok, ecarts };
+  } catch (e) { return null; }
+}
 /* ══ ÉTAPE 0 DU SOCLE : UNE PIÈCE JOINTE VIT SUR LE SERVEUR, PAS DANS LE DOCUMENT ══════════
    Justin, 16 septembre 2026 : « Les pièces jointes → ton VPS ». Aujourd'hui `syncAlleger` RETIRE
    les pièces et les photos de la copie poussée pour tenir sous le plafond de 1 Mio d'un document
@@ -8632,6 +8876,14 @@ function espaceQuitter(){
     ['anthropic_key','devis_code','sync_cfg','annuaire_cache','mail_lus','mail_supp','usage','espace_admin']
       .forEach(k=>{ try{ localStorage.removeItem(P+k); }catch(_){} });
     localStorage.removeItem('opB_devis_code');   // même code d'équipe, sous son autre nom
+    /* ⛔ LES CLÉS DU SOCLE SE BALAIENT PAR PRÉFIXE, PAS PAR LISTE. `elan_op_haut_<espace>` et
+       `elan_op_non_<espace>` portent l'espace dans leur NOM : une liste fixe, comme celle du
+       dessus, les raterait toutes — c'est exactement ce que ce dépôt s'est déjà écrit à propos
+       de `elan_rappels_`+id. Et la conséquence n'est pas cosmétique : la borne haute dit « tout
+       est déjà poussé jusqu'à cette date ». Un appareil qui quitte un espace, puis y revient
+       après un « repartir à neuf » (dont le stockage serveur a été effacé), ne pousserait donc
+       PLUS RIEN — le socle resterait vide pour toujours, et seul le contrôle de nuit le verrait. */
+    Object.keys(localStorage).forEach(k=>{ if(k.indexOf(P+'op_')===0){ try{ localStorage.removeItem(k); }catch(_){} } });
     lienLisibleOublier();
   }catch(e){}
   try{ indexedDB.deleteDatabase(P+'cote'); }catch(e){}

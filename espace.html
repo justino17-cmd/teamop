@@ -1038,6 +1038,10 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       ['elan_anthropic_key','elan_devis_code','op_devis_code','elan_sync_cfg','elan_annuaire_cache','elan_mail_lus','elan_mail_supp','elan_usage','elan_espace_admin',
        'elan_lien_lisible','elan_lien_lisible_t','elan_lien_lisible_ts','elan_lien_lisible_kh','elan_lien_lisible_nom','elan_lien_lisible_motif']
         .forEach(function(k){ try{ localStorage.removeItem(k); }catch(_){} });
+      /* Les clés du socle portent l'espace dans leur nom (`elan_op_haut_<espace>`) : une liste
+         fixe les raterait. Même balayage que dans espaceQuitter() — et pour la même raison :
+         une borne haute qui survit à un changement d'espace fait taire la seconde écriture. */
+      Object.keys(localStorage).forEach(function(k){ if(k.indexOf('elan_op_')===0){ try{ localStorage.removeItem(k); }catch(_){} } });
       sessionStorage.setItem('elan_create_admin','1');
     }catch(e){}
     try{ indexedDB.deleteDatabase('elan_cote'); }catch(e){}
