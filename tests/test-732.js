@@ -53,14 +53,15 @@ const code = [
   bloc('function seed('), bloc('function migrate('), bloc('function recEmpreinte('),
   'const OP_CLASSES = ' + objet('const OP_CLASSES = {') + ';',
   ligne('const OP_ID_DE ='), ligne("const OP_REGLAGES ="), ligne("const OP_BOX_FORME ="), ligne("const OP_VIDES ="),
-  bloc('function opSansTampon('), bloc('function opIdDerive('),
+  bloc('function opSansTampon('), bloc('function opCanon('), bloc('function opEmpreinte('),
+  bloc('function opIdDerive('), bloc('function opSignature('),
   bloc('function opDecomposer('), bloc('function opRecomposer('),
 ].join('\n');
 
 let n = 0, api = null;
 try {
   api = new Function('uid', 'BETA_ESSAI', 'ID_ADMIN_DEPART', 'CAT_LIST', 'DASH_DEFAULT', 'FOURS_VER', 'PRIX_VER', 'db', 'console',
-    code + '\nreturn {seed,migrate,opDecomposer,opRecomposer,recEmpreinte,OP_CLASSES};')
+    code + '\nreturn {seed,migrate,opDecomposer,opRecomposer,recEmpreinte,opEmpreinte,opSignature,OP_CLASSES};')
     (() => 'u' + (++n), false, 'admin0', [], [], 1, 1, {}, { log() {}, warn() {}, error() {} });
 } catch (e) { console.log('      (extraction : ' + e.message + ')'); }
 vrai('⛔ les VRAIES fonctions du fichier livré s\'extraient et s\'exécutent', !!(api && api.opDecomposer && api.opRecomposer));
@@ -159,6 +160,28 @@ function synthetique() {
   v('⛔ les pierres tombales voyagent', lignes.filter(l => l.sup && l.c !== 'box_stock').map(l => l.c + ':' + l.id).sort(),
     ['clients:c-mort', 'produits:p-mort', 'users_sup:u-mort']);
 
+  /* ⛔⛔ LE MÊME DÉCOUPAGE DEUX FOIS DOIT DONNER LES MÊMES IDENTIFIANTS. Sans ce contrôle,
+     le banc est AVEUGLE à la faute qui compte pour `mailSent` et `planJournal` : leur
+     identifiant est dérivé du contenu justement parce qu'un `uid()` changerait à chaque
+     passage — et chaque synchro recréerait alors une copie de chaque ligne, pour toujours.
+     ⚠️ C'EST UNE LEÇON DE MÉTHODE, pas seulement un contrôle de plus : remettre `Math.random()`
+     dans `opIdDerive` ne faisait tomber AUCUN des 28 contrôles d'alors. L'aller-retour est un
+     passage UNIQUE, et un identifiant aléatoire y reste cohérent avec lui-même. Une mutation
+     qui ne casse rien ne prouve pas que le code est bon : elle peut prouver que le banc ne
+     regarde pas au bon endroit. */
+  {
+    const a1 = api.opDecomposer(syn).map(l => l.c + '|' + l.id).sort();
+    const a2 = api.opDecomposer(syn).map(l => l.c + '|' + l.id).sort();
+    v('⛔ décomposer DEUX FOIS la même base donne les MÊMES identifiants', a1, a2);
+    /* Et le contre-test : ils doivent quand même être uniques, sinon deux lignes écraseraient
+       la même. Un identifiant stable ET collisionnant serait pire qu'un aléatoire. */
+    v('   et ils sont tous distincts', a1.length, new Set(a1).size);
+    /* Deux enregistrements de même date mais de contenu différent ne se confondent pas. */
+    const deux = api.opDecomposer({ mailSent: [{ ts: 42, t: 'un' }, { ts: 42, t: 'deux' }] })
+      .filter(l => l.c === 'mailSent').map(l => l.id);
+    v('   deux envois à la même milliseconde restent distincts', deux.length, new Set(deux).size);
+  }
+
   /* ⛔ Un enregistrement JAMAIS daté part avec `m:0`, que le serveur refuse (`non_date`) —
      et c'est JUSTE : un enregistrement sans `_m` est tuable par n'importe quelle tombe de
      n'importe quelle époque. Le pousser serait pire que le refuser. */
@@ -218,6 +241,68 @@ console.log('\n⛔ Pagination : les lignes arrivent par pages, et rien ne doit s
   const r2 = api.opRecomposer(stockDAbord, {});
   const parId = (b) => { const o = {}; (b.boxes || []).forEach(x => { o[x.id] = x; }); return o; };
   v('⛔ stock servi AVANT sa box : les box sont quand même complètes', diff(parId(syn), parId(r2)), []);
+}
+
+/* ══ 4. ⛔ LA SIGNATURE CANONIQUE — BANC N° 4 DU PLAN ════════════════════════════
+   C'est le SEUL garde-fou du chantier : l'étape 4 ne se juge que par lui, chaque nuit, en
+   comparant ce que l'appareil a à ce que le serveur a. S'il est bruyant, on le débranche —
+   et on perd la seule chose qui dit que la double écriture est saine.
+   Sa qualité tient à une propriété et une seule : deux machines qui ont LA MÊME CHOSE
+   calculent LA MÊME VALEUR, quel que soit l'ordre dans lequel elles l'ont reçue ou rangée. */
+console.log('\n⛔ La signature canonique : deux machines, la même chose, la même valeur');
+{
+  const syn = synthetique();
+  const lignes = api.opDecomposer(syn);
+  const s1 = api.opSignature(lignes);
+  vrai('la signature rend une valeur', !!(s1 && s1.sig));
+  /* ⛔ ELLE NOMME LA COLLECTION ET LE NOMBRE. Une alerte qui dit « ça diverge » sans dire
+     OÙ fait chercher une heure — et c'est ce que la Tour doit afficher à l'étape 4. */
+  vrai('   et le détail par collection, avec le nombre de lignes',
+    s1.par && s1.par.clients && s1.par.clients.n > 0 && !!s1.par.clients.sig);
+  /* ⚠️ Le compte est celui des LIGNES, tombes comprises — pas celui des enregistrements
+     vivants. `clients` a deux fiches ET une pierre tombale : trois lignes. C'est la bonne
+     maille, parce que c'est celle que le serveur compte de son côté ; comparer des
+     enregistrements vivants à des lignes ferait diverger les deux tous les soirs. */
+  v('   (le compte est celui des LIGNES, tombes comprises)',
+    s1.par.clients.n, syn.clients.length + Object.keys(syn._tombes.clients).length);
+
+  /* L'ORDRE DE SERVICE NE DOIT RIEN CHANGER. Le serveur rend ses lignes par `seq`, le client
+     les a dans l'ordre de `db` : sans indépendance à l'ordre, les deux divergeraient
+     TOUJOURS, dès le premier soir, et pour rien. */
+  const melange = lignes.slice().reverse();
+  v('⛔ les mêmes lignes dans un AUTRE ordre donnent la MÊME signature', api.opSignature(melange).sig, s1.sig);
+
+  /* ⛔ ET L'ORDRE D'INSERTION DES CLÉS D'UN OBJET NON PLUS — c'est la raison précise pour
+     laquelle on n'a pas réutilisé `recEmpreinte`, qui passe par `JSON.stringify` et en
+     dépend. `msElaguer` et la fusion reconstruisent cet ordre : deux appareils au stock
+     identique auraient produit deux empreintes différentes. */
+  const meme = { a: 1, b: { x: 1, y: 2 }, c: [1, 2] };
+  const autreOrdre = { c: [1, 2], b: { y: 2, x: 1 }, a: 1 };
+  v('⛔ deux objets identiques aux clés rangées autrement ont la MÊME empreinte',
+    api.opEmpreinte(meme), api.opEmpreinte(autreOrdre));
+  vrai('   (et `recEmpreinte`, elle, les distingue — c\'est pour ça qu\'elle ne convient pas)',
+    api.recEmpreinte(meme) !== api.recEmpreinte(autreOrdre));
+  /* Les tampons de transport n'entrent pas dans l'empreinte canonique : sinon chaque
+     enregistrement rebattrait sa propre pierre tombale, la règle que test-639 surveille. */
+  v('   et `_m` / `_ms` n\'y entrent pas', api.opEmpreinte({ a: 1 }), api.opEmpreinte({ a: 1, _m: 99, _ms: { p: 1 } }));
+
+  /* LE CONTRE-TEST, sans lequel tout ce qui précède serait satisfait par une fonction qui
+     rend toujours la même chose : un vrai changement DOIT se voir, et se voir OÙ il est. */
+  const syn2 = synthetique();
+  syn2.clients[0].nom = 'Changé';
+  const s2 = api.opSignature(api.opDecomposer(syn2));
+  vrai('⛔ un seul champ modifié change la signature', s2.sig !== s1.sig);
+  vrai('   et il change celle de SA collection', s2.par.clients.sig !== s1.par.clients.sig);
+  v('   sans toucher aux autres', s2.par.produits.sig, s1.par.produits.sig);
+  const syn3 = synthetique(); syn3.clients[0]._m = 1700000009999;
+  vrai('⛔ une date de modification qui change se voit aussi (c\'est elle qui arbitre)',
+    api.opSignature(api.opDecomposer(syn3)).sig !== s1.sig);
+  const syn4 = synthetique(); syn4.boxes[0].stock.p1 = { ctn: 9, u: 9 };
+  vrai('⛔ une LIGNE de stock qui change se voit (baseSignature ne la regardait pas)',
+    api.opSignature(api.opDecomposer(syn4)).par.box_stock.sig !== s1.par.box_stock.sig);
+  const syn5 = synthetique(); syn5.entreprise = { nom: 'Autre' };
+  vrai('⛔ un RÉGLAGE qui change se voit (baseSignature ne les regardait pas non plus)',
+    api.opSignature(api.opDecomposer(syn5)).sig !== s1.sig);
 }
 
 /* ══ 4. LA BÊTA PORTE LE MÊME CONVERTISSEUR ═══════════════════════════════════════════════ */

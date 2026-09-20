@@ -6281,7 +6281,7 @@ const OP_VIDES = '_vides';
 
 function opDecomposer(base) {
   const src = base || db, out = [];
-  const ecrire = (c, id, m, r) => { out.push({ c: c, id: String(id), m: +m || 0, r: r, e: recEmpreinte(r) }); };
+  const ecrire = (c, id, m, r) => { out.push({ c: c, id: String(id), m: +m || 0, r: r, e: opEmpreinte(r) }); };
   const tombe = (c, id, m) => { out.push({ c: c, id: String(id), m: +m || 0, sup: +m || 0 }); };
   const reglages = {};
 
@@ -6396,7 +6396,66 @@ function opSansTampon(r) {
    contenu. Deux envois du même message donnent le même identifiant ; deux messages différents
    à la même milliseconde n'en donnent pas le même. `recEmpreinte` est réutilisée telle quelle —
    une seule définition, comme partout ailleurs ici. */
-function opIdDerive(r) { return (+((r && r.ts)) || 0) + '-' + recEmpreinte(opSansTampon(r)); }
+function opIdDerive(r) { return (+((r && r.ts)) || 0) + '-' + opEmpreinte(r); }
+/* ══ L'EMPREINTE CANONIQUE, ET LA SIGNATURE QUI EN DÉCOULE ══════════════════════════════════
+   ⛔ POURQUOI ON NE RÉUTILISE PAS `recEmpreinte` NI `baseSignature`, ALORS QU'ELLES EXISTENT.
+   `recEmpreinte` passe par `JSON.stringify`, donc elle dépend de L'ORDRE D'INSERTION des clés
+   d'un objet. C'est sans conséquence là où elle sert — comparer un enregistrement à lui-même,
+   sur le même appareil, d'une seconde à l'autre. Ça en a une ici : la signature de l'étape 5
+   compare DEUX MACHINES. Deux appareils au stock identique produiraient deux empreintes
+   différentes dès que l'ordre des clés diffère — et il diffère, `msElaguer` et la fusion le
+   reconstruisent. Le contrôle serait bruyant dès le premier jour, donc ignoré, donc débranché.
+   Or c'est le SEUL garde-fou du chantier : l'étape 4 ne se juge que par lui.
+   `baseSignature` a la même faiblesse (elle appelle `recEmpreinte(r._ms)`) et, en plus, ne
+   regarde ni les lignes de stock ni les réglages.
+
+   ⛔ LES DEUX FONCTIONS COEXISTENT, ET C'EST VOULU. `recEmpreinte` reste EXACTEMENT ce qu'elle
+   est : elle décide des `_m` par comparaison à l'ombre, `tests/test-639.js` la surveille, et y
+   toucher re-tamponnerait toute la base de tous les clients. `opEmpreinte` est l'autre besoin,
+   nommé à part plutôt que mélangé au premier.
+
+   ⛔ ET C'EST LA MÊME FONCTION DES DEUX CÔTÉS. Le serveur recomposera la signature depuis ses
+   lignes avec ce code-ci ; deux implémentations calculeraient un jour deux valeurs
+   différentes, et c'est celle qu'on aurait oublié de corriger qui déciderait. */
+function opCanon(x) {
+  if (x === null || typeof x !== 'object') return x;
+  if (Array.isArray(x)) return x.map(opCanon);
+  const out = {};
+  Object.keys(x).sort().forEach(k => { if (k !== '_m' && k !== '_ms') out[k] = opCanon(x[k]); });
+  return out;
+}
+function opEmpreinte(r) {
+  const t = JSON.stringify(opCanon(r)) || '';
+  let h = 2166136261;
+  for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}
+
+/* La signature d'un ENSEMBLE DE LIGNES — pas d'une base. C'est ce que les deux côtés ont en
+   commun : le client la calcule sur `opDecomposer(db)`, le serveur sur ses lignes à lui.
+   ⛔ ELLE REND LE DÉTAIL PAR COLLECTION, et pas seulement un total. Une alerte qui dit « ça
+   diverge » sans dire OÙ fait chercher une heure ; celle-ci nomme la collection et le nombre,
+   ce qui est exactement ce que la Tour doit afficher à l'étape 4. */
+function opSignature(lignes) {
+  const par = {};
+  (lignes || []).forEach(l => {
+    if (!l || !l.c) return;
+    const c = l.c;
+    (par[c] = par[c] || []).push(c + '|' + l.id + '|' + (+l.m || 0) + '|' + (l.sup ? 1 : 0) + '|' + (l.sup ? '' : (l.e || opEmpreinte(l.r))));
+  });
+  const cols = Object.keys(par).sort(), detail = {};
+  let tout = '';
+  cols.forEach(c => {
+    /* Le TRI est ce qui rend la signature indépendante de l'ordre de service. Le serveur
+       rend ses lignes par `seq`, le client les a dans l'ordre de `db` : sans tri, les deux
+       divergeraient toujours, et pour rien. */
+    const s = par[c].sort().join(',');
+    detail[c] = { n: par[c].length, sig: opEmpreinte(s) };
+    tout += c + '=' + detail[c].sig + ';';
+  });
+  return { sig: opEmpreinte(tout), par: detail };
+}
+
 
 /* ── LA RECOMPOSITION ────────────────────────────────────────────────────────────────────────
    ⛔ ELLE FUSIONNE, ELLE NE RECONSTRUIT PAS. `opRecomposer(lignes, base)` applique les lignes
