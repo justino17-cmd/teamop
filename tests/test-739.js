@@ -195,6 +195,33 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
     v('   le plus ancien gardé est bien le 20ᵉ', f[0].t, 'message 20');
   }
 
+  console.log('\n══ 5 bis. UN DOSSIER EST BORNÉ EN NOMBRE DE CHAMPS ══\n');
+  {
+    /* ⛔ CE CONTRÔLE EXISTE PARCE QU'UNE MUTATION N'A RIEN CASSÉ. Retirer la borne sur le
+       NOMBRE de champs laissait 51 ✓ 0 ✗ : le banc bornait la TAILLE de chaque valeur, jamais
+       leur quantité. Un client qui envoie dix mille champs fait grossir `portail.json` — et ce
+       fichier est COMMUN à tous les clients, donc c'est le portail entier qui ralentit puis
+       devient illisible, pas le dossier d'un seul.
+       Comme pour le plafond du fil, ça s'éprouve sur le MODULE : en HTTP, le budget anti-abus
+       couperait avant qu'on ait pu le montrer. */
+    const routes3 = {};
+    const fauxApp3 = { get: (c, ...h) => { routes3['GET ' + c] = h[h.length - 1]; },
+      post: (c, ...h) => { routes3['POST ' + c] = h[h.length - 1]; } };
+    const bac3 = path.join(BANC, 'champs');
+    fs.mkdirSync(bac3, { recursive: true });
+    const M3 = require(path.join(RACINE, 'server', 'portail.js')).monterPortail(fauxApp3, {
+      dossier: bac3, parJeton: () => 'gourmand@exemple.fr', admin: (q, r, n) => n(), quotaOk: () => true, journal: () => {},
+    });
+    const gros = {};
+    for (let i = 0; i < 5000; i++) gros['champ' + i] = 'x';
+    await new Promise(res => routes3['POST /api/portail/demande'](
+      { headers: { authorization: 'Bearer ' + 'c'.repeat(64) }, body: gros },
+      { status: () => ({ json: () => res() }), json: () => res() }));
+    const n = Object.keys(M3._reg().d['gourmand@exemple.fr']).length;
+    vrai('⛔ 5 000 champs envoyés, moins de 70 gardés (' + n + ')', n < 70);
+    vrai('   et le dossier existe quand même — on borne, on ne refuse pas tout', n > 5);
+  }
+
   console.log('\n══ 6. LES ANNONCES ══\n');
   {
     v('   la liste est publique — elle s\'affiche avant la connexion', (await appel(B, '/api/portail/actus')).code, 200);
