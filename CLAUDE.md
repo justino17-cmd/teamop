@@ -86,6 +86,21 @@ mois au-dessus de cette ligne d'`index.js`, et ça n'a pas empêché de l'écrir
 fonction de la page au VRAI serveur.** Relire les deux côtés ne suffit pas — ils se lisent très
 bien séparément.
 
+⛔⛔ **ET MÊME CE BANC-LÀ NE VOIT PAS TOUT : CERTAINS DÉFAUTS N'EXISTENT QU'APRÈS UN VRAI
+`save()` DANS UNE VRAIE PAGE.** Le 20 septembre 2026, la lecture du socle (étape 5) a été
+mesurée au navigateur : après avoir lu 2 907 lignes, **les 120 fiches simplement LUES portaient
+toutes un `_m` NEUF**, et l'appareil annonçait qu'il repousserait 2 908 lignes. Un appareil qui
+ne fait que LIRE s'attribuait la base entière et gagnait toutes les fusions contre ses
+collègues. Les 94 contrôles de `test-735` étaient verts pendant ce temps : il compare des
+signatures, il n'appelle pas `save()`.
+La cause tient en une ligne : `save()` appelle `estampiller()`, qui date de MAINTENANT tout
+enregistrement absent de l'ombre — et l'ombre datait d'avant la lecture. **Lire le socle est un
+IMPORT**, donc `ombreRelever()` doit passer JUSTE APRÈS, avant le `save()`. C'est écrit plus bas
+dans cette fiche depuis des semaines, par l'autre bout (« `_m:1` posé juste avant un `save()` ne
+survit pas »), et ça n'a pas empêché de l'écrire à l'envers.
+**Corollaire : toute fonction qui ÉCRIT dans `db` autrement que par un geste de l'utilisateur se
+mesure au navigateur, sur la bêta, avec un vrai `save()` — pas au banc.**
+
 Toutes sautent d'elles-mêmes si `server/node_modules` manque, et ⚠️ aucune ne vise
 `api.teamop.fr` : tout se passe sur 127.0.0.1, coffre de sauvegarde compris.
 
@@ -96,9 +111,9 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 92 suites · 3 412 vérifications (mesuré le 20/09/2026 au soir)
+bash scripts/bancs-ci.sh        # 92 suites · 3 487 vérifications (mesuré le 20/09/2026 au soir)
 node tests/test-726.js          # le câblage du SERVEUR : 135 vérifications, ~12 s
-node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 52 vérifications, ~15 s
+node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 94 vérifications, ~40 s
 ```
 
 ⛔ **COMPTER LES ✓ AVEC `grep` DONNE UN CHIFFRE FAUX, ET FAUX EN MOINS.** Sept suites (716 à
@@ -828,6 +843,14 @@ manifeste de l'app). La pastille verte « OP » de la Tour n'est qu'un repère d
   partielle. Surveiller l'ancien, c'est attendre pour toujours.
 - **`pkill -f <motif>` se tue lui-même** quand le motif figure dans sa propre ligne de
   commande — le reste de la ligne n'est jamais exécuté (code 144). Passer par le PID.
+- **Si le serveur MCP `chrome-devtools` ne répond pas au démarrage d'une session, le navigateur
+  reste mesurable** : le Chromium de l'image est là (`/opt/pw-browsers/chromium`, testé en
+  141.0.7390.37) et Node 22 a un `WebSocket` intégré. On le lance avec
+  `--headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --remote-debugging-port=<p>`,
+  on ouvre une cible par `PUT /json/new?<url>`, et on parle CDP (`Runtime.evaluate` avec
+  `awaitPromise:true, returnByValue:true`). Une quarantaine de lignes, aucune dépendance —
+  Playwright n'est PAS installé dans cette image, seulement ses navigateurs. Les mêmes règles
+  s'appliquent : **bêta uniquement, 127.0.0.1 uniquement.**
 - **`FOURNISSEURS_ELAN` (renommée `FOURNISSEURS_3D` le 10 septembre 2026, v621 — le nom mentait) N'EST PAS la faute de `REPORT_TEMPLATES`** — cette
   fiche l'a affirmé du 8 septembre 2026 au matin, à tort, et la phrase a suffi à lancer une
   suppression. Vérifié champ par champ avant de toucher : les cinq entrées (ARMOSA, ENSYSTEX,

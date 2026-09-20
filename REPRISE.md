@@ -467,6 +467,129 @@ soit bouge. Le serveur classe un corps identique en `noop` sans faire avancer `s
 3. Le **ménage des pièces** de l'étape 3, qui n'a de sens qu'une fois des lignes poussées.
 4. Le contrôle (c) de `test-732` : l'aller-retour sur la **base RÉELLE d'ELAN** (voir D ter).
 
+## D sexies. ✅ SOCLE ÉTAPE 5 — LA LECTURE EST ÉCRITE, ET LES CONDITIONS SE CALCULENT (20 septembre 2026)
+
+⚠️ **Et elle est ÉTEINTE.** `entreprise.lecture` vaut `firestore` partout — et `firestore` aussi
+dès qu'il y a le moindre doute. Pour ELAN, aujourd'hui, ça ne change **rien**.
+
+⛔ **La bascule ne coupe PAS Firestore.** Pendant l'étape 5, l'appareil lit **les deux** : le
+socle en plus, pas à la place. La garde de date rend ça cohérent, et le retour arrière coûte une
+requête parce que la double écriture n'est pas arrêtée. Le retrait de Firestore est l'étape 8.
+
+### 1. ⛔ TROIS DÉFAUTS DE `opRecomposer` — et pourquoi ils n'existaient pas à l'étape 2
+
+La fonction venait de l'étape 2, qui recompose dans une base **vide** : rien n'est là, donc rien
+ne peut être écrasé. L'étape 5 recompose dans la base **vivante** d'un technicien qui travaille.
+
+| ce qui se passait | ce que ça coûtait |
+|---|---|
+| une ligne serveur **plus vieille** écrasait la copie locale | une fiche saisie hors ligne, perdue sans message ni pierre tombale |
+| relire la même page **doublait** `mailSent` et `planJournal` | une reprise depuis le curseur zéro doublait la correspondance envoyée |
+| une tombe s'appliquait sur un enregistrement **ressuscité** localement | une suppression annulée revenait |
+
+La règle est celle de `fusionnerBases` : **le plus récent gagne**. Sur une box, la garde se prend
+sur `_ms[produit]`, jamais sur `_m` — c'est toute la raison d'être de la maille fine.
+
+### 2. ⛔⛔ LE DÉFAUT QUE SEUL LE NAVIGATEUR POUVAIT VOIR
+
+Après une lecture de 2 907 lignes, **les 120 fiches simplement LUES portaient toutes un `_m`
+NEUF**, et l'appareil annonçait qu'il repousserait **2 908 lignes**.
+
+Un appareil qui ne fait que **lire** s'attribuait la base entière et gagnait toutes les fusions
+contre ses collègues. C'est `boxAutoNouveautes` à l'échelle de l'entreprise — « ouvrir un écran
+n'écrit pas », appliqué à la lecture du socle.
+
+Cause : `save()` appelle `estampiller()`, qui date de maintenant tout enregistrement absent de
+l'ombre — et l'ombre datait d'**avant** la lecture. `CLAUDE.md` le disait déjà par l'autre bout :
+un `_m` ne tient que là où `ombreRelever()` passe **juste après**, au chargement et à l'import.
+**Lire le socle EST un import.**
+
+Après correction : aucune fiche re-tamponnée, et les collections identiques entre les deux
+appareils passent de **2 sur 12 à 9 sur 12** (les trois restantes sont un artefact de sonde,
+mesuré champ par champ : `migrate()` ajoute `typeClient` aux fiches que l'appareil témoin avait
+construites à la main). `tests/test-733.js` garde l'ordre `migrate → ombre → save`.
+
+⚠️ Ce qu'on perd : une saisie locale faite et **non enregistrée** dans la fenêtre exacte d'une
+lecture perd son tampon. L'application enregistre à chaque geste ; le risque inverse était certain.
+
+### 3. ⛔ UN DÉFAUT DE L'ÉTAPE 4, TROUVÉ EN BÂTISSANT CELLE-CI
+
+L'appareil envoyait `syncDeviceId()` comme `app_id`. Le serveur n'honore qu'un 32-hexa qu'il
+connaît déjà — sinon choisir son identité redeviendrait possible par la porte de derrière, et
+c'est la bonne règle. **Mesuré : cinq sessions du même appareil, cinq lignes.** Une trentaine
+d'appareils de terrain en fabriquaient des centaines par jour, pour toujours.
+
+L'appareil garde désormais l'identité que le serveur lui donne, et porte son `dev-…` local dans
+`nom` — c'est ce pont qui rend la condition (a) calculable.
+
+### 4. `mailSent` et `planJournal` ne pouvaient PAS atteindre le socle
+
+`ombreRelever()` n'indexe que les enregistrements portant un `id` ; ces deux collections n'en ont
+pas, **par construction** (c'est pour ça qu'`opIdDerive` existe). Sans `_m`, leurs lignes
+partaient à `m:0` et le serveur les refusait en `non_date`.
+
+Invisible à l'étape 4. À l'étape 5, un appareil qui relit sa base recevrait `mailSent` **vide** :
+la trace de tout ce qu'une entreprise a envoyé à ses clients, disparue. Leur date est leur `ts`,
+et `opIdDerive` le dit déjà puisqu'elle en fait la moitié de son identifiant. On ne touche pas à
+`estampiller()` — c'est le chemin d'écriture de vrais clients.
+
+### 5. ⛔ LES CONDITIONS SE CALCULENT — `GET /api/monitor/op/pret`
+
+Le plan les écrit ; sans cette route elles resteraient une intention, et on basculerait « parce
+que ça avait l'air bon ». Chacune rend son verdict **et sa preuve**.
+
+| | ce qu'elle vérifie | comment |
+|---|---|---|
+| (a) | tous les appareils parlent au VPS | compare les appareils du socle à ceux que voit l'API (`cnxData`), **même fenêtre des deux côtés** |
+| (b) | l'espace est dans l'annuaire | `espaceParT` |
+| (c) | il n'est pas sur la clé partagée | `cleEstPublique` |
+| (d) | sept jours de signatures identiques | les verdicts que les appareils remontent |
+| (e) | il n'est ni fermé ni suspendu | *cinquième condition, que le plan n'écrivait pas* |
+
+⛔ **(a) rend `null` quand on ne SAIT pas.** Un journal de connexions absent ferait dire « aucun
+appareil en retard », donc « tu peux basculer », au moment exact où on n'a aucune information.
+C'est la confusion que ce dépôt a déjà payée deux fois (`_mailboxes`, `syncDecrypt`).
+
+⛔ **(d) n'a qu'une source possible** : l'appareil, qui seul détient la copie Firestore. Il
+remonte son verdict (`POST /api/op/controle`), et **sept jours MUETS ne valent pas sept jours
+identiques** — un jour sans contrôle fait tomber la condition. L'annexe disait de (a) qu'elle ne
+pouvait jamais converger : une ligne d'appareil **périme** maintenant (30 jours sans être revue).
+
+### 6. Mesuré au navigateur — beta.html 703-beta, Chromium réel, 127.0.0.1
+
+⚠️ Le serveur MCP `chrome-devtools` n'a pas répondu au démarrage de la session ; la mesure a été
+prise en pilotant directement le Chromium de l'image **en CDP**. Bêta seulement, jamais la
+production, jamais `teamop.fr`.
+
+| | |
+|---|---|
+| appareil 1 | base **303 Ko** → 2 908 lignes, **2 907 poussées en 272 ms** |
+| appareil 2 (base vierge) | **2 907 lignes lues en 8 pages, 286 ms**, base reconstituée **307 Ko** |
+| ce qu'il reçoit | 120 clients · 600 interventions · 400 produits · 80 box · 1 500 mouvements · **40 `mailSent`** |
+| relecture complète par-dessus une saisie locale | la saisie **survit**, aucun doublon |
+| après correction de l'ordre | **0 fiche re-tamponnée** (120 avant) |
+
+### 7. ⚠️ CE QUI RESTE, ET QUI N'EST PAS À MOI
+
+1. ⛔ **Le préavis de 30 jours / l'accord écrit d'ELAN** — chemin critique, inchangé (voir F).
+2. ⛔ **UNE ENTREPRISE SUSPENDUE POUR IMPAYÉ DOIT-ELLE CONTINUER À LIRE ?** Question NON
+   tranchée, et délibérément : `sauvRefus` refuse `entFermes` en 403, donc un espace suspendu ne
+   peut pas ouvrir de session de socle. Aujourd'hui c'est sans conséquence (la base vit aussi en
+   local et dans Firestore). Le jour où le socle est la seule copie à jour, refuser la lecture
+   contredirait `mentions-legales.html:74`, qui promet noir sur blanc qu'un impayé « n'entraîne
+   aucune suppression » et que le client « retrouve l'intégralité de ses données ». **C'est une
+   décision de facturation autant que de code — elle est à Justin.** En attendant, la cinquième
+   condition de `/pret` refuse de basculer un espace fermé ou suspendu.
+3. Les **métriques de latence** côté serveur (toujours aucune).
+4. Le **ménage des pièces** de l'étape 3.
+5. Le contrôle (c) de `test-732` : l'aller-retour sur la **base RÉELLE d'ELAN**.
+
+⚠️ **Un détail mesuré, pas un défaut** : un appareil qui a LU mais jamais poussé garde une borne
+haute à zéro, donc sa première pousse renvoie toute la base (~520 Ko). Le serveur classe chaque
+corps identique en `noop` sans faire avancer `seq` : ça coûte du réseau une fois, pas des
+données. On ne fait PAS monter la borne sur une lecture — un enregistrement local plus ancien
+que la borne ne repasserait plus jamais, et ce risque-là est pire.
+
 ## E. Les étapes 2 à 9 du plan — ce qui n'a pas commencé
 
 `PLAN-OP-SOCLE.md` §4. L'étape 2 était la plus dangereuse de toutes — le convertisseur
