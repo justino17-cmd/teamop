@@ -8349,7 +8349,23 @@ async function opSocleControle() {
     try { lignes = opDecomposer(db); } catch (e) { return null; }
     /* Les enregistrements retenus (pièce pas encore téléversée) ne sont pas dans les lignes,
        donc pas dans notre signature : les deux côtés parlent bien de la même chose. */
-    const moi = opSignature(lignes);
+    /* ⛔ ET ON NE COMPARE QUE CE QUI PEUT PARTIR — MESURÉ AU NAVIGATEUR, 20 SEPTEMBRE 2026.
+       Le serveur refuse toute ligne sans date (`non_date`), donc il ne peut JAMAIS détenir une
+       ligne à `m` nul : la compter revient à se comparer à une chose impossible. Or `db.journal`
+       est classé « liste » — donc décomposé — mais `estampiller()` ne le tamponne PAS : ses
+       entrées naissent sans `_m`. Une seule suffisait à faire dire « DIVERGENCE » à un socle
+       parfaitement à jour, à chaque contrôle, pour toujours. Et depuis que le contrôle RÉPARE,
+       c'était pire qu'un faux cri : la borne repartait à zéro, et toute la base — 520 Ko
+       mesurés — était repoussée chaque nuit, sans jamais converger.
+       ⚠️ Mais on ne l'efface pas pour autant : ces lignes sont COMPTÉES et dites. Un contrôle
+       qui cache ce qu'il ne sait pas comparer est un contrôle qui ment poliment. */
+    const muettes = lignes.filter(l => (+l.m || 0) < 1);
+    const poussables = lignes.filter(l => (+l.m || 0) >= 1);
+    if (muettes.length) {
+      try { console.warn('socle : ' + muettes.length + ' ligne(s) sans date, hors comparaison — '
+        + [...new Set(muettes.map(l => l.c))].join(', ')); } catch (e) {}
+    }
+    const moi = opSignature(poussables);
     const ecarts = [];
     const toutes = new Set(Object.keys(moi.par).concat(Object.keys(j.canon.par || {})));
     toutes.forEach(c => {
@@ -8379,7 +8395,7 @@ async function opSocleControle() {
          pas une par enregistrement — et ses refus se lisent dans la console. */
       try { opHautPoser(s.t, 0); } catch (e) {}
     }
-    return { ok, ecarts };
+    return { ok, ecarts, muettes: muettes.length };
   } catch (e) { return null; }
 }
 /* ══ ÉTAPE 0 DU SOCLE : UNE PIÈCE JOINTE VIT SUR LE SERVEUR, PAS DANS LE DOCUMENT ══════════

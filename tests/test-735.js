@@ -22,9 +22,41 @@
    127.0.0.1. Un nom de champ qui change d'un côté doit faire tomber ce banc.
    ⚠️ Jamais `api.teamop.fr`. Aucun appel sortant, aucune donnée réelle.
 
+   ⛔ ÉPROUVÉ EN REMETTANT LES DÉFAUTS, UN PAR UN — mesuré le 20 septembre 2026, référence
+   48 ✓ · 0 ✗ :
+
+     | défaut remis                                     | ce que le banc rend |
+     |--------------------------------------------------|---------------------|
+     | l'appareil renvoie `{lignes:…}`                  | **29 ✓ · 16 ✗**     |
+     | il s'authentifie par `X-OP-Jeton`                | **29 ✓ · 16 ✗**     |
+     | la garde de ré-entrance ne se relâche jamais     | **33 ✓ · 15 ✗**     |
+     | la borne ne se pose plus du tout                 | **41 ✓ · 7 ✗**      |
+     | plus de borne : on repousse tout à chaque fois   | **43 ✓ · 5 ✗**      |
+     | la borne monte sur TOUT le lot, refus compris    | **43 ✓ · 5 ✗**      |
+     | le drapeau `double` du serveur est ignoré        | **43 ✓ · 5 ✗**      |
+     | le contrôle constate mais ne répare plus         | **45 ✓ · 3 ✗**      |
+     | `dateBase` n'est plus plafonné à maintenant      | **46 ✓ · 2 ✗**      |
+     | le verdict « non » n'est plus rangé              | **46 ✓ · 2 ✗**      |
+     | plus de garde de ré-entrance                     | **46 ✓ · 2 ✗**      |
+     | le cache du verdict « non » est retiré           | **46 ✓ · 1 ✗**      |
+
+   ⚠️ LES TROIS DERNIÈRES LIGNES SONT LA LEÇON DE MÉTHODE, et elles ont coûté deux tours.
+   Aucune des trois ne cassait QUOI QUE CE SOIT à la première écriture du banc :
+
+     · retirer le cache du verdict « non » : neutralisé par `_opJeton`, qui vit en mémoire.
+       Le cache n'existe QUE pour le RECHARGEMENT — et le banc ne rechargeait jamais. Il faut
+       un `allumer()` qui perd la mémoire et garde le stockage, comme un navigateur ;
+     · retirer la garde de ré-entrance : le serveur classe en `noop` les corps identiques,
+       donc trois pousses concurrentes rendaient le même résultat. Le dommage est le TRAFIC,
+       pas le résultat — on compte donc les allers-retours, par chemin.
+
+   Une mutation qui ne casse rien ne dit pas « le code est bon ». Elle dit « qu'est-ce que le
+   banc ne joue pas ? ».
+
    ⚠️ CE QU'IL NE COUVRE PAS, et qu'il faut savoir avant de s'y fier : il ne joue ni le
    branchement dans `_ecriture.then` (c'est du DOM et une promesse Firestore — `test-733` lit
-   le texte), ni le balayage de `espaceQuitter()` (idem), ni la minuterie du contrôle de nuit. */
+   le texte), ni le balayage de `espaceQuitter()` (idem), ni la minuterie du contrôle de nuit,
+   ni la pagination par lots (une base de banc tient dans un seul lot de 400). */
 
 const fs = require('fs'), os = require('os'), net = require('net');
 const path = require('path'), crypto = require('crypto');
@@ -305,6 +337,22 @@ function basePetite(m) {
     v('⛔ appareil et serveur signent IDENTIQUEMENT après une pousse complète', c && c.ok, true);
     v('   donc aucun écart par collection', c && c.ecarts && c.ecarts.length, 0);
     v('   et rien n\'a été remonté à la Tour', diagnostics.length, 0);
+
+    /* ⛔ UNE LIGNE SANS DATE NE DOIT PAS FAIRE CRIER LE CONTRÔLE — TROUVÉ AU NAVIGATEUR, PAS
+       ICI. `db.journal` est classé « liste », donc décomposé, mais `estampiller()` ne le
+       tamponne PAS : ses entrées naissent sans `_m`. Le serveur refuse toute ligne sans date
+       (`non_date`), donc il ne peut JAMAIS l'avoir — la compter, c'est se comparer à une chose
+       impossible. Une seule entrée de journal suffisait à faire dire « DIVERGENCE » à un socle
+       parfaitement à jour, à CHAQUE contrôle. Et depuis que le contrôle répare, la borne
+       repartait à zéro : toute la base (520 Ko mesurés) repoussée chaque nuit, sans jamais
+       converger. Ce banc ne pouvait pas le voir — sa base n'avait pas de journal. */
+    db.journal = [{ id: 'jr1', txt: 'un geste', qui: 'u-banc' }];   // pas de `_m` : comme dans la vraie vie
+    const c2 = await api.opSocleControle();
+    v('⛔ une ligne SANS DATE ne fait pas crier le contrôle', c2 && c2.ok, true);
+    v('   elle est comptée à part, pas cachée', c2 && c2.muettes, 1);
+    v('   et toujours rien à la Tour', diagnostics.length, 0);
+    v('⛔ la borne n\'a donc PAS été remise à zéro', api.opHautLire(T) > 0, true);
+    delete db.journal;
   }
 
   /* ══ (f) LA CONTRE-ÉPREUVE : UN CONTRÔLE QUI NE SAIT PAS CRIER NE SERT À RIEN ═════════════ */
