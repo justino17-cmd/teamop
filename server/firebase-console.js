@@ -275,7 +275,10 @@ async function cmdSauvegardes(tok) {
   if (sch.statut !== 200) { expliquerRefus(sch); process.exit(1); }
   const l = sch.j.backupSchedules || [];
   console.log('  sauvegardes programmées : ' + (l.length ? l.length : '⛔ AUCUNE'));
-  l.forEach(s => console.log('      · ' + (s.dailyRecurrence ? 'chaque jour' : s.weeklyRecurrence ? 'chaque semaine' : '?') + ', gardée ' + (s.retention || '?')));
+  /* Google rend une durée en secondes (« 1209600s »). C'est un outil qu'on lit pour décider,
+     pas un journal machine : personne ne divise par 86 400 de tête à 22 h. */
+  const enJours = (r) => { const m = /^(\d+)s$/.exec(String(r || '')); return m ? Math.round(Number(m[1]) / 86400) + ' jours' : String(r || '?'); };
+  l.forEach(s => console.log('      · ' + (s.dailyRecurrence ? 'chaque jour' : s.weeklyRecurrence ? 'chaque semaine' : '?') + ', gardée ' + enJours(s.retention)));
   if (!/ENABLED/.test(pitr) || !l.length) {
     console.log('\n⛔ Firestore porte les données VIVANTES de tes clients, et Google n\'en garde aucune');
     console.log('   copie pour toi par défaut : une suppression accidentelle serait définitive.');

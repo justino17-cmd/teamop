@@ -72,7 +72,7 @@ globalThis.fetch = async (url, opts) => {
   }
   if (url.indexOf('firestore.googleapis.com') >= 0) {
     if (S.dbStatut && S.dbStatut !== 200) return rep(S.dbStatut, S.dbCorps || {});
-    if (url.indexOf('backupSchedules') >= 0) return rep(200, { backupSchedules: [] });
+    if (url.indexOf('backupSchedules') >= 0) return rep(200, { backupSchedules: S.planifiees || [] });
     return rep(200, { locationId: 'eur3', pointInTimeRecoveryEnablement: 'POINT_IN_TIME_RECOVERY_DISABLED' });
   }
   return rep(200, {});
@@ -217,6 +217,18 @@ console.log('\n══ 2. « droits » MESURE, IL NE DEVINE PAS ══\n');
   vrai('le refus est rapporté avec les mots de Google', /SERVICE_DISABLED/.test(r.sortie));
   vrai('et ce refus est lui-même présenté comme un renseignement', /déjà un renseignement/.test(r.sortie));
   vrai("aucune liste de droits n'est inventée", !/✅ datastore\./.test(r.sortie));
+}
+
+{
+  /* Mesuré sur le VPS le 20 septembre 2026 : Google rend « 1209600s », et c'est ce que l'outil
+     affichait. Un chiffre qu'il faut diviser de tête n'est pas une réponse. */
+  const r = lancer('sauvegardes', { planifiees: [{ dailyRecurrence: {}, retention: '1209600s' }] });
+  vrai('une rétention s\'affiche en jours, pas en secondes', /chaque jour, gardée 14 jours/.test(r.sortie));
+  vrai('et la valeur brute de Google ne reste pas à l\'écran', r.sortie.indexOf('1209600s') < 0);
+}
+{
+  const r = lancer('sauvegardes', { planifiees: [{ weeklyRecurrence: {}, retention: 'P30D' }] });
+  vrai('une durée que Google exprimerait autrement passe telle quelle', /gardée P30D/.test(r.sortie));
 }
 
 console.log('\n══ 3. LA COMMANDE EST ATTEIGNABLE — SANS QUOI RIEN DE CE QUI PRÉCÈDE NE SERT ══\n');
