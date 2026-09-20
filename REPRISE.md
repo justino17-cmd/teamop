@@ -265,6 +265,91 @@ fichier déposé dans `scratchpad/base-reelle.json` (ou `TEAMOP_BASE_REELLE=<che
 coordonnées de vrais clients. `.gitignore` le refuse désormais, mais la règle vaut d'abord pour
 la main qui le dépose.
 
+## D quater. ✅ SOCLE ÉTAPE 3 — LES PIÈCES JOINTES, AU BORD DU TRANSPORT (20 septembre 2026)
+
+⚠️ **Toujours rien de branché.** Le socle dort, `/api/op/*` n'est appelé par personne, et pour
+ELAN ça ne change **rien** aujourd'hui.
+
+L'étape 0 avait déjà livré le STOCKAGE (`/api/pieces/*`, un dossier par entreprise, des
+identifiants sha256, le plancher disque, les plafonds). L'étape 3 ajoute les trois choses qui
+manquaient, et la deuxième est celle qui **bloque toutes les suivantes**.
+
+### 1. La substitution au bord du transport
+
+`opDecomposer` passe la base par `syncSortirPieces` AVANT de découper : les corps de ligne
+portent `piece:<sha>` et `{pid, data:'', surServeur:true}`, **jamais le base64**.
+
+⛔ `db` n'est JAMAIS touché — `syncSortirPieces` travaille sur des copies, et c'est pour ça
+qu'on la réutilise telle quelle au lieu de refaire le geste. Remplacer une photo par son
+identifiant DANS `db` changerait l'empreinte de l'enregistrement, lui donnerait un `_m` neuf, et
+il gagnerait toutes les fusions : **220 interventions re-tamponnées d'un coup**, battant le
+travail en cours de tous les collègues.
+
+**Mesuré au navigateur** (`beta.html` 703-beta, 127.0.0.1), 40 interventions portant chacune une
+photo de 180 Ko et un document de 180 Ko :
+
+| | |
+|---|---|
+| la base | **14 415 Ko** (14,1 Mo) |
+| ce qui part sur le réseau | **21 Ko** |
+| gain | **100 %** |
+| durée | **7 ms** |
+| base64 dans les lignes | **aucun** |
+| base locale | **intacte**, photos comprises |
+
+⚠️ À comparer au plafond d'un document Firestore : **1 Mio**. Cette base-là ne peut tout
+simplement PAS se synchroniser aujourd'hui — `syncAlleger` l'amputerait.
+
+### 2. ⛔ Un enregistrement AMPUTÉ ne se pousse pas
+
+`syncAlleger` vide le contenu des pièces qui n'ont PAS d'identifiant de serveur, pour tenir sous
+le plafond. L'enregistrement porte alors `horsNuage` / `photosHorsNuage` / `champsHorsNuage` :
+il est INCOMPLET, et l'exemplaire complet n'existe que sur l'appareil qui a pris la photo.
+
+Poussé tel quel, l'amputé et le complet arrivent avec le **MÊME `maj_le`** — même geste, même
+milliseconde. Lequel gagne est une **loterie**, et une fois sur deux elle efface une photo de
+terrain chez tout le monde.
+
+On retient, **on le DIT** (`opDecomposer` expose `retenus` avec la collection, l'identifiant et
+le motif), et l'appareil qui détient la pièce la téléverse d'abord. Mesuré : les trois formes
+d'amputation sont retenues et nommées (`ampA:photos`, `ampB:champs`, `ampC:documents`) pendant
+que les 40 complètes partent.
+⚠️ Et **la rétention se LÈVE** — c'est le contre-test le plus important du banc. Une fois la
+pièce téléversée, l'enregistrement porte un `pid`, il n'est plus amputé, il part au tour
+suivant. Sans cette levée on aurait remplacé une loterie par un blocage définitif, ce qui est pire.
+
+### 3. Le serveur sait quelle ligne référence quelle pièce
+
+Table `ligne_fichier` dans `base.db`. Sans elle, une pièce ne disparaît du disque du VPS que sur
+un geste du client (`pieceSupprimer`) : un onglet fermé au mauvais moment, une coupure réseau,
+une suppression faite depuis un AUTRE appareil — et le fichier reste là **pour toujours**.
+
+⛔ C'est l'APPAREIL qui déclare (`f:[sha…]` sur la ligne), pas le serveur qui devine. Il
+pourrait — il a la clé — mais ce serait un déchiffrement par ligne et par envoi, sur la boucle
+d'événements, pour une information que l'appareil connaît gratuitement.
+⛔ Et ce n'est QU'UN REGISTRE : les octets vivent dans `pieces.js`, **un seul stockage**.
+
+### Ce que les bancs ont trouvé
+
+- `fichiersDeLigne` faisait `.all()` **sans passer ses paramètres** : elle rendait `[]` pour
+  tout — et le contrôle « une ligne sans pièce n'en référence aucune » passait au vert **pour
+  la mauvaise raison**.
+- Une tombe portant un `f` enregistrait ses références : des pièces référencées par une ligne
+  MORTE, donc jamais collectées, alors que la suppression est le moment où elles devraient
+  l'être. Aucun banc ne poussait de tombe avec un `f` — la mutation ne cassait rien.
+- Une mutation qui ne casse RIEN et qu'on garde quand même : le `WHERE supprime_le = 0` de
+  `fichiersReferences` est une seconde ceinture qu'aucun banc ne peut atteindre par l'API
+  publique. C'est écrit dans la fonction, et on n'écrira pas qu'elle est « gardée ».
+
+### ⚠️ CE QUI RESTE À L'ÉTAPE 3
+
+Le **ménage** lui-même : une tâche qui compare ce qui est sur le disque à
+`fichiersReferences(t)` et efface la différence, en épargnant ce qui est récent (une pièce
+vient d'être déposée et sa ligne n'est pas encore poussée). Tout ce qu'il faut pour l'écrire
+existe ; il n'a de SENS qu'une fois l'étape 4 en route, parce qu'avant ça aucune ligne n'est
+poussée, donc `fichiersReferences` rend vide, donc le ménage effacerait tout.
+⛔ **À ne surtout pas brancher avant l'étape 4.**
+
 ## E. Les étapes 2 à 9 du plan — ce qui n'a pas commencé
 
 `PLAN-OP-SOCLE.md` §4. L'étape 2 était la plus dangereuse de toutes — le convertisseur
@@ -274,7 +359,7 @@ sont classées, le convertisseur écrit, les quatre bancs verts. L'étape 3 n'a 
 | | | |
 |---|---|---|
 | 2 | le convertisseur et sa preuve, bêta, drapeau éteint | ✅ **écrit et éprouvé** — reste l'aller-retour sur la base réelle d'ELAN (voir D ter) |
-| 3 | les pièces jointes, seules | |
+| 3 | les pièces jointes, seules | ✅ **transport et registre faits** (voir D quater) — reste le ménage, qui n'a de sens qu'à l'étape 4 |
 | 4 | double écriture, lecture toujours Firestore | ⚠️ dépend du préavis à ELAN |
 | 5 | bascule de la lecture, la bêta d'abord | |
 | 6 | le miroir, une semaine | |
