@@ -3730,6 +3730,44 @@ try {
   }
 } catch (e) { console.error('comptes du portail NON montés —', e && e.message); comptes = null; }
 
+/* ══ LE PORTAIL CLIENT, CHEZ NOUS ═════════════════════════════════════════════════
+   ⛔ IL DÉPEND DES COMPTES, DONC IL NE SE MONTE PAS SANS EUX. Savoir qui parle passe par
+   `comptes.parJeton` : sans lui, ces routes n'auraient aucune identité à vérifier et
+   répondraient à n'importe qui. La dépendance est donc EXPLICITE — pas un `if` oublié quelque
+   part qui laisserait le portail ouvert le jour où les comptes refusent de se monter. */
+let portail = null;
+try {
+  if (comptes) {
+    portail = require('./portail').monterPortail(app, {
+      dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, quotaOk,
+      journal: (...a) => console.log('portail:', ...a),
+      /* La reprise des dossiers déjà chez Google. Le serveur a déjà la clé d'administration et
+         s'en sert trois fois plus bas pour `teamop_requests` : on réutilise ce chemin-là
+         plutôt que d'en ouvrir un second. */
+      lireFirestore: async () => {
+        const tok = await fbAdminJeton();
+        if (!tok) throw Object.assign(new Error('firebase off'), { code: 'firebase_off' });
+        const out = []; let pt = '';
+        for (let tour = 0; tour < 40; tour++) {
+          const r = await fbAdminFetch(fsBase() + '/teamop_requests?pageSize=300' + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''), null, tok);
+          const j = await r.json().catch(() => ({}));
+          for (const doc of (j.documents || [])) {
+            const f = doc.fields || {}, v = (k) => (f[k] && (f[k].stringValue !== undefined ? f[k].stringValue
+              : f[k].integerValue !== undefined ? f[k].integerValue : undefined));
+            out.push({ email: v('email'), prenom: v('prenom'), nom: v('nom'), company: v('company'),
+              formule: v('formule'), users: v('users'), etat: v('etat'), promo: v('promo'),
+              apps: ((f.apps && f.apps.arrayValue && f.apps.arrayValue.values) || []).map(x => x.stringValue) });
+          }
+          pt = j.nextPageToken || '';
+          if (!pt) break;
+        }
+        return out;
+      },
+    });
+    console.log('portail client : monté (' + portail.dossiers() + ' dossier(s))');
+  }
+} catch (e) { console.error('portail client NON monté —', e && e.message); portail = null; }
+
 let opSocle = null;
 try {
   opSocle = require('./op-socle').monterOpSocle(app, {

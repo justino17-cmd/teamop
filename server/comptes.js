@@ -285,6 +285,12 @@ function monterComptes(app, deps) {
 
   return {
     ITER, VERIF_VIE_MS, MDP_VIE_MS, SESSION_VIE_MS, ECHECS_MAX, BLOCAGE_MS,
+    /* ⛔ LA SEULE FAÇON POUR UN AUTRE MODULE DE SAVOIR QUI PARLE. `portail.js` en a besoin, et
+       il ne doit PAS relire `comptes-portail.json` de son côté : deux lectures du même fichier,
+       ce sont deux vérités qui divergent le jour où l'une garde un jeton que l'autre a brûlé.
+       Rend l'adresse, ou '' — jamais un objet qu'on pourrait prendre pour une autorisation. */
+    parJeton: (brut) => { const e = jetonLire(brut, 'session'); return (e && compte(e.m)) ? e.m : ''; },
+    vue,
     combien: () => Object.keys(reg.c).length,
     sessions: () => Object.keys(reg.j).filter(k => reg.j[k] && reg.j[k].g === 'session').length,
     _reg: () => reg, _relire: lire,
