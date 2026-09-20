@@ -47,7 +47,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**87 suites dans `tests/`**, sans dépendance ni installation (recompté le 19 septembre 2026 au soir —
+**89 suites dans `tests/`**, sans dépendance ni installation (recompté le 19 septembre 2026 au soir —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -75,7 +75,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 87 suites · 3 208 vérifications, ~73 s (mesuré le 19/09/2026 au soir)
+bash scripts/bancs-ci.sh        # 89 suites · 3 271 vérifications, ~75 s (mesuré le 20/09/2026)
 node tests/test-726.js          # le câblage seul : 126 vérifications, ~12 s
 ```
 
@@ -148,6 +148,18 @@ La parade tient en deux gestes : **enlever les commentaires avant de chercher**
 forme du CODE** (`fetch('https://…'`) plutôt que sur la chaîne toute seule. Et la contre-épreuve
 qui les attrape tous : **muter le code et vérifier que le banc tombe** — un motif qui vise un
 commentaire ne bouge jamais.
+
+⛔⛔ **UNE MUTATION QUI NE CASSE RIEN PEUT PROUVER QUE LE BANC NE REGARDE PAS AU BON ENDROIT.**
+La règle existait déjà plus haut, dans un sens : une mutation neutralisée par une autre garde ne
+dit rien. Le 20 septembre 2026 en a donné l'autre sens, plus coûteux. Remettre `Math.random()`
+dans `opIdDerive` — l'identifiant dérivé de `mailSent` et `planJournal` — ne faisait tomber
+**AUCUN** des 28 contrôles de `test-732`. Et le défaut était bien réel : à la synchro suivante,
+chaque ligne aurait été recréée en double, pour toujours.
+La raison : le banc n'exécutait qu'UN passage (décomposer, recomposer), et un identifiant
+aléatoire y reste cohérent avec lui-même. **Quand une mutation ne casse rien, la question n'est
+pas « le code est-il bon ? » mais « qu'est-ce que le banc ne joue pas ? »** Ici : le DEUXIÈME
+passage. Le contrôle manquant est devenu « décomposer deux fois la même base donne les mêmes
+identifiants » — et la mutation tombe.
 
 ⛔ **UN JETON DE RECHERCHE COURT TOMBE AU HASARD DANS UNE EMPREINTE.** `test-723` cherchait
 « a1 » (l'identifiant d'un enregistrement) dans un texte qui porte un SHA-256 hexadécimal.

@@ -189,6 +189,40 @@ function synthetique() {
   vrai('⛔ un enregistrement jamais daté part avec m:0 (le serveur le refusera, et c\'est juste)', sansDate.length > 0);
 }
 
+/* ══ 1. (c) LA BASE RÉELLE D'UN CLIENT — SI ELLE EST LÀ ══════════════════════════
+   Le semis a 34 clés, la base synthétique les 83 — mais aucune des deux n'a les DONNéES d'une
+   entreprise qui travaille depuis un an : des interventions à photos, des box à deux cents
+   produits, des enregistrements écrits par des versions qui n'existent plus. C'est là que
+   vivent les formes qu'on n'a pas imaginées.
+   ⛔ CE FICHIER NE SE COMMITE JAMAIS : ce sont les données réelles d'un client. Il se produit
+   par `exportData()` sur un appareil et se dépose dans le scratchpad, qui est hors du dépôt.
+   Sans lui, ce contrôle se tait — et le dit, pour qu'on sache que l'étape 2 n'est pas
+   complètement prouvée tant que personne ne l'a fourni. */
+{
+  const chemins = [process.env.TEAMOP_BASE_REELLE, path.join(RACINE, 'scratchpad', 'base-reelle.json')].filter(Boolean);
+  const trouve = chemins.find(c => { try { return fs.existsSync(c); } catch (e) { return false; } });
+  if (!trouve) {
+    console.log('\n  … base réelle absente : le contrôle (c) du banc n° 1 ATTEND un export.');
+    console.log('    `exportData()` sur un appareil → scratchpad/base-reelle.json (jamais commité).');
+  } else {
+    console.log('\n⛔ Aller-retour sur une base RÉELLE');
+    let reelle = null;
+    try { reelle = JSON.parse(fs.readFileSync(trouve, 'utf8')); } catch (e) {}
+    vrai('la base réelle se lit', !!reelle);
+    if (reelle) {
+      const b = reelle.db || reelle;   // l'export enveloppe parfois la base
+      const cles = Object.keys(b);
+      v('⛔ toutes ses clés sont classées', cles.filter(k => !api.OP_CLASSES[k]), []);
+      const l = api.opDecomposer(b);
+      console.log('      ' + cles.length + ' clés, ' + l.length + ' lignes');
+      v('⛔ aller-retour IDENTIQUE sur la base réelle', diff(b, api.opRecomposer(l, {})), []);
+      let parPages = {};
+      for (let i = 0; i < l.length; i += 400) parPages = api.opRecomposer(l.slice(i, i + 400), parPages);
+      v('⛔ et par pages de 400 aussi', diff(b, parPages), []);
+    }
+  }
+}
+
 /* ══ 3. ⛔ LA PAGINATION — LE BANC QUE L'ALLER-RETOUR NE PEUT PAS FAIRE ═══════════════════ */
 console.log('\n⛔ Pagination : les lignes arrivent par pages, et rien ne doit se perdre');
 {

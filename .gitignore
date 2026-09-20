@@ -27,3 +27,11 @@ node_modules/
 # Sans ces motifs, un « git add . » les ferait entrer dans un dépôt de production.
 *-avant.html
 *-apres.html
+
+# ⛔ LA BASE RÉELLE D'UN CLIENT NE RENTRE JAMAIS DANS L'HISTORIQUE.
+# `tests/test-732.js` éprouve le convertisseur du socle sur une base exportée par
+# `exportData()` depuis un appareil — des noms, des adresses et des coordonnées de vrais
+# clients. Ce dépôt est PUBLIC. Un fichier poussé une fois est publié, même supprimé au
+# commit suivant : c'est exactement la règle des secrets, quelques lignes plus haut.
+scratchpad/base-reelle.json
+scratchpad/base-*.json

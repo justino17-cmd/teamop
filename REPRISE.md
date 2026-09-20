@@ -199,14 +199,81 @@ tombent donc dans le budget global à 120/min/IP : quelqu'un qui ouvre plusieurs
 à photos sur la bêta peut se faire plafonner **toute l'API**, devis et bons de commande
 compris. Pousser `server/` déploie le VPS — c'est une décision de Justin, pas d'un agent.
 
+## D ter. ✅ SOCLE ÉTAPE 2 — LE CONVERTISSEUR EST ÉCRIT ET ÉPROUVÉ (20 septembre 2026)
+
+⚠️ **Rien n'est branché.** Le socle dort côté serveur (`socle.actif:false`), aucun appel ne
+sort du convertisseur, et pour ELAN ça ne change **rien**. C'est du transport préparé, mesuré
+et rangé — pas une bascule.
+
+**Ce qui est livré**, dans `app.html` et `beta.html` (la bêta est régénérée, les deux portent le
+même code au caractère près, et un banc l'exige) :
+
+| | quoi |
+|---|---|
+| `OP_CLASSES` | le classement des **83 clés** de `db` en sept genres, avec ce que chacune devient côté socle |
+| `opDecomposer(db)` | → des lignes au format que `/api/op/pousser` accepte déjà (`{c,id,m,r,e}` / `{c,id,m,sup}`) |
+| `opRecomposer(lignes, base)` | → la base, en **fusionnant** par-dessus, jamais en reconstruisant |
+| `opEmpreinte` / `opSignature` | l'empreinte **canonique** et la signature par collection — le garde-fou de l'étape 4 |
+
+**Les quatre bancs du plan sont écrits** : `test-731` (n° 2, le classement, 19 ✓) et `test-732`
+(n° 1, 3 et 4 : aller-retour, pagination, signature — 44 ✓, 48 ✓ avec une base réelle).
+
+### ⛔ Ce que les bancs ont trouvé, et qui était invisible à la lecture
+
+1. **Onze collections VIDES s'évanouissaient** — `absences`, `brouillons`, `chantiers`,
+   `groupes`, `indispos`, `interventionsArchive`, `planJournal`, `planNotes`, `plansSite`,
+   `registres`, `taches`. Aucun enregistrement → aucune ligne → la recomposition ne les
+   recréait pas. `collsFusion` énumère « toute clé qui se trouve être un tableau » : une base
+   sans elles n'a plus la même forme.
+2. **Une box à stock vide revenait SANS stock.** `stock` absent ≠ `stock:{}` : poser un `{}`
+   change l'empreinte de la box, donc son `_m`, donc la fusion. Et la présence de `_ms`, même
+   VIDE, décide d'un comportement dans `estampiller()`.
+3. ⛔ **Une leçon de méthode, payée ici** : remettre `Math.random()` dans l'identifiant dérivé
+   de `mailSent` / `planJournal` ne cassait **aucun** des 28 contrôles d'alors — l'aller-retour
+   est un passage unique, un identifiant aléatoire y reste cohérent avec lui-même. Le défaut
+   était pourtant réel : à la synchro suivante, chaque ligne aurait été recréée en double, pour
+   toujours. **Une mutation qui ne casse rien peut prouver que le banc ne regarde pas au bon
+   endroit.** Le contrôle manquant a été ajouté.
+
+### Les décisions prises, et pourquoi
+
+- **La box ÉCLATE** : une ligne par produit, datée par `_ms[pid]`. Deux personnes sur deux
+  produits de la même box ne se marchent plus dessus **par construction**, plus par condition.
+- **Les marques de RETRAIT voyagent comme des tombes.** Oubliées, un appareil resté trois
+  semaines au fond d'un camion ressuscite chez toute l'équipe les produits retirés à la main.
+- **`mailSent` et `planJournal` n'ont pas d'identifiant** — ils n'en ont jamais eu besoin dans
+  un document unique. Le leur est **dérivé du contenu**, jamais `uid()`.
+- **Les réglages partent en UN bloc opaque** (phase A). Les découper maintenant les rendrait
+  refusés à jamais : `estampiller()` ne pose pas de `_m` sur un objet.
+- **`m:0` pour un enregistrement jamais daté**, que le serveur refusera (`non_date`) — et c'est
+  juste : sans `_m`, il est tuable par n'importe quelle tombe de n'importe quelle époque.
+- **On ne réutilise ni `recEmpreinte` ni `baseSignature`** pour la signature : elles passent par
+  `JSON.stringify`, donc dépendent de l'ordre d'insertion des clés. Sans conséquence là où
+  elles servent ; décisif ici, où l'on compare DEUX MACHINES. Elles coexistent, nommées à part.
+- **Rien n'est jamais jeté** : une clé inconnue du classement part quand même, dans le bloc des
+  réglages.
+
+### ⚠️ CE QUI MANQUE ENCORE À L'ÉTAPE 2, ET QUI N'EST PAS À MOI
+
+Le contrôle **(c) du banc n° 1** : l'aller-retour sur **la base RÉELLE d'ELAN**. Le semis a
+34 clés, la base synthétique les 83 — mais aucune des deux n'a les données d'une entreprise qui
+travaille depuis un an, là où vivent les formes qu'on n'a pas imaginées.
+
+Le banc l'attend et le DIT quand elle manque. Pour la fournir : `exportData()` sur un appareil,
+fichier déposé dans `scratchpad/base-reelle.json` (ou `TEAMOP_BASE_REELLE=<chemin>`).
+⛔ **Il ne se commite jamais** — ce dépôt est public et ce sont des noms, des adresses et des
+coordonnées de vrais clients. `.gitignore` le refuse désormais, mais la règle vaut d'abord pour
+la main qui le dépose.
+
 ## E. Les étapes 2 à 9 du plan — ce qui n'a pas commencé
 
-`PLAN-OP-SOCLE.md` §4. **L'étape 2 est la plus dangereuse de toutes** : le convertisseur
-`db` ↔ lignes, avec 83 clés `db.*` non déclarées. Rien n'a commencé.
+`PLAN-OP-SOCLE.md` §4. L'étape 2 était la plus dangereuse de toutes — le convertisseur
+`db` ↔ lignes, avec 83 clés `db.*` non déclarées. ✅ **Elle est faite** (voir D ter) : les clés
+sont classées, le convertisseur écrit, les quatre bancs verts. L'étape 3 n'a pas commencé.
 
 | | | |
 |---|---|---|
-| 2 | le convertisseur et sa preuve, bêta, drapeau éteint | **⚠️ le vrai risque du chantier** |
+| 2 | le convertisseur et sa preuve, bêta, drapeau éteint | ✅ **écrit et éprouvé** — reste l'aller-retour sur la base réelle d'ELAN (voir D ter) |
 | 3 | les pièces jointes, seules | |
 | 4 | double écriture, lecture toujours Firestore | ⚠️ dépend du préavis à ELAN |
 | 5 | bascule de la lecture, la bêta d'abord | |
