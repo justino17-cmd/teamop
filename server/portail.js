@@ -67,12 +67,24 @@ function monterPortail(app, deps) {
     if (f.length > FIL_MAX) f.splice(0, f.length - FIL_MAX);
   }
 
+  /* ⛔ LE DOSSIER EST LIBRE, SAUF CE QUI DÉCIDE DE L'ARGENT ET DE L'ACCÈS.
+     Première conception : une liste FERMÉE de champs (prénom, nom, société, formule…). Le
+     relevé d'`espace.html` l'a démenti — la page écrit aussi `plan`, `docs`, `demandes`,
+     `tel`, l'adresse de facturation, le SIRET, la TVA… Une liste fermée aurait fait
+     DISPARAÎTRE en silence tout ce qu'elle ne connaît pas, et personne ne l'aurait vu avant
+     qu'un client réclame sa facture.
+     On inverse donc : le dossier accepte ce qu'on lui donne, et une liste NOMMÉE de champs
+     reste interdite au client. C'est la faute déjà payée sur `/api/clients/sync` — une
+     valeur du CORPS décidait de l'abonnement — refermée par la seule voie qui tienne : dire
+     ce qui appartient au SERVEUR, pas essayer de deviner tout ce qui appartient au client.
+     ⚠ Ajouter un champ que la Tour pose → l'ajouter ICI, sinon le client pourra l'écrire. */
+  const CHAMPS_SERVEUR = ['status', 'etat', 'apps', 'plan', 'planStatus', 'docs',
+    'promo', 'promoUsed', 'promoAlerte', 'venuDe', 'cree', 'maj'];
+
   const dossierVue = (mail) => {
     const x = reg.d[mail];
     if (!x) return null;
-    return { email: mail, prenom: x.pr || '', nom: x.no || '', societe: x.so || '',
-      apps: x.ap || [], formule: x.fo || '', users: x.us || 0, etat: x.et || 'nouvelle',
-      promo: x.promo || '', cree: x.cree || 0, maj: x.maj || 0 };
+    return Object.assign({}, x, { email: mail });
   };
 
   /* ── CÔTÉ CLIENT ────────────────────────────────────────────────────────────────────────── */
@@ -87,16 +99,19 @@ function monterPortail(app, deps) {
     if (!mail) return res.status(401).json({ error: 'session_refusee' });
     if (!quotaOk(quota, 'dem:' + mail, 30, 3600000)) return res.status(429).json({ error: 'trop_de_demandes' });
     const b = req.body || {};
-    const x = reg.d[mail] || (reg.d[mail] = { cree: Date.now(), et: 'nouvelle' });
-    /* ⛔ LE CLIENT NE DÉCIDE PAS DE SON ÉTAT NI DE SA PROMO. C'est exactement la faute que ce
-       dépôt a déjà payée sur `/api/clients/sync` : une valeur du CORPS décidait de ce qu'une
-       entreprise avait payé. `et` et `promo` ne se posent que depuis la Tour. */
-    if (b.prenom !== undefined) x.pr = borne(b.prenom, 60);
-    if (b.nom !== undefined) x.no = borne(b.nom, 60);
-    if (b.societe !== undefined) x.so = borne(b.societe, 120);
-    if (Array.isArray(b.apps)) x.ap = b.apps.slice(0, 6).map(a => borne(a, 30));
-    if (b.formule !== undefined) x.fo = borne(b.formule, 30);
-    if (b.users !== undefined) x.us = Math.max(0, Math.min(9999, parseInt(b.users, 10) || 0));
+    const x = reg.d[mail] || (reg.d[mail] = { cree: Date.now(), etat: 'nouvelle' });
+    /* On recopie ce que le client envoie, SAUF les champs du serveur. Chaque valeur est bornée
+       — un dossier ne doit pas pouvoir peser un mégaoctet, le fichier est commun à tous. */
+    let poses = 0;
+    for (const k of Object.keys(b)) {
+      if (k === 'message' || k === 'email') continue;
+      if (CHAMPS_SERVEUR.indexOf(k) >= 0) continue;
+      if (poses++ > 60) break;                        // borne le NOMBRE de champs, pas que leur taille
+      const val = b[k];
+      if (Array.isArray(val)) x[k] = val.slice(0, 40).map(y => (y && typeof y === 'object') ? y : borne(y, 400));
+      else if (val && typeof val === 'object') x[k] = val;   // un sous-objet (facturation) passe tel quel
+      else x[k] = borne(val, 600);
+    }
     x.maj = Date.now();
     if (b.message) ajouterMsg(mail, 'client', b.message);
     ecrire();
@@ -149,8 +164,11 @@ function monterPortail(app, deps) {
     const mail = norm(b.email);
     const x = reg.d[mail];
     if (!x) return res.status(404).json({ error: 'dossier_inconnu' });
-    if (b.etat !== undefined) x.et = borne(b.etat, 30);
-    if (b.promo !== undefined) x.promo = borne(b.promo, 40);
+    /* La Tour, elle, pose EXACTEMENT les champs que le client ne peut pas. */
+    for (const k of CHAMPS_SERVEUR) {
+      if (k === 'cree' || k === 'maj' || k === 'venuDe') continue;
+      if (b[k] !== undefined) x[k] = Array.isArray(b[k]) ? b[k].slice(0, 40).map(y => borne(y, 400)) : borne(b[k], 400);
+    }
     x.maj = Date.now(); ecrire();
     res.json({ ok: true, dossier: dossierVue(mail) });
   });
@@ -200,10 +218,11 @@ function monterPortail(app, deps) {
          recalculable de notre côté, donc on le RAPPORTE plutôt que de le deviner. */
       if (!mail) { sansAdresse++; continue; }
       if (reg.d[mail]) { ignores++; continue; }
-      reg.d[mail] = { pr: borne(x.prenom, 60), no: borne(x.nom, 60), so: borne(x.company || x.societe, 120),
-        ap: Array.isArray(x.apps) ? x.apps.slice(0, 6).map(a => borne(a, 30)) : [],
-        fo: borne(x.formule, 30), us: parseInt(x.users, 10) || 0,
-        et: borne(x.etat || 'nouvelle', 30), promo: borne(x.promo, 40),
+      reg.d[mail] = { prenom: borne(x.prenom, 60), nom: borne(x.nom, 60),
+        company: borne(x.company || x.societe, 120),
+        apps: Array.isArray(x.apps) ? x.apps.slice(0, 6).map(a => borne(a, 30)) : [],
+        formule: borne(x.formule, 30), users: parseInt(x.users, 10) || 0,
+        etat: borne(x.etat || 'nouvelle', 30), promo: borne(x.promo, 40),
         cree: parseInt(x.cree, 10) || Date.now(), maj: Date.now(), venuDe: 'firestore' };
       repris++;
     }

@@ -103,10 +103,25 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
     v('   sans session, /moi refuse', (await appel(B, '/api/portail/moi')).code, 401);
     v('   avec session, il répond', (await appel(B, '/api/portail/moi', undefined, jA)).code, 200);
     v('   et le dossier est vide au départ', (await appel(B, '/api/portail/moi', undefined, jA)).j.dossier, null);
-    const r = await appel(B, '/api/portail/demande', { prenom: 'Alice', nom: 'Martin', societe: 'Nettoyage Martin', apps: ['gestion'], formule: 'pro', users: 4 }, jA);
+    const r = await appel(B, '/api/portail/demande', { prenom: 'Alice', nom: 'Martin', societe: 'Nettoyage Martin',
+      app: 'gestion', apps: ['gestion'], formule: 'pro', users: 4, tel: '0600000000',
+      facturation: { adresse: '3 rue du Test', cp: '79000', ville: 'Niort', siret: '123' } }, jA);
     v('   la demande s\'enregistre', r.code, 200);
-    v('   et se relit', (await appel(B, '/api/portail/moi', undefined, jA)).j.dossier.societe, 'Nettoyage Martin');
-    v('   avec ses applications', (await appel(B, '/api/portail/moi', undefined, jA)).j.dossier.apps, ['gestion']);
+    const d0 = (await appel(B, '/api/portail/moi', undefined, jA)).j.dossier;
+    v('   et se relit', d0.societe, 'Nettoyage Martin');
+    /* ⛔ LE DOSSIER EST LIBRE : la page écrit bien plus que le formulaire d'inscription
+       (téléphone, adresse de facturation, SIRET, TVA, plan, documents…). Une liste FERMÉE de
+       champs les ferait disparaître EN SILENCE, et personne ne le verrait avant qu'un client
+       réclame sa facture. */
+    v('   un champ hors formulaire passe (téléphone)', d0.tel, '0600000000');
+    v('   un SOUS-OBJET passe entier (facturation)', d0.facturation.ville, 'Niort');
+    /* ⛔⛔ ET LA DISTINCTION QUI DÉCIDE DE L'ARGENT : `app` est ce que le client DEMANDE,
+       `apps` est ce que la Tour ACCORDE. Les confondre, c'est laisser un client s'attribuer
+       les applications qu'il veut — la faute déjà payée sur `/api/clients/sync`. */
+    v('   ce que le client DEMANDE est gardé', d0.app, 'gestion');
+    v('⛔⛔ ce qu\'il s\'ACCORDE lui-même est refusé', d0.apps, undefined);
+    await appel(B, '/api/monitor/portail/etat', { email: 'alice@exemple.fr', apps: ['gestion'] }, jTour);
+    v('   la Tour, elle, accorde', (await appel(B, '/api/portail/moi', undefined, jA)).j.dossier.apps, ['gestion']);
     /* ⛔ Bob ne doit RIEN voir d'Alice — c'est la seule chose qui rend un portail acceptable. */
     v('⛔ un autre client ne voit pas le dossier d\'Alice', (await appel(B, '/api/portail/moi', undefined, jB)).j.dossier, null);
   }
@@ -119,7 +134,7 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
     await appel(B, '/api/portail/demande', { etat: 'validee', promo: 'CADEAU-A-VIE' }, jA);
     const d = (await appel(B, '/api/portail/moi', undefined, jA)).j.dossier;
     v('⛔ l\'état reste celui que la Tour a posé, pas celui du corps', d.etat, 'nouvelle');
-    v('⛔ et la promo reste vide', d.promo, '');
+    v('⛔ et la promo reste vide', d.promo, undefined);
     /* La Tour, elle, peut. */
     const t = await appel(B, '/api/monitor/portail/etat', { email: 'alice@exemple.fr', etat: 'validee', promo: 'REEL' }, jTour);
     v('   la Tour pose l\'état', t.code, 200);
@@ -230,8 +245,8 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
     v('   l\'import reprend le dossier absent', rep.repris, 1);
     v('⛔ et IGNORE celui qui existe d\'ej\'a en local', rep.ignores, 1);
     v('⛔ un dossier SANS adresse est rapporté, jamais rattaché au hasard', rep.sansAdresse, 1);
-    v('⛔⛔ le dossier local n\'a pas bougé d\'un caractère', M2._reg().d['locale@exemple.fr'].so, 'SAISIE ICI');
-    v('   et le dossier neuf est bien là', M2._reg().d['neuve@exemple.fr'].so, 'À reprendre');
+    v('⛔⛔ le dossier local n\'a pas bougé d\'un caractère', M2._reg().d['locale@exemple.fr'].societe, 'SAISIE ICI');
+    v('   et le dossier neuf est bien là', M2._reg().d['neuve@exemple.fr'].company, 'À reprendre');
   }
 
   console.log('\n══ 8. CE QUI EST SUR LE DISQUE ══\n');
