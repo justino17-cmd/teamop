@@ -22,6 +22,82 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ⛔ 20 SEPTEMBRE 2026, SOIR — UN REFUS DE GOOGLE NE SE RÉSUME PAS
+
+`firebase-console.js sauvegardes-activer` refusait en 403 sur le VPS. L'outil affichait
+**« ✗ REFUSÉ (403) : le compte de service n'a pas le droit de faire ça »** — une phrase écrite
+EN DUR, qui sortait sur TOUT 403 quelle qu'en soit la cause, et c'était **la seule branche du
+fichier qui jetait `r.txt`**, donc les mots de Google. Deux rôles ont été ajoutés dans la
+console sur la foi de cette phrase. Le refus est resté, et rien ne pouvait dire pourquoi.
+
+C'est exactement la panne que `diagnostic-avant-hypothese` décrit : « un message tronqué a
+caché *permission denied* sur un chemin qu'on n'avait pas regardé ». Sauf qu'ici le message
+n'était pas tronqué par accident — il était **remplacé par une hypothèse**, et l'hypothèse
+avait l'air d'un diagnostic parce qu'elle nommait un rôle et une console.
+
+⛔ **La règle, plus large que ce fichier : ne jamais réécrire le refus d'un service extérieur.**
+Google, Stripe et Firebase nomment tous la permission manquante, la ressource visée et le motif
+technique. Les résumer, c'est remplacer une mesure par une croyance — et une croyance ne se
+mesure pas, donc elle ne se corrige pas. Afficher le message, ajouter son propre conseil
+À CÔTÉ, jamais À LA PLACE.
+
+**Trois causes donnent le MÊME 403, et une seule se répare dans l'IAM :**
+
+| cause | ce qui la trahit | ce qui la répare |
+|---|---|---|
+| le rôle manque vraiment | `testIamPermissions` ne rend pas la permission | ajouter le rôle |
+| l'API est éteinte sur le projet | `reason: SERVICE_DISABLED` dans `details` | le lien d'activation, dans le message |
+| la clé appartient à un AUTRE projet | `cle.project_id` ≠ `PROJET` | corriger `config.json`, ou poser la bonne clé |
+
+La troisième est la plus coûteuse : la console montre des rôles bien posés, sur une ligne que
+la demande ne présente jamais. On peut cliquer longtemps.
+
+**Ce qui a été écrit :**
+- `expliquerRefus` affiche le message de Google, sa ressource et son motif, et distingue une
+  API éteinte d'un droit absent. Il ne nomme plus de cause qu'il n'a pas constatée : il renvoie
+  vers la mesure.
+- **`node server/firebase-console.js droits`** — la mesure. Trois questions posées à Google
+  plutôt que devinées : l'identité RÉELLE du jeton (et non l'adresse lue dans le fichier de
+  clé : une clé remplacée ne change pas le nom du fichier, et on éditerait la mauvaise ligne),
+  le projet visé comparé au projet de la clé, et les permissions que `testIamPermissions`
+  reconnaît — il rend le sous-ensemble que l'appelant DÉTIENT, et n'exige aucun droit pour
+  répondre. Puis une **contre-épreuve** qui rejoue la demande qui refusait.
+- `tests/test-736.js` — **42 contrôles**. Il ne lit pas le texte du fichier : il LANCE le vrai
+  fichier en sous-processus, avec un vrai couple de clés RSA (la signature JWT doit passer) et
+  un faux Google préchargé par `--require`, et il vérifie **les mots qui sortent dans le
+  terminal**. Cinq mutations le font tomber : 35 ✓ 7 ✗ (l'ancienne phrase revient), 38 ✓ 4 ✗
+  (la comparaison des projets retirée), 39 ✓ 3 ✗ (l'identité lue au lieu d'être demandée),
+  41 ✓ 1 ✗ (l'API éteinte plus distinguée), 39 ✓ 3 ✗ (la contre-épreuve retirée).
+
+⚠️ **Deux pièges du banc lui-même, qui ont chacun produit un FAUX VERT** — ils valent pour tout
+banc qui lance un sous-processus :
+1. **`/tokeninfo` CONTIENT `/token`.** Le faux Google testait `/token` en premier et répondait
+   un jeton d'accès à la demande d'identité. La branche « identité non confirmée » était donc
+   verte sans jamais avoir été exercée, et les deux contrôles qui comptaient étaient rouges
+   pour une raison qui n'avait rien à voir.
+2. **`execFileSync` ne rend QUE stdout quand la commande aboutit, et `e.stderr` est NUL quand
+   stderr n'est pas un tuyau.** Les deux pièges se compensaient : en tuyau, les refus d'une
+   commande qui aboutit quand même étaient perdus ; en fichier, ceux d'une commande qui échoue
+   l'étaient. Or `expliquerRefus` écrit TOUT sur stderr — c'est-à-dire tout ce que ce banc
+   existe pour lire. La sortie d'erreur va donc dans un fichier, relu dans les DEUX cas.
+
+### Ce que la sortie de Justin disait déjà, sans qu'il ait rien à relancer
+
+```
+══ Sauvegardes Firestore ══
+  récupération à un instant donné : ⛔ DÉSACTIVÉE      ← imprimé, donc la 1ʳᵉ requête a rendu 200
+✗ REFUSÉ (403)                                          ← la SECONDE requête
+```
+
+Pour que cette ligne s'imprime, `datastore.databases.get` doit passer. Le refus est donc arrivé
+sur `datastore.backupSchedules.list`. **Cela élimine deux des trois causes** : l'API n'est pas
+éteinte (elle a répondu 200), et la clé vise le bon projet (sinon la première requête aurait
+refusé aussi). Il reste un rôle qui manque sur un compte qui a déjà le droit de LIRE — la
+signature exacte du compte `firebase-adminsdk` par défaut. `roles/datastore.owner` est la bonne
+réponse ; ce qui n'a pas marché, c'est l'enregistrement, la ligne visée, ou la propagation.
+**`droits` tranchera lequel des trois, en une commande.**
+
+
 ## Sauvegardes et retour en arrière — fait le 20 septembre 2026
 
 Justin, ce jour-là : « est-ce qu'on peut faire des sauvegardes toutes les heures pour les
