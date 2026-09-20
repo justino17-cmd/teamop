@@ -1269,6 +1269,149 @@ function diagnosticsDe(t, max) {
 
 /* L'ancre : le dernier maillon, plus le nombre de lignes. C'est ce qui part par courriel —
    deux nombres et une empreinte, aucun nom d'entreprise, aucun motif. */
+/* ══ L'OBSERVATOIRE — ÉTAPE 6 : « LE MIROIR, UNE SEMAINE » ═════════════════════════════════
+ * ⛔ L'ÉTAPE 6 NE LIVRE « RIEN », ET C'EST EXACTEMENT POURQUOI ELLE A BESOIN DE CE FICHIER.
+ * Le plan dit : « on regarde le compteur de divergences rester à zéro, les compteurs de refus
+ * et la charge ». Or ces compteurs vivaient dans des `Map` de `op-socle.js`, c'est-à-dire EN
+ * MÉMOIRE — et tout push sur `main` touchant `server/**` déploie, donc redémarre. Les jours
+ * chargés, plusieurs fois. **Une semaine d'observation sur un compteur qui repart à zéro
+ * plusieurs fois par jour ne montre rien**, et montre « zéro », ce qui est pire : on conclurait
+ * que tout va bien. Ce dépôt a déjà payé deux fois cette leçon exacte — la minuterie de l'ancre
+ * et le compteur d'horloge : ce qui doit survivre au déploiement ne tient pas dans une variable.
+ *
+ * ⛔ CE QUI EST GARDÉ NE NOMME AUCUNE ENTREPRISE. `/health` est publique, et y faire figurer un
+ * espace dirait au monde quelles entreprises existent. On garde des MOTIFS et des NOMBRES, par
+ * jour. Le « chez qui » vit dans la Tour, derrière le mot de passe du patron.
+ *
+ * ⚠️ Un seau par JOUR, quatorze jours glissants : de quoi voir la semaine que l'étape 6 demande,
+ * plus une semaine de recul pour comparer, et rien de plus. */
+const OBS_JOURS = 14;
+const obsJour = () => Math.floor(Date.now() / 86400000);
+
+function obsLire() {
+  try { const o = JSON.parse(reglageLire('observatoire') || '{}'); return (o && typeof o === 'object') ? o : {}; }
+  catch (e) { return {}; }
+}
+
+/* ⛔ ÉCRITURE GROUPÉE, PAS UNE PAR REFUS. Un refus se compte par centaines quand quelque chose
+ * va mal — c'est-à-dire au pire moment — et une écriture SQLite synchrone par refus ferait de
+ * l'observatoire la cause de la panne suivante. On accumule en mémoire et on verse au plus une
+ * fois par minute ; ce qui reste en vol à un redémarrage, c'est au maximum une minute de
+ * comptage, contre la totalité aujourd'hui. */
+let _obsEnVol = null, _obsVerseLe = 0;
+const OBS_VERSEMENT_MS = 60000;
+
+function obsNoter(famille, motif, n) {
+  const j = String(obsJour());
+  _obsEnVol = _obsEnVol || {};
+  const f = (_obsEnVol[famille] = _obsEnVol[famille] || {});
+  const d = (f[j] = f[j] || {});
+  d[motif] = (d[motif] || 0) + (parseInt(n, 10) || 1);
+  if (Date.now() - _obsVerseLe > OBS_VERSEMENT_MS) obsVerser();
+}
+
+function obsVerser() {
+  if (!_obsEnVol) return;
+  const enVol = _obsEnVol; _obsEnVol = null; _obsVerseLe = Date.now();
+  try {
+    const o = obsLire();
+    for (const famille of Object.keys(enVol)) {
+      const f = (o[famille] = o[famille] || {});
+      for (const j of Object.keys(enVol[famille])) {
+        const d = (f[j] = f[j] || {});
+        for (const m of Object.keys(enVol[famille][j])) d[m] = (d[m] || 0) + enVol[famille][j][m];
+      }
+    }
+    /* Élagage : au-delà de la fenêtre, on oublie. Un réglage qui grossit sans fin finit par
+       peser sur chaque démarrage. */
+    const limite = obsJour() - OBS_JOURS;
+    for (const famille of Object.keys(o))
+      for (const j of Object.keys(o[famille])) if (parseInt(j, 10) < limite) delete o[famille][j];
+    reglagePoser('observatoire', JSON.stringify(o));
+  } catch (e) {
+    /* ⛔ UN OBSERVATOIRE QUI TOMBE NE DOIT RIEN CASSER. Il observe, il ne sert pas. Mais on ne
+       reperd pas ce qu'on n'a pas pu écrire : on le remet en vol pour le prochain versement. */
+    _obsEnVol = enVol;
+  }
+}
+
+/* Le total d'une famille sur N jours, par motif. C'est ce que `/health` publie. */
+function obsTotaux(famille, jours) {
+  const n = Math.max(1, parseInt(jours, 10) || 7);
+  const o = obsLire()[famille] || {};
+  const depuis = obsJour() - n + 1;
+  const out = {};
+  for (const j of Object.keys(o)) {
+    if (parseInt(j, 10) < depuis) continue;
+    for (const m of Object.keys(o[j])) out[m] = (out[m] || 0) + o[j][m];
+  }
+  /* ⚠️ Ce qui est encore EN VOL compte aussi : sans ça, `/health` sous-déclare d'une minute,
+     et un incident qui commence à la minute zéro ne se voit qu'à la minute suivante. */
+  const vol = (_obsEnVol && _obsEnVol[famille]) || {};
+  for (const j of Object.keys(vol)) {
+    if (parseInt(j, 10) < depuis) continue;
+    for (const m of Object.keys(vol[j])) out[m] = (out[m] || 0) + vol[j][m];
+  }
+  return out;
+}
+
+/* ══ LES LATENCES — « ET LA CHARGE » ═══════════════════════════════════════════════════════
+ * ⛔ L'ANNEXE DU PLAN LE DIT SANS DÉTOUR : « la synchro devient plus vive » est affirmé sans
+ * aucune mesure, et le schéma va dans l'autre sens — `PRAGMA synchronous=FULL`, c'est UN FSYNC
+ * PAR POUSSE, sur le disque partagé d'un VPS. On ne peut pas arbitrer `FULL` contre
+ * `NORMAL`+WAL sans le chiffre sous les yeux, et on ne peut pas savoir si le socle tient la
+ * charge d'ELAN sans savoir ce que coûte une pousse.
+ * ⚠️ On garde des QUANTILES, pas une moyenne : une moyenne cache exactement ce qui fait mal
+ * (la pousse à 900 ms pendant que les autres sont à 8 ms). Un réservoir borné par route, remis
+ * à zéro à chaque lecture de `/health` — donc ce que publie `/health` est la fenêtre depuis la
+ * dernière lecture, ce qui est précisément ce qu'une surveillance horaire veut voir. */
+const LAT_MAX = 500;              // mesures gardées par route
+const _lat = new Map();           // route -> number[]
+
+function latNoter(route, ms) {
+  const r = String(route || '?').slice(0, 40);
+  const v = +ms; if (!isFinite(v) || v < 0) return;
+  let a = _lat.get(r); if (!a) { a = []; _lat.set(r, a); }
+  /* Réservoir borné : au-delà, on remplace au hasard plutôt que de jeter les récentes ou les
+     anciennes — les deux biaiseraient le quantile dans un sens qu'on ne saurait pas nommer. */
+  if (a.length < LAT_MAX) a.push(v); else a[Math.floor(Math.random() * LAT_MAX)] = v;
+}
+
+function latQuantiles(vider) {
+  const out = {};
+  for (const [r, a] of _lat) {
+    if (!a.length) continue;
+    const t = a.slice().sort((x, y) => x - y);
+    const q = (p) => t[Math.min(t.length - 1, Math.floor(p * t.length))];
+    out[r] = { n: t.length, p50: Math.round(q(0.5)), p95: Math.round(q(0.95)), max: Math.round(t[t.length - 1]) };
+  }
+  if (vider !== false) _lat.clear();
+  return out;
+}
+
+/* ══ LES DIVERGENCES, TOUTES ENTREPRISES CONFONDUES ════════════════════════════════════════
+ * ⛔ C'EST LE COMPTEUR QUE L'ÉTAPE 6 DEMANDE DE REGARDER, ET IL N'EXISTAIT PAS. Les verdicts
+ * sont rangés par espace (`meta.controles`) ; personne ne les réunissait, donc rien ne pouvait
+ * dire « combien d'entreprises ont divergé cette semaine ». Un chiffre qu'il faut aller
+ * chercher espace par espace n'est pas un chiffre qu'on regarde tous les jours.
+ * ⚠️ On rend des NOMBRES D'ESPACES, jamais lesquels : `/health` est publique. */
+function divergences(jours) {
+  const n = Math.max(1, parseInt(jours, 10) || 7);
+  const depuis = Date.now() - n * 86400000;
+  let noms = []; try { noms = fs.readdirSync(SOCLE_DIR); } catch (e) { return { espaces: 0, avecEcart: 0, verdicts: 0, jours: n }; }
+  let espaces = 0, avecEcart = 0, verdicts = 0, muets = 0;
+  for (const d of noms) {
+    if (!RE_T.test(d) || !fs.existsSync(path.join(SOCLE_DIR, d, 'base.db'))) continue;
+    espaces++;
+    let liste = []; try { liste = controlesDe(d); } catch (e) { continue; }
+    const dedans = liste.filter(c => c && (c.ts || 0) >= depuis);
+    verdicts += dedans.length;
+    if (!dedans.length) muets++;
+    else if (dedans.some(c => !c.ok)) avecEcart++;
+  }
+  return { espaces, avecEcart, muets, verdicts, jours: n };
+}
+
 function reglageLire(cle) { const l = annuaire().prepare('SELECT val FROM reglage WHERE cle=?').get(cle); return l ? l.val : null; }
 function reglagePoser(cle, val) { annuaire().prepare('INSERT INTO reglage (cle,val) VALUES (?,?) ON CONFLICT(cle) DO UPDATE SET val=excluded.val').run(cle, String(val)); }
 
@@ -1460,7 +1603,8 @@ function sante() { semerCompteurs(); return { actif: true, bases: _nbBases, cle:
 module.exports = {
   ouvrir, annuaire, dekDe, pousser, depuis, etat, rang, existe, presentSurDisque, verifier, effacerEntreprise, sante, fermer,
   exigerT, numeroReserver, journalDe,
-  entrepriseEtat, entrepriseOuvrir, entrepriseDouble, entrepriseLecture, appareilsVivants, PEREMPTION_MS, controleNoter, controlesDe, controleSuite, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
+  entrepriseEtat, entrepriseOuvrir, entrepriseDouble, entrepriseLecture, appareilsVivants, PEREMPTION_MS, controleNoter, controlesDe, controleSuite,
+  obsNoter, obsVerser, obsTotaux, latNoter, latQuantiles, divergences, OBS_JOURS, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
   diagnostic, diagnosticsDe, ancre, ancreVerifier,
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,

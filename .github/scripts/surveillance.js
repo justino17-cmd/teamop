@@ -132,6 +132,51 @@ function get(url) {
        alarme qui crie pour rien finit ignorée — la leçon est déjà écrite plus haut. */
     if (j.socle && j.socle.actif === true && typeof j.socle.ancreJours === 'number' && j.socle.ancreJours > 8) problems.push('⛔ l\'ancre du journal de diagnostic n\'est pas sortie de la machine depuis ' + j.socle.ancreJours + ' jours — le journal chaîné ne prouve plus rien contre une réécriture complète. Vérifier `notifDemandes` et le SMTP dans /opt/teamop/config.json.');
     if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre, la poser avec « node /opt/teamop/repo/server/poser-cle.js » sur le VPS, puis systemctl restart teamop-api.');
+    /* ══ ÉTAPE 6 DU SOCLE — « LE MIROIR, UNE SEMAINE » ═══════════════════════════════════
+       ⛔ L'étape 6 ne livre « rien » : elle REGARDE. Sans ces trois alarmes, regarder voudrait
+       dire ouvrir `/health` à la main tous les jours pendant une semaine — c'est-à-dire ne pas
+       regarder du tout au bout de deux jours. Chacun de ces champs est publié par le serveur ;
+       sans une ligne ici, ce serait du code mort qui a l'air d'une garde, exactement la panne
+       du 19 septembre. */
+
+    /* ⛔ LE COMPTEUR QUE L'ÉTAPE 6 DEMANDE DE VOIR RESTER À ZÉRO. Un appareil a comparé sa
+       signature à celle du serveur et les deux diffèrent : une écriture s'est perdue quelque
+       part. Tant que la lecture est sur Firestore, c'est un avertissement ; le jour où le socle
+       est la source de vérité, c'est une donnée de client. */
+    if (j.socle && j.socle.divergences && j.socle.divergences.avecEcart > 0) problems.push('⛔⛔ ' + j.socle.divergences.avecEcart + ' entreprise(s) en DIVERGENCE sur les ' + j.socle.divergences.jours + ' derniers jours — un appareil dit que sa base et le socle ne coïncident plus. Ouvrir la Tour (aperçu d\'un espace) pour savoir chez qui, et NE PAS basculer la lecture de cet espace.');
+
+    /* ⚠️ « On ne sait pas » n'est pas « tout va bien » — la confusion que ce dépôt a payée deux
+       fois (`_mailboxes`, puis `syncDecrypt`). Des espaces dont AUCUN appareil ne contrôle sont
+       des espaces sur lesquels la condition (d) de l'étape 5 ne dira jamais rien de vrai.
+       ⚠️ Et on ne crie que si le socle porte DÉJÀ des entreprises : un socle allumé mais encore
+       vide a normalement zéro contrôle, et une alarme qui sonne dès l'installation finit
+       ignorée — la leçon est écrite plus haut pour l'ancre. */
+    if (j.socle && j.socle.divergences && j.socle.divergences.espaces > 0 && j.socle.divergences.muets === j.socle.divergences.espaces && j.socle.divergences.espaces > 1) problems.push('⚠️ aucune des ' + j.socle.divergences.espaces + ' entreprises du socle n\'a remonté de contrôle depuis ' + j.socle.divergences.jours + ' jours — on ne sait donc PAS si le socle est fidèle. Vérifier que les appareils sont en version récente.');
+
+    /* ⛔ LES REFUS SUR SEPT JOURS, ET PAS CEUX DEPUIS LE DÉMARRAGE : le serveur redémarre à
+       chaque déploiement, donc `refus` repart à zéro plusieurs fois par jour. Trois motifs
+       appellent trois gestes différents, et c'est pour ça qu'on ne les additionne pas. */
+    if (j.socle && j.socle.refus7j) {
+      const r = j.socle.refus7j;
+      if (r.disque_plein > 0) problems.push('⛔⛔ ' + r.disque_plein + ' écriture(s) du socle refusées faute de PLACE DISQUE sur 7 jours — c\'est une panne de plateforme : plus personne n\'écrit. Agrandir le disque du VPS.');
+      if (r.espace_plein > 0) problems.push('⛔ ' + r.espace_plein + ' écriture(s) refusées : une entreprise a atteint son plafond de stockage (sur 7 jours). Régler `socle.octetsMax` dans /opt/teamop/config.json.');
+      if (r.horlogeAvancee > 0) problems.push('⛔ ' + r.horlogeAvancee + ' écriture(s) refusées pour HORLOGE FAUSSE sur 7 jours — l\'heure du serveur ou celle d\'un appareil dérive de plus de cinq minutes. Vérifier `timedatectl` sur le VPS.');
+      if (r.non_date > 0) problems.push('⚠️ ' + r.non_date + ' ligne(s) refusées faute de date sur 7 jours — des enregistrements que `estampiller()` ne tamponne pas n\'atteindront JAMAIS le socle. Voir REPRISE.md, étape 5.');
+    }
+
+    /* ⛔ LA CHARGE — l'annexe du plan reproche depuis le début que « la synchro devient plus
+       vive » soit affirmé sans mesure. `latence` est la fenêtre depuis la dernière lecture de
+       /health, donc la dernière heure. Un p95 de pousse au-delà d'une seconde sur un téléphone
+       de terrain, c'est une synchro qui se voit ; c'est aussi le premier signe que le fsync par
+       écriture (`synchronous=FULL`) coûte trop cher sur le disque partagé du VPS. */
+    /* ⚠️ On DIT le p50 et le max à côté du p95 : un p95 seul ne distingue pas « tout le monde
+       est lent » (p50 haut aussi) de « une pousse sur vingt traîne » (p50 bas, max énorme) —
+       et ces deux-là n'appellent pas le même geste. C'est aussi ce qui rend ces champs
+       réellement LUS : publier un quantile que personne ne regarde serait du code mort qui a
+       l'air d'une garde. */
+    if (j.socle && j.socle.latence && j.socle.latence.pousser && j.socle.latence.pousser.p95 > 1000) problems.push('⛔ le socle met ' + j.socle.latence.pousser.p95 + ' ms (p95) à accepter une écriture — p50 ' + j.socle.latence.pousser.p50 + ' ms, max ' + j.socle.latence.pousser.max + ' ms, sur ' + j.socle.latence.pousser.n + ' mesures. Les appareils le SENTENT. Un p50 haut, c\'est tout le monde ; un p50 bas avec un max énorme, c\'est une pousse sur vingt. Arbitrer `synchronous=FULL` contre `NORMAL`+WAL avec ces chiffres.');
+    if (j.socle && j.socle.latence && j.socle.latence.depuis && j.socle.latence.depuis.p95 > 2000) problems.push('⛔ le socle met ' + j.socle.latence.depuis.p95 + ' ms (p95) à servir une page de lecture — une synchro qui traîne chez tout le monde.');
+
     if (typeof j.bugs1h === 'number' && j.bugs1h > 0) problems.push(j.bugs1h + ' erreur(s) signalée(s) par les applications des entreprises dans la dernière heure (vigie) — voir l\'e-mail d\'alerte et corriger au plus vite');
   } catch (e) { problems.push('api.teamop.fr/health : injoignable — ' + e.message); }
 

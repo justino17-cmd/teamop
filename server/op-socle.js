@@ -40,7 +40,7 @@ const LOT_MAX = 400;                  // lignes par pousse ; `express.json` est 
 const DIAG_VIE_MS = 30 * 60000;       // une ouverture de diagnostic dure 30 minutes.
 
 function monterOpSocle(app, deps) {
-  const { config, socle, sauvRefus, cleEstPublique, quotaOk, monStr, garde, cnxAppareils, espaceConnu, espaceBloque } = deps;
+  const { config, socle, sauvRefus, cleEstPublique, quotaOk, monStr, garde, cnxAppareils, espaceConnu, espaceBloque, espaceSuspendu } = deps;
   const actif = !!(config && config.socle && config.socle.actif === true);
   const etat = { actif, routes: [] };
   if (!actif) return etat;   // ⛔ inerte : pas une seule route déclarée.
@@ -87,7 +87,10 @@ function monterOpSocle(app, deps) {
      du socle n'existe sur `app` — donc un échec de montage laisse le serveur exactement comme
      si le drapeau était éteint, ce qui est le seul état sûr. */
   const enregistrer = () => {
-    for (const r of aPoser) { app[r.methode](r.chemin, ...r.suite); etat.routes.push(r.cle); }
+    /* ⛔ LE CHRONO EST POSÉ ICI, PAS ROUTE PAR ROUTE. L'ajouter à la main devant chaque
+       gestionnaire, c'est garantir qu'on l'oubliera sur la prochaine — et une route non
+       mesurée est exactement celle qui sera lente. Un seul endroit, toutes les routes. */
+    for (const r of aPoser) { app[r.methode](r.chemin, chrono, ...r.suite); etat.routes.push(r.cle); }
   };
 
   /* ══ LE TEMPS RÉEL — LE FLUX NE TRANSPORTE QUE `{seq}` ════════════════════════════════════
@@ -121,7 +124,14 @@ function monterOpSocle(app, deps) {
      `disque_plein` est une panne de plateforme (tout le monde à l'arrêt), `horlogeAvancee`
      une horloge à remettre, `espace_plein` un seul client dont le plafond est à régler. */
   const refus = new Map();          // motif -> nombre depuis le démarrage
-  const noterRefus = (liste) => { for (const x of (liste || [])) { const m = String((x && x.motif) || 'autre'); refus.set(m, (refus.get(m) || 0) + 1); } };
+  /* ⛔ ET SUR LE DISQUE AUSSI — ÉTAPE 6. Cette `Map` repart à zéro à chaque redémarrage, donc à
+     chaque déploiement, donc plusieurs fois par jour les jours chargés. L'étape 6 demande de
+     « regarder les compteurs de refus » pendant UNE SEMAINE : un compteur qui s'oublie ne
+     montre rien, et il montre ZÉRO — ce qui est pire, parce qu'on en conclurait que tout va
+     bien. `obsNoter` verse dans l'annuaire, par jour et par motif, sans nommer personne. */
+  const noterRefus = (liste) => { for (const x of (liste || [])) { const m = String((x && x.motif) || 'autre');
+    refus.set(m, (refus.get(m) || 0) + 1);
+    try { socle.obsNoter('refus', m, 1); } catch (e) {} } };
   const attentes = new Map();       // t -> Set<{resoudre, app_id, minuteur}>
   const diagSessions = new Map();   // t -> { qui, exp } — une ouverture de diagnostic motivée
   function sessionDiag(t) { const d = diagSessions.get(t); return (d && Date.now() < d.exp) ? d : null; }
@@ -204,6 +214,28 @@ function monterOpSocle(app, deps) {
     next();
   }
 
+  /* ══ LA LATENCE — « ET LA CHARGE » DE L'ÉTAPE 6 ═══════════════════════════════════════════
+     ⛔ LE SERVEUR N'AVAIT AUCUNE MÉTRIQUE DE LATENCE, et l'annexe du plan le reproche depuis le
+     début : « la synchro devient plus vive » est affirmé sans mesure, alors que le schéma va
+     dans l'autre sens (`synchronous=FULL`, c'est un fsync par pousse sur le disque partagé d'un
+     VPS). On ne peut pas arbitrer, ni savoir si le socle tient la charge d'ELAN, sans le
+     chiffre. On le prend donc là où il est vrai : sur la VRAIE réponse, en production.
+     ⚠️ `res.on('finish')` et pas un `await` autour du gestionnaire : on veut le temps que le
+     CLIENT attend, en-têtes et corps écrits — pas celui que la fonction met à rendre la main.
+     Le long-poll est exclu : il DORT 25 secondes par construction, l'y inclure noierait tous
+     les quantiles sous une valeur qui ne dit rien d'une lenteur. */
+  function chrono(req, res, next) {
+    if (req.route && String(req.route.path) === '/api/op/flux') return next();
+    const t0 = process.hrtime.bigint();
+    res.on('finish', () => {
+      try {
+        const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+        socle.latNoter(String((req.route && req.route.path) || req.path).replace(/^\/api\/op\//, ''), ms);
+      } catch (e) {}
+    });
+    next();
+  }
+
   /* ══ POST /api/op/session ═════════════════════════════════════════════════════════════════
      La seule route qui reçoive `t` dans le corps, parce que c'est elle qui le PROUVE. */
   poser('POST', '/api/op/session', (req, res) => {
@@ -213,7 +245,24 @@ function monterOpSocle(app, deps) {
 
     /* `sauvRefus` LUI-MÊME : espace de repli (403), espace fermé (403), espace inconnu (404),
        clé d'équipe incorrecte (403). Pas une copie. */
-    const refus = sauvRefus(t, kh, 'session');
+    let refus = sauvRefus(t, kh, 'session');
+    /* ⛔ UNE ENTREPRISE SUSPENDUE TRAVAILLE — DÉCISION DE JUSTIN, 20 SEPTEMBRE 2026.
+       `sauvRefus` refuse `entFermes.espaces` en bloc, et cette liste contient DEUX choses très
+       différentes : les espaces FERMÉS, et les espaces simplement SUSPENDUS pour impayé. Pour
+       la sauvegarde et le courrier, les confondre était sans grande conséquence. Ici, ça l'est :
+       le jour où le socle est la seule copie à jour d'une entreprise, refuser la session à un
+       impayé la coupe de ses propres données — en contradiction directe avec
+       `mentions-legales.html:74`, qui promet qu'un impayé « n'entraîne aucune suppression » et
+       que le client « retrouve l'intégralité de ses données s'il revient ».
+       La règle décidée : sept jours de délai, puis les onglets PAYANTS grisent et l'entreprise
+       revient au forfait gratuit. Rien n'est perdu, aucune tâche en cours, rien dans leurs
+       catégories. Ce qui change est l'ABONNEMENT, donc des écrans — jamais le stockage.
+       ⚠️ On ne lève QUE le refus de fermeture, et seulement quand l'espace est nommément
+       suspendu : une clé fausse, un espace inconnu ou l'espace de repli restent refusés, parce
+       que ces trois-là ne sont pas des questions de facturation. */
+    if (refus && /ferm/i.test(String(refus.error || '')) && typeof espaceSuspendu === 'function') {
+      try { if (espaceSuspendu(t) === true) refus = null; } catch (e) {}
+    }
     if (refus) {
       const motif = refus.code === 404 ? 'inconnu' : /repli/.test(refus.error) ? 'repli' : /ferm/.test(refus.error) ? 'ferme' : 'cle';
       /* ⛔ LE COMPTEUR D'ÉCHECS D'ENRÔLEMENT VIT DANS `meta` DE LA BASE, pas dans une Map : une
@@ -533,7 +582,7 @@ function monterOpSocle(app, deps) {
     const bloque = typeof espaceBloque === 'function' ? espaceBloque(t) : null;
     const e5 = { ok: bloque === false && etatEnt.etat === 'actif', bloqueParLAnnuaire: bloque, etatSocle: etatEnt.etat,
       pourquoi: bloque === null ? 'état d\'annuaire non consultable ici'
-        : bloque ? 'espace fermé ou suspendu — il ne pousse plus rien'
+        : bloque ? 'espace fermé — il ne pousse plus rien'
         : etatEnt.etat !== 'actif' ? 'socle coupé pour cet espace' : '' };
 
     res.json({ t, fenetreJours: 14,
@@ -784,7 +833,26 @@ function monterOpSocle(app, deps) {
        aucune n'est jamais partie — l'état d'un socle qu'on vient d'allumer. */
     let ancreJours = null;
     try { const d = parseInt(socle.reglageLire('ancre_envoyee_le'), 10) || 0; if (d) ancreJours = Math.floor((Date.now() - d) / 86400000); } catch (e) {}
-    return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length, illisibles: ill, refus: parMotif, ancreJours };
+    /* ══ LES TROIS INSTRUMENTS DE L'ÉTAPE 6 ══════════════════════════════════════════════
+       ⛔ Aucun ne nomme une entreprise : `/health` est publique, et y faire figurer un espace
+       dirait au monde quelles entreprises existent. Des motifs, des nombres, des durées. */
+    /* `refus` depuis le démarrage sert au diagnostic immédiat ; `refus7j` est celui qu'on
+       REGARDE pendant la semaine de l'étape 6, parce qu'il survit aux déploiements. */
+    let refus7j = {}, div = null;
+    try { refus7j = socle.obsTotaux('refus', 7); } catch (e) {}
+    /* ⛔ LE COMPTEUR QUE L'ÉTAPE 6 DEMANDE DE VOIR RESTER À ZÉRO. `avecEcart` est le nombre
+       d'entreprises dont un appareil a signalé une divergence cette semaine — jamais
+       lesquelles. `muets` compte celles dont AUCUN appareil n'a contrôlé : « on ne sait pas »
+       n'est pas « tout va bien », et c'est la confusion que ce dépôt a payée deux fois. */
+    try { div = socle.divergences(7); } catch (e) {}
+    /* ⚠️ LA LECTURE VIDE LE RÉSERVOIR : ce que `/health` publie est la fenêtre depuis la
+       dernière lecture. La surveillance passe toutes les heures, c'est donc « la dernière
+       heure » — exactement ce qu'on veut voir. Corollaire à connaître : deux lectures
+       rapprochées donnent la seconde presque vide, et ce n'est pas une panne. */
+    let lat = {}; try { lat = socle.latQuantiles(true); } catch (e) {}
+    return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length,
+      illisibles: ill, refus: parMotif, ancreJours,
+      refus7j, divergences: div, latence: lat };
   };
   /* ⛔ DEUX TEMPS, ET L'ORDRE EST TOUT. `serveur.close()` ne rend la main qu'une fois TOUTES les
      connexions terminées — or un long-poll est tenu 25 secondes, et en production il y a

@@ -339,11 +339,16 @@ const menage = async () => {
            socle.flux, socle.routes            gardés par ce banc-ci, pas par une alarme
            pieces.plafond                      le contexte de `pieces.remplissage`, surveillé
            actif, lignes, entreprises, octets, seq, ageH, active, instantanes, archives,
-           prochaine, refus, derniere          des compteurs dont un VOISIN porte l'alarme */
+           prochaine, refus, derniere          des compteurs dont un VOISIN porte l'alarme
+           divergences.verdicts                le DÉNOMINATEUR de `muets` et `avecEcart`, qui
+                                               portent l'alarme. Seul il ne dit rien — mais
+                                               sans lui on ne saurait pas si « zéro divergence »
+                                               veut dire « tout va bien » ou « personne n'a
+                                               regardé », et c'est toute la différence */
       const VUS_NON_SURVEILLES = ['ok', 'ts', 'uptime', 'version', 'annonce', 'histo', 'subs',
         'boite', 'stripe', 'bugs24h', 'lastRefus', 'absent', 'mailRefus', 'flux', 'routes',
         'plafond', 'actif', 'lignes', 'entreprises', 'octets', 'seq', 'ageH', 'active',
-        'instantanes', 'archives', 'prochaine', 'refus', 'derniere'];
+        'instantanes', 'archives', 'prochaine', 'refus', 'derniere', 'verdicts'];
       const feuilles = (o, prefixe) => Object.entries(o || {}).flatMap(([k, val]) =>
         (val && typeof val === 'object' && !Array.isArray(val)) ? feuilles(val, k) : [[prefixe, k]]);
       const orphelins = feuilles(j, '').filter(([, k]) =>

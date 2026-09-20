@@ -888,6 +888,80 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   }
 }
 
+/* ══ ÉTAPE 6 — L'OBSERVATOIRE : CE QUI DOIT SURVIVRE AU DÉPLOIEMENT ═════════════════════════
+   ⛔ L'étape 6 ne livre « rien » : elle REGARDE pendant une semaine. Or les compteurs qu'elle
+   demande de regarder vivaient dans des `Map` de `op-socle.js`, c'est-à-dire en mémoire — et
+   tout push sur `main` touchant `server/**` déploie, donc redémarre, plusieurs fois par jour
+   les jours chargés. **Une semaine d'observation sur un compteur qui s'oublie ne montre rien,
+   et elle montre ZÉRO** — ce qui est pire, parce qu'on en conclurait que tout va bien. */
+{
+  console.log('\n⛔ Étape 6 — l\'observatoire survit au redémarrage');
+  S.obsNoter('refus', 'horlogeAvancee', 3);
+  S.obsNoter('refus', 'non_date', 1);
+  S.obsVerser();
+  v('les refus se totalisent par motif', S.obsTotaux('refus', 7), { horlogeAvancee: 3, non_date: 1 });
+
+  /* ⛔ LE CONTRÔLE QUI COMPTE : on relit le module depuis le DISQUE, comme après un
+     déploiement. Un compteur en mémoire rendrait `{}` ici, et la semaine serait vide. */
+  delete require.cache[require.resolve(path.join(RACINE, 'server', 'socle.js'))];
+  const S3 = require(path.join(RACINE, 'server', 'socle.js'));
+  v('⛔ et ils sont TOUJOURS là après un rechargement du module', S3.obsTotaux('refus', 7), { horlogeAvancee: 3, non_date: 1 });
+
+  /* ⚠️ Ce qui n'a pas encore été versé compte quand même : sans ça, `/health` sous-déclare
+     d'une minute, et un incident qui commence à la minute zéro ne se voit qu'après. */
+  S3.obsNoter('refus', 'conflit', 5);
+  v('⛔ ce qui est encore EN VOL est compté aussi', S3.obsTotaux('refus', 7).conflit, 5);
+
+  /* La fenêtre est glissante : un motif d'il y a vingt jours ne doit plus peser. */
+  v('la fenêtre d\'un jour ne voit que le jour même', S3.obsTotaux('refus', 1).horlogeAvancee, 3);
+  v('une famille inconnue rend un objet vide, pas une exception', S3.obsTotaux('jamais-vu', 7), {});
+
+  /* ══ LES LATENCES ══════════════════════════════════════════════════════════════════════
+     ⛔ Une MOYENNE cacherait exactement ce qui fait mal : la pousse à 900 ms pendant que les
+     autres sont à 8 ms. On garde des quantiles. */
+  for (let i = 0; i < 99; i++) S3.latNoter('pousser', 10);
+  S3.latNoter('pousser', 900);
+  const q = S3.latQuantiles(false);
+  v('le p50 dit la pousse ordinaire', q.pousser.p50, 10);
+  v('⛔ et le max ne se laisse pas noyer par la moyenne', q.pousser.max, 900);
+  v('   sur le bon nombre de mesures', q.pousser.n, 100);
+  /* ⛔ LA LECTURE VIDE LE RÉSERVOIR : ce que `/health` publie est la fenêtre depuis la
+     dernière lecture — c'est ce qu'une surveillance horaire veut voir. */
+  S3.latQuantiles(true);
+  v('⛔ une lecture qui vide laisse le réservoir vide', S3.latQuantiles(false), {});
+  /* Une valeur qui n'en est pas ne doit pas empoisonner un quantile. */
+  S3.latNoter('pousser', NaN); S3.latNoter('pousser', -5); S3.latNoter('pousser', 'beaucoup');
+  v('⛔ ce qui n\'est pas une durée n\'est pas compté', S3.latQuantiles(false), {});
+
+  /* ══ LES DIVERGENCES, TOUTES ENTREPRISES CONFONDUES ═══════════════════════════════════
+     ⛔ C'est LE compteur que l'étape 6 demande de voir rester à zéro, et il n'existait pas :
+     les verdicts sont rangés par espace, personne ne les réunissait. */
+  const D1 = 'ent-div-un', D2 = 'ent-div-deux';
+  S3.pousser(D1, [{ c: 'clients', id: 'c1', m: Date.now(), r: { id: 'c1' }, e: 'aa' }], { origine: 'appareil' });
+  S3.pousser(D2, [{ c: 'clients', id: 'c1', m: Date.now(), r: { id: 'c1' }, e: 'bb' }], { origine: 'appareil' });
+  const d0 = S3.divergences(7);
+  /* ⚠️ ON COMPARE DES ÉCARTS, PAS DES ABSOLUS — et c'est le banc qui avait tort la première
+     fois. La section précédente a volontairement noté un verdict EN ÉCHEC sur un autre espace :
+     `avecEcart` vaut donc déjà 1 en arrivant ici, et l'exiger à zéro accusait le code d'un
+     défaut qui n'existe pas. Un banc qui a un passé doit mesurer ce qu'il change, pas ce
+     qu'il trouve. */
+  vrai('les deux espaces sont vus', d0.espaces >= 2);
+  /* ⚠️ MAIS AUCUN N'A CONTRÔLÉ NON PLUS, et ce n'est PAS la même chose. « Zéro divergence »
+     sur des espaces muets veut dire « on ne sait pas » — la confusion que ce dépôt a déjà
+     payée deux fois (`_mailboxes`, `syncDecrypt`). */
+  vrai('⛔ et ils sont comptés comme MUETS, pas comme sains', d0.muets >= 2);
+
+  S3.controleNoter(D1, { app_id: 'a1z', ok: true, ecarts: [] });
+  const d1 = S3.divergences(7);
+  v('un espace qui contrôle et va bien n\'est plus muet', d1.muets, d0.muets - 1);
+  v('⛔ et un verdict SAIN ne fait PAS monter le compteur de divergences', d1.avecEcart, d0.avecEcart);
+  S3.controleNoter(D2, { app_id: 'b2y', ok: false, ecarts: [{ coll: 'clients', appareil: 2, serveur: 1 }] });
+  const d2 = S3.divergences(7);
+  v('⛔ un verdict en échec, lui, le fait monter d\'exactement un', d2.avecEcart, d0.avecEcart + 1);
+  v('   et cet espace n\'est plus muet non plus', d2.muets, d0.muets - 2);
+  vrai('   et les verdicts sont comptés', d2.verdicts >= 2);
+}
+
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

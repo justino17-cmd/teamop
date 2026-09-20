@@ -3704,7 +3704,27 @@ try {
        et dans Firestore. Le jour où le socle est la seule copie à jour, refuser la lecture
        contredirait ce texte. Ça se décide — voir REPRISE.md — ça ne se glisse pas dans un
        correctif de plomberie. */
-    espaceBloque: (t) => { try { return entFermes.espaces.includes(String(t || '')); } catch (e) { return null; } },
+    /* ⛔ SUSPENDU N'EST PAS FERMÉ — DÉCISION DE JUSTIN, 20 SEPTEMBRE 2026.
+       « Pour continuer à lire, ils auront un délai de 7 jours. Si c'est pas payé après dans les
+       7 jours, tous les onglets deviennent gris […] Aucune sauvegarde n'est perdue, aucune
+       tâche qu'ils étaient en train de faire, rien n'est perdu, même dans leur catégorie.
+       Juste les catégories qui sont payantes deviennent grisées et ils reviennent au forfait
+       gratuit. »
+       Conséquence pour le socle, et elle est simple : une entreprise suspendue TRAVAILLE. Elle
+       lit, elle écrit, elle synchronise — c'est son ABONNEMENT qui change, pas son accès à ses
+       propres données. Ce qui devient gris est une affaire d'écrans, pas de stockage.
+       ⛔ Seul un espace FERMÉ reste refusé : celui-là n'est plus une entreprise qui travaille.
+       ⚠️ Sans cette distinction, le jour où le socle est la seule copie à jour, un impayé
+       aurait coupé une entreprise de ses propres données — en contradiction directe avec
+       `mentions-legales.html:74`, qui promet qu'un impayé « n'entraîne aucune suppression » et
+       que le client « retrouve l'intégralité de ses données s'il revient ». */
+    espaceBloque: (t) => { try {
+      const k = String(t || '');
+      if (!entFermes.espaces.includes(k)) return false;
+      return !(entFermes.suspendus || []).includes(k);   // suspendu → pas bloqué ; fermé → bloqué
+    } catch (e) { return null; } },
+    /* `true` suspendu (abonnement en défaut, mais l'entreprise travaille), `false` sinon. */
+    espaceSuspendu: (t) => { try { return (entFermes.suspendus || []).includes(String(t || '')); } catch (e) { return null; } },
   });
 } catch (e) {
   console.error('socle non monté :', e.message);

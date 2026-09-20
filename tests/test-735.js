@@ -645,6 +645,60 @@ function basePetite(m) {
     vrai('⛔ le verdict de contrôle de l\'appareil ARRIVE au serveur', apres > avant);
   }
 
+  /* ══ (l) ÉTAPE 6 — LES INSTRUMENTS, SUR LE `/health` VIVANT ══════════════════════════════
+     ⛔ L'étape 6 ne livre « rien » : elle REGARDE pendant une semaine. Ce qu'elle regarde doit
+     donc EXISTER sur la vraie réponse du vrai serveur, pas dans un module. Et il faut que ce
+     soit branché : `test-723` prouve que l'observatoire compte, ce banc-ci prouve que ce qu'il
+     compte arrive jusqu'à `/health`, après un VRAI refus, par une VRAIE route. */
+  console.log('\n⛔ Étape 6 — ce que le serveur publie pour la semaine d\'observation');
+  {
+    const sante = async () => { const r = await fetch(S.B + '/health'); return r.json(); };
+    const h0 = await sante();
+    vrai('le socle publie son bloc', !!(h0 && h0.socle && h0.socle.actif === true));
+    vrai('⛔ et les trois instruments de l\'étape 6', !!(h0.socle.refus7j && h0.socle.divergences && h0.socle.latence));
+
+    /* ⛔ UN REFUS RÉEL, PAR LA VRAIE ROUTE — pas un appel de fonction. C'est la seule façon de
+       savoir que le compteur est BRANCHÉ sur le chemin qui refuse vraiment. */
+    const avant = (h0.socle.refus7j || {}).horlogeAvancee || 0;
+    const ses = await appel('POST', '/api/op/session', { corps: { t: T, kh: sha(CLE), app_id: '', nom: 'dev-mesure' } });
+    vrai('une session s\'ouvre pour provoquer un vrai refus', !!(ses.j && ses.j.jeton));
+    const rf = await appel('POST', '/api/op/pousser', { jeton: ses.j.jeton,
+      corps: { enr: [{ c: 'clients', id: 'horloge-folle', m: Date.now() + 7200000, r: { id: 'horloge-folle' }, e: 'zz' }] } });
+    v('⛔ le serveur refuse bien, et en 409 (un désaccord sur l\'heure)', rf.code, 409);
+    const h1 = await sante();
+    v('⛔ un refus réel arrive jusqu\'à `/health`, par motif', (h1.socle.refus7j || {}).horlogeAvancee, avant + 1);
+
+    /* ⛔ ET IL SURVIT AU REDÉMARRAGE — c'est TOUT l'objet de l'étape 6. Le serveur redémarre à
+       chaque déploiement ; un compteur qui s'oublie montre « zéro », ce qui se lit « tout va
+       bien ». On ne peut pas le prouver en tuant CE serveur (le banc s'en sert encore), mais on
+       peut exiger que le compteur ne vienne pas d'une `Map` : `refus`, lui, est remis à zéro au
+       démarrage, alors que `refus7j` sort de l'annuaire. `test-723` joue le rechargement. */
+    vrai('   et `refus` (depuis le démarrage) le voit aussi', ((h1.socle.refus || {}).horlogeAvancee || 0) >= 1);
+
+    /* La latence : le banc vient de faire des dizaines d'appels, elle ne peut pas être vide. */
+    vrai('⛔ la latence est mesurée sur les routes réelles', Object.keys(h1.socle.latence || {}).length > 0);
+    const lp = h1.socle.latence.pousser || h1.socle.latence.session || Object.values(h1.socle.latence)[0];
+    vrai('   avec un p50, un p95 et un max', lp && typeof lp.p50 === 'number' && typeof lp.p95 === 'number' && typeof lp.max === 'number');
+    vrai('   et un nombre de mesures', lp && lp.n > 0);
+    /* ⛔ LE LONG-POLL EST EXCLU, ET C'EST DÉLIBÉRÉ : il dort 25 secondes par construction.
+       L'inclure noierait tous les quantiles sous une valeur qui ne dit rien d'une lenteur. */
+    v('⛔ le flux long n\'empoisonne pas les quantiles', h1.socle.latence.flux, undefined);
+    /* ⚠️ La lecture VIDE le réservoir : deux lectures rapprochées donnent la seconde presque
+       vide, et ce n'est pas une panne. On le vérifie pour que personne ne la « répare ». */
+    const h2 = await sante();
+    vrai('   et une lecture vide le réservoir (fenêtre depuis la dernière lecture)',
+      Object.keys(h2.socle.latence || {}).length < Object.keys(h1.socle.latence || {}).length + 1);
+
+    /* Les divergences : le banc a fait remonter un verdict en échec en section (f). */
+    vrai('⛔ le compteur de divergences existe et compte des ESPACES', typeof h1.socle.divergences.espaces === 'number');
+    vrai('   il distingue ceux qui ont divergé', typeof h1.socle.divergences.avecEcart === 'number');
+    vrai('   et ceux dont on ne sait RIEN (muets)', typeof h1.socle.divergences.muets === 'number');
+    /* ⛔ `/health` EST PUBLIQUE : aucun nom d'espace ne doit s'y trouver. C'est la règle du
+       dépôt, et un compteur neuf est exactement l'occasion de la casser. */
+    v('⛔ aucun identifiant d\'espace dans /health', new RegExp(T).test(JSON.stringify(h1)), false);
+    v('   ni le slug', new RegExp(SLUG).test(JSON.stringify(h1)), false);
+  }
+
   /* ══ (i) LE SERVEUR TOMBE : LA SYNCHRO DE L'ENTREPRISE NE DOIT PAS LE SENTIR ══════════════
      ⛔ C'est la seule règle qui compte vraiment de tout l'étage. Une synchro d'entreprise qui
      tombe parce qu'un chantier interne a hoqueté est exactement ce que ce dépôt a payé le
