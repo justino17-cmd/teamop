@@ -17,7 +17,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-echecs=0; total=0; suites=0
+echecs=0; total=0; suites=0; coupables=''
 for f in tests/test-*.js; do
   sortie=$(node "$f" 2>&1); rc=$?
   suites=$((suites+1))
@@ -26,7 +26,7 @@ for f in tests/test-*.js; do
   if [ -z "$ligne" ]; then
     echo "::error::$f n'a rendu AUCUN total — il s'est interrompu avant la fin"
     printf '%s\n' "$sortie" | tail -15
-    echecs=$((echecs+1)); continue
+    echecs=$((echecs+1)); coupables="$coupables $f(interrompu)"; continue
   fi
 
   ok=$(printf '%s' "$ligne" | grep -oE '^[0-9]+')
@@ -36,17 +36,26 @@ for f in tests/test-*.js; do
   if [ "$ko" != "0" ]; then
     echo "::error::$f : $ko échec(s)"
     printf '%s\n' "$sortie" | grep '✗' | head -20
-    echecs=$((echecs+1)); continue
+    echecs=$((echecs+1)); coupables="$coupables $f($ko✗)"; continue
   fi
 
   # Vert au bandeau, mort au retour : c'est un échec, et il est plus grave qu'un ✗.
   if [ "$rc" != "0" ]; then
     echo "::error::$f a imprimé « $ligne » puis est mort (code $rc) — le total ment"
     printf '%s\n' "$sortie" | tail -15
-    echecs=$((echecs+1)); continue
+    echecs=$((echecs+1)); coupables="$coupables $f(mort:$rc)"; continue
   fi
 done
 
 echo "$suites suites · $total vérifications"
-[ "$echecs" = "0" ] || { echo "::error::$echecs suite(s) en échec — rien ne part chez un client."; exit 1; }
+# ⛔ LE NOM DU COUPABLE DOIT TENIR DANS LES TROIS DERNIÈRES LIGNES. Le détail de l'échec est
+# imprimé plus haut, au moment où il survient — et c'est trop haut. Le 20 septembre 2026, une
+# suite est tombée, la sortie a été lue par `| tail -3`, et le nom du banc est parti avec :
+# une demi-heure à relancer les 94 suites une par une pour retrouver ce que ce script avait
+# déjà écrit. Un compteur qui SAIT qui a échoué doit le redire À LA FIN, là où on regarde.
+[ "$echecs" = "0" ] || {
+  echo "::error::$echecs suite(s) en échec :$coupables"
+  echo "::error::rien ne part chez un client."
+  exit 1
+}
 exit 0
