@@ -7833,7 +7833,12 @@ function donAppliquer(){
   apiPost('/api/monitor/op/revenir',{t:t,instant:ms,code:c,sansLesIllisibles:!!DON.sansIllisibles}).then(function(r){
     if(!r.ok){ toast(r.d&&r.d.error?String(r.d.error).slice(0,200):'Refusé.'); return; }
     DON.codeEnvoye=false; DON.code='';
-    toast(r.d.restaures+' remise(s) en place, '+r.d.enterres+' supprimée(s).');
+    /* ⛔ LES REFUS SE DISENT, ET DANS LE MÊME SOUFFLE. `pousser()` refuse un LOT ENTIER quand
+       l'espace est plein : un retour peut donc s'arrêter au milieu. Annoncer les remises sans
+       les refus laisserait croire l'entreprise revenue alors que la moitié ne l'est pas. */
+    var n=r.d.nRefuses||0;
+    toast(r.d.restaures+' remise(s) en place, '+r.d.enterres+' supprimée(s)'+
+      (n?' — ⛔ '+n+' refusée(s) : '+((r.d.refus||[])[0]||{}).motif+'. Le retour est INCOMPLET.':'.'), n?9000:0);
     donApercu();
   });
 }
@@ -7902,6 +7907,11 @@ function vueDonnees(){
     res='<div class="carte"><div class="ttl-carte">Ce que le retour ferait</div>'+
       '<div class="lg"><span>À remettre en place</span><b>'+(a.nRestaurer||0)+'</b></div>'+
       '<div class="lg"><span>À supprimer (créés depuis)</span><b>'+(a.nEnterrer||0)+'</b></div>'+
+      /* ⛔ LE POIDS SE MONTRE AVANT, PAS APRÈS. Un retour ÉCRIT : chaque fiche ramenée ajoute au
+         journal une copie de son contenu. Sur une base déjà proche de son plafond, le serveur
+         refusera des lots entiers en cours de route — mieux vaut le voir ici que le découvrir
+         à la moitié du retour. */
+      (a.octetsEnPlus?'<div class="lg"><span>Poids ajouté au socle</span><b>'+Math.round(a.octetsEnPlus/1024)+' Kio</b></div>':'')+
       (a.nInconnus?'<div class="lg"><span>Sans trace au journal</span><b>'+a.nInconnus+'</b></div>':'')+
       lignes+trop+alerte+
       '<div style="margin-top:16px">'+porte+'</div>'+
