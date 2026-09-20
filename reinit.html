@@ -18,7 +18,11 @@
   label{display:block;font-size:12px;color:#93a9d4;margin:12px 0 6px;letter-spacing:.3px}
   input{width:100%;background:#0d1526;border:1px solid #243354;border-radius:12px;padding:13px 12px;color:#eef2fa;font-size:15px;outline:none}
   input:focus{border-color:#34d399}
-  button{width:100%;margin-top:16px;background:#34d399;color:#08251a;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer}
+  /* min-height : mesuré à 43 px au navigateur (13+13 de marge intérieure + 17 de ligne),
+     soit un pixel sous le plancher tactile de 44. Cette page se termine au doigt, souvent sur
+     un téléphone, parfois avec des gants — on ne laisse pas le bouton principal juste en
+     dessous. Mesuré, pas déduit : sonde navigateur du 20 septembre 2026. */
+  button{width:100%;margin-top:16px;min-height:44px;background:#34d399;color:#08251a;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer}
   button:disabled{opacity:.6;cursor:default}
   .err{display:none;color:#f87171;font-size:13px;margin-top:10px}
   .ok{display:none;background:#0f2a22;border:1px solid #1f7a57;border-radius:12px;padding:14px;font-size:14px;line-height:1.6}
