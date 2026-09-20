@@ -22,6 +22,62 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ✅ TOUT SUR LE SERVEUR — ÉTAPE B : L'IDENTITÉ MAISON EST ÉCRITE (20 septembre 2026, nuit)
+
+`server/comptes.js` (294 lignes) + `tests/test-738.js` (**48 contrôles**, vrai serveur, vrai
+SMTP). ⛔ **Inerte sans `"comptes": {"actif": true}`** — pas une route déclarée, comme le socle.
+
+### Ce qui existait déjà, et qu'on n'a pas refait
+
+Le serveur tient **déjà** de vrais comptes : `comptesReg` par entreprise, **PBKDF2
+120 000 tours**, sel de 16 octets, et le mot de passe brut n'arrive jamais (l'appareil envoie
+une empreinte). `comptes.js` applique **la même dérivation** aux comptes du PORTAIL. Deux
+dérivations pour deux sortes de comptes, ce serait deux qualités de sécurité, et on finirait
+par oublier laquelle est laquelle.
+
+### Les gardes, et ce qui les prouve
+
+| garde | mutation → ce que le banc rend |
+|---|---|
+| une adresse inconnue coûte le même TEMPS qu'une connue (on dérive sur un sel factice) | 47 ✓ 1 ✗ |
+| créer sur une adresse prise rend la MÊME chose qu'une neuve | 46 ✓ 2 ✗ |
+| changer de mot de passe COUPE les sessions ouvertes | 47 ✓ 1 ✗ |
+| un lien de vérification ne sert qu'UNE fois | 47 ✓ 1 ✗ |
+| un sel par compte (deux mots de passe identiques → deux clés) | 46 ✓ 2 ✗ |
+
+⚠️ **Et une garde que ce banc ne PEUT PAS tenir** : remplacer `timingSafeEqual` par `===`
+ne fait tomber aucun contrôle et n'en fera jamais tomber — l'écart se compte en nanosecondes,
+sous le bruit d'un aller-retour HTTP. Elle est gardée par la RELECTURE. C'est écrit dans
+l'en-tête du banc plutôt que cru sur un vert qui ne prouve rien.
+
+### ⛔ CE QUI DÉCIDE DE LA BASCULE, ET QUI N'EST PAS TECHNIQUE
+
+**Un mot de passe Firebase ne se LIT pas.** Il est haché chez Google, et aucune API ne le rend.
+Reprendre les comptes du portail n'est donc PAS une migration de données : soit **chaque
+personne repose un mot de passe**, soit les deux authentifications coexistent quelques
+semaines. Ça s'annonce aux clients, ça se date, et ça ne se découvre pas le jour J.
+Allumer `comptes.actif` n'éteint RIEN chez Google : c'est voulu, et c'est ce qui rend la
+coexistence possible.
+
+### Ce qui reste
+
+- ⛔ **`espace.html` appelle encore Firebase** — c'est l'étape C.
+- ⛔ **`reinit.html` aussi** — étape D. Les deux routes qui lui manquent existent désormais
+  (`/api/compte/verifier`, `/api/compte/mdp/poser`) et les liens envoyés pointent déjà vers
+  `reinit.html?mode=…&jeton=…`.
+- ⚠ **`/health` ne dit rien des comptes**, et c'est délibéré : la règle du dépôt veut qu'un
+  champ de `/health` soit SURVEILLÉ ou nommé comme « vu et pas surveillé ». Le jour où
+  `comptes.actif` passe à vrai, il faudra un champ ET son alarme dans
+  `.github/scripts/surveillance.js` — pas l'un sans l'autre.
+- ⚠ **Les sessions vivent dans `comptes-portail.json`**, pas en mémoire : un déploiement ne
+  déconnecte donc personne. Le fichier s'écrit par temporaire + renommage, comme `espaces.json`.
+
+⚠️ **Une leçon de méthode payée ce soir-là** : le premier montage du module dans `index.js`
+n'a JAMAIS été appliqué — le `grep` d'ancrage a échoué, la chaîne `&&` s'est arrêtée, et
+« ✅ syntaxe OK » (qui venait d'ailleurs) a été lu comme une réussite. Le banc l'a attrapé,
+pas la relecture. **Vérifier par un `grep` APRÈS l'édition, jamais se fier au dernier `echo`
+d'une chaîne `&&`.**
+
 ## ✅ TOUT SUR LE SERVEUR — ÉTAPE A : OP MESSAGES PARLE AU SOCLE (20 septembre 2026, nuit)
 
 Voir `PLAN-TOUT-SUR-LE-SERVEUR.md` pour le recensement complet et l'ordre A→G. Ce qui suit
