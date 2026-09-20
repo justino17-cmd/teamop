@@ -83,6 +83,24 @@ const code = [
   bloc('async function opSocleControle('),
 ].join('\n');
 
+/* ⛔ UN `fetch` QUI COMPTE, ET C'EST UNE MUTATION QUI L'A EXIGÉ. « Une seconde pousse ne
+   redemande même pas de session » était AVEUGLE : sans le cache du verdict négatif, le second
+   appel repart bel et bien au serveur, reçoit `double:false` et rend `null` — exactement le
+   même résultat. Le banc gardait une intention, pas un comportement. On compte donc les appels
+   PAR CHEMIN : c'est la seule chose qui distingue « il n'a pas demandé » de « il a demandé et
+   la réponse était non ». */
+function fetchCompteur() {
+  const par = {};
+  const f = (u, o) => {
+    const chemin = String(u).replace(/^https?:\/\/[^/]+/, '').split('?')[0];
+    par[chemin] = (par[chemin] || 0) + 1;
+    return fetch(u, o);
+  };
+  f.par = par;
+  f.combien = c => par[c] || 0;
+  return f;
+}
+
 /* Un `localStorage` de banc : une Map, avec `Object.keys` qui marche comme dans un navigateur
    (c'est ce dont `espaceQuitter` se sert, et ce qui manque à une Map nue). */
 function stockNeuf() {
@@ -157,12 +175,13 @@ function basePetite(m) {
   let stock = stockNeuf();
   let db = basePetite(1000);
   const diagnostics = [];
+  let compte = fetchCompteur();
   let api = null;
   try {
     api = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
       'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
       code + '\nreturn {opDecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opHautLire,opNonLire};')
-      (fetch, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
+      (compte, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
        (motif) => diagnostics.push(motif), 703, { id: 'u-banc' }, db,
        { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
   } catch (e) { console.log('      (extraction : ' + e.message + ')'); }
@@ -182,8 +201,11 @@ function basePetite(m) {
     vrai('   le verdict « non » est rangé sur l\'appareil, pour épargner le plafond de sessions', api.opNonLire(T) > Date.now());
     /* ⚠️ Et il DOIT court-circuiter : sans ça, chaque rechargement redemande une session, et
        120/h par espace se remplissent avec trente téléphones qui rechargent. */
+    const sessionsAvant = compte.combien('/api/op/session');
     const r2 = await api.opSoclePousser();
-    v('   une seconde pousse ne redemande même pas de session', r2, null);
+    v('   une seconde pousse rend null elle aussi', r2, null);
+    v('⛔ et elle n\'a PAS redemandé de session (le plafond de 120/h est épargné)',
+      compte.combien('/api/op/session'), sessionsAvant);
   }
 
   /* ══ (b) DRAPEAU ALLUMÉ : LA COUTURE ══════════════════════════════════════════════════════ */
@@ -191,10 +213,11 @@ function basePetite(m) {
   const on = await appel('POST', '/api/monitor/op/double', { jeton: JETON_TOUR, corps: { t: T, actif: true } });
   v('la Tour allume la double écriture de cet espace', [on.code, on.j && on.j.double], [200, true]);
   stock = stockNeuf();   // un appareil neuf : le « non » d'avant ne doit pas le figer
+  compte = fetchCompteur();
   api = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
     'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
     code + '\nreturn {opDecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opHautLire,opNonLire};')
-    (fetch, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
+    (compte, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
      (motif) => diagnostics.push(motif), 703, { id: 'u-banc' }, db,
      { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
 
