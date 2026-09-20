@@ -219,6 +219,18 @@ function annuaire() {
      silence, exactement sur les espaces les plus anciens. */
   try { db.exec("ALTER TABLE entreprise ADD COLUMN double INTEGER NOT NULL DEFAULT 0"); }
   catch (e) { /* déjà là : c'est le cas nominal après le premier démarrage */ }
+  /* ⛔ LA BASCULE DE LA LECTURE — ÉTAPE 5, ET C'EST LE DRAPEAU QUI COMPTE LE PLUS DU CHANTIER.
+     `double` décide où l'appareil ÉCRIT EN PLUS ; celui-ci décide où il LIT. Tant qu'il vaut
+     `firestore`, le socle est un miroir que personne ne consulte : une ligne perdue ne se voit
+     pas, mais elle ne casse rien non plus. Le jour où il vaut `socle`, le VPS devient la source
+     de vérité de l'entreprise — et une ligne perdue devient une donnée perdue.
+     ⛔ IL EST SERVEUR, PAR ESPACE, ET IL VAUT `firestore` PAR DÉFAUT. Le retour arrière doit
+     coûter UNE REQUÊTE : Firestore reste à jour à la seconde près parce que la double écriture
+     n'est PAS arrêtée en même temps. C'est très exactement pour ça qu'on ne l'arrête pas.
+     ⚠️ Une CHAÎNE et pas un booléen : un troisième état viendra (`miroir`, l'étape 6), et un
+     booléen qu'on élargit après coup est un booléen qu'on lit faux quelque part. */
+  try { db.exec("ALTER TABLE entreprise ADD COLUMN lecture TEXT NOT NULL DEFAULT 'firestore'"); }
+  catch (e) { /* déjà là */ }
   db.exec(`CREATE TABLE IF NOT EXISTS appareil (t TEXT NOT NULL, app_id TEXT NOT NULL, jeton_sha TEXT NOT NULL,
              exp INTEGER NOT NULL, cree_le INTEGER NOT NULL, vu_le INTEGER NOT NULL DEFAULT 0, nom TEXT NOT NULL DEFAULT '',
              revoque_le INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (t, app_id))`);
@@ -976,13 +988,18 @@ function numeroReserver(t, prefixe, annee, n, plancher) {
  * `/api/op/session` comme chaque requête authentifiée le relisent. */
 function entrepriseEtat(t) {
   t = exigerT(t);
-  const l = annuaire().prepare('SELECT etat, ferme_le, double FROM entreprise WHERE t=?').get(t);
+  const l = annuaire().prepare('SELECT etat, ferme_le, double, lecture FROM entreprise WHERE t=?').get(t);
   /* ⚠️ L'ESPACE INCONNU REND `double:false`, ET C'EST LE BON SENS DU DÉFAUT. Une entreprise
      dont on ne sait rien n'est pas en double écriture. Le défaut inverse ferait pousser les
      données d'un espace que l'annuaire ne connaît pas — c'est-à-dire exactement le cas où on
      ne devrait rien écrire. */
-  return l ? { etat: l.etat || 'actif', ferme_le: l.ferme_le || 0, double: !!l.double }
-    : { etat: 'actif', ferme_le: 0, double: false };
+  /* ⚠️ `lecture` RETOMBE SUR `firestore` DÈS QUE LE DOUTE EXISTE — colonne absente, valeur
+     inconnue, espace inconnu. Le mauvais sens du défaut ferait lire le socle à une entreprise
+     dont personne n'a décidé la bascule, c'est-à-dire lui servir une base potentiellement
+     incomplète à la place de la sienne. Seule la chaîne EXACTE `socle` bascule. */
+  const src = l && String(l.lecture || '') === 'socle' ? 'socle' : 'firestore';
+  return l ? { etat: l.etat || 'actif', ferme_le: l.ferme_le || 0, double: !!l.double, lecture: src }
+    : { etat: 'actif', ferme_le: 0, double: false, lecture: 'firestore' };
 }
 
 /* ⛔ ALLUMER OU COUPER LA DOUBLE ÉCRITURE D'UN ESPACE — la marche arrière de l'étape 4.
@@ -1004,6 +1021,21 @@ function entrepriseDouble(t, actif) {
      qu'on a pu lire, et l'appelant voit l'ÉTAT OBTENU comme d'habitude. */
   const l = db.prepare('SELECT double FROM entreprise WHERE t=?').get(t);
   return { connue: true, double: !!(l && l.double) };
+}
+
+/* ⛔ BASCULER LA LECTURE D'UN ESPACE — l'étape 5, et son retour arrière.
+   Mêmes règles que `entrepriseDouble`, pour les mêmes raisons : elle ne fait naître aucune
+   entreprise, et elle rend l'ÉTAT OBTENU plutôt qu'un `ok`. ⛔ Et elle n'accepte que deux
+   valeurs EXACTES : un `source` inconnu ne « fait rien » en silence, il retombe sur
+   `firestore` — le seul défaut qui ne peut pas faire de mal. */
+function entrepriseLecture(t, source) {
+  t = exigerT(t);
+  const src = String(source || '') === 'socle' ? 'socle' : 'firestore';
+  const db = annuaire();
+  const n = db.prepare('UPDATE entreprise SET lecture=? WHERE t=?').run(src, t).changes;
+  if (!n) return { connue: false, lecture: 'firestore' };
+  const l = db.prepare('SELECT lecture FROM entreprise WHERE t=?').get(t);
+  return { connue: true, lecture: l && String(l.lecture || '') === 'socle' ? 'socle' : 'firestore' };
 }
 
 /* `ouvert:false` ferme ET coupe : les deux vont toujours ensemble, sinon on rejoue le défaut.
@@ -1114,6 +1146,93 @@ function sessionsCouper(t) {
 function appareilsDe(t) {
   t = exigerT(t);
   return annuaire().prepare('SELECT app_id, nom, cree_le, vu_le, exp, revoque_le FROM appareil WHERE t=? ORDER BY vu_le DESC').all(t);
+}
+
+/* ⛔ UNE LIGNE D'APPAREIL DOIT POUVOIR MOURIR, SINON LA CONDITION (a) DE L'ÉTAPE 5 NE CONVERGE
+ * JAMAIS. Cette condition est « TOUS les appareils de l'entreprise parlent au VPS, constaté par
+ * une LISTE NOMINATIVE ». Une liste qui ne fait que grossir ne se compare à rien : un téléphone
+ * changé, un profil recréé, un stockage nettoyé, et la ligne d'hier reste là pour toujours. La
+ * condition devient impossible — et ce dépôt sait ce qui arrive ensuite : une condition
+ * impossible à remplir finit par être IGNORÉE (`server/index.js:2276`, exactement ce
+ * raisonnement pour `cleEtat`). On ne veut pas d'une quatrième marche décorative.
+ * ⚠️ ON NE SUPPRIME RIEN. Une ligne périmée sort du DÉNOMINATEUR, elle ne disparaît pas de la
+ * liste : la Tour doit pouvoir dire « cet appareil n'est plus revenu depuis le 3 août », ce
+ * qu'un effacement rendrait impossible. On qualifie, on ne détruit pas. */
+const PEREMPTION_MS = 30 * 86400000;   // pas revu depuis 30 jours = hors du dénominateur
+
+/* Les appareils qui COMPTENT : ni révoqués, ni périmés. C'est le dénominateur de (a). */
+function appareilsVivants(t, fenetreMs) {
+  const limite = Date.now() - (parseInt(fenetreMs, 10) || PEREMPTION_MS);
+  return appareilsDe(t).filter(a => !a.revoque_le && (a.vu_le || 0) >= limite);
+}
+
+/* ══ LES VERDICTS DE CONTRÔLE — LA CONDITION (d) DE L'ÉTAPE 5 ══════════════════════════════
+ * « Sept jours de signatures identiques. » ⛔ Le SERVEUR NE PEUT PAS LA CALCULER SEUL, et il
+ * faut l'écrire plutôt que de bricoler une approximation : la signature du socle, il la connaît
+ * (`signatureCanonique`), mais celle de Firestore vit dans l'appareil et nulle part ailleurs.
+ * Seul l'appareil peut dire que les deux coïncident. Il le dit donc, et on le garde.
+ * ⛔ CE QU'ON GARDE NE CONTIENT NI IDENTIFIANT NI CONTENU : un horodatage, un verdict, et des
+ * NOMS DE COLLECTION avec des nombres. C'est exactement ce que l'appareil remonte déjà à la
+ * Tour — et pour la même raison : savoir QUOI regarder n'oblige pas à lire les données du
+ * client.
+ * ⚠️ Soixante entrées glissantes : de quoi couvrir les sept jours exigés même si plusieurs
+ * appareils contrôlent le même jour, sans faire grossir `meta` indéfiniment. */
+const CONTROLES_MAX = 60;
+
+function controleNoter(t, o) {
+  t = exigerT(t);
+  const db = ouvrir(t), c = o || {};
+  let liste = [];
+  try { liste = JSON.parse((db.prepare("SELECT val FROM meta WHERE cle='controles'").get() || {}).val || '[]'); } catch (e) { liste = []; }
+  if (!Array.isArray(liste)) liste = [];
+  liste.unshift({
+    ts: Date.now(),
+    app: String(c.app_id || '').slice(0, 32),
+    ok: !!c.ok,
+    /* Les écarts se rangent par NOM DE COLLECTION et NOMBRE, jamais autrement — et on borne,
+       parce qu'une liste venue d'un appareil est une liste que quelqu'un peut allonger. */
+    ecarts: (Array.isArray(c.ecarts) ? c.ecarts : []).slice(0, 12)
+      .map(x => ({ coll: String((x && x.coll) || '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 40),
+                   a: parseInt(x && x.appareil, 10) || 0, s: parseInt(x && x.serveur, 10) || 0 }))
+      .filter(x => x.coll),
+  });
+  if (liste.length > CONTROLES_MAX) liste.length = CONTROLES_MAX;
+  db.prepare("INSERT INTO meta (cle,val) VALUES ('controles',?) ON CONFLICT(cle) DO UPDATE SET val=excluded.val").run(JSON.stringify(liste));
+  return liste.length;
+}
+
+function controlesDe(t) {
+  t = exigerT(t);
+  try { const l = JSON.parse((ouvrir(t).prepare("SELECT val FROM meta WHERE cle='controles'").get() || {}).val || '[]');
+    return Array.isArray(l) ? l : []; } catch (e) { return []; }
+}
+
+/* ⛔ « SEPT JOURS SANS ÉCHEC » N'EST PAS « SEPT JOURS DE SIGNATURES IDENTIQUES ». Un espace
+ * dont AUCUN appareil n'a contrôlé depuis sept jours n'a aucun échec à montrer — et il
+ * passerait la condition (d) haut la main, sans qu'on sache rien de lui. C'est la confusion
+ * exacte que ce dépôt a déjà payée avec `_mailboxes` : « vide » et « on n'a pas pu savoir » ne
+ * sont pas le même état. On exige donc DEUX choses : aucun échec, ET au moins un contrôle
+ * réussi CHAQUE jour de la fenêtre. Un jour muet fait tomber la condition. */
+function controleSuite(t, jours) {
+  const n = Math.max(1, parseInt(jours, 10) || 7);
+  const liste = controlesDe(t);
+  const jour = ts => Math.floor(ts / 86400000);
+  const aujourdhui = jour(Date.now());
+  const parJour = new Map();
+  for (const c of liste) {
+    const j = jour(c.ts || 0);
+    if (aujourdhui - j >= n || j > aujourdhui) continue;
+    const v = parJour.get(j) || { ok: 0, ko: 0 };
+    if (c.ok) v.ok++; else v.ko++;
+    parJour.set(j, v);
+  }
+  const manquants = [], echecs = [];
+  for (let i = 0; i < n; i++) {
+    const j = aujourdhui - i, v = parJour.get(j);
+    if (!v) manquants.push(i); else if (v.ko) echecs.push(i);
+  }
+  return { jours: n, ok: !manquants.length && !echecs.length,
+    joursMuets: manquants.length, joursEnEchec: echecs.length, controles: liste.length };
 }
 
 /* ══ LE JOURNAL DE DIAGNOSTIC — CHAÎNÉ PAR EMPREINTE ════════════════════════════════════════
@@ -1341,7 +1460,7 @@ function sante() { semerCompteurs(); return { actif: true, bases: _nbBases, cle:
 module.exports = {
   ouvrir, annuaire, dekDe, pousser, depuis, etat, rang, existe, presentSurDisque, verifier, effacerEntreprise, sante, fermer,
   exigerT, numeroReserver, journalDe,
-  entrepriseEtat, entrepriseOuvrir, entrepriseDouble, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
+  entrepriseEtat, entrepriseOuvrir, entrepriseDouble, entrepriseLecture, appareilsVivants, PEREMPTION_MS, controleNoter, controlesDe, controleSuite, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
   diagnostic, diagnosticsDe, ancre, ancreVerifier,
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,

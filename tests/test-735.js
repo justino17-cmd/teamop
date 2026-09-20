@@ -106,13 +106,18 @@ const code = [
   bloc('function opSignature('), bloc('function opDecomposer('), bloc('function opRecomposer('),
   /* ── LE BLOC DE L'ÉTAPE 4, MOT POUR MOT ── */
   ligne('let _opJeton ='), ligne('let _opEnVol ='),
-  ligne('const OP_HAUT_CLE ='), ligne('const OP_NON_CLE ='),
+  ligne('const OP_HAUT_CLE ='), ligne('const OP_NON_CLE ='), ligne('const OP_APP_CLE ='),
   ligne('function opHautLire('), ligne('function opHautPoser('),
   ligne('function opNonLire('), ligne('function opNonPoser('),
+  ligne('function opAppLire('), ligne('function opAppPoser('),
   bloc('async function opSocleSession('),
   bloc('function opSoclePousser('),
   bloc('async function opSoclePousserVraiment('),
   bloc('async function opSocleControle('),
+  /* ── ÉTAPE 5 : LA LECTURE ── */
+  ligne('const OP_SEQ_CLE ='), ligne('function opSeqLire('), ligne('function opSeqPoser('),
+  ligne('let _opLectureEnVol ='),
+  bloc('function opSocleLire('), bloc('async function opSocleLireVraiment('),
 ].join('\n');
 
 /* ⛔ UN `fetch` QUI COMPTE, ET C'EST UNE MUTATION QUI L'A EXIGÉ. « Une seconde pousse ne
@@ -216,7 +221,7 @@ function basePetite(m) {
   let compte = fetchCompteur();
   const allumer = () => new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
     'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
-    code + '\nreturn {opDecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opHautLire,opNonLire};')
+    code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire};')
     (compte, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
      (motif) => diagnostics.push(motif), 703, { id: 'u-banc' }, db,
      { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
@@ -431,6 +436,131 @@ function basePetite(m) {
     v('⛔ plus rien ne part, sans erreur et sans message', r, null);
   }
 
+  /* ══ (j) ÉTAPE 5 — LA LECTURE ════════════════════════════════════════════════════════════
+     ⛔ C'est ici que le VPS devient la source de vérité, et c'est la couture la plus chère du
+     chantier : pendant l'étape 4, une ligne perdue ne se voyait pas mais ne cassait rien ; ici
+     une ligne perdue est une donnée perdue. */
+  console.log('\n⛔ Étape 5 — la lecture, drapeau ÉTEINT');
+  {
+    await appel('POST', '/api/monitor/op/double', { jeton: JETON_TOUR, corps: { t: T, actif: true } });
+    await api.opSocleSession(true);
+    const depuisAvant = compte.combien('/api/op/depuis');
+    const r = await api.opSocleLire();
+    v('la lecture rend null quand le serveur dit `lecture:firestore`', r, null);
+    v('⛔ et elle n\'a RIEN demandé au serveur', compte.combien('/api/op/depuis'), depuisAvant);
+  }
+
+  console.log('\n⛔ Étape 5 — la Tour bascule, et un SECOND appareil relit la base');
+  {
+    const on = await appel('POST', '/api/monitor/op/lecture', { jeton: JETON_TOUR, corps: { t: T, source: 'socle' } });
+    v('la Tour bascule la lecture sur le socle', [on.code, on.j && on.j.lecture], [200, 'socle']);
+    /* ⛔ `source` VIENT DU CORPS ET DÉCIDE DE LA SOURCE DE VÉRITÉ D'UNE ENTREPRISE : il se lit
+       en chaîne EXACTE. Ces quatre valeurs sont toutes VRAIES pour `!!`. */
+    for (const mauvais of ['SOCLE', 'oui', 1, {}]) {
+      const r = await appel('POST', '/api/monitor/op/lecture', { jeton: JETON_TOUR, corps: { t: T, source: mauvais } });
+      v('⛔ `source:' + JSON.stringify(mauvais) + '` retombe sur firestore', r.j && r.j.lecture, 'firestore');
+    }
+    await appel('POST', '/api/monitor/op/lecture', { jeton: JETON_TOUR, corps: { t: T, source: 'socle' } });
+
+    /* On pousse d'abord l'état courant depuis l'appareil n° 1. */
+    await api.opSocleSession(true);
+    await api.opSoclePousser();
+
+    /* ── Un SECOND appareil : base VIDE, stockage neuf, même espace. C'est le seul montage qui
+       prouve que la lecture rend vraiment les données — relire depuis celui qui a écrit ne
+       prouverait que la cohérence d'un appareil avec lui-même. */
+    const stock2 = stockNeuf();
+    const db2 = {};
+    const api2 = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
+      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
+      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire};')
+      (compte, stock2, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-2',
+       (motif) => diagnostics.push(motif), 703, { id: 'u-banc-2' }, db2,
+       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
+
+    const lu = await api2.opSocleLire();
+    vrai('⛔ le second appareil a LU quelque chose (le câblage de /depuis tient)', lu && lu.lues > 0);
+    v('   sans aucune ligne illisible', lu && lu.illisibles, 0);
+    vrai('⛔ et sa base porte maintenant les clients du premier', (db2.clients || []).length >= 2);
+    vrai('   les interventions aussi', (db2.interventions || []).length >= 1);
+    vrai('   et les produits', (db2.produits || []).length >= 1);
+
+    /* ⛔ LA SIGNATURE EST LE SEUL JUGE. « Il y a des clients » ne dit pas que ce sont LES
+       clients : un champ perdu, un `_m` faux, et la comparaison passerait quand même. */
+    const sigA = api.opSignature(api.opDecomposer(db));
+    const sigB = api2.opSignature(api2.opDecomposer(db2));
+    v('⛔ les deux appareils portent des clients IDENTIQUES', sigB.par.clients, sigA.par.clients);
+    v('   et des interventions identiques', sigB.par.interventions, sigA.par.interventions);
+
+    const curseur = api2.opSeqLire(T);
+    vrai('le curseur a avancé', curseur > 0);
+    const depuisAvant = compte.combien('/api/op/depuis');
+    const lu2 = await api2.opSocleLire();
+    v('⛔ une seconde lecture ne rapporte RIEN de neuf', lu2 && lu2.lues, 0);
+    v('   et le curseur n\'a pas bougé', api2.opSeqLire(T), curseur);
+    vrai('   elle a tout de même demandé (une page vide, pas zéro appel)', compte.combien('/api/op/depuis') > depuisAvant);
+
+    /* ══ ⛔ LE CONTRÔLE QUI PROTÈGE LE TRAVAIL D'UN TECHNICIEN ══════════════════════════════
+       Mesuré le 20 septembre 2026 : `opRecomposer` appliquait TOUTE ligne sans regarder les
+       dates. Un technicien qui modifie une fiche hors ligne, puis dont l'appareil lit le socle
+       avant d'avoir poussé, perdait sa saisie — sans message et sans pierre tombale. */
+    db2.clients[0].ville = 'MODIFIÉ-ICI'; db2.clients[0]._m = Date.now() + 60000;
+    api2.opSeqPoser ? api2.opSeqPoser(T, 0) : stock2.setItem('elan_op_seq_' + T, '0');
+    await api2.opSocleLire();
+    v('⛔ une saisie locale PLUS RÉCENTE survit à une relecture complète', db2.clients[0].ville, 'MODIFIÉ-ICI');
+
+    /* ⛔ ET RELIRE DEPUIS ZÉRO NE DOIT RIEN DOUBLER. `mailSent` et `planJournal` n'ont pas
+       d'identité propre : `opRecomposer` faisait `push` sans regarder, donc une reprise depuis
+       le curseur zéro doublait toute la correspondance envoyée. `opIdDerive` LEUR DONNE une
+       identité stable — il suffisait de s'en servir. */
+    const avantN = (db2.clients || []).length + (db2.interventions || []).length + (db2.produits || []).length;
+    stock2.setItem('elan_op_seq_' + T, '0');
+    await api2.opSocleLire();
+    stock2.setItem('elan_op_seq_' + T, '0');
+    await api2.opSocleLire();
+    v('⛔ deux relectures depuis zéro n\'ajoutent AUCUN doublon',
+      (db2.clients || []).length + (db2.interventions || []).length + (db2.produits || []).length, avantN);
+  }
+
+  /* ══ (k) LES QUATRE CONDITIONS DE L'ÉTAPE 5, CALCULÉES ════════════════════════════════════
+     ⛔ Le plan les écrit ; sans cette route elles resteraient une intention, et on basculerait
+     « parce que ça avait l'air bon ». L'annexe disait de l'une d'elles qu'elle ne pouvait
+     JAMAIS converger — c'est celle-là qu'on éprouve en premier. */
+  console.log('\n⛔ Étape 5 — les conditions se CALCULENT, elles ne se récitent pas');
+  {
+    const p = await appel('GET', '/api/monitor/op/pret?t=' + encodeURIComponent(T), { jeton: JETON_TOUR });
+    v('la route existe et répond', p.code, 200);
+    const cond = (p.j && p.j.conditions) || {};
+    vrai('elle rend les cinq conditions', !!(cond.a && cond.b && cond.c && cond.d && cond.ouvert));
+    /* ⛔ (a) SANS JOURNAL DE CONNEXIONS, LE VERDICT EST « ON NE SAIT PAS », PAS « C'EST BON ».
+       Le banc n'écrit aucune connexion : une liste vide ferait dire « aucun appareil en
+       retard », donc « tu peux basculer », au moment exact où on ne sait rien. Ce dépôt a payé
+       deux fois cette confusion. */
+    v('⛔ (a) sans journal de connexions : on ne sait pas, donc NON', cond.a.ok, false);
+    v('   et elle le DIT plutôt que de rendre zéro', cond.a.vusParLApi, null);
+    vrai('   elle a tout de même vu les appareils du socle', cond.a.surLeSocle >= 1);
+    /* (d) : le banc n'a pas sept jours de contrôles, donc elle doit être fausse — et dire
+       pourquoi. Un « aucun échec » sur sept jours muets n'est pas un succès. */
+    v('⛔ (d) sept jours muets ne valent pas sept jours identiques', cond.d.ok, false);
+    /* ⚠️ LE MOTIF DÉPEND DE CE QUE LE BANC A DÉJÀ JOUÉ, et l'assertion a eu tort DEUX FOIS
+       avant d'être écrite ainsi. La contre-épreuve de la section (f) a fait remonter un verdict
+       EN ÉCHEC : le motif parle donc de divergence, pas de jours muets. Ce qu'il faut exiger
+       n'est pas une phrase précise — c'est qu'il y en ait UNE, et qu'elle nomme une cause. */
+    vrai('   et le motif nomme une cause, il ne se tait pas',
+      /divergence|sans aucun contr|aucun verdict/.test(String(cond.d.pourquoi)));
+    vrai('   la fenêtre est celle du plan : sept jours', cond.d.jours === 7);
+    v('⛔ une seule fausse suffit : on ne bascule pas', p.j.pret, false);
+    v('   la route dit où en est la lecture', p.j.lecture, 'socle');
+
+    /* ⛔ LE VERDICT DE CONTRÔLE ARRIVE-T-IL VRAIMENT ? C'est la seule source de (d), et c'est
+       une couture appareil ↔ serveur de plus — donc exactement le genre d'endroit où les
+       trois défauts de l'étape 4 se sont logés. */
+    const avant = ((await appel('GET', '/api/monitor/op/pret?t=' + encodeURIComponent(T), { jeton: JETON_TOUR })).j || {}).conditions.d.verdictsGardes;
+    await api.opSocleControle();
+    const apres = ((await appel('GET', '/api/monitor/op/pret?t=' + encodeURIComponent(T), { jeton: JETON_TOUR })).j || {}).conditions.d.verdictsGardes;
+    vrai('⛔ le verdict de contrôle de l\'appareil ARRIVE au serveur', apres > avant);
+  }
+
   /* ══ (i) LE SERVEUR TOMBE : LA SYNCHRO DE L'ENTREPRISE NE DOIT PAS LE SENTIR ══════════════
      ⛔ C'est la seule règle qui compte vraiment de tout l'étage. Une synchro d'entreprise qui
      tombe parce qu'un chantier interne a hoqueté est exactement ce que ce dépôt a payé le
@@ -441,12 +571,22 @@ function basePetite(m) {
     await arreter();
     let jete = null, r = null;
     try { r = await api.opSoclePousser(); } catch (e) { jete = String(e && e.message); }
+    /* ⛔ L'INVARIANT EST « ELLE NE JETTE PAS ET N'INVENTE RIEN », PAS « ELLE REND null ».
+       L'assertion précédente exigeait `null` et c'est le BANC qui avait tort : quand il n'y a
+       rien à envoyer, la pousse n'a aucune raison de toucher au réseau — elle rend
+       `{envoyees:0}` sans même s'apercevoir que le serveur est mort. C'est le bon comportement,
+       et le confondre avec un échec aurait fait « corriger » du code juste. */
     v('⛔ la pousse ne JETTE pas quand le serveur est injoignable', jete, null);
-    v('   elle rend null', r, null);
+    v('   et elle n\'annonce AUCUN envoi', (r && r.envoyees) || 0, 0);
     let jete2 = null, c = null;
     try { c = await api.opSocleControle(); } catch (e) { jete2 = String(e && e.message); }
     v('⛔ le contrôle non plus', jete2, null);
     v('   il rend null', c, null);
+    let jete3 = null, l = null;
+    try { l = await api.opSocleLire(); } catch (e) { jete3 = String(e && e.message); }
+    v('⛔ ni la LECTURE — sans quoi un VPS en panne casserait l\'écran d\'un client', jete3, null);
+    v('   et elle n\'a RIEN lu', (l && l.lues) || 0, 0);
+    v('   ni inventé de page', (l && l.pages) || 0, 0);
   }
 
   try { fs.rmSync(BANC, { recursive: true, force: true }); } catch (e) {}

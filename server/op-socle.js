@@ -40,7 +40,7 @@ const LOT_MAX = 400;                  // lignes par pousse ; `express.json` est 
 const DIAG_VIE_MS = 30 * 60000;       // une ouverture de diagnostic dure 30 minutes.
 
 function monterOpSocle(app, deps) {
-  const { config, socle, sauvRefus, cleEstPublique, quotaOk, monStr, garde } = deps;
+  const { config, socle, sauvRefus, cleEstPublique, quotaOk, monStr, garde, cnxAppareils, espaceConnu, espaceBloque } = deps;
   const actif = !!(config && config.socle && config.socle.actif === true);
   const etat = { actif, routes: [] };
   if (!actif) return etat;   // ⛔ inerte : pas une seule route déclarée.
@@ -277,8 +277,16 @@ function monterOpSocle(app, deps) {
        L'appareil qui ne le lit pas n'écrit nulle part : c'est le bon sens du défaut. */
     let dbl = false;
     try { dbl = !!socle.entrepriseEtat(t).double; } catch (err) {}
+    /* ⛔ ET C'EST LE SERVEUR QUI DIT OÙ L'APPAREIL LIT — étape 5, même raison exactement que
+       `double`, avec un enjeu plus grand : `double` décide où l'on écrit EN PLUS, celui-ci
+       décide de la SOURCE DE VÉRITÉ. Il vaut `firestore` tant que personne n'a tranché, et
+       `firestore` aussi quand on ne sait pas : servir le socle à une entreprise dont la
+       bascule n'a pas été décidée, ce serait lui donner une base peut-être incomplète à la
+       place de la sienne. */
+    let lec = 'firestore';
+    try { lec = socle.entrepriseEtat(t).lecture === 'socle' ? 'socle' : 'firestore'; } catch (err) {}
     res.json({ jeton, exp: ouverte.exp, app_id: ouverte.app_id, nouveau: ouverte.nouveau,
-      seq: e.seq, vide: e.seq === 0, etat: 'actif', lotMax: LOT_MAX, double: dbl });
+      seq: e.seq, vide: e.seq === 0, etat: 'actif', lotMax: LOT_MAX, double: dbl, lecture: lec });
   });
 
   /* ══ GET /api/op/depuis ═══════════════════════════════════════════════════════════════════ */
@@ -333,6 +341,22 @@ function monterOpSocle(app, deps) {
           + 'Rien n\'a été enregistré, ton travail est conservé sur l\'appareil. Contacte TEAM OP.' }));
     }
     res.json(r);
+  });
+
+  /* ══ POST /api/op/controle ════════════════════════════════════════════════════════════════
+     L'appareil dit si SA signature et celle du serveur coïncident. C'est la seule source
+     possible de la condition (d) de l'étape 5 : le serveur connaît la sienne, jamais celle de
+     Firestore. Bon marché exprès — il ne déchiffre RIEN, il range un verdict. */
+  poser('POST', '/api/op/controle', opJeton, (req, res) => {
+    const b = req.body || {};
+    let n = 0;
+    try { n = socle.controleNoter(req.op.t, { app_id: req.op.app_id, ok: b.ok === true, ecarts: b.ecarts }); }
+    catch (e) { console.error('socle: verdict de contrôle non noté —', e.code || 'erreur'); return res.status(503).json({ error: 'verdict non enregistré', motif: 'base' }); }
+    /* ⚠️ Un verdict EN ÉCHEC se voit dans le journal du serveur, sans nommer l'espace :
+       `/health` est publique et le journal du VPS n'a pas à porter d'identifiant de client.
+       Ce qui nomme l'espace, c'est l'écran de la Tour, derrière le mot de passe du patron. */
+    if (b.ok !== true) console.error('socle : un appareil signale une DIVERGENCE de signature');
+    res.json({ ok: true, gardes: n });
   });
 
   /* ══ GET /api/op/flux ═════════════════════════════════════════════════════════════════════ */
@@ -426,6 +450,100 @@ function monterOpSocle(app, deps) {
   /* ⛔ LE NIVEAU QUI RÉPOND À HUIT QUESTIONS DE DÉPANNAGE SUR DIX, SANS AUCUN CONTENU. C'est
      LUI la vraie protection de la vie privée des clients : pas la session de 30 minutes, mais
      le fait qu'on n'en ait presque jamais besoin. Il ne rend JAMAIS un `id` ni un login. */
+  /* ⛔ BASCULER LA LECTURE D'UN ESPACE — L'ÉTAPE 5, ET SON RETOUR ARRIÈRE EN UNE REQUÊTE.
+     ⚠️ ELLE NE VÉRIFIE PAS LES QUATRE CONDITIONS, ET C'EST DÉLIBÉRÉ : elles se CONSTATENT sur
+     `/api/monitor/op/pret`, elles se décident par un humain, et le retour arrière doit rester
+     inconditionnel — une garde qui empêcherait de revenir à `firestore` un jour de panne
+     serait exactement la garde qu'il ne faut pas. La route dit donc ce que la bascule vaut
+     AUJOURD'HUI, pour que la Tour puisse refuser d'elle-même de l'allumer. */
+  poser('POST', '/api/monitor/op/lecture', garde, (req, res) => {
+    const b = req.body || {};
+    const t = monStr(b.t, 80);
+    if (!t) return res.status(400).json({ error: 't requis' });
+    /* `source` vient du CORPS et décide de la source de vérité d'une entreprise : on le lit en
+       chaîne EXACTE, jamais en vérité JavaScript. Tout le reste retombe sur `firestore`. */
+    const src = String(b.source || '') === 'socle' ? 'socle' : 'firestore';
+    let r;
+    try { r = socle.entrepriseLecture(t, src); }
+    catch (e) { console.error('socle: lecture non basculée —', e.code || 'erreur'); return res.status(503).json({ error: 'bascule impossible', motif: 'base' }); }
+    if (!r.connue) return res.status(404).json({ error: 'aucun stockage pour cet espace', motif: 'inconnu' });
+    console.log('socle : lecture d\'un espace basculée sur ' + r.lecture);
+    res.json({ ok: true, lecture: r.lecture });
+  });
+
+  /* ══ GET /api/monitor/op/pret ═════════════════════════════════════════════════════════════
+     ⛔ LES QUATRE CONDITIONS DE L'ÉTAPE 5, CALCULÉES — PAS RÉCITÉES. Le plan les écrit ; sans
+     cette route elles resteraient une intention, et on basculerait « parce que ça avait l'air
+     bon ». Chacune rend son verdict ET sa PREUVE, parce qu'un `false` tout seul coûte une
+     heure et finit par être contourné.
+     ⚠️ (a) est celle qui a failli ne jamais converger. Elle compare deux listes : les appareils
+     qui parlent au SOCLE (`appareil.nom` porte le `dev-…` local) et ceux qui se connectent à
+     l'API (`cnxData`, même `dev`). Un appareil vu par l'API et absent du socle est un appareil
+     qui travaille SANS pousser — et c'est exactement ce qu'il faut savoir avant de basculer.
+     Les deux côtés emploient la MÊME fenêtre : sinon l'un vieillit et l'autre non, et la
+     condition devient inatteignable. */
+  poser('GET', '/api/monitor/op/pret', garde, (req, res) => {
+    const t = monStr(req.query.t, 80);
+    if (!t) return res.status(400).json({ error: 't requis' });
+    if (!socle.existe(t)) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
+    const FENETRE = 14 * 86400000;   // la fenêtre du plan : « vus dans les 14 jours »
+    const depuis = Date.now() - FENETRE;
+
+    let socleDevs = [], etatEnt = null, suite = null;
+    try {
+      socleDevs = socle.appareilsVivants(t, FENETRE).map(a => String(a.nom || '')).filter(Boolean);
+      etatEnt = socle.entrepriseEtat(t);
+      suite = socle.controleSuite(t, 7);
+    } catch (e) { return res.status(503).json({ error: 'stockage illisible' }); }
+
+    /* Les appareils vus par l'API, même fenêtre. `cnxAppareils` est injecté par `index.js` :
+       `cnxData` y vit, et le socle n'a pas à connaître le format d'un journal de connexions. */
+    const apiDevs = typeof cnxAppareils === 'function' ? cnxAppareils(t, depuis) : null;
+    const dansSocle = new Set(socleDevs);
+    /* ⚠️ `null` VEUT DIRE « ON N'A PAS PU SAVOIR », ET CE N'EST PAS UNE LISTE VIDE. Sans ce
+       troisième état, un journal de connexions illisible ferait dire « aucun appareil en
+       retard » — donc « tu peux basculer » — au moment précis où on ne sait rien. Ce dépôt a
+       déjà payé cette confusion deux fois (`_mailboxes`, `syncDecrypt`). */
+    const muets = apiDevs === null ? null : apiDevs.filter(d => !dansSocle.has(d));
+
+    const a = { ok: muets !== null && muets.length === 0 && socleDevs.length > 0,
+      vusParLApi: apiDevs === null ? null : apiDevs.length, surLeSocle: socleDevs.length,
+      enRetard: muets === null ? null : muets.length,
+      /* Un identifiant d'appareil est un jeton local tiré au hasard, pas une donnée
+         personnelle — et la Tour est derrière le mot de passe du patron. On les nomme, sinon
+         « 3 appareils en retard » ne se traite pas. */
+      lesquels: muets === null ? null : muets.slice(0, 20),
+      pourquoi: apiDevs === null ? 'journal de connexions illisible — on ne sait pas'
+        : !socleDevs.length ? 'aucun appareil ne parle encore au socle' : '' };
+
+    const annuaire = typeof espaceConnu === 'function' ? espaceConnu(t) : null;
+    const b2 = { ok: annuaire === true, connu: annuaire,
+      pourquoi: annuaire === null ? 'annuaire non consultable ici' : annuaire ? '' : 'espace absent de l\'annuaire' };
+    const c = { ok: !cleEstPublique(t), partagee: cleEstPublique(t),
+      pourquoi: cleEstPublique(t) ? 'espace encore sur la clé partagée' : '' };
+    const d = { ok: !!(suite && suite.ok), jours: 7, joursMuets: suite ? suite.joursMuets : 7,
+      joursEnEchec: suite ? suite.joursEnEchec : 0, verdictsGardes: suite ? suite.controles : 0,
+      pourquoi: !suite ? 'aucun verdict'
+        : suite.joursEnEchec ? suite.joursEnEchec + ' jour(s) avec une divergence'
+        : suite.joursMuets ? suite.joursMuets + ' jour(s) sans aucun contrôle — on ne sait pas' : '' };
+
+    /* Une cinquième ligne, que le plan n'écrivait pas parce qu'elle n'existait pas encore :
+       un espace fermé ou suspendu ne pousse plus rien, donc son socle se périme. Le basculer
+       lui servirait une base figée au jour de sa suspension. */
+    const bloque = typeof espaceBloque === 'function' ? espaceBloque(t) : null;
+    const e5 = { ok: bloque === false && etatEnt.etat === 'actif', bloqueParLAnnuaire: bloque, etatSocle: etatEnt.etat,
+      pourquoi: bloque === null ? 'état d\'annuaire non consultable ici'
+        : bloque ? 'espace fermé ou suspendu — il ne pousse plus rien'
+        : etatEnt.etat !== 'actif' ? 'socle coupé pour cet espace' : '' };
+
+    res.json({ t, fenetreJours: 14,
+      lecture: etatEnt.lecture, double: etatEnt.double, etat: etatEnt.etat,
+      conditions: { a, b: b2, c, d, ouvert: e5 },
+      /* ⛔ UNE SEULE FAUSSE = ON NE BASCULE PAS. Le plan l'écrit ; on le CALCULE, pour que
+         personne n'ait à recompter quatre booléens un soir de fatigue. */
+      pret: !!(a.ok && b2.ok && c.ok && d.ok && e5.ok) });
+  });
+
   poser('GET', '/api/monitor/op/apercu', garde, (req, res) => {
     const t = monStr(req.query.t, 80);
     if (!t) return res.status(400).json({ error: 't requis' });

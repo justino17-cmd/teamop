@@ -3665,6 +3665,46 @@ try {
   opSocle = require('./op-socle').monterOpSocle(app, {
     config, socle: require('./socle'), sauvRefus, cleEstPublique, quotaOk, monStr,
     garde: monPatronStrict, mailerEnvoi: (o) => mailerEnvoi(o),
+    /* ⛔ LES DEUX SOURCES QUE LE SOCLE N'A PAS, ET QUI DÉCIDENT DE L'ÉTAPE 5.
+       `cnxAppareils` rend les appareils d'une entreprise VUS PAR L'API dans la fenêtre — le
+       dénominateur de la condition (a). Le socle ne connaît que ceux qui lui parlent ; c'est
+       précisément l'écart entre les deux listes qui dit s'il reste des appareils en retard.
+       ⚠️ IL REND `null` QUAND ON NE SAIT PAS, jamais une liste vide : un journal absent ferait
+       dire « aucun appareil en retard », donc « tu peux basculer », au moment exact où on n'a
+       aucune information. Ce dépôt a payé deux fois cette confusion (`_mailboxes`, puis
+       `syncDecrypt`) — la troisième coûterait la base d'un client. */
+    cnxAppareils: (t, depuis) => {
+      const j = cnxData[String(t || '')];
+      if (!Array.isArray(j) || !j.length) return null;
+      const vus = new Set();
+      let sansId = 0;
+      for (const x of j) {
+        if (!x || (x.ts || 0) < depuis) continue;
+        if (x.ev === 'echec' || x.ev === 'refus' || x.ev === 'bloque') continue;  // une tentative n'est pas un appareil
+        const d = String(x.dev || '').trim();
+        /* ⚠️ UN APPAREIL SANS IDENTIFIANT NE PEUT PAS ÊTRE APPARIÉ, DONC IL COMPTE COMME EN
+           RETARD. C'est le sens prudent : il bloque la bascule au lieu de l'autoriser. Une
+           version ancienne qui n'envoie pas `dev` est très exactement le cas qu'on cherche. */
+        if (!d) { sansId++; continue; }
+        vus.add(d);
+      }
+      for (let i = 0; i < sansId; i++) vus.add('sans-identifiant-' + i);
+      return vus.size ? [...vus] : null;
+    },
+    /* `true` connu, `false` inconnu, `null` si l'annuaire lui-même n'est pas lisible. */
+    espaceConnu: (t) => { try { return !!espaceParT(String(t || '')); } catch (e) { return null; } },
+    /* ⛔ UN ESPACE FERMÉ OU SUSPENDU NE SE BASCULE PAS, ET IL FAUT QUE ÇA SE VOIE.
+       `sauvRefus` refuse `entFermes.espaces` en 403 : un tel espace ne peut même pas ouvrir de
+       session de socle, donc il ne pousse plus rien, donc son socle se périme en silence. Le
+       basculer sur `socle` lui servirait une base figée au jour de sa suspension.
+       ⚠️ ET LA QUESTION INVERSE N'EST PAS TRANCHÉE ICI, EXPRÈS : une entreprise suspendue pour
+       impayé DOIT-ELLE continuer à LIRE ? `mentions-legales.html:74` promet qu'un impayé
+       « n'entraîne aucune suppression » et que le client « retrouve l'intégralité de ses
+       données ». Aujourd'hui c'est tenu sans rien faire, parce que la base vit aussi en local
+       et dans Firestore. Le jour où le socle est la seule copie à jour, refuser la lecture
+       contredirait ce texte. Ça se décide — voir REPRISE.md — ça ne se glisse pas dans un
+       correctif de plomberie. */
+    espaceBloque: (t) => { try { return entFermes.espaces.includes(String(t || '')); } catch (e) { return null; } },
   });
 } catch (e) {
   console.error('socle non monté :', e.message);

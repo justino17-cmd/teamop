@@ -6578,10 +6578,53 @@ function opSignature(lignes) {
    depuis une page ferait poser 140 marques de retrait par `estampiller()` au premier geste du
    technicien — la panne du 15 septembre par la porte d'à côté, et l'aller-retour complet y est
    structurellement aveugle. `tests/test-733.js` tient ce cas-là, et lui seul. */
-function opRecomposer(lignes, base) {
+/* ⛔ LA LECTURE DE L'ÉTAPE 5 N'EST PAS L'ALLER-RETOUR DE L'ÉTAPE 2, ET LA DIFFÉRENCE SE PAIE
+   EN DONNÉES DE CLIENT. L'étape 2 recompose dans une base VIDE : rien n'est là, donc rien ne
+   peut être écrasé, et appliquer chaque ligne telle quelle est exactement juste. L'étape 5
+   recompose dans la base VIVANTE d'un technicien qui travaille. Trois défauts mesurés au
+   banc le 20 septembre 2026, chacun silencieux :
+
+     1. une ligne du serveur PLUS VIEILLE que la copie locale l'ÉCRASAIT. Un technicien qui
+        modifie une fiche hors ligne, puis dont l'appareil lit le socle avant d'avoir poussé,
+        perdait sa saisie — sans message et sans pierre tombale ;
+     2. relire la MÊME page DOUBLAIT `mailSent` et `planJournal`. Ces deux collections n'ont pas
+        d'identité propre : `opRecomposer` faisait `push` sans regarder. Or `opIdDerive` leur
+        DONNE une identité stable — c'est tout son objet, et CLAUDE.md porte déjà la leçon.
+        Il suffisait de s'en servir. Une reprise depuis le curseur zéro (un correctif, un
+        appareil réinstallé, un curseur perdu) doublait la correspondance envoyée ;
+     3. une tombe du serveur s'appliquait sur un enregistrement RESSUSCITÉ localement plus tard.
+
+   La règle est donc celle de `fusionnerBases`, et pas une autre : **le plus récent gagne**.
+   ⚠️ `ecraser:true` rétablit l'ancien comportement, et n'a qu'un seul emploi légitime : une
+   base VIDE, où la garde ne change rien de toute façon. C'est ce que fait `tests/test-732.js`,
+   dont l'aller-retour doit rester exact au champ près. */
+function opRecomposer(lignes, base, opts) {
   const db2 = base || {};
+  const o = opts || {};
+  const ecraser = o.ecraser === true;
   const boxParId = {};
   (db2.boxes || []).forEach(b => { if (b && b.id != null) boxParId[String(b.id)] = b; });
+
+  /* L'index des collections SANS identité propre, construit une fois — `opIdDerive` est un
+     hachage canonique, le recalculer pour chaque ligne coûterait un balayage par ligne. */
+  const tsIndex = {};
+  const tsVus = (cle) => {
+    if (tsIndex[cle]) return tsIndex[cle];
+    const set = new Set();
+    (db2[cle] || []).forEach(r => { if (r) { try { set.add(opIdDerive(r)); } catch (e) {} } });
+    return (tsIndex[cle] = set);
+  };
+
+  /* La date que porte DÉJÀ la copie locale, pour savoir qui gagne. `0` quand il n'y a rien :
+     une ligne du serveur entre alors sans discuter, ce qui est le cas de la première lecture. */
+  const dateLocale = (c, id) => {
+    const genre = OP_CLASSES[c] || '';
+    if (c === 'boxes') { const b = boxParId[id]; return b ? (+b._m || 0) : 0; }
+    if (genre === 'dict' || genre === 'liste_ts' || !genre) return 0;
+    const champ = OP_ID_DE[genre] || 'id';
+    const rec = (db2[c] || []).find(x => x && String(x[champ]) === id);
+    return rec ? (+rec._m || 0) : 0;
+  };
 
   (lignes || []).forEach(l => {
     if (!l || !l.c) return;
@@ -6617,6 +6660,10 @@ function opRecomposer(lignes, base) {
       const bid = id.slice(0, coupe), pid = id.slice(coupe + 1);
       const b = boxDe(bid);
       if (!b.stock || typeof b.stock !== 'object') b.stock = {};
+      /* ⛔ LA GARDE D'UNE LIGNE DE STOCK SE PREND SUR `_ms[produit]`, JAMAIS SUR `_m` DE LA BOX.
+         C'est toute la raison d'être de la maille fine : Alexis change l'ADVION, Justin le
+         DEBUSK, dans la même box. Comparer au `_m` de la box ferait perdre l'un des deux. */
+      if (!ecraser && m && (+((b._ms || {})[pid]) || 0) > m) return;
       if (sup) { delete b.stock[pid]; if (m) { b._ms = b._ms || {}; b._ms[pid] = m; } return; }
       b.stock[pid] = l.r;
       if (m) { b._ms = b._ms || {}; b._ms[pid] = m; }
@@ -6630,6 +6677,9 @@ function opRecomposer(lignes, base) {
     }
 
     if (sup) {   // une tombe ordinaire : elle vit dans `_tombes`, pas dans la collection
+      /* Une tombe qui arrive sur un enregistrement RESSUSCITÉ localement plus tard perd :
+         quelqu'un l'a recréé après la suppression, et c'est le geste le plus récent. */
+      if (!ecraser && dateLocale(c, id) > sup) return;
       db2._tombes = db2._tombes || {};
       (db2._tombes[c] = db2._tombes[c] || {})[id] = sup;
       return;
@@ -6639,6 +6689,7 @@ function opRecomposer(lignes, base) {
     if (genre === 'dict') { db2[c] = db2[c] || {}; db2[c][id] = (l.r || {}).v; return; }
 
     if (c === 'boxes') {
+      if (!ecraser && m && dateLocale('boxes', id) > m) return;
       const b = boxDe(id);
       Object.keys(l.r || {}).forEach(k => { b[k] = l.r[k]; });
       if (m) b._m = m;
@@ -6649,7 +6700,15 @@ function opRecomposer(lignes, base) {
     db2[c] = db2[c] || [];
     const rec = Object.assign({}, l.r);
     if (m) rec._m = m;
-    if (genre === 'liste_ts') { db2[c].push(rec); return; }   // pas d'identité propre : on ajoute
+    if (genre === 'liste_ts') {
+      /* ⛔ PAS D'IDENTITÉ PROPRE NE VEUT PAS DIRE PAS D'IDENTITÉ. `opIdDerive` en donne une,
+         stable et déterministe, dérivée du contenu — c'est exactement ce pour quoi elle a été
+         écrite. Sans ce contrôle, relire la même page ajoute une copie, et une reprise depuis
+         le curseur zéro double toute la correspondance envoyée. */
+      if (!ecraser) { const vus = tsVus(c); if (vus.has(id)) return; vus.add(id); }
+      db2[c].push(rec); return;
+    }
+    if (!ecraser && m && dateLocale(c, id) > m) return;
     const ix = db2[c].findIndex(x => x && String(x[champ]) === id);
     if (ix >= 0) db2[c][ix] = rec; else db2[c].push(rec);
   });
@@ -7398,6 +7457,14 @@ function syncDiagnostic(motif){
   }catch(e){}
 }
 async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_syncOn||_syncDemarre) return; _syncDemarre=true;
+  /* ⛔ LE FLUX DU SOCLE S'AMORCE ICI, ET IL NE COÛTE RIEN TANT QU'IL EST ÉTEINT. Sa première
+     boucle demande une session, reçoit `lecture:'firestore'` — servi par le cache du verdict
+     négatif, donc SANS appel réseau — et dort cinq minutes. Aucun appareil ne sonde quoi que
+     ce soit aujourd'hui. Le jour où la Tour bascule un espace, ses appareils s'y mettent tout
+     seuls, sans publier de version : c'est tout l'intérêt d'un drapeau serveur.
+     ⚠️ Jamais `await` : c'est une boucle infinie, l'attendre gèlerait le démarrage de la
+     synchro — donc l'application entière, sur le chemin le plus chaud qui soit. */
+  try{ opSocleFlux(); }catch(e){}
   try{ await loadFirebase(); await syncAuth(); const fs=fbApp().firestore();   // application NOMMÉE : voir fbApp(), la session ne se mélange pas avec celle du portail client
     _fbDoc=fs.collection('elanB_teams').doc(syncTeam()); _syncOn=true; _syncGotInitial=false; try{updateSyncBtn();}catch(e){}
     /* ⛔ L'APPLICATION DIT ELLE-MÊME QUAND SA SYNCHRO NE PART PAS. Justin, 11 septembre 2026 :
@@ -8202,6 +8269,25 @@ function opHautPoser(t, m) { try { localStorage.setItem(OP_HAUT_CLE + '_' + t, S
 function opNonLire(t) { try { return parseInt(localStorage.getItem(OP_NON_CLE + '_' + t), 10) || 0; } catch (e) { return 0; } }
 function opNonPoser(t) { try { localStorage.setItem(OP_NON_CLE + '_' + t, String(Date.now() + 1800000)); } catch (e) {} }
 
+/* ⛔ L'IDENTITÉ D'APPAREIL EST ALLOUÉE PAR LE SERVEUR, ET IL FAUT LA LUI RENDRE. MESURÉ le
+   20 septembre 2026 : cinq sessions du MÊME appareil créaient CINQ lignes `appareil`. Le
+   serveur n'honore un `app_id` présenté que s'il est un 32-hexa qu'il connaît déjà
+   (`/^[0-9a-f]{32}$/`) — sans quoi choisir son identité redeviendrait possible par la porte de
+   derrière, et c'est la bonne règle. Or l'étape 4 lui envoyait `syncDeviceId()`, c'est-à-dire
+   « dev-abc12345 » : jamais honoré, donc une ligne NEUVE à chaque renouvellement de jeton et à
+   chaque rechargement. Une trentaine d'appareils de terrain en fabriquaient des centaines par
+   jour, pour toujours.
+   ⛔ Et ce n'est pas qu'une question de place : la condition (a) de l'étape 5 est « TOUS les
+   appareils parlent au VPS, constaté par une LISTE NOMINATIVE ». Une liste qui grossit toute
+   seule ne se compare à rien — et une condition impossible à remplir finit par être ignorée.
+   ⚠️ `nom` porte `syncDeviceId()` : c'est un identifiant local tiré au hasard, pas une donnée
+   personnelle, et c'est ce qui permet à la Tour de rapprocher CETTE liste de celle des
+   connexions (`cnxData`, qui porte le même `dev`). Sans ce pont, on ne peut pas savoir quels
+   appareils travaillent SANS parler au socle — et c'est exactement ce qu'il faut savoir. */
+const OP_APP_CLE = 'elanB_op_app';
+function opAppLire(t) { try { const v = localStorage.getItem(OP_APP_CLE + '_' + t) || ''; return /^[0-9a-f]{32}$/.test(v) ? v : ''; } catch (e) { return ''; } }
+function opAppPoser(t, id) { try { if (/^[0-9a-f]{32}$/.test(String(id || ''))) localStorage.setItem(OP_APP_CLE + '_' + t, String(id)); } catch (e) {} }
+
 /* Ouvre (ou réutilise) une session de socle. Rend `null` sur TOUT échec — l'appelant n'a alors
    rien à faire, ce qui est le comportement voulu tant que le drapeau est éteint. */
 async function opSocleSession(force) {
@@ -8211,12 +8297,14 @@ async function opSocleSession(force) {
     if (!force && opNonLire(c.t) > Date.now()) return null;
     const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 8000);
     const r = await fetch(PUSH_API + '/api/op/session', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ t: c.t, kh: c.kh, app_id: syncDeviceId(), nom: '' }), signal: ctl.signal });
+      body: JSON.stringify({ t: c.t, kh: c.kh, app_id: opAppLire(c.t), nom: syncDeviceId() }), signal: ctl.signal });
     clearTimeout(to);
     if (!r.ok) { _opJeton = null; return null; }
     const j = await r.json();
     if (!j || !j.jeton) { _opJeton = null; return null; }
-    _opJeton = { jeton: j.jeton, exp: j.exp || (Date.now() + 1800000), double: !!j.double, lotMax: j.lotMax || 400, t: c.t };
+    opAppPoser(c.t, j.app_id);
+    _opJeton = { jeton: j.jeton, exp: j.exp || (Date.now() + 1800000), double: !!j.double, lotMax: j.lotMax || 400,
+      lecture: j.lecture === 'socle' ? 'socle' : 'firestore', seq: +j.seq || 0, t: c.t };
     if (!_opJeton.double) opNonPoser(c.t);
     return _opJeton;
   } catch (e) { _opJeton = null; return null; }
@@ -8307,6 +8395,9 @@ async function opSoclePousserVraiment() {
        que sa synchro marche. Mais les taire complètement ferait diverger en silence. */
     if (refus.length) { try { console.warn('socle : ' + refus.length + ' ligne(s) refusée(s) — ' + refus.slice(0, 3).map(x => x.c + '/' + x.motif).join(', ')); } catch (e) {} }
     if (retenus.length) { try { console.warn('socle : ' + retenus.length + ' enregistrement(s) retenu(s) — pièce jointe pas encore téléversée'); } catch (e) {} }
+    /* Étape 5 : on vient de pousser, donc c'est le bon moment pour prendre ce que les autres
+       ont écrit. Inerte tant que le serveur répond `lecture:'firestore'`. */
+    try { opSocleLire(); } catch (e) {}
     /* ⛔ LE CONTRÔLE SE DÉCLENCHE ICI, ET PAS SUR UNE MINUTERIE. Une application web n'est pas
        ouverte la nuit : un `setInterval` de 24 h ne se déclencherait jamais sur un téléphone de
        terrain, qu'on referme entre deux chantiers. On l'accroche donc à la première pousse qui
@@ -8326,6 +8417,136 @@ async function opSoclePousserVraiment() {
     } catch (e) {}
     return { envoyees: acceptes, refus: refus.length, retenus: retenus.length };
   } catch (e) { return null; }
+}
+
+/* ══ LA LECTURE — ÉTAPE 5 ══════════════════════════════════════════════════════════════════
+   ⛔ C'EST LE MOMENT OÙ LE VPS DEVIENT LA SOURCE DE VÉRITÉ, ET TOUT CHANGE DE POIDS. Pendant
+   l'étape 4, une ligne perdue ne se voyait pas mais ne cassait rien : Firestore restait la
+   référence. Ici, une ligne perdue est une donnée perdue.
+
+   ⛔ C'EST LE SERVEUR QUI DÉCIDE, ESPACE PAR ESPACE (`lecture`), et il dit `firestore` tant que
+   personne n'a tranché. Le retour arrière coûte UNE REQUÊTE, et il marche parce que la double
+   écriture n'est PAS arrêtée en même temps : Firestore reste à jour à la seconde près. C'est
+   très exactement pour ça qu'on ne l'arrête pas.
+
+   ⚠️ ON LIT PAR CURSEUR, ET LE CURSEUR SE GARDE. `/api/op/depuis?seq=N` ne rend que ce qui a
+   changé après `N`. Le premier passage ramène tout ; les suivants ramènent presque rien. Le
+   curseur vit sous `elan_op_seq_<espace>`, donc il part avec `espaceQuitter()` comme les
+   autres — et une reprise depuis zéro reste sans danger, parce que `opRecomposer` garde le
+   plus récent et ne double plus les collections sans identité. */
+const OP_SEQ_CLE = 'elanB_op_seq';
+function opSeqLire(t) { try { return parseInt(localStorage.getItem(OP_SEQ_CLE + '_' + t), 10) || 0; } catch (e) { return 0; } }
+function opSeqPoser(t, n) { try { localStorage.setItem(OP_SEQ_CLE + '_' + t, String(n)); } catch (e) {} }
+
+let _opLectureEnVol = null;
+
+/* Rend `null` quand il n'y a rien à faire (drapeau éteint, serveur muet), et un compte rendu
+   sinon. ⛔ Comme la pousse, elle ne jette JAMAIS vers l'extérieur : une lecture de socle qui
+   échoue laisse l'appareil sur Firestore, ce qui est exactement le repli voulu. */
+function opSocleLire() {
+  if (_opLectureEnVol) return _opLectureEnVol;
+  _opLectureEnVol = opSocleLireVraiment().catch(() => null);
+  const fin = _opLectureEnVol;
+  fin.finally(() => { if (_opLectureEnVol === fin) _opLectureEnVol = null; });
+  return fin;
+}
+
+async function opSocleLireVraiment() {
+  try {
+    const s = await opSocleSession();
+    if (!s || s.lecture !== 'socle') return null;
+    let curseur = opSeqLire(s.t);
+    let lues = 0, pages = 0, illisibles = 0, applique = false;
+    /* ⛔ UNE BORNE DE PAGES, PARCE QU'UNE BOUCLE DE LECTURE QUI NE S'ARRÊTE PAS EST PIRE QU'UNE
+       LECTURE INCOMPLÈTE. Un serveur qui renverrait toujours `reste:true` sans faire avancer le
+       curseur bloquerait l'appareil pour toujours — et c'est un appareil de terrain, sur
+       batterie. 200 pages de 400 lignes couvrent 80 000 enregistrements ; au-delà on s'arrête
+       et on reprendra au prochain passage, là où on en était. */
+    for (pages = 0; pages < 200; pages++) {
+      const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 20000);
+      let r = null;
+      try {
+        r = await fetch(PUSH_API + '/api/op/depuis?seq=' + encodeURIComponent(curseur) + '&max=400',
+          { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal });
+      } catch (e) { clearTimeout(to); break; }
+      clearTimeout(to);
+      if (r.status === 401) { _opJeton = null; break; }
+      if (!r.ok) break;
+      let j = null; try { j = await r.json(); } catch (e) { break; }
+      if (!j || !Array.isArray(j.enr)) break;
+      illisibles += (+j.illisibles || 0);
+      if (j.enr.length) {
+        /* ⛔ ON RECOMPOSE DANS LA BASE VIVANTE, DONC AVEC LA GARDE. `opRecomposer` sans elle
+           écraserait une saisie locale plus récente que la ligne reçue — mesuré, et silencieux. */
+        opRecomposer(j.enr, db);
+        lues += j.enr.length; applique = true;
+      }
+      /* ⛔ LE CURSEUR N'AVANCE QUE SUR CE QUE LE SERVEUR A DIT AVOIR SERVI, et jamais en arrière.
+         Le poser sur `j.seq` (le rang le plus haut de la base) sauterait tout ce que la page
+         n'a pas rendu — les lignes illisibles, et celles qu'une réponse tronquée garde pour la
+         suivante. On perdrait des enregistrements pour toujours, sans rien dire. */
+      const suite = parseInt(j.curseur, 10);
+      if (!isFinite(suite) || suite <= curseur) break;
+      curseur = suite;
+      opSeqPoser(s.t, curseur);
+      if (!j.reste) break;
+    }
+    /* ⛔ UNE LECTURE QUI A CHANGÉ QUELQUE CHOSE DOIT ÊTRE ENREGISTRÉE ET AFFICHÉE, sinon elle
+       n'existe que jusqu'au prochain rechargement — et l'écran ment en attendant. C'est la
+       règle « un refus ne se montre pas tout seul », prise par l'autre bout. */
+    if (applique) {
+      try { if (typeof migrate === 'function') migrate(db); } catch (e) {}
+      try { save(); } catch (e) {}
+      try { if (typeof ombreRelever === 'function') ombreRelever(); } catch (e) {}
+      try { if (typeof render === 'function') render(); } catch (e) {}
+    }
+    if (illisibles) { try { console.warn('socle : ' + illisibles + ' ligne(s) illisible(s) à la lecture'); } catch (e) {} }
+    return { lues, pages, illisibles, curseur };
+  } catch (e) { return null; }
+}
+
+/* ══ LE FLUX — CE QUI REND LA LECTURE VIVE ═════════════════════════════════════════════════
+   `/api/op/flux?depuis=<curseur>` retient la réponse jusqu'à 25 s, puis rend le rang courant.
+   L'appareil relance aussitôt : c'est une attente longue, pas un sondage.
+
+   ⛔ UNE BOUCLE DE SONDAGE SUR UN TÉLÉPHONE DE TERRAIN SE CONÇOIT PAR SES ÉCHECS, PAS PAR SON
+   CAS NOMINAL. Trois gardes, chacune pour une panne qu'on peut nommer :
+     · un seul flux à la fois (`_opFlux`), sinon chaque rechargement d'écran en ouvre un de plus
+       et l'appareil finit avec dix attentes parallèles sur sa batterie ;
+     · un recul PROGRESSIF sur échec (2 s, 4 s… plafonné à 5 min). Sans lui, un VPS en panne se
+       fait mitrailler par trente appareils qui réessaient dans la seconde — on transformerait
+       une panne en déni de service, contre nous-mêmes ;
+     · rien ne tourne quand l'onglet est caché. Un technicien laisse l'application ouverte toute
+       la journée dans un onglet de fond ; une attente longue permanente y vide la batterie pour
+       des données que personne ne regarde. */
+let _opFlux = false, _opFluxRecul = 0;
+
+async function opSocleFlux() {
+  if (_opFlux) return; _opFlux = true;
+  try {
+    for (;;) {
+      if (typeof document !== 'undefined' && document.hidden) { await new Promise(r => setTimeout(r, 15000)); continue; }
+      const s = await opSocleSession();
+      if (!s || s.lecture !== 'socle') { await new Promise(r => setTimeout(r, 300000)); continue; }
+      let bouge = false;
+      try {
+        const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 40000);
+        const r = await fetch(PUSH_API + '/api/op/flux?depuis=' + encodeURIComponent(opSeqLire(s.t)),
+          { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal });
+        clearTimeout(to);
+        if (r.status === 401) { _opJeton = null; throw new Error('jeton'); }
+        if (!r.ok) throw new Error('flux');
+        const j = await r.json();
+        bouge = !!(j && (+j.seq || 0) > opSeqLire(s.t));
+        _opFluxRecul = 0;
+      } catch (e) {
+        _opFluxRecul = Math.min(300000, (_opFluxRecul || 1000) * 2);
+        await new Promise(r => setTimeout(r, _opFluxRecul));
+        continue;
+      }
+      if (bouge) { try { await opSocleLire(); } catch (e) {} }
+    }
+  } finally { _opFlux = false; }
 }
 
 /* ⛔ LE CONTRÔLE — LA SEULE CHOSE QUI PUISSE DIRE QU'UNE ÉCRITURE S'EST PERDUE.
@@ -8395,6 +8616,20 @@ async function opSocleControle() {
          pas une par enregistrement — et ses refus se lisent dans la console. */
       try { opHautPoser(s.t, 0); } catch (e) {}
     }
+    /* ⛔ ET ON LE DIT AU SERVEUR — C'EST LA CONDITION (d) DE L'ÉTAPE 5, ET ELLE N'A PAS D'AUTRE
+       SOURCE POSSIBLE. « Sept jours de signatures identiques » : le serveur connaît la sienne,
+       jamais celle de Firestore, qui ne vit que dans cet appareil. Sans ce verdict, la
+       quatrième marche serait invérifiable — donc décorative, donc sautée. Ce dépôt sait
+       comment finit une condition qu'on ne peut pas remplir.
+       ⚠️ On envoie des NOMS DE COLLECTION et des NOMBRES. Jamais un identifiant, jamais un
+       contenu : le serveur doit savoir QUOI regarder, pas lire les données du client. */
+    try {
+      const ctl2 = new AbortController(); const to2 = setTimeout(() => ctl2.abort(), 8000);
+      await fetch(PUSH_API + '/api/op/controle', { method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.jeton },
+        body: JSON.stringify({ ok: ok, ecarts: ecarts.slice(0, 12) }), signal: ctl2.signal });
+      clearTimeout(to2);
+    } catch (e) {}
     return { ok, ecarts, muettes: muettes.length };
   } catch (e) { return null; }
 }
