@@ -6238,6 +6238,251 @@ const OP_CLASSES = {
    qui n'existe pas — c'est la leçon de `fbUidEquipe`. */
 const OP_ID_DE = { liste: 'id', liste_cle: 'cle', box: 'id' };
 function opGenre(cle){ return OP_CLASSES[cle] || ''; }
+/* ══ LE CONVERTISSEUR — ÉTAPE 2 DU SOCLE ═══════════════════════════════════════════════════
+   `opDecomposer(db) → lignes` et `opRecomposer(lignes) → db`. Rien n'est branché : le socle
+   dort (`socle.actif:false` côté serveur) et aucun appel ne sort d'ici. C'est du transport
+   préparé, éprouvé, et rangé — pas une bascule.
+
+   ⛔ CE QUE CE COUPLE DOIT GARANTIR, ET QUI SE PERD SANS BRUIT SI ON SE TROMPE :
+   `opRecomposer(opDecomposer(db))` doit être IDENTIQUE à `db`, champ pour champ. Une clé
+   oubliée, un `undefined` devenu `0`, un dictionnaire réuni en bloc — et ce sont les données
+   d'un client qui disparaissent à la première synchro, sans message et sans pierre tombale.
+   `tests/test-732.js` l'exige sur le semis réel et sur une base synthétique portant les
+   83 clés ; `tests/test-733.js` l'exige encore quand les lignes arrivent PAR PAGES.
+
+   ⛔ LA LIGNE EST EXACTEMENT CE QUE `/api/op/pousser` ACCEPTE DÉJÀ : `{c, id, m, r, e}` pour
+   une écriture, `{c, id, m, sup}` pour une tombe (voir `server/socle.js`, éprouvé par
+   `tests/test-723.js`). On n'invente pas un second format qui devrait être traduit quelque
+   part — c'est le genre de traduction qui finit par diverger.
+
+   ⛔ `m` (= `maj_le`) VAUT 0 QUAND L'ENREGISTREMENT N'A JAMAIS ÉTÉ DATÉ, et c'est délibéré.
+   Le serveur refuse un `m:0` avec le motif `non_date` : c'est JUSTE, parce qu'un enregistrement
+   sans `_m` est tuable par n'importe quelle tombe de n'importe quelle époque (`t >= (r._m||0)`).
+   Le pousser serait pire que le refuser. En pratique le cas ne se présente pas : `estampiller()`
+   passe avant chaque `save()`. Il se présente sur une base qui n'a JAMAIS synchronisé — et
+   c'est exactement là qu'il ne faut rien pousser. ⚠️ Le refus doit s'afficher, pas se taire.
+
+   ⛔ RIEN N'EST JAMAIS JETÉ. Une clé que `OP_CLASSES` ne connaît pas part quand même, dans le
+   bloc des réglages. `tests/test-731.js` interdit qu'une telle clé existe au moment de la
+   construction ; ce repli est là pour le jour où elle existerait quand même, parce que perdre
+   en silence est le seul comportement qu'on ne peut pas se permettre. */
+const OP_REGLAGES = '_reglages';   // le bloc opaque de la phase A
+const OP_BOX_FORME = '_box_forme';  // ce que la box avait, et qu'aucune ligne ne dit — voir plus bas
+/* ⛔ UNE COLLECTION VIDE EST UNE INFORMATION, ET LE PREMIER ALLER-RETOUR L'A PERDUE.
+   Mesuré sur le semis réel, premier essai : `absences`, `brouillons`, `chantiers`, `groupes`,
+   `indispos`, `interventionsArchive`, `planJournal`, `planNotes`, `plansSite`, `registres`,
+   `taches` — ONZE clés évanouies. Elles ne portent aucun enregistrement, donc elles ne
+   produisent aucune ligne, donc la recomposition ne les recrée pas.
+   Ce n'est pas cosmétique : `migrate()` les pose à chaque chargement, `collsFusion` énumère
+   « toute clé qui se trouve être un tableau », et une base recomposée sans elles n'a plus la
+   même forme que celle qu'on a décomposée. C'est le genre d'écart qui ne se voit pas à l'œil
+   et qui décide d'une fusion trois semaines plus tard. */
+const OP_VIDES = '_vides';
+
+function opDecomposer(base) {
+  const src = base || db, out = [];
+  const ecrire = (c, id, m, r) => { out.push({ c: c, id: String(id), m: +m || 0, r: r, e: recEmpreinte(r) }); };
+  const tombe = (c, id, m) => { out.push({ c: c, id: String(id), m: +m || 0, sup: +m || 0 }); };
+  const reglages = {};
+
+  Object.keys(src || {}).sort().forEach(cle => {
+    const val = src[cle], genre = OP_CLASSES[cle] || '';
+
+    /* ── LA BOX, QUI ÉCLATE. C'est le cœur du chantier : deux personnes travaillent dans la
+       même box sur des produits différents, et aujourd'hui elles se marchent dessus parce que
+       la box entière est UN enregistrement. Une ligne par produit, et le conflit disparaît par
+       construction au lieu d'être gardé par une condition. */
+    if (genre === 'box') {
+      (val || []).forEach(b => {
+        if (!b || b.id == null) return;
+        const bid = String(b.id), st = (b.stock && typeof b.stock === 'object') ? b.stock : {};
+        const ms = (b._ms && typeof b._ms === 'object' && !Array.isArray(b._ms)) ? b._ms : null;
+        const corps = {};
+        Object.keys(b).forEach(k => { if (k !== 'stock' && k !== '_m' && k !== '_ms') corps[k] = b[k]; });
+        ecrire('boxes', bid, b._m, corps);
+        Object.keys(st).forEach(pid => { ecrire('box_stock', bid + '|' + pid, ms ? ms[pid] : 0, st[pid]); });
+        /* ⛔ LES MARQUES DE RETRAIT. Un produit daté dans `_ms` mais ABSENT du stock, c'est un
+           retrait que quelqu'un a fait à la main. Oubliées, le socle naît sans aucune trace de
+           ces retraits — et un appareil resté trois semaines au fond d'un camion RESSUSCITE
+           chez toute l'équipe les produits qu'on avait retirés. */
+        if (ms) Object.keys(ms).forEach(pid => { if (!(pid in st)) tombe('box_stock', bid + '|' + pid, ms[pid]); });
+        /* ⛔ CE QU'AUCUNE LIGNE NE DIT : que la box AVAIT un stock, et qu'elle datait ses
+           lignes. Les deux sont des informations, pas des détails de rangement — et les deux
+           disparaissent quand la box est vide, puisqu'elle ne produit alors aucune ligne.
+           ⚠️ La présence de `_ms` décide d'un comportement : `estampiller()` fait « pas de
+           `_ms` → je date toutes les lignes depuis `_m` » et « `_ms` présent, MÊME VIDE → je ne
+           date rien ». Confondre les deux re-date les lignes à la première ouverture, et
+           l'appareil qui enregistre en second gagne tout le stock : exactement ce que la
+           maille fine existe pour empêcher.
+           ⚠️ Et `stock` absent n'est pas `stock:{}` : lui en poser un change l'empreinte de la
+           box, donc son `_m`, donc la fusion — pour rien. Mesuré : sans cette ligne, une box
+           à stock vide revenait SANS stock. */
+        const forme = {};
+        if (b.stock && typeof b.stock === 'object') forme.st = 1;
+        if (ms) forme.ms = 1;
+        if (forme.st || forme.ms) ecrire(OP_BOX_FORME, bid, b._m, forme);
+      });
+      return;
+    }
+
+    if (genre === 'liste' || genre === 'liste_cle') {
+      const champ = OP_ID_DE[genre];
+      (val || []).forEach(r => { if (r && r[champ] != null) ecrire(cle, r[champ], r._m, opSansTampon(r)); });
+      return;
+    }
+
+    /* ── ⛔ LES DEUX TABLEAUX SANS IDENTIFIANT. `mailSent` et `planJournal` n'en ont jamais eu
+       besoin dans un document unique ; une ligne, si. L'identifiant est DÉRIVÉ du contenu —
+       jamais `uid()`, qui changerait à chaque passage et ferait renaître indéfiniment la même
+       ligne, une copie par synchro. */
+    if (genre === 'liste_ts') {
+      (val || []).forEach(r => { if (r) ecrire(cle, opIdDerive(r), r._m, opSansTampon(r)); });
+      return;
+    }
+
+    /* ── LES DICTIONNAIRES, CLÉ PAR CLÉ. Les réunir en bloc écrasait le plan d'appâtage de
+       24 postes d'un client par celui de 18 postes d'un autre, en entier, sans tombe. */
+    if (genre === 'dict') {
+      Object.keys(val || {}).forEach(k => { ecrire(cle, k, 0, { v: val[k] }); });
+      return;
+    }
+
+    /* ── LES PIERRES TOMBALES. Ce ne sont pas des données : ce sont des absences datées. */
+    if (genre === 'tombes') {
+      if (cle === '_tombes') {
+        Object.keys(val || {}).forEach(c => { Object.keys(val[c] || {}).forEach(id => { tombe(c, id, val[c][id]); }); });
+      } else {   // usersSupprimes : la mécanique propre aux comptes, à ne pas confondre avec _tombes.users
+        (val || []).forEach(x => { const id = (x && x.id) || x; if (id != null) tombe('users_sup', id, x && x.ts); });
+      }
+      return;
+    }
+
+    /* ── LES RÉGLAGES, ET TOUT CE QU'ON NE CONNAÎT PAS. Phase A : UN bloc opaque.
+       ⛔ Les découper maintenant les rendrait refusés à jamais : `estampiller()` ne pose pas de
+       `_m` sur un objet ni sur un scalaire, donc chaque réglage arriverait avec `m:0`, donc
+       `non_date`. Ils passeront ligne à ligne en phase B, une fois `estampiller()` étendu et
+       `tests/test-639.js` étendu avec lui. */
+    reglages[cle] = val;
+  });
+
+  /* Le bloc part même vide : son absence voudrait dire « aucun réglage », ce qui est faux
+     dès qu'une base existe, et l'aller-retour ne serait plus identique. */
+  ecrire(OP_REGLAGES, 'bloc', 0, reglages);
+
+  /* Les collections VIDES, nommées une par une — voir OP_VIDES. On les relit sur la base
+     d'origine plutôt que de deviner : une clé classée « liste » peut très bien ne pas exister
+     du tout sur cette base-là, et l'inventer serait aussi faux que la perdre. */
+  const vides = [];
+  Object.keys(src || {}).forEach(cle => {
+    const g = OP_CLASSES[cle] || '', val = src[cle];
+    if (g === 'liste' || g === 'liste_cle' || g === 'liste_ts' || g === 'box') { if (Array.isArray(val) && !val.length) vides.push(cle); }
+    else if (g === 'dict') { if (val && typeof val === 'object' && !Object.keys(val).length) vides.push(cle); }
+  });
+  if (vides.length) ecrire(OP_VIDES, 'bloc', 0, { cles: vides });
+  return out;
+}
+
+/* Le corps d'une ligne ne porte JAMAIS les tampons de transport : `_m` devient `m`, `_ms`
+   devient le `m` de chaque ligne de stock. Les laisser dans le corps les ferait entrer dans
+   `recEmpreinte` — donc re-tamponner chaque enregistrement à chaque enregistrement, donc lui
+   faire battre sa propre pierre tombale. C'est la règle que `tests/test-639.js` surveille. */
+function opSansTampon(r) {
+  if (!r || typeof r !== 'object') return r;
+  const out = {};
+  Object.keys(r).forEach(k => { if (k !== '_m' && k !== '_ms') out[k] = r[k]; });
+  return out;
+}
+/* Un identifiant STABLE pour un enregistrement qui n'en a pas : sa date, et l'empreinte de son
+   contenu. Deux envois du même message donnent le même identifiant ; deux messages différents
+   à la même milliseconde n'en donnent pas le même. `recEmpreinte` est réutilisée telle quelle —
+   une seule définition, comme partout ailleurs ici. */
+function opIdDerive(r) { return (+((r && r.ts)) || 0) + '-' + recEmpreinte(opSansTampon(r)); }
+
+/* ── LA RECOMPOSITION ────────────────────────────────────────────────────────────────────────
+   ⛔ ELLE FUSIONNE, ELLE NE RECONSTRUIT PAS. `opRecomposer(lignes, base)` applique les lignes
+   PAR-DESSUS `base`, qui peut être la base en cours. C'est ce qui rend la pagination sûre :
+   une box de 200 lignes dont 60 seulement sont arrivées garde ses 140 autres. Reconstruire
+   depuis une page ferait poser 140 marques de retrait par `estampiller()` au premier geste du
+   technicien — la panne du 15 septembre par la porte d'à côté, et l'aller-retour complet y est
+   structurellement aveugle. `tests/test-733.js` tient ce cas-là, et lui seul. */
+function opRecomposer(lignes, base) {
+  const db2 = base || {};
+  const boxParId = {};
+  (db2.boxes || []).forEach(b => { if (b && b.id != null) boxParId[String(b.id)] = b; });
+
+  (lignes || []).forEach(l => {
+    if (!l || !l.c) return;
+    const c = l.c, id = String(l.id == null ? '' : l.id), m = +l.m || 0, sup = +l.sup || 0;
+
+    if (c === OP_REGLAGES) { Object.keys(l.r || {}).forEach(k => { db2[k] = l.r[k]; }); return; }
+
+    /* ⛔ CRÉER CE QUI MANQUE, JAMAIS REMPLACER CE QUI EST LÀ. En pagination, ce bloc peut
+       arriver APRÈS des lignes de la même collection : écraser vaudrait effacer une page
+       déjà posée. Une collection qui a reçu des enregistrements n'est plus vide, et cette
+       ligne n'a alors plus rien à dire. */
+    if (c === OP_VIDES) {
+      ((l.r || {}).cles || []).forEach(k => { if (db2[k] == null) db2[k] = (OP_CLASSES[k] === 'dict') ? {} : []; });
+      return;
+    }
+
+    /* ⛔ UNE LIGNE DE STOCK PEUT ARRIVER AVANT SA BOX, ET ELLE NE DOIT RIEN PERDRE. En
+       pagination, la coupure tombe où elle tombe : refuser la ligne parce que la box n'est pas
+       encore là perdrait le stock d'une box entière, en silence, une page sur deux. On crée
+       donc l'accroche, et la ligne `boxes` la remplira — dans cette page ou dans la suivante. */
+    const boxDe = (bid) => boxParId[bid] || (db2.boxes = db2.boxes || [],
+      db2.boxes.push(boxParId[bid] = { id: bid }), boxParId[bid]);
+
+    if (c === OP_BOX_FORME) {
+      const b = boxDe(id), f = l.r || {};
+      if (f.st && !b.stock) b.stock = {};
+      if (f.ms && !b._ms) b._ms = {};
+      return;
+    }
+
+    if (c === 'box_stock') {
+      const coupe = id.indexOf('|'); if (coupe < 0) return;
+      const bid = id.slice(0, coupe), pid = id.slice(coupe + 1);
+      const b = boxDe(bid);
+      if (!b.stock || typeof b.stock !== 'object') b.stock = {};
+      if (sup) { delete b.stock[pid]; if (m) { b._ms = b._ms || {}; b._ms[pid] = m; } return; }
+      b.stock[pid] = l.r;
+      if (m) { b._ms = b._ms || {}; b._ms[pid] = m; }
+      return;
+    }
+
+    if (c === 'users_sup') {
+      db2.usersSupprimes = db2.usersSupprimes || [];
+      if (!db2.usersSupprimes.some(x => String((x && x.id) || x) === id)) db2.usersSupprimes.push({ id: id, ts: m });
+      return;
+    }
+
+    if (sup) {   // une tombe ordinaire : elle vit dans `_tombes`, pas dans la collection
+      db2._tombes = db2._tombes || {};
+      (db2._tombes[c] = db2._tombes[c] || {})[id] = sup;
+      return;
+    }
+
+    const genre = OP_CLASSES[c] || '';
+    if (genre === 'dict') { db2[c] = db2[c] || {}; db2[c][id] = (l.r || {}).v; return; }
+
+    if (c === 'boxes') {
+      const b = boxDe(id);
+      Object.keys(l.r || {}).forEach(k => { b[k] = l.r[k]; });
+      if (m) b._m = m;
+      return;
+    }
+
+    const champ = OP_ID_DE[genre] || 'id';
+    db2[c] = db2[c] || [];
+    const rec = Object.assign({}, l.r);
+    if (m) rec._m = m;
+    if (genre === 'liste_ts') { db2[c].push(rec); return; }   // pas d'identité propre : on ajoute
+    const ix = db2[c].findIndex(x => x && String(x[champ]) === id);
+    if (ix >= 0) db2[c][ix] = rec; else db2[c].push(rec);
+  });
+
+  return db2;
+}
 function recEmpreinte(r){ let h=2166136261; const t=JSON.stringify(r,(k,v)=>(k==='_m'||k==='_ms')?undefined:v)||''; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36); }
 /* ⛔ LA MAILLE DE LA FUSION : UNE BOX EST UN ENREGISTREMENT, MAIS DEUX PERSONNES Y TRAVAILLENT.
    Demande de Justin, 10 septembre 2026 : « il faut que personne n'écrase rien ». Le défaut est

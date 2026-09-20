@@ -1,0 +1,235 @@
+/* ⛔ CE QUE CE FICHIER GARDE — LE CONVERTISSEUR DU SOCLE. ÉTAPE 2, BANCS N° 1 ET N° 3.
+
+   `opRecomposer(opDecomposer(db))` doit rendre EXACTEMENT `db`. Pas « à peu près », pas
+   « les données importantes » : champ pour champ, clé pour clé. Une clé oubliée, un
+   `undefined` devenu `0`, une collection vide évaporée — et ce sont les données d'un client
+   qui disparaissent à la première synchro, sans message et sans pierre tombale.
+
+   ⛔ CE BANC A DÉJÀ TROUVÉ DEUX DÉFAUTS, AU PREMIER PASSAGE, DANS LE CODE ÉCRIT POUR LUI :
+
+     1. ONZE COLLECTIONS VIDES s'évanouissaient — `absences`, `brouillons`, `chantiers`,
+        `groupes`, `indispos`, `interventionsArchive`, `planJournal`, `planNotes`,
+        `plansSite`, `registres`, `taches`. Elles ne portent aucun enregistrement, donc aucune
+        ligne, donc la recomposition ne les recréait pas. Ce n'est pas cosmétique :
+        `collsFusion` énumère « toute clé qui se trouve être un tableau », et une base sans
+        elles n'a plus la même forme que celle qu'on a décomposée.
+     2. UNE BOX À STOCK VIDE revenait SANS stock. `stock` absent et `stock:{}` ne sont pas la
+        même chose : poser un `{}` change l'empreinte de la box, donc son `_m`, donc la fusion.
+        Et la présence de `_ms`, même vide, décide d'un COMPORTEMENT dans `estampiller()`.
+
+   C'est la démonstration de pourquoi ce banc vient avant tout branchement : les deux défauts
+   étaient invisibles à la lecture, et aucun des 87 autres bancs ne pouvait les voir.
+
+   ⛔ LE BANC N° 3 — LA PAGINATION — EST CELUI QU'ON OUBLIERAIT. L'aller-retour complet y est
+   STRUCTURELLEMENT AVEUGLE : il applique toutes les lignes d'un coup. Or le serveur sert des
+   PAGES. Une box de 200 lignes de stock dont 60 seulement sont arrivées, si la recomposition
+   RECONSTRUIT au lieu de FUSIONNER, perd 140 lignes — et `estampiller()` pose alors 140
+   marques de RETRAIT au premier geste du technicien, qui partent chez toute l'équipe. C'est
+   la panne du 15 septembre par la porte d'à côté. */
+
+const fs = require('fs'), path = require('path');
+const RACINE = path.join(__dirname, '..');
+const SRC = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
+
+let ok = 0, ko = 0;
+const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 300) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 300)); } };
+const vrai = (t, a) => v(t, !!a, true);
+
+console.log('\n── 732 · le convertisseur du socle : aller-retour et pagination ──');
+
+/* On extrait les VRAIES fonctions du fichier livré et on les exécute. Rien n'est recopié :
+   si l'une change de dépendances, ce banc tombe — et c'est le comportement voulu. */
+const bloc = (sig) => { const i = SRC.indexOf(sig); if (i < 0) return '';
+  let d = 0, f = -1; for (let k = SRC.indexOf('{', i); k < SRC.length; k++) { if (SRC[k] === '{') d++; else if (SRC[k] === '}') { d--; if (!d) { f = k + 1; break; } } } return SRC.slice(i, f); };
+const ligne = (sig) => { const i = SRC.indexOf(sig); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)); };
+const objet = (sig) => { const i = SRC.indexOf(sig); if (i < 0) return '{}';
+  let d = 0, f = -1; for (let k = SRC.indexOf('{', i); k < SRC.length; k++) { if (SRC[k] === '{') d++; else if (SRC[k] === '}') { d--; if (!d) { f = k + 1; break; } } } return SRC.slice(SRC.indexOf('{', i), f); };
+
+const iCat = SRC.indexOf('const CATALOGUE=');
+const code = [
+  iCat < 0 ? '' : SRC.slice(iCat, SRC.indexOf('\n', SRC.indexOf('];', iCat))),
+  ligne('const isoDe = d =>'), ligne('const todayISO = () =>'),
+  bloc('function slugNom('), bloc('function idCatalogue('), bloc('function defaultPerms('),
+  bloc('function seed('), bloc('function migrate('), bloc('function recEmpreinte('),
+  'const OP_CLASSES = ' + objet('const OP_CLASSES = {') + ';',
+  ligne('const OP_ID_DE ='), ligne("const OP_REGLAGES ="), ligne("const OP_BOX_FORME ="), ligne("const OP_VIDES ="),
+  bloc('function opSansTampon('), bloc('function opIdDerive('),
+  bloc('function opDecomposer('), bloc('function opRecomposer('),
+].join('\n');
+
+let n = 0, api = null;
+try {
+  api = new Function('uid', 'BETA_ESSAI', 'ID_ADMIN_DEPART', 'CAT_LIST', 'DASH_DEFAULT', 'FOURS_VER', 'PRIX_VER', 'db', 'console',
+    code + '\nreturn {seed,migrate,opDecomposer,opRecomposer,recEmpreinte,OP_CLASSES};')
+    (() => 'u' + (++n), false, 'admin0', [], [], 1, 1, {}, { log() {}, warn() {}, error() {} });
+} catch (e) { console.log('      (extraction : ' + e.message + ')'); }
+vrai('⛔ les VRAIES fonctions du fichier livré s\'extraient et s\'exécutent', !!(api && api.opDecomposer && api.opRecomposer));
+if (!api) { console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exitCode = 1; return; }
+
+/* Comparaison à CLÉS TRIÉES : l'ordre d'insertion d'un objet n'est pas une donnée, et le
+   comparer ferait crier le banc pour rien — donc on finirait par le débrancher. */
+const tri = (o) => JSON.stringify(o, (k, val) => {
+  if (val && typeof val === 'object' && !Array.isArray(val)) { const t = {}; Object.keys(val).sort().forEach(x => { t[x] = val[x]; }); return t; }
+  return val;
+});
+/* Quand deux bases diffèrent, on veut savoir OÙ — un « false » tout seul coûte une heure. */
+const diff = (a, b) => {
+  const A = JSON.parse(tri(a)), B = JSON.parse(tri(b)), out = [];
+  Object.keys(A).forEach(k => { if (!(k in B)) out.push('MANQUE ' + k); });
+  Object.keys(B).forEach(k => { if (!(k in A)) out.push('EN TROP ' + k); });
+  Object.keys(A).forEach(k => { if (k in B && tri(A[k]) !== tri(B[k])) out.push('DIFFÈRE ' + k); });
+  return out;
+};
+
+/* ══ 1. (a) LE SEMIS RÉEL ═════════════════════════════════════════════════════════════════ */
+console.log('\n⛔ Aller-retour sur le semis RÉEL');
+{
+  const base = api.seed(); api.migrate(base);
+  const lignes = api.opDecomposer(base);
+  vrai('le semis produit des lignes', lignes.length > 100);
+  const refait = api.opRecomposer(lignes, {});
+  v('⛔ opRecomposer(opDecomposer(semis)) est IDENTIQUE au semis', diff(base, refait), []);
+  /* Les lignes doivent être poussables telles quelles : c'est le format de
+     `/api/op/pousser`, éprouvé par test-723. Un second format à traduire quelque part
+     finirait par diverger de celui-ci. */
+  const malFormees = lignes.filter(l => !l || !l.c || l.id == null || (!l.sup && !('r' in l)));
+  v('⛔ toute ligne a la forme que le serveur accepte ({c,id,m,r,e} ou {c,id,m,sup})', malFormees.length, 0);
+  v('   et aucune ne porte `seq` (il re-tamponnerait tout à chaque envoi)', lignes.filter(l => 'seq' in l).length, 0);
+  const tampons = lignes.filter(l => l.r && typeof l.r === 'object' && ('_m' in l.r || '_ms' in l.r));
+  v('⛔ aucun corps ne porte `_m` ni `_ms` (ils entreraient dans recEmpreinte)', tampons.length, 0);
+}
+
+/* ══ 1. (b) UNE BASE SYNTHÉTIQUE PORTANT LES 83 CLÉS ══════════════════════════════════════
+   Le semis n'en a que 34 : les autres naissent à l'usage. Sans ce cas-ci, la moitié du
+   classement ne serait jamais exercée — et c'est la moitié exotique. */
+console.log('\n⛔ Aller-retour sur une base SYNTHÉTIQUE portant toutes les clés');
+function synthetique() {
+  const syn = {}; let z = 0; const zid = () => 'z' + (++z);
+  Object.keys(api.OP_CLASSES).forEach(k => {
+    const g = api.OP_CLASSES[k];
+    if (g === 'liste') syn[k] = [{ id: zid(), nom: 'A ' + k, n: 1, _m: 1700000000000 }, { id: zid(), nom: 'B ' + k, n: 2, _m: 1700000000001 }];
+    else if (g === 'liste_cle') syn[k] = [{ cle: 'r1', nom: 'Rôle 1', _m: 1700000000002 }];
+    else if (g === 'liste_ts') syn[k] = [{ ts: 1700000000100, t: 'un' }, { ts: 1700000000200, t: 'deux', _m: 1700000000201 }];
+    else if (g === 'dict') syn[k] = { a: { x: 1 }, b: [1, 2, 3] };
+    else if (g === 'reglage') syn[k] = (k === 'entreprise') ? { nom: 'Ent', ville: 'La Rochelle' }
+      : (k === 'societes' ? ['S1', 'S2'] : (k === 'dashLayout' ? ['a', 'b'] : 'val-' + k));
+  });
+  /* Les trois formes de box qui comptent, et qui ne se ressemblent pas : celle qui date ses
+     lignes ET porte une marque de RETRAIT, celle qui ne date rien, et celle dont le stock et
+     les marques sont vides mais PRÉSENTS. */
+  syn.boxes = [
+    { id: 'bx1', nom: 'Box 1', _m: 1700000000300, stock: { p1: { ctn: 1, u: 2 }, p2: { ctn: 0, u: 5 } }, _ms: { p1: 1700000000301, p2: 1700000000302, pRetire: 1700000000303 } },
+    { id: 'bx2', nom: 'Box 2 sans marques', stock: { p9: { ctn: 3, u: 0 } } },
+    { id: 'bx3', nom: 'Box 3 vide mais présente', _m: 1700000000400, stock: {}, _ms: {} },
+  ];
+  syn._tombes = { clients: { 'c-mort': 1700000000500 }, produits: { 'p-mort': 1700000000501 } };
+  syn.usersSupprimes = [{ id: 'u-mort', ts: 1700000000600 }];
+  return syn;
+}
+{
+  const syn = synthetique();
+  v('la base synthétique porte bien toutes les clés classées', Object.keys(syn).length, Object.keys(api.OP_CLASSES).length);
+  const lignes = api.opDecomposer(syn);
+  const refait = api.opRecomposer(lignes, {});
+  v('⛔ aller-retour IDENTIQUE sur les 83 clés', diff(syn, refait), []);
+
+  /* ⛔ LA MARQUE DE RETRAIT. Oubliée, le socle naît sans aucune trace des retraits — et un
+     appareil resté trois semaines au fond d'un camion RESSUSCITE chez toute l'équipe les
+     produits qu'on avait retirés à la main. */
+  const retraits = lignes.filter(l => l.c === 'box_stock' && l.sup);
+  v('⛔ le produit RETIRÉ de bx1 voyage comme une tombe', retraits.map(l => l.id), ['bx1|pRetire']);
+  v('   datée du RETRAIT, pas de maintenant', retraits[0] && retraits[0].sup, 1700000000303);
+  const bx1 = refait.boxes.find(b => b.id === 'bx1');
+  v('   et la marque revient dans `_ms`, sans revenir dans le stock',
+    [bx1._ms.pRetire, 'pRetire' in bx1.stock], [1700000000303, false]);
+
+  /* La maille fine : une ligne de stock par produit, chacune avec SA date. C'est tout le
+     chantier — deux personnes sur deux produits de la même box ne se marchent plus dessus. */
+  const stock = lignes.filter(l => l.c === 'box_stock' && !l.sup);
+  v('⛔ le stock voyage LIGNE PAR LIGNE, pas en bloc', stock.map(l => l.id).sort(), ['bx1|p1', 'bx1|p2', 'bx2|p9']);
+  v('   et chaque ligne porte SA date', stock.filter(l => l.c === 'box_stock').map(l => [l.id, l.m]).sort().map(x => x[1]),
+    [1700000000301, 1700000000302, 0]);
+
+  /* Les dictionnaires clé par clé : les réunir en bloc écrasait le plan d'appâtage de
+     24 postes d'un client par celui de 18 postes d'un autre, en entier, sans tombe. */
+  v('⛔ un dictionnaire voyage CLÉ PAR CLÉ', lignes.filter(l => l.c === 'plansSite').map(l => l.id).sort(), ['a', 'b']);
+
+  /* Les tombes : ce ne sont pas des données, ce sont des absences datées. Et celles des
+     comptes ont leur mécanique propre — les confondre les mélangerait. */
+  v('⛔ les pierres tombales voyagent', lignes.filter(l => l.sup && l.c !== 'box_stock').map(l => l.c + ':' + l.id).sort(),
+    ['clients:c-mort', 'produits:p-mort', 'users_sup:u-mort']);
+
+  /* ⛔ Un enregistrement JAMAIS daté part avec `m:0`, que le serveur refuse (`non_date`) —
+     et c'est JUSTE : un enregistrement sans `_m` est tuable par n'importe quelle tombe de
+     n'importe quelle époque. Le pousser serait pire que le refuser. */
+  const sansDate = lignes.filter(l => !l.sup && !l.m);
+  vrai('⛔ un enregistrement jamais daté part avec m:0 (le serveur le refusera, et c\'est juste)', sansDate.length > 0);
+}
+
+/* ══ 3. ⛔ LA PAGINATION — LE BANC QUE L'ALLER-RETOUR NE PEUT PAS FAIRE ═══════════════════ */
+console.log('\n⛔ Pagination : les lignes arrivent par pages, et rien ne doit se perdre');
+{
+  const syn = synthetique();
+  /* Une box LOURDE : 200 lignes de stock, comme chez un vrai client. C'est le cas où la
+     coupure tombe forcément au milieu. */
+  const gros = { id: 'bxGros', nom: 'Box de 200 produits', _m: 1700000001000, stock: {}, _ms: {} };
+  for (let i = 0; i < 200; i++) { gros.stock['pg' + i] = { ctn: i % 3, u: i }; gros._ms['pg' + i] = 1700000001000 + i; }
+  syn.boxes.push(gros);
+
+  const lignes = api.opDecomposer(syn);
+  vrai('la base de pagination est bien grosse', lignes.length > 300);
+
+  for (const taille of [1, 7, 50, 400]) {
+    let refait = {};
+    for (let i = 0; i < lignes.length; i += taille) refait = api.opRecomposer(lignes.slice(i, i + taille), refait);
+    v('⛔ par pages de ' + taille + ' : la base recomposée est IDENTIQUE', diff(syn, refait), []);
+  }
+
+  /* ⛔ LE CONTRÔLE QUI COMPTE, ET QUI N'EST PAS LE MÊME QUE CI-DESSUS. Après une page
+     PARTIELLE, la box ne doit pas avoir perdu ses autres lignes — sinon `estampiller()` pose
+     autant de marques de RETRAIT qu'il manque de produits, et elles partent chez toute
+     l'équipe au premier geste du technicien. On applique donc UNE SEULE page au milieu d'une
+     base DÉJÀ complète, et on exige que rien n'ait bougé. */
+  const complet = api.opRecomposer(lignes, {});
+  const avant = complet.boxes.find(b => b.id === 'bxGros');
+  v('   la box complète porte bien ses 200 lignes', Object.keys(avant.stock).length, 200);
+  const page = lignes.filter(l => l.c === 'box_stock' && l.id.indexOf('bxGros|') === 0).slice(60, 120);
+  const apres = api.opRecomposer(page, complet).boxes.find(b => b.id === 'bxGros');
+  v('⛔ une page de 60 lignes appliquée SUR la base complète n\'en retire AUCUNE', Object.keys(apres.stock).length, 200);
+  v('⛔ et elle ne crée AUCUNE marque de retrait', Object.keys(apres._ms).filter(p => !(p in apres.stock)).length, 0);
+
+  /* Et l'inverse, qui prouve que le contrôle n'est pas vide : appliquer la même page sur une
+     base VIDE ne donne bien que 60 lignes. Sans cette ligne, une recomposition qui ne ferait
+     rien du tout passerait les deux contrôles ci-dessus. */
+  const seule = api.opRecomposer(page, {}).boxes.find(b => b.id === 'bxGros');
+  v('   (contrôle du contrôle : la même page sur une base vide n\'en donne que 60)', Object.keys(seule.stock).length, 60);
+
+  /* ⛔ UNE LIGNE DE STOCK PEUT ARRIVER AVANT SA BOX, ET C'EST LE VRAI PIÈGE DE LA PAGINATION.
+     La coupure tombe où elle tombe. Une recomposition qui refuse la ligne parce que la box
+     n'est pas encore là perd le stock d'une box entière, en silence, une page sur deux.
+     ⚠️ On ne teste PAS un envoi intégralement inversé : l'ordre des enregistrements DANS une
+     collection porte du sens (`journal` et `telecollectes` sont en `unshift`, du plus récent
+     au plus ancien) et le serveur sert par `seq` croissant, donc dans l'ordre. Exiger
+     l'identité sur un ordre que le système ne produit jamais ferait crier le banc pour rien —
+     et un banc qui crie pour rien finit débranché. On teste donc ce qui arrive vraiment :
+     les lignes d'une box servies AVANT la ligne de la box. */
+  const desBox = lignes.filter(l => l.c === 'box_stock' || l.c === 'boxes' || l.c === '_box_forme');
+  const stockDAbord = desBox.filter(l => l.c !== 'boxes').concat(desBox.filter(l => l.c === 'boxes'));
+  const r2 = api.opRecomposer(stockDAbord, {});
+  const parId = (b) => { const o = {}; (b.boxes || []).forEach(x => { o[x.id] = x; }); return o; };
+  v('⛔ stock servi AVANT sa box : les box sont quand même complètes', diff(parId(syn), parId(r2)), []);
+}
+
+/* ══ 4. LA BÊTA PORTE LE MÊME CONVERTISSEUR ═══════════════════════════════════════════════ */
+{
+  const B = fs.readFileSync(path.join(RACINE, 'beta.html'), 'utf8');
+  const memeQue = (sig) => { const a = bloc(sig); const i = B.indexOf(sig);
+    if (i < 0 || !a) return false;
+    let d = 0, f = -1; for (let k = B.indexOf('{', i); k < B.length; k++) { if (B[k] === '{') d++; else if (B[k] === '}') { d--; if (!d) { f = k + 1; break; } } }
+    return B.slice(i, f) === a; };
+  vrai('⛔ la bêta porte le MÊME opDecomposer', memeQue('function opDecomposer('));
+  vrai('⛔ et le MÊME opRecomposer', memeQue('function opRecomposer('));
+}
+
+console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
+process.exitCode = ko ? 1 : 0;
