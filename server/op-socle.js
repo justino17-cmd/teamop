@@ -346,15 +346,31 @@ function monterOpSocle(app, deps) {
 
   /* ══ GET /api/op/depuis ═══════════════════════════════════════════════════════════════════ */
   poser('GET', '/api/op/depuis', opJeton, (req, res) => {
+    /* ⛔ `coll` : L'APPLICATION DIT CE QU'ELLE SAIT LIRE, ET NE PAIE QUE ÇA.
+       Mesuré le 20 septembre 2026 : sans ce filtre, ouvrir une conversation OP MESSAGES chez
+       une entreprise qui utilise les deux applications télécharge sa base OP GESTION entière
+       — **88,5 % de transfert inutile**, sur un téléphone de terrain en 4G.
+       ⚠️ Absent, le comportement est RIGOUREUSEMENT celui d'avant : c'est ce qui rend ce
+       changement sûr pour un parc mélangé — une version qui ne connaît pas le paramètre ne
+       l'envoie pas, donc reçoit tout. Corollaire de « les appareils d'abord, la porte
+       ensuite » : un allègement n'est jamais neutre pour la version d'AVANT, celui-ci l'est
+       PARCE QU'il est demandé par l'appareil et jamais imposé par le serveur. */
+    const colls = String(req.query.coll || '').split(',').map(x => x.trim()).filter(Boolean);
     let d;
-    try { d = socle.depuis(req.op.t, req.query.seq, req.query.max); }
+    try { d = socle.depuis(req.op.t, req.query.seq, req.query.max, colls.length ? colls : null); }
     catch (e) { console.error('socle: lecture impossible —', e.code || 'erreur'); return res.status(503).json({ error: 'lecture indisponible', motif: 'base' }); }
     /* ⛔ LES LIGNES ILLISIBLES SONT COMPTÉES ET REMONTÉES, PAS AVALÉES. Une ligne qui ne se
        déchiffre plus est un incident (trafic, restauration mal ciblée, bloc abîmé) : elle ne
        doit ni faire tomber la synchro de l'entreprise, ni disparaître sans bruit. L'écran peut
        dire « 1 enregistrement illisible » ; le journal du serveur ne nomme personne. */
     if (d.illisibles.length) { noterIllisibles(req.op.t, d.illisibles.length); console.error('socle: ' + d.illisibles.length + ' ligne(s) illisible(s) à la lecture'); }
-    res.json({ seq: d.seq, curseur: d.curseur, reste: d.reste, enr: d.enr, illisibles: d.illisibles.length });
+    /* ⛔ `filtre` EST CE QUI REND LE CURSEUR SÛR. Un curseur n'a de sens que pour le filtre qui
+       l'a produit : un appareil qui passerait de « messagerie seule » à « tout » en gardant son
+       curseur sauterait DÉFINITIVEMENT ce que l'ancien filtre écartait — sans une erreur, sans
+       un écran. L'appareil range cette empreinte à côté de son curseur et repart de zéro dès
+       qu'elle change. Vide quand il n'y a pas de filtre, donc les anciens appareils la lisent
+       comme absente et ne changent rien. */
+    res.json({ seq: d.seq, curseur: d.curseur, reste: d.reste, enr: d.enr, illisibles: d.illisibles.length, filtre: d.filtre || '' });
   });
 
   /* ══ POST /api/op/pousser ═════════════════════════════════════════════════════════════════ */

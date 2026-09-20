@@ -164,6 +164,20 @@
     let jeton = String(conf.jeton || '');
     const appId = String(conf.appId || '');
     const alerter = typeof conf.alerter === 'function' ? conf.alerter : function () {};
+    /* ⛔ `genres` : CE QUE CETTE APPLICATION SAIT LIRE, ET RIEN D'AUTRE.
+       `/api/op/depuis` rend TOUT ce que l'espace contient. Mesuré le 20 septembre 2026 : une
+       entreprise qui utilise les DEUX applications télécharge sa base OP GESTION entière pour
+       ouvrir une conversation — 1 200 fiches produit (338 Ko) contre 300 messages (44 Ko),
+       soit **88,5 % de transfert inutile**, sur un téléphone de terrain en 4G. Et ça empire :
+       la base d'ELAN a déjà dépassé le mégaoctet.
+       ⛔⛔ UNE COLLECTION OUBLIÉE ICI EST UN ÉCRAN VIDE, EN SILENCE — c'est pire que le
+       transfert qu'on économise. La liste ne se tape donc PAS à la main : `tests/test-744.js`
+       extrait tous les `.collection('…')` de `messages.html` et exige que celle-ci les couvre
+       TOUS. Ajouter une collection à la page sans l'ajouter ici fait tomber le banc.
+       ⚠️ Absente, il n'y a AUCUN filtre et tout arrive : c'est le comportement d'avant, et
+       c'est le bon défaut — entre « trop » et « rien », on choisit trop. */
+    const genres = Array.isArray(conf.genres) ? conf.genres.map(String).filter(Boolean) : [];
+    const filtreQ = genres.length ? '&coll=' + genres.map(encodeURIComponent).join(',') : '';
 
     const miroir = new Map();          // "genre\0chemin/complet/id" -> { m, r }
     /* ⛔ L'INDEX PAR COLLECTION — MESURÉ, PAS PRÉVENTIF. Sans lui, chaque écouteur rebalayait le
@@ -183,6 +197,7 @@
     const parColl = new Map();         // "chemin/de/collection" -> Set<clé du miroir>
     const ecouteurs = new Set();       // { coll, tirer() }
     let seq = 0, vivant = false;
+    let filtreVu = null;        // l'empreinte du filtre que le serveur a appliqué au dernier tour
 
     /* ⛔ UNE CLÉ SANS BARRE OBLIQUE N'EST PAS UNE ERREUR — C'EST UN ENREGISTREMENT D'OP GESTION.
        `/api/op/depuis` rend TOUT ce que l'espace contient, et une entreprise qui utilise les
@@ -228,7 +243,7 @@
        partiellement, et l'écran afficherait une moitié de conversation sans rien dire. */
     async function rattraper() {
       for (let tour = 0; tour < 500; tour++) {
-        const r = await appel('/api/op/depuis?seq=' + seq);
+        const r = await appel('/api/op/depuis?seq=' + seq + filtreQ);
         if (r.code !== 200 || !r.j) { alerter('lecture refusée', r.code); return false; }
         const touchees = new Set();
         for (const l of (r.j.enr || [])) {
@@ -236,6 +251,20 @@
           touchees.add(l.sup ? oter(k) : poser(k, { m: l.m || 0, r: l.r }));
           if (l.s > seq) seq = l.s;
         }
+        /* ⛔ LE CURSEUR APPARTIENT AU FILTRE QUI L'A PRODUIT. Aujourd'hui `seq` vit en mémoire
+           et repart de zéro à chaque ouverture de page, donc le cas ne peut pas se produire.
+           « Aujourd'hui » est exactement le mot qui coûte : le jour où on rangera `seq` pour
+           ne plus tout relire à chaque ouverture, un appareil qui a changé de filtre sauterait
+           DÉFINITIVEMENT ce que l'ancien écartait — sans une erreur, sans un écran. Le serveur
+           rend l'empreinte du filtre qu'il a VRAIMENT appliqué ; on repart de zéro dès qu'elle
+           change, et on le DIT. Cinq lignes qui coûtent zero et ferment la porte maintenant. */
+        const vu = String(r.j.filtre || '');
+        if (filtreVu !== null && vu !== filtreVu) {
+          alerter('le filtre de lecture a changé — relecture complète', vu);
+          seq = 0; filtreVu = vu; miroir.clear(); parColl.clear();
+          continue;
+        }
+        filtreVu = vu;
         if (typeof r.j.seq === 'number' && r.j.seq > seq) seq = r.j.seq;
         if (!r.j.tronquee) { prevenir(touchees); return true; }
       }
@@ -422,6 +451,22 @@
       _miroir: miroir, _parColl: parColl, _poser: poser,
     };
   }
+
+/* ⛔ LES COLLECTIONS D'OP MESSAGES — DÉRIVÉES DE `messages.html`, PAS INVENTÉES ICI.
+   Cette liste est ce que l'application déclare savoir lire : `/api/op/depuis` ne lui rend
+   plus que ça, au lieu de la base OP GESTION entière (mesuré : **87,9 % d'économie**).
+   ⛔⛔ UNE COLLECTION OUBLIÉE ICI EST UN ÉCRAN VIDE, EN SILENCE. Elle ne se tient donc pas à
+   la main : `tests/test-744.js` extrait tous les `.collection('…')` de `messages.html` et
+   exige que les deux ensembles soient RIGOUREUSEMENT égaux — dans les deux sens. Ajouter une
+   collection à la page sans l'ajouter ici fait tomber le banc ; en laisser une ici qui
+   n'existe plus dans la page aussi, parce qu'une liste qui parle de collections mortes est
+   une liste que plus personne ne relit.
+   ⚠️ Elle vit ICI et pas dans la page parce qu'`op-fs.js` est le seul fichier que le banc
+   et l'application partagent — et parce que l'étape A n'a pas encore câblé `opFs()` dans
+   `messages.html` : la garde doit exister AVANT le câblage, pas après. */
+  opFs.GENRES_OP_MESSAGES = ['calls', 'channels', 'contacts', 'devices', 'invites', 'members',
+    'messages', 'op_calls', 'op_channels', 'op_companies', 'op_users', 'reads', 'reponses',
+    'rooms', 'votes'];
 
   opFs.empreinte = empreinte;
   opFs.FieldValue = FieldValue;

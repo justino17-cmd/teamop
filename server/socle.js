@@ -52,6 +52,18 @@ const HORLOGE_MARGE_MS = 5 * 60000;
    du VPS est celui de tous les clients. Les pièces jointes sortiront du corps à l'étape 3 ;
    ces bornes baisseront alors. */
 const COLL_MAX = 40, ID_MAX = 200, CORPS_MAX = 512 * 1024;
+/* Un filtre de lecture ne nomme que les collections d'UNE application : vingt suffit largement
+   (la messagerie en a trois). La borne existe pour qu'une requête ne puisse pas fabriquer un
+   `IN (...)` de mille éléments à chaque page. */
+const COLLS_FILTRE_MAX = 20;
+/* ⛔ L'EMPREINTE DU FILTRE VOYAGE AVEC LA RÉPONSE, ET C'EST CE QUI REND LE CURSEUR SÛR.
+   Un curseur n'a de sens que pour le filtre qui l'a produit : un appareil qui passerait de
+   « messagerie seule » à « tout », en gardant son curseur, sauterait DÉFINITIVEMENT tout ce
+   que l'ancien filtre écartait — sans une erreur, sans un écran, sans rien. L'appelant range
+   cette empreinte à côté de son curseur et repart de zéro dès qu'elle change.
+   Triée : l'ordre des collections ne doit pas fabriquer deux empreintes pour un même filtre. */
+const empreinteFiltre = (l) => (!l || !l.length) ? ''
+  : crypto.createHash('sha256').update(l.slice().sort().join('\u0000')).digest('hex').slice(0, 16);
 /* Une ligne déclare les pièces qu'elle référence (`f:[sha…]`). Un plafond, parce que la liste
    vient du réseau : une intervention en porte trois ou quatre, jamais deux cents. Ce qui
    dépasse est ignoré — la ligne passe quand même, on ne refuse pas du travail pour un
@@ -699,12 +711,40 @@ function presentSurDisque(t) {
 }
 
 /* ══ LIRE — LE DELTA, PAGINÉ PAR `seq` STRICTEMENT CROISSANTE ═══════════════════════════════ */
-function depuis(t, apresSeq, max) {
+/* ⛔ `colls` : NE RENDRE QUE CE QUE L'APPLICATION QUI DEMANDE SAIT LIRE.
+   Mesuré le 20 septembre 2026 : une entreprise qui utilise les DEUX applications télécharge sa
+   base OP GESTION entière pour ouvrir une conversation — 1 200 fiches produit (338 Ko) contre
+   300 messages (44 Ko), soit **88,5 % de transfert inutile**, sur un téléphone de terrain en
+   4G. Et ça empire : la base d'ELAN a déjà dépassé le mégaoctet.
+
+   ⛔ LE FILTRE EST DANS LE `WHERE`, PAS APRÈS LA LECTURE. Filtrer les lignes une fois lues
+   laisserait `curseur` et `reste` parler de la base ENTIÈRE : l'appareil redemanderait la même
+   page indéfiniment (le curseur n'avance pas sur ce qu'on jette) ou croirait qu'il lui reste
+   du travail alors que non. Les DEUX requêtes portent donc le même filtre — celle qui lit
+   comme celle qui compte. Une seule des deux filtrée est pire que zero : c'est un compteur qui
+   ment.
+
+   ⚠️ ET LE CURSEUR APPARTIENT AU FILTRE QUI L'A PRODUIT. Un appareil qui change de filtre
+   doit repartir de zéro, sinon il saute définitivement tout ce que son ancien filtre écartait.
+   C'est à l'appelant de le tenir : `/api/op/depuis` lui rend l'empreinte du filtre appliqué
+   pour qu'il puisse le voir changer.
+
+   ⛔ SANS `colls`, LA REQUÊTE EST RIGOUREUSEMENT CELLE D'AVANT. C'est la seule façon de
+   n'avoir rien à craindre d'un parc mélangé : une version qui ne connaît pas le filtre ne
+   l'envoie pas, donc reçoit tout, donc se comporte comme aujourd'hui. */
+function depuis(t, apresSeq, max, colls) {
   t = exigerT(t);
   const db = ouvrir(t), dek = dekDe(t);
   const n = Math.min(400, Math.max(1, parseInt(max, 10) || 400));
-  const lignes = db.prepare('SELECT coll,id,maj_le,seq,supprime_le,corps,empreinte FROM enr WHERE seq>? ORDER BY seq LIMIT ?')
-    .all(parseInt(apresSeq, 10) || 0, n);
+  /* ⚠️ ON ASSAINIT, ON NE REFUSE PAS. Un filtre mal formé qui ferait répondre 400 couperait
+     la synchro de l'appareil ; le laisser tomber lui rend TOUT, ce qui est seulement coûteux.
+     Entre « trop » et « rien », on choisit trop — c'est la règle de ce dépôt sur les portes. */
+  const filtre = Array.isArray(colls)
+    ? colls.map(x => String(x || '')).filter(x => x && x.length <= COLL_MAX).slice(0, COLLS_FILTRE_MAX)
+    : [];
+  const ou = filtre.length ? ' AND coll IN (' + filtre.map(() => '?').join(',') + ')' : '';
+  const lignes = db.prepare('SELECT coll,id,maj_le,seq,supprime_le,corps,empreinte FROM enr WHERE seq>?' + ou + ' ORDER BY seq LIMIT ?')
+    .all(parseInt(apresSeq, 10) || 0, ...filtre, n);
 
   /* ⛔ UNE LIGNE ILLISIBLE NE FAIT PAS TOMBER LA LECTURE ENTIÈRE. Mesuré le 18 septembre 2026 :
      un seul `maj_le` trafiqué en base faisait jeter `depuis()` — donc l'entreprise ne
@@ -745,8 +785,11 @@ function depuis(t, apresSeq, max) {
   /* ⚠️ QUAND LA PAGE EST TRONQUÉE PAR LE POIDS, le curseur s'arrête à la DERNIÈRE ligne
      RÉELLEMENT RENDUE — pas à la dernière ligne lue en base, qui ferait sauter les suivantes. */
   const dernier = tronquee ? dernierRendu : (lignes.length ? lignes[lignes.length - 1].seq : (parseInt(apresSeq, 10) || 0));
-  const reste = db.prepare('SELECT COUNT(*) AS n FROM enr WHERE seq>?').get(dernier).n;
-  return { seq, curseur: dernier, reste, enr, illisibles, tronquee };
+  /* ⛔ LE MÊME FILTRE QUE LA LECTURE, SANS EXCEPTION. Un `reste` non filtré dirait à un
+     appareil de messagerie qu'il lui reste 1 200 fiches produit à lire : il repagerait pour
+     rien, éternellement, et l'écran resterait sur « chargement ». */
+  const reste = db.prepare('SELECT COUNT(*) AS n FROM enr WHERE seq>?' + ou).get(dernier, ...filtre).n;
+  return { seq, curseur: dernier, reste, enr, illisibles, tronquee, filtre: empreinteFiltre(filtre) };
 }
 
 /* ══ VÉRIFIER — LE CONTRÔLE COMPLET, HORS CHEMIN CHAUD ══════════════════════════════════════
