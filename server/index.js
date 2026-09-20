@@ -3873,6 +3873,23 @@ try {
     } catch (e) { return null; } },
     /* `true` suspendu (abonnement en défaut, mais l'entreprise travaille), `false` sinon. */
     espaceSuspendu: (t) => { try { return (entFermes.suspendus || []).includes(String(t || '')); } catch (e) { return null; } },
+    /* ⛔ OÙ EN EST LE SURSIS DE SEPT JOURS. Rend `null` quand l'entreprise n'est pas suspendue
+       — PAS `0`, qui voudrait dire « le délai est écoulé » et ferait griser les onglets de
+       tout le monde. Trois valeurs, comme partout ici : `null` = sans objet, un nombre > 0 =
+       il reste des jours, `0` = le sursis est fini. */
+    espaceSursisJours: (t) => { try {
+      const k = String(t || '');
+      if (!(entFermes.suspendus || []).includes(k)) return null;
+      const depuis = (entFermes.suspendusLe || {})[k];
+      if (!depuis) return null;
+      const passe = Date.now() - depuis;
+      /* ⛔ PLAFONNÉ À SEPT AUTANT QUE PLANCHÉ À ZÉRO. Une date dans le FUTUR — l’horloge du
+         VPS qui recule (NTP qui décroche, saut au redémarrage : ce dépôt l’a déjà vu, voir
+         `horlogeAvancee`), un fichier repris à la main — rendait 7 + l’écart. Mesuré :
+         une date à +30 jours donnait 37 jours de sursis, en silence, à une entreprise qui
+         ne paye pas. Un plancher sans plafond ne garde qu’un bout du problème. */
+      return Math.max(0, Math.min(7, 7 - Math.floor(passe / 86400000)));
+    } catch (e) { return null; } },
   });
 } catch (e) {
   console.error('socle non monté :', e.message);
@@ -4657,17 +4674,24 @@ app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => 
   if (!Array.isArray(entFermes.suspendus)) entFermes.suspendus = [];
   if (rouvrir && !entFermes.suspendus.includes(t))
     return res.status(409).json({ error: 'Cet espace n\'a pas été suspendu depuis la Tour : il a été fermé définitivement (fermeture d\'entreprise). Ce bouton ne défait pas une fermeture — elle demande un code de confirmation par e-mail.' });
-  const avant = entFermes.espaces.slice(), avantS = entFermes.suspendus.slice();
+  const avant = entFermes.espaces.slice(), avantS = entFermes.suspendus.slice(),
+        avantD = Object.assign({}, entFermes.suspendusLe);
   if (rouvrir) {
     entFermes.espaces = entFermes.espaces.filter(x => x !== t);
     entFermes.suspendus = entFermes.suspendus.filter(x => x !== t);
+    delete entFermes.suspendusLe[t];
   } else {
     if (!entFermes.espaces.includes(t)) entFermes.espaces.push(t);
     if (!entFermes.suspendus.includes(t)) entFermes.suspendus.push(t);
+    /* ⚠️ ON NE REDÉMARRE PAS LE DÉLAI D'UNE SUSPENSION DÉJÀ EN COURS. Suspendre deux fois
+       (un double clic, une reprise de la Tour, un réglage de facturation rejoué) rendrait sept
+       jours de sursis à chaque fois — et un impayé ne grisrait jamais. Seule la RÉOUVERTURE
+       efface la date, parce qu'elle efface la suspension. */
+    if (!entFermes.suspendusLe[t]) entFermes.suspendusLe[t] = Date.now();
   }
   /* Si l'écriture échoue, on ne dit pas que c'est fait : le serveur appliquerait la coupure
      jusqu'au redémarrage, puis l'oublierait — et le patron croirait l'accès fermé. */
-  if (!fermesSave()) { entFermes.espaces = avant; entFermes.suspendus = avantS; return res.status(500).json({ error: 'Rien n\'a été enregistré — réessaie.' }); }
+  if (!fermesSave()) { entFermes.espaces = avant; entFermes.suspendus = avantS; entFermes.suspendusLe = avantD; return res.status(500).json({ error: 'Rien n\'a été enregistré — réessaie.' }); }
   console.log('Tour :', req.tourUser.nom, (rouvrir ? 'rouvre' : 'suspend'), 'l\'espace', t);
   /* Refuser les NOUVEAUX jetons ne suffit pas : les appareils déjà pourvus tiennent une
      session renouvelable et ne repassent plus par le serveur. On coupe donc aussi côté
@@ -4711,6 +4735,10 @@ app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => 
      n'a pas eu lieu, c'est « croire une entreprise coupée alors qu'elle ne l'est pas » — la
      panne silencieuse type de ce dépôt, celle que `fbRevoquerEquipe` documente déjà. */
   res.json({ ok: true, suspendu: true, coupure: false,
+    /* La Tour a besoin du départ du délai pour l'afficher — et l'afficher est la seule façon
+       de ne pas découvrir un sursis écoulé par un appel de client. */
+    depuis: entFermes.suspendusLe[t] || null,
+    sursisJours: 7,
     coupureMotif: 'suspension sans coupure : l\'entreprise garde l\'accès à ses données. '
       + 'Ce qui change est son abonnement — les fonctions payantes grisent au bout de sept jours.' });
 });
@@ -4815,8 +4843,31 @@ app.post('/api/espaces/lien', (req, res) => {
 //    puis retrait de la liste, du nom, du lien, de la formule — et les applications
 //    des appareils reliés se vident toutes seules à leur prochain lancement. ──
 const FERMES_PATH = path.join(DATA_DIR, 'entreprises-fermees.json');
-let entFermes = { emails: [], espaces: [], suspendus: [] };
+/* ⛔ `suspendusLe` : LA DATE SANS LAQUELLE LES SEPT JOURS NE PEUVENT PAS SE COMPTER.
+   Justin, 20 septembre 2026 : « pour continuer à lire, ils auront un délai de 7 jours. Si
+   c'est pas payé après, tous les onglets deviennent gris. » La suspension était enregistrée
+   comme une simple LISTE d'identifiants : aucun moment de départ, donc le délai n'était pas
+   calculable — par personne, jamais.
+   ⚠️ Et ce n'est pas un détail qu'on rattrape plus tard : le jour où l'écran sera écrit, une
+   date ajoutée APRÈS coup donnerait à toute entreprise déjà suspendue soit un délai NEUF de
+   sept jours (un impayé de trois mois repart à zéro), soit un délai DÉJÀ ÉCOULÉ (des onglets
+   qui grisent sans prévenir). Les deux sont faux, et les deux se découvrent chez un client.
+   On date donc MAINTENANT, avant que l'écran existe.
+   ⛔ CE FICHIER NE DÉCIDE DE RIEN D'AUTRE. Quels onglets grisent, ce qu'est exactement le
+   forfait gratuit, à quoi ressemble le rappel quotidien réservé au compte admin : ce sont des
+   décisions de produit, elles appartiennent à Justin. Voir REPRISE.md. */
+let entFermes = { emails: [], espaces: [], suspendus: [], suspendusLe: {} };
 try { entFermes = JSON.parse(fs.readFileSync(FERMES_PATH, 'utf8')); } catch (e) {}
+/* ⚠️ UN FICHIER ÉCRIT AVANT CE JOUR N'A PAS `suspendusLe`. On le complète à la lecture, et
+   on DATE les suspensions déjà en cours au moment où on les découvre — c'est le moins faux
+   des choix possibles : on ne sait pas quand elles ont commencé, et leur donner zéro ferait
+   griser des onglets à la seconde où l'écran sera publié. Une seule fois, puis c'est écrit. */
+if (!entFermes.suspendusLe || typeof entFermes.suspendusLe !== 'object') entFermes.suspendusLe = {};
+{
+  let aDater = 0;
+  for (const t of (entFermes.suspendus || [])) if (!entFermes.suspendusLe[t]) { entFermes.suspendusLe[t] = Date.now(); aDater++; }
+  if (aDater) { console.log('suspensions sans date reprises :', aDater, '(datées d’aujourd’hui, faute de mieux)'); try { fermesSave(); } catch (e) {} }
+}
 /* Les fichiers d'avant la suspension depuis la Tour n'ont pas ce champ. Vide et non
    « tout » : ce qui s'y trouvait déjà vient d'une fermeture d'entreprise, et ne doit
    surtout pas devenir réouvrable d'un clic. */

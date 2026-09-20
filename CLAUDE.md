@@ -47,7 +47,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**96 suites dans `tests/`**, sans dépendance ni installation (recompté le 20 septembre 2026 —
+**99 suites dans `tests/`**, sans dépendance ni installation (recompté le 21 septembre 2026 —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -59,6 +59,7 @@ Quatre familles visent `server/`, et elles ne se remplacent pas :
 | `test-641`, `test-724` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
 | `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces du SERVEUR sont branchées |
 | `test-735` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
+| `test-740`, `test-741` | les fonctions RÉELLES d'`espace.html` et de `reinit.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent |
 
 ⛔ Les deux dernières lignes existent parce que les deux premières ne peuvent pas voir un défaut
 de CÂBLAGE — et c'est là que naissent les pires. Le 19 septembre 2026, une seule expression
@@ -111,7 +112,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 96 suites · 3 952 vérifications (mesuré le 20/09/2026, nuit)
+bash scripts/bancs-ci.sh        # 99 suites · 4 100 vérifications (mesuré le 21/09/2026, nuit)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -322,6 +323,18 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   des clients sans leur Réception. Le compteur `mailRefus` de `/health` le voit venir : un
   motif autre qu'`absent` qui monte, ce sont de vrais appareils qui tombent. Il reste agrégé —
   `/health` est publique, y nommer un espace dirait au monde quelles entreprises existent.
+  ⛔ **CETTE PHRASE A ÉTÉ FAUSSE DU 11 AU 21 SEPTEMBRE 2026, ET C'EST LA LEÇON QUI COMPTE.**
+  Mesuré le 21 : `mailRefus` n'apparaissait **pas une seule fois** dans
+  `.github/scripts/surveillance.js`, le SEUL fichier qui décide de crier. Le compteur était
+  publié, commenté, expliqué ici — et lu par personne. C'est exactement ce que cette page
+  écrit vingt lignes plus bas à propos d'`atts` : *un champ de `/health` que personne ne lit
+  est du code mort qui a l'air d'une garde*. L'alarme existe depuis, et elle distingue le
+  bénin (`absent` = une version ancienne, `technique` = la bêta, `partagee` = un chantier
+  connu) de ce qui ne l'est pas (`invalide`, `inconnu`). ⚠️ Elle crie sur la **récence**, pas
+  sur le total : ce compteur ne repart à zéro qu'au redémarrage, donc un seul refus en juillet
+  ferait crier toutes les heures jusqu'au prochain déploiement.
+  ⛔ **La morale, plus large que ce cas : une garde décrite dans ce fichier n'est pas une
+  garde. Aller lire le code qui crie.**
 - ⛔ **UN CODE PROMO NE S'ÉCRIT DANS AUCUN FICHIER SERVI, PAS MÊME COMME EXEMPLE.** Le
   19 septembre 2026, `TEAMOP3MOIS` était dans le placeholder d'un champ de `tour.html`. La Tour
   demande un mot de passe, mais **son authentification est côté JavaScript** : elle n'empêche
@@ -353,6 +366,20 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   dans le même cas : justes, commentés, lus par personne. `tests/test-726.js` part du `/health`
   VIVANT et exige que **chaque champ soit ou bien surveillé, ou bien NOMMÉ comme « vu et pas
   surveillé »** — en ajouter un oblige à trancher, une fois, par écrit.
+  ⛔ **ET CE CONTRÔLE-LÀ NE LE FAISAIT PAS VRAIMENT, JUSQU'AU 21 SEPTEMBRE 2026.** Il comparait
+  le **nom de feuille** (`actif`, `n`, `ok`…) cherché **n'importe où** dans `surveillance.js`,
+  commentaires compris. Trois trous, tous mesurés par mutation :
+  · un nom d'**une lettre** passe toujours — `\bn\b` se trouve dans n'importe quel fichier
+    JavaScript, et c'est ainsi que `mailRefus.n` était « surveillé » sans l'être ;
+  · un **sous-arbre entier** passe si ses feuilles portent un nom déjà listé — le champ
+    `portail` ajouté le même jour est passé sans encombre sur l'`actif` du socle ;
+  · un motif qui tombe dans un **commentaire** garde une phrase, pas un comportement — la
+    règle de cette page, que ce banc ne s'appliquait pas à lui-même.
+  Il compare désormais le **chemin complet**, sur un fichier dont les commentaires sont
+  **retirés**, et exige la **forme de lecture** (`j.<chemin>`). Les tables à clés dynamiques
+  (`parMotif`, `refus`, `latence`…) s'arrêtent au conteneur : y descendre ferait apparaître un
+  faux orphelin le jour où un refus se produit. Et la liste blanche elle-même est contrôlée —
+  une entrée qui parle d'un champ disparu est une décision prise pour du vide.
 - ⛔ **Fermer une entreprise doit COUPER ses sessions Firebase, et le DIRE.** Refuser les
   nouveaux jetons ne suffit pas : un jeton s'échange contre une session **renouvelable
   indéfiniment**, rangée sur l'appareil — après un seul échange réussi, l'appareil ne repasse
