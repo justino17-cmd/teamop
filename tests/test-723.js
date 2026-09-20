@@ -805,6 +805,79 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   v('⛔ fermer un espace ne touche pas au drapeau de double écriture', S.entrepriseEtat(TD).double, true);
   vrai('   (mais l\'espace est bien fermé, et c\'est ça qui l\'empêche d\'écrire)', S.entrepriseEtat(TD).etat !== 'actif');
   S.entrepriseOuvrir(TD, true); S.entrepriseDouble(TD, false);
+
+  /* ══ ÉTAPE 5 — LE DRAPEAU DE LECTURE, ET LE SENS DE SON DÉFAUT ═════════════════════════
+     ⛔ CES CONTRÔLES EXISTENT PARCE QUE DEUX MUTATIONS N'ONT RIEN CASSÉ DANS `test-735`.
+     Inverser le défaut de `lecture` (« socle sauf si firestore ») n'y faisait tomber aucun des
+     94 contrôles : ce banc-là passe par HTTP, donc l'espace existe toujours et sa colonne est
+     toujours renseignée. Le défaut ne se voit que sur un espace INCONNU ou une colonne vide —
+     exactement les cas qu'un banc de câblage ne peut pas fabriquer. C'est ici qu'ils vivent. */
+  console.log('\n⛔ Le drapeau de LECTURE — étape 5');
+  v('⛔ un espace qui vient de naître LIT Firestore, pas le socle', S.entrepriseEtat(TD).lecture, 'firestore');
+  /* ⛔ ET UN ESPACE INCONNU AUSSI. C'est le sens du défaut qui compte : servir le socle à une
+     entreprise dont personne n'a décidé la bascule, ce serait lui donner une base peut-être
+     incomplète à la place de la sienne. */
+  v('⛔ un espace INCONNU aussi', S.entrepriseEtat('ent-jamais-vu-lecture').lecture, 'firestore');
+  v('la bascule rend l\'état OBTENU', S.entrepriseLecture(TD, 'socle'), { connue: true, lecture: 'socle' });
+  v('   et elle se relit', S.entrepriseEtat(TD).lecture, 'socle');
+  /* `source` décide de la source de vérité d'une entreprise : seule la chaîne EXACTE bascule. */
+  for (const mauvais of ['SOCLE', 'oui', 1, true, {}, null]) {
+    v('⛔ `' + JSON.stringify(mauvais) + '` retombe sur firestore', S.entrepriseLecture(TD, mauvais).lecture, 'firestore');
+    S.entrepriseLecture(TD, 'socle');
+  }
+  v('⛔ elle ne fait naître AUCUNE entreprise', S.entrepriseLecture('ent-jamais-vu-lecture', 'socle'), { connue: false, lecture: 'firestore' });
+  v('   et l\'espace inconnu le reste', S.entrepriseEtat('ent-jamais-vu-lecture').lecture, 'firestore');
+  /* Les deux drapeaux sont indépendants : couper la double écriture ne rebascule pas la
+     lecture, et l'inverse non plus. Les confondre un jour coûterait une bascule non voulue. */
+  S.entrepriseDouble(TD, true);
+  v('couper la double écriture ne touche pas à la lecture', (S.entrepriseDouble(TD, false), S.entrepriseEtat(TD).lecture), 'socle');
+  S.entrepriseLecture(TD, 'firestore');
+
+  /* ══ ÉTAPE 5 — LA CONDITION (d) : SEPT JOURS MUETS NE VALENT PAS SEPT JOURS IDENTIQUES ═══
+     ⛔ Deuxième mutation qui n'avait rien cassé : retirer l'exigence de COUVERTURE quotidienne
+     (ne garder que « aucun échec ») laissait `test-735` tout vert, parce que son espace porte
+     déjà un verdict EN ÉCHEC — la condition tombait de toute façon. Le cas qui discrimine est
+     l'autre : aucun échec, et presque aucun contrôle. C'est précisément le piège que ce dépôt
+     a déjà payé deux fois : « vide » et « on n'a pas pu savoir » ne sont pas le même état. */
+  console.log('\n⛔ La condition (d) de l\'étape 5 — la couverture, pas seulement l\'absence d\'échec');
+  {
+    const TC = 'ent-controles';
+    S.pousser(TC, [{ c: 'clients', id: 'c1', m: Date.now(), r: { id: 'c1' }, e: 'zz' }], { origine: 'appareil' });
+    v('sans aucun verdict, la condition est FAUSSE', S.controleSuite(TC, 7).ok, false);
+    v('   et les sept jours sont muets', S.controleSuite(TC, 7).joursMuets, 7);
+
+    S.controleNoter(TC, { app_id: 'a1z', ok: true, ecarts: [] });
+    const un = S.controleSuite(TC, 7);
+    v('⛔ UN SEUL jour contrôlé sur sept ne suffit pas', un.ok, false);
+    v('   il reste six jours muets', un.joursMuets, 6);
+    v('   et aucun en échec — c\'est bien la COUVERTURE qui manque', un.joursEnEchec, 0);
+
+    /* ⛔ ET LE CONTRE-TEST COMPTE AUTANT : une condition qui ne peut JAMAIS être vraie finit
+       par être ignorée, et ce dépôt sait exactement comment ça se termine. On ne peut pas
+       reculer l'horloge — `controleNoter` date de maintenant, et lui ajouter une entrée pour
+       les besoins d'un banc mettrait un levier de banc dans du code de production. Mais la
+       FENÊTRE, elle, est un paramètre : sur un jour, un verdict d'aujourd'hui couvre tout. */
+    const unJour = S.controleSuite(TC, 1);
+    v('⛔ une fenêtre COUVERTE et sans échec passe la condition', unJour.ok, true);
+    v('   aucun jour muet', unJour.joursMuets, 0);
+
+    S.controleNoter(TC, { app_id: 'a1z', ok: false, ecarts: [{ coll: 'clients', appareil: 3, serveur: 2 }] });
+    v('⛔ un seul verdict en échec suffit à la faire tomber', S.controleSuite(TC, 1).ok, false);
+    v('   et il est compté comme tel', S.controleSuite(TC, 1).joursEnEchec, 1);
+
+    /* ⛔ CE QUI EST GARDÉ NE CONTIENT NI IDENTIFIANT NI CONTENU. Un verdict vient d'un
+       appareil : c'est une entrée non fiable, et elle finit dans la base d'un client. */
+    const der = S.controlesDe(TC)[0];
+    v('le verdict garde le NOM de la collection', der.ecarts[0].coll, 'clients');
+    v('   et les deux nombres', [der.ecarts[0].a, der.ecarts[0].s], [3, 2]);
+    const sale = S.controleNoter(TC, { app_id: 'x'.repeat(99), ok: false,
+      ecarts: [{ coll: 'clients<script>; DROP', appareil: 'beaucoup', serveur: null }] });
+    const net = S.controlesDe(TC)[0];
+    v('⛔ un nom de collection est nettoyé, jamais repris tel quel', net.ecarts[0].coll, 'clientsscriptDROP');
+    v('   et un nombre qui n\'en est pas vaut zéro', [net.ecarts[0].a, net.ecarts[0].s], [0, 0]);
+    v('   l\'identifiant d\'appareil est borné', net.app.length <= 32, true);
+    vrai('   la liste reste plafonnée', sale <= 60);
+  }
 }
 
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
