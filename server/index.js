@@ -2835,10 +2835,16 @@ function cleCodeMenage() {
 async function cleCodeDemander(sujet, dest, mail) {
   cleCodeMenage();
   const code = String(crypto.randomInt(100000, 1000000));
-  cleCodes.set(sujet, { code, exp: Date.now() + 10 * 60000, tries: 0 });
   /* ⛔ JAMAIS LE CODE AU JOURNAL. `trace` nomme le geste et l'espace tronqué, rien d'autre —
      `journalctl` se relit à plusieurs et se copie-colle. */
   await mailerEnvoi(Object.assign({ from: config.smtp.from || config.smtp.user, to: dest, confidentiel: true }, mail(code)));
+  /* ⛔ ON POSE LE CODE APRÈS L'ENVOI RÉUSSI, PAS AVANT. Posé avant, un SMTP capricieux détruisait
+     le code PRÉCÉDENT — peut-être déjà reçu et parfaitement valable — pour le remplacer par un
+     code que personne n'a jamais vu, vivant dix minutes. Un double-clic sur « Envoyer le code »
+     pendant une panne de courriel invalidait donc, en silence, le code que la personne avait
+     sous les yeux. Aucun risque de sécurité (le code est indevinable), mais une manœuvre
+     impossible à comprendre pour qui la subit. */
+  cleCodes.set(sujet, { code, exp: Date.now() + 10 * 60000, tries: 0 });
   return { ok: true };
 }
 /* ⛔ CINQ ESSAIS PUIS LA RÉSERVE SE VIDE POUR CE SUJET : un million de combinaisons se

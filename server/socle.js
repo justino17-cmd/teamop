@@ -956,9 +956,30 @@ function etatAuJournal(db, instant) {
 
 /* Ce que le retour changerait, SANS RIEN ÉCRIRE. C'est la moitié qui compte : personne ne
    déclenche une écriture en masse sur la base d'un client sans avoir vu les nombres d'abord. */
-function retourApercu(t, instant) {
+/* ⛔⛔ ASYNCHRONE, ET C'EST LA MESURE QUI L'A EXIGÉ — deux fois de suite. Cette fonction ne
+   faisait que lire, donc elle était synchrone ; mesurée à 40 ms sur une base aux proportions
+   d'ELAN, c'était tolérable. Puis on lui a ajouté un DÉSCELLEMENT de contrôle par
+   enregistrement (pour que le consentement porte sur des nombres vrais, et pas seulement sur
+   les corps purgés) — et le coût a triplé : 123 ms à 3 000 fiches, 310 ms à 10 000, **552 ms à
+   20 000**. C'est pire que les 368 ms de `verifier()`, que ce dépôt a déjà jugées inacceptables
+   au point de rendre `apercu?verifier=1` optionnel.
+   Elle rend donc la main comme `retourAppliquer`, tous les 200 enregistrements. Le total ne
+   bouge pas ; il est rendu par morceaux, et plus personne n'attend une demi-seconde parce que
+   quelqu'un a bougé un sélecteur de date. Re-mesuré après :
+
+   | base           | total   | pire gel |
+   |----------------|---------|----------|
+   | 3 000 (ELAN)   | 119 ms  | **37 ms**|
+   | 20 000         | 590 ms  | **187 ms**|
+
+   ⚠️ Ce qui reste est le BALAYAGE du journal : une requête SQL, indivisible, qui grandit avec
+   la base. C'est le même plancher que dans `retourAppliquer`, et c'est là qu'il faudra revenir
+   le jour où une base dépasse 30 000 lignes — le plafond monte linéairement. */
+async function retourApercu(t, instant) {
   t = exigerT(t);
-  const db = ouvrir(t);
+  const db = ouvrir(t), dek = dekDe(t);
+  const respirer = () => new Promise(r => setImmediate(r));
+  let depuisPause = 0;
   const ts = parseInt(instant, 10) || 0;
   const maintenant = Date.now();
   if (!ts || ts > maintenant) { const e = new Error('instant requis, et dans le passé'); e.code = 'INSTANT'; throw e; }
@@ -980,8 +1001,25 @@ function retourApercu(t, instant) {
   const compter = (coll, quoi) => { (par[coll] = par[coll] || { restaure: 0, enterre: 0, illisible: 0 })[quoi]++; };
   let octets = 0;
 
+  /* ⛔⛔ « ILLISIBLE » NE VEUT PAS DIRE « PURGÉ » — et ne compter que le second faussait le
+     CONSENTEMENT. Relevé par `gardien` le 20 septembre 2026 : l'aperçu ne regardait que
+     `corps_purge_le || !corps`. Un corps PRÉSENT mais que l'AES refuse (ligne trafiquée, clé qui
+     ne correspond plus, bit retourné sur le disque) passait donc pour restaurable : le courriel
+     de consentement annonçait « 0 enregistrement(s) ne peuvent PAS être ramenés », la personne
+     autorisait sur ce chiffre, et le refus arrivait ensuite dans `refus[]`. Ce n'était pas
+     silencieux — mais l'accord avait été donné sur un nombre faux, ce qui est pire qu'un refus
+     franc. On DÉSCELLE donc pour de vrai avant de promettre.
+     ⚠️ Le coût est réel : c'est un déchiffrement de plus par enregistrement à restaurer, sur une
+     fonction déjà mesurée à 40 ms pour 3 000 fiches. C'est le prix d'un consentement qui porte
+     sur des nombres vrais — et l'aperçu a un budget depuis aujourd'hui. */
+  const lisible = (j) => {
+    if (j.corps_purge_le || !j.corps) return false;
+    try { desceller_clair(dek, t, j.coll, j.id, j.maj_le, j.supprime, j.corps); return true; }
+    catch (e) { return false; }
+  };
   const vus = new Set();
   for (const e of vivants) {
+    if (++depuisPause >= 200) { depuisPause = 0; await respirer(); }
     const cle = e.coll + '\u0000' + e.id;
     vus.add(cle);
     const j = parCle.get(cle);
@@ -1003,7 +1041,7 @@ function retourApercu(t, instant) {
     /* Présent des deux côtés : on ne repose QUE ce qui a changé. Comparer les empreintes
        évite de réécrire toute la base pour rien — et donc de doubler le poids du journal. */
     if (!e.supprime_le && e.empreinte && j.empreinte && e.empreinte === j.empreinte) continue;
-    if (j.corps_purge_le || !j.corps) { illisibles.push({ coll: j.coll, id: j.id, ts: j.ts }); compter(j.coll, 'illisible'); continue; }
+    if (!lisible(j)) { illisibles.push({ coll: j.coll, id: j.id, ts: j.ts }); compter(j.coll, 'illisible'); continue; }
     aRestaurer.push({ coll: j.coll, id: j.id, seq: j.seq });
     octets += (j.corps && j.corps.length) || 0;
     compter(j.coll, 'restaure');
@@ -1012,9 +1050,10 @@ function retourApercu(t, instant) {
      cette moitié, un retour ne rendrait jamais ce qu'un bug a effacé — c'est-à-dire le cas le
      plus probable de tous. */
   for (const j of avant) {
+    if (++depuisPause >= 200) { depuisPause = 0; await respirer(); }
     const cle = j.coll + '\u0000' + j.id;
     if (vus.has(cle) || j.supprime) continue;
-    if (j.corps_purge_le || !j.corps) { illisibles.push({ coll: j.coll, id: j.id, ts: j.ts }); compter(j.coll, 'illisible'); continue; }
+    if (!lisible(j)) { illisibles.push({ coll: j.coll, id: j.id, ts: j.ts }); compter(j.coll, 'illisible'); continue; }
     aRestaurer.push({ coll: j.coll, id: j.id, seq: j.seq });
     octets += (j.corps && j.corps.length) || 0;
     compter(j.coll, 'restaure');
@@ -1089,7 +1128,7 @@ async function retourAppliquer(t, instant, ctx) {
   t = exigerT(t);
   const c = ctx || {};
   if (_retoursEnVol.has(t)) { const e = new Error('un retour est déjà en cours'); e.code = 'ENCOURS'; throw e; }
-  const ap = retourApercu(t, instant);
+  const ap = await retourApercu(t, instant);
   /* ⛔ ON REFUSE PAR DÉFAUT QUAND IL MANQUE DES CORPS. `sansLesIllisibles` est une décision
      explicite de celui qui déclenche, pas un réglage : un retour partiel peut être le bon
      choix, il ne peut pas être le choix par DÉFAUT. */

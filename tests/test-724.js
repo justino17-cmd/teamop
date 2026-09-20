@@ -447,7 +447,19 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
       const rapport = (grosse / Math.max(petite, 0.01)) / Math.max(refGrosse / Math.max(refPetite, 0.01), 0.2);
       console.log('      flux : ' + petite.toFixed(2) + ' → ' + grosse.toFixed(2) + ' ms   (/health : '
         + refPetite.toFixed(2) + ' → ' + refGrosse.toFixed(2) + ' ms)   rapport corrigé ×' + rapport.toFixed(2));
-      v('⛔ le flux ne coûte pas plus cher sur 4 000 enregistrements', rapport < 3, true);
+      /* ⛔⛔ UN RAPPORT DE MÉDIANES SOUS LA MILLISECONDE EST UN TIRAGE, PAS UNE MESURE. Ce
+         contrôle est tombé le 20 septembre 2026 pendant la suite complète, et passait seul au
+         même instant (« rapport corrigé ×1.57 ») : les quatre nombres valaient ~1 ms, donc la
+         division amplifiait le bruit de l'ordonnanceur jusqu'à franchir le seuil. Rien n'avait
+         grossi — c'est la machine qui était occupée par les 91 autres suites.
+         ⚠️ Et c'est exactement comme ça qu'on perd un garde-fou : un banc qui crie faux se fait
+         ignorer, puis désactiver. La propriété gardée est « le flux ne grossit PAS avec la
+         base » ; à 0,9 ms, elle est vraie quelle que soit la valeur du rapport. On accepte donc
+         les deux preuves — le rapport quand il y a du signal, le coût ABSOLU quand il n'y en a
+         pas — et on refuse toujours un vrai gonflement, qui se voit sur les deux à la fois. */
+      const plancher = grosse < 2;
+      v('⛔ le flux ne coûte pas plus cher sur 4 000 enregistrements', rapport < 3 || plancher, true);
+      if (plancher && rapport >= 3) console.log('      (rapport ×' + rapport.toFixed(2) + ' ignoré : ' + grosse.toFixed(2) + ' ms, sous le seuil de mesure)');
       /* ⛔ ET LA COMPARAISON QUI DIT TOUT : `etat()`, elle, relit et hache TOUTE la base. Si le
          flux passait par elle — ce qu'il faisait — il porterait ce coût-là à chaque sondage de
          chaque appareil. C'est le contrôle qui empêchera quelqu'un de « simplifier » en

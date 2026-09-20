@@ -1022,7 +1022,7 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   attendre(5);
   S.pousser(T, [{ c: 'clients', id: 'k1', m: Date.now(), e: 'e-apres', r: { nom: 'CASSÉ' } }]);
 
-  const ap0 = S.retourApercu(T, SAIN);
+  const ap0 = await S.retourApercu(T, SAIN);
   v('l\'aperçu voit la fiche à remettre', ap0.nRestaurer, 1);
   v('   et rien d\'illisible pour l\'instant', ap0.nIllisibles, 0);
 
@@ -1032,7 +1032,7 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
      PARTIEL présenté comme complet. Même confusion que `_mailboxes` : « rien à restaurer » et
      « je ne sais pas restaurer » ne sont pas le même état. */
   S.purgerJournal(T, Date.now());
-  const ap1 = S.retourApercu(T, SAIN);
+  const ap1 = await S.retourApercu(T, SAIN);
   vrai('⛔ après purge, l\'aperçu NOMME ce qu\'il ne peut plus rendre', ap1.nIllisibles >= 1);
   v('   et il ne prétend plus pouvoir le restaurer', ap1.nRestaurer, 0);
   /* ⛔ UN REPÈRE, PAS L'IDENTIFIANT — et ce contrôle exigeait l'inverse jusqu'au 20 septembre
@@ -1047,7 +1047,41 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   vrai('⛔ l\'identifiant en clair ne sort PAS de l\'aperçu', JSON.stringify(ap1).indexOf('"k1"') < 0);
   /* ⚠️ Le repère doit être STABLE : sans ça l'écran ne pourrait pas rapprocher deux aperçus,
      et le contrôle ci-dessus passerait avec un nombre tiré au hasard. */
-  v('   et il est stable d\'un aperçu à l\'autre', (S.retourApercu(T, SAIN).illisibles[0] || {}).ref, ref1);
+  v('   et il est stable d\'un aperçu à l\'autre', ((await S.retourApercu(T, SAIN)).illisibles[0] || {}).ref, ref1);
+
+  /* ⛔⛔ UN CORPS PRÉSENT MAIS INDÉCHIFFRABLE COMPTE AUSSI COMME ILLISIBLE — et ne compter que
+     les corps PURGÉS faussait le CONSENTEMENT. Une ligne trafiquée, une clé qui ne correspond
+     plus, un bit retourné sur le disque : le corps est là, l'AES le refuse. L'aperçu le donnait
+     pour restaurable, le courriel annonçait « 0 enregistrement(s) ne peuvent PAS être ramenés »,
+     la personne autorisait sur ce chiffre — et le refus arrivait après coup. Pas silencieux,
+     mais l'accord avait porté sur un nombre faux, ce qui est pire qu'un refus franc. */
+  const T6 = 'retour-banc-6';
+  S.pousser(T6, [{ c: 'clients', id: 'y1', m: Date.now(), e: 'e-y1', r: { nom: 'Lisible' } },
+                 { c: 'clients', id: 'y2', m: Date.now(), e: 'e-y2', r: { nom: 'Va être abîmée' } }]);
+  attendre(5);
+  const SAIN6 = Date.now();
+  attendre(5);
+  S.pousser(T6, [{ c: 'clients', id: 'y1', m: Date.now(), e: 'k-y1', r: { casse: true } },
+                 { c: 'clients', id: 'y2', m: Date.now(), e: 'k-y2', r: { casse: true } }]);
+  const avantAbime = await S.retourApercu(T6, SAIN6);
+  v('avant de rien abîmer : deux à remettre, zéro illisible', [avantAbime.nRestaurer, avantAbime.nIllisibles], [2, 0]);
+  /* On retourne un octet au milieu du corps scellé de `y2`, dans sa version d'AVANT — le
+     chiffré reste de la bonne taille, seule l'authentification GCM le refusera. */
+  {
+    const dbT = S.ouvrir(T6);
+    const l = dbT.prepare("SELECT rowid AS r, corps FROM journal WHERE coll='clients' AND id='y2' ORDER BY seq LIMIT 1").get();
+    const b = Buffer.from(l.corps); b[Math.floor(b.length / 2)] ^= 0xFF;
+    dbT.prepare('UPDATE journal SET corps=? WHERE rowid=?').run(b, l.r);
+  }
+  const abime = await S.retourApercu(T6, SAIN6);
+  v('⛔ un corps PRÉSENT mais indéchiffrable est compté illisible', abime.nIllisibles, 1);
+  v('   et il n\'est plus promis comme restaurable', abime.nRestaurer, 1);
+  /* ⚠️ Le contre-test : celui qui est sain doit TOUJOURS passer. Un contrôle qui déclarerait
+     tout illisible bloquerait chaque retour sans qu'on sache pourquoi. */
+  vrai('⛔ … et le voisin SAIN reste restaurable', abime.par.clients && abime.par.clients.restaure === 1);
+  let bloque = null;
+  try { await S.retourAppliquer(T6, SAIN6, { utilisateur: 'banc' }); } catch (e) { bloque = e; }
+  vrai('⛔ et le retour REFUSE sur ce chiffre-là, avant d\'écrire', !!bloque && bloque.code === 'PURGE');
   let jete = null;
   try { await S.retourAppliquer(T, SAIN, { utilisateur: 'banc' }); } catch (e) { jete = e; }
   vrai('⛔ et l\'application REFUSE au lieu de rendre un retour partiel', !!jete && jete.code === 'PURGE');
@@ -1071,7 +1105,7 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   /* On casse la base comme une réparation ratée la casserait : la ligne vivante disparaît,
      le journal la garde. C'est le seul moyen d'atteindre ce chemin. */
   S.ouvrir(T2).prepare('DELETE FROM enr WHERE coll=? AND id=?').run('clients', 'z1');
-  const ap2 = S.retourApercu(T2, SAIN2);
+  const ap2 = await S.retourApercu(T2, SAIN2);
   v('⛔ l\'aperçu voit la ligne disparue d\'`enr` et la compte à restaurer', ap2.nRestaurer, 1);
   const r2 = await S.retourAppliquer(T2, SAIN2, { utilisateur: 'banc' });
   v('   et le retour la remet', r2.restaures, 1);
@@ -1100,7 +1134,7 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   attendre(5);
   S.pousser(T3, [{ c: 'clients', id: 'w1', m: Date.now(), e: 'e-w1b', r: { nom: 'CASSÉ' } }]);
 
-  const ap3 = S.retourApercu(T3, SAIN3);
+  const ap3 = await S.retourApercu(T3, SAIN3);
   v('l\'aperçu voit une fiche à remettre', ap3.nRestaurer, 1);
   /* `octetsMax: 1` : l'espace est déjà au-delà, donc `pousser()` refuse tout, en bloc. */
   const plein = await S.retourAppliquer(T3, SAIN3, { utilisateur: 'banc', octetsMax: 1 });
@@ -1139,8 +1173,22 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
 
   /* On ne l'attend PAS : on glisse une création dans la première respiration. C'est le seul
      moyen d'atteindre cette fenêtre, et c'est exactement ce qu'un téléphone fait. */
+  /* ⛔ ON ATTEND QUE LE RETOUR AIT VRAIMENT COMMENCÉ À ÉCRIRE, on ne compte pas les tours de
+     boucle. La première version faisait un seul `setImmediate` — ça marchait tant que
+     `retourAppliquer` écrivait tout de suite. Depuis que l'APERÇU rend la main lui aussi (il
+     gelait 552 ms sur 20 000 fiches), ce tour-là tombe pendant l'aperçu : la fiche arrivait
+     AVANT la photo de `vivants`, donc elle était traitée normalement et le contrôle mesurait
+     l'ordonnanceur au lieu de la règle. On se synchronise sur l'état réel de la base. */
+  const attendreEcriture = async (esp, depuis) => {
+    for (let i = 0; i < 200; i++) {
+      if (S.etat(esp).seq > depuis) return true;
+      await new Promise(r => setImmediate(r));
+    }
+    return false;
+  };
+  const seqAvant4 = S.etat(T4).seq;
   const enVol = S.retourAppliquer(T4, SAIN4, { utilisateur: 'banc' });
-  await new Promise(r => setImmediate(r));
+  vrai('le retour a commencé à écrire avant qu\'on s\'en mêle', await attendreEcriture(T4, seqAvant4));
   S.pousser(T4, [{ c: 'clients', id: 'ne-devrait-pas-survivre', m: Date.now(), e: 'z9', r: { nom: 'Semée par le bug PENDANT le retour' } }]);
   const rc = await enVol;
 
@@ -1189,8 +1237,10 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   }
 
   let coupe = null;
+  const seqAvant5 = S.etat(T5).seq;
   const enVol5 = S.retourAppliquer(T5, SAIN5, { utilisateur: 'banc' }).catch(e => { coupe = e; return null; });
-  await new Promise(r => setImmediate(r));
+  /* Même raison : couper pendant l'aperçu ne couperait pas une ÉCRITURE. */
+  vrai('le retour écrit déjà quand on coupe', await attendreEcriture(T5, seqAvant5));
   try { S.fermerBase(T5); } catch (e) {}
   await enVol5;
   vrai('⛔ un retour coupé en plein vol JETTE, il ne se note pas réussi', !!coupe);

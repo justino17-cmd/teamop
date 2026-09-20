@@ -645,7 +645,7 @@ function monterOpSocle(app, deps) {
      assez pour distinguer deux lignes, pas pour lire un nom. Qui a besoin de l'identifiant
      entier passe par `/api/monitor/op/journal`, qui exige une session de diagnostic, un motif
      et laisse une ligne chaînée. Aucun corps d'enregistrement ne sort d'ici. */
-  poser('GET', '/api/monitor/op/retour-apercu', garde, (req, res) => {
+  poser('GET', '/api/monitor/op/retour-apercu', garde, async (req, res) => {
     const t = monStr(req.query.t, 80);
     const instant = parseInt(req.query.instant, 10) || 0;
     if (!t) return res.status(400).json({ error: 't requis' });
@@ -662,7 +662,7 @@ function monterOpSocle(app, deps) {
       return res.status(429).json({ error: 'trop d\'aperçus — réessaie dans un moment', motif: 'quota' });
     }
     let ap;
-    try { ap = socle.retourApercu(t, instant); }
+    try { ap = await socle.retourApercu(t, instant); }
     catch (err) {
       if (err && err.code === 'INSTANT') return res.status(400).json({ error: 'instant requis, et dans le passé' });
       return res.status(503).json({ error: 'stockage illisible' });
@@ -715,7 +715,7 @@ function monterOpSocle(app, deps) {
     if (!contact.email) return res.status(409).json({ error: "Aucune adresse e-mail n'est enregistrée pour cette entreprise : le retour ne peut pas être confirmé." });
 
     let ap;
-    try { ap = socle.retourApercu(t, instant); }
+    try { ap = await socle.retourApercu(t, instant); }
     catch (err) {
       if (err && err.code === 'INSTANT') return res.status(400).json({ error: 'instant requis, et dans le passé' });
       return res.status(503).json({ error: 'stockage illisible' });
