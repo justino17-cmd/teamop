@@ -161,6 +161,7 @@ const code = [
   bloc('function opSocleLire('), bloc('async function opSocleLireVraiment('),
   /* ── ÉTAPE 7 : LA RELECTURE ── */
   ligne('const OP_PHOTO_BASE ='), bloc('function opRecensement('),
+  bloc('function opPhotoPoser('), bloc('function opPhotoLire('), bloc('async function opPhotoPrendre('),
   bloc('async function opAttester('), bloc('async function opRelecture('),
 ].join('\n');
 
@@ -189,6 +190,50 @@ function stockNeuf() {
   return { getItem: k => (k in m ? m[k] : null), setItem: (k, val) => { m[k] = String(val); },
     removeItem: k => { delete m[k]; }, get _brut() { return m; },
     get length() { return Object.keys(m).length; }, key: i => Object.keys(m)[i] };
+}
+
+/* ⛔⛔ UN INDEXEDDB DE BANC — ET C'EST UNE MUTATION QUI L'A EXIGÉ. Retirer la garde « une seule
+   fois dans la vie de l'appareil » d'`opPhotoPrendre` (`if (deja && deja.ts) return deja;`) ne
+   faisait tomber AUCUN des 169 contrôles : la fonction passe par IndexedDB, que Node n'a pas,
+   donc le banc ne l'appelait jamais. Or c'est la propriété LA PLUS COÛTEUSE de l'étape 7 —
+   reprendre la photo APRÈS la bascule de lecture la ferait refléter un `db` déjà recomposé
+   depuis le VPS, donc la relecture comparerait le VPS à lui-même et dirait « tout va bien »
+   quoi qu'il soit arrivé. La circularité par la porte de derrière, et un feu vert en prime.
+   On monte donc le strict nécessaire — `open`, `onupgradeneeded`, `onerror`, `onsuccess`,
+   `transaction`, `objectStore`, `put`, `get` — et on fait tourner les VRAIES `opPhotoPoser`,
+   `opPhotoLire` et `opPhotoPrendre` du fichier livré. Le magasin survit à un « allumer »,
+   exactement comme IndexedDB survit à un rechargement de page. */
+function idbNeuf() {
+  const bases = {};
+  const plusTard = f => setTimeout(f, 0);
+  return {
+    open(nom) {
+      const q = { onupgradeneeded: null, onsuccess: null, onerror: null };
+      const neuve = !bases[nom];
+      if (neuve) bases[nom] = {};
+      const magasins = bases[nom];
+      const cnx = {
+        objectStoreNames: { contains: n => Object.prototype.hasOwnProperty.call(magasins, n) },
+        createObjectStore(n, opts) { magasins[n] = { cle: (opts && opts.keyPath) || 'id', lignes: {} }; return magasins[n]; },
+        transaction(n) {
+          const m = magasins[n];
+          const tx = { oncomplete: null, onerror: null,
+            objectStore: () => ({
+              put(o) { m.lignes[String(o[m.cle])] = JSON.parse(JSON.stringify(o)); plusTard(() => tx.oncomplete && tx.oncomplete()); },
+              get(k) { const g = { onsuccess: null, onerror: null };
+                plusTard(() => { g.result = m.lignes[String(k)] || undefined; g.onsuccess && g.onsuccess(); }); return g; },
+            }) };
+          return tx;
+        },
+      };
+      plusTard(() => {
+        if (neuve && q.onupgradeneeded) q.onupgradeneeded({ target: { result: cnx } });
+        if (q.onsuccess) q.onsuccess({ target: { result: cnx } });
+      });
+      return q;
+    },
+    _vider() { Object.keys(bases).forEach(k => delete bases[k]); },
+  };
 }
 
 /* ══ 2. MONTER LE VRAI SERVEUR ════════════════════════════════════════════════════════════ */
@@ -263,12 +308,13 @@ function basePetite(m) {
   let db = basePetite(1000);
   const diagnostics = [];
   let compte = fetchCompteur();
+  const idb = idbNeuf();
   const allumer = () => new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
-    'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
-    code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire,opRecensement,opRelecture,opAttester,opEmpreinte,opSansTampon,opIdDerive};')
+    'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math', 'indexedDB',
+    code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire,opRecensement,opRelecture,opAttester,opEmpreinte,opSansTampon,opIdDerive,opPhotoPoser,opPhotoLire,opPhotoPrendre};')
     (compte, stock, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-1',
      (motif) => diagnostics.push(motif), 703, { id: 'u-banc' }, db,
-     { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
+     { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math, idb);
   let api = null;
   try { api = allumer(); } catch (e) { console.log('      (extraction : ' + e.message + ')'); }
   vrai('⛔ le bloc socle du fichier livré s\'extrait et s\'exécute', !!(api && api.opSoclePousser && api.opSocleControle));
@@ -516,11 +562,11 @@ function basePetite(m) {
     const stock2 = stockNeuf();
     const db2 = {};
     const api2 = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
-      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
-      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire,opRecensement,opRelecture,opAttester,opEmpreinte,opSansTampon,opIdDerive};')
+      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math', 'indexedDB',
+      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire,opRecensement,opRelecture,opAttester,opEmpreinte,opSansTampon,opIdDerive,opPhotoPoser,opPhotoLire,opPhotoPrendre};')
       (compte, stock2, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-2',
        (motif) => diagnostics.push(motif), 703, { id: 'u-banc-2' }, db2,
-       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
+       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math, idb);
 
     const lu = await api2.opSocleLire();
     vrai('⛔ le second appareil a LU quelque chose (le câblage de /depuis tient)', lu && lu.lues > 0);
@@ -606,11 +652,11 @@ function basePetite(m) {
 
     const stock3 = stockNeuf(), db3 = {};
     const api3 = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
-      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math',
-      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire,opRecensement,opRelecture,opAttester,opEmpreinte,opSansTampon,opIdDerive};')
+      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math', 'indexedDB',
+      code + '\nreturn {opDecomposer,opRecomposer,opSignature,opSocleSession,opSoclePousser,opSoclePousserVraiment,opSocleControle,opSocleLire,opHautLire,opNonLire,opSeqLire,opRecensement,opRelecture,opAttester,opEmpreinte,opSansTampon,opIdDerive,opPhotoPoser,opPhotoLire,opPhotoPrendre};')
       (compte, stock3, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-banc-3',
        (motif) => diagnostics.push(motif), 703, { id: 'u-banc-3' }, db3,
-       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math);
+       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math, idb);
 
     const lu = await api3.opSocleLire();
     vrai('⛔ la lecture a demandé PLUSIEURS pages', lu && lu.pages > 1);
@@ -888,6 +934,61 @@ function basePetite(m) {
     const r6 = await api.opRelecture({ t: T, ts: 0, sig: '', json: '' });
     vrai('⛔ sans photo, la relecture REFUSE de conclure', /aucune photo/.test(String(r6.erreur)));
     v('   et elle ne prétend pas que tout va bien', r6.ok, undefined);
+
+    /* ⛔⛔ LA RELECTURE NE TOUCHE PAS À `db` — ET C'EST UNE MUTATION QUI A EXIGÉ CE CONTRÔLE.
+       Remplacer la base neuve par `db` (`const apres = db;`) ne faisait tomber AUCUN des
+       163 contrôles d'alors. Le défaut était pourtant des deux côtés à la fois :
+       — le travail en cours de la personne se fait écraser par ce que le socle détient, en
+         silence, pendant un geste de VÉRIFICATION ;
+       — et la comparaison devient circulaire, donc elle dit « tout va bien » quoi qu'il arrive.
+       Le banc ne le voyait pas parce qu'il ne regardait QUE le verdict rendu, jamais l'état de
+       `db` après coup — or au premier passage le verdict tombe encore juste, même quand la
+       relecture vient de saccager la base. Re-mesuré après ajout : la mutation fait tomber
+       « `db` est INTACT », et elle seule. ⚠️ Les deux relectures de suite ci-dessous ne
+       l'attrapent PAS (le socle contient déjà tout `db`, donc la pollution est sans effet
+       visible sur le verdict) : elles gardent une autre propriété, l'idempotence, et il ne faut
+       pas croire qu'elles couvrent celle-là. Une mutation qui ne casse rien désigne ce que le
+       banc ne joue pas — même leçon que `opIdDerive` le 20 septembre. */
+    const sigDbAvant = api.opSignature(api.opDecomposer(db)).sig;
+    const nAvantRelecture = (db.clients || []).length;
+    const r7 = await api.opRelecture(photoDe(avecEnPlus));
+    v('⛔ `db` est INTACT après une relecture', api.opSignature(api.opDecomposer(db)).sig, sigDbAvant);
+    v('   pas une fiche ajoutée ni retirée au passage', (db.clients || []).length, nAvantRelecture);
+    /* ⛔ ET LE DEUXIÈME PASSAGE REND LE MÊME VERDICT. Une relecture qui se pollue elle-même
+       donne raison à la suivante : c'est le pire des verdicts, il ferme la porte sur rien. */
+    v('⛔ deux relectures de suite rendent le MÊME verdict', r7.ok, false);
+    v('   et nomment la même fiche', (r7.manquants[0] || {}).id, 'jamais-pousse');
+    const r8 = await api.opRelecture(bonne);
+    v('   une bonne photo relue une 2ᵉ fois reste bonne', r8.ok, true);
+    v('   sans manquant inventé au passage', r8.nManquants, 0);
+
+    /* ══ LA PHOTO ELLE-MÊME, PAR LE VRAI COFFRE INDEXEDDB ══════════════════════════════════
+       ⛔ UNE SEULE FOIS DANS LA VIE DE L'APPAREIL, POUR CET ESPACE. C'est la garde la plus
+       coûteuse de l'étape 7 : une photo reprise APRÈS la bascule refléterait un `db` déjà
+       recomposé depuis le VPS, donc la relecture comparerait le VPS à lui-même — et rendrait
+       un feu vert qui ne veut rien dire. Le banc ne la jouait pas du tout avant le
+       20 septembre : la mutation qui retire `if (deja && deja.ts) return deja;` passait à 169 ✓
+       sans un mot. */
+    {
+      const p1 = await api.opPhotoPrendre(T);
+      vrai('une photo est prise et rangée', !!(p1 && p1.ts && p1.json));
+      vrai('   elle porte une signature et un recensement', !!p1.sig && !!p1.recens);
+      /* On modifie la base APRÈS la photo : une reprise se verrait tout de suite. */
+      db.clients.push({ id: 'apres-la-photo', nom: 'Ajoutée après', _m: Date.now() });
+      const p2 = await api.opPhotoPrendre(T);
+      v('⛔ la seconde prise rend la PREMIÈRE photo, pas une neuve', p2.ts, p1.ts);
+      v('   et son contenu n\'a pas bougé d\'un octet', p2.json.length, p1.json.length);
+      vrai('   donc la fiche ajoutée après n\'y est pas', p2.json.indexOf('apres-la-photo') < 0);
+      /* ⛔ ET ELLE SURVIT À UN RECHARGEMENT DE PAGE. `_opJeton` et la mémoire partent, le
+         magasin reste — c'est exactement ce que fait un téléphone rouvert le lendemain. */
+      const rallume = allumer();
+      const p3 = await rallume.opPhotoPrendre(T);
+      v('⛔ elle survit à un rechargement', p3.ts, p1.ts);
+      const relue = await rallume.opPhotoLire(T);
+      vrai('   et elle se relit par son espace', !!relue && relue.ts === p1.ts);
+      v('   un espace INCONNU n\'a pas de photo', await rallume.opPhotoLire('t-jamais-vu'), null);
+      db.clients = db.clients.filter(c => c.id !== 'apres-la-photo');
+    }
   }
 
   /* ══ (o) LES ATTESTATIONS — LA TOUR NOMME LES MANQUANTS ══════════════════════════════════ */
@@ -918,7 +1019,22 @@ function basePetite(m) {
     const e2 = await etat();
     v('⛔ un SECOND appareil en échec fait monter le compte', e2.enEchec, avant + 1);
     v('   et il ajoute bien une attestation', e2.attestations.length, nAvant + 1);
-    v('   qui empêche le « complet »', e2.complet, false);
+    /* ⛔⛔ ET ON PROUVE QUE C'EST L'ÉCHEC QUI L'EMPÊCHE, PAS UN ABSENT — SANS QUOI CE CONTRÔLE
+       EST VERT POUR LA MAUVAISE RAISON. Mesuré le 20 septembre : à cet instant cinq appareils
+       n'avaient pas attesté, donc `complet` était déjà faux à cause de `manquants` — et retirer
+       `enEchec.length === 0` du calcul de `complet` ne faisait tomber AUCUN des 177 contrôles.
+       On fait donc attester TOUT LE MONDE d'abord, on vérifie que la porte s'ouvre, et c'est
+       seulement ensuite qu'un seul échec doit la refermer à lui tout seul. */
+    for (const d of e2.manquants.slice()) {
+      const se = await appel('POST', '/api/op/session', { corps: { t: T, kh: sha(CLE), app_id: '', nom: d } });
+      await appel('POST', '/api/op/atteste', { jeton: se.j.jeton,
+        corps: { dev: d, ver: '703', photoTs: Date.now(), photoSig: 'aa', pieces: 3,
+          relu: { ok: true, manquants: 0, piecesPerdues: 0 } } });
+    }
+    const e2b = await etat();
+    v('   tout le monde a attesté', e2b.manquants.length, 0);
+    v('   il reste l\'échec de dev-second, et lui seul', e2b.enEchec, avant + 1);
+    v('⛔ UN SEUL échec suffit à refermer la porte, sans aucun absent', e2b.complet, false);
 
     /* ⛔ ET LE MÊME APPAREIL QUI RE-ATTESTE REMPLACE, IL N'AJOUTE PAS. Sans ça, un appareil qui
        relit dix fois pèserait dix fois dans le compte — et « 12 appareils sur 9 » ne veut rien
@@ -927,7 +1043,7 @@ function basePetite(m) {
       corps: { dev: 'dev-second', ver: '703', photoTs: Date.now(), photoSig: 'yy', pieces: 3,
         relu: { ok: true, manquants: 0, piecesPerdues: 0 } } });
     const e3 = await etat();
-    v('⛔ re-attester REMPLACE, ça n\'ajoute pas', e3.attestations.length, nAvant + 1);
+    v('⛔ re-attester REMPLACE, ça n\'ajoute pas', e3.attestations.length, e2b.attestations.length);
     v('   et l\'échec précédent de CET appareil ne traîne plus', e3.enEchec, avant);
     /* ⚠️ Une attestation ne porte que des nombres — jamais un contenu. */
     v('⛔ aucune donnée de client dans les attestations',
