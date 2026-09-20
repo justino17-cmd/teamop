@@ -416,6 +416,10 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      seul — une alarme qui sonne sur un état voulu devient du bruit, puis une alarme qu'on
      ignore, puis une alarme qui ne sert plus à rien le jour où elle dit vrai. */
   portail: etatPortail,
+  /* L'horloge des 24 mois : combien d'entreprises sont suivies, combien approchent de
+     l'échéance, combien l'ont passée. ⛔ DES NOMBRES, JAMAIS UN NOM — `/health` est PUBLIQUE,
+     et y nommer une entreprise dirait au monde qui ne paie plus. */
+  conservation: conservation ? Object.assign({ actif: true }, conservation.sante()) : etatConservation,
   routesDoublons: routesDoublons.length,
   /* Étape 0 du socle : où en est le stockage des pièces jointes.
      ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
@@ -3801,6 +3805,7 @@ try {
    « éteint par décision » pour une panne. */
 if (!portail && etatPortail.comptes.erreur) etatPortail.dossiers = { actif: false, erreur: 'comptes' };
 
+
 let opSocle = null;
 try {
   opSocle = require('./op-socle').monterOpSocle(app, {
@@ -4648,6 +4653,19 @@ app.post('/api/monitor/espaces/renommer', monPatronStrict, (req, res) => {
    lancement (forfaitServeurSync lit « ferme » et efface le stockage local). Rouvrir rend
    l'espace ; les appareils devront repasser par le lien ou le code, leurs données les y
    attendent. Effacer pour de bon, c'est « Repartir à neuf » (/renaitre), pas cette route. */
+/* ⛔ LA TOUR VOIT L'HORLOGE, ET C'EST LE SEUL ENDROIT OÙ ON NOMME QUI. Tant que la suppression
+   n'existe pas, c'est un humain qui préviendra un client — encore faut-il qu'il puisse le voir
+   venir. `monAdmin` et pas `monPatronStrict` : c'est une LECTURE, et la refuser à l'équipe qui
+   répond au support reviendrait à la rendre inutile. */
+app.get('/api/monitor/conservation', monAdmin, (req, res) => {
+  if (!conservation) return res.status(503).json({ error: 'horloge non montée', motif: etatConservation.erreur || 'inactive' });
+  const l = conservation.tout().sort((a, b) => a.depuis - b.depuis);
+  res.json({ ok: true, jours: conservation.CONSERVATION_JOURS, preavisJours: conservation.PREAVIS_JOURS,
+    /* Le nom lisible se joint ici, pas dans le module : lui ne connaît que des identifiants,
+       et c'est bien ainsi — il n'a aucune raison de savoir comment s'appelle une entreprise. */
+    espaces: l.map(x => { const e = espaceParT(x.t); return Object.assign({}, x, { nom: (e && e.nom) || '', slug: (e && e.slug) || '' }); }) });
+});
+
 app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => {
   const slug = espSlug(monStr((req.body || {}).slug || (req.body || {}).nom, 80));
   const e = espaceAJour(slug);
@@ -5478,6 +5496,77 @@ function entInventaire(t) {
    l'efface depuis la Tour en croyant faire du ménage. On ne le retirera d'ici que le jour où
    plus aucun appareil n'y signale. */
 const ESPACES_INTOUCHABLES = ['elan-gestion', 'elan-gestion-beta', 'opgestion-beta'];
+
+/* ⛔⛔ L'HORLOGE SE MONTE **APRÈS** `ESPACES_INTOUCHABLES`, ET CE N'EST PAS UN DÉTAIL DE STYLE.
+   Mesuré le 21 septembre 2026 : montée 1 700 lignes plus haut, son balayage initial jetait
+   `Cannot access 'ESPACES_INTOUCHABLES' before initialization`, ne datait RIEN, et `/health`
+   répondait `actif:true, suivis:0` — exactement ce que répond une horloge qui n'a rien à
+   faire. C'est la panne qui a éteint TOUTE la sauvegarde hors site le 19 septembre, dans ce
+   fichier, pour la même raison.
+   ⚠️ ET `typeof` NE GARDE PAS DE ÇA : sur une `const` en zone morte temporelle, `typeof`
+   jette AUSSI — contrairement à une variable simplement non déclarée. La seule réparation
+   honnête est l'ORDRE. Ne pas remonter ce bloc « pour regrouper les montages ». */
+/* ══ L'HORLOGE DE CONSERVATION ═════════════════════════════════════════════════
+   `mentions-legales.html` (article 5) promet que les données sont conservées 24 mois après la
+   fin de l'abonnement, puis supprimées. Rien ne le comptait. Ce module TIENT L'HORLOGE — il ne
+   supprime rien et n'envoie aucun courriel : voir l'en-tête de `conservation.js` pour les deux
+   raisons, dont celle qui compte (un préavis qui annonce une suppression qui n'existe pas est
+   un mensonge à un client).
+   ⛔ CE QUI EST URGENT, ET LA SEULE RAISON DE LE MONTER MAINTENANT : la date ne se rattrape
+   pas. Chaque jour sans elle est un jour perdu pour toujours, et le jour où la suppression
+   s'écrira, il n'y aura que deux choix, tous deux faux — dater tout le monde d'aujourd'hui, ou
+   effacer le jour du déploiement. */
+let conservation = null;
+let etatConservation = { actif: false };
+try {
+  conservation = require('./conservation').monterConservation({
+    dossier: DATA_DIR,
+    journal: (...a) => console.log(...a),
+    /* ⛔ LES ESPACES TECHNIQUES N'ONT PAS D'ABONNEMENT. La même liste que partout ailleurs :
+       une seconde définition finirait par diverger, et l'horloge daterait la bêta. */
+    intouchable: (t) => ESPACES_INTOUCHABLES.includes(String(t || '')),
+    /* ⚠️ ON LIT L'ANNUAIRE, ON N'Y ÉCRIT JAMAIS. `espacePaye()` est déjà la seule autorité sur
+       la question « cette entreprise paie-t-elle ? » ; en fabriquer une seconde ici, c'est le
+       jour où les deux répondent différemment et où l'horloge tourne pour quelqu'un à jour. */
+    /* ⛔⛔ `espacePaye()` EST ASYNCHRONE — elle interroge Stripe. L'appeler sans l'attendre
+       rend une PROMESSE, donc `!!promesse.paye` vaut `!!undefined`, donc FAUX pour tout le
+       monde : une horloge de suppression sur CHAQUE entreprise, y compris celles à jour.
+       Mesuré sur le vrai serveur le 21 septembre 2026. C'était le seul appelant du fichier à
+       ne pas l'attendre — les deux autres font `await` ou `.then()`.
+       ⚠️ UNE À LA FOIS, PAS EN `Promise.all` : un balayage horaire a tout son temps, et
+       lancer un aller-retour Stripe par espace simultanément, c'est se faire limiter par
+       Stripe le jour où il y aura cent clients — pour une tâche de fond qui n'est pressée
+       par personne. */
+    lister: async () => {
+      const sortie = [];
+      for (const slug of Object.keys(espacesReg)) {
+        /* ⛔ L'ENTRÉE ENRICHIE DU SLUG, JAMAIS L'ENTRÉE BRUTE — défaut attrapé par `test-727`
+           sur ce code même. `espacePaye()` rattache l'abonnement par `[e.slug, e.t]`, et
+           l'entrée du registre ne porte PAS de `slug` : la passer brute ferait répondre
+           « ne paie pas » sur une entreprise à jour, donc démarrer une horloge de suppression
+           sur un client qui paye. Le slug se recolle AU POINT D'APPEL, et il doit s'y voir :
+           le cacher derrière une variable ferait taire le banc sans rien réparer. */
+        const e = espacesReg[slug];
+        const t = espaceT(e);
+        if (!t) continue;
+        let paye = true, motif = '';
+        /* ⛔ EN CAS DE DOUTE, ON DIT « ÇA PAIE ». Une exception ici ne doit JAMAIS démarrer une
+           horloge de suppression : entre une horloge en retard et une horloge qui tourne à
+           tort sur un client à jour, il n'y a pas d'hésitation. */
+        try { const r = await espacePaye(Object.assign({}, e, { slug: slug })); paye = !!r.paye; motif = String(r.motif || ''); }
+        catch (err) { paye = true; motif = ''; }
+        sortie.push({ t: t, paye: paye, motif: motif });
+      }
+      return sortie;
+    },
+  });
+  etatConservation = { actif: true };
+  console.log('conservation : horloge montée (' + conservation.sante().suivis + ' suivie(s))');
+} catch (e) {
+  console.error('conservation NON montée —', e && e.message);
+  conservation = null;
+  etatConservation = { actif: false, erreur: 'montage' };
+}
 const REFUS_INTOUCHABLE = 'Cet identifiant n\'est pas une entreprise : c\'est l\'espace par défaut de l\'application. '
   + 'Tout appareil qui n\'a rejoint aucun espace y signale ses connexions, et ses données sont partagées par toutes '
   + 'les entreprises qui n\'ont jamais reçu de clé personnalisée. Le supprimer les effacerait toutes à la fois.';

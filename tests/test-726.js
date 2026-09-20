@@ -367,6 +367,15 @@ const menage = async () => {
         'socle.refus',
         'socle.divergences.verdicts',                                  // le DÉNOMINATEUR de `muets` et `avecEcart`
         'pieces.plafond',                                              // le contexte de `pieces.remplissage`
+        /* L'horloge de conservation : `echus` et `enPreavis` portent l'alarme, `erreur` aussi.
+           Ces trois-là sont le contexte qui rend les chiffres lisibles — `actif` dit que
+           l'horloge tourne (son ABSENCE est ce qui alarme), `suivis` le dénominateur,
+           `jours` la durée annoncée dans les CGV. */
+        'conservation.actif', 'conservation.suivis', 'conservation.jours',
+        /* Le détail des familles : `jamaisAbonnes` distingue un prospect d'un client parti,
+           et il se lit dans la Tour. Ce n'est pas une alarme — c'est ce qui empêchera la
+           suppression, le jour où elle s'écrira, de confondre les deux. */
+        'conservation.jamaisAbonnes',
       ];
       const chemins = (o, prefixe) => Object.entries(o || {}).flatMap(([k, val]) => {
         const c = prefixe ? prefixe + '.' + k : k;

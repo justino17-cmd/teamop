@@ -52,6 +52,36 @@ function get(url) {
     if (!j.ok) problems.push('api.teamop.fr : réponse anormale (ok=' + j.ok + ')');
     if (!j.email) problems.push('api.teamop.fr : envoi d\'e-mails désactivé (email:false) — codes de sécurité HS');
     if (!j.atts) problems.push('api.teamop.fr : pièces jointes désactivées (atts:false) — bons de commande sans PDF');
+    /* ⛔ L'HORLOGE DE CONSERVATION — LES 24 MOIS DES CGV (article 5 de mentions-legales.html).
+       Trois choses à voir venir, et elles ne se soignent pas pareil :
+       · l'horloge qui NE TOURNE PLUS — c'est la seule urgence technique. Chaque jour sans
+         elle est un jour d'information perdu POUR TOUJOURS : la date « ne paie plus depuis »
+         ne se rattrape pas, et sans elle personne ne pourra jamais compter 24 mois ;
+       · une entreprise qui entre dans les 30 derniers jours — les CGV promettent un courriel
+         de préavis, et tant que rien ne l'envoie c'est un HUMAIN qui doit le faire ;
+       · une échéance dépassée — nous conservons alors des données personnelles au-delà de ce
+         que nous avons écrit publiquement, ce que le RGPD appelle la limitation de
+         conservation. Ce n'est pas une panne, c'est une exposition.
+       ⚠️ Les deux dernières ne crient qu'UNE FOIS PAR JOUR : ce sont des états qui durent des
+       semaines, et une alarme horaire sur un état stable devient du bruit, puis une alarme
+       qu'on ignore. La leçon est déjà écrite plus bas pour la sauvegarde. */
+    if (j.conservation && j.conservation.erreur) {
+      problems.push('⛔⛔ L’HORLOGE DE CONSERVATION NE TOURNE PLUS (' + j.conservation.erreur + ') — plus aucune date « ne paie plus depuis » n’est enregistrée, et ces dates NE SE RATTRAPENT PAS : chaque heure de panne est une information perdue pour toujours. Sur le VPS : journalctl -u teamop-api | grep conservation');
+    } else if (j.conservation && j.conservation.actif) {
+      /* ⛔⛔ MONTÉE N'EST PAS EN MARCHE. Mesuré le 21 septembre 2026 : l'horloge s'est montée
+         proprement (`actif:true`) alors que son balayage jetait à chaque passage — `suivis:0`,
+         et rien pour distinguer ça d'une plateforme où tout le monde paie. C'est la panne qui
+         coûte le plus ici, parce qu'une date non prise ne se rattrape JAMAIS. */
+      if (j.conservation.balayageOk === false) {
+        problems.push('⛔⛔ L’HORLOGE DE CONSERVATION EST MONTÉE MAIS SON BALAYAGE ÉCHOUE — elle affiche « 0 suivie » sans qu’on puisse le distinguer d’une plateforme où tout le monde paie. Chaque heure ainsi est une date « ne paie plus depuis » perdue POUR TOUJOURS. Sur le VPS : journalctl -u teamop-api | grep balayage');
+      }
+      if (j.conservation.echus > 0 && new Date().getUTCHours() === 9) {
+        problems.push('⛔ ' + j.conservation.echus + ' entreprise(s) ont dépassé les ' + (j.conservation.jours || 730) + ' jours de conservation annoncés dans les CGV — nous gardons leurs données au-delà de ce que nous avons écrit publiquement. Qui : Tour → /api/monitor/conservation (gardée).');
+      }
+      if (j.conservation.enPreavis > 0 && new Date().getUTCHours() === 9) {
+        problems.push('⏳ ' + j.conservation.enPreavis + ' entreprise(s) entrent dans les 30 derniers jours de conservation — les CGV promettent un courriel de préavis, et RIEN ne l’envoie encore : c’est à faire à la main. Qui : Tour → /api/monitor/conservation.');
+      }
+    }
     /* ⛔⛔ LA PORTE DU COURRIER — `mailRefus` ÉTAIT PUBLIÉ ET LU PAR PERSONNE.
        `CLAUDE.md` affirme depuis le 11 septembre 2026 : « Le compteur `mailRefus` de
        `/health` le voit venir : un motif autre qu'`absent` qui monte, ce sont de vrais
