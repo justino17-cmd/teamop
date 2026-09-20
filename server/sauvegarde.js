@@ -21,6 +21,19 @@
  * PARTANT DE RIEN exige la clé conservée AILLEURS — gestionnaire de mots de passe, pas le VPS.
  * `server/restaurer.js` refuse de démarrer sans elle et le dit dans ces termes.
  *
+ * ⛔⛔ ET IL FAUT **DEUX** CLÉS POUR RELEVER CETTE ARCHIVE AILLEURS, PAS UNE. C'est le point
+ * qui coûte le plus cher le jour où on en a besoin, et il n'était écrit nulle part :
+ *   1. `sauvegarde.cle` ouvre l'ENVELOPPE — sans elle, le fichier est un bloc opaque ;
+ *   2. la clé maître (`/etc/teamop/kek`, servie par `LoadCredential`) ouvre les DONNÉES DES
+ *      ENTREPRISES. Elle vit hors de `/opt` EXPRÈS, donc elle n'est **PAS DANS L'ARCHIVE**.
+ * Avec la première seule, on obtient `config.json`, les pièces jointes et des fichiers SQLite
+ * qui s'ouvrent parfaitement — et dont CHAQUE corps d'enregistrement reste scellé : l'annuaire
+ * ne porte que des DEK emballées par la clé maître. Autrement dit une archive qui a l'air
+ * complète et ne rend pas une ligne de données client. ⚠️ Quiconque emporte une copie mensuelle
+ * sur une autre machine emporte donc AUSSI les deux clés, rangées ailleurs que sur le VPS —
+ * sinon il transporte un bloc illisible en croyant tenir sa plateforme. Même famille de piège
+ * que `install.sh` et la clé maître, documentée dans `CLAUDE.md`.
+ *
  * ⛔ UNE SAUVEGARDE QU'ON N'A PAS RELUE N'EST PAS UNE SAUVEGARDE. C'est la leçon la plus chère
  * de ce métier, et la fiche du projet la porte déjà pour Firebase (« jamais restaurée par
  * nous »). Chaque dépôt est donc SUIVI D'UNE RELECTURE : on retélécharge l'objet, on vérifie
@@ -81,9 +94,28 @@ function nomArchive(quand) {
    ABSURDE (0, négatif, pas un nombre) retombe sur le DÉFAUT de 30, il ne veut pas dire « vide
    le coffre ». Le sens du garde-fou est toujours le même : dans le doute, on efface MOINS. Un
    `garder: 0` tapé par erreur dans `config.json` ne doit pas coûter tout l'historique. */
-function aElaguer(objets, garder) {
+function aElaguer(objets, garder, prefixe) {
   const n = Math.max(1, nombre(garder, 30));
-  const miens = (objets || []).filter(o => o && typeof o.cle === 'string' && /\.tar\.gz\.chiffre$/.test(o.cle));
+  /* ⛔⛔ LE PRÉFIXE EST OBLIGATOIRE, ET C'EST UN DÉFAUT TROUVÉ EN AJOUTANT LE MENSUEL, LE
+     20 SEPTEMBRE 2026. Cette fonction ne filtrait que sur le SUFFIXE. Or `lister('teamop/')`
+     rend aussi tout ce qui vit dans un SOUS-DOSSIER — et une copie mensuelle rangée sous
+     `teamop/mensuel/` serait donc tombée sous la rétention QUOTIDIENNE. Pire, et c'est le
+     détail qui rend le défaut sournois : le tri est alphabétique sur la clé, et
+     `teamop/mensuel/…` passe APRÈS `teamop/2026-…` (« m » > « 2 »). Les archives mensuelles
+     auraient donc occupé les premières places du classement « plus récent d'abord », poussant
+     dehors de VRAIES sauvegardes du jour, puis se seraient fait effacer à leur tour en
+     grossissant. Un dossier de conservation longue qui mange l'historique court : exactement
+     l'inverse de ce qu'on construit.
+     Même famille que les motifs `--exclude` non ancrés de `test-726` — un motif qui ne dit pas
+     OÙ il s'applique finit par s'appliquer ailleurs.
+     ⚠️ Sans préfixe, on ne sait pas de quel dossier on parle : on n'efface RIEN. C'est la règle
+     déjà écrite ci-dessus — dans le doute, on efface MOINS. */
+  const pre = String(prefixe || '');
+  if (!pre) return [];
+  const miens = (objets || []).filter(o => o && typeof o.cle === 'string'
+    && /\.tar\.gz\.chiffre$/.test(o.cle)
+    && o.cle.indexOf(pre) === 0
+    && o.cle.slice(pre.length).indexOf('/') < 0);
   if (miens.length <= n) return [];
   const tries = miens.slice().sort((a, b) => (a.cle < b.cle ? 1 : a.cle > b.cle ? -1 : 0));   // plus récent d'abord
   return tries.slice(n).map(o => o.cle);
@@ -291,7 +323,23 @@ function monterSauvegarde(app, deps) {
      heure : minuit est une heure parfaitement valable. On la lit donc à part. */
   const HEURE = (h => (Number.isInteger(h) && h >= 0 && h <= 23) ? h : 3)(conf && conf.heureUTC);
   const MAX_OCTETS = nombre(conf && conf.maxOctets, 4 * 1024 * 1024 * 1024);
+  /* ══ LA COPIE MENSUELLE — CELLE QU'ON EMPORTE ═══════════════════════════════════════════
+     Posée le 20 septembre 2026, sur une demande de Justin : « tous les mois, une sauvegarde
+     complète du mois que je peux transférer sur un autre serveur, pour éviter la surcharge ».
+     ⛔ ELLE NE PEUT PAS VIVRE DANS LE DOSSIER DU QUOTIDIEN. Avec `garder: 30` et une archive
+     par nuit, la fenêtre fait exactement trente jours : une copie « mensuelle » rangée là
+     serait effacée AVANT d'avoir un mois — c'est-à-dire qu'elle n'existerait jamais. D'où un
+     préfixe à elle et une rétention à elle (24 mois par défaut, deux ans).
+     ⚠️ Et c'est précisément ce dossier voisin qui a révélé le défaut d'ancrage d'`aElaguer`,
+     plus haut : sans lui, la rétention du jour serait venue le vider. */
+  const PREFIXE_MENSUEL = (conf && conf.prefixeMensuel) || (PREFIXE.replace(/\/*$/, '/') + 'mensuel/');
+  const MENSUEL_GARDER = nombre(conf && conf.mensuelGarder, 24);
+  const MENSUEL = !(conf && conf.mensuel === false);
   let enCours = false;
+
+  /* Le mois d'un instant, en UTC — la même horloge que `HEURE` et que le nom d'archive. Un
+     fuseau local ferait basculer le mois à une heure qui dépend du serveur. */
+  const moisDe = (ts) => String(new Date(ts || Date.now()).toISOString()).slice(0, 7);
 
   async function lancer(raison) {
     if (!actif) return { ok: false, motif: 'inactive' };
@@ -427,6 +475,59 @@ function monterSauvegarde(app, deps) {
         if (v.degrade) console.error('⚠️ sauvegarde DÉGRADÉE mais conservée : ' + v.motif);
       }
 
+      /* ══ LA COPIE DU MOIS ═══════════════════════════════════════════════════════════════
+         ⛔ ICI ET PAS AILLEURS : l'archive vient d'être RELUE et ouverte, donc on sait qu'elle
+         est restaurable. Déposer la copie longue durée avant cette preuve reviendrait à garder
+         deux ans une archive qu'on n'a jamais su rouvrir — le contraire exact du but.
+         On dépose le MÊME fichier sous une seconde clé : ni nouveau `tar`, ni nouveau
+         chiffrement, ni second passage sur les bases. Le coût d'une nuit de mensuel est donc un
+         envoi de plus, pas une sauvegarde de plus. */
+      let mensuel = null;
+      if (MENSUEL) {
+        const mois = moisDe(Date.now());
+        if (etat.mensuel && etat.mensuel.mois === mois && etat.mensuel.ok) {
+          mensuel = { fait: false, motif: 'deja', mois };
+        } else {
+          const cleMois = PREFIXE_MENSUEL + nom + '.tar.gz.chiffre';
+          const pose = await client.poserCleFlux(cleMois, tmp, faite.octets, faite.empreinte);
+          if (!pose.ok) {
+            /* ⛔ UN MENSUEL RATÉ NE FAIT PAS ÉCHOUER LA NUIT. L'archive du jour est bonne et
+               déposée ; la jeter parce qu'une SECONDE copie n'est pas partie serait absurde.
+               On garde le succès, on note l'échec, et `sante()` le remonte — même règle que la
+               rétention qui ne peut pas tourner. */
+            mensuel = { fait: false, motif: 'depot-' + (pose.statut || 0), mois };
+            console.error('⛔ copie mensuelle NON déposée (' + mensuel.motif + ') — la sauvegarde du jour, elle, est bonne');
+          } else {
+            /* ⛔ ET ON LA RELIT ENTIÈREMENT, ELLE AUSSI. C'est la copie qui partira sur une
+               autre machine et qu'on gardera deux ans : c'est la DERNIÈRE qu'on peut se
+               permettre de croire sur parole. Une fois par mois, un téléchargement de plus est
+               le bon prix — la nuitée quotidienne, elle, n'en paie aucun. */
+            const rmois = await client.lireCleVers(cleMois, tmpRelu);
+            const bonne = rmois.ok && rmois.octets === faite.octets && rmois.empreinte === faite.empreinte
+              && (await relire(tmpRelu, cle, null).catch(() => ({ entrees: 0 }))).entrees > 0;
+            if (!bonne) {
+              /* On retire la copie illisible plutôt que de la laisser occuper une place de
+                 rétention et rassurer au passage : `etat.mensuel` restera sans `ok`, donc la
+                 nuit suivante réessaiera pour ce mois-là. */
+              try { await client.effacerCle(cleMois); } catch (e) {}
+              mensuel = { fait: false, motif: 'relecture-' + (rmois.statut || (rmois.absente ? 'absente' : 'differente')), mois };
+              console.error('⛔ copie mensuelle recalée (' + mensuel.motif + ') — elle sera retentée demain');
+            } else {
+              mensuel = { fait: true, mois, cle: cleMois, octets: faite.octets, ts: Date.now(), ok: true };
+              etat.mensuel = mensuel;
+            }
+          }
+        }
+        /* La rétention du dossier mensuel, avec SA valeur. Elle tourne même quand le dépôt de
+           ce mois-ci n'a pas eu lieu : l'élagage ne dépend pas de la copie du jour. */
+        const lm = await client.lister(PREFIXE_MENSUEL);
+        if (lm && lm.ok) {
+          let n = 0;
+          for (const c of aElaguer(lm.objets, MENSUEL_GARDER, PREFIXE_MENSUEL)) { const r = await client.effacerCle(c); if (r.ok) n++; }
+          mensuel.elaguees = n; mensuel.gardees = Math.max(0, (lm.objets || []).length - n);
+        } else { mensuel.elagage = 'liste-' + ((lm && lm.statut) || 'erreur'); }
+      }
+
       /* La rétention seulement après une sauvegarde RÉUSSIE : on n'efface jamais une ancienne
          copie sur la foi d'une nouvelle qu'on n'a pas pu rouvrir. */
       /* ⛔ UNE RÉTENTION QUI NE PEUT PAS TOURNER DOIT LE DIRE. `lister()` est le SEUL organe de
@@ -440,14 +541,14 @@ function monterSauvegarde(app, deps) {
       let elaguees = 0, elagage = 'ok';
       const liste = await client.lister(PREFIXE);
       if (liste && liste.ok) {
-        for (const c of aElaguer(liste.objets, GARDER)) { const r = await client.effacerCle(c); if (r.ok) elaguees++; }
+        for (const c of aElaguer(liste.objets, GARDER, PREFIXE)) { const r = await client.effacerCle(c); if (r.ok) elaguees++; }
         etat.elagageEchecs = 0;
       } else {
         elagage = 'liste-' + ((liste && liste.statut) || 'erreur');
         etat.elagageEchecs = (etat.elagageEchecs || 0) + 1;
         console.error('⛔ sauvegarde : rétention NON appliquée (' + elagage + ') — le coffre grossit d\'une archive par nuit');
       }
-      return noter(true, '', { octets: faite.octets, entrees: ouverte.entrees, empreinte: faite.empreinte.slice(0, 16), elaguees, elagage, gardees: liste && liste.ok ? Math.min(GARDER, (liste.objets || []).length + 1) : null });
+      return noter(true, '', { octets: faite.octets, entrees: ouverte.entrees, empreinte: faite.empreinte.slice(0, 16), elaguees, elagage, mensuel, gardees: liste && liste.ok ? Math.min(GARDER, (liste.objets || []).length + 1) : null });
     } catch (e) {
       return noter(false, 'exception', { erreur: String(e.message).slice(0, 200) });
     } finally {
@@ -493,11 +594,25 @@ function monterSauvegarde(app, deps) {
       ok: d ? !!d.ok : null, instantaneEchecs: etat.instantaneEchecs || 0,
       /* Un ENTIER : combien de nuits de suite la rétention n'a pas pu tourner. Zéro quand
          elle tourne. Sans lui, le coffre grossit sans fin et personne ne l'apprend. */
-      elagageEchecs: etat.elagageEchecs || 0 };
+      elagageEchecs: etat.elagageEchecs || 0,
+      /* ⛔ L'ÂGE DE LA COPIE MENSUELLE, EN JOURS — et il est ici parce qu'une copie longue
+         durée qui s'arrête ne se voit PAR AUCUN AUTRE SIGNAL. La sauvegarde du jour continue
+         de réussir, `ageH` reste bon, `/health` reste vert, et on apprend six mois plus tard
+         que le dossier des deux ans est resté à février. Un nombre, jamais une clé ni un nom :
+         /health est publique. `null` = jamais faite, troisième état comme `configuree`. */
+      mensuelJ: etat.mensuel && etat.mensuel.ok ? Math.round((Date.now() - etat.mensuel.ts) / 86400000) : null };
   }
 
   if (app && garde) {
-    app.get('/api/monitor/sauvegarde/etat', garde, (req, res) => res.json({ ok: true, active: actif, garder: GARDER, heureUTC: HEURE, derniere: etat.derniere, histo: (etat.histo || []).slice(0, 20) }));
+    app.get('/api/monitor/sauvegarde/etat', garde, (req, res) => res.json({ ok: true, active: actif, garder: GARDER, heureUTC: HEURE,
+      derniere: etat.derniere, histo: (etat.histo || []).slice(0, 20),
+      /* ⛔ LA TOUR DOIT POUVOIR DIRE OÙ CHERCHER LA COPIE DU MOIS, ET CE QU'IL FAUT AVEC.
+         Un écran qui annonce « copie mensuelle : OK » sans dire que DEUX clés sont nécessaires
+         pour l'ouvrir ailleurs prépare exactement la mauvaise surprise : celle du jour où on en
+         a besoin. La phrase est donc servie par le serveur, pas réécrite dans la page. */
+      mensuel: MENSUEL ? Object.assign({ actif: true, prefixe: PREFIXE_MENSUEL, garder: MENSUEL_GARDER,
+        clesNecessaires: ['sauvegarde.cle (dans config.json)', 'la clé maître /etc/teamop/kek — PAS dans l\'archive'] },
+        etat.mensuel || { mois: null, ok: null }) : { actif: false } }));
     /* ⛔ LE try/catch N'EST PAS DÉCORATIF. Ce serveur n'a ni `unhandledRejection` ni middleware
        d'erreur : un rejet non traité dans une route `async` ARRÊTE LE PROCESSUS sous Node 22.
        `lancer()` avale tout aujourd'hui — mais faire dépendre la survie de l'API de la

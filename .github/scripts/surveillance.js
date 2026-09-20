@@ -95,7 +95,13 @@ function get(url) {
          Plus d'un : une nuit qui glisse n'est pas une panne, deux le sont. */
       if (j.sauvegarde.elagageEchecs > 1) problems.push('⛔ l\'élagage du coffre échoue depuis ' + j.sauvegarde.elagageEchecs + ' nuits — les vieilles archives ne sont plus supprimées, le coffre grossit sans fin. Le plus souvent : la clé d\'accès n\'a pas le droit de LISTER le bucket. journalctl -u teamop-api | grep sauvegarde');
       if (j.sauvegarde.instantaneEchecs > 0) problems.push('⛔ ' + j.sauvegarde.instantaneEchecs + ' base(s) d\'entreprise n\'ont PAS pu être copiées proprement dans la sauvegarde (copie brute à la place) — voir la Tour, aperçu de l\'espace. C\'est le signe d\'une base abîmée ou d\'une clé qui ne correspond plus.');
-    }
+      /* ⛔ LA COPIE MENSUELLE QUI S'ARRÊTE NE SE VOIT PAR AUCUN AUTRE SIGNAL. La sauvegarde du
+         jour continue de réussir, `ageH` reste bon, `/health` reste vert — et le dossier des
+         deux ans est resté à février. C'est la copie qu'on emporte sur une autre machine :
+         celle dont l'absence ne se découvre que le jour où le VPS n'est plus là.
+         40 jours, pas 31 : un mois de 31 jours plus une nuit qui glisse ne doit pas crier. */
+      if (j.sauvegarde.mensuelJ === null) { if (new Date().getUTCHours() === 9) problems.push('aucune copie MENSUELLE n\'a jamais été déposée — c\'est celle qu\'on emporte sur une autre machine. Tour → Surveillance, ou : journalctl -u teamop-api | grep mensuel'); }
+      else if (typeof j.sauvegarde.mensuelJ === 'number' && j.sauvegarde.mensuelJ > 40) problems.push('⛔ la dernière copie MENSUELLE date de ' + j.sauvegarde.mensuelJ + ' jours (plus de 40) — le dossier de conservation longue ne se remplit plus, pendant que la sauvegarde du jour, elle, continue de réussir. journalctl -u teamop-api | grep mensuel');    }
     /* ⛔ L'ÉCHÉANCE DU JETON GITHUB. Elle ne casse rien chez un client — le jeton ne sert qu'à
        « proposer un correctif » depuis la Tour — mais elle tombe en 401 sans prévenir personne,
        et on cherche une heure. Quinze jours d'avance suffisent à le remplacer tranquillement. */
