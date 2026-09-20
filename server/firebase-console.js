@@ -332,14 +332,27 @@ async function cmdDroits(tok) {
 
   /* 1. L'identité réelle du jeton. Le jeton est opaque : Google seul sait à qui il appartient,
      et c'est la seule façon de voir qu'un fichier de clé a été remplacé sous le même nom. */
-  let identite = '';
+  let identite = '', confirme = '';
   const ti = await api('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(tok), null, tok);
-  if (ti.statut === 200 && ti.j) identite = String(ti.j.email || '');
+  if (ti.statut === 200 && ti.j) {
+    identite = String(ti.j.email || '');
+    /* Sans la portée `userinfo.email`, Google ne rend PAS d'adresse pour un jeton de compte de
+       service — seulement son identifiant numérique. On ne va pas élargir la portée demandée
+       pour si peu : `client_id` est dans TOUT fichier de clé Google, et le comparer prouve
+       exactement ce qu'on veut savoir — le jeton appartient-il au compte écrit dans le
+       fichier ? C'est la même question, répondue sans toucher à l'échange de jeton, qui est
+       le chemin dont TOUTES les commandes dépendent. */
+    const num = String(ti.j.sub || ti.j.azp || ti.j.aud || '');
+    const attendu = String((cle && cle.client_id) || '');
+    if (!identite && num && attendu) confirme = num === attendu ? 'oui' : 'non';
+  }
   const affiche = identite || cle.client_email || '?';
   console.log('  compte de service : ' + affiche);
   if (identite && cle.client_email && identite !== cle.client_email)
     console.log('     ⛔ Google voit un AUTRE compte que celui écrit dans le fichier de clé (' + cle.client_email + ').');
-  if (!identite) console.log('     ⚠ identité non confirmée par Google — adresse lue dans le fichier de clé.');
+  else if (confirme === 'oui') console.log('     ✅ c\'est bien ce compte-là : Google connaît le jeton sous le même identifiant.');
+  else if (confirme === 'non') console.log('     ⛔ Google connaît ce jeton sous un AUTRE identifiant que celui du fichier de clé.');
+  else if (!identite) console.log('     ⚠ identité non confirmée par Google — adresse lue dans le fichier de clé.');
 
   /* 2. Le piège silencieux : viser un projet avec la clé d'un autre. La console montrerait
      alors des rôles bien ajoutés, sur une ligne que la demande ne présente jamais. */

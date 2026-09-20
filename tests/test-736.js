@@ -37,7 +37,7 @@ const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048,
 
 function poserCle(clientEmail, projectId) {
   const p = path.join(BAC, 'fb-admin.json');
-  fs.writeFileSync(p, JSON.stringify({ client_email: clientEmail, project_id: projectId, private_key: privateKey }));
+  fs.writeFileSync(p, JSON.stringify({ client_email: clientEmail, project_id: projectId, client_id: '104729384756102938475', private_key: privateKey }));
   return p;
 }
 function poserConfig(projectId) {
@@ -59,6 +59,7 @@ globalThis.fetch = async (url, opts) => {
      repondait un jeton d'acces a la demande d'identite, et le banc voyait vert la branche
      << identite non confirmee >> sans jamais exercer la bonne. */
   if (url.indexOf('oauth2.googleapis.com/tokeninfo') >= 0) {
+    if (S.tokeninfoSub) return rep(200, { sub: S.tokeninfoSub, scope: 'https://www.googleapis.com/auth/cloud-platform' });
     if (!S.tokeninfo) return rep(400, { error: 'invalid_token' });
     return rep(200, { email: S.tokeninfo });
   }
@@ -189,6 +190,24 @@ console.log('\n══ 2. « droits » MESURE, IL NE DEVINE PAS ══\n');
   const r = lancer('droits', { permissions: 'toutes' });   /* tokeninfo refuse */
   vrai("une identité non confirmée est signalée, pas tue", /identité non confirmée/.test(r.sortie));
   vrai("et on retombe sur l'adresse du fichier de clé", /firebase-adminsdk-fbsvc@elan-gestion/.test(r.sortie));
+}
+{
+  /* ⚠️ LE CAS RÉEL, MESURÉ SUR LE VPS LE 20 SEPTEMBRE 2026 : sans la portée `userinfo.email`,
+     Google ne rend PAS d'adresse pour un jeton de compte de service — seulement un identifiant
+     numérique. La commande répondait donc « identité non confirmée » à la seule question qu'elle
+     existe pour trancher. Élargir la portée aurait touché l'échange de jeton, dont TOUTES les
+     commandes dépendent, et que ce banc ne peut pas éprouver contre le vrai Google. `client_id`
+     est dans tout fichier de clé : le comparer répond à la même question sans rien risquer. */
+  const r = lancer('droits', { tokeninfoSub: '104729384756102938475', permissions: 'toutes' });
+  vrai("un jeton sans adresse est quand même confirmé par son identifiant",
+    /c'est bien ce compte-là/.test(r.sortie));
+  vrai("et on ne dit plus « non confirmée » dans ce cas", !/identité non confirmée/.test(r.sortie));
+}
+{
+  const r = lancer('droits', { tokeninfoSub: '999999999999999999999', permissions: 'toutes' });
+  vrai("un identifiant qui ne correspond pas est signalé",
+    /AUTRE identifiant que celui du fichier/.test(r.sortie));
+  vrai("et il n'est pas confondu avec une confirmation", !/c'est bien ce compte-là/.test(r.sortie));
 }
 {
   /* Si Google refuse de dire ce qu'on détient, la commande ne doit ni mentir ni tomber. */
