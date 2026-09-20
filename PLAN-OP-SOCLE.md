@@ -440,7 +440,13 @@ Une seule fausse = on ne bascule pas.
 
 ### Étape 8 — Retrait de Firestore
 
-⛔ **C'est la seule étape sans retour arrière.** Dans l'ordre : couper l'écriture Firestore ; retirer `syncAlleger` / `syncAllegerNuage` / `syncRegreffer` / `syncManque` / `COLLS_GARDEES` / `_syncTs` / `NUAGE_BUDGET` / `NUAGE_ENC_MAX` ; retirer `/api/fb/jeton`, `fbUidEquipe`, `fbRevoquerEquipe`, `firestore.rules` — **après** avoir vérifié que `/api/monitor/op/couper` est bien appelée par les quatre portes. Le document `elan_teams` se supprime **30 jours plus tard**, pas le jour même, et dans un commit séparé.
+⛔ **C'est la seule étape sans retour arrière.** Dans l'ordre : couper l'écriture Firestore ; retirer `syncAlleger` / `syncAllegerNuage` / `syncRegreffer` / `syncManque` / `COLLS_GARDEES` / `_syncTs` / `NUAGE_BUDGET` / `NUAGE_ENC_MAX` ; retirer `/api/fb/jeton`, `fbUidEquipe`, `fbRevoquerEquipe` — **après** avoir vérifié que `/api/monitor/op/couper` est bien appelée par les quatre portes.
+
+⛔ **ET SURTOUT PAS `firestore.rules`. CE FICHIER NE SE SUPPRIME PAS — ON N'EN RETIRE QUE DEUX BLOCS**, `match /elan_teams` et `match /elanB_teams`. Cette ligne a dit le contraire jusqu'au 20 septembre 2026, et la correction vivait 200 lignes plus bas, dans l'audit (point 5) — c'est-à-dire nulle part pour qui exécute l'étape en la lisant. **Le même fichier gouverne le PORTAIL CLIENT** : `espace.html` tourne entièrement sur le projet `elan-gestion` (`firebase.auth()` + `teamop_requests` / `teamop_threads` / `teamop_news`, `firestore.rules:44, 50, 59`), et c'est aussi la fabrique de contrat. Le supprimer refuserait toutes ces collections d'un coup, le jour même, sans retour arrière — l'étape 8 étant justement la seule qui n'en a pas.
+
+⛔ **ET FIREBASE NE S'ÉTEINT PAS : OP MESSAGES VIT DESSUS**, sur un SECOND projet, avec ses propres règles (`firestore-opmessages.rules` — `op_users`, `op_companies`, `op_channels`, `op_calls`) et 12 200 lignes de `messages.html`. Rien dans ce plan ne le touche, et rien ne doit le toucher. Ce qui quitte Firestore à l'étape 8, c'est **la base d'OP GESTION, et elle seule.**
+
+⚠️ **Conséquence juridique, à ne pas inverser** : §5 disait de supprimer la ligne Google Ireland de `sous-traitance.html:162-166`. **C'est faux.** Google reste sous-traitant — pour le portail client et pour OP MESSAGES. On **réduit le périmètre déclaré** à ces deux-là, on ne retire pas le sous-traitant. Idem `mentions-legales.html:52`, à réécrire en distinguant les applications. Le document `elan_teams` se supprime **30 jours plus tard**, pas le jour même, et dans un commit séparé.
 
 ⛔ **La clé d'équipe NE SE RETIRE PAS du client.** Ce n'est plus la clé de chiffrement, mais c'est la preuve d'identité de six routes (`sauvRefus` `server/index.js:2584`, `/api/espaces/comptes`, `/api/espaces/lien`). Un « nettoyage » couperait l'authentification de six routes d'un coup.
 
