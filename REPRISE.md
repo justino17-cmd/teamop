@@ -5149,3 +5149,75 @@ relecture ne les aurait vues — les trois fichiers se lisent très bien.
 - **G** est préparé, éprouvé, et **branché sur rien** — `test-742` le vérifie, et ce contrôle
   tombera le jour où on branchera l'étape. C'est son rôle.
 
+
+---
+
+# 🌙 SUITE DE LA NUIT — LE FILTRE DE LECTURE ET L'HORLOGE DES 24 MOIS
+
+**Mesures finales : 102 suites · 4 226 vérifications, code de sortie 0.**
+27 pages / 50 blocs `<script>` / 0 en erreur · `verif-secrets.sh` : code 0 · sonde navigateur
+`reinit.html` : 10 ✓ 0 ✗.
+
+## ✅ ÉTAPE A — LE BLOCAGE DES 88,5 % EST LEVÉ
+
+`/api/op/depuis?coll=a,b,c` : l'application dit ce qu'elle sait lire et ne paie que ça.
+**Mesuré : 84 Ko → 10 Ko, 87,9 % d'économie**, et l'appareil de messagerie reçoit
+60 documents au lieu de 360.
+
+- Le filtre est dans le `WHERE`, et **les DEUX requêtes le portent** — celle qui lit comme
+  celle qui compte. Un `reste` non filtré dirait à un appareil de messagerie qu'il lui reste
+  300 fiches produit : il repagerait pour rien, éternellement, sur un écran de chargement.
+- ⛔ **La vraie garde n'est pas l'économie, c'est ce que le filtre pourrait cacher.** Une
+  collection oubliée = un écran vide, en silence. `tests/test-744.js` extrait tous les
+  `.collection('…')` de `messages.html` et exige l'égalité STRICTE avec la liste déclarée dans
+  `op-fs.js`, dans les deux sens. Mesuré avant d'écrire une ligne : **200 appels, 200 littéraux,
+  zéro dynamique** — sans ça le filtre n'aurait pas été écrit, parce qu'aucun banc ne peut voir
+  un nom calculé. ⚠️ **Si ce contrôle tombe un jour, le filtre se RETIRE, il ne se rafistole pas.**
+- Sûr pour un parc mélangé : sans `coll`, la requête est rigoureusement celle d'avant.
+  L'allègement est **demandé par l'appareil**, jamais imposé par le serveur.
+
+⚠️ **Ce qui reste à faire pour A** : `messages.html` n'appelle toujours pas `opFs()` — le
+câblage de l'étape A n'est pas fait. La liste des genres existe et est gardée **avant** le
+câblage, exprès : elle ne pourra pas être oubliée.
+
+## ✅ LES 24 MOIS DES CGV — L'HORLOGE EXISTE (ET RIEN D'AUTRE)
+
+`mentions-legales.html` article 5 promet 24 mois puis suppression, avec préavis à 30 jours.
+**Rien ne le comptait.** `server/conservation.js` tient l'horloge — et **ne supprime rien,
+n'envoie aucun courriel**. Les deux s'allumeront seuls, sur décision de Justin :
+
+- supprimer automatiquement la base d'un client est la chose la plus dangereuse qu'on puisse
+  écrire ici ;
+- et un préavis qui annonce une suppression qui n'existe pas est un mensonge à un client.
+
+Ce qui était urgent : **la date ne se rattrape pas.** `tests/test-745.js` (65 contrôles) garde
+aussi, explicitement, que ce module ne contienne AUCUN chemin d'effacement — ce contrôle tombera
+le jour où la suppression s'écrira, et c'est son rôle.
+
+### ⛔⛔ TROIS DÉFAUTS DE MON PROPRE CODE, TOUS TROUVÉS EN MESURANT
+
+| défaut | ce qu'il faisait | comment il a été trouvé |
+|---|---|---|
+| `espacePaye()` est **async**, je ne l'attendais pas | `!!promesse.paye` = **faux pour tout le monde** → une horloge de suppression sur **chaque entreprise, même à jour** | sonde navigateur sur le vrai serveur |
+| **zone morte temporelle** (montage 1 700 lignes au-dessus d'`ESPACES_INTOUCHABLES`) | le balayage jetait, ne datait RIEN, et `/health` disait `actif:true, suivis:0` | la même sonde |
+| entrée **brute** du registre passée à `espacePaye` (sans `slug`) | « ne paie pas » sur une entreprise à jour | **`test-727`**, un banc écrit pour ce défaut exact deux jours plus tôt |
+
+⚠️ **Le banc était VERT pendant le premier.** Son `lister()` était synchrone : il ne jouait pas
+la forme réelle. *La question n'était pas « le code est-il bon ? » mais « qu'est-ce que le banc
+ne joue pas ? ».*
+
+⚠️ **Et `typeof` ne garde pas d'une zone morte** : sur une `const` en TDZ, `typeof` **jette
+aussi**, contrairement à une variable non déclarée. La seule réparation honnête est l'ORDRE.
+
+⚠️ **Le silence du deuxième était pire que le deuxième.** `sante().balayageOk` porte désormais
+l'état du dernier balayage, et la surveillance crie dessus — une horloge arrêtée ressemble
+exactement à une horloge qui n'a rien à faire.
+
+### Ce qui attend Justin sur ce chantier
+
+1. ⛔ **La suppression elle-même** — et avec elle le courriel de préavis. Les deux ensemble,
+   jamais l'un sans l'autre.
+2. ⛔ **Un espace qui n'a JAMAIS eu d'abonnement** (créé, plan pas encore choisi) : les CGV
+   parlent de « 24 mois après la **fin** de l'abonnement », et il n'y a pas de fin. Le module
+   ne tranche pas — il **garde le motif** (`jamaisAbonne`), parce que l'information ne se
+   retrouve plus après coup. La règle est à écrire.

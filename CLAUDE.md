@@ -47,7 +47,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**100 suites dans `tests/`**, sans dépendance ni installation (recompté le 21 septembre 2026 —
+**102 suites dans `tests/`**, sans dépendance ni installation (recompté le 21 septembre 2026 —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -60,6 +60,7 @@ Quatre familles visent `server/`, et elles ne se remplacent pas :
 | `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces du SERVEUR sont branchées |
 | `test-735` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
 | `test-740`, `test-741` | les fonctions RÉELLES d'`espace.html` et de `reinit.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent |
+| `test-744` | le VRAI `op-fs.js` contre le vrai serveur, deux appareils | que le filtre de lecture ne CACHE rien |
 
 ⛔ Les deux dernières lignes existent parce que les deux premières ne peuvent pas voir un défaut
 de CÂBLAGE — et c'est là que naissent les pires. Le 19 septembre 2026, une seule expression
@@ -112,7 +113,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 100 suites · 4 120 vérifications (mesuré le 21/09/2026, nuit)
+bash scripts/bancs-ci.sh        # 102 suites · 4 226 vérifications (mesuré le 21/09/2026, nuit)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
