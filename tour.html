@@ -451,6 +451,27 @@ input.inp,select.sel-f{display:block;line-height:normal}
    32 px entre deux groupes contre 10 px entre deux clientes et 0 px (un filet) dans un bloc :
    un rapport de 1 à 3 à 32. Les six pixels identiques d'avant ne disaient rien du tout. */
 .reg{display:flex;flex-direction:column;gap:32px}
+/* ⛔⛔ `.lg` ET `.note-ambre` N'EXISTAIENT PAS, ET J'AI CRU LE CONTRAIRE EN CHERCHANT LE MAUVAIS
+   CÔTÉ. Le 20 septembre 2026, ces deux classes ont été écrites dans `vueDonnees` puis
+   « vérifiées » par un `grep class="lg"` qui a rendu neuf lignes — les neuf usages, tous à moi.
+   Aucune règle ne les définissait. Ce que ça donnait à l'écran : les neuf lignes de l'état de
+   sauvegarde se lisaient collées (« Dernière nuitRéussie · 20/09/2026 »), et surtout les DEUX
+   avertissements qui précèdent une écriture dans la base d'un client retombaient sur `.note`
+   — 12 px, gris `--dim`, discret. L'avertissement qui doit arrêter la main, rendu en petits
+   caractères gris.
+   ⚠️ La leçon est celle de `CLAUDE.md` sur les motifs de banc, appliquée au CSS : chercher
+   l'USAGE d'un nom ne prouve rien, c'est sa DÉFINITION qu'il faut voir. Un `grep '\.lg{'`
+   aurait rendu vide en une seconde. */
+.lg{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  min-height:34px;padding:7px 0;border-bottom:1px solid var(--hairline)}
+.lg:last-child{border-bottom:0}
+.lg>span{color:var(--muted);font-size:13px}
+.lg>b{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
+/* L'ambre PORTE un mot, il ne le remplace pas : le texte dit déjà « ne peuvent pas être
+   ramenés ». La couleur ne fait que le rendre impossible à survoler. */
+.note-ambre{color:var(--amberText,var(--amber));background:var(--ambreBg,transparent);
+  border-left:3px solid var(--amber);padding:10px 12px;border-radius:var(--r-1,6px);font-size:13px}
+
 /* ══ Données — le retour en arrière ══ Le plancher tactile vient de `.btn-plein`/`.inp`
    (ligne « min-height:44px » plus haut) ; ici on ne règle que ce qui leur est propre.
    ⛔ La case à cocher fait 13 px et ne fera jamais 44 : la cible, c'est son LIBELLÉ. */
@@ -7895,9 +7916,18 @@ function vueDonnees(){
     /* ⛔ UN CORPS PURGÉ SE NOMME, IL NE SE SAUTE PAS. Au-delà de 90 jours le contenu est vidé :
        un retour qui traverse cette frontière ne PEUT PAS rendre ces enregistrements, et les
        sauter en silence rendrait un retour partiel présenté comme complet. */
-    var alerte=a.nIllisibles?'<div class="note note-ambre"><b>'+a.nIllisibles+' enregistrement(s) ne peuvent pas être ramenés</b> — leur contenu a été purgé (90 jours). On sait qu’ils ont changé, pas ce qu’ils contenaient. '+
-      '<label class="don-coche"><input type="checkbox" '+(DON.sansIllisibles?'checked':'')+' onchange="DON.sansIllisibles=this.checked"> Revenir quand même, <b>sans eux</b></label></div>':'';
+    /* ⛔ LA CASE COUVRE LES DEUX REFUS DU SERVEUR, PAS UN SEUL. `retourAppliquer` exige
+       `sansLesIllisibles:true` pour passer outre `nIllisibles` ET `troploin` (socle.js). La
+       case ne s'affichait que sur le premier. Or `troploin` sans `nIllisibles` est atteignable :
+       si les seules lignes concernées à cet instant sont des TOMBES, elles sortent de la boucle
+       avant d'être comptées comme illisibles. Dans ce cas l'écran affichait l'avertissement et
+       AUCUNE case — « Appliquer le retour » échouait en 409 pour toujours, sans recours visible.
+       Un écran qui montre un refus sans montrer comment le lever est un écran qui bloque. */
     var trop=a.troploin?'<div class="note note-ambre">Cet instant est <b>plus ancien que le plus vieux contenu gardé</b> ('+(a.corpsDepuis?esc(new Date(a.corpsDepuis).toLocaleString('fr-FR')):'—')+'). Le retour serait très partiel.</div>':'';
+    var quoiDeBloquant=a.nIllisibles?(a.nIllisibles+' enregistrement(s) ne peuvent pas être ramenés</b> — leur contenu a été purgé (90 jours). On sait qu’ils ont changé, pas ce qu’ils contenaient.')
+      :('Une partie de ce retour est hors de portée</b> — l’instant visé précède le plus vieux contenu gardé.');
+    var alerte=(a.nIllisibles||a.troploin)?'<div class="note note-ambre"><b>'+quoiDeBloquant+' '+
+      '<label class="don-coche"><input type="checkbox" '+(DON.sansIllisibles?'checked':'')+' onchange="DON.sansIllisibles=this.checked"> Revenir quand même, <b>sans eux</b></label></div>':'';
     var porte=!DON.codeEnvoye
       ? '<button type="button" class="btn-plein danger" onclick="donDemanderCode()">Demander le code à l’entreprise</button>'
         +'<div class="sous">Un code à six chiffres part à l’adresse enregistrée de l’entreprise, avec la date visée et ces nombres. Rien n’est écrit tant qu’il n’est pas saisi ici.</div>'

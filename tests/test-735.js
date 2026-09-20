@@ -1105,6 +1105,48 @@ function basePetite(m) {
     /* ⚠️ Une attestation ne porte que des nombres — jamais un contenu. */
     v('⛔ aucune donnée de client dans les attestations',
       /Niort|Client |La Rochelle/.test(JSON.stringify(e2.attestations)), false);
+
+    /* ══ ⛔⛔ LA RELECTURE SE DÉCLENCHE-T-ELLE TOUTE SEULE ? ════════════════════════════════
+       Ce contrôle existe parce que la réponse était NON pendant deux jours. `opRelecture` et
+       `opAttester` ont été écrites, éprouvées par les contrôles ci-dessus, documentées comme
+       « la dernière vérification avant le retrait de Firestore » — et AUCUN appelant. Les bancs
+       les exerçaient DIRECTEMENT (`api.opRelecture(...)`), ce qui prouve la logique et rien du
+       câblage : le défaut est passé par la seule porte que ce fichier existe pour garder.
+       ⚠️ La leçon de méthode : appeler une fonction dans un banc ne prouve pas que l'application
+       l'appelle. Quand un banc ne gagne AUCUN contrôle après un câblage, c'est que le câblage
+       n'est gardé par personne. */
+    {
+      const stockA = stockNeuf(), dbA = { clients: [{ id: 'auto1', nom: 'Auto', _m: Date.now() }] };
+      const apiA = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
+        'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math', 'indexedDB',
+        code + '\nreturn {opSoclePousser,opSocleLire,opSocleSession};')
+        (compte, stockA, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-auto-relu',
+         (motif) => diagnostics.push(motif), 703, { id: 'u-auto' }, dbA,
+         { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math, idb);
+
+      /* La pousse prend la photo — c'est elle que la relecture comparera. */
+      await apiA.opSoclePousser();
+      const attAvant = (await etat()).attestations.length;
+      await apiA.opSocleLire();
+      /* La relecture est DÉTACHÉE exprès (elle ne doit pas retenir la lecture qui la déclenche).
+         On lui laisse le temps de finir avant de regarder — sans quoi ce contrôle mesurerait
+         l'ordonnanceur, pas le câblage. */
+      for (let i = 0; i < 40 && (await etat()).attestations.length === attAvant; i++) await dormir(100);
+      const e = await etat();
+      vrai('⛔ LIRE le socle déclenche la relecture tout seul', e.attestations.some(a => a.dev === 'dev-auto-relu'));
+      const mienne = e.attestations.find(a => a.dev === 'dev-auto-relu') || {};
+      vrai('   et elle a bien comparé — pas une attestation vide', !!mienne.photoSig);
+      vrai('   le drapeau est posé sur l\'appareil', !!stockA.getItem('elan_op_relu_' + T));
+
+      /* ⛔ UNE SEULE FOIS. Elle retélécharge TOUTE la base : la rejouer à chaque lecture
+         coûterait une synchro complète pour rien, sur un téléphone en 4G. */
+      const tsAvant = mienne.ts;
+      await apiA.opSocleLire();
+      await dormir(400);
+      const e2 = await etat();
+      const apres = e2.attestations.find(a => a.dev === 'dev-auto-relu') || {};
+      v('⛔ une seconde lecture ne la rejoue PAS', apres.ts, tsAvant);
+    }
   }
 
   /* ══ (p) REVENIR EN ARRIÈRE — UNE ENTREPRISE, PAS TOUTES ════════════════════════════════

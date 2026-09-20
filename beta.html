@@ -8570,6 +8570,37 @@ async function opSocleLireVraiment() {
       try { if (typeof render === 'function') render(); } catch (e) {}
     }
     if (illisibles) { try { console.warn('socle : ' + illisibles + ' ligne(s) illisible(s) à la lecture'); } catch (e) {} }
+
+    /* ⛔⛔ LA RELECTURE DE L'ÉTAPE 7 SE DÉCLENCHE ICI, ET ELLE NE SE DÉCLENCHAIT NULLE PART.
+       Relevé le 20 septembre 2026 par la relecture du diff : `opRelecture` et `opAttester`
+       étaient écrites, éprouvées par `test-735`, documentées comme « la dernière vérification
+       avant le retrait de Firestore » — et AUCUN appelant. Le banc les exerçait directement,
+       ce qui teste la logique et ne prouve rien du câblage : c'est exactement le défaut que
+       `test-735` existe pour attraper, passé par la porte que ce banc ne regarde pas.
+       Un garde-fou que personne n'appelle n'est pas un garde-fou, c'est du code mort qui en a
+       l'air — la règle est déjà écrite dans CLAUDE.md à propos des champs de `/health`.
+
+       ⛔ APRÈS LA LECTURE, PAS AVANT : la relecture compare le socle à la PHOTO prise avant la
+       bascule. Elle n'a de sens qu'une fois que cet appareil lit vraiment le socle.
+       ⛔ UNE SEULE FOIS PAR APPAREIL ET PAR ESPACE. Elle retélécharge TOUTE la base dans un
+       objet neuf : la rejouer à chaque lecture coûterait, sur un téléphone en 4G, le prix d'une
+       synchro complète pour rien. Le drapeau est dans `localStorage`, comme celui du contrôle.
+       ⚠️ Et elle n'écrit RIEN dans `db` — c'est éprouvé par `test-735` (« `db` est INTACT après
+       une relecture »). Elle ne dépose qu'une attestation de NOMBRES sur le serveur. La règle
+       « rien ne s'écrit au seul chargement » est donc tenue. */
+    if (applique || lues) {
+      try {
+        const relCle = 'elanB_op_relu_' + s.t;
+        if (!localStorage.getItem(relCle)) {
+          localStorage.setItem(relCle, String(Date.now()));
+          /* Détachée : une relecture qui traîne ne doit pas retenir la lecture qui l'a
+             déclenchée, ni faire échouer une synchro si elle-même échoue. */
+          Promise.resolve().then(() => opRelecture()).then(r => {
+            try { if (r && r.erreur) console.warn('relecture : ' + r.erreur); } catch (e) {}
+          }).catch(() => {});
+        }
+      } catch (e) {}
+    }
     return { lues, pages, illisibles, curseur };
   } catch (e) { return null; }
 }
