@@ -48,8 +48,18 @@ v('… et quoi faire si ce n\'est pas toi', /N\\'ENVOIE PAS CE CODE et préviens
    RÈGLE, et on exige en plus qu'il n'y ait toujours qu'UNE réserve de codes. */
 v('cinq essais puis le code meurt', /c\.tries\+\+; if \(c\.tries >= 5\) cleCodes\.delete\(sujet\)/.test(SRV), true);
 v('dix minutes de validité', /exp: Date\.now\(\) \+ 10 \* 60000/.test(SRV) && /cleCodes\.set\(sujet, \{ code, exp/.test(SRV), true);
+/* ⚠️ ANCRÉ SUR LA RÈGLE, PAS SUR LA FORME — et ce motif est tombé le jour même où le code a
+   appris à EMPORTER les nombres du consentement (`return { ok: true, garde }`). La règle gardée
+   est « un code juste est consommé » : c'est le `delete` avant le retour réussi qui la porte,
+   pas la liste exacte des champs rendus. Un motif qui décrit une forme tombe à la première
+   évolution, et fait croire à une régression qui n'existe pas. */
 v('⛔ et un code JUSTE se consomme — sinon il vaut dix usages pendant dix minutes',
-  /cleCodes\.delete\(sujet\);\s*\n\s*return \{ ok: true \};/.test(SRV), true);
+  /cleCodes\.delete\(sujet\);\s*\n\s*return \{ ok: true[,}]/.test(SRV), true);
+/* ⛔ ET CE QUE LE CODE EMPORTE LUI REVIENT : sans ça, l'appelant ne peut comparer l'instant
+   présent qu'à lui-même — deux valeurs identiques par construction, donc un contrôle qui ne
+   peut jamais se déclencher. C'est le défaut qu'a eu la première version du garde-fou d'écart. */
+v('⛔ le code emporte ce sur quoi on a consenti, et le rend',
+  /tries: 0, garde: garde \|\| null/.test(SRV) && /const garde = c\.garde \|\| null;/.test(SRV), true);
 /* ⛔ UNE SEULE RÉSERVE DE CODES. Un second `Map` pour le retour voudrait dire deux expirations,
    deux compteurs d'essais, deux ménages — donc, un jour, un code qui n'expire pas quelque part.
    Les usages se distinguent par un PRÉFIXE de sujet, jamais par une réserve de plus. */

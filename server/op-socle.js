@@ -742,7 +742,9 @@ function monterOpSocle(app, deps) {
             + (ap.nIllisibles ? '\n⚠️ ' + ap.nIllisibles + ' enregistrement(s) ne peuvent PAS être ramenés (trop anciens).' : '')
             + '\n\nCode de confirmation : ' + code
             + '\n\nValable 10 minutes.\n\n⛔ Si ce n\'est pas convenu avec toi, N\'ENVOIE PAS CE CODE et préviens TEAM OP.'
-            + '\n\n— TEAM OP · teamop.fr' }));
+            + '\n\n— TEAM OP · teamop.fr' }),
+          /* Ce que le code emporte : les nombres exacts sur lesquels l'accord est donné. */
+          { promis: (ap.nRestaurer || 0) + (ap.nEnterrer || 0) });
       } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
       return res.json({ ok: true, codeEnvoye: true, apercu: ap });
     }
@@ -781,6 +783,23 @@ function monterOpSocle(app, deps) {
         motif: 'retour en arrière au ' + new Date(instant).toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
         portee: 'revenir', n: (ap.nRestaurer || 0) + (ap.nEnterrer || 0), ipH: hachIp(req) });
     } catch (e) { return res.status(503).json({ error: 'journal indisponible — retour refusé' }); }
+
+    /* ⛔⛔ LE CONSENTEMENT PORTE SUR DES NOMBRES, ET ILS PEUVENT AVOIR BOUGÉ. Le courriel annonce
+       les nombres calculés à la demande du code ; le retour, lui, s'applique jusqu'à DIX MINUTES
+       plus tard, et entre les deux trente techniciens ont pu travailler. Un écart de quelques
+       fiches est normal ; un écart qui DOUBLE veut dire que la personne a autorisé autre chose
+       que ce qui va se passer.
+       ⚠️ ET LA COMPARAISON N'A DE SENS QUE PARCE QUE LE CODE EMPORTE LES NOMBRES. Une première
+       version recalculait un aperçu ici et le comparait à `ap` — c'est-à-dire l'aperçu de CETTE
+       requête à lui-même : deux valeurs identiques par construction, donc un contrôle qui ne
+       pouvait jamais se déclencher. C'est `cleCodeVerifier` qui rend ce qui a été promis. */
+    const promis = (verdict.garde && verdict.garde.promis) || 0;
+    const reel = (ap.nRestaurer || 0) + (ap.nEnterrer || 0);
+    if (promis && (reel > promis * 2 || reel < promis / 2)) {
+      return res.status(409).json({ error: 'la base a trop changé depuis l\'envoi du code ('
+        + promis + ' enregistrement(s) annoncés, ' + reel + ' maintenant) — redemande un code pour confirmer sur les nombres à jour',
+        annonces: promis, maintenant: reel, apercu: ap });
+    }
 
     let r;
     try { r = await socle.retourAppliquer(t, instant, { utilisateur: monStr(b.par, 40) || 'tour', ver: 'tour', sansLesIllisibles: b.sansLesIllisibles === true }); }

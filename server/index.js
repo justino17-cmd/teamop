@@ -2832,7 +2832,11 @@ const cleCodes = new Map();   // 't' -> { code, exp, tries }
 function cleCodeMenage() {
   if (cleCodes.size > 500) for (const [k, v] of cleCodes) if (Date.now() > v.exp) cleCodes.delete(k);
 }
-async function cleCodeDemander(sujet, dest, mail) {
+/* `garde` est ce que le code EMPORTE avec lui : les nombres exacts sur lesquels la personne
+   donne son accord. `cleCodeVerifier` les rend, pour qu'on puisse vérifier que le monde n'a pas
+   changé entre l'envoi et l'usage. Sans ça, l'appelant ne peut que recomparer l'instant présent
+   à lui-même — ce qui ne compare rien. */
+async function cleCodeDemander(sujet, dest, mail, garde) {
   cleCodeMenage();
   const code = String(crypto.randomInt(100000, 1000000));
   /* ⛔ JAMAIS LE CODE AU JOURNAL. `trace` nomme le geste et l'espace tronqué, rien d'autre —
@@ -2844,7 +2848,7 @@ async function cleCodeDemander(sujet, dest, mail) {
      pendant une panne de courriel invalidait donc, en silence, le code que la personne avait
      sous les yeux. Aucun risque de sécurité (le code est indevinable), mais une manœuvre
      impossible à comprendre pour qui la subit. */
-  cleCodes.set(sujet, { code, exp: Date.now() + 10 * 60000, tries: 0 });
+  cleCodes.set(sujet, { code, exp: Date.now() + 10 * 60000, tries: 0, garde: garde || null });
   return { ok: true };
 }
 /* ⛔ CINQ ESSAIS PUIS LA RÉSERVE SE VIDE POUR CE SUJET : un million de combinaisons se
@@ -2854,8 +2858,9 @@ function cleCodeVerifier(sujet, recu) {
   const c = cleCodes.get(sujet);
   if (!c || Date.now() > c.exp) { cleCodes.delete(sujet); return { code: 400, error: 'code expiré — recommence' }; }
   if (c.code !== String(recu || '')) { c.tries++; if (c.tries >= 5) cleCodes.delete(sujet); return { code: 400, error: 'code incorrect' }; }
+  const garde = c.garde || null;
   cleCodes.delete(sujet);
-  return { ok: true };
+  return { ok: true, garde };
 }
 app.post('/api/espaces/cle/code', async (req, res) => {
   const b = req.body || {}; const t = monStr(b.t, 80), kh = monStr(b.kh, 64).toLowerCase();

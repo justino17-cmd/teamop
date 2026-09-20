@@ -58,12 +58,47 @@ pendant 90 jours. Pas besoin d'une photo par heure — on a la seconde près.
 - **Le retour ne fait rien tant que le socle n'est pas la source de lecture** d'une entreprise :
   il écrit dans le socle, que les appareils ne lisent que si `lecture: socle` est posé pour elle.
   Aujourd'hui, personne.
+- ✅ **Constaté sur le VPS le 20 septembre 2026** : `/etc/teamop/kek` **n'existe pas**, aucune
+  base dans `/opt/teamop/data/socle`, et `socle.actif` vaut **false**. Le socle n'a donc JAMAIS
+  été allumé en production — tout ce qui précède est inerte chez les clients, et le restera
+  jusqu'à un geste délibéré. La sauvegarde hors site, elle, EST réglée (`sauvegarde.cle`
+  présente, 64 caractères, coffre configuré).
+  ⚠️ Conséquence pratique : **une seule clé à mettre à l'abri aujourd'hui**, `sauvegarde.cle`.
+  La clé maître n'existera qu'au premier `poser-cle.js`, qui l'affichera une fois.
 - ⛔⛔ **Une archive transférée ailleurs exige DEUX clés** : `sauvegarde.cle` (dans `config.json`,
   donc dans l'archive — à garder AILLEURS) **et** la clé maître `/etc/teamop/kek`, qui vit hors
   de `/opt` exprès et n'est donc **PAS dans l'archive**. Avec la première seule : `config.json`,
   les pièces jointes, des SQLite qui s'ouvrent parfaitement, et **pas une ligne de données
   client**. → **Action pour Justin : ranger ces deux clés hors du VPS** avant d'emporter une
   copie mensuelle.
+
+**Relu par `gardien` et `relecteur` le 20 septembre au soir, avant toute publication.** Douze
+trouvailles, toutes corrigées et éprouvées. Les trois qui comptent, parce qu'elles disent
+quelque chose de général :
+
+- ⛔ **Le code à six chiffres n'était pas un second facteur** : sans budget anti-abus,
+  ~500 essais/min sous le seul plafond global, les 900 000 combinaisons en 30 heures — et
+  150 000 courriels au client au passage. Dire « c'est derrière `monPatronStrict` » était
+  circulaire : le code existe précisément pour doubler `monPatronStrict`. 12/h, comme
+  `/api/espaces/cle/code`, et pour la même raison.
+- ⛔ **La seule route qui écrive dans la base d'un client ne laissait aucune ligne opposable.**
+  L'asymétrie était frappante : LIRE l'historique d'un enregistrement exige une session de
+  diagnostic, un motif et laisse une ligne chaînée ; RÉÉCRIRE la base entière n'exigeait rien.
+  La trace passe maintenant avant l'écriture — si le journal n'écrit pas, on n'écrit pas.
+- ⛔ **`opRelecture` (étape 7) était écrite, éprouvée, documentée, et appelée par personne.**
+  Les bancs l'exerçaient directement, ce qui prouve la logique et rien du câblage. Le signe
+  qui ne trompe pas, et qui vaut pour la suite : **après le câblage, le banc rendait le MÊME
+  chiffre qu'avant.** Un câblage qui ne gagne aucun contrôle n'est gardé par personne.
+
+**Mesuré, et à connaître avant d'allumer le socle chez quelqu'un :**
+
+| geste | base d'ELAN (3 000) | 20 000 fiches |
+|---|---|---|
+| aperçu d'un retour | 119 ms · **gel 37 ms** | 590 ms · **gel 187 ms** |
+| retour appliqué | ~500 ms · **gel 55 ms** | ~1 700 ms · **gel 181 ms** |
+
+Le total ne bouge pas, il est rendu par morceaux. Ce qui reste est un balayage SQL indivisible
+qui grandit avec la base : **à 30 000 lignes, il faudra y revenir.**
 
 **Reste à faire :** les écrans de la Tour pour les cinq conditions de l'étape 5, les
 attestations de l'étape 7, et l'aperçu par espace — les routes répondent, personne ne les

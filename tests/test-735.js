@@ -1294,6 +1294,60 @@ function basePetite(m) {
        journal comme le reste. */
     const hist = await apercu(SAIN);
     vrai('⛔ le retour est tracé, avec sa date et ses nombres', (hist.j.retours || []).some(x => x.instant === SAIN && x.restaures >= 2));
+
+    /* ══ ⛔⛔ LE CONSENTEMENT PORTE SUR DES NOMBRES, ET ILS PEUVENT AVOIR BOUGÉ ═══════════
+       Le courriel annonce « N enregistrements reprendraient leur ancienne valeur » ; le retour
+       recalcule jusqu'à DIX MINUTES plus tard. Entre les deux, trente techniciens ont pu
+       travailler. Un écart de quelques fiches est normal ; un écart qui DOUBLE veut dire que la
+       personne a autorisé autre chose que ce qui va se passer. */
+    {
+      const stockE = stockNeuf(), dbE = {};
+      const apiE = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
+        'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math', 'indexedDB',
+        code + '\nreturn {opSoclePousser,opSocleSession};')
+        (compte, stockE, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-ecart',
+         (motif) => diagnostics.push(motif), 703, { id: 'u-ecart' }, dbE,
+         { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math, idb);
+
+      dbE.clients = Array.from({ length: 6 }, (_, i) => ({ id: 'ec' + i, nom: 'Avant ' + i, _m: Date.now() }));
+      await apiE.opSoclePousser();
+      await dormir(1100);
+      const SAIN_E = Date.now();
+      await dormir(1100);
+      dbE.clients.forEach((c, i) => { c.nom = 'Cassé ' + i; c._m = Date.now(); });
+      await apiE.opSoclePousser();
+
+      /* On demande le code sur CES nombres-là. */
+      const dem = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: SAIN_E } });
+      v('le code part sur les nombres du moment', dem.code, 200);
+      const promis = (dem.j.apercu || {}).nRestaurer;
+      vrai('   et il y avait bien du travail annoncé', promis >= 6);
+      const codeE = POSTE.code();
+
+      /* ⚠️ « BEAUCOUP » SE MESURE PAR RAPPORT À CE QUI ÉTAIT ANNONCÉ, et ce banc s'est trompé
+         d'échelle en premier : l'espace porte déjà ~900 fiches des sections précédentes, donc
+         `promis` valait 913 et les trente fiches que j'ajoutais d'abord ne faisaient pas un
+         doublement — 3 % d'écart. La garde avait raison de laisser passer. On dépasse donc
+         vraiment le seuil, sinon on mesure une règle qu'on n'a pas déclenchée. */
+      dbE.clients = dbE.clients.concat(Array.from({ length: Math.max(60, promis + 50) },
+        (_, i) => ({ id: 'ap' + i, nom: 'Après le code ' + i, _m: Date.now() })));
+      await apiE.opSoclePousser();
+
+      const tard = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: SAIN_E, code: codeE } });
+      v('⛔ un écart qui DOUBLE fait refuser, avant d\'écrire', tard.code, 409);
+      vrai('   et le refus donne LES DEUX chiffres', tard.j && tard.j.annonces === promis && tard.j.maintenant > promis);
+      /* ⚠️ LE CONTRE-TEST, et il compte autant : un écart NORMAL ne doit pas bloquer. Un contrôle
+         qui refuse dès qu'une fiche bouge rendrait le retour inutilisable sur une entreprise qui
+         travaille — c'est-à-dire sur toutes. */
+      const dem2 = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: SAIN_E } });
+      v('   on redemande un code sur les nombres à jour', dem2.code, 200);
+      const code2 = POSTE.code();
+      dbE.clients.push({ id: 'une-seule-de-plus', nom: 'Une fiche de plus', _m: Date.now() });
+      await apiE.opSoclePousser();
+      const ok2 = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: SAIN_E, code: code2 } });
+      v('⛔ … mais UNE fiche de plus ne bloque pas', ok2.code, 200);
+      vrai('   et le retour a bien eu lieu', ok2.j && ok2.j.restaures >= 6);
+    }
   }
   /* ══ (i) LE SERVEUR TOMBE : LA SYNCHRO DE L'ENTREPRISE NE DOIT PAS LE SENTIR ══════════════
      ⛔ C'est la seule règle qui compte vraiment de tout l'étage. Une synchro d'entreprise qui
