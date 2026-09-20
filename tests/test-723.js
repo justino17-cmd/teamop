@@ -691,6 +691,15 @@ console.log('\n⛔ Les références aux pièces jointes : ce qui est encore cit�
   v('⛔ la ligne réécrite PERD ses anciennes références', S.fichiersDeLigne(TF, 'interventions', 'i1'), [C]);
   v('   A n\'est plus citée par personne, B l\'est encore par i2', [...S.fichiersReferences(TF)].sort(), [B, C]);
 
+  /* ⛔ ET UNE TOMBE QUI PORTERAIT UN `f` N'EN ENREGISTRE AUCUN. Un appareil peut très bien
+     envoyer la liste avec la suppression — c'est même naturel, il sait ce que l'enregistrement
+     citait. L'accepter ferait référencer des pièces par une ligne MORTE : elles ne seraient
+     plus jamais collectées, alors que la suppression est exactement le moment où elles
+     devraient l'être. Le contrôle existe parce que la mutation qui retire `!supprimeLe` ne
+     cassait RIEN sans lui : aucun banc ne poussait de tombe avec un `f`. */
+  S.pousser(TF, [{ c: 'clients', id: 'c9', m: 5000, sup: 5000, f: [A, B, C] }]);
+  v('⛔ une tombe qui porte un `f` n\'enregistre aucune référence', S.fichiersDeLigne(TF, 'clients', 'c9'), []);
+
   /* Une tombe efface toutes les siennes : un enregistrement supprimé ne retient plus rien. */
   S.pousser(TF, [{ c: 'interventions', id: 'i2', m: 3000, sup: 3000 }]);
   v('⛔ une ligne SUPPRIMÉE ne référence plus rien', [...S.fichiersReferences(TF)].sort(), [C]);

@@ -433,7 +433,15 @@ function ouvrir(t) {
    tromper du côté qui ne détruit rien.
    ⚠️ Et le ménage ne doit PAS s'appuyer sur elle seule : une pièce vient d'être déposée et sa
    ligne n'est pas encore poussée. L'appelant doit donc épargner ce qui est récent — c'est à
-   lui de le décider, pas à ce module qui ne connaît pas le disque. */
+   lui de le décider, pas à ce module qui ne connaît pas le disque.
+   ⚠️ LE `supprime_le = 0` EST UNE SECONDE CEINTURE, ET IL FAUT LE SAVOIR AVANT D'ÉPROUVER CE
+   MODULE. `pousser` efface déjà les références d'une ligne à chaque écriture, tombe comprise :
+   il ne DEVRAIT donc jamais rester de ligne_fichier pour un enregistrement mort. Le retirer ne
+   fait tomber aucun banc — mesuré le 20 septembre 2026 — parce que la première garde couvre
+   déjà le cas, exactement comme la garde d'inertie d'`instantanerVers` que `CLAUDE.md` cite.
+   On le garde quand même : il coûte zéro et il tient si quelqu'un ajoute un jour un chemin
+   d'écriture qui oublie l'effacement. Mais on n'écrira pas qu'il est « gardé par un banc »,
+   parce qu'il ne l'est pas et qu'aucun banc ne peut l'atteindre par l'API publique. */
 function fichiersReferences(t) {
   t = exigerT(t);
   const out = new Set();
