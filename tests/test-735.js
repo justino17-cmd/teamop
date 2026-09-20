@@ -1230,9 +1230,25 @@ function basePetite(m) {
        UNE date — la garde doit tenir celle-là. */
     const vrai6 = POSTE.code();
     vrai('le banc a bien capté un code à six chiffres', /^\d{6}$/.test(vrai6));
-    const autreDate = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: SAIN - 60000, code: vrai6 } });
+    /* ⚠️ L'AUTRE DATE DOIT ÊTRE VALABLE, SINON ON NE MESURE PLUS RIEN. Ce contrôle visait
+       `SAIN - 60000`, antérieur à tout le journal du banc : depuis que la route tranche
+       `troploin` AVANT de consommer le code (pour ne pas brûler le code sur un refus), cet
+       instant-là rend 409 sans jamais atteindre la garde qu'on prétend éprouver. On vise donc
+       un instant valable et DIFFÉRENT — la garde est alors vraiment jouée. */
+    const autreDate = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: Date.now(), code: vrai6 } });
     v('⛔ le code d\'une date ne vaut pas pour une autre', autreDate.code, 400);
     v('   et la base n\'a toujours pas bougé', await sig(), sigAvant);
+
+    /* ⛔⛔ ET UN REFUS QUE LE SERVEUR CONNAÎT D'AVANCE NE BRÛLE PAS LE CODE. `cleCodeVerifier`
+       détruit le sujet dès qu'il l'accepte : si le retour refusait APRÈS (corps purgés, instant
+       trop ancien, retour déjà en cours), la personne qui rejouait avec la case cochée et LE
+       MÊME CODE récoltait « code expiré » — il fallait refaire tout l'aller-retour courriel, ce
+       que le message ne disait pas. La route tranche donc ce qu'elle sait déjà avant de
+       dépenser le code, et le DIT (`codeIntact`). */
+    const tropVieux = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: 1000, code: vrai6 } });
+    v('⛔ un instant hors de portée est refusé', tropVieux.code, 409);
+    vrai('   et il DIT que le code est intact', tropVieux.j && tropVieux.j.codeIntact === true);
+    vrai('   la réponse porte l\'aperçu, pour que l\'écran puisse expliquer', !!(tropVieux.j && tropVieux.j.apercu));
 
     /* ⛔ NI SANS LE MOT DE PASSE DU PATRON. La route est montée derrière `monPatronStrict` ;
        un banc qui ne l'éprouve pas laisserait passer le jour où quelqu'un la démonte. */

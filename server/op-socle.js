@@ -646,6 +646,17 @@ function monterOpSocle(app, deps) {
     const instant = parseInt(req.query.instant, 10) || 0;
     if (!t) return res.status(400).json({ error: 't requis' });
     if (!socle.existe(t)) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
+    /* ⛔ UN BUDGET, PARCE QUE CET APERÇU GÈLE LE SERVEUR ET QU'IL S'APPELLE DEPUIS UN ÉCRAN.
+       Mesuré : 40 ms sur une base aux proportions d'ELAN, 316 ms sur 20 000 lignes — tout est
+       synchrone (SQLite, AES, gunzip), donc c'est du temps pendant lequel AUCUN client n'est
+       servi. Le dépôt a déjà tranché ce cas exact plus bas : `/api/monitor/op/apercu?verifier=1`
+       a été rendu OPTIONNEL parce que `verifier()` gelait 368 ms « pour TOUS les clients, à
+       chaque fois que quelqu'un ouvre cet écran ». Un sélecteur de date qui relance à chaque
+       changement ferait exactement ça. 60 par heure laisse largement de quoi chercher la bonne
+       date ; ça ne laisse pas de quoi faire tourner le serveur en boucle. */
+    if (!quotaOk(opQuota, 'apercu:' + t, 60, 3600000)) {
+      return res.status(429).json({ error: 'trop d\'aperçus — réessaie dans un moment', motif: 'quota' });
+    }
     let ap;
     try { ap = socle.retourApercu(t, instant); }
     catch (err) {
@@ -678,6 +689,23 @@ function monterOpSocle(app, deps) {
     if (!socle.existe(t)) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
     if (typeof cleCodeDemander !== 'function' || typeof cleCodeVerifier !== 'function' || typeof espaceContact !== 'function') {
       return res.status(503).json({ error: 'garde du code indisponible — retour refusé' });
+    }
+    /* ⛔⛔ LE BUDGET EST CE QUI REND LE CODE À SIX CHIFFRES UTILE, ET IL MANQUAIT. Relevé par
+       `gardien` le 20 septembre 2026. Le code existe précisément pour qu'une Tour COMPROMISE ne
+       puisse pas réécrire la base d'un client — dire « c'est tenable, c'est derrière
+       `monPatronStrict` » est donc circulaire : `monPatronStrict` est exactement ce que le code
+       est censé doubler.
+       Sans budget, l'arithmétique est sans appel : `cleCodeVerifier` détruit le sujet après cinq
+       échecs, mais `cleCodeDemander` le réécrit avec `tries: 0` et rien ne plafonne les
+       redemandes — un tour vaut six requêtes pour cinq essais. `ROUTES_SENSIBLES` ne couvre pas
+       `/api/monitor/*`, donc seul le plafond global de 120 req/min/IP s'applique : ~500 essais
+       par minute, les 900 000 combinaisons en ~30 heures. Et au passage ~150 000 courriels de
+       confirmation partent du SMTP de TEAM OP vers l'adresse d'UN seul client — mail-bomb et
+       réputation du domaine, sur une route où l'envoi est attendu sans aucun frein.
+       Avec 12/h, la même attaque demande ~90 000 heures. C'est la valeur exacte de
+       `/api/espaces/cle/code`, et pour la même raison. */
+    if (!quotaOk(opQuota, 'retour:' + t, 12, 3600000)) {
+      return res.status(429).json({ error: 'trop de demandes de retour — réessaie plus tard', motif: 'quota' });
     }
     const contact = espaceContact(t) || {};
     if (!contact.email) return res.status(409).json({ error: "Aucune adresse e-mail n'est enregistrée pour cette entreprise : le retour ne peut pas être confirmé." });
@@ -714,8 +742,41 @@ function monterOpSocle(app, deps) {
       } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
       return res.json({ ok: true, codeEnvoye: true, apercu: ap });
     }
+    /* ⛔⛔ ON TRANCHE CE QU'ON SAIT DÉJÀ **AVANT** DE CONSOMMER LE CODE. `cleCodeVerifier`
+       détruit le sujet dès qu'il l'accepte : si `retourAppliquer` refuse ensuite (corps purgés,
+       instant trop ancien, retour déjà en cours), la route répondait 409 « confirme
+       `sansLesIllisibles` pour revenir quand même » — et la personne qui rejouait avec la case
+       cochée ET LE MÊME CODE récoltait « code expiré ». Il fallait refaire tout l'aller-retour
+       courriel, ce que le message ne disait pas. Sur `ENCOURS`, c'était pire : deux opérateurs,
+       le second perd son code sur un refus qui n'est pas de son fait.
+       La route a `ap` sous la main depuis vingt lignes : elle peut trancher sans rien dépenser.
+       ⚠️ `ENCOURS` se relit quand même après coup — un autre retour peut démarrer entre les deux
+       lignes — mais le cas courant ne coûte plus le code. */
+    if (b.sansLesIllisibles !== true && (ap.nIllisibles || ap.troploin)) {
+      return res.status(409).json({ error: ap.nIllisibles
+        ? 'des enregistrements ne peuvent pas être ramenés (corps purgés après 90 jours) — confirme `sansLesIllisibles` pour revenir quand même, sans eux'
+        : 'cet instant est antérieur au plus vieux contenu gardé — confirme `sansLesIllisibles` pour revenir quand même, sans eux',
+        apercu: ap, codeIntact: true });
+    }
+
     const verdict = cleCodeVerifier(sujet, codeRecu);
     if (!verdict.ok) return res.status(verdict.code).json({ error: verdict.error });
+
+    /* ⛔⛔ LA TRACE D'ABORD, L'ÉCRITURE ENSUITE — la même règle que `/ouvrir` vingt lignes plus
+       bas, et elle manquait ici, sur la SEULE route du serveur qui écrive dans la base métier
+       d'un client. L'asymétrie était frappante : LIRE l'historique d'un seul enregistrement
+       exige une session de diagnostic, un motif de dix caractères et laisse une ligne CHAÎNÉE ;
+       RÉÉCRIRE la base entière n'exigeait rien et ne laissait rien. `meta.retours` existe, mais
+       il n'est pas chaîné (donc hors de l'ancre), et il s'écrit à la toute fin — un retour
+       interrompu ne laissait aucune trace du tout.
+       C'est le dispositif opposable sur lequel repose `sous-traitance.html` : si le journal
+       n'écrit pas, on n'écrit pas non plus. */
+    const quiRetour = String((req.tourUser && req.tourUser.nom) || 'tour').slice(0, 60);
+    try {
+      socle.diagnostic(t, { qui: quiRetour,
+        motif: 'retour en arrière au ' + new Date(instant).toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
+        portee: 'revenir', n: (ap.nRestaurer || 0) + (ap.nEnterrer || 0), ipH: hachIp(req) });
+    } catch (e) { return res.status(503).json({ error: 'journal indisponible — retour refusé' }); }
 
     let r;
     try { r = await socle.retourAppliquer(t, instant, { utilisateur: monStr(b.par, 40) || 'tour', ver: 'tour', sansLesIllisibles: b.sansLesIllisibles === true }); }

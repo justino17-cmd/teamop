@@ -1102,6 +1102,98 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   v('… et sans plafond, le même retour passe', passe.restaures, 1);
   v('   sans refus', passe.nRefuses, 0);
 
+  /* ══ ⛔⛔ CE QU'UN APPAREIL ÉCRIT PENDANT LE RETOUR ══════════════════════════════════════
+     Depuis que `retourAppliquer` rend la main entre ses lots (elle gelait le serveur 448 ms),
+     un appareil peut écrire DANS une respiration. `gardien` a relevé que les CRÉATIONS de cette
+     fenêtre n'étaient ni enterrées, ni comptées, ni dites : elles survivaient au retour, et le
+     résultat était le « mélange des deux états » que l'en-tête interdit, présenté comme un
+     retour propre. Et c'est le cas PROBABLE — on déclenche un retour parce qu'un bug sème, et
+     le bug continue de semer pendant les 500 ms que dure le geste. */
+  const T4 = 'retour-banc-4';
+  /* Assez de fiches pour que le retour ait plusieurs lots, donc plusieurs respirations. */
+  {
+    const lot = [];
+    for (let i = 0; i < 260; i++) lot.push({ c: 'clients', id: 'c' + i, m: Date.now(), e: 'e' + i, r: { nom: 'Fiche ' + i } });
+    for (let i = 0; i < lot.length; i += 200) S.pousser(T4, lot.slice(i, i + 200));
+  }
+  attendre(5);
+  const SAIN4 = Date.now();
+  attendre(5);
+  {
+    const lot = [];
+    for (let i = 0; i < 260; i++) lot.push({ c: 'clients', id: 'c' + i, m: Date.now(), e: 'k' + i, r: { casse: true } });
+    for (let i = 0; i < lot.length; i += 200) S.pousser(T4, lot.slice(i, i + 200));
+  }
+
+  /* On ne l'attend PAS : on glisse une création dans la première respiration. C'est le seul
+     moyen d'atteindre cette fenêtre, et c'est exactement ce qu'un téléphone fait. */
+  const enVol = S.retourAppliquer(T4, SAIN4, { utilisateur: 'banc' });
+  await new Promise(r => setImmediate(r));
+  S.pousser(T4, [{ c: 'clients', id: 'ne-devrait-pas-survivre', m: Date.now(), e: 'z9', r: { nom: 'Semée par le bug PENDANT le retour' } }]);
+  const rc = await enVol;
+
+  vrai('⛔ une fiche créée PENDANT le retour est vue', rc.apparusPendant >= 1);
+  const vivantes = S.depuis(T4, 0, 400).enr.filter(l => l.id === 'ne-devrait-pas-survivre' && !l.sup);
+  v('⛔ … et elle ne survit PAS au retour', vivantes.length, 0);
+  const tombee = S.depuis(T4, 0, 400).enr.filter(l => l.id === 'ne-devrait-pas-survivre' && l.sup);
+  v('   elle porte une vraie pierre tombale', tombee.length, 1);
+  /* ⚠️ ET ON LE DIT. Un retour qui a dû courir après un bug encore vivant ne doit pas passer
+     pour un retour propre : le nombre remonte jusqu'à l'écran. */
+  vrai('⛔ le compte est rendu à l\'appelant', typeof rc.apparusPendant === 'number');
+
+  /* ══ ⛔ LA TRACE S'OUVRE AVANT D'ÉCRIRE ═══════════════════════════════════════════════
+     `pousser()` est transactionnel PAR LOT : si le processus meurt entre deux lots, la base
+     reste à moitié revenue. La trace n'étant écrite qu'à la fin, il n'en restait AUCUNE. */
+  const retours = S.retoursDe(T4);
+  vrai('⛔ le retour est tracé', retours.length >= 1);
+  v('   et il est marqué FINI', (retours[0] || {}).etat, 'fini');
+  vrai('   avec son début ET sa fin', !!(retours[0] || {}).faitLe && !!(retours[0] || {}).finiLe);
+  /* ⚠️ La contre-épreuve : une seule ligne par retour, pas deux. L'ouverture et la fermeture
+     portent le même jeton — sinon chaque retour en laisserait deux et l'historique mentirait. */
+  v('⛔ une seule ligne par retour, pas deux', retours.filter(x => x.jeton === retours[0].jeton).length, 1);
+
+  /* ══ ⛔⛔ UN RETOUR INTERROMPU DOIT LAISSER SA TRACE ═════════════════════════════════════
+     C'est la seule raison d'être de la ligne « en cours ». La mutation qui la retirait ne
+     cassait RIEN tant que le banc ne jouait que des retours qui vont au bout : la ligne finale
+     s'écrit de toute façon. Il fallait donc jouer l'interruption.
+     Le cas n'est pas théorique : `pousser()` est transactionnel PAR LOT de 100, `arretPropre`
+     force `process.exit(0)` au bout de cinq secondes, et un push sur `main` touchant `server/**`
+     déploie. Un retour sur 30 000 fiches dépasse ce délai — et la base reste à moitié revenue.
+     On coupe ici en FERMANT la base pendant une respiration : le lot suivant jette, l'exception
+     sort, et c'est exactement ce que fait une coupure. */
+  const T5 = 'retour-banc-5';
+  {
+    const lot = [];
+    for (let i = 0; i < 260; i++) lot.push({ c: 'clients', id: 'x' + i, m: Date.now(), e: 'e' + i, r: { nom: 'Fiche ' + i } });
+    for (let i = 0; i < lot.length; i += 200) S.pousser(T5, lot.slice(i, i + 200));
+  }
+  attendre(5);
+  const SAIN5 = Date.now();
+  attendre(5);
+  {
+    const lot = [];
+    for (let i = 0; i < 260; i++) lot.push({ c: 'clients', id: 'x' + i, m: Date.now(), e: 'k' + i, r: { casse: true } });
+    for (let i = 0; i < lot.length; i += 200) S.pousser(T5, lot.slice(i, i + 200));
+  }
+
+  let coupe = null;
+  const enVol5 = S.retourAppliquer(T5, SAIN5, { utilisateur: 'banc' }).catch(e => { coupe = e; return null; });
+  await new Promise(r => setImmediate(r));
+  try { S.fermerBase(T5); } catch (e) {}
+  await enVol5;
+  vrai('⛔ un retour coupé en plein vol JETTE, il ne se note pas réussi', !!coupe);
+  /* ⛔ ET LA TRACE EST LÀ, marquée « en cours » : sans elle, il ne resterait RIEN qui dise
+     qu'un retour a été tenté sur une base à moitié revenue. */
+  const tr5 = S.retoursDe(T5);
+  vrai('⛔ il a quand même laissé une trace', tr5.length >= 1);
+  v('   et elle dit EN COURS, pas « fini »', (tr5[0] || {}).etat, 'en cours');
+  vrai('   avec ce qu\'il comptait faire', typeof (tr5[0] || {}).attendus === 'number');
+  /* ⚠️ Et le verrou est bien relâché : sans ça, l'espace resterait interdit de retour pour
+     toujours après une seule coupure. */
+  let deuxieme = null;
+  try { await S.retourAppliquer(T5, SAIN5, { utilisateur: 'banc' }); } catch (e) { deuxieme = e; }
+  vrai('⛔ le verrou est relâché — on peut retenter', !deuxieme || deuxieme.code !== 'ENCOURS');
+
   /* ⛔ LE NETTOYAGE ET LA SORTIE SONT DANS LE BLOC ASYNCHRONE. `retourAppliquer` rend la main
      entre ses lots depuis le 20 septembre 2026 (elle gelait le serveur 448 ms) : laissés
      dehors, ils s'exécuteraient AVANT que le dernier retour ait fini, et le banc se noterait

@@ -829,6 +829,20 @@ function signatureCanonique(t) {
   return require('./op-signature').opSignature(lignes);
 }
 
+/* Referme la base d'une entreprise et la sort du cache : la prochaine lecture la rouvre.
+   ⛔ EXPORTÉE POUR QU'UN BANC PUISSE COUPER UN RETOUR EN PLEIN VOL, et c'est délibéré — la même
+   raison que le coffre injectable de `sauvegarde.js`. `retourAppliquer` écrit par lots de 100 et
+   rend la main entre deux : le cas qui coûte est celui où le processus meurt au milieu, laissant
+   une base à moitié revenue. Aucune API publique ne permet d'atteindre ce chemin, donc il ne
+   serait éprouvé QUE par une vraie coupure, en production, sur la seule fonction dont on ne peut
+   pas se permettre d'apprendre les défauts par l'usage. Fermer la base ici fait jeter le lot
+   suivant : c'est exactement ce que fait une coupure, sans en attendre une. */
+function fermerBase(t) {
+  t = exigerT(t);
+  try { const db = _bases.get(t); if (db) db.close(); } catch (e) {}
+  _bases.delete(t);
+}
+
 /* ══ EFFACER UNE ENTREPRISE ═════════════════════════════════════════════════════════════════
  * ⛔ LES TROIS FICHIERS, PAS UN SEUL. En WAL, `base.db-wal` peut porter des écritures non
  * fusionnées : n'effacer que `base.db` laisse des données derrière soi, silencieusement. Et la
@@ -1069,6 +1083,11 @@ async function retourAppliquer(t, instant, ctx) {
 
   _retoursEnVol.add(t);
   try {
+  /* ⛔ DÉCLARÉE ICI, AVANT TOUT USAGE — et la première version ne l'était pas : `quandDebut`
+     servait à la trace ouverte douze lignes plus haut que sa propre déclaration. Zone morte
+     temporelle, la MÊME faute que `_maintenant` dans `opDecomposer` le même jour. Le banc l'a
+     attrapée tout de suite parce qu'elle jette ; celle d'`opDecomposer` ne jetait pas. */
+  const quandDebut = Date.now();
   /* ⛔ APRÈS les entrées/sorties en attente, pas avant : `setImmediate` reprend une fois les
      requêtes des clients servies, ce qui est le but. `setTimeout(…, 0)` reprendrait avant. */
   const respirer = () => new Promise(r => setImmediate(r));
@@ -1080,7 +1099,31 @@ async function retourAppliquer(t, instant, ctx) {
      gel. Séparés, chacun redevient un bloc ordinaire. */
   await respirer();
   const db = ouvrir(t), dek = dekDe(t);
+  /* Le rang AVANT d'écrire quoi que ce soit : tout ce qui portera un `seq` plus grand est ou
+     bien notre propre travail, ou bien quelqu'un qui a écrit pendant qu'on rendait la main. */
+  const rangDepart = rang(t);
   const ts = ap.instant;
+
+  /* ⛔⛔ LA TRACE S'OUVRE AVANT LE PREMIER LOT, ELLE NE SE POSE PAS À LA FIN. `pousser()` ouvre
+     une transaction PAR LOT de 100 : l'atomicité s'arrête là. Si le processus meurt entre deux
+     lots, ou si un lot jette (disque, base fermée), l'exception sort d'ici, la route répond 503
+     — et il ne restait AUCUNE trace qu'un retour avait été tenté, sur une base à moitié revenue.
+     Le cas n'est pas théorique : `arretPropre` force `process.exit(0)` au bout de cinq secondes,
+     et un push sur `main` touchant `server/**` déploie. Un retour sur 30 000 fiches dépasse ce
+     délai. On ouvre donc la ligne en `etat:'en cours'` et on la referme en `'fini'` : un retour
+     tronqué se voit, au lieu de se déduire d'un état bizarre trois semaines plus tard. */
+  const noterRetour = (o) => {
+    let liste = [];
+    try { liste = JSON.parse((db.prepare("SELECT val FROM meta WHERE cle='retours'").get() || {}).val || '[]'); } catch (e) {}
+    if (!Array.isArray(liste)) liste = [];
+    liste = liste.filter(x => !(x && x.jeton === o.jeton));
+    liste.unshift(o);
+    if (liste.length > 50) liste.length = 50;
+    db.prepare("INSERT INTO meta (cle,val) VALUES ('retours',?) ON CONFLICT(cle) DO UPDATE SET val=excluded.val").run(JSON.stringify(liste));
+  };
+  const jetonRetour = String(quandDebut) + '-' + rangDepart;
+  noterRetour({ jeton: jetonRetour, etat: 'en cours', instant: ts, faitLe: quandDebut,
+    par: String(c.utilisateur || ''), attendus: (ap.nRestaurer || 0) + (ap.nEnterrer || 0) });
   const avant = etatAuJournal(db, ts);
   const parCle = new Map();
   for (const j of avant) parCle.set(j.coll + '\u0000' + j.id, j);
@@ -1105,7 +1148,7 @@ async function retourAppliquer(t, instant, ctx) {
   /* ⛔ UNE SEULE DATE POUR TOUT LE RETOUR. Appeler `Date.now()` par ligne donnerait mille
      instants différents à ce qui est UN geste : l'historique deviendrait illisible, et un
      second retour « juste avant le premier » n'aurait pas d'instant net où viser. */
-  const quand = Date.now();
+  const quand = quandDebut;
 
   let lot = [];
   /* Ce que CE lot contient, pour savoir à quoi attribuer un refus. */
@@ -1164,6 +1207,33 @@ async function retourAppliquer(t, instant, ctx) {
   }
   envoyer(lot);
 
+  /* ⛔⛔ CE QU'UN APPAREIL A CRÉÉ PENDANT LE RETOUR — relevé par `gardien` le 20 septembre 2026,
+     et c'est le cas PROBABLE, pas un cas d'école. `vivants` est photographié avant le premier
+     `await` ; depuis qu'on rend la main entre les lots, un enregistrement créé par un appareil
+     pendant une respiration n'est ni dans `vivants` ni dans `avant`. Il SURVIVAIT au retour :
+     aucune tombe ne le visait, il n'apparaissait ni dans `enterres` ni dans `refuses`, et le
+     résultat était exactement le « MÉLANGE des deux états » que l'en-tête de ce bloc interdit —
+     présenté comme un retour complet.
+     Or on déclenche un retour précisément parce qu'un bug sème des enregistrements, et le bug
+     continue de semer pendant les ~500 ms (3 000 fiches) à ~1 700 ms (10 000) que dure le geste.
+     On repasse donc à la fin sur ce qui a un `seq` PLUS GRAND que le rang de départ. Deux
+     garanties, et la seconde compte autant : on enterre, ET on le dit (`apparusPendant`), pour
+     qu'un retour qui a dû courir après un bug encore vivant ne passe pas pour un retour propre.
+     ⚠️ Une seule passe : si le bug sème encore après celle-ci, le compte le dira et le geste se
+     rejoue. Boucler jusqu'à l'immobilité ferait tourner le serveur tant que le bug tourne. */
+  let apparusPendant = 0;
+  try {
+    const neufs = db.prepare('SELECT coll,id FROM enr WHERE seq>? AND supprime_le=0').all(rangDepart);
+    let lotN = [];
+    for (const e of neufs) {
+      if (parCle.has(e.coll + '\u0000' + e.id)) continue;   /* il existait à l'instant visé : déjà traité */
+      lotN.push({ c: e.coll, id: e.id, m: Date.now(), sup: Date.now() });
+      apparusPendant++;
+      if (lotN.length >= LOT) { envoyer(lotN); lotN = []; await respirer(); }
+    }
+    envoyer(lotN);
+  } catch (e) {}
+
   /* ⛔ ON NOTE LE RETOUR DANS `meta`, ET C'EST CE QUI PERMET DE LE DÉFAIRE. `faitLe` est
      l'instant juste AVANT la première écriture : revenir à celui-là rend l'état d'avant le
      retour. Sans cette trace, « annuler le retour » deviendrait une fouille dans le journal. */
@@ -1173,14 +1243,10 @@ async function retourAppliquer(t, instant, ctx) {
      recevait donc `refuses: 3` là où il attendait les trois lignes. Autrement dit un retour
      PARTIEL qui annonce trois refus sans jamais dire lesquels — exactement le refus muet que
      ce dépôt passe son temps à refuser ailleurs. */
-  const trace = { instant: ts, faitLe: Date.now(), par: String(c.utilisateur || ''), restaures, enterres,
-    nRefuses: refuses.length, illisibles: ap.nIllisibles };
-  let liste = [];
-  try { liste = JSON.parse((db.prepare("SELECT val FROM meta WHERE cle='retours'").get() || {}).val || '[]'); } catch (e) {}
-  if (!Array.isArray(liste)) liste = [];
-  liste.unshift(trace);
-  if (liste.length > 50) liste.length = 50;
-  db.prepare("INSERT INTO meta (cle,val) VALUES ('retours',?) ON CONFLICT(cle) DO UPDATE SET val=excluded.val").run(JSON.stringify(liste));
+  const trace = { jeton: jetonRetour, etat: 'fini', instant: ts, faitLe: quandDebut, finiLe: Date.now(),
+    par: String(c.utilisateur || ''), restaures, enterres,
+    nRefuses: refuses.length, illisibles: ap.nIllisibles, apparusPendant };
+  noterRetour(trace);
 
   return Object.assign({ ok: true, seq: rang(t) }, trace, { refus: refuses.slice(0, 50) });
   } finally { _retoursEnVol.delete(t); }
@@ -1971,7 +2037,7 @@ module.exports = {
   exigerT, numeroReserver, journalDe,
   entrepriseEtat, entrepriseOuvrir, entrepriseDouble, entrepriseLecture, appareilsVivants, PEREMPTION_MS, controleNoter, controlesDe, controleSuite,
   obsNoter, obsVerser, obsTotaux, latNoter, latQuantiles, divergences, OBS_JOURS,
-  retourApercu, retourAppliquer, retoursDe,
+  retourApercu, retourAppliquer, retoursDe, fermerBase,
   attesterNoter, attestationsDe, attestationEtat, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
   diagnostic, diagnosticsDe, ancre, ancreVerifier,
