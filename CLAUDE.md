@@ -357,11 +357,25 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   plus jamais par le serveur. Jusqu'au 11 septembre 2026, fermer une entreprise depuis la Tour
   ne coupait donc PAS son Firestore sur les appareils déjà pourvus : ils lisaient et écrivaient
   pour toujours pendant que la Tour affichait « fermée ». `fbRevoquerEquipe(t)` pose
-  `validSince` par `accounts:update`. **Les QUATRE portes l'appellent** (suspendre, fermer un
-  client, supprimer une entreprise, et « repartir à neuf » — cette dernière n'ajoute pas à
-  `entFermes` mais efface le document de l'ancien espace, et sans coupure il renaissait hors
-  annuaire, orphelin) : une seule oubliée et la coupure devient une loterie ; rouvrir, lui, ne
-  coupe rien. Sur la fermeture d'un client, on coupe **avant** d'effacer — mais la fenêtre est
+  `validSince` par `accounts:update`. **Les TROIS portes l'appellent** (fermer un client,
+  supprimer une entreprise, et « repartir à neuf » — cette dernière n'ajoute pas à `entFermes`
+  mais efface le document de l'ancien espace, et sans coupure il renaissait hors annuaire,
+  orphelin) : une seule oubliée et la coupure devient une loterie ; rouvrir, lui, ne coupe rien.
+  ⛔ **ELLES ÉTAIENT QUATRE JUSQU'AU 20 SEPTEMBRE 2026, ET LA QUATRIÈME A ÉTÉ RETIRÉE EXPRÈS.**
+  `/api/monitor/espaces/suspendre` coupait Firebase **et** fermait le socle. Justin a tranché ce
+  jour-là qu'une suspension pour impayé n'est pas une coupure : « pour continuer à lire, ils
+  auront un délai de 7 jours. Si c'est pas payé après, tous les onglets deviennent gris. Aucune
+  sauvegarde n'est perdue, aucune tâche qu'ils étaient en train de faire, rien n'est perdu, même
+  dans leur catégorie. Juste les catégories payantes deviennent grisées et ils reviennent au
+  forfait gratuit. Avec tous les jours un rappel sur le compte admin. Après, c'est pas aux
+  utilisateurs de savoir si l'entreprise paye ou pas. Que le compte admin. » Une suspension est
+  donc un **état de facturation**, pas une coupure d'accès — et le jour où le socle est la seule
+  copie à jour, la confondre avec une fermeture couperait un impayé de ses propres données, en
+  contradiction directe avec `mentions-legales.html:74`. ⚠️ `tests/test-641.js` compte désormais
+  TROIS : si ce chiffre repasse à quatre, la question n'est pas « qui a cassé le compte » mais
+  « est-ce qu'on vient de recouper les impayés ? ». ⚠️ Et la contrainte qui REMPLACE la coupure
+  — onglets payants grisés au bout de sept jours, retour au forfait gratuit, rappel quotidien
+  réservé au compte admin — **n'est pas encore écrite** : voir `REPRISE.md`. Sur la fermeture d'un client, on coupe **avant** d'effacer — mais la fenêtre est
   **raccourcie, pas fermée**, et l'écrire autrement ferait croire le contraire : `validSince`
   n'invalide que le rafraîchissement, donc un appareil qui tient un jeton encore valable peut
   RECRÉER le document après l'effacement. ⚠️ **Rien n'est instantané — jusqu'à UNE HEURE** :

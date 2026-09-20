@@ -681,13 +681,19 @@ function basePetite(m) {
     vrai('   avec un p50, un p95 et un max', lp && typeof lp.p50 === 'number' && typeof lp.p95 === 'number' && typeof lp.max === 'number');
     vrai('   et un nombre de mesures', lp && lp.n > 0);
     /* ⛔ LE LONG-POLL EST EXCLU, ET C'EST DÉLIBÉRÉ : il dort 25 secondes par construction.
-       L'inclure noierait tous les quantiles sous une valeur qui ne dit rien d'une lenteur. */
-    v('⛔ le flux long n\'empoisonne pas les quantiles', h1.socle.latence.flux, undefined);
+       L'inclure noierait tous les quantiles sous une valeur qui ne dit rien d'une lenteur.
+       ⚠️ ENCORE FAUT-IL L'APPELER : sans un vrai passage par `/api/op/flux`, l'exclure ou non
+       ne change rien, et la mutation ne tombait pas. `depuis=0` sur une base non vide rend la
+       main tout de suite (« déjà en retard »), donc ça ne coûte pas 25 secondes de banc. */
+    const fx = await appel('GET', '/api/op/flux?depuis=0', { jeton: ses.j.jeton });
+    v('le flux répond tout de suite quand l\'appareil est déjà en retard', fx.code, 200);
+    const h1b = await sante();
+    v('⛔ et il n\'empoisonne PAS les quantiles', (h1b.socle.latence || {}).flux, undefined);
     /* ⚠️ La lecture VIDE le réservoir : deux lectures rapprochées donnent la seconde presque
        vide, et ce n'est pas une panne. On le vérifie pour que personne ne la « répare ». */
     const h2 = await sante();
     vrai('   et une lecture vide le réservoir (fenêtre depuis la dernière lecture)',
-      Object.keys(h2.socle.latence || {}).length < Object.keys(h1.socle.latence || {}).length + 1);
+      Object.keys(h2.socle.latence || {}).length <= Object.keys(h1b.socle.latence || {}).length);
 
     /* Les divergences : le banc a fait remonter un verdict en échec en section (f). */
     vrai('⛔ le compteur de divergences existe et compte des ESPACES', typeof h1.socle.divergences.espaces === 'number');
@@ -697,6 +703,52 @@ function basePetite(m) {
        dépôt, et un compteur neuf est exactement l'occasion de la casser. */
     v('⛔ aucun identifiant d\'espace dans /health', new RegExp(T).test(JSON.stringify(h1)), false);
     v('   ni le slug', new RegExp(SLUG).test(JSON.stringify(h1)), false);
+  }
+
+  /* ══ (m) L'IMPAYÉ — UNE ENTREPRISE SUSPENDUE TRAVAILLE ═══════════════════════════════════
+     ⛔ DÉCISION DE JUSTIN, 20 SEPTEMBRE 2026 : « pour continuer à lire, ils auront un délai de
+     7 jours. Si c'est pas payé après, tous les onglets deviennent gris […] Aucune sauvegarde
+     n'est perdue, aucune tâche qu'ils étaient en train de faire, rien n'est perdu, même dans
+     leur catégorie. Juste les catégories payantes deviennent grisées et ils reviennent au
+     forfait gratuit. »
+     Conséquence pour le socle : c'est l'ABONNEMENT qui change, pas l'accès aux données. Une
+     entreprise suspendue ouvre sa session, lit et écrit comme avant. Ce qui grise est une
+     affaire d'écrans, pas de stockage.
+     ⚠️ Le jour où le socle est la seule copie à jour, confondre « suspendu » et « fermé »
+     couperait un impayé de ses propres données — en contradiction directe avec
+     `mentions-legales.html:74`. On passe par la VRAIE route de la Tour, pas par un fichier
+     fabriqué : c'est le chemin que Justin emprunte. */
+  console.log('\n⛔ Une entreprise SUSPENDUE pour impayé garde ses données');
+  {
+    /* ⚠️ LA ROUTE PREND UN SLUG, PAS UN `t` — et le banc l'a appris en passant au vert POUR LA
+       MAUVAISE RAISON : avec `{t}`, elle rend 404, l'espace n'était jamais suspendu, et les six
+       contrôles suivants « réussissaient » sur un espace parfaitement actif. Un banc qui ne
+       vérifie pas que sa MISE EN SCÈNE a eu lieu ne teste rien. */
+    const sus = await appel('POST', '/api/monitor/espaces/suspendre', { jeton: JETON_TOUR, corps: { slug: SLUG } });
+    v('la Tour suspend l\'espace', sus.code, 200);
+    /* ⛔ ET ON CONSTATE LA SUSPENSION AVANT D'EN TIRER QUOI QUE CE SOIT : une route qui refuse
+       la sauvegarde est la preuve que l'espace est bien dans `entFermes`. Sans elle, tout ce
+       bloc reste une mise en scène qu'on n'a pas jouée. */
+    const preuve = await appel('POST', '/api/espaces/sauvegardes', { corps: { t: T, kh: sha(CLE) } });
+    v('⛔ et la suspension est RÉELLE : la sauvegarde, elle, refuse', preuve.code, 403);
+    const ses = await appel('POST', '/api/op/session', { corps: { t: T, kh: sha(CLE), app_id: '', nom: 'dev-impaye' } });
+    v('⛔ elle ouvre quand même sa session de socle', ses.code, 200);
+    vrai('   avec un vrai jeton', !!(ses.j && ses.j.jeton));
+    const lu = await appel('GET', '/api/op/depuis?seq=0&max=5', { jeton: ses.j && ses.j.jeton });
+    v('⛔ elle LIT ses données', lu.code, 200);
+    vrai('   et elles sont bien là', !!(lu.j && Array.isArray(lu.j.enr) && lu.j.enr.length));
+    const ecr = await appel('POST', '/api/op/pousser', { jeton: ses.j && ses.j.jeton,
+      corps: { enr: [{ c: 'clients', id: 'pendant-impaye', m: Date.now(), r: { id: 'pendant-impaye', nom: 'X' }, e: 'qq' }] } });
+    v('⛔ et elle ÉCRIT encore — rien n\'est perdu, aucune tâche en cours', ecr.code, 200);
+    vrai('   l\'écriture est acceptée', !!(ecr.j && ecr.j.acceptes));
+
+    /* ⛔ MAIS UN ESPACE VRAIMENT FERMÉ RESTE REFUSÉ. Sans ce contre-test, « on laisse passer
+       les suspendus » se lirait « on laisse passer tout le monde », et la garde ne garderait
+       plus rien. Une fermeture définitive ne passe PAS par `suspendre` : on la joue en
+       rouvrant d'abord, puis en fermant par la porte de l'entreprise. */
+    await appel('POST', '/api/monitor/espaces/suspendre', { jeton: JETON_TOUR, corps: { slug: SLUG, rouvrir: true } });
+    const ok = await appel('POST', '/api/op/session', { corps: { t: T, kh: sha(CLE), app_id: '', nom: 'dev-rouvert' } });
+    v('rouvrir remet tout en place', ok.code, 200);
   }
 
   /* ══ (i) LE SERVEUR TOMBE : LA SYNCHRO DE L'ENTREPRISE NE DOIT PAS LE SENTIR ══════════════

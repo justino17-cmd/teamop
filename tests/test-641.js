@@ -114,15 +114,36 @@ console.log('\nFermer une entreprise coupe ses sessions Firebase, et le DIT');
   v('elle passe par accounts:update, l\'appel qui invalide les rafraîchissements',
     /accounts:update'[\s\S]{0,200}?validSince/.test(SRV), true);
 
-  /* ⛔ QUATRE PORTES, comme les quatre portes de sortie d'espace. Suspendre, fermer un client,
-     supprimer une entreprise — et `/api/monitor/espaces/renaitre`, trouvée par `gardien` : elle
-     n'ajoute pas à `entFermes` mais efface le document Firestore de l'ancien espace et le sort
-     de l'annuaire ; sans coupure, l'appareil garde sa session POUR TOUJOURS et fait renaître
-     l'espace hors annuaire, orphelin. Une seule oubliée et la coupure devient une loterie.
+  /* ⛔ TROIS PORTES — ET C'ÉTAIT QUATRE JUSQU'AU 20 SEPTEMBRE 2026. Fermer un client, supprimer
+     une entreprise, et `/api/monitor/espaces/renaitre` (trouvée par `gardien` : elle n'ajoute
+     pas à `entFermes` mais efface le document Firestore de l'ancien espace et le sort de
+     l'annuaire ; sans coupure, l'appareil garde sa session POUR TOUJOURS et fait renaître
+     l'espace hors annuaire, orphelin). Une seule oubliée et la coupure devient une loterie.
+
+     ⛔⛔ LA QUATRIÈME A ÉTÉ RETIRÉE EXPRÈS, ET CE CHIFFRE EST LÀ POUR QU'ON NE LA REMETTE PAS
+     SANS Y PENSER. `/api/monitor/espaces/suspendre` coupait Firebase ; Justin a tranché le
+     20 septembre 2026 qu'une suspension pour impayé n'est PAS une coupure : « aucune
+     sauvegarde n'est perdue, aucune tâche qu'ils étaient en train de faire, rien n'est perdu,
+     même dans leur catégorie. Juste les catégories payantes deviennent grisées et ils
+     reviennent au forfait gratuit. » Une suspension est un état de FACTURATION.
+     ⚠️ Si ce banc repasse à 4 un jour, la question à se poser n'est pas « qui a cassé le
+     compte » mais « est-ce qu'on vient de recouper les impayés de leurs propres données ? ».
      ⚠️ On compte les APPELS, pas les `await` : celui de la fermeture d'un client est dans un
      `Promise.all` (les révocations en parallèle — en série, trois espaces à 10 s dépassaient
      le délai de nginx et la Tour affichait 504 pendant que la route détruisait). */
-  v('les QUATRE portes coupent', (SRV.match(/fbRevoquerEquipe\(/g) || []).length - 1, 4);
+  v('⛔ les TROIS portes qui doivent couper coupent', (SRV.match(/fbRevoquerEquipe\(/g) || []).length - 1, 3);
+  /* ⛔ ET LA SUSPENSION N'EN FAIT PLUS PARTIE — vérifié sur le CORPS de la route, pas sur une
+     phrase : le commentaire qui explique la décision contient le mot, forcément. */
+  {
+    const i = SRV.indexOf("app.post('/api/monitor/espaces/suspendre'");
+    const corps = i < 0 ? '' : SRV.slice(i, SRV.indexOf("app.post('/api/espaces/relance'", i));
+    const net = corps.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    v('la route de suspension est bien là', corps.length > 200, true);
+    v('⛔ et elle ne coupe NI Firebase NI le socle', /fbRevoquerEquipe\(|socleCouper\(/.test(net), false);
+    /* Rouvrir doit toujours rouvrir le socle : une entreprise fermée puis rouverte resterait
+       sinon bloquée pour toujours, et c'est une panne que ce dépôt a déjà mesurée. */
+    v('   mais rouvrir rouvre toujours le socle', /socleOuvrir\(/.test(net), true);
+  }
   v('les révocations partent en parallèle, jamais en série',
     /await Promise\.all\(espacesAEffacer\.map\(tf => fbRevoquerEquipe\(tf\)\)\)/.test(SRV), true);
   /* Le jeton d'administration est maintenant sur le chemin de quatre fermetures : sans délai,

@@ -909,12 +909,38 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
 
   /* ⚠️ Ce qui n'a pas encore été versé compte quand même : sans ça, `/health` sous-déclare
      d'une minute, et un incident qui commence à la minute zéro ne se voit qu'après. */
-  S3.obsNoter('refus', 'conflit', 5);
+  /* ⛔ IL FAUT UNE NOTE D'AMORCE POUR QUE LA SUIVANTE RESTE EN VOL — et il a fallu DEUX
+     tentatives pour l'écrire juste. Sur un module fraîchement chargé, `_obsVerseLe` vaut 0 :
+     la PREMIÈRE note verse donc aussitôt et remet l'horloge ; c'est la SECONDE qui reste en
+     mémoire. Un `obsVerser()` seul ne suffit pas — il sort tout de suite quand rien n'est en
+     vol, sans toucher à l'horloge, donc la note d'après versait encore. Tant que le chemin
+     « en vol » n'était pas joué, en retirer la prise en compte ne cassait rien. */
+  S3.obsNoter('refus', 'amorce', 1);     // celle-ci verse, et remet l'horloge
+  S3.obsNoter('refus', 'conflit', 5);    // celle-ci reste en mémoire
   v('⛔ ce qui est encore EN VOL est compté aussi', S3.obsTotaux('refus', 7).conflit, 5);
+  v('   et il ne l\'est pas DEUX fois une fois versé', (S3.obsVerser(), S3.obsTotaux('refus', 7).conflit), 5);
 
-  /* La fenêtre est glissante : un motif d'il y a vingt jours ne doit plus peser. */
-  v('la fenêtre d\'un jour ne voit que le jour même', S3.obsTotaux('refus', 1).horlogeAvancee, 3);
+
+  v('la fenêtre d\'un jour voit le jour même', S3.obsTotaux('refus', 1).horlogeAvancee, 3);
+  /* ⚠️ UNE MUTATION QUI NE CASSE RIEN, ET QU'ON GARDE QUAND MÊME — dite ici pour qu'on ne la
+     retire pas un jour en croyant l'avoir éprouvée. Le `catch` d'`obsVerser` remet en vol ce
+     qu'il n'a pas pu écrire ; le retirer ne fait tomber aucun banc, parce qu'aucun banc ne
+     fait jeter `reglagePoser` — il faudrait casser l'annuaire sous les pieds du reste de la
+     suite. C'est une seconde ceinture : sans elle, une écriture qui échoue perd la minute
+     écoulée en silence au lieu de la retenter. */
   v('une famille inconnue rend un objet vide, pas une exception', S3.obsTotaux('jamais-vu', 7), {});
+  /* ⛔ LA FENÊTRE S'ÉLAGUE, SINON LE RÉGLAGE GROSSIT SANS FIN et finit par peser sur chaque
+     démarrage. Le banc ne pouvait pas le voir : il n'avait jamais de jour vieux. On en pose un
+     à la main, par la voie normale. */
+  S3.reglagePoser('observatoire', JSON.stringify({ refus: { '1': { tres_vieux: 9 }, [String(Math.floor(Date.now() / 86400000))]: { recent: 2 } } }));
+  S3.obsNoter('refus', 'declencheur', 1); S3.obsVerser();
+  const apresElagage = JSON.parse(S3.reglageLire('observatoire')).refus;
+  v('⛔ un seau plus vieux que la fenêtre est ÉLAGUÉ', Object.prototype.hasOwnProperty.call(apresElagage, '1'), false);
+  vrai('   et le seau du jour reste', apresElagage[String(Math.floor(Date.now() / 86400000))].recent === 2);
+  /* ⚠️ Ce bloc vient EN DERNIER de la famille `refus`, et ce n'est pas un hasard : il
+     RÉÉCRIT le réglage pour y poser un jour ancien. Placé plus haut, il effaçait les motifs
+     que les contrôles précédents venaient de compter — et c'est le banc qui se cassait
+     lui-même, pas le code. */
 
   /* ══ LES LATENCES ══════════════════════════════════════════════════════════════════════
      ⛔ Une MOYENNE cacherait exactement ce qui fait mal : la pousse à 900 ms pendant que les

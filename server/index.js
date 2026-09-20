@@ -4539,9 +4539,32 @@ app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => 
     const ouv = socleOuvrir(t);
     return res.json({ ok: true, suspendu: false, socle: ouv.fait, socleMotif: ouv.motif });
   }
-  const cut = await fbRevoquerEquipe(t);
-  const cutSocle = socleCouper(t, 'fermeture'); if (!cutSocle.fait) { cut.fait = false; cut.motif = (cut.motif || '') + ' — ' + cutSocle.motif; }
-  res.json({ ok: true, suspendu: true, coupure: cut.fait, coupureMotif: cut.motif });
+  /* ⛔⛔ SUSPENDRE NE COUPE PLUS RIEN — DÉCISION DE JUSTIN, 20 SEPTEMBRE 2026.
+     « Pour continuer à lire, ils auront un délai de 7 jours. Si c'est pas payé après dans les
+     7 jours, tous les onglets deviennent gris. Aucune sauvegarde n'est perdue, aucune tâche
+     qu'ils étaient en train de faire, rien n'est perdu, même dans leur catégorie. Juste les
+     catégories payantes deviennent grisées et ils reviennent au forfait gratuit. »
+
+     Une suspension est donc désormais un ÉTAT DE FACTURATION, pas une coupure d'accès :
+     l'entreprise continue de lire, d'écrire et de synchroniser. Couper Firebase et fermer le
+     socle faisait exactement l'inverse — et le jour où le socle est la seule copie à jour,
+     ça aurait coupé un impayé de ses propres données, en contradiction directe avec
+     `mentions-legales.html:74` (« un impayé n'entraîne aucune suppression », « le client
+     retrouve l'intégralité de ses données »).
+
+     ⛔⛔ CE QU'IL FAUT SAVOIR AVANT DE PUBLIER CECI, ET QUI N'EST PAS UN DÉTAIL : la contrainte
+     qui remplace la coupure — les onglets payants qui grisent au bout de sept jours et le
+     retour au forfait gratuit — N'EXISTE PAS ENCORE. Tant qu'elle n'est pas écrite côté
+     application, ce bouton MARQUE une entreprise sans rien lui interdire. C'est un trou
+     d'application temporaire, assumé, et il est nommé dans REPRISE.md. Ne pas le découvrir en
+     production.
+
+     ⚠️ Et la réponse DIT la vérité : `coupure:false`. Une Tour qui afficherait une coupure qui
+     n'a pas eu lieu, c'est « croire une entreprise coupée alors qu'elle ne l'est pas » — la
+     panne silencieuse type de ce dépôt, celle que `fbRevoquerEquipe` documente déjà. */
+  res.json({ ok: true, suspendu: true, coupure: false,
+    coupureMotif: 'suspension sans coupure : l\'entreprise garde l\'accès à ses données. '
+      + 'Ce qui change est son abonnement — les fonctions payantes grisent au bout de sept jours.' });
 });
 app.post('/api/espaces/relance', (req, res) => {
   // borné AVANT espSlug : son normalize('NFD') sur 6 Mo gèle la boucle d'événements, donc toute l'API

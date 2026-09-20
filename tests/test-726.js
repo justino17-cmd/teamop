@@ -541,36 +541,46 @@ const menage = async () => {
        ⚠️ On ne relit PAS `index.js` pour compter des appels : on FERME depuis la Tour et on
        demande à l'appareil s'il passe encore. Un contrôle de texte aurait laissé passer une
        coupure qui échoue en silence. */
-    console.log('⛔ Fermer depuis la Tour coupe-t-il l\'appareil, pour de vrai ?');
+    /* ⛔⛔ CE BLOC GARDAIT L'INVERSE JUSQU'AU 20 SEPTEMBRE 2026, ET IL AVAIT RAISON À L'ÉPOQUE.
+       Il exigeait qu'une suspension COUPE l'appareil. Justin a changé la règle ce jour-là :
+       « pour continuer à lire, ils auront un délai de 7 jours. Si c'est pas payé après, tous
+       les onglets deviennent gris […] Aucune sauvegarde n'est perdue, aucune tâche qu'ils
+       étaient en train de faire, rien n'est perdu, même dans leur catégorie. »
+       Une suspension est donc un ÉTAT DE FACTURATION, pas une coupure d'accès.
+       ⛔ MAIS ON NE SUPPRIME PAS LE GARDE-FOU POUR AUTANT — on le déplace. Ce qui doit couper,
+       c'est une FERMETURE, et elle, elle coupe toujours. Le banc garde donc les DEUX règles :
+       suspendre laisse travailler, fermer coupe. Retirer la seconde en même temps que la
+       première aurait rendu toute fermeture décorative, sans que rien ne le dise. */
+    console.log('⛔ Suspendre pour impayé laisse travailler — fermer, non');
     {
-      /* La contre-épreuve d'abord : sans elle, un banc qui refuse tout passerait au vert. */
+      /* La contre-épreuve d'abord : sans elle, un banc qui accepte tout passerait au vert. */
       const avant = await A.appel('GET', '/api/op/etat', { jeton: JETON_OP });
-      v('avant la fermeture, l\'appareil travaille', avant.code, 200);
+      v('avant la suspension, l\'appareil travaille', avant.code, 200);
 
       const susp = await A.appel('POST', '/api/monitor/espaces/suspendre',
         { jeton: JETON_TOUR, corps: { slug: SLUG_A } });
       v('la Tour suspend l\'espace', susp.code, 200);
+      /* ⚠️ ET LA RÉPONSE DIT LA VÉRITÉ. Une Tour qui annoncerait une coupure qui n'a pas eu
+         lieu, c'est « croire une entreprise coupée alors qu'elle ne l'est pas » — la panne
+         silencieuse type de ce dépôt. */
+      v('⛔ et elle n\'annonce AUCUNE coupure', susp.j && susp.j.coupure, false);
 
-      /* ⛔ LE CONTRÔLE QUI COMPTE. Le jeton est le MÊME, il est encore valable 30 jours.
-         ⚠️ ON EXIGE LA PROPRIÉTÉ, PAS UN CODE. Mesuré : c'est 401, pas 403 — la SESSION
-         elle-même a été coupée (`sessionsCouper`), donc le jeton ne se résout plus du tout ;
-         403 serait « l'espace est fermé », un cran plus faible. Figer 403 ici ferait tomber le
-         banc le jour où la coupure devient PLUS stricte, ce qui est exactement à l'envers. */
+      /* ⛔ LE CONTRÔLE QUI COMPTE MAINTENANT : l'entreprise garde ses données. Le jour où le
+         socle est la seule copie à jour, la couper serait en contradiction directe avec
+         `mentions-legales.html:74`. */
       const apres = await A.appel('GET', '/api/op/etat', { jeton: JETON_OP });
-      v('⛔ le jeton déjà délivré ne passe PLUS (401 session coupée, ou 403 espace fermé)',
-        [apres.code === 200, [401, 403].includes(apres.code)], [false, true]);
-      console.log('      mesuré : ' + apres.code);
+      v('⛔ le jeton déjà délivré passe TOUJOURS', apres.code, 200);
       const neuve = await A.appel('POST', '/api/op/session', { corps: { t: T_A, kh: sha(CLE_A) } });
-      v('⛔ et on ne peut pas en ouvrir une autre', neuve.code, 403);
-      v('   avec le motif que l\'écran peut dire', neuve.j && neuve.j.motif, 'ferme');
+      v('⛔ et elle peut ouvrir une nouvelle session', neuve.code, 200);
+      const ecr = await A.appel('POST', '/api/op/pousser', { jeton: neuve.j && neuve.j.jeton,
+        corps: { enr: [{ c: 'produits', id: 'pendant-impaye', m: 1758200000001, e: 'ei', r: { nom: 'Impayé' } }] } });
+      v('⛔ elle ÉCRIT encore — aucune tâche en cours n\'est perdue', ecr.code, 200);
 
-      /* ⛔ ET ROUVRIR DOIT ROUVRIR. Une suspension qui ne se lève pas n'est pas une
-         suspension, c'est une condamnation — et elle serait invisible côté Tour. */
       const rouv = await A.appel('POST', '/api/monitor/espaces/suspendre',
         { jeton: JETON_TOUR, corps: { slug: SLUG_A, rouvrir: true } });
       v('la Tour rouvre l\'espace', rouv.code, 200);
       const reprise = await A.appel('POST', '/api/op/session', { corps: { t: T_A, kh: sha(CLE_A) } });
-      v('⛔ l\'appareil retravaille', reprise.code, 200);
+      v('⛔ et l\'appareil travaille toujours', reprise.code, 200);
     }
     /* ⛔ ET LE SCÉNARIO QUI NE TIENT PAS SUR UN SEUL SERVEUR : suspendre ALLUMÉ, rouvrir
        ÉTEINT, rallumer. C'est le second bloquant de la cinquième vérification, et il est
@@ -585,7 +595,16 @@ const menage = async () => {
       const su = await A.appel('POST', '/api/monitor/espaces/suspendre', { jeton: JETON_TOUR, corps: { slug: SLUG_B } });
       v('la Tour la suspend, et on l\'y laisse', su.code, 200);
       const ko = await A.appel('POST', '/api/op/session', { corps: { t: T_B, kh: sha(CLE_B) } });
-      v('   elle est bien coupée', ko.code, 403);
+      v('   et elle continue de travailler (impayé n\'est pas coupure)', ko.code, 200);
+      /* ⛔ LA MOITIÉ QU'ON NE DOIT PAS PERDRE : une FERMETURE, elle, coupe toujours. Sans ce
+         contrôle, « suspendre ne coupe plus » se lirait « plus rien ne coupe jamais », et la
+         fermeture d'une entreprise deviendrait décorative. On passe par la route du socle,
+         qui est la fermeture côté stockage. */
+      const fer = await A.appel('POST', '/api/monitor/op/couper', { jeton: JETON_TOUR, corps: { t: T_B } });
+      vrai('la Tour ferme l\'espace au niveau du socle', fer.code === 200);
+      const koFerme = await A.appel('POST', '/api/op/session', { corps: { t: T_B, kh: sha(CLE_B) } });
+      v('⛔ une FERMETURE, elle, coupe toujours', koFerme.code, 403);
+      v('   avec le motif que l\'écran peut dire', koFerme.j && koFerme.j.motif, 'ferme');
     }
     /* ══ 4bis. LES PHOTOS NE DOIVENT PAS METTRE TOUTE L'API À TERRE ═══════════════════ */
     /* ⛔ BLOQUANT DE PUBLICATION, MESURÉ. Depuis que les photos sortent du document Firestore,
