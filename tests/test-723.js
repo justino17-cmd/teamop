@@ -1035,7 +1035,19 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   const ap1 = S.retourApercu(T, SAIN);
   vrai('⛔ après purge, l\'aperçu NOMME ce qu\'il ne peut plus rendre', ap1.nIllisibles >= 1);
   v('   et il ne prétend plus pouvoir le restaurer', ap1.nRestaurer, 0);
-  vrai('   les identifiants sont nommés, pas seulement comptés', (ap1.illisibles[0] || {}).id === 'k1');
+  /* ⛔ UN REPÈRE, PAS L'IDENTIFIANT — et ce contrôle exigeait l'inverse jusqu'au 20 septembre
+     2026. Pour `societesStyle`, `produits` ou `plansSite`, l'identifiant EST le contenu (le nom
+     de société tapé par le client, le nom d'un produit) : le rendre depuis une route sans
+     session de diagnostic revenait à servir du contenu d'entreprise sans trace. L'écran a besoin
+     de distinguer deux lignes et de reconnaître la même d'un appel à l'autre — huit caractères
+     de SHA-256 suffisent à ça et à rien d'autre. */
+  const ref1 = (ap1.illisibles[0] || {}).ref;
+  vrai('   les lignes portent un repère court, pas leur identifiant', /^[0-9a-f]{8}$/.test(String(ref1)));
+  v('   et leur collection, en clair', (ap1.illisibles[0] || {}).coll, 'clients');
+  vrai('⛔ l\'identifiant en clair ne sort PAS de l\'aperçu', JSON.stringify(ap1).indexOf('"k1"') < 0);
+  /* ⚠️ Le repère doit être STABLE : sans ça l'écran ne pourrait pas rapprocher deux aperçus,
+     et le contrôle ci-dessus passerait avec un nombre tiré au hasard. */
+  v('   et il est stable d\'un aperçu à l\'autre', (S.retourApercu(T, SAIN).illisibles[0] || {}).ref, ref1);
   let jete = null;
   try { await S.retourAppliquer(T, SAIN, { utilisateur: 'banc' }); } catch (e) { jete = e; }
   vrai('⛔ et l\'application REFUSE au lieu de rendre un retour partiel', !!jete && jete.code === 'PURGE');

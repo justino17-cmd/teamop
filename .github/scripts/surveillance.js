@@ -100,7 +100,10 @@ function get(url) {
          deux ans est resté à février. C'est la copie qu'on emporte sur une autre machine :
          celle dont l'absence ne se découvre que le jour où le VPS n'est plus là.
          40 jours, pas 31 : un mois de 31 jours plus une nuit qui glisse ne doit pas crier. */
-      if (j.sauvegarde.mensuelJ === null) { if (new Date().getUTCHours() === 9) problems.push('aucune copie MENSUELLE n\'a jamais été déposée — c\'est celle qu\'on emporte sur une autre machine. Tour → Surveillance, ou : journalctl -u teamop-api | grep mensuel'); }
+      /* `false` = quelqu'un a éteint le mensuel exprès dans config.json. Ce n'est pas une
+         panne, et le dire tous les jours ferait ignorer le reste de cette page. */
+      if (j.sauvegarde.mensuelJ === false || j.sauvegarde.mensuelActif === false) { /* éteint par décision : rien à dire */ }
+      else if (j.sauvegarde.mensuelJ === null) { if (new Date().getUTCHours() === 9) problems.push('aucune copie MENSUELLE n\'a jamais été déposée — c\'est celle qu\'on emporte sur une autre machine. Tour → Surveillance, ou : journalctl -u teamop-api | grep mensuel'); }
       else if (typeof j.sauvegarde.mensuelJ === 'number' && j.sauvegarde.mensuelJ > 40) problems.push('⛔ la dernière copie MENSUELLE date de ' + j.sauvegarde.mensuelJ + ' jours (plus de 40) — le dossier de conservation longue ne se remplit plus, pendant que la sauvegarde du jour, elle, continue de réussir. journalctl -u teamop-api | grep mensuel');    }
     /* ⛔ L'ÉCHÉANCE DU JETON GITHUB. Elle ne casse rien chez un client — le jeton ne sert qu'à
        « proposer un correctif » depuis la Tour — mais elle tombe en 401 sans prévenir personne,

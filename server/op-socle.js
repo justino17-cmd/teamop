@@ -638,9 +638,13 @@ function monterOpSocle(app, deps) {
      écriture en masse sur la base d'un client sans avoir vu les nombres d'abord — et un
      `?sec=1` qui bascule d'un aperçu à une application est exactement le genre de drapeau
      qu'on inverse un soir de fatigue. Deux chemins, deux verbes : GET ne peut rien casser.
-     ⚠️ Et l'aperçu ne rend QUE des nombres, des collections et des identifiants — jamais un
-     corps d'enregistrement. Un aperçu qui montrerait le contenu serait une route de lecture
-     des données d'un client, ce qu'aucune route de la Tour n'est. */
+     ⚠️ CE COMMENTAIRE A DIT « QUE des nombres, des collections et des identifiants — jamais un
+     corps », et c'était trompeur : pour `societesStyle`, `produits` ou `plansSite`,
+     l'IDENTIFIANT EST LE CONTENU (le nom de société tapé par le client, le nom d'un produit).
+     Les identifiants sont donc abrégés en huit caractères de SHA-256 (`abreger`, socle.js) —
+     assez pour distinguer deux lignes, pas pour lire un nom. Qui a besoin de l'identifiant
+     entier passe par `/api/monitor/op/journal`, qui exige une session de diagnostic, un motif
+     et laisse une ligne chaînée. Aucun corps d'enregistrement ne sort d'ici. */
   poser('GET', '/api/monitor/op/retour-apercu', garde, (req, res) => {
     const t = monStr(req.query.t, 80);
     const instant = parseInt(req.query.instant, 10) || 0;
@@ -1054,7 +1058,20 @@ function monterOpSocle(app, deps) {
        heure » — exactement ce qu'on veut voir. Corollaire à connaître : deux lectures
        rapprochées donnent la seconde presque vide, et ce n'est pas une panne. */
     let lat = {}; try { lat = socle.latQuantiles(true); } catch (e) {}
-    return { actif: true, bases: s.bases, cle: s.cle, flux: attentes.size, routes: etat.routes.length,
+    /* ⛔ ARRONDIS, PARCE QUE `/health` EST PUBLIQUE ET QUE CES DEUX NOMBRES SONT COMMERCIAUX.
+       `bases` donnait à qui fait `curl` le nombre EXACT d'entreprises clientes de TEAM OP ;
+       `flux` donnait le nombre de longs-polls tenus, c'est-à-dire combien d'appareils de
+       terrain travaillent en ce moment, toutes entreprises confondues — échantillonné toutes
+       les heures, ça trace la courbe d'activité de la plateforme. Le dépôt a déjà tranché
+       exactement cette famille : le poids des pièces jointes est arrondi à 5 % parce que « le
+       poids exact est un journal de l'activité de terrain de tous les clients », et le motif
+       d'échec de sauvegarde est retiré parce que « ça dit à qui l'interroge si la plateforme
+       saurait se relever ». Ces deux-là n'avaient pas été traités.
+       ⚠️ ZÉRO RESTE ZÉRO : la surveillance a besoin de distinguer « rien du tout » (une panne)
+       de « peu » (une nuit calme). C'est le seul palier qui porte une information d'exploitation
+       ; au-delà, seul l'ordre de grandeur compte. */
+    const parCinq = (n) => (!n ? 0 : Math.ceil(n / 5) * 5);
+    return { actif: true, bases: parCinq(s.bases), cle: s.cle, flux: parCinq(attentes.size), routes: etat.routes.length,
       illisibles: ill, refus: parMotif, ancreJours,
       refus7j, divergences: div, latence: lat };
   };

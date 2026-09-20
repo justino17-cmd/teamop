@@ -937,6 +937,14 @@ function echecEnrolement(t) {
  * lui a pas dit explicitement de continuer sans eux.
  */
 
+/* Le repère court d'une ligne, pour un écran : la collection en clair, l'identifiant réduit à
+   huit caractères de SHA-256. Assez pour distinguer deux lignes et reconnaître la même d'un
+   appel à l'autre ; pas assez pour lire le nom d'une société ou d'un produit. */
+function abreger(x) {
+  return { coll: x.coll, ref: crypto.createHash('sha256').update(String(x.id || '')).digest('hex').slice(0, 8),
+    tombe: x.tombe || undefined, ts: x.ts || undefined };
+}
+
 /* L'état d'UN enregistrement à un instant : la dernière version du journal à cette date-là.
    Une seule requête pour toute la base — un `MAX(seq)` groupé, puis la jointure. */
 function etatAuJournal(db, instant) {
@@ -1021,9 +1029,20 @@ function retourApercu(t, instant) {
     nRestaurer: aRestaurer.length, nEnterrer: aEnterrer.length,
     nIllisibles: illisibles.length, nInconnus: inconnus.length,
     octetsEnPlus: octets, par,
-    /* Bornées : c'est pour un écran, pas pour un export. Les nombres au-dessus sont complets. */
-    illisibles: illisibles.slice(0, 50), inconnus: inconnus.slice(0, 50),
-    apercu: aRestaurer.slice(0, 20).concat(aEnterrer.slice(0, 20).map(x => Object.assign({ tombe: true }, x))),
+    /* ⛔⛔ LES IDENTIFIANTS SONT ABRÉGÉS, PARCE QUE POUR CERTAINES COLLECTIONS L'IDENTIFIANT EST
+       LE CONTENU — et le commentaire de la route affirmait le contraire. Relevé par `gardien` le
+       20 septembre 2026, mesuré sur une vraie base : `db.societesStyle` est indexé par le NOM DE
+       SOCIÉTÉ tapé par le client (« Boulangerie Durand SARL »), `idCatalogue` réduit un NOM DE
+       PRODUIT, `plansSite` porte l'identifiant d'un client. Jusqu'à ~140 identifiants par appel
+       sortaient ainsi d'une route sans session de diagnostic et sans trace, sur la foi d'un
+       commentaire qui disait que ça n'arrivait pas — et ce commentaire aurait été cru.
+       Ce dont l'écran a besoin, c'est de COMBIEN et DE QUELLE COLLECTION ; un repère court suffit
+       à distinguer deux lignes entre elles. Qui a vraiment besoin de l'identifiant passe par
+       `/api/monitor/op/journal`, qui exige une session de diagnostic, un motif, et laisse une
+       ligne chaînée. C'est la bonne porte, et elle existe déjà. */
+    illisibles: illisibles.slice(0, 50).map(abreger), inconnus: inconnus.slice(0, 50).map(abreger),
+    apercu: aRestaurer.slice(0, 20).map(abreger)
+      .concat(aEnterrer.slice(0, 20).map(x => Object.assign({ tombe: true }, abreger(x)))),
   };
 }
 
@@ -1248,7 +1267,10 @@ async function retourAppliquer(t, instant, ctx) {
     nRefuses: refuses.length, illisibles: ap.nIllisibles, apparusPendant };
   noterRetour(trace);
 
-  return Object.assign({ ok: true, seq: rang(t) }, trace, { refus: refuses.slice(0, 50) });
+  /* Même règle pour les refus : `c` est la collection, `id` serait le contenu. */
+  return Object.assign({ ok: true, seq: rang(t) }, trace, {
+    refus: refuses.slice(0, 50).map(x => ({ coll: x.c, motif: x.motif,
+      ref: crypto.createHash('sha256').update(String(x.id || '')).digest('hex').slice(0, 8) })) });
   } finally { _retoursEnVol.delete(t); }
 }
 

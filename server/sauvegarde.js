@@ -600,7 +600,16 @@ function monterSauvegarde(app, deps) {
          de réussir, `ageH` reste bon, `/health` reste vert, et on apprend six mois plus tard
          que le dossier des deux ans est resté à février. Un nombre, jamais une clé ni un nom :
          /health est publique. `null` = jamais faite, troisième état comme `configuree`. */
-      mensuelJ: etat.mensuel && etat.mensuel.ok ? Math.round((Date.now() - etat.mensuel.ts) / 86400000) : null };
+      /* ⛔ TROIS ÉTATS, PAS DEUX — la MÊME confusion que `configuree` vingt lignes plus haut,
+         que ce fichier venait de corriger et qu'on a aussitôt refaite un cran plus bas. Un
+         `"mensuel": false` dans `config.json` rendait `mensuelJ: null`, donc `surveillance.js`
+         criait « aucune copie MENSUELLE n'a jamais été déposée » tous les jours à 9 h UTC, pour
+         toujours, sur une plateforme réglée exactement comme on l'a voulu. Une alarme qui crie
+         faux se fait ignorer, puis désactiver : c'est comme ça qu'on perd un garde-fou.
+         `false` = éteint par décision · `null` = allumé et jamais faite · un nombre = l'âge. */
+      mensuelActif: MENSUEL,
+      mensuelJ: !MENSUEL ? false
+        : (etat.mensuel && etat.mensuel.ok ? Math.round((Date.now() - etat.mensuel.ts) / 86400000) : null) };
   }
 
   if (app && garde) {

@@ -306,6 +306,7 @@ v('   ni avec un préfixe qui ne désigne rien', S.aElaguer(obj(A, B, C, D), 1, 
   v('⛔ la nuit suivante la RETENTE pour le même mois', (r.mensuel || {}).fait, true);
   v('   /health la voit maintenant', mod.sante().mensuelJ, 0);
 
+
   /* ⛔ LA PANNE LA PLUS TRAÎTRE : le dépôt répond OK, mais ce qu'on relit n'est pas ce qu'on a
      envoyé. Sans relecture, elle passerait pour un succès — et on découvrirait le jour de la
      restauration que trente sauvegardes d'affilée sont illisibles. */
@@ -484,6 +485,29 @@ v('   ni avec un préfixe qui ne désigne rien', S.aElaguer(obj(A, B, C, D), 1, 
     /* ⛔ Deux clés différentes d'une installation à l'autre : `openssl rand` doit être DANS le
        script, pas une valeur figée qu'on aurait recopiée. */
     vrai('⛔ la clé de sauvegarde est tirée au hasard, pas écrite dans le script', /SAUV=\$\(openssl rand -hex 32\)/.test(sh));
+  }
+
+  /* ⛔⛔ TROIS ÉTATS, PAS DEUX — la MÊME confusion que `configuree`, refaite un cran plus bas.
+     Un `"mensuel": false` dans `config.json` rendait `mensuelJ: null`, donc la surveillance
+     criait « aucune copie MENSUELLE n'a jamais été déposée » tous les jours à 9 h UTC, pour
+     toujours, sur une plateforme réglée exactement comme on l'a voulu. Une alarme qui crie faux
+     se fait ignorer, puis désactiver : c'est comme ça qu'on perd un garde-fou. */
+  try { fs.unlinkSync(path.join(DATA, 'sauvegardes-hors-site.json')); } catch (e) {}
+  {
+    const c2 = coffreNeuf(), m2 = monter(c2, { mensuel: false });
+    const r2 = await m2.lancer('banc');
+    v('mensuel éteint : la nuit réussit quand même', r2.ok, true);
+    v('⛔ et aucune copie mensuelle n\'est déposée', c2._cles().filter(k => k.indexOf('mensuel/') >= 0).length, 0);
+    v('⛔ /health dit ÉTEINT (false), pas « jamais faite » (null)', m2.sante().mensuelJ, false);
+    v('   et le dit aussi en clair', m2.sante().mensuelActif, false);
+  }
+  /* ⚠️ Le contre-test : allumé et jamais faite doit TOUJOURS rendre `null`, sinon on vient de
+     rendre l'alarme muette pour tout le monde. */
+  try { fs.unlinkSync(path.join(DATA, 'sauvegardes-hors-site.json')); } catch (e) {}
+  {
+    const c3 = coffreNeuf(), m3 = monter(c3);
+    v('⛔ allumé et jamais faite : toujours null', m3.sante().mensuelJ, null);
+    v('   et actif', m3.sante().mensuelActif, true);
   }
 
   try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {}
