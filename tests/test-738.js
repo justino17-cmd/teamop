@@ -169,7 +169,11 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
     v('   et le même code', connu.code, inconnu.code);
     await dormir(400);
     const tous = POSTE.tous().join('\n');
-    vrai('⛔ mais le PROPRIÉTAIRE, lui, est prévenu par courriel', /Quelqu'un a essayé de créer un compte/.test(tous));
+    /* ⛔ ON CHERCHE DANS LE CORPS, JAMAIS DANS LE SUJET. Un sujet français part en RFC 2047
+       (`=?UTF-8?Q?Quelqu'un_a_essayé_de_créer_?=`) : les espaces deviennent des SOULIGNÉS et la
+       phrase est coupée en plusieurs mots encodés. Un motif écrit en français normal n'y tombe
+       jamais — et ce banc a accusé le serveur de ne pas envoyer un courriel qu'il envoyait. */
+    vrai('⛔ mais le PROPRIÉTAIRE, lui, est prévenu par courriel', /Une inscription vient d'être tentée/.test(tous));
     vrai('   et son mot de passe n\'a pas bougé : on le lui dit', /aucun compte n'a été créé/.test(tous));
     /* ⛔ Et surtout : la seconde tentative ne doit PAS avoir écrasé le compte. */
     const c = await appel(B, '/api/compte/connexion', { email: 'justin@exemple.fr', h: emp('un-vrai-mot-de-passe') });
@@ -177,11 +181,15 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
   }
   {
     POSTE.vider();
+    /* ⚠ UNE ADRESSE VRAIMENT JAMAIS VUE. Le premier jet réutilisait `personne@exemple.fr`,
+       que le contrôle d'au-dessus venait de CRÉER : les deux étaient donc connues, deux
+       courriels partaient, et le banc accusait le serveur de trop parler. Un contrôle de
+       discrétion qui compare deux cas identiques ne compare rien. */
     const connu = await appel(B, '/api/compte/mdp/demander', { email: 'justin@exemple.fr' });
-    const inconnu = await appel(B, '/api/compte/mdp/demander', { email: 'personne@exemple.fr' });
+    const inconnu = await appel(B, '/api/compte/mdp/demander', { email: 'jamais-inscrit-nulle-part@exemple.fr' });
     v('⛔ « mot de passe oublié » répond pareil des deux côtés', [connu.code, connu.j], [inconnu.code, inconnu.j]);
     await dormir(400);
-    v('   et un seul courriel est parti, pas deux', POSTE.tous().filter(x => /nouveau mot de passe/.test(x)).length, 1);
+    v('⛔ et UN SEUL courriel est parti, pas deux', POSTE.tous().filter(x => /Pour choisir un nouveau mot de passe/.test(x)).length, 1);
   }
 
   console.log('\n══ 4. ⛔ ET ELLES PRENNENT LE MÊME TEMPS ══\n');
