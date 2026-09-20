@@ -14,7 +14,20 @@
    · qu'elles prennent le MÊME TEMPS — répondre vite sur l'inconnue et lentement sur la connue
      dit lesquelles existent sans qu'un seul mot de passe soit juste ;
    · qu'un lien de mot de passe ne serve QU'UNE FOIS et COUPE les sessions ouvertes ;
-   · que le mot de passe n'apparaisse jamais dans le fichier des comptes. */
+   · que le mot de passe n'apparaîsse jamais dans le fichier des comptes.
+
+   ⚠️ CE QUE CE BANC NE PEUT PAS GARDER, ET QU'IL FAUT SAVOIR AVANT DE S'Y FIER. Remplacer
+   `crypto.timingSafeEqual` par `===` dans `memeSecret` ne fait tomber AUCUN contrôle, et ne
+   le fera jamais : les deux rendent le même verdict, et la différence de durée se compte en
+   nanosecondes — très en dessous du bruit d'un aller-retour HTTP, même sur 127.0.0.1. La
+   comparaison à temps constant est donc gardée par la RELECTURE, pas par ce fichier, et il
+   vaut mieux l'écrire que de croire un vert qui ne prouve rien. La faute réelle qu'elle
+   évite : `a === b` sort à la première différence, donc la durée dit combien de caractères
+   sont justes, et un secret se devine caractère par caractère sans jamais le connaître.
+   ⛔ Les CINQ autres gardes, elles, sont éprouvées par mutation (mesuré le 20/09/2026) :
+   adresse inconnue qui répond trop vite 47 ✓ 1 ✗ · 409 sur une adresse prise 46 ✓ 2 ✗ ·
+   sessions non coupées au changement de mot de passe 47 ✓ 1 ✗ · lien de vérification
+   resservable 47 ✓ 1 ✗ · sel fixe pour tous les comptes 46 ✓ 2 ✗. */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const { spawn } = require('child_process');
 
