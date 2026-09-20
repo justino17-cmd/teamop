@@ -764,6 +764,44 @@ console.log('\n⛔ La signature du serveur et celle de l\'appareil, sur les MÊM
   v('   une entreprise vide signe le vide, sans jeter', S.signatureCanonique('ent-vide-signature').par, {});
 }
 
+/* ══ ⛔ LA MARCHE ARRIÈRE DE L'ÉTAPE 4 : UN DRAPEAU PAR ESPACE, ÉTEINT PAR DÉFAUT ═══════
+   Pendant la double écriture, l'appareil écrit Firestore COMME AUJOURD'HUI et pousse EN PLUS
+   ses lignes ici. Si quelque chose va mal, couper la seconde écriture doit coûter UNE REQUÊTE.
+   Un drapeau côté client demanderait de publier une version et d'attendre que vingt téléphones
+   se mettent à jour : ce n'est pas un retour arrière, c'est une panne longue. */
+console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais toute seule');
+{
+  const TD = 'ent-double';
+  S.pousser(TD, [{ c: 'clients', id: 'c1', m: 1700000000000, e: 'h', r: { nom: 'X' } }]);
+  v('⛔ un espace qui vient de naître n\'est PAS en double écriture', S.entrepriseEtat(TD).double, false);
+  /* ⛔ ET UN ESPACE INCONNU NON PLUS. Le défaut inverse ferait pousser les données d'un espace
+     que l'annuaire ne connaît pas — c'est-à-dire exactement le cas où on ne doit rien écrire. */
+  v('⛔ un espace INCONNU non plus', S.entrepriseEtat('ent-jamais-vu').double, false);
+
+  const on = S.entrepriseDouble(TD, true);
+  v('on l\'allume, et la fonction rend l\'ÉTAT OBTENU', [on.connue, on.double], [true, true]);
+  v('   l\'état le dit', S.entrepriseEtat(TD).double, true);
+  const off = S.entrepriseDouble(TD, false);
+  v('⛔ on la coupe, et ça coupe vraiment', [off.connue, off.double], [true, false]);
+  v('   l\'état le dit aussi', S.entrepriseEtat(TD).double, false);
+
+  /* ⛔ RÉGLER UN ESPACE QUI N'EXISTE PAS NE DOIT PAS LE FAIRE NAÎTRE. Un `INSERT` ici créerait
+     une ligne d'annuaire ET UNE CLÉ pour un `t` mal tapé : un espace fantôme avec sa propre
+     DEK. C'est le défaut qu'`entrepriseOuvrir` a déjà payé. */
+  const inconnu = S.entrepriseDouble('ent-faute-de-frappe', true);
+  v('⛔ un `t` inconnu le DIT au lieu de créer une entreprise', inconnu, { connue: false, double: false });
+  v('   et il n\'est toujours pas dans l\'annuaire', S.entrepriseEtat('ent-faute-de-frappe').double, false);
+  v('   ni sur le disque', fs.existsSync(path.join(DIR, 'socle', 'ent-faute-de-frappe')), false);   // ⚠️ `faux()` n'existe pas dans ce banc — CLAUDE.md le note
+
+  /* La coupure de l'entreprise et la double écriture sont deux choses : fermer un espace ne
+     doit pas se confondre avec couper sa seconde écriture, ni l'inverse. */
+  S.entrepriseDouble(TD, true);
+  S.entrepriseOuvrir(TD, false);
+  v('⛔ fermer un espace ne touche pas au drapeau de double écriture', S.entrepriseEtat(TD).double, true);
+  vrai('   (mais l\'espace est bien fermé, et c\'est ça qui l\'empêche d\'écrire)', S.entrepriseEtat(TD).etat !== 'actif');
+  S.entrepriseOuvrir(TD, true); S.entrepriseDouble(TD, false);
+}
+
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

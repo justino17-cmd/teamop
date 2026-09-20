@@ -205,6 +205,20 @@ function annuaire() {
   db.exec(`CREATE TABLE IF NOT EXISTS entreprise (t TEXT PRIMARY KEY, dek BLOB NOT NULL, dek_gen INTEGER NOT NULL DEFAULT 1,
              kek_gen INTEGER NOT NULL DEFAULT 1, etat TEXT NOT NULL DEFAULT 'actif', seq INTEGER NOT NULL DEFAULT 0,
              octets INTEGER NOT NULL DEFAULT 0, cree_le INTEGER NOT NULL, ferme_le INTEGER NOT NULL DEFAULT 0)`);
+  /* ⛔ LA MARCHE ARRIÈRE DE L'ÉTAPE 4, PAR ESPACE, ET CÔTÉ SERVEUR.
+     Pendant la double écriture, l'appareil écrit Firestore COMME AUJOURD'HUI et pousse EN PLUS
+     ses lignes ici. Si quelque chose va mal, il faut pouvoir couper la seconde écriture
+     immédiatement — et « immédiatement » exclut de publier une version d'application et
+     d'attendre que vingt téléphones se mettent à jour. Ce n'est pas un retour arrière, c'est
+     une panne longue. Le drapeau est donc SERVEUR : une requête, et c'est coupé.
+     ⛔ ET IL VAUT 0 PAR DÉFAUT. Une entreprise qui apparaît dans l'annuaire n'est pas en double
+     écriture : il faut un geste, espace par espace, depuis la Tour. Le contraire ferait
+     basculer une entreprise le jour où elle crée sa base, sans que personne l'ait décidé.
+     ⚠️ `ALTER TABLE` plutôt qu'un `CREATE` modifié : la table existe déjà sur les bases créées
+     avant, et `CREATE TABLE IF NOT EXISTS` ne les toucherait pas — la colonne manquerait, en
+     silence, exactement sur les espaces les plus anciens. */
+  try { db.exec("ALTER TABLE entreprise ADD COLUMN double INTEGER NOT NULL DEFAULT 0"); }
+  catch (e) { /* déjà là : c'est le cas nominal après le premier démarrage */ }
   db.exec(`CREATE TABLE IF NOT EXISTS appareil (t TEXT NOT NULL, app_id TEXT NOT NULL, jeton_sha TEXT NOT NULL,
              exp INTEGER NOT NULL, cree_le INTEGER NOT NULL, vu_le INTEGER NOT NULL DEFAULT 0, nom TEXT NOT NULL DEFAULT '',
              revoque_le INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (t, app_id))`);
@@ -962,8 +976,28 @@ function numeroReserver(t, prefixe, annee, n, plancher) {
  * `/api/op/session` comme chaque requête authentifiée le relisent. */
 function entrepriseEtat(t) {
   t = exigerT(t);
-  const l = annuaire().prepare('SELECT etat, ferme_le FROM entreprise WHERE t=?').get(t);
-  return l ? { etat: l.etat || 'actif', ferme_le: l.ferme_le || 0 } : { etat: 'actif', ferme_le: 0 };
+  const l = annuaire().prepare('SELECT etat, ferme_le, double FROM entreprise WHERE t=?').get(t);
+  /* ⚠️ L'ESPACE INCONNU REND `double:false`, ET C'EST LE BON SENS DU DÉFAUT. Une entreprise
+     dont on ne sait rien n'est pas en double écriture. Le défaut inverse ferait pousser les
+     données d'un espace que l'annuaire ne connaît pas — c'est-à-dire exactement le cas où on
+     ne devrait rien écrire. */
+  return l ? { etat: l.etat || 'actif', ferme_le: l.ferme_le || 0, double: !!l.double }
+    : { etat: 'actif', ferme_le: 0, double: false };
+}
+
+/* ⛔ ALLUMER OU COUPER LA DOUBLE ÉCRITURE D'UN ESPACE — la marche arrière de l'étape 4.
+   ⚠️ COMME `entrepriseOuvrir`, ÇA NE DOIT PAS FAIRE NAÎTRE UNE ENTREPRISE. Un `INSERT` ici
+   créerait une ligne d'annuaire — et une clé — pour un `t` mal tapé, donc un espace fantôme
+   avec sa propre DEK. C'est le défaut que `entrepriseOuvrir` a déjà payé : on met à jour ce
+   qui existe, et on DIT quand il n'y a rien.
+   ⛔ Et elle rend l'ÉTAT OBTENU, pas un `ok` : croire une entreprise coupée alors qu'elle ne
+   l'est pas est la panne silencieuse type de ce dépôt. */
+function entrepriseDouble(t, actif) {
+  t = exigerT(t);
+  const db = annuaire();
+  const n = db.prepare('UPDATE entreprise SET double=? WHERE t=?').run(actif ? 1 : 0, t).changes;
+  if (!n) return { connue: false, double: false };
+  return { connue: true, double: !!db.prepare('SELECT double FROM entreprise WHERE t=?').get(t).double };
 }
 
 /* `ouvert:false` ferme ET coupe : les deux vont toujours ensemble, sinon on rejoue le défaut.
@@ -1301,7 +1335,7 @@ function sante() { semerCompteurs(); return { actif: true, bases: _nbBases, cle:
 module.exports = {
   ouvrir, annuaire, dekDe, pousser, depuis, etat, rang, existe, presentSurDisque, verifier, effacerEntreprise, sante, fermer,
   exigerT, numeroReserver, journalDe,
-  entrepriseEtat, entrepriseOuvrir, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
+  entrepriseEtat, entrepriseOuvrir, entrepriseDouble, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
   diagnostic, diagnosticsDe, ancre, ancreVerifier,
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,

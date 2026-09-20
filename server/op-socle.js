@@ -269,8 +269,16 @@ function monterOpSocle(app, deps) {
       console.error('socle: session non ouverte —', err.code || 'erreur');
       return res.status(503).json({ error: 'session impossible — réessaie', motif: 'session' });
     }
+    /* ⛔ C'EST LE SERVEUR QUI DIT SI CET ESPACE EST EN DOUBLE ÉCRITURE, JAMAIS L'APPAREIL.
+       C'est la marche arrière de l'étape 4, et elle doit coûter UNE REQUÊTE. Un drapeau côté
+       client demanderait de publier une version et d'attendre que vingt téléphones se mettent
+       à jour : ce n'est pas un retour arrière, c'est une panne longue.
+       ⚠️ Il vaut `false` par défaut, et `false` aussi quand l'annuaire ne connaît pas l'espace.
+       L'appareil qui ne le lit pas n'écrit nulle part : c'est le bon sens du défaut. */
+    let dbl = false;
+    try { dbl = !!socle.entrepriseEtat(t).double; } catch (err) {}
     res.json({ jeton, exp: ouverte.exp, app_id: ouverte.app_id, nouveau: ouverte.nouveau,
-      seq: e.seq, vide: e.seq === 0, etat: 'actif', lotMax: LOT_MAX });
+      seq: e.seq, vide: e.seq === 0, etat: 'actif', lotMax: LOT_MAX, double: dbl });
   });
 
   /* ══ GET /api/op/depuis ═══════════════════════════════════════════════════════════════════ */
@@ -391,6 +399,29 @@ function monterOpSocle(app, deps) {
   /* ══ LES ROUTES DE LA TOUR ════════════════════════════════════════════════════════════════
      `garde` est `monPatronStrict`, qui relit rôle/actif/apps à CHAQUE requête. Les chemins
      tombent dans la Tour GESTION par défaut (`monAppDeRoute`), où l'oubli FERME. */
+
+  /* ⛔ ALLUMER OU COUPER LA DOUBLE ÉCRITURE D'UN ESPACE — LA MARCHE ARRIÈRE DE L'ÉTAPE 4.
+     Espace par espace, jamais en bloc : on allume UNE entreprise, on la regarde une semaine,
+     et on décide. Allumer tout le monde d'un coup, c'est se priver du seul moment où une
+     divergence se rattrape encore à la main.
+     ⚠️ Elle ne fait PAS naître d'entreprise : un `t` mal tapé rend 404 et ne crée ni ligne
+     d'annuaire ni clé. Et elle rend l'ÉTAT OBTENU, pas un `ok` — croire une entreprise coupée
+     alors qu'elle ne l'est pas est la panne silencieuse type de ce dépôt. */
+  poser('POST', '/api/monitor/op/double', garde, (req, res) => {
+    const b = req.body || {};
+    const t = monStr(b.t, 80);
+    if (!t) return res.status(400).json({ error: 't requis' });
+    /* `actif` vient du corps et décide d'un état : on le lit comme un booléen STRICT, jamais
+       en vérité JavaScript. `{actif:'false'}` vaut vrai en JS — et allumerait la double
+       écriture d'une entreprise à qui on croyait la couper. */
+    const actif = b.actif === true || b.actif === 1;
+    let r;
+    try { r = socle.entrepriseDouble(t, actif); }
+    catch (e) { console.error('socle: double écriture non réglée —', e.code || 'erreur'); return res.status(503).json({ error: 'réglage impossible', motif: 'base' }); }
+    if (!r.connue) return res.status(404).json({ error: 'aucun stockage pour cet espace', motif: 'inconnu' });
+    console.log('socle : double écriture ' + (r.double ? 'ALLUMÉE' : 'coupée') + ' pour un espace');
+    res.json({ ok: true, double: r.double });
+  });
 
   /* ⛔ LE NIVEAU QUI RÉPOND À HUIT QUESTIONS DE DÉPANNAGE SUR DIX, SANS AUCUN CONTENU. C'est
      LUI la vraie protection de la vie privée des clients : pas la session de 30 minutes, mais

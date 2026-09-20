@@ -267,8 +267,12 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
          ⚠️ Ne pas « corriger » le serveur vers 401 en croyant uniformiser : ce serait ouvrir
          l'oracle que cette variante stricte existe précisément pour fermer. */
       const reponses = [];
+      /* ⚠️ `/api/monitor/op/double` est dans cette liste, et elle y restera : c'est la route
+         qui ALLUME la double écriture d'une entreprise. Une route neuve de la Tour oubliée
+         ici, c'est une porte qu'on n'a pas essayé d'ouvrir sans clé. */
       for (const [m, c] of [['GET', '/api/monitor/op/apercu?t=ent-a-9x'], ['POST', '/api/monitor/op/ouvrir'],
-        ['GET', '/api/monitor/op/journal?t=ent-a-9x'], ['POST', '/api/monitor/op/couper'], ['GET', '/api/monitor/op/diagnostics?t=ent-a-9x']]) {
+        ['GET', '/api/monitor/op/journal?t=ent-a-9x'], ['POST', '/api/monitor/op/couper'],
+        ['POST', '/api/monitor/op/double'], ['GET', '/api/monitor/op/diagnostics?t=ent-a-9x']]) {
         const r = await appel(m, c, { corps: m === 'POST' ? { t: 'ent-a-9x' } : undefined });
         v(m + ' ' + c.split('?')[0] + ' → refusée sans session Tour', r.code, 403);
         reponses.push(JSON.stringify(r.j));
@@ -280,7 +284,7 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
       const avecJeton = await appel('GET', '/api/monitor/op/apercu?t=ent-a-9x', { jeton: jetonA });
       v('⛔ un jeton d\'appareil n\'ouvre pas la Tour', avecJeton.code, 403);
       v('⛔ le refus ne dit RIEN de plus avec un jeton qu\'avec rien', JSON.stringify(avecJeton.j), reponses[0]);
-      v('⛔ les cinq routes refusent à l\'identique (aucun oracle)', new Set(reponses).size, 1);
+      v('⛔ les six routes refusent à l\'identique (aucun oracle)', new Set(reponses).size, 1);
       /* ⛔ Et surtout : un espace INEXISTANT est refusé pareil qu'un espace réel. Sinon la
          Tour deviendrait un annuaire des entreprises clientes, lisible sans être la Tour. */
       v('⛔ un espace inexistant est refusé à l\'identique',
