@@ -3710,6 +3710,26 @@ function socleEffacer(t) {
    qui travaille sans rien risquer — et de faire marche arrière SANS déploiement, en éteignant
    le drapeau. Si le module refuse de se monter, le reste du serveur continue : on perd le
    socle, pas la plateforme, et `/health` le dit. */
+/* ══ LES COMPTES DU PORTAIL, CHEZ NOUS ══════════════════════════════════════════
+   ⛔ INERTE SANS `"comptes": {"actif": true}`, pour la même raison que le socle : pas une
+   route déclarée, pas un fichier ouvert. Ces routes remplacent Firebase Auth pour le portail
+   client (`espace.html`) et les liens de mot de passe (`reinit.html`) — l'angle mort que
+   `PLAN-OP-SOCLE.md` n'avait jamais vu, parce qu'il ne parlait que de Firestore.
+   ⚠ Allumer ici n'éteint rien chez Google, et c'est voulu : un mot de passe Firebase ne se
+   LIT pas, donc chaque personne devra en reposer un. Les deux identités doivent pouvoir
+   coexister le temps de cette bascule. */
+let comptes = null;
+try {
+  if (config.comptes && config.comptes.actif) {
+    comptes = require('./comptes').monterComptes(app, {
+      dossier: DATA_DIR, mailerEnvoi: (o) => mailerEnvoi(o), quotaOk,
+      siteBase: 'https://teamop.fr',
+      journal: (...a) => console.log('comptes:', ...a),
+    });
+    console.log('comptes du portail : montés (' + comptes.combien() + ' compte(s))');
+  }
+} catch (e) { console.error('comptes du portail NON montés —', e && e.message); comptes = null; }
+
 let opSocle = null;
 try {
   opSocle = require('./op-socle').monterOpSocle(app, {
