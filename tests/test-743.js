@@ -39,10 +39,15 @@ let enfant = null;
 
 /* On monte le VRAI serveur : `espaceSursisJours` vit dans le câblage du socle, pas dans un
    module qu'on pourrait instancier à côté. Une copie prouverait la copie. */
-async function monter(fermes) {
+async function monter(fermes, annuaire) {
   const dir = path.join(BANC, 'srv-' + Math.random().toString(36).slice(2)), data = path.join(dir, 'data');
   fs.mkdirSync(data, { recursive: true });
   if (fermes) fs.writeFileSync(path.join(data, 'entreprises-fermees.json'), JSON.stringify(fermes));
+  /* ⛔ SANS ANNUAIRE, LA ROUTE REND 404 AVANT D'ARRIVER AU CŒUR — et un banc qui ne l'atteint
+     jamais ne garde rien de ce qu'elle fait. C'est ce qui a laissé passer la mutation
+     « resuspendre redémarre le délai » : elle ne cassait aucun contrôle parce qu'aucun contrôle
+     n'allait jusque-là. `espSlug` retire tout ce qui n'est pas alphanumérique. */
+  if (annuaire) fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify(annuaire));
   const cfgPath = path.join(dir, 'config.json');
   const webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push'));
   const vap = webpush.generateVAPIDKeys();
@@ -110,11 +115,10 @@ const arreter = async () => {
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nom: 'Patron', pass: MDP }) })).json();
     vrai('   la Tour se connecte', /^[a-f0-9]{48}$/.test(String(tour.token || '')));
 
-    /* ⚠️ Sans annuaire, la route rend 404 avant d'arriver au cœur : on ne peut donc pas jouer
-       la suspension par HTTP ici sans monter tout un espace. Ce que ce banc garde est la
-       MÉCANIQUE du fichier et de la date — et elle se joue sur le fichier, qui est la seule
-       chose que la route écrit. On éprouve donc les deux bouts : la reprise (section 1), et
-       le calcul du sursis (section 3), plus le fait que la route existe et est gardée. */
+    /* Ici, SANS annuaire : la route doit refuser proprement un espace inconnu, et refuser
+       tout court sans jeton de la Tour. La suspension jouée pour de vrai est en 2 bis,
+       avec un annuaire — parce qu'un banc qui n'atteint jamais le cœur d'une route ne
+       garde rien de ce qu'elle fait, et c'est une mutation qui l'a dit. */
     const r = await fetch(S.B + '/api/monitor/espaces/suspendre', { method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour.token },
       body: JSON.stringify({ slug: 'entreprise-qui-nexiste-pas' }) });
@@ -122,6 +126,58 @@ const arreter = async () => {
     const sansJeton = await fetch(S.B + '/api/monitor/espaces/suspendre', { method: 'POST',
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: 'x' }) });
     vrai('⛔ et elle refuse SANS jeton de la Tour', sansJeton.status === 401 || sansJeton.status === 403);
+    await arreter();
+  }
+
+  console.log('\n══ 2 bis. ⛔ SUSPENDRE DEUX FOIS NE REDÉMARRE PAS LE DÉLAI ══\n');
+  {
+    /* ⛔ LE CONTRÔLE QUI MANQUAIT, ET UNE MUTATION L'A DIT. Remettre
+       `entFermes.suspendusLe[t] = Date.now()` sans garde ne faisait tomber AUCUN contrôle :
+       le banc n'atteignait jamais la route, faute d'annuaire. Or c'est la garde qui décide
+       qu'un impayé grise un jour — sans elle, un double clic, une reprise de la Tour ou un
+       réglage de facturation rejoué rendent sept jours de sursis à chaque fois, et les onglets
+       ne grisent JAMAIS. La règle de CLAUDE.md, mot pour mot : quand une mutation ne casse
+       rien, la question est « qu'est-ce que le banc ne joue pas ? ». */
+    const T = 'bernard-abc123';
+    const S = await monter({ emails: [], espaces: [], suspendus: [], suspendusLe: {} },
+      { bernardhygiene: { t: T, nom: 'Bernard Hygiène' } });
+    vrai('   le serveur répond', S.vivant);
+    const tour = await (await fetch(S.B + '/api/monitor/login', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nom: 'Patron', pass: MDP }) })).json();
+    const suspendre = (corps) => fetch(S.B + '/api/monitor/espaces/suspendre', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour.token },
+      body: JSON.stringify(corps) });
+
+    const r1 = await suspendre({ slug: 'Bernard Hygiène' });
+    const j1 = await r1.json();
+    v('   la Tour suspend l\'entreprise', r1.status, 200);
+    /* ⛔ ET ELLE DIT LA VÉRITÉ : une suspension NE COUPE PLUS RIEN (décision du 20 septembre).
+       Une Tour qui afficherait une coupure qui n'a pas eu lieu, c'est « croire une entreprise
+       coupée alors qu'elle ne l'est pas » — la panne silencieuse type de ce dépôt. */
+    v('⛔ et la réponse dit qu\'il n\'y a PAS de coupure', j1.coupure, false);
+    v('   elle annonce le sursis', j1.sursisJours, 7);
+    vrai('⛔ et la date de départ, sans laquelle rien ne se compte', typeof j1.depuis === 'number' && j1.depuis > 0);
+    const f1 = S.fichier();
+    v('   le fichier porte la date', f1.suspendusLe[T], j1.depuis);
+
+    await dormir(1100);   // assez pour que `Date.now()` ait bien changé
+    const r2 = await suspendre({ slug: 'Bernard Hygiène' });
+    v('   resuspendre répond encore 200', r2.status, 200);
+    const f2 = S.fichier();
+    v('⛔⛔ LA DATE N\'A PAS BOUGÉ — sinon un impayé ne grise jamais', f2.suspendusLe[T], f1.suspendusLe[T]);
+
+    /* ⛔ ROUVRIR EFFACE LA DATE. Sans ça, une entreprise qui régularise puis retombe en impayé
+       six mois plus tard verrait son sursis déjà écoulé à la seconde où on la resuspend. */
+    const r3 = await suspendre({ slug: 'Bernard Hygiène', rouvrir: true });
+    v('   la Tour rouvre', r3.status, 200);
+    const f3 = S.fichier();
+    vrai('⛔ rouvrir efface la date', !f3.suspendusLe[T]);
+    vrai('   et retire l\'entreprise des suspendus', !(f3.suspendus || []).includes(T));
+
+    /* Et une suspension NEUVE après réouverture repart bien à sept jours. */
+    const r4 = await suspendre({ slug: 'Bernard Hygiène' });
+    const j4 = await r4.json();
+    vrai('⛔ une suspension NEUVE repart à zéro', j4.depuis > f1.suspendusLe[T]);
     await arreter();
   }
 
