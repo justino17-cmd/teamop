@@ -45,6 +45,36 @@ routes répondraient à n'importe qui.
   confondre laisserait un client s'attribuer les applications qu'il veut — la faute déjà
   payée sur `/api/clients/sync`.
 
+### ⛔⛔ ET LE RELEVÉ A TROUVÉ TROIS FONCTIONS MORTES DANS `espace.html` (20 septembre 2026)
+
+Depuis la publication de `firestore.rules` le 18 septembre, **trois choses de la page ne
+peuvent plus fonctionner**, et personne ne l'a vu — ce qui dit déjà quelque chose de leur
+usage réel :
+
+| ce que la page fait | la règle servie | verdict |
+|---|---|---|
+| `espace.html:947` — requête sur TOUTE la collection `teamop_requests` (l'écran d'administration) | `firestore.rules:59` — `allow read: if cestMoi(uid)` | ⛔ **refusée** |
+| `espace.html:920` — `teamop_news.add(…)`, publier une nouveauté | `firestore.rules:75` — `allow write: if false` | ⛔ **refusée** |
+| `espace.html:930` — `teamop_news.doc(id).delete()` | idem | ⛔ **refusée** |
+
+`cestMoi(uid)` est la SEULE condition — aucune exception pour `@teamop.fr`, aucune pour la
+Tour. Et Firestore refuse toute requête de COLLECTION dont elle ne peut pas garantir que chaque
+document rendu est lisible : une requête sans filtre sur l'identifiant est donc toujours
+rejetée, quelle que soit la personne connectée.
+
+⚠ **À CONSTATER DE SES YEUX AVANT D'AGIR** : ouvrir `teamop.fr/espace.html` avec un compte
+`@teamop.fr` et regarder la console. C'est une déduction à partir de la règle et de la forme
+de la requête — solide, mais ce dépôt a déjà payé cher de croire un fichier plutôt que
+l'écran (voir `_mailboxes`, et la règle Firestore elle-même).
+
+✅ **Ce qui fait face aux clients marche** : lire les nouveautés (`allow read: if connecte()`),
+lire et écrire son propre dossier, son propre fil.
+
+✅ **Et ça RÉTRÉCIT l'étape C** : il n'y a pas d'écran d'administration à porter, seulement à
+RETIRER — la Tour fait déjà ce travail (`/api/monitor/clients`, et désormais
+`/api/monitor/portail/demandes`). Porter du code mort aurait coûté le double et laissé croire
+à une fonctionnalité.
+
 ### ⛔ CE QUI RESTE, ET CE N'EST PAS UN DÉTAIL
 
 **`espace.html` appelle encore Firebase, partout.** Le relevé : ~40 points d'appel, cinq
