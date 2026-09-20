@@ -18,7 +18,7 @@ Pas de compilation, pas de bundler. Ce qui est écrit est ce qui est servi.
 
 ## Le serveur
 
-`server/index.js` — 7 367 lignes (recompté le 20 septembre 2026 ; il a doublé,
+`server/index.js` — 7 496 lignes (recompté le 20 septembre 2026 ; il a doublé,
 puis redoublé, depuis la première rédaction de cette fiche — se méfier des chiffres de cette
 page plus vieux que quelques jours, celui-ci compris : il a vieilli de 90 lignes dans la
 journée même où il a été corrigé). Écoute sur `127.0.0.1:8080`,
@@ -111,9 +111,9 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 92 suites · 3 547 vérifications (mesuré le 20/09/2026 au soir)
-node tests/test-726.js          # le câblage du SERVEUR : 139 vérifications, ~12 s
-node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 127 vérifications, ~45 s
+bash scripts/bancs-ci.sh        # 92 suites · 3 682 vérifications (mesuré le 20/09/2026 au soir)
+node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
+node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
 
 ⛔ **COMPTER LES ✓ AVEC `grep` DONNE UN CHIFFRE FAUX, ET FAUX EN MOINS.** Sept suites (716 à
@@ -144,6 +144,8 @@ deux suites sont reparties au rouge une heure plus tard, sur du code que je croy
 L'ordre est donc : **correctif → banc → `git commit` → mutation → `git checkout`.** Et après
 chaque tour de mutations, relire ce que le commit contient VRAIMENT (`git show --stat`), pas ce
 qu'on croit y avoir mis.
+
+⚠️ **Repris une troisième fois le 20 septembre 2026, sur `server/sauvegarde.js`** : cinq édits d'une fonctionnalité neuve, pas encore commités, effacés par le `git checkout` de la PREMIÈRE mutation. Rien n'avertit — le banc repart simplement au rouge sur des contrôles qu'on vient d'écrire, ce qui ressemble à une mutation qui mord. Le signe qui ne trompe pas : **une mutation fait tomber des contrôles qui n'ont rien à voir avec elle.** Là, arrêter et regarder `git status` avant de chercher plus loin.
 
 ⛔ **Un banc qui passe ne prouve rien tant qu'on ne l'a pas vu ÉCHOUER.** `test-726` a été
 éprouvé en REMETTANT les défauts qu'il garde, un par un — chiffres re-mesurés le 19 septembre

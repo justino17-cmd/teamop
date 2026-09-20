@@ -49,7 +49,7 @@ body{
   --amber:#F0A94A;--red:#F07470;--redText:#F58E8A;--on-red:#1A0606;--gray:#A2A9BA;--bleu:#8DB4FF;--violet:#C4A6FF;
   --vertBg:rgba(62,210,160,.14);--ambreBg:rgba(240,169,74,.15);--rougeBg:rgba(240,116,112,.15);--grisBg:rgba(150,165,195,.14);--bleuBg:rgba(91,141,239,.16);--violetBg:rgba(167,139,250,.16);
   /* ── tuiles d'icônes : identiques jour et nuit, glyphe blanc ≥ 3,6:1 ; Accueil = l'application (la maison, c'est l'application) ── */
-  --ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
+  --ic-donnees:var(--ic-neutre);--ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
   --ic-abonnements:var(--ic-neutre);--ic-devisia:var(--ic-neutre);--ic-acces:var(--ic-neutre);--ic-equipe:var(--ic-neutre);--ic-journal:var(--ic-neutre);
   /* ── ombres : le filet fait le travail ; l'ombre n'est que pour ce qui flotte (menus, feuilles) ── */
   --ic-neutre:rgba(150,165,195,.15);--ic-encre:var(--text2);
@@ -117,7 +117,7 @@ body.jour{
   --green:#0E7060;--green-txt:#0E7060;--vert:#0E7060;
   --amber:#8A5600;--red:#B42B2B;--redText:#B42B2B;--on-red:#FFFFFF;--gray:#5B6070;--bleu:#1B4FBF;--violet:#6D3FC7;
   --vertBg:#E4F1EE;--ambreBg:#F3EDE2;--rougeBg:#F8E9E9;--grisBg:#EEEFF2;--bleuBg:#E8EDF9;--violetBg:#F0ECF9;
-  --ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
+  --ic-donnees:var(--ic-neutre);--ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
   --ic-abonnements:var(--ic-neutre);--ic-devisia:var(--ic-neutre);--ic-acces:var(--ic-neutre);--ic-equipe:var(--ic-neutre);--ic-journal:var(--ic-neutre);
   --ic-neutre:rgba(24,24,27,.07);--ic-encre:var(--text2);
   --ombre-1:0 0 0 1px var(--border);
@@ -451,6 +451,16 @@ input.inp,select.sel-f{display:block;line-height:normal}
    32 px entre deux groupes contre 10 px entre deux clientes et 0 px (un filet) dans un bloc :
    un rapport de 1 à 3 à 32. Les six pixels identiques d'avant ne disaient rien du tout. */
 .reg{display:flex;flex-direction:column;gap:32px}
+/* ══ Données — le retour en arrière ══ Le plancher tactile vient de `.btn-plein`/`.inp`
+   (ligne « min-height:44px » plus haut) ; ici on ne règle que ce qui leur est propre.
+   ⛔ La case à cocher fait 13 px et ne fera jamais 44 : la cible, c'est son LIBELLÉ. */
+.don-coche{display:flex;align-items:center;gap:10px;min-height:44px;margin-top:6px;cursor:pointer}
+.don-coche input{width:20px;height:20px;flex:0 0 20px}
+/* ⛔ `flex:0 0 160px` débordait à 390 px : une base fixe ne rétrécit pas. La base est la
+   largeur SOUHAITÉE, et `min-width:0` autorise le rétrécissement — sans quoi un flex
+   refuse de passer sous la taille de son contenu, ce qui est la cause habituelle d'un
+   débordement horizontal qu'on ne s'explique pas. */
+.don-code{flex:1 1 160px;min-width:0;max-width:220px}
 .reg-g{min-width:0}
 
 /* Le titre de groupe est le seul texte de cette taille qui ne soit posé sur aucune surface :
@@ -2266,7 +2276,7 @@ var APPS_TOUR={
   messages:{cle:'messages',nom:'OP MESSAGES',court:'MESSAGES',tags:['opmessages','opmsg','messages']} };
 /* VUES oubliait 'connexions' alors que renderTabs le dessinait : #connexions ne marchait pas. */
 var VUES_PAR_APP={
-  gestion:['accueil','surveillance','support','entreprises','connexions','abonnements','devisia','essais','equipe','journal'],
+  gestion:['accueil','surveillance','support','entreprises','connexions','abonnements','devisia','essais','donnees','equipe','journal'],
   messages:['accueil','surveillance','entreprises','support','equipe','journal'] };
 function vues(){ return VUES_PAR_APP[APP]||VUES_PAR_APP.gestion; }
 var VUES=VUES_PAR_APP.gestion;   /* compatibilité : quelques lecteurs l'utilisent encore */
@@ -2513,6 +2523,8 @@ window.addEventListener('hashchange',function(){
 var IC={
   accueil:'<path d="M4 11 12 4l8 7"></path><path d="M6 10v10h12V10"></path>',
   surveillance:'<path d="M3 12h4l2-6 4 12 2-6h6"></path>',
+  /* Un cylindre de base de données : c'est le socle, pas un dossier. */
+  donnees:'<ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path>',
   support:'<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path>',
   entreprises:'<rect x="5" y="4" width="14" height="16" rx="1"></rect><path d="M10 20v-4h4v4"></path><path d="M9 8h2M13 8h2M9 12h2M13 12h2"></path>',
   abonnements:'<rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path>',
@@ -2564,7 +2576,7 @@ function renderTabs(){
      une teinte par destination, jamais un état — le badge rouge chiffré fait le travail. */
   var t=[['accueil','Accueil','gestion messages'],null,['surveillance','Surveillance','gestion messages','bdg-surv'],['support','Support','gestion messages','bdg-supp'],
          null,['entreprises','Entreprises','gestion messages'],['connexions','Connexions clients','gestion'],['abonnements','Abonnements','gestion'],['devisia','Devis IA','gestion'],null,
-         ['essais','Accès','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal de la console','gestion messages']];
+         ['essais','Accès','gestion'],['donnees','Données','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal de la console','gestion messages']];
   var grp=['Activité','Clients','Console'], gi=0, h='', dansGroupe=0, tampon='';
   var pousse=function(){ if(dansGroupe) h+=tampon; tampon=''; dansGroupe=0; };
   t.forEach(function(x){
@@ -2710,6 +2722,11 @@ function setTab(t,sansAnim){
      ouvre Entreprises sans être passé par Accès. */
   if(APP==='messages'&&t==='accueil'){ if(!OPM.loaded) chargerEtatMessages(); if(!ENT.loaded) chargerEntreprises(); }
   if(t==='entreprises'){ if(!ENT.loaded) chargerEntreprises(); if(!CLI.loaded) chargerClients(); if(!PBL.loaded) chargerAccesPublics(); if(!CS.loaded) chargerComptesSite(); }
+  /* L'état de la sauvegarde ne vient PAS de `chargerTout()` : cet écran est le seul à s'en
+     servir, et le charger au démarrage ferait payer une requête à tout le monde pour un
+     onglet que personne n'ouvre la plupart du temps. On le relit à chaque ouverture — une
+     sauvegarde lancée depuis ici doit se voir tout de suite. */
+  if(t==='donnees') donCharger();
   /* Les données de cet onglet ne venaient que de chargerTout() au démarrage : un échec
      réseau à la connexion le figeait sur son message d'erreur pour toute la session. */
   if(t==='essais'){ if(!BT.loaded) chargerEssais(); if(!PBL.loaded) chargerAccesPublics(); }
@@ -4252,6 +4269,7 @@ function renderVue(v){
   else if(TAB==='abonnements') v.innerHTML=vueAbonnements();
   else if(TAB==='devisia') v.innerHTML=vueDevisIA();
   else if(TAB==='essais') v.innerHTML=vueEssais();
+  else if(TAB==='donnees') v.innerHTML=vueDonnees();
   else if(TAB==='equipe') v.innerHTML=vueEquipe();
   else if(TAB==='journal') v.innerHTML=vueJournal();
   if(v.classList.contains('entre')) compterKpi(v);
@@ -7769,6 +7787,141 @@ function jrGroupe(titre,n,sous,opt,corps){
   return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+titre+'</span>'+
     (n===null?'':'<span class="reg-n">'+n+'</span>')+
     (sous?'<div class="reg-sous'+(opt?' opt':'')+'">'+sous+'</div>':'')+'</div>'+corps+'</div>';
+}
+/* ══════════ DONNÉES — LA SAUVEGARDE, ET LE RETOUR EN ARRIÈRE ══════════
+   ⛔ LE PREMIER ÉCRAN DE LA TOUR POUR LE SOCLE, ET IL N'ARRIVE PAS PAR HASARD. `REPRISE.md`
+   porte depuis des semaines « zéro écran de Tour pour le socle et pour la sauvegarde » : les
+   routes existaient, les alarmes remontaient dans `surveillance.js`, et personne ne pouvait
+   RIEN faire depuis la console. Un chantier qu'on ne peut pas conduire est un chantier qu'on
+   subit.
+   Deux choses ici, et une seule d'entre elles écrit :
+     · la sauvegarde hors site — état, et où va chercher la copie du mois ;
+     · le retour en arrière d'UNE entreprise, en deux temps : un aperçu qui n'écrit rien,
+       puis une application qui exige le code envoyé à l'adresse de l'entreprise. */
+var DON={ent:'',instant:'',apercu:null,chargement:false,err:'',sauv:null,codeEnvoye:false,code:'',sansIllisibles:false};
+
+function donCharger(){
+  apiGet('/api/monitor/sauvegarde/etat').then(function(d){ DON.sauv=d; if(TAB==='donnees') render(); })
+    .catch(function(e){ DON.sauv={err:msgErreur(e)}; if(TAB==='donnees') render(); });
+}
+/* L'instant se saisit en heure LOCALE (c'est celle que Justin lit sur sa montre) et se
+   convertit en millisecondes. Le serveur, lui, raisonne en UTC de bout en bout — la conversion
+   se fait ICI, une fois, plutôt que dans trois messages qui divergeraient. */
+function donInstantMs(){ var v=DON.instant; if(!v) return 0; var t=Date.parse(v); return isFinite(t)?t:0; }
+function donApercu(){
+  var t=(DON.ent||'').trim(), ms=donInstantMs();
+  if(!t||!ms){ toast('Il faut un espace et une date.'); return; }
+  DON.chargement=true; DON.err=''; DON.apercu=null; DON.codeEnvoye=false; DON.code=''; render();
+  apiGet('/api/monitor/op/retour-apercu?t='+encodeURIComponent(t)+'&instant='+ms)
+    .then(function(d){ DON.apercu=d; DON.chargement=false; render(); })
+    .catch(function(e){ DON.err=e&&e.corps?String(e.corps):msgErreur(e); DON.chargement=false; render(); });
+}
+/* ⛔ DEUX TEMPS, ET LE PREMIER N'ÉCRIT RIEN. Le serveur renvoie `codeEnvoye` sans avoir touché
+   à quoi que ce soit ; c'est seulement le second appel, avec le code, qui applique. On ne
+   fusionne pas les deux « pour faire plus simple » : un bouton qui écrit parfois et pas
+   d'autres fois est un bouton dont on ne sait plus ce qu'il fait. */
+function donDemanderCode(){
+  var t=(DON.ent||'').trim(), ms=donInstantMs(); if(!t||!ms) return;
+  apiPost('/api/monitor/op/revenir',{t:t,instant:ms}).then(function(r){
+    if(!r.ok){ toast(r.d&&r.d.error?String(r.d.error).slice(0,160):'Refusé.'); return; }
+    DON.codeEnvoye=true; render(); toast('Code envoyé à l’adresse de l’entreprise.');
+  });
+}
+function donAppliquer(){
+  var t=(DON.ent||'').trim(), ms=donInstantMs(), c=(DON.code||'').trim();
+  if(!t||!ms||!c){ toast('Il faut le code reçu par courriel.'); return; }
+  apiPost('/api/monitor/op/revenir',{t:t,instant:ms,code:c,sansLesIllisibles:!!DON.sansIllisibles}).then(function(r){
+    if(!r.ok){ toast(r.d&&r.d.error?String(r.d.error).slice(0,200):'Refusé.'); return; }
+    DON.codeEnvoye=false; DON.code='';
+    toast(r.d.restaures+' remise(s) en place, '+r.d.enterres+' supprimée(s).');
+    donApercu();
+  });
+}
+function donChamp(quoi,val){ DON[quoi]=val; }
+
+function vueDonnees(){
+  var tete=enTete('Données',
+    'La sauvegarde hors site, et le retour en arrière d’une entreprise. <b>Le retour ne touche qu’un espace</b> — il n’existe pas de bouton qui remette tout le monde en arrière, et c’est voulu : l’archive du coffre est commune à toutes les entreprises.');
+
+  /* ── 1. La sauvegarde ─────────────────────────────────────────────────────────────── */
+  var s=DON.sauv, gSauv;
+  if(!s) gSauv='<div class="carte"><div class="vide">Chargement…</div></div>';
+  else if(s.err) gSauv='<div class="carte"><div class="vide">'+esc(s.err)+'</div></div>';
+  else {
+    var d=s.derniere||{}, m=s.mensuel||{};
+    var quand=d.ts?new Date(d.ts).toLocaleString('fr-FR'):'—';
+    var etatNuit=d.ok?'<span class="p-vert">Réussie</span>':(d.ts?'<span class="p-rouge">En échec</span>':'<span class="p-gris">Jamais lancée</span>');
+    /* ⛔ LA PHRASE DES DEUX CLÉS VIENT DU SERVEUR, ELLE N'EST PAS RÉÉCRITE ICI. Un écran qui
+       annonce « copie mensuelle : OK » sans dire que DEUX clés sont nécessaires pour l'ouvrir
+       ailleurs prépare exactement la mauvaise surprise : celle du jour où on en a besoin. */
+    var cles=(m.clesNecessaires||[]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('');
+    var etatMois=m.actif===false?'<span class="p-gris">Désactivée</span>'
+      :(m.ok?'<span class="p-vert">Déposée</span>':'<span class="p-ambre">Pas encore ce mois-ci</span>');
+    gSauv='<div class="reg-g reg-g-fixe"><div class="reg-tete"><span class="reg-nom">Sauvegarde hors site</span>'+
+      '<div class="reg-sous">Une archive chiffrée par nuit, relue après dépôt. '+esc(String(s.garder||30))+' conservées.</div></div>'+
+      '<div class="carte"><div class="lg"><span>Dernière nuit</span><b>'+etatNuit+' · '+esc(quand)+'</b></div>'+
+      '<div class="lg"><span>Copie du mois</span><b>'+etatMois+(m.mois?' · '+esc(m.mois):'')+'</b></div>'+
+      (m.prefixe?'<div class="lg"><span>Où la trouver</span><b class="mono">'+esc(m.prefixe)+'</b></div>':'')+
+      (m.garder?'<div class="lg"><span>Conservées</span><b>'+esc(String(m.garder))+' mois</b></div>':'')+
+      (cles?'<div class="note" style="margin-top:12px"><b>⛔ Pour l’ouvrir sur une autre machine, il faut CES DEUX clés :</b><ul style="margin:6px 0 0 18px">'+cles+'</ul>'+
+        'Sans la seconde, l’archive s’ouvre, les fichiers sont là, et <b>aucune donnée d’entreprise n’est lisible</b>.</div>':'')+
+      '<div style="margin-top:14px"><button type="button" class="btn-fant" onclick="donSauvLancer()">Lancer une sauvegarde maintenant</button></div>'+
+      '</div></div>';
+  }
+
+  /* ── 2. Le retour en arrière ───────────────────────────────────────────────────────── */
+  var a=DON.apercu;
+  var form='<div class="carte"><div class="ttl-carte">Ramener une entreprise à un instant</div>'+
+    '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
+    '<label>Espace (identifiant <span class="mono">t</span>)<input class="inp" id="don-ent" value="'+esc(DON.ent)+'" oninput="donChamp(\'ent\',this.value)" placeholder="elan-34oc" autocomplete="off"></label>'+
+    '<label>Revenir à<input class="inp" id="don-inst" type="datetime-local" value="'+esc(DON.instant)+'" oninput="donChamp(\'instant\',this.value)"></label>'+
+    '<div class="sous">L’instant est celui où <b>le serveur a reçu</b> les données, pas la date que l’appareil leur donne. Un téléphone resté hors ligne une journée pousse d’anciennes dates aujourd’hui : pour défaire ce qu’il a envoyé, viser l’instant d’avant <i>son</i> arrivée.</div>'+
+    '<div><button type="button" class="btn-plein" onclick="donApercu()">Voir ce que ça changerait</button></div>'+
+    '</div></div>';
+
+  var res='';
+  if(DON.chargement) res='<div class="carte"><div class="vide">Lecture du journal…</div></div>';
+  else if(DON.err) res='<div class="carte"><div class="vide">'+esc(DON.err)+'</div></div>';
+  else if(a){
+    var lignes=Object.keys(a.par||{}).map(function(c){
+      var p=a.par[c];
+      return '<div class="lg"><span class="mono">'+esc(c)+'</span><b>'+(p.restaure||0)+' remise(s)'+(p.enterre?' · '+p.enterre+' supprimée(s)':'')+(p.illisible?' · <span class="p-ambre">'+p.illisible+' hors de portée</span>':'')+'</b></div>';
+    }).join('');
+    /* ⛔ UN CORPS PURGÉ SE NOMME, IL NE SE SAUTE PAS. Au-delà de 90 jours le contenu est vidé :
+       un retour qui traverse cette frontière ne PEUT PAS rendre ces enregistrements, et les
+       sauter en silence rendrait un retour partiel présenté comme complet. */
+    var alerte=a.nIllisibles?'<div class="note note-ambre"><b>'+a.nIllisibles+' enregistrement(s) ne peuvent pas être ramenés</b> — leur contenu a été purgé (90 jours). On sait qu’ils ont changé, pas ce qu’ils contenaient. '+
+      '<label class="don-coche"><input type="checkbox" '+(DON.sansIllisibles?'checked':'')+' onchange="DON.sansIllisibles=this.checked"> Revenir quand même, <b>sans eux</b></label></div>':'';
+    var trop=a.troploin?'<div class="note note-ambre">Cet instant est <b>plus ancien que le plus vieux contenu gardé</b> ('+(a.corpsDepuis?esc(new Date(a.corpsDepuis).toLocaleString('fr-FR')):'—')+'). Le retour serait très partiel.</div>':'';
+    var porte=!DON.codeEnvoye
+      ? '<button type="button" class="btn-plein danger" onclick="donDemanderCode()">Demander le code à l’entreprise</button>'
+        +'<div class="sous">Un code à six chiffres part à l’adresse enregistrée de l’entreprise, avec la date visée et ces nombres. Rien n’est écrit tant qu’il n’est pas saisi ici.</div>'
+      : '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'
+        +'<label class="don-code">Code reçu<input class="inp" id="don-code" inputmode="numeric" maxlength="6" value="'+esc(DON.code)+'" oninput="donChamp(\'code\',this.value)"></label>'
+        +'<button type="button" class="btn-plein danger" onclick="donAppliquer()">Appliquer le retour</button></div>';
+    res='<div class="carte"><div class="ttl-carte">Ce que le retour ferait</div>'+
+      '<div class="lg"><span>À remettre en place</span><b>'+(a.nRestaurer||0)+'</b></div>'+
+      '<div class="lg"><span>À supprimer (créés depuis)</span><b>'+(a.nEnterrer||0)+'</b></div>'+
+      (a.nInconnus?'<div class="lg"><span>Sans trace au journal</span><b>'+a.nInconnus+'</b></div>':'')+
+      lignes+trop+alerte+
+      '<div style="margin-top:16px">'+porte+'</div>'+
+      ((a.retours||[]).length?'<div class="reg-sous" style="margin-top:18px">Derniers retours : '+
+        (a.retours||[]).slice(0,3).map(function(r){ return esc(new Date(r.faitLe).toLocaleString('fr-FR'))+' ('+r.restaures+'/'+r.enterres+')'; }).join(' · ')+'</div>':'')+
+      '</div>';
+  }
+
+  var gRetour='<div class="reg-g reg-g-fixe"><div class="reg-tete"><span class="reg-nom">Revenir en arrière</span>'+
+    '<div class="reg-sous">Le journal du socle garde chaque version de chaque fiche pendant 90 jours, par entreprise. Le retour repose l’ancien contenu comme une modification d’aujourd’hui : les appareils l’adoptent, et le retour lui-même reste réversible.</div></div>'+
+    form+res+'</div>';
+
+  return tete+gSauv+gRetour;
+}
+function donSauvLancer(){
+  toast('Sauvegarde lancée…');
+  apiPost('/api/monitor/sauvegarde/lancer',{}).then(function(r){
+    toast(r.ok&&r.d&&r.d.ok?'Sauvegarde réussie.':'Échec : '+((r.d&&r.d.motif)||'motif inconnu'));
+    donCharger();
+  });
 }
 function vueJournal(){
   var A=JR.actions||[], C=JR.cnx||[];

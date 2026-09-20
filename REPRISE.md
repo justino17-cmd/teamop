@@ -22,6 +22,53 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## Sauvegardes et retour en arrière — fait le 20 septembre 2026
+
+Justin, ce jour-là : « est-ce qu'on peut faire des sauvegardes toutes les heures pour les
+entreprises sans écraser les autres ? Car si par exemple il y a eu un bug et qu'on veut les
+faire retourner sur la sauvegarde d'avant. Et tous les mois une sauvegarde complète du mois
+que je peux transférer sur un autre serveur. »
+
+**Ce qui a été répondu, et pourquoi ce n'est pas ce qui a été demandé.** Une sauvegarde de
+FICHIERS toutes les heures aurait été le mauvais outil : l'archive hors site est GLOBALE (toutes
+les entreprises + `config.json` dans un seul `tar`), donc restaurer une entreprise depuis elle
+remettrait les vingt-neuf autres à cette minute-là. Et surtout elle était inutile : le journal du
+socle garde déjà **chaque version de chaque fiche, par entreprise, avec qui l'a écrite et quand**,
+pendant 90 jours. Pas besoin d'une photo par heure — on a la seconde près.
+
+**Fait :**
+- `retourApercu` / `retourAppliquer` (`socle.js`) + `GET /api/monitor/op/retour-apercu` et
+  `POST /api/monitor/op/revenir` (`op-socle.js`). Le retour écrit de NOUVELLES lignes (les
+  appareils lisent « depuis seq » : une ligne réécrite en place ne leur parviendrait jamais),
+  enterre ce qui a été créé après, et NOMME ce qu'il ne peut pas rendre.
+- La garde du code à six chiffres est **factorisée** (`cleCodeDemander`/`cleCodeVerifier`,
+  `index.js`) — c'était la condition que `op-socle.js` s'était posée à lui-même depuis l'étape 4.
+  Une seule réserve de codes, sujets préfixés, et le sujet du retour porte **l'instant visé**.
+- Copie **mensuelle** sous son propre préfixe et sa propre rétention (24 mois). Le défaut trouvé
+  en l'écrivant : `aElaguer` ne filtrait que sur le suffixe, donc la rétention du JOUR serait
+  venue vider le dossier mensuel.
+- Onglet **Données** dans la Tour (GESTION, patron).
+
+**⛔ Ce qu'il faut savoir avant de s'en servir :**
+- **L'instant visé est celui du SERVEUR** (quand le socle a reçu la ligne), pas le `_m` de
+  l'appareil. Un téléphone resté hors ligne une journée pousse d'anciennes dates aujourd'hui :
+  « revenir à hier 14 h » ne les défait pas — viser l'instant d'avant LEUR ARRIVÉE.
+- **Au-delà de 90 jours, le contenu est purgé.** On sait QUE ça a changé, pas QUOI. Le retour
+  refuse, et ne se force qu'explicitement.
+- **Le retour ne fait rien tant que le socle n'est pas la source de lecture** d'une entreprise :
+  il écrit dans le socle, que les appareils ne lisent que si `lecture: socle` est posé pour elle.
+  Aujourd'hui, personne.
+- ⛔⛔ **Une archive transférée ailleurs exige DEUX clés** : `sauvegarde.cle` (dans `config.json`,
+  donc dans l'archive — à garder AILLEURS) **et** la clé maître `/etc/teamop/kek`, qui vit hors
+  de `/opt` exprès et n'est donc **PAS dans l'archive**. Avec la première seule : `config.json`,
+  les pièces jointes, des SQLite qui s'ouvrent parfaitement, et **pas une ligne de données
+  client**. → **Action pour Justin : ranger ces deux clés hors du VPS** avant d'emporter une
+  copie mensuelle.
+
+**Reste à faire :** les écrans de la Tour pour les cinq conditions de l'étape 5, les
+attestations de l'étape 7, et l'aperçu par espace — les routes répondent, personne ne les
+affiche.
+
 ## ⚠️ AVANT DE PUBLIER `app.html` — LA CONDITION QUI N'EST PAS DANS LE CODE
 
 Trois bloquants de publication ont été trouvés le 19 septembre au soir, tous dans les photos.
@@ -125,8 +172,13 @@ de correction sur du code que personne n'exécute. Aucun ne touche un client auj
 **Visibilité et exploitation (5)**
 - `index.js:363` — `/health` annonce `atts: true` **en dur** : les pièces jointes peuvent ne pas
   être montées sans que l'alarme puisse se déclencher. ⚠️ Celui-ci touche la PRODUCTION.
-- `surveillance.js:81` — zéro écran de Tour pour le socle et pour la sauvegarde ; trois alarmes
-  renvoient vers des écrans qui n'existent pas.
+- ~~`surveillance.js:81` — zéro écran de Tour pour le socle et pour la sauvegarde~~ — **à
+  moitié réglé le 20 septembre 2026** : l'onglet **Données** existe (console GESTION, patron),
+  et il porte l'état de la sauvegarde hors site, la copie mensuelle et le retour en arrière
+  d'une entreprise. Ce qui MANQUE encore et vers quoi des alarmes renvoient toujours : les
+  cinq conditions de l'étape 5 (`/api/monitor/op/pret`), les attestations de l'étape 7
+  (`/api/monitor/op/attestations`) et l'aperçu par espace (`/api/monitor/op/apercu`). Les
+  routes répondent, personne ne les affiche.
 - `op-socle.js:527` — l'ancre du journal chaîné se marque « envoyée » alors que l'envoi a jeté.
 - `socle.js:344` — `meta.schema` écrit et jamais relu : aucune migration possible.
 - `index.js:4980` — l'aperçu de suppression d'une entreprise ne comptera jamais le socle.
