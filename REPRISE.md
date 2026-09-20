@@ -88,6 +88,21 @@ rechargement. Et il regarde le DISQUE : le texte d'un message n'y est pas en cla
    ne cassait rien, parce que le banc n'avait jamais deux écouteurs sur des collections
    différentes en même temps.
 
+### ⚠ UNE QUESTION DE CONCEPTION À TRANCHER À L'ÉTAPE B, PAS PLUS TARD
+
+`/api/op/depuis` rend **tout ce que l'espace contient**. Pour une entreprise qui utilise les
+DEUX applications, `messages.html` téléchargerait donc aussi toute la base d'OP GESTION —
+clients, interventions, produits — juste pour afficher une conversation. C'est du réseau, de
+la mémoire et une surface de données qui n'ont aucune raison d'être là.
+
+La réponse est probablement **un espace de socle distinct pour la messagerie** (`t + '-msg'`),
+ce qui donne aussi une séparation de chiffrement entre les deux applications. Mais ça touche
+l'identité — donc l'étape B — et ça ne se décide pas dans un coin du shim.
+
+⚠ Le symptôme a d'abord été vu par un défaut d'index : une ligne d'OP GESTION (`{c:'produits',
+id:'p1'}`, sans barre oblique) se rangeait sous le seau inventé `'p'`. Corrigé, mais c'est la
+QUESTION qu'il fallait lire derrière, pas seulement le bogue.
+
 ### Ce qui reste pour finir A
 
 - ⛔ **Brancher `messages.html`** — pas encore fait, et ça **dépend de l'étape B** : sans
