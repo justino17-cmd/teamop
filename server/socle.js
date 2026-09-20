@@ -997,7 +997,13 @@ function entrepriseDouble(t, actif) {
   const db = annuaire();
   const n = db.prepare('UPDATE entreprise SET double=? WHERE t=?').run(actif ? 1 : 0, t).changes;
   if (!n) return { connue: false, double: false };
-  return { connue: true, double: !!db.prepare('SELECT double FROM entreprise WHERE t=?').get(t).double };
+  /* ⚠️ ON RELIT AVEC UNE GARDE, MÊME APRÈS UN `UPDATE` QUI A DIT AVOIR CHANGÉ QUELQUE CHOSE.
+     La ligne peut avoir disparu entre les deux (une fermeture d'entreprise en parallèle), et
+     un `.get(t).double` sur `undefined` JETTE — donc un 503 à la Tour sur une course rarissime,
+     au pire moment : celui où quelqu'un essaie justement de couper quelque chose. On rend ce
+     qu'on a pu lire, et l'appelant voit l'ÉTAT OBTENU comme d'habitude. */
+  const l = db.prepare('SELECT double FROM entreprise WHERE t=?').get(t);
+  return { connue: true, double: !!(l && l.double) };
 }
 
 /* `ouvert:false` ferme ET coupe : les deux vont toujours ensemble, sinon on rejoue le défaut.

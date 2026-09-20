@@ -788,7 +788,12 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   /* ⛔ RÉGLER UN ESPACE QUI N'EXISTE PAS NE DOIT PAS LE FAIRE NAÎTRE. Un `INSERT` ici créerait
      une ligne d'annuaire ET UNE CLÉ pour un `t` mal tapé : un espace fantôme avec sa propre
      DEK. C'est le défaut qu'`entrepriseOuvrir` a déjà payé. */
-  const inconnu = S.entrepriseDouble('ent-faute-de-frappe', true);
+  /* ⚠️ `try/catch` : un banc qui PLANTE en dit moins qu'un banc qui ÉCHOUE. La mutation qui
+     faisait passer un espace inconnu pour connu faisait jeter la fonction, et les vingt
+     contrôles suivants ne rendaient plus rien — on voyait une trace de pile au lieu de savoir
+     ce qui marchait encore. Même défaut que celui corrigé dans `test-733` le 20 septembre. */
+  let inconnu = null;
+  try { inconnu = S.entrepriseDouble('ent-faute-de-frappe', true); } catch (e) { inconnu = { jete: e.message }; }
   v('⛔ un `t` inconnu le DIT au lieu de créer une entreprise', inconnu, { connue: false, double: false });
   v('   et il n\'est toujours pas dans l\'annuaire', S.entrepriseEtat('ent-faute-de-frappe').double, false);
   v('   ni sur le disque', fs.existsSync(path.join(DIR, 'socle', 'ent-faute-de-frappe')), false);   // ⚠️ `faux()` n'existe pas dans ce banc — CLAUDE.md le note

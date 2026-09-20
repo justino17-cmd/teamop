@@ -494,6 +494,39 @@ const menage = async () => {
       vrai('la Tour voit l\'historique des échecs', (e.j && e.j.histo || []).length >= 3);
       v('le dernier échec y garde son motif', e.j && e.j.derniere && e.j.derniere.motif, 'empreinte-differente');
     }
+    /* ══ 3 bis. ⛔ LA MARCHE ARRIÈRE DE L'ÉTAPE 4, PAR LA VRAIE ROUTE DE LA TOUR ══════════
+       `tests/test-723.js` éprouve la FONCTION ; ici on éprouve la PORTE, et surtout la lecture
+       du booléen qui vient du corps. Aucun banc ne la jouait : la mutation qui remplace le
+       test strict par `!!b.actif` ne cassait RIEN, alors que `{actif:'false'}` vaut VRAI en
+       JavaScript — et allumerait la double écriture d'une entreprise à qui on croyait la
+       couper. C'est exactement le genre de chose qu'on n'écrit pas exprès : on l'écrit en
+       relayant un champ de formulaire. */
+    console.log('\n⛔ La double écriture s\'allume et se coupe depuis la Tour');
+    {
+      const regler = (corps) => A.appel('POST', '/api/monitor/op/double', { jeton: JETON_TOUR, corps });
+
+      const on = await regler({ t: T_A, actif: true });
+      v('la Tour allume la double écriture', [on.code, on.j && on.j.double], [200, true]);
+      const off = await regler({ t: T_A, actif: false });
+      v('⛔ et elle la coupe', [off.code, off.j && off.j.double], [200, false]);
+
+      /* ⛔ LE BOOLÉEN VIENT DU CORPS ET DÉCIDE D'UN ÉTAT : il se lit STRICTEMENT, jamais en
+         vérité JavaScript. Ces quatre valeurs sont toutes VRAIES pour `!!`. */
+      for (const valeur of ['false', '0', 'non', {}]) {
+        await regler({ t: T_A, actif: true });
+        const r = await regler({ t: T_A, actif: valeur });
+        v('⛔ `actif:' + JSON.stringify(valeur) + '` COUPE (il ne vaut pas vrai)', r.j && r.j.double, false);
+      }
+      await regler({ t: T_A, actif: false });
+
+      /* Un `t` inconnu : 404, et rien n'est créé — ni ligne d'annuaire, ni clé, ni dossier. */
+      const inc = await regler({ t: 'ent-jamais-vue-ici', actif: true });
+      v('⛔ un espace inconnu rend 404', inc.code, 404);
+      const ap = await A.appel('GET', '/api/monitor/op/apercu?t=ent-jamais-vue-ici', { jeton: JETON_TOUR });
+      v('   et il n\'a pas été créé au passage', ap.code, 404);
+      faux('   aucun dossier sur le disque', fs.existsSync(path.join(A.data, 'socle', 'ent-jamais-vue-ici')));
+    }
+
     /* ══ 4. LES PORTES DE LA TOUR COUPENT-ELLES VRAIMENT ? ═════════════════════════════ */
     /* ⛔ AUCUN BANC NE LES GARDAIT — relevé par la cinquième vérification, et c'est mot pour mot
        la règle des quatre portes de `CLAUDE.md`, rejouée sur le socle : on pouvait retirer
