@@ -21,14 +21,19 @@
  * ⛔ CE QUI N'EST PAS ICI, ET POURQUOI :
  *   · `POST/GET /api/op/fichier` → étape 3, avec la table `fichier` et la déduplication sha256.
  *   · `POST /api/op/atteste`     → étape 7, l'attestation de complétude.
- *   · `POST /api/monitor/op/revenir` → **volontairement absent tant que `cleCodeExiger` n'est
- *     pas factorisé.** C'est la seule route qui ÉCRIVE dans la base d'un client depuis la Tour,
- *     et le plan exige le code à six chiffres envoyé à l'adresse de l'entreprise — par la
- *     fonction existante, pas par une copie. Cette fonction n'existe pas encore : elle est
- *     écrite à la main dans `/api/espaces/cle/code`. Livrer la route sans le code, même inerte,
- *     serait poser un chemin d'écriture dont la garde est « à faire ». Changer la clé d'équipe,
- *     geste qui n'écrit AUCUNE donnée métier, l'exige déjà ; écrire dans la base d'un client ne
- *     peut pas être moins gardé.
+ *   · `GET /api/monitor/op/retour-apercu` → ce qu'un retour changerait, sans rien écrire.
+ *   · `POST /api/monitor/op/revenir`     → **la condition posée ici est levée depuis le
+ *     20 septembre 2026.** Cette route est restée absente pendant tout ce temps parce qu'elle
+ *     est la seule du serveur qui ÉCRIVE dans la base métier d'un client depuis la Tour, et
+ *     que le plan exige le code à six chiffres envoyé à l'adresse de l'entreprise — par la
+ *     fonction EXISTANTE, pas par une copie. Cette fonction n'existait pas : le code était
+ *     écrit à la main dans `/api/espaces/cle/code`. Il est désormais factorisé
+ *     (`cleCodeDemander`/`cleCodeVerifier`, `index.js`), le changement de clé passe par lui
+ *     comme le retour, et les deux sont injectés ici — donc il n'y a toujours qu'UNE garde.
+ *     ⚠️ La raison de l'attente reste vraie et vaut pour la suite : livrer un chemin d'écriture
+ *     dont la garde est « à faire » revient à ne pas en avoir. Changer la clé d'équipe, geste
+ *     qui n'écrit AUCUNE donnée métier, l'exige déjà ; écrire dans la base d'un client ne peut
+ *     pas être moins gardé.
  */
 const crypto = require('crypto');
 
@@ -40,7 +45,8 @@ const LOT_MAX = 400;                  // lignes par pousse ; `express.json` est 
 const DIAG_VIE_MS = 30 * 60000;       // une ouverture de diagnostic dure 30 minutes.
 
 function monterOpSocle(app, deps) {
-  const { config, socle, sauvRefus, cleEstPublique, quotaOk, monStr, garde, cnxAppareils, espaceConnu, espaceBloque, espaceSuspendu } = deps;
+  const { config, socle, sauvRefus, cleEstPublique, quotaOk, monStr, garde, cnxAppareils, espaceConnu, espaceBloque, espaceSuspendu,
+    cleCodeDemander, cleCodeVerifier, espaceContact } = deps;
   const actif = !!(config && config.socle && config.socle.actif === true);
   const etat = { actif, routes: [] };
   if (!actif) return etat;   // ⛔ inerte : pas une seule route déclarée.
@@ -625,6 +631,105 @@ function monterOpSocle(app, deps) {
     try { e = socle.attestationEtat(t, 14 * 86400000); }
     catch (err) { return res.status(503).json({ error: 'stockage illisible' }); }
     res.json(e);
+  });
+
+  /* ══ LE RETOUR EN ARRIÈRE — DEUX ROUTES, ET LA PREMIÈRE N'ÉCRIT RIEN ═══════════════════════
+     ⛔ L'APERÇU EST UNE ROUTE À PART, PAS UN PARAMÈTRE DE L'AUTRE. Personne ne déclenche une
+     écriture en masse sur la base d'un client sans avoir vu les nombres d'abord — et un
+     `?sec=1` qui bascule d'un aperçu à une application est exactement le genre de drapeau
+     qu'on inverse un soir de fatigue. Deux chemins, deux verbes : GET ne peut rien casser.
+     ⚠️ Et l'aperçu ne rend QUE des nombres, des collections et des identifiants — jamais un
+     corps d'enregistrement. Un aperçu qui montrerait le contenu serait une route de lecture
+     des données d'un client, ce qu'aucune route de la Tour n'est. */
+  poser('GET', '/api/monitor/op/retour-apercu', garde, (req, res) => {
+    const t = monStr(req.query.t, 80);
+    const instant = parseInt(req.query.instant, 10) || 0;
+    if (!t) return res.status(400).json({ error: 't requis' });
+    if (!socle.existe(t)) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
+    let ap;
+    try { ap = socle.retourApercu(t, instant); }
+    catch (err) {
+      if (err && err.code === 'INSTANT') return res.status(400).json({ error: 'instant requis, et dans le passé' });
+      return res.status(503).json({ error: 'stockage illisible' });
+    }
+    res.json(Object.assign({ t, retours: socle.retoursDe(t).slice(0, 10) }, ap));
+  });
+
+  /* ══ POST /api/monitor/op/revenir ══════════════════════════════════════════════════════════
+     ⛔ LA SEULE ROUTE DU SERVEUR QUI ÉCRIVE DANS LA BASE MÉTIER D'UN CLIENT DEPUIS LA TOUR.
+     Elle était volontairement absente depuis l'étape 4 — l'en-tête de ce fichier le disait —
+     tant que la garde du code à six chiffres n'était pas FACTORISÉE. Elle l'est depuis le
+     20 septembre 2026 (`cleCodeDemander`/`cleCodeVerifier` dans `index.js`), et c'est bien la
+     fonction existante qui est injectée, pas une copie : deux gardes qui se ressemblent
+     finissent par diverger, et c'est toujours la moins sévère qui garde le chemin le plus
+     dangereux.
+     ⛔ SANS ADRESSE, PAS DE RETOUR. Une entreprise sans e-mail enregistré ne peut recevoir
+     aucun code — donc on REFUSE, on n'autorise pas « faute de mieux ». C'est exactement ce que
+     fait déjà le changement de clé, et pour la même raison.
+     ⛔ LE SUJET DU CODE PORTE L'INSTANT VISÉ. Un code obtenu pour revenir à hier 14 h ne doit
+     pas servir à revenir à l'an dernier : sans l'instant dans le sujet, il suffirait de
+     redemander la même route avec une autre date. Le courriel annonce une date précise, la
+     garde doit tenir cette date-là. */
+  poser('POST', '/api/monitor/op/revenir', garde, async (req, res) => {
+    const b = req.body || {};
+    const t = monStr(b.t, 80);
+    const instant = parseInt(b.instant, 10) || 0;
+    if (!t || !instant) return res.status(400).json({ error: 't et instant requis' });
+    if (!socle.existe(t)) return res.status(404).json({ error: 'aucun stockage pour cet espace' });
+    if (typeof cleCodeDemander !== 'function' || typeof cleCodeVerifier !== 'function' || typeof espaceContact !== 'function') {
+      return res.status(503).json({ error: 'garde du code indisponible — retour refusé' });
+    }
+    const contact = espaceContact(t) || {};
+    if (!contact.email) return res.status(409).json({ error: "Aucune adresse e-mail n'est enregistrée pour cette entreprise : le retour ne peut pas être confirmé." });
+
+    let ap;
+    try { ap = socle.retourApercu(t, instant); }
+    catch (err) {
+      if (err && err.code === 'INSTANT') return res.status(400).json({ error: 'instant requis, et dans le passé' });
+      return res.status(503).json({ error: 'stockage illisible' });
+    }
+
+    const sujet = 'retour:' + t + ':' + instant;
+    const codeRecu = monStr(b.code, 10).trim();
+    if (!codeRecu) {
+      /* Le courriel dit ce qui va se passer, en nombres — pas « une opération de maintenance ».
+         Celui qui reçoit ce code doit pouvoir refuser en connaissance de cause. */
+      /* ⛔ LA DATE SE FABRIQUE PAR MORCEAUX, PAS PAR `slice`. Une coupure à longueur fixe sur
+         une chaîne où l'on vient d'insérer « à » tombe deux caractères trop tôt : le banc
+         lisait « 15:47: UTC », secondes perdues, deux-points orphelin. Dans un courriel qui
+         sert à AUTORISER une écriture en masse, une date approximative est une garde molle. */
+      const iso = new Date(instant).toISOString();
+      const quand = iso.slice(0, 10) + ' à ' + iso.slice(11, 19) + ' UTC';
+      try {
+        await cleCodeDemander(sujet, contact.email, (code) => ({
+          trace: 'code de retour en arrière · espace ' + t.slice(0, 12),   // jamais le code au journal
+          subject: '🔐 Code de confirmation — retour en arrière des données de ' + (contact.nom || 'ton entreprise'),
+          text: 'TEAM OP vient de demander à RAMENER LES DONNÉES de ' + (contact.nom || 'ton entreprise')
+            + '\nà leur état du ' + quand + '.\n\nConcrètement : ' + ap.nRestaurer + ' enregistrement(s) reprendraient leur ancienne valeur, '
+            + 'et ' + ap.nEnterrer + ' créé(s) depuis cette date seraient supprimé(s).'
+            + (ap.nIllisibles ? '\n⚠️ ' + ap.nIllisibles + ' enregistrement(s) ne peuvent PAS être ramenés (trop anciens).' : '')
+            + '\n\nCode de confirmation : ' + code
+            + '\n\nValable 10 minutes.\n\n⛔ Si ce n\'est pas convenu avec toi, N\'ENVOIE PAS CE CODE et préviens TEAM OP.'
+            + '\n\n— TEAM OP · teamop.fr' }));
+      } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
+      return res.json({ ok: true, codeEnvoye: true, apercu: ap });
+    }
+    const verdict = cleCodeVerifier(sujet, codeRecu);
+    if (!verdict.ok) return res.status(verdict.code).json({ error: verdict.error });
+
+    let r;
+    try { r = socle.retourAppliquer(t, instant, { utilisateur: monStr(b.par, 40) || 'tour', ver: 'tour', sansLesIllisibles: b.sansLesIllisibles === true }); }
+    catch (err) {
+      if (err && (err.code === 'PURGE' || err.code === 'TROPLOIN')) {
+        return res.status(409).json({ error: err.code === 'PURGE'
+          ? 'des enregistrements ne peuvent pas être ramenés (corps purgés après 90 jours) — confirme `sansLesIllisibles` pour revenir quand même, sans eux'
+          : 'cet instant est antérieur au plus vieux contenu gardé — confirme `sansLesIllisibles` pour revenir quand même, sans eux',
+          apercu: err.apercu || ap });
+      }
+      console.error('retour : ' + String(err && err.message).slice(0, 160));
+      return res.status(503).json({ error: 'retour impossible' });
+    }
+    res.json(r);
   });
 
   poser('GET', '/api/monitor/op/apercu', garde, (req, res) => {

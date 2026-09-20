@@ -109,9 +109,17 @@ async function contenu(coffre, cle) {
     const mod = monter(coffre);
     const r = await mod.lancer('banc');
     v('la sauvegarde se déclare réussie', r.ok, true);
-    v('le coffre en porte une', coffre._objets.size, 1);
+    /* ⛔ ON NOMME LE DOSSIER, ON NE COMPTE PAS LE COFFRE — et c'est la copie MENSUELLE, ajoutée
+       le 20 septembre 2026, qui l'a exigé. Elle est déposée sous `teamop/mensuel/` dans la
+       foulée de la première nuit réussie : un compteur global passe au rouge alors que rien
+       n'est cassé, et un `keys()[0]` va chercher l'archive « la première arrivée », ce qui est
+       un ordre d'insertion, pas une règle. Les deux se corrigent en disant ce qu'on veut. */
+    const cleDuJour = [...coffre._objets.keys()].filter(k => k.indexOf('mensuel/') < 0);
+    const cleDuMois = [...coffre._objets.keys()].filter(k => k.indexOf('mensuel/') >= 0);
+    v('le coffre en porte une pour le jour', cleDuJour.length, 1);
+    v('⛔ et une copie mensuelle, rangée à part', cleDuMois.length, 1);
 
-    const { liste, sortie } = await contenu(coffre, [...coffre._objets.keys()][0]);
+    const { liste, sortie } = await contenu(coffre, cleDuJour[0]);
     const socleDedans = liste.filter(f => /socle-instantane\//.test(f));
     console.log('      contenu du socle dans l\'archive : ' + JSON.stringify(socleDedans));
 

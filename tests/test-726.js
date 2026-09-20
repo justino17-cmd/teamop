@@ -396,7 +396,16 @@ const menage = async () => {
 
     const L1 = await A.appel('POST', '/api/monitor/sauvegarde/lancer', { jeton: JETON_TOUR, corps: {} });
     v('la sauvegarde lancée depuis la Tour réussit', L1.j && L1.j.ok, true);
-    v('le coffre en porte une', coffre.objets.size, 1);
+    /* ⛔ ON COMPTE LE DOSSIER DU JOUR, PAS LE COFFRE ENTIER — et c'est ce banc qui l'a exigé,
+       le 20 septembre 2026. La copie MENSUELLE est déposée sous `teamop/mensuel/` dans la
+       foulée de la première nuit réussie : quatre contrôles de ce fichier comptaient
+       `coffre.objets.size` et sont passés au rouge d'un coup, alors que rien n'était cassé.
+       Un compteur global mesure ce qui traverse, pas ce qu'on affirme ; on nomme donc le
+       dossier. `test-722` ne pouvait pas le voir — il monte le module seul, pas l'assemblage. */
+    const duJour = () => [...coffre.objets.keys()].filter(k => k.indexOf('mensuel/') < 0).length;
+    const duMois = () => [...coffre.objets.keys()].filter(k => k.indexOf('mensuel/') >= 0).length;
+    v('le coffre en porte une pour le jour', duJour(), 1);
+    v('⛔ et une copie mensuelle, rangée à part', duMois(), 1);
     /* ⛔ UN BANC QUI S'ÉCROULE N'EST PAS UN BANC QUI ÉCHOUE. Sans cette porte, une sauvegarde
        recalée laissait le coffre vide et la suite tombait sur « The data argument must be of
        type string », vingt lignes plus bas — un message qui ne dit rien de la panne. On s'arrête
@@ -471,7 +480,11 @@ const menage = async () => {
       const r = await A.appel('POST', '/api/monitor/sauvegarde/lancer', { jeton: JETON_TOUR, corps: {} });
       v('⛔ un coffre qui refuse fait ÉCHOUER la sauvegarde', r.j && r.j.ok, false);
       vrai('et le motif nomme le dépôt', r.j && /^depot-/.test(String(r.j.motif)));
-      v('rien n\'a été ajouté au coffre', coffre.objets.size, 1);
+      v('rien n\'a été ajouté au coffre', duJour(), 1);
+      /* ⛔ ET PAS DAVANTAGE DE COPIE MENSUELLE : elle est déposée APRÈS la relecture, donc une
+         nuit ratée n'en fabrique pas. Une mensuelle qu'on n'a jamais su rouvrir et qu'on garde
+         deux ans est le contraire exact du but. */
+      v('⛔ ni de copie mensuelle sur une nuit ratée', duMois(), 1);
       vrai('la bonne archive est intacte', coffre.objets.has(CLE_BONNE));
     }
     await dormir(1100);
@@ -482,7 +495,8 @@ const menage = async () => {
       v('et c\'est l\'EMPREINTE qui l\'attrape', r.j && r.j.motif, 'empreinte-differente');
       /* ⛔ ET L'ARCHIVE RECALÉE NE RESTE PAS DANS LE COFFRE. Sans ce retrait, la rétention la
          compte comme une copie valable : trente nuits et il ne reste plus rien de sain. */
-      v('⛔ l\'archive recalée est retirée du coffre', coffre.objets.size, 1);
+      v('⛔ l\'archive recalée est retirée du coffre', duJour(), 1);
+      v('   et la mensuelle n\'a pas bougé non plus', duMois(), 1);
       vrai('et c\'est bien la bonne qui reste', coffre.objets.has(CLE_BONNE));
       /* ⛔ ET L'INSTANTANÉ NE SURVIT PAS À L'ÉCHEC. C'est une copie EN CLAIR de toutes les
          bases ET de l'annuaire — donc des clés de toutes les entreprises — à plat dans un
@@ -668,10 +682,11 @@ const menage = async () => {
       v('et les routes du socle ne répondent plus', s.code, 404);
     }
     const { j: co2 } = await R.appel('POST', '/api/monitor/login', { corps: { nom: 'Patron', pass: MDP } });
-    const avant = coffre.objets.size;
+    const avant = duJour(), moisAvant = duMois();
     const L2 = await R.appel('POST', '/api/monitor/sauvegarde/lancer', { jeton: co2 && co2.token, corps: {} });
     v('la sauvegarde tourne quand même', L2.j && L2.j.ok, true);
-    v('une archive de plus dans le coffre', coffre.objets.size, avant + 1);
+    v('une archive de plus dans le coffre', duJour(), avant + 1);
+    v('⛔ et PAS une mensuelle de plus — une par mois, pas une par nuit', duMois(), moisAvant);
     {
       const cleNeuve = [...coffre.objets.keys()].find(k => k !== CLE_BONNE);
       fs.writeFileSync(arch, coffre.objets.get(cleNeuve));
@@ -887,10 +902,10 @@ const menage = async () => {
     faux('⛔ aucun dossier de bases créé au démarrage', auDemarrage.some(f => /^socle\//.test(f)));
 
     const { j: co3 } = await I.appel('POST', '/api/monitor/login', { corps: { nom: 'Patron', pass: MDP } });
-    const avant3 = coffre.objets.size;
+    const avant3 = duJour();
     const L3 = await I.appel('POST', '/api/monitor/sauvegarde/lancer', { jeton: co3 && co3.token, corps: {} });
     v('la sauvegarde réussit sans socle', L3.j && L3.j.ok, true);
-    v('une archive de plus', coffre.objets.size, avant3 + 1);
+    v('une archive de plus', duJour(), avant3 + 1);
     const apres = arbre(I.data);
     faux('⛔ la sauvegarde n\'a créé AUCUN annuaire', apres.some(f => /socle-annuaire\.db/.test(f)));
     faux('⛔ ni aucune base', apres.some(f => /^socle\//.test(f)));

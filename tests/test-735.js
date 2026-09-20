@@ -236,18 +236,75 @@ function idbNeuf() {
   };
 }
 
+/* ══ UN SERVEUR SMTP DE BANC, QUARANTE LIGNES ══════════════════════════════════════════════
+   ⛔ IL FAUT LE VRAI COURRIEL, PAS UN BOUCHON. Le retour en arrière est gardé par un code à
+   six chiffres envoyé à l'adresse de l'entreprise, et ce code n'est JAMAIS écrit au journal
+   (`journalctl` se relit à plusieurs et se copie-colle) : sans un vrai courriel capté, le banc
+   ne peut pas jouer le chemin complet — il ne prouverait que les refus, jamais l'autorisation.
+   ⚠️ Et le contenu du message fait PARTIE de la garde. Celui qui reçoit ce code doit pouvoir
+   REFUSER en connaissance de cause : un courriel qui dirait « opération de maintenance » sans
+   nommer la date visée ni les nombres transformerait la confirmation en formalité. Le banc lit
+   donc le corps et exige qu'il porte les deux.
+   On ne monte pas nodemailer côté banc : on parle SMTP à la main, ce qui suffit largement
+   (EHLO, AUTH, MAIL FROM, RCPT TO, DATA) et n'ajoute aucune dépendance. */
+function smtpDeBanc() {
+  const net = require('net');
+  const recus = [];
+  const srv = net.createServer(sock => {
+    let tampon = '', dansData = false, corps = '';
+    sock.write('220 banc\r\n');
+    sock.on('data', d => {
+      tampon += d.toString('utf8');
+      for (;;) {
+        const i = tampon.indexOf('\r\n');
+        if (i < 0) break;
+        const ligne = tampon.slice(0, i); tampon = tampon.slice(i + 2);
+        if (dansData) {
+          if (ligne === '.') { dansData = false; recus.push(corps); corps = ''; sock.write('250 recu\r\n'); }
+          else corps += ligne + '\n';
+          continue;
+        }
+        const cmd = ligne.slice(0, 4).toUpperCase();
+        if (cmd === 'EHLO' || cmd === 'HELO') sock.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
+        else if (cmd === 'AUTH') sock.write('235 ok\r\n');
+        else if (cmd === 'MAIL' || cmd === 'RCPT') sock.write('250 ok\r\n');
+        else if (cmd === 'DATA') { dansData = true; sock.write('354 vas-y\r\n'); }
+        else if (cmd === 'QUIT') { sock.write('221 bye\r\n'); sock.end(); }
+        else sock.write('250 ok\r\n');
+      }
+    });
+    sock.on('error', () => {});
+  });
+  return { srv, recus,
+    ecouter: () => new Promise(res => srv.listen(0, '127.0.0.1', () => res(srv.address().port))),
+    fermer: () => new Promise(res => srv.close(res)),
+    /* ⛔ ON DÉCODE LE QUOTED-PRINTABLE, SINON ON CHERCHE DES MOTS QUI N'EXISTENT PAS. Mesuré :
+       « RAMENER LES DONNÉES » part sur le fil en « RAMENER LES DONN=C3=89ES », donc un contrôle
+       qui cherche la phrase française échoue sur un courriel parfaitement juste — et un banc
+       qui crie faux se fait ignorer, puis désactiver. Deux gestes : déplier les `=\n` de
+       pliage, puis rendre les `=XX` en octets et relire le tout en UTF-8. */
+    dernier: () => Buffer.from(String(recus[recus.length - 1] || '').replace(/=\n/g, '')
+      .replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), 'binary').toString('utf8'),
+    code: () => { const m = /Code de confirmation\s*:?\s*(\d{6})/.exec(String(recus[recus.length - 1] || '').replace(/=\n/g, '')); return m ? m[1] : ''; },
+  };
+}
 /* ══ 2. MONTER LE VRAI SERVEUR ════════════════════════════════════════════════════════════ */
 const webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push'));
 const vap = webpush.generateVAPIDKeys();
 let enfant = null;
 
+const POSTE = smtpDeBanc();
+
 async function monter() {
   const dir = path.join(BANC, 'srv'), data = path.join(dir, 'data');
   fs.mkdirSync(data, { recursive: true });
   const cfgPath = path.join(dir, 'config.json');
+  const portMail = await POSTE.ecouter();
   fs.writeFileSync(cfgPath, JSON.stringify({
     vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc',
     adminPassHash: sha(MDP), socle: { actif: true },
+    /* 2525 n'est pas 465 : `secure` reste faux, donc pas de TLS à fabriquer pour un banc. */
+    smtp: { host: '127.0.0.1', port: portMail, user: 'banc', pass: 'banc', from: 'banc@exemple.fr' },
   }));
   fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
     [SLUG]: { slug: SLUG, nom: 'Entreprise du banc', email: 'banc@exemple.fr', t: T, code: b64({ t: T, k: CLE }), ts: 1 },
@@ -1050,6 +1107,136 @@ function basePetite(m) {
       /Niort|Client |La Rochelle/.test(JSON.stringify(e2.attestations)), false);
   }
 
+  /* ══ (p) REVENIR EN ARRIÈRE — UNE ENTREPRISE, PAS TOUTES ════════════════════════════════
+     ⛔ CE BANC DOIT PROUVER DEUX CHOSES OPPOSÉES, et la seconde est celle qui compte : que le
+     retour rend bien l'état d'avant, ET qu'il est IMPOSSIBLE à déclencher sans le code envoyé
+     à l'adresse de l'entreprise. Une écriture en masse dans la base d'un client dont la garde
+     se contourne ne vaut pas mieux que pas de garde du tout. */
+  console.log('\n⛔ Le retour en arrière — et la porte qui le garde');
+  {
+    await appel('POST', '/api/monitor/op/lecture', { jeton: JETON_TOUR, corps: { t: T, source: 'socle' } });
+
+    /* ⛔ UN APPAREIL NEUF, ET C'EST LE BANC QUI L'A EXIGÉ. L'appareil principal traverse dix-huit
+       sections avant celle-ci : sa MARQUE HAUTE (`opHautLire`) a monté tout du long, et elle
+       dépasse l'horloge au moment où on arrive ici — mesuré, les deux poussées de cette section
+       envoyaient `0` ligne, en silence, et l'aperçu trouvait donc « rien à faire » avec un
+       verdict parfaitement vert. Un banc qui dépend de l'état accumulé de ses voisins finit par
+       mesurer ses voisins. On repart donc d'un appareil et d'une base à nous. */
+    const stockRet = stockNeuf(), dbRet = {};
+    const apiRet = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
+      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math', 'indexedDB',
+      code + '\nreturn {opSoclePousser,opSocleSession};')
+      (compte, stockRet, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-retour',
+       (motif) => diagnostics.push(motif), 703, { id: 'u-retour' }, dbRet,
+       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math, idb);
+
+    /* On fabrique une histoire : un état sain, un instant, puis un « bug » qui casse tout. */
+    dbRet.clients = [{ id: 'r1', nom: 'AVANT', ville: 'Niort', _m: Date.now() },
+                     { id: 'r2', nom: 'Reste', ville: 'Nantes', _m: Date.now() }];
+    dbRet.produits = [{ id: 'rp1', nom: 'Produit sain', stock: 12, _m: Date.now() }];
+    const pSain = await apiRet.opSoclePousser();
+    vrai('l\'état sain est bien parti au socle', !!(pSain && pSain.envoyees >= 3));
+    await dormir(1100);
+    const SAIN = Date.now();
+    await dormir(1100);
+
+    /* Le « bug » : une fiche modifiée, une effacée, une inventée. Les trois formes qu'une
+       panne prend vraiment — et un retour qui n'en rend qu'une n'est pas un retour. */
+    dbRet.clients[0].nom = 'CASSÉ PAR LE BUG';
+    dbRet.clients[0]._m = Date.now();
+    dbRet.produits[0].stock = 0; dbRet.produits[0]._m = Date.now();
+    dbRet.clients.push({ id: 'r3-invente', nom: 'Inventé par le bug', _m: Date.now() });
+    dbRet._tombes = { clients: { r2: Date.now() } };
+    const pBug = await apiRet.opSoclePousser();
+    vrai('⛔ et le « bug » aussi — sans quoi on mesurerait le vide', !!(pBug && pBug.envoyees >= 4));
+
+    const apercu = async (instant) => (await appel('GET', '/api/monitor/op/retour-apercu?t=' + encodeURIComponent(T) + '&instant=' + instant, { jeton: JETON_TOUR }));
+    const ap = await apercu(SAIN);
+    v('l\'aperçu répond', ap.code, 200);
+    vrai('⛔ il voit ce qu\'il faut remettre', ap.j.nRestaurer >= 2);
+    vrai('⛔ et ce qu\'il faut enterrer — la fiche inventée par le bug', ap.j.nEnterrer >= 1);
+    v('   rien n\'est illisible sur une histoire d\'aujourd\'hui', ap.j.nIllisibles, 0);
+    /* ⛔ L'APERÇU NE REND AUCUN CONTENU DE CLIENT. C'est une route de la Tour, pas une lecture
+       des données d'une entreprise — la Tour n'en a jamais été une et ne doit pas le devenir. */
+    v('⛔ aucun contenu de client dans l\'aperçu',
+      /CASSÉ|Niort|Nantes|Produit sain|Inventé/.test(JSON.stringify(ap.j)), false);
+
+    /* ══ LA PORTE ═══════════════════════════════════════════════════════════════════════ */
+    const sansCode = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: SAIN } });
+    v('⛔ sans code, on n\'écrit RIEN — on envoie un code', sansCode.code, 200);
+    v('   et la réponse le dit', sansCode.j.codeEnvoye, true);
+    vrai('   sans jamais rendre le code lui-même', !/\d{6}/.test(JSON.stringify(sansCode.j).replace(/\d{10,}/g, '')));
+    /* ⛔ ET LE COURRIEL DIT CE QUI VA SE PASSER. Celui qui reçoit ce code doit pouvoir REFUSER
+       en connaissance de cause : un message qui dirait « opération de maintenance » ferait de
+       la confirmation une formalité. Il porte donc la DATE visée et les NOMBRES. */
+    const mail = POSTE.dernier();
+    vrai('⛔ le courriel annonce un retour en arrière', /RAMENER LES DONNÉES/.test(mail));
+    vrai('   il nomme la date visée', mail.indexOf(new Date(SAIN).toISOString().slice(0, 10)) >= 0);
+    vrai('   et il donne les nombres', new RegExp(ap.j.nRestaurer + ' enregistrement').test(mail));
+    vrai('   il dit aussi comment refuser', /N'ENVOIE PAS CE CODE/.test(mail));
+
+    const mauvais = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: SAIN, code: '000000' } });
+    v('⛔ un code faux est refusé', mauvais.code, 400);
+    /* ⛔⛔ ET LE CONTRÔLE QUI COMPTE VRAIMENT : LA BASE N'A PAS BOUGÉ D'UN OCTET. Un refus qui
+       aurait déjà écrit ne serait pas un refus. */
+    const sig = async () => (await appel('GET', '/api/monitor/op/apercu?t=' + encodeURIComponent(T), { jeton: JETON_TOUR })).j.signature;
+    const sigAvant = await sig();
+
+    /* ⛔ LE CODE NE VAUT QUE POUR L'INSTANT DEMANDÉ. Sans l'instant dans le sujet, un code
+       obtenu pour revenir à SAIN servirait à revenir à n'importe quelle autre date : il
+       suffirait de rappeler la route avec un instant différent. Le courriel, lui, a annoncé
+       UNE date — la garde doit tenir celle-là. */
+    const vrai6 = POSTE.code();
+    vrai('le banc a bien capté un code à six chiffres', /^\d{6}$/.test(vrai6));
+    const autreDate = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: SAIN - 60000, code: vrai6 } });
+    v('⛔ le code d\'une date ne vaut pas pour une autre', autreDate.code, 400);
+    v('   et la base n\'a toujours pas bougé', await sig(), sigAvant);
+
+    /* ⛔ NI SANS LE MOT DE PASSE DU PATRON. La route est montée derrière `monPatronStrict` ;
+       un banc qui ne l'éprouve pas laisserait passer le jour où quelqu'un la démonte. */
+    const sansJeton = await appel('POST', '/api/monitor/op/revenir', { corps: { t: T, instant: SAIN, code: vrai6 } });
+    vrai('⛔ sans le mot de passe du patron, la route refuse', sansJeton.code === 401 || sansJeton.code === 403);
+    v('   et la base n\'a toujours pas bougé', await sig(), sigAvant);
+
+    /* ══ ET MAINTENANT, LE RETOUR ═══════════════════════════════════════════════════════ */
+    const r = await appel('POST', '/api/monitor/op/revenir', { jeton: JETON_TOUR, corps: { t: T, instant: SAIN, code: vrai6 } });
+    v('⛔ avec le bon code, le retour s\'applique', r.code, 200);
+    vrai('   il dit combien il a remis', r.j.restaures >= 2);
+    vrai('   et combien il a enterré', r.j.enterres >= 1);
+    /* ⛔⛔ LES DEUX CHAMPS, ET C'EST UN VRAI DÉFAUT QUE CE CONTRÔLE A TROUVÉ. Le compte et la
+       liste portaient le même nom `refuses` : l'`Object.assign` final écrasait la LISTE par le
+       COMPTE, donc un retour partiel annonçait « 3 refus » sans jamais dire lesquels. On exige
+       désormais les deux, sous deux noms — un compte ne remplace pas une liste. */
+    v('   sans aucun refus', r.j.nRefuses, 0);
+    vrai('⛔ et la LISTE des refus est rendue à part du compte', Array.isArray(r.j.refus));
+
+    /* ⛔⛔ ON RELIT DEPUIS UN APPAREIL NEUF, PAS DEPUIS LA TOUR. Demander au serveur s'il a
+       bien écrit ce qu'il vient d'écrire ne prouve rien — c'est la circularité, encore. Ce qui
+       compte est ce qu'un TÉLÉPHONE recevra demain matin. */
+    const stockR = stockNeuf(), dbR = {};
+    const apiR = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
+      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math', 'indexedDB',
+      code + '\nreturn {opSocleLire,opSocleSession};')
+      (compte, stockR, S.B, async () => ({ t: T, kh: sha(CLE) }), () => 'dev-apres-retour',
+       (motif) => diagnostics.push(motif), 703, { id: 'u-retour' }, dbR,
+       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math, idb);
+    await apiR.opSocleLire();
+    const parId = (c) => Object.fromEntries((dbR[c] || []).map(x => [String(x.id), x]));
+    const cl = parId('clients'), pr = parId('produits');
+    v('⛔ la fiche cassée a repris sa valeur d\'AVANT', (cl.r1 || {}).nom, 'AVANT');
+    v('⛔ la fiche effacée par le bug est REVENUE', (cl.r2 || {}).nom, 'Reste');
+    vrai('⛔ et la fiche inventée par le bug a disparu', !cl['r3-invente']);
+    v('   le stock aussi est revenu', (pr.rp1 || {}).stock, 12);
+    /* ⚠️ La tombe du retour doit être une VRAIE tombe, pas une fiche absente par hasard : sans
+       elle, un appareil qui a encore la fiche la repousserait à la synchro suivante. */
+    vrai('⛔ la fiche inventée porte bien une pierre tombale', !!((dbR._tombes || {}).clients || {})['r3-invente']);
+
+    /* ⛔ ET LE RETOUR EST LUI-MÊME RÉVERSIBLE. C'est la propriété qui rend le geste acceptable :
+       se tromper de date ne coûte qu'un second retour. L'état d'avant le retour est dans le
+       journal comme le reste. */
+    const hist = await apercu(SAIN);
+    vrai('⛔ le retour est tracé, avec sa date et ses nombres', (hist.j.retours || []).some(x => x.instant === SAIN && x.restaures >= 2));
+  }
   /* ══ (i) LE SERVEUR TOMBE : LA SYNCHRO DE L'ENTREPRISE NE DOIT PAS LE SENTIR ══════════════
      ⛔ C'est la seule règle qui compte vraiment de tout l'étage. Une synchro d'entreprise qui
      tombe parce qu'un chantier interne a hoqueté est exactement ce que ce dépôt a payé le
@@ -1078,12 +1265,19 @@ function basePetite(m) {
     v('   ni inventé de page', (l && l.pages) || 0, 0);
   }
 
+
+  /* ⚠️ LE POSTE SE FERME, SINON LE BANC NE REND JAMAIS LA MAIN. Ce fichier finit sur
+     `process.exitCode`, pas sur `process.exit()` — volontairement, pour laisser les flux
+     s'écrire. Un serveur TCP encore à l'écoute garde donc la boucle d'événements vivante, et
+     `scripts/bancs-ci.sh` attend pour toujours un banc qui a fini, et qui est vert. */
+  try { await POSTE.fermer(); } catch (e) {}
   try { fs.rmSync(BANC, { recursive: true, force: true }); } catch (e) {}
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   if (ko) process.exitCode = 1;
 })().catch(async e => {
   console.log('  ✗ le banc lui-même a jeté : ' + (e && e.stack || e));
   await arreter();
+  try { await POSTE.fermer(); } catch (x) {}
   try { fs.rmSync(BANC, { recursive: true, force: true }); } catch (x) {}
   console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗');
   process.exit(1);

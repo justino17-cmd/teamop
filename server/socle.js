@@ -885,6 +885,240 @@ function echecEnrolement(t) {
  * toujours par la route de diagnostic, alors que `sous-traitance.html` promet une conservation
  * bornée. Le reste de la ligne n'est PAS effacé — l'historique de QUI a fait QUOI demeure, sans
  * le contenu. C'est ça, et seulement ça, que la promesse permet de garder. */
+/* ══ REVENIR EN ARRIÈRE, POUR UNE ENTREPRISE, SANS TOUCHER AUX AUTRES ═══════════════════════
+ * Demandé par Justin le 20 septembre 2026 : « s'il y a eu un bug, qu'on puisse les faire
+ * retourner sur la sauvegarde d'avant ».
+ *
+ * ⛔ CE N'EST PAS UNE RESTAURATION DE FICHIERS, ET C'EST TOUT L'INTÉRÊT. L'archive hors site
+ * est GLOBALE — toutes les entreprises plus `config.json` dans un seul `tar`. Restaurer une
+ * entreprise depuis elle remettrait AUSSI toutes les autres à cette minute-là, c'est-à-dire
+ * qu'on réparerait un client en cassant les vingt-neuf autres. Le journal du socle, lui, garde
+ * chaque VERSION de chaque enregistrement, par entreprise, avec qui l'a écrite et quand. On
+ * n'a donc pas besoin d'une photo toutes les heures : on a la seconde près, pendant
+ * `JOURNAL_VIE_MS` (90 jours).
+ *
+ * ⛔⛔ ON ÉCRIT DE NOUVELLES LIGNES, ON NE RÉÉCRIT PAS L'HISTOIRE. Remettre l'ancien `maj_le`
+ * serait refusé par `pousser()` comme `perime` — et ce refus a raison : les appareils lisent
+ * « depuis `seq` », donc une ligne réécrite en place ne leur parviendrait JAMAIS. Ils
+ * garderaient l'état cassé pendant que la Tour afficherait « revenu ». Le retour repose donc
+ * l'ancien CORPS avec une date de MAINTENANT, par la même porte qu'un appareil. Trois
+ * conséquences qu'il faut avoir en tête :
+ *   · les appareils voient le retour arriver comme une modification ordinaire, et l'adoptent ;
+ *   · le stock des box revient PRODUIT PAR PRODUIT — le socle décompose déjà chaque ligne de
+ *     stock en `box_stock`, avec sa propre date, donc un retour bat le `_ms[produit]` local ;
+ *   · et le retour est lui-même RÉVERSIBLE : l'état d'avant reste dans le journal, on revient
+ *     à l'instant juste avant le retour.
+ *
+ * ⛔ CE QUI A ÉTÉ CRÉÉ APRÈS DOIT ÊTRE ENTERRÉ, sinon ce n'est pas un retour. « Rendre l'état
+ * d'hier 14 h » en laissant en place tout ce qui a été écrit depuis, c'est rendre un MÉLANGE
+ * des deux — et c'est précisément l'état qu'on essaie de quitter quand un bug a semé des
+ * enregistrements. On pose donc une tombe sur ce qui n'existait pas à l'instant visé.
+ *
+ * ⛔ ET UN CORPS PURGÉ SE NOMME, IL NE SE SAUTE PAS. Au-delà de 90 jours, `purgerJournal` vide
+ * le `corps` (la ligne, elle, reste : on sait QUI a fait QUOI, sans le contenu). Un retour qui
+ * traverse cette frontière ne PEUT PAS rendre ces enregistrements. Les sauter en silence
+ * rendrait un retour partiel présenté comme complet — la panne silencieuse type, et la même
+ * confusion que `_mailboxes` : « rien à restaurer » et « je ne sais pas restaurer » ne sont
+ * pas le même état. L'aperçu les compte et les nomme, et l'application REFUSE tant qu'on ne
+ * lui a pas dit explicitement de continuer sans eux.
+ */
+
+/* L'état d'UN enregistrement à un instant : la dernière version du journal à cette date-là.
+   Une seule requête pour toute la base — un `MAX(seq)` groupé, puis la jointure. */
+function etatAuJournal(db, instant) {
+  return db.prepare(`SELECT j.coll, j.id, j.seq, j.ts, j.maj_le, j.supprime, j.empreinte, j.corps, j.corps_purge_le
+    FROM journal j
+    JOIN (SELECT coll, id, MAX(seq) AS s FROM journal WHERE ts <= ? GROUP BY coll, id) m
+      ON m.coll = j.coll AND m.id = j.id AND m.s = j.seq`).all(instant);
+}
+
+/* Ce que le retour changerait, SANS RIEN ÉCRIRE. C'est la moitié qui compte : personne ne
+   déclenche une écriture en masse sur la base d'un client sans avoir vu les nombres d'abord. */
+function retourApercu(t, instant) {
+  t = exigerT(t);
+  const db = ouvrir(t);
+  const ts = parseInt(instant, 10) || 0;
+  const maintenant = Date.now();
+  if (!ts || ts > maintenant) { const e = new Error('instant requis, et dans le passé'); e.code = 'INSTANT'; throw e; }
+
+  /* ⛔ LES DEUX BORNES DU POSSIBLE, ET ELLES NE SONT PAS LA MÊME. `journalDepuis` dit depuis
+     quand on a une TRACE ; `corpsDepuis` depuis quand on a le CONTENU. Entre les deux, on sait
+     qu'il s'est passé quelque chose et on ne sait pas quoi — c'est un troisième état, et il
+     doit se voir à l'écran plutôt que se deviner. */
+  const bornes = db.prepare(`SELECT MIN(ts) AS jd, MIN(CASE WHEN corps IS NOT NULL THEN ts END) AS cd,
+    COUNT(*) AS n FROM journal`).get() || {};
+
+  const avant = etatAuJournal(db, ts);
+  const parCle = new Map();
+  for (const j of avant) parCle.set(j.coll + '\u0000' + j.id, j);
+
+  const vivants = db.prepare('SELECT coll,id,maj_le,supprime_le,empreinte FROM enr').all();
+  const aRestaurer = [], aEnterrer = [], illisibles = [], inconnus = [];
+  const par = {};
+  const compter = (coll, quoi) => { (par[coll] = par[coll] || { restaure: 0, enterre: 0, illisible: 0 })[quoi]++; };
+  let octets = 0;
+
+  const vus = new Set();
+  for (const e of vivants) {
+    const cle = e.coll + '\u0000' + e.id;
+    vus.add(cle);
+    const j = parCle.get(cle);
+    if (!j) {
+      /* Vivant maintenant, aucune trace à cette date : ou bien il a été créé APRÈS (donc il
+         s'enterre), ou bien il n'a aucune ligne de journal du tout (ce qui ne devrait pas
+         arriver — chaque `pousser` trace). On distingue, parce que les deux ne demandent pas
+         la même chose : le premier est une décision, le second est une anomalie à regarder. */
+      const jamais = db.prepare('SELECT 1 FROM journal WHERE coll=? AND id=? LIMIT 1').get(e.coll, e.id);
+      if (!jamais) { inconnus.push({ coll: e.coll, id: e.id }); continue; }
+      if (!e.supprime_le) { aEnterrer.push({ coll: e.coll, id: e.id }); compter(e.coll, 'enterre'); }
+      continue;
+    }
+    if (j.supprime) {
+      /* Supprimé à cette date, vivant maintenant → il a été recréé depuis : on ré-enterre. */
+      if (!e.supprime_le) { aEnterrer.push({ coll: e.coll, id: e.id }); compter(e.coll, 'enterre'); }
+      continue;
+    }
+    /* Présent des deux côtés : on ne repose QUE ce qui a changé. Comparer les empreintes
+       évite de réécrire toute la base pour rien — et donc de doubler le poids du journal. */
+    if (!e.supprime_le && e.empreinte && j.empreinte && e.empreinte === j.empreinte) continue;
+    if (j.corps_purge_le || !j.corps) { illisibles.push({ coll: j.coll, id: j.id, ts: j.ts }); compter(j.coll, 'illisible'); continue; }
+    aRestaurer.push({ coll: j.coll, id: j.id, seq: j.seq });
+    octets += (j.corps && j.corps.length) || 0;
+    compter(j.coll, 'restaure');
+  }
+  /* Et ce qui existait à cette date sans exister aujourd'hui : il faut le RESSUSCITER. Sans
+     cette moitié, un retour ne rendrait jamais ce qu'un bug a effacé — c'est-à-dire le cas le
+     plus probable de tous. */
+  for (const j of avant) {
+    const cle = j.coll + '\u0000' + j.id;
+    if (vus.has(cle) || j.supprime) continue;
+    if (j.corps_purge_le || !j.corps) { illisibles.push({ coll: j.coll, id: j.id, ts: j.ts }); compter(j.coll, 'illisible'); continue; }
+    aRestaurer.push({ coll: j.coll, id: j.id, seq: j.seq });
+    octets += (j.corps && j.corps.length) || 0;
+    compter(j.coll, 'restaure');
+  }
+
+  return {
+    instant: ts,
+    journalDepuis: bornes.jd || null, corpsDepuis: bornes.cd || null, lignesJournal: bornes.n || 0,
+    /* ⛔ LE DRAPEAU QUI DÉCIDE, et il est calculé ici plutôt que déduit à l'écran : un aperçu
+       dont chaque appelant retire sa propre conclusion finit par en avoir deux. */
+    troploin: !!(bornes.cd && ts < bornes.cd),
+    nRestaurer: aRestaurer.length, nEnterrer: aEnterrer.length,
+    nIllisibles: illisibles.length, nInconnus: inconnus.length,
+    octetsEnPlus: octets, par,
+    /* Bornées : c'est pour un écran, pas pour un export. Les nombres au-dessus sont complets. */
+    illisibles: illisibles.slice(0, 50), inconnus: inconnus.slice(0, 50),
+    apercu: aRestaurer.slice(0, 20).concat(aEnterrer.slice(0, 20).map(x => Object.assign({ tombe: true }, x))),
+  };
+}
+
+/* Applique le retour. Écrit par `pousser()`, la MÊME porte qu'un appareil — donc les mêmes
+   plafonds, les mêmes refus, la même trace au journal, et rien de neuf à auditer. */
+function retourAppliquer(t, instant, ctx) {
+  t = exigerT(t);
+  const c = ctx || {};
+  const ap = retourApercu(t, instant);
+  /* ⛔ ON REFUSE PAR DÉFAUT QUAND IL MANQUE DES CORPS. `sansLesIllisibles` est une décision
+     explicite de celui qui déclenche, pas un réglage : un retour partiel peut être le bon
+     choix, il ne peut pas être le choix par DÉFAUT. */
+  if (ap.nIllisibles && c.sansLesIllisibles !== true) {
+    const e = new Error('corps purgés'); e.code = 'PURGE'; e.apercu = ap; throw e;
+  }
+  if (ap.troploin && c.sansLesIllisibles !== true) {
+    const e = new Error('instant antérieur au plus vieux corps gardé'); e.code = 'TROPLOIN'; e.apercu = ap; throw e;
+  }
+
+  const db = ouvrir(t), dek = dekDe(t);
+  const ts = ap.instant;
+  const avant = etatAuJournal(db, ts);
+  const parCle = new Map();
+  for (const j of avant) parCle.set(j.coll + '\u0000' + j.id, j);
+
+  /* ⛔ PAR LOTS, PARCE QUE LE CORPS DE CHAQUE LIGNE EST EN MÉMOIRE PENDANT QU'ON POUSSE. Une
+     base d'entreprise fait des milliers d'enregistrements et un corps peut peser 512 Ko
+     scellés : tout descendre d'un coup, c'est le serveur de TOUS les clients qui tombe pour en
+     réparer un. `pousser()` ouvre une transaction par lot — un lot raté n'écrit rien. */
+  const LOT = 100;
+  let restaures = 0, enterres = 0, refuses = [];
+  /* ⛔ UNE SEULE DATE POUR TOUT LE RETOUR. Appeler `Date.now()` par ligne donnerait mille
+     instants différents à ce qui est UN geste : l'historique deviendrait illisible, et un
+     second retour « juste avant le premier » n'aurait pas d'instant net où viser. */
+  const quand = Date.now();
+
+  const envoyer = (lot) => {
+    if (!lot.length) return;
+    const r = pousser(t, lot, { app_id: 'retour', utilisateur: String(c.utilisateur || ''), ver: String(c.ver || ''), origine: 'retour',
+      octetsMax: c.octetsMax, disquePlancher: c.disquePlancher });
+    for (const x of (r.refus || [])) refuses.push({ c: x.c, id: x.id, motif: x.motif });
+  };
+
+  let lot = [];
+
+  /* On refait le parcours ici plutôt que de trimballer les corps dans l'aperçu : l'aperçu est
+     servi par une route de lecture, et il ne doit JAMAIS porter de données de client. */
+  const vivants = db.prepare('SELECT coll,id,maj_le,supprime_le,empreinte FROM enr').all();
+  const vus = new Set();
+  for (const e of vivants) {
+    const cle = e.coll + '\u0000' + e.id;
+    vus.add(cle);
+    const j = parCle.get(cle);
+    if (!j) {
+      const jamais = db.prepare('SELECT 1 FROM journal WHERE coll=? AND id=? LIMIT 1').get(e.coll, e.id);
+      if (!jamais || e.supprime_le) continue;
+      lot.push({ c: e.coll, id: e.id, m: quand, sup: quand }); enterres++;
+    } else if (j.supprime) {
+      if (e.supprime_le) continue;
+      lot.push({ c: e.coll, id: e.id, m: quand, sup: quand }); enterres++;
+    } else {
+      if (!e.supprime_le && e.empreinte && j.empreinte && e.empreinte === j.empreinte) continue;
+      if (j.corps_purge_le || !j.corps) continue;
+      let r = null;
+      try { r = JSON.parse(desceller_clair(dek, t, j.coll, j.id, j.maj_le, j.supprime, j.corps).toString('utf8')); }
+      catch (err) { refuses.push({ c: j.coll, id: j.id, motif: 'illisible' }); continue; }
+      lot.push({ c: j.coll, id: j.id, m: quand, e: j.empreinte || '', r }); restaures++;
+    }
+    if (lot.length >= LOT) { envoyer(lot); lot = []; }
+  }
+  for (const j of avant) {
+    const cle = j.coll + '\u0000' + j.id;
+    if (vus.has(cle) || j.supprime) continue;
+    if (j.corps_purge_le || !j.corps) continue;
+    let r = null;
+    try { r = JSON.parse(desceller_clair(dek, t, j.coll, j.id, j.maj_le, j.supprime, j.corps).toString('utf8')); }
+    catch (err) { refuses.push({ c: j.coll, id: j.id, motif: 'illisible' }); continue; }
+    lot.push({ c: j.coll, id: j.id, m: quand, e: j.empreinte || '', r }); restaures++;
+    if (lot.length >= LOT) { envoyer(lot); lot = []; }
+  }
+  envoyer(lot);
+
+  /* ⛔ ON NOTE LE RETOUR DANS `meta`, ET C'EST CE QUI PERMET DE LE DÉFAIRE. `faitLe` est
+     l'instant juste AVANT la première écriture : revenir à celui-là rend l'état d'avant le
+     retour. Sans cette trace, « annuler le retour » deviendrait une fouille dans le journal. */
+  /* ⛔ `nRefuses` ET `refus`, DEUX NOMS — parce qu'ils ont porté le MÊME et que le banc l'a
+     attrapé le 20 septembre 2026. La trace gardait un COMPTE sous `refuses`, la réponse une
+     LISTE sous `refuses`, et l'`Object.assign` final mettait la trace en dernier : l'appelant
+     recevait donc `refuses: 3` là où il attendait les trois lignes. Autrement dit un retour
+     PARTIEL qui annonce trois refus sans jamais dire lesquels — exactement le refus muet que
+     ce dépôt passe son temps à refuser ailleurs. */
+  const trace = { instant: ts, faitLe: Date.now(), par: String(c.utilisateur || ''), restaures, enterres,
+    nRefuses: refuses.length, illisibles: ap.nIllisibles };
+  let liste = [];
+  try { liste = JSON.parse((db.prepare("SELECT val FROM meta WHERE cle='retours'").get() || {}).val || '[]'); } catch (e) {}
+  if (!Array.isArray(liste)) liste = [];
+  liste.unshift(trace);
+  if (liste.length > 50) liste.length = 50;
+  db.prepare("INSERT INTO meta (cle,val) VALUES ('retours',?) ON CONFLICT(cle) DO UPDATE SET val=excluded.val").run(JSON.stringify(liste));
+
+  return Object.assign({ ok: true, seq: rang(t) }, trace, { refus: refuses.slice(0, 50) });
+}
+
+function retoursDe(t) {
+  t = exigerT(t);
+  try { const l = JSON.parse((ouvrir(t).prepare("SELECT val FROM meta WHERE cle='retours'").get() || {}).val || '[]');
+    return Array.isArray(l) ? l : []; } catch (e) { return []; }
+}
+
 const JOURNAL_VIE_MS = 90 * 86400000;
 function purgerJournal(t, avant) {
   t = exigerT(t);
@@ -1664,6 +1898,7 @@ module.exports = {
   exigerT, numeroReserver, journalDe,
   entrepriseEtat, entrepriseOuvrir, entrepriseDouble, entrepriseLecture, appareilsVivants, PEREMPTION_MS, controleNoter, controlesDe, controleSuite,
   obsNoter, obsVerser, obsTotaux, latNoter, latQuantiles, divergences, OBS_JOURS,
+  retourApercu, retourAppliquer, retoursDe,
   attesterNoter, attestationsDe, attestationEtat, echecEnrolement, controlerFichier, reglageLire, reglagePoser, instantanerVers, restaurerDepuis, SOCLE_INSTANTANE, disquePlein, OCTETS_MAX_DEFAUT, DISQUE_PLANCHER_DEFAUT, purgerJournal, purgerToutesLesEntreprises,
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
   diagnostic, diagnosticsDe, ancre, ancreVerifier,

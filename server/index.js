@@ -2812,6 +2812,45 @@ function sauvRefus(t, kh, quoi) {
    Deux temps, le même mécanisme que la suppression d'un compte depuis la Tour : sans `code`
    on envoie, avec `code` on vérifie. Cinq essais, dix minutes. */
 const cleCodes = new Map();   // 't' -> { code, exp, tries }
+
+/* ══ LE CODE À SIX CHIFFRES, UNE SEULE FOIS ════════════════════════════════════════════════
+ * ⛔ FACTORISÉ LE 20 SEPTEMBRE 2026, ET C'EST LA CONDITION QU'`op-socle.js` S'ÉTAIT POSÉE À
+ * LUI-MÊME. Son en-tête portait depuis l'étape 4 : « `POST /api/monitor/op/revenir` →
+ * volontairement absent tant que `cleCodeExiger` n'est pas factorisé. C'est la seule route qui
+ * ÉCRIVE dans la base d'un client depuis la Tour, et le plan exige le code à six chiffres
+ * envoyé à l'adresse de l'entreprise — par la fonction existante, pas par une copie. » La
+ * copie était le vrai danger : deux gardes qui se ressemblent finissent par diverger, et c'est
+ * toujours la moins sévère qui garde le chemin le plus dangereux.
+ *
+ * ⛔ `cleCodes` RESTE LA SEULE RÉSERVE. Un second `Map` pour le retour voudrait dire deux
+ * expirations, deux compteurs d'essais, deux ménages — donc, un jour, un code qui n'expire
+ * pas quelque part. Les usages se distinguent par un PRÉFIXE de clé, jamais par une réserve
+ * de plus.
+ *
+ * `demander()` envoie, `verifier()` tranche. Les deux rendent `{code, error}` plutôt que de
+ * répondre elles-mêmes : la route décide du verbe HTTP, la garde décide du verdict. */
+function cleCodeMenage() {
+  if (cleCodes.size > 500) for (const [k, v] of cleCodes) if (Date.now() > v.exp) cleCodes.delete(k);
+}
+async function cleCodeDemander(sujet, dest, mail) {
+  cleCodeMenage();
+  const code = String(crypto.randomInt(100000, 1000000));
+  cleCodes.set(sujet, { code, exp: Date.now() + 10 * 60000, tries: 0 });
+  /* ⛔ JAMAIS LE CODE AU JOURNAL. `trace` nomme le geste et l'espace tronqué, rien d'autre —
+     `journalctl` se relit à plusieurs et se copie-colle. */
+  await mailerEnvoi(Object.assign({ from: config.smtp.from || config.smtp.user, to: dest, confidentiel: true }, mail(code)));
+  return { ok: true };
+}
+/* ⛔ CINQ ESSAIS PUIS LA RÉSERVE SE VIDE POUR CE SUJET : un million de combinaisons se
+   parcourt en quelques minutes si on laisse essayer. Et un code JUSTE se consomme, toujours —
+   sinon il vaut dix usages pendant dix minutes. */
+function cleCodeVerifier(sujet, recu) {
+  const c = cleCodes.get(sujet);
+  if (!c || Date.now() > c.exp) { cleCodes.delete(sujet); return { code: 400, error: 'code expiré — recommence' }; }
+  if (c.code !== String(recu || '')) { c.tries++; if (c.tries >= 5) cleCodes.delete(sujet); return { code: 400, error: 'code incorrect' }; }
+  cleCodes.delete(sujet);
+  return { ok: true };
+}
 app.post('/api/espaces/cle/code', async (req, res) => {
   const b = req.body || {}; const t = monStr(b.t, 80), kh = monStr(b.kh, 64).toLowerCase();
   if (!t || !/^[0-9a-f]{64}$/.test(kh)) return res.status(400).json({ error: 't et kh requis' });
@@ -2824,26 +2863,26 @@ app.post('/api/espaces/cle/code', async (req, res) => {
   if (!dest) return res.status(409).json({ error: "Aucune adresse e-mail n'est enregistrée pour cette entreprise : le changement de clé ne peut pas être confirmé. Contacte TEAM OP." });
   if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
   const codeRecu = monStr(b.code, 10).trim();
+  /* ⛔ LE SUJET PORTE LE GESTE, PAS SEULEMENT L'ESPACE. Avec `t` tout court, un code demandé
+     pour changer la clé servirait à déclencher un RETOUR EN ARRIÈRE, et réciproquement : deux
+     gestes aux conséquences opposées partageraient la même autorisation. Le courriel, lui, dit
+     bien de quoi il s'agit — la garde doit dire la même chose. */
+  const sujet = 'cle:' + t;
   if (!codeRecu) {
-    if (cleCodes.size > 500) for (const [k, v] of cleCodes) if (Date.now() > v.exp) cleCodes.delete(k);
-    const code = String(crypto.randomInt(100000, 1000000));
-    cleCodes.set(t, { code, exp: Date.now() + 10 * 60000, tries: 0 });
     try {
-      await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
-        confidentiel: true, trace: 'code de changement de clé · espace ' + t.slice(0, 12),   // jamais le code au journal
+      await cleCodeDemander(sujet, dest, (code) => ({
+        trace: 'code de changement de clé · espace ' + t.slice(0, 12),   // jamais le code au journal
         subject: '🔐 Code de confirmation — clé de synchronisation de ' + (espNomPropre(e) || 'ton entreprise'),
         text: 'Quelqu\'un vient de demander à CHANGER LA CLÉ DE SYNCHRONISATION de '
           + (espNomPropre(e) || 'ton entreprise') + '.\n\nCode de confirmation : ' + code
           + '\n\nValable 10 minutes.\n\n⛔ Si ce n\'est pas toi, N\'ENVOIE PAS CE CODE et préviens TEAM OP.'
           + ' Changer cette clé rend les données de ton entreprise ILLISIBLES sur tous ses appareils, sans retour possible.'
-          + '\n\n— TEAM OP · teamop.fr' });
+          + '\n\n— TEAM OP · teamop.fr' }));
     } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
     return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest) });
   }
-  const c = cleCodes.get(t);
-  if (!c || Date.now() > c.exp) { cleCodes.delete(t); return res.status(400).json({ error: 'code expiré — recommence' }); }
-  if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) cleCodes.delete(t); return res.status(400).json({ error: 'code incorrect' }); }
-  cleCodes.delete(t);
+  const verdict = cleCodeVerifier(sujet, codeRecu);
+  if (!verdict.ok) return res.status(verdict.code).json({ error: verdict.error });
   return res.json({ ok: true, valide: true });
 });
 app.post('/api/espaces/sauvegarde', (req, res) => {
@@ -3665,6 +3704,13 @@ try {
   opSocle = require('./op-socle').monterOpSocle(app, {
     config, socle: require('./socle'), sauvRefus, cleEstPublique, quotaOk, monStr,
     garde: monPatronStrict, mailerEnvoi: (o) => mailerEnvoi(o),
+    /* ⛔ LA MÊME GARDE QUE LE CHANGEMENT DE CLÉ, INJECTÉE — pas recopiée. Voir le bloc
+       `cleCodeDemander`/`cleCodeVerifier` : écrire dans la base d'un client ne peut pas être
+       moins gardé que changer sa clé d'équipe, qui n'écrit aucune donnée métier.
+       `espaceContact` rend l'adresse de l'entreprise et son nom propre : sans adresse, aucun
+       code ne peut partir, donc le retour est REFUSÉ — jamais autorisé par défaut. */
+    cleCodeDemander, cleCodeVerifier,
+    espaceContact: (t) => { const e = espaceParT(t); return { email: String((e && e.email) || '').trim(), nom: espNomPropre(e) || '' }; },
     /* ⛔ LES DEUX SOURCES QUE LE SOCLE N'A PAS, ET QUI DÉCIDENT DE L'ÉTAPE 5.
        `cnxAppareils` rend les appareils d'une entreprise VUS PAR L'API dans la fenêtre — le
        dénominateur de la condition (a). Le socle ne connaît que ceux qui lui parlent ; c'est
