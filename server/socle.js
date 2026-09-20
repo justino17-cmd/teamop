@@ -1040,20 +1040,41 @@ function retourAppliquer(t, instant, ctx) {
      scellés : tout descendre d'un coup, c'est le serveur de TOUS les clients qui tombe pour en
      réparer un. `pousser()` ouvre une transaction par lot — un lot raté n'écrit rien. */
   const LOT = 100;
+  /* ⛔⛔ ON COMPTE CE QUE `pousser()` A ACCEPTÉ, PAS CE QU'ON LUI A TENDU — et la première
+     version comptait le second, ce qui est un mensonge dans le cas EXACT où il fait le plus de
+     dégâts. `pousser()` refuse le LOT ENTIER sur `espace_plein` ou `disque_plein` ; or un
+     retour ajoute au journal une copie du corps de chaque ligne restaurée, donc il gonfle
+     l'espace d'à peu près le poids de ce qu'il ramène : atteindre le plafond EN COURS de retour
+     n'est pas un cas limite, c'est le cas probable sur une base déjà lourde. La Tour aurait
+     alors annoncé « 100 remises en place » sur zéro écriture, et personne n'aurait su que la
+     moitié de l'entreprise n'était pas revenue.
+     On attribue donc chaque refus à ce qu'il était — une remise ou un enterrement — et on
+     décompte. Un compte qui ne peut pas baisser n'est pas un compte, c'est une intention. */
   let restaures = 0, enterres = 0, refuses = [];
   /* ⛔ UNE SEULE DATE POUR TOUT LE RETOUR. Appeler `Date.now()` par ligne donnerait mille
      instants différents à ce qui est UN geste : l'historique deviendrait illisible, et un
      second retour « juste avant le premier » n'aurait pas d'instant net où viser. */
   const quand = Date.now();
 
+  let lot = [];
+  /* Ce que CE lot contient, pour savoir à quoi attribuer un refus. */
+  let genreDe = new Map();
   const envoyer = (lot) => {
     if (!lot.length) return;
     const r = pousser(t, lot, { app_id: 'retour', utilisateur: String(c.utilisateur || ''), ver: String(c.ver || ''), origine: 'retour',
       octetsMax: c.octetsMax, disquePlancher: c.disquePlancher });
-    for (const x of (r.refus || [])) refuses.push({ c: x.c, id: x.id, motif: x.motif });
+    for (const x of (r.refus || [])) {
+      refuses.push({ c: x.c, id: x.id, motif: x.motif });
+      if (genreDe.get(String(x.c) + '\u0000' + String(x.id)) === 'tombe') enterres--; else restaures--;
+    }
+    genreDe = new Map();
+  };
+  const pousserAuLot = (ligne, genre) => {
+    genreDe.set(String(ligne.c) + '\u0000' + String(ligne.id), genre);
+    lot.push(ligne);
+    if (genre === 'tombe') enterres++; else restaures++;
   };
 
-  let lot = [];
 
   /* On refait le parcours ici plutôt que de trimballer les corps dans l'aperçu : l'aperçu est
      servi par une route de lecture, et il ne doit JAMAIS porter de données de client. */
@@ -1066,17 +1087,17 @@ function retourAppliquer(t, instant, ctx) {
     if (!j) {
       const jamais = db.prepare('SELECT 1 FROM journal WHERE coll=? AND id=? LIMIT 1').get(e.coll, e.id);
       if (!jamais || e.supprime_le) continue;
-      lot.push({ c: e.coll, id: e.id, m: quand, sup: quand }); enterres++;
+      pousserAuLot({ c: e.coll, id: e.id, m: quand, sup: quand }, 'tombe');
     } else if (j.supprime) {
       if (e.supprime_le) continue;
-      lot.push({ c: e.coll, id: e.id, m: quand, sup: quand }); enterres++;
+      pousserAuLot({ c: e.coll, id: e.id, m: quand, sup: quand }, 'tombe');
     } else {
       if (!e.supprime_le && e.empreinte && j.empreinte && e.empreinte === j.empreinte) continue;
       if (j.corps_purge_le || !j.corps) continue;
       let r = null;
       try { r = JSON.parse(desceller_clair(dek, t, j.coll, j.id, j.maj_le, j.supprime, j.corps).toString('utf8')); }
       catch (err) { refuses.push({ c: j.coll, id: j.id, motif: 'illisible' }); continue; }
-      lot.push({ c: j.coll, id: j.id, m: quand, e: j.empreinte || '', r }); restaures++;
+      pousserAuLot({ c: j.coll, id: j.id, m: quand, e: j.empreinte || '', r }, 'corps');
     }
     if (lot.length >= LOT) { envoyer(lot); lot = []; }
   }
@@ -1087,7 +1108,7 @@ function retourAppliquer(t, instant, ctx) {
     let r = null;
     try { r = JSON.parse(desceller_clair(dek, t, j.coll, j.id, j.maj_le, j.supprime, j.corps).toString('utf8')); }
     catch (err) { refuses.push({ c: j.coll, id: j.id, motif: 'illisible' }); continue; }
-    lot.push({ c: j.coll, id: j.id, m: quand, e: j.empreinte || '', r }); restaures++;
+    pousserAuLot({ c: j.coll, id: j.id, m: quand, e: j.empreinte || '', r }, 'corps');
     if (lot.length >= LOT) { envoyer(lot); lot = []; }
   }
   envoyer(lot);

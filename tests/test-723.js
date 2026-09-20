@@ -1070,6 +1070,37 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
      surtout les appareils lisent « depuis seq » — une ligne réécrite en place ne leur
      parviendrait jamais. Ils garderaient l'état cassé pendant que la Tour dirait « revenu ». */
   vrai('⛔ et une date de MAINTENANT, sinon aucun appareil ne la verrait', (rendu[0] || {}).m >= SAIN2);
+
+  /* ⛔⛔ UN RETOUR QUI SE FAIT REFUSER COMPTE CE QUI EST PASSÉ, PAS CE QU'IL A TENTÉ. C'est le
+     cas où mentir coûte le plus : `pousser()` refuse le LOT ENTIER sur `espace_plein`, et un
+     retour ajoute au journal une copie du corps de chaque ligne ramenée — donc il gonfle
+     l'espace d'à peu près le poids de ce qu'il ramène. Atteindre le plafond EN COURS de retour
+     n'est pas un cas limite sur une base déjà lourde, c'est le cas probable. La première
+     version comptait au moment de METTRE DANS LE LOT : la Tour aurait annoncé « 3 remises en
+     place » sur zéro écriture, et personne n'aurait su que rien n'était revenu. */
+  const T3 = 'retour-banc-3';
+  S.pousser(T3, [
+    { c: 'clients', id: 'w1', m: Date.now(), e: 'e-w1', r: { nom: 'Un' } },
+    { c: 'clients', id: 'w2', m: Date.now(), e: 'e-w2', r: { nom: 'Deux' } },
+  ]);
+  attendre(5);
+  const SAIN3 = Date.now();
+  attendre(5);
+  S.pousser(T3, [{ c: 'clients', id: 'w1', m: Date.now(), e: 'e-w1b', r: { nom: 'CASSÉ' } }]);
+
+  const ap3 = S.retourApercu(T3, SAIN3);
+  v('l\'aperçu voit une fiche à remettre', ap3.nRestaurer, 1);
+  /* `octetsMax: 1` : l'espace est déjà au-delà, donc `pousser()` refuse tout, en bloc. */
+  const plein = S.retourAppliquer(T3, SAIN3, { utilisateur: 'banc', octetsMax: 1 });
+  v('⛔ un espace plein ne fait pas mentir le compte', plein.restaures, 0);
+  v('   ni celui des enterrements', plein.enterres, 0);
+  vrai('⛔ et le refus est NOMMÉ, avec son motif', plein.refus.length >= 1 && /plein/.test(String(plein.refus[0].motif)));
+  v('   le compte de refus suit', plein.nRefuses, plein.refus.length);
+  /* ⚠️ LE CONTRE-TEST : sans plafond, le même retour passe. Un contrôle qui ne verrait que le
+     refus ne dirait pas si on vient de casser le chemin normal. */
+  const passe = S.retourAppliquer(T3, SAIN3, { utilisateur: 'banc' });
+  v('… et sans plafond, le même retour passe', passe.restaures, 1);
+  v('   sans refus', passe.nRefuses, 0);
 }
 
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
