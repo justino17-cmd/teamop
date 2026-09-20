@@ -470,16 +470,31 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   techniciens ressuscitées en un seul geste d'affichage. On prévient avec la pastille « +N », on
   écrit après un tap. C'est aussi la règle « rien ne s'écrit au seul chargement », appliquée aux
   écrans profonds.
-- ⛔ **L'ORDRE, pour fermer la règle Firestore : les appareils D'ABORD, la porte ENSUITE.**
-  Depuis la v640, l'application ne se connecte plus à Firebase en anonyme : elle présente un
-  jeton signé par le serveur (`POST /api/fb/jeton`) qui porte l'entreprise dans `claims.t`.
-  La règle publiée, elle, n'a **pas** changé — `firestore.rules` porte la future en commentaire.
-  Deux conditions avant de la publier, chacune payante si on l'oublie : **tous** les appareils
-  doivent présenter le jeton (sinon les retardataires perdent l'accès aux données de leur
-  propre entreprise), et les entreprises restées sur l'espace de **repli** doivent avoir
-  déménagé — le repli n'a pas de jeton, sa clé étant écrite en clair dans `app.html`, donc une
-  preuve venant de lui ne prouve rien. Corollaire : `fbJetonEquipe()` doit TOUJOURS pouvoir
-  échouer sans casser la synchro (elle rend `''` et l'appareil repart en anonyme). Ne jamais
+- ✅ **LA RÈGLE FIRESTORE EST FERMÉE DEPUIS LE 18 SEPTEMBRE 2026**, et cette fiche a affirmé le
+  contraire pendant deux jours. Justin a lancé `firebase-console.js regles-publier` ce jour-là ;
+  l'outil a publié DEPUIS `firestore.rules` puis relu chez Google : `allow read: if
+  monEquipe(teamId)`. Les lignes vivantes sont `firestore.rules:116-117` — ce n'est plus un
+  commentaire, c'est la règle servie.
+  ⚠️ **Ce qui a permis à cette page de mentir**, et c'est exactement la leçon que
+  `firestore.rules` porte déjà en tête : un fichier du dépôt ne prouve RIEN de ce qui tourne
+  ailleurs. La seule source est l'outil (`regles` COMPARE ce que Google sert à ce fichier).
+  Ne jamais réécrire ici un état de publication de mémoire : le relire.
+  ⛔⛔ **ET LE COROLLAIRE S'EST INVERSÉ LE JOUR DE LA PUBLICATION.** Cette page disait :
+  « `fbJetonEquipe()` doit TOUJOURS pouvoir échouer sans casser la synchro (elle rend `''` et
+  l'appareil repart en anonyme) ». C'était vrai tant que la porte était ouverte — un anonyme
+  lisait tout. Ça ne l'est plus : **un appareil qui repart en anonyme n'obtient RIEN.** Le
+  silence délibéré de `fbJetonEquipe` sur les échecs NON définitifs (délai de 4 s, 500, hors
+  ligne — tout ce qui n'est ni 403 ni 409) reposait sur cette hypothèse, et l'hypothèse est
+  tombée. Les deux refus définitifs, eux, ont bien leur écran (`jetonRefusEcran`).
+  ⚠️ **Ce qu'un appareil en bord de réseau voit VRAIMENT dans ce cas n'a pas été mesuré** — et
+  tant que ça ne l'est pas, on ne sait pas si la synchro dit quelque chose ou tombe en silence.
+  C'est précisément la panne que ce dépôt a déjà payée deux fois (`_mailboxes`, le jeton refusé
+  d'ELAN : cinq personnes saisissant pendant des jours dans un espace coupé). Voir `REPRISE.md`.
+  Pour mémoire, les deux conditions qui ont dû être tenues AVANT de publier, et qui restent
+  vraies pour toute porte future : **tous** les appareils doivent présenter le jeton (sinon les
+  retardataires perdent l'accès aux données de leur propre entreprise), et les entreprises
+  restées sur l'espace de **repli** doivent avoir déménagé — le repli n'a pas de jeton, sa clé
+  étant écrite en clair dans `app.html`, donc une preuve venant de lui ne prouve rien. Ne jamais
   rendre le jeton obligatoire côté client avant que la règle le soit côté Google.
 - ⛔ **Une box se fusionne PRODUIT PAR PRODUIT, pas en bloc.** C'est le seul enregistrement que
   plusieurs personnes modifient en même temps sans se marcher dessus : chacune sur un produit

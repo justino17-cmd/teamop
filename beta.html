@@ -7315,9 +7315,14 @@ async function fbJetonEquipe(){ try{
   /* Quatre secondes, comme la course d'authentification juste en dessous, et pas plus : ce
      délai s'ajoute au démarrage de la synchro quand api.teamop.fr ne répond pas. Mesuré au
      navigateur avec le serveur injoignable — huit secondes se voyaient, sur un téléphone en
-     bord de réseau c'est huit secondes avant le premier échange. Le jeton n'est pas urgent
-     (tant que la règle Firestore n'a pas changé, il ne change rien) : mieux vaut abandonner
-     vite et repartir en anonyme que faire attendre quelqu'un sur un chantier. */
+     c'est huit secondes avant le premier échange.
+     ⛔⛔ CE COMMENTAIRE A DIT « le jeton n'est pas urgent (tant que la règle Firestore n'a pas
+     changé, il ne change rien) ». LA RÈGLE A CHANGÉ LE 18 SEPTEMBRE 2026 : `monEquipe(teamId)`
+     est publiée et servie par Google, donc un appareil qui repart en anonyme n'obtient PLUS
+     RIEN. Abandonner vite reste le bon geste — personne ne doit attendre huit secondes sur un
+     chantier — mais ce n'est plus sans conséquence : au-delà de ce délai, la synchro de cet
+     appareil ne passe pas. ⚠️ Ce que l'écran en dit alors n'a PAS été mesuré. Tant que ça ne
+     l'est pas, ne pas réécrire ici que c'est sans danger. */
   const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),4000);
   let j={},statut=0;
   try{ const r=await fetch(PUSH_API+'/api/fb/jeton',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:t,kh:kh}),signal:ctrl.signal});
