@@ -6279,8 +6279,46 @@ const OP_BOX_FORME = '_box_forme';  // ce que la box avait, et qu'aucune ligne n
    et qui décide d'une fusion trois semaines plus tard. */
 const OP_VIDES = '_vides';
 
-function opDecomposer(base) {
-  const src = base || db, out = [];
+/* ══ ÉTAPE 3 — LES PIÈCES JOINTES NE VOYAGENT PAS DANS UNE LIGNE ════════════════════════════
+   ⛔ LA SUBSTITUTION SE FAIT AU BORD DU TRANSPORT, JAMAIS DANS `db`. La base locale garde ses
+   blobs, définitivement. Remplacer une photo par son identifiant DANS `db` changerait
+   l'empreinte de l'enregistrement (`recEmpreinte`), lui donnerait un `_m` neuf, et il
+   gagnerait toutes les fusions : 220 interventions re-tamponnées d'un coup, battant le travail
+   en cours de tous les collègues. C'est pour cette raison exacte que `syncSortirPieces`
+   travaille déjà sur des COPIES, et on la réutilise telle quelle — une seule définition.
+
+   ⛔ ET UN ENREGISTREMENT AMPUTÉ NE SE POUSSE PAS. C'est la règle qui rend cette étape
+   BLOQUANTE pour toutes les suivantes, et elle ne se contourne pas.
+   `syncAlleger` vide le contenu des pièces qui n'ont PAS d'identifiant de serveur, pour faire
+   tenir la copie sous le plafond de 1 Mio d'un document Firestore. L'enregistrement porte
+   alors `horsNuage`, `photosHorsNuage` ou `champsHorsNuage` : il est INCOMPLET, et il n'existe
+   d'exemplaire complet que sur l'appareil qui a pris la photo.
+   Poussé tel quel, l'amputé et le complet arrivent avec le MÊME `maj_le` — ils décrivent le
+   même geste, à la même milliseconde — et lequel gagne est une loterie. Une loterie qui, une
+   fois sur deux, efface une photo de terrain chez tout le monde.
+   La règle est donc : **on retient, on le dit, et l'appareil qui détient la pièce la téléverse
+   d'abord.** Une fois téléversée, l'enregistrement n'est plus amputé (il porte un `pid`) et il
+   part normalement au tour suivant.
+   ⚠️ Retenir en SILENCE serait pire que pousser : une ligne qui ne part jamais sans que
+   personne ne l'apprenne, c'est une donnée perdue avec l'air d'aller bien. D'où `retenus`,
+   que l'appelant DOIT regarder. */
+function opAmpute(r) {
+  if (!r || typeof r !== 'object') return '';
+  if (r.photosHorsNuage > 0) return 'photos';
+  if (Array.isArray(r.champsHorsNuage) && r.champsHorsNuage.length) return 'champs';
+  if (Array.isArray(r.docs) && r.docs.some(d => d && d.horsNuage && !d.data)) return 'documents';
+  return '';
+}
+
+function opDecomposer(base, opts) {
+  /* ⛔ LES PIÈCES SORTENT AVANT TOUT DÉCOUPAGE, et par la fonction qui le fait déjà pour
+     Firestore. Deux implantations du même geste divergeraient un jour, et c'est celle qu'on
+     aurait oublié de corriger qui déciderait — la leçon de `fbUidEquipe`. Elle rend une COPIE :
+     `db` n'est jamais touché. */
+  const brut = base || db;
+  const src = (opts && opts.piecesDejaSorties) ? brut
+    : ((typeof syncSortirPieces === 'function') ? syncSortirPieces(brut).copie : brut);
+  const out = [], retenus = [];
   const ecrire = (c, id, m, r) => { out.push({ c: c, id: String(id), m: +m || 0, r: r, e: opEmpreinte(r) }); };
   const tombe = (c, id, m) => { out.push({ c: c, id: String(id), m: +m || 0, sup: +m || 0 }); };
   const reglages = {};
@@ -6295,6 +6333,8 @@ function opDecomposer(base) {
     if (genre === 'box') {
       (val || []).forEach(b => {
         if (!b || b.id == null) return;
+        const motB = opAmpute(b);
+        if (motB) { retenus.push({ c: 'boxes', id: String(b.id), motif: motB }); return; }
         const bid = String(b.id), st = (b.stock && typeof b.stock === 'object') ? b.stock : {};
         const ms = (b._ms && typeof b._ms === 'object' && !Array.isArray(b._ms)) ? b._ms : null;
         const corps = {};
@@ -6327,7 +6367,12 @@ function opDecomposer(base) {
 
     if (genre === 'liste' || genre === 'liste_cle') {
       const champ = OP_ID_DE[genre];
-      (val || []).forEach(r => { if (r && r[champ] != null) ecrire(cle, r[champ], r._m, opSansTampon(r)); });
+      (val || []).forEach(r => {
+        if (!r || r[champ] == null) return;
+        const mot = opAmpute(r);
+        if (mot) { retenus.push({ c: cle, id: String(r[champ]), motif: mot }); return; }
+        ecrire(cle, r[champ], r._m, opSansTampon(r));
+      });
       return;
     }
 
@@ -6379,6 +6424,12 @@ function opDecomposer(base) {
     else if (g === 'dict') { if (val && typeof val === 'object' && !Object.keys(val).length) vides.push(cle); }
   });
   if (vides.length) ecrire(OP_VIDES, 'bloc', 0, { cles: vides });
+  /* ⛔ LES RETENUS VOYAGENT AVEC LES LIGNES, PAS DANS UN COIN. Un appelant qui lit `out`
+     sans lire `out.retenus` ne peut pas se tromper sur ce qu'il a : la liste est LÀ, sur le
+     même objet, et `JSON.stringify` l'ignore — ce qui part sur le réseau reste exactement les
+     lignes. C'est le seul moyen de garder la signature `opDecomposer(db) → lignes` du plan
+     sans rendre la rétention silencieuse. */
+  try { Object.defineProperty(out, 'retenus', { value: retenus, enumerable: false }); } catch (e) { }
   return out;
 }
 

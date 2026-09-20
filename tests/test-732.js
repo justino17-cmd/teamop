@@ -54,6 +54,7 @@ const code = [
   'const OP_CLASSES = ' + objet('const OP_CLASSES = {') + ';',
   ligne('const OP_ID_DE ='), ligne("const OP_REGLAGES ="), ligne("const OP_BOX_FORME ="), ligne("const OP_VIDES ="),
   bloc('function opSansTampon('), bloc('function opCanon('), bloc('function opEmpreinte('),
+  bloc('function opAmpute('), bloc('function syncSortirPieces('),
   bloc('function opIdDerive('), bloc('function opSignature('),
   bloc('function opDecomposer('), bloc('function opRecomposer('),
 ].join('\n');
@@ -61,7 +62,7 @@ const code = [
 let n = 0, api = null;
 try {
   api = new Function('uid', 'BETA_ESSAI', 'ID_ADMIN_DEPART', 'CAT_LIST', 'DASH_DEFAULT', 'FOURS_VER', 'PRIX_VER', 'db', 'console',
-    code + '\nreturn {seed,migrate,opDecomposer,opRecomposer,recEmpreinte,opEmpreinte,opSignature,OP_CLASSES};')
+    code + '\nreturn {seed,migrate,opDecomposer,opRecomposer,recEmpreinte,opEmpreinte,opSignature,opAmpute,syncSortirPieces,OP_CLASSES};')
     (() => 'u' + (++n), false, 'admin0', [], [], 1, 1, {}, { log() {}, warn() {}, error() {} });
 } catch (e) { console.log('      (extraction : ' + e.message + ')'); }
 vrai('⛔ les VRAIES fonctions du fichier livré s\'extraient et s\'exécutent', !!(api && api.opDecomposer && api.opRecomposer));
