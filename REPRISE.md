@@ -95,7 +95,35 @@ sur `datastore.backupSchedules.list`. **Cela élimine deux des trois causes** : 
 refusé aussi). Il reste un rôle qui manque sur un compte qui a déjà le droit de LIRE — la
 signature exacte du compte `firebase-adminsdk` par défaut. `roles/datastore.owner` est la bonne
 réponse ; ce qui n'a pas marché, c'est l'enregistrement, la ligne visée, ou la propagation.
-**`droits` tranchera lequel des trois, en une commande.**
+**`droits` a tranché, en une commande.**
+
+### ✅ L'ISSUE, LE MÊME SOIR — ET CE QUI L'A VRAIMENT DÉBLOQUÉE
+
+`droits` a rendu **les sept permissions ✅**, et la contre-épreuve est passée. L'IAM n'était
+donc plus la cause. `sauvegardes-activer` relancé dans la foulée :
+
+```
+  ✅ récupération à un instant donné activée (7 jours).
+  ✅ une sauvegarde par jour, gardée 14 jours.
+  sauvegardes programmées : 1
+✅ Les données de Firestore sont couvertes.
+```
+
+⚠️ **Le correctif n'a PAS débloqué la commande — le temps l'a fait.** Le rôle était bien posé ;
+il lui fallait quelques minutes pour propager. Ce que le correctif a apporté, c'est de pouvoir
+le SAVOIR : sans la mesure, la conclusion évidente était « le rôle n'est pas passé, remets-en
+un », et on en ajoutait un troisième pour rien, sur une cause jamais constatée.
+⛔ **La leçon à ne pas rater : la propagation IAM est une CAUSE À PART ENTIÈRE**, et elle est
+invisible à qui ne mesure pas — elle ressemble trait pour trait à un rôle mal enregistré, et
+elle pousse à réparer ce qui n'est pas cassé. Après un changement d'IAM : attendre, mesurer,
+puis conclure. Jamais l'inverse.
+
+✅ **État de Firestore depuis ce soir-là, mesuré dans le terminal de Justin** :
+récupération à un instant donné sur **7 jours**, et **une sauvegarde par jour gardée
+14 jours**. Ce sont les données VIVANTES d'ELAN — le socle n'étant pas allumé, c'est
+Firestore qui les porte, et Google n'en gardait AUCUNE copie jusque-là.
+⚠️ Ne pas réécrire cet état de mémoire plus tard : il se relit en une commande,
+`node server/firebase-console.js sauvegardes`.
 
 
 ## Sauvegardes et retour en arrière — fait le 20 septembre 2026
@@ -884,8 +912,9 @@ sont classées, le convertisseur écrit, les quatre bancs verts. L'étape 3 n'a 
   peut avancer au-delà de l'étape 3 sans ça.
 - ⛔ **La phrase qui autorise la publication d'`app.html`** — 7 versions attendent.
 - **Le séquestre de la clé maître** du socle, le jour de l'allumage (deux endroits distincts).
-- `firebase-console.js etat` à lancer, et `roles/datastore.owner` à ajouter pour les
-  sauvegardes Firestore.
+- ~~`roles/datastore.owner` à ajouter pour les sauvegardes Firestore~~ — ✅ **FAIT le
+  20 septembre 2026 au soir**, voir plus haut : PITR 7 jours + une sauvegarde par jour
+  gardée 14 jours. Se revérifie par `node server/firebase-console.js sauvegardes`.
 - **La réception de courriels (`boite:false`)** — à reconnecter, ou à décider qu'on la laisse.
 
 ## G. Les autres chantiers ouverts, hors socle
