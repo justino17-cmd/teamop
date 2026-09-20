@@ -352,9 +352,16 @@ function basePetite(m) {
        `>` strict — le banc tomberait alors une fois sur vingt, sans rien de cassé. Un banc qui
        crie faux se fait ignorer, puis désactiver. */
     db.interventions[0].statut = 'planifiee'; db.interventions[0]._m = api.opHautLire(T) + 1;
+    const poussesAvant = compte.combien('/api/op/pousser');
     const p1 = api.opSoclePousser(), p2 = api.opSoclePousser(), p3 = api.opSoclePousser();
     vrai('⛔ les trois appels rendent la MÊME promesse', p1 === p2 && p2 === p3);
     const [a, b, c] = await Promise.all([p1, p2, p3]);
+    /* ⛔ ET C'EST LE TRAFIC QU'ON MESURE, PAS L'IDENTITÉ DE LA PROMESSE. Retirer la garde ne
+       faisait tomber qu'UN contrôle, parce que le serveur classe en `noop` les corps
+       identiques : les trois pousses rendaient le même résultat et le banc n'y voyait rien.
+       Le dommage réel est le RÉSEAU — trois fois les lignes sur un téléphone en 4G, et trois
+       décompositions de 18 ms — et la course sur la borne, où la dernière écriture gagne. */
+    v('⛔ UN SEUL aller-retour est parti, pas trois', compte.combien('/api/op/pousser') - poussesAvant, 1);
     v('   et donc le même résultat', [a && a.envoyees, b && b.envoyees, c && c.envoyees], [2, 2, 2]);
     /* ⛔ ET LA GARDE SE RELÂCHE. Sans le `finally`, `_opEnVol` resterait figé sur une promesse
        morte et PLUS RIEN ne partirait jusqu'au rechargement — une panne pire que la course. */
