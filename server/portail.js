@@ -21,6 +21,14 @@
 const fs = require('fs'), path = require('path');
 
 const borne = (x, n) => String(x == null ? '' : x).slice(0, n);
+/* ⛔ UN DOSSIER EST LIBRE : IL NE DOIT PAS CHANGER LE TYPE DE CE QU'ON LUI DONNE. `borne`
+   passe tout par `String()` — utile pour un texte, faux pour le reste : un `createdAt` numérique
+   revenait en chaîne, et un `false` serait revenu en `'false'`, donc VRAI à la relecture. Le
+   nombre et le booléen traversent tels quels (JSON ne porte ni NaN ni Infinity, mais on le
+   vérifie quand même) ; tout le reste est un texte, et se borne. */
+const valeur = (x, n) => (typeof x === 'boolean') ? x
+  : (typeof x === 'number' && Number.isFinite(x)) ? x
+  : borne(x, n);
 const norm = (x) => String(x == null ? '' : x).trim().toLowerCase();
 
 function monterPortail(app, deps) {
@@ -61,9 +69,18 @@ function monterPortail(app, deps) {
      un fil sans plafond grossit jusqu'à ce que le fichier entier devienne illisible, et c'est
      alors TOUS les clients qui perdent leur conversation, pas un. On garde les 500 derniers
      messages — largement au-delà d'un échange commercial, et borné pour toujours. */
-  function ajouterMsg(mail, de, texte) {
+  /* ⛔ `sup` PORTE LE CODE D'ACTIVATION D'UN ESPACE, ET SEULE LA TOUR PEUT LE POSER.
+     `espace.html:1240` fait apparaître le bouton « 🚀 Activer mon espace » dès qu'un message
+     porte `access` — c'est la seule porte d'entrée d'un client dans OP GESTION. Le laisser
+     passer depuis le corps d'une requête CLIENT, ce serait laisser n'importe qui se fabriquer
+     ce bouton dans son propre fil. C'est la règle déjà payée sur `/api/clients/sync` : une
+     valeur du CORPS ne décide jamais d'un accès. Les deux appels clients n'ont donc que trois
+     arguments, et le quatrième n'existe que sur la route `admin`. */
+  function ajouterMsg(mail, de, texte, sup) {
     const f = reg.f[mail] || (reg.f[mail] = []);
-    f.push({ de: de === 'admin' ? 'admin' : 'client', t: borne(texte, MSG_MAX), ts: Date.now() });
+    const m = { de: de === 'admin' ? 'admin' : 'client', t: borne(texte, MSG_MAX), ts: Date.now() };
+    if (sup && sup.access) { m.access = borne(sup.access, 2000); m.accessName = borne(sup.accessName, 200); }
+    f.push(m);
     if (f.length > FIL_MAX) f.splice(0, f.length - FIL_MAX);
   }
 
@@ -108,9 +125,9 @@ function monterPortail(app, deps) {
       if (CHAMPS_SERVEUR.indexOf(k) >= 0) continue;
       if (poses++ > 60) break;                        // borne le NOMBRE de champs, pas que leur taille
       const val = b[k];
-      if (Array.isArray(val)) x[k] = val.slice(0, 40).map(y => (y && typeof y === 'object') ? y : borne(y, 400));
+      if (Array.isArray(val)) x[k] = val.slice(0, 40).map(y => (y && typeof y === 'object') ? y : valeur(y, 400));
       else if (val && typeof val === 'object') x[k] = val;   // un sous-objet (facturation) passe tel quel
-      else x[k] = borne(val, 600);
+      else x[k] = valeur(val, 600);
     }
     x.maj = Date.now();
     if (b.message) ajouterMsg(mail, 'client', b.message);
@@ -154,7 +171,7 @@ function monterPortail(app, deps) {
     const mail = norm((req.body || {}).email);
     const t = borne((req.body || {}).texte, MSG_MAX);
     if (!mail || !t.trim()) return res.status(400).json({ error: 'email_et_texte_requis' });
-    ajouterMsg(mail, 'admin', t);
+    ajouterMsg(mail, 'admin', t, { access: (req.body || {}).access, accessName: (req.body || {}).accessName });
     ecrire();
     res.json({ ok: true });
   });
@@ -167,7 +184,7 @@ function monterPortail(app, deps) {
     /* La Tour, elle, pose EXACTEMENT les champs que le client ne peut pas. */
     for (const k of CHAMPS_SERVEUR) {
       if (k === 'cree' || k === 'maj' || k === 'venuDe') continue;
-      if (b[k] !== undefined) x[k] = Array.isArray(b[k]) ? b[k].slice(0, 40).map(y => borne(y, 400)) : borne(b[k], 400);
+      if (b[k] !== undefined) x[k] = Array.isArray(b[k]) ? b[k].slice(0, 40).map(y => valeur(y, 400)) : valeur(b[k], 400);
     }
     x.maj = Date.now(); ecrire();
     res.json({ ok: true, dossier: dossierVue(mail) });

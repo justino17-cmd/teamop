@@ -1,0 +1,291 @@
+/* ⛔ CE QUE CE FICHIER GARDE — QUE `espace.html` ET LE SERVEUR SE PARLENT VRAIMENT.
+
+   C'est la règle cardinale de CLAUDE.md, et ce dépôt l'a payée trois fois le 20 septembre :
+   deux moitiés justes chacune de son côté, chacune avec ses bancs verts, et qui ne se parlaient
+   pas. `{lignes:[…]}` contre `b.enr` — 400, boucle quittée, INERTE EN SILENCE.
+
+   Ce banc EXTRAIT `portailMaison()` du VRAI `espace.html` — pas une copie, pas une imitation —
+   et le fait parler au VRAI `server/index.js` en HTTP sur 127.0.0.1. Un nom de champ qui change
+   d'un côté doit faire tomber ce banc.
+
+   ⛔ IL GARDE AUSSI CE QUI NE SE VOIT PAS :
+   · qu'un refus remonte avec son MOTIF — un mot de passe faux et un serveur éteint ne doivent
+     pas donner le même écran, c'est la panne `_mailboxes` de ce dépôt ;
+   · que l'écran d'administration MORT (voir `firestore.rules:59`) refuse clairement au lieu de
+     jeter une `TypeError` qui emporterait le reste de la page ;
+   · que l'interrupteur FERMÉ laisse la page exactement comme avant. */
+const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
+const { spawn } = require('child_process');
+
+const RACINE = path.join(__dirname, '..');
+if (!fs.existsSync(path.join(RACINE, 'server', 'node_modules'))) {
+  console.log('\n(sauté : server/node_modules absent)\n0 ✓  0 ✗'); process.exit(0);
+}
+
+let ok = 0, ko = 0;
+const v = (t, a, b) => { const bon = JSON.stringify(a) === JSON.stringify(b); bon ? ok++ : ko++;
+  console.log('  ' + (bon ? '✓' : '✗') + ' ' + t + (bon ? '' : '  → attendu ' + JSON.stringify(b) + ', reçu ' + JSON.stringify(a))); };
+const vrai = (t, c) => v(t, !!c, true);
+
+const PAGE = fs.readFileSync(path.join(RACINE, 'espace.html'), 'utf8');
+const MDP_ADMIN = 'mot-de-passe-du-banc-740';
+const sha = k => crypto.createHash('sha256').update(k).digest('hex');
+const dormir = ms => new Promise(r => setTimeout(r, ms));
+const BANC = fs.mkdtempSync(path.join(os.tmpdir(), 'espace-740-'));
+let enfant = null;
+
+/* ── L'EXTRACTION ─────────────────────────────────────────────────────────────────────────────
+   ⛔ ANCRÉE SUR LA FORME DU CODE, pas sur une phrase. Ce dépôt est très commenté : un motif qui
+   vise une chaîne tombe dans le COMMENTAIRE qui l'explique, vingt lignes plus haut. On borne
+   donc entre deux déclarations réelles. */
+function extraire() {
+  const i = PAGE.indexOf('const API_PORTAIL');
+  const j = PAGE.indexOf('const _pv = PORTAIL_SERVEUR');
+  if (i < 0 || j < 0 || j <= i) return null;
+  return PAGE.slice(i, j);
+}
+
+/* ── LE NAVIGATEUR, RÉDUIT À CE QUE L'ADAPTATEUR TOUCHE ───────────────────────────────────── */
+/* ⛔ `graines` EXISTE PARCE QU'UN RECHARGEMENT NE SE SIMULE PAS EN DEUX TEMPS. L'adaptateur
+   lit `localStorage` à SA CONSTRUCTION (`let jeton = localStorage.getItem(…)`), comme un vrai
+   navigateur qui rouvre la page avec le rangement déjà rempli. Poser le jeton APRÈS coup
+   fabriquait un adaptateur né sans jeton, et accusait la page de perdre la session. */
+function fabriquer(base, graines) {
+  const src = extraire();
+  if (!src) return null;
+  const rangement = new Map(Object.entries(graines || {}));
+  const bac = {
+    fetch: (u, o) => fetch(u, o),
+    crypto: globalThis.crypto,
+    TextEncoder,
+    console: { warn: (...a) => bac._avertis.push(a.join(' ')), log: () => {}, error: () => {} },
+    _avertis: [],
+    location: { hostname: '127.0.0.1' },
+    localStorage: {
+      getItem: (k) => (rangement.has(k) ? rangement.get(k) : null),
+      setItem: (k, x) => rangement.set(k, String(x)),
+      removeItem: (k) => rangement.delete(k),
+    },
+    setTimeout, clearTimeout,
+  };
+  /* On remplace l'adresse de base par celle du banc — c'est la SEULE retouche, et elle porte
+     sur une constante que la page calcule depuis `location`. Tout le reste est le vrai code. */
+  const code = src.replace(/const API_PORTAIL = [\s\S]*?;\n/, "const API_PORTAIL = " + JSON.stringify(base) + ";\n");
+  const f = new Function('fetch', 'crypto', 'TextEncoder', 'console', 'location', 'localStorage',
+    'setTimeout', 'clearTimeout', code + '\nreturn portailMaison();');
+  return { api: f(bac.fetch, bac.crypto, bac.TextEncoder, bac.console, bac.location, bac.localStorage, bac.setTimeout, bac.clearTimeout), bac };
+}
+
+async function monter() {
+  const dir = path.join(BANC, 'srv'), data = path.join(dir, 'data');
+  fs.mkdirSync(data, { recursive: true });
+  const cfgPath = path.join(dir, 'config.json');
+  const webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push'));
+  const vap = webpush.generateVAPIDKeys();
+  fs.writeFileSync(cfgPath, JSON.stringify({
+    vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc',
+    adminPassHash: sha(MDP_ADMIN), comptes: { actif: true },
+  }));
+  const port = await new Promise(res => {
+    const s = require('net').createServer();
+    s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); });
+  });
+  enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
+    env: Object.assign({}, process.env, { TEAMOP_CONFIG: cfgPath, TEAMOP_DATA: data, PORT: String(port) }),
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let journal = '';
+  enfant.stdout.on('data', d => { journal += d; });
+  enfant.stderr.on('data', d => { journal += d; });
+  const B = 'http://127.0.0.1:' + port;
+  let vivant = false;
+  for (let i = 0; i < 120 && !vivant; i++) { await dormir(100); try { vivant = (await fetch(B + '/health')).ok; } catch (e) {} }
+  return { B, vivant, data, journal: () => journal };
+}
+const arreter = async () => {
+  if (!enfant || enfant.exitCode !== null) return;
+  await new Promise(res => { enfant.once('exit', res); try { enfant.kill('SIGKILL'); } catch (e) {} res(); });
+};
+
+(async () => {
+  console.log('\n══ 1. L\'INTERRUPTEUR EST FERMÉ, ET LA PAGE N\'A PAS BOUGÉ ══\n');
+  {
+    /* ⛔ LE CONTRÔLE QUI PROTÈGE LES CLIENTS D'AUJOURD'HUI. Tant que `PORTAIL_SERVEUR` est faux,
+       `espace.html` doit se comporter EXACTEMENT comme avant : Firebase initialisé, `auth` et
+       `fs` venus de lui. Un interrupteur qu'on croit fermé et qui ne l'est pas, c'est un
+       portail muet pour tout le monde du jour au lendemain. */
+    vrai('⛔ PORTAIL_SERVEUR est FAUX dans le fichier servi', /const PORTAIL_SERVEUR\s*=\s*false\s*;/.test(PAGE));
+    vrai('   Firebase n\'est initialisé QUE si l\'adaptateur ne sert pas', /if\(!_pv\)\s*firebase\.initializeApp/.test(PAGE));
+    vrai('   et `auth`/`fs` basculent sur le même `_pv`', /const auth = _pv \? _pv\.auth : firebase\.auth\(\), fs = _pv \? _pv\.fs : firebase\.firestore\(\)/.test(PAGE));
+    /* ⛔ Les valeurs spéciales ne doivent plus référencer `firebase` ailleurs que dans la
+       définition de `FV` : sinon la page cherche `firebase` alors qu'il n'est pas initialisé. */
+    const sansCom = PAGE.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    v('⛔ une seule référence à firebase.firestore.FieldValue, celle de la définition',
+      (sansCom.match(/firebase\.firestore\.FieldValue/g) || []).length, 1);
+  }
+
+  console.log('\n══ 2. LA VRAIE FONCTION DE LA PAGE, EXTRAITE ══\n');
+  const S = await monter();
+  if (!S.vivant) { console.log('  ✗ serveur non démarré\n' + S.journal().slice(0, 600) + '\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); await arreter(); process.exit(1); }
+  const A = fabriquer(S.B);
+  vrai('⛔ `portailMaison` s\'extrait d\'espace.html', !!A && !!A.api && !!A.api.auth && !!A.api.fs);
+  if (!A) { console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); await arreter(); process.exit(1); }
+  const { auth, fs: base, FieldValue } = A.api;
+
+  console.log('\n══ 3. CRÉER UN COMPTE, DEPUIS LA VRAIE PAGE ══\n');
+  {
+    let vus = [];
+    auth.onAuthStateChanged(u => vus.push(u ? u.email : null));
+    await dormir(300);
+    v('   au départ, personne n\'est connecté', vus[vus.length - 1], null);
+    const cred = await auth.createUserWithEmailAndPassword('zoe@exemple.fr', 'un-mot-de-passe-solide');
+    v('   la création rend un utilisateur', cred.user.email, 'zoe@exemple.fr');
+    v('   et son identifiant est son adresse', cred.user.uid, 'zoe@exemple.fr');
+    await dormir(100);
+    v('⛔ et l\'écran est prévenu du changement d\'état', vus[vus.length - 1], 'zoe@exemple.fr');
+    v('   `currentUser` suit', auth.currentUser.email, 'zoe@exemple.fr');
+  }
+
+  console.log('\n══ 4. ⛔ UN REFUS REMONTE AVEC SON MOTIF ══\n');
+  {
+    /* ⛔ LA PAGE TRADUIT LES CODES (`authMsg`). Un refus sans code donnerait le même écran pour
+       un mot de passe faux et un serveur éteint — exactement la panne `_mailboxes`. */
+    let code = '';
+    try { await auth.signInWithEmailAndPassword('zoe@exemple.fr', 'pas-le-bon'); }
+    catch (e) { code = e.code || ''; }
+    v('⛔ un mot de passe faux porte un code que la page sait traduire', code, 'auth/wrong-password');
+    let code2 = '';
+    try { await auth.createUserWithEmailAndPassword('zoe@exemple.fr', 'encore-autre-chose'); }
+    catch (e) { code2 = e.code || ''; }
+    v('⛔ une adresse déjà prise aussi', code2, 'auth/email-already-in-use');
+  }
+
+  console.log('\n══ 5. LE DOSSIER, LE FIL, LES NOUVEAUTÉS ══\n');
+  {
+    await auth.signInWithEmailAndPassword('zoe@exemple.fr', 'un-mot-de-passe-solide');
+    const uid = auth.currentUser.uid;
+    await base.collection('teamop_requests').doc(uid).set({
+      prenom: 'Zoé', nom: 'Bernard', company: 'Bernard Hygiène', app: 'elan', users: 3,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    const d = await base.collection('teamop_requests').doc(uid).get();
+    vrai('   le dossier existe', d.exists);
+    v('   avec la société', d.data().company, 'Bernard Hygiène');
+    vrai('⛔ et `serverTimestamp()` a donné une vraie date', typeof d.data().createdAt === 'number' && d.data().createdAt > 0);
+    /* merge:true doit garder ce qui n'est pas dans le patch — c'est ce que la page attend
+       partout (facturation, plan, documents posés à des moments différents). */
+    await base.collection('teamop_requests').doc(uid).set({ tel: '0600000000' }, { merge: true });
+    const d2 = await base.collection('teamop_requests').doc(uid).get();
+    v('⛔ merge:true garde la société', d2.data().company, 'Bernard Hygiène');
+    v('   et ajoute le téléphone', d2.data().tel, '0600000000');
+    /* arrayUnion : la page s'en sert pour `promoUsed` et `docs`. */
+    await base.collection('teamop_requests').doc(uid).set({ docs: FieldValue.arrayUnion('contrat.pdf') }, { merge: true });
+    await base.collection('teamop_requests').doc(uid).set({ docs: FieldValue.arrayUnion('contrat.pdf', 'devis.pdf') }, { merge: true });
+    const d3 = await base.collection('teamop_requests').doc(uid).get();
+    /* ⛔ `docs` est un champ du SERVEUR : le client ne doit PAS pouvoir se l'attribuer. Ce
+       contrôle dit donc l'inverse de ce qu'on croirait — et c'est la garde qui compte. */
+    v('⛔ `docs` appartient au serveur, le client ne le pose pas', d3.data().docs, undefined);
+
+    /* ⛔ LE FIL SE LIT PAR LES MÊMES MÉTHODES QUE `listenMsgs()` APPELLE, PAS PAR UN `fetch`.
+       Ce contrôle n'existait pas au premier jet — j'avais laissé un `fetch` direct, qui
+       court-circuitait justement la pièce à éprouver. Mesuré le 20 septembre 2026 :
+       l'adaptateur n'exposait que `add`, donc `.orderBy('ts','asc')` valait `undefined` et
+       `listenMsgs()` (espace.html) jetait une `TypeError` au premier affichage — TOUT l'écran
+       « Messages » tombait. Les deux moitiés étaient justes ; elles ne se parlaient pas. */
+    const fil = base.collection('teamop_threads').doc(uid).collection('msgs');
+    await fil.add({ from: 'client', text: 'Bonjour !' });
+    vrai('⛔ le fil porte `orderBy` — `listenMsgs` l\'appelle', typeof fil.orderBy === 'function');
+    vrai('⛔ le fil porte `onSnapshot` — `listenMsgs` l\'appelle', typeof fil.onSnapshot === 'function');
+    const qs = await fil.orderBy('ts', 'asc').get();
+    v('   le message envoyé se relit', qs.size, 1);
+    const prem = qs.docs[0].data();
+    v('   avec le nom de champ que la page lit (`text`)', prem.text, 'Bonjour !');
+    v('   et celui qu\'elle lit pour l\'émetteur (`from`)', prem.from, 'client');
+    vrai('   et une date', typeof prem.ts === 'number' && prem.ts > 0);
+    /* `onSnapshot` doit TIRER TOUT DE SUITE : sans premier battement, l'écran reste sur
+       « Chargement… » et a l'air en panne. On mesure le tir, puis on coupe la sonde. */
+    const vuFil = await new Promise((res2) => {
+      let stop = null; const t = setTimeout(() => { if (stop) stop(); res2(null); }, 4000);
+      stop = fil.orderBy('ts', 'asc').onSnapshot((r) => { clearTimeout(t); if (stop) stop(); res2(r); });
+    });
+    vrai('⛔ `onSnapshot` tire immédiatement, sans attendre un battement', !!vuFil && vuFil.size === 1);
+
+    /* ⛔ `access` PORTE LE CODE D'ACTIVATION DE L'ESPACE. `espace.html` ne montre le bouton
+       « 🚀 Activer mon espace » que si le message en porte un : c'est la seule porte d'entrée
+       d'un nouveau client dans OP GESTION. Le laisser tomber murerait cette entrée. */
+    const tour = await (await fetch(S.B + '/api/monitor/login', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom: 'Patron', pass: MDP_ADMIN }) })).json();
+    vrai('   la Tour se connecte', /^[a-f0-9]{48}$/.test(String(tour.token || '')));
+    const rAcc = await fetch(S.B + '/api/monitor/portail/message', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour.token },
+      body: JSON.stringify({ email: 'zoe@exemple.fr', texte: 'Votre espace est prêt',
+        access: 'CODE-ABCXYZ', accessName: 'Bernard Hygiène' }) });
+    v('   elle poste un message avec un code', rAcc.status, 200);
+    const avecCode = (await fil.orderBy('ts', 'asc').get()).docs.map(d => d.data()).filter(m => m.access);
+    v('⛔ le code d\'activation traverse jusqu\'à la page', (avecCode[0] || {}).access, 'CODE-ABCXYZ');
+    v('   et le nom de l\'espace avec lui', (avecCode[0] || {}).accessName, 'Bernard Hygiène');
+
+    /* ⛔ ET UN CLIENT NE PEUT PAS SE FABRIQUER CE BOUTON. On forge la requête à la main —
+       l'adaptateur n'envoie que `texte`, mais un adaptateur n'est pas une garde : c'est le
+       SERVEUR qui doit refuser. Même règle que `/api/clients/sync` : une valeur du CORPS ne
+       décide jamais d'un accès. */
+    const jetonClient = A.bac.localStorage.getItem('teamop_portail_jeton');
+    const rFaux = await fetch(S.B + '/api/portail/message', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + jetonClient },
+      body: JSON.stringify({ texte: 'je me fabrique un accès', access: 'CODE-VOLE', accessName: 'moi' }) });
+    v('   le client peut écrire dans son fil', rFaux.status, 200);
+    const voles = (await fil.orderBy('ts', 'asc').get()).docs.map(d => d.data()).filter(m => m.access === 'CODE-VOLE');
+    v('⛔ mais SON `access` est jeté — le corps d\'une requête ne donne jamais un accès', voles.length, 0);
+
+    const news = await base.collection('teamop_news').orderBy('ts', 'desc').limit(30).get();
+    v('   la liste des nouveautés répond', news.empty, true);
+    let codeNews = '';
+    try { await base.collection('teamop_news').add({ title: 'x' }); } catch (e) { codeNews = e.code || ''; }
+    v('⛔ publier une nouveauté refuse CLAIREMENT (c\'était muet chez Firestore)', codeNews, 'portail/tour-seule');
+  }
+
+  console.log('\n══ 6. ⛔ L\'ÉCRAN D\'ADMINISTRATION MORT REFUSE SANS TOUT EMPORTER ══\n');
+  {
+    /* ⛔ Il est mort depuis le 18 septembre (`firestore.rules:59` — `allow read: if cestMoi`).
+       On ne le porte pas. Mais il ne doit pas non plus jeter une `TypeError` qui emporterait le
+       reste de l'écran : il rend une liste vide ET le dit dans la console. Un refus muet est ce
+       qui a permis à ce défaut de vivre deux jours sans que personne le voie. */
+    let jete = false, recu = null;
+    try {
+      const q = base.collection('teamop_requests').orderBy('createdAt', 'desc');
+      const stop = q.onSnapshot(qs => { recu = qs; });
+      stop();
+    } catch (e) { jete = true; }
+    vrai('⛔ il ne jette PAS', !jete);
+    vrai('   il rend une liste vide', recu && recu.empty === true && recu.size === 0);
+    vrai('⛔ et il le DIT dans la console, en nommant la Tour', A.bac._avertis.some(x => /Tour de contr/.test(x)));
+  }
+
+  console.log('\n══ 7. LA SESSION SURVIT À UN RECHARGEMENT ══\n');
+  {
+    /* Le jeton vit dans `localStorage` : rouvrir la page ne doit pas redemander le mot de
+       passe. On refabrique un adaptateur sur le MÊME rangement pour le prouver. */
+    const jeton = A.bac.localStorage.getItem('teamop_portail_jeton');
+    vrai('   un jeton est rangé', /^[a-f0-9]{64}$/.test(String(jeton)));
+    /* Un rechargement, c'est un adaptateur NEUF sur un rangement DÉJÀ REMPLI — pas un
+       adaptateur vide qu'on garnit ensuite. */
+    const A2 = fabriquer(S.B, { teamop_portail_jeton: jeton });
+    let vu = 'pas-appelé';
+    A2.api.auth.onAuthStateChanged(u => { vu = u ? u.email : null; });
+    await dormir(400);
+    v('⛔ après « rechargement », la session est retrouvée', vu, 'zoe@exemple.fr');
+    await A2.api.auth.signOut();
+    v('   et se déconnecter la coupe', A2.bac.localStorage.getItem('teamop_portail_jeton'), null);
+  }
+
+  await arreter();
+  try { fs.rmSync(BANC, { recursive: true, force: true }); } catch (e) {}
+  console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
+  process.exit(ko ? 1 : 0);
+})().catch(async (e) => {
+  console.error('\n✗ le banc est tombé : ' + (e && e.stack || e));
+  await arreter();
+  console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗');
+  process.exit(1);
+});
