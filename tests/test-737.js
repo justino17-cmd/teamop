@@ -319,6 +319,32 @@ async function jusqua(cond, ms) {
     vrai('   ⚠ et on cherche au bon endroit : le nom de collection, lui, s\'y trouve', brut.indexOf('messages') >= 0);
   }
 
+  console.log('\n══ 10. L\'INDEX PAR COLLECTION — IL NE SE VOIT SUR AUCUN ÉCRAN ══\n');
+  {
+    /* ⛔ POURQUOI UN CONTRÔLE POUR ÇA. Sans index, chaque écouteur rebalayait le miroir ENTIER
+       à chaque message reçu. Mesuré sur le vrai fichier avec 15 écouteurs :
+       3 600 documents → 17 ms, 12 000 → 28 ms, 36 000 → 72 ms, 120 000 → 205 ms. Avec l'index :
+       12, 9, 10 et 6 ms — plat au lieu de linéaire. 36 000, c'est une entreprise qui discute
+       depuis deux ans.
+       ⚠ Mais un index qui FUIT ne se voit nulle part : les requêtes restent justes (on relit
+       `miroir` derrière), et seule la mémoire monte, lentement, sur un téléphone de terrain.
+       L'invariant se contrôle donc ici, mécaniquement. */
+    let indexes = 0;
+    for (const s of A._parColl.values()) indexes += s.size;
+    v('⛔ l\'index compte exactement autant de clés que le miroir', indexes, A._miroir.size);
+    vrai('   et il est peuplé — sinon l\'égalité ci-dessus serait vraie à zéro', indexes > 10);
+
+    const avantColls = A._parColl.size;
+    await A.collection('op_users').doc('ephemere').collection('jetable').doc('x').set({ a: 1 });
+    v('   une collection neuve apparaît dans l\'index', A._parColl.size, avantColls + 1);
+    await A.collection('op_users').doc('ephemere').collection('jetable').doc('x').delete();
+    v('⛔ et elle en DISPARAÎT quand son dernier document part — sinon l\'index enfle sans fin',
+      A._parColl.size, avantColls);
+    let apres = 0;
+    for (const s of A._parColl.values()) apres += s.size;
+    v('   l\'invariant tient encore après la suppression', apres, A._miroir.size);
+  }
+
   A.arreter(); B.arreter();
   await arreter();
   try { fs.rmSync(BANC, { recursive: true, force: true }); } catch (e) {}

@@ -165,11 +165,45 @@
     const appId = String(conf.appId || '');
     const alerter = typeof conf.alerter === 'function' ? conf.alerter : function () {};
 
-    const miroir = new Map();          // "coll\0id" -> { m, sup, r }
-    const ecouteurs = new Set();       // { filtre(c), tirer() }
-    let seq = 0, vivant = false, enVol = null;
+    const miroir = new Map();          // "genre\0chemin/complet/id" -> { m, r }
+    /* ⛔ L'INDEX PAR COLLECTION — MESURÉ, PAS PRÉVENTIF. Sans lui, chaque écouteur rebalayait le
+       miroir ENTIER à chaque message reçu, et `prevenir()` les réveillait tous. Mesuré sur le
+       vrai fichier, 15 écouteurs (une session OP MESSAGES ordinaire) :
 
-    const prevenir = () => { for (const e of Array.from(ecouteurs)) { try { e.tirer(); } catch (x) {} } };
+           3 600 documents →  17 ms par message reçu   ✅
+          12 000 documents →  28 ms                     ✅
+          36 000 documents →  72 ms                     ⛔ l'écran se fige
+         120 000 documents → 205 ms                     ⛔
+
+       36 000, c'est une entreprise qui discute depuis deux ans. Le coût était LINÉAIRE en
+       taille de base pour un travail qui ne dépend que du canal ouvert — exactement la faute
+       que `/api/op/flux` a déjà payée côté serveur (`etat()` qui rehache tout là où `rang()`
+       lit un entier). Avec l'index, une requête ne voit que les documents de SA collection, et
+       un écouteur ne se réveille que si SA collection a bougé. */
+    const parColl = new Map();         // "chemin/de/collection" -> Set<clé du miroir>
+    const ecouteurs = new Set();       // { coll, tirer() }
+    let seq = 0, vivant = false;
+
+    const collDe = (plein) => plein.slice(0, plein.lastIndexOf('/'));
+    function poser(k, v) {
+      const c = collDe(k.slice(k.indexOf('\u0000') + 1));
+      let s = parColl.get(c); if (!s) { s = new Set(); parColl.set(c, s); }
+      s.add(k); miroir.set(k, v); return c;
+    }
+    function oter(k) {
+      const c = collDe(k.slice(k.indexOf('\u0000') + 1));
+      const s = parColl.get(c);
+      if (s) { s.delete(k); if (!s.size) parColl.delete(c); }
+      miroir.delete(k); return c;
+    }
+    /* `touchees` absent = « on ne sait pas », donc on réveille tout le monde. Un écouteur qui
+       ne se réveille pas est un écran qui ment ; en cas de doute on paie le balayage. */
+    const prevenir = (touchees) => {
+      for (const e of Array.from(ecouteurs)) {
+        if (touchees && !touchees.has(e.coll)) continue;
+        try { e.tirer(); } catch (x) {}
+      }
+    };
 
     async function appel(chemin, opts) {
       const o = Object.assign({ headers: {} }, opts || {});
@@ -188,14 +222,14 @@
       for (let tour = 0; tour < 500; tour++) {
         const r = await appel('/api/op/depuis?seq=' + seq);
         if (r.code !== 200 || !r.j) { alerter('lecture refusée', r.code); return false; }
+        const touchees = new Set();
         for (const l of (r.j.enr || [])) {
           const k = CLE(l.c, l.id);
-          if (l.sup) miroir.delete(k);
-          else miroir.set(k, { m: l.m || 0, r: l.r });
+          touchees.add(l.sup ? oter(k) : poser(k, { m: l.m || 0, r: l.r }));
           if (l.s > seq) seq = l.s;
         }
         if (typeof r.j.seq === 'number' && r.j.seq > seq) seq = r.j.seq;
-        if (!r.j.tronquee) { prevenir(); return true; }
+        if (!r.j.tronquee) { prevenir(touchees); return true; }
       }
       alerter('rattrapage interminable');
       return false;
@@ -230,8 +264,7 @@
       const k = CLE(c, cle);
       const avant = miroir.has(k) ? miroir.get(k) : null;
       const m = Date.now();
-      if (sup) miroir.delete(k); else miroir.set(k, { m: m, r: corps });
-      prevenir();
+      prevenir(new Set([sup ? oter(k) : poser(k, { m: m, r: corps })]));
 
       const ligne = sup ? { c: c, id: cle, m: m, sup: m } : { c: c, id: cle, m: m, r: corps, e: empreinte(corps) };
       let r;
@@ -242,9 +275,9 @@
       if (r.code !== 200 || refus.length) {
         const x = refus[0] || {};
         /* Le serveur renvoie SA version avec le refus — c'est elle qui fait foi. */
-        if (x.serveur && x.serveur.r !== undefined && x.serveur.r !== null) miroir.set(k, { m: x.serveur.m || 0, r: x.serveur.r });
-        else if (avant) miroir.set(k, avant); else miroir.delete(k);
-        prevenir();
+        if (x.serveur && x.serveur.r !== undefined && x.serveur.r !== null) poser(k, { m: x.serveur.m || 0, r: x.serveur.r });
+        else if (avant) poser(k, avant); else oter(k);
+        prevenir(new Set([collDe(cle)]));
         alerter('écriture refusée', x.motif || r.code);
         const err = new Error('écriture refusée : ' + (x.motif || r.code));
         err.motif = x.motif || String(r.code);
@@ -283,14 +316,13 @@
           return ecrire(c, id, resoudre(e.r, data, Date.now()), false);
         },
         delete: async () => ecrire(c, id, null, true),
-        onSnapshot: (cb, onErr) => inscrire(
-          (cc) => cc === c,
+        onSnapshot: (cb, onErr) => inscrire(c,
           () => { try { cb(instantaneDoc(c, id)); } catch (e) { if (onErr) onErr(e); } }),
       };
     }
 
-    function inscrire(filtre, tirer) {
-      const e = { filtre: filtre, tirer: tirer };
+    function inscrire(coll, tirer) {
+      const e = { coll: coll, tirer: tirer };
       ecouteurs.add(e);
       try { tirer(); } catch (x) {}            // Firestore tire tout de suite avec l'état courant
       return () => { ecouteurs.delete(e); };
@@ -305,7 +337,11 @@
       const genre = c.split('/').pop(), pre = c + '/';
       const lire = () => {
         let out = [];
-        for (const [k, v] of miroir) {
+        /* L'index rend les clés de CETTE collection, et d'elle seule. Les deux filtres
+           ci-dessous restent : ils ne coûtent plus rien et ils gardent la propriété qui
+           compte, même si l'index se trompait un jour. */
+        for (const k of (parColl.get(c) || [])) {
+          const v = miroir.get(k); if (!v) continue;
           const i = k.indexOf('\u0000');
           if (k.slice(0, i) !== genre) continue;
           const plein = k.slice(i + 1);
@@ -345,7 +381,7 @@
         limit: (n) => requete(c, conds, tri, { n: n, fin: false }),
         limitToLast: (n) => requete(c, conds, tri, { n: n, fin: true }),
         get: async () => lire(),
-        onSnapshot: (cb, onErr) => inscrire((cc) => cc === c,
+        onSnapshot: (cb, onErr) => inscrire(c,
           () => { try { cb(lire()); } catch (e) { if (onErr) onErr(e); } }),
       };
       return self;
@@ -372,7 +408,10 @@
       seq: () => seq,
       taille: () => miroir.size,
       jetonPoser: (j) => { jeton = String(j || ''); },
-      _miroir: miroir,
+      /* Pour les bancs et les sondes : écrire dans `_miroir` en direct court-circuite l'index
+         par collection, donc les requêtes ne rendent plus rien — et une sonde de performance
+         annonce alors 0,00 ms parce qu'elle ne fait rien. C'est arrivé à la première mesure. */
+      _miroir: miroir, _parColl: parColl, _poser: poser,
     };
   }
 
