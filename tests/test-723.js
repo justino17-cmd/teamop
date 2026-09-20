@@ -818,6 +818,14 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
      entreprise dont personne n'a décidé la bascule, ce serait lui donner une base peut-être
      incomplète à la place de la sienne. */
   v('⛔ un espace INCONNU aussi', S.entrepriseEtat('ent-jamais-vu-lecture').lecture, 'firestore');
+  /* ⚠️ UNE MUTATION QUI NE CASSE RIEN, ET QU'ON GARDE QUAND MÊME — dite ici pour qu'on ne la
+     « simplifie » pas un jour en croyant l'avoir éprouvée. Inverser le sens de la comparaison
+     (« socle sauf si firestore ») ne fait tomber AUCUN banc, parce qu'elle est équivalente en
+     l'état : `ALTER TABLE … NOT NULL DEFAULT 'firestore'` remplit les lignes existantes, et
+     `entrepriseLecture` n'écrit que deux valeurs. Le troisième cas — une colonne portant autre
+     chose — est donc inatteignable aujourd'hui. C'est une seconde ceinture, du même bois que le
+     `WHERE supprime_le = 0` de `fichiersReferences`, et elle le reste : le jour où quelqu'un
+     écrira dans cette colonne par un autre chemin, c'est elle qui décidera du bon défaut. */
   v('la bascule rend l\'état OBTENU', S.entrepriseLecture(TD, 'socle'), { connue: true, lecture: 'socle' });
   v('   et elle se relit', S.entrepriseEtat(TD).lecture, 'socle');
   /* `source` décide de la source de vérité d'une entreprise : seule la chaîne EXACTE bascule. */

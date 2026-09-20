@@ -53,10 +53,29 @@
    Une mutation qui ne casse rien ne dit pas « le code est bon ». Elle dit « qu'est-ce que le
    banc ne joue pas ? ».
 
+   ⛔ L'ÉTAPE 5 Y A AJOUTÉ SA PROPRE TABLE DE MUTATIONS — mesurée le 20 septembre 2026,
+   référence 94 ✓ · 0 ✗ :
+
+     | défaut remis                                          | ce que le banc rend |
+     |-------------------------------------------------------|---------------------|
+     | la lecture ignore le drapeau `lecture` du serveur     | **86 ✓ · 3 ✗**      |
+     | le curseur saute au rang le plus haut (`seq`)         | **91 ✓ · 3 ✗**      |
+     | `cnxAppareils` rend une liste vide au lieu de `null`  | **92 ✓ · 2 ✗**      |
+     | `liste_ts` repart en `push` aveugle                   | **87 ✓ · 2 ✗**      |
+     | la garde de date saute (le serveur écrase toujours)   | **85 ✓ · 1 ✗**      |
+     | `source` lu en vérité JavaScript                      | **82 ✓ · 4 ✗**      |
+
+   ⚠️ DEUX MUTATIONS N'ONT RIEN CASSÉ ICI, ET C'ÉTAIT LA BONNE INFORMATION. Inverser le défaut
+   de `lecture`, et retirer l'exigence de couverture quotidienne de la condition (d) : ce banc
+   parle au serveur en HTTP, donc son espace existe toujours et sa colonne est toujours
+   renseignée — et son espace porte déjà un verdict en échec, qui fait tomber (d) de toute
+   façon. Les deux sont des FONCTIONS PURES : elles sont gardées dans `test-723`, qui les
+   exerce directement. Un banc de câblage ne peut pas fabriquer un espace inconnu.
+
    ⚠️ CE QU'IL NE COUVRE PAS, et qu'il faut savoir avant de s'y fier : il ne joue ni le
    branchement dans `_ecriture.then` (c'est du DOM et une promesse Firestore — `test-733` lit
    le texte), ni le balayage de `espaceQuitter()` (idem), ni la minuterie du contrôle de nuit,
-   ni la pagination par lots (une base de banc tient dans un seul lot de 400). */
+   ni le flux long (`opSocleFlux` est une boucle infinie : on ne l'appelle pas depuis un banc). */
 
 const fs = require('fs'), os = require('os'), net = require('net');
 const path = require('path'), crypto = require('crypto');

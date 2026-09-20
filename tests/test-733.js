@@ -211,5 +211,37 @@ console.log('\n⛔ Un enregistrement amputé ne part pas, et on sait lequel');
   vrai('⛔ et le MÊME syncSortirPieces', memeQue('function syncSortirPieces('));
 }
 
+/* ══ ÉTAPE 5 — L'ORDRE DE `opSocleLire`, ET IL SE PAIE DANS LE MAUVAIS SENS ══════════════════
+   ⛔ MESURÉ AU NAVIGATEUR LE 20 SEPTEMBRE 2026, puis corrigé : avec `save()` AVANT
+   `ombreRelever()`, les 120 fiches simplement LUES repartaient toutes avec un `_m` NEUF, et
+   l'appareil annonçait qu'il repousserait 2 908 lignes. `save()` appelle `estampiller()`, qui
+   date de maintenant tout enregistrement absent de l'ombre ; or l'ombre date d'AVANT la
+   lecture. Un appareil qui ne fait que LIRE s'attribuait la base entière et gagnait toutes les
+   fusions contre ses collègues — `boxAutoNouveautes` à l'échelle de l'entreprise.
+   Après correction, même sonde : `avecUnMNeuf: 0`, et les collections identiques entre les
+   deux appareils passent de 2 sur 12 à 9 sur 12 (les trois restantes sont un artefact de
+   sonde : `migrate()` ajoute `typeClient` aux fiches que l'appareil témoin avait construites
+   à la main, ce qui a été mesuré champ par champ).
+
+   ⚠️ C'est un ORDRE, donc ça se lit dans le texte du fichier livré — on ne peut pas l'exécuter
+   ici. La preuve fonctionnelle est la sonde ci-dessus ; ce contrôle empêche la régression. */
+{
+  console.log('\n⛔ Étape 5 — `ombreRelever()` passe AVANT `save()` dans la lecture');
+  const corps = bloc('async function opSocleLireVraiment(');
+  vrai('la fonction de lecture est bien dans le fichier livré', corps.length > 200);
+  /* On vise le CODE, pas le commentaire qui l'explique — ce dépôt a payé trois fois pour
+     l'inverse, dans trois fichiers différents, le même soir. */
+  const net = corps.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const iOmbre = net.indexOf('ombreRelever()');
+  const iSave = net.indexOf('save()');
+  vrai('⛔ elle relève l\'ombre', iOmbre > 0);
+  vrai('⛔ et elle enregistre', iSave > 0);
+  vrai('⛔⛔ et l\'ombre est relevée AVANT l\'enregistrement', iOmbre > 0 && iSave > 0 && iOmbre < iSave);
+  /* `migrate` doit passer avant les deux : l'ombre doit figer l'état NORMALISÉ, sinon le
+     premier `save()` re-tamponne tout ce que `migrate` vient de compléter. */
+  const iMig = net.indexOf('migrate(db)');
+  vrai('⛔ et `migrate` avant l\'ombre, sinon il re-tamponne ce qu\'il complète', iMig > 0 && iMig < iOmbre);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exitCode = ko ? 1 : 0;

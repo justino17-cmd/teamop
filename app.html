@@ -8522,8 +8522,21 @@ async function opSocleLireVraiment() {
        règle « un refus ne se montre pas tout seul », prise par l'autre bout. */
     if (applique) {
       try { if (typeof migrate === 'function') migrate(db); } catch (e) {}
-      try { save(); } catch (e) {}
+      /* ⛔⛔ `ombreRelever()` AVANT `save()`, ET L'ORDRE INVERSE A ÉTÉ MESURÉ : 120 fiches
+         simplement LUES repartaient avec un `_m` NEUF, et l'appareil repoussait 2 908 lignes.
+         `save()` appelle `estampiller()`, qui date de MAINTENANT tout enregistrement absent de
+         l'ombre. Or l'ombre date d'avant la lecture : tout ce qui vient d'arriver y est absent,
+         donc tout est vu comme une modification locale. Un appareil qui ne fait que LIRE
+         s'attribuait ainsi la base entière et gagnait toutes les fusions contre ses collègues.
+         C'est `boxAutoNouveautes` à l'échelle de l'entreprise — « ouvrir un écran n'écrit pas »,
+         appliqué à la lecture du socle. Et CLAUDE.md le dit déjà par l'autre bout : un `_m` ne
+         tient que là où `ombreRelever()` passe JUSTE APRÈS, au chargement et à l'import. Lire
+         le socle EST un import.
+         ⚠️ Ce que ça coûte, et qu'il faut savoir : une saisie locale faite et NON ENREGISTRÉE
+         dans la fenêtre exacte d'une lecture perd son tampon. L'application enregistre à chaque
+         geste, donc la fenêtre est étroite — et le risque inverse, lui, était certain. */
       try { if (typeof ombreRelever === 'function') ombreRelever(); } catch (e) {}
+      try { save(); } catch (e) {}
       try { if (typeof render === 'function') render(); } catch (e) {}
     }
     if (illisibles) { try { console.warn('socle : ' + illisibles + ' ligne(s) illisible(s) à la lecture'); } catch (e) {} }
