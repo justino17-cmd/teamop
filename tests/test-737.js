@@ -152,6 +152,33 @@ async function jusqua(cond, ms) {
       .collection('messages').doc('m3').set({ txt: 'ailleurs', ts: 1500 });
     const q2 = await ch.collection('messages').get();
     v('⛔ un message d\'un autre canal ne fuit pas dans celui-ci', q2.size, 2);
+
+    /* ⛔⛔ LES DEUX CONTRÔLES QUI SUIVENT EXISTENT PARCE QUE LA MUTATION N'A RIEN CASSÉ.
+       Retirer le filtre de PRÉFIXE laissait 48 ✓ 0 ✗ ; retirer celui de PROFONDEUR aussi. Les
+       deux gardes se couvraient l'une l'autre sur le jeu d'essai d'au-dessus, où les chemins
+       fautifs ont par hasard la même longueur — donc un reste VIDE, que l'autre garde attrape.
+       C'est la leçon d'`instantanerVers` dans CLAUDE.md, dans les deux sens : une mutation qui
+       ne casse rien peut dire qu'une autre garde la neutralise, ET que le banc ne joue pas le
+       cas. Ici c'était les deux. */
+
+    /* ⛔ CAS 1 — UNE AUTRE ENTREPRISE. Même genre, même longueur de chemin, même nom de canal :
+       seul le PRÉFIXE les sépare, et le reste est propre (`mQ`, sans barre oblique) donc la
+       garde de profondeur ne peut pas rattraper. Ce n'est pas un raffinement : c'est la
+       conversation d'une entreprise qui apparaîtrait dans l'écran d'une autre. */
+    await A.collection('op_companies').doc('c2').collection('channels').doc('general')
+      .collection('messages').doc('mQ').set({ txt: 'chez le voisin', ts: 1 });
+    const q3 = await ch.collection('messages').get();
+    v('⛔⛔ le canal du MÊME NOM d\'une AUTRE entreprise ne fuit pas ici', q3.size, 2);
+    vrai('   et son message n\'est nulle part dans la liste', !q3.docs.some(d => d.id === 'mQ'));
+
+    /* ⛔ CAS 2 — UNE SOUS-COLLECTION DU MÊME GENRE. Le préfixe correspond parfaitement : seule
+       la PROFONDEUR distingue une réponse rangée sous un message du message lui-même. Sans
+       cette garde, une conversation afficherait ses propres réponses comme des messages de
+       premier niveau, mélangées aux vrais. */
+    await ch.collection('messages').doc('m1').collection('messages').doc('r1').set({ txt: 'une réponse', ts: 1100 });
+    const q4 = await ch.collection('messages').get();
+    v('⛔⛔ une sous-collection du même genre ne remonte pas d\'un cran', q4.size, 2);
+    v('   et elle reste lisible là où elle est', (await ch.collection('messages').doc('m1').collection('messages').get()).size, 1);
   }
 
   console.log('\n══ 4. LES REQUÊTES QUE `messages.html` UTILISE VRAIMENT ══\n');
