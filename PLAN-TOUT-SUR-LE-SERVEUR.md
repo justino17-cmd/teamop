@@ -98,6 +98,58 @@ suppression. Aujourd'hui c'est tenu sans rien faire — le document Firestore re
 il faudra **l'exécuter** : une horloge de rétention par entreprise, un courriel automatique, un
 effacement. Rien de tel n'est écrit nulle part.
 
+## 4 bis. LA SECONDE PISTE : LE SITE LUI-MÊME
+
+> **Justin, dans la foulée :** « même le site et tout, je veux tout sur le serveur. Tout ce
+> qu'on a fait sur Firebase je le veux sur le serveur. »
+
+C'est une piste **indépendante** d'A→F : elle ne touche pas aux données, seulement à QUI SERT
+LES FICHIERS. Elle peut donc se faire avant, pendant ou après, et elle a son propre retour
+arrière (une ligne de DNS).
+
+**Ce qui est servi aujourd'hui, mesuré :** 27 pages HTML, **9,6 Mo de HTML**, 15 Mo en tout
+(icônes comprises). `teamop.fr` résout vers `185.199.108→111.153` — les quatre adresses
+anycast du CDN GitHub Pages. `api.teamop.fr` résout vers `217.154.6.139`, le VPS.
+
+### G — servir le site depuis le VPS
+
+1. nginx sert `/opt/teamop/repo` en statique (il est déjà devant l'API) ;
+2. certificat Let's Encrypt pour `teamop.fr` et `www.teamop.fr` — **obtenu et vérifié AVANT
+   de toucher au DNS**, sinon le site est en erreur de certificat entre les deux ;
+3. le déploiement change de nature : aujourd'hui `git push main` → GitHub Pages sert. Demain
+   le VPS tire. `deploiement.yml` le fait déjà pour `server/` — on étend au reste ;
+4. basculer le DNS, **TTL abaissé la veille** pour pouvoir revenir en minutes ;
+5. `.github/workflows/` surveille le site : à re-pointer.
+
+### ✅ CE QU'ON GAGNE, ET CE N'EST PAS RIEN
+
+**La même origine pour les pages et l'API.** Aujourd'hui `teamop.fr` appelle `api.teamop.fr` :
+c'est du cross-origin, donc du CORS, donc la requête préalable — et **le piège documenté dans
+CLAUDE.md disparaît avec** : `Access-Control-Allow-Headers` ne liste que quatre en-têtes, un
+en-tête maison est refusé **par le navigateur**, ce que `curl` ne peut pas voir. Ce piège a
+coûté une des trois pannes de couture du 20 septembre. Même origine, plus de CORS, plus de
+piège.
+
+### ⛔ CE QU'ON PERD, ET IL FAUT LE DIRE AVANT
+
+**Aujourd'hui, si le VPS tombe :** le site charge quand même (CDN GitHub, quatre adresses
+anycast, exploité par Microsoft), `app.html` charge, et **il fonctionne hors ligne** grâce au
+service worker. Les techniciens d'ELAN continuent de travailler ; seuls la synchro, le courrier
+et les sauvegardes s'arrêtent.
+
+**Après la bascule, si le VPS tombe :** `teamop.fr` ne rend plus rien du tout. Un appareil
+déjà installé survit — le service worker a la page en cache, c'est la PWA qui sauve la
+mise — mais **un appareil neuf, un cache vidé, un nouveau technicien : rien.** Et plus de
+Tour, donc plus de moyen de regarder ce qui se passe.
+
+⚠️ Second point, moins grave mais réel : un CDN mondial sert 9,6 Mo plus vite qu'une machine
+unique dans un seul centre de données. Sur un téléphone de terrain en 4G loin du VPS, la
+première ouverture sera plus lente. Mesurable, donc à mesurer — pas à supposer.
+
+**Ce n'est pas un argument contre**, c'est le prix, et il se paie en disponibilité. La parade
+existe et elle est connue : un second VPS, ou une bascule DNS de secours préparée à l'avance.
+À décider **avant** la bascule, pas le jour où la machine tombe.
+
 ## 5. CE QUE ÇA NE RÈGLE PAS, ET QU'IL FAUT SAVOIR AVANT DE COMMENCER
 
 - ⛔ **Un seul serveur, c'est un seul point de panne.** Firestore est répliqué par Google ; le
