@@ -988,6 +988,90 @@ console.log('\n⛔ La double écriture s\'allume espace par espace, et jamais to
   vrai('   et les verdicts sont comptés', d2.verdicts >= 2);
 }
 
+/* ══ LE RETOUR EN ARRIÈRE — LES DEUX CAS QU'AUCUNE ROUTE NE PEUT ATTEINDRE ══════════════════
+   ⛔ CES DEUX SECTIONS EXISTENT PARCE QUE DEUX MUTATIONS N'ONT RIEN CASSÉ, le 20 septembre
+   2026, dans `test-735` — qui parle pourtant au vrai serveur. Une mutation qui ne casse rien
+   ne dit pas « le code est bon », elle dit « qu'est-ce que le banc ne joue pas ? ». Ici, deux
+   choses qu'on ne peut PAS provoquer par l'API :
+     · un corps de journal PURGÉ (90 jours) — le banc de bout en bout joue une histoire de
+       quelques secondes, il n'a rien de vieux à purger ;
+     · une ligne présente au JOURNAL et absente d'`enr` — `pousser()` écrit toujours les deux,
+       donc seule une base réparée à la main, ou restaurée à moitié, se trouve dans cet état.
+   Le module, lui, s'exerce directement. C'est exactement la raison d'être de ce fichier. */
+{
+  console.log('\n── 723 · revenir en arrière : les cas que la route ne peut pas produire ──');
+  /* ⛔⛔ L'INSTANT VISÉ EST CELUI DU SERVEUR, PAS LE `_m` DE L'APPAREIL — et ce banc s'est
+     trompé en premier, ce qui vaut la peine d'être écrit ici. Le journal date chaque version de
+     l'instant où LE SOCLE L'A REÇUE (`ts`), pas de la date que l'appareil lui donne (`maj_le`) :
+     fabriquer un scénario avec des `m` dans le passé et un instant dans le passé ne produisait
+     donc AUCUNE ligne à restaurer, avec un verdict parfaitement vert.
+     C'est la bonne sémantique, et elle a une conséquence à connaître : un appareil resté hors
+     ligne une journée pousse ses lignes avec d'ANCIENNES dates mais un `ts` d'aujourd'hui —
+     « revenir à hier 14 h » ne les défera donc pas, puisqu'elles n'étaient pas dans le socle à
+     14 h. Pour les défaire, on vise l'instant d'avant LEUR ARRIVÉE. « L'état que le serveur
+     tenait à cette minute-là » est la seule définition qui se vérifie ; « l'état que le monde
+     avait » n'est connu de personne. */
+  const T = 'retour-banc-1';
+  const attendre = (ms) => { const f = Date.now() + ms; while (Date.now() < f) ; };
+  S.pousser(T, [
+    { c: 'clients', id: 'k1', m: Date.now(), e: 'e-avant', r: { nom: 'AVANT' } },
+    { c: 'clients', id: 'k2', m: Date.now(), e: 'e-k2', r: { nom: 'Deux' } },
+  ]);
+  attendre(5);
+  const SAIN = Date.now();
+  attendre(5);
+  S.pousser(T, [{ c: 'clients', id: 'k1', m: Date.now(), e: 'e-apres', r: { nom: 'CASSÉ' } }]);
+
+  const ap0 = S.retourApercu(T, SAIN);
+  v('l\'aperçu voit la fiche à remettre', ap0.nRestaurer, 1);
+  v('   et rien d\'illisible pour l\'instant', ap0.nIllisibles, 0);
+
+  /* ⛔ UN CORPS PURGÉ BLOQUE LE RETOUR, IL NE SE SAUTE PAS. Au-delà de 90 jours le contenu est
+     vidé (la ligne reste : on sait QUI a fait QUOI, sans le quoi). Un retour qui traverse cette
+     frontière ne PEUT PAS rendre ces enregistrements — les sauter en silence rendrait un retour
+     PARTIEL présenté comme complet. Même confusion que `_mailboxes` : « rien à restaurer » et
+     « je ne sais pas restaurer » ne sont pas le même état. */
+  S.purgerJournal(T, Date.now());
+  const ap1 = S.retourApercu(T, SAIN);
+  vrai('⛔ après purge, l\'aperçu NOMME ce qu\'il ne peut plus rendre', ap1.nIllisibles >= 1);
+  v('   et il ne prétend plus pouvoir le restaurer', ap1.nRestaurer, 0);
+  vrai('   les identifiants sont nommés, pas seulement comptés', (ap1.illisibles[0] || {}).id === 'k1');
+  let jete = null;
+  try { S.retourAppliquer(T, SAIN, { utilisateur: 'banc' }); } catch (e) { jete = e; }
+  vrai('⛔ et l\'application REFUSE au lieu de rendre un retour partiel', !!jete && jete.code === 'PURGE');
+  vrai('   le refus porte l\'aperçu, pour que l\'écran puisse dire quoi', !!(jete && jete.apercu && jete.apercu.nIllisibles >= 1));
+  /* ⚠️ LE CONTRE-TEST : le refus doit pouvoir être LEVÉ explicitement. Un retour partiel peut
+     être le bon choix — il ne peut pas être le choix par DÉFAUT. Un garde-fou qu'on ne peut pas
+     franchir en connaissance de cause finit par être retiré. */
+  const forcé = S.retourAppliquer(T, SAIN, { utilisateur: 'banc', sansLesIllisibles: true });
+  v('⛔ … mais il se lève explicitement, et alors ça passe', forcé.ok, true);
+  v('   sans rien restaurer d\'illisible', forcé.restaures, 0);
+
+  /* ⛔ UNE LIGNE AU JOURNAL, ABSENTE D'`enr` : ON LA RESSUSCITE. `pousser()` écrit toujours les
+     deux, donc seule une base réparée à la main ou restaurée à moitié est dans cet état — mais
+     c'est précisément le jour où quelqu'un déclenche un retour. La mutation qui retirait cette
+     moitié ne cassait rien au banc de bout en bout : la panne serait passée. */
+  const T2 = 'retour-banc-2';
+  const M2 = Date.now();
+  S.pousser(T2, [{ c: 'clients', id: 'z1', m: M2, e: 'e-z1', r: { nom: 'Fiche perdue' } }]);
+  attendre(5);
+  const SAIN2 = Date.now();
+  /* On casse la base comme une réparation ratée la casserait : la ligne vivante disparaît,
+     le journal la garde. C'est le seul moyen d'atteindre ce chemin. */
+  S.ouvrir(T2).prepare('DELETE FROM enr WHERE coll=? AND id=?').run('clients', 'z1');
+  const ap2 = S.retourApercu(T2, SAIN2);
+  v('⛔ l\'aperçu voit la ligne disparue d\'`enr` et la compte à restaurer', ap2.nRestaurer, 1);
+  const r2 = S.retourAppliquer(T2, SAIN2, { utilisateur: 'banc' });
+  v('   et le retour la remet', r2.restaures, 1);
+  const rendu = S.depuis(T2, 0, 400).enr.filter(l => l.id === 'z1' && !l.sup);
+  v('⛔ elle est de nouveau servie aux appareils', rendu.length, 1);
+  v('   avec son contenu d\'origine', (rendu[0] || {}).r && rendu[0].r.nom, 'Fiche perdue');
+  /* ⛔ ET AVEC UNE DATE DE MAINTENANT, pas l'ancienne : `pousser()` refuserait `perime`, et
+     surtout les appareils lisent « depuis seq » — une ligne réécrite en place ne leur
+     parviendrait jamais. Ils garderaient l'état cassé pendant que la Tour dirait « revenu ». */
+  vrai('⛔ et une date de MAINTENANT, sinon aucun appareil ne la verrait', (rendu[0] || {}).m >= SAIN2);
+}
+
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
