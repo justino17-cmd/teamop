@@ -22,6 +22,134 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ✅ ÉTAPES C ET D — TERMINÉES ET ÉPROUVÉES (nuit du 20 au 21 septembre 2026)
+
+L'interrupteur `PORTAIL_SERVEUR` d'`espace.html` reste **FERMÉ** : rien ne change pour un
+client aujourd'hui. Ce qui suit est prêt à être ouvert, pas ouvert.
+
+### Ce que les bancs de couture ont trouvé, et que la relecture n'avait pas vu
+
+Quatre défauts, tous du même genre : deux moitiés justes chacune de son côté, chacune avec ses
+bancs verts, et **qui ne se parlaient pas**. C'est la règle cardinale de `CLAUDE.md`, et elle
+s'est vérifiée quatre fois de plus en une nuit.
+
+| où | ce qui se passait | ce que ça coûtait |
+|---|---|---|
+| `espace.html` ↔ adaptateur | `listenMsgs()` appelle `.orderBy('ts','asc').onSnapshot(…)` sur le fil ; l'adaptateur n'exposait que `add` | `TypeError` au premier affichage — **tout l'écran « Messages » par terre** |
+| adaptateur ↔ `portail.js` | le serveur jetait `access`, le code d'activation d'espace | le bouton « 🚀 Activer mon espace » n'apparaît jamais — **la seule porte d'entrée d'un client dans OP GESTION, murée** |
+| `espace.html` ↔ `portail.js` | `borne()` repassait TOUT par `String()` | un `createdAt` numérique revenait en chaîne ; un `false` serait revenu en `'false'`, donc **VRAI à la relecture** |
+| `reinit.html` ↔ `comptes.js` | le serveur envoie `?jeton=…`, la page ne lisait que `?oobCode=…` | **tout lien de mot de passe oublié tombait sur « Lien invalide »** |
+
+Et deux défauts trouvés par la relecture systématique, pas par un banc :
+
+- ⛔ **`accReauth()` rendait `true` sans rien contrôler** dès que l'adaptateur servait. Trois
+  écrans redemandent le mot de passe avant un geste grave — changer d'adresse, changer de mot
+  de passe, supprimer le compte. Avec Firebase, `reauthenticateWithCredential` le vérifiait.
+  Le champ « mot de passe actuel » était devenu un décor. Deux routes le réparent
+  (`/api/compte/mdp/confirmer` et `/mdp/changer`), et le compteur d'échecs est partagé avec la
+  connexion — sinon une session empruntée devient un oracle à deviner les mots de passe.
+- ⛔ **`mdp/poser` coupait TOUS les jetons du compte**, pas seulement les sessions. Quelqu'un
+  qui crée son compte, ne confirme pas son adresse tout de suite, puis fait une remise à zéro
+  de mot de passe — le cas le plus banal des premières minutes — voyait son lien de
+  confirmation mourir, et **aucune route ne permet d'en redemander un**. Il restait non vérifié
+  pour toujours. `couperSessions()` coupe `session` et `mdp`, jamais `verif`.
+
+### Ce qui reste OUVERT dans C, et pourquoi
+
+- ⛔ **Changer son adresse de connexion ne marche pas, et l'écran le dit maintenant AVANT** de
+  faire saisir un mot de passe et d'envoyer un code à six chiffres. L'adresse est la CLÉ du
+  compte : en changer veut dire déménager le compte (`comptes.js`), le dossier ET le fil de
+  messages (`portail.js`) — **deux fichiers tenus par deux modules**. Si l'un renomme et pas
+  l'autre, le client perd son dossier et sa correspondance **en silence**. C'est un chantier
+  nommé, à écrire et à éprouver seul, pas un oubli.
+- ⛔ **Supprimer son compte refuse aussi**, volontairement : c'est un geste de support sur un
+  produit payant, pas un bouton.
+- ⛔ **L'écran d'administration d'`espace.html` est MORT depuis le 18 septembre** (voir plus
+  bas) et n'a PAS été porté. L'adaptateur le fait refuser **bruyamment** — liste vide plus un
+  avertissement qui nomme la Tour — au lieu de jeter une `TypeError` qui emporterait le reste
+  de l'écran. **Il attend toujours que Justin confirme au navigateur** avec un compte
+  `@teamop.fr` avant qu'on le retire plutôt que de le porter.
+
+### ⛔ CE QUI BLOQUE L'ÉTAPE A, MESURÉ CETTE NUIT : 88,5 % DE TRANSFERT INUTILE
+
+`/api/op/depuis` rend **TOUT** ce que l'espace contient. Une entreprise qui utilise les deux
+applications télécharge donc sa base OP GESTION entière **pour ouvrir une conversation**.
+
+Mesuré le 20 septembre 2026 sur des enregistrements de forme réelle :
+
+| | |
+|---|---|
+| OP GESTION — 1 200 fiches produit | **338 Ko** |
+| messagerie — 300 messages | 44 Ko |
+| ce que `/api/op/depuis` renvoie | **382 Ko** |
+| part inutile pour afficher une conversation | **88,5 %** |
+
+Et ça empire : la base d'ELAN a déjà dépassé le mégaoctet du document Firestore. Sur un
+téléphone de terrain en 4G, ouvrir OP MESSAGES coûterait plusieurs secondes et plusieurs
+mégaoctets de forfait, **pour rien**.
+
+⛔ **Ce n'est PAS corrigé, délibérément.** Les deux solutions touchent des pièces qui ne se
+touchent pas à la légère :
+
+1. **Filtrer par collection dans `/api/op/depuis`** — il faudrait filtrer DANS `socle.depuis`,
+   au SQL, parce que `curseur` et `reste` se calculent sur la séquence du journal : filtrer
+   après coup fait soit boucler le client à l'infini, soit lui faire rater des lignes. C'est le
+   chemin de lecture du stockage chiffré par entreprise, la pièce la plus porteuse du dépôt.
+2. **Un espace socle séparé pour la messagerie** (`t` + un suffixe) — aucune ligne de serveur à
+   changer, le filtrage devient gratuit, et les deux applications cessent de se voir, ce qui
+   est *correct*. Mais il faut alors reprendre la sauvegarde, les vues de la Tour et les
+   plafonds par entreprise, qui sont tous indexés sur `t`.
+
+**La 2 paraît juste ; elle demande un relevé de tout ce qui est indexé sur `t` avant d'être
+écrite.** Rien de tout cela ne se fait sans mesure — et l'étape A n'est pas ouverte aux clients,
+donc ça peut attendre d'être fait proprement.
+
+### Les bancs
+
+| banc | ce qu'il fait parler | contrôles |
+|---|---|---|
+| `tests/test-740.js` | la VRAIE `portailMaison()` d'`espace.html` contre le VRAI serveur | **55** |
+| `tests/test-741.js` | les VRAIES fonctions de `reinit.html` ET l'empreinte d'`espace.html`, contre le VRAI serveur, sur le lien lu DANS le courriel envoyé | **35** |
+| `scratchpad/sonde-reinit.js` | le VRAI `reinit.html` dans un VRAI Chromium | **10** |
+
+⚠️ **`empreinte()` est écrite DEUX FOIS**, dans `espace.html` et dans `reinit.html`, et ces deux
+pages ne partagent aucune ligne de code. Un préfixe qui change d'un seul côté donne un client
+qui pose son mot de passe ici et ne peut plus se connecter là-bas, **sans qu'aucune erreur ne
+s'affiche nulle part**. `test-741` extrait les deux fonctions réelles et les fait travailler
+ensemble : poser d'un côté, se connecter de l'autre. Mutation vérifiée — changer le préfixe
+d'un seul côté fait tomber 5 contrôles.
+
+### ⚠ Ce que les bancs NE gardent pas, et où c'est gardé
+
+Mesuré par mutation : retirer la coupure des sessions de `mdp/poser` laisse `test-741` **tout
+vert**. Ce n'est pas un trou — `test-738` le tient (47 ✓ 1 ✗ quand on l'enlève) et `test-740`
+tient la même chose pour `mdp/changer`. `test-741`, lui, garde le GENRE de ce qui est coupé :
+que le lien de vérification, lui, SURVIVE. **Les deux moitiés sont nécessaires — l'une dit
+« coupe », l'autre dit « pas ça ».** À savoir avant de « ranger » l'un des deux.
+
+### ⛔ Trois pièges de méthode payés cette nuit, à ne pas repayer
+
+- **Un courriel n'est pas du texte brut.** Le corps part en `quoted-printable` :
+  `mode=resetPassword` s'écrit `mode=3DresetPassword`, et une coupure douce `=\n` tombe **au
+  milieu des mots** (`reinit.=\nhtml?mode=3D…`). Le banc accusait le serveur de ne pas envoyer
+  ce qu'il envoyait. Même leçon que le sujet RFC 2047 de `test-738` : **on décode d'abord, on
+  cherche ensuite**, et les coupures douces AVANT les `=XX`.
+- **Une mutation qui ne casse rien dit ce que le banc ne joue pas.** Retirer le compteur
+  d'échecs de `confirmerMdp` laissait `test-740` à 52 ✓ 0 ✗. Le banc n'essayait qu'UN mot de
+  passe faux ; un compteur ne se voit qu'au **huitième**. Trois contrôles ajoutés, sur un
+  compte à part (le blocage dure quinze minutes et empoisonnerait la suite).
+- **Un faux défaut coûte autant qu'un vrai qu'on rate.** La sonde navigateur s'est trompée deux
+  fois avant d'être juste : elle mesurait le bouton APRÈS le clic (formulaire en
+  `display:none` → 0 px), et elle visait l'API sans passer par `config.origins` (donc CORS
+  jetait le `fetch`, ce qui ressemblait à un défaut de la page). **Une mesure se vérifie comme
+  un correctif.**
+
+Et un défaut que seul le navigateur pouvait voir : le bouton « Enregistrer mon mot de passe »
+de `reinit.html` mesurait **43 px**, un pixel sous le plancher tactile de 44. Cette page se
+termine au doigt, souvent sur un téléphone, parfois avec des gants.
+
+---
+
 ## ⚠ TOUT SUR LE SERVEUR — ÉTAPE C : LA MOITIÉ SERVEUR EST FAITE, LA PAGE NON
 
 `server/portail.js` (214 lignes) + `tests/test-739.js` (**53 contrôles**, 6 mutations éprouvées).
