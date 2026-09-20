@@ -22,6 +22,81 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ✅ TOUT SUR LE SERVEUR — ÉTAPE A : OP MESSAGES PARLE AU SOCLE (20 septembre 2026, nuit)
+
+Voir `PLAN-TOUT-SUR-LE-SERVEUR.md` pour le recensement complet et l'ordre A→G. Ce qui suit
+est l'état de l'étape A, la seule commencée.
+
+### La décision d'architecture, et pourquoi elle tient
+
+`op-fs.js` (racine, servi comme `fond-anime-teamop.js`) reproduit le sous-ensemble de l'API
+Firestore que `messages.html` utilise VRAIMENT — mesuré avant d'écrire une ligne : 3 opérateurs
+`where` (`==`, `array-contains`, `in`), 5 aides `FieldValue`, `get`/`set`/`add`/`update`/
+`delete`, 15 `onSnapshot`. La page changera d'**une seule ligne** :
+`firebase.firestore()` → `opFs({...})`. Réécrire 300 appels à la main, c'est 300 occasions de
+se tromper en silence.
+
+⛔ **ET IL N'AJOUTE AUCUNE ROUTE AU SERVEUR.** Le socle range déjà `{coll, id, corps, maj_le}`
+— c'est exactement un document Firestore rangé par chemin — et `pousser` ne filtre AUCUN nom
+de collection (`String(l.c || '')`, mesuré). Le chiffrement, le journal, le retour en arrière
+et la sauvegarde hors site viennent avec, sans une ligne de plus.
+
+Le format de fil n'est pas inventé : `{c, id, m, r, e}` copié champ par champ de
+`server/socle.js`. C'est la panne n° 1 de CLAUDE.md qu'on évite ainsi.
+
+### Trois contraintes du socle, découvertes PAR LE BANC et respectées plutôt que contournées
+
+| contrainte | ce qu'on a fait |
+|---|---|
+| `COLL_MAX = 40`, `ID_MAX = 200` (`socle.js:54`) | le GENRE du document dans `coll`, le chemin COMPLET dans `id`. ⛔ On ne relève pas une borne qui protège un disque partagé par TOUTES les entreprises |
+| refus d'une date à plus de **5 minutes** dans le futur (`horlogeAvancee`) | ⚠ **une horloge de téléphone en avance fera refuser des messages** — l'écran devra savoir le dire, ce n'est pas encore écrit |
+| refus `perime` | le miroir ADOPTE la version du serveur, sinon un écran montre pour toujours un état que personne d'autre ne voit |
+
+### La performance, mesurée et corrigée
+
+Chaque écouteur rebalayait le miroir ENTIER à chaque message reçu. Avec 15 écouteurs :
+
+| documents | avant | après (index par collection) |
+|---|---|---|
+| 3 600 | 17 ms | 12 ms |
+| 12 000 | 28 ms | 9 ms |
+| 36 000 | **72 ms** ⛔ | **10 ms** ✅ |
+| 120 000 | **205 ms** ⛔ | **6 ms** ✅ |
+
+36 000, c'est une entreprise qui discute depuis deux ans : l'écran se figeait pendant qu'on
+lui écrivait. Même faute que `/api/op/etat` dans le flux, même réparation.
+
+⛔⛔ **ET LA SONDE A MENTI D'ABORD** : elle remplissait `_miroir` en direct, donc contournait
+l'index — zéro document rendu, **0,00 ms annoncé**. Une amélioration de 200 ms obtenue en ne
+faisant rien. Elle porte désormais l'assertion qui l'aurait dit
+(`scratchpad/sonde-opfs-echelle.js`). **Une mesure de performance qui ne vérifie pas qu'elle
+mesure quelque chose ment toujours dans le sens qui fait plaisir.**
+
+### `tests/test-737.js` — 58 contrôles, le VRAI shim contre le VRAI serveur
+
+Deux appareils, pas un : un message écrit sur l'un apparaît sur l'autre par le flux, sans
+rechargement. Et il regarde le DISQUE : le texte d'un message n'y est pas en clair.
+
+⚠ **Trois faux verts démasqués en route, tous par une contre-épreuve** :
+1. lire `base.db` seul — le socle est en WAL, ce qui vient d'être écrit vit dans `base.db-wal`.
+   Les contrôles « pas de texte en clair » passaient parce que le fichier était QUASI VIDE.
+   Seule la contre-épreuve de TAILLE l'a dit ;
+2. les deux filtres de chemin (préfixe, profondeur) **se couvraient l'un l'autre** : aucune des
+   deux mutations ne mordait. Il a fallu deux cas qui les isolent — dont **une autre entreprise
+   au canal du même nom**, c'est-à-dire une fuite entre clients ;
+3. un écouteur non concerné qui COUPE le réveil des suivants : `return` au lieu de `continue`
+   ne cassait rien, parce que le banc n'avait jamais deux écouteurs sur des collections
+   différentes en même temps.
+
+### Ce qui reste pour finir A
+
+- ⛔ **Brancher `messages.html`** — pas encore fait, et ça **dépend de l'étape B** : sans
+  comptes maison il n'y a pas de `ME.uid`, donc rien ne peut tourner de bout en bout.
+- `firebase.storage()` (2 appels) — `server/pieces.js` (314 lignes, étape 3) fait déjà le
+  travail côté VPS ; reste à le brancher dans le shim.
+- L'écran qui dit « ton horloge est en avance » quand le socle refuse pour cette raison.
+- ⚠ `OPMSG_EN_TRAVAUX=true` reste **vrai** : rien de tout ça n'est visible pour personne.
+
 ## ⛔ 20 SEPTEMBRE 2026, SOIR — UN REFUS DE GOOGLE NE SE RÉSUME PAS
 
 `firebase-console.js sauvegardes-activer` refusait en 403 sur le VPS. L'outil affichait

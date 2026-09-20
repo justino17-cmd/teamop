@@ -184,14 +184,22 @@
     const ecouteurs = new Set();       // { coll, tirer() }
     let seq = 0, vivant = false;
 
-    const collDe = (plein) => plein.slice(0, plein.lastIndexOf('/'));
+    /* ⛔ UNE CLÉ SANS BARRE OBLIQUE N'EST PAS UNE ERREUR — C'EST UN ENREGISTREMENT D'OP GESTION.
+       `/api/op/depuis` rend TOUT ce que l'espace contient, et une entreprise qui utilise les
+       deux applications a des lignes `{c:'produits', id:'p1'}` à côté des chemins de la
+       messagerie. `plein.slice(0, plein.lastIndexOf('/'))` rendait alors `'p'` pour `'p1'` —
+       un seau inventé, silencieux, qui enflerait avec la base de l'autre application.
+       On les range sous leur genre : c'est exact pour elles, et aucune requête du shim ne les
+       atteint puisqu'elle exige le préfixe `<chemin>/`. */
+    const collDe = (genre, plein) => { const i = plein.lastIndexOf('/'); return i < 0 ? genre : plein.slice(0, i); };
+    const genreDe = (k) => k.slice(0, k.indexOf('\u0000'));
     function poser(k, v) {
-      const c = collDe(k.slice(k.indexOf('\u0000') + 1));
+      const c = collDe(genreDe(k), k.slice(k.indexOf('\u0000') + 1));
       let s = parColl.get(c); if (!s) { s = new Set(); parColl.set(c, s); }
       s.add(k); miroir.set(k, v); return c;
     }
     function oter(k) {
-      const c = collDe(k.slice(k.indexOf('\u0000') + 1));
+      const c = collDe(genreDe(k), k.slice(k.indexOf('\u0000') + 1));
       const s = parColl.get(c);
       if (s) { s.delete(k); if (!s.size) parColl.delete(c); }
       miroir.delete(k); return c;
@@ -277,7 +285,7 @@
         /* Le serveur renvoie SA version avec le refus — c'est elle qui fait foi. */
         if (x.serveur && x.serveur.r !== undefined && x.serveur.r !== null) poser(k, { m: x.serveur.m || 0, r: x.serveur.r });
         else if (avant) poser(k, avant); else oter(k);
-        prevenir(new Set([collDe(cle)]));
+        prevenir(new Set([collDe(c, cle)]));
         alerter('écriture refusée', x.motif || r.code);
         const err = new Error('écriture refusée : ' + (x.motif || r.code));
         err.motif = x.motif || String(r.code);

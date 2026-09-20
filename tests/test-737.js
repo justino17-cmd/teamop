@@ -347,6 +347,18 @@ async function jusqua(cond, ms) {
       vrai('⛔ un écouteur inscrit APRÈS un autre, non concerné, se réveille quand même', passe);
     }
 
+    /* ⛔ UNE CLÉ SANS BARRE OBLIQUE VIENT D'OP GESTION, PAS D'UN BOGUE. `/api/op/depuis` rend
+       TOUT ce que l'espace contient : une entreprise qui utilise les deux applications a des
+       lignes `{c:'produits', id:'p1'}` dans le même flux. Le premier index les rangeait sous
+       `'p'` — un seau inventé par `slice(0, lastIndexOf('/'))` sur une chaîne sans barre
+       oblique. Inerte, silencieux, et il enflerait avec la base de l'autre application. */
+    {
+      A._poser('produits\u0000p1', { m: 1, r: { nom: 'ADVION' } });
+      vrai('⛔ un enregistrement d\'OP GESTION se range sous SON genre, pas sous une tranche de son id',
+        A._parColl.has('produits') && !A._parColl.has('p'));
+      v('   et aucune requête du shim ne le ramasse', (await A.collection('produits').get()).size, 0);
+    }
+
     let indexes = 0;
     for (const s of A._parColl.values()) indexes += s.size;
     v('⛔ l\'index compte exactement autant de clés que le miroir', indexes, A._miroir.size);
