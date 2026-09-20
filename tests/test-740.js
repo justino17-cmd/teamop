@@ -309,6 +309,37 @@ const arreter = async () => {
     vrai('⛔ `delGo` refuse AVANT de supprimer quoi que ce soit', /if\(_pv\) return _err\(/.test(del) &&
       del.indexOf('if(_pv) return _err(') < del.indexOf('.delete()'));
   }
+  console.log('\n══ 5 quater. ⛔ HUIT ESSAIS FAUX BLOQUENT LE COMPTE ══\n');
+  {
+    /* ⛔ CE CONTRÔLE EXISTE PARCE QU'UNE MUTATION N'A RIEN CASSÉ. Retirer le compteur
+       d'échecs de `confirmerMdp` laissait le banc à 52 ✓ 0 ✗ — et le défaut était bien réel :
+       avec une session empruntée (un navigateur resté ouvert), `/api/compte/mdp/confirmer`
+       devient un oracle où l'on essaie des mots de passe tranquillement, puis on change
+       celui du client. La règle de CLAUDE.md s'applique mot pour mot : quand une mutation
+       ne casse rien, la question n'est pas « le code est-il bon ? » mais « qu'est-ce que le
+       banc ne joue pas ? ». Ici : le HUITIÈME essai. Un seul essai faux ne peut pas montrer
+       un compteur.
+       ⚠️ Compte à part : le blocage dure quinze minutes, il empoisonnerait tout ce qui suit. */
+    const V = fabriquer(S.B);
+    await V.api.auth.createUserWithEmailAndPassword('victime@exemple.fr', 'le-vrai-mot-de-passe');
+    let bloque = '';
+    for (let i = 0; i < 8; i++) {
+      try { await V.api.auth.confirmerMdp('essai-faux-' + i); } catch (e) { bloque = e.code || ''; }
+    }
+    v('   les huit essais sont tous refusés', bloque, 'auth/wrong-password');
+    /* ⛔ LE NEUVIÈME EST REFUSÉ MÊME AVEC LE BON MOT DE PASSE : c'est ça, le compteur. */
+    let apres = 'pas-refusé';
+    try { await V.api.auth.confirmerMdp('le-vrai-mot-de-passe'); }
+    catch (e) { apres = e.code || ''; }
+    v('⛔ au 9e, le BON mot de passe est refusé aussi — le compte est bloqué', apres, 'auth/wrong-password');
+    /* Et le blocage tient aussi la porte d'à côté : `confirmerMdp` est la MÊME fonction que
+       la connexion appelle. Deux copies auraient donné deux verrous, dont un ouvert. */
+    const W = fabriquer(S.B);
+    let parLaPorte = 'pas-refusé';
+    try { await W.api.auth.signInWithEmailAndPassword('victime@exemple.fr', 'le-vrai-mot-de-passe'); }
+    catch (e) { parLaPorte = e.code || ''; }
+    v('⛔ et la CONNEXION est bloquée aussi — un seul verrou, pas deux', parLaPorte, 'auth/wrong-password');
+  }
   console.log('\n══ 6. ⛔ L\'ÉCRAN D\'ADMINISTRATION MORT REFUSE SANS TOUT EMPORTER ══\n');
   {
     /* ⛔ Il est mort depuis le 18 septembre (`firestore.rules:59` — `allow read: if cestMoi`).
