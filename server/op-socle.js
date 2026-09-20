@@ -356,7 +356,19 @@ function monterOpSocle(app, deps) {
 
   /* ══ GET /api/op/etat — le contrôle de non-régression ═════════════════════════════════════ */
   poser('GET', '/api/op/etat', opJeton, (req, res) => {
-    try { res.json(socle.etat(req.op.t)); }
+    try {
+      const e = socle.etat(req.op.t);
+      /* ⛔ LA SIGNATURE CANONIQUE, À CÔTÉ DE L'AUTRE ET PAS À SA PLACE. `etat().signature` hache
+         `coll|id|maj_le|supprime_le` : elle voit une ligne manquante ou une date qui change,
+         mais PAS un contenu différent à date égale — c'est-à-dire justement ce qu'un
+         `syncAlleger` mal placé produirait (même identifiant, même `maj_le`, une photo en
+         moins). Le contrôle de l'étape 4 serait passé au vert sur la panne qu'il existe pour
+         voir. `canon` porte l'empreinte du corps, et le détail par collection : une alerte qui
+         dit « ça diverge » sans dire OÙ fait chercher une heure.
+         ⚠️ Elle ne déchiffre rien : l'empreinte est déjà en clair dans la colonne. */
+      try { e.canon = socle.signatureCanonique(req.op.t); } catch (x) { e.canon = null; }
+      res.json(e);
+    }
     catch (e) { res.status(503).json({ error: 'état indisponible', motif: 'base' }); }
   });
 

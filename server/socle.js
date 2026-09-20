@@ -778,6 +778,31 @@ function etat(t) {
     horlogeAvancee: lireMeta('horloge_avancee'), echecsEnrolement: lireMeta('echecs_enrolement') };
 }
 
+/* ══ LA SIGNATURE CANONIQUE — LE SEUL GARDE-FOU DE L'ÉTAPE 4 ════════════════════════
+   Pendant la double écriture, l'appareil calcule la signature de ce qu'il a et le serveur
+   recompose LA MÊME depuis ses lignes. Toute différence dit qu'une écriture s'est perdue quelque
+   part — et c'est la seule chose qui puisse le dire, puisque personne ne LIT encore le socle.
+
+   ⛔ `etat().signature` NE SUFFIT PAS, et c'est pour ça que celle-ci existe à côté. Elle hache
+   `coll|id|maj_le|supprime_le` : elle voit une ligne manquante, une ligne en trop, une date qui
+   change — mais PAS un CONTENU différent à date égale. Or c'est exactement ce qu'un
+   `syncAlleger` mal placé produirait : le même `maj_le`, le même identifiant, une photo en
+   moins. Le contrôle passerait au vert sur la panne qu'il existe pour voir.
+
+   ⚠️ ON NE DÉCHIFFRE RIEN. L'empreinte de chaque corps est déjà en clair dans la colonne
+   `empreinte` — c'est l'appareil qui l'a calculée avant de chiffrer. On ne lit donc que des
+   colonnes : pas les 368 ms de boucle d'événements gelée que coûte `verifier()`.
+
+   ⚠️ ET LE CALCUL LUI-MÊME VIT DANS `op-signature.js`, copie mot pour mot d'`app.html`, gardée
+   par `tests/test-734.js` — lire l'en-tête de ce fichier avant d'y toucher. */
+function signatureCanonique(t) {
+  t = exigerT(t);
+  const db = ouvrir(t);
+  const lignes = db.prepare('SELECT coll,id,maj_le,supprime_le,empreinte FROM enr').all()
+    .map(r => ({ c: r.coll, id: r.id, m: r.maj_le, sup: r.supprime_le, e: r.empreinte || '' }));
+  return require('./op-signature').opSignature(lignes);
+}
+
 /* ══ EFFACER UNE ENTREPRISE ═════════════════════════════════════════════════════════════════
  * ⛔ LES TROIS FICHIERS, PAS UN SEUL. En WAL, `base.db-wal` peut porter des écritures non
  * fusionnées : n'effacer que `base.db` laisse des données derrière soi, silencieusement. Et la
@@ -1282,4 +1307,5 @@ module.exports = {
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,
   kekDepuis, exigerKek, SOCLE_DIR, ANNUAIRE_PATH, SCHEMA_VERSION,
   fichiersReferences, fichiersDeLigne,
+  signatureCanonique,
 };

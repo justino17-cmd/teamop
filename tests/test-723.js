@@ -723,6 +723,47 @@ console.log('\n⛔ Les références aux pièces jointes : ce qui est encore cit�
   v('⛔ seul ce qui EST un sha est enregistré', S.fichiersDeLigne(TF, 'clients', 'c3'), [A]);
 }
 
+/* ══ ⛔ LE PONT : CE QUE LE SERVEUR SIGNE EST CE QUE L'APPAREIL A POUSSÉ ══════════════
+   `tests/test-734.js` prouve que les deux implantations du CALCUL rendent la même valeur sur
+   un corpus. Ce contrôle-ci prouve autre chose, et les deux ne se remplacent pas : que les
+   lignes RÉELLEMENT ÉCRITES dans la base redonnent la signature de ce qu'on a envoyé.
+   Entre les deux il y a un aller-retour complet — sérialisation, chiffrement, colonnes,
+   relecture — et c'est là que se perd une empreinte, pas dans l'arithmétique. */
+console.log('\n⛔ La signature du serveur et celle de l\'appareil, sur les MÊMES lignes');
+{
+  const TS = 'ent-signature';
+  const SIG = require(path.join(__dirname, '..', 'server', 'op-signature.js'));
+  const lignes = [
+    { c: 'clients', id: 'c1', m: 1700000000000, e: 'emp-c1', r: { nom: 'Boulangerie' } },
+    { c: 'clients', id: 'c2', m: 1700000000001, e: 'emp-c2', r: { nom: 'Mairie' } },
+    { c: 'box_stock', id: 'bx1|p1', m: 1700000000002, e: 'emp-p1', r: { ctn: 1, u: 2 } },
+    { c: 'interventions', id: 'i-accentué-éàç', m: 1700000000003, e: 'emp-i', r: { titre: 'Café' } },
+  ];
+  const r = S.pousser(TS, lignes);
+  v('les quatre lignes sont acceptées', [r.acceptes, r.refus.length], [4, 0]);
+
+  /* Ce que l'appareil calculerait sur ce qu'il vient d'envoyer. */
+  const cote = SIG.opSignature(lignes);
+  const serveur = S.signatureCanonique(TS);
+  v('⛔ le serveur signe EXACTEMENT ce que l\'appareil a poussé', serveur.sig, cote.sig);
+  v('   et le détail par collection concorde', serveur.par, cote.par);
+
+  /* ⛔ ET LA TOMBE COMPTE. Un enregistrement supprimé reste une LIGNE : l'oublier d'un côté
+     ferait diverger les deux tous les soirs, sur une entreprise qui ne fait rien de mal. */
+  const avecTombe = lignes.concat([{ c: 'clients', id: 'c2', m: 1700000000500, sup: 1700000000500 }]);
+  S.pousser(TS, [{ c: 'clients', id: 'c2', m: 1700000000500, sup: 1700000000500 }]);
+  const attendu = SIG.opSignature(avecTombe.filter(l => !(l.c === 'clients' && l.id === 'c2' && !l.sup)));
+  v('⛔ après une suppression, les deux concordent encore', S.signatureCanonique(TS).sig, attendu.sig);
+
+  /* ⛔ LE CONTRE-TEST : le serveur ne doit PAS signer la même chose quand il n'a pas la même
+     chose. Sans lui, une fonction qui rendrait une constante passerait tout ce qui précède. */
+  S.pousser(TS, [{ c: 'clients', id: 'c3', m: 1700000000600, e: 'emp-c3', r: { nom: 'De plus' } }]);
+  vrai('⛔ une ligne de plus change la signature du serveur', S.signatureCanonique(TS).sig !== attendu.sig);
+  /* Et sur une entreprise qui n'a rien, elle rend une signature de rien — pas une erreur : la
+     double écriture commence forcément par là, et crier au premier soir serait absurde. */
+  v('   une entreprise vide signe le vide, sans jeter', S.signatureCanonique('ent-vide-signature').par, {});
+}
+
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
