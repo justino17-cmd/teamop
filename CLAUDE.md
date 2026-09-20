@@ -111,9 +111,9 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 92 suites · 3 487 vérifications (mesuré le 20/09/2026 au soir)
-node tests/test-726.js          # le câblage du SERVEUR : 135 vérifications, ~12 s
-node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 94 vérifications, ~40 s
+bash scripts/bancs-ci.sh        # 92 suites · 3 547 vérifications (mesuré le 20/09/2026 au soir)
+node tests/test-726.js          # le câblage du SERVEUR : 139 vérifications, ~12 s
+node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 127 vérifications, ~45 s
 ```
 
 ⛔ **COMPTER LES ✓ AVEC `grep` DONNE UN CHIFFRE FAUX, ET FAUX EN MOINS.** Sept suites (716 à

@@ -590,6 +590,99 @@ corps identique en `noop` sans faire avancer `seq` : ça coûte du réseau une f
 données. On ne fait PAS monter la borne sur une lecture — un enregistrement local plus ancien
 que la borne ne repasserait plus jamais, et ce risque-là est pire.
 
+## D septies. ✅ SOCLE ÉTAPE 6 — L'APPAREIL DE MESURE (20 septembre 2026)
+
+⛔ **L'étape 6 ne livre « rien » — elle REGARDE.** C'est précisément pour ça qu'elle a demandé du
+travail : « on regarde le compteur de divergences rester à zéro, les compteurs de refus et la
+charge » supposait trois instruments dont **aucun n'existait**.
+
+### 1. Les compteurs vivaient en mémoire — donc la semaine ne montrait rien
+
+`refus` était une `Map` de `op-socle.js`, remise à zéro **à chaque redémarrage**, donc à chaque
+déploiement, plusieurs fois par jour les jours chargés. Une semaine d'observation sur un
+compteur qui s'oublie ne montre rien — et elle montre **zéro**, ce qui est pire : on en
+conclurait que tout va bien. Ce dépôt a déjà payé deux fois cette leçon exacte (la minuterie de
+l'ancre, le compteur d'horloge).
+
+L'observatoire verse dans l'annuaire, **par jour et par motif**, sur quatorze jours glissants, au
+plus une fois par minute — un refus se compte par centaines quand ça va mal, c'est-à-dire au pire
+moment, et une écriture SQLite par refus ferait de l'observatoire la cause de la panne suivante.
+
+### 2. Le compteur de divergences n'existait pas
+
+Les verdicts sont rangés **par espace** ; personne ne les réunissait, donc rien ne pouvait dire
+« combien d'entreprises ont divergé cette semaine ». Un chiffre qu'il faut aller chercher espace
+par espace n'est pas un chiffre qu'on regarde tous les jours.
+
+⚠️ Il compte aussi les **muets** : zéro divergence sur des espaces que personne n'a contrôlés veut
+dire « on ne sait pas », pas « tout va bien ».
+
+### 3. Aucune latence — et c'est une dette que l'annexe reproche depuis le début
+
+« La synchro devient plus vive » est affirmé sans mesure, alors que `synchronous=FULL` c'est **un
+fsync par pousse** sur le disque partagé d'un VPS. Des **quantiles par route** (p50, p95, max),
+pris sur la vraie réponse — une moyenne cacherait exactement ce qui fait mal : la pousse à 900 ms
+pendant que les autres sont à 8 ms.
+
+⚠️ Le long-poll est **exclu** : il dort 25 s par construction et noierait tous les quantiles.
+⚠️ La lecture **vide** le réservoir : ce que `/health` publie est la fenêtre depuis la dernière
+lecture, donc « la dernière heure » pour la surveillance. Deux lectures rapprochées donnent la
+seconde presque vide, et **ce n'est pas une panne** — ne pas la « réparer ».
+
+### 4. Et les trois CRIENT
+
+`.github/scripts/surveillance.js` porte **six alarmes neuves**. Sans elles, « regarder » voudrait
+dire ouvrir `/health` à la main tous les jours pendant une semaine, donc ne pas regarder du tout
+au bout de deux. Le recensement de `test-726` a fait son travail : il a trouvé un champ que
+personne ne lisait, et il a fallu trancher **par écrit**.
+
+---
+
+## ⛔ LA RÈGLE DE L'IMPAYÉ — DÉCIDÉE PAR JUSTIN LE 20 SEPTEMBRE 2026
+
+> « Pour continuer à lire, ils auront un délai de **7 jours**. Si c'est pas payé après dans les
+> 7 jours, **tous les onglets deviennent gris**. Aucune sauvegarde n'est perdue, aucune tâche
+> qu'ils étaient en train de faire, **rien n'est perdu, même dans leur catégorie**. Juste les
+> catégories qui sont payantes deviennent grisées et ils **reviennent au forfait gratuit**. Mais
+> ils ont un délai de 7 jours. Avec **tous les jours un rappel sur le compte admin**, comme quoi
+> ce n'est pas payé. Après, **c'est pas aux utilisateurs de savoir si l'entreprise paye ou pas.
+> Que le compte admin.** »
+
+Une suspension est donc un **état de facturation**, pas une coupure d'accès.
+
+### ✅ Ce qui est fait (serveur)
+
+`/api/monitor/espaces/suspendre` coupait Firebase **et** fermait le socle. Le jour où le socle est
+la seule copie à jour, ça aurait coupé un impayé de ses propres données — en contradiction directe
+avec `mentions-legales.html:74`. **La route ne coupe plus**, et sa réponse le dit (`coupure:false`) :
+une Tour qui annoncerait une coupure qui n'a pas eu lieu, c'est « croire une entreprise coupée
+alors qu'elle ne l'est pas ».
+
+⛔ **Mais une FERMETURE coupe toujours**, et `test-726` garde les deux règles dans le même bloc :
+retirer la seconde en même temps que la première aurait rendu toute fermeture décorative.
+⛔ `test-641` compte désormais **TROIS** portes de coupure Firebase au lieu de quatre, avec la
+raison écrite. **Si ce chiffre repasse à quatre, la question n'est pas « qui a cassé le compte »
+mais « est-ce qu'on vient de recouper les impayés de leurs propres données ? ».**
+
+### ⛔⛔ CE QUI RESTE, ET QUI EST UN TROU D'APPLICATION ASSUMÉ
+
+**La contrainte qui REMPLACE la coupure n'existe pas encore.** Tant qu'elle n'est pas écrite côté
+application, le bouton « suspendre » **marque une entreprise sans rien lui interdire**. C'est sur
+la branche, rien n'est déployé — mais ça doit être su avant toute publication.
+
+Le chantier, avec ce qui est déjà décidé :
+
+| | |
+|---|---|
+| **délai** | 7 jours pleins d'usage normal après la suspension |
+| **après 7 jours** | les onglets **payants** grisent ; retour au **forfait gratuit** |
+| **jamais** | perdre une sauvegarde, une tâche en cours, ou quoi que ce soit dans leurs catégories |
+| **rappel** | tous les jours, **sur le compte admin UNIQUEMENT** |
+| ⛔ **jamais** | dire à un technicien que son entreprise n'a pas payé — « c'est pas aux utilisateurs de savoir » |
+
+⚠️ Il faut une **date de suspension** pour compter les sept jours : `entFermes.suspendus` est une
+liste plate, sans date. C'est le premier geste du chantier.
+
 ## E. Les étapes 2 à 9 du plan — ce qui n'a pas commencé
 
 `PLAN-OP-SOCLE.md` §4. L'étape 2 était la plus dangereuse de toutes — le convertisseur

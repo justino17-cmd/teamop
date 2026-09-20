@@ -72,6 +72,28 @@
    façon. Les deux sont des FONCTIONS PURES : elles sont gardées dans `test-723`, qui les
    exerce directement. Un banc de câblage ne peut pas fabriquer un espace inconnu.
 
+   ⛔ L'ÉTAPE 6 ET LA RÈGLE DE L'IMPAYÉ Y ONT AJOUTÉ LEUR TABLE — mesurée le 20 septembre 2026,
+   référence 127 ✓ · 0 ✗ :
+
+     | défaut remis                                          | ce que le banc rend |
+     |-------------------------------------------------------|---------------------|
+     | la session refuse à nouveau un espace suspendu        | **114 ✓ · 6 ✗**     |
+     | le chrono n'est plus posé sur les routes              | **108 ✓ · 3 ✗**     |
+     | « suspendu » est traité comme « fermé »               | **124 ✓ · 3 ✗**     |
+     | les refus ne sont plus versés au disque               | **109 ✓ · 1 ✗**     |
+     | le flux long entre dans les quantiles                 | **110 ✓ · 1 ✗**     |
+     | (b) l'annuaire n'est plus consulté                    | **123 ✓ · 1 ✗**     |
+
+   ⚠️ TROIS DE CES SIX N'ONT RIEN CASSÉ AU PREMIER JET, et chacune disait la même chose : le
+   banc ne jouait pas le cas.
+     · le flux long : il n'était jamais appelé, donc l'exclure ou non ne changeait rien ;
+     · « suspendu traité comme fermé » : `espaceBloque` sort AVANT d'examiner un espace actif,
+       et le seul `/pret` du banc tournait sur un espace actif. Il fallait le demander PENDANT
+       la suspension ;
+     · et le pire : le bloc de l'impayé passait au vert alors que la suspension n'avait JAMAIS
+       eu lieu — la route prend un slug, pas un `t`, donc elle rendait 404. Un banc qui ne
+       vérifie pas que sa MISE EN SCÈNE a eu lieu ne teste rien.
+
    ⚠️ CE QU'IL NE COUVRE PAS, et qu'il faut savoir avant de s'y fier : il ne joue ni le
    branchement dans `_ecriture.then` (c'est du DOM et une promesse Firestore — `test-733` lit
    le texte), ni le balayage de `espaceQuitter()` (idem), ni la minuterie du contrôle de nuit,
@@ -635,6 +657,14 @@ function basePetite(m) {
     vrai('   la fenêtre est celle du plan : sept jours', cond.d.jours === 7);
     v('⛔ une seule fausse suffit : on ne bascule pas', p.j.pret, false);
     v('   la route dit où en est la lecture', p.j.lecture, 'socle');
+    /* ⛔ ET LES CONDITIONS QUI SONT VRAIES DOIVENT L'ÊTRE. Un banc qui n'exige que des `false`
+       passe au vert sur une route qui refuse tout — et « on ne bascule jamais » se lirait
+       « les conditions marchent ». Mesuré : sans ces trois lignes, faire répondre `bloqué` à
+       TOUS les espaces ne faisait tomber aucun contrôle. */
+    v('⛔ (b) cet espace EST dans l\'annuaire', cond.b.ok, true);
+    v('⛔ (c) et il n\'est pas sur la clé partagée', cond.c.ok, true);
+    v('⛔ (ouvert) un espace actif n\'est ni fermé ni coupé', cond.ouvert.ok, true);
+    v('   et elle le dit sans motif de blocage', cond.ouvert.pourquoi, '');
 
     /* ⛔ LE VERDICT DE CONTRÔLE ARRIVE-T-IL VRAIMENT ? C'est la seule source de (d), et c'est
        une couture appareil ↔ serveur de plus — donc exactement le genre d'endroit où les
@@ -741,6 +771,17 @@ function basePetite(m) {
       corps: { enr: [{ c: 'clients', id: 'pendant-impaye', m: Date.now(), r: { id: 'pendant-impaye', nom: 'X' }, e: 'qq' }] } });
     v('⛔ et elle ÉCRIT encore — rien n\'est perdu, aucune tâche en cours', ecr.code, 200);
     vrai('   l\'écriture est acceptée', !!(ecr.j && ecr.j.acceptes));
+
+    /* ⛔ ET LA TOUR NE DOIT PAS LA VOIR COMME BLOQUÉE. C'est le seul endroit où la distinction
+       « suspendu » / « fermé » se lit vraiment : sur un espace ACTIF, `espaceBloque` sort avant
+       même de l'examiner. Mesuré : sans ce contrôle, remplacer tout son corps par `return true`
+       ne faisait tomber AUCUN des 124 contrôles — le banc gardait une ligne qu'il n'exerçait
+       jamais. Une entreprise suspendue continue de pousser, donc son socle reste frais, donc
+       elle n'a aucune raison d'être écartée de la bascule. */
+    const pr = await appel('GET', '/api/monitor/op/pret?t=' + encodeURIComponent(T), { jeton: JETON_TOUR });
+    v('⛔ un espace SUSPENDU n\'est pas « bloqué » pour la Tour', pr.j.conditions.ouvert.ok, true);
+    v('   et aucun motif de blocage n\'est avancé', pr.j.conditions.ouvert.pourquoi, '');
+    v('   la Tour le voit bien comme non bloqué par l\'annuaire', pr.j.conditions.ouvert.bloqueParLAnnuaire, false);
 
     /* ⛔ MAIS UN ESPACE VRAIMENT FERMÉ RESTE REFUSÉ. Sans ce contre-test, « on laisse passer
        les suspendus » se lirait « on laisse passer tout le monde », et la garde ne garderait
