@@ -6714,6 +6714,19 @@ function opRecomposer(lignes, base, opts) {
     const rec = Object.assign({}, l.r);
     if (m) rec._m = m;
     if (genre === 'liste_ts') {
+      /* ⛔ ET SA DATE NE SE RECOPIE PAS DANS L'ENREGISTREMENT. La ligne porte `m` parce que le
+         serveur exige une date ; mais cette date EST le `ts` du corps, déjà présent. La
+         réécrire en `_m` ajouterait un champ que l'enregistrement n'a jamais eu — l'aller-retour
+         cesserait d'être exact, et `opIdDerive` changerait d'avis sur sa propre identité à la
+         recomposition suivante. Régression introduite puis mesurée par `test-732` le
+         20 septembre 2026, sur les quatre tailles de page à la fois.
+         ⚠️ MAIS ON NE JETTE PAS UN `_m` RÉEL POUR AUTANT — première correction, trop brutale,
+         attrapée par le même banc : certains de ces enregistrements en portent un. La règle
+         exacte se lit sur le fil : si la date de la ligne EST le `ts` du corps, elle a été
+         dérivée ici et n'a rien à faire dans l'enregistrement ; si elle en diffère, elle vient
+         d'un vrai `_m` et doit revenir. Le cas limite (`_m` exactement égal à `ts`) perd un
+         champ dont la valeur est déjà là, et que `recEmpreinte` ignore de toute façon. */
+      if (m && +rec.ts === m) delete rec._m;
       /* ⛔ PAS D'IDENTITÉ PROPRE NE VEUT PAS DIRE PAS D'IDENTITÉ. `opIdDerive` en donne une,
          stable et déterministe, dérivée du contenu — c'est exactement ce pour quoi elle a été
          écrite. Sans ce contrôle, relire la même page ajoute une copie, et une reprise depuis
