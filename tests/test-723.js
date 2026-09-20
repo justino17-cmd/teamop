@@ -666,6 +666,54 @@ console.log('\n⛔ L\'ancre du journal chaîné : envoyée, ou pas ?');
     FUITE.test('empreinte : 0123 \u2014 zz-fiche-client-zz'));
 }
 
+/* ══ ⛔ QUELLE LIGNE RÉFÉRENCE QUELLE PIÈCE — ÉTAPE 3 DU SOCLE ══════════════════════
+   Sans ce registre, une pièce ne disparaît du disque du VPS que sur un geste du client
+   (`pieceSupprimer`). Un onglet fermé au mauvais moment, une coupure réseau, une suppression
+   faite depuis un AUTRE appareil — et le fichier reste là POUR TOUJOURS. Le dossier grossit
+   sans fin, et c'est `pieces.remplissage` de `/health` qui finit par crier, trop tard, quand
+   les dépôts sont déjà refusés sur le terrain. */
+console.log('\n⛔ Les références aux pièces jointes : ce qui est encore cité, et ce qui ne l\'est plus');
+{
+  const TF = 'ent-fichiers';
+  const A = 'a'.repeat(64), B = 'b'.repeat(64), C = 'c'.repeat(64);
+  S.pousser(TF, [{ c: 'interventions', id: 'i1', m: 1000, e: 'h1', r: { titre: 'Deux photos' }, f: [A, B] }]);
+  S.pousser(TF, [{ c: 'interventions', id: 'i2', m: 1001, e: 'h2', r: { titre: 'Une photo' }, f: [B] }]);
+  S.pousser(TF, [{ c: 'clients', id: 'c1', m: 1002, e: 'h3', r: { nom: 'Sans pièce' } }]);
+  v('⛔ les trois pièces citées sont connues', [...S.fichiersReferences(TF)].sort(), [A, B]);
+  v('   et on sait lesquelles pour une ligne donnée', S.fichiersDeLigne(TF, 'interventions', 'i1'), [A, B]);
+  v('   une ligne sans pièce n\'en référence aucune', S.fichiersDeLigne(TF, 'clients', 'c1'), []);
+
+  /* ⛔ LES RÉFÉRENCES SE REMPLACENT EN BLOC, JAMAIS EN AJOUT. Retirer une photo d'une
+     intervention doit LUI FAIRE PERDRE cette référence : n'ajouter que les nouvelles
+     laisserait l'ancienne à jamais, donc la pièce indélébile, donc le ménage impossible —
+     c'est précisément ce qu'on est en train de réparer. */
+  S.pousser(TF, [{ c: 'interventions', id: 'i1', m: 2000, e: 'h4', r: { titre: 'Une seule, plus C' }, f: [C] }]);
+  v('⛔ la ligne réécrite PERD ses anciennes références', S.fichiersDeLigne(TF, 'interventions', 'i1'), [C]);
+  v('   A n\'est plus citée par personne, B l\'est encore par i2', [...S.fichiersReferences(TF)].sort(), [B, C]);
+
+  /* Une tombe efface toutes les siennes : un enregistrement supprimé ne retient plus rien. */
+  S.pousser(TF, [{ c: 'interventions', id: 'i2', m: 3000, sup: 3000 }]);
+  v('⛔ une ligne SUPPRIMÉE ne référence plus rien', [...S.fichiersReferences(TF)].sort(), [C]);
+
+  /* ⚠️ LE SENS DE LA COMPARAISON N'EST PAS INDIFFÉRENT, et c'est écrit dans la fonction : on
+     liste ce qui EST référencé, jamais « ce qui est orphelin ». Si elle échoue, l'appelant
+     garde des fichiers en trop — un coût de disque ; dans l'autre sens il effacerait des
+     photos de terrain. Une fonction qui peut se tromper doit se tromper du côté qui ne
+     détruit rien. Sur une entreprise inconnue, elle rend donc un ensemble VIDE. */
+  v('⛔ sur une entreprise inconnue, elle rend vide (donc le ménage n\'efface rien)',
+    [...S.fichiersReferences('ent-qui-nexiste-pas')], []);
+
+  /* Le plafond : la liste vient du réseau. Ce qui dépasse est ignoré, mais la LIGNE passe —
+     on ne refuse pas du travail pour un registre de ménage. */
+  const trop = []; for (let i = 0; i < 300; i++) trop.push(String(i).padStart(64, '0'));
+  const r = S.pousser(TF, [{ c: 'clients', id: 'c2', m: 4000, e: 'h5', r: { nom: 'Trop de pièces' }, f: trop }]);
+  v('⛔ une liste démesurée ne fait PAS refuser la ligne', [r.acceptes, r.refus.length], [1, 0]);
+  v('   mais elle est bornée', S.fichiersDeLigne(TF, 'clients', 'c2').length, 200);
+  /* Et ce qui n'est pas un sha n'entre pas : la chaîne vient du réseau. */
+  S.pousser(TF, [{ c: 'clients', id: 'c3', m: 4001, e: 'h6', r: { nom: 'Sale' }, f: ['../../etc/passwd', 'PAS-UN-SHA', A] }]);
+  v('⛔ seul ce qui EST un sha est enregistré', S.fichiersDeLigne(TF, 'clients', 'c3'), [A]);
+}
+
 try { fs.rmSync(DIR, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

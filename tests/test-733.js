@@ -44,7 +44,7 @@ const code = [
   'const OP_CLASSES = ' + objet('const OP_CLASSES = {') + ';',
   ligne('const OP_ID_DE ='), ligne("const OP_REGLAGES ="), ligne("const OP_BOX_FORME ="), ligne("const OP_VIDES ="),
   bloc('function opSansTampon('), bloc('function opCanon('), bloc('function opEmpreinte('),
-  bloc('function opIdDerive('), bloc('function opSignature('), bloc('function opAmpute('),
+  bloc('function opIdDerive('), bloc('function opSignature('), bloc('function opFichiersDe('), bloc('function opAmpute('),
   bloc('function syncSortirPieces('), bloc('function opDecomposer('), bloc('function opRecomposer('),
 ].join('\n');
 let api = null;
@@ -68,13 +68,19 @@ console.log('\n⛔ Ce qui part sur le réseau ne porte aucun contenu de pièce')
   const lignes = api.opDecomposer(base);
   const l = lignes.find(x => x.c === 'interventions');
   vrai('l\'intervention part bien', !!l);
-  v('⛔ la photo ne porte que son identifiant', l.r.photos[0], 'piece:' + SHA);
-  v('   et celle qui n\'avait déjà que lui est intacte', l.r.photos[1], 'piece:' + SHB);
-  v('⛔ le document ne porte plus son contenu', [l.r.docs[0].data, l.r.docs[0].surServeur], ['', true]);
-  v('   mais il garde son identifiant et son nom', [l.r.docs[0].pid, l.r.docs[0].nom], [SHA, 'rapport.pdf']);
+  /* ⚠️ TOUT CE QUI SUIT PASSE PAR `(l && l.r) || {}` : un banc qui PLANTE en dit moins qu'un
+     banc qui ÉCHOUE. Une mutation qui retenait l'intervention faisait jeter la ligne suivante
+     sur un `undefined`, et les vingt contrôles d'après ne rendaient plus rien du tout — on
+     voyait une trace de pile au lieu de savoir ce qui marchait encore. Même défaut que celui
+     corrigé dans `test-723` le 19 septembre. */
+  const r0 = (l && l.r) || {}, ph0 = r0.photos || [], dc0 = (r0.docs || [])[0] || {};
+  v('⛔ la photo ne porte que son identifiant', ph0[0], 'piece:' + SHA);
+  v('   et celle qui n\'avait déjà que lui est intacte', ph0[1], 'piece:' + SHB);
+  v('⛔ le document ne porte plus son contenu', [dc0.data, dc0.surServeur], ['', true]);
+  v('   mais il garde son identifiant et son nom', [dc0.pid, dc0.nom], [SHA, 'rapport.pdf']);
   /* La mesure qui dit si le chantier sert à quelque chose : une pièce jointe de 1,5 Mo pèse
      2 Mo en base64 — à elle seule, le double du plafond entier d'un document Firestore. */
-  const poids = JSON.stringify(l).length;
+  const poids = JSON.stringify(l || {}).length;
   vrai('⛔ la ligne pèse moins de 1 Ko là où le contenu en fait 8 (mesuré : ' + poids + ' octets)', poids < 1024);
   v('⛔ aucune ligne ne porte de base64', lignes.filter(x => JSON.stringify(x.r || '').indexOf('base64') >= 0).length, 0);
 
@@ -82,6 +88,41 @@ console.log('\n⛔ Ce qui part sur le réseau ne porte aucun contenu de pièce')
      toucher `db` changerait l'empreinte de 220 interventions d'un coup, leur donnerait un `_m`
      neuf, et elles gagneraient toutes les fusions. */
   v('⛔ `db` n\'a PAS été touché (la base locale garde ses blobs)', JSON.stringify(base), avant);
+}
+
+/* ══ 1 bis. ⛔ LA LIGNE DÉCLARE LES PIÈCES QU'ELLE RÉFÉRENCE ═════════════════════
+   Sans cette déclaration, une pièce dont plus aucune ligne ne parle reste sur le disque du VPS
+   POUR TOUJOURS : la suppression d'aujourd'hui dépend d'un geste du client (`pieceSupprimer`),
+   et un onglet fermé au mauvais moment, une coupure réseau ou une suppression faite depuis un
+   AUTRE appareil suffisent à la manquer.
+   ⚠️ C'est l'appareil qui déclare, pas le serveur qui devine : il POURRAIT déchiffrer chaque
+   corps pour y chercher les identifiants, mais ce serait un déchiffrement par ligne et par
+   envoi, sur la boucle d'événements, pour une information que l'appareil connaît gratuitement.
+   Le registre côté serveur est éprouvé par `tests/test-723.js`. */
+console.log('\n⛔ Une ligne dit quelles pièces elle référence');
+{
+  const base = {
+    interventions: [
+      { id: 'i1', titre: 'Deux photos et un doc', _m: 1,
+        photos: ['piece:' + SHA + ':' + IMAGE, 'piece:' + SHB],
+        docs: [{ pid: SHA, nom: 'r.pdf', data: IMAGE }] },
+      { id: 'i2', titre: 'Rien', _m: 2 },
+    ],
+  };
+  const lignes = api.opDecomposer(base);
+  const l1 = lignes.find(l => l.id === 'i1'), l2 = lignes.find(l => l.id === 'i2');
+  v('⛔ la ligne déclare ses pièces, sans doublon', (l1 && l1.f || []).slice().sort(), [SHA, SHB]);
+  /* `f` n'est posé que s'il y a quelque chose à dire : une ligne sur cent en porte, et un
+     tableau vide sur toutes les autres ferait grossir chaque envoi pour rien. */
+  v('   une ligne sans pièce ne porte pas le champ du tout', 'f' in (l2 || {}), false);
+  /* ⛔ ET LA DÉCLARATION SUIT LE CONTENU. Retirer une photo doit retirer sa référence, sinon
+     la pièce devient indélébile — exactement ce qu'on répare. */
+  const moins = api.opDecomposer({ interventions: [{ id: 'i1', titre: 'Une seule', _m: 3, photos: ['piece:' + SHB] }] });
+  v('⛔ une photo retirée fait disparaître sa référence', moins[0].f, [SHB]);
+  /* Ce qui n'est pas un identifiant de pièce n'entre pas : une photo collée en clair, un
+     champ libre, un data URL — rien de tout ça n'est un sha. */
+  const sale = api.opDecomposer({ interventions: [{ id: 'i3', titre: 'x', _m: 4, photos: [IMAGE, 'piece:PAS-UN-SHA'] }] });
+  v('   et rien qui ne soit un sha n\'y entre', 'f' in sale[0], false);
 }
 
 /* ══ 2. ⛔ L'ENREGISTREMENT AMPUTÉ EST RETENU, ET NOMMÉ ═══════════════════════════════════ */

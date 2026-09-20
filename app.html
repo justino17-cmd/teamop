@@ -6302,6 +6302,25 @@ const OP_VIDES = '_vides';
    ⚠️ Retenir en SILENCE serait pire que pousser : une ligne qui ne part jamais sans que
    personne ne l'apprenne, c'est une donnée perdue avec l'air d'aller bien. D'où `retenus`,
    que l'appelant DOIT regarder. */
+/* ⛔ CE QU'UNE LIGNE RÉFÉRENCE, DÉCLARÉ PAR L'APPAREIL PLUTÔT QUE DEVINÉ PAR LE SERVEUR.
+   Le serveur POURRAIT déchiffrer chaque corps pour y chercher les identifiants de pièces — il
+   a la clé. Il ne doit pas : ce serait un déchiffrement par ligne et par envoi, sur la boucle
+   d'événements, pour une information que l'appareil connaît déjà gratuitement puisqu'il vient
+   d'écrire le corps. Même raisonnement que le poids des pièces, tenu en incrémental plutôt
+   que rebalayé à chaque dépôt (voir l'en-tête de `server/pieces.js`, point 1).
+   ⚠️ Sans cette déclaration, une pièce dont plus aucune ligne ne parle reste sur le disque du
+   VPS POUR TOUJOURS : la suppression d'aujourd'hui dépend d'un geste du client
+   (`pieceSupprimer`), et un onglet fermé au mauvais moment suffit à la manquer. Le dossier
+   grossit alors sans fin, et c'est `pieces.remplissage` de `/health` qui finit par crier —
+   trop tard, quand les dépôts sont déjà refusés sur le terrain. */
+function opFichiersDe(r) {
+  const out = [];
+  if (!r || typeof r !== 'object') return out;
+  const ajoute = (x) => { if (/^[0-9a-f]{64}$/.test(String(x || '')) && out.indexOf(x) < 0) out.push(x); };
+  (Array.isArray(r.photos) ? r.photos : []).forEach(ph => { const m = PH_MARQUE.exec(String(ph || '')); if (m) ajoute(m[1]); });
+  (Array.isArray(r.docs) ? r.docs : []).forEach(d => { if (d && d.pid) ajoute(String(d.pid)); });
+  return out;
+}
 function opAmpute(r) {
   if (!r || typeof r !== 'object') return '';
   if (r.photosHorsNuage > 0) return 'photos';
@@ -6319,7 +6338,14 @@ function opDecomposer(base, opts) {
   const src = (opts && opts.piecesDejaSorties) ? brut
     : ((typeof syncSortirPieces === 'function') ? syncSortirPieces(brut).copie : brut);
   const out = [], retenus = [];
-  const ecrire = (c, id, m, r) => { out.push({ c: c, id: String(id), m: +m || 0, r: r, e: opEmpreinte(r) }); };
+  const ecrire = (c, id, m, r) => {
+    const l = { c: c, id: String(id), m: +m || 0, r: r, e: opEmpreinte(r) };
+    /* `f` n'est posé que s'il y a quelque chose à dire : une ligne sur cent en porte, et un
+       tableau vide sur toutes les autres ferait grossir chaque envoi pour rien. */
+    const f = opFichiersDe(r);
+    if (f.length) l.f = f;
+    out.push(l);
+  };
   const tombe = (c, id, m) => { out.push({ c: c, id: String(id), m: +m || 0, sup: +m || 0 }); };
   const reglages = {};
 

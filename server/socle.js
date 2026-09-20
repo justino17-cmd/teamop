@@ -52,6 +52,11 @@ const HORLOGE_MARGE_MS = 5 * 60000;
    du VPS est celui de tous les clients. Les pièces jointes sortiront du corps à l'étape 3 ;
    ces bornes baisseront alors. */
 const COLL_MAX = 40, ID_MAX = 200, CORPS_MAX = 512 * 1024;
+/* Une ligne déclare les pièces qu'elle référence (`f:[sha…]`). Un plafond, parce que la liste
+   vient du réseau : une intervention en porte trois ou quatre, jamais deux cents. Ce qui
+   dépasse est ignoré — la ligne passe quand même, on ne refuse pas du travail pour un
+   registre de ménage. */
+const FICHIERS_PAR_LIGNE_MAX = 200;
 /* Le plafond du corps DÉCOMPRESSÉ — voir `desceller_corps`. */
 const CLAIR_MAX = 16 * 1024 * 1024;
 /* Le plafond du POIDS D'UNE RÉPONSE, compté sur le CLAIR — voir `depuis()`. */
@@ -336,6 +341,22 @@ function ouvrir(t) {
   db.exec('CREATE TABLE IF NOT EXISTS numero (prefixe TEXT, annee INTEGER, dernier INTEGER, PRIMARY KEY(prefixe,annee))');
   db.exec(`CREATE TABLE IF NOT EXISTS fichier (sha TEXT PRIMARY KEY, mime TEXT, octets INTEGER,
              cree_le INTEGER, cree_par TEXT, refs INTEGER)`);
+  /* ⛔ QUELLE LIGNE RÉFÉRENCE QUELLE PIÈCE — ÉTAPE 3, ET C'EST CE QUI MANQUAIT POUR QUE LE
+     MÉNAGE SOIT POSSIBLE. Aujourd'hui une pièce ne disparaît du disque du VPS que sur un geste
+     du client (`pieceSupprimer` dans `app.html`) : un onglet fermé au mauvais moment, une
+     coupure réseau, une suppression faite depuis un AUTRE appareil, et le fichier reste là
+     POUR TOUJOURS. Le dossier grossit sans fin, et c'est `pieces.remplissage` de `/health` qui
+     finit par crier — trop tard, quand les dépôts sont déjà refusés sur le terrain.
+     ⚠️ C'est l'APPAREIL qui déclare (`f:[sha…]` sur la ligne), pas le serveur qui devine. Il
+     POURRAIT deviner — il a la clé — mais ce serait un déchiffrement par ligne et par envoi,
+     sur la boucle d'événements, pour une information que l'appareil connaît gratuitement
+     puisqu'il vient d'écrire le corps. Même raisonnement que le poids des pièces, tenu en
+     incrémental plutôt que rebalayé (voir l'en-tête de `pieces.js`, point 1).
+     ⚠️ ET CE N'EST QU'UN REGISTRE : les octets vivent dans `pieces.js`, un seul stockage. En
+     créer un second ici ferait diverger les deux le jour où l'un serait corrigé sans l'autre. */
+  db.exec(`CREATE TABLE IF NOT EXISTS ligne_fichier (coll TEXT NOT NULL, id TEXT NOT NULL,
+             sha TEXT NOT NULL, PRIMARY KEY (coll,id,sha)) WITHOUT ROWID`);
+  db.exec('CREATE INDEX IF NOT EXISTS ligne_fichier_sha ON ligne_fichier(sha)');
   db.exec('CREATE TABLE IF NOT EXISTS meta (cle TEXT PRIMARY KEY, val TEXT)');
 
   const lire = c => { const l = db.prepare('SELECT val FROM meta WHERE cle=?').get(c); return l ? l.val : null; };
@@ -402,6 +423,35 @@ function ouvrir(t) {
  * qu'il a. Un refus n'est jamais silencieux — il porte un motif que l'écran peut dire, et
  * l'état du serveur, pour que l'appareil sache quoi faire.
  */
+/* ⛔ CE QUI EST ENCORE RÉFÉRENCÉ, POUR QUE LE MÉNAGE SOIT POSSIBLE SANS ÊTRE DANGEREUX.
+   Rend l'ensemble des `sha` qu'au moins une ligne VIVANTE cite. Le ménage des pièces se fait
+   par différence : ce qui est sur le disque et n'est pas là-dedans n'intéresse plus personne.
+   ⚠️ ET LE SENS DE LA COMPARAISON N'EST PAS INDIFFÉRENT. On liste ce qui EST référencé, jamais
+   « ce qui est orphelin » : si cette fonction échoue ou rend une liste incomplète, l'appelant
+   garde des fichiers en trop — un coût de disque. Dans l'autre sens, il en effacerait de
+   vivants — des photos de terrain perdues. Quand une fonction peut se tromper, elle doit se
+   tromper du côté qui ne détruit rien.
+   ⚠️ Et le ménage ne doit PAS s'appuyer sur elle seule : une pièce vient d'être déposée et sa
+   ligne n'est pas encore poussée. L'appelant doit donc épargner ce qui est récent — c'est à
+   lui de le décider, pas à ce module qui ne connaît pas le disque. */
+function fichiersReferences(t) {
+  t = exigerT(t);
+  const out = new Set();
+  try {
+    const db = ouvrir(t);
+    for (const r of db.prepare(`SELECT DISTINCT lf.sha FROM ligne_fichier lf
+        JOIN enr e ON e.coll = lf.coll AND e.id = lf.id
+        WHERE e.supprime_le = 0`).all()) out.add(r.sha);
+  } catch (e) {}
+  return out;
+}
+/* Ce qu'UNE ligne référence — pour la Tour, et pour comprendre d'où vient un fichier. */
+function fichiersDeLigne(t, coll, id) {
+  t = exigerT(t);
+  try {
+    return ouvrir(t).prepare('SELECT sha FROM ligne_fichier WHERE coll=? AND id=? ORDER BY sha').all(String(coll || ''), String(id || '')).map(r => r.sha);
+  } catch (e) { return []; }
+}
 function pousser(t, lignes, ctx) {
   t = exigerT(t);
   const db = ouvrir(t), dek = dekDe(t);
@@ -444,6 +494,8 @@ function pousser(t, lignes, ctx) {
       corps=excluded.corps, empreinte=excluded.empreinte, octets=excluded.octets`);
     const tracer = db.prepare(`INSERT INTO journal (seq,ts,coll,id,maj_le,supprime,par,utilisateur,ver,octets,origine,empreinte,corps)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    const oublierRefs = db.prepare('DELETE FROM ligne_fichier WHERE coll=? AND id=?');
+    const noterRef = db.prepare('INSERT OR IGNORE INTO ligne_fichier (coll,id,sha) VALUES (?,?,?)');
 
     for (const l of (lignes || [])) {
       const coll = String((l && l.c) || ''), id = String((l && l.id) || '');
@@ -525,6 +577,18 @@ function pousser(t, lignes, ctx) {
       }
       const seq = parseInt(suivant.get().val, 10);
       poser.run(coll, id, majLe, seq, supprimeLe, String(c.app_id || ''), corps, empreinte, octets);
+      /* ⛔ LES RÉFÉRENCES SE REMPLACENT EN BLOC, JAMAIS EN AJOUT. Une intervention dont on
+         retire une photo doit PERDRE cette référence : n'ajouter que les nouvelles laisserait
+         l'ancienne à jamais, donc la pièce indélébile, donc le ménage impossible — ce qu'on
+         est précisément en train de réparer. Une tombe efface toutes les siennes.
+         ⚠️ On borne et on valide chaque `sha` : c'est une chaîne qui vient du réseau, et tout
+         le dépôt borne ses chaînes (voir `identite_trop_longue` vingt lignes plus haut). */
+      oublierRefs.run(coll, id);
+      if (!supprimeLe && Array.isArray(l.f)) {
+        for (const sha of l.f.slice(0, FICHIERS_PAR_LIGNE_MAX)) {
+          if (/^[0-9a-f]{64}$/.test(String(sha || ''))) noterRef.run(coll, id, String(sha));
+        }
+      }
       /* Le journal garde le corps SCELLÉ : c'est lui qui permet de revenir à une version, et
          c'est lui que la purge à 90 jours videra (le reste de la ligne, lui, ne s'efface pas —
          l'historique de QUI a fait QUOI reste, sans le contenu). */
@@ -1209,4 +1273,5 @@ module.exports = {
   diagnostic, diagnosticsDe, ancre, ancreVerifier,
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,
   kekDepuis, exigerKek, SOCLE_DIR, ANNUAIRE_PATH, SCHEMA_VERSION,
+  fichiersReferences, fichiersDeLigne,
 };

@@ -48,13 +48,13 @@ const objet = (sig) => { const i = SRC.indexOf(sig); if (i < 0) return '{}';
 const iCat = SRC.indexOf('const CATALOGUE=');
 const code = [
   iCat < 0 ? '' : SRC.slice(iCat, SRC.indexOf('\n', SRC.indexOf('];', iCat))),
-  ligne('const isoDe = d =>'), ligne('const todayISO = () =>'),
+  ligne('const PH_MARQUE='), ligne('const isoDe = d =>'), ligne('const todayISO = () =>'),
   bloc('function slugNom('), bloc('function idCatalogue('), bloc('function defaultPerms('),
   bloc('function seed('), bloc('function migrate('), bloc('function recEmpreinte('),
   'const OP_CLASSES = ' + objet('const OP_CLASSES = {') + ';',
   ligne('const OP_ID_DE ='), ligne("const OP_REGLAGES ="), ligne("const OP_BOX_FORME ="), ligne("const OP_VIDES ="),
   bloc('function opSansTampon('), bloc('function opCanon('), bloc('function opEmpreinte('),
-  bloc('function opAmpute('), bloc('function syncSortirPieces('),
+  bloc('function opFichiersDe('), bloc('function opAmpute('), bloc('function syncSortirPieces('),
   bloc('function opIdDerive('), bloc('function opSignature('),
   bloc('function opDecomposer('), bloc('function opRecomposer('),
 ].join('\n');
