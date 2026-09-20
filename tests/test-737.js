@@ -329,6 +329,24 @@ async function jusqua(cond, ms) {
        ⚠ Mais un index qui FUIT ne se voit nulle part : les requêtes restent justes (on relit
        `miroir` derrière), et seule la mémoire monte, lentement, sur un téléphone de terrain.
        L'invariant se contrôle donc ici, mécaniquement. */
+    /* ⛔ CE CONTRÔLE EXISTE PARCE QU'UNE MUTATION N'A RIEN CASSÉ. Remplacer le `continue` de
+       `prevenir()` par un `return` laissait 57 ✓ 0 ✗ — et c'est un vrai défaut : un écouteur
+       non concerné COUPERAIT le réveil de tous ceux d'après. Avec les 15 écouteurs d'une
+       session OP MESSAGES, un message arrivé n'en mettrait à jour qu'une partie, au hasard de
+       l'ordre d'inscription, et rien ne le signalerait.
+       Le banc ne le jouait pas : il n'avait jamais DEUX écouteurs sur des collections
+       différentes en même temps. Il en faut deux, et le non concerné doit passer EN PREMIER. */
+    {
+      let tirsAutre = 0, tirsVise = 0;
+      const stop1 = B.collection('op_users').onSnapshot(() => { tirsAutre++; });
+      const stop2 = B.collection('op_companies/c1/rooms').onSnapshot(() => { tirsVise++; });
+      const depart = tirsVise;
+      await A.collection('op_companies').doc('c1').collection('rooms').doc('r9').set({ nom: 'Tardive', members: [], room: 'salon' });
+      const passe = await jusqua(async () => tirsVise > depart);
+      stop1(); stop2();
+      vrai('⛔ un écouteur inscrit APRÈS un autre, non concerné, se réveille quand même', passe);
+    }
+
     let indexes = 0;
     for (const s of A._parColl.values()) indexes += s.size;
     v('⛔ l\'index compte exactement autant de clés que le miroir', indexes, A._miroir.size);
