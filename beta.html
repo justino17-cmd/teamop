@@ -6338,6 +6338,30 @@ function opDecomposer(base, opts) {
   const src = (opts && opts.piecesDejaSorties) ? brut
     : ((typeof syncSortirPieces === 'function') ? syncSortirPieces(brut).copie : brut);
   const out = [], retenus = [];
+  /* ⛔ LA DATE DE CE QUI N'EN A PAS — ET SANS ELLE, LA MOITIÉ DE LA BASE N'ARRIVERAIT JAMAIS.
+     Un dictionnaire (`plansSite`, `permissions`, `planNotes`) et un réglage n'ont pas de `_m` :
+     `estampiller()` ne tamponne que les enregistrements des LISTES. Leurs lignes partiraient
+     donc à `m:0`, que le serveur refuse avec le motif `non_date` — et il a raison, un
+     enregistrement daté 0 est tuable par n'importe quelle tombe de n'importe quelle époque.
+     ⚠️ Le plan nomme le piège (« Réglages/objets sans `_m` → refusés à jamais ») mais la
+     conséquence est pire que « les réglages » : `plansSite` porte les PLANS D'APPÂTAGE, qu'un
+     technicien dessine sur le terrain tous les jours. Les laisser refusés, c'est un socle qui
+     n'aurait jamais le travail réglementaire d'une entreprise de 3D.
+     On leur donne donc la date de la DERNIÈRE MODIFICATION CONNUE de la base : ils bougent
+     quand elle bouge. C'est exactement la fidélité de l'ancien monde — `dictFusion` fait déjà
+     « le côté prioritaire gagne », sans plus de finesse.
+     ⚠️ LIMITE À NE PAS CACHER : deux appareils qui modifient DEUX CLÉS différentes du même
+     dictionnaire portent alors la même date, et c'est le dernier arrivé qui gagne — par CLÉ,
+     pas en bloc, donc aucun plan n'écrase l'autre. La maille fine par clé attend la phase B et
+     l'extension d'`estampiller()` aux objets. */
+  let dateBase = 0;
+  try {
+    Object.keys(src || {}).forEach(k => { if (!Array.isArray(src[k])) return;
+      src[k].forEach(r => { const m = +(r && r._m) || 0; if (m > dateBase) dateBase = m; }); });
+  } catch (e) {}
+  /* Une base qui n'a JAMAIS été tamponnée (aucun `_m` nulle part) garde 0 : on n'invente pas
+     une date pour elle. Ses lignes seront refusées, et c'est juste — rien n'a encore été
+     réconcilié, donc rien ne doit partir. */
   const ecrire = (c, id, m, r) => {
     const l = { c: c, id: String(id), m: +m || 0, r: r, e: opEmpreinte(r) };
     /* `f` n'est posé que s'il y a quelque chose à dire : une ligne sur cent en porte, et un
@@ -6414,7 +6438,7 @@ function opDecomposer(base, opts) {
     /* ── LES DICTIONNAIRES, CLÉ PAR CLÉ. Les réunir en bloc écrasait le plan d'appâtage de
        24 postes d'un client par celui de 18 postes d'un autre, en entier, sans tombe. */
     if (genre === 'dict') {
-      Object.keys(val || {}).forEach(k => { ecrire(cle, k, 0, { v: val[k] }); });
+      Object.keys(val || {}).forEach(k => { ecrire(cle, k, dateBase, { v: val[k] }); });
       return;
     }
 
@@ -6438,7 +6462,7 @@ function opDecomposer(base, opts) {
 
   /* Le bloc part même vide : son absence voudrait dire « aucun réglage », ce qui est faux
      dès qu'une base existe, et l'aller-retour ne serait plus identique. */
-  ecrire(OP_REGLAGES, 'bloc', 0, reglages);
+  ecrire(OP_REGLAGES, 'bloc', dateBase, reglages);
 
   /* Les collections VIDES, nommées une par une — voir OP_VIDES. On les relit sur la base
      d'origine plutôt que de deviner : une clé classée « liste » peut très bien ne pas exister
@@ -6449,7 +6473,7 @@ function opDecomposer(base, opts) {
     if (g === 'liste' || g === 'liste_cle' || g === 'liste_ts' || g === 'box') { if (Array.isArray(val) && !val.length) vides.push(cle); }
     else if (g === 'dict') { if (val && typeof val === 'object' && !Object.keys(val).length) vides.push(cle); }
   });
-  if (vides.length) ecrire(OP_VIDES, 'bloc', 0, { cles: vides });
+  if (vides.length) ecrire(OP_VIDES, 'bloc', dateBase, { cles: vides });
   /* ⛔ LES RETENUS VOYAGENT AVEC LES LIGNES, PAS DANS UN COIN. Un appelant qui lit `out`
      sans lire `out.retenus` ne peut pas se tromper sur ce qu'il a : la liste est LÀ, sur le
      même objet, et `JSON.stringify` l'ignore — ce qui part sur le réseau reste exactement les

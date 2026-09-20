@@ -186,8 +186,32 @@ function synthetique() {
   /* ⛔ Un enregistrement JAMAIS daté part avec `m:0`, que le serveur refuse (`non_date`) —
      et c'est JUSTE : un enregistrement sans `_m` est tuable par n'importe quelle tombe de
      n'importe quelle époque. Le pousser serait pire que le refuser. */
+  /* ⛔ CE QUI PART ENCORE À `m:0` EST EXACTEMENT CE QUI N'A RÉELLEMENT PAS DE DATE : `bx2`
+     (la box synthétique sans `_m`) et le premier journal de chaque `liste_ts`. Le serveur les
+     refusera avec le motif `non_date`, et c'est JUSTE — un enregistrement daté 0 est tuable par
+     n'importe quelle tombe de n'importe quelle époque, donc le pousser serait pire que le
+     refuser. Ce que ce contrôle garde, c'est qu'AUCUN DICTIONNAIRE ni le bloc des réglages n'y
+     soit : eux n'ont pas de `_m` par construction, ils auraient été refusés À JAMAIS. */
   const sansDate = lignes.filter(l => !l.sup && !l.m);
-  vrai('⛔ un enregistrement jamais daté part avec m:0 (le serveur le refusera, et c\'est juste)', sansDate.length > 0);
+  const genreDe = (c) => api.OP_CLASSES[c] || c;
+  v('⛔ aucun DICTIONNAIRE ni réglage ne part à m:0 (ils seraient refusés à jamais)',
+    sansDate.filter(l => genreDe(l.c) === 'dict' || l.c === '_reglages' || l.c === '_vides').map(l => l.c), []);
+  vrai('   (et ce qui reste à 0 est bien ce qui n\'a réellement pas de `_m`)',
+    sansDate.length > 0 && sansDate.every(l => /bx2|1700000000100/.test(l.id)));
+  /* ⛔ CE QUI N'A PAS DE DATE PROPRE PREND CELLE DE LA BASE. Sans ça, les dictionnaires et le
+     bloc des réglages partaient à `m:0`, donc étaient refusés (`non_date`) — à JAMAIS. Et la
+     conséquence est pire que « les réglages » : `plansSite` porte les PLANS D'APPÂTAGE, qu'un
+     technicien dessine sur le terrain tous les jours. */
+  const plusRecent = Math.max(...syn.clients.map(r => r._m || 0), ...syn.boxes.map(b => b._m || 0));
+  v('   le bloc des réglages porte la dernière date connue de la base',
+    (lignes.find(l => l.c === '_reglages') || {}).m, plusRecent);
+  v('   et les dictionnaires aussi', (lignes.find(l => l.c === 'plansSite') || {}).m, plusRecent);
+
+  /* ⚠️ ET LE CONTRE-TEST : une base JAMAIS tamponnée garde 0. On n'invente pas une date pour
+     elle — rien n'a encore été réconcilié, donc rien ne doit partir, et le serveur le dira. */
+  const jamais = api.opDecomposer({ clients: [{ id: 'c1', nom: 'Sans tampon' }], plansSite: { a: 1 } });
+  v('⛔ une base jamais tamponnée garde m:0 (on n\'invente pas de date)',
+    jamais.filter(l => !l.sup && l.m).length, 0);
 }
 
 /* ══ 1. (c) LA BASE RÉELLE D'UN CLIENT — SI ELLE EST LÀ ══════════════════════════
