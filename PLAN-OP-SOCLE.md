@@ -442,9 +442,20 @@ Une seule fausse = on ne bascule pas.
 
 ⛔ **C'est la seule étape sans retour arrière.** Dans l'ordre : couper l'écriture Firestore ; retirer `syncAlleger` / `syncAllegerNuage` / `syncRegreffer` / `syncManque` / `COLLS_GARDEES` / `_syncTs` / `NUAGE_BUDGET` / `NUAGE_ENC_MAX` ; retirer `/api/fb/jeton`, `fbUidEquipe`, `fbRevoquerEquipe` — **après** avoir vérifié que `/api/monitor/op/couper` est bien appelée par les quatre portes.
 
-⛔ **ET SURTOUT PAS `firestore.rules`. CE FICHIER NE SE SUPPRIME PAS — ON N'EN RETIRE QUE DEUX BLOCS**, `match /elan_teams` et `match /elanB_teams`. Cette ligne a dit le contraire jusqu'au 20 septembre 2026, et la correction vivait 200 lignes plus bas, dans l'audit (point 5) — c'est-à-dire nulle part pour qui exécute l'étape en la lisant. **Le même fichier gouverne le PORTAIL CLIENT** : `espace.html` tourne entièrement sur le projet `elan-gestion` (`firebase.auth()` + `teamop_requests` / `teamop_threads` / `teamop_news`, `firestore.rules:44, 50, 59`), et c'est aussi la fabrique de contrat. Le supprimer refuserait toutes ces collections d'un coup, le jour même, sans retour arrière — l'étape 8 étant justement la seule qui n'en a pas.
+⛔ **À CETTE ÉTAPE-CI, SURTOUT PAS `firestore.rules`** (il disparaîtra en entier, mais à l'étape F de `PLAN-TOUT-SUR-LE-SERVEUR.md`, quand le portail n'en dépendra plus) : **ON N'EN RETIRE ICI QUE DEUX BLOCS**, `match /elan_teams` et `match /elanB_teams`. Cette ligne a dit le contraire jusqu'au 20 septembre 2026, et la correction vivait 200 lignes plus bas, dans l'audit (point 5) — c'est-à-dire nulle part pour qui exécute l'étape en la lisant. **Le même fichier gouverne le PORTAIL CLIENT** : `espace.html` tourne entièrement sur le projet `elan-gestion` (`firebase.auth()` + `teamop_requests` / `teamop_threads` / `teamop_news`, `firestore.rules:44, 50, 59`), et c'est aussi la fabrique de contrat. Le supprimer refuserait toutes ces collections d'un coup, le jour même, sans retour arrière — l'étape 8 étant justement la seule qui n'en a pas.
 
-⛔ **ET FIREBASE NE S'ÉTEINT PAS : OP MESSAGES VIT DESSUS**, sur un SECOND projet, avec ses propres règles (`firestore-opmessages.rules` — `op_users`, `op_companies`, `op_channels`, `op_calls`) et 12 200 lignes de `messages.html`. Rien dans ce plan ne le touche, et rien ne doit le toucher. Ce qui quitte Firestore à l'étape 8, c'est **la base d'OP GESTION, et elle seule.**
+⛔⛔ **PÉRIMÉ LE 20 SEPTEMBRE 2026 AU SOIR — VOIR `PLAN-TOUT-SUR-LE-SERVEUR.md`.** Justin a tranché : **tout va sur le VPS, Firebase s'éteint à la fin.** Et le recensement qui a suivi a trouvé DEUX affirmations fausses à cet endroit même, écrites le jour même :
+
+| ce qui était écrit ici | ce qui est vrai, mesuré |
+|---|---|
+| OP MESSAGES sur un **SECOND** projet Firebase | **un seul projet** — `app.html`, `espace.html`, `messages.html` et `reinit.html` portent le même `projectId:"elan-gestion"` ET le même `appId`. `firestore-opmessages.rules` décrit un projet **jamais créé** |
+| 12 200 lignes de `messages.html` [en service] | **hors service** — `OPMSG_EN_TRAVAUX=true`, vérifié EN LIGNE : la page `throw` avant la moindre ligne qui parle à Firebase |
+
+⚠️ OP MESSAGES n'a donc **aucun utilisateur** : rien à migrer, il se bâtit direct sur le VPS, et la tâche « créer le second projet Firebase » (encore écrite dans `tour.html:4486`) est **annulée**.
+
+⛔ **ET LE PLAN ENTIER AVAIT UN ANGLE MORT : il ne parle que de FIRESTORE, jamais de FIREBASE AUTH.** `reinit.html` (125 lignes) n'utilise **aucune** collection — uniquement l'authentification, pour les liens de mot de passe. On pouvait retirer Firestore en entier, se croire arrivé, et tous les « mot de passe oublié » passeraient encore par Google. Aucune recherche de `collection(` ne fait apparaître ce fichier.
+
+Ce qui reste vrai de cette étape : **ce qui quitte Firestore à l'étape 8, c'est la base d'OP GESTION, et elle seule.** Le reste s'en va aux étapes A à F de l'autre plan.
 
 ⚠️ **Conséquence juridique, à ne pas inverser** : §5 disait de supprimer la ligne Google Ireland de `sous-traitance.html:162-166`. **C'est faux.** Google reste sous-traitant — pour le portail client et pour OP MESSAGES. On **réduit le périmètre déclaré** à ces deux-là, on ne retire pas le sous-traitant. Idem `mentions-legales.html:52`, à réécrire en distinguant les applications. Le document `elan_teams` se supprime **30 jours plus tard**, pas le jour même, et dans un commit séparé.
 
