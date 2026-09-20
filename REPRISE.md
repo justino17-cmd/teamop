@@ -350,6 +350,123 @@ existe ; il n'a de SENS qu'une fois l'étape 4 en route, parce qu'avant ça aucu
 poussée, donc `fichiersReferences` rend vide, donc le ménage effacerait tout.
 ⛔ **À ne surtout pas brancher avant l'étape 4.**
 
+## D quinquies. ✅ SOCLE ÉTAPE 4 — LA SECONDE ÉCRITURE EST BRANCHÉE (20 septembre 2026)
+
+⚠️ **Et elle est ÉTEINTE.** C'est le serveur qui décide, **espace par espace**
+(`POST /api/monitor/op/double` depuis la Tour), et le drapeau est à `false` partout. Pour ELAN,
+aujourd'hui, ça ne change **rien** : rien ne part de chez personne.
+
+### 1. Où elle est branchée, et pourquoi là
+
+Dans `_ecriture.then(…)` de `syncPush`, juste après `sauvegardeDeposer(e)` — **le seul endroit
+du fichier qui sache qu'une écriture Firestore est vraiment passée**, donc le seul instant où la
+base locale et celle de l'équipe disent la même chose. Pousser au clic enverrait au socle des
+lignes que l'équipe n'a jamais reçues.
+
+⛔ **Jamais `await`, jamais dans le chemin d'erreur.** `opSoclePousser()` n'échoue jamais vers
+l'extérieur (tout son corps est en `try`), et l'appel est quand même enveloppé : la synchro
+d'une entreprise ne doit pas pouvoir tomber parce qu'un chantier interne a hoqueté. Mesuré : le
+VPS tué net, la pousse ET le contrôle rendent `null` sans rien jeter.
+
+### 2. ⛔ TROIS CÂBLAGES QUI NE SE VOYAIENT PAS — et la leçon vaut plus que les correctifs
+
+Les deux moitiés — le bloc socle d'`app.html` et les routes `/api/op/*` — ont été écrites
+séparément, chacune avec ses bancs. **Les trois étaient justes, et ne se parlaient pas.**
+
+| ce que l'appareil faisait | ce que le serveur attend | ce qu'on voyait |
+|---|---|---|
+| `{lignes:[…]}` | `Array.isArray(b.enr)` | 400, boucle quittée, **inerte en silence** |
+| `X-OP-Jeton: <jeton>` | `Authorization: Bearer <64 hexa>` | 401, jeton vidé, **muet une 2ᵉ fois** |
+| lit `j.acceptes_ids` | rend `acceptes` (un NOMBRE) et `refus` | une branche qui ne tourne **jamais** |
+
+⚠️ Le deuxième est pire qu'il n'en a l'air : `Access-Control-Allow-Headers` d'`index.js` liste
+`Content-Type, Authorization, X-Teamop-Devis, X-Teamop-Kh`. Un en-tête maison aurait donc été
+refusé **par le navigateur**, à la requête préalable — un mode de panne que `curl` ne peut pas
+voir, et que le commentaire au-dessus de cette ligne décrit depuis des mois.
+
+**Aucune des 91 suites ne pouvait les voir** : chacune monte UNE moitié. D'où `tests/test-735.js`
+(**52 ✓**), qui extrait les VRAIES fonctions d'`app.html` et les fait parler au VRAI serveur
+démarré par `server/index.js`, sur 127.0.0.1. C'est la même raison d'être que `test-726`, un
+étage plus haut : *les pires défauts ne sont pas dans les pièces, ils sont entre elles.*
+
+### 3. Deux défauts que le banc a révélés EN TOMBANT — et qui n'étaient pas des câblages
+
+- **`dateBase` est plafonné à maintenant.** C'est la seule date que portent le bloc de réglages,
+  les dictionnaires (`plansSite`, `planNotes`, `permissions`) et la liste des collections vides.
+  Un SEUL enregistrement à l'horloge folle — un téléphone mal réglé, son `_m` part chez toute
+  l'équipe par la synchro — les faisait tous refuser en `horlogeAvancee`, **sur tous les
+  appareils, et pour toujours**. Le plan d'appâtage de 24 postes d'un client n'arrivait jamais.
+  La fiche fautive, elle, reste refusée et se voit dans les refus : on refuse juste qu'elle
+  emporte avec elle des données qui n'y sont pour rien.
+- **Le contrôle RÉPARE, il ne se contente pas de constater.** La borne haute est **un seul
+  nombre** : elle suppose que ce qui est plus vieux qu'elle est déjà parti. Faux dès qu'un
+  enregistrement **ARRIVE du passé** — le cas normal pendant les quelques jours où un parc est
+  mélangé, un appareil en version ancienne écrivant dans Firestore sans rien pousser ici. Sur
+  divergence, la borne repart à zéro et la pousse suivante rattrape tout.
+
+### 4. ⛔ LE DÉFAUT QUE SEUL LE NAVIGATEUR A VU
+
+Le contrôle disait **« DIVERGENCE »** sur un socle parfaitement à jour. Cause : `db.journal` est
+classé « liste », donc décomposé, mais **`estampiller()` ne le tamponne pas** — ses entrées
+naissent sans `_m`. Le serveur refuse toute ligne sans date (`non_date`), donc il ne peut
+**jamais** la détenir : la compter, c'est se comparer à une chose impossible.
+
+Et depuis le correctif précédent, c'était pire qu'un faux cri : la borne repartait à zéro, donc
+**toute la base — 520 Ko mesurés — était repoussée chaque nuit, sans jamais converger.**
+
+Le contrôle ne compare donc que ce qui PEUT partir. Les lignes sans date sont **comptées et
+dites** (`muettes`, plus un avertissement nommant la collection), jamais effacées : un contrôle
+qui cache ce qu'il ne sait pas comparer ment poliment. Le banc ne pouvait pas le voir — sa base
+n'avait pas de journal. Elle en a une maintenant.
+
+⚠️ **Question ouverte pour l'étape 5, écrite ici pour ne pas la perdre** : le journal
+d'activité n'atteindra donc **jamais** le socle. C'est cohérent avec ce qu'il est (plafonné à
+500, re-tronqué à chaque fusion, délibérément périssable), mais le jour où le socle devient la
+source de vérité, il reviendra **vide**. Le tamponner toucherait `save()`, le chemin d'écriture
+de vrais clients : ça se décide, ça ne se glisse pas dans un correctif.
+
+### 5. Mesuré au navigateur — `beta.html` 703-beta, vrai Chromium, vrai serveur, 127.0.0.1
+
+Base réaliste : 120 clients, 600 interventions, 400 produits, 80 box, 1 500 mouvements.
+
+| | |
+|---|---|
+| la base | **380 Ko** → **2 949 lignes** (décomposition **17,4 ms**) |
+| **première pousse** | **2 947 acceptées**, 8 allers-retours, **520 Ko**, **259 ms** |
+| **deuxième pousse, rien changé** | **0 ligne, 0 octet**, 4 ms |
+| **une fiche modifiée** | **8 lignes, 6 153 octets**, 11 ms |
+| **contrôle** | `ok:true`, 0 écart, 2 muettes, borne **intacte**, 33 ms |
+| **trois pousses concurrentes** | **1 seul aller-retour** |
+
+⚠️ Les 8 lignes d'une fiche modifiée ne sont pas un défaut : le bloc de réglages, les
+dictionnaires et la liste des vides portent `dateBase`, donc ils repartent dès que quoi que ce
+soit bouge. Le serveur classe un corps identique en `noop` sans faire avancer `seq` — ça coûte
+6 Ko, pas des données. Mais il faut le savoir avant de compter des lignes.
+
+### 6. Les trois gardes, et pourquoi chacune existe
+
+- **Une seule pousse à la fois.** Dix-sept endroits appellent `syncPush` ; le premier envoi
+  d'une entreprise fait 8 allers-retours. Trois `save()` coup sur coup en lançaient trois
+  copies. ⚠️ Et le `finally` compte autant que la garde : sans lui, une pousse qui casse
+  laisserait la garde fermée et **plus rien ne partirait** jusqu'au rechargement.
+- **Le verdict « pas de double écriture » se range 30 min sur l'appareil.** Le jeton, lui, ne
+  quitte **jamais** la mémoire. Sans ce cache, chaque rechargement redemande une session : 120/h
+  par espace, trente téléphones de terrain qui rouvrent l'application — le plafond se remplit
+  pour rien, et le jour où on allume, ce sont les vrais appareils qui trouvent porte close.
+- **`espaceQuitter()` balaie les clés du socle PAR PRÉFIXE.** Elles portent l'espace dans leur
+  nom (`elan_op_haut_<espace>`), donc la liste fixe au-dessus les raterait toutes — la leçon
+  déjà écrite pour `elan_rappels_`+id. Une borne haute qui survit à un « repartir à neuf »
+  ferait taire la seconde écriture **pour toujours**. `espace.html` fait le même geste en clair.
+
+### 7. ⚠️ CE QUI RESTE AVANT DE POUVOIR ALLUMER QUOI QUE CE SOIT
+
+1. ⛔ **Le préavis de 30 jours / l'accord écrit d'ELAN** — chemin critique, et il n'appartient
+   qu'à Justin. Rien ne s'allume avant (voir F).
+2. Les **métriques de latence** côté serveur : aujourd'hui il n'en a aucune, donc « est-ce que ça
+   ralentit les clients ? » n'a pas de réponse mesurable.
+3. Le **ménage des pièces** de l'étape 3, qui n'a de sens qu'une fois des lignes poussées.
+4. Le contrôle (c) de `test-732` : l'aller-retour sur la **base RÉELLE d'ELAN** (voir D ter).
+
 ## E. Les étapes 2 à 9 du plan — ce qui n'a pas commencé
 
 `PLAN-OP-SOCLE.md` §4. L'étape 2 était la plus dangereuse de toutes — le convertisseur

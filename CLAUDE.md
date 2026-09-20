@@ -18,7 +18,7 @@ Pas de compilation, pas de bundler. Ce qui est écrit est ce qui est servi.
 
 ## Le serveur
 
-`server/index.js` — 5 702 lignes, 121 routes (recompté le 11 septembre 2026 ; il a doublé,
+`server/index.js` — 7 367 lignes (recompté le 20 septembre 2026 ; il a doublé,
 puis redoublé, depuis la première rédaction de cette fiche — se méfier des chiffres de cette
 page plus vieux que quelques jours, celui-ci compris : il a vieilli de 90 lignes dans la
 journée même où il a été corrigé). Écoute sur `127.0.0.1:8080`,
@@ -47,23 +47,44 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**90 suites dans `tests/`**, sans dépendance ni installation (recompté le 19 septembre 2026 au soir —
+**92 suites dans `tests/`**, sans dépendance ni installation (recompté le 20 septembre 2026 —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
-Trois familles visent `server/`, et elles ne se remplacent pas :
+Quatre familles visent `server/`, et elles ne se remplacent pas :
 
 | | ce qu'elle monte | ce qu'elle peut voir |
 |---|---|---|
 | `test-716`, `test-722`, `test-723`, `test-725` | un MODULE, dépendances injectées | la logique d'une pièce |
 | `test-641`, `test-724` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
-| `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces sont BRANCHÉES |
+| `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces du SERVEUR sont branchées |
+| `test-735` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
 
-⛔ La troisième ligne existe parce que les deux premières ne peuvent pas voir un défaut de
-CÂBLAGE — et c'est là que naissent les pires. Le 19 septembre 2026, une seule expression
+⛔ Les deux dernières lignes existent parce que les deux premières ne peuvent pas voir un défaut
+de CÂBLAGE — et c'est là que naissent les pires. Le 19 septembre 2026, une seule expression
 d'`index.js` en zone morte temporelle a éteint TOUTE la sauvegarde hors site : `test-725`
 passait au vert pendant ce temps, parce qu'il monte le module lui-même. Voir l'en-tête de
 `test-726`, qui porte les trois régressions de ce genre et ce qu'elles ont coûté.
+
+⛔⛔ **ET LA COUTURE LA PLUS DANGEREUSE N'EST PAS DANS `server/` — ELLE EST ENTRE `app.html` ET
+LUI.** Le 20 septembre 2026, la seconde écriture du socle a été branchée. Les deux moitiés
+avaient chacune leurs bancs, chacune était JUSTE, et **elles ne se parlaient pas** — trois fois :
+
+| ce que l'appareil faisait | ce que le serveur attend | ce qu'on voyait |
+|---|---|---|
+| `{lignes:[…]}` | `Array.isArray(b.enr)` | 400, boucle quittée, **inerte en silence** |
+| `X-OP-Jeton: <jeton>` | `Authorization: Bearer <64 hexa>` | 401, jeton vidé, **muet une 2ᵉ fois** |
+| lit `j.acceptes_ids` | rend `acceptes` (un NOMBRE) et `refus` | une branche qui ne tourne **jamais** |
+
+Les 91 suites d'alors étaient TOUTES vertes : chacune monte une moitié. ⚠️ Et le deuxième est
+pire qu'il n'en a l'air — `Access-Control-Allow-Headers` ne liste que `Content-Type`,
+`Authorization`, `X-Teamop-Devis`, `X-Teamop-Kh` : un en-tête maison est refusé **par le
+navigateur**, à la requête préalable, ce que `curl` ne peut pas voir. C'est écrit depuis des
+mois au-dessus de cette ligne d'`index.js`, et ça n'a pas empêché de l'écrire.
+
+**La règle, donc : dès qu'`app.html` appelle une route neuve, un banc doit faire parler la VRAIE
+fonction de la page au VRAI serveur.** Relire les deux côtés ne suffit pas — ils se lisent très
+bien séparément.
 
 Toutes sautent d'elles-mêmes si `server/node_modules` manque, et ⚠️ aucune ne vise
 `api.teamop.fr` : tout se passe sur 127.0.0.1, coffre de sauvegarde compris.
@@ -75,8 +96,9 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 90 suites · 3 310 vérifications, ~78 s (mesuré le 20/09/2026)
-node tests/test-726.js          # le câblage seul : 126 vérifications, ~12 s
+bash scripts/bancs-ci.sh        # 92 suites · 3 412 vérifications (mesuré le 20/09/2026 au soir)
+node tests/test-726.js          # le câblage du SERVEUR : 135 vérifications, ~12 s
+node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 52 vérifications, ~15 s
 ```
 
 ⛔ **COMPTER LES ✓ AVEC `grep` DONNE UN CHIFFRE FAUX, ET FAUX EN MOINS.** Sept suites (716 à
