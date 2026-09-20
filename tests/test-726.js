@@ -327,34 +327,64 @@ const menage = async () => {
          Ce contrôle part du /health VIVANT — pas d'une liste recopiée, qui vieillirait — et
          exige que chaque champ soit ou bien surveillé, ou bien NOMMÉ ici comme « vu et pas
          surveillé ». Ajouter un champ oblige donc à trancher, une fois, par écrit. */
-      const SURV = fs.readFileSync(path.join(__dirname, '..', '.github', 'scripts', 'surveillance.js'), 'utf8');
+      const SURV_BRUT = fs.readFileSync(path.join(__dirname, '..', '.github', 'scripts', 'surveillance.js'), 'utf8');
+      /* ⛔⛔ CE CONTRÔLE A ÉTÉ RÉÉCRIT LE 21 SEPTEMBRE 2026 PARCE QU'IL NE GARDAIT PAS GRAND-
+         CHOSE, ET QUE `CLAUDE.md` AFFIRMAIT LE CONTRAIRE. La première version comparait le
+         NOM DE FEUILLE (`actif`, `n`, `ok`…) à `\\bnom\\b` cherché N'IMPORTE OÙ dans
+         `surveillance.js`, commentaires compris. Trois trous, tous mesurés :
+         · un nom d'une lettre passe toujours — `\\bn\\b` se trouve dans n'importe quel
+           fichier JavaScript. `mailRefus.n` était donc « surveillé » sans l'être, et de fait
+           `mailRefus` n'apparaissait PAS UNE SEULE FOIS dans le fichier qui décide de crier
+           — alors que `CLAUDE.md` écrivait « le compteur `mailRefus` le voit venir » ;
+         · un SOUS-ARBRE ENTIER passe si ses feuilles portent un nom déjà sur la liste. Le
+           champ `portail` ajouté le même jour (`portail.comptes.actif`) est passé sans
+           encombre parce qu'`actif` y figurait pour le socle ;
+         · un motif qui tombe dans un COMMENTAIRE garde une phrase, pas un comportement —
+           c'est la règle de `CLAUDE.md`, et ce banc-ci ne l'appliquait pas à lui-même.
+         Trois corrections : on compare le CHEMIN COMPLET, on retire les commentaires, et on
+         exige la forme de LECTURE (`j.<chemin>`) — pas la simple présence du mot. */
+      const SURV = SURV_BRUT.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+      /* ⚠️ LES TABLES À CLÉS DYNAMIQUES S'ARRÊTENT LÀ. `parMotif`, `refus`, `latence`… ont
+         pour clés des motifs et des noms de route qui naissent en exploitation : descendre
+         dedans ferait apparaître un « champ non surveillé » le jour où un refus se produit,
+         donc une alarme de banc au pire moment. C'est le CONTENEUR qui doit être lu. */
+      const TABLES_DYNAMIQUES = ['parMotif', 'parRoute', 'refus', 'refus7j', 'latence'];
       /* Ceux-là sont du renseignement d'ÉTAT, pas des alarmes : ils se lisent dans la Tour, ils
          datent une réponse, ou ils donnent le contexte d'un champ déjà surveillé. Les y
-         laisser est une DÉCISION, écrite une fois — pas un oubli qu'on découvre en panne :
-           ok, ts, uptime, version, annonce    la réponse elle-même et sa date
-           histo, subs, boite, stripe          des capacités que la Tour affiche
-           bugs24h, lastRefus                  du diagnostic, consulté quand on cherche
-           cles.absent, mailRefus              la porte du courrier : c'est `mailRefus.parMotif`
-                                               qui alerte, `cles` lui sert de contexte
-           socle.flux, socle.routes            gardés par ce banc-ci, pas par une alarme
-           pieces.plafond                      le contexte de `pieces.remplissage`, surveillé
-           actif, lignes, entreprises, octets, seq, ageH, active, instantanes, archives,
-           prochaine, refus, derniere          des compteurs dont un VOISIN porte l'alarme
-           divergences.verdicts                le DÉNOMINATEUR de `muets` et `avecEcart`, qui
-                                               portent l'alarme. Seul il ne dit rien — mais
-                                               sans lui on ne saurait pas si « zéro divergence »
-                                               veut dire « tout va bien » ou « personne n'a
-                                               regardé », et c'est toute la différence */
-      const VUS_NON_SURVEILLES = ['ok', 'ts', 'uptime', 'version', 'annonce', 'histo', 'subs',
-        'boite', 'stripe', 'bugs24h', 'lastRefus', 'absent', 'mailRefus', 'flux', 'routes',
-        'plafond', 'actif', 'lignes', 'entreprises', 'octets', 'seq', 'ageH', 'active',
-        'instantanes', 'archives', 'prochaine', 'refus', 'derniere', 'verdicts'];
-      const feuilles = (o, prefixe) => Object.entries(o || {}).flatMap(([k, val]) =>
-        (val && typeof val === 'object' && !Array.isArray(val)) ? feuilles(val, k) : [[prefixe, k]]);
-      const orphelins = feuilles(j, '').filter(([, k]) =>
-        !VUS_NON_SURVEILLES.includes(k) && !new RegExp('\\b' + k + '\\b').test(SURV));
-      v('⛔ aucun champ de /health n\'est publié sans que personne ne le lise',
-        orphelins.map(([p2, k]) => (p2 ? p2 + '.' : '') + k), []);
+         laisser est une DÉCISION, écrite une fois — pas un oubli qu'on découvre en panne.
+         ⚠️ DES CHEMINS COMPLETS, désormais : `socle.flux` ne couvre plus `pieces.flux`. */
+      const VUS_NON_SURVEILLES = [
+        'v', 'histo', 'annonce', 'uptime', 'subs', 'boite', 'stripe',   // la réponse et ses capacités
+        'bugs24h', 'lastRefus',                                        // du diagnostic, consulté
+        'cles.valide', 'cles.absent', 'cles.invalide', 'cles.inconnu', // le contexte de `mailRefus.parMotif`,
+        'cles.depuis', 'cles.parRoute',                                //   qui porte l'alarme
+        'mailRefus.n', 'mailRefus.ts',                                 // `parMotif` porte l'alarme ; `ts` la date
+        'socle.bases', 'socle.flux', 'socle.routes',                   // gardés par ce banc-ci
+        /* ⚠️ `socle.refus` repart à ZÉRO à chaque redémarrage, donc plusieurs fois par jour
+           les jours chargés : il ne peut pas porter une alarme, il montrerait zéro. C'est
+           `socle.refus7j` — le même comptage, versé sur le disque — qui crie. Celui-ci est
+           la vue VIVANTE, lue depuis la Tour. */
+        'socle.refus',
+        'socle.divergences.verdicts',                                  // le DÉNOMINATEUR de `muets` et `avecEcart`
+        'pieces.plafond',                                              // le contexte de `pieces.remplissage`
+      ];
+      const chemins = (o, prefixe) => Object.entries(o || {}).flatMap(([k, val]) => {
+        const c = prefixe ? prefixe + '.' + k : k;
+        const descendre = val && typeof val === 'object' && !Array.isArray(val)
+          && !TABLES_DYNAMIQUES.includes(k);
+        return descendre ? chemins(val, c) : [c];
+      });
+      /* ⛔ LA FORME DE LECTURE, PAS LE MOT. `j.socle.illisibles` prouve que quelqu'un va
+         CHERCHER cette valeur ; le mot `illisibles` tout seul peut être n'importe quoi. */
+      const lu = (c) => new RegExp('j\\.' + c.replace(/\./g, '\\.') + '\\b').test(SURV);
+      const orphelins = chemins(j, '').filter(c => !VUS_NON_SURVEILLES.includes(c) && !lu(c));
+      v('⛔ aucun champ de /health n\'est publié sans que personne ne le lise', orphelins, []);
+      /* ⛔ ET LA LISTE BLANCHE NE DOIT PAS POURRIR. Un chemin qu'on y laisse alors que le
+         champ a disparu de `/health`, c'est une décision qui parle d'un champ mort — et le
+         jour où un champ du même nom revient, il passe sans qu'on ait rien tranché. */
+      const tousLesChemins = chemins(j, '');
+      v('⛔ et la liste des « vus, pas surveillés » ne parle que de champs qui EXISTENT',
+        VUS_NON_SURVEILLES.filter(c => !tousLesChemins.includes(c)), []);
     }
     /* ⛔ ET LE JOURNAL LE DIT AUSSI. `/health` pourrait mentir par un autre chemin ; le message
        exact qu'affichait le serveur cassé est « sauvegarde hors site non montée ». Le

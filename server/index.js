@@ -411,6 +411,11 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      « cassé au démarrage » — et ce dépôt a payé DEUX fois pour cette confusion précise
      (`_mailboxes`, `syncDecrypt`). Un socle qui refuse de se monter doit se voir. */
   socle: (opSocle && opSocle.sante) ? opSocle.sante() : (opSocle ? { actif: false } : { actif: false, erreur: 'montage' }),
+  /* Le portail client : voir `etatPortail` plus bas pour les trois états et pourquoi ce
+     n'est PAS un nombre. `surveillance.js` alarme sur `erreur`, jamais sur `actif:false`
+     seul — une alarme qui sonne sur un état voulu devient du bruit, puis une alarme qu'on
+     ignore, puis une alarme qui ne sert plus à rien le jour où elle dit vrai. */
+  portail: etatPortail,
   routesDoublons: routesDoublons.length,
   /* Étape 0 du socle : où en est le stockage des pièces jointes.
      ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
@@ -3718,6 +3723,20 @@ function socleEffacer(t) {
    ⚠ Allumer ici n'éteint rien chez Google, et c'est voulu : un mot de passe Firebase ne se
    LIT pas, donc chaque personne devra en reposer un. Les deux identités doivent pouvoir
    coexister le temps de cette bascule. */
+/* ⛔ TROIS ÉTATS, PAS DEUX — LA MÊME RÈGLE QUE LE SOCLE, ET POUR LA MÊME RAISON.
+   Ces deux modules se montent DERRIÈRE UN DRAPEAU et avalent leur exception : c'est voulu (un
+   portail qui refuse de démarrer ne doit pas emporter l'API des applications), mais ça crée
+   exactement la panne silencieuse que ce dépôt paie à répétition. Sans ces trois états,
+   `/health` répondait `ok:true` à l'identique qu'ils soient montés, éteints par décision, ou
+   CASSÉS au démarrage — pendant que tous les clients du portail sont à la porte.
+   · `{actif:false}`                    — éteint par décision, rien à dire ;
+   · `{actif:false, erreur:'montage'}`  — réglé et cassé : c'est une PANNE, et ça réveille ;
+   · `{actif:true}`                     — en service.
+   ⛔ UN BOOLÉEN, JAMAIS UN NOMBRE. `/health` est PUBLIQUE : y publier le nombre de comptes ou
+   de dossiers dirait au monde combien TeamOP a de clients, et comment ça évolue. Le compte
+   exact se lit depuis la Tour, qui est gardée. */
+const etatPortail = { comptes: { actif: false }, dossiers: { actif: false } };
+
 let comptes = null;
 try {
   if (config.comptes && config.comptes.actif) {
@@ -3726,9 +3745,14 @@ try {
       siteBase: 'https://teamop.fr',
       journal: (...a) => console.log('comptes:', ...a),
     });
+    etatPortail.comptes = { actif: true };
     console.log('comptes du portail : montés (' + comptes.combien() + ' compte(s))');
   }
-} catch (e) { console.error('comptes du portail NON montés —', e && e.message); comptes = null; }
+} catch (e) {
+  console.error('comptes du portail NON montés —', e && e.message);
+  comptes = null;
+  etatPortail.comptes = { actif: false, erreur: 'montage' };
+}
 
 /* ══ LE PORTAIL CLIENT, CHEZ NOUS ═════════════════════════════════════════════════
    ⛔ IL DÉPEND DES COMPTES, DONC IL NE SE MONTE PAS SANS EUX. Savoir qui parle passe par
@@ -3764,9 +3788,18 @@ try {
         return out;
       },
     });
+    etatPortail.dossiers = { actif: true };
     console.log('portail client : monté (' + portail.dossiers() + ' dossier(s))');
   }
-} catch (e) { console.error('portail client NON monté —', e && e.message); portail = null; }
+} catch (e) {
+  console.error('portail client NON monté —', e && e.message);
+  portail = null;
+  etatPortail.dossiers = { actif: false, erreur: 'montage' };
+}
+/* ⚠️ ET LE CAS QU'ON OUBLIE : les comptes réglés mais cassés entraînent le portail avec eux,
+   SANS exception — le `if (comptes)` est simplement faux. Sans cette ligne, `dossiers` dirait
+   « éteint par décision » pour une panne. */
+if (!portail && etatPortail.comptes.erreur) etatPortail.dossiers = { actif: false, erreur: 'comptes' };
 
 let opSocle = null;
 try {

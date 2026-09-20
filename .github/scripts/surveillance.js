@@ -52,6 +52,58 @@ function get(url) {
     if (!j.ok) problems.push('api.teamop.fr : réponse anormale (ok=' + j.ok + ')');
     if (!j.email) problems.push('api.teamop.fr : envoi d\'e-mails désactivé (email:false) — codes de sécurité HS');
     if (!j.atts) problems.push('api.teamop.fr : pièces jointes désactivées (atts:false) — bons de commande sans PDF');
+    /* ⛔⛔ LA PORTE DU COURRIER — `mailRefus` ÉTAIT PUBLIÉ ET LU PAR PERSONNE.
+       `CLAUDE.md` affirme depuis le 11 septembre 2026 : « Le compteur `mailRefus` de
+       `/health` le voit venir : un motif autre qu'`absent` qui monte, ce sont de vrais
+       appareils qui tombent. » C'était FAUX — mesuré le 21 septembre : zéro occurrence de
+       `mailRefus` dans ce fichier, le SEUL qui décide de crier. Un champ de `/health` que
+       personne ne lit est du code mort qui a l'air d'une garde, et c'est exactement ce que
+       `CLAUDE.md` écrit trois paragraphes plus loin à propos d'`atts`.
+       Ce qui est bénin et ce qui ne l'est pas :
+       · `absent`    — un appareil d'une version ancienne qui n'envoie pas la preuve ;
+       · `technique` — les espaces bêta et de service, refusés exprès (ils ont déjà fait
+                       crier cette alarme pour rien le 17 septembre : 12 `inconnu` en une
+                       heure, tous des connexions à la bêta) ;
+       · `partagee`  — une entreprise encore sur la clé partagée : c'est un chantier connu.
+       Restent `invalide` et `inconnu` : une entreprise VIVANTE dont les appareils présentent
+       une preuve que le serveur refuse. Ces gens-là n'ont plus leur Réception.
+       ⚠️ ON ALARME SUR LA RÉCENCE, PAS SUR LE TOTAL. Ce compteur repart à zéro à chaque
+       redémarrage mais pas entre deux : un seul refus au mois de juillet ferait crier cette
+       alarme toutes les heures jusqu'au prochain déploiement, et une alarme qui crie pour
+       rien finit ignorée — la leçon est déjà écrite plus bas. `ts` est la date du DERNIER
+       refus : on ne crie que si ça se passe MAINTENANT. */
+    if (j.mailRefus && j.mailRefus.parMotif) {
+      const vrais = Object.entries(j.mailRefus.parMotif)
+        .filter(([motif, n]) => n > 0 && motif !== 'absent' && motif !== 'technique' && motif !== 'partagee');
+      const recent = typeof j.mailRefus.ts === 'number' && j.mailRefus.ts > Date.now() - 2 * 3600000;
+      if (vrais.length && recent) {
+        problems.push('⛔⛔ DES APPAREILS SE FONT REFUSER LEUR RÉCEPTION MAINTENANT (' +
+          vrais.map(([m, n]) => m + '×' + n).join(', ') + ') — ce ne sont ni des versions anciennes ni la bêta : c’est une entreprise vivante dont la preuve de clé est refusée, et ces gens-là n’ont plus leur courrier. Qui exactement : Tour → /api/mail/cles (gardée). Pour rouvrir le temps de comprendre : `mailPreuveExigee: false` sur le VPS.');
+      }
+    }
+    /* ⛔ LE PORTAIL CLIENT — AJOUTÉ LE 21 SEPTEMBRE 2026, EN MÊME TEMPS QUE LE CHAMP.
+       `comptes.js` et `portail.js` se montent derrière un drapeau et AVALENT leur exception :
+       c'est voulu (un portail qui refuse de démarrer ne doit pas emporter l'API des
+       applications), mais ça fabrique la panne silencieuse type — le serveur répond
+       `ok:true`, tout a l'air normal, et pas un seul client du portail ne peut se connecter.
+       On alarme sur `erreur`, JAMAIS sur `actif:false` seul : tant que le drapeau n'est pas
+       levé en production, `actif:false` est l'état VOULU, et une alarme horaire sur un état
+       voulu devient du bruit, puis une alarme qu'on ignore, puis une alarme qui ne sert plus
+       à rien le jour où elle dit vrai. La leçon est déjà écrite plus bas pour la sauvegarde. */
+    if (j.portail && j.portail.comptes && j.portail.comptes.erreur) {
+      problems.push('⛔⛔ LES COMPTES DU PORTAIL SONT RÉGLÉS ET NE SE SONT PAS MONTÉS (' + j.portail.comptes.erreur + ') — plus AUCUN client ne peut se connecter à son espace, ni demander un mot de passe. Sur le VPS : journalctl -u teamop-api | grep comptes');
+    }
+    if (j.portail && j.portail.dossiers && j.portail.dossiers.erreur) {
+      problems.push('⛔ LE PORTAIL CLIENT NE S’EST PAS MONTÉ (' + j.portail.dossiers.erreur + ') — les demandes, les messages et les nouveautés de l’espace client sont hors service. Sur le VPS : journalctl -u teamop-api | grep portail');
+    }
+    /* ⚠️ ET LE CAS QUI NE SE VOIT PAS AUTREMENT : les comptes montés, le portail non. Il n'y
+       a alors aucune exception côté portail — juste un `if` qui est faux — donc `erreur` est
+       vide des deux côtés et les deux alarmes ci-dessus se taisent. C'est pourtant un demi-
+       portail : on sait qui parle, et on n'a rien à lui montrer. */
+    if (j.portail && j.portail.comptes && j.portail.comptes.actif === true
+        && j.portail.dossiers && j.portail.dossiers.actif === false && !j.portail.dossiers.erreur) {
+      problems.push('⛔ DEMI-PORTAIL : les comptes sont montés mais les dossiers non, sans erreur déclarée — les clients se connectent et ne voient rien. Sur le VPS : journalctl -u teamop-api | grep portail');
+    }
     /* ⛔ LA SAUVEGARDE HORS SITE — AJOUTÉE LE 17 SEPTEMBRE 2026. Une sauvegarde qui ne tourne
        plus ne fait AUCUN bruit : tout continue de marcher, jusqu'au jour où on en a besoin.
        C'est exactement la panne que cette surveillance existe pour voir venir. Trois cas :
