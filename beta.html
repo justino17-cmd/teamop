@@ -3337,7 +3337,30 @@ html[data-refonte] .tdb-seg span{
   border-radius:var(--r-pill)!important;min-height:30px;display:inline-flex;align-items:center;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
 html[data-refonte] .tdb-seg span:active{transform:scale(.96);transition-duration:var(--d-0)}
-html[data-refonte] .tdb-seg span.on{background:var(--card)!important;color:var(--acc-txt)!important;box-shadow:var(--rf-pastille)}
+/* ⛔ PLUS DE FOND SUR LE SEGMENT ACTIF : c'est le curseur qui le désigne, et il GLISSE.
+   Deux surfaces pour une même chose feraient un halo autour d'un halo — même règle que la
+   barre du bas. Seule la couleur du texte reste, elle dit lequel est choisi même sans le
+   curseur (mouvement réduit, curseur pas encore posé). */
+html[data-refonte] .tdb-seg span.on{background:none!important;color:var(--acc-txt)!important;box-shadow:none!important}
+/* ⛔ `nowrap` — mesuré sur la capture de Justin le 22 septembre 2026 : « 7 jours »,
+   « 14 jours » et « Le mois » passaient À LA LIGNE, ce qui doublait la hauteur du groupe et
+   rendait le curseur plus haut que large. Un segmenté ne se lit que d'un coup d'œil. */
+html[data-refonte] .tdb-seg{position:relative;isolation:isolate;flex-wrap:nowrap}
+html[data-refonte] .tdb-seg span{position:relative;z-index:1;white-space:nowrap}
+html[data-refonte] .tdb-seg .seg-cur{
+  position:absolute;top:0;left:0;z-index:0;pointer-events:none;
+  background:var(--card);border-radius:var(--r-pill,999px);box-shadow:var(--rf-pastille);
+  transition:transform .42s cubic-bezier(.32,.72,0,1),width .42s cubic-bezier(.32,.72,0,1),opacity .2s ease;
+}
+html[data-refonte][data-theme="dark"] .tdb-seg .seg-cur{background:color-mix(in srgb,#fff 16%,transparent);box-shadow:none}
+html[data-verre="1"] .tdb-seg .seg-cur{
+  background:var(--vr-reflet),var(--vr-fond);-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:0 1px 3px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.9);
+}
+html[data-os="windows"] .tdb-seg .seg-cur{border-radius:6px}
+@media (prefers-reduced-motion: reduce){ html[data-refonte] .tdb-seg .seg-cur{transition:opacity .15s ease} }
+/* ⛔ 44 px sous le doigt, toujours — un segmenté serré est le premier endroit où on tape à côté. */
+@media(max-width:780px){ html[data-refonte] .tdb-seg span{min-height:44px;display:inline-flex;align-items:center} }
 html[data-refonte] .tdb-rz{border-color:var(--rf-plan-trait)!important}
 html[data-refonte] .tdb-pc{border-radius:7px!important}
 
@@ -5869,7 +5892,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '708-beta';
+const APP_VERSION = '709-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -11543,23 +11566,37 @@ const SEG_MAX=4;   /* au-delà, ce n'est plus un segmenté mais une rangée de f
 /* Un groupe de filtres devient un SEGMENTÉ quand il en porte 2 à 4, qu'aucun n'est un bouton
    d'action, et qu'ils tiennent sur une ligne. Au-delà, le curseur coulissant ment : il saute
    d'une ligne à l'autre. */
-function segEligible(g){
+/* ⛔⛔ DEUX SEGMENTÉS QUI FONT LA MÊME CHOSE, C'EST UN DE TROP — la leçon des deux barres du
+   bas, appliquée ici. `.filters` avait reçu le curseur qui glisse le 21 septembre 2026 ;
+   `.tdb-seg` — le choix de période du tableau de bord — ne l'a jamais eu, et personne ne s'en
+   est aperçu parce que les deux se RESSEMBLENT. Justin l'a vu de ses yeux le 22 : le curseur
+   sautait d'un segment à l'autre, et « 7 jours » passait à la ligne faute de `nowrap`.
+   Une seule mécanique, donc, et une table qui dit comment chaque famille nomme ses enfants et
+   son état actif. En ajouter une troisième, c'est une ligne ici — pas une deuxième copie. */
+const SEG_FAMILLES=[
+  {sel:'.filters', enfant:'.chip', actif:'active'},
+  {sel:'.tdb-seg', enfant:'span',  actif:'on'},
+];
+function segFamille(g){ return SEG_FAMILLES.find(f=>g.matches&&g.matches(f.sel))||SEG_FAMILLES[0]; }
+function segEligible(g,fam){
   /* ⛔ LE CURSEUR NE COMPTE PAS COMME UN ENFANT ÉTRANGER — il est À NOUS. Sans cette
      exclusion, `segInit` se DÉFAIT au second passage : le curseur qu'il vient d'ajouter fait
      que `ch.length !== g.children.length`, donc le groupe cesse d'être éligible, donc la classe
      et le curseur sont retirés. Mesuré le 21 septembre 2026 : trois appels de `segInit`
      laissaient ZÉRO curseur. Invisible au rendu normal (chaque vue reconstruit `#content`),
      mais le repositionnement au redimensionnement ne marchait plus jamais. */
+  fam=fam||segFamille(g);
   const enfants=[...g.children].filter(e=>!(e.classList&&e.classList.contains('seg-cur')));
-  const ch=enfants.filter(e=>e.classList&&e.classList.contains('chip'));
+  const ch=enfants.filter(e=>e.matches&&e.matches(fam.enfant));
   if(ch.length<2||ch.length>SEG_MAX) return null;
   if(ch.length!==enfants.length) return null;      // un bouton étranger dans le groupe
   return ch;
 }
 /* ⛔ LE CURSEUR EST UN ENFANT DU GROUPE, PAS UN ÉLÉMENT FLOTTANT. Un élément posé en
    `position:fixed` se décalerait au premier défilement ; ici il suit son conteneur. */
-function segPoser(g,ch,anime){
-  const actif=ch.find(c=>c.classList.contains('active'))||null;
+function segPoser(g,ch,anime,fam){
+  fam=fam||segFamille(g);
+  const actif=ch.find(c=>c.classList.contains(fam.actif))||null;
   let cur=g.querySelector(':scope > .seg-cur');
   if(!actif){ if(cur) cur.style.opacity='0'; return; }
   if(!cur){ cur=document.createElement('span'); cur.className='seg-cur'; cur.setAttribute('aria-hidden','true'); g.insertBefore(cur,g.firstChild); }
@@ -11575,33 +11612,119 @@ function segPoser(g,ch,anime){
 /* Appelée après CHAQUE écriture d'écran. Elle ne touche que les groupes éligibles et ne
    change AUCUN contenu : elle ajoute un curseur et écoute les clics. */
 function segInit(racine){
-  (racine||document).querySelectorAll('.filters').forEach(g=>{
-    const ch=segEligible(g);
+  (racine||document).querySelectorAll(SEG_FAMILLES.map(f=>f.sel).join(',')).forEach(g=>{
+    const fam=segFamille(g);
+    const ch=segEligible(g,fam);
     if(!ch){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
     g.classList.add('seg-on');
-    segPoser(g,ch,false);
+    segPoser(g,ch,false,fam);
     if(g._seg) return; g._seg=true;
+    segGeste(g,fam);
     /* ⛔ ON ÉCOUTE, ON NE REMPLACE PAS. Les `onclick` des chips appellent la vue, qui se
        redessine : le curseur se reposera tout seul au rendu suivant. Cet écouteur ne sert
        qu'à faire glisser le curseur TOUT DE SUITE, avant le redessin — sinon le doigt attend
        le rendu et le contrôle paraît mou. */
     g.addEventListener('click',e=>{
-      const c=e.target.closest&&e.target.closest('.chip'); if(!c||!g.contains(c)) return;
-      const l=segEligible(g); if(!l) return;
-      l.forEach(x=>x.classList.toggle('active',x===c));
-      segPoser(g,l,true);
+      const c=e.target.closest&&e.target.closest(fam.enfant); if(!c||!g.contains(c)) return;
+      const l=segEligible(g,fam); if(!l) return;
+      l.forEach(x=>x.classList.toggle(fam.actif,x===c));
+      segPoser(g,l,true,fam);
     },true);
   });
+}
+/* ═─ LE GLISSEMENT DU DOIGT SUR UN SEGMENTÉ ──────────────────────────────────────
+   Justin, 22 septembre 2026 : « par ici, avec le glissement du doigt ». Même grammaire que la
+   barre du bas : le curseur suit le doigt, et au relâchement on tombe sur le segment le plus
+   proche du point d'arrivée PROJETÉ — un coup sec vaut un glissement lent.
+   ⛔ On ne rejoue pas l'action à la main : on CLIQUE le segment choisi. Son `onclick` porte
+   déjà tout ce qu'il faut faire (changer la période, redessiner) ; le refaire ici serait une
+   seconde vérité, et elle divergerait au premier segment qu'on ajoute.
+   ⛔ Et si le groupe DÉFILE lui-même (trop de segments pour la largeur), on lui laisse le
+   doigt : c'est la même règle que le planning. */
+function segGeste(g,fam){
+  if(g._segGeste) return; g._segGeste=true;
+  let x0=0,y0=0,actif=false,engage=false,dernier=0,vitesse=0,tdernier=0,pas=0;
+  const sobre=()=>{ try{ return window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
+  const debut=(x,y)=>{
+    if(g.scrollWidth>g.clientWidth+4) return;      // le groupe défile : le doigt est à lui
+    const l=segEligible(g,fam); if(!l||l.length<2) return;
+    actif=true; engage=false; x0=x; y0=y; dernier=x; vitesse=0; tdernier=Date.now();
+    pas=(l[1].getBoundingClientRect().left-l[0].getBoundingClientRect().left)||l[0].getBoundingClientRect().width;
+  };
+  const bouger=(x,y)=>{
+    if(!actif) return;
+    const dx=x-x0, dy=y-y0;
+    if(!engage){
+      if(Math.abs(dy)>SWIPE_ENGAGE && Math.abs(dy)>=Math.abs(dx)){ actif=false; return; }
+      if(Math.abs(dx)<SWIPE_ENGAGE || Math.abs(dx)<Math.abs(dy)*SWIPE_DOMINANCE) return;
+      engage=true;
+    }
+    const t=Date.now(), dt=Math.max(1,t-tdernier);
+    vitesse=(x-dernier)/dt*1000; dernier=x; tdernier=t;
+    if(!sobre()){
+      const l=segEligible(g,fam); if(!l) return;
+      const i=l.findIndex(c=>c.classList.contains(fam.actif)); if(i<0) return;
+      /* borné aux deux bouts : un curseur qui sort du groupe n'est plus un curseur */
+      const p=Math.max(-i*pas, Math.min((l.length-1-i)*pas, dx));
+      segPoser(g,l,false,fam);
+      const cur=g.querySelector(':scope > .seg-cur');
+      if(cur){ const m=cur.style.transform||''; cur.style.transform=m.replace(/translate\(([-\d.]+)px/, (t0,v)=>'translate('+(parseFloat(v)+p)+'px'); }
+    }
+  };
+  const relacher=()=>{
+    if(!actif||!engage){ actif=false; engage=false; return; }
+    actif=false; engage=false;
+    const l=segEligible(g,fam); if(!l) return;
+    const i=l.findIndex(c=>c.classList.contains(fam.actif));
+    const dx=dernier-x0, arrivee=dx+swipeProjeter(vitesse);
+    const bonds=Math.round(arrivee/(pas||1));
+    const j=Math.max(0,Math.min(l.length-1,(i<0?0:i)+bonds));
+    segPoser(g,l,true,fam);
+    if(j===i||i<0) return;
+    try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){}
+    l[j].click();
+  };
+  g.addEventListener('touchstart',e=>{ const t=e.touches&&e.touches[0]; if(!t||e.touches.length>1) return; debut(t.clientX,t.clientY); },{passive:true});
+  g.addEventListener('touchmove',e=>{ const t=e.touches&&e.touches[0]; if(!t) return; bouger(t.clientX,t.clientY); },{passive:true});
+  g.addEventListener('touchend',relacher,{passive:true});
+  g.addEventListener('touchcancel',()=>{ actif=false; engage=false; segPoser(g,segEligible(g,fam)||[],true,fam); },{passive:true});
+  g.addEventListener('pointerdown',e=>{ if(e.pointerType!=='mouse'||e.button!==0) return; debut(e.clientX,e.clientY); },{passive:true});
+  g.addEventListener('pointermove',e=>{ if(e.pointerType!=='mouse') return; bouger(e.clientX,e.clientY); },{passive:true});
+  g.addEventListener('pointerup',e=>{ if(e.pointerType!=='mouse') return; relacher(); },{passive:true});
 }
 /* Une fenêtre qui change de largeur déplace les segments : le curseur doit suivre, sans
    animation (on ne fait pas glisser un curseur parce qu'on a tourné son téléphone). */
 let _segMinuterie=null;
 function segRepositionner(){
   clearTimeout(_segMinuterie);
-  _segMinuterie=setTimeout(()=>{ document.querySelectorAll('.filters.seg-on').forEach(g=>{
-    const ch=segEligible(g); if(ch) segPoser(g,ch,false); }); },80);
+  /* ⚠ LES DEUX FAMILLES, PAS UNE. Ce repositionnement ne connaissait que `.filters` : le
+     segmenté du tableau de bord gardait un curseur à la mauvaise place dès qu'on changeait la
+     largeur de la fenêtre. C'est exactement le genre d'oubli qu'une seconde copie fabrique. */
+  _segMinuterie=setTimeout(()=>{ document.querySelectorAll('.seg-on').forEach(g=>{
+    const fam=segFamille(g); const ch=segEligible(g,fam); if(ch) segPoser(g,ch,false,fam); }); },80);
 }
 try{ window.addEventListener('resize',segRepositionner); }catch(e){}
+/* ⛔⛔ UN ÉCRAN QUI SE REDÉDESSINE EN PARTIE PERD SON CURSEUR ET SON GESTE. `segInit` n'était
+   appelé que par `rendreVueSure`, c'est-à-dire au rendu COMPLET d'une vue. Or beaucoup d'écrans
+   se rafraîchissent tout seuls : changer la période du tableau de bord reconstruit la carte du
+   planning sans repasser par là. Mesuré le 22 septembre 2026, sur les quatre périodes :
+   « groupe présent · curseur NON · écouteur false ». Le premier balayage marchait, le second
+   ne partait plus — et à l'œil c'est pire qu'un geste absent : il marche UNE fois.
+   C'est la même leçon que la barre « Reprendre » du multitâche : on s'accroche là où l'écran
+   s'écrit VRAIMENT. Ici, la seule chose qui voit toutes les réécritures, c'est le DOM lui-même.
+   ⚠ On n'observe que `childList` : observer les attributs ferait boucler, puisque `segPoser`
+   écrit le style du curseur. */
+let _segObs=null, _segObsMin=null;
+function segObserver(){
+  const zone=document.getElementById('content'); if(!zone||!window.MutationObserver) return;
+  if(_segObs){ try{ _segObs.disconnect(); }catch(e){} }
+  _segObs=new MutationObserver(()=>{
+    clearTimeout(_segObsMin);
+    _segObsMin=setTimeout(()=>{ try{ segInit(zone); }catch(e){} },40);
+  });
+  try{ _segObs.observe(zone,{childList:true,subtree:true}); }catch(e){}
+}
+try{ document.addEventListener('DOMContentLoaded',()=>{ try{ segObserver(); }catch(e){} }); }catch(e){}
 /* ═══════════════ « ＋ CRÉER » — six gestes, depuis n'importe quel écran ═══════════════
    Dossier de refonte, point 2 : « feuille montante (mobile : translateY 104 % → 0, .5 s) /
    fenêtre centrée 520 px (bureau) : grille 3×2 Intervention, Client, Devis, Facture, Demande,
@@ -12201,7 +12324,7 @@ function rendreVueSure(view){
   try{ multiProposer(view); }catch(_e){}
   /* Le gabarit des listes se pose ici, pour la meme raison que la barre ci-dessus :
      c'est la seule fonction qui ecrit vraiment l'ecran. */
-  try{ segInit($('content')); }catch(_e){}
+  try{ segInit($('content')); segObserver(); }catch(_e){}
 }
 /* Les chiffres montent jusqu'à leur valeur à l'arrivée d'un écran voulu — jamais sur un
    rafraîchissement automatique, jamais si l'utilisateur a demandé moins d'animation.
