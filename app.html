@@ -831,6 +831,11 @@ table, .tbl, .list-row {
 /* Le remplissage automatique de Safari peignait les champs en jaune sur la carte sombre :
    on repeint par-dessous avec le fond du champ, et l'encre du thème. */
 input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,textarea:-webkit-autofill{-webkit-text-fill-color:var(--oeil-t);caret-color:var(--oeil-t);-webkit-box-shadow:0 0 0 1000px var(--champ-fond) inset;box-shadow:0 0 0 1000px var(--champ-fond) inset;transition:background-color 9999s ease-out 0s}
+    /* Barre de reprise du multitâche : visible sans voler la vedette au contenu. */
+    .multi-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;
+      border-radius:12px;background:var(--bg2);border:1px solid var(--bd);font-size:13.5px;color:var(--t2)}
+    .multi-bar b{color:var(--t1)}
+    .nav-item .multi-pt{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}
 </style>
 <style id="plg-css">
 /* ── PLANNING MULTI-JOURS + CARTE ─────────────────────────────────────── */
@@ -9839,7 +9844,113 @@ function btnOccupe(el,texte){
     el.innerHTML=html; el.style.minWidth=''; el.classList.remove('btn-occupe');
   };
 }
-function openModal(html,taille){ const m=$('modal');
+/* ═══ MULTITÂCHE — QUITTER UN ÉCRAN SANS PERDRE CE QU'ON Y FAISAIT ══════════════════
+   Demandé par Justin le 21 septembre 2026 : pouvoir aller dans une autre catégorie, revenir,
+   et continuer. Sur le terrain c'est la situation NORMALE : on remplit une intervention, un
+   client appelle, on va voir sa fiche, on revient — et jusqu'ici tout était perdu.
+
+   ⛔ RIEN N'EST ÉCRIT DANS db. C'est un état d'APPAREIL, pas une donnée d'entreprise : la
+   règle « rien ne s'écrit dans les données d'une entreprise au seul chargement » vaut aussi
+   pour un geste de navigation. Tout vit dans localStorage, sous le préfixe de l'espace (la
+   bêta a donc le sien) ET l'identifiant du compte — deux personnes sur le même appareil ne se
+   repassent pas leurs brouillons.
+
+   ⚠️ ON GARDE LE BALISAGE DE LA FENÊTRE, PAS LE NOM DE LA FONCTION QUI L'A OUVERTE. Il y a
+   plus de cent portes vers une fenêtre dans ce fichier ; les recenser serait une liste à tenir
+   à jour, donc une liste qui se périme en silence. Le balisage réinjecté porte ses propres
+   gestionnaires, qui sont des chaînes : il repart exactement comme il était.
+
+   ⚠️ ON NE ROUVRE RIEN TOUT SEUL. Une fenêtre qui se rouvre d'elle-même quand on arrive sur
+   un écran est une surprise, et une surprise sur un téléphone de terrain se solde par un tap
+   au mauvais endroit. On propose : une barre, un bouton, un geste. */
+const MULTI_VIE_MS = 12 * 3600000;   /* au-delà, ce n'est plus « je reviens », c'est demain */
+const MULTI_MAX = 240000;            /* un balisage plus gros ne vaut pas la place qu'il prend */
+let _multiHtml = '';                 /* le dernier balisage passé à openModal */
+function multiCle(){ return String(STORE_KEY).replace(/gestion_v2$/, '') + 'multi_' + ((currentUser && currentUser.id) || 'x'); }
+function multiTout(){ try{ const o = JSON.parse(localStorage.getItem(multiCle()) || '{}'); return (o && typeof o === 'object') ? o : {}; }catch(e){ return {}; } }
+function multiEcrire(o){ try{ localStorage.setItem(multiCle(), JSON.stringify(o)); }catch(e){ /* stockage plein : le multitâche est un confort, il ne doit JAMAIS empêcher de travailler */ } }
+function multiFrais(e){ return !!(e && e.ts && (Date.now() - e.ts) < MULTI_VIE_MS); }
+function multiEnCours(vue){ const e = multiTout()[vue]; return !!(multiFrais(e) && e.html); }
+/* ⚠️ ON REPEINT LA PASTILLE, PAS LE MENU. `renderNav()` reconstruit les quarante-deux lignes
+   du menu : un re-rendu complet pour un point de 7 px, à chaque changement d'écran. Et il
+   n'est PAS appelé par `go()` — mesuré : la pastille ne se rafraîchissait donc jamais. */
+function multiPastilles(){
+  try{
+    document.querySelectorAll('.nav-item[data-view]').forEach(n => {
+      const actif = multiEnCours(n.dataset.view), pt = n.querySelector('.multi-pt');
+      if(actif && !pt){ const x = document.createElement('span'); x.className = 'multi-pt'; x.title = 'Tu as quelque chose en cours ici'; n.appendChild(x); }
+      else if(!actif && pt) pt.remove();
+    });
+  }catch(e){}
+}
+function multiOublier(vue){ const o = multiTout(); if(o[vue]){ delete o[vue]; multiEcrire(o); } multiPastilles(); }
+/* Selon les écrans, c'est le conteneur qui défile, ou la page : on regarde les deux. */
+function multiDefil(){ const c = $('content'); return (c && c.scrollTop) ? c.scrollTop : (window.scrollY || 0); }
+function multiPoserDefil(y){ if(!y) return; const c = $('content'); if(c && c.scrollHeight > c.clientHeight) c.scrollTop = y; else window.scrollTo(0, y); }
+/* ⛔ LA CAPTURE ÉCRIT TOUJOURS LA VÉRITÉ DU MOMENT, Y COMPRIS « il n'y a plus rien ».
+   C'est ce qui fait qu'un enregistrement réussi efface la reprise : la sauvegarde ferme la
+   fenêtre puis rappelle go(current), donc on repasse ici sans fenêtre ouverte. Sans ça,
+   l'écran proposerait de reprendre un devis déjà enregistré — et on en ferait deux. */
+function multiCapturer(){
+  if(!currentUser || !current) return;
+  const o = multiTout();
+  const ouverte = !!($('overlay') && $('overlay').classList.contains('open')) && !_modalForcee;
+  const e = { ts: Date.now(), y: multiDefil() };
+  if(ouverte && _multiHtml && _multiHtml.length <= MULTI_MAX){
+    const m = $('modal');
+    const champs = [];
+    if(m) [...m.querySelectorAll('input,select,textarea')].forEach((x, i) => {
+      if(x.type === 'file' || x.type === 'password') return;   /* ni fichier, ni secret */
+      champs.push({ n: x.name || '', id: x.id || '', i: i, t: x.type || x.tagName.toLowerCase(),
+        v: (x.type === 'checkbox' || x.type === 'radio') ? (x.checked ? 1 : 0) : String(x.value == null ? '' : x.value).slice(0, 4000) });
+    });
+    const h = m && m.querySelector('h2,h3,.modal-titre');
+    e.html = _multiHtml; e.champs = champs;
+    e.titre = String((h && h.textContent) || 'Fenêtre en cours').trim().slice(0, 60);
+  }
+  if(!e.html && !e.y){ delete o[current]; } else { o[current] = e; }
+  Object.keys(o).forEach(k => { if(!multiFrais(o[k])) delete o[k]; });
+  multiEcrire(o);
+  multiPastilles();
+}
+/* La reprise : on remet le balisage, puis les valeurs. On émet input/change parce que certains
+   écrans recalculent un total à la frappe — ne rien émettre rendrait un devis dont les lignes
+   sont là mais dont le total est à zéro, ce qui est pire que pas de reprise du tout. */
+function multiReprendre(vue){
+  const e = multiTout()[vue];
+  if(!multiFrais(e) || !e.html) return;
+  openModal(e.html);
+  const m = $('modal'); if(!m) return;
+  const tous = [...m.querySelectorAll('input,select,textarea')];
+  (e.champs || []).forEach(c => {
+    let x = null;
+    try{ x = (c.n && m.querySelector('[name="' + c.n + '"]')) || (c.id && m.querySelector('#' + CSS.escape(c.id))) || tous[c.i] || null; }catch(err){ x = tous[c.i] || null; }
+    if(!x) return;
+    if(c.t === 'checkbox' || c.t === 'radio'){ x.checked = !!c.v; x.dispatchEvent(new Event('change', { bubbles: true })); return; }
+    x.value = c.v;
+    x.dispatchEvent(new Event(x.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+  });
+  multiOublier(vue);
+  try{ const b = document.querySelector('.multi-bar'); if(b) b.remove(); }catch(err){}
+  try{ toast('Reprise là où tu en étais'); }catch(err){}
+}
+/* La barre de reprise — discrète, en haut de l'écran, avec de quoi l'écarter. */
+function multiProposer(vue){
+  const e = multiTout()[vue];
+  if(!multiFrais(e)) return;
+  if(e.y) multiPoserDefil(e.y);
+  if(!e.html) return;
+  const c = $('content'); if(!c) return;
+  if(c.querySelector('.multi-bar')) return;
+  const mn = Math.max(1, Math.round((Date.now() - e.ts) / 60000));
+  const d = document.createElement('div');
+  d.className = 'multi-bar';
+  d.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">↩︎ Tu avais commencé : <b>' + esc(e.titre || 'une fenêtre') + '</b> · il y a ' + mn + ' min</span>'
+    + '<button class="btn sm" onclick="multiReprendre(' + esc(JSON.stringify(vue)) + ')">Reprendre</button>'
+    + '<button class="btn ghost sm" title="Oublier" onclick="multiOublier(' + esc(JSON.stringify(vue)) + '); this.parentNode.remove()">✕</button>';
+  c.insertBefore(d, c.firstChild);
+}
+function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html || '');
   if(taille==='carte'){ m.className='modal carte'; $('overlay').classList.remove('full'); $('overlay').classList.add('centre'); }
   else { m.className='modal full'; $('overlay').classList.remove('centre'); $('overlay').classList.add('full'); }
   m.innerHTML=html; $('overlay').classList.add('open'); m.scrollTop=0;
@@ -10571,7 +10682,7 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
     if(!rows.length) return '';
     return `<div class="nav-label">${esc(t(sec.g))}</div>` + rows.map(r=> r.verrou
       ? `<div class="nav-item nav-verrou" style="opacity:.38;cursor:not-allowed" title="Réservé à ta formule ${esc((PLANS[att.formule]||{}).l||'')} — en attente de paiement" onclick="verrouMessage()">🔒 ${esc(t(r.it.l))}</div>`
-      : `<div class="nav-item" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${esc(t(r.it.l))}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}</div>`
+      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}</div>`
     ).join('');
   }).join('');
   /* La loupe seulement quand il y a de quoi chercher : sous une dizaine de rubriques, elle
@@ -10670,9 +10781,21 @@ function rendreDirige(sens,rendu){
 /* Le try/catch d'origine, sorti de go() : dans une transition de vue le rendu s'exécute
    plus tard, hors du try de l'appelant — sans cette enveloppe, une vue qui plante
    n'afficherait plus « Affichage indisponible » mais une page vide. */
+/* ⛔⛔ LA BARRE DE REPRISE SE POSE ICI, PAS DANS go(). Mesuré au navigateur le 21 septembre
+   2026 : posée depuis go() sur une minuterie de 60 ms, elle n'apparaissait JAMAIS — à 100,
+   300, 600, 1 200 et 2 500 ms, toujours absente. `rendreVueAnimee` écrit `#content` APRÈS,
+   donc elle balayait la barre sans un mot. Le commentaire du premier jet annonçait pourtant
+   ce piège : l'écrire ne suffit pas, il faut le MESURER.
+   Ici, on est juste après l'écriture de la vue — y compris sur un rafraîchissement automatique,
+   ce qui est voulu : la barre doit survivre au rafraîchissement, sinon elle disparaît toute
+   seule au bout de quelques secondes. */
 function rendreVueSure(view){
   try{ views[view](); }
   catch(e){ console.error('Vue '+view+' :',e); $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Affichage indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Une erreur est survenue sur cette page.<br><span style="color:var(--t3)">${esc(e&&e.message||e)}</span></p><button class="btn ghost sm" style="margin-top:10px" onclick="go('dashboard')">← Retour au tableau de bord</button></div>`; }
+  /* ⛔ APRÈS la vue, pas avant : `rendreVueAnimee` écrit `#content` plus tard, donc une barre
+     posée depuis `go()` sur une minuterie était balayée — mesuré absente à 100, 300, 600,
+     1 200 et 2 500 ms. Ici on est juste après l'écriture réelle de l'écran. */
+  try{ multiProposer(view); }catch(_e){}
 }
 /* Les chiffres montent jusqu'à leur valeur à l'arrivée d'un écran voulu — jamais sur un
    rafraîchissement automatique, jamais si l'utilisateur a demandé moins d'animation.
@@ -10735,6 +10858,8 @@ function refreshEcran(){
   try{ if(views[current]) views[current](); }catch(e){}
 }
 function go(view){
+  /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
+  try{ multiCapturer(); }catch(e){}
   if(!views[view]) view='dashboard';
   _ecranRendu=null;   // on quitte le détail pour une rubrique : plus rien à redessiner
   try{ usageNote(view); }catch(e){}
@@ -10764,6 +10889,9 @@ function go(view){
      rafraîchissement automatique (views[current]() rappelé toutes les quelques secondes) :
      sinon l'écran rejouerait son entrée tout seul et donnerait l'impression de bugger. */
   rendreVueAnimee(view,_retour?'retour':'');
+  /* La barre de reprise se pose dans `rendreVueSure`, la seule fonction qui écrit vraiment
+     l'écran. Ici on ne repeint que les pastilles du menu. */
+  multiPastilles();
   updateBell();
 }
 function gsearch(q){ const box=$('gsrch-res'); if(!box) return; q=norm((q||'').trim()); if(q.length<2){ box.style.display='none'; box.innerHTML=''; return; }
@@ -22583,7 +22711,10 @@ function boxDemande(boxId,pid){ const b=db.boxes.find(x=>x.id===boxId), p=produi
     <div class="fgroup"><div class="frow"><textarea id="dem-note" placeholder="Ex : Besoin avant chantier…"></textarea></div></div>
     <div class="detail-desc" style="margin-top:8px">Le DR choisira le fournisseur lors de la validation.</div>`);
 }
-function envoyerDemandeBox(boxId,pid){ const b=db.boxes.find(x=>x.id===boxId), p=produit(pid); if(!b||!p.id)return;
+function envoyerDemandeBox(boxId,pid){
+  /* Seconde porte vers une demande : depuis une box, en un tap. Même droit que le formulaire. */
+  if(!permGarde('achats','ajouter','une demande')) return;
+  const b=db.boxes.find(x=>x.id===boxId), p=produit(pid); if(!b||!p.id)return;
   const qte=Math.max(1,parseInt(($('dem-qte')||{}).value)||1); const note=($('dem-note')||{}).value||'';
   const num=nextNum('demandes','DC','num');
   db.demandes.push({id:uid(),num,date:todayISO(),boxId:b.id,boxNumero:b.numero||'',boxNom:b.nom||'',lignes:[{produitId:pid,quantite:qte}],chefId:currentUser.id,chefNom:fullName(currentUser),statut:'enAttente',notes:note||'Demande depuis box',drNom:null,motifRefus:null}); demandeNotifDR(db.demandes[db.demandes.length-1]);
@@ -22914,7 +23045,9 @@ function formEnv(id){ const e=id?db.enveloppes.find(x=>x.id===id):{}; const part
       </div>
     </form>`);
 }
-function saveEnv(ev,id){ ev.preventDefault(); const f=ev.target; const d=Object.fromEntries(new FormData(f));
+function saveEnv(ev,id){ ev.preventDefault();
+  if(!permGarde('stock', id?'modifier':'ajouter','une enveloppe')) return;
+  const f=ev.target; const d=Object.fromEntries(new FormData(f));
   const clientNom=`${d.prenom||''} ${d.nom||''}`.trim();
   const obj={clientNom,clientTelephone:d.clientTelephone,adresse:d.adresse,ville:d.ville,technicienId:d.technicienId,actif:f.actif.checked};
   if(id){ const ix=db.enveloppes.findIndex(x=>x.id===id); db.enveloppes[ix]={...db.enveloppes[ix],...obj}; save(); toast('Mise à jour'); ficheEnv(id); }
@@ -23045,7 +23178,9 @@ function renderDemLignes(){ const el=$('dem-lignes'); if(!el)return;
     <button type="button" class="btn danger sm" onclick="demLignes.splice(${i},1);renderDemLignes()">✕</button></div>`).join('')
     +`<button type="button" class="btn ghost sm" onclick="demLignes.push({produitId:'',quantite:1});renderDemLignes()">＋ Produit</button>`;
 }
-function saveDemande(e){ e.preventDefault(); const f=Object.fromEntries(new FormData(e.target));
+function saveDemande(e){ e.preventDefault();
+  if(!permGarde('achats','ajouter','une demande')) return;
+  const f=Object.fromEntries(new FormData(e.target));
   const lignes=demLignes.filter(l=>l.produitId); if(!lignes.length){ toast('Ajoute au moins un produit'); return; }
   const b=db.boxes.find(x=>x.id===f.boxId)||{};
   const num=nextNum('demandes','DC','num');
@@ -30250,6 +30385,15 @@ function formPointage(id){ const p=id?db.pointages.find(x=>x.id===id):{};
       <div class="field"><label>Note</label><input name="note" value="${esc(p.note)}"></div>
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Pointer'}</button></div></form>`);
 }
+/* ⛔⛔ LE POINTAGE N'EST PAS GARDÉ PAR LE DROIT DE CATÉGORIE, ET C'EST VOULU.
+   `db.pointages` est rattaché à « Temps & équipe » dans COLL_GRP, donc la garde générique
+   s'appliquerait ici comme ailleurs. Elle ne s'applique pas : pointer, ce n'est pas CRÉER un
+   enregistrement partagé, c'est déclarer ses propres heures. Un administrateur qui décoche
+   « ajouter » sur Temps & équipe veut empêcher la création de véhicules ou de conducteurs —
+   pas empêcher un technicien de dire qu'il a travaillé. Le trou serait moins coûteux que le
+   verrou : une journée non pointée est une journée non payée.
+   ⚠️ `tests/test-747.js` le NOMME dans sa liste « à trancher » : si Justin veut l'inverse, c'est
+   une ligne à ajouter ici, pas un oubli à redécouvrir. */
 function savePointage(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target)); d.pause=parseInt(d.pause)||0;
   if(id){ const ix=db.pointages.findIndex(x=>x.id===id); db.pointages[ix]={...db.pointages[ix],...d}; toast('Pointage mis à jour'); }
   else{ const rec={id:uid(),...d}; db.pointages.push(rec); logEvent('Pointage',`${techName(d.techId)} ${d.debut}-${d.fin}`,'general'); toast('Pointage enregistré');
@@ -30383,7 +30527,10 @@ function saveBrouillon(e){ e.preventDefault();
   if(!permGarde('achats','ajouter','un produit au brouillon')) return;
   const d=Object.fromEntries(new FormData(e.target));
   db.brouillons.push({id:uid(),userId:currentUser.id,produitId:d.produitId,quantite:parseInt(d.quantite)||1}); save(); closeModal(); views.brouillon(); }
-function brouillonToDemande(){ const boxId=$('brBox').value; if(!boxId){toast('Choisis une box');return;}
+function brouillonToDemande(){
+  /* Troisième porte : le brouillon qui devient une demande. */
+  if(!permGarde('achats','ajouter','une demande')) return;
+  const boxId=$('brBox').value; if(!boxId){toast('Choisis une box');return;}
   const mine=db.brouillons.filter(b=>b.userId===currentUser.id); if(!mine.length){toast('Brouillon vide');return;}
   const b=db.boxes.find(x=>x.id===boxId)||{};
   const num=nextNum('demandes','DC','num');
@@ -30703,7 +30850,9 @@ function formProduitDonne(id,presetVeh){ const p=id?db.produitsDonnes.find(x=>x.
       <div class="field"><label>Notes</label><input name="notes" value="${esc(p.notes)}" placeholder="Client, motif…"></div>
     </form>`);
 }
-function saveProduitDonne(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target)); d.quantite=parseInt(d.quantite)||1;
+function saveProduitDonne(e,id){ e.preventDefault();
+  if(!permGarde('stock', id?'modifier':'ajouter','un produit donné')) return;
+  const d=Object.fromEntries(new FormData(e.target)); d.quantite=parseInt(d.quantite)||1;
   if(id){ const ix=db.produitsDonnes.findIndex(x=>x.id===id); db.produitsDonnes[ix]={...db.produitsDonnes[ix],...d}; toast('Mis à jour'); }
   else{ db.produitsDonnes.push({id:uid(),auteurNom:fullName(currentUser),...d});
     // un don est une vraie sortie de stock : journalisée, et déduite du stock global
@@ -30744,7 +30893,9 @@ function formConducteur(id){ const c=id?db.conducteurs.find(x=>x.id===id):{};
       ${id?`<div class="fgroup"><div class="frow"><span class="frow-lbl">Actif</span><div class="frow-val"><input type="checkbox" name="actif" ${c.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div></div>`:''}
     </form>`);
 }
-function saveConducteur(ev,id){ ev.preventDefault(); const f=ev.target; const d=Object.fromEntries(new FormData(f));
+function saveConducteur(ev,id){ ev.preventDefault();
+  if(!permGarde('equipe', id?'modifier':'ajouter','un conducteur')) return;
+  const f=ev.target; const d=Object.fromEntries(new FormData(f));
   const obj={prenom:d.prenom,nom:d.nom,telephone:d.telephone,actif:f.actif?f.actif.checked:true};
   if(id){ const ix=db.conducteurs.findIndex(x=>x.id===id); db.conducteurs[ix]={...db.conducteurs[ix],...obj}; toast('Conducteur mis à jour'); }
   else{ db.conducteurs.push({id:uid(),...obj,dateCreation:todayISO()}); logEvent('Conducteur ajouté',`${d.prenom} ${d.nom}`,'crud'); toast('Conducteur créé'); }

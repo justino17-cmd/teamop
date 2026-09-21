@@ -76,13 +76,13 @@ const VU_ET_PAS_GARDE = {
    évident : verrouiller `savePointage` empêcherait un technicien de pointer, ce qui serait pire
    que le trou. Le banc les NOMME, il ne tranche pas. */
 const A_TRANCHER = {
-  savePointage: 'un technicien doit pouvoir pointer même sans droit de création',
-  saveDemande: 'une demande d achat est faite par celui qui manque de produit',
-  envoyerDemandeBox: 'même question que saveDemande',
-  brouillonToDemande: 'même question que saveDemande',
-  saveEnv: 'enveloppes - à trancher',
-  saveProduitDonne: 'produits donnés - à trancher',
-  saveConducteur: 'conducteurs - à trancher',
+  /* ⛔⛔ UN SEUL RESTE, ET C'EST UNE DÉCISION ÉCRITE, PAS UN OUBLI. Pointer n'est pas CRÉER un
+     enregistrement partagé : c'est déclarer ses propres heures. Un administrateur qui décoche
+     « ajouter » sur Temps & équipe veut empêcher la création de véhicules ou de conducteurs, pas
+     empêcher un technicien de dire qu'il a travaillé — une journée non pointée est une journée
+     non payée. Le trou coûte moins cher que le verrou. Si Justin veut l'inverse, c'est une ligne
+     à ajouter dans `savePointage`, et cette entrée disparaît. */
+  savePointage: 'pointer, c est declarer ses propres heures, pas creer un enregistrement partage',
 };
 
 const mg = /const COLL_GRP=\{([^}]*)\}/.exec(NU);
@@ -125,6 +125,18 @@ vrai('⛔ saveBrouillon consulte le droit « Achats internes »', /permGarde\('a
 const st = corps('saveTech');
 vrai('⛔ dans saveTech, le DROIT passe avant la PLACE du forfait',
   st.indexOf("permGarde('equipe'") >= 0 && st.indexOf("permGarde('equipe'") < st.indexOf('planPlaceLibre()'));
+
+console.log('\n══ 3 bis. ⛔ LES SIX CHEMINS FINIS LE 21 SEPTEMBRE AU SOIR ══\n');
+/* Recensés par le banc lui-même, pas devinés : ils créaient sur un geste d'utilisateur sans
+   consulter le droit de leur catégorie. Le pointage, lui, reste ouvert — voir A_TRANCHER. */
+for (const [fn, grp] of [['saveEnv', 'stock'], ['saveProduitDonne', 'stock'], ['saveConducteur', 'equipe'],
+  ['saveDemande', 'achats'], ['envoyerDemandeBox', 'achats'], ['brouillonToDemande', 'achats']]) {
+  vrai('⛔ ' + fn.padEnd(20) + ' → permGarde(' + grp + ')', new RegExp("permGarde\\('" + grp + "'").test(corps(fn)));
+}
+/* ⚠️ ET LE CONTRÔLE INVERSE, QUI COMPTE AUTANT : le pointage NE DOIT PAS être gardé. Sans lui,
+   quelqu'un « complèterait » la série un jour, en croyant bien faire, et bloquerait les heures. */
+vrai('⛔⛔ savePointage n est PAS gardé — pointer reste possible sans droit de création',
+  !/permGarde\(/.test(corps('savePointage')));
 
 console.log('\n══ 4. ⛔ LES HUIT AUTRES GARDES N\'ONT PAS BOUGÉ ══\n');
 for (const [fn, grp] of [['saveTache', 'plan'], ['saveAbsence', 'plan'], ['saveIntervention', 'int'],
