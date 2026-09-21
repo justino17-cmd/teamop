@@ -2572,14 +2572,47 @@ html[data-refonte][data-theme="light"]{
    décrivait : « que le thème se mette bien à toutes les couleurs de la palette ».
    ⚠ La règle : une entrée d'`ACCENTS` sans `--acc-src` ici est une couleur MORTE. Il n'y a
    aucun moyen de s'en apercevoir à la lecture — `tests/test-757.js` compte les deux listes. */
-html[data-refonte][data-accent="green"] { --acc-src:#2EB872; --on-acc:#FFFFFF; }
-html[data-refonte][data-accent="blue"]  { --acc-src:#3B82F6; --on-acc:#FFFFFF; }
-html[data-refonte][data-accent="teal"]  { --acc-src:#32ADE6; --on-acc:#062A38; }
-html[data-refonte][data-accent="indigo"]{ --acc-src:#7B79E8; --on-acc:#FFFFFF; }
-html[data-refonte][data-accent="purple"]{ --acc-src:#8B6BFF; --on-acc:#FFFFFF; }
-html[data-refonte][data-accent="pink"]  { --acc-src:#FF6E8E; --on-acc:#3A0512; }
-html[data-refonte][data-accent="red"]   { --acc-src:#FF6E66; --on-acc:#380605; }
-html[data-refonte][data-accent="orange"]{ --acc-src:#E79A3C; --on-acc:#2A1304; }
+/* ⛔⛔ CES NEUF TEINTES VIENNENT DE `design/THEME-REFERENCE.md`, PAS D'UN GOÛT. Justin a
+   fourni le thème le 22 septembre 2026 — « regarde bien que tout le reste soit comme le
+   thème ». Les valeurs d'avant (#2EB872, #3B82F6, #8B6BFF…) avaient été choisies à l'œil et
+   ne correspondaient à RIEN : ni à la palette iOS, ni au vert de la marque, ni au document.
+   `tests/test-759.js` relit le fichier de référence et compare hexadécimal par hexadécimal —
+   changer une teinte ici sans la changer là-bas fait tomber le banc, et c'est voulu.
+
+   ⛔ ET CHAQUE TEINTE EN A DEUX : UNE DE JOUR, UNE DE NUIT. C'est le point que la palette
+   d'avant n'avait pas du tout. Une teinte assez sombre pour porter du blanc en plein jour
+   devient illisible sur un fond noir — le thème donne donc la paire, exactement comme iOS
+   (`#1f7a5c` / `#4fd18a` pour le vert). La règle de nuit est écrite APRÈS et porte un
+   sélecteur de plus (0,4,1 contre 0,3,1) : c'est ce qui la fait gagner.
+
+   ⚠ `graphite` est la huitième du document ; `red` n'y est pas, et on le GARDE quand même —
+   quelqu'un l'a peut-être déjà choisi, et retirer sa règle viderait `--acc-src`, donc tuerait
+   les treize jetons dérivés (la panne exacte du 11 au 22 septembre). Il est aligné sur le
+   rouge système iOS du document (`#ff3b30`), pas laissé à sa valeur inventée.
+
+   ⚠ L'ENCRE EST CALCULÉE, PAS RECOPIÉE. Le document dit « #fff, et #0b1426 sur les teintes
+   claires » ; appliqué tel quel, le blanc tombe à 3,4:1 sur le rose et le rouge. On garde
+   donc la teinte du document et on prend l'encre qui CONTRASTE le plus — la même règle que
+   `encreSur()` applique déjà à « Ma couleur ». Sans ça, la palette nommée et la couleur
+   personnalisée n'obéiraient pas au même principe. Tout est ≥ 4,4:1, mesuré. */
+html[data-refonte][data-accent="green"]   { --acc-src:#1F7A5C; --on-acc:#FFFFFF; }
+html[data-refonte][data-accent="blue"]    { --acc-src:#007AFF; --on-acc:#0B1426; }
+html[data-refonte][data-accent="teal"]    { --acc-src:#30B0C7; --on-acc:#0B1426; }
+html[data-refonte][data-accent="indigo"]  { --acc-src:#5856D6; --on-acc:#FFFFFF; }
+html[data-refonte][data-accent="purple"]  { --acc-src:#AF52DE; --on-acc:#0B1426; }
+html[data-refonte][data-accent="pink"]    { --acc-src:#FF2D55; --on-acc:#0B1426; }
+html[data-refonte][data-accent="red"]     { --acc-src:#FF3B30; --on-acc:#0B1426; }
+html[data-refonte][data-accent="orange"]  { --acc-src:#FF9500; --on-acc:#0B1426; }
+html[data-refonte][data-accent="graphite"]{ --acc-src:#1D1D1F; --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="dark"][data-accent="green"]   { --acc-src:#4FD18A; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="blue"]    { --acc-src:#0A84FF; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="teal"]    { --acc-src:#40C8E0; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="indigo"]  { --acc-src:#5E5CE6; --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="dark"][data-accent="purple"]  { --acc-src:#BF5AF2; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="pink"]    { --acc-src:#FF375F; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="red"]     { --acc-src:#FF453A; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="orange"]  { --acc-src:#FF9F0A; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="graphite"]{ --acc-src:#F5F5F7; --on-acc:#0B1426; }
 html[data-refonte][data-accent]{
   --acc:var(--acc-src);
   --acc2:color-mix(in srgb,#000 18%,var(--acc-src));
@@ -3320,6 +3353,45 @@ html[data-refonte] .leaflet-container,html[data-refonte] #plm-map,
 html[data-refonte] #map,html[data-refonte] #carte-box,html[data-refonte] #carte-int{border-radius:var(--rf-r-carte);overflow:hidden}
 html[data-refonte] .leaflet-control-zoom a{border-radius:var(--rf-r-mini)!important}
 
+/* ══ LA TUILE D'ICÔNE DU MENU ══ `design/THEME-REFERENCE.md` : « icônes 16 px sur tuiles
+   26 px colorées ». La couleur vient de `catCoul(k)`, posée en ligne dans `--cat` — une par
+   rubrique, fixe, indépendante de la couleur choisie par la personne.
+   ⛔ `filter:grayscale(1)` EST RETIRÉ ICI, ET SEULEMENT ICI. La règle générale (.nav-item .ico,
+   plus haut) désature les émojis du menu ; c'est elle qui rendait gris tout ce qu'on peint.
+   On ne la supprime pas — d'autres endroits s'appuient dessus — on la neutralise sur la tuile.
+   ⛔ ET L'ICÔNE N'EST JAMAIS SEULE : le libellé est toujours écrit à côté. Une couleur qui
+   porterait seule le sens serait invisible pour un daltonien et en niveaux de gris. */
+html[data-refonte] .nav-item .ico{
+  width:26px;height:26px;flex:0 0 26px;border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb,var(--cat,#8E8E93) 15%,transparent);
+  color:var(--cat,#8E8E93);
+  filter:none;opacity:1;font-size:14px;line-height:1;
+  transition:background-color var(--d-1) var(--e-sortie),transform var(--d-2) var(--ressort-vif);
+}
+html[data-refonte] .nav-item .ico .rf-ic{width:16px;height:16px;stroke-width:2;vertical-align:0}
+html[data-refonte] .nav-item:hover .ico{background:color-mix(in srgb,var(--cat,#8E8E93) 24%,transparent)}
+html[data-refonte] .nav-item:active .ico{transform:scale(.92)}
+/* Sur l'élément actif la pastille passe en plein : c'est le seul endroit où la couleur de la
+   rubrique et celle de la personne se croisent, et c'est la rubrique qui gagne — on reconnaît
+   la ligne à sa couleur, pas au fait qu'elle soit allumée. */
+html[data-refonte] .nav-item.active .ico{background:var(--cat,#8E8E93);color:#fff}
+html[data-refonte][data-theme="dark"] .nav-item .ico{background:color-mix(in srgb,var(--cat,#8E8E93) 22%,transparent)}
+html[data-refonte][data-theme="dark"] .nav-item:hover .ico{background:color-mix(in srgb,var(--cat,#8E8E93) 32%,transparent)}
+/* ⛔⛔ LE DOCUMENT EST ÉCRIT POUR DES LIBELLÉS ANGLAIS, ET LE FRANÇAIS EST PLUS LONG.
+   Mesuré au navigateur le 22 septembre 2026, sidebar à 236 px comme le document l'exige :
+   la tuile de 26 px plus sa gouttière faisaient passer « Tableau de bord », « Archives
+   mensuelles » et « Commandes en cours » SUR DEUX LIGNES — 61 px de haut contre 44 pour les
+   trente-neuf autres, donc un menu au rythme cassé.
+   ⛔ ON NE TRONQUE PAS : un libellé coupé cache une information, et c'est la règle du dépôt.
+   On resserre la gouttière et le corps du texte, ce qui rend les onze pixels qui manquaient.
+   La tuile, elle, reste à 26 px — c'est elle qu'on est venu chercher. */
+html[data-refonte] .nav-item{gap:10px!important;padding:9px 10px!important;font-size:14px!important;letter-spacing:-.008em}
+html[data-refonte] .nav-item>*:not(.ico):not(.badge){min-width:0}
+/* Windows n'a pas de pilules : la tuile reprend le rayon Fluent du document (§ 5). */
+html[data-os="windows"] .nav-item .ico{border-radius:5px}
+html[data-os="android"] .nav-item .ico{border-radius:999px}
+
 /* ══ LE PLANNING DU TABLEAU DE BORD ══ c'est le même objet que le grand planning, en réduction :
    il doit suivre les mêmes règles, sinon deux écrans qui se ressemblent cessent de se ressembler
    (Liquid Glass, consistance). Colonne du jour neutre, repère sur l'en-tête, colonne des personnes
@@ -3337,7 +3409,30 @@ html[data-refonte] .tdb-seg span{
   border-radius:var(--r-pill)!important;min-height:30px;display:inline-flex;align-items:center;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
 html[data-refonte] .tdb-seg span:active{transform:scale(.96);transition-duration:var(--d-0)}
-html[data-refonte] .tdb-seg span.on{background:var(--card)!important;color:var(--acc-txt)!important;box-shadow:var(--rf-pastille)}
+/* ⛔ PLUS DE FOND SUR LE SEGMENT ACTIF : c'est le curseur qui le désigne, et il GLISSE.
+   Deux surfaces pour une même chose feraient un halo autour d'un halo — même règle que la
+   barre du bas. Seule la couleur du texte reste, elle dit lequel est choisi même sans le
+   curseur (mouvement réduit, curseur pas encore posé). */
+html[data-refonte] .tdb-seg span.on{background:none!important;color:var(--acc-txt)!important;box-shadow:none!important}
+/* ⛔ `nowrap` — mesuré sur la capture de Justin le 22 septembre 2026 : « 7 jours »,
+   « 14 jours » et « Le mois » passaient À LA LIGNE, ce qui doublait la hauteur du groupe et
+   rendait le curseur plus haut que large. Un segmenté ne se lit que d'un coup d'œil. */
+html[data-refonte] .tdb-seg{position:relative;isolation:isolate;flex-wrap:nowrap}
+html[data-refonte] .tdb-seg span{position:relative;z-index:1;white-space:nowrap}
+html[data-refonte] .tdb-seg .seg-cur{
+  position:absolute;top:0;left:0;z-index:0;pointer-events:none;
+  background:var(--card);border-radius:var(--r-pill,999px);box-shadow:var(--rf-pastille);
+  transition:transform .42s cubic-bezier(.32,.72,0,1),width .42s cubic-bezier(.32,.72,0,1),opacity .2s ease;
+}
+html[data-refonte][data-theme="dark"] .tdb-seg .seg-cur{background:color-mix(in srgb,#fff 16%,transparent);box-shadow:none}
+html[data-verre="1"] .tdb-seg .seg-cur{
+  background:var(--vr-reflet),var(--vr-fond);-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:0 1px 3px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.9);
+}
+html[data-os="windows"] .tdb-seg .seg-cur{border-radius:6px}
+@media (prefers-reduced-motion: reduce){ html[data-refonte] .tdb-seg .seg-cur{transition:opacity .15s ease} }
+/* ⛔ 44 px sous le doigt, toujours — un segmenté serré est le premier endroit où on tape à côté. */
+@media(max-width:780px){ html[data-refonte] .tdb-seg span{min-height:44px;display:inline-flex;align-items:center} }
 html[data-refonte] .tdb-rz{border-color:var(--rf-plan-trait)!important}
 html[data-refonte] .tdb-pc{border-radius:7px!important}
 
@@ -4792,19 +4887,27 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
    reflet interne en haut. Le reflet est ce qui distingue une vitre d'un simple voile gris. */
 html[data-verre="1"]{
   --vr-flou:blur(40px) saturate(210%) brightness(1.06);
-  /* ⛔ 34 %, PAS 58 %. Mesuré le 22 septembre 2026 contre la maquette : à 58 % de blanc,
-     une carte n'est plus une vitre, c'est une carte blanche — le flou n'a plus rien à
-     montrer. C'est ce qui faisait dire « je n'ai pas le ressenti que c'en est un ». */
-  --vr-fond:rgba(255,255,255,.34);
-  --vr-fond2:rgba(255,255,255,.28);
-  --vr-liseret:rgba(255,255,255,.85);
+  /* ⛔⛔ CES VALEURS VIENNENT DE `design/THEME-REFERENCE.md` § 4, PAS D'UN RÉGLAGE À L'ŒIL.
+     Le document donne un ENSEMBLE cohérent — surface .58, liseré .72, reflet interne .85,
+     ombre 0 10px 28px — et il ne faut pas en prendre la moitié : à .34 (notre valeur d'avant)
+     avec un liseré à .85, le liseré était plus opaque que la vitre qu'il borde, ce qui est
+     exactement l'inverse d'une matière.
+     ⚠ UNE SEULE ADAPTATION, ET ELLE EST ARITHMÉTIQUE : le document décrit le reflet comme un
+     `inset 0 1px 0` (un cheveu de lumière), alors que ce dépôt le peint en dégradé à 135° —
+     ce qui donne la matière, mais s'AJOUTE à la surface. Empilé tel quel sur .58, le coin
+     clair montait à .58 + .42×.65 = .85 : un aplat blanc. Le dégradé est donc ramené à .22,
+     ce qui plafonne le point le plus clair à .58 + .42×.22 = .67 — sous le liseré (.72), qui
+     redevient la ligne la plus lumineuse de la carte, comme chez Apple. */
+  --vr-fond:rgba(255,255,255,.58);
+  --vr-fond2:rgba(255,255,255,.44);
+  --vr-liseret:rgba(255,255,255,.72);
   /* ⛔ LE REFLET EST UN DÉGRADÉ, PAS UNE OMBRE. Une ombre interne d'un pixel ne fait qu'un
      liseré ; ce qui donne la MATIÈRE, c'est la lumière qui court en diagonale sur la vitre.
      Il se pose comme première couche de `background`, au-dessus de la teinte. */
-  --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.65) 0%,rgba(255,255,255,.2) 45%,rgba(255,255,255,.05) 60%,rgba(255,255,255,.4) 100%);
-  --vr-ombre:0 16px 40px rgba(31,38,64,.12),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -1px 0 rgba(255,255,255,.5);
-  --vr-ombre-barre:0 22px 50px rgba(31,38,64,.18),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -1px 0 rgba(255,255,255,.5);
-  --vr-page:linear-gradient(180deg,#f4f5f8,#e9ebf0);
+  --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.07) 45%,rgba(255,255,255,.02) 60%,rgba(255,255,255,.14) 100%);
+  --vr-ombre:0 10px 28px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.4);
+  --vr-ombre-barre:0 14px 36px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.4);
+  --vr-page:linear-gradient(180deg,#f7f7f9,#eeeef2);
   /* ⛔ LES HALOS NE PRENNENT PLUS LA COULEUR D'ACCENT. Ils la prenaient à 42 % : qui
      choisissait Violet se retrouvait avec une page violette, et Justin l'a dit — « ça fait
      bizarre ». Chez Apple le fond reste neutre et la couleur vit dans les CONTRÔLES. Les deux
@@ -4837,12 +4940,15 @@ html[data-verre="1"][data-theme="dark"]{
      `rgba(28,28,30,.42)` est plus SOMBRE que la page — la carte s'enfonçait au lieu de se
      lever, et l'écran devenait un aplat de rectangles à peine distincts. On remonte, et on
      teinte du même bleu nuit que la page pour ne pas poser un film gris dessus. */
-  --vr-fond:rgba(52,64,92,.52);
-  --vr-fond2:rgba(70,84,116,.44);
-  --vr-liseret:rgba(255,255,255,.14);
-  --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.03) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.06) 100%);
-  --vr-ombre:0 16px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(255,255,255,.06);
-  --vr-ombre-barre:0 22px 50px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.26),inset 0 -1px 0 rgba(255,255,255,.06);
+  /* Alphas, liseré et ombres du document (§ 4) ; la TEINTE, elle, reste bleu nuit — voir
+     l'encadré du fond plus bas. Et `--vr-fond2` passe au voile BLANC du document : de nuit
+     c'est la lumière qui élève, un navy sur du navy ne se détache pas. */
+  --vr-fond:rgba(44,56,84,.55);
+  --vr-fond2:rgba(255,255,255,.08);
+  --vr-liseret:rgba(255,255,255,.18);
+  --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.02) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.03) 100%);
+  --vr-ombre:0 10px 28px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(255,255,255,.05);
+  --vr-ombre-barre:0 14px 36px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(255,255,255,.05);
   /* ⛔ PAS DE NOIR PUR — ET J'AVAIS RECOPIÉ CELUI DE LA MAQUETTE. La règle est écrite dans
      CLAUDE.md : `#0D1624` est un bleu très sombre, pas `#000000`, parce que le noir absolu
      durcit le contraste, fatigue l'œil et fait baver le texte blanc sur OLED. Et sur du noir,
@@ -5088,8 +5194,21 @@ html[data-os="android"] .tab-cur{border-radius:999px;background:color-mix(in srg
 html[data-os="android"] .tab.on{color:var(--t1)}
 html[data-os="android"] .tabbar{border-top:0;box-shadow:0 -1px 0 var(--brd)}
 
-/* ── Bureau : sidebar permanente 236 px, pas de tiroir, pas d'onglets ── */
-html[data-kind="desktop"] .sidebar{width:236px}
+/* ── Bureau : sidebar permanente, pas de tiroir, pas d'onglets ──
+   ⛔⛔ 252 px, ET PAS LES 236 DU DOCUMENT — c'est un écart ASSUMÉ, mesuré, pas un oubli.
+   `design/THEME-REFERENCE.md` § 5 dit 236 px, mais ses maquettes sont écrites en anglais.
+   Mesuré au navigateur le 22 septembre 2026, tuile d'icône comprise : 149 px restaient au
+   libellé, et « Consommation produits » en demande 163 — quatorze de trop. Trois rubriques
+   passaient sur deux lignes (59 px contre 44), ce qui casse le rythme du menu.
+   Les deux autres sorties étaient pires : tronquer cache une information (« Consommation
+   produ… »), et rapetisser le texte descend sous le plancher de lisibilité du terrain.
+   C'est exactement ce que dit la règle du dépôt : « un libellé français est plus long que
+   son équivalent anglais — toute grille copiée d'une référence anglophone doit être ÉLARGIE,
+   pas reprise telle quelle. » 258 laisse 171 px pour 163 demandés — HUIT de marge, parce que deux ne suffisaient pas :
+   mesuré, le libelle tenait sur le papier (dispo 165, besoin 163) et passait quand meme a la
+   ligne. Sous-pixel, graisse de l'item actif, pastille de rappel. Une marge qui se compte sur
+   les doigts n'en est pas une — on mesure APRES, pas seulement avant. */
+html[data-kind="desktop"] .sidebar{width:258px}
 html[data-kind="desktop"] .menu-btn{display:none!important}
 
 /* ── Le tiroir en verre, avec une encre qui tient sur une surface CLAIRE ──
@@ -5869,7 +5988,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '708-beta';
+const APP_VERSION = '709-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -10805,6 +10924,43 @@ function closeModal(force){ if(_modalForcee&&force!==true) return; $('overlay').
    d'une autre fenêtre : le clic de reprise tombait sur le fond sombre). */
 
 /* ═══════════════ NAVIGATION ═══════════════ */
+/* ⛔⛔ CHAQUE CATÉGORIE A SA COULEUR, ET ELLES VIENNENT DU DOCUMENT.
+   `design/THEME-REFERENCE.md` : « Chaque catégorie a aussi une couleur fixe (icône sur tuile)
+   — palette iOS : bleu #007aff, vert #34c759, orange #ff9500, rouge #ff3b30, violet #af52de,
+   indigo #5856d6, teal #30b0c7, rose #ff2d55, gris #8e8e93 », et « sidebar permanente 236 px,
+   icônes 16 px sur tuiles 26 px colorées ».
+   Jusqu'au 22 septembre 2026, le menu n'affichait AUCUNE icône : `it.ic` était déclaré sur les
+   42 rubriques et n'était rendu nulle part — ni dans le menu, ni dans le tiroir. C'est la
+   première chose que Justin a vue en comparant sa maquette à l'application.
+   ⚠ LA COULEUR NE SE PERSONNALISE PAS. C'est un repère d'emplacement, pas une décoration :
+   elle doit rester la même quand quelqu'un choisit Violet, sinon on perd la mémoire visuelle
+   de « Interventions, c'est le vert en haut ». Même raison que `--green` sémantique.
+   ⚠ ET ELLE NE PORTE JAMAIS SEULE UNE INFORMATION : le libellé est toujours écrit à côté.
+   Neuf teintes pour quarante-deux rubriques, groupées par sens — pas une par écran, ce qui
+   ferait un arc-en-ciel illisible. */
+const CAT_COUL_IOS={bleu:'#007AFF',vert:'#34C759',orange:'#FF9500',rouge:'#FF3B30',
+  violet:'#AF52DE',indigo:'#5856D6',teal:'#30B0C7',rose:'#FF2D55',gris:'#8E8E93'};
+const CAT_COUL={
+  /* Pilotage — bleu */
+  dashboard:'bleu', statistiques:'bleu', historique:'gris', audit:'gris', archives:'gris',
+  /* Planification — rouge (c'est un calendrier) */
+  planning:'rouge', planningGeneral:'rouge', taches:'rouge', absences:'rose',
+  /* Terrain — vert, la couleur du métier */
+  interventions:'vert', rapports:'vert', carteInt:'vert', registre:'vert', carteBox:'vert',
+  /* Commerce — indigo */
+  clients:'bleu', devis:'indigo', assistantDevis:'indigo', factures:'indigo',
+  contrats:'indigo', comptabilite:'indigo', devisXylo:'indigo', recap:'indigo',
+  /* Stock — orange */
+  box:'orange', boxes:'orange', produits:'orange', mouvements:'orange', stock:'orange',
+  fournisseurs:'orange', bons:'orange', commandes:'orange', remises:'orange',
+  /* Échanges — teal */
+  messagerie:'teal', enveloppes:'teal', demandes:'teal', mesDemandes:'teal', courrier:'teal',
+  /* Équipe et réglages — violet / gris */
+  techniciens:'violet', equipe:'violet', utilisateurs:'violet', permissions:'violet',
+  vehicules:'violet', pointage:'violet',
+  parametres:'gris', profil:'gris', aide:'gris', sync:'gris', plans:'gris', dossier:'gris',
+};
+function catCoul(k){ return CAT_COUL_IOS[CAT_COUL[k]||'gris']; }
 const NAV = [
   {g:'Tableau de bord', items:[
     {k:'dashboard',ic:'📊',l:'Tableau de bord'},
@@ -11543,23 +11699,37 @@ const SEG_MAX=4;   /* au-delà, ce n'est plus un segmenté mais une rangée de f
 /* Un groupe de filtres devient un SEGMENTÉ quand il en porte 2 à 4, qu'aucun n'est un bouton
    d'action, et qu'ils tiennent sur une ligne. Au-delà, le curseur coulissant ment : il saute
    d'une ligne à l'autre. */
-function segEligible(g){
+/* ⛔⛔ DEUX SEGMENTÉS QUI FONT LA MÊME CHOSE, C'EST UN DE TROP — la leçon des deux barres du
+   bas, appliquée ici. `.filters` avait reçu le curseur qui glisse le 21 septembre 2026 ;
+   `.tdb-seg` — le choix de période du tableau de bord — ne l'a jamais eu, et personne ne s'en
+   est aperçu parce que les deux se RESSEMBLENT. Justin l'a vu de ses yeux le 22 : le curseur
+   sautait d'un segment à l'autre, et « 7 jours » passait à la ligne faute de `nowrap`.
+   Une seule mécanique, donc, et une table qui dit comment chaque famille nomme ses enfants et
+   son état actif. En ajouter une troisième, c'est une ligne ici — pas une deuxième copie. */
+const SEG_FAMILLES=[
+  {sel:'.filters', enfant:'.chip', actif:'active'},
+  {sel:'.tdb-seg', enfant:'span',  actif:'on'},
+];
+function segFamille(g){ return SEG_FAMILLES.find(f=>g.matches&&g.matches(f.sel))||SEG_FAMILLES[0]; }
+function segEligible(g,fam){
   /* ⛔ LE CURSEUR NE COMPTE PAS COMME UN ENFANT ÉTRANGER — il est À NOUS. Sans cette
      exclusion, `segInit` se DÉFAIT au second passage : le curseur qu'il vient d'ajouter fait
      que `ch.length !== g.children.length`, donc le groupe cesse d'être éligible, donc la classe
      et le curseur sont retirés. Mesuré le 21 septembre 2026 : trois appels de `segInit`
      laissaient ZÉRO curseur. Invisible au rendu normal (chaque vue reconstruit `#content`),
      mais le repositionnement au redimensionnement ne marchait plus jamais. */
+  fam=fam||segFamille(g);
   const enfants=[...g.children].filter(e=>!(e.classList&&e.classList.contains('seg-cur')));
-  const ch=enfants.filter(e=>e.classList&&e.classList.contains('chip'));
+  const ch=enfants.filter(e=>e.matches&&e.matches(fam.enfant));
   if(ch.length<2||ch.length>SEG_MAX) return null;
   if(ch.length!==enfants.length) return null;      // un bouton étranger dans le groupe
   return ch;
 }
 /* ⛔ LE CURSEUR EST UN ENFANT DU GROUPE, PAS UN ÉLÉMENT FLOTTANT. Un élément posé en
    `position:fixed` se décalerait au premier défilement ; ici il suit son conteneur. */
-function segPoser(g,ch,anime){
-  const actif=ch.find(c=>c.classList.contains('active'))||null;
+function segPoser(g,ch,anime,fam){
+  fam=fam||segFamille(g);
+  const actif=ch.find(c=>c.classList.contains(fam.actif))||null;
   let cur=g.querySelector(':scope > .seg-cur');
   if(!actif){ if(cur) cur.style.opacity='0'; return; }
   if(!cur){ cur=document.createElement('span'); cur.className='seg-cur'; cur.setAttribute('aria-hidden','true'); g.insertBefore(cur,g.firstChild); }
@@ -11575,33 +11745,119 @@ function segPoser(g,ch,anime){
 /* Appelée après CHAQUE écriture d'écran. Elle ne touche que les groupes éligibles et ne
    change AUCUN contenu : elle ajoute un curseur et écoute les clics. */
 function segInit(racine){
-  (racine||document).querySelectorAll('.filters').forEach(g=>{
-    const ch=segEligible(g);
+  (racine||document).querySelectorAll(SEG_FAMILLES.map(f=>f.sel).join(',')).forEach(g=>{
+    const fam=segFamille(g);
+    const ch=segEligible(g,fam);
     if(!ch){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
     g.classList.add('seg-on');
-    segPoser(g,ch,false);
+    segPoser(g,ch,false,fam);
     if(g._seg) return; g._seg=true;
+    segGeste(g,fam);
     /* ⛔ ON ÉCOUTE, ON NE REMPLACE PAS. Les `onclick` des chips appellent la vue, qui se
        redessine : le curseur se reposera tout seul au rendu suivant. Cet écouteur ne sert
        qu'à faire glisser le curseur TOUT DE SUITE, avant le redessin — sinon le doigt attend
        le rendu et le contrôle paraît mou. */
     g.addEventListener('click',e=>{
-      const c=e.target.closest&&e.target.closest('.chip'); if(!c||!g.contains(c)) return;
-      const l=segEligible(g); if(!l) return;
-      l.forEach(x=>x.classList.toggle('active',x===c));
-      segPoser(g,l,true);
+      const c=e.target.closest&&e.target.closest(fam.enfant); if(!c||!g.contains(c)) return;
+      const l=segEligible(g,fam); if(!l) return;
+      l.forEach(x=>x.classList.toggle(fam.actif,x===c));
+      segPoser(g,l,true,fam);
     },true);
   });
+}
+/* ═─ LE GLISSEMENT DU DOIGT SUR UN SEGMENTÉ ──────────────────────────────────────
+   Justin, 22 septembre 2026 : « par ici, avec le glissement du doigt ». Même grammaire que la
+   barre du bas : le curseur suit le doigt, et au relâchement on tombe sur le segment le plus
+   proche du point d'arrivée PROJETÉ — un coup sec vaut un glissement lent.
+   ⛔ On ne rejoue pas l'action à la main : on CLIQUE le segment choisi. Son `onclick` porte
+   déjà tout ce qu'il faut faire (changer la période, redessiner) ; le refaire ici serait une
+   seconde vérité, et elle divergerait au premier segment qu'on ajoute.
+   ⛔ Et si le groupe DÉFILE lui-même (trop de segments pour la largeur), on lui laisse le
+   doigt : c'est la même règle que le planning. */
+function segGeste(g,fam){
+  if(g._segGeste) return; g._segGeste=true;
+  let x0=0,y0=0,actif=false,engage=false,dernier=0,vitesse=0,tdernier=0,pas=0;
+  const sobre=()=>{ try{ return window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
+  const debut=(x,y)=>{
+    if(g.scrollWidth>g.clientWidth+4) return;      // le groupe défile : le doigt est à lui
+    const l=segEligible(g,fam); if(!l||l.length<2) return;
+    actif=true; engage=false; x0=x; y0=y; dernier=x; vitesse=0; tdernier=Date.now();
+    pas=(l[1].getBoundingClientRect().left-l[0].getBoundingClientRect().left)||l[0].getBoundingClientRect().width;
+  };
+  const bouger=(x,y)=>{
+    if(!actif) return;
+    const dx=x-x0, dy=y-y0;
+    if(!engage){
+      if(Math.abs(dy)>SWIPE_ENGAGE && Math.abs(dy)>=Math.abs(dx)){ actif=false; return; }
+      if(Math.abs(dx)<SWIPE_ENGAGE || Math.abs(dx)<Math.abs(dy)*SWIPE_DOMINANCE) return;
+      engage=true;
+    }
+    const t=Date.now(), dt=Math.max(1,t-tdernier);
+    vitesse=(x-dernier)/dt*1000; dernier=x; tdernier=t;
+    if(!sobre()){
+      const l=segEligible(g,fam); if(!l) return;
+      const i=l.findIndex(c=>c.classList.contains(fam.actif)); if(i<0) return;
+      /* borné aux deux bouts : un curseur qui sort du groupe n'est plus un curseur */
+      const p=Math.max(-i*pas, Math.min((l.length-1-i)*pas, dx));
+      segPoser(g,l,false,fam);
+      const cur=g.querySelector(':scope > .seg-cur');
+      if(cur){ const m=cur.style.transform||''; cur.style.transform=m.replace(/translate\(([-\d.]+)px/, (t0,v)=>'translate('+(parseFloat(v)+p)+'px'); }
+    }
+  };
+  const relacher=()=>{
+    if(!actif||!engage){ actif=false; engage=false; return; }
+    actif=false; engage=false;
+    const l=segEligible(g,fam); if(!l) return;
+    const i=l.findIndex(c=>c.classList.contains(fam.actif));
+    const dx=dernier-x0, arrivee=dx+swipeProjeter(vitesse);
+    const bonds=Math.round(arrivee/(pas||1));
+    const j=Math.max(0,Math.min(l.length-1,(i<0?0:i)+bonds));
+    segPoser(g,l,true,fam);
+    if(j===i||i<0) return;
+    try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){}
+    l[j].click();
+  };
+  g.addEventListener('touchstart',e=>{ const t=e.touches&&e.touches[0]; if(!t||e.touches.length>1) return; debut(t.clientX,t.clientY); },{passive:true});
+  g.addEventListener('touchmove',e=>{ const t=e.touches&&e.touches[0]; if(!t) return; bouger(t.clientX,t.clientY); },{passive:true});
+  g.addEventListener('touchend',relacher,{passive:true});
+  g.addEventListener('touchcancel',()=>{ actif=false; engage=false; segPoser(g,segEligible(g,fam)||[],true,fam); },{passive:true});
+  g.addEventListener('pointerdown',e=>{ if(e.pointerType!=='mouse'||e.button!==0) return; debut(e.clientX,e.clientY); },{passive:true});
+  g.addEventListener('pointermove',e=>{ if(e.pointerType!=='mouse') return; bouger(e.clientX,e.clientY); },{passive:true});
+  g.addEventListener('pointerup',e=>{ if(e.pointerType!=='mouse') return; relacher(); },{passive:true});
 }
 /* Une fenêtre qui change de largeur déplace les segments : le curseur doit suivre, sans
    animation (on ne fait pas glisser un curseur parce qu'on a tourné son téléphone). */
 let _segMinuterie=null;
 function segRepositionner(){
   clearTimeout(_segMinuterie);
-  _segMinuterie=setTimeout(()=>{ document.querySelectorAll('.filters.seg-on').forEach(g=>{
-    const ch=segEligible(g); if(ch) segPoser(g,ch,false); }); },80);
+  /* ⚠ LES DEUX FAMILLES, PAS UNE. Ce repositionnement ne connaissait que `.filters` : le
+     segmenté du tableau de bord gardait un curseur à la mauvaise place dès qu'on changeait la
+     largeur de la fenêtre. C'est exactement le genre d'oubli qu'une seconde copie fabrique. */
+  _segMinuterie=setTimeout(()=>{ document.querySelectorAll('.seg-on').forEach(g=>{
+    const fam=segFamille(g); const ch=segEligible(g,fam); if(ch) segPoser(g,ch,false,fam); }); },80);
 }
 try{ window.addEventListener('resize',segRepositionner); }catch(e){}
+/* ⛔⛔ UN ÉCRAN QUI SE REDÉDESSINE EN PARTIE PERD SON CURSEUR ET SON GESTE. `segInit` n'était
+   appelé que par `rendreVueSure`, c'est-à-dire au rendu COMPLET d'une vue. Or beaucoup d'écrans
+   se rafraîchissent tout seuls : changer la période du tableau de bord reconstruit la carte du
+   planning sans repasser par là. Mesuré le 22 septembre 2026, sur les quatre périodes :
+   « groupe présent · curseur NON · écouteur false ». Le premier balayage marchait, le second
+   ne partait plus — et à l'œil c'est pire qu'un geste absent : il marche UNE fois.
+   C'est la même leçon que la barre « Reprendre » du multitâche : on s'accroche là où l'écran
+   s'écrit VRAIMENT. Ici, la seule chose qui voit toutes les réécritures, c'est le DOM lui-même.
+   ⚠ On n'observe que `childList` : observer les attributs ferait boucler, puisque `segPoser`
+   écrit le style du curseur. */
+let _segObs=null, _segObsMin=null;
+function segObserver(){
+  const zone=document.getElementById('content'); if(!zone||!window.MutationObserver) return;
+  if(_segObs){ try{ _segObs.disconnect(); }catch(e){} }
+  _segObs=new MutationObserver(()=>{
+    clearTimeout(_segObsMin);
+    _segObsMin=setTimeout(()=>{ try{ segInit(zone); }catch(e){} },40);
+  });
+  try{ _segObs.observe(zone,{childList:true,subtree:true}); }catch(e){}
+}
+try{ document.addEventListener('DOMContentLoaded',()=>{ try{ segObserver(); }catch(e){} }); }catch(e){}
 /* ═══════════════ « ＋ CRÉER » — six gestes, depuis n'importe quel écran ═══════════════
    Dossier de refonte, point 2 : « feuille montante (mobile : translateY 104 % → 0, .5 s) /
    fenêtre centrée 520 px (bureau) : grille 3×2 Intervention, Client, Devis, Facture, Demande,
@@ -12059,7 +12315,7 @@ function favorisBloc(){
   if(!l.length && !_favEdit) return '';
   const lignes = l.map(k=>{ const it=ongletItem(k); if(!it) return '';
     return `<div class="nav-item nav-item-fav${multiEnCours(k)?' nav-encours':''}" data-view="${k}" data-fav="1"
-       onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${k}','_blank');return;}go('${k}')">${it.ic?it.ic+' ':''}${esc(t(it.l))}${_favEdit?favorisEtoile(k):''}</div>`;
+       onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${k}','_blank');return;}go('${k}')">${it.ic?`<span class="ico" style="--cat:${catCoul(k)}">${it.ic}</span>`:''}${esc(t(it.l))}${_favEdit?favorisEtoile(k):''}</div>`;
   }).join('');
   const vide = !l.length ? `<div class="nav-fav-vide">Touche l’étoile d’une rubrique pour l’épingler ici.</div>` : '';
   return `<div class="nav-label nav-label-fav"><span>Favoris</span>${bouton}</div>`+lignes+vide;
@@ -12083,8 +12339,8 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
     const tete = repete ? `<div class="nav-coupe" aria-hidden="true"></div>`
                         : `<div class="nav-label">${esc(t(sec.g))}</div>`;
     return tete + rows.map(r=> r.verrou
-      ? `<div class="nav-item nav-verrou" style="opacity:.38;cursor:not-allowed" title="Réservé à ta formule ${esc((PLANS[att.formule]||{}).l||'')} — en attente de paiement" onclick="verrouMessage()">🔒 ${esc(t(r.it.l))}</div>`
-      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
+      ? `<div class="nav-item nav-verrou" style="opacity:.38;cursor:not-allowed" title="Réservé à ta formule ${esc((PLANS[att.formule]||{}).l||'')} — en attente de paiement" onclick="verrouMessage()"><span class="ico" style="--cat:#8E8E93">🔒</span>${esc(t(r.it.l))}</div>`
+      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${r.it.ic?`<span class="ico" style="--cat:${catCoul(r.it.k)}">${r.it.ic}</span>`:''}${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
     ).join('');
   }).join('');
   /* La loupe seulement quand il y a de quoi chercher : sous une dizaine de rubriques, elle
@@ -12201,7 +12457,7 @@ function rendreVueSure(view){
   try{ multiProposer(view); }catch(_e){}
   /* Le gabarit des listes se pose ici, pour la meme raison que la barre ci-dessus :
      c'est la seule fonction qui ecrit vraiment l'ecran. */
-  try{ segInit($('content')); }catch(_e){}
+  try{ segInit($('content')); segObserver(); }catch(_e){}
 }
 /* Les chiffres montent jusqu'à leur valeur à l'arrivée d'un écran voulu — jamais sur un
    rafraîchissement automatique, jamais si l'utilisateur a demandé moins d'animation.
@@ -34948,7 +35204,7 @@ function setPlatForce(k){
 /* ═══════════════ THÈME (auto système / jour / sombre + couleur d'accent) ═══════════════ */
 /* Huit teintes, comme la maquette. ⛔ LE VERT OP RESTE LE DÉFAUT et garde sa valeur :
    changer un défaut, c'est changer la couleur de tous ceux qui n'ont rien choisi. */
-const ACCENTS = { green:'Vert OP', blue:'Bleu', teal:'Cyan', indigo:'Indigo', purple:'Violet', pink:'Rose', red:'Rouge', orange:'Orange' };
+const ACCENTS = { green:'Vert OP', blue:'Bleu', indigo:'Indigo', purple:'Violet', pink:'Rose', orange:'Orange', teal:'Cyan', graphite:'Graphite', red:'Rouge' };
 const THEME_LBL = { auto:'Auto (système)', light:'Mode jour', dark:'Mode sombre' };
 const THEME_ICO = { auto:'🌗', light:'☀️', dark:'🌙' };
 function getThemePref(){ return localStorage.getItem('elanB_theme')||'auto'; }
@@ -34991,7 +35247,17 @@ function effectiveTheme(){ const p=getThemePref(); return p==='auto' ? (systemDa
 function applyTheme(){
   const eff=effectiveTheme(), a=getAccent(), r=document.documentElement;
   r.setAttribute('data-theme', eff==='light'?'light':'dark');   // explicite : l'auto (média query) ne sert que d'amorce avant le JS
-  if(a&&a!=='green') r.setAttribute('data-accent',a); else r.removeAttribute('data-accent');
+  /* ⛔⛔ LE VERT PASSAIT À CÔTÉ DE SA PROPRE PALETTE. Cette ligne retirait `data-accent`
+     quand la couleur était le vert — c'est-à-dire pour la QUASI-TOTALITÉ des gens, puisque
+     c'est le défaut. Conséquence mesurée au navigateur le 22 septembre 2026 :
+     `--acc-src` revenait VIDE sur le vert et rempli sur les huit autres teintes. Le vert ne
+     venait donc pas de la palette mais des jetons de base, et les TREIZE dérivés
+     (`--acc-txt`, `--tint`, `--anneau`, `--rf-halo`, `--side-active-ink`…) n'étaient pas
+     calculés du tout pour lui. Résultat : changer de couleur changeait treize choses, et
+     revenir au vert n'en changeait que quatre — l'interface n'était pas la même selon la
+     teinte, ce que Justin décrivait depuis deux jours.
+     Le vert est une teinte comme les autres. Il prend le même chemin. */
+  r.setAttribute('data-accent', a||'green');
   // 🎨 Couleur personnalisée : la teinte choisie remplace le vert PARTOUT (contours, survols, sélections…)
   // Sans choix perso, la couleur de l'entreprise (Business Premium) sert de thème de couleur pour toute l'équipe
   const hx = a==='custom' ? (localStorage.getItem('elanB_accent_hex')||'#7A5AF8')
