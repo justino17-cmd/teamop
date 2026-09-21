@@ -24,6 +24,11 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 ## ✅ 21 SEPTEMBRE 2026, NUIT — LE POINTAGE, ET L'APPAREIL RECONNU (v704–v705, BÊTA SEULE)
 
+✅ **PUBLIÉ SUR LA BÊTA** — `teamop.fr/beta.html` sert la **v705-beta**, vérifié sur le fichier
+réellement servi (3 429 014 octets ; `opPlatAppliquer` × 5, `pointerDebut`, `data-verre` × 20,
+`carteAppareil` × 2). ⛔ **`app.html` reste à la v695 chez ELAN**, zéro occurrence du nouveau
+code sur le fichier servi en production — vérifié au `curl`, pas supposé.
+
 Trois demandes de Justin, dans l'ordre où elles sont arrivées.
 
 ### 1. « Je vois plus la catégorie Pointage sur la bêta. Pourquoi ? »
