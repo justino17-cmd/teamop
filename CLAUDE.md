@@ -184,6 +184,20 @@ le COMMENTAIRE qui explique le correctif, juste au-dessus du code. Trois conséq
   lignes plus haut, et a évalué le mauvais corps.
 - un recensement des appelants d'une fonction en a trouvé huit qui n'existent pas.
 
+⛔⛔ **ET LE NETTOYAGE RECOMMANDÉ CI-DESSOUS AVALE DU VRAI CODE — MESURÉ LE 21 SEPTEMBRE 2026.**
+Le motif naïf (tout bloc, de son ouverture jusqu'à la prochaine fermeture) fait disparaître
+**107 069 caractères d'`app.html`**, dont la fonction `saveVehicule` **entière**. La cause : une
+ouverture de bloc non appariée (une règle CSS commentée en fin de ligne, une adresse) s'apparie
+avec une fermeture très loin et emporte tout ce qui est entre les deux. Un banc bâti dessus
+accuse alors le code de ne pas porter une garde **qu'il porte** — et, symétriquement, il ne voit
+pas les fonctions cachées dans la zone avalée (deux générateurs de démonstration ont surgi le jour
+où le nettoyage a été corrigé). **Ne retirer que les blocs qui COMMENCENT une ligne** :
+`SRC.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ')` — ce sont les seuls que ce dépôt utilise pour
+expliquer du code.
+⚠️ Mesuré fichier par fichier : seuls `app.html` et `beta.html` sont touchés. `espace.html`,
+`surveillance.js` et les fichiers de `server/` ne perdent rien — les bancs qui les lisent
+(`test-726`, `test-740`, `test-746`) restent donc justes.
+
 La parade tient en deux gestes : **enlever les commentaires avant de chercher**
 (`SRC.replace(/\/\*[\s\S]*?\*\//g,' ').replace(/^[ \t]*\/\/.*$/gm,' ')`), et **ancrer sur la
 forme du CODE** (`fetch('https://…'`) plutôt que sur la chaîne toute seule. Et la contre-épreuve

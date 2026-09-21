@@ -10221,6 +10221,19 @@ const PERM_GRPS=[['tdb','📊 Tableau de bord & historique'],['plan','🗓️ Pl
 const PERM_GRP_OF={'Tableau de bord':'tdb','Planification':'plan','Interventions':'int','CRM':'crm','Ventes':'ventes','Stock':'stock','Temps & équipe':'equipe','Communication / Fournisseurs':'com','Achats internes':'achats','Administration':'admin'};
 const COLL_GRP={interventions:'int',clients:'crm',devis:'ventes',factures:'ventes',contrats:'ventes',telecollectes:'ventes',produits:'stock',boxes:'stock',mouvements:'stock',produitsDonnes:'stock',enveloppes:'stock',brouillons:'achats',demandes:'achats',bons:'com',fournisseurs:'com',taches:'plan',absences:'plan',vehicules:'equipe',conducteurs:'equipe',pointages:'equipe',techniciens:'equipe'};
 /* droits spéciaux existants, rattachés à leur catégorie (libellés dans USER_CAPS) */
+/* ⛔⛔ CE QUE MESURE test-747, ET POURQUOI CETTE TABLE EXISTE. Mesuré au navigateur le
+   21 septembre 2026, sur la bêta, droit par droit : les quatre droits d'une catégorie se
+   cochent, se sauvegardent et se LISENT (canCat répond juste partout) — mais QUATRE chemins
+   de création ne les consultaient pas. On pouvait retirer « ajouter » sur Temps & équipe et
+   créer un technicien ; sur Communication et créer un fournisseur (par DEUX portes) ; sur
+   Achats internes et remplir un brouillon. La case était cochée dans l'écran Permissions, et
+   elle ne servait à rien.
+   ⚠️ Le piège de mesure vaut d'être noté : le premier relevé disait « appliqué » pour les
+   techniciens. C'était faux — ce qui refusait, c'était la LIMITE DE PLACES du forfait, que le
+   témoin venait lui-même de consommer. Un témoin qui mange la ressource que l'essai suivant
+   réclame fabrique un faux verrou.
+   Le libellé sert au message de refus : « Créer un fournisseur n'est pas autorisé… ». */
+const COLL_QUOI={fournisseurs:'un fournisseur',techniciens:'un technicien',brouillons:'un produit au brouillon',bons:'un bon de commande',demandes:'une demande',conducteurs:'un conducteur',clients:'un client',produits:'un produit',boxes:'une box',vehicules:'un véhicule',taches:'une tâche',absences:'une absence',devis:'un devis',factures:'une facture',contrats:'un contrat'};
 const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],com:['opMessages','bonsLectureSeule','respBons'],equipe:['creerUtilisateurs'],achats:['validerDR']};
 function catDroit(u,grp,droit){
   if(!u) return false; if(u.role==='admin') return true;
@@ -23937,7 +23950,14 @@ function bonFourEdit(){ if(!peutCommander()){ refusCommander(); return; } const 
   _fourQuickEdit(fid,()=>{ const f=db.fournisseurs.find(x=>x.id===fid); if(sel&&f){ const opt=sel.querySelector('option[value="'+fid+'"]'); if(opt) opt.textContent=f.nom; } });
 }
 /* ＋ Créer un fournisseur directement depuis le bon (puis compléter son e-mail dans la foulée) */
-function bonFourNew(){ if(!peutCommander()){ refusCommander(); return; } const nom=prompt('Nom du nouveau fournisseur :'); if(nom===null) return; const n=(nom||'').trim();
+function bonFourNew(){ if(!peutCommander()){ refusCommander(); return; }
+  /* ⛔ LA SECONDE PORTE, ET C'EST TOUJOURS LA SECONDE QUI MANQUE. L'écran Fournisseurs passe par
+     `saveSimple`, gardé ci-dessus ; celle-ci crée un fournisseur depuis un bon de commande, par un
+     simple `prompt`. Mesurée au navigateur : le fournisseur naissait alors que « ajouter » était
+     retiré sur Communication. Même leçon que les quatre portes d'`espaceQuitter` — une porte
+     oubliée rend la règle facultative. */
+  if(!permGarde('com','ajouter','un fournisseur')) return;
+  const nom=prompt('Nom du nouveau fournisseur :'); if(nom===null) return; const n=(nom||'').trim();
   if(!n){ toast('Indique un nom'); return; }
   if(db.fournisseurs.some(x=>(x.nom||'').trim().toUpperCase()===n.toUpperCase())){ toast('Ce fournisseur existe déjà'); return; }
   const nf={id:uid(),nom:n,contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:''};
@@ -25886,7 +25906,13 @@ function ficheTech(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) return
     ${ints.length? ints.slice(0,5).map(i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention</div>'}
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal();formTech('${t.id}')">Modifier</button><button class="btn" onclick="closeModal();go('pointage')">Pointage</button></div>`);
 }
-async function saveTech(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
+async function saveTech(e,id){ e.preventDefault();
+  /* ⛔ LE DROIT AVANT LA PLACE. Les deux refusent, mais pas pour la même raison : un droit
+     manquant est une décision de l'entreprise, une place manquante est une question d'abonnement.
+     Les intervertir ferait proposer un abonnement à quelqu'un qui n'avait de toute façon pas le
+     droit de créer — et c'est ce que le premier relevé a pris pour un verrou qui n'existait pas. */
+  if(!permGarde('equipe', id?'modifier':'ajouter','un technicien')) return;
+  const d=Object.fromEntries(new FormData(e.target));
   if(!id && !planPlaceLibre()){ proposerAbonnement(); return; }
   const obj={nom:d.nom,metier:d.metier||'Technicien',tel:d.tel,email:d.email,departements:d.departements,couleur:d.couleur,certibiocide:d.certibiocide||'',certibiocideExp:d.certibiocideExp||'',capMin:Math.round((parseFloat(String(d.capH||'').replace(',','.'))||7)*60),
     droitConges:(d.droitConges===''||d.droitConges==null)?25:(parseFloat(String(d.droitConges).replace(',','.'))||0),
@@ -27682,7 +27708,14 @@ function importData(e){ const f=e.target.files[0]; if(!f)return; const r=new Fil
    vit dans espaceQuitter(). Il n'y a pas de troisième cas.  ⛔ Ne pas la faire revenir. */
 
 /* ═══════════════ GÉNÉRIQUES ═══════════════ */
-function saveSimple(e,coll,id,numFields){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target)); (numFields||[]).forEach(f=>{ if(d[f]!==undefined) d[f]=parseFloat(d[f])||0; });
+function saveSimple(e,coll,id,numFields){ e.preventDefault();
+  /* ⛔ MÊME GARDE QUE `delItem`, ET POUR LA MÊME RAISON : la catégorie se déduit de la
+     collection (`COLL_GRP`), donc une collection ajoutée demain sera gardée sans qu'on y pense.
+     Sans cette ligne, retirer « ajouter » sur Communication / Fournisseurs ne changeait RIEN :
+     mesuré au navigateur, le fournisseur était créé quand même. */
+  const _grp=COLL_GRP[coll]||'';
+  if(_grp && !permGarde(_grp, id?'modifier':'ajouter', COLL_QUOI[coll]||('un élément de '+coll))) return;
+  const d=Object.fromEntries(new FormData(e.target)); (numFields||[]).forEach(f=>{ if(d[f]!==undefined) d[f]=parseFloat(d[f])||0; });
   if(id){ const ix=db[coll].findIndex(x=>x.id===id); db[coll][ix]={...db[coll][ix],...d}; toast('Mis à jour'); }
   else{ if(coll==='clients'){ d.x=10+Math.random()*80; d.y=10+Math.random()*80; } db[coll].push({id:uid(),...d}); logEvent('Création',`${coll} : ${d.nom||d.ref||''}`,'crud'); toast('Créé'); }
   save(); closeModal(); go(current);
@@ -30345,7 +30378,10 @@ function formBrouillon(){
       <div class="field"><label>Quantité *</label><input type="number" name="quantite" min="1" value="1" required></div>
     </form>`);
 }
-function saveBrouillon(e){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
+function saveBrouillon(e){ e.preventDefault();
+  /* Le brouillon n'a pas d'édition : chaque enregistrement est une création. */
+  if(!permGarde('achats','ajouter','un produit au brouillon')) return;
+  const d=Object.fromEntries(new FormData(e.target));
   db.brouillons.push({id:uid(),userId:currentUser.id,produitId:d.produitId,quantite:parseInt(d.quantite)||1}); save(); closeModal(); views.brouillon(); }
 function brouillonToDemande(){ const boxId=$('brBox').value; if(!boxId){toast('Choisis une box');return;}
   const mine=db.brouillons.filter(b=>b.userId===currentUser.id); if(!mine.length){toast('Brouillon vide');return;}
