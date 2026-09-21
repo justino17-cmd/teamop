@@ -340,5 +340,74 @@ console.log('\n══ 8. LES TITRES DE GROUPE ══\n');
   vrai('⛔ la coupe est muette pour un lecteur d’écran', /class="nav-coupe" aria-hidden="true"/.test(NU));
 }
 
+
+console.log('\n══ LA BARRE DU HAUT QUAND ON DESCEND, ET LE CLIGNOTEMENT AU CLIC ══\n');
+{
+  /* ⛔⛔ TROIS MUTATIONS N'ONT PAS MORDU LE 22 SEPTEMBRE AU SOIR, ET C'EST CE BLOC QUI
+     MANQUAIT. La règle du dépôt dit qu'une mutation qui ne casse rien pose la question
+     « qu'est-ce que le banc ne REGARDE pas ? ». Réponse : la barre descendue, le verre dense,
+     et le fait que les halos du JOUR suivent la teinte (le motif tombait sur ceux de la nuit,
+     qui eux la suivaient — une tranche juste pour la mauvaise moitié). */
+
+  /* 1. LA BARRE NOIRE. Justin, capture à l'appui : « quand on descend dans les catégories,
+     il y a cette barre noire là ». Mesuré : la barre passait de rgba(44,56,84,.55) — le verre,
+     la teinte de la sidebar — à #080D18 à 93 %, un quasi-noir OPAQUE, reflet disparu. */
+  vrai('⛔⛔ la barre descendue n’est plus un quasi-noir opaque',
+    !/body\.defile \.topbar\{background:color-mix\(in srgb,var\(--bg\) 93%,transparent\)/.test(NU));
+  vrai('⛔ sans verre elle prend --bg1, PLUS CLAIRE que la page (de nuit la lumière élève)',
+    /html\[data-refonte\] body\.defile \.topbar\{background:var\(--bg1\)!important\}/.test(NU));
+  vrai('⛔⛔ avec verre elle DENSIFIE son verre et garde son reflet',
+    /html\[data-verre="1"\]\[data-refonte\] body\.defile \.topbar\{\s*background:var\(--vr-reflet\),var\(--vr-fond-dense\)!important\}/.test(NU));
+  vrai('⛔ le jeton dense existe pour les DEUX thèmes',
+    (NU.match(/--vr-fond-dense:/g) || []).length >= 2,
+    (NU.match(/--vr-fond-dense:/g) || []).length + ' définition(s)');
+  /* ⛔ ET IL DOIT ÊTRE PLUS DENSE QUE LE VERRE ORDINAIRE — sinon « densifier » ne veut rien
+     dire, et le bouton qui défile dessous se lit encore à travers. */
+  {
+    const a = /--vr-fond:rgba\(255,255,255,\.(\d+)\)/.exec(NU);
+    const b = /--vr-fond-dense:rgba\(255,255,255,\.(\d+)\)/.exec(NU);
+    vrai('⛔ … et il est VRAIMENT plus dense que le verre ordinaire',
+      !!(a && b) && (+b[1] > +a[1]), a && b ? a[1] + ' → ' + b[1] : 'introuvable');
+  }
+  /* ⛔ LA VALEUR ÉTAIT FAUSSE EN PLUS D'ÊTRE MAL CHOISIE : color-mix(…, transparent)
+     ASSOMBRIT, parce que transparent vaut rgba(0,0,0,0). #0D1624 en sortait à #080D18.
+     On interdit la forme dans tout le bloc du verre — c'est le même piège que sur les
+     arrêts de dégradé, et il s'est déjà refermé deux fois. */
+  vrai('⛔⛔ plus aucun color-mix vers « transparent » sur une surface du verre',
+    !/--vr-[a-z-]*:\s*color-mix\(in srgb,[^;]*,\s*transparent\)/.test(NU));
+
+  /* 2. LES HALOS DU JOUR SUIVENT LA TEINTE — et pas seulement ceux de la nuit. */
+  {
+    const jour = /html\[data-verre="1"\]\{[\s\S]*?--vr-halos:([\s\S]*?);/.exec(NU);
+    const nuit = /html\[data-verre="1"\]\[data-theme="dark"\]\{[\s\S]*?--vr-halos:([\s\S]*?);/.exec(NU);
+    vrai('⛔ les deux blocs de halos sont trouvés', !!jour && !!nuit);
+    vrai('⛔⛔ le halo du JOUR prend la couleur choisie', !!jour && /var\(--acc-rgb,/.test(jour[1]),
+      jour ? jour[1].slice(0, 90) : '—');
+    vrai('⛔⛔ celui de la NUIT aussi', !!nuit && /var\(--acc-rgb,/.test(nuit[1]),
+      nuit ? nuit[1].slice(0, 90) : '—');
+    /* ⛔ Deux arrêts de MÊME teinte : un arrêt « transparent » passerait par du noir. */
+    for (const [q, m] of [['jour', jour], ['nuit', nuit]])
+      vrai('⛔ ' + q + ' : les deux arrêts sont de la même teinte (pas de bord sali)',
+        !!m && /rgba\(var\(--acc-rgb,[\d,]+\),0\)/.test(m[1]) && !/\btransparent\b/.test(m[1]));
+  }
+
+  /* 3. LE CLIGNOTEMENT AU CLIC. Justin, vidéo : « quand on clique ça fait un effet de couleur,
+     j'aime pas ça ». `animation:none` sur l'ANCIENNE et la NOUVELLE capture les peint TOUTES
+     LES DEUX : deux copies d'une surface à 55 % font 80 %, la teinte double et le halo
+     d'accent ressort deux fois. Invisible tant que les barres étaient opaques, criant depuis
+     le verre. On n'en montre qu'UNE. Mesuré au pixel : l'écart pendant la transition passe
+     d'un lavis violet à 8/255 sur une seule image. */
+  vrai('⛔⛔ l’ancienne capture des barres est EFFACÉE, pas empilée',
+    /::view-transition-old\(barrelat\),::view-transition-old\(barrehaut\),\s*::view-transition-old\(barrebas\)\{animation:none;mix-blend-mode:normal;opacity:0\}/.test(NU));
+  vrai('⛔ … et la nouvelle reste pleine', /::view-transition-new\(barrebas\)\{animation:none;mix-blend-mode:normal;opacity:1\}/.test(NU));
+  vrai('⛔ la paire n’isole pas (sinon un mélange revient par la bande)',
+    /::view-transition-image-pair\(barrebas\)\{isolation:auto\}/.test(NU));
+  /* ⛔ LA BARRE DU BAS EN FAIT PARTIE : elle est fixe et persistante comme les deux autres,
+     et sans nom elle entrait dans la capture RACINE — donc elle traversait le fondu. */
+  vrai('⛔ la barre du bas est nommée, comme les deux autres', /\.tabbar\{view-transition-name:barrebas\}/.test(NU));
+  vrai('⛔ … et neutralisée au changement de thème avec elles',
+    /:root\.theme-vt \.sidebar,:root\.theme-vt \.topbar,:root\.theme-vt \.tabbar\{view-transition-name:none\}/.test(NU));
+}
+
 console.log('\n═══ test-757 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
 process.exit(ko ? 1 : 0);

@@ -1972,9 +1972,31 @@ body.plan-plein .app{ background:var(--bg); }
 @keyframes opEntre{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .sidebar{view-transition-name:barrelat}
 .topbar{view-transition-name:barrehaut}
-::view-transition-group(barrelat),::view-transition-group(barrehaut){animation:none}
-::view-transition-old(barrelat),::view-transition-new(barrelat),
-::view-transition-old(barrehaut),::view-transition-new(barrehaut){animation:none}
+.tabbar{view-transition-name:barrebas}
+::view-transition-group(barrelat),::view-transition-group(barrehaut),
+::view-transition-group(barrebas){animation:none}
+/* ⛔⛔ `animation:none` SUR LES DEUX IMAGES LES PEINT TOUTES LES DEUX, L'UNE SUR L'AUTRE.
+   C'est le défaut que Justin a filmé le 22 septembre 2026 : « quand on clique ça fait un effet
+   de couleur, j'aime pas ça ». Au changement de rubrique, la barre latérale et la barre du
+   haut viraient au violet le temps de la transition, puis revenaient.
+   La cause n'est pas l'animation — c'est qu'il n'y en a pas. Le navigateur empile l'ANCIENNE
+   et la NOUVELLE capture d'un même élément ; sans animation, les deux restent à `opacity:1`.
+   Tant que ces barres étaient OPAQUES, deux copies superposées donnaient exactement la même
+   image et personne ne voyait rien. Depuis le verre elles sont à 55 % : deux copies empilées
+   font 1 − 0,45² = 80 % d'opacité, la teinte double, et le halo d'accent qui passe derrière
+   ressort deux fois plus fort. Plus la surface est translucide, plus le défaut se voit — il
+   était donc invisible avant, et criant depuis.
+   La parade est de n'en montrer QU'UNE : l'ancienne s'efface, la nouvelle reste. Les deux
+   captures sont identiques (ces barres ne changent pas d'une rubrique à l'autre), donc rien
+   ne bouge à l'œil — c'est bien le but.
+   ⚠ `isolation:auto` sur la paire : sans ça le groupe crée un contexte d'isolation qui
+   réintroduit un mélange entre les deux images. */
+::view-transition-image-pair(barrelat),::view-transition-image-pair(barrehaut),
+::view-transition-image-pair(barrebas){isolation:auto}
+::view-transition-old(barrelat),::view-transition-old(barrehaut),
+::view-transition-old(barrebas){animation:none;mix-blend-mode:normal;opacity:0}
+::view-transition-new(barrelat),::view-transition-new(barrehaut),
+::view-transition-new(barrebas){animation:none;mix-blend-mode:normal;opacity:1}
 
 /* ══ SENS DE LA NAVIGATION ══ ouvrir une fiche la fait entrer par la droite, en sortir la
    ramène par la gauche : le mouvement dit où l'on va, ce que deux écrans qui se croisent
@@ -2104,7 +2126,7 @@ html[data-theme="light"] .card::after,html[data-theme="light"] .kpi::after{
 @keyframes opRevele{from{clip-path:circle(0 at var(--rx,50%) var(--ry,50%))}to{clip-path:circle(var(--rr,150vmax) at var(--rx,50%) var(--ry,50%))}}
 /* Les deux barres sont normalement filmées à part pour ne pas clignoter ; pendant le
    changement de thème elles doivent au contraire être balayées par le cercle. */
-:root.theme-vt .sidebar,:root.theme-vt .topbar{view-transition-name:none}
+:root.theme-vt .sidebar,:root.theme-vt .topbar,:root.theme-vt .tabbar{view-transition-name:none}
 :root.theme-vt *{transition:none!important}
 
 /* ══ L'OMBRE AU DÉFILEMENT ══ la barre du haut ne flotte que quand on a quitté le haut. */
