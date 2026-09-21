@@ -75,8 +75,18 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
   const { i0, css } = bloc('PLATEFORME — le rendu suit l\'appareil');
   vrai('⛔ le bloc PLATEFORME est trouvé (sinon tout ce qui suit est creux)', i0 > 0);
   vrai('   … et il a de la matière', css.length > 3000, css.length + ' caractères');
-  vrai('le verre de jour est à 34 %, pas 58 %', /--vr-fond:rgba\(255,255,255,\.34\)/.test(css));
-  vrai('⛔ et l’ancienne valeur a bien disparu', !/--vr-fond:rgba\(255,255,255,\.58\)/.test(css));
+  /* ⛔⛔ CE BANC A GARDÉ LA MAUVAISE VALEUR PENDANT UNE JOURNÉE, ET C'EST LA LEÇON.
+     Il exigeait « 34 %, pas 58 % » — un réglage fait à l'œil, contre la maquette. Justin a
+     fourni le document le 22 septembre 2026 (« regarde bien que tout le reste soit comme le
+     thème ») : § 4 dit .58, et il dit aussi liseré .72, reflet interne .85, ombre 0 10px 28px.
+     C'est un ENSEMBLE : à .34 avec un liseré à .85, le liseré était plus opaque que la vitre
+     qu'il borde — l'inverse d'une matière. Le banc gardait donc une moitié d'accord.
+     Il garde maintenant `design/THEME-REFERENCE.md`, et `tests/test-759.js` relit le document
+     lui-même pour que les deux ne puissent plus diverger en silence. */
+  vrai('le verre de jour est à 58 %, la valeur du document', /--vr-fond:rgba\(255,255,255,\.58\)/.test(css));
+  vrai('⛔ et le réglage fait à l’œil a bien disparu', !/--vr-fond:rgba\(255,255,255,\.34\)/.test(css));
+  vrai('⛔ le liseré est MOINS opaque que la vitre (.72 contre .58 + reflet)',
+    /--vr-liseret:rgba\(255,255,255,\.72\)/.test(css));
   /* ⛔⛔ DE NUIT, C'EST LA LUMIÈRE QUI ÉLÈVE, PAS L'OMBRE. `rgba(28,28,30,.42)` — la valeur
      de la maquette — est plus SOMBRE que la page : la carte s'enfonçait au lieu de se lever,
      et l'écran devenait un aplat de rectangles à peine distincts. Justin, 22 septembre 2026,
@@ -84,7 +94,11 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
      La surface de nuit est donc PLUS CLAIRE que le fond, et teintée du même bleu nuit — un
      film gris sur du bleu se voit, et se voit mal. */
   vrai('⛔ la surface de nuit est PLUS CLAIRE que la page (l’élévation se fait par la lumière)',
-    /--vr-fond:rgba\(52,64,92,\.52\)/.test(css));
+    /--vr-fond:rgba\(44,56,84,\.55\)/.test(css));
+  /* Le document veut un voile BLANC pour la surface secondaire de nuit : un navy sur du navy
+     ne se détache de rien, et c'est la lumière qui élève. */
+  vrai('⛔ la surface secondaire de nuit est un voile BLANC, pas un second navy',
+    /--vr-fond2:rgba\(255,255,255,\.08\)/.test(css));
   vrai('⛔ … et l’ancienne valeur, plus sombre que le fond, a disparu',
     !/--vr-fond:rgba\(28,28,30,\.42\)/.test(css));
   /* ⛔ PAS DE NOIR PUR — la règle est dans CLAUDE.md, et je l'avais recopié de la maquette. */
@@ -92,10 +106,20 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
     /--vr-page:linear-gradient\(180deg,#101A2E,#0A1120\)/.test(css) && !/--vr-page:linear-gradient\(180deg,#0a0a0c,#000\)/.test(css));
   /* ⛔ LE REFLET EST UN DÉGRADÉ, PAS UNE OMBRE. C'est lui qui donne la matière : une ombre
      interne d'un pixel ne fait qu'un liseré. */
-  vrai('⛔ le reflet est un dégradé à 135°', /--vr-reflet:linear-gradient\(135deg,rgba\(255,255,255,\.65\)/.test(css));
+  /* ⚠ RAMENÉ DE .65 À .22 — arithmétique, pas goût. Le document décrit le reflet comme un
+     `inset 0 1px 0` (un cheveu de lumière) ; ce dépôt le peint en dégradé à 135°, ce qui donne
+     la matière mais S'AJOUTE à la surface. Empilé sur .58, le coin clair montait à
+     .58 + .42×.65 = .85 : un aplat blanc. À .22 le point le plus clair plafonne à .67, sous
+     le liseré (.72), qui redevient la ligne la plus lumineuse de la carte — comme chez Apple. */
+  vrai('⛔ le reflet est un dégradé à 135°', /--vr-reflet:linear-gradient\(135deg,rgba\(255,255,255,\.22\)/.test(css));
+  vrai('   … et il ne blanchit plus la vitre qu’il éclaire',
+    !/--vr-reflet:linear-gradient\(135deg,rgba\(255,255,255,\.65\)/.test(css));
   vrai('⛔ … et plus une ombre interne', !/--vr-reflet:inset/.test(css));
-  vrai('l’ombre porte les inserts blancs de la maquette',
-    /--vr-ombre:0 16px 40px rgba\(31,38,64,\.12\),inset 0 1\.5px 0 rgba\(255,255,255,1\)/.test(css));
+  vrai('l’ombre est celle du document (0 10px 28px / 0 14px 36px)',
+    /--vr-ombre:0 10px 28px rgba\(0,0,0,\.08\)/.test(css)
+    && /--vr-ombre-barre:0 14px 36px rgba\(0,0,0,\.14\)/.test(css));
+  vrai('   … avec le reflet interne du document (inset 0 1px 0 rgba(255,255,255,.85))',
+    /inset 0 1px 0 rgba\(255,255,255,\.85\)/.test(css));
   /* Le reflet doit être POSÉ, pas seulement déclaré : il se met en première couche de
      `background`. Un jeton défini que personne n'applique est du code mort qui a l'air d'une
      garde — c'est la règle d'`atts` dans /health, appliquée au style. */
@@ -113,7 +137,8 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
     const bloc2 = NU.indexOf('html[data-verre="1"] ' + sel) >= 0 || NU.indexOf('] ' + sel + '{') >= 0;
     vrai('   ' + sel + ' est bien une surface de verre', bloc2);
   });
-  vrai('le liseré de jour est à 85 %, comme la maquette', /--vr-liseret:rgba\(255,255,255,\.85\)/.test(css));
+  vrai('le fond de page est celui du document (#f7f7f9 → #eeeef2)',
+    /--vr-page:linear-gradient\(180deg,#f7f7f9,#eeeef2\)/.test(css));
 }
 
 console.log('\n══ 3. LES HALOS VIENNENT DES LOGOS, PLUS DE LA COULEUR CHOISIE ══\n');
@@ -168,8 +193,22 @@ console.log('\n══ 4. ⛔⛔ LES HUIT TEINTES, PAS TROIS ══\n');
   vrai('⛔ la liste ACCENTS est trouvée', !!m);
   const ACCENTS = m ? new Function('return ' + m[0].replace('const ACCENTS = ', '') + ';')() : {};
   const sources = [...NU.matchAll(/html\[data-refonte\]\[data-accent="([a-z]+)"\]\s*\{\s*--acc-src:/g)].map(x => x[1]);
-  eq('les huit teintes de la palette ont toutes une source', sources.sort(), Object.keys(ACCENTS).sort());
-  vrai('   … et il y en a bien huit', sources.length === 8, sources.length + ' : ' + sources.join(', '));
+  eq('chaque teinte de la palette a une source', [...new Set(sources)].sort(), Object.keys(ACCENTS).sort());
+  /* ⛔ NEUF, ET PAS HUIT. Le document en nomme huit (le nôtre remplaçait `graphite` par
+     `red`). On a ajouté `graphite` SANS retirer `red` : quelqu'un l'a peut-être déjà choisi,
+     et supprimer sa règle laisserait `--acc-src` vide, donc tuerait les treize dérivés — la
+     panne exacte du 11 au 22 septembre 2026. Une couleur ne se retire pas d'une palette que
+     des gens utilisent. */
+  vrai('   … et il y en a bien neuf', [...new Set(sources)].length === 9,
+    [...new Set(sources)].length + ' : ' + [...new Set(sources)].sort().join(', '));
+  /* ⛔⛔ ET CHACUNE A DEUX VALEURS : UNE DE JOUR, UNE DE NUIT. C'est ce qui manquait
+     entièrement avant le 22 septembre — une seule teinte servait dans les deux thèmes. */
+  const nuit = [...new Set([...NU.matchAll(/html\[data-refonte\]\[data-theme="dark"\]\[data-accent="([a-z]+)"\]\s*\{\s*--acc-src:/g)].map(x => x[1]))];
+  eq('⛔ chaque teinte a AUSSI une valeur de nuit', nuit.sort(), [...new Set(sources)].sort());
+  /* ⛔ Et la règle de nuit doit gagner : un sélecteur de plus (0,4,1 contre 0,3,1) ET écrite
+     après. Inversées, la nuit serait rendue avec les teintes du jour, sans un mot. */
+  vrai('⛔ la règle de nuit est écrite APRÈS celle du jour',
+    NU.indexOf('[data-theme="dark"][data-accent="green"]') > NU.indexOf('[data-accent="green"]   {'));
   /* Les treize jetons dérivés : ils partent tous de --acc-src, donc ajouter une teinte ne
      demande qu'une ligne. C'est ce qui évite « la treizième sera oubliée ». */
   const der = NU.match(/html\[data-refonte\]\[data-accent\]\{[\s\S]{0,1400}?\n\}/);

@@ -206,7 +206,13 @@ const blocCss = (titre) => {
   v('⛔⛔ AUCUNE règle du bloc ne s\'applique sans un attribut de plateforme',
     sansGarde.map(r=>r.slice(0,50).trim()).filter(x=>x && !x.startsWith('/*') && !x.startsWith('*')), []);
 }
-{ vrai('⛔ huit teintes, comme la maquette', (NU.match(/const ACCENTS = \{[^}]*\}/)||[''])[0].split(':').length-1===8);
+/* ⛔ NEUF DEPUIS LE 22 SEPTEMBRE 2026, PAS HUIT. `design/THEME-REFERENCE.md` en nomme huit
+   (avec `graphite`, que nous n'avions pas) ; on l'a ajouté SANS retirer `red`, qui n'y figure
+   pas — retirer une teinte que quelqu'un a peut-être choisie laisserait `--acc-src` vide, donc
+   tuerait les treize jetons dérivés. C'est la panne du 11 au 22 septembre, à l'envers.
+   Les valeurs, elles, sont celles du document : `tests/test-759.js` relit le document. */
+{ vrai('⛔ neuf teintes : les huit du document, plus le rouge qu’on ne retire pas',
+    (NU.match(/const ACCENTS = \{[^}]*\}/)||[''])[0].split(':').length-1===9);
   ['teal','indigo','pink','red'].forEach(k=>
     vrai('   la teinte « '+k+' » existe en nuit ET en jour',
       new RegExp('html\\[data-accent="'+k+'"\\]').test(NU) &&

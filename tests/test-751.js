@@ -192,7 +192,14 @@ const blocCss = (titre) => {
     /@media\(max-width:780px\)\{ \.content\{padding-bottom:calc\(var\(--tabh\)/.test(css));
   vrai('   la hauteur réservée tient compte de la barre système du téléphone',
     /--tabh:calc\(60px \+ env\(safe-area-inset-bottom/.test(css));
-  vrai('la sidebar de bureau fait 236 px', /html\[data-kind="desktop"\] \.sidebar\{width:236px\}/.test(css));
+  /* ⛔ 258 px, ET PAS LES 236 DU DOCUMENT — écart assumé et MESURÉ, pas un oubli. Avec la
+     tuile d'icône ajoutée le 22 septembre 2026, il restait 149 px au libellé et
+     « Consommation produits » en demande 163 : trois rubriques passaient sur deux lignes.
+     Tronquer cache une information, rapetisser descend sous le plancher de lisibilité du
+     terrain. La règle du dépôt tranche : une grille copiée d'une référence anglophone
+     s'ÉLARGIT. Mesuré après : 171 px disponibles, zéro rubrique sur deux lignes. */
+  vrai('la sidebar de bureau fait 258 px (élargie pour les libellés français)',
+    /html\[data-kind="desktop"\] \.sidebar\{width:258px\}/.test(css));
   vrai('⛔ et le ☰ disparaît sur bureau', /html\[data-kind="desktop"\] \.menu-btn\{display:none!important\}/.test(css));
   vrai('⛔ la pilule flottante ne sort QUE sur du verre ET installée',
     /html\[data-verre="1"\]\[data-kind="mobile"\] \.tabbar\{/.test(css) &&
