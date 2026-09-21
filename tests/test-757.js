@@ -386,8 +386,11 @@ console.log('\n══ LA BARRE DU HAUT QUAND ON DESCEND, ET LE CLIGNOTEMENT AU C
        TROISIÈME portait encore la teinte et satisfaisait le motif. Deux des trois halos
        suivent l'accent — on exige les deux, et le bleu de la marque reste le troisième. */
     const compte = (m) => ((m && m[1]) || '').match(/var\(--acc-rgb,/g) || [];
-    v('⛔⛔ le JOUR a bien DEUX halos sur la couleur choisie', compte(jour).length, 2);
-    v('⛔⛔ la NUIT aussi', compte(nuit).length, 2);
+    /* QUATRE, et pas deux : DEUX halos × DEUX arrêts chacun. Le compte prouve donc d'un seul
+       coup que les deux halos suivent la teinte ET que leurs deux bouts la portent — un arrêt
+       resté figé salirait le bord, c'est le piège du `transparent`. */
+    eq('⛔⛔ le JOUR : deux halos sur la couleur choisie, deux arrêts chacun', compte(jour).length, 4);
+    eq('⛔⛔ la NUIT aussi', compte(nuit).length, 4);
     vrai('⛔ … et le troisième reste le bleu nuit de TEAM OP (la profondeur)',
       !!jour && /rgba\(47,79,158,/.test(jour[1]) && !!nuit && /rgba\(91,143,214,/.test(nuit[1]));
     /* ⛔ Deux arrêts de MÊME teinte : un arrêt « transparent » passerait par du noir. */

@@ -23,6 +23,28 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
+
+## 🔎 Balayage complet du 22 septembre 2026 au soir — 84 écrans
+
+Toutes les rubriques visibles (42), en bureau (1440×900) ET en téléphone (393×852), dans un
+vrai navigateur : **0 exception, 0 erreur de console, aucun écran vide**. Sonde
+`scratchpad/balayage.js`.
+
+⏳ **UN SEUL DÉFAUT RÉEL RESTE OUVERT, ET IL EST MESURÉ** : sur **Planning** en bureau, la page
+peut être poussée de **15 px** latéralement (`window.scrollX` = 15 après `scrollTo(400,y)` ;
+`scrollWidth` 1440 contre `clientWidth` 1425). Les autres écrans ne se reproduisent pas
+isolément. C'est cosmétique — une barre de défilement horizontale de 15 px au bas d'un écran
+de bureau — mais c'est réel. Non corrigé, faute d'avoir trouvé le coupable : `body` et `html`
+mesurent 1425, et aucun enfant ne dépasse.
+
+⚠️ **ET LA LEÇON DE MÉTHODE DE CE BALAYAGE** : le premier détecteur comparait
+`scrollWidth > clientWidth` et accusait DIX écrans, tous de 15 px — c'est-à-dire la BARRE DE
+DÉFILEMENT. Le deuxième poussait la page et regardait bouger `.topbar` — qui est
+`position:sticky`, donc ne bouge jamais latéralement. Le troisième lit `window.scrollX`, le
+seul témoin qui ne dépend d'aucun élément. **Trois détecteurs pour une question de quinze
+pixels, et les deux premiers criaient faux.**
+
+
 ## 🎨 Le thème d'OP GESTION suit le document de Justin — v709-beta publiée
 
 `design/THEME-REFERENCE.md` est la référence (fournie le 22 septembre 2026), et
