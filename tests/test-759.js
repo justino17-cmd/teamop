@@ -197,12 +197,25 @@ console.log('\n══ 3. LES COULEURS DE CATÉGORIE — PALETTE iOS DU DOCUMENT 
     !/var\(--acc/.test(m ? m[0] : ''), m ? m[0].slice(0, 80) : '');
   /* ⛔ ET LA TUILE EST BRANCHÉE — déclarer une table que personne n'appelle est du code mort
      qui a l'air d'une garde. */
-  vrai('⛔ catCoul() est appelée au rendu du menu', /class="ico" style="--cat:\$\{catCoul\(/.test(NU));
+  /* ⛔⛔ LES DEUX SITES, PAS UN. Mesuré par mutation le 22 septembre 2026 : casser le rendu
+     des FAVORIS ne faisait pas tomber le banc, parce qu'un seul appel suffisait à le
+     satisfaire — les favoris auraient perdu leurs tuiles en silence. Le menu principal ET le
+     bloc des favoris peignent la tuile ; on les compte. */
+  const sites = (NU.match(/class="ico" style="--cat:\$\{catCoul\(/g) || []).length;
+  v('⛔ catCoul() peint la tuile aux DEUX endroits (menu et favoris)', sites, 2);
   vrai('⛔ et la tuile a bien un style qui la peint',
     /\.nav-item \.ico\{[\s\S]{0,300}var\(--cat/.test(APP));
   /* ⛔ Le filtre de désaturation général rendait TOUT gris : la tuile doit le neutraliser. */
-  vrai('⛔ la désaturation générale est neutralisée sur la tuile',
-    /\.nav-item \.ico\{[\s\S]{0,300}filter:none/.test(APP));
+  /* ⛔ ANCRÉ SUR NOTRE RÈGLE, PAS SUR « une règle qui parle de .nav-item .ico ». La feuille
+     en porte plusieurs (dont celle, générale, qui DÉSATURE) : un motif non ancré trouvait
+     `filter:none` ailleurs et passait au vert alors qu'on venait de le retirer de la tuile.
+     Mesuré par mutation le 22 septembre 2026. */
+  const regleTuile = (APP.match(/html\[data-refonte\] \.nav-item \.ico\{[^}]*\}/) || [''])[0];
+  vrai('⛔ la règle de la tuile est trouvée', regleTuile.length > 120, regleTuile.slice(0, 60));
+  vrai('⛔ la désaturation générale y est neutralisée (sinon tout le menu est gris)',
+    /filter:none/.test(regleTuile), regleTuile.slice(0, 200));
+  vrai('   … et la tuile fait bien 26 px, comme le document',
+    /width:26px;height:26px/.test(regleTuile));
 }
 
 console.log('\n══ 4. RAYONS ET TAILLES DU DOCUMENT (§ 5) ══\n');
@@ -224,6 +237,13 @@ console.log('\n══ 5. LES ÉCARTS SONT TOUS MOTIVÉS ══\n');
   for (const [k, r] of Object.entries(ECARTS))
     vrai('« ' + k + ' » porte une raison écrite', typeof r === 'string' && r.trim().length > 120,
       k + ' : ' + String(r).length + ' caractères');
+  /* ⛔ Et la raison doit parler du JETON concerné, pas être un paragraphe quelconque : une
+     explication recopiée d'un écart voisin en vaut zéro. */
+  vrai('⛔ l’écart du fond de nuit parle bien du fond de nuit',
+    /#0a0a0c|noir pur/i.test(ECARTS['fond de nuit']));
+  vrai('⛔ celui du reflet parle bien du reflet', /reflet|135°|\.22/.test(ECARTS['force du reflet']));
+  vrai('⛔ celui de la sidebar donne bien la mesure qui manquait',
+    /\b163\b/.test(ECARTS['largeur de la sidebar']) && /\b149\b/.test(ECARTS['largeur de la sidebar']));
   vrai('⛔ et chaque écart cite une MESURE ou une règle du dépôt, pas un goût',
     Object.values(ECARTS).every(r => /[Mm]esuré|CLAUDE\.md|règle du dépôt|capture à\s*\n?\s*l'appui|plancher/.test(r)));
 }
