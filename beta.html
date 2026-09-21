@@ -12286,16 +12286,47 @@ function ongletsHtml(){
     if(!items.length) return '';
     return `<div class="dt-lbl" style="margin:14px 0 6px">${esc(t(sec.g))}</div>`+items.map(it=>{
       const i=l.indexOf(it.k), pris=i>=0;
-      return `<div class="pl-row" onclick="ongletsBascule('${it.k}')" style="cursor:pointer;${!pris&&plein?'opacity:.42':''}">
-        <span style="width:26px;height:26px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:${pris?'var(--acc-fill,var(--acc))':'var(--bg3)'};color:${pris?'var(--on-acc,#fff)':'var(--t3)'};font-size:12px;font-weight:800;flex-shrink:0">${pris?(i+1):''}</span>
+      return `<div class="pl-row" data-onglet="${it.k}" role="button" aria-pressed="${pris}" onclick="ongletsBascule('${it.k}')" style="cursor:pointer;${!pris&&plein?'opacity:.42':''}">
+        <span class="og-rang" style="width:26px;height:26px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:${pris?'var(--acc-fill,var(--acc))':'var(--bg3)'};color:${pris?'var(--on-acc,#fff)':'var(--t3)'};font-size:12px;font-weight:800;flex-shrink:0;transition:background-color var(--d-1,.14s) ease,color var(--d-1,.14s) ease">${pris?(i+1):''}</span>
         <span style="margin-left:10px">${it.ic||''} ${esc(t(it.l))}</span></div>`;
     }).join('');
   }).join('');
   return `<div class="modal-head"><h3>Barre d'onglets</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="font-size:13.5px;color:var(--t2);line-height:1.55;margin-bottom:6px">Choisis les <b>quatre</b> rubriques que tu veux sous le pouce. L’ordre est celui dans lequel tu les touches ; le reste de l’application reste accessible par&nbsp;☰.</p>
-    <div style="font-size:12.5px;color:var(--t3);margin-bottom:10px">${l.length} / ${ONGLETS_MAX} choisie${l.length>1?'s':''}${plein?' — touche une rubrique prise pour la retirer':''}</div>
+    <div id="og-compte" style="font-size:12.5px;color:var(--t3);margin-bottom:10px">${ongletsCompteTxt(l.length)}</div>
     <div style="max-height:52vh;overflow-y:auto;margin:0 -4px;padding:0 4px">${groupes}</div>
     <div class="modal-foot"><button type="button" class="btn ghost" onclick="ongletsDefaut()">Réinitialiser</button><button type="button" class="btn" onclick="ongletsValider()">Enregistrer</button></div>`;
+}
+function ongletsCompteTxt(n){
+  return n+' / '+ONGLETS_MAX+' choisie'+(n>1?'s':'')
+    +(n>=ONGLETS_MAX?' — touche une rubrique prise pour la retirer':'');
+}
+/* ⛔⛔ ON REPEINT, ON NE RÉÉCRIT PAS. Justin, 22 septembre 2026 : « quand je décoche ça me
+   remonte à chaque fois en haut, et quand je coche un autre truc ça me remonte encore en
+   haut ». Mesuré au navigateur : la liste fait 3 051 px dans une fenêtre de 443 — sept écrans
+   — et chaque bascule en perdait 1 620, c'est-à-dire renvoyait tout en haut.
+   La cause : `ongletsBascule` rappelait `openModal(ongletsHtml())`, qui fait `innerHTML=` puis
+   `scrollTop=0`. Réécrire une feuille pour changer un chiffre, c'est jeter la position de
+   lecture de la personne — et ici il faut redescendre sept écrans entre deux choix.
+   ⚠ Le repeint doit passer sur TOUTES les lignes, pas seulement celle qu'on touche : retirer
+   la 2ᵉ rubrique renumérote la 3ᵉ et la 4ᵉ, et le voile « plein » tombe sur les 38 autres.
+   ⚠ Et il ne touche AUCUN nœud de structure : c'est ce qui garantit que le défilement, la
+   position de la liste et le focus survivent. */
+function ongletsRepeindre(){
+  const l=_ongletsBrouillon||[], plein=l.length>=ONGLETS_MAX;
+  document.querySelectorAll('#modal .pl-row[data-onglet]').forEach(r=>{
+    const i=l.indexOf(r.dataset.onglet), pris=i>=0;
+    r.style.opacity = (!pris && plein) ? '.42' : '';
+    r.setAttribute('aria-pressed', String(pris));
+    const b=r.querySelector('.og-rang');
+    if(b){
+      b.textContent = pris ? String(i+1) : '';
+      b.style.background = pris ? 'var(--acc-fill,var(--acc))' : 'var(--bg3)';
+      b.style.color      = pris ? 'var(--on-acc,#fff)' : 'var(--t3)';
+    }
+  });
+  const c=document.getElementById('og-compte');
+  if(c) c.textContent = ongletsCompteTxt(l.length);
 }
 function ongletsBascule(k){
   const l=_ongletsBrouillon||(_ongletsBrouillon=[]);
@@ -12303,9 +12334,9 @@ function ongletsBascule(k){
   if(i>=0) l.splice(i,1);
   else if(l.length<ONGLETS_MAX) l.push(k);
   else { toast('Quatre onglets au maximum — retires-en un d’abord'); return; }
-  openModal(ongletsHtml());
+  ongletsRepeindre();
 }
-function ongletsDefaut(){ _ongletsBrouillon=[]; openModal(ongletsHtml()); }
+function ongletsDefaut(){ _ongletsBrouillon=[]; ongletsRepeindre(); }
 function ongletsValider(){
   ongletsEcrire(_ongletsBrouillon||[]);
   closeModal(); toast('✅ Barre d’onglets enregistrée');

@@ -203,5 +203,74 @@ console.log('\n══ 8. LES LIBELLÉS D’ONGLET ══\n');
     /\.tab-l\{font-size:10px/.test(NU));
 }
 
+
+console.log('\n══ 6. L’APPUI LONG ET LA FEUILLE DE RÉGLAGE ══\n');
+/* ⛔⛔ UNE FEUILLE QUI SE RÉÉCRIT POUR CHANGER UN CHIFFRE JETTE LA POSITION DE LECTURE.
+   Justin, 22 septembre 2026 : « quand je décoche ça me remonte à chaque fois en haut, et
+   quand je coche un autre truc ça me remonte encore en haut ». Mesuré au navigateur : la
+   liste des rubriques fait 3 051 px dans une fenêtre de 443 — SEPT écrans — et chaque bascule
+   perdait 1 620 px, c'est-à-dire renvoyait tout en haut. Il fallait redescendre sept écrans
+   entre deux choix.
+   La cause tenait en une ligne : `ongletsBascule` rappelait `openModal(ongletsHtml())`, et
+   `openModal` fait `innerHTML=` puis `scrollTop=0`.
+   ⚠️ Le comportement est mesuré dans `scratchpad/sonde-repeint.js` (19 ✓ 0 ✗, sur la vraie
+   feuille) : défilement conservé au pixel, renumérotation juste, voile levé, compteur suivi. */
+{
+  const corpsDe = (nom) => { const i = NU.indexOf('function ' + nom + '('); if (i < 0) return '';
+    const b = ['\nfunction ', '\nviews.', '\nconst ', '\nlet ', '\nvar ']
+      .map(x => NU.indexOf(x, i + 10)).filter(x => x > 0);
+    return NU.slice(i, b.length ? Math.min(...b) : i + 2000); };
+
+  const bas = corpsDe('ongletsBascule');
+  vrai('⛔ la fonction de bascule est trouvée (sinon tout ce qui suit est creux)', bas.length > 120, bas.length + ' car');
+  vrai('⛔⛔ elle ne RÉÉCRIT plus la feuille — c’est ça qui renvoyait en haut',
+    !/openModal\(/.test(bas), bas.slice(0, 260));
+  vrai('⛔ … elle REPEINT', /ongletsRepeindre\(\)/.test(bas));
+  vrai('⛔ et « Réinitialiser » non plus ne réécrit pas',
+    !/openModal\(/.test(corpsDe('ongletsDefaut')) && /ongletsRepeindre\(\)/.test(corpsDe('ongletsDefaut')));
+
+  const rep = corpsDe('ongletsRepeindre');
+  vrai('⛔ la fonction de repeint est trouvée', rep.length > 200, rep.length + ' car');
+  /* ⛔⛔ TOUTES LES LIGNES, PAS CELLE QU'ON TOUCHE. Retirer la 2ᵉ rubrique RENUMÉROTE la 3ᵉ et
+     la 4ᵉ, et le voile « plein » tombe sur les 38 autres. Un repeint qui ne viserait que la
+     ligne cliquée laisserait l'écran faux — et faux en silence. */
+  vrai('⛔⛔ il repasse sur TOUTES les lignes (la renumérotation touche les suivantes)',
+    /querySelectorAll\('#modal \.pl-row\[data-onglet\]'\)/.test(rep));
+  vrai('⛔ il renumérote (le rang est CALCULÉ depuis la position, pas figé)',
+    /textContent\s*=\s*pris\s*\?\s*String\(i\s*\+\s*1\)/.test(rep), rep.slice(rep.indexOf('textContent'), rep.indexOf('textContent')+70));
+  vrai('⛔ il lève ou repose le voile « plein » (il est porté par les 38 AUTRES lignes)',
+    /style\.opacity/.test(rep) && /plein/.test(rep));
+  vrai('⛔ il met le compteur à jour', /og-compte/.test(rep));
+  vrai('⛔ … et l’état annoncé aux lecteurs d’écran', /aria-pressed/.test(rep));
+  /* ⛔ IL NE TOUCHE AUCUN NŒUD DE STRUCTURE : c'est ce qui garantit que le défilement, la
+     position de la liste et le focus survivent. Un `innerHTML=` ici et tout le correctif
+     s'annule en silence. */
+  vrai('⛔⛔ il n’écrit AUCUNE structure (innerHTML, remove, appendChild)',
+    !/innerHTML|\.remove\(\)|appendChild|replaceChildren/.test(rep), rep.slice(0, 300));
+
+  /* ⛔ LE TEXTE DU COMPTEUR N'A QU'UNE SEULE SOURCE. Deux copies — une dans le gabarit, une
+     dans le repeint — diraient un jour deux choses différentes, et c'est le genre d'écart que
+     personne ne remarque avant un client. */
+  vrai('⛔ le libellé du compteur n’est écrit qu’à UN endroit',
+    /function ongletsCompteTxt\(/.test(NU)
+    && (NU.match(/ongletsCompteTxt\(/g) || []).length >= 3,
+    (NU.match(/ongletsCompteTxt\(/g) || []).length + ' emplois');
+
+  /* ⛔ LES DEUX ANCRES QUE LE REPEINT CHERCHE DOIVENT EXISTER DANS LE GABARIT. Sans elles il
+     ne trouve rien, ne repeint rien, et passe au vert sur du néant. */
+  const html = corpsDe('ongletsHtml');
+  vrai('⛔ le gabarit pose bien la clé que le repeint cherche', /data-onglet="\$\{it\.k\}"/.test(html));
+  vrai('⛔ … et la classe du rang', /class="og-rang"/.test(html));
+  vrai('⛔ … et l’identifiant du compteur', /id="og-compte"/.test(html));
+
+  /* L'appui long lui-même : 550 ms, et le clic de fin ne doit pas partir en navigation. */
+  const pr = corpsDe('ongletsPresse');
+  vrai('⛔ l’appui long est branché sur la barre et ouvre la feuille',
+    /formOnglets\(\)/.test(pr) && /550/.test(pr));
+  vrai('⛔ … et le clic qui termine l’appui est avalé (sinon on change de rubrique en lâchant)',
+    /if\(long\)\{ e\.preventDefault\(\); e\.stopPropagation\(\)/.test(pr));
+  vrai('⛔ … les écouteurs ne s’empilent pas', /bar\._presse/.test(pr));
+}
+
 console.log('\n═══ test-758 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
 process.exit(ko ? 1 : 0);
