@@ -460,6 +460,24 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   « une mutation qui ne casse rien » — là on demande ce que le banc ne JOUE pas, ici ce qu'il ne
   REGARDE pas. Tout contrôle qui compte des absences doit d'abord prouver qu'il y avait de quoi
   compter.
+- ⛔⛔ **UNE SONDE NE DÉTRUIT PAS CE QUE L'APPLICATION S'ATTEND À TROUVER.** Retirer `.overlay`
+  du document pour dégager la vue faisait jeter `closeModal()` — que `go()` appelle à CHAQUE
+  changement de rubrique — sur `document.getElementById('overlay').classList`. Résultat mesuré
+  le 21 septembre 2026 : **840 « erreurs JavaScript » sur 840 ouvertures**, c'est-à-dire un
+  rapport entièrement faux, produit par la sonde elle-même. On ferme par la fonction de
+  l'application (`closeModal()`) et on MASQUE le reste (`display:none`), on ne supprime pas.
+  ⚠️ **Et le test d'isolement n'avait rien vu** : il comptait les exceptions NON RATTRAPÉES, or
+  le throw était avalé par le `try{ go() }catch{}` du test lui-même — il répondait « 0 exception »
+  pour les sept sélecteurs, en toute bonne foi. Quand une mesure compte des absences, elle doit
+  d'abord prouver qu'elle regarde au bon endroit.
+  ⚠️ À noter au passage, côté code : `closeModal()` déréférence `$('overlay')` sans garde. Rien
+  ne retire cet élément aujourd'hui, mais tout ce qui le ferait figerait toute la navigation.
+- ⛔ **UN DÉBORDEMENT MESURÉ PENDANT L'ANIMATION D'ENTRÉE N'EN EST PAS UN.** Les cartes entrent
+  en glissant (`.content.entre`) : la page a alors une barre de défilement horizontale
+  PASSAGÈRE. Mesuré à 520 ms, ça donnait « déborde de 15 px » sur une trentaine de rubriques
+  des deux profils Mac en verre ; une fois l'animation finie, `window.scrollX` vaut 0 et
+  **aucun élément ne dépasse**. Attendre la disparition de `.content.entre` avant de mesurer —
+  et toujours NOMMER l'élément coupable, sinon on ne sait pas si le débordement est réel.
 - ⛔⛔ **L'ÉCRAN « CONNEXION REQUISE » COUVRE TOUT, ET IL APPARAÎT EN COURS DE MESURE.** Le
   conteneur d'une session distante n'a pas de réseau sortant : au premier contrôle de santé
   raté, `horsLigneDebut()` pose `#hl-ecran` — un panneau `position:fixed`, plein écran,
