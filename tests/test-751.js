@@ -156,10 +156,22 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
     /ios27:[^}]*autonome:1/.test(plats) && /iosweb:[^}]*autonome:0/.test(plats));
 }
 { /* le CSS : rien ne s'applique sans attribut, et la place est réservée en bas */
-  const i0=APP.indexOf('NAVIGATION — barre d\'onglets, tiroir, sidebar de bureau');
+/* ⛔ UNE TRANCHE BORNÉE PAR `</style>` AVALE TOUT CE QU'ON AJOUTE APRÈS ELLE. Ce banc a viré
+   au rouge le jour où les blocs « ＋ Créer » et « gabarit des listes » ont été écrits plus bas
+   dans la MÊME feuille : la tranche les emportait, et leurs règles (`.tab`, `.creer-t`…)
+   passaient pour des règles non gardées de CE bloc-ci. C'est la troisième forme du même piège
+   — une découpe qui déborde rend toujours un verdict faux. On borne donc au DÉBUT du bloc
+   suivant, repéré par son bandeau. */
+const blocCss = (titre) => {
+  const i0 = APP.indexOf(titre);
+  if (i0 < 0) return { i0, css: '' };
+  const suivant = APP.indexOf('/* \u2550\u2550', i0 + titre.length);
+  const style = APP.indexOf('</style>', i0);
+  const fin = (suivant > 0 && (style < 0 || suivant < style)) ? suivant : style;
+  return { i0, css: APP.slice(i0, fin > 0 ? fin : i0 + 9000) };
+};
+  const {i0, css} = blocCss('NAVIGATION — barre d\'onglets, tiroir, sidebar de bureau');
   vrai('⛔ le bloc de style de la navigation est trouvé (sinon tout ce qui suit est creux)', i0>0);
-  const fin=APP.indexOf('</style>', i0);
-  const css=i0>0?APP.slice(i0, fin>0?fin:i0+9000):'';
   v('   … et il a de la matière', css.length>2500, true);
   vrai('la barre est cachée par défaut', /\.tabbar\{[\s\S]{0,80}display:none/.test(css));
   vrai('⛔ elle sort sur une plateforme MOBILE', /html\[data-kind="mobile"\] \.tabbar\{display:flex\}/.test(css));

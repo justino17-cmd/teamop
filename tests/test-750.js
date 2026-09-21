@@ -159,12 +159,22 @@ const NU=APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ').replace(/^[ \t]*\/\/.*$/gm
      cherchait l'ancre avec une apostrophe typographique là où le code en porte une droite :
      indexOf rendait -1, la tranche était VIDE, et « toutes les règles sont gardées » passait
      au vert sur du néant. Une assertion sur un ensemble vide ne prouve rien. */
-  const i0=APP.indexOf('PLATEFORME — le rendu suit l\'appareil');
+/* ⛔ UNE TRANCHE BORNÉE PAR `</style>` AVALE TOUT CE QU'ON AJOUTE APRÈS ELLE. Ce banc a viré
+   au rouge le jour où les blocs « ＋ Créer » et « gabarit des listes » ont été écrits plus bas
+   dans la MÊME feuille : la tranche les emportait, et leurs règles (`.tab`, `.creer-t`…)
+   passaient pour des règles non gardées de CE bloc-ci. C'est la troisième forme du même piège
+   — une découpe qui déborde rend toujours un verdict faux. On borne donc au DÉBUT du bloc
+   suivant, repéré par son bandeau. */
+const blocCss = (titre) => {
+  const i0 = APP.indexOf(titre);
+  if (i0 < 0) return { i0, css: '' };
+  const suivant = APP.indexOf('/* \u2550\u2550', i0 + titre.length);
+  const style = APP.indexOf('</style>', i0);
+  const fin = (suivant > 0 && (style < 0 || suivant < style)) ? suivant : style;
+  return { i0, css: APP.slice(i0, fin > 0 ? fin : i0 + 9000) };
+};
+  const {i0, css} = blocCss('PLATEFORME — le rendu suit l\'appareil');
   vrai('⛔ le bloc de style de la plateforme est bien trouvé (sinon tout ce qui suit est creux)', i0>0);
-  /* ⚠️ Borner à la fin de la feuille : une tranche « i0+7000 » dépassait `</style>` et
-     rapportait du HTML comme si c'était une règle. Une découpe qui déborde ment toujours. */
-  const fin=APP.indexOf('</style>', i0);
-  const css=i0>0?APP.slice(i0, fin>0?fin:i0+7000):'';
   v('   … et il a de la matière', css.length>3000, true);
   vrai('le verre est écrit', /backdrop-filter:var\(--vr-flou\)/.test(css));
 

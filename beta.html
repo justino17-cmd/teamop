@@ -5049,6 +5049,123 @@ html[data-os="windows"] .creer-t{border-radius:8px}
    autres boutons de cette barre. */
 body.ctx .creer-btn .creer-lbl{display:none}
 body.ctx .creer-btn{min-height:38px;padding:0 12px;flex-shrink:0}
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   LE GABARIT DES LISTES — un seul pour les vingt-cinq (point 3 de la refonte)
+   On relève les trois pièces que TOUTES les listes partagent déjà : les filtres, les lignes,
+   le champ de recherche. Aucune vue n'est réécrite ; elles en héritent toutes le même jour.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. LES FILTRES SEGMENTÉS, avec le curseur qui glisse ──
+   Le groupe ne devient un segmenté QUE s'il porte 2 à 4 chips et rien d'autre : au-delà, le
+   curseur coulissant mentirait en sautant d'une ligne à l'autre. C'est `segEligible` qui
+   tranche, et il pose la classe `seg-on` — donc rien de tout ceci ne s'applique tout seul. */
+html[data-refonte] .filters.seg-on{
+  position:relative;display:inline-flex;flex-wrap:nowrap;gap:0;
+  background:color-mix(in srgb,var(--t3) 14%,transparent);
+  border-radius:var(--r-pill,999px);padding:3px;isolation:isolate;
+}
+html[data-refonte] .filters.seg-on .chip{
+  position:relative;z-index:1;background:none!important;border:0!important;
+  border-radius:var(--r-pill,999px);padding:0 16px;min-height:38px;
+  display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;
+  color:var(--t2)!important;font-weight:600;transition:color var(--d-1,.16s) ease;
+}
+html[data-refonte] .filters.seg-on .chip.active{color:var(--t1)!important}
+html[data-refonte] .filters.seg-on .seg-cur{
+  /* ⛔ top:0 — PAS 3px. La transformation est calculée depuis le bord du GROUPE, rembourrage
+     compris : un `top` non nul s'AJOUTE et décale le curseur sous le chip. Mesuré : 3 px. */
+  position:absolute;top:0;left:0;z-index:0;pointer-events:none;
+  background:var(--bg1);border-radius:var(--r-pill,999px);
+  box-shadow:0 1px 3px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.04);
+  transition:transform .42s cubic-bezier(.32,.72,0,1),width .42s cubic-bezier(.32,.72,0,1),opacity .2s ease;
+}
+html[data-refonte][data-theme="dark"] .filters.seg-on .seg-cur{
+  background:color-mix(in srgb,#fff 16%,transparent);box-shadow:none;
+}
+html[data-os="windows"] .filters.seg-on,html[data-os="windows"] .filters.seg-on .chip,
+html[data-os="windows"] .filters.seg-on .seg-cur{border-radius:6px}
+html[data-verre="1"] .filters.seg-on .seg-cur{
+  background:var(--vr-fond);-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:var(--vr-reflet),0 1px 3px rgba(0,0,0,.1);
+}
+/* ⛔ Le curseur qui glisse est exactement le mouvement qu'un réglage « mouvement réduit »
+   demande de ne pas faire : il saute, et il reste juste. */
+@media (prefers-reduced-motion: reduce){
+  html[data-refonte] .filters.seg-on .seg-cur{transition:opacity .15s ease}
+}
+/* ⛔ 44 px sous le doigt, toujours — un segmenté serré est le premier endroit où on tape à côté. */
+@media(max-width:780px){
+  html[data-refonte] .filters.seg-on .chip{min-height:44px;padding:0 14px}
+  html[data-refonte] .filters.seg-on{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  html[data-refonte] .filters.seg-on::-webkit-scrollbar{display:none}
+}
+
+/* ── 2. LES LIGNES DE LISTE — 64 px, et la même grammaire partout ──
+   ⚠️ 64 px est un PLANCHER, pas une hauteur fixe : une ligne à deux lignes de texte doit
+   pouvoir grandir. `min-height` et rien d'autre. */
+/* ⛔ LES TROIS FORMES QUI EXISTENT VRAIMENT, relevées au navigateur écran par écran :
+   `.pl-row` (Véhicules…), les tableaux de liste (`.list-tbl`) et leurs lignes cliquables
+   (`tr.row-clk`, Techniciens…). ⚠️ Les écrans qui rendent chaque ligne comme une `.card`
+   (Interventions, Clients, Fournisseurs) ne sont PAS touchés : forcer 64 px sur toutes les
+   cartes atteindrait aussi les tuiles du tableau de bord. Les remettre sur ce gabarit est une
+   réécriture écran par écran — c'est dit dans REPRISE.md, pas contourné en silence. */
+html[data-refonte] .pl-row{min-height:64px}
+html[data-refonte] .tbl.list-tbl tbody tr{min-height:64px}
+html[data-refonte] .tbl tr.row-clk{min-height:64px}
+html[data-refonte] .tbl tr.row-clk td{padding-top:15px;padding-bottom:15px}
+html[data-refonte] .tbl.list-tbl td{padding-top:15px;padding-bottom:15px;font-size:14px}
+html[data-refonte] .tbl.list-tbl td.strong,html[data-refonte] .tbl.list-tbl td .strong{
+  font-size:16px;font-weight:600;letter-spacing:-.011em;color:var(--t1);
+}
+/* Les colonnes de chiffres s'alignent : c'est ce qui permet de comparer d'un coup d'œil. */
+html[data-refonte] .tbl.list-tbl td[style*="text-align:right"],
+html[data-refonte] .pl-row .pl-val{font-variant-numeric:tabular-nums}
+/* Une ligne qui s'ouvre le DIT — un chevron, pas une devinette. */
+html[data-refonte] .pl-row[onclick]::after{
+  content:'';width:7px;height:7px;flex-shrink:0;margin-left:2px;
+  border-right:2px solid var(--t3);border-bottom:2px solid var(--t3);
+  transform:rotate(-45deg);opacity:.75;
+}
+html[data-refonte] .pl-row[onclick]:hover::after{opacity:1;border-color:var(--acc)}
+@media(max-width:780px){
+  html[data-refonte] .list-tbl tbody tr{min-height:64px;padding-top:12px;padding-bottom:12px}
+}
+
+/* ── 3. LA RECHERCHE EN PILULE ──
+   ⛔ MESURÉ AVANT D'ÉCRIRE, ET LA PREMIÈRE HYPOTHÈSE ÉTAIT FAUSSE. On avait supposé que les
+   écrans partageaient une structure de recherche ; le relevé au navigateur dit autre chose :
+   ils partagent une CLASSE, `.search-inp` (32 emplois), et quelques-uns ont un champ écrit à
+   la main dans un conteneur. On vise donc les deux — la classe d'abord, l'invite ensuite —
+   plutôt qu'une structure qui n'existe pas. */
+html[data-refonte] input.search-inp{
+  border-radius:var(--r-pill,999px)!important;min-height:44px;
+  background:color-mix(in srgb,var(--t3) 12%,transparent)!important;border:0!important;
+  padding-left:16px!important;padding-right:16px!important;font-size:15px;
+}
+html[data-os="windows"] input.search-inp{border-radius:6px!important}
+html[data-verre="1"] input.search-inp{
+  background:var(--vr-fond2)!important;-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+}
+html[data-refonte] .rech-pilule,
+html[data-refonte] div:has(> input[placeholder^="Rechercher"]),
+html[data-refonte] span:has(> input[placeholder^="Rechercher"]){
+  border-radius:var(--r-pill,999px)!important;
+  background:color-mix(in srgb,var(--t3) 12%,transparent)!important;
+  border:0!important;min-height:44px;padding-left:14px!important;padding-right:14px!important;
+}
+html[data-refonte] input[placeholder^="Rechercher"]{
+  background:transparent!important;border:0!important;outline:none;font-size:15px;
+}
+html[data-os="windows"] .rech-pilule,
+html[data-os="windows"] div:has(> input[placeholder^="Rechercher"]){border-radius:6px!important}
+html[data-verre="1"] div:has(> input[placeholder^="Rechercher"]){
+  background:var(--vr-fond2)!important;-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+}
+/* ⛔ La barre de recherche GLOBALE de l'en-tête n'est pas une recherche de liste : elle a sa
+   propre place et sa propre largeur. On la laisse tranquille. */
+html[data-refonte] .gsrch{border-radius:var(--r-pill,999px)!important}
+html[data-refonte] .gsrch input{background:transparent!important}
 </style>
 </head>
 <body>
@@ -11011,6 +11128,84 @@ function navFiltreEntree(ev){
   if(prem&&prem.dataset.view) go(prem.dataset.view);
 }
 function navFiltreVider(){ var c=document.getElementById('nav-loupe'); if(c){ c.value=''; c.focus(); } navFiltrer(''); }
+/* ═══════════════ LE GABARIT DES LISTES — un seul, pour les vingt-cinq ═══════════════
+   Dossier de refonte, point 3 : « Listes (25 catégories, même gabarit) — recherche en pilule,
+   filtres segmentés 3 positions (curseur animé .42 s), lignes ≥ 64 px ».
+
+   ⛔ ON NE RÉÉCRIT PAS VINGT-CINQ VUES — ON RELÈVE CE QU'ELLES PARTAGENT DÉJÀ. Chacune a sa
+   logique métier, ses colonnes, ses filtres ; les réécrire en une passe, c'est vingt-cinq
+   occasions de casser un écran qu'un technicien ouvre tous les jours, pour un gain de forme.
+   Les trois pièces communes — `.filters`/`.chip`, les lignes de liste, le champ de recherche —
+   sont donc relevées à leur place : toutes les vues en héritent le même jour, sans qu'une
+   seule ligne de leur logique ne bouge.
+
+   ⛔ LE CURSEUR SE POSITIONNE APRÈS L'ÉCRITURE DE L'ÉCRAN, jamais depuis `go()`. C'est la même
+   leçon que la barre « Reprendre » du multitâche : `rendreVueAnimee` écrit `#content` APRÈS, et
+   tout ce qui est posé avant est balayé. On passe donc par `rendreVueSure`, la seule fonction
+   qui écrit vraiment la vue. */
+const SEG_MAX=4;   /* au-delà, ce n'est plus un segmenté mais une rangée de filtres : on la laisse */
+/* Un groupe de filtres devient un SEGMENTÉ quand il en porte 2 à 4, qu'aucun n'est un bouton
+   d'action, et qu'ils tiennent sur une ligne. Au-delà, le curseur coulissant ment : il saute
+   d'une ligne à l'autre. */
+function segEligible(g){
+  /* ⛔ LE CURSEUR NE COMPTE PAS COMME UN ENFANT ÉTRANGER — il est À NOUS. Sans cette
+     exclusion, `segInit` se DÉFAIT au second passage : le curseur qu'il vient d'ajouter fait
+     que `ch.length !== g.children.length`, donc le groupe cesse d'être éligible, donc la classe
+     et le curseur sont retirés. Mesuré le 21 septembre 2026 : trois appels de `segInit`
+     laissaient ZÉRO curseur. Invisible au rendu normal (chaque vue reconstruit `#content`),
+     mais le repositionnement au redimensionnement ne marchait plus jamais. */
+  const enfants=[...g.children].filter(e=>!(e.classList&&e.classList.contains('seg-cur')));
+  const ch=enfants.filter(e=>e.classList&&e.classList.contains('chip'));
+  if(ch.length<2||ch.length>SEG_MAX) return null;
+  if(ch.length!==enfants.length) return null;      // un bouton étranger dans le groupe
+  return ch;
+}
+/* ⛔ LE CURSEUR EST UN ENFANT DU GROUPE, PAS UN ÉLÉMENT FLOTTANT. Un élément posé en
+   `position:fixed` se décalerait au premier défilement ; ici il suit son conteneur. */
+function segPoser(g,ch,anime){
+  const actif=ch.find(c=>c.classList.contains('active'))||null;
+  let cur=g.querySelector(':scope > .seg-cur');
+  if(!actif){ if(cur) cur.style.opacity='0'; return; }
+  if(!cur){ cur=document.createElement('span'); cur.className='seg-cur'; cur.setAttribute('aria-hidden','true'); g.insertBefore(cur,g.firstChild); }
+  const rg=g.getBoundingClientRect(), ra=actif.getBoundingClientRect();
+  if(!rg.width||!ra.width){ cur.style.opacity='0'; return; }
+  cur.style.transition = anime ? '' : 'none';
+  cur.style.opacity='1';
+  cur.style.width=ra.width+'px';
+  cur.style.height=ra.height+'px';
+  cur.style.transform='translate('+(ra.left-rg.left)+'px,'+(ra.top-rg.top)+'px)';
+  if(!anime) requestAnimationFrame(()=>{ cur.style.transition=''; });
+}
+/* Appelée après CHAQUE écriture d'écran. Elle ne touche que les groupes éligibles et ne
+   change AUCUN contenu : elle ajoute un curseur et écoute les clics. */
+function segInit(racine){
+  (racine||document).querySelectorAll('.filters').forEach(g=>{
+    const ch=segEligible(g);
+    if(!ch){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
+    g.classList.add('seg-on');
+    segPoser(g,ch,false);
+    if(g._seg) return; g._seg=true;
+    /* ⛔ ON ÉCOUTE, ON NE REMPLACE PAS. Les `onclick` des chips appellent la vue, qui se
+       redessine : le curseur se reposera tout seul au rendu suivant. Cet écouteur ne sert
+       qu'à faire glisser le curseur TOUT DE SUITE, avant le redessin — sinon le doigt attend
+       le rendu et le contrôle paraît mou. */
+    g.addEventListener('click',e=>{
+      const c=e.target.closest&&e.target.closest('.chip'); if(!c||!g.contains(c)) return;
+      const l=segEligible(g); if(!l) return;
+      l.forEach(x=>x.classList.toggle('active',x===c));
+      segPoser(g,l,true);
+    },true);
+  });
+}
+/* Une fenêtre qui change de largeur déplace les segments : le curseur doit suivre, sans
+   animation (on ne fait pas glisser un curseur parce qu'on a tourné son téléphone). */
+let _segMinuterie=null;
+function segRepositionner(){
+  clearTimeout(_segMinuterie);
+  _segMinuterie=setTimeout(()=>{ document.querySelectorAll('.filters.seg-on').forEach(g=>{
+    const ch=segEligible(g); if(ch) segPoser(g,ch,false); }); },80);
+}
+try{ window.addEventListener('resize',segRepositionner); }catch(e){}
 /* ═══════════════ « ＋ CRÉER » — six gestes, depuis n'importe quel écran ═══════════════
    Dossier de refonte, point 2 : « feuille montante (mobile : translateY 104 % → 0, .5 s) /
    fenêtre centrée 520 px (bureau) : grille 3×2 Intervention, Client, Devis, Facture, Demande,
@@ -11334,6 +11529,9 @@ function rendreVueSure(view){
      posée depuis `go()` sur une minuterie était balayée — mesuré absente à 100, 300, 600,
      1 200 et 2 500 ms. Ici on est juste après l'écriture réelle de l'écran. */
   try{ multiProposer(view); }catch(_e){}
+  /* Le gabarit des listes se pose ici, pour la meme raison que la barre ci-dessus :
+     c'est la seule fonction qui ecrit vraiment l'ecran. */
+  try{ segInit($('content')); }catch(_e){}
 }
 /* Les chiffres montent jusqu'à leur valeur à l'arrivée d'un écran voulu — jamais sur un
    rafraîchissement automatique, jamais si l'utilisateur a demandé moins d'animation.

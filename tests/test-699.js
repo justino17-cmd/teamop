@@ -167,9 +167,15 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
 /* ══ 4. L'APPARENCE SUIT LA PERSONNE ═══════════════════════════════════════════════════ */
 {
   const cles = new Function('return ' + (APP.match(/const PREF_CLES=\{[^}]+\}/) || [''])[0].replace('const PREF_CLES=', '') + ';')();
-  v('quatre réglages voyagent', Object.keys(cles).sort(), ['accent', 'accentHex', 'lang', 'theme']);
+  /* ⚠️ CE NOMBRE EST UNE DÉCISION, PAS UN CONSTAT. Chaque entrée de `PREF_CLES` est un réglage
+     qui VOYAGE d'un appareil à l'autre avec la fiche de la personne. En ajouter un doit se
+     voir ici, une fois, par écrit — sinon on ferait voyager par mégarde quelque chose qui doit
+     rester sur l'appareil. La barre d'onglets a été ajoutée le 21 septembre 2026 : c'est un
+     choix de personne (« mes quatre rubriques »), pas un état d'appareil. */
+  v('cinq réglages voyagent', Object.keys(cles).sort(), ['accent', 'accentHex', 'lang', 'onglets', 'theme']);
   v('… et ce sont les vraies clés de stockage',
-    [cles.theme, cles.accent, cles.accentHex, cles.lang], ['elan_theme', 'elan_accent', 'elan_accent_hex', 'elan_lang']);
+    [cles.theme, cles.accent, cles.accentHex, cles.lang, cles.onglets],
+    ['elan_theme', 'elan_accent', 'elan_accent_hex', 'elan_lang', 'elan_onglets']);
 
   /* La vraie fonction, éprouvée sur un faux stockage. */
   const mem = {};
