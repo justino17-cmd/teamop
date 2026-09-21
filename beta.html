@@ -76,7 +76,7 @@
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{height:100%;}
   body{background:var(--bg);color:var(--t1);font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased;}
-  body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 10% 10%,rgba(46,184,114,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 95% 90%,rgba(46,184,114,.04) 0%,transparent 60%);pointer-events:none;}
+  body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 10% 10%,color-mix(in srgb,var(--acc) 6%,transparent) 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 95% 90%,rgba(46,184,114,.04) 0%,transparent 60%);pointer-events:none;}
   .mono{font-family:'Space Mono',monospace;}
 
   .app{display:flex;min-height:100vh;min-height:100dvh;position:relative;z-index:1;}
@@ -319,7 +319,7 @@
   /* FILTERS */
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
   .chip{background:var(--bg1);border:1px solid var(--brd);color:var(--t2);font-size:13px;font-weight:500;padding:8px 15px;border-radius:100px;cursor:pointer;transition:.15s;}
-  .chip:hover{border-color:rgba(74,222,128,.3);}
+  .chip:hover{border-color:color-mix(in srgb,var(--acc) 30%,transparent);}
   .chip.active{background:color-mix(in srgb,var(--acc) 15%,transparent);border-color:color-mix(in srgb,var(--acc) 45%,transparent);color:var(--acc);}
 
   /* EMPTY */
@@ -388,7 +388,7 @@
   /* PLANNING/LIST ROWS */
   .pl-row{display:flex;align-items:center;gap:15px;background:var(--bg1);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:12px;padding:13px 16px;margin-bottom:9px;cursor:pointer;transition:.15s;}
   .pl-row:hover{background:color-mix(in srgb,var(--acc) 10%,var(--bg1));}
-  .pl-row:hover{border-color:rgba(74,222,128,.3);transform:translateX(2px);}
+  .pl-row:hover{border-color:color-mix(in srgb,var(--acc) 30%,transparent);transform:translateX(2px);}
   .pl-time{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;min-width:50px;}
   .pl-info{flex:1;min-width:0;}
   .pl-title{font-size:15px;font-weight:600;margin-bottom:3px;}
@@ -408,7 +408,7 @@
   .cal-cnt{margin-top:auto;font-size:10px;color:var(--t3);font-weight:600;}
   @media(max-width:560px){ .cal{gap:3px;} .cal-d{min-height:48px;padding:4px;border-radius:8px;} .cal-d .num{font-size:12px;} .cal-cnt{display:none;} }
 
-  .avatar{width:30px;height:30px;border-radius:50%;background:rgba(74,222,128,.2);border:1px solid rgba(74,222,128,.3);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--acc);flex-shrink:0;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--acc) 20%,transparent);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--acc);flex-shrink:0;}
   .ppl{display:flex;align-items:center;gap:9px;}
 
   /* CHARTS */
@@ -444,7 +444,7 @@
   /* LOGIN */
   .login{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse 50% 45% at 50% 42%,rgba(74,222,128,.14) 0%,rgba(22,128,60,.05) 35%,transparent 65%),var(--deep);display:flex;align-items:center;justify-content:center;padding:20px;}
   .login-box{width:100%;max-width:380px;text-align:center;}
-  .login-logo{width:104px;height:104px;margin:0 auto 18px;border-radius:24px;object-fit:cover;display:block;box-shadow:0 14px 44px rgba(0,0,0,.45),0 0 60px rgba(74,222,128,.22);}
+  .login-logo{width:104px;height:104px;margin:0 auto 18px;border-radius:24px;object-fit:cover;display:block;box-shadow:0 14px 44px rgba(0,0,0,.45),0 0 60px color-mix(in srgb,var(--acc) 22%,transparent);}
   .login-box h2{font-family:'Space Mono',monospace;font-size:22px;letter-spacing:2px;margin-bottom:4px;font-weight:700;}
   .login-box p{color:var(--t3);font-size:13px;margin-bottom:24px;}
   .login-card{background:var(--bg1);border:1px solid var(--brd);border-radius:16px;padding:22px;margin-top:18px;text-align:left;box-shadow:0 24px 60px rgba(0,0,0,.5);}
@@ -455,12 +455,12 @@
   .login-error{color:var(--red);font-size:12px;font-weight:600;margin-bottom:8px;}
   .login-users{display:flex;flex-direction:column;gap:10px;}
   .login-user{display:flex;align-items:center;gap:12px;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;padding:13px 16px;cursor:pointer;transition:.15s;text-align:left;}
-  .login-user:hover{border-color:rgba(74,222,128,.4);}
+  .login-user:hover{border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
   .login-user .nom{font-weight:600;font-size:15px;}
   .login-user .role2{font-size:12px;color:var(--t3);}
   .pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:260px;margin:0 auto;}
   .pin-key{background:var(--bg1);border:1px solid var(--brd);color:var(--t1);font-size:22px;font-family:'Space Mono',monospace;padding:16px 0;border-radius:14px;cursor:pointer;transition:.1s;}
-  .pin-key:hover{background:var(--bg2);border-color:rgba(74,222,128,.4);}
+  .pin-key:hover{background:var(--bg2);border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
   .pin-key:active{transform:scale(.95);}
   .pin-dots{display:flex;gap:14px;justify-content:center;margin:20px 0;}
   .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--t3);transition:.15s;}
@@ -472,7 +472,7 @@
 
   /* NOTIF */
   .bell{position:relative;background:var(--bg2);border:1px solid var(--brd);color:var(--t2);width:42px;height:42px;border-radius:11px;font-size:18px;cursor:pointer;transition:.15s;}
-  .bell:hover{color:var(--t1);border-color:rgba(74,222,128,.4);}
+  .bell:hover{color:var(--t1);border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
   .bell-count{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;font-size:11px;font-weight:700;min-width:19px;height:19px;border-radius:100px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
   .notif-panel{position:absolute;top:54px;right:0;width:340px;max-width:90vw;background:var(--bg1);border:1px solid var(--brd);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);z-index:30;overflow:hidden;}
   .notif-head{padding:15px 18px;border-bottom:1px solid var(--brd);font-weight:600;font-size:14px;}
@@ -487,14 +487,14 @@
   .scan-view{background:#000;border-radius:14px;overflow:hidden;aspect-ratio:4/3;position:relative;margin-bottom:16px;}
   .scan-view video{width:100%;height:100%;object-fit:cover;}
   .scan-frame{position:absolute;inset:18% 15%;border:3px solid var(--acc);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);}
-  .scan-result{background:var(--bg);border:1px solid rgba(74,222,128,.4);border-radius:12px;padding:16px;margin-bottom:16px;}
+  .scan-result{background:var(--bg);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);border-radius:12px;padding:16px;margin-bottom:16px;}
   .bscan-toggle{display:flex;gap:10px;margin-bottom:14px;}
   .bscan-tg{flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--brd);background:var(--bg1);color:var(--t3);font-weight:700;font-size:14px;cursor:pointer;transition:.15s;}
   .bscan-tg.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent);color:var(--acc);}
   .bscan-tg.rem.on{border-color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red);}
   .bscan-err{background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 35%,transparent);color:var(--red);border-radius:12px;padding:13px 15px;font-size:13.5px;font-weight:600;text-align:center;}
   /* VISITE GUIDÉE */
-  .tour-card{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;width:min(440px,calc(100vw - 28px));background:var(--bg1);border:1px solid rgba(74,222,128,.35);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.6);padding:20px 20px 16px;animation:tourIn .3s ease;}
+  .tour-card{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;width:min(440px,calc(100vw - 28px));background:var(--bg1);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.6);padding:20px 20px 16px;animation:tourIn .3s ease;}
   @keyframes tourIn{from{opacity:0;transform:translateX(-50%) translateY(22px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
   .tour-card .step{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);font-weight:700;}
   .tour-card h4{font-size:18px;margin:6px 0 8px;display:flex;align-items:center;gap:9px;}
@@ -534,12 +534,12 @@
   .toast.show{opacity:1;}
 
   /* ASSISTANT */
-  .fab{position:fixed;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#1A7A3E,#176030);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px rgba(74,222,128,.25);z-index:46;transition:transform .15s;}
+  .fab{position:fixed;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--acc-fill),var(--acc-fill-press));color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px color-mix(in srgb,var(--acc) 25%,transparent);z-index:46;transition:transform .15s;}
   .fab:hover{transform:scale(1.07);}
   .asst{position:fixed;right:24px;bottom:92px;width:374px;max-width:calc(100vw - 32px);height:540px;max-height:calc(100vh - 130px);max-height:calc(100dvh - 130px);background:var(--bg1);border:1px solid var(--brd);border-radius:18px;box-shadow:0 30px 70px rgba(0,0,0,.6);z-index:47;display:none;flex-direction:column;overflow:hidden;}
   .asst.open{display:flex;animation:pop .2s ease;}
   .asst-head{padding:15px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:12px;}
-  .asst-head .ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1A7A3E,#176030);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .asst-head .ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--acc-fill),var(--acc-fill-press));display:flex;align-items:center;justify-content:center;font-size:18px;}
   .asst-head .t{font-weight:700;font-size:15px;}
   .asst-head .s{font-size:12px;color:var(--acc);display:flex;align-items:center;gap:5px;}
   .asst-head .x{margin-left:auto;}
@@ -6136,7 +6136,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '711-beta';
+const APP_VERSION = '712-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -17914,7 +17914,7 @@ views.interventions=function(){
     +`<div style="text-align:center;margin:2px 0 14px"><span style="background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--t1);font-weight:800;padding:9px 22px;border-radius:100px;font-size:14.5px;text-transform:capitalize">${new Date(intSelDay+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'short'})}</span></div>`
     +(()=>{ const nEff=dayInts.filter(x=>x.statut==='terminee').length; const nAnn=dayInts.filter(x=>x.statut==='annulee').length; const nAF=dayInts.length-nEff-nAnn;
       return dayInts.length?`<div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:-6px 0 14px">
-      <span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:rgba(46,184,114,.13);color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent)">✅ ${nEff} effectuée${nEff>1?'s':''}</span>
+      <span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--acc) 13%,transparent);color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent)">✅ ${nEff} effectuée${nEff>1?'s':''}</span>
       <span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--org) 13%,transparent);color:var(--org);border:1px solid color-mix(in srgb,var(--org) 40%,transparent)">⏳ ${nAF} non effectuée${nAF>1?'s':''}</span>
       ${nAnn?`<span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red);border:1px solid color-mix(in srgb,var(--red) 38%,transparent)">🚫 ${nAnn} annulée${nAnn>1?'s':''}</span>`:''}
       </div>`:''; })()
@@ -20112,7 +20112,7 @@ function renderIntDetail(id){
         return `<div style="padding:8px 0;border-bottom:1px solid var(--brd)"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13.5px">${esc(n)}</b>${tn._infest?`<span class="tag" style="font-size:10px;color:${lvC};border-color:${lvC}">Infestation : ${esc(tn._infest)}</span>`:''}</div>${(tn._methodes&&tn._methodes.length)?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">${tn._methodes.map(m=>`<span class="tag" style="font-size:10px">⚒ ${esc(m)}</span>`).join('')}</div>`:`<div style="font-size:11.5px;color:var(--t3);margin-top:3px">Aucune méthode renseignée — touchez le nuisible dans Modifier</div>`}${tn._obs?`<div style="font-size:12px;color:var(--t3);margin-top:4px">${esc(tn._obs)}</div>`:''}</div>`; }).join('')}</div>`:''}
       ${(()=>{ const sum=traitementSummary(i); return sum.length?`<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>\uD83E\uDDEA Traitement \u2014 ${esc(i.type||'')}</h3></div>${sum.map(r=>`<div style="margin-bottom:6px"><span class="dt-lbl">${esc(r[0])}</span><div class="dt-val" style="font-weight:400">${esc(r[1])}</div></div>`).join('')}</div>`:''; })()}
       ${(()=>{ const pk=Array.isArray(i.prestation)?i.prestation:Object.keys(i.prestation||{}); return pk.length?`<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>Prestation réalisée</h3></div><div style="display:flex;flex-wrap:wrap;gap:8px">${PRESTATION_ITEMS.filter(([k])=>pk.includes(k)).map(([k,l,ic])=>`<span class="tag" style="font-size:12px">${ic} ${esc(l)}</span>`).join('')}</div></div>`:''; })()}
-      ${i.compteRendu?`<div class="detail-desc" style="border-color:rgba(74,222,128,.3)"><b style="color:var(--acc)">Compte-rendu :</b><br>${esc(i.compteRendu)}</div>`:'<div style="color:var(--t3);font-size:13px">Aucun compte-rendu pour le moment — clique « Rédiger / modifier ».</div>'}
+      ${i.compteRendu?`<div class="detail-desc" style="border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><b style="color:var(--acc)">Compte-rendu :</b><br>${esc(i.compteRendu)}</div>`:'<div style="color:var(--t3);font-size:13px">Aucun compte-rendu pour le moment — clique « Rédiger / modifier ».</div>'}
       <div class="card" style="margin-top:12px"><div class="card-head" style="margin-bottom:8px"><h3>Aperçu du rapport <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t3);font-size:12px">— texte envoyé au client</span></h3></div>
         <div style="white-space:pre-wrap;font-size:13px;color:var(--t2);line-height:1.6;background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:14px">${esc(genRapportTexte(i))}</div></div>
       ${champsV}
@@ -20794,7 +20794,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
     ${c.acces?`<div style="display:flex;gap:9px;align-items:flex-start;margin-top:10px;background:color-mix(in srgb,var(--org) 10%,transparent);border:1px solid color-mix(in srgb,var(--org) 35%,transparent);border-radius:10px;padding:9px 12px"><span>🔑</span><div style="font-size:12.5px;color:var(--t1);white-space:pre-wrap"><b>Note d'accès :</b> ${esc(c.acces)}</div></div>`:''}
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(108px,1fr));margin:14px 0">
       ${k('🧰','rgba(96,165,250,.14)',ints.length,'Interventions')}
-      ${k('💶','rgba(74,222,128,.16)',eur(caFact),'CA encaissé')}
+      ${k('💶','color-mix(in srgb,var(--acc) 16%,transparent)',eur(caFact),'CA encaissé')}
       ${k('💰','rgba(167,139,250,.14)',devis.length,'Devis')}
       ${k('📑','rgba(251,146,60,.14)',ctrs.length,'Contrats actifs')}</div>
     ${(()=>{ const pp=c.prefPassage||{}; const hasPref=(pp.jours&&pp.jours.length)||pp.techId||(pp.creneau&&pp.creneau!=='indifferent')||pp.prevenir48||pp.appelerAvant;
@@ -22154,7 +22154,7 @@ views.stock=function(){
   setHeader('Stock','Tout le stock de toutes les box',`<button class="btn ghost" onclick="openScanner()">Scanner</button>`);
   $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
     <div class="kpi" style="cursor:pointer" onclick="go('produits')" title="Voir le catalogue produits"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📦</div><div class="kpi-val">${all.length}</div><div class="kpi-lbl">Produits ›</div></div>
-    <div class="kpi" style="cursor:pointer" onclick="go('mouvements')" title="Voir les mouvements de stock"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">🔢</div><div class="kpi-val">${totalU}</div><div class="kpi-lbl">Unités (cartons compris) ›</div></div>
+    <div class="kpi" style="cursor:pointer" onclick="go('mouvements')" title="Voir les mouvements de stock"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">🔢</div><div class="kpi-val">${totalU}</div><div class="kpi-lbl">Unités (cartons compris) ›</div></div>
     <div class="kpi" style="cursor:pointer" onclick="go('boxes')" title="Voir les box"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">🧱</div><div class="kpi-val">${nbBoxesPleines}</div><div class="kpi-lbl">Box ›</div></div>
     <div class="kpi" style="cursor:pointer${stockFiltreManque?';outline:2px solid var(--org)':''}" onclick="stockFiltreManque=!stockFiltreManque;renderStockList();" title="Ne montrer que ce qui est à commander"><div class="kpi-ico" style="background:rgba(239,68,68,.13)">🛒</div><div class="kpi-val" style="color:${nbACmd?'var(--org)':'var(--acc)'}">${nbACmd}</div><div class="kpi-lbl">À commander ›</div></div></div>
     <input class="search-inp" id="stock-search" placeholder="Nom, référence…" value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStockList()">
@@ -22439,10 +22439,10 @@ views.mouvements=function(){
   const tuile=(cible,ico,col,fond,val,lbl)=>{ const on=mvtFType===cible&&cible!=='';
     return `<div class="kpi" onclick="mvtChoisirType('${mvtFType===cible&&cible!==''?'':cible}')" title="Filtrer le journal" style="cursor:pointer;${on?'border-color:var(--acc);box-shadow:0 0 0 1.5px var(--acc) inset':''}"><div class="kpi-ico" style="background:${fond};color:${col}">${ico}</div><div class="kpi-val">${val}</div><div class="kpi-lbl">${lbl} ›</div></div>`; };
   const tuiles=`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-    ${tuile('entree',icoT.entree,'var(--acc)','rgba(74,222,128,.16)','+'+entMois,'Unités ajoutées aujourd\'hui')}
+    ${tuile('entree',icoT.entree,'var(--acc)','color-mix(in srgb,var(--acc) 16%,transparent)','+'+entMois,'Unités ajoutées aujourd\'hui')}
     ${tuile('sortie',icoT.sortie,'var(--org)','rgba(245,158,11,.14)','−'+sorMois,'Unités retirées aujourd\'hui')}
     ${tuile('',icoT.flux,'var(--blue)','rgba(59,130,246,.14)',tout.length,'Mouvements au journal')}
-    ${tuile('valide',icoT.dr,'var(--acc)','rgba(74,222,128,.16)',nbVal,'Validés par le DR')}</div>`;
+    ${tuile('valide',icoT.dr,'var(--acc)','color-mix(in srgb,var(--acc) 16%,transparent)',nbVal,'Validés par le DR')}</div>`;
   // ── filtres : box + recherche d'abord (les compteurs des onglets en tiennent compte) ──
   let base=tout;
   if(mvtFBox) base=base.filter(m=>m.boxId===mvtFBox);
@@ -22490,7 +22490,7 @@ views.mouvements=function(){
   const srcMvt=m=>{ const mo=String(m.motif||'');
     if(m.type==='entree'){
       if(/arrivage|réception|bon de commande|livr/i.test(mo)) return '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.14);color:#60a5fa;white-space:nowrap">🧾 AJOUT · BON DE COMMANDE</span>';
-      return '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(74,222,128,.16);color:var(--acc);white-space:nowrap">AJOUT</span>';
+      return '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc);white-space:nowrap">AJOUT</span>';
     }
     // sorties : donné à quelqu'un, pris pour soi, consommé en intervention, ou simple retrait
     if(m.donneA) return m.donneA===m.technicien
@@ -24850,8 +24850,8 @@ views.enveloppes=function(){
       <div style="text-align:right;white-space:nowrap"><div class="mono" style="font-weight:800;font-size:16px;color:var(--org)">${n}</div><div style="font-size:10px;color:var(--t3)">paiement${n>1?'s':''}</div></div>
     </div>`;}).join('');
   $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(3,1fr)">
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💶</div><div class="kpi-val">${eur(total)}</div><div class="kpi-lbl">Total encaissé</div></div>
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💵</div><div class="kpi-val">${eur(esp)}</div><div class="kpi-lbl">Espèces</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(total)}</div><div class="kpi-lbl">Total encaissé</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💵</div><div class="kpi-val">${eur(esp)}</div><div class="kpi-lbl">Espèces</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📝</div><div class="kpi-val">${eur(chq)}</div><div class="kpi-lbl">Chèques</div></div></div>
     ${list.length? rows:`<div class="card">${emptyState('📮','Aucune enveloppe.','Nouvelle','formEnv()')}</div>`}`;
 };
@@ -27909,7 +27909,7 @@ function ficheTech(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) return
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(108px,1fr));margin:14px 0">
       ${k('🧰','rgba(96,165,250,.14)',ints.length,'Interventions')}
       ${k('📅','rgba(251,146,60,.14)',enCours,'En cours/à venir')}
-      ${k('⏱️','rgba(74,222,128,.16)',dureeStr(totMin),'Temps pointé')}</div>
+      ${k('⏱️','color-mix(in srgb,var(--acc) 16%,transparent)',dureeStr(totMin),'Temps pointé')}</div>
     <div class="dt-lbl" style="margin:8px 0">Dernières interventions</div>
     ${ints.length? ints.slice(0,5).map(i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention</div>'}
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal();formTech('${t.id}')">Modifier</button><button class="btn" onclick="closeModal();go('pointage')">Pointage</button></div>`);
@@ -29892,7 +29892,7 @@ function boxScanApply(){ const b=db.boxes.find(x=>x.id===boxScan.boxId); if(!b){
   notifyDrBoxMove(b,boxScanSel,boxScan.action==='ajouter'?'entree':'sortie',qty,'u');
   db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:boxScanSel,type:boxScan.action==='ajouter'?'entree':'sortie',qte:qty,motif:(boxScan.action==='ajouter'?'Scan + ':'Scan − ')+(b.nom||b.numero||''),vehiculeId:'',boxId:b.id,technicien:fullName(currentUser)});
   logEvent('Scan box',`${boxScan.action==='ajouter'?'+':'-'}${qty} × ${p.nom} — ${b.nom||b.numero||''}`,'stock'); save();
-  if(r) r.innerHTML=`<div class="scan-result" style="border-color:rgba(74,222,128,.5)"><div style="font-weight:700;color:var(--acc)">✓ ${boxScan.action==='ajouter'?'Ajouté':'Retiré'} : ${qty} × ${esc(p.nom)}</div><div style="color:var(--t3);font-size:13px;margin-top:4px">Stock en box : ${cur.u} u — continue à scanner ou ferme.</div></div>`;
+  if(r) r.innerHTML=`<div class="scan-result" style="border-color:color-mix(in srgb,var(--acc) 50%,transparent)"><div style="font-weight:700;color:var(--acc)">✓ ${boxScan.action==='ajouter'?'Ajouté':'Retiré'} : ${qty} × ${esc(p.nom)}</div><div style="color:var(--t3);font-size:13px;margin-top:4px">Stock en box : ${cur.u} u — continue à scanner ou ferme.</div></div>`;
   const ti=$('bscan-text'); if(ti) ti.value=''; boxScan.cands=[]; boxScanSel=null; toast('Stock mis à jour'); }
 
 /* ═══════════════ COMMERCIAL : DEVIS & FACTURES (façon Organilog) ═══════════════ */
@@ -30425,7 +30425,7 @@ views.factures=function(){
       </span></div>`; };
   $('content').innerHTML=`<div class="kpis">
     <div class="kpi"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">📄</div><div class="kpi-val">${eur(totFact)}</div><div class="kpi-lbl">Total facturé</div></div>
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">✅</div><div class="kpi-val">${eur(totPaid)}</div><div class="kpi-lbl">Encaissé</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">✅</div><div class="kpi-val">${eur(totPaid)}</div><div class="kpi-lbl">Encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">⏳</div><div class="kpi-val">${eur(totDue)}</div><div class="kpi-lbl">À encaisser (${dueList.length})</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(239,68,68,.14)">🚨</div><div class="kpi-val">${eur(totLate)}</div><div class="kpi-lbl">En retard (${lateList.length})</div></div></div>
     ${(devisAcc.length||intsAfact.length)?`<div class="card"><div class="card-head"><h3>À facturer</h3><span class="tag">${devisAcc.length+intsAfact.length}</span></div>
@@ -30756,7 +30756,7 @@ function comptaControle(){
   const nEcart=fiches.filter(f=>Math.abs(f.ecart)>=0.01).length;
   const kpis=`<div class="kpis">
     <div class="kpi" onclick="ctrlOnglet='afaire';views.comptabilite()" style="cursor:pointer" title="Voir ce qui reste à valider"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">📋</div><div class="kpi-val">${eur(prevuJour)}</div><div class="kpi-lbl">Prévu ${d===today?"aujourd'hui":'ce jour-là'} (${intsJour.length} intervention${intsJour.length>1?'s':''})</div></div>
-    <div class="kpi" onclick="closeModal();regFOrigine='terrain';comptaTab='registre';views.comptabilite()" style="cursor:pointer" title="Ouvrir le registre des encaissements"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💶</div><div class="kpi-val">${eur(encJour)}</div><div class="kpi-lbl">Encaissé ce jour</div></div>
+    <div class="kpi" onclick="closeModal();regFOrigine='terrain';comptaTab='registre';views.comptabilite()" style="cursor:pointer" title="Ouvrir le registre des encaissements"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(encJour)}</div><div class="kpi-lbl">Encaissé ce jour</div></div>
     <div class="kpi" onclick="ctrlOnglet='ecart';views.comptabilite()" style="cursor:pointer" title="Voir uniquement les personnes en écart"><div class="kpi-ico" style="background:${bon?'rgba(74,222,128,.16)':'rgba(239,68,68,.14)'}">⚖️</div><div class="kpi-val" style="color:${bon?'var(--acc)':'var(--red)'}">${bon?'On est bon ✓':(ecartJour>0?'+':'')+eur(ecartJour)}</div><div class="kpi-lbl">${bon?'Écart du jour : aucun':'Écart du jour — à vérifier'}</div></div>
     <div class="kpi" onclick="ctrlOnglet='valides';views.comptabilite()" style="cursor:pointer" title="Voir les journées validées"><div class="kpi-ico" style="background:rgba(232,163,61,.14)">🌙</div><div class="kpi-val">${valides} / ${fiches.length}</div><div class="kpi-lbl">Journée${fiches.length>1?'s':''} validée${valides>1?'s':''} (télécollecte)</div></div></div>`;
   /* la barre d'essai n'apparaît que s'il RESTE des données d'essai à retirer — un espace propre ne voit rien */
@@ -31490,7 +31490,7 @@ function comptaSynthese(){
       <span style="font-size:12px;color:var(--t3)">Deux caisses bien séparées : le terrain d'un côté, les factures pro de l'autre.</span></div>
     <div class="kpis">
     <div class="kpi"><div class="kpi-ico" style="background:rgba(232,163,61,.16)">💳</div><div class="kpi-val">${eur(encT)}</div><div class="kpi-lbl">Terrain — télécollecte (${terrain.length})</div></div>
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">🏦</div><div class="kpi-val">${eur(encP)}</div><div class="kpi-lbl">Factures pro encaissées (${pro.length})</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">🏦</div><div class="kpi-val">${eur(encP)}</div><div class="kpi-lbl">Factures pro encaissées (${pro.length})</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(239,68,68,.14)">⏳</div><div class="kpi-val">${eur(impTot)}</div><div class="kpi-lbl">À encaisser (${impayes.length} facture${impayes.length>1?'s':''})</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(232,163,61,.14)">🌙</div><div class="kpi-val">${attente.length}</div><div class="kpi-lbl">Journée${attente.length>1?'s':''} à valider ce soir</div></div></div>
 
@@ -32483,7 +32483,7 @@ views.pointage=function(){
   $('content').innerHTML=`${moi}${alerte}${barre}
     <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
       <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">⏱️</div><div class="kpi-val">${ptDuree(secTot)}</div><div class="kpi-lbl">Total de la période</div></div>
-      <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">📅</div><div class="kpi-val">${jours.length}</div><div class="kpi-lbl">Jour${jours.length>1?'s':''} travaillé${jours.length>1?'s':''}</div></div>
+      <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">📅</div><div class="kpi-val">${jours.length}</div><div class="kpi-lbl">Jour${jours.length>1?'s':''} travaillé${jours.length>1?'s':''}</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(251,191,36,.16)">🗒️</div><div class="kpi-val">${list.length}</div><div class="kpi-lbl">Pointages</div></div></div>
     ${(autres&&parTech.size>1)?`<div class="card"><div class="card-head"><h3>Par personne</h3></div>
       ${[...parTech.entries()].sort((a,b)=>b[1]-a[1]).map(([t,s])=>`<div class="pl-row"><span class="strong">${esc(techName(t))}</span><b style="margin-left:auto;font-variant-numeric:tabular-nums">${ptDuree(s)}</b></div>`).join('')}</div>`:''}
@@ -32643,7 +32643,7 @@ views.statistiques=function(){
   const topC=Object.entries(parClient).map(([id,v])=>({nom:clientName(id),v})).sort((a,b)=>b.v-a.v).slice(0,6);
   const maxC=Math.max(1,...topC.map(c=>c.v));
   $('content').innerHTML=`<div class="kpis">
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💶</div><div class="kpi-val">${eur(caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">⏳</div><div class="kpi-val">${eur(caAtt)}</div><div class="kpi-lbl">En attente de paiement</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">💰</div><div class="kpi-val">${eur(devisTtc)}</div><div class="kpi-lbl">Devis émis</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">✅</div><div class="kpi-val">${tauxAccept}%</div><div class="kpi-lbl">Taux d'acceptation devis</div></div></div>
@@ -32792,7 +32792,7 @@ views.archives=function(){
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3 style="text-transform:capitalize">🗄️ ${label}</h3></div>
     <div class="kpis">
       <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">🧰</div><div class="kpi-val">${s.ints.length}</div><div class="kpi-lbl">Interventions</div></div>
-      <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💶</div><div class="kpi-val">${eur(s.caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
+      <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(s.caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">🧾</div><div class="kpi-val">${eur(s.caTot)}</div><div class="kpi-lbl">CA facturé</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">⏱️</div><div class="kpi-val">${dureeStr(s.minTot)}</div><div class="kpi-lbl">Temps pointé</div></div>
     </div></div>
