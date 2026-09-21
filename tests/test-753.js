@@ -98,7 +98,7 @@ console.log('\n══ 3. LE STYLE ══\n');
      feuille avale tout ce qu'on écrira plus bas. Déjà payé sur test-750 et test-751. */
   const suivant=APP.indexOf('/* ══', i0+titre.length), style=APP.indexOf('</style>', i0);
   const fin=(suivant>0&&(style<0||suivant<style))?suivant:style;
-  const css=i0>0?APP.slice(i0, fin>0?fin:i0+9000):'';
+  const css=(i0>0?APP.slice(i0, fin>0?fin:i0+9000):'').replace(/\/\*[\s\S]*?\*\//g,' ');
   v('   … et il a de la matière', css.length>2000, true);
   vrai('⛔ le curseur est à top:0 (un top non nul s\'ajoute à la transformation)',
     /position:absolute;top:0;left:0/.test(css));

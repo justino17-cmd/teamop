@@ -159,6 +159,10 @@ const NU=APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ').replace(/^[ \t]*\/\/.*$/gm
      cherchait l'ancre avec une apostrophe typographique là où le code en porte une droite :
      indexOf rendait -1, la tranche était VIDE, et « toutes les règles sont gardées » passait
      au vert sur du néant. Une assertion sur un ensemble vide ne prouve rien. */
+/* ⛔ ON RETIRE LES COMMENTAIRES DE LA TRANCHE AVANT DE CHERCHER. Ce dépôt écrit de longues
+   explications juste AU-DESSUS des règles qu'elles expliquent : un motif y trouve presque
+   toujours ce qu'il cherche, et garde alors une PHRASE, pas un comportement. On ne cherche
+   donc que dans le CSS nu. */
 /* ⛔ UNE TRANCHE BORNÉE PAR `</style>` AVALE TOUT CE QU'ON AJOUTE APRÈS ELLE. Ce banc a viré
    au rouge le jour où les blocs « ＋ Créer » et « gabarit des listes » ont été écrits plus bas
    dans la MÊME feuille : la tranche les emportait, et leurs règles (`.tab`, `.creer-t`…)
@@ -171,7 +175,8 @@ const blocCss = (titre) => {
   const suivant = APP.indexOf('/* \u2550\u2550', i0 + titre.length);
   const style = APP.indexOf('</style>', i0);
   const fin = (suivant > 0 && (style < 0 || suivant < style)) ? suivant : style;
-  return { i0, css: APP.slice(i0, fin > 0 ? fin : i0 + 9000) };
+  const brut = APP.slice(i0, fin > 0 ? fin : i0 + 9000);
+  return { i0, css: brut.replace(/\/\*[\s\S]*?\*\//g, ' ') };
 };
   const {i0, css} = blocCss('PLATEFORME — le rendu suit l\'appareil');
   vrai('⛔ le bloc de style de la plateforme est bien trouvé (sinon tout ce qui suit est creux)', i0>0);

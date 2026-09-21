@@ -68,7 +68,7 @@ console.log('\n══ 2. LE STYLE DE LA FICHE ══\n');
   /* Borner au bloc suivant, jamais à `</style>` : trois bancs l'ont déjà payé. */
   const suivant=APP.indexOf('/* ══', i0+titre.length), style=APP.indexOf('</style>', i0);
   const fin=(suivant>0&&(style<0||suivant<style))?suivant:style;
-  const css=i0>0?APP.slice(i0, fin>0?fin:i0+9000):'';
+  const css=(i0>0?APP.slice(i0, fin>0?fin:i0+9000):'').replace(/\/\*[\s\S]*?\*\//g,' ');
   v('   … et il a de la matière', css.length>1500, true);
 
   vrai('⛔⛔ le retour vise `.btn.det-back` — sinon `.btn.sm` le bat et la pilule ne sort jamais',
