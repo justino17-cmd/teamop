@@ -4962,6 +4962,93 @@ html[data-kind="desktop"] .msg-flot{display:none!important}
 @media (prefers-reduced-motion: reduce){ .msg-flot:active{transform:none} }
 html[data-verre="1"] .msg-flot{box-shadow:var(--vr-ombre-barre),0 0 0 .5px var(--vr-liseret)}
 html[data-os="windows"] .msg-flot{border-radius:10px}
+
+/* ══ « ＋ CRÉER » — feuille montante (mobile) / fenêtre centrée (bureau) ══════════════════ */
+.creer-ov{
+  position:fixed;inset:0;z-index:60;display:none;
+  background:rgba(0,0,0,.35);opacity:0;transition:opacity var(--d-2,.24s) ease;
+  align-items:flex-end;justify-content:center;
+}
+.creer-ov.on{display:flex}
+.creer-ov.vu{opacity:1}
+.creer-sheet{
+  width:100%;max-width:640px;background:var(--bg1);color:var(--t1);
+  border-radius:34px 34px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 22px);
+  box-shadow:0 -18px 48px rgba(0,0,0,.28);font-family:var(--fs);
+  transform:translateY(104%);transition:transform .5s cubic-bezier(.32,.72,0,1);
+}
+.creer-ov.vu .creer-sheet{transform:translateY(0)}
+.creer-poignee{width:38px;height:4px;border-radius:2px;background:var(--brd);margin:0 auto 12px}
+.creer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.creer-head b{font-size:20px;letter-spacing:-.02em}
+.creer-grille{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.creer-t{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+  min-height:96px;padding:14px 8px;border:1px solid var(--brd);border-radius:var(--rf-r-carte,20px);
+  background:var(--bg2);color:var(--t1);cursor:pointer;font-family:inherit;
+  -webkit-tap-highlight-color:transparent;transition:transform var(--d-1,.14s) ease,background var(--d-1,.14s) ease;
+}
+.creer-t:hover{background:var(--hover,var(--bg3))}
+.creer-t:active{transform:scale(.96)}
+.creer-ic{
+  width:44px;height:44px;border-radius:14px;display:inline-flex;align-items:center;
+  justify-content:center;font-size:21px;flex-shrink:0;
+}
+.creer-l{font-size:14px;font-weight:600}
+
+/* ── Bureau : une fenêtre centrée de 520 px, qui grandit au lieu de monter ── */
+html[data-kind="desktop"] .creer-ov{align-items:center}
+html[data-kind="desktop"] .creer-sheet{
+  max-width:520px;border-radius:22px;padding:14px 20px 22px;
+  transform:scale(.96);opacity:0;transition:transform .34s cubic-bezier(.32,.72,0,1),opacity .24s ease;
+}
+html[data-kind="desktop"] .creer-ov.vu .creer-sheet{transform:scale(1);opacity:1}
+html[data-kind="desktop"] .creer-poignee{display:none}
+html[data-kind="desktop"] .creer-grille{grid-template-columns:repeat(3,1fr)}
+@media(min-width:781px){
+  .creer-ov{align-items:center}
+  .creer-sheet{max-width:520px;border-radius:22px;padding:14px 20px 22px}
+  .creer-poignee{display:none}
+  .creer-grille{grid-template-columns:repeat(3,1fr)}
+}
+
+/* ── Verre : la feuille est une vitre, pas un panneau opaque ── */
+html[data-verre="1"] .creer-sheet{
+  background:var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border:.5px solid var(--vr-liseret);box-shadow:var(--vr-reflet),var(--vr-ombre-barre);
+}
+html[data-verre="1"] .creer-t{background:var(--vr-fond2);border:.5px solid var(--vr-liseret)}
+html[data-os="android"] .creer-sheet{border-radius:28px 28px 0 0}
+html[data-os="android"] .creer-t{border:0;border-radius:28px}
+html[data-os="windows"] .creer-sheet{border-radius:9px}
+html[data-os="windows"] .creer-t{border-radius:8px}
+
+/* ⛔ LE MOUVEMENT RÉDUIT N'EST PAS UNE PRÉFÉRENCE DE CONFORT. Une feuille de 100 % de hauteur
+   qui monte en un demi-seconde est exactement le genre de mouvement qui donne le vertige. On
+   garde le fondu — il dit ce qui se passe — et on supprime le déplacement. */
+@media (prefers-reduced-motion: reduce){
+  .creer-sheet{transition:opacity var(--d-1,.14s) ease;transform:none!important}
+  .creer-ov .creer-sheet{opacity:0}
+  .creer-ov.vu .creer-sheet{opacity:1}
+  .creer-t:active{transform:none}
+}
+@media (prefers-reduced-transparency: reduce){
+  html[data-verre="1"] .creer-sheet,html[data-verre="1"] .creer-t{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--bg1)!important;
+  }
+}
+
+/* ── Le bouton de la barre d'outils ── */
+.creer-btn{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+@media(max-width:560px){ .creer-btn .creer-lbl{display:none} .creer-btn{padding-left:12px;padding-right:12px} }
+/* ⛔ IL RESTE VISIBLE SUR LA BARRE CONTEXTUELLE, ET C'EST TOUT L'INTÉRÊT. La première version
+   le cachait sur `body.ctx` « pour ne pas charger la barre » — donc sur les écrans de LISTE,
+   c'est-à-dire là où on passe sa journée et d'où on crée. Mesuré : invisible sur Boxes et sur
+   Interventions, visible seulement sur le tableau de bord. Un bouton « partout » qui disparaît
+   partout où on travaille ne sert à rien. Il se contente de perdre son libellé, comme les
+   autres boutons de cette barre. */
+body.ctx .creer-btn .creer-lbl{display:none}
+body.ctx .creer-btn{min-height:38px;padding:0 12px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -5018,6 +5105,7 @@ html[data-os="windows"] .msg-flot{border-radius:10px}
       <button class="bell tb-back" id="topbar-back" onclick="goBack()" title="Retour" style="display:none"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
 
 
+      <button class="btn creer-btn" id="creer-btn" onclick="creerOuvrir()" title="Créer"><span aria-hidden="true">＋</span><span class="creer-lbl">Créer</span></button>
       <div class="topbar-brand mono">OP GESTION</div>
       <div class="topbar-title">
         <h1 id="page-title">Tableau de bord</h1>
@@ -5040,6 +5128,7 @@ html[data-os="windows"] .msg-flot{border-radius:10px}
   <!-- ⛔ SŒURS DE .main, JAMAIS DANS #content : rendreVueAnimee reecrit #content a chaque
        navigation et balaierait tout ce qui y est pose. -->
   <nav class="tabbar" id="tabbar" aria-label="Categories principales"></nav>
+  <div class="creer-ov" id="creer"></div>
   <a class="msg-flot" id="msg-flot" href="messages.html" style="display:none" aria-label="Ouvrir OP MESSAGES" title="OP MESSAGES">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>
   </a>
@@ -10922,6 +11011,79 @@ function navFiltreEntree(ev){
   if(prem&&prem.dataset.view) go(prem.dataset.view);
 }
 function navFiltreVider(){ var c=document.getElementById('nav-loupe'); if(c){ c.value=''; c.focus(); } navFiltrer(''); }
+/* ═══════════════ « ＋ CRÉER » — six gestes, depuis n'importe quel écran ═══════════════
+   Dossier de refonte, point 2 : « feuille montante (mobile : translateY 104 % → 0, .5 s) /
+   fenêtre centrée 520 px (bureau) : grille 3×2 Intervention, Client, Devis, Facture, Demande,
+   Box → formulaire → bouton contextuel → toast ».
+
+   Ce que ça change vraiment : créer une intervention depuis l'écran Stock demandait d'ouvrir le
+   menu, de trouver « Interventions », d'attendre la liste, puis de viser « ＋ ». Six gestes
+   pour un. Les six créations les plus fréquentes sont désormais à une touche, partout.
+
+   ⛔ UNE FEUILLE À PART, PAS `openModal`. Trois raisons, toutes mesurées dans ce dépôt :
+   · `openModal` est appelée par plus de cent endroits — y toucher pour une animation serait
+     payer cher un détail ;
+   · le MULTITÂCHE capture le contenu d'`openModal` pour le rendre plus tard. Un MENU capturé
+     comme un brouillon proposerait de « reprendre » un choix qu'on n'a jamais commencé ;
+   · la feuille doit pouvoir s'effacer AVANT que le formulaire s'ouvre, sinon on empile deux
+     couches et le fond se retrouve grisé deux fois.
+
+   ⛔ ON NE PROPOSE QUE CE QUE LA PERSONNE PEUT OUVRIR. Une tuile qui mène à un écran que `go()`
+   refuse est un piège : on tape, et on retombe au tableau de bord avec un cadenas. Le filtre
+   est `canSee`, le même que le menu — une seule règle, pas deux qui divergeront. */
+const CREER_ENTREES=[
+  {k:'interventions', ic:'🧰', l:'Intervention', c:'#007aff', fn:"formIntervention()"},
+  {k:'clients',       ic:'🏢', l:'Client',       c:'#34c759', fn:"formClient()"},
+  {k:'devis',         ic:'💰', l:'Devis',        c:'#ff9500', fn:"formDoc('devis')"},
+  {k:'factures',      ic:'🧾', l:'Facture',      c:'#af52de', fn:"formDoc('factures')"},
+  {k:'demandes',      ic:'📥', l:'Demande',      c:'#5856d6', fn:"formDemande()"},
+  {k:'boxes',         ic:'📦', l:'Box',          c:'#30b0c7', fn:"formBox()"},
+];
+function creerDispo(){
+  return CREER_ENTREES.filter(e=>{ try{
+    const it=NAV.flatMap(s=>s.items).find(x=>x.k===e.k);
+    return it? canSee(it) : false;
+  }catch(err){ return false; } });
+}
+function creerOuvrir(){
+  if(!currentUser) return;
+  const l=creerDispo();
+  if(!l.length){ toast('Aucune création ouverte à ton compte'); return; }
+  const ov=document.getElementById('creer'); if(!ov) return;
+  ov.innerHTML=`<div class="creer-sheet" role="dialog" aria-modal="true" aria-label="Créer">
+      <div class="creer-poignee" aria-hidden="true"></div>
+      <div class="creer-head"><b>Créer</b><button class="modal-close" onclick="creerFermer()" aria-label="Fermer">✕</button></div>
+      <div class="creer-grille">${l.map(e=>`
+        <button class="creer-t" onclick="creerAller(${JSON.stringify(e.fn).replace(/"/g,'&quot;')})">
+          <span class="creer-ic" style="background:${e.c}22;color:${e.c}">${e.ic}</span>
+          <span class="creer-l">${esc(e.l)}</span></button>`).join('')}</div>
+    </div>`;
+  ov.classList.add('on');
+  /* Le temps d'un rendu avant d'armer l'animation : sans ça le navigateur part directement de
+     l'état final et la feuille APPARAÎT au lieu de monter. */
+  requestAnimationFrame(()=>requestAnimationFrame(()=>ov.classList.add('vu')));
+  document.addEventListener('keydown',creerEchap);
+  ov.onclick=e=>{ if(e.target===ov) creerFermer(); };
+}
+function creerEchap(e){ if(e.key==='Escape'){ e.stopPropagation(); creerFermer(); } }
+function creerFermer(){
+  const ov=document.getElementById('creer'); if(!ov) return;
+  document.removeEventListener('keydown',creerEchap);
+  ov.classList.remove('vu');
+  /* ⛔ ON ATTEND LA SORTIE AVANT D'EFFACER — mais jamais indéfiniment : si le mouvement est
+     coupé (onglet en arrière-plan, mouvement réduit), `transitionend` ne vient pas et la
+     feuille resterait au-dessus de tout, invisible et cliquable. La minuterie est le filet. */
+  let fait=false;
+  const finir=()=>{ if(fait) return; fait=true; ov.classList.remove('on'); ov.innerHTML=''; };
+  const f=ov.querySelector('.creer-sheet');
+  if(f) f.addEventListener('transitionend',finir,{once:true});
+  setTimeout(finir,420);
+}
+function creerAller(fn){
+  /* La feuille s'efface D'ABORD : deux couches empilées grisent le fond deux fois. */
+  creerFermer();
+  setTimeout(()=>{ try{ (new Function(fn))(); }catch(e){ console.error(e); toast('Impossible d\'ouvrir ce formulaire'); } },60);
+}
 /* ═══════════════ LA BARRE D'ONGLETS — quatre catégories sous le pouce ═══════════════
    Demande de Justin (dossier de refonte, 21 septembre 2026) : « barre d'onglets à 4 catégories
    personnalisable (Paramètres et appui long) ». Sur un téléphone tenu d'une main, le menu ☰ est
