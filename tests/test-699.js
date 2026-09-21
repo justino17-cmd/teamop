@@ -189,12 +189,17 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
      menu. Justin : « qu'on puisse bien aussi sauvegarder sa couleur par utilisateur ».
      ⛔ Ce qui NE doit PAS entrer ici : le brouillon de multitâche, le rendu forcé de la carte
      Appareil, le drapeau de vidage — ce sont des états d'APPAREIL. Les faire voyager les
-     répandrait sur les téléphones de toute l'équipe. */
-  v('sept réglages voyagent', Object.keys(cles).sort(),
-    ['accent', 'accentHex', 'accentsPerso', 'favoris', 'lang', 'onglets', 'theme']);
+     répandrait sur les téléphones de toute l'équipe.
+     Le 21 septembre 2026, un huitième : le FOND DE CARTE (Jour / Nuit / Satellite). Il
+     voyage pour la même raison que le thème, dont il est le pendant sur la carte — c'est un
+     choix de lisibilité de la personne, pas une caractéristique de la machine. Il reste
+     DOUBLÉ dans le rangement de l'appareil, pour que la carte s'ouvre juste avant même que
+     la fiche du compte soit relue. */
+  v('huit réglages voyagent', Object.keys(cles).sort(),
+    ['accent', 'accentHex', 'accentsPerso', 'carte', 'favoris', 'lang', 'onglets', 'theme']);
   v('… et ce sont les vraies clés de stockage',
-    [cles.theme, cles.accent, cles.accentHex, cles.accentsPerso, cles.lang, cles.onglets, cles.favoris],
-    ['elan_theme', 'elan_accent', 'elan_accent_hex', 'elan_accents_perso', 'elan_lang', 'elan_onglets', 'elan_favoris']);
+    [cles.theme, cles.accent, cles.accentHex, cles.accentsPerso, cles.lang, cles.onglets, cles.favoris, cles.carte],
+    ['elan_theme', 'elan_accent', 'elan_accent_hex', 'elan_accents_perso', 'elan_lang', 'elan_onglets', 'elan_favoris', 'elan_carte']);
 
   /* La vraie fonction, éprouvée sur un faux stockage. */
   const mem = {};
