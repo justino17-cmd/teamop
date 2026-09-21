@@ -22,6 +22,46 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+
+## 🎨 Le thème d'OP GESTION suit le document de Justin — v709-beta publiée
+
+`design/THEME-REFERENCE.md` est la référence (fournie le 22 septembre 2026), et
+`tests/test-759.js` la RELIT pour la comparer à `app.html`. Ce qui suit désormais le document :
+les 9 teintes d'accent avec leur paire jour/nuit, le verre (.58/.44, liseré .72, reflet .85,
+ombres 0 10px 28px et 0 14px 36px), les couleurs de catégorie sur une tuile de 26 px dans le
+menu. **Le vert passait à côté de sa propre palette** — `data-accent` était retiré pour le
+défaut, donc les treize jetons dérivés n'étaient pas calculés pour lui. Corrigé.
+
+**La barre du bas a été resserrée côté Apple** (22 septembre au soir, demande de Justin) :
+86 px → 68, soit 10,1 % → 8,0 % de l'écran d'un iPhone. La cause n'était pas la barre mais
+`.tab`, qui désigne DEUX choses — les onglets de filtre et les boutons de la barre. Le bouton
+reste à 44 px, le plancher tactile. ⛔ **Android est FIGÉ à 71 px sur demande explicite de
+Justin** (« on change rien, ça reste comme je t'ai montré ; on améliorera dans le futur ») :
+trois règles le remettent à ses valeurs, et c'est ce bloc-là qu'on retirera le jour où on
+reprendra Android — pas la règle d'Apple.
+
+Écarts au document ASSUMÉS et déclarés dans `ECARTS` (test-759) : fond de nuit bleu nuit plutôt
+que noir (mesure de Justin sur son Mac + règle « jamais de noir pur »), sa teinte, le reflet à
+135° ramené à .22, la sidebar à 258 px (les libellés français débordaient de 14 px).
+
+⏳ **CE QUI RESTE À FAIRE SUR LE THÈME**, et qui n'a PAS été fait :
+- les tuiles du tableau de bord : le document dit « icône 44 px sur tuile colorée 14 px » — nos
+  tuiles portent encore une icône grise. Le menu a sa couleur, elles non ;
+- l'échelle typographique du document (titre d'écran 32/1.06 −0.032em, fiche 28/1.1, section
+  18–20, corps 15–16, méta 14) n'a pas été vérifiée écran par écran ;
+- les identifiants (BX-012, N°105348, TP18) devraient être en `ui-monospace` ;
+- les couleurs de STATUT du document (ok #34c759 / planifié #007aff / alerte #ff9500 /
+  erreur #ff3b30, avec leurs fonds et leurs encres) n'ont pas été comparées aux nôtres ;
+- le site vitrine (palettes « Apple bleu » et « Marine ») n'a pas été touché du tout ;
+- ⚠️ sur ANDROID, « Planning » s'affiche « Planni… » dans la barre (libellé à 11,5 px). Connu,
+  laissé tel quel puisque Android est gelé — à traiter quand on le reprendra.
+⚠️ `test-759` ne garde AUJOURD'HUI que ce qui a été aligné — il ne crie pas sur ce qui manque
+ci-dessus. Le reprendre en même temps que le travail.
+
+⛔ **`app.html` et `sw.js` restent en v695 sur `main`.** Tout ce qui précède n'est QUE sur la
+bêta, et attend une phrase de Justin pour ce changement-là.
+
+
 ## ✅ 22 SEPTEMBRE 2026 — LA CAMPAGNE MOT DE PASSE SAUTE SUR LA BÊTA (v707)
 
 Justin : **« l'obligation qu'on a faite pour créer les mots de passe, peut-être pas la mettre

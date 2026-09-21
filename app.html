@@ -3922,22 +3922,21 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      `body.rf-onglets` RESTE — ce sont les trois règles ci-dessous qui décalent le contenu,
      le bouton flottant et les messages, et elles s'accrochent à la classe, pas à la barre. */
   html[data-refonte] body.rf-onglets .rf-tabs{display:none!important}
-  html[data-refonte] body.rf-onglets .content{padding-bottom:calc(78px + env(safe-area-inset-bottom))!important}
-  /* La pilule flotte à 14 px du bas et fait 69 px de haut : il lui faut 96 px, pas 78. */
-  html[data-verre="1"][data-refonte] body.rf-onglets .content{padding-bottom:calc(98px + env(safe-area-inset-bottom))!important}
+  /* ⛔ PLUS AUCUN CHIFFRE EN DUR ICI : tout dérive de `--tabh`, qui dit la place que la barre
+     prend sur CETTE plateforme (voir sa définition). Ces quatre lignes remplacent six valeurs
+     écrites à la main, dont deux qui se contredisaient déjà. */
+  html[data-refonte] body.rf-onglets .content{padding-bottom:calc(var(--tabh) + 16px)!important}
   /* ⚠ ET LA BULLE D'AIDE AVEC. Mesuré : à 76 px elle se posait sur le coin droit de la
      pilule et mangeait l'onglet « Plus ». Une barre qui monte, c'est tout ce qui flotte
      au-dessus d'elle qui monte aussi — sinon on décale une pièce et on en casse une autre. */
-  html[data-verre="1"][data-refonte] body.rf-onglets .fab,
-  html[data-verre="1"][data-refonte] body.rf-onglets #assistant > .fab{bottom:calc(100px + env(safe-area-inset-bottom))!important}
   html[data-refonte] body.rf-onglets .fab,
-  html[data-refonte] body.rf-onglets #assistant > .fab{bottom:calc(76px + env(safe-area-inset-bottom))!important}
+  html[data-refonte] body.rf-onglets #assistant > .fab{bottom:calc(var(--tabh) + 10px)!important}
   /* Le message de confirmation se posait PAR-DESSUS le contenu, collé à la bulle d'aide : il
      remonte au-dessus de la barre d'onglets et laisse la bulle tranquille. */
   /* Le message se posait sur la bulle d'aide, exactement là où le pouce allait la chercher.
      Il passe AU-DESSUS d'elle : les deux se voient, aucun des deux ne bloque l'autre. */
-  html[data-refonte] body.rf-onglets .toast{bottom:calc(146px + env(safe-area-inset-bottom))!important;max-width:min(90vw,440px)}
-  html[data-refonte] body.rf-onglets .plm-fab{bottom:calc(78px + env(safe-area-inset-bottom))!important}
+  html[data-refonte] body.rf-onglets .toast{bottom:calc(var(--tabh) + 66px)!important;max-width:min(90vw,440px)}
+  html[data-refonte] body.rf-onglets .plm-fab{bottom:calc(var(--tabh) + 12px)!important}
   /* La barre « Retirer / Ajouter » de la sélection multiple est collante en bas de la liste :
      à bottom:0 elle passait SOUS la barre d'onglets et ses deux boutons étaient coupés.
      Elle s'arrête donc juste au-dessus. */
@@ -5071,11 +5070,24 @@ html[data-os="ios"][data-kind="mobile"]:not([data-autonome="1"]) body{
    ══════════════════════════════════════════════════════════════════════════════════════ */
 
 /* Hauteur réservée en bas, une seule fois, pour que rien ne se cache sous la barre. */
-:root{ --tabh:calc(60px + env(safe-area-inset-bottom,0px)); }
+/* ⛔⛔ `--tabh` EST LA PLACE QUE LA BARRE PREND — hauteur PLUS dégagement — ET C'EST LA SEULE
+   SOURCE. Avant le 22 septembre 2026, six décalages étaient écrits EN DUR à côté (78, 98, 100,
+   76, 146, 78) : resserrer la barre demandait de les retrouver tous, et d'en oublier un suffit
+   à poser la bulle d'aide sur l'onglet « Plus » — ce qui était déjà arrivé une fois, mesuré.
+   Une barre qui bouge, c'est tout ce qui flotte au-dessus d'elle qui bouge. Une seule valeur,
+   donc, et tout le reste en dérive. Les chiffres viennent d'une MESURE, pas d'une estimation :
+   bouton 44 (le plancher tactile) + rembourrage de la barre + dégagement du bas. */
+:root{ --tabh:calc(54px + env(safe-area-inset-bottom,0px)); }
+/* Apple, pilule flottante : barre 56 (44 + 6 + 6) à 10 px du bas = 66. */
+html[data-verre="1"][data-kind="mobile"]{ --tabh:calc(66px + env(safe-area-inset-bottom,0px)); }
+/* Dans un navigateur, la pilule monte pour laisser passer la barre de Safari : 56 + 16 = 72. */
+html[data-verre="1"][data-kind="mobile"]:not([data-autonome="1"]){ --tabh:calc(72px + env(safe-area-inset-bottom,0px)); }
+/* ⛔ Android GARDE ses 71 px mesurés — voir le bloc Material plus bas, c'est un choix de Justin. */
+html[data-os="android"]{ --tabh:calc(71px + env(safe-area-inset-bottom,0px)); }
 
 .tabbar{
   display:none;position:fixed;left:0;right:0;bottom:0;z-index:38;
-  gap:2px;padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 6px);
+  gap:2px;padding:5px 8px calc(env(safe-area-inset-bottom,0px) + 5px);
   background:var(--bg1);border-top:1px solid var(--brd);
   font-family:var(--fs);
 }
@@ -5132,7 +5144,21 @@ html[data-kind="desktop"] .tabbar{display:none!important}
 /* Les onglets passent AU-DESSUS de la pastille, sinon elle couvre l'icône qu'elle désigne. */
 .tab{z-index:1}
 @media (prefers-reduced-motion: reduce){ .tab-cur{transition:opacity .15s ease} }
-.tab-ic{font-size:19px;line-height:1;transition:background var(--d-1,.14s) ease,padding var(--d-1,.14s) ease}
+/* ⛔⛔ `.tab` DÉSIGNE DEUX CHOSES DANS CE FICHIER, ET C'EST CE QUI RENDAIT LA BARRE ÉNORME.
+   Il y a les onglets de FILTRE (« Général / Plans / Fichiers » sur une fiche) et les boutons
+   de la BARRE DU BAS. La refonte donne `padding:10px 14px!important` à `.tab` — pensé pour un
+   onglet de filtre, où le texte a besoin d'air. Appliqué à un bouton de barre, ça faisait
+   VINGT pixels de rembourrage vertical sous une icône de 22.
+   Mesuré le 22 septembre 2026 sur un iPhone 393×852 : bouton 56 px, barre 72, plus 14 de
+   dégagement = **86 px, 10,1 % de l'écran**. Justin : « fais-la un peu plus petite, elle prend
+   beaucoup de place sur l'écran ». On ne touche pas à la règle générale — on vise la BARRE.
+   Spécificité (0,2,2) contre (0,2,1) : elle gagne, `!important` compris. */
+html[data-refonte] .tabbar .tab{padding:4px 2px!important;gap:2px!important;min-height:44px!important}
+/* ⛔ 44 px reste le plancher, et il n'est pas négociable : c'est la cible tactile du document
+   et de la HIG, sur un écran qu'on touche avec des gants. Le contenu tient en 42,6 — c'est
+   donc le plancher qui fixe la hauteur, pas l'inverse. Descendre la barre plus bas voudrait
+   dire descendre SOUS 44, et ça on ne le fait pas. */
+.tab-ic{font-size:18px;line-height:1;transition:background var(--d-1,.14s) ease,padding var(--d-1,.14s) ease}
 /* ⚠ UN LIBELLÉ TRONQUÉ NE NOMME RIEN, ET « Planni… » NE DIT PLUS SI C'EST « Planning » ou
    « Planning général ». Mesuré à 430 px : cinq colonnes de 78 px, et « Planning » débordait
    d'un caractère. Un chouia de crénage négatif le fait rentrer sans toucher à la taille — on
@@ -5151,17 +5177,17 @@ html[data-kind="desktop"] .content{padding-bottom:22px}
 
 /* ── Verre : la barre flotte en pilule, comme la maquette ── */
 html[data-verre="1"][data-kind="mobile"] .tabbar{
-  left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
+  left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);
   border-radius:34px;border:1px solid var(--vr-liseret);border-top:1px solid var(--vr-liseret);
   background:var(--vr-reflet),var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
-  box-shadow:var(--vr-ombre-barre);padding:7px 7px;
+  box-shadow:var(--vr-ombre-barre);padding:6px 6px;
 }
 /* ⛔ PLUS DE FOND SUR L'ONGLET ACTIF : c'est la pastille qui le désigne, et deux surfaces
    pour une même chose feraient un halo autour d'un halo. Sur verre elle devient une CAPSULE,
    comme la barre qui la porte — la concentricité d'Apple : un contrôle niché dans un autre
    épouse sa courbure. Et elle est un peu plus blanche que verte : sur une vitre, un aplat
    d'accent à pleine force écrase ce qu'il y a dessous au lieu de le laisser voir. */
-html[data-verre="1"][data-kind="mobile"] .tabbar{--tab-px:7px;--tab-py:7px}
+html[data-verre="1"][data-kind="mobile"] .tabbar{--tab-px:6px;--tab-py:6px}
 html[data-verre="1"][data-kind="mobile"] .tab-cur{
   bottom:var(--tab-py);
   border-radius:999px;
@@ -5183,10 +5209,22 @@ html[data-verre="1"][data-kind="mobile"][data-theme="dark"] .tab-cur{
    `env(safe-area-inset-bottom)` ne la compte pas quand elle est déployée.
    ⛔ On ne dessine toujours PAS la barre de Safari : la vraie page en aurait deux. */
 html[data-verre="1"][data-kind="mobile"]:not([data-autonome="1"]) .tabbar{
-  bottom:calc(env(safe-area-inset-bottom,0px) + 22px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 16px);
 }
 
 /* ── Android : pastille tonale derrière l'icône active (Material 3) ── */
+/* ⛔⛔ ANDROID EST FIGÉ, ET C'EST UNE DÉCISION DE JUSTIN, PAS UN OUBLI. 22 septembre 2026 :
+   « pour chez Android tout ça on change rien, ça reste comme je t'ai montré ; surtout chez
+   Apple on fait ça bien, vraiment un truc pro. Android, on améliorera dans le futur, mais
+   pour l'instant je trouve que c'est correct. »
+   Les trois lignes ci-dessous REMETTENT donc à Android exactement les valeurs qu'il avait
+   avant le resserrement d'Apple — barre 71 px, bouton 59, icône 19, libellé 11,5. Sans elles,
+   le resserrement d'Apple l'emportait avec lui, parce qu'il passe par les règles COMMUNES.
+   ⚠️ Le jour où on reprendra Android, c'est ce bloc qu'on retire — pas la règle d'Apple. */
+html[data-os="android"] .tabbar{padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 6px)}
+html[data-refonte][data-os="android"] .tabbar .tab{padding:10px 14px!important;gap:3px!important}
+html[data-os="android"] .tab-ic{font-size:19px}
+
 html[data-os="android"] .tab-l{font-size:11.5px;font-weight:500}
 /* Material 3 pose sa tonale sur l'ICÔNE, pas sur toute la colonne : la pastille prend donc
    la forme et la place de cette tonale au lieu d'en ajouter une seconde par-dessus. */

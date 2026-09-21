@@ -273,13 +273,24 @@ console.log('\n══ 7. UNE SEULE BARRE DU BAS ══\n');
   vrai('⛔ l’ancienne barre est éteinte', /html\[data-refonte\] body\.rf-onglets \.rf-tabs\{display:none!important\}/.test(NU));
   vrai('⛔ … mais la classe body.rf-onglets RESTE (ce sont elle et non la barre qui décalent le contenu)',
     /html\[data-refonte\] body\.rf-onglets \.content\{padding-bottom/.test(NU));
-  vrai('la pilule en verre réserve sa propre place (98 px, pas 78)',
-    /html\[data-verre="1"\]\[data-refonte\] body\.rf-onglets \.content\{padding-bottom:calc\(98px/.test(NU));
+  /* ⛔⛔ PLUS AUCUN CHIFFRE EN DUR — ET C'EST CE QU'ON GARDE MAINTENANT. Ce contrôle exigeait
+     « 98 px, pas 78 » : deux valeurs écrites à la main, à côté de quatre autres (100, 76, 146,
+     78). Resserrer la barre le 22 septembre 2026 demandait de les retrouver toutes, et en
+     oublier une suffit à poser la bulle d'aide sur l'onglet « Plus » — déjà arrivé, mesuré.
+     Tout dérive désormais de `--tabh`, qui dit la place prise sur CETTE plateforme. */
+  vrai('⛔⛔ le contenu se décale d’après --tabh, jamais d’un chiffre écrit à la main',
+    /body\.rf-onglets \.content\{padding-bottom:calc\(var\(--tabh\) \+ 16px\)!important\}/.test(NU));
+  vrai('⛔ … et la bulle d’aide aussi (une barre qui monte fait monter ce qui flotte au-dessus)',
+    /body\.rf-onglets #assistant > \.fab\{bottom:calc\(var\(--tabh\) \+ 10px\)!important\}/.test(NU));
+  vrai('⛔ … et le message de confirmation', /body\.rf-onglets \.toast\{bottom:calc\(var\(--tabh\) \+ 66px\)/.test(NU));
+  vrai('⛔⛔ ANDROID EST FIGÉ — Justin l’a demandé, ce n’est pas un oubli',
+    /html\[data-refonte\]\[data-os="android"\] \.tabbar \.tab\{padding:10px 14px!important/.test(NU)
+    && /html\[data-os="android"\] \.tab-ic\{font-size:19px\}/.test(NU));
   /* Justin, 22 septembre 2026 : « même la part en bas j'aurais bien voulu la même barre que
      sur l'application qui sera prévue pour iOS ». En navigateur elle MONTE, elle ne s'aplatit
      plus — la règle disait le contraire avant. */
   vrai('⛔ en navigateur la pilule monte au lieu de s’aplatir',
-    /html\[data-verre="1"\]\[data-kind="mobile"\]:not\(\[data-autonome="1"\]\) \.tabbar\{\s*bottom:calc\(env\(safe-area-inset-bottom,0px\) \+ 22px\);\s*\}/.test(NU));
+    /html\[data-verre="1"\]\[data-kind="mobile"\]:not\(\[data-autonome="1"\]\) \.tabbar\{\s*bottom:calc\(env\(safe-area-inset-bottom,0px\) \+ 16px\);\s*\}/.test(NU));
   vrai('⛔ … et elle ne redevient plus plate et collée',
     !/:not\(\[data-autonome="1"\]\) \.tabbar\{[^}]*border-radius:0/.test(NU));
   /* Les icônes SVG de l'application doivent passer sur la barre : sinon elle garde des émojis

@@ -536,6 +536,46 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   décalages de mise en page. ⚠️ Et quand on en éteint un, **la classe qui porte les décalages
   reste** (`body.rf-onglets`) : ce sont elle et non la barre qui décalent le contenu, le bouton
   flottant et les messages.
+- ⛔⛔ **LE THÈME A SA RÉFÉRENCE DANS LE DÉPÔT, ET UN BANC QUI LA RELIT.** Justin a fourni
+  `design/THEME-REFERENCE.md` le 22 septembre 2026 (« regarde bien que tout le reste soit comme
+  le thème ») : couleurs jour/nuit, verre, rayons, typographie, mouvement. `tests/test-759.js`
+  **lit ce fichier** et le compare à `app.html`, jeton par jeton. La différence n'est pas
+  cosmétique : `test-757` exigeait « le verre de jour est à 34 %, pas 58 % » — un réglage fait à
+  l'œil, gardé comme une vérité pendant une journée. **Un banc qui recopie des valeurs garde une
+  croyance ; un banc qui relit la source garde un accord.** ⚠️ Et les écarts au document sont
+  DÉCLARÉS un par un dans `ECARTS` (test-759), avec leur mesure — même mécanisme que « vu et pas
+  surveillé » de `test-726`. Un écart tacite devient un oubli en une semaine.
+- ⛔⛔ **LE VERT PASSAIT À CÔTÉ DE SA PROPRE PALETTE, ET C'EST LA COULEUR DE PRESQUE TOUT LE
+  MONDE.** `applyTheme` faisait `if(a&&a!=='green') r.setAttribute('data-accent',a); else
+  r.removeAttribute(...)`. Donc pour le DÉFAUT, ni `[data-accent="green"]` ni le bloc de
+  dérivation `[data-accent]` ne s'appliquaient : mesuré au navigateur, `--acc-src` revenait
+  **vide** sur le vert et rempli sur les huit autres teintes. Changer de couleur changeait treize
+  jetons, revenir au vert n'en changeait que quatre — l'interface n'était pas la même selon la
+  teinte. **Une valeur par défaut qui emprunte un autre chemin que les autres est un défaut qui
+  attend.** Le vert est une teinte comme les autres : `r.setAttribute('data-accent', a||'green')`.
+- ⛔ **UN LISERÉ NE PEUT PAS ÊTRE PLUS OPAQUE QUE LA VITRE QU'IL BORDE.** C'est le signe qu'on a
+  pris une moitié d'un accord de valeurs : surface à .34 (réglée à l'œil) avec le liseré à .85 du
+  document. `test-759` calcule le point le plus clair de la vitre (fond + reflet) et exige qu'il
+  reste SOUS le liseré. ⚠️ Corollaire : un reflet peint en DÉGRADÉ s'ajoute à la surface — sur
+  une base à .58, un dégradé qui démarre à .65 monte le coin clair à .85, soit un aplat blanc.
+- ⛔ **UN LIBELLÉ FRANÇAIS NE TIENT PAS DANS UNE GRILLE DESSINÉE EN ANGLAIS.** Le document dit
+  « sidebar 236 px » ; mesuré au navigateur, tuile d'icône comprise, il restait 149 px au libellé
+  et « Consommation produits » en demande 163. Trois rubriques passaient sur deux lignes (59 px
+  contre 44), ce qui casse le rythme du menu. **On ÉLARGIT** (258 px) : tronquer cache une
+  information, rapetisser descend sous le plancher de lisibilité du terrain. ⚠️ Et deux pixels de
+  marge ne sont pas une marge — mesuré, le libellé tenait sur le papier (165 contre 163) et
+  passait quand même à la ligne. **On mesure APRÈS, pas seulement avant.**
+- ⛔ **UN CHAMP DÉCLARÉ ET RENDU NULLE PART EST UN ÉCRAN QUI MENT SUR CE QU'IL SAIT FAIRE.**
+  Les 42 rubriques de `NAV` portaient toutes un `ic:` (l'émoji de la catégorie) depuis toujours,
+  et le menu n'en affichait AUCUN — c'est la première chose que Justin a vue en comparant sa
+  maquette à l'application. Le jumeau d'`atts` dans `/health`, côté écran.
+- ⛔ **UNE MUTATION QUI NE MORD PAS PEUT ÊTRE UNE MUTATION MAL VISÉE.** Mesuré le 22 septembre
+  2026 : `s.replace(motif, autre, 1)` remplace la PREMIÈRE occurrence du fichier, pas celle qu'on
+  croit. `{childList:true,subtree:true}` apparaît six fois dans `app.html` — la mutation a frappé
+  l'observateur des traductions, à 5 000 lignes de la cible, et le banc est resté vert à juste
+  titre. **Avant d'accuser un banc d'être aveugle, vérifier que la mutation a touché le bon
+  endroit** (`git diff` après mutation, pas seulement le total du banc).
+
 - ⛔ **UNE ANCRE DE BANC EST UN COMMENTAIRE — ON DÉCOUPE DANS LE TEXTE BRUT, ON NETTOIE APRÈS.**
   Chercher le titre d'un bloc dans un texte dont on vient de retirer les commentaires rend −1,
   donc une tranche VIDE, et **une tranche vide passe au vert sur tout**. Pris sur `test-757` à

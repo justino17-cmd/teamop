@@ -191,7 +191,15 @@ const blocCss = (titre) => {
   vrai('⛔ … ET sur une fenêtre étroite, où la barre sort aussi',
     /@media\(max-width:780px\)\{ \.content\{padding-bottom:calc\(var\(--tabh\)/.test(css));
   vrai('   la hauteur réservée tient compte de la barre système du téléphone',
-    /--tabh:calc\(60px \+ env\(safe-area-inset-bottom/.test(css));
+    /--tabh:calc\(\d+px \+ env\(safe-area-inset-bottom/.test(css));
+  /* ⛔⛔ `--tabh` A UNE VALEUR PAR PLATEFORME DEPUIS LE 22 SEPTEMBRE 2026, ET C'EST TOUT
+     L'INTÉRÊT : la pilule d'Apple ne prend pas la même place qu'une barre pleine, et Android
+     garde ses 71 px figés. Six décalages étaient écrits EN DUR à côté (78, 98, 100, 76, 146,
+     78) — resserrer la barre demandait de les retrouver tous. */
+  const tabh = [...css.matchAll(/--tabh:calc\((\d+)px/g)].map(m => +m[1]);
+  vrai('⛔ --tabh est déclinée par plateforme, pas unique', tabh.length >= 4, tabh.join(', '));
+  vrai('⛔ la pilule en verre réserve plus qu’une barre pleine',
+    tabh.length >= 2 && Math.max(...tabh) > Math.min(...tabh), tabh.join(', '));
   /* ⛔ 258 px, ET PAS LES 236 DU DOCUMENT — écart assumé et MESURÉ, pas un oubli. Avec la
      tuile d'icône ajoutée le 22 septembre 2026, il restait 149 px au libellé et
      « Consommation produits » en demande 163 : trois rubriques passaient sur deux lignes.

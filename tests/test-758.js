@@ -84,7 +84,18 @@ console.log('\n══ 2. LE STYLE : la colonne se déduit, elle ne se copie pas 
   vrai('⛔ sur verre elle devient une CAPSULE, comme la barre qui la porte (concentricité)',
     /html\[data-verre="1"\]\[data-kind="mobile"\] \.tab-cur\{[\s\S]{0,120}border-radius:999px/.test(css));
   vrai('⛔ … et la marge de la pilule est reprise, sinon la pastille déborde',
-    /html\[data-verre="1"\]\[data-kind="mobile"\] \.tabbar\{--tab-px:7px;--tab-py:7px\}/.test(css));
+    /html\[data-verre="1"\]\[data-kind="mobile"\] \.tabbar\{--tab-px:6px;--tab-py:6px\}/.test(css));
+  /* ⛔⛔ LA BARRE PRENAIT 10,1 % DE L'ÉCRAN D'UN IPHONE, ET C'EST MESURÉ. Justin, 22 septembre
+     2026 : « fais-la un peu plus petite, elle prend beaucoup de place sur l'écran ». La cause
+     n'était pas la barre mais `.tab`, qui désigne DEUX choses dans ce fichier — les onglets de
+     filtre (`padding:10px 14px!important`, pensé pour du texte) et les boutons de la barre du
+     bas. Vingt pixels de rembourrage vertical sous une icône de 22.
+     Mesuré après : 86 px → 68, soit 8,0 % de l'écran. Et le bouton reste à 44, le plancher
+     tactile — c'est LUI qui fixe la hauteur maintenant, on ne descend pas en dessous. */
+  vrai('⛔⛔ le bouton de la BARRE a son propre rembourrage, pas celui d’un onglet de filtre',
+    /html\[data-refonte\] \.tabbar \.tab\{padding:4px 2px!important/.test(css));
+  vrai('⛔ … et il garde le plancher tactile de 44 px',
+    /html\[data-refonte\] \.tabbar \.tab\{[^}]*min-height:44px!important/.test(css));
   /* ⛔ DEUX SURFACES POUR UNE MÊME CHOSE FERAIENT UN HALO AUTOUR D'UN HALO. */
   vrai('⛔ l’onglet actif n’a PLUS de fond à lui', !/\.tab\.on\{background:rgba\(255,255,255,\.82\)\}/.test(css));
   vrai('⛔ les onglets passent au-dessus d’elle (sinon elle couvre l’icône qu’elle désigne)',
