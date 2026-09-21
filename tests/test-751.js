@@ -101,13 +101,28 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
   const j=bornes.length?Math.min(...bornes):-1;
   return NU.slice(i, j<0? i+2600 : j); };
 
-{ /* ⛔ 1 — la barre est SŒUR de .main, jamais dans #content. On lit le BALISAGE. */
+{ /* ⛔ 1 — la barre est SŒUR de .main, jamais dedans.
+     ⚠️ LA PREMIÈRE VERSION DE CE CONTRÔLE NE VOYAIT RIEN. Elle demandait « y a-t-il un </div>
+     entre #content et la barre ? » — et déplacer la barre juste après `#content></div>`, DANS
+     `.main`, satisfaisait la question sans rien corriger : la mutation ne cassait rien.
+     On compte donc les balises pour de vrai : on suit la profondeur depuis `<div class="main">`
+     jusqu'à SA fermeture, et on exige que la barre soit APRÈS. Un motif juste sur une question
+     fausse rend un verdict faux. */
   const shell=APP.slice(APP.indexOf('<div class="app" id="app-root"'), APP.indexOf('<div class="overlay"'));
-  const iContenu=shell.indexOf('id="content"'), iBarre=shell.indexOf('id="tabbar"');
+  const finDe=(html,depart)=>{ let i=depart, p=0;
+    const re=/<(\/?)div\b[^>]*?(\/?)>/g; re.lastIndex=depart;
+    let m; while((m=re.exec(html))){ if(m[2]==='/') continue;
+      p += m[1]==='/' ? -1 : 1; if(p===0) return m.index; }
+    return -1; };
+  const iMain=shell.indexOf('<div class="main">');
+  const finMain=finDe(shell,iMain);
+  const iBarre=shell.indexOf('id="tabbar"');
+  const iMsg=shell.indexOf('id="msg-flot"');
   vrai('la barre existe dans le balisage', iBarre>0);
-  vrai('⛔⛔ elle est posée APRÈS </div> de .main, pas dans #content',
-    iBarre>iContenu && shell.slice(iContenu,iBarre).indexOf('</div>')>=0);
-  vrai('le bouton flottant de la messagerie aussi', shell.indexOf('id="msg-flot"')>iContenu);
+  vrai('le bloc .main est bien délimité (sinon ce qui suit est creux)', iMain>0 && finMain>iMain);
+  vrai('⛔⛔ la barre est HORS de .main — donc hors de #content, que rendreVueAnimee réécrit',
+    iBarre>finMain);
+  vrai('⛔ le bouton flottant de la messagerie aussi', iMsg>finMain);
 }
 { /* ⛔ 2 — go() repeint l'état, il ne reconstruit pas */
   const g=corps('go');
@@ -151,8 +166,15 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
   vrai('⛔ … et sur une fenêtre étroite (une fenêtre de bureau rétrécie est un écran de téléphone)',
     /@media\(max-width:780px\)\{ \.tabbar\{display:flex\} \}/.test(css));
   vrai('⛔ JAMAIS sur un rendu bureau', /html\[data-kind="desktop"\] \.tabbar\{display:none!important\}/.test(css));
-  vrai('⛔ le contenu réserve la place sous la barre (sinon la dernière ligne est inatteignable)',
-    /\.content\{padding-bottom:calc\(var\(--tabh\)/.test(css));
+  /* ⛔ LES DEUX RÈGLES, PAS UNE. Le motif d'avant se contentait de la première trouvée :
+     supprimer la règle de LARGEUR le laissait vert, alors qu'une fenêtre de bureau rétrécie
+     montre la barre (elle a sa propre règle) et cacherait la dernière ligne des listes. */
+  vrai('⛔ le contenu réserve la place sous la barre sur une plateforme mobile',
+    /html\[data-kind="mobile"\] \.content\{padding-bottom:calc\(var\(--tabh\)/.test(css));
+  vrai('⛔ … ET sur une fenêtre étroite, où la barre sort aussi',
+    /@media\(max-width:780px\)\{ \.content\{padding-bottom:calc\(var\(--tabh\)/.test(css));
+  vrai('   la hauteur réservée tient compte de la barre système du téléphone',
+    /--tabh:calc\(60px \+ env\(safe-area-inset-bottom/.test(css));
   vrai('la sidebar de bureau fait 236 px', /html\[data-kind="desktop"\] \.sidebar\{width:236px\}/.test(css));
   vrai('⛔ et le ☰ disparaît sur bureau', /html\[data-kind="desktop"\] \.menu-btn\{display:none!important\}/.test(css));
   vrai('⛔ la pilule flottante ne sort QUE sur du verre ET installée',
