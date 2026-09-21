@@ -204,7 +204,30 @@ async function monter() {
   {
     /* Tout ce banc éprouve du code qui ne tourne PAS encore chez les clients. Le jour où
        l'interrupteur se lève, c'est un geste conscient — pas un effet de bord d'un correctif. */
-    vrai('⛔ PORTAIL_SERVEUR est FAUX dans le fichier servi', /const PORTAIL_SERVEUR\s*=\s*false\s*;/.test(NU));
+    const ouvert = /const PORTAIL_SERVEUR\s*=\s*true\s*;/.test(NU);
+    vrai('⛔ PORTAIL_SERVEUR est FAUX dans le fichier servi', !ouvert);
+
+    /* ⛔⛔ LE JOUR OÙ L'INTERRUPTEUR SE LÈVE, LES TROIS BALISES FIREBASE DOIVENT PARTIR —
+       ET CE BANC REFUSE QU'ON OUBLIE. Mesuré au navigateur le 21 septembre 2026 : avec
+       l'interrupteur ouvert, `typeof firebase` vaut `undefined` (le conteneur n'atteint pas
+       gstatic) et la page fonctionne DE BOUT EN BOUT — inscription, dossier, fil de messages,
+       changement de mot de passe, déconnexion, reconnexion. Elle n'a donc plus besoin de
+       Firebase du tout. Mais les trois `<script src="https://www.gstatic.com/firebasejs/…">`
+       sont INCONDITIONNELLES : lever l'interrupteur sans les retirer laisserait chaque client
+       du portail télécharger trois paquets chez Google à chaque visite, pour rien — et le
+       chantier « TOUT SUR LE SERVEUR » se raconterait fini tout en restant branché chez eux.
+       ⚠️ POURQUOI UN CONTRÔLE CONDITIONNEL PLUTÔT QU'UN CORRECTIF TOUT DE SUITE : tant que
+       l'interrupteur est FERMÉ, la page a VRAIMENT besoin de ces balises — `firebase.auth()`
+       et `firebase.firestore()` sont appelés pendant l'exécution du script. Les rendre
+       paresseuses aujourd'hui voudrait dire réécrire tout l'amorçage pour un gain nul. On
+       attache donc la règle à l'interrupteur : les deux se lèvent dans le même geste, et
+       c'est le banc qui le tient, pas un souvenir. */
+    const balises = (PAGE.match(/<script src="https:\/\/www\.gstatic\.com\/firebasejs/g) || []).length;
+    if (ouvert) {
+      v('⛔⛔ interrupteur OUVERT → plus AUCUNE balise Firebase de gstatic', balises, 0);
+    } else {
+      vrai('   interrupteur fermé : les ' + balises + ' balises Firebase restent nécessaires', balises === 3);
+    }
   }
 
   try { enfant.kill('SIGKILL'); } catch (e) {}
