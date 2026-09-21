@@ -5278,6 +5278,65 @@ html[data-verre="1"] #content:has(.det-back) .card-head{
     background:none;border-bottom:2px solid var(--acc);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   L'ÉCRAN DE CONNEXION — par lien d'invitation (point 5 de la refonte)
+   « logo 84 px radius 20, OP GESTION, pastille ✓ <Entreprise> · lien vérifié (l'entreprise
+   vient du LIEN, il n'y a pas de champ Entreprise), carte verre Identifiant / Mot de passe,
+   bouton accent, lien Mot de passe oublié. Bureau : colonne centrée 380 px. »
+
+   ⛔ LE CHAMP ENTREPRISE N'EST PAS SUPPRIMÉ — IL EST DÉJÀ ABSENT QUAND IL DOIT L'ÊTRE. Le
+   dossier dit « il n'y a pas de champ Entreprise », et c'est vrai du chemin normal : quand
+   l'appareil est rattaché (`elan_sync_team`), le champ n'existe pas et la pastille dit à quelle
+   entreprise on se connecte. Mais un appareil ORPHELIN doit pouvoir nommer la sienne, et il
+   doit le SAVOIR : sans ça, quelqu'un travaille dans une base que son équipe ne verra jamais.
+   C'est le défaut que Justin a vu de ses yeux le 15 septembre 2026, et l'avertissement qui le
+   répare est écrit vingt lignes au-dessus dans `renderLogin`. On ne le retire pas pour faire
+   ressembler l'écran à une image.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+/* ⛔  OBLIGATOIRE ICI : une règle de la refonte pose déjà  sur ce logo. Sans le sien, le rayon de la maquette ne sort pas — mesuré : 22 px
+   au lieu de 20. Le poids ne se devine pas, il se mesure. */
+html[data-refonte] .login-logo{
+  width:84px!important;height:84px!important;border-radius:20px!important;margin-bottom:16px;
+}
+html[data-refonte] .login-box h2{
+  font-size:28px;font-weight:700;letter-spacing:-.028em;line-height:1.1;
+}
+/* La pastille « ✓ <Entreprise> · lien vérifié » — une seule ligne, pas trois. */
+html[data-refonte] #li-entnom{
+  border-radius:var(--r-pill,999px);padding:9px 18px;font-size:15px;font-weight:700;
+  display:inline-flex;align-items:center;gap:8px;min-height:40px;
+}
+html[data-refonte] .login-card{
+  border-radius:var(--rf-r-fenetre,26px);padding:22px 20px;
+}
+html[data-refonte] .login-card .btn[type="submit"],html[data-refonte] .login-card button.btn{
+  min-height:48px;border-radius:var(--r-pill,999px);font-size:16px;font-weight:700;
+}
+html[data-os="windows"] .login-card .btn[type="submit"],
+html[data-os="windows"] #li-entnom{border-radius:6px}
+html[data-verre="1"] .login-card{
+  background:var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border:.5px solid var(--vr-liseret);box-shadow:var(--vr-reflet),var(--vr-ombre);
+}
+@media (prefers-reduced-transparency: reduce){
+  html[data-verre="1"] .login-card{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--bg1)!important;
+  }
+}
+/* ⛔ L'ÉCRAN DE CONNEXION PASSE AU-DESSUS DE TOUT, Y COMPRIS DE LA SIDEBAR DE BUREAU. Il est
+   déjà en `position:fixed; z-index:200`, mais la barre d'onglets et le bouton flottant que la
+   refonte vient d'ajouter vivent au-dessus du contenu : sans cette règle, on verrait des
+   onglets sous un écran de connexion. */
+.login[style*="flex"] ~ #app-root .tabbar,
+.login[style*="flex"] ~ #app-root .msg-flot{display:none!important}
+
+/* ── L'entrée dans l'application : un fondu qui grandit, pas un saut ── */
+@keyframes opEntree{ from{opacity:0;transform:scale(1.04)} to{opacity:1;transform:none} }
+html[data-refonte] #app-root.op-entree{animation:opEntree .5s cubic-bezier(.32,.72,0,1) both}
+@media (prefers-reduced-motion: reduce){
+  html[data-refonte] #app-root.op-entree{animation:opEntree .2s linear both;transform:none!important}
+}
 </style>
 </head>
 <body>
@@ -33088,6 +33147,16 @@ function enterApp(u){ currentUser=u;
   // au serveur, sans bloquer l'ouverture ; s'il dit non, on ressort proprement.
   if(BETA_ESSAI&&u&&u.essai){ try{ fetch(PUSH_API+'/api/beta/etat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:u.login})})
     .then(r=>r.json()).then(j=>{ if(j&&j.ouvert===false){ try{ localStorage.removeItem('elanB_session'); sessionStorage.removeItem('elanB_session'); }catch(_e){} alert('Cet accès d\'essai a été coupé depuis la Tour de contrôle.'); location.reload(); } }).catch(()=>{}); }catch(_e){} } try{ localStorage.removeItem('elanB_lien_ok'); localStorage.removeItem('elanB_ent_ok'); }catch(e){} try{ gpsAutoChrono(); }catch(e){} $('login').style.display='none'; $('app-root').style.display='flex';
+  /* ⛔ L'ENTRÉE EST UN FONDU, ET L'ACCUEIL NOMME LA PERSONNE. Passer de l'écran de connexion
+     à un tableau de bord complet d'un seul coup, c'est un saut : on ne sait pas si on a
+     changé d'écran ou si la page a rechargé. La classe se retire à la fin — sinon une
+     seconde connexion dans la même session ne rejouerait rien — et un filet la retire aussi
+     quand il n'y a pas d'animation du tout (mouvement réduit, onglet en arrière-plan). */
+  try{ const _r=$('app-root'); _r.classList.remove('op-entree'); void _r.offsetWidth; _r.classList.add('op-entree');
+    _r.addEventListener('animationend',()=>_r.classList.remove('op-entree'),{once:true});
+    setTimeout(()=>_r.classList.remove('op-entree'),900);
+  }catch(e){}
+  try{ const _p=(u&&(u.prenom||fullName(u).split(' ')[0]))||''; if(_p) setTimeout(()=>toast('👋 Bienvenue, '+_p),320); }catch(e){}
   const av=$('app-ver'); if(av) av.textContent=APP_VERSION;
   const fn=fullName(u); const bi=$('brand-ini'); if(bi) bi.textContent=initials(fn); userAvatarApply();
   const bh=$('brand-hi'); if(bh) bh.textContent='Bonjour '+(u.prenom||fn.split(' ')[0]||'')+',';
@@ -33162,7 +33231,7 @@ function renderLogin(){ $('app-root').style.display='none'; $('login').style.dis
   const _auto=cnxAutoEnAttente();
   $('login-box').innerHTML=`<img class="login-logo" src="${_logo}" alt="OP GESTION"><h2>OP GESTION <span style="font-size:12px;color:var(--org);vertical-align:middle">🧪 BÊTA</span></h2>
     ${_surEspace?`<div style="text-align:center;margin:2px 0 14px"><div style="font-size:13px;color:var(--t2);margin-bottom:7px">Vous allez vous connecter à l'entreprise</div><div id="li-entnom" style="display:inline-block;background:color-mix(in srgb,var(--acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:100px;padding:8px 20px;font-size:16px;font-weight:800">🏢 ${esc(_entNom||'…')}</div>
-    ${localStorage.getItem('elanB_lien_ok')?`<div style="margin-top:8px;font-size:12.5px;color:var(--acc);font-weight:700">✅ Lien de connexion reconnu — entre ton identifiant et ton mot de passe.</div>`:(localStorage.getItem('elanB_ent_ok')?`<div style="margin-top:8px;font-size:12.5px;color:var(--acc);font-weight:700">✅ Entreprise reconnue — entre ton mot de passe.</div>`:'')}</div>`:''}
+    ${localStorage.getItem('elanB_lien_ok')?`<div style="margin-top:8px;font-size:12.5px;color:var(--acc);font-weight:700">✓ Lien vérifié — entre ton identifiant et ton mot de passe.</div>`:(localStorage.getItem('elanB_ent_ok')?`<div style="margin-top:8px;font-size:12.5px;color:var(--acc);font-weight:700">✓ Entreprise reconnue — entre ton mot de passe.</div>`:'')}</div>`:''}
     <!-- ⛔ CET AVERTISSEMENT ÉTAIT ÉCRIT DEPUIS DES MOIS ET NE S'EST JAMAIS AFFICHÉ.
          Il vivait À L'INTÉRIEUR de la branche « cet appareil EST sur un espace », alors que sa
          propre condition dit « cet appareil N'EST PAS sur un espace » : deux choses qui ne
