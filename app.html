@@ -2704,13 +2704,25 @@ html[data-refonte][data-theme="light"][data-accent]{
   --side-active-ink:color-mix(in srgb,#000 26%,var(--acc-src));
   --side-avatar:color-mix(in srgb,#000 18%,var(--acc-src));
 }
-/* De jour la teinte est FONCÉE de 14 % avant de porter l'encre : le blanc y tient alors pour
-   les six teintes vives. L'orange, le cyan, le rose et le rouge gardent leur encre sombre —
-   à aucune profondeur raisonnable le blanc n'y passe 4,5:1. */
+/* ⛔⛔ L'ENCRE DE JOUR SE CALCULE CONTRE L'ACCENT DE JOUR, PAS CONTRE CELUI DE NUIT.
+   Le jour FONCE la teinte de 22 % (--acc ci-dessus) mais l'encre, elle, restait celle de la
+   nuit — un navy #0B1426 — pour les teintes sans surcharge. Résultat : du SOMBRE sur du
+   SOMBRE. Calculé sur les dix-huit combinaisons (neuf teintes × deux modes) :
+       bleu   3,03:1     violet 2,98:1     cyan 4,09:1
+   soit trois combinaisons sous la barre des 4,5:1, en plein jour, sur trois des neuf couleurs
+   que l'utilisateur peut choisir. Le commentaire qui vivait ici disait d'ailleurs l'inverse du
+   code (« le cyan, le rose et le rouge gardent leur encre sombre » alors qu'ils étaient déjà
+   passés au blanc) : le signe que ce bloc avait dérivé.
+   Le bleu et le violet prennent donc le BLANC (6,07 et 6,18). Le cyan est le seul cas où
+   aucune des deux encres ne passe à 22 % — ni le blanc (4,09) ni le navy (4,49) : on le fonce
+   un cran de plus, à 30 %, et le blanc y tient (5,00). L'orange garde son encre sombre : à
+   aucune profondeur raisonnable le blanc n'y passe. */
 html[data-refonte][data-theme="light"][data-accent="orange"]{ --on-acc:#2A1304; }
-html[data-refonte][data-theme="light"][data-accent="teal"]  { --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="teal"]  { --acc:color-mix(in srgb,#000 30%,var(--acc-src)); --on-acc:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="pink"]  { --on-acc:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="red"]   { --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="blue"]  { --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="purple"]{ --on-acc:#FFFFFF; }
 
 /* ══ LE FOND ══ deux voiles très larges, l'un vert (l'accent), l'autre acier (la marque). Aucun
    trait : sur un fond clair, une diagonale traversant la page se lit comme un défaut d'affichage. */

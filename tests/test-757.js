@@ -170,6 +170,52 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
     /--vr-page:linear-gradient\(180deg,#f7f7f9,#eeeef2\)/.test(css));
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   L'ENCRE POSÉE SUR L'ACCENT — un contraste, donc un CALCUL, pas un motif
+
+   ⛔⛔ CE CONTRÔLE NE POUVAIT PAS ÊTRE UNE EXPRESSION RÉGULIÈRE. Le défaut qu'il garde était
+   invisible à la lecture : le mode JOUR fonce la teinte de 22 % (`--acc`), mais l'encre posée
+   dessus (`--on-acc`) restait celle de la NUIT — un navy #0B1426 — pour les teintes sans
+   surcharge. Du sombre sur du sombre. Mesuré le 21 septembre 2026 sur les dix-huit
+   combinaisons : bleu 3,03:1, violet 2,98:1, cyan 4,09:1 — trois des neuf couleurs que
+   l'utilisateur peut choisir, illisibles en plein jour.
+   ⚠ Et le commentaire qui vivait à cet endroit disait l'INVERSE du code (« le cyan, le rose
+   et le rouge gardent leur encre sombre » alors qu'ils étaient déjà passés au blanc) : c'est
+   le signe qui aurait dû alerter. Un banc qui calcule ne peut pas se faire mentir ainsi.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+{
+  const hex = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16));
+  const lin = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+  const lum = c => .2126 * lin(c[0]) + .7152 * lin(c[1]) + .0722 * lin(c[2]);
+  const contraste = (a, b) => { const L1 = lum(a), L2 = lum(b); return (Math.max(L1, L2) + .05) / (Math.min(L1, L2) + .05); };
+  const foncer = (c, p) => c.map(v => Math.round(v * (1 - p)));
+
+  const src = {}, onBase = {}, onJour = {}, accJour = {}, srcN = {}, onNuit = {};
+  for (const m of NU_TEINTE.matchAll(/html\[data-refonte\]\[data-accent="(\w+)"\]\s*\{\s*--acc-src:(#[0-9A-Fa-f]{6});\s*--on-acc:(#[0-9A-Fa-f]{6});/g)) { src[m[1]] = m[2]; onBase[m[1]] = m[3]; }
+  for (const m of NU_TEINTE.matchAll(/html\[data-refonte\]\[data-theme="light"\]\[data-accent="(\w+)"\]\s*\{([^}]*)\}/g)) {
+    const o = /--on-acc:(#[0-9A-Fa-f]{6})/.exec(m[2]); if (o) onJour[m[1]] = o[1];
+    const a = /--acc:color-mix\(in srgb,#000 (\d+)%/.exec(m[2]); if (a) accJour[m[1]] = +a[1] / 100;
+  }
+  for (const m of NU_TEINTE.matchAll(/html\[data-refonte\]\[data-theme="dark"\]\[data-accent="(\w+)"\]\s*\{\s*--acc-src:(#[0-9A-Fa-f]{6});\s*--on-acc:(#[0-9A-Fa-f]{6});/g)) { srcN[m[1]] = m[2]; onNuit[m[1]] = m[3]; }
+
+  const teintes = Object.keys(src);
+  /* ⛔ COMPTER LA POPULATION AVANT DE CROIRE UN VERDICT : sur une liste vide, « tout passe ». */
+  vrai('les neuf teintes sont lues, jour et nuit', teintes.length === 9 && Object.keys(srcN).length === 9,
+    teintes.length + ' de jour, ' + Object.keys(srcN).length + ' de nuit');
+  /* le fonçage par défaut du jour, lu dans la feuille plutôt que recopié ici */
+  const parDefaut = (/html\[data-refonte\]\[data-theme="light"\]\[data-accent\]\{\s*--acc:color-mix\(in srgb,#000 (\d+)%/.exec(NU_TEINTE) || [, '22'])[1] / 100;
+  vrai('le fonçage de jour est lu dans la feuille', parDefaut > 0 && parDefaut < 1, (parDefaut * 100) + ' %');
+
+  teintes.forEach(t => {
+    const aJ = foncer(hex(src[t]), accJour[t] !== undefined ? accJour[t] : parDefaut);
+    const aN = hex(srcN[t] || src[t]);
+    const cJ = contraste(aJ, hex(onJour[t] || onBase[t]));
+    const cN = contraste(aN, hex(onNuit[t] || onBase[t]));
+    vrai('   ' + t.padEnd(9) + ' l’encre tient sur l’accent de JOUR', cJ >= 4.5, cJ.toFixed(2) + ':1');
+    vrai('   ' + t.padEnd(9) + ' … et sur celui de NUIT', cN >= 4.5, cN.toFixed(2) + ':1');
+  });
+}
+
 /* ⛔⛔ AUCUNE RÈGLE NE DOIT VISER .kpis .kpi:first-child — ET C'EST CONTRE-INTUITIF, PARCE QUE
    DEUX DES TROIS RÈGLES QU'ON A RETIRÉES SERVAIENT À EN NEUTRALISER UNE TROISIÈME.
    Une règle `.kpis .kpi:first-child` pèse (0,3,0) ; le verre s'écrit `html[data-verre="1"] .kpi`,
