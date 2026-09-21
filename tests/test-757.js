@@ -230,6 +230,78 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
     !/var\(--acc-src,[^)]*\)\s*[\d.]+%\s*,\s*transparent\s*\)/.test(NU_TEINTE));
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   LE DÉGRADÉ DES BARRES — un seul jeton, cinq points d'application
+
+   Justin, 21 septembre 2026, capture d'iPhone à l'appui : « que ce soit téléphone, Mac, tout
+   appareil, quand les personnes sélectionnent une couleur dans les réglages, faudrait que le
+   dégradé soit de la couleur […] moins présent, plus nuancé ».
+
+   ⛔ POURQUOI CINQ POINTS ET PAS UN : le verre ne s'allume que sur Safari 26. Poser le dégradé
+   uniquement sous `html[data-verre="1"]` laisserait Android, Chrome et toute transparence
+   réduite avec des barres grises — le défaut exact qu'on venait de corriger sur les cartes.
+   Il faut donc les DEUX chemins, pour la barre latérale comme pour la barre du haut, plus la
+   barre d'onglets du téléphone.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+{
+  const defs = NU_TEINTE.match(/--rf-barre:\s*linear-gradient\([\s\S]*?\);/g) || [];
+  vrai('⛔ le dégradé des barres est défini pour le JOUR **et** pour la NUIT',
+    defs.length === 2, defs.length + ' définition(s)');
+  defs.forEach((d, i) => {
+    vrai('   définition ' + (i + 1) + ' tire ses canaux de --acc-rgb, pas d’une teinte figée',
+      /rgba\(var\(--acc-rgb/.test(d));
+    /* ⛔ UN DÉGRADÉ QUI FINIT SUR « transparent » PASSE PAR DU NOIR et salit le bord :
+       transparent vaut rgba(0,0,0,0). Les arrêts doivent porter la MÊME teinte. */
+    vrai('   définition ' + (i + 1) + ' n’a aucun arrêt « transparent »', !/transparent/.test(d));
+    const arrets = (d.match(/rgba\(var\(--acc-rgb[^)]*\)\s*,\s*\.?\d*\.?\d+\)/g) || []).length;
+    vrai('   définition ' + (i + 1) + ' porte trois arrêts de la même teinte', arrets === 3, arrets + ' arrêt(s)');
+  });
+  /* ⛔ LE JOUR EST PLUS FORT QUE LA NUIT, ET C'EST UNE MESURE, PAS UN GOÛT : sur la barre
+     latérale de jour, avant correctif, les neuf teintes ne se séparaient que de 8 unités et
+     le dégradé haut→bas valait 5 à 7 — autant dire rien. Le blanc désature. */
+  {
+    const alpha = d => { const m = /rgba\(var\(--acc-rgb[^)]*\)\s*,\s*(\.?\d*\.?\d+)\)/.exec(d); return m ? parseFloat(m[1]) : 0; };
+    /* la définition de NUIT porte le repli vert clair 46,184,114 ; celle de JOUR le vert sombre 30,132,80 */
+    const nuit = defs.find(d => /46,184,114/.test(d)), jour = defs.find(d => /30,132,80/.test(d));
+    vrai('   les deux définitions se distinguent par leur repli', !!nuit && !!jour);
+    vrai('⛔ … et le JOUR est plus appuyé que la NUIT (le blanc désature)',
+      !!nuit && !!jour && alpha(jour) > alpha(nuit), (jour ? alpha(jour) : '?') + ' contre ' + (nuit ? alpha(nuit) : '?'));
+  }
+  /* Les cinq points d'application, nommés un par un : un motif qui compte seulement les
+     occurrences ne dirait pas LEQUEL manque. */
+  const POINTS = [
+    ['barre latérale, avec verre', /html\[data-verre="1"\] \.sidebar\{\s*background:var\(--vr-reflet\),var\(--rf-barre\),var\(--vr-fond\)/],
+    ['barre du haut, avec verre',  /html\[data-verre="1"\] \.topbar\{\s*background:var\(--vr-reflet\),var\(--rf-barre\),var\(--vr-fond\)/],
+    ['barre latérale, sans verre', /\.sidebar\{background:var\(--rf-barre\),var\(--side\)/],
+    ['barre du haut, sans verre',  /\.topbar\{background:var\(--rf-barre\),var\(--toolbar\)/],
+    ['barre d’onglets du téléphone', /background:var\(--rf-barre\),var\(--toolbar\);/],
+  ];
+  POINTS.forEach(([nom, re]) => vrai('   ' + nom + ' porte le dégradé', re.test(NU_TEINTE)));
+  vrai('⛔ le dégradé se glisse SOUS le reflet, jamais par-dessus (c’est une teinture de la matière)',
+    !/background:var\(--rf-barre\),var\(--vr-reflet\)/.test(NU_TEINTE));
+}
+
+/* ⛔⛔ LES 62 PIXELS DE VIDE SOUS LA CARTE UTILISATEUR. Un dégagement avait été posé sur la
+   barre latérale du téléphone pour qu'elle ne passe pas sous la barre d'onglets. Mais le
+   tiroir est à z-index 46 et `.rf-tabs` à 44 : il la COUVRE, toujours. Le dégagement ne
+   creusait donc qu'un trou — mesuré au gabarit iPhone 15 Pro, tiroir ouvert : 62 px sous la
+   carte, 96 px sur un vrai appareil avec l'encoche du bas. Justin : « tout en bas est
+   vachement haut, faudrait qu'il soit au maximum au plus bas ». */
+{
+  const r = /html\[data-refonte\] body\.rf-onglets \.sidebar\{([^}]*)\}/.exec(NU_TEINTE);
+  vrai('la règle du tiroir sur téléphone est trouvée', !!r);
+  if (r) {
+    vrai('⛔ aucun dégagement en pixels sous la carte utilisateur',
+      !/padding-bottom:calc\(\s*\d+px/.test(r[1]), r[1].slice(0, 100));
+    vrai('   … mais l’encoche du bas est gardée (la carte ne passe pas sous la barre d’accueil)',
+      /padding-bottom:env\(safe-area-inset-bottom\)/.test(r[1]));
+    /* le contre-contrôle : le tiroir doit bien rester AU-DESSUS de la barre d'onglets,
+       sinon retirer le dégagement cacherait vraiment la carte. */
+    vrai('⛔ … et le tiroir passe bien AU-DESSUS de la barre d’onglets',
+      /z-index:46/.test(r[1]) && /\.rf-tabs\{[^}]*z-index:44/.test(NU_TEINTE));
+  }
+}
+
 console.log('\n══ 3. LES HALOS VIENNENT DES LOGOS, PLUS DE LA COULEUR CHOISIE ══\n');
 {
   const { css } = bloc('PLATEFORME — le rendu suit l\'appareil');

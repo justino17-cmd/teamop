@@ -2230,7 +2230,7 @@ body{font-size:14.5px;line-height:1.45;text-rendering:optimizeLegibility;letter-
 .tbl td,.kpi-val,.kpi .n,input[type=number]{font-variant-numeric:tabular-nums}
 
 /* ── CHARPENTE ── barre latérale en verre dépoli, barre du haut en verre, comme dans Mail ou Réglages */
-.sidebar{background:var(--side)!important;border-right:1px solid var(--brd)!important;
+.sidebar{background:var(--rf-barre),var(--side)!important;border-right:1px solid var(--brd)!important;
   -webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
   --t1:var(--side-ink);--t2:var(--side-ink);--t3:var(--side-mut);--brd:var(--cardline);--bg2:var(--side-hover);--bg3:var(--side-hover);--bg1:transparent}
 .sidebar.open{box-shadow:var(--ombre-3)!important}
@@ -2249,7 +2249,7 @@ body{font-size:14.5px;line-height:1.45;text-rendering:optimizeLegibility;letter-
 .suite-row.on{background:var(--tint)!important}
 .sidebar-foot{border-top:1px solid var(--brd)!important}
 .sidebar-foot .btn{border:0!important}
-.topbar{background:var(--toolbar)!important;border-bottom:1px solid var(--brd)!important;
+.topbar{background:var(--rf-barre),var(--toolbar)!important;border-bottom:1px solid var(--brd)!important;
   -webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);padding:14px 30px}
 .topbar h1{font-size:clamp(22px,2.2vw,28px)!important;font-weight:700!important;letter-spacing:-.025em!important;line-height:1.1}
 .topbar .sub{font-size:14px;color:var(--t3);margin-top:3px}
@@ -3944,7 +3944,7 @@ html[data-refonte] .content{padding-top:10px}
 html[data-refonte] .rf-tabs{
   position:fixed;left:0;right:0;bottom:0;z-index:44;display:none;
   padding:5px 4px calc(5px + env(safe-area-inset-bottom));
-  background:var(--toolbar);
+  background:var(--rf-barre),var(--toolbar);
   -webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) saturate(180%);
   box-shadow:0 -1px 0 var(--rf-filet)}
 /* La classe posée sur <body> s'appelle « rf-onglets » et non « rf-tabs » : le même nom sur le
@@ -4289,7 +4289,14 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      « Plus » reste sous le pouce pour le refermer du même geste qui l'a ouvert (chemins
      symétriques). Sans quoi le tiroir, en z-index 40, passait sous la barre et son pied —
      l'utilisateur et le bouton d'extinction — disparaissait derrière elle. */
-  html[data-refonte] body.rf-onglets .sidebar{z-index:46;padding-bottom:calc(62px + env(safe-area-inset-bottom))}
+  /* ⛔ 62 PIXELS DE VIDE QUI NE PROTÉGEAIENT RIEN. Ce dégagement était là pour que la carte
+     utilisateur ne passe pas SOUS la barre d'onglets. Mais la barre latérale est à z-index 46
+     et `.rf-tabs` à 44 : le tiroir ouvert la COUVRE déjà, toujours. Le dégagement ne servait
+     donc qu'à creuser un trou — mesuré au gabarit iPhone 15 Pro, tiroir ouvert : 62 px sous la
+     carte, et 96 px sur un vrai appareil une fois l'encoche du bas ajoutée. Justin, capture à
+     l'appui : « tout en bas est vachement haut, faudrait qu'il soit au maximum au plus bas ».
+     On ne garde que l'encoche, pour que la carte ne tombe pas sous la barre d'accueil. */
+  html[data-refonte] body.rf-onglets .sidebar{z-index:46;padding-bottom:env(safe-area-inset-bottom)}
   html[data-refonte] body.rf-onglets .sidebar.open ~ .sidebar-backdrop{z-index:45}
   html[data-refonte] body.rf-onglets .rf-tabs{z-index:48}
 }
@@ -5020,9 +5027,16 @@ html[data-verre="1"]{
      ⚠ `--acc-rgb` est posé par `applyTheme` ; le repli est le vert d'OP GESTION, pour que la
      page soit juste même avant que le JavaScript ait tourné. */
   --vr-halos:
-    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,30,132,80),.30), rgba(var(--acc-rgb,30,132,80),0) 72%),
-    radial-gradient(56vmax 56vmax at 90% 4%, rgba(47,79,158,.22), rgba(47,79,158,0) 70%),
-    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,30,132,80),.20), rgba(var(--acc-rgb,30,132,80),0) 72%);
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,30,132,80),.20), rgba(var(--acc-rgb,30,132,80),0) 72%),
+    radial-gradient(56vmax 56vmax at 90% 4%, rgba(47,79,158,.15), rgba(47,79,158,0) 70%),
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,30,132,80),.14), rgba(var(--acc-rgb,30,132,80),0) 72%);
+  /* Le JOUR porte le dégradé PLUS FORT que la nuit, et ce n'est pas un goût : mesuré au
+     gabarit iPhone, la barre latérale de jour ne séparait les neuf teintes que de 8 unités
+     et son dégradé haut→bas valait 5 à 7 unités — autant dire rien. Le blanc désature. */
+  --rf-barre:linear-gradient(180deg,
+    rgba(var(--acc-rgb,30,132,80),.12) 0%,
+    rgba(var(--acc-rgb,30,132,80),.035) 55%,
+    rgba(var(--acc-rgb,30,132,80),.09) 100%);
   /* ⛔⛔ L'ENCRE DE LA PAGE, CAPTURÉE ICI, SUR <html> — ET SURTOUT PAS SUR `.sidebar`.
      `.sidebar` définit `--t1:var(--side-ink)` ; écrire `--side-ink:var(--t1)` sur elle ferme
      un CYCLE, et un cycle rend TOUTES les variables qui y participent invalides, en silence.
@@ -5070,9 +5084,20 @@ html[data-verre="1"][data-theme="dark"]{
      la profondeur, et un voile coloré trop fort sur un fond sombre fait une tache, pas une
      ambiance. Repli : le vert clair d'OP GESTION. */
   --vr-halos:
-    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,46,184,114),.16), rgba(var(--acc-rgb,46,184,114),0) 70%),
-    radial-gradient(56vmax 56vmax at 90% 4%, rgba(91,143,214,.18), rgba(91,143,214,0) 70%),
-    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,46,184,114),.12), rgba(var(--acc-rgb,46,184,114),0) 70%);
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,46,184,114),.12), rgba(var(--acc-rgb,46,184,114),0) 70%),
+    radial-gradient(56vmax 56vmax at 90% 4%, rgba(91,143,214,.13), rgba(91,143,214,0) 70%),
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,46,184,114),.09), rgba(var(--acc-rgb,46,184,114),0) 70%);
+  /* ⛔ LE DÉGRADÉ DES BARRES — un seul jeton pour la barre latérale, la barre du haut et la
+     barre d'onglets, sur TOUS les appareils (verre ou pas). Justin : « que ce soit téléphone,
+     Mac, tout appareil, quand les personnes sélectionnent une couleur, que le dégradé soit de
+     la couleur […] moins présent, plus nuancé ». Les halos de la page baissent d'un cran
+     (c'est le « moins présent ») et la couleur passe dans les barres elles-mêmes, où elle se
+     lit. Les deux arrêts portent la MÊME teinte : un dégradé qui finit sur « transparent »
+     passe par du noir et salit le bord. */
+  --rf-barre:linear-gradient(180deg,
+    rgba(var(--acc-rgb,46,184,114),.10) 0%,
+    rgba(var(--acc-rgb,46,184,114),.03) 55%,
+    rgba(var(--acc-rgb,46,184,114),.07) 100%);
 }
 /* ⛔⛔ LE FOND DE LA PAGE VA SUR <html>, PAS SUR <body> — SINON IL RECOUVRE LES HALOS.
    Mesuré le 22 septembre 2026, au pixel : `body` portait
@@ -5107,7 +5132,7 @@ html[data-verre="1"] .modal{
   box-shadow:var(--vr-ombre)!important;
 }
 html[data-verre="1"] .topbar{
-  background:var(--vr-reflet),var(--vr-fond)!important;
+  background:var(--vr-reflet),var(--rf-barre),var(--vr-fond)!important;
   -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
   border-bottom:.5px solid var(--vr-liseret)!important;
   box-shadow:var(--vr-ombre-barre)!important;
@@ -5364,7 +5389,7 @@ html[data-kind="desktop"] .menu-btn{display:none!important}
    Posée telle quelle sur du verre clair, elle devient illisible. Basculer la surface OBLIGE
    donc à basculer l'encre : les deux ensemble, ou ni l'un ni l'autre. */
 html[data-verre="1"] .sidebar{
-  background:var(--vr-reflet),var(--vr-fond)!important;-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  background:var(--vr-reflet),var(--rf-barre),var(--vr-fond)!important;-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
   border-right:.5px solid var(--vr-liseret)!important;
   /* ⛔ ON LIT `--vr-encre`, JAMAIS `--t1` — voir le cycle expliqué aux jetons du verre.
      `--t1` est redéfini SUR cette règle-là (ligne « CHARPENTE » de la refonte) : s'en
