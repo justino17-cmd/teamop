@@ -77,7 +77,19 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
   vrai('   … et il a de la matière', css.length > 3000, css.length + ' caractères');
   vrai('le verre de jour est à 34 %, pas 58 %', /--vr-fond:rgba\(255,255,255,\.34\)/.test(css));
   vrai('⛔ et l’ancienne valeur a bien disparu', !/--vr-fond:rgba\(255,255,255,\.58\)/.test(css));
-  vrai('le verre de nuit est à 42 %', /--vr-fond:rgba\(28,28,30,\.42\)/.test(css));
+  /* ⛔⛔ DE NUIT, C'EST LA LUMIÈRE QUI ÉLÈVE, PAS L'OMBRE. `rgba(28,28,30,.42)` — la valeur
+     de la maquette — est plus SOMBRE que la page : la carte s'enfonçait au lieu de se lever,
+     et l'écran devenait un aplat de rectangles à peine distincts. Justin, 22 septembre 2026,
+     sur son Mac : « revois les nuances de couleur, je la trouve moins belle l'app ».
+     La surface de nuit est donc PLUS CLAIRE que le fond, et teintée du même bleu nuit — un
+     film gris sur du bleu se voit, et se voit mal. */
+  vrai('⛔ la surface de nuit est PLUS CLAIRE que la page (l’élévation se fait par la lumière)',
+    /--vr-fond:rgba\(52,64,92,\.52\)/.test(css));
+  vrai('⛔ … et l’ancienne valeur, plus sombre que le fond, a disparu',
+    !/--vr-fond:rgba\(28,28,30,\.42\)/.test(css));
+  /* ⛔ PAS DE NOIR PUR — la règle est dans CLAUDE.md, et je l'avais recopié de la maquette. */
+  vrai('⛔ la page de nuit n’est pas noire (halation, contraste dur sur OLED)',
+    /--vr-page:linear-gradient\(180deg,#101A2E,#0A1120\)/.test(css) && !/--vr-page:linear-gradient\(180deg,#0a0a0c,#000\)/.test(css));
   /* ⛔ LE REFLET EST UN DÉGRADÉ, PAS UNE OMBRE. C'est lui qui donne la matière : une ombre
      interne d'un pixel ne fait qu'un liseré. */
   vrai('⛔ le reflet est un dégradé à 135°', /--vr-reflet:linear-gradient\(135deg,rgba\(255,255,255,\.65\)/.test(css));

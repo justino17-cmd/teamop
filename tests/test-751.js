@@ -197,7 +197,12 @@ const blocCss = (titre) => {
   vrai('⛔ la pilule flottante ne sort QUE sur du verre ET installée',
     /html\[data-verre="1"\]\[data-kind="mobile"\] \.tabbar\{/.test(css) &&
     /html\[data-verre="1"\]\[data-kind="mobile"\]:not\(\[data-autonome="1"\]\) \.tabbar\{/.test(css));
-  vrai('Android a sa pastille tonale', /html\[data-os="android"\] \.tab\.on \.tab-ic\{/.test(css));
+  /* ⚠ LA PASTILLE TONALE DE MATERIAL EST DEVENUE LA PASTILLE QUI GLISSE. Elle était posée
+     sur l'ICÔNE de l'onglet actif ; depuis le 22 septembre 2026 c'est un seul objet qui se
+     déplace d'un onglet à l'autre, et Material demande justement une tonale sur l'icône — on
+     lui donne donc la forme et la place de cette tonale, au lieu d'en ajouter une seconde. */
+  vrai('Android garde sa pastille tonale (c\'est désormais celle qui glisse)',
+    /html\[data-os="android"\] \.tab-cur\{border-radius:999px;background:color-mix\(in srgb,var\(--acc\) 24%,transparent\)\}/.test(css));
   vrai('⛔ le tiroir en verre change AUSSI son encre (une encre pâle sur du verre clair ne se lit pas)',
     /html\[data-verre="1"\] \.sidebar\{[\s\S]{0,700}--side-ink:var\(--vr-encre\)/.test(css));
   /* ⛔⛔ LE CYCLE. `.sidebar` définit `--t1:var(--side-ink)` ; écrire `--side-ink:var(--t1)`

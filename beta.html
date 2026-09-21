@@ -4178,9 +4178,16 @@ html[data-refonte] .pl-row[onclick]:not(:has(.btn)):not(:has(button)){padding-ri
   html[data-refonte]{--rf-marge:34px}
   html[data-refonte] .content{padding:30px var(--rf-marge) 96px}
 }
-@media (min-width:1700px){
-  html[data-refonte] .content{max-width:1560px}
-}
+/* ⛔⛔ PLUS DE PLAFOND DE LARGEUR — Justin, 22 septembre 2026, capture à l'appui : « quand la
+   barre est repliée, l'écran est décalé et ça ne prend pas tout l'écran ». Mesuré sur une
+   fenêtre de 2 000 px : `#content` s'arrêtait à 1 796, soit **204 px perdus à droite**, sur
+   TOUTES les rubriques — c'est ce plafond-ci qui les perdait.
+   ⚠ Le plafond avait sa raison, écrite juste au-dessus : une ligne de texte qui court sur
+   1 800 px ne se lit plus. Mais ce n'est pas ce que cette application affiche : des cartes,
+   des grilles, des tableaux et un planning — chacun borne déjà SON propre texte. Le plafond
+   ne protégeait donc rien et coûtait une colonne entière de planning sur un grand écran.
+   C'est la discipline des outils denses (Linear, Stripe) : on remplit, et on borne la MESURE
+   là où il y a vraiment de la prose, pas la page. */
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════
    ██  LE COURRIER — BOÎTE MAIL ET MESSAGERIE
@@ -4825,17 +4832,32 @@ html[data-verre="1"]{
   --vr-encre:var(--t1); --vr-encre2:var(--t2); --vr-encre3:var(--t3);
 }
 html[data-verre="1"][data-theme="dark"]{
-  --vr-fond:rgba(28,28,30,.42);
-  --vr-fond2:rgba(60,60,64,.42);
-  --vr-liseret:rgba(255,255,255,.16);
+  /* ⛔ DE NUIT, C'EST LA LUMIÈRE QUI ÉLÈVE, PAS L'OMBRE. Une ombre portée ne se voit pas sur
+     un fond sombre : ce qui dit qu'une surface est AU-DESSUS, c'est qu'elle est PLUS CLAIRE.
+     `rgba(28,28,30,.42)` est plus SOMBRE que la page — la carte s'enfonçait au lieu de se
+     lever, et l'écran devenait un aplat de rectangles à peine distincts. On remonte, et on
+     teinte du même bleu nuit que la page pour ne pas poser un film gris dessus. */
+  --vr-fond:rgba(52,64,92,.52);
+  --vr-fond2:rgba(70,84,116,.44);
+  --vr-liseret:rgba(255,255,255,.14);
   --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.03) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.06) 100%);
   --vr-ombre:0 16px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(255,255,255,.06);
   --vr-ombre-barre:0 22px 50px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.26),inset 0 -1px 0 rgba(255,255,255,.06);
-  --vr-page:linear-gradient(180deg,#0a0a0c,#000);
+  /* ⛔ PAS DE NOIR PUR — ET J'AVAIS RECOPIÉ CELUI DE LA MAQUETTE. La règle est écrite dans
+     CLAUDE.md : `#0D1624` est un bleu très sombre, pas `#000000`, parce que le noir absolu
+     durcit le contraste, fatigue l'œil et fait baver le texte blanc sur OLED. Et sur du noir,
+     une carte à 42 % de #1C1C1E ne se détache plus de rien : Justin, 22 septembre 2026, sur
+     son Mac — « revois les nuances de couleur, je la trouve moins belle l'app ».
+     La nuit prend donc le bleu nuit de TEAM OP (#081028, échantillonné dans le logo), remonté
+     juste assez pour porter des surfaces. */
+  --vr-page:linear-gradient(180deg,#101A2E,#0A1120);
+  /* De nuit les halos sont plus discrets : sur un fond sombre, un voile coloré à 26 % ne fait
+     pas une ambiance, il fait une tache. Et le bleu passe devant le vert — c'est lui qui donne
+     la profondeur, le vert se garde pour ce qui se clique. */
   --vr-halos:
-    radial-gradient(62vmax 62vmax at 12% 8%, rgba(46,184,114,.26), rgba(46,184,114,0) 70%),
-    radial-gradient(56vmax 56vmax at 90% 4%, rgba(91,143,214,.22), rgba(91,143,214,0) 70%),
-    radial-gradient(70vmax 70vmax at 72% 98%, rgba(46,184,114,.16), rgba(46,184,114,0) 70%);
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(46,184,114,.14), rgba(46,184,114,0) 70%),
+    radial-gradient(56vmax 56vmax at 90% 4%, rgba(91,143,214,.18), rgba(91,143,214,0) 70%),
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(64,110,190,.14), rgba(64,110,190,0) 70%);
 }
 /* ⛔⛔ LE FOND DE LA PAGE VA SUR <html>, PAS SUR <body> — SINON IL RECOUVRE LES HALOS.
    Mesuré le 22 septembre 2026, au pixel : `body` portait
@@ -4965,6 +4987,45 @@ html[data-kind="desktop"] .tabbar{display:none!important}
   border-radius:14px;position:relative;-webkit-tap-highlight-color:transparent;
   font-family:inherit;transition:color var(--d-1,.14s) ease,background var(--d-1,.14s) ease;
 }
+/* ⛔ UN SOUS-TITRE NE COMMENCE PAS PAR `══` : c'est la marque d'un BLOC, et les bancs
+   découpent dessus. Le 22 septembre 2026, ce sous-titre-ci a réduit la tranche du bloc
+   NAVIGATION de 2 500 à 1 011 caractères, et `test-758` a accusé la pastille de ne porter
+   aucune de ses règles — elle les portait toutes.
+   ── LA PASTILLE QUI GLISSE — une seule, et elle porte NOTRE accent ────────────────
+   Elle est POSITIONNÉE EN JAVASCRIPT sur l'onglet actif (largeur, hauteur, décalage) : une
+   règle CSS ne peut pas connaître la largeur d'une colonne qui dépend du nombre d'onglets.
+   La courbe est celle des feuilles d'iOS — départ franc, arrivée sans rebond : une pastille
+   qui rebondit sous le pouce donne l'impression d'avoir raté sa cible. */
+/* ⛔⛔ LA GÉOMÉTRIE SE CALCULE EN CSS, PAS EN JAVASCRIPT. Première version : on lisait
+   `offsetWidth`/`offsetLeft` de l'onglet actif et on les recopiait sur la pastille. Ça marche
+   — quand on mesure au BON MOMENT. Mesuré plusieurs fois : 143 px de large pour un onglet de
+   76, parce que la mesure avait été prise quand la barre n'avait encore que trois onglets, et
+   rien ne la reprenait ensuite (la barre occupe toute la largeur, donc SA taille ne change
+   jamais ; et les onglets observés avaient été détruits par `innerHTML=`). Trois rustines
+   plus tard — double `requestAnimationFrame`, `ResizeObserver`, replacement à chaque
+   rafraîchissement — le résultat restait bon UNE FOIS SUR DEUX.
+   La sortie n'est pas une quatrième rustine : c'est de ne plus MESURER. Les onglets sont des
+   colonnes égales (`flex:1 1 0`), donc leur largeur se déduit du nombre. Le JavaScript ne
+   pose plus qu'un NUMÉRO de colonne ; la position ne peut plus être périmée, parce qu'elle
+   n'est plus copiée nulle part.
+   ⚠ `translateX` en pourcentage se rapporte à la largeur de l'ÉLÉMENT LUI-MÊME — c'est-à-dire
+   exactement une colonne. D'où `calc(var(--tab-i) * (100% + gouttiere))`, sans aucun chiffre
+   en dur. */
+.tabbar{--tab-n:4;--tab-i:0;--tab-gout:2px;--tab-px:8px;--tab-py:6px;--tab-dx:0px}
+.tab-cur{
+  position:absolute;z-index:0;pointer-events:none;opacity:0;
+  left:var(--tab-px);top:var(--tab-py);
+  bottom:calc(env(safe-area-inset-bottom,0px) + var(--tab-py));
+  width:calc((100% - 2*var(--tab-px) - (var(--tab-n) - 1)*var(--tab-gout)) / var(--tab-n));
+  transform:translateX(calc(var(--tab-i) * (100% + var(--tab-gout)) + var(--tab-dx)));
+  border-radius:14px;
+  background:color-mix(in srgb,var(--acc) 16%,transparent);
+  transition:transform .42s cubic-bezier(.32,.72,0,1),width .42s cubic-bezier(.32,.72,0,1),opacity .22s ease;
+}
+.tabbar.cur-on .tab-cur{opacity:1}
+/* Les onglets passent AU-DESSUS de la pastille, sinon elle couvre l'icône qu'elle désigne. */
+.tab{z-index:1}
+@media (prefers-reduced-motion: reduce){ .tab-cur{transition:opacity .15s ease} }
 .tab-ic{font-size:19px;line-height:1;transition:background var(--d-1,.14s) ease,padding var(--d-1,.14s) ease}
 /* ⚠ UN LIBELLÉ TRONQUÉ NE NOMME RIEN, ET « Planni… » NE DIT PLUS SI C'EST « Planning » ou
    « Planning général ». Mesuré à 430 px : cinq colonnes de 78 px, et « Planning » débordait
@@ -4989,8 +5050,24 @@ html[data-verre="1"][data-kind="mobile"] .tabbar{
   background:var(--vr-reflet),var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
   box-shadow:var(--vr-ombre-barre);padding:7px 7px;
 }
-html[data-verre="1"][data-kind="mobile"] .tab.on{background:rgba(255,255,255,.82)}
-html[data-verre="1"][data-kind="mobile"][data-theme="dark"] .tab.on{background:rgba(118,118,128,.36)}
+/* ⛔ PLUS DE FOND SUR L'ONGLET ACTIF : c'est la pastille qui le désigne, et deux surfaces
+   pour une même chose feraient un halo autour d'un halo. Sur verre elle devient une CAPSULE,
+   comme la barre qui la porte — la concentricité d'Apple : un contrôle niché dans un autre
+   épouse sa courbure. Et elle est un peu plus blanche que verte : sur une vitre, un aplat
+   d'accent à pleine force écrase ce qu'il y a dessous au lieu de le laisser voir. */
+html[data-verre="1"][data-kind="mobile"] .tabbar{--tab-px:7px;--tab-py:7px}
+html[data-verre="1"][data-kind="mobile"] .tab-cur{
+  bottom:var(--tab-py);
+  border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,.34)),
+             color-mix(in srgb,var(--acc) 14%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 2px 8px rgba(31,38,64,.10);
+}
+html[data-verre="1"][data-kind="mobile"][data-theme="dark"] .tab-cur{
+  background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05)),
+             color-mix(in srgb,var(--acc) 22%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 8px rgba(0,0,0,.35);
+}
 /* ⚠ DANS UN NAVIGATEUR, LA PILULE RESTE UNE PILULE — elle monte, elle ne s'aplatit plus.
    Cette règle disait le contraire jusqu'au 22 septembre 2026 : la barre redevenait plate et
    collée en bas dès qu'on n'était pas en application installée, pour ne pas se poser sur la
@@ -5005,9 +5082,9 @@ html[data-verre="1"][data-kind="mobile"]:not([data-autonome="1"]) .tabbar{
 
 /* ── Android : pastille tonale derrière l'icône active (Material 3) ── */
 html[data-os="android"] .tab-l{font-size:11.5px;font-weight:500}
-html[data-os="android"] .tab.on .tab-ic{
-  background:color-mix(in srgb,var(--acc) 24%,transparent);border-radius:999px;padding:4px 17px;
-}
+/* Material 3 pose sa tonale sur l'ICÔNE, pas sur toute la colonne : la pastille prend donc
+   la forme et la place de cette tonale au lieu d'en ajouter une seconde par-dessus. */
+html[data-os="android"] .tab-cur{border-radius:999px;background:color-mix(in srgb,var(--acc) 24%,transparent)}
 html[data-os="android"] .tab.on{color:var(--t1)}
 html[data-os="android"] .tabbar{border-top:0;box-shadow:0 -1px 0 var(--brd)}
 
@@ -5563,7 +5640,7 @@ html[data-verre="1"] .sidebar .nav-label{font-weight:640!important}
   <div id="assistant"></div>
   <!-- ⛔ SŒURS DE .main, JAMAIS DANS #content : rendreVueAnimee reecrit #content a chaque
        navigation et balaierait tout ce qui y est pose. -->
-  <nav class="tabbar" id="tabbar" aria-label="Categories principales"></nav>
+  <nav class="tabbar" id="tabbar" aria-label="Categories principales"><span class="tab-cur" id="tab-cur" aria-hidden="true"></span></nav>
   <div class="creer-ov" id="creer"></div>
   <a class="msg-flot" id="msg-flot" href="messages.html" style="display:none" aria-label="Ouvrir OP MESSAGES" title="OP MESSAGES">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>
@@ -5792,7 +5869,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '707-beta';
+const APP_VERSION = '708-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -11671,24 +11748,221 @@ const ONGLET_COURT={dashboard:'Accueil',interventions:'Interv.',planningGeneral:
   validations:'Valid.',utilisateurs:'Comptes',permissions:'Droits',statistiques:'Stats',
   archives:'Archives',absences:'Absences',conducteurs:'Conduct.',devisXylo:'Xylo'};
 function ongletCourt(k,l){ return ONGLET_COURT[k]||l; }
+/* ⛔ LE CURSEUR EST UN ENFANT DE LA BARRE, ET `innerHTML=` L'EFFACE. On le remet à chaque
+   écriture plutôt que de le chercher ailleurs : une pastille qui disparaît au premier
+   rafraîchissement de la barre serait un défaut invisible en relecture et évident à l'œil. */
+function tabCurPoser(bar){
+  if(!bar || bar.querySelector('#tab-cur')) return;
+  const c=document.createElement('span');
+  c.className='tab-cur'; c.id='tab-cur'; c.setAttribute('aria-hidden','true');
+  bar.insertBefore(c, bar.firstChild);
+}
 function renderOnglets(){
   const bar=document.getElementById('tabbar'); if(!bar) return;
-  if(!currentUser){ bar.innerHTML=''; return; }
+  if(!currentUser){ bar.innerHTML=''; bar.dataset.sig=''; return; }
+  /* ⛔⛔ NE PAS RÉÉCRIRE LA BARRE QUAND RIEN N'A CHANGÉ. `renderOnglets` peut tourner dix
+     fois dans une session ; chaque `innerHTML=` détruit la pastille, et la neuve se repose
+     SANS animation — mesuré : à 120 ms après le tap elle n'avait pas bougé, puis elle
+     SAUTAIT à l'arrivée. Une pastille qui saute n'est plus un objet qu'on suit des yeux,
+     c'est un fond qui s'allume ailleurs. Même parade que l'ancienne barre : une signature. */
+  const _sig = ongletsLire().join(',');
+  if(bar.dataset.sig===_sig && bar.querySelector('.tab')){
+    tabCurPoser(bar); ongletsGeste(); try{ refreshBadges(); }catch(e){} renderMsgFlottant();
+    /* ⛔⛔ ON REPLACE, MAIS EN ANIMANT. Deux défauts se croisent ici, et ils se corrigent
+       l'un l'autre :
+       · replacer SANS animation coupait le glissement en cours — la pastille sautait ;
+       · ne pas replacer du tout la laissait à une géométrie périmée : mesuré deux fois,
+         143 px de large pour un onglet de 76, parce qu'elle avait été posée quand la barre
+         n'avait que trois onglets.
+       ⚠ Et l'observateur de taille ne rattrape PAS ce cas : la barre occupe toute la largeur,
+       donc SA taille ne change jamais quand le nombre d'onglets change ; quant aux onglets
+       observés, `innerHTML=` les a détruits, et on observait des œufs vides.
+       Une transition reciblée vers la même position ne se voit pas ; vers une autre, elle
+       glisse. On anime donc toujours, et le cas périmé se corrige au premier rafraîchissement. */
+    tabCurPlacer(true);
+    return;
+  }
+  bar.dataset.sig=_sig;
   bar.innerHTML = ongletsLire().map(k=>{ const it=ongletItem(k); if(!it) return '';
     return `<button class="tab${current===k?' on':''}" data-tab="${k}" onclick="go('${k}')" aria-label="${esc(t(it.l))}">
       <span class="tab-ic">${it.ic||'•'}</span><span class="tab-l">${esc(ongletCourt(k,t(it.l)))}</span>
       ${it.b?`<span class="badge tab-b" data-badge="${it.b}">0</span>`:''}</button>`; }).join('')
     + `<button class="tab" data-tab="_plus" onclick="document.getElementById('sidebar').classList.add('open')" aria-label="Toutes les catégories">
         <span class="tab-ic">☰</span><span class="tab-l">Plus</span></button>`;
+  tabCurPoser(bar);
   ongletsPresse(bar);
+  ongletsGeste();
   try{ refreshBadges(); }catch(e){}
   renderMsgFlottant();
+  /* Deux images : la barre vient d'être écrite, les largeurs ne sont pas encore calculées.
+     Sans ce report, la pastille se pose à gauche puis saute à sa place sous les yeux. */
+  requestAnimationFrame(()=>tabCurPlacer(false));
 }
 /* ⛔ REPEINDRE L'ÉTAT, PAS LA BARRE. Appelée par `go()`. */
 function ongletsActif(){
   const bar=document.getElementById('tabbar'); if(!bar) return;
   bar.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===current));
+  tabCurPlacer(true);
 }
+/* ══ LA PASTILLE QUI GLISSE ══════════════════════════════════════════════
+   Justin, 22 septembre 2026, vidéo d'iOS 26 à l'appui : « pour la barre c'est pas mal mais je
+   voudrais comme sur la vidéo, avec nos couleurs à nous, et le glissement du doigt pour
+   changer ». Ce qu'on voit sur la vidéo, image par image : le surligné de l'onglet actif n'est
+   pas un fond qui s'allume, c'est UNE pastille qui GLISSE d'un onglet à l'autre, et elle est
+   visible en transit au milieu de la barre.
+   ⛔ UNE SEULE PASTILLE, PAS CINQ FONDS. Cinq fonds qui s'allument, c'est un fondu ; une
+   pastille qui se déplace, c'est un objet — l'œil le suit, et il sait d'où il vient.
+   ⚠ Et elle prend NOTRE accent, pas le gris d'Instagram : c'est la seule chose qu'on garde
+   de nous dans un motif qu'on emprunte. */
+let _tabCurDepuis=0;
+/* On ne pose qu'un NUMÉRO de colonne et un décalage de doigt : le CSS fait le reste. */
+function tabCurPlacer(anime,decalage){
+  const bar=document.getElementById('tabbar'); if(!bar) return;
+  const cur=bar.querySelector('#tab-cur'); if(!cur) return;
+  const tabs=[...bar.querySelectorAll('.tab')];
+  /* ⛔ PAS D'ONGLET ACTIF = PAS DE PASTILLE. Une pastille laissée sur le dernier onglet connu
+     désignerait un écran où l'on n'est pas — c'est pire que pas de pastille du tout. */
+  const i=tabs.findIndex(b=>b.classList.contains('on'));
+  if(i<0||!tabs.length){ bar.classList.remove('cur-on'); return; }
+  if(anime) _tabCurDepuis=Date.now();
+  cur.style.transition = anime ? '' : 'none';
+  bar.style.setProperty('--tab-n',tabs.length);
+  bar.style.setProperty('--tab-i',i);
+  bar.style.setProperty('--tab-dx',(decalage||0)+'px');
+  bar.classList.add('cur-on');
+  if(!anime){ void cur.offsetWidth; cur.style.transition=''; }
+}
+
+/* ══ LE GLISSEMENT DU DOIGT ═════════════════════════════════════════════
+   Balayer l'écran change de rubrique, dans l'ordre de la barre. Trois gardes, et les trois
+   viennent de défauts qu'on aurait eus sans elles :
+   ⛔ 1. LE DÉFILEMENT HORIZONTAL D'ABORD. Le planning, les tableaux et les rangées de pastilles
+      se font glisser latéralement : y voler le geste rendrait ces écrans inutilisables. On
+      remonte la pile depuis la cible et on s'efface dès qu'un parent défile vraiment.
+   ⛔ 2. LA DOMINANCE, PAS SEULEMENT LA DISTANCE. Un défilement vertical commence toujours par
+      quelques pixels de travers : sans `|dx| > |dy| * 1,3`, un simple défilement changerait de
+      rubrique. Et on ne s'engage qu'après 12 px — en deçà, c'est un tap.
+   ⛔ 3. LA VÉLOCITÉ COMPTE AUTANT QUE LA DISTANCE. Un coup sec et court doit changer d'onglet ;
+      un glissement lent et long aussi. On projette le point d'arrivée comme le fait le
+      défilement d'iOS (décroissance exponentielle), au lieu d'un seuil de distance qui donne
+      un geste tantôt trop mou tantôt trop dur. */
+const SWIPE_ENGAGE=12, SWIPE_DOMINANCE=1.3, SWIPE_DECEL=0.995;
+/* La projection d'Apple (« Designing Fluid Interfaces ») : où le doigt AURAIT emmené l'objet. */
+function swipeProjeter(vitesse){ return (vitesse/1000)*SWIPE_DECEL/(1-SWIPE_DECEL); }
+function swipeDefileH(n){
+  while(n && n!==document.body && n!==document.documentElement){
+    try{ const st=getComputedStyle(n);
+      if(/auto|scroll/.test(st.overflowX) && n.scrollWidth>n.clientWidth+4) return true;
+    }catch(e){}
+    n=n.parentElement;
+  }
+  return false;
+}
+/* ⛔⛔ LE GESTE S'ÉCOUTE SUR LE DOCUMENT, PAS SUR `#content`. Mesuré le 22 septembre 2026 :
+   `#content` occupait −390 → 900 (la page était défilée), et `elementFromPoint(220,420)`
+   rendait `HTML` — le doigt ne touchait donc PAS la zone écoutée, et le balayage ne partait
+   jamais. Un écouteur posé sur un conteneur qui ne couvre pas l'écran est un écouteur qu'on
+   croit avoir posé. On écoute le document et on ÉCARTE ce qui ne doit pas recevoir le geste. */
+const SWIPE_HORS=['#tabbar','.sidebar','#overlay','#overlay2','#assistant','#login','.topbar','.creer-ov'];
+function swipeExclu(n){
+  while(n && n.nodeType===1 && n!==document.body){
+    for(const sel of SWIPE_HORS){ try{ if(n.matches&&n.matches(sel)) return true; }catch(e){} }
+    n=n.parentElement;
+  }
+  return false;
+}
+function ongletsGeste(){
+  const zone=document; if(zone._geste) return;
+  zone._geste=true;
+  let x0=0,y0=0,t0=0,actif=false,engage=false,dernier=0,vitesse=0,tdernier=0,largeur=0,sens=0;
+  const sobre=()=>{ try{ return window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
+  const barreLa=()=>{ const b=document.getElementById('tabbar');
+    try{ return !!(b && getComputedStyle(b).display!=='none' && b.querySelectorAll('.tab').length>1); }catch(e){ return false; } };
+  const onglets=()=>[...document.querySelectorAll('#tabbar .tab')].map(b=>b.dataset.tab);
+  const finir=(aller)=>{
+    engage=false; actif=false;
+    if(!aller){ tabCurPlacer(true,0); return; }
+    const l=onglets(), i=l.indexOf(current);
+    /* ⚠ « Plus » n'est pas une rubrique : c'est le tiroir. On glisse ENTRE les rubriques, on
+       ne balaye pas vers un menu — un geste qui ouvre un tiroir sans qu'on l'ait demandé est
+       une surprise, pas une navigation. */
+    const vues=l.filter(k=>k && k!=='_plus');
+    const j=vues.indexOf(current);
+    if(j<0){ tabCurPlacer(true,0); return; }
+    const k=j+aller;
+    if(k<0||k>=vues.length){ tabCurPlacer(true,0); return; }
+    /* Le sens de l'écran suit le sens du doigt : on balaye vers la gauche, l'écran suivant
+       entre par la droite. Sans ça le croisement vertical par défaut contredirait le geste. */
+    try{ _sensForce = aller>0 ? 'avant' : 'retour'; }catch(e){}
+    try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){}
+    go(vues[k]);
+  };
+  /* ⛔⛔ LE NAVIGATEUR ANNULE LE FLUX DE POINTEUR DÈS LE PREMIER MOUVEMENT. Mesuré le
+     22 septembre 2026, trace à l'appui : `pointerdown`, un seul `pointermove`, puis
+     `pointercancel` — Chrome reprend la main pour le défilement. Les `touchmove`, eux,
+     continuaient jusqu'au bout. Un geste horizontal bâti sur les événements de POINTEUR ne
+     peut donc pas marcher sur un téléphone, et rien ne le dit : l'écouteur est bien posé,
+     il reçoit bien le premier événement, et il meurt au second.
+     ⚠ L'autre sortie serait `touch-action:pan-y` sur le contenu — refusée : elle
+     s'applique à tout le sous-arbre et emporterait le défilement latéral du planning et des
+     tableaux, que la garde `swipeDefileH` protège justement.
+     On écoute donc le TACTILE pour un doigt, et le POINTEUR pour une souris (fenêtre de
+     bureau rétrécie), les deux vers la même machine à états. */
+  const debut=(x,y,cible)=>{
+    if(!barreLa()) return;
+    if(document.getElementById('overlay') && document.getElementById('overlay').classList.contains('open')) return;
+    if(swipeExclu(cible)) return;
+    if(swipeDefileH(cible)) return;
+    actif=true; engage=false; x0=x; y0=y; t0=Date.now(); tdernier=t0;
+    dernier=x; vitesse=0; sens=0;
+    const on=document.querySelector('#tabbar .tab.on');
+    largeur=on?on.offsetWidth:80;
+  };
+  zone.addEventListener('touchstart',e=>{ const t=e.touches&&e.touches[0]; if(!t||e.touches.length>1) return;
+    debut(t.clientX,t.clientY,e.target); },{passive:true});
+  zone.addEventListener('pointerdown',e=>{
+    if(e.pointerType!=='mouse' || e.button!==0) return;
+    debut(e.clientX,e.clientY,e.target);
+  },{passive:true});
+  const bouger=(cx,cy)=>{
+    if(!actif) return;
+    const e={clientX:cx}; const dx=cx-x0, dy=cy-y0;
+    if(!engage){
+      if(Math.abs(dy)>SWIPE_ENGAGE && Math.abs(dy)>=Math.abs(dx)){ actif=false; return; }  // c'est un défilement
+      if(Math.abs(dx)<SWIPE_ENGAGE || Math.abs(dx)<Math.abs(dy)*SWIPE_DOMINANCE) return;
+      engage=true;
+    }
+    const t=Date.now(), dt=Math.max(1,t-tdernier);
+    vitesse=(cx-dernier)/dt*1000; dernier=cx; tdernier=t;
+    sens=dx<0?1:-1;
+    /* La pastille suit le doigt 1:1, bornée à un onglet : c'est ce qui fait qu'on SENT le
+       geste avant de l'avoir fini. Plafonnée, sinon elle sortirait de la barre. */
+    if(!sobre()){
+      const p=Math.max(-largeur,Math.min(largeur, -dx*0.55));
+      tabCurPlacer(false,p);
+    }
+  };
+  zone.addEventListener('touchmove',e=>{ const t=e.touches&&e.touches[0]; if(!t) return;
+    bouger(t.clientX,t.clientY); },{passive:true});
+  zone.addEventListener('pointermove',e=>{ if(e.pointerType!=='mouse') return; bouger(e.clientX,e.clientY); },{passive:true});
+  const relacher=()=>{
+    if(!actif){ engage=false; return; }
+    if(!engage){ actif=false; return; }
+    const dx=dernier-x0;
+    /* Distance parcourue PLUS distance projetée : un coup sec suffit, un glissement lent aussi. */
+    const arrivee=dx+swipeProjeter(vitesse);
+    const seuil=Math.max(48,largeur*0.6);
+    if(Math.abs(arrivee)<seuil){ finir(0); return; }
+    finir(arrivee<0?1:-1);
+  };
+  zone.addEventListener('touchend',relacher,{passive:true});
+  zone.addEventListener('pointerup',e=>{ if(e.pointerType!=='mouse') return; relacher(); },{passive:true});
+  /* ⚠ `pointercancel` N'ANNULE RIEN ICI : il arrive à chaque geste horizontal, parce que le
+     navigateur prend la main pour le défilement. C'est `touchcancel` qui dit vraiment que le
+     doigt a été perdu (appel entrant, geste système). */
+  zone.addEventListener('touchcancel',()=>{ if(engage) tabCurPlacer(true,0); actif=false; engage=false; },{passive:true});
+}
+
 /* ⛔ L'APPUI LONG NE DOIT PAS DÉCLENCHER LE TAP QUI LE SUIT, ET LES ÉCOUTEURS NE S'EMPILENT PAS.
    `renderOnglets` peut tourner dix fois dans une session : sans le drapeau `_presse`, dix jeux
    d'écouteurs ouvriraient dix fenêtres. Et on désarme au moindre MOUVEMENT, parce qu'un
@@ -11989,6 +12263,8 @@ function refreshEcran(){
   if(_ecranRendu){ try{ _ecranRendu(); return; }catch(e){ _ecranRendu=null; } }
   try{ if(views[current]) views[current](); }catch(e){}
 }
+/* Le sens imposé par un geste, posé juste avant `go()` et consommé par lui. */
+let _sensForce='';
 function go(view){
   /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
   try{ multiCapturer(); }catch(e){}
@@ -12020,7 +12296,12 @@ function go(view){
   /* On anime le changement de vue — c'est une décision de l'utilisateur — mais JAMAIS le
      rafraîchissement automatique (views[current]() rappelé toutes les quelques secondes) :
      sinon l'écran rejouerait son entrée tout seul et donnerait l'impression de bugger. */
-  rendreVueAnimee(view,_retour?'retour':'');
+  /* ⚠ UN SENS FORCÉ PAR UN GESTE. `_goingBack` ne connaît que l'aller-retour d'une fiche ;
+     un balayage d'onglet a son propre sens, et l'écran doit entrer du côté d'où vient le
+     doigt — sinon le mouvement contredit la main. Consommé tout de suite : gardé, il
+     enverrait la navigation SUIVANTE dans la même direction. */
+  const _sens=_sensForce||(_retour?'retour':''); _sensForce='';
+  rendreVueAnimee(view,_sens);
   /* La barre de reprise se pose dans `rendreVueSure`, la seule fonction qui écrit vraiment
      l'écran. Ici on ne repeint que les pastilles du menu. */
   multiPastilles();
