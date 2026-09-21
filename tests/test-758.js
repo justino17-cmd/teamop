@@ -117,6 +117,16 @@ console.log('\n══ 4. LES TROIS GARDES DU GESTE ══\n');
 {
   vrai('⛔ le défilement LATÉRAL garde le doigt (planning, filtres, tableaux)',
     /function swipeDefileH\(n\)\{[\s\S]{0,400}\/auto\|scroll\/\.test\(st\.overflowX\) && n\.scrollWidth>n\.clientWidth\+4/.test(NU));
+  /* ⛔⛔ ET SURTOUT QU'ELLE SOIT APPELÉE. La mutation « le défilement latéral perd sa garde »
+     ne faisait tomber AUCUN des 48 contrôles : le banc gardait l'EXISTENCE de la fonction, pas
+     son emploi. On pouvait donc la laisser en place et ne jamais s'en servir — le planning
+     aurait perdu son défilement, et le banc serait resté vert.
+     Quand une mutation ne casse rien, la question n'est pas « le code est-il bon » mais
+     « qu'est-ce que le banc ne REGARDE pas ». Ici : le site d'appel. */
+  vrai('⛔⛔ … et elle est VRAIMENT consultée au départ du geste',
+    /const debut=\(x,y,cible\)=>\{[\s\S]{0,600}if\(swipeDefileH\(cible\)\) return;/.test(NU));
+  vrai('⛔ … tout comme la liste des zones écartées',
+    /const debut=\(x,y,cible\)=>\{[\s\S]{0,600}if\(swipeExclu\(cible\)\) return;/.test(NU));
   vrai('⛔ la barre, le tiroir, les fenêtres et l’assistant sont écartés',
     /const SWIPE_HORS=\['#tabbar','\.sidebar','#overlay','#overlay2','#assistant','#login','\.topbar','\.creer-ov'\]/.test(NU));
   vrai('⛔ une fenêtre ouverte coupe le geste',
