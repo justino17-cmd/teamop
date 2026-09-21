@@ -120,6 +120,29 @@ console.log('\n══ 3. LES HALOS VIENNENT DES LOGOS, PLUS DE LA COULEUR CHOISI
   vrai('⛔ les arrêts sont en rgba(...,0), pas en `transparent` (qui vire au noir)',
     /rgba\(30,132,80,0\) 70%/.test(css) && !/--vr-halos:[\s\S]{0,400}, ?transparent 70%/.test(css));
   vrai('le halo est appliqué au fond de la page', /body::after\{[\s\S]{0,300}background:var\(--vr-halos\)/.test(css));
+  /* ⛔⛔ ET IL FAUT QU'IL SOIT VISIBLE. Un `::after` en `z-index:-1` se peint SOUS le fond de
+     son propre parent : `body` n'établit pas de contexte d'empilement, donc son pseudo-élément
+     négatif remonte dans celui de la RACINE et s'y peint AVANT le fond de `body`. Mesuré le
+     22 septembre 2026 : les trois halos existaient, étaient justes, et étaient intégralement
+     cachés sous le dégradé gris — la page avait l'air d'un aplat.
+     ⚠ CE CONTRÔLE A ÉTÉ AJOUTÉ APRÈS COUP : la mutation « remettre le fond sur body » ne
+     faisait tomber AUCUN des 82 contrôles. Une mutation qui ne casse rien ne dit pas que le
+     code est bon, elle dit ce que le banc ne REGARDE pas. */
+  vrai('⛔⛔ le fond de la page est sur <html> (sinon il recouvre les halos)',
+    /html\[data-verre="1"\]\{background:var\(--vr-page\);background-attachment:fixed\}/.test(css));
+  vrai('⛔⛔ … et body est rendu transparent, explicitement',
+    /html\[data-verre="1"\] body\{background:transparent!important\}/.test(css));
+  vrai('⛔ la forme fautive n’existe plus nulle part',
+    !/html\[data-verre="1"\] body\{background:var\(--vr-page\)/.test(NU));
+  /* ⚠ LA TAILLE AUSSI SE GARDE. 340 px de rayon sur un Mac de 1280 de large, c'étaient trois
+     taches perdues dans un aplat : mesuré au navigateur, la page était indiscernable d'un fond
+     uni. En vmax, le voile tient la même place sur un iPhone et sur un 27 pouces. */
+  vrai('⚠ les halos se mesurent sur l’écran (vmax), pas en pixels fixes',
+    /--vr-halos:[\s\S]{0,120}vmax/.test(css) && !/--vr-halos:[\s\S]{0,400}\d{3}px \d{3}px at/.test(css));
+  /* Et la transparence réduite doit remettre un fond PLEIN sur <html>, pas seulement sur body :
+     sinon la page reste sur le dégradé de verre alors qu'on vient de l'éteindre. */
+  vrai('⛔ la transparence réduite remet un fond plein sur <html> AUSSI',
+    /html\[data-verre="1"\]\{background:var\(--bg\)\}/.test(css));
   vrai('⛔ la transparence réduite l’éteint (c’est un besoin, pas une préférence)',
     /prefers-reduced-transparency: reduce/.test(css) && /body::after\{display:none\}/.test(css));
 }
