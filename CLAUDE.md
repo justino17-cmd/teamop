@@ -718,6 +718,19 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   catégorie masquée est une catégorie qu'on ne peut plus ÉPROUVER, et la bêta est l'outil de
   travail de l'équipe. En production le drapeau vaut `false` : le forfait continue de décider
   chez un client, c'est ce qui est facturé. `tests/test-749.js` tient les deux sens.
+  ⛔ **ET LA CAMPAGNE MOT DE PASSE NON PLUS, DEPUIS LE 22 SEPTEMBRE 2026.** Justin : « peut-être
+  pas la mettre pour l'application bêta, que pour l'application publique ; on testera ça sur la
+  version publique, on s'ouvrira un compte vu qu'on a ce qu'il faut dans la Tour. » Même raison :
+  une porte obligatoire à chaque compte créé coûte un aller-retour à chaque essai.
+  ⚠️ **IL Y A DEUX PORTES, ET ELLES SE FERMENT ENSEMBLE** : `secuAFaire` (la fenêtre du mot de
+  passe) et `emailRappelModal` (l'adresse, qui se **relance huit fois toutes les 2,5 s**).
+  Fermer la première sans la seconde retire la moitié de l'obstacle et garde celle qui insiste
+  le plus. En production la campagne reste ENTIÈRE — c'est elle qui a débloqué la journée du
+  15 septembre. ⚠️ Effet de bord assumé : `annuaireEtatP` rend 0 pour tout le monde sur la bêta.
+  ⚠️ **Et deux bancs EXÉCUTENT la vraie `secuAFaire`** (`test-665`, `test-699`) : ils sont morts
+  le jour où elle s'est mise à lire `BETA_ESSAI`, une variable absente de leur bac à sable.
+  Toute garde ajoutée à une fonction qu'un banc extrait doit être fournie à ce banc — et tant
+  qu'à faire, **jouée dans les deux sens** : c'est le même coût et c'est deux fois la preuve.
 - ⛔ **UN COMPTEUR DE PAIE PORTE DEUX HORODATAGES, ET ON LES RÉÉCRIT ENSEMBLE.** Un pointage
   garde `debut`/`fin` en `'HH:MM'` (tout ce qui a été saisi les porte, et la fusion unit par
   enregistrement : un champ qui disparaît est une donnée perdue chez qui n'a pas la nouvelle

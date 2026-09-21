@@ -22,6 +22,44 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ✅ 22 SEPTEMBRE 2026 — LA CAMPAGNE MOT DE PASSE SAUTE SUR LA BÊTA (v707)
+
+Justin : **« l'obligation qu'on a faite pour créer les mots de passe, peut-être pas la mettre
+pour l'application bêta, que pour l'application publique ; on testera ça sur la version
+publique, on s'ouvrira un compte vu qu'on a ce qu'il faut dans la Tour. »**
+
+⚠ **Il y avait DEUX portes**, et c'est le point qui coûte : `secuAFaire` déclenche la fenêtre
+du mot de passe, `emailRappelModal` réclame l'adresse **et se relance huit fois toutes les
+2,5 s**. Fermer la première sans la seconde aurait retiré la moitié de l'obstacle en gardant
+celle qui insiste le plus.
+
+Mesuré au navigateur, **les deux sens**, la même page montée deux fois :
+
+| | bêta (`BETA_ESSAI=true`) | public (`BETA_ESSAI=false`) |
+|---|---|---|
+| compte présent, conditions remplies | oui | oui |
+| `secuAFaire` | **false** | **true** |
+| fenêtre de campagne | **aucune** | « Bienvenue OP — crée ton mot de passe » |
+| verrouillée | non | **oui** |
+
+**Trois défauts trouvés en mesurant, tous dans mes propres sondes et bancs :**
+- la première mesure côté bêta donnait **`population: 0`** — aucun compte, donc « aucune
+  fenêtre ne s'ouvre » passait au vert **sans rien prouver**. La sonde fabrique désormais le
+  compte et vérifie qu'il remplit les conditions ;
+- « aucune fenêtre » était trop large : le **choix de la langue** s'ouvre au premier démarrage
+  et n'a rien à voir. On vise la fenêtre DE LA CAMPAGNE ;
+- `test-665` et `test-699` **exécutent la vraie fonction** : elle lit maintenant `BETA_ESSAI`,
+  absent de leur bac à sable — les deux mouraient. `test-665` monte désormais la fonction
+  **deux fois**, une par valeur du drapeau, et joue les trois conditions de chaque côté.
+
+**5 mutations sur 5** font tomber leur banc, dans les deux sens (retirer la garde de la bêta
+ET désactiver la campagne en production).
+
+⚠ **En production, rien ne change.** `app.html` porte `BETA_ESSAI=false` : la campagne du
+15 septembre reste entière chez ELAN.
+
+---
+
 ## ✅ 22 SEPTEMBRE 2026 — LE VERRE QUI N'EN ÉTAIT PAS UN, LA PALETTE MORTE, LES FAVORIS (BÊTA)
 
 Justin, sur son Mac puis sur son iPhone : **« je vois pas l'attendu du liquid glass. J'ai pas
