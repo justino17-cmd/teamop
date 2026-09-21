@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="fr" data-mode="auto" data-palette="marine">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TEAM OP — aperçu de la refonte</title>
+<meta name="description" content="Aperçu de la refonte du site TEAM OP : deux palettes, trois modes. Rien n'est publié : cette page ne remplace aucune page cliente.">
+<link rel="icon" href="../icons/teamop-192.png">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<style>
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   APERÇU — REFONTE DU SITE VITRINE (point 6)
+   ⛔ CETTE PAGE NE REMPLACE RIEN. `index.html` et `tarifs.html` sont la porte d'entrée de
+   teamop.fr : la règle du dépôt est qu'aucune page utilisée par des clients ne change sans
+   que Justin l'ait vue. On construit donc dans `apercu/`, qui se commite seul sur main sans
+   toucher un seul point d'entrée, et on décide après.
+
+   DEUX PALETTES × TROIS MODES, et le mode ne change QUE des couleurs, jamais la structure.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+:root{
+  --pol:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --pol-t:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif;
+  --gout:22px; --lg:1024px; --e:cubic-bezier(.32,.72,0,1);
+}
+/* ── Palette « Apple bleu » ── */
+html[data-palette="apple"]{
+  --fond:#fff; --texte:#1d1d1f; --second:#6e6e73; --corps:#424245; --lien:#0066cc;
+  --carte:#f5f5f7; --tuile:#fff; --ligne:rgba(0,0,0,.1);
+  --btn:#0071e3; --btn-txt:#fff; --sombre:#1d1d1f; --sombre-txt:#f5f5f7; --sombre-tuile:#2c2c2e;
+}
+html[data-palette="apple"][data-mode="dark"]{
+  --fond:#000; --texte:#f5f5f7; --second:#a1a1a6; --corps:#d2d2d7; --lien:#2997ff;
+  --carte:#1d1d1f; --tuile:#2c2c2e; --ligne:rgba(255,255,255,.14);
+  --btn:#0071e3; --btn-txt:#fff; --sombre:#1d1d1f; --sombre-txt:#f5f5f7; --sombre-tuile:#2c2c2e;
+}
+/* ── Palette « Marine » — tirée du logo TEAM OP ── */
+html[data-palette="marine"]{
+  --fond:#fff; --texte:#0b1426; --second:#6b7688; --corps:#3a4557; --lien:#1e3a8a;
+  --carte:#f0f3f8; --tuile:#fff; --ligne:rgba(11,20,38,.1);
+  --btn:#0b1426; --btn-txt:#f0f3f8; --sombre:#0b1426; --sombre-txt:#f0f3f8; --sombre-tuile:#1a2640;
+}
+/* ⛔ NUIT MARINE : FOND MARINE, JAMAIS NOIR PUR. Le noir absolu fait « baver » le texte blanc
+   sur un écran OLED et durcit tout l'écran ; c'est aussi ce que la charte de l'application
+   applique déjà (#0D1624 et non #000). */
+html[data-palette="marine"][data-mode="dark"]{
+  --fond:#0b1426; --texte:#f0f3f8; --second:#8e9aae; --corps:#c5cddb; --lien:#7fb2ff;
+  --carte:#121d33; --tuile:#1a2640; --ligne:rgba(240,243,248,.14);
+  --btn:#f0f3f8; --btn-txt:#0b1426; --sombre:#121d33; --sombre-txt:#f0f3f8; --sombre-tuile:#1a2640;
+}
+/* ⛔ AUTO = LE SYSTÈME, ET EN DIRECT. L'attribut `data-mode="auto"` laisse la requête média
+   décider ; le JavaScript n'a rien à faire, donc rien à rater. Il ne sert qu'à FORCER. */
+@media (prefers-color-scheme: dark){
+  html[data-palette="apple"][data-mode="auto"]{
+    --fond:#000; --texte:#f5f5f7; --second:#a1a1a6; --corps:#d2d2d7; --lien:#2997ff;
+    --carte:#1d1d1f; --tuile:#2c2c2e; --ligne:rgba(255,255,255,.14);
+  }
+  html[data-palette="marine"][data-mode="auto"]{
+    --fond:#0b1426; --texte:#f0f3f8; --second:#8e9aae; --corps:#c5cddb; --lien:#7fb2ff;
+    --carte:#121d33; --tuile:#1a2640; --ligne:rgba(240,243,248,.14);
+    --btn:#f0f3f8; --btn-txt:#0b1426; --sombre:#121d33;
+  }
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{color-scheme:light dark}
+body{background:var(--fond);color:var(--texte);font:400 17px/1.55 var(--pol);-webkit-font-smoothing:antialiased;
+  transition:background .3s ease,color .3s ease}
+img{max-width:100%;display:block}
+a{color:var(--lien);text-decoration:none}
+.lg{max-width:var(--lg);margin:0 auto;padding:0 var(--gout)}
+
+/* ── NAV 48 px, collante, en verre léger ── */
+.nav{position:sticky;top:0;z-index:50;height:48px;display:flex;align-items:center;gap:18px;
+  background:color-mix(in srgb,var(--fond) 80%,transparent);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--ligne)}
+.nav .lg{display:flex;align-items:center;gap:18px;width:100%}
+.nav b{font:700 15px/1 var(--pol-t);letter-spacing:-.01em}
+.nav a{font-size:12px;color:var(--second)}
+.nav a:hover{color:var(--texte)}
+.nav-sp{flex:1}
+/* Le sélecteur Jour / Nuit / Auto — un segmenté de 150 px, curseur animé */
+.seg{position:relative;display:inline-flex;background:color-mix(in srgb,var(--second) 18%,transparent);
+  border-radius:999px;padding:2px;width:150px}
+.seg button{flex:1;position:relative;z-index:1;border:0;background:none;cursor:pointer;
+  font:600 11px/1 var(--pol);color:var(--second);padding:7px 0;border-radius:999px;min-height:28px}
+/* ⛔ LE DOIGT PASSE AVANT LA MAQUETTE. Le dossier demande une nav de 48 px ET des cibles ≥ 44 px :
+   les deux ne tiennent pas ensemble, un segmenté de 44 px ne rentre pas dans 48 px de barre.
+   Mesuré : 28 px, soit 16 px sous le plancher. On garde les 48 px là où il y a un POINTEUR, et
+   on laisse la barre grandir là où il y a un doigt — c'est la seule des deux contraintes qui
+   se paie en taps ratés sur un chantier. */
+/* ⚠️ ET PAS SEULEMENT `pointer: coarse` : la largeur compte aussi. Un iPad au clavier, un
+   portable à écran tactile, un navigateur qui ne rapporte pas le type de pointeur — dans tous
+   ces cas le doigt reste possible. Mesuré en headless : `pointer: coarse` ne se laisse pas
+   toujours émuler, et un banc qui s'appuie dessus seul ne voit rien. Deux portes, donc. */
+@media (pointer: coarse), (max-width: 900px){
+  .nav{height:auto;min-height:56px;padding:5px 0}
+  .seg button{min-height:44px;font-size:12px}
+  .pal button{width:30px;height:30px}
+}
+.seg button[aria-pressed="true"]{color:var(--texte)}
+.seg .cur{position:absolute;top:2px;left:2px;width:calc((100% - 4px)/3);height:calc(100% - 4px);
+  background:var(--fond);border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.16);
+  transition:transform .4s var(--e)}
+.seg[data-i="1"] .cur{transform:translateX(100%)}
+.seg[data-i="2"] .cur{transform:translateX(200%)}
+.pal{display:inline-flex;gap:6px;align-items:center}
+/* La pastille reste un petit rond, mais sa ZONE de tap fait 44 px : on agrandit ce qu'on
+   touche, pas ce qu'on voit. */
+.pal button{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
+  position:relative}
+.pal button::after{content:'';position:absolute;left:50%;top:50%;width:44px;height:44px;
+  transform:translate(-50%,-50%)}
+.pal button[aria-pressed="true"]{border-color:var(--texte)}
+
+/* ── Boutons ── */
+.b{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;
+  padding:0 22px;border-radius:999px;background:var(--btn);color:var(--btn-txt);
+  font:600 15px/1 var(--pol);border:0;cursor:pointer;transition:transform .16s var(--e),filter .16s ease}
+.b:hover{filter:brightness(1.08)}
+.b:active{transform:scale(.97)}
+.b.fant{background:none;color:var(--lien);padding:0 6px}
+
+/* ── HERO ── */
+.hero{text-align:center;padding:74px 0 10px}
+.hero h1{font:700 clamp(44px,7.4vw,80px)/1.04 var(--pol-t);letter-spacing:-.03em;text-wrap:balance}
+.hero p{font-size:clamp(19px,2.3vw,26px);color:var(--second);margin:18px auto 0;max-width:22ch;line-height:1.3}
+.hero .cta{display:flex;gap:18px;justify-content:center;align-items:center;margin-top:28px;flex-wrap:wrap}
+.hero .prv{font-size:13px;color:var(--second);margin-top:26px}
+
+/* ── Vitrine appareils ── */
+.appareils{display:flex;align-items:flex-end;justify-content:center;gap:18px;margin:44px 0 0;flex-wrap:wrap}
+.mac{width:min(560px,86vw);border-radius:16px;overflow:hidden;border:10px solid var(--sombre-tuile);
+  border-bottom-width:16px;box-shadow:0 24px 60px rgba(0,0,0,.22);background:var(--sombre-tuile)}
+.tel{width:172px;border-radius:28px;overflow:hidden;border:8px solid var(--sombre-tuile);
+  box-shadow:0 18px 44px rgba(0,0,0,.26);background:var(--sombre-tuile)}
+
+/* ── Sections ── */
+section{padding:72px 0}
+h2{font:700 clamp(32px,4vw,48px)/1.08 var(--pol-t);letter-spacing:-.025em;text-wrap:balance}
+.sous{color:var(--second);margin-top:12px;font-size:19px}
+.grille{display:grid;gap:18px;margin-top:34px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.carte{background:var(--carte);border-radius:20px;padding:26px}
+.carte h3{font:700 22px/1.2 var(--pol-t);letter-spacing:-.018em;margin-bottom:8px}
+.carte p{color:var(--corps);font-size:15.5px}
+.carte.noir{background:var(--sombre);color:var(--sombre-txt)}
+.carte.noir p{color:color-mix(in srgb,var(--sombre-txt) 74%,transparent)}
+.ic{width:52px;height:52px;border-radius:14px;margin-bottom:16px}
+
+/* ── Tarifs ── */
+.bascule{display:inline-flex;background:color-mix(in srgb,var(--second) 18%,transparent);
+  border-radius:999px;padding:3px;margin:24px 0 8px}
+.bascule button{border:0;background:none;cursor:pointer;font:600 14px/1 var(--pol);color:var(--second);
+  padding:11px 20px;border-radius:999px;min-height:44px}
+.bascule button[aria-pressed="true"]{background:var(--fond);color:var(--texte);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.prix{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:22px;align-items:stretch}
+.f{background:var(--carte);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.f .n{font:800 18px/1 var(--pol-t)}
+.f .d{color:var(--second);font-size:12.5px;line-height:1.5;min-height:38px}
+.f .p{font:800 34px/1 var(--pol-t);letter-spacing:-.02em}
+.f .p small{font:500 13px/1 var(--pol);color:var(--second)}
+.f ul{list-style:none;display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--corps);line-height:1.45}
+.f.phare{background:var(--sombre);color:var(--sombre-txt)}
+.f.phare .d,.f.phare ul{color:color-mix(in srgb,var(--sombre-txt) 74%,transparent)}
+.f .tag{align-self:flex-start;font:800 10px/1 var(--pol);letter-spacing:.06em;padding:5px 9px;
+  border-radius:999px;background:color-mix(in srgb,var(--lien) 18%,transparent);color:var(--lien)}
+.f.phare .tag{background:color-mix(in srgb,var(--sombre-txt) 18%,transparent);color:var(--sombre-txt)}
+
+/* ── Étapes ── */
+.etapes{background:var(--sombre);color:var(--sombre-txt);border-radius:24px;padding:44px}
+.etapes .grille{margin-top:26px}
+.etapes .n{font:800 13px/1 var(--pol);letter-spacing:.1em;opacity:.55;margin-bottom:10px}
+.etapes h3{font:700 21px/1.2 var(--pol-t);margin-bottom:6px}
+.etapes p{color:color-mix(in srgb,var(--sombre-txt) 74%,transparent);font-size:15px}
+
+/* ── FAQ ── */
+.faq{border-top:1px solid var(--ligne)}
+.faq details{border-bottom:1px solid var(--ligne)}
+.faq summary{list-style:none;cursor:pointer;padding:22px 0;display:flex;align-items:center;gap:16px;
+  font:600 19px/1.3 var(--pol-t);letter-spacing:-.012em;min-height:44px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';margin-left:auto;font:300 26px/1 var(--pol);color:var(--second);
+  transition:transform .3s var(--e)}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq .rep{padding:0 0 22px;color:var(--corps);font-size:16px;max-width:64ch}
+
+footer{border-top:1px solid var(--ligne);padding:38px 0;color:var(--second);font-size:13px}
+.ruban{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;
+  font:600 12px/1 var(--pol);letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;
+  border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none}
+
+@media(max-width:900px){ .g4{grid-template-columns:repeat(2,1fr)} .prix{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:560px){ .g2,.g4{grid-template-columns:1fr} .prix{grid-template-columns:1fr}
+  .etapes{padding:26px} section{padding:52px 0} .nav a{display:none} }
+/* ⛔ Le mouvement réduit coupe les glissements, pas la lisibilité. */
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+@media (prefers-reduced-transparency: reduce){ .nav{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--fond)} }
+@media (prefers-contrast: more){ .carte,.f{outline:1px solid var(--ligne)} }
+</style>
+</head>
+<body>
+<div class="ruban">APERÇU · refonte du site — rien n'est publié</div>
+
+<nav class="nav"><div class="lg">
+  <b>TEAM OP</b>
+  <a href="#apps">Applications</a><a href="#metiers">Métiers</a><a href="#tarifs">Tarifs</a><a href="#faq">Questions</a>
+  <span class="nav-sp"></span>
+  <span class="pal" role="group" aria-label="Palette">
+    <button id="p-marine" aria-pressed="true" title="Palette Marine (logo TEAM OP)" style="background:#0b1426"></button>
+    <button id="p-apple" aria-pressed="false" title="Palette Apple bleu" style="background:#0071e3"></button>
+  </span>
+  <span class="seg" id="seg" data-i="2" role="group" aria-label="Thème">
+    <span class="cur" aria-hidden="true"></span>
+    <button data-m="light" aria-pressed="false">Jour</button>
+    <button data-m="dark" aria-pressed="false">Nuit</button>
+    <button data-m="auto" aria-pressed="true" id="b-auto">Auto</button>
+  </span>
+</div></nav>
+
+<header class="hero" id="hero"><div class="lg">
+  <h1>Toutes vos applications métier, au même endroit.</h1>
+  <p>Gestion et messagerie, pour les entreprises de terrain.</p>
+  <div class="cta">
+    <a class="b" href="../espace.html">Créer mon compte</a>
+    <a class="b fant" href="#apps">En savoir plus ›</a>
+  </div>
+  <div class="prv">🔒 Chiffré AES-256 · 📲 iPhone · Android · Mac · PC</div>
+  <div class="appareils">
+    <img class="mac" src="../screenshots/ecran-1-tableau.png" alt="OP GESTION sur Mac — tableau de bord" loading="lazy">
+    <img class="tel" src="../screenshots/ecran-3-intervention.png" alt="OP GESTION sur iPhone — intervention" loading="lazy">
+  </div>
+</div></header>
+
+<section id="apps"><div class="lg">
+  <h2>Deux applications. Un seul compte.</h2>
+  <p class="sous">On les prend ensemble ou séparément — les abonnements s'additionnent.</p>
+  <div class="grille g2">
+    <div class="carte">
+      <img class="ic" src="../icons/opgestion-512.png" alt="">
+      <h3>OP GESTION</h3>
+      <p>Interventions avec rapports signés, planning et tournées, stock et box, encaissements,
+         devis-factures, équipe. Tout ce qui fait tourner une entreprise de terrain.</p>
+    </div>
+    <div class="carte noir">
+      <img class="ic" src="../icons/opmsg-512.png" alt="">
+      <h3>OP MESSAGES</h3>
+      <p>Toute votre équipe dans une seule conversation : chat temps réel, groupes, photos,
+         vocaux, sondages — réservé à votre entreprise.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="metiers"><div class="lg">
+  <h2>Fait pour votre métier.</h2>
+  <p class="sous">Le pack métier est posé au démarrage — vous n'avez rien à configurer.</p>
+  <div class="grille g4">
+    <div class="carte"><h3>3D</h3><p>Anti-nuisibles : registre sanitaire, biocides, plans d'appâtage.</p></div>
+    <div class="carte"><h3>Nettoyage</h3><p>Tournées, contrôles qualité, consommables.</p></div>
+    <div class="carte"><h3>Chauffage · Clim</h3><p>Entretiens, contrats, pièces.</p></div>
+    <div class="carte"><h3>Plomberie</h3><p>Dépannages, devis sur place, encaissement.</p></div>
+    <div class="carte"><h3>Électricité</h3><p>Interventions, conformité, rapports signés.</p></div>
+    <div class="carte"><h3>Espaces verts</h3><p>Planning saisonnier, matériel, sites.</p></div>
+    <div class="carte"><h3>Sécurité</h3><p>Rondes, contrôles, main courante.</p></div>
+    <div class="carte"><h3>Autre</h3><p>Décrivez votre besoin, on le construit avec vous.</p></div>
+  </div>
+</div></section>
+
+<section id="tarifs"><div class="lg">
+  <h2>Des tarifs simples.</h2>
+  <p class="sous">Prix HT par mois, sans engagement. Les abonnements des deux applications s'additionnent.</p>
+  <div class="bascule" role="group" aria-label="Application">
+    <button id="t-gestion" aria-pressed="true">OP GESTION</button>
+    <button id="t-messages" aria-pressed="false">OP MESSAGES</button>
+  </div>
+  <div class="prix" id="prix"></div>
+</div></section>
+
+<section><div class="lg">
+  <h2>Né sur le terrain.</h2>
+  <p class="sous" style="max-width:58ch">TEAM OP n'a pas été dessiné dans un bureau. Chaque écran vient d'une
+     entreprise qui travaille : ce qu'on ajoute, c'est ce qu'on nous a demandé, et ce qu'on enlève,
+     c'est ce qui faisait perdre du temps.</p>
+</div></section>
+
+<section><div class="lg"><div class="etapes">
+  <h2 style="font-size:clamp(28px,3.4vw,40px)">Prêt en trois étapes.</h2>
+  <div class="grille g4" style="grid-template-columns:repeat(3,1fr)">
+    <div><div class="n">01</div><h3>Créer le compte</h3><p>Votre espace est prêt en une minute, avec vos données à vous.</p></div>
+    <div><div class="n">02</div><h3>Inviter l'équipe</h3><p>Un lien par personne — pas de code à retenir, pas de nom d'entreprise à taper.</p></div>
+    <div><div class="n">03</div><h3>Travailler</h3><p>Sur le terrain, même sans réseau. Tout se synchronise quand ça revient.</p></div>
+  </div>
+</div></div></section>
+
+<section id="faq" class="faq"><div class="lg">
+  <h2 style="margin-bottom:12px">Questions fréquentes</h2>
+  <details><summary>Est-ce que ça marche sans réseau&nbsp;?</summary>
+    <div class="rep">Oui. L'application est faite pour le terrain : elle fonctionne hors ligne et synchronise
+      ce qui a été saisi dès que le réseau revient. Rien n'est perdu entre-temps.</div></details>
+  <details><summary>À qui appartiennent nos données&nbsp;?</summary>
+    <div class="rep">À vous. Elles sont chiffrées en AES-256, et vous pouvez les exporter quand vous voulez.
+      Nous ne les revendons pas et ne les utilisons pas pour autre chose que faire marcher votre espace.</div></details>
+  <details><summary>Peut-on prendre les deux applications&nbsp;?</summary>
+    <div class="rep">Oui, et c'est le cas le plus courant. Les abonnements s'additionnent : une entreprise en
+      Business Premium reçoit OP MESSAGES Business Premium sans rien ajouter.</div></details>
+  <details><summary>Que se passe-t-il si on arrête de payer&nbsp;?</summary>
+    <div class="rep">Rien n'est supprimé. Les catégories payantes se grisent et vous revenez au forfait
+      gratuit ; vos données restent lisibles et exportables.</div></details>
+  <details><summary>Combien de temps pour démarrer&nbsp;?</summary>
+    <div class="rep">Une minute pour créer l'espace, le temps d'inviter l'équipe ensuite. Le pack de votre
+      métier est déjà posé — vous n'avez pas de paramétrage à faire avant de travailler.</div></details>
+</div></section>
+
+<footer><div class="lg">
+  TEAM OP — OP GESTION &amp; OP MESSAGES · <a href="../mentions-legales.html">Mentions légales</a> ·
+  <a href="../sous-traitance.html">Sous-traitance</a>
+  <div style="margin-top:8px;opacity:.8">Aperçu de refonte — cette page ne remplace aucune page du site.</div>
+</div></footer>
+
+<script>
+/* ⛔ LE MODE « AUTO » NE S'ÉCRIT PAS EN JAVASCRIPT. Il est l'ABSENCE de choix : la requête
+   média `prefers-color-scheme` décide, et bascule en direct sans qu'on écoute quoi que ce soit.
+   Le JavaScript ne sert qu'à FORCER Jour ou Nuit — donc s'il ne tourne pas, la page suit quand
+   même le système. C'est l'inverse d'une page qui dépend d'un script pour avoir des couleurs. */
+(function(){
+  var h=document.documentElement, seg=document.getElementById('seg');
+  var MODES=['light','dark','auto'];
+  function litMode(){ try{ return localStorage.getItem('teamop_apercu_mode')||'auto'; }catch(e){ return 'auto'; } }
+  function litPal(){ try{ return localStorage.getItem('teamop_apercu_pal')||'marine'; }catch(e){ return 'marine'; } }
+  function poseMode(m){
+    if(MODES.indexOf(m)<0) m='auto';
+    h.setAttribute('data-mode',m);
+    try{ localStorage.setItem('teamop_apercu_mode',m); }catch(e){}
+    seg.setAttribute('data-i',String(MODES.indexOf(m)));
+    seg.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.m===m)); });
+    var a=document.getElementById('b-auto');
+    if(a) a.textContent = m==='auto'
+      ? ('Auto · '+((window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour'))
+      : 'Auto';
+    barre();
+  }
+  function posePal(p){
+    if(p!=='apple'&&p!=='marine') p='marine';
+    h.setAttribute('data-palette',p);
+    try{ localStorage.setItem('teamop_apercu_pal',p); }catch(e){}
+    document.getElementById('p-marine').setAttribute('aria-pressed',String(p==='marine'));
+    document.getElementById('p-apple').setAttribute('aria-pressed',String(p==='apple'));
+    barre();
+  }
+  /* La couleur de la barre système suit ce qu'on voit à l'écran, sinon l'encoche jure. */
+  function barre(){
+    try{ var c=getComputedStyle(h).getPropertyValue('--fond').trim();
+      document.querySelectorAll('meta[name=theme-color]').forEach(function(m){ m.setAttribute('content',c); });
+    }catch(e){}
+  }
+  seg.querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ poseMode(b.dataset.m); }); });
+  document.getElementById('p-marine').addEventListener('click',function(){ posePal('marine'); });
+  document.getElementById('p-apple').addEventListener('click',function(){ posePal('apple'); });
+  try{ if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){
+    if(h.getAttribute('data-mode')==='auto') poseMode('auto'); }); }catch(e){}
+
+  /* ── Les tarifs : ceux de `tarifs.html`, pas des chiffres réinventés ── */
+  var TARIFS={
+    gestion:[
+      {n:'Gratuit', d:'Pour découvrir TEAM OP et gérer ses premières interventions.', p:'0 €', u:'1 utilisateur',
+       l:['Interventions et rapports','Clients et planning','Vos données exportables']},
+      {n:'Pro', d:'Pour les équipes terrain qui veulent un planning et des rapports impeccables.', p:'15 €', u:'1 utilisateur',
+       l:['Tout le Gratuit, plus…','Devis et factures','Contrats et archives']},
+      {n:'Business', d:"Pour piloter toute l'entreprise : stock, achats, réglementaire et compta.", p:'25 €', u:'2 utilisateurs',
+       tag:'⭐ LE PLUS CHOISI', phare:true,
+       l:['Tout le Pro, plus…','Stock, box et mouvements','Bons de commande et achats','Registre biocide']},
+      {n:'Business Premium', d:"Le maximum : messagerie d'équipe, espace client et service 24 h/24.", p:'50 €', u:'3 utilisateurs',
+       tag:'👑 PREMIUM',
+       l:['Tout le Business, plus…','OP MESSAGES inclus','Espace client','Support prioritaire']}
+    ],
+    messages:[
+      {n:'Perso', d:'La messagerie classique, gratuite : messages, appels et vidéo.', p:'0 €', u:'',
+       l:['Messages et vocaux','Appels et vidéo','Groupes']},
+      {n:'Messages Pro', d:'La messagerie de votre entreprise, propre et séparée du perso.', p:'15 €', u:'1 utilisateur',
+       tag:'⭐ ÉQUIPES', phare:true,
+       l:['Espace réservé à l’entreprise','Sondages et événements','Messages éphémères']},
+      {n:'Messages Business Premium', d:'La totale : visio illimitée et priorité au support.', p:'25 €', u:'3 utilisateurs',
+       tag:'👑 PREMIUM',
+       l:['Visio illimitée','Support prioritaire','Inclus avec le Business Premium de la suite']}
+    ]
+  };
+  function rendPrix(k){
+    var el=document.getElementById('prix');
+    el.style.gridTemplateColumns='repeat('+(TARIFS[k].length>=4?4:3)+',1fr)';
+    el.innerHTML=TARIFS[k].map(function(f){
+      return '<div class="f'+(f.phare?' phare':'')+'">'
+        + (f.tag?'<span class="tag">'+f.tag+'</span>':'')
+        + '<span class="n">'+f.n+'</span><span class="d">'+f.d+'</span>'
+        + '<span class="p">'+f.p+' <small>HT / mois</small></span>'
+        + (f.u?'<span class="d" style="min-height:0">'+f.u+'</span>':'')
+        + '<ul>'+f.l.map(function(x){ return '<li>✓ '+x+'</li>'; }).join('')+'</ul></div>';
+    }).join('');
+    document.getElementById('t-gestion').setAttribute('aria-pressed',String(k==='gestion'));
+    document.getElementById('t-messages').setAttribute('aria-pressed',String(k==='messages'));
+  }
+  document.getElementById('t-gestion').addEventListener('click',function(){ rendPrix('gestion'); });
+  document.getElementById('t-messages').addEventListener('click',function(){ rendPrix('messages'); });
+
+  posePal(litPal()); poseMode(litMode()); rendPrix('gestion');
+})();
+</script>
+</body>
+</html>
