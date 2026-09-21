@@ -22,6 +22,72 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ✅ 21 SEPTEMBRE 2026, SOIR — LE MULTITÂCHE, ET LES DROITS FINIS
+
+Justin : **« rajoute un système dans les catégories et sous-catégories pour faire du
+multitâche, pour pouvoir aller dans une autre catégorie et revenir à l'écran et continuer »** —
+plus « fais ce qui marche pas » et « re-teste tout de A à Z ».
+
+### Le multitâche — ce qu'il fait, mesuré au navigateur (19 ✓ · 0 ✗)
+
+| | |
+|---|---|
+| on remplit, on part ailleurs, on revient | une barre propose de reprendre |
+| on reprend | la saisie revient **entière** (5 champs sur 5) |
+| on va au bout | le client est enregistré avec le nom saisi avant l'interruption |
+| on repart et on revient | **plus de barre** — un enregistrement réussi efface la reprise |
+| deux écrans ouverts | **chacun garde le sien** (Chantier A et Chantier B, repris séparément) |
+| le menu | porte une **pastille** là où quelque chose attend |
+
+⛔ **Rien n'est écrit dans `db`.** État d'appareil, pas donnée d'entreprise : `localStorage`,
+sous le préfixe de l'espace (la bêta a le sien) **et** l'identifiant du compte — deux personnes
+sur le même téléphone de chantier ne se repassent pas leurs brouillons. Vérifié : la base n'a
+rien reçu pendant l'interruption, et le brouillon ne contient **aucun mot de passe** (6 Ko).
+
+### ⚠️ Deux pièges payés, et les deux ne se voient qu'au navigateur
+
+1. **Une barre posée depuis `go()` sur une minuterie n'apparaît JAMAIS.** `rendreVueAnimee`
+   écrit `#content` APRÈS et la balaie. Mesurée absente à **100, 300, 600, 1 200 et 2 500 ms**.
+   Elle se pose désormais dans `rendreVueSure`, la seule fonction qui écrit vraiment l'écran.
+   Le commentaire du premier jet annonçait ce piège — l'écrire ne suffit pas.
+2. **`renderNav()` n'est pas appelé par `go()`**, donc la pastille ne se rafraîchissait jamais.
+   On repeint la pastille, pas les quarante-deux lignes du menu.
+
+### Les droits — la matrice est close
+
+| | |
+|---|---|
+| ✓ le droit verrouille l'action | taches, absences, **interventions**, clients, devis, contrats, boxes, véhicules, techniciens, fournisseurs, brouillon, **demandes** |
+| ✓ garde présent, témoin bloqué par un contrôle MÉTIER | produits (« Au moins un fournisseur est requis » — et sans le droit, le refus dit bien « Permissions ») |
+| ✓ gardé par son PROPRE droit | **bons de commande** — `bonsLectureSeule` via `peutCommander()`, **15 sites d'appel**, mesuré : le formulaire refuse de s'ouvrir |
+| ✗ ignoré | **aucun** |
+
+Six chemins de plus ont été rattachés à leur catégorie : `saveEnv`, `saveProduitDonne`,
+`saveConducteur`, `saveDemande`, `envoyerDemandeBox`, `brouillonToDemande`.
+
+⛔ **`savePointage` reste OUVERT, et c'est une décision écrite.** Pointer n'est pas créer un
+enregistrement partagé : c'est déclarer ses propres heures. Un administrateur qui décoche
+« ajouter » sur Temps & équipe veut empêcher la création de véhicules, pas empêcher un
+technicien de dire qu'il a travaillé — **une journée non pointée est une journée non payée**.
+`tests/test-747.js` le NOMME et vérifie l'ABSENCE de garde, pour que personne ne « complète »
+la série un jour en croyant bien faire. **Si Justin veut l'inverse, c'est une ligne à ajouter.**
+
+### ⚠️ Un piège de mesure qui vaut pour tout le dépôt
+
+Le premier relevé annonçait « appliqué » pour les techniciens. **C'était faux** : ce qui
+refusait, c'était la **limite de places du forfait**, que le témoin venait lui-même de
+consommer. Un témoin qui mange la ressource que l'essai suivant réclame fabrique un faux
+verrou — et on classe « gardé » ce qui ne l'est pas.
+
+### Ce qui reste à Justin
+
+1. **`savePointage`** : le laisser ouvert (recommandé) ou le fermer.
+2. **Fermer une catégorie entière d'un geste** n'existe pas : on masque écran par écran
+   (`acces.modules`). Un vrai droit « voir » par catégorie serait un chantier à part.
+3. Les sept décisions déjà listées plus bas (étape E, DNS, suspension, 24 mois…).
+
+---
+
 ## ⛔⛔ 21 SEPTEMBRE 2026 — LE NAVIGATEUR A TROUVÉ TROIS DÉFAUTS QUE 102 SUITES NE VOYAIENT PAS
 
 Justin, loin de chez lui : **« Je suis pas chez moi, donc je ne peux pas tester. Est-ce que toi

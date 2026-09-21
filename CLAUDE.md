@@ -466,6 +466,34 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   l'ancre d'adresse ne contourne pas l'écran de connexion : il n'y avait pas de défaut. Avant
   d'annoncer une trouvaille faite au pilotage, **produire la contre-mesure sans pilotage**.
   Un faux défaut coûte deux fois : le temps de le « corriger », puis celui de la garde inutile.
+- ⛔⛔ **UNE BARRE POSÉE DEPUIS `go()` EST BALAYÉE — ACCROCHER LÀ OÙ L'ÉCRAN S'ÉCRIT VRAIMENT.**
+  Le multitâche pose une barre « Reprendre » en haut de l'écran. Posée depuis `go()` sur une
+  minuterie de 60 ms, elle n'apparaissait **jamais** : `rendreVueAnimee` écrit `#content`
+  APRÈS et l'efface. Mesurée absente à **100, 300, 600, 1 200 et 2 500 ms**. Elle vit
+  désormais dans `rendreVueSure`, la seule fonction qui écrit la vue — y compris sur un
+  rafraîchissement automatique, ce qui est voulu : sinon la barre disparaîtrait toute seule au
+  bout de quelques secondes. ⚠️ Et `renderNav()` **n'est pas appelé par `go()`** : une pastille
+  de menu qui dépend de l'état ne se rafraîchit donc pas toute seule — on repeint la pastille
+  (`multiPastilles`), jamais les quarante-deux lignes du menu.
+- ⛔⛔ **UN TÉMOIN QUI CONSOMME LA RESSOURCE QUE L'ESSAI SUIVANT RÉCLAME FABRIQUE UN FAUX
+  VERROU.** Le 21 septembre 2026, la matrice des droits annonçait « appliqué » pour la création
+  d'un technicien. C'était faux : ce qui refusait, c'était la **limite de places du forfait**,
+  que le témoin venait lui-même de consommer (+1). Le droit, lui, n'était pas consulté du tout.
+  C'est la jumelle de « une assertion sur un ensemble vide » : là on ne comptait rien, ici on
+  comptait le mauvais refus. **Quand une mesure refuse, demander CE QUI refuse** — le message
+  affiché le dit souvent, et il faut le lire plutôt que compter un delta à zéro.
+- ⛔ **LES BONS DE COMMANDE ONT LEUR PROPRE DROIT, PAS CELUI DE LEUR CATÉGORIE.** Tout le
+  circuit passe par `peutCommander()` — c'est-à-dire `!userCap(u,'bonsLectureSeule')` —, avec
+  **15 sites d'appel** (`formBon`, `bonFourNew`, `bonSuggere`, `bonDupliquer`, les envois…).
+  Mesuré : en « consultation seule », le formulaire refuse de s'ouvrir et le dit. Chercher un
+  `permGarde('com',…)` là-dedans et conclure « non gardé » serait mesurer le mauvais droit.
+- ⛔ **LE MULTITÂCHE NE RANGE RIEN DANS `db`.** Un brouillon de fenêtre est un état
+  d'APPAREIL : `localStorage`, sous le préfixe de l'espace ET l'identifiant du compte. L'y
+  mettre le ferait partir à la synchro, chez toute l'entreprise, et ressusciterait ce qu'une
+  équipe a supprimé exprès — c'est la règle « rien ne s'écrit dans les données d'une entreprise
+  au seul chargement », appliquée à un geste de navigation. Ni mot de passe ni fichier n'entrent
+  dans le brouillon. `tests/test-748.js` tient les dix règles ; le comportement, lui, se mesure
+  au navigateur (`scratchpad/sonde-multi.js`).
 - Ne pas modifier l'anti-abus (`server/index.js`) sans relire pourquoi il lit
   `req.ip` et non l'en-tête brut — un en-tête fourni par le client se falsifie
 - Ne pas écrire de données personnelles de clients dans les journaux
