@@ -194,11 +194,43 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
   vrai('… et il ne redessine jamais la vue entière (il touche le chrono, pas #content)',
     !/views\.pointage\(\)/.test(tk) && !/\$\('content'\)\.innerHTML/.test(tk));
 }
-{ const vp=NU.slice(NU.indexOf('function visiblePointages('), NU.indexOf('function visiblePointages(')+420);
-  vrai('⛔ le droit dédié « voirPointages » ouvre les feuilles de temps SEULES',
-    /can\('voirPointages'\)/.test(vp));
-  vrai('⛔ … sur le PÉRIMÈTRE de la personne, pas sur tout l\'espace', /perimetreTechIds\(\)/.test(vp));
-  vrai('⛔ sans droit, on ne voit QUE ses propres pointages', /x\.techId===tid/.test(vp));
+/* ⛔⛔ CE BLOC A ÉTÉ AVEUGLE, ET LA MUTATION L'A DIT. Retirer `||can('voirPointages')` de
+   `visiblePointages` ne faisait tomber AUCUN contrôle : la fenêtre de 420 caractères débordait
+   sur `ptPeutVoirAutres`, qui porte la même expression. Le motif était juste, la ZONE était
+   fausse — exactement le défaut corrigé quinze lignes plus haut sur `corps()`.
+   La parade n'est pas une fenêtre mieux bornée : c'est d'EXÉCUTER la vraie fonction. Un droit
+   se mesure par ce qu'il laisse passer, pas par le texte qui le nomme. */
+{ const D=new Function('cap','peri','tid',`
+    const can=c=>cap[c]===true;
+    const perimetreTechIds=()=>peri;
+    const myTechId=()=>tid;
+    ${decoupe('function visiblePointages(')}
+    ${decoupe('function ptPeutVoirAutres(){')}
+    return { visiblePointages, ptPeutVoirAutres };`);
+  const lignes=[{id:'a',techId:'t1'},{id:'b',techId:'t2'},{id:'c',techId:'t3'}];
+
+  const tech=D({}, null, 't1');
+  v('⛔ sans droit, on ne voit QUE ses propres pointages',
+    tech.visiblePointages(lignes).map(x=>x.id), ['a']);
+  v('… et pas de sélecteur d\'équipe', tech.ptPeutVoirAutres(), false);
+
+  const chef=D({voirPointages:true}, new Set(['t1','t2']), 't1');
+  v('⛔ LE DROIT DÉDIÉ « voirPointages » OUVRE LES FEUILLES DE TEMPS',
+    chef.visiblePointages(lignes).map(x=>x.id), ['a','b']);
+  vrai('… et donne le sélecteur d\'équipe', chef.ptPeutVoirAutres());
+
+  const chefSansPerim=D({voirPointages:true}, null, 't1');
+  v('⛔ un périmètre absent (personne rattachée) laisse tout voir, il ne VIDE pas l\'écran',
+    chefSansPerim.visiblePointages(lignes).length, 3);
+
+  const admin=D({voirTout:true}, null, 't1');
+  v('« tout voir » continue de tout voir : rien ne change le jour de la mise à jour',
+    admin.visiblePointages(lignes).length, 3);
+
+  const autre=D({voirTout:true}, new Set(['t3']), 't1');
+  v('⛔ … mais toujours borné au périmètre quand il y en a un',
+    autre.visiblePointages(lignes).map(x=>x.id), ['c']);
+
   vrai('le droit est déclaré dans USER_CAPS', /\['voirPointages'/.test(NU));
   vrai('… et rangé dans la catégorie Temps & équipe',
     /equipe:\[[^\]]*'voirPointages'/.test(NU));
