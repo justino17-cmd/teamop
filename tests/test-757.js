@@ -179,9 +179,13 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
    carré est noir ». Mesuré avant correction : α=1 sur la 1re tuile, α=.58 sur la 2e, dans les
    neuf teintes et les deux modes. La seule sortie est de n'écrire AUCUNE règle. */
 {
-  const regles = (NU_TEINTE.match(/\.kpis\s+\.kpi:first-child[^{]*\{/g) || []);
-  vrai('⛔ aucune règle ne vise .kpis .kpi:first-child (elle battrait le verre)',
-    regles.length === 0, regles.length ? regles.join(' | ') : 'aucune');
+  /* ⚠ On ne vise QUE la tuile elle-même : `.kpis .kpi:first-child{` ou `…:first-child,`.
+     `.kpis .kpi:first-child .kpi-ico{` est une autre affaire — elle colore la tuile d'icône,
+     pas le fond de la carte, et ne dispute donc rien au verre. Un motif qui les confondrait
+     accuserait le code d'un défaut qu'il n'a pas. */
+  const regles = (NU_TEINTE.match(/\.kpis\s+\.kpi:first-child\s*[,{]/g) || []);
+  vrai('⛔ aucune règle ne vise la TUILE .kpis .kpi:first-child (elle battrait le verre)',
+    regles.length === 0, regles.length ? regles.length + ' règle(s)' : 'aucune');
   /* le contre-contrôle : la tuile doit bien recevoir le verre par la règle commune */
   vrai('   … et .kpi est bien une surface de verre',
     /html\[data-verre="1"\][^{]*\.kpi[^{]*\{[^}]*--vr-fond/.test(NU));
