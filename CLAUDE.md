@@ -540,6 +540,50 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   Chercher le titre d'un bloc dans un texte dont on vient de retirer les commentaires rend −1,
   donc une tranche VIDE, et **une tranche vide passe au vert sur tout**. Pris sur `test-757` à
   sa première exécution, le 22 septembre 2026.
+- ⛔⛔ **UNE GÉOMÉTRIE RECOPIÉE EN JAVASCRIPT DÉPEND DU MOMENT OÙ ON LA COPIE.** La pastille de
+  la barre d'onglets lisait `offsetWidth` de l'onglet actif et se le recopiait. Mesuré le
+  22 septembre 2026 : **143 px de large pour un onglet de 76** — la mesure avait été prise
+  quand la barre n'avait encore que trois onglets. **Trois rustines n'ont pas suffi** : double
+  `requestAnimationFrame`, `ResizeObserver`, replacement à chaque rafraîchissement — le
+  résultat restait juste **une fois sur deux**. ⚠ Et l'observateur ne pouvait pas rattraper ce
+  cas : la barre occupe toute la largeur, donc SA taille ne change jamais quand le nombre
+  d'onglets change ; quant aux onglets observés, `innerHTML=` les avait détruits.
+  **La sortie n'est pas une quatrième rustine, c'est de ne plus MESURER.** Des colonnes
+  égales se déduisent de leur NOMBRE : le JavaScript pose un numéro, le CSS calcule.
+  ⚠ `translateX` en pourcentage se rapporte à la largeur de l'ÉLÉMENT, donc à une colonne :
+  `calc(var(--i) * (100% + gouttiere))` déplace sans un seul chiffre en dur.
+- ⛔⛔ **LE NAVIGATEUR ANNULE LE FLUX DE POINTEUR AU PREMIER MOUVEMENT HORIZONTAL.** Trace à
+  l'appui, 22 septembre 2026 : `pointerdown`, **un seul** `pointermove`, puis `pointercancel`
+  — Chrome reprend la main pour le défilement — pendant que les `touchmove` continuaient
+  jusqu'au bout. **Un geste horizontal bâti sur les événements de POINTEUR ne peut pas marcher
+  au doigt, et rien ne le dit** : l'écouteur est bien posé, il reçoit bien le premier
+  événement, et il meurt au second. On écoute le TACTILE pour un doigt, le POINTEUR pour une
+  souris. ⚠ `touch-action:pan-y` serait l'autre sortie — refusée : elle s'applique à tout le
+  sous-arbre et emporterait le défilement latéral du planning et des tableaux.
+  ⚠ Corollaire : `pointercancel` n'annule RIEN dans ce contexte, il arrive à chaque geste.
+  C'est `touchcancel` qui dit vraiment que le doigt a été perdu.
+- ⛔ **UN ÉCOUTEUR POSÉ SUR UN CONTENEUR QUI NE COUVRE PAS L'ÉCRAN EST UN ÉCOUTEUR QU'ON CROIT
+  AVOIR POSÉ.** `#content` mesurait −390 → 900 (la page était défilée) et
+  `elementFromPoint(220,420)` rendait `HTML` : le doigt ne touchait donc pas la zone écoutée.
+  On écoute le document et on ÉCARTE ce qui ne doit pas recevoir le geste.
+- ⛔ **UN SOUS-TITRE NE COMMENCE PAS PAR `/* ══` : C'EST LA MARQUE D'UN BLOC, ET LES BANCS
+  DÉCOUPENT DESSUS.** Le 22 septembre 2026, un sous-titre ajouté au milieu du bloc NAVIGATION
+  a réduit la tranche de `test-758` de 2 500 à 1 011 caractères, et le banc a accusé la
+  pastille de ne porter aucune de ses règles — elle les portait toutes.
+- ⛔ **UN ÉCRAN QUI NE REMPLIT PAS SA LARGEUR SE MESURE, IL NE SE DEVINE PAS.** Justin, capture
+  à l'appui : « ça ne prend pas tout l'écran ». Mesuré sur une fenêtre de 2 000 px :
+  `#content` s'arrêtait à **1 796**, soit 204 px perdus à droite, sur TOUTES les rubriques.
+  C'était un `max-width:1560px` posé au-delà de 1 700 px, pour la lisibilité d'une ligne de
+  texte. Il ne protégeait rien : cette application affiche des cartes, des grilles et un
+  planning, qui bornent déjà LEUR propre texte. **On borne la MESURE là où il y a de la prose,
+  pas la page.**
+- ⛔ **DE NUIT, C'EST LA LUMIÈRE QUI ÉLÈVE, PAS L'OMBRE — ET J'AVAIS RECOPIÉ L'INVERSE.**
+  La maquette donnait `--vr-fond:rgba(28,28,30,.42)` sur une page `#0a0a0c → #000`. Deux
+  fautes d'un coup : le **noir pur**, que ce fichier interdit depuis des semaines (halation,
+  contraste dur sur OLED), et une surface **plus sombre que la page**, donc une carte qui
+  s'enfonce au lieu de se lever. L'écran devenait un aplat de rectangles à peine distincts —
+  « je la trouve moins belle l'app ». Une surface élevée est PLUS CLAIRE que son fond, et
+  teintée de la même famille : un film gris sur du bleu nuit se voit, et se voit mal.
 - Ne pas modifier l'anti-abus (`server/index.js`) sans relire pourquoi il lit
   `req.ip` et non l'en-tête brut — un en-tête fourni par le client se falsifie
 - Ne pas écrire de données personnelles de clients dans les journaux
