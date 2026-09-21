@@ -460,6 +460,32 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   « une mutation qui ne casse rien » — là on demande ce que le banc ne JOUE pas, ici ce qu'il ne
   REGARDE pas. Tout contrôle qui compte des absences doit d'abord prouver qu'il y avait de quoi
   compter.
+- ⛔⛔ **L'ÉCRAN « CONNEXION REQUISE » COUVRE TOUT, ET IL APPARAÎT EN COURS DE MESURE.** Le
+  conteneur d'une session distante n'a pas de réseau sortant : au premier contrôle de santé
+  raté, `horsLigneDebut()` pose `#hl-ecran` — un panneau `position:fixed`, plein écran,
+  OPAQUE, en z-index 99997. Tout ce qui est lu ou capturé APRÈS ce moment montre l'écran hors
+  ligne, pas l'application. Mesuré le 21 septembre 2026 : une matrice sur les dix profils
+  d'appareil rendait « 0 teinte sur 9 en mode jour » **sur les dix**, parce que la passe de
+  nuit passait avant la coupure et celle de jour après. Le symptôme est traître : ce n'est pas
+  une erreur, c'est une mesure qui réussit — sur le mauvais élément.
+  **Toute sonde qui dure plus de quelques dizaines de secondes doit neutraliser le mécanisme**
+  (`window.horsLigneDebut=function(){}; _horsLigne=false;` plus le retrait de `#hl-ecran`), et
+  ⚠️ **ne surtout pas « corriger » l'application** : côté client ce comportement est juste,
+  c'est la sonde qui est dans un bocal sans réseau.
+- ⛔ **UNE MESURE QUI ÉCHOUE DOIT DIRE POURQUOI.** La même sonde rendait « aucune cible prouvée
+  devant » sans rien d'autre : trois hypothèses fausses ont été essayées avant de lui faire
+  rendre la PILE d'éléments sous le point, qui a nommé le coupable en une exécution. Un
+  `elementsFromPoint` avec la classe, l'id, le fond, l'opacité et le rectangle de chaque
+  élément coûte dix lignes et remplace une heure de tâtonnement.
+- ⛔ **DIX NAVIGATEURS EN PARALLÈLE FAUSSENT LES MESURES DE TEMPS.** Sous contention, une
+  transition de 520 ms dépasse largement l'attente qu'on lui a réservée, et la sonde lit la
+  surcouche au lieu de la page. Deux files de cinq passent ; dix d'un coup ne passent pas.
+  Et le compteur d'attente ne doit pas guetter `pgrep` : des processus fantômes survivent aux
+  sondes et le guetteur n'est jamais satisfait.
+- ⛔ **`document.getAnimations()` NE SE VIDE JAMAIS DANS CETTE APPLICATION** : le halo du fond
+  (`vrOrbes`) tourne en boucle infinie. Attendre « plus aucune animation » est une attente qui
+  ne finit pas — et filtrer sur une DURÉE infinie ne suffit pas, c'est le nombre d'ITÉRATIONS
+  qui est infini.
 - ⛔ **UNE SONDE QUI FORCE UN ÉTAT QUE L'APPLICATION NE PRODUIT JAMAIS FABRIQUE DE FAUX DÉFAUTS.**
   Appeler `go('dashboard')` sur la bêta sans être connecté faisait jeter deux vues sur
   `currentUser.role`. La contre-mesure — **laisser la page à elle-même** — a rendu 0 erreur, et
