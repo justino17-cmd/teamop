@@ -4855,6 +4855,113 @@ html[data-verre="1"]{ --rf-r-carte:26px; --rf-r-fenetre:26px; }
 html[data-os="ios"][data-kind="mobile"]:not([data-autonome="1"]) body{
   padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   NAVIGATION — barre d'onglets, tiroir, sidebar de bureau (point 1 de la refonte)
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* Hauteur réservée en bas, une seule fois, pour que rien ne se cache sous la barre. */
+:root{ --tabh:calc(60px + env(safe-area-inset-bottom,0px)); }
+
+.tabbar{
+  display:none;position:fixed;left:0;right:0;bottom:0;z-index:38;
+  gap:2px;padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 6px);
+  background:var(--bg1);border-top:1px solid var(--brd);
+  font-family:var(--fs);
+}
+/* ⛔ DEUX DÉCLENCHEURS, ET C'EST VOULU : la plateforme DÉTECTÉE (un vrai téléphone, ou un rendu
+   forcé depuis les Paramètres pour l'éprouver depuis un Mac) ET la largeur réelle (une fenêtre
+   de bureau rétrécie est un écran de téléphone, quoi qu'en dise l'agent). */
+html[data-kind="mobile"] .tabbar{display:flex}
+@media(max-width:780px){ .tabbar{display:flex} }
+/* Sur un rendu BUREAU, jamais d'onglets : c'est la sidebar qui navigue. */
+html[data-kind="desktop"] .tabbar{display:none!important}
+
+.tab{
+  flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:none;border:0;color:var(--t3);cursor:pointer;padding:5px 2px;min-height:48px;
+  border-radius:14px;position:relative;-webkit-tap-highlight-color:transparent;
+  font-family:inherit;transition:color var(--d-1,.14s) ease,background var(--d-1,.14s) ease;
+}
+.tab-ic{font-size:19px;line-height:1;transition:background var(--d-1,.14s) ease,padding var(--d-1,.14s) ease}
+.tab-l{font-size:10px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab.on{color:var(--acc)}
+.tab .tab-b{position:absolute;top:2px;right:calc(50% - 22px);font-size:9.5px;min-width:16px;padding:0 4px;line-height:16px}
+.tab:active{transform:scale(.94)}
+@media (prefers-reduced-motion: reduce){ .tab,.tab-ic{transition:none} .tab:active{transform:none} }
+
+/* Le contenu s'arrête au-dessus de la barre — sinon la dernière ligne d'une liste est
+   inatteignable, ce qui ne se voit qu'en bas d'un écran plein. */
+html[data-kind="mobile"] .content{padding-bottom:calc(var(--tabh) + 16px)}
+@media(max-width:780px){ .content{padding-bottom:calc(var(--tabh) + 16px)} }
+html[data-kind="desktop"] .content{padding-bottom:22px}
+
+/* ── Verre : la barre flotte en pilule, comme la maquette ── */
+html[data-verre="1"][data-kind="mobile"] .tabbar{
+  left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
+  border-radius:34px;border:.5px solid var(--vr-liseret);border-top:.5px solid var(--vr-liseret);
+  background:var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  box-shadow:var(--vr-reflet),var(--vr-ombre-barre);padding:7px 7px;
+}
+html[data-verre="1"][data-kind="mobile"] .tab.on{background:rgba(255,255,255,.82)}
+html[data-verre="1"][data-kind="mobile"][data-theme="dark"] .tab.on{background:rgba(118,118,128,.36)}
+/* ⛔ DANS UN NAVIGATEUR, LA BARRE REDEVIENT PLATE ET COLLÉE. Safari mobile dessine SA propre
+   barre d'outils en bas de l'écran : une pilule flottante viendrait se poser dessus, ou juste
+   au-dessus dans un entre-deux illisible. On ne dessine pas la barre de Safari — on lui laisse
+   la place. */
+html[data-verre="1"][data-kind="mobile"]:not([data-autonome="1"]) .tabbar{
+  left:0;right:0;bottom:0;border-radius:0;border:0;border-top:.5px solid var(--vr-liseret);
+  padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 8px);
+}
+
+/* ── Android : pastille tonale derrière l'icône active (Material 3) ── */
+html[data-os="android"] .tab-l{font-size:11.5px;font-weight:500}
+html[data-os="android"] .tab.on .tab-ic{
+  background:color-mix(in srgb,var(--acc) 24%,transparent);border-radius:999px;padding:4px 17px;
+}
+html[data-os="android"] .tab.on{color:var(--t1)}
+html[data-os="android"] .tabbar{border-top:0;box-shadow:0 -1px 0 var(--brd)}
+
+/* ── Bureau : sidebar permanente 236 px, pas de tiroir, pas d'onglets ── */
+html[data-kind="desktop"] .sidebar{width:236px}
+html[data-kind="desktop"] .menu-btn{display:none!important}
+
+/* ── Le tiroir en verre, avec une encre qui tient sur une surface CLAIRE ──
+   ⛔ Le menu est écrit en `--side-ink`, une encre pâle faite pour le vert profond de la barre.
+   Posée telle quelle sur du verre clair, elle devient illisible. Basculer la surface OBLIGE
+   donc à basculer l'encre : les deux ensemble, ou ni l'un ni l'autre. */
+html[data-verre="1"] .sidebar{
+  background:var(--vr-fond)!important;-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border-right:.5px solid var(--vr-liseret)!important;
+  --side-ink:var(--t1);--side-mut:var(--t3);--side-hover:var(--hover);
+  --side-active:color-mix(in srgb,var(--acc) 16%,transparent);--side-active-ink:var(--t1);
+}
+html[data-verre="1"] .sidebar .nav-item{color:var(--t2)}
+html[data-verre="1"] .sidebar .nav-item.active{background:var(--acc-fill,var(--acc));color:var(--on-acc,#fff)}
+html[data-verre="1"] .sidebar .nav-label{color:var(--t3)}
+html[data-verre="1"] .sidebar .brand .hi,html[data-verre="1"] .sidebar #foot-name{color:var(--t1)}
+@media (prefers-reduced-transparency: reduce){
+  html[data-verre="1"] .sidebar,html[data-verre="1"][data-kind="mobile"] .tabbar{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--bg1)!important;
+  }
+}
+
+/* ── Le bouton flottant de la messagerie ──
+   56 px, accent, au-dessus de la barre d'onglets. Il n'apparaît QUE si OP MESSAGES est
+   ouverte à l'entreprise (c'est le JavaScript qui le décide) et JAMAIS sur un rendu bureau,
+   où la sidebar porte déjà la rangée « Changer d'application ». */
+.msg-flot{
+  position:fixed;right:16px;z-index:37;width:56px;height:56px;border-radius:50%;
+  border:0;cursor:pointer;text-decoration:none;
+  background:var(--acc-fill,var(--acc));color:var(--on-acc,#fff);
+  align-items:center;justify-content:center;box-shadow:var(--ombre-2,0 8px 24px rgba(0,0,0,.28));
+  bottom:calc(var(--tabh) + 14px);
+}
+html[data-kind="desktop"] .msg-flot{display:none!important}
+.msg-flot:active{transform:scale(.93)}
+@media (prefers-reduced-motion: reduce){ .msg-flot:active{transform:none} }
+html[data-verre="1"] .msg-flot{box-shadow:var(--vr-ombre-barre),0 0 0 .5px var(--vr-liseret)}
+html[data-os="windows"] .msg-flot{border-radius:10px}
 </style>
 </head>
 <body>
@@ -4930,6 +5037,12 @@ html[data-os="ios"][data-kind="mobile"]:not([data-autonome="1"]) body{
     <div class="content" id="content"></div>
   </div>
   <div id="assistant"></div>
+  <!-- ⛔ SŒURS DE .main, JAMAIS DANS #content : rendreVueAnimee reecrit #content a chaque
+       navigation et balaierait tout ce qui y est pose. -->
+  <nav class="tabbar" id="tabbar" aria-label="Categories principales"></nav>
+  <a class="msg-flot" id="msg-flot" href="messages.html" style="display:none" aria-label="Ouvrir OP MESSAGES" title="OP MESSAGES">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>
+  </a>
 </div>
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
@@ -10809,6 +10922,130 @@ function navFiltreEntree(ev){
   if(prem&&prem.dataset.view) go(prem.dataset.view);
 }
 function navFiltreVider(){ var c=document.getElementById('nav-loupe'); if(c){ c.value=''; c.focus(); } navFiltrer(''); }
+/* ═══════════════ LA BARRE D'ONGLETS — quatre catégories sous le pouce ═══════════════
+   Demande de Justin (dossier de refonte, 21 septembre 2026) : « barre d'onglets à 4 catégories
+   personnalisable (Paramètres et appui long) ». Sur un téléphone tenu d'une main, le menu ☰ est
+   EN HAUT À GAUCHE — le coin le plus difficile à atteindre au pouce, et c'est le geste le plus
+   fréquent de l'application. Les quatre rubriques qu'on ouvre vingt fois par jour descendent
+   donc sous le pouce ; le tiroir reste pour tout le reste.
+
+   ⛔ LA BARRE VIT HORS DE `#content`. `rendreVueAnimee` réécrit `#content` à chaque navigation :
+   une barre posée dedans serait balayée — c'est exactement ce qui est arrivé à la barre
+   « Reprendre » du multitâche, mesurée absente à 100, 300, 600, 1 200 et 2 500 ms. Elle est
+   donc SŒUR de `.main`, et `go()` ne repeint QUE l'état actif (`ongletsActif`), jamais la barre
+   entière : la reconstruire à chaque navigation la ferait clignoter et rattacherait ses
+   écouteurs à chaque fois.
+
+   ⛔ LE CHOIX SUIT LA PERSONNE, PAS L'APPAREIL. Il passe par `prefEcrire`, comme le thème et la
+   couleur — sinon quelqu'un qui règle ses onglets sur son téléphone les retrouve par défaut sur
+   la tablette de l'équipe. C'est un TAP qui écrit, jamais un chargement. */
+const ONGLETS_DEFAUT=['dashboard','interventions','planning','boxes'];
+const ONGLETS_MAX=4;
+/* Toutes les rubriques que CETTE personne peut voir, à plat, dans l'ordre du menu. */
+function ongletsDispo(){
+  try{ return NAV.flatMap(s=>s.items).filter(it=>canSee(it)); }catch(e){ return []; }
+}
+function ongletItem(k){ try{ return NAV.flatMap(s=>s.items).find(x=>x.k===k)||null; }catch(e){ return null; } }
+/* ⛔ ON FILTRE TOUJOURS SUR CE QUE LA PERSONNE PEUT VOIR. Un onglet choisi avant qu'un droit
+   soit retiré — ou avant un changement de forfait — pointerait vers un écran que `go()` refuse :
+   on retomberait sur le tableau de bord avec un cadenas, sans comprendre pourquoi. On complète
+   alors par les défauts, puis par le début du menu : la barre a toujours quatre onglets VALIDES. */
+function ongletsLire(){
+  let brut=''; try{ brut=localStorage.getItem('elanB_onglets')||''; }catch(e){}
+  const dispo=ongletsDispo(), cles=new Set(dispo.map(x=>x.k));
+  const l=String(brut).split(',').map(s=>s.trim()).filter(k=>k&&cles.has(k));
+  const ajoute=k=>{ if(l.length<ONGLETS_MAX && cles.has(k) && l.indexOf(k)<0) l.push(k); };
+  ONGLETS_DEFAUT.forEach(ajoute);
+  dispo.forEach(it=>ajoute(it.k));
+  return l.slice(0,ONGLETS_MAX);
+}
+function ongletsEcrire(l){
+  const v=(l||[]).slice(0,ONGLETS_MAX).join(',');
+  try{ localStorage.setItem('elanB_onglets',v); }catch(e){}
+  try{ prefEcrire('onglets',v); }catch(e){}
+  renderOnglets();
+}
+/* La messagerie n'existe que si l'entreprise y a droit ET que l'application répond : un bouton
+   flottant qui ouvre une page morte est pire que pas de bouton. */
+function msgFlottantOn(){
+  try{ return !!(currentUser && can('opMessages') && planOpMsg() && opMsgDisponible()); }catch(e){ return false; }
+}
+function renderMsgFlottant(){
+  const b=document.getElementById('msg-flot'); if(!b) return;
+  b.style.display = msgFlottantOn() ? 'flex' : 'none';
+}
+function renderOnglets(){
+  const bar=document.getElementById('tabbar'); if(!bar) return;
+  if(!currentUser){ bar.innerHTML=''; return; }
+  bar.innerHTML = ongletsLire().map(k=>{ const it=ongletItem(k); if(!it) return '';
+    return `<button class="tab${current===k?' on':''}" data-tab="${k}" onclick="go('${k}')" aria-label="${esc(t(it.l))}">
+      <span class="tab-ic">${it.ic||'•'}</span><span class="tab-l">${esc(t(it.l))}</span>
+      ${it.b?`<span class="badge tab-b" data-badge="${it.b}">0</span>`:''}</button>`; }).join('')
+    + `<button class="tab" data-tab="_plus" onclick="document.getElementById('sidebar').classList.add('open')" aria-label="Toutes les catégories">
+        <span class="tab-ic">☰</span><span class="tab-l">Plus</span></button>`;
+  ongletsPresse(bar);
+  try{ refreshBadges(); }catch(e){}
+  renderMsgFlottant();
+}
+/* ⛔ REPEINDRE L'ÉTAT, PAS LA BARRE. Appelée par `go()`. */
+function ongletsActif(){
+  const bar=document.getElementById('tabbar'); if(!bar) return;
+  bar.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===current));
+}
+/* ⛔ L'APPUI LONG NE DOIT PAS DÉCLENCHER LE TAP QUI LE SUIT, ET LES ÉCOUTEURS NE S'EMPILENT PAS.
+   `renderOnglets` peut tourner dix fois dans une session : sans le drapeau `_presse`, dix jeux
+   d'écouteurs ouvriraient dix fenêtres. Et on désarme au moindre MOUVEMENT, parce qu'un
+   défilement commence toujours par un appui. */
+function ongletsPresse(bar){
+  if(bar._presse) return; bar._presse=true;
+  let minuterie=null, long=false;
+  const desarmer=()=>{ if(minuterie){ clearTimeout(minuterie); minuterie=null; } };
+  bar.addEventListener('pointerdown',()=>{ long=false; desarmer();
+    minuterie=setTimeout(()=>{ long=true; minuterie=null;
+      try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+      formOnglets(); },550); });
+  ['pointerup','pointercancel','pointermove','pointerleave'].forEach(ev=>bar.addEventListener(ev,desarmer));
+  bar.addEventListener('click',e=>{ if(long){ e.preventDefault(); e.stopPropagation(); long=false; } },true);
+}
+/* Le réglage : on choisit quatre rubriques, dans l'ordre où on les touche. */
+let _ongletsBrouillon=null;
+function formOnglets(){
+  _ongletsBrouillon=ongletsLire();
+  openModal(ongletsHtml());
+}
+function ongletsHtml(){
+  const l=_ongletsBrouillon||[], dispo=ongletsDispo();
+  const plein=l.length>=ONGLETS_MAX;
+  const groupes=NAV.map(sec=>{
+    const items=sec.items.filter(it=>dispo.indexOf(it)>=0);
+    if(!items.length) return '';
+    return `<div class="dt-lbl" style="margin:14px 0 6px">${esc(t(sec.g))}</div>`+items.map(it=>{
+      const i=l.indexOf(it.k), pris=i>=0;
+      return `<div class="pl-row" onclick="ongletsBascule('${it.k}')" style="cursor:pointer;${!pris&&plein?'opacity:.42':''}">
+        <span style="width:26px;height:26px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:${pris?'var(--acc-fill,var(--acc))':'var(--bg3)'};color:${pris?'var(--on-acc,#fff)':'var(--t3)'};font-size:12px;font-weight:800;flex-shrink:0">${pris?(i+1):''}</span>
+        <span style="margin-left:10px">${it.ic||''} ${esc(t(it.l))}</span></div>`;
+    }).join('');
+  }).join('');
+  return `<div class="modal-head"><h3>Barre d'onglets</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="font-size:13.5px;color:var(--t2);line-height:1.55;margin-bottom:6px">Choisis les <b>quatre</b> rubriques que tu veux sous le pouce. L’ordre est celui dans lequel tu les touches ; le reste de l’application reste accessible par&nbsp;☰.</p>
+    <div style="font-size:12.5px;color:var(--t3);margin-bottom:10px">${l.length} / ${ONGLETS_MAX} choisie${l.length>1?'s':''}${plein?' — touche une rubrique prise pour la retirer':''}</div>
+    <div style="max-height:52vh;overflow-y:auto;margin:0 -4px;padding:0 4px">${groupes}</div>
+    <div class="modal-foot"><button type="button" class="btn ghost" onclick="ongletsDefaut()">Réinitialiser</button><button type="button" class="btn" onclick="ongletsValider()">Enregistrer</button></div>`;
+}
+function ongletsBascule(k){
+  const l=_ongletsBrouillon||(_ongletsBrouillon=[]);
+  const i=l.indexOf(k);
+  if(i>=0) l.splice(i,1);
+  else if(l.length<ONGLETS_MAX) l.push(k);
+  else { toast('Quatre onglets au maximum — retires-en un d’abord'); return; }
+  openModal(ongletsHtml());
+}
+function ongletsDefaut(){ _ongletsBrouillon=[]; openModal(ongletsHtml()); }
+function ongletsValider(){
+  ongletsEcrire(_ongletsBrouillon||[]);
+  closeModal(); toast('✅ Barre d’onglets enregistrée');
+  if(current==='parametres') views.parametres();
+}
 function renderNav(){ try{ applyBrand(); }catch(e){}
   const att=db.formuleAttente;
   $('nav').innerHTML = NAV.map(sec=>{
@@ -10838,6 +11075,7 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
   }
   refreshBadges();
   navGlisseInit();
+  try{ renderOnglets(); }catch(e){}
 }
 function refreshBadges(){
   // les compteurs du menu suivent le périmètre de la personne (ses interventions, ses box, son véhicule) — jamais « 19 box » quand elle n'en voit qu'une
@@ -11030,6 +11268,8 @@ function go(view){
   /* La barre de reprise se pose dans `rendreVueSure`, la seule fonction qui écrit vraiment
      l'écran. Ici on ne repeint que les pastilles du menu. */
   multiPastilles();
+  /* La barre d'onglets vit hors de #content : on n'en repeint que l'etat actif. */
+  try{ ongletsActif(); }catch(e){}
   updateBell();
 }
 function gsearch(q){ const box=$('gsrch-res'); if(!box) return; q=norm((q||'').trim()); if(q.length<2){ box.style.display='none'; box.innerHTML=''; return; }
@@ -27551,7 +27791,7 @@ views.parametres=function(){
           </label>
         </div>
         <div style="font-size:12px;color:var(--t3);margin-top:8px">La couleur choisie s'applique partout : contours des cases, survols, menu, boutons…</div></div>
-    </div>`+carteAppareil();
+    </div>`+carteOnglets()+carteAppareil();
   // Utilisateur (compte créé par l'entreprise, pas sur le site) : ses réglages, la version, et la déconnexion — rien d'autre
   if(currentUser.role!=='admin'){ $('content').innerHTML=_app+`<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="color:var(--t2);font-size:13.5px">Version installée</span><b class="mono">v${APP_VERSION}</b></div><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:10px"><span style="color:var(--t2);font-size:13.5px">Session</span><button class="btn danger sm" onclick="if(confirm('Se déconnecter ?')) logout()">⏻ Déconnexion</button></div>`; return; }
   $('content').innerHTML=_app+`
@@ -32363,7 +32603,8 @@ function opMsgDisponible(){ return _opMsgOuvert===true; }
 function suiteRefresh(){ if(!currentUser) return;
   const soOn=!!(can('opMessages')&&planOpMsg()&&opMsgDisponible());
   const so=$('suite-opmsg'); if(so) so.style.display=soOn?'flex':'none';
-  try{ const sb=$('suite-box'); if(sb){ sb.style.display=soOn?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=soOn?'':'none'; } }catch(e){} }
+  try{ const sb=$('suite-box'); if(sb){ sb.style.display=soOn?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=soOn?'':'none'; } }catch(e){}
+  try{ renderMsgFlottant(); }catch(e){} }
 function enterApp(u){ currentUser=u;
   /* Le thème, la couleur et la langue choisis sur un AUTRE appareil arrivent avec la fiche :
      on les pose avant de dessiner quoi que ce soit, sinon l'écran se repeindrait sous les yeux. */
@@ -33471,19 +33712,24 @@ function renderAsst(){
    que « version web » change VRAIMENT chez nous, c'est la place à laisser en bas (la barre de
    Safari mobile recouvre le bas de l'écran) et le fait qu'on n'est pas installé. */
 const PLAT_CLE='elanB_plat_force';
-/* Les dix rendus de la maquette. `verre` et `kind` sont ce qui change des pixels ;
-   `nav` ne sert qu'à NOMMER le cas, jamais à dessiner un navigateur. */
+/* Les dix rendus de la maquette. `verre`, `kind` et `autonome` sont ce qui change des
+   pixels ; `nav` ne sert qu'à NOMMER le cas, jamais à dessiner un navigateur.
+   ⛔ `autonome` DOIT être ici, et pas seulement mesuré : forcer un rendu doit forcer TOUT le
+   rendu. Mesuré le 21 septembre 2026 — sans lui, forcer « ios27 » (installée) depuis un
+   navigateur laissait `data-autonome` absent, donc la barre d'onglets restait plate au lieu
+   de flotter en pilule. Et le contre-essai « dans Safari, la barre est plate » passait au vert
+   pour cette mauvaise raison : il n'avait jamais vu le cas installé. */
 const PLATS={
-  ios27:     {os:'ios',     kind:'mobile',  verre:1, nav:'',       lbl:'iPhone · iOS 26+ (installée)'},
-  ios18:     {os:'ios',     kind:'mobile',  verre:0, nav:'',       lbl:'iPhone · iOS 18 et avant'},
-  iosweb:    {os:'ios',     kind:'mobile',  verre:1, nav:'safari', lbl:'iPhone · Safari 26+'},
-  android:   {os:'android', kind:'mobile',  verre:0, nav:'',       lbl:'Android (installée)'},
-  androidweb:{os:'android', kind:'mobile',  verre:0, nav:'chrome', lbl:'Android · navigateur'},
-  macos27:   {os:'macos',   kind:'desktop', verre:1, nav:'',       lbl:'Mac · macOS 26+ (installée)'},
-  macos14:   {os:'macos',   kind:'desktop', verre:0, nav:'',       lbl:'Mac · macOS 15 et avant'},
-  macweb:    {os:'macos',   kind:'desktop', verre:1, nav:'safari', lbl:'Mac · Safari 26+'},
-  windows:   {os:'windows', kind:'desktop', verre:0, nav:'',       lbl:'Windows (installée)'},
-  winweb:    {os:'windows', kind:'desktop', verre:0, nav:'edge',   lbl:'Windows · navigateur'}
+  ios27:     {os:'ios',     kind:'mobile',  verre:1, nav:'',       autonome:1, lbl:'iPhone · iOS 26+ (installée)'},
+  ios18:     {os:'ios',     kind:'mobile',  verre:0, nav:'',       autonome:1, lbl:'iPhone · iOS 18 et avant'},
+  iosweb:    {os:'ios',     kind:'mobile',  verre:1, nav:'safari', autonome:0, lbl:'iPhone · Safari 26+'},
+  android:   {os:'android', kind:'mobile',  verre:0, nav:'',       autonome:1, lbl:'Android (installée)'},
+  androidweb:{os:'android', kind:'mobile',  verre:0, nav:'chrome', autonome:0, lbl:'Android · navigateur'},
+  macos27:   {os:'macos',   kind:'desktop', verre:1, nav:'',       autonome:1, lbl:'Mac · macOS 26+ (installée)'},
+  macos14:   {os:'macos',   kind:'desktop', verre:0, nav:'',       autonome:1, lbl:'Mac · macOS 15 et avant'},
+  macweb:    {os:'macos',   kind:'desktop', verre:1, nav:'safari', autonome:0, lbl:'Mac · Safari 26+'},
+  windows:   {os:'windows', kind:'desktop', verre:0, nav:'',       autonome:1, lbl:'Windows (installée)'},
+  winweb:    {os:'windows', kind:'desktop', verre:0, nav:'edge',   autonome:0, lbl:'Windows · navigateur'}
 };
 /* Installée sur l'écran d'accueil (PWA) plutôt qu'ouverte dans un onglet. */
 function opAutonome(){
@@ -33585,6 +33831,20 @@ function opPlatAppliquer(){
 /* La carte « Appareil » des Paramètres — ce qu'on a DÉTECTÉ, et la possibilité de forcer un
    autre rendu pour l'éprouver. ⛔ Elle dit aussi ce qu'on NE SAIT PAS : un écran qui affiche
    « macOS 14 » alors qu'on n'a pas pu lire la version ferait croire à une mesure. */
+/* Le reglage de la barre d'onglets dans les Parametres — la maquette le demande la ET par
+   appui long sur la barre. Il s'affiche meme sur un ecran de bureau : le choix suit la
+   PERSONNE (`prefEcrire`), donc on le regle ou on veut et on le retrouve sur son telephone. */
+function carteOnglets(){
+  const l=ongletsLire();
+  return `<div class="card" style="margin-top:12px"><div class="card-head"><h3>\u{1F4F1} Barre d'onglets</h3></div>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.55;margin-bottom:10px">Les quatre rubriques sous le pouce, sur t\u00e9l\u00e9phone. Le reste de l\u2019application reste accessible par&nbsp;\u2630. Ce choix te suit d\u2019un appareil \u00e0 l\u2019autre.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      ${l.map((k,i)=>{ const it=ongletItem(k); return `<span class="chip" style="cursor:default">${i+1}. ${it?(it.ic||'')+' '+esc(t(it.l)):esc(k)}</span>`; }).join('')}
+    </div>
+    <button class="btn" onclick="formOnglets()">Choisir mes onglets</button>
+    <div style="font-size:12px;color:var(--t3);margin-top:10px;line-height:1.5">Astuce : un <b>appui long</b> sur la barre d\u2019onglets ouvre ce m\u00eame r\u00e9glage, sans passer par les Param\u00e8tres.</div>
+  </div>`;
+}
 function carteAppareil(){
   const p=opPlat(), d=PLATS[p.plat]||{}, f=opPlatForce();
   const verre=d.verre?'oui':'non';
@@ -33640,7 +33900,7 @@ function getAccent(){ return localStorage.getItem('elanB_accent')||'green'; }
       deux téléphones ouverts se repousseraient leur thème à tour de rôle, chacun estampillant
       la fiche de l'autre. C'est un tap qui écrit. Conséquence assumée, et à dire : un réglage
       choisi AVANT cette version ne voyage qu'une fois retapé une seule fois. */
-const PREF_CLES={theme:'elanB_theme',accent:'elanB_accent',accentHex:'elanB_accent_hex',lang:'elanB_lang'};
+const PREF_CLES={theme:'elanB_theme',accent:'elanB_accent',accentHex:'elanB_accent_hex',lang:'elanB_lang',onglets:'elanB_onglets'};
 function prefEcrire(cle,val){
   if(!currentUser||!PREF_CLES[cle]||typeof val!=='string') return;
   const u=(db&&db.users&&db.users.find(x=>x.id===currentUser.id))||currentUser;

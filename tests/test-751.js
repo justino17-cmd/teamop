@@ -1,0 +1,185 @@
+/* ══ REFONTE POINT 1 — LA NAVIGATION ══════════════════════════════════════════════════════
+   Dossier de refonte de Justin : « barre d'onglets à 4 catégories personnalisable (Paramètres
+   et appui long) ; bureau : sidebar permanente 236 px, pas de tiroir ni d'onglets ; bouton
+   messagerie flottant ».
+
+   Ce que ce banc garde, et pourquoi chaque point a déjà coûté quelque chose ici :
+
+   1. ⛔ LA BARRE VIT HORS DE `#content`. `rendreVueAnimee` réécrit `#content` à chaque
+      navigation : la barre « Reprendre » du multitâche, posée dedans, a été mesurée ABSENTE à
+      100, 300, 600, 1 200 et 2 500 ms. Même piège, même parade.
+   2. ⛔ `go()` NE RECONSTRUIT PAS LA BARRE, il ne repeint que l'état actif. La reconstruire
+      rattacherait ses écouteurs à chaque navigation — dix navigations, dix appuis longs.
+   3. ⛔ UN ONGLET NE POINTE JAMAIS VERS UN ÉCRAN INTERDIT. Un choix fait avant qu'un droit soit
+      retiré renverrait au tableau de bord avec un cadenas, sans explication.
+   4. ⛔ LE CHOIX SUIT LA PERSONNE (`prefEcrire`), pas l'appareil — comme le thème et la couleur.
+   5. ⛔ FORCER UN RENDU DOIT FORCER *TOUT* LE RENDU. Mesuré : `autonome` restait celui qu'on
+      avait mesuré, donc forcer « ios27 » (installée) depuis un navigateur ne sortait jamais la
+      pilule flottante — et le contre-essai « dans Safari, barre plate » passait au vert pour
+      cette mauvaise raison, n'ayant jamais vu le cas installé.
+
+   ⚠️ Ce banc ne voit pas les pixels : la pilule, la pastille tonale d'Android, les 236 px et la
+   place réservée sous la barre sont mesurés au navigateur (`scratchpad/sonde-nav.js`, 41 ✓).  */
+const fs=require('fs'); const APP=fs.readFileSync(__dirname+'/../app.html','utf8');
+let ok=0,ko=0;
+const v=(t,a,b)=>{ if(JSON.stringify(a)===JSON.stringify(b)){ok++;console.log('  ✓ '+t);}
+  else {ko++;console.log('  ✗ '+t+'\n      attendu : '+JSON.stringify(b)+'\n      obtenu  : '+JSON.stringify(a));} };
+const vrai=(t,c)=>v(t,!!c,true);
+
+function decoupe(h){ const d=APP.indexOf(h); if(d<0) throw new Error('introuvable : '+h);
+  const suite=/\n(?=(?:function |const |let |var |class |async function |\/\* |views\.|document\.|window\.|try\{))/g;
+  suite.lastIndex=d+h.length;
+  const m=suite.exec(APP); const fin=m?m.index:Math.min(APP.length,d+80000);
+  let bout=APP.slice(d,fin);
+  for(;;){ const k=Math.max(bout.lastIndexOf('}'),bout.lastIndexOf(';')); if(k<0) break;
+    const t=bout.slice(0,k+1);
+    try{ new Function(t); return t; }catch(e){ bout=bout.slice(0,k); } }
+  throw new Error('fin introuvable : '+h); }
+
+const CODE=['const ONGLETS_DEFAUT=','const ONGLETS_MAX=','function ongletsDispo(){','function ongletItem(k){',
+  'function ongletsLire(){'].map(h=>decoupe(h)).join('\n');
+
+/* On rejoue le menu et les droits : rien d'autre n'est lu par ces fonctions. */
+const monter=(navVu, range)=>new Function('navVu','range',`
+  const NAV=navVu;
+  const canSee=it=>it.vu!==false;
+  const localStorage={getItem:()=>range, setItem(){}, removeItem(){}};
+  ${CODE}
+  return { ongletsLire, ongletsDispo, ongletItem, ONGLETS_MAX, ONGLETS_DEFAUT };`)(navVu,range);
+
+const MENU=[
+  {g:'Tableau de bord', items:[{k:'dashboard',l:'Tableau de bord'},{k:'statistiques',l:'Stats',vu:false},{k:'audit',l:'Audit',vu:false}]},
+  {g:'Planification',  items:[{k:'planning',l:'Planning'},{k:'taches',l:'Tâches'}]},
+  {g:'Interventions',  items:[{k:'interventions',l:'Interventions',b:'int'}]},
+  {g:'Clients',        items:[{k:'clients',l:'Clients',b:'cli'}]},
+  {g:'Stock',          items:[{k:'boxes',l:'Boxes',b:'box'},{k:'produits',l:'Produits'}]},
+];
+
+console.log('\n══ 1. QUATRE ONGLETS, TOUJOURS, ET TOUJOURS VALIDES ══\n');
+{ const M=monter(MENU,'');
+  v('sans rien de choisi, on retombe sur les quatre défauts', M.ongletsLire(), ['dashboard','interventions','planning','boxes']);
+  v('il y en a exactement quatre', M.ongletsLire().length, 4);
+  v('le maximum est bien quatre', M.ONGLETS_MAX, 4);
+}
+{ const M=monter(MENU,'clients,produits');
+  const l=M.ongletsLire();
+  v('un choix de deux est COMPLÉTÉ, pas laissé court', l.length, 4);
+  v('… et le choix de la personne reste en tête', l.slice(0,2), ['clients','produits']);
+}
+{ const M=monter(MENU,'clients,produits,taches,planning,interventions,boxes');
+  v('un choix trop long est coupé à quatre', M.ongletsLire(), ['clients','produits','taches','planning']);
+}
+
+console.log('\n══ 2. ⛔ JAMAIS UN ONGLET VERS UN ÉCRAN INTERDIT ══\n');
+{ const M=monter(MENU,'audit,statistiques,clients,produits');
+  const l=M.ongletsLire();
+  v('les deux rubriques non visibles sont JETÉES', l.filter(k=>k==='audit'||k==='statistiques'), []);
+  v('… et la barre est complétée à quatre', l.length, 4);
+  v('⛔ tout ce qui reste est réellement visible',
+    l.every(k=>M.ongletsDispo().some(i=>i.k===k)), true);
+}
+{ const M=monter(MENU,'nimportequoi,,  ,clients');
+  const l=M.ongletsLire();
+  v('une clé inventée est jetée', l.indexOf('nimportequoi'), -1);
+  v('les vides aussi', l.filter(k=>!k).length, 0);
+  v('et on a toujours quatre onglets', l.length, 4);
+}
+{ /* ⛔ LE CAS LIMITE QUI COMPTE : une personne qui ne voit presque rien. La barre ne doit pas
+     inventer des onglets qu'elle n'a pas le droit d'ouvrir — quitte à en avoir moins. */
+  const petit=[{g:'X',items:[{k:'interventions',l:'Interventions'},{k:'planning',l:'Planning'}]}];
+  const M=monter(petit,'');
+  v('deux rubriques visibles → deux onglets, pas quatre inventés', M.ongletsLire(), ['interventions','planning']);
+  const rien=monter([{g:'X',items:[{k:'a',l:'A',vu:false}]}],'');
+  v('aucune rubrique visible → aucune barre, et rien qui plante', rien.ongletsLire(), []);
+}
+
+console.log('\n══ 3. CE QUI EST GARDÉ DANS LE CODE ══\n');
+const NU=APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ').replace(/^[ \t]*\/\/.*$/gm,' ');
+const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
+  const bornes=['\nfunction ','\nviews.','\nconst ','\nlet ','\nasync function ']
+    .map(b=>NU.indexOf(b,i+10)).filter(x=>x>0);
+  const j=bornes.length?Math.min(...bornes):-1;
+  return NU.slice(i, j<0? i+2600 : j); };
+
+{ /* ⛔ 1 — la barre est SŒUR de .main, jamais dans #content. On lit le BALISAGE. */
+  const shell=APP.slice(APP.indexOf('<div class="app" id="app-root"'), APP.indexOf('<div class="overlay"'));
+  const iContenu=shell.indexOf('id="content"'), iBarre=shell.indexOf('id="tabbar"');
+  vrai('la barre existe dans le balisage', iBarre>0);
+  vrai('⛔⛔ elle est posée APRÈS </div> de .main, pas dans #content',
+    iBarre>iContenu && shell.slice(iContenu,iBarre).indexOf('</div>')>=0);
+  vrai('le bouton flottant de la messagerie aussi', shell.indexOf('id="msg-flot"')>iContenu);
+}
+{ /* ⛔ 2 — go() repeint l'état, il ne reconstruit pas */
+  const g=corps('go');
+  vrai('⛔ go() appelle ongletsActif', /ongletsActif\(\)/.test(g));
+  v('⛔⛔ … et JAMAIS renderOnglets (sinon les écouteurs s\'empilent)', /renderOnglets\(\)/.test(g), false);
+  const act=corps('ongletsActif');
+  vrai('ongletsActif ne touche que la classe', /classList\.toggle\('on'/.test(act));
+  v('… et n\'écrit pas de HTML', /innerHTML/.test(act), false);
+  vrai('c\'est renderNav qui construit la barre', /renderOnglets\(\)/.test(corps('renderNav')));
+}
+{ /* ⛔ les écouteurs ne s'empilent pas */
+  const pr=corps('ongletsPresse');
+  vrai('⛔ l\'appui long s\'attache UNE fois (drapeau)', /bar\._presse/.test(pr));
+  vrai('⛔ il se désarme au MOUVEMENT (un défilement commence par un appui)', /pointermove/.test(pr));
+  vrai('⛔ et il neutralise le clic qui suivrait', /preventDefault\(\)/.test(pr)&&/stopPropagation\(\)/.test(pr));
+}
+{ /* ⛔ 4 — le choix suit la personne */
+  const ec=corps('ongletsEcrire');
+  vrai('⛔ le choix part sur la fiche de la personne', /prefEcrire\('onglets'/.test(ec));
+  vrai('… et sur l\'appareil', /localStorage\.setItem/.test(ec));
+  vrai('la clé est déclarée dans PREF_CLES (donc elle voyage à la connexion)',
+    /PREF_CLES=\{[^}]*onglets:/.test(NU));
+  v('⛔ RIEN de tout ça n\'entre dans db en dehors de prefEcrire',
+    /db\.[a-zA-Z]+\s*=\s*.*onglets/.test(ec), false);
+}
+{ /* ⛔ 5 — forcer un rendu force TOUT le rendu */
+  const plats=NU.slice(NU.indexOf('const PLATS={'), NU.indexOf('const PLATS={')+1800);
+  const n=(plats.match(/autonome:/g)||[]).length;
+  v('⛔⛔ les DIX rendus déclarent « autonome » (sinon forcer ne force pas tout)', n, 10);
+  vrai('… « installée » et « dans un navigateur » ne disent pas la même chose',
+    /ios27:[^}]*autonome:1/.test(plats) && /iosweb:[^}]*autonome:0/.test(plats));
+}
+{ /* le CSS : rien ne s'applique sans attribut, et la place est réservée en bas */
+  const i0=APP.indexOf('NAVIGATION — barre d\'onglets, tiroir, sidebar de bureau');
+  vrai('⛔ le bloc de style de la navigation est trouvé (sinon tout ce qui suit est creux)', i0>0);
+  const fin=APP.indexOf('</style>', i0);
+  const css=i0>0?APP.slice(i0, fin>0?fin:i0+9000):'';
+  v('   … et il a de la matière', css.length>2500, true);
+  vrai('la barre est cachée par défaut', /\.tabbar\{[\s\S]{0,80}display:none/.test(css));
+  vrai('⛔ elle sort sur une plateforme MOBILE', /html\[data-kind="mobile"\] \.tabbar\{display:flex\}/.test(css));
+  vrai('⛔ … et sur une fenêtre étroite (une fenêtre de bureau rétrécie est un écran de téléphone)',
+    /@media\(max-width:780px\)\{ \.tabbar\{display:flex\} \}/.test(css));
+  vrai('⛔ JAMAIS sur un rendu bureau', /html\[data-kind="desktop"\] \.tabbar\{display:none!important\}/.test(css));
+  vrai('⛔ le contenu réserve la place sous la barre (sinon la dernière ligne est inatteignable)',
+    /\.content\{padding-bottom:calc\(var\(--tabh\)/.test(css));
+  vrai('la sidebar de bureau fait 236 px', /html\[data-kind="desktop"\] \.sidebar\{width:236px\}/.test(css));
+  vrai('⛔ et le ☰ disparaît sur bureau', /html\[data-kind="desktop"\] \.menu-btn\{display:none!important\}/.test(css));
+  vrai('⛔ la pilule flottante ne sort QUE sur du verre ET installée',
+    /html\[data-verre="1"\]\[data-kind="mobile"\] \.tabbar\{/.test(css) &&
+    /html\[data-verre="1"\]\[data-kind="mobile"\]:not\(\[data-autonome="1"\]\) \.tabbar\{/.test(css));
+  vrai('Android a sa pastille tonale', /html\[data-os="android"\] \.tab\.on \.tab-ic\{/.test(css));
+  vrai('⛔ le tiroir en verre change AUSSI son encre (une encre pâle sur du verre clair ne se lit pas)',
+    /html\[data-verre="1"\] \.sidebar\{[\s\S]{0,400}--side-ink:var\(--t1\)/.test(css));
+  vrai('⛔ la transparence réduite éteint le flou de la barre et du tiroir',
+    /prefers-reduced-transparency: reduce/.test(css));
+  vrai('⛔ le mouvement réduit désactive l\'enfoncement des onglets',
+    /prefers-reduced-motion: reduce/.test(css));
+  /* contre-essai : aucune règle sans attribut ni classe de la refonte */
+  const sansGarde=css.split('}').filter(r=>{ const sel=r.slice(0,r.indexOf('{')).trim();
+    if(!sel||/^@/.test(sel)||/^from|^to/.test(sel)) return false;
+    if(sel.indexOf('/*')>=0||sel.indexOf('*')===0) return false;
+    return sel.indexOf('html[')<0 && sel.indexOf('.tab')<0 && sel.indexOf('.msg-flot')<0 && sel.indexOf(':root')<0;
+  });
+  v('⛔⛔ AUCUNE règle du bloc ne touche un écran existant sans le demander',
+    sansGarde.map(r=>r.slice(0,50).trim()).filter(Boolean), []);
+}
+{ /* le bouton flottant : conditionné, et jamais sur bureau */
+  const mf=corps('msgFlottantOn');
+  vrai('⛔ le bouton n\'existe que si OP MESSAGES est OUVERTE à l\'entreprise',
+    /can\('opMessages'\)/.test(mf) && /planOpMsg\(\)/.test(mf) && /opMsgDisponible\(\)/.test(mf));
+  vrai('… et il se redessine quand la suite change', /renderMsgFlottant\(\)/.test(corps('suiteRefresh')));
+}
+
+console.log('\n═══ test-751 : '+ok+' ✓ '+ko+' ✗ ═══\n');
+process.exit(ko?1:0);
