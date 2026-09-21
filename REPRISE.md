@@ -5838,3 +5838,69 @@ La sonde de lisibilité ne trouve sa cible que sur le chemin **verre + nuit**. L
 (verre+jour, sans verre × 2) rendent « aucun verdict » plutôt qu'un faux vert — c'est voulu,
 mais ça veut dire que **le contraste du menu n'est pas mesuré sur ces trois chemins**. À
 reprendre (tâche #72).
+
+## ✅ VÉRIFICATION COMPLÈTE DU THÈME — 10 appareils × 9 couleurs × 2 modes (21 sept. 2026, nuit)
+
+**Demandé par Justin** : « vérifie catégorie par catégorie, sous-catégorie sur chaque modèle
+d'application — macOS, Windows, version Web, iPhone, Android, Web mobile ».
+
+La sonde n'invente pas les appareils : elle utilise `setPlatForce()`, le levier que
+l'application a déjà, et **vérifie que le profil s'est appliqué** avant de mesurer.
+
+### Les chiffres
+
+| | résultat |
+|---|---|
+| ouvertures de rubrique | **840** (42 × 10 appareils × 2 modes) |
+| sous-onglets exercés | **843** |
+| erreurs JavaScript | **0** |
+| débordements réels | **0** (élément coupable nommé : aucun) |
+| rendus de couleur mesurés | **180** (9 teintes × 10 appareils × 2 modes) |
+| 1ʳᵉ tuile identique à la 2ᵉ | **180 / 180** |
+| suites de bancs | **117 · 5 129 vérifications**, 0 échec |
+
+Séparation minimale entre deux teintes : 4 à 12 unités selon l'appareil, toujours sur le couple
+**rose↔rouge** (deux teintes voisines par construction) ; les couples éloignés vont à 36–63.
+
+### ⛔ LE DÉFAUT RÉEL TROUVÉ : trois couleurs illisibles en plein jour
+
+Le mode jour FONCE la teinte de 22 % (`--acc`) mais l'encre posée dessus (`--on-acc`) restait
+celle de la NUIT — un navy `#0B1426`. Du sombre sur du sombre :
+
+  bleu **3,03:1** · violet **2,98:1** · cyan **4,09:1**   (la norme est 4,5:1)
+
+Après correctif : 6,07 · 6,18 · 4,91, et **les 18 combinaisons passent**, de 4,91 à 17,92.
+Le cyan est le seul cas où aucune encre ne passait à 22 % (blanc 4,09, navy 4,49) : il est
+foncé à 30 %. L'orange garde son encre sombre.
+⚠️ **Le signe qui aurait dû alerter** : le commentaire à cet endroit disait l'INVERSE du code.
+`test-757` CALCULE désormais les dix-huit contrastes en résolvant la cascade — aucune
+expression régulière ne pouvait voir ce défaut.
+
+### ⚠️ CINQ FAUX DÉFAUTS PRODUITS PAR MES PROPRES SONDES, ET CE QU'ILS ONT COÛTÉ
+
+Tous auraient donné un rapport faux. Ils sont désormais dans CLAUDE.md :
+
+1. **L'écran « Connexion requise »** (`#hl-ecran`, opaque, plein écran) apparaît EN COURS de
+   mesure — le conteneur n'a pas de réseau. Il a produit « 0 teinte sur 9 en mode jour » sur
+   les DIX profils. Ce n'est pas une erreur : c'est une mesure qui réussit, sur le mauvais
+   élément.
+2. **Retirer `.overlay`** faisait jeter `closeModal()`, que `go()` appelle à chaque
+   changement de rubrique : **840 « erreurs » sur 840 ouvertures**. Et le test d'isolement
+   n'avait rien vu — il comptait les exceptions NON rattrapées, or le throw était avalé par
+   son propre `try/catch`.
+3. **Mesurer un débordement pendant l'animation d'entrée** : « déborde de 15 px » sur une
+   trentaine de rubriques. Animation finie : `scrollX = 0`, aucun élément ne dépasse.
+4. **Un point unique tombe sur un contrôle** : sur le tiroir d'un téléphone, le centre rendait
+   presque du blanc. On balaye une colonne de points dont seuls des éléments TRANSPARENTS
+   couvrent la barre, et on prend la médiane.
+5. **Mon propre récapitulatif écrivait « rien à signaler » devant une séparation de 0** entre
+   deux teintes. Un tableau qui compte les mesures réussies sans regarder leur contenu ment
+   aussi bien qu'une sonde fausse.
+
+### Ce qui reste, et qui n'est pas un défaut
+
+· `vehicules`, `conducteurs`, `messagerie`, `carteBox` rendent des états vides EN RÈGLE
+  (texte + bouton d'action) ; `carteBox` dit « Carte indisponible — connexion Internet
+  requise », ce qui est juste dans un conteneur sans réseau.
+· ⚠️ **Côté code, à garder en tête** : `closeModal()` déréférence `$('overlay')` sans garde.
+  Rien ne retire cet élément aujourd'hui, mais tout ce qui le ferait figerait la navigation.
