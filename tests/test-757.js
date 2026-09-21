@@ -149,13 +149,26 @@ console.log('\n══ 3. LES HALOS VIENNENT DES LOGOS, PLUS DE LA COULEUR CHOISI
   vrai('⛔ … ni --blue', !/--vr-halos:[\s\S]{0,400}var\(--blue\)/.test(css));
   /* Les deux teintes sont ÉCHANTILLONNÉES dans les PNG des logos : carré vert OP GESTION
      (#084030) et carré bleu nuit TEAM OP (#081028), remontées pour se voir en voile. */
-  vrai('le halo vert d’OP GESTION est là (30,132,80)', /--vr-halos:[\s\S]{0,400}rgba\(30,132,80,/.test(css));
+  vrai('⛔⛔ les halos prennent la COULEUR CHOISIE, en canaux',
+    /--vr-halos:[\s\S]{0,400}rgba\(var\(--acc-rgb,/.test(css));
+  /* ⛔ ET LE REPLI EST LA TEINTE DE LA MARQUE : la page doit être juste même avant que le
+     JavaScript ait posé `--acc-rgb`. Sans repli, `rgba(var(--acc-rgb),.26)` est invalide et
+     le halo disparaît — un fond qui s'allume une seconde après le chargement. */
+  vrai('⛔ … avec le vert d’OP GESTION en repli (avant que le JS ait tourné)',
+    /rgba\(var\(--acc-rgb,30,132,80\)/.test(css));
+  vrai('le halo bleu de TEAM OP reste, pour la profondeur', /rgba\(47,79,158,/.test(css));
+  /* ⛔ `applyTheme` doit PUBLIER ces canaux, et depuis la teinte RÉSOLUE : pour les neuf
+     teintes nommées elle vient de la feuille, pas d'un style en ligne. */
+  vrai('⛔⛔ applyTheme publie --acc-rgb depuis la teinte RÉSOLUE',
+    /getComputedStyle\(r\)\.getPropertyValue\('--acc-src'\)/.test(NU)
+    && /setProperty\('--acc-rgb'/.test(NU));
   vrai('le halo bleu de TEAM OP est là (47,79,158)', /--vr-halos:[\s\S]{0,400}rgba\(47,79,158,/.test(css));
   /* ⚠️ L'ARRÊT S'ÉCRIT rgba(r,g,b,0), JAMAIS `transparent` : `transparent` vaut rgba(0,0,0,0),
      donc le dégradé passe par du NOIR transparent et salit le bord. C'est une partie de ce
      qui rendait le fond terne. */
-  vrai('⛔ les arrêts sont en rgba(...,0), pas en `transparent` (qui vire au noir)',
-    /rgba\(30,132,80,0\) 70%/.test(css) && !/--vr-halos:[\s\S]{0,400}, ?transparent 70%/.test(css));
+  vrai('⛔ les arrêts sont en rgba(…,0), pas en « transparent » (qui vire au noir)',
+    !/--vr-halos:[\s\S]{0,400}\btransparent\b/.test(css)
+    && /rgba\(var\(--acc-rgb,[0-9,]+\),0\)/.test(css));
   vrai('le halo est appliqué au fond de la page', /body::after\{[\s\S]{0,300}background:var\(--vr-halos\)/.test(css));
   /* ⛔⛔ ET IL FAUT QU'IL SOIT VISIBLE. Un `::after` en `z-index:-1` se peint SOUS le fond de
      son propre parent : `body` n'établit pas de contexte d'empilement, donc son pseudo-élément

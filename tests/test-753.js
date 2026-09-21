@@ -243,8 +243,14 @@ console.log('\n══ 6. LE GLISSEMENT DU DOIGT ══\n');
     /l\[j\]\.click\(\)/.test(ge));
   vrai('⛔ le choix est borné aux deux bouts du groupe',
     /Math\.max\(0,Math\.min\(l\.length-1/.test(ge));
-  vrai('⛔ un mouvement VERTICAL rend la main au défilement de la page',
-    /Math\.abs\(dy\)>SWIPE_ENGAGE/.test(ge) && /Math\.abs\(dy\)>=Math\.abs\(dx\)/.test(ge));
+  /* ⚠ LA FORME A CHANGÉ LE 22 SEPTEMBRE AU SOIR : on n'abandonne plus sur |dy| >= |dx| —
+     c'était le premier frémissement du pouce, et l'abandon était définitif. On attend que
+     l'intention soit CLAIRE, avec la même exigence de dominance des deux côtés. Mesuré :
+     le geste passait jusqu'à 11° d'angle, il passe à 18° — et le défilement reste protégé. */
+  vrai('⛔ un mouvement VERTICAL FRANC rend la main au défilement de la page',
+    /if\(ay>=SWIPE_ENGAGE && ay>ax\*SWIPE_DOMINANCE\)\{ actif=false; return; \}/.test(ge));
+  vrai('⛔ … et tant que rien n’est significatif, on ATTEND au lieu de trancher',
+    /if\(ax<SWIPE_ENGAGE && ay<SWIPE_ENGAGE\) return;/.test(ge));
   vrai('⛔ les écouteurs ne s\'empilent pas (drapeau)', /g\._segGeste/.test(ge));
   vrai('le doigt est suivi par des évènements TACTILES', /'touchstart'/.test(ge) && /'touchmove'/.test(ge) && /'touchend'/.test(ge));
   /* ⛔ LA LEÇON DE LA BARRE DU BAS, RECOPIÉE ICI : `pointercancel` part au PREMIER mouvement

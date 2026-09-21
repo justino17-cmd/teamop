@@ -144,9 +144,12 @@ console.log('\n══ 4. LES TROIS GARDES DU GESTE ══\n');
     /if\(document\.getElementById\('overlay'\) && document\.getElementById\('overlay'\)\.classList\.contains\('open'\)\) return;/.test(NU));
   /* ⛔ LA DOMINANCE, PAS SEULEMENT LA DISTANCE : un défilement vertical commence toujours par
      quelques pixels de travers. Sans elle, faire défiler changerait de rubrique. */
-  vrai('⛔ un défilement vertical désarme le geste',
-    /if\(Math\.abs\(dy\)>SWIPE_ENGAGE && Math\.abs\(dy\)>=Math\.abs\(dx\)\)\{ actif=false; return; \}/.test(NU));
-  vrai('⛔ … et l’horizontale doit DOMINER', /Math\.abs\(dx\)<Math\.abs\(dy\)\*SWIPE_DOMINANCE/.test(NU));
+  /* ⚠ LA FORME A CHANGÉ LE 22 SEPTEMBRE 2026 AU SOIR, ET C'ÉTAIT UN CORRECTIF, PAS UN
+     RANGEMENT : l'ancienne abandonnait sur |dy| >= |dx|, donc au premier frémissement du
+     pouce. Le détail est dans la section 7 ; ici on garde le COMPORTEMENT, des deux côtés. */
+  vrai('⛔ un défilement vertical FRANC désarme le geste',
+    /if\(ay>=SWIPE_ENGAGE && ay>ax\*SWIPE_DOMINANCE\)\{ actif=false; return; \}/.test(NU));
+  vrai('⛔ … et l’horizontale doit DOMINER pour s’engager', /ax<ay\*SWIPE_DOMINANCE\) return;/.test(NU));
   vrai('⛔ en deçà de 12 px c’est un tap, pas un balayage', /const SWIPE_ENGAGE=12, SWIPE_DOMINANCE=1\.3/.test(NU));
 }
 
@@ -270,6 +273,48 @@ console.log('\n══ 6. L’APPUI LONG ET LA FEUILLE DE RÉGLAGE ══\n');
   vrai('⛔ … et le clic qui termine l’appui est avalé (sinon on change de rubrique en lâchant)',
     /if\(long\)\{ e\.preventDefault\(\); e\.stopPropagation\(\)/.test(pr));
   vrai('⛔ … les écouteurs ne s’empilent pas', /bar\._presse/.test(pr));
+}
+
+
+console.log('\n══ 7. ON N’ÉLIMINE UN GESTE QU’UNE FOIS L’INTENTION CLAIRE ══\n');
+/* ⛔⛔ LA RÈGLE D’ABANDON TUAIT LE BALAYAGE AU PREMIER FRÉMISSEMENT DU POUCE.
+   Justin, 22 septembre 2026, vidéo à l’appui : « le glissement ne marche pas ». La règle
+   abandonnait dès que |dy| dépassait 12 ET valait au moins |dx| — c’est-à-dire au premier
+   échantillon d’un pouce, puisqu’un pouce DÉCOLLE avant de partir de côté. Et l’abandon était
+   DÉFINITIF : le reste de la course, même franchement horizontal, ne comptait plus.
+   Mesuré en rejouant le geste avec la dérive d’une vraie main (`scratchpad/diag-doigt.js`) :
+   le balayage passait jusqu’à 11° d’angle et mourait au-delà. Après : 18°, à toutes les
+   longueurs de course (160, 250, 320 px) — et un vrai défilement vertical ne change toujours
+   rien, 3 essais sur 3.
+   C’est ce qu’Apple dit de ne pas faire (Designing Fluid Interfaces §10) : reconnaître les
+   gestes EN PARALLÈLE, n’éliminer les perdants qu’une fois l’intention claire. */
+{
+  const corpsDe = (nom) => { const i = NU.indexOf('function ' + nom + '('); if (i < 0) return '';
+    const b = ['\nfunction ', '\nviews.', '\nconst ', '\nlet ', '\nvar ']
+      .map(x => NU.indexOf(x, i + 10)).filter(x => x > 0);
+    return NU.slice(i, b.length ? Math.min(...b) : i + 2600); };
+
+  for (const [nom, quoi] of [['ongletsGeste','la barre du bas'], ['segGeste','le segmenté']]) {
+    const c = corpsDe(nom);
+    vrai('⛔ ' + quoi + ' : la fonction est trouvée', c.length > 300, nom + ' → ' + c.length + ' car');
+    /* ⛔ L'ANCIENNE FORME NE DOIT PLUS EXISTER : c'est elle qui tuait le geste. */
+    vrai('⛔⛔ ' + quoi + ' : il n’abandonne plus sur |dy| >= |dx| (le frémissement du pouce)',
+      !/Math\.abs\(dy\)>SWIPE_ENGAGE && Math\.abs\(dy\)>=Math\.abs\(dx\)/.test(c), c.slice(0, 200));
+    /* ⛔ TROIS ÉTATS, ET LE PREMIER EST « ON NE SAIT PAS ENCORE ». Sans lui, tout échantillon
+       oblige à trancher, et trancher trop tôt c'est trancher au hasard. */
+    vrai('⛔ ' + quoi + ' : il ATTEND tant que rien n’est significatif',
+      /if\(ax<SWIPE_ENGAGE && ay<SWIPE_ENGAGE\) return;/.test(c));
+    /* ⛔ LA DOMINANCE DES DEUX CÔTÉS — c'est elle qui protège le défilement vertical. Sans le
+       facteur, un défilement un peu de travers volerait le geste à la page. */
+    vrai('⛔⛔ ' + quoi + ' : il n’abandonne QUE sur un vertical FRANC (même dominance)',
+      /if\(ay>=SWIPE_ENGAGE && ay>ax\*SWIPE_DOMINANCE\)\{ actif=false; return; \}/.test(c));
+    vrai('⛔ ' + quoi + ' : et il ne s’engage QUE sur un horizontal franc',
+      /if\(ax<SWIPE_ENGAGE \|\| ax<ay\*SWIPE_DOMINANCE\) return;/.test(c));
+  }
+  /* Les deux seuils restent partagés : deux copies donneraient deux gestes qui ne se
+     ressemblent plus, sur le même écran. */
+  vrai('⛔ les deux gestes partagent les mêmes seuils',
+    /const SWIPE_ENGAGE=12, SWIPE_DOMINANCE=1\.3/.test(NU));
 }
 
 console.log('\n═══ test-758 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');

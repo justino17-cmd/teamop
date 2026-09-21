@@ -2888,8 +2888,23 @@ html[data-refonte] .topbar::after{
 html[data-refonte] body.defile .topbar::after{opacity:1}
 /* Une fois du contenu passé dessous, la barre s'épaissit : à 72 % de voile, un bouton vert qui
    défile en dessous se lisait encore à travers, comme un fantôme. C'est le bord de défilement
-   d'Apple — le verre se densifie quand il a quelque chose à couvrir. */
-html[data-refonte] body.defile .topbar{background:color-mix(in srgb,var(--bg) 93%,transparent)!important}
+   d'Apple — le verre se densifie quand il a quelque chose à couvrir.
+   ⛔⛔ MAIS IL SE DENSIFIE, IL NE CHANGE PAS DE MATIÈRE. Justin, 22 septembre 2026, capture à
+   l'appui : « quand on descend dans les catégories, il y a cette barre noire là ». Mesuré au
+   navigateur, descendu de 600 px : la barre passait de `rgba(44,56,84,.55)` — le verre, la
+   même teinte que la sidebar — à `#080D18` à 93 %, un quasi-noir OPAQUE, et son reflet
+   disparaissait (`background-image:none`). Plus sombre que la page (#101A2E→#0A1120), plus
+   sombre que la sidebar, plus sombre que tout : une bande noire en travers de l'écran.
+   ⛔ ET LA VALEUR ÉTAIT FAUSSE EN PLUS D'ÊTRE MAL CHOISIE. `color-mix(…, transparent)`
+   ASSOMBRIT : `transparent` vaut `rgba(0,0,0,0)`, donc le mélange tire la teinte vers le noir
+   avant d'en réduire l'opacité. `#0D1624` en sortait à `#080D18`. C'est exactement le piège
+   que ce dépôt a déjà payé sur les arrêts de dégradé, ici sur un `color-mix`.
+   La parade est la même qu'ailleurs : une surface au-dessus est PLUS CLAIRE que son fond, et
+   de la même famille. Sans verre elle prend `--bg1` (la teinte des cartes, opaque) ; avec
+   verre elle densifie SON verre et garde son reflet. */
+html[data-refonte] body.defile .topbar{background:var(--bg1)!important}
+html[data-verre="1"][data-refonte] body.defile .topbar{
+  background:var(--vr-reflet),var(--vr-fond-dense)!important}
 html[data-refonte] body.defile .topbar{box-shadow:0 1px 0 var(--rf-filet),0 12px 28px rgba(0,0,0,.20)!important}
 html[data-refonte][data-theme="light"] body.defile .topbar{box-shadow:0 1px 0 var(--rf-filet),0 12px 28px rgba(16,26,46,.08)!important}
 
@@ -4899,6 +4914,10 @@ html[data-verre="1"]{
      redevient la ligne la plus lumineuse de la carte, comme chez Apple. */
   --vr-fond:rgba(255,255,255,.58);
   --vr-fond2:rgba(255,255,255,.44);
+  /* ⛔ LE VERRE QUI A QUELQUE CHOSE À COUVRIR SE DENSIFIE — il ne devient pas un AUTRE
+     matériau. C'est le bord de défilement d'Apple : la barre s'épaissit quand du contenu
+     passe dessous, en restant du verre de la même teinte. Voir l'encadré de `body.defile`. */
+  --vr-fond-dense:rgba(255,255,255,.88);
   --vr-liseret:rgba(255,255,255,.72);
   /* ⛔ LE REFLET EST UN DÉGRADÉ, PAS UNE OMBRE. Une ombre interne d'un pixel ne fait qu'un
      liseré ; ce qui donne la MATIÈRE, c'est la lumière qui court en diagonale sur la vitre.
@@ -4920,10 +4939,18 @@ html[data-verre="1"]{
      rayon. Sur un Mac de 1280 px de large, ça fait trois taches perdues dans un aplat —
      mesuré au navigateur, la page était indiscernable d'un fond uni. En `vmax`, le voile
      tient la même place sur un iPhone et sur un 27 pouces. */
+  /* ⛔⛔ DEUX HALOS SUR TROIS PRENNENT LA COULEUR CHOISIE, LE TROISIÈME RESTE LE BLEU NUIT DE
+     TEAM OP. Justin voulait son violet sur la page ; mais trois halos d'une seule teinte
+     donnent un aplat monochrome, et c'est précisément ce qu'il avait refusé en septembre
+     (« ça fait bizarre, je suis pas trop fan ») quand ils étaient à 42 % et tous les trois à
+     l'accent. On garde donc une seconde teinte — celle de la marque — pour la profondeur, et
+     on reste à .26/.16 : à cette force la couleur se SENT sans que la page devienne violette.
+     ⚠ `--acc-rgb` est posé par `applyTheme` ; le repli est le vert d'OP GESTION, pour que la
+     page soit juste même avant que le JavaScript ait tourné. */
   --vr-halos:
-    radial-gradient(62vmax 62vmax at 12% 8%, rgba(30,132,80,.30), rgba(30,132,80,0) 70%),
-    radial-gradient(56vmax 56vmax at 90% 4%, rgba(47,79,158,.24), rgba(47,79,158,0) 70%),
-    radial-gradient(70vmax 70vmax at 72% 98%, rgba(30,132,80,.18), rgba(30,132,80,0) 70%);
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,30,132,80),.26), rgba(var(--acc-rgb,30,132,80),0) 70%),
+    radial-gradient(56vmax 56vmax at 90% 4%, rgba(47,79,158,.22), rgba(47,79,158,0) 70%),
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,30,132,80),.16), rgba(var(--acc-rgb,30,132,80),0) 70%);
   /* ⛔⛔ L'ENCRE DE LA PAGE, CAPTURÉE ICI, SUR <html> — ET SURTOUT PAS SUR `.sidebar`.
      `.sidebar` définit `--t1:var(--side-ink)` ; écrire `--side-ink:var(--t1)` sur elle ferme
      un CYCLE, et un cycle rend TOUTES les variables qui y participent invalides, en silence.
@@ -4944,6 +4971,7 @@ html[data-verre="1"][data-theme="dark"]{
      c'est la lumière qui élève, un navy sur du navy ne se détache pas. */
   --vr-fond:rgba(44,56,84,.55);
   --vr-fond2:rgba(255,255,255,.08);
+  --vr-fond-dense:rgba(44,56,84,.92);
   --vr-liseret:rgba(255,255,255,.18);
   --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.02) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.03) 100%);
   --vr-ombre:0 10px 28px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(255,255,255,.05);
@@ -4959,10 +4987,13 @@ html[data-verre="1"][data-theme="dark"]{
   /* De nuit les halos sont plus discrets : sur un fond sombre, un voile coloré à 26 % ne fait
      pas une ambiance, il fait une tache. Et le bleu passe devant le vert — c'est lui qui donne
      la profondeur, le vert se garde pour ce qui se clique. */
+  /* La couleur choisie est là aussi, mais de nuit elle reste sous le bleu : c'est lui qui donne
+     la profondeur, et un voile coloré trop fort sur un fond sombre fait une tache, pas une
+     ambiance. Repli : le vert clair d'OP GESTION. */
   --vr-halos:
-    radial-gradient(62vmax 62vmax at 12% 8%, rgba(46,184,114,.14), rgba(46,184,114,0) 70%),
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,46,184,114),.16), rgba(var(--acc-rgb,46,184,114),0) 70%),
     radial-gradient(56vmax 56vmax at 90% 4%, rgba(91,143,214,.18), rgba(91,143,214,0) 70%),
-    radial-gradient(70vmax 70vmax at 72% 98%, rgba(64,110,190,.14), rgba(64,110,190,0) 70%);
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,46,184,114),.12), rgba(var(--acc-rgb,46,184,114),0) 70%);
 }
 /* ⛔⛔ LE FOND DE LA PAGE VA SUR <html>, PAS SUR <body> — SINON IL RECOUVRE LES HALOS.
    Mesuré le 22 septembre 2026, au pixel : `body` portait
@@ -11826,8 +11857,26 @@ function segGeste(g,fam){
     if(!actif) return;
     const dx=x-x0, dy=y-y0;
     if(!engage){
-      if(Math.abs(dy)>SWIPE_ENGAGE && Math.abs(dy)>=Math.abs(dx)){ actif=false; return; }
-      if(Math.abs(dx)<SWIPE_ENGAGE || Math.abs(dx)<Math.abs(dy)*SWIPE_DOMINANCE) return;
+      /* ⛔⛔ ON NE TUE PAS LE GESTE SUR LE PREMIER FRÉMISSEMENT. La règle d'avant abandonnait
+         dès que |dy| dépassait 12 ET valait au moins |dx| — c'est-à-dire au premier échantillon
+         d'un pouce qui pivote, puisqu'un pouce DÉCOLLE avant de partir de côté. Et l'abandon
+         était DÉFINITIF : le reste de la course, même franchement horizontale, ne comptait plus.
+         Justin, 22 septembre 2026, vidéo à l'appui : « le glissement ne marche pas ». Mesuré en
+         rejouant son geste avec la dérive d'une vraie main : le balayage tenait jusqu'à 32 px
+         de dérive et mourait à 45 — banal sur une course de 160 px avec le pouce.
+         C'est ce qu'Apple dit de ne PAS faire (Designing Fluid Interfaces, §10) : on reconnaît
+         les gestes EN PARALLÈLE et on n'élimine les perdants qu'une fois l'intention CLAIRE.
+         Trois états désormais, et ils sont symétriques :
+         · rien n'est encore significatif → on attend, on ne décide pas ;
+         · le vertical l'emporte FRANCHEMENT (même facteur de dominance que l'horizontal)
+           → c'est un défilement, on rend la main ;
+         · l'horizontal l'emporte franchement → on s'engage.
+         ⚠ La dominance des DEUX côtés est ce qui protège le défilement : un vrai défilement a
+         |dy| très supérieur à |dx|, donc il sort au deuxième cas dès le premier échantillon. */
+      const ax=Math.abs(dx), ay=Math.abs(dy);
+      if(ax<SWIPE_ENGAGE && ay<SWIPE_ENGAGE) return;                    // trop tôt pour trancher
+      if(ay>=SWIPE_ENGAGE && ay>ax*SWIPE_DOMINANCE){ actif=false; return; }  // défilement franc
+      if(ax<SWIPE_ENGAGE || ax<ay*SWIPE_DOMINANCE) return;              // encore ambigu : on attend
       engage=true;
     }
     const t=Date.now(), dt=Math.max(1,t-tdernier);
@@ -12222,8 +12271,13 @@ function ongletsGeste(){
     if(!actif) return;
     const e={clientX:cx}; const dx=cx-x0, dy=cy-y0;
     if(!engage){
-      if(Math.abs(dy)>SWIPE_ENGAGE && Math.abs(dy)>=Math.abs(dx)){ actif=false; return; }  // c'est un défilement
-      if(Math.abs(dx)<SWIPE_ENGAGE || Math.abs(dx)<Math.abs(dy)*SWIPE_DOMINANCE) return;
+      /* Même grammaire que le segmenté : on attend que l'intention soit CLAIRE avant
+         d'éliminer un candidat. Voir l'encadré de `segGeste` — c'est le même défaut, mesuré
+         sur la vidéo de Justin du 22 septembre 2026. */
+      const ax=Math.abs(dx), ay=Math.abs(dy);
+      if(ax<SWIPE_ENGAGE && ay<SWIPE_ENGAGE) return;
+      if(ay>=SWIPE_ENGAGE && ay>ax*SWIPE_DOMINANCE){ actif=false; return; }   // défilement franc
+      if(ax<SWIPE_ENGAGE || ax<ay*SWIPE_DOMINANCE) return;
       engage=true;
     }
     const t=Date.now(), dt=Math.max(1,t-tdernier);
@@ -35347,6 +35401,24 @@ function applyTheme(){
     r.style.setProperty('--on-acc', encreSur(effectiveTheme()==='light'? melangeNoir(hx,14) : hx));
   }
   else { ['--acc-src','--acc','--acc2','--on-acc','--acc-fill','--acc-fill-hover'].forEach(v=>r.style.removeProperty(v)); }
+  /* ⛔⛔ LES CANAUX, PAS LA COULEUR — ET C'EST LA SEULE FAÇON DE TEINTER UN HALO SANS LE SALIR.
+     Justin, 22 septembre 2026 : « là je suis en couleur violet, et il faudrait que là il y ait
+     le dégradé violet ». Un halo est un dégradé radial qui FINIT en transparent ; or
+     `transparent` vaut `rgba(0,0,0,0)` et `color-mix(…, transparent)` tire vers le noir, donc
+     tout arrêt écrit ainsi salit le bord de gris sale. La règle est déjà dans CLAUDE.md pour
+     les dégradés — elle vaut aussi pour `color-mix`, on vient de le payer sur la barre du haut.
+     La sortie : publier la teinte en CANAUX (« 175,82,222 »), et écrire les deux arrêts
+     `rgba(var(--acc-rgb),.26)` et `rgba(var(--acc-rgb),0)` — même teinte aux deux bouts.
+     ⚠ On lit la teinte RÉSOLUE, pas celle qu'on vient de poser : pour les neuf teintes nommées
+     elle vient de la FEUILLE (`[data-accent="purple"]`), pas d'un style en ligne. La lire par
+     `getComputedStyle` est le seul moyen d'avoir la bonne dans les deux cas — nommée comme
+     personnalisée, jour comme nuit. */
+  try{
+    const resolue=(getComputedStyle(r).getPropertyValue('--acc-src')||'').trim();
+    const c=/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(resolue);
+    if(c) r.style.setProperty('--acc-rgb', parseInt(c[1],16)+','+parseInt(c[2],16)+','+parseInt(c[3],16));
+    else r.style.removeProperty('--acc-rgb');
+  }catch(e){}
   const tb=$('theme-btn'); if(tb){ tb.textContent=THEME_ICO[getThemePref()]; tb.title='Thème : '+THEME_LBL[getThemePref()]; }
   /* TOUTES, et pas la première : depuis qu'il y en a trois (une par réglage système, plus un
      repli), n'en corriger qu'une laissait le navigateur en lire une autre — le thème choisi
