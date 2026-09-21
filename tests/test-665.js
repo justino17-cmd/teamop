@@ -161,11 +161,24 @@ console.log('Fournisseurs sans doublon, liens vérifiés, première connexion co
     for (let j = APP.indexOf('{', d); j < APP.length; j++) {
       if (APP[j] === '{') n++; else if (APP[j] === '}') { n--; if (!n) { f = j; break; } } }
     const SECU = (APP.match(/const SECU_MDP='([^']+)'/) || [])[1] || '';
-    const secuAFaire = new Function("const SECU_MDP='" + SECU + "';" + APP.slice(d, f + 1) + '; return secuAFaire;')();
+    /* ⛔ LA VRAIE FONCTION LIT `BETA_ESSAI` DEPUIS LE 22 SEPTEMBRE 2026 : on le lui fournit,
+       et on la joue DANS LES DEUX SENS. Un banc qui ne monterait que la production ne verrait
+       pas si la bêta est ouverte ; un banc qui ne monterait que la bêta ne verrait pas si la
+       campagne tient encore chez un client. C'est le même coût, et c'est deux fois la preuve. */
+    const monter = beta => new Function("const BETA_ESSAI=" + beta + ";const SECU_MDP='" + SECU + "';"
+      + APP.slice(d, f + 1) + '; return secuAFaire;')();
+    const secuAFaire = monter(false);          // production : le comportement de référence
+    const secuBeta   = monter(true);           // bêta : notre outil de travail
     v('⛔ elle s’ouvre quand il manque un mot de passe personnel', secuAFaire({ email: 'a@b.fr', secu: SECU }), true);
     v('⛔ … quand le mot de passe est provisoire', secuAFaire({ pwdHash: 'x', mustChangePwd: true, email: 'a@b.fr', secu: SECU }), true);
     v('⛔ … et quand la campagne sécurité n’a pas été faite', secuAFaire({ pwdHash: 'x', email: 'a@b.fr' }), true);
     v('elle ne rouvre pas sur un compte en règle', secuAFaire({ pwdHash: 'x', email: 'a@b.fr', secu: SECU }), false);
+    /* ⛔ ET SUR LA BÊTA, LES TROIS MÊMES CAS PASSENT. Justin : « pas la mettre pour
+       l'application bêta, que pour l'application publique ». On teste les trois, pas un :
+       une seule condition oubliée laisserait la porte s'ouvrir un cas sur trois. */
+    v('⛔ bêta : pas de mot de passe → on passe', secuBeta({ email: 'a@b.fr', secu: SECU }), false);
+    v('⛔ bêta : mot de passe provisoire → on passe', secuBeta({ pwdHash: 'x', mustChangePwd: true, email: 'a@b.fr', secu: SECU }), false);
+    v('⛔ bêta : campagne non faite → on passe', secuBeta({ pwdHash: 'x', email: 'a@b.fr' }), false);
   }
   v('⛔ elle ne se ferme pas à la main', /function closeModal\(force\)\{ if\(_modalForcee&&force!==true\) return;/.test(APP), true);
   v('elle se marque forcée en s’ouvrant', /function forcePwdModal\(\)\{ if\(!currentUser\) return;\n  _modalForcee=true;/.test(APP), true);

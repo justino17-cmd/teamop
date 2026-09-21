@@ -34112,7 +34112,18 @@ const SECU_MDP='2026-09';
    la fiche locale et la vraie porte se mettraient à dire deux choses différentes, et on
    réclamerait en plus une adresse e-mail à quelqu'un dont le compte n'a pas de récupération
    par e-mail. Le reste du code traite déjà ces comptes à part (`annuaireComptes` les exclut). */
-function secuAFaire(u){ return !!u && !u.essai && (!u.pwdHash || !!u.mustChangePwd || u.secu!==SECU_MDP); }
+/* ⛔ ET JAMAIS SUR LA BÊTA NON PLUS — Justin, 22 septembre 2026 : « l'obligation qu'on a
+   faite pour créer les mots de passe, peut-être pas la mettre pour l'application bêta, que
+   pour l'application publique ». La raison est la même que pour les catégories : la bêta est
+   notre outil de travail, et une porte obligatoire à chaque compte créé coûte un aller-retour
+   à chaque essai. ⚠ La campagne reste ENTIÈRE en production : c'est elle qui a débloqué la
+   journée du 15 septembre, et Justin la testera là où elle compte, en ouvrant un vrai compte
+   depuis la Tour. Le drapeau vaut `false` dans `app.html` : rien ne change chez un client.
+   ⚠ Effet de bord assumé : `annuaireEtatP` rend donc 0 pour tout le monde sur la bêta —
+   l'annuaire y dirait « tout le monde est en règle ». La bêta n'a pas d'entreprise réelle à
+   surveiller, c'est sans conséquence ; en production le compte est juste. */
+function secuAFaire(u){ if(BETA_ESSAI) return false;
+  return !!u && !u.essai && (!u.pwdHash || !!u.mustChangePwd || u.secu!==SECU_MDP); }
 function forcePwdModal(){ if(!currentUser) return;
   _modalForcee=true;
   const mail=(currentUser.email||'').trim(), ent=(typeof entrepriseNom==='function'?entrepriseNom():'');
@@ -34190,7 +34201,11 @@ async function forcePwdSave(btn){ const p1=($('fp-p1')||{}).value||'', p2=($('fp
    l'e-mail pour TRAVAILLER, on n'emprisonne personne. */
 /* ⚠️ Le paramètre compte les PASSAGES, il n'a rien à voir avec `currentUser.essai` (un accès
    bêta) — deux sens pour le mot « essai » sur la même ligne, c'est une relecture perdue. */
-function emailRappelModal(passe){ if(!currentUser||currentUser.essai) return;   // accès bêta : voir secuAFaire
+/* ⛔ LA SECONDE PORTE, ET ELLE SE FERME AVEC L'AUTRE. Fermer `secuAFaire` sans fermer
+   celle-ci laisserait la bêta réclamer une adresse e-mail en boucle (huit relances de
+   2,5 s) : on aurait retiré la moitié de l'obstacle et gardé celle qui insiste le plus. */
+function emailRappelModal(passe){ if(BETA_ESSAI) return;
+  if(!currentUser||currentUser.essai) return;   // accès bêta porté par le serveur : voir secuAFaire
   if((currentUser.email||'').trim()){ _modalForcee=false; return; }
   /* Une autre fenêtre est déjà ouverte (bienvenue, rappels…) : on ne l'écrase pas, on repasse.
      ⚠️ ON NE RENONCE PLUS. C'était le comportement d'avant — et un compte sans e-mail passait

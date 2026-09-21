@@ -253,6 +253,37 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
   vrai('⛔ … ni le métier', /if\(BETA_ESSAI\)\s*return false;/.test(mb));
   vrai('⛔ et en PRODUCTION le forfait Gratuit bloque toujours « pointage »',
     /gratuit:\[[^\]]*'pointage'/.test(NU));
+
+  /* ⛔ L'OBLIGATION DE CRÉER UN MOT DE PASSE SAUTE SUR LA BÊTA, PAS AILLEURS — Justin,
+     22 septembre 2026 : « l'obligation qu'on a faite pour créer les mots de passe, peut-être
+     pas la mettre pour l'application bêta, que pour l'application publique ». Même raison que
+     les catégories : la bêta est notre outil de travail, et une porte obligatoire à chaque
+     compte créé coûte un aller-retour à chaque essai.
+     ⚠ IL Y A DEUX PORTES, et fermer la première sans la seconde laisserait la bêta réclamer
+     une adresse e-mail en boucle (huit relances de 2,5 s) : on aurait retiré la moitié de
+     l'obstacle et gardé celle qui insiste le plus. */
+  const sf=NU.slice(NU.indexOf('function secuAFaire('), NU.indexOf('function secuAFaire(')+260);
+  vrai('⛔ le bloc de secuAFaire est trouvé (sinon ce qui suit est creux)', sf.length>60, sf.length+' caractères');
+  vrai('⛔ la campagne mot de passe ne s’applique pas sur la bêta',
+    /if\(BETA_ESSAI\)\s*return false;/.test(sf));
+  const er=NU.slice(NU.indexOf('function emailRappelModal('), NU.indexOf('function emailRappelModal(')+220);
+  vrai('⛔ le bloc d’emailRappelModal est trouvé', er.length>60, er.length+' caractères');
+  vrai('⛔ … ET la seconde porte, celle de l’e-mail, se ferme avec elle',
+    /if\(BETA_ESSAI\)\s*return;/.test(er));
+  /* ⛔⛔ LE CONTRE-SENS, QUI COMPTE AUTANT. Retirer la campagne en PRODUCTION rouvrirait la
+     boucle qui a bloqué une équipe le 15 septembre 2026 : mots de passe provisoires qui
+     circulent en clair, et comptes sans e-mail donc sans récupération possible. Les trois
+     conditions et le déclenchement doivent rester ÉCRITS. */
+  vrai('⛔⛔ en PRODUCTION les trois conditions de la campagne sont toujours là',
+    /!u\.pwdHash \|\| !!u\.mustChangePwd \|\| u\.secu!==SECU_MDP/.test(sf));
+  vrai('⛔⛔ … et la fenêtre part toujours quand elles sont remplies',
+    /if\(secuAFaire\(u\)\) setTimeout\(forcePwdModal/.test(NU));
+  vrai('⛔⛔ … et le rappel d’e-mail aussi, pour un compte sans adresse',
+    /else if\(!\(u\.email\|\|''\)\.trim\(\)\) setTimeout\(emailRappelModal/.test(NU));
+  /* Le marqueur vit sur la FICHE, pas dans localStorage : il doit suivre la personne d'un
+     téléphone à l'autre, et la Tour doit pouvoir le lire. */
+  vrai('⛔ le marqueur de campagne reste sur la fiche (u.secu), pas sur l’appareil',
+    /const SECU_MDP='20\d\d-\d\d'/.test(NU) && !/localStorage[^\n]*secu_mdp/i.test(NU));
 }
 
 console.log('\n═══ test-749 : '+ok+' ✓ '+ko+' ✗ ═══\n');

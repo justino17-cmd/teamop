@@ -43,7 +43,10 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
 {
   const SECU = (APP.match(/const SECU_MDP='([^']+)'/) || [])[1] || '';
   v('la campagne porte un marqueur daté', /^\d{4}-\d{2}$/.test(SECU), true);
-  const secuAFaire = new Function("const SECU_MDP='" + SECU + "';" + extraire(APP, 'function secuAFaire(') + '; return secuAFaire;')();
+  /* ⛔ La vraie fonction lit `BETA_ESSAI` depuis le 22 septembre 2026 : on le lui fournit.
+     Ici on monte la PRODUCTION — c'est ce que ce banc surveille ; `test-665` et `test-749`
+     tiennent le sens bêta. */
+  const secuAFaire = new Function("const BETA_ESSAI=false;const SECU_MDP='" + SECU + "';" + extraire(APP, 'function secuAFaire(') + '; return secuAFaire;')();
   v('⛔ un compte jamais passé par la campagne est retenu', secuAFaire({ pwdHash: 'a'.repeat(64), email: 'x@y.fr' }), true);
   v('⛔ un mot de passe provisoire est retenu', secuAFaire({ pwdHash: 'a'.repeat(64), mustChangePwd: true, email: 'x@y.fr', secu: SECU }), true);
   v('⛔ un compte sans mot de passe est retenu', secuAFaire({ email: 'x@y.fr', secu: SECU }), true);
@@ -57,7 +60,16 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
      changerait rien, la fiche locale et la vraie porte diraient deux choses différentes, et
      on réclamerait une adresse de récupération à un compte qui n'en a pas. */
   v('⛔ un accès bêta n’est jamais retenu', secuAFaire({ login: 'testeur', essai: true }), false);
-  v('… et la fenêtre d’e-mail non plus', /function emailRappelModal\(passe\)\{ if\(!currentUser\|\|currentUser\.essai\) return;/.test(APP), true);
+  /* ⛔ DEUX GARDES SUR CETTE PORTE, ET ON LES EXIGE TOUTES LES DEUX. Le motif d'avant
+     épousait une écriture sur UNE ligne : ajouter la garde de la bêta au-dessus le faisait
+     tomber alors que le code était bon. On vise donc le CORPS de la fonction, pas sa mise en
+     page — c'est la règle « un motif vise du code, jamais une forme de rédaction ». */
+  { const em = extraire(APP, 'function emailRappelModal(');
+    v('le corps d’emailRappelModal est trouvé (sinon les deux contrôles sont creux)', em.length > 60, true);
+    v('… et la fenêtre d’e-mail ne s’ouvre pas sur un accès bêta du serveur',
+      /if\(!currentUser\|\|currentUser\.essai\) return;/.test(em), true);
+    v('… ni sur la bêta elle-même (Justin, 22 septembre 2026)',
+      /if\(BETA_ESSAI\) return;/.test(em), true); }
 
   const fps = extraire(APP, 'async function forcePwdSave(');
   v('⛔ « changer » veut dire changer : le même mot de passe est refusé',
