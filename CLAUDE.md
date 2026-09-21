@@ -494,6 +494,52 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   au seul chargement », appliquée à un geste de navigation. Ni mot de passe ni fichier n'entrent
   dans le brouillon. `tests/test-748.js` tient les dix règles ; le comportement, lui, se mesure
   au navigateur (`scratchpad/sonde-multi.js`).
+- ⛔⛔ **UN CYCLE DE VARIABLES CSS NE DIT RIEN, ET IL TUE TOUT CE QU'IL TOUCHE.** `.sidebar`
+  définit `--t1:var(--side-ink)` ; la règle du verre définissait `--side-ink:var(--t1)`. Un
+  cycle rend **invalides toutes** les variables qui y participent — pas d'erreur, pas de
+  console, rien. Mesuré le 22 septembre 2026 :
+  `getComputedStyle(.sidebar).getPropertyValue('--t1')` rendait la chaîne **VIDE**, le titre de
+  groupe sortait de la même encre que l'item actif (c'est ce qui a fait lire « deux Tableau de
+  bord » sur le Mac de Justin) et la coupe valait `rgba(0,0,0,0)`. **Une variable qu'on lit
+  dans une règle qui la redéfinit est un cycle** : capturer la valeur à un niveau AU-DESSUS
+  (`--vr-encre` sur `<html>`) est la seule sortie. Le signe qui ne trompe pas : une propriété
+  personnalisée qui se lit **vide** alors qu'elle est écrite noir sur blanc. `test-757` interdit
+  la forme fautive, et `test-751` aussi.
+- ⛔⛔ **UN `::after` EN `z-index:-1` SE PEINT SOUS LE FOND DE SON PROPRE PARENT.** `body`
+  portait `background:var(--vr-page)` et `body::after` les halos en `z-index:-1`. Or `body`
+  n'établit pas de contexte d'empilement : son `::after` négatif remonte dans celui de la
+  RACINE, et s'y peint **avant** le fond de `body`. Les trois halos existaient, étaient justes,
+  et étaient intégralement cachés — la page avait l'air d'un aplat, et le verre n'avait rien à
+  déformer. **Le fond d'une page qui porte un décor en pseudo-élément va sur `<html>`**, jamais
+  sur `body` : le fond de `<html>` se propage au CANEVAS et se peint en tout premier.
+  ⚠️ **La contre-épreuve qui tranche en trente secondes** : mettre le pseudo-élément en rouge
+  franc. S'il ne se voit pas, il n'est pas peint ; s'il se voit, c'est autre chose qui le
+  recouvre. On ne devine pas un ordre de peinture, on le teste.
+- ⛔ **UN DÉGRADÉ QUI FINIT SUR `transparent` PASSE PAR DU NOIR.** `transparent` vaut
+  `rgba(0,0,0,0)` : l'interpolation traverse du noir transparent et **salit le bord**. Tout
+  arrêt de dégradé s'écrit `rgba(r,g,b,0)` avec la MÊME teinte que le départ.
+- ⛔⛔ **UNE COULEUR DE PALETTE SANS SA TEINTE SOURCE EST UNE COULEUR MORTE.** Du 11 au
+  22 septembre 2026, `--acc-src` n'était défini que pour trois des huit accents : les cinq
+  autres laissaient la variable vide, donc `--acc:var(--acc-src)` invalide, donc les **treize**
+  jetons dérivés mouraient d'un coup et l'interface restait verte. Aucun moyen de s'en
+  apercevoir à la lecture — il faut **compter les deux listes l'une contre l'autre**
+  (`ACCENTS` contre les règles `[data-accent="…"]`), ce que fait `test-757`.
+  Corollaire, de la même journée : `applyTheme` tenait CINQ jetons à la main pendant que la
+  feuille en dérive treize — les huit autres restaient verts sous une couleur personnalisée.
+  **On pose la SOURCE, jamais les dérivés.** Le commentaire du bloc le disait déjà : « sans ça
+  il faudrait tenir douze couleurs à la main, et la treizième serait oubliée ». Elle l'était.
+- ⛔ **DEUX BARRES QUI FONT LA MÊME CHOSE, C'EST UNE DE TROP — ET C'EST LA PLUS HAUTE QUI
+  GAGNE.** Le 22 septembre 2026, `#tabbar` (la pilule en verre, z-index 38) et `.rf-tabs`
+  (z-index 48) étaient dessinées toutes les deux sur un téléphone. La pilule existait et
+  personne ne la voyait. Avant d'ajouter un composant de navigation, **chercher celui qui
+  existe déjà** : ce dépôt en avait un, complet, avec ses icônes SVG, son réglage et tous ses
+  décalages de mise en page. ⚠️ Et quand on en éteint un, **la classe qui porte les décalages
+  reste** (`body.rf-onglets`) : ce sont elle et non la barre qui décalent le contenu, le bouton
+  flottant et les messages.
+- ⛔ **UNE ANCRE DE BANC EST UN COMMENTAIRE — ON DÉCOUPE DANS LE TEXTE BRUT, ON NETTOIE APRÈS.**
+  Chercher le titre d'un bloc dans un texte dont on vient de retirer les commentaires rend −1,
+  donc une tranche VIDE, et **une tranche vide passe au vert sur tout**. Pris sur `test-757` à
+  sa première exécution, le 22 septembre 2026.
 - Ne pas modifier l'anti-abus (`server/index.js`) sans relire pourquoi il lit
   `req.ip` et non l'en-tête brut — un en-tête fourni par le client se falsifie
 - Ne pas écrire de données personnelles de clients dans les journaux

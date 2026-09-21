@@ -22,6 +22,78 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ✅ 22 SEPTEMBRE 2026 — LE VERRE QUI N'EN ÉTAIT PAS UN, LA PALETTE MORTE, LES FAVORIS (BÊTA)
+
+Justin, sur son Mac puis sur son iPhone : **« je vois pas l'attendu du liquid glass. J'ai pas
+le ressenti qu'en est un. »** Puis, en voyant le menu : **« je viens de tester le thème sur Mac,
+j'ai 2 tableau de bord. »** Puis : **« l'effet violet là, ça fait bizarre, je suis pas trop
+fan. »** Puis : **« que le thème se mette bien à toutes les couleurs de la palette »**, **« qu'on
+puisse sauvegarder sa couleur par utilisateur et l'ajouter en plus des couleurs de base »**,
+**« un système de favoris dans la barre »**, et **« la même barre en bas que sur la maquette
+iOS »**.
+
+Sept défauts, tous RÉELS, et **aucun ne se voyait à la lecture du code.**
+
+| # | ce qui était cassé | comment ça se voyait | mesuré |
+|---|---|---|---|
+| 1 | **Un cycle de variables CSS.** `.sidebar` définit `--t1:var(--side-ink)` ; la règle du verre définissait `--side-ink:var(--t1)`. Un cycle rend invalides **toutes** les variables qui y participent — sans erreur, sans console, sans rien. | Le titre de groupe sortait de la MÊME encre que l'item actif → **« deux Tableau de bord »**. La coupe valait `rgba(0,0,0,0)` : invisible. | `getComputedStyle(.sidebar).getPropertyValue('--t1')` rendait la chaîne **VIDE** |
+| 2 | **Le verre était à 58 %** au lieu des 34 % de la maquette, et n'avait **aucun reflet** (une ombre interne d'un pixel au lieu d'un dégradé à 135°). | Une carte n'était pas une vitre : c'était une carte blanche. Le flou n'avait rien à montrer. | `.card` → `rgba(255,255,255,0.58)`, `background-image:none` |
+| 3 | **Les halos du fond prenaient la couleur d'accent, à 42 %.** | Qui choisissait Violet se retrouvait avec une **page violette**. | `body::after` → `color-mix(var(--acc) 42%)` |
+| 4 | **Les halos étaient peints SOUS le fond de la page.** `body` portait le dégradé et `body::after` était en `z-index:-1` ; `body` n'établissant pas de contexte d'empilement, son `::after` négatif remonte dans celui de la RACINE et s'y peint AVANT le fond de `body`. | Les trois halos existaient, étaient justes, et étaient **intégralement cachés**. La page avait l'air d'un aplat. | Contre-épreuve décisive : `::after` mis en rouge franc → **toute la page vire au rouge**, donc il est bien peint ; c'était le fond qui le recouvrait |
+| 5 | **Trois teintes sur huit.** `--acc-src` n'était défini que pour `blue`, `purple` et `orange`. Les cinq autres laissaient la variable vide → `--acc:var(--acc-src)` invalide → les **treize** jetons dérivés mouraient d'un coup. | Cyan, Indigo, Rose, Rouge et Vert OP ne changeaient rien : l'interface restait verte. | 8 teintes → **3** valeurs de `--acc` distinctes |
+| 6 | **« Ma couleur » ne posait que 5 jetons sur 13.** `applyTheme` tenait `--acc`, `--acc2`, `--on-acc`, `--acc-fill`, `--acc-fill-hover` à la main pendant que la feuille en dérive treize de `--acc-src`. | Sous une couleur personnalisée, `--tint`, `--anneau`, `--rf-halo`, `--side-avatar`… restaient **verts**. | `--tint` ne bougeait pas d'un iota |
+| 7 | **DEUX barres du bas sur téléphone.** `#tabbar` (la pilule en verre, z-index 38) et `.rf-tabs` (z-index 48) étaient dessinées toutes les deux. | La pilule existait ; **personne ne la voyait**, `.rf-tabs` la recouvrait. | `#tabbar` à y=817, `.rf-tabs` à y=842 par-dessus |
+
+### Ce qui a été fait
+
+- **Le cycle est rompu** : l'encre de la page est capturée **sur `<html>`** (`--vr-encre`), où
+  `--t1` n'est pas redéfini. La sidebar la LIT au lieu de la recalculer.
+- **Les jetons du verre passent aux valeurs de la maquette** : `.34` de jour / `.42` de nuit,
+  reflet en **dégradé 135°**, liseré blanc à 85 %, ombre `0 16px 40px` + inserts blancs. Le
+  reflet est POSÉ sur **9 surfaces** (cartes, KPI, tableaux, fenêtres, barre du haut, tiroir,
+  pilule du bas, feuille « ＋ Créer », fenêtre de connexion).
+- **Les halos viennent des LOGOS**, échantillonnés dans les PNG : carré vert OP GESTION
+  `#084030`, carré bleu nuit TEAM OP `#081028` (remontés en luminosité pour se voir en voile).
+  Ils ne bougent plus quand on change sa couleur. Taille en **`vmax`**, pas en pixels : 340 px
+  sur un Mac de 1280, c'était trois taches perdues dans un aplat.
+  ⚠️ Les arrêts s'écrivent `rgba(r,g,b,0)`, **jamais `transparent`** — `transparent` vaut
+  `rgba(0,0,0,0)`, donc le dégradé passe par du NOIR transparent et salit le bord.
+- **Le fond de page est passé sur `<html>`**, `body` devient transparent : c'est le seul
+  agencement où un `z-index:-1` se voit.
+- **Les huit teintes ont toutes une source**, et `applyTheme` pose **`--acc-src`** — une seule
+  teinte, la feuille dérive les treize. Une entrée d'`ACCENTS` sans `--acc-src` est une couleur
+  MORTE ; `test-757` compare désormais les deux listes.
+- **« Ma couleur » est une palette** : jusqu'à **six** couleurs gardées, affichées à la suite
+  des huit, avec une croix pour en retirer une, et elles **voyagent par `u.pref`**.
+- **Les favoris** : jusqu'à **huit** rubriques épinglées en tête du menu, mode « Modifier »
+  pour les choisir à l'étoile, refiltrées par `canSee` à **chaque** lecture, et elles voyagent
+  par `u.pref`. ⛔ Rien n'est écrit dans `db` — c'est un réglage de PERSONNE.
+- **Une seule barre du bas** : `.rf-tabs` s'éteint, `#tabbar` reste (c'est lui que la maquette
+  décrit, et son choix voyage). La classe `body.rf-onglets` RESTE — ce sont elle et non la
+  barre qui décalent le contenu, le bouton flottant et les messages. Le réglage de l'ancienne
+  barre (`elan_barre_onglets`) est **repris**, sinon ceux qui l'avaient réglée verraient leur
+  choix revenir aux quatre rubriques d'origine sans un mot.
+- **En navigateur, la pilule MONTE au lieu de s'aplatir** (Justin l'a demandé explicitement —
+  la règle disait le contraire depuis le 21).
+- **Les titres de groupe à l'Apple** : 11 px, demi-gras 590, pas de capitales, encre à 52 %.
+  Sur verre la graisse remonte à 640 — la pâleur seule ne suffit pas quand le fond bouge sous
+  le texte (règle de vibrance d'Apple, le contraire de l'instinct).
+- **Les libellés d'onglets ne sont plus tronqués** : abréviations partagées avec le reste de
+  l'application, nom complet gardé dans `aria-label`.
+
+### Ce que les bancs ont attrapé sur EUX-MÊMES
+
+- `test-752` était le seul des cinq bancs CSS à borner sa tranche sur `</style>` : il a accusé
+  le bloc « ＋ Créer » de porter sept règles écrites **400 lignes plus bas**. Borné au bloc
+  suivant.
+- `test-757` a cherché son ancre dans le texte **déjà nettoyé de ses commentaires** — or une
+  ancre de bloc EST un commentaire. Tranche vide, et **une tranche vide passe au vert sur
+  tout**. On découpe dans le texte brut, on nettoie après.
+- L'ancre `l’appareil` (apostrophe typographique) contre `l'appareil` (droite) dans le
+  fichier : `indexOf` → −1 → tranche vide. Le contrôle « le bloc est trouvé » l'a attrapé.
+- Une assertion comptait le reflet dans la seule tranche PLATEFORME et rendait 3 : les surfaces
+  de verre sont éparpillées par nature. On compte sur tout le fichier.
+
 ## ✅ 21–22 SEPTEMBRE 2026 — LA REFONTE APPLE, LES SIX POINTS (BÊTA + APERÇU)
 
 Justin : **« tu fais tout, tu fais. Point par point. »** Les six points du dossier
