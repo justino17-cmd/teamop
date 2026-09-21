@@ -199,7 +199,21 @@ const blocCss = (titre) => {
     /html\[data-verre="1"\]\[data-kind="mobile"\]:not\(\[data-autonome="1"\]\) \.tabbar\{/.test(css));
   vrai('Android a sa pastille tonale', /html\[data-os="android"\] \.tab\.on \.tab-ic\{/.test(css));
   vrai('⛔ le tiroir en verre change AUSSI son encre (une encre pâle sur du verre clair ne se lit pas)',
-    /html\[data-verre="1"\] \.sidebar\{[\s\S]{0,400}--side-ink:var\(--t1\)/.test(css));
+    /html\[data-verre="1"\] \.sidebar\{[\s\S]{0,700}--side-ink:var\(--vr-encre\)/.test(css));
+  /* ⛔⛔ LE CYCLE. `.sidebar` définit `--t1:var(--side-ink)` ; écrire `--side-ink:var(--t1)`
+     sur elle referme une boucle, et une boucle rend TOUTES les variables qui y participent
+     invalides — sans un mot, sans erreur, sans rien dans la console. Mesuré le 22 septembre
+     2026 : `getComputedStyle(.sidebar).getPropertyValue('--t1')` rendait la chaîne VIDE, le
+     titre de groupe sortait de la même encre que l'item (« deux Tableau de bord ») et la
+     coupe valait rgba(0,0,0,0). L'encre se capture sur <html>, où `--t1` n'est pas redéfini. */
+  vrai('⛔⛔ aucune règle ne referme le cycle --side-ink ↔ --t1 sur la sidebar',
+    !/\.sidebar\{[^}]*--side-ink:var\(--t1\)/.test(css));
+  /* La capture vit dans le bloc PLATEFORME, pas ici : on va la chercher dans sa propre
+     tranche plutôt que d'élargir celle-ci — une tranche qui déborde rend un verdict faux. */
+  { const {i0:iP, css:cssP} = blocCss("PLATEFORME — le rendu suit l'appareil");
+    vrai('⛔ le bloc PLATEFORME est trouvé (sinon le contrôle qui suit est creux)', iP>0);
+    vrai('⛔ l’encre de la page est capturée sur <html>, pas sur la sidebar',
+      /html\[data-verre="1"\]\{[\s\S]{0,3000}--vr-encre:var\(--t1\)/.test(cssP)); }
   vrai('⛔ la transparence réduite éteint le flou de la barre et du tiroir',
     /prefers-reduced-transparency: reduce/.test(css));
   vrai('⛔ le mouvement réduit désactive l\'enfoncement des onglets',

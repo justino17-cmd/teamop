@@ -171,11 +171,18 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
      qui VOYAGE d'un appareil à l'autre avec la fiche de la personne. En ajouter un doit se
      voir ici, une fois, par écrit — sinon on ferait voyager par mégarde quelque chose qui doit
      rester sur l'appareil. La barre d'onglets a été ajoutée le 21 septembre 2026 : c'est un
-     choix de personne (« mes quatre rubriques »), pas un état d'appareil. */
-  v('cinq réglages voyagent', Object.keys(cles).sort(), ['accent', 'accentHex', 'lang', 'onglets', 'theme']);
+     choix de personne (« mes quatre rubriques »), pas un état d'appareil.
+     Le 22 septembre, deux de plus, et pour la même raison : les couleurs qu'on s'est
+     fabriquées (« Ma couleur », jusqu'à six) et les rubriques qu'on a épinglées en tête de
+     menu. Justin : « qu'on puisse bien aussi sauvegarder sa couleur par utilisateur ».
+     ⛔ Ce qui NE doit PAS entrer ici : le brouillon de multitâche, le rendu forcé de la carte
+     Appareil, le drapeau de vidage — ce sont des états d'APPAREIL. Les faire voyager les
+     répandrait sur les téléphones de toute l'équipe. */
+  v('sept réglages voyagent', Object.keys(cles).sort(),
+    ['accent', 'accentHex', 'accentsPerso', 'favoris', 'lang', 'onglets', 'theme']);
   v('… et ce sont les vraies clés de stockage',
-    [cles.theme, cles.accent, cles.accentHex, cles.lang, cles.onglets],
-    ['elan_theme', 'elan_accent', 'elan_accent_hex', 'elan_lang', 'elan_onglets']);
+    [cles.theme, cles.accent, cles.accentHex, cles.accentsPerso, cles.lang, cles.onglets, cles.favoris],
+    ['elan_theme', 'elan_accent', 'elan_accent_hex', 'elan_accents_perso', 'elan_lang', 'elan_onglets', 'elan_favoris']);
 
   /* La vraie fonction, éprouvée sur un faux stockage. */
   const mem = {};

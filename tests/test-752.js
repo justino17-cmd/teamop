@@ -112,7 +112,13 @@ console.log('\n══ 3. LE BALISAGE ET LE BOUTON ══\n');
 console.log('\n══ 4. LE STYLE — rien sans garde, et les deux formes ══\n');
 { const i0=APP.indexOf('« ＋ CRÉER » — feuille montante (mobile) / fenêtre centrée (bureau)');
   vrai('⛔ le bloc de style est trouvé (sinon tout ce qui suit est creux)', i0>0);
-  const fin=APP.indexOf('</style>', i0);
+  /* ⛔ ON BORNE AU BLOC SUIVANT, PAS À `</style>`. La règle est écrite dans CLAUDE.md depuis
+     le 21 septembre, et ce banc était le seul des cinq à ne pas l'appliquer : le 22, il a
+     accusé le bloc « + Créer » de porter `.nav-fav`, `.nav-item-fav` et cinq autres règles
+     écrites 400 lignes plus bas. Une découpe qui déborde rend un verdict faux. */
+  const suite=APP.indexOf('/* \u2550\u2550', i0+40);
+  const finStyle=APP.indexOf('</style>', i0);
+  const fin=(suite>0 && (finStyle<0 || suite<finStyle)) ? suite : finStyle;
   const css=i0>0?APP.slice(i0, fin>0?fin:i0+7000):'';
   v('   … et il a de la matière', css.length>1800, true);
   vrai('la feuille monte de 104 %', /transform:translateY\(104%\)/.test(css));

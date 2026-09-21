@@ -2565,8 +2565,20 @@ html[data-refonte][data-theme="light"]{
    seule teinte par `color-mix` : sans ça il faudrait tenir douze couleurs à la main, et la
    treizième serait oubliée — ce sont ces oublis qui donnent un bouton resté vert au milieu
    d'une interface violette. */
+/* ⛔⛔ LES HUIT, PAS TROIS. Du 11 au 22 septembre 2026, seules `blue`, `purple` et `orange`
+   avaient une teinte source. Les cinq autres — Vert OP, Cyan, Indigo, Rose, Rouge — laissaient
+   `--acc-src` VIDE, donc `--acc:var(--acc-src)` invalide, donc les TREIZE jetons dérivés
+   ci-dessous mouraient d'un coup et l'interface restait verte. C'est exactement ce que Justin
+   décrivait : « que le thème se mette bien à toutes les couleurs de la palette ».
+   ⚠ La règle : une entrée d'`ACCENTS` sans `--acc-src` ici est une couleur MORTE. Il n'y a
+   aucun moyen de s'en apercevoir à la lecture — `tests/test-757.js` compte les deux listes. */
+html[data-refonte][data-accent="green"] { --acc-src:#2EB872; --on-acc:#FFFFFF; }
 html[data-refonte][data-accent="blue"]  { --acc-src:#3B82F6; --on-acc:#FFFFFF; }
+html[data-refonte][data-accent="teal"]  { --acc-src:#32ADE6; --on-acc:#062A38; }
+html[data-refonte][data-accent="indigo"]{ --acc-src:#7B79E8; --on-acc:#FFFFFF; }
 html[data-refonte][data-accent="purple"]{ --acc-src:#8B6BFF; --on-acc:#FFFFFF; }
+html[data-refonte][data-accent="pink"]  { --acc-src:#FF6E8E; --on-acc:#3A0512; }
+html[data-refonte][data-accent="red"]   { --acc-src:#FF6E66; --on-acc:#380605; }
 html[data-refonte][data-accent="orange"]{ --acc-src:#E79A3C; --on-acc:#2A1304; }
 html[data-refonte][data-accent]{
   --acc:var(--acc-src);
@@ -2600,7 +2612,13 @@ html[data-refonte][data-theme="light"][data-accent]{
   --side-active-ink:color-mix(in srgb,#000 26%,var(--acc-src));
   --side-avatar:color-mix(in srgb,#000 18%,var(--acc-src));
 }
+/* De jour la teinte est FONCÉE de 14 % avant de porter l'encre : le blanc y tient alors pour
+   les six teintes vives. L'orange, le cyan, le rose et le rouge gardent leur encre sombre —
+   à aucune profondeur raisonnable le blanc n'y passe 4,5:1. */
 html[data-refonte][data-theme="light"][data-accent="orange"]{ --on-acc:#2A1304; }
+html[data-refonte][data-theme="light"][data-accent="teal"]  { --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="pink"]  { --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="red"]   { --on-acc:#FFFFFF; }
 
 /* ══ LE FOND ══ deux voiles très larges, l'un vert (l'accent), l'autre acier (la marque). Aucun
    trait : sur un fond clair, une diagonale traversant la page se lit comme un défaut d'affichage. */
@@ -3801,8 +3819,22 @@ html[data-refonte] .rf-tabs button{position:relative}
    jusqu'au bout, la bulle d'aide et le message de confirmation restent atteignables. */
 html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border-radius:12px}
 @media (max-width:780px){
-  html[data-refonte] body.rf-onglets .rf-tabs{display:flex}
+  /* ⛔⛔ DEUX BARRES DU BAS, C'EST UNE DE TROP — mesuré le 22 septembre 2026 sur un
+     iPhone de 430 px : `#tabbar` (la pilule en verre) était dessinée à y=817 en z-index 38,
+     et `.rf-tabs` par-dessus à y=842 en z-index 48. La pilule existait, personne ne la voyait.
+     C'est `#tabbar` qui reste : c'est lui que la maquette iOS décrit, et son choix de
+     rubriques voyage d'un appareil à l'autre. `.rf-tabs` s'efface, mais la classe
+     `body.rf-onglets` RESTE — ce sont les trois règles ci-dessous qui décalent le contenu,
+     le bouton flottant et les messages, et elles s'accrochent à la classe, pas à la barre. */
+  html[data-refonte] body.rf-onglets .rf-tabs{display:none!important}
   html[data-refonte] body.rf-onglets .content{padding-bottom:calc(78px + env(safe-area-inset-bottom))!important}
+  /* La pilule flotte à 14 px du bas et fait 69 px de haut : il lui faut 96 px, pas 78. */
+  html[data-verre="1"][data-refonte] body.rf-onglets .content{padding-bottom:calc(98px + env(safe-area-inset-bottom))!important}
+  /* ⚠ ET LA BULLE D'AIDE AVEC. Mesuré : à 76 px elle se posait sur le coin droit de la
+     pilule et mangeait l'onglet « Plus ». Une barre qui monte, c'est tout ce qui flotte
+     au-dessus d'elle qui monte aussi — sinon on décale une pièce et on en casse une autre. */
+  html[data-verre="1"][data-refonte] body.rf-onglets .fab,
+  html[data-verre="1"][data-refonte] body.rf-onglets #assistant > .fab{bottom:calc(100px + env(safe-area-inset-bottom))!important}
   html[data-refonte] body.rf-onglets .fab,
   html[data-refonte] body.rf-onglets #assistant > .fab{bottom:calc(76px + env(safe-area-inset-bottom))!important}
   /* Le message de confirmation se posait PAR-DESSUS le contenu, collé à la bulle d'aide : il
@@ -4753,56 +4785,103 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
    reflet interne en haut. Le reflet est ce qui distingue une vitre d'un simple voile gris. */
 html[data-verre="1"]{
   --vr-flou:blur(40px) saturate(210%) brightness(1.06);
-  --vr-fond:rgba(255,255,255,.58);
-  --vr-fond2:rgba(255,255,255,.44);
-  --vr-liseret:rgba(255,255,255,.72);
-  --vr-reflet:inset 0 1px 0 rgba(255,255,255,.85);
-  --vr-ombre:0 10px 28px rgba(0,0,0,.08);
-  --vr-ombre-barre:0 14px 36px rgba(0,0,0,.14);
-  --vr-page:linear-gradient(180deg,#f7f7f9,#eeeef2);
+  /* ⛔ 34 %, PAS 58 %. Mesuré le 22 septembre 2026 contre la maquette : à 58 % de blanc,
+     une carte n'est plus une vitre, c'est une carte blanche — le flou n'a plus rien à
+     montrer. C'est ce qui faisait dire « je n'ai pas le ressenti que c'en est un ». */
+  --vr-fond:rgba(255,255,255,.34);
+  --vr-fond2:rgba(255,255,255,.28);
+  --vr-liseret:rgba(255,255,255,.85);
+  /* ⛔ LE REFLET EST UN DÉGRADÉ, PAS UNE OMBRE. Une ombre interne d'un pixel ne fait qu'un
+     liseré ; ce qui donne la MATIÈRE, c'est la lumière qui court en diagonale sur la vitre.
+     Il se pose comme première couche de `background`, au-dessus de la teinte. */
+  --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.65) 0%,rgba(255,255,255,.2) 45%,rgba(255,255,255,.05) 60%,rgba(255,255,255,.4) 100%);
+  --vr-ombre:0 16px 40px rgba(31,38,64,.12),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -1px 0 rgba(255,255,255,.5);
+  --vr-ombre-barre:0 22px 50px rgba(31,38,64,.18),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -1px 0 rgba(255,255,255,.5);
+  --vr-page:linear-gradient(180deg,#f4f5f8,#e9ebf0);
+  /* ⛔ LES HALOS NE PRENNENT PLUS LA COULEUR D'ACCENT. Ils la prenaient à 42 % : qui
+     choisissait Violet se retrouvait avec une page violette, et Justin l'a dit — « ça fait
+     bizarre ». Chez Apple le fond reste neutre et la couleur vit dans les CONTRÔLES. Les deux
+     teintes viennent donc des LOGOS, échantillonnées dans les PNG : le carré vert d'OP
+     GESTION (#084030) et le carré bleu nuit de TEAM OP (#081028), remontées en luminosité
+     pour se voir en voile. Elles ne bougent plus quand la personne change sa couleur.
+     ⚠ Et l'arrêt est écrit `rgba(r,g,b,0)`, jamais `transparent` : `transparent` vaut
+     rgba(0,0,0,0), donc le dégradé passe par du NOIR transparent et salit le bord — c'est
+     une partie de ce qui rendait le fond terne. */
+  /* ⚠ LA TAILLE SE MESURE SUR L'ÉCRAN, PAS EN PIXELS FIXES. Première version : 340 px de
+     rayon. Sur un Mac de 1280 px de large, ça fait trois taches perdues dans un aplat —
+     mesuré au navigateur, la page était indiscernable d'un fond uni. En `vmax`, le voile
+     tient la même place sur un iPhone et sur un 27 pouces. */
+  --vr-halos:
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(30,132,80,.30), rgba(30,132,80,0) 70%),
+    radial-gradient(56vmax 56vmax at 90% 4%, rgba(47,79,158,.24), rgba(47,79,158,0) 70%),
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(30,132,80,.18), rgba(30,132,80,0) 70%);
+  /* ⛔⛔ L'ENCRE DE LA PAGE, CAPTURÉE ICI, SUR <html> — ET SURTOUT PAS SUR `.sidebar`.
+     `.sidebar` définit `--t1:var(--side-ink)` ; écrire `--side-ink:var(--t1)` sur elle ferme
+     un CYCLE, et un cycle rend TOUTES les variables qui y participent invalides, en silence.
+     Mesuré le 22 septembre 2026 : `getComputedStyle(.sidebar).getPropertyValue('--t1')`
+     rendait la chaîne VIDE, le titre de groupe sortait de la même encre que l'item actif
+     (c'est ce qui a fait lire « deux Tableau de bord ») et la coupe valait rgba(0,0,0,0).
+     Ici, sur <html>, `--t1` est celui du THÈME : pas de cycle possible. */
+  --vr-encre:var(--t1); --vr-encre2:var(--t2); --vr-encre3:var(--t3);
 }
 html[data-verre="1"][data-theme="dark"]{
-  --vr-fond:rgba(44,44,46,.55);
-  --vr-fond2:rgba(255,255,255,.08);
-  --vr-liseret:rgba(255,255,255,.18);
-  --vr-reflet:inset 0 1px 0 rgba(255,255,255,.14);
-  --vr-ombre:0 10px 28px rgba(0,0,0,.45);
-  --vr-ombre-barre:0 14px 36px rgba(0,0,0,.55);
+  --vr-fond:rgba(28,28,30,.42);
+  --vr-fond2:rgba(60,60,64,.42);
+  --vr-liseret:rgba(255,255,255,.16);
+  --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.03) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.06) 100%);
+  --vr-ombre:0 16px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(255,255,255,.06);
+  --vr-ombre-barre:0 22px 50px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.26),inset 0 -1px 0 rgba(255,255,255,.06);
   --vr-page:linear-gradient(180deg,#0a0a0c,#000);
+  --vr-halos:
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(46,184,114,.26), rgba(46,184,114,0) 70%),
+    radial-gradient(56vmax 56vmax at 90% 4%, rgba(91,143,214,.22), rgba(91,143,214,0) 70%),
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(46,184,114,.16), rgba(46,184,114,0) 70%);
 }
-html[data-verre="1"] body{background:var(--vr-page);background-attachment:fixed}
+/* ⛔⛔ LE FOND DE LA PAGE VA SUR <html>, PAS SUR <body> — SINON IL RECOUVRE LES HALOS.
+   Mesuré le 22 septembre 2026, au pixel : `body` portait
+   `linear-gradient(#f4f5f8,#e9ebf0)` et `body::after` était en `z-index:-1`. Or `body`
+   n'établit aucun contexte d'empilement ici : son `::after` négatif remonte donc dans celui
+   de la RACINE, et s'y peint AVANT le fond de `body`. Les trois halos existaient, étaient
+   justes, et étaient intégralement cachés sous le dégradé gris. La page avait l'air d'un
+   aplat, et le verre n'avait rien à déformer — exactement le symptôme que Justin décrivait.
+   ⚠ Le fond de <html> se propage au CANEVAS et se peint en tout premier : un `z-index:-1`
+   passe alors par-dessus. C'est le seul agencement qui rend les halos visibles. */
+html[data-verre="1"]{background:var(--vr-page);background-attachment:fixed}
+html[data-verre="1"] body{background:transparent!important}
 /* ⛔ TROIS ORBES, ET PAS UN DE PLUS. Le verre ne se voit que s'il a quelque chose à
    déformer : sur un aplat, un flou de 40 px rend exactement l'aplat. Les orbes sont la
    matière que la vitre plie. Ils vivent sur ::after de <body> — une seule couche peinte,
    jamais dans le flux, donc rien à recalculer quand une liste défile. */
 html[data-verre="1"] body::after{
   content:'';position:fixed;inset:-18%;z-index:-1;pointer-events:none;
-  background:
-    radial-gradient(300px 300px at 16% 20%, color-mix(in srgb,var(--acc) 42%,transparent), transparent 70%),
-    radial-gradient(280px 280px at 84% 12%, color-mix(in srgb,var(--blue) 34%,transparent), transparent 70%),
-    radial-gradient(320px 320px at 62% 88%, color-mix(in srgb,var(--acc) 26%,transparent), transparent 70%);
-  filter:blur(30px);opacity:.72;
+  background:var(--vr-halos);
+  filter:blur(44px);
   animation:vrOrbes 17s ease-in-out infinite alternate;
 }
-html[data-verre="1"][data-theme="dark"] body::after{opacity:.5}
 @keyframes vrOrbes{ from{transform:translate3d(0,0,0) scale(1)} to{transform:translate3d(2.5%,-2%,0) scale(1.08)} }
 
 html[data-verre="1"] .card,
 html[data-verre="1"] .kpi,
 html[data-verre="1"] .tbl,
 html[data-verre="1"] .modal{
-  background:var(--vr-fond)!important;
+  background:var(--vr-reflet),var(--vr-fond)!important;
   -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
-  border:.5px solid var(--vr-liseret)!important;
-  box-shadow:var(--vr-reflet),var(--vr-ombre)!important;
+  border:1px solid var(--vr-liseret)!important;
+  box-shadow:var(--vr-ombre)!important;
 }
 html[data-verre="1"] .topbar{
-  background:var(--vr-fond)!important;
+  background:var(--vr-reflet),var(--vr-fond)!important;
   -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
   border-bottom:.5px solid var(--vr-liseret)!important;
-  box-shadow:var(--vr-reflet),var(--vr-ombre-barre)!important;
+  box-shadow:var(--vr-ombre-barre)!important;
 }
-html[data-verre="1"] .chip,html[data-verre="1"] .seg{
+/* La pastille prend le reflet ; le GROUPE de segments non — c'est un creux, pas une vitre
+   posée dessus, et le curseur qui glisse dedans porte déjà sa propre lumière. */
+html[data-verre="1"] .chip{
+  background:var(--vr-reflet),var(--vr-fond2)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);
+}
+html[data-verre="1"] .seg{
   background:var(--vr-fond2)!important;
   -webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);
 }
@@ -4815,10 +4894,13 @@ html[data-verre="1"] .chip,html[data-verre="1"] .seg{
   html[data-verre="1"] .modal,html[data-verre="1"] .topbar,
   html[data-verre="1"] .chip,html[data-verre="1"] .seg{
     -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+    /* `background` et pas `background-color` : il faut retirer le REFLET aussi, sinon la
+       surface redevient pleine avec un dégradé blanc posé dessus. */
     background:var(--bg1)!important;
   }
   html[data-verre="1"] body::after{display:none}
-  html[data-verre="1"] body{background:var(--bg)}
+  html[data-verre="1"]{background:var(--bg)}
+  html[data-verre="1"] body{background:var(--bg)!important}
 }
 @media (prefers-reduced-motion: reduce){
   html[data-verre="1"] body::after{animation:none}
@@ -4879,12 +4961,16 @@ html[data-kind="desktop"] .tabbar{display:none!important}
 
 .tab{
   flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  background:none;border:0;color:var(--t3);cursor:pointer;padding:5px 2px;min-height:48px;
+  background:none;border:0;color:var(--t3);cursor:pointer;padding:5px 1px;min-height:48px;
   border-radius:14px;position:relative;-webkit-tap-highlight-color:transparent;
   font-family:inherit;transition:color var(--d-1,.14s) ease,background var(--d-1,.14s) ease;
 }
 .tab-ic{font-size:19px;line-height:1;transition:background var(--d-1,.14s) ease,padding var(--d-1,.14s) ease}
-.tab-l{font-size:10px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ⚠ UN LIBELLÉ TRONQUÉ NE NOMME RIEN, ET « Planni… » NE DIT PLUS SI C'EST « Planning » ou
+   « Planning général ». Mesuré à 430 px : cinq colonnes de 78 px, et « Planning » débordait
+   d'un caractère. Un chouia de crénage négatif le fait rentrer sans toucher à la taille — on
+   ne descend PAS sous 10 px, c'est le plancher lisible au soleil avec des gants. */
+.tab-l{font-size:10px;font-weight:600;letter-spacing:-.012em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tab.on{color:var(--acc)}
 .tab .tab-b{position:absolute;top:2px;right:calc(50% - 22px);font-size:9.5px;min-width:16px;padding:0 4px;line-height:16px}
 .tab:active{transform:scale(.94)}
@@ -4899,19 +4985,22 @@ html[data-kind="desktop"] .content{padding-bottom:22px}
 /* ── Verre : la barre flotte en pilule, comme la maquette ── */
 html[data-verre="1"][data-kind="mobile"] .tabbar{
   left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
-  border-radius:34px;border:.5px solid var(--vr-liseret);border-top:.5px solid var(--vr-liseret);
-  background:var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
-  box-shadow:var(--vr-reflet),var(--vr-ombre-barre);padding:7px 7px;
+  border-radius:34px;border:1px solid var(--vr-liseret);border-top:1px solid var(--vr-liseret);
+  background:var(--vr-reflet),var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  box-shadow:var(--vr-ombre-barre);padding:7px 7px;
 }
 html[data-verre="1"][data-kind="mobile"] .tab.on{background:rgba(255,255,255,.82)}
 html[data-verre="1"][data-kind="mobile"][data-theme="dark"] .tab.on{background:rgba(118,118,128,.36)}
-/* ⛔ DANS UN NAVIGATEUR, LA BARRE REDEVIENT PLATE ET COLLÉE. Safari mobile dessine SA propre
-   barre d'outils en bas de l'écran : une pilule flottante viendrait se poser dessus, ou juste
-   au-dessus dans un entre-deux illisible. On ne dessine pas la barre de Safari — on lui laisse
-   la place. */
+/* ⚠ DANS UN NAVIGATEUR, LA PILULE RESTE UNE PILULE — elle monte, elle ne s'aplatit plus.
+   Cette règle disait le contraire jusqu'au 22 septembre 2026 : la barre redevenait plate et
+   collée en bas dès qu'on n'était pas en application installée, pour ne pas se poser sur la
+   barre d'outils de Safari. Justin, qui teste sur iOS par le web, a tranché l'inverse : il
+   veut la même barre que dans l'application. On garde donc la pilule et on lui donne le
+   dégagement dont elle a besoin — la barre de Safari fait une cinquantaine de points, et
+   `env(safe-area-inset-bottom)` ne la compte pas quand elle est déployée.
+   ⛔ On ne dessine toujours PAS la barre de Safari : la vraie page en aurait deux. */
 html[data-verre="1"][data-kind="mobile"]:not([data-autonome="1"]) .tabbar{
-  left:0;right:0;bottom:0;border-radius:0;border:0;border-top:.5px solid var(--vr-liseret);
-  padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 8px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 22px);
 }
 
 /* ── Android : pastille tonale derrière l'icône active (Material 3) ── */
@@ -4931,15 +5020,31 @@ html[data-kind="desktop"] .menu-btn{display:none!important}
    Posée telle quelle sur du verre clair, elle devient illisible. Basculer la surface OBLIGE
    donc à basculer l'encre : les deux ensemble, ou ni l'un ni l'autre. */
 html[data-verre="1"] .sidebar{
-  background:var(--vr-fond)!important;-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  background:var(--vr-reflet),var(--vr-fond)!important;-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
   border-right:.5px solid var(--vr-liseret)!important;
-  --side-ink:var(--t1);--side-mut:var(--t3);--side-hover:var(--hover);
-  --side-active:color-mix(in srgb,var(--acc) 16%,transparent);--side-active-ink:var(--t1);
+  /* ⛔ ON LIT `--vr-encre`, JAMAIS `--t1` — voir le cycle expliqué aux jetons du verre.
+     `--t1` est redéfini SUR cette règle-là (ligne « CHARPENTE » de la refonte) : s'en
+     servir ici refermerait la boucle et tuerait les deux variables sans un mot. */
+  --side-ink:var(--vr-encre);--side-mut:color-mix(in srgb,var(--vr-encre) 52%,transparent);--side-hover:var(--hover);
+  --side-active:color-mix(in srgb,var(--acc) 16%,transparent);--side-active-ink:var(--vr-encre);
 }
-html[data-verre="1"] .sidebar .nav-item{color:var(--t2)}
+html[data-verre="1"] .sidebar .nav-item{color:color-mix(in srgb,var(--vr-encre) 84%,transparent)}
 html[data-verre="1"] .sidebar .nav-item.active{background:var(--acc-fill,var(--acc));color:var(--on-acc,#fff)}
-html[data-verre="1"] .sidebar .nav-label{color:var(--t3)}
-html[data-verre="1"] .sidebar .brand .hi,html[data-verre="1"] .sidebar #foot-name{color:var(--t1)}
+/* ⛔ UN TITRE DE GROUPE DOIT ÊTRE PLUS PÂLE QUE SES ITEMS, SUR VERRE COMME AILLEURS. Il ne
+   l'était pas : les deux sortaient de rgb(10,16,32), et c'est ce qui a fait lire
+   « deux Tableau de bord ». L'encre se dérive du TEXTE (`--vr-encre`), pour être plus pâle
+   par construction plutôt que par la grâce d'un thème. */
+html[data-verre="1"] .sidebar .nav-label{color:color-mix(in srgb,var(--vr-encre) 52%,transparent)!important}
+/* ⛔ PAS DE `color-mix` D'UN `color-mix` QUI PORTE DÉJÀ DE LA TRANSPARENCE. Mesuré : sur
+   verre, `--side-mut` vaut lui-même un mélange transparent ; le remixer à 34 % rendait
+   `rgba(0,0,0,0)` — la séparation était là, et INVISIBLE. Une coupe qu'on ne voit pas ne
+   sépare rien : c'est juste un blanc de plus. On part donc de l'encre pleine.
+   ⚠ Les règles de BASE de `.nav-coupe` ne sont pas ici mais dans le bloc « LES TITRES DE
+   GROUPE ET LES FAVORIS » : elles valent pour les dix rendus, et le bloc PLATEFORME ne doit
+   contenir QUE des règles préfixées par un attribut (c'est `test-751` qui l'exige, et il
+   vient de le rattraper). */
+html[data-verre="1"] .nav-coupe{background:color-mix(in srgb,var(--vr-encre) 18%,transparent)}
+html[data-verre="1"] .sidebar .brand .hi,html[data-verre="1"] .sidebar #foot-name{color:var(--vr-encre)}
 @media (prefers-reduced-transparency: reduce){
   html[data-verre="1"] .sidebar,html[data-verre="1"][data-kind="mobile"] .tabbar{
     -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--bg1)!important;
@@ -4960,7 +5065,7 @@ html[data-verre="1"] .sidebar .brand .hi,html[data-verre="1"] .sidebar #foot-nam
 html[data-kind="desktop"] .msg-flot{display:none!important}
 .msg-flot:active{transform:scale(.93)}
 @media (prefers-reduced-motion: reduce){ .msg-flot:active{transform:none} }
-html[data-verre="1"] .msg-flot{box-shadow:var(--vr-ombre-barre),0 0 0 .5px var(--vr-liseret)}
+html[data-verre="1"] .msg-flot{box-shadow:var(--vr-ombre-barre),0 0 0 1px var(--vr-liseret)}
 html[data-os="windows"] .msg-flot{border-radius:10px}
 
 /* ══ « ＋ CRÉER » — feuille montante (mobile) / fenêtre centrée (bureau) ══════════════════ */
@@ -5014,10 +5119,10 @@ html[data-kind="desktop"] .creer-grille{grid-template-columns:repeat(3,1fr)}
 
 /* ── Verre : la feuille est une vitre, pas un panneau opaque ── */
 html[data-verre="1"] .creer-sheet{
-  background:var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
-  border:.5px solid var(--vr-liseret);box-shadow:var(--vr-reflet),var(--vr-ombre-barre);
+  background:var(--vr-reflet),var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border:1px solid var(--vr-liseret);box-shadow:var(--vr-ombre-barre);
 }
-html[data-verre="1"] .creer-t{background:var(--vr-fond2);border:.5px solid var(--vr-liseret)}
+html[data-verre="1"] .creer-t{background:var(--vr-reflet),var(--vr-fond2);border:1px solid var(--vr-liseret)}
 html[data-os="android"] .creer-sheet{border-radius:28px 28px 0 0}
 html[data-os="android"] .creer-t{border:0;border-radius:28px}
 html[data-os="windows"] .creer-sheet{border-radius:9px}
@@ -5086,8 +5191,8 @@ html[data-refonte][data-theme="dark"] .filters.seg-on .seg-cur{
 html[data-os="windows"] .filters.seg-on,html[data-os="windows"] .filters.seg-on .chip,
 html[data-os="windows"] .filters.seg-on .seg-cur{border-radius:6px}
 html[data-verre="1"] .filters.seg-on .seg-cur{
-  background:var(--vr-fond);-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
-  box-shadow:var(--vr-reflet),0 1px 3px rgba(0,0,0,.1);
+  background:var(--vr-reflet),var(--vr-fond);-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:0 1px 3px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.9);
 }
 /* ⛔ Le curseur qui glisse est exactement le mouvement qu'un réglage « mouvement réduit »
    demande de ne pas faire : il saute, et il reste juste. */
@@ -5316,8 +5421,8 @@ html[data-refonte] .login-card .btn[type="submit"],html[data-refonte] .login-car
 html[data-os="windows"] .login-card .btn[type="submit"],
 html[data-os="windows"] #li-entnom{border-radius:6px}
 html[data-verre="1"] .login-card{
-  background:var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
-  border:.5px solid var(--vr-liseret);box-shadow:var(--vr-reflet),var(--vr-ombre);
+  background:var(--vr-reflet),var(--vr-fond);-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border:1px solid var(--vr-liseret);box-shadow:var(--vr-ombre);
 }
 @media (prefers-reduced-transparency: reduce){
   html[data-verre="1"] .login-card{
@@ -5337,6 +5442,49 @@ html[data-refonte] #app-root.op-entree{animation:opEntree .5s cubic-bezier(.32,.
 @media (prefers-reduced-motion: reduce){
   html[data-refonte] #app-root.op-entree{animation:opEntree .2s linear both;transform:none!important}
 }
+
+/* ══ LES TITRES DE GROUPE ET LES FAVORIS ═════════════════════════════════════
+   ⛔ UN TITRE DE GROUPE N'EST PAS UNE LIGNE DE MENU. Sur les captures du 22 septembre 2026,
+   « Tableau de bord » et « Planification » sortaient presque aussi noirs et aussi gras que les
+   rubriques : l'œil ne savait plus ce qui se clique. Chez Apple un en-tête de section est
+   PETIT, demi-gras, et nettement plus pâle — il structure, il n'appelle pas.
+   ⚠ Sur verre, la pâleur seule ne suffit pas (le fond bouge sous le texte) : on remonte la
+   graisse d'un cran pour garder la lisibilité. C'est la règle de vibrance d'Apple, et c'est le
+   contraire de ce qu'on ferait d'instinct. */
+html[data-os="ios"] .nav-label,html[data-os="macos"] .nav-label{
+  font-size:11px!important;font-weight:590!important;letter-spacing:.005em!important;
+  text-transform:none!important;padding:20px 12px 5px!important;
+  color:color-mix(in srgb,var(--side-mut) 92%,transparent)!important;
+}
+html[data-verre="1"] .sidebar .nav-label{font-weight:640!important}
+
+/* La coupe : une respiration, pas un mot. Discrète, et muette pour un lecteur d'écran.
+   Elle remplace le titre d'un groupe qui répète une de ses propres rubriques. */
+.nav-coupe{height:1px;margin:16px 12px 10px;background:color-mix(in srgb,var(--side-mut) 34%,transparent)}
+/* La première coupe du menu ne trace pas de ligne : il n'y a rien au-dessus d'elle à séparer,
+   ni quand la loupe est là (elle suit le message « aucune rubrique »), ni quand elle ne l'est
+   pas (moins de dix rubriques : la coupe est alors le premier enfant). */
+#nav .nav-coupe:first-child,#nav #nav-rien + .nav-coupe{margin-top:4px;background:none}
+
+/* Les favoris : un bloc en tête, avec son bouton de réglage dans le titre lui-même — une
+   ligne « Modifier mes favoris » de plus serait une rubrique qui n'en est pas une. */
+.nav-label-fav{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.nav-fav-edit{
+  background:transparent;border:0;padding:2px 4px;min-height:0;cursor:pointer;
+  font-family:inherit;font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;
+  color:var(--acc-txt,var(--acc));
+}
+.nav-fav-edit:hover{text-decoration:underline}
+.nav-item-fav{position:relative}
+.nav-fav{
+  background:transparent;border:0;padding:0 2px;min-height:0;cursor:pointer;line-height:1;
+  font-size:14px;color:var(--side-mut);margin-left:auto;flex-shrink:0;
+}
+.nav-fav.on{color:var(--acc-txt,var(--acc))}
+.nav-fav:hover{transform:scale(1.15)}
+.nav-fav-vide{padding:4px 12px 10px;font-size:12px;line-height:1.5;color:var(--side-mut)}
+/* La coupe qui suit les favoris sépare deux familles, pas deux écrans : elle respire plus. */
+.nav-item-fav + .nav-label,.nav-fav-vide + .nav-label{padding-top:22px!important}
 </style>
 </head>
 <body>
@@ -11480,6 +11628,13 @@ function ongletItem(k){ try{ return NAV.flatMap(s=>s.items).find(x=>x.k===k)||nu
    alors par les défauts, puis par le début du menu : la barre a toujours quatre onglets VALIDES. */
 function ongletsLire(){
   let brut=''; try{ brut=localStorage.getItem('elan_onglets')||''; }catch(e){}
+  /* ⚠ REPRISE DE L'ANCIENNE BARRE. `.rf-tabs` rangeait le même choix dans
+     `elan_barre_onglets`, en JSON. Elle ne s'affiche plus, mais son réglage est sur les
+     appareils de ceux qui l'ont utilisée : sans cette reprise, ils verraient leur barre
+     revenir aux quatre rubriques d'origine sans un mot. On ne LIT l'ancienne clé que si la
+     nouvelle est vide — un choix récent ne se fait jamais écraser par un ancien. */
+  if(!brut){ try{ const v=JSON.parse(localStorage.getItem('elan_barre_onglets')||'null');
+    if(Array.isArray(v)&&v.length) brut=v.filter(x=>typeof x==='string').join(','); }catch(e){} }
   const dispo=ongletsDispo(), cles=new Set(dispo.map(x=>x.k));
   const l=String(brut).split(',').map(s=>s.trim()).filter(k=>k&&cles.has(k));
   const ajoute=k=>{ if(l.length<ONGLETS_MAX && cles.has(k) && l.indexOf(k)<0) l.push(k); };
@@ -11487,6 +11642,7 @@ function ongletsLire(){
   dispo.forEach(it=>ajoute(it.k));
   return l.slice(0,ONGLETS_MAX);
 }
+/* Une seule barre, donc une seule clé écrite : `elan_onglets`, celle qui voyage par `u.pref`. */
 function ongletsEcrire(l){
   const v=(l||[]).slice(0,ONGLETS_MAX).join(',');
   try{ localStorage.setItem('elan_onglets',v); }catch(e){}
@@ -11502,12 +11658,25 @@ function renderMsgFlottant(){
   const b=document.getElementById('msg-flot'); if(!b) return;
   b.style.display = msgFlottantOn() ? 'flex' : 'none';
 }
+/* ⛔ UN LIBELLÉ TRONQUÉ NE NOMME RIEN. Mesuré au navigateur sur un iPhone de 430 px :
+   cinq onglets dans 406 px donnaient « Tablea… », « Interv… », « Planni… » — trois
+   rubriques qu'on ne distingue plus. Les abréviations sont celles que l'application emploie
+   déjà ailleurs (la même table que l'ancienne barre) : un même écran porte un même nom
+   court partout, sinon on croit à deux rubriques différentes.
+   ⚠ Le nom COMPLET reste dans `aria-label` : un lecteur d'écran ne lit pas des abréviations. */
+const ONGLET_COURT={dashboard:'Accueil',interventions:'Interv.',planningGeneral:'Plan. gén.',
+  assistantDevis:'Assist.',comptabilite:'Compta',telecollecte:'Télécol.',mouvements:'Mouv.',
+  saisieConso:'Conso',histoDemandes:'Histo.',modulesElan:'Modules',boiteMail:'Mail',
+  registre:'Registre',carteInt:'Carte',carteBox:'Box · carte',fournisseurs:'Fourn.',
+  validations:'Valid.',utilisateurs:'Comptes',permissions:'Droits',statistiques:'Stats',
+  archives:'Archives',absences:'Absences',conducteurs:'Conduct.',devisXylo:'Xylo'};
+function ongletCourt(k,l){ return ONGLET_COURT[k]||l; }
 function renderOnglets(){
   const bar=document.getElementById('tabbar'); if(!bar) return;
   if(!currentUser){ bar.innerHTML=''; return; }
   bar.innerHTML = ongletsLire().map(k=>{ const it=ongletItem(k); if(!it) return '';
     return `<button class="tab${current===k?' on':''}" data-tab="${k}" onclick="go('${k}')" aria-label="${esc(t(it.l))}">
-      <span class="tab-ic">${it.ic||'•'}</span><span class="tab-l">${esc(t(it.l))}</span>
+      <span class="tab-ic">${it.ic||'•'}</span><span class="tab-l">${esc(ongletCourt(k,t(it.l)))}</span>
       ${it.b?`<span class="badge tab-b" data-badge="${it.b}">0</span>`:''}</button>`; }).join('')
     + `<button class="tab" data-tab="_plus" onclick="document.getElementById('sidebar').classList.add('open')" aria-label="Toutes les catégories">
         <span class="tab-ic">☰</span><span class="tab-l">Plus</span></button>`;
@@ -11574,27 +11743,83 @@ function ongletsValider(){
   closeModal(); toast('✅ Barre d’onglets enregistrée');
   if(current==='parametres') views.parametres();
 }
+/* ══ LES FAVORIS ══ « pour qu'il puisse avoir tout ce dont il a besoin rapidement » (Justin,
+   22 septembre 2026). La barre d'onglets tient QUATRE rubriques sous le pouce ; les favoris
+   sont l'autre bout — jusqu'à huit raccourcis en tête du menu, pour qui travaille au clavier
+   ou sur grand écran. Les deux réglages sont indépendants à dessein : le pouce et le regard
+   ne cherchent pas les mêmes choses.
+   ⛔ Comme les onglets, un favori est un RÉGLAGE DE PERSONNE, pas une donnée d'entreprise :
+   il voyage par `u.pref`, jamais par `db`. L'écrire dans `db` le ferait partir à la synchro
+   chez toute l'équipe. */
+const FAV_MAX=8;
+function favorisLire(){
+  let l=[]; try{ l=JSON.parse(localStorage.getItem('elan_favoris')||'[]'); }catch(e){ l=[]; }
+  if(!Array.isArray(l)) l=[];
+  /* On refiltre à CHAQUE lecture : un droit retiré, un forfait changé ou un métier
+     différent doivent faire disparaître le raccourci, pas afficher une rubrique interdite. */
+  return l.filter(k=>{ const it=ongletItem(k); return !!(it && canSee(it)); }).slice(0,FAV_MAX);
+}
+function favorisEcrire(l){
+  const v=JSON.stringify(l.slice(0,FAV_MAX));
+  try{ localStorage.setItem('elan_favoris',v); }catch(e){}
+  prefEcrire('favoris',v);
+}
+function favorisBascule(ev,k){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  let l=favorisLire(); const i=l.indexOf(k);
+  if(i>=0) l.splice(i,1);
+  else if(l.length>=FAV_MAX){ toast('Huit favoris au maximum — retires-en un d’abord'); return; }
+  else l.push(k);
+  favorisEcrire(l); renderNav();
+}
+let _favEdit=false;
+function favorisEditer(){ _favEdit=!_favEdit; renderNav(); }
+function favorisEtoile(k){
+  const pris=favorisLire().indexOf(k)>=0;
+  return `<button class="nav-fav${pris?' on':''}" type="button" onclick="favorisBascule(event,'${k}')"
+     aria-label="${pris?'Retirer des favoris':'Ajouter aux favoris'}" title="${pris?'Retirer des favoris':'Ajouter aux favoris'}">${pris?'★':'☆'}</button>`;
+}
+function favorisBloc(){
+  const l=favorisLire();
+  const bouton=`<button class="nav-fav-edit" type="button" onclick="favorisEditer()">${_favEdit?'Terminé':'Modifier'}</button>`;
+  if(!l.length && !_favEdit) return '';
+  const lignes = l.map(k=>{ const it=ongletItem(k); if(!it) return '';
+    return `<div class="nav-item nav-item-fav${multiEnCours(k)?' nav-encours':''}" data-view="${k}" data-fav="1"
+       onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${k}','_blank');return;}go('${k}')">${it.ic?it.ic+' ':''}${esc(t(it.l))}${_favEdit?favorisEtoile(k):''}</div>`;
+  }).join('');
+  const vide = !l.length ? `<div class="nav-fav-vide">Touche l’étoile d’une rubrique pour l’épingler ici.</div>` : '';
+  return `<div class="nav-label nav-label-fav"><span>Favoris</span>${bouton}</div>`+lignes+vide;
+}
 function renderNav(){ try{ applyBrand(); }catch(e){}
   const att=db.formuleAttente;
-  $('nav').innerHTML = NAV.map(sec=>{
+  $('nav').innerHTML = favorisBloc() + NAV.map(sec=>{
     const rows = sec.items.map(it=>{
       if(canSee(it)) return {it,verrou:false};
       if(att && verrouFormule(it)) return {it,verrou:true};
       return null;
     }).filter(Boolean);
     if(!rows.length) return '';
-    return `<div class="nav-label">${esc(t(sec.g))}</div>` + rows.map(r=> r.verrou
+    /* ⛔ UN TITRE DE GROUPE QUI RÉPÈTE UN DE SES PROPRES ITEMS N'EST PAS UN TITRE, C'EST UN
+       DOUBLON. Trois groupes sont dans ce cas depuis toujours — « Tableau de bord »,
+       « Interventions », « Stock » — et Justin l'a vu de ses yeux sur Mac le 22 septembre 2026 :
+       deux fois « Tableau de bord » l'un sous l'autre, dont un en gros et surligné.
+       On retire le MOT, pas la SÉPARATION : ces groupes sont au milieu d'une liste de
+       quarante-deux lignes, et sans respiration on ne voit plus où une famille finit. */
+    const repete = rows.some(r=>!r.verrou && t(r.it.l)===t(sec.g));
+    const tete = repete ? `<div class="nav-coupe" aria-hidden="true"></div>`
+                        : `<div class="nav-label">${esc(t(sec.g))}</div>`;
+    return tete + rows.map(r=> r.verrou
       ? `<div class="nav-item nav-verrou" style="opacity:.38;cursor:not-allowed" title="Réservé à ta formule ${esc((PLANS[att.formule]||{}).l||'')} — en attente de paiement" onclick="verrouMessage()">🔒 ${esc(t(r.it.l))}</div>`
-      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}</div>`
+      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
     ).join('');
   }).join('');
   /* La loupe seulement quand il y a de quoi chercher : sous une dizaine de rubriques, elle
      ferait perdre plus de place qu'elle n'en fait gagner. */
-  if($('nav').querySelectorAll('.nav-item').length>=10){
+  if($('nav').querySelectorAll('.nav-item:not(.nav-item-fav)').length>=10){
     $('nav').insertAdjacentHTML('afterbegin',
       `<div class="nav-loupe">
          <span class="nav-loupe-ic" aria-hidden="true">🔍</span>
-         <input id="nav-loupe" type="search" autocomplete="off" spellcheck="false" placeholder="Rechercher une rubrique"
+         <input id="nav-loupe" type="search" autocomplete="off" spellcheck="false" placeholder="Rechercher"
                 aria-label="Rechercher une rubrique du menu"
                 oninput="navFiltrer(this.value)" onkeydown="navFiltreEntree(event)">
          <button id="nav-loupe-x" type="button" style="display:none" aria-label="Effacer la recherche" onclick="navFiltreVider()">✕</button>
@@ -28315,13 +28540,18 @@ views.parametres=function(){
           ${Object.entries(ACCENTS).map(([k,lbl])=>`<div onclick="setAccent('${k}')" style="cursor:pointer;text-align:center">
             <div style="width:42px;height:42px;border-radius:50%;background:${swatch[k]};margin:0 auto 6px;border:3px solid ${a===k?'var(--t1)':'transparent'};box-shadow:0 0 0 1px var(--brd)"></div>
             <div style="font-size:12px;color:${a===k?'var(--t1)':'var(--t3)'}">${lbl}</div></div>`).join('')}
-          <label style="cursor:pointer;text-align:center;position:relative">
-            <div style="width:42px;height:42px;border-radius:50%;background:conic-gradient(#e0524d,#e79a3c,#f5c84c,#37c68a,#2563eb,#7a5af8,#e0524d);margin:0 auto 6px;border:3px solid ${a==='custom'?'var(--t1)':'transparent'};box-shadow:0 0 0 1px var(--brd);display:flex;align-items:center;justify-content:center;font-size:16px">${a==='custom'?'✓':'🎨'}</div>
-            <div style="font-size:12px;color:${a==='custom'?'var(--t1)':'var(--t3)'}">Ma couleur</div>
-            <input type="color" value="${esc((localStorage.getItem('elan_accent_hex')||'#7A5AF8'))}" oninput="setAccentCustom(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
-          </label>
+          ${accentsPerso().map((hx,i)=>{ const ici = a==='custom' && (localStorage.getItem('elan_accent_hex')||'').toUpperCase()===hx.toUpperCase();
+            return `<div onclick="setAccentCustom('${esc(hx)}')" title="${esc(hx)}" style="cursor:pointer;text-align:center;position:relative">
+            <div style="width:42px;height:42px;border-radius:50%;background:${esc(hx)};margin:0 auto 6px;border:3px solid ${ici?'var(--t1)':'transparent'};box-shadow:0 0 0 1px var(--brd)"></div>
+            <button onclick="accentPersoRetirer(event,'${esc(hx)}')" aria-label="Retirer cette couleur" style="position:absolute;top:-4px;right:-4px;width:22px;height:22px;min-height:22px;border-radius:50%;border:1px solid var(--brd);background:var(--bg1);color:var(--t2);font-size:12px;line-height:1;cursor:pointer;padding:0">×</button>
+            <div style="font-size:12px;color:${ici?'var(--t1)':'var(--t3)'}">${i===0?'La mienne':'Perso '+(i+1)}</div></div>`; }).join('')}
+          ${accentsPerso().length>=ACC_PERSO_MAX?'':`<label style="cursor:pointer;text-align:center;position:relative">
+            <div style="width:42px;height:42px;border-radius:50%;background:conic-gradient(#e0524d,#e79a3c,#f5c84c,#37c68a,#2563eb,#7a5af8,#e0524d);margin:0 auto 6px;border:3px solid transparent;box-shadow:0 0 0 1px var(--brd);display:flex;align-items:center;justify-content:center;font-size:16px">＋</div>
+            <div style="font-size:12px;color:var(--t3)">Ajouter</div>
+            <input type="color" value="${esc((localStorage.getItem('elan_accent_hex')||'#7A5AF8'))}" onchange="setAccentCustom(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+          </label>`}
         </div>
-        <div style="font-size:12px;color:var(--t3);margin-top:8px">La couleur choisie s'applique partout : contours des cases, survols, menu, boutons…</div></div>
+        <div style="font-size:12px;color:var(--t3);margin-top:8px">La couleur choisie s'applique partout : contours des cases, survols, menu, boutons… Les couleurs que tu ajoutes restent dans ta palette et te suivent d'un appareil à l'autre.</div></div>
     </div>`+carteOnglets()+carteAppareil();
   // Utilisateur (compte créé par l'entreprise, pas sur le site) : ses réglages, la version, et la déconnexion — rien d'autre
   if(currentUser.role!=='admin'){ $('content').innerHTML=_app+`<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="color:var(--t2);font-size:13.5px">Version installée</span><b class="mono">v${APP_VERSION}</b></div><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:10px"><span style="color:var(--t2);font-size:13.5px">Session</span><button class="btn danger sm" onclick="if(confirm('Se déconnecter ?')) logout()">⏻ Déconnexion</button></div>`; return; }
@@ -34441,7 +34671,7 @@ function getAccent(){ return localStorage.getItem('elan_accent')||'green'; }
       deux téléphones ouverts se repousseraient leur thème à tour de rôle, chacun estampillant
       la fiche de l'autre. C'est un tap qui écrit. Conséquence assumée, et à dire : un réglage
       choisi AVANT cette version ne voyage qu'une fois retapé une seule fois. */
-const PREF_CLES={theme:'elan_theme',accent:'elan_accent',accentHex:'elan_accent_hex',lang:'elan_lang',onglets:'elan_onglets'};
+const PREF_CLES={theme:'elan_theme',accent:'elan_accent',accentHex:'elan_accent_hex',accentsPerso:'elan_accents_perso',lang:'elan_lang',onglets:'elan_onglets',favoris:'elan_favoris'};
 function prefEcrire(cle,val){
   if(!currentUser||!PREF_CLES[cle]||typeof val!=='string') return;
   const u=(db&&db.users&&db.users.find(x=>x.id===currentUser.id))||currentUser;
@@ -34471,16 +34701,21 @@ function applyTheme(){
   const hx = a==='custom' ? (localStorage.getItem('elan_accent_hex')||'#7A5AF8')
     : (!localStorage.getItem('elan_accent') && typeof entCouleur==='function' ? entCouleur() : null);
   if(hx){
-    r.style.setProperty('--acc',hx);
-    r.style.setProperty('--acc2','color-mix(in srgb,#000 24%,'+hx+')');
-    /* L'encre suit la teinte, elle ne l'impose plus : sur un jaune ou un vert pâle choisi
-       librement, le blanc tombait à 1,6:1. Même calcul que pour les pastilles d'avatar. */
-    r.style.setProperty('--on-acc', encreSur(hx));
-    /* Un remplissage assez foncé pour porter cette encre, sans toucher au vert des traits. */
-    r.style.setProperty('--acc-fill', encreSur(hx)==='#FFFFFF' ? 'color-mix(in srgb,#000 22%,'+hx+')' : hx);
-    r.style.setProperty('--acc-fill-hover','color-mix(in srgb,#000 32%,'+hx+')');
+    /* ⛔⛔ ON POSE LA SOURCE, PAS LES DÉRIVÉS. Cette fonction tenait CINQ jetons à la main
+       (`--acc`, `--acc2`, `--on-acc`, `--acc-fill`, `--acc-fill-hover`) pendant que la feuille
+       en dérive TREIZE de `--acc-src`. Les huit autres — `--acc-txt`, `--acc-fill-press`,
+       `--tint`, `--side-active-ink`, `--side-avatar`, `--anneau`, `--focus-champ`, `--rf-halo`
+       — restaient donc VERTS sous une couleur personnalisée. Le commentaire du bloc
+       `[data-accent]` le disait déjà : « sans ça il faudrait tenir douze couleurs à la main,
+       et la treizième serait oubliée ». Elle l'était.
+       On pose `--acc-src` en ligne, la feuille fait le reste, et de jour comme de nuit. */
+    r.style.setProperty('--acc-src',hx);
+    /* L'encre, elle, ne se dérive pas : sur un jaune ou un vert pâle choisi librement, le blanc
+       tombe à 1,6:1. Même calcul que pour les pastilles d'avatar. ⚠ De jour la feuille fonce
+       la teinte de 14 % avant de la remplir : l'encre se juge donc sur CETTE teinte-là. */
+    r.style.setProperty('--on-acc', encreSur(effectiveTheme()==='light'? melangeNoir(hx,14) : hx));
   }
-  else { ['--acc','--acc2','--on-acc','--acc-fill','--acc-fill-hover'].forEach(v=>r.style.removeProperty(v)); }
+  else { ['--acc-src','--acc','--acc2','--on-acc','--acc-fill','--acc-fill-hover'].forEach(v=>r.style.removeProperty(v)); }
   const tb=$('theme-btn'); if(tb){ tb.textContent=THEME_ICO[getThemePref()]; tb.title='Thème : '+THEME_LBL[getThemePref()]; }
   /* TOUTES, et pas la première : depuis qu'il y en a trois (une par réglage système, plus un
      repli), n'en corriger qu'une laissait le navigateur en lire une autre — le thème choisi
@@ -34940,10 +35175,46 @@ function avatarAccentSync(){ try{ if(!currentUser) return; const u=db.users.find
 }catch(e){} }
 function setAccent(a){ localStorage.setItem('elan_accent',a); prefEcrire('accent',a); applyTheme(); avatarAccentSync();
   toast('Couleur « '+(ACCENTS[a]||'personnalisée')+' » appliquée'); if(current==='parametres') views.parametres(); }
+/* Un mélange vers le noir, calculé en JavaScript — `color-mix` ne se lit pas depuis ici, et
+   `encreSur` a besoin d'une couleur, pas d'une expression CSS. */
+function melangeNoir(hex,pc){
+  const n=parseInt(hex.slice(1),16), k=(100-pc)/100;
+  const c=v=>Math.round(v*k).toString(16).padStart(2,'0');
+  return '#'+c((n>>16)&255)+c((n>>8)&255)+c(n&255);
+}
+/* ⛔ LES COULEURS PERSONNELLES SONT UNE LISTE, PAS UNE SEULE CASE. Justin : « qu'on puisse
+   bien aussi sauvegarder sa couleur par utilisateur et qu'il puisse l'ajouter en plus des
+   couleurs de base ». Elles vivent donc dans `elan_accents_perso`, voyagent par `u.pref`
+   comme le thème et les onglets, et s'affichent à la suite des huit. Plafonné à SIX : une
+   palette qu'on ne peut plus lire d'un coup d'œil ne sert plus à choisir. */
+const ACC_PERSO_MAX=6;
+function accentsPerso(){
+  try{ const l=JSON.parse(localStorage.getItem('elan_accents_perso')||'[]');
+    return Array.isArray(l) ? l.filter(h=>/^#[0-9a-fA-F]{6}$/.test(h)).slice(0,ACC_PERSO_MAX) : []; }
+  catch(e){ return []; }
+}
+function accentsPersoEcrire(l){
+  const v=JSON.stringify(l.slice(0,ACC_PERSO_MAX));
+  localStorage.setItem('elan_accents_perso',v); prefEcrire('accentsPerso',v);
+}
 function setAccentCustom(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+  hex=hex.toUpperCase();
+  const l=accentsPerso().filter(h=>h.toUpperCase()!==hex);
+  l.unshift(hex); accentsPersoEcrire(l);
   localStorage.setItem('elan_accent_hex',hex); localStorage.setItem('elan_accent','custom');
   prefEcrire('accentHex',hex); prefEcrire('accent','custom');
-  applyTheme(); avatarAccentSync(); toast('🎨 Couleur personnalisée appliquée'); }
+  applyTheme(); avatarAccentSync(); toast('🎨 Couleur ajoutée à ta palette');
+  if(current==='parametres') views.parametres(); }
+function accentPersoRetirer(ev,hex){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  const l=accentsPerso().filter(h=>h.toUpperCase()!==String(hex).toUpperCase());
+  accentsPersoEcrire(l);
+  /* Retirer la couleur QU'ON PORTE laisserait l'interface teinte par une couleur absente de la
+     palette : on revient au vert de la marque, c'est le seul choix qui ne ment pas. */
+  if(getAccent()==='custom' && (localStorage.getItem('elan_accent_hex')||'').toUpperCase()===String(hex).toUpperCase()){
+    localStorage.setItem('elan_accent','green'); prefEcrire('accent','green'); applyTheme(); avatarAccentSync();
+  }
+  toast('Couleur retirée'); if(current==='parametres') views.parametres(); }
 /* Suit le thème système en direct quand le réglage est sur « Auto » */
 if(window.matchMedia){ try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){} }
 
@@ -35589,7 +35860,7 @@ function compteurs(){
    laissent plus aucun émoji derrière elles, le second tour ne trouve rien et la boucle s'arrête. */
 var occupe=false, attente=null;
 var RACINES=['#content','#page-head','#overlay','#overlay2','#assistant','#nav',
-  '#topbar-actions','#login','.topbar','.sidebar-foot','#mail-read'];
+  '#topbar-actions','#login','.topbar','.sidebar-foot','#mail-read','#tabbar'];
 function balayerRacines(){
   for(var i=0;i<RACINES.length;i++){
     var l=document.querySelectorAll(RACINES[i]);
