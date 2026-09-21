@@ -49,6 +49,10 @@
   html[data-accent="blue"]  { --acc:#2563EB; --acc2:#1E40AF; --on-acc:#FFFFFF; }
   html[data-accent="purple"]{ --acc:#7A5AF8; --acc2:#6B21A8; --on-acc:#FFFFFF; }
   html[data-accent="orange"]{ --acc:#E79A3C; --acc2:#C26A10; --on-acc:#2A1304; }
+  html[data-accent="teal"]  { --acc:#3FC4DC; --acc2:#0F7A8C; --on-acc:#08222A; }
+  html[data-accent="indigo"]{ --acc:#7B79E8; --acc2:#4B49B8; --on-acc:#FFFFFF; }
+  html[data-accent="pink"]  { --acc:#FF6E8E; --acc2:#C2265A; --on-acc:#3A0512; }
+  html[data-accent="red"]   { --acc:#FF6E66; --acc2:#C7332B; --on-acc:#380605; }
 
   /* ── MODE JOUR (clair — option) ── */
   html[data-theme="light"]{
@@ -65,6 +69,10 @@
   html[data-theme="light"][data-accent="blue"]  { --acc:#2563EB; --acc2:#1E40AF; }
   html[data-theme="light"][data-accent="purple"]{ --acc:#7A5AF8; --acc2:#6B21A8; }
   html[data-theme="light"][data-accent="orange"]{ --acc:#C26A10; --acc2:#9A540C; }
+  html[data-theme="light"][data-accent="teal"]  { --acc:#0F7A8C; --acc2:#0A5A67; }
+  html[data-theme="light"][data-accent="indigo"]{ --acc:#4B49B8; --acc2:#3A388F; }
+  html[data-theme="light"][data-accent="pink"]  { --acc:#C2265A; --acc2:#991C47; }
+  html[data-theme="light"][data-accent="red"]   { --acc:#C7332B; --acc2:#9E2822; }
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{height:100%;}
   body{background:var(--bg);color:var(--t1);font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased;}
@@ -4731,6 +4739,122 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
   html[data-refonte] .rf-tabs{box-shadow:0 -1px 0 var(--rf-filet)}
   html[data-refonte] .rf-tabs button.on{box-shadow:inset 0 2px 0 var(--acc)}
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   PLATEFORME — le rendu suit l'appareil (21 septembre 2026)
+   Tout s'accroche aux attributs posés par `opPlatAppliquer()` sur <html> : data-os,
+   data-kind, data-verre, data-autonome. AUCUNE règle ici ne s'applique sans l'un d'eux —
+   un appareil non reconnu garde exactement le rendu d'avant, et c'est voulu : une refonte
+   qui se déclenche sur un doute casse l'écran de quelqu'un qui travaille.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. LE VERRE (Liquid Glass) — Apple, Safari 26 et plus, et personne d'autre ──
+   Les valeurs viennent de la maquette : flou 40 px, saturation 210 %, liseré d'un demi-pixel,
+   reflet interne en haut. Le reflet est ce qui distingue une vitre d'un simple voile gris. */
+html[data-verre="1"]{
+  --vr-flou:blur(40px) saturate(210%) brightness(1.06);
+  --vr-fond:rgba(255,255,255,.58);
+  --vr-fond2:rgba(255,255,255,.44);
+  --vr-liseret:rgba(255,255,255,.72);
+  --vr-reflet:inset 0 1px 0 rgba(255,255,255,.85);
+  --vr-ombre:0 10px 28px rgba(0,0,0,.08);
+  --vr-ombre-barre:0 14px 36px rgba(0,0,0,.14);
+  --vr-page:linear-gradient(180deg,#f7f7f9,#eeeef2);
+}
+html[data-verre="1"][data-theme="dark"]{
+  --vr-fond:rgba(44,44,46,.55);
+  --vr-fond2:rgba(255,255,255,.08);
+  --vr-liseret:rgba(255,255,255,.18);
+  --vr-reflet:inset 0 1px 0 rgba(255,255,255,.14);
+  --vr-ombre:0 10px 28px rgba(0,0,0,.45);
+  --vr-ombre-barre:0 14px 36px rgba(0,0,0,.55);
+  --vr-page:linear-gradient(180deg,#0a0a0c,#000);
+}
+html[data-verre="1"] body{background:var(--vr-page);background-attachment:fixed}
+/* ⛔ TROIS ORBES, ET PAS UN DE PLUS. Le verre ne se voit que s'il a quelque chose à
+   déformer : sur un aplat, un flou de 40 px rend exactement l'aplat. Les orbes sont la
+   matière que la vitre plie. Ils vivent sur ::after de <body> — une seule couche peinte,
+   jamais dans le flux, donc rien à recalculer quand une liste défile. */
+html[data-verre="1"] body::after{
+  content:'';position:fixed;inset:-18%;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(300px 300px at 16% 20%, color-mix(in srgb,var(--acc) 42%,transparent), transparent 70%),
+    radial-gradient(280px 280px at 84% 12%, color-mix(in srgb,var(--blue) 34%,transparent), transparent 70%),
+    radial-gradient(320px 320px at 62% 88%, color-mix(in srgb,var(--acc) 26%,transparent), transparent 70%);
+  filter:blur(30px);opacity:.72;
+  animation:vrOrbes 17s ease-in-out infinite alternate;
+}
+html[data-verre="1"][data-theme="dark"] body::after{opacity:.5}
+@keyframes vrOrbes{ from{transform:translate3d(0,0,0) scale(1)} to{transform:translate3d(2.5%,-2%,0) scale(1.08)} }
+
+html[data-verre="1"] .card,
+html[data-verre="1"] .kpi,
+html[data-verre="1"] .tbl,
+html[data-verre="1"] .modal{
+  background:var(--vr-fond)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border:.5px solid var(--vr-liseret)!important;
+  box-shadow:var(--vr-reflet),var(--vr-ombre)!important;
+}
+html[data-verre="1"] .topbar{
+  background:var(--vr-fond)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border-bottom:.5px solid var(--vr-liseret)!important;
+  box-shadow:var(--vr-reflet),var(--vr-ombre-barre)!important;
+}
+html[data-verre="1"] .chip,html[data-verre="1"] .seg{
+  background:var(--vr-fond2)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);
+}
+/* ⛔ LE VERRE N'EST PAS UNE OBLIGATION. Deux réglages système le retirent, et les deux sont
+   des besoins réels, pas des préférences : la transparence réduite (lisibilité) et le
+   mouvement réduit (vertiges). On les respecte SANS retirer la hiérarchie — les surfaces
+   redeviennent pleines, elles ne disparaissent pas. */
+@media (prefers-reduced-transparency: reduce){
+  html[data-verre="1"] .card,html[data-verre="1"] .kpi,html[data-verre="1"] .tbl,
+  html[data-verre="1"] .modal,html[data-verre="1"] .topbar,
+  html[data-verre="1"] .chip,html[data-verre="1"] .seg{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+    background:var(--bg1)!important;
+  }
+  html[data-verre="1"] body::after{display:none}
+  html[data-verre="1"] body{background:var(--bg)}
+}
+@media (prefers-reduced-motion: reduce){
+  html[data-verre="1"] body::after{animation:none}
+}
+
+/* ── 2. LES RAYONS ET LA TYPOGRAPHIE DE CHAQUE SYSTÈME ──
+   Un Android à coins Apple a l'air d'un portage, et un Windows à pilules a l'air d'un site
+   web. Les trois familles ont chacune leur grammaire ; on la suit. */
+html[data-os="android"]{
+  --fs:Roboto,"Google Sans","Helvetica Neue",system-ui,sans-serif;
+  --rf-r-carte:28px; --rf-r-fenetre:28px; --rf-r-ligne:20px; --rf-r-champ:16px; --rf-r-mini:12px;
+}
+html[data-os="android"] body{font-family:var(--fs)}
+html[data-os="android"][data-refonte] .card,html[data-os="android"][data-refonte] .kpi{border:none!important}
+
+html[data-os="windows"]{
+  --fs:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --rf-r-carte:8px; --rf-r-fenetre:9px; --rf-r-ligne:6px; --rf-r-champ:6px; --rf-r-mini:4px;
+}
+html[data-os="windows"] body{font-family:var(--fs)}
+/* Windows ne fait pas de pilules : un bouton y est un rectangle à peine adouci. */
+html[data-os="windows"][data-refonte] .btn{border-radius:6px!important}
+html[data-os="windows"][data-refonte] .chip{border-radius:6px!important}
+
+html[data-os="ios"] body,html[data-os="macos"] body{font-family:var(--fs)}
+html[data-verre="1"]{ --rf-r-carte:26px; --rf-r-fenetre:26px; }
+
+/* ── 3. CE QUE « PAS INSTALLÉE » CHANGE VRAIMENT ──
+   ⛔ ON NE DESSINE PAS DE BARRE D'ADRESSE. Le navigateur dessine déjà la sienne ; en
+   redessiner une ferait deux barres, et la maquette n'en montre une que parce qu'elle est
+   une IMAGE de l'application dans son navigateur.
+   Ce qui change pour de vrai : la barre d'outils de Safari mobile RECOUVRE le bas de
+   l'écran, donc tout ce qui est collé en bas doit lui laisser la place. */
+html[data-os="ios"][data-kind="mobile"]:not([data-autonome="1"]) body{
+  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+}
 </style>
 </head>
 <body>
@@ -5030,7 +5154,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '704-beta';
+const APP_VERSION = '705-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -27338,7 +27462,7 @@ function demoComptaRetire(silencieux){
 views.parametres=function(){
   setHeader('Synchronisation & paramètres','Apparence et sauvegarde des données');
   const t=getThemePref(), a=getAccent();
-  const swatch={green:'#1E7A4E',blue:'#2563EB',purple:'#7C3AED',orange:'#EA580C'};
+  const swatch={green:'#1E7A4E',blue:'#2563EB',teal:'#0F7A8C',indigo:'#4B49B8',purple:'#7C3AED',pink:'#C2265A',red:'#C7332B',orange:'#EA580C'};
   const _demo=demoCompte();
   // Les outils de test (planning de démonstration, mise en production…) ne sont visibles que par l'équipe TEAM OP :
   // les entreprises et leurs utilisateurs ne voient que LEURS réglages.
@@ -27427,7 +27551,7 @@ views.parametres=function(){
           </label>
         </div>
         <div style="font-size:12px;color:var(--t3);margin-top:8px">La couleur choisie s'applique partout : contours des cases, survols, menu, boutons…</div></div>
-    </div>`;
+    </div>`+carteAppareil();
   // Utilisateur (compte créé par l'entreprise, pas sur le site) : ses réglages, la version, et la déconnexion — rien d'autre
   if(currentUser.role!=='admin'){ $('content').innerHTML=_app+`<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="color:var(--t2);font-size:13.5px">Version installée</span><b class="mono">v${APP_VERSION}</b></div><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:10px"><span style="color:var(--t2);font-size:13.5px">Session</span><button class="btn danger sm" onclick="if(confirm('Se déconnecter ?')) logout()">⏻ Déconnexion</button></div>`; return; }
   $('content').innerHTML=_app+`
@@ -33321,8 +33445,183 @@ function renderAsst(){
   if(asstOpen){ const i=$('asst-input'); if(i) setTimeout(()=>i.focus(),50); }
 }
 
+/* ═══════════════ PLATEFORME — savoir qui nous lit, et avec quoi ═══════════════
+   Demande de Justin, 21 septembre 2026 : « c'est à nous de détecter les versions qui
+   utilisent l'application. Que ce soit iPhone, Mac, Windows, Android, version web, c'est à
+   nous de savoir. » Le rendu en découle : verre (Liquid Glass) là où la plateforme le porte,
+   surfaces pleines ailleurs, rayons et typographie de chaque système.
+
+   ⛔ CE QU'ON SAIT ET CE QU'ON NE SAIT PAS — et la différence compte, parce qu'un réglage
+   posé sur une supposition est pire qu'un réglage absent :
+   · le SYSTÈME (iOS, Android, macOS, Windows) se lit de façon fiable ;
+   · la version de SAFARI se lit dans l'agent, et c'est ELLE qui dit le verre : Liquid Glass
+     est arrivé avec Safari 26 (iOS 26 / macOS 26). C'est un signal vrai, pas une déduction ;
+   · ⚠️ la version de macOS, elle, NE SE LIT PAS : Safari annonce « Mac OS X 10_15_7 » depuis
+     Big Sur, pour toujours, et Chrome recopie le même mensonge. On la demande donc à
+     `userAgentData.getHighEntropyValues` quand le navigateur l'offre (Chromium seulement), et
+     sinon ON NE PRÉTEND PAS SAVOIR ;
+   · ⚠️ Windows 10 et 11 sont INDISCERNABLES depuis le web (« Windows NT 10.0 » pour les deux)
+     sans la même API. Même règle : on demande, sinon on dit « Windows ».
+   · un iPad se dit « Macintosh » depuis iPadOS 13. C'est le TACTILE qui le trahit
+     (`maxTouchPoints`), pas l'agent.
+
+   ⛔ ET CE QU'ON NE DESSINE PAS. Les maquettes montrent la barre d'adresse de Safari ou
+   d'Edge autour de l'application : c'est une IMAGE de l'application dans son navigateur. Dans
+   la vraie page, le navigateur dessine déjà sa barre — la redessiner ferait deux barres. Ce
+   que « version web » change VRAIMENT chez nous, c'est la place à laisser en bas (la barre de
+   Safari mobile recouvre le bas de l'écran) et le fait qu'on n'est pas installé. */
+const PLAT_CLE='elanB_plat_force';
+/* Les dix rendus de la maquette. `verre` et `kind` sont ce qui change des pixels ;
+   `nav` ne sert qu'à NOMMER le cas, jamais à dessiner un navigateur. */
+const PLATS={
+  ios27:     {os:'ios',     kind:'mobile',  verre:1, nav:'',       lbl:'iPhone · iOS 26+ (installée)'},
+  ios18:     {os:'ios',     kind:'mobile',  verre:0, nav:'',       lbl:'iPhone · iOS 18 et avant'},
+  iosweb:    {os:'ios',     kind:'mobile',  verre:1, nav:'safari', lbl:'iPhone · Safari 26+'},
+  android:   {os:'android', kind:'mobile',  verre:0, nav:'',       lbl:'Android (installée)'},
+  androidweb:{os:'android', kind:'mobile',  verre:0, nav:'chrome', lbl:'Android · navigateur'},
+  macos27:   {os:'macos',   kind:'desktop', verre:1, nav:'',       lbl:'Mac · macOS 26+ (installée)'},
+  macos14:   {os:'macos',   kind:'desktop', verre:0, nav:'',       lbl:'Mac · macOS 15 et avant'},
+  macweb:    {os:'macos',   kind:'desktop', verre:1, nav:'safari', lbl:'Mac · Safari 26+'},
+  windows:   {os:'windows', kind:'desktop', verre:0, nav:'',       lbl:'Windows (installée)'},
+  winweb:    {os:'windows', kind:'desktop', verre:0, nav:'edge',   lbl:'Windows · navigateur'}
+};
+/* Installée sur l'écran d'accueil (PWA) plutôt qu'ouverte dans un onglet. */
+function opAutonome(){
+  try{ if(window.matchMedia && matchMedia('(display-mode: standalone)').matches) return true; }catch(e){}
+  try{ if(window.matchMedia && matchMedia('(display-mode: window-controls-overlay)').matches) return true; }catch(e){}
+  return navigator.standalone===true;
+}
+function opOS(){
+  const ua=navigator.userAgent||'', p=(navigator.userAgentData&&navigator.userAgentData.platform)||'';
+  if(/Android/i.test(ua)||/Android/i.test(p)) return 'android';
+  if(/iPhone|iPod/i.test(ua)) return 'ios';
+  /* iPadOS se fait passer pour un Mac. Un Mac n'a pas cinq points de contact. */
+  if(/iPad/i.test(ua)||(/Macintosh/i.test(ua)&&(navigator.maxTouchPoints||0)>1)) return 'ios';
+  if(/Macintosh|Mac OS X/i.test(ua)||/macOS/i.test(p)) return 'macos';
+  if(/Windows/i.test(ua)||/Windows/i.test(p)) return 'windows';
+  if(/CrOS/i.test(ua)) return 'chromeos';
+  if(/Linux/i.test(ua)) return 'linux';
+  return 'autre';
+}
+function opNavigateur(){
+  const ua=navigator.userAgent||'';
+  /* L'ORDRE EST LA MOITIÉ DU TRAVAIL : Edge contient « Chrome », Chrome contient « Safari ».
+     Écrit dans l'autre sens, tout le monde est Safari. */
+  if(/Edg[A-Z]?\//.test(ua)) return 'edge';
+  if(/SamsungBrowser/i.test(ua)) return 'samsung';
+  if(/FxiOS|Firefox/i.test(ua)) return 'firefox';
+  if(/CriOS|Chrome\//i.test(ua)) return 'chrome';
+  if(/Safari/i.test(ua)) return 'safari';
+  return 'autre';
+}
+/* La version de WebKit telle que Safari l'annonce. C'est le seul signal HONNÊTE du verre :
+   Liquid Glass arrive avec Safari 26. Rend 0 quand on ne sait pas — et 0 ne veut pas dire
+   « vieux », il veut dire « on ne sait pas », ce qui n'autorise pas le verre. */
+function opSafariVer(){
+  const ua=navigator.userAgent||'';
+  const m=ua.match(/Version\/(\d+)[\.\d]*\s+(?:Mobile\/\S+\s+)?Safari/);
+  return m?parseInt(m[1],10)||0:0;
+}
+function opOSVer(){
+  const ua=navigator.userAgent||'';
+  let m=ua.match(/(?:iPhone |CPU )?OS (\d+)[._]/);  if(m) return parseInt(m[1],10)||0;
+  m=ua.match(/Android (\d+)/);                       if(m) return parseInt(m[1],10)||0;
+  /* ⚠️ Rien pour macOS ni Windows : leur agent MENT (10_15_7 depuis Big Sur, NT 10.0 pour
+     Windows 10 ET 11). `opPlatHaute()` va le demander à l'API qui, elle, dit vrai. */
+  return 0;
+}
+/* La version exacte, quand le navigateur accepte de la donner (Chromium). ASYNCHRONE : on
+   repose les attributs à la réponse. Silencieux partout ailleurs — c'est un BONUS, jamais
+   une condition. */
+let _platHaute=null;
+function opPlatHaute(){
+  const uad=navigator.userAgentData;
+  if(!uad||!uad.getHighEntropyValues) return;
+  try{ uad.getHighEntropyValues(['platformVersion']).then(h=>{
+    const v=parseInt(String((h&&h.platformVersion)||'').split('.')[0],10);
+    if(isFinite(v)&&v>0){ _platHaute=v; try{ opPlatAppliquer(); }catch(e){} }
+  }).catch(()=>{}); }catch(e){}
+}
+/* Ce qu'on a mesuré, sans rien inventer. `sur` dit à quel point on est sûr de la VERSION —
+   c'est ce qui est affiché dans les Paramètres, pour qu'un doute se voie. */
+function opPlatMesure(){
+  const os=opOS(), nav=opNavigateur(), autonome=opAutonome();
+  const safari=opSafariVer(), osv=opOSVer();
+  /* Le verre ne s'allume que sur du WebKit Apple à jour. Un Chrome sur Mac ne le rend pas ;
+     un « on ne sait pas » (0) ne l'allume pas non plus. */
+  const appleWebkit=(os==='ios'||os==='macos')&&(nav==='safari'||os==='ios');
+  const verre=appleWebkit&&safari>=26;
+  let plat;
+  if(os==='ios')          plat = verre ? (autonome?'ios27':'iosweb') : 'ios18';
+  else if(os==='android') plat = autonome?'android':'androidweb';
+  else if(os==='macos')   plat = verre ? (autonome?'macos27':'macweb') : 'macos14';
+  else if(os==='windows') plat = autonome?'windows':'winweb';
+  else                    plat = autonome?'windows':'winweb';   // Linux, ChromeOS : rendu Windows, surfaces pleines
+  const version = (os==='macos'||os==='windows') ? (_platHaute||0) : osv;
+  return {plat, os, nav, autonome, safari, version,
+    sur: version? 'mesurée' : ((os==='macos'||os==='windows') ? 'inconnue (le navigateur ne la donne pas)' : 'inconnue'),
+    detecte:true};
+}
+function opPlatForce(){ try{ const k=localStorage.getItem(PLAT_CLE); return PLATS[k]?k:''; }catch(e){ return ''; } }
+/* Ce qu'on APPLIQUE : le forçage s'il y en a un, la mesure sinon. */
+function opPlat(){
+  const m=opPlatMesure(), f=opPlatForce();
+  if(!f) return m;
+  return {...m, ...PLATS[f], plat:f, detecte:false, mesure:m.plat};
+}
+/* ⛔ LE RENDU SE LIT SUR <html>, PAS DANS DU JAVASCRIPT ÉPARPILLÉ. Une seule fonction pose
+   les attributs ; toute la feuille de style s'accroche dessus. Ajouter un cas, c'est ajouter
+   une ligne ici, jamais un `if` dans une vue. */
+function opPlatAppliquer(){
+  const p=opPlat(), d=PLATS[p.plat]||PLATS.winweb, r=document.documentElement;
+  r.setAttribute('data-plat',p.plat);
+  r.setAttribute('data-os',d.os);
+  r.setAttribute('data-kind',d.kind);
+  r.setAttribute('data-nav',opNavigateur());
+  if(d.verre) r.setAttribute('data-verre','1'); else r.removeAttribute('data-verre');
+  if(p.autonome) r.setAttribute('data-autonome','1'); else r.removeAttribute('data-autonome');
+  return p;
+}
+/* La carte « Appareil » des Paramètres — ce qu'on a DÉTECTÉ, et la possibilité de forcer un
+   autre rendu pour l'éprouver. ⛔ Elle dit aussi ce qu'on NE SAIT PAS : un écran qui affiche
+   « macOS 14 » alors qu'on n'a pas pu lire la version ferait croire à une mesure. */
+function carteAppareil(){
+  const p=opPlat(), d=PLATS[p.plat]||{}, f=opPlatForce();
+  const verre=d.verre?'oui':'non';
+  const lignes=[
+    ['Système', {ios:'iPhone / iPad',android:'Android',macos:'Mac',windows:'Windows',linux:'Linux',chromeos:'ChromeOS'}[p.os]||'inconnu'],
+    ['Version du système', p.version? String(p.version) : '— '+p.sur],
+    ['Navigateur', {safari:'Safari',chrome:'Chrome',edge:'Edge',firefox:'Firefox',samsung:'Samsung Internet'}[p.nav]||'autre'],
+    ['Installée sur l’appareil', p.autonome?'oui':'non (ouverte dans un navigateur)'],
+    ['Verre (Liquid Glass)', verre+(d.verre?'':' — '+(p.os==='ios'||p.os==='macos'?('Safari '+(p.safari||'?')+', il en faut 26'):'réservé aux appareils Apple récents'))]
+  ];
+  return `<div class="card" style="margin-top:12px"><div class="card-head"><h3>📱 Appareil et rendu</h3></div>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.55;margin-bottom:12px">L’application reconnaît l’appareil et adapte son rendu : verre sur les appareils Apple récents, surfaces pleines ailleurs, rayons et typographie de chaque système.</p>
+    <div class="fgroup">${lignes.map(([k,v])=>`<div class="frow"><span class="frow-lbl">${k}</span><span class="frow-val">${esc(String(v))}</span></div>`).join('')}</div>
+    <div class="dt-lbl" style="margin:16px 0 8px">Rendu appliqué</div>
+    <div style="background:${f?'color-mix(in srgb,var(--org) 11%,transparent)':'color-mix(in srgb,var(--acc) 10%,transparent)'};border:1px solid ${f?'color-mix(in srgb,var(--org) 42%,transparent)':'color-mix(in srgb,var(--acc) 35%,transparent)'};border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.5;margin-bottom:12px">
+      ${f?`⚠️ <b>Forcé</b> sur « ${esc(d.lbl||f)} ». L’appareil, lui, a été reconnu comme « ${esc((PLATS[p.mesure]||{}).lbl||p.mesure||'—')} ».`
+         :`✓ <b>${esc(d.lbl||p.plat)}</b> — détecté automatiquement.`}
+    </div>
+    <div class="filters" style="margin:0">
+      <div class="chip ${f?'':'active'}" onclick="setPlatForce('')">🔍 Détection automatique</div>
+      ${Object.entries(PLATS).map(([k,v])=>`<div class="chip ${f===k?'active':''}" onclick="setPlatForce('${k}')">${esc(v.lbl)}</div>`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--t3);margin-top:10px;line-height:1.5">Forcer un rendu ne change que l’apparence, sur CET appareil : aucune donnée n’est touchée, et rien n’est envoyé à l’équipe. C’est fait pour éprouver les dix rendus depuis un seul écran.</div>
+    <div style="font-size:12px;color:var(--t3);margin-top:8px;line-height:1.5">⚠️ Deux choses ne se lisent pas depuis le web, et on ne les invente pas : la version exacte de <b>macOS</b> (Safari annonce « 10.15.7 » depuis des années) et la différence entre <b>Windows 10 et 11</b>. Quand le navigateur accepte de les donner, elles s’affichent ci-dessus ; sinon la ligne dit « inconnue ».</div>
+  </div>`;
+}
+function setPlatForce(k){
+  try{ if(PLATS[k]) localStorage.setItem(PLAT_CLE,k); else localStorage.removeItem(PLAT_CLE); }catch(e){}
+  opPlatAppliquer();
+  toast(PLATS[k]? ('🖥️ Rendu « '+PLATS[k].lbl+' »') : '🔍 Rendu détecté automatiquement');
+  if(current==='parametres') views.parametres();
+}
+
 /* ═══════════════ THÈME (auto système / jour / sombre + couleur d'accent) ═══════════════ */
-const ACCENTS = { green:'Vert OP', blue:'Bleu', purple:'Violet', orange:'Orange' };
+/* Huit teintes, comme la maquette. ⛔ LE VERT OP RESTE LE DÉFAUT et garde sa valeur :
+   changer un défaut, c'est changer la couleur de tous ceux qui n'ont rien choisi. */
+const ACCENTS = { green:'Vert OP', blue:'Bleu', teal:'Cyan', indigo:'Indigo', purple:'Violet', pink:'Rose', red:'Rouge', orange:'Orange' };
 const THEME_LBL = { auto:'Auto (système)', light:'Mode jour', dark:'Mode sombre' };
 const THEME_ICO = { auto:'🌗', light:'☀️', dark:'🌙' };
 function getThemePref(){ return localStorage.getItem('elanB_theme')||'auto'; }
@@ -33848,6 +34147,9 @@ function setAccentCustom(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
 if(window.matchMedia){ try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){} }
 
 /* ═══════════════ INIT ═══════════════ */
+/* La plateforme d'abord : la feuille de style s'accroche a <html>, donc elle doit etre
+   marquee AVANT le premier rendu, sinon le premier ecran paraitrait sans verre puis sauterait. */
+try{ opPlatAppliquer(); opPlatHaute(); }catch(e){}
 applyTheme();
 boot();
 

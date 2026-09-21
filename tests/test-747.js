@@ -83,6 +83,11 @@ const A_TRANCHER = {
      non payée. Le trou coûte moins cher que le verrou. Si Justin veut l'inverse, c'est une ligne
      à ajouter dans `savePointage`, et cette entrée disparaît. */
   savePointage: 'pointer, c est declarer ses propres heures, pas creer un enregistrement partage',
+  /* Même décision, même raison, l'autre porte : depuis la v704 on pointe d'un tap sur un gros
+     bouton (`pointerDebut`) au lieu de remplir un formulaire. Si le droit devait fermer le
+     pointage, il faudrait le poser sur LES DEUX — les séparer donnerait un verrou qui se
+     contourne par le bouton, c'est-à-dire pas de verrou du tout. */
+  pointerDebut: 'meme decision que savePointage : pointer ne cree pas un enregistrement partage',
 };
 
 const mg = /const COLL_GRP=\{([^}]*)\}/.exec(NU);

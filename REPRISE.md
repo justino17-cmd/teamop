@@ -22,6 +22,85 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ✅ 21 SEPTEMBRE 2026, NUIT — LE POINTAGE, ET L'APPAREIL RECONNU (v704–v705, BÊTA SEULE)
+
+Trois demandes de Justin, dans l'ordre où elles sont arrivées.
+
+### 1. « Je vois plus la catégorie Pointage sur la bêta. Pourquoi ? »
+
+**Cause mesurée, pas supposée** : `pointage` figure dans `PLAN_BLOQUE.gratuit`. Un espace dont
+`db.forfait` vaut « gratuit » perd la catégorie — comme le métier peut en masquer d'autres.
+
+**Corrigé, et plus largement que le cas** : `planBloque` et `metierBloque` rendent `false` quand
+`BETA_ESSAI` est vrai. **La bêta voit désormais TOUTES les catégories**, parce qu'une catégorie
+masquée est une catégorie qu'on ne peut plus éprouver. En production le drapeau vaut `false` :
+rien ne change chez un client, le forfait continue de décider — c'est ce qui est facturé.
+
+### 2. Le pointage à l'heure, avec le calcul automatique
+
+« Quand le technicien pointe, ça calcule à l'heure … sans qu'ils aient besoin de recompter
+entre chaque heure … et s'il repointe dans la même journée, que ça s'ajoute mais qu'on voit
+bien les deux pointages. »
+
+Fait : un gros bouton **Pointer / Dépointer** qui prend l'heure de l'appareil à la seconde, un
+chrono qui avance à l'écran, les pointages d'une même journée **additionnés et tous visibles**,
+l'historique groupé par jour avec son total, le droit dédié **« voirPointages »** (un DR ou un
+chef voit son équipe sans qu'on lui donne le stock avec), et l'**export PDF** semaine ou mois.
+
+Deux défauts de fond réparés au passage, qui existaient avant cette demande :
+· **les nuits** comptaient 0 h (`minutes('23:50','00:20')` rend 0) ;
+· **un « dépointer » oublié** aurait compté 63 h ; il est plafonné, signalé, et se clôture à
+  l'heure qu'on dit.
+
+Mesuré : `tests/test-749.js` **69 ✓ 0 ✗**, `scratchpad/sonde-pointage.js` **53 ✓ 0 ✗** au
+navigateur. Six mutations posées, six chutes.
+
+### 3. « C'est à nous de détecter les versions qui utilisent l'application »
+
+**Le socle est posé** : `opPlatAppliquer()` reconnaît le système, le navigateur, la version de
+Safari et le mode installé, et pose `data-plat / data-os / data-kind / data-verre / data-nav /
+data-autonome` sur `<html>`. Toute la feuille de style s'accroche dessus. Ce qui en découle
+aujourd'hui : **le verre (Liquid Glass)** sur Apple à partir de Safari 26, **surfaces pleines**
+partout ailleurs, **rayons et typographie de chaque système** (Android 28 px / Roboto,
+Windows 8 px / Segoe UI, Apple 26 px / SF), **huit teintes** d'accent, et une carte
+**« Appareil et rendu »** dans les Paramètres qui affiche ce qu'on a détecté **et permet de
+forcer les dix rendus** depuis un seul écran.
+
+⚠️ **Ce qu'on ne sait pas, et qu'on n'invente pas** : la version exacte de **macOS** (Safari
+annonce « 10_15_7 » depuis Big Sur) et la différence **Windows 10 / 11**. L'écran l'écrit.
+
+⚠️ **Ce qu'on ne dessine pas** : la barre d'adresse du navigateur. Les maquettes en montrent
+une parce qu'elles sont des IMAGES de l'application dans son navigateur ; la vraie page en
+aurait deux.
+
+Mesuré : `tests/test-750.js` **81 ✓ 0 ✗** (onze agents réels), `scratchpad/sonde-plateforme.js`
+**65 ✓ 0 ✗** au navigateur, flou relevé sur une vraie carte.
+
+### ⛔ CE QUI RESTE DE LA REFONTE APPLE — et ce n'est pas un détail
+
+Le dossier de Justin (`Gestion_Surveillance_Apple_style.zip`) décrit **dix rendus** et une
+refonte complète des écrans. Ce qui est fait est le **socle** : la détection, les matières,
+les rayons, les polices, les teintes. Ce qui **n'est pas fait**, par ordre de coût :
+
+1. **La navigation** — barre d'onglets à 4 catégories personnalisable, tiroir gauche 300 px,
+   sidebar permanente 236 px sur bureau, bouton messagerie flottant. C'est une réécriture de la
+   navigation actuelle (42 entrées, menu latéral), pas un habillage.
+2. **Le flux « + Créer »** — feuille montante à six entrées (Intervention, Client, Devis,
+   Facture, Demande, Box).
+3. **Les 25 écrans de liste sur un gabarit unique** — recherche en pilule, filtres segmentés,
+   lignes ≥ 64 px. Aujourd'hui chaque écran a sa mise en page.
+4. **Les fiches** (Box, Intervention, Client) redessinées.
+5. **L'écran de connexion** par lien d'invitation avec la pastille « ✓ <Entreprise> · lien
+   vérifié ».
+6. **Le site vitrine** — deux palettes (Apple bleu, Marine), sélecteur Jour/Nuit/Auto dans la
+   nav, sections hero à FAQ. C'est un chantier à part entière, sur `index.html` et `tarifs.html`.
+
+⚠️ **À dire avant de s'y mettre** : les points 1 à 4 touchent des écrans que des techniciens
+utilisent tous les jours. Ils se font sur la bêta, écran par écran, avec une mesure au
+navigateur à chaque fois — pas en une passe.
+
+---
+
 ## ✅ 21 SEPTEMBRE 2026, SOIR — LE MULTITÂCHE, ET LES DROITS FINIS
 
 Justin : **« rajoute un système dans les catégories et sous-catégories pour faire du

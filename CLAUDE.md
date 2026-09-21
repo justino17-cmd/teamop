@@ -641,6 +641,64 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
 - **Une ligne de journal par GESTE, jamais par box.** `db.journal` est plafonné à 500 entrées à chaque
   `save()` et re-tronqué à 500 à chaque fusion : douze box de cent produits effacent tout l'historique
   de l'entreprise en un passage. Compter et nommer les box, ne pas réciter les produits.
+- ⛔⛔ **`document.body.innerHTML` CONTIENT LE CODE SOURCE DE LA PAGE.** `app.html` est un
+  fichier UNIQUE : son `<script>` vit dans `<body>`. Une sonde qui y cherche un libellé
+  (« ▶ Pointer ») le trouve dans la chaîne JavaScript **qui l'écrit**, même quand aucun bouton
+  n'est rendu. Mesuré le 21 septembre 2026 : un contrôle « aucun bouton Pointer » tombait à
+  rouge sur un écran qui n'en montrait aucun. **Lire `$('content').innerHTML`**, jamais `body`.
+  ⚠️ Et son jumeau, pris dans la même heure : **l'application remplace certains émojis par des
+  icônes SVG** (classe `rf-ic`). Chercher `⏹ Dépointer` dans le HTML rend FAUX alors que le
+  bouton dit bien « Dépointer » — son `⏹` est devenu un `<svg>`. Lire le **`textContent`**.
+- ⛔⛔ **UNE DÉCOUPE DE BANC QUI DÉBORDE REND UN VERDICT FAUX — TROIS FOIS EN DEUX JOURS.**
+  `corps(nom)` s'arrête à la prochaine `function ` de premier niveau. Mais `ptTickStart` est
+  suivie de `views.pointage=function(){`, et `visiblePointages` de `ptPeutVoirAutres` : la
+  tranche emportait la suite, et le banc accusait le chrono de redessiner `#content` (ce que
+  fait la VUE) puis déclarait gardé un droit qu'il ne lisait pas. Symptôme constant :
+  **une mutation ne casse rien alors que le défaut est réel.** Borner sur `function `, `views.`,
+  `const `, `let ` — et, pour un bloc CSS, sur `</style>`.
+  ⚠️ La vraie parade n'est pas une fenêtre mieux bornée : **exécuter la fonction**. Un droit se
+  mesure à ce qu'il LAISSE PASSER, pas au texte qui le nomme.
+- ⛔ **UNE ANCRE QUI NE SE TROUVE PAS REND UNE TRANCHE VIDE, ET UNE TRANCHE VIDE PASSE AU
+  VERT.** Un motif écrit avec une apostrophe typographique (`l’appareil`) là où le code en porte
+  une droite (`l'appareil`) : `indexOf` rend −1, la tranche est vide, et « aucune règle
+  n'échappe à la garde » passe sur du néant. **Tout banc qui découpe doit d'abord prouver
+  qu'il a trouvé quelque chose** (`vrai('le bloc est trouvé', i0>0)`), et toute sonde qui
+  mesure un élément doit prouver qu'il EXISTE : `document.querySelector('.card')||document.body`
+  mesurait `<body>` avant connexion, donc « pas de verre » — et le contre-essai passait pour la
+  même mauvaise raison.
+- ⛔ **LA BÊTA VOIT TOUTES LES CATÉGORIES, PAR CONSTRUCTION.** `planBloque` et `metierBloque`
+  rendent `false` quand `BETA_ESSAI` est vrai. Raison mesurée le 21 septembre 2026 :
+  « Pointage » avait disparu de la bêta parce qu'il figure dans `PLAN_BLOQUE.gratuit` — une
+  catégorie masquée est une catégorie qu'on ne peut plus ÉPROUVER, et la bêta est l'outil de
+  travail de l'équipe. En production le drapeau vaut `false` : le forfait continue de décider
+  chez un client, c'est ce qui est facturé. `tests/test-749.js` tient les deux sens.
+- ⛔ **UN COMPTEUR DE PAIE PORTE DEUX HORODATAGES, ET ON LES RÉÉCRIT ENSEMBLE.** Un pointage
+  garde `debut`/`fin` en `'HH:MM'` (tout ce qui a été saisi les porte, et la fusion unit par
+  enregistrement : un champ qui disparaît est une donnée perdue chez qui n'a pas la nouvelle
+  version) **plus** `debutTs`/`finTs` en epoch. Trois conséquences à ne pas casser :
+  · c'est l'horodatage qui fait les NUITS — `minutes('23:50','00:20')` rend 0, l'équipe de nuit
+    pointait des journées vides ;
+  · corriger « 17:00 » en « 16:35 » **sans** réécrire `finTs` ferait afficher 16:35 et compter
+    jusqu'à 17:00 : la panne silencieuse type de ce dépôt, une donnée en deux exemplaires dont
+    un seul est mis à jour ;
+  · un pointage resté ouvert est **plafonné à `PT_MAX_H` et SIGNALÉ**, et se clôture à l'heure
+    qu'on dit — pas à l'heure qu'il est, sinon on inscrit 16 h à quelqu'un qui en a fait 8.
+  ⚠️ Et le chrono de l'écran s'arrête dès qu'on quitte la vue : une minuterie qui lui survit
+  redessine le `#content` d'une autre catégorie — c'est la panne du multitâche, par l'autre bout.
+- ⛔ **LA PLATEFORME : CE QU'ON SAIT, ET CE QU'ON NE SAIT PAS.** `opPlatAppliquer()` pose
+  `data-plat`, `data-os`, `data-kind`, `data-verre`, `data-nav`, `data-autonome` sur `<html>` ;
+  toute la feuille de style s'accroche dessus, et **aucune règle ne s'applique sans attribut**
+  (un appareil non reconnu garde exactement le rendu d'avant). Quatre pièges, tous mesurés :
+  · **l'ordre de lecture** : Edge contient « Chrome », Chrome contient « Safari ». À l'envers,
+    tout le monde est Safari — donc le verre s'allumerait sur un Windows ;
+  · **l'iPad se dit « Macintosh »** depuis iPadOS 13 : c'est `maxTouchPoints` qui le trahit ;
+  · **la version de macOS ne se lit PAS** (Safari annonce « 10_15_7 » depuis Big Sur, Chrome
+    recopie), et **Windows 10 et 11 sont indiscernables** (« NT 10.0 »). On rend `0` — et `0`
+    veut dire « on ne sait pas », jamais « vieux ». L'écran des Paramètres l'ÉCRIT ;
+  · **le verre se décide sur la version de SAFARI** (Liquid Glass = Safari 26), pas sur l'OS :
+    c'est le seul signal vrai. Un doute n'allume rien.
+  ⚠️ **On ne dessine JAMAIS de barre d'adresse.** Les maquettes en montrent une parce qu'elles
+  sont des IMAGES de l'application dans son navigateur ; la vraie page en aurait deux.
 - **Ne jamais piloter `app.html` avec Chrome DevTools MCP** — voir la section suivante
 - ⛔ **NE JAMAIS TOUCHER À `SYNC_SECRET_DEFAULT` NI À `SYNC_SALT`** (`app.html`, vers la
   ligne 5059). Ce ne sont pas des noms, malgré les apparences :
