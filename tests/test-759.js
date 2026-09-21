@@ -22,7 +22,20 @@ const DOC = fs.readFileSync(__dirname + '/../design/THEME-REFERENCE.md', 'utf8')
    dans les commentaires qui les expliquent, et un motif qui tombe dans un commentaire garde
    une phrase, pas un comportement. Nettoyage SÛR (blocs qui commencent une ligne) — le motif
    naïf avale 107 069 caractères d'app.html, dont `saveVehicule` entière. */
-const NU = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+const NU_TEINTE = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+
+/* ⛔ LES SURFACES SONT TEINTÉES PAR LA COULEUR CHOISIE (21 septembre 2026). Les valeurs du
+   document sont donc enveloppées : --vr-fond:color-mix(in srgb,var(--acc-src,#…) 4%,<valeur>).
+   Ce banc compare au DOCUMENT : il doit donc lire la valeur du document, pas son enveloppe.
+   On la dévoile — et la teinte elle-même est un ÉCART DÉCLARÉ, contrôlé plus bas comme les
+   cinq autres : un écart tacite devient un oubli en une semaine. */
+function devoile(txt) {
+  let out = txt, tour = 0;
+  const RE = /color-mix\(in srgb,\s*var\(--acc-src,\s*#[0-9A-Fa-f]{3,8}\)\s*[\d.]+%\s*,\s*((?:[^()]|\([^()]*\))*)\)/g;
+  while (RE.test(out) && tour++ < 6) { RE.lastIndex = 0; out = out.replace(RE, '$1'); }
+  return out.replace(/,\s*\n\s*/g, ',').replace(/\(\s+/g, '(');
+}
+const NU = devoile(NU_TEINTE);
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); }
   else { ko++; console.log('  ✗ ' + t + '\n      document : ' + JSON.stringify(b) + '\n      app.html : ' + JSON.stringify(a)); } };
@@ -48,6 +61,15 @@ const ECARTS = {
      à .58 + .42×.65 = .85 : un aplat blanc. Ramené à .22, il plafonne à .67, sous le liseré
      (.72), qui redevient la ligne la plus lumineuse de la carte. Mesuré au navigateur après
      coup : la carte est peinte en rgba(255,255,255,0.58), dégradé à .22 par-dessus.`,
+  'teinte des surfaces par la couleur choisie': `le document donne des surfaces NEUTRES ; on
+     mélange 3 à 8 % de la SOURCE de l'accent dans chacune (page, verre, cartes, lignes).
+     Demandé par Justin le 21 septembre 2026 : « chaque couleur qu'on sélectionne, ça change
+     toutes les nuances », puis « c'est trop gris là ». Mesuré au navigateur sur les NEUF
+     teintes, jour et nuit : l'alpha du verre passe de .58 à .596 le jour et reste à .58 la
+     nuit ; le verre dense reste plus dense (.88 jour, .93 nuit) ; la carte reste PLUS CLAIRE
+     que la page (+17 à +21 de luminance le jour, +13 à +15 la nuit) ; la page de nuit reste
+     entre 17 et 25 de luminance, donc pas noire. Aucun accord du document n'est rompu —
+     seules les valeurs sont enveloppées, et ce banc les dévoile pour les comparer.`,
   'largeur de la sidebar': `le document dit 236 px ; on met 258. Mesuré au navigateur, tuile
      d'icône comprise : 149 px restaient au libellé et « Consommation produits » en demande
      163 — trois rubriques passaient sur deux lignes (59 px contre 44). Les maquettes du

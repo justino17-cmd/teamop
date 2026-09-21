@@ -28,7 +28,32 @@ const RACINE = path.join(__dirname, '..');
 const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
 /* ⛔ LE NETTOYAGE SÛR : seuls les blocs qui COMMENCENT une ligne. Le motif naïf fait
    disparaître 107 069 caractères d'app.html, dont `saveVehicule` en entier. */
-const NU = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+const NU_TEINTE = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+
+/* ⛔⛔ UN BANC QUI RECOPIE DES VALEURS GARDE UNE CROYANCE ; UN BANC QUI RELIT LA SOURCE GARDE
+   UN ACCORD. Le 21 septembre 2026, les surfaces ont été TEINTÉES par la couleur choisie
+   (Justin : « chaque couleur qu'on sélectionne, ça change toutes les nuances »). Les valeurs du
+   document sont donc désormais enveloppées :
+       --vr-fond:color-mix(in srgb,var(--acc-src,#1F7A5C) 4%,rgba(255,255,255,.58))
+   Cinq contrôles de ce banc sont tombés — AUCUN parce qu'une vérité avait changé : mesuré au
+   navigateur sur les neuf teintes, le verre reste à .58 (.596 une fois la teinte ajoutée), le
+   dense reste plus dense (.88 jour, .93 nuit), la carte de nuit reste PLUS CLAIRE que la page
+   (+13 à +15 de luminance), et la page de nuit n'est pas noire (17 à 25). Seul le TEXTE avait
+   bougé. On dévoile donc la valeur du document avant de la comparer — et, pour que la teinte
+   elle-même reste gardée, on la compte séparément plus bas : l'enlever fait tomber le banc. */
+function devoile(txt) {
+  let out = txt, tour = 0;
+  const RE = /color-mix\(in srgb,\s*var\(--acc-src,\s*#[0-9A-Fa-f]{3,8}\)\s*[\d.]+%\s*,\s*((?:[^()]|\([^()]*\))*)\)/g;
+  while (RE.test(out) && tour++ < 6) { RE.lastIndex = 0; out = out.replace(RE, '$1'); }
+  /* la valeur dévoilée peut rester coupée sur plusieurs lignes (le --vr-page l'est) : on
+     resserre les espaces pour que les motifs du document s'y retrouvent. */
+  return out.replace(/,\s*\n\s*/g, ',').replace(/\(\s+/g, '(');
+}
+function teintesDe(txt) {
+  return (txt.match(/var\(--acc-src,\s*#[0-9A-Fa-f]{3,8}\)\s*([\d.]+)%/g) || [])
+    .map(m => parseFloat(/([\d.]+)%/.exec(m)[1]));
+}
+const NU = devoile(NU_TEINTE);
 
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { c ? ok++ : ko++; console.log((c ? '  ✓ ' : '  ✗ ') + t + (c ? '' : '\n      → ' + (d === undefined ? '' : d))); };
@@ -46,7 +71,11 @@ function bloc(ancre) {
   const suite = APP.indexOf('/* ══', i0 + 40);
   const fin = APP.indexOf('</style>', i0);
   const b = (suite > 0 && (fin < 0 || suite < fin)) ? suite : fin;
-  return { i0, css: APP.slice(i0, b > 0 ? b : i0 + 9000).replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ') };
+  const brut = APP.slice(i0, b > 0 ? b : i0 + 9000).replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+  /* brut = le texte tel qu'il est écrit (la teinte comprise) ; css = la valeur du DOCUMENT,
+     dévoilée de son enveloppe color-mix. Les deux sont rendus : les accords se vérifient sur
+     css, la personnalisation sur brut. */
+  return { i0, css: devoile(brut), brut };
 }
 
 console.log('\n══ 1. ⛔⛔ LE CYCLE DE VARIABLES — le défaut qui ne dit rien ══\n');
@@ -139,6 +168,49 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
   });
   vrai('le fond de page est celui du document (#f7f7f9 → #eeeef2)',
     /--vr-page:linear-gradient\(180deg,#f7f7f9,#eeeef2\)/.test(css));
+}
+
+/* ⛔⛔ AUCUNE RÈGLE NE DOIT VISER .kpis .kpi:first-child — ET C'EST CONTRE-INTUITIF, PARCE QUE
+   DEUX DES TROIS RÈGLES QU'ON A RETIRÉES SERVAIENT À EN NEUTRALISER UNE TROISIÈME.
+   Une règle `.kpis .kpi:first-child` pèse (0,3,0) ; le verre s'écrit `html[data-verre="1"] .kpi`,
+   soit (0,2,1). La plus spécifique gagne, `!important` ou pas, des DEUX côtés. La première tuile
+   du tableau de bord restait donc OPAQUE pendant que ses voisines étaient en verre — blanche le
+   jour, #101A2E la nuit. Justin, 21 septembre 2026, capture à l'appui : « pourquoi le premier
+   carré est noir ». Mesuré avant correction : α=1 sur la 1re tuile, α=.58 sur la 2e, dans les
+   neuf teintes et les deux modes. La seule sortie est de n'écrire AUCUNE règle. */
+{
+  const regles = (NU_TEINTE.match(/\.kpis\s+\.kpi:first-child[^{]*\{/g) || []);
+  vrai('⛔ aucune règle ne vise .kpis .kpi:first-child (elle battrait le verre)',
+    regles.length === 0, regles.length ? regles.join(' | ') : 'aucune');
+  /* le contre-contrôle : la tuile doit bien recevoir le verre par la règle commune */
+  vrai('   … et .kpi est bien une surface de verre',
+    /html\[data-verre="1"\][^{]*\.kpi[^{]*\{[^}]*--vr-fond/.test(NU));
+}
+
+/* ⛔ LE DÉVOILEMENT CI-DESSUS RENDRAIT LE BANC AVEUGLE À LA TEINTE ELLE-MÊME : sans ce
+   contrôle, la RETIRER ne ferait tomber aucune vérification, et l'application redeviendrait
+   identique dans les neuf teintes sans un mot. On la compte donc sur le texte BRUT, et on
+   borne : au-delà, ce n'est plus une nuance, c'est une couche de peinture sur le contenu. */
+{
+  const t = teintesDe(NU_TEINTE);
+  vrai('⛔ les surfaces sont bien TEINTÉES par la couleur choisie', t.length >= 20, t.length + ' enveloppe(s) color-mix(var(--acc-src) …)');
+  /* ⛔ LA SOURCE, JAMAIS UN DÉRIVÉ — mais seulement pour les JETONS DE SURFACE. `--acc` est
+     lui-même dérivé (jour : color-mix(#000 22%, --acc-src)) : une surface bâtie dessus
+     serait teintée deux fois et virerait au sale. Ailleurs dans la feuille, teinter un
+     élément avec var(--acc) est normal et reste permis — ce contrôle ne vise que la palette. */
+  ['--bg', '--bg1', '--bg2', '--bg3', '--card', '--card2', '--vr-fond', '--vr-fond2', '--vr-fond-dense']
+    .forEach(jeton => {
+      const decls = NU_TEINTE.match(new RegExp('\\' + jeton + ':\\s*color-mix\\([^;]*', 'g')) || [];
+      const fautifs = decls.filter(d => /var\(--acc[),]/.test(d));
+      vrai('   ' + jeton + ' se teinte depuis --acc-src, pas depuis un dérivé',
+        fautifs.length === 0, decls.length + ' teinture(s)');
+    });
+  vrai('⛔ … et chaque teinte reste une nuance (≤ 12 %)',
+    t.length > 0 && Math.max(...t) <= 12, t.length ? 'la plus forte : ' + Math.max(...t) + ' %' : 'aucune');
+  /* ⛔ color-mix(…, transparent) ASSOMBRIT — transparent vaut rgba(0,0,0,0). Une teinte posée
+     sur « transparent » salirait la surface au lieu de la colorer. */
+  vrai('⛔ … et aucune ne se mélange à « transparent »',
+    !/var\(--acc-src,[^)]*\)\s*[\d.]+%\s*,\s*transparent\s*\)/.test(NU_TEINTE));
 }
 
 console.log('\n══ 3. LES HALOS VIENNENT DES LOGOS, PLUS DE LA COULEUR CHOISIE ══\n');

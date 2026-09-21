@@ -218,9 +218,11 @@
   .kpi{background:var(--card);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:18px;padding:18px;}
   .kpi[onclick]:hover{background:color-mix(in srgb,var(--acc) 12%,var(--card));}
   /* 1er indicateur en carte vert sapin (comme « CA du mois » dans la maquette Team OP Web) */
-  .kpis .kpi:first-child{background:var(--hero);border-color:transparent;}
-  .kpis .kpi:first-child .kpi-val{color:var(--hero-ink);}
-  .kpis .kpi:first-child .kpi-lbl{color:color-mix(in srgb,var(--hero-ink) 62%,transparent);}
+  /* ⛔ PLUS DE CARTE « HÉRO ». Toute règle .kpis .kpi:first-child pèse (0,3,0) et bat le verre
+     (html[data-verre="1"] .kpi, (0,2,1)) — même quand elle sert à le NEUTRALISER. La première
+     tuile restait donc opaque : blanche le jour, #101A2E la nuit, dans les neuf teintes, et se
+     lisait comme un trou noir. Mesuré au navigateur le 21 septembre 2026. La seule façon de la
+     rendre au verre est de n'écrire AUCUNE règle sur :first-child. */
   .kpi-ico{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:12px;}
   .kpi-val{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;line-height:1;}
   .kpi-lbl{font-size:13px;color:var(--t3);margin-top:6px;}
@@ -747,13 +749,8 @@ table, .tbl, .list-row {
   border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent) !important;
 }
 
-/* ── 2) Plus de carte « héro » verte : 1er KPI comme les autres ── */
-.kpis .kpi:first-child{
-  background: var(--card) !important;
-  border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent) !important;
-}
-.kpis .kpi:first-child .kpi-val{ color: var(--t1) !important; }
-.kpis .kpi:first-child .kpi-lbl{ color: var(--t3) !important; }
+/* ── 2) Plus de carte « héro » verte — et plus AUCUNE règle sur :first-child : le fond, le
+   contour et l'encre lui viennent de .kpi, comme aux autres tuiles. ── */
 
 /* ── 3) Boutons pleins → contour par défaut, se remplissent au survol ── */
 .btn{
@@ -2301,7 +2298,6 @@ body.defile .topbar{box-shadow:var(--ombre-2)!important}
 .card-head h3{font-size:17px;font-weight:600;letter-spacing:-.014em;line-height:1.3}
 .card::before,.kpi::before,.modal::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.07) 22%,rgba(255,255,255,.07) 78%,transparent)}
 html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,html[data-theme="light"] .modal::before{background:none}
-.kpis .kpi:first-child{background:var(--card)!important;border:0!important}
 .kpi{padding:18px 20px}
 .kpi-ico{border-radius:var(--r-2);width:36px;height:36px;font-size:17px;margin-bottom:12px}
 .kpi-val{font-size:30px!important;font-weight:700!important;letter-spacing:-.025em;line-height:1.05}
@@ -2440,9 +2436,19 @@ html[data-refonte]{
   /* ── la marque, telle qu'elle est dans le carré ── */
   --navy:#101A2E; --glace:#EFF2F7; --acier:#8FA3BC;
   /* ── nuit : le navy du logo, poussé au noir pour que les surfaces respirent ── */
-  --bg:#080D18; --bg1:#101A2E; --bg2:#18233A; --bg3:#202C46;
-  --card:#101A2E; --card2:#18233A; --cardline:rgba(239,242,247,.06); --brd:rgba(239,242,247,.06); --brd2:rgba(239,242,247,.12);
-  --deep:#0A1120; --toolbar:rgba(8,13,24,.72);
+  /* ⛔ LA TEINTE CHOISIE VIT AUSSI DANS LES SURFACES OPAQUES. Le verre ne s'allume que sur
+     Safari 26 : partout ailleurs (Android, Chrome, transparence réduite) une palette en dur
+     rendait l'application identique dans les neuf teintes — « c'est trop gris là ». On mélange
+     la SOURCE de l'accent au navy, jamais un dérivé, et jamais vers « transparent » qui
+     tirerait au noir. La nuit, la lumière élève : la carte reste PLUS CLAIRE que la page. */
+  --bg:color-mix(in srgb,var(--acc-src,#4FD18A) 5%,#080D18);
+  --bg1:color-mix(in srgb,var(--acc-src,#4FD18A) 7%,#101A2E);
+  --bg2:color-mix(in srgb,var(--acc-src,#4FD18A) 7%,#18233A);
+  --bg3:color-mix(in srgb,var(--acc-src,#4FD18A) 8%,#202C46);
+  --card:color-mix(in srgb,var(--acc-src,#4FD18A) 7%,#101A2E);
+  --card2:color-mix(in srgb,var(--acc-src,#4FD18A) 7%,#18233A);
+  --cardline:rgba(239,242,247,.06); --brd:rgba(239,242,247,.06); --brd2:rgba(239,242,247,.12);
+  --deep:color-mix(in srgb,var(--acc-src,#4FD18A) 5%,#0A1120); --toolbar:rgba(8,13,24,.72);
   /* Assez translucide pour que le voile du fond transparaisse et que le contenu se devine
      quand il passe dessous (tiroir du téléphone) ; assez dense pour que le menu reste lisible
      dans le pire cas — une carte blanche qui défile derrière. Mesuré, pas estimé. */
@@ -2484,9 +2490,18 @@ html[data-refonte][data-theme="light"]{
      l'échelle de macOS : la barre latérale est le plan le PLUS SOMBRE (c'est du chrome, elle
      s'enfonce), le fond de page est le creux où le contenu vit, et la carte est un blanc franc
      qui se lève dessus. Vingt niveaux entre chaque plan : c'est ça qui se lit sans une bordure. */
-  --bg:#EDF0F6; --bg1:#FFFFFF; --bg2:#F5F7FA; --bg3:#E7EBF2;
-  --card:#FFFFFF; --card2:#F3F5F9; --cardline:rgba(16,26,46,.07); --brd:rgba(16,26,46,.08); --brd2:rgba(16,26,46,.14);
-  --deep:#F1F4F9; --toolbar:rgba(237,240,246,.72);
+  /* ⛔ LE JOUR PORTE LA TEINTE PLUS FRANCHEMENT QUE LA NUIT. Sur du blanc, un mélange à 3 %
+     ne se voit pas — mesuré, et c'est ce que Justin lisait comme « encore du gris ». La carte
+     garde son rang (c'est le plan le plus haut) mais elle est TEINTÉE ; le creux de la page
+     l'est le double, et c'est lui qui fait lire la couleur. */
+  --bg:color-mix(in srgb,var(--acc-src,#1F7A5C) 7%,#EDF0F6);
+  --bg1:color-mix(in srgb,var(--acc-src,#1F7A5C) 4%,#FFFFFF);
+  --bg2:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F5F7FA);
+  --bg3:color-mix(in srgb,var(--acc-src,#1F7A5C) 8%,#E7EBF2);
+  --card:color-mix(in srgb,var(--acc-src,#1F7A5C) 4%,#FFFFFF);
+  --card2:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F3F5F9);
+  --cardline:rgba(16,26,46,.07); --brd:rgba(16,26,46,.08); --brd2:rgba(16,26,46,.14);
+  --deep:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F1F4F9); --toolbar:rgba(237,240,246,.72);
   --side:rgba(204,212,229,.78); --side-ink:#0D1526; --side-mut:#3E4B64;
   /* Rubrique active : une pastille BLANCHE en relief sur le gris de la barre, le libellé à l'encre
      verte. Le bloc vert foncé pesait autant que le titre de la page pour dire « vous êtes ici ». */
@@ -2529,9 +2544,18 @@ html[data-refonte][data-theme="light"]{
        l'échelle de macOS : la barre latérale est le plan le PLUS SOMBRE (c'est du chrome, elle
        s'enfonce), le fond de page est le creux où le contenu vit, et la carte est un blanc franc
        qui se lève dessus. Vingt niveaux entre chaque plan : c'est ça qui se lit sans une bordure. */
-    --bg:#EDF0F6; --bg1:#FFFFFF; --bg2:#F5F7FA; --bg3:#E7EBF2;
-    --card:#FFFFFF; --card2:#F3F5F9; --cardline:rgba(16,26,46,.07); --brd:rgba(16,26,46,.08); --brd2:rgba(16,26,46,.14);
-    --deep:#F1F4F9; --toolbar:rgba(237,240,246,.72);
+    /* ⛔ LE JOUR PORTE LA TEINTE PLUS FRANCHEMENT QUE LA NUIT. Sur du blanc, un mélange à 3 %
+       ne se voit pas — mesuré, et c'est ce que Justin lisait comme « encore du gris ». La carte
+       garde son rang (c'est le plan le plus haut) mais elle est TEINTÉE ; le creux de la page
+       l'est le double, et c'est lui qui fait lire la couleur. */
+    --bg:color-mix(in srgb,var(--acc-src,#1F7A5C) 7%,#EDF0F6);
+    --bg1:color-mix(in srgb,var(--acc-src,#1F7A5C) 4%,#FFFFFF);
+    --bg2:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F5F7FA);
+    --bg3:color-mix(in srgb,var(--acc-src,#1F7A5C) 8%,#E7EBF2);
+    --card:color-mix(in srgb,var(--acc-src,#1F7A5C) 4%,#FFFFFF);
+    --card2:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F3F5F9);
+    --cardline:rgba(16,26,46,.07); --brd:rgba(16,26,46,.08); --brd2:rgba(16,26,46,.14);
+    --deep:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F1F4F9); --toolbar:rgba(237,240,246,.72);
     --side:rgba(204,212,229,.78); --side-ink:#0D1526; --side-mut:#3E4B64;
     /* Rubrique active : une pastille BLANCHE en relief sur le gris de la barre, le libellé à l'encre
        verte. Le bloc vert foncé pesait autant que le titre de la page pour dire « vous êtes ici ». */
@@ -4934,12 +4958,23 @@ html[data-verre="1"]{
      clair montait à .58 + .42×.65 = .85 : un aplat blanc. Le dégradé est donc ramené à .22,
      ce qui plafonne le point le plus clair à .58 + .42×.22 = .67 — sous le liseré (.72), qui
      redevient la ligne la plus lumineuse de la carte, comme chez Apple. */
-  --vr-fond:rgba(255,255,255,.58);
-  --vr-fond2:rgba(255,255,255,.44);
+  /* ⛔⛔ C'EST LE VERRE QUI COUVRE L'ÉCRAN, DONC C'EST LUI QUI PORTE LA NUANCE.
+     Justin : « en mode jour on voit moins la nuance ». Premier correctif : teinter le fond de
+     page. Re-mesuré : le coin passait de 17 à 27 d'écart entre deux teintes, mais le MILIEU
+     restait à ZÉRO. La raison, vue au pixel : au milieu de l'écran on ne regarde pas la page,
+     on regarde une CARTE. Le verre couvre presque toute la surface, et il était blanc pur —
+     il effaçait donc la couleur choisie partout où il y en avait.
+     Quatre pour cent d'accent dans le verre, et la nuance existe sur toute la surface au lieu
+     d'un seul coin. ⚠ Quatre, pas vingt : la carte doit rester une vitre, pas devenir une
+     carte de couleur. Et `color-mix` entre une couleur OPAQUE et une translucide ne tire rien
+     vers le noir — le piège du `transparent` ne s'applique pas ici, les deux termes ont une
+     teinte. */
+  --vr-fond:color-mix(in srgb,var(--acc-src,#1E8450) 4%,rgba(255,255,255,.58));
+  --vr-fond2:color-mix(in srgb,var(--acc-src,#1E8450) 4%,rgba(255,255,255,.44));
   /* ⛔ LE VERRE QUI A QUELQUE CHOSE À COUVRIR SE DENSIFIE — il ne devient pas un AUTRE
      matériau. C'est le bord de défilement d'Apple : la barre s'épaissit quand du contenu
      passe dessous, en restant du verre de la même teinte. Voir l'encadré de `body.defile`. */
-  --vr-fond-dense:rgba(255,255,255,.88);
+  --vr-fond-dense:color-mix(in srgb,var(--acc-src,#1E8450) 4%,rgba(255,255,255,.88));
   --vr-liseret:rgba(255,255,255,.72);
   /* ⛔ LE REFLET EST UN DÉGRADÉ, PAS UNE OMBRE. Une ombre interne d'un pixel ne fait qu'un
      liseré ; ce qui donne la MATIÈRE, c'est la lumière qui court en diagonale sur la vitre.
@@ -4947,7 +4982,22 @@ html[data-verre="1"]{
   --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.07) 45%,rgba(255,255,255,.02) 60%,rgba(255,255,255,.14) 100%);
   --vr-ombre:0 10px 28px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.4);
   --vr-ombre-barre:0 14px 36px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.4);
-  --vr-page:linear-gradient(180deg,#f7f7f9,#eeeef2);
+  /* ⛔⛔ LE FOND LUI-MÊME PORTE LA COULEUR CHOISIE, PAS SEULEMENT LES HALOS.
+     Justin, 22 septembre 2026 : « le mode jour, je trouve qu'on voit moins la nuance ».
+     Mesuré au pixel, six teintes comparées deux à deux sur la même page : dans le COIN haut
+     gauche l'écart atteignait 17 sur 255 — la nuance s'y voyait — mais AU MILIEU DE LA PAGE
+     il valait **ZÉRO**. Les six teintes rendaient exactement rgb(245,247,250). La couleur
+     n'existait donc que dans un coin, et sur un grand écran on voit surtout le milieu.
+     Un halo éclaire un endroit ; c'est le FOND qui donne une ambiance. On verse donc une
+     goutte d'accent dans le dégradé de base — 3 % en haut, 6 % en bas.
+     ⚠ 3 %, pas 20 : à 42 % les halos faisaient « une page violette » et Justin l'avait
+     refusé (« ça fait bizarre »). Ici la teinte se SENT sur toute la surface sans que la page
+     change de nature. C'est la différence entre teinter un papier et le peindre.
+     ⚠ `color-mix` avec DEUX couleurs opaques ne souffre pas du piège du `transparent` : rien
+     n'est tiré vers le noir, puisqu'aucun des deux termes n'est transparent. */
+  --vr-page:linear-gradient(180deg,
+    color-mix(in srgb,var(--acc-src,#1E8450) 3%,#f7f7f9),
+    color-mix(in srgb,var(--acc-src,#1E8450) 6%,#eeeef2));
   /* ⛔ LES HALOS NE PRENNENT PLUS LA COULEUR D'ACCENT. Ils la prenaient à 42 % : qui
      choisissait Violet se retrouvait avec une page violette, et Justin l'a dit — « ça fait
      bizarre ». Chez Apple le fond reste neutre et la couleur vit dans les CONTRÔLES. Les deux
@@ -4970,9 +5020,9 @@ html[data-verre="1"]{
      ⚠ `--acc-rgb` est posé par `applyTheme` ; le repli est le vert d'OP GESTION, pour que la
      page soit juste même avant que le JavaScript ait tourné. */
   --vr-halos:
-    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,30,132,80),.26), rgba(var(--acc-rgb,30,132,80),0) 70%),
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,30,132,80),.30), rgba(var(--acc-rgb,30,132,80),0) 72%),
     radial-gradient(56vmax 56vmax at 90% 4%, rgba(47,79,158,.22), rgba(47,79,158,0) 70%),
-    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,30,132,80),.16), rgba(var(--acc-rgb,30,132,80),0) 70%);
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,30,132,80),.20), rgba(var(--acc-rgb,30,132,80),0) 72%);
   /* ⛔⛔ L'ENCRE DE LA PAGE, CAPTURÉE ICI, SUR <html> — ET SURTOUT PAS SUR `.sidebar`.
      `.sidebar` définit `--t1:var(--side-ink)` ; écrire `--side-ink:var(--t1)` sur elle ferme
      un CYCLE, et un cycle rend TOUTES les variables qui y participent invalides, en silence.
@@ -4991,9 +5041,11 @@ html[data-verre="1"][data-theme="dark"]{
   /* Alphas, liseré et ombres du document (§ 4) ; la TEINTE, elle, reste bleu nuit — voir
      l'encadré du fond plus bas. Et `--vr-fond2` passe au voile BLANC du document : de nuit
      c'est la lumière qui élève, un navy sur du navy ne se détache pas. */
-  --vr-fond:rgba(44,56,84,.55);
+  /* Même goutte de couleur dans le verre de nuit. La surface secondaire reste un voile BLANC :
+     de nuit c'est la lumière qui élève, et la teinter la ferait redescendre. */
+  --vr-fond:color-mix(in srgb,var(--acc-src,#2EB872) 7%,rgba(44,56,84,.55));
   --vr-fond2:rgba(255,255,255,.08);
-  --vr-fond-dense:rgba(44,56,84,.92);
+  --vr-fond-dense:color-mix(in srgb,var(--acc-src,#2EB872) 7%,rgba(44,56,84,.92));
   --vr-liseret:rgba(255,255,255,.18);
   --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.02) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.03) 100%);
   --vr-ombre:0 10px 28px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(255,255,255,.05);
@@ -5005,7 +5057,12 @@ html[data-verre="1"][data-theme="dark"]{
      son Mac — « revois les nuances de couleur, je la trouve moins belle l'app ».
      La nuit prend donc le bleu nuit de TEAM OP (#081028, échantillonné dans le logo), remonté
      juste assez pour porter des surfaces. */
-  --vr-page:linear-gradient(180deg,#101A2E,#0A1120);
+  /* Même goutte de couleur qu'en journée, un peu plus généreuse : sur un fond sombre il faut
+     davantage de teinte pour la même sensation. Mesuré de nuit : l'écart entre deux teintes
+     valait 10 dans le coin et ZÉRO au milieu, comme en journée. */
+  --vr-page:linear-gradient(180deg,
+    color-mix(in srgb,var(--acc-src,#2EB872) 5%,#101A2E),
+    color-mix(in srgb,var(--acc-src,#2EB872) 9%,#0A1120));
   /* De nuit les halos sont plus discrets : sur un fond sombre, un voile coloré à 26 % ne fait
      pas une ambiance, il fait une tache. Et le bleu passe devant le vert — c'est lui qui donne
      la profondeur, le vert se garde pour ce qui se clique. */
