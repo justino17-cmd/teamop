@@ -22,6 +22,64 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ✅ 21–22 SEPTEMBRE 2026 — LA REFONTE APPLE, LES SIX POINTS (BÊTA + APERÇU)
+
+Justin : **« tu fais tout, tu fais. Point par point. »** Les six points du dossier
+`Gestion_Surveillance_Apple_style.zip`, dans l'ordre annoncé, chacun avec son banc, sa mesure
+au navigateur et sa batterie de mutations.
+
+| # | ce qui est fait | banc | navigateur | mutations |
+|---|---|---|---|---|
+| 1 | **Navigation** — barre d'onglets à 4 catégories personnalisable (réglage + appui long), tiroir, sidebar 236 px sur bureau, bouton messagerie flottant | test-751 : 51 ✓ | sonde-nav : 41 ✓ | 9/9 |
+| 2 | **« ＋ Créer »** — feuille montante (téléphone) / fenêtre 520 px centrée (bureau), six tuiles filtrées par les droits | test-752 : 42 ✓ | sonde-creer : 32 ✓ | 8/8 |
+| 3 | **Gabarit des listes** — filtres segmentés à curseur coulissant, recherche en pilule, lignes ≥ 64 px | test-753 : 31 ✓ | sonde-gabarit : 31 ✓ | 9/9 |
+| 4 | **Fiches** — retour en pilule, sections à en-tête teinté, clé-valeur, statut en pilule | test-754 : 28 ✓ | sonde-fiche : 23 ✓ | 6/6 |
+| 5 | **Connexion** — logo 84/20, colonne 380, pastille « Lien vérifié », carte en verre, entrée en fondu | test-755 : 24 ✓ | sonde-login : 22 ✓ | 6/6 |
+| 6 | **Site vitrine** — deux palettes × trois modes, tarifs réels, dans `apercu/site-apple.html` | test-756 : 53 ✓ | sonde-site : 32 ✓ | 5/5 |
+
+### ⛔ CE QUE LA MESURE A TROUVÉ, ET QU'AUCUNE RELECTURE N'AURAIT DONNÉ
+
+Huit défauts réels, tous invisibles à la lecture du code :
+
+1. **Forcer un rendu ne forçait pas `autonome`** : « ios27 » (installée) depuis un navigateur ne
+   sortait jamais la pilule flottante — et le contre-essai « dans Safari, barre plate » passait
+   au vert pour cette mauvaise raison.
+2. **Le bouton « ＋ Créer » était caché sur tous les écrans de LISTE** (`body.ctx`), c'est-à-dire
+   là où on passe sa journée et d'où l'on crée.
+3. **`segInit` se défaisait au second passage** : le curseur qu'il ajoute compte comme un enfant
+   du groupe, donc le groupe cessait d'être éligible. Trois appels → zéro curseur.
+4. **Le curseur du segmenté était 3 px trop bas** (un `top` non nul s'ajoute à la transformation).
+5. **`.btn.sm` battait `.det-back`** : la pilule de retour ne sortait jamais (8 px au lieu de 999).
+6. **La teinte de section laissait la fiche Box entièrement de côté** : deux de ses trois en-têtes
+   vivent hors de toute `.card`.
+7. **Le logo de connexion sortait à 22 px** : une règle de la refonte posait déjà un `!important`.
+8. **Nav 48 px et cibles 44 px ne tiennent pas ensemble** : relevé 28 px sur le sélecteur du site.
+
+### ⚠️ ET TROIS MESURES QUI ÉTAIENT CREUSES — à se rappeler avant de croire un ✓
+
+· la fiche **Client est une FENÊTRE**, pas un écran : la sonde mesurait la fiche Intervention
+  restée derrière. Trois ✓ sur une fiche que le style n'atteignait pas ;
+· le **flou du verre mesuré sur `<body>`** faute de `.card` avant connexion — le ✗ ET le
+  contre-essai ✓ étaient faux tous les deux ;
+· **`document.body.innerHTML` contient le SOURCE** : chercher un libellé dedans le trouve dans
+  la chaîne JavaScript qui l'écrit, même quand aucun bouton n'est rendu.
+
+### ⛔ CE QUI RESTE, ET QUI EST UNE DÉCISION DE JUSTIN
+
+1. **`app.html` n'a pas bougé chez les clients.** ELAN reste à la v695. Tout ce qui précède est
+   sur `beta.html`. La publication attend une phrase pour CE changement-là.
+2. **Le site vitrine n'est pas remplacé.** `index.html` et `tarifs.html` sont intacts ; la
+   refonte est à `apercu/site-apple.html`, avec son ruban. C'est à regarder, puis à trancher.
+3. **Les écrans qui rendent chaque ligne comme une carte** (Interventions, Clients, Fournisseurs)
+   gardent leur carte : les remettre sur le gabarit des listes est une réécriture écran par
+   écran, pas un habillage. Forcer 64 px sur toutes les `.card` atteindrait le tableau de bord.
+4. **Les quantités bicolores de la fiche Box** (ctn bleu, u accent) et le **badge fournisseur**
+   demandent de toucher au balisage des lignes de produit, à plusieurs endroits. Pas fait.
+5. **Une erreur console `syncInit` à la déconnexion**, antérieure à cette refonte (commit
+   592993a). Elle est NOMMÉE par la sonde au lieu d'être tue, mais elle n'a pas été traitée.
+
+---
+
 ## ✅ 21 SEPTEMBRE 2026, NUIT — LE POINTAGE, ET L'APPAREIL RECONNU (v704–v705, BÊTA SEULE)
 
 ✅ **PUBLIÉ SUR LA BÊTA** — `teamop.fr/beta.html` sert la **v705-beta**, vérifié sur le fichier
