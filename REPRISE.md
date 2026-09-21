@@ -5697,3 +5697,78 @@ exactement à une horloge qui n'a rien à faire.
    parlent de « 24 mois après la **fin** de l'abonnement », et il n'y a pas de fin. Le module
    ne tranche pas — il **garde le motif** (`jamaisAbonne`), parce que l'information ne se
    retrouve plus après coup. La règle est à écrire.
+
+---
+
+## v712 — le carré noir, la couleur dans les surfaces, le fond de carte (21 sept. 2026, nuit)
+
+**État : écrit, éprouvé, poussé sur `claude/op-gestion-interface-yb6p32`. ⛔ LA BÊTA N'EST PAS
+ENCORE PUBLIÉE** — le report de `beta.html` sur `main` a été refusé par le garde-fou de
+publication de la session. Il reste à faire, et c'est le seul geste manquant.
+
+### Ce qui a été corrigé
+
+**1. La première tuile du tableau de bord n'était pas en verre.** Trois règles visaient
+`.kpis .kpi:first-child` : la carte « héro » verte d'origine et DEUX règles écrites pour la
+neutraliser. Une règle sur `:first-child` pèse (0,3,0), le verre s'écrit
+`html[data-verre="1"] .kpi` soit (0,2,1) : la plus spécifique gagne, `!important` ou pas, **des
+deux côtés**. Neutraliser une règle par une autre de même forme ne la retire pas — ça la
+remplace. Mesuré : α=1 sur la 1ʳᵉ tuile contre α=.58 sur la 2ᵉ, dans les 18 combinaisons.
+Les trois sont retirées ; `test-757` interdit désormais toute règle visant la TUILE (pas son
+icône — le motif large accusait à tort `.kpi:first-child .kpi-ico`).
+
+**2. Les surfaces opaques ne prenaient pas la couleur choisie.** `--bg*`, `--card*`, `--deep`
+étaient figés : le verre ne s'allume que sur Safari 26, donc partout ailleurs l'application
+était identique dans les neuf teintes. Elles se mélangent maintenant à `--acc-src` (3 à 8 %),
+jamais à un dérivé (`--acc` est déjà mélangé, teinter dessus salit), jamais vers `transparent`.
+
+**3. Quarante et un verts en dur.** L'avatar de Leia, 27 fonds d'icônes `rgba(74,222,128,…)`,
+11 cartes de confirmation `rgba(30,122,78,…)`, le halo de `body::before`, la bulle de la carte
+des box. **Gardés verts, et c'est délibéré :** l'écart de caisse (`bon ? vert : rouge` — sur
+l'accent rouge, « On est bon ✓ » deviendrait indiscernable d'« Écart à vérifier »), la
+concordance de caisse (même forme), le dégradé de l'écran de connexion (il finit sur
+`transparent`, le corriger demande de refaire ses trois arrêts), `--green`, `--viz3`, et les
+couleurs de catégorie du menu.
+
+**4. Le fond de carte : Jour / Nuit / Satellite**, sur Carte interventions, Carte des box et
+Planning, rangé sur le compte (8ᵉ entrée de `PREF_CLES`). Avant : un interrupteur à deux états
+et la nuit déduite du thème. `tests/test-760.js`, 23 contrôles qui EXÉCUTENT les fonctions.
+
+### ⛔ CE QUI RESTE À DÉCIDER PAR JUSTIN
+
+**Les tuiles d'icône du menu restent multicolores** (bleu, rouge, vert, orange, teal, violet,
+gris selon la famille de rubriques). C'est une TAXONOMIE, pas une décoration : les passer
+toutes à l'accent rendrait les 42 rubriques identiques et ferait perdre le repère de couleur.
+Justin a demandé « chaque couleur qu'on sélectionne ça change toutes les nuances » — cette
+famille-là est le seul endroit où je ne l'ai délibérément pas fait. **À trancher par lui.**
+
+### Ce que la passe des 42 rubriques a donné
+
+42 rubriques ouvertes, sous-onglets exercés un par un, jour et nuit, accent violet :
+**0 exception JavaScript, 0 erreur console.**
+
+⚠️ **Deux faux positifs que j'ai produits, et qui valent d'être écrits :**
+· 16 « débordements de 15 px » — c'était la BARRE DE DÉFILEMENT. `scrollWidth > clientWidth`
+  la mesure. Le piège est déjà dans CLAUDE.md et je l'ai repris quand même. Re-mesuré au
+  témoin honnête (`window.scrollX` après poussée) : **0 px sur les 18 rubriques suspectes.**
+· « Véhicules » et « Conducteurs » comptés VIDES sont des états vides légitimes
+  (« Aucun véhicule. » + bouton Ajouter) : mon seuil de 25 caractères était trop bas.
+
+### ⚠️ Le « bug » de Planning général n'en était pas un — c'était ma sonde
+
+J'avais semé des interventions avec `technicienId`. **Rien ne lit ce champ** : `intTechIds()`
+lit `techIds` puis `techId`. Les trois interventions tombaient donc en « Non assigné », et j'ai
+failli corriger un écran qui marche. Re-mesuré avec le vrai champ : la ligne du technicien
+affiche « 3 int. · 3h » et les trois interventions sont à leur place. **Reste à savoir ce que
+Justin voyait sur sa vidéo** — sur ses images le planning est simplement VIDE (0 intervention),
+ce qui est le rendu juste d'une base d'essai sans données. À lui repréciser.
+
+### Les bancs
+
+`test-757` et `test-759` sont tombés sur 8 contrôles — **aucun parce qu'une vérité avait
+changé**, tous parce qu'ils comparaient un motif LITTÉRAL à un texte désormais enveloppé dans
+`color-mix()`. Les deux dévoilent maintenant l'enveloppe avant de comparer au document, et la
+teinte est gardée SÉPARÉMENT (elle existe, jeton par jeton, elle vient de `--acc-src`, elle
+reste sous 12 %, elle ne se mélange pas à `transparent`).
+⚠️ **Une mutation n'a pas mordu du premier coup** : retirer la teinte d'un SEUL jeton passait,
+le total restant au-dessus du plancher. Le banc compte désormais jeton par jeton.
