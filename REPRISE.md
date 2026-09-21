@@ -5772,3 +5772,69 @@ teinte est gardée SÉPARÉMENT (elle existe, jeton par jeton, elle vient de `--
 reste sous 12 %, elle ne se mélange pas à `transparent`).
 ⚠️ **Une mutation n'a pas mordu du premier coup** : retirer la teinte d'un SEUL jeton passait,
 le total restant au-dessus du plancher. Le banc compte désormais jeton par jeton.
+
+## Le vide sous la carte utilisateur, et le dégradé des barres (21 sept. 2026, nuit — suite)
+
+**État : écrit, mesuré, éprouvé, poussé. ⛔ TOUJOURS PAS PUBLIÉ sur `main`** — même blocage.
+
+### 1. Les 62 px de vide sous la carte utilisateur (téléphone)
+
+Justin, capture d'iPhone : « tout en bas est vachement haut, faudrait qu'il soit au maximum
+au plus bas pour pas que ça fasse de vide ».
+
+`html[data-refonte] body.rf-onglets .sidebar{padding-bottom:calc(62px + env(safe-area-inset-bottom))}`,
+dans `@media (max-width:780px)`. Le dégagement protégeait la carte utilisateur de la barre
+d'onglets — **mais le tiroir est à z-index 46 et `.rf-tabs` à 44 : il la couvre, toujours.**
+Le dégagement ne creusait qu'un trou. Mesuré au gabarit iPhone 15 Pro, tiroir ouvert :
+62 px, et 96 px sur un vrai appareil avec l'encoche. Après : **0**.
+
+### 2. Le dégradé des barres suit la couleur choisie, partout
+
+Justin : « que ce soit téléphone, Mac, tout appareil […] que le dégradé soit de la couleur
+[…] moins présent, plus nuancé ».
+
+Un jeton `--rf-barre` porte le dégradé des TROIS barres et s'applique sur **cinq points** :
+avec verre ET sans. ⛔ **Le point qui comptait** : le dégradé n'existait QUE sous
+`data-verre="1"` (Safari 26) — Android, Chrome et la transparence réduite restaient sur
+`--side`/`--toolbar`, des rgba figés. C'est le même trou que sur les cartes, une semaine plus
+tôt. Les halos de la page baissent d'un cran en contrepartie : c'est le « moins présent ».
+
+Le JOUR est plus appuyé que la NUIT, et c'est une mesure : avant, la barre latérale de jour
+ne séparait les neuf teintes que de 8 unités et son dégradé haut→bas valait 5 à 7.
+
+Mesuré, bureau et téléphone, verre allumé et éteint :
+| | apport du dégradé | séparation vert↔orange |
+|---|---|---|
+| avec verre, nuit | 9–18 | 62–71 |
+| avec verre, jour | 10–19 | 40–59 |
+| sans verre, nuit | 23–27 | 28–31 |
+| sans verre, jour | 44–55 | 33–39 |
+
+### ⛔ L'EXCEPTION DU GRAPHITE DE NUIT — arithmétique, pas goût
+
+Son accent de nuit est `#F5F5F7`, presque blanc : mélangé au navy de la barre il ne la COLORE
+pas, il l'ÉCLAIRCIT, donc rapproche le fond de l'encre du menu. Contraste du pire libellé :
+4,07 sans dégradé → **3,65** avec ; baisser la dose pour TOUS ne rendait que 3,76 en
+affadissant les huit autres. Le graphite prend donc un voile d'**acier** : **4,02**, soit du
+bruit. `test-757` garde l'exception — la retirer fait tomber le banc.
+
+### ⚠️ Trois erreurs de méthode, toutes de mon côté, toutes instructives
+
+1. **Je mesurais la mauvaise chose.** Trois sondes d'affilée rendaient « le dégradé n'est pas
+   peint, 0 à 2 unités d'écart ». Faux : une **fenêtre modale plein écran** couvrait le
+   tiroir. `elementFromPoint` le disait. La règle du dépôt (« prouver que l'élément mesuré
+   existe ») ne suffit pas — il faut prouver qu'il est **DEVANT**. Les sondes ferment
+   désormais les surcouches et l'affichent avant de lire.
+2. **Mes cinq mutations étaient mal visées.** `cut -d:` coupait mes chaînes sur leurs
+   deux-points : je mutais du charabia, et les bancs « mordaient » pour la mauvaise raison.
+   Refaites avec un vérificateur de diff : les cinq mordent, sur le bon contrôle.
+3. **J'ai corrigé une variable que le texte n'utilise pas.** Remonté `--side-mut` de 52 % à
+   72 % pour la lisibilité : zéro changement. Les rubriques du menu portent `--side-ink`.
+   Correctif retiré.
+
+### ⚠️ Ce qui n'est PAS mesuré
+
+La sonde de lisibilité ne trouve sa cible que sur le chemin **verre + nuit**. Les trois autres
+(verre+jour, sans verre × 2) rendent « aucun verdict » plutôt qu'un faux vert — c'est voulu,
+mais ça veut dire que **le contraste du menu n'est pas mesuré sur ces trois chemins**. À
+reprendre (tâche #72).
