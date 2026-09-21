@@ -381,10 +381,15 @@ console.log('\n══ LA BARRE DU HAUT QUAND ON DESCEND, ET LE CLIGNOTEMENT AU C
     const jour = /html\[data-verre="1"\]\{[\s\S]*?--vr-halos:([\s\S]*?);/.exec(NU);
     const nuit = /html\[data-verre="1"\]\[data-theme="dark"\]\{[\s\S]*?--vr-halos:([\s\S]*?);/.exec(NU);
     vrai('⛔ les deux blocs de halos sont trouvés', !!jour && !!nuit);
-    vrai('⛔⛔ le halo du JOUR prend la couleur choisie', !!jour && /var\(--acc-rgb,/.test(jour[1]),
-      jour ? jour[1].slice(0, 90) : '—');
-    vrai('⛔⛔ celui de la NUIT aussi', !!nuit && /var\(--acc-rgb,/.test(nuit[1]),
-      nuit ? nuit[1].slice(0, 90) : '—');
+    /* ⛔ ON COMPTE, ON NE SE CONTENTE PAS D'UNE OCCURRENCE. Mesuré par mutation : remplacer
+       le PREMIER halo du jour par une couleur figée ne faisait rien tomber, parce que le
+       TROISIÈME portait encore la teinte et satisfaisait le motif. Deux des trois halos
+       suivent l'accent — on exige les deux, et le bleu de la marque reste le troisième. */
+    const compte = (m) => ((m && m[1]) || '').match(/var\(--acc-rgb,/g) || [];
+    v('⛔⛔ le JOUR a bien DEUX halos sur la couleur choisie', compte(jour).length, 2);
+    v('⛔⛔ la NUIT aussi', compte(nuit).length, 2);
+    vrai('⛔ … et le troisième reste le bleu nuit de TEAM OP (la profondeur)',
+      !!jour && /rgba\(47,79,158,/.test(jour[1]) && !!nuit && /rgba\(91,143,214,/.test(nuit[1]));
     /* ⛔ Deux arrêts de MÊME teinte : un arrêt « transparent » passerait par du noir. */
     for (const [q, m] of [['jour', jour], ['nuit', nuit]])
       vrai('⛔ ' + q + ' : les deux arrêts sont de la même teinte (pas de bord sali)',
