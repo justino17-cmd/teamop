@@ -311,7 +311,22 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     let jeton = ''; try{ jeton = localStorage.getItem(CLE_JETON) || ''; }catch(_){ }
     let moi = null;                 // { uid, email, ... }
     const ecouteursAuth = [];
-    let sondeDossier = null, sondeFil = null;
+    /* ⛔⛔ FIRESTORE POUSSAIT ; NOUS, ON INTERROGE — DONC UNE ÉCRITURE DOIT SE POUSSER
+       ELLE-MÊME. Mesuré au navigateur le 21 septembre 2026, sur la page RÉELLE avec
+       l'interrupteur ouvert : après une inscription, le nom de l'entreprise mettait
+       18,1 SECONDES à paraître, et le message qu'on venait d'envoyer 12,6 SECONDES.
+       Rien n'était « cassé » — la resonde finissait par arriver (20 s pour le dossier, 15 s
+       pour le fil) et tout s'affichait. C'est précisément la panne qu'un banc ne peut pas
+       voir : `test-740` fait parler la vraie page au vrai serveur, et les deux ont raison
+       chacun de son côté. Ce qui manquait, c'est le TEMPS — que seul un vrai navigateur donne.
+       ⚠️ Et ce n'est pas cosmétique : quelqu'un qui envoie un message et ne le voit pas
+       paraître le RENVOIE. On fabriquait des doublons dans la conversation du support.
+       Avec Firestore, `onSnapshot` poussait l'écriture au même instant. On rend ce contrat :
+       toute écriture qui a réussi prévient les écouteurs vivants, tout de suite.
+       ⚠️ Les minuteries sont désormais LOCALES à chaque abonnement. Une seule variable
+       partagée perdait la poignée du précédent dès qu'un second abonnement s'ouvrait : le
+       premier resondait alors pour toujours, sans personne pour l'arrêter. */
+    const ecouteursDossier = new Set(), ecouteursFil = new Set();
     /* ⛔ LA FENÊTRE DE RÉAUTHENTIFICATION. Firebase en ouvrait une après
        `reauthenticateWithCredential` ; on fait pareil, et on la BORNE. Sans elle,
        `updatePassword(nouveau)` n'aurait aucun moyen de prouver l'ancien : la page appelle
@@ -470,6 +485,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
           delete patch.email;
           const r = await appel('/api/portail/demande', patch);
           dossierCache = r.j.dossier || dossierCache;
+          for(const cb of ecouteursDossier){ try{ cb(instantane(dossierCache)); }catch(_){ } }
           return true;
         },
         async delete(){ return jeter('auth/operation-not-allowed', 'La suppression se demande au support.'); },
@@ -477,17 +493,18 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
            courant — comme `onSnapshot` — puis on resonde. Sans le premier tir immédiat,
            l'écran resterait vide à l'ouverture, et c'est la panne qu'on veut éviter. */
         onSnapshot(cb, onErr){
-          let vivant = true;
+          let vivant = true, minuterie = null;
+          ecouteursDossier.add(cb);
           const tour = async () => {
             if(!vivant) return;
             try{ const r = await appel('/api/portail/moi');
               if(r.code===200){ dossierCache = r.j.dossier||null; cb(instantane(dossierCache)); }
               else if(onErr) onErr(new Error('portail indisponible'));
             }catch(e){ if(onErr) onErr(e); }
-            if(vivant) sondeDossier = setTimeout(tour, 20000);
+            if(vivant) minuterie = setTimeout(tour, 20000);
           };
           tour();
-          return () => { vivant = false; if(sondeDossier) clearTimeout(sondeDossier); };
+          return () => { vivant = false; ecouteursDossier.delete(cb); if(minuterie) clearTimeout(minuterie); };
         },
       };
     }
@@ -527,19 +544,26 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
             return { forEach: f => l.forEach(f), docs: l, size: l.length, empty: !l.length }; };
           const q = {
             orderBy: () => q, limit: () => q, get: lire,
-            async add(m){ await appel('/api/portail/message', { texte: String((m&&m.text)||'') }); return true; },
+            async add(m){
+              await appel('/api/portail/message', { texte: String((m&&m.text)||'') });
+              /* Son propre message doit paraître TOUT DE SUITE. Mesuré à 12,6 s d'attente sans
+                 cette ligne : ça ressemble à un envoi qui n'est pas parti, donc on le renvoie. */
+              try{ const inst = await lire(); for(const cb of ecouteursFil){ try{ cb(inst); }catch(_){ } } }catch(_){ }
+              return true;
+            },
             /* Même conduite que le dossier : on tire TOUT DE SUITE, puis on resonde. Le fil est
                la conversation avec le support — un écran qui reste sur « Chargement… » parce
                qu'on attend un premier battement est un écran qui a l'air en panne. */
             onSnapshot(cb, onErr){
-              let vivant = true;
+              let vivant = true, minuterie = null;
+              ecouteursFil.add(cb);
               const tour = async () => {
                 if(!vivant) return;
                 try{ cb(await lire()); }catch(e){ if(onErr) onErr(e); }
-                if(vivant) sondeFil = setTimeout(tour, 15000);
+                if(vivant) minuterie = setTimeout(tour, 15000);
               };
               tour();
-              return () => { vivant = false; if(sondeFil) clearTimeout(sondeFil); };
+              return () => { vivant = false; ecouteursFil.delete(cb); if(minuterie) clearTimeout(minuterie); };
             },
           };
           return q;
@@ -989,6 +1013,24 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     if(_pv){ await _pv.auth.confirmerMdp(pass); return true; }
     const cred=firebase.auth.EmailAuthProvider.credential(u.email,pass); await u.reauthenticateWithCredential(cred); }
   function _err(id,t){ const e=$(id); if(e) e.innerHTML='<div class="err">'+esc(t)+'</div>'; }
+  /* ⛔⛔ UN REFUS NE SURVIT PAS À LA RÉUSSITE QUI LE DÉMENT. `_err()` ne fait que POSER : le
+     verdict d'un essai raté restait à l'écran pendant l'essai suivant — et, mesuré au
+     navigateur le 21 septembre 2026, pendant un changement de mot de passe qui AVAIT RÉUSSI.
+     Les deux routes rendaient 200, le nouveau mot de passe fonctionnait, l'ancien était refusé
+     en 401 : le serveur avait tout fait juste, et l'écran affichait « E-mail ou mot de passe
+     incorrect ».
+     ⚠️ MESURE HONNÊTE DE LA PORTÉE, parce qu'une première rédaction disait plus que ce qui a
+     été mesuré : la page annonce BIEN la réussite par ailleurs — pwConfirm fait un alert
+     « ✅ Mot de passe modifié. ». Le défaut n'est donc pas qu'on croie à un échec, c'est que
+     l'écran porte DEUX messages contraires au même instant. Le moment vraiment trompeur est
+     l'étape d'AVANT : on s'est trompé de mot de passe actuel, on le corrige, le champ du code
+     apparaît — et le refus rouge d'avant est toujours là, sans rien pour le démentir.
+     ⚠️ Ce défaut-là n'a RIEN à voir avec l'interrupteur du portail : c'est du code partagé,
+     donc il est dans la page servie aux clients aujourd'hui, avec Firebase.
+     C'est le pendant exact de la règle `_mailboxes` de CLAUDE.md — un refus doit savoir se
+     dire, et une réussite doit savoir effacer le refus d'avant. Chaque essai écrit SON verdict
+     et efface celui du précédent, sinon l'écran ment sur ce qui vient de se passer. */
+  function _vider(id){ const e=$(id); if(e) e.innerHTML=''; }
   function _ok(id,t){ const e=$(id); if(e){ e.innerHTML='<div class="ok">'+esc(t)+'</div>'; setTimeout(()=>{ const x=$(id); if(x) x.innerHTML=''; },4000); } }
   /* Vigie : toute erreur JavaScript est signalée au serveur TeamOP (anonyme) */
   (function(){ const sent={};
@@ -1012,7 +1054,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     try{ await fs.collection('teamop_requests').doc(uid).set({prenom,nom,name:(prenom+' '+nom).trim(),company,updatedAt:FV.serverTimestamp()},{merge:true}); _ok('info-msg','✅ Informations enregistrées.'); }
     catch(e){ _err('info-msg',e.message||'Erreur'); } }
 
-  async function emSend(){ const em=($('em-new').value||'').trim(),pass=$('em-pass').value||'';
+  async function emSend(){ _vider('em-err'); const em=($('em-new').value||'').trim(),pass=$('em-pass').value||'';
     /* ⛔ ON REFUSE AVANT LA CÉRÉMONIE, PAS APRÈS. Avec le portail maison, l'adresse est la CLÉ
        du compte : en changer veut dire déménager le compte, le dossier et le fil de messages,
        qui vivent dans DEUX fichiers tenus par deux modules. Tant que ce déménagement n'est pas
@@ -1026,13 +1068,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       $('em-code').innerHTML=`<div class="field" style="margin-top:10px"><label>Code reçu par e-mail</label><input id="em-codev" inputmode="numeric" maxlength="6" placeholder="6 chiffres" style="letter-spacing:4px;text-align:center;font-size:18px"></div><button class="btn sm block" onclick="emConfirm()">Confirmer le changement</button>`;
       $('em-send').style.display='none';
     }catch(e){ $('em-send').disabled=false; _err('em-err',authMsg(e)); } }
-  async function emConfirm(){ const code=($('em-codev').value||'').trim(),em=($('em-new').value||'').trim();
+  async function emConfirm(){ _vider('em-err'); const code=($('em-codev').value||'').trim(),em=($('em-new').value||'').trim();
     if(code.length<6) return _err('em-err','Entrez le code à 6 chiffres.');
     try{ await _checkCode('email',code); await auth.currentUser.updateEmail(em);
       await fs.collection('teamop_requests').doc(_myUid).set({email:em,updatedAt:FV.serverTimestamp()},{merge:true}); alert('✅ E-mail mis à jour. Utilisez-le à la prochaine connexion.');
     }catch(e){ _err('em-err',authMsg(e)); } }
 
-  async function pwSend(){ const cur=$('pw-cur').value||'',np=$('pw-new').value||'',np2=$('pw-new2').value||'';
+  async function pwSend(){ _vider('pw-err'); const cur=$('pw-cur').value||'',np=$('pw-new').value||'',np2=$('pw-new2').value||'';
     if(!cur) return _err('pw-err','Entrez votre mot de passe actuel.');
     if(np.length<8) return _err('pw-err','Le nouveau mot de passe doit faire au moins 8 caractères.');
     if(np!==np2) return _err('pw-err','Les deux mots de passe ne sont pas identiques.');
@@ -1040,7 +1082,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       $('pw-code').innerHTML=`<div class="field" style="margin-top:10px"><label>Code reçu par e-mail</label><input id="pw-codev" inputmode="numeric" maxlength="6" placeholder="6 chiffres" style="letter-spacing:4px;text-align:center;font-size:18px"></div><button class="btn sm block" onclick="pwConfirm()">Confirmer le changement</button>`;
       $('pw-send').style.display='none';
     }catch(e){ $('pw-send').disabled=false; _err('pw-err',authMsg(e)); } }
-  async function pwConfirm(){ const code=($('pw-codev').value||'').trim(),np=$('pw-new').value||'';
+  async function pwConfirm(){ _vider('pw-err'); const code=($('pw-codev').value||'').trim(),np=$('pw-new').value||'';
     if(code.length<6) return _err('pw-err','Entrez le code à 6 chiffres.');
     try{ await _checkCode('pwd',code); await auth.currentUser.updatePassword(np); alert('✅ Mot de passe modifié.');
     }catch(e){ _err('pw-err',authMsg(e)); } }
