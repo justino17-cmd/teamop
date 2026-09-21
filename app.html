@@ -2659,6 +2659,19 @@ html[data-refonte][data-theme="dark"][data-accent="pink"]    { --acc-src:#FF375F
 html[data-refonte][data-theme="dark"][data-accent="red"]     { --acc-src:#FF453A; --on-acc:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="orange"]  { --acc-src:#FF9F0A; --on-acc:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="graphite"]{ --acc-src:#F5F5F7; --on-acc:#0B1426; }
+/* ⛔⛔ LE GRAPHITE DE NUIT NE PEUT PAS TEINTER LA BARRE — ET C'EST DE L'ARITHMÉTIQUE, PAS UN
+   GOÛT. Son accent de nuit est #F5F5F7, presque blanc : mélangé au navy de la barre, il ne
+   la COLORE pas, il l'ÉCLAIRCIT. Mesuré au navigateur, bureau, verre allumé : le pire
+   libellé du menu passait de 4,07:1 à 3,65:1 rien qu'en allumant le dégradé, et baisser la
+   dose pour tout le monde (.07) ne rendait que 3,76 — en affadissant les huit autres teintes
+   au passage. On traite donc le seul cas fautif : le graphite est le choix « sans couleur »,
+   sa barre prend un voile d'ACIER, la teinte du logo, au lieu de son accent presque blanc. */
+html[data-refonte][data-theme="dark"][data-accent="graphite"]{
+  --rf-barre:linear-gradient(180deg,
+    rgba(143,163,188,.04) 0%,
+    rgba(143,163,188,.012) 55%,
+    rgba(143,163,188,.03) 100%);
+}
 html[data-refonte][data-accent]{
   --acc:var(--acc-src);
   --acc2:color-mix(in srgb,#000 18%,var(--acc-src));

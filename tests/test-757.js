@@ -244,9 +244,21 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
    barre d'onglets du téléphone.
    ══════════════════════════════════════════════════════════════════════════════════════ */
 {
-  const defs = NU_TEINTE.match(/--rf-barre:\s*linear-gradient\([\s\S]*?\);/g) || [];
+  const toutes = NU_TEINTE.match(/--rf-barre:\s*linear-gradient\([\s\S]*?\);/g) || [];
+  /* ⛔⛔ LE GRAPHITE DE NUIT EST UNE EXCEPTION DÉCLARÉE, ET ELLE EST ARITHMÉTIQUE.
+     Son accent de nuit est #F5F5F7 — presque blanc. Mélangé au navy de la barre il ne la
+     COLORE pas, il l'ÉCLAIRCIT, donc il rapproche le fond de l'encre du menu. Mesuré au
+     navigateur, bureau, verre allumé, les neuf teintes : le pire libellé passait de 4,07:1
+     à 3,65:1 rien qu'en allumant le dégradé. Baisser la dose pour TOUT LE MONDE ne rendait
+     que 3,76 et affadissait les huit autres teintes. Le graphite prend donc un voile
+     d'ACIER (la teinte du logo) au lieu de son accent : perte ramenée à 0,06, soit du bruit.
+     ⚠ Si quelqu'un retire cette exception, la lisibilité du menu baisse sans un mot. */
+  const exception = toutes.filter(d => /143,163,188/.test(d));
+  const defs = toutes.filter(d => !/143,163,188/.test(d));
   vrai('⛔ le dégradé des barres est défini pour le JOUR **et** pour la NUIT',
-    defs.length === 2, defs.length + ' définition(s)');
+    defs.length === 2, defs.length + ' définition(s) générale(s)');
+  vrai('⛔ le graphite de NUIT garde son exception d’acier (sinon le menu perd 0,4 de contraste)',
+    exception.length === 1 && /data-accent="graphite"/.test(NU_TEINTE), exception.length + ' exception(s)');
   defs.forEach((d, i) => {
     vrai('   définition ' + (i + 1) + ' tire ses canaux de --acc-rgb, pas d’une teinte figée',
       /rgba\(var\(--acc-rgb/.test(d));
