@@ -49,6 +49,10 @@
   html[data-accent="blue"]  { --acc:#2563EB; --acc2:#1E40AF; --on-acc:#FFFFFF; }
   html[data-accent="purple"]{ --acc:#7A5AF8; --acc2:#6B21A8; --on-acc:#FFFFFF; }
   html[data-accent="orange"]{ --acc:#E79A3C; --acc2:#C26A10; --on-acc:#2A1304; }
+  html[data-accent="teal"]  { --acc:#3FC4DC; --acc2:#0F7A8C; --on-acc:#08222A; }
+  html[data-accent="indigo"]{ --acc:#7B79E8; --acc2:#4B49B8; --on-acc:#FFFFFF; }
+  html[data-accent="pink"]  { --acc:#FF6E8E; --acc2:#C2265A; --on-acc:#3A0512; }
+  html[data-accent="red"]   { --acc:#FF6E66; --acc2:#C7332B; --on-acc:#380605; }
 
   /* ── MODE JOUR (clair — option) ── */
   html[data-theme="light"]{
@@ -65,6 +69,10 @@
   html[data-theme="light"][data-accent="blue"]  { --acc:#2563EB; --acc2:#1E40AF; }
   html[data-theme="light"][data-accent="purple"]{ --acc:#7A5AF8; --acc2:#6B21A8; }
   html[data-theme="light"][data-accent="orange"]{ --acc:#C26A10; --acc2:#9A540C; }
+  html[data-theme="light"][data-accent="teal"]  { --acc:#0F7A8C; --acc2:#0A5A67; }
+  html[data-theme="light"][data-accent="indigo"]{ --acc:#4B49B8; --acc2:#3A388F; }
+  html[data-theme="light"][data-accent="pink"]  { --acc:#C2265A; --acc2:#991C47; }
+  html[data-theme="light"][data-accent="red"]   { --acc:#C7332B; --acc2:#9E2822; }
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{height:100%;}
   body{background:var(--bg);color:var(--t1);font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased;}
@@ -831,6 +839,11 @@ table, .tbl, .list-row {
 /* Le remplissage automatique de Safari peignait les champs en jaune sur la carte sombre :
    on repeint par-dessous avec le fond du champ, et l'encre du thème. */
 input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,textarea:-webkit-autofill{-webkit-text-fill-color:var(--oeil-t);caret-color:var(--oeil-t);-webkit-box-shadow:0 0 0 1000px var(--champ-fond) inset;box-shadow:0 0 0 1000px var(--champ-fond) inset;transition:background-color 9999s ease-out 0s}
+    /* Barre de reprise du multitâche : visible sans voler la vedette au contenu. */
+    .multi-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;
+      border-radius:12px;background:var(--bg2);border:1px solid var(--bd);font-size:13.5px;color:var(--t2)}
+    .multi-bar b{color:var(--t1)}
+    .nav-item .multi-pt{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}
 </style>
 <style id="plg-css">
 /* ── PLANNING MULTI-JOURS + CARTE ─────────────────────────────────────── */
@@ -4726,6 +4739,122 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
   html[data-refonte] .rf-tabs{box-shadow:0 -1px 0 var(--rf-filet)}
   html[data-refonte] .rf-tabs button.on{box-shadow:inset 0 2px 0 var(--acc)}
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   PLATEFORME — le rendu suit l'appareil (21 septembre 2026)
+   Tout s'accroche aux attributs posés par `opPlatAppliquer()` sur <html> : data-os,
+   data-kind, data-verre, data-autonome. AUCUNE règle ici ne s'applique sans l'un d'eux —
+   un appareil non reconnu garde exactement le rendu d'avant, et c'est voulu : une refonte
+   qui se déclenche sur un doute casse l'écran de quelqu'un qui travaille.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. LE VERRE (Liquid Glass) — Apple, Safari 26 et plus, et personne d'autre ──
+   Les valeurs viennent de la maquette : flou 40 px, saturation 210 %, liseré d'un demi-pixel,
+   reflet interne en haut. Le reflet est ce qui distingue une vitre d'un simple voile gris. */
+html[data-verre="1"]{
+  --vr-flou:blur(40px) saturate(210%) brightness(1.06);
+  --vr-fond:rgba(255,255,255,.58);
+  --vr-fond2:rgba(255,255,255,.44);
+  --vr-liseret:rgba(255,255,255,.72);
+  --vr-reflet:inset 0 1px 0 rgba(255,255,255,.85);
+  --vr-ombre:0 10px 28px rgba(0,0,0,.08);
+  --vr-ombre-barre:0 14px 36px rgba(0,0,0,.14);
+  --vr-page:linear-gradient(180deg,#f7f7f9,#eeeef2);
+}
+html[data-verre="1"][data-theme="dark"]{
+  --vr-fond:rgba(44,44,46,.55);
+  --vr-fond2:rgba(255,255,255,.08);
+  --vr-liseret:rgba(255,255,255,.18);
+  --vr-reflet:inset 0 1px 0 rgba(255,255,255,.14);
+  --vr-ombre:0 10px 28px rgba(0,0,0,.45);
+  --vr-ombre-barre:0 14px 36px rgba(0,0,0,.55);
+  --vr-page:linear-gradient(180deg,#0a0a0c,#000);
+}
+html[data-verre="1"] body{background:var(--vr-page);background-attachment:fixed}
+/* ⛔ TROIS ORBES, ET PAS UN DE PLUS. Le verre ne se voit que s'il a quelque chose à
+   déformer : sur un aplat, un flou de 40 px rend exactement l'aplat. Les orbes sont la
+   matière que la vitre plie. Ils vivent sur ::after de <body> — une seule couche peinte,
+   jamais dans le flux, donc rien à recalculer quand une liste défile. */
+html[data-verre="1"] body::after{
+  content:'';position:fixed;inset:-18%;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(300px 300px at 16% 20%, color-mix(in srgb,var(--acc) 42%,transparent), transparent 70%),
+    radial-gradient(280px 280px at 84% 12%, color-mix(in srgb,var(--blue) 34%,transparent), transparent 70%),
+    radial-gradient(320px 320px at 62% 88%, color-mix(in srgb,var(--acc) 26%,transparent), transparent 70%);
+  filter:blur(30px);opacity:.72;
+  animation:vrOrbes 17s ease-in-out infinite alternate;
+}
+html[data-verre="1"][data-theme="dark"] body::after{opacity:.5}
+@keyframes vrOrbes{ from{transform:translate3d(0,0,0) scale(1)} to{transform:translate3d(2.5%,-2%,0) scale(1.08)} }
+
+html[data-verre="1"] .card,
+html[data-verre="1"] .kpi,
+html[data-verre="1"] .tbl,
+html[data-verre="1"] .modal{
+  background:var(--vr-fond)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border:.5px solid var(--vr-liseret)!important;
+  box-shadow:var(--vr-reflet),var(--vr-ombre)!important;
+}
+html[data-verre="1"] .topbar{
+  background:var(--vr-fond)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border-bottom:.5px solid var(--vr-liseret)!important;
+  box-shadow:var(--vr-reflet),var(--vr-ombre-barre)!important;
+}
+html[data-verre="1"] .chip,html[data-verre="1"] .seg{
+  background:var(--vr-fond2)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);
+}
+/* ⛔ LE VERRE N'EST PAS UNE OBLIGATION. Deux réglages système le retirent, et les deux sont
+   des besoins réels, pas des préférences : la transparence réduite (lisibilité) et le
+   mouvement réduit (vertiges). On les respecte SANS retirer la hiérarchie — les surfaces
+   redeviennent pleines, elles ne disparaissent pas. */
+@media (prefers-reduced-transparency: reduce){
+  html[data-verre="1"] .card,html[data-verre="1"] .kpi,html[data-verre="1"] .tbl,
+  html[data-verre="1"] .modal,html[data-verre="1"] .topbar,
+  html[data-verre="1"] .chip,html[data-verre="1"] .seg{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+    background:var(--bg1)!important;
+  }
+  html[data-verre="1"] body::after{display:none}
+  html[data-verre="1"] body{background:var(--bg)}
+}
+@media (prefers-reduced-motion: reduce){
+  html[data-verre="1"] body::after{animation:none}
+}
+
+/* ── 2. LES RAYONS ET LA TYPOGRAPHIE DE CHAQUE SYSTÈME ──
+   Un Android à coins Apple a l'air d'un portage, et un Windows à pilules a l'air d'un site
+   web. Les trois familles ont chacune leur grammaire ; on la suit. */
+html[data-os="android"]{
+  --fs:Roboto,"Google Sans","Helvetica Neue",system-ui,sans-serif;
+  --rf-r-carte:28px; --rf-r-fenetre:28px; --rf-r-ligne:20px; --rf-r-champ:16px; --rf-r-mini:12px;
+}
+html[data-os="android"] body{font-family:var(--fs)}
+html[data-os="android"][data-refonte] .card,html[data-os="android"][data-refonte] .kpi{border:none!important}
+
+html[data-os="windows"]{
+  --fs:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --rf-r-carte:8px; --rf-r-fenetre:9px; --rf-r-ligne:6px; --rf-r-champ:6px; --rf-r-mini:4px;
+}
+html[data-os="windows"] body{font-family:var(--fs)}
+/* Windows ne fait pas de pilules : un bouton y est un rectangle à peine adouci. */
+html[data-os="windows"][data-refonte] .btn{border-radius:6px!important}
+html[data-os="windows"][data-refonte] .chip{border-radius:6px!important}
+
+html[data-os="ios"] body,html[data-os="macos"] body{font-family:var(--fs)}
+html[data-verre="1"]{ --rf-r-carte:26px; --rf-r-fenetre:26px; }
+
+/* ── 3. CE QUE « PAS INSTALLÉE » CHANGE VRAIMENT ──
+   ⛔ ON NE DESSINE PAS DE BARRE D'ADRESSE. Le navigateur dessine déjà la sienne ; en
+   redessiner une ferait deux barres, et la maquette n'en montre une que parce qu'elle est
+   une IMAGE de l'application dans son navigateur.
+   Ce qui change pour de vrai : la barre d'outils de Safari mobile RECOUVRE le bas de
+   l'écran, donc tout ce qui est collé en bas doit lui laisser la place. */
+html[data-os="ios"][data-kind="mobile"]:not([data-autonome="1"]) body{
+  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+}
 </style>
 </head>
 <body>
@@ -5025,7 +5154,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '702-beta';
+const APP_VERSION = '705-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -5724,7 +5853,8 @@ function metierId(){ try{ return (db&&db.metier&&METIERS[db.metier])?db.metier:'
 function metierPack(){ return METIERS[metierId()]; }
 function estMetier3D(){ return metierId()==='3d'; }
 function intTypes(){ const p=metierPack(); return (p&&p.types)?p.types:INT_TYPES; }
-function metierBloque(k){ const p=metierPack(); return !!(p&&p.masque&&p.masque.indexOf(k)>=0); }
+/* La beta voit tout : meme raison que planBloque (chercher BETA_ESSAI a cote de PLAN_BLOQUE). */
+function metierBloque(k){ if(BETA_ESSAI) return false; const p=metierPack(); return !!(p&&p.masque&&p.masque.indexOf(k)>=0); }
 function metierSet(id){
   if(!METIERS[id]) return;
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
@@ -6150,6 +6280,612 @@ function collsFusion(d){ return Object.keys(d||{}).filter(k=>Array.isArray(d[k])
 const COLLS_DICT=['plansSite','planNotes','permissions'];
 function dictFusion(prio,autre){ const out=Object.assign({},autre&&typeof autre==='object'?autre:{});
   Object.keys(prio&&typeof prio==='object'?prio:{}).forEach(k=>{ out[k]=prio[k]; }); return out; }
+/* ══ LE CLASSEMENT DES 83 CLÉS DE `db` — ÉTAPE 2 DU SOCLE ═══════════════════════════════════
+   ⛔ POURQUOI CETTE TABLE EXISTE, ET POURQUOI ELLE EST LA PREMIÈRE CHOSE ÉCRITE DE L'ÉTAPE 2.
+   `collsFusion` prend « toute clé qui se trouve être un tableau » (ligne ~6137) : la règle est
+   IMPLICITE, donc invisible, donc impossible à vérifier. Un inventaire bâti sur
+   `COLLECTIONS_DONNEES` (27 entrées) ou sur les 28 de `migrate()` rate `boxDecisions`,
+   `produitsDistincts`, `bonsRemise`, `interventionsArchive`, `indispos`, `activites`,
+   `mailSent`. Le convertisseur qui vient ensuite touche TOUTES ces clés : une seule oubliée,
+   et l'aller-retour perd des données sans bruit.
+   ⚠️ Ce n'est PAS une liste blanche des clés autorisées : c'est un CLASSEMENT de celles qui
+   existent. `tests/test-731.js` énumère les clés d'une base vivante et REFUSE toute clé non
+   classée — en créer une demain oblige donc à dire de quel genre elle est, une fois, par écrit.
+   C'est la règle implicite rendue explicite, sans devenir une liste figée qui raterait en
+   silence ce qu'on écrira après.
+
+   Les genres, et ce que chacun devient côté socle :
+
+     liste      un tableau d'enregistrements portant `id` → une LIGNE par enregistrement,
+                `enr(coll=<clé>, id=r.id)`. C'est le cas de loin le plus courant.
+     liste_cle  pareil, mais l'identifiant s'appelle autrement (`roles` porte `cle`).
+     liste_ts   ⛔ un tableau SANS identifiant : `mailSent` et `planJournal` n'ont que `ts`.
+                Le convertisseur leur en donne un, dérivé du contenu — pas `uid()`, qui
+                changerait à chaque passage et ferait renaître la même ligne indéfiniment.
+     box        `boxes` seule. Elle ÉCLATE : la box d'un côté, son stock ligne à ligne de
+                l'autre (`box_stock`, id `<boxId>|<produitId>`), marques de retrait comprises.
+                C'est tout l'intérêt du chantier — voir `boxFusionFine`.
+     dict       un dictionnaire → une ligne par CLÉ. Les réunir en bloc écraserait le plan
+                d'appâtage d'un client par celui d'un autre (la panne de `plansSite`).
+     tombes     `_tombes` et `usersSupprimes` : ce ne sont pas des données, ce sont des
+                pierres tombales → `supprime_le` sur la ligne visée.
+     reglage    un scalaire ou un petit objet propre à l'entreprise. ⚠️ PHASE A : transporté
+                en UN SEUL bloc opaque, parce qu'`estampiller()` ne pose pas de `_m` sur un
+                objet — les découper maintenant les rendrait refusés à jamais (`non_date`).
+                Ils passeront ligne à ligne en phase B, après extension d'`estampiller()`.
+
+   ⛔ RIEN N'EST « LOCAL ». Même les drapeaux de semis (`foursSeeded`, `prixSeededV`,
+   `permsRepris`, `dashV2`, `_regMigre`) sont classés : ils vivent dans `db`, donc ils
+   voyagent déjà aujourd'hui, et les laisser tomber ferait échouer l'aller-retour identique —
+   silencieusement, sur un champ dont personne ne se souvient. */
+const OP_CLASSES = {
+  /* ── Les listes d'enregistrements, identifiées par `id` ────────────────────────────── */
+  absences: 'liste', activites: 'liste', bons: 'liste', bonsRemise: 'liste',
+  boxDecisions: 'liste', boxMvtAttente: 'liste', brouillons: 'liste', champsPerso: 'liste',
+  chantiers: 'liste', clients: 'liste', conducteurs: 'liste', contrats: 'liste',
+  demandes: 'liste', devis: 'liste', enveloppes: 'liste', factures: 'liste',
+  fournisseurs: 'liste', groupes: 'liste', indispos: 'liste', interventions: 'liste',
+  interventionsArchive: 'liste', journal: 'liste', mailBoxes: 'liste', messages: 'liste',
+  mouvements: 'liste', pointages: 'liste', produits: 'liste', produitsDistincts: 'liste',
+  produitsDonnes: 'liste', profilsDroits: 'liste', registres: 'liste', taches: 'liste',
+  techArchive: 'liste', techniciens: 'liste', telecollectes: 'liste', users: 'liste',
+  vehicules: 'liste',
+
+  /* ── La même chose, sous un autre nom d'identifiant ────────────────────────────────── */
+  roles: 'liste_cle',
+
+  /* ── ⛔ Les deux tableaux SANS identifiant ─────────────────────────────────────────────
+     `mailSent` est un journal d'envois (`{ts,to,subject,…}`), `planJournal` un journal de
+     déplacements de planning (`{ts,par,titre,…}`). Les deux sont plafonnés (200 et 400) et
+     n'ont jamais eu besoin d'identité tant qu'ils vivaient dans un document unique. Une
+     ligne en a besoin : sans identifiant stable, chaque synchro en recrée une copie. */
+  mailSent: 'liste_ts', planJournal: 'liste_ts',
+
+  /* ── La box, qui éclate ────────────────────────────────────────────────────────────── */
+  boxes: 'box',
+
+  /* ── Les dictionnaires : une ligne par clé, jamais en bloc ─────────────────────────── */
+  permissions: 'dict', planNotes: 'dict', plansSite: 'dict', numMax: 'dict',
+  mailAssign: 'dict', ctrlValide: 'dict', planOrga: 'dict', planOrgaRef: 'dict',
+  roleMasques: 'dict', roleNoms: 'dict', societesStyle: 'dict',
+
+  /* ── Les pierres tombales ──────────────────────────────────────────────────────────── */
+  _tombes: 'tombes', usersSupprimes: 'tombes',
+
+  /* ── Les réglages de l'entreprise (phase A : un bloc opaque) ───────────────────────── */
+  _regMigre: 'reglage', armosaMailV1: 'reglage', bonsRemiseOff: 'reglage',
+  comptableEmail: 'reglage', dashLayout: 'reglage', dashV2: 'reglage',
+  devisIACode: 'reglage', entreprise: 'reglage', factAuto: 'reglage', factTva: 'reglage',
+  forfait: 'reglage', forfaitEssai: 'reglage', forfaitQty: 'reglage', forfaitSrv: 'reglage',
+  formuleAttente: 'reglage', foursEmailsV2: 'reglage', foursEmailsV3: 'reglage',
+  foursSeeded: 'reglage', foursSeededV: 'reglage', mailFrom: 'reglage', mailReply: 'reglage',
+  metier: 'reglage', orgaCanal: 'reglage', orgaMarge: 'reglage', orgaMsg: 'reglage',
+  permsRepris: 'reglage', prixSeededV: 'reglage', societes: 'reglage',
+  validDRTous: 'reglage',
+};
+/* Le nom du champ qui porte l'identité, par genre. Une seule définition : deux copies
+   calculeraient un jour deux identifiants différents, et la ligne viserait un enregistrement
+   qui n'existe pas — c'est la leçon de `fbUidEquipe`. */
+const OP_ID_DE = { liste: 'id', liste_cle: 'cle', box: 'id' };
+function opGenre(cle){ return OP_CLASSES[cle] || ''; }
+/* ══ LE CONVERTISSEUR — ÉTAPE 2 DU SOCLE ═══════════════════════════════════════════════════
+   `opDecomposer(db) → lignes` et `opRecomposer(lignes) → db`. Rien n'est branché : le socle
+   dort (`socle.actif:false` côté serveur) et aucun appel ne sort d'ici. C'est du transport
+   préparé, éprouvé, et rangé — pas une bascule.
+
+   ⛔ CE QUE CE COUPLE DOIT GARANTIR, ET QUI SE PERD SANS BRUIT SI ON SE TROMPE :
+   `opRecomposer(opDecomposer(db))` doit être IDENTIQUE à `db`, champ pour champ. Une clé
+   oubliée, un `undefined` devenu `0`, un dictionnaire réuni en bloc — et ce sont les données
+   d'un client qui disparaissent à la première synchro, sans message et sans pierre tombale.
+   `tests/test-732.js` l'exige sur le semis réel et sur une base synthétique portant les
+   83 clés ; `tests/test-733.js` l'exige encore quand les lignes arrivent PAR PAGES.
+
+   ⛔ LA LIGNE EST EXACTEMENT CE QUE `/api/op/pousser` ACCEPTE DÉJÀ : `{c, id, m, r, e}` pour
+   une écriture, `{c, id, m, sup}` pour une tombe (voir `server/socle.js`, éprouvé par
+   `tests/test-723.js`). On n'invente pas un second format qui devrait être traduit quelque
+   part — c'est le genre de traduction qui finit par diverger.
+
+   ⛔ `m` (= `maj_le`) VAUT 0 QUAND L'ENREGISTREMENT N'A JAMAIS ÉTÉ DATÉ, et c'est délibéré.
+   Le serveur refuse un `m:0` avec le motif `non_date` : c'est JUSTE, parce qu'un enregistrement
+   sans `_m` est tuable par n'importe quelle tombe de n'importe quelle époque (`t >= (r._m||0)`).
+   Le pousser serait pire que le refuser. En pratique le cas ne se présente pas : `estampiller()`
+   passe avant chaque `save()`. Il se présente sur une base qui n'a JAMAIS synchronisé — et
+   c'est exactement là qu'il ne faut rien pousser. ⚠️ Le refus doit s'afficher, pas se taire.
+
+   ⛔ RIEN N'EST JAMAIS JETÉ. Une clé que `OP_CLASSES` ne connaît pas part quand même, dans le
+   bloc des réglages. `tests/test-731.js` interdit qu'une telle clé existe au moment de la
+   construction ; ce repli est là pour le jour où elle existerait quand même, parce que perdre
+   en silence est le seul comportement qu'on ne peut pas se permettre. */
+const OP_REGLAGES = '_reglages';   // le bloc opaque de la phase A
+const OP_BOX_FORME = '_box_forme';  // ce que la box avait, et qu'aucune ligne ne dit — voir plus bas
+/* ⛔ UNE COLLECTION VIDE EST UNE INFORMATION, ET LE PREMIER ALLER-RETOUR L'A PERDUE.
+   Mesuré sur le semis réel, premier essai : `absences`, `brouillons`, `chantiers`, `groupes`,
+   `indispos`, `interventionsArchive`, `planJournal`, `planNotes`, `plansSite`, `registres`,
+   `taches` — ONZE clés évanouies. Elles ne portent aucun enregistrement, donc elles ne
+   produisent aucune ligne, donc la recomposition ne les recrée pas.
+   Ce n'est pas cosmétique : `migrate()` les pose à chaque chargement, `collsFusion` énumère
+   « toute clé qui se trouve être un tableau », et une base recomposée sans elles n'a plus la
+   même forme que celle qu'on a décomposée. C'est le genre d'écart qui ne se voit pas à l'œil
+   et qui décide d'une fusion trois semaines plus tard. */
+const OP_VIDES = '_vides';
+
+/* ══ ÉTAPE 3 — LES PIÈCES JOINTES NE VOYAGENT PAS DANS UNE LIGNE ════════════════════════════
+   ⛔ LA SUBSTITUTION SE FAIT AU BORD DU TRANSPORT, JAMAIS DANS `db`. La base locale garde ses
+   blobs, définitivement. Remplacer une photo par son identifiant DANS `db` changerait
+   l'empreinte de l'enregistrement (`recEmpreinte`), lui donnerait un `_m` neuf, et il
+   gagnerait toutes les fusions : 220 interventions re-tamponnées d'un coup, battant le travail
+   en cours de tous les collègues. C'est pour cette raison exacte que `syncSortirPieces`
+   travaille déjà sur des COPIES, et on la réutilise telle quelle — une seule définition.
+
+   ⛔ ET UN ENREGISTREMENT AMPUTÉ NE SE POUSSE PAS. C'est la règle qui rend cette étape
+   BLOQUANTE pour toutes les suivantes, et elle ne se contourne pas.
+   `syncAlleger` vide le contenu des pièces qui n'ont PAS d'identifiant de serveur, pour faire
+   tenir la copie sous le plafond de 1 Mio d'un document Firestore. L'enregistrement porte
+   alors `horsNuage`, `photosHorsNuage` ou `champsHorsNuage` : il est INCOMPLET, et il n'existe
+   d'exemplaire complet que sur l'appareil qui a pris la photo.
+   Poussé tel quel, l'amputé et le complet arrivent avec le MÊME `maj_le` — ils décrivent le
+   même geste, à la même milliseconde — et lequel gagne est une loterie. Une loterie qui, une
+   fois sur deux, efface une photo de terrain chez tout le monde.
+   La règle est donc : **on retient, on le dit, et l'appareil qui détient la pièce la téléverse
+   d'abord.** Une fois téléversée, l'enregistrement n'est plus amputé (il porte un `pid`) et il
+   part normalement au tour suivant.
+   ⚠️ Retenir en SILENCE serait pire que pousser : une ligne qui ne part jamais sans que
+   personne ne l'apprenne, c'est une donnée perdue avec l'air d'aller bien. D'où `retenus`,
+   que l'appelant DOIT regarder. */
+/* ⛔ CE QU'UNE LIGNE RÉFÉRENCE, DÉCLARÉ PAR L'APPAREIL PLUTÔT QUE DEVINÉ PAR LE SERVEUR.
+   Le serveur POURRAIT déchiffrer chaque corps pour y chercher les identifiants de pièces — il
+   a la clé. Il ne doit pas : ce serait un déchiffrement par ligne et par envoi, sur la boucle
+   d'événements, pour une information que l'appareil connaît déjà gratuitement puisqu'il vient
+   d'écrire le corps. Même raisonnement que le poids des pièces, tenu en incrémental plutôt
+   que rebalayé à chaque dépôt (voir l'en-tête de `server/pieces.js`, point 1).
+   ⚠️ Sans cette déclaration, une pièce dont plus aucune ligne ne parle reste sur le disque du
+   VPS POUR TOUJOURS : la suppression d'aujourd'hui dépend d'un geste du client
+   (`pieceSupprimer`), et un onglet fermé au mauvais moment suffit à la manquer. Le dossier
+   grossit alors sans fin, et c'est `pieces.remplissage` de `/health` qui finit par crier —
+   trop tard, quand les dépôts sont déjà refusés sur le terrain. */
+function opFichiersDe(r) {
+  const out = [];
+  if (!r || typeof r !== 'object') return out;
+  const ajoute = (x) => { if (/^[0-9a-f]{64}$/.test(String(x || '')) && out.indexOf(x) < 0) out.push(x); };
+  (Array.isArray(r.photos) ? r.photos : []).forEach(ph => { const m = PH_MARQUE.exec(String(ph || '')); if (m) ajoute(m[1]); });
+  (Array.isArray(r.docs) ? r.docs : []).forEach(d => { if (d && d.pid) ajoute(String(d.pid)); });
+  return out;
+}
+function opAmpute(r) {
+  if (!r || typeof r !== 'object') return '';
+  if (r.photosHorsNuage > 0) return 'photos';
+  if (Array.isArray(r.champsHorsNuage) && r.champsHorsNuage.length) return 'champs';
+  if (Array.isArray(r.docs) && r.docs.some(d => d && d.horsNuage && !d.data)) return 'documents';
+  return '';
+}
+
+function opDecomposer(base, opts) {
+  /* ⛔ LES PIÈCES SORTENT AVANT TOUT DÉCOUPAGE, et par la fonction qui le fait déjà pour
+     Firestore. Deux implantations du même geste divergeraient un jour, et c'est celle qu'on
+     aurait oublié de corriger qui déciderait — la leçon de `fbUidEquipe`. Elle rend une COPIE :
+     `db` n'est jamais touché. */
+  const brut = base || db;
+  const src = (opts && opts.piecesDejaSorties) ? brut
+    : ((typeof syncSortirPieces === 'function') ? syncSortirPieces(brut).copie : brut);
+  const out = [], retenus = [];
+  /* ⛔ LA DATE DE CE QUI N'EN A PAS — ET SANS ELLE, LA MOITIÉ DE LA BASE N'ARRIVERAIT JAMAIS.
+     Un dictionnaire (`plansSite`, `permissions`, `planNotes`) et un réglage n'ont pas de `_m` :
+     `estampiller()` ne tamponne que les enregistrements des LISTES. Leurs lignes partiraient
+     donc à `m:0`, que le serveur refuse avec le motif `non_date` — et il a raison, un
+     enregistrement daté 0 est tuable par n'importe quelle tombe de n'importe quelle époque.
+     ⚠️ Le plan nomme le piège (« Réglages/objets sans `_m` → refusés à jamais ») mais la
+     conséquence est pire que « les réglages » : `plansSite` porte les PLANS D'APPÂTAGE, qu'un
+     technicien dessine sur le terrain tous les jours. Les laisser refusés, c'est un socle qui
+     n'aurait jamais le travail réglementaire d'une entreprise de 3D.
+     On leur donne donc la date de la DERNIÈRE MODIFICATION CONNUE de la base : ils bougent
+     quand elle bouge. C'est exactement la fidélité de l'ancien monde — `dictFusion` fait déjà
+     « le côté prioritaire gagne », sans plus de finesse.
+     ⚠️ LIMITE À NE PAS CACHER : deux appareils qui modifient DEUX CLÉS différentes du même
+     dictionnaire portent alors la même date, et c'est le dernier arrivé qui gagne — par CLÉ,
+     pas en bloc, donc aucun plan n'écrase l'autre. La maille fine par clé attend la phase B et
+     l'extension d'`estampiller()` aux objets. */
+  /* ⛔⛔ `_maintenant` SE DÉCLARE AVANT LA BOUCLE QUI S'EN SERT. Écrit après, c'est une zone
+     morte temporelle — le piège exact qui a éteint toute la sauvegarde hors site le
+     19 septembre 2026, et que `test-726` existe pour attraper. */
+  const _maintenant = Date.now();
+  let dateBase = 0;
+  try {
+    Object.keys(src || {}).forEach(k => { if (!Array.isArray(src[k])) return;
+      src[k].forEach(r => { const m = +(r && r._m) || 0; if (m > dateBase && m <= _maintenant) dateBase = m; }); });
+  } catch (e) {}
+  /* Une base qui n'a JAMAIS été tamponnée (aucun `_m` nulle part) garde 0 : on n'invente pas
+     une date pour elle. Ses lignes seront refusées, et c'est juste — rien n'a encore été
+     réconcilié, donc rien ne doit partir.
+
+     ⛔ POURQUOI ON ÉCARTE LES DATES FUTURES DU MAXIMUM. `dateBase` est la SEULE date que
+     puissent porter les trois choses qui n'en ont pas : le bloc de réglages, les dictionnaires
+     (`plansSite`, `planNotes`, `permissions`) et la liste des collections vides. Or il suffit
+     d'UN enregistrement à l'horloge folle — un téléphone mal réglé, et son `_m` part chez toute
+     l'équipe par la synchro — pour que le maximum passe dans le futur. Le serveur refuserait
+     alors ces lignes-là en `horlogeAvancee`, sur TOUS les appareils à la fois et pour
+     toujours : personne ne va rééditer la fiche fautive, et rien ne le dirait. Le plan
+     d'appâtage de 24 postes d'un client n'arriverait jamais au socle.
+     ⚠️ La fiche fautive, ELLE, reste refusée et se voit dans les refus. On refuse juste
+     qu'elle emporte avec elle des données qui n'y sont pour rien.
+
+     ⛔⛔ ET ON ÉCARTE PLUTÔT QUE DE PLAFONNER LE RÉSULTAT — la première version faisait
+     `if (dateBase > maintenant) dateBase = maintenant`, ce qui atteignait le but mais en
+     fabriquait un pire, MESURÉ le 20 septembre 2026 : `opSignature` inclut `l.m`, donc
+     `dateBase = Date.now()` rendait la signature de TOUTE la base dépendante de l'heure. Deux
+     appels à trente millisecondes d'écart rendaient deux signatures différentes.
+     En production, une fois l'étape 4 allumée : le contrôle de nuit aurait crié une divergence
+     CHAQUE NUIT, pour toujours, sur toute base contenant un seul enregistrement daté dans le
+     futur — et depuis l'étape 5, cette divergence remet la borne haute à zéro, donc toute la
+     base serait repoussée chaque nuit. Un correctif qui fabrique, en plus grand, la panne qu'il
+     prétend éviter. Écarter les futurs du maximum donne le même effet et reste déterministe :
+     la frontière ne bouge qu'au rythme où un `_m` cesse d'être futur, jamais entre deux appels
+     rapprochés. */
+  const ecrire = (c, id, m, r) => {
+    const l = { c: c, id: String(id), m: +m || 0, r: r, e: opEmpreinte(r) };
+    /* `f` n'est posé que s'il y a quelque chose à dire : une ligne sur cent en porte, et un
+       tableau vide sur toutes les autres ferait grossir chaque envoi pour rien. */
+    const f = opFichiersDe(r);
+    if (f.length) l.f = f;
+    out.push(l);
+  };
+  const tombe = (c, id, m) => { out.push({ c: c, id: String(id), m: +m || 0, sup: +m || 0 }); };
+  const reglages = {};
+
+  Object.keys(src || {}).sort().forEach(cle => {
+    const val = src[cle], genre = OP_CLASSES[cle] || '';
+
+    /* ── LA BOX, QUI ÉCLATE. C'est le cœur du chantier : deux personnes travaillent dans la
+       même box sur des produits différents, et aujourd'hui elles se marchent dessus parce que
+       la box entière est UN enregistrement. Une ligne par produit, et le conflit disparaît par
+       construction au lieu d'être gardé par une condition. */
+    if (genre === 'box') {
+      (val || []).forEach(b => {
+        if (!b || b.id == null) return;
+        const motB = opAmpute(b);
+        if (motB) { retenus.push({ c: 'boxes', id: String(b.id), motif: motB }); return; }
+        const bid = String(b.id), st = (b.stock && typeof b.stock === 'object') ? b.stock : {};
+        const ms = (b._ms && typeof b._ms === 'object' && !Array.isArray(b._ms)) ? b._ms : null;
+        const corps = {};
+        Object.keys(b).forEach(k => { if (k !== 'stock' && k !== '_m' && k !== '_ms') corps[k] = b[k]; });
+        ecrire('boxes', bid, b._m, corps);
+        Object.keys(st).forEach(pid => { ecrire('box_stock', bid + '|' + pid, ms ? ms[pid] : 0, st[pid]); });
+        /* ⛔ LES MARQUES DE RETRAIT. Un produit daté dans `_ms` mais ABSENT du stock, c'est un
+           retrait que quelqu'un a fait à la main. Oubliées, le socle naît sans aucune trace de
+           ces retraits — et un appareil resté trois semaines au fond d'un camion RESSUSCITE
+           chez toute l'équipe les produits qu'on avait retirés. */
+        if (ms) Object.keys(ms).forEach(pid => { if (!(pid in st)) tombe('box_stock', bid + '|' + pid, ms[pid]); });
+        /* ⛔ CE QU'AUCUNE LIGNE NE DIT : que la box AVAIT un stock, et qu'elle datait ses
+           lignes. Les deux sont des informations, pas des détails de rangement — et les deux
+           disparaissent quand la box est vide, puisqu'elle ne produit alors aucune ligne.
+           ⚠️ La présence de `_ms` décide d'un comportement : `estampiller()` fait « pas de
+           `_ms` → je date toutes les lignes depuis `_m` » et « `_ms` présent, MÊME VIDE → je ne
+           date rien ». Confondre les deux re-date les lignes à la première ouverture, et
+           l'appareil qui enregistre en second gagne tout le stock : exactement ce que la
+           maille fine existe pour empêcher.
+           ⚠️ Et `stock` absent n'est pas `stock:{}` : lui en poser un change l'empreinte de la
+           box, donc son `_m`, donc la fusion — pour rien. Mesuré : sans cette ligne, une box
+           à stock vide revenait SANS stock. */
+        const forme = {};
+        if (b.stock && typeof b.stock === 'object') forme.st = 1;
+        if (ms) forme.ms = 1;
+        if (forme.st || forme.ms) ecrire(OP_BOX_FORME, bid, b._m, forme);
+      });
+      return;
+    }
+
+    if (genre === 'liste' || genre === 'liste_cle') {
+      const champ = OP_ID_DE[genre];
+      (val || []).forEach(r => {
+        if (!r || r[champ] == null) return;
+        const mot = opAmpute(r);
+        if (mot) { retenus.push({ c: cle, id: String(r[champ]), motif: mot }); return; }
+        ecrire(cle, r[champ], r._m, opSansTampon(r));
+      });
+      return;
+    }
+
+    /* ── ⛔ LES DEUX TABLEAUX SANS IDENTIFIANT. `mailSent` et `planJournal` n'en ont jamais eu
+       besoin dans un document unique ; une ligne, si. L'identifiant est DÉRIVÉ du contenu —
+       jamais `uid()`, qui changerait à chaque passage et ferait renaître indéfiniment la même
+       ligne, une copie par synchro. */
+    if (genre === 'liste_ts') {
+      /* ⛔ LEUR DATE EST `ts`, ET C'EST LA SEULE QU'ELLES AURONT JAMAIS. MESURÉ le 20 septembre
+         2026 : `ombreRelever()` n'indexe que les enregistrements portant un `id`, donc
+         `estampiller()` ne tamponne JAMAIS `mailSent` ni `planJournal` — qui n'en ont pas, par
+         construction, et c'est précisément pour ça qu'`opIdDerive` existe. Sans `_m`, leurs
+         lignes partaient à `m:0`, le serveur les refusait en `non_date`, et elles ne
+         pouvaient donc JAMAIS atteindre le socle. Invisible pendant l'étape 4 (Firestore reste
+         la référence) ; le jour où le socle est la source de vérité, un appareil qui relit sa
+         base recevrait `mailSent` VIDE — c'est-à-dire la trace de tout ce qu'une entreprise a
+         envoyé à ses clients, disparue.
+         ⚠️ On ne touche PAS à `estampiller()` pour autant : c'est le chemin d'écriture de
+         vrais clients, et le tamponner changerait la fusion de ces deux collections. La date
+         d'un enregistrement horodaté est son `ts` — `opIdDerive` le dit déjà, puisqu'elle en
+         fait la moitié de son identifiant. On la lit, on n'en invente pas. */
+      (val || []).forEach(r => { if (r) ecrire(cle, opIdDerive(r), (+r._m || +r.ts || 0), opSansTampon(r)); });
+      return;
+    }
+
+    /* ── LES DICTIONNAIRES, CLÉ PAR CLÉ. Les réunir en bloc écrasait le plan d'appâtage de
+       24 postes d'un client par celui de 18 postes d'un autre, en entier, sans tombe. */
+    if (genre === 'dict') {
+      Object.keys(val || {}).forEach(k => { ecrire(cle, k, dateBase, { v: val[k] }); });
+      return;
+    }
+
+    /* ── LES PIERRES TOMBALES. Ce ne sont pas des données : ce sont des absences datées. */
+    if (genre === 'tombes') {
+      if (cle === '_tombes') {
+        Object.keys(val || {}).forEach(c => { Object.keys(val[c] || {}).forEach(id => { tombe(c, id, val[c][id]); }); });
+      } else {   // usersSupprimes : la mécanique propre aux comptes, à ne pas confondre avec _tombes.users
+        (val || []).forEach(x => { const id = (x && x.id) || x; if (id != null) tombe('users_sup', id, x && x.ts); });
+      }
+      return;
+    }
+
+    /* ── LES RÉGLAGES, ET TOUT CE QU'ON NE CONNAÎT PAS. Phase A : UN bloc opaque.
+       ⛔ Les découper maintenant les rendrait refusés à jamais : `estampiller()` ne pose pas de
+       `_m` sur un objet ni sur un scalaire, donc chaque réglage arriverait avec `m:0`, donc
+       `non_date`. Ils passeront ligne à ligne en phase B, une fois `estampiller()` étendu et
+       `tests/test-639.js` étendu avec lui. */
+    reglages[cle] = val;
+  });
+
+  /* Le bloc part même vide : son absence voudrait dire « aucun réglage », ce qui est faux
+     dès qu'une base existe, et l'aller-retour ne serait plus identique. */
+  ecrire(OP_REGLAGES, 'bloc', dateBase, reglages);
+
+  /* Les collections VIDES, nommées une par une — voir OP_VIDES. On les relit sur la base
+     d'origine plutôt que de deviner : une clé classée « liste » peut très bien ne pas exister
+     du tout sur cette base-là, et l'inventer serait aussi faux que la perdre. */
+  const vides = [];
+  Object.keys(src || {}).forEach(cle => {
+    const g = OP_CLASSES[cle] || '', val = src[cle];
+    if (g === 'liste' || g === 'liste_cle' || g === 'liste_ts' || g === 'box') { if (Array.isArray(val) && !val.length) vides.push(cle); }
+    else if (g === 'dict') { if (val && typeof val === 'object' && !Object.keys(val).length) vides.push(cle); }
+  });
+  if (vides.length) ecrire(OP_VIDES, 'bloc', dateBase, { cles: vides });
+  /* ⛔ LES RETENUS VOYAGENT AVEC LES LIGNES, PAS DANS UN COIN. Un appelant qui lit `out`
+     sans lire `out.retenus` ne peut pas se tromper sur ce qu'il a : la liste est LÀ, sur le
+     même objet, et `JSON.stringify` l'ignore — ce qui part sur le réseau reste exactement les
+     lignes. C'est le seul moyen de garder la signature `opDecomposer(db) → lignes` du plan
+     sans rendre la rétention silencieuse. */
+  try { Object.defineProperty(out, 'retenus', { value: retenus, enumerable: false }); } catch (e) { }
+  return out;
+}
+
+/* Le corps d'une ligne ne porte JAMAIS les tampons de transport : `_m` devient `m`, `_ms`
+   devient le `m` de chaque ligne de stock. Les laisser dans le corps les ferait entrer dans
+   `recEmpreinte` — donc re-tamponner chaque enregistrement à chaque enregistrement, donc lui
+   faire battre sa propre pierre tombale. C'est la règle que `tests/test-639.js` surveille. */
+function opSansTampon(r) {
+  if (!r || typeof r !== 'object') return r;
+  const out = {};
+  Object.keys(r).forEach(k => { if (k !== '_m' && k !== '_ms') out[k] = r[k]; });
+  return out;
+}
+/* Un identifiant STABLE pour un enregistrement qui n'en a pas : sa date, et l'empreinte de son
+   contenu. Deux envois du même message donnent le même identifiant ; deux messages différents
+   à la même milliseconde n'en donnent pas le même. `recEmpreinte` est réutilisée telle quelle —
+   une seule définition, comme partout ailleurs ici. */
+function opIdDerive(r) { return (+((r && r.ts)) || 0) + '-' + opEmpreinte(r); }
+/* ══ L'EMPREINTE CANONIQUE, ET LA SIGNATURE QUI EN DÉCOULE ══════════════════════════════════
+   ⛔ POURQUOI ON NE RÉUTILISE PAS `recEmpreinte` NI `baseSignature`, ALORS QU'ELLES EXISTENT.
+   `recEmpreinte` passe par `JSON.stringify`, donc elle dépend de L'ORDRE D'INSERTION des clés
+   d'un objet. C'est sans conséquence là où elle sert — comparer un enregistrement à lui-même,
+   sur le même appareil, d'une seconde à l'autre. Ça en a une ici : la signature de l'étape 5
+   compare DEUX MACHINES. Deux appareils au stock identique produiraient deux empreintes
+   différentes dès que l'ordre des clés diffère — et il diffère, `msElaguer` et la fusion le
+   reconstruisent. Le contrôle serait bruyant dès le premier jour, donc ignoré, donc débranché.
+   Or c'est le SEUL garde-fou du chantier : l'étape 4 ne se juge que par lui.
+   `baseSignature` a la même faiblesse (elle appelle `recEmpreinte(r._ms)`) et, en plus, ne
+   regarde ni les lignes de stock ni les réglages.
+
+   ⛔ LES DEUX FONCTIONS COEXISTENT, ET C'EST VOULU. `recEmpreinte` reste EXACTEMENT ce qu'elle
+   est : elle décide des `_m` par comparaison à l'ombre, `tests/test-639.js` la surveille, et y
+   toucher re-tamponnerait toute la base de tous les clients. `opEmpreinte` est l'autre besoin,
+   nommé à part plutôt que mélangé au premier.
+
+   ⛔ ET C'EST LA MÊME FONCTION DES DEUX CÔTÉS. Le serveur recomposera la signature depuis ses
+   lignes avec ce code-ci ; deux implémentations calculeraient un jour deux valeurs
+   différentes, et c'est celle qu'on aurait oublié de corriger qui déciderait. */
+function opCanon(x) {
+  if (x === null || typeof x !== 'object') return x;
+  if (Array.isArray(x)) return x.map(opCanon);
+  const out = {};
+  Object.keys(x).sort().forEach(k => { if (k !== '_m' && k !== '_ms') out[k] = opCanon(x[k]); });
+  return out;
+}
+function opEmpreinte(r) {
+  const t = JSON.stringify(opCanon(r)) || '';
+  let h = 2166136261;
+  for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}
+
+/* La signature d'un ENSEMBLE DE LIGNES — pas d'une base. C'est ce que les deux côtés ont en
+   commun : le client la calcule sur `opDecomposer(db)`, le serveur sur ses lignes à lui.
+   ⛔ ELLE REND LE DÉTAIL PAR COLLECTION, et pas seulement un total. Une alerte qui dit « ça
+   diverge » sans dire OÙ fait chercher une heure ; celle-ci nomme la collection et le nombre,
+   ce qui est exactement ce que la Tour doit afficher à l'étape 4. */
+function opSignature(lignes) {
+  const par = {};
+  (lignes || []).forEach(l => {
+    if (!l || !l.c) return;
+    const c = l.c;
+    (par[c] = par[c] || []).push(c + '|' + l.id + '|' + (+l.m || 0) + '|' + (l.sup ? 1 : 0) + '|' + (l.sup ? '' : (l.e || opEmpreinte(l.r))));
+  });
+  const cols = Object.keys(par).sort(), detail = {};
+  let tout = '';
+  cols.forEach(c => {
+    /* Le TRI est ce qui rend la signature indépendante de l'ordre de service. Le serveur
+       rend ses lignes par `seq`, le client les a dans l'ordre de `db` : sans tri, les deux
+       divergeraient toujours, et pour rien. */
+    const s = par[c].sort().join(',');
+    detail[c] = { n: par[c].length, sig: opEmpreinte(s) };
+    tout += c + '=' + detail[c].sig + ';';
+  });
+  return { sig: opEmpreinte(tout), par: detail };
+}
+
+
+/* ── LA RECOMPOSITION ────────────────────────────────────────────────────────────────────────
+   ⛔ ELLE FUSIONNE, ELLE NE RECONSTRUIT PAS. `opRecomposer(lignes, base)` applique les lignes
+   PAR-DESSUS `base`, qui peut être la base en cours. C'est ce qui rend la pagination sûre :
+   une box de 200 lignes dont 60 seulement sont arrivées garde ses 140 autres. Reconstruire
+   depuis une page ferait poser 140 marques de retrait par `estampiller()` au premier geste du
+   technicien — la panne du 15 septembre par la porte d'à côté, et l'aller-retour complet y est
+   structurellement aveugle. `tests/test-733.js` tient ce cas-là, et lui seul. */
+/* ⛔ LA LECTURE DE L'ÉTAPE 5 N'EST PAS L'ALLER-RETOUR DE L'ÉTAPE 2, ET LA DIFFÉRENCE SE PAIE
+   EN DONNÉES DE CLIENT. L'étape 2 recompose dans une base VIDE : rien n'est là, donc rien ne
+   peut être écrasé, et appliquer chaque ligne telle quelle est exactement juste. L'étape 5
+   recompose dans la base VIVANTE d'un technicien qui travaille. Trois défauts mesurés au
+   banc le 20 septembre 2026, chacun silencieux :
+
+     1. une ligne du serveur PLUS VIEILLE que la copie locale l'ÉCRASAIT. Un technicien qui
+        modifie une fiche hors ligne, puis dont l'appareil lit le socle avant d'avoir poussé,
+        perdait sa saisie — sans message et sans pierre tombale ;
+     2. relire la MÊME page DOUBLAIT `mailSent` et `planJournal`. Ces deux collections n'ont pas
+        d'identité propre : `opRecomposer` faisait `push` sans regarder. Or `opIdDerive` leur
+        DONNE une identité stable — c'est tout son objet, et CLAUDE.md porte déjà la leçon.
+        Il suffisait de s'en servir. Une reprise depuis le curseur zéro (un correctif, un
+        appareil réinstallé, un curseur perdu) doublait la correspondance envoyée ;
+     3. une tombe du serveur s'appliquait sur un enregistrement RESSUSCITÉ localement plus tard.
+
+   La règle est donc celle de `fusionnerBases`, et pas une autre : **le plus récent gagne**.
+   ⚠️ `ecraser:true` rétablit l'ancien comportement, et n'a qu'un seul emploi légitime : une
+   base VIDE, où la garde ne change rien de toute façon. C'est ce que fait `tests/test-732.js`,
+   dont l'aller-retour doit rester exact au champ près. */
+function opRecomposer(lignes, base, opts) {
+  const db2 = base || {};
+  const o = opts || {};
+  const ecraser = o.ecraser === true;
+  const boxParId = {};
+  (db2.boxes || []).forEach(b => { if (b && b.id != null) boxParId[String(b.id)] = b; });
+
+  /* L'index des collections SANS identité propre, construit une fois — `opIdDerive` est un
+     hachage canonique, le recalculer pour chaque ligne coûterait un balayage par ligne. */
+  const tsIndex = {};
+  const tsVus = (cle) => {
+    if (tsIndex[cle]) return tsIndex[cle];
+    const set = new Set();
+    (db2[cle] || []).forEach(r => { if (r) { try { set.add(opIdDerive(r)); } catch (e) {} } });
+    return (tsIndex[cle] = set);
+  };
+
+  /* La date que porte DÉJÀ la copie locale, pour savoir qui gagne. `0` quand il n'y a rien :
+     une ligne du serveur entre alors sans discuter, ce qui est le cas de la première lecture. */
+  const dateLocale = (c, id) => {
+    const genre = OP_CLASSES[c] || '';
+    if (c === 'boxes') { const b = boxParId[id]; return b ? (+b._m || 0) : 0; }
+    if (genre === 'dict' || genre === 'liste_ts' || !genre) return 0;
+    const champ = OP_ID_DE[genre] || 'id';
+    const rec = (db2[c] || []).find(x => x && String(x[champ]) === id);
+    return rec ? (+rec._m || 0) : 0;
+  };
+
+  (lignes || []).forEach(l => {
+    if (!l || !l.c) return;
+    const c = l.c, id = String(l.id == null ? '' : l.id), m = +l.m || 0, sup = +l.sup || 0;
+
+    if (c === OP_REGLAGES) { Object.keys(l.r || {}).forEach(k => { db2[k] = l.r[k]; }); return; }
+
+    /* ⛔ CRÉER CE QUI MANQUE, JAMAIS REMPLACER CE QUI EST LÀ. En pagination, ce bloc peut
+       arriver APRÈS des lignes de la même collection : écraser vaudrait effacer une page
+       déjà posée. Une collection qui a reçu des enregistrements n'est plus vide, et cette
+       ligne n'a alors plus rien à dire. */
+    if (c === OP_VIDES) {
+      ((l.r || {}).cles || []).forEach(k => { if (db2[k] == null) db2[k] = (OP_CLASSES[k] === 'dict') ? {} : []; });
+      return;
+    }
+
+    /* ⛔ UNE LIGNE DE STOCK PEUT ARRIVER AVANT SA BOX, ET ELLE NE DOIT RIEN PERDRE. En
+       pagination, la coupure tombe où elle tombe : refuser la ligne parce que la box n'est pas
+       encore là perdrait le stock d'une box entière, en silence, une page sur deux. On crée
+       donc l'accroche, et la ligne `boxes` la remplira — dans cette page ou dans la suivante. */
+    const boxDe = (bid) => boxParId[bid] || (db2.boxes = db2.boxes || [],
+      db2.boxes.push(boxParId[bid] = { id: bid }), boxParId[bid]);
+
+    if (c === OP_BOX_FORME) {
+      const b = boxDe(id), f = l.r || {};
+      if (f.st && !b.stock) b.stock = {};
+      if (f.ms && !b._ms) b._ms = {};
+      return;
+    }
+
+    if (c === 'box_stock') {
+      const coupe = id.indexOf('|'); if (coupe < 0) return;
+      const bid = id.slice(0, coupe), pid = id.slice(coupe + 1);
+      const b = boxDe(bid);
+      if (!b.stock || typeof b.stock !== 'object') b.stock = {};
+      /* ⛔ LA GARDE D'UNE LIGNE DE STOCK SE PREND SUR `_ms[produit]`, JAMAIS SUR `_m` DE LA BOX.
+         C'est toute la raison d'être de la maille fine : Alexis change l'ADVION, Justin le
+         DEBUSK, dans la même box. Comparer au `_m` de la box ferait perdre l'un des deux. */
+      if (!ecraser && m && (+((b._ms || {})[pid]) || 0) > m) return;
+      if (sup) { delete b.stock[pid]; if (m) { b._ms = b._ms || {}; b._ms[pid] = m; } return; }
+      b.stock[pid] = l.r;
+      if (m) { b._ms = b._ms || {}; b._ms[pid] = m; }
+      return;
+    }
+
+    if (c === 'users_sup') {
+      db2.usersSupprimes = db2.usersSupprimes || [];
+      if (!db2.usersSupprimes.some(x => String((x && x.id) || x) === id)) db2.usersSupprimes.push({ id: id, ts: m });
+      return;
+    }
+
+    if (sup) {   // une tombe ordinaire : elle vit dans `_tombes`, pas dans la collection
+      /* Une tombe qui arrive sur un enregistrement RESSUSCITÉ localement plus tard perd :
+         quelqu'un l'a recréé après la suppression, et c'est le geste le plus récent. */
+      if (!ecraser && dateLocale(c, id) > sup) return;
+      db2._tombes = db2._tombes || {};
+      (db2._tombes[c] = db2._tombes[c] || {})[id] = sup;
+      return;
+    }
+
+    const genre = OP_CLASSES[c] || '';
+    if (genre === 'dict') { db2[c] = db2[c] || {}; db2[c][id] = (l.r || {}).v; return; }
+
+    if (c === 'boxes') {
+      if (!ecraser && m && dateLocale('boxes', id) > m) return;
+      const b = boxDe(id);
+      Object.keys(l.r || {}).forEach(k => { b[k] = l.r[k]; });
+      if (m) b._m = m;
+      return;
+    }
+
+    const champ = OP_ID_DE[genre] || 'id';
+    db2[c] = db2[c] || [];
+    const rec = Object.assign({}, l.r);
+    if (m) rec._m = m;
+    if (genre === 'liste_ts') {
+      /* ⛔ ET SA DATE NE SE RECOPIE PAS DANS L'ENREGISTREMENT. La ligne porte `m` parce que le
+         serveur exige une date ; mais cette date EST le `ts` du corps, déjà présent. La
+         réécrire en `_m` ajouterait un champ que l'enregistrement n'a jamais eu — l'aller-retour
+         cesserait d'être exact, et `opIdDerive` changerait d'avis sur sa propre identité à la
+         recomposition suivante. Régression introduite puis mesurée par `test-732` le
+         20 septembre 2026, sur les quatre tailles de page à la fois.
+         ⚠️ MAIS ON NE JETTE PAS UN `_m` RÉEL POUR AUTANT — première correction, trop brutale,
+         attrapée par le même banc : certains de ces enregistrements en portent un. La règle
+         exacte se lit sur le fil : si la date de la ligne EST le `ts` du corps, elle a été
+         dérivée ici et n'a rien à faire dans l'enregistrement ; si elle en diffère, elle vient
+         d'un vrai `_m` et doit revenir. Le cas limite (`_m` exactement égal à `ts`) perd un
+         champ dont la valeur est déjà là, et que `recEmpreinte` ignore de toute façon. */
+      if (m && +rec.ts === m) delete rec._m;
+      /* ⛔ PAS D'IDENTITÉ PROPRE NE VEUT PAS DIRE PAS D'IDENTITÉ. `opIdDerive` en donne une,
+         stable et déterministe, dérivée du contenu — c'est exactement ce pour quoi elle a été
+         écrite. Sans ce contrôle, relire la même page ajoute une copie, et une reprise depuis
+         le curseur zéro double toute la correspondance envoyée. */
+      if (!ecraser) { const vus = tsVus(c); if (vus.has(id)) return; vus.add(id); }
+      db2[c].push(rec); return;
+    }
+    if (!ecraser && m && dateLocale(c, id) > m) return;
+    const ix = db2[c].findIndex(x => x && String(x[champ]) === id);
+    if (ix >= 0) db2[c][ix] = rec; else db2[c].push(rec);
+  });
+
+  return db2;
+}
 function recEmpreinte(r){ let h=2166136261; const t=JSON.stringify(r,(k,v)=>(k==='_m'||k==='_ms')?undefined:v)||''; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36); }
 /* ⛔ LA MAILLE DE LA FUSION : UNE BOX EST UN ENREGISTREMENT, MAIS DEUX PERSONNES Y TRAVAILLENT.
    Demande de Justin, 10 septembre 2026 : « il faut que personne n'écrase rien ». Le défaut est
@@ -6709,9 +7445,14 @@ async function fbJetonEquipe(){ try{
   /* Quatre secondes, comme la course d'authentification juste en dessous, et pas plus : ce
      délai s'ajoute au démarrage de la synchro quand api.teamop.fr ne répond pas. Mesuré au
      navigateur avec le serveur injoignable — huit secondes se voyaient, sur un téléphone en
-     bord de réseau c'est huit secondes avant le premier échange. Le jeton n'est pas urgent
-     (tant que la règle Firestore n'a pas changé, il ne change rien) : mieux vaut abandonner
-     vite et repartir en anonyme que faire attendre quelqu'un sur un chantier. */
+     c'est huit secondes avant le premier échange.
+     ⛔⛔ CE COMMENTAIRE A DIT « le jeton n'est pas urgent (tant que la règle Firestore n'a pas
+     changé, il ne change rien) ». LA RÈGLE A CHANGÉ LE 18 SEPTEMBRE 2026 : `monEquipe(teamId)`
+     est publiée et servie par Google, donc un appareil qui repart en anonyme n'obtient PLUS
+     RIEN. Abandonner vite reste le bon geste — personne ne doit attendre huit secondes sur un
+     chantier — mais ce n'est plus sans conséquence : au-delà de ce délai, la synchro de cet
+     appareil ne passe pas. ⚠️ Ce que l'écran en dit alors n'a PAS été mesuré. Tant que ça ne
+     l'est pas, ne pas réécrire ici que c'est sans danger. */
   const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),4000);
   let j={},statut=0;
   try{ const r=await fetch(PUSH_API+'/api/fb/jeton',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:t,kh:kh}),signal:ctrl.signal});
@@ -6892,6 +7633,14 @@ function syncDiagnostic(motif){
   }catch(e){}
 }
 async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_syncOn||_syncDemarre) return; _syncDemarre=true;
+  /* ⛔ LE FLUX DU SOCLE S'AMORCE ICI, ET IL NE COÛTE RIEN TANT QU'IL EST ÉTEINT. Sa première
+     boucle demande une session, reçoit `lecture:'firestore'` — servi par le cache du verdict
+     négatif, donc SANS appel réseau — et dort cinq minutes. Aucun appareil ne sonde quoi que
+     ce soit aujourd'hui. Le jour où la Tour bascule un espace, ses appareils s'y mettent tout
+     seuls, sans publier de version : c'est tout l'intérêt d'un drapeau serveur.
+     ⚠️ Jamais `await` : c'est une boucle infinie, l'attendre gèlerait le démarrage de la
+     synchro — donc l'application entière, sur le chemin le plus chaud qui soit. */
+  try{ opSocleFlux(); }catch(e){}
   try{ await loadFirebase(); await syncAuth(); const fs=fbApp().firestore();   // application NOMMÉE : voir fbApp(), la session ne se mélange pas avec celle du portail client
     _fbDoc=fs.collection('elanB_teams').doc(syncTeam()); _syncOn=true; _syncGotInitial=false; try{updateSyncBtn();}catch(e){}
     /* ⛔ L'APPLICATION DIT ELLE-MÊME QUAND SA SYNCHRO NE PART PAS. Justin, 11 septembre 2026 :
@@ -7394,6 +8143,21 @@ function syncRegreffer(local, fusion){ try{
     const L=new Map(); local[c].forEach(r=>{ if(r&&r.id!=null) L.set(String(r.id),r); });
     fusion[c].forEach(r=>{ if(!r||r.id==null) return; const l=L.get(String(r.id)); if(!l||l===r) return;
       if(r.photosHorsNuage>0 && Array.isArray(l.photos) && l.photos.length>((r.photos&&r.photos.length)||0)){ r.photos=l.photos.slice(); n++; }
+      /* ⛔ ET LES PHOTOS DÉPOSÉES SUR LE SERVEUR, APPARIÉES PAR LEUR IDENTIFIANT. La règle
+         au-dessus ne voit QUE l'ancien allègement : elle exige `photosHorsNuage>0` et des
+         tableaux de LONGUEURS DIFFÉRENTES. Or `syncSortirPieces` ne retire aucune entrée — il
+         remplace « piece:HEX:contenu » par « piece:HEX ». Même longueur, aucun `photosHorsNuage` :
+         la condition n'était donc JAMAIS remplie, et l'appareil qui venait de prendre six photos
+         les perdait de sa propre base à la première synchro. MESURÉ : le document revenait, la
+         photo non — le correctif avait été appliqué aux docs (juste en dessous) et oublié ici.
+         On apparie donc par le `pid`, comme les docs le font par (nom, ts) : c'est tout
+         l'intérêt du choix « l'identifiant vit DANS la chaîne ». Jamais par l'index — deux
+         appareils peuvent avoir rangé les mêmes photos dans un ordre différent. */
+      if(Array.isArray(r.photos)&&Array.isArray(l.photos)){
+        const clair={}; l.photos.forEach(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); if(m&&m[2]&&!clair[m[1]]) clair[m[1]]=ph; });
+        r.photos=r.photos.map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
+          if(!m||m[2]||!clair[m[1]]) return ph; n++; return clair[m[1]]; });
+      }
       /* `surServeur` autant que `horsNuage` : l'appareil qui A le fichier l'affiche tout de
          suite au lieu d'aller le rechercher — sur le terrain, c'est la différence entre voir
          le document et attendre un réseau qu'on n'a pas. */
@@ -7591,7 +8355,16 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
       _syncOkJusqu=Date.now()+1800;
       try{ updateSyncBtn(); }catch(_e){}
       setTimeout(()=>{ try{ updateSyncBtn(); }catch(_e){} },1900);
-      try{ sauvegardeDeposer(e); }catch(_e){} })
+      try{ sauvegardeDeposer(e); }catch(_e){}
+      /* ⛔ LA SECONDE ÉCRITURE — ET ELLE EST ICI POUR LA MÊME RAISON QUE `sauvegardeDeposer` :
+         c'est le SEUL endroit du fichier qui sache qu'une écriture Firestore est vraiment
+         passée, donc le seul instant où la base locale et celle de l'équipe disent la même
+         chose. Pousser au clic enverrait au socle des lignes que l'équipe n'a jamais reçues.
+         ⛔ JAMAIS `await`, JAMAIS DANS LE CHEMIN D'ERREUR. La synchro de l'entreprise ne doit
+         pas pouvoir tomber parce qu'un chantier interne a hoqueté : `opSoclePousser` n'échoue
+         jamais vers l'extérieur (tout son corps est en `try`), et le `catch` ci-dessous garde
+         la ligne même si une modification future venait à casser cette promesse. */
+      try{ opSoclePousser(); }catch(_e){} })
       .catch(er=>{ _acquitte=true; _pushManuel=false; _syncEnCours=false; try{ updateSyncBtn(); }catch(_e){} console.error('push',er);
         /* L'écriture n'a PAS eu lieu : le repère ne doit pas rester en avant, sinon on ignore
            les publications de toute l'équipe (voir le bloc ⛔ au-dessus de `_tsAvant`). */
@@ -7630,6 +8403,677 @@ function syncRetraitVoulu(){ _retraitVoulu=Date.now(); }
    manque, on ne touche pas à ce qui existe, l'équipe garde ce qu'elle a fait depuis. */
 let _sauvDernier=0;
 async function sauvKh(){ const t=localStorage.getItem('elanB_sync_team'), k=localStorage.getItem('elanB_sync_secret'); if(!t||!k) return null; return {t:t,kh:await sha256(k)}; }
+
+/* ══ LA SECONDE ÉCRITURE — ÉTAPE 4 DU SOCLE ════════════════════════════════════════════════
+   L'appareil écrit Firestore COMME AUJOURD'HUI et pousse EN PLUS ses lignes sur le VPS.
+   ⛔ LA LECTURE RESTE 100 % FIRESTORE. Personne ne lit le socle, sauf le contrôle de nuit.
+
+   ⛔ CETTE SECONDE ÉCRITURE NE DOIT JAMAIS POUVOIR CASSER LA PREMIÈRE, et c'est la seule règle
+   qui compte ici. Tout est en `try`, rien n'est attendu, aucun échec ne remonte : si le VPS
+   répond mal, est lent, ou ne répond pas, l'appareil écrit Firestore et continue comme si de
+   rien n'était. Le contraire — une synchro d'entreprise qui tombe parce qu'un chantier interne
+   a hoqueté — est exactement ce que ce dépôt a déjà payé le 11 septembre 2026, quand une
+   écriture non acquittée affichait « Connexion requise » plein écran en boucle.
+
+   ⛔ ET C'EST LE SERVEUR QUI DÉCIDE, ESPACE PAR ESPACE. `POST /api/op/session` rend `double`.
+   Sans lui, rien ne part. Un drapeau côté client demanderait de publier une version et
+   d'attendre que vingt téléphones se mettent à jour : ce n'est pas un retour arrière, c'est
+   une panne longue. Aujourd'hui le drapeau est éteint pour tout le monde — ce code est écrit,
+   éprouvé, et INERTE.
+
+   ⚠️ On ne pousse que ce qui a BOUGÉ. Une base réaliste fait 9 862 lignes : les renvoyer à
+   chaque `save()` serait absurde sur un téléphone en 4G. `_m` est déjà la date de dernière
+   modification calculée par `estampiller()` — on garde le plus haut `_m` déjà poussé et on
+   n'envoie que ce qui le dépasse. Le premier envoi passe donc tout, et les suivants presque
+   rien. */
+let _opJeton = null;          // { jeton, exp, double, lotMax } — EN MÉMOIRE SEULEMENT
+let _opEnVol = null;          // la pousse en cours, s'il y en a une
+const OP_HAUT_CLE = 'elanB_op_haut';   // le plus haut `_m` déjà poussé, par espace
+const OP_NON_CLE = 'elanB_op_non';     // jusqu'à quand le serveur a dit « pas de double écriture »
+
+function opHautLire(t) { try { return parseInt(localStorage.getItem(OP_HAUT_CLE + '_' + t), 10) || 0; } catch (e) { return 0; } }
+function opHautPoser(t, m) { try { localStorage.setItem(OP_HAUT_CLE + '_' + t, String(m)); } catch (e) {} }
+
+/* ⛔ LE VERDICT « NON » SE GARDE SUR L'APPAREIL, LE JETON JAMAIS. Sans ce cache, chaque
+   rechargement de page vide `_opJeton` et redemande une session : `/api/op/session` plafonne à
+   120 par heure et par espace, et ELAN a une trentaine d'appareils dont les téléphones de
+   terrain rechargent plusieurs fois par heure. On épuiserait le plafond POUR RIEN, puisque le
+   drapeau est éteint — et le jour où il s'allume, ce sont les vrais appareils qui trouveraient
+   la porte fermée. Trente minutes de retard à l'allumage est un prix que personne ne sent.
+   ⚠️ Seul le NON se range ici. Un jeton est une preuve d'accès : le poser dans `localStorage`
+   le laisserait traîner après la déconnexion, et `espaceQuitter()` devrait le connaître. */
+function opNonLire(t) { try { return parseInt(localStorage.getItem(OP_NON_CLE + '_' + t), 10) || 0; } catch (e) { return 0; } }
+function opNonPoser(t) { try { localStorage.setItem(OP_NON_CLE + '_' + t, String(Date.now() + 1800000)); } catch (e) {} }
+
+/* ⛔ L'IDENTITÉ D'APPAREIL EST ALLOUÉE PAR LE SERVEUR, ET IL FAUT LA LUI RENDRE. MESURÉ le
+   20 septembre 2026 : cinq sessions du MÊME appareil créaient CINQ lignes `appareil`. Le
+   serveur n'honore un `app_id` présenté que s'il est un 32-hexa qu'il connaît déjà
+   (`/^[0-9a-f]{32}$/`) — sans quoi choisir son identité redeviendrait possible par la porte de
+   derrière, et c'est la bonne règle. Or l'étape 4 lui envoyait `syncDeviceId()`, c'est-à-dire
+   « dev-abc12345 » : jamais honoré, donc une ligne NEUVE à chaque renouvellement de jeton et à
+   chaque rechargement. Une trentaine d'appareils de terrain en fabriquaient des centaines par
+   jour, pour toujours.
+   ⛔ Et ce n'est pas qu'une question de place : la condition (a) de l'étape 5 est « TOUS les
+   appareils parlent au VPS, constaté par une LISTE NOMINATIVE ». Une liste qui grossit toute
+   seule ne se compare à rien — et une condition impossible à remplir finit par être ignorée.
+   ⚠️ `nom` porte `syncDeviceId()` : c'est un identifiant local tiré au hasard, pas une donnée
+   personnelle, et c'est ce qui permet à la Tour de rapprocher CETTE liste de celle des
+   connexions (`cnxData`, qui porte le même `dev`). Sans ce pont, on ne peut pas savoir quels
+   appareils travaillent SANS parler au socle — et c'est exactement ce qu'il faut savoir. */
+const OP_APP_CLE = 'elanB_op_app';
+function opAppLire(t) { try { const v = localStorage.getItem(OP_APP_CLE + '_' + t) || ''; return /^[0-9a-f]{32}$/.test(v) ? v : ''; } catch (e) { return ''; } }
+function opAppPoser(t, id) { try { if (/^[0-9a-f]{32}$/.test(String(id || ''))) localStorage.setItem(OP_APP_CLE + '_' + t, String(id)); } catch (e) {} }
+
+/* Ouvre (ou réutilise) une session de socle. Rend `null` sur TOUT échec — l'appelant n'a alors
+   rien à faire, ce qui est le comportement voulu tant que le drapeau est éteint. */
+async function opSocleSession(force) {
+  try {
+    if (!force && _opJeton && _opJeton.exp - Date.now() > 120000) return _opJeton;
+    const c = await sauvKh(); if (!c) return null;
+    if (!force && opNonLire(c.t) > Date.now()) return null;
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(PUSH_API + '/api/op/session', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ t: c.t, kh: c.kh, app_id: opAppLire(c.t), nom: syncDeviceId() }), signal: ctl.signal });
+    clearTimeout(to);
+    if (!r.ok) { _opJeton = null; return null; }
+    const j = await r.json();
+    if (!j || !j.jeton) { _opJeton = null; return null; }
+    opAppPoser(c.t, j.app_id);
+    _opJeton = { jeton: j.jeton, exp: j.exp || (Date.now() + 1800000), double: !!j.double, lotMax: j.lotMax || 400,
+      lecture: j.lecture === 'socle' ? 'socle' : 'firestore', seq: +j.seq || 0, t: c.t };
+    if (!_opJeton.double) opNonPoser(c.t);
+    return _opJeton;
+  } catch (e) { _opJeton = null; return null; }
+}
+
+/* ⛔ APPELÉE APRÈS UNE ÉCRITURE FIRESTORE RÉUSSIE, ET JAMAIS ATTENDUE. Le `then` de l'écriture
+   est le seul endroit du fichier qui sache qu'une écriture est VRAIMENT passée — c'est donc le
+   seul moment où la base locale et celle de l'équipe disent la même chose, et le seul où
+   pousser les mêmes lignes a un sens. */
+/* ⛔ UNE SEULE POUSSE À LA FOIS, ET C'EST UN DÉFAUT MESURABLE, PAS UNE PRÉCAUTION. Dix-sept
+   endroits du fichier appellent `syncPush`, et rien n'empêche deux enregistrements de
+   s'acquitter coup sur coup. Le PREMIER envoi d'une entreprise est le pire cas : 9 862 lignes
+   en 25 allers-retours de 400, soit plusieurs secondes de réseau. Pendant ce temps, trois
+   `save()` lanceraient trois pousses concurrentes des MÊMES lignes — décomposition comprise
+   (18 ms chacune), trois fois le trafic, et une course sur la borne haute où la dernière
+   écriture gagne. La façade rend la promesse déjà en vol : l'appelant attend la même chose,
+   ce qui est exactement ce qu'il voulait. */
+function opSoclePousser() {
+  if (_opEnVol) return _opEnVol;
+  _opEnVol = opSoclePousserVraiment().catch(() => null);
+  /* ⚠️ Le `finally` est ce qui fait qu'un échec ne condamne pas la suite : sans lui, une
+     pousse qui casse laisserait `_opEnVol` figé sur une promesse morte, et plus RIEN ne
+     partirait jusqu'au prochain rechargement — une panne bien pire que celle qu'on garde. */
+  const fin = _opEnVol;
+  fin.finally(() => { if (_opEnVol === fin) _opEnVol = null; });
+  return fin;
+}
+
+async function opSoclePousserVraiment() {
+  try {
+    const s = await opSocleSession(); if (!s || !s.double) return null;
+    /* ⛔ LA PHOTO DE L'ÉTAPE 7 SE PREND ICI, ET NULLE PART AILLEURS. C'est le seul instant qui
+       convienne : la double écriture vient d'être allumée pour cet espace, donc la base locale
+       est encore ce qu'elle était AVANT que le socle ait quoi que ce soit à dire. Prise plus
+       tard — après la bascule de la lecture — elle refléterait un `db` déjà recomposé depuis le
+       VPS, et la relecture comparerait le VPS à lui-même : le piège de circularité par la porte
+       de derrière. C'est aussi le seul élément du chantier qui ait une date de péremption : le
+       jour où on en a besoin, il est trop tard pour la prendre.
+       ⚠️ Jamais attendue, et une seule fois par espace : `opPhotoPrendre` rend la photo
+       existante sans rien réécrire. */
+    try { opPhotoPrendre(s.t); } catch (e) {}
+    const haut = opHautLire(s.t);
+    let lignes = null, retenus = [];
+    try { lignes = opDecomposer(db); retenus = lignes.retenus || []; } catch (e) { return null; }
+    /* ⚠️ `>` et pas `>=` : la borne est le plus haut DÉJÀ poussé. Un `>=` renverrait à chaque
+       fois la dernière ligne, pour rien — et un `>` sur une ligne dont le `_m` n'a pas bougé
+       est exactement ce qu'on veut, puisque son contenu n'a pas bougé non plus. */
+    const aEnvoyer = lignes.filter(l => (+l.m || 0) > haut);
+    if (!aEnvoyer.length) return { envoyees: 0, retenus: retenus.length };
+    let acceptes = 0, refus = [], plusHaut = haut;
+    for (let i = 0; i < aEnvoyer.length; i += s.lotMax) {
+      const lot = aEnvoyer.slice(i, i + s.lotMax);
+      const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 15000);
+      let r = null;
+      try {
+        /* ⛔ LE CHAMP S'APPELLE `enr`, ET C'EST UN DÉFAUT DE CÂBLAGE QUI NE SE VOIT PAS.
+           `/api/op/pousser` fait `Array.isArray(b.enr) ? b.enr : null` : un `{lignes:…}` rend
+           400 « enr attendu », le `!r.ok` ci-dessous sort de la boucle, et la double écriture
+           est ENTIÈREMENT inerte sans qu'aucun banc de module ne s'en aperçoive — chacun des
+           deux côtés est juste tout seul. `tests/test-735.js` parle au VRAI serveur. */
+        r = await fetch(PUSH_API + '/api/op/pousser', { method: 'POST',
+          /* ⛔ `Authorization: Bearer`, PAS UN EN-TÊTE MAISON. Le garde `opJeton` du serveur fait
+             `/^Bearer\s+([0-9a-f]{64})$/` sur `authorization` : un `X-OP-Jeton` rend 401
+             `jeton_absent`, le `if (r.status === 401)` ci-dessous vide le jeton et sort — donc
+             la double écriture était ENTIÈREMENT muette, deuxième fois, pour une autre raison.
+             Deux moitiés justes ne se parlent pas toutes seules : `tests/test-735.js`. */
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.jeton },
+          body: JSON.stringify({ enr: lot, ver: String(typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''),
+            u: (typeof currentUser !== 'undefined' && currentUser) ? String(currentUser.id || '') : '' }),
+          signal: ctl.signal });
+      } catch (e) { clearTimeout(to); break; }
+      clearTimeout(to);
+      /* Un jeton périmé : on en reprend un et on retentera au prochain envoi. Insister ici
+         ferait boucler un appareil hors ligne sur un serveur qui répond 401. */
+      if (r.status === 401) { _opJeton = null; break; }
+      if (!r.ok) break;
+      let j = null; try { j = await r.json(); } catch (e) { break; }
+      acceptes += (j && j.acceptes) || 0;
+      if (j && j.refus && j.refus.length) refus = refus.concat(j.refus.slice(0, 20));
+      /* ⛔ LA BORNE NE MONTE QUE SUR CE QUI A ÉTÉ ACCEPTÉ. La poser sur tout le lot ferait
+         sauter DÉFINITIVEMENT les lignes refusées : elles ne repasseraient plus jamais sous
+         le filtre, et la divergence serait permanente — invisible jusqu'au contrôle de nuit,
+         et inexplicable après. */
+      /* ⚠️ LE SERVEUR NE REND PAS LA LISTE DES ACCEPTÉS — il rend `acceptes` (un NOMBRE) et
+         `refus` (la liste détaillée, `{c,id,motif}`). On déduit donc l'acceptation par
+         soustraction : ce qui n'est pas nommé dans les refus DE CE LOT est passé. Écrire une
+         branche sur un `acceptes_ids` imaginaire aurait été pire que de ne rien écrire : elle
+         n'aurait jamais tourné, et se serait lue comme une garde. */
+      const refusLot = new Set(((j && j.refus) || []).map(x => String(x && x.c) + '|' + String(x && x.id)));
+      lot.forEach(l => {
+        const m = +l.m || 0;
+        if (!refusLot.has(String(l.c) + '|' + String(l.id)) && m > plusHaut) plusHaut = m;
+      });
+    }
+    if (plusHaut > haut) opHautPoser(s.t, plusHaut);
+    /* ⚠️ Les refus se DISENT, dans la console et dans la Tour — jamais à l'écran du client :
+       la double écriture est un chantier interne, et l'entreprise n'a rien à en savoir tant
+       que sa synchro marche. Mais les taire complètement ferait diverger en silence. */
+    if (refus.length) { try { console.warn('socle : ' + refus.length + ' ligne(s) refusée(s) — ' + refus.slice(0, 3).map(x => x.c + '/' + x.motif).join(', ')); } catch (e) {} }
+    if (retenus.length) { try { console.warn('socle : ' + retenus.length + ' enregistrement(s) retenu(s) — pièce jointe pas encore téléversée'); } catch (e) {} }
+    /* Étape 5 : on vient de pousser, donc c'est le bon moment pour prendre ce que les autres
+       ont écrit. Inerte tant que le serveur répond `lecture:'firestore'`. */
+    try { opSocleLire(); } catch (e) {}
+    /* ⛔ LE CONTRÔLE SE DÉCLENCHE ICI, ET PAS SUR UNE MINUTERIE. Une application web n'est pas
+       ouverte la nuit : un `setInterval` de 24 h ne se déclencherait jamais sur un téléphone de
+       terrain, qu'on referme entre deux chantiers. On l'accroche donc à la première pousse qui
+       suit 24 h de silence — un appareil qui synchronise se contrôle, un appareil éteint n'a
+       rien à contrôler.
+       ⚠️ Et on l'ÉTALE. `/api/op/etat` relit et signe TOUTE la base (42 ms sur 20 000 lignes) ;
+       trente appareils tombant sur la même heure ronde, c'est une seconde et demie de boucle
+       d'événements bloquée d'un coup, pour tous les clients à la fois. Vingt heures plus un
+       tirage jusqu'à huit les dispersent d'eux-mêmes au bout de quelques jours. */
+    try {
+      const ctlCle = 'elanB_op_ctl_' + s.t;
+      const du = parseInt(localStorage.getItem(ctlCle), 10) || 0;
+      if (Date.now() > du) {
+        localStorage.setItem(ctlCle, String(Date.now() + 72000000 + Math.floor(Math.random() * 28800000)));
+        opSocleControle();
+      }
+    } catch (e) {}
+    return { envoyees: acceptes, refus: refus.length, retenus: retenus.length };
+  } catch (e) { return null; }
+}
+
+/* ══ LA LECTURE — ÉTAPE 5 ══════════════════════════════════════════════════════════════════
+   ⛔ C'EST LE MOMENT OÙ LE VPS DEVIENT LA SOURCE DE VÉRITÉ, ET TOUT CHANGE DE POIDS. Pendant
+   l'étape 4, une ligne perdue ne se voyait pas mais ne cassait rien : Firestore restait la
+   référence. Ici, une ligne perdue est une donnée perdue.
+
+   ⛔ C'EST LE SERVEUR QUI DÉCIDE, ESPACE PAR ESPACE (`lecture`), et il dit `firestore` tant que
+   personne n'a tranché. Le retour arrière coûte UNE REQUÊTE, et il marche parce que la double
+   écriture n'est PAS arrêtée en même temps : Firestore reste à jour à la seconde près. C'est
+   très exactement pour ça qu'on ne l'arrête pas.
+
+   ⚠️ ON LIT PAR CURSEUR, ET LE CURSEUR SE GARDE. `/api/op/depuis?seq=N` ne rend que ce qui a
+   changé après `N`. Le premier passage ramène tout ; les suivants ramènent presque rien. Le
+   curseur vit sous `elan_op_seq_<espace>`, donc il part avec `espaceQuitter()` comme les
+   autres — et une reprise depuis zéro reste sans danger, parce que `opRecomposer` garde le
+   plus récent et ne double plus les collections sans identité. */
+const OP_SEQ_CLE = 'elanB_op_seq';
+function opSeqLire(t) { try { return parseInt(localStorage.getItem(OP_SEQ_CLE + '_' + t), 10) || 0; } catch (e) { return 0; } }
+function opSeqPoser(t, n) { try { localStorage.setItem(OP_SEQ_CLE + '_' + t, String(n)); } catch (e) {} }
+
+let _opLectureEnVol = null;
+
+/* Rend `null` quand il n'y a rien à faire (drapeau éteint, serveur muet), et un compte rendu
+   sinon. ⛔ Comme la pousse, elle ne jette JAMAIS vers l'extérieur : une lecture de socle qui
+   échoue laisse l'appareil sur Firestore, ce qui est exactement le repli voulu. */
+function opSocleLire() {
+  if (_opLectureEnVol) return _opLectureEnVol;
+  _opLectureEnVol = opSocleLireVraiment().catch(() => null);
+  const fin = _opLectureEnVol;
+  fin.finally(() => { if (_opLectureEnVol === fin) _opLectureEnVol = null; });
+  return fin;
+}
+
+async function opSocleLireVraiment() {
+  try {
+    const s = await opSocleSession();
+    if (!s || s.lecture !== 'socle') return null;
+    let curseur = opSeqLire(s.t);
+    let lues = 0, pages = 0, illisibles = 0, applique = false;
+    /* ⛔ UNE BORNE DE PAGES, PARCE QU'UNE BOUCLE DE LECTURE QUI NE S'ARRÊTE PAS EST PIRE QU'UNE
+       LECTURE INCOMPLÈTE. Un serveur qui renverrait toujours `reste:true` sans faire avancer le
+       curseur bloquerait l'appareil pour toujours — et c'est un appareil de terrain, sur
+       batterie. 200 pages de 400 lignes couvrent 80 000 enregistrements ; au-delà on s'arrête
+       et on reprendra au prochain passage, là où on en était. */
+    for (pages = 0; pages < 200; pages++) {
+      const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 20000);
+      let r = null;
+      try {
+        r = await fetch(PUSH_API + '/api/op/depuis?seq=' + encodeURIComponent(curseur) + '&max=400',
+          { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal });
+      } catch (e) { clearTimeout(to); break; }
+      clearTimeout(to);
+      if (r.status === 401) { _opJeton = null; break; }
+      if (!r.ok) break;
+      let j = null; try { j = await r.json(); } catch (e) { break; }
+      if (!j || !Array.isArray(j.enr)) break;
+      illisibles += (+j.illisibles || 0);
+      if (j.enr.length) {
+        /* ⛔ ON RECOMPOSE DANS LA BASE VIVANTE, DONC AVEC LA GARDE. `opRecomposer` sans elle
+           écraserait une saisie locale plus récente que la ligne reçue — mesuré, et silencieux. */
+        opRecomposer(j.enr, db);
+        lues += j.enr.length; applique = true;
+      }
+      /* ⛔ LE CURSEUR N'AVANCE QUE SUR CE QUE LE SERVEUR A DIT AVOIR SERVI, et jamais en arrière.
+         Le poser sur `j.seq` (le rang le plus haut de la base) sauterait tout ce que la page
+         n'a pas rendu — les lignes illisibles, et celles qu'une réponse tronquée garde pour la
+         suivante. On perdrait des enregistrements pour toujours, sans rien dire. */
+      const suite = parseInt(j.curseur, 10);
+      if (!isFinite(suite) || suite <= curseur) break;
+      curseur = suite;
+      opSeqPoser(s.t, curseur);
+      if (!j.reste) break;
+    }
+    /* ⛔ UNE LECTURE QUI A CHANGÉ QUELQUE CHOSE DOIT ÊTRE ENREGISTRÉE ET AFFICHÉE, sinon elle
+       n'existe que jusqu'au prochain rechargement — et l'écran ment en attendant. C'est la
+       règle « un refus ne se montre pas tout seul », prise par l'autre bout. */
+    if (applique) {
+      try { if (typeof migrate === 'function') migrate(db); } catch (e) {}
+      /* ⛔⛔ `ombreRelever()` AVANT `save()`, ET L'ORDRE INVERSE A ÉTÉ MESURÉ : 120 fiches
+         simplement LUES repartaient avec un `_m` NEUF, et l'appareil repoussait 2 908 lignes.
+         `save()` appelle `estampiller()`, qui date de MAINTENANT tout enregistrement absent de
+         l'ombre. Or l'ombre date d'avant la lecture : tout ce qui vient d'arriver y est absent,
+         donc tout est vu comme une modification locale. Un appareil qui ne fait que LIRE
+         s'attribuait ainsi la base entière et gagnait toutes les fusions contre ses collègues.
+         C'est `boxAutoNouveautes` à l'échelle de l'entreprise — « ouvrir un écran n'écrit pas »,
+         appliqué à la lecture du socle. Et CLAUDE.md le dit déjà par l'autre bout : un `_m` ne
+         tient que là où `ombreRelever()` passe JUSTE APRÈS, au chargement et à l'import. Lire
+         le socle EST un import.
+         ⚠️ Ce que ça coûte, et qu'il faut savoir : une saisie locale faite et NON ENREGISTRÉE
+         dans la fenêtre exacte d'une lecture perd son tampon. L'application enregistre à chaque
+         geste, donc la fenêtre est étroite — et le risque inverse, lui, était certain. */
+      try { if (typeof ombreRelever === 'function') ombreRelever(); } catch (e) {}
+      try { save(); } catch (e) {}
+      try { if (typeof render === 'function') render(); } catch (e) {}
+    }
+    if (illisibles) { try { console.warn('socle : ' + illisibles + ' ligne(s) illisible(s) à la lecture'); } catch (e) {} }
+
+    /* ⛔⛔ LA RELECTURE DE L'ÉTAPE 7 SE DÉCLENCHE ICI, ET ELLE NE SE DÉCLENCHAIT NULLE PART.
+       Relevé le 20 septembre 2026 par la relecture du diff : `opRelecture` et `opAttester`
+       étaient écrites, éprouvées par `test-735`, documentées comme « la dernière vérification
+       avant le retrait de Firestore » — et AUCUN appelant. Le banc les exerçait directement,
+       ce qui teste la logique et ne prouve rien du câblage : c'est exactement le défaut que
+       `test-735` existe pour attraper, passé par la porte que ce banc ne regarde pas.
+       Un garde-fou que personne n'appelle n'est pas un garde-fou, c'est du code mort qui en a
+       l'air — la règle est déjà écrite dans CLAUDE.md à propos des champs de `/health`.
+
+       ⛔ APRÈS LA LECTURE, PAS AVANT : la relecture compare le socle à la PHOTO prise avant la
+       bascule. Elle n'a de sens qu'une fois que cet appareil lit vraiment le socle.
+       ⛔ UNE SEULE FOIS PAR APPAREIL ET PAR ESPACE. Elle retélécharge TOUTE la base dans un
+       objet neuf : la rejouer à chaque lecture coûterait, sur un téléphone en 4G, le prix d'une
+       synchro complète pour rien. Le drapeau est dans `localStorage`, comme celui du contrôle.
+       ⚠️ Et elle n'écrit RIEN dans `db` — c'est éprouvé par `test-735` (« `db` est INTACT après
+       une relecture »). Elle ne dépose qu'une attestation de NOMBRES sur le serveur. La règle
+       « rien ne s'écrit au seul chargement » est donc tenue. */
+    if (applique || lues) {
+      try {
+        const relCle = 'elanB_op_relu_' + s.t;
+        if (!localStorage.getItem(relCle)) {
+          localStorage.setItem(relCle, String(Date.now()));
+          /* Détachée : une relecture qui traîne ne doit pas retenir la lecture qui l'a
+             déclenchée, ni faire échouer une synchro si elle-même échoue. */
+          Promise.resolve().then(() => opRelecture()).then(r => {
+            try { if (r && r.erreur) console.warn('relecture : ' + r.erreur); } catch (e) {}
+          }).catch(() => {});
+        }
+      } catch (e) {}
+    }
+    return { lues, pages, illisibles, curseur };
+  } catch (e) { return null; }
+}
+
+/* ══ LE FLUX — CE QUI REND LA LECTURE VIVE ═════════════════════════════════════════════════
+   `/api/op/flux?depuis=<curseur>` retient la réponse jusqu'à 25 s, puis rend le rang courant.
+   L'appareil relance aussitôt : c'est une attente longue, pas un sondage.
+
+   ⛔ UNE BOUCLE DE SONDAGE SUR UN TÉLÉPHONE DE TERRAIN SE CONÇOIT PAR SES ÉCHECS, PAS PAR SON
+   CAS NOMINAL. Trois gardes, chacune pour une panne qu'on peut nommer :
+     · un seul flux à la fois (`_opFlux`), sinon chaque rechargement d'écran en ouvre un de plus
+       et l'appareil finit avec dix attentes parallèles sur sa batterie ;
+     · un recul PROGRESSIF sur échec (2 s, 4 s… plafonné à 5 min). Sans lui, un VPS en panne se
+       fait mitrailler par trente appareils qui réessaient dans la seconde — on transformerait
+       une panne en déni de service, contre nous-mêmes ;
+     · rien ne tourne quand l'onglet est caché. Un technicien laisse l'application ouverte toute
+       la journée dans un onglet de fond ; une attente longue permanente y vide la batterie pour
+       des données que personne ne regarde. */
+let _opFlux = false, _opFluxRecul = 0;
+
+async function opSocleFlux() {
+  if (_opFlux) return; _opFlux = true;
+  try {
+    for (;;) {
+      if (typeof document !== 'undefined' && document.hidden) { await new Promise(r => setTimeout(r, 15000)); continue; }
+      const s = await opSocleSession();
+      if (!s || s.lecture !== 'socle') { await new Promise(r => setTimeout(r, 300000)); continue; }
+      let bouge = false;
+      try {
+        const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 40000);
+        const r = await fetch(PUSH_API + '/api/op/flux?depuis=' + encodeURIComponent(opSeqLire(s.t)),
+          { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal });
+        clearTimeout(to);
+        if (r.status === 401) { _opJeton = null; throw new Error('jeton'); }
+        if (!r.ok) throw new Error('flux');
+        const j = await r.json();
+        bouge = !!(j && (+j.seq || 0) > opSeqLire(s.t));
+        _opFluxRecul = 0;
+      } catch (e) {
+        _opFluxRecul = Math.min(300000, (_opFluxRecul || 1000) * 2);
+        await new Promise(r => setTimeout(r, _opFluxRecul));
+        continue;
+      }
+      if (bouge) { try { await opSocleLire(); } catch (e) {} }
+    }
+  } finally { _opFlux = false; }
+}
+
+/* ⛔ LE CONTRÔLE — LA SEULE CHOSE QUI PUISSE DIRE QU'UNE ÉCRITURE S'EST PERDUE.
+   Personne ne LIT le socle pendant l'étape 4 : si une ligne n'arrive pas, rien ne le montre.
+   L'appareil calcule donc la signature de ce qu'il a, demande la sienne au serveur, et compare.
+   ⚠️ Il compare COLLECTION PAR COLLECTION : « ça diverge » sans dire OÙ fait chercher une
+   heure. Et il ne compare QUE les collections que l'appareil a réellement poussées — celles
+   dont le `_m` dépasse encore la borne n'ont pas eu leur chance. */
+async function opSocleControle() {
+  try {
+    const s = await opSocleSession(); if (!s || !s.double) return null;
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 12000);
+    let r = null;
+    try { r = await fetch(PUSH_API + '/api/op/etat', { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal }); }
+    catch (e) { clearTimeout(to); return null; }
+    clearTimeout(to);
+    if (!r || !r.ok) return null;
+    const j = await r.json().catch(() => null);
+    if (!j || !j.canon) return null;
+    let lignes = null;
+    try { lignes = opDecomposer(db); } catch (e) { return null; }
+    /* Les enregistrements retenus (pièce pas encore téléversée) ne sont pas dans les lignes,
+       donc pas dans notre signature : les deux côtés parlent bien de la même chose. */
+    /* ⛔ ET ON NE COMPARE QUE CE QUI PEUT PARTIR — MESURÉ AU NAVIGATEUR, 20 SEPTEMBRE 2026.
+       Le serveur refuse toute ligne sans date (`non_date`), donc il ne peut JAMAIS détenir une
+       ligne à `m` nul : la compter revient à se comparer à une chose impossible. Or `db.journal`
+       est classé « liste » — donc décomposé — mais `estampiller()` ne le tamponne PAS : ses
+       entrées naissent sans `_m`. Une seule suffisait à faire dire « DIVERGENCE » à un socle
+       parfaitement à jour, à chaque contrôle, pour toujours. Et depuis que le contrôle RÉPARE,
+       c'était pire qu'un faux cri : la borne repartait à zéro, et toute la base — 520 Ko
+       mesurés — était repoussée chaque nuit, sans jamais converger.
+       ⚠️ Mais on ne l'efface pas pour autant : ces lignes sont COMPTÉES et dites. Un contrôle
+       qui cache ce qu'il ne sait pas comparer est un contrôle qui ment poliment. */
+    const muettes = lignes.filter(l => (+l.m || 0) < 1);
+    const poussables = lignes.filter(l => (+l.m || 0) >= 1);
+    if (muettes.length) {
+      try { console.warn('socle : ' + muettes.length + ' ligne(s) sans date, hors comparaison — '
+        + [...new Set(muettes.map(l => l.c))].join(', ')); } catch (e) {}
+    }
+    const moi = opSignature(poussables);
+    const ecarts = [];
+    const toutes = new Set(Object.keys(moi.par).concat(Object.keys(j.canon.par || {})));
+    toutes.forEach(c => {
+      const a = moi.par[c] || { n: 0, sig: '' }, b = (j.canon.par || {})[c] || { n: 0, sig: '' };
+      if (a.sig !== b.sig) ecarts.push({ coll: c, appareil: a.n, serveur: b.n });
+    });
+    const ok = moi.sig === j.canon.sig;
+    if (!ok) {
+      try { console.warn('socle : DIVERGENCE sur ' + ecarts.length + ' collection(s) — ' + ecarts.slice(0, 4).map(e => e.coll + ' (' + e.appareil + ' ici / ' + e.serveur + ' là-bas)').join(', ')); } catch (e) {}
+      /* ⛔ ET ON LE REMONTE À LA TOUR. Une divergence que seul le navigateur du client connaît
+         est une divergence que personne ne corrigera — c'est la leçon de l'écriture non
+         acquittée, qui n'existait que dans un `console.error` que personne n'ouvre.
+         ⚠️ On envoie les NOMS DE COLLECTION et des NOMBRES, jamais un identifiant ni un
+         contenu : la Tour doit savoir QUOI regarder, pas lire les données du client. */
+      try { syncDiagnostic('socle divergence — ' + ecarts.slice(0, 6).map(e => e.coll + ':' + e.appareil + '/' + e.serveur).join(' ')); } catch (e) {}
+      /* ⛔ ET ON RÉPARE, PAS SEULEMENT ON CONSTATE. La borne haute est un SEUL nombre pour toute
+         la base : elle suppose que ce qui est plus vieux qu'elle est déjà parti. Cette
+         supposition tombe dès qu'un enregistrement ARRIVE du passé — et il y en a, pendant les
+         quelques jours où un parc est mélangé : un appareil resté en version ancienne écrit
+         dans Firestore sans rien pousser au socle, sa fiche se fusionne ici avec son `_m`
+         d'origine, plus bas que notre borne, et elle ne passerait donc PLUS JAMAIS le filtre.
+         Un trou silencieux et définitif, exactement ce que ce contrôle existe pour voir.
+         Remettre la borne à zéro fait tout repartir à la pousse suivante : le serveur classe
+         en `noop` tout corps identique, donc la reprise coûte du réseau, pas des données.
+         ⚠️ Et elle ne peut pas s'emballer : ce contrôle ne tourne qu'une fois par vingt heures
+         au plus, donc une divergence que la reprise ne répare pas coûte une reprise par jour,
+         pas une par enregistrement — et ses refus se lisent dans la console. */
+      try { opHautPoser(s.t, 0); } catch (e) {}
+    }
+    /* ⛔ ET ON LE DIT AU SERVEUR — C'EST LA CONDITION (d) DE L'ÉTAPE 5, ET ELLE N'A PAS D'AUTRE
+       SOURCE POSSIBLE. « Sept jours de signatures identiques » : le serveur connaît la sienne,
+       jamais celle de Firestore, qui ne vit que dans cet appareil. Sans ce verdict, la
+       quatrième marche serait invérifiable — donc décorative, donc sautée. Ce dépôt sait
+       comment finit une condition qu'on ne peut pas remplir.
+       ⚠️ On envoie des NOMS DE COLLECTION et des NOMBRES. Jamais un identifiant, jamais un
+       contenu : le serveur doit savoir QUOI regarder, pas lire les données du client. */
+    try {
+      const ctl2 = new AbortController(); const to2 = setTimeout(() => ctl2.abort(), 8000);
+      await fetch(PUSH_API + '/api/op/controle', { method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.jeton },
+        body: JSON.stringify({ ok: ok, ecarts: ecarts.slice(0, 12) }), signal: ctl2.signal });
+      clearTimeout(to2);
+    } catch (e) {}
+    return { ok, ecarts, muettes: muettes.length };
+  } catch (e) { return null; }
+}
+/* ══ ÉTAPE 7 — LA RELECTURE, CONTRE LA PHOTO PRISE AVANT ═══════════════════════════════════
+   ⛔ LE PIÈGE DE CIRCULARITÉ, ET C'EST LE CŒUR DE CETTE ÉTAPE. Depuis l'étape 5, le `db` de
+   l'appareil EST la recomposition du VPS : comparer `db` au VPS, c'est comparer le VPS à
+   lui-même, et ça passe toujours. Les trois architectures proposées au départ avaient ce
+   défaut. La relecture se fait donc contre une PHOTO horodatée, prise à l'étape 4 — c'est-à-dire
+   AVANT que la lecture bascule — et gardée sur l'appareil.
+
+   ⛔ ET UNE PHOTO NE SE PREND PAS APRÈS COUP. C'est le seul élément de tout le chantier qui ait
+   une date de péremption : le jour où on en a besoin, il est trop tard pour la prendre. Elle
+   part donc automatiquement, UNE SEULE FOIS, au moment où le serveur annonce la double écriture
+   pour cet espace.
+   ⚠️ Ça n'enfreint pas « rien ne s'écrit dans les données d'une entreprise au seul chargement » :
+   la photo va dans un magasin À PART (`elan_photo`), qui n'est pas synchronisé, ne porte aucune
+   pierre tombale et ne ressuscite rien. C'est une copie de sauvegarde locale, pas un contenu. */
+const OP_PHOTO_BASE = 'elanB_photo';
+
+/* ⛔ ON COMPTE DES PIÈCES, PAS DES LIGNES — et c'est toute la différence entre un contrôle qui
+   rassure et un contrôle qui sert. Un décompte d'enregistrements ne peut PAS voir disparaître le
+   CONTENU d'un enregistrement : l'intervention est là, elle a le bon numéro, le bon client, la
+   bonne date — et il lui manque ses deux signatures et ses six photos. Le compte tombe juste, et
+   le rapport envoyé au client est vide. */
+function opRecensement(base) {
+  const src = base || db;
+  const out = { photos: 0, docs: 0, signatures: 0, total: 0, par: {} };
+  const compterRec = (r) => {
+    if (!r || typeof r !== 'object') return 0;
+    let n = 0;
+    /* Une photo compte qu'elle soit encore un base64 local ou déjà un marqueur `piece:` : ce
+       qu'on suit, c'est la PRÉSENCE de la pièce, pas l'endroit où son contenu dort. */
+    if (Array.isArray(r.photos)) { const k = r.photos.filter(x => x != null && String(x) !== '').length; out.photos += k; n += k; }
+    if (Array.isArray(r.docs)) {
+      const k = r.docs.filter(d => d && (String(d.data || '') !== '' || String(d.pid || '') !== '')).length;
+      out.docs += k; n += k;
+    }
+    /* `signature`, `signatureClient`, `signatureTech`… — on ne fige pas une liste de noms, elle
+       vieillirait en silence à la première signature ajoutée. */
+    Object.keys(r).forEach(cle => {
+      if (cle.indexOf('signature') !== 0) return;
+      const v = r[cle];
+      if (v && String(v) !== '' && String(v) !== 'null') { out.signatures++; n++; }
+    });
+    return n;
+  };
+  Object.keys(src || {}).forEach(cle => {
+    const val = src[cle];
+    let n = 0;
+    if (Array.isArray(val)) val.forEach(r => { n += compterRec(r); });
+    else if (val && typeof val === 'object') Object.keys(val).forEach(k => { n += compterRec(val[k]); });
+    if (n) out.par[cle] = n;
+  });
+  out.total = out.photos + out.docs + out.signatures;
+  return out;
+}
+
+/* La photo : la base entière, son recensement, sa signature, et la date. En IndexedDB parce que
+   `localStorage` n'a pas la place — une base réaliste fait 300 Ko et davantage. */
+function opPhotoPoser(o) { return new Promise(res => { try {
+  const q = indexedDB.open(OP_PHOTO_BASE, 1);
+  q.onupgradeneeded = e => { const d = e.target.result; if (!d.objectStoreNames.contains('photos')) d.createObjectStore('photos', { keyPath: 't' }); };
+  q.onerror = () => res(false);
+  q.onsuccess = e => { const d = e.target.result; try {
+    const tx = d.transaction('photos', 'readwrite');
+    tx.objectStore('photos').put(o);
+    tx.oncomplete = () => res(true); tx.onerror = () => res(false);
+  } catch (err) { res(false); } };
+} catch (err) { res(false); } }); }
+
+function opPhotoLire(t) { return new Promise(res => { try {
+  const q = indexedDB.open(OP_PHOTO_BASE, 1);
+  q.onupgradeneeded = e => { const d = e.target.result; if (!d.objectStoreNames.contains('photos')) d.createObjectStore('photos', { keyPath: 't' }); };
+  q.onerror = () => res(null);
+  q.onsuccess = e => { const d = e.target.result; try {
+    const g = d.transaction('photos', 'readonly').objectStore('photos').get(String(t));
+    g.onsuccess = () => res(g.result || null); g.onerror = () => res(null);
+  } catch (err) { res(null); } };
+} catch (err) { res(null); } }); }
+
+/* ⛔ UNE SEULE FOIS DANS LA VIE DE L'APPAREIL, POUR CET ESPACE. Reprendre la photo plus tard la
+   rendrait inutile : elle refléterait un `db` déjà recomposé depuis le VPS, donc elle
+   comparerait le VPS à lui-même — le piège de circularité, par la porte de derrière. */
+async function opPhotoPrendre(t) {
+  try {
+    const deja = await opPhotoLire(t);
+    if (deja && deja.ts) return deja;
+    let lignes = null;
+    try { lignes = opDecomposer(db); } catch (e) { return null; }
+    const sig = opSignature(lignes);
+    const rec = opRecensement(db);
+    const photo = { t: String(t), ts: Date.now(), ver: String(typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''),
+      dev: syncDeviceId(), sig: sig.sig, par: sig.par, recens: rec, json: JSON.stringify(db) };
+    const ok = await opPhotoPoser(photo);
+    return ok ? photo : null;
+  } catch (e) { return null; }
+}
+
+/* ⛔ CHAQUE APPAREIL DÉPOSE SON ATTESTATION, ET LA TOUR NOMME LES MANQUANTS. « 9 appareils sur
+   12 ont attesté » ne ferme aucune porte : ce qu'il faut, c'est savoir LESQUELS manquent, pour
+   pouvoir demander à ces trois personnes-là d'ouvrir l'application. On ne ferme pas sur un
+   chiffre agrégé, on ferme sur une liste nominative.
+   ⚠️ L'attestation ne porte que des NOMBRES et une empreinte — jamais un contenu. */
+async function opAttester(t, photo, relu) {
+  try {
+    const s = await opSocleSession(); if (!s) return null;
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 10000);
+    const r = await fetch(PUSH_API + '/api/op/atteste', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.jeton },
+      body: JSON.stringify({
+        dev: syncDeviceId(), ver: String(typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''),
+        photoTs: (photo && photo.ts) || 0, photoSig: (photo && photo.sig) || '',
+        pieces: (photo && photo.recens && photo.recens.total) || 0,
+        relu: relu ? { ok: !!relu.ok, manquants: relu.manquants.length, piecesPerdues: relu.piecesPerdues } : null,
+      }), signal: ctl.signal });
+    clearTimeout(to);
+    if (!r.ok) return null;
+    return await r.json().catch(() => null);
+  } catch (e) { return null; }
+}
+
+/* ══ LA RELECTURE ELLE-MÊME ════════════════════════════════════════════════════════════════
+   ⛔ ELLE TÉLÉCHARGE DANS UNE BASE NEUVE, JAMAIS DANS `db`. Recomposer dans `db` ferait deux
+   choses également fatales : ça écraserait le travail du technicien, et ça rendrait la
+   comparaison tautologique. On monte une base à part, on la compare à la photo, on jette. */
+async function opRelecture(surPhoto) {
+  try {
+    const s = await opSocleSession(); if (!s) return null;
+    const photo = surPhoto || await opPhotoLire(s.t);
+    if (!photo || !photo.json) return { erreur: 'aucune photo prise sur cet appareil avant la bascule' };
+
+    /* ⛔ LA PHOTO DOIT ÊTRE CELLE QU'ON A DÉPOSÉE. Une photo modifiée depuis — un import, une
+       main malheureuse — comparerait le socle à autre chose que ce qui existait, et rendrait un
+       verdict qui ne veut rien dire. On la re-signe et on compare à l'empreinte gardée. */
+    let avant = null;
+    try { avant = JSON.parse(photo.json); } catch (e) { return { erreur: 'photo illisible' }; }
+    let sigAvant = '';
+    try { sigAvant = opSignature(opDecomposer(avant)).sig; } catch (e) {}
+    if (photo.sig && sigAvant && photo.sig !== sigAvant) return { erreur: 'la photo a changé depuis qu\'elle a été prise' };
+
+    /* On télécharge TOUT, depuis zéro, dans une base neuve. */
+    const apres = {};
+    let curseur = 0, pages = 0, illisibles = 0;
+    for (pages = 0; pages < 200; pages++) {
+      const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 20000);
+      let r = null;
+      try { r = await fetch(PUSH_API + '/api/op/depuis?seq=' + curseur + '&max=400',
+        { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal }); }
+      catch (e) { clearTimeout(to); return { erreur: 'le serveur n\'a pas répondu' }; }
+      clearTimeout(to);
+      if (!r.ok) return { erreur: 'lecture refusée (' + r.status + ')' };
+      const j = await r.json().catch(() => null);
+      if (!j || !Array.isArray(j.enr)) return { erreur: 'réponse illisible' };
+      illisibles += (+j.illisibles || 0);
+      if (j.enr.length) opRecomposer(j.enr, apres, { ecraser: true });
+      const suite = parseInt(j.curseur, 10);
+      if (!isFinite(suite) || suite <= curseur) break;
+      curseur = suite;
+      if (!j.reste) break;
+    }
+
+    /* ══ LA COMPARAISON, ENREGISTREMENT PAR ENREGISTREMENT ══════════════════════════════════ */
+    const manquants = [], differents = [];
+    const idDe = (c, r) => String(r[(OP_ID_DE[OP_CLASSES[c]] || 'id')] == null ? '' : r[(OP_ID_DE[OP_CLASSES[c]] || 'id')]);
+    Object.keys(avant || {}).forEach(c => {
+      const a = avant[c];
+      if (!Array.isArray(a)) return;
+      const genre = OP_CLASSES[c] || '';
+      if (genre === 'liste_ts') {
+        /* Pas d'identité propre : on compare par identifiant DÉRIVÉ, le même que la pousse. */
+        const vus = new Set((apres[c] || []).map(r => { try { return opIdDerive(r); } catch (e) { return ''; } }));
+        a.forEach(r => { let id = ''; try { id = opIdDerive(r); } catch (e) {}
+          if (id && !vus.has(id)) manquants.push({ coll: c, id: id }); });
+        return;
+      }
+      const parId = new Map();
+      (apres[c] || []).forEach(r => { if (r) parId.set(idDe(c, r), r); });
+      a.forEach(r => {
+        if (!r) return;
+        const id = idDe(c, r);
+        const b2 = parId.get(id);
+        if (!b2) { manquants.push({ coll: c, id: id }); return; }
+        /* ⛔ CHAMP À CHAMP, et sur l'empreinte CANONIQUE — pas sur `JSON.stringify`, qui
+           dépend de l'ordre d'insertion des clés et crierait au loup en permanence. */
+        let ea = '', eb = '';
+        try { ea = opEmpreinte(opSansTampon(r)); eb = opEmpreinte(opSansTampon(b2)); } catch (e) {}
+        if (ea && eb && ea !== eb) differents.push({ coll: c, id: id });
+      });
+    });
+
+    /* ⛔ ET LE RECENSEMENT DES PIÈCES, QUI EST L'AUTRE MOITIÉ. Zéro enregistrement manquant ne
+       dit RIEN sur les signatures et les photos qu'ils portaient. */
+    const recAvant = photo.recens || opRecensement(avant);
+    const recApres = opRecensement(apres);
+    const piecesPerdues = Math.max(0, (recAvant.total || 0) - (recApres.total || 0));
+    const piecesPar = {};
+    Object.keys(recAvant.par || {}).forEach(c => {
+      const d = (recAvant.par[c] || 0) - ((recApres.par || {})[c] || 0);
+      if (d > 0) piecesPar[c] = d;
+    });
+
+    const ok = !manquants.length && !differents.length && !piecesPerdues && !illisibles;
+    const verdict = { ok, pages, illisibles,
+      manquants: manquants.slice(0, 200), differents: differents.slice(0, 200),
+      nManquants: manquants.length, nDifferents: differents.length,
+      piecesAvant: recAvant.total || 0, piecesApres: recApres.total || 0, piecesPerdues, piecesPar,
+      photoTs: photo.ts, photoVer: photo.ver };
+    /* On atteste dans la foulée : une relecture dont le résultat ne remonte nulle part ne
+       ferme aucune porte. */
+    try { verdict.attestee = !!(await opAttester(s.t, photo, { ok, manquants, piecesPerdues })); } catch (e) {}
+    return verdict;
+  } catch (e) { return { erreur: String((e && e.message) || e) }; }
+}
+
 /* ══ ÉTAPE 0 DU SOCLE : UNE PIÈCE JOINTE VIT SUR LE SERVEUR, PAS DANS LE DOCUMENT ══════════
    Justin, 16 septembre 2026 : « Les pièces jointes → ton VPS ». Aujourd'hui `syncAlleger` RETIRE
    les pièces et les photos de la copie poussée pour tenir sous le plafond de 1 Mio d'un document
@@ -8124,9 +9568,22 @@ function espaceQuitter(){
     ['anthropic_key','devis_code','sync_cfg','annuaire_cache','mail_lus','mail_supp','usage','espace_admin']
       .forEach(k=>{ try{ localStorage.removeItem(P+k); }catch(_){} });
     localStorage.removeItem('opB_devis_code');   // même code d'équipe, sous son autre nom
+    /* ⛔ LES CLÉS DU SOCLE SE BALAIENT PAR PRÉFIXE, PAS PAR LISTE. `elan_op_haut_<espace>` et
+       `elan_op_non_<espace>` portent l'espace dans leur NOM : une liste fixe, comme celle du
+       dessus, les raterait toutes — c'est exactement ce que ce dépôt s'est déjà écrit à propos
+       de `elan_rappels_`+id. Et la conséquence n'est pas cosmétique : la borne haute dit « tout
+       est déjà poussé jusqu'à cette date ». Un appareil qui quitte un espace, puis y revient
+       après un « repartir à neuf » (dont le stockage serveur a été effacé), ne pousserait donc
+       PLUS RIEN — le socle resterait vide pour toujours, et seul le contrôle de nuit le verrait. */
+    Object.keys(localStorage).forEach(k=>{ if(k.indexOf(P+'op_')===0){ try{ localStorage.removeItem(k); }catch(_){} } });
     lienLisibleOublier();
   }catch(e){}
   try{ indexedDB.deleteDatabase(P+'cote'); }catch(e){}
+  /* ⛔ ET LA PHOTO DE L'ÉTAPE 7 AUSSI — c'est la base ENTIÈRE d'une entreprise, en clair, dans
+     IndexedDB. La laisser derrière sur un appareil qu'on rend, qu'on quitte ou dont la Tour
+     ferme l'espace, ce serait laisser les noms, les adresses et les coordonnées de tous les
+     clients de cette entreprise à qui reprend l'appareil. Elle part avec le reste. */
+  try{ indexedDB.deleteDatabase(P+'photo'); }catch(e){}
   /* ⛔ ET LA SESSION FIREBASE PART AVEC — c'est le secret le plus VIVANT de tous. Depuis la
      v640, elle porte l'entreprise dans son jeton, et elle se renouvelle indéfiniment toute
      seule : retirer les clés du stockage local n'y change rien, elle vit ailleurs. Sans ce
@@ -8512,7 +9969,113 @@ function btnOccupe(el,texte){
     el.innerHTML=html; el.style.minWidth=''; el.classList.remove('btn-occupe');
   };
 }
-function openModal(html,taille){ const m=$('modal');
+/* ═══ MULTITÂCHE — QUITTER UN ÉCRAN SANS PERDRE CE QU'ON Y FAISAIT ══════════════════
+   Demandé par Justin le 21 septembre 2026 : pouvoir aller dans une autre catégorie, revenir,
+   et continuer. Sur le terrain c'est la situation NORMALE : on remplit une intervention, un
+   client appelle, on va voir sa fiche, on revient — et jusqu'ici tout était perdu.
+
+   ⛔ RIEN N'EST ÉCRIT DANS db. C'est un état d'APPAREIL, pas une donnée d'entreprise : la
+   règle « rien ne s'écrit dans les données d'une entreprise au seul chargement » vaut aussi
+   pour un geste de navigation. Tout vit dans localStorage, sous le préfixe de l'espace (la
+   bêta a donc le sien) ET l'identifiant du compte — deux personnes sur le même appareil ne se
+   repassent pas leurs brouillons.
+
+   ⚠️ ON GARDE LE BALISAGE DE LA FENÊTRE, PAS LE NOM DE LA FONCTION QUI L'A OUVERTE. Il y a
+   plus de cent portes vers une fenêtre dans ce fichier ; les recenser serait une liste à tenir
+   à jour, donc une liste qui se périme en silence. Le balisage réinjecté porte ses propres
+   gestionnaires, qui sont des chaînes : il repart exactement comme il était.
+
+   ⚠️ ON NE ROUVRE RIEN TOUT SEUL. Une fenêtre qui se rouvre d'elle-même quand on arrive sur
+   un écran est une surprise, et une surprise sur un téléphone de terrain se solde par un tap
+   au mauvais endroit. On propose : une barre, un bouton, un geste. */
+const MULTI_VIE_MS = 12 * 3600000;   /* au-delà, ce n'est plus « je reviens », c'est demain */
+const MULTI_MAX = 240000;            /* un balisage plus gros ne vaut pas la place qu'il prend */
+let _multiHtml = '';                 /* le dernier balisage passé à openModal */
+function multiCle(){ return String(STORE_KEY).replace(/gestion_v2$/, '') + 'multi_' + ((currentUser && currentUser.id) || 'x'); }
+function multiTout(){ try{ const o = JSON.parse(localStorage.getItem(multiCle()) || '{}'); return (o && typeof o === 'object') ? o : {}; }catch(e){ return {}; } }
+function multiEcrire(o){ try{ localStorage.setItem(multiCle(), JSON.stringify(o)); }catch(e){ /* stockage plein : le multitâche est un confort, il ne doit JAMAIS empêcher de travailler */ } }
+function multiFrais(e){ return !!(e && e.ts && (Date.now() - e.ts) < MULTI_VIE_MS); }
+function multiEnCours(vue){ const e = multiTout()[vue]; return !!(multiFrais(e) && e.html); }
+/* ⚠️ ON REPEINT LA PASTILLE, PAS LE MENU. `renderNav()` reconstruit les quarante-deux lignes
+   du menu : un re-rendu complet pour un point de 7 px, à chaque changement d'écran. Et il
+   n'est PAS appelé par `go()` — mesuré : la pastille ne se rafraîchissait donc jamais. */
+function multiPastilles(){
+  try{
+    document.querySelectorAll('.nav-item[data-view]').forEach(n => {
+      const actif = multiEnCours(n.dataset.view), pt = n.querySelector('.multi-pt');
+      if(actif && !pt){ const x = document.createElement('span'); x.className = 'multi-pt'; x.title = 'Tu as quelque chose en cours ici'; n.appendChild(x); }
+      else if(!actif && pt) pt.remove();
+    });
+  }catch(e){}
+}
+function multiOublier(vue){ const o = multiTout(); if(o[vue]){ delete o[vue]; multiEcrire(o); } multiPastilles(); }
+/* Selon les écrans, c'est le conteneur qui défile, ou la page : on regarde les deux. */
+function multiDefil(){ const c = $('content'); return (c && c.scrollTop) ? c.scrollTop : (window.scrollY || 0); }
+function multiPoserDefil(y){ if(!y) return; const c = $('content'); if(c && c.scrollHeight > c.clientHeight) c.scrollTop = y; else window.scrollTo(0, y); }
+/* ⛔ LA CAPTURE ÉCRIT TOUJOURS LA VÉRITÉ DU MOMENT, Y COMPRIS « il n'y a plus rien ».
+   C'est ce qui fait qu'un enregistrement réussi efface la reprise : la sauvegarde ferme la
+   fenêtre puis rappelle go(current), donc on repasse ici sans fenêtre ouverte. Sans ça,
+   l'écran proposerait de reprendre un devis déjà enregistré — et on en ferait deux. */
+function multiCapturer(){
+  if(!currentUser || !current) return;
+  const o = multiTout();
+  const ouverte = !!($('overlay') && $('overlay').classList.contains('open')) && !_modalForcee;
+  const e = { ts: Date.now(), y: multiDefil() };
+  if(ouverte && _multiHtml && _multiHtml.length <= MULTI_MAX){
+    const m = $('modal');
+    const champs = [];
+    if(m) [...m.querySelectorAll('input,select,textarea')].forEach((x, i) => {
+      if(x.type === 'file' || x.type === 'password') return;   /* ni fichier, ni secret */
+      champs.push({ n: x.name || '', id: x.id || '', i: i, t: x.type || x.tagName.toLowerCase(),
+        v: (x.type === 'checkbox' || x.type === 'radio') ? (x.checked ? 1 : 0) : String(x.value == null ? '' : x.value).slice(0, 4000) });
+    });
+    const h = m && m.querySelector('h2,h3,.modal-titre');
+    e.html = _multiHtml; e.champs = champs;
+    e.titre = String((h && h.textContent) || 'Fenêtre en cours').trim().slice(0, 60);
+  }
+  if(!e.html && !e.y){ delete o[current]; } else { o[current] = e; }
+  Object.keys(o).forEach(k => { if(!multiFrais(o[k])) delete o[k]; });
+  multiEcrire(o);
+  multiPastilles();
+}
+/* La reprise : on remet le balisage, puis les valeurs. On émet input/change parce que certains
+   écrans recalculent un total à la frappe — ne rien émettre rendrait un devis dont les lignes
+   sont là mais dont le total est à zéro, ce qui est pire que pas de reprise du tout. */
+function multiReprendre(vue){
+  const e = multiTout()[vue];
+  if(!multiFrais(e) || !e.html) return;
+  openModal(e.html);
+  const m = $('modal'); if(!m) return;
+  const tous = [...m.querySelectorAll('input,select,textarea')];
+  (e.champs || []).forEach(c => {
+    let x = null;
+    try{ x = (c.n && m.querySelector('[name="' + c.n + '"]')) || (c.id && m.querySelector('#' + CSS.escape(c.id))) || tous[c.i] || null; }catch(err){ x = tous[c.i] || null; }
+    if(!x) return;
+    if(c.t === 'checkbox' || c.t === 'radio'){ x.checked = !!c.v; x.dispatchEvent(new Event('change', { bubbles: true })); return; }
+    x.value = c.v;
+    x.dispatchEvent(new Event(x.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+  });
+  multiOublier(vue);
+  try{ const b = document.querySelector('.multi-bar'); if(b) b.remove(); }catch(err){}
+  try{ toast('Reprise là où tu en étais'); }catch(err){}
+}
+/* La barre de reprise — discrète, en haut de l'écran, avec de quoi l'écarter. */
+function multiProposer(vue){
+  const e = multiTout()[vue];
+  if(!multiFrais(e)) return;
+  if(e.y) multiPoserDefil(e.y);
+  if(!e.html) return;
+  const c = $('content'); if(!c) return;
+  if(c.querySelector('.multi-bar')) return;
+  const mn = Math.max(1, Math.round((Date.now() - e.ts) / 60000));
+  const d = document.createElement('div');
+  d.className = 'multi-bar';
+  d.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">↩︎ Tu avais commencé : <b>' + esc(e.titre || 'une fenêtre') + '</b> · il y a ' + mn + ' min</span>'
+    + '<button class="btn sm" onclick="multiReprendre(' + esc(JSON.stringify(vue)) + ')">Reprendre</button>'
+    + '<button class="btn ghost sm" title="Oublier" onclick="multiOublier(' + esc(JSON.stringify(vue)) + '); this.parentNode.remove()">✕</button>';
+  c.insertBefore(d, c.firstChild);
+}
+function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html || '');
   if(taille==='carte'){ m.className='modal carte'; $('overlay').classList.remove('full'); $('overlay').classList.add('centre'); }
   else { m.className='modal full'; $('overlay').classList.remove('centre'); $('overlay').classList.add('full'); }
   m.innerHTML=html; $('overlay').classList.add('open'); m.scrollTop=0;
@@ -8620,11 +10183,21 @@ const PLAN_BLOQUE={
   gratuit:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes','devis','factures','contrats','devisXylo','archives','carteInt','carteBox','secteurs','taches','absences','statistiques','audit','vehicules','pointage','messagerie','chantiers','modulesElan']
 };
 function forfait(){ return (db&&db.forfait)||'premium'; }   // les espaces existants gardent tout
-function planBloque(k){ return (PLAN_BLOQUE[forfait()]||[]).includes(k); }
+/* BETA_ESSAI : LA BETA VOIT TOUT, PAR CONSTRUCTION. C'est l'outil de travail de l'equipe —
+   une categorie masquee par le FORFAIT ou par le METIER est une categorie qu'on ne peut plus
+   eprouver. Mesure le 21 septembre 2026 : « Pointage » avait disparu de la beta pour cette
+   seule raison (il est dans PLAN_BLOQUE.gratuit), et personne ne pouvait le tester. Le garde
+   est BETA_ESSAI, pose par beta-build.js, et lui seul : en production il vaut false, donc le
+   forfait continue de decider chez un client — c'est ce qui est facture. */
+function planBloque(k){ if(BETA_ESSAI) return false; return (PLAN_BLOQUE[forfait()]||[]).includes(k); }
 function planOpMsg(){ return true; }        // OP MESSAGES : application indépendante — son propre abonnement se gère dans OP MESSAGES
 /* ── CODE PROMO ── on tape le code chez nous (pas sur la page de paiement) :
    la formule s'active pour X mois offerts, sans carte bancaire. Un rappel
    prévient avant la fin ; passé la date, l'espace repasse en Gratuit. */
+/* Le code saisi sur la page d'abonnement par quelqu'un qui n'avait pas encore d'espace. Il ne
+   sert qu'à pré-remplir le champ : il n'active rien, et il s'efface dès qu'un code a été
+   appliqué, pour ne pas ressurgir des mois plus tard. */
+function promoEnAttente(){ try{ return String(localStorage.getItem('teamop_promo_en_attente')||'').trim().toUpperCase().slice(0,40); }catch(e){ return ''; } }
 async function promoAppliquer(codeDirect){
   const code=String(codeDirect||($('promo-inp')||{}).value||'').trim().toUpperCase();
   if(!code){ toast('Entre ton code promo'); return; }
@@ -8639,6 +10212,7 @@ async function promoAppliquer(codeDirect){
     const j=await r.json().catch(()=>({}));
     if(!r.ok){ toast('⚠ '+(j.error||('Erreur '+r.status))); return; }
     if(!j.finLe||!j.mois){ toast('Réponse du serveur incomplète — réessaie'); return; }
+    try{ localStorage.removeItem('teamop_promo_en_attente'); }catch(e){}   // il a servi : il ne doit pas ressurgir
     const f=PLANS[j.formule]?j.formule:'premium';
     db.forfait=f;
     db.forfaitEssai={code,formule:f,debut:todayISO(),finLe:j.finLe,mois:j.mois,rappels:{}};
@@ -8889,7 +10463,20 @@ const PERM_GRPS=[['tdb','📊 Tableau de bord & historique'],['plan','🗓️ Pl
 const PERM_GRP_OF={'Tableau de bord':'tdb','Planification':'plan','Interventions':'int','CRM':'crm','Ventes':'ventes','Stock':'stock','Temps & équipe':'equipe','Communication / Fournisseurs':'com','Achats internes':'achats','Administration':'admin'};
 const COLL_GRP={interventions:'int',clients:'crm',devis:'ventes',factures:'ventes',contrats:'ventes',telecollectes:'ventes',produits:'stock',boxes:'stock',mouvements:'stock',produitsDonnes:'stock',enveloppes:'stock',brouillons:'achats',demandes:'achats',bons:'com',fournisseurs:'com',taches:'plan',absences:'plan',vehicules:'equipe',conducteurs:'equipe',pointages:'equipe',techniciens:'equipe'};
 /* droits spéciaux existants, rattachés à leur catégorie (libellés dans USER_CAPS) */
-const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],com:['opMessages','bonsLectureSeule','respBons'],equipe:['creerUtilisateurs'],achats:['validerDR']};
+/* ⛔⛔ CE QUE MESURE test-747, ET POURQUOI CETTE TABLE EXISTE. Mesuré au navigateur le
+   21 septembre 2026, sur la bêta, droit par droit : les quatre droits d'une catégorie se
+   cochent, se sauvegardent et se LISENT (canCat répond juste partout) — mais QUATRE chemins
+   de création ne les consultaient pas. On pouvait retirer « ajouter » sur Temps & équipe et
+   créer un technicien ; sur Communication et créer un fournisseur (par DEUX portes) ; sur
+   Achats internes et remplir un brouillon. La case était cochée dans l'écran Permissions, et
+   elle ne servait à rien.
+   ⚠️ Le piège de mesure vaut d'être noté : le premier relevé disait « appliqué » pour les
+   techniciens. C'était faux — ce qui refusait, c'était la LIMITE DE PLACES du forfait, que le
+   témoin venait lui-même de consommer. Un témoin qui mange la ressource que l'essai suivant
+   réclame fabrique un faux verrou.
+   Le libellé sert au message de refus : « Créer un fournisseur n'est pas autorisé… ». */
+const COLL_QUOI={fournisseurs:'un fournisseur',techniciens:'un technicien',brouillons:'un produit au brouillon',bons:'un bon de commande',demandes:'une demande',conducteurs:'un conducteur',clients:'un client',produits:'un produit',boxes:'une box',vehicules:'un véhicule',taches:'une tâche',absences:'une absence',devis:'un devis',factures:'une facture',contrats:'un contrat'};
+const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],com:['opMessages','bonsLectureSeule','respBons'],equipe:['creerUtilisateurs','voirPointages'],achats:['validerDR']};
 function catDroit(u,grp,droit){
   if(!u) return false; if(u.role==='admin') return true;
   const k='cat_'+grp+'_'+droit;
@@ -9158,9 +10745,16 @@ function visibleDocs(list){
   if(can('voirTout')&&!perimetreUserIds()) return list||[];
   const ids=mesClientIds();
   return (list||[]).filter(d=>(d.clientId&&ids.has(d.clientId))||creeParMoi(d)); }
+/* ⛔ TROIS CERCLES, PAS DEUX. Avant, seul « tout voir » ouvrait les pointages des autres —
+   donc pour confier les feuilles de temps à un chef, il fallait lui donner aussi les
+   interventions et les box de toute l'entreprise. Le droit `voirPointages` ouvre les feuilles
+   de temps SEULES, et seulement sur le périmètre de la personne (son équipe). L'ancien
+   comportement est conservé : qui a « tout voir » continue de voir, sans rien changer chez
+   personne le jour de la mise à jour. */
 function visiblePointages(list){
-  if(can('voirTout')){ const p=perimetreTechIds(); return p?(list||[]).filter(x=>p.has(x.techId)):(list||[]); }
+  if(can('voirTout')||can('voirPointages')){ const p=perimetreTechIds(); return p?(list||[]).filter(x=>p.has(x.techId)):(list||[]); }
   const tid=myTechId(); return (list||[]).filter(x=>x.techId===tid); }
+function ptPeutVoirAutres(){ return !!(can('voirTout')||can('voirPointages')); }
 /* Formule impayée : les rubriques de la formule réservée restent VISIBLES dans le
    menu, mais grisées avec un cadenas — on voit ce qu'on récupère en payant. */
 function verrouFormule(item){
@@ -9226,7 +10820,7 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
     if(!rows.length) return '';
     return `<div class="nav-label">${esc(t(sec.g))}</div>` + rows.map(r=> r.verrou
       ? `<div class="nav-item nav-verrou" style="opacity:.38;cursor:not-allowed" title="Réservé à ta formule ${esc((PLANS[att.formule]||{}).l||'')} — en attente de paiement" onclick="verrouMessage()">🔒 ${esc(t(r.it.l))}</div>`
-      : `<div class="nav-item" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${esc(t(r.it.l))}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}</div>`
+      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}</div>`
     ).join('');
   }).join('');
   /* La loupe seulement quand il y a de quoi chercher : sous une dizaine de rubriques, elle
@@ -9325,9 +10919,21 @@ function rendreDirige(sens,rendu){
 /* Le try/catch d'origine, sorti de go() : dans une transition de vue le rendu s'exécute
    plus tard, hors du try de l'appelant — sans cette enveloppe, une vue qui plante
    n'afficherait plus « Affichage indisponible » mais une page vide. */
+/* ⛔⛔ LA BARRE DE REPRISE SE POSE ICI, PAS DANS go(). Mesuré au navigateur le 21 septembre
+   2026 : posée depuis go() sur une minuterie de 60 ms, elle n'apparaissait JAMAIS — à 100,
+   300, 600, 1 200 et 2 500 ms, toujours absente. `rendreVueAnimee` écrit `#content` APRÈS,
+   donc elle balayait la barre sans un mot. Le commentaire du premier jet annonçait pourtant
+   ce piège : l'écrire ne suffit pas, il faut le MESURER.
+   Ici, on est juste après l'écriture de la vue — y compris sur un rafraîchissement automatique,
+   ce qui est voulu : la barre doit survivre au rafraîchissement, sinon elle disparaît toute
+   seule au bout de quelques secondes. */
 function rendreVueSure(view){
   try{ views[view](); }
   catch(e){ console.error('Vue '+view+' :',e); $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Affichage indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Une erreur est survenue sur cette page.<br><span style="color:var(--t3)">${esc(e&&e.message||e)}</span></p><button class="btn ghost sm" style="margin-top:10px" onclick="go('dashboard')">← Retour au tableau de bord</button></div>`; }
+  /* ⛔ APRÈS la vue, pas avant : `rendreVueAnimee` écrit `#content` plus tard, donc une barre
+     posée depuis `go()` sur une minuterie était balayée — mesuré absente à 100, 300, 600,
+     1 200 et 2 500 ms. Ici on est juste après l'écriture réelle de l'écran. */
+  try{ multiProposer(view); }catch(_e){}
 }
 /* Les chiffres montent jusqu'à leur valeur à l'arrivée d'un écran voulu — jamais sur un
    rafraîchissement automatique, jamais si l'utilisateur a demandé moins d'animation.
@@ -9390,6 +10996,8 @@ function refreshEcran(){
   try{ if(views[current]) views[current](); }catch(e){}
 }
 function go(view){
+  /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
+  try{ multiCapturer(); }catch(e){}
   if(!views[view]) view='dashboard';
   _ecranRendu=null;   // on quitte le détail pour une rubrique : plus rien à redessiner
   try{ usageNote(view); }catch(e){}
@@ -9419,6 +11027,9 @@ function go(view){
      rafraîchissement automatique (views[current]() rappelé toutes les quelques secondes) :
      sinon l'écran rejouerait son entrée tout seul et donnerait l'impression de bugger. */
   rendreVueAnimee(view,_retour?'retour':'');
+  /* La barre de reprise se pose dans `rendreVueSure`, la seule fonction qui écrit vraiment
+     l'écran. Ici on ne repeint que les pastilles du menu. */
+  multiPastilles();
   updateBell();
 }
 function gsearch(q){ const box=$('gsrch-res'); if(!box) return; q=norm((q||'').trim()); if(q.length<2){ box.style.display='none'; box.innerHTML=''; return; }
@@ -16664,9 +18275,17 @@ function renderIntDetail(id){
     const sub=`<div class="tabs" style="margin-bottom:12px"><div class="tab ${fsTab==='medias'?'active':''}" onclick="fsTab='medias';renderIntDetail('${id}')">Médias</div><div class="tab ${fsTab==='sign'?'active':''}" onclick="fsTab='sign';renderIntDetail('${id}')">Signatures</div></div>`;
     if(fsTab==='medias'){
       const canDelM=intEdit&&intMediaCanDel(i);
+      /* ⛔ L'IDENTIFIANT DE REDESSIN VIT SUR LA GRILLE, QUI EXISTE DANS LES DEUX MODES. Il était
+         posé sur la tuile « 🔒 Stylo ✏️ pour ajouter », c'est-à-dire sur UNE SEULE branche d'un
+         ternaire — celle de la lecture seule. En mode ÉDITION (le stylo, là où un technicien
+         travaille vraiment), `getElementById('int-detail-photos')` rendait donc `null`, et
+         `intPhotosCombler` téléchargeait les photos du VPS, les mettait en mémoire… et ne
+         redessinait JAMAIS l'écran. Les photos d'un collègue restaient invisibles tant qu'on
+         ne changeait pas d'onglet. Un identifiant qui ne vit que dans une branche d'un ternaire
+         est un identifiant sur lequel on ne peut pas s'appuyer. */
       body=`${sub}
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
-        ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div id="int-detail-photos" onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
+      <div id="int-detail-photos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
+        ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
         ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
       </div>
       <input type="file" id="int-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="intPhotoAdd(event,'${id}')">
@@ -21230,7 +22849,10 @@ function boxDemande(boxId,pid){ const b=db.boxes.find(x=>x.id===boxId), p=produi
     <div class="fgroup"><div class="frow"><textarea id="dem-note" placeholder="Ex : Besoin avant chantier…"></textarea></div></div>
     <div class="detail-desc" style="margin-top:8px">Le DR choisira le fournisseur lors de la validation.</div>`);
 }
-function envoyerDemandeBox(boxId,pid){ const b=db.boxes.find(x=>x.id===boxId), p=produit(pid); if(!b||!p.id)return;
+function envoyerDemandeBox(boxId,pid){
+  /* Seconde porte vers une demande : depuis une box, en un tap. Même droit que le formulaire. */
+  if(!permGarde('achats','ajouter','une demande')) return;
+  const b=db.boxes.find(x=>x.id===boxId), p=produit(pid); if(!b||!p.id)return;
   const qte=Math.max(1,parseInt(($('dem-qte')||{}).value)||1); const note=($('dem-note')||{}).value||'';
   const num=nextNum('demandes','DC','num');
   db.demandes.push({id:uid(),num,date:todayISO(),boxId:b.id,boxNumero:b.numero||'',boxNom:b.nom||'',lignes:[{produitId:pid,quantite:qte}],chefId:currentUser.id,chefNom:fullName(currentUser),statut:'enAttente',notes:note||'Demande depuis box',drNom:null,motifRefus:null}); demandeNotifDR(db.demandes[db.demandes.length-1]);
@@ -21561,7 +23183,9 @@ function formEnv(id){ const e=id?db.enveloppes.find(x=>x.id===id):{}; const part
       </div>
     </form>`);
 }
-function saveEnv(ev,id){ ev.preventDefault(); const f=ev.target; const d=Object.fromEntries(new FormData(f));
+function saveEnv(ev,id){ ev.preventDefault();
+  if(!permGarde('stock', id?'modifier':'ajouter','une enveloppe')) return;
+  const f=ev.target; const d=Object.fromEntries(new FormData(f));
   const clientNom=`${d.prenom||''} ${d.nom||''}`.trim();
   const obj={clientNom,clientTelephone:d.clientTelephone,adresse:d.adresse,ville:d.ville,technicienId:d.technicienId,actif:f.actif.checked};
   if(id){ const ix=db.enveloppes.findIndex(x=>x.id===id); db.enveloppes[ix]={...db.enveloppes[ix],...obj}; save(); toast('Mise à jour'); ficheEnv(id); }
@@ -21692,7 +23316,9 @@ function renderDemLignes(){ const el=$('dem-lignes'); if(!el)return;
     <button type="button" class="btn danger sm" onclick="demLignes.splice(${i},1);renderDemLignes()">✕</button></div>`).join('')
     +`<button type="button" class="btn ghost sm" onclick="demLignes.push({produitId:'',quantite:1});renderDemLignes()">＋ Produit</button>`;
 }
-function saveDemande(e){ e.preventDefault(); const f=Object.fromEntries(new FormData(e.target));
+function saveDemande(e){ e.preventDefault();
+  if(!permGarde('achats','ajouter','une demande')) return;
+  const f=Object.fromEntries(new FormData(e.target));
   const lignes=demLignes.filter(l=>l.produitId); if(!lignes.length){ toast('Ajoute au moins un produit'); return; }
   const b=db.boxes.find(x=>x.id===f.boxId)||{};
   const num=nextNum('demandes','DC','num');
@@ -22597,7 +24223,14 @@ function bonFourEdit(){ if(!peutCommander()){ refusCommander(); return; } const 
   _fourQuickEdit(fid,()=>{ const f=db.fournisseurs.find(x=>x.id===fid); if(sel&&f){ const opt=sel.querySelector('option[value="'+fid+'"]'); if(opt) opt.textContent=f.nom; } });
 }
 /* ＋ Créer un fournisseur directement depuis le bon (puis compléter son e-mail dans la foulée) */
-function bonFourNew(){ if(!peutCommander()){ refusCommander(); return; } const nom=prompt('Nom du nouveau fournisseur :'); if(nom===null) return; const n=(nom||'').trim();
+function bonFourNew(){ if(!peutCommander()){ refusCommander(); return; }
+  /* ⛔ LA SECONDE PORTE, ET C'EST TOUJOURS LA SECONDE QUI MANQUE. L'écran Fournisseurs passe par
+     `saveSimple`, gardé ci-dessus ; celle-ci crée un fournisseur depuis un bon de commande, par un
+     simple `prompt`. Mesurée au navigateur : le fournisseur naissait alors que « ajouter » était
+     retiré sur Communication. Même leçon que les quatre portes d'`espaceQuitter` — une porte
+     oubliée rend la règle facultative. */
+  if(!permGarde('com','ajouter','un fournisseur')) return;
+  const nom=prompt('Nom du nouveau fournisseur :'); if(nom===null) return; const n=(nom||'').trim();
   if(!n){ toast('Indique un nom'); return; }
   if(db.fournisseurs.some(x=>(x.nom||'').trim().toUpperCase()===n.toUpperCase())){ toast('Ce fournisseur existe déjà'); return; }
   const nf={id:uid(),nom:n,contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:''};
@@ -24546,7 +26179,13 @@ function ficheTech(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) return
     ${ints.length? ints.slice(0,5).map(i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention</div>'}
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal();formTech('${t.id}')">Modifier</button><button class="btn" onclick="closeModal();go('pointage')">Pointage</button></div>`);
 }
-async function saveTech(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
+async function saveTech(e,id){ e.preventDefault();
+  /* ⛔ LE DROIT AVANT LA PLACE. Les deux refusent, mais pas pour la même raison : un droit
+     manquant est une décision de l'entreprise, une place manquante est une question d'abonnement.
+     Les intervertir ferait proposer un abonnement à quelqu'un qui n'avait de toute façon pas le
+     droit de créer — et c'est ce que le premier relevé a pris pour un verrou qui n'existait pas. */
+  if(!permGarde('equipe', id?'modifier':'ajouter','un technicien')) return;
+  const d=Object.fromEntries(new FormData(e.target));
   if(!id && !planPlaceLibre()){ proposerAbonnement(); return; }
   const obj={nom:d.nom,metier:d.metier||'Technicien',tel:d.tel,email:d.email,departements:d.departements,couleur:d.couleur,certibiocide:d.certibiocide||'',certibiocideExp:d.certibiocideExp||'',capMin:Math.round((parseFloat(String(d.capH||'').replace(',','.'))||7)*60),
     droitConges:(d.droitConges===''||d.droitConges==null)?25:(parseFloat(String(d.droitConges).replace(',','.'))||0),
@@ -24925,6 +26564,12 @@ const USER_CAPS=[
   ['annuler','Annuler une intervention',''],
   ['supprimer','Supprimer des éléments','Box, clients, factures…'],
   ['voirTout','Tout voir','Toutes les interventions et TOUTES les box de l\'entreprise. Décoché : seulement ses interventions et les box choisies pour lui (ci-dessous, ou cochées dans la fiche de la box)'],
+  /* ⛔ UN DROIT À PART, ET PAS « TOUT VOIR ». Justin, 21 septembre 2026 : « on peut assigner
+     des personnes comme les DR ou des chefs qui choisissent de voir les pointages de leurs
+     techniciens ». Le faire avec `voirTout` aurait ouvert en même temps les interventions et
+     TOUTES les box de l'entreprise — un droit de paie qui donne accès au stock, c'est non.
+     Celui-ci n'ouvre QUE les feuilles de temps, et seulement sur le périmètre de la personne. */
+  ['voirPointages','Voir les pointages de son équipe','Feuilles de temps des techniciens de son périmètre, et leur export PDF. Sans ce droit, chacun ne voit que SES propres pointages.'],
   ['validerDR','Valider les mouvements de box et les demandes (rôle DR)','Voit « Validations DR », valide ou refuse les arrivages, réceptions, prises et demandes de commande de l\'équipe, et reçoit les alertes « à valider »'],
   ['voirCompta','Voir / gérer la comptabilité et les tarifs','Comptabilité, télécollectes, prix et marges (par défaut : administrateur, DR et gestion compta)'],
   ['opMessages','Accès à OP MESSAGES','Affiche OP MESSAGES dans sa barre latérale — sans effet tant que TEAM OP n\'a pas ouvert cette application à l\'entreprise (elle a son propre abonnement)'],
@@ -25817,7 +27462,7 @@ function demoComptaRetire(silencieux){
 views.parametres=function(){
   setHeader('Synchronisation & paramètres','Apparence et sauvegarde des données');
   const t=getThemePref(), a=getAccent();
-  const swatch={green:'#1E7A4E',blue:'#2563EB',purple:'#7C3AED',orange:'#EA580C'};
+  const swatch={green:'#1E7A4E',blue:'#2563EB',teal:'#0F7A8C',indigo:'#4B49B8',purple:'#7C3AED',pink:'#C2265A',red:'#C7332B',orange:'#EA580C'};
   const _demo=demoCompte();
   // Les outils de test (planning de démonstration, mise en production…) ne sont visibles que par l'équipe TEAM OP :
   // les entreprises et leurs utilisateurs ne voient que LEURS réglages.
@@ -25906,7 +27551,7 @@ views.parametres=function(){
           </label>
         </div>
         <div style="font-size:12px;color:var(--t3);margin-top:8px">La couleur choisie s'applique partout : contours des cases, survols, menu, boutons…</div></div>
-    </div>`;
+    </div>`+carteAppareil();
   // Utilisateur (compte créé par l'entreprise, pas sur le site) : ses réglages, la version, et la déconnexion — rien d'autre
   if(currentUser.role!=='admin'){ $('content').innerHTML=_app+`<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="color:var(--t2);font-size:13.5px">Version installée</span><b class="mono">v${APP_VERSION}</b></div><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:10px"><span style="color:var(--t2);font-size:13.5px">Session</span><button class="btn danger sm" onclick="if(confirm('Se déconnecter ?')) logout()">⏻ Déconnexion</button></div>`; return; }
   $('content').innerHTML=_app+`
@@ -25920,7 +27565,13 @@ views.parametres=function(){
       <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">🎁 Code promo</span><div class="frow-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
         ${db.forfaitEssai&&!db.forfaitEssai.termine
           ?`<span style="font-size:12.5px;color:var(--t3)">🔒 Tu utilises déjà le code <b>${esc(db.forfaitEssai.code)}</b> — un seul code à la fois.</span>`
-          :`<input id="promo-inp" placeholder="Ex : BIENVENUE3" style="text-transform:uppercase;width:160px" onkeydown="if(event.key==='Enter')promoAppliquer()"><button class="btn sm" onclick="promoAppliquer()">Activer</button>`}</div></div></div>
+          /* ⛔ PRÉ-REMPLI, JAMAIS APPLIQUÉ TOUT SEUL. Un prospect qui a saisi son code sur
+             `recap-abonnement.html` sans avoir encore d'espace le voyait disparaître : la page
+             le renvoyait vers `app.html#promo=`, où `promoAppliquer` exige la preuve de clé
+             qu'il n'avait pas. Le code est donc mémorisé par la page d'abonnement et retrouvé
+             ICI, le jour où l'espace existe. ⚠️ On le POSE dans le champ, on ne l'active pas :
+             « rien ne s'écrit au seul chargement », et une activation reste un geste. */
+          :`<input id="promo-inp" placeholder="Ex : BIENVENUE3" value="${esc(promoEnAttente())}" style="text-transform:uppercase;width:160px" onkeydown="if(event.key==='Enter')promoAppliquer()"><button class="btn sm" onclick="promoAppliquer()">Activer</button>`}</div></div></div>
       <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">Places utilisateur</span><div class="frow-val" style="display:flex;align-items:center;gap:10px;justify-content:flex-end">
         <b>${db.users.length} / ${planPlaces()}</b><span style="color:var(--t3);font-size:12px">· ${Math.max(1,db.forfaitQty||1)} abonnement(s)</span>
         <button class="btn ghost sm" onclick="setForfaitQty(-1)">−</button><button class="btn sm" onclick="setForfaitQty(1)">＋ Abonnement</button></div></div></div>
@@ -26336,7 +27987,14 @@ function importData(e){ const f=e.target.files[0]; if(!f)return; const r=new Fil
    vit dans espaceQuitter(). Il n'y a pas de troisième cas.  ⛔ Ne pas la faire revenir. */
 
 /* ═══════════════ GÉNÉRIQUES ═══════════════ */
-function saveSimple(e,coll,id,numFields){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target)); (numFields||[]).forEach(f=>{ if(d[f]!==undefined) d[f]=parseFloat(d[f])||0; });
+function saveSimple(e,coll,id,numFields){ e.preventDefault();
+  /* ⛔ MÊME GARDE QUE `delItem`, ET POUR LA MÊME RAISON : la catégorie se déduit de la
+     collection (`COLL_GRP`), donc une collection ajoutée demain sera gardée sans qu'on y pense.
+     Sans cette ligne, retirer « ajouter » sur Communication / Fournisseurs ne changeait RIEN :
+     mesuré au navigateur, le fournisseur était créé quand même. */
+  const _grp=COLL_GRP[coll]||'';
+  if(_grp && !permGarde(_grp, id?'modifier':'ajouter', COLL_QUOI[coll]||('un élément de '+coll))) return;
+  const d=Object.fromEntries(new FormData(e.target)); (numFields||[]).forEach(f=>{ if(d[f]!==undefined) d[f]=parseFloat(d[f])||0; });
   if(id){ const ix=db[coll].findIndex(x=>x.id===id); db[coll][ix]={...db[coll][ix],...d}; toast('Mis à jour'); }
   else{ if(coll==='clients'){ d.x=10+Math.random()*80; d.y=10+Math.random()*80; } db[coll].push({id:uid(),...d}); logEvent('Création',`${coll} : ${d.nom||d.ref||''}`,'crud'); toast('Créé'); }
   save(); closeModal(); go(current);
@@ -28843,39 +30501,391 @@ function saveContrat(e,id){ e.preventDefault(); if(!permGarde('ventes',id?'modif
   save(); closeModal(); views.contrats();
 }
 
-/* ═══════════════ POINTAGE (temps de travail) ═══════════════ */
+/* ═══════════════ POINTAGE (temps de travail) ═══════════════
+   Le technicien tape « Pointer » : l'heure est prise par l'appareil, à la seconde. Il retape
+   « Dépointer » : la durée se calcule toute seule. Plusieurs pointages dans la même journée
+   s'AJOUTENT sans se confondre — chacun reste sur sa ligne, avec ses horaires.
+
+   ⛔ DEUX HORODATAGES, PAS UN — et c'est ce qui rend la mise à jour sûre. `debut`/`fin`
+   restent en 'HH:MM' : tous les pointages déjà saisis les portent, et la fusion entre
+   appareils unit par ENREGISTREMENT — un champ qui disparaît est une donnée perdue chez qui
+   n'a pas encore la nouvelle version. `debutTs`/`finTs` (epoch ms) s'ajoutent À CÔTÉ et
+   portent la seconde. Toute lecture retombe sur 'HH:MM' quand l'horodatage manque, donc un
+   pointage saisi à la main sur un vieil appareil continue de compter juste.
+
+   ⛔ ET C'EST L'HORODATAGE QUI FAIT LES NUITS. `minutes('23:50','00:20')` rend 0 — la
+   soustraction est négative et se plafonne à zéro. Une équipe de nuit pointait donc des
+   journées de 0 h. Avec `debutTs`/`finTs`, la différence est juste ; `p.date` reste le jour
+   d'EMBAUCHE, ce qui est ce qu'on veut sur une feuille de temps. */
+const PT_MAX_H = 16;        /* au-delà, un pointage resté ouvert est un OUBLI, pas une journée :
+                               on plafonne l'affichage et on le dit, plutôt que de compter 63 h */
 function minutes(deb,fin){ if(!deb||!fin) return 0; const [h1,m1]=deb.split(':').map(Number),[h2,m2]=fin.split(':').map(Number); return Math.max(0,(h2*60+m2)-(h1*60+m1)); }
 function dureeStr(min){ const h=Math.floor(min/60),m=min%60; return `${h}h${String(m).padStart(2,'0')}`; }
+function pt2(n){ return String(n).padStart(2,'0'); }
+function ptHM(ts){ const d=new Date(ts); return pt2(d.getHours())+':'+pt2(d.getMinutes()); }
+function ptHMS(ts){ const d=new Date(ts); return pt2(d.getHours())+':'+pt2(d.getMinutes())+':'+pt2(d.getSeconds()); }
+function ptJourDe(d){ return d.getFullYear()+'-'+pt2(d.getMonth()+1)+'-'+pt2(d.getDate()); }
+function ptJour(ts){ return ptJourDe(new Date(ts)); }
+function ptOuvert(p){ return !!(p && !p.fin && !p.finTs); }
+/* Un pointage ouvert depuis plus de PT_MAX_H : personne ne travaille 16 h d'affilée sans le
+   savoir — c'est un « dépointer » oublié la veille. */
+function ptOubli(p,now){ return !!(ptOuvert(p) && p.debutTs && ((now||Date.now()) - p.debutTs) > PT_MAX_H*3600000); }
+/* La durée NETTE d'un pointage, en secondes. Un pointage ouvert compte jusqu'à MAINTENANT,
+   plafonné à PT_MAX_H — sinon un oubli d'un week-end ferait des totaux de 60 heures. */
+function ptSecs(p,now){
+  if(!p) return 0;
+  const pause=(p.pause||0)*60;
+  if(p.debutTs){
+    const fin = p.finTs || (ptOuvert(p) ? Math.min(now||Date.now(), p.debutTs+PT_MAX_H*3600000) : 0);
+    if(fin) return Math.max(0, Math.round((fin-p.debutTs)/1000) - pause);
+  }
+  if(ptOuvert(p)) return 0;                              // saisie manuelle sans fin : rien à compter
+  return Math.max(0, minutes(p.debut,p.fin)*60 - pause);
+}
+function ptDuree(sec){ sec=Math.max(0,Math.round(sec)); return Math.floor(sec/3600)+'h'+pt2(Math.floor(sec%3600/60)); }
+function ptChrono(sec){ sec=Math.max(0,Math.round(sec)); return pt2(Math.floor(sec/3600))+':'+pt2(Math.floor(sec%3600/60))+':'+pt2(sec%60); }
+/* Les horaires d'une ligne, à la seconde quand on les a, à la minute quand ils ont été tapés. */
+function ptHoraires(p){
+  const d = p.debutTs? ptHMS(p.debutTs) : (p.debut||'—');
+  if(ptOuvert(p)) return d+' → en cours';
+  const f = p.finTs? ptHMS(p.finTs) : (p.fin||'—');
+  return d+' → '+f;
+}
+function ptOuverteDe(tid){ return (db.pointages||[]).find(p=>p.techId===tid && ptOuvert(p)) || null; }
+function ptTotal(list,now){ return (list||[]).reduce((s,p)=>s+ptSecs(p,now),0); }
+/* Regroupe par JOUR D'EMBAUCHE, du plus récent au plus ancien, chaque journée portant ses
+   pointages dans l'ordre où ils ont eu lieu. C'est ce que Justin demande : « qu'on voit bien
+   les deux pointages » et que le total de la journée se fasse tout seul. */
+function ptParJour(list,now){
+  const m=new Map();
+  (list||[]).forEach(p=>{ const j=p.date||(p.debutTs?ptJour(p.debutTs):''); if(!m.has(j)) m.set(j,[]); m.get(j).push(p); });
+  return [...m.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([jour,ps])=>{
+    ps.sort((a,b)=>String(a.debutTs||a.debut||'').localeCompare(String(b.debutTs||b.debut||'')));
+    return {jour, ps, sec:ptTotal(ps,now), ouvert:ps.some(ptOuvert)};
+  });
+}
+
+/* ── La période affichée et exportée ── semaine (lundi→dimanche), mois, ou tout. */
+let _ptPeriode='semaine', _ptRef='', _ptTech='', _ptTick=null;
+function ptLundi(d){ const x=new Date(d.getTime()); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
+function ptBornes(){
+  const r = _ptRef ? new Date(_ptRef+'T12:00:00') : new Date();
+  if(_ptPeriode==='mois'){
+    const a=new Date(r.getFullYear(),r.getMonth(),1), b=new Date(r.getFullYear(),r.getMonth()+1,0);
+    return {de:ptJourDe(a), a:ptJourDe(b), lbl:a.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})};
+  }
+  if(_ptPeriode==='semaine'){
+    const a=ptLundi(r), b=new Date(a.getTime()); b.setDate(b.getDate()+6);
+    return {de:ptJourDe(a), a:ptJourDe(b), lbl:'Semaine du '+a.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' au '+b.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})};
+  }
+  return {de:'', a:'', lbl:'Tout l’historique'};
+}
+function ptDecaler(sens){
+  const b=ptBornes(); if(!b.de){ return; }
+  const r=new Date(b.de+'T12:00:00');
+  if(_ptPeriode==='mois') r.setMonth(r.getMonth()+sens); else r.setDate(r.getDate()+7*sens);
+  _ptRef=ptJourDe(r); views.pointage();
+}
+function ptSetPeriode(p){ _ptPeriode=p; _ptRef=''; views.pointage(); }
+function ptSetTech(v){ _ptTech=v||''; views.pointage(); }
+/* La liste effectivement affichée : le périmètre d'abord (visiblePointages), la période
+   ensuite, le technicien choisi en dernier. */
+function ptListe(){
+  const b=ptBornes();
+  let l=visiblePointages(db.pointages||[]);
+  if(_ptTech) l=l.filter(p=>p.techId===_ptTech);
+  if(b.de) l=l.filter(p=>{ const j=p.date||(p.debutTs?ptJour(p.debutTs):''); return j>=b.de && j<=b.a; });
+  return l;
+}
+/* Les techniciens qu'on a le droit de regarder — ceux du périmètre, et eux seuls. */
+function ptTechsVisibles(){
+  if(!ptPeutVoirAutres()){ const t=myTechId(); return (db.techniciens||[]).filter(x=>x.id===t); }
+  const p=perimetreTechIds();
+  return (db.techniciens||[]).filter(x=>!p||p.has(x.id));
+}
+
+/* ── Pointer / dépointer ─────────────────────────────────────────────────────────────── */
+function pointerDebut(){
+  const tid=myTechId();
+  if(!tid){ toast('Ton compte n’est rattaché à aucune fiche technicien'); return; }
+  if(ptOuverteDe(tid)){ toast('Un pointage est déjà en cours'); return; }
+  const ts=Date.now();
+  const rec={id:uid(), techId:tid, date:ptJour(ts), debut:ptHM(ts), debutTs:ts, pause:0, note:''};
+  db.pointages.push(rec);
+  logEvent('Pointage',techName(tid)+' a pointé à '+ptHMS(ts),'general');
+  save(); toast('⏱️ Pointé à '+ptHMS(ts));
+  if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(pos=>{ rec.lat=+pos.coords.latitude.toFixed(5); rec.lng=+pos.coords.longitude.toFixed(5); save(); if(current==='pointage') views.pointage(); },()=>{},{timeout:5000}); }
+  if(current==='pointage') views.pointage();
+}
+function pointerFin(){
+  const tid=myTechId(); const p=tid?ptOuverteDe(tid):null;
+  if(!p){ toast('Aucun pointage en cours'); return; }
+  ptFermer(p.id);
+}
+/* Fermer un pointage à l'instant présent. `ts` n'est passé que par la reprise d'un oubli. */
+function ptFermer(id,ts){
+  const p=(db.pointages||[]).find(x=>x.id===id); if(!p||!ptOuvert(p)) return;
+  ts = ts || Date.now();
+  if(p.debutTs && ts < p.debutTs) ts = p.debutTs;
+  p.finTs=ts; p.fin=ptHM(ts);
+  save();
+  logEvent('Pointage',techName(p.techId)+' a dépointé à '+ptHMS(ts)+' — '+ptDuree(ptSecs(p)),'general');
+  toast('✅ Dépointé — '+ptDuree(ptSecs(p))+' travaillées');
+  if(current==='pointage') views.pointage();
+}
+/* Un pointage oublié se clôture à l'heure qu'on dit, pas à l'heure qu'il est : sinon on
+   inscrit 16 h à quelqu'un qui en a fait 8 et le compteur de paie ment. */
+function ptCloreOubli(id){
+  const p=(db.pointages||[]).find(x=>x.id===id); if(!p||!ptOuvert(p)) return;
+  openModal(`<div class="modal-head"><h3>Pointage resté ouvert</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="padding:0 2px 4px"><p style="font-size:13.5px;color:var(--t2);line-height:1.55;margin-bottom:12px">Commencé le <b>${fmtShort(p.date)}</b> à <b>${p.debutTs?ptHMS(p.debutTs):esc(p.debut)}</b> et jamais clôturé. À quelle heure la journée s’est-elle terminée&nbsp;?</p></div>
+    <form onsubmit="ptCloreOubliOk(event,'${p.id}')">
+      <div class="field-row"><div class="field"><label>Date de fin</label><input type="date" name="jour" required value="${p.date||todayISO()}"></div>
+        <div class="field"><label>Heure de fin *</label><input type="time" name="heure" required value="17:00"></div></div>
+      <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">Clôturer</button></div></form>`);
+}
+function ptCloreOubliOk(e,id){ e.preventDefault();
+  const d=Object.fromEntries(new FormData(e.target));
+  const ts=new Date(d.jour+'T'+d.heure+':00').getTime();
+  if(!isFinite(ts)){ toast('Heure invalide'); return; }
+  closeModal(); ptFermer(id,ts);
+}
+
+/* ── L'écran ─────────────────────────────────────────────────────────────────────────── */
+/* ⛔ LE CHRONO S'ARRÊTE QUAND ON QUITTE L'ÉCRAN. Une minuterie qui survit à la vue redessine
+   un #content qui appartient à une autre catégorie — c'est la panne du multitâche, par
+   l'autre bout. On la coupe à chaque rendu et elle se contrôle elle-même à chaque tour. */
+function ptTickStop(){ if(_ptTick){ clearInterval(_ptTick); _ptTick=null; } }
+function ptTickStart(){
+  ptTickStop();
+  _ptTick=setInterval(()=>{
+    if(current!=='pointage'){ ptTickStop(); return; }
+    const now=Date.now();
+    document.querySelectorAll('[data-pt-chrono]').forEach(el=>{
+      const p=(db.pointages||[]).find(x=>x.id===el.getAttribute('data-pt-chrono'));
+      if(p&&ptOuvert(p)) el.textContent=ptChrono(ptSecs(p,now));
+    });
+    const j=$('pt-jour-sec');
+    if(j){ const tid=myTechId(); const mj=(db.pointages||[]).filter(p=>p.techId===tid&&(p.date||'')===todayISO());
+      j.textContent=ptChrono(ptTotal(mj,now)); }
+  },1000);
+}
 views.pointage=function(){
-  setHeader('Pointage','Feuilles de temps des techniciens',`<button class="btn" onclick="formPointage()">＋ Pointage</button>`);
-  /* Le filtre d'avant comparait un identifiant TECHNICIEN à un identifiant de COMPTE : il
-     ne retenait donc jamais rien, et un chef d'équipe voyait tout le monde. */
-  let list=[...visiblePointages(db.pointages)].sort((a,b)=>(b.date+b.debut).localeCompare(a.date+a.debut));
-  const totMin=list.reduce((s,p)=>s+Math.max(0,minutes(p.debut,p.fin)-(p.pause||0)),0);
-  const rows=list.map(p=>{ const net=Math.max(0,minutes(p.debut,p.fin)-(p.pause||0));
-    return `<tr><td>${fmtShort(p.date)}</td><td class="strong">${esc(techName(p.techId))}</td><td>${p.debut} → ${p.fin}</td><td>${p.pause||0} min</td><td class="strong">${dureeStr(net)}</td><td>${esc(p.note)||'—'}${p.lat?` <a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank" title="Position au pointage">📍</a>`:''}</td>
-    <td style="text-align:right;white-space:nowrap"><button class="btn ghost sm" onclick="formPointage('${p.id}')">✎</button> <button class="btn danger sm" onclick="delItem('pointages','${p.id}')">🗑</button></td></tr>`;}).join('');
-  $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(2,1fr)">
-      <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">⏱️</div><div class="kpi-val">${dureeStr(totMin)}</div><div class="kpi-lbl">Temps total pointé</div></div>
-      <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">🗒️</div><div class="kpi-val">${list.length}</div><div class="kpi-lbl">Pointages</div></div></div>
-    ${list.length? tableCard(['Date','Technicien','Horaires','Pause','Net','Note',''],rows):`<div class="card">${emptyState('⏱️','Aucun pointage.','Pointer','formPointage()')}</div>`}`;
+  const now=Date.now(), tid=myTechId(), autres=ptPeutVoirAutres();
+  setHeader('Pointage','Temps de travail — le compteur se fait tout seul',
+    `<button class="btn ghost" onclick="formPointage()">＋ Saisie manuelle</button> <button class="btn" onclick="ptPdf()">📄 Export PDF</button>`);
+
+  /* ── Ma journée ── seulement pour qui a une fiche technicien : c'est SON pointage. */
+  let moi='';
+  if(tid){
+    const ouv=ptOuverteDe(tid);
+    const mj=(db.pointages||[]).filter(p=>p.techId===tid&&(p.date||'')===todayISO()).sort((a,b)=>String(a.debutTs||a.debut||'').localeCompare(String(b.debutTs||b.debut||'')));
+    const secJour=ptTotal(mj,now);
+    moi=`<div class="card" style="border:1px solid ${ouv?'color-mix(in srgb,var(--green) 55%,transparent)':'var(--brd)'};background:${ouv?'color-mix(in srgb,var(--green) 7%,var(--bg1))':'var(--bg1)'}">
+      <div class="card-head"><h3>⏱️ Ma journée</h3><span style="font-size:12.5px;color:var(--t3)">${fmtShort(todayISO())}</span></div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:6px 0 4px">
+        <button class="btn ${ouv?'danger':''}" style="min-height:56px;font-size:16.5px;padding:0 26px;flex:1 1 210px" onclick="${ouv?'pointerFin()':'pointerDebut()'}">${ouv?'⏹ Dépointer':'▶ Pointer'}</button>
+        <div style="flex:1 1 170px;text-align:right">
+          <div id="pt-jour-sec" style="font-size:30px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:${ouv?'var(--green)':'var(--t1)'}">${ptChrono(secJour)}</div>
+          <div style="font-size:12.5px;color:var(--t3)">${ouv?'en cours — depuis '+(ouv.debutTs?ptHMS(ouv.debutTs):esc(ouv.debut)):'travaillées aujourd’hui'}</div>
+        </div></div>
+      ${mj.length?`<div style="border-top:1px solid var(--brd);margin-top:10px;padding-top:8px">${mj.map((p,i)=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--bg3);display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--t2);flex-shrink:0">${i+1}</span>
+          <span style="font-variant-numeric:tabular-nums;color:var(--t2)">${ptHoraires(p)}</span>
+          <span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums"${ptOuvert(p)?` data-pt-chrono="${p.id}"`:''}>${ptOuvert(p)?ptChrono(ptSecs(p,now)):ptDuree(ptSecs(p))}</span>
+        </div>`).join('')}</div>`:''}
+    </div>`;
+  }
+
+  /* ── Les oublis, en tête : un pointage ouvert depuis la veille fausse tous les totaux. ── */
+  const oublis=visiblePointages(db.pointages||[]).filter(p=>ptOubli(p,now));
+  const alerte=oublis.length?`<div class="card" style="border:1px solid color-mix(in srgb,var(--org) 55%,transparent);background:color-mix(in srgb,var(--org) 9%,var(--bg1))">
+    <div class="card-head"><h3>⚠️ ${oublis.length} pointage${oublis.length>1?'s':''} resté${oublis.length>1?'s':''} ouvert${oublis.length>1?'s':''}</h3></div>
+    <p style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:8px">Le compteur est plafonné à ${PT_MAX_H}&nbsp;h tant qu’il n’est pas clôturé, pour ne pas fausser les totaux.</p>
+    ${oublis.map(p=>`<div class="pl-row"><span>${esc(techName(p.techId))} — ${fmtShort(p.date)} à ${p.debutTs?ptHMS(p.debutTs):esc(p.debut)}</span>
+      <button class="btn sm" style="margin-left:auto" onclick="ptCloreOubli('${p.id}')">Clôturer</button></div>`).join('')}</div>`:'';
+
+  /* ── Période + technicien ── */
+  const b=ptBornes();
+  const techs=ptTechsVisibles();
+  const barre=`<div class="card" style="padding:12px 14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="seg">${[['semaine','Semaine'],['mois','Mois'],['tout','Tout']].map(([k,l])=>`<button class="${_ptPeriode===k?'on':''}" onclick="ptSetPeriode('${k}')">${l}</button>`).join('')}</div>
+      ${b.de?`<button class="btn ghost sm" onclick="ptDecaler(-1)" title="Période précédente">◀</button>
+        <span style="font-size:13.5px;font-weight:600;min-width:190px;text-align:center">${esc(b.lbl)}</span>
+        <button class="btn ghost sm" onclick="ptDecaler(1)" title="Période suivante">▶</button>`:`<span style="font-size:13.5px;font-weight:600">${esc(b.lbl)}</span>`}
+      ${autres&&techs.length>1?`<select onchange="ptSetTech(this.value)" style="margin-left:auto;max-width:230px"><option value="">Toute mon équipe</option>${techs.map(t=>`<option value="${t.id}" ${_ptTech===t.id?'selected':''}>${esc(t.nom)}</option>`).join('')}</select>`:''}
+    </div></div>`;
+
+  /* ── L'historique, journée par journée ── */
+  const list=ptListe();
+  const jours=ptParJour(list,now);
+  const secTot=ptTotal(list,now);
+  const parTech=new Map();
+  list.forEach(p=>parTech.set(p.techId,(parTech.get(p.techId)||0)+ptSecs(p,now)));
+
+  const corps=jours.map(j=>`<div style="border-bottom:1px solid var(--brd)">
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg2)">
+        <b style="font-size:13.5px">${fmtShort(j.jour)}</b>
+        <span style="font-size:12px;color:var(--t3)">${j.ps.length} pointage${j.ps.length>1?'s':''}</span>
+        <b style="margin-left:auto;font-variant-numeric:tabular-nums;font-size:14.5px;color:${j.ouvert?'var(--green)':'var(--t1)'}">${ptDuree(j.sec)}</b></div>
+      ${j.ps.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:13.5px;flex-wrap:wrap">
+        <span class="strong" style="min-width:110px">${esc(techName(p.techId))}</span>
+        <span style="font-variant-numeric:tabular-nums;color:var(--t2);min-width:150px">${ptHoraires(p)}</span>
+        ${p.pause?`<span style="font-size:12px;color:var(--t3)">pause ${p.pause} min</span>`:''}
+        ${p.note?`<span style="font-size:12px;color:var(--t3)">${esc(p.note)}</span>`:''}
+        ${p.lat?`<a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank" rel="noopener" title="Position au pointage">📍</a>`:''}
+        <span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums"${ptOuvert(p)?` data-pt-chrono="${p.id}"`:''}>${ptOuvert(p)?ptChrono(ptSecs(p,now)):ptDuree(ptSecs(p))}</span>
+        <span style="white-space:nowrap"><button class="btn ghost sm" onclick="formPointage('${p.id}')">✎</button> <button class="btn danger sm" onclick="delItem('pointages','${p.id}')">🗑</button></span>
+      </div>`).join('')}</div>`).join('');
+
+  $('content').innerHTML=`${moi}${alerte}${barre}
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">⏱️</div><div class="kpi-val">${ptDuree(secTot)}</div><div class="kpi-lbl">Total de la période</div></div>
+      <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">📅</div><div class="kpi-val">${jours.length}</div><div class="kpi-lbl">Jour${jours.length>1?'s':''} travaillé${jours.length>1?'s':''}</div></div>
+      <div class="kpi"><div class="kpi-ico" style="background:rgba(251,191,36,.16)">🗒️</div><div class="kpi-val">${list.length}</div><div class="kpi-lbl">Pointages</div></div></div>
+    ${(autres&&parTech.size>1)?`<div class="card"><div class="card-head"><h3>Par personne</h3></div>
+      ${[...parTech.entries()].sort((a,b)=>b[1]-a[1]).map(([t,s])=>`<div class="pl-row"><span class="strong">${esc(techName(t))}</span><b style="margin-left:auto;font-variant-numeric:tabular-nums">${ptDuree(s)}</b></div>`).join('')}</div>`:''}
+    ${list.length?`<div class="card" style="padding:0;overflow:hidden">${corps}</div>`:`<div class="card">${emptyState('⏱️','Aucun pointage sur cette période.',tid?'Pointer':'','pointerDebut()')}</div>`}`;
+  ptTickStart();
 };
 function formPointage(id){ const p=id?db.pointages.find(x=>x.id===id):{};
+  const dTs=p&&p.debutTs, fTs=p&&p.finTs;
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} pointage</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="savePointage(event,'${id||''}')">
-      <div class="field"><label>Technicien *</label><select name="techId" required><option value="">—</option>${db.techniciens.map(t=>`<option value="${t.id}" ${t.id===p.techId||(!id&&t.id===currentUser.id)?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>
+      <div class="field"><label>Technicien *</label><select name="techId" required><option value="">—</option>${db.techniciens.map(t=>`<option value="${t.id}" ${t.id===p.techId||(!id&&t.id===myTechId())?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>
       <div class="field"><label>Date</label><input type="date" name="date" value="${p.date||todayISO()}"></div>
-      <div class="field-row"><div class="field"><label>Début *</label><input type="time" name="debut" required value="${p.debut||'08:00'}"></div>
-        <div class="field"><label>Fin *</label><input type="time" name="fin" required value="${p.fin||'17:00'}"></div></div>
+      <div class="field-row"><div class="field"><label>Début *</label><input type="time" name="debut" required value="${dTs?ptHM(dTs):(p.debut||'08:00')}"></div>
+        <div class="field"><label>Fin *</label><input type="time" name="fin" required value="${fTs?ptHM(fTs):(p.fin||'17:00')}"></div></div>
       <div class="field"><label>Pause (min)</label><input type="number" name="pause" min="0" value="${p.pause||0}"></div>
       <div class="field"><label>Note</label><input name="note" value="${esc(p.note)}"></div>
-      <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Pointer'}</button></div></form>`);
+      <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Enregistrer'}</button></div></form>`);
 }
+/* ⛔⛔ LE POINTAGE N'EST PAS GARDÉ PAR LE DROIT DE CATÉGORIE, ET C'EST VOULU.
+   `db.pointages` est rattaché à « Temps & équipe » dans COLL_GRP, donc la garde générique
+   s'appliquerait ici comme ailleurs. Elle ne s'applique pas : pointer, ce n'est pas CRÉER un
+   enregistrement partagé, c'est déclarer ses propres heures. Un administrateur qui décoche
+   « ajouter » sur Temps & équipe veut empêcher la création de véhicules ou de conducteurs —
+   pas empêcher un technicien de dire qu'il a travaillé. Le trou serait moins coûteux que le
+   verrou : une journée non pointée est une journée non payée.
+   ⚠️ `tests/test-747.js` le NOMME dans sa liste « à trancher » : si Justin veut l'inverse, c'est
+   une ligne à ajouter ici, pas un oubli à redécouvrir. */
+/* ⛔ UNE SAISIE À LA MAIN RÉÉCRIT LES DEUX HORODATAGES, JAMAIS UN SEUL. Corriger « 17:00 » en
+   « 16:35 » sans toucher à `finTs` laisserait le calcul sur l'ancien horodatage : l'écran
+   afficherait 16:35 et compterait jusqu'à 17:00. C'est exactement la panne silencieuse que ce
+   dépôt paie à chaque fois qu'une donnée existe en deux exemplaires — ici, on les réécrit
+   ensemble ou pas du tout. */
 function savePointage(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target)); d.pause=parseInt(d.pause)||0;
+  const jour=d.date||todayISO();
+  d.debutTs=new Date(jour+'T'+(d.debut||'00:00')+':00').getTime()||null;
+  d.finTs=new Date(jour+'T'+(d.fin||'00:00')+':00').getTime()||null;
+  if(d.debutTs && d.finTs && d.finTs < d.debutTs) d.finTs += 86400000;   // une nuit : la fin est le lendemain
   if(id){ const ix=db.pointages.findIndex(x=>x.id===id); db.pointages[ix]={...db.pointages[ix],...d}; toast('Pointage mis à jour'); }
-  else{ const rec={id:uid(),...d}; db.pointages.push(rec); logEvent('Pointage',`${techName(d.techId)} ${d.debut}-${d.fin}`,'general'); toast('Pointage enregistré');
-    if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(pos=>{ rec.lat=+pos.coords.latitude.toFixed(5); rec.lng=+pos.coords.longitude.toFixed(5); save(); if(current==='pointage') views.pointage(); },()=>{},{timeout:5000}); } }
+  else{ const rec={id:uid(),...d}; db.pointages.push(rec); logEvent('Pointage',`${techName(d.techId)} ${d.debut}-${d.fin}`,'general'); toast('Pointage enregistré'); }
   save(); closeModal(); views.pointage();
+}
+
+/* ── Export PDF de la feuille de temps ────────────────────────────────────────────────
+   Même fabrique que les bons et les devis : aucune bibliothèque, on écrit les octets. La
+   feuille porte la période affichée à l'écran — ce qu'on voit est ce qu'on exporte. */
+function ptPdf(){
+  const list=ptListe();
+  if(!list.length){ toast('Aucun pointage à exporter sur cette période'); return; }
+  try{
+    const s=ptPdfStr(list,ptBornes());
+    const bytes=new Uint8Array(s.length); for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
+    const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+    if(!window.open(u,'_blank')) toast('Autorise les pop-ups pour voir le PDF');
+    setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000);
+  }catch(e){ console.error(e); toast('Export PDF impossible'); }
+}
+function ptPdfStr(list,b){
+  const now=Date.now();
+  const hx=bcCouleur({}), rgb=[1,3,5].map(i=>parseInt(hx.slice(i,i+2),16)/255);
+  const GREEN=rgb.map(v=>v.toFixed(3)).join(' ');
+  const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', PANEL='0.965 0.972 0.978', LINE='0.85 0.88 0.91';
+  const W=595,H=842,M=42,RGT=W-M;
+  const pages=[]; let ops=[]; let y;
+  const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',x.toFixed(1)+' '+yy.toFixed(1)+' Td','('+_pdfTxt(txt)+') Tj','ET');
+  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-String(txt).length*sz*0.545,yy,sz,txt,bold,col);
+  const R=(x,yy,w,h,col)=>ops.push(col+' rg',x.toFixed(1)+' '+yy.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re f');
+  const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
+  const tableHead=()=>{ R(M,y-6,W-2*M,22,GREEN);
+    T(M+8,y,9,'DATE',1,'1 1 1'); T(M+96,y,9,'TECHNICIEN',1,'1 1 1'); T(M+250,y,9,'HORAIRES',1,'1 1 1'); T(M+372,y,9,'PAUSE',1,'1 1 1'); TR(RGT-8,y,9,'DURÉE',1,'1 1 1'); y-=24; };
+  const newPage=()=>{ pages.push(ops.join('\n')); ops=[]; R(0,H-6,W,6,GREEN); y=H-M-14; tableHead(); };
+  R(0,H-6,W,6,GREEN);
+  y=H-M-16;
+  T(M,y,21,cut(bcEntete({}),28),1,GREEN);
+  TR(RGT,y+3,16,'FEUILLE DE TEMPS',1,DARK);
+  TR(RGT,y-13,10,cut(b.lbl,42),1,GREY);
+  const qui=_ptTech?techName(_ptTech):(ptPeutVoirAutres()?'Toute l’équipe':techName(myTechId()));
+  TR(RGT,y-25,9,cut(qui,52),0,GREY);
+  const EI=db.entreprise||{};
+  let ey=y-14;
+  [[EI.adresse,[EI.cp,EI.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+   [EI.tel?'Tél. '+EI.tel:'',EI.siret?'SIRET '+EI.siret:''].filter(Boolean).join('  ·  ')]
+    .filter(Boolean).forEach(tx=>{ T(M,ey,8.5,cut(tx,58),0,GREY); ey-=11; });
+  y=Math.min(y-32,ey-8); R(M,y,W-2*M,1.6,GREEN); y-=16;
+
+  const jours=ptParJour(list,now);
+  const secTot=ptTotal(list,now);
+  const parTech=new Map();
+  list.forEach(p=>parTech.set(p.techId,(parTech.get(p.techId)||0)+ptSecs(p,now)));
+  // ─ récapitulatif par personne, en tête : c'est le chiffre qu'on cherche sur une feuille de temps
+  const recap=[...parTech.entries()].sort((a,b)=>b[1]-a[1]);
+  const rh=26+recap.length*13+6;
+  R(M,y-rh,W-2*M,rh,PANEL); R(M,y-rh,W-2*M,1,LINE); R(M,y-1,W-2*M,1,LINE);
+  T(M+10,y-16,9.5,'TOTAL PAR PERSONNE',1,GREY);
+  let ry=y-30;
+  recap.forEach(([t,s])=>{ T(M+10,ry,10,cut(techName(t),46),0,DARK); TR(RGT-10,ry,10,ptDuree(s),1,DARK); ry-=13; });
+  y-=rh+18;
+
+  tableHead();
+  jours.forEach(j=>{
+    if(y<M+60) newPage();
+    R(M,y-5,W-2*M,17,'0.93 0.95 0.97');
+    T(M+8,y,9.5,fmtShort(j.jour),1,DARK);
+    TR(RGT-8,y,9.5,ptDuree(j.sec),1,DARK);
+    y-=20;
+    j.ps.forEach(p=>{
+      if(y<M+34) newPage();
+      T(M+8,y,9,'',0,DARK);
+      T(M+96,y,9,cut(techName(p.techId),26),0,DARK);
+      T(M+250,y,9,cut(ptHoraires(p),22),0,GREY);
+      T(M+372,y,9,(p.pause?p.pause+' min':'—'),0,GREY);
+      TR(RGT-8,y,9,ptOuvert(p)?'en cours':ptDuree(ptSecs(p,now)),0,DARK);
+      y-=13;
+      if(p.note){ T(M+96,y,8,cut('Note : '+p.note,70),0,GREY); y-=11; }
+      R(M,y+4,W-2*M,0.5,LINE);
+      y-=3;
+    });
+    y-=4;
+  });
+  if(y<M+50) newPage();
+  y-=6; R(M,y,W-2*M,1.6,GREEN); y-=18;
+  T(M,y,12,'TOTAL '+String(b.lbl).toUpperCase(),1,DARK);
+  TR(RGT,y,14,ptDuree(secTot),1,GREEN);
+  y-=20;
+  T(M,y,8,'Feuille éditée le '+new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' — '+list.length+' pointage(s)',0,GREY);
+  pages.push(ops.join('\n'));
+
+  const objs=[]; objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
+  objs[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  const kids=[]; let n=5;
+  pages.forEach(c=>{ const pg=n++, ct=n++; kids.push(pg+' 0 R');
+    objs[pg]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+ct+' 0 R >>';
+    objs[ct]={s:c}; });
+  objs[2]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+pages.length+' >>';
+  let out='%PDF-1.4\n'; const offs=[];
+  for(let i=1;i<objs.length;i++){ offs[i]=out.length; const o=objs[i];
+    out+= (o&&o.s!==undefined) ? i+' 0 obj\n<< /Length '+o.s.length+' >>\nstream\n'+o.s+'\nendstream\nendobj\n' : i+' 0 obj\n'+o+'\nendobj\n'; }
+  const xr=out.length;
+  out+='xref\n0 '+objs.length+'\n0000000000 65535 f \n';
+  for(let i=1;i<objs.length;i++) out+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
+  out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+  return out;
 }
 
 /* ═══════════════ STATISTIQUES (pilotage d'activité) ═══════════════ */
@@ -28999,9 +31009,15 @@ function formBrouillon(){
       <div class="field"><label>Quantité *</label><input type="number" name="quantite" min="1" value="1" required></div>
     </form>`);
 }
-function saveBrouillon(e){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
+function saveBrouillon(e){ e.preventDefault();
+  /* Le brouillon n'a pas d'édition : chaque enregistrement est une création. */
+  if(!permGarde('achats','ajouter','un produit au brouillon')) return;
+  const d=Object.fromEntries(new FormData(e.target));
   db.brouillons.push({id:uid(),userId:currentUser.id,produitId:d.produitId,quantite:parseInt(d.quantite)||1}); save(); closeModal(); views.brouillon(); }
-function brouillonToDemande(){ const boxId=$('brBox').value; if(!boxId){toast('Choisis une box');return;}
+function brouillonToDemande(){
+  /* Troisième porte : le brouillon qui devient une demande. */
+  if(!permGarde('achats','ajouter','une demande')) return;
+  const boxId=$('brBox').value; if(!boxId){toast('Choisis une box');return;}
   const mine=db.brouillons.filter(b=>b.userId===currentUser.id); if(!mine.length){toast('Brouillon vide');return;}
   const b=db.boxes.find(x=>x.id===boxId)||{};
   const num=nextNum('demandes','DC','num');
@@ -29321,7 +31337,9 @@ function formProduitDonne(id,presetVeh){ const p=id?db.produitsDonnes.find(x=>x.
       <div class="field"><label>Notes</label><input name="notes" value="${esc(p.notes)}" placeholder="Client, motif…"></div>
     </form>`);
 }
-function saveProduitDonne(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target)); d.quantite=parseInt(d.quantite)||1;
+function saveProduitDonne(e,id){ e.preventDefault();
+  if(!permGarde('stock', id?'modifier':'ajouter','un produit donné')) return;
+  const d=Object.fromEntries(new FormData(e.target)); d.quantite=parseInt(d.quantite)||1;
   if(id){ const ix=db.produitsDonnes.findIndex(x=>x.id===id); db.produitsDonnes[ix]={...db.produitsDonnes[ix],...d}; toast('Mis à jour'); }
   else{ db.produitsDonnes.push({id:uid(),auteurNom:fullName(currentUser),...d});
     // un don est une vraie sortie de stock : journalisée, et déduite du stock global
@@ -29362,7 +31380,9 @@ function formConducteur(id){ const c=id?db.conducteurs.find(x=>x.id===id):{};
       ${id?`<div class="fgroup"><div class="frow"><span class="frow-lbl">Actif</span><div class="frow-val"><input type="checkbox" name="actif" ${c.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div></div>`:''}
     </form>`);
 }
-function saveConducteur(ev,id){ ev.preventDefault(); const f=ev.target; const d=Object.fromEntries(new FormData(f));
+function saveConducteur(ev,id){ ev.preventDefault();
+  if(!permGarde('equipe', id?'modifier':'ajouter','un conducteur')) return;
+  const f=ev.target; const d=Object.fromEntries(new FormData(f));
   const obj={prenom:d.prenom,nom:d.nom,telephone:d.telephone,actif:f.actif?f.actif.checked:true};
   if(id){ const ix=db.conducteurs.findIndex(x=>x.id===id); db.conducteurs[ix]={...db.conducteurs[ix],...obj}; toast('Conducteur mis à jour'); }
   else{ db.conducteurs.push({id:uid(),...obj,dateCreation:todayISO()}); logEvent('Conducteur ajouté',`${d.prenom} ${d.nom}`,'crud'); toast('Conducteur créé'); }
@@ -31425,8 +33445,183 @@ function renderAsst(){
   if(asstOpen){ const i=$('asst-input'); if(i) setTimeout(()=>i.focus(),50); }
 }
 
+/* ═══════════════ PLATEFORME — savoir qui nous lit, et avec quoi ═══════════════
+   Demande de Justin, 21 septembre 2026 : « c'est à nous de détecter les versions qui
+   utilisent l'application. Que ce soit iPhone, Mac, Windows, Android, version web, c'est à
+   nous de savoir. » Le rendu en découle : verre (Liquid Glass) là où la plateforme le porte,
+   surfaces pleines ailleurs, rayons et typographie de chaque système.
+
+   ⛔ CE QU'ON SAIT ET CE QU'ON NE SAIT PAS — et la différence compte, parce qu'un réglage
+   posé sur une supposition est pire qu'un réglage absent :
+   · le SYSTÈME (iOS, Android, macOS, Windows) se lit de façon fiable ;
+   · la version de SAFARI se lit dans l'agent, et c'est ELLE qui dit le verre : Liquid Glass
+     est arrivé avec Safari 26 (iOS 26 / macOS 26). C'est un signal vrai, pas une déduction ;
+   · ⚠️ la version de macOS, elle, NE SE LIT PAS : Safari annonce « Mac OS X 10_15_7 » depuis
+     Big Sur, pour toujours, et Chrome recopie le même mensonge. On la demande donc à
+     `userAgentData.getHighEntropyValues` quand le navigateur l'offre (Chromium seulement), et
+     sinon ON NE PRÉTEND PAS SAVOIR ;
+   · ⚠️ Windows 10 et 11 sont INDISCERNABLES depuis le web (« Windows NT 10.0 » pour les deux)
+     sans la même API. Même règle : on demande, sinon on dit « Windows ».
+   · un iPad se dit « Macintosh » depuis iPadOS 13. C'est le TACTILE qui le trahit
+     (`maxTouchPoints`), pas l'agent.
+
+   ⛔ ET CE QU'ON NE DESSINE PAS. Les maquettes montrent la barre d'adresse de Safari ou
+   d'Edge autour de l'application : c'est une IMAGE de l'application dans son navigateur. Dans
+   la vraie page, le navigateur dessine déjà sa barre — la redessiner ferait deux barres. Ce
+   que « version web » change VRAIMENT chez nous, c'est la place à laisser en bas (la barre de
+   Safari mobile recouvre le bas de l'écran) et le fait qu'on n'est pas installé. */
+const PLAT_CLE='elanB_plat_force';
+/* Les dix rendus de la maquette. `verre` et `kind` sont ce qui change des pixels ;
+   `nav` ne sert qu'à NOMMER le cas, jamais à dessiner un navigateur. */
+const PLATS={
+  ios27:     {os:'ios',     kind:'mobile',  verre:1, nav:'',       lbl:'iPhone · iOS 26+ (installée)'},
+  ios18:     {os:'ios',     kind:'mobile',  verre:0, nav:'',       lbl:'iPhone · iOS 18 et avant'},
+  iosweb:    {os:'ios',     kind:'mobile',  verre:1, nav:'safari', lbl:'iPhone · Safari 26+'},
+  android:   {os:'android', kind:'mobile',  verre:0, nav:'',       lbl:'Android (installée)'},
+  androidweb:{os:'android', kind:'mobile',  verre:0, nav:'chrome', lbl:'Android · navigateur'},
+  macos27:   {os:'macos',   kind:'desktop', verre:1, nav:'',       lbl:'Mac · macOS 26+ (installée)'},
+  macos14:   {os:'macos',   kind:'desktop', verre:0, nav:'',       lbl:'Mac · macOS 15 et avant'},
+  macweb:    {os:'macos',   kind:'desktop', verre:1, nav:'safari', lbl:'Mac · Safari 26+'},
+  windows:   {os:'windows', kind:'desktop', verre:0, nav:'',       lbl:'Windows (installée)'},
+  winweb:    {os:'windows', kind:'desktop', verre:0, nav:'edge',   lbl:'Windows · navigateur'}
+};
+/* Installée sur l'écran d'accueil (PWA) plutôt qu'ouverte dans un onglet. */
+function opAutonome(){
+  try{ if(window.matchMedia && matchMedia('(display-mode: standalone)').matches) return true; }catch(e){}
+  try{ if(window.matchMedia && matchMedia('(display-mode: window-controls-overlay)').matches) return true; }catch(e){}
+  return navigator.standalone===true;
+}
+function opOS(){
+  const ua=navigator.userAgent||'', p=(navigator.userAgentData&&navigator.userAgentData.platform)||'';
+  if(/Android/i.test(ua)||/Android/i.test(p)) return 'android';
+  if(/iPhone|iPod/i.test(ua)) return 'ios';
+  /* iPadOS se fait passer pour un Mac. Un Mac n'a pas cinq points de contact. */
+  if(/iPad/i.test(ua)||(/Macintosh/i.test(ua)&&(navigator.maxTouchPoints||0)>1)) return 'ios';
+  if(/Macintosh|Mac OS X/i.test(ua)||/macOS/i.test(p)) return 'macos';
+  if(/Windows/i.test(ua)||/Windows/i.test(p)) return 'windows';
+  if(/CrOS/i.test(ua)) return 'chromeos';
+  if(/Linux/i.test(ua)) return 'linux';
+  return 'autre';
+}
+function opNavigateur(){
+  const ua=navigator.userAgent||'';
+  /* L'ORDRE EST LA MOITIÉ DU TRAVAIL : Edge contient « Chrome », Chrome contient « Safari ».
+     Écrit dans l'autre sens, tout le monde est Safari. */
+  if(/Edg[A-Z]?\//.test(ua)) return 'edge';
+  if(/SamsungBrowser/i.test(ua)) return 'samsung';
+  if(/FxiOS|Firefox/i.test(ua)) return 'firefox';
+  if(/CriOS|Chrome\//i.test(ua)) return 'chrome';
+  if(/Safari/i.test(ua)) return 'safari';
+  return 'autre';
+}
+/* La version de WebKit telle que Safari l'annonce. C'est le seul signal HONNÊTE du verre :
+   Liquid Glass arrive avec Safari 26. Rend 0 quand on ne sait pas — et 0 ne veut pas dire
+   « vieux », il veut dire « on ne sait pas », ce qui n'autorise pas le verre. */
+function opSafariVer(){
+  const ua=navigator.userAgent||'';
+  const m=ua.match(/Version\/(\d+)[\.\d]*\s+(?:Mobile\/\S+\s+)?Safari/);
+  return m?parseInt(m[1],10)||0:0;
+}
+function opOSVer(){
+  const ua=navigator.userAgent||'';
+  let m=ua.match(/(?:iPhone |CPU )?OS (\d+)[._]/);  if(m) return parseInt(m[1],10)||0;
+  m=ua.match(/Android (\d+)/);                       if(m) return parseInt(m[1],10)||0;
+  /* ⚠️ Rien pour macOS ni Windows : leur agent MENT (10_15_7 depuis Big Sur, NT 10.0 pour
+     Windows 10 ET 11). `opPlatHaute()` va le demander à l'API qui, elle, dit vrai. */
+  return 0;
+}
+/* La version exacte, quand le navigateur accepte de la donner (Chromium). ASYNCHRONE : on
+   repose les attributs à la réponse. Silencieux partout ailleurs — c'est un BONUS, jamais
+   une condition. */
+let _platHaute=null;
+function opPlatHaute(){
+  const uad=navigator.userAgentData;
+  if(!uad||!uad.getHighEntropyValues) return;
+  try{ uad.getHighEntropyValues(['platformVersion']).then(h=>{
+    const v=parseInt(String((h&&h.platformVersion)||'').split('.')[0],10);
+    if(isFinite(v)&&v>0){ _platHaute=v; try{ opPlatAppliquer(); }catch(e){} }
+  }).catch(()=>{}); }catch(e){}
+}
+/* Ce qu'on a mesuré, sans rien inventer. `sur` dit à quel point on est sûr de la VERSION —
+   c'est ce qui est affiché dans les Paramètres, pour qu'un doute se voie. */
+function opPlatMesure(){
+  const os=opOS(), nav=opNavigateur(), autonome=opAutonome();
+  const safari=opSafariVer(), osv=opOSVer();
+  /* Le verre ne s'allume que sur du WebKit Apple à jour. Un Chrome sur Mac ne le rend pas ;
+     un « on ne sait pas » (0) ne l'allume pas non plus. */
+  const appleWebkit=(os==='ios'||os==='macos')&&(nav==='safari'||os==='ios');
+  const verre=appleWebkit&&safari>=26;
+  let plat;
+  if(os==='ios')          plat = verre ? (autonome?'ios27':'iosweb') : 'ios18';
+  else if(os==='android') plat = autonome?'android':'androidweb';
+  else if(os==='macos')   plat = verre ? (autonome?'macos27':'macweb') : 'macos14';
+  else if(os==='windows') plat = autonome?'windows':'winweb';
+  else                    plat = autonome?'windows':'winweb';   // Linux, ChromeOS : rendu Windows, surfaces pleines
+  const version = (os==='macos'||os==='windows') ? (_platHaute||0) : osv;
+  return {plat, os, nav, autonome, safari, version,
+    sur: version? 'mesurée' : ((os==='macos'||os==='windows') ? 'inconnue (le navigateur ne la donne pas)' : 'inconnue'),
+    detecte:true};
+}
+function opPlatForce(){ try{ const k=localStorage.getItem(PLAT_CLE); return PLATS[k]?k:''; }catch(e){ return ''; } }
+/* Ce qu'on APPLIQUE : le forçage s'il y en a un, la mesure sinon. */
+function opPlat(){
+  const m=opPlatMesure(), f=opPlatForce();
+  if(!f) return m;
+  return {...m, ...PLATS[f], plat:f, detecte:false, mesure:m.plat};
+}
+/* ⛔ LE RENDU SE LIT SUR <html>, PAS DANS DU JAVASCRIPT ÉPARPILLÉ. Une seule fonction pose
+   les attributs ; toute la feuille de style s'accroche dessus. Ajouter un cas, c'est ajouter
+   une ligne ici, jamais un `if` dans une vue. */
+function opPlatAppliquer(){
+  const p=opPlat(), d=PLATS[p.plat]||PLATS.winweb, r=document.documentElement;
+  r.setAttribute('data-plat',p.plat);
+  r.setAttribute('data-os',d.os);
+  r.setAttribute('data-kind',d.kind);
+  r.setAttribute('data-nav',opNavigateur());
+  if(d.verre) r.setAttribute('data-verre','1'); else r.removeAttribute('data-verre');
+  if(p.autonome) r.setAttribute('data-autonome','1'); else r.removeAttribute('data-autonome');
+  return p;
+}
+/* La carte « Appareil » des Paramètres — ce qu'on a DÉTECTÉ, et la possibilité de forcer un
+   autre rendu pour l'éprouver. ⛔ Elle dit aussi ce qu'on NE SAIT PAS : un écran qui affiche
+   « macOS 14 » alors qu'on n'a pas pu lire la version ferait croire à une mesure. */
+function carteAppareil(){
+  const p=opPlat(), d=PLATS[p.plat]||{}, f=opPlatForce();
+  const verre=d.verre?'oui':'non';
+  const lignes=[
+    ['Système', {ios:'iPhone / iPad',android:'Android',macos:'Mac',windows:'Windows',linux:'Linux',chromeos:'ChromeOS'}[p.os]||'inconnu'],
+    ['Version du système', p.version? String(p.version) : '— '+p.sur],
+    ['Navigateur', {safari:'Safari',chrome:'Chrome',edge:'Edge',firefox:'Firefox',samsung:'Samsung Internet'}[p.nav]||'autre'],
+    ['Installée sur l’appareil', p.autonome?'oui':'non (ouverte dans un navigateur)'],
+    ['Verre (Liquid Glass)', verre+(d.verre?'':' — '+(p.os==='ios'||p.os==='macos'?('Safari '+(p.safari||'?')+', il en faut 26'):'réservé aux appareils Apple récents'))]
+  ];
+  return `<div class="card" style="margin-top:12px"><div class="card-head"><h3>📱 Appareil et rendu</h3></div>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.55;margin-bottom:12px">L’application reconnaît l’appareil et adapte son rendu : verre sur les appareils Apple récents, surfaces pleines ailleurs, rayons et typographie de chaque système.</p>
+    <div class="fgroup">${lignes.map(([k,v])=>`<div class="frow"><span class="frow-lbl">${k}</span><span class="frow-val">${esc(String(v))}</span></div>`).join('')}</div>
+    <div class="dt-lbl" style="margin:16px 0 8px">Rendu appliqué</div>
+    <div style="background:${f?'color-mix(in srgb,var(--org) 11%,transparent)':'color-mix(in srgb,var(--acc) 10%,transparent)'};border:1px solid ${f?'color-mix(in srgb,var(--org) 42%,transparent)':'color-mix(in srgb,var(--acc) 35%,transparent)'};border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.5;margin-bottom:12px">
+      ${f?`⚠️ <b>Forcé</b> sur « ${esc(d.lbl||f)} ». L’appareil, lui, a été reconnu comme « ${esc((PLATS[p.mesure]||{}).lbl||p.mesure||'—')} ».`
+         :`✓ <b>${esc(d.lbl||p.plat)}</b> — détecté automatiquement.`}
+    </div>
+    <div class="filters" style="margin:0">
+      <div class="chip ${f?'':'active'}" onclick="setPlatForce('')">🔍 Détection automatique</div>
+      ${Object.entries(PLATS).map(([k,v])=>`<div class="chip ${f===k?'active':''}" onclick="setPlatForce('${k}')">${esc(v.lbl)}</div>`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--t3);margin-top:10px;line-height:1.5">Forcer un rendu ne change que l’apparence, sur CET appareil : aucune donnée n’est touchée, et rien n’est envoyé à l’équipe. C’est fait pour éprouver les dix rendus depuis un seul écran.</div>
+    <div style="font-size:12px;color:var(--t3);margin-top:8px;line-height:1.5">⚠️ Deux choses ne se lisent pas depuis le web, et on ne les invente pas : la version exacte de <b>macOS</b> (Safari annonce « 10.15.7 » depuis des années) et la différence entre <b>Windows 10 et 11</b>. Quand le navigateur accepte de les donner, elles s’affichent ci-dessus ; sinon la ligne dit « inconnue ».</div>
+  </div>`;
+}
+function setPlatForce(k){
+  try{ if(PLATS[k]) localStorage.setItem(PLAT_CLE,k); else localStorage.removeItem(PLAT_CLE); }catch(e){}
+  opPlatAppliquer();
+  toast(PLATS[k]? ('🖥️ Rendu « '+PLATS[k].lbl+' »') : '🔍 Rendu détecté automatiquement');
+  if(current==='parametres') views.parametres();
+}
+
 /* ═══════════════ THÈME (auto système / jour / sombre + couleur d'accent) ═══════════════ */
-const ACCENTS = { green:'Vert OP', blue:'Bleu', purple:'Violet', orange:'Orange' };
+/* Huit teintes, comme la maquette. ⛔ LE VERT OP RESTE LE DÉFAUT et garde sa valeur :
+   changer un défaut, c'est changer la couleur de tous ceux qui n'ont rien choisi. */
+const ACCENTS = { green:'Vert OP', blue:'Bleu', teal:'Cyan', indigo:'Indigo', purple:'Violet', pink:'Rose', red:'Rouge', orange:'Orange' };
 const THEME_LBL = { auto:'Auto (système)', light:'Mode jour', dark:'Mode sombre' };
 const THEME_ICO = { auto:'🌗', light:'☀️', dark:'🌙' };
 function getThemePref(){ return localStorage.getItem('elanB_theme')||'auto'; }
@@ -31952,6 +34147,9 @@ function setAccentCustom(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
 if(window.matchMedia){ try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){} }
 
 /* ═══════════════ INIT ═══════════════ */
+/* La plateforme d'abord : la feuille de style s'accroche a <html>, donc elle doit etre
+   marquee AVANT le premier rendu, sinon le premier ecran paraitrait sans verre puis sauterait. */
+try{ opPlatAppliquer(); opPlatHaute(); }catch(e){}
 applyTheme();
 boot();
 
