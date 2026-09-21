@@ -507,7 +507,7 @@
   .tour-btns .sp{flex:1;}
   .nav-item.tour-hl{outline:2px solid var(--acc);outline-offset:-1px;background:color-mix(in srgb,var(--acc) 18%,transparent)!important;box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 16%,transparent);}
   /* Étiquette de titre sur la carte des box */
-  .leaflet-tooltip.box-tip{background:#1E7A4E;color:#fff;border:none;font-weight:700;font-size:11px;padding:2px 8px;border-radius:7px;box-shadow:0 2px 6px rgba(0,0,0,.35);white-space:nowrap;}
+  .leaflet-tooltip.box-tip{background:var(--acc-fill);color:#fff;border:none;font-weight:700;font-size:11px;padding:2px 8px;border-radius:7px;box-shadow:0 2px 6px rgba(0,0,0,.35);white-space:nowrap;}
   .leaflet-tooltip.box-tip::before{display:none;}
   /* TABLEAU TYPE EXCEL (intégré) */
   .xl{border-collapse:collapse;width:100%;min-width:820px;font-size:13px;}
@@ -14782,7 +14782,7 @@ function planCarteCard(){
         ${(function(){ const T=window._planTours||[]; const ok=T.filter(x=>x.tid&&x.suite.length>2);
           if(!canPlan()||ok.length!==1) return '';
           return `<button class="btn warn sm" onclick="planOptModal('${ok[0].tid}','${ok[0].j}')" data-tip="Chercher un meilleur ordre pour cette tournée">Optimiser</button>`; })()}
-        <button class="btn ghost sm" onclick="setMapLayer('${_mapLayer==='m'?'s':'m'}')" data-tip="Changer de fond de carte">${_mapLayer==='m'?'Satellite':'Plan'}</button>
+        ${mapFondBarre()}
         <button class="btn ${planDisp()==='carte'?'':'ghost'} sm" onclick="planDispSet('${planDisp()==='carte'?'cote':'carte'}')" data-tip="${planDisp()==='carte'?'Remettre la carte à côté du planning':'La carte prend tout l’écran — le planning reste en dessous'}">${planDisp()==='carte'?'Réduire':'Agrandir'}</button>
         <button class="btn ghost sm" onclick="planDispSet('plan')" data-tip="Replier la carte — le planning prend tout l’écran">Replier</button>
       </div>
@@ -15756,7 +15756,7 @@ function planPopStatut(i){
     if(i.signature) d.push('✍️ signée par le client');
     if(i.clientAbsent) d.push('🚪 client absent');
     if(i.rapportModele||i.rapport) d.push('📄 rapport');
-    sous=`<div style="margin-top:4px;font-size:11px;color:#1E7A4E;font-weight:700">✅ effectuée${d.length?' · '+d.join(' · '):''}</div>`;
+    sous=`<div style="margin-top:4px;font-size:11px;color:var(--green);font-weight:700">✅ effectuée${d.length?' · '+d.join(' · '):''}</div>`;
   } else if(i.statut==='annulee'){
     sous='<div style="margin-top:4px;font-size:11px;color:#B42318;font-weight:700">✕ annulée — non effectuée</div>';
   } else if(i.statut==='encours'){
@@ -27110,7 +27110,30 @@ function saveControle(e,id){ e.preventDefault(); const d=Object.fromEntries(new 
 }
 
 /* ═══════════════ CARTE ═══════════════ */
-let _map=null, _mapLayer='m', _deptGeo=null;
+let _map=null, _mapLayer=null, _deptGeo=null;
+/* ⛔ TROIS CHOIX, PAS UN INTERRUPTEUR. Avant, un seul bouton faisait Plan ↔ Satellite et la
+   nuit se déduisait du thème : impossible de garder une carte claire en mode nuit, ce que
+   demande le terrain (lisibilité au soleil). Le choix est désormais explicite — 'm' jour,
+   'n' nuit, 's' satellite — et MÉMORISÉ sur le compte, comme le thème et la langue.
+   Tant que personne n'a choisi, on suit le thème : c'est le comportement d'avant, et c'est
+   la seule valeur par défaut qui ne surprenne pas. */
+const MAP_FONDS=[['m','Jour','🗺️'],['n','Nuit','🌙'],['s','Satellite','🛰️']];
+function mapFond(){
+  if(_mapLayer) return _mapLayer;
+  let v=null; try{ v=localStorage.getItem(PREF_CLES.carte); }catch(e){}
+  if(v==='m'||v==='n'||v==='s'){ _mapLayer=v; return v; }
+  return effectiveTheme()==='dark' ? 'n' : 'm';       /* pas choisi : on suit le thème */
+}
+function mapFondBarre(){
+  const cur=mapFond();
+  /* ⛔ ON N'INVENTE PAS UN COMPOSANT : `.chip` est LE filtre de ce dépôt, il est stylé, il
+     porte déjà l'accent sur `.active`, et il respecte le plancher tactile. Une barre
+     segmentée de plus aurait fait deux composants qui font la même chose — la faute du
+     22 septembre, par l'autre bout. */
+  return `<span class="filters" style="display:inline-flex;margin:0;gap:6px;vertical-align:middle" role="group" aria-label="Fond de carte">`
+    + MAP_FONDS.map(([v,l,ic])=>`<span class="chip${v===cur?' active':''}" role="button" aria-pressed="${v===cur}" onclick="setMapLayer('${v}')" data-tip="Fond de carte : ${l}">${ic} ${l}</span>`).join('')
+    + `</span>`;
+}
 function loadDeptGeo(){ if(_deptGeo) return Promise.resolve(_deptGeo); return fetch('https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson').then(r=>r.json()).then(j=>{ _deptGeo=j; return j; }); }
 function loadLeaflet(){ return new Promise((res,rej)=>{
   if(window.L) return res();
@@ -27124,7 +27147,13 @@ async function geocodeClients(){ const todo=db.clients.filter(c=>c.adresse && c.
   for(const c of todo){ const g=await geocode(c.adresse); if(g){ c.lat=g.lat; c.lng=g.lng; n++; save(); } await new Promise(r=>setTimeout(r,1100)); }
   toast(n+' adresse(s) localisée(s)'); if(current==='carte') views.carte();
 }
-function setMapLayer(l){ _mapLayer=l; if(current==='carteInt') views.carteInt(); else if(current==='carteBox') views.carteBox(); else if(current==='planning') views.planning(); }
+function setMapLayer(l){
+  if(l!=='m'&&l!=='n'&&l!=='s') return;
+  _mapLayer=l;
+  try{ localStorage.setItem(PREF_CLES.carte,l); }catch(e){}
+  try{ prefEcrire('carte',l); }catch(e){}
+  if(current==='carteInt') views.carteInt(); else if(current==='carteBox') views.carteBox(); else if(current==='planning') views.planning();
+}
 function fitMapHeight(){ const el=$('map'); if(!el) return; const top=el.getBoundingClientRect().top; el.style.height=Math.max(340,(window.innerHeight-top))+'px'; }
 function gpsLinks(d){
   return `<div style="margin-top:8px;font-size:11px;color:#666">Itinéraire :</div><div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap">
@@ -27133,8 +27162,8 @@ function gpsLinks(d){
     <a href="https://maps.apple.com/?daddr=${d}" target="_blank" rel="noopener" style="padding:6px 10px;border-radius:7px;background:#333;color:#fff;text-decoration:none;font-size:12px;font-weight:600">Plans</a>
   </div>`; }
 function mapTiles(map){
-  let url, opts; const dark=effectiveTheme()==='dark' && _mapLayer!=='s';
-  if(_mapLayer==='s'){ url='https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}'; opts={subdomains:['mt0','mt1','mt2','mt3'],maxZoom:20,attribution:'© Google'}; }
+  let url, opts; const f=mapFond(); const dark=(f==='n');
+  if(f==='s'){ url='https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}'; opts={subdomains:['mt0','mt1','mt2','mt3'],maxZoom:20,attribution:'© Google'}; }
   else { url='https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'; opts={subdomains:['mt0','mt1','mt2','mt3'],maxZoom:20,attribution:'© Google'}; }
   L.tileLayer(url,opts).addTo(map);
   // Nuit : on garde la carte Google lisible, juste légèrement assombrie (pas de fond tout noir)
@@ -27152,7 +27181,7 @@ views.carteBox=function(){
   const myBoxes=visibleBoxes(db.boxes);
   const nLoc=myBoxes.filter(b=>b.lat!=null).length, nMiss=myBoxes.filter(b=>(b.adresse||b.ville)&&b.lat==null).length;
   setHeader('Carte des box',`${nLoc} box localisée(s)${nMiss?` · ${nMiss} à géolocaliser`:''}`,
-    `<button class="btn ghost" onclick="go('boxes')">← Boxes</button> ${nMiss?`<button class="btn ghost" onclick="geocodeBoxes()">Géolocaliser (${nMiss})</button> `:''}<button class="btn ghost sm" onclick="setMapLayer('${_mapLayer==='m'?'s':'m'}')">${_mapLayer==='m'?'Satellite':'Plan'}</button>`);
+    `<button class="btn ghost" onclick="go('boxes')">← Boxes</button> ${nMiss?`<button class="btn ghost" onclick="geocodeBoxes()">Géolocaliser (${nMiss})</button> `:''}${mapFondBarre()}`);
   $('content').innerHTML=`<div class="filters" style="margin:0 0 8px"><div class="chip" onclick="go('boxes')">📋 Liste</div><div class="chip active">🗺️ Carte des box</div></div>
     <div class="card map-card" style="padding:0;overflow:hidden"><div id="map" style="height:70vh;background:var(--bg2)"></div></div><div id="map-fb"></div>`;
   loadLeaflet().then(()=>{ const el=$('map'); if(!el||!window.L)return; if(_map){try{_map.remove();}catch(e){}_map=null;} fitMapHeight(); _map=L.map(el).setView([46.6,2.4],5); mapTiles(_map);
@@ -27254,7 +27283,7 @@ views.carteInt=function(){
   const pts=tousPts.filter(carteTechVisible);
   const secteurs=deptSectors();
   setHeader('Carte interventions',`Tournée du ${fmtShort(carteIntDay)} · ${pts.length} intervention(s)`,
-    `<button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,-1);views.carteInt()">‹</button> <button class="btn ghost sm" onclick="carteIntDay=todayISO();views.carteInt()">Aujourd'hui</button> <button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,1);views.carteInt()">›</button> <button class="btn ghost sm" onclick="showSecteurs=!showSecteurs;views.carteInt()">${showSecteurs?'Masquer secteurs':'Secteurs'}</button> <button class="btn ghost sm" onclick="setMapLayer('${_mapLayer==='m'?'s':'m'}')">${_mapLayer==='m'?'🛰️':'🗺️'}</button>`);
+    `<button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,-1);views.carteInt()">‹</button> <button class="btn ghost sm" onclick="carteIntDay=todayISO();views.carteInt()">Aujourd'hui</button> <button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,1);views.carteInt()">›</button> <button class="btn ghost sm" onclick="showSecteurs=!showSecteurs;views.carteInt()">${showSecteurs?'Masquer secteurs':'Secteurs'}</button> ${mapFondBarre()}`);
   const techsJour=[...new Set(pts.map(p=>p.techId||''))];
   const legTech = techsJour.length?`<div class="card" style="margin-top:12px;padding:10px 12px"><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
     <b style="font-size:12px;color:var(--t2)">Couleur = technicien :</b>
@@ -30819,14 +30848,14 @@ function comptaControle(){
   const vide=ctrlOnglet==='valides'
     ?`<div class="card">${emptyState('🌙','Personne n’est encore validé.','Valide les journées dans « À valider » — elles viendront se ranger ici.','')}</div>`
     :(ctrlOnglet==='ecart'
-      ?`<div class="card" style="padding:14px 16px;background:rgba(30,122,78,.10);border-color:rgba(30,122,78,.35)">
+      ?`<div class="card" style="padding:14px 16px;background:color-mix(in srgb,var(--acc) 10%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)">
           <div style="font-size:13.5px;font-weight:800;color:var(--acc)">✓ Aucun écart d'argent</div>
           <div style="font-size:12px;color:var(--t2);margin-top:3px">Les comptes tombent juste, personne à vérifier.</div></div>`
-      :`<div class="card" style="padding:14px 16px;background:rgba(30,122,78,.10);border-color:rgba(30,122,78,.35)">
+      :`<div class="card" style="padding:14px 16px;background:color-mix(in srgb,var(--acc) 10%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)">
           <div style="font-size:13.5px;font-weight:800;color:var(--acc)">✓ Tout le monde est validé</div>
           <div style="font-size:12px;color:var(--t2);margin-top:3px">La journée est contrôlée — retrouve les fiches dans la case « Validés ».</div></div>`);
   return nav+kpis+demoBar+barre+chips
-    +(montre.length?`<div class="card" style="padding:6px 10px${ctrlOnglet==='valides'?';border-color:rgba(30,122,78,.30)':''}">`+montre.map(ligneTech).join('')+`</div>`:vide);
+    +(montre.length?`<div class="card" style="padding:6px 10px${ctrlOnglet==='valides'?';border-color:color-mix(in srgb,var(--acc) 30%,transparent)':''}">`+montre.map(ligneTech).join('')+`</div>`:vide);
 }
 /* ══ LA FICHE-JOURNÉE D'UNE PERSONNE ══
    Un clic sur sa carte du Contrôle : TOUTES ses interventions du jour (payée
@@ -31252,7 +31281,7 @@ function ctrlJournee(techId,declarantId,d){
   const aFact=ints.filter(interAFacturer);
   const clients=new Set(ints.map(i=>i.clientId).filter(Boolean)).size||ints.length;
   const pied=valide
-    ? `<div class="card" style="padding:12px 14px;margin:14px 0 0;background:rgba(30,122,78,.10);border-color:rgba(30,122,78,.35)">
+    ? `<div class="card" style="padding:12px 14px;margin:14px 0 0;background:color-mix(in srgb,var(--acc) 10%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)">
          <div style="font-size:13.5px;font-weight:800;color:var(--acc)">✓ Paiements validés</div>
          <div style="font-size:12px;color:var(--t2);margin-top:4px;line-height:1.5">Le ${esc(fmtShort(new Date(info.le).toLocaleDateString('sv-SE')))} par ${esc(info.par===((currentUser&&currentUser.id))?'toi':'la gestion')}${(info.factures&&info.factures.length)?' · '+info.factures.length+' facture'+(info.factures.length>1?'s':'')+' créée'+(info.factures.length>1?'s':''):''}.<br>
          Tu peux rouvrir la journée si tu vois une erreur — rien n\u2019est figé.</div>
@@ -31366,14 +31395,14 @@ let _payMode='', _payAF=false, _payDR=false;
 function paiementEditeur(i,l,techId,declarantId,d){
   if(!isFinanceMgr()) return '';
   if(ctrlEstValide(d,techId,declarantId))
-    return `<div class="card" style="padding:12px 14px;margin-top:14px;background:rgba(30,122,78,.10);border-color:rgba(30,122,78,.3)">
+    return `<div class="card" style="padding:12px 14px;margin-top:14px;background:color-mix(in srgb,var(--acc) 10%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)">
       <div style="font-size:12.5px;line-height:1.55">✓ La journée est validée — ce paiement n\u2019est plus modifiable.<br>
       Reviens à la journée et touche <b>« Rouvrir »</b> si tu dois corriger.</div></div>`;
   _payMode=l?l.mode:''; _payAF=!!i.aFacturer; _payDR=!!i.dejaRegle;
   const prevu=Number(i.montant)||0;
   const modes=Object.keys(REG_MODES).map(k=>{ const M=REG_MODES[k]; const on=(_payMode===k&&!_payAF&&!_payDR);
     return `<span onclick="payMode('${k}')" data-pm="${k}" style="font-size:11.5px;font-weight:700;padding:8px 12px;border-radius:10px;cursor:pointer;
-      border:1.5px solid ${on?'var(--acc)':'var(--brd)'};color:${on?'var(--acc)':'var(--t2)'};${on?'background:rgba(30,122,78,.10)':''}">${M[0]} ${esc(M[1])}</span>`; }).join('');
+      border:1.5px solid ${on?'var(--acc)':'var(--brd)'};color:${on?'var(--acc)':'var(--t2)'};${on?'background:color-mix(in srgb,var(--acc) 10%,transparent)':''}">${M[0]} ${esc(M[1])}</span>`; }).join('');
   const af=`<span onclick="payMode('__AF')" data-pm="__AF" style="font-size:11.5px;font-weight:700;padding:8px 12px;border-radius:10px;cursor:pointer;
     border:1.5px solid ${_payAF?'var(--org)':'var(--brd)'};color:${_payAF?'var(--org)':'var(--t2)'};${_payAF?'background:rgba(232,163,61,.12)':''}">📄 À facturer</span>`
   + `<span onclick="payMode('__DR')" data-pm="__DR" style="font-size:11.5px;font-weight:700;padding:8px 12px;border-radius:10px;cursor:pointer;
@@ -31403,7 +31432,7 @@ function payMode(k){
   _payAF=(k==='__AF'); _payDR=(k==='__DR'); _payMode=(_payAF||_payDR)?'':k;
   const COUL={__AF:'var(--org)',__DR:'#3B82F6'}, FOND={__AF:'rgba(232,163,61,.12)',__DR:'rgba(59,130,246,.12)'};
   document.querySelectorAll('#pay-modes [data-pm]').forEach(el=>{
-    const on=(el.dataset.pm===k), c=COUL[el.dataset.pm]||'var(--acc)', f=FOND[el.dataset.pm]||'rgba(30,122,78,.10)';
+    const on=(el.dataset.pm===k), c=COUL[el.dataset.pm]||'var(--acc)', f=FOND[el.dataset.pm]||'color-mix(in srgb,var(--acc) 10%,transparent)';
     el.style.borderColor=on?c:'var(--brd)';
     el.style.color=on?c:'var(--t2)';
     el.style.background=on?f:'';
@@ -35425,7 +35454,7 @@ function getAccent(){ return localStorage.getItem('elan_accent')||'green'; }
       deux téléphones ouverts se repousseraient leur thème à tour de rôle, chacun estampillant
       la fiche de l'autre. C'est un tap qui écrit. Conséquence assumée, et à dire : un réglage
       choisi AVANT cette version ne voyage qu'une fois retapé une seule fois. */
-const PREF_CLES={theme:'elan_theme',accent:'elan_accent',accentHex:'elan_accent_hex',accentsPerso:'elan_accents_perso',lang:'elan_lang',onglets:'elan_onglets',favoris:'elan_favoris'};
+const PREF_CLES={theme:'elan_theme',accent:'elan_accent',accentHex:'elan_accent_hex',accentsPerso:'elan_accents_perso',lang:'elan_lang',onglets:'elan_onglets',favoris:'elan_favoris',carte:'elan_carte'};
 function prefEcrire(cle,val){
   if(!currentUser||!PREF_CLES[cle]||typeof val!=='string') return;
   const u=(db&&db.users&&db.users.find(x=>x.id===currentUser.id))||currentUser;
