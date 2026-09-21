@@ -82,7 +82,14 @@ console.log('\n══ 2. ⛔ UNE FEUILLE À PART, JAMAIS `openModal` ══\n');
   vrai('le fond se ferme au clic', /e\.target===ov/.test(o));
 }
 { const a=corps('creerAller');
-  vrai('⛔ la feuille s\'efface AVANT d\'ouvrir le formulaire', a.indexOf('creerFermer()')<a.indexOf('setTimeout'));
+  /* ⛔ −1 N'EST PAS « AVANT ». La première version comparait `indexOf('creerFermer()')` à
+     `indexOf('setTimeout')` : supprimer l'appel rendait −1, et −1 < n'importe quoi, donc le
+     contrôle passait au vert sur une fonction qui ne fermait PLUS la feuille. C'est la règle
+     « une assertion sur un ensemble vide ne prouve rien », par la porte de l'ordre : on prouve
+     d'abord la PRÉSENCE, l'ordre ensuite. */
+  const iF=a.indexOf('creerFermer()'), iT=a.indexOf('setTimeout');
+  vrai('la fermeture est bien appelée', iF>=0);
+  vrai('⛔ la feuille s\'efface AVANT d\'ouvrir le formulaire', iF>=0 && iT>iF);
   vrai('… et l\'échec d\'un formulaire se DIT au lieu de passer en silence', /catch\(e\)\{[^}]*toast\(/.test(a));
 }
 { const f=corps('creerFermer');
