@@ -5166,6 +5166,118 @@ html[data-verre="1"] div:has(> input[placeholder^="Rechercher"]){
    propre place et sa propre largeur. On la laisse tranquille. */
 html[data-refonte] .gsrch{border-radius:var(--r-pill,999px)!important}
 html[data-refonte] .gsrch input{background:transparent!important}
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   LES FICHES — Box, Intervention, Client (point 4 de la refonte)
+   « retour mono, éditer/supprimer, titre en accent, carte clé-valeur, sections en cartes à
+   en-tête teinté, statut en pilule ».
+
+   ⛔ LE CROCHET EST `.det-back`, ET IL A ÉTÉ MESURÉ. Les trois fiches appellent
+   `setHeader('','','')` puis rendent LEUR propre barre de retour, avec la même classe
+   `.det-back` — c'est leur seul point commun fiable, et il est suffisant : `#content:has(.det-back)`
+   désigne exactement « on est sur une fiche ». Pas de nouvelle classe à poser dans vingt
+   endroits, pas de drapeau JavaScript à tenir à jour.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Le retour : une pilule discrète, en tête, qui NOMME où l'on revient ── */
+/* ⛔ `.btn.det-back`, PAS `.det-back` — une question de POIDS, pas de style. Le bouton porte
+   aussi `.btn.sm`, et `html[data-refonte] .btn.sm` (trois crans) battait
+   `html[data-refonte] .det-back` (deux crans) : la pilule ne sortait jamais. Mesuré : 8 px,
+   la valeur de `--rf-r-mini`, au lieu des 999 demandés. */
+html[data-refonte] .btn.det-back{
+  border-radius:var(--r-pill,999px)!important;min-height:38px;
+  background:color-mix(in srgb,var(--t3) 12%,transparent)!important;border:0!important;
+  font-size:13.5px!important;font-weight:600!important;color:var(--t2)!important;
+}
+html[data-refonte] .btn.det-back:hover{background:color-mix(in srgb,var(--t3) 20%,transparent)!important;color:var(--t1)!important}
+html[data-os="windows"] .btn.det-back{border-radius:6px!important}
+@media(max-width:780px){ html[data-refonte] .btn.det-back{min-height:44px} }
+
+/* ── Les sections d'une fiche : en-tête TEINTÉ, pas un simple filet ──
+   ⚠️ Uniquement sur une fiche (`:has(.det-back)`) : les cartes du tableau de bord et des
+   listes gardent leur en-tête neutre. Une teinte partout ne hiérarchise plus rien. */
+/* ⛔ À TOUTE PROFONDEUR POUR LA TEINTE, ENFANT DIRECT POUR LE DÉBORD. Mesuré : la fiche Box
+   n'avait AUCUNE section teintée alors qu'elle en porte deux — ses `.card-head` ne sont pas
+   des enfants directs de `.card`. Le débord (marges négatives) suppose de connaître le
+   rembourrage de la carte : on le réserve donc aux enfants directs, et la teinte, elle,
+   s'applique partout. */
+/* ⚠️ ET PAS SEULEMENT DANS UNE `.card`. Relevé sur la fiche Box : elle porte TROIS
+   en-têtes de section (« Produits », « Arrivages », « Passages & relevés ») pour UNE seule
+   `.card` — deux d'entre eux vivent hors de toute carte. Viser `.card .card-head` laissait
+   donc la fiche Box ENTIÈREMENT sans teinte, ce qu'une lecture du sélecteur ne montre pas. */
+html[data-refonte] #content:has(.det-back) .card-head{
+  background:color-mix(in srgb,var(--acc) 9%,transparent);
+  border-bottom:1px solid color-mix(in srgb,var(--acc) 22%,transparent);
+}
+html[data-refonte] #content:has(.det-back) .card > .card-head{
+  margin:-22px -24px 16px;padding:14px 24px;
+  border-radius:var(--rf-r-carte,20px) var(--rf-r-carte,20px) 0 0;
+}
+html[data-refonte] #content:has(.det-back) .card-head h3{
+  font-size:15px;font-weight:700;letter-spacing:-.012em;color:var(--t1);
+}
+/* Une carte de fiche qui n'a pas d'en-tête garde ses marges : on ne décale rien à vide. */
+html[data-refonte] #content:has(.det-back) .card{overflow:hidden}
+
+/* ── La carte clé-valeur ──
+   `.fgroup`/`.frow` existe déjà partout : on lui donne la grammaire de la maquette — libellé
+   ténu à gauche, valeur alignée à droite, chiffres tabulaires, 44 px de haut. */
+html[data-refonte] #content:has(.det-back) .frow{min-height:44px;font-size:15px}
+html[data-refonte] #content:has(.det-back) .frow-lbl{color:var(--t3);font-size:14px}
+html[data-refonte] #content:has(.det-back) .frow-val{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+
+/* ── Le statut en pilule, et les pastilles de la maquette ── */
+html[data-refonte] #content:has(.det-back) .st{
+  border-radius:var(--r-pill,999px)!important;padding:5px 12px;font-size:12.5px;font-weight:700;
+}
+html[data-os="windows"] #content:has(.det-back) .st{border-radius:6px!important}
+
+/* ── La rangée d'actions d'une fiche ──
+   La maquette distingue trois poids : l'action principale en accent, l'action « matière »
+   (Arrivage) en orange, le reste en verre ou en fantôme. On ne renomme rien : on donne une
+   classe aux boutons qui l'ont déjà, et une forme commune à la rangée. */
+html[data-refonte] #content:has(.det-back) .fiche-actions{
+  display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;
+}
+html[data-refonte] #content:has(.det-back) .fiche-actions .btn{min-height:44px;border-radius:var(--r-pill,999px)}
+html[data-os="windows"] #content:has(.det-back) .fiche-actions .btn{border-radius:6px}
+html[data-refonte] .btn.matiere{
+  background:var(--org)!important;color:#1E0E00!important;border-color:transparent!important;
+}
+html[data-refonte] .btn.matiere:hover{background:color-mix(in srgb,#000 12%,var(--org))!important}
+
+/* ── ⛔ LA FICHE CLIENT EST UNE FENÊTRE, PAS UN ÉCRAN — MESURÉ, PAS SUPPOSÉ ──
+   `ficheClient(id)` appelle `openModal(...)` : elle ne touche jamais `#content`, donc
+   `:has(.det-back)` ne l'atteint pas, et ne l'atteindra jamais. La première sonde a cru la
+   mesurer et lisait en réalité la fiche INTERVENTION restée à l'écran derrière la fenêtre —
+   trois ✓ qui ne valaient rien.
+   La grammaire clé-valeur et le statut en pilule valent pour une fenêtre autant que pour un
+   écran : on les y applique à leur tour. L'en-tête TEINTÉ, lui, reste aux écrans : une fenêtre
+   a déjà son propre `.modal-head`, et en teinter les sections ferait deux niveaux de titre
+   concurrents dans un espace de 500 px. */
+html[data-refonte] #modal .frow{min-height:44px;font-size:15px}
+html[data-refonte] #modal .frow-lbl{color:var(--t3);font-size:14px}
+html[data-refonte] #modal .frow-val{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+html[data-refonte] #modal .st{border-radius:var(--r-pill,999px)!important;padding:5px 12px;font-size:12.5px;font-weight:700}
+html[data-os="windows"] #modal .st{border-radius:6px!important}
+
+/* ── Le verre sur une fiche ── */
+html[data-verre="1"] #content:has(.det-back) .card-head{
+  background:color-mix(in srgb,var(--acc) 12%,transparent);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+}
+@media (prefers-reduced-transparency: reduce){
+  html[data-verre="1"] #content:has(.det-back) .card-head{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+}
+/* ⛔ CONTRASTE PLUS FORT DEMANDÉ : une teinte à 9 % disparaît. On la remplace par un filet
+   net plutôt que par une teinte plus forte, qui écraserait le titre. */
+@media (prefers-contrast: more){
+  html[data-refonte] #content:has(.det-back) .card-head{
+    background:none;border-bottom:2px solid var(--acc);
+  }
+}
 </style>
 </head>
 <body>
