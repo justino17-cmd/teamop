@@ -22,6 +22,102 @@ les abonnements. »**
 
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
+## ⛔⛔ 21 SEPTEMBRE 2026 — LE NAVIGATEUR A TROUVÉ TROIS DÉFAUTS QUE 102 SUITES NE VOYAIENT PAS
+
+Justin, loin de chez lui : **« Je suis pas chez moi, donc je ne peux pas tester. Est-ce que toi
+tu peux tout tester ? »** Réponse mesurée : oui, sauf ce qui demande ses mains (le DNS) ou ses
+mots de passe (la Tour, la console Firestore, le VPS).
+
+### Ce qui a été mesuré, et avec quoi
+
+| | résultat |
+|---|---|
+| `bash scripts/bancs-ci.sh` | **103 suites · 4 246 vérifications · code 0** |
+| `node scripts/verifier-syntaxe.js` | 27 pages, 50 blocs inline, 0 en erreur |
+| `bash scripts/verif-secrets.sh` | code 0 |
+| `node scripts/verifier-theme.js espace.html` | 14 couleurs, couples texte/fond conformes |
+| `.github/scripts/surveillance.js` contre la PRODUCTION | **code 0** — 12 fichiers + serveur |
+| sonde navigateur du PORTAIL (page réelle, interrupteur ouvert, vrai serveur) | **39 ✓ · 0 ✗** |
+| sonde navigateur d'OP GESTION sur `beta.html` | 20 écrans, **0 exception** |
+
+La sonde du portail est montée **cross-origin exprès** — page sur un port, API sur un autre,
+`config.origins` contenant la page. C'est le seul montage qui expose le piège de la requête
+préalable CORS, celui que `curl` ne peut pas voir. Résultat : aucun refus au préalable.
+
+### ⛔ LES TROIS DÉFAUTS, ET CE QU'AUCUN BANC NE POUVAIT EN VOIR
+
+`test-740` extrait `portailMaison()` de la vraie page et le fait parler au vrai serveur. Il
+était VERT. Ce qui manquait n'était ni un nom de champ ni un code HTTP — **c'était le TEMPS**,
+et seul un vrai navigateur le donne.
+
+| ce que fait l'utilisateur | ce que l'écran faisait | mesuré |
+|---|---|---|
+| il s'inscrit | son entreprise n'apparaît pas | **18,1 s plus tard** |
+| il envoie un message au support | son propre message n'apparaît pas | **12,6 s plus tard** |
+| il change son mot de passe, **ça réussit** | « E-mail ou mot de passe incorrect » | verdict PÉRIMÉ |
+
+Les deux premiers viennent de l'adaptateur : **Firestore POUSSAIT une écriture au même
+instant, nous on INTERROGE**, et personne ne prévenait les écouteurs vivants. On attendait
+donc la resonde — 20 s pour le dossier, 15 s pour le fil. Ce n'est pas cosmétique :
+quelqu'un qui envoie un message et ne le voit pas paraître **le renvoie**, et la conversation
+du support se remplit de doublons.
+
+Au passage : les minuteries étaient **partagées** entre abonnements. Le second écrasait la
+poignée du premier, donc se désabonner de A coupait la resonde de B — encore vivant, encore
+affiché. Elles sont désormais locales.
+
+Le troisième **n'a rien à voir avec l'interrupteur** : `_err()` ne faisait que POSER, jamais
+effacer. C'est du code PARTAGÉ, et la page servie aujourd'hui le porte — vérifié sur le
+fichier réellement servi : `curl teamop.fr/espace.html` rend **15 `_err(` et zéro effacement**.
+⚠️ Portée exacte, parce qu'une première rédaction en disait plus que la mesure : la page annonce
+bien la réussite par ailleurs (`alert(« ✅ Mot de passe modifié. »)`), donc personne ne croit à
+un échec. Le défaut est que l'écran porte **deux messages contraires au même instant** — et le
+moment vraiment trompeur est l'étape d'AVANT : on corrige son mot de passe actuel, le champ du
+code apparaît, et le refus rouge précédent est toujours là.
+
+**Corrigés, gardés par `tests/test-746.js` (20 contrôles).** Neuf mutations le font tomber ; une
+mutation qui ne change qu'un commentaire le laisse à 20 ✓ — donc il vise bien du code.
+⛔ L'interrupteur reste **FERMÉ**. Le correctif du verdict, lui, concerne les clients
+d'aujourd'hui : **il attend une phrase de Justin**, comme tout ce qui atteint `main`.
+
+### ⚠️ TROIS PIÈGES DE MÉTHODE PAYÉS CETTE NUIT-LÀ, DONT DEUX CONTRE MOI-MÊME
+
+1. **Un contrôle négatif qui réussit parce que la requête est MALFORMÉE est un faux témoin.**
+   La sonde envoyait `{email, emp}` à `/api/compte/connexion`, qui attend `{email, h}` : les
+   DEUX essais rendaient 400, et « l'ancien mot de passe ne passe plus » passait… pour la
+   mauvaise raison. Parade : **mettre le POSITIF en premier**. Sans témoin qui réussit, un
+   négatif ne prouve rien. (Même famille que `test-711`, la fenêtre trop courte.)
+2. **Une sonde qui force un état que l'application ne produit JAMAIS fabrique de faux défauts.**
+   En appelant `go(« dashboard »)` sur la bêta sans être connecté, deux vues jetaient un
+   `TypeError` sur `currentUser.role`. Contre-mesure décisive : **laisser la page à
+   elle-même** — 0 erreur, et l'ancre d'adresse ne contourne pas l'écran de connexion. Il n'y
+   avait pas de défaut. Toujours produire la contre-mesure avant d'annoncer une trouvaille.
+3. ⛔ **UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN.** La sonde mesurait « trois
+   `save()` sans changement ne posent aucun `_m` » et rendait « 0 avant, 0 après » : un ✓. En
+   comptant la population, la base ne portait que **6 enregistrements dans 2 collections** — le
+   contrôle était creux. **Compter la population AVANT de croire un zéro.** Cette règle-là est
+   bien gardée, mais au banc (`test-639`), pas au navigateur : la version navigateur demande une
+   session bêta peuplée, donc des identifiants que seul Justin a.
+
+### Ce qui NE peut pas être testé sans Justin
+
+- le DNS de l'étape G, et la question qui vient avant : **que se passe-t-il quand le VPS tombe ?**
+- tout ce qui demande la Tour, la console Firestore ou le VPS (mots de passe) ;
+- l'écran d'administration mort d'`espace.html`, à confirmer avec un compte `@teamop.fr` ;
+- la règle `_m` au navigateur, faute de session bêta peuplée (voir piège 3).
+
+### État de la production, relevé le même jour
+
+- `app.html` servi : **v695** · cache v895 · minimum exigé v695 (plancher critique v693).
+- `espace.html` servi : **0 occurrence** de `PORTAIL_SERVEUR` et de `portailMaison` — tout
+  l'adaptateur est bien branche seule, rien n'a fui.
+- `/health` de la production n'a **ni `portail`, ni `conservation`, ni `socle`** : tout le
+  chantier serveur est non déployé, ce qui est l'état attendu (rien n'est poussé sur `main`).
+  ⚠️ Conséquence à connaître : la surveillance passe, mais elle **saute** ces alarmes au lieu
+  de les exercer. C'est `test-726` qui les exerce, sur un `/health` vivant issu de la branche.
+- Sauvegarde hors site : OK, il y a 5 h.
+
+---
 ## ✅ ÉTAPES C ET D — TERMINÉES ET ÉPROUVÉES (nuit du 20 au 21 septembre 2026)
 
 L'interrupteur `PORTAIL_SERVEUR` d'`espace.html` reste **FERMÉ** : rien ne change pour un

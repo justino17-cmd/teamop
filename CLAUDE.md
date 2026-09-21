@@ -420,6 +420,38 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   deux identifiants différents, et la coupure viserait un compte qui n'existe pas sans rien
   dire. `tests/test-640.js` extrait cette fonction du fichier réel pour éprouver la vraie
   dérivation, `tests/test-641.js` joue les quatre réponses de la coupure.
+- ⛔⛔ **UN ADAPTATEUR QUI REMPLACE UNE API QUI *POUSSE* DOIT POUSSER SES PROPRES ÉCRITURES.**
+  Firestore notifiait `onSnapshot` au moment de l'écriture ; notre portail INTERROGE toutes les
+  15 à 20 secondes. Mesuré au navigateur le 21 septembre 2026, page réelle, interrupteur ouvert :
+  après une inscription le nom de l'entreprise paraissait **18,1 s** plus tard, et le message
+  qu'on venait d'envoyer **12,6 s** plus tard. Rien n'était « cassé » — et c'est bien le piège :
+  `test-740` fait parler la VRAIE page au VRAI serveur et restait vert, parce que ce qui manquait
+  n'était ni un champ ni un code HTTP, **c'était le TEMPS**. ⚠️ Et ce n'est pas cosmétique :
+  quelqu'un qui envoie un message et ne le voit pas paraître **le renvoie**. Toute écriture qui
+  réussit prévient donc les écouteurs vivants, tout de suite (`tests/test-746.js`). Corollaire à
+  appliquer AVANT d'écrire le prochain adaptateur : lister ce que l'API d'origine poussait, et le
+  rendre — sinon chaque geste a l'air de ne pas être parti. Même piège pour les minuteries :
+  une poignée de `setTimeout` PARTAGÉE entre abonnements fait qu'arrêter l'un coupe l'autre.
+- ⛔⛔ **UN REFUS NE SURVIT PAS À LA RÉUSSITE QUI LE DÉMENT.** `_err()` d'`espace.html` ne faisait
+  que POSER, jamais effacer : le verdict d'un essai raté restait à l'écran pendant l'essai
+  suivant — y compris pendant un changement de mot de passe qui AVAIT réussi (deux routes à 200,
+  nouveau mot de passe fonctionnel, ancien refusé en 401). C'est le pendant exact de la règle
+  `_mailboxes` ci-dessus : un refus doit savoir se dire, **et une réussite doit savoir effacer le
+  refus d'avant**. Chaque essai écrit SON verdict. Les quatre portes de la cérémonie à deux temps
+  (`pwSend`, `pwConfirm`, `emSend`, `emConfirm`) appellent `_vider()` avant de travailler.
+- ⛔⛔ **UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN — COMPTER LA POPULATION AVANT
+  DE CROIRE UN ZÉRO.** Le 21 septembre 2026, une sonde mesurait « trois `save()` sans changement
+  ne posent aucun `_m` » et rendait fièrement « 0 avant, 0 après ». La base ne portait que SIX
+  enregistrements : le contrôle était creux, et son ✓ ne valait rien. C'est la jumelle de la règle
+  « une mutation qui ne casse rien » — là on demande ce que le banc ne JOUE pas, ici ce qu'il ne
+  REGARDE pas. Tout contrôle qui compte des absences doit d'abord prouver qu'il y avait de quoi
+  compter.
+- ⛔ **UNE SONDE QUI FORCE UN ÉTAT QUE L'APPLICATION NE PRODUIT JAMAIS FABRIQUE DE FAUX DÉFAUTS.**
+  Appeler `go('dashboard')` sur la bêta sans être connecté faisait jeter deux vues sur
+  `currentUser.role`. La contre-mesure — **laisser la page à elle-même** — a rendu 0 erreur, et
+  l'ancre d'adresse ne contourne pas l'écran de connexion : il n'y avait pas de défaut. Avant
+  d'annoncer une trouvaille faite au pilotage, **produire la contre-mesure sans pilotage**.
+  Un faux défaut coûte deux fois : le temps de le « corriger », puis celui de la garde inutile.
 - Ne pas modifier l'anti-abus (`server/index.js`) sans relire pourquoi il lit
   `req.ip` et non l'en-tête brut — un en-tête fourni par le client se falsifie
 - Ne pas écrire de données personnelles de clients dans les journaux
