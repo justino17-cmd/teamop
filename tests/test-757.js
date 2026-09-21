@@ -198,6 +198,19 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
 {
   const t = teintesDe(NU_TEINTE);
   vrai('⛔ les surfaces sont bien TEINTÉES par la couleur choisie', t.length >= 20, t.length + ' enveloppe(s) color-mix(var(--acc-src) …)');
+  /* ⛔⛔ UN TOTAL NE PROUVE PAS QUE CHAQUE JETON EST TEINTÉ — mesuré : retirer la teinte du
+     SEUL --card de nuit ne faisait tomber aucun contrôle, le total restant bien au-dessus du
+     plancher. C'est la règle du dépôt par l'autre bout : quand une mutation ne casse rien, la
+     question n'est pas « le code est-il bon ? » mais « qu'est-ce que le banc ne REGARDE pas ? ».
+     On compte donc jeton par jeton. Trois déclarations pour la palette (une de nuit, deux de
+     jour — le réglage explicite et son miroir @media), deux pour le verre. --vr-fond2 de nuit
+     est le voile BLANC du document : il ne se teinte pas, et c'est voulu. */
+  const ATTENDU = { '--bg':3, '--bg1':3, '--bg2':3, '--bg3':3, '--card':3, '--card2':3,
+                    '--deep':3, '--vr-fond':2, '--vr-fond-dense':2, '--vr-page':2 };
+  Object.keys(ATTENDU).forEach(j => {
+    const n = (NU_TEINTE.match(new RegExp('\\' + j + ':\\s*(?:linear-gradient\\([^;]*)?color-mix\\(in srgb,\\s*var\\(--acc-src', 'g')) || []).length;
+    vrai('   ' + j + ' est teinté partout où il est déclaré', n >= ATTENDU[j], n + ' / ' + ATTENDU[j] + ' attendue(s)');
+  });
   /* ⛔ LA SOURCE, JAMAIS UN DÉRIVÉ — mais seulement pour les JETONS DE SURFACE. `--acc` est
      lui-même dérivé (jour : color-mix(#000 22%, --acc-src)) : une surface bâtie dessus
      serait teintée deux fois et virerait au sale. Ailleurs dans la feuille, teinter un
