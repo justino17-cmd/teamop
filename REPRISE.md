@@ -24,6 +24,36 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ⛔⛔ DÉCISION DE JUSTIN — 22 SEPTEMBRE 2026 : OP MESSAGES SORT DU CHANTIER SOCLE
+
+**« OP MESSAGES est bien une application TeamOP. Mais je veux la séparer d'OP GESTION, je vais
+lui faire un serveur à part, car c'est pour tout public et aussi professionnel. Du coup je
+voudrais revoir l'application, mais celle-là je la ferai plus tard. Tu peux continuer tout ce
+qu'il y a à faire sur OP GESTION par contre. »**
+
+Ce n'est pas un report, c'est un changement de périmètre — et il RÉSOUT le blocage de l'étape A
+en le retirant du plan plutôt qu'en le tranchant.
+
+### Ce que ça change, concrètement
+
+| | avant | maintenant |
+|---|---|---|
+| **Étape A** (OP MESSAGES sur le socle d'OP GESTION) | bloquée sur l'identité | ⛔ **HORS PÉRIMÈTRE.** Ne pas la reprendre |
+| le chemin du grand chantier | A → B → C → D → E → F → G | **B → C → D → E → F → G** |
+| `op-fs.js` (l'adaptateur Firestore) | pour brancher `messages.html` | **conservé, pas supprimé** : il vaudra pour le serveur séparé, et son banc garde deux défauts réels (voir plus bas) |
+| `messages.html` | à câbler | reste FERMÉE (`OPMSG_EN_TRAVAUX`), à REVOIR plus tard, sur son propre serveur |
+
+⚠️ **CE QU'IL FAUDRA SE REDEMANDER LE JOUR DE LA SÉPARATION**, et qui est déjà mesuré ici :
+- l'identité — « tout public » veut dire des comptes de PERSONNES, pas d'entreprises : le modèle
+  `{t, kh}` d'OP GESTION ne s'y transpose pas (c'est exactement ce qui bloquait l'étape A) ;
+- les pièces jointes passent par `firebase.storage()` (2 appels) — le serveur séparé devra les
+  porter, l'adaptateur ne couvre que Firestore ;
+- les deux défauts silencieux corrigés le 22 (le `FieldPath` des réactions, les clés pointées du
+  partage de position) restent valables : l'adaptateur les garde, son banc aussi.
+
+⚠️ **ET ÇA TOUCHE LES ÉTAPES E ET F** : « éteindre Firebase » ne pourra pas être total tant
+qu'OP MESSAGES y vit. À rouvrir quand la séparation sera décidée pour de bon.
+
 ## 🔎 Balayage complet du 22 septembre 2026 au soir — 84 écrans
 
 Toutes les rubriques visibles (42), en bureau (1440×900) ET en téléphone (393×852), dans un

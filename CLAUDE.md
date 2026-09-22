@@ -4,6 +4,16 @@ Suite logicielle pour entreprises de terrain — nettoyage, lutte anti-nuisibles
 Applications : OP GESTION (interventions, clients, devis) et OP MESSAGES (messagerie).
 Vendu par abonnement, clients réels, données réelles. **Ce dépôt est en production.**
 
+⛔ **OP MESSAGES ET OP GESTION SE SÉPARENT — décision de Justin, 22 septembre 2026.** OP MESSAGES
+reste une application TeamOP, mais elle aura **son propre serveur** : elle vise « tout public et
+aussi professionnel », donc des comptes de PERSONNES, quand OP GESTION cloisonne par ENTREPRISE
+(`{t, kh}`, une clé par espace). Les deux modèles d'identité ne se transposent pas — c'est
+précisément ce qui bloquait l'étape A du chantier socle, et c'est pourquoi elle est retirée du
+plan plutôt que tranchée. `messages.html` reste fermée (`OPMSG_EN_TRAVAUX`) et sera REVUE plus
+tard ; `op-fs.js` et son banc sont conservés pour ce jour-là. **Ne pas rebrancher OP MESSAGES
+sur le socle d'OP GESTION** — et se rappeler qu'« éteindre Firebase » (étapes E et F) ne peut
+pas être total tant qu'OP MESSAGES y vit.
+
 📍 **Avant toute chose, lire `REPRISE.md`** — les chantiers ouverts, les dettes connues et ce
 qui attend une décision de Justin. Une conversation meurt, le dépôt reste : ce fichier est la
 seule mémoire qui passe de l'une à l'autre. Le tenir à jour quand un chantier change d'état.
