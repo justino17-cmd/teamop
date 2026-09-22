@@ -153,7 +153,8 @@ const ECARTS=[
         if(/auto|scroll/.test(st.overflowX) && n.scrollWidth>n.clientWidth+4) return true; }catch(x){}
         n=n.parentElement; } return false; };
     const tous=[...new Set([...R.querySelectorAll(SEL)])].filter(vis).filter(e=>!dansTiroirFerme(e));
-    const out={ vus:tous.length, hors:[], tronques:[], petits:[], candidats:0 };
+    const out={ vus:tous.length, hors:[], tronques:[], petits:[], candidats:0, denses:[], zoom:[], sousMenu:0 };
+    const candidats=[];
     for(const e of tous){
       const b=e.getBoundingClientRect();
       const t=(e.textContent||e.value||e.placeholder||'').trim().replace(/\\s+/g,' ').slice(0,28);
@@ -168,9 +169,60 @@ const ECARTS=[
                                 vu:Math.round(c.clientWidth), reel:Math.round(c.scrollWidth), bulle }); break; }
         }
       }
-      if(TACTILE && b.height<37.5 && !e.closest('.tbl') && e.tagName!=='A' && e.tagName!=='LABEL'
-         && !(e.tagName==='INPUT' && /checkbox|radio/.test(e.type)))
-        out.petits.push({ n:nom(e), t, h:Math.round(b.height*10)/10 });
+      /* ⛔ LE RECTANGLE N'EST PAS LA CIBLE. On retient ici ce qui est DESSINÉ sous 38 px ; la
+         zone qui répond vraiment se mesure plus bas, élément par élément. Les liens de texte
+         restent hors du compte — sauf l'appel et le courriel, qu'on touche sur le terrain. */
+      if(TACTILE && b.height<37.5 && e.tagName!=='LABEL'
+         && (e.tagName!=='A' || /^(tel|mailto):/i.test(e.getAttribute('href')||''))
+         && !(e.tagName==='INPUT' && /checkbox|radio/.test(e.type))){
+        /* ⛔ ÉCARTÉS PAR DÉCISION ÉCRITE (app.html, bloc « au doigt ») : les cases des grilles
+           de planning, de la frise, et les tableaux. Comptés à part et NOMMÉS. */
+        if(e.closest('.pg-pt,.tdb-pc,.tdb-cel,.plm-card,.tbl')) out.denses.push(nom(e));
+        else candidats.push({e, n:nom(e), t, h:Math.round(b.height*10)/10});
+      }
+    }
+    /* LA ZONE QUI RÉPOND : sur la verticale du centre, combien de pixels d'affilée déclenchent
+       CET élément — lui-même, son libellé, ou la rangée / l'enrobe qui fait suivre le tap
+       (même règle que l'écouteur de l'application, recopiée pour mesurer ce qu'elle rend). */
+    const CH='input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),select,textarea';
+    const declenche=(e,x,y)=>{
+      const h=document.elementFromPoint(x,y); if(!h) return false;
+      if(h===e||e.contains(h)) return true;
+      const lab=h.closest&&h.closest('label'); if(lab&&lab.control===e) return true;
+      if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) && !h.closest('input,select,textarea,button,a,label,.chip,[onclick],[contenteditable="true"]')){
+        const r=h.closest('.frow');
+        if(r){ const c=r.querySelectorAll(CH); return c.length===1&&c[0]===e; }
+        for(let n=h,k=0; n&&n!==document.body&&k<4; n=n.parentElement,k++){
+          const f=[...n.children].filter(x=>x.matches(CH));
+          if(!f.length) continue;
+          return f.length===1 && f[0]===e && n.getBoundingClientRect().height<=64;
+        }
+      }
+      return false; };
+    for(const c of candidats.slice(0,80)){
+      c.e.scrollIntoView({block:'center',inline:'nearest'});
+      await new Promise(r=>requestAnimationFrame(r));
+      const b=c.e.getBoundingClientRect(), cx=b.left+b.width/2, cy=b.top+b.height/2;
+      let eff=0;
+      for(const sg of [1,-1]) for(let d=(sg>0?0:1); d<=30; d++){ const y=cy+sg*d;
+        if(y<0||y>=innerHeight||cx<0||cx>=innerWidth) break;
+        if(declenche(c.e,cx,y)) eff++; else break; }
+      if(eff===0){ const h0=document.elementFromPoint(cx,cy); let menu=false;
+        for(let n=h0;n&&n!==document.body;n=n.parentElement){ const st=getComputedStyle(n);
+          if((st.position==='absolute'||st.position==='fixed')&&(parseInt(st.zIndex)||0)>=10
+             &&!n.closest('.topbar,.tabbar,#tabbar,.rf-tabs,#assistant,.fab')){ menu=true; break; } }
+        if(menu && h0 && !c.e.contains(h0)){ out.sousMenu++; continue; } }
+      if(eff<37.5) out.petits.push({ n:c.n, t:c.t, h:c.h, eff });
+    }
+    out.candidats=candidats.length;
+    /* ⛔ SAFARI ZOOME LA PAGE SUR UN CHAMP DE MOINS DE 16 PX, ET NE DÉZOOME JAMAIS. La règle
+       tactile pose 16 px sur input[type=text] — un champ SANS attribut type (« Rechercher »
+       de Mouvements, 13,2 px en style direct) lui échappait. On compte ce que le navigateur
+       calcule, pas ce que la feuille croit viser. */
+    if(TACTILE) for(const f of R.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):not([type=hidden]):not([type=button]):not([type=submit]),select,textarea')){
+      if(!vis(f)||dansTiroirFerme(f)) continue;
+      const fs=parseFloat(getComputedStyle(f).fontSize);
+      if(fs<15.5) out.zoom.push({ n:nom(f), t:(f.placeholder||f.value||'').trim().slice(0,28), fs:Math.round(fs*10)/10 });
     }
     /* ⛔ CE QUI NE SE CLIQUE PAS SE LIT AUSSI. « OP GEST… » a échappé à trois audits parce
        qu'ils ne mesuraient que les cibles cliquables. Les titres, sous-titres et étiquettes
@@ -217,7 +269,16 @@ const ECARTS=[
       const b=e.getBoundingClientRect(); if(b.top<0||b.bottom>innerHeight||b.left<0||b.right>innerWidth) continue;
       const d=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
       if(!d||d===e||e.contains(d)||d.contains(e)||cliq(d)===cliq(e)||d===document.documentElement) continue;
-      reste.push({ n:x.n, t:x.t, par:nom(cliq(d)) }); }
+      /* ⛔ SOUS UN MENU OUVERT, C'EST VOULU. L'exploration ouvre des menus (« Toutes les box »,
+         « Équipe ▾ ») et audite l'écran menu ouvert : ce qui est dessous est couvert par
+         construction. Un panneau flottant = un ancêtre du recouvreur en position absolue ou
+         fixe, z-index 10 ou plus, hors de la charpente (barres, bouton flottant). On le compte
+         et on le NOMME à part ; il ne passe pas pour un défaut. */
+      let menu=false;
+      for(let n=d;n&&n!==document.body;n=n.parentElement){ const st=getComputedStyle(n);
+        if((st.position==='absolute'||st.position==='fixed')&&(parseInt(st.zIndex)||0)>=10
+           &&!n.closest('.topbar,.tabbar,#tabbar,.rf-tabs,#assistant,.fab')){ menu=true; break; } }
+      reste.push({ n:x.n, t:x.t, par:nom(cliq(d)), menu }); }
     return reste;`;
 
   /* ── L'ÉTAT OBSERVABLE : c'est lui qui dit quelle sorte d'écran profond s'est ouvert ── */
@@ -280,7 +341,8 @@ const ECARTS=[
 
   const PARGENRE=4, PARCAT_SEC=150, SOUSVUES_MAX=14;
   const sousVues={}; let plafonnees=0;   /* ⛔ pas de plafond silencieux : on compte ce qu'on saute */
-  const vus=new Set(), R={hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[]};
+  const vus=new Set(), R={hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[],denses:[],zoom:[],sousMenu:[]};
+  let candidatsTotal=0, sousMenuCibles=0;
   const par={rubrique:0,fenetre:0,fiche:0,sousvue:0}, sautes={}; let clics=0, audits=0, elements=0;
 
   /* ⛔ UN DÉFAUT SE PROUVE PAR SA PHOTO, PRISE AU MOMENT OÙ ON LE TROUVE. Un chemin réécrit
@@ -297,12 +359,15 @@ const ECARTS=[
     if(!o) return;
     let cv=[]; try{ cv=await S.ev(COUVERTS(racine)); }catch(e){}
     audits++; elements+=o.vus; par[sorte]++;
-    const aProuver = o.hors.length || (P.tac && o.petits.length) || (o.titres||[]).length || cv.length;
+    const aProuver = o.hors.length || (P.tac && o.petits.length) || (o.titres||[]).length || cv.filter(x=>!x.menu).length;
     const preuve = aProuver ? await photographier(cle) : null;
     if(preuve){ [o.hors,o.petits,o.titres||[],cv].forEach(l=>l.forEach(x=>{ x.preuve=preuve; })); }
     o.hors.forEach(x=>R.hors.push({...x,ou:cle})); o.tronques.forEach(x=>R.tronques.push({...x,ou:cle}));
-    o.petits.forEach(x=>R.petits.push({...x,ou:cle})); cv.forEach(x=>R.couverts.push({...x,ou:cle}));
+    o.petits.forEach(x=>R.petits.push({...x,ou:cle}));
+    cv.forEach(x=>(x.menu?R.sousMenu:R.couverts).push({...x,ou:cle})); sousMenuCibles+=o.sousMenu||0;
     (o.titres||[]).forEach(x=>R.titres.push({...x,ou:cle}));
+    (o.denses||[]).forEach(x=>R.denses.push({n:x,ou:cle})); (o.zoom||[]).forEach(x=>R.zoom.push({...x,ou:cle}));
+    candidatsTotal+=o.candidats||0;
   };
   const norme=s=>(s||'').replace(/\d+/g,'#').replace(/\s+/g,' ').trim().slice(0,40);
 
@@ -364,12 +429,19 @@ const ECARTS=[
   grouper(R.hors,x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » x '+v[0].x+'→'+v[0].d+(v[0].preuve?'   ['+v[0].preuve+']':'')));
   console.log('\n══ RECOUVERTS (candidat centré) : '+R.couverts.length+' ══');
   grouper(R.couverts,x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » sous '+v[0].par));
+  console.log('     (sous un menu OUVERT par l’exploration, donc couverts exprès : '+R.sousMenu.length+' éléments sur '
+    +new Set(R.sousMenu.map(x=>x.ou)).size+' écrans, et '+sousMenuCibles+' petites cibles — '
+    +[...new Set(R.sousMenu.map(x=>x.ou))].slice(0,5).join(' · ')+')');
   console.log('\n══ TRONQUÉS SANS INFOBULLE : '+R.tronques.filter(x=>!x.bulle).length+'  (avec infobulle : '+R.tronques.filter(x=>x.bulle).length+') ══');
   grouper(R.tronques.filter(x=>!x.bulle),x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » '+v[0].vu+'/'+v[0].reel));
   console.log('\n══ TITRES COUPÉS : '+R.titres.length+' ══');
   grouper(R.titres,x=>x.n+' « '+x.t+' »').slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'  '+v[0].vu+'/'+v[0].reel+(v[0].bulle?' (infobulle)':'')+'   ex. '+v[0].ou));
-  if(P.tac){ console.log('\n══ CIBLES SOUS 38 px : '+R.petits.length+' ══');
-    grouper(R.petits,x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » '+v[0].h+'px'+(v[0].preuve?'   ['+v[0].preuve+']':''))); }
+  if(P.tac){ console.log('\n══ CIBLES DONT LA ZONE QUI RÉPOND FAIT MOINS DE 38 px : '+R.petits.length+' ══');
+    console.log('     population : '+candidatsTotal+' cibles DESSINÉES sous 38 px, chacune mesurée au doigt (rangée, libellé, enrobe compris)');
+    console.log('     écartées par décision écrite (grilles de planning, frise, tableaux) : '+R.denses.length+' — '+[...new Set(R.denses.map(x=>x.n))].slice(0,6).join(', '));
+    grouper(R.petits,x=>x.n+' « '+x.t+' »').slice(0,25).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   '+v[0].h+' px dessiné · '+v[0].eff+' px qui répondent   ex. '+v[0].ou+(v[0].preuve?'   ['+v[0].preuve+']':'')));
+    console.log('\n══ CHAMPS SOUS 16 px (Safari zoome la page au toucher) : '+R.zoom.length+' ══');
+    grouper(R.zoom,x=>x.n+' « '+x.t+' »').slice(0,25).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   '+v[0].fs+' px   ex. '+v[0].ou)); }
   console.log('\n══ LES ÉCRANS PROFONDS AUDITÉS ══');
   [...vus].forEach(v=>console.log('   · '+v));
   fs.writeFileSync(__dirname+'/audit-profond-'+PROFIL+'.json',JSON.stringify({version:S.version,profil:PROFIL,clics,audits,elements,par,ecrans:[...vus],fermees,...R},null,0));

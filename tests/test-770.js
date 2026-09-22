@@ -41,15 +41,21 @@ for (const f of ['app.html', 'beta.html']) {
     /\.frow-val > select\{padding-top:12px!important;padding-bottom:12px!important;\s*margin-top:-12px!important;margin-bottom:-12px!important\}/.test(SRC));
 
   /* ── 2. l'écouteur : on l'EXTRAIT et on l'EXÉCUTE ── */
-  const d = SRC.indexOf("document.addEventListener('click',function(e){\n  const t=e.target; if(!t||!t.closest) return;\n  const r=t.closest('.frow');");
-  vrai('population : l’écouteur de la rangée est trouvé', d > 0);
+  const ancre = SRC.indexOf("const r=t.closest('.frow');");
+  const d = ancre > 0 ? SRC.lastIndexOf("document.addEventListener('click',function(e){", ancre) : -1;
+  vrai('population : l’écouteur de la rangée est trouvé', d > 0 && ancre - d < 700, 'écart ' + (ancre - d));
   const fin = SRC.indexOf('\n});', d);
   const corps = d > 0 ? SRC.slice(SRC.indexOf('{', d) + 1, fin) : '';
   vrai('population : son corps est extrait', corps.length > 300, corps.length + ' caractères');
-  const gerer = new Function('e', corps);
+  const gerer0 = new Function('e', 'document', corps);
 
   /* un mini-DOM : juste ce que l'écouteur interroge */
   const el = (tag, o = {}) => Object.assign({ tagName: tag, parent: null, focused: 0, picked: 0, disabled: false, readOnly: false, attrs: {},
+    enfants: [], h: 20, type: '',
+    get parentElement() { return this.parent; },
+    get children() { return this.enfants; },
+    getBoundingClientRect() { return { height: this.h }; },
+    matches(sel) { return /^(INPUT|SELECT|TEXTAREA)$/.test(this.tagName) && !(this.tagName === 'INPUT' && /checkbox|radio|hidden|file/.test(this.type)); },
     focus() { this.focused++; }, showPicker() { this.picked++; } }, o);
   const correspond = (n, sel) => sel.split(',').some(s => { s = s.trim();
     if (s === '.frow') return n.cls === 'frow';
@@ -58,6 +64,10 @@ for (const f of ['app.html', 'beta.html']) {
     if (s.startsWith('[contenteditable')) return false;
     return n.tagName.toLowerCase() === s; });
   const cablage = n => { n.closest = function (sel) { let x = this; while (x) { if (correspond(x, sel)) return x; x = x.parent; } return null; }; return n; };
+  const BODY = cablage(el('BODY'));
+  const gerer = ev => gerer0(ev, { body: BODY });
+  /* un arbre : parent → enfants, chaque nœud câblé */
+  const arbre = (parent, ...enfants) => { cablage(parent); enfants.forEach(e => { e.parent = parent; cablage(e); parent.enfants.push(e); }); return parent; };
   const rangee = (champs, o = {}) => { const r = cablage(el('DIV', { cls: 'frow', ...o })); const lbl = cablage(el('SPAN', { parent: r }));
     champs.forEach(c => { c.parent = r; cablage(c); }); r.querySelectorAll = () => champs; return { r, lbl, champs }; };
 
@@ -73,6 +83,41 @@ for (const f of ['app.html', 'beta.html']) {
     vrai('… et il ne se mêle pas d’un tap posé SUR le champ (le navigateur s’en charge)', c.focused === 0); }
   { const s = el('SELECT'); const { lbl } = rangee([s]); gerer({ target: lbl });
     vrai('un menu déroulant s’ouvre, pas seulement se sélectionne', s.focused === 1 && s.picked === 1); }
+
+  /* ── 3. L'ENROBE D'UN CHAMP : la pilule de recherche, `.pf-inw`, la rangée « Valeur… » ──
+     Mesuré le même jour : un champ de 14 à 17 px au milieu d'une pilule de 37 à 44, et le
+     reste de la pilule — l'icône, le rembourrage — qui ne répondait pas. */
+  { const inp = el('INPUT'), trace = el('PATH'), svg = el('SVG'), ico = el('SPAN'), pil = el('DIV', { h: 44 });
+    arbre(pil, ico, inp); arbre(ico, svg); arbre(svg, trace); pil.parent = BODY;
+    gerer({ target: trace });
+    vrai('⛔ un doigt sur l’ICÔNE de la pilule (le tracé du SVG, trois crans plus bas) ouvre le champ', inp.focused === 1); }
+  { const inp = el('INPUT'), pil = el('DIV', { h: 44 }); arbre(pil, inp); pil.parent = BODY;
+    gerer({ target: pil });
+    vrai('⛔ un doigt sur le rembourrage de la pilule ouvre le champ', inp.focused === 1); }
+  { const a = el('INPUT'), b = el('INPUT'), ico = el('SPAN'), pil = el('DIV', { h: 44 }); arbre(pil, ico, a, b); pil.parent = BODY;
+    gerer({ target: ico });
+    vrai('⛔ … pas dans un enrobe à DEUX champs', a.focused + b.focused === 0); }
+  { const inp = el('INPUT'), txt = el('SPAN'), carte = el('DIV', { h: 120 }); arbre(carte, txt, inp); carte.parent = BODY;
+    gerer({ target: txt });
+    vrai('⛔ … ni dans un conteneur plus haut qu’une rangée (une carte n’est pas une pilule)', inp.focused === 0); }
+  { const inp = el('INPUT'), x = el('BUTTON'), pil = el('DIV', { h: 44 }); arbre(pil, inp, x); pil.parent = BODY;
+    gerer({ target: x });
+    vrai('⛔ … ni sur le bouton ✕ posé dans la pilule (il a son propre geste)', inp.focused === 0); }
+  { const inp = el('INPUT', { disabled: true }), pil = el('DIV', { h: 44 }); arbre(pil, inp); pil.parent = BODY;
+    gerer({ target: pil });
+    vrai('⛔ … ni sur un champ désactivé', inp.focused === 0); }
+  { /* le PREMIER ancêtre qui porte des champs décide : s'il en a deux, on ne remonte pas chercher mieux */
+    const a = el('INPUT'), b = el('INPUT'), seul = el('INPUT'), ico = el('SPAN'), rang = el('DIV', { h: 44 }), haut = el('DIV', { h: 50 });
+    arbre(rang, ico, a, b); arbre(haut, rang, seul); haut.parent = BODY;
+    gerer({ target: ico });
+    vrai('⛔ … et le premier enrobe à champs tranche : deux champs, on ne remonte pas en prendre un autre', a.focused + b.focused + seul.focused === 0); }
+  { const inp = el('INPUT'), n4 = el('I'), n3 = el('SPAN'), n2 = el('SPAN'), n1 = el('SPAN'), pil = el('DIV', { h: 44 });
+    arbre(pil, n1, inp); arbre(n1, n2); arbre(n2, n3); arbre(n3, n4); pil.parent = BODY;
+    gerer({ target: n4 });
+    vrai('… quatre crans au plus : au-delà, ce n’est plus une pilule qu’on touche', inp.focused === 0); }
+  { const s = el('SELECT'), ico = el('SPAN'), pil = el('DIV', { h: 38 }); arbre(pil, ico, s); pil.parent = BODY;
+    gerer({ target: ico });
+    vrai('un menu déroulant dans un enrobe s’ouvre aussi', s.focused === 1 && s.picked === 1); }
 }
 
 console.log('\n═══ test-770 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');

@@ -20,8 +20,18 @@
    ⚠️ Et le commentaire du code disait « il tient à 390 » — mesuré quand la barre portait
    moins de choses. Une mesure écrite vieillit comme un chiffre de ce fichier.
 
+   ⛔⛔ ET LE MÊME JOUR, LE CORRECTIF A FAIT NAÎTRE TROIS DÉFAUTS — mesurés au navigateur
+   (scratchpad/sonde-barre.js : 3 largeurs × 3 rubriques × les deux états de défilement) :
+   · hors rubrique (tableau de bord), le titre réduit reste `display:none` même défilé : la
+     marque tombait à 0 px et RIEN ne prenait sa place — synchro, cloche et recherche
+     sautaient à gauche au premier défilement. La marque ne cède donc sa place qu'en `.ctx` ;
+   · `display:none` sur la marque retirait aussi sa PLACE : à 360 px les ronds se tassaient
+     à gauche derrière « Créer », un quart de barre vide. `visibility:hidden` garde la place ;
+   · `.topbar{gap:8px}` du palier téléphone n'avait JAMAIS pris (`gap:10px!important` plus
+     loin, même spécificité) : 81 px de marque pour 85 à 390 px — « OP GESTIO… » sur l'écran
+     d'accueil. Et « Créer » faisait 46 px ici, 38 ailleurs, entre des ronds de 44.
    ⛔ Ce banc lit le CODE (commentaires retirés) des deux fichiers servis. La preuve de
-   comportement vit dans la sonde du scratchpad (mesure sur 6 largeurs × 6 rubriques).
+   comportement vit dans les sondes du scratchpad (sonde-barre.js).
    ══════════════════════════════════════════════════════════════════════════════════════ */
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
@@ -50,16 +60,27 @@ for (const f of ['app.html', 'beta.html']) {
 
   vrai('⛔ tant qu’on ne défile pas, le titre invisible ne prend AUCUNE largeur',
     /body:not\(\.rf-haut\) \.topbar \.topbar-title\{flex:0 0 0!important;width:0;overflow:hidden\}/.test(tel));
-  vrai('⛔ dès qu’on défile, c’est la marque qui cède sa largeur au titre',
-    /body\.rf-haut \.topbar \.topbar-brand\{flex:0 0 0!important;width:0;overflow:hidden\}/.test(tel));
+  vrai('⛔ dès qu’on défile, c’est la marque qui cède sa largeur au titre — en rubrique (.ctx)',
+    /body\.rf-haut\.ctx \.topbar \.topbar-brand\{flex:0 0 0!important;width:0;overflow:hidden\}/.test(tel));
+  vrai('⛔ … et SEULEMENT là : hors rubrique aucun titre ne la remplace, les ronds sauteraient à gauche',
+    !/body\.rf-haut \.topbar \.topbar-brand\{flex:0 0 0/.test(SRC));
+  vrai('⛔ l’écart du palier téléphone prend vraiment (8 px, contre le 10 px !important de la refonte)',
+    /html\[data-refonte\] body \.topbar\{gap:8px!important\}/.test(tel));
   vrai('⛔ on ne bascule PAS display sur le titre (le fondu doit survivre)',
     !/rf-haut[^{]*\.topbar-title\{[^}]*display:none/.test(SRC));
 
   const hors = blocMedia(SRC, '@media(max-width:389px)').join('\n');
-  vrai('⛔ hors rubrique, sous 390 px, la marque s’efface plutôt que se couper',
-    /body:not\(\.ctx\) \.topbar \.topbar-brand\{display:none!important\}/.test(hors));
-  vrai('… et la règle d’origine, sous 340 px pour tous, est toujours là',
-    blocMedia(SRC, '@media(max-width:339px)').some(b => /\.topbar \.topbar-brand\{display:none!important\}/.test(b)));
+  vrai('⛔ hors rubrique, sous 390 px, la marque s’efface plutôt que se couper — en gardant sa PLACE',
+    /body:not\(\.ctx\) \.topbar \.topbar-brand\{visibility:hidden\}/.test(hors));
+  vrai('… et la règle d’origine, sous 340 px pour tous, garde aussi la place',
+    blocMedia(SRC, '@media(max-width:339px)').some(b => /\.topbar \.topbar-brand\{visibility:hidden\}/.test(b)));
+  vrai('⛔ plus aucun display:none sur la marque de la barre au téléphone (les ronds se tassaient à gauche)',
+    ![...blocMedia(SRC, '@media(max-width:389px)'), ...blocMedia(SRC, '@media(max-width:339px)')]
+      .some(b => /\.topbar \.topbar-brand\{display:none/.test(b)));
+  const doigt = blocMedia(SRC, '@media (pointer:coarse)').find(b => /\.menu-btn/.test(b)) || '';
+  vrai('population : le premier bloc « au doigt » est trouvé', doigt.length > 2000, doigt.length + ' caractères');
+  vrai('⛔ « Créer » a la taille des ronds de la barre (44), partout',
+    /html\[data-refonte\] \.topbar \.creer-btn\{min-height:44px;height:44px\}/.test(doigt));
 
   /* ⛔ L'EN-TÊTE DE CARTE QUI PORTE DES BOUTONS — trouvé par l'audit des écrans profonds :
      « Rédiger » coupé au bord de sa carte (fiche intervention), et la page ENTIÈRE qui
