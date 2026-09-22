@@ -136,7 +136,14 @@ console.log('\n══ 1 ter. ⛔⛔ UN CHEMIN POINTÉ VISE UN CHAMP IMBRIQUÉ, P
   const opFs = require(path.join(RACINE, 'op-fs.js'));
   const F = opFs.FieldValue, P = opFs.FieldPath;
   const poserChemin = opFs._poserChemin, entreesUpdate = opFs._entreesUpdate;
-  vrai('l\'adaptateur se charge et rend ses outils RÉELS', !!(F && P && poserChemin && entreesUpdate));
+  const outils = !!(F && P && poserChemin && entreesUpdate);
+  /* ⛔ UN BANC QUI MEURT NE NOMME PAS LE COUPABLE. Sans ce garde, retirer `opFs.FieldPath`
+     faisait tomber la section sur une pile d'appels au lieu d'un ✗ lisible — le code de sortie
+     l'attrapait, mais il fallait lire une trace pour savoir QUELLE garde avait sauté. */
+  vrai('l\'adaptateur se charge et rend ses outils RÉELS', outils);
+  if (!outils) { console.log('     (section sautée : ' + ['FieldValue','FieldPath','_poserChemin','_entreesUpdate']
+    .filter((n, i) => ![F, P, poserChemin, entreesUpdate][i]).join(', ') + ' manque à op-fs.js)'); }
+  else {
 
   /* ⛔ ON APPELLE LE VRAI CODE, PAS UNE COPIE. Rejouer ici la résolution de chemin donnerait un
      banc qui reste vert le jour où celle d'`op-fs.js` change — c'est la règle du dépôt :
@@ -150,21 +157,21 @@ console.log('\n══ 1 ter. ⛔⛔ UN CHEMIN POINTÉ VISE UN CHAMP IMBRIQUÉ, P
   };
   const r = appliquer({ loc: { la: 1, lo: 2, maj: 10 }, live: { jusqu: 0 } },
     [{ 'loc.la': 48.8, 'loc.lo': 2.35, 'loc.maj': 99, 'live.jusqu': 1234 }]);
-  v('⛔ la latitude atterrit DANS loc, pas dans un champ « loc.la »', r.loc.la, 48.8);
-  v('   la longitude aussi', r.loc.lo, 2.35);
-  v('   et l\'horodatage', r.loc.maj, 99);
-  v('   « live.jusqu » atterrit dans live', r.live.jusqu, 1234);
+  v('⛔ la latitude atterrit DANS loc, pas dans un champ « loc.la »', r.loc && r.loc.la, 48.8);
+  v('   la longitude aussi', r.loc && r.loc.lo, 2.35);
+  v('   et l\'horodatage', r.loc && r.loc.maj, 99);
+  v('   « live.jusqu » atterrit dans live', r.live && r.live.jusqu, 1234);
   v('⛔⛔ AUCUN champ littéral « loc.la » n\'a été créé', Object.keys(r).sort(), ['live', 'loc']);
-  v('   les frères non visés survivent', r.loc.lo !== undefined && r.live.jusqu !== undefined, true);
+  v('   les frères non visés survivent', !!(r.loc && r.loc.lo !== undefined && r.live && r.live.jusqu !== undefined), true);
 
   /* ── FieldPath : segments VERBATIM, jamais découpés ── */
   const emoji = '👍';
   const r2 = appliquer({ reactions: {} }, [new P('reactions', emoji), F.arrayUnion('u1')]);
-  v('⛔ FieldPath pose la réaction sous son emoji', r2.reactions[emoji], ['u1']);
+  v('⛔ FieldPath pose la réaction sous son emoji', r2.reactions && r2.reactions[emoji], ['u1']);
   const r3 = appliquer(r2, [new P('reactions', emoji), F.arrayUnion('u2')]);
-  v('   un second utilisateur s\'ajoute', r3.reactions[emoji], ['u1', 'u2']);
+  v('   un second utilisateur s\'ajoute', r3.reactions && r3.reactions[emoji], ['u1', 'u2']);
   const r4 = appliquer(r3, [new P('reactions', emoji), F.arrayRemove('u1')]);
-  v('   et se retire', r4.reactions[emoji], ['u2']);
+  v('   et se retire', r4.reactions && r4.reactions[emoji], ['u2']);
 
   /* ⛔ LA DIFFÉRENCE ENTRE LES DEUX FORMES, QUI EST TOUTE LEUR RAISON D'ÊTRE : un segment qui
      contient un point ne se coupe PAS. Aujourd'hui les emojis n'en ont pas — le jour où une
@@ -172,11 +179,11 @@ console.log('\n══ 1 ter. ⛔⛔ UN CHEMIN POINTÉ VISE UN CHAMP IMBRIQUÉ, P
   const rA = appliquer({}, [new P('a.b'), 1]);
   v('⛔ FieldPath(\'a.b\') pose UN champ nommé « a.b »', Object.keys(rA), ['a.b']);
   const rB = appliquer({}, [{ 'a.b': 1 }]);
-  v('⛔ la chaîne \'a.b\', elle, pose a → b', rB.a.b, 1);
+  v('⛔ la chaîne \'a.b\', elle, pose a → b', rB.a && rB.a.b, 1);
 
   /* ⛔ `delete()` au bout d'un chemin doit retirer LE champ, pas l'objet parent. */
   const rD = appliquer({ loc: { la: 1, lo: 2 } }, [{ 'loc.la': F.delete() }]);
-  v('⛔ delete() au bout d\'un chemin ne retire que la feuille', Object.keys(rD.loc), ['lo']);
+  v('⛔ delete() au bout d\'un chemin ne retire que la feuille', Object.keys(rD.loc || {}), ['lo']);
 
   /* ⛔ UN NOMBRE IMPAIR D'ARGUMENTS EST UNE ERREUR, PAS UNE VALEUR MANQUANTE. Se taire
      écrirait un document à moitié modifié sans que rien ne le dise — Firestore jette, nous
@@ -186,6 +193,7 @@ console.log('\n══ 1 ter. ⛔⛔ UN CHEMIN POINTÉ VISE UN CHAMP IMBRIQUÉ, P
   v('⛔ un couple (chemin, valeur) incomplet JETTE au lieu d\'écrire à moitié', jete, true);
   v('   et un couple complet passe', entreesUpdate([new P('a'), 1]).length, 1);
   v('   la forme OBJET reste acceptée telle quelle', entreesUpdate([{ x: 1, y: 2 }]).length, 2);
+  }
 }
 
 console.log('\n══ 2. ⛔ LE DÉFAUT PAR DÉFAUT EST « TOUT », JAMAIS « RIEN » ══\n');
