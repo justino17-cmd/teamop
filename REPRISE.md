@@ -90,10 +90,23 @@ contre-épreuves passent (un clic qui jette est VU, un clic sans effet est VU co
 il annonce **0 clic qui jette**. Mais son compteur de population dit l'essentiel :
 **sur 1 027 frappes, 730 n'ont trouvé personne et 248 sont tombées sur une AUTRE cible — 49
 seulement ont atteint celle qu'on visait.** Le recensement ne rend pas deux fois la même liste
-(la vue s'anime, les données bougent), donc l'index dérive. Le ciblage est passé à une
-SIGNATURE (libellé + classe) ; **tant que le compteur ne montre pas une couverture franche, ce
-« 0 erreur » ne vaut rien et ne doit pas être cité.** Sans ce compteur, la passe aurait
+(la vue s'anime, les données bougent), donc l'index dérive. Sans ce compteur, la passe aurait
 annoncé « 1 027 boutons cliqués, 0 erreur ».
+
+Le ciblage est passé de l'INDEX à la SIGNATURE (libellé + classe). Après correction, mesuré :
+
+| | 1ʳᵉ version | après |
+|---|---|---|
+| frappes portées sur la cible visée | **49 / 1 027** | **305 / 469** |
+| n'ont trouvé personne | 730 | 115 |
+| tombées sur une autre cible | 248 | 49 |
+| clics qui jettent | 0 | **0** |
+
+**Ce qui est citable aujourd'hui : 305 boutons cliqués pour de vrai, aucune erreur
+JavaScript.** Les 164 frappes qui n'ont pas porté restent à récupérer — un tiers de l'écran
+reste donc non éprouvé au clic, et il faut le dire ainsi. 57 clics n'ont produit aucun effet
+observable : ce n'est PAS une liste de défauts (un bouton peut écrire sans repeindre), c'est
+une liste à vérifier.
 
 
 ## ✅ 22 SEPTEMBRE 2026 — L'AUDIT TOTAL : 3 913 BOUTONS MESURÉS UN PAR UN (v724, bêta publiée)
