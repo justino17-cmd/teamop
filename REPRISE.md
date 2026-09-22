@@ -24,6 +24,117 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ⛔ 22 SEPTEMBRE 2026 — CE QUE LE SITE VEND CONTRE CE QUE LES APPLICATIONS FONT
+
+Audit mécanique : `tarifs.html` dépouillé de son balisage, `PLAN_BLOQUE` et `NAV` extraits du
+vrai `app.html`, promesse par promesse. **Rien n'a été modifié — ce sont des décisions
+commerciales, elles sont à Justin.** Quatre constats, du plus grave au plus petit.
+
+### 1. ⛔⛔ ON PEUT PAYER 15 €/MOIS POUR OP MESSAGES, QUI NE S'OUVRE PAS
+
+- `messages.html` porte `OPMSG_EN_TRAVAUX=true` : la page **remplace tout son corps** par
+  « change d'infrastructure » et lève une exception pour n'appeler Firebase à aucun moment.
+- `tarifs.html` vend trois formules OP MESSAGES : **Perso 0 €, Pro 15 €, Premium 25 €**, avec
+  appels audio illimités, visio HD, partage d'écran, canaux d'équipe, SIRET.
+- Le bouton « Choisir Messages Pro » mène à `recap-abonnement.html?formule=msgpro`, qui porte
+  **de vrais identifiants de prix Stripe** (`price_1TwV6E…` mensuel, `price_1Twgdt…` annuel)
+  et poste sur `/api/stripe/checkout`.
+- **Aucune page du site** (`index`, `applications`, `tarifs`, `opmessages`, `metiers`,
+  `pourquoi`) ne dit que l'application est en travaux — vérifié par recherche sur « en travaux »,
+  « bientôt », « prochainement », « indisponible » : zéro occurrence.
+
+Donc : quelqu'un peut s'abonner aujourd'hui et recevoir une page qui ne s'ouvre pas. ⚠️ Et la
+décision du 22 septembre (OP MESSAGES part sur son propre serveur, revue plus tard) **allonge**
+ce délai au lieu de le raccourcir. Les fonctions vendues existent bien dans le code (WebRTC est
+là, 10 occurrences) — ce n'est pas un mensonge sur le produit, c'est une porte fermée sans
+panneau.
+
+**Trois sorties, toutes à une ligne de code, au choix de Justin** : retirer les deux formules
+payantes de `tarifs.html` ; ou les marquer « bientôt » avec le bouton éteint ; ou rouvrir
+l'application. Le choix n'est pas technique.
+
+### 2. ⚠️ LE FORFAIT GRATUIT VEND UN « MODE HORS-LIGNE » QUI A ÉTÉ RETIRÉ EXPRÈS
+
+`tarifs.html`, colonne Gratuit : « ✓ Temps réel & **mode hors-ligne** ».
+
+`app.html` dit l'inverse, noir sur blanc, à la ligne où le drapeau est déclaré : *« une décision
+sans option : l'application ne travaille QU'EN LIGNE (Justin, 9 septembre 2026 : "le mode hors
+ligne crée trop de problèmes, on l'oublie complètement"). La v616 gardait un interrupteur
+d'urgence dans la Tour ; il est retiré en v617 — un interrupteur qu'on peut rallumer est un
+interrupteur qu'on rallumera. »* Et au premier contrôle de santé raté, `horsLigneDebut()` pose
+un panneau **plein écran et opaque** qui couvre l'application.
+
+C'est la seule des quatre où il n'y a pas de jugement commercial à rendre : la phrase décrit une
+fonction qui n'existe plus. Par quoi la remplacer, en revanche, est à lui.
+
+### 3. ⚠️ BUSINESS (25 €) ET PREMIUM (50 €) OUVRENT EXACTEMENT LES MÊMES 42 RUBRIQUES
+
+Mesuré sur `PLAN_BLOQUE` et les 42 entrées de `NAV` :
+
+| forfait | rubriques ouvertes |
+|---|---|
+| gratuit | 10 / 42 |
+| pro | 26 / 42 |
+| business | **42 / 42** |
+| premium | **42 / 42** |
+
+`PLAN_BLOQUE.business` et `PLAN_BLOQUE.premium` sont **tous deux la liste vide**. Et dans tout
+`app.html`, **trois** expressions seulement testent `forfait()==='premium'` — les trois portent
+la **personnalisation** (couleur d'entreprise et sa carte de réglages). Donc, dans l'application,
+la seule chose que Premium ouvre et que Business n'a pas, c'est la couleur.
+
+Ce que la page vend en plus à 50 € : « 100 % de TOUTES les fonctions, sans limite » (Business les
+a déjà), « Statistiques avancées · multi-sites » (la rubrique `statistiques` s'ouvre dès **Pro**,
+et rien dans le code ne distingue des statistiques « avancées »), « Espace client » (`espace.html`
+n'est pas une rubrique de l'application — non vérifié côté serveur), « Service 24h/24 »,
+« 3 mois offerts », « création sur mesure » (commercial, pas du code).
+
+⚠️ À décider, pas à corriger : soit le gardiennage suit la page (déplacer des rubriques dans
+`PLAN_BLOQUE.business`), soit la page suit le code. **Le pire des deux serait de ne rien faire** :
+un client Business qui découvre qu'il a déjà tout n'a aucune raison de passer Premium, et un
+client Premium qui s'en aperçoit a payé le double pour une couleur.
+
+### 4. ✅ LE RESTE DES PROMESSES DE `tarifs.html` EST JUSTE — vérifié une par une
+
+Pro : devis, factures et carte des tournées **ouverts** ; stock, bons et registre **bloqués** —
+conforme au « ✕ Stock, bons de commande, registre 3D ». Business : stock, bons, registre et
+comptabilité **ouverts** — conforme. Gratuit : planning **ouvert**, devis et stock **bloqués** —
+conforme.
+
+---
+
+## ⛔ 22 SEPTEMBRE 2026 — « RÉVOQUER UN APPAREIL » N'EST PAS EN RETARD, IL EST BLOQUÉ
+
+Cette tâche est portée comme « FUTUR » depuis des semaines. Elle n'est pas en attente d'être
+écrite : **elle ne peut pas l'être en l'état**, et `server/socle.js` le dit déjà, dans le
+commentaire de `sessionOuvrir` :
+
+> ⛔ C'est l'argument central de la tâche « révoquer UN appareil » : tant que l'identité d'un
+> appareil est un identifiant public et pas un secret à lui, elle ne peut pas porter de droit.
+
+Ce qui existe déjà, et qui est plus avancé que la tâche ne le laisse croire :
+
+- une table `appareil (t, app_id, jeton_sha, exp, cree_le, vu_le, nom, revoque_le)`, une ligne
+  par appareil, clé primaire `(t, app_id)` ;
+- `sessionsCouper(t)` qui révoque **tous** les appareils d'une entreprise ;
+- `socle.appareilsDe(t)` et une route de surveillance qui rend déjà la liste (`nom`, `cree_le`,
+  `vu_le`, `revoque`) — mais **sans `app_id`**, donc la Tour ne peut désigner personne ;
+- `sessionOuvrir` refuse déjà d'honorer un `app_id` révoqué.
+
+Ce qui manque n'est donc pas une fonction, c'est **un secret par appareil**. Aujourd'hui la seule
+preuve d'identité est la clé d'ÉQUIPE, que tous les appareils partagent : un appareil révoqué
+rappelle `/api/op/session` avec cette clé et repart sous un `app_id` neuf. Exactement la leçon
+déjà payée deux fois — sur Firebase (`fbRevoquerEquipe`), puis sur le socle (`sessionsCouper`,
+trouvé par `gardien` le 18 septembre).
+
+**Donc : cette tâche dépend de l'étape B (comptes TeamOP, identité maison) et se fera dessus,
+pas à côté.** Écrire un bouton « Révoquer » avant serait un écran qui ment — la panne que
+`CLAUDE.md` nomme (« croire une entreprise coupée alors qu'elle ne l'est pas »), avec un écran
+qui la maquille. ⚠️ Et il ne faut pas non plus la faire sur Firebase : OP GESTION en sort
+(étape E).
+
+---
+
 ## ✅ 22 SEPTEMBRE 2026 — LE PACK 3D N'ALLAIT PLUS NULLE PART, ET L'AIGUILLAGE ÉTAIT À MOITIÉ FAIT (v716)
 
 Cette page portait depuis des jours : *« le pack part chez TOUTES les entreprises, y compris
