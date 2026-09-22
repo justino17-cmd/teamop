@@ -63,7 +63,8 @@ for (const f of ['app.html', 'beta.html']) {
     (SRC.match(/\(no\?'var\(--red-fill,var\(--red\)\)':'var\(--bg2\)'\)\+';color:'\+\(no\?'var\(--on-red,#fff\)'/g) || []).length === 3
     && /\(!on\?'var\(--red-fill,var\(--red\)\)':'var\(--bg2\)'\)\+';color:'\+\(!on\?'var\(--on-red,#fff\)'/.test(SRC));
   vrai('⛔ le niveau d’infestation : chaque niveau son aplat ET son encre',
-    /const col=o==='Faible'\?'var\(--acc-fill\)':o==='Moyen'\?'var\(--org-fill,var\(--org\)\)':'var\(--red-fill,var\(--red\)\)'; const ink=/.test(SRC));
+    /const col=o==='Faible'\?'var\(--acc-fill\)':o==='Moyen'\?'var\(--org-fill,var\(--org\)\)':'var\(--red-fill,var\(--red\)\)'; const ink=o==='Faible'\?'var\(--on-fill\)':o==='Moyen'\?'var\(--on-org,#fff\)':'var\(--on-red,#fff\)';/.test(SRC)
+    && /background:'\+\(on\?col:'var\(--bg2\)'\)\+';color:'\+\(on\?ink:'var\(--t2\)'\)/.test(SRC));
   vrai('⛔ les méthodes (pill) : l’orange et son encre',
     /function pill\(label,on,onclick\)\{[^\n]*color:\$\{on\?'var\(--on-org,#fff\)':'var\(--t2\)'\};background:\$\{on\?'var\(--org-fill,var\(--org\)\)'/.test(SRC));
   vrai('⛔ les indices du Compte-rendu : l’orange et son encre',
