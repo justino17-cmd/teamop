@@ -24,6 +24,80 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ✅ 22 SEPTEMBRE 2026 — LA CARTE SUIT LE THÈME (v719, bêta publiée et vérifiée)
+
+Justin, capture de « Carte des box » à l'appui : **« le mode jour et nuit de la carte c'est en
+fonction de l'appareil sélectionné dans les paramètres, je veux pas voir ces boutons ici, c'est
+automatique — si c'est en automatique donc la journée c'est jour, la nuit ça passe en mode nuit,
+et satellite reste. »**
+
+Le sélecteur à trois choix (Jour / Nuit / Satellite), posé la veille pour garder une carte claire
+de nuit, demandait une deuxième fois ce que les Paramètres réglaient déjà. **Deux réglages pour
+une même question, c'est un de trop : celui qu'on oublie de bouger fait mentir l'autre.**
+
+Il ne reste que le satellite — le seul choix que le thème ne peut pas rendre.
+
+### Les quatre pièges du chantier, tous mesurés
+
+| | le piège | la parade |
+|---|---|---|
+| 1 | **L'enfermement.** La version d'avant rangeait `'m'` ou `'n'` dans `elan_carte`. Les pastilles qui permettaient d'en sortir n'existent plus. | toute valeur autre que `'s'` vaut « pas satellite » — personne ne reste bloqué en nuit |
+| 2 | **Le réglage qui ne voyage pas.** `prefAppliquer` ignore une valeur vide. Éteindre le satellite en effaçant la clé ne serait JAMAIS parti sur les autres appareils. | on range `'a'`, pas `''` — et le banc fait le trajet d'un appareil à l'autre |
+| 3 | **La bascule du soir.** Le mémo `_mapLayer` aurait figé la carte en jour au premier appel, jusqu'au prochain rechargement. | `mapFond()` relit `effectiveTheme()` à chaque appel, sans mémo |
+| 4 | **La zone morte temporelle.** `mapNuitSync()` est appelée depuis `applyTheme()`, qui tourne aussi au démarrage : lire `_map`/`_planMap` (des `let`) y tomberait, et le `try` d'en face avalerait l'erreur sans un mot. | on vise le DOM (`.leaflet-tile-pane`) — et ça prend les trois cartes, planning compris |
+
+⛔ **Jour et nuit partagent EXACTEMENT les mêmes tuiles Google (`lyrs=m`)** — seule la teinte
+les sépare. C'est ce qui permet à `applyTheme()` de basculer **sans reconstruire la vue**, là où
+l'ancien code refaisait deux `views.*` et oubliait le planning.
+
+### Un défaut trouvé en mesurant, corrigé dans la foulée
+
+Sur un iPhone de 390 px, encoches simulées : la pastille Satellite rendait **40 px** pendant que
+« Liste » et « Carte des box », à deux centimètres sur le même écran, rendaient **44**. Deux
+planchers dans un même regard, et le plus bas sur la commande qu'on presse devant un bâtiment.
+`.ph-actions` a déjà son plancher (ses `.btn` montent à 46 px) : on y aligne la pastille, **sans
+toucher aux ~240 filtres du contenu** — leurs 40 px sont la densité voulue par la refonte.
+
+### Les preuves
+
+- `tests/test-762.js` (neuf, **50 contrôles**) — exécute les VRAIES fonctions, jusqu'à
+  `effectiveTheme` et `prefAppliquer`. **Huit mutations jouées, huit détectées.**
+- `tests/test-760.js` **RECENTRÉ** sur les tuiles (23 → 25). ⚠️ Il gardait la décision de la
+  veille : **un banc qui garde une décision périmée bloque la correction et a l'air d'avoir
+  raison.** Recentré, pas supprimé — `mapTiles` n'est couvert nulle part ailleurs.
+- `scratchpad/sonde-carte.js` — **40 ✓ 0 ✗** au navigateur, 0 erreur JavaScript.
+- **119 suites · 5 326 vérifications · 0 ✗** · syntaxe 28 pages, 0 en erreur.
+- Servi et relu : `teamop.fr/beta.html` = **719-beta**, `mapSatOn` 1, `MAP_FONDS` 0,
+  `setMapLayer` 0, plancher 44 px présent. **`app.html` reste à 695 chez ELAN.**
+
+### Deux pièges de SONDE traversés, à ne pas repayer
+
+- ⛔ **`setHeader()` écrit les actions DEUX FOIS** — dans `#topbar-actions` ET dans
+  `#page-head .ph-actions` — et **aucune des deux n'est dans `#content`**. Une sonde qui cherche
+  la pastille dans `#content` rend une liste **vide**, et une liste vide passe au vert sur
+  « aucune pastille Jour ». On prend le document entier et on ne garde que ce qui est VISIBLE.
+- ⛔ **L'émoji 🛰️ est remplacé par une icône SVG (`rf-ic`)** : chercher « 🛰️ Satellite » dans le
+  texte rend FAUX alors que le bouton dit bien « Satellite ». Lire le `textContent`, exiger
+  l'icône à part. (C'est déjà écrit dans `CLAUDE.md`, et ça n'a pas empêché de l'écrire.)
+- ⚠️ Et la clé de rangement se **lit dans la page** : la bêta réécrit `'elan_` en `'elanB_`,
+  donc `elan_carte` écrit en dur rendait `null` et faisait croire à un réglage perdu.
+
+### Comment relancer la sonde
+
+Le conteneur n'a pas de réseau sortant pour le navigateur : Leaflet et les tuiles Google sont
+servis **localement**, par interception CDP. Sans ça `loadLeaflet()` rejette, et on mesurerait
+une page sans carte en croyant mesurer la carte.
+
+```bash
+mkdir -p scratchpad/leaflet
+curl -sS -o scratchpad/leaflet/leaflet.js  https://unpkg.com/leaflet@1.9.4/dist/leaflet.js
+curl -sS -o scratchpad/leaflet/leaflet.css https://unpkg.com/leaflet@1.9.4/dist/leaflet.css
+cp beta.html <scratchpad-session>/essai/essai.html   # la copie que pilote.js sert en 127.0.0.1
+node scratchpad/sonde-carte.js
+```
+
+---
+
 ## ✅ 22 SEPTEMBRE 2026 — LE BAC « À PLANIFIER », ET L'AUDIT D'AFFICHAGE 42 × 10 (v718)
 
 ### Le défaut signalé, reproduit et corrigé
