@@ -24,6 +24,69 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ✅ 22 SEPTEMBRE 2026 — LE GLISSEMENT SUR LA BARRE (v722, bêta publiée et vérifiée)
+
+Justin, deux fois : **« le glissement du doigt sur la barre marche toujours pas »**, et,
+capture à l'appui, « encore un bug d'affichage ».
+
+### ⛔ DÉFAUT 1 — LA BARRE ÉTAIT EXCLUE DU GESTE, ET C'EST LÀ QUE LE DOIGT VA
+
+`#tabbar` figurait dans `SWIPE_HORS`. Mesuré avec de VRAIS événements tactiles : glisser sur
+le CONTENU marchait dans les deux sens ; glisser sur la BARRE ne faisait **rien**. Rien ne le
+disait à l'écran — la pastille est sous le doigt, elle a l'air de se prendre, elle ne bouge
+pas. C'est pourtant le geste le plus naturel : la pastille est là, on la pousse.
+
+⚠️ Corollaire : un balayage qui FINIT sur un onglet déclenchait le `click` de cet onglet —
+deux navigations pour un seul geste, et c'est la seconde qui gagnait. On avale le clic qui
+suit un balayage **ENGAGÉ**, et seulement celui-là : un tap n'est jamais engagé (il faut
+12 px), il passe intact.
+
+### ⛔⛔ DÉFAUT 2 — LE MÊME DOIGT NAVIGUAIT DEUX FOIS (le plus coûteux des trois)
+
+Pile d'appel à l'appui : le balayage faisait `go('dashboard')`, puis le navigateur traitait le
+**MÊME** mouvement horizontal comme **SON** geste « retour » — `popstate` → `goBack()` →
+retour à la rubrique de départ. À l'écran : « ça ne marche pas », **alors que ça marche et se
+fait annuler**. C'est très probablement ce que Justin voyait depuis le début sur la version
+web, et aucune relecture de code ne pouvait le montrer : les deux moitiés sont justes.
+
+Le `popstate` qui suit un balayage de moins de 450 ms est ignoré, **et l'entrée est REMISE** —
+sinon l'historique prend un cran de retard sur l'écran et le retour système suivant ne ferait
+rien de visible.
+
+⚠️ **On n'a PAS coupé le geste du navigateur** (`overscroll-behavior-x`) : tout le bloc
+d'historique existe pour que le retour système marche. On ignore le DOUBLON, pas la porte.
+
+### ⛔ DÉFAUT 3 — DEUX BOUTONS FLOTTANTS DANS LE MÊME COIN
+
+Sur le Planning, « Voir sur la carte » (153×44, z-index 900) se posait sur la bulle
+d'assistance (58×58, z-index 46) : bulle **recouverte à 83 %** et **INATTEIGNABLE**
+(`elementFromPoint` en son centre rendait le bouton). Sur Accueil et Interventions la même
+bulle est atteignable et couverte à 3 % — **c'est la comparaison qui désigne le Planning**,
+pas une impression. Les deux montent l'un sur l'autre, et la règle se conditionne à la
+présence de la bulle (`:has`).
+
+### ⚠️ UN FAUX DÉFAUT ÉCARTÉ, NOMMÉ POUR QU'IL NE REVIENNE PAS
+
+« Le geste ne marche que dans un sens. » Il marche dans les deux : mon premier essai glissait
+vers la droite **DEPUIS LE PREMIER ONGLET**, où il n'y a rien à gauche. L'avoir « corrigé »
+aurait ajouté une navigation circulaire que personne n'a demandée. Toute mesure du geste part
+donc d'une rubrique du **milieu**, et la sonde le dit.
+
+### Les preuves
+
+- `scratchpad/sonde-geste.js` (neuf) — **15 ✓ 0 ✗**, vrais événements tactiles :
+  **14 / 14 balayages arrivent au bon endroit** (barre et contenu, deux sens, six positions de
+  départ), **une seule navigation par geste**, tap intact, bornes respectées, 0 erreur JS.
+- `tests/test-764.js` (neuf, **36 contrôles**). **Neuf mutations jouées, neuf détectées.**
+- `tests/test-758.js` **RECENTRÉ** (80 → 83) : il exigeait `#tabbar` dans les zones écartées,
+  c'est-à-dire la décision d'avant. **Deuxième fois dans la journée** (après `test-760`) qu'un
+  banc garde une décision périmée : ça bloque la correction et ça a l'air d'avoir raison.
+- **121 suites · 5 395 vérifications · 0 ✗** · syntaxe 28 pages, 0 en erreur.
+- Servi et relu : `teamop.fr/beta.html` = **722-beta**, `#tabbar` absent de `SWIPE_HORS`,
+  garde-clic et garde d'historique présents. **`app.html` reste à 695 chez ELAN.**
+
+---
+
 ## ✅ 22 SEPTEMBRE 2026 — UNE SEULE MARQUE POUR L'ONGLET ACTIF (v721, bêta publiée)
 
 Trouvé en FINISSANT l'audit du verre — et c'est **exactement la même faute que les loupes** :

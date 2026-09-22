@@ -632,6 +632,21 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   pourrait laisser orphelin — ⚠️ **par CLASSE seulement** : le cas du champ de recherche se
   croise par un ATTRIBUT et lui échappe, donc `scratchpad/sonde-verre.js` (au navigateur, sur
   les pixels peints) est la garde de bout en bout, et le banc exige qu'elle existe.
+- ⛔⛔ **UN GESTE, UNE NAVIGATION — LE NAVIGATEUR REFAIT LE MÊME GESTE QUE VOUS.** Le
+  22 septembre 2026, pile d'appel à l'appui : un balayage entre rubriques faisait
+  `go('dashboard')`, puis le navigateur traitait le **MÊME** mouvement horizontal comme
+  **SON** geste « retour » — `popstate` → `goBack()` → retour à la rubrique de départ.
+  À l'écran : « le glissement ne marche pas », **alors qu'il marche et se fait annuler**.
+  Aucune relecture ne peut montrer ça : les deux moitiés sont justes séparément. Il faut
+  compter les `go()` PENDANT le geste, avec leur pile d'appel.
+  ⚠ La parade n'est PAS de couper le geste du navigateur (`overscroll-behavior-x`) : le bloc
+  d'historique existe pour que le retour système marche. **On ignore le DOUBLON, pas la
+  porte** — et on REMET l'entrée ignorée, sinon l'historique prend un cran de retard sur
+  l'écran. Même discipline pour le `click` synthétique qui suit un `touchend` : un balayage
+  qui finit sur un onglet déclenche le clic de CET onglet, donc deux navigations.
+  ⚠️ Et le symétrique, payé le même jour : **« le geste ne marche que dans un sens » était un
+  FAUX DÉFAUT** — l'essai glissait vers la droite depuis le PREMIER onglet, où il n'y a rien
+  à gauche. Toute mesure d'un geste de navigation part d'une position du MILIEU.
 - ⛔⛔ **ET LE MÊME JOUR, PAR LE MÊME CHEMIN : L'ONGLET ACTIF PORTAIT DEUX MARQUES.** Le
   soulignement de 2,5 px (`html[data-refonte] .tab::after`) est dessiné pour une bande
   d'onglets EN HAUT — coin arrondi en haut, posé à `bottom:-1px`, sur l'arête de la bande.
