@@ -3466,6 +3466,17 @@ html[data-refonte] .olsec[open] summary{border-bottom-color:var(--rf-filet)!impo
 html[data-refonte] .olsec summary::after{transition:transform var(--d-3) var(--ressort)}
 html[data-refonte] .card{padding:22px 24px!important;box-shadow:none!important}
 html[data-refonte] .card-head{margin-bottom:14px}
+/* ⛔ UN EN-TÊTE DE CARTE QUI PORTE DES BOUTONS PASSE À LA LIGNE SUR UN TÉLÉPHONE.
+   `.card-head` est un flex SANS retour à la ligne, et ses actions vivent dans un <span> flex
+   écrit en ligne. Mesuré le 22 septembre 2026 à 390 px par l'audit des écrans profonds :
+   « Rapport » + « Clôture guidée » + « Rédiger » dépassait de sa carte (Rédiger coupé à
+   x 312 → 407), et « Pointer un virement reçu » + « Factures → » poussait la PAGE ENTIÈRE
+   de côté en Comptabilité. Le titre n'a pas de flex:1 : les boutons ne descendent que quand
+   ils ne tiennent plus à côté, jamais par principe. */
+@media(max-width:560px){
+  html[data-refonte] .card-head{flex-wrap:wrap;row-gap:10px}
+  html[data-refonte] .card-head > span[style*="display:flex"]{flex-wrap:wrap}
+}
 
 /* ══ LE PLANNING ══ il résiste au motif général, et c'est normal : sa densité, ses couleurs par
    personne et son défilement propre en font un écran à part. On ne le force pas dans le moule,
@@ -28042,7 +28053,14 @@ function consoAnalyseHTML(){
   const quiConso=m=>m.donneA||m.technicien||'Non précisé';   // un véhicule n'est pas une personne
   const SANS_NOM='Non précisé';
   const roleConso=m=>m.roleConso||roleDeNom(quiConso(m))||'';
-  const roleLbl=r=>roleLbl(r)||'Rôle non renseigné';
+  /* ⛔⛔ CETTE LIGNE S'APPELAIT « const roleLbl=r=>roleLbl(r)||… » DEPUIS LA v613 : une
+     constante LOCALE du même nom que la fonction globale. Dans son propre corps, `roleLbl`
+     désignait donc ELLE-MÊME — récursion infinie, « Maximum call stack size exceeded », et
+     l'analyse de Consommation produits plantait dès qu'elle devait écrire le rôle d'une
+     personne. Trouvé le 22 septembre 2026 par l'audit des écrans profonds (clic réel sur
+     « Tout le catalogue · 6 mois »), pile d'appels à l'appui : 200 cadres, tous roleLbl.
+     Un nom local ne réemploie JAMAIS le nom de ce qu'il enveloppe. */
+  const roleNom=r=>roleLbl(r)||'Rôle non renseigné';
   const datesLibres=!!(consoDu||consoAu);
   const depuis=consoDu?new Date(consoDu+'T00:00:00').getTime():(consoAu?0:Date.now()-consoJours*86400000);
   const jusqua=consoAu?new Date(consoAu+'T23:59:59').getTime():Date.now();
@@ -28167,7 +28185,7 @@ function consoAnalyseHTML(){
   const mois=Math.max(0.25,(jusqua-depuis)/(30.4*86400000));
   // ── barres horizontales ──
   const roleDe={}; sorties.forEach(m=>{ const q=quiConso(m); if(!roleDe[q]&&roleConso(m)) roleDe[q]=roleConso(m); });
-  const pastilleRole=n=>roleDe[n]?'<span style="font-size:10px;font-weight:700;color:var(--t3);margin-left:6px">'+esc(roleLbl(roleDe[n]))+'</span>':'';
+  const pastilleRole=n=>roleDe[n]?'<span style="font-size:10px;font-weight:700;color:var(--t3);margin-left:6px">'+esc(roleNom(roleDe[n]))+'</span>':'';
   const maxP=Math.max(1,...topProd.slice(0,10).map(t=>t.q));
   const totalProd=Math.max(1,topProd.reduce((s,t)=>s+t.q,0));
   const barresProd=topProd.slice(0,10).map((t,i)=>{ const ouv=!!consoProdOuv[t.pid];
@@ -28209,7 +28227,7 @@ function consoAnalyseHTML(){
           return '<div style="display:flex;align-items:center;gap:13px;margin-bottom:13px">'
           +'<span style="width:34px;height:34px;flex:none;border-radius:50%;background:color-mix(in srgb,'+coul+' 18%,transparent);color:'+coul+';font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+esc(iniG(g.n))+'</span>'
           +'<div style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(g.n)+(trop?' &#9888;':'')+'</div>'
-          +'<div style="font-size:11.5px;color:'+(trop?'var(--red)':'var(--t3)')+'">'+(roleDe[g.n]?esc(roleLbl(roleDe[g.n]))+' &middot; ':'')
+          +'<div style="font-size:11.5px;color:'+(trop?'var(--red)':'var(--t3)')+'">'+(roleDe[g.n]?esc(roleNom(roleDe[g.n]))+' &middot; ':'')
             +g.q+' u'+(parMoisPers?' &middot; d\'habitude '+parMoisPers+'/mois':'')+(trop?' &middot; '+(Math.round(fois*10)/10)+'&times; son habitude':'')+'</div>'
           +(badgeCmp?'<div style="margin-top:1px">'+badgeCmp+'</div>':'')+'</div>'
           +'<div style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(g.q/maxG*100)+'%;background:'+(trop?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
@@ -28247,7 +28265,7 @@ function consoAnalyseHTML(){
       +'<span style="display:inline-block;width:13px;flex:none;color:'+(ouv?'var(--acc)':'var(--t3)')+';font-size:12px;transform:rotate('+(ouv?90:0)+'deg)">&#9656;</span>'
       +'<span style="width:38px;height:38px;flex:none;border-radius:50%;background:color-mix(in srgb,'+coul+' 18%,transparent);color:'+coul+';font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+esc(iniP(t.nom))+'</span>'
       +'<div style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+(fort?' &#9888;':'')+'</div>'
-      +'<div style="font-size:11.5px;color:var(--t3)">'+(roleDe[t.nom]?esc(roleLbl(roleDe[t.nom]))+' &middot; ':'')+evol(t.q,parPersAvant[t.nom]||0)+'</div></div>'
+      +'<div style="font-size:11.5px;color:var(--t3)">'+(roleDe[t.nom]?esc(roleNom(roleDe[t.nom]))+' &middot; ':'')+evol(t.q,parPersAvant[t.nom]||0)+'</div></div>'
       +'<div style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(t.q/maxH*100)+'%;background:'+(fort?'var(--org)':'linear-gradient(90deg,color-mix(in srgb,'+coul+' 70%,black),'+coul+')')+'"></div></div>'
       +'<div style="width:96px;flex:none;text-align:right"><div style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+'">'+t.q+' u</div>'
       +'<div style="font-size:11.5px;color:var(--t3)">'+part+' % du total</div></div></div></div>'+detail; }).join('');
@@ -28287,7 +28305,7 @@ function consoAnalyseHTML(){
       +(vus.map(x=>rang(x.val,x.lbl,String(choisi)===String(x.val))).join('')||'<div style="padding:14px;font-size:12.5px;color:var(--t3);text-align:center">Aucun résultat.</div>')+'</div></div>'; };
   const btnProd='<button type="button" onclick="consoMenu(\'prod\')" style="'+actif(!!consoFProd)+';display:inline-flex;align-items:center;gap:8px;max-width:250px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📦 '+(consoFProd?esc(produit(consoFProd).nom||'Produit'):'Tous les produits')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
   const btnPers='<button type="button" onclick="consoMenu(\'pers\')" style="'+actif(!!consoFPers)+';display:inline-flex;align-items:center;gap:8px;max-width:250px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👤 '+(consoFPers?esc(consoFPers):'Tout le monde')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
-  const btnRole='<button type="button" onclick="consoMenu(\'role\')" style="'+actif(!!consoFRole)+';display:inline-flex;align-items:center;gap:8px;max-width:230px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎖️ '+(consoFRole?esc(roleLbl(consoFRole)):'Tous les rôles')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
+  const btnRole='<button type="button" onclick="consoMenu(\'role\')" style="'+actif(!!consoFRole)+';display:inline-flex;align-items:center;gap:8px;max-width:230px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎖️ '+(consoFRole?esc(roleNom(consoFRole)):'Tous les rôles')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
   const dateInp=(q,v,l)=>'<label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--t3);font-weight:600">'+l+'<input type="date" value="'+esc(v)+'" onchange="consoSetDate(\''+q+'\',this.value)" style="border:1px solid '+(v?'var(--acc)':'var(--brd)')+';background:var(--card);color:var(--t1);border-radius:9px;padding:6px 9px;font-size:12.5px;font-family:inherit"></label>';
   const filtresPosés=consoFProd||consoFPers||consoFRole||datesLibres||consoPas!=='auto';
   const barreF=voileC+`<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 12px">${bt(30,'30 jours')}${bt(61,'2 mois')}${bt(90,'3 mois')}${bt(183,'6 mois')}${bt(365,'12 mois')}
@@ -28295,7 +28313,7 @@ function consoAnalyseHTML(){
     <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 16px">
       <div style="position:relative;z-index:${consoMenuOuv==='prod'?61:1}">${btnProd}${consoMenuOuv==='prod'?menuHtml(listeProd.map(p=>({val:p.id,lbl:p.nom})),consoFProd,'consoChoisirProd','📦 Tous les produits'):''}</div>
       <div style="position:relative;z-index:${consoMenuOuv==='pers'?61:1}">${btnPers}${consoMenuOuv==='pers'?menuHtml(listePers.map(n=>({val:n,lbl:n})),consoFPers,'consoChoisirPers','👤 Tout le monde'):''}</div>
-      <div style="position:relative;z-index:${consoMenuOuv==='role'?61:1}">${btnRole}${consoMenuOuv==='role'?menuHtml(listeRole.map(r=>({val:r,lbl:roleLbl(r)})),consoFRole,'consoChoisirRole','🎖️ Tous les rôles'):''}</div>
+      <div style="position:relative;z-index:${consoMenuOuv==='role'?61:1}">${btnRole}${consoMenuOuv==='role'?menuHtml(listeRole.map(r=>({val:r,lbl:roleNom(r)})),consoFRole,'consoChoisirRole','🎖️ Tous les rôles'):''}</div>
       <span style="flex:1"></span>
       <div style="display:inline-flex;gap:2px;background:var(--bg1);border-radius:12px;padding:3px">${btPas('auto','Auto')}${btPas('jour','Jour')}${btPas('semaine','Semaine')}${btPas('mois','Mois')}</div>
       ${filtresPosés?`<button type="button" onclick="consoRaz()" style="cursor:pointer;border:none;background:transparent;color:var(--t3);font-size:12px;font-weight:700;text-decoration:underline;padding:6px">Tout effacer</button>`:''}</div>`;

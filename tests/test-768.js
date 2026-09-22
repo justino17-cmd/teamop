@@ -61,6 +61,16 @@ for (const f of ['app.html', 'beta.html']) {
   vrai('… et la règle d’origine, sous 340 px pour tous, est toujours là',
     blocMedia(SRC, '@media(max-width:339px)').some(b => /\.topbar \.topbar-brand\{display:none!important\}/.test(b)));
 
+  /* ⛔ L'EN-TÊTE DE CARTE QUI PORTE DES BOUTONS — trouvé par l'audit des écrans profonds :
+     « Rédiger » coupé au bord de sa carte (fiche intervention), et la page ENTIÈRE qui
+     glissait de côté en Comptabilité › Synthèse (« Factures → » au-delà de l'écran). */
+  const carte = blocMedia(SRC, '@media(max-width:560px)').find(b => /\.card-head\{flex-wrap:wrap/.test(b)) || '';
+  vrai('population : le bloc téléphone des en-têtes de carte est trouvé', carte.length > 40, carte.length + ' caractères');
+  vrai('⛔ au téléphone, un en-tête de carte passe à la ligne', /html\[data-refonte\] \.card-head\{flex-wrap:wrap;row-gap:10px\}/.test(carte));
+  vrai('⛔ … et la rangée de boutons écrite en ligne aussi', /\.card-head > span\[style\*="display:flex"\]\{flex-wrap:wrap\}/.test(carte));
+  vrai('… sans donner flex:1 au titre (sinon il rétrécirait au lieu de laisser descendre les boutons)',
+    !/\.card-head h3\{[^}]*flex:\s*1/.test(SRC));
+
   /* la bascule elle-même : sans la classe, les deux règles ci-dessus ne veulent rien dire */
   vrai('⛔ la classe « rf-haut » est toujours posée au défilement',
     /document\.body\.classList\.toggle\('rf-haut',v\)/.test(SRC));
