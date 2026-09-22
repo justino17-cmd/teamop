@@ -76,7 +76,7 @@
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{height:100%;}
   body{background:var(--bg);color:var(--t1);font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased;}
-  body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 10% 10%,rgba(46,184,114,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 95% 90%,rgba(46,184,114,.04) 0%,transparent 60%);pointer-events:none;}
+  body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 10% 10%,color-mix(in srgb,var(--acc) 6%,transparent) 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 95% 90%,rgba(46,184,114,.04) 0%,transparent 60%);pointer-events:none;}
   .mono{font-family:'Space Mono',monospace;}
 
   .app{display:flex;min-height:100vh;min-height:100dvh;position:relative;z-index:1;}
@@ -133,7 +133,13 @@
   .nav-item .ico{font-size:16px;width:20px;text-align:center;}
   .nav-item .badge{margin-left:auto;background:rgba(255,255,255,.08);color:var(--t2);font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;}
   .nav-item.active .badge{background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc);}
-  .sidebar-foot{padding:14px 18px;border-top:1px solid var(--brd);}
+  /* ⛔ LE DÉGAGEMENT DU BAS SE COMPTE UNE FOIS. Le tiroir posait `env(safe-area-inset-bottom)`
+     ET le pied ses 14 px : mesuré sur l'iPhone installé, 48 px sous la carte utilisateur là où
+     l'encoche en demande 34. `max()` prend le plus grand des deux au lieu de les additionner —
+     34 px sur un appareil à barre d'accueil, 14 px partout ailleurs, et rien qui change sur un
+     écran sans encoche. C'est aussi ce qui permet au tiroir de ne plus porter de dégagement du
+     tout : une seule valeur, à un seul endroit. */
+  .sidebar-foot{padding:14px 18px;padding-bottom:max(14px,env(safe-area-inset-bottom));border-top:1px solid var(--brd);}
 
   /* MAIN */
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
@@ -171,7 +177,7 @@
      s'appliquaient qu'au nœud nommé, la sonde ne voyait aucun changement de fond, et elles
      seraient mortes en silence au premier renommage. Le fond, lui, change VRAIMENT — c'est ce
      qui rend « c'est fini » lisible d'un coup d'œil, plus sûrement qu'une icône de 19 px. */
-  .bell.st-ok{background:var(--acc-fill)!important;border-color:transparent!important;color:var(--on-acc,#FFF)!important}
+  .bell.st-ok{background:var(--acc-fill)!important;border-color:transparent!important;color:var(--on-fill,#FFF)!important}
   /* Et « en cours » se voit : la rotation seule, sur une icône de 18 px, se rate. */
   .bell.spin{background:var(--tint)!important;border-color:var(--acc)!important}
   .ph-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
@@ -205,7 +211,7 @@
   .menu-btn{display:none;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);width:40px;height:40px;border-radius:10px;font-size:18px;cursor:pointer;}
 
   /* BUTTONS */
-  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--acc-fill);color:var(--on-acc);font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;padding:10px 17px;border-radius:14px;border:none;cursor:pointer;transition:.15s;white-space:nowrap;}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--acc-fill);color:var(--on-fill);font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;padding:10px 17px;border-radius:14px;border:none;cursor:pointer;transition:.15s;white-space:nowrap;}
   .btn:hover{background:var(--acc2);transform:translateY(-1px);}
   .btn.ghost{background:var(--bg2);border:1px solid var(--brd);color:var(--t2);}
   .btn.ghost:hover{background:var(--bg3);color:var(--t1);}
@@ -218,9 +224,11 @@
   .kpi{background:var(--card);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:18px;padding:18px;}
   .kpi[onclick]:hover{background:color-mix(in srgb,var(--acc) 12%,var(--card));}
   /* 1er indicateur en carte vert sapin (comme « CA du mois » dans la maquette Team OP Web) */
-  .kpis .kpi:first-child{background:var(--hero);border-color:transparent;}
-  .kpis .kpi:first-child .kpi-val{color:var(--hero-ink);}
-  .kpis .kpi:first-child .kpi-lbl{color:color-mix(in srgb,var(--hero-ink) 62%,transparent);}
+  /* ⛔ PLUS DE CARTE « HÉRO ». Toute règle .kpis .kpi:first-child pèse (0,3,0) et bat le verre
+     (html[data-verre="1"] .kpi, (0,2,1)) — même quand elle sert à le NEUTRALISER. La première
+     tuile restait donc opaque : blanche le jour, #101A2E la nuit, dans les neuf teintes, et se
+     lisait comme un trou noir. Mesuré au navigateur le 21 septembre 2026. La seule façon de la
+     rendre au verre est de n'écrire AUCUNE règle sur :first-child. */
   .kpi-ico{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:12px;}
   .kpi-val{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;line-height:1;}
   .kpi-lbl{font-size:13px;color:var(--t3);margin-top:6px;}
@@ -317,7 +325,7 @@
   /* FILTERS */
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
   .chip{background:var(--bg1);border:1px solid var(--brd);color:var(--t2);font-size:13px;font-weight:500;padding:8px 15px;border-radius:100px;cursor:pointer;transition:.15s;}
-  .chip:hover{border-color:rgba(74,222,128,.3);}
+  .chip:hover{border-color:color-mix(in srgb,var(--acc) 30%,transparent);}
   .chip.active{background:color-mix(in srgb,var(--acc) 15%,transparent);border-color:color-mix(in srgb,var(--acc) 45%,transparent);color:var(--acc);}
 
   /* EMPTY */
@@ -386,7 +394,7 @@
   /* PLANNING/LIST ROWS */
   .pl-row{display:flex;align-items:center;gap:15px;background:var(--bg1);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:12px;padding:13px 16px;margin-bottom:9px;cursor:pointer;transition:.15s;}
   .pl-row:hover{background:color-mix(in srgb,var(--acc) 10%,var(--bg1));}
-  .pl-row:hover{border-color:rgba(74,222,128,.3);transform:translateX(2px);}
+  .pl-row:hover{border-color:color-mix(in srgb,var(--acc) 30%,transparent);transform:translateX(2px);}
   .pl-time{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;min-width:50px;}
   .pl-info{flex:1;min-width:0;}
   .pl-title{font-size:15px;font-weight:600;margin-bottom:3px;}
@@ -406,7 +414,7 @@
   .cal-cnt{margin-top:auto;font-size:10px;color:var(--t3);font-weight:600;}
   @media(max-width:560px){ .cal{gap:3px;} .cal-d{min-height:48px;padding:4px;border-radius:8px;} .cal-d .num{font-size:12px;} .cal-cnt{display:none;} }
 
-  .avatar{width:30px;height:30px;border-radius:50%;background:rgba(74,222,128,.2);border:1px solid rgba(74,222,128,.3);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--acc);flex-shrink:0;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--acc) 20%,transparent);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--acc);flex-shrink:0;}
   .ppl{display:flex;align-items:center;gap:9px;}
 
   /* CHARTS */
@@ -442,7 +450,7 @@
   /* LOGIN */
   .login{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse 50% 45% at 50% 42%,rgba(74,222,128,.14) 0%,rgba(22,128,60,.05) 35%,transparent 65%),var(--deep);display:flex;align-items:center;justify-content:center;padding:20px;}
   .login-box{width:100%;max-width:380px;text-align:center;}
-  .login-logo{width:104px;height:104px;margin:0 auto 18px;border-radius:24px;object-fit:cover;display:block;box-shadow:0 14px 44px rgba(0,0,0,.45),0 0 60px rgba(74,222,128,.22);}
+  .login-logo{width:104px;height:104px;margin:0 auto 18px;border-radius:24px;object-fit:cover;display:block;box-shadow:0 14px 44px rgba(0,0,0,.45),0 0 60px color-mix(in srgb,var(--acc) 22%,transparent);}
   .login-box h2{font-family:'Space Mono',monospace;font-size:22px;letter-spacing:2px;margin-bottom:4px;font-weight:700;}
   .login-box p{color:var(--t3);font-size:13px;margin-bottom:24px;}
   .login-card{background:var(--bg1);border:1px solid var(--brd);border-radius:16px;padding:22px;margin-top:18px;text-align:left;box-shadow:0 24px 60px rgba(0,0,0,.5);}
@@ -453,12 +461,12 @@
   .login-error{color:var(--red);font-size:12px;font-weight:600;margin-bottom:8px;}
   .login-users{display:flex;flex-direction:column;gap:10px;}
   .login-user{display:flex;align-items:center;gap:12px;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;padding:13px 16px;cursor:pointer;transition:.15s;text-align:left;}
-  .login-user:hover{border-color:rgba(74,222,128,.4);}
+  .login-user:hover{border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
   .login-user .nom{font-weight:600;font-size:15px;}
   .login-user .role2{font-size:12px;color:var(--t3);}
   .pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:260px;margin:0 auto;}
   .pin-key{background:var(--bg1);border:1px solid var(--brd);color:var(--t1);font-size:22px;font-family:'Space Mono',monospace;padding:16px 0;border-radius:14px;cursor:pointer;transition:.1s;}
-  .pin-key:hover{background:var(--bg2);border-color:rgba(74,222,128,.4);}
+  .pin-key:hover{background:var(--bg2);border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
   .pin-key:active{transform:scale(.95);}
   .pin-dots{display:flex;gap:14px;justify-content:center;margin:20px 0;}
   .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--t3);transition:.15s;}
@@ -470,7 +478,7 @@
 
   /* NOTIF */
   .bell{position:relative;background:var(--bg2);border:1px solid var(--brd);color:var(--t2);width:42px;height:42px;border-radius:11px;font-size:18px;cursor:pointer;transition:.15s;}
-  .bell:hover{color:var(--t1);border-color:rgba(74,222,128,.4);}
+  .bell:hover{color:var(--t1);border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
   .bell-count{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;font-size:11px;font-weight:700;min-width:19px;height:19px;border-radius:100px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
   .notif-panel{position:absolute;top:54px;right:0;width:340px;max-width:90vw;background:var(--bg1);border:1px solid var(--brd);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);z-index:30;overflow:hidden;}
   .notif-head{padding:15px 18px;border-bottom:1px solid var(--brd);font-weight:600;font-size:14px;}
@@ -485,14 +493,14 @@
   .scan-view{background:#000;border-radius:14px;overflow:hidden;aspect-ratio:4/3;position:relative;margin-bottom:16px;}
   .scan-view video{width:100%;height:100%;object-fit:cover;}
   .scan-frame{position:absolute;inset:18% 15%;border:3px solid var(--acc);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);}
-  .scan-result{background:var(--bg);border:1px solid rgba(74,222,128,.4);border-radius:12px;padding:16px;margin-bottom:16px;}
+  .scan-result{background:var(--bg);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);border-radius:12px;padding:16px;margin-bottom:16px;}
   .bscan-toggle{display:flex;gap:10px;margin-bottom:14px;}
   .bscan-tg{flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--brd);background:var(--bg1);color:var(--t3);font-weight:700;font-size:14px;cursor:pointer;transition:.15s;}
   .bscan-tg.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent);color:var(--acc);}
   .bscan-tg.rem.on{border-color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red);}
   .bscan-err{background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 35%,transparent);color:var(--red);border-radius:12px;padding:13px 15px;font-size:13.5px;font-weight:600;text-align:center;}
   /* VISITE GUIDÉE */
-  .tour-card{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;width:min(440px,calc(100vw - 28px));background:var(--bg1);border:1px solid rgba(74,222,128,.35);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.6);padding:20px 20px 16px;animation:tourIn .3s ease;}
+  .tour-card{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;width:min(440px,calc(100vw - 28px));background:var(--bg1);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.6);padding:20px 20px 16px;animation:tourIn .3s ease;}
   @keyframes tourIn{from{opacity:0;transform:translateX(-50%) translateY(22px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
   .tour-card .step{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);font-weight:700;}
   .tour-card h4{font-size:18px;margin:6px 0 8px;display:flex;align-items:center;gap:9px;}
@@ -505,7 +513,7 @@
   .tour-btns .sp{flex:1;}
   .nav-item.tour-hl{outline:2px solid var(--acc);outline-offset:-1px;background:color-mix(in srgb,var(--acc) 18%,transparent)!important;box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 16%,transparent);}
   /* Étiquette de titre sur la carte des box */
-  .leaflet-tooltip.box-tip{background:#1E7A4E;color:#fff;border:none;font-weight:700;font-size:11px;padding:2px 8px;border-radius:7px;box-shadow:0 2px 6px rgba(0,0,0,.35);white-space:nowrap;}
+  .leaflet-tooltip.box-tip{background:var(--acc-fill);color:var(--on-fill);border:none;font-weight:700;font-size:11px;padding:2px 8px;border-radius:7px;box-shadow:0 2px 6px rgba(0,0,0,.35);white-space:nowrap;}
   .leaflet-tooltip.box-tip::before{display:none;}
   /* TABLEAU TYPE EXCEL (intégré) */
   .xl{border-collapse:collapse;width:100%;min-width:820px;font-size:13px;}
@@ -532,12 +540,12 @@
   .toast.show{opacity:1;}
 
   /* ASSISTANT */
-  .fab{position:fixed;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#1A7A3E,#176030);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px rgba(74,222,128,.25);z-index:46;transition:transform .15s;}
+  .fab{position:fixed;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--acc-fill),var(--acc-fill-press));color:var(--on-fill);border:none;font-size:24px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px color-mix(in srgb,var(--acc) 25%,transparent);z-index:46;transition:transform .15s;}
   .fab:hover{transform:scale(1.07);}
   .asst{position:fixed;right:24px;bottom:92px;width:374px;max-width:calc(100vw - 32px);height:540px;max-height:calc(100vh - 130px);max-height:calc(100dvh - 130px);background:var(--bg1);border:1px solid var(--brd);border-radius:18px;box-shadow:0 30px 70px rgba(0,0,0,.6);z-index:47;display:none;flex-direction:column;overflow:hidden;}
   .asst.open{display:flex;animation:pop .2s ease;}
   .asst-head{padding:15px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:12px;}
-  .asst-head .ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1A7A3E,#176030);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .asst-head .ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--acc-fill),var(--acc-fill-press));display:flex;align-items:center;justify-content:center;font-size:18px;}
   .asst-head .t{font-weight:700;font-size:15px;}
   .asst-head .s{font-size:12px;color:var(--acc);display:flex;align-items:center;gap:5px;}
   .asst-head .x{margin-left:auto;}
@@ -545,7 +553,7 @@
   .msg{max-width:86%;padding:11px 14px;border-radius:15px;font-size:14px;line-height:1.5;}
   .msg.bot{background:var(--bg2);color:var(--t1);border-bottom-left-radius:4px;align-self:flex-start;}
   .msg.bot b{color:var(--acc);}
-  .msg.user{background:var(--acc2);color:#fff;border-bottom-right-radius:4px;align-self:flex-end;}
+  .msg.user{background:var(--acc2);color:var(--on-acc2,#fff);border-bottom-right-radius:4px;align-self:flex-end;}
   .chips{display:flex;flex-wrap:wrap;gap:7px;padding:0 14px 10px;}
   .asst-chip{background:var(--bg2);border:1px solid var(--brd);color:var(--t2);font-size:12.5px;padding:7px 12px;border-radius:100px;cursor:pointer;transition:.15s;}
   .asst-chip:hover{border-color:var(--acc);color:var(--acc);}
@@ -747,13 +755,8 @@ table, .tbl, .list-row {
   border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent) !important;
 }
 
-/* ── 2) Plus de carte « héro » verte : 1er KPI comme les autres ── */
-.kpis .kpi:first-child{
-  background: var(--card) !important;
-  border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent) !important;
-}
-.kpis .kpi:first-child .kpi-val{ color: var(--t1) !important; }
-.kpis .kpi:first-child .kpi-lbl{ color: var(--t3) !important; }
+/* ── 2) Plus de carte « héro » verte — et plus AUCUNE règle sur :first-child : le fond, le
+   contour et l'encre lui viennent de .kpi, comme aux autres tuiles. ── */
 
 /* ── 3) Boutons pleins → contour par défaut, se remplissent au survol ── */
 .btn{
@@ -816,6 +819,17 @@ table, .tbl, .list-row {
 .suite-row.on{background:color-mix(in srgb,var(--acc) 12%,transparent);}
 .suite-user{display:flex;align-items:center;gap:10px;padding:10px 8px 2px;border-top:1px solid var(--brd);margin-top:10px;cursor:pointer;border-radius:10px;}
 .suite-user:hover{background:var(--side-hover);}
+/* ⛔ UN SÉPARATEUR QUI NE SÉPARE RIEN EST UN TROU. La rangée « SUITE » s'efface dès qu'il n'y a
+   pas d'autre application à ouvrir (`suiteRefresh`) — c'est le cas de TOUTE entreprise sans
+   OP MESSAGES, donc le cas ORDINAIRE, pas l'exception. Le filet et la marge de la carte
+   utilisateur restaient pourtant, juste sous le filet du pied : DEUX filets, et 25 px de vide
+   entre les deux. Mesuré le 22 septembre 2026 sur les cinq gabarits (iPhone Safari, iPhone
+   installée, Android, Mac navigateur) : 25 px partout, contre 15 px quand la rangée est là.
+   Justin, capture à l'appui : « l'espace qu'il y a entre l'utilisateur tout en bas et le
+   reste ». Sans la rangée, le filet du pied sépare déjà — le second ne fait que creuser.
+   ⚠️ La classe se pose dans `suiteRefresh`, au même endroit que le masquage : deux endroits
+   finiraient par se contredire, et la moitié qui reste en arrière dessine le trou. */
+.sidebar-foot.sans-suite .suite-user{border-top:0;margin-top:0;padding-top:4px;}
 /* ── SUITE compacte : l'autre app apparaît au survol (ou au clic sur mobile) ── */
 .suite-mini{padding:6px 9px !important;margin-bottom:4px !important;}
 #suite-fly{display:none;}
@@ -957,7 +971,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .pf-disp button{ display:flex; align-items:center; gap:7px; background:transparent; border:none; color:var(--t2);
   font:inherit; font-size:11.5px; font-weight:700; padding:6px 10px; border-radius:7px; cursor:pointer; white-space:nowrap; }
 .pf-disp button:hover{ color:var(--t1); }
-.pf-disp button.on{ background:var(--acc); color:#fff; }
+.pf-disp button.on{ background:var(--acc); color:var(--on-acc); }
 .pf-disp .di{ width:22px; height:15px; border-radius:3px; border:1.5px solid currentColor; display:flex; gap:1.5px; padding:1.5px; flex:none; }
 .pf-disp .di s{ background:currentColor; opacity:.45; text-decoration:none; border-radius:1px; }
 .pf-disp .di.a s{ flex:1; }
@@ -1000,7 +1014,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .card.pf-bar:hover{ background:var(--bg1) !important; border-color:color-mix(in srgb,var(--acc) 45%,transparent) !important; }
 /* calendrier de choix des jours */
 .plm-j.cal{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 13%,transparent); color:var(--acc); cursor:pointer; }
-.plm-j.cal .n{ background:var(--acc); color:#fff; border-radius:100px; padding:0 6px; font-size:10px; }
+.plm-j.cal .n{ background:var(--acc); color:var(--on-acc); border-radius:100px; padding:0 6px; font-size:10px; }
 .plm-j.cal.ouv{ box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 35%,transparent); }
 .plm-j.on b{ cursor:pointer; opacity:.65; margin-left:3px; }
 .plm-j.on b:hover{ opacity:1; }
@@ -1018,14 +1032,14 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .pcal-d.hors{ opacity:.38; }
 .pcal-d.we{ color:var(--t3); }
 .pcal-d.auj{ border-color:var(--acc); }
-.pcal-d.on{ background:var(--acc); color:#fff; border-color:var(--acc); }
+.pcal-d.on{ background:var(--acc); color:var(--on-acc); border-color:var(--acc); }
 .pcal-d.on small{ color:rgba(255,255,255,.85); }
 .pcal-rap{ display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px solid var(--brd); }
 .pcal-rap span{ font-size:10.5px; font-weight:700; border:1px solid var(--brd); border-radius:100px; padding:4px 10px; color:var(--t2); cursor:pointer; }
 .pcal-rap span:hover{ border-color:var(--acc); color:var(--acc); }
 .pcal-fin{ display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--brd); }
 .pcal-fin .k{ font-size:11px; color:var(--t3); flex:1; }
-.pcal-fin .b{ font-size:11.5px; font-weight:700; border-radius:9px; padding:6px 14px; background:var(--acc); color:#fff; cursor:pointer; }
+.pcal-fin .b{ font-size:11.5px; font-weight:700; border-radius:9px; padding:6px 14px; background:var(--acc); color:var(--on-acc); cursor:pointer; }
 .dep-lbl{ font-size:9.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--t3); margin-bottom:5px; }
 .dep-in{ width:100%; background:var(--card2); border:1px solid var(--brd2); border-radius:10px; padding:9px 12px; color:var(--t1); font-family:inherit; font-size:13px; }
 .dep-sous{ display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--t3); margin:6px 0 12px; }
@@ -1071,7 +1085,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .fen-reste .lk{ color:var(--acc); font-weight:700; cursor:pointer; white-space:nowrap; }
 .fen-reste .lk:hover{ text-decoration:underline; }
 .plt-bh{ display:flex; align-items:center; gap:8px; padding:7px 11px; background:color-mix(in srgb,var(--acc) 9%,transparent); border-bottom:1px solid var(--brd); font-size:11px; font-weight:800; color:var(--acc); flex-wrap:wrap; }
-.plt-bh .n{ background:var(--acc); color:#fff; border-radius:100px; padding:1px 8px; font-size:9.5px; flex-shrink:0; }
+.plt-bh .n{ background:var(--acc); color:var(--on-acc); border-radius:100px; padding:1px 8px; font-size:9.5px; flex-shrink:0; }
 .plt-bh .qui{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .plt-bh .sp{ flex:1; }
 .plt-bh .tot{ font-weight:600; color:var(--t3); white-space:nowrap; }
@@ -1135,7 +1149,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
   border-radius:100px; padding:1px 6px; }
 .pld-j.auj{ color:var(--acc); }
 .pld-j.we{ opacity:.55; }
-.pld-j.on{ background:var(--acc); color:#fff; }
+.pld-j.on{ background:var(--acc); color:var(--on-acc); }
 .pld-j.on i{ background:rgba(255,255,255,.25); color:#fff; }
 .pld-sp{ flex:1; min-width:8px; }
 .pld-note,.pld-lk{ font-size:11.3px; font-weight:700; color:var(--t3); cursor:pointer; padding:5px 10px;
@@ -1146,7 +1160,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-vues span{ display:inline-flex; align-items:center; gap:6px; font-size:11.8px; font-weight:700;
   color:var(--t2); padding:6px 11px; border-radius:7px; cursor:pointer; white-space:nowrap; }
 .pf-vues span:hover{ color:var(--t1); }
-.pf-vues span.on{ background:var(--acc); color:#fff; }
+.pf-vues span.on{ background:var(--acc); color:var(--on-acc); }
 /* la navigation dans le temps */
 .pf-nav{ display:inline-flex; align-items:center; gap:4px; background:var(--card2); border:1px solid var(--brd);
   border-radius:10px; padding:3px 4px; flex:none; }
@@ -1169,7 +1183,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
   cursor:pointer; font-family:inherit; position:relative; flex:none; }
 .pf-ib:hover{ border-color:color-mix(in srgb,var(--acc) 45%,transparent); color:var(--t1); }
 .pf-ib.on{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 14%,transparent); color:var(--acc); }
-.pf-ib .n{ position:absolute; top:-5px; right:-5px; background:var(--acc); color:#fff; font-size:9px;
+.pf-ib .n{ position:absolute; top:-5px; right:-5px; background:var(--acc); color:var(--on-acc); font-size:9px;
   font-weight:900; border-radius:100px; padding:1px 5px; }
 .pf-sp2{ flex:1 1 12px; }
 /* les compteurs */
@@ -1182,7 +1196,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-seg2{ display:flex; gap:3px; background:var(--card2); border:1px solid var(--brd); border-radius:9px; padding:3px; margin:0 5px 6px; }
 .pf-seg2 span{ flex:1; text-align:center; font-size:11.3px; font-weight:700; color:var(--t2); padding:6px 6px;
   border-radius:6px; cursor:pointer; white-space:nowrap; }
-.pf-seg2 span.on{ background:var(--acc); color:#fff; }
+.pf-seg2 span.on{ background:var(--acc); color:var(--on-acc); }
 .pf-seg2.mini span{ font-size:11.5px; padding:5px 4px; }
 .pf-mrow{ display:flex; gap:7px; flex-wrap:wrap; padding:2px 6px 6px; }
 .pf-lk{ font-size:11.3px; font-weight:700; color:var(--acc); cursor:pointer; }
@@ -1207,7 +1221,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-b{ font-size:12.5px; font-weight:700; border-radius:10px; padding:8px 13px; border:1px solid var(--brd); background:var(--card2); color:var(--t1); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer; font-family:inherit; }
 .pf-b:hover{ border-color:color-mix(in srgb,var(--acc) 45%,transparent); }
 .pf-b.act{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 14%,transparent); color:var(--acc); }
-.pf-b .n{ background:var(--acc); color:#fff; font-size:10px; font-weight:900; border-radius:100px; padding:1px 7px; }
+.pf-b .n{ background:var(--acc); color:var(--on-acc); font-size:10px; font-weight:900; border-radius:100px; padding:1px 7px; }
 .pf-b .ar{ color:var(--t3); font-size:10px; }
 /* les trois menus sont a droite de la barre : on les ouvre vers la gauche
    pour qu'ils ne sortent jamais de l'ecran */
@@ -1288,7 +1302,12 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .plg-rule{ position:absolute; left:0; height:0; z-index:30; pointer-events:none; border-top:3px solid var(--rc,var(--acc)); }
 .plg-rule::before{ content:''; position:absolute; left:-2px; top:-4.5px; width:8px; height:8px; border-radius:50%; background:var(--rc,var(--acc)); }
 .plg-rule .h{ position:absolute; left:5px; top:-12px; font-family:ui-monospace,monospace; font-size:12.5px; font-weight:900;
-  padding:2px 7px; border-radius:7px; background:var(--rc,var(--acc)); color:#fff; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.45); }
+  /* ⛔ L'ÉTIQUETTE DE LA RÈGLE PORTE DEUX CAS, ET LE BLANC N'EN SERT QU'UN. `--rc` est la
+     couleur de la personne — un blanc dessus est le bon choix sur une teinte foncée, pas sur
+     une claire ; et SANS `--rc` le fond retombe sur l'accent, où le blanc tombe 9 fois sur 18
+     (mesuré : 1,09 à 3,65). `pose()` calcule donc l'encre par `encreSur()` — la même règle que
+     « Ma couleur » et que les pastilles d'identité — et le repli est l'encre de l'accent. */
+  padding:2px 7px; border-radius:7px; background:var(--rc,var(--acc)); color:var(--rc-ink,var(--on-acc)); white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.45); }
 .plg-rule.fin{ border-top:2px dashed var(--rc,var(--acc)); opacity:.78; }
 .plg-rule.fin .h{ font-size:11px; top:-11px; background:var(--card); color:var(--rc,var(--acc)); border:1px solid var(--rc,var(--acc)); }
 .plt,.plm-grid,.plg{ position:relative; }   /* sinon la règle du glisser se pose sur la page, hors du planning */
@@ -1296,7 +1315,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .plm-grp{ display:inline-flex; gap:3px; background:var(--card2); border:1px solid var(--brd); border-radius:8px; padding:2px; flex:none; }
 .plm-grp span{ font-size:10.5px; font-weight:700; color:var(--t2); padding:4px 9px; border-radius:6px; cursor:pointer; white-space:nowrap; }
 .plm-grp span:hover{ color:var(--t1); }
-.plm-grp span.on{ background:var(--acc); color:#fff; }
+.plm-grp span.on{ background:var(--acc); color:var(--on-acc); }
 /* bande d'une personne quand on regroupe par personne */
 .plm-bande.pers{ color:var(--cb); background:color-mix(in srgb,var(--cb) 10%,transparent);
   border-bottom:2px solid color-mix(in srgb,var(--cb) 45%,transparent); text-transform:none; }
@@ -1304,7 +1323,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .plm-nomap{ font-size:11px; color:var(--t3); margin-right:8px; }
 /* le bouton rond quand la carte est repliée */
 .plm-fab{ position:fixed; right:22px; bottom:22px; z-index:900; border:none; cursor:pointer;
-  background:var(--acc); color:#fff; font-size:12.5px; font-weight:800; font-family:inherit;
+  background:var(--acc); color:var(--on-acc); font-size:12.5px; font-weight:800; font-family:inherit;
   padding:11px 18px; border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,.4); }
 .plm-fab:hover{ filter:brightness(1.12); }
 body.plan-plein .plm-fab{ bottom:16px; }
@@ -1688,7 +1707,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .dp-j.hors{ color:var(--t3); opacity:.35; }
 .dp-j.we{ color:var(--t3); }
 .dp-j.auj{ box-shadow:0 0 0 1.5px var(--acc) inset; }
-.dp-j.deb,.dp-j.fin{ background:var(--acc); color:#fff; }
+.dp-j.deb,.dp-j.fin{ background:var(--acc); color:var(--on-acc); }
 .dp-j.mil{ background:color-mix(in srgb,var(--acc) 22%,transparent); border-radius:0; }
 .dp-j.deb{ border-radius:9px 0 0 9px; }
 .dp-j.fin{ border-radius:0 9px 9px 0; }
@@ -1818,7 +1837,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .abs-demi{ display:flex; gap:6px; margin-top:8px; }
 .abs-demi button{ flex:1; font-size:11.5px; font-weight:700; padding:9px 4px; border-radius:10px; cursor:pointer;
   background:var(--card2); border:1px solid var(--brd); color:var(--t2); font-family:inherit; }
-.abs-demi button.on{ background:var(--acc); border-color:var(--acc); color:#fff; }
+.abs-demi button.on{ background:var(--acc); border-color:var(--acc); color:var(--on-acc); }
 /* zone de dépôt du justificatif */
 .abs-up{ border:1px dashed color-mix(in srgb,var(--red) 45%,transparent); background:color-mix(in srgb,var(--red) 5%,transparent);
   border-radius:11px; padding:14px; text-align:center; font-size:12px; font-weight:700; color:var(--red); cursor:pointer; }
@@ -1888,7 +1907,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .org-li:hover{ background:var(--card2); }
 .org-li .ck{ width:17px; height:17px; border-radius:5px; border:1.5px solid var(--brd2); display:flex; align-items:center;
   justify-content:center; font-size:11px; color:transparent; flex:none; }
-.org-li .ck.on{ background:var(--acc); border-color:var(--acc); color:#fff; }
+.org-li .ck.on{ background:var(--acc); border-color:var(--acc); color:var(--on-acc); }
 .org-li .av{ width:24px; height:24px; border-radius:50%; background:var(--tc); color:#fff; font-size:9px; font-weight:800;
   display:flex; align-items:center; justify-content:center; flex:none; }
 .org-li .nm{ min-width:0; }
@@ -1915,7 +1934,7 @@ body.plan-plein .app{ background:var(--bg); }
   background:var(--card); border:1px solid var(--brd2); border-radius:11px; padding:6px 8px 6px 12px;
   box-shadow:0 10px 28px rgba(0,0,0,.28); font-size:12px; font-weight:700; color:var(--t2); }
 .plein-sortir b{ color:var(--t1); }
-.plein-sortir button{ background:var(--acc); color:#fff; border:none; border-radius:8px; padding:6px 12px;
+.plein-sortir button{ background:var(--acc); color:var(--on-acc); border:none; border-radius:8px; padding:6px 12px;
   font-size:12px; font-weight:800; cursor:pointer; }
 .pf-plein{ display:inline-flex; align-items:center; gap:6px; background:var(--card2); border:1px solid var(--brd);
   border-radius:9px; padding:7px 12px; font-size:12px; font-weight:700; color:var(--t2); cursor:pointer; flex:none; }
@@ -2233,7 +2252,7 @@ body{font-size:14.5px;line-height:1.45;text-rendering:optimizeLegibility;letter-
 .tbl td,.kpi-val,.kpi .n,input[type=number]{font-variant-numeric:tabular-nums}
 
 /* ── CHARPENTE ── barre latérale en verre dépoli, barre du haut en verre, comme dans Mail ou Réglages */
-.sidebar{background:var(--side)!important;border-right:1px solid var(--brd)!important;
+.sidebar{background:var(--rf-barre),var(--side)!important;border-right:1px solid var(--brd)!important;
   -webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
   --t1:var(--side-ink);--t2:var(--side-ink);--t3:var(--side-mut);--brd:var(--cardline);--bg2:var(--side-hover);--bg3:var(--side-hover);--bg1:transparent}
 .sidebar.open{box-shadow:var(--ombre-3)!important}
@@ -2252,7 +2271,7 @@ body{font-size:14.5px;line-height:1.45;text-rendering:optimizeLegibility;letter-
 .suite-row.on{background:var(--tint)!important}
 .sidebar-foot{border-top:1px solid var(--brd)!important}
 .sidebar-foot .btn{border:0!important}
-.topbar{background:var(--toolbar)!important;border-bottom:1px solid var(--brd)!important;
+.topbar{background:var(--rf-barre),var(--toolbar)!important;border-bottom:1px solid var(--brd)!important;
   -webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);padding:14px 30px}
 .topbar h1{font-size:clamp(22px,2.2vw,28px)!important;font-weight:700!important;letter-spacing:-.025em!important;line-height:1.1}
 .topbar .sub{font-size:14px;color:var(--t3);margin-top:3px}
@@ -2301,7 +2320,6 @@ body.defile .topbar{box-shadow:var(--ombre-2)!important}
 .card-head h3{font-size:17px;font-weight:600;letter-spacing:-.014em;line-height:1.3}
 .card::before,.kpi::before,.modal::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.07) 22%,rgba(255,255,255,.07) 78%,transparent)}
 html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,html[data-theme="light"] .modal::before{background:none}
-.kpis .kpi:first-child{background:var(--card)!important;border:0!important}
 .kpi{padding:18px 20px}
 .kpi-ico{border-radius:var(--r-2);width:36px;height:36px;font-size:17px;margin-bottom:12px}
 .kpi-val{font-size:30px!important;font-weight:700!important;letter-spacing:-.025em;line-height:1.05}
@@ -2323,10 +2341,10 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .tbl .strong{color:var(--t1)}
 
 /* ── BOUTONS ── plein = l'action, teinté = le reste, rond = l'icône */
-.btn{background:var(--acc-fill)!important;color:var(--on-acc)!important;border:0!important;border-radius:var(--r-2)!important;
+.btn{background:var(--acc-fill)!important;color:var(--on-fill)!important;border:0!important;border-radius:var(--r-2)!important;
   padding:0 16px!important;min-height:38px;font-weight:600!important;font-size:14.5px!important;letter-spacing:-.005em;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),box-shadow var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)!important}
-.btn:hover{background:var(--acc-fill-hover)!important;color:var(--on-acc)!important;transform:none}
+.btn:hover{background:var(--acc-fill-hover)!important;color:var(--on-fill)!important;transform:none}
 .btn:active{background:var(--acc-fill-press)!important;transform:scale(.96)!important;transition-duration:var(--d-0)!important}
 .btn.ghost{background:var(--tint)!important;color:var(--acc-txt)!important}
 .btn.ghost:hover{background:color-mix(in srgb,var(--tint) 100%,var(--acc) 10%)!important;color:var(--acc-txt)!important}
@@ -2357,11 +2375,11 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
    doit être la chose la PLUS lisible de l'écran à cet instant. On coupe donc l'interaction par
    `pointer-events`, ce qui ne déclenche aucun style d'inactif, et on force l'opacité pleine.
    Pas d'animation : le changement de mot et de couleur suffit, et il se voit au soleil. */
-.btn.btn-fait,html[data-refonte] .btn.btn-fait{background:var(--acc2)!important;color:var(--on-acc,#FFFFFF)!important;
+.btn.btn-fait,html[data-refonte] .btn.btn-fait{background:var(--acc2)!important;color:var(--on-acc2,#FFFFFF)!important;
   opacity:1!important;pointer-events:none;transform:none!important;box-shadow:none!important}
 /* Occupé : même raison de ne pas passer par `disabled` — il faut rester LISIBLE. On assombrit
    d'un cran, sans descendre au gris d'inactif : le bouton travaille, il n'est pas éteint. */
-.btn.btn-occupe,html[data-refonte] .btn.btn-occupe{background:var(--acc2)!important;color:var(--on-acc,#FFFFFF)!important;
+.btn.btn-occupe,html[data-refonte] .btn.btn-occupe{background:var(--acc2)!important;color:var(--on-acc2,#FFFFFF)!important;
   opacity:.88!important;pointer-events:none;transform:none!important;box-shadow:none!important;cursor:progress}
 .bell,.menu-btn,.modal-close{background:var(--tint-gris)!important;color:var(--t2)!important;border:0!important;border-radius:50%!important;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
@@ -2440,9 +2458,19 @@ html[data-refonte]{
   /* ── la marque, telle qu'elle est dans le carré ── */
   --navy:#101A2E; --glace:#EFF2F7; --acier:#8FA3BC;
   /* ── nuit : le navy du logo, poussé au noir pour que les surfaces respirent ── */
-  --bg:#080D18; --bg1:#101A2E; --bg2:#18233A; --bg3:#202C46;
-  --card:#101A2E; --card2:#18233A; --cardline:rgba(239,242,247,.06); --brd:rgba(239,242,247,.06); --brd2:rgba(239,242,247,.12);
-  --deep:#0A1120; --toolbar:rgba(8,13,24,.72);
+  /* ⛔ LA TEINTE CHOISIE VIT AUSSI DANS LES SURFACES OPAQUES. Le verre ne s'allume que sur
+     Safari 26 : partout ailleurs (Android, Chrome, transparence réduite) une palette en dur
+     rendait l'application identique dans les neuf teintes — « c'est trop gris là ». On mélange
+     la SOURCE de l'accent au navy, jamais un dérivé, et jamais vers « transparent » qui
+     tirerait au noir. La nuit, la lumière élève : la carte reste PLUS CLAIRE que la page. */
+  --bg:color-mix(in srgb,var(--acc-src,#4FD18A) 5%,#080D18);
+  --bg1:color-mix(in srgb,var(--acc-src,#4FD18A) 7%,#101A2E);
+  --bg2:color-mix(in srgb,var(--acc-src,#4FD18A) 7%,#18233A);
+  --bg3:color-mix(in srgb,var(--acc-src,#4FD18A) 8%,#202C46);
+  --card:color-mix(in srgb,var(--acc-src,#4FD18A) 7%,#101A2E);
+  --card2:color-mix(in srgb,var(--acc-src,#4FD18A) 7%,#18233A);
+  --cardline:rgba(239,242,247,.06); --brd:rgba(239,242,247,.06); --brd2:rgba(239,242,247,.12);
+  --deep:color-mix(in srgb,var(--acc-src,#4FD18A) 5%,#0A1120); --toolbar:rgba(8,13,24,.72);
   /* Assez translucide pour que le voile du fond transparaisse et que le contenu se devine
      quand il passe dessous (tiroir du téléphone) ; assez dense pour que le menu reste lisible
      dans le pire cas — une carte blanche qui défile derrière. Mesuré, pas estimé. */
@@ -2484,9 +2512,18 @@ html[data-refonte][data-theme="light"]{
      l'échelle de macOS : la barre latérale est le plan le PLUS SOMBRE (c'est du chrome, elle
      s'enfonce), le fond de page est le creux où le contenu vit, et la carte est un blanc franc
      qui se lève dessus. Vingt niveaux entre chaque plan : c'est ça qui se lit sans une bordure. */
-  --bg:#EDF0F6; --bg1:#FFFFFF; --bg2:#F5F7FA; --bg3:#E7EBF2;
-  --card:#FFFFFF; --card2:#F3F5F9; --cardline:rgba(16,26,46,.07); --brd:rgba(16,26,46,.08); --brd2:rgba(16,26,46,.14);
-  --deep:#F1F4F9; --toolbar:rgba(237,240,246,.72);
+  /* ⛔ LE JOUR PORTE LA TEINTE PLUS FRANCHEMENT QUE LA NUIT. Sur du blanc, un mélange à 3 %
+     ne se voit pas — mesuré, et c'est ce que Justin lisait comme « encore du gris ». La carte
+     garde son rang (c'est le plan le plus haut) mais elle est TEINTÉE ; le creux de la page
+     l'est le double, et c'est lui qui fait lire la couleur. */
+  --bg:color-mix(in srgb,var(--acc-src,#1F7A5C) 7%,#EDF0F6);
+  --bg1:color-mix(in srgb,var(--acc-src,#1F7A5C) 4%,#FFFFFF);
+  --bg2:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F5F7FA);
+  --bg3:color-mix(in srgb,var(--acc-src,#1F7A5C) 8%,#E7EBF2);
+  --card:color-mix(in srgb,var(--acc-src,#1F7A5C) 4%,#FFFFFF);
+  --card2:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F3F5F9);
+  --cardline:rgba(16,26,46,.07); --brd:rgba(16,26,46,.08); --brd2:rgba(16,26,46,.14);
+  --deep:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F1F4F9); --toolbar:rgba(237,240,246,.72);
   --side:rgba(204,212,229,.78); --side-ink:#0D1526; --side-mut:#3E4B64;
   /* Rubrique active : une pastille BLANCHE en relief sur le gris de la barre, le libellé à l'encre
      verte. Le bloc vert foncé pesait autant que le titre de la page pour dire « vous êtes ici ». */
@@ -2529,9 +2566,18 @@ html[data-refonte][data-theme="light"]{
        l'échelle de macOS : la barre latérale est le plan le PLUS SOMBRE (c'est du chrome, elle
        s'enfonce), le fond de page est le creux où le contenu vit, et la carte est un blanc franc
        qui se lève dessus. Vingt niveaux entre chaque plan : c'est ça qui se lit sans une bordure. */
-    --bg:#EDF0F6; --bg1:#FFFFFF; --bg2:#F5F7FA; --bg3:#E7EBF2;
-    --card:#FFFFFF; --card2:#F3F5F9; --cardline:rgba(16,26,46,.07); --brd:rgba(16,26,46,.08); --brd2:rgba(16,26,46,.14);
-    --deep:#F1F4F9; --toolbar:rgba(237,240,246,.72);
+    /* ⛔ LE JOUR PORTE LA TEINTE PLUS FRANCHEMENT QUE LA NUIT. Sur du blanc, un mélange à 3 %
+       ne se voit pas — mesuré, et c'est ce que Justin lisait comme « encore du gris ». La carte
+       garde son rang (c'est le plan le plus haut) mais elle est TEINTÉE ; le creux de la page
+       l'est le double, et c'est lui qui fait lire la couleur. */
+    --bg:color-mix(in srgb,var(--acc-src,#1F7A5C) 7%,#EDF0F6);
+    --bg1:color-mix(in srgb,var(--acc-src,#1F7A5C) 4%,#FFFFFF);
+    --bg2:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F5F7FA);
+    --bg3:color-mix(in srgb,var(--acc-src,#1F7A5C) 8%,#E7EBF2);
+    --card:color-mix(in srgb,var(--acc-src,#1F7A5C) 4%,#FFFFFF);
+    --card2:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F3F5F9);
+    --cardline:rgba(16,26,46,.07); --brd:rgba(16,26,46,.08); --brd2:rgba(16,26,46,.14);
+    --deep:color-mix(in srgb,var(--acc-src,#1F7A5C) 6%,#F1F4F9); --toolbar:rgba(237,240,246,.72);
     --side:rgba(204,212,229,.78); --side-ink:#0D1526; --side-mut:#3E4B64;
     /* Rubrique active : une pastille BLANCHE en relief sur le gris de la barre, le libellé à l'encre
        verte. Le bloc vert foncé pesait autant que le titre de la page pour dire « vous êtes ici ». */
@@ -2635,6 +2681,19 @@ html[data-refonte][data-theme="dark"][data-accent="pink"]    { --acc-src:#FF375F
 html[data-refonte][data-theme="dark"][data-accent="red"]     { --acc-src:#FF453A; --on-acc:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="orange"]  { --acc-src:#FF9F0A; --on-acc:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="graphite"]{ --acc-src:#F5F5F7; --on-acc:#0B1426; }
+/* ⛔⛔ LE GRAPHITE DE NUIT NE PEUT PAS TEINTER LA BARRE — ET C'EST DE L'ARITHMÉTIQUE, PAS UN
+   GOÛT. Son accent de nuit est #F5F5F7, presque blanc : mélangé au navy de la barre, il ne
+   la COLORE pas, il l'ÉCLAIRCIT. Mesuré au navigateur, bureau, verre allumé : le pire
+   libellé du menu passait de 4,07:1 à 3,65:1 rien qu'en allumant le dégradé, et baisser la
+   dose pour tout le monde (.07) ne rendait que 3,76 — en affadissant les huit autres teintes
+   au passage. On traite donc le seul cas fautif : le graphite est le choix « sans couleur »,
+   sa barre prend un voile d'ACIER, la teinte du logo, au lieu de son accent presque blanc. */
+html[data-refonte][data-theme="dark"][data-accent="graphite"]{
+  --rf-barre:linear-gradient(180deg,
+    rgba(143,163,188,.04) 0%,
+    rgba(143,163,188,.012) 55%,
+    rgba(143,163,188,.03) 100%);
+}
 html[data-refonte][data-accent]{
   --acc:var(--acc-src);
   --acc2:color-mix(in srgb,#000 18%,var(--acc-src));
@@ -2667,13 +2726,59 @@ html[data-refonte][data-theme="light"][data-accent]{
   --side-active-ink:color-mix(in srgb,#000 26%,var(--acc-src));
   --side-avatar:color-mix(in srgb,#000 18%,var(--acc-src));
 }
-/* De jour la teinte est FONCÉE de 14 % avant de porter l'encre : le blanc y tient alors pour
-   les six teintes vives. L'orange, le cyan, le rose et le rouge gardent leur encre sombre —
-   à aucune profondeur raisonnable le blanc n'y passe 4,5:1. */
+/* ⛔⛔ L'ENCRE DE JOUR SE CALCULE CONTRE L'ACCENT DE JOUR, PAS CONTRE CELUI DE NUIT.
+   Le jour FONCE la teinte de 22 % (--acc ci-dessus) mais l'encre, elle, restait celle de la
+   nuit — un navy #0B1426 — pour les teintes sans surcharge. Résultat : du SOMBRE sur du
+   SOMBRE. Calculé sur les dix-huit combinaisons (neuf teintes × deux modes) :
+       bleu   3,03:1     violet 2,98:1     cyan 4,09:1
+   soit trois combinaisons sous la barre des 4,5:1, en plein jour, sur trois des neuf couleurs
+   que l'utilisateur peut choisir. Le commentaire qui vivait ici disait d'ailleurs l'inverse du
+   code (« le cyan, le rose et le rouge gardent leur encre sombre » alors qu'ils étaient déjà
+   passés au blanc) : le signe que ce bloc avait dérivé.
+   Le bleu et le violet prennent donc le BLANC (6,07 et 6,18). Le cyan est le seul cas où
+   aucune des deux encres ne passe à 22 % — ni le blanc (4,09) ni le navy (4,49) : on le fonce
+   un cran de plus, à 30 %, et le blanc y tient (5,00). L'orange garde son encre sombre : à
+   aucune profondeur raisonnable le blanc n'y passe. */
 html[data-refonte][data-theme="light"][data-accent="orange"]{ --on-acc:#2A1304; }
-html[data-refonte][data-theme="light"][data-accent="teal"]  { --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="teal"]  { --acc:color-mix(in srgb,#000 30%,var(--acc-src)); --on-acc:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="pink"]  { --on-acc:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="red"]   { --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="blue"]  { --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="purple"]{ --on-acc:#FFFFFF; }
+
+/* ══ ET UNE SECONDE ENCRE, PARCE QU'IL Y A DEUX SURFACES ══
+   ⛔⛔ `--on-acc` EST L'ENCRE DE `--acc`, ET ELLE NE VAUT PAS SUR `--acc-fill`. L'application
+   peint DEUX aplats d'accent : `--acc` (pastilles, onglet choisi, compteurs) et `--acc-fill`
+   (le bouton principal, le bouton flottant, l'étiquette de carte, le rattrapage du planning).
+   Le second est un cran plus sombre — c'est tout son intérêt — et une encre calculée pour le
+   premier n'y tient pas forcément. Mesuré au navigateur le 22 septembre 2026, les dix-huit
+   combinaisons, les deux encres candidates sur les deux surfaces :
+       sur --acc        : --on-acc passe 18 fois sur 18 (4,91 à 17,92)
+       sur --acc-fill   : --on-acc tombe CINQ fois — bleu 3,45 · violet 3,55 · rose 3,53 ·
+                          rouge 3,64 (de nuit) et cyan 3,44 (de jour)
+   C'est le libellé du BOUTON PRINCIPAL, donc le contrôle le plus utilisé de l'application.
+   Aucune surface n'a eu besoin de bouger : sur les cinq, l'autre encre passe largement
+   (5,06 à 5,35). On pose donc `--on-fill`, qui vaut `--on-acc` partout ailleurs — une seule
+   valeur à tenir, cinq exceptions déclarées, et rien qui change sur les treize autres.
+   ⚠️ Ce n'est PAS un cycle (la règle de cette page) : `--on-fill` lit `--on-acc`, et
+   `--on-acc` ne lit jamais `--on-fill`. */
+html[data-refonte]{ --on-fill:var(--on-acc); }
+html[data-refonte][data-theme="dark"][data-accent="blue"]  { --on-fill:#FFFFFF; }  /* 3,45 → 5,32 */
+html[data-refonte][data-theme="dark"][data-accent="purple"]{ --on-fill:#FFFFFF; }  /* 3,55 → 5,17 */
+html[data-refonte][data-theme="dark"][data-accent="pink"]  { --on-fill:#FFFFFF; }  /* 3,53 → 5,21 */
+html[data-refonte][data-theme="dark"][data-accent="red"]   { --on-fill:#FFFFFF; }  /* 3,64 → 5,06 */
+html[data-refonte][data-theme="light"][data-accent="teal"] { --on-fill:#0B1426; }  /* 3,44 → 5,35 */
+
+/* ET UNE TROISIÈME, POUR LA TROISIÈME SURFACE. `--acc2` — le second accent — porte du texte à
+   trois endroits : la bulle du message qu'on vient d'écrire, et les deux boutons d'état
+   « Fait » et « Occupé ». Mesuré sur les dix-huit : `--on-fill` y tient seize fois, et tombe
+   deux fois, toutes deux de JOUR — orange 3,70 et cyan 3,40. Le blanc y passe (4,76 et 5,40).
+   ⛔ La règle qui vaut pour la suite : UNE SURFACE D'ACCENT, UNE ENCRE. Une quatrième surface
+   qui apparaîtrait sans la sienne reprendrait le défaut par la bande — c'est ce que garde
+   `test-757`, qui CALCULE les contrastes au lieu de chercher un motif. */
+html[data-refonte]{ --on-acc2:var(--on-fill); }
+html[data-refonte][data-theme="light"][data-accent="orange"]{ --on-acc2:#FFFFFF; }  /* 3,70 → 4,76 */
+html[data-refonte][data-theme="light"][data-accent="teal"]  { --on-acc2:#FFFFFF; }  /* 3,40 → 5,40 */
 
 /* ══ LE FOND ══ deux voiles très larges, l'un vert (l'accent), l'autre acier (la marque). Aucun
    trait : sur un fond clair, une diagonale traversant la page se lit comme un défaut d'affichage. */
@@ -3057,7 +3162,7 @@ html[data-refonte] .plg-mini .who,html[data-refonte] .plt-blk .who,
 html[data-refonte] [style*="background:var(--acc);color:var(--on-acc)"],
 html[data-refonte] [style*="background:var(--acc);color:#fff"],
 html[data-refonte] [style*="background: var(--acc); color: var(--on-acc)"]{
-  background:var(--acc-fill)!important;color:var(--on-acc)!important}
+  background:var(--acc-fill)!important;color:var(--on-fill)!important}
 /* ══ LES PASTILLES D'IDENTITÉ ══ un disque plein à la couleur de la personne, avec les initiales
    en blanc : ça tient tant que la couleur est sombre. Un orange (« non assigné ») ou un jaune
    choisi à la main tombent à 2,2:1. On renverse le motif — un disque TEINTÉ, les initiales à la
@@ -3381,7 +3486,7 @@ html[data-refonte] .plm-j,html[data-refonte] .pld-j,html[data-refonte] .pcal-d{
 html[data-refonte] .plm-j:active,html[data-refonte] .pld-j:active,html[data-refonte] .pcal-d:active{
   transform:scale(.92);transition-duration:var(--d-0)}
 html[data-refonte] .pcal-d.auj{background:transparent!important;color:var(--acc-txt)!important;font-weight:700}
-html[data-refonte] .pcal-d.on{background:var(--acc-fill)!important;color:var(--on-acc)!important}
+html[data-refonte] .pcal-d.on{background:var(--acc-fill)!important;color:var(--on-fill)!important}
 html[data-refonte] .plm-carte,html[data-refonte] .plm-tour{border-radius:var(--rf-r-carte)!important;overflow:hidden}
 html[data-refonte] .plm-mbar{background:transparent!important;border-bottom:1px solid var(--rf-filet)!important}
 /* Les cartes Leaflet prennent le rayon de leur contenant : un plan à coins vifs dans une carte
@@ -3920,7 +4025,7 @@ html[data-refonte] .content{padding-top:10px}
 html[data-refonte] .rf-tabs{
   position:fixed;left:0;right:0;bottom:0;z-index:44;display:none;
   padding:5px 4px calc(5px + env(safe-area-inset-bottom));
-  background:var(--toolbar);
+  background:var(--rf-barre),var(--toolbar);
   -webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) saturate(180%);
   box-shadow:0 -1px 0 var(--rf-filet)}
 /* La classe posée sur <body> s'appelle « rf-onglets » et non « rf-tabs » : le même nom sur le
@@ -4081,7 +4186,7 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
 .bxp-cibles-l .btn.sm, html[data-refonte] .bxp-cibles-l .btn.sm{min-height:44px;padding-inline:14px}
 /* La bulle de l'onglet : un compte, pas une décoration — elle ne s'affiche que s'il y a du neuf. */
 .bxp-bulle{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;margin-left:6px;
-  border-radius:10px;background:var(--acc);color:#fff;font-size:11px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;vertical-align:middle}
+  border-radius:10px;background:var(--acc);color:var(--on-acc);font-size:11px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;vertical-align:middle}
 /* La bande « pas encore au catalogue » se distingue de « nouveau dans la box » : bordure pleine,
    pas le lavis vert — ce sont deux étapes différentes et les confondre ferait taper deux fois. */
 .bxp-pack{background:var(--card2);border:1px solid var(--brd2)}
@@ -4125,7 +4230,7 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
    c'est le seul endroit de l'app où deux boutons opposés se touchent. */
 .qp-moins{background:color-mix(in srgb,var(--red) 15%,transparent)!important;color:var(--red)!important;
   border:1px solid color-mix(in srgb,var(--red) 42%,transparent)!important}
-.qp-plus{background:var(--acc)!important;color:#fff!important;border:1px solid var(--acc)!important}
+.qp-plus{background:var(--acc)!important;color:var(--on-acc)!important;border:1px solid var(--acc)!important}
 /* Les petites flèches natives d'un champ nombre volent la moitié de la largeur utile et ne
    se touchent pas au doigt : nos boutons − et ＋ font ce travail, en 44 px. */
 .qp-in input::-webkit-outer-spin-button,.qp-in input::-webkit-inner-spin-button,
@@ -4265,7 +4370,14 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      « Plus » reste sous le pouce pour le refermer du même geste qui l'a ouvert (chemins
      symétriques). Sans quoi le tiroir, en z-index 40, passait sous la barre et son pied —
      l'utilisateur et le bouton d'extinction — disparaissait derrière elle. */
-  html[data-refonte] body.rf-onglets .sidebar{z-index:46;padding-bottom:calc(62px + env(safe-area-inset-bottom))}
+  /* ⛔ 62 PIXELS DE VIDE QUI NE PROTÉGEAIENT RIEN. Ce dégagement était là pour que la carte
+     utilisateur ne passe pas SOUS la barre d'onglets. Mais la barre latérale est à z-index 46
+     et `.rf-tabs` à 44 : le tiroir ouvert la COUVRE déjà, toujours. Le dégagement ne servait
+     donc qu'à creuser un trou — mesuré au gabarit iPhone 15 Pro, tiroir ouvert : 62 px sous la
+     carte, et 96 px sur un vrai appareil une fois l'encoche du bas ajoutée. Justin, capture à
+     l'appui : « tout en bas est vachement haut, faudrait qu'il soit au maximum au plus bas ».
+     On ne garde que l'encoche, pour que la carte ne tombe pas sous la barre d'accueil. */
+  html[data-refonte] body.rf-onglets .sidebar{z-index:46}
   html[data-refonte] body.rf-onglets .sidebar.open ~ .sidebar-backdrop{z-index:45}
   html[data-refonte] body.rf-onglets .rf-tabs{z-index:48}
 }
@@ -4831,7 +4943,7 @@ html[data-refonte] .rf-reg-rang{
   transition:background-color var(--d-2) var(--e-sortie),color var(--d-2) var(--e-sortie)}
 html[data-refonte] .rf-reg-item.on{color:var(--t1);background:var(--card)}
 html[data-refonte] .rf-reg-item.on .rf-ic{color:var(--acc-txt)}
-html[data-refonte] .rf-reg-item.on .rf-reg-rang{background:var(--acc-fill);color:var(--on-acc)}
+html[data-refonte] .rf-reg-item.on .rf-reg-rang{background:var(--acc-fill);color:var(--on-fill)}
 html[data-refonte] .rf-reg-item:active{transform:scale(.99);transition-duration:var(--d-0)}
 /* Quatre déjà choisies : la ligne refuse, et le dit — une seule fois, sans bouger la page. */
 @keyframes rfPlein{0%,100%{background-color:transparent}40%{background-color:var(--danger-bg)}}
@@ -4934,12 +5046,23 @@ html[data-verre="1"]{
      clair montait à .58 + .42×.65 = .85 : un aplat blanc. Le dégradé est donc ramené à .22,
      ce qui plafonne le point le plus clair à .58 + .42×.22 = .67 — sous le liseré (.72), qui
      redevient la ligne la plus lumineuse de la carte, comme chez Apple. */
-  --vr-fond:rgba(255,255,255,.58);
-  --vr-fond2:rgba(255,255,255,.44);
+  /* ⛔⛔ C'EST LE VERRE QUI COUVRE L'ÉCRAN, DONC C'EST LUI QUI PORTE LA NUANCE.
+     Justin : « en mode jour on voit moins la nuance ». Premier correctif : teinter le fond de
+     page. Re-mesuré : le coin passait de 17 à 27 d'écart entre deux teintes, mais le MILIEU
+     restait à ZÉRO. La raison, vue au pixel : au milieu de l'écran on ne regarde pas la page,
+     on regarde une CARTE. Le verre couvre presque toute la surface, et il était blanc pur —
+     il effaçait donc la couleur choisie partout où il y en avait.
+     Quatre pour cent d'accent dans le verre, et la nuance existe sur toute la surface au lieu
+     d'un seul coin. ⚠ Quatre, pas vingt : la carte doit rester une vitre, pas devenir une
+     carte de couleur. Et `color-mix` entre une couleur OPAQUE et une translucide ne tire rien
+     vers le noir — le piège du `transparent` ne s'applique pas ici, les deux termes ont une
+     teinte. */
+  --vr-fond:color-mix(in srgb,var(--acc-src,#1E8450) 4%,rgba(255,255,255,.58));
+  --vr-fond2:color-mix(in srgb,var(--acc-src,#1E8450) 4%,rgba(255,255,255,.44));
   /* ⛔ LE VERRE QUI A QUELQUE CHOSE À COUVRIR SE DENSIFIE — il ne devient pas un AUTRE
      matériau. C'est le bord de défilement d'Apple : la barre s'épaissit quand du contenu
      passe dessous, en restant du verre de la même teinte. Voir l'encadré de `body.defile`. */
-  --vr-fond-dense:rgba(255,255,255,.88);
+  --vr-fond-dense:color-mix(in srgb,var(--acc-src,#1E8450) 4%,rgba(255,255,255,.88));
   --vr-liseret:rgba(255,255,255,.72);
   /* ⛔ LE REFLET EST UN DÉGRADÉ, PAS UNE OMBRE. Une ombre interne d'un pixel ne fait qu'un
      liseré ; ce qui donne la MATIÈRE, c'est la lumière qui court en diagonale sur la vitre.
@@ -4947,7 +5070,22 @@ html[data-verre="1"]{
   --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.07) 45%,rgba(255,255,255,.02) 60%,rgba(255,255,255,.14) 100%);
   --vr-ombre:0 10px 28px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.4);
   --vr-ombre-barre:0 14px 36px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.4);
-  --vr-page:linear-gradient(180deg,#f7f7f9,#eeeef2);
+  /* ⛔⛔ LE FOND LUI-MÊME PORTE LA COULEUR CHOISIE, PAS SEULEMENT LES HALOS.
+     Justin, 22 septembre 2026 : « le mode jour, je trouve qu'on voit moins la nuance ».
+     Mesuré au pixel, six teintes comparées deux à deux sur la même page : dans le COIN haut
+     gauche l'écart atteignait 17 sur 255 — la nuance s'y voyait — mais AU MILIEU DE LA PAGE
+     il valait **ZÉRO**. Les six teintes rendaient exactement rgb(245,247,250). La couleur
+     n'existait donc que dans un coin, et sur un grand écran on voit surtout le milieu.
+     Un halo éclaire un endroit ; c'est le FOND qui donne une ambiance. On verse donc une
+     goutte d'accent dans le dégradé de base — 3 % en haut, 6 % en bas.
+     ⚠ 3 %, pas 20 : à 42 % les halos faisaient « une page violette » et Justin l'avait
+     refusé (« ça fait bizarre »). Ici la teinte se SENT sur toute la surface sans que la page
+     change de nature. C'est la différence entre teinter un papier et le peindre.
+     ⚠ `color-mix` avec DEUX couleurs opaques ne souffre pas du piège du `transparent` : rien
+     n'est tiré vers le noir, puisqu'aucun des deux termes n'est transparent. */
+  --vr-page:linear-gradient(180deg,
+    color-mix(in srgb,var(--acc-src,#1E8450) 3%,#f7f7f9),
+    color-mix(in srgb,var(--acc-src,#1E8450) 6%,#eeeef2));
   /* ⛔ LES HALOS NE PRENNENT PLUS LA COULEUR D'ACCENT. Ils la prenaient à 42 % : qui
      choisissait Violet se retrouvait avec une page violette, et Justin l'a dit — « ça fait
      bizarre ». Chez Apple le fond reste neutre et la couleur vit dans les CONTRÔLES. Les deux
@@ -4970,9 +5108,16 @@ html[data-verre="1"]{
      ⚠ `--acc-rgb` est posé par `applyTheme` ; le repli est le vert d'OP GESTION, pour que la
      page soit juste même avant que le JavaScript ait tourné. */
   --vr-halos:
-    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,30,132,80),.26), rgba(var(--acc-rgb,30,132,80),0) 70%),
-    radial-gradient(56vmax 56vmax at 90% 4%, rgba(47,79,158,.22), rgba(47,79,158,0) 70%),
-    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,30,132,80),.16), rgba(var(--acc-rgb,30,132,80),0) 70%);
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,30,132,80),.20), rgba(var(--acc-rgb,30,132,80),0) 72%),
+    radial-gradient(56vmax 56vmax at 90% 4%, rgba(47,79,158,.15), rgba(47,79,158,0) 70%),
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,30,132,80),.14), rgba(var(--acc-rgb,30,132,80),0) 72%);
+  /* Le JOUR porte le dégradé PLUS FORT que la nuit, et ce n'est pas un goût : mesuré au
+     gabarit iPhone, la barre latérale de jour ne séparait les neuf teintes que de 8 unités
+     et son dégradé haut→bas valait 5 à 7 unités — autant dire rien. Le blanc désature. */
+  --rf-barre:linear-gradient(180deg,
+    rgba(var(--acc-rgb,30,132,80),.12) 0%,
+    rgba(var(--acc-rgb,30,132,80),.035) 55%,
+    rgba(var(--acc-rgb,30,132,80),.09) 100%);
   /* ⛔⛔ L'ENCRE DE LA PAGE, CAPTURÉE ICI, SUR <html> — ET SURTOUT PAS SUR `.sidebar`.
      `.sidebar` définit `--t1:var(--side-ink)` ; écrire `--side-ink:var(--t1)` sur elle ferme
      un CYCLE, et un cycle rend TOUTES les variables qui y participent invalides, en silence.
@@ -4991,9 +5136,11 @@ html[data-verre="1"][data-theme="dark"]{
   /* Alphas, liseré et ombres du document (§ 4) ; la TEINTE, elle, reste bleu nuit — voir
      l'encadré du fond plus bas. Et `--vr-fond2` passe au voile BLANC du document : de nuit
      c'est la lumière qui élève, un navy sur du navy ne se détache pas. */
-  --vr-fond:rgba(44,56,84,.55);
+  /* Même goutte de couleur dans le verre de nuit. La surface secondaire reste un voile BLANC :
+     de nuit c'est la lumière qui élève, et la teinter la ferait redescendre. */
+  --vr-fond:color-mix(in srgb,var(--acc-src,#2EB872) 7%,rgba(44,56,84,.55));
   --vr-fond2:rgba(255,255,255,.08);
-  --vr-fond-dense:rgba(44,56,84,.92);
+  --vr-fond-dense:color-mix(in srgb,var(--acc-src,#2EB872) 7%,rgba(44,56,84,.92));
   --vr-liseret:rgba(255,255,255,.18);
   --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.02) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.03) 100%);
   --vr-ombre:0 10px 28px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(255,255,255,.05);
@@ -5005,7 +5152,12 @@ html[data-verre="1"][data-theme="dark"]{
      son Mac — « revois les nuances de couleur, je la trouve moins belle l'app ».
      La nuit prend donc le bleu nuit de TEAM OP (#081028, échantillonné dans le logo), remonté
      juste assez pour porter des surfaces. */
-  --vr-page:linear-gradient(180deg,#101A2E,#0A1120);
+  /* Même goutte de couleur qu'en journée, un peu plus généreuse : sur un fond sombre il faut
+     davantage de teinte pour la même sensation. Mesuré de nuit : l'écart entre deux teintes
+     valait 10 dans le coin et ZÉRO au milieu, comme en journée. */
+  --vr-page:linear-gradient(180deg,
+    color-mix(in srgb,var(--acc-src,#2EB872) 5%,#101A2E),
+    color-mix(in srgb,var(--acc-src,#2EB872) 9%,#0A1120));
   /* De nuit les halos sont plus discrets : sur un fond sombre, un voile coloré à 26 % ne fait
      pas une ambiance, il fait une tache. Et le bleu passe devant le vert — c'est lui qui donne
      la profondeur, le vert se garde pour ce qui se clique. */
@@ -5013,9 +5165,20 @@ html[data-verre="1"][data-theme="dark"]{
      la profondeur, et un voile coloré trop fort sur un fond sombre fait une tache, pas une
      ambiance. Repli : le vert clair d'OP GESTION. */
   --vr-halos:
-    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,46,184,114),.16), rgba(var(--acc-rgb,46,184,114),0) 70%),
-    radial-gradient(56vmax 56vmax at 90% 4%, rgba(91,143,214,.18), rgba(91,143,214,0) 70%),
-    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,46,184,114),.12), rgba(var(--acc-rgb,46,184,114),0) 70%);
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,46,184,114),.12), rgba(var(--acc-rgb,46,184,114),0) 70%),
+    radial-gradient(56vmax 56vmax at 90% 4%, rgba(91,143,214,.13), rgba(91,143,214,0) 70%),
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,46,184,114),.09), rgba(var(--acc-rgb,46,184,114),0) 70%);
+  /* ⛔ LE DÉGRADÉ DES BARRES — un seul jeton pour la barre latérale, la barre du haut et la
+     barre d'onglets, sur TOUS les appareils (verre ou pas). Justin : « que ce soit téléphone,
+     Mac, tout appareil, quand les personnes sélectionnent une couleur, que le dégradé soit de
+     la couleur […] moins présent, plus nuancé ». Les halos de la page baissent d'un cran
+     (c'est le « moins présent ») et la couleur passe dans les barres elles-mêmes, où elle se
+     lit. Les deux arrêts portent la MÊME teinte : un dégradé qui finit sur « transparent »
+     passe par du noir et salit le bord. */
+  --rf-barre:linear-gradient(180deg,
+    rgba(var(--acc-rgb,46,184,114),.10) 0%,
+    rgba(var(--acc-rgb,46,184,114),.03) 55%,
+    rgba(var(--acc-rgb,46,184,114),.07) 100%);
 }
 /* ⛔⛔ LE FOND DE LA PAGE VA SUR <html>, PAS SUR <body> — SINON IL RECOUVRE LES HALOS.
    Mesuré le 22 septembre 2026, au pixel : `body` portait
@@ -5050,7 +5213,7 @@ html[data-verre="1"] .modal{
   box-shadow:var(--vr-ombre)!important;
 }
 html[data-verre="1"] .topbar{
-  background:var(--vr-reflet),var(--vr-fond)!important;
+  background:var(--vr-reflet),var(--rf-barre),var(--vr-fond)!important;
   -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
   border-bottom:.5px solid var(--vr-liseret)!important;
   box-shadow:var(--vr-ombre-barre)!important;
@@ -5307,7 +5470,7 @@ html[data-kind="desktop"] .menu-btn{display:none!important}
    Posée telle quelle sur du verre clair, elle devient illisible. Basculer la surface OBLIGE
    donc à basculer l'encre : les deux ensemble, ou ni l'un ni l'autre. */
 html[data-verre="1"] .sidebar{
-  background:var(--vr-reflet),var(--vr-fond)!important;-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  background:var(--vr-reflet),var(--rf-barre),var(--vr-fond)!important;-webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
   border-right:.5px solid var(--vr-liseret)!important;
   /* ⛔ ON LIT `--vr-encre`, JAMAIS `--t1` — voir le cycle expliqué aux jetons du verre.
      `--t1` est redéfini SUR cette règle-là (ligne « CHARPENTE » de la refonte) : s'en
@@ -5316,7 +5479,7 @@ html[data-verre="1"] .sidebar{
   --side-active:color-mix(in srgb,var(--acc) 16%,transparent);--side-active-ink:var(--vr-encre);
 }
 html[data-verre="1"] .sidebar .nav-item{color:color-mix(in srgb,var(--vr-encre) 84%,transparent)}
-html[data-verre="1"] .sidebar .nav-item.active{background:var(--acc-fill,var(--acc));color:var(--on-acc,#fff)}
+html[data-verre="1"] .sidebar .nav-item.active{background:var(--acc-fill,var(--acc));color:var(--on-fill,#fff)}
 /* ⛔ UN TITRE DE GROUPE DOIT ÊTRE PLUS PÂLE QUE SES ITEMS, SUR VERRE COMME AILLEURS. Il ne
    l'était pas : les deux sortaient de rgb(10,16,32), et c'est ce qui a fait lire
    « deux Tableau de bord ». L'encre se dérive du TEXTE (`--vr-encre`), pour être plus pâle
@@ -5345,7 +5508,7 @@ html[data-verre="1"] .sidebar .brand .hi,html[data-verre="1"] .sidebar #foot-nam
 .msg-flot{
   position:fixed;right:16px;z-index:37;width:56px;height:56px;border-radius:50%;
   border:0;cursor:pointer;text-decoration:none;
-  background:var(--acc-fill,var(--acc));color:var(--on-acc,#fff);
+  background:var(--acc-fill,var(--acc));color:var(--on-fill,#fff);
   align-items:center;justify-content:center;box-shadow:var(--ombre-2,0 8px 24px rgba(0,0,0,.28));
   bottom:calc(var(--tabh) + 14px);
 }
@@ -6079,7 +6242,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '711-beta';
+const APP_VERSION = '714-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -14563,7 +14726,11 @@ function planGuideMaj(e,col,h0,PPH,coul){
     const larg=Math.max(60,r.right-g0.left-x0), dy=r.top-g0.top;
     const c=coul||getComputedStyle(document.documentElement).getPropertyValue('--acc').trim()||'#1E7A4E';
     const pose=function(el,y,txt){ el.style.top=Math.round(y+dy)+'px'; el.style.left=Math.round(x0)+'px'; el.style.width=Math.round(larg)+'px';
-      el.style.setProperty('--rc',c); el.firstChild.textContent=txt; };
+      el.style.setProperty('--rc',c);
+      /* l'encre suit la couleur de la personne ; sans couleur donnée, `--rc` VAUT l'accent,
+         donc on laisse le repli CSS prendre `--on-acc` plutôt que de deviner ici. */
+      el.style.setProperty('--rc-ink', /^#/.test(c) ? encreSur(c) : '');
+      el.firstChild.textContent=txt; };
     let g=grille.querySelector(':scope > .plg-rule.deb');
     if(!g){ g=document.createElement('div'); g.className='plg-rule deb'; g.innerHTML='<span class="h"></span>'; grille.appendChild(g); }
     pose(g,top,clockFromMin(mins));
@@ -14725,7 +14892,7 @@ function planCarteCard(){
         ${(function(){ const T=window._planTours||[]; const ok=T.filter(x=>x.tid&&x.suite.length>2);
           if(!canPlan()||ok.length!==1) return '';
           return `<button class="btn warn sm" onclick="planOptModal('${ok[0].tid}','${ok[0].j}')" data-tip="Chercher un meilleur ordre pour cette tournée">Optimiser</button>`; })()}
-        <button class="btn ghost sm" onclick="setMapLayer('${_mapLayer==='m'?'s':'m'}')" data-tip="Changer de fond de carte">${_mapLayer==='m'?'Satellite':'Plan'}</button>
+        ${mapFondBarre()}
         <button class="btn ${planDisp()==='carte'?'':'ghost'} sm" onclick="planDispSet('${planDisp()==='carte'?'cote':'carte'}')" data-tip="${planDisp()==='carte'?'Remettre la carte à côté du planning':'La carte prend tout l’écran — le planning reste en dessous'}">${planDisp()==='carte'?'Réduire':'Agrandir'}</button>
         <button class="btn ghost sm" onclick="planDispSet('plan')" data-tip="Replier la carte — le planning prend tout l’écran">Replier</button>
       </div>
@@ -15699,7 +15866,7 @@ function planPopStatut(i){
     if(i.signature) d.push('✍️ signée par le client');
     if(i.clientAbsent) d.push('🚪 client absent');
     if(i.rapportModele||i.rapport) d.push('📄 rapport');
-    sous=`<div style="margin-top:4px;font-size:11px;color:#1E7A4E;font-weight:700">✅ effectuée${d.length?' · '+d.join(' · '):''}</div>`;
+    sous=`<div style="margin-top:4px;font-size:11px;color:var(--green);font-weight:700">✅ effectuée${d.length?' · '+d.join(' · '):''}</div>`;
   } else if(i.statut==='annulee'){
     sous='<div style="margin-top:4px;font-size:11px;color:#B42318;font-weight:700">✕ annulée — non effectuée</div>';
   } else if(i.statut==='encours'){
@@ -17857,7 +18024,7 @@ views.interventions=function(){
     +`<div style="text-align:center;margin:2px 0 14px"><span style="background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--t1);font-weight:800;padding:9px 22px;border-radius:100px;font-size:14.5px;text-transform:capitalize">${new Date(intSelDay+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'short'})}</span></div>`
     +(()=>{ const nEff=dayInts.filter(x=>x.statut==='terminee').length; const nAnn=dayInts.filter(x=>x.statut==='annulee').length; const nAF=dayInts.length-nEff-nAnn;
       return dayInts.length?`<div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:-6px 0 14px">
-      <span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:rgba(46,184,114,.13);color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent)">✅ ${nEff} effectuée${nEff>1?'s':''}</span>
+      <span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--acc) 13%,transparent);color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent)">✅ ${nEff} effectuée${nEff>1?'s':''}</span>
       <span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--org) 13%,transparent);color:var(--org);border:1px solid color-mix(in srgb,var(--org) 40%,transparent)">⏳ ${nAF} non effectuée${nAF>1?'s':''}</span>
       ${nAnn?`<span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red);border:1px solid color-mix(in srgb,var(--red) 38%,transparent)">🚫 ${nAnn} annulée${nAnn>1?'s':''}</span>`:''}
       </div>`:''; })()
@@ -20055,7 +20222,7 @@ function renderIntDetail(id){
         return `<div style="padding:8px 0;border-bottom:1px solid var(--brd)"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13.5px">${esc(n)}</b>${tn._infest?`<span class="tag" style="font-size:10px;color:${lvC};border-color:${lvC}">Infestation : ${esc(tn._infest)}</span>`:''}</div>${(tn._methodes&&tn._methodes.length)?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">${tn._methodes.map(m=>`<span class="tag" style="font-size:10px">⚒ ${esc(m)}</span>`).join('')}</div>`:`<div style="font-size:11.5px;color:var(--t3);margin-top:3px">Aucune méthode renseignée — touchez le nuisible dans Modifier</div>`}${tn._obs?`<div style="font-size:12px;color:var(--t3);margin-top:4px">${esc(tn._obs)}</div>`:''}</div>`; }).join('')}</div>`:''}
       ${(()=>{ const sum=traitementSummary(i); return sum.length?`<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>\uD83E\uDDEA Traitement \u2014 ${esc(i.type||'')}</h3></div>${sum.map(r=>`<div style="margin-bottom:6px"><span class="dt-lbl">${esc(r[0])}</span><div class="dt-val" style="font-weight:400">${esc(r[1])}</div></div>`).join('')}</div>`:''; })()}
       ${(()=>{ const pk=Array.isArray(i.prestation)?i.prestation:Object.keys(i.prestation||{}); return pk.length?`<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>Prestation réalisée</h3></div><div style="display:flex;flex-wrap:wrap;gap:8px">${PRESTATION_ITEMS.filter(([k])=>pk.includes(k)).map(([k,l,ic])=>`<span class="tag" style="font-size:12px">${ic} ${esc(l)}</span>`).join('')}</div></div>`:''; })()}
-      ${i.compteRendu?`<div class="detail-desc" style="border-color:rgba(74,222,128,.3)"><b style="color:var(--acc)">Compte-rendu :</b><br>${esc(i.compteRendu)}</div>`:'<div style="color:var(--t3);font-size:13px">Aucun compte-rendu pour le moment — clique « Rédiger / modifier ».</div>'}
+      ${i.compteRendu?`<div class="detail-desc" style="border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><b style="color:var(--acc)">Compte-rendu :</b><br>${esc(i.compteRendu)}</div>`:'<div style="color:var(--t3);font-size:13px">Aucun compte-rendu pour le moment — clique « Rédiger / modifier ».</div>'}
       <div class="card" style="margin-top:12px"><div class="card-head" style="margin-bottom:8px"><h3>Aperçu du rapport <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t3);font-size:12px">— texte envoyé au client</span></h3></div>
         <div style="white-space:pre-wrap;font-size:13px;color:var(--t2);line-height:1.6;background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:14px">${esc(genRapportTexte(i))}</div></div>
       ${champsV}
@@ -20737,7 +20904,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
     ${c.acces?`<div style="display:flex;gap:9px;align-items:flex-start;margin-top:10px;background:color-mix(in srgb,var(--org) 10%,transparent);border:1px solid color-mix(in srgb,var(--org) 35%,transparent);border-radius:10px;padding:9px 12px"><span>🔑</span><div style="font-size:12.5px;color:var(--t1);white-space:pre-wrap"><b>Note d'accès :</b> ${esc(c.acces)}</div></div>`:''}
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(108px,1fr));margin:14px 0">
       ${k('🧰','rgba(96,165,250,.14)',ints.length,'Interventions')}
-      ${k('💶','rgba(74,222,128,.16)',eur(caFact),'CA encaissé')}
+      ${k('💶','color-mix(in srgb,var(--acc) 16%,transparent)',eur(caFact),'CA encaissé')}
       ${k('💰','rgba(167,139,250,.14)',devis.length,'Devis')}
       ${k('📑','rgba(251,146,60,.14)',ctrs.length,'Contrats actifs')}</div>
     ${(()=>{ const pp=c.prefPassage||{}; const hasPref=(pp.jours&&pp.jours.length)||pp.techId||(pp.creneau&&pp.creneau!=='indifferent')||pp.prevenir48||pp.appelerAvant;
@@ -22097,7 +22264,7 @@ views.stock=function(){
   setHeader('Stock','Tout le stock de toutes les box',`<button class="btn ghost" onclick="openScanner()">Scanner</button>`);
   $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
     <div class="kpi" style="cursor:pointer" onclick="go('produits')" title="Voir le catalogue produits"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📦</div><div class="kpi-val">${all.length}</div><div class="kpi-lbl">Produits ›</div></div>
-    <div class="kpi" style="cursor:pointer" onclick="go('mouvements')" title="Voir les mouvements de stock"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">🔢</div><div class="kpi-val">${totalU}</div><div class="kpi-lbl">Unités (cartons compris) ›</div></div>
+    <div class="kpi" style="cursor:pointer" onclick="go('mouvements')" title="Voir les mouvements de stock"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">🔢</div><div class="kpi-val">${totalU}</div><div class="kpi-lbl">Unités (cartons compris) ›</div></div>
     <div class="kpi" style="cursor:pointer" onclick="go('boxes')" title="Voir les box"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">🧱</div><div class="kpi-val">${nbBoxesPleines}</div><div class="kpi-lbl">Box ›</div></div>
     <div class="kpi" style="cursor:pointer${stockFiltreManque?';outline:2px solid var(--org)':''}" onclick="stockFiltreManque=!stockFiltreManque;renderStockList();" title="Ne montrer que ce qui est à commander"><div class="kpi-ico" style="background:rgba(239,68,68,.13)">🛒</div><div class="kpi-val" style="color:${nbACmd?'var(--org)':'var(--acc)'}">${nbACmd}</div><div class="kpi-lbl">À commander ›</div></div></div>
     <input class="search-inp" id="stock-search" placeholder="Nom, référence…" value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStockList()">
@@ -22382,10 +22549,10 @@ views.mouvements=function(){
   const tuile=(cible,ico,col,fond,val,lbl)=>{ const on=mvtFType===cible&&cible!=='';
     return `<div class="kpi" onclick="mvtChoisirType('${mvtFType===cible&&cible!==''?'':cible}')" title="Filtrer le journal" style="cursor:pointer;${on?'border-color:var(--acc);box-shadow:0 0 0 1.5px var(--acc) inset':''}"><div class="kpi-ico" style="background:${fond};color:${col}">${ico}</div><div class="kpi-val">${val}</div><div class="kpi-lbl">${lbl} ›</div></div>`; };
   const tuiles=`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-    ${tuile('entree',icoT.entree,'var(--acc)','rgba(74,222,128,.16)','+'+entMois,'Unités ajoutées aujourd\'hui')}
+    ${tuile('entree',icoT.entree,'var(--acc)','color-mix(in srgb,var(--acc) 16%,transparent)','+'+entMois,'Unités ajoutées aujourd\'hui')}
     ${tuile('sortie',icoT.sortie,'var(--org)','rgba(245,158,11,.14)','−'+sorMois,'Unités retirées aujourd\'hui')}
     ${tuile('',icoT.flux,'var(--blue)','rgba(59,130,246,.14)',tout.length,'Mouvements au journal')}
-    ${tuile('valide',icoT.dr,'var(--acc)','rgba(74,222,128,.16)',nbVal,'Validés par le DR')}</div>`;
+    ${tuile('valide',icoT.dr,'var(--acc)','color-mix(in srgb,var(--acc) 16%,transparent)',nbVal,'Validés par le DR')}</div>`;
   // ── filtres : box + recherche d'abord (les compteurs des onglets en tiennent compte) ──
   let base=tout;
   if(mvtFBox) base=base.filter(m=>m.boxId===mvtFBox);
@@ -22433,7 +22600,7 @@ views.mouvements=function(){
   const srcMvt=m=>{ const mo=String(m.motif||'');
     if(m.type==='entree'){
       if(/arrivage|réception|bon de commande|livr/i.test(mo)) return '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.14);color:#60a5fa;white-space:nowrap">🧾 AJOUT · BON DE COMMANDE</span>';
-      return '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(74,222,128,.16);color:var(--acc);white-space:nowrap">AJOUT</span>';
+      return '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc);white-space:nowrap">AJOUT</span>';
     }
     // sorties : donné à quelqu'un, pris pour soi, consommé en intervention, ou simple retrait
     if(m.donneA) return m.donneA===m.technicien
@@ -24793,8 +24960,8 @@ views.enveloppes=function(){
       <div style="text-align:right;white-space:nowrap"><div class="mono" style="font-weight:800;font-size:16px;color:var(--org)">${n}</div><div style="font-size:10px;color:var(--t3)">paiement${n>1?'s':''}</div></div>
     </div>`;}).join('');
   $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(3,1fr)">
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💶</div><div class="kpi-val">${eur(total)}</div><div class="kpi-lbl">Total encaissé</div></div>
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💵</div><div class="kpi-val">${eur(esp)}</div><div class="kpi-lbl">Espèces</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(total)}</div><div class="kpi-lbl">Total encaissé</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💵</div><div class="kpi-val">${eur(esp)}</div><div class="kpi-lbl">Espèces</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📝</div><div class="kpi-val">${eur(chq)}</div><div class="kpi-lbl">Chèques</div></div></div>
     ${list.length? rows:`<div class="card">${emptyState('📮','Aucune enveloppe.','Nouvelle','formEnv()')}</div>`}`;
 };
@@ -27053,7 +27220,30 @@ function saveControle(e,id){ e.preventDefault(); const d=Object.fromEntries(new 
 }
 
 /* ═══════════════ CARTE ═══════════════ */
-let _map=null, _mapLayer='m', _deptGeo=null;
+let _map=null, _mapLayer=null, _deptGeo=null;
+/* ⛔ TROIS CHOIX, PAS UN INTERRUPTEUR. Avant, un seul bouton faisait Plan ↔ Satellite et la
+   nuit se déduisait du thème : impossible de garder une carte claire en mode nuit, ce que
+   demande le terrain (lisibilité au soleil). Le choix est désormais explicite — 'm' jour,
+   'n' nuit, 's' satellite — et MÉMORISÉ sur le compte, comme le thème et la langue.
+   Tant que personne n'a choisi, on suit le thème : c'est le comportement d'avant, et c'est
+   la seule valeur par défaut qui ne surprenne pas. */
+const MAP_FONDS=[['m','Jour','🗺️'],['n','Nuit','🌙'],['s','Satellite','🛰️']];
+function mapFond(){
+  if(_mapLayer) return _mapLayer;
+  let v=null; try{ v=localStorage.getItem(PREF_CLES.carte); }catch(e){}
+  if(v==='m'||v==='n'||v==='s'){ _mapLayer=v; return v; }
+  return effectiveTheme()==='dark' ? 'n' : 'm';       /* pas choisi : on suit le thème */
+}
+function mapFondBarre(){
+  const cur=mapFond();
+  /* ⛔ ON N'INVENTE PAS UN COMPOSANT : `.chip` est LE filtre de ce dépôt, il est stylé, il
+     porte déjà l'accent sur `.active`, et il respecte le plancher tactile. Une barre
+     segmentée de plus aurait fait deux composants qui font la même chose — la faute du
+     22 septembre, par l'autre bout. */
+  return `<span class="filters" style="display:inline-flex;margin:0;gap:6px;vertical-align:middle" role="group" aria-label="Fond de carte">`
+    + MAP_FONDS.map(([v,l,ic])=>`<span class="chip${v===cur?' active':''}" role="button" aria-pressed="${v===cur}" onclick="setMapLayer('${v}')" data-tip="Fond de carte : ${l}">${ic} ${l}</span>`).join('')
+    + `</span>`;
+}
 function loadDeptGeo(){ if(_deptGeo) return Promise.resolve(_deptGeo); return fetch('https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson').then(r=>r.json()).then(j=>{ _deptGeo=j; return j; }); }
 function loadLeaflet(){ return new Promise((res,rej)=>{
   if(window.L) return res();
@@ -27067,7 +27257,13 @@ async function geocodeClients(){ const todo=db.clients.filter(c=>c.adresse && c.
   for(const c of todo){ const g=await geocode(c.adresse); if(g){ c.lat=g.lat; c.lng=g.lng; n++; save(); } await new Promise(r=>setTimeout(r,1100)); }
   toast(n+' adresse(s) localisée(s)'); if(current==='carte') views.carte();
 }
-function setMapLayer(l){ _mapLayer=l; if(current==='carteInt') views.carteInt(); else if(current==='carteBox') views.carteBox(); else if(current==='planning') views.planning(); }
+function setMapLayer(l){
+  if(l!=='m'&&l!=='n'&&l!=='s') return;
+  _mapLayer=l;
+  try{ localStorage.setItem(PREF_CLES.carte,l); }catch(e){}
+  try{ prefEcrire('carte',l); }catch(e){}
+  if(current==='carteInt') views.carteInt(); else if(current==='carteBox') views.carteBox(); else if(current==='planning') views.planning();
+}
 function fitMapHeight(){ const el=$('map'); if(!el) return; const top=el.getBoundingClientRect().top; el.style.height=Math.max(340,(window.innerHeight-top))+'px'; }
 function gpsLinks(d){
   return `<div style="margin-top:8px;font-size:11px;color:#666">Itinéraire :</div><div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap">
@@ -27076,8 +27272,8 @@ function gpsLinks(d){
     <a href="https://maps.apple.com/?daddr=${d}" target="_blank" rel="noopener" style="padding:6px 10px;border-radius:7px;background:#333;color:#fff;text-decoration:none;font-size:12px;font-weight:600">Plans</a>
   </div>`; }
 function mapTiles(map){
-  let url, opts; const dark=effectiveTheme()==='dark' && _mapLayer!=='s';
-  if(_mapLayer==='s'){ url='https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}'; opts={subdomains:['mt0','mt1','mt2','mt3'],maxZoom:20,attribution:'© Google'}; }
+  let url, opts; const f=mapFond(); const dark=(f==='n');
+  if(f==='s'){ url='https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}'; opts={subdomains:['mt0','mt1','mt2','mt3'],maxZoom:20,attribution:'© Google'}; }
   else { url='https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'; opts={subdomains:['mt0','mt1','mt2','mt3'],maxZoom:20,attribution:'© Google'}; }
   L.tileLayer(url,opts).addTo(map);
   // Nuit : on garde la carte Google lisible, juste légèrement assombrie (pas de fond tout noir)
@@ -27095,7 +27291,7 @@ views.carteBox=function(){
   const myBoxes=visibleBoxes(db.boxes);
   const nLoc=myBoxes.filter(b=>b.lat!=null).length, nMiss=myBoxes.filter(b=>(b.adresse||b.ville)&&b.lat==null).length;
   setHeader('Carte des box',`${nLoc} box localisée(s)${nMiss?` · ${nMiss} à géolocaliser`:''}`,
-    `<button class="btn ghost" onclick="go('boxes')">← Boxes</button> ${nMiss?`<button class="btn ghost" onclick="geocodeBoxes()">Géolocaliser (${nMiss})</button> `:''}<button class="btn ghost sm" onclick="setMapLayer('${_mapLayer==='m'?'s':'m'}')">${_mapLayer==='m'?'Satellite':'Plan'}</button>`);
+    `<button class="btn ghost" onclick="go('boxes')">← Boxes</button> ${nMiss?`<button class="btn ghost" onclick="geocodeBoxes()">Géolocaliser (${nMiss})</button> `:''}${mapFondBarre()}`);
   $('content').innerHTML=`<div class="filters" style="margin:0 0 8px"><div class="chip" onclick="go('boxes')">📋 Liste</div><div class="chip active">🗺️ Carte des box</div></div>
     <div class="card map-card" style="padding:0;overflow:hidden"><div id="map" style="height:70vh;background:var(--bg2)"></div></div><div id="map-fb"></div>`;
   loadLeaflet().then(()=>{ const el=$('map'); if(!el||!window.L)return; if(_map){try{_map.remove();}catch(e){}_map=null;} fitMapHeight(); _map=L.map(el).setView([46.6,2.4],5); mapTiles(_map);
@@ -27197,7 +27393,7 @@ views.carteInt=function(){
   const pts=tousPts.filter(carteTechVisible);
   const secteurs=deptSectors();
   setHeader('Carte interventions',`Tournée du ${fmtShort(carteIntDay)} · ${pts.length} intervention(s)`,
-    `<button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,-1);views.carteInt()">‹</button> <button class="btn ghost sm" onclick="carteIntDay=todayISO();views.carteInt()">Aujourd'hui</button> <button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,1);views.carteInt()">›</button> <button class="btn ghost sm" onclick="showSecteurs=!showSecteurs;views.carteInt()">${showSecteurs?'Masquer secteurs':'Secteurs'}</button> <button class="btn ghost sm" onclick="setMapLayer('${_mapLayer==='m'?'s':'m'}')">${_mapLayer==='m'?'🛰️':'🗺️'}</button>`);
+    `<button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,-1);views.carteInt()">‹</button> <button class="btn ghost sm" onclick="carteIntDay=todayISO();views.carteInt()">Aujourd'hui</button> <button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,1);views.carteInt()">›</button> <button class="btn ghost sm" onclick="showSecteurs=!showSecteurs;views.carteInt()">${showSecteurs?'Masquer secteurs':'Secteurs'}</button> ${mapFondBarre()}`);
   const techsJour=[...new Set(pts.map(p=>p.techId||''))];
   const legTech = techsJour.length?`<div class="card" style="margin-top:12px;padding:10px 12px"><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
     <b style="font-size:12px;color:var(--t2)">Couleur = technicien :</b>
@@ -27852,7 +28048,7 @@ function ficheTech(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) return
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(108px,1fr));margin:14px 0">
       ${k('🧰','rgba(96,165,250,.14)',ints.length,'Interventions')}
       ${k('📅','rgba(251,146,60,.14)',enCours,'En cours/à venir')}
-      ${k('⏱️','rgba(74,222,128,.16)',dureeStr(totMin),'Temps pointé')}</div>
+      ${k('⏱️','color-mix(in srgb,var(--acc) 16%,transparent)',dureeStr(totMin),'Temps pointé')}</div>
     <div class="dt-lbl" style="margin:8px 0">Dernières interventions</div>
     ${ints.length? ints.slice(0,5).map(i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention</div>'}
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal();formTech('${t.id}')">Modifier</button><button class="btn" onclick="closeModal();go('pointage')">Pointage</button></div>`);
@@ -29835,7 +30031,7 @@ function boxScanApply(){ const b=db.boxes.find(x=>x.id===boxScan.boxId); if(!b){
   notifyDrBoxMove(b,boxScanSel,boxScan.action==='ajouter'?'entree':'sortie',qty,'u');
   db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:boxScanSel,type:boxScan.action==='ajouter'?'entree':'sortie',qte:qty,motif:(boxScan.action==='ajouter'?'Scan + ':'Scan − ')+(b.nom||b.numero||''),vehiculeId:'',boxId:b.id,technicien:fullName(currentUser)});
   logEvent('Scan box',`${boxScan.action==='ajouter'?'+':'-'}${qty} × ${p.nom} — ${b.nom||b.numero||''}`,'stock'); save();
-  if(r) r.innerHTML=`<div class="scan-result" style="border-color:rgba(74,222,128,.5)"><div style="font-weight:700;color:var(--acc)">✓ ${boxScan.action==='ajouter'?'Ajouté':'Retiré'} : ${qty} × ${esc(p.nom)}</div><div style="color:var(--t3);font-size:13px;margin-top:4px">Stock en box : ${cur.u} u — continue à scanner ou ferme.</div></div>`;
+  if(r) r.innerHTML=`<div class="scan-result" style="border-color:color-mix(in srgb,var(--acc) 50%,transparent)"><div style="font-weight:700;color:var(--acc)">✓ ${boxScan.action==='ajouter'?'Ajouté':'Retiré'} : ${qty} × ${esc(p.nom)}</div><div style="color:var(--t3);font-size:13px;margin-top:4px">Stock en box : ${cur.u} u — continue à scanner ou ferme.</div></div>`;
   const ti=$('bscan-text'); if(ti) ti.value=''; boxScan.cands=[]; boxScanSel=null; toast('Stock mis à jour'); }
 
 /* ═══════════════ COMMERCIAL : DEVIS & FACTURES (façon Organilog) ═══════════════ */
@@ -30368,7 +30564,7 @@ views.factures=function(){
       </span></div>`; };
   $('content').innerHTML=`<div class="kpis">
     <div class="kpi"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">📄</div><div class="kpi-val">${eur(totFact)}</div><div class="kpi-lbl">Total facturé</div></div>
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">✅</div><div class="kpi-val">${eur(totPaid)}</div><div class="kpi-lbl">Encaissé</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">✅</div><div class="kpi-val">${eur(totPaid)}</div><div class="kpi-lbl">Encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">⏳</div><div class="kpi-val">${eur(totDue)}</div><div class="kpi-lbl">À encaisser (${dueList.length})</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(239,68,68,.14)">🚨</div><div class="kpi-val">${eur(totLate)}</div><div class="kpi-lbl">En retard (${lateList.length})</div></div></div>
     ${(devisAcc.length||intsAfact.length)?`<div class="card"><div class="card-head"><h3>À facturer</h3><span class="tag">${devisAcc.length+intsAfact.length}</span></div>
@@ -30699,7 +30895,7 @@ function comptaControle(){
   const nEcart=fiches.filter(f=>Math.abs(f.ecart)>=0.01).length;
   const kpis=`<div class="kpis">
     <div class="kpi" onclick="ctrlOnglet='afaire';views.comptabilite()" style="cursor:pointer" title="Voir ce qui reste à valider"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">📋</div><div class="kpi-val">${eur(prevuJour)}</div><div class="kpi-lbl">Prévu ${d===today?"aujourd'hui":'ce jour-là'} (${intsJour.length} intervention${intsJour.length>1?'s':''})</div></div>
-    <div class="kpi" onclick="closeModal();regFOrigine='terrain';comptaTab='registre';views.comptabilite()" style="cursor:pointer" title="Ouvrir le registre des encaissements"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💶</div><div class="kpi-val">${eur(encJour)}</div><div class="kpi-lbl">Encaissé ce jour</div></div>
+    <div class="kpi" onclick="closeModal();regFOrigine='terrain';comptaTab='registre';views.comptabilite()" style="cursor:pointer" title="Ouvrir le registre des encaissements"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(encJour)}</div><div class="kpi-lbl">Encaissé ce jour</div></div>
     <div class="kpi" onclick="ctrlOnglet='ecart';views.comptabilite()" style="cursor:pointer" title="Voir uniquement les personnes en écart"><div class="kpi-ico" style="background:${bon?'rgba(74,222,128,.16)':'rgba(239,68,68,.14)'}">⚖️</div><div class="kpi-val" style="color:${bon?'var(--acc)':'var(--red)'}">${bon?'On est bon ✓':(ecartJour>0?'+':'')+eur(ecartJour)}</div><div class="kpi-lbl">${bon?'Écart du jour : aucun':'Écart du jour — à vérifier'}</div></div>
     <div class="kpi" onclick="ctrlOnglet='valides';views.comptabilite()" style="cursor:pointer" title="Voir les journées validées"><div class="kpi-ico" style="background:rgba(232,163,61,.14)">🌙</div><div class="kpi-val">${valides} / ${fiches.length}</div><div class="kpi-lbl">Journée${fiches.length>1?'s':''} validée${valides>1?'s':''} (télécollecte)</div></div></div>`;
   /* la barre d'essai n'apparaît que s'il RESTE des données d'essai à retirer — un espace propre ne voit rien */
@@ -30762,14 +30958,14 @@ function comptaControle(){
   const vide=ctrlOnglet==='valides'
     ?`<div class="card">${emptyState('🌙','Personne n’est encore validé.','Valide les journées dans « À valider » — elles viendront se ranger ici.','')}</div>`
     :(ctrlOnglet==='ecart'
-      ?`<div class="card" style="padding:14px 16px;background:rgba(30,122,78,.10);border-color:rgba(30,122,78,.35)">
+      ?`<div class="card" style="padding:14px 16px;background:color-mix(in srgb,var(--acc) 10%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)">
           <div style="font-size:13.5px;font-weight:800;color:var(--acc)">✓ Aucun écart d'argent</div>
           <div style="font-size:12px;color:var(--t2);margin-top:3px">Les comptes tombent juste, personne à vérifier.</div></div>`
-      :`<div class="card" style="padding:14px 16px;background:rgba(30,122,78,.10);border-color:rgba(30,122,78,.35)">
+      :`<div class="card" style="padding:14px 16px;background:color-mix(in srgb,var(--acc) 10%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)">
           <div style="font-size:13.5px;font-weight:800;color:var(--acc)">✓ Tout le monde est validé</div>
           <div style="font-size:12px;color:var(--t2);margin-top:3px">La journée est contrôlée — retrouve les fiches dans la case « Validés ».</div></div>`);
   return nav+kpis+demoBar+barre+chips
-    +(montre.length?`<div class="card" style="padding:6px 10px${ctrlOnglet==='valides'?';border-color:rgba(30,122,78,.30)':''}">`+montre.map(ligneTech).join('')+`</div>`:vide);
+    +(montre.length?`<div class="card" style="padding:6px 10px${ctrlOnglet==='valides'?';border-color:color-mix(in srgb,var(--acc) 30%,transparent)':''}">`+montre.map(ligneTech).join('')+`</div>`:vide);
 }
 /* ══ LA FICHE-JOURNÉE D'UNE PERSONNE ══
    Un clic sur sa carte du Contrôle : TOUTES ses interventions du jour (payée
@@ -31195,7 +31391,7 @@ function ctrlJournee(techId,declarantId,d){
   const aFact=ints.filter(interAFacturer);
   const clients=new Set(ints.map(i=>i.clientId).filter(Boolean)).size||ints.length;
   const pied=valide
-    ? `<div class="card" style="padding:12px 14px;margin:14px 0 0;background:rgba(30,122,78,.10);border-color:rgba(30,122,78,.35)">
+    ? `<div class="card" style="padding:12px 14px;margin:14px 0 0;background:color-mix(in srgb,var(--acc) 10%,transparent);border-color:color-mix(in srgb,var(--acc) 35%,transparent)">
          <div style="font-size:13.5px;font-weight:800;color:var(--acc)">✓ Paiements validés</div>
          <div style="font-size:12px;color:var(--t2);margin-top:4px;line-height:1.5">Le ${esc(fmtShort(new Date(info.le).toLocaleDateString('sv-SE')))} par ${esc(info.par===((currentUser&&currentUser.id))?'toi':'la gestion')}${(info.factures&&info.factures.length)?' · '+info.factures.length+' facture'+(info.factures.length>1?'s':'')+' créée'+(info.factures.length>1?'s':''):''}.<br>
          Tu peux rouvrir la journée si tu vois une erreur — rien n\u2019est figé.</div>
@@ -31309,14 +31505,14 @@ let _payMode='', _payAF=false, _payDR=false;
 function paiementEditeur(i,l,techId,declarantId,d){
   if(!isFinanceMgr()) return '';
   if(ctrlEstValide(d,techId,declarantId))
-    return `<div class="card" style="padding:12px 14px;margin-top:14px;background:rgba(30,122,78,.10);border-color:rgba(30,122,78,.3)">
+    return `<div class="card" style="padding:12px 14px;margin-top:14px;background:color-mix(in srgb,var(--acc) 10%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)">
       <div style="font-size:12.5px;line-height:1.55">✓ La journée est validée — ce paiement n\u2019est plus modifiable.<br>
       Reviens à la journée et touche <b>« Rouvrir »</b> si tu dois corriger.</div></div>`;
   _payMode=l?l.mode:''; _payAF=!!i.aFacturer; _payDR=!!i.dejaRegle;
   const prevu=Number(i.montant)||0;
   const modes=Object.keys(REG_MODES).map(k=>{ const M=REG_MODES[k]; const on=(_payMode===k&&!_payAF&&!_payDR);
     return `<span onclick="payMode('${k}')" data-pm="${k}" style="font-size:11.5px;font-weight:700;padding:8px 12px;border-radius:10px;cursor:pointer;
-      border:1.5px solid ${on?'var(--acc)':'var(--brd)'};color:${on?'var(--acc)':'var(--t2)'};${on?'background:rgba(30,122,78,.10)':''}">${M[0]} ${esc(M[1])}</span>`; }).join('');
+      border:1.5px solid ${on?'var(--acc)':'var(--brd)'};color:${on?'var(--acc)':'var(--t2)'};${on?'background:color-mix(in srgb,var(--acc) 10%,transparent)':''}">${M[0]} ${esc(M[1])}</span>`; }).join('');
   const af=`<span onclick="payMode('__AF')" data-pm="__AF" style="font-size:11.5px;font-weight:700;padding:8px 12px;border-radius:10px;cursor:pointer;
     border:1.5px solid ${_payAF?'var(--org)':'var(--brd)'};color:${_payAF?'var(--org)':'var(--t2)'};${_payAF?'background:rgba(232,163,61,.12)':''}">📄 À facturer</span>`
   + `<span onclick="payMode('__DR')" data-pm="__DR" style="font-size:11.5px;font-weight:700;padding:8px 12px;border-radius:10px;cursor:pointer;
@@ -31346,7 +31542,7 @@ function payMode(k){
   _payAF=(k==='__AF'); _payDR=(k==='__DR'); _payMode=(_payAF||_payDR)?'':k;
   const COUL={__AF:'var(--org)',__DR:'#3B82F6'}, FOND={__AF:'rgba(232,163,61,.12)',__DR:'rgba(59,130,246,.12)'};
   document.querySelectorAll('#pay-modes [data-pm]').forEach(el=>{
-    const on=(el.dataset.pm===k), c=COUL[el.dataset.pm]||'var(--acc)', f=FOND[el.dataset.pm]||'rgba(30,122,78,.10)';
+    const on=(el.dataset.pm===k), c=COUL[el.dataset.pm]||'var(--acc)', f=FOND[el.dataset.pm]||'color-mix(in srgb,var(--acc) 10%,transparent)';
     el.style.borderColor=on?c:'var(--brd)';
     el.style.color=on?c:'var(--t2)';
     el.style.background=on?f:'';
@@ -31433,7 +31629,7 @@ function comptaSynthese(){
       <span style="font-size:12px;color:var(--t3)">Deux caisses bien séparées : le terrain d'un côté, les factures pro de l'autre.</span></div>
     <div class="kpis">
     <div class="kpi"><div class="kpi-ico" style="background:rgba(232,163,61,.16)">💳</div><div class="kpi-val">${eur(encT)}</div><div class="kpi-lbl">Terrain — télécollecte (${terrain.length})</div></div>
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">🏦</div><div class="kpi-val">${eur(encP)}</div><div class="kpi-lbl">Factures pro encaissées (${pro.length})</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">🏦</div><div class="kpi-val">${eur(encP)}</div><div class="kpi-lbl">Factures pro encaissées (${pro.length})</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(239,68,68,.14)">⏳</div><div class="kpi-val">${eur(impTot)}</div><div class="kpi-lbl">À encaisser (${impayes.length} facture${impayes.length>1?'s':''})</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(232,163,61,.14)">🌙</div><div class="kpi-val">${attente.length}</div><div class="kpi-lbl">Journée${attente.length>1?'s':''} à valider ce soir</div></div></div>
 
@@ -32426,7 +32622,7 @@ views.pointage=function(){
   $('content').innerHTML=`${moi}${alerte}${barre}
     <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
       <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">⏱️</div><div class="kpi-val">${ptDuree(secTot)}</div><div class="kpi-lbl">Total de la période</div></div>
-      <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">📅</div><div class="kpi-val">${jours.length}</div><div class="kpi-lbl">Jour${jours.length>1?'s':''} travaillé${jours.length>1?'s':''}</div></div>
+      <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">📅</div><div class="kpi-val">${jours.length}</div><div class="kpi-lbl">Jour${jours.length>1?'s':''} travaillé${jours.length>1?'s':''}</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(251,191,36,.16)">🗒️</div><div class="kpi-val">${list.length}</div><div class="kpi-lbl">Pointages</div></div></div>
     ${(autres&&parTech.size>1)?`<div class="card"><div class="card-head"><h3>Par personne</h3></div>
       ${[...parTech.entries()].sort((a,b)=>b[1]-a[1]).map(([t,s])=>`<div class="pl-row"><span class="strong">${esc(techName(t))}</span><b style="margin-left:auto;font-variant-numeric:tabular-nums">${ptDuree(s)}</b></div>`).join('')}</div>`:''}
@@ -32586,7 +32782,7 @@ views.statistiques=function(){
   const topC=Object.entries(parClient).map(([id,v])=>({nom:clientName(id),v})).sort((a,b)=>b.v-a.v).slice(0,6);
   const maxC=Math.max(1,...topC.map(c=>c.v));
   $('content').innerHTML=`<div class="kpis">
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💶</div><div class="kpi-val">${eur(caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
+    <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">⏳</div><div class="kpi-val">${eur(caAtt)}</div><div class="kpi-lbl">En attente de paiement</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">💰</div><div class="kpi-val">${eur(devisTtc)}</div><div class="kpi-lbl">Devis émis</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">✅</div><div class="kpi-val">${tauxAccept}%</div><div class="kpi-lbl">Taux d'acceptation devis</div></div></div>
@@ -32735,7 +32931,7 @@ views.archives=function(){
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3 style="text-transform:capitalize">🗄️ ${label}</h3></div>
     <div class="kpis">
       <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">🧰</div><div class="kpi-val">${s.ints.length}</div><div class="kpi-lbl">Interventions</div></div>
-      <div class="kpi"><div class="kpi-ico" style="background:rgba(74,222,128,.16)">💶</div><div class="kpi-val">${eur(s.caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
+      <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(s.caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">🧾</div><div class="kpi-val">${eur(s.caTot)}</div><div class="kpi-lbl">CA facturé</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">⏱️</div><div class="kpi-val">${dureeStr(s.minTot)}</div><div class="kpi-lbl">Temps pointé</div></div>
     </div></div>
@@ -34046,7 +34242,9 @@ function opMsgDisponible(){ return _opMsgOuvert===true; }
 function suiteRefresh(){ if(!currentUser) return;
   const soOn=!!(can('opMessages')&&planOpMsg()&&opMsgDisponible());
   const so=$('suite-opmsg'); if(so) so.style.display=soOn?'flex':'none';
-  try{ const sb=$('suite-box'); if(sb){ sb.style.display=soOn?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=soOn?'':'none'; } }catch(e){}
+  try{ const sb=$('suite-box'); if(sb){ sb.style.display=soOn?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=soOn?'':'none';
+    /* la carte utilisateur perd son filet quand elle n'a plus rien au-dessus (voir .sans-suite) */
+    const pied=sb.closest('.sidebar-foot'); if(pied) pied.classList.toggle('sans-suite',!soOn); } }catch(e){}
   try{ renderMsgFlottant(); }catch(e){} }
 function enterApp(u){ currentUser=u;
   /* Le thème, la couleur et la langue choisis sur un AUTRE appareil arrivent avec la fiche :
@@ -35368,7 +35566,7 @@ function getAccent(){ return localStorage.getItem('elanB_accent')||'green'; }
       deux téléphones ouverts se repousseraient leur thème à tour de rôle, chacun estampillant
       la fiche de l'autre. C'est un tap qui écrit. Conséquence assumée, et à dire : un réglage
       choisi AVANT cette version ne voyage qu'une fois retapé une seule fois. */
-const PREF_CLES={theme:'elanB_theme',accent:'elanB_accent',accentHex:'elanB_accent_hex',accentsPerso:'elanB_accents_perso',lang:'elanB_lang',onglets:'elanB_onglets',favoris:'elanB_favoris'};
+const PREF_CLES={theme:'elanB_theme',accent:'elanB_accent',accentHex:'elanB_accent_hex',accentsPerso:'elanB_accents_perso',lang:'elanB_lang',onglets:'elanB_onglets',favoris:'elanB_favoris',carte:'elanB_carte'};
 function prefEcrire(cle,val){
   if(!currentUser||!PREF_CLES[cle]||typeof val!=='string') return;
   const u=(db&&db.users&&db.users.find(x=>x.id===currentUser.id))||currentUser;
