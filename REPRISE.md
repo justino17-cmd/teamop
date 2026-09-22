@@ -47,7 +47,16 @@ pixels, et les deux premiers criaient faux.**
 
 ## 🧵 v713 / v714 — le tiroir, et l'encre des trois accents (22 septembre, nuit)
 
-Deux demandes de Justin, toutes deux mesurées, toutes deux sur la branche (rien sur `main`).
+✅ **PUBLIÉE SUR LA BÊTA le 22 septembre à 09 h 0x** — `main` `6babb13`, **`beta.html` SEUL**
+(`app.html` reste en 695 et `sw.js` en v895 : rien ne bouge chez ELAN). Vérifié sur le fichier
+RÉELLEMENT SERVI, pas sur la copie locale : `teamop.fr/beta.html` rend `714-beta`, 3 573 661
+octets, et porte bien `.sidebar-foot.sans-suite`, le `classList.toggle('sans-suite')`, les
+trois `padding-bottom:max(14px,env(...))`, `--on-fill:var(--on-acc)`, `--on-acc2:var(--on-fill)`
+et les 4 + 2 exceptions déclarées. Les deux seuls `color:#fff` sur `var(--acc)` qui restent sont
+des styles EN LIGNE, repeints par le bloc de rattrapage `[style*=…]` en `--acc-fill` + `--on-fill`.
+⚠️ Justin a dû forcer le cache de Safari iOS : la page servie change, le navigateur non.
+
+Deux demandes de Justin, toutes deux mesurées.
 
 **v713 — « regarde l'espace qu'il y a entre l'utilisateur tout en bas et le reste ».**
 Deux défauts, tous deux invisibles à la lecture :
