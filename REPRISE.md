@@ -23,6 +23,54 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
+## ✅ 22 SEPTEMBRE 2026 — LES NEUF COULEURS, CATÉGORIE PAR CATÉGORIE (mesuré, rien à corriger)
+
+Justin : « au niveau des couleurs du thème de l'application, t'as vérifié toutes les catégories
+par catégorie ? » — la réponse était **non**, et c'est fait depuis. `scratchpad/audit-accents.js`.
+
+| ce qui est mesuré | résultat |
+|---|---|
+| jetons d'accent réellement écrits dans la page | **11** (`--acc`, `--acc-fill`, `--acc-fill-hover`, `--acc-fill-press`, `--acc-rgb`, `--acc-src`, `--acc-txt`, `--acc2`, `--on-acc`, `--on-acc2`, `--on-fill`) |
+| 9 accents × 2 thèmes = 18 combinaisons | **0 jeton mort** |
+| les 3 encres sur les 3 aplats d'accent, sur chaque combinaison | **54 contrastes, tous ≥ 4,65:1** (plancher AA : 4,5) |
+| du vert par défaut qui survivrait à un accent violet, sur 42 catégories | **0**, sur 3 059 éléments examinés |
+
+### ⛔ LA SONDE A RENDU DEUX FAUX RÉSULTATS AVANT D'ÊTRE JUSTE, ET LES DEUX AVAIENT L'AIR VRAIS
+
+**1. J'avais écrit la liste des jetons DE MÉMOIRE.** Elle contenait `--acc-d`, `--acc-l`,
+`--acc-soft`, `--acc-brd`, `--acc-glow` : **cinq noms qui n'existent nulle part** dans
+`app.html`, ni définis ni utilisés. Le rapport annonçait donc « **18 jetons morts** » sur les
+dix-huit combinaisons — un faux intégral, et exactement le genre de trouvaille qu'on aurait
+« corrigée ». La sonde relit désormais les jetons **depuis les feuilles de style de la page**.
+
+**2. `getPropertyValue('--acc')` REND LE TEXTE DU JETON, PAS UNE COULEUR.** Mesuré :
+`color-mix(in srgb,#000 22%,#1F7A5C)`. Un lecteur de couleur le rejette — à juste titre — donc
+**tous les contrastes sortaient à « ? »** et le rapport disait « 0 encre sous la barre » sur
+**zéro mesure**. Même cause pour la seconde moitié : les trois couleurs CIBLES du balayage
+étaient ce même texte, donc la cible était VIDE et « 0 reste de vert » portait sur rien.
+On RÉSOUT une propriété personnalisée en la posant sur un vrai élément et en relisant sa
+couleur calculée — et la sonde **refuse de tourner** si la cible ne se résout pas.
+
+### ⚠️ UN FAUX POSITIF, ÉCARTÉ APRÈS CONTRE-ÉPREUVE ET NOMMÉ
+
+Le balayage signalait `span.av` — la pastille d'initiales d'un technicien — sur deux écrans.
+Contre-épreuve : la pastille rend **exactement la même couleur sous vert, violet et orange**.
+Elle n'a jamais suivi l'accent : c'est `techColor()` / `TECH_PALETTE16`, dont la première
+entrée (`#1E7A4E`) tombe à 12 unités du vert d'accent une fois assombrie. **C'est voulu** — on
+doit reconnaître quelqu'un d'un coup d'œil sur le planning quelle que soit la teinte. L'écart
+est écrit dans la sonde, avec sa raison.
+
+### ⚠️ CE QUI N'EST TOUJOURS PAS VÉRIFIÉ, ET QU'IL NE FAUT PAS COMPTER COMME FAIT
+
+- **Les écrans PROFONDS** : l'audit parcourt les 42 rubriques par `go(k)`. Les fiches
+  (intervention, client, box), les formulaires et les fenêtres modales ne sont pas parcourus —
+  ni en affichage, ni en couleurs, ni au clic.
+- **La passe de clics n'a tourné qu'en thème NUIT, sur un seul profil d'appareil** (téléphone
+  iOS 26), et 164 frappes sur 469 n'ont pas atteint leur cible.
+- **Les 9 accents n'ont été parcourus catégorie par catégorie que pour UN couple** (vert →
+  violet). Les sept autres teintes sont gardées par leurs jetons, pas par un balayage d'écrans.
+
+
 ## ✅ 22 SEPTEMBRE 2026 — LE « FOND MOCHE » ET LES BOUTONS DE POINTAGE (v725, bêta publiée)
 
 Deux captures de Justin, deux causes sans rapport, **la même leçon : un sélecteur décrit une
