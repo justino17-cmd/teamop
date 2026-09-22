@@ -43,4 +43,25 @@ const lum = ([r, g, b]) => { const f = c => { c /= 255; return c <= .03928 ? c /
   return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
 const contraste = (a, b) => { const L1 = lum(a), L2 = lum(b); const h = Math.max(L1, L2), l = Math.min(L1, L2);
   return Math.round(((h + .05) / (l + .05)) * 100) / 100; };
-module.exports = { decoder, px, lum, contraste };
+/* ⛔⛔ UNE COULEUR CALCULÉE NE REVIENT PAS EN `rgb()`. `getComputedStyle` rend une valeur
+   issue de `color-mix()` sous la forme `color(srgb 0.104549 0.411451 0.310275)` — des
+   FLOTTANTS 0–1. Un `match(/[\d.]+/g)` suivi de `map(Number)` les prend pour des 0–255 et
+   lit du quasi-noir. Mesuré le 22 septembre 2026 : une pastille parfaitement lisible rendait
+   « contraste 1,2 », et une autre « 17,64 » au lieu de sa vraie valeur — faux dans les DEUX
+   sens. C'est écrit dans CLAUDE.md depuis le 22 au matin, et ça n'a pas empêché de l'écrire.
+   ⛔ On reconnaît la FORME avant de convertir, et on JETTE (null) ce qu'on ne sait pas lire
+   plutôt que de deviner : un lecteur qui devine rend un chiffre crédible et faux. */
+function lireCouleur(s){
+  if(!s||typeof s!=='string') return null;
+  let m=s.match(/^rgba?\(([^)]+)\)/i);
+  if(m){ const n=m[1].split(/[\s,\/]+/).filter(Boolean).map(Number);
+    if(n.length<3||n.some(x=>!isFinite(x))) return null;
+    return [n[0],n[1],n[2]]; }                       /* 0–255 */
+  m=s.match(/^color\(\s*srgb\s+([^)]+)\)/i);
+  if(m){ const n=m[1].split(/[\s\/]+/).filter(Boolean).map(Number);
+    if(n.length<3||n.slice(0,3).some(x=>!isFinite(x))) return null;
+    return [n[0]*255,n[1]*255,n[2]*255]; }           /* 0–1 → 0–255 */
+  if(/^transparent$/i.test(s)) return null;
+  return null;                                        /* forme inconnue : on ne devine pas */
+}
+module.exports = { decoder, px, lum, contraste, lireCouleur };

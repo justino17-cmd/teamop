@@ -102,13 +102,52 @@ vitre('une pastille LIBRE (elle a une surface, elle)', 'html[data-verre="1"] .ch
 vrai('… et c’est bien le reflet du document de thème, pas une valeur inventée',
   /html\[data-verre="1"\] \.chip\{[^}]*background:var\(--vr-reflet\),var\(--vr-fond2\)!important/.test(NU.replace(/\s*\n\s*/g,'')));
 
-console.log('\n══ 4. LA MESURE QUI GARDE LE RESTE EXISTE ══\n');
+console.log('\n══ 4. ⛔ UNE SEULE MARQUE POUR L\'ONGLET ACTIF ══\n');
+/* Le soulignement de 2,5 px (`html[data-refonte] .tab::after`) est dessiné pour une bande
+   d'onglets EN HAUT : coin arrondi en haut, plat en bas, posé à `bottom:-1px`, c'est-à-dire
+   SUR l'arête de la bande. La barre du bas est une PILULE FLOTTANTE : le trait y tombe À
+   L'INTÉRIEUR, en travers de la pastille qui désigne déjà l'onglet. Mesuré le 22 septembre
+   2026 sur les DIX combinaisons téléphone : pastille ET trait, partout.
+   ⚠️ Le commentaire du bloc verre disait déjà l'intention — l'onglet actif avait bien perdu
+   son FOND, il avait gardé son TRAIT. Encore une moitié de règle qui survit à l'autre. */
+{ const t=NU.replace(/\s*\n\s*/g,'');
+  const m=t.match(/html\[data-refonte\] \.tabbar:has\(\.tab-cur\) \.tab\.on::after[^{]*\{([^}]*)\}/);
+  vrai('⛔ la barre du bas éteint le soulignement', !!m);
+  if(m){ vrai('… en opacité ET en échelle (l’un sans l’autre laisse un trait de 1 px)',
+              /opacity:0!important/.test(m[1]) && /scaleX\(0\)!important/.test(m[1]));
+         vrai('… et il coupe l’animation, qui repeindrait par-dessus', /animation:none!important/.test(m[1])); }
+  /* ⛔ LA RÈGLE SE GARDE ELLE-MÊME : `:has(.tab-cur)`. Le jour où un profil n'aurait plus de
+     pastille, le trait revient tout seul — on ne laisse jamais un onglet actif sans AUCUNE
+     marque. Un banc qui ne vérifierait que « le trait est éteint » accepterait la version
+     dangereuse. */
+  vrai('⛔ la règle est conditionnée à la PRÉSENCE de la pastille (:has(.tab-cur))',
+       /\.tabbar:has\(\.tab-cur\)/.test(t));
+  /* ⛔ On ne devine pas avec une négation : on RAMASSE toutes les règles qui éteignent le
+     trait d'un onglet actif, et on exige qu'elles soient TOUTES bornées à la barre du bas.
+     Une négation mal écrite passe au vert sur n'importe quoi. */
+  const eteint=REGLES.flatMap(r=>r.sel.split(',').map(s=>s.trim())
+      .filter(s=>/\.tab\.(on|active)::after$/.test(s) && /opacity\s*:\s*0\b/.test(r.corps))
+      .map(s=>s));
+  v('population : au moins une règle éteint le trait', eteint.length>0, true);
+  v('⛔ … et toutes sont bornées à .tabbar (les bandes du HAUT gardent leur trait)',
+    eteint.filter(s=>!/\.tabbar/.test(s)), []);
+  vrai('population : le trait existe toujours pour les bandes du haut',
+       /html\[data-refonte\] \.tab::after\{[^}]*background:var\(--acc\)/.test(t)); }
+
+console.log('\n══ 5. LA MESURE QUI GARDE LE RESTE EXISTE ══\n');
 /* ⚠️ Le contrôle 2 n'apparie que par CLASSE : le cas du champ de recherche se croise par un
    ATTRIBUT et lui échappe. La preuve de bout en bout est au navigateur — on exige au moins
    que la sonde soit là, sinon la garde tient sur une phrase de commentaire. */
 vrai('scratchpad/sonde-verre.js existe', fs.existsSync(__dirname+'/../scratchpad/sonde-verre.js'));
 const SONDE=fs.existsSync(__dirname+'/../scratchpad/sonde-verre.js')?fs.readFileSync(__dirname+'/../scratchpad/sonde-verre.js','utf8'):'';
 vrai('… et elle mesure bien le fond ET le filtre', /backdropFilter/.test(SONDE) && /backgroundColor/.test(SONDE));
+vrai('… elle porte la CONTRE-ÉPREUVE du soulignement (sinon on supprimerait un marqueur)',
+     /CONTRE-ÉPREUVE/.test(SONDE) && /tabs/.test(SONDE));
+/* ⛔ UNE COULEUR CALCULÉE NE REVIENT PAS EN rgb() : `color(srgb 0.47 0.86 0.65)` lu comme
+   du 0–255 donne du quasi-noir. Mesuré : « contraste 1,2 » sur une pastille lisible, et
+   « 17,64 » sur une autre — faux dans les DEUX sens. La sonde doit reconnaître la FORME. */
+vrai('⛔ … et elle lit les couleurs par leur FORME (color(srgb …) autant que rgb())',
+     /lireCouleur/.test(SONDE));
 vrai('… sur la BÊTA, jamais sur app.html', !/app\.html/.test(SONDE));
 
 console.log(`\n════ test-763 : ${ok} ✓ ${ko} ✗ ════\n`);

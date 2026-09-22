@@ -21,7 +21,7 @@
    ⛔ Bêta uniquement, servie en 127.0.0.1.                                                */
 const fs=require('fs'), path=require('path');
 const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
-const {decoder,px,contraste,lum}=require(path.join(__dirname,'png.js'));
+const {decoder,px,contraste,lum,lireCouleur}=require(path.join(__dirname,'png.js'));
 
 let ok=0,ko=0; const L=[];
 const v=(t,a,b)=>{const bon=JSON.stringify(a)===JSON.stringify(b); bon?ok++:ko++;
@@ -43,20 +43,26 @@ const moy=a=>a.reduce((s,x)=>s+x,0)/a.length;
       {format:'png',clip:{x:c.x,y:c.y,width:c.width,height:c.height,scale:3},captureBeyondViewport:true});
     const b=Buffer.from(r.data,'base64'); if(nom) fs.writeFileSync(__dirname+'/'+nom,b); return decoder(b); };
 
-  /* une PILULE : on ne lit que la partie droite (hors bouts arrondis) et les rangées sans encre */
-  const profilPilule=(I)=>{ const x0=I.h*0.5, x1=I.w-I.h*0.5; if(x1-x0 < I.w*0.12) return null;
-    const rang=f=>{const o=[];for(let i=0;i<=8;i++)o.push(lum(px(I,x0+(x1-x0)*i/8,Math.min(I.h-1,I.h*f))));return o;};
-    const rim=moy([...rang(0.05),...rang(0.95)]), coeur=moy([...rang(0.20),...rang(0.80)]);
-    return {rim,coeur,liseré:Math.abs(rim-coeur),fondTexte:px(I,I.w*0.5,I.h*0.20)}; };
-  /* une CARTE : on lit la COLONNE de rembourrage à gauche, jamais le cœur (il porte le contenu) */
-  const profilCarte=(I)=>{ const cx=I.w*0.02;
-    const col=f=>lum(px(I,cx,Math.min(I.h-1,I.h*f)));
-    const rim=moy([col(0.01),col(0.99)]), coeur=moy([col(0.25),col(0.5),col(0.75)]);
-    /* ⛔ LE FOND DU TEXTE SE LIT DANS LE REMBOURRAGE, PAS AU CENTRE. Au centre d'une carte
-       il y a du CONTENU (un graphique, une pastille de couleur, une ligne) : on mesurerait
-       alors le contraste de l'encre contre un autre objet, pas contre la surface. Mesuré :
-       ça rendait 2,69 sur une carte parfaitement lisible. */
-    return {rim,coeur,liseré:Math.abs(rim-coeur),fondTexte:px(I,cx,I.h*0.5)}; };
+  /* ⛔ ON PREND LA MÉDIANE, PAS LA MOYENNE. Deux pixels de contenu dans une goutttière, ou
+     l'antialiasing d'un coin arrondi, suffisent à déplacer une moyenne : mesuré le
+     22 septembre, la même carte rendait 0,228 à un tour et 0,005 au suivant. Un liseré de
+     fuite, lui, est SYSTÉMATIQUE sur toute la bordure — la médiane le garde et jette le reste.
+     ⚠️ Et on reste à 12 % du bord, pas à 5 % : sur une pilule de 44 px, 5 % vaut 2 px, en
+     plein dans l'antialiasing du rayon. Un flou qui fuit déborde de bien plus que ça. */
+  const med=a=>{const s=[...a].sort((x,y)=>x-y); const n=s.length;
+    return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2;};
+  /* une PILULE (large et basse, très arrondie) : on ne lit que la partie droite, et les
+     rangées sans encre, au-dessus et au-dessous de la ligne de texte. */
+  const profilPilule=(I)=>{ const x0=I.h*0.5, x1=I.w-I.h*0.5; if(x1-x0 < I.w*0.10) return null;
+    const rang=f=>{const o=[];for(let i=0;i<=14;i++)o.push(lum(px(I,x0+(x1-x0)*i/14,Math.min(I.h-1,I.h*f))));return o;};
+    const rim=med([...rang(0.12),...rang(0.88)]), coeur=med([...rang(0.26),...rang(0.74)]);
+    return {rim,coeur,liseré:Math.abs(rim-coeur),fondTexte:px(I,x0+(x1-x0)*0.5,I.h*0.12)}; };
+  /* une CARTE : la colonne de rembourrage à gauche, jamais le cœur (il porte le contenu). */
+  const profilCarte=(I)=>{ const col=(fx,fy)=>lum(px(I,I.w*fx,Math.min(I.h-1,I.h*fy)));
+    const bande=(y0,y1)=>{const o=[];for(let i=0;i<=8;i++)for(const fx of [0.012,0.020,0.028])
+      o.push(col(fx,y0+(y1-y0)*i/8));return o;};
+    const rim=med([...bande(0.03,0.09),...bande(0.91,0.97)]), coeur=med(bande(0.30,0.70));
+    return {rim,coeur,liseré:Math.abs(rim-coeur),fondTexte:px(I,I.w*0.020,I.h*0.5)}; };
 
   const mesurer=async(sel,filtre,type,etiq)=>{
     /* ⛔ on fait défiler AVANT de filtrer sur la fenêtre : sinon un élément sous la ligne de
@@ -83,36 +89,57 @@ const moy=a=>a.reduce((s,x)=>s+x,0)/a.length;
     const I=await couper(dit.clip, etiq?etiq+'.png':null);
     const pr=(type==='pilule')?profilPilule(I):profilCarte(I);
     if(!pr) return null;
-    const enc=(dit.couleur.match(/[\d.]+/g)||[0,0,0]).slice(0,3).map(Number);
-    return {...dit,...pr,ctr:contraste(enc,pr.fondTexte)};
+    /* ⛔ On JETTE une couleur qu'on ne sait pas lire au lieu de la deviner — sinon on publie
+       un contraste crédible et faux (cf. png.js). */
+    const enc=lireCouleur(dit.couleur);
+    return {...dit,...pr,encreLue:!!enc,ctr:enc?contraste(enc,pr.fondTexte):null};
   };
 
-  const R=[];
+  /* ⛔ UNE FAMILLE ABSENTE N'EST PAS UNE FAMILLE SAINE. On cherche chaque famille sur
+     PLUSIEURS écrans jusqu'à la trouver, et si on ne la trouve nulle part on le DIT —
+     un ✓ sur un ensemble vide ne vaut rien.
+     ⚠️ Et chaque forme a SA géométrie : une pilule (large et basse, très arrondie) se lit
+     dans sa partie droite ; une carte se lit dans sa colonne de rembourrage. La barre
+     d'onglets est une PILULE, pas une carte — mesurée comme une carte, elle rendait 0,155
+     à un tour et 0,000 au suivant, c'est-à-dire un bruit de coin arrondi. */
+  const FAMILLES=[
+    {n:'pastille de segmenté', sel:'.filters.seg-on .chip', f:'true',                          g:'pilule', ecrans:['parametres','interventions','boxes']},
+    {n:'curseur de segmenté',  sel:'.seg-cur',              f:'true',                          g:'pilule', ecrans:['parametres','interventions','boxes']},
+    {n:'pastille libre',       sel:'.filters:not(.seg-on) .chip', f:'true',                    g:'pilule', ecrans:['contrats','factures','registre','clients','boiteMail','carteInt','messagerie']},
+    {n:'bouton',               sel:'.btn',                  f:'x.getBoundingClientRect().height>=36', g:'pilule', ecrans:['dashboard','interventions']},
+    {n:'piste segmentée',      sel:'.seg',                  f:'x.getBoundingClientRect().height<70', g:'pilule', ecrans:['pointage','planning','interventions','statistiques']},
+    {n:'carte',                sel:'.card',                 f:'x.getBoundingClientRect().height>140', g:'carte',  ecrans:['dashboard','parametres']},
+    {n:'KPI',                  sel:'.kpi',                  f:'x.getBoundingClientRect().height>60',  g:'carte',  ecrans:['dashboard','statistiques','stock']},
+    /* ⛔ LA BARRE D'ONGLETS N'A PAS DE SURFACE LIBRE À MESURER : ses cinq onglets vont de
+       y 7 à y 51 sur 58 px de haut — exactement les rangées qu'on lirait. Mesurée comme si
+       elle en avait une, elle rendait 0,134 à un tour et 0,000 au suivant : c'était le HAUT
+       d'une icône, pas un liseré. On la garde pour la loupe et le contraste, on DIT qu'on
+       ne mesure pas son liseré plutôt que de publier un chiffre qui ne veut rien dire. */
+    {n:"barre d'onglets",      sel:'.tabbar',               f:'true',                          g:'pilule', ecrans:['dashboard'], rempli:true},
+    {n:'barre du haut',        sel:'.topbar',               f:'true',                          g:'pilule', ecrans:['dashboard']},
+  ];
+  const R=[], absentes=[];
   for(const th of ['light','dark']){
-    await S.ev(`setPlatForce('iosweb'); setThemePref('${th}'); go('parametres'); return 1;`); await dormir(1200);
-    const seg=await mesurer('.filters.seg-on .chip','/Espa/.test(x.textContent)','pilule', th==='light'?'verre-seg-jour':'verre-seg-nuit');
-    if(seg) R.push({th,fam:'pastille de segmenté',...seg});
-    await S.ev(`go('interventions'); return 1;`); await dormir(1000);
-    const lib=await mesurer('.filters:not(.seg-on) .chip','true','pilule', th==='light'?'verre-libre-jour':null);
-    if(lib) R.push({th,fam:'pastille libre',...lib});
-    const bt=await mesurer('.btn','x.getBoundingClientRect().height>=36','pilule',null);
-    if(bt) R.push({th,fam:'bouton',...bt});
-    const ca=await mesurer('.card','x.getBoundingClientRect().height>140','carte', th==='light'?'verre-carte-jour':null);
-    if(ca) R.push({th,fam:'carte',...ca});
+    await S.ev(`setPlatForce('iosweb'); setThemePref('${th}'); return 1;`); await dormir(300);
+    for(const F of FAMILLES){
+      let m=null;
+      for(const e of F.ecrans){
+        await S.ev(`go('${e}'); return 1;`); await dormir(800);
+        m=await mesurer(F.sel,F.f,F.g, (th==='light'&&F.n==='pastille de segmenté')?'verre-seg-jour':null);
+        if(m) break;
+      }
+        if(m) R.push({th,fam:F.n,rempli:F.rempli||false,...m}); else absentes.push(th+' · '+F.n);
+    }
   }
 
   titre('0. LA SONDE REGARDE BIEN QUELQUE CHOSE');
-  v('population : surfaces mesurées', R.length>=6, true);
-  const fams=[...new Set(R.map(r=>r.fam))];
-  L.push('      familles trouvées : '+fams.join(' · '));
-  /* ⚠️ Une famille absente n'est pas une famille saine : on le DIT plutôt que de laisser
-     croire que tout est mesuré. */
-  ['pastille de segmenté','pastille libre','bouton','carte'].forEach(f=>{
-    const n=R.filter(r=>r.fam===f).length;
-    if(!n) L.push('      ⚠️ famille NON RENCONTRÉE sur ces écrans : '+f+' — rien n\'est conclu pour elle'); });
+  v('population : surfaces mesurées', R.length>=12, true);
+  L.push('      familles trouvées : '+[...new Set(R.map(r=>r.fam))].join(' · '));
+  absentes.forEach(a=>L.push('      ⚠️ NON RENCONTRÉE sur les écrans essayés : '+a+' — rien n\'est conclu pour elle'));
+  v('⚠️ aucune famille introuvable (sinon son ✓ porterait sur du vide)', absentes, []);
   L.push('');
   L.push('   thème  famille                taille   liseré   contraste  fond   backdrop-filter');
-  R.forEach(r=>L.push(`   ${r.th.padEnd(6)} ${r.fam.padEnd(22)} ${(r.w+'×'+r.h).padStart(7)}  ${r.liseré.toFixed(3).padStart(6)}  ${String(r.ctr).padStart(7)}   ${String(r.alpha).padStart(4)}   ${r.bf.slice(0,24)}`));
+  R.forEach(r=>L.push(`   ${r.th.padEnd(6)} ${r.fam.padEnd(22)} ${(r.w+'×'+r.h).padStart(7)}  ${r.liseré.toFixed(3).padStart(6)}  ${String(r.ctr===null?'?':r.ctr).padStart(7)}   ${String(r.alpha).padStart(4)}   ${r.bf.slice(0,24)}`));
 
   titre('1. ⛔ PLUS AUCUNE LOUPE SANS MATIÈRE');
   R.forEach(r=>vrai(`${r.th} · ${r.fam} : ${r.bf==='none'?'aucun filtre':'filtre AVEC matière'}`,
@@ -120,12 +147,69 @@ const moy=a=>a.reduce((s,x)=>s+x,0)/a.length;
 
   titre('2. LE LISERÉ DE FUITE, MESURÉ SUR LA SURFACE');
   R.forEach(r=>{ L.push(`      ${r.th} · ${r.fam} : bord ${r.rim.toFixed(3)} · cœur ${r.coeur.toFixed(3)}`);
-    v(`${r.th} · ${r.fam} : le liseré reste sous 0,05`, r.liseré < 0.05, true); });
+    /* ⛔ LE SEUIL VIENT DE LA MESURE DU DÉFAUT, PAS D'UN GOÛT. La pastille cassée de la
+       capture de Justin rendait cœur 0,679 contre bord 0,784, soit **0,105**. On garde
+       0,08 : sous le défaut réel, au-dessus du bruit mesuré des surfaces saines. */
+    if(r.rempli){ L.push('      → liseré NON MESURÉ : ses enfants couvrent la surface'); return; }
+    v(`${r.th} · ${r.fam} : le liseré de fuite reste sous 0,08`, r.liseré < 0.08, true); });
 
   titre('3. LE TEXTE RESTE LISIBLE SUR SA PROPRE SURFACE');
-  R.forEach(r=>v(`${r.th} · ${r.fam} : contraste ${r.ctr} ≥ 4,5`, r.ctr >= 4.5, true));
+  v('population : toutes les encres ont pu être LUES', R.filter(r=>!r.encreLue).map(r=>r.th+' · '+r.fam), []);
+  R.forEach(r=>{ if(!r.encreLue){ L.push('      ⚠️ '+r.th+' · '+r.fam+' : encre illisible — rien conclu'); return; }
+    v(`${r.th} · ${r.fam} : contraste ${r.ctr} ≥ 4,5`, r.ctr >= 4.5, true); });
 
-  titre('4. AUCUNE ERREUR JAVASCRIPT');
+  titre('4. ⛔ UNE SEULE MARQUE POUR L’ONGLET ACTIF');
+  /* Le soulignement de 2,5 px est dessiné pour une bande d'onglets EN HAUT (coin arrondi en
+     haut, `bottom:-1px`). Dans la pilule flottante du bas il tombe À L'INTÉRIEUR, en travers
+     de la pastille qui désigne déjà l'onglet. On exige : pastille SANS trait en bas,
+     trait CONSERVÉ en haut. */
+  for(const prof of ['iosweb','ios27','ios18','android','androidweb']){
+    for(const th of ['light','dark']){
+      await S.ev(`setPlatForce('${prof}'); setThemePref('${th}'); go('dashboard'); return 1;`); await dormir(700);
+      const r=await S.ev(`
+        const bar=document.querySelector('.tabbar'); if(!bar) return {absent:true};
+        const on=bar.querySelector('.tab.on'); if(!on) return {sansActif:true};
+        const a=getComputedStyle(on,'::after'), cur=bar.querySelector('.tab-cur');
+        const cs=cur?getComputedStyle(cur):null;
+        return { pastille: !!(cur&&cs.display!=='none'&&+cs.opacity>0.05),
+                 trait: a.content!=='none' && +a.opacity>0.05 && !/matrix\\(0/.test(a.transform) };`);
+      if(r.absent||r.sansActif){ L.push('      ⚠️ '+prof+' · '+th+' : pas de barre d\'onglets — rien conclu'); continue; }
+      vrai(`${prof} · ${th} : la pastille désigne l’onglet actif`, r.pastille);
+      v(`${prof} · ${th} : … et elle est SEULE à le faire`, r.trait, false);
+    }
+  }
+  /* ⚠️ LA CONTRE-ÉPREUVE, ET ELLE EST OBLIGATOIRE : une bande d'onglets qui N'EST PAS la
+     barre du bas doit GARDER son trait — sinon on n'a pas corrigé un doublon, on a supprimé
+     un marqueur. La seule vraie bande du haut de l'application est enfouie dans la fiche
+     d'une intervention (onglet Docs), trois gestes plus loin et seulement s'il existe une
+     intervention : on REPRODUIT son balisage exact ici. La question posée est celle du
+     sélecteur — « est-ce que ma règle épargne un onglet hors de .tabbar ? » — et un
+     élément représentatif y répond exactement. */
+  for(const th of ['light','dark']){
+    await S.ev(`setPlatForce('iosweb'); setThemePref('${th}'); go('dashboard'); return 1;`); await dormir(700);
+    const r=await S.ev(`
+      document.querySelectorAll('#essai-tabs').forEach(x=>x.remove());
+      const d=document.createElement('div'); d.id='essai-tabs';
+      d.innerHTML='<div class="tabs" style="margin:12px"><div class="tab active">M\u00e9dias</div><div class="tab">Signatures</div></div>';
+      document.getElementById('content').prepend(d);
+      /* ⛔ LE TRAIT ENTRE EN ANIMATION (refonteSouligne, remplissage 'both') : lu tout de
+         suite, il vaut opacity:0 et scaleX(.2), c'est-à-dire son ÉTAT DE DÉPART. Une
+         première version de cette contre-épreuve concluait donc « trait supprimé » sur un
+         trait qui n'avait simplement pas encore paru. On attend deux trames ET la durée de
+         l'animation avant de lire. */
+      const t=d.querySelector('.tab.active');
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      await new Promise(r=>setTimeout(r,520));
+      const a=getComputedStyle(t,'::after');
+      const res={ horsBarre: !t.closest('.tabbar'),
+                  trait: a.content!=='none' && +a.opacity>0.05 && a.transform.indexOf('matrix(0')!==0,
+                  op:a.opacity, h:a.height };
+      d.remove(); return res;`);
+    vrai(`population : l’onglet témoin est bien HORS de la barre du bas (${th})`, r.horsBarre);
+    vrai(`⛔ CONTRE-ÉPREUVE (${th}) : une bande d’onglets du HAUT garde son trait`, r.trait);
+  }
+
+  titre('5. AUCUNE ERREUR JAVASCRIPT');
   v('exceptions', S.exceptions, []);
   v('erreurs console', S.consoleErr.filter(x=>!/net::|Failed to load|favicon/i.test(x)), []);
 
