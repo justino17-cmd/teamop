@@ -83,6 +83,111 @@ let GENRES = [];
   vrai('⛔ et elle tient sous la borne du serveur (COLLS_FILTRE_MAX = 20)', declares.length <= 20);
 }
 
+console.log('\n══ 1 bis. ⛔⛔ LES APPELS STATIQUES — CE QUE L\'ÉCHANGE DE `fs` NE COUVRE PAS ══\n');
+/* ⛔⛔ CETTE SECTION EXISTE PARCE QUE SON ABSENCE A LAISSÉ PASSER UNE AFFIRMATION FAUSSE.
+   L'en-tête d'`op-fs.js` disait : « CE QUI N'EST PAS REPRODUIT … `FieldPath` … `messages.html`
+   n'en utilise aucun — MESURÉ ». Recompté le 22 septembre 2026 sur le fichier réel : la page
+   en fait UN appel, `messages.html:10615`, sur le bouton de RÉACTION à un message. La mesure
+   n'avait jamais eu lieu — ce banc extrayait les `.collection('…')` et RIEN d'autre.
+
+   Le piège est structurel, pas distrait : remplacer `fs` par l'adaptateur couvre les 104
+   `fs.collection(…)`, et laisse intacts les 16 `firebase.firestore.<X>` écrits en dur, qui
+   continueraient de viser le VRAI SDK. Une page à moitié branchée, sans une erreur.
+
+   On dérive donc la liste du CODE, comme pour les genres, et on exige que l'adaptateur couvre
+   chaque nom. En ajouter un à la page sans l'ajouter ici fait tomber ce banc. */
+{
+  /* ⛔ LE NETTOYAGE SÛR, ET LA MESURE QUI LE JUSTIFIE. Le motif naïf (tout bloc jusqu'à la
+     prochaine fermeture) avale 27 961 caractères de PLUS sur `messages.html` — mesuré. Il se
+     trouve que la liste des genres en sort identique, mais c'est une chance, pas une garantie :
+     `CLAUDE.md` n'avait mesuré que `app.html` et `beta.html`. */
+  const nu = PAGE.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const bruts = [...nu.matchAll(/firebase\.firestore\.([A-Za-z]+)(?:\.([A-Za-z]+))?/g)];
+  const noms = [...new Set(bruts.map(m => m[1] + (m[2] ? '.' + m[2] : '')))].sort();
+  vrai('⛔ il y a bien des appels statiques à examiner (un zéro sur rien ne prouve rien)', bruts.length >= 10);
+  console.log('     (' + bruts.length + ' appels, ' + noms.length + ' noms : ' + noms.join(', ') + ')');
+
+  /* ⛔ ON VISE LE CODE DE L'ADAPTATEUR, PAS SON COMMENTAIRE — la règle de ce dépôt. `FieldValue`
+     se prouve par une clé de son objet, `FieldPath` par sa déclaration de fonction. */
+  const nuFs = OPFS.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const couvert = (nom) => {
+    const p = nom.split('.');
+    if (p.length === 2) return new RegExp('\\b' + p[1] + '\\s*:').test(nuFs);
+    return new RegExp('function\\s+' + p[0] + '\\s*\\(').test(nuFs);
+  };
+  const orphelins = noms.filter(n => !couvert(n));
+  v('⛔⛔ aucun appel statique de la page n\'est absent de l\'adaptateur', orphelins, []);
+
+  /* Et le sens inverse : `opFs` doit EXPOSER ce que la page ira chercher sur lui après la
+     bascule, sinon `new opFs.FieldPath(...)` serait `undefined is not a constructor`. */
+  vrai('⛔ opFs expose FieldValue', /opFs\.FieldValue\s*=/.test(nuFs));
+  vrai('⛔ opFs expose FieldPath', /opFs\.FieldPath\s*=/.test(nuFs));
+}
+
+console.log('\n══ 1 ter. ⛔⛔ UN CHEMIN POINTÉ VISE UN CHAMP IMBRIQUÉ, PAS UN CHAMP NOMMÉ « a.b » ══\n');
+/* ⛔⛔ LE SECOND DÉFAUT SILENCIEUX, ET LE PLUS COÛTEUX DES DEUX. Quatre `update()` de la page
+   passent des clés POINTÉES — `live.jusqu`, `loc.la`, `loc.lo`, `loc.maj` : c'est le PARTAGE
+   DE POSITION EN DIRECT. `resoudre` ne découpait pas sur le point : il aurait posé un champ
+   nommé littéralement « loc.la » À CÔTÉ de l'objet `loc`, que personne ne lit. La position
+   aurait cessé de bouger à l'écran, sans erreur, sans ligne de journal.
+   ⚠️ `champ()` — qui, lui, découpe — ne sert qu'à `where` et `orderBy` : la LECTURE marchait,
+   l'ÉCRITURE non. C'est ce décalage qui rend la panne invisible à la relecture. */
+{
+  const opFs = require(path.join(RACINE, 'op-fs.js'));
+  const F = opFs.FieldValue, P = opFs.FieldPath;
+  const poserChemin = opFs._poserChemin, entreesUpdate = opFs._entreesUpdate;
+  vrai('l\'adaptateur se charge et rend ses outils RÉELS', !!(F && P && poserChemin && entreesUpdate));
+
+  /* ⛔ ON APPELLE LE VRAI CODE, PAS UNE COPIE. Rejouer ici la résolution de chemin donnerait un
+     banc qui reste vert le jour où celle d'`op-fs.js` change — c'est la règle du dépôt :
+     un comportement se mesure à ce qu'il PRODUIT, pas au texte qui le nomme.
+     `entreesUpdate` est la VRAIE normalisation des arguments d'`update`, `poserChemin` la
+     VRAIE écriture au bout du chemin : ensemble, c'est exactement ce que fait `update()`. */
+  const appliquer = (avant, args) => {
+    let cur = avant;
+    for (const e of entreesUpdate(args)) cur = poserChemin(cur, e.seg, e.v, 1000);
+    return cur;
+  };
+  const r = appliquer({ loc: { la: 1, lo: 2, maj: 10 }, live: { jusqu: 0 } },
+    [{ 'loc.la': 48.8, 'loc.lo': 2.35, 'loc.maj': 99, 'live.jusqu': 1234 }]);
+  v('⛔ la latitude atterrit DANS loc, pas dans un champ « loc.la »', r.loc.la, 48.8);
+  v('   la longitude aussi', r.loc.lo, 2.35);
+  v('   et l\'horodatage', r.loc.maj, 99);
+  v('   « live.jusqu » atterrit dans live', r.live.jusqu, 1234);
+  v('⛔⛔ AUCUN champ littéral « loc.la » n\'a été créé', Object.keys(r).sort(), ['live', 'loc']);
+  v('   les frères non visés survivent', r.loc.lo !== undefined && r.live.jusqu !== undefined, true);
+
+  /* ── FieldPath : segments VERBATIM, jamais découpés ── */
+  const emoji = '👍';
+  const r2 = appliquer({ reactions: {} }, [new P('reactions', emoji), F.arrayUnion('u1')]);
+  v('⛔ FieldPath pose la réaction sous son emoji', r2.reactions[emoji], ['u1']);
+  const r3 = appliquer(r2, [new P('reactions', emoji), F.arrayUnion('u2')]);
+  v('   un second utilisateur s\'ajoute', r3.reactions[emoji], ['u1', 'u2']);
+  const r4 = appliquer(r3, [new P('reactions', emoji), F.arrayRemove('u1')]);
+  v('   et se retire', r4.reactions[emoji], ['u2']);
+
+  /* ⛔ LA DIFFÉRENCE ENTRE LES DEUX FORMES, QUI EST TOUTE LEUR RAISON D'ÊTRE : un segment qui
+     contient un point ne se coupe PAS. Aujourd'hui les emojis n'en ont pas — le jour où une
+     clé en aura un, ce contrôle dira lequel des deux chemins a été pris. */
+  const rA = appliquer({}, [new P('a.b'), 1]);
+  v('⛔ FieldPath(\'a.b\') pose UN champ nommé « a.b »', Object.keys(rA), ['a.b']);
+  const rB = appliquer({}, [{ 'a.b': 1 }]);
+  v('⛔ la chaîne \'a.b\', elle, pose a → b', rB.a.b, 1);
+
+  /* ⛔ `delete()` au bout d'un chemin doit retirer LE champ, pas l'objet parent. */
+  const rD = appliquer({ loc: { la: 1, lo: 2 } }, [{ 'loc.la': F.delete() }]);
+  v('⛔ delete() au bout d\'un chemin ne retire que la feuille', Object.keys(rD.loc), ['lo']);
+
+  /* ⛔ UN NOMBRE IMPAIR D'ARGUMENTS EST UNE ERREUR, PAS UNE VALEUR MANQUANTE. Se taire
+     écrirait un document à moitié modifié sans que rien ne le dise — Firestore jette, nous
+     aussi. C'est le contre-contrôle de `entreesUpdate`. */
+  let jete = false;
+  try { entreesUpdate([new P('a'), 1, new P('b')]); } catch (e) { jete = true; }
+  v('⛔ un couple (chemin, valeur) incomplet JETTE au lieu d\'écrire à moitié', jete, true);
+  v('   et un couple complet passe', entreesUpdate([new P('a'), 1]).length, 1);
+  v('   la forme OBJET reste acceptée telle quelle', entreesUpdate([{ x: 1, y: 2 }]).length, 2);
+}
+
 console.log('\n══ 2. ⛔ LE DÉFAUT PAR DÉFAUT EST « TOUT », JAMAIS « RIEN » ══\n');
 {
   const nu = OPFS.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
@@ -268,6 +373,24 @@ const arreter = async () => {
         v('   et il reçoit bien ses messages', gMsg.has('messages'), true);
         v('⛔ il a exactement 60 documents, pas 360', msg._miroir.size, 60);
         v('   le témoin, lui, en a 360', tout._miroir.size, 360);
+        /* ⛔⛔ ET LA COUTURE QUI COMPTE VRAIMENT : le VRAI `update()` contre le VRAI serveur,
+           avec les deux formes que `messages.html` emploie. Les contrôles de la section 1 ter
+           éprouvent les fonctions ; celui-ci éprouve le CHEMIN COMPLET — normalisation des
+           arguments, écriture au bout du chemin, envoi au socle, relecture. C'est la règle de
+           `CLAUDE.md` : les deux moitiés se lisent très bien séparément. */
+        {
+          const ref = msg.collection('op_companies').doc('ent-A').collection('channels').doc('c1')
+            .collection('messages').doc('seam-1');
+          await ref.set({ txt: 'bonjour', loc: { la: 1, lo: 2 }, reactions: {} });
+          await ref.update({ 'loc.la': 48.8566, 'loc.lo': 2.3522 });
+          await ref.update(new opFs.FieldPath('reactions', '👍'), opFs.FieldValue.arrayUnion('u1'));
+          const d = (await ref.get()).data() || {};
+          v('⛔⛔ bout en bout : la position atterrit DANS loc', [d.loc && d.loc.la, d.loc && d.loc.lo], [48.8566, 2.3522]);
+          v('   et aucun champ littéral « loc.la » n\'a traversé le serveur',
+            Object.keys(d).filter(k => k.indexOf('.') >= 0), []);
+          v('⛔⛔ bout en bout : la réaction atterrit sous son emoji', d.reactions && d.reactions['👍'], ['u1']);
+          v('   le texte du message n\'a pas bougé', d.txt, 'bonjour');
+        }
         try { msg.arreter(); tout.arreter(); } catch (e) {}
       }
     }

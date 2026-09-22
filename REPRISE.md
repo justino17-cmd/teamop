@@ -797,6 +797,67 @@ n'a JAMAIS été appliqué — le `grep` d'ancrage a échoué, la chaîne `&&` s
 pas la relecture. **Vérifier par un `grep` APRÈS l'édition, jamais se fier au dernier `echo`
 d'une chaîne `&&`.**
 
+## ⛔ ÉTAPE A — LE CÂBLAGE N'EST PAS « UNE LIGNE », ET IL BUTE SUR L'IDENTITÉ (22 septembre)
+
+Repris le 22 septembre au matin pour brancher `messages.html` sur `opFs()`. Ce que la MESURE a
+donné, et qui contredit ce que cette page disait :
+
+### 1. Ce n'est pas une ligne — c'est une ligne plus seize appels
+
+`fs.collection(…)` : **104 appels**, tous couverts par l'échange de `fs`. Mais la page écrit
+aussi **16 appels STATIQUES** `firebase.firestore.<X>` — que l'échange de `fs` ne touche pas et
+qui continueraient de viser le VRAI SDK. Une page à moitié branchée, sans une erreur.
+
+### 2. Deux défauts silencieux dans l'adaptateur, trouvés et corrigés
+
+| ce que la page fait | ce que l'adaptateur faisait | conséquence |
+|---|---|---|
+| `update(new FieldPath('reactions', emoji), arrayUnion(…))` — le bouton de RÉACTION, `messages.html:10615` | `FieldPath` **non implémenté**, et l'en-tête affirmait « `messages.html` n'en utilise aucun — mesuré » | la réaction aurait jeté |
+| `update({'loc.la':…, 'loc.lo':…, 'loc.maj':…, 'live.jusqu':…})` — le PARTAGE DE POSITION | `resoudre` ne découpait pas sur le point : champs nommés littéralement « loc.la » **à côté** de l'objet `loc` | la position cesse de bouger à l'écran, sans erreur, sans journal |
+
+⛔ **La « mesure » de l'en-tête n'avait jamais eu lieu**, et rien ne pouvait le dire :
+`test-744` extrayait les `.collection('…')` et **rien d'autre**. Il extrait désormais tous les
+`firebase.firestore.<X>` de la page et exige que l'adaptateur les couvre — même mécanique, même
+raison. ⚠️ `champ()` — qui, lui, découpe sur le point — ne sert qu'à `where` et `orderBy` : la
+LECTURE marchait, l'ÉCRITURE non. C'est ce décalage qui rendait la panne invisible à la relecture.
+`test-744` : 41 → **65 contrôles**, dont quatre BOUT EN BOUT (vrai `update()`, vrai serveur,
+relecture) — les fonctions sont exécutées, jamais recopiées.
+
+### ⛔⛔ 3. LE VRAI BLOCAGE : OP MESSAGES N'A AUCUNE IDENTITÉ QUE LE SOCLE SACHE VÉRIFIER
+
+`opFs()` a besoin d'un `jeton`. Le seul moyen d'en obtenir un est `POST /api/op/session`, qui
+prouve par **`{t, kh}`** — le nom de l'espace ET l'empreinte de la clé d'équipe
+(`server/op-socle.js:247`). Or :
+
+- **`messages.html` n'a ni `t` ni clé d'équipe.** Son identité est Firebase Auth (`ME.uid`), ses
+  espaces sont `perso` et `company` (`messages.html:1033`), et sa seule notion de `teamId` est
+  `'opmsg-user-' + ME.uid`, fabriquée pour les notifications push.
+- **Écrire une clé d'équipe dans la page est exclu** : `CLAUDE.md` le dit, et `/api/op/session`
+  refuse explicitement une clé publique (409 `cle_partagee`).
+- **Les comptes TeamOP (étape B) ne comblent pas le trou** : ils authentifient une PERSONNE du
+  portail, ils n'ouvrent pas de session de socle. Et ils sont inertes (`comptes.actif` faux).
+
+⚠️ **Et le mode `perso` n'a pas d'espace du tout** — pas d'entreprise, donc rien à nommer. C'est
+la question de fond, et elle n'est pas technique : *où vivent les messages de quelqu'un qui n'a
+pas d'entreprise ?* Trois réponses possibles, à trancher par Justin :
+1. OP MESSAGES vit DANS l'espace de l'entreprise (c'est ce que `genres` suppose déjà) — et le
+   mode `perso` disparaît ou devient un espace à lui ;
+2. un espace de socle par personne (`t = 'opmsg-user-<uid>'`), avec une clé dérivée à la
+   création du compte ;
+3. OP MESSAGES reste sur Firebase jusqu'à l'étape F, et l'étape A attend l'étape B.
+
+⛔ **Aucune ne s'improvise** : c'est la règle « une valeur du corps d'une requête ne décide jamais
+de ce qu'une entreprise a payé », appliquée à l'accès aux données.
+
+### 4. Ce qui reste, en plus de l'identité
+
+- ⚠️ **`firebase.storage()` — 2 appels** (les pièces jointes des messages). L'adaptateur ne
+  couvre que Firestore : les fichiers resteraient chez Google après la bascule.
+- ✅ **Rien ne presse côté clients** : `messages.html` est FERMÉE depuis le 10 septembre
+  (`OPMSG_EN_TRAVAUX = true`, ligne 933) — la page affiche « en travaux » et ne parle plus du
+  tout à Firebase. Le câblage n'est donc pas un changement à risque ; c'est exactement la
+  bascule que le commentaire de ce drapeau annonce.
+
 ## ✅ TOUT SUR LE SERVEUR — ÉTAPE A : OP MESSAGES PARLE AU SOCLE (20 septembre 2026, nuit)
 
 Voir `PLAN-TOUT-SUR-LE-SERVEUR.md` pour le recensement complet et l'ordre A→G. Ce qui suit

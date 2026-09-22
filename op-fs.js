@@ -23,9 +23,16 @@
  * quittée, INERTE EN SILENCE. On ne réinvente pas un format qui existe.
  *
  * ⚠️ CE QUI N'EST PAS REPRODUIT, ET C'EST DÉLIBÉRÉ : les transactions, les curseurs
- * (`startAfter`), `FieldPath`, les sous-requêtes `>`/`<`. `messages.html` n'en utilise aucun —
- * mesuré. Ce qui n'est pas mesuré n'est pas écrit : du code que personne n'appelle est du code
- * que personne ne teste.
+ * (`startAfter`), les sous-requêtes `>`/`<`. `messages.html` n'en utilise aucun — recompté le
+ * 22 septembre 2026. Ce qui n'est pas mesuré n'est pas écrit : du code que personne n'appelle
+ * est du code que personne ne teste.
+ *
+ * ⛔⛔ ET CETTE PHRASE A ÉTÉ FAUSSE, C'EST LA LEÇON QUI COMPTE. Elle citait aussi `FieldPath`
+ * « — mesuré », et la page en fait UN appel (le bouton de réaction, `messages.html:10615`),
+ * plus quatre `update()` à clés pointées (le partage de position). La « mesure » n'avait
+ * jamais été faite : `tests/test-744.js` extrayait les `.collection('…')` et RIEN d'autre.
+ * Il extrait désormais tous les `firebase.firestore.<X>` de la page et exige que ce fichier
+ * les couvre — la même mécanique que pour la liste des genres, pour la même raison.
  */
 (function (racine) {
   'use strict';
@@ -146,6 +153,60 @@
   }
   const memeValeur = (a, b) => a === b || (a && b && typeof a === 'object' && typeof b === 'object'
     && JSON.stringify(canon(a)) === JSON.stringify(canon(b)));
+
+  /* ── LES CHEMINS DE CHAMP ─────────────────────────────────────────────────────────────────
+     ⛔⛔ DEUX DÉFAUTS SILENCIEUX, TROUVÉS LE 22 SEPTEMBRE 2026 EN PRÉPARANT LE CÂBLAGE, ET
+     L'EN-TÊTE DE CE FICHIER AFFIRMAIT LE CONTRAIRE (« `FieldPath` … `messages.html` n'en
+     utilise aucun — mesuré »). Recompté sur le fichier réel :
+
+       · `messages.html:10615` fait `doc(id).update(new firebase.firestore.FieldPath(
+         'reactions', emoji), arrayUnion(...))` — c'est le bouton de RÉACTION à un message,
+         un geste quotidien, pas un cas de bord ;
+       · quatre `update()` passent des clés POINTÉES — `live.jusqu`, `loc.la`, `loc.lo`,
+         `loc.maj` — c'est-à-dire le partage de position en direct.
+
+     Sans ces deux formes, `resoudre` posait des champs nommés LITTÉRALEMENT « loc.la » à côté
+     de l'objet `loc`, que personne ne lit : la position aurait cessé de bouger à l'écran, sans
+     une erreur, sans une ligne de journal. C'est la panne type de ce dépôt.
+
+     ⚠️ POURQUOI DEUX FORMES ET PAS UNE : une CHAÎNE se découpe sur le point (c'est la notation
+     de Firestore), un `FieldPath` porte ses segments VERBATIM. C'est toute sa raison d'être —
+     un segment qui contiendrait un point ne doit pas être coupé en deux. Les confondre
+     marcherait aujourd'hui (les emojis n'ont pas de point) et casserait le jour où une clé en
+     aura une. On reproduit la sémantique, pas le cas d'usage du moment.
+
+     ⚠️ ET LA RÉSOLUTION NE VAUT QUE POUR `update()`. Firestore prend les clés de `set()` au
+     pied de la lettre : y découper le point CRÉERAIT une imbrication que la page n'a pas
+     demandée. `set` continue donc d'appeler `resoudre` tel quel. */
+  function FieldPath() { this._seg = Array.prototype.slice.call(arguments).map(String); }
+  FieldPath.prototype.isEqual = function (o) { return !!o && String(o._seg) === String(this._seg); };
+
+  const segmentsDe = (cle) => (cle && Array.isArray(cle._seg)) ? cle._seg.slice() : String(cle).split('.');
+
+  /* Applique UNE valeur au bout d'UN chemin, en clonant chaque niveau traversé. Le bout de
+     chemin repasse par `resoudre`, donc les valeurs spéciales (`arrayUnion`, `delete`,
+     `increment`…) s'appliquent à la même profondeur, sans recopier leurs six lignes. */
+  function poserChemin(cible, seg, v, maintenant) {
+    const base = cible && typeof cible === 'object' && !Array.isArray(cible) ? cible : {};
+    if (seg.length === 1) { const un = {}; un[seg[0]] = v; return resoudre(base, un, maintenant); }
+    const tete = seg[0];
+    const sous = base[tete] && typeof base[tete] === 'object' && !Array.isArray(base[tete]) ? base[tete] : {};
+    const sortie = Object.assign({}, base);
+    sortie[tete] = poserChemin(sous, seg.slice(1), v, maintenant);
+    return sortie;
+  }
+
+  /* Les deux signatures de `update` : un objet, ou des couples (chemin, valeur).
+     ⛔ Un nombre IMPAIR d'arguments est une erreur, pas une valeur manquante : Firestore jette,
+     et se taire ici écrirait un document à moitié modifié sans que rien ne le dise. */
+  function entreesUpdate(args) {
+    if (args.length === 1 && args[0] && typeof args[0] === 'object' && !Array.isArray(args[0]._seg))
+      return Object.keys(args[0]).map((k) => ({ seg: segmentsDe(k), v: args[0][k] }));
+    if (args.length % 2 !== 0) throw new Error('update : il manque une valeur pour le dernier chemin');
+    const out = [];
+    for (let i = 0; i + 1 < args.length; i += 2) out.push({ seg: segmentsDe(args[i]), v: args[i + 1] });
+    return out;
+  }
 
   /* Le champ d'un document, y compris en notation pointée (`a.b.c`) — `where` et `orderBy`
      l'acceptent dans Firestore, et `messages.html` s'en sert. */
@@ -347,10 +408,15 @@
            `messages.html` s'appuie dessus : plusieurs appels sont dans un `catch` qui compte
            sur l'échec pour créer le document autrement. Accepter silencieusement créerait des
            documents à moitié remplis, sans que rien ne le signale. */
-        update: async (data) => {
+        update: async (...args) => {
           const d = decouper(c, id), e = miroir.get(CLE(d.genre, d.plein));
           if (!e) { const err = new Error('document absent'); err.motif = 'absent'; throw err; }
-          return ecrire(c, id, resoudre(e.r, data, Date.now()), false);
+          /* un seul horodatage pour tout l'appel : `serverTimestamp()` posé sur deux champs
+             du même `update` doit rendre la MÊME seconde, comme chez Firestore. */
+          const maintenant = Date.now();
+          let courant = e.r;
+          for (const e2 of entreesUpdate(args)) courant = poserChemin(courant, e2.seg, e2.v, maintenant);
+          return ecrire(c, id, courant, false);
         },
         delete: async () => ecrire(c, id, null, true),
         onSnapshot: (cb, onErr) => inscrire(c,
@@ -470,6 +536,12 @@
 
   opFs.empreinte = empreinte;
   opFs.FieldValue = FieldValue;
+  opFs.FieldPath = FieldPath;
+  /* ⛔ EXPOSÉES POUR QUE LE BANC EXÉCUTE LE VRAI CODE. Un contrôle qui REJOUE une copie de
+     la résolution de chemin ne garde rien : il resterait vert le jour où celle d'ici change.
+     La règle du dépôt — un droit se mesure à ce qu'il LAISSE PASSER, pas au texte qui le nomme. */
+  opFs._poserChemin = poserChemin;
+  opFs._entreesUpdate = entreesUpdate;
   opFs.autoId = autoId;
   opFs._resoudre = resoudre;
 
