@@ -632,6 +632,23 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   pourrait laisser orphelin — ⚠️ **par CLASSE seulement** : le cas du champ de recherche se
   croise par un ATTRIBUT et lui échappe, donc `scratchpad/sonde-verre.js` (au navigateur, sur
   les pixels peints) est la garde de bout en bout, et le banc exige qu'elle existe.
+- ⛔⛔ **ET LE MÊME JOUR, PAR LE MÊME CHEMIN : L'ONGLET ACTIF PORTAIT DEUX MARQUES.** Le
+  soulignement de 2,5 px (`html[data-refonte] .tab::after`) est dessiné pour une bande
+  d'onglets EN HAUT — coin arrondi en haut, posé à `bottom:-1px`, sur l'arête de la bande.
+  La barre du bas est une PILULE FLOTTANTE : le trait y tombe À L'INTÉRIEUR, en travers de la
+  pastille qui désigne déjà l'onglet. Mesuré sur les DIX combinaisons téléphone : pastille
+  ET trait, partout. ⚠️ Là encore le commentaire d'à côté disait l'intention — « c'est la
+  pastille qui le désigne » : l'onglet avait perdu son FOND, il avait gardé son TRAIT.
+  **Deux corollaires de méthode, et ils valent pour toute suppression d'un doublon :**
+  · la règle se conditionne à la PRÉSENCE de celle qui reste (`…:has(.tab-cur)…`) — sinon,
+    le jour où l'autre marque disparaît, il n'en reste AUCUNE ;
+  · **une contre-épreuve est obligatoire** : le cas qui doit GARDER sa marque. Sans elle on
+    ne sait pas si on a retiré un doublon ou supprimé un marqueur. Quand le vrai cas est
+    inatteignable (ici : une bande d'onglets enfouie dans la fiche d'une intervention), on
+    INJECTE un élément représentatif — la question posée est celle du SÉLECTEUR.
+  ⚠️ Et un `::after` qui ENTRE EN ANIMATION (`animation:… both`) se lit à son ÉTAT DE
+  DÉPART tant qu'elle n'a pas tourné : la première contre-épreuve concluait « trait supprimé »
+  sur un trait qui n'avait pas encore paru. On attend deux trames ET la durée de l'animation.
 - ⛔⛔ **UN AUDIT QUI PART D'UNE LISTE DE CLASSES ÉCRITE À LA MAIN EST UNE POPULATION CHOISIE,
   DONC UN RÉSULTAT CHOISI.** Le premier recensement du verre visait un `SEL` de dix-huit
   classes que j'avais tapées moi-même : il a trouvé 125 pastilles et **rien d'autre**. Le

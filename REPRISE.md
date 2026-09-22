@@ -24,6 +24,57 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ✅ 22 SEPTEMBRE 2026 — UNE SEULE MARQUE POUR L'ONGLET ACTIF (v721, bêta publiée)
+
+Trouvé en FINISSANT l'audit du verre — et c'est **exactement la même faute que les loupes** :
+une moitié de règle qui survit à l'autre.
+
+Le soulignement de 2,5 px (`html[data-refonte] .tab::after`) est dessiné pour une bande
+d'onglets **EN HAUT** : coin arrondi en haut, plat en bas, posé à `bottom:-1px`, c'est-à-dire
+SUR l'arête de la bande. La barre du bas, elle, est une **pilule flottante** : le trait y tombe
+À L'INTÉRIEUR de la capsule, en travers de la pastille qui désigne déjà l'onglet.
+
+Mesuré sur les **dix** combinaisons téléphone (iosweb, ios27, ios18, android, androidweb ×
+jour/nuit) : **pastille présente ET trait visible, partout**. Le commentaire du bloc verre
+disait pourtant l'intention depuis le début — « c'est la pastille qui le désigne, et deux
+surfaces pour une même chose feraient un halo autour d'un halo ». L'onglet actif avait bien
+perdu son FOND ; il avait gardé son TRAIT.
+
+⚠️ **La règle se garde elle-même** : `.tabbar:has(.tab-cur)`. Le jour où un profil n'aurait
+plus de pastille, le trait revient tout seul — on ne laisse **jamais** un onglet actif sans
+AUCUNE marque. Et elle est bornée à `.tabbar` : la bande d'onglets du HAUT (Médias /
+Signatures, dans la fiche d'une intervention) garde son trait, **contre-épreuve à l'appui**.
+
+### ⛔ DEUX PIÈGES DE MESURE PAYÉS ICI, TOUS DEUX DÉJÀ ÉCRITS DANS `CLAUDE.md`
+
+1. **`color(srgb 0.47 0.86 0.65)` lu comme du 0–255 donne du quasi-noir.** La sonde annonçait
+   « contraste **1,2** » sur une pastille parfaitement lisible, et « **17,64** » sur une autre
+   — **faux dans les DEUX sens**. `lireCouleur()` reconnaît désormais la FORME et **jette** ce
+   qu'elle ne sait pas lire plutôt que de deviner : un lecteur qui devine rend un chiffre
+   crédible et faux. La règle était dans `CLAUDE.md` depuis le matin même.
+2. **La contre-épreuve lisait le trait AVANT son animation d'entrée** (`refonteSouligne`,
+   remplissage `both`) : elle rendait son ÉTAT DE DÉPART — opacité 0 — et concluait « trait
+   supprimé » sur un trait qui n'avait simplement pas encore paru.
+
+### ⚠️ UNE MESURE ÉCARTÉE, NOMMÉE POUR QUE LE PROCHAIN AUDIT NE LA RETROUVE PAS
+
+**La barre d'onglets n'a PAS de surface libre où lire un liseré** : ses cinq onglets vont de
+y 7 à y 51 sur 58 px de haut, c'est-à-dire exactement les rangées qu'on lirait. Mesurée comme
+si elle en avait une, elle rendait **0,134 à un tour et 0,000 au suivant** : c'était le HAUT
+d'une icône, pas un liseré. La sonde le **dit** au lieu de publier un chiffre creux.
+
+### Les preuves
+
+- `tests/test-763.js` : 22 → **31 contrôles**. **Cinq mutations de plus jouées, cinq
+  détectées** — dont « on éteint l'opacité mais pas l'échelle » (il resterait un trait d'un
+  pixel) et « la règle déborde sur les bandes du haut ».
+- `scratchpad/sonde-verre.js` : **81 ✓ 0 ✗** — neuf familles de surface × deux thèmes, dix
+  profils pour la marque d'onglet, contre-épreuve dans les deux thèmes.
+- **120 suites · 5 357 vérifications · 0 ✗** · syntaxe 28 pages, 0 en erreur.
+- Servi et relu : `teamop.fr/beta.html` = **721-beta**. **`app.html` reste à 695 chez ELAN.**
+
+---
+
 ## ✅ 22 SEPTEMBRE 2026 — LE VERRE : 112 LOUPES SANS MATIÈRE (v720, bêta publiée et vérifiée)
 
 Justin, capture à l'appui : **« pourquoi y a ce truc d'affichage là qui fait hyper brillant et
