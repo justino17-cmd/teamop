@@ -13,7 +13,17 @@ const PROFIL=process.argv[2]||'tel';
 const P = PROFIL==='bureau' ? {plat:'macweb',w:1440,h:900,tac:false,theme:'light'} : {plat:'iosweb',w:390,h:844,tac:true,theme:'dark'};
 
 /* [rubrique, sélecteur, texte (début), préparation éventuelle] */
-const SUSPECTS=[
+/* SUSPECTS=bureau2 : les clics muets propres au BUREAU (second passage) */
+const SUSPECTS_BUREAU2=[
+  ['rapports','button.btn.ghost','Rédiger'],
+  ['telecollecte','button.btn.ghost','＋ Encaissement oublié'],
+  ['produits','button.btn','＋ Produit'],
+  ['boxes','button.btn.ghost','Ajouter produit'],
+  ['boiteMail','div','Réception'],
+  ['boiteMail','button.btn.ghost','Gérer mes boîtes'],
+  ['boiteMail','button.btn.ghost','Actualiser'],
+];
+const SUSPECTS_TOUS=[
   ['audit','div.tl-item','Droits repris'],
   ['planning','div.plm-th','SM Sophie Martin', `try{ planModeSet&&planModeSet('multi'); }catch(e){}`],
   ['planningGeneral','span','+'],
@@ -37,6 +47,7 @@ const SUSPECTS=[
   ['modulesElan','button.btn','Afficher dans le menu'],
   ['modulesElan','button.btn','Masquer du menu'],
 ];
+const SUSPECTS = process.env.LOT==='bureau2' ? SUSPECTS_BUREAU2 : SUSPECTS_TOUS;
 
 const INSTANTANE=`
   const h=s=>{ let e=0; s=String(s||''); for(let i=0;i<s.length;i++) e=(e*31+s.charCodeAt(i))>>>0; return e; };

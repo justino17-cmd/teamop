@@ -23,6 +23,59 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
+## ✅ 22 SEPTEMBRE 2026 — CHAQUE BOUTON, FRAPPÉ POUR DE VRAI (v727, bêta publiée)
+
+Étape 2 de « 1 après 2 après 3 ». `scratchpad/audit-clics2.js` appuie sur CHAQUE commande de
+chaque rubrique (niveau 1) et, quand une fenêtre s'ouvre, sur chaque commande de la fenêtre
+(niveau 2) — sans plafond par genre, sur les deux profils. Deux contre-épreuves avant de croire
+un zéro : un clic qui jette doit être VU, un clic sans effet doit être VU comme inerte.
+
+| | téléphone (nuit) | bureau (jour) |
+|---|---|---|
+| clics réels dans les rubriques | **957** | **784** |
+| clics réels dans les fenêtres | **736**, dans 51 fenêtres | **550**, dans 49 fenêtres |
+| clics qui JETTENT | **0** | **0** |
+| clics « sans effet observable » | 143 | 98 |
+
+### Les clics « sans effet » : rejoués un par un, en regardant PARTOUT
+
+La passe ne regarde que la vue, les fenêtres, `#content`, le titre et le message. Un clic peut
+agir ailleurs : classe de `<body>`, menu latéral, calque de carte, presse-papiers, stockage,
+données. `scratchpad/sonde-inertes.js` rejoue chaque suspect et compare TOUT avant et après.
+Verdict : segment ou filtre déjà actif (59 au téléphone), confirmation refusée par la sonde
+elle-même (15 « Supprimer » / « Refuser »), onglet par défaut re-cliqué, sélecteur de fichier
+natif, bouton admin qui ne change que le menu des AUTRES rôles. Et au bureau, sept clics
+« muets » qui ouvrent bel et bien leur fenêtre quand on les rejoue seuls (« Rédiger »,
+« ＋ Produit », « Gérer mes boîtes »…) : un artefact de séquence de la passe, pas un défaut.
+
+### Deux vrais défauts, corrigés (`tests/test-772.js`, l'écouteur est EXÉCUTÉ)
+
+- **Échap fermait la MAUVAISE couche.** Le tableau des quantités d'un bon (`#bon-qty`) se pose
+  par-dessus la fenêtre du bon et n'écoutait pas Échap : l'écouteur général fermait le BON en
+  dessous et laissait le tableau seul à l'écran. C'est la seule couche qu'aucun geste de
+  fermeture de la passe n'avait su fermer. Mesuré après correction : 1ᵉʳ Échap → le tableau se
+  ferme, le bon reste ouvert ; 2ᵉ Échap → le bon se ferme.
+- **« Envoyer » sur un champ vide ne faisait rien**, sans un signe (Messagerie) : il rend
+  désormais la main au champ.
+
+### Un banc fragile, réparé en chemin
+
+`test-738` exigeait que la dérivation d'un mot de passe coûte « plus de 20 ms » — un seuil
+absolu réglé sur une machine plus lente : ici PBKDF2 en coûte 20 à 21, et le banc tombait au
+hasard. Il se mesure maintenant contre la même route refusée AVANT la dérivation (1,1 à 1,4 ms
+contre 21 à 23). La mutation « dérivation instantanée » le fait bien tomber.
+
+### ⚠️ Ce que la passe n'a PAS couvert, et il faut le dire
+
+- **Le planning général et Mouvements** atteignent le plafond de 260 s par rubrique sur les deux
+  profils : ce sont des listes d'éléments du même genre (cases de la grille, lignes du journal) —
+  les premiers ont été frappés, pas tous.
+- **Des fenêtres qu'on n'a pas pu rouvrir** pour continuer à frapper dedans : 4 au téléphone,
+  20 au bureau (les panneaux du tableau de bord, « Soldes de congés », une demande validée…).
+  Leur contenu a été frappé jusqu'au premier geste qui les ferme, pas au-delà.
+- Premier passage au téléphone : la tuile « Mouvements au journal » a été frappée 41 fois, son
+  compteur changeant à chaque clic — la signature d'une cible gomme désormais ses chiffres.
+
 ## ✅ 22 SEPTEMBRE 2026 — LES ÉCRANS PROFONDS AU DOIGT (v726, bêta publiée)
 
 Étape 1 de « 1 après 2 après 3 » : les fiches, les formulaires, les fenêtres et les
