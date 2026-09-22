@@ -3780,6 +3780,14 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] .btn.sm{min-height:40px}
   html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close{width:44px;height:44px}
   html[data-refonte] .chip{min-height:40px;padding:0 16px!important}
+  /* ⛔ 40 px EST LA DENSITÉ VOULUE POUR UN FILTRE, PAS POUR UNE COMMANDE D'EN-TÊTE.
+     Mesuré le 22 septembre 2026 sur un iPhone de 390 px, écran « Carte des box » : la
+     pastille Satellite rendait 40 px pendant que Liste et Carte des box, sur la même vue
+     et à deux centimètres, rendaient 44. Deux planchers dans un même regard, et le plus
+     bas sur la commande qu'on presse un plan à la main devant un bâtiment.
+     La ligne `.ph-actions` a DÉJÀ son propre plancher (`.btn` à 46 px) : on aligne la
+     pastille dessus, sans toucher aux ~240 filtres du contenu, qui eux sont à leur place. */
+  html[data-refonte] .ph-actions .chip{min-height:44px}
   html[data-refonte] .tab{min-height:46px}
   html[data-refonte] .nav-item{min-height:46px;padding:11px 12px!important;font-size:15.5px!important}
   html[data-refonte] .pl-row{min-height:52px;padding:14px 16px!important}
@@ -6252,7 +6260,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '718-beta';
+const APP_VERSION = '719-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -27329,28 +27337,27 @@ function saveControle(e,id){ e.preventDefault(); const d=Object.fromEntries(new 
 }
 
 /* ═══════════════ CARTE ═══════════════ */
-let _map=null, _mapLayer=null, _deptGeo=null;
-/* ⛔ TROIS CHOIX, PAS UN INTERRUPTEUR. Avant, un seul bouton faisait Plan ↔ Satellite et la
-   nuit se déduisait du thème : impossible de garder une carte claire en mode nuit, ce que
-   demande le terrain (lisibilité au soleil). Le choix est désormais explicite — 'm' jour,
-   'n' nuit, 's' satellite — et MÉMORISÉ sur le compte, comme le thème et la langue.
-   Tant que personne n'a choisi, on suit le thème : c'est le comportement d'avant, et c'est
-   la seule valeur par défaut qui ne surprenne pas. */
-const MAP_FONDS=[['m','Jour','🗺️'],['n','Nuit','🌙'],['s','Satellite','🛰️']];
-function mapFond(){
-  if(_mapLayer) return _mapLayer;
-  let v=null; try{ v=localStorage.getItem(PREF_CLES.carte); }catch(e){}
-  if(v==='m'||v==='n'||v==='s'){ _mapLayer=v; return v; }
-  return effectiveTheme()==='dark' ? 'n' : 'm';       /* pas choisi : on suit le thème */
-}
+let _map=null, _deptGeo=null;
+/* ⛔ LE JOUR ET LA NUIT NE SE CHOISISSENT PAS DEUX FOIS. Le 22 septembre 2026, la carte
+   portait trois pastilles — Jour, Nuit, Satellite — alors que l'application a déjà un
+   réglage de thème dans les Paramètres. Justin : « le mode jour et nuit de la carte c'est en
+   fonction de l'appareil sélectionné dans les paramètres, je veux pas voir ces boutons ici,
+   c'est automatique — si c'est en automatique donc la journée c'est jour, la nuit ça passe en
+   mode nuit, et satellite reste ». Deux réglages pour une même question, c'est un de trop :
+   celui qu'on oublie de bouger fait mentir l'autre.
+   Reste donc UN seul choix, celui que le thème ne peut pas rendre : le satellite.
+   ⚠️ Une préférence 'm' ou 'n' rangée par la version d'avant vaut « pas satellite » — sinon
+   quelqu'un resté sur Nuit y serait enfermé, le bouton qui l'en sortait n'existant plus. */
+function mapSatOn(){ try{ return localStorage.getItem(PREF_CLES.carte)==='s'; }catch(e){ return false; } }
+function mapFond(){ return mapSatOn() ? 's' : (effectiveTheme()==='dark' ? 'n' : 'm'); }
 function mapFondBarre(){
-  const cur=mapFond();
+  const on=mapSatOn();
   /* ⛔ ON N'INVENTE PAS UN COMPOSANT : `.chip` est LE filtre de ce dépôt, il est stylé, il
      porte déjà l'accent sur `.active`, et il respecte le plancher tactile. Une barre
      segmentée de plus aurait fait deux composants qui font la même chose — la faute du
      22 septembre, par l'autre bout. */
-  return `<span class="filters" style="display:inline-flex;margin:0;gap:6px;vertical-align:middle" role="group" aria-label="Fond de carte">`
-    + MAP_FONDS.map(([v,l,ic])=>`<span class="chip${v===cur?' active':''}" role="button" aria-pressed="${v===cur}" onclick="setMapLayer('${v}')" data-tip="Fond de carte : ${l}">${ic} ${l}</span>`).join('')
+  return `<span class="filters" style="display:inline-flex;margin:0;gap:6px;vertical-align:middle">`
+    + `<span class="chip${on?' active':''}" role="button" aria-pressed="${on}" onclick="setMapSat(${on?'false':'true'})" data-tip="${on?'Revenir à la carte — elle suit le thème de l’application':'Vue satellite'}">🛰️ Satellite</span>`
     + `</span>`;
 }
 function loadDeptGeo(){ if(_deptGeo) return Promise.resolve(_deptGeo); return fetch('https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson').then(r=>r.json()).then(j=>{ _deptGeo=j; return j; }); }
@@ -27366,12 +27373,23 @@ async function geocodeClients(){ const todo=db.clients.filter(c=>c.adresse && c.
   for(const c of todo){ const g=await geocode(c.adresse); if(g){ c.lat=g.lat; c.lng=g.lng; n++; save(); } await new Promise(r=>setTimeout(r,1100)); }
   toast(n+' adresse(s) localisée(s)'); if(current==='carte') views.carte();
 }
-function setMapLayer(l){
-  if(l!=='m'&&l!=='n'&&l!=='s') return;
-  _mapLayer=l;
-  try{ localStorage.setItem(PREF_CLES.carte,l); }catch(e){}
-  try{ prefEcrire('carte',l); }catch(e){}
+function setMapSat(on){
+  /* On range 'a' (automatique) plutôt que d'effacer la clé : `prefAppliquer` ignore une
+     valeur vide, donc éteindre le satellite ne serait jamais parti sur les autres appareils. */
+  const v = on ? 's' : 'a';
+  try{ localStorage.setItem(PREF_CLES.carte,v); }catch(e){}
+  try{ prefEcrire('carte',v); }catch(e){}
   if(current==='carteInt') views.carteInt(); else if(current==='carteBox') views.carteBox(); else if(current==='planning') views.planning();
+}
+/* Le thème vient de changer : la carte bascule SANS reconstruire la vue. Jour et nuit
+   partagent exactement les mêmes tuiles Google (`lyrs=m`) — seule la teinte change — donc
+   basculer la classe suffit, et ça vaut pour les trois cartes d'un coup, planning compris. */
+function mapNuitSync(){
+  /* On vise le DOM, pas `_map`/`_planMap` : un `let` lu depuis `applyTheme()` — qui s'exécute
+     aussi au démarrage — tomberait en zone morte temporelle, et le `try` d'en face avalerait
+     l'erreur sans un mot. Le sélecteur, lui, prend les trois cartes et celles d'après. */
+  const nuit=(mapFond()==='n');
+  document.querySelectorAll('.leaflet-tile-pane').forEach(tp=>tp.classList.toggle('tiles-night',nuit));
 }
 function fitMapHeight(){ const el=$('map'); if(!el) return; const top=el.getBoundingClientRect().top; el.style.height=Math.max(340,(window.innerHeight-top))+'px'; }
 function gpsLinks(d){
@@ -35755,8 +35773,8 @@ function applyTheme(){
      contraire. Une fois le JavaScript passé, les trois disent la même chose et c'est le choix
      de la personne qui gagne, pas celui de son téléphone. */
   document.querySelectorAll('meta[name=theme-color]').forEach(mc=>mc.setAttribute('content', eff==='light'?'#FFFFFF':'#0D1624'));
-  // La carte suit le mode jour/nuit
-  if(current==='carteInt') views.carteInt(); else if(current==='carteBox') views.carteBox();
+  // La carte suit le mode jour/nuit — par la teinte des tuiles, sans reconstruire la vue
+  try{ mapNuitSync(); }catch(e){}
 }
 function setThemePref(p){ localStorage.setItem('elanB_theme',p); prefEcrire('theme',p); applyTheme(); toast(THEME_ICO[p]+' '+THEME_LBL[p]); if(current==='parametres') views.parametres(); }
 function toggleTheme(ev){
