@@ -336,7 +336,7 @@
   /* MODAL */
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
   .overlay.open{display:flex;}
-  .modal{background:var(--bg1);border:1px solid var(--brd);border-radius:20px;width:100%;max-width:560px;padding:26px;
+  .modal{background:var(--bg1);border:1px solid var(--brd);border-radius:20px;width:100%;max-width:560px;padding:26px;--rf-modal-marge:26px;
     transform-origin:50% 40%;animation:feuilleArrive var(--d-4,.4s) var(--ressort,cubic-bezier(.2,0,0,1)) both;}
   .overlay.open{animation:voileArrive var(--d-2,.2s) cubic-bezier(.2,0,0,1) both;}
   @keyframes voileArrive{from{opacity:0}to{opacity:1}}
@@ -347,7 +347,11 @@
   @media(min-width:781px) and (max-width:1100px){ .overlay.full{left:226px;} }
   .modal.full{max-width:none;width:100%;min-height:100dvh;border-radius:28px 28px 0 0;padding:22px clamp(16px,5vw,64px) 60px;}
   .overlay.centre{align-items:center;padding:24px 16px;}
-  .modal.carte{max-width:460px;width:100%;min-height:0;border-radius:20px;padding:24px 26px;box-shadow:0 24px 70px rgba(0,0,0,.5);}
+  /* ⛔ LE JETON DE PLEINE LARGEUR SE POSE LÀ OÙ LE REMBOURRAGE EST VRAIMENT DÉCIDÉ.
+     `.modal.carte` (0,2,0) bat `.modal` (0,1,0) : la feuille de Réglages est une CARTE,
+     donc 26 px, pas les 28 de la modale ordinaire. Mesuré au navigateur — sans ce jeton,
+     le panneau des réglages rentrait de 10 px de chaque côté au lieu d'atteindre le bord. */
+  .modal.carte{max-width:460px;width:100%;min-height:0;border-radius:20px;padding:24px 26px;--rf-modal-marge:26px;box-shadow:0 24px 70px rgba(0,0,0,.5);}
   .modal.full .modal-head{position:sticky;top:-22px;background:var(--bg1);z-index:5;margin:-22px clamp(-16px,-5vw,-64px) 16px;padding:16px clamp(16px,5vw,64px);border-bottom:1px solid var(--brd);}
   @media(min-width:781px){ .int-cols{column-count:2;column-gap:26px;} .int-cols>*{break-inside:avoid;-webkit-column-break-inside:avoid;} }
   .comm-zone{background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;min-height:54px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
@@ -620,7 +624,7 @@
     .content-map .page-head{padding:14px 16px;}
     /* Formulaires plein écran (feuille iOS) */
     .overlay{padding:0;align-items:flex-start;}
-    .modal{max-width:100%;width:100%;min-height:100dvh;border-radius:0;padding:16px 16px 40px;}
+    .modal{max-width:100%;width:100%;min-height:100dvh;border-radius:0;padding:16px 16px 40px;--rf-modal-marge:16px}
     .modal-head{position:sticky;top:0;background:var(--bg1);z-index:3;margin:-16px -16px 14px;padding:14px 16px;border-bottom:1px solid var(--brd);}
     .modal-foot{position:sticky;bottom:0;background:var(--bg1);margin:14px -16px -40px;padding:14px 16px;border-top:1px solid var(--brd);}
   }
@@ -855,7 +859,7 @@ table, .tbl, .list-row {
 input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,textarea:-webkit-autofill{-webkit-text-fill-color:var(--oeil-t);caret-color:var(--oeil-t);-webkit-box-shadow:0 0 0 1000px var(--champ-fond) inset;box-shadow:0 0 0 1000px var(--champ-fond) inset;transition:background-color 9999s ease-out 0s}
     /* Barre de reprise du multitâche : visible sans voler la vedette au contenu. */
     .multi-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;
-      border-radius:12px;background:var(--bg2);border:1px solid var(--bd);font-size:13.5px;color:var(--t2)}
+      border-radius:12px;background:var(--bg2);border:1px solid var(--brd);font-size:13.5px;color:var(--t2)}
     .multi-bar b{color:var(--t1)}
     .nav-item .multi-pt{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}
 </style>
@@ -2450,7 +2454,7 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
 
 /* ── MODALE + VOILE ── le voile se floute, la feuille est une surface sans bord qui flotte */
 .overlay{background:var(--scrim)!important;-webkit-backdrop-filter:blur(20px) saturate(140%)!important;backdrop-filter:blur(20px) saturate(140%)!important}
-.modal{background:var(--card)!important;border:0!important;border-radius:var(--r-5)!important;box-shadow:var(--ombre-3);padding:28px}
+.modal{background:var(--card)!important;border:0!important;border-radius:var(--r-5)!important;box-shadow:var(--ombre-3);padding:28px;--rf-modal-marge:28px}
 .overlay.full .modal{border-radius:0!important}
 @media(min-width:781px){ .overlay.full .modal{border-radius:var(--r-5)!important} }
 .modal-head h3{font-size:19px!important;font-weight:700!important;letter-spacing:-.02em}
@@ -6413,7 +6417,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '724';
+const APP_VERSION = '725';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -36085,7 +36089,7 @@ function majEcranBloquant(min,cause){
   e.style.cssText='position:fixed;inset:0;z-index:2147483647;background:var(--bg,#0D1624);color:var(--t1,#eef2fa);display:flex;align-items:center;justify-content:center;padding:28px;text-align:center;-webkit-user-select:none;user-select:none';
   const de=String(APP_VERSION||''), vers=String(min||''), refus=(cause==='refus');
   e.innerHTML='<div style="max-width:400px;width:100%">'+
-    '<div style="width:64px;height:64px;margin:0 auto 18px;border-radius:18px;background:'+(refus?'var(--warn,#d97706)':'var(--acc,#16a34a)')+';display:flex;align-items:center;justify-content:center;font-size:30px">'+(refus?'⚠️':'⬆️')+'</div>'+
+    '<div style="width:64px;height:64px;margin:0 auto 18px;border-radius:18px;background:'+(refus?'var(--org,#d97706)':'var(--acc,#16a34a)')+';display:flex;align-items:center;justify-content:center;font-size:30px">'+(refus?'⚠️':'⬆️')+'</div>'+
     '<h2 style="margin:0 0 10px;font-size:25px;line-height:1.15;letter-spacing:-.022em;font-weight:800">'+(refus?'Enregistrement refusé':'Mise à jour nécessaire')+'</h2>'+
     (refus
       ? '<p style="color:var(--t2,#b8c7e8);font-size:15px;line-height:1.6;margin:0 0 6px">Cet appareil est à jour, mais le nuage <b>refuse d’enregistrer</b>. La mise à jour a déjà été tentée et n’y change rien : ce n’est pas la version qui bloque.</p>'+

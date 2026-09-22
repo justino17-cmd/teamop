@@ -86,7 +86,12 @@ const ECARTS=[
     return { vue:(window.current||''), len:(c?c.innerHTML.length:0),
              tete:(c?c.innerHTML.slice(0,400):''),
              ov:ouv(document.querySelector('#overlay'))||ouv(document.querySelector('#overlay2')),
-             toast:!!document.querySelector('.toast,.snack,.notif-toast'),
+             /* ⛔ UN MESSAGE DÉJÀ À L'ÉCRAN N'EST PAS L'EFFET DU CLIC QUI SUIT. La première
+                version rendait un booléen : un toast resté affiché depuis le remplissage
+                faisait passer les mille clics pour « il s'est passé quelque chose ». On
+                compare une SIGNATURE (combien, et lesquels), pas une présence. */
+             toast:[...document.querySelectorAll('.toast,.snack,.notif-toast')]
+                     .map(t=>(t.textContent||'').trim().slice(0,30)).join('¦'),
              enfants:document.body.children.length };`;
 
   /* ⛔⛔ CONTRE-ÉPREUVE AVANT DE CROIRE UN ZÉRO : un bouton qui jette DOIT être vu.
@@ -103,6 +108,37 @@ const ECARTS=[
   /* ⛔ NAV EST UN TABLEAU DE GROUPES, PAS DE RUBRIQUES — `NAV.map(x=>x.k)` rend 42 `undefined`,
      donc ZÉRO catégorie, donc « 0 clic qui jette ». Le compteur de population l'a attrapé à la
      première exécution ; sans lui, cet audit annonçait un sans-faute sur du néant. */
+  /* ⛔⛔ ET LA MÊME CONTRE-ÉPREUVE POUR L'INERTIE : un bouton qui ne fait RIEN doit être vu
+     comme inerte, sinon « 0 bouton mort » ne dit rien du tout. */
+  {
+    /* ⛔ LA SONDE NE DOIT PAS BOUGER CE QU'ELLE MESURE. Poser le bouton PUIS lire l'état
+       comptait le bouton lui-même dans `body.children.length` : la contre-épreuve échouait
+       toute seule et accusait le détecteur. On le pose, on lit, on clique, on relit. */
+    await S.ev(`const b=document.createElement('button'); b.id='__muet'; b.textContent='muet';
+      b.style.cssText='position:fixed;left:-9999px'; b.onclick=function(){};
+      document.body.appendChild(b); return 1;`);
+    await dormir(300);
+    const av=await S.ev(ETAT);
+    await S.ev(`document.getElementById('__muet').click(); return 1;`);
+    await dormir(280);
+    const ap=await S.ev(ETAT);
+    await S.ev(`const b=document.getElementById('__muet'); if(b)b.remove(); return 1;`);
+    /* ⛔ UNE MESURE QUI ÉCHOUE DOIT DIRE POURQUOI — sinon on essaie trois hypothèses
+       fausses avant de regarder. On nomme le champ qui a bougé, et on montre l'écart. */
+    const ecarts=[];
+    if(ap.vue!==av.vue) ecarts.push('vue '+av.vue+'→'+ap.vue);
+    if(ap.ov!==av.ov) ecarts.push('overlay '+av.ov+'→'+ap.ov);
+    if(ap.toast!==av.toast) ecarts.push('toast «'+av.toast+'»→«'+ap.toast+'»');
+    if(ap.len!==av.len) ecarts.push('longueur '+av.len+'→'+ap.len);
+    if(ap.tete!==av.tete){ let i=0; while(i<av.tete.length&&av.tete[i]===ap.tete[i]) i++;
+      ecarts.push('tête@'+i+' «'+av.tete.slice(i,i+40)+'» → «'+ap.tete.slice(i,i+40)+'»'); }
+    if(ap.enfants!==av.enfants) ecarts.push('enfants '+av.enfants+'→'+ap.enfants);
+    const vuMuet = !ecarts.length;
+    console.log('  contre-épreuve : un clic sans effet est '+(vuMuet?'VU comme inerte ✓':'INVISIBLE ✗ — tout « 0 inerte » est faux'));
+    if(!vuMuet) console.log('      ce qui a bougé tout seul : '+ecarts.join(' | ').slice(0,300));
+    if(!vuMuet){ S.fermer(); process.exit(5); }
+  }
+
   const CATS=await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]);`);
   console.log('  catégories jouées : '+CATS.length);
   if(CATS.length<20){ console.log('  ✗ POPULATION TROP MAIGRE — on n’audite rien, on s’arrête.'); S.fermer(); process.exit(4); }
@@ -113,7 +149,11 @@ const ECARTS=[
   await dormir(500);
 
   const R={err:[],inertes:[],ecartes:[]};
-  let clics=0, ecrans=0, cibles=0;
+  let clics=0, ecrans=0, cibles=0, rates=0, derives=0;
+  /* ⛔ « 0 inerte » sur mille clics n'est croyable que si l'on sait CE QUI a changé à chaque
+     fois. Sans ces compteurs, un détecteur qui ne peut jamais dire « inerte » rend le même
+     zéro qu'une application sans bouton mort. */
+  const RAISONS={vue:0,overlay:0,toast:0,longueur:0,tete:0,enfants:0};
 
   for(const k of CATS){
     await S.ev(`try{ go('${k}'); }catch(e){} return 1;`); await dormir(600); await ranger();
@@ -126,26 +166,38 @@ const ECARTS=[
       const motif=ECARTS.find(([re])=>re.test(c.t));
       if(motif){ R.ecartes.push({ou:k,t:c.t,n:c.n,pourquoi:motif[1]}); continue; }
 
+      /* ⛔⛔ VISER PAR INDEX SANS REMETTRE L'ÉCRAN D'APLOMB, C'EST NE PAS CLIQUER.
+         Premier tour mesuré le 22 septembre 2026 : sur 1 016 frappes, **748 n'ont trouvé
+         personne** — un clic sur un filtre change la liste, et tous les index d'après
+         tombent dans le vide. « 0 clic qui jette » portait alors sur 268 clics, pas 1 016,
+         et rien ne le disait. On REVIENT donc à l'écran neuf avant CHAQUE frappe, et on
+         vérifie que le recensement retrouve le même nombre de cibles. */
+      await S.ev(`try{ if(window.current!=='${k}') go('${k}'); else go('${k}'); }catch(e){} return 1;`);
+      await dormir(420);
       const avant=await S.ev(ETAT);
       const nErr=S.exceptions.length;
-      /* ⛔ on RÉ-ÉNUMÈRE et on vise par index : la référence d'avant est morte au redessin */
       const frappe=await S.ev(RECENSER.replace('return out;',
-        `const e=[...vu][${i}]; if(!e) return {rate:true}; e.click(); return {rate:false};`));
-      await dormir(280);
+        `const e=[...vu][${i}]; if(!e) return {rate:true,n:out.length};
+         const id=(e.textContent||'').trim().replace(/\\s+/g,' ').slice(0,44);
+         e.click(); return {rate:false,n:out.length,id:id};`));
+      await dormir(300);
       clics++;
       const apres=await S.ev(ETAT);
       const neuves=S.exceptions.slice(nErr);
+      if(frappe.rate) rates++;
+      else if(frappe.id!==c.t) derives++;   /* l'index a bougé : on a cliqué autre chose */
       if(neuves.length) R.err.push({ou:k,t:c.t,n:c.n,e:neuves.join(' | ').slice(0,160)});
-      else if(!frappe.rate && apres.vue===avant.vue && apres.ov===avant.ov && !apres.toast
-              && apres.len===avant.len && apres.tete===avant.tete && apres.enfants===avant.enfants)
-        R.inertes.push({ou:k,t:c.t,n:c.n});
-
-      /* on remet l'écran d'aplomb — seulement si quelque chose a bougé */
-      if(apres.ov || apres.vue!==avant.vue || apres.len!==avant.len){
-        await ranger();
-        await S.ev(`try{ if(window.current!=='${k}') go('${k}'); }catch(e){} return 1;`);
-        await dormir(320);
+      else if(!frappe.rate){
+        if(apres.vue!==avant.vue) RAISONS.vue++;
+        else if(apres.ov!==avant.ov) RAISONS.overlay++;
+        else if(apres.toast!==avant.toast) RAISONS.toast++;
+        else if(apres.tete!==avant.tete) RAISONS.tete++;
+        else if(apres.len!==avant.len) RAISONS.longueur++;
+        else if(apres.enfants!==avant.enfants) RAISONS.enfants++;
+        else R.inertes.push({ou:k,t:c.t,n:c.n});
       }
+
+      if(apres.ov || apres.vue!==avant.vue) await ranger();
     }
     console.log('  '+k+' — '+liste.length+' cibles');
   }
@@ -156,6 +208,9 @@ const ECARTS=[
   console.log('\n════════ AUDIT DES CLICS ════════');
   console.log('  page mesurée : '+S.version);
   console.log('  population : '+ecrans+' écrans, '+cibles+' cibles recensées, '+clics+' clics réels');
+  console.log('  frappes qui n’ont trouvé personne : '+rates+'  ·  frappes tombées sur une AUTRE cible : '+derives);
+  console.log('  → clics vraiment portés sur la cible visée : '+(clics-rates-derives)+' / '+clics);
+  console.log('  ce qui a changé après un clic : '+Object.entries(RAISONS).map(([a,b])=>a+' '+b).join(' · '));
   console.log('\n══ 1. CLICS QUI JETTENT : '+R.err.length+' ══');
   grouper(R.err,x=>x.e.slice(0,70)).slice(0,15).forEach(([g,v])=>
     console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. « '+v[0].t+' » ['+v[0].ou+']'));
@@ -166,7 +221,7 @@ const ECARTS=[
   grouper(R.ecartes,x=>x.pourquoi).forEach(([g,v])=>
     console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. « '+v[0].t+' »'));
 
-  fs.writeFileSync(__dirname+'/audit-clics.json',JSON.stringify({version:S.version,ecrans,cibles,clics,...R}));
+  fs.writeFileSync(__dirname+'/audit-clics.json',JSON.stringify({version:S.version,ecrans,cibles,clics,rates,derives,raisons:RAISONS,...R}));
   console.log('\n  détail complet : scratchpad/audit-clics.json');
   S.fermer(); process.exit(0);
 })().catch(e=>{console.error('AUDIT MORT :',e&&e.stack||e);process.exit(2);});
