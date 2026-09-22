@@ -37,6 +37,62 @@ console.log('Un métier sans pack ne reçoit rien et ne voit pas le bouton');
   v('même avec cinq noms du pack 3D, pas de bouton',g.catalogueEnPlace(),false);
   v('et rien ne se pose',g.cataloguePoser(base),{produits:0,fournisseurs:0}); }
 
+console.log('Les fiches FOURNISSEURS suivent le métier, comme le catalogue');
+/* ⛔ MESURÉ AU NAVIGATEUR LE 22 SEPTEMBRE 2026, ET C'EST LA CONTRE-ÉPREUVE QUI L'A TROUVÉ.
+   cataloguePoser lisait bien metierPackDe ; les DEUX autres portes lisaient FOURNISSEURS_3D en
+   direct, alors que leur propre commentaire promettait « la même règle que les deux autres ».
+   Porte rouverte (PACK_METIER_AUTO=true, copie mutée), métier « nettoyage », pack du métier à
+   0 produit et 0 fournisseur : 0 produit arrivait — et 5 fiches anti-nuisibles arrivaient quand
+   même (ARMOSA, ENSYSTEX, MABI, ORCAD, SODIF).
+   Le banc joue donc la porte OUVERTE : c'est le seul état où le défaut se voit. La fermer avec
+   PACK_METIER_AUTO garderait le DRAPEAU, pas l'aiguillage — et c'est l'aiguillage qui manquait. */
+{ /* seedFournisseurs est extrait du fichier réel et EXÉCUTÉ — un motif sur le texte aurait trouvé
+     le nom du pack dans le commentaire qui l'explique, vingt lignes au-dessus du code. */
+  const src=[cst('FOURNISSEURS_3D'),cst('CATALOGUE'),obj('METIERS'),
+    dec("METIERS['3d'].catalogue=CATALOGUE;"),dec("METIERS['3d'].fournisseurs=FOURNISSEURS_3D;"),
+    dec('function metierPackDe(base){'),dec('function slugNom(nom){'),dec('function idCatalogue(nom,prefixe){'),
+    dec('const FOURS_VER='),dec('function seedFournisseurs(){')].join('\n');
+  const semer=(base,porte)=>new Function('etat',
+      'let db=etat.db; const PACK_METIER_AUTO=etat.porte; let currentUser=null, current=""; const views={};'
+    + 'const save=()=>{};\n'+src+'\nseedFournisseurs(); return { FOURNISSEURS_3D };')({db:base,porte});
+
+  /* ⛔ LA POPULATION D'ABORD : sans elle, les zéros qui suivent passeraient sur du néant — le
+     corps de seedFournisseurs est tout entier dans un try/catch, donc une extraction cassée
+     rendrait « 0 fournisseur » avec le même aplomb qu'un aiguillage juste. */
+  { const b={fournisseurs:[]}; const g=semer(b,true);
+    v('porte ouverte · métier 3D : les cinq fiches du pack arrivent',b.fournisseurs.length,5);
+    v('…et ce sont bien celles du pack',b.fournisseurs.map(f=>f.nom).sort(),g.FOURNISSEURS_3D.map(f=>f.nom).sort());
+    v('…avec un identifiant déduit du nom, jamais un uid()',b.fournisseurs.every(f=>/^four_[a-z0-9-]+$/.test(f.id)),true);
+    v('…et la base est marquée « vue »',b.foursSeededV>0,true);
+    b.foursSeededV=0; semer(b,true);
+    v('re-semer sur la même base n\'ajoute pas un doublon',b.fournisseurs.length,5); }
+
+  /* le même geste, la même porte, sur un métier sans pack : le zéro a maintenant un sens */
+  { const b={metier:'nettoyage',fournisseurs:[]}; semer(b,true);
+    v('porte ouverte · métier nettoyage : AUCUNE fiche anti-nuisibles',b.fournisseurs.length,0);
+    v('…et la base est quand même marquée « vue »',b.foursSeededV>0,true); }
+  { const b={metier:'plomberie',fournisseurs:[]}; semer(b,true);
+    v('porte ouverte · métier plomberie : rien non plus',b.fournisseurs.length,0); }
+  { const b={metier:'boulangerie',fournisseurs:[]}; semer(b,true);
+    v('un métier inconnu retombe sur la 3D, comme metierPackDe',b.fournisseurs.length,5); }
+
+  /* l'autre sens, au même coût : porte fermée, rien ne part, et le drapeau est quand même posé */
+  { const b={fournisseurs:[]}; semer(b,false);
+    v('porte fermée · métier 3D : rien n\'est semé',b.fournisseurs.length,0);
+    v('…mais la base est marquée « vue » (rebasculer le drapeau ne remplira pas après coup)',b.foursSeededV>0,true); }
+
+  /* ⛔ LA TROISIÈME PORTE VIT DANS load(), qu'on ne peut pas extraire : on lit sa FORME, sur un
+     texte dont les commentaires sont RETIRÉS. Ce dépôt nomme ses fonctions dans le commentaire
+     qui les explique — un motif y tombe et garde une phrase, pas un comportement. */
+  const NU=APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ').replace(/^[ \t]*\/\/.*$/gm,' ');
+  v('le nettoyage des commentaires a laissé du code',NU.length>APP.length*0.6,true);
+  const lignes=NU.split('\n').filter(l=>l.includes('FOURNISSEURS_3D'));
+  v('la liste 3D n\'est plus lue que par quatre lignes de CODE',lignes.length,4);
+  v('…et aucune d\'elles ne pose de fiche',lignes.filter(l=>/\.push\(/.test(l)).length,0);
+  v('la porte de load() lit le pack du métier',/if\(PACK_METIER_AUTO\) \(metierPackDe\(d\)\.fournisseurs\|\|\[\]\)\.forEach\(/.test(NU),true);
+  v('…et saute un nom qui ne slugue pas',/\(metierPackDe\(d\)\.fournisseurs\|\|\[\]\)\.forEach\(f=>\{ if\(!f\.nom\|\|!slugNom\(f\.nom\)\) return;/.test(NU),true);
+  v('le catalogue de load() passe par la même porte',/if\(PACK_METIER_AUTO\) cataloguePoser\(d,\{ancien:true\}\);/.test(NU),true); }
+
 console.log('Les étiquettes des fournisseurs sont traduites, jamais recopiées');
 { function cstb(n){ const i=APP.indexOf('const '+n+'='); const fin=APP.indexOf('];',i); return APP.slice(i,fin+2); }
   const src=[cstb('CAT_LIST'),dec('function catFourNorm(s){'),cstb('CAT_FOUR_REJET'),cstb('CAT_FOUR_NOM'),cstb('CAT_FOUR_NOM_FAIBLE'),cstb('CAT_FOUR_MAP'),cstb('CAT_DEVINE'),dec('function devineCat(nom){'),dec('function rangerCatFour(catFournisseur,nomProduit){'),cstb('CATFOUR')].join('\n');

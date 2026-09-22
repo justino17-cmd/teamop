@@ -6242,7 +6242,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '715-beta';
+const APP_VERSION = '716-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6593,8 +6593,17 @@ function seedFournisseurs(){
        dépôt décrit pour les produits, appliqué aux fournisseurs.
        Les noms du pack sont des CONSTANTES de ce fichier, pas des saisies : ils sluguent tous,
        donc l'identifiant déduit est sûr ici — et il rend le semis idempotent entre appareils.
-       ⚠️ Ne jamais faire ça pour un fournisseur créé à la main : là, uid() reste la règle. */
-    FOURNISSEURS_3D.forEach(f=>{ if(have.has(f.nom.toUpperCase())) return; db.fournisseurs.push({id:idCatalogue(f.nom,'four'),...f}); have.add(f.nom.toUpperCase()); n++; });
+       ⚠️ Ne jamais faire ça pour un fournisseur créé à la main : là, uid() reste la règle.
+       ⚠️ La garde de slug est écrite plutôt que supposée : ce n'est plus la seule liste 3D qui
+       passe ici, c'est le pack de N'IMPORTE QUEL métier — un nom qui ne laisse rien une fois
+       réduit retomberait sur le générique « four_x », et deux fiches s'y écraseraient. */
+    /* ⛔ LE PACK APPARTIENT AU MÉTIER, PAS À L'APPLICATION. Lire FOURNISSEURS_3D ici servait la
+       liste anti-nuisibles à une entreprise de nettoyage — mesuré au navigateur le 22 septembre
+       2026, porte rouverte : métier « nettoyage », pack du métier à 0 produit et 0 fournisseur,
+       et pourtant ARMOSA, ENSYSTEX, MABI, ORCAD et SODIF arrivaient. cataloguePoser avait été
+       branché sur metierPackDe le 8 septembre ; ces deux lignes-ci ne l'avaient pas été, et leur
+       commentaire promettait pourtant « la même règle que les deux autres ». */
+    (metierPackDe(db).fournisseurs||[]).forEach(f=>{ if(!f.nom||!slugNom(f.nom)) return; if(have.has(f.nom.toUpperCase())) return; db.fournisseurs.push({id:idCatalogue(f.nom,'four'),...f}); have.add(f.nom.toUpperCase()); n++; });
     db.foursSeededV=FOURS_VER; db.foursSeeded=Date.now();
     save();
     if(n && currentUser && typeof current!=='undefined' && current==='fournisseurs'){ try{ views.fournisseurs(); }catch(e){} }
@@ -8185,7 +8194,7 @@ function load(){ try{ suspensionCharger(); }catch(e){}
   if(!localStorage.getItem('elanB_fours_v1')){
     d.fournisseurs = d.fournisseurs || [];
     const haveF = new Set(d.fournisseurs.map(f=>(f.nom||'').trim().toUpperCase()));
-    if(PACK_METIER_AUTO) FOURNISSEURS_3D.forEach(f=>{ if(haveF.has(f.nom.toUpperCase())) return; d.fournisseurs.push({id:idCatalogue(f.nom,'four'),...f}); haveF.add(f.nom.toUpperCase()); });   // identifiant déterministe : voir le bloc ⛔ de foursSeed()
+    if(PACK_METIER_AUTO) (metierPackDe(d).fournisseurs||[]).forEach(f=>{ if(!f.nom||!slugNom(f.nom)) return; if(haveF.has(f.nom.toUpperCase())) return; d.fournisseurs.push({id:idCatalogue(f.nom,'four'),...f}); haveF.add(f.nom.toUpperCase()); });   // pack du MÉTIER + identifiant déterministe : voir le bloc ⛔ de seedFournisseurs()
     localStorage.setItem('elanB_fours_v1','1');
     try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }catch(e){}
   }
