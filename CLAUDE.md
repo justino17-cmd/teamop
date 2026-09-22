@@ -847,6 +847,50 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   Chercher le titre d'un bloc dans un texte dont on vient de retirer les commentaires rend −1,
   donc une tranche VIDE, et **une tranche vide passe au vert sur tout**. Pris sur `test-757` à
   sa première exécution, le 22 septembre 2026.
+- ⛔⛔ **UN SÉLECTEUR `:has()` DÉCRIT UNE RELATION, PAS UNE FORME — ET LA MÊME RELATION EXISTE
+  CHEZ DES ÉLÉMENTS QUI N'ONT RIEN À VOIR.** Le 22 septembre 2026,
+  `div:has(> input[placeholder^="Rechercher"])` habillait la « pilule de recherche ». Sur Bons
+  de commande, le champ est écrit en **enfant direct de `#content`** : la zone de contenu
+  entière prenait `border-radius:999px`, la vitre et son `backdrop-filter`. Mesuré :
+  **1 742 × 716 px, rayon 999 px, flou 14 px, fond à 46 %** — un disque pâle en travers de
+  l'écran, que Justin a pris en photo (« c'est quoi ce fond moche »). Un sélecteur de PARENT
+  s'écrit donc avec ce que l'objet EST, pas seulement avec ce qu'il contient :
+  `:not(:has(> :not(input):not(svg):not(button):not(label)))` — « rien d'autre que le champ ».
+  ⚠️ Et il faut distinguer les emplois : la même relation qui vise un **descendant**
+  (`… input.search-inp`) ne peint pas le conteneur et reste large — la v720 en dépend.
+  `tests/test-767.js` classe les trois cas au lieu de les compter en bloc ; sa première
+  version criait « 2 sans garde » sur du code juste, et un banc qui crie faux se fait
+  désactiver.
+- ⛔⛔ **POUR SAVOIR QUELLE RÈGLE PEINT UN ÉLÉMENT, ON DEMANDE AU NAVIGATEUR —
+  `CSS.getMatchedStylesForNode`.** Le même jour, le disque ci-dessus a coûté une heure et deux
+  fausses pistes, chacune avec son jeu de captures : les halos du verre (`--vr-halos` s'éteint
+  à 70 % de son rayon — vrai, et sans rapport), puis une bissection des pseudo-éléments de
+  `body` (dont une conclusion fausse, la capture étant couverte par la fenêtre
+  « Notifications » qui se rouvre toute seule). Dix lignes de CDP ont nommé le coupable **en
+  une exécution**. La règle du dépôt sur `elementsFromPoint` — « un relevé coûte dix lignes et
+  remplace une heure de tâtonnement » — vaut aussi pour les RÈGLES, pas seulement pour la pile
+  d'éléments.
+  ⚠️ Corollaire payé le même jour : **un correctif posé sur une cause fausse se retire.** Le
+  réglage des halos, validé avec Justin en septembre, a été remis tel quel. Un correctif
+  inutile occupe le terrain et fait croire le problème traité.
+- ⛔ **UNE RÈGLE ÉCRITE POUR UN ÉCRAN NE COUVRE PAS LE COMPOSANT — ET L'ÉCRAN QUI SORT DU
+  CADRE REND DU BRUT.** Toutes les règles du segmenté visaient `.plg-pl .seg span` : la barre
+  du planning, et seulement des `span`. Pointage est le seul écran qui met des `<button>` dans
+  un `.seg` : ils sortaient **bruts du navigateur** — gris, encadrés, dans la police du système
+  — au milieu d'un conteneur en verre. Un composant se nomme par sa CLASSE, jamais par l'écran
+  où il est né, et il couvre les balises qu'on y met vraiment. ⚠️ Un `<button>` arrive avec ses
+  atours : sans `background:none; border:0; font-family:inherit`, il ne ressemblera jamais au
+  `span` d'à côté, quelle que soit la règle qu'on empile par-dessus.
+- ⛔⛔ **UNE SONDE QUI CLIQUE DOIT COMPTER SES FRAPPES QUI ONT VRAIMENT PORTÉ.** La passe de
+  clics du 22 septembre 2026 annonçait « 1 027 clics, 0 erreur ». Le compteur de population
+  disait autre chose : **730 frappes n'avaient trouvé personne et 248 étaient tombées sur une
+  AUTRE cible — 49 avaient atteint celle qu'on visait.** Un recensement ne rend pas deux fois
+  la même liste (la vue s'anime, les données bougent), donc viser par INDEX ne marche pas, même
+  en remettant l'écran d'aplomb avant chaque frappe. On vise par SIGNATURE (libellé + classe),
+  et **tant que le compteur ne montre pas une couverture franche, le « 0 erreur » ne se cite
+  pas.** C'est la règle « une assertion sur un ensemble vide » appliquée à un geste : ici on ne
+  comptait pas des absences, on comptait des clics qui n'avaient pas eu lieu.
+
 - ⛔⛔ **UNE GÉOMÉTRIE RECOPIÉE EN JAVASCRIPT DÉPEND DU MOMENT OÙ ON LA COPIE.** La pastille de
   la barre d'onglets lisait `offsetWidth` de l'onglet actif et se le recopiait. Mesuré le
   22 septembre 2026 : **143 px de large pour un onglet de 76** — la mesure avait été prise

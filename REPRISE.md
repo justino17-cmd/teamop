@@ -23,6 +23,79 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
+## ✅ 22 SEPTEMBRE 2026 — LE « FOND MOCHE » ET LES BOUTONS DE POINTAGE (v725, bêta publiée)
+
+Deux captures de Justin, deux causes sans rapport, **la même leçon : un sélecteur décrit une
+RELATION, pas l'objet qu'on avait en tête.**
+
+### ⛔⛔ 1. `div:has(> input[placeholder^="Rechercher"])` ATTRAPE LE CONTENEUR DE LA PAGE
+
+Justin : « la 1ère photo c'est quoi ce fond moche là ». Un disque pâle en travers de tout
+l'écran, avec un **bord net**.
+
+Ce n'était ni un halo, ni un dégradé, ni une couleur. Sur Bons de commande, le champ
+« Rechercher… » est écrit en **enfant direct de `#content`** : la zone de contenu entière
+prenait donc la pilule de recherche. Mesuré au navigateur (Safari 26, verre allumé,
+2 000 × 900, accent violet) :
+
+| | avant | après |
+|---|---|---|
+| `#content` | 1 742 × 716 px, **rayon 999 px**, `backdrop-filter: blur(14px) saturate(1.8)`, fond à 46 % | `rgba(0,0,0,0)`, sans rayon ni flou |
+
+La garde dit ce qu'une pilule de recherche **est** : un enrobage qui ne contient que le champ
+(`:not(:has(> :not(input):not(svg):not(button):not(label)))`). Elle est posée sur les trois
+règles de CONTENEUR ; celles qui visent un DESCENDANT (`… input.search-inp`, la règle
+anti-loupe de la v720) restent larges, et `test-767` distingue les deux cas.
+
+⚠️ **CE QUI A COÛTÉ UNE HEURE, ET C'EST LA VRAIE LEÇON.** Deux fausses pistes, chacune avec
+son jeu de captures : d'abord les halos du verre (`--vr-halos` s'éteint à 70 % de son rayon —
+vrai, mais sans rapport), puis une bissection des pseudo-éléments de `body` (un faux positif :
+la capture était couverte par la fenêtre « Notifications » qui se rouvre toute seule).
+Le coupable a été nommé **en une exécution** par `CSS.getMatchedStylesForNode` : demander au
+navigateur **quelle règle s'applique à l'élément**, au lieu de raisonner sur le fichier.
+⚠️ Et la modification des halos faite sur la fausse piste a été **annulée** : elle touchait un
+réglage validé avec Justin en septembre et ne corrigeait rien. Un correctif inutile n'est pas
+gratuit.
+
+### ⛔ 2. UN `<button>` DANS `.seg` N'ÉTAIT STYLÉ NULLE PART
+
+Justin : « la 2ème je veux des boutons, c'est dans pointage ». Semaine / Mois / Tout sortaient
+en **boutons bruts du navigateur** — noirs, carrés, police du système — dans un conteneur en
+verre.
+
+Toutes les règles du segment visaient `.plg-pl .seg span` : la barre du planning, et seulement
+elle, et seulement des `span`. Pointage est le **seul écran** qui met des `button` dans un
+`.seg`. Le segment devient un composant (`.seg`), les items valent pour les deux balises, et le
+bouton perd ses atours d'origine (`background:none`, `border:0`, `font-family:inherit`).
+Mesuré après : pilule en verre, « Semaine » actif sur fond sombre, les deux autres en libellés
+propres.
+
+### Et trois variables CSS mortes, trouvées par un outil que personne ne lançait
+
+`scripts/verifier-theme.js` savait les dire depuis des semaines — **aucun workflow, aucun
+script de CI ne l'appelle**. `tests/test-766.js` (26 contrôles) le remplace :
+
+| | ce que c'était | ce que ça faisait |
+|---|---|---|
+| `var(--bd)` dans `.multi-bar` | faute de frappe pour `--brd` | la barre « Reprendre » du multitâche n'avait **aucune bordure** — propriété jetée en silence |
+| `var(--warn,#d97706)` | `--warn` n'existe pas | l'ambre de l'écran « Enregistrement refusé » était figé, hors thème → `--org` |
+| `var(--rf-modal-marge,16px)` | jamais définie | le panneau des Réglages rentrait de **10 px de chaque côté** au lieu d'atteindre le bord de la carte (mesuré 16 contre 26 ; après : au même pixel) |
+
+**Mutations : 5/5 sur `test-766`, 6/6 sur `test-767`.** 124 suites · 5 503 vérifications · 0 échec.
+
+### ⚠️ CE QUI RESTE OUVERT : LA PASSE DE CLICS N'EST PAS ENCORE FIABLE
+
+`scratchpad/audit-clics.js` appuie sur chaque bouton de chaque catégorie. Ses deux
+contre-épreuves passent (un clic qui jette est VU, un clic sans effet est VU comme inerte) et
+il annonce **0 clic qui jette**. Mais son compteur de population dit l'essentiel :
+**sur 1 027 frappes, 730 n'ont trouvé personne et 248 sont tombées sur une AUTRE cible — 49
+seulement ont atteint celle qu'on visait.** Le recensement ne rend pas deux fois la même liste
+(la vue s'anime, les données bougent), donc l'index dérive. Le ciblage est passé à une
+SIGNATURE (libellé + classe) ; **tant que le compteur ne montre pas une couverture franche, ce
+« 0 erreur » ne vaut rien et ne doit pas être cité.** Sans ce compteur, la passe aurait
+annoncé « 1 027 boutons cliqués, 0 erreur ».
+
+
 ## ✅ 22 SEPTEMBRE 2026 — L'AUDIT TOTAL : 3 913 BOUTONS MESURÉS UN PAR UN (v724, bêta publiée)
 
 Justin : **« Tu vas tout me vérifier un par 1 bouton par bouton catégorie par catégorie ok tu

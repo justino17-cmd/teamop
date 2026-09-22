@@ -176,8 +176,20 @@ const ECARTS=[
       await dormir(420);
       const avant=await S.ev(ETAT);
       const nErr=S.exceptions.length;
+      /* ⛔⛔ ET REMETTRE L'ÉCRAN D'APLOMB NE SUFFIT PAS : L'INDEX DÉRIVE QUAND MÊME.
+         Mesuré le 22 septembre 2026, seconde exécution : sur 1 027 frappes, 730 n'ont
+         trouvé personne et 248 sont tombées sur une AUTRE cible — **49 seulement ont
+         atteint celle qu'on visait**. Le recensement ne rend pas la même liste deux fois
+         de suite (la vue s'anime, les données bougent). On vise donc par SIGNATURE — le
+         libellé et la classe — et on ne clique que si elle correspond. Sans le compteur
+         de population, ce banc annonçait « 1 027 clics, 0 erreur » pour 49 vrais clics. */
+      const sig = JSON.stringify({t:c.t,n:c.n});
       const frappe=await S.ev(RECENSER.replace('return out;',
-        `const e=[...vu][${i}]; if(!e) return {rate:true,n:out.length};
+        `const cible=${sig}; const liste=[...vu];
+         let k = out.findIndex((o,j)=>o.t===cible.t&&o.n===cible.n&&j===${i});
+         if(k<0) k = out.findIndex(o=>o.t===cible.t&&o.n===cible.n);
+         if(k<0) return {rate:true,n:out.length};
+         const e=liste[k]; if(!e) return {rate:true,n:out.length};
          const id=(e.textContent||'').trim().replace(/\\s+/g,' ').slice(0,44);
          e.click(); return {rate:false,n:out.length,id:id};`));
       await dormir(300);
