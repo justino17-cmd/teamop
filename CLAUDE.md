@@ -500,6 +500,21 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   **Toute mesure de largeur se fait après deux `requestAnimationFrame` ET une lecture forcée**,
   et elle prouve d'abord que la barre était là. Corollaire : on n'a rien corrigé, et c'est le
   bon résultat — un faux défaut coûte deux fois, le correctif puis la garde inutile.
+- ⛔⛔ **ET UNE ROTATION FABRIQUE LE MÊME FAUX DÉBORDEMENT, PAR UN AUTRE CHEMIN.**
+  `getBoundingClientRect()` rend la boîte **visuelle**, transformations comprises. Mesuré sur la
+  Tour le 22 septembre 2026 : huit écrans « débordaient de 3 px » sur un chevron qui porte
+  `transform:rotate(90deg)` — sa boîte de 6 px de large et 44 px de HAUT, tournée, dépasse de
+  19 px de chaque côté. Contre-épreuve qui tranche : `scrollWidth` 433 contre `clientWidth` 430,
+  et pourtant **pousser la page à droite rend 0 px de défilement réel**. Rien n'est peint là,
+  rien n'est coupé. **Un détecteur de débordement doit finir par demander à la PAGE si elle
+  bouge** (`window.scrollTo(9999,y)` puis relire `scrollX`), jamais s'arrêter au rectangle d'un
+  élément — sinon il accuse un ornement et on « corrige » ce qui va bien.
+- ⚠️ **UN APERÇU PLUS VIEUX QUE LA PAGE QU'IL DOUBLE EST PIRE QUE PAS D'APERÇU.**
+  `apercu/tour.html` datait du 19 septembre quand la production datait du 20, et `REPRISE.md`
+  annonçait la refonte « en aperçu » alors que l'aperçu était DERRIÈRE. Qui l'aurait testé
+  aurait jugé une version en retard d'une journée, et signalé des défauts déjà corrigés.
+  **Régénérer (`bash scripts/apercu.sh <page>`) avant de mesurer, toujours** — et se rappeler
+  que le dossier `apercu/` ne se met pas à jour tout seul quand la page source bouge.
 - ⛔ **UN DÉBORDEMENT MESURÉ PENDANT L'ANIMATION D'ENTRÉE N'EN EST PAS UN.** Les cartes entrent
   en glissant (`.content.entre`) : la page a alors une barre de défilement horizontale
   PASSAGÈRE. Mesuré à 520 ms, ça donnait « déborde de 15 px » sur une trentaine de rubriques

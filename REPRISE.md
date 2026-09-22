@@ -24,6 +24,75 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ✅ 22 SEPTEMBRE 2026 — LA TOUR SUR TÉLÉPHONE : MESURÉE, ET ELLE TIENT (v2.64)
+
+Les deux chantiers « refonte téléphone » et « une console par application » étaient portés
+`in_progress` depuis des jours. **Mesurés, ils sont faits — sauf un point, qui portait à
+conséquence.**
+
+Banc monté pour l'occasion, et réutilisable (`scratchpad/tour-phone.js`) : un **VRAI**
+`server/index.js` isolé sur un port libre, deux entreprises inventées dans son annuaire, une
+copie d'aperçu servie sur 127.0.0.1 avec `API` réécrite vers ce serveur, connexion par le
+**vrai formulaire** (`lg-id` / `lg-pass`), puis les 17 écrans des deux consoles parcourus sur
+iPhone 430×932 **encoches posées**.
+
+| | écrans | erreurs JS | cibles < 44 px |
+|---|---|---|---|
+| console GESTION | 11 | **0** | 0, sauf Équipe |
+| console MESSAGES | 6 | **0** | 0, sauf Équipe |
+
+**La bascule de console marche au doigt**, vérifiée de bout en bout : `#app-pill` « GESTION »
+(121×44) ouvre une feuille de deux boutons de 52 px, et « OP MESSAGES » bascule pour de bon —
+`APP`, teinte du corps (`body[data-app]`), titre « Tour OP MESSAGES », et la liste des écrans
+qui passe de 11 à 6. La feuille se referme. **Le chantier « une console par application » est
+donc terminé**, pas en cours.
+
+### ⛔ LE SEUL VRAI DÉFAUT, ET IL DONNAIT UN DROIT
+
+Écran **Équipe**, les deux cases qui décident quelles consoles une personne peut ouvrir :
+étiquettes **148×36** et **240×36**, case **13×13**. Les seules cibles sous 44 px de toute la
+Tour — et ce sont celles qui **donnent ou retirent une console à quelqu'un**. Une touche ratée
+n'y est pas un désagrément, c'est un droit mal posé.
+
+Corrigé en v2.64 : 44 px d'étiquette et 18 px de case, **sur écran de téléphone seulement**
+(`@media(max-width:899px)`) — au bureau la densité vaut mieux, et la souris n'a pas besoin de
+44 px. Remesuré : **157×44** et **249×44**.
+
+### ⛔ ET UN FAUX DÉFAUT QUE JE N'AI PAS CORRIGÉ, EXPRÈS
+
+Huit écrans annonçaient « déborde de 3 px » sur `SPAN.reg-chev`. Cause trouvée en lisant le
+style calculé : le chevron porte `transform:rotate(90deg)` sur une boîte de **44 px de haut et
+6 px de large** — tournée, sa boîte **visuelle** dépasse de 19 px de chaque côté, et
+`getBoundingClientRect()` la compte. Contre-épreuve : `scrollWidth` 433 contre `clientWidth`
+430, mais **pousser la page à droite rend 0 px de défilement réel**. Rien n'est peint là, rien
+n'est coupé, la page ne bouge pas.
+
+C'est la jumelle des « 15 px de Planning général », avec une cause différente : là c'était la
+barre de défilement mesurée trop tôt, ici c'est une rotation. **Un détecteur de débordement
+doit finir par demander à la PAGE si elle bouge**, jamais s'arrêter au rectangle d'un élément.
+
+### ⚠️ L'APERÇU ÉTAIT PÉRIMÉ
+
+`apercu/tour.html` datait du **19 septembre**, la production du **20**. Quelqu'un qui aurait
+testé `teamop.fr/apercu/tour.html` aurait jugé une version en retard d'une journée — et
+`REPRISE.md` annonçait la refonte « en aperçu » alors que l'aperçu était *derrière*.
+Régénéré depuis la production avant toute mesure. **Un aperçu plus vieux que la page qu'il
+double est pire que pas d'aperçu.**
+
+### ⚠️ TROIS FOIS MA SONDE A FABRIQUÉ LE DÉFAUT QU'ELLE CHERCHAIT
+
+Dans la même heure, et c'est la leçon qui coûte le plus cher ici :
+· **le panneau de Leia ouvert** — `maybeWelcome()` s'ouvre sur un compte jamais vu, couvrait
+  374×540 et `#assistant` est dans la liste d'exclusion du geste ;
+· **la fenêtre « Langue / Language / Idioma »** — elle s'ouvre sur un appareil jamais réglé,
+  `.modal.full`, et faisait tomber la couverture du geste à **0 %** ;
+· **le mauvais sélecteur** — j'ai cherché `.app-sw` dans la feuille « app », qui pose des
+  boutons `.groupe` ; la sonde a répondu « aucune bascule » sur une feuille qui en porte deux.
+Les trois ont été rattrapés par le même réflexe : **compter la population, et regarder la pile
+d'éléments plutôt que le verdict**.
+
+---
+
 ## ⛔ 22 SEPTEMBRE 2026 — CE QUE LE SITE VEND CONTRE CE QUE LES APPLICATIONS FONT
 
 Audit mécanique : `tarifs.html` dépouillé de son balisage, `PLAN_BLOQUE` et `NAV` extraits du
