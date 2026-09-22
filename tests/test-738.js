@@ -218,9 +218,20 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
     };
     const connu = await mesurer('justin@exemple.fr');
     const inconnu = await mesurer('jamais-vu@exemple.fr');
+    /* ⛔ LE TÉMOIN EST LA MÊME ROUTE, SANS DÉRIVATION. Ce contrôle exigeait « plus de 20 ms » :
+       un seuil ABSOLU, réglé sur une machine plus lente. Mesuré le 22 septembre 2026 sur le
+       conteneur des sessions : PBKDF2 à 120 000 tours y coûte 20 à 21 ms — le banc tombait une
+       fois sur quelques-unes, au hasard, sans que rien n'ait changé. On compare donc la
+       dérivation à la même requête refusée AVANT elle (`h` absent → 400, avant le quota) : si
+       la dérivation disparaissait, les deux médianes se rejoindraient, sur n'importe quelle
+       machine. */
+    const temoin = await (async () => { const t = [];
+      for (let i = 0; i < 7; i++) t.push((await appel(B, '/api/compte/connexion', { email: 'justin@exemple.fr' })).ms);
+      t.sort((a, b) => a - b); return t[3]; })();
     const ecart = Math.abs(connu - inconnu) / Math.max(connu, inconnu);
-    console.log('   médiane connue ' + connu.toFixed(0) + ' ms · inconnue ' + inconnu.toFixed(0) + ' ms · écart ' + (ecart * 100).toFixed(0) + ' %');
-    vrai('   la dérivation coûte bien quelque chose — sinon la mesure ne veut rien dire', connu > 20);
+    console.log('   médiane connue ' + connu.toFixed(0) + ' ms · inconnue ' + inconnu.toFixed(0) + ' ms · témoin sans dérivation ' + temoin.toFixed(1) + ' ms · écart ' + (ecart * 100).toFixed(0) + ' %');
+    vrai('   la dérivation coûte bien quelque chose — sinon la mesure ne veut rien dire', connu > 2 * temoin && connu - temoin > 5,
+      'connue ' + connu.toFixed(1) + ' ms, témoin ' + temoin.toFixed(1) + ' ms');
     vrai('⛔ moins de 40 % d\'écart entre une adresse connue et une inconnue', ecart < 0.4);
   }
 
