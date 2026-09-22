@@ -85,11 +85,21 @@ vrai('⛔ la pastille d’un segmenté n’a plus de flou',
   /html\[data-verre="1"\] \.filters\.seg-on \.chip\{[^}]*backdrop-filter:none!important/.test(NU.replace(/\s*\n\s*/g,'')));
 vrai('⛔ le champ de recherche NICHÉ dans une pilule n’a plus de flou',
   /\.rech-pilule input\.search-inp[^{]*\{[^}]*backdrop-filter:none!important/.test(NU.replace(/\s*\n\s*/g,'')));
-vrai('… et la pilule qui le porte, elle, garde sa vitre',
-  /html\[data-verre="1"\] div:has\(> input\[placeholder\^="Rechercher"\]\)\{[^}]*backdrop-filter:blur/.test(NU.replace(/\s*\n\s*/g,'')));
-vrai('⛔ le curseur du segmenté garde la sienne (c’est LUI la vitre du groupe)',
-  /html\[data-verre="1"\] \.filters\.seg-on \.seg-cur\{[^}]*backdrop-filter:blur/.test(NU.replace(/\s*\n\s*/g,'')));
-vrai('⛔ une pastille LIBRE garde la sienne (elle a une surface, elle)',
+/* ⛔ UNE VITRE SE GARDE PAR SES DEUX MOITIÉS. Mesuré par mutation le 22 septembre 2026 :
+   retirer le `background` de la pilule de recherche en lui LAISSANT son flou ne faisait
+   tomber AUCUN contrôle — le banc n'exigeait que le flou. C'est pourtant exactement le
+   défaut que ce fichier existe pour garder, vu par l'autre bout. On exige donc la surface
+   ET le flou, dans la MÊME règle, partout où une vitre est censée vivre. */
+const vitre=(nom,sel)=>{ const t=NU.replace(/\s*\n\s*/g,'');
+  const m=t.match(new RegExp(sel.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\{([^}]*)\\}'));
+  vrai(nom+' : la règle existe', !!m);
+  if(!m) return;
+  vrai(nom+' : elle pose une SURFACE', /background(?:-color|-image)?:(?!\s*(?:none|transparent))/.test(m[1]));
+  vrai(nom+' : … et le flou qui va avec', /backdrop-filter:blur/.test(m[1])); };
+vitre('la pilule de recherche', 'html[data-verre="1"] div:has(> input[placeholder^="Rechercher"])');
+vitre('le curseur du segmenté (c’est LUI la vitre du groupe)', 'html[data-verre="1"] .filters.seg-on .seg-cur');
+vitre('une pastille LIBRE (elle a une surface, elle)', 'html[data-verre="1"] .chip');
+vrai('… et c’est bien le reflet du document de thème, pas une valeur inventée',
   /html\[data-verre="1"\] \.chip\{[^}]*background:var\(--vr-reflet\),var\(--vr-fond2\)!important/.test(NU.replace(/\s*\n\s*/g,'')));
 
 console.log('\n══ 4. LA MESURE QUI GARDE LE RESTE EXISTE ══\n');
