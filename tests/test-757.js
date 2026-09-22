@@ -351,12 +351,59 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
   if (r) {
     vrai('⛔ aucun dégagement en pixels sous la carte utilisateur',
       !/padding-bottom:calc\(\s*\d+px/.test(r[1]), r[1].slice(0, 100));
-    vrai('   … mais l’encoche du bas est gardée (la carte ne passe pas sous la barre d’accueil)',
-      /padding-bottom:env\(safe-area-inset-bottom\)/.test(r[1]));
+    /* ⛔ ET PLUS AUCUN DÉGAGEMENT DU TOUT ICI. Il en portait un (`env(safe-area-inset-bottom)`)
+       pendant que le pied portait ses 14 px : les deux S'AJOUTAIENT. Mesuré au gabarit iPhone
+       installé, encoches simulées par le navigateur (Emulation.setSafeAreaInsetsOverride, les
+       ZÉROS de l'émulateur cachaient tout) : 48 px sous la carte là où l'encoche en demande 34.
+       Le dégagement vit désormais au SEUL endroit qui le doit, sur `.sidebar-foot`, et en
+       `max()` — le plus grand des deux, jamais la somme. */
+    vrai('⛔ … et plus aucune encoche non plus : elle est passée au pied, en un seul endroit',
+      !/padding-bottom/.test(r[1]), r[1].slice(0, 100));
     /* le contre-contrôle : le tiroir doit bien rester AU-DESSUS de la barre d'onglets,
        sinon retirer le dégagement cacherait vraiment la carte. */
     vrai('⛔ … et le tiroir passe bien AU-DESSUS de la barre d’onglets',
       /z-index:46/.test(r[1]) && /\.rf-tabs\{[^}]*z-index:44/.test(NU_TEINTE));
+  }
+  /* La VÉRITÉ que gardait l'ancien contrôle — « la carte ne tombe pas sous la barre d'accueil »
+     — n'a pas changé de valeur, elle a changé d'ADRESSE. On la garde donc là où elle vit. */
+  const f = /\n\s*\.sidebar-foot\{([^}]*)\}/.exec(NU_TEINTE);
+  vrai('la règle du pied du tiroir est trouvée', !!f);
+  if (f) {
+    vrai('⛔ l’encoche du bas est gardée, sur le pied',
+      /padding-bottom:max\(14px,env\(safe-area-inset-bottom\)\)/.test(f[1]), f[1]);
+    vrai('   … et c’est un max(), pas une addition : 34 px sur iPhone, 14 px ailleurs',
+      !/padding-bottom:calc\([^)]*env\(safe-area-inset-bottom/.test(f[1]));
+  }
+}
+
+/* ⛔⛔ UN SÉPARATEUR QUI NE SÉPARE RIEN EST UN TROU — mesuré le 22 septembre 2026, cinq gabarits.
+   La rangée « SUITE » s'efface dès qu'il n'y a pas d'autre application à ouvrir (`suiteRefresh`),
+   c'est-à-dire chez TOUTE entreprise sans OP MESSAGES : le cas ordinaire. Le filet et la marge
+   de la carte utilisateur restaient pourtant sous le filet du pied — deux filets, 25 px de vide
+   entre les deux, contre 15 px quand la rangée est là. Justin, capture à l'appui : « l'espace
+   qu'il y a entre l'utilisateur tout en bas et le reste ».
+   ⚠️ La mesure d'AVANT ne pouvait pas le voir : elle mesurait le pied COMME UN BLOC (« 0 de vide
+   sous le pied ») et ne regardait jamais DEDANS. C'est la règle de cette page — une mesure qui
+   compte des absences doit d'abord prouver qu'elle regarde au bon endroit. */
+{
+  vrai('la carte utilisateur perd son filet quand la rangée SUITE est masquée',
+    /\.sidebar-foot\.sans-suite \.suite-user\{[^}]*border-top:0/.test(NU_TEINTE));
+  vrai('   … et sa marge du haut avec (c’est elle qui creusait les 25 px)',
+    /\.sidebar-foot\.sans-suite \.suite-user\{[^}]*margin-top:0/.test(NU_TEINTE));
+  /* Le contre-contrôle : AVEC la rangée, le filet et la marge doivent RESTER — sinon la carte
+     se colle au sélecteur d'application et on a juste déplacé le défaut. */
+  vrai('⛔ … mais la carte garde filet et marge quand la rangée SUITE est là',
+    /\n\.suite-user\{[^}]*border-top:1px solid var\(--brd\)[^}]*margin-top:10px/.test(NU_TEINTE));
+  /* La classe se pose LÀ OÙ LE MASQUAGE SE DÉCIDE. Deux endroits finiraient par se contredire,
+     et la moitié restée en arrière redessine le trou. On vise le CODE, pas le commentaire. */
+  const SRCJS = NU_TEINTE.replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const sr = /function suiteRefresh\(\)\{([\s\S]*?)\n\}/.exec(SRCJS);
+  vrai('la fonction suiteRefresh est trouvée', !!sr);
+  if (sr) {
+    vrai('⛔ suiteRefresh pose la classe au même endroit qu’il masque la rangée',
+      /classList\.toggle\('sans-suite',\s*!soOn\)/.test(sr[1]), sr[1].slice(0, 200));
+    vrai('   … sur le PIED, pas sur un ancêtre au hasard',
+      /closest\('\.sidebar-foot'\)/.test(sr[1]));
   }
 }
 

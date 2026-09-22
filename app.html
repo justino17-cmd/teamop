@@ -133,7 +133,13 @@
   .nav-item .ico{font-size:16px;width:20px;text-align:center;}
   .nav-item .badge{margin-left:auto;background:rgba(255,255,255,.08);color:var(--t2);font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;}
   .nav-item.active .badge{background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc);}
-  .sidebar-foot{padding:14px 18px;border-top:1px solid var(--brd);}
+  /* ⛔ LE DÉGAGEMENT DU BAS SE COMPTE UNE FOIS. Le tiroir posait `env(safe-area-inset-bottom)`
+     ET le pied ses 14 px : mesuré sur l'iPhone installé, 48 px sous la carte utilisateur là où
+     l'encoche en demande 34. `max()` prend le plus grand des deux au lieu de les additionner —
+     34 px sur un appareil à barre d'accueil, 14 px partout ailleurs, et rien qui change sur un
+     écran sans encoche. C'est aussi ce qui permet au tiroir de ne plus porter de dégagement du
+     tout : une seule valeur, à un seul endroit. */
+  .sidebar-foot{padding:14px 18px;padding-bottom:max(14px,env(safe-area-inset-bottom));border-top:1px solid var(--brd);}
 
   /* MAIN */
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
@@ -813,6 +819,17 @@ table, .tbl, .list-row {
 .suite-row.on{background:color-mix(in srgb,var(--acc) 12%,transparent);}
 .suite-user{display:flex;align-items:center;gap:10px;padding:10px 8px 2px;border-top:1px solid var(--brd);margin-top:10px;cursor:pointer;border-radius:10px;}
 .suite-user:hover{background:var(--side-hover);}
+/* ⛔ UN SÉPARATEUR QUI NE SÉPARE RIEN EST UN TROU. La rangée « SUITE » s'efface dès qu'il n'y a
+   pas d'autre application à ouvrir (`suiteRefresh`) — c'est le cas de TOUTE entreprise sans
+   OP MESSAGES, donc le cas ORDINAIRE, pas l'exception. Le filet et la marge de la carte
+   utilisateur restaient pourtant, juste sous le filet du pied : DEUX filets, et 25 px de vide
+   entre les deux. Mesuré le 22 septembre 2026 sur les cinq gabarits (iPhone Safari, iPhone
+   installée, Android, Mac navigateur) : 25 px partout, contre 15 px quand la rangée est là.
+   Justin, capture à l'appui : « l'espace qu'il y a entre l'utilisateur tout en bas et le
+   reste ». Sans la rangée, le filet du pied sépare déjà — le second ne fait que creuser.
+   ⚠️ La classe se pose dans `suiteRefresh`, au même endroit que le masquage : deux endroits
+   finiraient par se contredire, et la moitié qui reste en arrière dessine le trou. */
+.sidebar-foot.sans-suite .suite-user{border-top:0;margin-top:0;padding-top:4px;}
 /* ── SUITE compacte : l'autre app apparaît au survol (ou au clic sur mobile) ── */
 .suite-mini{padding:6px 9px !important;margin-bottom:4px !important;}
 #suite-fly{display:none;}
@@ -4321,7 +4338,7 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      carte, et 96 px sur un vrai appareil une fois l'encoche du bas ajoutée. Justin, capture à
      l'appui : « tout en bas est vachement haut, faudrait qu'il soit au maximum au plus bas ».
      On ne garde que l'encoche, pour que la carte ne tombe pas sous la barre d'accueil. */
-  html[data-refonte] body.rf-onglets .sidebar{z-index:46;padding-bottom:env(safe-area-inset-bottom)}
+  html[data-refonte] body.rf-onglets .sidebar{z-index:46}
   html[data-refonte] body.rf-onglets .sidebar.open ~ .sidebar-backdrop{z-index:45}
   html[data-refonte] body.rf-onglets .rf-tabs{z-index:48}
 }
@@ -6186,7 +6203,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '712';
+const APP_VERSION = '713';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -34182,7 +34199,9 @@ function opMsgDisponible(){ return _opMsgOuvert===true; }
 function suiteRefresh(){ if(!currentUser) return;
   const soOn=!!(can('opMessages')&&planOpMsg()&&opMsgDisponible());
   const so=$('suite-opmsg'); if(so) so.style.display=soOn?'flex':'none';
-  try{ const sb=$('suite-box'); if(sb){ sb.style.display=soOn?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=soOn?'':'none'; } }catch(e){}
+  try{ const sb=$('suite-box'); if(sb){ sb.style.display=soOn?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=soOn?'':'none';
+    /* la carte utilisateur perd son filet quand elle n'a plus rien au-dessus (voir .sans-suite) */
+    const pied=sb.closest('.sidebar-foot'); if(pied) pied.classList.toggle('sans-suite',!soOn); } }catch(e){}
   try{ renderMsgFlottant(); }catch(e){} }
 function enterApp(u){ currentUser=u;
   /* Le thème, la couleur et la langue choisis sur un AUTRE appareil arrivent avec la fiche :
