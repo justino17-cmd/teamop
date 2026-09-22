@@ -1624,7 +1624,17 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .pg-pb b{ color:var(--t1); }
 .pg-pb.act{ border-color:var(--acc); color:var(--acc); }
 .pg-pb.act b{ color:var(--acc); }
-.pg-wrap{ overflow-x:auto; }
+/* ⛔ LA COLONNE DES NOMS EST COLLANTE : tout ce qui défile passe DESSOUS. Sans
+   `scroll-padding-left`, un `scrollIntoView` — un focus au clavier, un « aller à aujourd'hui »,
+   ou une sonde qui centre une case — rangeait la case sous les noms : mesuré le
+   22 septembre 2026 au téléphone, la colonne d'aujourd'hui entière cachée par « Personne ».
+   Et au téléphone, 190 px de noms sur 358 laissaient un jour et demi à lire : 150 suffisent
+   à « Sophie Martin » et à « Non assigné », avatar compris. */
+.pg-wrap{ overflow-x:auto; --pg-nom:190px; scroll-padding-left:var(--pg-nom); }
+@media(max-width:560px){ .pg-wrap{ --pg-nom:150px; }
+  /* … et un nom qui ne tient pas passe à la ligne au lieu de se couper : « Sophie Martin »
+     réclame 99 px et en a 87 — « Sophie Mar… » ne nomme personne. */
+  .pg-wrap .pg-pers b{ white-space:normal; text-overflow:clip; overflow-wrap:break-word; line-height:1.2; } }
 .pg-gr{ display:grid; }
 .pg-hd{ padding:7px 3px; text-align:center; font-size:9.5px; font-weight:800; color:var(--t3);
   border-bottom:1px solid var(--brd); border-left:1px solid var(--brd); letter-spacing:.03em; cursor:pointer; }
@@ -2426,7 +2436,7 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
    d'un cran, sans descendre au gris d'inactif : le bouton travaille, il n'est pas éteint. */
 .btn.btn-occupe,html[data-refonte] .btn.btn-occupe{background:var(--acc2)!important;color:var(--on-acc2,#FFFFFF)!important;
   opacity:.88!important;pointer-events:none;transform:none!important;box-shadow:none!important;cursor:progress}
-.bell,.menu-btn,.modal-close{background:var(--tint-gris)!important;color:var(--t2)!important;border:0!important;border-radius:50%!important;
+.bell,.menu-btn,.modal-close,.dp-hd .x{background:var(--tint-gris)!important;color:var(--t2)!important;border:0!important;border-radius:50%!important;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
 .bell:hover,.menu-btn:hover,.modal-close:hover{background:var(--hover)!important;color:var(--t1)!important}
 .bell:active,.menu-btn:active,.modal-close:active{transform:scale(.94);transition-duration:var(--d-0)}
@@ -3341,7 +3351,7 @@ html[data-refonte] .field textarea:focus,html[data-refonte] .search-inp:focus{
    haut restent à 38 : ils sont à la souris sur ordinateur, et repassent à 44 sur téléphone. */
 html[data-refonte] .btn{min-height:40px;border-radius:var(--rf-r-champ)!important;font-size:15px!important}
 html[data-refonte] .btn.sm{min-height:34px;font-size:13.5px!important;border-radius:var(--rf-r-mini)!important}
-html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close{width:38px;height:38px}
+html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close,html[data-refonte] .dp-hd .x{width:38px;height:38px}
 @media(max-width:900px){
   html[data-refonte] .btn{min-height:var(--rf-tap)}
   html[data-refonte] .btn.sm{min-height:38px}
@@ -3418,14 +3428,62 @@ html[data-refonte] .modal.carte:has(#rf-reglages) #rf-reglages{
      l'écran vit désormais dans le contenu. Mesuré : la marque n'avait que 70 px pour un texte
      qui en réclame 167, dont 62 gaspillés par un conteneur sans rien dedans. On les rend. */
   html[data-refonte] body:not(.ctx) .topbar-title{display:none!important}
-  html[data-refonte] .topbar{gap:8px}
+  /* ⛔ CETTE LIGNE N'AVAIT JAMAIS PRIS. `html[data-refonte] .topbar{…gap:10px!important}` est
+     écrit PLUS LOIN, même spécificité, avec `!important` : c'est lui qui gagnait, partout.
+     Mesuré le 22 septembre 2026, 390 px, tableau de bord : cinq écarts de 10 px, et la marque
+     réduite à 81 px pour les 85 que réclame « OP GESTION » — « OP GESTIO… » sur l'écran
+     d'accueil de tous les iPhone de 390 à 393 px. Le `body` en plus lui donne la main. */
+  html[data-refonte] body .topbar{gap:8px!important}
+  /* ⛔⛔ CELUI DES DEUX QUI EST CACHÉ NE PREND PLUS DE PLACE. La marque et le titre réduit
+     se relaient au même endroit (« les deux ne sont jamais montrés en même temps »), mais le
+     titre, à opacité 0, gardait `flex:1 1 auto` : il occupait 108 à 123 px INVISIBLES, et la
+     marque tombait à 56 px pour 82 — « OP GEST… » sur TOUTES les rubriques sauf le tableau
+     de bord, sur les quatre profils téléphone. Mesuré au navigateur le 22 septembre 2026,
+     capture de Justin à l'appui. C'est le défaut que la règle du palier tablette dit avoir
+     corrigé — pour la tablette seulement : une moitié de règle, encore.
+     On ne bascule pas `display` : le titre garde son fondu (opacité, translation). On retire
+     seulement sa LARGEUR tant qu'on ne le voit pas, et celle de la marque dès qu'elle cède. */
+  html[data-refonte] body:not(.rf-haut) .topbar .topbar-title{flex:0 0 0!important;width:0;overflow:hidden}
+  /* ⛔ LA MARQUE NE CÈDE SA PLACE QU'À UN TITRE QUI LA PREND. Hors rubrique (`body` sans
+     `.ctx` : le tableau de bord et ses fiches), le titre réduit reste `display:none` même
+     défilé — la règle plus haut. Sans le `.ctx` ici, la marque tombait à 0 px et RIEN ne
+     prenait sa place : la synchro, la cloche et la recherche sautaient à gauche au premier
+     défilement, et revenaient à droite en remontant. Mesuré au navigateur le 22 septembre
+     2026 (sonde-barre.js, 390 px, tableau de bord) — c'est la règle d'à côté, écrite le
+     même jour, qui l'avait fait naître : une moitié de règle, encore. */
+  html[data-refonte] body.rf-haut.ctx .topbar .topbar-brand{flex:0 0 0!important;width:0;overflow:hidden}
 }
 /* Mesuré : « OP GESTION » réclame 109 px. Il en reste 112 sur un écran de 360, 142 sur un
    390 — il tient. Mais 72 seulement sur un 320 px (iPhone SE, ou n'importe quel téléphone
    en zoom d'affichage), où il se couperait en « OP GES… ». Un nom tronqué renseigne moins
    que pas de nom du tout, et la tête du menu porte déjà l'identité. On s'efface. */
+/* ⛔ LE MENU « FILTRER PAR BOX » DE MOUVEMENTS SORTAIT DE 84 PX PAR LA GAUCHE. Il est ancré
+   `right:0` sur son bouton, avec 305 px de large : au bureau le bouton est au bout de la
+   barre, à droite, et le menu s'ouvre vers l'intérieur. Au téléphone, la barre passe à la
+   ligne, le bouton tombe à GAUCHE, et le menu s'ouvre vers l'extérieur — mesuré le
+   22 septembre 2026 par l'audit des écrans profonds, champ de recherche à x −84, sur les
+   deux passages. C'est la règle écrite : un panneau flottant se mesure sur l'ÉCRAN, pas sur
+   son bouton. On lui donne la barre entière pour bloc conteneur. */
+@media(max-width:560px){
+  .mvt-bar{position:relative}
+  .mvt-dd{position:static!important}
+  .mvt-menu{left:0!important;right:0!important;width:auto!important}
+}
+/* ⛔ ON EFFACE LE NOM, PAS SA PLACE. `display:none` retirait aussi l'espace qu'il tenait :
+   les ronds de droite se tassaient à gauche, derrière « Créer », et laissaient un quart de
+   barre vide — mesuré le 22 septembre 2026, 360 px, tableau de bord. `visibility:hidden`
+   garde la place : les commandes restent à leurs deux bouts, comme dans une barre d'iOS. */
 @media(max-width:339px){
-  html[data-refonte] .topbar .topbar-brand{display:none!important}
+  html[data-refonte] .topbar .topbar-brand{visibility:hidden}
+}
+/* ⛔ ET LE SEUIL N'EST PAS LE MÊME SUR LES ÉCRANS SANS TITRE RÉDUIT. Hors rubrique (`body`
+   sans `.ctx` : tableau de bord, consommation…), la barre garde la synchro, l'avatar et la
+   recherche, que `.ctx` retire. Mesuré le 22 septembre 2026 : « OP GESTION » réclame 82 px
+   et n'en a que 70 à 375, 55 à 360 — « OP GES… ». À 390 il tient (85/85). Même règle que
+   ci-dessus, au seuil mesuré : un nom tronqué renseigne moins que pas de nom du tout, et la
+   tête du menu porte déjà l'identité. */
+@media(max-width:389px){
+  html[data-refonte] body:not(.ctx) .topbar .topbar-brand{visibility:hidden}
 }
 html[data-refonte] .modal-close{margin-left:auto;flex-shrink:0}
 html[data-refonte] .sheet-head{border-bottom:1px solid var(--rf-filet)!important}
@@ -3446,6 +3504,17 @@ html[data-refonte] .olsec[open] summary{border-bottom-color:var(--rf-filet)!impo
 html[data-refonte] .olsec summary::after{transition:transform var(--d-3) var(--ressort)}
 html[data-refonte] .card{padding:22px 24px!important;box-shadow:none!important}
 html[data-refonte] .card-head{margin-bottom:14px}
+/* ⛔ UN EN-TÊTE DE CARTE QUI PORTE DES BOUTONS PASSE À LA LIGNE SUR UN TÉLÉPHONE.
+   `.card-head` est un flex SANS retour à la ligne, et ses actions vivent dans un <span> flex
+   écrit en ligne. Mesuré le 22 septembre 2026 à 390 px par l'audit des écrans profonds :
+   « Rapport » + « Clôture guidée » + « Rédiger » dépassait de sa carte (Rédiger coupé à
+   x 312 → 407), et « Pointer un virement reçu » + « Factures → » poussait la PAGE ENTIÈRE
+   de côté en Comptabilité. Le titre n'a pas de flex:1 : les boutons ne descendent que quand
+   ils ne tiennent plus à côté, jamais par principe. */
+@media(max-width:560px){
+  html[data-refonte] .card-head{flex-wrap:wrap;row-gap:10px}
+  html[data-refonte] .card-head > span[style*="display:flex"]{flex-wrap:wrap}
+}
 
 /* ══ LE PLANNING ══ il résiste au motif général, et c'est normal : sa densité, ses couleurs par
    personne et son défilement propre en font un écran à part. On ne le force pas dans le moule,
@@ -3813,7 +3882,14 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
 @media (pointer:coarse){
   html[data-refonte] .btn{min-height:46px;padding:0 18px!important}
   html[data-refonte] .btn.sm{min-height:40px}
-  html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close{width:44px;height:44px}
+  /* ⛔ LA CROIX DES PANNEAUX DU TABLEAU DE BORD (.dp-hd .x) ÉTAIT À 28 × 28 px AU DOIGT —
+     mesuré le 22 septembre 2026 par l'audit des écrans profonds, sur les six panneaux .dp.
+     Elle ne se redessine pas : elle rejoint la croix des fenêtres, même forme, même taille. */
+  html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close,html[data-refonte] .dp-hd .x{width:44px;height:44px}
+  /* ⛔ « Créer » faisait 46 px sur le tableau de bord et 38 ailleurs (`body.ctx .creer-btn`),
+     entre des ronds de 44 : la commande la plus importante de la barre changeait de taille
+     d'une rubrique à l'autre, et passait sous le plancher partout où l'on travaille. */
+  html[data-refonte] .topbar .creer-btn{min-height:44px;height:44px}
   html[data-refonte] .chip{min-height:40px;padding:0 16px!important}
   /* ⛔ 40 px EST LA DENSITÉ VOULUE POUR UN FILTRE, PAS POUR UNE COMMANDE D'EN-TÊTE.
      Mesuré le 22 septembre 2026 sur un iPhone de 390 px, écran « Carte des box » : la
@@ -3855,6 +3931,90 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] #content .tdb-jh{min-height:38px}
   html[data-refonte] .pf-zoom b{min-height:38px;display:inline-flex;align-items:center;justify-content:center}
   html[data-refonte] .ic-act{min-height:38px;min-width:38px;display:inline-flex;align-items:center;justify-content:center}
+  /* ⛔⛔ LE CHAMP D'UNE RANGÉE DE FORMULAIRE NE RÉPONDAIT QUE SUR 17 PX. `.frow` est la rangée
+     façon Réglages d'iOS (libellé, champ nu, filet) : 179 formulaires en sont faits. Mais
+     `.frow > input{padding:0;border:none}` réduit le champ à sa seule ligne de texte —
+     17 px dans une rangée de 46 à 74 px — et AUCUN gestionnaire ne fait suivre le tap : au
+     doigt, toucher la rangée à côté du texte n'ouvrait pas le clavier. Mesuré le 22 septembre
+     2026 par l'audit des écrans profonds (Intervention, Nouvelle box, Nouveau produit, Nouveau
+     bon, Compte-rendu, Devis…), règles relues par CSS.getMatchedStylesForNode.
+     Le champ garde sa place : du rembourrage rendu par une marge négative. La mise en page ne
+     bouge pas d'un pixel ; c'est la ZONE QUI RÉPOND qui grandit.
+     ⚠️ Sous un libellé, le champ ne s'étend QUE VERS LE BAS. La première version l'étendait
+     aussi vers le haut : ses 12 px mordaient la ligne du libellé, et un doigt posé sur
+     « Date et heure » ouvrait le premier des deux champs — la contre-épreuve l'a attrapé.
+     Le haut de la cellule passe par l'écouteur `.frow` (plus bas dans le script), qui sait
+     refuser une rangée à deux champs ou une rangée qui a son propre geste. À côté d'un
+     libellé (`.frow-val`), rien n'est au-dessus : là, les deux sens. */
+  html[data-refonte] .frow > input:not([type=checkbox]):not([type=radio]):not([type=hidden]),
+  html[data-refonte] .frow > select{padding-bottom:12px!important;margin-bottom:-12px!important}
+  html[data-refonte] .frow-val > input:not([type=checkbox]):not([type=radio]):not([type=hidden]),
+  html[data-refonte] .frow-val > select{padding-top:12px!important;padding-bottom:12px!important;
+    margin-top:-12px!important;margin-bottom:-12px!important}
+  /* ⛔⛔ LES FENÊTRES N'AVAIENT PAS LE PLANCHER DU CONTENU. La règle des boutons écrits en
+     style direct (plus haut) vise `#content` — et s'arrête à sa porte. Or c'est dans les
+     FENÊTRES qu'on saisit : mesuré le 22 septembre 2026 au doigt simulé, zone qui répond
+     et non rectangle dessiné (scratchpad/sonde-cibles.js), les nuisibles de l'Intervention
+     à 28 px, ses méthodes et les indices du Compte-rendu à 30, « Journée entière / Matin »
+     de l'Absence à 34 — 82 commandes en tout, toutes écrites par `pill()` ou à la main.
+     Même plancher, même liste d'exceptions, plus les deux boutons qui ont déjà le leur. */
+  html[data-refonte] .modal button:not(.btn):not(.chip):not(.tab):not(.pf-b):not(.modal-close):not(.mdp-oeil),
+  html[data-refonte] .dp button:not(.btn):not(.chip):not(.tab):not(.pf-b){min-height:38px}
+  html[data-refonte] .modal .tbl button{min-height:0}
+  /* L'œil du mot de passe (32 px) : il se touche pour VÉRIFIER ce qu'on vient de taper au
+     pouce, c'est-à-dire exactement quand on a un doigt sur l'écran. Le champ lui réserve déjà
+     44 px à droite (`.mdp-wrap>input{padding-right:44px}`) : il les prend. */
+  html[data-refonte] .mdp-oeil{width:44px;height:44px;right:0}
+  /* LES MENUS DU PLANNING ET DU PLANNING GÉNÉRAL — des listes qu'on coche au pouce :
+     `.pf-opt` (Équipe, Jours) et `.abs-tyit` (Qui afficher) à 32 et 36 px, leurs raccourcis
+     « Tout cocher / Aucun / Tout le monde » à 26 et 28, les flèches de semaine à 26, les liens
+     « Lun → Jeu / Aujourd'hui seulement » à 17, la croix d'un filtre actif à 17 et
+     « Tout effacer » à 27. Une ligne de liste d'iOS fait 44 : les lignes la prennent, les
+     commandes le plancher des petites commandes. */
+  html[data-refonte] .pf-opt,html[data-refonte] .abs-tyit{min-height:44px}
+  html[data-refonte] .pf-h span,html[data-refonte] .pg-rac span,html[data-refonte] .pg-gt span,
+  html[data-refonte] .pf-raz,html[data-refonte] .pf-lk{min-height:38px;display:inline-flex;align-items:center}
+  html[data-refonte] .pf-semnav u{width:38px;height:38px}
+  /* la croix d'un filtre actif prend toute la hauteur de sa pastille, pas la largeur d'un « ✕ » */
+  html[data-refonte] .pf-chip{min-height:40px;padding-top:0!important;padding-bottom:0!important}
+  html[data-refonte] .pf-chip b{align-self:stretch;display:inline-flex;align-items:center;
+    padding:0 10px;margin-right:-10px}
+  /* le champ de recherche du planning remplit sa pilule (l'écouteur des enrobes fait le reste) */
+  html[data-refonte] .pf-inw input{align-self:stretch}
+  /* une intervention dans la vue « une personne » du planning général : c'est une ligne qu'on
+     ouvre, pas une étiquette qu'on lit */
+  html[data-refonte] .pgf-ev{min-height:38px;display:inline-flex;align-items:center}
+  /* LA FICHE D'UNE INTERVENTION : le statut qu'on change (26 px), le client qu'on ouvre (22),
+     le numéro qu'on appelle et l'adresse à qui on écrit (16). Le téléphone surtout : c'est le
+     geste qu'on fait devant la porte fermée d'un client. */
+  html[data-refonte] .st-menu{display:inline-flex;align-items:center;min-height:44px}
+  html[data-refonte] .int-cli{min-height:44px}
+  /* la valeur d'un code d'accès de box (17 px de champ, rangée comprise, quand il n'y a qu'un
+     code : pas de ✕ pour lui donner de la hauteur) */
+  html[data-refonte] .code-val{min-height:44px}
+  /* la recherche du menu « Filtrer par box » de Mouvements (34 px, enrobe compris) */
+  html[data-refonte] .mvt-menu-q{min-height:44px}
+  /* ⚠️ SECOND PASSAGE DE L'AUDIT, APRÈS CORRECTION — ce qui restait sous 38 px au doigt :
+     · une rangée faite UNIQUEMENT de champs (« Code postal » + « Ville » du Nouveau bon) :
+       l'écouteur refuse de choisir entre deux champs, et chacun n'était étendu que vers le
+       bas (28 à 30 px). Sans libellé au-dessus, rien ne s'y oppose : les deux sens ;
+     · la valeur « Oui » d'une ligne de fiche (26 px), qui dit où l'on modifie : elle prend
+       toute la hauteur de sa ligne ;
+     · « ✓ Confirmé » de la télécollecte (18 px), qui ANNULE la confirmation : le bouton
+       « Je confirme » faisait 40, et une fois pressé il devenait une cible de 18. */
+  html[data-refonte] .frow:not(:has(> :not(input))) > input{padding-top:12px!important;margin-top:-12px!important}
+  html[data-refonte] .bdt-row > .bdt-val[onclick]{align-self:stretch;margin-top:-15px;margin-bottom:-15px;
+    padding-top:15px;padding-bottom:15px}
+  html[data-refonte] .tele-conf{min-height:38px;display:inline-flex;align-items:center}
+  html[data-refonte] #content a[href^="tel:"]:not(.btn),html[data-refonte] #content a[href^="mailto:"]:not(.btn),
+  html[data-refonte] .modal a[href^="tel:"]:not(.btn),html[data-refonte] .modal a[href^="mailto:"]:not(.btn){
+    display:inline-flex;align-items:center;min-height:44px}
+  /* les menus déroulants des filtres (Comptabilité, Registre des encaissements…) : 35 px, et
+     les dates « Du / Au » de Consommation produits, 35 px aussi — hors rangée `.frow`, qui a
+     déjà sa zone étendue */
+  html[data-refonte] #content select,html[data-refonte] .modal select,
+  html[data-refonte] input[type=date]:not(.frow > *):not(.frow-val > *),
+  html[data-refonte] input[type=time]:not(.frow > *):not(.frow-val > *){min-height:38px}
   html[data-refonte] .tab{min-height:46px}
   html[data-refonte] .nav-item{min-height:46px;padding:11px 12px!important;font-size:15.5px!important}
   html[data-refonte] .pl-row{min-height:52px;padding:14px 16px!important}
@@ -3872,7 +4032,17 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] input[type=text],html[data-refonte] input[type=number],
   html[data-refonte] input[type=date],html[data-refonte] input[type=time],
   html[data-refonte] input[type=tel],html[data-refonte] input[type=email],
-  html[data-refonte] input[type=password],html[data-refonte] input[type=search]{font-size:16px!important}
+  html[data-refonte] input[type=password],html[data-refonte] input[type=search],
+  /* ⛔⛔ ET UN CHAMP SANS ATTRIBUT `type` EST UN CHAMP TEXTE — que ce sélecteur ne voyait pas.
+     Mesuré le 22 septembre 2026 par l'audit des écrans profonds, taille CALCULÉE et non
+     taille visée : 39 champs sous 16 px sur deux rubriques seulement — toute la fenêtre
+     Intervention à 15 px (`.frow > input`, `.frow-val > input`, leurs `<select>` et leurs
+     `<textarea>`), la recherche de Mouvements à 13,2, celle des box à 12,5. Sur un iPhone,
+     chacun de ces champs faisait ZOOMER la page au premier toucher, et la page restait
+     zoomée. Les menus et les zones de texte sont dans le même cas que les champs. */
+  html[data-refonte] input:not([type]),html[data-refonte] input[type=url],
+  html[data-refonte] input[type=datetime-local],html[data-refonte] input[type=month],
+  html[data-refonte] input[type=week],html[data-refonte] select,html[data-refonte] textarea{font-size:16px!important}
   html[data-refonte] .field input,html[data-refonte] .field select,html[data-refonte] .field textarea{min-height:48px}
   /* Une case à cocher de 20 px se rate une fois sur trois avec un gant. */
   html[data-refonte] input[type=checkbox],html[data-refonte] input[type=radio]{width:24px;height:24px}
@@ -4181,6 +4351,13 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      prend sur CETTE plateforme (voir sa définition). Ces quatre lignes remplacent six valeurs
      écrites à la main, dont deux qui se contredisaient déjà. */
   html[data-refonte] body.rf-onglets .content{padding-bottom:calc(var(--tabh) + 16px)!important}
+  /* ⛔ LE BOUTON FLOTTANT DE LEIA COUVRAIT « ENVOYER ». Il flotte au-dessus de la barre
+     d'onglets (58 px, à 10 px d'elle), mais le bas du contenu ne dégageait que la barre :
+     arrivé en fin de page, le dernier élément de droite passait DESSOUS — mesuré le
+     22 septembre 2026 par l'audit des écrans profonds, en Messagerie, le bouton « Envoyer »
+     de la conversation, candidat centré puis relu. On dégage aussi la bulle, comme iOS
+     dégage un contenu sous une barre flottante. */
+  html[data-refonte] body.rf-onglets:has(#assistant > .fab) .content{padding-bottom:calc(var(--tabh) + 84px)!important}
   /* ⚠ ET LA BULLE D'AIDE AVEC. Mesuré : à 76 px elle se posait sur le coin droit de la
      pilule et mangeait l'onglet « Plus ». Une barre qui monte, c'est tout ce qui flotte
      au-dessus d'elle qui monte aussi — sinon on décale une pièce et on en casse une autre. */
@@ -6439,7 +6616,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '725-beta';
+const APP_VERSION = '726-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13233,6 +13410,44 @@ document.addEventListener('keydown',function(e){
     el.dispatchEvent(new Event('input',{bubbles:true}));
     el.dispatchEvent(new Event('change',{bubbles:true})); }
 },true);
+/* ⛔ TOUTE LA RANGÉE DE FORMULAIRE RÉPOND AU DOIGT, COMME UNE CELLULE DE RÉGLAGES iOS.
+   Une rangée `.frow` porte un libellé (un <span>, pas un <label>) et un champ nu : le libellé
+   ne fait donc pas suivre le tap, et toucher la rangée à côté du texte n'ouvrait pas le
+   clavier. Mesuré le 22 septembre 2026 par l'audit des écrans profonds : 179 rangées, champ
+   à 17 px dans une rangée de 46 à 74. Le CSS agrandit la zone du champ lui-même ; ce qui
+   reste — le libellé, le haut de la cellule — passe par ici.
+   On ne touche à RIEN d'autre : ni une commande qui a son propre geste (bouton, lien, puce,
+   case, élément à onclick — y compris la rangée elle-même), ni une rangée à plusieurs champs
+   (date + heure : lequel ouvrir ?), ni un champ désactivé ou en lecture seule.
+   ⛔⛔ ET L'ENROBE D'UN CHAMP, PAS SEULEMENT LA RANGÉE. Même mesure, même jour, sur les champs
+   posés dans une PILULE (la recherche de Mouvements, d'Interventions, des box ; `.pf-inw` du
+   planning ; la rangée « Valeur… » d'une box) : le champ faisait 14 à 17 px de haut au milieu
+   d'une pilule de 37 à 44, et le reste de la pilule — l'icône, le rembourrage — ne répondait
+   pas. Aucune de ces pilules n'a la même écriture (style direct, `:has()`, classe) : on ne les
+   nomme donc pas, on les RECONNAÎT. Un enrobe, c'est le premier ancêtre (quatre crans au plus :
+   le tracé d'une icône SVG est à trois) qui porte un champ EN ENFANT DIRECT ; s'il en porte un
+   seul et qu'il ne dépasse pas 64 px de haut, c'est une pilule, et le tap va au champ. Deux
+   champs, ou une carte plus haute qu'une rangée : on ne décide pas à la place de l'utilisateur. */
+document.addEventListener('click',function(e){
+  const t=e.target; if(!t||!t.closest) return;
+  if(t.closest('input,select,textarea,button,a,label,.chip,[onclick],[contenteditable="true"]')) return;
+  const CHAMP='input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),select,textarea';
+  let c=null;
+  const r=t.closest('.frow');
+  if(r){ const champs=r.querySelectorAll(CHAMP); if(champs.length!==1) return; c=champs[0]; }
+  else{
+    for(let n=t,k=0; n&&n!==document.body&&k<4; n=n.parentElement,k++){
+      const f=[...n.children].filter(x=>x.matches(CHAMP));
+      if(!f.length) continue;
+      if(f.length===1 && n.getBoundingClientRect().height<=64) c=f[0];
+      break;
+    }
+    if(!c) return;
+  }
+  if(c.disabled||c.readOnly) return;
+  c.focus();
+  if(c.tagName==='SELECT' && typeof c.showPicker==='function'){ try{ c.showPicker(); }catch(_){ } }
+});
 /* Nom lisible d'une page, pour dire au bouton retour d'où l'on vient */
 function navLabel(k){ try{ const it=NAV.flatMap(s2=>s2.items).find(x=>x.k===k); return it?t(it.l):''; }catch(e){ return ''; } }
 /* Bouton « ← page précédente » : il n'apparaît que s'il y a vraiment où revenir */
@@ -13520,7 +13735,7 @@ views.planningGeneral=function(){
     </div>
   </div>
   <div class="card" style="padding:0">
-    <div class="pg-wrap"><div class="pg-gr" style="grid-template-columns:190px repeat(${n},minmax(${larg}px,1fr)) 96px;min-width:${190+n*larg+96}px">${g}</div></div>
+    <div class="pg-wrap"><div class="pg-gr" style="grid-template-columns:var(--pg-nom,190px) repeat(${n},minmax(${larg}px,1fr)) 96px;min-width:calc(var(--pg-nom,190px) + ${n*larg+96}px)">${g}</div></div>
     <div class="pg-leg">
       <span>Clique sur une personne pour n’afficher qu’elle</span>
       <span><i style="background:var(--acc)"></i>Interventions — couleur de la personne</span>
@@ -20304,7 +20519,7 @@ function renderIntDetail(id){
       </div></details>
       <details open class="olsec"><summary><span class="olsec-ic">${fic('user',19)}</span>Sur place</summary><div class="olsec-b">
         <b style="font-size:16px">Client</b>
-        <div style="display:flex;gap:10px;align-items:center;margin:8px 0 4px;cursor:pointer" onclick="ficheClient('${i.clientId}')"><span style="color:var(--t3)">${fic('tag',16)}</span><b style="font-size:14px">${esc((clientName(i.clientId)||'—').toUpperCase())}</b></div>
+        <div class="int-cli" style="display:flex;gap:10px;align-items:center;margin:8px 0 4px;cursor:pointer" onclick="ficheClient('${i.clientId}')"><span style="color:var(--t3)">${fic('tag',16)}</span><b style="font-size:14px">${esc((clientName(i.clientId)||'—').toUpperCase())}</b></div>
         ${cli.tel?`<div style="margin:5px 0 0 30px"><a href="tel:${esc(cli.tel.replace(/\s/g,''))}" style="color:var(--acc);font-size:13.5px">${esc(cli.tel)}</a></div>`:''}
         ${cli.email?`<div style="margin:5px 0 0 30px"><a href="mailto:${esc(cli.email)}" style="color:var(--acc);font-size:13.5px">${esc(cli.email)}</a></div>`:''}
         <div style="height:1px;background:var(--brd);margin:12px 0"></div>
@@ -20327,7 +20542,7 @@ function renderIntDetail(id){
       </div></details>
       <details open class="olsec"><summary><span class="olsec-ic">${fic('user',19)}</span>Sur place</summary><div class="olsec-b">
         <b style="font-size:16px">Client <span style="color:var(--red)">*</span></b>
-        <div style="display:flex;gap:10px;align-items:center;margin:8px 0 4px;cursor:pointer" onclick="intPickClient('${id}')"><span style="color:var(--t3)">${fic('tag',16)}</span><b style="font-size:14px">${esc((clientName(i.clientId)||'—').toUpperCase())}</b></div>
+        <div class="int-cli" style="display:flex;gap:10px;align-items:center;margin:8px 0 4px;cursor:pointer" onclick="intPickClient('${id}')"><span style="color:var(--t3)">${fic('tag',16)}</span><b style="font-size:14px">${esc((clientName(i.clientId)||'—').toUpperCase())}</b></div>
         ${cli.tel?`<div style="margin:5px 0 0 30px"><a href="tel:${esc(cli.tel.replace(/\s/g,''))}" style="color:var(--acc);font-size:13.5px">${esc(cli.tel)}</a></div>`:''}
         ${cli.email?`<div style="margin:5px 0 0 30px"><a href="mailto:${esc(cli.email)}" style="color:var(--acc);font-size:13.5px">${esc(cli.email)}</a></div>`:''}
         <div style="height:1px;background:var(--brd);margin:12px 0"></div>
@@ -20583,7 +20798,7 @@ function renderIntDetail(id){
     </div>
     <div style="font-size:17px;font-weight:600;color:var(--acc);margin:2px 2px 7px;line-height:1.3">${esc(i.titre)}</div>
     <div style="padding:0 2px 8px;display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-      <span onclick="intStatutMenu('${i.id}')" style="cursor:pointer" title="Changer le statut">${badge(STATUT_INT,i.statut)}</span>
+      <span class="st-menu" onclick="intStatutMenu('${i.id}')" style="cursor:pointer" title="Changer le statut">${badge(STATUT_INT,i.statut)}</span>
       ${PRIO[i.prio]?`<span class="${PRIO[i.prio].c}">${PRIO[i.prio].l}</span>`:''}
       ${(i.tags||[]).map(tg=>`<span class="tag" style="font-size:10px">🏷 ${esc(tg)}</span>`).join('')}
       ${i.statut==='annulee'&&i.motifAnnulation?`<span style="font-size:11.5px;color:var(--red);font-weight:700">🚫 Motif : ${esc(i.motifAnnulation)}</span>`:''}
@@ -22906,18 +23121,18 @@ views.mouvements=function(){
   const boxesFiltrees=visibleBoxes(db.boxes||[]).filter(b=>!mvtFBoxQ.trim()||String((b.nom||'')+' '+(b.numero||'')).toLowerCase().includes(mvtFBoxQ.trim().toLowerCase()));   // le filtre « box » ne propose que ses box
   const nbMvtBox=id=>tout.filter(m=>m.boxId===id).length;
   const rangBox=(b,on,html)=>`<div onclick="mvtChoisirBox('${b?b.id:''}')" style="display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer;background:${on?'color-mix(in srgb,var(--acc) 9%,transparent)':'transparent'}" onmouseover="this.style.background='color-mix(in srgb,var(--acc) 6%,transparent)'" onmouseout="this.style.background='${on?'color-mix(in srgb,var(--acc) 9%,transparent)':'transparent'}'">${html}<span style="flex:1"></span>${on?'<span style="color:var(--acc);font-weight:800">✓</span>':''}</div>`;
-  const menuBox=mvtMenuOuvert==='box'?`<div style="position:absolute;top:calc(100% + 8px);right:0;z-index:60;width:305px;background:var(--card);border:1px solid var(--brd);border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden">
+  const menuBox=mvtMenuOuvert==='box'?`<div class="mvt-menu" style="position:absolute;top:calc(100% + 8px);right:0;z-index:60;width:305px;background:var(--card);border:1px solid var(--brd);border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden">
     <div style="padding:12px 14px 4px;font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--t3);text-transform:uppercase">Filtrer par box</div>
-    <div style="padding:8px 12px 10px;border-bottom:1px solid color-mix(in srgb,var(--brd) 70%,transparent)"><div style="display:flex;align-items:center;gap:8px;background:var(--bg1);border-radius:10px;padding:8px 11px"><span style="opacity:.55;font-size:12px">🔍</span><input id="mvt-box-q" value="${esc(mvtFBoxQ)}" oninput="mvtBoxQ(this.value)" placeholder="Chercher une box…" style="flex:1;min-width:0;border:none;background:transparent;color:var(--t1);font-size:12.5px;outline:none"></div></div>
+    <div style="padding:8px 12px 10px;border-bottom:1px solid color-mix(in srgb,var(--brd) 70%,transparent)"><div class="mvt-menu-q" style="display:flex;align-items:center;gap:8px;background:var(--bg1);border-radius:10px;padding:8px 11px"><span style="opacity:.55;font-size:12px">🔍</span><input id="mvt-box-q" value="${esc(mvtFBoxQ)}" oninput="mvtBoxQ(this.value)" placeholder="Chercher une box…" style="flex:1;min-width:0;border:none;background:transparent;color:var(--t1);font-size:12.5px;outline:none"></div></div>
     <div style="max-height:275px;overflow:auto;padding:5px 0">
       ${rangBox(null,!mvtFBox,`<span style="width:26px;height:26px;flex:none;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--t2);background:color-mix(in srgb,var(--t3) 14%,transparent)">${ICO.box}</span><div><div style="font-size:13px;font-weight:700;color:var(--t1)">Toutes les box</div><div style="font-size:11px;color:var(--t3)">${tout.length} mouvement${tout.length>1?'s':''} au total</div></div>`)}
       ${boxesFiltrees.map(b=>rangBox(b,mvtFBox===b.id,`${tuileBox(b)}<div style="min-width:0"><div style="font-size:13px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px">${esc(b.nom||b.numero||'Box')}</div><div style="font-size:11px;color:var(--t3)">${nbMvtBox(b.id)} mouvement${nbMvtBox(b.id)>1?'s':''}</div></div>`)).join('')||'<div style="padding:14px;font-size:12.5px;color:var(--t3);text-align:center">Aucune box ne correspond.</div>'}
     </div></div>`:'';
   const bSel=mvtFBox?(db.boxes||[]).find(x=>x.id===mvtFBox):null;
   const btnBox=`<button type="button" onclick="mvtMenu('box')" style="cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:8px;height:37px;padding:0 15px ${bSel?'0 8px':'0 15px'};border-radius:100px;border:1px solid ${mvtFBox?'transparent':'var(--brd)'};background:${mvtFBox?'var(--acc)':'var(--card)'};color:${mvtFBox?'var(--on-acc)':'var(--t2)'};font-size:12.5px;font-weight:700;max-width:250px;box-shadow:${mvtFBox?'0 3px 12px color-mix(in srgb,var(--acc) 42%,transparent)':'0 1px 3px rgba(0,0,0,.07)'}">${bSel?tuileBox(bSel):ICO.box}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${bSel?esc(bSel.nom||bSel.numero||'Box'):'Toutes les box'}</span>${ICO.chev}</button>`;
-  const barre=`${voile}<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 16px">
+  const barre=`${voile}<div class="mvt-bar" style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 16px">
     ${chip('entree',ICO.entree,'Ajouts')}${chip('sortie',ICO.sortie,'Retirés')}${chip('donne',ICO.donne,'Produits donnés')}${chip('valide',ICO.dr,'Validés DR')}${chercheur}<span style="flex:1"></span>
-    <div style="position:relative;flex:none;z-index:${mvtMenuOuvert==='box'?61:1}">${btnBox}${menuBox}</div></div>`;
+    <div class="mvt-dd" style="position:relative;flex:none;z-index:${mvtMenuOuvert==='box'?61:1}">${btnBox}${menuBox}</div></div>`;
   // ── bons de remise : construits plus bas, sur le même modèle que le journal ──
   // ── le journal, groupé par jour, avec les personnes bien visibles ──
   const ini=n=>String(n||'').trim().split(/\s+/).map(x=>x[0]||'').slice(0,2).join('').toUpperCase()||'?';
@@ -25195,7 +25410,7 @@ function toggleBoxVisibleTous(){ boxVisibleTous=!boxVisibleTous; const ic=$('box
 function renderBoxCodes(){ const el=$('box-codes'); if(!el)return;
   el.innerHTML=boxCodes.map((c,i)=>`<div class="fgroup" style="padding:8px">
     <div style="display:flex;gap:4px;margin-bottom:8px;background:var(--deep);border-radius:8px;padding:3px">${CODE_TYPES.map(t=>`<button type="button" onclick="boxCodes[${i}].type='${t}';renderBoxCodes()" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;${c.type===t?'background:var(--acc);color:var(--on-acc)':'background:transparent;color:var(--t2)'}">${t}</button>`).join('')}</div>
-    <div style="display:flex;gap:7px;align-items:center;padding:0 6px"><input style="flex:1;background:transparent;border:none;color:var(--t1);font-size:15px;outline:none" placeholder="Valeur…" value="${esc(c.valeur)}" oninput="boxCodes[${i}].valeur=this.value" autocapitalize="characters">
+    <div class="code-val" style="display:flex;gap:7px;align-items:center;padding:0 6px"><input style="flex:1;background:transparent;border:none;color:var(--t1);font-size:15px;outline:none" placeholder="Valeur…" value="${esc(c.valeur)}" oninput="boxCodes[${i}].valeur=this.value" autocapitalize="characters">
     ${boxCodes.length>1?`<button type="button" class="btn danger sm" onclick="boxCodes.splice(${i},1);renderBoxCodes()">✕</button>`:''}</div></div>`).join('')
     +`<button type="button" class="btn ghost sm" style="margin-bottom:14px" onclick="boxCodes.push({type:'Code entrée',valeur:''});renderBoxCodes()">＋ Ajouter un code</button>`;
 }
@@ -28019,7 +28234,14 @@ function consoAnalyseHTML(){
   const quiConso=m=>m.donneA||m.technicien||'Non précisé';   // un véhicule n'est pas une personne
   const SANS_NOM='Non précisé';
   const roleConso=m=>m.roleConso||roleDeNom(quiConso(m))||'';
-  const roleLbl=r=>roleLbl(r)||'Rôle non renseigné';
+  /* ⛔⛔ CETTE LIGNE S'APPELAIT « const roleLbl=r=>roleLbl(r)||… » DEPUIS LA v613 : une
+     constante LOCALE du même nom que la fonction globale. Dans son propre corps, `roleLbl`
+     désignait donc ELLE-MÊME — récursion infinie, « Maximum call stack size exceeded », et
+     l'analyse de Consommation produits plantait dès qu'elle devait écrire le rôle d'une
+     personne. Trouvé le 22 septembre 2026 par l'audit des écrans profonds (clic réel sur
+     « Tout le catalogue · 6 mois »), pile d'appels à l'appui : 200 cadres, tous roleLbl.
+     Un nom local ne réemploie JAMAIS le nom de ce qu'il enveloppe. */
+  const roleNom=r=>roleLbl(r)||'Rôle non renseigné';
   const datesLibres=!!(consoDu||consoAu);
   const depuis=consoDu?new Date(consoDu+'T00:00:00').getTime():(consoAu?0:Date.now()-consoJours*86400000);
   const jusqua=consoAu?new Date(consoAu+'T23:59:59').getTime():Date.now();
@@ -28144,7 +28366,7 @@ function consoAnalyseHTML(){
   const mois=Math.max(0.25,(jusqua-depuis)/(30.4*86400000));
   // ── barres horizontales ──
   const roleDe={}; sorties.forEach(m=>{ const q=quiConso(m); if(!roleDe[q]&&roleConso(m)) roleDe[q]=roleConso(m); });
-  const pastilleRole=n=>roleDe[n]?'<span style="font-size:10px;font-weight:700;color:var(--t3);margin-left:6px">'+esc(roleLbl(roleDe[n]))+'</span>':'';
+  const pastilleRole=n=>roleDe[n]?'<span style="font-size:10px;font-weight:700;color:var(--t3);margin-left:6px">'+esc(roleNom(roleDe[n]))+'</span>':'';
   const maxP=Math.max(1,...topProd.slice(0,10).map(t=>t.q));
   const totalProd=Math.max(1,topProd.reduce((s,t)=>s+t.q,0));
   const barresProd=topProd.slice(0,10).map((t,i)=>{ const ouv=!!consoProdOuv[t.pid];
@@ -28186,7 +28408,7 @@ function consoAnalyseHTML(){
           return '<div style="display:flex;align-items:center;gap:13px;margin-bottom:13px">'
           +'<span style="width:34px;height:34px;flex:none;border-radius:50%;background:color-mix(in srgb,'+coul+' 18%,transparent);color:'+coul+';font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+esc(iniG(g.n))+'</span>'
           +'<div style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(g.n)+(trop?' &#9888;':'')+'</div>'
-          +'<div style="font-size:11.5px;color:'+(trop?'var(--red)':'var(--t3)')+'">'+(roleDe[g.n]?esc(roleLbl(roleDe[g.n]))+' &middot; ':'')
+          +'<div style="font-size:11.5px;color:'+(trop?'var(--red)':'var(--t3)')+'">'+(roleDe[g.n]?esc(roleNom(roleDe[g.n]))+' &middot; ':'')
             +g.q+' u'+(parMoisPers?' &middot; d\'habitude '+parMoisPers+'/mois':'')+(trop?' &middot; '+(Math.round(fois*10)/10)+'&times; son habitude':'')+'</div>'
           +(badgeCmp?'<div style="margin-top:1px">'+badgeCmp+'</div>':'')+'</div>'
           +'<div style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(g.q/maxG*100)+'%;background:'+(trop?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
@@ -28224,7 +28446,7 @@ function consoAnalyseHTML(){
       +'<span style="display:inline-block;width:13px;flex:none;color:'+(ouv?'var(--acc)':'var(--t3)')+';font-size:12px;transform:rotate('+(ouv?90:0)+'deg)">&#9656;</span>'
       +'<span style="width:38px;height:38px;flex:none;border-radius:50%;background:color-mix(in srgb,'+coul+' 18%,transparent);color:'+coul+';font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+esc(iniP(t.nom))+'</span>'
       +'<div style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+(fort?' &#9888;':'')+'</div>'
-      +'<div style="font-size:11.5px;color:var(--t3)">'+(roleDe[t.nom]?esc(roleLbl(roleDe[t.nom]))+' &middot; ':'')+evol(t.q,parPersAvant[t.nom]||0)+'</div></div>'
+      +'<div style="font-size:11.5px;color:var(--t3)">'+(roleDe[t.nom]?esc(roleNom(roleDe[t.nom]))+' &middot; ':'')+evol(t.q,parPersAvant[t.nom]||0)+'</div></div>'
       +'<div style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(t.q/maxH*100)+'%;background:'+(fort?'var(--org)':'linear-gradient(90deg,color-mix(in srgb,'+coul+' 70%,black),'+coul+')')+'"></div></div>'
       +'<div style="width:96px;flex:none;text-align:right"><div style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+'">'+t.q+' u</div>'
       +'<div style="font-size:11.5px;color:var(--t3)">'+part+' % du total</div></div></div></div>'+detail; }).join('');
@@ -28264,7 +28486,7 @@ function consoAnalyseHTML(){
       +(vus.map(x=>rang(x.val,x.lbl,String(choisi)===String(x.val))).join('')||'<div style="padding:14px;font-size:12.5px;color:var(--t3);text-align:center">Aucun résultat.</div>')+'</div></div>'; };
   const btnProd='<button type="button" onclick="consoMenu(\'prod\')" style="'+actif(!!consoFProd)+';display:inline-flex;align-items:center;gap:8px;max-width:250px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📦 '+(consoFProd?esc(produit(consoFProd).nom||'Produit'):'Tous les produits')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
   const btnPers='<button type="button" onclick="consoMenu(\'pers\')" style="'+actif(!!consoFPers)+';display:inline-flex;align-items:center;gap:8px;max-width:250px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👤 '+(consoFPers?esc(consoFPers):'Tout le monde')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
-  const btnRole='<button type="button" onclick="consoMenu(\'role\')" style="'+actif(!!consoFRole)+';display:inline-flex;align-items:center;gap:8px;max-width:230px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎖️ '+(consoFRole?esc(roleLbl(consoFRole)):'Tous les rôles')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
+  const btnRole='<button type="button" onclick="consoMenu(\'role\')" style="'+actif(!!consoFRole)+';display:inline-flex;align-items:center;gap:8px;max-width:230px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎖️ '+(consoFRole?esc(roleNom(consoFRole)):'Tous les rôles')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
   const dateInp=(q,v,l)=>'<label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--t3);font-weight:600">'+l+'<input type="date" value="'+esc(v)+'" onchange="consoSetDate(\''+q+'\',this.value)" style="border:1px solid '+(v?'var(--acc)':'var(--brd)')+';background:var(--card);color:var(--t1);border-radius:9px;padding:6px 9px;font-size:12.5px;font-family:inherit"></label>';
   const filtresPosés=consoFProd||consoFPers||consoFRole||datesLibres||consoPas!=='auto';
   const barreF=voileC+`<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 12px">${bt(30,'30 jours')}${bt(61,'2 mois')}${bt(90,'3 mois')}${bt(183,'6 mois')}${bt(365,'12 mois')}
@@ -28272,7 +28494,7 @@ function consoAnalyseHTML(){
     <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 16px">
       <div style="position:relative;z-index:${consoMenuOuv==='prod'?61:1}">${btnProd}${consoMenuOuv==='prod'?menuHtml(listeProd.map(p=>({val:p.id,lbl:p.nom})),consoFProd,'consoChoisirProd','📦 Tous les produits'):''}</div>
       <div style="position:relative;z-index:${consoMenuOuv==='pers'?61:1}">${btnPers}${consoMenuOuv==='pers'?menuHtml(listePers.map(n=>({val:n,lbl:n})),consoFPers,'consoChoisirPers','👤 Tout le monde'):''}</div>
-      <div style="position:relative;z-index:${consoMenuOuv==='role'?61:1}">${btnRole}${consoMenuOuv==='role'?menuHtml(listeRole.map(r=>({val:r,lbl:roleLbl(r)})),consoFRole,'consoChoisirRole','🎖️ Tous les rôles'):''}</div>
+      <div style="position:relative;z-index:${consoMenuOuv==='role'?61:1}">${btnRole}${consoMenuOuv==='role'?menuHtml(listeRole.map(r=>({val:r,lbl:roleNom(r)})),consoFRole,'consoChoisirRole','🎖️ Tous les rôles'):''}</div>
       <span style="flex:1"></span>
       <div style="display:inline-flex;gap:2px;background:var(--bg1);border-radius:12px;padding:3px">${btPas('auto','Auto')}${btPas('jour','Jour')}${btPas('semaine','Semaine')}${btPas('mois','Mois')}</div>
       ${filtresPosés?`<button type="button" onclick="consoRaz()" style="cursor:pointer;border:none;background:transparent;color:var(--t3);font-size:12px;font-weight:700;text-decoration:underline;padding:6px">Tout effacer</button>`:''}</div>`;
@@ -31497,7 +31719,7 @@ function teleLigneMaj(pfx,m){
   const z=document.getElementById(pfx+'k-'+(m===TELE_NB?'nb':m));
   if(!z) return {a:0,d:0};
   if(teleEstOK(pfx,m)){
-    z.innerHTML=`<span onclick="teleConfirmeBasc('${pfx}','${m}')" title="Annuler la confirmation"
+    z.innerHTML=`<span class="tele-conf" onclick="teleConfirmeBasc('${pfx}','${m}')" title="Annuler la confirmation"
       style="cursor:pointer;font-size:12.5px;font-weight:800;color:var(--acc);white-space:nowrap">✓ Confirmé</span>`;
     return {a:1,d:1};
   }
