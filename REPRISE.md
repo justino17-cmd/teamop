@@ -24,6 +24,90 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ✅ 22 SEPTEMBRE 2026 — LE BAC « À PLANIFIER », ET L'AUDIT D'AFFICHAGE 42 × 10 (v718)
+
+### Le défaut signalé, reproduit et corrigé
+
+Justin, capture à l'appui : sur son iPhone, les cartes du bac « À planifier » occupaient un peu
+plus de la moitié de l'écran, le reste vide, et tous les textes coupés.
+
+Reproduit au navigateur en donnant aux interventions des clients aux noms longs comme les siens :
+
+| | avant | après |
+|---|---|---|
+| largeur de carte | 230 px | **398 px** |
+| part du conteneur | 58 % | **100 %** |
+| vide à droite | 168 px | **0 px** |
+| textes à l'ellipse | 102 | **0** |
+
+Cause : `.plg-trayrow .plg-mini{max-width:230px}` avec `flex:0 1 auto` et `flex-wrap:wrap`. Dans
+un conteneur de 398 px, deux cartes de 230 ne tiennent pas — il n'en reste qu'une, calée à son
+plafond, et 42 % de la largeur est perdue pendant que le texte est amputé. Le plafond garde un
+sens au BUREAU (plusieurs colonnes) : il n'est levé que sous la rupture téléphone (780 px), et la
+carte a le droit de grandir. ⚠ `max-width:none` est indispensable — sans lui `flex-grow` ne peut
+pas dépasser 230. `test-753` : 85 → 92 contrôles, quatre mutations, quatre morsures.
+
+### L'audit : 42 catégories × 10 plateformes = 420 rendus
+
+Banc réutilisable : `scratchpad/audit-affichage.js`. Les dix profils de `PLATS`, chacun à sa
+vraie taille, encoches posées sur les mobiles, `horsLigneDebut` neutralisé, attente de la fin de
+`.content.entre`, base remplie par `betaRemplir(true)` plus des clients aux noms longs.
+
+| | écrans | éléments examinés | constats |
+|---|---|---|---|
+| les 5 profils TÉLÉPHONE | 42 | ~14 700 chacun | **19 chacun**, tous de la même famille |
+| Mac · macOS 15, Mac · Safari | 42 | ~15 200 | **0** |
+| Mac · macOS 26, les 2 Windows | 42 | ~15 200 | **1 chacun** |
+
+**Zéro erreur JavaScript sur les 420 rendus.**
+
+### ⛔⛔ TROIS FOIS L'AUDIT A CRIÉ FAUX AVANT DE DIRE VRAI — 346 constats devenus 98
+
+C'est la partie qui compte. Le premier rapport annonçait **346 constats** ; après affûtage il en
+reste **98**, dont 93 écartés comme transitoires. Trois détecteurs à moi étaient fautifs :
+
+1. **« 15 px de défilement latéral RÉEL »** sur presque tous les écrans de bureau. Mesuré deux
+   fois : **7 écrans sur 8 rendaient 0 px 700 ms plus tard**. Deux `requestAnimationFrame` et une
+   lecture forcée NE SUFFISENT PAS — quelque chose se range après (queue d'animation, carte,
+   graphique) et la barre verticale qui apparaît alors reprend ses 15 px à `clientWidth`.
+   → l'audit mesure désormais DEUX FOIS, à 600 ms d'écart, et ne garde que ce qui persiste.
+2. **« 126 éléments dépassent de 877 px »** sur Planning général. C'était la grille du planning,
+   qui défile horizontalement **par conception** (`.pg-wrap{overflow-x:auto}`). La règle existait
+   déjà dans l'application sous le nom `swipeDefileH` — je ne l'avais pas reprise.
+3. **« 211 rangées maigres »** sur l'écran Clients : des lignes de liste parfaitement normales.
+   Une rangée n'est maigre que si ses enfants ne PEUVENT pas grandir (`flex-grow:0` **et** un
+   `max-width`) — la signature exacte du bac. Sans ces deux conditions, le détecteur comptait
+   tout. ⚠ **Un détecteur qui crie faux se fait ignorer, puis désactiver.**
+
+### Ce qui reste, et c'est une seule famille : le plancher tactile sur TÉLÉPHONE
+
+19 catégories sur 42 portent des cibles sous 44 px. Triées par gravité, mesurées sur iPhone :
+
+| hauteur | écran | nombre | exemple |
+|---|---|---|---|
+| **15 px** | mouvements | 1 | `INPUT#mvt-q` — le champ de recherche |
+| **19 px** | pointage | 6 | « Semaine », « Mois », et un `SELECT` |
+| **20 px** | fournisseurs | 10 | les liens d'adresse e-mail |
+| 28–35 px | saisieConso | 19 | « Auto », « 30 jours », « Analyse » |
+| 34 px | bons | 4 | « Par box » |
+| 36 px | planning · planningGeneral | 72 | des `SPAN` cliquables |
+| 37–38 px | mouvements · boiteMail | 11 | « Ajouts », les chips |
+| 40 px | 11 écrans | ~240 | `.btn.sm` et `.btn.ghost` |
+
+⛔ **Les deux moitiés ne se traitent pas pareil.** Sous 38 px, ce sont des contrôles SANS aucune
+hauteur posée qui retombent sur leur hauteur intrinsèque — un champ de recherche de 15 px est un
+défaut, pas une densité. À 40 px, c'est la valeur VOULUE de la refonte (`CLAUDE.md` : « un
+`.btn.sm` neuf se rend à 38 px, pas 44 ») : la monter à 44 change la densité de onze écrans que
+Justin utilise tous les jours. **C'est son arbitrage, pas une correction à faire tout seul.**
+
+### Les deux derniers constats, sur bureau
+
+· `dépasse · planning` sur les deux Windows seulement : 10 éléments, ex. `SPAN.tt` +24 px.
+· `page décalée · clients` sur macOS 26 seulement : 15 px qui PERSISTENT après 600 ms.
+Petits, isolés à une plateforme chacun, pas encore creusés.
+
+---
+
 ## ✅ 22 SEPTEMBRE 2026 — LA TOUR SUR TÉLÉPHONE : MESURÉE, ET ELLE TIENT (v2.64)
 
 Les deux chantiers « refonte téléphone » et « une console par application » étaient portés
