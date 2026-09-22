@@ -619,6 +619,40 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   l'observateur des traductions, à 5 000 lignes de la cible, et le banc est resté vert à juste
   titre. **Avant d'accuser un banc d'être aveugle, vérifier que la mutation a touché le bon
   endroit** (`git diff` après mutation, pas seulement le total du banc).
+- ⛔⛔ **UNE COULEUR CALCULÉE NE REVIENT PAS EN `rgb()` — ET UN ANALYSEUR ÉCRIT POUR `rgb()` LA
+  LIT EN QUASI-NOIR.** Une valeur issue de `color-mix()` est rendue par `getComputedStyle` sous
+  la forme `color(srgb 0.104549 0.411451 0.310275)` : des flottants **0–1**. Un `match(/[\d.]+/g)`
+  suivi de `map(Number)` les prend pour des 0–255. Mesuré le 22 septembre 2026 : la sonde de
+  contraste rendait **20,9:1 sur les dix-huit combinaisons**, c'est-à-dire « tout est parfait »,
+  sur une palette dont un tiers était en réalité sous la barre. Le signe qui ne trompe pas : un
+  chiffre **identique et extrême** partout. Tout lecteur de couleur doit reconnaître la FORME
+  avant de convertir, et **jeter** ce qu'il ne sait pas lire plutôt que de deviner.
+- ⛔ **`lastIndexOf(x, o)` EN JAVASCRIPT INCLUT `o` ; `rfind(x, 0, o)` EN PYTHON L'EXCLUT.** Un
+  parcours de CSS traduit de l'un à l'autre rend donc un sélecteur **VIDE** à chaque tour
+  (`o` étant l'accolade ouvrante, `lastIndexOf('{', o)` la retrouve elle-même), le `if (!sel)`
+  saute tout, et le banc annonce « 0 règle examinée » après en avoir parcouru 2 848. C'est le
+  **compteur de population** qui l'a attrapé — sans lui, « aucun blanc en dur » passait au vert
+  sur du néant. Une raison de plus de le poser systématiquement.
+- ⛔⛔ **UNE SURFACE, UNE ENCRE — `--on-acc` N'EST PAS L'ENCRE DE TOUT CE QUI EST « ACCENT ».**
+  L'application peint TROIS aplats : `--acc` (pastilles, onglet choisi, compteurs), `--acc-fill`
+  (le bouton principal, le bouton flottant, l'étiquette de carte) et `--acc2` (la bulle du
+  message envoyé, « Fait », « Occupé »). Mesuré le 22 septembre 2026 : l'encre calculée pour le
+  premier tombait **cinq fois sur dix-huit** sur chacun des deux autres — jusqu'à 3,44:1 sur le
+  libellé du bouton le plus utilisé. Chaque surface a donc son jeton (`--on-acc`, `--on-fill`,
+  `--on-acc2`), chacun dérivé du précédent avec ses exceptions DÉCLARÉES, et `test-757` calcule
+  les trois. Corollaire : **une quatrième surface d'accent sans son encre est un défaut qui
+  attend**, et le banc refuse désormais tout `color:#fff` écrit en dur sur un aplat d'accent.
+- ⛔ **UN SÉPARATEUR QUI NE SÉPARE RIEN EST UN TROU.** La carte utilisateur du tiroir portait un
+  filet et une marge pour se détacher de la rangée « SUITE » — laquelle disparaît chez toute
+  entreprise sans OP MESSAGES, c'est-à-dire dans le cas ORDINAIRE. Restaient deux filets et
+  25 px de vide entre eux. Tout ornement de séparation doit s'éteindre avec ce qu'il sépare.
+- ⛔⛔ **MESURER UN CONTENEUR COMME UN BLOC NE VOIT PAS UN TROU DEDANS — ET L'ÉMULATEUR REND LES
+  ENCOCHES À ZÉRO.** La première sonde rendait fièrement « 0 px de vide sous le pied » : elle
+  mesurait le rectangle du pied, jamais ses enfants. Et `env(safe-area-inset-*)` vaut **0** dans
+  un navigateur piloté, ce qui cachait un dégagement compté DEUX FOIS (34 px d'encoche + 14 px
+  de rembourrage = 48 px sous la carte). Chromium sait les simuler pour de vrai :
+  `Emulation.setSafeAreaInsetsOverride {top,bottom,left,right,…Max}`. **Toute mesure de mise en
+  page sur téléphone se fait encoches posées**, sinon on valide une page que personne ne voit.
 
 - ⛔ **UNE ANCRE DE BANC EST UN COMMENTAIRE — ON DÉCOUPE DANS LE TEXTE BRUT, ON NETTOIE APRÈS.**
   Chercher le titre d'un bloc dans un texte dont on vient de retirer les commentaires rend −1,

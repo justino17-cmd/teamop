@@ -45,6 +45,46 @@ seul témoin qui ne dépend d'aucun élément. **Trois détecteurs pour une ques
 pixels, et les deux premiers criaient faux.**
 
 
+## 🧵 v713 / v714 — le tiroir, et l'encre des trois accents (22 septembre, nuit)
+
+Deux demandes de Justin, toutes deux mesurées, toutes deux sur la branche (rien sur `main`).
+
+**v713 — « regarde l'espace qu'il y a entre l'utilisateur tout en bas et le reste ».**
+Deux défauts, tous deux invisibles à la lecture :
+1. la rangée « SUITE » s'efface chez toute entreprise sans OP MESSAGES — le cas ORDINAIRE — et
+   le filet + la marge de la carte utilisateur restaient sous le filet du pied : **deux filets,
+   25 px de vide entre les deux** (15 px quand la rangée est là). Mesuré sur cinq gabarits ;
+2. le dégagement du bas était compté **deux fois** (encoche sur le tiroir + 14 px sur le pied) :
+   **48 px** sous la carte là où l'encoche en demande 34. Une seule valeur désormais, en `max()`.
+
+⚠️ **Deux leçons de mesure, l'une et l'autre coûteuses** : la sonde d'avant mesurait le pied
+COMME UN BLOC et annonçait « 0 px de vide » — elle ne regardait jamais dedans ; et l'émulateur
+rend `env(safe-area-inset-*)` à **0**, donc la double addition était invisible. Chromium sait
+les simuler (`Emulation.setSafeAreaInsetsOverride`) — c'est ce qui a rendu le défaut visible.
+Carte utilisateur après correction : **44 px de haut** (le plancher tactile), atteinte au doigt
+sur les cinq gabarits, 0 erreur JS.
+
+**v714 — une encre par surface d'accent.** La correction d'hier (l'encre du jour) ne valait que
+pour UNE des trois surfaces que l'application peint. Mesuré au navigateur, 18 combinaisons :
+
+| surface | où | `--on-acc` |
+|---|---|---|
+| `--acc` | pastilles, onglet choisi, compteurs | 18/18 ✓ |
+| `--acc-fill` | **bouton principal**, bouton flottant, étiquette de carte | 13/18 ✗ |
+| `--acc2` | bulle du message envoyé, « Fait », « Occupé » | 13/18 ✗ |
+
+Les manques : bleu 3,45 · violet 3,55 · rose 3,53 · rouge 3,64 (nuit), cyan 3,44 (jour) — sur
+le libellé du bouton le plus utilisé. Et **vingt règles écrivaient encore `color:#fff` en dur**
+sur un aplat d'accent, où le blanc tombe 9 fois sur 18 (1,09 à 3,65). Deux jetons dérivés
+(`--on-fill`, `--on-acc2`) avec leurs exceptions déclarées : **54 contrôles sur 54 conformes**
+(4,65 à 18,57). `test-757` : 182 → 232 contrôles, et il CALCULE les trois surfaces à partir des
+taux de fonçage lus dans la feuille.
+
+⏳ **Ce qui reste à surveiller, et qui n'est pas de moi** : `tests/test-738.js` porte une
+assertion de TEMPS (`connu > 20`, la médiane de sept dérivations PBKDF2) qui est tombée une
+fois sous contention puis repassée. Un banc qui mesure une durée sur une machine partagée est
+un banc qui criera faux un jour — à remplacer par une mesure qui ne dépend pas de la charge.
+
 ## 🎨 Le thème d'OP GESTION suit le document de Justin — v709-beta publiée
 
 `design/THEME-REFERENCE.md` est la référence (fournie le 22 septembre 2026), et
