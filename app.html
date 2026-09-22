@@ -5658,6 +5658,28 @@ html[data-refonte][data-theme="dark"] .filters.seg-on .seg-cur{
 }
 html[data-os="windows"] .filters.seg-on,html[data-os="windows"] .filters.seg-on .chip,
 html[data-os="windows"] .filters.seg-on .seg-cur{border-radius:6px}
+/* ⛔⛔ UN `backdrop-filter` SANS SURFACE N'EST PAS UNE VITRE, C'EST UNE LOUPE.
+   Justin, 22 septembre 2026, capture à l'appui : « ça fait hyper brillant et ça casse les
+   écritures, ça fait mal fini ». Mesuré : la pastille « Español » rendait
+   `background-image:none` et `background-color:rgba(0,0,0,0)` — AUCUNE matière — avec
+   `blur(18px) saturate(1.8)` par-dessus. Elle ne montrait donc rien d'elle-même : elle
+   montrait le décor d'à côté, flou et sursaturé, et le texte flottait dessus.
+
+   Le mécanisme, et c'est lui qu'il faut retenir : `.filters.seg-on .chip` (plus spécifique)
+   retire le `background` posé par `html[data-verre="1"] .chip`, mais **il ne retire pas le
+   `backdrop-filter`**, qui n'est déclaré que dans la règle du verre. Une moitié de règle
+   survit à l'autre. Le commentaire d'à côté disait pourtant déjà l'intention — « le GROUPE
+   de segments non : c'est un creux, pas une vitre posée dessus » : c'est l'écriture qui
+   était incomplète, pas la décision.
+   ⚠️ Mesuré sur 57 057 éléments visibles (42 rubriques × 2 thèmes × 2 plateformes) :
+   **100 pastilles** dans ce cas, sur 14 rubriques. Le creux porte la matière, le curseur
+   porte le verre ; la pastille ne porte que son mot.
+   ⛔ RÈGLE GÉNÉRALE À TENIR : un `backdrop-filter` et la surface qu'il filtre se déclarent
+   ENSEMBLE. Partout où une règle plus spécifique efface la surface, elle efface le filtre.
+   `tests/test-763.js` le vérifie, et `scratchpad/sonde-verre.js` le mesure au navigateur. */
+html[data-verre="1"] .filters.seg-on .chip{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
 html[data-verre="1"] .filters.seg-on .seg-cur{
   background:var(--vr-reflet),var(--vr-fond);-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
   box-shadow:0 1px 3px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.9);
@@ -5734,6 +5756,20 @@ html[data-os="windows"] .rech-pilule,
 html[data-os="windows"] div:has(> input[placeholder^="Rechercher"]){border-radius:6px!important}
 html[data-verre="1"] div:has(> input[placeholder^="Rechercher"]){
   background:var(--vr-fond2)!important;-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+}
+/* ⛔ MÊME DÉFAUT QUE LES PASTILLES DE SEGMENTÉ, PAR LE MÊME CHEMIN. C'est la PILULE qui
+   porte la vitre (règle ci-dessus) et le champ qui est transparent dedans — c'est juste.
+   Mais `html[data-verre="1"] input.search-inp` lui repose un `backdrop-filter`, que la
+   règle plus spécifique `input[placeholder^="Rechercher"]{background:transparent}` ne peut
+   pas retirer : elle ne parle que du fond. Résultat mesuré dans Courrier et Bons, dans les
+   deux thèmes : `rgba(0,0,0,0)` + `blur(14px) saturate(1.8)` — une loupe posée sur la
+   vitre, qui refloute ce qui est déjà flou. Deux vitres empilées, et le texte saisi dessus.
+   ⚠️ `#stock-search`, lui, N'EST PAS dans ce cas : il porte sa propre vitre (alpha .46
+   mesuré) et la garde — c'est pourquoi la règle vise le champ NICHÉ, pas tous les champs. */
+html[data-verre="1"] .rech-pilule input.search-inp,
+html[data-verre="1"] div:has(> input[placeholder^="Rechercher"]) input.search-inp,
+html[data-verre="1"] span:has(> input[placeholder^="Rechercher"]) input.search-inp{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
 }
 /* ⛔ La barre de recherche GLOBALE de l'en-tête n'est pas une recherche de liste : elle a sa
    propre place et sa propre largeur. On la laisse tranquille. */
@@ -6260,7 +6296,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '719';
+const APP_VERSION = '720';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
