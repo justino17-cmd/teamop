@@ -3780,6 +3780,14 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] .btn.sm{min-height:40px}
   html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close{width:44px;height:44px}
   html[data-refonte] .chip{min-height:40px;padding:0 16px!important}
+  /* ⛔ 40 px EST LA DENSITÉ VOULUE POUR UN FILTRE, PAS POUR UNE COMMANDE D'EN-TÊTE.
+     Mesuré le 22 septembre 2026 sur un iPhone de 390 px, écran « Carte des box » : la
+     pastille Satellite rendait 40 px pendant que Liste et Carte des box, sur la même vue
+     et à deux centimètres, rendaient 44. Deux planchers dans un même regard, et le plus
+     bas sur la commande qu'on presse un plan à la main devant un bâtiment.
+     La ligne `.ph-actions` a DÉJÀ son propre plancher (`.btn` à 46 px) : on aligne la
+     pastille dessus, sans toucher aux ~240 filtres du contenu, qui eux sont à leur place. */
+  html[data-refonte] .ph-actions .chip{min-height:44px}
   html[data-refonte] .tab{min-height:46px}
   html[data-refonte] .nav-item{min-height:46px;padding:11px 12px!important;font-size:15.5px!important}
   html[data-refonte] .pl-row{min-height:52px;padding:14px 16px!important}

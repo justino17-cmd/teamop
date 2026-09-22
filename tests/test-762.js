@@ -164,5 +164,28 @@ const CORPS_SYNC=sansCom(decoupe('function mapNuitSync(){'));
   vrai('la clé de préférence reste déclarée', /carte:'elan_carte'/.test(NU));
 }
 
+console.log('\n══ 8. ⛔ LA PASTILLE EST DANS L\'EN-TÊTE, ET L\'EN-TÊTE A SON PLANCHER ══\n');
+/* Mesuré au navigateur le 22 septembre 2026, iPhone de 390 px, écran « Carte des box » :
+   la pastille rendait 40 px pendant que Liste et Carte des box, à deux centimètres sur la
+   même vue, rendaient 44 — deux planchers dans un même regard, et le plus bas sur la
+   commande qu'on presse devant un bâtiment. La règle vit dans `@media (pointer:coarse)` et
+   ne vise QUE `.ph-actions` : les ~240 filtres du contenu restent à 40 px, c'est la densité
+   voulue par la refonte. Le banc garde les deux moitiés — la règle, et sa portée. */
+{ const i0=NU.indexOf('@media (pointer:coarse){');
+  vrai('population : le bloc tactile est trouvé', i0>0);
+  const bloc=NU.slice(i0, NU.indexOf('\n}', i0));
+  vrai('population : le bloc contient bien le plancher des chips', /\.chip\{min-height:40px/.test(bloc));
+  vrai('⛔ une pastille d’en-tête monte à 44 px', /\.ph-actions \.chip\{min-height:44px\}/.test(bloc));
+  /* ⚠️ Un motif « tout sauf .ph-actions » se laisse tromper par l'espace qui précède :
+     on RAMASSE chaque règle qui monte une chip à 44 px et on exige qu'elles soient toutes
+     préfixées par `.ph-actions`, plutôt que de croire une négation. */
+  const haut44=[...bloc.matchAll(/([^{};]*)\.chip\{min-height:44px/g)].map(m=>m[1].trim());
+  v('population : une seule règle monte une chip à 44 px ici', haut44.length, 1);
+  v('… et elle est bornée à l’en-tête (le contenu garde sa densité)',
+    haut44.filter(s=>!/\.ph-actions$/.test(s)), []);
+  v('mapFondBarre est le SEUL endroit qui pose une chip dans .ph-actions de la carte',
+    (NU.match(/class="chip\$\{on\?' active':''\}"/g)||[]).length, 1);
+}
+
 console.log(`\n════ test-762 : ${ok} ✓ ${ko} ✗ ════\n`);
 process.exit(ko?1:0);
