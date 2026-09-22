@@ -1,32 +1,20 @@
-/* ══ AUDIT DES ÉCRANS PROFONDS — CE QUI S'OUVRE QUAND ON APPUIE ══════════════════════════
-   Justin, 22 septembre 2026 : « tu finis de tout vérifier » — puis « 1 après 2 après 3 ».
-   Étape 1 : les écrans PROFONDS. `audit-total.js` parcourt les 42 rubriques par `go(k)` ;
-   il ne voit ni une fiche d'intervention, ni un formulaire, ni une fenêtre, ni un
-   sous-onglet. Ce sont pourtant les écrans où l'on SAISIT — ceux où un défaut coûte.
+/* ══ AUDIT DES CLICS, ÉTAPE 2 — CHAQUE BOUTON, Y COMPRIS DANS CE QUI S'OUVRE ════════════
+   Justin, 22 septembre 2026 : « tu finis de tout vérifier », puis « 1 après 2 après 3 ».
+   Étape 2 : APPUYER sur chaque bouton de chaque rubrique ET de chaque fenêtre qu'elle
+   ouvre (niveau 2), sur les deux profils (téléphone nuit, bureau jour).
 
-   ⛔ ON N'APPELLE PAS LES FONCTIONS À LA MAIN. Une sonde qui force un état que
-   l'application ne produit jamais fabrique de faux défauts (règle du dépôt) : on atteint
-   chaque écran profond par un VRAI clic, depuis une vraie rubrique, avec les données de la
-   bêta. Ce qu'on audite existe donc pour un utilisateur.
-
-   Trois sortes d'écrans profonds, reconnues APRÈS le clic :
-   · FENÊTRE  — un `#overlay`/`#overlay2` qui n'était pas ouvert s'ouvre ;
-   · FICHE    — le titre de la page change sans changer de rubrique (détail d'un élément) ;
-   · SOUS-VUE — l'onglet, le filtre ou le segment actif change (les « sous-catégories »).
-   Chacun est audité une fois par gabarit, avec les contrôles d'`audit-total.js` déjà
-   éprouvés : hors de l'écran, recouvert (candidat CENTRÉ), tronqué, cible trop petite
-   (téléphone), erreur JavaScript.
-
-   ⛔ PIÈGES ENCODÉS ICI, tous payés aujourd'hui :
-   · `pushPropose` ouvre « Notifications » 4 s après l'entrée et couvre tout : on le coupe
-     à la SOURCE, on laisse tirer les minuteurs de démarrage, et on relève ce qui s'ouvre
-     tout seul AVANT de cliquer — sinon une fenêtre spontanée passe pour un écran profond ;
-   · on ne masque JAMAIS `#overlay` : c'est là que vivent les écrans qu'on cherche ;
-   · une référence prise avant le clic est morte après : on recense à NEUF à chaque tour ;
-   · on compte la POPULATION de chaque famille avant de croire un zéro.
+   ⛔ CE QUE LA PREMIÈRE PASSE DE CLICS A APPRIS, ET QUI EST ENCODÉ ICI :
+   · viser par INDEX ne clique pas : 49 frappes sur 1 027 atteignaient leur cible. On
+     recense à NEUF avant chaque frappe et on vise par SIGNATURE ;
+   · `current` est un `let` : `window.current` vaut toujours undefined — le « vue 0 » de la
+     première passe venait de là ;
+   · un zéro ne se croit qu'après deux contre-épreuves : un clic qui JETTE doit être vu, un
+     clic SANS EFFET doit être vu comme inerte ;
+   · une fenêtre n'est pas « ce qui vit dans #overlay » : on cherche la couche fixe qui
+     couvre le centre, et on la referme comme un utilisateur (✕, Échap, le fond).
    ⛔ Bêta uniquement, copie locale servie en 127.0.0.1.
 
-   Usage : node scratchpad/audit-profond.js tel|bureau                                     */
+   Usage : node scratchpad/audit-clics2.js tel|bureau                                     */
 const fs=require('fs'), path=require('path');
 const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
 const PROFIL=process.argv[2]||'tel';
@@ -221,7 +209,8 @@ const ECARTS=[
        une EMPREINTE du contenu — c'est elle qui change quand on change d'onglet. */
     const h=c?c.innerHTML:''; let e=0; for(let i=0;i<h.length;i+=7) e=(e*31+h.charCodeAt(i))>>>0;
     return { vue:(typeof current!=='undefined'?current:''), ov:${OUVERTE}, titre:(tt?tt.textContent:'').trim().replace(/\\s+/g,' ').slice(0,50),
-             actifs, empreinte:h.length+':'+e };`;
+             actifs, empreinte:h.length+':'+e,
+             toast:[...document.querySelectorAll('.toast,.snack,.notif-toast')].map(t=>(t.textContent||'').trim().slice(0,30)).join('¦') };`;
 
   /* recensement : on ne rend que des IDENTITÉS ; on vise ensuite par SIGNATURE */
   const RECENSER=`
@@ -248,15 +237,32 @@ const ECARTS=[
   const FRAPPER=(sig)=>RECENSER.replace('return out;',
     `const i=out.findIndex(o=>o.sig===${JSON.stringify(sig)}); if(i<0) return false; [...vu][i].click(); return true;`);
 
+  /* ⛔⛔ DEUX CONTRE-ÉPREUVES AVANT DE CROIRE UN ZÉRO */
+  { const n0=S.exceptions.length;
+    await S.ev(`const b=document.createElement('button'); b.textContent='témoin';
+      b.onclick=function(){ throw new Error('SONDE-TEMOIN'); }; document.getElementById('content').appendChild(b); b.click(); b.remove(); return 1;`);
+    await dormir(300);
+    const vu=S.exceptions.slice(n0).some(x=>/SONDE-TEMOIN/.test(x));
+    console.log('  contre-épreuve 1 — un clic qui jette est '+(vu?'VU ✓':'INVISIBLE ✗'));
+    if(!vu){ S.fermer(); process.exit(3); }
+    await S.ev(`const b=document.createElement('button'); b.id='__muet'; b.textContent='muet'; b.style.cssText='position:fixed;left:-9999px';
+      b.onclick=function(){}; document.body.appendChild(b); return 1;`);
+    await dormir(300);
+    const a=await S.ev(ETAT); await S.ev(`document.getElementById('__muet').click(); return 1;`); await dormir(300); const b=await S.ev(ETAT);
+    await S.ev(`const x=document.getElementById('__muet'); if(x) x.remove(); return 1;`);
+    const inerte=JSON.stringify(a)===JSON.stringify(b);
+    console.log('  contre-épreuve 2 — un clic sans effet est '+(inerte?'VU comme inerte ✓':'INVISIBLE ✗'));
+    if(!inerte){ console.log('      ce qui a bougé : '+JSON.stringify(a).slice(0,160)+' → '+JSON.stringify(b).slice(0,160)); S.fermer(); process.exit(5); } }
+
   let CATS=await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]);`);
   /* essai court : SEULES=interventions,clients — pour prouver la sonde avant la vraie passe */
   if(process.env.SEULES){ const s=process.env.SEULES.split(','); CATS=CATS.filter(k=>s.includes(k)); }
   console.log('  catégories : '+CATS.length);
   if(CATS.length<20 && !process.env.SEULES){ console.log('  ✗ population trop maigre'); S.fermer(); process.exit(4); }
 
-  const PARGENRE=4, PARCAT_SEC=150, SOUSVUES_MAX=14;
+  const PARGENRE=1e9, PARCAT_SEC=260, SOUSVUES_MAX=0;
   const sousVues={}; let plafonnees=0;   /* ⛔ pas de plafond silencieux : on compte ce qu'on saute */
-  const vus=new Set(), R={hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[]};
+  const vus=new Set(), R={hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[],inertes:[]};
   const par={rubrique:0,fenetre:0,fiche:0,sousvue:0}, sautes={}; let clics=0, audits=0, elements=0;
 
   /* ⛔ UN DÉFAUT SE PROUVE PAR SA PHOTO, PRISE AU MOMENT OÙ ON LE TROUVE. Un chemin réécrit
@@ -282,10 +288,47 @@ const ECARTS=[
   };
   const norme=s=>(s||'').replace(/\d+/g,'#').replace(/\s+/g,' ').trim().slice(0,40);
 
+  /* ── NIVEAU 2 : dans une fenêtre, on appuie sur chaque commande. Avant chaque frappe on
+     s'assure que la fenêtre est OUVERTE — sinon on la rouvre par le même clic de niveau 1. ── */
+  let clics2=0, fenetres2=0, plafond2=0; const rates2=[];
+  const RECENSER2=(sel)=>RECENSER
+    .replace("const zones=[document.getElementById('content'),document.querySelector('#page-head .ph-actions'),\n                 document.getElementById('topbar-actions')].filter(Boolean);",
+             "const zones=[document.querySelector("+JSON.stringify(sel)+")].filter(Boolean);")
+    .replace("const SEL='button,.btn,.chip,.tab,.tchip,.pf-b,.pf-opt,.seg span,.seg button,[onclick],.pl-row,.list-row';",
+             "const SEL='button,.btn,.chip,.tab,.tchip,.pf-b,.pf-opt,.seg span,.seg button,[onclick],.pl-row,.list-row,label,input[type=checkbox],input[type=radio],select';");
+  const niveau2=async(k, sig1, ov, cle)=>{
+    fenetres2++; const faits=new Set(); const t0=Date.now();
+    for(let tour=0; tour<80; tour++){
+      if(Date.now()-t0>100000){ plafond2++; break; }
+      let o=await S.ev(`return ${OUVERTE};`);
+      if(!o || o.titre!==ov.titre){
+        await ranger(); await S.ev(`try{ go('${k}'); }catch(e){} return 1;`); await dormir(420);
+        const ok=await S.ev(FRAPPER(sig1)); if(!ok){ rates2.push(cle+' : impossible de rouvrir'); break; }
+        await dormir(650); o=await S.ev(`return ${OUVERTE};`);
+        if(!o || o.titre!==ov.titre){ rates2.push(cle+' : ne se rouvre pas pareil'); break; }
+      }
+      const R2=RECENSER2(o.sel);
+      /* ⛔ garde RÉELLE : le recensement doit viser la fenêtre et rien d'autre (l'ancienne
+         garde cherchait « document.querySelector( », déjà présent dans l'original : creuse) */
+      if(R2===RECENSER || !R2.includes('document.querySelector('+JSON.stringify(o.sel)+')')){ rates2.push(cle+' : recensement non ciblé'); break; }
+      const liste=await S.ev(R2);
+      const c=liste.find(x=>!faits.has(x.sig) && !ECARTS.some(([re])=>re.test(x.t)));
+      if(!c) break;
+      faits.add(c.sig);
+      const nErr=S.exceptions.length;
+      const ok=await S.ev(R2.replace('return out;',
+        `const i=out.findIndex(o=>o.sig===${JSON.stringify(c.sig)}); if(i<0) return false; [...vu][i].click(); return true;`));
+      if(!ok) continue;
+      clics2++; await dormir(480);
+      const neuves=S.exceptions.slice(nErr);
+      if(neuves.length) R.erreurs.push({ou:cle+' → « '+c.t+' »', e:neuves.join(' | ').slice(0,200)});
+    }
+    await ranger();
+  };
+
   for(const k of CATS){
     const t0=Date.now(); const cliques=new Set(), parGenre={};
     await S.ev(`try{ go('${k}'); }catch(e){} window.scrollTo(0,0); window.dispatchEvent(new Event('scroll')); return 1;`); await dormir(450); await ranger();
-    await auditer('rubrique '+k,'rubrique',`document.getElementById('content')`);
     for(let tour=0; tour<400; tour++){
       if(Date.now()-t0>PARCAT_SEC*1000){ sautes[k]=(sautes[k]||0)+1; break; }
       const liste=await S.ev(RECENSER);
@@ -313,7 +356,12 @@ const ECARTS=[
         if(n<=SOUSVUES_MAX){ sorte='sousvue'; cle=k+' › « '+norme(cible.t)+' »'; racine=`document.getElementById('content')`; }
         else plafonnees++;
       }
-      if(sorte && !vus.has(cle)){ vus.add(cle); await auditer(cle,sorte,racine); }
+      /* ── inertie : rien n'a bougé du tout ── */
+      if(!neuves.length && apres.vue===avant.vue && JSON.stringify(apres.ov)===JSON.stringify(avant.ov)
+         && apres.empreinte===avant.empreinte && apres.titre===avant.titre && apres.toast===avant.toast)
+        R.inertes.push({ou:k, t:cible.t, n:cible.n});
+      /* ── niveau 2 : une fenêtre neuve s'est ouverte → on appuie sur tout ce qu'elle contient ── */
+      if(sorte==='fenetre' && !vus.has(cle)){ vus.add(cle); await niveau2(k, cible.sig, apres.ov, cle); }
 
       await ranger();
       await S.ev(`try{ if(document.documentElement.getAttribute('data-theme')!=='${P.theme==='light'?'light':'dark'}') setThemePref('${P.theme}'); }catch(e){}
@@ -325,29 +373,20 @@ const ECARTS=[
   }
 
   const grouper=(l,f)=>{ const m={}; l.forEach(x=>{ const g=f(x); (m[g]=m[g]||[]).push(x); }); return Object.entries(m).sort((a,b)=>b[1].length-a[1].length); };
-  console.log('\n════════ AUDIT DES ÉCRANS PROFONDS — '+PROFIL+' ════════');
+  console.log('\n════════ AUDIT DES CLICS, ÉTAPE 2 — '+PROFIL+' ════════');
   console.log('  page mesurée : '+S.version);
-  console.log('  population : '+clics+' clics depuis '+CATS.length+' rubriques → '+audits+' écrans profonds audités, '+elements+' éléments mesurés');
-  console.log('     rubriques '+par.rubrique+' · fenêtres '+par.fenetre+' · fiches '+par.fiche+' · sous-vues '+par.sousvue);
+  console.log('  niveau 1 : '+clics+' clics réels sur '+CATS.length+' rubriques');
+  console.log('  niveau 2 : '+clics2+' clics réels dans '+fenetres2+' fenêtres distinctes');
   if(Object.keys(sautes).length) console.log('  ⚠ rubriques arrêtées au plafond de temps : '+Object.keys(sautes).join(', '));
-  console.log('  sous-vues non auditées (plafond de '+SOUSVUES_MAX+' par rubrique) : '+plafonnees);
-  console.log('  fenêtres spontanées rencontrées pendant l’exploration : '+R.spontanees.length);
-  console.log('  ⚠ couches qu’il a fallu CACHER (ni ✕, ni Échap, ni le fond ne les fermaient) : '+fermees.length);
-  [...new Set(fermees)].slice(0,12).forEach(x=>console.log('      · '+x));
-  console.log('\n══ ERREURS JAVASCRIPT : '+R.erreurs.length+' ══');
-  R.erreurs.slice(0,20).forEach(x=>console.log('   '+x.ou+'\n      '+x.e));
-  console.log('\n══ HORS DE L’ÉCRAN : '+R.hors.length+' ══');
-  grouper(R.hors,x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » x '+v[0].x+'→'+v[0].d+(v[0].preuve?'   ['+v[0].preuve+']':'')));
-  console.log('\n══ RECOUVERTS (candidat centré) : '+R.couverts.length+' ══');
-  grouper(R.couverts,x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » sous '+v[0].par));
-  console.log('\n══ TRONQUÉS SANS INFOBULLE : '+R.tronques.filter(x=>!x.bulle).length+'  (avec infobulle : '+R.tronques.filter(x=>x.bulle).length+') ══');
-  grouper(R.tronques.filter(x=>!x.bulle),x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » '+v[0].vu+'/'+v[0].reel));
-  console.log('\n══ TITRES COUPÉS : '+R.titres.length+' ══');
-  grouper(R.titres,x=>x.n+' « '+x.t+' »').slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'  '+v[0].vu+'/'+v[0].reel+(v[0].bulle?' (infobulle)':'')+'   ex. '+v[0].ou));
-  if(P.tac){ console.log('\n══ CIBLES SOUS 38 px : '+R.petits.length+' ══');
-    grouper(R.petits,x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » '+v[0].h+'px'+(v[0].preuve?'   ['+v[0].preuve+']':''))); }
-  console.log('\n══ LES ÉCRANS PROFONDS AUDITÉS ══');
-  [...vus].forEach(v=>console.log('   · '+v));
-  fs.writeFileSync(__dirname+'/audit-profond-'+PROFIL+'.json',JSON.stringify({version:S.version,profil:PROFIL,clics,audits,elements,par,ecrans:[...vus],fermees,...R},null,0));
+  console.log('  ⚠ fenêtres arrêtées au plafond de temps : '+plafond2);
+  console.log('  ⚠ fenêtres qu’on n’a pas pu rouvrir pour continuer : '+rates2.length);
+  rates2.slice(0,10).forEach(x=>console.log('      · '+x));
+  console.log('  ⚠ couches qu’il a fallu CACHER (ni ✕, ni Échap, ni le fond) : '+fermees.length);
+  [...new Set(fermees)].slice(0,10).forEach(x=>console.log('      · '+x));
+  console.log('\n══ CLICS QUI JETTENT : '+R.erreurs.length+' ══');
+  R.erreurs.slice(0,30).forEach(x=>console.log('   '+x.ou+'\n      '+x.e));
+  console.log('\n══ CLICS SANS EFFET OBSERVABLE (niveau 1) : '+R.inertes.length+'  — à VÉRIFIER, pas à accuser ══');
+  grouper(R.inertes,x=>x.n+' « '+x.t+' »').slice(0,25).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ['+[...new Set(v.map(y=>y.ou))].slice(0,4).join(', ')+']'));
+  fs.writeFileSync(__dirname+'/audit-clics2-'+PROFIL+'.json',JSON.stringify({version:S.version,profil:PROFIL,clics,clics2,fenetres2,plafond2,rates2,fermees,erreurs:R.erreurs,inertes:R.inertes},null,0));
   S.fermer(); process.exit(0);
 })().catch(e=>{console.error('AUDIT MORT :',e&&e.stack||e);process.exit(2);});

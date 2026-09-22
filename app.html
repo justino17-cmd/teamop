@@ -2426,7 +2426,7 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
    d'un cran, sans descendre au gris d'inactif : le bouton travaille, il n'est pas éteint. */
 .btn.btn-occupe,html[data-refonte] .btn.btn-occupe{background:var(--acc2)!important;color:var(--on-acc2,#FFFFFF)!important;
   opacity:.88!important;pointer-events:none;transform:none!important;box-shadow:none!important;cursor:progress}
-.bell,.menu-btn,.modal-close{background:var(--tint-gris)!important;color:var(--t2)!important;border:0!important;border-radius:50%!important;
+.bell,.menu-btn,.modal-close,.dp-hd .x{background:var(--tint-gris)!important;color:var(--t2)!important;border:0!important;border-radius:50%!important;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
 .bell:hover,.menu-btn:hover,.modal-close:hover{background:var(--hover)!important;color:var(--t1)!important}
 .bell:active,.menu-btn:active,.modal-close:active{transform:scale(.94);transition-duration:var(--d-0)}
@@ -3341,7 +3341,7 @@ html[data-refonte] .field textarea:focus,html[data-refonte] .search-inp:focus{
    haut restent à 38 : ils sont à la souris sur ordinateur, et repassent à 44 sur téléphone. */
 html[data-refonte] .btn{min-height:40px;border-radius:var(--rf-r-champ)!important;font-size:15px!important}
 html[data-refonte] .btn.sm{min-height:34px;font-size:13.5px!important;border-radius:var(--rf-r-mini)!important}
-html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close{width:38px;height:38px}
+html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close,html[data-refonte] .dp-hd .x{width:38px;height:38px}
 @media(max-width:900px){
   html[data-refonte] .btn{min-height:var(--rf-tap)}
   html[data-refonte] .btn.sm{min-height:38px}
@@ -3833,7 +3833,10 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
 @media (pointer:coarse){
   html[data-refonte] .btn{min-height:46px;padding:0 18px!important}
   html[data-refonte] .btn.sm{min-height:40px}
-  html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close{width:44px;height:44px}
+  /* ⛔ LA CROIX DES PANNEAUX DU TABLEAU DE BORD (.dp-hd .x) ÉTAIT À 28 × 28 px AU DOIGT —
+     mesuré le 22 septembre 2026 par l'audit des écrans profonds, sur les six panneaux .dp.
+     Elle ne se redessine pas : elle rejoint la croix des fenêtres, même forme, même taille. */
+  html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close,html[data-refonte] .dp-hd .x{width:44px;height:44px}
   html[data-refonte] .chip{min-height:40px;padding:0 16px!important}
   /* ⛔ 40 px EST LA DENSITÉ VOULUE POUR UN FILTRE, PAS POUR UNE COMMANDE D'EN-TÊTE.
      Mesuré le 22 septembre 2026 sur un iPhone de 390 px, écran « Carte des box » : la

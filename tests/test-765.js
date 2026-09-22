@@ -104,5 +104,22 @@ vrai('… il remplit la base avant de mesurer (un écran vide ne montre aucun d�
 vrai('… et il ne confirme RIEN pendant l’audit (confirm rend NON)', /window\.confirm=\(\)=>false/.test(S));
 vrai('… sur la BÊTA, jamais sur app.html', !/'app\.html'/.test(S));
 
+/* ⛔ LA CROIX DES PANNEAUX DU TABLEAU DE BORD (.dp-hd .x) — 28 × 28 px au doigt, trouvée le
+   22 septembre 2026 par l'audit des écrans PROFONDS (scratchpad/audit-profond.js) : l'audit
+   des rubriques ne la voyait pas, elle ne vit que dans un panneau qui s'ouvre. Elle ne se
+   redessine pas : elle rejoint la croix des fenêtres, dans les MÊMES règles. */
+{ /* ⛔ T n'a plus de retours à la ligne : on découpe chaque bloc par compteur d'accolades
+     (la première version cherchait la fin sur un « \n} » et rendait une tranche VIDE —
+     le compteur de population l'a attrapée) */
+  const blocs=[]; let i=0;
+  while((i=T.indexOf('@media (pointer:coarse){',i))>=0){ let p=1, j=T.indexOf('{',i)+1;
+    while(j<T.length&&p>0){ if(T[j]==='{')p++; else if(T[j]==='}')p--; j++; } blocs.push(T.slice(i,j)); i=j; }
+  const tactile=blocs.join('\n');
+  vrai('population : les blocs tactiles sont relus', tactile.length>1000, tactile.length+' caractères');
+  vrai('⛔ au doigt, la croix des panneaux prend les 44 px de la croix des fenêtres',
+    /html\[data-refonte\] \.modal-close,html\[data-refonte\] \.dp-hd \.x\{width:44px;height:44px\}/.test(tactile));
+  vrai('⛔ à la souris, elle prend ses 38 px', /\.modal-close,html\[data-refonte\] \.dp-hd \.x\{width:38px;height:38px\}/.test(T));
+  vrai('⛔ et sa forme : ronde, teintée, comme sa jumelle', /\.bell,\.menu-btn,\.modal-close,\.dp-hd \.x\{background:var\(--tint-gris\)!important/.test(T)); }
+
 console.log(`\n════ test-765 : ${ok} ✓ ${ko} ✗ ════\n`);
 process.exit(ko?1:0);

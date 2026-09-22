@@ -1,0 +1,146 @@
+/* ══ AUDIT DES TEINTES, ÉTAPE 3 — LES NEUF COULEURS, ÉCRAN PAR ÉCRAN ═══════════════════
+   Justin, 22 septembre 2026 : « 1 après 2 après 3 ». Étape 3 : les sept teintes qui
+   n'avaient été balayées que par leurs jetons. Ici on regarde les ÉCRANS : 9 teintes ×
+   2 thèmes × 42 rubriques = 756 écrans rendus, et sur chacun :
+
+   1. TEXTE EN ACCENT — tout élément dont l'encre est une couleur d'accent, mesuré contre
+      son VRAI fond (on remonte les ancêtres et on compose les fonds translucides jusqu'à
+      un fond opaque). Seuil AA : 4,5:1, ou 3:1 pour un gros texte (≥ 24 px, ou ≥ 18,66 px
+      gras). C'est le risque des teintes CLAIRES — orange, cyan, graphite de nuit.
+   2. ENCRE SUR UN APLAT D'ACCENT — tout élément dont le FOND est un aplat d'accent et qui
+      porte du texte : son encre contre cet aplat. C'est le risque d'un `color:#fff` écrit
+      en dur, invisible sur le graphite de nuit (#F5F5F7).
+   3. RESTE DE VERT — une couleur du vert par défaut qui survit à une autre teinte.
+
+   ⛔ CE QUE LES DEUX PREMIÈRES VERSIONS DE LA SONDE DES TEINTES ONT APPRIS :
+   · les noms de jetons se relisent dans la page, jamais de mémoire (cinq noms inventés) ;
+   · une propriété personnalisée rend son TEXTE (« color-mix(…) »), pas une couleur : on
+     résout sur un vrai élément, et on refuse de tourner si la cible ne se résout pas ;
+   · la pastille d'initiales d'un technicien (span.av) porte SA couleur (TECH_PALETTE16),
+     pas l'accent : écartée nommément après contre-épreuve ;
+   · on compte la POPULATION de chaque famille : un zéro sur rien ne se cite pas.
+   ⛔ Bêta uniquement, copie locale servie en 127.0.0.1.                                    */
+const fs=require('fs'), path=require('path');
+const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
+
+(async()=>{
+  const S=await ouvrir();
+  console.log('  page mesurée : '+S.version);
+  await S.c.envoyer('Emulation.setDeviceMetricsOverride',{width:1280,height:860,deviceScaleFactor:1,mobile:false});
+  await S.ev(`window.horsLigneDebut=function(){}; try{_horsLigne=false;}catch(e){} const h=document.getElementById('hl-ecran'); if(h)h.remove(); window.pushPropose=function(){}; return 1;`);
+  await S.ev(`if(!db.users.length){db.users.push({id:'u1',prenom:'Justin',nom:'B',role:'admin',username:'j',pass:'x',actif:true,pref:{}});save();}
+    currentUser=db.users[0]; try{ localStorage.setItem('elanB_onboarded_'+currentUser.id,'1'); }catch(e){} enterApp(currentUser); return 1;`);
+  await dormir(1300);
+  await S.ev(`window.confirm=()=>true; try{ betaRemplir(false); }catch(e){} return 1;`); await dormir(2500);
+  await S.ev(`window.confirm=()=>false; try{ setPlatForce('macweb'); }catch(e){} return 1;`);
+  await dormir(5000);   /* les minuteurs de démarrage tirent avant qu'on mesure */
+  await S.ev(`try{ closeModal(); }catch(e){} return 1;`);
+
+  const ACCENTS=await S.ev(`return Object.keys(ACCENTS);`);
+  const CATS=await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]);`);
+  console.log('  teintes : '+ACCENTS.length+' · rubriques : '+CATS.length+' · thèmes : 2  → '+(ACCENTS.length*CATS.length*2)+' écrans');
+  if(ACCENTS.length<8||CATS.length<20){ console.log('  ✗ population trop maigre'); S.fermer(); process.exit(4); }
+
+  const MESURE=`
+    const lire=(v)=>{ if(!v) return null; v=v.trim();
+      let m=v.match(/^rgba?\\(([^)]+)\\)$/);
+      if(m){ const p=m[1].split(/[\\s,\\/]+/).filter(Boolean).map(Number); if(p.length<3||p.some(isNaN)) return null;
+             return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1}; }
+      m=v.match(/^color\\(srgb ([^)]+)\\)$/);
+      if(m){ const p=m[1].split(/[\\s\\/]+/).filter(Boolean).map(Number); if(p.length<3||p.some(isNaN)) return null;
+             return {r:p[0]*255,g:p[1]*255,b:p[2]*255,a:p.length>3?p[3]:1}; }
+      return null; };
+    const lum=c=>{ const f=x=>{x/=255; return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4);}; return .2126*f(c.r)+.7152*f(c.g)+.0722*f(c.b); };
+    const ctr=(a,b)=>{ const l1=lum(a),l2=lum(b); return (Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05); };
+    const sur=(h,b)=>({ r:h.r*h.a+b.r*(1-h.a), g:h.g*h.a+b.g*(1-h.a), b:h.b*h.a+b.b*(1-h.a), a:1 });
+    /* ── on résout les couleurs d'accent sur un VRAI élément ── */
+    let so=document.getElementById('__so'); if(!so){ so=document.createElement('div'); so.id='__so';
+      so.style.cssText='position:fixed;left:-9999px;top:0;width:8px;height:8px'; document.body.appendChild(so); }
+    const res=k=>{ so.style.backgroundColor=''; so.style.backgroundColor='var('+k+')'; return lire(getComputedStyle(so).backgroundColor); };
+    const ACC=['--acc','--acc-txt','--acc-fill','--acc2','--acc-fill-hover'].map(res).filter(c=>c&&c.a>0.9);
+    if(!ACC.length) return {erreur:'cible vide'};
+    const proche=(c,l,tol)=>c && l.some(t=>Math.abs(c.r-t.r)+Math.abs(c.g-t.g)+Math.abs(c.b-t.b)<=tol);
+    /* ── le fond RÉEL : on compose les fonds des ancêtres jusqu'à un fond opaque ── */
+    const base=lire(getComputedStyle(document.documentElement).backgroundColor);
+    const pageFond=(base&&base.a>0.9)?base:(res('--bg')||{r:255,g:255,b:255,a:1});
+    const fondDe=e=>{ const pile=[]; let n=e;
+      while(n && n.nodeType===1){ const c=lire(getComputedStyle(n).backgroundColor); if(c&&c.a>0.01){ pile.push(c); if(c.a>0.99) break; } n=n.parentElement; }
+      let f=(pile.length&&pile[pile.length-1].a>0.99)?pile.pop():pageFond;
+      for(let i=pile.length-1;i>=0;i--) f=sur(pile[i],f); return f; };
+    const ECARTES=['av'];   /* span.av : la couleur du TECHNICIEN, pas l'accent — contre-épreuve faite */
+    const nom=e=>e.tagName.toLowerCase()+(typeof e.className==='string'&&e.className?'.'+e.className.trim().split(/\\s+/).slice(0,2).join('.'):'');
+    const zone=[document.getElementById('content'),document.querySelector('.topbar'),document.getElementById('page-head')].filter(Boolean);
+    const out={ texteAcc:0, aplats:0, faibles:[], restes:[] };
+    const vus=new Set();
+    zone.forEach(z=>z.querySelectorAll('*').forEach(e=>{
+      if(vus.has(e)) return; vus.add(e);
+      if(typeof e.className==='string' && ECARTES.some(c=>e.classList.contains(c))) return;
+      const b=e.getBoundingClientRect(); if(b.width<3||b.height<3) return;
+      const st=getComputedStyle(e); if(st.visibility==='hidden'||st.display==='none'||+st.opacity<0.3) return;
+      /* texte PROPRE à l'élément (pas celui de ses enfants) */
+      const propre=[...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim().length>0);
+      const encre=lire(st.color), fond=lire(st.backgroundColor);
+      const gros=parseFloat(st.fontSize)>=24 || (parseFloat(st.fontSize)>=18.66 && +st.fontWeight>=700);
+      const seuil=gros?3:4.5;
+      if(propre && proche(encre,ACC,6)){
+        out.texteAcc++;
+        const c=ctr(encre, fondDe(e));
+        if(c<seuil) out.faibles.push({ genre:'texte en accent', n:nom(e), t:e.textContent.trim().slice(0,24), c:+c.toFixed(2), seuil });
+      }
+      if(fond && fond.a>0.9 && proche(fond,ACC,6) && propre){
+        out.aplats++;
+        const c=ctr(encre&&encre.a>0.5?encre:{r:0,g:0,b:0,a:1}, fond);
+        if(c<seuil) out.faibles.push({ genre:'encre sur aplat', n:nom(e), t:e.textContent.trim().slice(0,24), c:+c.toFixed(2), seuil });
+      }
+      if(VERT && (proche(encre,VERT,6)||proche(fond,VERT,6)) && (propre||fond&&fond.a>0.5))
+        out.restes.push({ n:nom(e), t:e.textContent.trim().slice(0,24) });
+    }));
+    return out;`;
+
+  /* ⛔⛔ CONTRE-ÉPREUVE : un texte VOLONTAIREMENT illisible — encre d'accent sur aplat
+     d'accent, 1:1 — doit être attrapé deux fois (texte en accent, encre sur aplat). Sans ça,
+     « 0 contraste faible » peut vouloir dire « la sonde ne regarde rien ». */
+  { await S.ev(`try{ setThemePref('dark'); setAccent('green'); go('dashboard'); }catch(e){} return 1;`); await dormir(500);
+    const t=await S.ev(`const x=document.createElement('span'); x.id='__temoin'; x.textContent='témoin illisible';
+      x.style.cssText='color:var(--acc-fill);background:var(--acc-fill);display:inline-block;padding:4px';
+      document.getElementById('content').prepend(x); const VERT=null; ${MESURE}`);
+    await S.ev(`const x=document.getElementById('__temoin'); if(x) x.remove(); return 1;`);
+    const pris=(t&&t.faibles||[]).filter(f=>/témoin/.test(f.t)).map(f=>f.genre);
+    console.log('  contre-épreuve — le témoin illisible est attrapé : '+(pris.length>=2?'OUI ✓ ('+pris.join(', ')+')':'NON ✗ '+JSON.stringify(pris)));
+    if(pris.length<2){ S.fermer(); process.exit(7); } }
+
+  const R={faibles:[],restes:[],texteAcc:0,aplats:0,ecrans:0};
+  /* le vert par défaut, résolu une fois par thème, sert de cible aux « restes » */
+  for(const th of ['dark','light']){
+    await S.ev(`try{ setThemePref('${th}'); }catch(e){} try{ setAccent('green'); }catch(e){} return 1;`); await dormir(200);
+    const VERT=await S.ev(`let so=document.getElementById('__so'); if(!so){ so=document.createElement('div'); so.id='__so';
+      so.style.cssText='position:fixed;left:-9999px;top:0;width:8px;height:8px'; document.body.appendChild(so); }
+      return ['--acc','--acc-fill','--acc2'].map(k=>{ so.style.backgroundColor=''; so.style.backgroundColor='var('+k+')'; return getComputedStyle(so).backgroundColor; });`);
+    for(const a of ACCENTS){
+      await S.ev(`try{ setAccent('${a}'); }catch(e){} return 1;`); await dormir(160);
+      for(const k of CATS){
+        await S.ev(`try{ go('${k}'); }catch(e){} return 1;`); await dormir(330);
+        await S.ev(`try{ closeModal(); }catch(e){} try{ tdbDetailFerme(); }catch(e){} return 1;`);
+        const vert = a==='green' ? 'null' : JSON.stringify(VERT)+'.map(v=>{ const m=v.match(/^color\\(srgb ([^)]+)\\)$/)||v.match(/^rgba?\\(([^)]+)\\)$/); if(!m) return null; const p=m[1].split(/[\\s,\\/]+/).filter(Boolean).map(Number); return /srgb/.test(v)?{r:p[0]*255,g:p[1]*255,b:p[2]*255}:{r:p[0],g:p[1],b:p[2]}; }).filter(Boolean)';
+        let o; try{ o=await S.ev(`const VERT=${vert}; ${MESURE}`); }catch(e){ continue; }
+        if(!o || o.erreur){ console.log('  ✗ '+th+' '+a+' '+k+' : '+(o&&o.erreur)); S.fermer(); process.exit(6); }
+        R.ecrans++; R.texteAcc+=o.texteAcc; R.aplats+=o.aplats;
+        o.faibles.forEach(x=>R.faibles.push({...x,ou:th+'/'+a+'/'+k}));
+        o.restes.forEach(x=>R.restes.push({...x,ou:th+'/'+a+'/'+k}));
+      }
+      console.log('  '+th.padEnd(6)+a.padEnd(9)+' — '+R.ecrans+' écrans, '+R.faibles.length+' contrastes faibles, '+R.restes.length+' restes de vert');
+    }
+  }
+  const grouper=(l,f)=>{ const m={}; l.forEach(x=>{ const g=f(x); (m[g]=m[g]||[]).push(x); }); return Object.entries(m).sort((a,b)=>b[1].length-a[1].length); };
+  console.log('\n════════ AUDIT DES TEINTES — ÉTAPE 3 ════════');
+  console.log('  page mesurée : '+S.version);
+  console.log('  population : '+R.ecrans+' écrans · '+R.texteAcc+' textes en accent mesurés · '+R.aplats+' encres sur aplat d’accent mesurées');
+  console.log('\n══ CONTRASTES SOUS LE SEUIL : '+R.faibles.length+' ══');
+  grouper(R.faibles,x=>x.genre+' · '+x.n+' « '+x.t+' »').slice(0,30).forEach(([g,v])=>{
+    const pire=v.reduce((m,x)=>x.c<m.c?x:m,v[0]);
+    console.log('   '+String(v.length).padStart(3)+'×  '+g+'   pire '+pire.c+':1 (seuil '+pire.seuil+') ['+pire.ou+']'); });
+  console.log('\n══ RESTES DE VERT SOUS UNE AUTRE TEINTE : '+R.restes.length+' ══');
+  grouper(R.restes,x=>x.n+' « '+x.t+' »').slice(0,20).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ['+v[0].ou+']'));
+  fs.writeFileSync(__dirname+'/audit-teintes.json',JSON.stringify({version:S.version,...R}));
+  S.fermer(); process.exit(0);
+})().catch(e=>{console.error('AUDIT MORT :',e&&e.stack||e);process.exit(2);});
