@@ -5399,6 +5399,25 @@ html[data-refonte] .tabbar .tab{padding:4px 2px!important;gap:2px!important;min-
    ne descend PAS sous 10 px, c'est le plancher lisible au soleil avec des gants. */
 .tab-l{font-size:10px;font-weight:600;letter-spacing:-.012em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tab.on{color:var(--acc)}
+/* ⛔⛔ DEUX MARQUES POUR UNE SEULE CHOSE, ET C'EST LA MOITIÉ D'UNE RÈGLE QUI SURVIT À
+   L'AUTRE — encore. Le soulignement de 2,5 px (`html[data-refonte] .tab::after`) est dessiné
+   pour une BANDE D'ONGLETS EN HAUT : son coin est arrondi en haut, plat en bas, et il se
+   pose à `bottom:-1px`, c'est-à-dire SUR l'arête de la bande. La barre du bas, elle, est une
+   PILULE FLOTTANTE : le trait tombe alors À L'INTÉRIEUR de la capsule, en travers de la
+   pastille qui désigne déjà l'onglet.
+   Mesuré le 22 septembre 2026 sur les DIX combinaisons téléphone (iosweb, ios27, ios18,
+   android, androidweb × jour/nuit) : pastille présente ET soulignement visible, partout.
+   Le commentaire du bloc verre disait pourtant déjà l'intention — « c'est la pastille qui
+   le désigne, et deux surfaces pour une même chose feraient un halo autour d'un halo » :
+   l'onglet actif avait bien perdu son FOND, il avait gardé son TRAIT.
+   ⚠️ La règle se garde elle-même : `:has(.tab-cur)`. Le jour où un profil n'aurait plus de
+   pastille, le soulignement revient tout seul — on ne laisse jamais un onglet actif sans
+   AUCUNE marque. Et elle ne vise que `.tabbar` : les bandes d'onglets du HAUT gardent leur
+   trait, c'est là qu'il a été dessiné. `tests/test-763.js` le relit. */
+html[data-refonte] .tabbar:has(.tab-cur) .tab.on::after,
+html[data-refonte] .tabbar:has(.tab-cur) .tab.active::after{
+  opacity:0!important;transform:scaleX(0)!important;animation:none!important;
+}
 .tab .tab-b{position:absolute;top:2px;right:calc(50% - 22px);font-size:9.5px;min-width:16px;padding:0 4px;line-height:16px}
 .tab:active{transform:scale(.94)}
 @media (prefers-reduced-motion: reduce){ .tab,.tab-ic{transition:none} .tab:active{transform:none} }
@@ -6296,7 +6315,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '720-beta';
+const APP_VERSION = '721-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
