@@ -118,12 +118,22 @@ Toutes les rubriques visibles (42), en bureau (1440×900) ET en téléphone (393
 vrai navigateur : **0 exception, 0 erreur de console, aucun écran vide**. Sonde
 `scratchpad/balayage.js`.
 
-⏳ **UN SEUL DÉFAUT RÉEL RESTE OUVERT, ET IL EST MESURÉ** : sur **Planning** en bureau, la page
-peut être poussée de **15 px** latéralement (`window.scrollX` = 15 après `scrollTo(400,y)` ;
-`scrollWidth` 1440 contre `clientWidth` 1425). Les autres écrans ne se reproduisent pas
-isolément. C'est cosmétique — une barre de défilement horizontale de 15 px au bas d'un écran
-de bureau — mais c'est réel. Non corrigé, faute d'avoir trouvé le coupable : `body` et `html`
-mesurent 1425, et aucun enfant ne dépasse.
+✅ **ET LE « SEUL DÉFAUT RÉEL » N'EN ÉTAIT PAS UN — CLOS LE 22 SEPTEMBRE 2026.** Cette page a
+porté pendant deux jours : « sur Planning en bureau, la page peut être poussée de 15 px ».
+C'était vrai comme mesure et faux comme diagnostic. Quarante passages, barre de défilement
+verticale présente sur 20/20 :
+
+| | la page se pousse | un élément dépasse vraiment |
+|---|---|---|
+| sans attente (la mesure d'origine) | **3/20**, de 15 px | **0/20** |
+| avec deux trames + une lecture forcée | **0/20** | **0/20** |
+
+Quand la barre verticale apparaît, `clientWidth` perd ses 15 px tout de suite et
+`documentElement.scrollWidth` les garde une trame de plus. ⚠️ Deux pièges rencontrés en le
+prouvant : le premier contre-essai tournait sur une fenêtre de 900 px **où la barre
+n'apparaissait jamais** (zéro sur population vide), et mon détecteur comptait les cellules du
+planning comme « débordantes » alors qu'elles vivent dans `.pg-wrap`, **qui défile tout seul
+par conception** (1 066 → 1 266). **Rien n'a été corrigé, et c'est le bon résultat.**
 
 ⚠️ **ET LA LEÇON DE MÉTHODE DE CE BALAYAGE** : le premier détecteur comparait
 `scrollWidth > clientWidth` et accusait DIX écrans, tous de 15 px — c'est-à-dire la BARRE DE

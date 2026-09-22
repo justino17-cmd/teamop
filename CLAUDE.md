@@ -482,6 +482,24 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   d'abord prouver qu'elle regarde au bon endroit.
   ⚠️ À noter au passage, côté code : `closeModal()` déréférence `$('overlay')` sans garde. Rien
   ne retire cet élément aujourd'hui, mais tout ce qui le ferait figerait toute la navigation.
+- ⛔⛔ **ET LA BARRE DE DÉFILEMENT VERTICALE EN CRÉE UN AUTRE, PLUS TENACE — LES « 15 PX DE
+  PLANNING GÉNÉRAL » N'ONT JAMAIS EXISTÉ.** Ce défaut a traversé trois détecteurs et deux jours
+  de `REPRISE.md` comme « le seul défaut réel qui reste ». Mesuré le 22 septembre 2026,
+  quarante passages, barre de défilement présente sur 20/20 :
+
+  | | la page se pousse | un élément dépasse vraiment |
+  |---|---|---|
+  | sans attente | **3/20**, de 15 px | **0/20** |
+  | avec deux trames + une lecture forcée (`void offsetWidth`) | **0/20** | **0/20** |
+
+  Quand la barre verticale apparaît, `clientWidth` perd ses 15 px **tout de suite** et
+  `documentElement.scrollWidth` les garde **une trame de plus**. Lire les deux dans le même
+  instant donne un écart qui n'est pas dans la page. ⚠️ Et le premier essai de contre-épreuve
+  a rendu « 0/20 » sur une fenêtre de 900 px de haut — **où la barre n'apparaissait jamais** :
+  un zéro sur une population vide, la règle de cette page appliquée à elle-même.
+  **Toute mesure de largeur se fait après deux `requestAnimationFrame` ET une lecture forcée**,
+  et elle prouve d'abord que la barre était là. Corollaire : on n'a rien corrigé, et c'est le
+  bon résultat — un faux défaut coûte deux fois, le correctif puis la garde inutile.
 - ⛔ **UN DÉBORDEMENT MESURÉ PENDANT L'ANIMATION D'ENTRÉE N'EN EST PAS UN.** Les cartes entrent
   en glissant (`.content.entre`) : la page a alors une barre de défilement horizontale
   PASSAGÈRE. Mesuré à 520 ms, ça donnait « déborde de 15 px » sur une trentaine de rubriques
