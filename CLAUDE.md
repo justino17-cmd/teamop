@@ -1317,6 +1317,20 @@ manifeste de l'app). La pastille verte « OP » de la Tour n'est qu'un repère d
   guettait un motif jamais écrit dans un journal, deux surveillaient des fichiers de sortie
   périmés, trois attendaient un fichier `.jamais` que personne ne crée. Jusqu'à 3 h 51
   d'attente pour des résultats déjà reçus.
+- ⛔⛔ **UN CORRECTIF LANCÉ EN ARRIÈRE-PLAN AVALE SA PROPRE SORTIE — ET ON CROIT L'AVOIR
+  APPLIQUÉ.** Le 22 septembre 2026, deux correctifs de sonde ont été écrits dans une commande
+  mise en arrière-plan : leur `print('patch écrit')` n'a jamais été lu, une assertion échouait
+  en silence, et l'audit qui suivait dans la MÊME commande tournait sur le fichier d'origine.
+  Deux passes complètes (deux fois vingt minutes) ont rendu des chiffres identiques au tour
+  précédent — c'est ce qui a fini par trahir la chose. **Un patch se lance au PREMIER PLAN, et
+  on relit le fichier (`grep -c` sur un motif du nouveau code) avant de s'en servir.** Le signe
+  qui ne trompe pas : deux exécutions censées différer rendent exactement le même total.
+  ⚠️ Corollaire : ne jamais enchaîner « je modifie » et « je mesure » dans une seule commande
+  de fond — la mesure part que le patch ait réussi ou non.
+- ⛔ **ET UNE TRANCHE DE REMPLACEMENT PEUT AVALER CE QU'ON COMPTAIT MODIFIER APRÈS.** Dans le
+  même fichier, `p[:d] + neuf + p[fin:]` a supprimé un bloc `const cibles` qui vivait ENTRE les
+  deux ancres, et le `replace` censé le réécrire n'a plus rien trouvé. On vérifie donc ce que la
+  tranche contient (`assert 'const cibles' in p[d:fin]`) avant de la remplacer.
 - **Une commande qui dépasse son délai et bascule en arrière-plan reçoit un NOUVEL
   identifiant.** Sa sortie va dans le nouveau fichier ; l'ancien reste figé sur une capture
   partielle. Surveiller l'ancien, c'est attendre pour toujours.
