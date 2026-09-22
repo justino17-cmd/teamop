@@ -24,6 +24,69 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ✅ 22 SEPTEMBRE 2026 — LES MENUS DE LA BARRE D'OUTILS (v723, bêta publiée et vérifiée)
+
+Justin, capture à l'appui : une **colonne blanche** au milieu de l'écran avec
+« **A / A / I. / J** » — les PREMIÈRES LETTRES des techniciens, une par ligne.
+
+### ⛔ TROISIÈME FOIS DANS LA JOURNÉE QU'UNE MOITIÉ DE RÈGLE SURVIT À L'AUTRE
+
+`html[data-refonte] .pf-dd{flex:0 1 auto}` a rendu aux menus leur largeur naturelle — c'est
+juste, et c'était une correction. Mais la règle téléphone du panneau
+(`.pf-pan{left:0;right:0;width:auto}`) avait été écrite quand `.pf-dd` prenait **toute** la
+largeur. Le panneau héritait donc, d'un coup, de la largeur du **BOUTON** : 42 px sur un
+bouton d'icône.
+
+⚠️ **Et son jumeau, trouvé dans la même passe et jamais signalé** : `.pf-pan.large` (0,2,0)
+bat cette règle (0,1,0) et gardait `width:330px` ancré à GAUCHE du bouton. Le menu
+« Jours » sortait de **81 px à droite de l'écran** (x 141 → 471 sur 390 de large).
+
+Un panneau de téléphone ne se mesure ni sur son bouton ni sur rien d'autre que l'**ÉCRAN** :
+le bloc conteneur passe à la **RANGÉE**, qui fait toute la largeur de la barre.
+
+| | avant | après |
+|---|---|---|
+| menu « Équipe » | 330 px, x 41 → 371 | **308 px, x 41 → 349** |
+| menu « Jours » | 330 px, **x 141 → 471** (81 px hors écran) | **308 px, x 41 → 349** |
+| menu d'options (icône) | **42 px** | **308 px, x 41 → 349** |
+
+⚠️ La correction est **bornée au téléphone** : sur ordinateur le panneau garde sa largeur
+dessinée (285 ou 330) et s'ouvre sous son bouton. L'étaler « pour faire pareil » serait une
+régression — **contre-épreuve à 1 440 px dans la sonde**.
+
+### ⛔ ET UN TROISIÈME, DANS LE MÊME PANNEAU : LE DÉTAIL MANGEAIT LE LIBELLÉ
+
+« Réduire aux heures de travail » rendait **10 px de visible pour 209 px de texte**. La
+mécanique du flex : `b` porte `flex:1`, c'est-à-dire une base de **zéro** qui grandit avec ce
+qui RESTE, pendant que `small` garde sa largeur naturelle — et « 07:00 → 19:00 · sinon
+04:00 → 23:00 » fait presque toute la ligne. **À l'envers de ce qu'il faut** : un libellé
+tronqué ne nomme rien, un horaire tronqué se devine.
+
+Trois gestes, chacun mesuré : un plancher de largeur pour le libellé (10 → **119 px**) ; le
+détail se coupe le premier et passe à la ligne quand il ne tient pas ; un libellé trop long
+se replie plutôt que de se tronquer. **0 libellé coupé** sur les trois panneaux.
+
+### Les preuves
+
+- `scratchpad/sonde-menus.js` (neuf) — **11 ✓ 0 ✗**. Elle **CLIQUE chaque bouton** de la
+  barre (on ne suppose pas lequel ouvre un panneau), sur téléphone **et** sur ordinateur.
+- `tests/test-764.js` : 36 → **49 contrôles**. **Sept mutations jouées, sept détectées.**
+- **121 suites · 5 408 vérifications · 0 ✗** · syntaxe 28 pages, 0 en erreur.
+- Servi et relu : `teamop.fr/beta.html` = **723-beta**. **`app.html` reste à 695 chez ELAN.**
+
+### ⚠️ TROIS PIÈGES DE SONDE PAYÉS ICI
+
+- une fenêtre **« Notifications » s'ouvre APRÈS la navigation** et couvre tout l'écran :
+  les boutons rendaient **0 px de large**. On la ferme par SON bouton, et on prouve que rien
+  n'est devant avant de mesurer ;
+- **le clic REDESSINE la barre** : une référence prise avant le clic est détachée après, et
+  `getBoundingClientRect()` rend des zéros. On mesure le bouton AVANT, on re-cherche APRÈS ;
+- ⛔ **on ne DÉTRUIT pas le panneau** pour « repartir propre » — on referme par où
+  l'application ferme. Détruire casse la bascule qu'on veut mesurer. (La règle du dépôt,
+  appliquée à moi-même.)
+
+---
+
 ## ✅ 22 SEPTEMBRE 2026 — LE GLISSEMENT SUR LA BARRE (v722, bêta publiée et vérifiée)
 
 Justin, deux fois : **« le glissement du doigt sur la barre marche toujours pas »**, et,

@@ -632,6 +632,35 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   pourrait laisser orphelin — ⚠️ **par CLASSE seulement** : le cas du champ de recherche se
   croise par un ATTRIBUT et lui échappe, donc `scratchpad/sonde-verre.js` (au navigateur, sur
   les pixels peints) est la garde de bout en bout, et le banc exige qu'elle existe.
+- ⛔⛔ **UNE MOITIÉ DE RÈGLE SURVIT À L'AUTRE — TROIS FOIS LE 22 SEPTEMBRE 2026, DANS TROIS
+  ENDROITS SANS RAPPORT.** C'est le défaut structurel de ce dépôt, et il a toujours la même
+  forme : une règle **plus spécifique** (ou plus récente) change UNE moitié d'un accord et
+  laisse l'autre, qui n'a plus de sens toute seule.
+  · `.filters.seg-on .chip` retirait le `background` du verre mais pas son `backdrop-filter`
+    → 112 loupes sans matière ;
+  · l'onglet actif avait perdu son FOND mais gardé son TRAIT → deux marques pour une chose ;
+  · `.pf-dd{flex:0 1 auto}` a rétréci le bouton, et le panneau qui se mesurait dessus est
+    tombé à **42 px** — une colonne d'une lettre par ligne.
+  ⚠️ **Dans les trois cas, le commentaire d'à côté disait déjà la bonne intention.** Ce n'est
+  pas la décision qui manquait, c'est l'écriture qui était incomplète.
+  **La question à se poser avant de changer une largeur, un fond, un marqueur : QUI D'AUTRE
+  se mesure là-dessus ?** Et la parade constante : conditionner la règle à la présence de ce
+  qui reste (`:has(…)`), pour que le jour où l'autre moitié disparaît, tout revienne seul.
+- ⛔ **UN PANNEAU FLOTTANT NE SE MESURE NI SUR SON BOUTON NI SUR SON PARENT, MAIS SUR
+  L'ÉCRAN.** Corollaire du précédent, avec ses deux symptômes opposés, mesurés le même jour :
+  trop ÉTROIT (42 px, les libellés passent à la ligne lettre par lettre) et trop LARGE
+  (`.pf-pan.large` ancré à gauche sortait de **81 px à droite** d'un écran de 390).
+  Sur téléphone, on donne au panneau un bloc conteneur qui fait la largeur de l'écran
+  (`position:static` sur le déclencheur, `position:relative` sur la rangée). ⚠️ Et la
+  correction se BORNE au téléphone : sur ordinateur un menu garde sa largeur dessinée, et
+  l'étaler « pour faire pareil » serait une régression — la contre-épreuve le prouve.
+- ⛔ **DANS UNE LIGNE FLEX, `flex:1` A UNE BASE DE ZÉRO : C'EST LE VOISIN QUI SERT EN
+  PREMIER.** « Réduire aux heures de travail » rendait **10 px de visible pour 209 px de
+  texte**, parce que le `<small>` d'à côté (« 07:00 → 19:00 · sinon 04:00 → 23:00 ») gardait
+  sa largeur naturelle. **Le détail mangeait le nom de l'option.** Un libellé tronqué ne
+  nomme rien ; un horaire tronqué se devine. On donne au libellé un PLANCHER (`min-width`),
+  on rend le détail rétrécissable (`min-width:0`), et ce qui ne tient pas passe à la ligne
+  plutôt que de se couper.
 - ⛔⛔ **UN GESTE, UNE NAVIGATION — LE NAVIGATEUR REFAIT LE MÊME GESTE QUE VOUS.** Le
   22 septembre 2026, pile d'appel à l'appui : un balayage entre rubriques faisait
   `go('dashboard')`, puis le navigateur traitait le **MÊME** mouvement horizontal comme
