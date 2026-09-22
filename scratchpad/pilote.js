@@ -86,8 +86,15 @@ async function ouvrir(opts) {
     return r.result.value;
   };
   /* on attend que l'application ait construit sa base */
-  for (let i = 0; i < 150; i++) { await dormir(300);
-    try { if (await ev('return typeof db !== "undefined" && !!db')) break; } catch (e) {} }
+  /* ⛔ UNE PAGE QUI NE DÉMARRE PAS DOIT LE DIRE. Cette boucle continuait en silence au bout de
+     45 s : le 22 septembre 2026, sous la charge de trois navigateurs, la relance de l'audit
+     profond est morte à la ligne suivante sur « db is not defined » — une erreur qui ne
+     nomme pas la cause. On attend jusqu'à 90 s, puis on s'arrête en la nommant. */
+  let pret = false;
+  for (let i = 0; i < 300; i++) { await dormir(300);
+    try { if (await ev('return typeof db !== "undefined" && !!db')) { pret = true; break; } } catch (e) {} }
+  if (!pret) { try { chrome.kill('SIGKILL'); } catch (e) {} try { statique.close(); } catch (e) {}
+    throw new Error('la page n’a pas démarré : `db` absent après 90 s (charge de la machine ? erreur au chargement ?)'); }
   /* les fenêtres modales natives bloquent le pilotage : on répond toujours oui */
   await ev('window.confirm=()=>true; window.alert=()=>{}; window.prompt=(q,d)=>d||""; return 1;');
 

@@ -254,6 +254,20 @@ const ECARTS=[
     console.log('  contre-épreuve 2 — un clic sans effet est '+(inerte?'VU comme inerte ✓':'INVISIBLE ✗'));
     if(!inerte){ console.log('      ce qui a bougé : '+JSON.stringify(a).slice(0,160)+' → '+JSON.stringify(b).slice(0,160)); S.fermer(); process.exit(5); } }
 
+  /* ⛔⛔ UNE TRANSITION DE VUE REND `html` À TOUT TEST DE POINTAGE — mesuré le 22 septembre
+     2026 : 60 et 450 ms après go(), le centre d'un bouton rendait `html` ; à 1 200 ms,
+     l'élément lui-même. C'est ce qui avait fabriqué 507 « recouverts sous html » sur la
+     passe bureau. On attend donc la FIN RÉELLE : plus aucune animation ::view-transition
+     ET le centre de l'écran de nouveau atteignable. Plafond 2,3 s, jamais un délai deviné. */
+  const ATTENDRE_VUE=`await new Promise(r=>setTimeout(r,250));
+    for(let i=0;i<20;i++){
+      const vt=document.getAnimations().filter(a=>a.effect&&a.effect.pseudoElement&&/view-transition/.test(a.effect.pseudoElement)&&a.playState==='running').length;
+      const c=document.elementFromPoint(innerWidth/2,innerHeight/2);
+      if(!vt && c && c!==document.documentElement) return i;
+      await new Promise(r=>setTimeout(r,100)); }
+    return 99;`;
+  const attendreVue=async()=>{ try{ await S.ev(ATTENDRE_VUE); }catch(e){} };
+
   let CATS=await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]);`);
   /* essai court : SEULES=interventions,clients — pour prouver la sonde avant la vraie passe */
   if(process.env.SEULES){ const s=process.env.SEULES.split(','); CATS=CATS.filter(k=>s.includes(k)); }
@@ -328,7 +342,7 @@ const ECARTS=[
 
   for(const k of CATS){
     const t0=Date.now(); const cliques=new Set(), parGenre={};
-    await S.ev(`try{ go('${k}'); }catch(e){} window.scrollTo(0,0); window.dispatchEvent(new Event('scroll')); return 1;`); await dormir(450); await ranger();
+    await S.ev(`try{ go('${k}'); }catch(e){} window.scrollTo(0,0); window.dispatchEvent(new Event('scroll')); return 1;`); await attendreVue(); await ranger();
     for(let tour=0; tour<400; tour++){
       if(Date.now()-t0>PARCAT_SEC*1000){ sautes[k]=(sautes[k]||0)+1; break; }
       const liste=await S.ev(RECENSER);
@@ -338,7 +352,7 @@ const ECARTS=[
       cliques.add(cible.sig); parGenre[cible.genre]=(parGenre[cible.genre]||0)+1;
       const avant=await S.ev(ETAT); const nErr=S.exceptions.length;
       const ok=await S.ev(FRAPPER(cible.sig)); if(!ok) continue;
-      clics++; await dormir(620);
+      clics++; await dormir(120); await attendreVue();
       const apres=await S.ev(ETAT);
       const neuves=S.exceptions.slice(nErr);
       if(neuves.length) R.erreurs.push({ou:k+' → « '+cible.t+' »',e:neuves.join(' | ').slice(0,200)});
@@ -367,7 +381,7 @@ const ECARTS=[
       await S.ev(`try{ if(document.documentElement.getAttribute('data-theme')!=='${P.theme==='light'?'light':'dark'}') setThemePref('${P.theme}'); }catch(e){}
         try{ if((localStorage.getItem('elanB_lang')||'fr')!=='fr') setLang('fr'); }catch(e){}
         try{ go('${k}'); }catch(e){} return 1;`);
-      await dormir(380);
+      await attendreVue();
     }
     console.log('  '+k.padEnd(20)+' '+String(cliques.size).padStart(3)+' clics · '+vus.size+' écrans profonds distincts jusqu’ici');
   }
