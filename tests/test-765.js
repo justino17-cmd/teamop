@@ -39,9 +39,18 @@ vrai('⛔ tout bouton de contenu SANS plancher propre en reçoit un',
   /#content button:not\(\.btn\):not\(\.chip\):not\(\.tab\):not\(\.pf-b\)/.test(T));
 /* ⚠️ On compare des CHAÎNES, pas des expressions régulières échappées à la main : la
    première version de ce contrôle échouait sur son propre échappement, pas sur le code. */
+/* ⛔ ON BORNE AU BLOC TACTILE. Mesuré par mutation : retirer « .pf-disp button » du
+   plancher ne faisait tomber AUCUN contrôle — la même chaîne vit dans la règle de dessin
+   du segmenté, 600 lignes plus haut, où elle pose 30 px. Un banc qui cherche une chaîne
+   dans TOUT le fichier trouve la mauvaise occurrence et passe au vert sur un plancher
+   disparu. C'est la règle du dépôt — viser du CODE à l'endroit où il agit. */
+const BLOC=(()=>{ const d=T.indexOf('@media (pointer:coarse){'); if(d<0) return '';
+  let n=0,i=d+23; for(; i<T.length; i++){ if(T[i]==='{') n++; else if(T[i]==='}'){ n--; if(!n) break; } }
+  return T.slice(d,i); })();
+vrai('population : le bloc tactile est borné des deux côtés', BLOC.length>400);
 ['.plg-pl .seg span','.pf-seg2 span','.pf-vues span','.pf-disp button',
  '.filters[style*="padding:3px"] > div','.pf-zoom span','.pf-nav u','.pf-nav .auj'].forEach(s=>
-  vrai(`… et « ${s} » aussi`, T.includes('html[data-refonte] '+s)));
+  vrai(`… et « ${s} » aussi`, BLOC.includes('html[data-refonte] '+s)));
 vrai('⛔ le retour d’en-tête monte à 44 px (il était à 32 sur 41 catégories)',
   /html\[data-refonte\] \.btn\.ghost\.ph-back,html\[data-refonte\] \.ph-back\{min-height:44px\}/.test(T));
 /* ⛔ ET SA RÈGLE DOIT VENIR APRÈS CELLE QUI POSE 32 : à spécificité égale, c'est la dernière
