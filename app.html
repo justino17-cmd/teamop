@@ -3419,6 +3419,17 @@ html[data-refonte] .modal.carte:has(#rf-reglages) #rf-reglages{
      qui en réclame 167, dont 62 gaspillés par un conteneur sans rien dedans. On les rend. */
   html[data-refonte] body:not(.ctx) .topbar-title{display:none!important}
   html[data-refonte] .topbar{gap:8px}
+  /* ⛔⛔ CELUI DES DEUX QUI EST CACHÉ NE PREND PLUS DE PLACE. La marque et le titre réduit
+     se relaient au même endroit (« les deux ne sont jamais montrés en même temps »), mais le
+     titre, à opacité 0, gardait `flex:1 1 auto` : il occupait 108 à 123 px INVISIBLES, et la
+     marque tombait à 56 px pour 82 — « OP GEST… » sur TOUTES les rubriques sauf le tableau
+     de bord, sur les quatre profils téléphone. Mesuré au navigateur le 22 septembre 2026,
+     capture de Justin à l'appui. C'est le défaut que la règle du palier tablette dit avoir
+     corrigé — pour la tablette seulement : une moitié de règle, encore.
+     On ne bascule pas `display` : le titre garde son fondu (opacité, translation). On retire
+     seulement sa LARGEUR tant qu'on ne le voit pas, et celle de la marque dès qu'elle cède. */
+  html[data-refonte] body:not(.rf-haut) .topbar .topbar-title{flex:0 0 0!important;width:0;overflow:hidden}
+  html[data-refonte] body.rf-haut .topbar .topbar-brand{flex:0 0 0!important;width:0;overflow:hidden}
 }
 /* Mesuré : « OP GESTION » réclame 109 px. Il en reste 112 sur un écran de 360, 142 sur un
    390 — il tient. Mais 72 seulement sur un 320 px (iPhone SE, ou n'importe quel téléphone
@@ -3426,6 +3437,15 @@ html[data-refonte] .modal.carte:has(#rf-reglages) #rf-reglages{
    que pas de nom du tout, et la tête du menu porte déjà l'identité. On s'efface. */
 @media(max-width:339px){
   html[data-refonte] .topbar .topbar-brand{display:none!important}
+}
+/* ⛔ ET LE SEUIL N'EST PAS LE MÊME SUR LES ÉCRANS SANS TITRE RÉDUIT. Hors rubrique (`body`
+   sans `.ctx` : tableau de bord, consommation…), la barre garde la synchro, l'avatar et la
+   recherche, que `.ctx` retire. Mesuré le 22 septembre 2026 : « OP GESTION » réclame 82 px
+   et n'en a que 70 à 375, 55 à 360 — « OP GES… ». À 390 il tient (85/85). Même règle que
+   ci-dessus, au seuil mesuré : un nom tronqué renseigne moins que pas de nom du tout, et la
+   tête du menu porte déjà l'identité. */
+@media(max-width:389px){
+  html[data-refonte] body:not(.ctx) .topbar .topbar-brand{display:none!important}
 }
 html[data-refonte] .modal-close{margin-left:auto;flex-shrink:0}
 html[data-refonte] .sheet-head{border-bottom:1px solid var(--rf-filet)!important}
