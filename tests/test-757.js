@@ -206,6 +206,44 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
   const parDefaut = (/html\[data-refonte\]\[data-theme="light"\]\[data-accent\]\{\s*--acc:color-mix\(in srgb,#000 (\d+)%/.exec(NU_TEINTE) || [, '22'])[1] / 100;
   vrai('le fonçage de jour est lu dans la feuille', parDefaut > 0 && parDefaut < 1, (parDefaut * 100) + ' %');
 
+  /* ⛔⛔ ET IL Y A TROIS SURFACES D'ACCENT, PAS UNE. Ce contrôle n'en regardait qu'une (`--acc`)
+     et laissait passer les deux autres. L'application peint aussi `--acc-fill` — le BOUTON
+     PRINCIPAL, le bouton flottant, l'étiquette de carte, le rattrapage du planning — et
+     `--acc2` — la bulle du message envoyé, « Fait », « Occupé ». Mesuré au navigateur le
+     22 septembre 2026 : `--on-acc` passait 18/18 sur `--acc` et tombait CINQ fois sur
+     `--acc-fill` (bleu 3,45 · violet 3,55 · rose 3,53 · rouge 3,64 de nuit, cyan 3,44 de jour)
+     et CINQ fois sur `--acc2`. Une encre par surface, donc, et chacune calculée ici.
+     ⚠ Les taux de fonçage sont LUS dans la feuille, jamais recopiés : les changer là-bas
+     change ce banc, et c'est ce qui en fait un accord et non une croyance. */
+  const taux = (bloc, jeton, defaut) => {
+    const b = new RegExp('html\\[data-refonte\\]' + bloc + '\\[data-accent\\]\\{([\\s\\S]*?)\\}').exec(NU_TEINTE);
+    if (!b) return defaut;
+    const m = new RegExp('--' + jeton + ':color-mix\\(in srgb,#000 (\\d+)%').exec(b[1]);
+    return m ? +m[1] / 100 : defaut;
+  };
+  const fillN = taux('', 'acc-fill', .20), acc2N = taux('', 'acc2', .18);
+  const fillJ = taux('\\[data-theme="light"\\]', 'acc-fill', .14), acc2J = taux('\\[data-theme="light"\\]', 'acc2', .34);
+  vrai('les taux de fonçage des trois surfaces sont lus dans la feuille',
+    [fillN, acc2N, fillJ, acc2J].every(v => v > 0 && v < 1),
+    'nuit fill ' + fillN + ' / acc2 ' + acc2N + ' · jour fill ' + fillJ + ' / acc2 ' + acc2J);
+
+  /* les deux encres dérivées, avec leurs exceptions déclarées */
+  const lireEncre = (jeton) => {
+    const base = {}, jour = {}, nuit = {};
+    for (const m of NU_TEINTE.matchAll(new RegExp('html\\[data-refonte\\]\\[data-theme="light"\\]\\[data-accent="(\\w+)"\\]\\s*\\{[^}]*--' + jeton + ':(#[0-9A-Fa-f]{6})', 'g'))) jour[m[1]] = m[2];
+    for (const m of NU_TEINTE.matchAll(new RegExp('html\\[data-refonte\\]\\[data-theme="dark"\\]\\[data-accent="(\\w+)"\\]\\s*\\{[^}]*--' + jeton + ':(#[0-9A-Fa-f]{6})', 'g'))) nuit[m[1]] = m[2];
+    return { base, jour, nuit };
+  };
+  const eFill = lireEncre('on-fill'), eAcc2 = lireEncre('on-acc2');
+  /* `--on-fill` hérite de `--on-acc`, `--on-acc2` hérite de `--on-fill` : on rejoue la chaîne. */
+  const encreFill = (t, jour) => (jour ? eFill.jour[t] : eFill.nuit[t]) || (jour ? onJour[t] : onNuit[t]) || onBase[t];
+  const encreAcc2 = (t, jour) => (jour ? eAcc2.jour[t] : eAcc2.nuit[t]) || encreFill(t, jour);
+  vrai('⛔ la chaîne des encres est déclarée (--on-fill puis --on-acc2 héritent)',
+    /--on-fill:var\(--on-acc\)/.test(NU_TEINTE) && /--on-acc2:var\(--on-fill\)/.test(NU_TEINTE));
+  /* ⛔ ET CE N'EST PAS UN CYCLE : la règle de cette page tue toute variable qui se lit elle-même. */
+  vrai('   … et aucune encre ne se lit elle-même (le cycle tue les trois d’un coup)',
+    !/--on-acc:\s*var\(--on-(fill|acc2)\)/.test(NU_TEINTE) && !/--on-fill:\s*var\(--on-acc2\)/.test(NU_TEINTE));
+
   teintes.forEach(t => {
     const aJ = foncer(hex(src[t]), accJour[t] !== undefined ? accJour[t] : parDefaut);
     const aN = hex(srcN[t] || src[t]);
@@ -213,7 +251,44 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
     const cN = contraste(aN, hex(onNuit[t] || onBase[t]));
     vrai('   ' + t.padEnd(9) + ' l’encre tient sur l’accent de JOUR', cJ >= 4.5, cJ.toFixed(2) + ':1');
     vrai('   ' + t.padEnd(9) + ' … et sur celui de NUIT', cN >= 4.5, cN.toFixed(2) + ':1');
+    /* --acc-fill : le bouton principal */
+    const fJ = contraste(foncer(hex(src[t]), fillJ), hex(encreFill(t, true)));
+    const fN = contraste(foncer(hex(srcN[t] || src[t]), fillN), hex(encreFill(t, false)));
+    vrai('   ' + t.padEnd(9) + ' … sur le BOUTON (--acc-fill) de jour', fJ >= 4.5, fJ.toFixed(2) + ':1');
+    vrai('   ' + t.padEnd(9) + ' … et de nuit', fN >= 4.5, fN.toFixed(2) + ':1');
+    /* --acc2 : la bulle du message, « Fait », « Occupé » */
+    const dJ = contraste(foncer(hex(src[t]), acc2J), hex(encreAcc2(t, true)));
+    const dN = contraste(foncer(hex(srcN[t] || src[t]), acc2N), hex(encreAcc2(t, false)));
+    vrai('   ' + t.padEnd(9) + ' … sur le SECOND accent (--acc2) de jour', dJ >= 4.5, dJ.toFixed(2) + ':1');
+    vrai('   ' + t.padEnd(9) + ' … et de nuit', dN >= 4.5, dN.toFixed(2) + ':1');
   });
+
+  /* ⛔ ET PLUS AUCUN BLANC EN DUR SUR UN APLAT D'ACCENT. C'est le défaut que les trois encres
+     réparent : `color:#fff` sur `var(--acc)` tombait 9 fois sur 18 (1,09 à 3,65), et personne
+     ne pouvait le voir à la lecture. Un contrôle qui compte des absences doit prouver qu'il
+     regarde au bon endroit : on compte donc AUSSI les règles examinées. */
+  {
+    const CSS = (NU_TEINTE.match(/<style[^>]*>[\s\S]*?<\/style>/g) || []).join('');
+    let examinees = 0, fautives = [], pos = 0;
+    for (;;) {
+      const o = CSS.indexOf('{', pos); if (o < 0) break;
+      const f = CSS.indexOf('}', o); if (f < 0) break;
+      /* ⛔ `lastIndexOf(x, o)` INCLUT l'index o — et o EST l'accolade ouvrante. Sans le -1, le
+         sélecteur revient VIDE à chaque tour, le `if (!sel)` saute tout, et le banc annonce
+         « 0 règle » sur 2 848 parcourues. C'est le compteur de population qui l'a attrapé :
+         sans lui, « aucun blanc en dur » passait au vert sur rien du tout. */
+      const deb = Math.max(CSS.lastIndexOf('}', o - 1), CSS.lastIndexOf('{', o - 1)) + 1;
+      const sel = CSS.slice(deb, o).trim().replace(/\n/g, ' '), corps = CSS.slice(o + 1, f);
+      pos = f + 1;
+      if (!sel || sel[0] === '@') continue;
+      if (!/background(?:-color|-image)?:[^;]*var\(--acc(?:-fill|2)?\)/.test(corps)) continue;
+      examinees++;
+      const c = /(?<!-)color:\s*(#[0-9A-Fa-f]{3,6}|white)\b/i.exec(corps);
+      if (c && ['#fff', '#ffffff', 'white'].includes(c[1].toLowerCase())) fautives.push(sel.slice(0, 60));
+    }
+    vrai('⛔ il y a bien des règles à examiner (un zéro sur rien ne prouve rien)', examinees >= 15, examinees + ' règles');
+    vrai('⛔ aucune ne pose un BLANC EN DUR sur un aplat d’accent', fautives.length === 0, fautives.join(' · '));
+  }
 }
 
 /* ⛔⛔ AUCUNE RÈGLE NE DOIT VISER .kpis .kpi:first-child — ET C'EST CONTRE-INTUITIF, PARCE QUE

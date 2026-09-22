@@ -177,7 +177,7 @@
      s'appliquaient qu'au nœud nommé, la sonde ne voyait aucun changement de fond, et elles
      seraient mortes en silence au premier renommage. Le fond, lui, change VRAIMENT — c'est ce
      qui rend « c'est fini » lisible d'un coup d'œil, plus sûrement qu'une icône de 19 px. */
-  .bell.st-ok{background:var(--acc-fill)!important;border-color:transparent!important;color:var(--on-acc,#FFF)!important}
+  .bell.st-ok{background:var(--acc-fill)!important;border-color:transparent!important;color:var(--on-fill,#FFF)!important}
   /* Et « en cours » se voit : la rotation seule, sur une icône de 18 px, se rate. */
   .bell.spin{background:var(--tint)!important;border-color:var(--acc)!important}
   .ph-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
@@ -211,7 +211,7 @@
   .menu-btn{display:none;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);width:40px;height:40px;border-radius:10px;font-size:18px;cursor:pointer;}
 
   /* BUTTONS */
-  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--acc-fill);color:var(--on-acc);font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;padding:10px 17px;border-radius:14px;border:none;cursor:pointer;transition:.15s;white-space:nowrap;}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--acc-fill);color:var(--on-fill);font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;padding:10px 17px;border-radius:14px;border:none;cursor:pointer;transition:.15s;white-space:nowrap;}
   .btn:hover{background:var(--acc2);transform:translateY(-1px);}
   .btn.ghost{background:var(--bg2);border:1px solid var(--brd);color:var(--t2);}
   .btn.ghost:hover{background:var(--bg3);color:var(--t1);}
@@ -513,7 +513,7 @@
   .tour-btns .sp{flex:1;}
   .nav-item.tour-hl{outline:2px solid var(--acc);outline-offset:-1px;background:color-mix(in srgb,var(--acc) 18%,transparent)!important;box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 16%,transparent);}
   /* Étiquette de titre sur la carte des box */
-  .leaflet-tooltip.box-tip{background:var(--acc-fill);color:#fff;border:none;font-weight:700;font-size:11px;padding:2px 8px;border-radius:7px;box-shadow:0 2px 6px rgba(0,0,0,.35);white-space:nowrap;}
+  .leaflet-tooltip.box-tip{background:var(--acc-fill);color:var(--on-fill);border:none;font-weight:700;font-size:11px;padding:2px 8px;border-radius:7px;box-shadow:0 2px 6px rgba(0,0,0,.35);white-space:nowrap;}
   .leaflet-tooltip.box-tip::before{display:none;}
   /* TABLEAU TYPE EXCEL (intégré) */
   .xl{border-collapse:collapse;width:100%;min-width:820px;font-size:13px;}
@@ -540,7 +540,7 @@
   .toast.show{opacity:1;}
 
   /* ASSISTANT */
-  .fab{position:fixed;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--acc-fill),var(--acc-fill-press));color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px color-mix(in srgb,var(--acc) 25%,transparent);z-index:46;transition:transform .15s;}
+  .fab{position:fixed;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--acc-fill),var(--acc-fill-press));color:var(--on-fill);border:none;font-size:24px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px color-mix(in srgb,var(--acc) 25%,transparent);z-index:46;transition:transform .15s;}
   .fab:hover{transform:scale(1.07);}
   .asst{position:fixed;right:24px;bottom:92px;width:374px;max-width:calc(100vw - 32px);height:540px;max-height:calc(100vh - 130px);max-height:calc(100dvh - 130px);background:var(--bg1);border:1px solid var(--brd);border-radius:18px;box-shadow:0 30px 70px rgba(0,0,0,.6);z-index:47;display:none;flex-direction:column;overflow:hidden;}
   .asst.open{display:flex;animation:pop .2s ease;}
@@ -553,7 +553,7 @@
   .msg{max-width:86%;padding:11px 14px;border-radius:15px;font-size:14px;line-height:1.5;}
   .msg.bot{background:var(--bg2);color:var(--t1);border-bottom-left-radius:4px;align-self:flex-start;}
   .msg.bot b{color:var(--acc);}
-  .msg.user{background:var(--acc2);color:#fff;border-bottom-right-radius:4px;align-self:flex-end;}
+  .msg.user{background:var(--acc2);color:var(--on-acc2,#fff);border-bottom-right-radius:4px;align-self:flex-end;}
   .chips{display:flex;flex-wrap:wrap;gap:7px;padding:0 14px 10px;}
   .asst-chip{background:var(--bg2);border:1px solid var(--brd);color:var(--t2);font-size:12.5px;padding:7px 12px;border-radius:100px;cursor:pointer;transition:.15s;}
   .asst-chip:hover{border-color:var(--acc);color:var(--acc);}
@@ -971,7 +971,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .pf-disp button{ display:flex; align-items:center; gap:7px; background:transparent; border:none; color:var(--t2);
   font:inherit; font-size:11.5px; font-weight:700; padding:6px 10px; border-radius:7px; cursor:pointer; white-space:nowrap; }
 .pf-disp button:hover{ color:var(--t1); }
-.pf-disp button.on{ background:var(--acc); color:#fff; }
+.pf-disp button.on{ background:var(--acc); color:var(--on-acc); }
 .pf-disp .di{ width:22px; height:15px; border-radius:3px; border:1.5px solid currentColor; display:flex; gap:1.5px; padding:1.5px; flex:none; }
 .pf-disp .di s{ background:currentColor; opacity:.45; text-decoration:none; border-radius:1px; }
 .pf-disp .di.a s{ flex:1; }
@@ -1014,7 +1014,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .card.pf-bar:hover{ background:var(--bg1) !important; border-color:color-mix(in srgb,var(--acc) 45%,transparent) !important; }
 /* calendrier de choix des jours */
 .plm-j.cal{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 13%,transparent); color:var(--acc); cursor:pointer; }
-.plm-j.cal .n{ background:var(--acc); color:#fff; border-radius:100px; padding:0 6px; font-size:10px; }
+.plm-j.cal .n{ background:var(--acc); color:var(--on-acc); border-radius:100px; padding:0 6px; font-size:10px; }
 .plm-j.cal.ouv{ box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 35%,transparent); }
 .plm-j.on b{ cursor:pointer; opacity:.65; margin-left:3px; }
 .plm-j.on b:hover{ opacity:1; }
@@ -1032,14 +1032,14 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .pcal-d.hors{ opacity:.38; }
 .pcal-d.we{ color:var(--t3); }
 .pcal-d.auj{ border-color:var(--acc); }
-.pcal-d.on{ background:var(--acc); color:#fff; border-color:var(--acc); }
+.pcal-d.on{ background:var(--acc); color:var(--on-acc); border-color:var(--acc); }
 .pcal-d.on small{ color:rgba(255,255,255,.85); }
 .pcal-rap{ display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px solid var(--brd); }
 .pcal-rap span{ font-size:10.5px; font-weight:700; border:1px solid var(--brd); border-radius:100px; padding:4px 10px; color:var(--t2); cursor:pointer; }
 .pcal-rap span:hover{ border-color:var(--acc); color:var(--acc); }
 .pcal-fin{ display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--brd); }
 .pcal-fin .k{ font-size:11px; color:var(--t3); flex:1; }
-.pcal-fin .b{ font-size:11.5px; font-weight:700; border-radius:9px; padding:6px 14px; background:var(--acc); color:#fff; cursor:pointer; }
+.pcal-fin .b{ font-size:11.5px; font-weight:700; border-radius:9px; padding:6px 14px; background:var(--acc); color:var(--on-acc); cursor:pointer; }
 .dep-lbl{ font-size:9.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--t3); margin-bottom:5px; }
 .dep-in{ width:100%; background:var(--card2); border:1px solid var(--brd2); border-radius:10px; padding:9px 12px; color:var(--t1); font-family:inherit; font-size:13px; }
 .dep-sous{ display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--t3); margin:6px 0 12px; }
@@ -1085,7 +1085,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .fen-reste .lk{ color:var(--acc); font-weight:700; cursor:pointer; white-space:nowrap; }
 .fen-reste .lk:hover{ text-decoration:underline; }
 .plt-bh{ display:flex; align-items:center; gap:8px; padding:7px 11px; background:color-mix(in srgb,var(--acc) 9%,transparent); border-bottom:1px solid var(--brd); font-size:11px; font-weight:800; color:var(--acc); flex-wrap:wrap; }
-.plt-bh .n{ background:var(--acc); color:#fff; border-radius:100px; padding:1px 8px; font-size:9.5px; flex-shrink:0; }
+.plt-bh .n{ background:var(--acc); color:var(--on-acc); border-radius:100px; padding:1px 8px; font-size:9.5px; flex-shrink:0; }
 .plt-bh .qui{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .plt-bh .sp{ flex:1; }
 .plt-bh .tot{ font-weight:600; color:var(--t3); white-space:nowrap; }
@@ -1149,7 +1149,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
   border-radius:100px; padding:1px 6px; }
 .pld-j.auj{ color:var(--acc); }
 .pld-j.we{ opacity:.55; }
-.pld-j.on{ background:var(--acc); color:#fff; }
+.pld-j.on{ background:var(--acc); color:var(--on-acc); }
 .pld-j.on i{ background:rgba(255,255,255,.25); color:#fff; }
 .pld-sp{ flex:1; min-width:8px; }
 .pld-note,.pld-lk{ font-size:11.3px; font-weight:700; color:var(--t3); cursor:pointer; padding:5px 10px;
@@ -1160,7 +1160,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-vues span{ display:inline-flex; align-items:center; gap:6px; font-size:11.8px; font-weight:700;
   color:var(--t2); padding:6px 11px; border-radius:7px; cursor:pointer; white-space:nowrap; }
 .pf-vues span:hover{ color:var(--t1); }
-.pf-vues span.on{ background:var(--acc); color:#fff; }
+.pf-vues span.on{ background:var(--acc); color:var(--on-acc); }
 /* la navigation dans le temps */
 .pf-nav{ display:inline-flex; align-items:center; gap:4px; background:var(--card2); border:1px solid var(--brd);
   border-radius:10px; padding:3px 4px; flex:none; }
@@ -1183,7 +1183,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
   cursor:pointer; font-family:inherit; position:relative; flex:none; }
 .pf-ib:hover{ border-color:color-mix(in srgb,var(--acc) 45%,transparent); color:var(--t1); }
 .pf-ib.on{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 14%,transparent); color:var(--acc); }
-.pf-ib .n{ position:absolute; top:-5px; right:-5px; background:var(--acc); color:#fff; font-size:9px;
+.pf-ib .n{ position:absolute; top:-5px; right:-5px; background:var(--acc); color:var(--on-acc); font-size:9px;
   font-weight:900; border-radius:100px; padding:1px 5px; }
 .pf-sp2{ flex:1 1 12px; }
 /* les compteurs */
@@ -1196,7 +1196,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-seg2{ display:flex; gap:3px; background:var(--card2); border:1px solid var(--brd); border-radius:9px; padding:3px; margin:0 5px 6px; }
 .pf-seg2 span{ flex:1; text-align:center; font-size:11.3px; font-weight:700; color:var(--t2); padding:6px 6px;
   border-radius:6px; cursor:pointer; white-space:nowrap; }
-.pf-seg2 span.on{ background:var(--acc); color:#fff; }
+.pf-seg2 span.on{ background:var(--acc); color:var(--on-acc); }
 .pf-seg2.mini span{ font-size:11.5px; padding:5px 4px; }
 .pf-mrow{ display:flex; gap:7px; flex-wrap:wrap; padding:2px 6px 6px; }
 .pf-lk{ font-size:11.3px; font-weight:700; color:var(--acc); cursor:pointer; }
@@ -1221,7 +1221,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-b{ font-size:12.5px; font-weight:700; border-radius:10px; padding:8px 13px; border:1px solid var(--brd); background:var(--card2); color:var(--t1); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer; font-family:inherit; }
 .pf-b:hover{ border-color:color-mix(in srgb,var(--acc) 45%,transparent); }
 .pf-b.act{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 14%,transparent); color:var(--acc); }
-.pf-b .n{ background:var(--acc); color:#fff; font-size:10px; font-weight:900; border-radius:100px; padding:1px 7px; }
+.pf-b .n{ background:var(--acc); color:var(--on-acc); font-size:10px; font-weight:900; border-radius:100px; padding:1px 7px; }
 .pf-b .ar{ color:var(--t3); font-size:10px; }
 /* les trois menus sont a droite de la barre : on les ouvre vers la gauche
    pour qu'ils ne sortent jamais de l'ecran */
@@ -1302,7 +1302,12 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .plg-rule{ position:absolute; left:0; height:0; z-index:30; pointer-events:none; border-top:3px solid var(--rc,var(--acc)); }
 .plg-rule::before{ content:''; position:absolute; left:-2px; top:-4.5px; width:8px; height:8px; border-radius:50%; background:var(--rc,var(--acc)); }
 .plg-rule .h{ position:absolute; left:5px; top:-12px; font-family:ui-monospace,monospace; font-size:12.5px; font-weight:900;
-  padding:2px 7px; border-radius:7px; background:var(--rc,var(--acc)); color:#fff; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.45); }
+  /* ⛔ L'ÉTIQUETTE DE LA RÈGLE PORTE DEUX CAS, ET LE BLANC N'EN SERT QU'UN. `--rc` est la
+     couleur de la personne — un blanc dessus est le bon choix sur une teinte foncée, pas sur
+     une claire ; et SANS `--rc` le fond retombe sur l'accent, où le blanc tombe 9 fois sur 18
+     (mesuré : 1,09 à 3,65). `pose()` calcule donc l'encre par `encreSur()` — la même règle que
+     « Ma couleur » et que les pastilles d'identité — et le repli est l'encre de l'accent. */
+  padding:2px 7px; border-radius:7px; background:var(--rc,var(--acc)); color:var(--rc-ink,var(--on-acc)); white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.45); }
 .plg-rule.fin{ border-top:2px dashed var(--rc,var(--acc)); opacity:.78; }
 .plg-rule.fin .h{ font-size:11px; top:-11px; background:var(--card); color:var(--rc,var(--acc)); border:1px solid var(--rc,var(--acc)); }
 .plt,.plm-grid,.plg{ position:relative; }   /* sinon la règle du glisser se pose sur la page, hors du planning */
@@ -1310,7 +1315,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .plm-grp{ display:inline-flex; gap:3px; background:var(--card2); border:1px solid var(--brd); border-radius:8px; padding:2px; flex:none; }
 .plm-grp span{ font-size:10.5px; font-weight:700; color:var(--t2); padding:4px 9px; border-radius:6px; cursor:pointer; white-space:nowrap; }
 .plm-grp span:hover{ color:var(--t1); }
-.plm-grp span.on{ background:var(--acc); color:#fff; }
+.plm-grp span.on{ background:var(--acc); color:var(--on-acc); }
 /* bande d'une personne quand on regroupe par personne */
 .plm-bande.pers{ color:var(--cb); background:color-mix(in srgb,var(--cb) 10%,transparent);
   border-bottom:2px solid color-mix(in srgb,var(--cb) 45%,transparent); text-transform:none; }
@@ -1318,7 +1323,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .plm-nomap{ font-size:11px; color:var(--t3); margin-right:8px; }
 /* le bouton rond quand la carte est repliée */
 .plm-fab{ position:fixed; right:22px; bottom:22px; z-index:900; border:none; cursor:pointer;
-  background:var(--acc); color:#fff; font-size:12.5px; font-weight:800; font-family:inherit;
+  background:var(--acc); color:var(--on-acc); font-size:12.5px; font-weight:800; font-family:inherit;
   padding:11px 18px; border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,.4); }
 .plm-fab:hover{ filter:brightness(1.12); }
 body.plan-plein .plm-fab{ bottom:16px; }
@@ -1702,7 +1707,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .dp-j.hors{ color:var(--t3); opacity:.35; }
 .dp-j.we{ color:var(--t3); }
 .dp-j.auj{ box-shadow:0 0 0 1.5px var(--acc) inset; }
-.dp-j.deb,.dp-j.fin{ background:var(--acc); color:#fff; }
+.dp-j.deb,.dp-j.fin{ background:var(--acc); color:var(--on-acc); }
 .dp-j.mil{ background:color-mix(in srgb,var(--acc) 22%,transparent); border-radius:0; }
 .dp-j.deb{ border-radius:9px 0 0 9px; }
 .dp-j.fin{ border-radius:0 9px 9px 0; }
@@ -1832,7 +1837,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .abs-demi{ display:flex; gap:6px; margin-top:8px; }
 .abs-demi button{ flex:1; font-size:11.5px; font-weight:700; padding:9px 4px; border-radius:10px; cursor:pointer;
   background:var(--card2); border:1px solid var(--brd); color:var(--t2); font-family:inherit; }
-.abs-demi button.on{ background:var(--acc); border-color:var(--acc); color:#fff; }
+.abs-demi button.on{ background:var(--acc); border-color:var(--acc); color:var(--on-acc); }
 /* zone de dépôt du justificatif */
 .abs-up{ border:1px dashed color-mix(in srgb,var(--red) 45%,transparent); background:color-mix(in srgb,var(--red) 5%,transparent);
   border-radius:11px; padding:14px; text-align:center; font-size:12px; font-weight:700; color:var(--red); cursor:pointer; }
@@ -1902,7 +1907,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .org-li:hover{ background:var(--card2); }
 .org-li .ck{ width:17px; height:17px; border-radius:5px; border:1.5px solid var(--brd2); display:flex; align-items:center;
   justify-content:center; font-size:11px; color:transparent; flex:none; }
-.org-li .ck.on{ background:var(--acc); border-color:var(--acc); color:#fff; }
+.org-li .ck.on{ background:var(--acc); border-color:var(--acc); color:var(--on-acc); }
 .org-li .av{ width:24px; height:24px; border-radius:50%; background:var(--tc); color:#fff; font-size:9px; font-weight:800;
   display:flex; align-items:center; justify-content:center; flex:none; }
 .org-li .nm{ min-width:0; }
@@ -1929,7 +1934,7 @@ body.plan-plein .app{ background:var(--bg); }
   background:var(--card); border:1px solid var(--brd2); border-radius:11px; padding:6px 8px 6px 12px;
   box-shadow:0 10px 28px rgba(0,0,0,.28); font-size:12px; font-weight:700; color:var(--t2); }
 .plein-sortir b{ color:var(--t1); }
-.plein-sortir button{ background:var(--acc); color:#fff; border:none; border-radius:8px; padding:6px 12px;
+.plein-sortir button{ background:var(--acc); color:var(--on-acc); border:none; border-radius:8px; padding:6px 12px;
   font-size:12px; font-weight:800; cursor:pointer; }
 .pf-plein{ display:inline-flex; align-items:center; gap:6px; background:var(--card2); border:1px solid var(--brd);
   border-radius:9px; padding:7px 12px; font-size:12px; font-weight:700; color:var(--t2); cursor:pointer; flex:none; }
@@ -2336,10 +2341,10 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .tbl .strong{color:var(--t1)}
 
 /* ── BOUTONS ── plein = l'action, teinté = le reste, rond = l'icône */
-.btn{background:var(--acc-fill)!important;color:var(--on-acc)!important;border:0!important;border-radius:var(--r-2)!important;
+.btn{background:var(--acc-fill)!important;color:var(--on-fill)!important;border:0!important;border-radius:var(--r-2)!important;
   padding:0 16px!important;min-height:38px;font-weight:600!important;font-size:14.5px!important;letter-spacing:-.005em;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),box-shadow var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)!important}
-.btn:hover{background:var(--acc-fill-hover)!important;color:var(--on-acc)!important;transform:none}
+.btn:hover{background:var(--acc-fill-hover)!important;color:var(--on-fill)!important;transform:none}
 .btn:active{background:var(--acc-fill-press)!important;transform:scale(.96)!important;transition-duration:var(--d-0)!important}
 .btn.ghost{background:var(--tint)!important;color:var(--acc-txt)!important}
 .btn.ghost:hover{background:color-mix(in srgb,var(--tint) 100%,var(--acc) 10%)!important;color:var(--acc-txt)!important}
@@ -2370,11 +2375,11 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
    doit être la chose la PLUS lisible de l'écran à cet instant. On coupe donc l'interaction par
    `pointer-events`, ce qui ne déclenche aucun style d'inactif, et on force l'opacité pleine.
    Pas d'animation : le changement de mot et de couleur suffit, et il se voit au soleil. */
-.btn.btn-fait,html[data-refonte] .btn.btn-fait{background:var(--acc2)!important;color:var(--on-acc,#FFFFFF)!important;
+.btn.btn-fait,html[data-refonte] .btn.btn-fait{background:var(--acc2)!important;color:var(--on-acc2,#FFFFFF)!important;
   opacity:1!important;pointer-events:none;transform:none!important;box-shadow:none!important}
 /* Occupé : même raison de ne pas passer par `disabled` — il faut rester LISIBLE. On assombrit
    d'un cran, sans descendre au gris d'inactif : le bouton travaille, il n'est pas éteint. */
-.btn.btn-occupe,html[data-refonte] .btn.btn-occupe{background:var(--acc2)!important;color:var(--on-acc,#FFFFFF)!important;
+.btn.btn-occupe,html[data-refonte] .btn.btn-occupe{background:var(--acc2)!important;color:var(--on-acc2,#FFFFFF)!important;
   opacity:.88!important;pointer-events:none;transform:none!important;box-shadow:none!important;cursor:progress}
 .bell,.menu-btn,.modal-close{background:var(--tint-gris)!important;color:var(--t2)!important;border:0!important;border-radius:50%!important;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
@@ -2740,6 +2745,40 @@ html[data-refonte][data-theme="light"][data-accent="pink"]  { --on-acc:#FFFFFF; 
 html[data-refonte][data-theme="light"][data-accent="red"]   { --on-acc:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="blue"]  { --on-acc:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="purple"]{ --on-acc:#FFFFFF; }
+
+/* ══ ET UNE SECONDE ENCRE, PARCE QU'IL Y A DEUX SURFACES ══
+   ⛔⛔ `--on-acc` EST L'ENCRE DE `--acc`, ET ELLE NE VAUT PAS SUR `--acc-fill`. L'application
+   peint DEUX aplats d'accent : `--acc` (pastilles, onglet choisi, compteurs) et `--acc-fill`
+   (le bouton principal, le bouton flottant, l'étiquette de carte, le rattrapage du planning).
+   Le second est un cran plus sombre — c'est tout son intérêt — et une encre calculée pour le
+   premier n'y tient pas forcément. Mesuré au navigateur le 22 septembre 2026, les dix-huit
+   combinaisons, les deux encres candidates sur les deux surfaces :
+       sur --acc        : --on-acc passe 18 fois sur 18 (4,91 à 17,92)
+       sur --acc-fill   : --on-acc tombe CINQ fois — bleu 3,45 · violet 3,55 · rose 3,53 ·
+                          rouge 3,64 (de nuit) et cyan 3,44 (de jour)
+   C'est le libellé du BOUTON PRINCIPAL, donc le contrôle le plus utilisé de l'application.
+   Aucune surface n'a eu besoin de bouger : sur les cinq, l'autre encre passe largement
+   (5,06 à 5,35). On pose donc `--on-fill`, qui vaut `--on-acc` partout ailleurs — une seule
+   valeur à tenir, cinq exceptions déclarées, et rien qui change sur les treize autres.
+   ⚠️ Ce n'est PAS un cycle (la règle de cette page) : `--on-fill` lit `--on-acc`, et
+   `--on-acc` ne lit jamais `--on-fill`. */
+html[data-refonte]{ --on-fill:var(--on-acc); }
+html[data-refonte][data-theme="dark"][data-accent="blue"]  { --on-fill:#FFFFFF; }  /* 3,45 → 5,32 */
+html[data-refonte][data-theme="dark"][data-accent="purple"]{ --on-fill:#FFFFFF; }  /* 3,55 → 5,17 */
+html[data-refonte][data-theme="dark"][data-accent="pink"]  { --on-fill:#FFFFFF; }  /* 3,53 → 5,21 */
+html[data-refonte][data-theme="dark"][data-accent="red"]   { --on-fill:#FFFFFF; }  /* 3,64 → 5,06 */
+html[data-refonte][data-theme="light"][data-accent="teal"] { --on-fill:#0B1426; }  /* 3,44 → 5,35 */
+
+/* ET UNE TROISIÈME, POUR LA TROISIÈME SURFACE. `--acc2` — le second accent — porte du texte à
+   trois endroits : la bulle du message qu'on vient d'écrire, et les deux boutons d'état
+   « Fait » et « Occupé ». Mesuré sur les dix-huit : `--on-fill` y tient seize fois, et tombe
+   deux fois, toutes deux de JOUR — orange 3,70 et cyan 3,40. Le blanc y passe (4,76 et 5,40).
+   ⛔ La règle qui vaut pour la suite : UNE SURFACE D'ACCENT, UNE ENCRE. Une quatrième surface
+   qui apparaîtrait sans la sienne reprendrait le défaut par la bande — c'est ce que garde
+   `test-757`, qui CALCULE les contrastes au lieu de chercher un motif. */
+html[data-refonte]{ --on-acc2:var(--on-fill); }
+html[data-refonte][data-theme="light"][data-accent="orange"]{ --on-acc2:#FFFFFF; }  /* 3,70 → 4,76 */
+html[data-refonte][data-theme="light"][data-accent="teal"]  { --on-acc2:#FFFFFF; }  /* 3,40 → 5,40 */
 
 /* ══ LE FOND ══ deux voiles très larges, l'un vert (l'accent), l'autre acier (la marque). Aucun
    trait : sur un fond clair, une diagonale traversant la page se lit comme un défaut d'affichage. */
@@ -3123,7 +3162,7 @@ html[data-refonte] .plg-mini .who,html[data-refonte] .plt-blk .who,
 html[data-refonte] [style*="background:var(--acc);color:var(--on-acc)"],
 html[data-refonte] [style*="background:var(--acc);color:#fff"],
 html[data-refonte] [style*="background: var(--acc); color: var(--on-acc)"]{
-  background:var(--acc-fill)!important;color:var(--on-acc)!important}
+  background:var(--acc-fill)!important;color:var(--on-fill)!important}
 /* ══ LES PASTILLES D'IDENTITÉ ══ un disque plein à la couleur de la personne, avec les initiales
    en blanc : ça tient tant que la couleur est sombre. Un orange (« non assigné ») ou un jaune
    choisi à la main tombent à 2,2:1. On renverse le motif — un disque TEINTÉ, les initiales à la
@@ -3447,7 +3486,7 @@ html[data-refonte] .plm-j,html[data-refonte] .pld-j,html[data-refonte] .pcal-d{
 html[data-refonte] .plm-j:active,html[data-refonte] .pld-j:active,html[data-refonte] .pcal-d:active{
   transform:scale(.92);transition-duration:var(--d-0)}
 html[data-refonte] .pcal-d.auj{background:transparent!important;color:var(--acc-txt)!important;font-weight:700}
-html[data-refonte] .pcal-d.on{background:var(--acc-fill)!important;color:var(--on-acc)!important}
+html[data-refonte] .pcal-d.on{background:var(--acc-fill)!important;color:var(--on-fill)!important}
 html[data-refonte] .plm-carte,html[data-refonte] .plm-tour{border-radius:var(--rf-r-carte)!important;overflow:hidden}
 html[data-refonte] .plm-mbar{background:transparent!important;border-bottom:1px solid var(--rf-filet)!important}
 /* Les cartes Leaflet prennent le rayon de leur contenant : un plan à coins vifs dans une carte
@@ -4147,7 +4186,7 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
 .bxp-cibles-l .btn.sm, html[data-refonte] .bxp-cibles-l .btn.sm{min-height:44px;padding-inline:14px}
 /* La bulle de l'onglet : un compte, pas une décoration — elle ne s'affiche que s'il y a du neuf. */
 .bxp-bulle{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;margin-left:6px;
-  border-radius:10px;background:var(--acc);color:#fff;font-size:11px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;vertical-align:middle}
+  border-radius:10px;background:var(--acc);color:var(--on-acc);font-size:11px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;vertical-align:middle}
 /* La bande « pas encore au catalogue » se distingue de « nouveau dans la box » : bordure pleine,
    pas le lavis vert — ce sont deux étapes différentes et les confondre ferait taper deux fois. */
 .bxp-pack{background:var(--card2);border:1px solid var(--brd2)}
@@ -4191,7 +4230,7 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
    c'est le seul endroit de l'app où deux boutons opposés se touchent. */
 .qp-moins{background:color-mix(in srgb,var(--red) 15%,transparent)!important;color:var(--red)!important;
   border:1px solid color-mix(in srgb,var(--red) 42%,transparent)!important}
-.qp-plus{background:var(--acc)!important;color:#fff!important;border:1px solid var(--acc)!important}
+.qp-plus{background:var(--acc)!important;color:var(--on-acc)!important;border:1px solid var(--acc)!important}
 /* Les petites flèches natives d'un champ nombre volent la moitié de la largeur utile et ne
    se touchent pas au doigt : nos boutons − et ＋ font ce travail, en 44 px. */
 .qp-in input::-webkit-outer-spin-button,.qp-in input::-webkit-inner-spin-button,
@@ -4904,7 +4943,7 @@ html[data-refonte] .rf-reg-rang{
   transition:background-color var(--d-2) var(--e-sortie),color var(--d-2) var(--e-sortie)}
 html[data-refonte] .rf-reg-item.on{color:var(--t1);background:var(--card)}
 html[data-refonte] .rf-reg-item.on .rf-ic{color:var(--acc-txt)}
-html[data-refonte] .rf-reg-item.on .rf-reg-rang{background:var(--acc-fill);color:var(--on-acc)}
+html[data-refonte] .rf-reg-item.on .rf-reg-rang{background:var(--acc-fill);color:var(--on-fill)}
 html[data-refonte] .rf-reg-item:active{transform:scale(.99);transition-duration:var(--d-0)}
 /* Quatre déjà choisies : la ligne refuse, et le dit — une seule fois, sans bouger la page. */
 @keyframes rfPlein{0%,100%{background-color:transparent}40%{background-color:var(--danger-bg)}}
@@ -5440,7 +5479,7 @@ html[data-verre="1"] .sidebar{
   --side-active:color-mix(in srgb,var(--acc) 16%,transparent);--side-active-ink:var(--vr-encre);
 }
 html[data-verre="1"] .sidebar .nav-item{color:color-mix(in srgb,var(--vr-encre) 84%,transparent)}
-html[data-verre="1"] .sidebar .nav-item.active{background:var(--acc-fill,var(--acc));color:var(--on-acc,#fff)}
+html[data-verre="1"] .sidebar .nav-item.active{background:var(--acc-fill,var(--acc));color:var(--on-fill,#fff)}
 /* ⛔ UN TITRE DE GROUPE DOIT ÊTRE PLUS PÂLE QUE SES ITEMS, SUR VERRE COMME AILLEURS. Il ne
    l'était pas : les deux sortaient de rgb(10,16,32), et c'est ce qui a fait lire
    « deux Tableau de bord ». L'encre se dérive du TEXTE (`--vr-encre`), pour être plus pâle
@@ -5469,7 +5508,7 @@ html[data-verre="1"] .sidebar .brand .hi,html[data-verre="1"] .sidebar #foot-nam
 .msg-flot{
   position:fixed;right:16px;z-index:37;width:56px;height:56px;border-radius:50%;
   border:0;cursor:pointer;text-decoration:none;
-  background:var(--acc-fill,var(--acc));color:var(--on-acc,#fff);
+  background:var(--acc-fill,var(--acc));color:var(--on-fill,#fff);
   align-items:center;justify-content:center;box-shadow:var(--ombre-2,0 8px 24px rgba(0,0,0,.28));
   bottom:calc(var(--tabh) + 14px);
 }
@@ -6203,7 +6242,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '713';
+const APP_VERSION = '714';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -14687,7 +14726,11 @@ function planGuideMaj(e,col,h0,PPH,coul){
     const larg=Math.max(60,r.right-g0.left-x0), dy=r.top-g0.top;
     const c=coul||getComputedStyle(document.documentElement).getPropertyValue('--acc').trim()||'#1E7A4E';
     const pose=function(el,y,txt){ el.style.top=Math.round(y+dy)+'px'; el.style.left=Math.round(x0)+'px'; el.style.width=Math.round(larg)+'px';
-      el.style.setProperty('--rc',c); el.firstChild.textContent=txt; };
+      el.style.setProperty('--rc',c);
+      /* l'encre suit la couleur de la personne ; sans couleur donnée, `--rc` VAUT l'accent,
+         donc on laisse le repli CSS prendre `--on-acc` plutôt que de deviner ici. */
+      el.style.setProperty('--rc-ink', /^#/.test(c) ? encreSur(c) : '');
+      el.firstChild.textContent=txt; };
     let g=grille.querySelector(':scope > .plg-rule.deb');
     if(!g){ g=document.createElement('div'); g.className='plg-rule deb'; g.innerHTML='<span class="h"></span>'; grille.appendChild(g); }
     pose(g,top,clockFromMin(mins));
