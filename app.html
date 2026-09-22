@@ -1071,10 +1071,17 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 /* plusieurs plannings empilés */
 .plg-pl{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 11px; margin-bottom:9px; }
 .plg-pl .lb{ font-size:9.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--t3); }
-.plg-pl .seg{ display:inline-flex; background:var(--card2); border-radius:9px; padding:3px; gap:3px; }
-.plg-pl .seg span{ font-size:11.5px; font-weight:700; color:var(--t2); padding:4px 11px; border-radius:7px; cursor:pointer; }
-.plg-pl .seg span:hover{ color:var(--acc); }
-.plg-pl .seg span.on{ background:var(--card); color:var(--acc); box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.seg{ display:inline-flex; background:var(--card2); border-radius:9px; padding:3px; gap:3px; }
+/* ⛔ UN <button> DANS `.seg` N'ÉTAIT STYLÉ NULLE PART — ET POINTAGE EST LE SEUL ÉCRAN
+   QUI EN MET. Toutes les règles du segment visaient `.plg-pl .seg span` : la pilule de
+   Pointage sortait donc en boutons BRUTS du navigateur, noirs et carrés, dans un
+   conteneur en verre — c'est ce que Justin a pris en photo le 22 septembre 2026. Le
+   composant vaut pour les deux balises, et le bouton perd ses atours d'origine. */
+.seg span,.seg button{ font-size:11.5px; font-weight:700; color:var(--t2); padding:4px 11px;
+  border-radius:7px; cursor:pointer; background:none; border:0; font-family:inherit;
+  line-height:1.2; -webkit-appearance:none; appearance:none; }
+.seg span:hover,.seg button:hover{ color:var(--acc); }
+.seg span.on,.seg button.on{ background:var(--card); color:var(--acc); box-shadow:0 1px 3px rgba(0,0,0,.2); }
 .plg-pl .brid{ font-size:10.5px; font-weight:700; color:var(--org); border:1px dashed color-mix(in srgb,var(--org) 45%,transparent); border-radius:100px; padding:2px 9px; }
 .plg-pl .sp{ flex:1; }
 .plg-pl .mini{ font-size:11.5px; color:var(--t3); white-space:nowrap; }
@@ -3147,12 +3154,12 @@ html[data-refonte] .tchip{min-height:32px;border-radius:var(--r-pill)!important;
 html[data-refonte] .tchip.on{background:var(--card)!important;color:var(--acc-txt)!important;
   border-color:transparent!important;box-shadow:var(--rf-pastille)}
 /* les pistes segmentées de l'application (planning, vues, période) : même creux, même relief */
-html[data-refonte] .plg-pl .seg,html[data-refonte] .pf-seg2,html[data-refonte] .pf-vues,html[data-refonte] .pf-disp{
+html[data-refonte] .seg,html[data-refonte] .pf-seg2,html[data-refonte] .pf-vues,html[data-refonte] .pf-disp{
   background:var(--rf-creux)!important;border-radius:var(--r-pill)!important;padding:3px!important;gap:2px!important;border:0!important}
-html[data-refonte] .plg-pl .seg span,html[data-refonte] .pf-seg2 span,html[data-refonte] .pf-vues span,html[data-refonte] .pf-disp button{
+html[data-refonte] .seg span,html[data-refonte] .seg button,html[data-refonte] .pf-seg2 span,html[data-refonte] .pf-vues span,html[data-refonte] .pf-disp button{
   border-radius:var(--r-pill)!important;min-height:30px;display:inline-flex;align-items:center;
   padding:0 13px!important;font-weight:600!important;color:var(--t2)!important;border:0!important;background:transparent!important}
-html[data-refonte] .plg-pl .seg span.on,html[data-refonte] .pf-seg2 span.on,
+html[data-refonte] .seg span.on,html[data-refonte] .seg button.on,html[data-refonte] .pf-seg2 span.on,
 html[data-refonte] .pf-vues span.on,html[data-refonte] .pf-disp button.on{
   background:var(--card)!important;color:var(--t1)!important;box-shadow:var(--rf-pastille)!important}
 /* Les onglets soulignés : le trait devient une barre pleine aux bouts ronds, ancrée sous le mot. */
@@ -3248,7 +3255,7 @@ html[data-refonte] .pf-inw,html[data-refonte] .pf-cnt2{
   min-height:36px;border-radius:11px!important;border:0!important;
   background:var(--card)!important;box-shadow:var(--rf-pastille)!important}
 html[data-refonte] .pf-ib{width:36px;height:36px}
-html[data-refonte] .pf-vues,html[data-refonte] .pf-disp,html[data-refonte] .plg-pl .seg{
+html[data-refonte] .pf-vues,html[data-refonte] .pf-disp,html[data-refonte] .seg{
   min-height:36px;border-radius:11px!important;border:0!important;background:var(--rf-creux)!important;padding:3px!important}
 html[data-refonte] .pf-b.act,html[data-refonte] .pf-ib.on{
   background:var(--card)!important;color:var(--acc-txt)!important;
@@ -3646,7 +3653,7 @@ html[data-refonte] .login-user{border-radius:var(--rf-r-ligne)!important;min-hei
 html[data-refonte] .pl-row[onclick],html[data-refonte] .pl-row,html[data-refonte] .tab,
 html[data-refonte] .tbl tbody tr[onclick],html[data-refonte] .olsec summary,
 html[data-refonte] .notif-it,html[data-refonte] #gsrch-res .gr,html[data-refonte] .suite-row,
-html[data-refonte] .plg-pl .seg span,html[data-refonte] .pf-seg2 span,html[data-refonte] .pf-vues span,
+html[data-refonte] .seg span,html[data-refonte] .seg button,html[data-refonte] .pf-seg2 span,html[data-refonte] .pf-vues span,
 html[data-refonte] .tag[onclick],html[data-refonte] .st[onclick],html[data-refonte] .plm-row,
 html[data-refonte] .pjs-grid button,html[data-refonte] .fen-tch,html[data-refonte] .dep-rap span{
   -webkit-tap-highlight-color:transparent;
@@ -3655,7 +3662,7 @@ html[data-refonte] .pjs-grid button,html[data-refonte] .fen-tch,html[data-refont
 html[data-refonte] .pl-row:active,html[data-refonte] .tab:active,
 html[data-refonte] .tbl tbody tr[onclick]:active,html[data-refonte] .olsec summary:active,
 html[data-refonte] .notif-it:active,html[data-refonte] #gsrch-res .gr:active,html[data-refonte] .suite-row:active,
-html[data-refonte] .plg-pl .seg span:active,html[data-refonte] .pf-seg2 span:active,html[data-refonte] .pf-vues span:active,
+html[data-refonte] .seg span:active,html[data-refonte] .seg button:active,html[data-refonte] .pf-seg2 span:active,html[data-refonte] .pf-vues span:active,
 html[data-refonte] .plm-row:active,html[data-refonte] .pjs-grid button:active{
   transform:scale(.985);transition-duration:var(--d-0)}
 /* Une ligne de tableau ne peut pas se mettre à l'échelle (elle casserait la grille) :
@@ -3825,7 +3832,7 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
      Mouvements (37), la barre du planning (26 à 36). Le plancher ne les avait jamais vues.
      On vise donc tout bouton de contenu qui n'a PAS déjà son propre plancher. */
   html[data-refonte] #content button:not(.btn):not(.chip):not(.tab):not(.pf-b):not(.tabbar *),
-  html[data-refonte] .plg-pl .seg span,html[data-refonte] .pf-seg2 span,
+  html[data-refonte] .seg span,html[data-refonte] .seg button,html[data-refonte] .pf-seg2 span,
   html[data-refonte] .pf-vues span,html[data-refonte] .pf-disp button,
   html[data-refonte] .filters[style*="padding:3px"] > div,
   html[data-refonte] .pf-zoom span,html[data-refonte] .pf-nav u,html[data-refonte] .pf-nav .auj{
@@ -5099,7 +5106,7 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
   html[data-refonte] .content > .card[onclick]:has(+ .card[onclick]):hover:active,
   html[data-refonte] .tbl tbody tr[onclick]:active,html[data-refonte] .olsec summary:active,
   html[data-refonte] .notif-it:active,html[data-refonte] #gsrch-res .gr:active,html[data-refonte] .suite-row:active,
-  html[data-refonte] .plg-pl .seg span:active,html[data-refonte] .pf-seg2 span:active,
+  html[data-refonte] .seg span:active,html[data-refonte] .seg button:active,html[data-refonte] .pf-seg2 span:active,
   html[data-refonte] .pf-vues span:active,html[data-refonte] .plm-row:active,
   html[data-refonte] .pjs-grid button:active,html[data-refonte] .plm-j:active,
   html[data-refonte] .pld-j:active,html[data-refonte] .pcal-d:active,
@@ -5228,7 +5235,7 @@ html[data-verre="1"]{
      ⚠ `--acc-rgb` est posé par `applyTheme` ; le repli est le vert d'OP GESTION, pour que la
      page soit juste même avant que le JavaScript ait tourné. */
   --vr-halos:
-    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,30,132,80),.20), rgba(var(--acc-rgb,30,132,80),0) 72%),
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(var(--acc-rgb,30,132,80),.2), rgba(var(--acc-rgb,30,132,80),0) 72%),
     radial-gradient(56vmax 56vmax at 90% 4%, rgba(47,79,158,.15), rgba(47,79,158,0) 70%),
     radial-gradient(70vmax 70vmax at 72% 98%, rgba(var(--acc-rgb,30,132,80),.14), rgba(var(--acc-rgb,30,132,80),0) 72%);
   /* Le JOUR porte le dégradé PLUS FORT que la nuit, et ce n'est pas un goût : mesuré au
@@ -5863,9 +5870,24 @@ html[data-os="windows"] input.search-inp{border-radius:6px!important}
 html[data-verre="1"] input.search-inp{
   background:var(--vr-fond2)!important;-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
 }
+/* ⛔⛔ `div:has(> input[placeholder^="Rechercher"])` ATTRAPE LE CONTENEUR DE LA PAGE.
+   Justin, capture à l'appui le 22 septembre 2026 : « c'est quoi ce fond moche ». Ce n'était
+   ni un halo ni un dégradé — j'ai cherché une heure du mauvais côté. C'est `#content`
+   LUI-MÊME qui prenait `border-radius:999px` et la vitre : sur Bons de commande, le champ
+   « Rechercher… » est écrit en ENFANT DIRECT de la zone de contenu, donc la zone entière
+   devenait une pilule de 1 742 x 716 px. Mesuré : `#content` à 999 px de rayon,
+   `backdrop-filter: blur(14px) saturate(1.8)`, fond à 46 % — un disque pâle en travers de
+   l'écran, exactement la forme photographiée.
+   ⚠️ LA LEÇON, et elle vaut pour tout `:has()` : un sélecteur de PARENT ne décrit pas une
+   forme, il décrit une RELATION — et la même relation existe chez des éléments qui n'ont
+   rien à voir. Une pilule de recherche est un enrobage qui ne contient QUE le champ : c'est
+   cela qu'il faut écrire, pas « un parent qui contient un champ ».
+   ⚠️ Et le diagnostic ne s'est fait ni à la lecture ni par bissection des couches (deux
+   fausses pistes, deux jeux de captures) mais en DEMANDANT au navigateur quelles règles
+   s'appliquent à l'élément (`CSS.getMatchedStylesForNode`). Dix lignes, une exécution. */
 html[data-refonte] .rech-pilule,
-html[data-refonte] div:has(> input[placeholder^="Rechercher"]),
-html[data-refonte] span:has(> input[placeholder^="Rechercher"]){
+html[data-refonte] div:has(> input[placeholder^="Rechercher"]):not(:has(> :not(input):not(svg):not(button):not(label))),
+html[data-refonte] span:has(> input[placeholder^="Rechercher"]):not(:has(> :not(input):not(svg):not(button):not(label))){
   border-radius:var(--r-pill,999px)!important;
   background:color-mix(in srgb,var(--t3) 12%,transparent)!important;
   border:0!important;min-height:44px;padding-left:14px!important;padding-right:14px!important;
@@ -5874,8 +5896,8 @@ html[data-refonte] input[placeholder^="Rechercher"]{
   background:transparent!important;border:0!important;outline:none;font-size:15px;
 }
 html[data-os="windows"] .rech-pilule,
-html[data-os="windows"] div:has(> input[placeholder^="Rechercher"]){border-radius:6px!important}
-html[data-verre="1"] div:has(> input[placeholder^="Rechercher"]){
+html[data-os="windows"] div:has(> input[placeholder^="Rechercher"]):not(:has(> :not(input):not(svg):not(button):not(label))){border-radius:6px!important}
+html[data-verre="1"] div:has(> input[placeholder^="Rechercher"]):not(:has(> :not(input):not(svg):not(button):not(label))){
   background:var(--vr-fond2)!important;-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
 }
 /* ⛔ MÊME DÉFAUT QUE LES PASTILLES DE SEGMENTÉ, PAR LE MÊME CHEMIN. C'est la PILULE qui

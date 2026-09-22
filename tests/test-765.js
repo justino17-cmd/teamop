@@ -48,7 +48,9 @@ const BLOC=(()=>{ const d=T.indexOf('@media (pointer:coarse){'); if(d<0) return 
   let n=0,i=d+23; for(; i<T.length; i++){ if(T[i]==='{') n++; else if(T[i]==='}'){ n--; if(!n) break; } }
   return T.slice(d,i); })();
 vrai('population : le bloc tactile est borné des deux côtés', BLOC.length>400);
-['.plg-pl .seg span','.pf-seg2 span','.pf-vues span','.pf-disp button',
+/* ⚠️ `.plg-pl .seg` est devenu `.seg` en v725 : le segment est un composant, pas un
+   morceau de la barre du planning — Pointage en met un, avec des <button>. */
+ ['.seg span','.pf-seg2 span','.pf-vues span','.pf-disp button',
  '.filters[style*="padding:3px"] > div','.pf-zoom span','.pf-nav u','.pf-nav .auj'].forEach(s=>
   vrai(`… et « ${s} » aussi`, BLOC.includes('html[data-refonte] '+s)));
 vrai('⛔ le retour d’en-tête monte à 44 px (il était à 32 sur 41 catégories)',

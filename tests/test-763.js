@@ -96,7 +96,11 @@ const vitre=(nom,sel)=>{ const t=NU.replace(/\s*\n\s*/g,'');
   if(!m) return;
   vrai(nom+' : elle pose une SURFACE', /background(?:-color|-image)?:(?!\s*(?:none|transparent))/.test(m[1]));
   vrai(nom+' : … et le flou qui va avec', /backdrop-filter:blur/.test(m[1])); };
-vitre('la pilule de recherche', 'html[data-verre="1"] div:has(> input[placeholder^="Rechercher"])');
+/* ⚠️ LA GARDE FAIT PARTIE DU SÉLECTEUR DEPUIS LE 22 SEPTEMBRE 2026 (v725) : sans elle,
+   `div:has(> input…)` attrapait `#content` lui-même et peignait toute la zone de contenu
+   en pilule de 999 px. Voir test-767. Le banc suit le sélecteur RÉEL, il ne garde pas
+   l'ancien. */
+vitre('la pilule de recherche', 'html[data-verre="1"] div:has(> input[placeholder^="Rechercher"]):not(:has(> :not(input):not(svg):not(button):not(label)))');
 vitre('le curseur du segmenté (c’est LUI la vitre du groupe)', 'html[data-verre="1"] .filters.seg-on .seg-cur');
 vitre('une pastille LIBRE (elle a une surface, elle)', 'html[data-verre="1"] .chip');
 vrai('… et c’est bien le reflet du document de thème, pas une valeur inventée',
