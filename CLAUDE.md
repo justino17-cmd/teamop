@@ -518,6 +518,14 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   (`window.horsLigneDebut=function(){}; _horsLigne=false;` plus le retrait de `#hl-ecran`), et
   ⚠️ **ne surtout pas « corriger » l'application** : côté client ce comportement est juste,
   c'est la sonde qui est dans un bocal sans réseau.
+- ⛔⛔ **UNE FONCTION QUI SORT PAR LA PORTE DU HAUT SE CHRONOMÈTRE À 0 ms — PROUVER QU'ELLE
+  ENTRE AVANT DE LA MESURER.** `estampiller()` commence par `if(!syncEnabled()) return`, et un
+  navigateur piloté dans un bocal sans réseau n'a pas de synchro : la sonde du 22 septembre 2026
+  a rendu **0 ms sur les trois tailles de base** et l'aurait rapporté comme « ça ne coûte rien ».
+  Chez un client, c'est la moitié du coût d'un `save()` (19,2 ms sur 37 ms, téléphone de
+  terrain). Le signe est celui que cette page décrit déjà pour le contraste et pour
+  `BETA_ESSAI` : **le même chiffre extrême partout**. Toute sonde de performance doit prouver
+  que le corps s'exécute — un effet observable, pas le chronomètre — avant de publier un temps.
 - ⛔ **UNE MESURE QUI ÉCHOUE DOIT DIRE POURQUOI.** La même sonde rendait « aucune cible prouvée
   devant » sans rien d'autre : trois hypothèses fausses ont été essayées avant de lui faire
   rendre la PILE d'éléments sous le point, qui a nommé le coupable en une exécution. Un
@@ -977,9 +985,13 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   synchro — une UNION — les répand dans toute l'entreprise ; `uid()` changeant à chaque passage,
   un second rejeu AJOUTE une copie au lieu de la remplacer. La garde est
   `if(neuve && (APPAREIL_DEJA_VU || espaceRattache()))` : **on ne touche pas au drapeau**, on
-  resserre la CONDITION du semis. ⚠️ Le contre-test compte autant — un appareil vraiment neuf
-  doit toujours recevoir la démonstration, sinon personne ne peut plus découvrir l'application.
-  `tests/test-642.js` et les deux sondes du scratchpad tiennent les trois cas.
+  resserre la CONDITION du semis. `tests/test-642.js` et les deux sondes du scratchpad tiennent
+  les trois cas. ⚠️ **Cette ligne portait un contre-test qui n'existe pas** : « un appareil
+  vraiment neuf doit toujours recevoir la démonstration ». Mesuré le 22 septembre 2026, il n'en
+  reçoit AUCUNE — `elan_vierge_v1` vide tout au premier chargement, sans condition. `test-642`
+  ne garde d'ailleurs que le sens inverse (le semis n'entre jamais chez une entreprise). Le
+  semis reste un piège tant qu'il existe, parce que le drapeau ne vide qu'UNE FOIS dans la vie
+  de l'appareil : une base perdue plus tard le fait rejouer SANS vidage.
 - **Ne pas renommer les clés de stockage `elan_*` à la légère.** `elan_vierge_v1` en
   particulier : si ce drapeau manque, `load()` vide 28 collections d'une base pleine,
   l'enregistre, et la synchro propage le vide à tous les appareils de l'entreprise. Neuf
@@ -1300,13 +1312,29 @@ manifeste de l'app). La pastille verte « OP » de la Tour n'est qu'un repère d
   `REPORT_TEMPLATES` portait les 90 agences d'un client, des données d'exploitation privées.
   Rien à voir.
 
-  Ce qui reste vrai, et qui est du rangement, pas une fuite : **le nom ment**, et c'est lui qui
-  a induit l'erreur ; et le pack part chez TOUTES les entreprises, y compris celles de
-  nettoyage, qui n'ont que faire de fournisseurs de produits nuisibles. À traiter à la
-  prochaine publication d'`app.html`, pas en urgence.
+  Le nom mentait (corrigé en v621). ✅ **Et « le pack part chez TOUTES les entreprises » est
+  devenu FAUX sans que cette page le sache** — mesuré au navigateur le 22 septembre 2026, un
+  appareil neuf reçoit **0 produit et 0 fournisseur**, avec ou sans métier réglé :
+  `PACK_METIER_AUTO` vaut `false` et ferme les trois portes automatiques.
 
   **La leçon, plus large que ce cas :** un nom n'est pas un contenu. Ouvrir les données avant
   de croire l'étiquette — y compris celle écrite dans ce fichier.
+- ⛔⛔ **UN ZÉRO MESURÉ NE PROUVE RIEN TANT QU'ON N'A PAS OUVERT LA PORTE — LA CONTRE-ÉPREUVE
+  EST LA MESURE, PAS SON SUPPLÉMENT.** Le 22 septembre 2026, ce `0 produit · 0 fournisseur`
+  pouvait vouloir dire « l'aiguillage est bon » comme « la sonde ne regarde rien ». Copie mutée
+  avec `PACK_METIER_AUTO=true`, métier « nettoyage », pack du métier à 0 et 0 : **0 produit et
+  5 fournisseurs anti-nuisibles arrivaient quand même**. `cataloguePoser` avait été rebranché
+  sur `metierPackDe` le 8 septembre ; les deux autres portes lisaient `FOURNISSEURS_3D` en
+  direct, et le commentaire de l'une promettait pourtant « la même règle que les deux autres ».
+  Inerte tant que le drapeau est fermé — mais ce drapeau existe pour être rebasculé, son propre
+  commentaire le dit. **Un défaut derrière un interrupteur est un défaut ; le banc doit jouer
+  l'interrupteur OUVERT, sinon il garde le drapeau et pas l'aiguillage** (`test-635`, v716).
+- ⚠️ **UN APPAREIL VRAIMENT NEUF NE REÇOIT AUCUNE DÉMONSTRATION — cette page disait le
+  contraire.** `seed()` construit bien 160 produits, 5 fournisseurs, 2 box, 2 devis et 2
+  factures, et le drapeau `elan_vierge_v1` les efface **tous**, sans condition, au premier
+  chargement de l'appareil. Seul le compte de connexion survit. Une entreprise qui découvre
+  OP GESTION ouvre donc une application **entièrement vide**. C'est peut-être ce qui est voulu —
+  c'est une décision de produit, pas une correction à faire tout seul. Voir `REPRISE.md`.
 
 ## Modèle et effort par agent
 
