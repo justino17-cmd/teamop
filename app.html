@@ -3976,7 +3976,7 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] .pf-raz,html[data-refonte] .pf-lk{min-height:38px;display:inline-flex;align-items:center}
   html[data-refonte] .pf-semnav u{width:38px;height:38px}
   /* la croix d'un filtre actif prend toute la hauteur de sa pastille, pas la largeur d'un « ✕ » */
-  html[data-refonte] .pf-chip{min-height:38px;padding-top:0!important;padding-bottom:0!important}
+  html[data-refonte] .pf-chip{min-height:40px;padding-top:0!important;padding-bottom:0!important}
   html[data-refonte] .pf-chip b{align-self:stretch;display:inline-flex;align-items:center;
     padding:0 10px;margin-right:-10px}
   /* le champ de recherche du planning remplit sa pilule (l'écouteur des enrobes fait le reste) */
@@ -3994,6 +3994,18 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] .code-val{min-height:44px}
   /* la recherche du menu « Filtrer par box » de Mouvements (34 px, enrobe compris) */
   html[data-refonte] .mvt-menu-q{min-height:44px}
+  /* ⚠️ SECOND PASSAGE DE L'AUDIT, APRÈS CORRECTION — ce qui restait sous 38 px au doigt :
+     · une rangée faite UNIQUEMENT de champs (« Code postal » + « Ville » du Nouveau bon) :
+       l'écouteur refuse de choisir entre deux champs, et chacun n'était étendu que vers le
+       bas (28 à 30 px). Sans libellé au-dessus, rien ne s'y oppose : les deux sens ;
+     · la valeur « Oui » d'une ligne de fiche (26 px), qui dit où l'on modifie : elle prend
+       toute la hauteur de sa ligne ;
+     · « ✓ Confirmé » de la télécollecte (18 px), qui ANNULE la confirmation : le bouton
+       « Je confirme » faisait 40, et une fois pressé il devenait une cible de 18. */
+  html[data-refonte] .frow:not(:has(> :not(input))) > input{padding-top:12px!important;margin-top:-12px!important}
+  html[data-refonte] .bdt-row > .bdt-val[onclick]{align-self:stretch;margin-top:-15px;margin-bottom:-15px;
+    padding-top:15px;padding-bottom:15px}
+  html[data-refonte] .tele-conf{min-height:38px;display:inline-flex;align-items:center}
   html[data-refonte] #content a[href^="tel:"]:not(.btn),html[data-refonte] #content a[href^="mailto:"]:not(.btn),
   html[data-refonte] .modal a[href^="tel:"]:not(.btn),html[data-refonte] .modal a[href^="mailto:"]:not(.btn){
     display:inline-flex;align-items:center;min-height:44px}
@@ -4339,6 +4351,13 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      prend sur CETTE plateforme (voir sa définition). Ces quatre lignes remplacent six valeurs
      écrites à la main, dont deux qui se contredisaient déjà. */
   html[data-refonte] body.rf-onglets .content{padding-bottom:calc(var(--tabh) + 16px)!important}
+  /* ⛔ LE BOUTON FLOTTANT DE LEIA COUVRAIT « ENVOYER ». Il flotte au-dessus de la barre
+     d'onglets (58 px, à 10 px d'elle), mais le bas du contenu ne dégageait que la barre :
+     arrivé en fin de page, le dernier élément de droite passait DESSOUS — mesuré le
+     22 septembre 2026 par l'audit des écrans profonds, en Messagerie, le bouton « Envoyer »
+     de la conversation, candidat centré puis relu. On dégage aussi la bulle, comme iOS
+     dégage un contenu sous une barre flottante. */
+  html[data-refonte] body.rf-onglets:has(#assistant > .fab) .content{padding-bottom:calc(var(--tabh) + 84px)!important}
   /* ⚠ ET LA BULLE D'AIDE AVEC. Mesuré : à 76 px elle se posait sur le coin droit de la
      pilule et mangeait l'onglet « Plus ». Une barre qui monte, c'est tout ce qui flotte
      au-dessus d'elle qui monte aussi — sinon on décale une pièce et on en casse une autre. */
@@ -31700,7 +31719,7 @@ function teleLigneMaj(pfx,m){
   const z=document.getElementById(pfx+'k-'+(m===TELE_NB?'nb':m));
   if(!z) return {a:0,d:0};
   if(teleEstOK(pfx,m)){
-    z.innerHTML=`<span onclick="teleConfirmeBasc('${pfx}','${m}')" title="Annuler la confirmation"
+    z.innerHTML=`<span class="tele-conf" onclick="teleConfirmeBasc('${pfx}','${m}')" title="Annuler la confirmation"
       style="cursor:pointer;font-size:12.5px;font-weight:800;color:var(--acc);white-space:nowrap">✓ Confirmé</span>`;
     return {a:1,d:1};
   }

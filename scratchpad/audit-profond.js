@@ -227,14 +227,17 @@ const ECARTS=[
     /* ⛔ CE QUI NE SE CLIQUE PAS SE LIT AUSSI. « OP GEST… » a échappé à trois audits parce
        qu'ils ne mesuraient que les cibles cliquables. Les titres, sous-titres et étiquettes
        de la racine ET de la barre du haut sont désormais relus. */
-    out.titres=[];
+    out.titres=[]; out.titresBarre=[];
     const TIT='.topbar-brand,.topbar-title h1,.ph-title,.ph-sub,.modal-head h3,.card-head h3,.card-title,.kpi-lbl,.sheet-head h3,h1,h2,h3';
     const titres=[...new Set([...R.querySelectorAll(TIT),...document.querySelectorAll('.topbar .topbar-brand,.topbar .topbar-title h1')])]
       .filter(vis).filter(e=>!dansTiroirFerme(e));
     out.vus+=titres.length;
     for(const e of titres){
       if(e.scrollWidth>e.clientWidth+2 && getComputedStyle(e).overflow!=='visible')
-        out.titres.push({ n:nom(e), t:(e.textContent||'').trim().replace(/\s+/g,' ').slice(0,34),
+        /* le titre RÉDUIT de la barre (défilé, en rubrique) se coupe avec « … » comme sur iOS :
+           le grand titre du contenu le porte en entier. Compté à part et nommé. */
+        (e.closest('.topbar-title')&&getComputedStyle(e).textOverflow==='ellipsis'?out.titresBarre:out.titres)
+          .push({ n:nom(e), t:(e.textContent||'').trim().replace(/\\s+/g,' ').slice(0,34),
                           vu:Math.round(e.clientWidth), reel:Math.round(e.scrollWidth), bulle:!!(e.title||e.closest('[title]')) });
     }
     return out;`;
@@ -341,7 +344,7 @@ const ECARTS=[
 
   const PARGENRE=4, PARCAT_SEC=150, SOUSVUES_MAX=14;
   const sousVues={}; let plafonnees=0;   /* ⛔ pas de plafond silencieux : on compte ce qu'on saute */
-  const vus=new Set(), R={hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[],denses:[],zoom:[],sousMenu:[]};
+  const vus=new Set(), R={hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[],denses:[],zoom:[],sousMenu:[],titresBarre:[]};
   let candidatsTotal=0, sousMenuCibles=0;
   const par={rubrique:0,fenetre:0,fiche:0,sousvue:0}, sautes={}; let clics=0, audits=0, elements=0;
 
@@ -367,6 +370,7 @@ const ECARTS=[
     cv.forEach(x=>(x.menu?R.sousMenu:R.couverts).push({...x,ou:cle})); sousMenuCibles+=o.sousMenu||0;
     (o.titres||[]).forEach(x=>R.titres.push({...x,ou:cle}));
     (o.denses||[]).forEach(x=>R.denses.push({n:x,ou:cle})); (o.zoom||[]).forEach(x=>R.zoom.push({...x,ou:cle}));
+    (o.titresBarre||[]).forEach(x=>R.titresBarre.push({...x,ou:cle}));
     candidatsTotal+=o.candidats||0;
   };
   const norme=s=>(s||'').replace(/\d+/g,'#').replace(/\s+/g,' ').trim().slice(0,40);
@@ -436,6 +440,8 @@ const ECARTS=[
   grouper(R.tronques.filter(x=>!x.bulle),x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » '+v[0].vu+'/'+v[0].reel));
   console.log('\n══ TITRES COUPÉS : '+R.titres.length+' ══');
   grouper(R.titres,x=>x.n+' « '+x.t+' »').slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'  '+v[0].vu+'/'+v[0].reel+(v[0].bulle?' (infobulle)':'')+'   ex. '+v[0].ou));
+  console.log('     (titre réduit de la barre, coupé avec « … » comme sur iOS — le grand titre du contenu le porte en entier : '
+    +R.titresBarre.length+(R.titresBarre.length?' — '+[...new Set(R.titresBarre.map(x=>x.t))].slice(0,5).join(' · '):'')+')');
   if(P.tac){ console.log('\n══ CIBLES DONT LA ZONE QUI RÉPOND FAIT MOINS DE 38 px : '+R.petits.length+' ══');
     console.log('     population : '+candidatsTotal+' cibles DESSINÉES sous 38 px, chacune mesurée au doigt (rangée, libellé, enrobe compris)');
     console.log('     écartées par décision écrite (grilles de planning, frise, tableaux) : '+R.denses.length+' — '+[...new Set(R.denses.map(x=>x.n))].slice(0,6).join(', '));

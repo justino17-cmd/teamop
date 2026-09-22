@@ -70,8 +70,8 @@ for (const f of ['app.html', 'beta.html']) {
   for (const s of ['.pf-h span', '.pg-rac span', '.pg-gt span', '.pf-raz', '.pf-lk'])
     vrai('⛔ « ' + s + ' » a le plancher des petites commandes', new RegExp('html\\[data-refonte\\] ' + echap(s) + '[,{][^}]*?\\{?[^}]*min-height:38px').test(doigt));
   vrai('⛔ les flèches de semaine du menu Jours', regle('html[data-refonte] .pf-semnav u', 'width:38px;height:38px'));
-  vrai('⛔ la croix d’un filtre actif prend toute la hauteur de sa pastille',
-    regle('html[data-refonte] .pf-chip', 'min-height:38px') && regle('html[data-refonte] .pf-chip b', 'align-self:stretch'));
+  vrai('⛔ la croix d’un filtre actif prend toute la hauteur de sa pastille (40, bords compris : 38 pour la croix)',
+    regle('html[data-refonte] .pf-chip', 'min-height:40px') && regle('html[data-refonte] .pf-chip b', 'align-self:stretch'));
   vrai('le champ du planning remplit sa pilule', regle('html[data-refonte] .pf-inw input', 'align-self:stretch'));
   vrai('une intervention de la vue « une personne » est une ligne qu’on ouvre (38)', regle('html[data-refonte] .pgf-ev', 'min-height:38px'));
 
@@ -87,6 +87,18 @@ for (const f of ['app.html', 'beta.html']) {
   vrai('la recherche du menu des box : règle et classe', regle('html[data-refonte] .mvt-menu-q', 'min-height:44px') && /<div class="mvt-menu-q" style=/.test(SRC));
   vrai('⛔ menus déroulants et dates hors rangée : 38',
     /html\[data-refonte\] #content select,html\[data-refonte\] \.modal select,\s*html\[data-refonte\] input\[type=date\]:not\(\.frow > \*\):not\(\.frow-val > \*\),\s*html\[data-refonte\] input\[type=time\]:not\(\.frow > \*\):not\(\.frow-val > \*\)\{min-height:38px\}/.test(doigt));
+
+  /* ── 3 bis. le SECOND passage de l'audit, après correction ── */
+  vrai('⛔ une rangée faite UNIQUEMENT de champs (« Code postal » + « Ville ») s’étend dans les deux sens',
+    /html\[data-refonte\] \.frow:not\(:has\(> :not\(input\)\)\) > input\{padding-top:12px!important;margin-top:-12px!important\}/.test(doigt));
+  vrai('⛔ … et SEULEMENT elle : la règle générale sous un libellé reste vers le bas',
+    !/html\[data-refonte\] \.frow > input:not\(\[type=checkbox\]\)[^{]*\{[^}]*padding-top/.test(doigt));
+  vrai('la valeur d’une ligne de fiche prend la hauteur de sa ligne',
+    /html\[data-refonte\] \.bdt-row > \.bdt-val\[onclick\]\{align-self:stretch;margin-top:-15px;margin-bottom:-15px;\s*padding-top:15px;padding-bottom:15px\}/.test(doigt));
+  vrai('⛔ « ✓ Confirmé » (qui annule) a le plancher : règle et classe',
+    regle('html[data-refonte] .tele-conf', 'min-height:38px') && /<span class="tele-conf" onclick="teleConfirmeBasc\(/.test(SRC));
+  vrai('⛔ le bas du contenu dégage la bulle de Leia, pas seulement la barre d’onglets',
+    /html\[data-refonte\] body\.rf-onglets:has\(#assistant > \.fab\) \.content\{padding-bottom:calc\(var\(--tabh\) \+ 84px\)!important\}/.test(SRC));
 
   /* ── 4. Safari ne zoome plus : TOUT champ saisissable est à 16 px au doigt ── */
   const zoom = (doigt.match(/[^{}]*\{font-size:16px!important\}/g) || []).join(' ');

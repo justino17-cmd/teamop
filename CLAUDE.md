@@ -842,6 +842,29 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   planning et les tableaux, qui défilent horizontalement par construction. Un détecteur de
   débordement doit remonter les ancêtres et écarter les deux (`dansTiroirFerme`, `dansRouleau`)
   — sinon il crie 4 016 fois, et un banc qui crie faux se fait ignorer, puis désactiver.
+- ⛔⛔ **UNE CIBLE TACTILE SE MESURE À CE QU'UN DOIGT DÉCLENCHE, PAS À SON RECTANGLE.** Le
+  22 septembre 2026, l'audit des écrans profonds comptait « 411 cibles sous 38 px » au
+  téléphone : c'étaient 188 éléments, dont une bonne part répondaient DÉJÀ sur 44 à 47 px — un
+  doigt touche un point, et ce point déclenche l'élément, son `label`, ou la rangée `.frow` qui
+  fait suivre le tap. On mesure donc la ZONE QUI RÉPOND (`elementFromPoint` sur la verticale du
+  centre, en recopiant la règle de l'écouteur de l'application), et on range À PART, nommé, ce
+  qui est couvert exprès (sous un menu que l'exploration vient d'ouvrir) ou écarté par décision
+  écrite (les cases des grilles de planning). Ce qui restait était vrai et se rangeait en
+  familles — 82 commandes des FENÊTRES à 28–34 px, parce que le plancher de `#content`
+  s'arrêtait à sa porte. `scratchpad/sonde-cibles.js`, `tests/test-771.js`.
+- ⛔⛔ **UN SÉLECTEUR D'ATTRIBUT NE VOIT PAS UN ATTRIBUT ABSENT.** La règle tactile posait
+  16 px sur `input[type=text]` pour que Safari ne zoome pas au toucher — et un `<input>` SANS
+  `type` est un champ texte que ce sélecteur ignore ; les `<select>` et `<textarea>` hors
+  `.field` aussi. Mesuré, taille CALCULÉE : 39 champs sous 16 px sur deux rubriques, toute la
+  fenêtre Intervention à 15 px. Sur un iPhone, chacun faisait zoomer la page — qui restait
+  zoomée. Une règle qui vise une forme d'écriture se vérifie sur ce que le navigateur CALCULE.
+- ⛔ **UN CORRECTIF DE MISE EN PAGE SE MESURE DANS TOUS SES ÉTATS, PAS DANS CELUI QU'IL
+  RÉPARE.** Le correctif « OP GESTION ne se coupe plus » du 22 septembre au matin était juste
+  en rubrique, page en haut. Remesuré le soir sur 3 largeurs × 3 rubriques × les deux états de
+  défilement (`scratchpad/sonde-barre.js`), il avait fait naître trois défauts : les ronds qui
+  SAUTENT à gauche au premier défilement du tableau de bord, la barre tassée à 360 px
+  (`display:none` retire aussi la PLACE ; `visibility:hidden` la garde), et un `gap:8px` du
+  palier téléphone qui n'avait JAMAIS pris contre un `!important` écrit plus loin.
 
 - ⛔ **UNE ANCRE DE BANC EST UN COMMENTAIRE — ON DÉCOUPE DANS LE TEXTE BRUT, ON NETTOIE APRÈS.**
   Chercher le titre d'un bloc dans un texte dont on vient de retirer les commentaires rend −1,
