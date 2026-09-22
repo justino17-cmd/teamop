@@ -49,7 +49,7 @@ body{
   --amber:#F0A94A;--red:#F07470;--redText:#F58E8A;--on-red:#1A0606;--gray:#A2A9BA;--bleu:#8DB4FF;--violet:#C4A6FF;
   --vertBg:rgba(62,210,160,.14);--ambreBg:rgba(240,169,74,.15);--rougeBg:rgba(240,116,112,.15);--grisBg:rgba(150,165,195,.14);--bleuBg:rgba(91,141,239,.16);--violetBg:rgba(167,139,250,.16);
   /* ── tuiles d'icônes : identiques jour et nuit, glyphe blanc ≥ 3,6:1 ; Accueil = l'application (la maison, c'est l'application) ── */
-  --ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
+  --ic-donnees:var(--ic-neutre);--ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
   --ic-abonnements:var(--ic-neutre);--ic-devisia:var(--ic-neutre);--ic-acces:var(--ic-neutre);--ic-equipe:var(--ic-neutre);--ic-journal:var(--ic-neutre);
   /* ── ombres : le filet fait le travail ; l'ombre n'est que pour ce qui flotte (menus, feuilles) ── */
   --ic-neutre:rgba(150,165,195,.15);--ic-encre:var(--text2);
@@ -117,7 +117,7 @@ body.jour{
   --green:#0E7060;--green-txt:#0E7060;--vert:#0E7060;
   --amber:#8A5600;--red:#B42B2B;--redText:#B42B2B;--on-red:#FFFFFF;--gray:#5B6070;--bleu:#1B4FBF;--violet:#6D3FC7;
   --vertBg:#E4F1EE;--ambreBg:#F3EDE2;--rougeBg:#F8E9E9;--grisBg:#EEEFF2;--bleuBg:#E8EDF9;--violetBg:#F0ECF9;
-  --ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
+  --ic-donnees:var(--ic-neutre);--ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
   --ic-abonnements:var(--ic-neutre);--ic-devisia:var(--ic-neutre);--ic-acces:var(--ic-neutre);--ic-equipe:var(--ic-neutre);--ic-journal:var(--ic-neutre);
   --ic-neutre:rgba(24,24,27,.07);--ic-encre:var(--text2);
   --ombre-1:0 0 0 1px var(--border);
@@ -451,6 +451,37 @@ input.inp,select.sel-f{display:block;line-height:normal}
    32 px entre deux groupes contre 10 px entre deux clientes et 0 px (un filet) dans un bloc :
    un rapport de 1 à 3 à 32. Les six pixels identiques d'avant ne disaient rien du tout. */
 .reg{display:flex;flex-direction:column;gap:32px}
+/* ⛔⛔ `.lg` ET `.note-ambre` N'EXISTAIENT PAS, ET J'AI CRU LE CONTRAIRE EN CHERCHANT LE MAUVAIS
+   CÔTÉ. Le 20 septembre 2026, ces deux classes ont été écrites dans `vueDonnees` puis
+   « vérifiées » par un `grep class="lg"` qui a rendu neuf lignes — les neuf usages, tous à moi.
+   Aucune règle ne les définissait. Ce que ça donnait à l'écran : les neuf lignes de l'état de
+   sauvegarde se lisaient collées (« Dernière nuitRéussie · 20/09/2026 »), et surtout les DEUX
+   avertissements qui précèdent une écriture dans la base d'un client retombaient sur `.note`
+   — 12 px, gris `--dim`, discret. L'avertissement qui doit arrêter la main, rendu en petits
+   caractères gris.
+   ⚠️ La leçon est celle de `CLAUDE.md` sur les motifs de banc, appliquée au CSS : chercher
+   l'USAGE d'un nom ne prouve rien, c'est sa DÉFINITION qu'il faut voir. Un `grep '\.lg{'`
+   aurait rendu vide en une seconde. */
+.lg{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  min-height:34px;padding:7px 0;border-bottom:1px solid var(--hairline)}
+.lg:last-child{border-bottom:0}
+.lg>span{color:var(--muted);font-size:13px}
+.lg>b{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
+/* L'ambre PORTE un mot, il ne le remplace pas : le texte dit déjà « ne peuvent pas être
+   ramenés ». La couleur ne fait que le rendre impossible à survoler. */
+.note-ambre{color:var(--amberText,var(--amber));background:var(--ambreBg,transparent);
+  border-left:3px solid var(--amber);padding:10px 12px;border-radius:var(--r-1,6px);font-size:13px}
+
+/* ══ Données — le retour en arrière ══ Le plancher tactile vient de `.btn-plein`/`.inp`
+   (ligne « min-height:44px » plus haut) ; ici on ne règle que ce qui leur est propre.
+   ⛔ La case à cocher fait 13 px et ne fera jamais 44 : la cible, c'est son LIBELLÉ. */
+.don-coche{display:flex;align-items:center;gap:10px;min-height:44px;margin-top:6px;cursor:pointer}
+.don-coche input{width:20px;height:20px;flex:0 0 20px}
+/* ⛔ `flex:0 0 160px` débordait à 390 px : une base fixe ne rétrécit pas. La base est la
+   largeur SOUHAITÉE, et `min-width:0` autorise le rétrécissement — sans quoi un flex
+   refuse de passer sous la taille de son contenu, ce qui est la cause habituelle d'un
+   débordement horizontal qu'on ne s'explique pas. */
+.don-code{flex:1 1 160px;min-width:0;max-width:220px}
 .reg-g{min-width:0}
 
 /* Le titre de groupe est le seul texte de cette taille qui ne soit posé sur aucune surface :
@@ -1802,6 +1833,16 @@ body.plans .reg-l.cli::before{display:none}
 .eqp-act.app{display:inline-flex;align-items:center;gap:6px;color:var(--muted)} .eqp-act.app i{width:9px;height:9px;border-radius:3px;background:var(--c);opacity:.45}
 .eqp-act.app.on{color:var(--text);background:var(--surface);box-shadow:inset 0 0 0 1px var(--border)} .eqp-act.app.on i{opacity:1}
 .eq-apps{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px} .eq-apps label{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface);font-size:13px;cursor:pointer}
+/* ⛔ 36 px EST SOUS LE PLANCHER TACTILE, ET CES DEUX CASES DÉCIDENT D'UN ACCÈS.
+   Mesuré au navigateur le 22 septembre 2026, iPhone 430×932 contre un vrai serveur : les
+   deux étiquettes « OP GESTION » et « OP MESSAGES » de l'écran Équipe rendaient 148×36 et
+   240×36 — la case elle-même fait 13×13. C'étaient les SEULES cibles sous 44 px des
+   17 écrans de la Tour, et ce sont celles qui donnent ou retirent une console à quelqu'un :
+   une touche ratée n'est pas un désagrément, c'est un droit mal posé.
+   On n'élargit QUE sur un écran de téléphone : au bureau la densité vaut mieux, et la
+   souris n'a pas besoin de 44 px. */
+@media(max-width:899px){ .eq-apps label{min-height:44px;padding:0 14px}
+  .eq-apps input[type="checkbox"]{width:18px;height:18px;flex:none} }
 .eq-apps label i{width:10px;height:10px;border-radius:3px;background:var(--c)} .eq-apps .sous{color:var(--muted);font-size:12px} .eq-apps input{accent-color:var(--app)}
 .app-sw button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;min-height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:-.005em;cursor:pointer}
 .app-sw button i{width:10px;height:10px;border-radius:3px;background:var(--c);flex-shrink:0}
@@ -2191,7 +2232,7 @@ body.plans .reg-l.cli::before{display:none}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.63</div>
+    <div class="lg-pied">console interne · v2.64</div>
   </div>
 </div>
 
@@ -2230,13 +2271,13 @@ body.plans .reg-l.cli::before{display:none}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.63</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.64</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
   </div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.63</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.64</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2266,7 +2307,7 @@ var APPS_TOUR={
   messages:{cle:'messages',nom:'OP MESSAGES',court:'MESSAGES',tags:['opmessages','opmsg','messages']} };
 /* VUES oubliait 'connexions' alors que renderTabs le dessinait : #connexions ne marchait pas. */
 var VUES_PAR_APP={
-  gestion:['accueil','surveillance','support','entreprises','connexions','abonnements','devisia','essais','equipe','journal'],
+  gestion:['accueil','surveillance','support','entreprises','connexions','abonnements','devisia','essais','donnees','equipe','journal'],
   messages:['accueil','surveillance','entreprises','support','equipe','journal'] };
 function vues(){ return VUES_PAR_APP[APP]||VUES_PAR_APP.gestion; }
 var VUES=VUES_PAR_APP.gestion;   /* compatibilité : quelques lecteurs l'utilisent encore */
@@ -2300,7 +2341,7 @@ function setApp(app,sansAnim,tabVoulu){
   if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; }catch(e){} }
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
   var nom=APPS_TOUR[app].nom;
-  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.63';
+  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.64';
   var pn=$('app-pill-nom'); if(pn) pn.textContent=APPS_TOUR[app].court;
   /* l'onglet demandé par le hash prime (un lien #gestion/entreprises tapé depuis MESSAGES) ; sinon
      le dernier onglet ouvert dans cette console ; sinon l'accueil */
@@ -2513,6 +2554,8 @@ window.addEventListener('hashchange',function(){
 var IC={
   accueil:'<path d="M4 11 12 4l8 7"></path><path d="M6 10v10h12V10"></path>',
   surveillance:'<path d="M3 12h4l2-6 4 12 2-6h6"></path>',
+  /* Un cylindre de base de données : c'est le socle, pas un dossier. */
+  donnees:'<ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path>',
   support:'<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path>',
   entreprises:'<rect x="5" y="4" width="14" height="16" rx="1"></rect><path d="M10 20v-4h4v4"></path><path d="M9 8h2M13 8h2M9 12h2M13 12h2"></path>',
   abonnements:'<rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path>',
@@ -2564,7 +2607,7 @@ function renderTabs(){
      une teinte par destination, jamais un état — le badge rouge chiffré fait le travail. */
   var t=[['accueil','Accueil','gestion messages'],null,['surveillance','Surveillance','gestion messages','bdg-surv'],['support','Support','gestion messages','bdg-supp'],
          null,['entreprises','Entreprises','gestion messages'],['connexions','Connexions clients','gestion'],['abonnements','Abonnements','gestion'],['devisia','Devis IA','gestion'],null,
-         ['essais','Accès','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal de la console','gestion messages']];
+         ['essais','Accès','gestion'],['donnees','Données','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal de la console','gestion messages']];
   var grp=['Activité','Clients','Console'], gi=0, h='', dansGroupe=0, tampon='';
   var pousse=function(){ if(dansGroupe) h+=tampon; tampon=''; dansGroupe=0; };
   t.forEach(function(x){
@@ -2710,6 +2753,11 @@ function setTab(t,sansAnim){
      ouvre Entreprises sans être passé par Accès. */
   if(APP==='messages'&&t==='accueil'){ if(!OPM.loaded) chargerEtatMessages(); if(!ENT.loaded) chargerEntreprises(); }
   if(t==='entreprises'){ if(!ENT.loaded) chargerEntreprises(); if(!CLI.loaded) chargerClients(); if(!PBL.loaded) chargerAccesPublics(); if(!CS.loaded) chargerComptesSite(); }
+  /* L'état de la sauvegarde ne vient PAS de `chargerTout()` : cet écran est le seul à s'en
+     servir, et le charger au démarrage ferait payer une requête à tout le monde pour un
+     onglet que personne n'ouvre la plupart du temps. On le relit à chaque ouverture — une
+     sauvegarde lancée depuis ici doit se voir tout de suite. */
+  if(t==='donnees') donCharger();
   /* Les données de cet onglet ne venaient que de chargerTout() au démarrage : un échec
      réseau à la connexion le figeait sur son message d'erreur pour toute la session. */
   if(t==='essais'){ if(!BT.loaded) chargerEssais(); if(!PBL.loaded) chargerAccesPublics(); }
@@ -3194,12 +3242,12 @@ function vueConnexions(){
       .slice(0,2).map(function(v){ return 'v'+esc(v); }).join(', ');
     var join=function(t){ return t.filter(Boolean).join(' · '); };
     var alertes=r.echecs24
-      ? '<span class="past p-rouge" title="échecs de connexion sur 24 h">🔑 '+r.echecs24+'</span>' : '';
+      ? '<span class="past p-rouge" title="essais de connexion refusés sur 24 h">🔑 '+r.echecs24+' refus</span>' : '';
     if(cliente){
       var l2=join([ r.derniere?'<b>'+cnxDepuis(r.derniere)+'</b>':'',
-                    r.utilisateurs7?r.utilisateurs7+' personne'+(r.utilisateurs7>1?'s':''):'',
+                    r.utilisateurs7?r.utilisateurs7+' pers. connectée'+(r.utilisateurs7>1?'s':''):'',
                     r.appareils7?r.appareils7+' appareil'+(r.appareils7>1?'s':''):'',
-                    r.connexions7?r.connexions7+' connexions / 7 j':'' ]);
+                    r.connexions7?r.connexions7+' connexion'+(r.connexions7>1?'s':'')+' / 7 j':'' ]);
       var l3=join([ vers, r.dernierLogin?'dernier identifiant : '+esc(r.dernierLogin):'',
                     x.formule?esc(x.formule):'' ]);
       return '<button type="button" class="reg-l cli col'+(CNX.sel===x.t?' on':'')+'" onclick="cnxSel(\''+jsq(x.t)+'\')">'+
@@ -3213,7 +3261,7 @@ function vueConnexions(){
     var muet=(nature==='jamais')
       ? 'aucune connexion remontée (les applications le font à partir de la v550)'
       : join([ r.derniere?cnxDepuis(r.derniere):'jamais connectée',
-               r.utilisateurs7?r.utilisateurs7+' pers. / 7 j':'',
+               r.utilisateurs7?r.utilisateurs7+' pers. connectée'+(r.utilisateurs7>1?'s':'')+' / 7 j':'',
                r.dernierLogin?esc(r.dernierLogin):'' ]);
     return '<button type="button" class="reg-l'+(CNX.sel===x.t?' on':'')+'" onclick="cnxSel(\''+jsq(x.t)+'\')">'+
       (x.slug?'<span class="reg-av gris">'+esc(sigle(nomEspace(x.nom,x.t)))+'</span>'
@@ -3248,7 +3296,24 @@ function vueConnexions(){
        sont restées une semaine. Un écran qui tait un problème est pire qu'un écran chargé. */
     {cle:'technique',titre:'Espaces techniques — jamais des entreprises',bloc:'reg-bloc',opt:true,
      sous:'L’espace par défaut de l’application et celui de la bêta. Tout appareil qui n’a rejoint aucun espace y signale ses connexions. Ils ne comptent pas dans les entreprises actives — mais s’il s’y connecte du monde, ce sont de vraies personnes au mauvais endroit.',
-     test:function(x){ return x.technique===true; }}
+     /* ⛔ UN ESPACE TECHNIQUE ÉTEINT DISPARAÎT ; UN ESPACE OÙ IL SE PASSE QUELQUE CHOSE RESTE.
+        Justin, 17 septembre 2026 : « je veux que tout ça disparaisse de la Tour, étant donné
+        qu'il n'y a plus de compte ». Il a raison sur le principe — un espace où plus personne
+        ne va n'est pas une nouvelle, et le laisser affiché fait passer une trace du passé pour
+        un problème en cours.
+        ⛔ MAIS ON NE LE DÉBRANCHE PAS. Le commentaire juste au-dessus dit pourquoi ce panneau
+        existe : cinq personnes sont restées une semaine sur l'espace partagé parce que RIEN ne
+        le signalait. Faire disparaître l'alarme n'éteint pas la cause — c'est la règle que
+        Justin a lui-même posée le 15 septembre : un remède répare le mécanisme, jamais le
+        périmètre.
+        Le critère est donc l'ACTIVITÉ RÉELLE, pas l'existence : rien depuis 7 jours et aucun
+        échec récent → l'espace sort de l'écran tout seul, sans qu'on ait rien à supprimer.
+        Dès que quelqu'un y revient, il reparaît. */
+     test:function(x){
+       if(x.technique!==true) return false;
+       var r=x.resume||{}, j7=Date.now()-7*86400000;
+       return (r.derniere>j7) || (r.utilisateurs7>0) || (r.echecs24>0);
+     }}
   ];
   var grCnx='';
   GR_CNX.forEach(function(g){
@@ -4235,6 +4300,7 @@ function renderVue(v){
   else if(TAB==='abonnements') v.innerHTML=vueAbonnements();
   else if(TAB==='devisia') v.innerHTML=vueDevisIA();
   else if(TAB==='essais') v.innerHTML=vueEssais();
+  else if(TAB==='donnees') v.innerHTML=vueDonnees();
   else if(TAB==='equipe') v.innerHTML=vueEquipe();
   else if(TAB==='journal') v.innerHTML=vueJournal();
   if(v.classList.contains('entre')) compterKpi(v);
@@ -6055,12 +6121,23 @@ function vueEntreprises(){
        l'écran est le piège classique des filtres. */
     var al=[];
     if(o.erreurs) al.push('<span class="past p-rouge" title="'+o.erreurs+' erreur(s) signalée(s)">🐛 '+o.erreurs+'</span>');
-    if(o.echecs24) al.push('<span class="past p-ambre" title="échecs de connexion sur 24 h">🔑 '+o.echecs24+'</span>');
+    if(o.echecs24) al.push('<span class="past p-ambre" title="essais de connexion refusés sur 24 h">🔑 '+o.echecs24+' refus</span>');
     if(eV.retard) al.push('<span class="past p-ambre" title="Version en ligne : v'+refV+'">⬇ v'+eV.haute+' en retard</span>');
     /* Ces deux-là ne portaient qu'un pictogramme : « ⏸ » pour un espace suspendu — le fait le
        plus grave qu'une fiche puisse porter — et « 🎁 » pour une formule offerte. En niveaux de
        gris, ou pour qui ne distingue pas le rouge du vert, ils ne disaient rien. Le socle est
-       clair : la couleur ne parle jamais seule, toute pastille porte un mot ou un chiffre. */
+       clair : la couleur ne parle jamais seule, toute pastille porte un mot ou un chiffre.
+       ⛔ ET UN CHIFFRE SEUL NE SUFFIT PAS NON PLUS — « 🔑 1 » a mis Justin en erreur le
+       17 septembre 2026 : il y a lu une clé, ou un compte restant, là où on comptait un essai
+       de connexion REFUSÉ. Un `title` n'a jamais sauvé personne sur un téléphone, où il
+       n'existe pas : il n'y a pas de survol au doigt. Une pastille porte donc un MOT.
+       ⛔ MAIS ELLE RESTE COURTE, ET C'EST MESURÉ. Premier essai : « 🔑 1 échec / 24 h ».
+       Au navigateur, à 390 px : la pastille passe de 39 px à 112 px, s'y fait ROGNER (« 🔑 24
+       échecs / 24 h » rendait exactement la même largeur que « 🔑 1 échec / 24 h »), et vole
+       assez de place pour tronquer le NOM de l'espace et sa deuxième ligne, qui tenaient
+       toutes les deux avant. On avait échangé une ambiguïté contre une troncature.
+       « refus » dit la même chose, est invariable au pluriel, et tient en ~70 px. La fenêtre
+       de 24 h vit dans le `title` et dans la fiche : elle précise, elle ne désambiguïse pas. */
     if(o.suspendu) al.push('<span class="past p-rouge" title="Espace suspendu">⏸ Suspendue</span>');
     if(o.promo&&o.promo.actif) al.push('<span class="past p-vert" title="Formule offerte jusqu’au '+esc(o.promo.finLe)+'">🎁 Offerte</span>');
     var alertes=al.slice(0,2).join('')+(al.length>2?'<span class="reg-plus">+'+(al.length-2)+'</span>':'');
@@ -6071,7 +6148,7 @@ function vueEntreprises(){
 
     if(nature==='cliente'){
       var l2=join([ o.formule?'<b>'+esc(o.formule)+'</b>':'',
-                    o.utilisateurs7?o.utilisateurs7+' personne'+(o.utilisateurs7>1?'s':''):'',
+                    o.utilisateurs7?o.utilisateurs7+' pers. connectée'+(o.utilisateurs7>1?'s':''):'',
                     o.appareils7?o.appareils7+' appareil'+(o.appareils7>1?'s':''):'' ]);
       var l3=join([ o.derniere?esc(fmtJour(o.derniere)):'jamais connectée',
                     eV.aucune?'':'v'+eV.haute,
@@ -6848,7 +6925,14 @@ function blocGestionClient(){
       '<button type="button" class="btn-fant" onclick="tourStatutPack(\''+jsq(nm)+'\')">💳 Statut paiement</button></div>'+
       '<div id="pack-info" class="note">Chargement du statut…</div>'+
       '<div class="form-rang">'+
-      '<input id="pack-promo" placeholder="Code promo (ex. TEAMOP3MOIS)" aria-label="Code promo" class="inp ch-promo">'+
+      /* ⛔ PAS DE CODE PROMO RÉEL DANS UN EXEMPLE. `tour.html` est un fichier statique servi par
+         GitHub Pages : l'authentification de la Tour est côté JavaScript, elle n'empêche pas de
+         télécharger la page. Mesuré le 19 septembre 2026 : `curl -s https://teamop.fr/tour.html`
+         rend 633 Ko à un anonyme, sans en-tête ni cookie, et le code y était en clair — vivant,
+         vérifié le même jour par l'aperçu public de /api/promo/valider. Le même code avait été
+         retiré d'`espace.html` pour cette raison exacte : il avait simplement changé de fichier.
+         Un exemple de code promo n'est jamais un code qui marche. */
+      '<input id="pack-promo" placeholder="Code promo" aria-label="Code promo" class="inp ch-promo">'+
       '<button type="button" class="btn-fant" onclick="tourPromoEntreprise(\''+jsq(nm)+'\',this)">🎁 Activer le code</button></div></div>'+
     /* Les applications de cette entreprise : ce qu'elle a DÉCLARÉ à l'inscription (chips), ce
        qui lui est OUVERT par TEAM OP, et ce qu'elle UTILISE vraiment (bloc CONNEXIONS plus bas).
@@ -7734,6 +7818,160 @@ function jrGroupe(titre,n,sous,opt,corps){
   return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+titre+'</span>'+
     (n===null?'':'<span class="reg-n">'+n+'</span>')+
     (sous?'<div class="reg-sous'+(opt?' opt':'')+'">'+sous+'</div>':'')+'</div>'+corps+'</div>';
+}
+/* ══════════ DONNÉES — LA SAUVEGARDE, ET LE RETOUR EN ARRIÈRE ══════════
+   ⛔ LE PREMIER ÉCRAN DE LA TOUR POUR LE SOCLE, ET IL N'ARRIVE PAS PAR HASARD. `REPRISE.md`
+   porte depuis des semaines « zéro écran de Tour pour le socle et pour la sauvegarde » : les
+   routes existaient, les alarmes remontaient dans `surveillance.js`, et personne ne pouvait
+   RIEN faire depuis la console. Un chantier qu'on ne peut pas conduire est un chantier qu'on
+   subit.
+   Deux choses ici, et une seule d'entre elles écrit :
+     · la sauvegarde hors site — état, et où va chercher la copie du mois ;
+     · le retour en arrière d'UNE entreprise, en deux temps : un aperçu qui n'écrit rien,
+       puis une application qui exige le code envoyé à l'adresse de l'entreprise. */
+var DON={ent:'',instant:'',apercu:null,chargement:false,err:'',sauv:null,codeEnvoye:false,code:'',sansIllisibles:false};
+
+function donCharger(){
+  apiGet('/api/monitor/sauvegarde/etat').then(function(d){ DON.sauv=d; if(TAB==='donnees') render(); })
+    .catch(function(e){ DON.sauv={err:msgErreur(e)}; if(TAB==='donnees') render(); });
+}
+/* L'instant se saisit en heure LOCALE (c'est celle que Justin lit sur sa montre) et se
+   convertit en millisecondes. Le serveur, lui, raisonne en UTC de bout en bout — la conversion
+   se fait ICI, une fois, plutôt que dans trois messages qui divergeraient. */
+function donInstantMs(){ var v=DON.instant; if(!v) return 0; var t=Date.parse(v); return isFinite(t)?t:0; }
+function donApercu(){
+  var t=(DON.ent||'').trim(), ms=donInstantMs();
+  if(!t||!ms){ toast('Il faut un espace et une date.'); return; }
+  DON.chargement=true; DON.err=''; DON.apercu=null; DON.codeEnvoye=false; DON.code=''; render();
+  apiGet('/api/monitor/op/retour-apercu?t='+encodeURIComponent(t)+'&instant='+ms)
+    .then(function(d){ DON.apercu=d; DON.chargement=false; render(); })
+    .catch(function(e){ DON.err=e&&e.corps?String(e.corps):msgErreur(e); DON.chargement=false; render(); });
+}
+/* ⛔ DEUX TEMPS, ET LE PREMIER N'ÉCRIT RIEN. Le serveur renvoie `codeEnvoye` sans avoir touché
+   à quoi que ce soit ; c'est seulement le second appel, avec le code, qui applique. On ne
+   fusionne pas les deux « pour faire plus simple » : un bouton qui écrit parfois et pas
+   d'autres fois est un bouton dont on ne sait plus ce qu'il fait. */
+function donDemanderCode(){
+  var t=(DON.ent||'').trim(), ms=donInstantMs(); if(!t||!ms) return;
+  apiPost('/api/monitor/op/revenir',{t:t,instant:ms}).then(function(r){
+    if(!r.ok){ toast(r.d&&r.d.error?String(r.d.error).slice(0,160):'Refusé.'); return; }
+    DON.codeEnvoye=true; render(); toast('Code envoyé à l’adresse de l’entreprise.');
+  });
+}
+function donAppliquer(){
+  var t=(DON.ent||'').trim(), ms=donInstantMs(), c=(DON.code||'').trim();
+  if(!t||!ms||!c){ toast('Il faut le code reçu par courriel.'); return; }
+  apiPost('/api/monitor/op/revenir',{t:t,instant:ms,code:c,sansLesIllisibles:!!DON.sansIllisibles}).then(function(r){
+    if(!r.ok){ toast(r.d&&r.d.error?String(r.d.error).slice(0,200):'Refusé.'); return; }
+    DON.codeEnvoye=false; DON.code='';
+    /* ⛔ LES REFUS SE DISENT, ET DANS LE MÊME SOUFFLE. `pousser()` refuse un LOT ENTIER quand
+       l'espace est plein : un retour peut donc s'arrêter au milieu. Annoncer les remises sans
+       les refus laisserait croire l'entreprise revenue alors que la moitié ne l'est pas. */
+    var n=r.d.nRefuses||0;
+    toast(r.d.restaures+' remise(s) en place, '+r.d.enterres+' supprimée(s)'+
+      (n?' — ⛔ '+n+' refusée(s) : '+((r.d.refus||[])[0]||{}).motif+'. Le retour est INCOMPLET.':'.'), n?9000:0);
+    donApercu();
+  });
+}
+function donChamp(quoi,val){ DON[quoi]=val; }
+
+function vueDonnees(){
+  var tete=enTete('Données',
+    'La sauvegarde hors site, et le retour en arrière d’une entreprise. <b>Le retour ne touche qu’un espace</b> — il n’existe pas de bouton qui remette tout le monde en arrière, et c’est voulu : l’archive du coffre est commune à toutes les entreprises.');
+
+  /* ── 1. La sauvegarde ─────────────────────────────────────────────────────────────── */
+  var s=DON.sauv, gSauv;
+  if(!s) gSauv='<div class="carte"><div class="vide">Chargement…</div></div>';
+  else if(s.err) gSauv='<div class="carte"><div class="vide">'+esc(s.err)+'</div></div>';
+  else {
+    var d=s.derniere||{}, m=s.mensuel||{};
+    var quand=d.ts?new Date(d.ts).toLocaleString('fr-FR'):'—';
+    var etatNuit=d.ok?'<span class="p-vert">Réussie</span>':(d.ts?'<span class="p-rouge">En échec</span>':'<span class="p-gris">Jamais lancée</span>');
+    /* ⛔ LA PHRASE DES DEUX CLÉS VIENT DU SERVEUR, ELLE N'EST PAS RÉÉCRITE ICI. Un écran qui
+       annonce « copie mensuelle : OK » sans dire que DEUX clés sont nécessaires pour l'ouvrir
+       ailleurs prépare exactement la mauvaise surprise : celle du jour où on en a besoin. */
+    var cles=(m.clesNecessaires||[]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('');
+    var etatMois=m.actif===false?'<span class="p-gris">Désactivée</span>'
+      :(m.ok?'<span class="p-vert">Déposée</span>':'<span class="p-ambre">Pas encore ce mois-ci</span>');
+    gSauv='<div class="reg-g reg-g-fixe"><div class="reg-tete"><span class="reg-nom">Sauvegarde hors site</span>'+
+      '<div class="reg-sous">Une archive chiffrée par nuit, relue après dépôt. '+esc(String(s.garder||30))+' conservées.</div></div>'+
+      '<div class="carte"><div class="lg"><span>Dernière nuit</span><b>'+etatNuit+' · '+esc(quand)+'</b></div>'+
+      '<div class="lg"><span>Copie du mois</span><b>'+etatMois+(m.mois?' · '+esc(m.mois):'')+'</b></div>'+
+      (m.prefixe?'<div class="lg"><span>Où la trouver</span><b class="mono">'+esc(m.prefixe)+'</b></div>':'')+
+      (m.garder?'<div class="lg"><span>Conservées</span><b>'+esc(String(m.garder))+' mois</b></div>':'')+
+      (cles?'<div class="note" style="margin-top:12px"><b>⛔ Pour l’ouvrir sur une autre machine, il faut CES DEUX clés :</b><ul style="margin:6px 0 0 18px">'+cles+'</ul>'+
+        'Sans la seconde, l’archive s’ouvre, les fichiers sont là, et <b>aucune donnée d’entreprise n’est lisible</b>.</div>':'')+
+      '<div style="margin-top:14px"><button type="button" class="btn-fant" onclick="donSauvLancer()">Lancer une sauvegarde maintenant</button></div>'+
+      '</div></div>';
+  }
+
+  /* ── 2. Le retour en arrière ───────────────────────────────────────────────────────── */
+  var a=DON.apercu;
+  var form='<div class="carte"><div class="ttl-carte">Ramener une entreprise à un instant</div>'+
+    '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
+    '<label>Espace (identifiant <span class="mono">t</span>)<input class="inp" id="don-ent" value="'+esc(DON.ent)+'" oninput="donChamp(\'ent\',this.value)" placeholder="elan-34oc" autocomplete="off"></label>'+
+    '<label>Revenir à<input class="inp" id="don-inst" type="datetime-local" value="'+esc(DON.instant)+'" oninput="donChamp(\'instant\',this.value)"></label>'+
+    '<div class="sous">L’instant est celui où <b>le serveur a reçu</b> les données, pas la date que l’appareil leur donne. Un téléphone resté hors ligne une journée pousse d’anciennes dates aujourd’hui : pour défaire ce qu’il a envoyé, viser l’instant d’avant <i>son</i> arrivée.</div>'+
+    '<div><button type="button" class="btn-plein" onclick="donApercu()">Voir ce que ça changerait</button></div>'+
+    '</div></div>';
+
+  var res='';
+  if(DON.chargement) res='<div class="carte"><div class="vide">Lecture du journal…</div></div>';
+  else if(DON.err) res='<div class="carte"><div class="vide">'+esc(DON.err)+'</div></div>';
+  else if(a){
+    var lignes=Object.keys(a.par||{}).map(function(c){
+      var p=a.par[c];
+      return '<div class="lg"><span class="mono">'+esc(c)+'</span><b>'+(p.restaure||0)+' remise(s)'+(p.enterre?' · '+p.enterre+' supprimée(s)':'')+(p.illisible?' · <span class="p-ambre">'+p.illisible+' hors de portée</span>':'')+'</b></div>';
+    }).join('');
+    /* ⛔ UN CORPS PURGÉ SE NOMME, IL NE SE SAUTE PAS. Au-delà de 90 jours le contenu est vidé :
+       un retour qui traverse cette frontière ne PEUT PAS rendre ces enregistrements, et les
+       sauter en silence rendrait un retour partiel présenté comme complet. */
+    /* ⛔ LA CASE COUVRE LES DEUX REFUS DU SERVEUR, PAS UN SEUL. `retourAppliquer` exige
+       `sansLesIllisibles:true` pour passer outre `nIllisibles` ET `troploin` (socle.js). La
+       case ne s'affichait que sur le premier. Or `troploin` sans `nIllisibles` est atteignable :
+       si les seules lignes concernées à cet instant sont des TOMBES, elles sortent de la boucle
+       avant d'être comptées comme illisibles. Dans ce cas l'écran affichait l'avertissement et
+       AUCUNE case — « Appliquer le retour » échouait en 409 pour toujours, sans recours visible.
+       Un écran qui montre un refus sans montrer comment le lever est un écran qui bloque. */
+    var trop=a.troploin?'<div class="note note-ambre">Cet instant est <b>plus ancien que le plus vieux contenu gardé</b> ('+(a.corpsDepuis?esc(new Date(a.corpsDepuis).toLocaleString('fr-FR')):'—')+'). Le retour serait très partiel.</div>':'';
+    var quoiDeBloquant=a.nIllisibles?(a.nIllisibles+' enregistrement(s) ne peuvent pas être ramenés</b> — leur contenu a été purgé (90 jours). On sait qu’ils ont changé, pas ce qu’ils contenaient.')
+      :('Une partie de ce retour est hors de portée</b> — l’instant visé précède le plus vieux contenu gardé.');
+    var alerte=(a.nIllisibles||a.troploin)?'<div class="note note-ambre"><b>'+quoiDeBloquant+' '+
+      '<label class="don-coche"><input type="checkbox" '+(DON.sansIllisibles?'checked':'')+' onchange="DON.sansIllisibles=this.checked"> Revenir quand même, <b>sans eux</b></label></div>':'';
+    var porte=!DON.codeEnvoye
+      ? '<button type="button" class="btn-plein danger" onclick="donDemanderCode()">Demander le code à l’entreprise</button>'
+        +'<div class="sous">Un code à six chiffres part à l’adresse enregistrée de l’entreprise, avec la date visée et ces nombres. Rien n’est écrit tant qu’il n’est pas saisi ici.</div>'
+      : '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'
+        +'<label class="don-code">Code reçu<input class="inp" id="don-code" inputmode="numeric" maxlength="6" value="'+esc(DON.code)+'" oninput="donChamp(\'code\',this.value)"></label>'
+        +'<button type="button" class="btn-plein danger" onclick="donAppliquer()">Appliquer le retour</button></div>';
+    res='<div class="carte"><div class="ttl-carte">Ce que le retour ferait</div>'+
+      '<div class="lg"><span>À remettre en place</span><b>'+(a.nRestaurer||0)+'</b></div>'+
+      '<div class="lg"><span>À supprimer (créés depuis)</span><b>'+(a.nEnterrer||0)+'</b></div>'+
+      /* ⛔ LE POIDS SE MONTRE AVANT, PAS APRÈS. Un retour ÉCRIT : chaque fiche ramenée ajoute au
+         journal une copie de son contenu. Sur une base déjà proche de son plafond, le serveur
+         refusera des lots entiers en cours de route — mieux vaut le voir ici que le découvrir
+         à la moitié du retour. */
+      (a.octetsEnPlus?'<div class="lg"><span>Poids ajouté au socle</span><b>'+Math.round(a.octetsEnPlus/1024)+' Kio</b></div>':'')+
+      (a.nInconnus?'<div class="lg"><span>Sans trace au journal</span><b>'+a.nInconnus+'</b></div>':'')+
+      lignes+trop+alerte+
+      '<div style="margin-top:16px">'+porte+'</div>'+
+      ((a.retours||[]).length?'<div class="reg-sous" style="margin-top:18px">Derniers retours : '+
+        (a.retours||[]).slice(0,3).map(function(r){ return esc(new Date(r.faitLe).toLocaleString('fr-FR'))+' ('+r.restaures+'/'+r.enterres+')'; }).join(' · ')+'</div>':'')+
+      '</div>';
+  }
+
+  var gRetour='<div class="reg-g reg-g-fixe"><div class="reg-tete"><span class="reg-nom">Revenir en arrière</span>'+
+    '<div class="reg-sous">Le journal du socle garde chaque version de chaque fiche pendant 90 jours, par entreprise. Le retour repose l’ancien contenu comme une modification d’aujourd’hui : les appareils l’adoptent, et le retour lui-même reste réversible.</div></div>'+
+    form+res+'</div>';
+
+  return tete+gSauv+gRetour;
+}
+function donSauvLancer(){
+  toast('Sauvegarde lancée…');
+  apiPost('/api/monitor/sauvegarde/lancer',{}).then(function(r){
+    toast(r.ok&&r.d&&r.d.ok?'Sauvegarde réussie.':'Échec : '+((r.d&&r.d.motif)||'motif inconnu'));
+    donCharger();
+  });
 }
 function vueJournal(){
   var A=JR.actions||[], C=JR.cnx||[];

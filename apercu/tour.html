@@ -49,7 +49,7 @@ body{
   --amber:#F0A94A;--red:#F07470;--redText:#F58E8A;--on-red:#1A0606;--gray:#A2A9BA;--bleu:#8DB4FF;--violet:#C4A6FF;
   --vertBg:rgba(62,210,160,.14);--ambreBg:rgba(240,169,74,.15);--rougeBg:rgba(240,116,112,.15);--grisBg:rgba(150,165,195,.14);--bleuBg:rgba(91,141,239,.16);--violetBg:rgba(167,139,250,.16);
   /* ── tuiles d'icônes : identiques jour et nuit, glyphe blanc ≥ 3,6:1 ; Accueil = l'application (la maison, c'est l'application) ── */
-  --ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
+  --ic-donnees:var(--ic-neutre);--ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
   --ic-abonnements:var(--ic-neutre);--ic-devisia:var(--ic-neutre);--ic-acces:var(--ic-neutre);--ic-equipe:var(--ic-neutre);--ic-journal:var(--ic-neutre);
   /* ── ombres : le filet fait le travail ; l'ombre n'est que pour ce qui flotte (menus, feuilles) ── */
   --ic-neutre:rgba(150,165,195,.15);--ic-encre:var(--text2);
@@ -117,7 +117,7 @@ body.jour{
   --green:#0E7060;--green-txt:#0E7060;--vert:#0E7060;
   --amber:#8A5600;--red:#B42B2B;--redText:#B42B2B;--on-red:#FFFFFF;--gray:#5B6070;--bleu:#1B4FBF;--violet:#6D3FC7;
   --vertBg:#E4F1EE;--ambreBg:#F3EDE2;--rougeBg:#F8E9E9;--grisBg:#EEEFF2;--bleuBg:#E8EDF9;--violetBg:#F0ECF9;
-  --ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
+  --ic-donnees:var(--ic-neutre);--ic-accueil:var(--ic-neutre);--ic-surveillance:var(--ic-neutre);--ic-support:var(--ic-neutre);--ic-entreprises:var(--ic-neutre);--ic-connexions:var(--ic-neutre);
   --ic-abonnements:var(--ic-neutre);--ic-devisia:var(--ic-neutre);--ic-acces:var(--ic-neutre);--ic-equipe:var(--ic-neutre);--ic-journal:var(--ic-neutre);
   --ic-neutre:rgba(24,24,27,.07);--ic-encre:var(--text2);
   --ombre-1:0 0 0 1px var(--border);
@@ -451,6 +451,37 @@ input.inp,select.sel-f{display:block;line-height:normal}
    32 px entre deux groupes contre 10 px entre deux clientes et 0 px (un filet) dans un bloc :
    un rapport de 1 à 3 à 32. Les six pixels identiques d'avant ne disaient rien du tout. */
 .reg{display:flex;flex-direction:column;gap:32px}
+/* ⛔⛔ `.lg` ET `.note-ambre` N'EXISTAIENT PAS, ET J'AI CRU LE CONTRAIRE EN CHERCHANT LE MAUVAIS
+   CÔTÉ. Le 20 septembre 2026, ces deux classes ont été écrites dans `vueDonnees` puis
+   « vérifiées » par un `grep class="lg"` qui a rendu neuf lignes — les neuf usages, tous à moi.
+   Aucune règle ne les définissait. Ce que ça donnait à l'écran : les neuf lignes de l'état de
+   sauvegarde se lisaient collées (« Dernière nuitRéussie · 20/09/2026 »), et surtout les DEUX
+   avertissements qui précèdent une écriture dans la base d'un client retombaient sur `.note`
+   — 12 px, gris `--dim`, discret. L'avertissement qui doit arrêter la main, rendu en petits
+   caractères gris.
+   ⚠️ La leçon est celle de `CLAUDE.md` sur les motifs de banc, appliquée au CSS : chercher
+   l'USAGE d'un nom ne prouve rien, c'est sa DÉFINITION qu'il faut voir. Un `grep '\.lg{'`
+   aurait rendu vide en une seconde. */
+.lg{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  min-height:34px;padding:7px 0;border-bottom:1px solid var(--hairline)}
+.lg:last-child{border-bottom:0}
+.lg>span{color:var(--muted);font-size:13px}
+.lg>b{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
+/* L'ambre PORTE un mot, il ne le remplace pas : le texte dit déjà « ne peuvent pas être
+   ramenés ». La couleur ne fait que le rendre impossible à survoler. */
+.note-ambre{color:var(--amberText,var(--amber));background:var(--ambreBg,transparent);
+  border-left:3px solid var(--amber);padding:10px 12px;border-radius:var(--r-1,6px);font-size:13px}
+
+/* ══ Données — le retour en arrière ══ Le plancher tactile vient de `.btn-plein`/`.inp`
+   (ligne « min-height:44px » plus haut) ; ici on ne règle que ce qui leur est propre.
+   ⛔ La case à cocher fait 13 px et ne fera jamais 44 : la cible, c'est son LIBELLÉ. */
+.don-coche{display:flex;align-items:center;gap:10px;min-height:44px;margin-top:6px;cursor:pointer}
+.don-coche input{width:20px;height:20px;flex:0 0 20px}
+/* ⛔ `flex:0 0 160px` débordait à 390 px : une base fixe ne rétrécit pas. La base est la
+   largeur SOUHAITÉE, et `min-width:0` autorise le rétrécissement — sans quoi un flex
+   refuse de passer sous la taille de son contenu, ce qui est la cause habituelle d'un
+   débordement horizontal qu'on ne s'explique pas. */
+.don-code{flex:1 1 160px;min-width:0;max-width:220px}
 .reg-g{min-width:0}
 
 /* Le titre de groupe est le seul texte de cette taille qui ne soit posé sur aucune surface :
@@ -1314,6 +1345,16 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 .mail-rech{display:flex;gap:8px;padding:11px 12px;border-bottom:1px solid var(--line)}
 .mail-rech .rech{flex:1;min-width:0}
 .mail-rows{overflow-y:auto;flex:1}
+/* ⛔ LE DÉCALAGE DE 56 px NE VAUT QUE POUR LA PAGE. `.reg-tete{top:56px}` (bloc téléphone)
+   existe pour que le titre d'un groupe s'arrête SOUS la barre du haut, elle-même sticky sur
+   la page. Mais `.mail-rows` défile TOUT SEUL : il n'y a aucune barre à contourner dedans,
+   donc les 56 px ne décalent plus rien — ils POUSSENT l'en-tête, fond opaque compris, par
+   -dessus la première ligne de la liste. Mesuré au téléphone (390 px), Courrier, groupe
+   « Non rattachées » : en-tête bas à 400 px, première ligne haut à 355 px — 45 px de courrier
+   recouverts, et l'objet du premier message coupé en deux, sans avoir rien fait défiler.
+   Capture de Justin, 14 septembre 2026. Le même en-tête passé en `position:static` rend
+   −7 px : c'est bien le collage, pas la mise en page. */
+.mail-rows .reg-tete{top:0}
 .mail-lect{min-width:0}
 .mail-1{display:block}
 .dos-bar{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px}
@@ -1792,6 +1833,16 @@ body.plans .reg-l.cli::before{display:none}
 .eqp-act.app{display:inline-flex;align-items:center;gap:6px;color:var(--muted)} .eqp-act.app i{width:9px;height:9px;border-radius:3px;background:var(--c);opacity:.45}
 .eqp-act.app.on{color:var(--text);background:var(--surface);box-shadow:inset 0 0 0 1px var(--border)} .eqp-act.app.on i{opacity:1}
 .eq-apps{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px} .eq-apps label{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface);font-size:13px;cursor:pointer}
+/* ⛔ 36 px EST SOUS LE PLANCHER TACTILE, ET CES DEUX CASES DÉCIDENT D'UN ACCÈS.
+   Mesuré au navigateur le 22 septembre 2026, iPhone 430×932 contre un vrai serveur : les
+   deux étiquettes « OP GESTION » et « OP MESSAGES » de l'écran Équipe rendaient 148×36 et
+   240×36 — la case elle-même fait 13×13. C'étaient les SEULES cibles sous 44 px des
+   17 écrans de la Tour, et ce sont celles qui donnent ou retirent une console à quelqu'un :
+   une touche ratée n'est pas un désagrément, c'est un droit mal posé.
+   On n'élargit QUE sur un écran de téléphone : au bureau la densité vaut mieux, et la
+   souris n'a pas besoin de 44 px. */
+@media(max-width:899px){ .eq-apps label{min-height:44px;padding:0 14px}
+  .eq-apps input[type="checkbox"]{width:18px;height:18px;flex:none} }
 .eq-apps label i{width:10px;height:10px;border-radius:3px;background:var(--c)} .eq-apps .sous{color:var(--muted);font-size:12px} .eq-apps input{accent-color:var(--app)}
 .app-sw button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;min-height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:-.005em;cursor:pointer}
 .app-sw button i{width:10px;height:10px;border-radius:3px;background:var(--c);flex-shrink:0}
@@ -2181,7 +2232,7 @@ body.plans .reg-l.cli::before{display:none}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.57</div>
+    <div class="lg-pied">console interne · v2.64</div>
   </div>
 </div>
 
@@ -2220,13 +2271,13 @@ body.plans .reg-l.cli::before{display:none}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.57</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.64</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
   </div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.57</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.64</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2256,7 +2307,7 @@ var APPS_TOUR={
   messages:{cle:'messages',nom:'OP MESSAGES',court:'MESSAGES',tags:['opmessages','opmsg','messages']} };
 /* VUES oubliait 'connexions' alors que renderTabs le dessinait : #connexions ne marchait pas. */
 var VUES_PAR_APP={
-  gestion:['accueil','surveillance','support','entreprises','connexions','abonnements','devisia','essais','equipe','journal'],
+  gestion:['accueil','surveillance','support','entreprises','connexions','abonnements','devisia','essais','donnees','equipe','journal'],
   messages:['accueil','surveillance','entreprises','support','equipe','journal'] };
 function vues(){ return VUES_PAR_APP[APP]||VUES_PAR_APP.gestion; }
 var VUES=VUES_PAR_APP.gestion;   /* compatibilité : quelques lecteurs l'utilisent encore */
@@ -2290,7 +2341,7 @@ function setApp(app,sansAnim,tabVoulu){
   if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; }catch(e){} }
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
   var nom=APPS_TOUR[app].nom;
-  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.57';
+  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.64';
   var pn=$('app-pill-nom'); if(pn) pn.textContent=APPS_TOUR[app].court;
   /* l'onglet demandé par le hash prime (un lien #gestion/entreprises tapé depuis MESSAGES) ; sinon
      le dernier onglet ouvert dans cette console ; sinon l'accueil */
@@ -2503,6 +2554,8 @@ window.addEventListener('hashchange',function(){
 var IC={
   accueil:'<path d="M4 11 12 4l8 7"></path><path d="M6 10v10h12V10"></path>',
   surveillance:'<path d="M3 12h4l2-6 4 12 2-6h6"></path>',
+  /* Un cylindre de base de données : c'est le socle, pas un dossier. */
+  donnees:'<ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path>',
   support:'<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path>',
   entreprises:'<rect x="5" y="4" width="14" height="16" rx="1"></rect><path d="M10 20v-4h4v4"></path><path d="M9 8h2M13 8h2M9 12h2M13 12h2"></path>',
   abonnements:'<rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path>',
@@ -2554,7 +2607,7 @@ function renderTabs(){
      une teinte par destination, jamais un état — le badge rouge chiffré fait le travail. */
   var t=[['accueil','Accueil','gestion messages'],null,['surveillance','Surveillance','gestion messages','bdg-surv'],['support','Support','gestion messages','bdg-supp'],
          null,['entreprises','Entreprises','gestion messages'],['connexions','Connexions clients','gestion'],['abonnements','Abonnements','gestion'],['devisia','Devis IA','gestion'],null,
-         ['essais','Accès','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal de la console','gestion messages']];
+         ['essais','Accès','gestion'],['donnees','Données','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal de la console','gestion messages']];
   var grp=['Activité','Clients','Console'], gi=0, h='', dansGroupe=0, tampon='';
   var pousse=function(){ if(dansGroupe) h+=tampon; tampon=''; dansGroupe=0; };
   t.forEach(function(x){
@@ -2700,6 +2753,11 @@ function setTab(t,sansAnim){
      ouvre Entreprises sans être passé par Accès. */
   if(APP==='messages'&&t==='accueil'){ if(!OPM.loaded) chargerEtatMessages(); if(!ENT.loaded) chargerEntreprises(); }
   if(t==='entreprises'){ if(!ENT.loaded) chargerEntreprises(); if(!CLI.loaded) chargerClients(); if(!PBL.loaded) chargerAccesPublics(); if(!CS.loaded) chargerComptesSite(); }
+  /* L'état de la sauvegarde ne vient PAS de `chargerTout()` : cet écran est le seul à s'en
+     servir, et le charger au démarrage ferait payer une requête à tout le monde pour un
+     onglet que personne n'ouvre la plupart du temps. On le relit à chaque ouverture — une
+     sauvegarde lancée depuis ici doit se voir tout de suite. */
+  if(t==='donnees') donCharger();
   /* Les données de cet onglet ne venaient que de chargerTout() au démarrage : un échec
      réseau à la connexion le figeait sur son message d'erreur pour toute la session. */
   if(t==='essais'){ if(!BT.loaded) chargerEssais(); if(!PBL.loaded) chargerAccesPublics(); }
@@ -2822,19 +2880,80 @@ function chargerEntreprises(){
     ENT.loaded=true; rafraichirSiConcerne();
   }).catch(function(){ ENT.err='Liste des entreprises illisible — serveur injoignable.'; ENT.loaded=true; rafraichirSiConcerne(); });
 }
-/* Miroir de ESPACES_INTOUCHABLES (server/index.js). Deux copies d'une même vérité : le jour
-   où le serveur renverra le champ, on l'utilisera et on supprimera celle-ci. */
-var ESPACES_TECHNIQUES=['elan-gestion','elan-gestion-beta'];
+/* Repli de ESPACES_INTOUCHABLES (server/index.js). Le serveur renvoie désormais le champ
+   `technique` (14 septembre 2026) et c'est LUI qui fait foi — mais cette liste reste, et ce
+   n'est pas de la paresse : la Tour se publie par GitHub Pages, le serveur par le VPS, et les
+   deux n'atterrissent jamais à la même minute. Une Tour neuve qui parle à un serveur d'avant
+   le champ reclasserait `elan-gestion` en « inconnu », donc en entreprise — exactement le
+   défaut qu'on vient de corriger, réapparu pendant l'écart de déploiement.
+   À supprimer quand le serveur du VPS portera le champ depuis assez longtemps pour qu'aucune
+   Tour ouverte ne puisse plus tomber sur l'ancien. */
+/* L'ancien nom de la bêta reste listé pendant la transition : son document existe encore,
+   et sans lui il réapparaîtrait au milieu des entreprises. Voir ESPACES_INTOUCHABLES. */
+var ESPACES_TECHNIQUES=['elan-gestion','elan-gestion-beta','opgestion-beta'];
+/* ⛔ LE NOM ELAN N'APPARAÎT QUE LÀ OÙ ELAN EST LE CLIENT — Justin, 14 septembre 2026 : « je ne
+   veux plus le mot ELAN dans les tests ou autres ; ELAN c'est l'entreprise avec qui on
+   travaille, et nous, tout ce qu'on fait s'appelle TEAM OP ».
+   Ces deux espaces portent « elan-gestion » dans leur identifiant technique parce que le projet
+   Firebase s'appelle ainsi et qu'un identifiant Google ne se renomme pas — jamais, même chez
+   Google. Ce qu'on peut faire, c'est ne plus le MONTRER : la Tour nomme ce que ces espaces
+   sont, pas comment ils sont codés.
+   ⚠️ On garde l'identifiant technique en second, en petit : le jour où il faut chercher dans
+   un journal serveur ou une règle Firestore, c'est lui qu'on tape. Le cacher tout à fait
+   rendrait la console jolie et inutilisable. */
+function nomTechnique(t){
+  if(t==='elan-gestion') return 'Espace par défaut — TEAM OP';
+  if(t==='opgestion-beta') return 'Bêta TEAM OP';
+  if(t==='elan-gestion-beta') return 'Bêta TEAM OP (ancien espace)';
+  return String(t||'');
+}
+/* ⛔ LE NOM AFFICHABLE D'UN ESPACE — une seule définition, et c'est tout l'intérêt.
+   Le 14 septembre, `nomTechnique()` a été branchée sur Entreprises et Connexions clients ;
+   le panneau VERSIONS, la fiche d'un code promo et deux replis du Courrier ont été oubliés,
+   et « elan-gestion » s'y affichait encore en liste avec les entreprises — le mot que Justin
+   demande justement de ne plus voir ailleurs que sur la fiche de son client.
+   `nomTechnique()` rend l'identifiant INCHANGÉ pour tout le reste : passer par ici ne coûte
+   donc rien nulle part, et l'oublier quelque part se voit. `tests/test-682.js` relit le
+   fichier et refuse tout repli « nom sinon identifiant » qui la court-circuiterait. */
+function nomEspace(nom,t){ return String(nom||'')||nomTechnique(t); }
 /* De quelle NATURE est cet espace ? C'est la question que l'écran ne posait pas, et c'est
    pour ça que tout s'y ressemblait. Quatre réponses, quatre traitements. */
 function entNature(o){
-  if(ESPACES_TECHNIQUES.indexOf(o.t)>=0) return 'technique';
+  if(o.technique===true) return 'technique';                  // le serveur l'a dit
+  if(ESPACES_TECHNIQUES.indexOf(o.t)>=0) return 'technique';  // repli : serveur d'avant le champ
   if(!o.dansAnnuaire) return 'inconnu';
   /* `origine` a un repli côté serveur : une entreprise d'avant ce champ, dont l'adresse
      n'est pas dans clientsData, retombe en 'tour'. La formule et le code promo la
      rattrapent — sans quoi une vraie cliente atterrirait dans « Mes essais ». */
   if(o.origine==='site'||(o.formule&&o.formule!=='gratuit')||(o.promo&&o.promo.actif)) return 'cliente';
   return 'mien';
+}
+/* Poser ou retirer le filigrane de remise à zéro. Le serveur n'efface rien — voir ZERO_PATH
+   dans server/index.js. On recharge la liste ET le dossier : les deux portent le chiffre, et
+   n'en rafraîchir qu'un laisserait l'écran se contredire lui-même. */
+function entZeroCompteurs(poser){
+  var t=ENT.sel; if(!t){ toast('Aucune entreprise sélectionnée'); return; }
+  if(poser && !confirm('Repartir à zéro les compteurs de cette entreprise ?\n\nRien n’est effacé : les problèmes déjà signalés restent consultables côté serveur, ils cessent seulement d’être comptés. Tout nouveau problème réapparaîtra aussitôt.')) return;
+  apiPost('/api/monitor/espaces/compteurs-zero',{t:t,annuler:!poser}).then(function(r){
+    if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
+    toast(poser?'Compteurs repartis de zéro':'Historique complet rétabli');
+    JR.actions.unshift({ts:Date.now(),tx:MYNOM+(poser?' a remis à zéro les compteurs d’une entreprise':' a rétabli l’historique complet d’une entreprise')});
+    chargerEntreprises(); entSel(t); entSel(t);   // entSel bascule : deux appels rouvrent la même fiche, rechargée
+  }).catch(function(){ toast('Serveur injoignable'); });
+}
+/* Remettre Surveillance à zéro : tout ce qui est « nouveau » ou « en cours » passe en
+   « ignoré ». Rien n'est effacé, rien n'est envoyé aux clients — « corrigé » aurait déclenché
+   un courriel par problème et par entreprise touchée. */
+function incToutIgnorer(){
+  var n=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
+  if(!n){ toast('Rien à classer'); return; }
+  if(!confirm('Remettre Surveillance à zéro ?\n\n'+n+' problème(s) passent en « ignoré ». Rien n’est effacé — ils restent consultables, et un problème qui se reproduit reviendra de lui-même en « nouveau ». Aucun courriel n’est envoyé aux clients.')) return;
+  apiPost('/api/monitor/issues/tout-ignorer',{}).then(function(r){
+    if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
+    toast((r.d.classes||0)+' problème(s) classé(s)');
+    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a remis Surveillance à zéro ('+(r.d.classes||0)+' problème(s))'});
+    chargerIncidents();
+  }).catch(function(){ toast('Serveur injoignable'); });
 }
 function entQ(v){ ENT.q=v; rafraichirSiConcerne(); }
 /* Cliquer un compteur restreint la liste ; le recliquer la rouvre. C'est le seul geste
@@ -3110,7 +3229,7 @@ function vueConnexions(){
   var natureDe=function(x){
     var o=(ENT.liste||[]).find(function(e){ return e.t===x.t; });
     if(o) return entNature(o);
-    if(ESPACES_TECHNIQUES.indexOf(x.t)>=0) return 'technique';
+    if(x.technique===true||ESPACES_TECHNIQUES.indexOf(x.t)>=0) return 'technique';
     if(!x.slug) return 'inconnu';
     return (x.formule&&x.formule!=='gratuit')?'cliente':'mien';
   };
@@ -3123,17 +3242,17 @@ function vueConnexions(){
       .slice(0,2).map(function(v){ return 'v'+esc(v); }).join(', ');
     var join=function(t){ return t.filter(Boolean).join(' · '); };
     var alertes=r.echecs24
-      ? '<span class="past p-rouge" title="échecs de connexion sur 24 h">🔑 '+r.echecs24+'</span>' : '';
+      ? '<span class="past p-rouge" title="essais de connexion refusés sur 24 h">🔑 '+r.echecs24+' refus</span>' : '';
     if(cliente){
       var l2=join([ r.derniere?'<b>'+cnxDepuis(r.derniere)+'</b>':'',
-                    r.utilisateurs7?r.utilisateurs7+' personne'+(r.utilisateurs7>1?'s':''):'',
+                    r.utilisateurs7?r.utilisateurs7+' pers. connectée'+(r.utilisateurs7>1?'s':''):'',
                     r.appareils7?r.appareils7+' appareil'+(r.appareils7>1?'s':''):'',
-                    r.connexions7?r.connexions7+' connexions / 7 j':'' ]);
+                    r.connexions7?r.connexions7+' connexion'+(r.connexions7>1?'s':'')+' / 7 j':'' ]);
       var l3=join([ vers, r.dernierLogin?'dernier identifiant : '+esc(r.dernierLogin):'',
                     x.formule?esc(x.formule):'' ]);
       return '<button type="button" class="reg-l cli col'+(CNX.sel===x.t?' on':'')+'" onclick="cnxSel(\''+jsq(x.t)+'\')">'+
-        '<span class="reg-av">'+esc(sigle(x.nom||x.t))+'</span>'+
-        '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.nom||x.t)+'">'+esc(x.nom||x.t)+'</span>'+
+        '<span class="reg-av">'+esc(sigle(nomEspace(x.nom,x.t)))+'</span>'+
+        '<span class="reg-txt"><span class="reg-t1" title="'+esc(nomEspace(x.nom,x.t))+'">'+esc(nomEspace(x.nom,x.t))+'</span>'+
           (l2?'<span class="reg-l2">'+l2+'</span>':'')+
           (l3?'<span class="reg-l3">'+l3+'</span>':'')+'</span>'+
         '<span class="reg-fin"><span class="reg-alertes">'+alertes+'</span>'+
@@ -3142,12 +3261,16 @@ function vueConnexions(){
     var muet=(nature==='jamais')
       ? 'aucune connexion remontée (les applications le font à partir de la v550)'
       : join([ r.derniere?cnxDepuis(r.derniere):'jamais connectée',
-               r.utilisateurs7?r.utilisateurs7+' pers. / 7 j':'',
+               r.utilisateurs7?r.utilisateurs7+' pers. connectée'+(r.utilisateurs7>1?'s':'')+' / 7 j':'',
                r.dernierLogin?esc(r.dernierLogin):'' ]);
     return '<button type="button" class="reg-l'+(CNX.sel===x.t?' on':'')+'" onclick="cnxSel(\''+jsq(x.t)+'\')">'+
-      (x.slug?'<span class="reg-av gris">'+esc(sigle(x.nom||x.t))+'</span>'
+      (x.slug?'<span class="reg-av gris">'+esc(sigle(nomEspace(x.nom,x.t)))+'</span>'
              :'<span class="reg-av sans">?</span>')+
-      '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.nom||x.t)+'">'+esc(x.nom||x.t)+'</span>'+
+      /* Un espace technique se nomme par ce qu'il EST, pas par son identifiant Firebase —
+         voir nomTechnique(). Le nom brut « (espace hors annuaire) elan-gestion » laissait
+         croire à une entreprise cliente, et il portait le nom d'un client sur un espace qui
+         ne lui appartient pas. */
+      '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.t)+'">'+esc(x.technique===true?nomTechnique(x.t):nomEspace(x.nom,x.t))+'</span>'+
         '<span class="reg-l2">'+muet+'</span></span>'+
       '<span class="reg-fin"><span class="reg-alertes">'+alertes+'</span>'+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>';
@@ -3157,13 +3280,40 @@ function vueConnexions(){
      groupe vide n'est pas rendu — un titre suivi de rien ne dit rien. */
   var GR_CNX=[
     {cle:'active',titre:'Actives cette semaine',bloc:'reg-cli',
-     test:function(x){ return x.resume.derniere>now-7*86400000; }},
+     test:function(x){ return !x.technique && x.resume.derniere>now-7*86400000; }},
     {cle:'silence',titre:'Silencieuses depuis 7 jours',bloc:'reg-bloc',
      sous:'Elles se sont connectées un jour, plus depuis une semaine. À regarder si ça dure.',
-     test:function(x){ return x.resume.derniere>0 && !(x.resume.derniere>now-7*86400000); }},
+     test:function(x){ return !x.technique && x.resume.derniere>0 && !(x.resume.derniere>now-7*86400000); }},
     {cle:'jamais',titre:'Jamais connectées',bloc:'reg-bloc mien',opt:true,
      sous:'Aucune connexion n’est jamais remontée. Soit personne n’est entré, soit leur application est trop ancienne pour le signaler (avant la v550).',
-     test:function(x){ return !x.resume.derniere; }}
+     test:function(x){ return !x.technique && !x.resume.derniere; }},
+    /* ⛔ EN DERNIER, ET À PART. Demande de Justin, 14 septembre 2026 : « je ne veux plus les
+       autres connexions clients, ce ne sont pas des clients ». Il avait raison — l'espace par
+       DÉFAUT de l'application et celui de la bêta se connectent comme tout le monde, donc ils
+       figuraient parmi les entreprises actives.
+       On les SÉPARE et on les NOMME, on ne les cache pas : l'espace partagé porte encore cinq
+       personnes qui travaillent, et c'est précisément parce que rien ne le signalait qu'elles y
+       sont restées une semaine. Un écran qui tait un problème est pire qu'un écran chargé. */
+    {cle:'technique',titre:'Espaces techniques — jamais des entreprises',bloc:'reg-bloc',opt:true,
+     sous:'L’espace par défaut de l’application et celui de la bêta. Tout appareil qui n’a rejoint aucun espace y signale ses connexions. Ils ne comptent pas dans les entreprises actives — mais s’il s’y connecte du monde, ce sont de vraies personnes au mauvais endroit.',
+     /* ⛔ UN ESPACE TECHNIQUE ÉTEINT DISPARAÎT ; UN ESPACE OÙ IL SE PASSE QUELQUE CHOSE RESTE.
+        Justin, 17 septembre 2026 : « je veux que tout ça disparaisse de la Tour, étant donné
+        qu'il n'y a plus de compte ». Il a raison sur le principe — un espace où plus personne
+        ne va n'est pas une nouvelle, et le laisser affiché fait passer une trace du passé pour
+        un problème en cours.
+        ⛔ MAIS ON NE LE DÉBRANCHE PAS. Le commentaire juste au-dessus dit pourquoi ce panneau
+        existe : cinq personnes sont restées une semaine sur l'espace partagé parce que RIEN ne
+        le signalait. Faire disparaître l'alarme n'éteint pas la cause — c'est la règle que
+        Justin a lui-même posée le 15 septembre : un remède répare le mécanisme, jamais le
+        périmètre.
+        Le critère est donc l'ACTIVITÉ RÉELLE, pas l'existence : rien depuis 7 jours et aucun
+        échec récent → l'espace sort de l'écran tout seul, sans qu'on ait rien à supprimer.
+        Dès que quelqu'un y revient, il reparaît. */
+     test:function(x){
+       if(x.technique!==true) return false;
+       var r=x.resume||{}, j7=Date.now()-7*86400000;
+       return (r.derniere>j7) || (r.utilisateurs7>0) || (r.echecs24>0);
+     }}
   ];
   var grCnx='';
   GR_CNX.forEach(function(g){
@@ -3248,14 +3398,23 @@ function diaToggle(t,on){
    On bascule d'un clic : même clé, même appel, seul le modèle change. */
 function diaMoteur(t,m){ diaEnvoyer({teamId:t,moteur:m}); }
 function diaRetirer(t){ var q=DIA.noms[t]?DIA.noms[t]+' ('+t+')':t; if(confirm('Retirer complètement « '+q+' » de la liste ?')) diaEnvoyer({teamId:t,supprimer:true}); }
-/* Trois natures, une seule fois, avant tout rendu. `x.vu==null` est vrai exactement pour les
-   entrées ajoutées par Object.keys(DIA.equipes) : un code activé à la main dont aucun espace
-   ne s'est jamais connecté. */
+/* Trois natures, une seule fois, avant tout rendu. `x.vu` est la dernière connexion RÉUSSIE
+   de l'espace, et c'est le seul critère : le groupe dit ce qu'il dit, ni plus ni moins.
+   Il a fallu le réparer des deux côtés le 14 septembre. Le serveur lisait `dernier` sur un
+   résumé qui écrit `derniere` — champ absent, donc `vu` vide pour TOUT LE MONDE, donc ELAN
+   et ses 442 connexions rangés parmi les « jamais vu ». Et le commentaire d'ici affirmait
+   que `vu==null` désignait exactement les codes tapés à la main : ce n'était pas vrai, et
+   c'est ce qui rendait la ligne d'ELAN inamovible — le seul bouton du groupe efface une
+   entrée d'ACTIVATION, et ELAN n'en avait aucune.
+   ⚠️ La provenance de la ligne ne peut PAS servir de critère : le serveur rend aussi les
+   codes activés à la main dans sa liste d'espaces (pour qu'une entreprise activée mais
+   jamais revue reste visible). Trier là-dessus vidait le groupe et enlevait à Justin le
+   seul moyen de supprimer une faute de frappe. */
 function diaNature(x){
   var e=DIA.equipes[x.t]||{};
   if(e.actif) return 'actif';
-  if(x.vu==null) return 'coupe';
-  return 'prete';
+  if(x.vu) return 'prete';
+  return 'jamaisvu';
 }
 function vueDevisIA(){
   var tete=enTete('Devis IA',
@@ -3265,11 +3424,13 @@ function vueDevisIA(){
 
   var vus={}, lignes=[];
   (DIA.entreprises||[]).forEach(function(x){ vus[x.t]=1; lignes.push({t:x.t,nom:x.nom,vu:x.vu}); });
+  /* Filet : le serveur rend déjà les codes activés dans sa liste d'espaces. Si l'un lui
+     échappait un jour, il apparaîtrait quand même ici plutôt que de disparaître en silence. */
   Object.keys(DIA.equipes).forEach(function(t){ if(!vus[t]) lignes.push({t:t,nom:DIA.noms[t]||'',vu:null}); });
 
   var actifs=lignes.filter(function(x){ return diaNature(x)==='actif'; });
   var pretes=lignes.filter(function(x){ return diaNature(x)==='prete'; });
-  var mortes=lignes.filter(function(x){ return diaNature(x)==='coupe'; });
+  var mortes=lignes.filter(function(x){ return diaNature(x)==='jamaisvu'; });
   actifs.sort(function(a,b){ return ((DIA.equipes[b.t]||{}).n||0)-((DIA.equipes[a.t]||{}).n||0) || (b.vu||0)-(a.vu||0); });
   pretes.sort(function(a,b){ return (b.vu||0)-(a.vu||0); });
 
@@ -3309,15 +3470,19 @@ function vueDevisIA(){
       '<div class="dia-ctrl"><div class="dia-seg" role="radiogroup" aria-label="Moteur">'+seg+'</div>'+
       '<button type="button" class="btn-fant danger" onclick="diaToggle(\''+jsq(t)+'\',false)">Couper</button></div></div>'; };
 
+  /* Deux boutons, deux questions distinctes — les confondre est ce qui a produit un bouton
+     inopérant. « Activer » s'offre à tout espace pas encore actif. « Retirer de la liste »
+     n'apparaît QUE s'il existe une entrée d'activation à effacer : c'est tout ce que la
+     route sait supprimer. Sur une entreprise qui n'en a jamais eu, il ne ferait rien. */
   var ligne=function(x,morte){
-    var t=x.t;
+    var t=x.t, aRetirer=!!DIA.equipes[t];
     return '<div class="reg-l eqp-l'+(morte?' off':'')+'">'+
       (x.vu==null?'<span class="reg-av sans">?</span>':'<span class="reg-av gris">'+esc(sigle(x.nom||t))+'</span>')+
       '<span class="reg-txt"><span class="reg-t1'+(x.nom?'':' ident')+'" title="'+esc(x.nom||t)+'">'+esc(x.nom||t)+'</span>'+
       '<span class="reg-l2"><span class="mono">'+esc(t)+'</span>'+(x.vu?' · vu le '+esc(fmtJour(x.vu)):'')+'</span></span>'+
       '<span class="reg-fin">'+
-      (morte?'<button type="button" class="eqp-act sup dia-act" onclick="diaRetirer(\''+jsq(t)+'\')">Retirer de la liste</button>'
-            :'<button type="button" class="eqp-act rou dia-act" onclick="diaToggle(\''+jsq(t)+'\',true)">✨ Activer</button>')+
+      '<button type="button" class="eqp-act rou dia-act" onclick="diaToggle(\''+jsq(t)+'\',true)">✨ Activer</button>'+
+      (aRetirer?'<button type="button" class="eqp-act sup dia-act" onclick="diaRetirer(\''+jsq(t)+'\')">Retirer de la liste</button>':'')+
       '</span></div>'; };
 
   var G=[];
@@ -3327,8 +3492,8 @@ function vueDevisIA(){
   if(pretes.length) G.push(jrGroupe('Prêtes à activer',pretes.length,
     'Ces espaces se connectent déjà à l’application. Activer est immédiat, et l’entreprise ne reçoit ni clé ni code : la fonction se met simplement à marcher chez elle.',true,
     '<div class="reg-bloc">'+pretes.map(function(x){ return ligne(x,false); }).join('')+'</div>'));
-  if(mortes.length) G.push(jrGroupe('Accès coupés, espace jamais vu',mortes.length,
-    'Un code activé à la main dont aucun espace ne s’est jamais connecté. Soit le code était faux, soit l’entreprise n’a jamais ouvert l’application.',false,
+  if(mortes.length) G.push(jrGroupe('Jamais connectées à l’application',mortes.length,
+    'Aucune connexion réussie n’a jamais été enregistrée pour ces espaces. Soit l’entreprise a reçu son lien et ne l’a pas encore ouvert, soit le code a été tapé avec une faute. « Retirer de la liste » efface l’activation du Devis IA — elle ne supprime ni l’espace ni l’entreprise.',false,
     '<div class="reg-bloc mien">'+mortes.map(function(x){ return ligne(x,true); }).join('')+'</div>'));
   var registre=G.length?'<div class="reg" style="margin-top:26px">'+G.join('')+'</div>'
     :'<div class="vide-espace">'+videTour('','Aucune entreprise connue pour l’instant. Les espaces apparaissent ici dès qu’ils se connectent à l’application ; en attendant, un code peut être activé à la main ci-dessous.','',false)+'</div>';
@@ -3374,7 +3539,16 @@ async function tourEspaceDe(email,nom,ident,mdp,neuf,origine){
   if(neuf){ try{ delete reg[email]; localStorage.setItem('tour_liens',JSON.stringify(reg)); }catch(e){} sp=null; }
   if(sp){ var maj=false;
     if(ident&&sp.a!==ident){ sp.a=ident; maj=true; }
-    if(mdp&&sp.m!==mdp){ sp.m=mdp; maj=true; }
+    /* ⛔ ON N'ÉCRASE PAS LE MOT DE PASSE MÉMORISÉ. Cette ligne disait `if(mdp&&sp.m!==mdp)` :
+       inoffensif tant que `tourMdpDefaut` était DÉTERMINISTE (les deux valeurs étaient égales,
+       rien ne bougeait), elle est devenue une corruption le jour où il a été tiré au sort —
+       chaque ouverture du panneau remplaçait le vrai mot de passe de l'entreprise par un
+       hasard neuf, y compris sur le navigateur qui l'avait créé. Trouvé par l'agent
+       `relecteur` avant publication, en rejouant les deux blocs.
+       Ce qui est mémorisé ici a été DONNÉ au client et haché par le serveur : ça ne se
+       remplace que lors d'une création réelle (plus bas) ou d'un « repartir à neuf ». On ne
+       comble donc qu'un trou. */
+    if(mdp&&!sp.m){ sp.m=mdp; maj=true; }
     if(email&&sp.e!==email){ sp.e=email; maj=true; }
     if(maj){ reg[email]=sp; localStorage.setItem('tour_liens',JSON.stringify(reg)); } }
   /* ⛔ LE SERVEUR EST LA SOURCE DE VÉRITÉ DU LIEN, PAS CE NAVIGATEUR. Mesuré le 12 septembre
@@ -3398,10 +3572,19 @@ async function tourEspaceDe(email,nom,ident,mdp,neuf,origine){
     }
     if(connu){
       /* Plus de `lien` : aucun panneau ne l'affiche, et la route ne le rend plus. Le mot de
-         passe provisoire, lui, ne vient pas non plus du serveur — on garde celui qu'on a sous
-         la main, sinon celui que la fiche recalcule. */
+         passe provisoire, lui, ne vient pas non plus du serveur — on rend celui qu'on a sous la
+         main, et RIEN quand on ne l'a pas.
+         ⛔ IL Y AVAIT UN `||mdp` ICI, et il rendait tout le reste inutile : `mdp` est un tirage
+         au sort, donc jamais vide, donc `e.mdp` jamais vide, donc `mdpInconnu` jamais vrai et
+         le message « inconnu sur cet appareil » jamais affiché. Le panneau montrait à la place
+         un mot de passe inventé à la seconde — et le bouton « Envoyer par e-mail au client »
+         l'envoyait. C'est exactement l'inverse de ce que ce correctif annonce. Rendre vide est
+         la seule réponse honnête quand ce navigateur n'a pas la trace. */
       return { nom:(connu.nom||nom||email), slug:connu.slug,
-               ident:(connu.ident||ident||'admin'), mdp:((sp&&sp.m)||mdp||'') };
+               ident:(connu.ident||ident||'admin'), mdp:((sp&&sp.m)||''),
+               /* Combien de comptes l'espace connaît déjà. Zéro = le code d'accès est encore
+                  sa seule porte ; au-dessus, l'adresse et l'identifiant suffisent. */
+               annuaire:Number(connu.annuaire)||0 };
     }
   }
   if(!sp&&!neuf){
@@ -3454,16 +3637,19 @@ function tourIdentDefaut(email){
   p=p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
   return p||'admin';
 }
-/* ⛔ MÊME CORRECTIF QUE DANS tour.html, ET IL EST OBLIGATOIRE ICI AUSSI. Cet aperçu est une
-   COPIE de conception, figée au 13 septembre 2026 — mais il est réellement servi sur
-   teamop.fr/apercu/tour.html, avec la même API de production. Il est protégé par
-   l'authentification patron, donc inexploitable par un visiteur ; ce qui compte, c'est qu'un
-   clic de travers dessus au lieu de la vraie Tour GÉNÉRAIT des mots de passe devinables pour
-   de vrais clients. Signalé par l'agent `relecteur` le 15 septembre 2026.
-   Le défaut : cette fonction rendait le NOM DE FAMILLE du client + « !! » pendant que
-   `tourIdentDefaut` rend son PRÉNOM — sur une route de connexion publique, pour une entreprise
-   dont l'adresse s'écrit sur un camion. On ne touche RIEN d'autre dans ce fichier : c'est un
-   aperçu de design, sa mise en page doit rester celle qu'on compare. */
+/* ⛔ UN MOT DE PASSE PROVISOIRE NE SE DEVINE PAS. Signalé par Justin le 15 septembre 2026 :
+   « le lien de connexion, je le trouve dangereux ». Il avait raison, et c'était pire que ça en
+   avait l'air. Cette fonction rendait le NOM DE FAMILLE du client suivi de « !! », pendant que
+   `tourIdentDefaut` rend son PRÉNOM. Pour Florian Duflot chez une entreprise dont l'adresse
+   s'écrit sur un camion, ça donne : identifiant `florian`, mot de passe `Duflot!!` — et
+   /api/espaces/connexion est une route PUBLIQUE. Prénom et nom sont sur le site du client, sur
+   son devis, sur LinkedIn : n'importe qui pouvait entrer chez lui tant qu'il n'avait pas changé
+   son mot de passe. Et on a découvert le même jour que des comptes ne l'avaient jamais changé.
+   Désormais tiré au sort, avec l'alphabet des choses qu'on dicte au téléphone : ni O/0, ni I/l/1.
+   ⚠️ Conséquence à connaître : il n'est plus RECALCULABLE. Un espace déjà créé dont ce
+   navigateur n'a pas gardé la trace n'a plus de mot de passe à afficher — et c'est honnête,
+   voir `mdpInconnu` dans tourLienEntreprise. Avant, on en affichait un qui était de toute façon
+   faux dès que le client avait changé le sien. */
 function tourMdpDefaut(){
   var al='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', m='', i;
   try{
@@ -3532,15 +3718,36 @@ async function tourLienEntreprise(email,nom,neuf,identConnu){
   var mdp=tourMdpDefaut();
   var e=await tourEspaceDe(email,nom,ident,mdp,neuf);
   if(!e) return;   // refus du serveur ou serveur injoignable : tourEspaceDe a déjà dit quoi
-  var mdpAff=e.mdp||mdp;
+  /* ⛔ ON NE FABRIQUE PAS UN MOT DE PASSE QUE LE SERVEUR N'A JAMAIS HACHÉ. Quand l'espace
+     existe déjà et que CE navigateur n'en a pas gardé la trace (la Tour ouverte depuis le
+     téléphone plutôt que depuis le Mac), il n'y a rien à afficher — et depuis que le mot de
+     passe est tiré au sort, le recalculer donnerait une valeur inventée que le client
+     taperait en vain. On le dit. Le chemin de secours existe : « Mot de passe oublié ? » sur
+     l'écran de connexion, maintenant que chaque compte doit avoir une adresse e-mail. */
+  var mdpInconnu=!e.mdp && (e.annuaire||0)>0;
+  var mdpAff=e.mdp||(mdpInconnu?'':mdp);
   var debut=neuf?'Bonjour,\n\nPour des questions de sécurité et une mise à jour exceptionnelle, ton espace OP GESTION a été RÉINITIALISÉ : tu repars sur une version toute propre, stable et finie. Tout est à recréer (utilisateurs, clients…), mais sur une base saine — et clique le nouveau lien sur CHAQUE appareil de l\'équipe.\n\n':'Bienvenue sur OP GESTION !\n\n';
   var adr='teamop.fr/e/'+(e.slug||espSlugJs(e.nom));
-  /* Le code d'accès arrive APRÈS (tourAccesCharger le pose) : on laisse un repère plutôt que
+  /* ⛔ LE CODE D'ACCÈS NE SORT PLUS DÈS QUE L'ESPACE PEUT S'EN PASSER — demande de Justin,
+     14 septembre 2026 : « je veux plus de code ». Ce n'est pas un retrait cosmétique : une
+     adresse se retient et s'écrit sur un camion, un code de dix caractères se perd, se
+     retape de travers et se redemande. Depuis que le serveur sème un compte de départ à la
+     création de l'espace, l'adresse + l'identifiant + le mot de passe provisoire suffisent :
+     le code n'ouvre plus rien que l'identifiant n'ouvre déjà.
+     ⚠️ MAIS IL RESTE AFFICHÉ QUAND `annuaire` VAUT ZÉRO, et c'est ce qui rend le retrait sûr :
+     un espace ancien dont le code ne porte ni « a » ni « mh » ne PEUT PAS être semé (voir le
+     rattrapage au démarrage du serveur), donc le code est sa seule porte. Le cacher là
+     l'enfermerait dehors définitivement. On retire donc le code espace par espace, au rythme
+     où chacun devient capable de s'en passer — jamais en bloc. */
+  var sansCode=(e.annuaire||0)>0;
+  /* Le code arrive APRÈS (tourAccesCharger le pose) : on laisse un repère plutôt que
      d'afficher un message incomplet, ou de faire attendre tout le panneau pour une ligne. */
   var txt=debut+'UNE SEULE ADRESSE À RETENIR, pour toi et pour toute ton équipe :\n'+adr
-    +'\n\nTA TOUTE PREMIÈRE CONNEXION — une seule fois, pour ouvrir l\'espace :\nSur cette adresse, touche « Première connexion de l\'entreprise ? » et entre ton code d\'accès :\n\n     __CODE__'
-    +'\n\nPuis :\n• Identifiant : '+e.ident+'\n• Mot de passe provisoire : '+mdpAff+'\n\nL\'app te fait alors choisir TON vrai mot de passe.\n\nENSUITE, ET POUR TOUTE TON ÉQUIPE — la même adresse :\n'+adr
-    +'\n\nChacun y va, tape SON identifiant et SON mot de passe, et arrive dans ton espace. Rien à conserver, ça marche sur n\'importe quel téléphone — mets-la en favori.\nTu crées les comptes de ton équipe dans Utilisateurs.\n\nGarde ce code pour toi : il ouvre ton espace. On peut le renouveler quand quelqu\'un part.\n\nBonne prise en main !\n— TEAM OP · teamop.fr';
+    +(sansCode?'' :'\n\nTA TOUTE PREMIÈRE CONNEXION — une seule fois, pour ouvrir l\'espace :\nSur cette adresse, touche « Première connexion de l\'entreprise ? » et entre ton code d\'accès :\n\n     __CODE__')
+    +'\n\n'+(sansCode?'POUR ENTRER :':'Puis :')+'\n• Identifiant : '+e.ident+'\n• Mot de passe provisoire : '+(mdpInconnu?'(à te faire redonner — voir plus bas)':mdpAff)+'\n\nL\'app te fait alors choisir TON vrai mot de passe.\n\nPOUR TOUTE TON ÉQUIPE — la même adresse :\n'+adr
+    +'\n\nChacun y va, tape SON identifiant et SON mot de passe, et arrive dans ton espace. Rien à conserver, ça marche sur n\'importe quel téléphone — mets-la en favori.\nTu crées les comptes de ton équipe dans Utilisateurs.'
+    +(sansCode?'':'\n\nGarde ce code pour toi : il ouvre ton espace. On peut le renouveler quand quelqu\'un part.')
+    +'\n\nBonne prise en main !\n— TEAM OP · teamop.fr';
   tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">🔗 Lien de connexion — '+esc(e.nom)+'</div>'+
     '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">Tout est prêt. Vérifie, puis envoie-lui l\'e-mail en un clic.</div>'+
     '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— c\'est CE lien qu\'on donne aux équipes</span></div>'+
@@ -3558,15 +3765,23 @@ async function tourLienEntreprise(email,nom,neuf,identConnu){
          `tourEspaceDe`), et c'est ce qui a produit elan-d4v8, elan-tzl2, elan-gq3k.
        Une adresse, un code. Éprouvé sur banc : nom + code d'accès → l'espace s'ouvre, clé
        comprise, sans qu'elle ne voyage en clair. */
+    /* ⛔ AFFICHÉ SEULEMENT QUAND IL SERT ENCORE. Tant que l'espace n'a aucun compte, le
+       code est sa seule porte et le cacher l'enfermerait dehors. Dès le premier compte
+       semé, il n'ouvre plus rien que l'identifiant n'ouvre déjà : il disparaît, de l'écran
+       ET du message envoyé au client. */
+    (sansCode?'':
     '<div class="sec">SON CODE D\'ACCÈS <span style="color:var(--muted);font-weight:400;text-transform:none">— pour la TOUTE PREMIÈRE connexion, une seule fois</span></div>'+
     '<div style="color:var(--muted);font-size:12px;margin:6px 0 0">Sur l\'adresse ci-dessus, « Première connexion de l\'entreprise ? », puis ce code. Ensuite l\'identifiant suffit, pour tout le monde. À renouveler quand quelqu\'un part.</div>'+
     '<div id="lg-acces-zone" style="display:flex;gap:8px;align-items:center;margin:6px 0 14px">'+
       '<span id="lg-acces" class="mono" style="flex:1;font-size:19px;letter-spacing:.24em;font-weight:800">…</span>'+
       '<button class="btn-fant" onclick="tourCopie(\'lg-acces\',this)">Copier</button>'+
       '<button class="btn-fant" onclick="tourAccesNeuf(\''+jsq(e.slug||e.nom)+'\')">🔄 Renouveler</button></div>'+
-    '<div id="lg-acces-quand" style="color:var(--muted);font-size:12px;margin:-8px 0 14px"></div>'+
+    '<div id="lg-acces-quand" style="color:var(--muted);font-size:12px;margin:-8px 0 14px"></div>'
+    )+
     '<div class="sec">SES IDENTIFIANTS DE DÉPART</div>'+
-    '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b> <span style="color:var(--muted);font-size:12px">(son prénom)</span><br>Mot de passe provisoire : <b>'+esc(mdpAff)+'</b> <span style="color:var(--muted);font-size:12px">(son nom + « !! » — l\'app lui fait choisir son vrai mot de passe à la 1re connexion)</span></div>'+
+    '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b> <span style="color:var(--muted);font-size:12px">(son prénom)</span><br>Mot de passe provisoire : '+(mdpInconnu
+      ? '<span style="color:var(--amber,#B45309);font-weight:700">inconnu sur cet appareil</span> <span style="color:var(--muted);font-size:12px">— il a été montré depuis un autre navigateur. Si la personne ne l\'a plus : « Mot de passe oublié ? » sur l\'écran de connexion lui envoie un code par e-mail.</span>'
+      : '<b>'+esc(mdpAff)+'</b> <span style="color:var(--muted);font-size:12px">(tiré au sort — l\'app lui fait choisir son vrai mot de passe à la 1re connexion)</span>')+'</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px"><button class="btn-plein" onclick="tourMailAcces(\''+jsq(e.nom)+'\',this)">📧 Envoyer par e-mail au client</button>'+
     (neuf?'':'<button class="btn-fant" style="color:var(--redText)" onclick="tourRepartirNeuf(\''+jsq(email)+'\',\''+jsq(e.nom)+'\')">🔄 Repartir à neuf</button>')+
     '<a class="btn-fant" id="lg-mailto" style="text-decoration:none;opacity:.45;pointer-events:none" href="#" title="Il faut d\'abord un code d\'accès">✉️ Ou ouvrir dans Mail</a></div>'+
@@ -3576,7 +3791,12 @@ async function tourLienEntreprise(email,nom,neuf,identConnu){
   /* Le message et le lien mailto ne se posent qu'APRÈS le code d'accès : un courriel envoyé
      avec « __CODE__ » en toutes lettres, et le client n'a aucun moyen d'entrer chez lui. */
   LG_MSG_MODELE=txt; LG_MAIL=email; LG_ZONE='lg-msg';
-  tourAccesCharger(e.slug||e.nom);
+  /* Sans code à montrer, rien à aller chercher : on pose le message tout de suite. Appeler
+     tourAccesCharger ici demanderait au serveur un code qu'on a décidé de ne plus utiliser,
+     et laisserait le bouton « Ou ouvrir dans Mail » grisé — lgMessagePoser ne l'active que
+     s'il reçoit un code. On lui passe donc l'identifiant : il y a bien de quoi écrire. */
+  if(sansCode) lgMessagePoser(e.ident||' ');
+  else tourAccesCharger(e.slug||e.nom);
 }
 /* Le modèle du message, en attente de son code d'accès. Depuis qu'il n'y a plus de lien de
    première connexion, ce code EST la porte d'entrée : le message ne se pose donc qu'une fois
@@ -3683,21 +3903,24 @@ function espSlugJs(x){ return String(x||'').trim().toLowerCase().normalize('NFD'
    favoris et les liens déjà donnés cessent de fonctionner le jour même. */
 function tourAccesRenommer(slug,nom){
   if(!slug){ toast('Espace sans identifiant technique'); return; }
-  var v=prompt('Nouveau nom pour « '+(nom||slug)+' »\n\n⚠️ Le nom EST l’adresse : teamop.fr/e/'+espSlugJs(nom||slug)+' deviendra teamop.fr/e/<nouveau-nom>.\nL’ancienne adresse cessera de fonctionner — préviens l’entreprise.',nom||slug);
+  /* ⛔ L'ADRESSE NE BOUGE PLUS (14 septembre 2026, décision de Justin). Cet écran promettait
+     l'inverse — « l'ancienne adresse cessera de fonctionner, préviens l'entreprise » — et la
+     promesse était tenue : un clic distrait coupait la porte d'entrée de toute une équipe,
+     celle qu'elle a mise en favori et écrite sur ses devis. Renommer ne change désormais que
+     ce qui s'affiche. Dire le contraire ici ferait hésiter sur un geste devenu sans danger. */
+  var v=prompt('Nouveau nom d’affichage pour « '+(nom||slug)+' »\n\n✅ Son adresse teamop.fr/e/'+(slug||espSlugJs(nom||slug))+' ne change PAS — elle est posée à la création et ne bouge plus jamais.\nSeul le nom affiché change, dans la Tour et sur son écran de connexion.',nom||slug);
   if(v===null) return;
-  v=String(v).trim(); if(!v||!espSlugJs(v)){ toast('Il faut un nom avec des lettres ou des chiffres'); return; }
-  if(espSlugJs(v)===espSlugJs(nom||slug)){ toast('C’est déjà ce nom'); return; }
+  v=String(v).trim(); if(!v){ toast('Il faut un nom'); return; }
+  if(v===String(nom||'').trim()){ toast('C’est déjà ce nom'); return; }
   apiPost('/api/monitor/espaces/renommer',{slug:slug,nouveau:v}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Renommage impossible.'); return; }
     JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a renommé l’espace « '+(nom||slug)+' » en « '+v+' »'});
     chargerAccesPublics(); chargerClients();
     tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">✏️ Renommé — '+esc(v)+'</div>'+
-      '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">La nouvelle adresse marche tout de suite. L’ancienne ne marche plus : redonne celle-ci à l’entreprise.</div>'+
-      '<div class="sec">SA NOUVELLE ADRESSE</div>'+
+      '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">Rien à redonner à l’entreprise : son adresse n’a pas changé.</div>'+
+      '<div class="sec">SON ADRESSE, INCHANGÉE</div>'+
       '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span id="rn-adr" class="mono" style="flex:1;word-break:break-all;font-size:14px;color:var(--link);font-weight:700">'+esc(r.d.adresse||'')+'</span><button class="btn-fant" onclick="tourCopie(\'rn-adr\',this)">Copier</button></div>'+
-      /* ⛔ Plus de lien ici non plus : renommer change l'ADRESSE, c'est la seule chose à
-         redonner. Le code d'accès, lui, ne bouge pas — il est attaché à l'espace, pas au nom. */
-      '<div class="encart"><div class="encart-tx">Les appareils déjà connectés ne bougent pas : ils gardent leur espace et leurs données. Seule l’adresse d’entrée a changé.</div></div>');
+      '<div class="encart"><div class="encart-tx">Une adresse est posée à la création et ne bouge plus jamais : c’est celle que l’équipe a mise en favori. Renommer ne touche qu’au nom affiché — ici et sur l’écran de connexion.</div></div>');
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 function tourAccesSuspendre(slug,nom,rouvrir){
@@ -4077,6 +4300,7 @@ function renderVue(v){
   else if(TAB==='abonnements') v.innerHTML=vueAbonnements();
   else if(TAB==='devisia') v.innerHTML=vueDevisIA();
   else if(TAB==='essais') v.innerHTML=vueEssais();
+  else if(TAB==='donnees') v.innerHTML=vueDonnees();
   else if(TAB==='equipe') v.innerHTML=vueEquipe();
   else if(TAB==='journal') v.innerHTML=vueJournal();
   if(v.classList.contains('entre')) compterKpi(v);
@@ -4114,7 +4338,9 @@ function incDeLaConsole(){ return INC.list.filter(function(i){ return appVisible
    accueil qui n'en montre que 2, c'est ce qu'on aurait lu. */
 function incCompteurs(){ var c={}; incDeLaConsole().forEach(function(i){ var k=i.statut||'nouveau'; c[k]=(c[k]||0)+1; }); return c; }
 function incOuverts(){ return incDeLaConsole().filter(function(i){ return i.statut==='nouveau'||i.statut==='encours'; }); }
-function incTitre(i){ return String(i.message||i.categorie||'Incident').split('\n')[0].slice(0,120); }
+/* Le titre part du MESSAGE ; à défaut, l'origine (qui désigne le coupable) avant l'écran
+   ouvert (qui ne désigne rien). */
+function incTitre(i){ return String(i.message||i.origine||i.categorie||'Incident').split('\n')[0].slice(0,120); }
 function entNom(i){ var e=(i.entreprises||[])[0]; return (e&&(e.nom||e.entreprise))||'—'; }
 function paieOk(p){ var s=String(p.statut||'').toLowerCase(); return s==='reussi'||s==='paye'||s==='succeeded'||s==='paid'; }
 
@@ -4476,7 +4702,12 @@ function blocVersions(){
       '<button class="btn-plein" onclick="versionExigerLigne()"'+(ligne?'':' disabled')+'>Exiger la dernière version'+(ligne?' (v'+ligne+')':'')+' pour tout le monde</button>'+
       (min?'<button class="btn-fant" onclick="versionLever()">Lever l’exigence</button>':'')+
     '</div>':'')+
-    (sous.length?'<div style="margin-top:12px">'+sous.map(function(x){ return '<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13px"><span style="flex:1"><b>'+esc(x.nom||x.t)+'</b></span><span class="past p-ambre">'+x.n+' appareil'+(x.n>1?'s':'')+' bloqué'+(x.n>1?'s':'')+'</span></div>'; }).join('')+'</div>':'')+
+    /* ⛔ UN IDENTIFIANT TECHNIQUE N'ARRIVE JAMAIS À L'ÉCRAN COMME UN NOM. Le serveur rend
+       `nom:''` pour un espace hors annuaire, et ce panneau retombait alors sur `x.t` brut :
+       « elan-gestion » et « elan-gestion-beta » s'affichaient au milieu des entreprises, à
+       côté d'ELAN — qui est la seule vraie cliente des trois. C'est le mot qu'on retire
+       partout depuis le 14 septembre, et ce panneau était le dernier oubli. */
+    (sous.length?'<div style="margin-top:12px">'+sous.map(function(x){ return '<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13px"><span style="flex:1"><b>'+esc(nomEspace(x.nom,x.t))+'</b></span><span class="past p-ambre">'+x.n+' appareil'+(x.n>1?'s':'')+' bloqué'+(x.n>1?'s':'')+'</span></div>'; }).join('')+'</div>':'')+
     (d.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(d.maj))+(d.par?' par '+esc(d.par):'')+'</div>':'');
 }
 function vueSurveillance(){
@@ -4642,7 +4873,14 @@ function vueSurveillance(){
 
   var ouverts=incOuverts().length;
   /* Un compte se lit APRÈS la commande qui le produit, pas au-dessus. */
-  return enTete('Surveillance',SURV_DESC)+kpis+filtres+
+  /* ⛔ LE BOUTON EST SOUS LES CHIFFRES, PAS DANS L'EN-TÊTE. Il ne se clique qu'après avoir lu
+     combien de problèmes on s'apprête à classer — le mettre en haut à droite en ferait un
+     réflexe, et une surveillance qu'on vide par réflexe ne surveille plus rien. Il disparaît
+     quand il n'y a rien à classer : un bouton qui ne fait rien apprend à cliquer pour rien. */
+  var _aClasser=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
+  var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
+    '<span style="font-size:12px;color:var(--muted);margin-left:10px">passe en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
+  return enTete('Surveillance',SURV_DESC)+kpis+zeroBtn+filtres+
     '<div class="svl-compte">'+nomsG.length+' entreprise'+(nomsG.length>1?'s':'')+' · '+l.length+' problème'+(l.length>1?'s':'')+' affiché'+(l.length>1?'s':'')+' · '+ouverts+' ouvert'+(ouverts>1?'s':'')+'</div>'+
     (groupesRendus?'<div class="reg">'+groupesRendus+'</div>':listeVide)+saines+legende+
     /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents,
@@ -4720,6 +4958,38 @@ function vueIncident(i){
      écrit depuis des mois. La console tenait les deux côte à côte sans jamais les relier. */
   incCtxCharger(i.id);
   var cx=INC.ctx[i.id];
+  /* ⛔ LE FAIT D'ABORD, LA DÉDUCTION ENSUITE — ET ON DIT LAQUELLE DES DEUX ON LIT.
+     Justin, 15 septembre 2026, sur le dossier « Interface figée pendant 3 285 ms » : « je veux
+     voir quel utilisateur ». Cette carte ne montrait qu'une DÉDUCTION — la dernière session
+     ouverte avant l'horodatage, prise dans le journal des connexions. Chez une équipe de onze
+     c'est faux une fois sur deux, et ça nomme quelqu'un qui n'y était pour rien.
+     Depuis la v683, l'application NOMME l'identifiant qu'elle avait devant elle, et le serveur
+     le recoupe avec son propre journal des connexions avant de le retenir (`ent.gens`) : le nom
+     et le rôle affichés sortent de ce journal, jamais du rapport. C'est ce recoupement qui
+     autorise à parler de fait — la première écriture de ce correctif affichait « ce n'est pas
+     une déduction » sur des champs que n'importe qui pouvait poster, l'agent `gardien` l'a
+     rejoué en inventant un salarié chez un client réel. Quand le recoupement ne donne rien —
+     incident ancien, appareil sur une version antérieure — on garde la déduction, mais on écrit
+     noir sur blanc que c'en est une. Les deux ne doivent jamais se lire pareil. */
+  var quiExact='';
+  try{
+    var gensVus=[];
+    (i.entreprises||[]).forEach(function(e){
+      ((e&&e.gens)||[]).forEach(function(g){ if(g&&g.login) gensVus.push({ent:e.nom||'—',g:g}); });
+    });
+    gensVus.sort(function(a,b){ return (b.g.lastTs||0)-(a.g.lastTs||0); });
+    if(gensVus.length) quiExact='<div style="padding-bottom:4px">'+
+      '<div style="font-size:12px;font-weight:700;color:var(--vert,#1E7A4E);letter-spacing:.02em">✅ CONFIRMÉ PAR LE JOURNAL DES CONNEXIONS</div>'+
+      gensVus.map(function(x){
+        return '<div style="padding:9px 0;border-top:1px solid var(--hairline)">'+
+          '<div style="font-size:13.5px;font-weight:600">'+esc(x.ent)+'</div>'+
+          '<div style="font-size:13px;margin-top:2px">'+esc(x.g.nom||x.g.login)+
+            ' <span class="mono" style="color:var(--muted)">'+esc(x.g.login)+'</span>'+
+            (x.g.role?' <span style="color:var(--muted)">· '+esc(x.g.role)+'</span>':'')+'</div>'+
+          '<div style="font-size:12px;color:var(--muted);margin-top:2px">'+
+            (x.g.count>1?x.g.count+' fois':'1 fois')+(x.g.lastTs?' · dernière '+esc(fmtJour(x.g.lastTs)):'')+'</div></div>';
+      }).join('')+'</div>';
+  }catch(e){ quiExact=''; }
   var quiHtml;
   if(!cx||cx.charge) quiHtml='<div style="font-size:13px;color:var(--muted);padding-top:6px">Recherche des sessions ouvertes au moment de l’erreur…</div>';
   /* msgErreur rend déjà une phrase ponctuée : en recoller un point donnait « … dans un
@@ -4793,7 +5063,13 @@ function vueIncident(i){
     fait('Dernière fois',esc(fmtDate(i.lastTs))+' ('+esc(fmtAgo(i.lastTs))+')');
   var ctx=fait('Application',esc(APP_L[i.app]||i.app||'—'))+
     fait('Version signalée',i.version?('v'+esc(i.version)):'non transmise')+
-    fait('Catégorie',esc(i.categorie||'—'))+
+    /* ⛔ « Catégorie » MENTAIT PAR CONSTRUCTION, et ça a envoyé un diagnostic au mauvais endroit
+       le 15 septembre 2026 : ce champ nomme l'écran qui était OUVERT, jamais celui d'où vient
+       l'erreur. Un rejet d'IndexedDB rangé sous « Plans », où il n'y a pas une ligne
+       d'IndexedDB. Le libellé dit maintenant ce que la valeur est — et l'ORIGINE, elle, la
+       vraie, arrive à côté quand l'application sait la calculer (v692+). */
+    fait('Écran ouvert',esc(i.categorie||'—')+' <span class="g">— ce que la personne regardait, pas forcément la cause</span>')+
+    (i.origine?fait('Origine','<b class="mono">'+esc(i.origine)+'</b> <span class="g">— la fonction en haut de la pile, celle qui a vraiment échoué</span>'):'')+
     fait('Page / fichier',i.src?('<span class="mono">'+esc(String(i.src).split('/').pop())+(i.line?' · ligne '+esc(String(i.line)):'')+'</span>'):'non transmis');
 
   return '<div class="ent-retour"><button type="button" class="btn-fant" onclick="incRetour()">← Retour'+(INC.grp?' à '+esc(INC.grp):' à la surveillance')+'</button></div>'+
@@ -4827,7 +5103,7 @@ function vueIncident(i){
       carte('OÙ ET QUAND','<div class="kv">'+ctx+freq+'</div>')+
       carte('ENTREPRISES TOUCHÉES',entHtml,'Les clients chez qui ce problème est apparu, et combien de fois chacun.')+
       carte('APPAREILS',appareils,'Le téléphone, la tablette ou l’ordinateur sur lequel le problème est apparu.')+
-      carte('QUI ÉTAIT CONNECTÉ',quiHtml,'La dernière session ouverte avant l’erreur, chez chaque entreprise touchée — et par quel chemin elle est entrée. L’écart est donné : quelqu’un entré le matin peut planter l’après-midi.')+
+      carte('QUI ÉTAIT CONNECTÉ',quiExact+'<div style="font-size:11.5px;color:var(--muted);margin:'+(quiExact?'10px 0 0':'0 0 2px')+';line-height:1.5">'+(quiExact?'Ci-dessous, à titre indicatif : la dernière session ouverte avant l’erreur.':'⚠️ L’application qui a signalé cette erreur ne disait pas encore qui était connecté (avant la v683). Ce qui suit est une <b>déduction</b> — la dernière session ouverte avant l’horodatage, pas forcément la personne qui a vu le problème.')+'</div>'+quiHtml,'Qui a rencontré le problème. Quand l’application l’a dit elle-même, c’est un fait ; sinon, c’est la dernière session ouverte avant l’erreur, et c’est écrit.')+
       carte('NOTES DE L’ÉQUIPE',notes,'Visible par toute l’équipe, gardé dans le dossier.')+
       carte('HISTORIQUE DU DOSSIER',histo)+
     '</div>'+
@@ -4927,7 +5203,8 @@ function incCopier(id){
   var i=INC.list.filter(function(y){ return y.id===id; })[0]; if(!i) return;
   var d=['CORRECTION DEMAND\u00c9E \u2014 dossier pr\u00e9par\u00e9 depuis la console TEAM OP',''];
   d.push('APPLICATION : '+(APP_L[i.app]||i.app||'\u2014')+(i.version?' \u2014 signal\u00e9 en v'+i.version:''));
-  d.push('CAT\u00c9GORIE   : '+(i.categorie||'\u2014'));
+  d.push('\u00c9CRAN OUVERT: '+(i.categorie||'\u2014')+'  (ce que la personne regardait, PAS forc\u00e9ment la cause)');
+  if(i.origine) d.push('ORIGINE     : '+i.origine+'  (la fonction qui a vraiment \u00e9chou\u00e9)');
   d.push('TYPE        : '+(TYPE_L[i.type]||i.type||'\u2014')+' \u00b7 gravit\u00e9 '+GRAV_L[gravite(i)]);
   d.push('MESSAGE     : '+(i.message||''));
   if(i.src) d.push('FICHIER     : '+i.src+(i.line?' ligne '+i.line:''));
@@ -5059,7 +5336,7 @@ function courrierParEnt(){
     /* « Non rattachées » et pas « Pas encore rattachées » : le nom passe dans une colonne de
        238 px, où la version longue se coupait en « Pas encore rattac… ». Un libellé tronqué
        cache une information — c'est la règle de résilience du skill, elle vaut ici aussi. */
-    if(!par[cle]){ par[cle]={ent:e,cle:cle,nom:e?(e.nom||e.t):'Non rattachées',msgs:[]}; ordre.push(cle); }
+    if(!par[cle]){ par[cle]={ent:e,cle:cle,nom:e?nomEspace(e.nom,e.t):'Non rattachées',msgs:[]}; ordre.push(cle); }
     par[cle].msgs.push(m);
   });
   ordre.sort(function(a,b){
@@ -5524,7 +5801,7 @@ function mailListeEnvoyee(){
 function mailEnt(a){ a=String(a||'').toLowerCase();
   /* Même rattachement que la barre latérale, et pas un second : un envoi rangé chez ELAN
      doit porter le nom « ELAN », pas l'adresse brute parce que la fiche client manquait. */
-  var e=courrierEnt(a); if(e) return e.nom||e.t||a;
+  var e=courrierEnt(a); if(e) return nomEspace(e.nom,e.t)||a;
   var c=(CLI.list||[]).find(function(x){ return String(x.email||'').toLowerCase()===a; });
   if(c) return c.entreprise||c.nom||a;
   return (/teamop\.fr$/i.test(a)?'TeamOP (interne)':'')||a||'—'; }
@@ -5787,6 +6064,20 @@ function vueEntreprises(){
      condition impossible à remplir finit par être ignorée. Or c'est la condition n°3 avant de
      refermer la règle Firestore (voir firestore.rules). Elle doit pouvoir être tenue. */
   var aMigrer=(ENT.liste||[]).filter(function(x){ return x.cleEtat==='partagee'; }).length;
+  /* ⛔ UN ZÉRO N'EST PAS UNE PREUVE D'ABSENCE — 14 septembre 2026, payé comptant.
+     Ce compteur a affiché 0 pendant qu'ELAN entière travaillait sur la clé écrite en clair
+     dans app.html : son espace est HORS ANNUAIRE, donc cleEtat rend 'inconnue', donc il sort
+     du filtre ci-dessus. La tâche « déplacer les entreprises restées sur la clé partagée » a
+     été cochée sur ce zéro-là. Le resserrement qui l'a produit était juste (voir le commentaire
+     au-dessus : un compteur qui ne peut pas atteindre zéro finit ignoré) — ce qui manquait,
+     c'est de DIRE que la mesure ne couvre pas tout le monde.
+     On ne compte donc toujours QUE les clés réellement partagées, mais un zéro ne peut plus se
+     lire « chantier fini » tant qu'il reste des espaces dont on ne sait rien. */
+  var cleInconnues=(ENT.liste||[]).filter(function(x){ return x.cleEtat==='inconnue'; }).length;
+  var migrerLib='à migrer (clé partagée)'+
+    ((aMigrer===0&&cleInconnues>0)
+      ? '<span style="display:block;margin-top:4px;font-size:11px;line-height:1.45;color:var(--amber);font-weight:700">mesure incomplète — '+cleInconnues+' espace'+(cleInconnues>1?'s':'')+' dont la clé est inconnue</span>'
+      : '');
   var kpi='<div class="grille-kpi simple" style="--kpi-min:170px;margin-bottom:20px">'+
     compteur(st.total||0,'entreprises connues','','')+
     compteur(st.avecErreurs||0,'erreurs signalées','--redText','erreurs')+
@@ -5795,7 +6086,7 @@ function vueEntreprises(){
     compteur(st.horsAnnuaire||0,'hors annuaire','','horsAnnuaire')+
     /* Le chiffre qui dimensionne le chantier « un teamId par entreprise » : celles qui
        partagent encore la clé écrite en clair dans app.html. À zéro, le chantier est fini. */
-    compteur(aMigrer,'à migrer (clé partagée)',(aMigrer?'--amber':''),'migrer')+
+    compteur(aMigrer,migrerLib,(aMigrer?'--amber':''),'migrer')+
   '</div>'+
   (refKpi?'<div style="font-size:12px;color:var(--muted);margin:-12px 0 18px">Version en ligne : <b class="mono">v'+refKpi+'</b> <span style="color:var(--dim)">— déduite de la plus récente vue chez vos clientes</span></div>':'');
   var q=(ENT.q||'').toLowerCase().trim();
@@ -5830,12 +6121,23 @@ function vueEntreprises(){
        l'écran est le piège classique des filtres. */
     var al=[];
     if(o.erreurs) al.push('<span class="past p-rouge" title="'+o.erreurs+' erreur(s) signalée(s)">🐛 '+o.erreurs+'</span>');
-    if(o.echecs24) al.push('<span class="past p-ambre" title="échecs de connexion sur 24 h">🔑 '+o.echecs24+'</span>');
+    if(o.echecs24) al.push('<span class="past p-ambre" title="essais de connexion refusés sur 24 h">🔑 '+o.echecs24+' refus</span>');
     if(eV.retard) al.push('<span class="past p-ambre" title="Version en ligne : v'+refV+'">⬇ v'+eV.haute+' en retard</span>');
     /* Ces deux-là ne portaient qu'un pictogramme : « ⏸ » pour un espace suspendu — le fait le
        plus grave qu'une fiche puisse porter — et « 🎁 » pour une formule offerte. En niveaux de
        gris, ou pour qui ne distingue pas le rouge du vert, ils ne disaient rien. Le socle est
-       clair : la couleur ne parle jamais seule, toute pastille porte un mot ou un chiffre. */
+       clair : la couleur ne parle jamais seule, toute pastille porte un mot ou un chiffre.
+       ⛔ ET UN CHIFFRE SEUL NE SUFFIT PAS NON PLUS — « 🔑 1 » a mis Justin en erreur le
+       17 septembre 2026 : il y a lu une clé, ou un compte restant, là où on comptait un essai
+       de connexion REFUSÉ. Un `title` n'a jamais sauvé personne sur un téléphone, où il
+       n'existe pas : il n'y a pas de survol au doigt. Une pastille porte donc un MOT.
+       ⛔ MAIS ELLE RESTE COURTE, ET C'EST MESURÉ. Premier essai : « 🔑 1 échec / 24 h ».
+       Au navigateur, à 390 px : la pastille passe de 39 px à 112 px, s'y fait ROGNER (« 🔑 24
+       échecs / 24 h » rendait exactement la même largeur que « 🔑 1 échec / 24 h »), et vole
+       assez de place pour tronquer le NOM de l'espace et sa deuxième ligne, qui tenaient
+       toutes les deux avant. On avait échangé une ambiguïté contre une troncature.
+       « refus » dit la même chose, est invariable au pluriel, et tient en ~70 px. La fenêtre
+       de 24 h vit dans le `title` et dans la fiche : elle précise, elle ne désambiguïse pas. */
     if(o.suspendu) al.push('<span class="past p-rouge" title="Espace suspendu">⏸ Suspendue</span>');
     if(o.promo&&o.promo.actif) al.push('<span class="past p-vert" title="Formule offerte jusqu’au '+esc(o.promo.finLe)+'">🎁 Offerte</span>');
     var alertes=al.slice(0,2).join('')+(al.length>2?'<span class="reg-plus">+'+(al.length-2)+'</span>':'');
@@ -5846,7 +6148,7 @@ function vueEntreprises(){
 
     if(nature==='cliente'){
       var l2=join([ o.formule?'<b>'+esc(o.formule)+'</b>':'',
-                    o.utilisateurs7?o.utilisateurs7+' personne'+(o.utilisateurs7>1?'s':''):'',
+                    o.utilisateurs7?o.utilisateurs7+' pers. connectée'+(o.utilisateurs7>1?'s':''):'',
                     o.appareils7?o.appareils7+' appareil'+(o.appareils7>1?'s':''):'' ]);
       var l3=join([ o.derniere?esc(fmtJour(o.derniere)):'jamais connectée',
                     eV.aucune?'':'v'+eV.haute,
@@ -5914,9 +6216,9 @@ function vueEntreprises(){
      Ils restent atteignables, ils ne sont simplement plus comptés comme des clientes. */
   var tech=l.filter(function(o){ return entNature(o)==='technique'; });
   var pave=tech.length? '<div class="reg-tech"><b>'+tech.length+' espace'+(tech.length>1?'s':'')+' technique'+(tech.length>1?'s':'')+' — jamais des entreprises.</b> '+
-    'Tout appareil qui n’a rejoint aucun espace signale ses connexions dans <span class="mono">elan-gestion</span> (l’application) ou '+
-    '<span class="mono">elan-gestion-beta</span> (la bêta), y compris un visiteur qui rate une connexion sur teamop.fr.<div>'+
-    tech.map(function(o){ return '<button type="button" class="reg-tech-l" onclick="entSel(\''+jsq(o.t)+'\')">'+esc(o.t)+'</button>'; }).join('')+
+    'Ce sont les espaces de TEAM OP, pas des clientes. Tout appareil qui n’a rejoint aucun espace y signale ses connexions — '+
+    'l’espace par défaut pour l’application, la bêta pour les essais — y compris un visiteur qui rate une connexion sur teamop.fr.<div>'+
+    tech.map(function(o){ return '<button type="button" class="reg-tech-l" onclick="entSel(\''+jsq(o.t)+'\')">'+esc(nomTechnique(o.t))+' <span class="mono" style="opacity:.55;margin-left:6px">'+esc(o.t)+'</span></button>'; }).join('')+
     '</div></div>' : '';
 
   /* Deux vides différents, deux phrases différentes : « rien ne correspond » suppose une
@@ -6197,9 +6499,18 @@ function joursRestants(fin){
   try{
     var d=new Date(fin+'T00:00:00'), n=new Date(); n.setHours(0,0,0,0);
     var j=Math.round((d-n)/86400000);
+    /* ⛔ UNE DATE ILLISIBLE NE DOIT RIEN AFFICHER. Sans ce garde, une échéance vide donnait
+       « encore NaN mois » : NaN rate toutes les comparaisons ci-dessous et tombe sur la
+       dernière ligne. Invisible tant que la fonction ne servait que sur la fiche d'une
+       entreprise, dont la date est toujours posée ; elle sert maintenant sur la liste de
+       TOUTES les formules offertes, où `finLe` peut manquer. */
+    if(!fin||!isFinite(j)) return '';
     if(j<0) return 'terminé';
     if(j===0) return 'se termine aujourd’hui';
     if(j===1) return 'plus qu’un jour';
+    /* Sous quinze jours, c'est une relance à préparer : la couleur le dit avant qu'on lise
+       le chiffre. Au-delà, un délai en gris suffit — l'ambre partout ne signalerait rien. */
+    if(j<15) return '<b style="color:var(--amber)">encore '+j+' jours</b>';
     if(j<31) return 'encore '+j+' jours';
     return 'encore '+Math.round(j/30)+' mois';
   }catch(e){ return ''; }
@@ -6222,6 +6533,20 @@ function compteSupprimer(login){
     return apiPost('/api/monitor/compte/supprimer',{t:d.t,login:login,code:String(code).trim()}).then(function(y){
       if(!(y&&y.ok)){ toast('⚠️ '+((y&&y.d&&y.d.error)||'refusé')); return; }
       toast('Suppression ordonnée — l’identifiant ne peut plus entrer ; le compte part au prochain appareil ouvert'); chargerDossier(DOS.nom); });
+  }).catch(function(){ toast('Serveur injoignable'); });
+}
+/* ⛔ LA PORTE DE SORTIE D'UN MOT DE PASSE ORDONNÉ, ET ELLE DOIT ÊTRE VISIBLE. Tant que l'ordre
+   vit, l'annuaire de ce compte est GELÉ sur l'empreinte qu'on vient d'écrire : aucun dépôt de
+   l'entreprise ne le change. C'est ce qui rend l'opération sûre quel que soit l'ordre d'arrivée
+   — et c'est aussi ce qui coincerait quelqu'un si l'ordre n'aboutissait pas. Il se périme tout
+   seul au bout de trente jours ; ça évite d'enfermer à vie, ça ne dépanne personne aujourd'hui.
+   D'où ce lien. Un gel qu'on ne voit pas est une panne silencieuse. */
+function compteMdpAnnuler(login){
+  var d=(DOS&&DOS.d)||{}; if(!d.t) return;
+  if(!confirm('Annuler le mot de passe provisoire ordonné pour « '+login+' » ?\n\nCelui que tu lui as donné ne marchera plus, et son entreprise reprend la main sur son annuaire. À faire si la personne s’est débrouillée autrement, ou si le mot de passe a été perdu.')) return;
+  apiPost('/api/monitor/compte/mdp-annuler',{t:d.t,login:login}).then(function(x){
+    if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
+    toast('Mot de passe ordonné annulé — l’entreprise reprend la main'); chargerDossier(DOS.nom);
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 function compteReautoriser(login){
@@ -6252,6 +6577,75 @@ function comptesInutilisesSupprimer(){
     return apiPost('/api/monitor/comptes/supprimer',{t:d.t,logins:logins,code:String(code).trim()}).then(function(y){
       if(!(y&&y.ok)){ toast('⚠️ '+((y&&y.d&&y.d.error)||'refusé')); return; }
       toast((y.d&&y.d.n||0)+' compte(s) supprimé(s) — ils ne peuvent plus entrer ; ils partent de l’application au prochain appareil ouvert'); chargerDossier(DOS.nom); });
+  }).catch(function(){ toast('Serveur injoignable'); });
+}
+/* ══ REFAIRE UN MOT DE PASSE PROVISOIRE, DEPUIS ICI ═══════════════════════════════════════
+   Justin, 15 septembre 2026, cinq comptes bloqués chez ELAN : « je veux pas un bouton dans le
+   truc utilisateur. Je veux un bouton MOI dans la tour de contrôle s'il y a des erreurs comme
+   ça. C'est à nous de gérer ces problèmes-là. »
+
+   ⛔ LE MOT DE PASSE NE SORT PAS D'ICI. Il est tiré dans ce navigateur, on n'envoie que son
+   empreinte SHA-256 — le serveur ne le voit jamais, `ordres.json` non plus. Il s'affiche une
+   fois, au patron, et il faut le noter : personne ne pourra le redonner.
+
+   ⚠️ ET L'EFFET N'EST PAS INSTANTANÉ, il faut le DIRE et pas le laisser deviner. L'annuaire
+   (la page d'entrée) est à nous, il change tout de suite ; la fiche de la personne vit dans la
+   base CHIFFRÉE de son entreprise, que notre serveur ne peut pas écrire. Elle suit au premier
+   appareil de l'entreprise qui s'ouvre. Entre les deux, la personne passe l'entrée et se fait
+   refuser dans l'application — promettre « c'est fait » ferait un client au téléphone. */
+function mdpTirer(n){ var l=[], i; for(i=0;i<n;i++) l.push(tourMdpDefaut()); return l; }
+function mdpFiche(titre, lignes){
+  tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">'+esc(titre)+'</div>'+
+    '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">Note-les <b>maintenant</b> : ils ne sont écrits nulle part, et personne — nous compris — ne pourra les retrouver.</div>'+
+    '<div class="reg-bloc">'+lignes.map(function(x){
+        return '<div class="reg-l"><span class="reg-txt"><span class="reg-t1 mono">'+esc(x.login)+'</span>'
+             + (x.nom?'<span class="reg-l2">'+esc(x.nom)+'</span>':'')+'</span>'
+             + '<span class="reg-fin"><b class="mono" style="font-size:16px;user-select:all;letter-spacing:.04em">'+esc(x.mdp)+'</b></span></div>'; }).join('')+'</div>'+
+    '<div class="note">⏳ La page de connexion les accepte <b>dès maintenant</b>. Dans l’application, le changement prend effet <b>au premier appareil de l’entreprise qui s’ouvre</b> — quelques minutes en général. Chacun choisira ensuite son vrai mot de passe.</div>');
+}
+/* Un seul compte : le geste de dépannage courant, quand une personne appelle. */
+function compteMdpRefaire(login){
+  var d=(DOS&&DOS.d)||{}; if(!d.t) return;
+  var mdp=tourMdpDefaut();
+  if(!confirm('Refaire le mot de passe de « '+login+' » chez '+(DOS.nom||'cette entreprise')+' ?\n\nSon mot de passe actuel ne marchera plus.\nUn code de confirmation va t’être envoyé par mail.')) return;
+  tourSha256(mdp).then(function(h){
+    return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:[{login:login,h:h}]}).then(function(x){
+      if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
+      var code=prompt('Code reçu par mail'+((x.d&&x.d.dest)?' ('+x.d.dest+')':'')+' :'); if(!code) return;
+      return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:[{login:login,h:h}],code:String(code).trim()}).then(function(y){
+        if(!(y&&y.ok)){ toast('⚠️ '+((y&&y.d&&y.d.error)||'refusé')); return; }
+        mdpFiche('🔑 Mot de passe provisoire — '+login,[{login:login,mdp:mdp}]);
+        chargerDossier(DOS.nom); });
+    });
+  }).catch(function(){ toast('Serveur injoignable'); });
+}
+/* Le lot : tous ceux qui n'ont jamais choisi le leur. C'est le cas d'ELAN — l'administrateur
+   avait refait leurs mots de passe depuis l'application, mais l'annuaire n'avait rien reçu
+   (défaut corrigé en v685), donc il distribuait des mots de passe que la page de connexion ne
+   connaissait pas. Un seul mail, un seul code, tout le lot. */
+function comptesMdpRefaire(){
+  var d=(DOS&&DOS.d)||{}; if(!d.t) return;
+  var cibles=(d.utilisateurs||[]).filter(function(u){ return u.dansAnnuaire&&u.provisoire===true&&!u.attente&&!u.supprime; });
+  if(!cibles.length){ toast('Aucun compte encore sur un mot de passe provisoire'); return; }
+  var mdps=mdpTirer(cibles.length);
+  var lignes=cibles.map(function(u,i){ return {login:u.login, nom:u.nom||'', mdp:mdps[i]}; });
+  var liste=lignes.map(function(x){ return '  · '+x.login+(x.nom?'  ('+x.nom+')':''); }).join('\n');
+  if(!confirm('Refaire le mot de passe provisoire de ces '+lignes.length+' compte(s) chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun n’a encore choisi le sien : personne ne perd un mot de passe qu’il utilise.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
+  Promise.all(lignes.map(function(x){ return tourSha256(x.mdp).then(function(h){ return {login:x.login,h:h}; }); })).then(function(comptes){
+    return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:comptes}).then(function(x){
+      if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
+      var code=prompt('Code reçu par mail'+((x.d&&x.d.dest)?' ('+x.d.dest+')':'')+' :'); if(!code) return;
+      return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:comptes,code:String(code).trim()}).then(function(y){
+        if(!(y&&y.ok)){ toast('⚠️ '+((y&&y.d&&y.d.error)||'refusé')); return; }
+        /* ⛔ ON N'AFFICHE QUE CE QUE LE SERVEUR A VRAIMENT PRIS. Montrer les huit quand il en a
+           accepté six ferait dicter au téléphone deux mots de passe qui n'ouvrent rien. */
+        var pris={}; (y.d&&y.d.logins||[]).forEach(function(l){ pris[l]=1; });
+        var sortis=lignes.filter(function(x2){ return pris[x2.login]; });
+        mdpFiche('🔑 '+sortis.length+' mot(s) de passe provisoire(s)', sortis);
+        var ref=(y.d&&y.d.refuses)||[];
+        if(ref.length) toast('⚠️ '+ref.length+' refusé(s) : '+ref.map(function(r){ return r.login+' — '+r.raison; }).join(' · '),9000);
+        chargerDossier(DOS.nom); });
+    });
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 /* Le bouton demandé par Justin devant la liste d'ELAN (« supprime bien tout ici ») : ces
@@ -6286,6 +6680,20 @@ function blocUtilisateurs(){
   var ligne=function(u){
       var jamais=!u.derniere;
       var p='';
+      /* ⛔ QUI A CHANGÉ SON MOT DE PASSE, ET QUI EST ENCORE SUR LE PROVISOIRE — demande de
+         Justin, 15 septembre 2026. L'information vient de l'annuaire déposé par l'application
+         (la base de l'entreprise est chiffrée, ce serveur ne peut pas la lire) : `provisoire`
+         et `mail` valent true, false, ou `null` quand l'annuaire a été déposé par une version
+         antérieure à la v681. ⚠️ `null` ne s'affiche PAS en vert : « on ne sait pas » et
+         « c'est fait » sont deux choses, et les confondre ferait croire une équipe en règle
+         alors qu'elle n'a rien fait. On n'affiche alors rien du tout. */
+      if(u.provisoire===true) p+='<span class="past p-rouge" title="cette personne n’a pas encore choisi son mot de passe : elle utilise encore celui qu’on lui a donné">⛔ mot de passe provisoire</span>';
+      /* ⚠️ L'INFOBULLE NE PROMET QUE CE QUE LE DRAPEAU DIT. Elle annonçait « et e-mail de
+         récupération enregistré » : faux dès qu'un administrateur efface l'adresse après la
+         campagne — la ligne aurait alors porté la pastille verte ET « ✉️ sans e-mail », avec
+         une bulle qui contredit la pastille d'à côté. L'e-mail a son propre drapeau. */
+      else if(u.provisoire===false) p+='<span class="past p-vert" title="cette personne a choisi son propre mot de passe">🔐 mot de passe changé</span>';
+      if(u.mail===false) p+='<span class="past p-ambre" title="sans adresse e-mail, « Mot de passe oublié » ne peut rien faire pour cette personne">✉️ sans e-mail</span>';
       if(u.echecs>0) p+='<span class="past p-ambre" title="échecs de connexion">🔑 '+u.echecs+'</span>';
       if(u.bloques) p+='<span class="past p-ambre" title="écritures refusées : version bloquée ou appareil en retard">🔒 '+u.bloques+'</span>';
       if(jamais&&u.dansAnnuaire) p+='<span class="past p-gris">inutilisé</span>';
@@ -6303,21 +6711,47 @@ function blocUtilisateurs(){
             (u.appareils?' · '+u.appareils+' appareil'+(u.appareils>1?'s':''):'')+
             (u.version?' · v'+esc(u.version):'')+'</span></span>'+
         '<span class="reg-fin"><span class="reg-alertes">'+p+'</span>'+
+          (MYROLE==='patron'&&u.dansAnnuaire&&!u.attente&&!u.supprime?'<button type="button" class="pill-act" title="Refaire le mot de passe provisoire de « '+esc(u.login)+' » — son mot de passe actuel ne marchera plus" onclick="compteMdpRefaire(\''+jsq(u.login)+'\')">Mot de passe</button>':'')+
           (MYROLE==='patron'&&!u.attente&&!u.supprime?'<button type="button" class="pill-act" title="Supprimer le compte « '+esc(u.login)+' »" onclick="compteSupprimer(\''+jsq(u.login)+'\')">Supprimer</button>':'')+
         '</span></div>'; };
   var sv=d.sauvegarde||{}, bannis=d.bannis||[];
   var inut=vrais.filter(function(u){ return u.dansAnnuaire&&!u.derniere&&!u.attente&&!u.supprime; });
+  /* Le compte en tête de section, pour ne pas avoir à lire onze lignes pour savoir où en est
+     l'entreprise. Seulement ce qu'on SAIT : les `null` (annuaire d'avant la v681) ne comptent
+     ni d'un côté ni de l'autre, et on le dit plutôt que de les passer sous silence. */
+  var prov=vrais.filter(function(u){ return u.provisoire===true; }).length;
+  var faits=vrais.filter(function(u){ return u.provisoire===false; }).length;
+  var sansMail=vrais.filter(function(u){ return u.mail===false; }).length;
+  var inconnus=vrais.filter(function(u){ return u.dansAnnuaire&&u.provisoire===null; }).length;
   return '<div class="sous-sec">'+
     '<div class="sec">LEURS UTILISATEURS <span class="n">— '+vrais.length+'</span></div>'+
+    /* Un collaborateur n'a pas ces champs dans sa réponse (le serveur les retire) : sans cette
+       ligne, la section disparaîtrait sans rien dire, et on chercherait une panne. */
+    (d.etatComptes===false?'<div class="note g">🔐 L’état des mots de passe est réservé au patron.</div>':'')+
+    ((prov||faits||sansMail||inconnus)?'<div class="note">🔐 <b>Sécurité des accès</b> : '+
+      [ faits?faits+' ont changé leur mot de passe':'',
+        prov?'<b class="att">'+prov+' encore sur le mot de passe provisoire</b>':'',
+        sansMail?'<b class="att">'+sansMail+' sans e-mail de récupération</b>':'',
+        inconnus?'<span class="g">'+inconnus+' inconnu'+(inconnus>1?'s':'')+' — leur annuaire date d’avant la v681, l’état arrivera à leur prochaine connexion</span>':'' ]
+      .filter(Boolean).join(' · ')+'</div>':'')+
     '<div class="reg-bloc">'+vrais.map(ligne).join('')+'</div>'+
     /* Le lot n'apparaît qu'à partir de DEUX : pour un seul compte, le bouton « Supprimer » de
        sa ligne fait déjà le travail, et deux chemins pour un même geste sèment le doute. */
-    (MYROLE==='patron'&&inut.length>1?'<div class="sous-act"><button type="button" class="btn-fant" onclick="comptesInutilisesSupprimer()">Supprimer les '+inut.length+' comptes jamais utilisés</button></div>':'')+
+    /* Même règle que le lot de suppression : à partir de DEUX. Pour un seul compte, le bouton
+       « Mot de passe » de sa ligne fait déjà le travail, et deux chemins pour un même geste
+       sèment le doute au moment où on en a le moins besoin. */
+    ((MYROLE==='patron'&&(inut.length>1||prov>1))?'<div class="sous-act">'+
+      (prov>1?'<button type="button" class="btn-fant" onclick="comptesMdpRefaire()">Refaire les '+prov+' mots de passe provisoires</button>':'')+
+      (inut.length>1?'<button type="button" class="btn-fant" onclick="comptesInutilisesSupprimer()">Supprimer les '+inut.length+' comptes jamais utilisés</button>':'')+
+    '</div>':'')+
     '<div class="note">🗂 Copies de sauvegarde chiffrées sur notre serveur : '+
       (sv.possible===false?'<b class="att">impossible — espace hors annuaire, aucune clé d’équipe connue du serveur</b>':((sv.n||0)+(sv.derniere?' · dernière '+cnxDepuis(sv.derniere):' · aucune encore (elles arrivent avec la v621, au plus une par demi-heure et par appareil)')))+'</div>'+
     /* Les identifiants supprimés depuis la Tour restent bannis de l'annuaire — un appareil ne peut
        pas lever ça, seul le patron le peut, ici. Sans ce bloc, un ban invisible serait un ban
        qu'on ne comprend plus le jour où l'entreprise embauche quelqu'un du même nom. */
+    /* Les mots de passe en attente d'exécution : tant qu'ils vivent, l'annuaire de ces comptes
+       est gelé. Le dire, et donner le moyen d'en sortir — sinon on cherche une panne ailleurs. */
+    ((d.mdpAttente&&d.mdpAttente.length)?'<div class="note">🔑 Mot(s) de passe provisoire(s) <b class="att">en attente d’exécution</b> — leur annuaire est gelé jusqu’à ce qu’un appareil de l’entreprise s’ouvre (ou 30 jours) : '+d.mdpAttente.map(function(m){ return '<span class="mono">'+esc(m.login)+'</span>'+(MYROLE==='patron'?' <a onclick="compteMdpAnnuler(\''+jsq(m.login)+'\')">annuler</a>':''); }).join(' · ')+'</div>':'')+
     (bannis.length?'<div class="note">🚫 Identifiants bannis de l’annuaire (supprimés depuis la Tour) : '+bannis.map(function(b){ return '<span class="mono">'+esc(b.login)+'</span>'+(b.fait?'':' <b class="att">(pas encore exécuté)</b>')+(MYROLE==='patron'?' <a onclick="compteReautoriser(\''+jsq(b.login)+'\')">réautoriser</a>':''); }).join(' · ')+'</div>':'')+
     (tapes.length?'<div class="sous-sec"><div class="sec att">'+tapes.length+' IDENTIFIANT'+(tapes.length>1?'S':'')+' TAPÉ'+(tapes.length>1?'S':'')+' QUI N’EXISTE'+(tapes.length>1?'NT':'')+' PAS</div>'+
       '<div class="note">Quelqu’un a tapé ces identifiants et ça a échoué. Ce ne sont pas des comptes : il n’y a rien à supprimer — le compte n’a jamais été créé, ou il a été perdu avant d’être déposé dans l’annuaire. Si la personne doit travailler, l’entreprise crée son compte.</div>'+
@@ -6491,7 +6925,14 @@ function blocGestionClient(){
       '<button type="button" class="btn-fant" onclick="tourStatutPack(\''+jsq(nm)+'\')">💳 Statut paiement</button></div>'+
       '<div id="pack-info" class="note">Chargement du statut…</div>'+
       '<div class="form-rang">'+
-      '<input id="pack-promo" placeholder="Code promo (ex. TEAMOP3MOIS)" aria-label="Code promo" class="inp ch-promo">'+
+      /* ⛔ PAS DE CODE PROMO RÉEL DANS UN EXEMPLE. `tour.html` est un fichier statique servi par
+         GitHub Pages : l'authentification de la Tour est côté JavaScript, elle n'empêche pas de
+         télécharger la page. Mesuré le 19 septembre 2026 : `curl -s https://teamop.fr/tour.html`
+         rend 633 Ko à un anonyme, sans en-tête ni cookie, et le code y était en clair — vivant,
+         vérifié le même jour par l'aperçu public de /api/promo/valider. Le même code avait été
+         retiré d'`espace.html` pour cette raison exacte : il avait simplement changé de fichier.
+         Un exemple de code promo n'est jamais un code qui marche. */
+      '<input id="pack-promo" placeholder="Code promo" aria-label="Code promo" class="inp ch-promo">'+
       '<button type="button" class="btn-fant" onclick="tourPromoEntreprise(\''+jsq(nm)+'\',this)">🎁 Activer le code</button></div></div>'+
     /* Les applications de cette entreprise : ce qu'elle a DÉCLARÉ à l'inscription (chips), ce
        qui lui est OUVERT par TEAM OP, et ce qu'elle UTILISE vraiment (bloc CONNEXIONS plus bas).
@@ -6592,6 +7033,25 @@ function blocDossier(){
       '<div class="reg-bloc">'+ech.slice(0,5).map(function(e){ return '<div class="reg-l inerte">'+
         '<span class="reg-txt"><span class="reg-l2"><b>'+esc(e.login||'identifiant inconnu')+'</b>'+(e.motif?' — '+esc(e.motif):'')+'</span></span>'+
         '<span class="reg-fin"><span class="reg-h">'+esc(fmtJour(e.ts))+'</span></span></div>'; }).join('')+'</div></div>';
+  /* ⛔ REPARTIR À ZÉRO — demandé par Justin le 14 septembre 2026, pastilles à l'appui :
+     « 🐛 142 · 🔑 1 ». Après une journée de correctifs, ces chiffres comptent surtout de
+     l'histoire ancienne, et un compteur qui ne redescend jamais finit par ne plus être lu —
+     c'est exactement ce qui est arrivé au compteur « à migrer », et ça a coûté une semaine.
+     Le serveur ne DÉTRUIT rien : il pose une date, et les compteurs ne comptent que ce qui
+     vient après. On le DIT ici, parce qu'un « 0 erreur » remis à zéro et un « 0 erreur » qui
+     veut dire « rien ne plante » ne sont pas la même information — et confondre les deux,
+     c'est se rassurer sur un écran qu'on a soi-même vidé. */
+  var _oZ=((ENT.liste||[]).find(function(x){ return x.t===ENT.sel; })||{});
+  var _depuis=+_oZ.zeroDepuis||0;
+  t+='<div class="sous-sec"><div class="encart"><div class="encart-tx">'+
+    (_depuis
+      ? '↺ <b>Compteurs repartis de zéro le '+esc(fmtJour(_depuis))+'.</b> Les problèmes d’avant ne sont pas effacés — ils ne sont plus comptés. Tout ce qui arrive depuis s’affiche normalement.'
+      : 'Les pastilles 🐛 et 🔑 cumulent depuis l’ouverture de l’espace. Repartir à zéro pose une date : rien n’est effacé, et tout nouveau problème réapparaît aussitôt.')+
+    '</div><div style="margin-top:10px">'+
+    (_depuis
+      ? '<button type="button" class="btn-fant" onclick="entZeroCompteurs(false)">Annuler — remontrer tout l’historique</button>'
+      : '<button type="button" class="btn-fant" onclick="entZeroCompteurs(true)">↺ Repartir à zéro pour cette entreprise</button>')+
+    '</div></div></div>';
   var er=(d.erreurs||[]);
   if(er.length) t+='<div class="sous-sec"><div class="sec ko">🐛 ERREURS RENCONTRÉES</div>'+
     '<div class="reg-bloc">'+er.slice(0,6).map(function(b){
@@ -6652,10 +7112,19 @@ function blocPromos(){
     if(reste) p.push('<span class="reg-plus">+'+reste+'</span>');
     var lignes=usages.length
       ? '<div class="reg-bloc">'+usages.map(function(u){
+          /* `brut` = on n'a rien de mieux que l'identifiant : lui seul se lit en mono et se
+             tronque. Un nom d'espace technique est une phrase, pas un code — la tronquer à
+             24 caractères donnerait « Espace par défaut — TEAM ». */
+          var un=nomEspace(u.nom,u.t), brut=(un===String(u.t||''));
           return '<button type="button" class="reg-l" onclick="abnVersEntreprise(\''+jsq(u.t||'')+'\')">'+
-            '<span class="reg-av gris">'+esc(sigle(u.nom||u.t||'?'))+'</span>'+
-            '<span class="reg-txt"><span class="reg-t1'+(u.nom?'':' ident')+'">'+esc(u.nom||String(u.t||'').slice(0,24)||'(espace hors annuaire)')+'</span>'+
-            '<span class="reg-l2">'+(u.actif?'offert jusqu’au '+esc(u.finLe||'?'):'terminé le '+esc(u.finLe||'?'))+'</span></span>'+
+            '<span class="reg-av gris">'+esc(sigle(un||'?'))+'</span>'+
+            '<span class="reg-txt"><span class="reg-t1'+(brut?' ident':'')+'">'+esc((brut?un.slice(0,24):un)||'(espace hors annuaire)')+'</span>'+
+            /* ⛔ UNE DATE N'EST PAS UN DÉLAI. « offert jusqu'au 2026-11-17 » oblige à compter
+               de tête pour savoir s'il faut relancer la cliente cette semaine ou dans deux
+               mois — donc on ne compte pas, et on découvre la fin le jour où elle tombe.
+               joursRestants() existait déjà sur la fiche d'une entreprise ; c'est ICI, sur
+               la liste de TOUTES les formules offertes, qu'il manquait. */
+            '<span class="reg-l2">'+(u.actif?'offert jusqu’au '+esc(u.finLe||'?')+' · <b>'+joursRestants(u.finLe||'')+'</b>':'terminé le '+esc(u.finLe||'?'))+'</span></span>'+
             '<span class="reg-fin">'+abnEur(0,'','off')+
             (u.actif?'':'<span class="past p-gris">Terminé</span>')+
             '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>'
@@ -6670,7 +7139,26 @@ function blocPromos(){
    remplissait jusqu'au rechargement de la page. */
 var ESP={loaded:false,err:'',list:[]};
 function abnStripe(id){ if(id) window.open('https://dashboard.stripe.com/subscriptions/'+encodeURIComponent(id),'_blank','noopener'); }
-function abnVersEntreprise(t){ if(!t) return; entSel(t); }
+/* ⛔ SÉLECTIONNER N'EST PAS OUVRIR. entSel() posait bien ENT.sel, mais on restait sur
+   Abonnements — un écran qui n'affiche aucune fiche. Le clic sur une ligne de formule
+   offerte ne faisait donc RIEN de visible, alors que c'est le seul chemin depuis cet écran
+   vers la fiche de l'espace, et donc vers « Supprimer » : un espace fantôme qui profite
+   d'un code promo restait affiché sans aucun moyen de le traiter.
+   Même méthode que voirClient() : on change d'écran, puis on ouvre la fiche — en attendant
+   la liste si elle n'est pas encore chargée, sinon le clic tombe dans le vide une fois sur
+   deux selon qu'on a déjà visité Entreprises. */
+function abnVersEntreprise(t){
+  if(!t) return;
+  setTab('entreprises');
+  var ouvrir=function(){
+    var o=(ENT.liste||[]).find(function(x){ return x&&x.t===t; });
+    if(!o){ toast('Cet espace n\'est plus dans la liste des entreprises'); return; }
+    if(ENT.sel!==t) entSel(t); else { renderNav('detail'); window.scrollTo(0,0); }
+  };
+  if(ENT.loaded) setTimeout(ouvrir,60);
+  else { chargerEntreprises(); var essais=0;
+    var attendre=setInterval(function(){ if(ENT.loaded||++essais>40){ clearInterval(attendre); ouvrir(); } },100); }
+}
 function abnEur(m,per,cls){
   return '<span class="abn-eur'+(cls?' '+cls:'')+'"><b>'+esc(fmtEur(m))+'</b>'+(per?'<i>'+esc(per)+'</i>':'')+'</span>';
 }
@@ -6838,7 +7326,7 @@ function blocEspaces(){
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
         '<span class="reg-l2">'+esc(ABN_F[e.formule]||e.formule)+(e.quantite>1?' ×'+e.quantite:'')+
-        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?'):' · payé'):' · en attente de paiement')+'</span></span>'+
+        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'):' · en attente de paiement')+'</span></span>'+
         '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">💳 En attente</span>')+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>')+'</div>';
 }
@@ -7005,7 +7493,7 @@ function pubLigne(e){
       '<span class="past '+(e.suspendu?'p-rouge':(r.derniere?'p-vert':'p-gris'))+'">'+(e.suspendu?'⏸ Suspendu':(r.derniere?'Actif':'Jamais ouvert'))+'</span>'+
     '</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
-      (e.email?'<button class="btn-fant" onclick="tourLienEntreprise(\''+jsq(e.email)+'\',\''+jsq(e.nom||'')+'\',false,\''+jsq(e.ident||'')+'\')">🔗 Revoir le lien et le code</button>':'')+
+      (e.email?'<button class="btn-fant" onclick="tourLienEntreprise(\''+jsq(e.email)+'\',\''+jsq(e.nom||'')+'\',false,\''+jsq(e.ident||'')+'\')">🔗 Revoir le lien'+(e.annuaire?'':' et le code')+'</button>':'')+
       /* Changer identifiant et mot de passe n'a de sens QUE tant que personne ne s'est
          connecté : après, le vrai mot de passe vit dans les données chiffrées de l'espace,
          hors de portée du serveur. On ne montre donc pas un bouton qui mentirait. */
@@ -7013,7 +7501,7 @@ function pubLigne(e){
                  :'<button class="btn-fant" onclick="tourIdentModifier(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\',\''+jsq(e.ident||'')+'\')">✏️ Changer identifiant / mot de passe</button>')+
       '<button class="btn-fant" onclick="tourAccesSuspendre(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.suspendu?'true':'false')+')">'+(e.suspendu?'▶️ Rouvrir':'⏸ Suspendre')+'</button>'+
       '<button class="btn-fant" onclick="tourApps(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.opMessages?'false':'true')+')">'+(e.opMessages?'💬 Fermer OP MESSAGES':'💬 Ouvrir OP MESSAGES')+'</button>'+
-      '<button class="btn-fant" onclick="tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (change l’adresse)</button>'+
+      '<button class="btn-fant" onclick="tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (l’adresse ne bouge pas)</button>'+
       '<button class="btn-fant" style="color:var(--redText);border-color:rgba(255,107,107,.35)" onclick="tourAccesSupprimer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">🗑 Supprimer</button>'+
     '</div>'+
   '</div>';
@@ -7092,14 +7580,14 @@ function accFichePub(slug){
      et afficherait alors un état périmé. On le ferme avant, jamais après. */
   var F='tourPanneauFermer();';
   var act='<div class="ac-actions">'+
-    (e.email?'<button type="button" class="btn-fant" onclick="'+F+'tourLienEntreprise(\''+jsq(e.email)+'\',\''+jsq(e.nom||'')+'\',false,\''+jsq(e.ident||'')+'\')">🔗 Revoir le lien et le code</button>':'')+
+    (e.email?'<button type="button" class="btn-fant" onclick="'+F+'tourLienEntreprise(\''+jsq(e.email)+'\',\''+jsq(e.nom||'')+'\',false,\''+jsq(e.ident||'')+'\')">🔗 Revoir le lien'+(e.annuaire?'':' et le code')+'</button>':'')+
     /* Changer identifiant et mot de passe n'a de sens QUE tant que personne ne s'est connecté :
        après, le vrai mot de passe vit dans les données chiffrées de l'espace, hors de portée
        du serveur. On ne montre donc pas un bouton qui mentirait. */
     (r.derniere?'':'<button type="button" class="btn-fant" onclick="'+F+'tourIdentModifier(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\',\''+jsq(e.ident||'')+'\')">✏️ Changer identifiant / mot de passe</button>')+
     '<button type="button" class="btn-fant" onclick="'+F+'tourAccesSuspendre(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.suspendu?'true':'false')+')">'+(e.suspendu?'▶️ Rouvrir':'⏸ Suspendre')+'</button>'+
     '<button type="button" class="btn-fant" onclick="'+F+'tourApps(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.opMessages?'false':'true')+')">'+(e.opMessages?'💬 Fermer OP MESSAGES':'💬 Ouvrir OP MESSAGES')+'</button>'+
-    '<button type="button" class="btn-fant" onclick="'+F+'tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (change l’adresse)</button>'+
+    '<button type="button" class="btn-fant" onclick="'+F+'tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (l’adresse ne bouge pas)</button>'+
     '<button type="button" class="btn-fant danger" onclick="'+F+'tourAccesSupprimer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">🗑 Supprimer</button>'+
   '</div>'+
   (r.derniere?'<div class="encart" style="margin-top:12px"><div class="encart-tx">Déjà utilisé — le mot de passe vit dans les données chiffrées de l’espace, le serveur ne peut plus le changer. Ouvre l’espace avec son lien et remets-le à zéro dans <b>Utilisateurs</b>.</div></div>':'');
@@ -7330,6 +7818,160 @@ function jrGroupe(titre,n,sous,opt,corps){
   return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+titre+'</span>'+
     (n===null?'':'<span class="reg-n">'+n+'</span>')+
     (sous?'<div class="reg-sous'+(opt?' opt':'')+'">'+sous+'</div>':'')+'</div>'+corps+'</div>';
+}
+/* ══════════ DONNÉES — LA SAUVEGARDE, ET LE RETOUR EN ARRIÈRE ══════════
+   ⛔ LE PREMIER ÉCRAN DE LA TOUR POUR LE SOCLE, ET IL N'ARRIVE PAS PAR HASARD. `REPRISE.md`
+   porte depuis des semaines « zéro écran de Tour pour le socle et pour la sauvegarde » : les
+   routes existaient, les alarmes remontaient dans `surveillance.js`, et personne ne pouvait
+   RIEN faire depuis la console. Un chantier qu'on ne peut pas conduire est un chantier qu'on
+   subit.
+   Deux choses ici, et une seule d'entre elles écrit :
+     · la sauvegarde hors site — état, et où va chercher la copie du mois ;
+     · le retour en arrière d'UNE entreprise, en deux temps : un aperçu qui n'écrit rien,
+       puis une application qui exige le code envoyé à l'adresse de l'entreprise. */
+var DON={ent:'',instant:'',apercu:null,chargement:false,err:'',sauv:null,codeEnvoye:false,code:'',sansIllisibles:false};
+
+function donCharger(){
+  apiGet('/api/monitor/sauvegarde/etat').then(function(d){ DON.sauv=d; if(TAB==='donnees') render(); })
+    .catch(function(e){ DON.sauv={err:msgErreur(e)}; if(TAB==='donnees') render(); });
+}
+/* L'instant se saisit en heure LOCALE (c'est celle que Justin lit sur sa montre) et se
+   convertit en millisecondes. Le serveur, lui, raisonne en UTC de bout en bout — la conversion
+   se fait ICI, une fois, plutôt que dans trois messages qui divergeraient. */
+function donInstantMs(){ var v=DON.instant; if(!v) return 0; var t=Date.parse(v); return isFinite(t)?t:0; }
+function donApercu(){
+  var t=(DON.ent||'').trim(), ms=donInstantMs();
+  if(!t||!ms){ toast('Il faut un espace et une date.'); return; }
+  DON.chargement=true; DON.err=''; DON.apercu=null; DON.codeEnvoye=false; DON.code=''; render();
+  apiGet('/api/monitor/op/retour-apercu?t='+encodeURIComponent(t)+'&instant='+ms)
+    .then(function(d){ DON.apercu=d; DON.chargement=false; render(); })
+    .catch(function(e){ DON.err=e&&e.corps?String(e.corps):msgErreur(e); DON.chargement=false; render(); });
+}
+/* ⛔ DEUX TEMPS, ET LE PREMIER N'ÉCRIT RIEN. Le serveur renvoie `codeEnvoye` sans avoir touché
+   à quoi que ce soit ; c'est seulement le second appel, avec le code, qui applique. On ne
+   fusionne pas les deux « pour faire plus simple » : un bouton qui écrit parfois et pas
+   d'autres fois est un bouton dont on ne sait plus ce qu'il fait. */
+function donDemanderCode(){
+  var t=(DON.ent||'').trim(), ms=donInstantMs(); if(!t||!ms) return;
+  apiPost('/api/monitor/op/revenir',{t:t,instant:ms}).then(function(r){
+    if(!r.ok){ toast(r.d&&r.d.error?String(r.d.error).slice(0,160):'Refusé.'); return; }
+    DON.codeEnvoye=true; render(); toast('Code envoyé à l’adresse de l’entreprise.');
+  });
+}
+function donAppliquer(){
+  var t=(DON.ent||'').trim(), ms=donInstantMs(), c=(DON.code||'').trim();
+  if(!t||!ms||!c){ toast('Il faut le code reçu par courriel.'); return; }
+  apiPost('/api/monitor/op/revenir',{t:t,instant:ms,code:c,sansLesIllisibles:!!DON.sansIllisibles}).then(function(r){
+    if(!r.ok){ toast(r.d&&r.d.error?String(r.d.error).slice(0,200):'Refusé.'); return; }
+    DON.codeEnvoye=false; DON.code='';
+    /* ⛔ LES REFUS SE DISENT, ET DANS LE MÊME SOUFFLE. `pousser()` refuse un LOT ENTIER quand
+       l'espace est plein : un retour peut donc s'arrêter au milieu. Annoncer les remises sans
+       les refus laisserait croire l'entreprise revenue alors que la moitié ne l'est pas. */
+    var n=r.d.nRefuses||0;
+    toast(r.d.restaures+' remise(s) en place, '+r.d.enterres+' supprimée(s)'+
+      (n?' — ⛔ '+n+' refusée(s) : '+((r.d.refus||[])[0]||{}).motif+'. Le retour est INCOMPLET.':'.'), n?9000:0);
+    donApercu();
+  });
+}
+function donChamp(quoi,val){ DON[quoi]=val; }
+
+function vueDonnees(){
+  var tete=enTete('Données',
+    'La sauvegarde hors site, et le retour en arrière d’une entreprise. <b>Le retour ne touche qu’un espace</b> — il n’existe pas de bouton qui remette tout le monde en arrière, et c’est voulu : l’archive du coffre est commune à toutes les entreprises.');
+
+  /* ── 1. La sauvegarde ─────────────────────────────────────────────────────────────── */
+  var s=DON.sauv, gSauv;
+  if(!s) gSauv='<div class="carte"><div class="vide">Chargement…</div></div>';
+  else if(s.err) gSauv='<div class="carte"><div class="vide">'+esc(s.err)+'</div></div>';
+  else {
+    var d=s.derniere||{}, m=s.mensuel||{};
+    var quand=d.ts?new Date(d.ts).toLocaleString('fr-FR'):'—';
+    var etatNuit=d.ok?'<span class="p-vert">Réussie</span>':(d.ts?'<span class="p-rouge">En échec</span>':'<span class="p-gris">Jamais lancée</span>');
+    /* ⛔ LA PHRASE DES DEUX CLÉS VIENT DU SERVEUR, ELLE N'EST PAS RÉÉCRITE ICI. Un écran qui
+       annonce « copie mensuelle : OK » sans dire que DEUX clés sont nécessaires pour l'ouvrir
+       ailleurs prépare exactement la mauvaise surprise : celle du jour où on en a besoin. */
+    var cles=(m.clesNecessaires||[]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('');
+    var etatMois=m.actif===false?'<span class="p-gris">Désactivée</span>'
+      :(m.ok?'<span class="p-vert">Déposée</span>':'<span class="p-ambre">Pas encore ce mois-ci</span>');
+    gSauv='<div class="reg-g reg-g-fixe"><div class="reg-tete"><span class="reg-nom">Sauvegarde hors site</span>'+
+      '<div class="reg-sous">Une archive chiffrée par nuit, relue après dépôt. '+esc(String(s.garder||30))+' conservées.</div></div>'+
+      '<div class="carte"><div class="lg"><span>Dernière nuit</span><b>'+etatNuit+' · '+esc(quand)+'</b></div>'+
+      '<div class="lg"><span>Copie du mois</span><b>'+etatMois+(m.mois?' · '+esc(m.mois):'')+'</b></div>'+
+      (m.prefixe?'<div class="lg"><span>Où la trouver</span><b class="mono">'+esc(m.prefixe)+'</b></div>':'')+
+      (m.garder?'<div class="lg"><span>Conservées</span><b>'+esc(String(m.garder))+' mois</b></div>':'')+
+      (cles?'<div class="note" style="margin-top:12px"><b>⛔ Pour l’ouvrir sur une autre machine, il faut CES DEUX clés :</b><ul style="margin:6px 0 0 18px">'+cles+'</ul>'+
+        'Sans la seconde, l’archive s’ouvre, les fichiers sont là, et <b>aucune donnée d’entreprise n’est lisible</b>.</div>':'')+
+      '<div style="margin-top:14px"><button type="button" class="btn-fant" onclick="donSauvLancer()">Lancer une sauvegarde maintenant</button></div>'+
+      '</div></div>';
+  }
+
+  /* ── 2. Le retour en arrière ───────────────────────────────────────────────────────── */
+  var a=DON.apercu;
+  var form='<div class="carte"><div class="ttl-carte">Ramener une entreprise à un instant</div>'+
+    '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
+    '<label>Espace (identifiant <span class="mono">t</span>)<input class="inp" id="don-ent" value="'+esc(DON.ent)+'" oninput="donChamp(\'ent\',this.value)" placeholder="elan-34oc" autocomplete="off"></label>'+
+    '<label>Revenir à<input class="inp" id="don-inst" type="datetime-local" value="'+esc(DON.instant)+'" oninput="donChamp(\'instant\',this.value)"></label>'+
+    '<div class="sous">L’instant est celui où <b>le serveur a reçu</b> les données, pas la date que l’appareil leur donne. Un téléphone resté hors ligne une journée pousse d’anciennes dates aujourd’hui : pour défaire ce qu’il a envoyé, viser l’instant d’avant <i>son</i> arrivée.</div>'+
+    '<div><button type="button" class="btn-plein" onclick="donApercu()">Voir ce que ça changerait</button></div>'+
+    '</div></div>';
+
+  var res='';
+  if(DON.chargement) res='<div class="carte"><div class="vide">Lecture du journal…</div></div>';
+  else if(DON.err) res='<div class="carte"><div class="vide">'+esc(DON.err)+'</div></div>';
+  else if(a){
+    var lignes=Object.keys(a.par||{}).map(function(c){
+      var p=a.par[c];
+      return '<div class="lg"><span class="mono">'+esc(c)+'</span><b>'+(p.restaure||0)+' remise(s)'+(p.enterre?' · '+p.enterre+' supprimée(s)':'')+(p.illisible?' · <span class="p-ambre">'+p.illisible+' hors de portée</span>':'')+'</b></div>';
+    }).join('');
+    /* ⛔ UN CORPS PURGÉ SE NOMME, IL NE SE SAUTE PAS. Au-delà de 90 jours le contenu est vidé :
+       un retour qui traverse cette frontière ne PEUT PAS rendre ces enregistrements, et les
+       sauter en silence rendrait un retour partiel présenté comme complet. */
+    /* ⛔ LA CASE COUVRE LES DEUX REFUS DU SERVEUR, PAS UN SEUL. `retourAppliquer` exige
+       `sansLesIllisibles:true` pour passer outre `nIllisibles` ET `troploin` (socle.js). La
+       case ne s'affichait que sur le premier. Or `troploin` sans `nIllisibles` est atteignable :
+       si les seules lignes concernées à cet instant sont des TOMBES, elles sortent de la boucle
+       avant d'être comptées comme illisibles. Dans ce cas l'écran affichait l'avertissement et
+       AUCUNE case — « Appliquer le retour » échouait en 409 pour toujours, sans recours visible.
+       Un écran qui montre un refus sans montrer comment le lever est un écran qui bloque. */
+    var trop=a.troploin?'<div class="note note-ambre">Cet instant est <b>plus ancien que le plus vieux contenu gardé</b> ('+(a.corpsDepuis?esc(new Date(a.corpsDepuis).toLocaleString('fr-FR')):'—')+'). Le retour serait très partiel.</div>':'';
+    var quoiDeBloquant=a.nIllisibles?(a.nIllisibles+' enregistrement(s) ne peuvent pas être ramenés</b> — leur contenu a été purgé (90 jours). On sait qu’ils ont changé, pas ce qu’ils contenaient.')
+      :('Une partie de ce retour est hors de portée</b> — l’instant visé précède le plus vieux contenu gardé.');
+    var alerte=(a.nIllisibles||a.troploin)?'<div class="note note-ambre"><b>'+quoiDeBloquant+' '+
+      '<label class="don-coche"><input type="checkbox" '+(DON.sansIllisibles?'checked':'')+' onchange="DON.sansIllisibles=this.checked"> Revenir quand même, <b>sans eux</b></label></div>':'';
+    var porte=!DON.codeEnvoye
+      ? '<button type="button" class="btn-plein danger" onclick="donDemanderCode()">Demander le code à l’entreprise</button>'
+        +'<div class="sous">Un code à six chiffres part à l’adresse enregistrée de l’entreprise, avec la date visée et ces nombres. Rien n’est écrit tant qu’il n’est pas saisi ici.</div>'
+      : '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'
+        +'<label class="don-code">Code reçu<input class="inp" id="don-code" inputmode="numeric" maxlength="6" value="'+esc(DON.code)+'" oninput="donChamp(\'code\',this.value)"></label>'
+        +'<button type="button" class="btn-plein danger" onclick="donAppliquer()">Appliquer le retour</button></div>';
+    res='<div class="carte"><div class="ttl-carte">Ce que le retour ferait</div>'+
+      '<div class="lg"><span>À remettre en place</span><b>'+(a.nRestaurer||0)+'</b></div>'+
+      '<div class="lg"><span>À supprimer (créés depuis)</span><b>'+(a.nEnterrer||0)+'</b></div>'+
+      /* ⛔ LE POIDS SE MONTRE AVANT, PAS APRÈS. Un retour ÉCRIT : chaque fiche ramenée ajoute au
+         journal une copie de son contenu. Sur une base déjà proche de son plafond, le serveur
+         refusera des lots entiers en cours de route — mieux vaut le voir ici que le découvrir
+         à la moitié du retour. */
+      (a.octetsEnPlus?'<div class="lg"><span>Poids ajouté au socle</span><b>'+Math.round(a.octetsEnPlus/1024)+' Kio</b></div>':'')+
+      (a.nInconnus?'<div class="lg"><span>Sans trace au journal</span><b>'+a.nInconnus+'</b></div>':'')+
+      lignes+trop+alerte+
+      '<div style="margin-top:16px">'+porte+'</div>'+
+      ((a.retours||[]).length?'<div class="reg-sous" style="margin-top:18px">Derniers retours : '+
+        (a.retours||[]).slice(0,3).map(function(r){ return esc(new Date(r.faitLe).toLocaleString('fr-FR'))+' ('+r.restaures+'/'+r.enterres+')'; }).join(' · ')+'</div>':'')+
+      '</div>';
+  }
+
+  var gRetour='<div class="reg-g reg-g-fixe"><div class="reg-tete"><span class="reg-nom">Revenir en arrière</span>'+
+    '<div class="reg-sous">Le journal du socle garde chaque version de chaque fiche pendant 90 jours, par entreprise. Le retour repose l’ancien contenu comme une modification d’aujourd’hui : les appareils l’adoptent, et le retour lui-même reste réversible.</div></div>'+
+    form+res+'</div>';
+
+  return tete+gSauv+gRetour;
+}
+function donSauvLancer(){
+  toast('Sauvegarde lancée…');
+  apiPost('/api/monitor/sauvegarde/lancer',{}).then(function(r){
+    toast(r.ok&&r.d&&r.d.ok?'Sauvegarde réussie.':'Échec : '+((r.d&&r.d.motif)||'motif inconnu'));
+    donCharger();
+  });
 }
 function vueJournal(){
   var A=JR.actions||[], C=JR.cnx||[];
