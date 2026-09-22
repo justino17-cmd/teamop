@@ -6242,7 +6242,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '714-beta';
+const APP_VERSION = '717-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -6593,8 +6593,17 @@ function seedFournisseurs(){
        dépôt décrit pour les produits, appliqué aux fournisseurs.
        Les noms du pack sont des CONSTANTES de ce fichier, pas des saisies : ils sluguent tous,
        donc l'identifiant déduit est sûr ici — et il rend le semis idempotent entre appareils.
-       ⚠️ Ne jamais faire ça pour un fournisseur créé à la main : là, uid() reste la règle. */
-    FOURNISSEURS_3D.forEach(f=>{ if(have.has(f.nom.toUpperCase())) return; db.fournisseurs.push({id:idCatalogue(f.nom,'four'),...f}); have.add(f.nom.toUpperCase()); n++; });
+       ⚠️ Ne jamais faire ça pour un fournisseur créé à la main : là, uid() reste la règle.
+       ⚠️ La garde de slug est écrite plutôt que supposée : ce n'est plus la seule liste 3D qui
+       passe ici, c'est le pack de N'IMPORTE QUEL métier — un nom qui ne laisse rien une fois
+       réduit retomberait sur le générique « four_x », et deux fiches s'y écraseraient. */
+    /* ⛔ LE PACK APPARTIENT AU MÉTIER, PAS À L'APPLICATION. Lire FOURNISSEURS_3D ici servait la
+       liste anti-nuisibles à une entreprise de nettoyage — mesuré au navigateur le 22 septembre
+       2026, porte rouverte : métier « nettoyage », pack du métier à 0 produit et 0 fournisseur,
+       et pourtant ARMOSA, ENSYSTEX, MABI, ORCAD et SODIF arrivaient. cataloguePoser avait été
+       branché sur metierPackDe le 8 septembre ; ces deux lignes-ci ne l'avaient pas été, et leur
+       commentaire promettait pourtant « la même règle que les deux autres ». */
+    (metierPackDe(db).fournisseurs||[]).forEach(f=>{ if(!f.nom||!slugNom(f.nom)) return; if(have.has(f.nom.toUpperCase())) return; db.fournisseurs.push({id:idCatalogue(f.nom,'four'),...f}); have.add(f.nom.toUpperCase()); n++; });
     db.foursSeededV=FOURS_VER; db.foursSeeded=Date.now();
     save();
     if(n && currentUser && typeof current!=='undefined' && current==='fournisseurs'){ try{ views.fournisseurs(); }catch(e){} }
@@ -7988,15 +7997,32 @@ function recEmpreinte(r){ let h=2166136261; const t=JSON.stringify(r,(k,v)=>(k==
 const stockEmpreinte=v=>((+((v||{}).u)||0)+'/'+(+((v||{}).ctn)||0));
 const MS_MAX=600;   // marques de produits RETIRÉS gardées par box ; celles en stock ne s'élaguent jamais
 let _ombre={}, _ombreStock={};
-function ombreRelever(){ const o={}; collsFusion(db).forEach(c=>{ const m=new Map(); (db[c]||[]).forEach(r=>{ if(r&&r.id!=null) m.set(String(r.id),recEmpreinte(r)); }); o[c]=m; }); _ombre=o;
-  const os={}; (db.boxes||[]).forEach(b=>{ if(!b||b.id==null) return; const m=new Map();
-    Object.keys(b.stock||{}).forEach(pid=>m.set(pid,stockEmpreinte(b.stock[pid]))); os[String(b.id)]=m; }); _ombreStock=os; }
+/* Sans argument, l'ombre est reconstruite de zéro : c'est ce qu'il faut au chargement et à
+   l'import, qui n'ont rien parcouru avant. Avec ses deux tables, estampiller() lui passe les
+   empreintes qu'il VIENT de prendre — voir le bloc ⛔ de estampiller(). */
+function ombreRelever(o,os){ if(o&&os){ _ombre=o; _ombreStock=os; return; }
+  const n={}; collsFusion(db).forEach(c=>{ const m=new Map(); (db[c]||[]).forEach(r=>{ if(r&&r.id!=null) m.set(String(r.id),recEmpreinte(r)); }); n[c]=m; }); _ombre=n;
+  const ns={}; (db.boxes||[]).forEach(b=>{ if(!b||b.id==null) return; const m=new Map();
+    Object.keys(b.stock||{}).forEach(pid=>m.set(pid,stockEmpreinte(b.stock[pid]))); ns[String(b.id)]=m; }); _ombreStock=ns; }
 const TOMBE_JOURS=90, TOMBE_MAX=3000, TOMBE_TOTAL=6000;
 function estampiller(){
   if(typeof syncEnabled==='function'&&!syncEnabled()) return;   // sans espace d'équipe, rien à réconcilier
   const now=Date.now(); if(!db._tombes||typeof db._tombes!=='object') db._tombes={};
-  collsFusion(db).forEach(c=>{ const om=_ombre[c]||new Map(); const vus=new Set();
-    (db[c]||[]).forEach(r=>{ if(!r||r.id==null) return; const id=String(r.id); vus.add(id); if(om.get(id)!==recEmpreinte(r)) r._m=now; });
+  /* ⛔ LES EMPREINTES PRISES ICI SONT CELLES DE L'OMBRE — ON NE LES FAIT PAS REPRENDRE.
+     ombreRelever() refaisait un recEmpreinte() sur CHAQUE enregistrement juste après, c'est-à-dire
+     un JSON.stringify complet plus un hachage caractère par caractère, sur la base qu'on vient de
+     parcourir pour exactement la même chose. Mesuré au navigateur le 22 septembre 2026, base de
+     265 Ko (la taille d'ELAN), processeur ralenti ×4 pour approcher un téléphone de terrain :
+     save() 37 ms, dont 19,2 ms d'estampiller, dont 9,1 ms pour ce SEUL second parcours.
+     ⚠️ C'est sûr pour une raison précise, et elle tient à recEmpreinte : elle IGNORE `_m` et
+     `_ms`. Les deux seuls champs que cette fonction écrit ne changent donc pas l'empreinte qu'on
+     vient de prendre. Le jour où recEmpreinte cesserait de les ignorer, l'ombre serait périmée
+     d'un tour et chaque enregistrement rebattrait sa propre pierre tombale — test-639 le tient. */
+  const neuve={}, neuveStock={};
+  collsFusion(db).forEach(c=>{ const om=_ombre[c]||new Map(); const vus=new Set(); const m=new Map();
+    (db[c]||[]).forEach(r=>{ if(!r||r.id==null) return; const id=String(r.id); vus.add(id);
+      const e=recEmpreinte(r); m.set(id,e); if(om.get(id)!==e) r._m=now; });
+    neuve[c]=m;
     om.forEach((h,id)=>{ if(!vus.has(id)){ (db._tombes[c]=db._tombes[c]||{})[id]=now; } });
   });
   /* Les marques de lignes, après les tampons d'enregistrement : recEmpreinte ignore `_ms`,
@@ -8009,12 +8035,15 @@ function estampiller(){
                 box, pas de maintenant. Sinon toutes les lignes de l'appareil qui enregistre en
                 second seraient « plus récentes » et on retomberait sur l'ancienne règle. */
       ms={}; const base=+b._m||0; Object.keys(st).forEach(pid=>{ ms[pid]=base; }); }
-    if(om){ Object.keys(st).forEach(pid=>{ if(om.get(pid)!==stockEmpreinte(st[pid])) ms[pid]=now; });
-      om.forEach((h,pid)=>{ if(!(pid in st)) ms[pid]=now; });   // retiré : la marque date le RETRAIT
-    }
+    /* Même économie que plus haut, et la marque `_ms` est écrite APRÈS : stockEmpreinte ne lit
+       que la quantité et les cartons, donc l'empreinte prise ici reste juste. */
+    const mst=new Map();
+    Object.keys(st).forEach(pid=>{ const e=stockEmpreinte(st[pid]); mst.set(pid,e); if(om&&om.get(pid)!==e) ms[pid]=now; });
+    if(om) om.forEach((h,pid)=>{ if(!(pid in st)) ms[pid]=now; });   // retiré : la marque date le RETRAIT
+    neuveStock[String(b.id)]=mst;
     b._ms=msElaguer(ms,st,now); });
   tombesElaguer(db._tombes,now);
-  ombreRelever();
+  ombreRelever(neuve,neuveStock);
 }
 /* Les marques des produits encore en stock ne s'élaguent JAMAIS — ce sont elles qui protègent
    le travail de chacun. Seules celles des produits retirés s'effacent, au même rythme que les
@@ -8137,7 +8166,9 @@ let currentUser = null;
    load() décide. Le préfixe est réécrit par beta-build.js comme partout ailleurs. */
 function espaceRattache(){ try{ return !!String(localStorage.getItem('elanB_sync_team')||'').trim(); }catch(e){ return false; } }
 
-function load(){
+/* L'état de facturation connu du dernier passage se relit AVANT le premier affichage : sans
+   ça, un impayé hors ligne retrouverait toutes ses catégories jusqu'au prochain aller-retour. */
+function load(){ try{ suspensionCharger(); }catch(e){}
   let d, neuve=false;
   try{ const raw = localStorage.getItem(STORE_KEY); neuve=!raw; d = raw ? migrate(JSON.parse(raw)) : migrate(seed()); }catch(e){ neuve=true; d = migrate(seed()); }
   /* ⛔ UN APPAREIL QUI APPARTIENT À UNE ENTREPRISE NE CHARGE JAMAIS LE SEMIS DE DÉMONSTRATION.
@@ -8183,7 +8214,7 @@ function load(){
   if(!localStorage.getItem('elanB_fours_v1')){
     d.fournisseurs = d.fournisseurs || [];
     const haveF = new Set(d.fournisseurs.map(f=>(f.nom||'').trim().toUpperCase()));
-    if(PACK_METIER_AUTO) FOURNISSEURS_3D.forEach(f=>{ if(haveF.has(f.nom.toUpperCase())) return; d.fournisseurs.push({id:idCatalogue(f.nom,'four'),...f}); haveF.add(f.nom.toUpperCase()); });   // identifiant déterministe : voir le bloc ⛔ de foursSeed()
+    if(PACK_METIER_AUTO) (metierPackDe(d).fournisseurs||[]).forEach(f=>{ if(!f.nom||!slugNom(f.nom)) return; if(haveF.has(f.nom.toUpperCase())) return; d.fournisseurs.push({id:idCatalogue(f.nom,'four'),...f}); haveF.add(f.nom.toUpperCase()); });   // pack du MÉTIER + identifiant déterministe : voir le bloc ⛔ de seedFournisseurs()
     localStorage.setItem('elanB_fours_v1','1');
     try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }catch(e){}
   }
@@ -11307,7 +11338,71 @@ const PLAN_BLOQUE={
   pro:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes'],
   gratuit:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes','devis','factures','contrats','devisXylo','archives','carteInt','carteBox','secteurs','taches','absences','statistiques','audit','vehicules','pointage','messagerie','chantiers','modulesElan']
 };
-function forfait(){ return (db&&db.forfait)||'premium'; }   // les espaces existants gardent tout
+/* ══ LA SUSPENSION POUR IMPAYÉ ═══════════════════════════════════════════════════════════
+   ⛔⛔ CE QUI EXISTAIT AVANT CE BLOC ÉTAIT PIRE QUE RIEN. Mesuré le 22 septembre 2026 sur un
+   vrai serveur : une entreprise suspendue recevait `{ferme:true}` de `/api/espaces/etat`,
+   donc l'application affichait « Cet espace a été fermé par TEAM OP » à TOUS ses utilisateurs
+   et effaçait `elan_sync_team` — la seule porte qui, de son propre aveu, « ne se rattrape pas
+   au chargement suivant ». Un impayé était donc coupé de ses données, et ses techniciens
+   l'apprenaient avant lui.
+
+   La règle, telle que Justin l'a posée le 20 septembre 2026 :
+   « pour continuer à lire, ils auront un délai de 7 jours. Si c'est pas payé après, tous les
+     onglets deviennent gris. Aucune sauvegarde n'est perdue, aucune tâche qu'ils étaient en
+     train de faire, rien n'est perdu, même dans leur catégorie. Juste les catégories payantes
+     deviennent grisées et ils reviennent au forfait gratuit. Avec tous les jours un rappel sur
+     le compte admin. Après, c'est pas aux utilisateurs de savoir si l'entreprise paye ou pas.
+     Que le compte admin. »
+
+   ⛔ TROIS ÉTATS, JAMAIS DEUX. `null` = sans objet (l'entreprise n'est pas suspendue), un
+   nombre > 0 = il reste des jours, `0` = le sursis est fini. Confondre « sans objet » et
+   « fini » griserait les onglets de tout le monde — c'est la règle `_mailboxes` de ce dépôt.
+
+   ⛔ ET ÇA NE S'ÉCRIT PAS DANS `db`. Un état de FACTURATION n'appartient pas aux données de
+   l'entreprise : l'y mettre partirait à la synchro, et surtout `db.forfait` doit rester la
+   formule VRAIE. On ne touche donc jamais `db.forfait` — seul l'effet de `forfait()` change,
+   et le règlement rend tout d'un coup, sans rien recalculer. */
+let _susp = { suspendu:false, sursis:null };
+function suspensionCle(){ try{ return STORE_KEY+'_susp'; }catch(e){ return 'elanB_susp'; } }
+function suspensionCharger(){
+  try{ const v=JSON.parse(localStorage.getItem(suspensionCle())||'null');
+    if(v && typeof v==='object') _susp={ suspendu:!!v.suspendu, sursis:(v.sursis===null||v.sursis===undefined)?null:(+v.sursis||0) };
+  }catch(e){}
+}
+/* Appelée par la réponse du serveur. ⚠️ `sursisJours` ABSENT (une version de serveur plus
+   ancienne) ne veut pas dire « fini » : on ne grise que sur un 0 REÇU. Entre « trop » et
+   « rien », on choisit trop — c'est le même défaut par défaut que le filtre d'`op-fs.js`. */
+function suspensionPoser(j){
+  const av=_susp.suspendu, avs=_susp.sursis;
+  _susp={ suspendu:!!(j&&j.suspendu),
+          sursis:(j && j.sursisJours!==undefined && j.sursisJours!==null) ? (+j.sursisJours||0) : null };
+  try{ localStorage.setItem(suspensionCle(), JSON.stringify(_susp)); }catch(e){}
+  if(av!==_susp.suspendu || avs!==_susp.sursis){ try{ renderNav(); }catch(e){} try{ if(current) go(current); }catch(e){} }
+}
+function suspensionSursis(){ return _susp.sursis; }
+/* Le sursis est ÉCOULÉ : les catégories payantes grisent, et l'espace revient au gratuit. */
+function suspensionGrise(){ return !!_susp.suspendu && _susp.sursis===0; }
+/* ⛔ UN RAPPEL PAR JOUR, ET SUR LE COMPTE ADMIN SEULEMENT. Justin : « c'est pas aux
+   utilisateurs de savoir si l'entreprise paye ou pas ». La marque du jour est un état
+   d'APPAREIL, rangée par compte — jamais dans `db`, qui partirait à toute l'équipe. */
+function suspensionRappel(){
+  try{
+    if(!_susp.suspendu || !currentUser || currentUser.role!=='admin') return;
+    const cle=suspensionCle()+'_rappel_'+currentUser.id, jour=todayISO();
+    if(localStorage.getItem(cle)===jour) return;
+    localStorage.setItem(cle,jour);
+    const n=_susp.sursis;
+    if(n===null) return;
+    if(n>0) toast('⚠️ Abonnement en attente de règlement — il reste '+n+' jour'+(n>1?'s':'')+'. Passé ce délai, les catégories payantes seront grisées et l\'espace reviendra au forfait gratuit. Aucune donnée n\'est perdue.',9000);
+    else toast('⚠️ Abonnement non réglé — les catégories payantes sont grisées et l\'espace est revenu au forfait gratuit. Rien n\'est perdu : tout revient dès le règlement.',9000);
+  }catch(e){}
+}
+function forfait(){
+  /* ⛔ ON NE TOUCHE PAS `db.forfait` : la formule VRAIE reste celle que le serveur a dite.
+     Seul l'EFFET change, donc le règlement rend tout d'un coup — rien à recalculer, rien à
+     réparer, et aucune écriture dans les données du client pour un motif de facturation. */
+  if(suspensionGrise()) return 'gratuit';
+  return (db&&db.forfait)||'premium'; }   // les espaces existants gardent tout
 /* BETA_ESSAI : LA BETA VOIT TOUT, PAR CONSTRUCTION. C'est l'outil de travail de l'equipe —
    une categorie masquee par le FORFAIT ou par le METIER est une categorie qu'on ne peut plus
    eprouver. Mesure le 21 septembre 2026 : « Pointage » avait disparu de la beta pour cette
@@ -11390,6 +11485,10 @@ async function forfaitServeurSync(silencieux){
        « return » ci-dessous, et gardait donc la messagerie affichée sans que personne ne l'ait
        ouverte. */
     try{ const av=_opMsgOuvert; _opMsgOuvert=!!(j&&j.opMessages); if(av!==_opMsgOuvert&&currentUser) suiteRefresh(); }catch(e){}
+    /* ⛔ L'ÉTAT DE FACTURATION SE LIT AVANT LE TEST SUR LA FORMULE, pour la même raison
+       qu'`opMessages` juste au-dessus : un espace sans formule attribuée sortait par le
+       `return` ci-dessous, et serait resté suspendu sans que rien ne grise jamais. */
+    try{ suspensionPoser(j); suspensionRappel(); }catch(e){}
     if(!(j&&j.formule&&PLANS[j.formule])) return;
     const q=Math.max(1,parseInt(j.quantite,10)||1);
     const avaitAttente=!!db.formuleAttente;
