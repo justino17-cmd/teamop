@@ -69,8 +69,9 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
       for(let i=pile.length-1;i>=0;i--) f=sur(pile[i],f); return f; };
     const ECARTES=['av'];   /* span.av : la couleur du TECHNICIEN, pas l'accent — contre-épreuve faite */
     const nom=e=>e.tagName.toLowerCase()+(typeof e.className==='string'&&e.className?'.'+e.className.trim().split(/\\s+/).slice(0,2).join('.'):'');
-    const zone=[document.getElementById('content'),document.querySelector('.topbar'),document.getElementById('page-head')].filter(Boolean);
-    const out={ texteAcc:0, aplats:0, faibles:[], restes:[] };
+    const zone=(typeof ZONE!=='undefined'&&ZONE)?[document.querySelector(ZONE)].filter(Boolean)
+      :[document.getElementById('content'),document.querySelector('.topbar'),document.getElementById('page-head')].filter(Boolean);
+    const out={ texteAcc:0, aplats:0, aplatsTous:0, faibles:[], restes:[] };
     const vus=new Set();
     zone.forEach(z=>z.querySelectorAll('*').forEach(e=>{
       if(vus.has(e)) return; vus.add(e);
@@ -92,6 +93,15 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
         const c=ctr(encre&&encre.a>0.5?encre:{r:0,g:0,b:0,a:1}, fond);
         if(c<seuil) out.faibles.push({ genre:'encre sur aplat', n:nom(e), t:e.textContent.trim().slice(0,24), c:+c.toFixed(2), seuil });
       }
+      /* ⛔ TOUT APLAT COLORÉ, PAS SEULEMENT L'ACCENT : une pastille pleine orange, rouge ou
+         d'une couleur de niveau porte aussi du texte — et color:#fff en dur y est le même
+         piège. Saturation mesurée pour ne garder que les fonds COLORÉS (pas les gris). */
+      if(fond && fond.a>0.9 && propre && !proche(fond,ACC,6)){
+        const mx=Math.max(fond.r,fond.g,fond.b), mn=Math.min(fond.r,fond.g,fond.b);
+        if(mx-mn>60){ out.aplatsTous++;
+          const c=ctr(encre&&encre.a>0.5?encre:{r:0,g:0,b:0,a:1}, fond);
+          if(c<seuil) out.faibles.push({ genre:'encre sur aplat coloré', n:nom(e), t:e.textContent.trim().slice(0,24), c:+c.toFixed(2), seuil }); }
+      }
       if(VERT && (proche(encre,VERT,6)||proche(fond,VERT,6)) && (propre||fond&&fond.a>0.5))
         out.restes.push({ n:nom(e), t:e.textContent.trim().slice(0,24) });
     }));
@@ -109,7 +119,21 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
     console.log('  contre-épreuve — le témoin illisible est attrapé : '+(pris.length>=2?'OUI ✓ ('+pris.join(', ')+')':'NON ✗ '+JSON.stringify(pris)));
     if(pris.length<2){ S.fermer(); process.exit(7); } }
 
-  const R={faibles:[],restes:[],texteAcc:0,aplats:0,ecrans:0};
+  const R={faibles:[],restes:[],texteAcc:0,aplats:0,aplatsTous:0,ecrans:0,fenetres:0,fenRatees:[]};
+  const FENETRES=[
+    {nom:'Intervention', zone:'#overlay .modal', ouvrir:`formIntervention();`,
+     puis:`try{ intNuis.add('Rats'); renderIntNuis(); }catch(e){} const m=document.querySelector('#int-meth button'); if(m) m.click();`},
+    {nom:'Compte-rendu', zone:'#overlay .modal', ouvrir:`formRapport((db.interventions.find(i=>i.statut!=='terminee')||db.interventions[0]).id);`,
+     puis:`for(const q of ['#rap-indices button','#rap-presta button']){ const b=document.querySelector(q); if(b) b.click(); }`},
+    {nom:'fiche du nuisible', zone:'#overlay2 #modal2', ouvrir:`formIntervention(); intNuis.add('Rats'); renderIntNuis(); openNuisFiche('Rats');`,
+     puis:`const oui=[...document.querySelectorAll('#modal2 button')].filter(b=>/^Oui$/.test(b.textContent.trim())); if(oui[0]) oui[0].click();
+           const non=[...document.querySelectorAll('#modal2 button')].filter(b=>/^Non$/.test(b.textContent.trim())); if(non[1]) non[1].click();
+           const ch=[...document.querySelectorAll('#modal2 button[data-o]')]; if(ch[0]) ch[0].click();`},
+    {nom:'Nouvelle box', zone:'#overlay .modal', ouvrir:`formBox();`, puis:``},
+    {nom:'Nouveau produit', zone:'#overlay .modal', ouvrir:`formProduit();`, puis:``},
+    {nom:'Absence', zone:'#overlay .modal', ouvrir:`formAbsence();`, puis:``},
+    {nom:'Devis xylophage', zone:'#overlay .modal', ouvrir:`formDevisXylo();`, puis:``},
+  ];
   /* le vert par défaut, résolu une fois par thème, sert de cible aux « restes » */
   for(const th of ['dark','light']){
     await S.ev(`try{ setThemePref('${th}'); }catch(e){} try{ setAccent('green'); }catch(e){} return 1;`); await dormir(200);
@@ -128,13 +152,31 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
         o.faibles.forEach(x=>R.faibles.push({...x,ou:th+'/'+a+'/'+k}));
         o.restes.forEach(x=>R.restes.push({...x,ou:th+'/'+a+'/'+k}));
       }
-      console.log('  '+th.padEnd(6)+a.padEnd(9)+' — '+R.ecrans+' écrans, '+R.faibles.length+' contrastes faibles, '+R.restes.length+' restes de vert');
+      /* ⛔ LES FENÊTRES AUSSI, ET DANS L'ÉTAT « CHOISI ». Une pastille n'a d'aplat d'accent que
+         cochée : on coche la première de chaque groupe, par la fonction ou le clic que
+         l'application emploie elle-même — sinon on mesurerait des pastilles grises. */
+      for(const F of FENETRES){
+        await S.ev(`try{ closeModal(); }catch(e){} try{ closeSub(); }catch(e){} return 1;`); await dormir(150);
+        try{ await S.ev(F.ouvrir+' return 1;'); }catch(e){ R.fenRatees.push(F.nom+' : '+String(e.message).slice(0,60)); continue; }
+        await dormir(450);
+        try{ await S.ev(F.puis+' return 1;'); }catch(e){}
+        await dormir(250);
+        const vert = a==='green' ? 'null' : JSON.stringify(VERT)+'.map(v=>{ const m=v.match(/^color\\(srgb ([^)]+)\\)$/)||v.match(/^rgba?\\(([^)]+)\\)$/); if(!m) return null; const p=m[1].split(/[\\s,\\/]+/).filter(Boolean).map(Number); return /srgb/.test(v)?{r:p[0]*255,g:p[1]*255,b:p[2]*255}:{r:p[0],g:p[1],b:p[2]}; }).filter(Boolean)';
+        let o; try{ o=await S.ev(`const VERT=${vert}; const ZONE=${JSON.stringify(F.zone)}; ${MESURE}`); }catch(e){ R.fenRatees.push(F.nom+' : mesure'); continue; }
+        if(!o || o.erreur){ R.fenRatees.push(F.nom+' : '+(o&&o.erreur)); continue; }
+        R.fenetres++; R.texteAcc+=o.texteAcc; R.aplats+=o.aplats; R.aplatsTous+=o.aplatsTous||0;
+        o.faibles.forEach(x=>R.faibles.push({...x,ou:th+'/'+a+'/fenêtre '+F.nom}));
+        o.restes.forEach(x=>R.restes.push({...x,ou:th+'/'+a+'/fenêtre '+F.nom}));
+      }
+      await S.ev(`try{ closeSub(); }catch(e){} try{ closeModal(); }catch(e){} return 1;`);
+      console.log('  '+th.padEnd(6)+a.padEnd(9)+' — '+R.ecrans+' écrans + '+R.fenetres+' fenêtres, '+R.faibles.length+' contrastes faibles, '+R.restes.length+' restes de vert');
     }
   }
   const grouper=(l,f)=>{ const m={}; l.forEach(x=>{ const g=f(x); (m[g]=m[g]||[]).push(x); }); return Object.entries(m).sort((a,b)=>b[1].length-a[1].length); };
   console.log('\n════════ AUDIT DES TEINTES — ÉTAPE 3 ════════');
   console.log('  page mesurée : '+S.version);
-  console.log('  population : '+R.ecrans+' écrans · '+R.texteAcc+' textes en accent mesurés · '+R.aplats+' encres sur aplat d’accent mesurées');
+  console.log('  population : '+R.ecrans+' écrans + '+R.fenetres+' fenêtres · '+R.texteAcc+' textes en accent mesurés · '+R.aplats+' encres sur aplat d’accent · '+R.aplatsTous+' encres sur un autre aplat coloré');
+  if(R.fenRatees.length) console.log('  ⚠ fenêtres non mesurées : '+R.fenRatees.length+' — '+[...new Set(R.fenRatees)].slice(0,6).join(' · '));
   console.log('\n══ CONTRASTES SOUS LE SEUIL : '+R.faibles.length+' ══');
   grouper(R.faibles,x=>x.genre+' · '+x.n+' « '+x.t+' »').slice(0,30).forEach(([g,v])=>{
     const pire=v.reduce((m,x)=>x.c<m.c?x:m,v[0]);

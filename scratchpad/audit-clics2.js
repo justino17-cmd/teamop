@@ -230,7 +230,11 @@ const ECARTS=[
          liste ouvrent le même gabarit, on n'a pas besoin de les ouvrir toutes pour l'auditer */
       const oc=(e.getAttribute('onclick')||'').replace(/'[^']*[0-9][^']*'/g,"'…'").replace(/\\d+/g,'#').slice(0,60);
       const genre=oc||(n+'|'+t);
-      const cle=n+'|'+t; occ[cle]=(occ[cle]||0)+1;
+      /* ⛔ LES CHIFFRES SONT GOMMÉS DE LA SIGNATURE. Premier passage au téléphone : la tuile
+         « 571 Mouvements au journal » a été frappée QUARANTE ET UNE fois, parce que chaque
+         clic d'ailleurs (les simulations de la bêta) changeait son compteur, donc sa
+         signature — et Mouvements a fini au plafond de temps sur une seule tuile. */
+      const cle=n+'|'+t.replace(/\\d+/g,'#'); occ[cle]=(occ[cle]||0)+1;
       out.push({ sig:cle+'#'+occ[cle], t, n, genre });
     }));
     return out;`;

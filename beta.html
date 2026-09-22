@@ -26789,6 +26789,14 @@ function bonQtySum(){ const meta=$('bqty-meta'), s=$('bqty-sum'); if(!meta&&!s) 
   if(s) s.innerHTML=`Total : <b style="color:var(--acc);font-size:16px">${bonQteTotTxt({lignes:bonLignes})}</b>`; }
 function bonQtyVersCatalogue(){ const ov=$('bon-qty'); if(ov) ov.remove(); bonCatOpen(); }
 function bonQtyClose(){ const ov=$('bon-qty'); if(ov) ov.remove(); renderBonLignes(); }
+/* ⛔ ÉCHAP FERMAIT LA MAUVAISE COUCHE. Le tableau des quantités (#bon-qty) se pose PAR-DESSUS
+   la fenêtre du bon, et n'écoutait pas Échap : c'est l'écouteur général (`closeModal`) qui
+   répondait — il fermait le BON en dessous et laissait le tableau à l'écran, sans rien
+   derrière où revenir. Trouvé par la passe de clics du 22 septembre 2026 (la seule couche
+   qu'aucun geste de fermeture n'avait su fermer). Échap fait maintenant ce que fait
+   « ← Retour au bon », et ne va pas plus loin. */
+function bonQtyEchap(e){ if(e.key==='Escape' && document.getElementById('bon-qty')){ e.stopPropagation(); e.preventDefault(); bonQtyClose(); } }
+window.addEventListener('keydown',bonQtyEchap,true);
 /* Ouvre un PDF à partir d'un objet bon (réel ou brouillon) */
 function _bonPdfOpenObj(tmp){
   try{ const s=bonPdfStr(tmp); const bytes=new Uint8Array(s.length); for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
@@ -33722,7 +33730,10 @@ let msgPhoto='';
 async function msgAddPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f,1280,0.7); if(d){ msgPhoto=d; const pv=$('msg-photo-prev'); if(pv){ pv.style.display='flex'; pv.innerHTML=`<img src="${d}" style="height:58px;border-radius:8px"><button class="btn ghost sm" onclick="msgClearPhoto()">Retirer la photo</button>`; } } e.target.value=''; }
 function msgClearPhoto(){ msgPhoto=''; const pv=$('msg-photo-prev'); if(pv){ pv.style.display='none'; pv.innerHTML=''; } }
 function msgViewPhoto(id){ const m=(db.messages||[]).find(x=>x.id===id); if(!m||!m.photo)return; openModal(`<div class="modal-head"><h3>Photo</h3><button class="modal-close" onclick="closeModal()">✕</button></div><img src="${m.photo}" style="width:100%;border-radius:12px">`); }
-function envoyerMsg(){ const inp=$('msg-input'); const v=inp?inp.value.trim():''; if(!v && !msgPhoto)return;
+/* ⚠️ « Envoyer » sur un champ vide ne faisait RIEN — mesuré par la passe de clics du
+   22 septembre 2026 : aucun message, aucun signe. Il rend désormais la main au champ (le
+   clavier s'ouvre au téléphone) : l'appui a un effet, et c'est le bon. */
+function envoyerMsg(){ const inp=$('msg-input'); const v=inp?inp.value.trim():''; if(!v && !msgPhoto){ if(inp) inp.focus(); return; }
   const msg={id:uid(),ts:Date.now(),fromId:currentUser.id,fromNom:fullName(currentUser),texte:v,photo:msgPhoto||'',toUserId:'',toTechId:'',toGroupe:'',mentions:[],mentionAll:false};
   if(msgSel.startsWith('user:')) msg.toUserId=msgSel.slice(5); else if(msgSel.startsWith('group:')) msg.toGroupe=msgSel.slice(6); else if(msgSel.startsWith('tech:')) msg.toTechId=msgSel.slice(5);
   const lower=v.toLowerCase(); msg.mentionAll=/@(tous|all|everyone)\b/i.test(v);
