@@ -6242,7 +6242,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '716';
+const APP_VERSION = '717';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7997,15 +7997,32 @@ function recEmpreinte(r){ let h=2166136261; const t=JSON.stringify(r,(k,v)=>(k==
 const stockEmpreinte=v=>((+((v||{}).u)||0)+'/'+(+((v||{}).ctn)||0));
 const MS_MAX=600;   // marques de produits RETIRÉS gardées par box ; celles en stock ne s'élaguent jamais
 let _ombre={}, _ombreStock={};
-function ombreRelever(){ const o={}; collsFusion(db).forEach(c=>{ const m=new Map(); (db[c]||[]).forEach(r=>{ if(r&&r.id!=null) m.set(String(r.id),recEmpreinte(r)); }); o[c]=m; }); _ombre=o;
-  const os={}; (db.boxes||[]).forEach(b=>{ if(!b||b.id==null) return; const m=new Map();
-    Object.keys(b.stock||{}).forEach(pid=>m.set(pid,stockEmpreinte(b.stock[pid]))); os[String(b.id)]=m; }); _ombreStock=os; }
+/* Sans argument, l'ombre est reconstruite de zéro : c'est ce qu'il faut au chargement et à
+   l'import, qui n'ont rien parcouru avant. Avec ses deux tables, estampiller() lui passe les
+   empreintes qu'il VIENT de prendre — voir le bloc ⛔ de estampiller(). */
+function ombreRelever(o,os){ if(o&&os){ _ombre=o; _ombreStock=os; return; }
+  const n={}; collsFusion(db).forEach(c=>{ const m=new Map(); (db[c]||[]).forEach(r=>{ if(r&&r.id!=null) m.set(String(r.id),recEmpreinte(r)); }); n[c]=m; }); _ombre=n;
+  const ns={}; (db.boxes||[]).forEach(b=>{ if(!b||b.id==null) return; const m=new Map();
+    Object.keys(b.stock||{}).forEach(pid=>m.set(pid,stockEmpreinte(b.stock[pid]))); ns[String(b.id)]=m; }); _ombreStock=ns; }
 const TOMBE_JOURS=90, TOMBE_MAX=3000, TOMBE_TOTAL=6000;
 function estampiller(){
   if(typeof syncEnabled==='function'&&!syncEnabled()) return;   // sans espace d'équipe, rien à réconcilier
   const now=Date.now(); if(!db._tombes||typeof db._tombes!=='object') db._tombes={};
-  collsFusion(db).forEach(c=>{ const om=_ombre[c]||new Map(); const vus=new Set();
-    (db[c]||[]).forEach(r=>{ if(!r||r.id==null) return; const id=String(r.id); vus.add(id); if(om.get(id)!==recEmpreinte(r)) r._m=now; });
+  /* ⛔ LES EMPREINTES PRISES ICI SONT CELLES DE L'OMBRE — ON NE LES FAIT PAS REPRENDRE.
+     ombreRelever() refaisait un recEmpreinte() sur CHAQUE enregistrement juste après, c'est-à-dire
+     un JSON.stringify complet plus un hachage caractère par caractère, sur la base qu'on vient de
+     parcourir pour exactement la même chose. Mesuré au navigateur le 22 septembre 2026, base de
+     265 Ko (la taille d'ELAN), processeur ralenti ×4 pour approcher un téléphone de terrain :
+     save() 37 ms, dont 19,2 ms d'estampiller, dont 9,1 ms pour ce SEUL second parcours.
+     ⚠️ C'est sûr pour une raison précise, et elle tient à recEmpreinte : elle IGNORE `_m` et
+     `_ms`. Les deux seuls champs que cette fonction écrit ne changent donc pas l'empreinte qu'on
+     vient de prendre. Le jour où recEmpreinte cesserait de les ignorer, l'ombre serait périmée
+     d'un tour et chaque enregistrement rebattrait sa propre pierre tombale — test-639 le tient. */
+  const neuve={}, neuveStock={};
+  collsFusion(db).forEach(c=>{ const om=_ombre[c]||new Map(); const vus=new Set(); const m=new Map();
+    (db[c]||[]).forEach(r=>{ if(!r||r.id==null) return; const id=String(r.id); vus.add(id);
+      const e=recEmpreinte(r); m.set(id,e); if(om.get(id)!==e) r._m=now; });
+    neuve[c]=m;
     om.forEach((h,id)=>{ if(!vus.has(id)){ (db._tombes[c]=db._tombes[c]||{})[id]=now; } });
   });
   /* Les marques de lignes, après les tampons d'enregistrement : recEmpreinte ignore `_ms`,
@@ -8018,12 +8035,15 @@ function estampiller(){
                 box, pas de maintenant. Sinon toutes les lignes de l'appareil qui enregistre en
                 second seraient « plus récentes » et on retomberait sur l'ancienne règle. */
       ms={}; const base=+b._m||0; Object.keys(st).forEach(pid=>{ ms[pid]=base; }); }
-    if(om){ Object.keys(st).forEach(pid=>{ if(om.get(pid)!==stockEmpreinte(st[pid])) ms[pid]=now; });
-      om.forEach((h,pid)=>{ if(!(pid in st)) ms[pid]=now; });   // retiré : la marque date le RETRAIT
-    }
+    /* Même économie que plus haut, et la marque `_ms` est écrite APRÈS : stockEmpreinte ne lit
+       que la quantité et les cartons, donc l'empreinte prise ici reste juste. */
+    const mst=new Map();
+    Object.keys(st).forEach(pid=>{ const e=stockEmpreinte(st[pid]); mst.set(pid,e); if(om&&om.get(pid)!==e) ms[pid]=now; });
+    if(om) om.forEach((h,pid)=>{ if(!(pid in st)) ms[pid]=now; });   // retiré : la marque date le RETRAIT
+    neuveStock[String(b.id)]=mst;
     b._ms=msElaguer(ms,st,now); });
   tombesElaguer(db._tombes,now);
-  ombreRelever();
+  ombreRelever(neuve,neuveStock);
 }
 /* Les marques des produits encore en stock ne s'élaguent JAMAIS — ce sont elles qui protègent
    le travail de chacun. Seules celles des produits retirés s'effacent, au même rythme que les

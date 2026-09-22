@@ -31,13 +31,15 @@ function decoupe(h){ const d=APP.indexOf(h); if(d<0) throw new Error('introuvabl
 
 const CODE=['const COLLS_HORS_FUSION=','function collsFusion(d){','const COLLS_DICT=','function dictFusion(prio,autre){',
   'function recEmpreinte(r){','const stockEmpreinte=','const MS_MAX=','let _ombre={}, _ombreStock={};',
-  'function ombreRelever(){','const TOMBE_JOURS=','function estampiller(){','function msElaguer(ms,st,now){',
+  'function ombreRelever(o,os){','const TOMBE_JOURS=','function estampiller(){','function msElaguer(ms,st,now){',
   'function boxFusionFine(gagnante,perdante){','function tombesElaguer(t,now){','function tombesUnion(a,b){','function numMaxUnion(a,b){',
   'function fusionnerBases(local,remote,prioriteLocale){','function baseSignature(d){'].map(h=>decoupe(h)).join('\n');
 const neuf=new Function('etat',`let db=etat.db; const syncEnabled=()=>true;
   ${CODE}
   return { estampiller, ombreRelever, fusionnerBases, boxFusionFine, msElaguer, baseSignature,
-           getDb:()=>db, setDb:d=>{db=d;} };`);
+           getDb:()=>db, setDb:d=>{db=d;},
+           ombreDe:()=>_ombre, ombreStockDe:()=>_ombreStock, setOmbre:(o,s)=>{_ombre=o;_ombreStock=s;},
+           recEmpreinteDe:recEmpreinte };`);
 
 /* Deux appareils : chacun sa base, chacun son ombre. */
 const copie=o=>JSON.parse(JSON.stringify(o));
@@ -264,5 +266,69 @@ console.log('\nCinq appareils, trois cents gestes, échanges dans le désordre')
   v('les marques restent bornées',dev[0].getDb().boxes.every(b=>Object.keys(b._ms||{}).length<=PRODS.length*2),true);
   console.log('   ('+retraits+' retraits et '+poses+' poses parmi 300 gestes, 2 box, 8 produits)');
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────────────── */
+console.log('L\'ombre construite en PASSANT est la même que l\'ombre reconstruite');
+/* ⛔ v716 — estampiller() ne fait plus reprendre les empreintes à ombreRelever().
+   Mesuré au navigateur le 22 septembre 2026 (base de 265 Ko, processeur ralenti ×4 pour
+   approcher un téléphone de terrain) : save() 37 ms, dont 19,2 ms d'estampiller, dont 9,1 ms
+   pour ce seul second parcours — un JSON.stringify complet plus un hachage caractère par
+   caractère sur CHAQUE enregistrement, refaits sur une base qu'on venait de parcourir pour la
+   même chose.
+   C'est le cœur de la fusion : ce qui décide qui écrase qui. Le banc ne se contente donc pas de
+   vérifier que ça marche — il compare les DEUX ombres, entrée par entrée. La seule façon que ça
+   casse est que recEmpreinte cesse d'ignorer `_m` ou `_ms` ; alors l'empreinte prise AVANT
+   l'écriture du tampon serait périmée d'un tour, et chaque enregistrement rebattrait sa propre
+   pierre tombale. Le contrôle ci-dessous le verrait au premier passage. */
+{ const g=neuf({db:copie({ ...BASE,
+    clients:[{id:'c1',nom:'Tilleuls'},{id:'c2',nom:'Le Gourmet'}],
+    interventions:[{id:'i1',clientId:'c1',notes:'RAS'},{id:'i2',clientId:'c2'}],
+    journal:[{id:'l1',txt:'ouverture'}],
+    plansSite:{c1:{postes:[1,2,3]}} })});
+  g.ombreRelever();
+
+  /* la POPULATION d'abord : une comparaison de deux ombres VIDES passerait au vert sur rien */
+  const compter=o=>Object.keys(o).reduce((s,c)=>s+o[c].size,0);
+  const enBoite=o=>{ const r={}; Object.keys(o).sort().forEach(c=>{ r[c]={}; [...o[c].keys()].sort().forEach(k=>{ r[c][k]=o[c].get(k); }); }); return r; };
+  v('l\'ombre porte des empreintes, il y a de quoi comparer',compter(g.ombreDe())>=8,true);
+  v('…et celle des lignes de stock aussi',compter(g.ombreStockDe())>=3,true);
+
+  /* un vrai geste : une fiche modifiée, une supprimée, une ajoutée, une ligne de stock changée */
+  const d=g.getDb();
+  d.interventions[0].notes='intervention faite';
+  d.clients=d.clients.filter(c=>c.id!=='c2');
+  d.produits.push({id:'pD',nom:'NEBULOUS'});
+  d.boxes[0].stock.pA={u:28,ctn:0};
+  delete d.boxes[0].stock.pC;
+
+  g.estampiller();                                   // ombre construite EN PASSANT
+  const enPassant=enBoite(g.ombreDe()), enPassantStock=enBoite(g.ombreStockDe());
+  g.ombreRelever();                                  // ombre RECONSTRUITE de zéro
+  const reconstruite=enBoite(g.ombreDe()), reconstruiteStock=enBoite(g.ombreStockDe());
+
+  v('les deux ombres portent le même nombre d\'entrées',compter(g.ombreDe()),Object.keys(enPassant).reduce((s,c)=>s+Object.keys(enPassant[c]).length,0));
+  v('⛔ les deux ombres sont IDENTIQUES, entrée par entrée',enPassant,reconstruite);
+  v('⛔ …y compris celle des lignes de stock',enPassantStock,reconstruiteStock);
+  v('la fiche modifiée porte un tampon',!!d.interventions[0]._m,true);
+  v('la fiche supprimée a sa pierre tombale',!!(d._tombes.clients||{}).c2,true);
+  v('la ligne de stock changée est datée',(d.boxes[0]._ms||{}).pA>0,true);
+  v('la ligne retirée aussi',(d.boxes[0]._ms||{}).pC>0,true);
+
+  /* et l'autre sens, au même coût : sans argument, ombreRelever reconstruit toujours tout */
+  g.setOmbre({},{});
+  g.ombreRelever();
+  v('ombreRelever() sans argument reconstruit encore de zéro',enBoite(g.ombreDe()),reconstruite);
+
+  /* ⛔ ET LA RAISON QUI REND L'ÉCONOMIE SÛRE, ÉPROUVÉE PLUTÔT QUE CITÉE */
+  const r1=g.recEmpreinteDe({id:'z',nom:'X'});
+  const r2=g.recEmpreinteDe({id:'z',nom:'X',_m:Date.now(),_ms:{p:1}});
+  v('recEmpreinte ignore `_m` et `_ms` — c\'est ce qui autorise l\'économie',r1,r2);
+  v('…mais pas le reste',g.recEmpreinteDe({id:'z',nom:'Y'})!==r1,true);
+
+  /* trois save() sans rien changer ne posent aucun tampon neuf — l'invariant historique,
+     rejoué ici parce que c'est exactement ce qu'une ombre périmée d'un tour casserait */
+  const avant=JSON.stringify(d.interventions.map(x=>x._m).concat(d.produits.map(x=>x._m)));
+  g.estampiller(); g.estampiller(); g.estampiller();
+  v('trois estampiller() de suite ne reposent aucun tampon',JSON.stringify(d.interventions.map(x=>x._m).concat(d.produits.map(x=>x._m))),avant); }
 
 console.log('\n'+ok+' ✓  '+ko+' ✗'); process.exit(ko?1:0);
