@@ -24,6 +24,88 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ✅ 22 SEPTEMBRE 2026 — LE VERRE : 112 LOUPES SANS MATIÈRE (v720, bêta publiée et vérifiée)
+
+Justin, capture à l'appui : **« pourquoi y a ce truc d'affichage là qui fait hyper brillant et
+que ça casse les écritures, ça fait mal fini ? Tu peux me corriger ça. Vérifie partout — toutes
+les catégories, sous-catégories, tous les boutons. »**
+
+### Ce que c'était, mesuré avant d'écrire une ligne
+
+La pastille « Español » de sa capture rendait `background-image:none` **et**
+`background-color:rgba(0,0,0,0)` — aucune matière — avec `blur(18px) saturate(1.8)` par-dessus.
+**Un filtre de fond sans fond n'est pas une vitre, c'est une loupe** : l'élément ne montre pas
+une surface, il montre le décor d'à côté, flou et sursaturé. D'où le brillant, d'où le texte qui
+flotte, d'où les bords qui bavent.
+
+⛔ **La cause est structurelle, et elle se reproduira si on l'oublie** : une règle **plus
+spécifique** retire le `background` posé par la règle du verre, mais **ne retire pas le
+`backdrop-filter`**, qui n'est déclaré que là. Une moitié de règle survit à l'autre.
+
+| où | ce qui efface le fond | ce qui laisse le flou | cas |
+|---|---|---|---|
+| pastilles d'un segmenté | `.filters.seg-on .chip{background:none!important}` | `[data-verre] .chip` | **100** sur 14 rubriques |
+| champ de recherche niché | `input[placeholder^="Rechercher"]{background:transparent!important}` | `[data-verre] input.search-inp` | **12**, Courrier et Bons |
+
+⚠️ Dans le premier cas, **l'intention était écrite juste à côté depuis des semaines** — « le
+GROUPE de segments non : c'est un creux, pas une vitre posée dessus ». C'est l'ÉCRITURE qui
+était incomplète, pas la décision. **Un commentaire juste ne pose pas la règle qu'il décrit.**
+
+⚠️ `#stock-search` n'est PAS dans ce cas : il porte sa propre vitre (alpha .46 mesuré) et la
+garde. La correction vise le champ **niché** dans une pilule, pas tous les champs.
+
+### L'audit — la réponse à « partout »
+
+⛔ **Le premier recensement partait d'une liste de dix-huit classes que j'avais tapées
+moi-même** : population choisie, donc résultat choisi. Il a trouvé les 125 pastilles et **rien
+d'autre**. Le second interroge `document.querySelectorAll('*')` — et sort une **troisième
+famille** que la liste ne pouvait pas contenir.
+
+| | éléments visibles | avec `backdrop-filter` | **sans matière** |
+|---|---|---|---|
+| avant | 57 057 | 1 256 | **112** |
+| après | 57 614 | 1 153 | **0** |
+
+42 rubriques × 2 thèmes × 2 plateformes (iPhone Safari 26, Mac Safari 26).
+
+Au pixel, sur la pastille de sa capture (iPhone 390, encoches posées, les deux thèmes) :
+**liseré de fuite 0,000** et **contraste 7,37**. Cartes, boutons et pastilles libres gardent
+leur vitre — elles ont une matière.
+
+### ⛔ TROIS GÉOMÉTRIES DE MESURE FAUSSES, PAYÉES LE MÊME JOUR
+
+Toutes les trois sur la même pastille, et toutes les trois rendaient un chiffre crédible :
+
+1. parcourir la **diagonale** d'un élément **traverse les lettres** — « amplitude 0,94 »
+   partout, c'était le contraste texte/fond, pas un dégradé ;
+2. une bande horizontale à 3 px du haut d'une **pilule** SORT de l'élément par les bouts
+   arrondis — à 3 px d'un rayon de 22, la pilule ne commence qu'à 10 px du bord. On lisait la
+   page d'à côté et on l'attribuait à la pilule ;
+3. une **carte** ne se mesure pas comme une pilule : ses rangées du milieu portent du contenu.
+   On lit la colonne de rembourrage à gauche — sans ça, « contraste 2,69 » sur une carte
+   parfaitement lisible.
+
+**La parade est de supprimer le calcul** : `Page.captureScreenshot` avec un `clip` rend une
+image **qui EST l'élément**. Plus d'offset, plus de défilement, plus d'échelle.
+
+### Les preuves
+
+- `tests/test-763.js` (neuf, **22 contrôles**) — apparie, dans le CSS réel, chaque effacement
+  de fond avec le flou qu'il pourrait laisser orphelin, et exige que **chaque vitre porte ses
+  DEUX moitiés** (la surface ET le flou). ⚠️ Il n'apparie que par **classe** : le cas du champ
+  de recherche se croise par un ATTRIBUT et lui échappe — c'est écrit dans son en-tête, et
+  c'est pour ça qu'il exige l'existence de la sonde.
+  **Cinq mutations jouées, cinq détectées** (la cinquième ne mordait pas au premier tour : le
+  banc n'exigeait que le flou, pas la surface — corrigé, 15 → 22).
+- `scratchpad/sonde-verre.js` — **21 ✓ 0 ✗** au navigateur, sur les pixels peints.
+- `scratchpad/audit-verre-large.js` — le recensement **sans liste de classes**.
+- `scratchpad/png.js` — décodeur PNG sans dépendance (zlib + défiltrage, 46 lignes).
+- **120 suites · 5 341 vérifications · 0 ✗** · syntaxe 28 pages, 0 en erreur.
+- Servi et relu : `teamop.fr/beta.html` = **720-beta**, compagnon `backdrop-filter:none`
+  présent, pilule de recherche encore vitrée. **`app.html` reste à 695 chez ELAN.**
+
+---
+
 ## ✅ 22 SEPTEMBRE 2026 — LA CARTE SUIT LE THÈME (v719, bêta publiée et vérifiée)
 
 Justin, capture de « Carte des box » à l'appui : **« le mode jour et nuit de la carte c'est en

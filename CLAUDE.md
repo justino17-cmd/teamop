@@ -612,6 +612,47 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   (`--vr-encre` sur `<html>`) est la seule sortie. Le signe qui ne trompe pas : une propriété
   personnalisée qui se lit **vide** alors qu'elle est écrite noir sur blanc. `test-757` interdit
   la forme fautive, et `test-751` aussi.
+- ⛔⛔ **UN `backdrop-filter` ET LA SURFACE QU'IL FILTRE SE DÉCLARENT ENSEMBLE — SINON UNE
+  MOITIÉ DE RÈGLE SURVIT À L'AUTRE.** Le 22 septembre 2026, Justin, capture à l'appui :
+  « ça fait hyper brillant et ça casse les écritures, ça fait mal fini ». Mesuré : la
+  pastille « Español » rendait `background-image:none` ET `background-color:rgba(0,0,0,0)`
+  — AUCUNE matière — avec `blur(18px) saturate(1.8)` par-dessus. **Un filtre de fond sans
+  fond n'est pas une vitre, c'est une LOUPE** : l'élément ne montre pas une surface, il
+  montre le décor d'à côté, flou et sursaturé, et le texte flotte dessus.
+  La cause est structurelle et elle se reproduira : une règle **plus spécifique** retire le
+  `background` posé par la règle du verre, mais elle **ne retire pas le `backdrop-filter`**,
+  qui n'est déclaré que là. Deux endroits, deux fois le même chemin —
+  `.filters.seg-on .chip{background:none!important}` contre `[data-verre] .chip` (100 cas sur
+  14 rubriques) et `input[placeholder^="Rechercher"]{background:transparent!important}` contre
+  `[data-verre] input.search-inp` (12 cas). ⚠️ Dans le premier, **l'intention était écrite
+  juste à côté depuis des semaines** (« le GROUPE de segments non : c'est un creux, pas une
+  vitre posée dessus ») : c'est l'ÉCRITURE qui était incomplète, pas la décision. Un
+  commentaire juste ne pose pas la règle qu'il décrit.
+  `tests/test-763.js` apparie, dans le CSS réel, chaque effacement de fond avec le flou qu'il
+  pourrait laisser orphelin — ⚠️ **par CLASSE seulement** : le cas du champ de recherche se
+  croise par un ATTRIBUT et lui échappe, donc `scratchpad/sonde-verre.js` (au navigateur, sur
+  les pixels peints) est la garde de bout en bout, et le banc exige qu'elle existe.
+- ⛔⛔ **UN AUDIT QUI PART D'UNE LISTE DE CLASSES ÉCRITE À LA MAIN EST UNE POPULATION CHOISIE,
+  DONC UN RÉSULTAT CHOISI.** Le premier recensement du verre visait un `SEL` de dix-huit
+  classes que j'avais tapées moi-même : il a trouvé 125 pastilles et **rien d'autre**. Le
+  second interrogeait `document.querySelectorAll('*')` — 57 057 éléments visibles sur
+  42 rubriques × 2 thèmes × 2 plateformes — et a sorti une **troisième famille** que la
+  liste ne pouvait pas contenir : le champ de recherche de Courrier et de Bons. Quand la
+  question est « partout », la réponse ne commence pas par une liste.
+- ⛔⛔ **MESURER UN DÉGRADÉ AUTREMENT QUE SUR DES PIXELS, C'EST LE RECALCULER SOI-MÊME — ET
+  TROIS GÉOMÉTRIES FAUSSES ONT ÉTÉ PAYÉES AVANT D'Y ARRIVER.** Les trois, le même jour, sur
+  la même pastille :
+  · parcourir la **diagonale** d'un élément **traverse les lettres** — on lisait « amplitude
+    0,94 » sur tout l'écran, c'était le contraste texte/fond et pas un dégradé ;
+  · une bande horizontale à 3 px du haut d'une **pilule** SORT de l'élément par les bouts
+    arrondis (à 3 px du bord d'un rayon de 22, la pilule ne commence qu'à 10 px du bord
+    gauche) — on lisait la page d'à côté et on l'attribuait à la pilule ;
+  · une **carte** ne se mesure pas comme une pilule : ses rangées du milieu portent du
+    contenu. On lit la COLONNE de rembourrage à gauche, jamais le cœur — sans ça le banc
+    annonçait « contraste 2,69 » sur une carte parfaitement lisible.
+  **La parade est de supprimer le calcul** : `Page.captureScreenshot` avec un `clip` rend une
+  image **qui EST l'élément**. Plus d'offset, plus de défilement, plus d'échelle.
+  `scratchpad/png.js` décode le PNG sans dépendance (zlib + défiltrage, 46 lignes).
 - ⛔⛔ **UN `::after` EN `z-index:-1` SE PEINT SOUS LE FOND DE SON PROPRE PARENT.** `body`
   portait `background:var(--vr-page)` et `body::after` les halos en `z-index:-1`. Or `body`
   n'établit pas de contexte d'empilement : son `::after` négatif remonte dans celui de la
