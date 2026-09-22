@@ -500,6 +500,18 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   **Toute mesure de largeur se fait après deux `requestAnimationFrame` ET une lecture forcée**,
   et elle prouve d'abord que la barre était là. Corollaire : on n'a rien corrigé, et c'est le
   bon résultat — un faux défaut coûte deux fois, le correctif puis la garde inutile.
+- ⛔⛔ **ET DEUX `requestAnimationFrame` NE SUFFISENT PAS : UN DÉBORDEMENT SE CONFIRME À LA
+  SECONDE LECTURE, PLUSIEURS CENTAINES DE MILLISECONDES PLUS TARD.** C'est la troisième
+  variante du même piège, et la plus coûteuse. Mesuré le 22 septembre 2026 sur les écrans de
+  bureau : après la fin de `.content.entre`, deux trames ET une lecture forcée, huit écrans sur
+  huit annonçaient « 15 px de défilement latéral RÉEL » — et **sept d'entre eux rendaient 0 px
+  700 ms plus tard**. Quelque chose se range après coup (queue d'animation, carte, graphique),
+  et la barre verticale qui apparaît alors reprend ses 15 px à `clientWidth`. Un audit qui
+  compte la PREMIÈRE lecture rendait **100 faux constats sur 346**.
+  ⚠️ Le signe qui ne trompe pas : **le même chiffre, exactement la largeur d'une barre de
+  défilement, sur presque tous les écrans**. La parade est de mesurer DEUX FOIS et de ne garder
+  que ce qui persiste — et de NOMMER ce qu'on écarte, sinon le prochain audit le retrouvera et
+  le croira.
 - ⛔⛔ **ET UNE ROTATION FABRIQUE LE MÊME FAUX DÉBORDEMENT, PAR UN AUTRE CHEMIN.**
   `getBoundingClientRect()` rend la boîte **visuelle**, transformations comprises. Mesuré sur la
   Tour le 22 septembre 2026 : huit écrans « débordaient de 3 px » sur un chevron qui porte
