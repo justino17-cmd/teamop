@@ -1534,6 +1534,16 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .plg-absl{display:flex;align-items:center;justify-content:center;height:100%;min-height:56px;color:var(--t3);font-size:10.5px;font-weight:700;pointer-events:none}
 .plg-trayrow{display:flex;gap:8px;flex-wrap:wrap}
 .plg-trayrow .plg-mini{min-width:150px;max-width:230px;flex:0 1 auto;margin:0}
+/* ⛔ 230 px DE PLAFOND SUR UN ÉCRAN DE 398 px, C'EST 42 % DE LARGEUR PERDUE — ET LE TEXTE
+   COUPÉ EN MÊME TEMPS. Signalé par Justin le 22 septembre 2026, capture à l'appui, puis
+   reproduit au navigateur sur iPhone 430×932 avec des clients aux noms longs : carte de
+   230 px dans un conteneur de 398, UNE seule par rangée, 168 px de vide à droite, et
+   102 textes à l'ellipse — le nom du client, l'adresse et jusqu'au titre.
+   Le plafond a un sens sur un bureau, où le bac s'étale sur plusieurs colonnes ; sur un
+   téléphone il ne protège rien, il ampute. On laisse donc la carte GRANDIR pour remplir sa
+   rangée (`flex:1 1 220px`) : à 398 px elle en prend une entière, à 760 px il en tient deux.
+   ⚠ `max-width:none` est indispensable — sans lui `flex-grow` ne peut pas dépasser 230. */
+@media(max-width:780px){ .plg-trayrow .plg-mini{max-width:none;flex:1 1 220px} }
 /* ── Planning timeline (jour) ── */
 .plt{display:grid;min-width:860px}
 .plt-h{padding:8px 6px;text-align:center;font-weight:800;font-size:12px;border-bottom:1px solid var(--brd);border-left:1px solid var(--brd);display:flex;gap:7px;align-items:center;justify-content:center;min-width:0}
@@ -6242,7 +6252,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '717';
+const APP_VERSION = '718';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;

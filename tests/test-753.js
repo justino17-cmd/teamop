@@ -330,5 +330,34 @@ console.log('\n══ 8. LE STYLE DU SEGMENTÉ DU TABLEAU DE BORD ══\n');
     sansGarde.map(r=>r.slice(0,50).trim()).filter(Boolean), []);
 }
 
+
+console.log('Le bac « À planifier » remplit sa rangée sur un téléphone');
+/* ⛔ SIGNALÉ PAR JUSTIN LE 22 SEPTEMBRE 2026, CAPTURE À L'APPUI, PUIS REPRODUIT AU NAVIGATEUR.
+   `.plg-trayrow .plg-mini{max-width:230px}` dans un conteneur de 398 px : la carte se cale à
+   230, UNE seule tient par rangée, il reste 168 px de vide à droite — et le texte est coupé en
+   même temps. Mesuré sur iPhone 430×932 avec des clients aux noms longs (ceux de sa base) :
+   carte 230 px = 58 % du conteneur, 102 ellipses actives. Après correctif : 398 px, 100 %,
+   0 px de vide, 0 ellipse.
+   Le plafond garde un sens au BUREAU, où le bac s'étale sur plusieurs colonnes — on ne le
+   retire donc que sous la rupture téléphone du dépôt (780 px). */
+{ /* ⛔ ON NETTOIE LES COMMENTAIRES AVANT DE CHERCHER : le commentaire que ce correctif porte
+     dans app.html cite `max-width:none` mot pour mot. Un motif qui tombe dessus garderait une
+     explication, pas un comportement — la règle de CLAUDE.md, appliquée à elle-même. */
+  const NU=APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ').replace(/^[ \t]*\/\/.*$/gm,' ');
+  vrai('le nettoyage a laissé du code',NU.length>APP.length*0.6);
+  const i=NU.indexOf('@media(max-width:780px){ .plg-trayrow .plg-mini{');
+  vrai('la règle téléphone du bac existe',i>0);
+  const regle=i>0?NU.slice(i,NU.indexOf('}',NU.indexOf('{',i+40))+1):'';
+  vrai('…elle lève le plafond',/max-width:none/.test(regle));
+  vrai('…et elle laisse la carte GRANDIR',/flex:1 1 /.test(regle));
+  /* ⚠ les deux vont ENSEMBLE : sans max-width:none, flex-grow ne peut pas dépasser 230 px.
+     C'est le piège du correctif, et c'est pour ça qu'on l'éprouve ici plutôt qu'à l'œil. */
+  vrai('les deux sont dans la MÊME règle',/max-width:none/.test(regle)&&/flex:1 1 /.test(regle));
+  /* et le plafond du bureau n'a pas été emporté au passage */
+  vrai('le bureau garde son plafond de 230 px',
+    /\.plg-trayrow \.plg-mini\{min-width:150px;max-width:230px;flex:0 1 auto;margin:0\}/.test(NU));
+  /* la rupture est bien celle du dépôt, pas une inventée */
+  v('la rupture est celle des autres règles téléphone',(NU.match(/@media\(max-width:780px\)/g)||[]).length>=8,true); }
+
 console.log('\n═══ test-753 : '+ok+' ✓ '+ko+' ✗ ═══\n');
 process.exit(ko?1:0);
