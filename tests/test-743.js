@@ -184,14 +184,25 @@ const arreter = async () => {
   console.log('\n══ 3. ⛔ LE CALCUL DU SURSIS — TROIS VALEURS, PAS DEUX ══\n');
   {
     /* ⛔ ON EXTRAIT LA VRAIE FONCTION du vrai fichier, pas une copie : c'est elle qui décidera
-       de griser des onglets chez un client qui paye. Ancrée sur la forme du CODE. */
+       de griser des onglets chez un client qui paye. Ancrée sur la forme du CODE.
+       ⚠️ ELLE A CHANGÉ D'ADRESSE LE 22 SEPTEMBRE 2026, ET CE BANC EST TOMBÉ POUR ÇA — à juste
+       titre. Le calcul vivait en arrow dans le montage du socle, donc invisible à
+       `/api/espaces/etat`, la seule route que l'APPLICATION interroge : la fonction était
+       juste, commentée, et appelée par personne. Elle est maintenant une déclaration de
+       premier niveau près d'`entFermes`, et le socle l'APPELLE. La vérité n'a pas bougé,
+       son adresse si — on garde donc la vérité à sa nouvelle adresse, ET le fait que le socle
+       ne la recopie pas. */
     const SRC = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
-    const i = SRC.indexOf('espaceSursisJours: (t) => { try {');
-    const j = SRC.indexOf('} catch (e) { return null; } },', i);
-    vrai('⛔ `espaceSursisJours` s\'extrait du fichier réel', i > 0 && j > i);
-    const corps = SRC.slice(i + 'espaceSursisJours: '.length, j + '} catch (e) { return null; } }'.length);
+    const i = SRC.indexOf('function sursisJoursDe(t) {');
+    const j = SRC.indexOf('\n}', i);
+    vrai('⛔ `sursisJoursDe` s\'extrait du fichier réel', i > 0 && j > i);
+    vrai('⛔ … et le socle l\'APPELLE au lieu d\'en garder une copie',
+      /espaceSursisJours:\s*\(t\)\s*=>\s*sursisJoursDe\(t\)/.test(SRC));
+    vrai('⛔ … et la route que l\'application interroge l\'appelle aussi',
+      /const sursisJours = sursisJoursDe\(t\)/.test(SRC));
+    const corps = SRC.slice(i, j + 2);
     const JOUR = 86400000;
-    const faire = (fermes) => new Function('entFermes', 'return (' + corps + ');')(fermes);
+    const faire = (fermes) => new Function('entFermes', corps + '\nreturn sursisJoursDe;')(fermes);
 
     const base = { espaces: ['x'], suspendus: ['x'], suspendusLe: {} };
     /* ⛔ NULL QUAND L'ENTREPRISE N'EST PAS SUSPENDUE — PAS ZÉRO. `0` voudrait dire « le délai

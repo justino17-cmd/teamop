@@ -3506,7 +3506,22 @@ app.post('/api/espaces/etat', (req, res) => {
   const t = monStr((req.body || {}).t, 80);
   if (!t) return res.status(400).json({ error: 't requis' });
   const e = espaceParT(t);
-  if (entFermes.espaces.includes(t)) return res.json({ ok: true, ferme: true });
+  /* ⛔⛔ UN SUSPENDU N'EST PAS UN FERMÉ, ET LES CONFONDRE ICI COUPE UN IMPAYÉ DE SES DONNÉES.
+     `entFermes.espaces` porte les DEUX états — la fermeture définitive ET la simple suspension
+     pour impayé (`entFermes.suspendus` en est le sous-ensemble). Cette ligne ne faisait pas la
+     différence. Mesuré le 22 septembre 2026 sur un vrai serveur : une entreprise suspendue
+     recevait `{ferme:true}`, donc `app.html` affichait « Cet espace a été fermé par TEAM OP »
+     à TOUS ses utilisateurs, puis effaçait `elan_sync_team` — et le commentaire de cette
+     porte-là dit lui-même qu'elle « ne se rattrape pas au chargement suivant ».
+     Trois raisons pour lesquelles c'était faux, et pas seulement maladroit :
+     · Justin, 20 septembre : « rien n'est perdu … c'est pas aux utilisateurs de savoir si
+       l'entreprise paye ou pas. Que le compte admin. » ;
+     · `mentions-legales.html:74` promet qu'un impayé n'entraîne AUCUNE suppression ;
+     · le jour où le socle est la seule copie à jour, c'est une coupure de données.
+     Une entreprise suspendue reçoit donc son état NORMAL, plus de quoi griser au bon moment. */
+  const suspendu = espaceEstSuspendu(t);
+  if (entFermes.espaces.includes(t) && !suspendu) return res.json({ ok: true, ferme: true });
+  const sursisJours = sursisJoursDe(t);
   /* OP MESSAGES ne fait plus partie des formules d'OP GESTION. C'est une application à part,
      avec son propre abonnement : on l'ouvre entreprise par entreprise depuis la Tour, et son
      absence ici veut dire « pas accordée ». Le défaut est donc FERMÉ, pour tout le monde —
@@ -3517,9 +3532,9 @@ app.post('/api/espaces/etat', (req, res) => {
      l'application y vide son stockage et se recharge avant même de regarder ce champ. */
   const opMessages = !!(e && e.opMessages);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
-  if (!e || !e.formule) return res.json({ ok: true, opMessages, versionMin, enLigne });
-  espacePaye(e).then(p => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne }))
-    .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, versionMin, enLigne }));
+  if (!e || !e.formule) return res.json({ ok: true, opMessages, versionMin, enLigne, suspendu, sursisJours });
+  espacePaye(e).then(p => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours }))
+    .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, versionMin, enLigne, suspendu, sursisJours }));
 });
 /* ── Création AUTOMATIQUE d'un espace à la demande d'application ──
    Dès qu'un client fait une demande sur teamop.fr, son espace est créé, inscrit à
@@ -3877,24 +3892,11 @@ try {
       return !(entFermes.suspendus || []).includes(k);   // suspendu → pas bloqué ; fermé → bloqué
     } catch (e) { return null; } },
     /* `true` suspendu (abonnement en défaut, mais l'entreprise travaille), `false` sinon. */
-    espaceSuspendu: (t) => { try { return (entFermes.suspendus || []).includes(String(t || '')); } catch (e) { return null; } },
-    /* ⛔ OÙ EN EST LE SURSIS DE SEPT JOURS. Rend `null` quand l'entreprise n'est pas suspendue
-       — PAS `0`, qui voudrait dire « le délai est écoulé » et ferait griser les onglets de
-       tout le monde. Trois valeurs, comme partout ici : `null` = sans objet, un nombre > 0 =
-       il reste des jours, `0` = le sursis est fini. */
-    espaceSursisJours: (t) => { try {
-      const k = String(t || '');
-      if (!(entFermes.suspendus || []).includes(k)) return null;
-      const depuis = (entFermes.suspendusLe || {})[k];
-      if (!depuis) return null;
-      const passe = Date.now() - depuis;
-      /* ⛔ PLAFONNÉ À SEPT AUTANT QUE PLANCHÉ À ZÉRO. Une date dans le FUTUR — l’horloge du
-         VPS qui recule (NTP qui décroche, saut au redémarrage : ce dépôt l’a déjà vu, voir
-         `horlogeAvancee`), un fichier repris à la main — rendait 7 + l’écart. Mesuré :
-         une date à +30 jours donnait 37 jours de sursis, en silence, à une entreprise qui
-         ne paye pas. Un plancher sans plafond ne garde qu’un bout du problème. */
-      return Math.max(0, Math.min(7, 7 - Math.floor(passe / 86400000)));
-    } catch (e) { return null; } },
+    espaceSuspendu: (t) => espaceEstSuspendu(t),
+    /* ⛔ LE SURSIS SE CALCULE À UN SEUL ENDROIT — voir `sursisJoursDe`, près d'`entFermes`.
+       Il vivait ici, donc `/api/espaces/etat` (la seule route que l'APPLICATION interroge)
+       ne pouvait pas le voir : la fonction était juste, commentée, et appelée par personne. */
+    espaceSursisJours: (t) => sursisJoursDe(t),
   });
 } catch (e) {
   console.error('socle non monté :', e.message);
@@ -4893,6 +4895,29 @@ if (!Array.isArray(entFermes.emails)) entFermes.emails = [];
 if (!Array.isArray(entFermes.espaces)) entFermes.espaces = [];
 if (!Array.isArray(entFermes.suspendus)) entFermes.suspendus = [];
 function fermesSave() { try { fs.writeFileSync(FERMES_PATH, JSON.stringify(entFermes)); return true; } catch (e) { console.error('entreprises-fermees.json non écrit :', e.message); return false; } }
+
+/* ⛔⛔ OÙ EN EST LE SURSIS DE SEPT JOURS — UNE SEULE DÉFINITION, DEUX APPELANTS.
+   Elle vivait en arrow dans le montage du socle, donc invisible au reste du fichier ; et
+   `/api/espaces/etat`, la seule route que l'APPLICATION interroge, ne pouvait pas la voir.
+   Deux copies auraient un jour compté deux délais différents — la règle `fbUidEquipe` de
+   `CLAUDE.md`. Elle est donc ici, à côté d'`entFermes`, et le socle l'appelle.
+   Trois valeurs, jamais deux : `null` = sans objet (l'entreprise n'est pas suspendue),
+   un nombre > 0 = il reste des jours, `0` = le sursis est fini. Rendre `0` pour « sans
+   objet » griserait les onglets de tout le monde.
+   ⛔ PLAFONNÉ À SEPT AUTANT QUE PLANCHÉ À ZÉRO : une date dans le FUTUR — l'horloge du VPS
+   qui recule, un fichier repris à la main — rendait 7 + l'écart. Mesuré : une date à
+   +30 jours donnait 37 jours de sursis, en silence, à une entreprise qui ne paye pas. */
+function sursisJoursDe(t) {
+  try {
+    const k = String(t || '');
+    if (!(entFermes.suspendus || []).includes(k)) return null;
+    const depuis = (entFermes.suspendusLe || {})[k];
+    if (!depuis) return null;
+    return Math.max(0, Math.min(7, 7 - Math.floor((Date.now() - depuis) / 86400000)));
+  } catch (e) { return null; }
+}
+/* `true` suspendu (abonnement en défaut, mais l'entreprise TRAVAILLE), `false` sinon. */
+function espaceEstSuspendu(t) { try { return (entFermes.suspendus || []).includes(String(t || '')); } catch (e) { return false; } }
 /* ══ LA VERSION MINIMALE ET LE MODE EN LIGNE — réglés depuis la Tour, 9 septembre 2026 ══
    Ce qui a détruit les comptes d'ELAN : un appareil en vieille version qui réécrit toute la base
    toutes les deux minutes. On ne met pas à jour un appareil qu'on ne tient pas ; on lui ferme la

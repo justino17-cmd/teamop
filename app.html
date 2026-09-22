@@ -6242,7 +6242,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '714';
+const APP_VERSION = '715';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -8137,7 +8137,9 @@ let currentUser = null;
    load() décide. Le préfixe est réécrit par beta-build.js comme partout ailleurs. */
 function espaceRattache(){ try{ return !!String(localStorage.getItem('elan_sync_team')||'').trim(); }catch(e){ return false; } }
 
-function load(){
+/* L'état de facturation connu du dernier passage se relit AVANT le premier affichage : sans
+   ça, un impayé hors ligne retrouverait toutes ses catégories jusqu'au prochain aller-retour. */
+function load(){ try{ suspensionCharger(); }catch(e){}
   let d, neuve=false;
   try{ const raw = localStorage.getItem(STORE_KEY); neuve=!raw; d = raw ? migrate(JSON.parse(raw)) : migrate(seed()); }catch(e){ neuve=true; d = migrate(seed()); }
   /* ⛔ UN APPAREIL QUI APPARTIENT À UNE ENTREPRISE NE CHARGE JAMAIS LE SEMIS DE DÉMONSTRATION.
@@ -11307,7 +11309,71 @@ const PLAN_BLOQUE={
   pro:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes'],
   gratuit:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes','devis','factures','contrats','devisXylo','archives','carteInt','carteBox','secteurs','taches','absences','statistiques','audit','vehicules','pointage','messagerie','chantiers','modulesElan']
 };
-function forfait(){ return (db&&db.forfait)||'premium'; }   // les espaces existants gardent tout
+/* ══ LA SUSPENSION POUR IMPAYÉ ═══════════════════════════════════════════════════════════
+   ⛔⛔ CE QUI EXISTAIT AVANT CE BLOC ÉTAIT PIRE QUE RIEN. Mesuré le 22 septembre 2026 sur un
+   vrai serveur : une entreprise suspendue recevait `{ferme:true}` de `/api/espaces/etat`,
+   donc l'application affichait « Cet espace a été fermé par TEAM OP » à TOUS ses utilisateurs
+   et effaçait `elan_sync_team` — la seule porte qui, de son propre aveu, « ne se rattrape pas
+   au chargement suivant ». Un impayé était donc coupé de ses données, et ses techniciens
+   l'apprenaient avant lui.
+
+   La règle, telle que Justin l'a posée le 20 septembre 2026 :
+   « pour continuer à lire, ils auront un délai de 7 jours. Si c'est pas payé après, tous les
+     onglets deviennent gris. Aucune sauvegarde n'est perdue, aucune tâche qu'ils étaient en
+     train de faire, rien n'est perdu, même dans leur catégorie. Juste les catégories payantes
+     deviennent grisées et ils reviennent au forfait gratuit. Avec tous les jours un rappel sur
+     le compte admin. Après, c'est pas aux utilisateurs de savoir si l'entreprise paye ou pas.
+     Que le compte admin. »
+
+   ⛔ TROIS ÉTATS, JAMAIS DEUX. `null` = sans objet (l'entreprise n'est pas suspendue), un
+   nombre > 0 = il reste des jours, `0` = le sursis est fini. Confondre « sans objet » et
+   « fini » griserait les onglets de tout le monde — c'est la règle `_mailboxes` de ce dépôt.
+
+   ⛔ ET ÇA NE S'ÉCRIT PAS DANS `db`. Un état de FACTURATION n'appartient pas aux données de
+   l'entreprise : l'y mettre partirait à la synchro, et surtout `db.forfait` doit rester la
+   formule VRAIE. On ne touche donc jamais `db.forfait` — seul l'effet de `forfait()` change,
+   et le règlement rend tout d'un coup, sans rien recalculer. */
+let _susp = { suspendu:false, sursis:null };
+function suspensionCle(){ try{ return STORE_KEY+'_susp'; }catch(e){ return 'elan_susp'; } }
+function suspensionCharger(){
+  try{ const v=JSON.parse(localStorage.getItem(suspensionCle())||'null');
+    if(v && typeof v==='object') _susp={ suspendu:!!v.suspendu, sursis:(v.sursis===null||v.sursis===undefined)?null:(+v.sursis||0) };
+  }catch(e){}
+}
+/* Appelée par la réponse du serveur. ⚠️ `sursisJours` ABSENT (une version de serveur plus
+   ancienne) ne veut pas dire « fini » : on ne grise que sur un 0 REÇU. Entre « trop » et
+   « rien », on choisit trop — c'est le même défaut par défaut que le filtre d'`op-fs.js`. */
+function suspensionPoser(j){
+  const av=_susp.suspendu, avs=_susp.sursis;
+  _susp={ suspendu:!!(j&&j.suspendu),
+          sursis:(j && j.sursisJours!==undefined && j.sursisJours!==null) ? (+j.sursisJours||0) : null };
+  try{ localStorage.setItem(suspensionCle(), JSON.stringify(_susp)); }catch(e){}
+  if(av!==_susp.suspendu || avs!==_susp.sursis){ try{ renderNav(); }catch(e){} try{ if(current) go(current); }catch(e){} }
+}
+function suspensionSursis(){ return _susp.sursis; }
+/* Le sursis est ÉCOULÉ : les catégories payantes grisent, et l'espace revient au gratuit. */
+function suspensionGrise(){ return !!_susp.suspendu && _susp.sursis===0; }
+/* ⛔ UN RAPPEL PAR JOUR, ET SUR LE COMPTE ADMIN SEULEMENT. Justin : « c'est pas aux
+   utilisateurs de savoir si l'entreprise paye ou pas ». La marque du jour est un état
+   d'APPAREIL, rangée par compte — jamais dans `db`, qui partirait à toute l'équipe. */
+function suspensionRappel(){
+  try{
+    if(!_susp.suspendu || !currentUser || currentUser.role!=='admin') return;
+    const cle=suspensionCle()+'_rappel_'+currentUser.id, jour=todayISO();
+    if(localStorage.getItem(cle)===jour) return;
+    localStorage.setItem(cle,jour);
+    const n=_susp.sursis;
+    if(n===null) return;
+    if(n>0) toast('⚠️ Abonnement en attente de règlement — il reste '+n+' jour'+(n>1?'s':'')+'. Passé ce délai, les catégories payantes seront grisées et l\'espace reviendra au forfait gratuit. Aucune donnée n\'est perdue.',9000);
+    else toast('⚠️ Abonnement non réglé — les catégories payantes sont grisées et l\'espace est revenu au forfait gratuit. Rien n\'est perdu : tout revient dès le règlement.',9000);
+  }catch(e){}
+}
+function forfait(){
+  /* ⛔ ON NE TOUCHE PAS `db.forfait` : la formule VRAIE reste celle que le serveur a dite.
+     Seul l'EFFET change, donc le règlement rend tout d'un coup — rien à recalculer, rien à
+     réparer, et aucune écriture dans les données du client pour un motif de facturation. */
+  if(suspensionGrise()) return 'gratuit';
+  return (db&&db.forfait)||'premium'; }   // les espaces existants gardent tout
 /* BETA_ESSAI : LA BETA VOIT TOUT, PAR CONSTRUCTION. C'est l'outil de travail de l'equipe —
    une categorie masquee par le FORFAIT ou par le METIER est une categorie qu'on ne peut plus
    eprouver. Mesure le 21 septembre 2026 : « Pointage » avait disparu de la beta pour cette
@@ -11390,6 +11456,10 @@ async function forfaitServeurSync(silencieux){
        « return » ci-dessous, et gardait donc la messagerie affichée sans que personne ne l'ait
        ouverte. */
     try{ const av=_opMsgOuvert; _opMsgOuvert=!!(j&&j.opMessages); if(av!==_opMsgOuvert&&currentUser) suiteRefresh(); }catch(e){}
+    /* ⛔ L'ÉTAT DE FACTURATION SE LIT AVANT LE TEST SUR LA FORMULE, pour la même raison
+       qu'`opMessages` juste au-dessus : un espace sans formule attribuée sortait par le
+       `return` ci-dessous, et serait resté suspendu sans que rien ne grise jamais. */
+    try{ suspensionPoser(j); suspensionRappel(); }catch(e){}
     if(!(j&&j.formule&&PLANS[j.formule])) return;
     const q=Math.max(1,parseInt(j.quantite,10)||1);
     const avaitAttente=!!db.formuleAttente;
