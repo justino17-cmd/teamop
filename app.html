@@ -3812,6 +3812,38 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
      La ligne `.ph-actions` a DÉJÀ son propre plancher (`.btn` à 46 px) : on aligne la
      pastille dessus, sans toucher aux ~240 filtres du contenu, qui eux sont à leur place. */
   html[data-refonte] .ph-actions .chip{min-height:44px}
+  /* ⛔⛔ LE PLANCHER QUE LA REFONTE SE DONNE, APPLIQUÉ À CE QUI A ÉTÉ ÉCRIT AVANT ELLE.
+     Audit du 22 septembre 2026 — 168 écrans, 3 931 éléments cliquables mesurés sur les deux
+     thèmes et les deux plateformes : **242 cibles sous les 38 px** que ce bloc pose pourtant
+     trois lignes plus haut pour `.btn.sm` et `.chip`. Elles ne sont pas réparties au hasard :
+     ce sont les écrans dont les commandes sont écrites EN STYLE DIRECT, sans classe du
+     dépôt — la période de Consommation (19 px !), les segments de Bons (34), les filtres de
+     Mouvements (37), la barre du planning (26 à 36). Le plancher ne les avait jamais vues.
+     On vise donc tout bouton de contenu qui n'a PAS déjà son propre plancher. */
+  html[data-refonte] #content button:not(.btn):not(.chip):not(.tab):not(.pf-b):not(.tabbar *),
+  html[data-refonte] .plg-pl .seg span,html[data-refonte] .pf-seg2 span,
+  html[data-refonte] .pf-vues span,html[data-refonte] .pf-disp button,
+  html[data-refonte] .filters[style*="padding:3px"] > div,
+  html[data-refonte] .pf-zoom span,html[data-refonte] .pf-nav u,html[data-refonte] .pf-nav .auj{
+    min-height:38px}
+  /* ⚠️ ET CE QUI EST ÉCARTÉ L'EST VOLONTAIREMENT, NOMMÉ POUR LE PROCHAIN AUDIT : les cases
+     de la grille du planning et de la frise du tableau de bord ne sont pas des boutons. Les
+     élargir ferait tenir trois jours de moins sur un écran — on perdrait la lecture d'une
+     semaine pour gagner un plancher tactile sur une case qu'on ouvre en tapant n'importe où
+     dedans. Elles gardent leur densité. */
+  html[data-refonte] #content .pg-pt,html[data-refonte] #content .tdb-pc,
+  html[data-refonte] #content .tdb-cel,html[data-refonte] #content .plm-card,
+  html[data-refonte] #content .tbl button{min-height:0}
+  /* ⚠️ ET LES TROIS DERNIERS, TROUVÉS EN REGARDANT CE QUI RESTAIT — chacun est une VRAIE
+     commande, pas une case de grille, donc chacun prend le plancher :
+     · `.tdb-jh` (32,4 px) — l'en-tête de jour de la frise : il ouvre le planning de ce jour ;
+     · `.pf-zoom b` (16,2 px !) — le « 100 % » entre − et + remet le zoom, et il était deux
+       fois plus petit que les deux boutons qui l'entourent ;
+     · `.ic-act` — l'icône 📅 d'une ligne d'intervention, écrite EN STYLE DIRECT sans
+       classe : elle n'en avait pas, on lui en donne une plutôt que de viser un `span` nu. */
+  html[data-refonte] #content .tdb-jh{min-height:38px}
+  html[data-refonte] .pf-zoom b{min-height:38px;display:inline-flex;align-items:center;justify-content:center}
+  html[data-refonte] .ic-act{min-height:38px;min-width:38px;display:inline-flex;align-items:center;justify-content:center}
   html[data-refonte] .tab{min-height:46px}
   html[data-refonte] .nav-item{min-height:46px;padding:11px 12px!important;font-size:15.5px!important}
   html[data-refonte] .pl-row{min-height:52px;padding:14px 16px!important}
@@ -3972,6 +4004,17 @@ html[data-refonte] .btn.ghost.ph-back,html[data-refonte] .ph-back{
 html[data-refonte] .btn.ghost.ph-back:hover,html[data-refonte] .ph-back:hover{
   background:transparent!important;color:var(--acc-txt)!important;text-decoration:none}
 html[data-refonte] .content{padding-top:10px}
+/* ⛔⛔ LE RETOUR D'EN-TÊTE EST UNE NAVIGATION PRIMAIRE, PAS UN LIEN DE BAS DE PAGE.
+   Mesuré le 22 septembre 2026 : **32 px sur 41 catégories** — c'est le bouton le plus
+   pressé de l'application après les onglets, et c'était le plus petit. Ses voisins de
+   `.ph-actions` sont à 44 et 46 depuis le matin même ; lui était resté en arrière.
+   ⚠️ La règle vit ICI et pas dans le bloc tactile plus haut : celle qui pose 32 px est
+   quelques lignes au-dessus, et à spécificité égale c'est la DERNIÈRE qui gagne.
+   Le dessin ne bouge pas — ni fond, ni bordure, ni rembourrage : seule la HAUTEUR DE PRISE
+   grandit, et le chevron reste un lien iOS. */
+@media (pointer:coarse){
+  html[data-refonte] .btn.ghost.ph-back,html[data-refonte] .ph-back{min-height:44px}
+}
 
 @media (max-width:1180px){
   /* Sur téléphone et sur tablette, l'action principale prend la largeur : c'est ce qu'on vient
@@ -6370,7 +6413,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '723';
+const APP_VERSION = '724';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -15890,7 +15933,14 @@ function planMultiHtml(SRC){
         const coul=planCardColor(i);
         const st=STATUT_INT[i.statut]||{};
         const pos=cote[i.id];
+        /* ⚠️ LE TEXTE COMPLET RESTE ATTEIGNABLE, comme sur les cases voisines. Audit du
+           22 septembre 2026 : dans une colonne de 137 px, « 08:30 · Dératisation — passage
+           2/3 — Boulangerie… » est forcément coupé ; c'est la densité voulue d'un planning.
+           Mais `.pg-pt` et `.tdb-pc` portaient déjà le libellé entier en infobulle et
+           `.plm-card` était la SEULE à ne rien porter — là le mot coupé ne se retrouvait
+           nulle part sans ouvrir la fiche. Un libellé tronqué ne nomme rien. */
         col+=`<div class="plm-card${(pos&&pos.n>1)?' chev':''}" data-int="${i.id}" data-drag-int="${i.id}" draggable="${canPlan()?'true':'false'}" ondragstart="planDragStart(event,'${i.id}')"
+          title="${esc((i.heure?i.heure+' · ':'')+(i.titre||'Intervention')+(c?' — '+(c.nom||''):''))}"
           onclick="event.stopPropagation();detailIntervention('${i.id}')"
           style="top:${top}px;height:${haut}px;border-left-color:${coul};${planCoteStyle(pos)}">
           <b>${i.heure?`<span class="hh">${esc(i.heure)}</span> · `:''}<span class="tt">${esc(i.titre||'Intervention')}</span></b>
@@ -18271,7 +18321,7 @@ views.interventions=function(){
           <div style="display:flex;gap:9px"><span style="color:var(--t3)">🕐</span><div>${fut?`<b style="font-size:13.5px">${esc(fmtCountdownLong(start-Date.now()))}</b><br>`:''}<span style="font-size:12.5px;color:var(--t2)">${new Date((i.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} ${esc(i.heure||'')}${i.heure?'-'+esc(addMin(i.heure,i.duree||60)):''}</span></div></div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0">
-          <span onclick="event.stopPropagation();planSel='${i.date}';planWeekRef='${i.date}';planMode='jour';go('planning')" title="Voir au planning" style="font-size:24px;color:var(--acc);cursor:pointer">📅</span>
+          <span class="ic-act" onclick="event.stopPropagation();planSel='${i.date}';planWeekRef='${i.date}';planMode='jour';go('planning')" title="Voir au planning" style="font-size:24px;color:var(--acc);cursor:pointer">📅</span>
           ${badge(STATUT_INT,i.statut)}
         </div>
       </div>
