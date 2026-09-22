@@ -1246,6 +1246,30 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-opt i.car{ border-radius:3px; }
 .pf-opt b{ flex:1; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .pf-opt small{ color:var(--t3); font-size:11px; font-weight:700; }
+/* ⛔⛔ C'EST LE LIBELLÉ QUI COMPTE, PAS LE DÉTAIL — ET C'ÉTAIT L'INVERSE.
+   Mesuré le 22 septembre 2026 sur un iPhone de 390 px, menu d'options du planning :
+   « Réduire aux heures de travail » rendait **10 px de visible pour 209 px de texte**.
+   La cause tient à la mécanique du flex : `b` porte `flex:1`, c'est-à-dire une base de ZÉRO
+   qui grandit avec ce qui RESTE ; `small` garde sa largeur naturelle, et sa chaîne
+   « 07:00 → 19:00 · sinon 04:00 → 23:00 » fait à elle seule presque toute la ligne.
+   Le détail mangeait donc le nom de l'option — exactement à l'envers de ce qu'il faut :
+   un libellé tronqué ne nomme rien, un horaire tronqué se devine.
+   On donne au libellé un PLANCHER et on laisse le détail se couper le premier.
+   ⚠️ MAIS LE PLANCHER SEUL NE SUFFIT PAS, ET C'EST MESURÉ : il a fait passer le libellé de
+   10 à 119 px — lisible, toujours coupé (209 px nécessaires). Sur 390 px d'écran, ces
+   libellés ne tiennent PAS sur une ligne à côté de leur détail. On ne rétrécit pas la
+   police (plancher de lisibilité au soleil) et on ne peut pas élargir l'écran : le détail
+   passe donc À LA LIGNE, et le libellé reprend toute la largeur.
+   ⚠️ `flex-wrap` ne casse PAS les lignes courtes : « NOM » + un compteur tiennent, donc
+   elles restent sur une seule ligne. Seules celles qui débordent se replient — mesuré. */
+.pf-opt{ flex-wrap:wrap; row-gap:1px; align-items:center; }
+/* ⚠️ ET DEUX LIBELLÉS RESTAIENT COUPÉS SANS DÉTAIL À REPLIER — ils sont simplement plus
+   longs que la ligne (« Masquer les interventions terminées » : 260 px pour 249 ;
+   « Ajouter une activité — garage, dépôt… » : 308 pour 274). Un libellé tronqué ne nomme
+   rien : on le laisse passer à la ligne plutôt que de lui mettre des points de suspension.
+   Ce qui tient sur une ligne y reste — c'est la même mécanique que le repli du détail. */
+.pf-opt b{ min-width:min(9.5em,52%); white-space:normal; overflow:visible; text-overflow:clip; }
+.pf-opt small{ min-width:0; flex:0 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .pf-opt.act b{ font-weight:700; }
 .pf-sep{ border-top:1px solid var(--brd); margin:5px 0; }
 .pf-act{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:9px; padding-top:9px; border-top:1px solid var(--brd); }
@@ -4006,6 +4030,23 @@ html[data-refonte] .content{padding-top:10px}
      reprennent leur largeur naturelle et se rangent côte à côte ; l'écarteur, qui n'a de sens
      que pour pousser un groupe à droite sur un écran large, disparaît. */
   html[data-refonte] .pf-dd{flex:0 1 auto!important}
+  /* ⛔⛔ ET LA MOITIÉ QUI RESTAIT : LE PANNEAU SE MESURAIT SUR SON BOUTON.
+     Justin, capture à l'appui, 22 septembre 2026 : une colonne blanche au milieu de l'écran,
+     avec « A / A / I. / J » — les PREMIÈRES LETTRES des techniciens, une par ligne.
+     La ligne au-dessus a rendu aux menus leur largeur naturelle (`flex:0 1 auto`), ce qui est
+     juste. Mais la règle téléphone du panneau (`.pf-pan{left:0;right:0;width:auto}`) avait
+     été écrite quand `.pf-dd` prenait TOUTE la largeur : le panneau héritait donc, d'un coup,
+     de la largeur du BOUTON. Sur un bouton d'icône, ça fait une colonne de 48 px.
+     ⚠️ Et son jumeau, mesuré dans la même passe : `.pf-pan.large` (0,2,0) bat cette règle
+     (0,1,0) et garde `width:330px`, ancré à GAUCHE du bouton — le menu « Jours » sortait
+     alors de **81 px à droite de l'écran** (x 141→471 sur 390 de large).
+     Un panneau de téléphone ne se mesure ni sur son bouton ni sur rien d'autre que l'ÉCRAN :
+     on rend le bloc conteneur à la RANGÉE, qui fait toute la largeur de la barre. Le panneau
+     s'ouvre alors sous la barre, pleine largeur — et il ne peut plus sortir d'aucun côté. */
+  html[data-refonte] .pf-row{position:relative}
+  html[data-refonte] .pf-dd{position:static}
+  html[data-refonte] .pf-pan,
+  html[data-refonte] .pf-pan.large{left:0!important;right:0!important;width:auto!important;max-width:none!important}
   html[data-refonte] .pf-sp2{display:none}
   html[data-refonte] .pf-inw{flex:1 1 150px!important;max-width:none}
   html[data-refonte] .pf-nav{flex:1 1 100%!important;justify-content:space-between}
@@ -6329,7 +6370,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '722-beta';
+const APP_VERSION = '723-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;

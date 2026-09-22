@@ -112,6 +112,42 @@ console.log('\n══ 4. ⛔ LES DEUX BOUTONS FLOTTANTS NE SE MARCHENT PLUS DESS
   vrai('population : la règle de repli existe toujours',
        /body\.rf-onglets \.plm-fab\{bottom:calc\(var\(--tabh\) \+ 12px\)!important\}/.test(t)); }
 
+console.log('\n══ 4 bis. ⛔ LES MENUS DE LA BARRE D’OUTILS NE SE MESURENT PAS SUR LEUR BOUTON ══\n');
+/* Justin, capture à l'appui : une colonne blanche au milieu de l'écran avec
+   « A / A / I. / J » — les PREMIÈRES LETTRES des techniciens, une par ligne.
+   ⛔ TROISIÈME FOIS DANS LA JOURNÉE QU'UNE MOITIÉ DE RÈGLE SURVIT À L'AUTRE :
+   `html[data-refonte] .pf-dd{flex:0 1 auto}` a rendu aux menus leur largeur naturelle —
+   c'est juste — mais la règle téléphone du panneau (`.pf-pan{left:0;right:0;width:auto}`)
+   avait été écrite quand `.pf-dd` prenait TOUTE la largeur. Le panneau héritait donc de la
+   largeur du BOUTON : 42 px sur un bouton d'icône.
+   ⚠️ Et son jumeau : `.pf-pan.large` (0,2,0) bat cette règle (0,1,0) et gardait
+   `width:330px` ancré à GAUCHE — le menu « Jours » sortait de 81 px à droite de l'écran
+   (x 141→471 sur 390 de large). Les deux sont mesurés dans `scratchpad/sonde-menus.js`. */
+{ const t=NU.replace(/\s*\n\s*/g,'');
+  vrai('⛔ le bloc conteneur du panneau est la RANGÉE, pas le bouton',
+    /html\[data-refonte\] \.pf-row\{position:relative\}/.test(t) &&
+    /html\[data-refonte\] \.pf-dd\{position:static\}/.test(t));
+  const m=t.match(/html\[data-refonte\] \.pf-pan,html\[data-refonte\] \.pf-pan\.large\{([^}]*)\}/);
+  vrai('⛔ … et la règle vise AUSSI `.pf-pan.large`, qui la battait en spécificité', !!m);
+  if(m) vrai('… en forçant largeur et ancrage (sinon la règle de base reprend la main)',
+             /left:0!important/.test(m[1]) && /right:0!important/.test(m[1]) && /width:auto!important/.test(m[1]));
+  /* ⚠️ La correction est bornée au téléphone : sur ordinateur le panneau garde sa largeur
+     DESSINÉE (285 ou 330) et s'ouvre sous son bouton. L'étaler « pour faire pareil » serait
+     une régression — la contre-épreuve est dans la sonde. */
+  const i0=t.indexOf('@media(max-width:700px){');
+  vrai('population : le bloc téléphone est trouvé', i0>0);
+  vrai('⛔ … et la correction vit DEDANS (l’ordinateur n’est pas touché)',
+       t.indexOf('html[data-refonte] .pf-row{position:relative}') > i0); }
+/* ⛔ C'EST LE LIBELLÉ QUI COMPTE, PAS LE DÉTAIL. Mesuré dans la même passe :
+   « Réduire aux heures de travail » rendait 10 px de visible pour 209 px de texte — le
+   détail horaire gardait sa largeur naturelle et mangeait le nom de l'option. */
+{ const t=NU.replace(/\s*\n\s*/g,'');
+  vrai('⛔ le libellé d’option a un plancher de largeur', /\.pf-opt b\{[^}]*min-width:min\(/.test(t));
+  vrai('⛔ … et le détail se coupe le premier', /\.pf-opt small\{[^}]*min-width:0/.test(t));
+  vrai('⛔ … le détail peut passer à la ligne quand il ne tient pas', /\.pf-opt\{[^}]*flex-wrap:wrap/.test(t));
+  vrai('⛔ … et un libellé trop long se replie plutôt que de se tronquer',
+       /\.pf-opt b\{[^}]*white-space:normal/.test(t)); }
+
 console.log('\n══ 5. LA MESURE QUI GARDE LE RESTE EXISTE ══\n');
 const P=__dirname+'/../scratchpad/sonde-geste.js';
 vrai('scratchpad/sonde-geste.js existe', fs.existsSync(P));
@@ -120,6 +156,13 @@ vrai('… elle joue de VRAIS événements tactiles', /dispatchTouchEvent/.test(S
 vrai('… sur la barre ET sur le contenu', /barre/i.test(SONDE) && /contenu/i.test(SONDE));
 vrai('… et elle vérifie qu’un simple tap marche encore', /tap/i.test(SONDE));
 vrai('… sur la BÊTA, jamais sur app.html', !/app\.html/.test(SONDE));
+const P2=__dirname+'/../scratchpad/sonde-menus.js';
+vrai('scratchpad/sonde-menus.js existe', fs.existsSync(P2));
+const S2=fs.existsSync(P2)?fs.readFileSync(P2,'utf8'):'';
+vrai('… elle ouvre CHAQUE bouton de la barre (on ne suppose pas lequel ouvre un panneau)',
+     /pf-bar button/.test(S2));
+vrai('… elle porte la contre-épreuve ORDINATEUR', /CONTRE-ÉPREUVE/.test(S2) && /1440/.test(S2));
+vrai('… sur la BÊTA, jamais sur app.html', !/app\.html/.test(S2));
 
 console.log(`\n════ test-764 : ${ok} ✓ ${ko} ✗ ════\n`);
 process.exit(ko?1:0);
