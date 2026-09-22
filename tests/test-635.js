@@ -52,9 +52,10 @@ console.log('Les fiches FOURNISSEURS suivent le métier, comme le catalogue');
     dec("METIERS['3d'].catalogue=CATALOGUE;"),dec("METIERS['3d'].fournisseurs=FOURNISSEURS_3D;"),
     dec('function metierPackDe(base){'),dec('function slugNom(nom){'),dec('function idCatalogue(nom,prefixe){'),
     dec('const FOURS_VER='),dec('function seedFournisseurs(){')].join('\n');
-  const semer=(base,porte)=>new Function('etat',
+  const semer=(base,porte,metierEssai)=>new Function('etat',
       'let db=etat.db; const PACK_METIER_AUTO=etat.porte; let currentUser=null, current=""; const views={};'
-    + 'const save=()=>{};\n'+src+'\nseedFournisseurs(); return { FOURNISSEURS_3D };')({db:base,porte});
+    + 'const save=()=>{};\n'+src+'\nif(etat.metierEssai) METIERS.essai=etat.metierEssai;'
+    + '\nseedFournisseurs(); return { FOURNISSEURS_3D };')({db:base,porte,metierEssai});
 
   /* ⛔ LA POPULATION D'ABORD : sans elle, les zéros qui suivent passeraient sur du néant — le
      corps de seedFournisseurs est tout entier dans un try/catch, donc une extraction cassée
@@ -75,6 +76,20 @@ console.log('Les fiches FOURNISSEURS suivent le métier, comme le catalogue');
     v('porte ouverte · métier plomberie : rien non plus',b.fournisseurs.length,0); }
   { const b={metier:'boulangerie',fournisseurs:[]}; semer(b,true);
     v('un métier inconnu retombe sur la 3D, comme metierPackDe',b.fournisseurs.length,5); }
+
+  /* ⛔ LE CAS QUE LA GARDE DE SLUG PROTÈGE — sans lui, la retirer ne faisait tomber aucun des
+     60 contrôles (mesuré le 22 septembre 2026). Un nom qui ne laisse rien une fois réduit à
+     [a-z0-9] retombe sur le générique « four_x » : deux fiches s'y écraseraient, et la fusion,
+     qui unit par identifiant, n'en garderait qu'une sans le dire. Tant que tous les packs sont
+     des constantes latines de ce fichier, le cas n'existe qu'ici — c'est bien pour ça qu'il
+     faut l'y jouer : la promesse a changé de portée le jour où ces portes ont quitté la 3D. */
+  { const pack={ nom:'Métier d\u2019essai', catalogue:[], fournisseurs:[
+      {nom:'\u2022\u2022\u2022',email:''},          // ponctuation seule : slugNom rend la chaîne vide
+      {nom:'\u4e2d\u6587',email:''},          // écriture non latine : idem
+      {nom:'NORMAL SARL',email:''} ] };
+    const b={metier:'essai',fournisseurs:[]}; semer(b,true,pack);
+    v('un pack dont deux noms ne sluguent pas : seul le troisième entre',b.fournisseurs.map(f=>f.nom),['NORMAL SARL']);
+    v('\u2026et aucune fiche ne porte l\u2019identifiant g\u00e9n\u00e9rique four_x',b.fournisseurs.filter(f=>f.id==='four_x').length,0); }
 
   /* l'autre sens, au même coût : porte fermée, rien ne part, et le drapeau est quand même posé */
   { const b={fournisseurs:[]}; semer(b,false);
