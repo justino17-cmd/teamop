@@ -4096,7 +4096,21 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
   /* Le message se posait sur la bulle d'aide, exactement là où le pouce allait la chercher.
      Il passe AU-DESSUS d'elle : les deux se voient, aucun des deux ne bloque l'autre. */
   html[data-refonte] body.rf-onglets .toast{bottom:calc(var(--tabh) + 66px)!important;max-width:min(90vw,440px)}
+  /* ⛔⛔ DEUX BOUTONS FLOTTANTS DANS LE MÊME COIN, ET C'EST LE PLUS HAUT QUI GAGNE.
+     Justin, capture à l'appui, 22 septembre 2026 : sur le Planning, une forme verte en
+     cachait une autre. Mesuré sur un iPhone de 390 px, panneau d'assistance fermé :
+     · la bulle d'assistance — `right:24px`, 58×58, `bottom:calc(var(--tabh) + 10px)` ;
+     · « Voir sur la carte » — `right:22px`, 153×44, `bottom:calc(var(--tabh) + 12px)`.
+     Résultat : la bulle était **recouverte à 83 %** et **INATTEIGNABLE** (`elementFromPoint`
+     en son centre rendait `button.plm-fab`, z-index 900 contre 46). Sur Accueil et
+     Interventions, la même bulle est atteignable et couverte à 3 % — c'est la comparaison
+     qui désigne le Planning, pas une impression.
+     Les deux montent donc l'un SUR l'autre : 10 px au-dessus de la bulle (58 px de haut).
+     ⚠️ La règle se conditionne à la PRÉSENCE de la bulle (`:has`) — sans elle, le bouton
+     redescend à sa place et ne laisse pas un trou de 80 px au-dessus de la barre. */
   html[data-refonte] body.rf-onglets .plm-fab{bottom:calc(var(--tabh) + 12px)!important}
+  html[data-refonte] body.rf-onglets:has(#assistant > .fab) .plm-fab{
+    bottom:calc(var(--tabh) + 10px + 58px + 10px)!important}
   /* La barre « Retirer / Ajouter » de la sélection multiple est collante en bas de la liste :
      à bottom:0 elle passait SOUS la barre d'onglets et ses deux boutons étaient coupés.
      Elle s'arrête donc juste au-dessus. */
@@ -6315,7 +6329,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '721-beta';
+const APP_VERSION = '722-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -12563,7 +12577,15 @@ function swipeDefileH(n){
    rendait `HTML` — le doigt ne touchait donc PAS la zone écoutée, et le balayage ne partait
    jamais. Un écouteur posé sur un conteneur qui ne couvre pas l'écran est un écouteur qu'on
    croit avoir posé. On écoute le document et on ÉCARTE ce qui ne doit pas recevoir le geste. */
-const SWIPE_HORS=['#tabbar','.sidebar','#overlay','#overlay2','#assistant','#login','.topbar','.creer-ov'];
+/* ⛔⛔ LA BARRE ÉTAIT EXCLUE, ET C'EST LÀ QUE LE DOIGT VA. Justin, 22 septembre 2026, deux
+   fois : « le glissement du doigt sur la barre marche toujours pas ». Mesuré avec de VRAIS
+   événements tactiles : glisser sur le CONTENU marche dans les deux sens ; glisser sur la
+   BARRE ne fait **rien**, parce que `#tabbar` figurait ici. Rien ne le disait à l'écran — la
+   pastille est là, elle a l'air de se prendre, et elle ne bouge pas.
+   C'est pourtant le geste le plus naturel : la pastille est SOUS le doigt, on la pousse.
+   La barre sort donc de la liste. Ce qui reste exclu l'est pour une vraie raison : un tiroir,
+   un voile, un panneau ou la barre du haut ne sont pas des rubriques qu'on parcourt. */
+const SWIPE_HORS=['.sidebar','#overlay','#overlay2','#assistant','#login','.topbar','.creer-ov'];
 function swipeExclu(n){
   while(n && n.nodeType===1 && n!==document.body){
     for(const sel of SWIPE_HORS){ try{ if(n.matches&&n.matches(sel)) return true; }catch(e){} }
@@ -12575,6 +12597,12 @@ function ongletsGeste(){
   const zone=document; if(zone._geste) return;
   zone._geste=true;
   let x0=0,y0=0,t0=0,actif=false,engage=false,dernier=0,vitesse=0,tdernier=0,largeur=0,sens=0;
+  /* ⛔ UN BALAYAGE QUI FINIT SUR UN ONGLET DÉCLENCHE LE `click` DE CET ONGLET. Le doigt part
+     d'« Accueil », arrive sur « Boxes » : le geste dit « un cran à droite » et le clic dit
+     « va sur Boxes » — deux navigations pour un seul geste, et c'est la seconde qui gagne.
+     On avale donc le clic qui suit un balayage ENGAGÉ. ⚠️ Un simple tap n'est jamais engagé
+     (il faut 12 px) : il passe intact, et c'est le banc qui le vérifie. */
+  let finBalayage=0;
   const sobre=()=>{ try{ return window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
   const barreLa=()=>{ const b=document.getElementById('tabbar');
     try{ return !!(b && getComputedStyle(b).display!=='none' && b.querySelectorAll('.tab').length>1); }catch(e){ return false; } };
@@ -12653,6 +12681,10 @@ function ongletsGeste(){
   const relacher=()=>{
     if(!actif){ engage=false; return; }
     if(!engage){ actif=false; return; }
+    finBalayage=Date.now();
+    /* Le bloc d'historique vit 24 000 lignes plus bas, dans sa propre portée : il lit ce
+       marqueur global pour ne pas défaire ce que le doigt vient de faire. */
+    try{ window._balayageFin=finBalayage; }catch(e){}
     const dx=dernier-x0;
     /* Distance parcourue PLUS distance projetée : un coup sec suffit, un glissement lent aussi. */
     const arrivee=dx+swipeProjeter(vitesse);
@@ -12666,6 +12698,17 @@ function ongletsGeste(){
      navigateur prend la main pour le défilement. C'est `touchcancel` qui dit vraiment que le
      doigt a été perdu (appel entrant, geste système). */
   zone.addEventListener('touchcancel',()=>{ if(engage) tabCurPlacer(true,0); actif=false; engage=false; },{passive:true});
+  /* En CAPTURE sur le document : les onglets portent un `onclick` en ligne, et un écouteur de
+     capture sur un ancêtre passe AVANT la phase cible — `stopPropagation()` y empêche donc le
+     `onclick` de partir. C'est déjà le mécanisme de l'appui long (`ongletsPresse`).
+     300 ms : le clic synthétique d'iOS suit le `touchend` de quelques dizaines de
+     millisecondes ; au-delà, c'est un vrai tap et on le laisse passer. */
+  zone.addEventListener('click',e=>{
+    if(Date.now()-finBalayage>300) return;
+    const n=e.target && e.target.closest ? e.target.closest('#tabbar') : null;
+    if(!n) return;
+    e.preventDefault(); e.stopPropagation();
+  },true);
 }
 
 /* ⛔ L'APPUI LONG NE DOIT PAS DÉCLENCHER LE TAP QUI LE SUIT, ET LES ÉCOUTEURS NE S'EMPILENT PAS.
@@ -37087,6 +37130,20 @@ try{
     }
     window.addEventListener('popstate',function(){
       if(nous){ nous=false; return; }          // c'est nous qui avons reculé, pas l'utilisateur
+      /* ⛔⛔ LE MÊME DOIGT NE NAVIGUE PAS DEUX FOIS. Mesuré le 22 septembre 2026, pile
+         d'appel à l'appui : un balayage entre rubriques faisait `go('dashboard')`, et
+         AUSSITÔT APRÈS le navigateur traitait le MÊME mouvement horizontal comme SON geste
+         « retour » — `popstate` → `goBack()` → retour à la rubrique de départ. À l'écran :
+         « le glissement ne marche pas », alors qu'il marche et se fait annuler.
+         C'est le pendant exact du garde-clic de `ongletsGeste` : un geste, une navigation.
+         ⚠️ On REMET l'entrée qu'on vient d'ignorer, sinon l'historique prend un cran de
+         retard sur l'écran et le retour système suivant ne ferait rien de visible.
+         ⚠️ Et on ne coupe PAS le geste du navigateur (`overscroll-behavior-x`) : tout ce
+         bloc existe pour que le retour système marche. On ignore le doublon, pas la porte. */
+      if(Date.now() - (window._balayageFin||0) < 450){
+        try{ history.pushState({rf:1},'','#v='+(window.current||'')); }catch(e){}
+        return;
+      }
       var pile=window._viewStack||[];
       if(pile.length && typeof goBack==='function'){
         enRetour=true;
