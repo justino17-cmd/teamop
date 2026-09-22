@@ -24,6 +24,64 @@ Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fich
 
 
 
+## ✅ 22 SEPTEMBRE 2026 — L'IMPAYÉ ÉTAIT COUPÉ DE SES DONNÉES (v715, corrigé)
+
+Le seul « trou d'application assumé » du chantier socle était en réalité **pire que décrit**.
+Cette page disait : « le bouton suspendre marque une entreprise sans rien lui interdire ».
+Mesuré le 22 septembre sur un VRAI serveur, ce n'était pas ça :
+
+| ce qu'on croyait | ce qui se passait |
+|---|---|
+| suspendre marque, sans rien interdire | `/api/espaces/etat` répondait **`{ferme:true}`** |
+| — | `app.html` affichait « Cet espace a été fermé par TEAM OP » à **TOUS** ses utilisateurs |
+| — | puis effaçait `elan_sync_team` — la porte qui, de son propre aveu, « ne se rattrape pas au chargement suivant » |
+
+La cause : `entFermes.espaces` porte les **deux** états, la fermeture définitive ET la simple
+suspension (`entFermes.suspendus` en est le sous-ensemble) ; la route ne faisait pas la
+différence. ⛔ **Et tout ce qu'il fallait existait déjà** : `espaceSursisJours` était écrite,
+commentée, juste — et **appelée par personne**, parce qu'elle vivait en arrow dans le montage
+du socle, invisible à la seule route que l'application interroge. Le jumeau exact d'`atts`
+dans `/health`.
+
+**Fait**, côté serveur : `sursisJoursDe(t)` posée près d'`entFermes`, **une définition, deux
+appelants** ; un suspendu reçoit son état NORMAL plus `suspendu` et `sursisJours` ; une vraie
+fermeture reste une fermeture (le contre-contrôle qui compte).
+
+**Fait**, côté application, mot pour mot selon la règle de Justin : sept jours pendant lesquels
+rien ne grise ; le sursis écoulé, `forfait()` rend « gratuit » — mesuré au navigateur,
+**42 rubriques → 10** ; `db.forfait` n'est **jamais** touché, donc le règlement rend tout d'un
+coup ; un rappel par JOUR sur le compte ADMIN seulement ; un serveur plus ancien ne grise rien.
+
+⚠️ **Et ma première sonde mentait** : elle forçait `BETA_ESSAI=false`, qui est un `const` —
+l'affectation jetait, le `catch` l'avalait, et elle annonçait « 0 catégorie bloquée » sur les
+six cas. Le signe : **le même zéro partout, avec 42 rubriques y compris dans le cas grisé.**
+Remesuré sur une copie de la bêta dont cette seule ligne est inversée.
+`tests/test-761.js` (30 contrôles) joue la route contre un vrai serveur ET les vraies fonctions
+de la page ; `tests/test-743.js` a été recentré — il gardait la même vérité à l'ancienne
+adresse et il est tombé pour ça, à juste titre. Dix mutations, dix qui mordent.
+
+## ⚠️ CORRECTION — LES ÉTAPES C ET D SONT ÉCRITES, CETTE PAGE DISAIT LE CONTRAIRE (22 septembre)
+
+Deux sections plus bas affirmaient que `espace.html` « appelle encore Firebase, partout » et que
+`reinit.html` n'était pas commencé. **Les deux sont faux**, et je l'ai répété à Justin avant de
+mesurer. Relevé du 22 septembre :
+
+| | ce que la page disait | ce que le fichier fait |
+|---|---|---|
+| `espace.html` | ~40 appels Firebase, 5 méthodes d'auth, un écran d'admin à porter | `portailMaison()`, **281 lignes**, derrière `PORTAIL_SERVEUR` ; `const auth = _pv ? _pv.auth : firebase.auth()` — le point d'injection EXISTE ; 4 collections, 30 appels, **zéro nom calculé**, aucun `firebase.storage()` |
+| `reinit.html` | « l'angle mort », pas commencé | 213 lignes, appelle déjà `/api/compte/verifier` et `/api/compte/mdp/poser` ; **c'est le PARAMÈTRE `?jeton=` qui décide, pas un interrupteur** — un lien déjà parti doit vivre (1 h pour un mot de passe, 7 JOURS pour une vérification) ; Firebase n'est même pas téléchargé sur un lien maison |
+
+Bancs verts : `test-739` 53 · `test-740` 55 · `test-741` 35 · `test-746` 21 — **164 contrôles**
+sur le portail, dont la couture entre les deux pages (l'une pose le mot de passe, l'autre s'y
+connecte).
+
+⛔ **Ce qui reste sur C et D n'est donc PAS du code** : `PORTAIL_SERVEUR` et `comptes.actif` se
+lèvent dans le même geste (sinon la page parle à des 404), et chaque client du portail doit
+reposer un mot de passe — un mot de passe Firebase ne se LIT pas. Ça s'annonce et ça se date.
+⚠️ Deux manques ASSUMÉS le jour de la bascule, à connaître : **changer son adresse e-mail** et
+**supprimer son compte** renvoient vers le support (l'adresse est la CLÉ du compte, en changer
+veut dire déménager le compte, le dossier et le fil dans deux modules).
+
 ## ⛔⛔ DÉCISION DE JUSTIN — 22 SEPTEMBRE 2026 : OP MESSAGES SORT DU CHANTIER SOCLE
 
 **« OP MESSAGES est bien une application TeamOP. Mais je veux la séparer d'OP GESTION, je vais
