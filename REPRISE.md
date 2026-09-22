@@ -23,6 +23,103 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
+## ✅ 22 SEPTEMBRE 2026 — LES ÉCRANS PROFONDS AU DOIGT (v726, bêta publiée)
+
+Étape 1 de « 1 après 2 après 3 » : les fiches, les formulaires, les fenêtres et les
+sous-catégories, sur les deux profils (téléphone nuit, bureau jour). `scratchpad/audit-profond.js`
+atteint chaque écran par un VRAI clic depuis une vraie rubrique ; `scratchpad/sonde-cibles.js`
+mesure ce qu'un doigt déclenche vraiment ; `scratchpad/sonde-barre.js` la barre du haut dans
+ses deux états.
+
+| ce qui est mesuré | téléphone | bureau |
+|---|---|---|
+| écrans profonds audités | 224 (470 clics) | 222 (423 clics) |
+| éléments mesurés | 5 912 | 5 700 |
+| erreurs JavaScript | **0** | **0** |
+| hors de l'écran | **0** (2 avant : le menu des box) | **0** |
+| recouverts (hors menus ouverts exprès) | **0** (1 avant : « Envoyer » sous la bulle de Leia) — 35 sous un menu ouvert, nommés | **0** — 169 sous un menu ouvert, nommés |
+| tronqués sans infobulle | **0** (209 avec infobulle) | **0** (227 avec infobulle) |
+| cibles dont la zone qui répond fait moins de 38 px | **0** — 116 dessinées sous 38 px, toutes répondent ; 70 cases de grille écartées par décision écrite | — |
+| champs sous 16 px (Safari zoome) | **0** (39 avant, sur deux rubriques seulement) | — |
+
+### ⛔⛔ LE RECTANGLE N'EST PAS LA CIBLE — 411 « petites cibles » étaient 188 éléments, et beaucoup répondaient déjà
+
+La première passe comptait le rectangle DESSINÉ. Un doigt, lui, touche un point, et ce point
+déclenche l'élément, son libellé, ou la rangée `.frow` qui fait suivre le tap : les champs de
+formulaire à 29 px répondaient déjà sur 44 à 47. Remesuré au doigt simulé (`elementFromPoint`
+sur la verticale du centre), il restait des familles précises — toutes corrigées :
+
+| famille | avant | après |
+|---|---|---|
+| boutons écrits à la main dans les FENÊTRES (nuisibles, méthodes, indices, Oui/Non, « Journée entière ») | 28–34 px, 82 commandes | 38 — le plancher de `#content` s'arrêtait à sa porte |
+| options des menus du planning (`.pf-opt`, `.abs-tyit`) | 32–36 | 44 |
+| raccourcis, flèches de semaine, liens, croix de filtre, « Tout effacer » | 15–28 | 38 |
+| statut, client, téléphone, courriel de la fiche d'intervention | 16–26 | 44 |
+| l'œil du mot de passe | 32 | 44 |
+| champs dans une pilule (recherches, `.pf-inw`, « Valeur… ») | 14–17 | l'enrobe entier répond |
+| menus déroulants des filtres, dates « Du / Au » | 35 | 38 |
+| « Créer » dans la barre | 46 ou 38 selon la rubrique | 44 partout |
+| **second passage** — « Code postal » + « Ville » du Nouveau bon | 28–30 | une rangée faite uniquement de champs s'étend dans les deux sens |
+| « ✓ Confirmé » de la télécollecte, qui ANNULE | 40 avant le geste, 18 après | 38 |
+| la valeur « Oui » d'une ligne de fiche | 26 | la hauteur de sa ligne |
+| « Envoyer » de la Messagerie | SOUS la bulle de Leia en fin de page | le bas du contenu dégage la bulle |
+
+⚠️ **Écartées par décision écrite, et nommées** : les cases des grilles du planning général
+(`.pg-pt`, 15 px) et de la frise. La règle est dans `app.html` depuis l'audit total : élargir
+une case ferait tenir trois jours de moins sur un écran. L'audit les compte à part.
+
+### ⛔⛔ SAFARI ZOOMAIT SUR TOUTE LA FENÊTRE INTERVENTION
+
+La règle tactile posait 16 px sur `input[type=text]` — et un `<input>` SANS attribut `type` est
+un champ texte que ce sélecteur ne voit pas ; les menus et les zones de texte hors `.field` non
+plus. Mesuré, taille CALCULÉE : **39 champs sous 16 px sur deux rubriques seulement**, toute la
+fenêtre Intervention à 15 px, la recherche de Mouvements à 13,2. Sur un iPhone, chacun faisait
+zoomer la page au premier toucher — et elle restait zoomée. **0 après correction.** L'audit
+compte désormais la taille que le navigateur calcule, pas celle que la feuille croit viser.
+
+### ⛔ TROIS DÉFAUTS NÉS DU CORRECTIF DE LA BARRE DU HAUT, LE MÊME JOUR
+
+Le correctif « OP GESTION ne se coupe plus » (plus haut) avait lui-même :
+- fait SAUTER la synchro, la cloche et la recherche vers la gauche au premier défilement du
+  tableau de bord (la marque cédait sa place à un titre qui, hors rubrique, n'existe pas) ;
+- tassé les ronds à gauche à 360 px (`display:none` retirait aussi la PLACE de la marque) ;
+- et laissé passer que l'écart du téléphone (8 px) n'avait JAMAIS pris : un `gap:10px!important`
+  écrit plus loin gagnait — « OP GESTIO… » sur l'écran d'accueil de tout iPhone de 390 px.
+Mesuré sur 3 largeurs × 3 rubriques × 2 états de défilement : plus un saut, plus un nom coupé.
+
+### Et deux mises en page trouvées en chemin
+
+- le menu « Filtrer par box » de Mouvements sortait de **84 px par la gauche** au téléphone
+  (ancré `right:0` sur un bouton qui, la barre passée à la ligne, tombe à gauche) ;
+- la colonne collante des noms du planning général cachait la case que montre un
+  `scrollIntoView` (190 px sur 358 au téléphone) : `scroll-padding-left`, et 150 px au
+  téléphone, les noms longs à la ligne plutôt que coupés.
+
+### Les bancs
+
+`test-771` (88 contrôles), `test-770` étendu aux enrobes de champ (42, l'écouteur est EXÉCUTÉ),
+`test-768` (34). **Dix-sept mutations, dix-sept tombées.** Suite complète : **128 suites · 5 688 vérifications, 0 échec**.
+
+### ⚠️ CE QUI RESTE, ET POURQUOI CE N'EST PAS CORRIGÉ
+
+- **« Consommation produits » se coupe en « Consommation pro… » dans la barre du haut** quand
+  on a défilé. C'est le titre RÉDUIT, et iOS fait exactement ça : le grand titre du contenu, juste
+  en dessous, le porte en entier. L'audit le compte à part et le nomme.
+- **Les cases du planning général (15 px) et de la frise** restent denses, par décision écrite
+  dans `app.html` : on les ouvre en tapant n'importe où dans la case.
+- **La couverture de l'audit des écrans profonds est un ÉCHANTILLON**, et il faut le savoir :
+  4 éléments par genre, 14 sous-vues par rubrique, 150 s par rubrique — au bureau, le tableau de
+  bord et le planning atteignent ce plafond même lancés seuls. La passe EXHAUSTIVE, bouton par
+  bouton, est l'étape 2.
+- **Deux encres à reprendre à l'étape 3 (teintes)** : les prestations choisies du Compte-rendu
+  (`renderRapPresta`) et les nuisibles choisis de l'Intervention écrivent du BLANC en dur sur
+  `var(--acc)` — dans un ordre que la règle de rattrapage ne reconnaît pas. Sur le graphite de
+  nuit (#F5F5F7), c'est du blanc sur du blanc.
+- ⛔ **ATTEND JUSTIN — une panne en PRODUCTION (v695)** : l'analyse de « Consommation produits »
+  plante dès qu'elle doit écrire le rôle d'une personne (`const roleLbl=r=>roleLbl(r)…` s'appelle
+  lui-même, depuis la v613 — relu sur `origin/main`). Corrigé dans la bêta depuis la v726 (et le
+  commit b287e1b). `app.html` ne part que sur sa phrase.
+
 ## ✅ 22 SEPTEMBRE 2026 — LES NEUF COULEURS, CATÉGORIE PAR CATÉGORIE (mesuré, rien à corriger)
 
 Justin : « au niveau des couleurs du thème de l'application, t'as vérifié toutes les catégories
