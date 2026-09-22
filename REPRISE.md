@@ -23,6 +23,64 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
+## ✅ 22 SEPTEMBRE 2026 — L'AUDIT TOTAL : 3 913 BOUTONS MESURÉS UN PAR UN (v724, bêta publiée)
+
+Justin : **« Tu vas tout me vérifier un par 1 bouton par bouton catégorie par catégorie ok tu
+fais tout tout suite et je veux que quand moi je me reconnecte pour tester je veux plu qui et
+de problème ok »** — après trois défauts d'affichage signalés dans la même journée, chacun
+trouvé par lui et non par nous.
+
+`scratchpad/audit-total.js` : **42 catégories × 2 thèmes × 2 plateformes = 168 écrans**,
+**3 913 éléments cliquables** mesurés. Cinq familles NOMMÉES AVANT de chercher — hors de
+l'écran, recouvert, tronqué, cible trop petite, erreur JavaScript.
+
+| famille | avant | après v724 |
+|---|---|---|
+| erreurs JavaScript au rendu | 0 | **0** |
+| éléments hors de l'écran | 0 (après écart des faux positifs) | **0** |
+| boutons recouverts / inatteignables | 0 (après trois versions du contrôle) | **0** |
+| cibles sous 38 px | **242** | **28** — les 28 restants sont des cases de grille du planning, écartées NOMMÉMENT (ce sont des cellules de tableau, pas des boutons) |
+| libellés tronqués | **212** | 212, **toutes des cases de calendrier, qui portent désormais leur libellé entier en infobulle** |
+
+`tests/test-765.js` (35 contrôles) garde le plancher tactile et l'infobulle ; **9 mutations sur
+9 le font tomber**.
+
+### ⛔ CE QUE L'AUDIT A COÛTÉ EN FAUX DÉFAUTS — ET CE QU'ON EN RETIENT
+
+**3 900 des 4 016 « hors de l'écran » du premier tour étaient FAUX.** Deux familles :
+le **tiroir replié** (la barre latérale vit à x −252 quand elle est fermée : c'est un tiroir
+qui glisse, pas un débordement — 3 612 cas) et les **conteneurs qui défilent
+horizontalement** (planning, tableaux). `dansTiroirFerme()` et `dansRouleau()` les écartent.
+Un audit qui crie 4 016 fois se fait ignorer, puis désactiver.
+
+**Le contrôle « recouvert » a été FAUX TROIS FOIS AVANT D'ÊTRE JUSTE**, et chaque version
+avait l'air raisonnable :
+· v1 — lire le centre de l'élément **en haut de page** : 14 faux, tous sous la barre d'onglets ;
+· v2 — lire **en bas de page** : 10 autres faux, tous sous la barre du HAUT ;
+· v3 — **centrer le candidat dans la fenêtre, puis relire** : 0.
+La leçon est la règle de `CLAUDE.md` retournée : quand une mesure trouve des défauts qui ont
+tous le même voisin (« sous la barre »), ce n'est pas le code qui a un motif, c'est la sonde.
+
+⛔ **ET LE PREMIER AUDIT PARTAIT D'UNE LISTE DE CLASSES ÉCRITE À LA MAIN** — donc d'une
+population CHOISIE, donc d'un résultat choisi : il a trouvé 125 cibles trop petites et raté
+une famille entière. `document.querySelectorAll('*')` en a trouvé 242. **Une population qu'on
+énumère soi-même est une réponse qu'on s'écrit soi-même.**
+
+⛔ **UN DÉFAUT REJETÉ, ET NOMMÉ POUR QU'IL NE REVIENNE PAS** : « le glissement ne marche que
+dans un sens ». Faux — mon essai glissait vers la droite depuis le PREMIER onglet, où il n'y a
+rien à gauche. Le « corriger » aurait ajouté une navigation circulaire que personne n'a
+demandée.
+
+⛔ **ET UNE MUTATION DE BANC QUI NE MORDAIT PAS** : `test-765` cherchait `.pf-disp button` dans
+le fichier ENTIER, et ce sélecteur existe aussi dans la règle de dessin 600 lignes plus haut,
+à 30 px — le banc passait au vert sur un plancher disparu. Il borne désormais sa recherche au
+bloc `@media (pointer:coarse)`, par compteur d'accolades.
+
+**Publié en bêta le 22 septembre 2026** — `teamop.fr/beta.html` sert `724-beta`, et les quatre
+règles du plancher tactile ont été relues dans le fichier RÉELLEMENT servi. `app.html` reste
+en **695** chez les clients : cette passe est du confort d'usage, elle n'attend pas.
+
+
 
 ## ✅ 22 SEPTEMBRE 2026 — LES MENUS DE LA BARRE D'OUTILS (v723, bêta publiée et vérifiée)
 

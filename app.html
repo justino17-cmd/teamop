@@ -15916,7 +15916,7 @@ function planMultiHtml(SRC){
         : `<div class="plm-th${fin} plg-tete${t.id?' clic':''}" style="--ct:${t.id===''?'var(--org)':techColor(t.id)}"
           ${t.id?`onclick="planVersTech('${t.id}')" data-tip="N’afficher que le planning de ${esc(t.nom)}"`:''}>
         <span class="av" style="background:${t.id===''?'var(--card2)':techColor(t.id)}">${t.id===''?'NA':initials(t.nom)}</span>
-        <span style="min-width:0;flex:1"><b>${esc(t.nom)}</b><small>${mien.length} intervention${mien.length>1?'s':''}</small>
+        <span style="min-width:0;flex:1"><b title="${esc(t.nom)}">${esc(t.nom)}</b><small>${mien.length} intervention${mien.length>1?'s':''}</small>
           ${t.id?planGauge(mn,capM,'Charge de la journée ('+fmtHmin(mn)+' sur '+fmtHmin(capM)+')',techColor(t.id)):''}</span>
         ${t.id?`<span class="plg-go">›</span>`:''}</div>`;
       const absM=t.id?absentOn(t.id,j):null;

@@ -21,10 +21,24 @@ function cdpClient(ws) {
     sur(f) { E.push(f); } };
 }
 
-async function ouvrir() {
+/* ⛔⛔ UNE COPIE PLUS VIEILLE QUE LA PAGE QU'ELLE DOUBLE REND UN VERDICT SUR UNE AUTRE
+   VERSION — pris le 22 septembre 2026, et c'est la règle du dépôt appliquée à son propre
+   outil. L'audit total tournait depuis dix minutes sur `723-beta` pendant que la correction
+   mesurée vivait en `724-beta` : aucun signe, aucune erreur, juste des chiffres d'hier.
+   La copie se RAFRAÎCHIT donc à chaque ouverture, et la version servie est RENDUE pour que
+   toute sonde puisse l'affirmer. Une sonde de MUTATION (qui écrit dans la copie exprès)
+   passe `{garderCopie:true}` — c'est un geste conscient, plus un oubli silencieux. */
+async function ouvrir(opts) {
+  const o = opts || {};
   const BANC = fs.mkdtempSync(path.join(os.tmpdir(), 'opg-'));
   const pp = await portLibre(), pc = await portLibre();
+  if (!o.garderCopie) {
+    const src = o.source || path.join(RACINE, 'beta.html');
+    fs.mkdirSync(path.dirname(COPIE), { recursive: true });
+    fs.copyFileSync(src, COPIE);
+  }
   const PAGE = fs.readFileSync(COPIE, 'utf8');
+  const version = (PAGE.match(/APP_VERSION\s*=\s*'([^']*)'/) || [])[1] || '?';
 
   const statique = http.createServer((q, r) => {
     const u = q.url.split('?')[0].split('#')[0];
@@ -79,6 +93,6 @@ async function ouvrir() {
 
   const fermer = () => { try { chrome.kill('SIGKILL'); } catch (e) {} try { statique.close(); } catch (e) {}
     try { fs.rmSync(BANC, { recursive: true, force: true }); } catch (e) {} };
-  return { ev, c, exceptions, consoleErr, fermer, BASE };
+  return { ev, c, exceptions, consoleErr, fermer, BASE, version };
 }
 module.exports = { ouvrir, dormir };

@@ -26,6 +26,11 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
 
 (async()=>{
   const S=await ouvrir();
+  /* ⛔ LA VERSION MESURÉE S'ÉCRIT EN TÊTE DU RAPPORT. Le 22 septembre 2026 cet audit a
+     tourné dix minutes sur `723-beta` pendant que la correction vivait en `724-beta` :
+     des chiffres justes, sur la page d'avant. Un rapport qui ne nomme pas sa version ne
+     prouve rien de la version qu'on croit avoir corrigée. */
+  console.log('  page mesurée : ' + S.version);
   await S.ev(`window.horsLigneDebut=function(){}; try{_horsLigne=false;}catch(e){} const e=document.getElementById('hl-ecran'); if(e)e.remove(); return 1;`);
   await S.ev(`if(!db.users.length){db.users.push({id:'u1',prenom:'Justin',nom:'B',role:'admin',username:'j',pass:'x',actif:true,pref:{}});save();}
     currentUser=db.users[0]; if(typeof enterApp==='function') enterApp(currentUser);
@@ -171,6 +176,7 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
     return Object.entries(m).sort((a,b)=>b[1].length-a[1].length); };
 
   console.log('\n════════ AUDIT TOTAL ════════');
+  console.log('  page mesurée : ' + S.version);
   console.log('  population : '+ecrans+' écrans rendus, '+vus+' éléments cliquables mesurés');
   console.log('  erreurs JavaScript : '+err.length);
   err.slice(0,8).forEach(e=>console.log('      '+e));
@@ -191,7 +197,7 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
   grouper(R.petits,x=>x.n).slice(0,12).forEach(([k,v])=>
     console.log('   '+String(v.length).padStart(4)+'×  '+k.padEnd(30)+' ex. « '+v[0].t+' » '+v[0].h+'px  ['+v[0].ou+']'));
 
-  fs.writeFileSync(__dirname+'/audit-total.json',JSON.stringify({ecrans,vus,err,...R}));
+  fs.writeFileSync(__dirname+'/audit-total.json',JSON.stringify({version:S.version,ecrans,vus,err,...R}));
   console.log('\n  détail complet : scratchpad/audit-total.json');
   S.fermer(); process.exit(0);
 })().catch(e=>{console.error('AUDIT MORT :',e&&e.stack||e);process.exit(2);});

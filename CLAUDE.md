@@ -818,6 +818,30 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   de rembourrage = 48 px sous la carte). Chromium sait les simuler pour de vrai :
   `Emulation.setSafeAreaInsetsOverride {top,bottom,left,right,…Max}`. **Toute mesure de mise en
   page sur téléphone se fait encoches posées**, sinon on valide une page que personne ne voit.
+- ⛔⛔ **UNE POPULATION QU'ON ÉNUMÈRE SOI-MÊME EST UNE RÉPONSE QU'ON S'ÉCRIT SOI-MÊME.** Le
+  22 septembre 2026, l'audit total des cibles tactiles partait d'une LISTE DE CLASSES écrite à
+  la main (`.btn`, `.chip`, `.tab`…) : il a rendu 125 cibles sous le plancher et raté une
+  famille entière — les boutons nus de `#content`, écrits en style direct. Le même audit sur
+  `document.querySelectorAll('*')`, filtré par `cursor:pointer` et `onclick`, en a trouvé
+  **242**. C'est la jumelle de « une assertion sur un ensemble vide » : là on ne comptait rien,
+  ici on comptait ce qu'on avait choisi de compter. **Un recensement part du DOM, jamais d'une
+  liste ; la liste sert à EXPLIQUER les écarts, pas à les produire.**
+- ⛔⛔ **UN CONTRÔLE « CET ÉLÉMENT EST-IL RECOUVERT ? » SE FAIT CANDIDAT CENTRÉ — SINON C'EST LA
+  BARRE FIXE QU'ON MESURE.** Trois versions fausses le même jour, chacune plausible :
+  · lire `elementFromPoint` au centre de l'élément **page en haut** → 14 faux, tous sous la
+    barre d'ONGLETS ;
+  · lire **page en bas** → 10 autres faux, tous sous la barre du HAUT ;
+  · **amener le candidat au milieu de la fenêtre (`scrollIntoView({block:'center'})`), attendre
+    deux trames, PUIS relire** → 0.
+  ⚠️ Le signe qui ne trompe pas, et il vaut pour toute sonde : **quand les défauts trouvés ont
+  tous le même voisin** (« sous la barre », « à 15 px », « le même chiffre partout »), ce n'est
+  pas le code qui a un motif, c'est la mesure.
+- ⛔ **UN TIROIR REPLIÉ N'EST PAS UN DÉBORDEMENT, ET UN CONTENEUR QUI DÉFILE NON PLUS.** Sur
+  4 016 « éléments hors de l'écran » du premier audit, **3 900 étaient faux** : 3 612 vivaient
+  dans la barre latérale fermée (x −252, c'est un tiroir qui glisse) et le reste dans le
+  planning et les tableaux, qui défilent horizontalement par construction. Un détecteur de
+  débordement doit remonter les ancêtres et écarter les deux (`dansTiroirFerme`, `dansRouleau`)
+  — sinon il crie 4 016 fois, et un banc qui crie faux se fait ignorer, puis désactiver.
 
 - ⛔ **UNE ANCRE DE BANC EST UN COMMENTAIRE — ON DÉCOUPE DANS LE TEXTE BRUT, ON NETTOIE APRÈS.**
   Chercher le titre d'un bloc dans un texte dont on vient de retirer les commentaires rend −1,
