@@ -138,8 +138,22 @@ console.log('\n══ 4. LES TROIS GARDES DU GESTE ══\n');
     /const debut=\(x,y,cible\)=>\{[\s\S]{0,600}if\(swipeDefileH\(cible\)\) return;/.test(NU));
   vrai('⛔ … tout comme la liste des zones écartées',
     /const debut=\(x,y,cible\)=>\{[\s\S]{0,600}if\(swipeExclu\(cible\)\) return;/.test(NU));
-  vrai('⛔ la barre, le tiroir, les fenêtres et l’assistant sont écartés',
-    /const SWIPE_HORS=\['#tabbar','\.sidebar','#overlay','#overlay2','#assistant','#login','\.topbar','\.creer-ov'\]/.test(NU));
+  /* ⚠️ CE CONTRÔLE A CHANGÉ LE 22 SEPTEMBRE 2026, ET C'EST LA LEÇON QU'IL PORTE.
+     Il exigeait `#tabbar` dans la liste des zones écartées — c'était la décision d'alors.
+     Justin, deux fois : « le glissement du doigt SUR LA BARRE marche toujours pas ». Mesuré
+     avec de vrais événements tactiles : glisser sur le contenu marchait, glisser sur la
+     barre ne faisait RIEN — et c'est là que le doigt va, la pastille est sous lui.
+     Un banc qui garde une décision périmée bloque la correction et a l'air d'avoir raison.
+     Il est donc RECENTRÉ : on garde ce qui reste écarté pour une vraie raison (un tiroir,
+     un voile, un panneau, la barre du haut ne sont pas des rubriques qu'on parcourt), et on
+     exige que la barre, elle, ne le soit PLUS. Voir `tests/test-764.js`. */
+  const HORS758=(NU.match(/const SWIPE_HORS=\[([^\]]*)\]/)||[])[1]||'';
+  vrai('population : la liste des zones écartées est trouvée', HORS758.length>10);
+  vrai('⛔ la barre d’onglets N’EST PLUS écartée (c’est là que le doigt va)',
+    !/#tabbar/.test(HORS758));
+  vrai('⛔ le tiroir, les voiles, l’assistant et la barre du haut restent écartés',
+    ["'.sidebar'","'#overlay'","'#overlay2'","'#assistant'","'#login'","'.topbar'","'.creer-ov'"]
+      .every(s=>HORS758.includes(s)));
   vrai('⛔ une fenêtre ouverte coupe le geste',
     /if\(document\.getElementById\('overlay'\) && document\.getElementById\('overlay'\)\.classList\.contains\('open'\)\) return;/.test(NU));
   /* ⛔ LA DOMINANCE, PAS SEULEMENT LA DISTANCE : un défilement vertical commence toujours par
