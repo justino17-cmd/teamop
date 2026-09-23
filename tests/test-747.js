@@ -69,6 +69,7 @@ const VU_ET_PAS_GARDE = {
   regrouperFournisseur: 'circuit bons - peutCommander',
   produitCreer: 'helper - saveProduit porte permGarde(stock)',
   saveUser: 'écran Utilisateurs, réservé admin',
+  load: 'semis AUTOMATIQUE du pack métier, derrière PACK_METIER_AUTO (fermé depuis le 22 septembre 2026)',
 };
 
 /* ⛔⛔ CE QUI ATTEND UNE DÉCISION DE JUSTIN, ET QUI NE DOIT PAS SE PERDRE. Ces chemins créent
@@ -117,6 +118,10 @@ for (const f of fns) {
      Ajouter ». Justin : « les personnes qui peuvent créer dans les catégories […] tout doit être
      sélectionné ». */
   if (f.nom !== 'produitCreer' && f.corps.includes('produitCreer(') && !push.includes('produits')) push.push('produits');
+  /* ⚠️ et `cataloguePoser`, le semis du pack, écrit dans `cible.produits` — un PARAMÈTRE, donc
+     invisible au motif `db.produits.push(`. Ses appelants créent des fiches par centaines : pris
+     par la mutation « ↻ Catalogue OP sans garde », qui passait au vert (v737). */
+  if (f.nom !== 'cataloguePoser' && f.corps.includes('cataloguePoser(') && !push.includes('produits')) push.push('produits');
   if (push.length) creatrices.push({ nom: f.nom, colls: push, garde: /permGarde\(|canCat\(/.test(f.corps) });
 }
 
@@ -152,22 +157,27 @@ vrai('⛔⛔ savePointage n est PAS gardé — pointer reste possible sans droit
   !/permGarde\(/.test(corps('savePointage')));
 
 console.log('\n══ 3 ter. ⛔⛔ v737 : LES PORTES DE CRÉATION DES PRODUITS ══\n');
+/* ⛔ DÉCOUPE BORNÉE À LA FONCTION : `corps()` prend 2 000 caractères, et la fonction qui suit
+   `restoreCatalogue` (openFourCat) porte la même garde — la mutation qui retirait celle de
+   restoreCatalogue passait au vert (v737). Le piège est écrit dans CLAUDE.md : « une découpe de
+   banc qui déborde rend un verdict faux ». */
+const corpsF = nom => { const f = fns.find(x => x.nom === nom); return f ? f.corps : ''; };
 /* Recensées par le banc (section 2, qui compte désormais les appelants de produitCreer) — et
    les FENÊTRES qui préparent une création refusent dès l'ouverture : on ne fait pas remplir une
    liste qui sera refusée. */
 for (const fn of ['plValider', 'fcAdd', 'fcAddAll', 'prdPontAjouter', 'bxpPoseEcrire', 't3dProdToStock', 'intToggleProd',
   'restoreCatalogue', 'cataloguePackSync', 'formProduitsListe', 'openFourCat']) {
-  vrai('⛔ ' + fn.padEnd(20) + ' → permGarde(stock, ajouter)', /permGarde\('stock','ajouter'/.test(corps(fn)));
+  vrai('⛔ ' + fn.padEnd(20) + ' → permGarde(stock, ajouter)', /permGarde\('stock','ajouter'/.test(corpsF(fn)));
 }
 vrai('⛔ « ＋ Produit » refuse à l’ouverture (une fiche NEUVE seulement — ouvrir une fiche existante reste libre)',
   /function formProduit\(id\)\{ if\(!id&&!permGarde\('stock','ajouter','un produit'\)\) return;/.test(NU));
 vrai('⛔ l’onglet Fournisseurs de la box n’existe pas sans le droit (il ne sert qu’à CRÉER des fiches)',
   /const cf=cataloguesFournisseurs\(\)&&canCat\('stock','ajouter'\);/.test(NU));
 vrai('⛔ le scanner du catalogue règle un stock : « Stock → Modifier », à l’ouverture ET à l’écriture',
-  /function openScanner\(\)\{ if\(!permGarde\('stock','modifier','le stock'\)\) return;/.test(NU) && /permGarde\('stock','modifier','le stock'\)/.test(corps('etiqAppliquerCat')));
+  /function openScanner\(\)\{ if\(!permGarde\('stock','modifier','le stock'\)\) return;/.test(NU) && /permGarde\('stock','modifier','le stock'\)/.test(corpsF('etiqAppliquerCat')));
 /* ⚠️ Le contrôle inverse : « ajouter à mon stock » depuis une intervention RELIE une ligne à une
    fiche qui existe déjà sans rien créer — ce chemin-là ne doit pas demander le droit de créer. */
-const t3d = corps('t3dProdToStock');
+const t3d = corpsF('t3dProdToStock');
 vrai('⚠️ t3dProdToStock ne demande le droit QU’AU moment de créer (relier une fiche existante reste libre)',
   t3d.indexOf("permGarde('stock','ajouter'") > t3d.indexOf('if(ex){'));
 
@@ -175,7 +185,7 @@ console.log('\n══ 3 quater. ⛔ v737 : LES GROUPES DE DISCUSSION ══\n');
 /* `db.groupes` n'est rattaché à aucune catégorie : sa garde est une case à elle. Jusqu'ici seul le
    BOUTON était masqué, sur une liste de noms de rôles. */
 for (const fn of ['formGroupe', 'saveGroupe', 'delGroupe'])
-  vrai('⛔ ' + fn.padEnd(12) + ' → can(gererGroupes)', /if\(!can\('gererGroupes'\)\)\{ groupesRefus\(\); return; \}/.test(corps(fn)));
+  vrai('⛔ ' + fn.padEnd(12) + ' → can(gererGroupes)', /if\(!can\('gererGroupes'\)\)\{ groupesRefus\(\); return; \}/.test(corpsF(fn)));
 
 console.log('\n══ 4. ⛔ LES HUIT AUTRES GARDES N\'ONT PAS BOUGÉ ══\n');
 for (const [fn, grp] of [['saveTache', 'plan'], ['saveAbsence', 'plan'], ['saveIntervention', 'int'],
