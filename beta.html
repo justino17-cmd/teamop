@@ -22967,6 +22967,31 @@ function catalogueEnPlace(){
     return false;
   }catch(e){ return false; }
 }
+/* ⛔ LES CATALOGUES FOURNISSEURS NE S'OFFRENT PLUS — Justin, 23 septembre 2026 : « chaque entreprise
+   démarre avec tout vide, c'est à eux de remplir, on fait plus ce travail […] le 3D, c'est ELAN qui
+   nous l'avait demandé, on l'a fait pour eux, on le fera pas pour les autres. »
+   Les 2 809 références de CATFOUR restent là où elles servent DÉJÀ, et nulle part ailleurs :
+   · chez une entreprise dont le pack est en place (catalogueEnPlace — c'est ELAN) ;
+   · ou qui a déjà posé au moins cinq fiches venues de ces catalogues. Une fiche du catalogue n'a
+     pas `perso`, ＋ Produit et ＋ Liste le posent : une saisie qui porte par hasard le nom d'une
+     référence ne rouvre donc rien.
+   Ailleurs, les TROIS portes se ferment ensemble — 🏭 Fournisseurs (Produits), le pont de la
+   recherche, l'onglet Fournisseurs de la box — et chacune se garde elle-même : ce sont des
+   fonctions globales, appelables depuis la console même quand aucun bouton n'est rendu. On ne
+   retire RIEN à personne : ce qui est au catalogue d'une entreprise y reste. Le test porte sur les
+   DONNÉES, pour la raison écrite au-dessus de catalogueEnPlace (l'identité d'un espace ment). */
+let CATFOUR_CLES=null;
+function cataloguesFournisseurs(){
+  try{
+    if(catalogueEnPlace()) return true;
+    if(typeof CATFOUR==='undefined'||!db||!Array.isArray(db.produits)||db.produits.length<5) return false;
+    if(!CATFOUR_CLES) CATFOUR_CLES=new Set(CATFOUR.map(x=>produitCle({nom:x[0]})));
+    let n=0;
+    for(const p of db.produits){ if(p&&!p.perso&&CATFOUR_CLES.has(produitCle(p))&&++n>=5) return true; }
+    return false;
+  }catch(e){ return false; }
+}
+const CATFOUR_FERME='Chaque entreprise crée ses propres produits : ＋ Produit, ou ＋ Liste pour coller une liste entière';
 function restoreCatalogue(){
   /* Deuxième verrou, et il n'est pas décoratif : la fonction est globale, donc appelable
      depuis la console d'un navigateur même quand le bouton n'est pas rendu. */
@@ -22991,7 +23016,7 @@ function restoreCatalogue(){
    de vue de qui s'en sert. On pagine, et on confirme au lieu de refuser. */
 let fcFour='', fcQ='', fcMax=80;
 function fcPlus(){ fcMax+=120; renderFourCat(); }
-function openFourCat(){ fcFour=''; fcQ=''; fcMax=80;
+function openFourCat(){ if(!cataloguesFournisseurs()){ toast(CATFOUR_FERME,4200); return; } fcFour=''; fcQ=''; fcMax=80;
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Fermer</button><h3>🏭 Catalogues fournisseurs</h3><span style="width:58px"></span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px" id="fc-chips"></div>
     <input class="search-inp" id="fc-q" style="margin:0 0 10px" placeholder="Rechercher parmi ${CATFOUR.length} produits…" oninput="fcQ=this.value;fcMax=80;rechDiffere(renderFourCat)">
@@ -23023,7 +23048,7 @@ function renderFourCat(){ const el=$('fc-list'); if(!el)return; const idx=fcMatc
       return `<div class="pl-row"><div class="pl-info"><div class="pl-title">${esc(x[0])}${x[4]?' <span class="tag">Particulier</span>':''}</div><div class="pl-meta">${esc(x[2])}${x[1]?' · '+esc(x[1]):''}</div></div>${has?'<span style="color:var(--acc-txt);font-weight:800;font-size:16px">✓</span>':`<button type="button" class="btn sm" onclick="fcAdd(${i},this)">＋</button>`}</div>`; }).join('')
      || '<div style="color:var(--t3);padding:14px;text-align:center">Aucun produit trouvé.</div>')+pied);
 }
-function fcAdd(i,btn){ const x=CATFOUR[i]; if(!x) return;
+function fcAdd(i,btn){ const x=CATFOUR[i]; if(!x) return; if(!cataloguesFournisseurs()){ toast(CATFOUR_FERME,4200); return; }
   if(db.produits.some(p=>produitCle(p)===produitCle({nom:x[0]}))){ toast('Déjà dans ton catalogue'); renderFourCat(); return; }
   /* ⛔ AUCUN PRIX N'EST POSÉ — décision de Justin, 9 septembre 2026 : « enlève les prix, ça
      ça ne nous regarde pas ». Un tarif fournisseur se négocie, change, et diffère d'un client
@@ -23035,7 +23060,7 @@ function fcAdd(i,btn){ const x=CATFOUR[i]; if(!x) return;
   if(btn) btn.outerHTML='<span style="color:var(--acc-txt);font-weight:800;font-size:16px">✓</span>';
   toast('Ajouté : '+x[0]);
 }
-function fcAddAll(){ const idx=fcMatches(); if(!idx.length) return;
+function fcAddAll(){ if(!cataloguesFournisseurs()){ toast(CATFOUR_FERME,4200); return; } const idx=fcMatches(); if(!idx.length) return;
   const have=new Set(db.produits.map(produitCle));
   const neufs=idx.filter(i=>!have.has(produitCle({nom:CATFOUR[i][0]})));
   if(!neufs.length){ toast('Tout est déjà dans ton catalogue'); return; }
@@ -23068,10 +23093,14 @@ function prixEffacer(){
 }
 let prdOnglet='tous';   // tous | perso | catalogue
 views.produits=function(){
-  const _np=prixPoses();
-  setHeader('Produits',`Catalogue · ${db.produits.length} références`,`<button class="btn ghost" onclick="openFourCat()">🏭 Fournisseurs</button> ${(_np&&currentUser&&currentUser.role==='admin')?`<button class="btn ghost" onclick="prixEffacer()" title="Retirer les tarifs venus du catalogue fournisseur">💶 Effacer les prix (${_np})</button> `:''}${catalogueEnPlace()?'<button class="btn ghost" onclick="restoreCatalogue()">↻ Catalogue OP</button> ':''}<button class="btn ghost" onclick="openScanner()">Scanner</button> <button class="btn ghost" onclick="produitsCopier()" title="Copier la liste affichée, pour la coller dans un autre espace avec « ＋ Liste »">⧉ Copier la liste</button> <button class="btn ghost" onclick="formProduitsListe()">＋ Liste</button> <button class="btn" onclick="formProduit()">＋ Produit</button>`);
-  const nbP=db.produits.filter(p=>p.perso).length;
-  $('content').innerHTML=produitsDoublonsBandeau()+produitsDistinctsLigne()+`<div class="filters" style="margin:0 0 8px">${[['tous','Tous · '+db.produits.length],['perso','Mes produits · '+nbP],['catalogue','Catalogue 3D (nuisibles) · '+(db.produits.length-nbP)]].map(([k,l])=>`<div class="chip ${prdOnglet===k?'active':''}" onclick="prdOnglet='${k}';renderProduitsList()">${l}</div>`).join('')}</div>
+  const _np=prixPoses(), _cf=cataloguesFournisseurs();
+  setHeader('Produits',`Catalogue · ${db.produits.length} références`,`${_cf?'<button class="btn ghost" onclick="openFourCat()">🏭 Fournisseurs</button> ':''}${(_np&&currentUser&&currentUser.role==='admin')?`<button class="btn ghost" onclick="prixEffacer()" title="Retirer les tarifs venus du catalogue fournisseur">💶 Effacer les prix (${_np})</button> `:''}${catalogueEnPlace()?'<button class="btn ghost" onclick="restoreCatalogue()">↻ Catalogue OP</button> ':''}<button class="btn ghost" onclick="openScanner()">Scanner</button> <button class="btn ghost" onclick="produitsCopier()" title="Copier la liste affichée, pour la coller dans un autre espace avec « ＋ Liste »">⧉ Copier la liste</button> <button class="btn ghost" onclick="formProduitsListe()">＋ Liste</button> <button class="btn" onclick="formProduit()">＋ Produit</button>`);
+  const nbP=db.produits.filter(p=>p.perso).length, nbC=db.produits.length-nbP;
+  /* « Mes produits » contre « Catalogue 3D » ne départage que là où un catalogue a été posé : chez une
+     entreprise qui a tout créé elle-même, ce serait « Tous · 12 » et « Mes produits · 12 » — et un
+     onglet « nuisibles » à zéro chez un plombier. */
+  if(!nbC) prdOnglet='tous';
+  $('content').innerHTML=produitsDoublonsBandeau()+produitsDistinctsLigne()+(nbC?`<div class="filters" style="margin:0 0 8px">${[['tous','Tous · '+db.produits.length],['perso','Mes produits · '+nbP],['catalogue','Catalogue 3D (nuisibles) · '+nbC]].map(([k,l])=>`<div class="chip ${prdOnglet===k?'active':''}" onclick="prdOnglet='${k}';renderProduitsList()">${l}</div>`).join('')}</div>`:'')+`
     <input class="search-inp" id="prd-search" placeholder="Rechercher un produit, une référence, un fournisseur…" value="${esc(prdSearch)}" oninput="prdSearch=this.value;rechDiffere(renderProduitsList)">
     <div id="prd-list"></div>`;
   renderProduitsList();
@@ -23345,7 +23374,7 @@ function produitsFusionnerDoublonsUI(boxId){
    La recherche qui échoue est donc devenue le pont : elle va voir dans le catalogue et
    propose de poser ce qu'elle y trouve, sans changer d'écran. */
 function prdCatalogueTrouve(q){
-  if(!q||q.length<2||typeof CATFOUR==='undefined') return [];
+  if(!q||q.length<2||typeof CATFOUR==='undefined'||!cataloguesFournisseurs()) return [];
   const ici=new Set((db.produits||[]).map(produitCle));
   const out=[];
   for(let i=0;i<CATFOUR.length;i++){ const x=CATFOUR[i];
@@ -23416,7 +23445,8 @@ function renderProduitsList(){
   const el=$('prd-list'); if(!el) return;
   const q=norm(prdSearch);
   let list=produitsVisibles();
-  if(!list.length){ el.innerHTML=prdCataloguePont(q,false)+`<div class="card">${emptyState('📦',prdOnglet==='perso'?'Aucun produit à toi pour l\'instant — ajoute-les un par un (＋ Produit) ou colle ta liste entière (＋ Liste).':'Aucun produit trouvé.','Ajouter','formProduit()')}</div>`; return; }
+  if(!list.length){ const vide=!(db.produits||[]).length&&!q;
+    el.innerHTML=prdCataloguePont(q,false)+`<div class="card">${emptyState('📦',vide?'Ton catalogue est vide. Ajoute tes produits un par un (＋ Produit) ou colle ta liste entière (＋ Liste) : ils serviront ensuite dans les box, les interventions et les bons de commande.':prdOnglet==='perso'?'Aucun produit à toi pour l\'instant — ajoute-les un par un (＋ Produit) ou colle ta liste entière (＋ Liste).':'Aucun produit trouvé.','Ajouter','formProduit()')}</div>`; return; }
   // Regroupé par catégorie, dans l'ordre officiel ELAN puis les autres
   const groups={}; list.forEach(p=>{ const c=p.categorie||'Sans catégorie'; (groups[c]=groups[c]||[]).push(p); });
   const orderedCats=[...CAT_LIST.filter(c=>groups[c]),...Object.keys(groups).filter(c=>!CAT_LIST.includes(c)).sort()];
@@ -25700,10 +25730,11 @@ function bxpRafraichir(){ const b=bxpBox(); if(!b||!$('bxp-corps')) return; bxpC
 function bxpRendre(){ const b=bxpBox(); if(!b||!$('bxp-corps')) return; const c=bxpCache||bxpCalculer(b);
   const d=$('bxp-doublons'); if(d) d.innerHTML=produitsDoublonsBandeau({boxId:b.id,replie:true});
   const ret=Object.keys(b.stock).filter(pid=>boxRetirable(b,pid).ok).length;
-  const nPack=(c.pack||[]).length;
-  $('bxp-onglets').innerHTML=`<div class="chip ${bxpOnglet==='ajouter'?'active':''}" onclick="bxpOngletChoisir('ajouter')">Ajouter (${c.dispo.length})${nPack?`<span class="bxp-bulle">${nPack}</span>`:''}</div><div class="chip ${bxpOnglet==='four'?'active':''}" onclick="bxpOngletChoisir('four')">Fournisseurs</div><div class="chip ${bxpOnglet==='retirer'?'active':''}" onclick="bxpOngletChoisir('retirer')">Retirer (${ret})</div>`;
+  const nPack=(c.pack||[]).length, cf=cataloguesFournisseurs();
+  if(!cf&&bxpOnglet==='four') bxpOnglet='ajouter';
+  $('bxp-onglets').innerHTML=`<div class="chip ${bxpOnglet==='ajouter'?'active':''}" onclick="bxpOngletChoisir('ajouter')">Ajouter (${c.dispo.length})${nPack?`<span class="bxp-bulle">${nPack}</span>`:''}</div>${cf?`<div class="chip ${bxpOnglet==='four'?'active':''}" onclick="bxpOngletChoisir('four')">Fournisseurs</div>`:''}<div class="chip ${bxpOnglet==='retirer'?'active':''}" onclick="bxpOngletChoisir('retirer')">Retirer (${ret})</div>`;
   if(bxpOnglet==='ajouter') bxpRendreAjout(b,c); else if(bxpOnglet==='four') bxpRendreFour(b); else bxpRendreRetrait(b); }
-function bxpOngletChoisir(o){ bxpOnglet=o; bxpRetPhase=0; bxpRendre(); }
+function bxpOngletChoisir(o){ if(o==='four'&&!cataloguesFournisseurs()) o='ajouter'; bxpOnglet=o; bxpRetPhase=0; bxpRendre(); }
 /* ── Onglet Ajouter ── */
 function bxpRendreAjout(b,c){ const el=$('bxp-corps'); const nouv=c.nouv; const deja=Object.keys(b.stock).length; const nDec=nouv.length-bxpNouvSel.size;
   /* ── Justin, 10 septembre 2026 : « un bouton en plus ici qui reçoit une petite bulle de
@@ -25805,7 +25836,9 @@ function abpVisibles(){ const c=bxpCache; if(!c) return []; const q=norm(bxpQ); 
 /* Ne réécrit QUE la liste : le champ de recherche reste en place, le clavier reste ouvert. */
 function renderAbpList(){ const el=$('abp-list'); if(!el||!bxpCache) return; const avail=abpVisibles(); const q=bxpQ||''; bxpMajPied();
   const t=$('abp-tout'); if(t){ const tous=avail.length>0&&avail.every(p=>abpSel.has(p.id)); t.textContent=tous?'Tout décocher':('Tout cocher'+(avail.length?' ('+avail.length+')':'')); t.disabled=!avail.length; }
-  if(!avail.length){ el.innerHTML='<div class="bxp-vide-txt">'+(q?'Rien de plus dans le catalogue de l\'entreprise pour cette recherche.':'Tous les produits du catalogue de l\'entreprise sont déjà dans la box.')+'<br>Touche l\'onglet <b>Fournisseurs</b> : '+CATFOUR.length+' références y attendent.</div>'; return; }
+  if(!avail.length){ const vide=!(db.produits||[]).length, cf=cataloguesFournisseurs();
+    el.innerHTML='<div class="bxp-vide-txt">'+(vide?'Ton catalogue est encore vide.':q?'Rien de plus dans le catalogue de l\'entreprise pour cette recherche.':'Tous les produits du catalogue de l\'entreprise sont déjà dans la box.')
+      +'<br>'+(cf?'Touche l\'onglet <b>Fournisseurs</b> : '+CATFOUR.length+' références y attendent.':'Un produit qui manque se crée dans <b>Produits</b> (＋ Produit, ou ＋ Liste pour une liste entière) : il apparaîtra ici.')+'</div>'; return; }
   el.innerHTML=avail.map(p=>{ const on=abpSel.has(p.id); return `<div class="pl-row bxp-l" onclick="abpToggle('${p.id}')"><span class="bxp-coche" style="color:${on?'var(--acc-txt)':'var(--t3)'}">${on?'☑':'☐'}</span><div class="pl-info"><div class="pl-title">${esc(p.nom)}</div><div class="pl-meta">${esc(p.categorie||'')}${p.ref?' · '+esc(p.ref):''}</div></div></div>`; }).join(''); }
 function abpToggle(pid){ if(abpSel.has(pid)) abpSel.delete(pid); else abpSel.add(pid); renderAbpList(); }
 /* « Tout cocher » ne coche que ce qui est VISIBLE après la recherche, et le second tap décoche les mêmes. */
@@ -25860,7 +25893,7 @@ function addBoxProd(){ const b=bxpBoxDite(); if(!b) return; if(!abpSel.size&&!bx
   if(bxpCiblesSel.size>1&&bxpPosePhase!==1){ bxpPosePhase=1; bxpRendre(); return; }
   return bxpPoseEcrire(); }
 function bxpPoseEcrire(){ const b=bxpBoxDite(); if(!b) return; bxpPosePhase=0;
-  const fourIdx=[...bxpFourSel].filter(i=>CATFOUR[i]);
+  const fourIdx=cataloguesFournisseurs()?[...bxpFourSel].filter(i=>CATFOUR[i]):[];
   if(bxpCiblesSel.size<=1&&fourIdx.length>60&&!confirm('Ajouter '+fourIdx.length+' références fournisseur au catalogue de l\'entreprise et à cette box ?\n\nElles se poseront aussi dans les autres box, à zéro, à leur prochaine ouverture.')) return;
   /* les références fournisseur entrent d'abord au catalogue (une fois par nom), puis tout se pose ensemble */
   const crees=[]; const parCle=new Map((db.produits||[]).map(p=>[produitCle(p),p])); const ids=[...abpSel];
