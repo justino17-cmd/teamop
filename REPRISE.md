@@ -142,7 +142,9 @@ Deux demandes de Justin, mot pour mot :
   écriture la date (`_m`), `dictFusion` garde la plus récente quel que soit le côté, et
   `baseSignature` voit la date — un IBAN corrigé sur le téléphone n'est plus écrasé par une couleur
   changée au bureau (avant la v740 c'était pire : tout `societesStyle` suivait un seul côté) ;
-  recréer une société au nom d'une ancienne **dit** que ses anciennes coordonnées sont reprises.
+  recréer une société au nom d'une ancienne **dit** que ses anciennes coordonnées sont reprises —
+  aux DEUX portes (Paramètres, et « ＋ Nouvelle société » d'un bon de commande, que la
+  contre-vérification a trouvée muette).
   ⚠️ Un constat était FAUX et n'a pas été « corrigé » : le choix de société du produit donné
   s'affiche bien dès deux sociétés, parce qu'`entSocietes()` met « Modèle générique » en tête.
 
