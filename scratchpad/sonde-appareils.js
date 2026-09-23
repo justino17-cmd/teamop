@@ -38,6 +38,24 @@ const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { k
     await S.ev(`window.confirm=()=>true; window.alert=()=>{}; try{ betaRemplir(false); }catch(e){} return 1;`); await dormir(2500);
     await S.ev(`window.confirm=()=>false; try{ closeModal(); }catch(e){} setPlatForce('${P.plat}'); setThemePref('${P.theme}'); try{ localStorage.setItem('elanB_aside','1'); renderNav(); }catch(e){} return 1;`);
     await dormir(1500);
+    /* LONGUES=1 : les données de démonstration sont COURTES (« 0h00 », « Client de test 3 ») et
+       flattent toute mise en page. On pose les valeurs les plus longues plausibles avant de
+       parcourir — c'est ainsi que Pointage et Enveloppes ont été trouvés (règle du dépôt). */
+    if (process.env.LONGUES) {
+      const n = await S.ev(`const NOM='Établissements Hospitaliers Universitaires de la Côte-Saint-Laurent';
+        const ADR='1234 boulevard du Maréchal-de-Lattre-de-Tassigny, Résidence Les Hauts-de-Seine, bâtiment C';
+        const LIB='Traitement curatif et préventif complet des parties communes, caves et locaux techniques';
+        let k=0;
+        (db.clients||[]).forEach((c,i)=>{ c.nom=NOM+' — site '+(i+1); c.adresse=ADR; c.ville='Saint-Rémy-de-Provence-sur-Mer'; k++; });
+        (db.techniciens||[]).forEach((t,i)=>{ t.nom='Jean-Christophe Delacroix-Montgolfier '+(i+1); k++; });
+        (db.produits||[]).forEach((x,i)=>{ x.nom='Gel appât cafards professionnel longue durée, seringue de 35 g — réf. '+(i+1); k++; });
+        (db.fournisseurs||[]).forEach((f,i)=>{ f.nom='Société Européenne de Distribution de Produits Biocides '+(i+1); k++; });
+        ['factures','devis'].forEach(c=>(db[c]||[]).forEach(d=>{ (d.lignes||[]).forEach(l=>{ if(l.pu!=null) l.pu=(+l.pu||1)*1000+0.67; if(l.designation!=null) l.designation=LIB; }); k++; }));
+        (db.interventions||[]).forEach((x,i)=>{ x.titre=LIB+' '+(i+1); k++; });
+        (db.enveloppes||[]).forEach(e=>{ (e.paiements||[]).forEach(q=>{ q.montant=(+q.montant||1)*1000+0.67; }); k++; });
+        save(); return k;`);
+      console.log('  données LONGUES posées sur ' + n + ' enregistrements');
+    }
     const CATS = await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]&&canSee(NAV.flatMap(g=>g.items).find(i=>i.k===k)));`);
     const nErr0 = S.exceptions.length;
     const telephone = P.w <= 780 && P.tac;
