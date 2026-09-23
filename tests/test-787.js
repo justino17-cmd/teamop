@@ -38,8 +38,10 @@ v('une seule définition de la règle', SRC.split('function cataloguesFournisseu
 vrai('les portes AUTOMATIQUES restent fermées (PACK_METIER_AUTO)', /\nconst PACK_METIER_AUTO = false;/.test(APP));
 
 /* Le bac à sable : les vraies fonctions, et des témoins pour ce qu'elles déclenchent. */
-function entreprise(base) {
-  const t = { modal: 0, crees: [], toasts: [], onglet: 'ajouter' };
+/* ⚠️ v737 : chaque porte consulte aussi le droit de la PERSONNE (« Stock → Ajouter »). `droits`
+   pose ce que l'administrateur a coché — rien de posé : tout est permis, comme catDroit. */
+function entreprise(base, droits) {
+  const t = { modal: 0, crees: [], toasts: [], onglet: 'ajouter', refus: [] };
   const code = Object.values(PIECES).join('\n');
   const f = new Function('etat', 't', `let db=etat.db; const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
     let fcFour='', fcQ='', fcMax=80, bxpOnglet='ajouter', bxpRetPhase=0;
@@ -47,10 +49,12 @@ function entreprise(base) {
     const toast=m=>t.toasts.push(m), save=()=>{}, logEvent=()=>{}, confirm=()=>true, rechDiffere=f=>f();
     const idCatalogue=n=>'cat_'+norm(n).replace(/[^a-z0-9]+/g,'-'), rangerCatFour=()=>'Divers';
     const produitCreer=(p)=>{ t.crees.push(p.nom); db.produits.push(p); return p; };
+    const _dr=etat.droits||{}, canCat=(g,d)=>_dr[g+'_'+d]!==false;
+    const permGarde=(g,d,q)=>{ if(canCat(g,d)) return true; t.refus.push(g+'/'+d); t.toasts.push('Refus : '+d+' '+q); return false; };
     ${code}
     return { cataloguesFournisseurs, catalogueEnPlace, openFourCat, fcAdd, fcAddAll, prdCatalogueTrouve, bxpOngletChoisir, CATFOUR, CATALOGUE, norm,
       fixer:(q,f)=>{ fcQ=q; fcFour=f||''; } };`);
-  const g = f({ db: base }, t); g.t = t; return g;
+  const g = f({ db: base, droits }, t); g.t = t; return g;
 }
 const G0 = entreprise({ produits: [], fournisseurs: [] });
 vrai('population : 2 809 références fournisseurs, 160 au pack 3D', G0.CATFOUR.length === 2809 && G0.CATALOGUE.length === 160, [G0.CATFOUR.length, G0.CATALOGUE.length]);
@@ -107,6 +111,29 @@ console.log('\n── 787 · 3. contre-épreuve : chez ELAN, tout reste ouvert �
   g.bxpOngletChoisir('four'); v('l’onglet Fournisseurs de la box s’ouvre', g.t.onglet, 'four'); }
 { const g = entreprise({ produits: uniques.slice(0, 5).map(n => fiche(n, false)), fournisseurs: [] });
   g.openFourCat(); vrai('… et chez une entreprise qui s’en sert déjà aussi', g.t.modal === 1); }
+
+/* ── 787 · 3 bis. ⛔⛔ v737 — « LES PERSONNES QUI PEUVENT CRÉER DANS LES CATÉGORIES » ──
+   Justin, 23 septembre 2026 : c'est la case qui décide, pas le nom du rôle. Chez ELAN les
+   catalogues sont ouverts à l'ENTREPRISE ; une personne à qui l'on a décoché « Stock → Ajouter »
+   ne doit pas pouvoir y créer une seule fiche — ni par 🏭, ni à l'unité, ni en bloc, ni par la box.
+   Jusqu'à la v737, seul « ＋ Produit » (saveProduit) lisait cette case. */
+console.log('\n── 787 · 3 bis. ⛔⛔ v737 : sans « Stock → Ajouter », les catalogues ne créent rien ──');
+{ const g = entreprise({ produits: G0.CATALOGUE.slice(0, 110).map(c => fiche(c[0], false)), fournisseurs: [] }, { stock_ajouter: false });
+  vrai('population : les catalogues sont bien ouverts à cette entreprise (sinon on mesurerait la mauvaise porte)', g.cataloguesFournisseurs() === true);
+  g.openFourCat();
+  vrai('⛔⛔ 🏭 Fournisseurs ne s’ouvre pas pour elle', g.t.modal === 0, g.t);
+  const i = g.CATFOUR.findIndex(x => x[0] === uniques[41]); g.fcAdd(i); g.fixer('', 'ORCAD'); g.fcAddAll();
+  v('⛔⛔ ni une référence, ni une gamme entière n’entrent, même appelées directement', g.t.crees, []);
+  g.bxpOngletChoisir('four');
+  v('⛔ l’onglet Fournisseurs de la box ne s’ouvre pas', g.t.onglet, 'ajouter');
+  v('⛔ … et chaque porte a dit POURQUOI (le droit de la personne, pas « chaque entreprise crée ses produits »)', g.t.refus, ['stock/ajouter', 'stock/ajouter', 'stock/ajouter', 'stock/ajouter']);
+  const n = g.t.refus.length; g.bxpOngletChoisir('ajouter');
+  v('… et l’onglet « Ajouter » (poser ce qui existe déjà) ne consulte pas le droit de créer', g.t.refus.length, n); }
+{ const g = entreprise({ produits: G0.CATALOGUE.slice(0, 110).map(c => fiche(c[0], false)), fournisseurs: [] }, { stock_modifier: false, stock_supprimer: false });
+  g.openFourCat(); vrai('contre-épreuve : décocher « Modifier » et « Supprimer » ne ferme pas la création', g.t.modal === 1 && !g.t.refus.length, g.t); }
+{ const g = entreprise({ produits: [], fournisseurs: [] }, { stock_ajouter: false });
+  g.openFourCat();
+  vrai('contre-épreuve : chez une entreprise NEUVE, c’est la règle de l’entreprise qui parle d’abord (pas un refus de droit)', g.t.modal === 0 && !g.t.refus.length && g.t.toasts.some(m => /＋ Produit/.test(m)), g.t); }
 
 console.log('\n── 787 · 4. l’écran suit la règle ──');
 const vp = dec('views.produits=function(){');

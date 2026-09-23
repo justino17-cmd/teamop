@@ -28,7 +28,11 @@ function bloc(debut) {
 }
 
 console.log('\n── 786 · 0. la population ──');
-const NOMS = ['function equipeDe(u){', 'function perimetreTechIds(u){', 'function myTechId(){', 'function ptEstAMoi(p){',
+/* ⛔ v737 : les trois règles lisent chacune SA case (« Voir les fiches de son équipe », « Corriger
+   les pointages », « Régler les fiches du personnel »), dont le défaut se DÉDUIT d'autres cases.
+   Le bac à sable reçoit donc les VRAIS userCap / can / capDeduitRegle — un faux `can` qui connaît
+   « voirTout » ne connaissait pas les nouvelles cases, et le banc aurait gardé une copie. */
+const NOMS = ['function capDeduitRegle(cap){', 'function userCap(u,cap){', 'function can(cap){', 'function equipeDe(u){', 'function perimetreTechIds(u){', 'function myTechId(){', 'function ptEstAMoi(p){',
   'function visiblePointages(list){', 'function ptPeutVoirAutres(){', 'function fichesGere(){', 'function ptPeutCorriger(p){', 'function visibleTechniciens(list){'];
 const CODE = NOMS.map(bloc);
 v('les fonctions sont trouvées', NOMS.filter((n, i) => !CODE[i]), []);
@@ -47,12 +51,14 @@ const USERS = [
   { id: 'uK', prenom: 'Karim', nom: 'Benali', role: 'technicien', techId: 'tK', caps: [] },
   { id: 'uN', prenom: 'Nadia', nom: 'Lopez', role: 'comptable', caps: ['voirPointages'] },
   { id: 'uC', prenom: 'Claire', nom: 'Morel', role: 'commercial', caps: [] },
-];
+].map(u => Object.assign(u, { acces: { caps: Object.fromEntries(u.caps.map(k => [k, true])) } }));
+/* un réglage À PART pour une personne (ce que l'administrateur coche sur sa ligne) */
+const avec = (moi, reglage) => USERS.map(x => (x.id === moi && reglage) ? { ...x, acces: { caps: { ...x.acces.caps, ...reglage } } } : x);
 const PTS = [{ id: 'pK', techId: 'tK' }, { id: 'pS', techId: 'tS' }, { id: 'pJ', techId: 'tJ' }, { id: 'pC', userId: 'uC' }];
-function monde(moi) {
-  const u = USERS.find(x => x.id === moi) || null;
-  const ctx = { currentUser: u, db: { users: USERS, techniciens: TECHS, pointages: PTS },
-    can: k => !!u && u.caps.includes(k), fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim() };
+function monde(moi, reglage) {
+  const users = avec(moi, reglage), u = users.find(x => x.id === moi) || null;
+  const ctx = { currentUser: u, db: { users, techniciens: TECHS, pointages: PTS }, CAPS: { technicien: {} },
+    fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim() };
   vm.createContext(ctx); vm.runInContext(CODE.join('\n'), ctx);
   ctx.equipe = () => vm.runInContext('visibleTechniciens(db.techniciens).map(t=>t.id)', ctx);
   ctx.corrige = id => vm.runInContext('ptPeutCorriger(db.pointages.find(p=>p.id===' + JSON.stringify(id) + '))', ctx);
@@ -102,8 +108,11 @@ vrai('la fusion des doublons porte la même garde', /function techFusionnerDoubl
 const ligne = (SRC.match(/\$\{ptPeutCorriger\(p\)\?`<span style="white-space:nowrap"><button class="btn ghost sm" onclick="formPointage\('\$\{p\.id\}'\)"/) || [])[0];
 vrai('⛔ la ligne de pointage ne montre ✎ et 🗑 qu’à qui peut corriger CETTE ligne', !!ligne);
 vrai('… et plus aucun ✎ de pointage sans condition', (SRC.match(/onclick="formPointage\(/g) || []).length === 1);
-vrai('⛔⛔ le formulaire refuse (une ligne cachée n’est pas une garde)', /function formPointage\(id\)\{[^\n]*\n  if\(id\?!ptPeutCorriger\(p\):!ptPeutVoirAutres\(\)\)\{ toast\('Corriger des heures est réservé aux responsables'\); return; \}/.test(SRC));
-vrai('⛔⛔ l’enregistrement refuse aussi', /function savePointage\(e,id\)\{ e\.preventDefault\(\);\n  if\(id\?!ptPeutCorriger\(db\.pointages\.find\(x=>x\.id===id\)\):!ptPeutVoirAutres\(\)\)\{ toast\(/.test(SRC));
+/* v737 : la saisie à la main d'une ligne neuve demande la case « Corriger les pointages » */
+vrai('⛔⛔ le formulaire refuse (une ligne cachée n’est pas une garde)', /function formPointage\(id\)\{[^\n]*\n  if\(id\?!ptPeutCorriger\(p\):!can\('corrigerPointages'\)\)\{ toast\('Corriger des heures demande le droit « Corriger les pointages » \(Utilisateurs\)'\); return; \}/.test(SRC));
+vrai('⛔⛔ l’enregistrement refuse aussi', /function savePointage\(e,id\)\{ e\.preventDefault\(\);\n  if\(id\?!ptPeutCorriger\(db\.pointages\.find\(x=>x\.id===id\)\):!can\('corrigerPointages'\)\)\{ toast\(/.test(SRC));
+vrai('⛔ v737 : le menu des techniciens d’une saisie à la main ne propose que son périmètre', /<select name="techId" required><option value="">—<\/option>\$\{ptTechsVisibles\(\)\.map\(/.test(SRC) && !/<select name="techId" required><option value="">—<\/option>\$\{db\.techniciens\.map\(/.test(SRC));
+vrai('⛔ … et l’enregistrement le vérifie (on ne saisit pas les heures d’un technicien qui n’est pas le sien)', /if\(d\.techId && !ptTechsVisibles\(\)\.some\(t=>t\.id===d\.techId\)\)\{ toast\(/.test(SRC));
 const del = bloc('function delItem(coll,id){');
 vrai('⛔ la suppression d’un pointage suit la même règle, au point de passage de toutes les suppressions', /if\(coll==='pointages' && !ptPeutCorriger\(\(db\.pointages\|\|\[\]\)\.find\(x=>x\.id===id\)\)\)\{ toast\('Supprimer des heures est réservé aux responsables'\); return; \}/.test(del));
 
@@ -115,12 +124,12 @@ vrai('⛔ la suppression d’un pointage suit la même règle, au point de passa
 console.log('\n── 786 · 3 bis. ⛔⛔ Secteurs et le formulaire d’une fiche ──');
 const SECT = bloc('views.secteurs=function(){'), FT = bloc('function formTech(id){');
 vrai('population : Secteurs et formTech sont trouvés', SECT.length > 900 && FT.length > 2500, [SECT.length, FT.length]);
-function mondeEcran(moi) {
-  const u = USERS.find(x => x.id === moi) || null, out = { html: '', modal: '', toasts: [] };
+function mondeEcran(moi, reglage) {
+  const users = avec(moi, reglage), u = users.find(x => x.id === moi) || null, out = { html: '', modal: '', toasts: [] };
   const techs = [{ id: 'tK', nom: 'Karim Benali', departements: '44', tel: '06 12', droitConges: 25 }, { id: 'tS', nom: 'Sofia Perez', departements: '85', tel: '06 98' },
     { id: 'tL', nom: 'Léo Martin', departements: '', tel: '07 11' }, { id: 'tJ', nom: 'Jean Terrain', departements: '49', tel: '06 55' }];
-  const ctx = { currentUser: u, db: { users: USERS, techniciens: techs, pointages: PTS, interventions: [{ clientId: 'c44' }, { clientId: 'c85' }, { clientId: 'c49' }] },
-    can: k => !!u && u.caps.includes(k), fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(), views: {},
+  const ctx = { currentUser: u, db: { users, techniciens: techs, pointages: PTS, interventions: [{ clientId: 'c44' }, { clientId: 'c85' }, { clientId: 'c49' }] },
+    CAPS: { technicien: {} }, fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(), views: {},
     setHeader: () => {}, $: () => ({ set innerHTML(h) { out.html = h; } }), keyForClient: id => id.slice(1), parseTechDepts: s => String(s || '').split(',').map(x => x.trim()).filter(Boolean),
     techColor: () => '#123', initials: n => n[0], keyLabel: d => d, deptColor: () => '#456', encreSur: () => '#fff', esc: x => String(x == null ? '' : x),
     techForKey: dep => techs.find(t => t.departements === dep) || null, badge: (o, k) => '<b>' + o[k].l + '</b>', canCat: () => true,
@@ -151,6 +160,34 @@ if (SECT && FT && CODE.every(Boolean)) {
   vrai('contre-épreuve : le DR règle la fiche de Sofia (son périmètre)', /name="tel"/.test(L2.out.modal) && !/ disabled title="Réglé par ton responsable"/.test(L2.out.modal));
 }
 
+/* ── 786 · 3 ter. ⛔⛔ v737 — LES TROIS RÈGLES SONT DES CASES ─────────────────────────────────
+   Justin, 23 septembre 2026 : « technicien, DR… c'est juste des noms ; tout doit être sélectionné ».
+   Le DÉFAUT (rien de coché à part) reste celui des sections 1 à 3 — c'est ce qu'elles jouent. Ici,
+   on règle chaque case À PART, dans les deux sens, et on EXÉCUTE : elle doit l'emporter. */
+console.log('\n── 786 · 3 ter. ⛔⛔ v737 : les trois règles sont des cases ──');
+if (CODE.every(Boolean)) {
+  v('⛔⛔ un DR à qui l’on retire « Voir les fiches de son équipe » ne voit plus que la sienne', monde('uL', { voirEquipe: false }).equipe(), ['tL']);
+  v('⛔⛔ un technicien à qui on la donne voit l’entreprise (personne ne lui est rattaché)', monde('uK', { voirEquipe: true }).equipe(), ['tK', 'tS', 'tL', 'tJ']);
+  v('⛔ la case « Voir les pointages » seule ouvre toujours l’équipe (le défaut suit sa base)', monde('uK', { voirPointages: true }).equipe(), ['tK', 'tS', 'tL', 'tJ']);
+  v('⛔⛔ la responsable des feuilles de temps SANS « Corriger les pointages » : elle voit, elle ne réécrit pas', monde('uN', { corrigerPointages: false }).corrige('pK'), false);
+  v('⛔⛔ un technicien à qui l’on confie « Corriger les pointages » corrige SES heures…', monde('uK', { corrigerPointages: true }).corrige('pK'), true);
+  v('⛔⛔ … et PAS celles d’un collègue : corriger ne sort jamais de ce qu’il voit', monde('uK', { corrigerPointages: true }).corrige('pS'), false);
+  v('⛔ un DR sans « Corriger les pointages » ne corrige pas même son périmètre', ['pK', 'pS', 'pJ'].map(monde('uL', { corrigerPointages: false }).corrige), [false, false, false]);
+  v('contre-épreuve : l’administrateur n’a rien à cocher (une case retirée ne lui retire rien)', monde('uA', { corrigerPointages: false, voirEquipe: false }).corrige('pK'), true);
+}
+if (SECT && FT && CODE.every(Boolean)) {
+  const K5 = mondeEcran('uK', { gererFiches: true }); K5.formTech('tK');
+  vrai('⛔⛔ Karim avec « Régler les fiches du personnel » règle congés, capacité, secteur et rattachement de SA fiche',
+    /name="tel"/.test(K5.out.modal) && !/ disabled title="Réglé par ton responsable"/.test(K5.out.modal), K5.out.modal.slice(0, 200));
+  const L5 = mondeEcran('uL', { gererFiches: false }); L5.formTech('tS');
+  vrai('⛔⛔ un DR SANS la case voit la fiche de Sofia, mais ces quatre champs y sont verrouillés',
+    /name="tel"/.test(L5.out.modal) && ['departements', 'capH', 'droitConges'].every(n => new RegExp('name="' + n + '" disabled').test(L5.out.modal)), L5.out.modal.slice(0, 200));
+}
+vrai('⛔ les trois règles lisent LEUR case, et plus « Tout voir / Voir les pointages » en direct',
+  /function fichesGere\(\)\{ return !!currentUser&&can\('gererFiches'\); \}/.test(SRC)
+  && /function ptPeutCorriger\(p\)\{ return can\('corrigerPointages'\) && !!p && visiblePointages\(\[p\]\)\.length===1; \}/.test(SRC)
+  && /function visibleTechniciens\(list\)\{\n  if\(can\('voirEquipe'\)\)\{/.test(SRC));
+
 console.log('\n── 786 · 4. la mesure dans une vraie page existe ──');
 const P = path.join(__dirname, '..', 'scratchpad', 'sonde-equipe.js');
 const SONDE = fs.existsSync(P) ? fs.readFileSync(P, 'utf8') : '';
@@ -174,11 +211,13 @@ async function partieSaveTech() {
       { id: 'uK', prenom: 'Karim', nom: 'Benali', role: 'technicien', techId: 'tK' },
       { id: 'uR', prenom: 'Rémi', nom: 'Chef', role: 'chefEquipe' },
       { id: 'uL', prenom: 'Léo', nom: 'Martin', role: 'dr', techId: 'tL' }];
+    /* ce qu'on donne à la personne connectée, posé comme l'administrateur le poserait */
+    { const cu = users.find(u => u.id === moi); if (cu) cu.acces = { caps: Object.fromEntries(caps.map(k => [k, true])) }; }
     const toasts = [];
     const redessins = [];
     const ctx = { currentUser: users.find(u => u.id === moi), db: { users, techniciens: [{ id: 'tK', nom: 'Karim Benali', metier: 'Technicien', tel: '06 12', droitConges: 25, capMin: 420, departements: '44', chef: '' }, { id: 'tL', nom: 'Léo Martin', metier: 'Technicien', tel: '07 11' }] },
-      /* comme userCap : l'administrateur a tous les droits, les autres ceux qu'on leur donne */
-      can: k => moi === 'uA' || caps.includes(k), permGarde: () => true, planPlaceLibre: () => true, proposerAbonnement: () => toasts.push('abonnement'),
+      /* les VRAIS userCap / can (dans CODE) : l'administrateur a tout, les autres leurs cases */
+      CAPS: { technicien: {} }, permGarde: () => true, planPlaceLibre: () => true, proposerAbonnement: () => toasts.push('abonnement'),
       closeModal: () => {}, toast: m => toasts.push(m), save: () => {}, logEvent: () => {}, current: courant,
       views: { techniciens: () => redessins.push('techniciens'), secteurs: () => redessins.push('secteurs') }, pointages: [],
       fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(),

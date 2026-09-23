@@ -109,6 +109,14 @@ const colls = Object.keys(GRP);
 const creatrices = [];
 for (const f of fns) {
   const push = colls.filter(c => f.corps.includes('db.' + c + '.push('));
+  /* ⛔⛔ v737 — CE BANC NE VOYAIT PAS LES PRODUITS. Une fiche produit naît par `produitCreer`
+     (règle du dépôt : une seule ligne de code fait `db.produits.push`), donc ses APPELANTS créent
+     dans « produits » sans jamais écrire `db.produits.push(` — et `produitCreer` lui-même était
+     rangé ici comme « helper, saveProduit porte la garde ». Mesuré le 23 septembre 2026 : sur les
+     huit chemins qui créent une fiche sur un geste, UN SEUL (saveProduit) consultait « Stock →
+     Ajouter ». Justin : « les personnes qui peuvent créer dans les catégories […] tout doit être
+     sélectionné ». */
+  if (f.nom !== 'produitCreer' && f.corps.includes('produitCreer(') && !push.includes('produits')) push.push('produits');
   if (push.length) creatrices.push({ nom: f.nom, colls: push, garde: /permGarde\(|canCat\(/.test(f.corps) });
 }
 
@@ -142,6 +150,32 @@ for (const [fn, grp] of [['saveEnv', 'stock'], ['saveProduitDonne', 'stock'], ['
    quelqu'un « complèterait » la série un jour, en croyant bien faire, et bloquerait les heures. */
 vrai('⛔⛔ savePointage n est PAS gardé — pointer reste possible sans droit de création',
   !/permGarde\(/.test(corps('savePointage')));
+
+console.log('\n══ 3 ter. ⛔⛔ v737 : LES PORTES DE CRÉATION DES PRODUITS ══\n');
+/* Recensées par le banc (section 2, qui compte désormais les appelants de produitCreer) — et
+   les FENÊTRES qui préparent une création refusent dès l'ouverture : on ne fait pas remplir une
+   liste qui sera refusée. */
+for (const fn of ['plValider', 'fcAdd', 'fcAddAll', 'prdPontAjouter', 'bxpPoseEcrire', 't3dProdToStock', 'intToggleProd',
+  'restoreCatalogue', 'cataloguePackSync', 'formProduitsListe', 'openFourCat']) {
+  vrai('⛔ ' + fn.padEnd(20) + ' → permGarde(stock, ajouter)', /permGarde\('stock','ajouter'/.test(corps(fn)));
+}
+vrai('⛔ « ＋ Produit » refuse à l’ouverture (une fiche NEUVE seulement — ouvrir une fiche existante reste libre)',
+  /function formProduit\(id\)\{ if\(!id&&!permGarde\('stock','ajouter','un produit'\)\) return;/.test(NU));
+vrai('⛔ l’onglet Fournisseurs de la box n’existe pas sans le droit (il ne sert qu’à CRÉER des fiches)',
+  /const cf=cataloguesFournisseurs\(\)&&canCat\('stock','ajouter'\);/.test(NU));
+vrai('⛔ le scanner du catalogue règle un stock : « Stock → Modifier », à l’ouverture ET à l’écriture',
+  /function openScanner\(\)\{ if\(!permGarde\('stock','modifier','le stock'\)\) return;/.test(NU) && /permGarde\('stock','modifier','le stock'\)/.test(corps('etiqAppliquerCat')));
+/* ⚠️ Le contrôle inverse : « ajouter à mon stock » depuis une intervention RELIE une ligne à une
+   fiche qui existe déjà sans rien créer — ce chemin-là ne doit pas demander le droit de créer. */
+const t3d = corps('t3dProdToStock');
+vrai('⚠️ t3dProdToStock ne demande le droit QU’AU moment de créer (relier une fiche existante reste libre)',
+  t3d.indexOf("permGarde('stock','ajouter'") > t3d.indexOf('if(ex){'));
+
+console.log('\n══ 3 quater. ⛔ v737 : LES GROUPES DE DISCUSSION ══\n');
+/* `db.groupes` n'est rattaché à aucune catégorie : sa garde est une case à elle. Jusqu'ici seul le
+   BOUTON était masqué, sur une liste de noms de rôles. */
+for (const fn of ['formGroupe', 'saveGroupe', 'delGroupe'])
+  vrai('⛔ ' + fn.padEnd(12) + ' → can(gererGroupes)', /if\(!can\('gererGroupes'\)\)\{ groupesRefus\(\); return; \}/.test(corps(fn)));
 
 console.log('\n══ 4. ⛔ LES HUIT AUTRES GARDES N\'ONT PAS BOUGÉ ══\n');
 for (const [fn, grp] of [['saveTache', 'plan'], ['saveAbsence', 'plan'], ['saveIntervention', 'int'],

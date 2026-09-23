@@ -7030,7 +7030,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '736';
+const APP_VERSION = '737';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -9171,7 +9171,7 @@ function cataloguePackNeufs(d){
    suivant. La bulle reproposerait éternellement les mêmes trois fiches, sans qu'on puisse jamais
    s'en débarrasser. Ce qui légitime le retour d'une fiche écartée, ce n'est pas une date : c'est
    que quelqu'un a LU le nombre et touché « Synchroniser ». */
-function cataloguePackSync(){
+function cataloguePackSync(){ if(!permGarde('stock','ajouter','un produit')) return;
   const neufs=cataloguePackNeufs(); if(!neufs.length){ toast('Ton catalogue est déjà à jour'); return; }
   const r=cataloguePoser(db,{naissance:Date.now()});
   if(!r.produits){ toast('Ton catalogue est déjà à jour'); return; }
@@ -12506,9 +12506,37 @@ function drPerimetre(u){
   delegationsRecues({id}).forEach(abs=>{ s.add(abs.id); (db.users||[]).forEach(x=>{ if(x&&x.drId===abs.id) s.add(x.id); }); });
   return s;
 }
+/* ⛔⛔ LES DROITS QUI SE DÉDUISENT D'AUTRES CASES — v737. Justin, 23 septembre 2026 :
+   « technicien, DR… c'est juste des noms, c'est pas des rôles ; tout doit être sélectionné — ce
+   qu'il voit, ce qu'il ne voit pas, ce qu'il peut faire, ce qu'il ne peut pas faire ».
+   Cinq règles décidaient encore À LA PLACE des cases. Trois venaient d'être écrites (v735-736) :
+   voir les fiches de son équipe, corriger des heures, régler les champs de gestion d'une fiche —
+   déduites de « Tout voir » / « Voir les pointages », sans case à elles. Deux étaient bien plus
+   anciennes et tenaient au NOM du rôle : gérer les groupes de discussion (« admin, dr,
+   chefEquipe, commercial ») et l'e-mail pro (« admin, dr, commercial, compta »). Chacune est
+   désormais une case, sur la ligne de la personne et dans les profils.
+   Le DÉFAUT — ce qu'on lit tant que personne n'a coché ni décoché cette case — se déduit
+   d'AUTRES CASES, jamais du nom du rôle, et reproduit ce que chacun avait la veille. Dès qu'un
+   administrateur touche la case et valide, elle est écrite et le défaut ne sert plus.
+   ⚠️ UNE fonction, pas une table : `userCap` est appelé très tôt au chargement, et une `const`
+   lue avant sa ligne est une zone morte temporelle (la panne du 10 septembre au matin).
+   ⚠️ Rien ne s'écrit ici : c'est une LECTURE. La reprise de la v585, elle, écrivait au chargement. */
+function capDeduitRegle(cap){
+  switch(cap){
+    case 'voirEquipe': case 'corrigerPointages': case 'gererFiches':
+      return u=>userCap(u,'voirTout')||userCap(u,'voirPointages');   // la règle des v735-736, telle quelle
+    /* « admin, dr, chefEquipe, commercial » : ceux qui voient tout ET planifient — le compta voit
+       tout sans planifier, le technicien ni l'un ni l'autre. Mesuré sur la reprise : identique. */
+    case 'gererGroupes': return u=>userCap(u,'voirTout')&&userCap(u,'creerIntervention');
+    /* « admin, dr, commercial, compta » — le chef d'équipe gagne la carte (il y règle SA propre
+       adresse, rien de l'entreprise) : c'est le seul écart, écrit dans REPRISE. */
+    case 'mailPro':      return u=>userCap(u,'voirTout');
+  }
+  return null; }
 function userCap(u,cap){ if(!u) return false; if(u.role==='admin') return true;
   const ov=u.acces&&u.acces.caps; if(ov && Object.prototype.hasOwnProperty.call(ov,cap)) return !!ov[cap];
   const rp=db.permissions&&db.permissions[u.role]&&db.permissions[u.role].caps; if(rp && Object.prototype.hasOwnProperty.call(rp,cap)) return !!rp[cap];
+  const dd=capDeduitRegle(cap); if(dd) return !!dd(u);
   const c=CAPS[u.role]||CAPS.technicien; return !!c[cap]; }
 function can(cap){ if(!currentUser) return false; return userCap(currentUser,cap); }
 /* ═══ DROITS PAR CATÉGORIE — Voir · Ajouter · Modifier · Supprimer ═══
@@ -12535,7 +12563,7 @@ const COLL_GRP={interventions:'int',clients:'crm',devis:'ventes',factures:'vente
    réclame fabrique un faux verrou.
    Le libellé sert au message de refus : « Créer un fournisseur n'est pas autorisé… ». */
 const COLL_QUOI={fournisseurs:'un fournisseur',techniciens:'un technicien',brouillons:'un produit au brouillon',bons:'un bon de commande',demandes:'une demande',conducteurs:'un conducteur',clients:'un client',produits:'un produit',boxes:'une box',vehicules:'un véhicule',taches:'une tâche',absences:'une absence',devis:'un devis',factures:'une facture',contrats:'un contrat'};
-const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],com:['opMessages','bonsLectureSeule','respBons'],equipe:['creerUtilisateurs','voirPointages'],achats:['validerDR']};
+const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],com:['opMessages','bonsLectureSeule','respBons','gererGroupes','mailPro'],equipe:['creerUtilisateurs','voirPointages','voirEquipe','corrigerPointages','gererFiches'],achats:['validerDR']};
 function catDroit(u,grp,droit){
   if(!u) return false; if(u.role==='admin') return true;
   const k='cat_'+grp+'_'+droit;
@@ -12841,8 +12869,12 @@ function ptPeutVoirAutres(){ return !!(can('voirTout')||can('voirPointages')); }
    (`ptPeutVoirAutres`), et seulement sur les lignes que son périmètre lui montre. La suppression
    suit la même règle : effacer une journée n'est pas moins grave que la réécrire. */
 /* Qui règle les champs de GESTION d'une fiche du personnel : ceux qui corrigent les heures. */
-function fichesGere(){ return !!currentUser&&(currentUser.role==='admin'||ptPeutVoirAutres()); }
-function ptPeutCorriger(p){ return ptPeutVoirAutres() && !!p && visiblePointages([p]).length===1; }
+/* ⛔ Depuis la v737 chacune a SA case (« Régler les fiches du personnel », « Corriger les
+   pointages ») — le défaut reste « qui voit les pointages de l'équipe » (capDeduitRegle). Et
+   corriger ne sort jamais du périmètre : une ligne que visiblePointages ne montre pas ne se
+   corrige pas, quel que soit le droit — sans « Voir les pointages », on ne corrige que les siennes. */
+function fichesGere(){ return !!currentUser&&can('gererFiches'); }
+function ptPeutCorriger(p){ return can('corrigerPointages') && !!p && visiblePointages([p]).length===1; }
 /* ⛔ L'ÉQUIPE : CHACUN VOIT CE QUI LE CONCERNE — décision de Justin, 23 septembre 2026 :
    « chacun voit ce qui le concerne, et le DR ou autres personnes assignés ». L'écran « Équipe »
    (`views.techniciens`) n'est pas au menu, donc la garde de `go()` ne le connaissait pas : il se
@@ -12851,8 +12883,9 @@ function ptPeutCorriger(p){ return ptPeutVoirAutres() && !!p && visiblePointages
    que les feuilles de temps : « tout voir » ou « voir les pointages » → son périmètre (les
    personnes rattachées à ce DR ou à ce chef, et lui-même ; toute l'entreprise sans personne de
    rattaché, comme l'administrateur) ; sinon, sa propre fiche, et rien d'autre. */
+/* ⛔ v737 : la règle a sa case, « Voir les fiches de son équipe » — même défaut qu'avant. */
 function visibleTechniciens(list){
-  if(can('voirTout')||can('voirPointages')){ const p=perimetreTechIds(); return (list||[]).filter(t=>t&&(!p||p.has(t.id))); }
+  if(can('voirEquipe')){ const p=perimetreTechIds(); return (list||[]).filter(t=>t&&(!p||p.has(t.id))); }
   if(!currentUser) return [];
   const tid=myTechId(); return (list||[]).filter(t=>t&&tid&&t.id===tid); }
 /* Formule impayée : les rubriques de la formule réservée restent VISIBLES dans le
@@ -18410,7 +18443,10 @@ function garAlertCheck(){ try{ if(!currentUser||currentUser.role!=='admin') retu
      Leia a été retirée le 23 septembre 2026, et ce qu'elle seule disait (les interventions
      en retard, les factures impayées) est passé dans la cloche avec le reste. */
 function accueilJournee(){ try{ if(!currentUser) return false;
-  const r=currentUser.role; if(r==='admin'||r==='dr'||r==='chefEquipe') return false;
+  /* ⛔ v737 : plus « admin, dr, chefEquipe » par leur NOM. « Ta journée » résume SES
+     interventions : elle va à qui ne voit que les siennes. Qui a « Tout voir » — un responsable,
+     quel que soit le nom de son rôle — trouve ses rappels dans la cloche. */
+  if(can('voirTout')) return false;
   const tid=myTechId(); if(!tid) return false;
   const today=todayISO();
   return (db.interventions||[]).some(i=>i.date===today&&intTechIds(i).includes(tid)&&i.statut!=='annulee');
@@ -19059,7 +19095,8 @@ function entSave(){ const g=id=>((document.getElementById(id)||{}).value||'').tr
   save(); applyBrand(); toast('🏢 Entreprise enregistrée — son nom apparaîtra sur les bons et e-mails'); }
 function mailBrandName(){ return ((db.mailFrom||'').trim()) || (((db.entreprise||{}).nom)||'').trim() || rapportSociete(); }
 async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
-  const perso=(currentUser&&currentUser.mailBox&&currentUser.mailBox.user&&currentUser.mailBox.pass)?currentUser.mailBox:null;
+  /* le droit retiré, l'adresse pro ne sert plus : on repasse sur celle de l'entreprise */
+  const perso=(currentUser&&currentUser.mailBox&&currentUser.mailBox.user&&currentUser.mailBox.pass&&can('mailPro'))?currentUser.mailBox:null;
   const b=boxOverride||perso||mailBoxFor(cat);
   const payload={teamId:syncTeam(),to,subject,text:body};
   if(opts&&opts.atts&&opts.atts.length) payload.atts=opts.atts;   // pièces jointes (ex : bon de commande en PDF)
@@ -19099,7 +19136,7 @@ function mailSimpleSave(){ const g=id=>((document.getElementById(id)||{}).value|
   db.mailFrom=g('ms-from'); db.mailReply=rep; save(); toast('Réglages d\'envoi enregistrés ✓'); views.parametres(); }
 function mailSimpleTest(){ const to=prompt('Envoyer un e-mail de test à :',(currentUser&&currentUser.email)||''); if(!to) return;
   srvMail(to,'Test — '+mailBrandName(),'E-mail de test envoyé depuis votre application.\n\nVos clients verront « '+mailBrandName()+' » comme expéditeur'+(db.mailReply?' et leurs réponses arriveront sur '+db.mailReply:'')+'.','✉️ Test envoyé à '+to+' — vérifie la réception'); }
-function userMailForm(){ const b=(currentUser&&currentUser.mailBox)||{};
+function userMailForm(){ if(!can('mailPro')){ toast('Ton compte n\'a pas le droit « Envoyer depuis son adresse e-mail pro »'); return; } const b=(currentUser&&currentUser.mailBox)||{};
   openModal(`<div class="modal-head"><h3>💼 Mon e-mail professionnel</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t2);font-size:13px;line-height:1.55;margin-bottom:12px">Tes envois (rapports, avis, devis…) partiront de TON adresse pro. Laisse vide pour utiliser l'adresse de l'entreprise.</p>
     <form onsubmit="userMailSave(event)">
@@ -19112,7 +19149,7 @@ function userMailForm(){ const b=(currentUser&&currentUser.mailBox)||{};
       </div>
       <button class="btn block" style="margin-top:12px" type="submit">Enregistrer</button>
     </form>`); }
-function userMailSave(e){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
+function userMailSave(e){ e.preventDefault(); if(!can('mailPro')){ toast('Ton compte n\'a pas le droit « Envoyer depuis son adresse e-mail pro »'); return; } const d=Object.fromEntries(new FormData(e.target));
   d.user=(d.user||'').trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.user)){ toast('Adresse e-mail invalide'); return; }
   if(!d.pass){ toast('Indique le mot de passe de la boîte'); return; }
   d.host=(d.host||'').trim()||'smtp.mail.ovh.net'; d.port=parseInt(d.port)||465; d.from=(d.from||'').trim()||fullName(currentUser);
@@ -19260,7 +19297,8 @@ views.interventions=function(){
     // Registre / historique : fait · pas fait · annulé · supprimé (archive)
     const _today=todayISO();
     const HIST_TESTS={toutes:()=>true,faites:x=>x.statut==='terminee',avenir:x=>x.statut!=='terminee'&&x.statut!=='annulee'&&(!x.date||x.date>=_today),pasfaites:x=>!!x.date&&x.date<_today&&x.statut!=='terminee'&&x.statut!=='annulee'&&!x.debutReel,annulees:x=>x.statut==='annulee'};
-    const canDelF=can('supprimer')||['admin','dr'].includes((currentUser||{}).role||'');
+    /* ⛔ v737 : la case « Interventions → Supprimer », plus le nom « dr ». */
+    const canDelF=catDroit(currentUser,'int','supprimer');
     if(intHistF==='supprimees'&&!canDelF) intHistF='toutes';
     const histDefs=[['toutes','Toutes'],['faites','✅ Faites'],['avenir','⏳ À venir'],['pasfaites','⚠️ Pas faites'],['annulees','🚫 Annulées']];
     if(canDelF) histDefs.push(['supprimees','🗑 Supprimées']);
@@ -19714,7 +19752,8 @@ function t3dProdToStock(intId,ix){ const i=db.interventions.find(x=>x.id===intId
   const ex=db.produits.find(p=>produitCle(p)===produitCle({nom}));
   let pid;
   if(ex){ pid=ex.id; if(c3&&!ex.categorie3d) ex.categorie3d=c3; toast('« '+nom+' » existait déjà au stock — ligne reliée'); }
-  else { pid=idProduit(nom);
+  else { if(!permGarde('stock','ajouter','un produit')) return;   // v737 : la ligne reste « hors stock »
+    pid=idProduit(nom);
     produitCreer({id:pid,nom,unite:l.unite||'u',qte:0,seuil:0,prix:0,amm:'',matiereActive:'',
       categorie:'Ajouté depuis une intervention',categorie3d:c3,note:'ajouté depuis une intervention',fournisseurs:[]});
     logEvent('Nouveau produit',nom+' (depuis une intervention)','crud');
@@ -22109,7 +22148,7 @@ function intDelProduit(id,ix){ const i=db.interventions.find(x=>x.id===id);
   i.produitsUtilises.splice(ix,1); save(); renderIntDetail(id); }
 function intToggleProd(id,nom){ const i=db.interventions.find(x=>x.id===id); if(!i)return; i.produitsUtilises=i.produitsUtilises||[];
   let p=db.produits.find(x=>produitCle(x)===produitCle({nom}));
-  if(!p){ p=produitCreer({id:idProduit(nom),nom,categorie:'',fournisseurs:[],ref:'',unite:'unité',prix:0,qte:0,seuil:0}); }
+  if(!p){ if(!permGarde('stock','ajouter','un produit')) return; p=produitCreer({id:idProduit(nom),nom,categorie:'',fournisseurs:[],ref:'',unite:'unité',prix:0,qte:0,seuil:0}); }
   const ix=i.produitsUtilises.findIndex(l=>l.produitId===p.id);
   if(ix>=0){ const l=i.produitsUtilises[ix]; intStockAjuste(i,p.id,-(+l.qte||1),l.unite); i.produitsUtilises.splice(ix,1); }
   else { i.produitsUtilises.push({produitId:p.id,qte:1}); intStockAjuste(i,p.id,1); }
@@ -23000,7 +23039,7 @@ function cataloguesFournisseurs(){
   }catch(e){ return false; }
 }
 const CATFOUR_FERME='Chaque entreprise crée ses propres produits : ＋ Produit, ou ＋ Liste pour coller une liste entière';
-function restoreCatalogue(){
+function restoreCatalogue(){ if(!permGarde('stock','ajouter','un produit')) return;
   /* Deuxième verrou, et il n'est pas décoratif : la fonction est globale, donc appelable
      depuis la console d'un navigateur même quand le bouton n'est pas rendu. */
   if(!catalogueEnPlace()){ try{ toast('Catalogue non disponible pour ce métier — ajoute tes produits avec ＋ Produit'); }catch(e){} return; }
@@ -23024,7 +23063,7 @@ function restoreCatalogue(){
    de vue de qui s'en sert. On pagine, et on confirme au lieu de refuser. */
 let fcFour='', fcQ='', fcMax=80;
 function fcPlus(){ fcMax+=120; renderFourCat(); }
-function openFourCat(){ if(!cataloguesFournisseurs()){ toast(CATFOUR_FERME,4200); return; } fcFour=''; fcQ=''; fcMax=80;
+function openFourCat(){ if(!cataloguesFournisseurs()){ toast(CATFOUR_FERME,4200); return; } if(!permGarde('stock','ajouter','un produit')) return; fcFour=''; fcQ=''; fcMax=80;
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Fermer</button><h3>🏭 Catalogues fournisseurs</h3><span style="width:58px"></span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px" id="fc-chips"></div>
     <input class="search-inp" id="fc-q" style="margin:0 0 10px" placeholder="Rechercher parmi ${CATFOUR.length} produits…" oninput="fcQ=this.value;fcMax=80;rechDiffere(renderFourCat)">
@@ -23057,6 +23096,7 @@ function renderFourCat(){ const el=$('fc-list'); if(!el)return; const idx=fcMatc
      || '<div style="color:var(--t3);padding:14px;text-align:center">Aucun produit trouvé.</div>')+pied);
 }
 function fcAdd(i,btn){ const x=CATFOUR[i]; if(!x) return; if(!cataloguesFournisseurs()){ toast(CATFOUR_FERME,4200); return; }
+  if(!permGarde('stock','ajouter','un produit')) return;
   if(db.produits.some(p=>produitCle(p)===produitCle({nom:x[0]}))){ toast('Déjà dans ton catalogue'); renderFourCat(); return; }
   /* ⛔ AUCUN PRIX N'EST POSÉ — décision de Justin, 9 septembre 2026 : « enlève les prix, ça
      ça ne nous regarde pas ». Un tarif fournisseur se négocie, change, et diffère d'un client
@@ -23068,7 +23108,7 @@ function fcAdd(i,btn){ const x=CATFOUR[i]; if(!x) return; if(!cataloguesFourniss
   if(btn) btn.outerHTML='<span style="color:var(--acc-txt);font-weight:800;font-size:16px">✓</span>';
   toast('Ajouté : '+x[0]);
 }
-function fcAddAll(){ if(!cataloguesFournisseurs()){ toast(CATFOUR_FERME,4200); return; } const idx=fcMatches(); if(!idx.length) return;
+function fcAddAll(){ if(!cataloguesFournisseurs()){ toast(CATFOUR_FERME,4200); return; } if(!permGarde('stock','ajouter','un produit')) return; const idx=fcMatches(); if(!idx.length) return;
   const have=new Set(db.produits.map(produitCle));
   const neufs=idx.filter(i=>!have.has(produitCle({nom:CATFOUR[i][0]})));
   if(!neufs.length){ toast('Tout est déjà dans ton catalogue'); return; }
@@ -23116,7 +23156,15 @@ views.produits=function(){
 /* ── AJOUT EN LISTE ── on colle une liste (un produit par ligne, « Nom ; Fournisseur ; Prix »
    facultatifs), la catégorie est devinée d'après le nom, on vérifie, on valide. */
 let _plLignes=[];
-function formProduitsListe(){
+/* ⛔ v737 — « LES PERSONNES QUI PEUVENT CRÉER DANS LES CATÉGORIES » (Justin, 23 septembre 2026).
+   Seul `saveProduit` consultait « Stock → Ajouter » : SEPT autres chemins créaient des fiches sans
+   le lire (＋ Liste, 🏭 Fournisseurs à l'unité et en bloc, le pont de la recherche, l'onglet
+   Fournisseurs de la box, « ajouter à mon stock » depuis une intervention, la case d'un produit
+   recommandé), plus « ↻ Catalogue OP » et la bulle du pack. Une case décochée ne fermait donc
+   qu'UNE porte sur dix. Chacune se garde désormais elle-même, et la fenêtre qui prépare une
+   création refuse dès l'ouverture : on ne fait pas remplir un formulaire qui sera refusé.
+   `tests/test-747.js` compte les appelants de produitCreer comme des créations. */
+function formProduitsListe(){ if(!permGarde('stock','ajouter','un produit')) return;
   _plLignes=[];
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>Ajouter une liste</h3><button type="button" class="btn sm" onclick="plValider()">Tout ajouter (<span id="pl-count">0</span>)</button></div>
     <p style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:10px">Colle ta liste : <b>un produit par ligne</b>. Tu peux préciser fournisseur, prix, référence et catégorie avec des points-virgules — <span class="mono" style="font-size:12px">Nom ; Fournisseur ; Prix</span>. La catégorie est trouvée toute seule d'après le nom, et tu peux la corriger avant de valider.</p>
@@ -23155,7 +23203,7 @@ function plAnalyse(){ const t=($('pl-texte')||{}).value||'';
     <select onchange="_plLignes[${k}].categorie=this.value==='Sans catégorie'?'':this.value" style="width:150px;background:var(--card2);border:1px solid var(--brd2);border-radius:9px;padding:7px 8px;color:${x.categorie?catColor(x.categorie):'var(--t3)'};font-size:12px;font-weight:700">${cats.map(cc=>`<option ${((x.categorie||'Sans catégorie')===cc)?'selected':''}>${esc(cc)}</option>`).join('')}</select>
   </div>`).join(''):'';
 }
-function plValider(){ if(!_plLignes.length){ toast('Colle d\'abord ta liste de produits'); return; }
+function plValider(){ if(!permGarde('stock','ajouter','un produit')) return; if(!_plLignes.length){ toast('Colle d\'abord ta liste de produits'); return; }
   const _avant=(db.produits||[]).length; let n=0;
   /* Les noms déjà connus, UNE fois — et la liste collée peut elle-même porter deux fois le même nom.
      Relire tout le catalogue à chaque ligne coûtait cinq secondes d'écran figé pour 2 800 produits :
@@ -23410,7 +23458,7 @@ function prdCataloguePont(q,dejaVus){
 }
 /* Le pont pose exactement ce qu'il annonce : les résultats de LA recherche affichée, ni plus
    ni moins. Il réutilise le même écrivain que le catalogue (aucun prix, même forme de fiche). */
-function prdPontAjouter(){
+function prdPontAjouter(){ if(!permGarde('stock','ajouter','un produit')) return;
   const idx=prdCatalogueTrouve(norm(prdSearch)); if(!idx.length){ toast('Rien à ajouter'); return; }
   if(idx.length>60 && !confirm('Ajouter '+idx.length+' produits à ton catalogue ?\n\nCe sont les résultats de « '+prdSearch+' » dans les catalogues fournisseurs.')) return;
   let n=0; const deja=new Set(db.produits.map(produitCle));
@@ -23483,7 +23531,7 @@ function renderProduitsList(){
 }
 let prodFours=new Set();
 const FOUR_PILLS=['MABI','SODIF','ARMOSA','ORCAD','ENSYSTEX'];
-function formProduit(id){ const p=id?produit(id):{};
+function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) return; const p=id?produit(id):{};
   const cats=[...CAT_LIST,...new Set(db.produits.map(x=>x.categorie).filter(c=>c&&!CAT_LIST.includes(c)))];
   prodFours=new Set((p.fournisseurs||[]).map(f=>{ const up=f.toUpperCase(); if(up.includes('ORCAD')) return 'ORCAD'; if(up.includes('ENSYSTEX')) return 'ENSYSTEX'; return up; }));
   const bannerC=id?'var(--org)':'var(--acc)';
@@ -25739,11 +25787,11 @@ function bxpRendre(){ const b=bxpBox(); if(!b||!$('bxp-corps')) return; const c=
   const d=$('bxp-doublons'); if(d) d.innerHTML=produitsDoublonsBandeau({boxId:b.id,replie:true});
   const ret=Object.keys(b.stock).filter(pid=>boxRetirable(b,pid).ok).length;
   const nPack=(c.pack||[]).length;
-  const cf=cataloguesFournisseurs();
+  const cf=cataloguesFournisseurs()&&canCat('stock','ajouter');   // v737 : l'onglet ne sert qu'à CRÉER des fiches
   if(!cf&&bxpOnglet==='four') bxpOnglet='ajouter';
   $('bxp-onglets').innerHTML=`<div class="chip ${bxpOnglet==='ajouter'?'active':''}" onclick="bxpOngletChoisir('ajouter')">Ajouter (${c.dispo.length})${nPack?`<span class="bxp-bulle">${nPack}</span>`:''}</div>${cf?`<div class="chip ${bxpOnglet==='four'?'active':''}" onclick="bxpOngletChoisir('four')">Fournisseurs</div>`:''}<div class="chip ${bxpOnglet==='retirer'?'active':''}" onclick="bxpOngletChoisir('retirer')">Retirer (${ret})</div>`;
   if(bxpOnglet==='ajouter') bxpRendreAjout(b,c); else if(bxpOnglet==='four') bxpRendreFour(b); else bxpRendreRetrait(b); }
-function bxpOngletChoisir(o){ if(o==='four'&&!cataloguesFournisseurs()) o='ajouter'; bxpOnglet=o; bxpRetPhase=0; bxpRendre(); }
+function bxpOngletChoisir(o){ if(o==='four'&&(!cataloguesFournisseurs()||!permGarde('stock','ajouter','un produit'))) o='ajouter'; bxpOnglet=o; bxpRetPhase=0; bxpRendre(); }
 /* ── Onglet Ajouter ── */
 function bxpRendreAjout(b,c){ const el=$('bxp-corps'); const nouv=c.nouv; const deja=Object.keys(b.stock).length; const nDec=nouv.length-bxpNouvSel.size;
   /* ── Justin, 10 septembre 2026 : « un bouton en plus ici qui reçoit une petite bulle de
@@ -25845,9 +25893,9 @@ function abpVisibles(){ const c=bxpCache; if(!c) return []; const q=norm(bxpQ); 
 /* Ne réécrit QUE la liste : le champ de recherche reste en place, le clavier reste ouvert. */
 function renderAbpList(){ const el=$('abp-list'); if(!el||!bxpCache) return; const avail=abpVisibles(); const q=bxpQ||''; bxpMajPied();
   const t=$('abp-tout'); if(t){ const tous=avail.length>0&&avail.every(p=>abpSel.has(p.id)); t.textContent=tous?'Tout décocher':('Tout cocher'+(avail.length?' ('+avail.length+')':'')); t.disabled=!avail.length; }
-  if(!avail.length){ const vide=!(db.produits||[]).length, cf=cataloguesFournisseurs();
+  if(!avail.length){ const vide=!(db.produits||[]).length, cf=cataloguesFournisseurs()&&canCat('stock','ajouter'), cree=canCat('stock','ajouter');
     el.innerHTML='<div class="bxp-vide-txt">'+(vide?'Ton catalogue est encore vide.':q?'Rien de plus dans le catalogue de l\'entreprise pour cette recherche.':'Tous les produits du catalogue de l\'entreprise sont déjà dans la box.')
-      +'<br>'+(cf?'Touche l\'onglet <b>Fournisseurs</b> : '+CATFOUR.length+' références y attendent.':'Un produit qui manque se crée dans <b>Produits</b> (＋ Produit, ou ＋ Liste pour une liste entière) : il apparaîtra ici.')+'</div>'; return; }
+      +'<br>'+(cf?'Touche l\'onglet <b>Fournisseurs</b> : '+CATFOUR.length+' références y attendent.':cree?'Un produit qui manque se crée dans <b>Produits</b> (＋ Produit, ou ＋ Liste pour une liste entière) : il apparaîtra ici.':'Un produit qui manque se crée dans <b>Produits</b>, par quelqu\'un qui en a le droit : il apparaîtra ici.')+'</div>'; return; }
   el.innerHTML=avail.map(p=>{ const on=abpSel.has(p.id); return `<div class="pl-row bxp-l" onclick="abpToggle('${p.id}')"><span class="bxp-coche" style="color:${on?'var(--acc-txt)':'var(--t3)'}">${on?'☑':'☐'}</span><div class="pl-info"><div class="pl-title">${esc(p.nom)}</div><div class="pl-meta">${esc(p.categorie||'')}${p.ref?' · '+esc(p.ref):''}</div></div></div>`; }).join(''); }
 function abpToggle(pid){ if(abpSel.has(pid)) abpSel.delete(pid); else abpSel.add(pid); renderAbpList(); }
 /* « Tout cocher » ne coche que ce qui est VISIBLE après la recherche, et le second tap décoche les mêmes. */
@@ -25903,6 +25951,7 @@ function addBoxProd(){ const b=bxpBoxDite(); if(!b) return; if(!abpSel.size&&!bx
   return bxpPoseEcrire(); }
 function bxpPoseEcrire(){ const b=bxpBoxDite(); if(!b) return; bxpPosePhase=0;
   const fourIdx=cataloguesFournisseurs()?[...bxpFourSel].filter(i=>CATFOUR[i]):[];
+  if(fourIdx.length&&!permGarde('stock','ajouter','un produit')) return;   // v737 : une référence fournisseur devient une FICHE
   if(bxpCiblesSel.size<=1&&fourIdx.length>60&&!confirm('Ajouter '+fourIdx.length+' références fournisseur au catalogue de l\'entreprise et à cette box ?\n\nElles se poseront aussi dans les autres box, à zéro, à leur prochaine ouverture.')) return;
   /* les références fournisseur entrent d'abord au catalogue (une fois par nom), puis tout se pose ensemble */
   const crees=[]; const parCle=new Map((db.produits||[]).map(p=>[produitCle(p),p])); const ids=[...abpSel];
@@ -29168,7 +29217,6 @@ function consoRepereMoisPersonne(pid, nom){
   return Math.max(1,Math.round(l.reduce((s,v)=>s+v,0)/l.length));
 }
 function consoAnalyseHTML(){
-  const isMgr=currentUser&&(currentUser.role==='admin'||currentUser.role==='dr');
   // la personne qui consomme : celle qui a reçu le produit, sinon celle qui l'a sorti
   const quiConso=m=>m.donneA||m.technicien||'Non précisé';   // un véhicule n'est pas une personne
   const SANS_NOM='Non précisé';
@@ -29715,6 +29763,11 @@ function usrDroitsHtml(u,admin){
   const swH=(name,on,extra)=>'<label class="switch"><input type="checkbox" data-d="'+name+'"'+(on?' checked':'')+dis+(extra||'')+'><span class="track"></span><span class="knob"></span></label>';
   const ligne=(lbl,desc,sw)=>'<div class="perm-row"><div class="pn">'+lbl+(desc?'<div class="pn-d">'+desc+'</div>':'')+'</div>'+sw+'</div>';
   const capLbl=k=>{ const c=USER_CAPS.find(x=>x[0]===k); return c?[c[1],c[2]||'']:[k,'']; };
+  /* v737 : une case DÉDUITE (capDeduitRegle) que rien n'a encore réglée porte data-deduit="1" —
+     elle suit ses cases de base en direct, et la validation ne l'écrit pas (usrDeduireZone). */
+  const capExpl=k=>{ const ov=u.acces&&u.acces.caps, rp=((db.permissions||{})[u.role]||{}).caps;
+    return !!((ov&&Object.prototype.hasOwnProperty.call(ov,k))||(rp&&Object.prototype.hasOwnProperty.call(rp,k))); };
+  const capSw=k=>(capDeduitRegle(k)&&!capExpl(k)?' data-deduit="1"':'')+' onchange="'+(k==='voirTout'?'usrVoirTout(this);':'')+'usrDeduire(this)"';
   const tousMods=avecSousCats(NAV.filter(x=>PERM_GRP_OF[x.g]).flatMap(x=>x.items)).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
   const vus=tousMods.filter(m=>userSeesModule(u,m.k)).length;
   const toutVoir=userCap(u,'voirTout');
@@ -29732,14 +29785,14 @@ function usrDroitsHtml(u,admin){
       <div class="usr-sec">👁 Ce qu'il voit — menus</div>
       ${ms.map(m=>ligne((m.parent?'↳ ':'')+m.ic+' '+esc(t(m.l)),m.parent?'dans '+esc(navLabel(m.parent)):'',swH('mod_'+m.k,userSeesModule(u,m.k)))).join('')||'<div class="usr-x">—</div>'}
       ${sansDroits?'':'<div class="usr-sec">✎ Ce qu\'il peut faire ici</div>'+[['ajouter','＋ Ajouter'],['modifier','✎ Modifier'],['supprimer','🗑 Supprimer']].map(([d,l])=>ligne(l,'',swH('cat_'+g+'_'+d,catDroit(u,g,d)))).join('')}
-      ${specs.length?'<div class="usr-sec">🔑 Droits spéciaux</div>'+specs.map(k=>{ const l2=capLbl(k); return ligne(esc(l2[0]),esc(l2[1]),swH('cap_'+k,userCap(u,k),k==='voirTout'?' onchange="usrVoirTout(this)"':'')); }).join(''):''}
+      ${specs.length?'<div class="usr-sec">🔑 Droits spéciaux</div>'+specs.map(k=>{ const l2=capLbl(k); return ligne(esc(l2[0]),esc(l2[1]),swH('cap_'+k,userCap(u,k),capSw(k))); }).join(''):''}
     </div></details>`; }).join('');
   /* Les droits qui n'appartiennent à aucune catégorie (supprimer, créer une intervention,
      consultation seule des bons…) : l'ancien écran Permissions les taisait, seule la fiche
      les montrait. Ici, tout ce qui existe est visible — sinon un droit devient introuvable. */
   const dansCat=new Set([].concat.apply([],Object.keys(PERM_SPECIAUX).map(g=>PERM_SPECIAUX[g])));
   const autres=USER_CAPS.filter(c=>!dansCat.has(c[0]));
-  const autresHtml=autres.length?`<details class="usr-cat"><summary><b>Autres droits</b><span class="usr-cn">${autres.filter(c=>userCap(u,c[0])).length}/${autres.length}</span><span class="usr-cc" aria-hidden="true">▾</span></summary><div class="usr-cb">${autres.map(c=>ligne(esc(c[1]),esc(c[2]||''),swH('cap_'+c[0],userCap(u,c[0])))).join('')}</div></details>`:'';
+  const autresHtml=autres.length?`<details class="usr-cat"><summary><b>Autres droits</b><span class="usr-cn">${autres.filter(c=>userCap(u,c[0])).length}/${autres.length}</span><span class="usr-cc" aria-hidden="true">▾</span></summary><div class="usr-cb">${autres.map(c=>ligne(esc(c[1]),esc(c[2]||''),swH('cap_'+c[0],userCap(u,c[0]),capSw(c[0])))).join('')}</div></details>`:'';
   const boxHtml=`<div class="usr-box" style="display:${toutVoir?'none':'block'}"><details class="usr-cat" open><summary><b>📦 Box qu'il ouvre</b><span class="usr-cn">${nBox}/${boxes.length}</span><span class="usr-cc" aria-hidden="true">▾</span></summary><div class="usr-cb">
       <div class="usr-x" style="margin:8px 0 2px">Sans « Tout voir », il n'ouvre que les box cochées ici — en plus de celles visibles par toute l'équipe, de celles où sa fiche technicien est cochée, et de celles dont il est responsable.</div>
       ${boxes.map(b=>{ const viaTech=!!(u.techId&&(b.techIds||[]).includes(u.techId)); const resp=b.respUserId===u.id;
@@ -29804,17 +29857,19 @@ const profilNomSw=k=>(String(k).indexOf('cat_')===0?k:('cap_'+k));
 function profilLireZone(zone){
   const val=n=>{ const c=zone.querySelector('[data-d="'+n+'"]'); return c?!!c.checked:null; };
   const caps={}, modules={};
-  USER_CAPS.forEach(([k])=>{ const v=val('cap_'+k); if(v!==null) caps[k]=v; });
+  /* une case déduite qu'on n'a pas touchée n'entre pas dans le profil : elle suivra ses bases */
+  USER_CAPS.forEach(([k])=>{ const c=zone.querySelector('[data-d="cap_'+k+'"]'); if(c&&c.dataset.deduit!=='1') caps[k]=!!c.checked; });
   PERM_GRPS.forEach(([g])=>{ ['ajouter','modifier','supprimer'].forEach(d=>{ const v=val('cat_'+g+'_'+d); if(v!==null) caps['cat_'+g+'_'+d]=v; }); });
   avecSousCats(NAV.flatMap(x=>x.items)).forEach(m=>{ const v=val('mod_'+m.k); if(v!==null) modules[m.k]=v; });
   return {caps,modules};
 }
 function profilPoserZone(zone,pr){
   let n=0;
-  const set=(nom,v)=>{ const c=zone.querySelector('[data-d="'+nom+'"]'); if(c&&!c.disabled){ c.checked=!!v; n++; } };
+  const set=(nom,v)=>{ const c=zone.querySelector('[data-d="'+nom+'"]'); if(c&&!c.disabled){ c.checked=!!v; if(c.dataset.deduit==='1') c.dataset.deduit='0'; n++; } };
   Object.keys(pr.caps||{}).forEach(k=>set(profilNomSw(k),pr.caps[k]));
   Object.keys(pr.modules||{}).forEach(k=>set('mod_'+k,pr.modules[k]));
   const vt=zone.querySelector('[data-d="cap_voirTout"]'); if(vt) usrVoirTout(vt);
+  usrDeduireZone(zone);   // ce que le profil ne dit pas suit ce qu'il vient de poser
   return n;
 }
 function profilCompte(pr){
@@ -29934,6 +29989,19 @@ function profilsGerer(){
      : '<div class="card" style="text-align:center;color:var(--t3);font-size:13px;padding:20px">Aucun profil pour l\'instant.<br><span style="font-size:12px">Règle les droits de quelqu\'un, puis « Enregistrer comme profil » sur sa ligne.</span></div>'));
 }
 /* « Tout voir » et les box se contredisent : l'un caché, l'autre montré, en direct. */
+/* ⛔ v737 — UNE CASE DÉDUITE SUIT SES CASES DE BASE, EN DIRECT, TANT QU'ON NE L'A PAS TOUCHÉE.
+   Sans ça, cocher « Tout voir » puis valider écrivait « Voir les fiches de son équipe » à NON :
+   la case, dessinée avant le geste, montrait encore l'ancien défaut — et la validation écrit ce
+   qu'on voit. Une case déduite non touchée ne s'écrit pas non plus (usrDroitsValider,
+   profilLireZone) : elle continue de suivre ses bases après la validation. La toucher en fait une
+   décision, écrite comme les autres. */
+function usrDeduireZone(z){ if(!z) return;
+  const caps={};
+  z.querySelectorAll('input[data-d^="cap_"]').forEach(c=>{ if(c.dataset.deduit!=='1') caps[c.dataset.d.slice(4)]=!!c.checked; });
+  const faux={id:'__zone__',role:'__zone__',acces:{caps:caps,modules:{}}};
+  z.querySelectorAll('input[data-deduit="1"]').forEach(c=>{ const r=capDeduitRegle(c.dataset.d.slice(4)); if(r) c.checked=!!r(faux); });
+}
+function usrDeduire(el){ if(!el) return; if(el.dataset.deduit==='1') el.dataset.deduit='0'; usrDeduireZone(el.closest('.usr-d')); }
 function usrVoirTout(cb){ const d=cb.closest('.usr-d'); const bx=d&&d.querySelector('.usr-box'); if(bx) bx.style.display=cb.checked?'none':'block'; }
 /* Tout ce qui est affiché est écrit, pour CETTE personne : c'est la règle « la fiche fait
    loi » du matin, déplacée là où l'on coche. Un interrupteur absent (une box qu'il voit
@@ -29944,7 +30012,8 @@ function usrDroitsValider(uid,btn){
   const zone=document.getElementById('usr-d-'+uid); if(!zone) return;
   const val=name=>{ const c=zone.querySelector('[data-d="'+name+'"]'); return c?!!c.checked:null; };
   u.acces=u.acces||{caps:{},modules:{}}; u.acces.caps=u.acces.caps||{}; u.acces.modules=u.acces.modules||{};
-  USER_CAPS.forEach(([k])=>{ const v=val('cap_'+k); if(v!==null) u.acces.caps[k]=v; });
+  /* une case déduite qu'on n'a pas touchée ne s'écrit pas : elle suit ses bases (usrDeduireZone) */
+  USER_CAPS.forEach(([k])=>{ const c=zone.querySelector('[data-d="cap_'+k+'"]'); if(!c||c.dataset.deduit==='1') return; u.acces.caps[k]=!!c.checked; });
   PERM_GRPS.forEach(([g])=>{ ['ajouter','modifier','supprimer'].forEach(d=>{ const v=val('cat_'+g+'_'+d); if(v!==null) u.acces.caps['cat_'+g+'_'+d]=v; }); });
   avecSousCats(NAV.flatMap(x=>x.items)).forEach(m=>{ const v=val('mod_'+m.k); if(v!==null) u.acces.modules[m.k]=v; });
   if(!u.acces.caps.voirTout){ (db.boxes||[]).forEach(b=>{ const v=val('box_'+b.id); if(v!==null) userBoxVoit(u.id,b.id,v); });
@@ -29980,10 +30049,17 @@ const USER_CAPS=[
      TOUTES les box de l'entreprise — un droit de paie qui donne accès au stock, c'est non.
      Celui-ci n'ouvre QUE les feuilles de temps, et seulement sur le périmètre de la personne. */
   ['voirPointages','Voir les pointages de son équipe','Feuilles de temps des techniciens de son périmètre, et leur export PDF. Sans ce droit, chacun ne voit que SES propres pointages.'],
-  ['validerDR','Valider les mouvements de box et les demandes (rôle DR)','Voit « Validations DR », valide ou refuse les arrivages, réceptions, prises et demandes de commande de l\'équipe, et reçoit les alertes « à valider »'],
+  /* ⛔ LES TROIS RÈGLES DES v735-736, DEVENUES DES CASES (v737). Elles se déduisaient de « Tout
+     voir » / « Voir les pointages » sans qu'on puisse les régler à part : un chef qui devait
+     voir les heures de son équipe sans pouvoir les réécrire, c'était impossible. Le défaut
+     reste celui d'avant (capDeduitRegle) : personne ne change de droits le jour de la mise à jour. */
+  ['voirEquipe','Voir les fiches de son équipe','Écran « Équipe », Secteurs et la recherche : les fiches du personnel de son périmètre (téléphone, e-mail, secteur, Certibiocide, temps pointé). Sans ce droit, chacun ne voit que SA fiche. Par défaut : qui a « Tout voir » ou « Voir les pointages de son équipe ».'],
+  ['corrigerPointages','Corriger les pointages','Le ✎ du Pointage : modifier, saisir à la main ou supprimer des heures — celles de son équipe s\'il voit leurs pointages, sinon les siennes seulement. Par défaut : qui voit les pointages de l\'équipe.'],
+  ['gererFiches','Régler les fiches du personnel','Jours de congés, capacité, secteur et chef d\'équipe, sur les fiches qu\'il voit — la sienne comprise. Sans ce droit, ces champs sont réglés par un responsable ; téléphone, e-mail, couleur et Certibiocide restent à chacun.'],
+  ['validerDR','Valider les mouvements de box et les demandes (rôle DR)','Voit « Validations DR », valide ou refuse les arrivages, réceptions, prises et demandes de commande de l\'équipe, et reçoit les alertes « à valider » — ainsi que celles des box en stock bas, des travaux terminés et des enveloppes en attente'],
   ['voirCompta','Voir / gérer la comptabilité et les tarifs','Comptabilité, télécollectes, prix et marges (par défaut : administrateur, DR et gestion compta)'],
   ['opMessages','Accès à OP MESSAGES','Affiche OP MESSAGES dans sa barre latérale — sans effet tant que TEAM OP n\'a pas ouvert cette application à l\'entreprise (elle a son propre abonnement)'],
-  ['creerUtilisateurs','Créer des utilisateurs','Peut ajouter des comptes terrain (technicien, chef d\'équipe, commercial…) dans la limite des places de l\'abonnement — la modification reste réservée à l\'administrateur'],
+  ['creerUtilisateurs','Créer des utilisateurs','Peut ajouter des comptes, dans la limite des places de l\'abonnement, avec n\'importe quel rôle sauf Administrateur. Il ne peut pas donner un droit qu\'il n\'a pas lui-même : ce qui lui manque est retiré au nouveau compte. Modifier les droits reste réservé à l\'administrateur.'],
   ['devisIA','Utiliser Devis IA','Peut générer des devis automatiquement — l\'accès de l\'entreprise est activé par TeamOP, aucune clé ni code ne circule'],
   /* ⚠️ Ce droit est écrit À L'ENVERS, et c'est délibéré. CAPS met tous les rôles à zéro : un
      droit « peut créer des bons » vaudrait donc NON par défaut, et retirerait la création à
@@ -29996,6 +30072,11 @@ const USER_CAPS=[
      prépare et envoie. Sans ce droit, un bon créé par une validation restait en brouillon
      jusqu'à ce que quelqu'un pense à ouvrir « Bons de commande ». */
   ['respBons','Responsable des bons de commande','Prévenu dès qu\'une demande validée devient un bon à préparer : notification, et la liste des bons à préparer dans sa cloche'],
+  /* ⛔ DEUX RÈGLES QUI TENAIENT AU NOM DU RÔLE (v737). « Gérer les groupes » était réservé à
+     `['admin','dr','chefEquipe','commercial']`, l'e-mail pro à `['admin','dr','commercial','compta']`
+     — écrit en dur, invisible dans les droits, impossible à donner ou à retirer à quelqu'un. */
+  ['gererGroupes','Gérer les groupes de discussion','Messagerie : créer, modifier et supprimer des groupes, et lire tous les groupes, même ceux dont il n\'est pas membre. Sans ce droit, il ne voit que les groupes dont il fait partie.'],
+  ['mailPro','Envoyer depuis son adresse e-mail pro','Paramètres → « Mon e-mail professionnel » : ses envois aux clients (rapports, avis, devis…) partent de sa propre adresse au lieu de celle de l\'entreprise. Sans ce droit, ils partent de l\'adresse de l\'entreprise.'],
 ];
 /* Une seule question, un seul endroit : « cette personne a-t-elle le droit de passer une
    commande ? ». Les cinq portes (créer, suggérer, regrouper, envoyer en lot, envoyer un bon)
@@ -30021,7 +30102,8 @@ function refusCommander(){ toast('Consultation seule : tu vois les commandes et 
    c'est la faute qu'on a corrigée en supprimant l'écran « Permissions ». */
 let nuBoxes=new Set(), nuBoxTout=false;
 function nuBoxHtml(){
-  const bs=(db.boxes||[]).filter(b=>b&&b.actif!==false);
+  /* v737 : un créateur qui n'est pas administrateur n'ouvre que les box qu'il voit lui-même */
+  let bs=(db.boxes||[]).filter(b=>b&&b.actif!==false); if(currentUser&&currentUser.role!=='admin') bs=visibleBoxes(bs);
   if(!bs.length) return `<div class="field"><label>Box qu'il ouvre</label>
     <div style="font-size:12px;color:var(--t3)">Aucune box créée pour l'instant. Tu pourras les lui ouvrir depuis sa ligne, une fois les box en place.</div></div>`;
   return `<div class="field" id="nu-box-bloc" style="display:${nuBoxTout?'none':'block'}"><label>📦 Box qu'il ouvre <span style="font-weight:400;color:var(--t3)">— coche celles qu'il doit voir</span></label>
@@ -30035,7 +30117,7 @@ function nuBoxHtml(){
 }
 let nuVehs=new Set();
 function nuVehHtml(){
-  const vs=(db.vehicules||[]).filter(v=>v&&v.actif!==false);
+  let vs=(db.vehicules||[]).filter(v=>v&&v.actif!==false); if(currentUser&&currentUser.role!=='admin') vs=visibleVehicules(vs);
   if(!vs.length) return '';
   return `<div class="field" id="nu-veh-bloc" style="display:${nuBoxTout?'none':'block'}"><label>🚐 Véhicules qu'il voit <span style="font-weight:400;color:var(--t3)">— coche celui qui lui est assigné</span></label>
     <div style="max-height:200px;overflow:auto;border:1px solid var(--brd);border-radius:10px;padding:6px">
@@ -30094,7 +30176,7 @@ function formUser(id){ const u=id?db.users.find(x=>x.id===id):{}; window._formUs
         <div class="field"><label>Nom *</label><input name="nom" required value="${esc(u.nom)}" ${id?'':'oninput="nuLoginAuto()"'}></div></div>
       <div class="field"><label>Identifiant *</label><input name="login" id="nu-login" required value="${esc(u.login)}" placeholder="ex : marc" autocapitalize="off" ${id?'':'oninput="this.dataset.libre=\'1\'"'}>${id?'':'<div style="font-size:11px;color:var(--t3);margin-top:4px">Se remplit tout seul à partir du prénom — tu peux le modifier, maintenant ou plus tard.</div>'}</div>
       <div class="field"><label>E-mail <span style="font-weight:400;color:var(--t3)">— sert à « Mot de passe oublié »</span></label><input name="email" type="email" value="${esc(u.email||'')}" placeholder="prenom@entreprise.fr" autocapitalize="off"></div>
-      <div class="field"><label>Rôle <span style="font-weight:400;color:var(--t3)">— juste un nom, pour s'y retrouver</span>${currentUser.role==='admin'?` <a onclick="rolesGerer()" style="color:var(--acc-txt);cursor:pointer;text-decoration:underline;font-weight:400;font-size:12px">gérer les rôles</a>`:''}</label><select name="role" onchange="userToggleRole(this.value)">${rolesTous(u.role).filter(d=>currentUser.role==='admin'||!['admin','dr'].includes(d.cle)).map(d=>`<option value="${esc(d.cle)}" ${u.role===d.cle?'selected':''}>${esc(d.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px"><b>Le rôle n'ouvre aucun droit</b> : ce sont le profil ci-dessous et la ligne de la personne qui les posent. Il sert à s'y retrouver dans la liste — et il décide d'une seule chose : si une <b>fiche technicien</b> est créée (nécessaire pour les interventions et le véhicule).</div></div>
+      <div class="field"><label>Rôle <span style="font-weight:400;color:var(--t3)">— juste un nom, pour s'y retrouver</span>${currentUser.role==='admin'?` <a onclick="rolesGerer()" style="color:var(--acc-txt);cursor:pointer;text-decoration:underline;font-weight:400;font-size:12px">gérer les rôles</a>`:''}</label><select name="role" onchange="userToggleRole(this.value)">${rolesTous(u.role).filter(d=>currentUser.role==='admin'||d.cle!==ROLE_PROTEGE).map(d=>`<option value="${esc(d.cle)}" ${u.role===d.cle?'selected':''}>${esc(d.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px"><b>Le rôle n'ouvre aucun droit</b> : ce sont le profil ci-dessous et la ligne de la personne qui les posent. Il sert à s'y retrouver dans la liste — et il décide d'une seule chose : si une <b>fiche technicien</b> est créée (nécessaire pour les interventions et le véhicule).</div></div>
       ${(!id&&currentUser.role==='admin')?`<div class="field"><label>Profil de droits <span style="font-weight:400;color:var(--t3)">— tout se met d'un coup</span></label>
         <select name="profil" id="nu-profil" onchange="nuProfilChange(this.value)">${[`<option value="">— aucun : le compte partira sans droits, à régler dans la liste —</option>`].concat(profilsDroits().slice().sort((a,b)=>(a.nom||'').localeCompare(b.nom||'','fr',{sensitivity:'base'})).map(pr=>`<option value="${pr.id}">${esc(pr.nom)} — ${profilCompte(pr)}</option>`)).join('')}</select>
         <div style="font-size:11px;color:var(--t3);margin-top:4px">${profilsDroits().length
@@ -30256,6 +30338,39 @@ function userToggleRole(role){
   const note=document.getElementById('user-admin-note'); if(note) note.style.display=isAdmin?'block':'none';
 }
 /* rétrocompat */ function userToggleTech(role){ userToggleRole(role); }
+/* ⛔⛔ PERSONNE NE DONNE UN DROIT QU'IL N'A PAS — v737.
+   Jusqu'ici, un compte à « Créer des utilisateurs » ne pouvait pas créer de « DR » — par son NOM.
+   Or un nom ne porte rien (Justin, 23 septembre 2026 : « technicien, DR… c'est juste des noms ») :
+   la vraie garde n'était pas là, puisque le socle d'un autre rôle — ou un rôle maison — pouvait
+   ouvrir la validation, « Tout voir » ou la suppression. Elle passe donc sur ce qui compte : le
+   nouveau compte ne reçoit AUCUN droit que son créateur n'a pas — ni case, ni action de
+   catégorie, ni menu, ni dispense de la validation DR. Ce qui dépasse est retiré case par case,
+   et on le dit. Seul « Administrateur », le seul vrai rôle, reste hors d'atteinte.
+   ⚠️ Deux passes : les cases de base d'abord, les cases déduites ensuite (capDeduitRegle) —
+   sinon on figerait à NON un défaut qui, les bases une fois bornées, est déjà NON tout seul, et
+   la case ne suivrait plus jamais ses bases.
+   ⚠️ « Validations » n'est pas bornée chez qui est soumis à la validation DR : il doit voir où en
+   sont SES demandes, et le contenu y est filtré (visibleBoxMvts, visibleDemandes). */
+function droitsBorner(nu,par){
+  if(!nu||!par||par.role==='admin') return [];
+  nu.acces=nu.acces||{}; const acc=nu.acces; acc.caps=acc.caps||{}; acc.modules=acc.modules||{};
+  const retenus=[];
+  if(par.boxValidDR&&!userCap(par,'validerDR')&&!nu.boxValidDR){ nu.boxValidDR=true; retenus.push('la dispense de validation DR'); }
+  const nomCap=k=>{ const c=USER_CAPS.find(x=>x[0]===k); return c?c[1]:k; };
+  const borne=k=>{
+    if(k==='bonsLectureSeule'){   // écrit à l'envers : c'est la RESTRICTION qui se transmet
+      if(userCap(par,k)&&!userCap(nu,k)){ acc.caps[k]=true; retenus.push('passer des commandes'); } return; }
+    if(!userCap(par,k)&&userCap(nu,k)){ acc.caps[k]=false; retenus.push(nomCap(k)); } };
+  USER_CAPS.map(c=>c[0]).filter(k=>!capDeduitRegle(k)).forEach(borne);
+  USER_CAPS.map(c=>c[0]).filter(k=>!!capDeduitRegle(k)).forEach(borne);
+  const ACT={ajouter:'ajouter',modifier:'modifier',supprimer:'supprimer'};
+  PERM_GRPS.forEach(([g,titre])=>Object.keys(ACT).forEach(dr=>{
+    if(!catDroit(par,g,dr)&&catDroit(nu,g,dr)){ acc.caps['cat_'+g+'_'+dr]=false; retenus.push(ACT[dr]+' ('+String(titre).replace(/^\S+\s+/,'')+')'); } }));
+  avecSousCats(NAV.flatMap(x=>x.items)).forEach(m=>{
+    if(m.k==='validations'&&nu.boxValidDR) return;
+    if(!userSeesModule(par,m.k)&&userSeesModule(nu,m.k)){ acc.modules[m.k]=false; retenus.push('le menu '+t(m.l)); } });
+  return retenus;
+}
 async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
   /* Prénom ET nom obligatoires — Justin, 10 septembre 2026 : « comme ça, dans Utilisateurs, avec le
      nom et le prénom, ils savent qui c'est ; et nous pareil dans la Tour ». Deux « florent » sans
@@ -30299,7 +30414,7 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
      téléphone écraserait des droits réglés à la main depuis. Pour reposer un profil sur un
      compte existant, on passe par sa ligne — on voit ce qu'on change avant de valider. */
   let _profilPose='';
-  if(!id && d.profil){ const pr=profilDroits(d.profil);
+  if(!id && d.profil && currentUser.role==='admin'){ const pr=profilDroits(d.profil);
     if(pr){ Object.assign(acces.caps, pr.caps||{}); Object.assign(acces.modules, pr.modules||{}); _profilPose=pr.nom; } }
   // rattachements pris depuis la fiche du valideur : on pose ou on retire drId sur chaque compte
   const appliquerRattaches=(cible)=>{ if(!cible) return; (db.users||[]).forEach(x=>{ if(!x||x.id===cible) return;
@@ -30309,7 +30424,9 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
   else{ if(db.users.length>=500){toast('Limite de 500 comptes atteinte');return;}
     if((d.pwd||'').length>0 && (d.pwd||'').length<8){ toast('Mot de passe provisoire : 8 caractères minimum (ou laisse-le vide)'); return; }
     // un non-administrateur (droit « Créer des utilisateurs ») ne peut créer que des rôles terrain
-    if(currentUser.role!=='admin' && ['admin','dr'].includes(d.role)){ toast('Seul un administrateur peut créer ce rôle'); return; }
+    /* ⛔ v737 : plus « admin, dr » — un nom ne porte rien. Seul l'administrateur, le seul vrai
+       rôle, reste réservé ; le reste est borné par droitsBorner, juste en dessous. */
+    if(currentUser.role!=='admin' && d.role===ROLE_PROTEGE){ toast('Seul un administrateur peut créer un administrateur'); return; }
     // mot de passe provisoire OBLIGATOIRE : envoyé par e-mail avec le lien de l'entreprise
     const pwd=(d.pwd||'').trim();
     if(pwd.length<8){ toast('Mot de passe provisoire obligatoire (8 caractères minimum)'); return; }
@@ -30319,6 +30436,7 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
       db.entreprise={...(db.entreprise||{}),nom:en}; try{ localStorage.setItem('elan_entreprise_nom',en); }catch(_e){}
     }
     const nu={id:uid(),prenom:d.prenom,nom:d.nom,login:loginNorm,email:(d.email||'').trim(),drId:(d.drId||''),chefId:(d.chefId||''),role:d.role,techId,actif:true,acces,boxValidDR:(d.boxValidDR!==undefined),pwdHash:await sha256(pwd),mustChangePwd:true};
+    const _retenus=droitsBorner(nu,currentUser);
     db.users.push(nu);
     /* ⛔ À LA CRÉATION, UNE CASE NON COCHÉE N'EST PAS UN RETRAIT — c'est « je n'ai pas
        regardé ». Mesuré chez ELAN le 15 septembre 2026, et c'est la cause de « certains
@@ -30345,16 +30463,19 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
     let _nVeh=0;
     if(!acces.caps.voirTout){ (db.boxes||[]).filter(b=>b&&b.actif!==false).forEach(b=>{
       if(!nuBoxes.has(b.id)) return;                    // pas coché = pas encore décidé, surtout pas « exclu »
+      if(currentUser.role!=='admin'&&!visibleBoxes([b]).length) return;   // v737 : un créateur n'ouvre que ce qu'il voit lui-même
       userBoxVoit(nu.id,b.id,true);
       /* On ne compte QUE ce qui a réellement été ouvert : une box déjà visible par l'équipe
          n'entre pas dans `userIds`, l'annoncer gonflerait le journal d'un droit non donné. */
       if((b.userIds||[]).includes(nu.id)) _nBox++; });
       (db.vehicules||[]).filter(v=>v&&v.actif!==false).forEach(v=>{
         if(!nuVehs.has(v.id)) return;
+        if(currentUser.role!=='admin'&&!visibleVehicules([v]).length) return;
         userVehiculeVoit(nu.id,v.id,true);
         if((v.userIds||[]).includes(nu.id)) _nVeh++; }); }
-    logEvent('Utilisateur créé',`@${loginNorm}`+(_profilPose?' — profil « '+_profilPose+' »':'')+(acces.caps.voirTout?' — toutes les box':_nBox?' — '+_nBox+' box':''),'auth');
+    logEvent('Utilisateur créé',`@${loginNorm}`+(_profilPose?' — profil « '+_profilPose+' »':'')+(acces.caps.voirTout?' — toutes les box':_nBox?' — '+_nBox+' box':'')+(_retenus.length?' — '+_retenus.length+' droit(s) retenu(s), au-delà de ceux du créateur':''),'auth');
     save(); closeModal(); views.utilisateurs();
+    if(_retenus.length) toast('Compte créé sans '+_retenus.length+' droit'+(_retenus.length>1?'s':'')+' que tu n\'as pas toi-même ('+_retenus.slice(0,3).join(', ')+(_retenus.length>3?'…':'')+') — un administrateur peut les lui donner',7000);
     setTimeout(()=>userIdentifiantsModal(nu,pwd),120);
     return; }
   save(); closeModal(); views.utilisateurs();
@@ -30831,7 +30952,7 @@ views.parametres=function(){
         ${equipeTeamOP()?`<button class="btn sm ghost" onclick="pushTest()">Envoyer un test</button>`:''}
       </div>
     </div>
-    ${(()=>{ if(!['admin','dr','commercial','compta'].includes(currentUser.role)) return ''; const b=(currentUser&&currentUser.mailBox)||null; return `<div class="card"><div class="card-head"><h3>💼 Mon e-mail professionnel</h3></div>
+    ${(()=>{ if(!can('mailPro')) return '';   /* v737 : la case, plus « admin, dr, commercial, compta » */ const b=(currentUser&&currentUser.mailBox)||null; return `<div class="card"><div class="card-head"><h3>💼 Mon e-mail professionnel</h3></div>
       <p style="color:var(--t2);font-size:13.5px;margin-bottom:12px">Tes envois aux clients (rapports, avis, devis…) partiront de <b>ton adresse pro</b>. Sinon, l'adresse de l'entreprise est utilisée.</p>
       ${b&&b.user?`<div class="perm-row"><div class="pn">${esc(b.user)}<div style="font-size:11px;color:var(--t3);font-weight:400">${esc(b.from||'')}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button class="btn ghost sm" onclick="userMailTest()">Test</button><button class="btn ghost sm" onclick="userMailForm()">✎</button><button class="btn ghost sm" style="color:var(--red)" onclick="userMailDel()">✕</button></div></div>`:`<button class="btn sm" onclick="userMailForm()">＋ Ajouter mon e-mail pro</button>`}
     </div>`; })()}
@@ -31493,7 +31614,7 @@ function etiqOuvrir(mode,boxId){ const b=mode==='box'?(db.boxes||[]).find(x=>x.i
       ${etiqIos()?'<div class="etiq-astuce">Sur iPhone, l’appareil sait lire aussi : touche le champ, puis « Scanner le texte ».</div>':''}</div>`);
   etiqCamera(); }
 function openBoxScanner(boxId){ etiqOuvrir('box',boxId); }
-function openScanner(){ etiqOuvrir('cat'); }
+function openScanner(){ if(!permGarde('stock','modifier','le stock')) return; etiqOuvrir('cat'); }   // v737 : il règle le stock du catalogue
 /* Le Stock est la somme des box : scanner « dans le stock », c'est scanner dans UNE box. On la choisit
    (une seule : on y va), on l'OUVRE — boxSaisir travaille sur la box affichée — puis c'est le scanner
    de la box, avec toutes ses règles. Scanner depuis le Stock réglait le stock du CATALOGUE, un nombre
@@ -31599,7 +31720,7 @@ function etiqAppliquerBox(){ const b=(db.boxes||[]).find(x=>x.id===etiq.boxId); 
   etiqSuivant(`<div class="scan-result etiq-ok"><div style="font-weight:700;color:var(--acc-txt)">${lot?'✓ Noté dans ta liste':'✓ '+(ajout?'Ajouté':'Retiré')} : ${ajout?'+':'−'}${n} × ${esc(p.nom)}</div>
     <div style="color:var(--t3);font-size:13px;margin-top:4px">${lot?'La liste part au DR quand tu la valides (en haut de la box).':'Il y en a maintenant '+u+' dans la box.'} Scanne le suivant, ou ferme.</div></div>`);
   etiqEtat('Cadre le NOM du produit suivant, puis touche « Lire l’étiquette ».',''); }
-function etiqAppliquerCat(){ const p=produit(etiq.sel); if(!p||!p.id){ toast('Choisis le produit'); return; }
+function etiqAppliquerCat(){ if(!permGarde('stock','modifier','le stock')) return; const p=produit(etiq.sel); if(!p||!p.id){ toast('Choisis le produit'); return; }
   const n=Math.max(1,parseInt(($('etiq-qty')||{}).value)||1), d=etiq.action==='ajouter'?n:-n;
   const av=+p.qte||0; p.qte=Math.max(0,av+d); const reel=p.qte-av;
   if(!reel){ etiqSuivant(`<div class="bscan-err">${esc(p.nom)} est déjà à 0 — rien n’est sorti.</div>`); return; }
@@ -34285,12 +34406,12 @@ views.pointage=function(){
   ptTickStart();
 };
 function formPointage(id){ const p=id?db.pointages.find(x=>x.id===id):{};
-  if(id?!ptPeutCorriger(p):!ptPeutVoirAutres()){ toast('Corriger des heures est réservé aux responsables'); return; }
+  if(id?!ptPeutCorriger(p):!can('corrigerPointages')){ toast('Corriger des heures demande le droit « Corriger les pointages » (Utilisateurs)'); return; }
   const dTs=p&&p.debutTs, fTs=p&&p.finTs;
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} pointage</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="savePointage(event,'${id||''}')">
       ${(id && !p.techId && p.userId)?`<div class="field"><label>Personne</label><div style="padding:9px 0;font-weight:600">${esc(ptNom(p))} <span style="font-weight:400;color:var(--t3)">— compte sans fiche du personnel</span></div></div>`
-        :`<div class="field"><label>Technicien *</label><select name="techId" required><option value="">—</option>${db.techniciens.map(t=>`<option value="${t.id}" ${t.id===p.techId||(!id&&t.id===myTechId())?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>`}
+        :`<div class="field"><label>Technicien *</label><select name="techId" required><option value="">—</option>${ptTechsVisibles().map(t=>`<option value="${t.id}" ${t.id===p.techId||(!id&&t.id===myTechId())?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>`}
       <div class="field"><label>Date</label><input type="date" name="date" value="${p.date||todayISO()}"></div>
       <div class="field-row"><div class="field"><label>Début *</label><input type="time" name="debut" required value="${dTs?ptHM(dTs):(p.debut||'08:00')}"></div>
         <div class="field"><label>Fin *</label><input type="time" name="fin" required value="${fTs?ptHM(fTs):(p.fin||'17:00')}"></div></div>
@@ -34313,8 +34434,12 @@ function formPointage(id){ const p=id?db.pointages.find(x=>x.id===id):{};
    dépôt paie à chaque fois qu'une donnée existe en deux exemplaires — ici, on les réécrit
    ensemble ou pas du tout. */
 function savePointage(e,id){ e.preventDefault();
-  if(id?!ptPeutCorriger(db.pointages.find(x=>x.id===id)):!ptPeutVoirAutres()){ toast('Corriger des heures est réservé aux responsables'); return; }
+  if(id?!ptPeutCorriger(db.pointages.find(x=>x.id===id)):!can('corrigerPointages')){ toast('Corriger des heures demande le droit « Corriger les pointages » (Utilisateurs)'); return; }
   const d=Object.fromEntries(new FormData(e.target)); d.pause=parseInt(d.pause)||0;
+  /* ⛔ Le menu ne propose que son périmètre ; l'enregistrement le vérifie aussi. Jusqu'à la v737
+     le menu listait TOUTE l'entreprise : un chef pouvait saisir — ou déplacer — les heures d'un
+     technicien qui n'est pas le sien. */
+  if(d.techId && !ptTechsVisibles().some(t=>t.id===d.techId)){ toast('Ce technicien n\'est pas dans ton équipe'); return; }
   const jour=d.date||todayISO();
   d.debutTs=new Date(jour+'T'+(d.debut||'00:00')+':00').getTime()||null;
   d.finTs=new Date(jour+'T'+(d.fin||'00:00')+':00').getTime()||null;
@@ -34781,7 +34906,8 @@ async function adEnvoyer(){
 
 views.messagerie=function(){
   db.groupes=db.groupes||[];
-  const isMgr=currentUser&&['admin','dr','chefEquipe','commercial'].includes(currentUser.role);
+  /* ⛔ v737 : la case « Gérer les groupes de discussion », plus la liste de noms de rôles. */
+  const isMgr=can('gererGroupes');
   const groupes=(db.groupes||[]).filter(g=>isMgr||inGroup(g));
   const people=(db.users||[]).filter(u=>u.id!==currentUser.id&&u.actif!==false).sort((a,b)=>fullName(a).localeCompare(fullName(b)));
   const tabs=[{k:'general',lbl:'Général',ic:'💬'}]
@@ -34832,7 +34958,9 @@ function envoyerMsg(){ const inp=$('msg-input'); const v=inp?inp.value.trim():''
 let groupePhoto='';
 function renderGroupePhoto(){ const el=$('grp-photo'); if(!el) return; el.innerHTML=groupePhoto?`<img src="${groupePhoto}">`:'📷'; }
 async function groupeAddPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f,256,0.82); if(d){ groupePhoto=d; renderGroupePhoto(); } e.target.value=''; }
-function formGroupe(id){ db.groupes=db.groupes||[]; const g=id?db.groupes.find(x=>x.id===id):{membreUserIds:[]};
+/* ⛔ v737 : les trois portes se gardent elles-mêmes — jusqu'ici, seul le BOUTON était masqué. */
+function groupesRefus(){ toast('Gérer les groupes demande le droit « Gérer les groupes de discussion » (Utilisateurs)'); }
+function formGroupe(id){ if(!can('gererGroupes')){ groupesRefus(); return; } db.groupes=db.groupes||[]; const g=id?db.groupes.find(x=>x.id===id):{membreUserIds:[]};
   groupePhoto = id ? (g.photo||'') : '';
   const checked=u=>(g.membreUserIds||[]).includes(u.id) || (u.techId && (g.membreTechIds||[]).includes(u.techId));
   const users=(db.users||[]).slice().sort((a,b)=>fullName(a).localeCompare(fullName(b)));
@@ -34848,13 +34976,13 @@ function formGroupe(id){ db.groupes=db.groupes||[]; const g=id?db.groupes.find(x
         <div class="fgroup" style="max-height:46vh;overflow-y:auto">${users.length?users.map(u=>`<div class="frow"><span class="frow-lbl">${esc(fullName(u))} <span style="color:var(--t3);font-size:12px">· ${esc(roleLbl(u.role)||u.role||'')}</span></span><div class="frow-val"><input type="checkbox" name="m_${u.id}" ${checked(u)?'checked':''} style="width:40px;height:24px;accent-color:var(--acc)"></div></div>`).join(''):'<div class="frow" style="color:var(--t3)">Aucun utilisateur — crée des comptes dans Utilisateurs</div>'}</div></div>
       <div class="modal-foot">${id?`<button type="button" class="btn danger" onclick="delGroupe('${id}')">Supprimer</button>`:''}<button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`);
   renderGroupePhoto(); }
-function saveGroupe(e,id){ e.preventDefault(); db.groupes=db.groupes||[]; const f=Object.fromEntries(new FormData(e.target));
+function saveGroupe(e,id){ e.preventDefault(); if(!can('gererGroupes')){ groupesRefus(); return; } db.groupes=db.groupes||[]; const f=Object.fromEntries(new FormData(e.target));
   const sel=(db.users||[]).filter(u=>f['m_'+u.id]==='on');
   const membreUserIds=sel.map(u=>u.id); const membreTechIds=sel.filter(u=>u.techId).map(u=>u.techId);
   if(id){ const ix=db.groupes.findIndex(x=>x.id===id); db.groupes[ix]={...db.groupes[ix],nom:f.nom,photo:groupePhoto,membreUserIds,membreTechIds}; }
   else { const ng={id:uid(),nom:f.nom,photo:groupePhoto,membreUserIds,membreTechIds}; db.groupes.push(ng); msgSel='group:'+ng.id; }
   logEvent('Groupe messagerie',f.nom,'general'); save(); closeModal(); views.messagerie(); }
-function delGroupe(id){ if(!confirm('Supprimer ce groupe ?'))return; db.groupes=(db.groupes||[]).filter(x=>x.id!==id); if(msgSel==='group:'+id) msgSel='general'; save(); closeModal(); views.messagerie(); }
+function delGroupe(id){ if(!can('gererGroupes')){ groupesRefus(); return; } if(!confirm('Supprimer ce groupe ?'))return; db.groupes=(db.groupes||[]).filter(x=>x.id!==id); if(msgSel==='group:'+id) msgSel='general'; save(); closeModal(); views.messagerie(); }
 
 /* ═══════════════ PRODUITS DONNÉS (remis depuis un véhicule) ═══════════════ */
 /* ══ PRODUITS DONNÉS — une sous-catégorie des Box ═════════════════════════════════════════
@@ -35103,7 +35231,7 @@ function notifBoxConcerne(b){ if(!b||!currentUser) return false;
   const me=currentUser.id, tid=myTechId();
   const lien=(b.respUserId&&b.respUserId===me) || (b.userIds||[]).includes(me) || (!!tid&&(b.techIds||[]).includes(tid));
   if(currentUser.role==='admin') return notifBoxOk(b);
-  if(currentUser.role==='dr'||can('validerDR')){
+  if(can('validerDR')){   // v737 : le droit de valider, plus le nom « dr »
     if(lien) return true;
     const pu=perimetreUserIds(currentUser);   // null = aucune personne rattachée
     if(pu&&((b.respUserId&&pu.has(b.respUserId))||(b.userIds||[]).some(x=>pu.has(x)))) return true;
@@ -35126,7 +35254,8 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
         out.push({id:'prdnew:'+maxC+':'+liste.length,ts:maxC,ic:'✨',txt:`<b>${liste.length} nouveau${liste.length>1?'x':''} produit${liste.length>1?'s':''}</b> au catalogue — ${liste.slice(0,3).map(p=>'« '+esc(p.nom)+' »').join(', ')}${liste.length>3?'…':''} — dans vos box dès leur prochaine ouverture${bxs.length>1?' · '+bxs.length+' box concernées':''}`,
           act:bxs.length===1?("openBox('"+bxs[0].b.id+"');setTimeout(openBoxProduits,450)"):"go('boxes')"}); } }
   if(vStock) db.produits.filter(p=>(p.seuil||0)>0&&(p.qte||0)<=p.seuil).forEach(p=>out.push({id:'stock:'+p.id,ic:'📦',txt:`Stock bas : <b>${esc(p.nom)}</b> (${p.qte}/${p.seuil})`,act:"go('stock');cible('pid','"+p.id+"','retrait')"}));
-  const estDir=!!(currentUser && (currentUser.role==='admin'||currentUser.role==='dr'));
+  /* ⛔ v737 : « admin ou dr » par leur NOM devient le droit de valider — le DR, c'est ce droit. */
+  const estDir=can('validerDR');
   if(estDir || can('validerDR')){
     // Produits de box bientôt épuisés / épuisés → alerte au DR (regroupée par box)
     if(vBox && estDir) (db.boxes||[]).filter(b=>b.actif!==false&&notifBoxOk(b)).forEach(b=>{ const st=b.stock||{};
@@ -35179,13 +35308,16 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
   // Interventions terminées récemment → notif au commercial référent (et admin/DR)
   if(currentUser && notifVoitModule('interventions')){ const r=currentUser.role; const pr=(currentUser.prenom||'').toLowerCase(), nm=(currentUser.nom||'').toLowerCase();
     (db.interventions||[]).filter(i=>i.statut==='terminee'&&i.finReel&&i.finReel>=Date.now()-3*86400000).forEach(i=>{ const com=(i.commercial||'').toLowerCase();
-      const forMe=(r==='admin'||r==='dr')||(r==='commercial'&&com&&((pr&&com.includes(pr))||(nm&&com.includes(nm))));
+      /* v737 : le valideur (plus « admin, dr »), et le commercial NOMMÉ sur l'intervention quel
+         que soit le nom de son rôle */
+      const forMe=can('validerDR')||(!!com&&((pr&&com.includes(pr))||(nm&&com.includes(nm))));
       if(forMe) out.push({id:'done:'+i.id,ts:i.finReel||0,ic:'✅',txt:`Travail terminé : <b>${esc(i.titre)}</b> (${esc(clientName(i.clientId))})`,act:"detailIntervention('"+i.id+"')"}); }); }
   // Boxes : contrôle en retard (prochaine visite dépassée)
   if(vBox){
     (db.boxes||[]).filter(b=>b.actif!==false && b.prochaineVisite && b.prochaineVisite<today && notifBoxConcerne(b)).forEach(b=>{ out.push({id:'boxpv:'+b.id,ic:'📍',txt:`Contrôle de box <b>en retard</b> : <b>${esc(b.nom||b.numero)}</b> (prévu ${fmtShort(b.prochaineVisite)})`,act:"openBox('"+b.id+"')"}); }); }
   // Matériel pris OU ajouté dans une box → notification (PAS de validation) pour DR / Admin / Chef d'équipe — seulement leurs box
-  if(vBox && currentUser && ['admin','dr','chefEquipe'].includes(currentUser.role)){
+  /* v737 : qui valide ou voit tout (plus « admin, dr, chefEquipe ») — et toujours pour SES box seulement */
+  if(vBox && currentUser && (can('validerDR')||can('voirTout'))){
     const recent=Date.now()-3*86400000;
     /* UNE notification par PASSAGE, et non par produit. Une personne qui vide sa box en
        reprend cinq ou six d'affilée : ca faisait six lignes dans la cloche pour un seul

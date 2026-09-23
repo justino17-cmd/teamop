@@ -42,16 +42,22 @@ function bloc(debut) {
 
 console.log('\n── 778 · 1. la règle, extraite et JOUÉE ──');
 const fAcc = bloc('function accueilJournee(){'), fTech = bloc('function intTechIds(i){'), fMy = bloc('function myTechId(){');
+/* ⛔ v737 : la règle lit une CASE (« Tout voir »), plus le nom du rôle — on lui donne donc les
+   VRAIS userCap / can / capDeduitRegle. Sans eux, `can` manquait, l'exception tombait dans le
+   `catch` de la règle, et TOUS les cas rendaient « cloche » : les trois responsables passaient au
+   vert pour une mauvaise raison, et seul le technicien le trahissait. */
+const fCap = bloc('function userCap(u,cap){'), fCan = bloc('function can(cap){'), fRegle = bloc('function capDeduitRegle(cap){');
+vrai('population : userCap, can et capDeduitRegle sont trouvés', fCap.length > 200 && fCan.length > 40 && fRegle.length > 200, [fCap.length, fCan.length, fRegle.length]);
 vrai('population : accueilJournee, intTechIds et myTechId sont trouvés', fAcc.length > 150 && fTech.length > 40 && fMy.length > 60,
   [fAcc.length, fTech.length, fMy.length]);
 v1: {
   if (!fAcc) break v1;
   const AUJ = '2026-09-23';
   const jouer = (user, interventions) => {
-    const bac = { currentUser: user, db: { interventions, techniciens: [] }, todayISO: () => AUJ,
+    const bac = { currentUser: user, db: { interventions, techniciens: [] }, todayISO: () => AUJ, CAPS: { technicien: {} },
                   fullName: u => ((u.prenom || '') + ' ' + (u.nom || '')).trim() };
     vm.createContext(bac);
-    vm.runInContext(fTech + '\n' + fMy + '\n' + fAcc + '\nthis.r = accueilJournee();', bac);
+    vm.runInContext(fRegle + '\n' + fCap + '\n' + fCan + '\n' + fTech + '\n' + fMy + '\n' + fAcc + '\nthis.r = accueilJournee();', bac);
     return bac.r;
   };
   const tech = { id: 'u1', role: 'technicien', techId: 't1' };
@@ -61,8 +67,14 @@ v1: {
   vrai('⛔ une intervention ANNULÉE ne fait pas une journée', jouer(tech, [{ date: AUJ, techIds: ['t1'], statut: 'annulee' }]) === false);
   vrai('⛔ rien aujourd’hui (seulement du retard) → la cloche, pas le bandeau', jouer(tech, [{ date: '2026-09-22', techIds: ['t1'], statut: 'planifiee' }]) === false);
   vrai('⛔ la journée d’un AUTRE technicien ne compte pas', jouer(tech, [{ date: AUJ, techIds: ['t2'], statut: 'planifiee' }]) === false);
-  for (const r of ['admin', 'dr', 'chefEquipe'])
-    vrai(`⛔ un responsable (${r}), même technicien et occupé → la cloche, pas le bandeau`, jouer({ id: 'u2', role: r, techId: 't1' }, jour) === false);
+  vrai('⛔ l’administrateur, même technicien et occupé → la cloche, pas le bandeau', jouer({ id: 'u2', role: 'admin', techId: 't1' }, jour) === false);
+  for (const r of ['dr', 'chefEquipe', 'technicien'])
+    vrai(`⛔ qui a « Tout voir » (rôle ${r}), même occupé → la cloche, pas le bandeau`, jouer({ id: 'u2', role: r, techId: 't1', acces: { caps: { voirTout: true } } }, jour) === false);
+  /* ⛔⛔ v737 — « technicien, DR… c'est juste des noms » (Justin, 23 septembre 2026) : un compte
+     nommé « DR » ou « chef d'équipe » à qui l'on n'a PAS coché « Tout voir » ne voit que ses
+     interventions — sa journée, c'est « Ta journée ». Jusqu'ici son NOM le lui retirait. */
+  for (const r of ['dr', 'chefEquipe'])
+    vrai(`⛔⛔ un compte nommé « ${r} » SANS « Tout voir », qui a sa journée → « Ta journée » (le nom ne décide plus)`, jouer({ id: 'u2', role: r, techId: 't1' }, jour) === true);
   vrai('un compte sans technicien lié → la cloche', jouer({ id: 'u3', role: 'technicien' }, jour) === false);
   vrai('personne de connecté → rien', jouer(null, jour) === false);
 }
