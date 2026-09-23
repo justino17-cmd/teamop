@@ -1105,6 +1105,11 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   texte coupé en ellipse déborde de sa boîte dans un `Range` et son centre tombe chez le
   voisin. Les 11 « recouverts » du tableau de bord étaient faux, les 11. Recouvert veut dire :
   hors de la lignée, ET une chaîne qui peint un fond.
+  ⚠️ Et la transition peut ÉCRASER le geste mesuré : sur une longue série, la vue rouverte à la
+  connexion (`#v=…` laissé par l'essai d'avant) arrivait APRÈS le geste et remplaçait la fiche
+  qu'on venait d'ouvrir — trois essais tombaient en série et passaient seuls (23 septembre 2026).
+  Une sonde de DROITS se met en « animations réduites » (`Emulation.setEmulatedMedia`,
+  `prefers-reduced-motion: reduce`) : un vrai réglage d'utilisateur, servi sans transition.
 
 - ⛔ **UNE ANCRE DE BANC EST UN COMMENTAIRE — ON DÉCOUPE DANS LE TEXTE BRUT, ON NETTOIE APRÈS.**
   Chercher le titre d'un bloc dans un texte dont on vient de retirer les commentaires rend −1,
