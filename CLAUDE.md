@@ -614,6 +614,27 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ne gardait que « ＋ Produit » ; dix autres chemins créaient des fiches (＋ Liste, 🏭, la box, une
   intervention, « ↻ Catalogue OP »…). `test-747` compte désormais les appelants de `produitCreer` et
   de `cataloguePoser` — ils ne s'écrivent pas `db.produits.push(`.
+- ⛔⛔ **UNE CASE SE LIT DANS LA FONCTION QUI ÉCRIT — ET UNE RÈGLE DE VISIBILITÉ DANS LA FONCTION
+  QUI OUVRE.** v738, 23 septembre 2026, à la demande de Justin (« revois toutes les règles de chaque
+  catégorie ») : joué dans la vraie page par un compte qui a tout SAUF une case
+  (`scratchpad/sonde-matrice-droits.js`), **66 gestes sur 75 passaient sans elle** — le ✎ de la fiche
+  intervention, son menu de statut, dupliquer, envoyer ou marquer payée une facture, les encaissements
+  d'une enveloppe, le panneau « Produits » d'une box, la tuile « Box » de la feuille « Créer », la
+  recherche du bandeau, la fiche client ouverte par son identifiant… Le bouton était caché, ou la liste
+  filtrée, mais la fonction ne lisait rien : un SECOND chemin suffisait (un menu, une recherche, une
+  tuile). Quatre règles, gardées par `tests/test-790.js` :
+  · chaque fonction qui écrit lit la case de SON geste, **avant la première écriture** (75 portes) ;
+  · une fiche qui s'ouvre par identifiant (`ficheClient`, `detailIntervention`) revérifie
+    `visibleX([x])` — la liste n'est pas une garde ;
+  · **deux cases pour une même règle, c'est la seconde qui ment** : « Supprimer des éléments » et
+    « Créer / planifier » décidaient encore onze portes pendant que l'écran montrait la case de la
+    catégorie. Le droit global n'est plus que le DÉFAUT d'une action de catégorie non réglée
+    (`catDeduitRegle`), suivi en direct, écrit seulement si on y touche ;
+  · **tout geste qui écrit le stock d'une box passe par `boxValidRequis()`** — la saisie de
+    consommation et la quantité retapée dans « Modifier la box » ne le faisaient pas (la seconde sans
+    même une ligne de mouvement).
+  ⚠️ Et une relecture d'agent se MESURE avant de se corriger : sur une quarantaine de constats, deux
+  étaient faux — l'écran Paramètres réservait déjà export, import et e-mails à l'administrateur.
 - ⛔ **LES BONS DE COMMANDE ONT LEUR PROPRE DROIT, PAS CELUI DE LEUR CATÉGORIE.** Tout le
   circuit passe par `peutCommander()` — c'est-à-dire `!userCap(u,'bonsLectureSeule')` —, avec
   **15 sites d'appel** (`formBon`, `bonFourNew`, `bonSuggere`, `bonDupliquer`, les envois…).

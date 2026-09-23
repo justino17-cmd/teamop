@@ -79,6 +79,116 @@ et `balayageOk` vrais, `sauvegarde` active sans échec ; `ls /opt/teamop/data | 
 `POST /api/op/session` → 404 ; le journal sans « NON monté » ni « DEUX FOIS ». Le lendemain : la
 sauvegarde de la nuit `ok`, et une seule copie sous `teamop/mensuel/`.
 
+## ✅ 23 SEPTEMBRE 2026 (nuit) — TOUTES LES RÈGLES, CATÉGORIE PAR CATÉGORIE, ET LE CIRCUIT DE VALIDATION (v738, bêta)
+
+Justin, au lendemain de la v737 : **« revois toutes les règles de chaque catégorie, tous les droits,
+ce qu'on aurait oublié ou pas, le système de validation des retours — revoir tout ça aussi. Fais un
+petit tour, vérifie bien un test et tu me dis. »**
+
+« Validation des retours » a été lu comme le **circuit de validation DR** (sorties et remises en
+box, retraits de produits, demandes de commande, bons de remise) : aucune fonction ne s'appelle
+« retour » dans le code. À confirmer avec lui.
+
+### Méthode
+
+Cinq relectures en parallèle (Stock + Achats · Clients + Ventes · Planification + Interventions ·
+Communication + Équipe + Administration + menus · circuit DR), puis **chaque constat JOUÉ dans la
+vraie page** par `scratchpad/sonde-matrice-droits.js` : un compte de terrain à qui l'on donne TOUT
+(chaque case, chaque action, chaque menu) SAUF la case essayée ; on joue le geste que le bouton
+appelle, on regarde la base — puis le même geste, case remise, doit agir (contre-épreuve).
+**Sur la bêta v737 : 66 ✓ 66 ✗. Sur la v738 : 132 ✓ 0 ✗** (75 essais).
+⚠️ Deux constats des relecteurs étaient FAUX à la mesure : l'export / l'import / les copies de
+sauvegarde et les e-mails de l'entreprise ne sont montrés qu'à l'administrateur
+(`views.parametres` s'arrête avant pour les autres). Les fonctions ne vérifiaient rien pour autant :
+elles se gardent désormais elles-mêmes.
+
+### Ce qui était ouvert, et qui ne l'est plus
+
+- **Deux droits globaux doublaient les cases de catégorie.** Onze portes lisaient encore
+  « Supprimer des éléments » ou « Créer / planifier des interventions » là où le reste lisait la
+  catégorie : retirer « Interventions → Supprimer » laissait supprimer par le menu du planning, et
+  la donner sans le droit global la refusait. Désormais une action de catégorie **qui n'est pas
+  réglée suit sa case de base, en direct** (`catDeduitRegle`), et ne s'écrit que si on la touche.
+- **« Gérer les box » est une case** (Stock → droits spéciaux). Elle était cachée derrière
+  « Supprimer des éléments » : pour laisser quelqu'un créer une box, il fallait lui donner le droit
+  de tout supprimer. Défaut = « Supprimer des éléments » (la veille exacte). Et la feuille « Créer »
+  (le ＋ flottant) créait une box sans rien lire : elle ne propose plus que ce qu'on peut créer.
+- **Ventes** : envoyer (📧 💬), marquer « Payée », « Annuler le paiement » lisent « Ventes →
+  Modifier » ; « → 🧾 », « Facturer cette intervention », « Créer un devis » lisent « Ajouter » ;
+  l'export Excel (c'est la comptabilité ENTIÈRE : factures, télécollectes, registre des
+  encaissements) suit « Voir la comptabilité » — un commercial l'avait d'office. L'Assistant devis
+  lit « Devis IA » ET « Ventes → Ajouter » (il ne tenait qu'à un code d'équipe partagé), et n'envoie
+  plus à Anthropic que les clients qu'on voit. Le devis xylophage lit « Ajouter ».
+- **Clients** : une intervention, un devis, le Devis IA, l'assistant, le xylophage ou le SMS d'un
+  rapport ne CRÉENT plus un client sans « Clients → Ajouter », et ne RÉÉCRIVENT plus sa fiche sans
+  « Clients → Modifier » (le document s'enregistre, la fiche reste comme elle est).
+- **Interventions** : le ✎ de la fiche (date, heure, durée, client, adresse, contact, titre,
+  catégorie, société, « Ajouter une demande client ») lit « Modifier » — les champs du RAPPORT
+  restent au technicien. Le menu de statut : sans « Modifier », il ne reste que démarrer / terminer
+  SA propre intervention. « Dupliquer », « Créer le prochain passage », Alt+glisser, 🔁 d'un contrat
+  lisent « Ajouter ». « Ma journée » : glisser une carte lit « Déplacer le planning ».
+- **Planification** : 🗑 d'une tâche, d'une absence, d'une activité lisent « Planification →
+  Supprimer » ; cocher la tâche d'un COLLÈGUE lit « Modifier » (la sienne reste libre).
+- **Stock** : les encaissements d'une enveloppe lisent « Modifier » (et le ✕ demande enfin
+  confirmation — c'était la seule suppression du fichier sans question) ; fusionner les doublons et
+  « C'est normal » lisent « Modifier » (le bandeau signale sans proposer le geste) ; le panneau
+  « Produits » d'une box aussi ; « ✕ » d'un arrivage lit « Supprimer » ; « dans toutes les box » ne
+  pose que dans les box qu'on voit.
+- **Voir** : la recherche du bandeau, « Rechercher partout », la fiche client, la fiche
+  intervention (refusées à l'ouverture, par quelque chemin qu'on y arrive), les contrats, la carte,
+  le registre (on ne choisit que ses clients ; le registre d'un client reste complet), les listes de
+  clients des formulaires, l'export CSV, et les **Statistiques** : le chiffre d'affaires n'est plus
+  écrit sans « Voir la comptabilité ». Un devis ou un contrat retient qui l'a fait (`creePar`) : sans
+  ça, un document fait pour un client qu'on venait de créer disparaissait de sa propre liste.
+- **Circuit DR** : la saisie de consommation et la quantité retapée dans « Modifier la box »
+  écrivaient le stock SANS validation (la seconde sans même une ligne de mouvement). Sous
+  validation, elles partent désormais au DR (la liste de la box, un lot) ; sinon elles s'appliquent
+  ET se tracent. La liste des box de la saisie ne propose que celles qu'on voit. Le valideur n'était
+  borné à son périmètre qu'à l'écran : `boxMvtValider` et `validerDemande` le vérifient.
+- **Comptes** : « ＋ Technicien » en Chef d'équipe héritait de tout le profil du rôle quel que soit
+  le créateur — `droitsBorner` s'y applique comme dans Utilisateurs. Le fournisseur modifié depuis
+  un bon lit « Communication → Modifier ».
+
+### ⚠️ Ce qui change pour un compte existant le jour de la mise à jour
+
+Avec les réglages par défaut, **rien ne se retire** : les actions ajouter / modifier restent
+ouvertes à tous, supprimer suit « Supprimer des éléments », créer une intervention suit « Créer /
+planifier », gérer les box suit « Supprimer des éléments ». Trois différences visibles :
+- un technicien voit « Modifier » dans le menu d'une carte du planning (il pouvait déjà modifier
+  par le ✎ de la fiche — le menu pendait à « Créer / planifier ») ;
+- il ne voit plus « Intervention » ni « Box » dans la feuille « Créer » (l'enregistrement les lui
+  refusait déjà, ou — pour la box — ne les lui refusait pas du tout) ;
+- un commercial ne voit plus le bouton « Excel » des Factures sans « Voir la comptabilité ».
+
+### ⛔ À TRANCHER PAR JUSTIN (rien n'a été changé)
+
+1. **Le stock « catalogue » (`p.qte`) échappe à la validation DR** : « Produits donnés » depuis un
+   véhicule, la clôture d'une intervention quand aucune box ne suffit, le scanner en mode catalogue.
+   Le circuit n'a jamais promis que les BOX — mais Justin a nommé « produits donnés ».
+2. **Le registre sanitaire d'un client reste complet** (tous les passages, de toute l'équipe) pour
+   qui voit ce client : c'est le document réglementaire du site. Le restreindre ?
+3. **La fiche d'un poste d'appâtage** : « Produit posé », « Boîte sécurisée », « Tubes UV » restent
+   au technicien sans « Modifier les plans » (seule la « Zone » le demande) — lu comme le relevé du
+   passage. À confirmer.
+4. **Quatre gestes restent à l'administrateur seul, sans case** : effacer un prix, une demande de
+   l'historique, une commande de l'historique, et revenir sur les déclarations « produits
+   distincts ». Les rendre délégables ?
+5. **« Mis de côté »** (Paramètres) reste ouvert à tous : c'est la base de CET appareil, pour
+   récupérer un travail non synchronisé — mais elle s'exporte en entier.
+6. **Deux appareils hors ligne qui valident le même mouvement** : non mesuré (il faudrait une sonde
+   à deux profils).
+
+### Mesuré
+
+`tests/test-790.js` **59 ✓** (neuf : 75 portes, chacune sa garde AVANT la première
+écriture ; les règles pures exécutées) ; `test-747` 51 ✓ (il refuse désormais une entrée de sa liste
+blanche qui nomme une fonction gardée — neuf y étaient, « dérivées » ou « gardées par devisIA ») ;
+`test-786` 85 ✓, `test-789` 86 ✓, et cinq anciens bancs ajustés (625, 635, 642, 658, 708).
+Mutations : en cours (le résultat sera écrit ici).
+`scratchpad/sonde-matrice-droits.js` : **132 ✓ 0 ✗** sur la v738, **66 ✗** sur la v737.
+Relecture (`relecteur`) : en cours.
+Suite complète : premier passage 147 suites · 6 789 vérifications, six suites en échec — les six bancs ajustés depuis (625, 635, 642, 658, 708, 752), qui repassent un par un ; second passage en cours.
+
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — LE RÔLE N'EST QU'UN NOM : CHAQUE RÈGLE EST UNE CASE (v737, bêta)
 
 Justin, mot pour mot : **« tout ce qui est quand on avait dit technicien, DR, qu'on avait
