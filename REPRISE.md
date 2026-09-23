@@ -39,6 +39,90 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 23 SEPTEMBRE 2026 (nuit) — CE QUE JUSTIN A TRANCHÉ, ET LA v734 (bêta)
+
+Réponses de Justin à la liste du soir, point par point, et ce qui en est sorti :
+
+| | ce qu'il a dit | ce qui est fait |
+|---|---|---|
+| Planning | « la barre ne saute plus » | ✅ confirmé au doigt, sur son iPhone (v731) |
+| Box | « il faudrait pouvoir ajouter plusieurs produits dans la même liste quand on donne les produits » (capture de « Ces produits sont pour qui ? ») | ✅ v734, ci-dessous |
+| Leia | « on supprime totalement, on fera un vrai agent dans le futur » | ✅ v734, ci-dessous |
+| Écran « Équipe » | « je comprends pas, explique-moi bien, et en image » | 📸 captures envoyées, question reposée — voir « ⏳ » |
+| Mouvements stock | « tu appliques les mêmes règles, chacun voit ce qui le concerne » | ✅ v734, ci-dessous |
+| OP MESSAGES | « tu peux marquer bientôt disponible, on supprime sur le site le mode hors ligne, que en ligne ok » | ✅ **site publié** (`dc76e31` sur `main`), ci-dessous |
+| Impayé | « 7 jours où ils ont encore accès à tout ; ce délai passé ça leur supprime rien mais plus d'accès à l'application complète » | ✅ c'est mot pour mot la règle déjà écrite en v715 (sur la branche) — attend la publication du serveur |
+| Courrier ELAN | « déjà fait par moi-même, vu avec eux » | ✅ fait par Justin — ⚠️ l'étape 4 n'est levée que si c'est un ACCORD ÉCRIT ; un préavis la fait attendre 30 jours — voir « ⏳ » |
+| Nouvelles entreprises | « c'est à nous de créer leur ligne de connexion […] et choisir les catégories dont ils ont besoin, sur mesure, avec un forfait plus attractif » | 📝 proposition faite — voir « ⏳ » |
+
+### Ce que contient la v734 (bêta)
+
+- **Leia n'existe plus** : la bulle, son panneau, sa base de réponses, ses rappels, tout son code.
+  Ce qu'elle était SEULE à dire passe dans la cloche (`computeNotifs`) : « ⏰ N interventions en
+  retard » et « ⏳ N factures impayées » (celle-ci réservée à `voirCompta`). Paramètres gagne une
+  carte « Aide » : la visite guidée, et « Signaler un problème », qui écrit au journal
+  (`support`) pour les administrateurs. En chemin, un vrai défaut : le bandeau de la feuille de
+  route se REMPLAÇAIT sans retirer l'ancien, et la minuterie de 15 s de l'ancien effaçait le
+  nouveau (`tests/test-778.js`, `scratchpad/sonde-accueil.js`).
+- **Mouvements stock : chacun voit les bons de remise qui le concernent** — sa box, ceux qu'il a
+  faits, ceux qu'il a reçus ; un responsable, son périmètre ; l'administrateur, tout. UNE
+  fonction, `visibleRemises`, lue par Mouvements stock ET Produits donnés (qui avait sa copie),
+  et qui partage avec `visibleMouvements` la liste des noms qui me concernent
+  (`nomsConcernes`). `tests/test-783.js` exécute les vraies fonctions sur quatre personnes ;
+  `scratchpad/sonde-remises.js` compte les bons RENDUS dans la vraie page.
+- **Box : donner plusieurs produits d'un coup.** « Ces produits sont pour qui ? » devient une
+  liste : on ajoute les produits de la box, on règle chaque quantité (bornée au stock), un seul
+  « Valider » sort tout — sur UN bon de remise. Une quantité trop forte est refusée AVANT toute
+  écriture. `tests/test-784.js`, `scratchpad/sonde-dons-liste.js` (34 ✓, vrais touchers).
+- **Les commandes des tableaux retrouvent leur plancher** — trouvé en préparant les captures de
+  l'écran « Équipe » : `#content .tbl button{min-height:0}`, écrite pour les boutons NUS, battait
+  par son identifiant le plancher de `.btn.sm`. Le ✎ de Techniciens, Devis, Contrats mesurait
+  **16 px** de haut au téléphone — dix commandes. Aucun audit ne pouvait le voir : TOUS
+  écartaient `.tbl` de leur population (`!e.closest('.tbl')`), la règle « une population qu'on
+  énumère soi-même » appliquée à un filtre. Et les chiffres des fiches Client et Technicien,
+  écrits à 22 px en ligne, étaient portés à 34 par la refonte : « 1540h30 » et « 10 288,06 € »
+  sortaient de leur carte. `tests/test-785.js`, `scratchpad/sonde-boutons-tableaux.js`
+  (la bêta d'avant : 9 ✓ 2 ✗).
+
+Mutations remises, toutes attrapées : Leia 14/14, bons de remise 11/11, liste de dons 13/13,
+tableaux 9/9. Suite complète : **142 suites · 6 498 vérifications, code de sortie 0 (la première passe avait rendu 3 ✗ dans test-779 : son ancre visait l'ancienne signature de boxDonneModal, la tranche était vide, et le contrôle de population l'a dit)**.
+
+### Le site (publié le 23 septembre au soir, sur la phrase de Justin)
+
+OP MESSAGES : plus aucun lien de souscription ni d'ouverture — une mention « ⏳ Bientôt
+disponible » et la raison ; `recap-abonnement.html` n'ouvre plus ni paiement ni compte pour une
+formule OP MESSAGES (`OPMSG_BIENTOT`, à repasser à `false` le jour de la réouverture ; les
+formules OP GESTION gardent leur paiement, contre-épreuve mesurée). « Mode hors-ligne » retiré de
+l'accueil, Tarifs, Applications, Pourquoi, ELAN, Créer et des mentions légales ; la FAQ dit que
+l'application travaille en ligne. Les copies d'`apercu/` ont reçu les mêmes retouches — publier
+l'aperçu un jour ne doit pas remettre en ligne ce qu'on vient de retirer. Vérifié au navigateur
+(`scratchpad/sonde-site-opmsg.js`, 35 ✓) puis sur `teamop.fr` : 0 « hors-ligne » sur les neuf
+pages ; production toujours en v695, bêta en v733 au moment du contrôle.
+
+### ⏳ Ce qui attend Justin
+
+1. **L'écran « Équipe » (`techniciens`)** — captures envoyées : l'admin l'ouvre depuis les
+   congés ; un technicien ne l'a pas au menu, mais **en tapant l'adresse `#v=techniciens`** (ou
+   par la recherche) il lit toute l'équipe, et la fiche d'un collègue montre son téléphone, son
+   e-mail, son Certibiocide et **son temps pointé**. Recommandation, dans la ligne « chacun voit
+   ce qui le concerne » : l'administrateur et ceux qui voient tout → toute l'équipe ; un chef
+   d'équipe → son équipe ; un technicien → sa propre fiche seulement. Rien n'est touché avant sa
+   réponse.
+2. **Le ✎ du Pointage** (question de la v733, sans réponse) : réserver aux responsables, ou
+   laisser à chacun mais tracer chaque correction au journal.
+3. **Le courrier ELAN** : il l'a fait, « vu avec eux ». Il faut savoir si c'est un **accord
+   écrit** (l'étape 4 peut commencer) ou un **préavis de 30 jours** (elle attend le
+   23 octobre) — et en garder la trace écrite : c'est ce qui couvre `sous-traitance.html`.
+4. **L'application sur mesure** — ce qui existe déjà : aucune entreprise ne crée son espace
+   seule (l'inscription du portail crée un compte et une DEMANDE ; l'espace se crée depuis la
+   Tour, `tourEspaceDe()`), et `creer.html` recueille déjà les besoins cochés. Ce qui manque est
+   une décision de prix : une formule « sur mesure » dont la Tour fixe les catégories (le
+   serveur les rend comme il rend déjà `formule`, et l'application grise le reste, par le même
+   chemin que `PLAN_BLOQUE`). Questions : prix de base + prix par catégorie ? quelles familles
+   à la carte (Planification, Interventions, Clients, Ventes, Stock, Temps & équipe…) ? en plus
+   des formules actuelles, ou à leur place ?
+5. Toujours ouvertes : la date de mot de passe du portail, et le plan si le VPS tombe (étape G).
+
 ## ✅ 23 SEPTEMBRE 2026 (soir) — POINTAGE : « DÉBUT DE JOURNÉE » ⇄ « FIN DE JOURNÉE » (v733, bêta)
 
 Justin, capture de son iPhone à l'appui : **« je veux plus ce bouton saisir manuellement, je veux
@@ -262,7 +346,8 @@ désormais que les transitions ouvertes soient closes, comme `audit-pixel.js`.
 (`views.mouvements`, la liste `brs` n'est pas filtrée), alors que les mouvements, eux, le sont
 (`visibleMouvements`). Ce n'est pas une fuite hors de l'entreprise, mais c'est une règle de moins
 qu'ailleurs. Produits donnés applique la règle des mouvements ; aligner Mouvements stock est une
-décision à part.
+décision à part. ✅ **Tranché et fait le 23 septembre au soir (v734)** : « chacun voit ce qui le
+concerne » — `visibleRemises`, voir la section v734.
 
 **Le trou du commercial a un voisin.** Recensé mécaniquement : sur 43 vues, quatre ne sont pas au
 menu — donc la garde de `go()` ne les connaît pas. `produitsDonnes` est gardée désormais ;
@@ -270,6 +355,8 @@ menu — donc la garde de `go()` ne les connaît pas. `produitsDonnes` est gard�
 Reste **`techniciens`** (l'écran « Équipe », atteint par « Ouvrir l'équipe » depuis les congés) :
 n'importe quel compte qui tape `#v=techniciens` lit la liste (noms, métiers, téléphones).
 Modifier (`saveTech`) et supprimer (`delItem`) restent gardés. À trancher : qui doit la lire ?
+⏳ **Justin a demandé l'explication en images** (23 septembre au soir) : captures envoyées,
+question reposée avec une recommandation — voir la section v734.
 
 ### ⏳ Ce qui attend Justin
 
@@ -3553,6 +3640,10 @@ personne ne lisait, et il a fallu trancher **par écrit**.
 
 Une suspension est donc un **état de facturation**, pas une coupure d'accès.
 
+✅ **Reconfirmée par Justin le 23 septembre 2026** : « 7 jours où ils ont encore accès à tout ;
+ce délai passé, ça leur supprime rien, mais plus d'accès à l'application complète. » C'est ce que
+fait la v715 (branche) — rien à changer, elle attend la publication du serveur.
+
 ### ✅ Ce qui est fait (serveur)
 
 `/api/monitor/espaces/suspendre` coupait Firebase **et** fermait le socle. Le jour où le socle est
@@ -3617,7 +3708,9 @@ sont classées, le convertisseur écrit, les quatre bancs verts. L'étape 3 n'a 
   `server/` (ce qui déploie le VPS), soit on sait qu'un test de bêta un peu chargé peut
   plafonner toute l'API pour cette IP.
 - ⛔ **Le préavis de 30 jours / l'accord écrit à ELAN** — chemin critique de l'étape 4. Rien ne
-  peut avancer au-delà de l'étape 3 sans ça.
+  peut avancer au-delà de l'étape 3 sans ça. ✅ **Justin l'a fait le 23 septembre 2026** (« déjà
+  fait par moi-même, vu avec eux ») — ⏳ reste à savoir si c'est un accord écrit (l'étape 4 peut
+  commencer) ou un préavis (elle attend le 23 octobre), et à en garder la trace écrite.
 - ⛔ **La phrase qui autorise la publication d'`app.html`** — 7 versions attendent.
 - **Le séquestre de la clé maître** du socle, le jour de l'allumage (deux endroits distincts).
 - ~~`roles/datastore.owner` à ajouter pour les sauvegardes Firestore~~ — ✅ **FAIT le
@@ -4096,7 +4189,8 @@ contrat 404/403 des trois appelants ne bouge pas d'un iota.
   fonction n'existe pas : elle est écrite à la main dans `/api/espaces/cle/code`. La factoriser
   d'abord. Changer la clé d'équipe, geste qui n'écrit AUCUNE donnée métier, l'exige déjà.
 - `/api/op/fichier` → étape 3 ; `/api/op/atteste` → étape 7
-- ⛔ **Sur le chemin critique et ce n'est pas technique : le courrier à ELAN.**
+- ⛔ **Sur le chemin critique et ce n'est pas technique : le courrier à ELAN.** ✅ Fait par
+  Justin le 23 septembre 2026 — forme à préciser (accord écrit ou préavis), voir la section v734.
   `sous-traitance.html` promet que TeamOP ne peut pas lire les données. Les mettre chez nous
   change ça : **préavis de 30 jours, ou accord écrit d'ELAN qui le remplace.** Tant que ce
   n'est pas parti, l'étape 4 ne peut pas commencer, quel que soit l'avancement du code.
