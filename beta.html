@@ -894,7 +894,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .plm-row small{ color:var(--t3); font-weight:600; font-size:10.5px; }
 /* la grille */
 .plm-split{ display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,430px); gap:12px; align-items:start; }
-@media(max-width:1100px){ .plm-split{ grid-template-columns:1fr; } }
+/* ⛔ UNE SEULE COLONNE, MAIS QUI PEUT RÉTRÉCIR. `1fr` ne descend pas sous la largeur minimale de
+   son contenu : en vue Multi, la grille des techniciens imposait 396 px à un iPhone de 390 et
+   696 px à un iPad portrait (colonne de 500) — mesuré le 23 septembre 2026, disposition « Côte à
+   côte ». La page entière défilait de côté. `minmax(0,1fr)`, comme la colonne du planning en
+   grand écran juste au-dessus : la grille défile alors dans son propre cadre, comme en
+   « Planning seul ». */
+@media(max-width:1100px){ .plm-split{ grid-template-columns:minmax(0,1fr); } }
 .plm-wrap{ padding:0; overflow:auto; }
 .plm-grid{ display:grid; min-width:100%; }
 .plm-b0{ background:var(--card); position:sticky; left:0; z-index:3; }
@@ -1475,7 +1481,11 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .met-card .ss{ font-size:11.5px; color:var(--t3); line-height:1.45; }
 .met-card .bd{ position:absolute; top:10px; right:10px; font-size:9px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; border-radius:100px; padding:2px 8px; background:var(--acc); color:var(--on-acc); }
 .met-card .nb{ font-size:11px; color:var(--t2); margin-top:2px; }
-.opt-barre{ position:absolute; left:50%; transform:translateX(-50%); top:10px; z-index:900; display:flex; align-items:center; gap:7px; flex-wrap:wrap; justify-content:center;
+/* ⛔ PAS DE « left:50% + translateX(-50%) » POUR CENTRER UNE BOÎTE À LARGEUR AUTOMATIQUE : elle ne se
+   mesure alors que sur la MOITIÉ de son cadre. Mesuré le 23 septembre 2026 (scratchpad/sonde-opt-barre.js) :
+   164 px dans une carte de 328 au téléphone, quatre lignes et 152 px de haut posés sur la carte ;
+   deux lignes même au bureau. Entre deux marges, à la largeur de son contenu, centrée par les marges. */
+.opt-barre{ position:absolute; left:10px; right:10px; margin:0 auto; width:max-content; top:10px; z-index:900; display:flex; align-items:center; gap:7px; flex-wrap:wrap; justify-content:center;
   background:var(--card); border:1px solid color-mix(in srgb,var(--org) 55%,transparent); border-radius:12px; padding:7px 10px; box-shadow:0 10px 30px rgba(0,0,0,.45); max-width:calc(100% - 20px); }
 .opt-barre b{ font-size:12px; color:var(--t1); white-space:nowrap; }
 .opt-barre .g{ font-size:11.5px; font-weight:800; color:var(--acc-txt); white-space:nowrap; }
@@ -3040,7 +3050,7 @@ html[data-refonte] .dt-lbl{font-size:11.5px!important;font-weight:600!important;
 html[data-refonte] .dt-val{font-size:15.5px!important;color:var(--t1);line-height:1.4}
 html[data-refonte] .tbl td{font-size:14px}
 html[data-refonte] .st{font-size:12px!important;font-weight:600!important;padding:4px 11px!important}
-html[data-refonte] .tag{font-size:12px;font-weight:600}
+html[data-refonte] .tag{font-size:12px;font-weight:600;white-space:nowrap}   /* une pastille ne se coupe pas en deux : « 3 / produit(s) », chacun avec son morceau de fond (mesuré le 23 septembre 2026, Validations au téléphone) */
 /* La prose des écrans de réglages court sinon sur 1 100 px : illisible, on revient à la ligne
    sans savoir où. On la borne, on ne la centre pas — l'alignement à gauche reste l'ancre de l'œil. */
 html[data-refonte] .card > p,html[data-refonte] .olsec > p,
@@ -3978,7 +3988,12 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
      de la grille du planning et de la frise du tableau de bord ne sont pas des boutons. Les
      élargir ferait tenir trois jours de moins sur un écran — on perdrait la lecture d'une
      semaine pour gagner un plancher tactile sur une case qu'on ouvre en tapant n'importe où
-     dedans. Elles gardent leur densité. */
+     dedans. Elles gardent leur densité.
+     ⚠ Même décision, nommée le 23 septembre 2026 (audit iPad, valeurs longues) : les BLOCS À
+     L'ÉCHELLE DU TEMPS de la grille Semaine (`.plg-mh`, 25 px pour une heure) et de la vue Jour
+     (`.plt-blk`) — leur hauteur EST la durée ; les porter à 38 px mentirait sur l'horaire et
+     ferait se chevaucher deux créneaux voisins. Ils reçoivent en revanche leur infobulle
+     (heure, titre, client), comme les cartes du tableau de bord. */
   html[data-refonte] #content .pg-pt,html[data-refonte] #content .tdb-pc,
   html[data-refonte] #content .tdb-cel,html[data-refonte] #content .plm-card,
   html[data-refonte] #content .tbl button{min-height:0}
@@ -3999,6 +4014,17 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] .pld-nav u{width:38px;height:38px}
   html[data-refonte] .plg-pin{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:38px;vertical-align:middle}
   html[data-refonte] .pf-zoom b{min-height:38px;display:inline-flex;align-items:center;justify-content:center}
+  /* ⛔ ET DEUX DE PLUS, QUE SEULE LA PASSE « BOUTON PAR BOUTON » SANS PLAFOND POUVAIT ATTEINDRE
+     (23 septembre 2026, 1 210 clics au téléphone) — chacune dans une sous-vue qu'aucune passe
+     plafonnée n'ouvrait :
+     · `.pg-hd` (35 px) — l'en-tête de jour du Planning général : il ouvre le planning de ce
+       jour, exactement comme `.tdb-jh` plus haut, donc même plancher. Sa LARGEUR, elle, reste
+       celle de la frise (18 px par jour en vue « 3 mois ») : 90 jours à 38 px feraient 3 400 px
+       et tueraient la vue d'ensemble — c'est la décision écrite des cases, juste au-dessus ;
+     · `.plm-leg .lg.clic` (23 px) — un technicien de la légende de la vue « Côte à côte » : il
+       filtre la carte sur ses tournées. */
+  html[data-refonte] #content .pg-hd{min-height:38px;display:flex;flex-direction:column;justify-content:center}
+  html[data-refonte] .plm-leg .lg.clic{min-height:38px;padding:0 12px}
   html[data-refonte] .ic-act{min-height:38px;min-width:38px;display:inline-flex;align-items:center;justify-content:center}
   /* ⛔⛔ LE CHAMP D'UNE RANGÉE DE FORMULAIRE NE RÉPONDAIT QUE SUR 17 PX. `.frow` est la rangée
      façon Réglages d'iOS (libellé, champ nu, filet) : 179 formulaires en sont faits. Mais
@@ -4344,6 +4370,14 @@ html[data-refonte] .content{padding-top:10px}
   html[data-refonte] .pf-inw{flex:1 1 150px!important;max-width:none}
   html[data-refonte] .pf-nav{flex:1 1 100%!important;justify-content:space-between}
   html[data-refonte] .pf-nav b{font-size:12.5px}
+  /* ⛔ LE LIBELLÉ DE LA PÉRIODE POUSSAIT LA PAGE. Mesuré le 23 septembre 2026 : « mercredi
+     23 septembre 2026 » et « Semaine du 21 sept. au 27 sept. » ne passaient pas à la ligne
+     (nowrap), et avec les trois boutons de 38 px la barre faisait 326 à 350 px — la page glissait
+     de 6 px (Jour) et de 30 px (Semaine) sur un Android de 360, d'1 px sur un iPhone de 390.
+     Invisible aux sondes : le Planning s'ouvre en vue Multi. Le libellé passe sur deux lignes,
+     centré, plutôt que de se couper — une date tronquée ne dit plus quel jour on regarde. */
+  html[data-refonte] .pf-nav{min-width:0}
+  html[data-refonte] .pf-nav b{white-space:normal;text-align:center;flex:1 1 auto;min-width:0;line-height:1.2}
   html[data-refonte] .pf-row{row-gap:8px!important}
 
   /* LES LIGNES DE LISTE À AVATAR : sur 390 px, le compteur et les deux boutons de droite
@@ -4367,6 +4401,102 @@ html[data-refonte] .content{padding-top:10px}
      compte de l'encoche et de la barre d'accueil, sinon « Enregistrer » passe dessous. */
   html[data-refonte] .modal-head{padding-top:max(14px,env(safe-area-inset-top))!important}
   html[data-refonte] .modal-foot{padding-bottom:max(14px,env(safe-area-inset-bottom))!important}
+}
+/* ⛔ L'ANALYSE DE CONSOMMATION POSAIT DES LARGEURS FIXES : page à 529 px sur un téléphone de 360.
+   Mesuré le 23 septembre 2026, dès qu'il existe des consommations (la démonstration n'en a aucune,
+   c'est pour ça que douze audits sont passés dessus) : libellé produit 270 px, nom 230 ou 250 px,
+   valeur 64 à 100 px, écrits EN LIGNE. Au bureau rien ne change ; au téléphone chaque ligne passe
+   sur deux étages — qui et combien en haut, la barre en dessous, pleine largeur. */
+@media (max-width:560px){
+  /* 1ʳᵉ ligne : qui (ou quoi), sur toute la largeur — un nom coupé à 110 px ne nomme personne, et
+     un téléphone n'a pas d'infobulle. 2ᵉ ligne : la barre et la valeur. Le saut de ligne est le
+     pseudo-élément à 100 % (placé entre les deux par `order`) ; pas d'écart de rangée, sinon la
+     ligne vide qu'il occupe en compterait deux. */
+  html[data-refonte] .cs-l{flex-wrap:wrap;row-gap:0!important}   /* ⚠ le `gap:13px` écrit en ligne l'emporterait, deux fois */
+  html[data-refonte] .cs-l::after{content:'';flex:0 0 100%;order:2;height:0}
+  html[data-refonte] .cs-l > .cs-nom{flex:1 1 0!important;width:auto!important;min-width:0}
+  html[data-refonte] .cs-l > .cs-bar{order:3;flex:1 1 0!important;margin-top:6px}
+  html[data-refonte] .cs-l > .cs-val{order:4;width:auto!important;margin-top:6px}
+  html[data-refonte] .cs-det{margin-left:0!important}
+}
+/* ⛔ LE TITRE D'UNE FENÊTRE TOMBAIT EN COLONNE D'UN MOT PAR LIGNE. 32 fenêtres portent la barre
+   [Annuler] titre [Enregistrer] ; au téléphone, les deux gestes (≈ 95 px chacun) ne laissaient au
+   titre que 109 px : « Ajouter un produit aux boxes » passait sur CINQ lignes de 20 px, et la barre
+   montait à 188 px de haut (mesuré le 23 septembre 2026, critère « texte écrasé » de l'audit). Au
+   téléphone la barre garde ses deux gestes, et le titre passe DESSOUS, aligné à gauche, sur toute
+   la largeur : la feuille à grand titre d'iOS. Au-delà de 560 px rien ne change.
+   ⚠ `.bxp-titre` (Produits de la box) garde sa ligne : il est dessiné pour elle — 17 px insécable,
+   avec son sous-titre centré. */
+@media (max-width:560px){
+  html[data-refonte] .sheet-head:has(> h3:not(.bxp-titre)){flex-wrap:wrap;row-gap:6px}
+  html[data-refonte] .sheet-head > h3:not(.bxp-titre){order:3;flex:1 1 100%;text-align:left;text-wrap:balance}
+  html[data-refonte] .sheet-head > h3:not(.bxp-titre) ~ :last-child{margin-left:auto}
+}
+/* ⛔ LA LISTE DES INTERVENTIONS METTAIT QUATRE COLONNES CÔTE À CÔTE : heure, texte, compte à
+   rebours, statut et boutons. Mesuré le 23 septembre 2026 avec des noms longs : à 360 px la
+   colonne de TEXTE tombait à 0 px, le titre passait sur treize lignes (une ligne de 642 px de
+   haut) et les boutons sortaient de l'écran (page à 415 px) ; à 390 px, pareil. Rien ne cédait,
+   sauf le texte — c'est-à-dire ce qu'on vient lire. Quand la liste est étroite, deux étages :
+   l'heure et le texte en haut, pleine largeur ; en dessous, le compte à rebours à gauche (sous
+   l'heure qu'il décompte) et les gestes à droite. Aligné sous le TEXTE, le compte à rebours
+   repoussait les gestes sur un troisième étage : 60 + 88 + 14 + 149 px ne tiennent pas dans 312.
+   ⚠ C'est la largeur de la LISTE qui décide, pas celle de l'écran : sur iPad en portrait, le menu
+   latéral en prend 272 et le texte tombait à 87 px (onze lignes de titre) dans un écran de 820.
+   D'où une requête de CONTENEUR — la première du fichier. Pas de copie en @media pour les vieux
+   navigateurs : `color-mix()`, dont toute la palette dépend, est arrivé APRÈS les requêtes de
+   conteneur dans les trois moteurs (Safari 16.2 contre 16.0, Chrome 111 contre 105, Firefox 113
+   contre 110) — un navigateur qui peint les couleurs de cette application lit aussi cette règle.
+   ⚠ `::before` (le filet entre deux lignes) et `::after` (le chevron) sont déjà pris sur
+   `.pl-row` : le saut de ligne se fait donc par la BASE du texte, assez large pour que rien
+   d'autre ne tienne à côté — sauf le chevron, remonté par `order` à droite du texte.
+   640 px : en dessous, la colonne de texte d'une ligne à compte à rebours passe sous 260 px. */
+html[data-refonte] .int-liste{container-type:inline-size}
+@container (max-width:640px){
+  html[data-refonte] .int-l{flex-wrap:wrap;row-gap:10px!important}
+  html[data-refonte] .int-l > .pl-info{flex:1 1 calc(100% - 110px)}
+  html[data-refonte] .int-l::after{order:1}
+  html[data-refonte] .int-l > .int-cd,html[data-refonte] .int-l > .int-a{order:2}
+  html[data-refonte] .int-l > .int-h{align-self:flex-start}   /* l'heure en face du TITRE, pas au milieu d'un bloc de cinq lignes */
+  html[data-refonte] .int-l > .int-cd{margin:0!important}
+  /* les gestes prennent le reste de l'étage et s'y rangent en LIGNE (statut, puis boutons), à
+     droite ; ce qui ne tient pas passe dessous. Base nulle : sinon leur largeur d'une seule ligne
+     les enverrait tous sur un troisième étage, loin du compte à rebours. */
+  html[data-refonte] .int-l > .int-a{flex:1 1 0;flex-direction:row!important;flex-wrap:wrap;justify-content:flex-end;align-items:center!important;column-gap:8px!important}
+}
+/* ⛔ « MA JOURNÉE », L'ÉCRAN DU TECHNICIEN : MÊME DÉFAUT, ET AUCUN AUDIT NE LE VOYAIT — ils tournent
+   tous en administrateur. Mesuré le 23 septembre 2026 en se connectant comme technicien
+   (scratchpad/sonde-ma-journee.js) : à 360 px, heure (52 px) et statut (94 px) laissaient 100 px
+   au texte, titre sur dix lignes ; 128 px à 390. Sous 440 px de liste, le statut passe sous le
+   texte, à droite — le texte garde toute la largeur à côté de l'heure. */
+html[data-refonte] .mj{container-type:inline-size}
+@container (max-width:440px){
+  html[data-refonte] .mj-l{flex-wrap:wrap;row-gap:8px!important}
+  html[data-refonte] .mj-l > .mj-t{flex:1 1 calc(100% - 80px)!important}   /* ⚠ `flex:1` est écrit EN LIGNE : sans !important, la base ne prend pas et rien ne passe à la ligne */
+  html[data-refonte] .mj-l > .st{margin-left:auto}
+}
+/* ⛔ ET LES AUTRES LIGNES « HEURE · TEXTE · STATUT » : les cartes du Planning (`planIntCard` —
+   vues Semaine, Jour, Mois) et la tournée de la Carte des interventions (`renderTournee`).
+   Trouvées par le critère « texte écrasé » de l'audit, en technicien, valeurs longues : titre à
+   101 px sur dix lignes, adresse du client à 86 px sur quinze. Ici c'est la LIGNE elle-même qui
+   est le conteneur interrogé — elle vit dans trois vues et un panneau, une enveloppe par écran
+   en oublierait une. Au-dessus de 440 px rien ne change : la base du texte est nulle
+   (`flex:1`), tout tient sur une ligne et `flex-wrap` ne sert pas. */
+html[data-refonte] .pl-row.lh{container:ligne-heure / inline-size;flex-wrap:wrap;row-gap:8px!important}
+@container ligne-heure (max-width:440px){
+  html[data-refonte] .lh > .pl-info{flex:1 1 calc(100% - 80px)}
+  html[data-refonte] .lh > .st{margin-left:auto}
+  html[data-refonte] .lh > :first-child{align-self:flex-start}
+}
+/* ⛔ LA MÊME CHOSE, SANS L'HEURE : une ligne de texte suivie de ses GESTES (Refuser · Valider) ou
+   de son statut. Les demandes de commande de Validations laissaient 18 px au texte au téléphone,
+   à côté de 190 px de boutons (audit, valeurs longues, 23 septembre 2026) ; « À facturer »
+   59 px à côté de « Générer la facture » ; et même motif aux impayés et aux encaissements. Sous 440 px de ligne,
+   le texte prend sa ligne avec le chevron, gestes et statut passent dessous, à droite. */
+html[data-refonte] .pl-row.lga{container:ligne-gestes / inline-size;flex-wrap:wrap;row-gap:10px!important}
+@container ligne-gestes (max-width:440px){
+  html[data-refonte] .lga > .pl-info{flex:1 1 calc(100% - 40px)}
+  html[data-refonte] .lga::after{order:1}
+  html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st,html[data-refonte] .lga > .btn{order:2;margin-left:auto}
 }
 
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
@@ -4437,6 +4567,10 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
   /* Le message se posait sur la bulle d'aide, exactement là où le pouce allait la chercher.
      Il passe AU-DESSUS d'elle : les deux se voient, aucun des deux ne bloque l'autre. */
   html[data-refonte] body.rf-onglets .toast{bottom:calc(var(--tabh) + 66px)!important;max-width:min(90vw,440px)}
+  /* le rappel du matin aussi : posé à 22 px du bas, il couvrait la barre d'onglets pendant 15 s.
+     76 et non 66 comme le message : il reste 15 s, et à 66 son bord touchait la bulle d'aide
+     (58 px posés à 10 px de la barre : 68) — mesuré, 2 px de chevauchement. */
+  html[data-refonte] body.rf-onglets #fdr-banner{bottom:calc(var(--tabh) + 76px)!important}
   /* ⛔⛔ DEUX BOUTONS FLOTTANTS DANS LE MÊME COIN, ET C'EST LE PLUS HAUT QUI GAGNE.
      Justin, capture à l'appui, 22 septembre 2026 : sur le Planning, une forme verte en
      cachait une autre. Mesuré sur un iPhone de 390 px, panneau d'assistance fermé :
@@ -4467,6 +4601,10 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
    bouton. Même geste qu'au téléphone : le bouton monte au-dessus de la bulle, SEULEMENT si
    elle est là. La règle du téléphone, plus précise, garde la main sous 780 px. */
 html[data-refonte] body:has(#assistant > .fab) .plm-fab{bottom:calc(24px + 58px + 10px)!important}
+/* Le rappel du matin, pareil : élargi pour que son message se lise, il atteignait le coin de la
+   bulle sur iPad (mesuré par sonde-ma-journee.js). Au-dessus d'elle, sous 780 px c'est la règle
+   de la barre d'onglets qui le place. */
+@media (min-width:781px){ html[data-refonte] body:has(#assistant > .fab) #fdr-banner{bottom:calc(24px + 58px + 12px)!important} }
 /* ── VOTRE LISTE EN COURS ─── elle se compose en tapant −/+, sans mode à activer ───
    Posée EN HAUT de la liste des produits : c'est là qu'on regarde avant de valider, et c'est
    là qu'elle doit être. Le liseré vert dit qu'elle est à vous et qu'elle n'est pas encore
@@ -6814,7 +6952,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '728-beta';
+const APP_VERSION = '729-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -14294,7 +14432,7 @@ function tdbPlanning(){
     const mnT=SRC.filter(i=>(planTechsOf(i)[0]||'')===gr.id).reduce((s,i)=>s+(parseInt(i.duree)||60),0);
     const nInt=SRC.filter(i=>(planTechsOf(i)[0]||'')===gr.id).length;
     const sous=gr.id===''?(nInt?nInt+' à répartir':'—'):(absSem.length?absInfo(absSem[0].type).l.toLowerCase():(nInt?fmtHmin(mnT):'libre'));
-    g+=`<div class="tdb-tec" style="--tc:${c}" ${gr.id?`onclick="planVersTech('${gr.id}')"`:''}>
+    g+=`<div class="tdb-tec" style="--tc:${c}" title="${esc(gr.nom)}" ${gr.id?`onclick="planVersTech('${gr.id}')"`:''}>
         <span class="av">${gr.id?initials(gr.nom):'NA'}</span>
         <span style="min-width:0"><b>${esc(gr.nom)}</b><small>${esc(sous)}</small></span></div>`;
     jours.forEach(j=>{
@@ -14304,7 +14442,7 @@ function tdbPlanning(){
       let cel='';
       if(ab){ cel=`<div class="tdb-abs" style="--ac:${absInfo(ab.type).c}"><b>${esc(absInfo(ab.type).l)}</b></div>`; }
       else {
-        acts.slice(0,2).forEach(a=>{ cel+=`<div class="tdb-act"><b>${esc(actTitre(a))}</b></div>`; });
+        acts.slice(0,2).forEach(a=>{ cel+=`<div class="tdb-act" title="${esc(actTitre(a))}"><b>${esc(actTitre(a))}</b></div>`; });
         mine.slice(0,4).forEach(i=>{ cel+=`<div class="tdb-pc" style="--cc:${planCardColor(i)}"
             title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}"
             onclick="event.stopPropagation();detailIntervention('${i.id}')">
@@ -14420,7 +14558,7 @@ let planMode='semaine';
 function planOpenDay(iso){ if(!iso) return; planSel=iso; planWeekRef=iso; planMode='jour'; views.planning(); }
 function planIntCard(i,opts){ opts=opts||{}; const sc=opts.couleurTech?planCardColor(i):(INT_STCOLOR[i.statut]||'var(--t3)');
   const cf=i.date&&i.heure&&i.techId?intConflictOf(i,i.id):null;
-  return `<div class="pl-row" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
+  return `<div class="pl-row lh" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
     <div style="text-align:center;min-width:48px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:15px;color:var(--t1)">${esc(i.heure||'—')}</div><div style="font-size:10px;color:var(--t3)">${i.date?(opts.showDate?fmtShort(i.date):(i.duree||60)+' min'):'—'}</div></div>
     <div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''} ${cf?'<span class="tag hot" style="font-size:9px" title="Chevauchement avec une autre intervention">Conflit</span>':''}</div><div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?esc(i.type)+' · ':''}${esc(clientName(i.clientId))}${(i.checklist&&i.checklist.length)?` · ☑ ${i.checklist.filter(x=>x.done).length}/${i.checklist.length}`:''}</div>${opts.hideTech?'':`<div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(techNames(i))}${i.recurrence&&i.recurrence!=='aucune'?' · 🔁 '+(INT_RECUR[i.recurrence]||''):''}</div>`}</div>
     ${badge(STATUT_INT,i.statut)}</div>`; }
@@ -17012,6 +17150,7 @@ function planWeekHtml(SRC){ if((window.innerWidth||1200)<700) return planWeekLis
         const lg=(m===null||nVoies<2)?'left:2px;right:2px'
           :`left:calc(2px + ${(100/nVoies*v).toFixed(3)}%);width:calc(${(100/nVoies).toFixed(3)}% - 3px)`;
         return `<div class="plg-mh ${hpx>=25?'deux':''} ${m===null?'sh':''} ${cf?'cf':''} ${planMatch(i)?'':'dim'}" data-int="${i.id}" data-drag-int="${i.id}"
+          title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}"
           draggable="${canPlan()?'true':'false'}" ondragstart="planDragStart(event,'${i.id}')"
           onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}"
           style="${lg};${pos};height:${Math.round(hpx)}px;--cc:${sc}">
@@ -17155,7 +17294,7 @@ function planDayHtml(SRC){ if((window.innerWidth||1200)<700) return planDayListH
       if(m===null){ top=4+sansHeure*40; hpx=36; sansHeure++; dash='border-style:dashed;'; }
       else { top=Math.max(0,(m-h0*60)/60*PPH); hpx=Math.max(34,dur/60*PPH-4); }   // la case fait la durée ; le contenu s'adapte
       const posJ=(m===null)?null:coteJ[i.id];
-      blocks+=`<div class="plt-blk ${cf?'cf':''} ${(posJ&&posJ.n>1)?'chev':''} ${i.propose?'prop':''} ${planMatch(i)?'':'dim'}" draggable="${canPlan()?'true':'false'}" data-drag-int="${i.id}" ondragstart="planDragStart(event,'${i.id}')" onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}" style="top:${top}px;height:${hpx}px;border-left-color:${sc};${dash}${planCoteStyle(posJ)}">
+      blocks+=`<div class="plt-blk ${cf?'cf':''} ${(posJ&&posJ.n>1)?'chev':''} ${i.propose?'prop':''} ${planMatch(i)?'':'dim'}" title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}" draggable="${canPlan()?'true':'false'}" data-drag-int="${i.id}" ondragstart="planDragStart(event,'${i.id}')" onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}" style="top:${top}px;height:${hpx}px;border-left-color:${sc};${dash}${planCoteStyle(posJ)}">
         ${by}${(function(){ const n=planNumOf(i.id); return n?`<span class="pnum" style="background:${planCoulOf(i)}" title="Intervention n°${n} de la tournée">${n}</span>`:''; })()}<b>${i.heure?`<span class="hh">${esc(i.heure)}</span>`:'— sans heure'} · <span class="tt">${esc(i.titre||'')}</span>${badges}</b>${planCarteInfos(i,{h:hpx})}${planCartePied(i,hpx)}${(i.obligation&&hpx>=110)?'<small class="ci" style="color:var(--org)">placée malgré un congé</small>':''}</div>`; });
     // Battement entre 2 interventions consécutives d'un même technicien (P4) — clients différents
     for(let k=0;k<timed.length-1;k++){ const a=timed[k], b=timed[k+1];
@@ -17899,8 +18038,14 @@ function planFdrCheck(){ try{ if(!currentUser) return;
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){ try{ new Notification('OP GESTION — Ta journée',{body:msg}); }catch(e){} }
   const b=document.createElement('div');
   b.id='fdr-banner';
-  b.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:400;background:var(--card);color:var(--t1);border:1px solid var(--brd);border-radius:14px;padding:12px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;gap:12px;align-items:center;max-width:92vw;font-size:13px';
-  b.innerHTML='<span style="min-width:0">'+esc(msg)+'</span><button class="btn sm" style="flex-shrink:0" onclick="document.getElementById(\'fdr-banner\').remove();go(\'planning\')">Voir ma journée</button><button class="btn ghost sm" style="flex-shrink:0" onclick="document.getElementById(\'fdr-banner\').remove()">✕</button>';
+  /* ⛔ LE TEXTE TOMBAIT À 65 PX ET PASSAIT SOUS LE BOUTON. Mesuré le 23 septembre 2026 sur un
+     Android de 360, avec une raison sociale longue : un mot par ligne, « Établissements » coupé
+     par « Voir ma journée ». Les deux boutons ne cèdent rien (flex-shrink:0), et `left:50%` ne
+     laissait à la boîte que la MOITIÉ de l'écran pour se mesurer. La boîte se pose entre deux
+     marges et prend la largeur de son contenu, plafonnée ; quand tout ne tient pas sur une ligne,
+     le message garde la sienne et les boutons passent dessous, à droite. */
+  b.style.cssText='position:fixed;left:12px;right:12px;bottom:22px;margin:0 auto;width:max-content;max-width:min(760px,calc(100vw - 24px));box-sizing:border-box;z-index:400;background:var(--card);color:var(--t1);border:1px solid var(--brd);border-radius:14px;padding:12px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;font-size:13px';
+  b.innerHTML='<span style="flex:1 1 220px;min-width:0">'+esc(msg)+'</span><button class="btn sm" style="flex-shrink:0;margin-left:auto" onclick="document.getElementById(\'fdr-banner\').remove();go(\'planning\')">Voir ma journée</button><button class="btn ghost sm" style="flex-shrink:0" onclick="document.getElementById(\'fdr-banner\').remove()">✕</button>';
   document.body.appendChild(b);
   setTimeout(()=>{ try{ const el=document.getElementById('fdr-banner'); if(el) el.remove(); }catch(e){} },15000);
 }catch(e){} }
@@ -18724,8 +18869,8 @@ views.interventions=function(){
   setHeader('Interventions',`${SRC.length} au total · ${att} à venir`,`${can('voirTout')?`<button class="btn ghost" onclick="exportInterventionsCsv()">CSV</button> `:''}<button class="btn ghost" onclick="intView='${intView==='semaine'?'liste':'semaine'}';views.interventions()">${intView==='semaine'?'Liste':'Semaine'}</button> ${can('creerIntervention')?`<button class="btn" onclick="formIntervention('',${intView==='semaine'?`'${intSelDay||todayISO()}'`:'undefined'})">＋ Intervention</button>`:''}`);
   if(intView==='liste' && !can('voirTout')){ renderIntTechDay(SRC); return; }
   const card=i=>{ const sc=INT_STCOLOR[i.statut]||'var(--t3)'; const fin=i.statut==='terminee';
-    return `<div class="pl-row" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
-      <div style="text-align:center;min-width:46px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:15px;color:var(--t1)">${esc(i.heure||'—')}</div><div style="font-size:10px;color:var(--t3)">${fmtShort(i.date)}</div></div>
+    return `<div class="pl-row int-l" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
+      <div class="int-h" style="text-align:center;min-width:46px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:15px;color:var(--t1)">${esc(i.heure||'—')}</div><div style="font-size:10px;color:var(--t3)">${fmtShort(i.date)}</div></div>
       <div class="pl-info">
         <div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">⚠️ Urgent</span>':''}</div>
         <div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?`<span style="color:${encreDonnee(typeColor(i.type))};font-weight:700">${esc(i.type)}</span> · `:''}${esc(clientName(i.clientId))}</div>
@@ -18733,8 +18878,8 @@ views.interventions=function(){
         ${i.statut==='annulee'&&i.motifAnnulation?`<div style="font-size:11px;color:var(--red);font-weight:700;margin-top:2px">🚫 ${esc(i.motifAnnulation)}</div>`:''}
         ${intCkBar(i)}
       </div>
-      ${(i.statut==='planifiee'&&i.date&&i.heure&&new Date(i.date+'T'+i.heure).getTime()>Date.now())?`<div style="font-size:11px;color:var(--acc-txt);font-weight:700;white-space:nowrap;margin-right:8px">🕐 ${esc(fmtCountdown(new Date(i.date+'T'+i.heure).getTime()-Date.now()))}<div style="color:var(--t3);font-weight:400">${esc(i.heure)} – ${esc(addMin(i.heure,i.duree||60))}</div></div>`:''}
-      <span onclick="event.stopPropagation()" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+      ${(i.statut==='planifiee'&&i.date&&i.heure&&new Date(i.date+'T'+i.heure).getTime()>Date.now())?`<div class="int-cd" style="font-size:11px;color:var(--acc-txt);font-weight:700;white-space:nowrap;margin-right:8px">🕐 ${esc(fmtCountdown(new Date(i.date+'T'+i.heure).getTime()-Date.now()))}<div style="color:var(--t3);font-weight:400">${esc(i.heure)} – ${esc(addMin(i.heure,i.duree||60))}</div></div>`:''}
+      <span class="int-a" onclick="event.stopPropagation()" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
         ${badge(STATUT_INT,i.statut)}
         <span style="display:flex;gap:4px">${!fin&&i.statut!=='annulee'?`${i.statut==='planifiee'?`<button class="btn ghost sm" title="Démarrer (passe en cours)" onclick="intDemarrerQuick('${i.id}')">▶</button>`:''}<button class="btn sm" title="Effectué" onclick="intEffectuer('${i.id}')">Effectué</button>`:`<button class="btn ghost sm" title="Rapport" onclick="formRapport('${i.id}')">Rapport</button>`}</span>
       </span>
@@ -18788,7 +18933,7 @@ views.interventions=function(){
       ${intHistF==='supprimees'?'':`<div class="filters" style="margin-top:6px">${Object.keys(labels).map(k=>`<div class="chip ${intFilter===k?'active':''}" onclick="intFilter='${k}';views.interventions()">${labels[k]} (${counts[k]})</div>`).join('')}</div>`}
       <div class="filters" style="margin-top:6px"><div class="chip ${!intTechF?'active':''}" onclick="intTechF='';views.interventions()">Tous</div>${db.techniciens.map(t=>`<div class="chip ${intTechF===t.id?'active':''}" onclick="intTechF='${t.id}';views.interventions()">${esc(t.nom)}</div>`).join('')}</div>
       <div class="filters" style="margin-top:6px">${[['tout','Toute période'],['jour','Aujourd’hui'],['semaine','Cette semaine'],['mois','Ce mois']].map(([k,l])=>`<div class="chip ${intPeriod===k?'active':''}" onclick="intPeriod='${k}';views.interventions()">${l}</div>`).join('')}<span style="width:10px"></span>${[['jour','Grouper : jour'],['statut','Grouper : statut']].map(([k,l])=>`<div class="chip ${intGroup===k?'active':''}" onclick="intGroup='${k}';views.interventions()">${l}</div>`).join('')}</div>
-      ${intHistF==='supprimees'?body:(list.length? body : `<div class="card" style="margin-top:12px">${emptyState('🧰',q?'Aucun résultat pour cette recherche.':'Aucune intervention dans ces filtres.','Nouvelle','formIntervention()')}</div>`)}`;
+      ${intHistF==='supprimees'?body:(list.length? `<div class="int-liste">${body}</div>` : `<div class="card" style="margin-top:12px">${emptyState('🧰',q?'Aucun résultat pour cette recherche.':'Aucune intervention dans ces filtres.','Nouvelle','formIntervention()')}</div>`)}`;
     if(arguments[0]===true){ const si=$('int-search'); if(si){ si.focus(); try{ si.setSelectionRange(si.value.length,si.value.length); }catch(e){} } }
     return;
   }
@@ -18857,9 +19002,9 @@ function intTechCard(i,opts){ opts=opts||{}; const cli=db.clients.find(c=>c.id==
   const adr=i.adresse||cli.adresse||''; const tc=typeColor(i.type)||INT_STCOLOR[i.statut]||'var(--acc)';
   const enCours=i.statut==='encours'||(i.debutReel&&!i.finReel&&i.statut!=='terminee');
   return `<div class="card" onclick="detailIntervention('${i.id}')" style="padding:14px 15px;margin-bottom:10px;cursor:pointer;border-left:4px solid ${tc}">
-    <div style="display:flex;gap:12px;align-items:flex-start">
-      <div style="text-align:center;min-width:52px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:${opts.big?'19px':'16px'};color:var(--t1)">${esc(i.heure||'—')}</div>${opts.showDate?`<div style="font-size:10.5px;color:var(--t3)">${fmtShort(i.date)}</div>`:''}${enCours?`<div style="font-size:10px;font-weight:800;color:var(--org)">⏱ en cours</div>`:''}</div>
-      <div style="flex:1;min-width:0">
+    <div class="mj-l" style="display:flex;gap:12px;align-items:flex-start">
+      <div class="mj-h" style="text-align:center;min-width:52px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:${opts.big?'19px':'16px'};color:var(--t1)">${esc(i.heure||'—')}</div>${opts.showDate?`<div style="font-size:10.5px;color:var(--t3)">${fmtShort(i.date)}</div>`:''}${enCours?`<div style="font-size:10px;font-weight:800;color:var(--org)">⏱ en cours</div>`:''}</div>
+      <div class="mj-t" style="flex:1;min-width:0">
         <div style="font-weight:800;font-size:${opts.big?'15.5px':'14px'};color:var(--t1)">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">⚠️ Urgent</span>':''}</div>
         <div style="font-size:13px;color:var(--t2);margin-top:3px">${esc(clientName(i.clientId)||'—')}</div>
         ${adr?`<div style="font-size:12px;color:var(--t3);margin-top:2px">📍 ${esc(adr)}</div>`:''}
@@ -18885,14 +19030,14 @@ function renderIntTechDay(SRC){
   const done=SRC.filter(i=>i.statut==='terminee').sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||''))).slice(0,10);
   const nextId=(auj.find(i=>i.statut==='planifiee')||{}).id;
   const secD=(title,color,arr,open,opts)=>arr.length?`<details ${open?'open':''}><summary style="cursor:pointer;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:${color};margin:14px 2px 8px;font-weight:800;list-style:none">▸ ${title} · ${arr.length}</summary>${arr.map(i=>intTechCard(i,Object.assign({},opts,{startBtn:false}))).join('')}</details>`:'';
-  $('content').innerHTML=`
+  $('content').innerHTML=`<div class="mj">
     ${secD('🔴 En retard','var(--red)',retard,true,{showDate:true})}
     <div style="font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--acc-txt);margin:14px 2px 8px;font-weight:800">▶ Aujourd'hui — ${new Date(today+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
     ${auj.length?auj.map(i=>intTechCard(i,{big:true})).join(''):`<div class="card">${emptyState('🎉','Aucune intervention aujourd’hui.','Profite pour vérifier ton stock et ton véhicule.','')}</div>`}
     ${secD('📆 Demain','var(--blue)',demain,false,{showDate:true})}
     ${secD('📆 Cette semaine','var(--blue)',semaine,false,{showDate:true})}
     ${secD('📆 Plus tard / à planifier','var(--t3)',plusTard,false,{showDate:true})}
-    ${secD('✓ Terminées récentes','var(--t3)',done,false,{showDate:true})}`;
+    ${secD('✓ Terminées récentes','var(--t3)',done,false,{showDate:true})}</div>`;
 }
 /* ── B/F1. En-tête enrichi de la fiche : fil de statut, boutons utiles, badges site ── */
 function intHeadExtras(i){ const cli=db.clients.find(c=>c.id===i.clientId)||{};
@@ -25768,7 +25913,14 @@ views.enveloppes=function(){
         <div class="pl-meta">${esc(e.ville||'')}${envTotal(e)?' · '+eur(envTotal(e)):''}</div></div>
       <div style="text-align:right;white-space:nowrap"><div class="mono" style="font-weight:800;font-size:16px;color:var(--org)">${n}</div><div style="font-size:10px;color:var(--t3)">paiement${n>1?'s':''}</div></div>
     </div>`;}).join('');
-  $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+  /* ⛔ PAS DE « repeat(3,1fr) » POUR DES VALEURS QUI S'ALLONGENT. Mesuré le 23 septembre 2026 sur
+     un Android de 360 px : trois colonnes forcées dans 328 px, et une valeur en 34 px gras ne se
+     coupe pas — « 0h00 » fait déjà 91 px, « 152h30 » 136, « 1523h30 » 159, « 12 345,67 € » 215.
+     Pointage débordait de 9 px AVEC LES DONNÉES DE DÉMONSTRATION (0h00) : chez un client, bien
+     plus, et sur tous les téléphones (scratchpad/kpi-longs.js). 200 px par colonne : une sur téléphone, deux sur iPad
+     portrait, trois au bureau — la plus longue valeur mesurée tient partout. Même règle pour
+     les trois rangées qui forçaient trois colonnes (Pointage, Enveloppes et sa fiche). */
+  $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(total)}</div><div class="kpi-lbl">Total encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💵</div><div class="kpi-val">${eur(esp)}</div><div class="kpi-lbl">Espèces</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📝</div><div class="kpi-val">${eur(chq)}</div><div class="kpi-lbl">Chèques</div></div></div>
@@ -25777,6 +25929,7 @@ views.enveloppes=function(){
 function ficheEnv(id){ const e=db.enveloppes.find(x=>x.id===id); if(!e)return; e.paiements=e.paiements||[];
   const liv=[e.adresse,e.ville].filter(Boolean).join(', ');
   const pays=envPaie(e).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  /* le « Résumé » suit la règle de la liste (voir views.enveloppes) : jamais trois colonnes forcées */
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Fermer</button><h3>${esc(e.clientNom)||esc(e.numero)}</h3><button type="button" class="btn sm" onclick="formEnv('${e.id}')">Modifier</button></div>
     <div class="form-sec">Client</div>
     <div class="card" style="padding:4px 4px">
@@ -25786,7 +25939,7 @@ function ficheEnv(id){ const e=db.enveloppes.find(x=>x.id===id); if(!e)return; e
       <div class="bdt-row" style="border-bottom:none"><span class="bdt-ic">🧑‍🔧</span><span class="bdt-lbl">Technicien</span><span class="bdt-val">${esc(e.technicienId?techName(e.technicienId):'—')}</span></div>
     </div>
     <div class="form-sec">Résumé</div>
-    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       <div class="kpi"><div class="kpi-val" style="color:var(--org)">${eur(envTotal(e))}</div><div class="kpi-lbl">Total encaissé</div></div>
       <div class="kpi"><div class="kpi-val">💵 ${eur(envEsp(e))}</div><div class="kpi-lbl">Espèces</div></div>
       <div class="kpi"><div class="kpi-val">📝 ${eur(envChq(e))}</div><div class="kpi-lbl">Chèques</div></div></div>
@@ -25991,7 +26144,7 @@ views.validations=function(){
   // le DR / l'admin voit tout ; les autres ne voient que LEURS demandes et LEURS mouvements (avec la décision du DR)
   const att=visibleDemandes(db.demandes).filter(d=>d.statut==='enAttente');
   const autres=visibleDemandes(db.demandes).filter(d=>d.statut!=='enAttente').sort((a,b)=>(b.dateValidation||b.date||'').localeCompare(a.dateValidation||a.date||''));
-  const row=d=>`<div class="pl-row" data-dem="${d.id}" onclick="ficheDemande('${d.id}')"><div class="pl-info"><div class="pl-title">${esc(d.boxNom||boxLabel(d.boxId))} <span class="tag">${(d.lignes||[]).length} produit(s)</span></div><div class="pl-meta">${esc(d.num)} · ${esc(d.chefNom||userName(d.chefId))} · ${demTotal(d)} unité(s)</div></div>`;
+  const row=d=>`<div class="pl-row lga" data-dem="${d.id}" onclick="ficheDemande('${d.id}')"><div class="pl-info"><div class="pl-title">${esc(d.boxNom||boxLabel(d.boxId))} <span class="tag">${(d.lignes||[]).length} produit(s)</span></div><div class="pl-meta">${esc(d.num)} · ${esc(d.chefNom||userName(d.chefId))} · ${demTotal(d)} unité(s)</div></div>`;
   // ── Mouvements de box en attente du DR (arrivages, ajustements, retraits) ──
   const estDr=!!(currentUser&&can('validerDR'));
   const MICO={arrivage:'📦',ajustement:'✏️',retrait:'🗑️'};
@@ -26003,7 +26156,7 @@ views.validations=function(){
   const mvEcart=m=>{ if(m.type!=='arrivage'||!m.bcId) return '';
     const bon=(db.bons||[]).find(x=>x.id===m.bcId); if(!bon) return '';
     return bonEcartHtml(bon,m); };
-  const mvRow=(m,cls)=>`<div class="pl-row${cls?' '+cls:''}" data-mvt="${m.id}" style="cursor:default"><div class="pl-info"><div class="pl-title">${MICO[m.type]||'📦'} ${esc(boxMvtLibelle(m,cls==='mvc'&&m.type!=='retrait'))}</div><div class="pl-meta">${esc(m.par||'')} · ${new Date(m.ts||0).toLocaleDateString('fr-FR')}${m.motifRefus?' · motif : '+esc(m.motifRefus):''}${m.motDR?' · mot du DR : « '+esc(m.motDR)+' »':''}</div></div>`;
+  const mvRow=(m,cls)=>`<div class="pl-row ${cls||'lga'}" data-mvt="${m.id}" style="cursor:default"><div class="pl-info"><div class="pl-title">${MICO[m.type]||'📦'} ${esc(boxMvtLibelle(m,cls==='mvc'&&m.type!=='retrait'))}</div><div class="pl-meta">${esc(m.par||'')} · ${new Date(m.ts||0).toLocaleDateString('fr-FR')}${m.motifRefus?' · motif : '+esc(m.motifRefus):''}${m.motDR?' · mot du DR : « '+esc(m.motDR)+' »':''}</div></div>`;
   /* Les lignes d'un mouvement, produit par produit. Pour le DR (edit) : la demande et un champ
      pour n'en accorder qu'une partie. Pour les autres : seulement quand le DR a corrigé — sinon
      le libellé dit déjà tout, et l'historique n'a pas besoin de doubler. */
@@ -26023,7 +26176,7 @@ views.validations=function(){
   </div>`;
   const bandeauV=demoV?`<div class="card" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-style:dashed"><span style="font-size:17px">🧪</span><div style="flex:1;min-width:220px"><b>Simulation d'essai</b><div style="font-size:12px;color:var(--t3)">Pose des mouvements et une demande en attente de ton Valider, pour tester le circuit DR en vrai. Tout est marqué (démo).</div></div>${demoOnV?`<button type="button" class="btn ghost sm" onclick="mvtDemoRetirer();views.validations()">Retirer la simulation</button>`:(demoVBeta?`<button type="button" class="btn sm" onclick="mvtDemoPoser();views.validations()">Lancer la simulation</button>`:'')}</div>`:'';
   $('content').innerHTML=bandeauV+blocMv+`<div class="card"><div class="card-head"><h3>Demandes de commande (${att.length})</h3></div>
-    ${att.length? att.map(d=>row(d)+`${estDr?`<div onclick="event.stopPropagation()" style="display:flex;gap:6px"><button class="btn danger sm" onclick="validerDemande('${d.id}','refuse')">Refuser</button> <button class="btn sm" onclick="validerDemande('${d.id}','valide')">Valider</button></div>`:'<span class="st st-org">En attente du DR</span>'}</div>`).join('') : emptyState('✅','Aucune demande en attente.','','')}
+    ${att.length? att.map(d=>row(d)+`${estDr?`<div class="lga-a" onclick="event.stopPropagation()" style="display:flex;gap:6px"><button class="btn danger sm" onclick="validerDemande('${d.id}','refuse')">Refuser</button> <button class="btn sm" onclick="validerDemande('${d.id}','valide')">Valider</button></div>`:'<span class="st st-org">En attente du DR</span>'}</div>`).join('') : emptyState('✅','Aucune demande en attente.','','')}
   </div>${(autres.length||mvHisto.length)?`<div class="card"><div class="card-head"><h3>Historique</h3></div>
     ${mvHisto.map(m=>mvRow(m,m.modifieDR?'mvc':'')+`${m.modifieDR?'<div class="mvl-st">':''}<span class="st ${m.statut==='valide'?'st-green':'st-red'}">${m.statut==='valide'?'Validé':'Refusé'}${m.drNom?' · '+esc(m.drNom):''}</span>${m.modifieDR?'<span class="st st-org">Corrigé par le DR</span></div>':''}`+mvLignesHtml(m,false)+'</div>'+mvEcart(m)).join('')}
     ${autres.map(d=>row(d)+`${badge(STATV,d.statut)}</div>`).join('')}</div>`:''}`;
@@ -28266,7 +28419,7 @@ async function renderTournee(pts){
   const el=$('tournee'); if(!el) return;
   if(!pts.length){ el.innerHTML='<div style="color:var(--t3);font-size:13px">Aucune intervention géolocalisée ce jour (le client doit avoir une adresse localisée).</div>'; return; }
   el.innerHTML = pts.map((p,i)=>`
-    <div class="pl-row" style="cursor:pointer" onclick="detailIntervention('${p.id}')"><div class="pl-time">${p.heure}</div>
+    <div class="pl-row lh" style="cursor:pointer" onclick="detailIntervention('${p.id}')"><div class="pl-time">${p.heure}</div>
       <div class="pl-info"><div class="pl-title"><span style="display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--acc);color:var(--on-acc);align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-right:6px">${i+1}</span>${esc(p.titre)}</div><div class="pl-meta">${esc(p.clientNom||'')} · ${esc(p.adresse||'')}</div></div>${badge(STATUT_INT,p.statut)}</div>
     ${i<pts.length-1?`<div id="leg-${i}" style="display:flex;align-items:center;gap:8px;padding:4px 0 4px 50px;color:var(--t3);font-size:13px">calcul du trajet…</div>`:''}`).join('')
     + `<div id="tournee-total" style="margin-top:10px;text-align:right;font-size:14px;color:var(--t2)"></div>`;
@@ -28682,22 +28835,22 @@ function consoAnalyseHTML(){
               +(cmp===null?'nouveau ce mois-ci':(cmp>0?'▲ +'+cmp+' % vs mois dernier':(cmp<0?'▼ '+cmp+' % vs mois dernier':'stable vs mois dernier')))+'</span>'
             : '';
           const coul=trop?'var(--red)':'var(--acc-txt)';
-          return '<div style="display:flex;align-items:center;gap:13px;margin-bottom:13px">'
+          return '<div class="cs-l" style="display:flex;align-items:center;gap:13px;margin-bottom:13px">'
           +'<span style="width:34px;height:34px;flex:none;border-radius:50%;background:color-mix(in srgb,'+coul+' 18%,transparent);color:'+coul+';font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+esc(iniG(g.n))+'</span>'
-          +'<div style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(g.n)+(trop?' &#9888;':'')+'</div>'
+          +'<div class="cs-nom" style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(g.n)+(trop?' &#9888;':'')+'</div>'
           +'<div style="font-size:11.5px;color:'+(trop?'var(--red)':'var(--t3)')+'">'+(roleDe[g.n]?esc(roleNom(roleDe[g.n]))+' &middot; ':'')
             +g.q+' u'+(parMoisPers?' &middot; d\'habitude '+parMoisPers+'/mois':'')+(trop?' &middot; '+(Math.round(fois*10)/10)+'&times; son habitude':'')+'</div>'
           +(badgeCmp?'<div style="margin-top:1px">'+badgeCmp+'</div>':'')+'</div>'
-          +'<div style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(g.q/maxG*100)+'%;background:'+(trop?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
-          +'<div style="width:100px;flex:none;text-align:right"><span style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+'">'+g.q+' u</span>'
+          +'<div class="cs-bar" style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(g.q/maxG*100)+'%;background:'+(trop?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
+          +'<div class="cs-val" style="width:100px;flex:none;text-align:right"><span style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+'">'+g.q+' u</span>'
           +'<div style="font-size:11.5px;color:var(--t3)">'+part+' % du produit</div></div></div>'; }).join('')
           +'<div style="font-size:11.5px;color:var(--t3);padding-top:2px">Chacun est compar&eacute; &agrave; ce qu\'on lui donne d\'habitude chaque mois. Au-dessus, la ligne passe en rouge.</div>';
       })()
         :'<div style="font-size:13px;color:var(--t3)">Personne pour l\'instant.</div>')+'</div>':'';
     return '<div onclick="consoToggleProd(\''+t.pid+'\')" title="'+(ouv?'Replier':'Voir qui consomme ce produit')+'" style="cursor:pointer;padding:3px 0">'
-      +'<div class="bar-row" style="margin-bottom:11px;align-items:center"><div class="bar-lbl" style="width:270px;font-size:13.5px;white-space:normal;line-height:1.4" title="'+esc(t.nom)+'"><div style="display:flex;align-items:center;gap:2px;overflow:hidden"><span style="display:inline-block;width:15px;flex:none;color:'+(ouv?'var(--acc-txt)':'var(--t3)')+';font-size:12px;transform:rotate('+(ouv?90:0)+'deg)">&#9656;</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+'</span></div>'+(puce?'<div style="padding-left:17px;margin-top:2px">'+puce+'</div>':'')+'</div>'
-      +'<div class="bar-track" style="height:20px"><div class="bar-fill" style="width:'+(t.q/maxP*100)+'%;background:'+(rep&&dep?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
-      +'<div class="bar-val" style="font-size:14px'+(rep&&dep?';color:var(--red)':'')+'">'+t.q+' u</div></div></div>'+detail; }).join('');
+      +'<div class="bar-row cs-l" style="margin-bottom:11px;align-items:center"><div class="bar-lbl cs-nom" style="flex:0 1 270px;min-width:0;font-size:13.5px;white-space:normal;line-height:1.4" title="'+esc(t.nom)+'"><div style="display:flex;align-items:center;gap:2px;overflow:hidden"><span style="display:inline-block;width:15px;flex:none;color:'+(ouv?'var(--acc-txt)':'var(--t3)')+';font-size:12px;transform:rotate('+(ouv?90:0)+'deg)">&#9656;</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+'</span></div>'+(puce?'<div style="padding-left:17px;margin-top:2px">'+puce+'</div>':'')+'</div>'
+      +'<div class="bar-track cs-bar" style="height:20px;min-width:48px"><div class="bar-fill" style="width:'+(t.q/maxP*100)+'%;background:'+(rep&&dep?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
+      +'<div class="bar-val cs-val" style="font-size:14px'+(rep&&dep?';color:var(--red)':'')+'">'+t.q+' u</div></div></div>'+detail; }).join('');
   const maxH=Math.max(1,...topPers.slice(0,10).map(t=>t.q));
   // qui consomme quoi — sert au panneau qui s'ouvre sous chaque personne
   const croise={}; sorties.forEach(m=>{ const q=quiConso(m); (croise[q]=croise[q]||{})[m.produitId]=(croise[q][m.produitId]||0)+(m.qte||0); });
@@ -28711,21 +28864,21 @@ function consoAnalyseHTML(){
     const part=Math.round(t.q/Math.max(1,unites)*100);
     const prods=Object.entries(croise[t.nom]||{}).map(([pid,q])=>({pid,q,nom:produit(pid).nom||'—'})).sort((a,b)=>b.q-a.q);
     const maxPr=Math.max(1,...prods.map(p=>p.q));
-    const detail=ouv?'<div style="margin:4px 0 14px 51px;padding:14px 18px;background:var(--bg1);border:1px solid color-mix(in srgb,'+coul+' 30%,transparent);border-radius:14px">'
+    const detail=ouv?'<div class="cs-det" style="margin:4px 0 14px 51px;padding:14px 18px;background:var(--bg1);border:1px solid color-mix(in srgb,'+coul+' 30%,transparent);border-radius:14px">'
       +'<div style="font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:'+coul+';margin-bottom:12px">Ce qu\'on lui a donn&eacute; &middot; '+prods.length+' produit'+(prods.length>1?'s':'')+'</div>'
-      +prods.slice(0,10).map(p=>'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
-        +'<div style="width:250px;flex:none;font-size:13px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(p.nom)+'">'+esc(p.nom)+'</div>'
-        +'<div style="flex:1;min-width:60px;height:16px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(p.q/maxPr*100)+'%;background:'+coul+'"></div></div>'
-        +'<div style="width:64px;flex:none;text-align:right;font-family:monospace;font-size:13.5px;font-weight:700;color:var(--t1)">'+p.q+' u</div></div>').join('')
+      +prods.slice(0,10).map(p=>'<div class="cs-l" style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
+        +'<div class="cs-nom" style="width:250px;flex:none;font-size:13px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(p.nom)+'">'+esc(p.nom)+'</div>'
+        +'<div class="cs-bar" style="flex:1;min-width:60px;height:16px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(p.q/maxPr*100)+'%;background:'+coul+'"></div></div>'
+        +'<div class="cs-val" style="width:64px;flex:none;text-align:right;font-family:monospace;font-size:13.5px;font-weight:700;color:var(--t1)">'+p.q+' u</div></div>').join('')
       +(prods.length>10?'<div style="font-size:12px;color:var(--t3)">'+(prods.length-10)+' autres produits.</div>':'')+'</div>':'';
     return '<div onclick="consoTogglePers('+i+')" title="'+(ouv?'Replier':'Voir ce qu\'on lui a donn&eacute;')+'" style="cursor:pointer">'
-      +'<div style="display:flex;align-items:center;gap:13px;padding:8px 0">'
+      +'<div class="cs-l" style="display:flex;align-items:center;gap:13px;padding:8px 0">'
       +'<span style="display:inline-block;width:13px;flex:none;color:'+(ouv?'var(--acc-txt)':'var(--t3)')+';font-size:12px;transform:rotate('+(ouv?90:0)+'deg)">&#9656;</span>'
       +'<span style="width:38px;height:38px;flex:none;border-radius:50%;background:color-mix(in srgb,'+coul+' 18%,transparent);color:'+coul+';font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+esc(iniP(t.nom))+'</span>'
-      +'<div style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+(fort?' &#9888;':'')+'</div>'
+      +'<div class="cs-nom" style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+(fort?' &#9888;':'')+'</div>'
       +'<div style="font-size:11.5px;color:var(--t3)">'+(roleDe[t.nom]?esc(roleNom(roleDe[t.nom]))+' &middot; ':'')+evol(t.q,parPersAvant[t.nom]||0)+'</div></div>'
-      +'<div style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(t.q/maxH*100)+'%;background:'+(fort?'var(--org)':'linear-gradient(90deg,color-mix(in srgb,'+coul+' 70%,black),'+coul+')')+'"></div></div>'
-      +'<div style="width:96px;flex:none;text-align:right"><div style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+'">'+t.q+' u</div>'
+      +'<div class="cs-bar" style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(t.q/maxH*100)+'%;background:'+(fort?'var(--org)':'linear-gradient(90deg,color-mix(in srgb,'+coul+' 70%,black),'+coul+')')+'"></div></div>'
+      +'<div class="cs-val" style="width:96px;flex:none;text-align:right"><div style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+'">'+t.q+' u</div>'
       +'<div style="font-size:11.5px;color:var(--t3)">'+part+' % du total</div></div></div></div>'+detail; }).join('');
   const alertes=topPers.filter(t=>t.nom!==SANS_NOM&&moyPers>0&&t.q>moyPers*1.6&&t.q>=5);
   // ── récapitulatif mois par mois ──
@@ -31320,12 +31473,12 @@ views.factures=function(){
     <div class="kpi"><div class="kpi-ico" style="background:rgba(239,68,68,.14)">🚨</div><div class="kpi-val">${eur(totLate)}</div><div class="kpi-lbl">En retard (${lateList.length})</div></div></div>
     ${(devisAcc.length||intsAfact.length)?`<div class="card"><div class="card-head"><h3>À facturer</h3><span class="tag">${devisAcc.length+intsAfact.length}</span></div>
       ${devisAcc.length?`<div class="form-sec" style="margin:8px 0 6px">📄 Devis acceptés (${devisAcc.length})</div>`:''}
-      ${devisAcc.map(d=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">Devis ${esc(d.num)} · ${eur(docTot(d).ttc)}</div><div class="pl-meta">${esc(clientName(d.clientId))} · devis accepté</div></div><button class="btn sm" onclick="devisToFacture('${d.id}')">Générer la facture</button></div>`).join('')}
+      ${devisAcc.map(d=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">Devis ${esc(d.num)} · ${eur(docTot(d).ttc)}</div><div class="pl-meta">${esc(clientName(d.clientId))} · devis accepté</div></div><button class="btn sm" onclick="devisToFacture('${d.id}')">Générer la facture</button></div>`).join('')}
       ${(()=>{ /* une pile par technicien : on traite son travail d'un bloc, puis le suivant */
         const gp={}; intsAfact.slice(0,80).forEach(i=>{ const n=techNames(i); (gp[n]=gp[n]||[]).push(i); });
         return Object.keys(gp).sort((a,b)=>a==='Non assigné'?1:(b==='Non assigné'?-1:a.localeCompare(b,'fr'))).map(n=>
           `<div class="form-sec" style="margin:12px 0 6px">👷 ${esc(n)} (${gp[n].length})</div>`
-          +gp[n].map(i=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">${esc(i.titre)}${Number(i.montant)?` · ${eur(i.montant)}`:''}</div><div class="pl-meta">${esc(clientName(i.clientId))} · ${fmtShort(i.date)} · intervention terminée${(i.rapportModele&&!/g[ée]n[ée]rique/i.test(i.rapportModele))?` · <span style="color:var(--acc-txt);font-weight:700">${esc(rapportSociete(i.rapportModele))}</span>`:''}</div></div><button class="btn sm" onclick="intGenererDoc('${i.id}','factures')">Générer la facture</button></div>`).join('')).join('');
+          +gp[n].map(i=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(i.titre)}${Number(i.montant)?` · ${eur(i.montant)}`:''}</div><div class="pl-meta">${esc(clientName(i.clientId))} · ${fmtShort(i.date)} · intervention terminée${(i.rapportModele&&!/g[ée]n[ée]rique/i.test(i.rapportModele))?` · <span style="color:var(--acc-txt);font-weight:700">${esc(rapportSociete(i.rapportModele))}</span>`:''}</div></div><button class="btn sm" onclick="intGenererDoc('${i.id}','factures')">Générer la facture</button></div>`).join('')).join('');
       })()}
     </div>`:''}
     <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Le circuit : <b>Générer</b> → la facture arrive <b>En attente</b> → <b>Aperçu</b> pour la vérifier → <b>📧 Envoyer</b> au client → <b>Payée</b> une fois réglée${isFinanceMgr()?' → <b>Valider</b> (compta)':''}.</div>
@@ -32173,7 +32326,7 @@ function ctrlJournee(techId,declarantId,d){
     <div class="form-sec">2 · Ses interventions (${ints.length})</div>
     ${ints.length? ints.map(ligneInt).join('') : '<div style="color:var(--t3);font-size:13px;padding:6px 2px">Aucune intervention planifiée ce jour-là.</div>'}
     ${ajouts.length?`<div class="form-sec">Ajouté en télécollecte</div>
-      ${ajouts.map(l=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">${esc(l.clientNom||l.note||'Encaissement')}</div><div class="pl-meta">🕒 ${esc(l.heure||'')}</div></div><span class="st st-org">${(REG_MODES[l.mode]||['',l.mode])[0]} ${eur(l.montant)}</span></div>`).join('')}`:''}
+      ${ajouts.map(l=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(l.clientNom||l.note||'Encaissement')}</div><div class="pl-meta">🕒 ${esc(l.heure||'')}</div></div><span class="st st-org">${(REG_MODES[l.mode]||['',l.mode])[0]} ${eur(l.montant)}</span></div>`).join('')}`:''}
     ${pied}
     <div class="modal-foot" style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn ghost" onclick="closeModal();planSel='${d}';planWeekRef='${d}';go('planning')">Planning du jour</button>
@@ -32412,8 +32565,8 @@ function comptaSynthese(){
       <div class="frow"><span class="frow-lbl">À encaisser (toutes périodes)</span><div class="frow-val"><b style="color:var(--red)">${eur(impTot)}</b></div></div>
       <div class="frow"><span class="frow-lbl">TVA collectée (${lbl})</span><div class="frow-val"><b>${eur(tvaP)}</b></div></div>
       ${impayes.length?`<div class="form-sec" style="margin-top:6px">En attente de règlement</div>
-      ${impayes.map(f=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(ttc(f))}</div><div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)}</div></div>
-        <span style="display:flex;gap:6px;align-items:center">${badge(FACT_ST,f.statut)}<button class="btn sm" onclick="comptaVirement('${f.id}')">Encaissé</button></span></div>`).join('')}`
+      ${impayes.map(f=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(ttc(f))}</div><div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)}</div></div>
+        <span class="lga-a" style="display:flex;gap:6px;align-items:center">${badge(FACT_ST,f.statut)}<button class="btn sm" onclick="comptaVirement('${f.id}')">Encaissé</button></span></div>`).join('')}`
       :'<div style="color:var(--t3);font-size:13px;margin-top:6px">Aucune facture en attente 🎉</div>'}
     </div>`;
 }
@@ -33373,8 +33526,15 @@ views.pointage=function(){
         <span style="white-space:nowrap"><button class="btn ghost sm" onclick="formPointage('${p.id}')">✎</button> <button class="btn danger sm" onclick="delItem('pointages','${p.id}')">🗑</button></span>
       </div>`).join('')}</div>`).join('');
 
+  /* ⛔ PAS DE « repeat(3,1fr) » POUR DES VALEURS QUI S'ALLONGENT. Mesuré le 23 septembre 2026 sur
+     un Android de 360 px : trois colonnes forcées dans 328 px, et une valeur en 34 px gras ne se
+     coupe pas — « 0h00 » fait déjà 91 px, « 152h30 » 136, « 1523h30 » 159, « 12 345,67 € » 215.
+     Pointage débordait de 9 px AVEC LES DONNÉES DE DÉMONSTRATION (0h00) : chez un client, bien
+     plus, et sur tous les téléphones (scratchpad/kpi-longs.js). 200 px par colonne : une sur téléphone, deux sur iPad
+     portrait, trois au bureau — la plus longue valeur mesurée tient partout. Même règle pour
+     les trois rangées qui forçaient trois colonnes (Pointage, Enveloppes et sa fiche). */
   $('content').innerHTML=`${moi}${alerte}${barre}
-    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">⏱️</div><div class="kpi-val">${ptDuree(secTot)}</div><div class="kpi-lbl">Total de la période</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">📅</div><div class="kpi-val">${jours.length}</div><div class="kpi-lbl">Jour${jours.length>1?'s':''} travaillé${jours.length>1?'s':''}</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(251,191,36,.16)">🗒️</div><div class="kpi-val">${list.length}</div><div class="kpi-lbl">Pointages</div></div></div>
