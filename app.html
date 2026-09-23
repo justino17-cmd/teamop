@@ -7632,7 +7632,10 @@ function bonSocietePick(sel){
   const opt=document.createElement('option'); opt.value=nom; opt.textContent=nom;
   sel.insertBefore(opt, sel.options[sel.options.length-1]);
   sel.value=nom;
-  toast(deja?('🏢 « '+nom+' » existait déjà — sélectionnée'):('🏢 Société « '+nom+' » ajoutée'));
+  /* v740 : même règle que Paramètres (entSocAdd) — une société recréée sous un ancien nom reprend
+     ses coordonnées ; on le DIT. Relevé par la contre-vérification : la seconde porte se taisait. */
+  const o=(db.societesStyle||{})[nom], ancien=!deja&&!!(o&&(o.siret||o.iban||o.adresse));
+  toast(deja?('🏢 « '+nom+' » existait déjà — sélectionnée'):ancien?('🏢 « '+nom+' » existait déjà : ses anciennes coordonnées sont reprises — vérifie-les dans Paramètres → 🏢 Coordonnées'):('🏢 Société « '+nom+' » ajoutée'));
 }
 function entSocAdd(){ const inp=$('ent-soc-new'); const v=((inp&&inp.value)||'').trim().slice(0,60); if(!v){ toast('Tape le nom de la société'); return; }
   db.societes=db.societes||[]; if(db.societes.some(s=>s.toLowerCase()===v.toLowerCase())){ toast('Cette société existe déjà'); return; }

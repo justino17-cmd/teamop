@@ -218,7 +218,8 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
     v('sans date (un plan, une note) : rien ne change, le côté prioritaire', sansDate.cX[0].id, 'p');
     v('à dates égales : le côté prioritaire', W.dictFusion({ A: { x: 1, _m: 5 } }, { A: { x: 2, _m: 5 } }).A.x, 1); }
   { vrai('chaque écriture d’une société la DATE (couleur/logo et coordonnées)', /db\.societesStyle\[nom\]\._m=Date\.now\(\);/.test(corps('socStylePose')) && /st\._m=Date\.now\(\);/.test(corps('socCoordSave')));
-    vrai('recréer une société au nom d’une ancienne le DIT (ses coordonnées sont reprises)', /existait déjà : ses anciennes coordonnées sont reprises/.test(corps('entSocAdd'))); }
+    vrai('recréer une société au nom d’une ancienne le DIT (ses coordonnées sont reprises) — aux DEUX portes, Paramètres et bon de commande',
+      ['entSocAdd', 'bonSocietePick'].every(f => /existait déjà : ses anciennes coordonnées sont reprises/.test(corps(f)))); }
 
   console.log('── 793 · 5 ter. la VRAIE srvMail : la boîte connectée envoie au nom de la société ──');
   { const essai = async (boite, opts) => {
