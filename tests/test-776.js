@@ -68,6 +68,14 @@ for (const sel of ['html[data-refonte] .pld-j,html[data-refonte] .pld-note,html[
   vrai('⛔ ' + sel.replace(/html\[data-refonte\] /g, '').slice(0, 44) + '… vit dans @media (pointer:coarse)', !!r && r.media === '@media (pointer:coarse)', r && r.media);
 }
 
+/* Trouvés par la passe SANS PLAFOND au téléphone (1 210 clics) : deux sous-vues qu'aucune passe
+   plafonnée n'ouvrait. Même règle que `.tdb-jh` : un en-tête de jour qui ouvre ce jour est une
+   commande ; la LARGEUR de la frise (18 px en « 3 mois »), elle, reste la décision écrite. */
+const pgHd = regle('html[data-refonte] #content .pg-hd{min-height:38px;display:flex;flex-direction:column;justify-content:center}');
+vrai('⛔ l’en-tête de jour du Planning général prend 38 px au doigt', !!pgHd && pgHd.media === '@media (pointer:coarse)', pgHd && pgHd.media);
+const leg = regle('html[data-refonte] .plm-leg .lg.clic{min-height:38px;padding:0 12px}');
+vrai('⛔ un technicien de la légende « Côte à côte » prend 38 px au doigt', !!leg && leg.media === '@media (pointer:coarse)', leg && leg.media);
+
 console.log('\n── 776 · 4. le segmenté de période tient sur un petit téléphone ──');
 const serre = regle('html[data-refonte] .tdb-seg span{padding-left:6px!important;padding-right:6px!important;font-size:11px}');
 vrai('sous 440 px, le segmenté se resserre', !!serre && /max-width:440px/.test(serre.media), serre && serre.media);
@@ -144,6 +152,13 @@ vrai('une colonne sur les téléphones (328–398 px), deux sur iPad portrait, t
   cas.every(([w, n]) => colonnes(w) === n), cas.map(([w]) => w + '→' + colonnes(w)));
 vrai('⛔ … et la plus longue valeur mesurée (159 px) tient dans chaque carte', cas.every(([w]) => place(w) >= plusLongue),
   cas.map(([w]) => w + '→' + Math.round(place(w))));
+
+console.log('\n── 776 · 8. « Côte à côte » en une colonne : une colonne qui peut rétrécir ──');
+/* Mesuré le 23 septembre 2026 : en vue Multi, la grille des techniciens imposait 396 px à un
+   iPhone de 390 et 696 px à un iPad portrait — `1fr` ne descend pas sous le contenu. */
+const split = regle('.plm-split{ grid-template-columns:minmax(0,1fr); }');
+vrai('⛔ sous 1 100 px, la colonne unique est minmax(0,1fr)', !!split && /max-width:1100px/.test(split.media), split && split.media);
+vrai('… et plus aucune règle ne la remet à « 1fr » nu', !/\.plm-split\{\s*grid-template-columns:1fr;/.test(SRC));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

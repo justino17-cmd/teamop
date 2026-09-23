@@ -894,7 +894,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .plm-row small{ color:var(--t3); font-weight:600; font-size:10.5px; }
 /* la grille */
 .plm-split{ display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,430px); gap:12px; align-items:start; }
-@media(max-width:1100px){ .plm-split{ grid-template-columns:1fr; } }
+/* ⛔ UNE SEULE COLONNE, MAIS QUI PEUT RÉTRÉCIR. `1fr` ne descend pas sous la largeur minimale de
+   son contenu : en vue Multi, la grille des techniciens imposait 396 px à un iPhone de 390 et
+   696 px à un iPad portrait (colonne de 500) — mesuré le 23 septembre 2026, disposition « Côte à
+   côte ». La page entière défilait de côté. `minmax(0,1fr)`, comme la colonne du planning en
+   grand écran juste au-dessus : la grille défile alors dans son propre cadre, comme en
+   « Planning seul ». */
+@media(max-width:1100px){ .plm-split{ grid-template-columns:minmax(0,1fr); } }
 .plm-wrap{ padding:0; overflow:auto; }
 .plm-grid{ display:grid; min-width:100%; }
 .plm-b0{ background:var(--card); position:sticky; left:0; z-index:3; }
@@ -3999,6 +4005,17 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] .pld-nav u{width:38px;height:38px}
   html[data-refonte] .plg-pin{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:38px;vertical-align:middle}
   html[data-refonte] .pf-zoom b{min-height:38px;display:inline-flex;align-items:center;justify-content:center}
+  /* ⛔ ET DEUX DE PLUS, QUE SEULE LA PASSE « BOUTON PAR BOUTON » SANS PLAFOND POUVAIT ATTEINDRE
+     (23 septembre 2026, 1 210 clics au téléphone) — chacune dans une sous-vue qu'aucune passe
+     plafonnée n'ouvrait :
+     · `.pg-hd` (35 px) — l'en-tête de jour du Planning général : il ouvre le planning de ce
+       jour, exactement comme `.tdb-jh` plus haut, donc même plancher. Sa LARGEUR, elle, reste
+       celle de la frise (18 px par jour en vue « 3 mois ») : 90 jours à 38 px feraient 3 400 px
+       et tueraient la vue d'ensemble — c'est la décision écrite des cases, juste au-dessus ;
+     · `.plm-leg .lg.clic` (23 px) — un technicien de la légende de la vue « Côte à côte » : il
+       filtre la carte sur ses tournées. */
+  html[data-refonte] #content .pg-hd{min-height:38px;display:flex;flex-direction:column;justify-content:center}
+  html[data-refonte] .plm-leg .lg.clic{min-height:38px;padding:0 12px}
   html[data-refonte] .ic-act{min-height:38px;min-width:38px;display:inline-flex;align-items:center;justify-content:center}
   /* ⛔⛔ LE CHAMP D'UNE RANGÉE DE FORMULAIRE NE RÉPONDAIT QUE SUR 17 PX. `.frow` est la rangée
      façon Réglages d'iOS (libellé, champ nu, filet) : 179 formulaires en sont faits. Mais
