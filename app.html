@@ -12832,6 +12832,8 @@ function ptPeutVoirAutres(){ return !!(can('voirTout')||can('voirPointages')); }
    c'est-à-dire sa paie. Responsable = qui voit les feuilles de temps des autres
    (`ptPeutVoirAutres`), et seulement sur les lignes que son périmètre lui montre. La suppression
    suit la même règle : effacer une journée n'est pas moins grave que la réécrire. */
+/* Qui règle les champs de GESTION d'une fiche du personnel : ceux qui corrigent les heures. */
+function fichesGere(){ return !!currentUser&&(currentUser.role==='admin'||ptPeutVoirAutres()); }
 function ptPeutCorriger(p){ return ptPeutVoirAutres() && !!p && visiblePointages([p]).length===1; }
 /* ⛔ L'ÉQUIPE : CHACUN VOIT CE QUI LE CONCERNE — décision de Justin, 23 septembre 2026 :
    « chacun voit ce qui le concerne, et le DR ou autres personnes assignés ». L'écran « Équipe »
@@ -29535,20 +29537,23 @@ async function saveTech(e,id){ e.preventDefault();
      à l'administrateur, en créer un demande le droit « Créer des utilisateurs ». La fiche elle-même
      (téléphone, secteur, Certibiocide…) reste modifiable selon « Temps & équipe ». */
   const admin=!!currentUser&&currentUser.role==='admin';
+  if(id && !visibleTechniciens(db.techniciens).some(x=>x.id===id)){ toast('Cette fiche ne te concerne pas'); return; }
   if(!id && !admin && !can('creerUtilisateurs')){ toast('Créer des comptes demande le droit « Créer des utilisateurs » (Permissions)'); return; }
   const d=Object.fromEntries(new FormData(e.target));
   if(!id && !planPlaceLibre()){ proposerAbonnement(); return; }
   /* le rôle, verrouillé à l'écran pour qui n'est pas administrateur, ne se lit pas non plus au formulaire */
   if(id && !admin) d.metier=(db.techniciens.find(x=>x.id===id)||{}).metier||'Technicien';
+  const gere=!id||fichesGere();
   const obj={nom:d.nom,metier:d.metier||'Technicien',tel:d.tel,email:d.email,departements:d.departements,couleur:d.couleur,certibiocide:d.certibiocide||'',certibiocideExp:d.certibiocideExp||'',capMin:Math.round((parseFloat(String(d.capH||'').replace(',','.'))||7)*60),
     droitConges:(d.droitConges===''||d.droitConges==null)?25:(parseFloat(String(d.droitConges).replace(',','.'))||0),
     chef:d.chef||''};
+  if(!gere) ['departements','capMin','droitConges','chef'].forEach(k=>delete obj[k]);   // la fiche garde ce qu'elle avait
   const role = d.metier==="Chef d'équipe" ? 'chefEquipe' : 'technicien';
   if(id){ const ix=db.techniciens.findIndex(x=>x.id===id); db.techniciens[ix]={...db.techniciens[ix],...obj};
     // Le rôle du compte suit la fiche — SAUF pour un administrateur : « Chef d'équipe » sur une
     // fiche technicien ne doit pas rétrograder le patron, qui perdrait Utilisateurs et Permissions.
     const u=db.users.find(x=>x.techId===id); if(admin&&u&&u.role!=='admin'){ u.role=role; }
-    save(); closeModal(); toast('Technicien mis à jour'); views.techniciens(); return; }
+    save(); closeModal(); toast('Technicien mis à jour'); (views[current]||views.techniciens)(); return; }
   // Création : technicien + compte de connexion — sans doublon
   if(db.techniciens.some(x=>nomNorm(x.nom)===nomNorm(d.nom))){ toast('Un technicien porte déjà ce nom — modifie sa fiche plutôt que d\'en créer une deuxième'); return; }
   const tid=uid(); db.techniciens.push({id:tid,...obj});
@@ -29566,17 +29571,25 @@ async function saveTech(e,id){ e.preventDefault();
 }
 function formTech(id){ if(!permGarde('equipe', id?'modifier':'ajouter','un technicien')) return;
   if(!id && !(currentUser&&(currentUser.role==='admin'||can('creerUtilisateurs')))){ toast('Créer des comptes demande le droit « Créer des utilisateurs » (Permissions)'); return; }
-  const t=id?db.techniciens.find(x=>x.id===id):{};
+  /* le périmètre, comme ficheTech : le formulaire d'une fiche porte les mêmes coordonnées qu'elle */
+  const t=id?visibleTechniciens(db.techniciens).find(x=>x.id===id):{};
+  if(!t){ if((db.techniciens||[]).some(x=>x.id===id)) toast('Cette fiche ne te concerne pas'); return; }
+  /* ⛔ Les champs de GESTION se règlent par un responsable, comme les heures (Justin : « le ✎ du
+     Pointage réservé au responsable ») : les jours de congés font le solde des absences, la capacité
+     la charge du planning, le secteur l'attribution des interventions, le rattachement l'équipe. Sur
+     SA fiche, un technicien les voit sans les changer — sinon il s'accordait 60 jours de congés. Le
+     téléphone, l'e-mail, la couleur et le Certibiocide restent à lui. */
+  const gere=!id||fichesGere(), fg=gere?'':' disabled title="Réglé par ton responsable"';
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} technicien</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="saveTech(event,'${id||''}')">
       <div class="field"><label>Nom complet *</label><input name="nom" required value="${esc(t.nom)}"></div>
       <div class="field"><label>Rôle</label><select name="metier" ${id&&currentUser&&currentUser.role!=='admin'?'disabled title="Changer le rôle d’un compte est réservé à l’administrateur"':''}><option ${(t.metier||'Technicien')==='Technicien'?'selected':''}>Technicien</option><option ${t.metier==="Chef d'équipe"?'selected':''}>Chef d'équipe</option></select></div>
       <div class="field-row"><div class="field"><label>Téléphone</label><input name="tel" value="${esc(t.tel)}"></div><div class="field"><label>Email</label><input type="email" name="email" value="${esc(t.email)}"></div></div>
-      <div class="field"><label>Secteur — départements</label><input name="departements" value="${esc(t.departements)}" placeholder="Ex : 85 Vendée, 44, Paris 75011"><div style="font-size:11px;color:var(--t3);margin-top:4px">Un département entier (n° ou nom). Grandes villes : par arrondissement (ex. 75011).</div></div>
+      <div class="field"><label>Secteur — départements</label><input name="departements"${fg} value="${esc(t.departements)}" placeholder="Ex : 85 Vendée, 44, Paris 75011"><div style="font-size:11px;color:var(--t3);margin-top:4px">Un département entier (n° ou nom). Grandes villes : par arrondissement (ex. 75011).</div></div>
       <div class="field"><label>Couleur (carte)</label><select name="couleur"><option value="" ${!t.couleur?'selected':''}>Auto (couleur unique)</option>${TECH_PALETTE.map((c,i)=>`<option value="${c}" ${t.couleur===c?'selected':''} style="background:${c}">${['Vert','Bleu','Violet','Orange','Rouge','Cyan','Jaune','Rose'][i]}</option>`).join('')}</select></div>
-      <div class="field-row"><div class="field"><label>Capacité par jour (heures)</label><input name="capH" type="number" min="1" max="14" step="0.5" value="${t.capMin?(t.capMin/60):7}" style="text-align:right"></div>
-        <div class="field"><label>Jours de congés par an</label><input name="droitConges" type="number" min="0" max="60" step="0.5" value="${t.droitConges!=null&&t.droitConges!==''?t.droitConges:25}" style="text-align:right"></div></div>
-      <div class="field"><label>Rattaché à</label><select name="chef"><option value="">Personne — travaille seul</option>${db.techniciens.filter(x=>x.id!==id).map(x=>`<option value="${x.id}" ${t.chef===x.id?'selected':''}>${esc(x.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">Sert à choisir toute une équipe d'un coup dans le planning général.</div></div>
+      <div class="field-row"><div class="field"><label>Capacité par jour (heures)</label><input name="capH"${fg} type="number" min="1" max="14" step="0.5" value="${t.capMin?(t.capMin/60):7}" style="text-align:right"></div>
+        <div class="field"><label>Jours de congés par an</label><input name="droitConges"${fg} type="number" min="0" max="60" step="0.5" value="${t.droitConges!=null&&t.droitConges!==''?t.droitConges:25}" style="text-align:right"></div></div>
+      <div class="field"><label>Rattaché à</label><select name="chef"${fg}><option value="">Personne — travaille seul</option>${db.techniciens.filter(x=>x.id!==id&&(gere||x.id===t.chef)).map(x=>`<option value="${x.id}" ${t.chef===x.id?'selected':''}>${esc(x.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">Sert à choisir toute une équipe d'un coup dans le planning général.</div></div>
       <div style="font-size:11px;color:var(--t3);margin:-6px 2px 10px">La capacité sert à la jauge de charge du planning (vert ≤ 75 %, orange 76-99 %, rouge ≥ 100 %), défaut 7 h. Les jours de congés servent au solde dans Absences &amp; congés, défaut 25 jours ouvrés.</div>
       <div class="field-row"><div class="field"><label>Certibiocide n°</label><input name="certibiocide" value="${esc(t.certibiocide)}" placeholder="N° du certificat" class="mono"></div>
         <div class="field"><label>Valide jusqu'au</label><input type="date" name="certibiocideExp" value="${t.certibiocideExp||''}"></div></div>
@@ -34846,14 +34859,21 @@ views.secteurs=function(){
   // départements détectés dans les données
   const detected={}; db.interventions.forEach(i=>{ const k=keyForClient(i.clientId); if(k){ const dep=k.length>2&&!/^(2A|2B)$/.test(k)?k.slice(0,2):k; detected[dep]=(detected[dep]||0)+1; } });
   const depList=Object.keys(detected).sort();
-  const techCards=db.techniciens.map(t=>{ const deps=parseTechDepts(t.departements);
-    return `<div class="pl-row" onclick="formTech('${t.id}')"><span class="avatar" style="background:${techColor(t.id)};color:#fff">${initials(t.nom)}</span>
+  /* ⛔ LA PORTE OUBLIÉE DE LA v735 (trouvée par la relecture) : « Équipe », la fiche, la recherche et
+     le journal passaient par le périmètre, Secteurs non — il listait TOUTE l'entreprise, et chaque
+     ligne ouvrait le formulaire complet d'un collègue (téléphone, e-mail, Certibiocide). Fermé par
+     défaut, mais l'administrateur l'ouvre à un DR ou à une personne depuis Permissions : c'est
+     exactement le cas que la règle de Justin vise. Un département couvert par quelqu'un hors du
+     périmètre se dit « Couvert », sans le nom. */
+  const vis=visibleTechniciens(db.techniciens), visIds=new Set(vis.map(t=>t.id)), peutModif=canCat('equipe','modifier');
+  const techCards=vis.map(t=>{ const deps=parseTechDepts(t.departements);
+    return `<div class="pl-row"${peutModif?` onclick="formTech('${t.id}')"`:' style="cursor:default"'}><span class="avatar" style="background:${techColor(t.id)};color:#fff">${initials(t.nom)}</span>
       <div class="pl-info"><div class="pl-title">${esc(t.nom)}</div><div class="pl-meta">${deps.length? deps.map(d=>`<span class="tag">${esc(keyLabel(d))}</span>`).join(' '):'<span style="color:var(--org)">Aucun secteur</span>'}</div></div>
-      <span onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button></span></div>`;}).join('');
-  const depCards=depList.map(dep=>{ const t=techForKey(dep);
+      ${peutModif?`<span onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="formTech('${t.id}')" aria-label="Modifier le secteur">✎</button></span>`:''}</div>`;}).join('');
+  const depCards=depList.map(dep=>{ const t0=techForKey(dep), t=t0&&visIds.has(t0.id)?t0:null;
     return `<div class="pl-row" style="cursor:default"><span style="width:40px;height:40px;border-radius:10px;background:${deptColor(dep)};color:${encreSur(deptColor(dep))};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">${esc(dep)}</span>
       <div class="pl-info"><div class="pl-title">${esc(keyLabel(dep))}</div><div class="pl-meta">${detected[dep]} intervention(s)</div></div>
-      ${t?badge({x:{l:t.nom,c:'st-green'}},'x'):'<span class="st st-red">Non couvert</span>'}</div>`;}).join('');
+      ${t?badge({x:{l:t.nom,c:'st-green'}},'x'):t0?'<span class="st st-green">Couvert</span>':'<span class="st st-red">Non couvert</span>'}</div>`;}).join('');
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Techniciens & secteurs</h3></div>${techCards||'<div style="color:var(--t3);font-size:13px">Aucun technicien.</div>'}</div>
     <div class="card"><div class="card-head"><h3>Départements (données)</h3></div>${depCards||'<div style="color:var(--t3);font-size:13px">Aucun département détecté.</div>'}</div>`;
 };

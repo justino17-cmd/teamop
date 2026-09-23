@@ -29,10 +29,10 @@ function bloc(debut) {
 
 console.log('\n── 786 · 0. la population ──');
 const NOMS = ['function equipeDe(u){', 'function perimetreTechIds(u){', 'function myTechId(){', 'function ptEstAMoi(p){',
-  'function visiblePointages(list){', 'function ptPeutVoirAutres(){', 'function ptPeutCorriger(p){', 'function visibleTechniciens(list){'];
+  'function visiblePointages(list){', 'function ptPeutVoirAutres(){', 'function fichesGere(){', 'function ptPeutCorriger(p){', 'function visibleTechniciens(list){'];
 const CODE = NOMS.map(bloc);
 v('les fonctions sont trouvées', NOMS.filter((n, i) => !CODE[i]), []);
-for (const n of ['function ptPeutCorriger(', 'function visibleTechniciens(']) v('… une seule définition de ' + n.slice(9, -1), SRC.split(n).length - 1, 1);
+for (const n of ['function ptPeutCorriger(', 'function visibleTechniciens(', 'function fichesGere(']) v('… une seule définition de ' + n.slice(9, -1), SRC.split(n).length - 1, 1);
 
 /* L'entreprise : quatre fiches du personnel, cinq comptes. Léo est DR, Sofia lui est rattachée.
    Karim est technicien. Nadia tient les feuilles de temps (voirPointages) sans « tout voir ».
@@ -107,6 +107,50 @@ vrai('⛔⛔ l’enregistrement refuse aussi', /function savePointage\(e,id\)\{ 
 const del = bloc('function delItem(coll,id){');
 vrai('⛔ la suppression d’un pointage suit la même règle, au point de passage de toutes les suppressions', /if\(coll==='pointages' && !ptPeutCorriger\(\(db\.pointages\|\|\[\]\)\.find\(x=>x\.id===id\)\)\)\{ toast\('Supprimer des heures est réservé aux responsables'\); return; \}/.test(del));
 
+/* ── 786 · 3 bis. ⛔⛔ LA PORTE OUBLIÉE : SECTEURS ET LE FORMULAIRE D'UNE FICHE ──
+   Trouvée par la relecture de la v735 : « Équipe », la fiche, la recherche et le journal passaient
+   par le périmètre ; Secteurs listait TOUTE l'entreprise et chaque ligne ouvrait `formTech`, qui ne
+   regardait que le droit de catégorie (OUI par défaut). Fermé par défaut, mais l'administrateur
+   l'ouvre à une personne depuis Permissions. On EXÉCUTE les deux. */
+console.log('\n── 786 · 3 bis. ⛔⛔ Secteurs et le formulaire d’une fiche ──');
+const SECT = bloc('views.secteurs=function(){'), FT = bloc('function formTech(id){');
+vrai('population : Secteurs et formTech sont trouvés', SECT.length > 900 && FT.length > 2500, [SECT.length, FT.length]);
+function mondeEcran(moi) {
+  const u = USERS.find(x => x.id === moi) || null, out = { html: '', modal: '', toasts: [] };
+  const techs = [{ id: 'tK', nom: 'Karim Benali', departements: '44', tel: '06 12', droitConges: 25 }, { id: 'tS', nom: 'Sofia Perez', departements: '85', tel: '06 98' },
+    { id: 'tL', nom: 'Léo Martin', departements: '', tel: '07 11' }, { id: 'tJ', nom: 'Jean Terrain', departements: '49', tel: '06 55' }];
+  const ctx = { currentUser: u, db: { users: USERS, techniciens: techs, pointages: PTS, interventions: [{ clientId: 'c44' }, { clientId: 'c85' }, { clientId: 'c49' }] },
+    can: k => !!u && u.caps.includes(k), fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(), views: {},
+    setHeader: () => {}, $: () => ({ set innerHTML(h) { out.html = h; } }), keyForClient: id => id.slice(1), parseTechDepts: s => String(s || '').split(',').map(x => x.trim()).filter(Boolean),
+    techColor: () => '#123', initials: n => n[0], keyLabel: d => d, deptColor: () => '#456', encreSur: () => '#fff', esc: x => String(x == null ? '' : x),
+    techForKey: dep => techs.find(t => t.departements === dep) || null, badge: (o, k) => '<b>' + o[k].l + '</b>', canCat: () => true,
+    permGarde: () => true, toast: m => out.toasts.push(m), openModal: h => { out.modal = h; }, TECH_PALETTE: ['#0a0'] };
+  vm.createContext(ctx); vm.runInContext(CODE.join('\n') + '\n' + SECT + '\n' + FT, ctx);
+  ctx.out = out; return ctx;
+}
+if (SECT && FT && CODE.every(Boolean)) {
+  const K = mondeEcran('uK'); K.views.secteurs();
+  vrai('⛔⛔ Karim (Secteurs ouvert pour lui) n’y voit QUE sa ligne', /Karim Benali/.test(K.out.html) && !/Sofia Perez|Jean Terrain|Léo Martin/.test(K.out.html), K.out.html.slice(0, 300));
+  vrai('⛔ … et un département couvert par une collègue dit « Couvert », sans son nom', /Couvert</.test(K.out.html) && !/Sofia/.test(K.out.html));
+  vrai('… le sien, lui, porte son nom', /<b>Karim Benali<\/b>/.test(K.out.html));
+  const A = mondeEcran('uA'); A.views.secteurs();
+  vrai('contre-épreuve : l’administrateur voit les quatre, et qui couvre quoi', ['Karim Benali', 'Sofia Perez', 'Léo Martin', 'Jean Terrain'].every(n => A.out.html.includes(n)) && /<b>Sofia Perez<\/b>/.test(A.out.html));
+  const L = mondeEcran('uL'); L.views.secteurs();
+  vrai('⛔ le DR y voit Sofia et lui-même — pas Karim ni Jean', /Sofia Perez/.test(L.out.html) && /Léo Martin/.test(L.out.html) && !/Karim Benali|Jean Terrain/.test(L.out.html));
+  const K2 = mondeEcran('uK'); K2.formTech('tS');
+  vrai('⛔⛔ le formulaire de la fiche de Sofia ne s’ouvre pas pour Karim, même appelé directement', !K2.out.modal && K2.out.toasts.includes('Cette fiche ne te concerne pas'), K2.out);
+  const K3 = mondeEcran('uK'); K3.formTech('tK');
+  vrai('sa propre fiche s’ouvre', /name="tel"/.test(K3.out.modal));
+  vrai('⛔ … congés, capacité, secteur et rattachement y sont verrouillés (réglés par un responsable)',
+    ['departements', 'capH', 'droitConges'].every(n => new RegExp('name="' + n + '" disabled').test(K3.out.modal)) && /<select name="chef" disabled/.test(K3.out.modal), K3.out.modal.slice(0, 200));
+  vrai('… et le rattachement n’énumère pas les collègues', !/Sofia Perez|Jean Terrain|Léo Martin/.test(K3.out.modal));
+  vrai('… téléphone et e-mail restent à lui', /<input name="tel" value=/.test(K3.out.modal) && /<input type="email" name="email" value=/.test(K3.out.modal));
+  const A2 = mondeEcran('uA'); A2.formTech('tK');
+  vrai('contre-épreuve : l’administrateur règle tout', !/ disabled title="Réglé par ton responsable"/.test(A2.out.modal) && /Sofia Perez/.test(A2.out.modal));
+  const L2 = mondeEcran('uL'); L2.formTech('tS');
+  vrai('contre-épreuve : le DR règle la fiche de Sofia (son périmètre)', /name="tel"/.test(L2.out.modal) && !/ disabled title="Réglé par ton responsable"/.test(L2.out.modal));
+}
+
 console.log('\n── 786 · 4. la mesure dans une vraie page existe ──');
 const P = path.join(__dirname, '..', 'scratchpad', 'sonde-equipe.js');
 const SONDE = fs.existsSync(P) ? fs.readFileSync(P, 'utf8') : '';
@@ -125,21 +169,27 @@ async function partieSaveTech() {
   const st = bloc('async function saveTech(e,id){');
   vrai('population : saveTech est trouvée', st.length > 1500, st.length);
   if (!st) return;
-  const essai = async (moi, caps, form, id) => {
+  const essai = async (moi, caps, form, id, courant) => {
     const users = [{ id: 'uA', prenom: 'Justin', nom: 'Roux', role: 'admin' },
       { id: 'uK', prenom: 'Karim', nom: 'Benali', role: 'technicien', techId: 'tK' },
       { id: 'uR', prenom: 'Rémi', nom: 'Chef', role: 'chefEquipe' },
       { id: 'uL', prenom: 'Léo', nom: 'Martin', role: 'dr', techId: 'tL' }];
     const toasts = [];
-    const ctx = { currentUser: users.find(u => u.id === moi), db: { users, techniciens: [{ id: 'tK', nom: 'Karim Benali', metier: 'Technicien' }, { id: 'tL', nom: 'Léo Martin', metier: 'Technicien' }] },
-      can: k => caps.includes(k), permGarde: () => true, planPlaceLibre: () => true, proposerAbonnement: () => toasts.push('abonnement'),
-      closeModal: () => {}, toast: m => toasts.push(m), save: () => {}, logEvent: () => {}, views: { techniciens: () => {} },
+    const redessins = [];
+    const ctx = { currentUser: users.find(u => u.id === moi), db: { users, techniciens: [{ id: 'tK', nom: 'Karim Benali', metier: 'Technicien', tel: '06 12', droitConges: 25, capMin: 420, departements: '44', chef: '' }, { id: 'tL', nom: 'Léo Martin', metier: 'Technicien', tel: '07 11' }] },
+      /* comme userCap : l'administrateur a tous les droits, les autres ceux qu'on leur donne */
+      can: k => moi === 'uA' || caps.includes(k), permGarde: () => true, planPlaceLibre: () => true, proposerAbonnement: () => toasts.push('abonnement'),
+      closeModal: () => {}, toast: m => toasts.push(m), save: () => {}, logEvent: () => {}, current: courant,
+      views: { techniciens: () => redessins.push('techniciens'), secteurs: () => redessins.push('secteurs') }, pointages: [],
+      fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(),
       uid: (() => { let n = 0; return () => 'id' + (++n); })(), nomNorm: x => String(x || '').toLowerCase().trim(),
       sha256: async () => 'h', mdpProvisoire: () => 'pw', userIdentifiantsModal: () => {}, setTimeout: f => f(),
       FormData: function (t) { return Object.entries(t); } };
-    vm.createContext(ctx); vm.runInContext(st, ctx);
+    ctx.db.pointages = [];
+    vm.createContext(ctx); vm.runInContext(CODE.join('\n') + '\n' + st, ctx);
     await vm.runInContext('saveTech({preventDefault(){},target:' + JSON.stringify(form) + '},' + JSON.stringify(id || '') + ')', ctx);
-    return { roleK: users.find(u => u.id === 'uK').role, roleL: users.find(u => u.id === 'uL').role, metierK: ctx.db.techniciens[0].metier, comptes: users.length, fiches: ctx.db.techniciens.length, toasts };
+    return { roleK: users.find(u => u.id === 'uK').role, roleL: users.find(u => u.id === 'uL').role, metierK: ctx.db.techniciens[0].metier, comptes: users.length, fiches: ctx.db.techniciens.length, toasts,
+      K: JSON.parse(JSON.stringify(ctx.db.techniciens[0])), L: JSON.parse(JSON.stringify(ctx.db.techniciens[1])), redessins };
   };
   const K1 = await essai('uK', [], { nom: 'Karim Benali', metier: "Chef d'équipe", tel: '06 00 00 00 00' }, 'tK');
   v('⛔⛔ Karim modifie SA fiche en « Chef d’équipe » : son compte reste technicien', K1.roleK, 'technicien');
@@ -156,6 +206,20 @@ async function partieSaveTech() {
   v('contre-épreuve : l’administrateur, lui, change le rôle (fiche ET compte)', [A1.roleK, A1.metierK], ['chefEquipe', "Chef d'équipe"]);
   const R1 = await essai('uR', ['creerUtilisateurs'], { nom: 'Nouveau Venu', metier: 'Technicien' });
   v('contre-épreuve : un chef avec « Créer des utilisateurs » crée la fiche et son compte', [R1.comptes, R1.fiches], [5, 3]);
+  /* ⛔⛔ la porte oubliée, à l'enregistrement (une ligne cachée n'est pas une garde) */
+  const K3 = await essai('uK', [], { nom: 'Léo Martin', tel: '06 66 66 66 66' }, 'tL');
+  v('⛔⛔ Karim n’enregistre pas la fiche de Léo : son téléphone ne bouge pas', K3.L.tel, '07 11');
+  vrai('… et le refus est dit', K3.toasts.includes('Cette fiche ne te concerne pas'), K3.toasts);
+  /* ⛔ les champs de GESTION de SA fiche : un technicien ne s'accorde pas 60 jours de congés */
+  const K4 = await essai('uK', [], { nom: 'Karim Benali', tel: '06 99 99 99 99', droitConges: '60', capH: '12', departements: '75', chef: 'tL' }, 'tK');
+  v('⛔⛔ Karim change son téléphone, mais ni ses congés, ni sa capacité, ni son secteur, ni son rattachement',
+    [K4.K.tel, K4.K.droitConges, K4.K.capMin, K4.K.departements, K4.K.chef], ['06 99 99 99 99', 25, 420, '44', '']);
+  const A3 = await essai('uA', [], { nom: 'Karim Benali', tel: '06 12', droitConges: '30', capH: '8', departements: '44, 85', chef: 'tL' }, 'tK');
+  v('contre-épreuve : l’administrateur les règle', [A3.K.droitConges, A3.K.capMin, A3.K.departements, A3.K.chef], [30, 480, '44, 85', 'tL']);
+  const L3 = await essai('uL', ['voirTout'], { nom: 'Karim Benali', tel: '06 12', droitConges: '28' }, 'tK');
+  v('contre-épreuve : un responsable (DR, « tout voir ») les règle aussi', L3.K.droitConges, 28);
+  const A4 = await essai('uA', [], { nom: 'Léo Martin', tel: '07 22' }, 'tL', 'secteurs');
+  v('enregistrer depuis Secteurs redessine Secteurs (et plus « Équipe » par-dessus)', A4.redessins, ['secteurs']);
   vrai('le sélecteur de rôle est verrouillé à l’écran pour qui n’est pas administrateur (en modification)',
     /<select name="metier" \$\{id&&currentUser&&currentUser\.role!=='admin'\?'disabled title=/.test(SRC));
 }
