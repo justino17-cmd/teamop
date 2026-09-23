@@ -48,7 +48,10 @@ v('un mot coupé à la lecture : « ADVI ON GEL BLATTES 30 G »', premier('ADVI 
 /* ⚠️ les deux cas qui DÉCIDENT : sans eux, retirer « mot collé » ou « mot coupé » ne faisait rien
    tomber (les autres mots suffisaient à classer) — deux mutations passaient au vert */
 v('⛔ un nom collé qui est TOUT le nom : « ALTA7000 »', premier('ALTA7000'), 'ALTA 7000');
-v('⛔ le mot coupé qui départage deux sœurs : « FOUR MIS » → FOURMIS, pas CAFARDS', premier('MAGNUM GEL FOUR MIS SERINGUE 40 G'), 'MAGNUM GEL FOURMIS SERINGUE 40G');
+/* « CAF ARDS » et pas « FOUR MIS » : « fourmis » est COURANT au catalogue (sept fiches), le perdre ne
+   coûte presque rien, et FOURMIS gagnait même sans la règle — la mutation passait. « cafards » est
+   rare : sans la règle, c'est FOURMIS qui passerait devant. */
+v('⛔ le mot coupé qui départage deux sœurs : « CAF ARDS » → CAFARDS, pas FOURMIS', premier('MAGNUM GEL CAF ARDS SERINGUE 40 G'), 'MAGNUM GEL CAFARDS SERINGUE 40G');
 v('la référence de l’entreprise lue sur l’étiquette', premier('Réf. PLB-001 — lot 44'), 'Plaque de bois');
 v('un nom sans mot de quatre lettres (« MIB 80 ») se lit par ses deux mots', premier('MIB 80 traitement du bois'), 'MIB 80');
 
