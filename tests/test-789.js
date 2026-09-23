@@ -281,7 +281,7 @@ vrai('⛔ … ni ne se règle', /function userMailForm\(\)\{ if\(!can\('mailPro'
 vrai('⛔ la Messagerie : la case « Gérer les groupes »', /const isMgr=can\('gererGroupes'\);/.test(SRC));
 vrai('⛔ les alertes de box : le droit de valider, plus le nom « dr »', /function notifBoxConcerne\(b\)\{[\s\S]{0,400}if\(can\('validerDR'\)\)\{/.test(SRC));
 vrai('⛔ stock bas, enveloppes, secteurs sans technicien : le droit de valider', /const estDir=can\('validerDR'\);/.test(SRC));
-vrai('⛔ « Travail terminé » : le valideur, et le commercial NOMMÉ sur l’intervention quel que soit son rôle', /const forMe=can\('validerDR'\)\|\|\(!!com&&/.test(SRC));
+vrai('⛔ « Travail terminé » : le valideur, et le commercial NOMMÉ sur l’intervention quel que soit son rôle', /const forMe=\(can\('validerDR'\)\|\|\(!!com&&[^;]*\)&&OUV\(\)\.int\(i\);/.test(SRC));
 vrai('⛔ « Matériel pris dans une box » : qui valide ou voit tout', /if\(vBox && currentUser && \(can\('validerDR'\)\|\|can\('voirTout'\)\)\)\{/.test(SRC));
 
 console.log('\n── 789 · 9. la mesure dans une vraie page existe ──');

@@ -193,10 +193,13 @@ vrai('la recherche du bandeau : clients, interventions et tâches par le filtre 
   /rechVoit\('clients'\)\?visibleClients\(db\.clients\)/.test(g) && /rechVoit\('interventions'\)\?visibleInts\(db\.interventions\)/.test(g) && /rechVoit\('taches'\)\?mesTaches\(\)/.test(g), g.slice(0, 400));
 vrai('« Rechercher partout » : aucune famille lue en entier',
   !/add\(db\.(clients|devis|factures|produits|fournisseurs|boxes|vehicules)\b/.test(rs) && /V\('devis',visibleDocs\(db\.devis\)\)/.test(rs) && /V\('clients',visibleClients\(db\.clients\)\)/.test(rs));
-vrai('la fiche client refuse un client hors périmètre, et ne montre que ce qu\'on voit',
-  gardeAvant(fonction('ficheClient'), 'visibleClients([c]).length').ok && /visibleInts\(db\.interventions\.filter/.test(fonction('ficheClient')) && /visibleDocs\(db\.devis\.filter/.test(fonction('ficheClient')));
-vrai('la fiche intervention : refusée à l\'ouverture, et plus redessinée chez qui ne la voit plus',
-  /visibleInts\(\[_v\]\)\.length/.test(fonction('detailIntervention')) && /if\(!visibleInts\(\[i\]\)\.length\)/.test(fonction('renderIntDetail')));
+/* ⛔ relecture v738 : ouvrir n'est pas lister — les deux fiches passent par ouvrables() (exécutée au § 6 bis) */
+vrai('la fiche client : refusée si elle ne s\'ouvre pas (ouvrables().cli), AVANT d\'écrire l\'écran ; les montants suivent le périmètre',
+  gardeAvant(fonction('ficheClient'), 'ouvrables().cli(c)').ok && /visibleDocs\(db\.devis\.filter/.test(fonction('ficheClient')));
+vrai('… et l\'historique du SITE s\'y lit en entier, comme « Historique des passages » (quel que soit le technicien)',
+  /const ints=db\.interventions\.filter\(i=>i\.clientId===id\)/.test(fonction('ficheClient')) && /quel que soit le technicien/.test(fonction('intHistoriquePassages')));
+vrai('la fiche intervention : refusée à l\'ouverture, et plus redessinée chez qui ne l\'ouvre plus (ouvrables().int)',
+  /if\(_v&&!ouvrables\(\)\.int\(_v\)\)/.test(fonction('detailIntervention')) && /if\(!ouvrables\(\)\.int\(i\)\)/.test(fonction('renderIntDetail')));
 vrai('Contrats : visibleDocs, comme devis et factures', /const list=\[\.\.\.visibleDocs\(db\.contrats\)\]/.test(bloc('views.contrats=function(){')));
 vrai('la carte des interventions : visibleInts', /return visibleInts\(db\.interventions\)\.filter\(i=>i\.date===day\)/.test(fonction('intPoints')));
 vrai('l\'export CSV des clients : visibleClients', /visibleClients\(db\.clients\)\.map/.test(fonction('exportClientsCsv')));
@@ -209,6 +212,44 @@ vrai('visibleDocs : les clients qu\'on voit (et ceux qu\'on a créés), plus mes
   /const ids=new Set\(visibleClients\(db\.clients\|\|\[\]\)\.map\(c=>c\.id\)\)/.test(bloc('function visibleDocs(list){')));
 const creePar = ['saveDoc', 'devisToFacture', 'intGenererDoc', 'adCreerDevis', 'aiGenDevisXylo', 'devisIAGo', 'saveContrat'].filter(n => !/creePar:\(currentUser&&currentUser\.id\)/.test(fonction(n)));
 v('… et chaque document neuf retient qui l\'a fait (sinon il disparaît de la liste de son auteur)', creePar, []);
+
+console.log('\n── 790 · 6 bis. ⛔⛔ ouvrir n\'est pas lister — ouvrables() EXÉCUTÉE, et les notifications passent par elle ──');
+/* Relecture de la v738 : la garde neuve de detailIntervention rendait MORTS des clics voulus
+   (« Historique des passages — quel que soit le technicien », registre, garanties, lien « Client » d'une box,
+   notification « Secteur non couvert » d'un DR à périmètre). ouvrables() est la règle unique. */
+const OUVR = bloc('function ouvrables(){');
+vrai('ouvrables() est trouvée, et définie une seule fois', !!OUVR && compte('function ouvrables(') === 1);
+{ const O = { db: { clients: [], interventions: [], boxes: [] }, Set };
+  vm.createContext(O);
+  vm.runInContext('var __cv=[],__iv=[],__bv=[];'
+    + 'function visibleClients(l){ return (l||[]).filter(c=>__cv.includes(c.id)); }'
+    + 'function visibleInts(l){ return (l||[]).filter(i=>__iv.includes(i.id)); }'
+    + 'function visibleBoxes(l){ return (l||[]).filter(b=>__bv.includes(b.id)); }\n' + OUVR, O);
+  O.db.clients = [{ id: 'cMoi' }, { id: 'cBox' }, { id: 'cAutre' }];
+  O.db.interventions = [{ id: 'iMoi', clientId: 'cMoi' }, { id: 'iCollegueChezMoi', clientId: 'cMoi' }, { id: 'iAutre', clientId: 'cAutre' }, { id: 'iSansClient' }];
+  O.db.boxes = [{ id: 'bMoi', clientId: 'cBox' }, { id: 'bAutre', clientId: 'cAutre' }];
+  vm.runInContext('__cv=["cMoi"]; __iv=["iMoi"]; __bv=["bMoi"];', O);
+  const R = O.ouvrables(), I = id => R.int(O.db.interventions.find(x => x.id === id)), C = id => R.cli(O.db.clients.find(x => x.id === id));
+  v('une intervention qu\'on voit s\'ouvre ; celle d\'un collègue chez un client qu\'on sert AUSSI (l\'historique du site)', [I('iMoi'), I('iCollegueChezMoi')], [true, true]);
+  v('… mais pas celle d\'un client qu\'on ne sert pas, ni une intervention sans client hors de sa liste', [I('iAutre'), I('iSansClient')], [false, false]);
+  v('un client s\'ouvre si on le voit, ou si l\'une de SES box est à nous — jamais par la box d\'un autre', [C('cMoi'), C('cBox'), C('cAutre')], [true, true, false]);
+  v('… et rien ne s\'ouvre sur du vide', [R.int(null), R.cli(undefined)], [false, false]); }
+const CN = fonction('computeNotifs');
+vrai('les notifications calculent ouvrables() une fois, à la demande', /let _ouv=null; const OUV=\(\)=>_ouv\|\|\(_ouv=ouvrables\(\)\);/.test(CN));
+vrai('« Secteur non couvert » : seulement ce qui s\'ouvre (un DR à périmètre ne lit plus les titres d\'une autre équipe)',
+  /db\.interventions\.filter\(i=>i\.date>=today&&i\.statut!=='terminee'&&i\.statut!=='annulee'&&OUV\(\)\.int\(i\)\)/.test(CN));
+vrai('« Travail terminé » : le valideur ou le commercial nommé, ET seulement ce qui s\'ouvre', /const forMe=\(can\('validerDR'\)\|\|[^;]*\)&&OUV\(\)\.int\(i\);/.test(CN));
+vrai('« Demande à valider » : ce que l\'écran Validations montre (visibleDemandes)', /visibleDemandes\(db\.demandes\.filter\(d=>d\.statut==='enAttente'\)\)\.forEach/.test(CN));
+vrai('« À valider » (mouvements) : visibleBoxMvts — plus « quelle que soit la box »', /visibleBoxMvts\(\(db\.boxMvtAttente\|\|\[\]\)\.filter\(m=>m\.statut==='enAttente'&&!m\.bcId/.test(CN));
+vrai('« Bon réceptionné » : seulement si l\'un de ses mouvements est visible (le commentaire le disait, le code non)',
+  /visibleBoxMvts\(\(db\.boxMvtAttente\|\|\[\]\)\.filter\(m=>m\.bcId===b\.id&&m\.statut==='enAttente'\)\)\.length/.test(CN));
+const VC = bloc('views.contrats=function(){');
+vrai('Contrats : chaque bouton lit la case que SA fonction lit (＋ et ✎ Ventes, 🔁 Interventions → Ajouter, 🗑 Ventes → Supprimer)',
+  /cAj\?`<button class="btn" onclick="formContrat\(\)">/.test(VC) && /\$\{iAj\?`<button[^`]*genererInterventionContrat/.test(VC)
+  && /\$\{cMod\?`<button class="btn ghost sm" onclick="formContrat\(/.test(VC) && /\$\{cSup\?`<button class="btn danger sm" onclick="delItem\('contrats'/.test(VC)
+  && /const cAj=canCat\('ventes','ajouter'\), cMod=canCat\('ventes','modifier'\), cSup=canCat\('ventes','supprimer'\), iAj=canCat\('int','ajouter'\);/.test(VC), VC.slice(0, 200));
+vrai('la box : le 🗑 lit « Stock → Supprimer » (comme delItem), le ✎ « Gérer les box » — deux cases, deux boutons',
+  /\$\{canCat\('stock','supprimer'\)\?`<button onclick="delItem\('boxes'/.test(SRC) && !/boxGerer\('modifier'\)\?`<button onclick="formBox\('\$\{b\.id\}'\)"[^`]*delItem\('boxes'/.test(SRC));
 
 console.log('\n── 790 · 7. ⛔⛔ le circuit DR : plus de porte de côté ──');
 const ca = fonction('consoAdj');

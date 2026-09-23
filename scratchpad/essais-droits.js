@@ -67,6 +67,12 @@ const nb = expr => `(${expr}).length`;
 const MVT = (id, par) => `db.boxMvtAttente.unshift({id:'${id}',type:'ajustement',boxId:'bT',produitId:'pS',du:-1,dc:0,statut:'enAttente',parId:'${par}',par:'x',ts:Date.now()});`;
 const DEM = (id, chef) => `db.demandes.push({id:'${id}',num:'DEM-S-${id}',chefId:'${chef}',boxId:'bT',statut:'enAttente',date:'2026-10-06',lignes:[{produitId:'pS',qte:2}]});`;
 
+/* Zoé est hors de tout périmètre : son client reçoit un code postal (sans lui, aucun secteur n'est
+   calculé), une intervention finie à l'instant, un mouvement et une demande en attente. */
+const NOTIF_Z = `db.clients.find(x=>x.id==='cZ').codePostal='40100';
+  db.interventions.push(Object.assign({},db.interventions.find(x=>x.id==='iZ'),{id:'iZ2',num:'INT-S7',titre:'Dératisation Zoésonde finie',statut:'terminee',finReel:Date.now()-3600000}));
+  ${MVT('mZ', 'uZ')} ${DEM('dmZ', 'uZ')}`;
+
 const ESSAIS = [
   /* ═════ v737 — les deux essais d'origine ═════ */
   { nom: 'Stock → Ajouter : « ＋ Liste » ne crée aucune fiche', retire: { cat_stock_ajouter: false }, dit: true,
@@ -343,6 +349,42 @@ const ESSAIS = [
     mesure: `db.mailFrom||''` },
   { nom: 'Paramètres : un non-administrateur n’allume pas la validation DR pour toute l’entreprise', type: 'unique', attendu: 'bloque',
     geste: `validDRTousSet(true);`, mesure: `!!db.validDRTous` },
+
+  /* ═════ relecture de la v738 — OUVRIR n'est pas LISTER (ouvrables()) ═════
+     La garde neuve de la fiche intervention rendait morts des clics voulus ; les notifications
+     nommaient ce que l'écran ne montre pas ; deux boutons ne lisaient pas la case de leur fonction. */
+  { nom: 'Voir · l’historique d’un site qu’on sert s’ouvre EN ENTIER (le passage d’un collègue chez son client)', type: 'unique', attendu: 'passe', retire: { voirTout: false },
+    base: `function(){ db.interventions.push(Object.assign({},db.interventions.find(x=>x.id==='iK'),{id:'iKT',num:'INT-S6',titre:'Passage collègue Tomsonde',clientId:'cT'})); }`,
+    geste: `$('content').innerHTML='<div>neutre</div>'; detailIntervention('iKT'); ${ATT(800)} window.__vu=$('content').textContent.includes('Passage collègue')?1:0;`,
+    mesure: `window.__vu` },
+  { nom: 'Voir · le lien « Client » de SA box ouvre la fiche, même d’un client qu’on ne sert pas', type: 'unique', attendu: 'passe', retire: { voirTout: false },
+    base: `function(){ db.boxes.find(b=>b.id==='bT').clientId='cK'; }`,
+    geste: `ficheClient('cK'); ${ATT(400)} const o=document.getElementById('overlay'); window.__vu=(o&&o.classList.contains('open')&&o.textContent.includes('Karimsonde'))?1:0;`,
+    mesure: `window.__vu` },
+  { nom: 'Voir · … mais pas par la box d’un AUTRE', type: 'unique', attendu: 'bloque', retire: { voirTout: false }, dit: true,
+    base: `function(){ db.boxes.find(b=>b.id==='bK').clientId='cZ'; }`,
+    geste: `ficheClient('cZ'); ${ATT(400)} const o=document.getElementById('overlay'); window.__vu=(o&&o.classList.contains('open')&&o.textContent.includes('Zoésonde'))?1:0;`,
+    mesure: `window.__vu` },
+  { nom: 'Notifications · un DR à périmètre ne reçoit rien d’une autre équipe (secteur non couvert, travail terminé, mouvement et demande à valider)', type: 'unique', attendu: 'bloque',
+    base: `function(){ db.users.find(u=>u.id==='uK').drId='uT'; ${NOTIF_Z} }`,
+    geste: `const ids=computeNotifs().map(n=>n.id); window.__vu=['sect:iZ','done:iZ2','mvatt:mZ','dem:dmZ'].filter(x=>ids.includes(x)).length;`,
+    mesure: `window.__vu` },
+  { nom: '   contre-épreuve : sans équipe rattachée, les quatre arrivent', type: 'unique', attendu: 'passe',
+    base: `function(){ ${NOTIF_Z} }`,
+    geste: `const ids=computeNotifs().map(n=>n.id); window.__vu=['sect:iZ','done:iZ2','mvatt:mZ','dem:dmZ'].every(x=>ids.includes(x))?1:0;`,
+    mesure: `window.__vu` },
+  { nom: 'Contrats : sans « Interventions → Ajouter », le 🔁 n’est pas proposé', retire: { cat_int_ajouter: false },
+    geste: `go('contrats'); ${ATT(700)} window.__vu=[...document.querySelectorAll('#content button')].some(b=>/genererInterventionContrat\(/.test(b.getAttribute('onclick')||''))?1:0;`,
+    mesure: `window.__vu` },
+  { nom: 'Contrats : sans « Ventes → Ajouter », « ＋ Contrat » n’est pas proposé', retire: { cat_ventes_ajouter: false },
+    geste: `go('contrats'); ${ATT(700)} window.__vu=[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'')==='formContrat()')?1:0;`,
+    mesure: `window.__vu` },
+  { nom: 'Box : sans « Stock → Supprimer », le 🗑 n’est pas proposé (delItem le refuserait)', retire: { cat_stock_supprimer: false },
+    geste: `openBox('bT'); ${ATT(600)} window.__vu=[...document.querySelectorAll('button')].some(b=>/delItem\('boxes'/.test(b.getAttribute('onclick')||''))?1:0;`,
+    mesure: `window.__vu` },
+  { nom: '   … et sans « Gérer les box », il reste là : deux cases, deux boutons', type: 'unique', attendu: 'passe', retire: { gererBoxes: false },
+    geste: `openBox('bT'); ${ATT(600)} window.__vu=[...document.querySelectorAll('button')].some(b=>/delItem\('boxes'/.test(b.getAttribute('onclick')||''))?1:0;`,
+    mesure: `window.__vu` },
 ];
 
 module.exports = { SOCLE, ESSAIS };

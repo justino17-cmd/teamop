@@ -12873,6 +12873,21 @@ function clientsProposes(garde){ const l=visibleClients(db.clients||[]);
   if(garde&&!l.some(c=>c.id===garde)){ const c=(db.clients||[]).find(x=>x.id===garde); if(c) return l.concat([c]); }
   return l; }
 function clientPropose(id,garde){ return !!id&&clientsProposes(garde).some(c=>c.id===id); }
+/* ⛔ OUVRIR UNE FICHE N'EST PAS LA LISTER (v738, relecture). La v738 refusait d'ouvrir une intervention
+   hors de sa liste — et rendait MORTS des clics voulus : « Historique des passages » (« touchez pour
+   ouvrir la fiche, quel que soit le technicien »), le registre, les garanties d'un client, le lien
+   « Client » d'une box. La règle : un client s'ouvre si on le voit OU si l'une de ses box est à nous
+   (on y va : on doit pouvoir lire l'adresse) ; une intervention s'ouvre si on la voit OU si son client
+   s'ouvre — l'historique d'un site se lit en entier, comme avant la v738. Reste fermé ce qu'aucun lien
+   légitime n'amène : un identifiant tapé, une recherche, la notification d'une autre équipe — les
+   notifications passent par ce MÊME test. Lire n'est pas modifier : chaque geste garde sa case.
+   Un seul calcul par appel (les notifications testent des centaines d'interventions). */
+function ouvrables(){
+  const clis=new Set(visibleClients(db.clients||[]).map(c=>c.id));
+  visibleBoxes(db.boxes||[]).forEach(b=>{ if(b&&b.clientId) clis.add(b.clientId); });
+  const ints=new Set(visibleInts(db.interventions||[]).map(i=>i.id));
+  return { int:i=>!!i&&(ints.has(i.id)||(!!i.clientId&&clis.has(i.clientId))), cli:c=>!!c&&clis.has(c.id) };
+}
 /* ⛔ TROIS CERCLES, PAS DEUX. Avant, seul « tout voir » ouvrait les pointages des autres —
    donc pour confier les feuilles de temps à un chef, il fallait lui donner aussi les
    interventions et les box de toute l'entreprise. Le droit `voirPointages` ouvre les feuilles
@@ -21314,7 +21329,7 @@ let intTab='general', intBackView='interventions', infTab='plan', fsTab='medias'
    rafraîchir la fiche déjà ouverte (édition, changement d'onglet, fin de synchro), et ces
    rendus-là ne doivent pas rejouer une entrée. */
 function detailIntervention(id){ const _v=db.interventions.find(x=>x.id===id);
-  if(_v&&!visibleInts([_v]).length){ toast('Cette intervention ne te concerne pas'); return; }   // v738 : même règle que la liste, quel que soit le chemin
+  if(_v&&!ouvrables().int(_v)){ toast('Cette intervention ne te concerne pas'); return; }   // v738 : voir ouvrables() — le même test par tous les chemins
   intTab='general'; fsTab='medias'; intEdit=false; const _i=_v; infTab=(_i&&(_i.statut==='terminee'||_i.debutReel))?'eff':'plan'; try{ closeModal(); }catch(e){} if(current&&current!=='intDetail') intBackView=current; ecranDetail(()=>renderIntDetail(id)); rendreDirige('avant',()=>renderIntDetail(id)); }
 function fic(n,sz=18){ const P={
   file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
@@ -21362,7 +21377,7 @@ function intPhotosCombler(id){
 function renderIntDetail(id){
   const i=db.interventions.find(x=>x.id===id); if(!i)return;
   /* v738 : réaffectée par la synchro pendant qu'on la regarde, elle ne se redessine plus chez qui ne la voit plus */
-  if(!visibleInts([i]).length){ $('content').innerHTML=`<div class="card">${emptyState('🔒','Cette intervention ne te concerne plus.','','')}</div>`; return; }
+  if(!ouvrables().int(i)){ $('content').innerHTML=`<div class="card">${emptyState('🔒','Cette intervention ne te concerne plus.','','')}</div>`; return; }
   window._curIntId=id;
   i.produitsUtilises=i.produitsUtilises||[]; i.equipements=i.equipements||[];
   i.docs=i.docs||[];
@@ -22329,9 +22344,10 @@ views.clients=function(){
 /* ⛔ v738 — UNE FICHE S'OUVRE PAR SON IDENTIFIANT, PAS PAR SON MENU. La recherche, un lien, une
    notification y mènent : la règle de visibilité doit donc être ICI, pas seulement dans la liste. */
 function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
-  if(!visibleClients([c]).length){ toast('Cette fiche ne te concerne pas'); return; }
+  if(!ouvrables().cli(c)){ toast('Cette fiche ne te concerne pas'); return; }
   ecranDetail(()=>ficheClient(id));   // une synchro ne doit pas refermer la fiche ouverte
-  const ints=visibleInts(db.interventions.filter(i=>i.clientId===id)).sort((a,b)=>(b.date+b.heure).localeCompare(a.date+a.heure));
+  /* l'historique du SITE, en entier (voir ouvrables()) — les montants, eux, suivent le périmètre (visibleDocs) */
+  const ints=db.interventions.filter(i=>i.clientId===id).sort((a,b)=>(b.date+b.heure).localeCompare(a.date+a.heure));
   const devis=visibleDocs(db.devis.filter(d=>d.clientId===id)), facts=visibleDocs(db.factures.filter(f=>f.clientId===id));
   const cli=db.clients.find(x=>x.id===id)||{}; const ctrs=visibleDocs(db.contrats.filter(x=>x.clientId===id && x.statut==='actif')), envs=db.enveloppes.filter(e=>(e.clientNom||'')&&cli.nom&&norm(e.clientNom).includes(norm(cli.nom.split(' ')[0])));
   const caFact=facts.filter(f=>f.statut==='payee').reduce((s,f)=>s+docTot(f).ttc,0);
@@ -24460,8 +24476,8 @@ function renderBoxDetail(){
       <button class="btn ghost sm det-back" onclick="ficheRetour('boxes')" title="Revenir aux boxes">← ${esc(navLabel('boxes')||'Boxes')}</button>
       <div class="mono" style="font-size:14px;font-weight:600;color:var(--acc-txt);letter-spacing:.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(b.numero||'Box')}</div>
       <span style="flex:1"></span>
-      ${boxGerer('modifier')?`<button onclick="formBox('${b.id}')" title="Modifier" style="background:none;border:none;color:var(--acc-txt);cursor:pointer;padding:4px 10px;line-height:1">${fic('edit',20)}</button>
-      <button onclick="delItem('boxes','${b.id}')" title="Supprimer" style="background:none;border:none;color:var(--red);cursor:pointer;padding:4px 2px 4px 10px;line-height:1">${fic('trash',20)}</button>`:''}
+      ${boxGerer('modifier')?`<button onclick="formBox('${b.id}')" title="Modifier" style="background:none;border:none;color:var(--acc-txt);cursor:pointer;padding:4px 10px;line-height:1">${fic('edit',20)}</button>`:''}
+      ${canCat('stock','supprimer')?`<button onclick="delItem('boxes','${b.id}')" title="Supprimer" style="background:none;border:none;color:var(--red);cursor:pointer;padding:4px 2px 4px 10px;line-height:1">${fic('trash',20)}</button>`:''}
     </div>
     <div style="font-size:17px;font-weight:600;color:var(--acc-txt);margin:2px 2px 3px;line-height:1.3">${esc(b.nom||b.numero||'Box')}</div>
     <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">${esc(b.ville||'')}${b.ville&&nbProd?' · ':''}${nbProd?nbProd+' produit(s)':''}</div>
@@ -34208,11 +34224,13 @@ const CTR_ST={actif:{l:'Actif',c:'st-green'},suspendu:{l:'Suspendu',c:'st-org'},
 const FREQ={mensuel:'Mensuel',trimestriel:'Trimestriel',semestriel:'Semestriel',annuel:'Annuel'};
 views.contrats=function(){
   const list=[...visibleDocs(db.contrats)].sort((a,b)=>(b.dateDebut||'').localeCompare(a.dateDebut||''));
-  setHeader('Contrats','Contrats de maintenance & récurrents',`<button class="btn" onclick="formContrat()">＋ Contrat</button>`);
+  /* v738 (relecture) : chaque bouton lit la case que SA fonction lit — comme Devis et Factures */
+  const cAj=canCat('ventes','ajouter'), cMod=canCat('ventes','modifier'), cSup=canCat('ventes','supprimer'), iAj=canCat('int','ajouter');
+  setHeader('Contrats','Contrats de maintenance & récurrents',cAj?`<button class="btn" onclick="formContrat()">＋ Contrat</button>`:'');
   const rows=list.map(ct=>`<tr><td class="strong mono">${esc(ct.num)}</td><td class="strong">${esc(ct.titre)}</td><td>${esc(clientName(ct.clientId))}</td><td>${FREQ[ct.frequence]||'—'}</td><td>${eur(ct.montant)}</td><td>${fmtShort(ct.dateDebut)} → ${fmtShort(ct.dateFin)}</td><td>${badge(CTR_ST,ct.statut)}</td>
-    <td style="text-align:right;white-space:nowrap"><button class="btn sm" title="Générer la prochaine intervention" onclick="genererInterventionContrat('${ct.id}')">🔁</button> <button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎</button> <button class="btn danger sm" onclick="delItem('contrats','${ct.id}')">🗑</button></td></tr>`).join('');
+    <td style="text-align:right;white-space:nowrap">${iAj?`<button class="btn sm" title="Générer la prochaine intervention" onclick="genererInterventionContrat('${ct.id}')">🔁</button> `:''}${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎</button> `:''}${cSup?`<button class="btn danger sm" onclick="delItem('contrats','${ct.id}')">🗑</button>`:''}</td></tr>`).join('');
   $('content').innerHTML=`<div class="card" style="background:color-mix(in srgb,var(--acc) 7%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><div style="font-size:13px;color:var(--t2)">Le bouton <b>Générer</b> crée automatiquement la prochaine intervention planifiée selon la fréquence du contrat.</div></div>
-    ${list.length? tableCard(['N°','Intitulé','Client','Fréquence','Montant','Période','Statut',''],rows):`<div class="card">${emptyState('📑','Aucun contrat.','Créer','formContrat()')}</div>`}`;
+    ${list.length? tableCard(['N°','Intitulé','Client','Fréquence','Montant','Période','Statut',''],rows):`<div class="card">${emptyState('📑','Aucun contrat.',cAj?'Créer':'',cAj?'formContrat()':'')}</div>`}`;
 };
 function ctrFreqDays(f){ return {mensuel:30,trimestriel:91,semestriel:182,annuel:365}[f]||30; }   // contrats (minuscules) — distinct de freqDays des box
 function genererInterventionContrat(id){ if(!permGarde('int','ajouter','une intervention')) return; const ct=db.contrats.find(x=>x.id===id); if(!ct)return;
@@ -35450,6 +35468,9 @@ function notifBoxConcerne(b){ if(!b||!currentUser) return false;
   return lien; }
 function notifMoi(nom){ return !!nom && !!currentUser && nom===fullName(currentUser); }   // c'est ma propre action → pas besoin de me la notifier
 function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser) return out;
+  /* v738 : une notification ne pointe que vers ce que son écran montre — sinon elle nomme ce qu'on ne voit
+     pas, et son clic tombe sur « ne te concerne pas » (voir ouvrables()). Calculé une fois, à la demande. */
+  let _ouv=null; const OUV=()=>_ouv||(_ouv=ouvrables());
   const vBox=notifVoitModule('boxes'), vStock=notifVoitModule('stock')||notifVoitModule('produits');
   if(vBox){ const recent=Date.now()-3*86400000;
     db.boxes.filter(notifBoxConcerne).forEach(b=>(b.arrivages||[]).filter(a=>(a.ts||0)>=recent&&!notifMoi(a.par)).forEach(a=>{ const tot=(a.lignes||[]).reduce((t,l)=>t+(l.qte||0),0);
@@ -35473,9 +35494,9 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
       out.push({id:'boxlow:'+b.id+':'+lows.map(x=>x.pid+'.'+x.u).join('|'),ic:nEp?'🟥':'🟠',txt:`Box <b>${esc(b.nom||b.numero||'')}</b> — ${lows.length} produit(s) à réapprovisionner${nEp?` dont <b>${nEp} épuisé(s)</b>`:''} : ${names}`,act:"openBox('"+b.id+"');cible('pid','"+lows.map(function(x){return x.pid;}).join(",")+"','retrait')"});
     });
     if(can('validerDR') && notifVoitModule('validations')){   // toute personne qui a le droit de valider (DR, admin, ou droit accordé)
-      db.demandes.filter(d=>d.statut==='enAttente').forEach(d=>out.push({id:'dem:'+d.id,ic:'✈️',txt:`Demande à valider : <b>${esc(d.num)}</b>${(d.chefNom||d.chefId)?' · '+esc(d.chefNom||userName(d.chefId)):''}`,act:"go('validations');cible('dem','"+d.id+"')"}));
+      visibleDemandes(db.demandes.filter(d=>d.statut==='enAttente')).forEach(d=>out.push({id:'dem:'+d.id,ic:'✈️',txt:`Demande à valider : <b>${esc(d.num)}</b>${(d.chefNom||d.chefId)?' · '+esc(d.chefNom||userName(d.chefId)):''}`,act:"go('validations');cible('dem','"+d.id+"')"}));
       // mouvements de box (arrivages, réceptions de bons, ajustements…) en attente de la validation du DR
-      (db.boxMvtAttente||[]).filter(m=>m.statut==='enAttente'&&!m.bcId&&!notifMoi(m.par)).forEach(m=>{   // tout ce qui attend SA validation, quelle que soit la box (les réceptions de bons sont portées par « bonarr » ci-dessous)
+      visibleBoxMvts((db.boxMvtAttente||[]).filter(m=>m.statut==='enAttente'&&!m.bcId&&!notifMoi(m.par))).forEach(m=>{   // ce qui attend SA validation — ce que son écran Validations montre, son périmètre (les réceptions de bons sont portées par « bonarr » ci-dessous)
         out.push({id:'mvatt:'+m.id,ts:m.ts||0,ic:'🔒',txt:`<b>À valider</b> — ${esc(boxMvtLibelle(m))} · par <b>${esc(m.par||'')}</b>`,act:"go('validations');cible('mvt','"+m.id+"'"+(mvtRetrait(m)?",'retrait'":"")+")"}); });
     }
   }
@@ -35486,7 +35507,7 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
   }
   if(estDir || can('validerDR')){
     if(estDir && notifVoitModule('enveloppes')) db.enveloppes.filter(e=>(e.paiements||[]).some(p=>p.statut==='attente')).forEach(e=>out.push({id:'env:'+e.id,ic:'📮',txt:`Enveloppe avec paiement en attente : <b>${esc(e.numero)}</b>`,act:"go('enveloppes');cible('env','"+e.id+"')"}));
-    if(estDir && notifVoitModule('interventions')) db.interventions.filter(i=>i.date>=today&&i.statut!=='terminee'&&i.statut!=='annulee').forEach(i=>{ const k=keyForClient(i.clientId); if(k&&!techForKey(k)) out.push({id:'sect:'+i.id,ic:'🗺️',txt:`Secteur non couvert : <b>${esc(i.titre)}</b> (${esc(keyLabel(k))})`,act:"detailIntervention('"+i.id+"')"}); });
+    if(estDir && notifVoitModule('interventions')) db.interventions.filter(i=>i.date>=today&&i.statut!=='terminee'&&i.statut!=='annulee'&&OUV().int(i)).forEach(i=>{ const k=keyForClient(i.clientId); if(k&&!techForKey(k)) out.push({id:'sect:'+i.id,ic:'🗺️',txt:`Secteur non couvert : <b>${esc(i.titre)}</b> (${esc(keyLabel(k))})`,act:"detailIntervention('"+i.id+"')"}); });
   }
   if(notifVoitModule('interventions')||notifVoitModule('planning')) visibleInts(db.interventions).filter(i=>i.date===today&&i.statut!=='terminee'&&i.statut!=='annulee').forEach(i=>out.push({id:'today:'+i.id,ic:'🧰',txt:`Aujourd'hui : <b>${esc(i.titre)}</b> à ${i.heure}`,act:"detailIntervention('"+i.id+"')"}));
   /* Ce que Leia était SEULE à dire, chaque matin dans sa bulle : les interventions en retard et
@@ -35518,7 +35539,7 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
     (db.interventions||[]).filter(i=>i.statut==='terminee'&&i.finReel&&i.finReel>=Date.now()-3*86400000).forEach(i=>{ const com=(i.commercial||'').toLowerCase();
       /* v737 : le valideur (plus « admin, dr »), et le commercial NOMMÉ sur l'intervention quel
          que soit le nom de son rôle */
-      const forMe=can('validerDR')||(!!com&&((pr&&com.includes(pr))||(nm&&com.includes(nm))));
+      const forMe=(can('validerDR')||(!!com&&((pr&&com.includes(pr))||(nm&&com.includes(nm)))))&&OUV().int(i);
       if(forMe) out.push({id:'done:'+i.id,ts:i.finReel||0,ic:'✅',txt:`Travail terminé : <b>${esc(i.titre)}</b> (${esc(clientName(i.clientId))})`,act:"detailIntervention('"+i.id+"')"}); }); }
   // Boxes : contrôle en retard (prochaine visite dépassée)
   if(vBox){
@@ -35603,7 +35624,8 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
   }
   // Bons réceptionnés en attente de la validation du DR (admin / DR, sur les box qu'ils voient)
   if(can('validerDR')&&(notifVoitModule('commandes')||notifVoitModule('validations'))){
-    (db.bons||[]).filter(b=>b.statut==='arrivageNote'&&bonAttenteDR(b)&&!notifMoi(b.recuPar)).forEach(b=>{ const bx=b.boxId?(db.boxes||[]).find(x=>x.id===b.boxId):null;
+    (db.bons||[]).filter(b=>b.statut==='arrivageNote'&&bonAttenteDR(b)&&!notifMoi(b.recuPar)
+      &&visibleBoxMvts((db.boxMvtAttente||[]).filter(m=>m.bcId===b.id&&m.statut==='enAttente')).length).forEach(b=>{   // v738 : « sur les box qu'ils voient » n'était écrit que dans le commentaire const bx=b.boxId?(db.boxes||[]).find(x=>x.id===b.boxId):null;
       out.push({id:'bonarr:'+b.id,ic:'📥',txt:`Bon <b>${esc(bonNum(b))}</b> réceptionné${b.recuPar?' par <b>'+esc(b.recuPar)+'</b>':''} — <b>en attente de ta validation</b>${bx?' · '+esc(bx.nom||bx.numero||''):''}`,act:"go('validations');cible('mvt','"+(((db.boxMvtAttente||[]).find(function(x){return x.bcId===b.id&&x.statut==='enAttente';})||{}).id||"")+"')"}); });
   }
   // élague les éléments « vus » qui n'existent plus
