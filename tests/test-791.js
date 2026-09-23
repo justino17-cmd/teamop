@@ -120,6 +120,8 @@ console.log('\n── 791 · 4. deux validations du même mouvement : une seule 
 const VAL = corps('boxMvtValider');
 v('boxMvtValider : chaque ligne de mouvement qu\'elle écrit porte un identifiant tiré du mouvement (7 endroits)',
   (VAL.match(/'mvv:'\+m\.id\+':'/g) || []).length, 7);
+v('… et celles qui parcourent des LIGNES (arrivage, lot) y mettent le rang de la ligne : deux lignes du même produit ne partagent pas un identifiant',
+  (VAL.match(/'mvv:'\+m\.id\+':'\+kl\+':'/g) || []).length, 3);
 vrai('… traceBox le prend, et garde uid() pour tout le reste', /function traceBox\(b,pid,delta,unit,motif,par,validePar,donneA,idFixe\)\{[\s\S]{0,80}db\.mouvements\.unshift\(\{id:idFixe\|\|uid\(\),/.test(SRC));
 vrai('… et le journal, lui, garde une ligne PAR PERSONNE qui a cliqué (une ligne par geste)', /logEvent\('Mouvement box validé'/.test(VAL) && !/logEvent\([^;]*'mvv:/.test(VAL));
 { /* Deux appareils, les VRAIES fonctions : traceBox, estampiller, ombreRelever, boxFusionFine, fusionnerBases. */
