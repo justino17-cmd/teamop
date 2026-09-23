@@ -149,5 +149,35 @@ console.log('── 793 · 6. les données de société ──');
   vrai('retirer une société de la liste ne détruit pas son style : les documents émis gardent leur en-tête', !/delete db\.societesStyle\[/.test(corps('entSocDel')));
   vrai('le produit donné (bon signé par le client) choisit sa société', /name="rapportModele"/.test(corps('formProduitDonne')) && /docEntete\(p\.rapportModele\)/.test(corps('printProduitDonne'))); }
 
-console.log(`\n════ test-793 : ${ok} ✓ ${ko} ✗ ════`);
-process.exit(ko ? 1 : 0);
+/* La relecture par le texte ci-dessus passait sur un `if(false){ opts.atts=… }` (mutation du
+   23 septembre 2026, la seule des 34 qu'aucun banc ne voyait) : le motif était là, le geste non. On
+   JOUE donc « Envoyer » : la vraie envoiDoc, la vraie fabrique du PDF, un srvMail qui note. */
+console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vraiment ──');
+(async () => {
+  for (const casse of [false, true]) {
+    const W = monter(BASE); W.__envois = [];
+    W.btoa = s => Buffer.from(String(s), 'latin1').toString('base64');
+    vm.runInContext([decoupe('function genDocTexte('), decoupe('function envoiDoc('), decoupe('async function docPdfChaine('),
+      `function permGarde(){ return true; } function save(){} function confirm(){ return false; }
+       async function devisLogoJpeg(){ return null; }
+       function srvMail(){ __envois.push([...arguments]); return Promise.resolve(true); }` +
+      (casse ? `\n docPdfChaine = async function(){ throw new Error('canvas indisponible'); };` : '')].join('\n'), W);
+    W.envoiDoc('devis', 'dA', 'email');
+    for (let k = 0; k < 20; k++) await new Promise(r => setImmediate(r));
+    const [a] = W.__envois, o = (a && a[6]) || {}, pj = (o.atts || [])[0];
+    if (!casse) {
+      vrai('« Envoyer » le devis d’Alpha : UN courriel, au client', W.__envois.length === 1 && a[0] === 'elise@exemple.fr', W.__envois.length);
+      vrai('… avec UN PDF joint, nommé d’après le devis', !!pj && (o.atts || []).length === 1 && pj.filename === 'Devis-DV-1.pdf', o.atts && o.atts.map(x => x.filename));
+      const pdf = pj ? Buffer.from(pj.content, 'base64').toString('latin1') : '';
+      vrai('… un vrai PDF, à l’en-tête d’Alpha et à SON SIRET', pdf.startsWith('%PDF-1.4') && pdf.includes('Alpha Nuisibles') && pdf.includes('22222222200022') && !pdf.includes('11111111100011'));
+      vrai('… expédié au nom d’Alpha, et le texte dit « ci-joint »', o.brandName === 'Alpha Nuisibles' && /ci-joint/.test(a[2]), [o.brandName, String(a[2]).slice(0, 80)]);
+      vrai('… mais pas le brouillon de secours, qui ne sait rien joindre', typeof o.mailtoBody === 'string' && !/ci-joint/.test(o.mailtoBody));
+      vrai('… et le devis passe « envoyé »', W.db.devis.find(x => x.id === 'dA').statut === 'envoye');
+    } else {
+      vrai('PDF impossible à construire : le courriel part quand même, SANS pièce, au nom d’Alpha', W.__envois.length === 1 && !o.atts && o.brandName === 'Alpha Nuisibles', o);
+      vrai('… et son texte ne prétend pas joindre ce qu’il ne joint pas', !/ci-joint/.test(String(a && a[2])), String(a && a[2]).slice(0, 80));
+    }
+  }
+  console.log(`\n════ test-793 : ${ok} ✓ ${ko} ✗ ════`);
+  process.exit(ko ? 1 : 0);
+})().catch(e => { console.log('  ✗ exception : ' + (e && e.stack || e)); console.log(`\n════ test-793 : ${ok} ✓ ${ko + 1} ✗ ════`); process.exit(1); });
