@@ -25768,7 +25768,14 @@ views.enveloppes=function(){
         <div class="pl-meta">${esc(e.ville||'')}${envTotal(e)?' · '+eur(envTotal(e)):''}</div></div>
       <div style="text-align:right;white-space:nowrap"><div class="mono" style="font-weight:800;font-size:16px;color:var(--org)">${n}</div><div style="font-size:10px;color:var(--t3)">paiement${n>1?'s':''}</div></div>
     </div>`;}).join('');
-  $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+  /* ⛔ PAS DE « repeat(3,1fr) » POUR DES VALEURS QUI S'ALLONGENT. Mesuré le 23 septembre 2026 sur
+     un Android de 360 px : trois colonnes forcées dans 328 px, et une valeur en 34 px gras ne se
+     coupe pas — « 0h00 » fait déjà 91 px, « 152h30 » 136, « 1523h30 » 159, « 12 345,67 € » 215.
+     Pointage débordait de 9 px AVEC LES DONNÉES DE DÉMONSTRATION (0h00) : chez un client, bien
+     plus, et sur tous les téléphones (scratchpad/kpi-longs.js). 200 px par colonne : une sur téléphone, deux sur iPad
+     portrait, trois au bureau — la plus longue valeur mesurée tient partout. Même règle pour
+     les trois rangées qui forçaient trois colonnes (Pointage, Enveloppes et sa fiche). */
+  $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(total)}</div><div class="kpi-lbl">Total encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💵</div><div class="kpi-val">${eur(esp)}</div><div class="kpi-lbl">Espèces</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📝</div><div class="kpi-val">${eur(chq)}</div><div class="kpi-lbl">Chèques</div></div></div>
@@ -25777,6 +25784,7 @@ views.enveloppes=function(){
 function ficheEnv(id){ const e=db.enveloppes.find(x=>x.id===id); if(!e)return; e.paiements=e.paiements||[];
   const liv=[e.adresse,e.ville].filter(Boolean).join(', ');
   const pays=envPaie(e).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  /* le « Résumé » suit la règle de la liste (voir views.enveloppes) : jamais trois colonnes forcées */
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Fermer</button><h3>${esc(e.clientNom)||esc(e.numero)}</h3><button type="button" class="btn sm" onclick="formEnv('${e.id}')">Modifier</button></div>
     <div class="form-sec">Client</div>
     <div class="card" style="padding:4px 4px">
@@ -25786,7 +25794,7 @@ function ficheEnv(id){ const e=db.enveloppes.find(x=>x.id===id); if(!e)return; e
       <div class="bdt-row" style="border-bottom:none"><span class="bdt-ic">🧑‍🔧</span><span class="bdt-lbl">Technicien</span><span class="bdt-val">${esc(e.technicienId?techName(e.technicienId):'—')}</span></div>
     </div>
     <div class="form-sec">Résumé</div>
-    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       <div class="kpi"><div class="kpi-val" style="color:var(--org)">${eur(envTotal(e))}</div><div class="kpi-lbl">Total encaissé</div></div>
       <div class="kpi"><div class="kpi-val">💵 ${eur(envEsp(e))}</div><div class="kpi-lbl">Espèces</div></div>
       <div class="kpi"><div class="kpi-val">📝 ${eur(envChq(e))}</div><div class="kpi-lbl">Chèques</div></div></div>
@@ -33373,8 +33381,15 @@ views.pointage=function(){
         <span style="white-space:nowrap"><button class="btn ghost sm" onclick="formPointage('${p.id}')">✎</button> <button class="btn danger sm" onclick="delItem('pointages','${p.id}')">🗑</button></span>
       </div>`).join('')}</div>`).join('');
 
+  /* ⛔ PAS DE « repeat(3,1fr) » POUR DES VALEURS QUI S'ALLONGENT. Mesuré le 23 septembre 2026 sur
+     un Android de 360 px : trois colonnes forcées dans 328 px, et une valeur en 34 px gras ne se
+     coupe pas — « 0h00 » fait déjà 91 px, « 152h30 » 136, « 1523h30 » 159, « 12 345,67 € » 215.
+     Pointage débordait de 9 px AVEC LES DONNÉES DE DÉMONSTRATION (0h00) : chez un client, bien
+     plus, et sur tous les téléphones (scratchpad/kpi-longs.js). 200 px par colonne : une sur téléphone, deux sur iPad
+     portrait, trois au bureau — la plus longue valeur mesurée tient partout. Même règle pour
+     les trois rangées qui forçaient trois colonnes (Pointage, Enveloppes et sa fiche). */
   $('content').innerHTML=`${moi}${alerte}${barre}
-    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">⏱️</div><div class="kpi-val">${ptDuree(secTot)}</div><div class="kpi-lbl">Total de la période</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">📅</div><div class="kpi-val">${jours.length}</div><div class="kpi-lbl">Jour${jours.length>1?'s':''} travaillé${jours.length>1?'s':''}</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(251,191,36,.16)">🗒️</div><div class="kpi-val">${list.length}</div><div class="kpi-lbl">Pointages</div></div></div>

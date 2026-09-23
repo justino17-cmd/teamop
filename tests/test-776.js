@@ -123,5 +123,27 @@ vrai('⛔ « Voir sur la carte » monte au-dessus de la bulle d’aide À TOUTE 
 vrai('… et la règle du téléphone, plus précise, garde la main sous 780 px',
   /html\[data-refonte\] body\.rf-onglets:has\(#assistant > \.fab\) \.plm-fab\{\s*bottom:calc\(var\(--tabh\) \+ 10px \+ 58px \+ 10px\)!important\}/.test(SRC));
 
+console.log('\n── 776 · 7. une rangée d’indicateurs ne force jamais ses colonnes ──');
+/* Mesuré le 23 septembre 2026 (scratchpad/kpi-longs.js) : Pointage, Enveloppes et la fiche d'une
+   enveloppe forçaient `repeat(3,1fr)`. Une valeur en 34 px gras ne se coupe pas : avec « 1523h30 »
+   et « 12 345,67 € », la page passait à 444–547 px sur les trois téléphones et à 827 sur iPad.
+   Même avec les données de démonstration (0h00), Pointage débordait à 360 px. */
+const rangees = [...SRC.matchAll(/<div class="kpis" style="grid-template-columns:([^"]*)"/g)].map(m => m[1]);
+vrai('population : les rangées d’indicateurs à colonnes écrites en ligne sont trouvées', rangees.length >= 5, rangees.length);
+const forcees = rangees.filter(g => /repeat\(\s*\d+\s*,/.test(g));
+vrai('⛔ aucune ne force un nombre de colonnes (repeat(N, …)) — elles se replient (auto-fit)', !forcees.length, forcees);
+const a200 = rangees.filter(g => g === 'repeat(auto-fit,minmax(200px,1fr))').length;
+vrai('les trois rangées à valeurs longues prennent 200 px par colonne', a200 === 3, a200);
+/* l'arithmétique d'auto-fit, jouée sur la valeur LUE dans le fichier : colonnes, et place laissée à la valeur */
+const min = 200, ecart = 15, marge = 40, plusLongue = 159;   /* « 1523h30 » en 34 px gras, mesuré */
+const cartes = 3;   /* auto-fit EFFACE les pistes vides : trois cartes ne font jamais plus de trois colonnes */
+const colonnes = w => Math.min(cartes, Math.max(1, Math.floor((w + ecart) / (min + ecart))));
+const place = w => (w - ecart * (colonnes(w) - 1)) / colonnes(w) - marge;
+const cas = [[328, 1], [358, 1], [398, 1], [500, 2], [1100, 3]];
+vrai('une colonne sur les téléphones (328–398 px), deux sur iPad portrait, trois au bureau',
+  cas.every(([w, n]) => colonnes(w) === n), cas.map(([w]) => w + '→' + colonnes(w)));
+vrai('⛔ … et la plus longue valeur mesurée (159 px) tient dans chaque carte', cas.every(([w]) => place(w) >= plusLongue),
+  cas.map(([w]) => w + '→' + Math.round(place(w))));
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
