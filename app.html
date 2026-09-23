@@ -4489,13 +4489,14 @@ html[data-refonte] .pl-row.lh{container:ligne-heure / inline-size;flex-wrap:wrap
 }
 /* ⛔ LA MÊME CHOSE, SANS L'HEURE : une ligne de texte suivie de ses GESTES (Refuser · Valider) ou
    de son statut. Les demandes de commande de Validations laissaient 18 px au texte au téléphone,
-   à côté de 190 px de boutons (audit, valeurs longues, 23 septembre 2026). Sous 440 px de ligne,
+   à côté de 190 px de boutons (audit, valeurs longues, 23 septembre 2026) ; « À facturer »
+   59 px à côté de « Générer la facture » ; et même motif aux impayés et aux encaissements. Sous 440 px de ligne,
    le texte prend sa ligne avec le chevron, gestes et statut passent dessous, à droite. */
 html[data-refonte] .pl-row.lga{container:ligne-gestes / inline-size;flex-wrap:wrap;row-gap:10px!important}
 @container ligne-gestes (max-width:440px){
   html[data-refonte] .lga > .pl-info{flex:1 1 calc(100% - 40px)}
   html[data-refonte] .lga::after{order:1}
-  html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st{order:2;margin-left:auto}
+  html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st,html[data-refonte] .lga > .btn{order:2;margin-left:auto}
 }
 
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
@@ -26155,7 +26156,7 @@ views.validations=function(){
   const mvEcart=m=>{ if(m.type!=='arrivage'||!m.bcId) return '';
     const bon=(db.bons||[]).find(x=>x.id===m.bcId); if(!bon) return '';
     return bonEcartHtml(bon,m); };
-  const mvRow=(m,cls)=>`<div class="pl-row${cls?' '+cls:''}" data-mvt="${m.id}" style="cursor:default"><div class="pl-info"><div class="pl-title">${MICO[m.type]||'📦'} ${esc(boxMvtLibelle(m,cls==='mvc'&&m.type!=='retrait'))}</div><div class="pl-meta">${esc(m.par||'')} · ${new Date(m.ts||0).toLocaleDateString('fr-FR')}${m.motifRefus?' · motif : '+esc(m.motifRefus):''}${m.motDR?' · mot du DR : « '+esc(m.motDR)+' »':''}</div></div>`;
+  const mvRow=(m,cls)=>`<div class="pl-row ${cls||'lga'}" data-mvt="${m.id}" style="cursor:default"><div class="pl-info"><div class="pl-title">${MICO[m.type]||'📦'} ${esc(boxMvtLibelle(m,cls==='mvc'&&m.type!=='retrait'))}</div><div class="pl-meta">${esc(m.par||'')} · ${new Date(m.ts||0).toLocaleDateString('fr-FR')}${m.motifRefus?' · motif : '+esc(m.motifRefus):''}${m.motDR?' · mot du DR : « '+esc(m.motDR)+' »':''}</div></div>`;
   /* Les lignes d'un mouvement, produit par produit. Pour le DR (edit) : la demande et un champ
      pour n'en accorder qu'une partie. Pour les autres : seulement quand le DR a corrigé — sinon
      le libellé dit déjà tout, et l'historique n'a pas besoin de doubler. */
@@ -31472,12 +31473,12 @@ views.factures=function(){
     <div class="kpi"><div class="kpi-ico" style="background:rgba(239,68,68,.14)">🚨</div><div class="kpi-val">${eur(totLate)}</div><div class="kpi-lbl">En retard (${lateList.length})</div></div></div>
     ${(devisAcc.length||intsAfact.length)?`<div class="card"><div class="card-head"><h3>À facturer</h3><span class="tag">${devisAcc.length+intsAfact.length}</span></div>
       ${devisAcc.length?`<div class="form-sec" style="margin:8px 0 6px">📄 Devis acceptés (${devisAcc.length})</div>`:''}
-      ${devisAcc.map(d=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">Devis ${esc(d.num)} · ${eur(docTot(d).ttc)}</div><div class="pl-meta">${esc(clientName(d.clientId))} · devis accepté</div></div><button class="btn sm" onclick="devisToFacture('${d.id}')">Générer la facture</button></div>`).join('')}
+      ${devisAcc.map(d=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">Devis ${esc(d.num)} · ${eur(docTot(d).ttc)}</div><div class="pl-meta">${esc(clientName(d.clientId))} · devis accepté</div></div><button class="btn sm" onclick="devisToFacture('${d.id}')">Générer la facture</button></div>`).join('')}
       ${(()=>{ /* une pile par technicien : on traite son travail d'un bloc, puis le suivant */
         const gp={}; intsAfact.slice(0,80).forEach(i=>{ const n=techNames(i); (gp[n]=gp[n]||[]).push(i); });
         return Object.keys(gp).sort((a,b)=>a==='Non assigné'?1:(b==='Non assigné'?-1:a.localeCompare(b,'fr'))).map(n=>
           `<div class="form-sec" style="margin:12px 0 6px">👷 ${esc(n)} (${gp[n].length})</div>`
-          +gp[n].map(i=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">${esc(i.titre)}${Number(i.montant)?` · ${eur(i.montant)}`:''}</div><div class="pl-meta">${esc(clientName(i.clientId))} · ${fmtShort(i.date)} · intervention terminée${(i.rapportModele&&!/g[ée]n[ée]rique/i.test(i.rapportModele))?` · <span style="color:var(--acc-txt);font-weight:700">${esc(rapportSociete(i.rapportModele))}</span>`:''}</div></div><button class="btn sm" onclick="intGenererDoc('${i.id}','factures')">Générer la facture</button></div>`).join('')).join('');
+          +gp[n].map(i=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(i.titre)}${Number(i.montant)?` · ${eur(i.montant)}`:''}</div><div class="pl-meta">${esc(clientName(i.clientId))} · ${fmtShort(i.date)} · intervention terminée${(i.rapportModele&&!/g[ée]n[ée]rique/i.test(i.rapportModele))?` · <span style="color:var(--acc-txt);font-weight:700">${esc(rapportSociete(i.rapportModele))}</span>`:''}</div></div><button class="btn sm" onclick="intGenererDoc('${i.id}','factures')">Générer la facture</button></div>`).join('')).join('');
       })()}
     </div>`:''}
     <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Le circuit : <b>Générer</b> → la facture arrive <b>En attente</b> → <b>Aperçu</b> pour la vérifier → <b>📧 Envoyer</b> au client → <b>Payée</b> une fois réglée${isFinanceMgr()?' → <b>Valider</b> (compta)':''}.</div>
@@ -32325,7 +32326,7 @@ function ctrlJournee(techId,declarantId,d){
     <div class="form-sec">2 · Ses interventions (${ints.length})</div>
     ${ints.length? ints.map(ligneInt).join('') : '<div style="color:var(--t3);font-size:13px;padding:6px 2px">Aucune intervention planifiée ce jour-là.</div>'}
     ${ajouts.length?`<div class="form-sec">Ajouté en télécollecte</div>
-      ${ajouts.map(l=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">${esc(l.clientNom||l.note||'Encaissement')}</div><div class="pl-meta">🕒 ${esc(l.heure||'')}</div></div><span class="st st-org">${(REG_MODES[l.mode]||['',l.mode])[0]} ${eur(l.montant)}</span></div>`).join('')}`:''}
+      ${ajouts.map(l=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(l.clientNom||l.note||'Encaissement')}</div><div class="pl-meta">🕒 ${esc(l.heure||'')}</div></div><span class="st st-org">${(REG_MODES[l.mode]||['',l.mode])[0]} ${eur(l.montant)}</span></div>`).join('')}`:''}
     ${pied}
     <div class="modal-foot" style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn ghost" onclick="closeModal();planSel='${d}';planWeekRef='${d}';go('planning')">Planning du jour</button>
@@ -32564,8 +32565,8 @@ function comptaSynthese(){
       <div class="frow"><span class="frow-lbl">À encaisser (toutes périodes)</span><div class="frow-val"><b style="color:var(--red)">${eur(impTot)}</b></div></div>
       <div class="frow"><span class="frow-lbl">TVA collectée (${lbl})</span><div class="frow-val"><b>${eur(tvaP)}</b></div></div>
       ${impayes.length?`<div class="form-sec" style="margin-top:6px">En attente de règlement</div>
-      ${impayes.map(f=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(ttc(f))}</div><div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)}</div></div>
-        <span style="display:flex;gap:6px;align-items:center">${badge(FACT_ST,f.statut)}<button class="btn sm" onclick="comptaVirement('${f.id}')">Encaissé</button></span></div>`).join('')}`
+      ${impayes.map(f=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(ttc(f))}</div><div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)}</div></div>
+        <span class="lga-a" style="display:flex;gap:6px;align-items:center">${badge(FACT_ST,f.statut)}<button class="btn sm" onclick="comptaVirement('${f.id}')">Encaissé</button></span></div>`).join('')}`
       :'<div style="color:var(--t3);font-size:13px;margin-top:6px">Aucune facture en attente 🎉</div>'}
     </div>`;
 }

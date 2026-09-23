@@ -315,10 +315,15 @@ console.log('\n── 776 · 15. un texte ne s’écrase plus : lignes à heure,
   const fV = corpsDe('views.validations=function(){');
   vrai('population : la vue Validations est trouvée', fV.length > 2000, fV.length);
   vrai('les demandes de commande sont des lignes à gestes, leurs boutons nommés', /class="pl-row lga" data-dem=/.test(fV) && /<div class="lga-a" onclick="event\.stopPropagation\(\)"/.test(fV));
+  vrai('… et le même composant sert « À facturer » (devis, interventions), les impayés et les encaissements',
+    /devisAcc\.map\(d=>`<div class="pl-row lga">/.test(SRC) && /gp\[n\]\.map\(i=>`<div class="pl-row lga">/.test(SRC)
+    && /impayes\.map\(f=>`<div class="pl-row lga">/.test(SRC) && /<span class="lga-a" style="display:flex;gap:6px;align-items:center">\$\{badge\(FACT_ST/.test(SRC)
+    && /ajouts\.map\(l=>`<div class="pl-row lga">/.test(SRC)
+    && /const mvRow=\(m,cls\)=>`<div class="pl-row \$\{cls\|\|'lga'\}"/.test(SRC));   /* et les mouvements de box hors « mvc » : historique, « En attente du DR » */
   const cg = regle('html[data-refonte] .lga > .pl-info{flex:1 1 calc(100% - 40px)}');
   vrai('⛔ sous 440 px de ligne : le texte et son chevron en haut, gestes et statut dessous, à droite',
     !!cg && /^@container ligne-gestes \(max-width:440px\)$/.test(cg.media) && !!regle('html[data-refonte] .lga::after{order:1}')
-    && !!regle('html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st{order:2;margin-left:auto}')
+    && !!regle('html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st,html[data-refonte] .lga > .btn{order:2;margin-left:auto}')
     && /html\[data-refonte\] \.pl-row\.lga\{container:ligne-gestes \/ inline-size;flex-wrap:wrap/.test(SRC), cg && cg.media);
   const sh = regle('html[data-refonte] .sheet-head > h3:not(.bxp-titre){order:3;flex:1 1 100%;text-align:left;text-wrap:balance}');
   vrai('⛔ au téléphone, le titre d’une fenêtre passe sous ses deux gestes (grand titre, pleine largeur)', !!sh && /max-width:560px/.test(sh.media), sh && sh.media);
