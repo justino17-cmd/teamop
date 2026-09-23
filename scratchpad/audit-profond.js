@@ -365,7 +365,7 @@ const ECARTS=[
     for(let i=0;i<20;i++){
       const vt=document.getAnimations().filter(a=>a.effect&&a.effect.pseudoElement&&/view-transition/.test(a.effect.pseudoElement)&&a.playState==='running').length;
       const c=document.elementFromPoint(innerWidth/2,innerHeight/2);
-      /* ⚠ et l'animation d'entrée des cartes : pendant `.content.entre`, le contenu est mis à
+      /* ⚠ et l'animation d'entrée des cartes : pendant « .content.entre », le contenu est mis à
          l'échelle (~0,984) — un en-tête de 38 px se PEINT à 37,4. Mesuré le 23 septembre 2026 :
          4 « petites cibles » sur iPad qui n'en étaient pas (38 px de mise en page tout du long). */
       if(!vt && c && c!==document.documentElement && !document.querySelector('.content.entre')) return i;
