@@ -128,9 +128,10 @@ async function partieSaveTech() {
   const essai = async (moi, caps, form, id) => {
     const users = [{ id: 'uA', prenom: 'Justin', nom: 'Roux', role: 'admin' },
       { id: 'uK', prenom: 'Karim', nom: 'Benali', role: 'technicien', techId: 'tK' },
-      { id: 'uR', prenom: 'Rémi', nom: 'Chef', role: 'chefEquipe' }];
+      { id: 'uR', prenom: 'Rémi', nom: 'Chef', role: 'chefEquipe' },
+      { id: 'uL', prenom: 'Léo', nom: 'Martin', role: 'dr', techId: 'tL' }];
     const toasts = [];
-    const ctx = { currentUser: users.find(u => u.id === moi), db: { users, techniciens: [{ id: 'tK', nom: 'Karim Benali', metier: 'Technicien' }] },
+    const ctx = { currentUser: users.find(u => u.id === moi), db: { users, techniciens: [{ id: 'tK', nom: 'Karim Benali', metier: 'Technicien' }, { id: 'tL', nom: 'Léo Martin', metier: 'Technicien' }] },
       can: k => caps.includes(k), permGarde: () => true, planPlaceLibre: () => true, proposerAbonnement: () => toasts.push('abonnement'),
       closeModal: () => {}, toast: m => toasts.push(m), save: () => {}, logEvent: () => {}, views: { techniciens: () => {} },
       uid: (() => { let n = 0; return () => 'id' + (++n); })(), nomNorm: x => String(x || '').toLowerCase().trim(),
@@ -138,18 +139,23 @@ async function partieSaveTech() {
       FormData: function (t) { return Object.entries(t); } };
     vm.createContext(ctx); vm.runInContext(st, ctx);
     await vm.runInContext('saveTech({preventDefault(){},target:' + JSON.stringify(form) + '},' + JSON.stringify(id || '') + ')', ctx);
-    return { roleK: users.find(u => u.id === 'uK').role, metierK: ctx.db.techniciens[0].metier, comptes: users.length, fiches: ctx.db.techniciens.length, toasts };
+    return { roleK: users.find(u => u.id === 'uK').role, roleL: users.find(u => u.id === 'uL').role, metierK: ctx.db.techniciens[0].metier, comptes: users.length, fiches: ctx.db.techniciens.length, toasts };
   };
   const K1 = await essai('uK', [], { nom: 'Karim Benali', metier: "Chef d'équipe", tel: '06 00 00 00 00' }, 'tK');
   v('⛔⛔ Karim modifie SA fiche en « Chef d’équipe » : son compte reste technicien', K1.roleK, 'technicien');
   v('… et la fiche garde son rôle (le sélecteur est verrouillé, le formulaire n’est pas lu)', K1.metierK, 'Technicien');
   const K2 = await essai('uK', [], { nom: 'Nouveau Venu', metier: "Chef d'équipe" });
-  v('⛔⛔ Karim ne crée ni fiche ni compte sans « Créer des utilisateurs »', [K2.comptes, K2.fiches], [3, 1]);
+  v('⛔⛔ Karim ne crée ni fiche ni compte sans « Créer des utilisateurs »', [K2.comptes, K2.fiches], [4, 2]);
+  /* Le cas où le rôle du COMPTE diffère de la fiche : un DR dont la fiche dit « Technicien ». Sans la
+     garde, modifier SA fiche (son téléphone, rien d'autre) le rétrogradait en technicien. C'est ce cas
+     qui fait mordre la garde du rôle quand le sélecteur, lui, est déjà verrouillé. */
+  const L1 = await essai('uL', ['voirTout'], { nom: 'Léo Martin', tel: '07 00 00 00 00' }, 'tL');
+  v('⛔ un DR qui corrige son téléphone sur sa fiche reste DR', L1.roleL, 'dr');
   vrai('… et le refus est dit, avec le même message que l’écran Utilisateurs', K2.toasts.some(t => /Créer des comptes demande le droit « Créer des utilisateurs »/.test(t)), K2.toasts);
   const A1 = await essai('uA', [], { nom: 'Karim Benali', metier: "Chef d'équipe" }, 'tK');
   v('contre-épreuve : l’administrateur, lui, change le rôle (fiche ET compte)', [A1.roleK, A1.metierK], ['chefEquipe', "Chef d'équipe"]);
   const R1 = await essai('uR', ['creerUtilisateurs'], { nom: 'Nouveau Venu', metier: 'Technicien' });
-  v('contre-épreuve : un chef avec « Créer des utilisateurs » crée la fiche et son compte', [R1.comptes, R1.fiches], [4, 2]);
+  v('contre-épreuve : un chef avec « Créer des utilisateurs » crée la fiche et son compte', [R1.comptes, R1.fiches], [5, 3]);
   vrai('le sélecteur de rôle est verrouillé à l’écran pour qui n’est pas administrateur (en modification)',
     /<select name="metier" \$\{id&&currentUser&&currentUser\.role!=='admin'\?'disabled title=/.test(SRC));
 }
