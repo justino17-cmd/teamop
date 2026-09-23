@@ -7636,7 +7636,10 @@ function bonSocietePick(sel){
 }
 function entSocAdd(){ const inp=$('ent-soc-new'); const v=((inp&&inp.value)||'').trim().slice(0,60); if(!v){ toast('Tape le nom de la société'); return; }
   db.societes=db.societes||[]; if(db.societes.some(s=>s.toLowerCase()===v.toLowerCase())){ toast('Cette société existe déjà'); return; }
-  db.societes.push(v); save(); toast('🏢 Société « '+v+' » ajoutée'); views.parametres(); }
+  /* v740 : retirer une société garde son style (les documents émis gardent leur en-tête) ; la
+     recréer sous le même nom reprend donc ses anciennes coordonnées — on le DIT, on ne le tait pas. */
+  const o=(db.societesStyle||{})[v], ancien=!!(o&&(o.siret||o.iban||o.adresse));   // socStyle lit le nom EXACT
+  db.societes.push(v); save(); toast(ancien?'🏢 « '+v+' » existait déjà : ses anciennes coordonnées sont reprises — vérifie-les dans 🏢 Coordonnées':'🏢 Société « '+v+' » ajoutée'); views.parametres(); }
 function entSocDel(ix){ db.societes=db.societes||[]; const s=db.societes[ix]; if(s==null) return;
   if(!confirm('Retirer la société « '+s+' » de la liste ? (les documents déjà émis gardent leur nom)')) return;
   /* v740 : le style (couleur, logo, coordonnées) RESTE — les documents déjà émis sous ce nom
@@ -7647,6 +7650,7 @@ function socStyle(nom){ return ((db&&db.societesStyle)||{})[nom]||{}; }
 function socStylePose(ix,cle,val){ const nom=(db.societes||[])[ix]; if(nom==null) return;
   db.societesStyle=db.societesStyle||{}; db.societesStyle[nom]={...(db.societesStyle[nom]||{})};
   if(val==null) delete db.societesStyle[nom][cle]; else db.societesStyle[nom][cle]=val;
+  db.societesStyle[nom]._m=Date.now();   // v740 : la fusion garde la plus récente (dictFusion)
   save(); }
 function socCouleurSet(ix,hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex||'')) return;
   socStylePose(ix,'couleur',hex); toast('🎨 Couleur de « '+((db.societes||[])[ix]||'')+' » enregistrée'); views.parametres(); }
@@ -7674,6 +7678,7 @@ function socCoordSave(e,ix){ e.preventDefault(); if(!adminSeul()) return; const 
   const d=Object.fromEntries(new FormData(e.target));
   db.societesStyle=db.societesStyle||{}; const st={...(db.societesStyle[nom]||{})};
   SOC_COORD.forEach(([k])=>{ const v=String(d[k]||'').trim().slice(0,120); if(v) st[k]=v; else delete st[k]; });
+  st._m=Date.now();   // v740 : la fusion garde la plus récente (dictFusion)
   db.societesStyle[nom]=st; logEvent('Coordonnées de société',nom,'crud'); save(); closeModal(); toast('🏢 Coordonnées de « '+nom+' » enregistrées'); views.parametres(); }
 /* ══ L'EN-TÊTE D'UN DOCUMENT — UN SEUL ENDROIT (v740) ═════════════════════════════════════
    Justin, 23 septembre 2026 : « pour les PDF selon les interventions ou autres, chaque en-tête
@@ -8258,8 +8263,15 @@ function collsFusion(d){ return Object.keys(d||{}).filter(k=>Array.isArray(d[k])
 /* v740 : `societesStyle` aussi — une société y porte désormais ses coordonnées légales (SIRET,
    TVA, IBAN) : deux appareils qui règlent deux sociétés ne doivent pas s'écraser en bloc. */
 const COLLS_DICT=['plansSite','planNotes','permissions','societesStyle'];
+/* v740 (relecture) : une entrée DATÉE (`_m` — une société, qui porte SIRET et IBAN) ne se tranche
+   plus par le côté prioritaire : la plus récente gagne. Sans ça, un IBAN corrigé sur le téléphone
+   disparaissait à la réception d'une couleur changée au bureau, et la signature ne le voyait pas.
+   Sans date des deux côtés (plans, notes, permissions), rien ne change. */
 function dictFusion(prio,autre){ const out=Object.assign({},autre&&typeof autre==='object'?autre:{});
-  Object.keys(prio&&typeof prio==='object'?prio:{}).forEach(k=>{ out[k]=prio[k]; }); return out; }
+  Object.keys(prio&&typeof prio==='object'?prio:{}).forEach(k=>{ const p=prio[k], a=out[k];
+    const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+    if(obj(p)&&obj(a)&&(Number(a._m)||0)>(Number(p._m)||0)) return;
+    out[k]=p; }); return out; }
 /* ══ LE CLASSEMENT DES 83 CLÉS DE `db` — ÉTAPE 2 DU SOCLE ═══════════════════════════════════
    ⛔ POURQUOI CETTE TABLE EXISTE, ET POURQUOI ELLE EST LA PREMIÈRE CHOSE ÉCRITE DE L'ÉTAPE 2.
    `collsFusion` prend « toute clé qui se trouve être un tableau » (ligne ~6137) : la règle est
@@ -9038,7 +9050,7 @@ function fusionnerBases(local,remote,prioriteLocale){
    de convergence dans une course à trois. On ajoute donc l'empreinte des marques de lignes :
    elles changent exactement quand une ligne de stock change. Signalé par `relecteur`. */
 function baseSignature(d){ return collsFusion(d).sort().map(c=>c+':'+(d[c]||[]).map(r=>(r&&r.id!=null)?(String(r.id)+'@'+(r._m||0)+(c==='boxes'&&r._ms?'~'+recEmpreinte(r._ms):'')):'').sort().join(',')).join('|')
-  +'§'+COLLS_DICT.map(c=>c+':'+Object.keys((d&&d[c])||{}).sort().join(',')).join('|')
+  +'§'+COLLS_DICT.map(c=>c+':'+Object.keys((d&&d[c])||{}).sort().map(k=>{ const v=d[c][k]; return k+((v&&typeof v==='object'&&!Array.isArray(v)&&v._m)?'@'+v._m:''); }).join(',')).join('|')
   +'#'+JSON.stringify(d._tombes||{}); }
 let db = load();
 try{ ombreRelever(); }catch(e){}   // l'ombre part de ce qui est chargé : rien n'est « modifié » tant qu'on n'a rien touché

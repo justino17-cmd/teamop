@@ -202,6 +202,24 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
         [W.__envois.length, W.db.factures.find(x => x.id === 'fB').statut], [1, part ? 'envoyee' : 'attente']);
     } }
 
+  console.log('── 793 · 5 quater. deux appareils règlent la même société : la plus récente gagne, et ça se voit ──');
+  { const W = { console, Object, JSON, String, Math, Number, Array, Set };
+    vm.createContext(W);
+    vm.runInContext([decoupe('const COLLS_HORS_FUSION='), decoupe('function collsFusion('), decoupe('const COLLS_DICT='), decoupe('function dictFusion('),
+      decoupe('function recEmpreinte('), decoupe('function baseSignature(')].join('\n'), W);
+    const tel = { societesStyle: { Alpha: { couleur: '#111111', iban: 'FR76 CORRIGE', _m: 2000 } } };      // l'IBAN corrigé sur le téléphone, pas encore poussé
+    const bureau = { societesStyle: { Alpha: { couleur: '#222222', iban: 'FR76 FAUTE', _m: 1000 } } };    // une couleur changée au bureau, plus tôt
+    const recu = W.dictFusion(bureau.societesStyle, tel.societesStyle);                                  // à la réception : le distant est prioritaire
+    v('à la réception, l’IBAN corrigé (plus récent) n’est pas écrasé par le côté prioritaire', recu.Alpha.iban, 'FR76 CORRIGE');
+    v('… et l’inverse aussi : le plus récent gagne, quel que soit le côté', W.dictFusion(tel.societesStyle, bureau.societesStyle).Alpha.iban, 'FR76 CORRIGE');
+    vrai('… la signature VOIT que la fusion a gardé la version locale — l’appareil repoussera',
+      W.baseSignature({ societesStyle: recu }) !== W.baseSignature(bureau));
+    const sansDate = W.dictFusion({ cX: [{ id: 'p', postes: [] }] }, { cX: [{ id: 'q', postes: [] }] });
+    v('sans date (un plan, une note) : rien ne change, le côté prioritaire', sansDate.cX[0].id, 'p');
+    v('à dates égales : le côté prioritaire', W.dictFusion({ A: { x: 1, _m: 5 } }, { A: { x: 2, _m: 5 } }).A.x, 1); }
+  { vrai('chaque écriture d’une société la DATE (couleur/logo et coordonnées)', /db\.societesStyle\[nom\]\._m=Date\.now\(\);/.test(corps('socStylePose')) && /st\._m=Date\.now\(\);/.test(corps('socCoordSave')));
+    vrai('recréer une société au nom d’une ancienne le DIT (ses coordonnées sont reprises)', /existait déjà : ses anciennes coordonnées sont reprises/.test(corps('entSocAdd'))); }
+
   console.log('── 793 · 5 ter. la VRAIE srvMail : la boîte connectée envoie au nom de la société ──');
   { const essai = async (boite, opts) => {
       const W = { console, Object, JSON, String, Math, Date, Array, Number, parseInt, __req: [], __boite: boite };
