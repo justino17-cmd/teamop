@@ -19,7 +19,7 @@
    5. LES ÉCRANS CARTE — `.content-map{padding:0!important}` retirait le dégagement de la barre
       d'onglets : la dernière carte restait dessous, même page tout en bas.
 
-   Preuve de bout en bout au navigateur : `scratchpad/sonde-appareils.js` (8 appareils ×
+   Preuve de bout en bout au navigateur : `scratchpad/sonde-appareils.js` (12 appareils ×
    41 rubriques : largeur de page = largeur de l'appareil, aucun élément fixe posé sur un
    autre, une seule navigation, le menu sur une ligne). Ici : ce qui peut se lire et
    s'EXÉCUTER hors navigateur — les règles à leur place (dans le bon bloc @media), l'écriture

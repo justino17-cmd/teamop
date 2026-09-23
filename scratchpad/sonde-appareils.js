@@ -21,7 +21,7 @@
 const path = require('path');
 const { ouvrir, dormir } = require(path.join(__dirname, 'pilote.js'));
 const { profil, poserProfil } = require(path.join(__dirname, 'profils.js'));
-const LISTE = (process.argv[2] || 'petitand,se,tel,android,promax,ipad,ipadh,bureau').split(',');
+const LISTE = (process.argv[2] || 'petitand,se,tel,android,promax,ipad,ipadh,bureau,mac14,mac27,win,winapp').split(',');
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d).slice(0, 400) : '')); } };
 
