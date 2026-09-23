@@ -2583,7 +2583,7 @@ html[data-refonte][data-theme="light"]{
   /* Rubrique active : une pastille BLANCHE en relief sur le gris de la barre, le libellé à l'encre
      verte. Le bloc vert foncé pesait autant que le titre de la page pour dire « vous êtes ici ». */
   --side-active:#FFFFFF; --side-active-ink:#0A6B45; --side-hover:rgba(16,26,46,.055); --side-avatar:#0A6B45;
-  --t1:#0A1020; --t2:#39485E; --t3:#5C6B82;
+  --t1:#0A1020; --t2:#39485E; --t3:#536177;
   /* Le vert était SALE : #12694A est un vert forêt sombre, presque olive une fois posé en aplat.
      L'accent plein s'éclaircit vers un vert franc qui porte encore du blanc à 4,8:1 ; l'encre verte,
      elle, reste profonde parce qu'elle se pose sur du blanc. */
@@ -2591,7 +2591,7 @@ html[data-refonte][data-theme="light"]{
   --acc-txt:#0A6B45; --tint:rgba(10,107,69,.10); --tint-gris:rgba(16,26,46,.055);
   --hover:#F1F4F9; --hover-tint:#F1F4F9; --eleve:#FFFFFF; --chip:#E7EBF2;
   --inpBorder:rgba(16,26,46,.15); --trait-ui:#7C8CA6; --scrim:rgba(11,18,32,.38);
-  --org:#8A5600; --red:#B93A32; --green:#0A6B45; --blue:#1F55B8; --purple:#6D3FD1;
+  --org:#7B4D00; --red:#9B312A; --green:#096440; --blue:#1E52B1; --purple:#6339BE;
   --danger-bg:rgba(185,58,50,.09); --danger-ink:#A8322B;
   --rf-2nd:rgba(16,26,46,.07); --rf-2nd-h:rgba(16,26,46,.12);
   /* De jour, un blanc sur un gris très clair a besoin d'un cheveu pour tenir : 1 px à 4,5 % —
@@ -2603,7 +2603,7 @@ html[data-refonte][data-theme="light"]{
   --ombre-2:0 8px 26px rgba(16,26,46,.10),0 1px 3px rgba(16,26,46,.06);
   --ombre-3:0 30px 80px rgba(16,26,46,.18),0 2px 10px rgba(16,26,46,.08);
   --anneau:0 0 0 3px rgba(10,107,69,.28); --focus-champ:0 0 0 3px rgba(10,107,69,.20);
-  --chevron:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235C6B82' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  --chevron:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23536177' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
   /* De jour, un voile vert sur un gris clair se lit comme une tache, et la lumière rasante
      salit le blanc franc des cartes : le fond ne garde que l'acier, les surfaces restent nettes. */
   --rf-voile:radial-gradient(ellipse 84% 66% at 4% 0%,color-mix(in srgb,var(--acier) 11%,transparent),transparent 66%);
@@ -2637,7 +2637,7 @@ html[data-refonte][data-theme="light"]{
     /* Rubrique active : une pastille BLANCHE en relief sur le gris de la barre, le libellé à l'encre
        verte. Le bloc vert foncé pesait autant que le titre de la page pour dire « vous êtes ici ». */
     --side-active:#FFFFFF; --side-active-ink:#0A6B45; --side-hover:rgba(16,26,46,.055); --side-avatar:#0A6B45;
-    --t1:#0A1020; --t2:#39485E; --t3:#5C6B82;
+    --t1:#0A1020; --t2:#39485E; --t3:#536177;
     /* Le vert était SALE : #12694A est un vert forêt sombre, presque olive une fois posé en aplat.
        L'accent plein s'éclaircit vers un vert franc qui porte encore du blanc à 4,8:1 ; l'encre verte,
        elle, reste profonde parce qu'elle se pose sur du blanc. */
@@ -2645,7 +2645,7 @@ html[data-refonte][data-theme="light"]{
     --acc-txt:#0A6B45; --tint:rgba(10,107,69,.10); --tint-gris:rgba(16,26,46,.055);
     --hover:#F1F4F9; --hover-tint:#F1F4F9; --eleve:#FFFFFF; --chip:#E7EBF2;
     --inpBorder:rgba(16,26,46,.15); --trait-ui:#7C8CA6; --scrim:rgba(11,18,32,.38);
-    --org:#8A5600; --red:#B93A32; --green:#0A6B45; --blue:#1F55B8; --purple:#6D3FD1;
+    --org:#7B4D00; --red:#9B312A; --green:#096440; --blue:#1E52B1; --purple:#6339BE;
     --danger-bg:rgba(185,58,50,.09); --danger-ink:#A8322B;
     --rf-2nd:rgba(16,26,46,.07); --rf-2nd-h:rgba(16,26,46,.12);
     /* De jour, un blanc sur un gris très clair a besoin d'un cheveu pour tenir : 1 px à 4,5 % —
@@ -2757,7 +2757,7 @@ html[data-refonte][data-accent]{
   --acc-fill-hover:color-mix(in srgb,#000 12%,var(--acc-src));
   --acc-fill-press:color-mix(in srgb,#000 30%,var(--acc-src));
   --tint:color-mix(in srgb,var(--acc-src) 14%,transparent);
-  --side-active-ink:color-mix(in srgb,#fff 24%,var(--acc-src));
+  --side-active-ink:var(--acc-txt);
   --side-avatar:var(--acc-src);
   /* ⛔ `--green` N'EST PAS REPRIS. Justin : « les couleurs remplacent juste le vert » — le vert
      de la MARQUE, celui des contours, des survols, du menu et des boutons. Pas le vert de SENS :
@@ -2780,7 +2780,7 @@ html[data-refonte][data-theme="light"][data-accent]{
   --acc-fill-hover:color-mix(in srgb,#000 24%,var(--acc-src));
   --acc-fill-press:color-mix(in srgb,#000 36%,var(--acc-src));
   --tint:color-mix(in srgb,var(--acc-src) 11%,transparent);
-  --side-active-ink:color-mix(in srgb,#000 26%,var(--acc-src));
+  --side-active-ink:var(--acc-txt);
   --side-avatar:color-mix(in srgb,#000 18%,var(--acc-src));
 }
 /* ⛔⛔ L'ENCRE DE JOUR SE CALCULE CONTRE L'ACCENT DE JOUR, PAS CONTRE CELUI DE NUIT.
@@ -2822,8 +2822,8 @@ html[data-refonte][data-theme="dark"][data-accent="indigo"] { --acc-txt:color-mi
    encre. Le rouge se fonce de 30 % pour le blanc (5,0:1) ; l'orange garde sa teinte et prend
    une encre SOMBRE — à aucune profondeur raisonnable le blanc n'y tient. De jour, les deux
    sont déjà foncés : le blanc y passe (5,3 et 6,4). */
-html[data-refonte]{ --red-fill:var(--red); --on-red:#FFFFFF; --org-fill:var(--org); --on-org:#FFFFFF; }
-html[data-refonte][data-theme="dark"]{ --red-fill:color-mix(in srgb,#000 30%,var(--red)); --on-org:#2A1304; }
+html[data-refonte]{ --red-fill:var(--red); --on-red:#FFFFFF; --org-fill:var(--org); --on-org:#FFFFFF; --blue-fill:var(--blue); --on-blue:#FFFFFF; }
+html[data-refonte][data-theme="dark"]{ --red-fill:color-mix(in srgb,#000 30%,var(--red)); --on-org:#2A1304; --on-blue:#0B1426; }
 html[data-refonte][data-theme="light"][data-accent="blue"]  { --on-acc:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="purple"]{ --on-acc:#FFFFFF; }
 
@@ -7225,7 +7225,7 @@ function fmtTs(ts){ const d=new Date(ts); const f=_F('ts','fr-FR',_O_TS);
 
 /* ── Constantes statuts ── */
 const STATUT_INT = { aplanifier:{l:'À planifier',c:'st-grey'}, planifiee:{l:'Planifiée',c:'st-blue'}, encours:{l:'En cours',c:'st-org'}, terminee:{l:'Terminée',c:'st-green'}, annulee:{l:'Annulée',c:'st-red'} };
-const INT_STCOLOR = { aplanifier:'var(--t3)', planifiee:'var(--blue)', encours:'var(--org)', terminee:'var(--acc)', annulee:'var(--red)' };
+const INT_STCOLOR = { aplanifier:'var(--t3)', planifiee:'var(--blue)', encours:'var(--org)', terminee:'var(--acc-txt)', annulee:'var(--red)' };
 const INT_TYPES = ['Contrat anti nuisibles (HACCP)','Dératisation','Désinsectisation anthrène de tapis','Désinsectisation blattes','Désinsectisation fourmis','Désinsectisation guêpes / frelons','Désinsectisation mites','Désinsectisation poux de poules','Désinsectisation psoques','Désinsectisation puces','Désinsectisation punaise de lit','Désinsectisation tiques','Détection punaise de lit','Espèce protégée','Traitement xylophage','Visite technique'];
 const REPORT_TEMPLATES = ["Modèle générique"];   /* Vidée le 5 sept. 2026 : cette liste portait en dur les ~90 agences d'un seul client et partait chez TOUS les autres — le réseau commercial de l'un devenait visible chez ses concurrents. Chaque entreprise déclare ses sociétés dans Paramètres → Mes sociétés ; entSocietes() ne retombe ici que si elle n'en a aucune. */
 function rapportSociete(m){ if(!m||/g[ée]n[ée]rique|aucune/i.test(m)) return 'OP GESTION'; return String(m).trim(); }
@@ -7650,12 +7650,42 @@ function openLangPicker(){ openModal(`<div class="modal-head"><h3>🌍 ${t('Lang
    Sert pour l'accent choisi librement et pour la couleur d'entreprise. */
 function encreSur(hex){
   try{
-    let h=String(hex||'').replace('#',''); if(h.length===3) h=h.split('').map(c=>c+c).join('');
-    const v=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255).map(x=>x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4));
+    let rgb;
+    const m=String(hex||'').match(/^hsl\(\s*([\d.]+)(?:deg)?[\s,]+([\d.]+)%[\s,]+([\d.]+)%/i);
+    if(m){ const hh=+m[1]/360, ss=+m[2]/100, ll=+m[3]/100, q=ll<.5?ll*(1+ss):ll+ss-ll*ss, p=2*ll-q;
+      const f=t=>{ t=(t%1+1)%1; return t<1/6?p+(q-p)*6*t : t<1/2?q : t<2/3?p+(q-p)*(2/3-t)*6 : p; };
+      rgb=[f(hh+1/3),f(hh),f(hh-1/3)]; }
+    else { let h=String(hex||'').replace('#',''); if(h.length===3) h=h.split('').map(c=>c+c).join('');
+      rgb=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255); }
+    const v=rgb.map(x=>x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4));
     const L=0.2126*v[0]+0.7152*v[1]+0.0722*v[2], ct=t=>(Math.max(L,t)+0.05)/(Math.min(L,t)+0.05);
     return ct(0)>ct(1) ? '#12202F' : '#FFFFFF';
   }catch(e){ return '#FFFFFF'; }
 }
+/* ⛔⛔ UNE COULEUR DE DONNÉE N'EST PAS UNE ENCRE. Catégories, fournisseurs, types de
+   passage, sources du registre : ces couleurs servent à RECONNAÎTRE — une pastille, un
+   liseré, un fond à 18 % — et elles ont été choisies pour ça : un jaune, un vert d'eau, un
+   bleu roi. Écrites telles quelles en TEXTE, elles tombaient à 1,64:1 de jour
+   (« Désinfection ») et 1,58:1 de nuit (« MABI ») — mesuré le 23 septembre 2026, les neuf
+   teintes, les deux thèmes (scratchpad/audit-teintes.js, FAM=tout). Le texte prend la
+   couleur à MOITIÉ, mêlée à l'encre du thème : la teinte reste reconnaissable et la lettre
+   se lit dans les deux thèmes (pire cas des huit catégories : 5,30 de jour, 6,48 de nuit).
+   Les jetons sémantiques sont déjà des encres, on les rend tels quels — sauf l'accent, qui
+   est la couleur d'un APLAT et prend son encre de texte. */
+function encreDonnee(c){
+  if(!c) return 'var(--t2)';
+  if(c==='var(--acc)') return 'var(--acc-txt)';
+  if(/^var\(--(?:org|red|blue|purple|green|t1|t2|t3|acc-txt)\)$/.test(c)) return c;
+  return 'color-mix(in srgb,'+c+' 50%,var(--t1))';
+}
+/* Une SURFACE pleine et son encre, jamais l'une sans l'autre. De nuit, l'accent, l'orange,
+   le rouge et le bleu sont éclaircis pour se LIRE : y poser du blanc donnait 1,9:1 sur le
+   vert. Les jetons sémantiques ont leur paire ; une couleur libre (entreprise, département,
+   secteur) prend l'encre qui contraste le mieux. Rend [fond, encre]. */
+const APLATS={'var(--acc)':['var(--acc-fill)','var(--on-fill)'],'var(--acc-txt)':['var(--acc-fill)','var(--on-fill)'],
+  'var(--org)':['var(--org-fill,var(--org))','var(--on-org,#fff)'],'var(--red)':['var(--red-fill,var(--red))','var(--on-red,#fff)'],
+  'var(--blue)':['var(--blue-fill,var(--blue))','var(--on-blue,#fff)'],'var(--t3)':['var(--t3)','var(--bg1)']};
+function aplatDe(c){ return APLATS[c]||[c,encreSur(c)]; }
 function encreLisible(racine){
   try{
     const lire=c=>{ const m=(c||'').match(/[\d.]+/g); return m?{r:+m[0],g:+m[1],b:+m[2],a:m[3]===undefined?1:+m[3]}:null; };
@@ -14189,7 +14219,7 @@ function dashDragInit(){
 let planRef=new Date(); planRef.setDate(1);
 let planSel=todayISO();
 const ISO=dt=>dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
-const ST_COLOR={planifiee:'var(--blue)',encours:'var(--org)',terminee:'var(--acc)',annulee:'var(--red)'};
+const ST_COLOR={planifiee:'var(--blue)',encours:'var(--org)',terminee:'var(--acc-txt)',annulee:'var(--red)'};
 let planWeekRef=null;
 let planMode='semaine';
 /* En-tête de jour cliquable (vue semaine) → bascule en vue jour sur cette date */
@@ -16461,7 +16491,7 @@ function planPopStatut(i){
   } else {
     sous='<div style="margin-top:4px;font-size:11px;color:#667085">⏱ pas encore effectuée</div>';
   }
-  return `<div style="margin-top:7px"><span style="display:inline-block;background:${c};color:#fff;border-radius:20px;padding:3px 11px;font-size:11px;font-weight:800">${esc(st.l)}</span>${sous}</div>`;
+  return `<div style="margin-top:7px"><span style="display:inline-block;background:${aplatDe(c)[0]};color:${aplatDe(c)[1]};border-radius:20px;padding:3px 11px;font-size:11px;font-weight:800">${esc(st.l)}</span>${sous}</div>`;
 }
 /* ── les tournees affichees : une par technicien et par jour, dans l'ordre des heures ── */
 function planToursDe(pts,jours,techIds){
@@ -17634,13 +17664,13 @@ function garSectionHtml(clientId){ const list=garListOfClient(clientId); if(!lis
     const active=g.fin>=today; const expSoon=active&&g.fin<=garMonthsAdd(today,1);
     const total=Math.max(1,(new Date(g.fin+'T00:00:00')-new Date(g.debut+'T00:00:00'))); const done=Math.min(total,Math.max(0,(new Date(today+'T00:00:00')-new Date(g.debut+'T00:00:00'))));
     const rest=Math.max(0,Math.round((new Date(g.fin+'T00:00:00')-new Date(today+'T00:00:00'))/86400000));
-    const col=active?(expSoon?'var(--org)':'var(--acc)'):'var(--red)';
+    const col=active?(expSoon?'var(--org)':'var(--acc)'):'var(--red)', colT=encreDonnee(col);
     const st=active?(expSoon?'⏳ Expire dans '+rest+' j':'✅ Active · reste '+(rest>60?Math.round(rest/30)+' mois':rest+' j')):'✕ Expirée le '+fmtShort(g.fin);
     return `<div class="pl-row" onclick="closeModal();detailIntervention('${x.id}')" style="border-left:3px solid ${col}">
       <div class="pl-info"><div class="pl-title">🛡️ ${esc(x.titre)}</div>
       <div class="pl-meta">posée le ${fmtShort(g.debut)} · ${g.mois} mois${x.num?' · '+esc(x.num):''}</div>
       ${active?`<div style="height:4px;border-radius:3px;background:color-mix(in srgb,var(--t3) 20%,transparent);margin-top:5px;overflow:hidden"><div style="height:100%;width:${Math.round(done/total*100)}%;background:${col}"></div></div>`:''}</div>
-      <span style="font-size:11px;font-weight:800;color:${col};white-space:nowrap">${st}</span></div>`; }).join('')}`; }
+      <span style="font-size:11px;font-weight:800;color:${colT};white-space:nowrap">${st}</span></div>`; }).join('')}`; }
 /* Bandeau « sous garantie » dans le formulaire d'intervention */
 function garCheckBanner(){ const box=document.getElementById('int-gar-warn'); if(!box) return;
   const cid=(document.getElementById('cli-id')||{}).value;
@@ -18504,7 +18534,7 @@ views.interventions=function(){
       <div style="text-align:center;min-width:46px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:15px;color:var(--t1)">${esc(i.heure||'—')}</div><div style="font-size:10px;color:var(--t3)">${fmtShort(i.date)}</div></div>
       <div class="pl-info">
         <div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">⚠️ Urgent</span>':''}</div>
-        <div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?`<span style="color:${typeColor(i.type)||'var(--t2)'};font-weight:700">${esc(i.type)}</span> · `:''}${esc(clientName(i.clientId))}</div>
+        <div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?`<span style="color:${encreDonnee(typeColor(i.type))};font-weight:700">${esc(i.type)}</span> · `:''}${esc(clientName(i.clientId))}</div>
         <div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(techNames(i))}${intBadges(i)}</div>
         ${i.statut==='annulee'&&i.motifAnnulation?`<div style="font-size:11px;color:var(--red);font-weight:700;margin-top:2px">🚫 ${esc(i.motifAnnulation)}</div>`:''}
         ${intCkBar(i)}
@@ -18556,7 +18586,7 @@ views.interventions=function(){
       const groups={}; list.forEach(i=>{ const k=(i.statut==='aplanifier'||!i.date)?'__aplanifier':i.date; (groups[k]=groups[k]||[]).push(i); });
       const keys=Object.keys(groups).sort((a,b)=>{ if(a==='__aplanifier') return -1; if(b==='__aplanifier') return 1; return b.localeCompare(a); });
       const dayLabel=k=>{ if(k==='__aplanifier') return 'À planifier'; if(k===todayISO()) return 'Aujourd’hui'; if(k===shiftDay(todayISO(),1)) return 'Demain'; if(k===shiftDay(todayISO(),-1)) return 'Hier'; return fmtLong(k); };
-      body=keys.map(k=>`<details open class="int-grp"><summary style="cursor:pointer;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${k==='__aplanifier'?'var(--org)':k===todayISO()?'var(--acc)':'var(--t3)'};margin:14px 2px 7px;font-weight:700;list-style:none">▸ ${dayLabel(k)} · ${groups[k].length}</summary>${groups[k].map(card).join('')}</details>`).join('');
+      body=keys.map(k=>`<details open class="int-grp"><summary style="cursor:pointer;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${k==='__aplanifier'?'var(--org)':k===todayISO()?'var(--acc-txt)':'var(--t3)'};margin:14px 2px 7px;font-weight:700;list-style:none">▸ ${dayLabel(k)} · ${groups[k].length}</summary>${groups[k].map(card).join('')}</details>`).join('');
     }
     $('content').innerHTML=`
       <div style="display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:10px 13px;margin-bottom:10px">🔍<input id="int-search" value="${esc(intSearch)}" placeholder="Rechercher (n°, titre, client, type, technicien)…" oninput="intSearch=this.value;views.interventions(true)" style="flex:1;background:transparent;border:none;outline:none;color:var(--t1);font-size:14px;font-family:inherit"></div>
@@ -18639,7 +18669,7 @@ function intTechCard(i,opts){ opts=opts||{}; const cli=db.clients.find(c=>c.id==
         <div style="font-weight:800;font-size:${opts.big?'15.5px':'14px'};color:var(--t1)">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">⚠️ Urgent</span>':''}</div>
         <div style="font-size:13px;color:var(--t2);margin-top:3px">${esc(clientName(i.clientId)||'—')}</div>
         ${adr?`<div style="font-size:12px;color:var(--t3);margin-top:2px">📍 ${esc(adr)}</div>`:''}
-        <div style="font-size:11.5px;color:var(--t3);margin-top:3px">${i.type?`<span style="color:${tc};font-weight:700">${esc(i.type)}</span>`:''}${intBadges(i)}</div>
+        <div style="font-size:11.5px;color:var(--t3);margin-top:3px">${i.type?`<span style="color:${encreDonnee(tc)};font-weight:700">${esc(i.type)}</span>`:''}${intBadges(i)}</div>
         ${intCkBar(i)}
       </div>
       ${badge(STATUT_INT,i.statut)}
@@ -18708,13 +18738,13 @@ function intInfPrev(i){ if(!i.clientId) return null;
   return prev[0]||null; }
 function intInfCompare(i){ const cur=intInfOf(i); const p=intInfPrev(i); if(!cur||!p) return '';
   const d=infRank(cur)-infRank(intInfOf(p));
-  const [ic,txt,col]=d<0?['↘','en baisse','var(--acc)']:d>0?['↗','en hausse','var(--red)']:['→','stable','var(--t3)'];
+  const [ic,txt,col]=d<0?['↘','en baisse','var(--acc-txt)']:d>0?['↗','en hausse','var(--red)']:['→','stable','var(--t3)'];
   return `<span style="font-size:12px;font-weight:700;color:${col}">${ic} ${txt} vs ${fmtShort(p.date)}</span>`; }
 function intInfGauge(i,editable,setFn){ const cur=intInfOf(i);
   return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <div style="display:flex;gap:4px;align-items:flex-end">${INF_LV.map(([k,l,c],ix)=>{ const on=infRank(cur)>=ix+1;
       return `<div ${editable?`onclick="${setFn}('${k}')" title="${l}"`:''} style="width:26px;height:${10+ix*7}px;border-radius:4px;cursor:${editable?'pointer':'default'};background:${on?c:'color-mix(in srgb,var(--t3) 18%,transparent)'}"></div>`; }).join('')}</div>
-    <b style="font-size:13px;color:${(INF_LV.find(x=>x[0]===cur)||[])[2]||'var(--t3)'}">${cur?(INF_LV.find(x=>x[0]===cur)||[])[1]:'Non évalué'}</b>
+    <b style="font-size:13px;color:${encreDonnee((INF_LV.find(x=>x[0]===cur)||[])[2]||'var(--t3)')}">${cur?(INF_LV.find(x=>x[0]===cur)||[])[1]:'Non évalué'}</b>
     ${intInfCompare(i)}
   </div>`; }
 function intDiagToggleNuis(id,n){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
@@ -19158,7 +19188,7 @@ function paDelPlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); 
 function paPosteDot(i,po,forPdf){ const etat=paLastEtat(i,po.id); const cur=!!paReleveOf(i,po.id);
   const col=etat?(PA_ETATS[etat]||[])[1]||'var(--t3)':'var(--t3)';
   const hot=paZoneChaude(i,po.id);
-  return `<div class="pa-poste" data-pid="${po.id}" style="position:absolute;left:${po.x}%;top:${po.y}%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:900;border:2.5px solid ${cur?'#fff':'rgba(255,255,255,.55)'};box-shadow:0 1px 6px rgba(0,0,0,.45)${hot?',0 0 0 4px color-mix(in srgb,var(--red) 45%,transparent)':''};cursor:pointer;touch-action:none;user-select:none">${po.num}${hot?'<span style="position:absolute;top:-11px;right:-9px;font-size:12px">🔥</span>':''}</div>`; }
+  return `<div class="pa-poste" data-pid="${po.id}" style="position:absolute;left:${po.x}%;top:${po.y}%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:${aplatDe(col)[0]};color:${aplatDe(col)[1]};display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:900;border:2.5px solid ${cur?'#fff':'rgba(255,255,255,.55)'};box-shadow:0 1px 6px rgba(0,0,0,.45)${hot?',0 0 0 4px color-mix(in srgb,var(--red) 45%,transparent)':''};cursor:pointer;touch-action:none;user-select:none">${po.num}${hot?'<span style="position:absolute;top:-11px;right:-9px;font-size:12px">🔥</span>':''}</div>`; }
 function planAppTabHtml(i){
   if(!i.clientId) return `<div class="card">${emptyState('🗺️','Associez un client à l’intervention pour gérer ses plans d’appâtage.','','')}</div>`;
   const cli=db.clients.find(x=>x.id===i.clientId);
@@ -19191,7 +19221,7 @@ function paReleveModal(intId,posteId){ const i=db.interventions.find(x=>x.id===i
   openModal(`<div class="modal-head"><h3>Poste n°${po.num} — ${esc(pn)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     ${paZoneChaude(i,posteId)?`<div style="border:1px solid var(--red);background:color-mix(in srgb,var(--red) 8%,transparent);border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--red);font-weight:700;margin-bottom:10px">🔥 Zone chaude : consommé sur au moins 2 passages consécutifs</div>`:''}
     <div class="dt-lbl" style="margin-bottom:8px">Relevé de ce passage</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">${Object.entries(PA_ETATS).map(([k,[l,c,ic]])=>`<button class="btn ${cur.etat===k?'':'ghost'}" style="justify-content:center;padding:14px 8px;font-weight:800;${cur.etat===k?`background:${c};border-color:${c};color:#fff`:''}" onclick="paSetReleve('${intId}','${posteId}','${k}')">${ic} ${l}</button>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">${Object.entries(PA_ETATS).map(([k,[l,c,ic]])=>`<button class="btn ${cur.etat===k?'':'ghost'}" style="justify-content:center;padding:14px 8px;font-weight:800;${cur.etat===k?`background:${aplatDe(c)[0]};border-color:${aplatDe(c)[0]};color:${aplatDe(c)[1]}`:''}" onclick="paSetReleve('${intId}','${posteId}','${k}')">${ic} ${l}</button>`).join('')}</div>
     <div class="field"><label>Note sur ce poste (facultatif)</label><input id="pa-note" value="${esc(cur.note||'')}" placeholder="Ex : appât renouvelé, trappe déplacée…"></div>
     ${histo.length?`<div class="dt-lbl" style="margin:12px 0 6px">Passages précédents</div>${histo.map(x=>{ const e2=PA_ETATS[x.rel.etat]||['?','var(--t3)','·'];
       return `<div style="display:flex;gap:8px;align-items:center;font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--brd)"><span style="color:var(--t3)">${fmtShort(x.int.date)}</span><span>${e2[2]}</span><span style="color:${e2[1]};font-weight:700">${e2[0]}</span><span style="flex:1;text-align:right;color:var(--t3)">${esc(x.rel.note||'')}</span></div>`; }).join('')}`:''}
@@ -19422,8 +19452,8 @@ function papGeoBadge(intId){ const el=$('pap-geo-ok'); if(!el) return;
   const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const c=db.clients.find(x=>x.id===i.clientId); if(!c||!(c.adresse||'').trim()) return;
   const adr=c.adresse.trim();
-  if(_papGeoCache[adr]!==undefined){ el.textContent=_papGeoCache[adr]?'✓ localisée':'⚠️ non localisée'; el.style.color=_papGeoCache[adr]?'var(--acc)':'var(--org)'; return; }
-  papGeocode(adr).then(g=>{ _papGeoCache[adr]=!!g; const e2=$('pap-geo-ok'); if(e2){ e2.textContent=g?'✓ localisée':'⚠️ non localisée'; e2.style.color=g?'var(--acc)':'var(--org)'; } })
+  if(_papGeoCache[adr]!==undefined){ el.textContent=_papGeoCache[adr]?'✓ localisée':'⚠️ non localisée'; el.style.color=_papGeoCache[adr]?'var(--acc-txt)':'var(--org)'; return; }
+  papGeocode(adr).then(g=>{ _papGeoCache[adr]=!!g; const e2=$('pap-geo-ok'); if(e2){ e2.textContent=g?'✓ localisée':'⚠️ non localisée'; e2.style.color=g?'var(--acc-txt)':'var(--org)'; } })
     .catch(()=>{ const e2=$('pap-geo-ok'); if(e2){ e2.textContent='hors ligne'; e2.style.color='var(--t3)'; } }); }
 /* ── Services IGN / BAN (gratuits, CORS ok) ── */
 async function papGeocode(q){
@@ -19723,7 +19753,7 @@ function papPosteSheet(intId,posteId){
     ${hausse?`<div style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 9%,transparent);border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--org);font-weight:700;margin-bottom:10px">⚠️ Activité en hausse — 2 passages consommés d'affilée</div>`:''}
     ${papTubesPerimes(po)?`<div style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 8%,transparent);border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--org);font-weight:700;margin-bottom:10px">💡 Tubes UV à changer — dernier changement le ${fmtShort(po.dateTubes)} (＞ 12 mois)</div>`:''}
     <div class="dt-lbl" style="margin-bottom:8px">Relevé de ce passage</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">${Object.entries(PA_ETATS).map(([k,[l,c,ic]])=>`<button class="btn ${cur.etat===k?'':'ghost'}" style="justify-content:center;padding:13px 8px;font-weight:800;${cur.etat===k?`background:${c} !important;border-color:${c} !important;color:#fff !important`:''}" onclick="papSheetEtat('${intId}','${posteId}','${cur.etat===k?'':k}')">${ic} ${l}</button>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">${Object.entries(PA_ETATS).map(([k,[l,c,ic]])=>`<button class="btn ${cur.etat===k?'':'ghost'}" style="justify-content:center;padding:13px 8px;font-weight:800;${cur.etat===k?`background:${aplatDe(c)[0]} !important;border-color:${aplatDe(c)[0]} !important;color:${aplatDe(c)[1]} !important`:''}" onclick="papSheetEtat('${intId}','${posteId}','${cur.etat===k?'':k}')">${ic} ${l}</button>`).join('')}</div>
     <div class="field"><label>Note sur ce poste (facultatif)</label><input id="pa-note" value="${esc(cur.note||'')}" placeholder="Ex : appât renouvelé, excréments frais le long du mur…"></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 12px">
       <input type="file" id="pap-poste-photo" accept="image/*" capture="environment" style="display:none" onchange="papSheetPhoto(event,'${intId}','${posteId}')">
@@ -19925,7 +19955,7 @@ function papDossierSanitaire(cid){
     const vals=months.map(mo=>allInts.filter(x=>(x.date||'').slice(0,7)===mo.key).reduce((s,x)=>s+(x.relevesPlan||[]).filter(r=>ids.has(r.posteId)&&r.etat==='consomme').length,0));
     return {z,vals,max:Math.max(1,...vals)}; });
   const curvesHtml=curves.map(cu=>`<div style="margin:12px 0;page-break-inside:avoid"><b style="font-size:11.5px">${esc(cu.z)} — postes consommés par mois</b>
-    <div style="display:flex;align-items:flex-end;gap:5px;height:56px;margin-top:6px">${cu.vals.map(v=>`<div style="width:26px;height:${Math.max(3,Math.round(v/cu.max*52))}px;background:${v?'#E0524D':'#dfe4ee'};border-radius:4px 4px 0 0;display:flex;align-items:flex-end;justify-content:center;color:#fff;font-size:8px">${v||''}</div>`).join('')}</div>
+    <div style="display:flex;align-items:flex-end;gap:5px;height:56px;margin-top:6px">${cu.vals.map(v=>`<div style="width:26px;height:${Math.max(3,Math.round(v/cu.max*52))}px;background:${v?'var(--red-fill,var(--red))':'#dfe4ee'};border-radius:4px 4px 0 0;display:flex;align-items:flex-end;justify-content:center;color:var(--on-red,#fff);font-size:8px">${v||''}</div>`).join('')}</div>
     <div style="display:flex;gap:5px;font-size:8px;color:#666;margin-top:2px">${months.map(mo=>`<span style="width:26px;text-align:center">${mo.lbl}</span>`).join('')}</div></div>`).join('')||'<p class="muted">Aucun poste posé — pas encore de données d\'activité.</p>';
   // 2. plan de lutte
   const majOf=pl=>{ const h2=pl.historique||[]; return h2.length?new Date(h2[h2.length-1].ts).toLocaleDateString('fr-FR'):'—'; };
@@ -20060,10 +20090,10 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
       return `<button type="button" onclick="intNuis.${on?'delete':'add'}('${ne}');assistRender()" style="cursor:pointer;font-size:13px;font-weight:700;padding:10px 15px;border-radius:14px;border:1px solid ${on?'var(--acc)':'var(--brd)'};background:${on?'var(--acc)':'var(--bg2)'};color:${on?'var(--on-acc)':'var(--t2)'}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')}</div>
     <div class="dt-lbl" style="margin-bottom:6px">Niveau d'infestation</div>
     <div style="display:flex;gap:8px;margin-bottom:8px">${INF_LV.map(([k,l,c])=>{ const on=asW.infest===k;
-      return `<button type="button" onclick="asW.infest=asW.infest==='${k}'?'':'${k}';assistRender()" style="flex:1;cursor:pointer;padding:13px 6px;border-radius:12px;font-weight:800;font-size:14px;border:1px solid ${on?c:'var(--brd)'};background:${on?c:'var(--bg2)'};color:${on?'#fff':'var(--t2)'}">${l}</button>`; }).join('')}</div>
+      return `<button type="button" onclick="asW.infest=asW.infest==='${k}'?'':'${k}';assistRender()" style="flex:1;cursor:pointer;padding:13px 6px;border-radius:12px;font-weight:800;font-size:14px;border:1px solid ${on?c:'var(--brd)'};background:${on?aplatDe(c)[0]:'var(--bg2)'};color:${on?aplatDe(c)[1]:'var(--t2)'}">${l}</button>`; }).join('')}</div>
     ${(()=>{ const p=intInfPrev(i); if(!p||!asW.infest) return '';
       const d=infRank(asW.infest)-infRank(intInfOf(p));
-      const [ic,txt,col]=d<0?['↘','En baisse','var(--acc)']:d>0?['↗','En hausse','var(--red)']:['→','Stable','var(--t3)'];
+      const [ic,txt,col]=d<0?['↘','En baisse','var(--acc-txt)']:d>0?['↗','En hausse','var(--red)']:['→','Stable','var(--t3)'];
       return `<div style="font-size:12.5px;font-weight:700;color:${col};margin-bottom:8px">${ic} ${txt} par rapport au passage du ${fmtShort(p.date)} (${(INF_LV.find(x=>x[0]===intInfOf(p))||[])[1]||'?'})</div>`; })()}
     ${(()=>{ const cats=[...new Set([...intNuis].map(n=>T3D_NUIS_MAP[n]).filter(Boolean))];
       if(!cats.length) return '';
@@ -20096,7 +20126,7 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
       ${rapPhotos.map((p,ix)=>{ const tg=rapTags[ix]||''; p=photoSrc(p);
         return `<div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--brd)"><img src="${p}" style="width:100%;height:100%;object-fit:cover">
         <button type="button" onclick="rapPhotos.splice(${ix},1);rapTags.splice(${ix},1);assistRender()" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>
-        <button type="button" onclick="rapTags[${ix}]='${tg==='avant'?'apres':tg==='apres'?'':'avant'}';assistRender()" style="position:absolute;left:4px;bottom:4px;border:none;border-radius:8px;padding:3px 8px;font-size:10.5px;font-weight:800;cursor:pointer;background:${tg==='avant'?'var(--org)':tg==='apres'?'var(--acc)':'rgba(0,0,0,.55)'};color:#fff">${tg==='avant'?'AVANT':tg==='apres'?'APRÈS':'étiqueter'}</button></div>`; }).join('')}
+        <button type="button" onclick="rapTags[${ix}]='${tg==='avant'?'apres':tg==='apres'?'':'avant'}';assistRender()" style="position:absolute;left:4px;bottom:4px;border:none;border-radius:8px;padding:3px 8px;font-size:10.5px;font-weight:800;cursor:pointer;background:${tg==='avant'?'var(--org-fill,var(--org))':tg==='apres'?'var(--acc-fill)':'rgba(0,0,0,.55)'};color:${tg==='avant'?'var(--on-org,#fff)':tg==='apres'?'var(--on-fill)':'#fff'}">${tg==='avant'?'AVANT':tg==='apres'?'APRÈS':'étiqueter'}</button></div>`; }).join('')}
     </div>
     <input type="file" id="as-file" accept="image/*" multiple style="display:none" onchange="asAddPhotos(event)">
     <div style="font-size:12px;color:var(--t3)">Touchez « étiqueter » pour marquer AVANT → APRÈS → sans étiquette. Les étiquettes apparaissent sur le rapport.</div>`;
@@ -20674,7 +20704,7 @@ function renderIntDetail(id){
           ${i.compteRendu?`<div style="margin-top:8px"><div class="dt-lbl">Compte-rendu</div><div class="dt-val" style="font-weight:400">${esc(i.compteRendu)}</div></div>`:''}
           ${co.recommandations?`<div style="margin-top:8px"><div class="dt-lbl">Recommandations</div><div class="dt-val" style="font-weight:400">${esc(co.recommandations)}</div></div>`:''}
         `:`<div style="color:var(--t3);font-size:13px">Pas encore de rapport — touche « Terminer l'intervention » ou « Rédiger ».</div>`}</div>`; })()}
-      ${(i.nuisibles&&i.nuisibles.length)?`<div class="card" style="margin-top:12px;padding:14px"><div class="dt-lbl" style="margin-bottom:8px">Nuisibles & méthodes d'action</div>${i.nuisibles.map(n=>{ const tn=(i.traitementNuis||{})[n]||{}; const lvC={'Faible':'var(--acc)','Moyen':'var(--org)','Fort':'var(--red)','Très fort':'var(--red)'}[tn._infest]||'var(--t3)';
+      ${(i.nuisibles&&i.nuisibles.length)?`<div class="card" style="margin-top:12px;padding:14px"><div class="dt-lbl" style="margin-bottom:8px">Nuisibles & méthodes d'action</div>${i.nuisibles.map(n=>{ const tn=(i.traitementNuis||{})[n]||{}; const lvC={'Faible':'var(--acc-txt)','Moyen':'var(--org)','Fort':'var(--red)','Très fort':'var(--red)'}[tn._infest]||'var(--t3)';
         return `<div style="padding:8px 0;border-bottom:1px solid var(--brd)"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13.5px">${esc(n)}</b>${tn._infest?`<span class="tag" style="font-size:10px;color:${lvC};border-color:${lvC}">Infestation : ${esc(tn._infest)}</span>`:''}</div>${(tn._methodes&&tn._methodes.length)?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">${tn._methodes.map(m=>`<span class="tag" style="font-size:10px">⚒ ${esc(m)}</span>`).join('')}</div>`:`<div style="font-size:11.5px;color:var(--t3);margin-top:3px">Méthodes non renseignées — Modifier puis touchez le nuisible</div>`}${tn._obs?`<div style="font-size:12px;color:var(--t3);margin-top:4px">${esc(tn._obs)}</div>`:''}</div>`; }).join('')}</div>`:''}
 
       
@@ -20803,7 +20833,7 @@ function renderIntDetail(id){
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">${co.infestation?`<span class="st ${infColor}">Infestation : ${esc(co.infestation)}</span>`:''}${co.conformite?`<span class="st ${cfColor}">${esc(co.conformite)}</span>`:''}</div>
         ${(co.indices&&co.indices.length)?`<div style="margin-bottom:8px"><span class="dt-lbl">Indices de présence :</span> ${co.indices.map(x=>`<span class="tag">${esc(x)}</span>`).join(' ')}</div>`:''}
         ${co.recommandations?`<div><span class="dt-lbl">Recommandations :</span><div class="dt-val" style="font-weight:400;margin-top:3px">${esc(co.recommandations)}</div></div>`:''}</div>`:''}
-      ${(i.nuisibles&&i.nuisibles.length)?`<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>Nuisibles & méthodes d'action</h3></div>${i.nuisibles.map(n=>{ const tn=(i.traitementNuis||{})[n]||{}; const lvC={'Faible':'var(--acc)','Moyen':'var(--org)','Fort':'var(--red)','Très fort':'var(--red)'}[tn._infest]||'var(--t3)';
+      ${(i.nuisibles&&i.nuisibles.length)?`<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>Nuisibles & méthodes d'action</h3></div>${i.nuisibles.map(n=>{ const tn=(i.traitementNuis||{})[n]||{}; const lvC={'Faible':'var(--acc-txt)','Moyen':'var(--org)','Fort':'var(--red)','Très fort':'var(--red)'}[tn._infest]||'var(--t3)';
         return `<div style="padding:8px 0;border-bottom:1px solid var(--brd)"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13.5px">${esc(n)}</b>${tn._infest?`<span class="tag" style="font-size:10px;color:${lvC};border-color:${lvC}">Infestation : ${esc(tn._infest)}</span>`:''}</div>${(tn._methodes&&tn._methodes.length)?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">${tn._methodes.map(m=>`<span class="tag" style="font-size:10px">⚒ ${esc(m)}</span>`).join('')}</div>`:`<div style="font-size:11.5px;color:var(--t3);margin-top:3px">Aucune méthode renseignée — touchez le nuisible dans Modifier</div>`}${tn._obs?`<div style="font-size:12px;color:var(--t3);margin-top:4px">${esc(tn._obs)}</div>`:''}</div>`; }).join('')}</div>`:''}
       ${(()=>{ const sum=traitementSummary(i); return sum.length?`<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>\uD83E\uDDEA Traitement \u2014 ${esc(i.type||'')}</h3></div>${sum.map(r=>`<div style="margin-bottom:6px"><span class="dt-lbl">${esc(r[0])}</span><div class="dt-val" style="font-weight:400">${esc(r[1])}</div></div>`).join('')}</div>`:''; })()}
       ${(()=>{ const pk=Array.isArray(i.prestation)?i.prestation:Object.keys(i.prestation||{}); return pk.length?`<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>Prestation réalisée</h3></div><div style="display:flex;flex-wrap:wrap;gap:8px">${PRESTATION_ITEMS.filter(([k])=>pk.includes(k)).map(([k,l,ic])=>`<span class="tag" style="font-size:12px">${ic} ${esc(l)}</span>`).join('')}</div></div>`:''; })()}
@@ -21214,7 +21244,7 @@ function intHistoriquePassages(id){ const i=db.interventions.find(x=>x.id===id);
       return `<div class="pl-row" onclick="closeModal();detailIntervention('${x.id}')" style="border-left:3px solid ${INT_STCOLOR[x.statut]||'var(--t3)'}">
       <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;background:${done?'rgba(34,197,94,.15)':cancel?'rgba(148,163,184,.15)':'rgba(248,113,113,.14)'};color:${done?'#22c55e':cancel?'var(--t3)':'var(--red)'}">${done?'✓':cancel?'—':'✕'}</div>
       <div class="pl-info"><div class="pl-title">${esc(x.titre)}${x.passageTotal>1?` <span class="tag" style="font-size:9px">${x.passageNum}/${x.passageTotal}</span>`:''}</div>
-      <div class="pl-meta">${x.date?fmtShort(x.date)+(x.heure?' à '+x.heure:''):'À planifier'} · ${esc(techNames(x))}${(()=>{ const lv=intInfOf(x); if(!lv) return ''; const cfg=INF_LV.find(z=>z[0]===lv)||[]; return ` · <b style="color:${cfg[2]||'var(--t3)'}">infestation ${cfg[1]||lv}</b>`; })()}</div></div>
+      <div class="pl-meta">${x.date?fmtShort(x.date)+(x.heure?' à '+x.heure:''):'À planifier'} · ${esc(techNames(x))}${(()=>{ const lv=intInfOf(x); if(!lv) return ''; const cfg=INF_LV.find(z=>z[0]===lv)||[]; return ` · <b style="color:${encreDonnee(cfg[2]||'var(--t3)')}">infestation ${cfg[1]||lv}</b>`; })()}</div></div>
       ${badge(STATUT_INT,x.statut)}</div>`; }).join('')}
     ${(i.histo&&i.histo.length)?`<div class="dt-lbl" style="margin:14px 2px 6px">Journal de cette fiche</div>${i.histo.slice(-8).reverse().map(h=>`<div style="display:flex;gap:10px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--brd)"><span style="color:var(--t3);white-space:nowrap">${new Date(h.ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})} ${new Date(h.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><span style="flex:1">${esc(h.txt)}${h.par?` <span style="color:var(--t3)">· ${esc(h.par)}</span>`:''}</span></div>`).join('')}`:''}`); }
 function _copieInt(i,extra){ const n={id:uid(),num:intNum(),titre:i.titre,type:i.type,clientId:i.clientId,techId:i.techId,techIds:intTechIds(i).slice(),adresse:i.adresse,date:i.date,heure:i.heure,duree:i.duree,prio:i.prio,statut:'planifiee',recurrence:i.recurrence,desc:i.desc||'',montant:i.montant||0,rapportModele:i.rapportModele||'',nuisibles:(i.nuisibles||[]).slice(),nuisible:i.nuisible||'—',methodes:(i.methodes||[]).slice(),traitementNuis:JSON.parse(JSON.stringify(i.traitementNuis||{})),checklist:(i.checklist||[]).map(x=>({t:x.t,done:false})),compteRendu:'',...extra}; return n; }
@@ -22379,7 +22409,7 @@ function plAnalyse(){ const t=($('pl-texte')||{}).value||'';
   if(_plLignes.length>200){
     const parCat={}; _plLignes.forEach(x=>{ const k=x.categorie||'Sans catégorie'; parCat[k]=(parCat[k]||0)+1; });
     el.innerHTML=`<div class="form-sec">Aperçu — ${_plLignes.length} produits</div>
-      <div style="font-size:13px;color:var(--t2);line-height:1.7">${Object.keys(parCat).sort((a,b)=>parCat[b]-parCat[a]).map(k=>`<b style="color:${k==='Sans catégorie'?'var(--t3)':catColor(k)}">${parCat[k]}</b> ${esc(k)}`).join(' · ')}</div>
+      <div style="font-size:13px;color:var(--t2);line-height:1.7">${Object.keys(parCat).sort((a,b)=>parCat[b]-parCat[a]).map(k=>`<b style="color:${k==='Sans catégorie'?'var(--t3)':encreDonnee(catColor(k))}">${parCat[k]}</b> ${esc(k)}`).join(' · ')}</div>
       <div style="font-size:12.5px;color:var(--t3);line-height:1.6;margin-top:8px">${_plLignes.slice(0,6).map(x=>esc(x.nom)).join(' · ')}${_plLignes.length>6?' … et '+(_plLignes.length-6)+' autres':''}</div>
       <div style="font-size:12px;color:var(--t3);line-height:1.6;margin-top:8px">Trop de lignes pour vérifier les catégories une par une : elles se corrigent ensuite depuis la fiche d'un produit. Les produits déjà au catalogue seront ignorés.</div>`;
     return; }
@@ -22705,8 +22735,8 @@ function renderProduitsList(){
       </div>`;}).join('') : '';
     return `<div style="background:var(--bg1);border:1px solid var(--brd);border-radius:10px;margin-bottom:6px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;background:color-mix(in srgb,${col} 7%,transparent)" onclick="prdExpanded['${cat.replace(/'/g,"\\'")}']=${!open};renderProduitsList()">
-        <span style="width:38px;height:38px;border-radius:9px;background:color-mix(in srgb,${col} 18%,transparent);color:${col};display:flex;align-items:center;justify-content:center;font-weight:800;font-family:ui-monospace,monospace;font-size:14px;flex-shrink:0">${catAbrev(cat)}</span>
-        <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;color:${col}">${esc(cat)}</div><div style="font-size:10px;color:var(--t3)">${prods.length} produit${prods.length>1?'s':''}</div></div>
+        <span style="width:38px;height:38px;border-radius:9px;background:color-mix(in srgb,${col} 18%,transparent);color:${encreDonnee(col)};display:flex;align-items:center;justify-content:center;font-weight:800;font-family:ui-monospace,monospace;font-size:14px;flex-shrink:0">${catAbrev(cat)}</span>
+        <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;color:${encreDonnee(col)}">${esc(cat)}</div><div style="font-size:10px;color:var(--t3)">${prods.length} produit${prods.length>1?'s':''}</div></div>
         <span style="color:var(--t3);font-size:12px">${open?'▲':'▼'}</span>
       </div>
       ${rows}
@@ -22723,7 +22753,7 @@ function formProduit(id){ const p=id?produit(id):{};
     <form id="prodform" onsubmit="saveProduit(event,'${id||''}')">
       <div style="display:flex;gap:10px;align-items:center;background:color-mix(in srgb,${bannerC} 8%,transparent);border:1px solid color-mix(in srgb,${bannerC} 30%,transparent);border-radius:10px;padding:11px 12px;margin-bottom:14px">
         <span style="font-size:18px;color:${bannerC}">${id?'✏️':'➕'}</span>
-        <div><div style="font-size:13px;font-weight:700;color:var(--t1)">${id?'Modifier produit':'Nouveau produit'}</div><div style="font-size:11px;color:var(--t3)">${id?'Produit du catalogue — modifiable':'Nouveau produit dans le catalogue'}</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--t1)">${id?'Modifier produit':'Nouveau produit'}</div><div style="font-size:11px;color:var(--t2)">${id?'Produit du catalogue — modifiable':'Nouveau produit dans le catalogue'}</div></div>
       </div>
       <div class="form-sec">Nom du produit *</div>
       <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="Ex : XILIX 1000"></div></div>
@@ -22760,7 +22790,7 @@ function formProduit(id){ const p=id?produit(id):{};
 function renderProdFours(){ const el=$('prod-fours'); if(!el) return;
   const all=[...new Set([...FOUR_PILLS,...db.fournisseurs.map(f=>(f.nom||'').trim().toUpperCase()).filter(Boolean),...prodFours])];
   el.innerHTML=all.map(f=>{ const on=prodFours.has(f); const c=fourColor(f);
-    return `<button type="button" onclick="toggleProdFour('${f.replace(/'/g,"\\'")}')" style="cursor:pointer;font-size:11px;font-weight:700;padding:6px 12px;border-radius:14px;color:${on?'#fff':c};background:${on?c:`color-mix(in srgb,${c} 12%,transparent)`};border:.5px solid ${c}">${esc(f)}</button>`;}).join(''); }
+    return `<button type="button" onclick="toggleProdFour('${f.replace(/'/g,"\\'")}')" style="cursor:pointer;font-size:11px;font-weight:700;padding:6px 12px;border-radius:14px;color:${on?aplatDe(c)[1]:encreDonnee(c)};background:${on?aplatDe(c)[0]:`color-mix(in srgb,${c} 12%,transparent)`};border:.5px solid ${c}">${esc(f)}</button>`;}).join(''); }
 function toggleProdFour(f){ if(prodFours.has(f)) prodFours.delete(f); else prodFours.add(f); renderProdFours(); }
 function saveProduit(e,id){ e.preventDefault(); if(!permGarde('stock',id?'modifier':'ajouter','un produit')) return; const f=e.target; const data=Object.fromEntries(new FormData(f));
   data.fournisseurs=[...prodFours];
@@ -22795,7 +22825,7 @@ views.fournisseurs=function(){
     const adr=[f.adresse,[f.codePostal,f.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');
     return `<div class="card" style="padding:14px 16px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:10px">
-        <span class="avatar" style="flex-shrink:0;background:color-mix(in srgb,${c} 16%,transparent);color:${c};border:1px solid color-mix(in srgb,${c} 40%,transparent)">${initials(f.nom)}</span>
+        <span class="avatar" style="flex-shrink:0;background:color-mix(in srgb,${c} 16%,transparent);color:${encreDonnee(c)};border:1px solid color-mix(in srgb,${c} 40%,transparent)">${initials(f.nom)}</span>
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:15.5px">${esc(f.nom)}</div>
           <div style="font-size:12px;color:var(--t3)">${nb} produit${nb>1?'s':''} au catalogue${f.contact?' · '+esc(f.contact):''}</div>
@@ -22889,7 +22919,7 @@ function renderStockList(){ const el=$('stock-list'); if(!el)return; let lines=s
       <div style="text-align:right;white-space:nowrap"><div class="mono" style="font-weight:800;font-size:18px;color:${e.c}">${l.eff}</div><div style="font-size:10px;color:var(--t3)">unités</div></div>
     </div>`; };
   const sec=(titre,c,arr)=>arr.length?`<div style="font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:${c};margin:14px 2px 7px">${titre} (${arr.length})</div>`+arr.map(ligne).join(''):'';
-  el.innerHTML=barreExport+sec('🔴 Épuisé','var(--red)',grp.epuise)+sec('🟠 À commander','var(--org)',grp.aCommander)+sec('🟢 En stock','var(--acc)',grp.enStock);
+  el.innerHTML=barreExport+sec('🔴 Épuisé','var(--red)',grp.epuise)+sec('🟠 À commander','var(--org)',grp.aCommander)+sec('🟢 En stock','var(--acc-txt)',grp.enStock);
 }
 
 /* ═══════════════ MOUVEMENTS STOCK ═══════════════ */
@@ -23198,7 +23228,7 @@ views.mouvements=function(){
     return `<div style="${GRILLE2};padding:11px 16px;border-top:1px solid color-mix(in srgb,var(--brd) 60%,transparent)">
       <div style="min-width:0"><div class="strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.nom||'—')} <span class="mono" style="color:var(--t3);font-size:11px">${esc(p.ref||'')}</span></div><div style="display:flex;align-items:center;gap:7px;margin-top:3px;min-width:0">${srcMvt(m)}<span style="font-size:12px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.motif||'')||''}</span></div></div>
       <span style="font-family:'Space Mono',monospace;font-weight:700;font-size:14.5px;color:${e?'var(--acc-txt)':'var(--org)'}">${e?'＋':'−'}${m.qte}${m.unite&&m.unite!=='u'?' '+esc(m.unite):''}</span>
-      <div style="min-width:0">${pers(m.technicien,e?'var(--acc)':'var(--org)')}</div>
+      <div style="min-width:0">${pers(m.technicien,e?'var(--acc-txt)':'var(--org)')}</div>
       <div style="min-width:0">${m.validePar?`<span class="st st-green" title="Mouvement validé par le DR">✔ ${esc(m.validePar)}</span>`:'<span style="color:var(--t3)" title="Fait en direct (DR ou administrateur — pas de validation requise)">—</span>'}</div>
       <div style="min-width:0">${donne}</div>
       <span style="color:var(--t3);font-size:12px;text-align:right;font-family:'Space Mono',monospace">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
@@ -23290,9 +23320,9 @@ const BOX_CATS=CAT_LIST;
 function catColor(c){ return CAT_COLORS[c]||'var(--acc)'; }
 function catAbrev(c){ if(!c) return '??'; if(c.includes('TP18')) return '18'; if(c.includes('TP14')) return '14'; return c.replace(/\s/g,'').slice(0,2).toUpperCase(); }
 function fourColor(f){ return FOUR_COLORS[f]||'var(--t3)'; }
-function fourBadge(f){ const c=fourColor(f); return `<span style="font-size:10px;font-weight:700;color:${c};background:color-mix(in srgb,${c} 14%,transparent);border:.5px solid color-mix(in srgb,${c} 40%,transparent);padding:2px 8px;border-radius:12px">${esc(f)}</span>`; }
+function fourBadge(f){ const c=fourColor(f); return `<span style="font-size:10px;font-weight:700;color:${encreDonnee(c)};background:color-mix(in srgb,${c} 14%,transparent);border:.5px solid color-mix(in srgb,${c} 40%,transparent);padding:2px 8px;border-radius:12px">${esc(f)}</span>`; }
 /* État de stock d'un produit dans une box, d'après les unités (ELAN : 0 = épuisé, 1-2 = à commander, 3+ = en stock) */
-function boxEtat(u){ u=u||0; if(u<=0) return {k:'epuise',l:'Épuisé',c:'var(--red)'}; if(u<=2) return {k:'aCommander',l:'À commander',c:'var(--org)'}; return {k:'enStock',l:'En stock',c:'var(--acc)'}; }
+function boxEtat(u){ u=u||0; if(u<=0) return {k:'epuise',l:'Épuisé',c:'var(--red)'}; if(u<=2) return {k:'aCommander',l:'À commander',c:'var(--org)'}; return {k:'enStock',l:'En stock',c:'var(--acc-txt)'}; }
 /* Alerte au Directeur régional (+ admins) quand un produit d'une box passe sous le seuil.
    Appelée après chaque déduction d'unités : notification push UNIQUEMENT au moment où
    l'état change (En stock → À commander, ou → Épuisé) — pas de spam à chaque sortie. */
@@ -25444,7 +25474,7 @@ function renderBoxUsers(){ const el=$('box-users'); if(!el) return;
       <div><div style="font-size:15px;color:var(--t1)">${esc(fullName(u))}</div><div style="font-size:11px;color:var(--t3)">${esc(roleLbl(u.role)||u.role||'')}${tout?' · voit déjà toutes les box (« Tout voir »)':''}</div></div>
     </div>`; }).join(''); }
 function toggleBoxUser(id){ if(boxUserSel.has(id)) boxUserSel.delete(id); else boxUserSel.add(id); const c=$('box-user-count'); if(c)c.textContent=boxUserSel.size; renderBoxUsers(); }
-function toggleBoxVisibleTous(){ boxVisibleTous=!boxVisibleTous; const ic=$('box-vt-ic'); if(ic){ ic.textContent=boxVisibleTous?'☑':'☐'; ic.style.color=boxVisibleTous?'var(--acc)':'var(--t3)'; } renderBoxTechs(); }
+function toggleBoxVisibleTous(){ boxVisibleTous=!boxVisibleTous; const ic=$('box-vt-ic'); if(ic){ ic.textContent=boxVisibleTous?'☑':'☐'; ic.style.color=boxVisibleTous?'var(--acc-txt)':'var(--t3)'; } renderBoxTechs(); }
 function renderBoxCodes(){ const el=$('box-codes'); if(!el)return;
   el.innerHTML=boxCodes.map((c,i)=>`<div class="fgroup" style="padding:8px">
     <div style="display:flex;gap:4px;margin-bottom:8px;background:var(--deep);border-radius:8px;padding:3px">${CODE_TYPES.map(t=>`<button type="button" onclick="boxCodes[${i}].type='${t}';renderBoxCodes()" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;${c.type===t?'background:var(--acc);color:var(--on-acc)':'background:transparent;color:var(--t2)'}">${t}</button>`).join('')}</div>
@@ -26731,7 +26761,7 @@ function bonCatOpen(){ if(!peutCommander()){ refusCommander(); return; } _bonCat
 function bonCatChips(){ const el=$('bcat-chips'); if(!el) return;
   const fours=[...new Set(db.produits.flatMap(p=>p.fournisseurs||[]))].filter(Boolean).sort();
   el.innerHTML=['',...fours].map(f=>{ const on=_bonCatFour===f; const c=f?fourColor(f):'var(--acc)';
-    return `<button type="button" style="cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:100px;border:1px solid ${on?c:'var(--brd2)'};color:${on?c:'var(--t2)'};background:${on?`color-mix(in srgb,${c} 15%,transparent)`:'transparent'}" onclick="_bonCatFour='${esc(f)}';bonCatChips();bonCatList()">${esc(f)||'Tous'}</button>`; }).join(''); }
+    return `<button type="button" style="cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:100px;border:1px solid ${on?c:'var(--brd2)'};color:${on?encreDonnee(c):'var(--t2)'};background:${on?`color-mix(in srgb,${c} 15%,transparent)`:'transparent'}" onclick="_bonCatFour='${esc(f)}';bonCatChips();bonCatList()">${esc(f)||'Tous'}</button>`; }).join(''); }
 function bonCatList(){ const el=$('bcat-list'); if(!el) return; const q=norm(($('bcat-q')||{}).value||'');
   let list=db.produits.filter(p=>!q||norm((p.nom||'')+' '+(p.ref||'')+' '+(p.categorie||'')+' '+(p.fournisseurs||[]).join(' ')).includes(q));
   if(_bonCatFour) list=list.filter(p=>produitDuFournisseur(p,_bonCatFour));   // sans la casse : voir fourMemeNom
@@ -26791,7 +26821,7 @@ function bonQtyList(){ const el=$('bqty-wrap'); if(!el) return;
       <span style="width:10px;height:10px;border-radius:50%;background:${c};flex-shrink:0"></span>
       <b style="font-size:14.5px">${esc(g.k)}</b>
       <span style="color:var(--t3);font-size:12px">${g.idx.length} article(s)</span>
-      <span id="bqty-g-${gi}" style="margin-left:auto;color:${c};font-size:12.5px;font-weight:700"></span></div>
+      <span id="bqty-g-${gi}" style="margin-left:auto;color:${encreDonnee(c)};font-size:12.5px;font-weight:700"></span></div>
     <div class="tbl-wrap" style="overflow-x:auto;border:1px solid var(--brd);border-radius:12px"><table>
       <thead><tr><th style="min-width:210px">PRODUIT</th><th>CARTONS</th><th>U/CTN</th><th>UNITÉS</th><th style="text-align:right">TOTAL</th><th>COMMENTAIRE</th><th></th></tr></thead><tbody>`;
     g.idx.forEach((i,j)=>{ const l=bonLignes[i];
@@ -27194,7 +27224,7 @@ function printBon(id){ const b=db.bons.find(x=>x.id===id); if(!b)return; const f
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups'); return; }
   const CO=bcCouleur(b);
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Bon ${esc(bonNum(b))}</title>
-    <style>*{box-sizing:border-box;font-family:Arial,sans-serif}body{margin:0;padding:40px;color:#1A1F28}.hd{display:flex;justify-content:space-between;border-bottom:3px solid ${CO};padding-bottom:14px;margin-bottom:20px}.logo{font-size:22px;font-weight:800;color:${CO}}.muted{color:#666;font-size:13px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:10px}th{background:${CO};color:#fff;padding:8px;text-align:left;font-size:12px}td{padding:8px;border-bottom:1px solid #E3E8F0;font-size:12px}.tot{margin-top:14px;margin-left:auto;width:260px}.tot div{display:flex;justify-content:space-between;padding:5px 0}.tot .ttc{font-size:16px;font-weight:800;color:${CO};border-top:2px solid ${CO};margin-top:6px;padding-top:8px}@media print{body{padding:20px}}</style></head>
+    <style>*{box-sizing:border-box;font-family:Arial,sans-serif}body{margin:0;padding:40px;color:#1A1F28}.hd{display:flex;justify-content:space-between;border-bottom:3px solid ${CO};padding-bottom:14px;margin-bottom:20px}.logo{font-size:22px;font-weight:800;color:${CO}}.muted{color:#666;font-size:13px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:10px}th{background:${CO};color:${encreSur(CO)};padding:8px;text-align:left;font-size:12px}td{padding:8px;border-bottom:1px solid #E3E8F0;font-size:12px}.tot{margin-top:14px;margin-left:auto;width:260px}.tot div{display:flex;justify-content:space-between;padding:5px 0}.tot .ttc{font-size:16px;font-weight:800;color:${CO};border-top:2px solid ${CO};margin-top:6px;padding-top:8px}@media print{body{padding:20px}}</style></head>
     <body><div class="hd"><div><div class="logo">${esc(bcEntete(b))}</div>${(()=>{const E=db.entreprise||{};const l=[[E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),[E.tel?'Tél. '+E.tel:'',E.siret?'SIRET '+E.siret:''].filter(Boolean).join(' · ')].filter(Boolean);return l.map(x=>`<div class="muted">${esc(x)}</div>`).join('');})()}</div><div style="text-align:right"><h1 style="margin:0;font-size:18px">BON DE COMMANDE</h1><div class="muted">N° ${esc(bonNum(b))}<br>${new Date((b.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</div></div></div>
       <div class="box"><b>Fournisseur :</b> ${esc(f.nom||b.fournisseur||'—')}${f.email?'<br>'+esc(f.email):''}${f.adresse?'<br>'+esc(f.adresse)+' '+esc(f.codePostal||'')+' '+esc(f.ville||''):''}</div>
       ${(b.nomSiteLivraison||b.adresseLivraison)?`<div class="box"><b>Livraison :</b> ${esc(b.nomSiteLivraison||'')}${b.adresseLivraison?'<br>'+esc(b.adresseLivraison):''}${(b.codePostalLivraison||b.villeLivraison)?'<br>'+esc([b.codePostalLivraison,b.villeLivraison].filter(Boolean).join(' ')):''}${b.contactSurPlace?'<br>Contact sur place : '+esc(b.contactSurPlace):''}${b.telephoneContact?'<br>Tél. sur place : '+esc(b.telephoneContact):''}</div>`:''}
@@ -28021,7 +28051,7 @@ views.carteInt=function(){
       // Grandes villes (Paris/Lyon/Marseille) → cercles par arrondissement
       secteurs.filter(s=>BIG_CITIES[String(s.dep).slice(0,2)]).forEach(s=>{ L.circle([s.lat,s.lng],{radius:s.radius,color:s.color,weight:1.5,fillColor:s.color,fillOpacity:.16}).addTo(_map).bindPopup(`<b>${esc(s.label)}</b><br>${esc(s.techNom)}<br>${s.nb} intervention(s)`); });
       // Étiquettes de secteur
-      secteurs.forEach(s=>{ L.marker([s.lat,s.lng],{icon:L.divIcon({html:`<div style="background:${s.color};color:#fff;font-weight:700;font-size:11px;padding:2px 7px;border-radius:8px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">${esc(s.label)}</div>`,className:'',iconSize:[1,1]})}).addTo(_map); });
+      secteurs.forEach(s=>{ L.marker([s.lat,s.lng],{icon:L.divIcon({html:`<div style="background:${s.color};color:${encreSur(s.color)};font-weight:700;font-size:11px;padding:2px 7px;border-radius:8px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">${esc(s.label)}</div>`,className:'',iconSize:[1,1]})}).addTo(_map); });
       // Vrais contours de département (GeoJSON)
       const depKeys=new Set(secteurs.filter(s=>!BIG_CITIES[String(s.dep).slice(0,2)]).map(s=>s.dep));
       if(depKeys.size) loadDeptGeo().then(geo=>{ if(!geo||current!=='carteInt'||!_map) return;
@@ -28319,7 +28349,7 @@ function consoAnalyseHTML(){
   const parPersAvant={}; avant.forEach(m=>{ const q=quiConso(m); parPersAvant[q]=(parPersAvant[q]||0)+(m.qte||0); });
   const evol=(v,ref)=>{ if(!ref) return v?'<span style="font-size:11px;font-weight:700;color:var(--t3)">nouveau</span>':'';
     const p=Math.round((v-ref)/ref*100); if(!p) return '<span style="font-size:11px;font-weight:700;color:var(--t3)">stable</span>';
-    const h=p>0; return '<span style="font-size:11px;font-weight:700;color:'+(h?'var(--org)':'var(--acc)')+'" title="Par rapport à la période précédente ('+ref+' u)">'+(h?'▲ +':'▼ ')+p+' %</span>'; };
+    const h=p>0; return '<span style="font-size:11px;font-weight:700;color:'+(h?'var(--org)':'var(--acc-txt)')+'" title="Par rapport à la période précédente ('+ref+' u)">'+(h?'▲ +':'▼ ')+p+' %</span>'; };
   // ── classements ──
   const parProd={}; sorties.forEach(m=>{ parProd[m.produitId]=(parProd[m.produitId]||0)+(m.qte||0); });
   const topProd=Object.entries(parProd).map(([pid,q])=>({pid,nom:produit(pid).nom||'—',q})).sort((a,b)=>b.q-a.q);
@@ -28454,10 +28484,10 @@ function consoAnalyseHTML(){
           const moisCe=consoDuMois(t.pid,g.n,cleMoisDecale(0)), moisAv=consoDuMois(t.pid,g.n,cleMoisDecale(1));
           const cmp=moisAv?Math.round((moisCe-moisAv)/moisAv*100):null;
           const badgeCmp=(moisCe||moisAv)
-            ? '<span style="font-size:10.5px;font-weight:700;color:'+(cmp===null?'var(--t3)':(cmp>0?'var(--red)':(cmp<0?'var(--acc)':'var(--t3)')))+'" title="Ce mois-ci '+moisCe+' u, le mois pr&eacute;c&eacute;dent '+moisAv+' u">'
+            ? '<span style="font-size:10.5px;font-weight:700;color:'+(cmp===null?'var(--t3)':(cmp>0?'var(--red)':(cmp<0?'var(--acc-txt)':'var(--t3)')))+'" title="Ce mois-ci '+moisCe+' u, le mois pr&eacute;c&eacute;dent '+moisAv+' u">'
               +(cmp===null?'nouveau ce mois-ci':(cmp>0?'▲ +'+cmp+' % vs mois dernier':(cmp<0?'▼ '+cmp+' % vs mois dernier':'stable vs mois dernier')))+'</span>'
             : '';
-          const coul=trop?'var(--red)':'var(--acc)';
+          const coul=trop?'var(--red)':'var(--acc-txt)';
           return '<div style="display:flex;align-items:center;gap:13px;margin-bottom:13px">'
           +'<span style="width:34px;height:34px;flex:none;border-radius:50%;background:color-mix(in srgb,'+coul+' 18%,transparent);color:'+coul+';font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+esc(iniG(g.n))+'</span>'
           +'<div style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(g.n)+(trop?' &#9888;':'')+'</div>'
@@ -28537,9 +28567,9 @@ function consoAnalyseHTML(){
       +'<div style="padding:10px 12px;border-bottom:1px solid color-mix(in srgb,var(--brd) 70%,transparent)"><div style="display:flex;align-items:center;gap:8px;background:var(--bg1);border-radius:10px;padding:8px 11px"><span style="opacity:.55;font-size:12px">🔍</span><input id="conso-menu-q" value="'+esc(consoQ)+'" oninput="consoChercher(this.value)" placeholder="Rechercher…" style="flex:1;min-width:0;border:none;background:transparent;color:var(--t1);font-size:12.5px;outline:none"></div></div>'
       +'<div style="max-height:265px;overflow:auto;padding:5px 0">'+rang('',vide,!choisi)
       +(vus.map(x=>rang(x.val,x.lbl,String(choisi)===String(x.val))).join('')||'<div style="padding:14px;font-size:12.5px;color:var(--t3);text-align:center">Aucun résultat.</div>')+'</div></div>'; };
-  const btnProd='<button type="button" onclick="consoMenu(\'prod\')" style="'+actif(!!consoFProd)+';display:inline-flex;align-items:center;gap:8px;max-width:250px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📦 '+(consoFProd?esc(produit(consoFProd).nom||'Produit'):'Tous les produits')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
-  const btnPers='<button type="button" onclick="consoMenu(\'pers\')" style="'+actif(!!consoFPers)+';display:inline-flex;align-items:center;gap:8px;max-width:250px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👤 '+(consoFPers?esc(consoFPers):'Tout le monde')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
-  const btnRole='<button type="button" onclick="consoMenu(\'role\')" style="'+actif(!!consoFRole)+';display:inline-flex;align-items:center;gap:8px;max-width:230px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎖️ '+(consoFRole?esc(roleNom(consoFRole)):'Tous les rôles')+'</span><span style="opacity:.5;font-size:9px">▼</span></button>';
+  const btnProd='<button type="button" onclick="consoMenu(\'prod\')" style="'+actif(!!consoFProd)+';display:inline-flex;align-items:center;gap:8px;max-width:250px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📦 '+(consoFProd?esc(produit(consoFProd).nom||'Produit'):'Tous les produits')+'</span><span style="color:var(--t3);font-size:9px">▼</span></button>';
+  const btnPers='<button type="button" onclick="consoMenu(\'pers\')" style="'+actif(!!consoFPers)+';display:inline-flex;align-items:center;gap:8px;max-width:250px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👤 '+(consoFPers?esc(consoFPers):'Tout le monde')+'</span><span style="color:var(--t3);font-size:9px">▼</span></button>';
+  const btnRole='<button type="button" onclick="consoMenu(\'role\')" style="'+actif(!!consoFRole)+';display:inline-flex;align-items:center;gap:8px;max-width:230px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎖️ '+(consoFRole?esc(roleNom(consoFRole)):'Tous les rôles')+'</span><span style="color:var(--t3);font-size:9px">▼</span></button>';
   const dateInp=(q,v,l)=>'<label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--t3);font-weight:600">'+l+'<input type="date" value="'+esc(v)+'" onchange="consoSetDate(\''+q+'\',this.value)" style="border:1px solid '+(v?'var(--acc)':'var(--brd)')+';background:var(--card);color:var(--t1);border-radius:9px;padding:6px 9px;font-size:12.5px;font-family:inherit"></label>';
   const filtresPosés=consoFProd||consoFPers||consoFRole||datesLibres||consoPas!=='auto';
   const barreF=voileC+`<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 12px">${bt(30,'30 jours')}${bt(61,'2 mois')}${bt(90,'3 mois')}${bt(183,'6 mois')}${bt(365,'12 mois')}
@@ -30173,7 +30203,7 @@ views.parametres=function(){
       <p style="color:var(--t3);font-size:12px;line-height:1.55;margin-bottom:8px">Ajoute tes sociétés : elles remplacent la liste générique dans le sélecteur « Société » des interventions et documents. <b>Une seule société</b> → le sélecteur disparaît et elle est appliquée partout automatiquement.</p>
       <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:8px">${(db.societes||[]).map((s2,ix)=>{ const st=socStyle(s2); const cl=/^#[0-9a-fA-F]{6}$/.test(st.couleur||'')?st.couleur:'#1E7A4E';
         return `<div style="display:flex;align-items:center;gap:11px;border:1px solid var(--brd);border-left:4px solid ${cl};border-radius:12px;padding:9px 13px;flex-wrap:wrap">
-          ${st.logo?`<img src="${st.logo}" style="width:32px;height:32px;object-fit:contain;border-radius:7px;background:#fff">`:`<span style="width:32px;height:32px;border-radius:7px;background:${cl};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px">${esc((s2[0]||'?').toUpperCase())}</span>`}
+          ${st.logo?`<img src="${st.logo}" style="width:32px;height:32px;object-fit:contain;border-radius:7px;background:#fff">`:`<span style="width:32px;height:32px;border-radius:7px;background:${cl};display:inline-flex;align-items:center;justify-content:center;color:${encreSur(cl)};font-weight:800;font-size:14px">${esc((s2[0]||'?').toUpperCase())}</span>`}
           <b style="flex:1;min-width:120px;font-size:13.5px">${esc(s2)}</b>
           <label title="La couleur des factures et devis de cette société" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t3);cursor:pointer">🎨 Couleur
             <input type="color" value="${cl}" onchange="socCouleurSet(${ix},this.value)" style="width:34px;height:26px;border:none;background:none;padding:0;cursor:pointer"></label>
@@ -30624,15 +30654,15 @@ function boxScanRow(p,on){ const b=db.boxes.find(x=>x.id===boxScan.boxId); const
     <div class="pl-info"><div class="pl-title">${esc(p.nom)}</div><div class="pl-meta">${esc(p.ref||'')}${p.ref?' · ':''}en box : ${s.u||0} u</div></div></div>`; }
 function boxScanShowChoices(cands){ const r=$('bscan-result'); if(!r) return; boxScan.cands=cands;
   if(!cands.some(c=>c.p.id===boxScanSel)) boxScanSel=cands[0].p.id;
-  const single=cands.length===1; const col=boxScan.action==='ajouter'?'var(--acc)':'var(--red)';
+  const single=cands.length===1; const col=boxScan.action==='ajouter'?'var(--acc)':'var(--red)', colF=aplatDe(col);
   r.innerHTML=`<div class="scan-result" style="text-align:left">
     <div style="font-weight:700;margin-bottom:10px">${single?'Produit trouvé':'Choisis le produit'}</div>
     <div id="bscan-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">${cands.map(c=>boxScanRow(c.p,c.p.id===boxScanSel)).join('')}</div>
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px">
       <button class="btn ghost" onclick="boxScanQty(-1)" style="font-size:20px">−</button>
-      <input id="bscan-qty" type="number" min="1" value="1" style="width:70px;text-align:center;font-size:22px;font-weight:800;color:${col}">
+      <input id="bscan-qty" type="number" min="1" value="1" style="width:70px;text-align:center;font-size:22px;font-weight:800;color:${encreDonnee(col)}">
       <button class="btn ghost" onclick="boxScanQty(1)" style="font-size:20px">＋</button></div>
-    <button class="btn" style="width:100%;justify-content:center;background:${col}" onclick="boxScanApply()">${boxScan.action==='ajouter'?'＋ Ajouter au stock':'－ Retirer du stock'}</button></div>`; }
+    <button class="btn" style="width:100%;justify-content:center;background:${colF[0]};color:${colF[1]}" onclick="boxScanApply()">${boxScan.action==='ajouter'?'＋ Ajouter au stock':'－ Retirer du stock'}</button></div>`; }
 function boxScanPick(pid){ boxScanSel=pid; const list=$('bscan-list'); if(list&&boxScan.cands) list.innerHTML=boxScan.cands.map(c=>boxScanRow(c.p,c.p.id===pid)).join(''); }
 function boxScanQty(d){ const i=$('bscan-qty'); if(i) i.value=Math.max(1,(parseInt(i.value)||1)+d); }
 function boxScanApply(){ const b=db.boxes.find(x=>x.id===boxScan.boxId); if(!b){ toast('Box introuvable'); return; }
@@ -30876,7 +30906,7 @@ function formDevisXylo(){
       </div>
       <div class="form-sec" id="xylo-cli-sec">Coordonnées du client</div>
       <div class="fgroup" id="xylo-newcli">
-        <div class="frow"><span class="frow-lbl">Nom <span style="color:#EF4444">*</span></span><div class="frow-val"><input name="cliNom" id="xylo-cliNom" placeholder="Nom du client"></div></div>
+        <div class="frow"><span class="frow-lbl">Nom <span style="color:var(--red)">*</span></span><div class="frow-val"><input name="cliNom" id="xylo-cliNom" placeholder="Nom du client"></div></div>
         <div class="frow"><span class="frow-lbl">Téléphone</span><div class="frow-val"><input name="cliTel" id="xylo-cliTel" inputmode="tel" placeholder="Téléphone"></div></div>
         <div class="frow"><span class="frow-lbl">Email</span><div class="frow-val"><input name="cliEmail" id="xylo-cliEmail" type="email" placeholder="Email"></div></div>
         <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Adresse</span><input name="cliAdresse" id="xylo-cliAdresse" placeholder="Rue, code postal, ville"></div>
@@ -31359,7 +31389,7 @@ function factureAutoIntervention(it){
 const REG_MODES={CB:['💳','Carte bancaire'],ESP:['💵','Espèces'],CHQ:['🧾','Chèque'],VIR:['🏦','Virement'],LDP:['🔗','SMUP / Lien de paiement'],X34:['📆','Paiement en 3x / 4x']};
 const REG_SOURCES={effectuer:['Effectuer','#3B82F6'],telecollecte:['Télécollecte','#E8A33D'],compta:['Comptabilité','#1E7A4E'],controle:['Contrôle du jour','#7C3AED']};
 function regBadgeSource(src){ const [l,c]=REG_SOURCES[src]||['?','#888'];
-  return `<span style="font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;border:1px solid ${c};color:${c};white-space:nowrap">${l}</span>`; }
+  return `<span style="font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;border:1px solid ${c};color:${encreDonnee(c)};white-space:nowrap">${l}</span>`; }
 function regModeDe(m){ m=(m||'').toLowerCase();
   if(m.includes('carte')||/\bcb\b/.test(m)) return 'CB';
   if(m.includes('esp')) return 'ESP';
@@ -31915,10 +31945,13 @@ function teleSaisieCalc(pfx){
   const reste=aDire-dits;
   if(c){
     c.textContent=aDire? (reste? dits+' / '+aDire+' ligne'+(aDire>1?'s':'')+' confirmée'+(aDire>1?'s':'') : 'tout est confirmé ✓') : '';
-    c.style.color=(aDire&&!reste)?'var(--acc)':'var(--t3)'; }
+    c.style.color=(aDire&&!reste)?'var(--acc-txt)':'var(--t3)'; }
   const env=document.getElementById(pfx+'-envoi');
   if(env){
-    env.style.opacity=reste?'.45':'';
+    /* « pas encore » ne s'écrit pas en GRISÉ : le libellé porte l'information (« Il reste
+       7 lignes à confirmer ») et tombait à 2,1:1 sous 45 % d'opacité. Il devient un bouton
+       secondaire, lisible, qui explique au toucher. */
+    env.classList.toggle('ghost',!!reste);
     env.style.cursor=reste?'not-allowed':'';
     env.textContent=reste? ('Il reste '+reste+' ligne'+(reste>1?'s':'')+' à confirmer') : 'Enregistrer ma télécollecte';
   }
@@ -32017,7 +32050,7 @@ function ctrlJournee(techId,declarantId,d){
       ? `<div class="card" style="padding:12px 14px;margin:14px 0 0;background:rgba(232,163,61,.12);border-color:rgba(232,163,61,.35)">
            <div style="font-size:13px;line-height:1.55">⚠️ Il reste <b>${reste.length} intervention${reste.length>1?'s':''} sans réponse</b> : ${reste.map(i=>esc(i.heure||'')).join(', ')}.<br>
            Touche-la pour dire comment elle a été payée — ou marque-la <b>« à facturer »</b>.</div></div>
-         <button class="btn" style="width:100%;margin-top:10px;opacity:.45;cursor:not-allowed" onclick="toast('Règle d\\u2019abord les ${reste.length} intervention${reste.length>1?'s':''} en rouge')">Valider les paiements de ${esc((nom||'').split(' ')[0])}</button>`
+         <button class="btn ghost" style="width:100%;margin-top:10px;cursor:not-allowed" onclick="toast('Règle d\\u2019abord les ${reste.length} intervention${reste.length>1?'s':''} en rouge')">Valider les paiements de ${esc((nom||'').split(' ')[0])}</button>`
       : `${aFact.length?`<div class="card" style="padding:12px 14px;margin:14px 0 0;background:rgba(232,163,61,.10);border-color:rgba(232,163,61,.3)">
            <div style="font-size:13px;line-height:1.55">📄 <b>${aFact.length} intervention${aFact.length>1?'s':''} à facturer</b> — ${eur(aFact.reduce((t,i)=>t+(Number(i.montant)||0),0))}.<br>
            En validant, ${aFact.length>1?'elles partent':'elle part'} dans <b>Ventes › Factures</b>, groupé${aFact.length>1?'es':'e'} par client.</div></div>`:''}
@@ -32161,7 +32194,7 @@ function payMode(k){
   document.querySelectorAll('#pay-modes [data-pm]').forEach(el=>{
     const on=(el.dataset.pm===k), c=COUL[el.dataset.pm]||'var(--acc)', f=FOND[el.dataset.pm]||'color-mix(in srgb,var(--acc) 10%,transparent)';
     el.style.borderColor=on?c:'var(--brd)';
-    el.style.color=on?c:'var(--t2)';
+    el.style.color=on?encreDonnee(c):'var(--t2)';
     el.style.background=on?f:'';
   });
   const sansMontant=_payAF||_payDR;
@@ -32467,7 +32500,7 @@ function formTelecollecte(id){
   const peopleOpts = (db.users||[]).filter(u=>u.actif!==false).map(u=>`<option value="u:${u.id}" ${('u:'+u.id)===curVal?'selected':''}>${esc(fullName(u))} · ${esc(roleLbl(u.role)||'')}</option>`).join('')
     + (db.techniciens||[]).filter(t=>!(db.users||[]).some(u=>u.techId===t.id)).map(t=>`<option value="t:${t.id}" ${('t:'+t.id)===curVal?'selected':''}>${esc(t.nom)} · Technicien</option>`).join('');
   const lbl='display:block;font-weight:700;font-size:15px;color:var(--t1);margin-bottom:2px';
-  const req='color:#EF4444;font-weight:700';
+  const req='color:var(--red);font-weight:700';
   const help='display:block;font-size:12px;color:var(--t3);margin:4px 0 0';
   const inp='width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--brd);border-radius:12px;background:var(--bg1);color:var(--t1);font-size:16px';
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>${id?'Modifier':'Télécollecte du jour'}</h3><button type="submit" form="teleform" class="btn sm">${id?'OK':'Enregistrer'}</button></div>
@@ -32884,7 +32917,7 @@ function printDoc(kind,id){
     .tots{width:64mm;margin-left:auto}
     .tots .l{display:flex;justify-content:space-between;padding:2.4mm 2mm;color:#3D4A63;font-variant-numeric:tabular-nums}
     .tots .l+.l{border-top:1px solid #EDF0F5}
-    .tots .ttc{display:flex;justify-content:space-between;align-items:center;margin-top:2.5mm;background:${acc};color:#fff;border-radius:2.5mm;padding:4mm 4.5mm;font-size:15.5px;font-weight:800;font-variant-numeric:tabular-nums}
+    .tots .ttc{display:flex;justify-content:space-between;align-items:center;margin-top:2.5mm;background:${acc};color:${encreSur(acc)};border-radius:2.5mm;padding:4mm 4.5mm;font-size:15.5px;font-weight:800;font-variant-numeric:tabular-nums}
     .note{background:#F6F8FB;border:1px solid #E7EAF1;border-radius:3mm;padding:4mm 5.5mm;margin-top:5mm;font-size:11.5px}
     .legal{margin-top:auto;padding-top:6mm;font-size:9px;color:#9AA3B5;line-height:1.7}
     .ftr{border-top:1px solid #E7EAF1;margin-top:3mm;padding-top:3mm;font-size:9.5px;color:#9AA3B5;text-align:center;line-height:1.7}
@@ -33899,7 +33932,7 @@ views.secteurs=function(){
       <div class="pl-info"><div class="pl-title">${esc(t.nom)}</div><div class="pl-meta">${deps.length? deps.map(d=>`<span class="tag">${esc(keyLabel(d))}</span>`).join(' '):'<span style="color:var(--org)">Aucun secteur</span>'}</div></div>
       <span onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button></span></div>`;}).join('');
   const depCards=depList.map(dep=>{ const t=techForKey(dep);
-    return `<div class="pl-row" style="cursor:default"><span style="width:40px;height:40px;border-radius:10px;background:${deptColor(dep)};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">${esc(dep)}</span>
+    return `<div class="pl-row" style="cursor:default"><span style="width:40px;height:40px;border-radius:10px;background:${deptColor(dep)};color:${encreSur(deptColor(dep))};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">${esc(dep)}</span>
       <div class="pl-info"><div class="pl-title">${esc(keyLabel(dep))}</div><div class="pl-meta">${detected[dep]} intervention(s)</div></div>
       ${t?badge({x:{l:t.nom,c:'st-green'}},'x'):'<span class="st st-red">Non couvert</span>'}</div>`;}).join('');
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Techniciens & secteurs</h3></div>${techCards||'<div style="color:var(--t3);font-size:13px">Aucun technicien.</div>'}</div>
@@ -36354,7 +36387,7 @@ function updateSyncBtn(){ const b=$('sync-btn'); if(!b) return;
   b.classList.remove('st-attente','st-bloque','st-ajour','st-ok');
   if(e.c&&e.c!=='spin') b.classList.add(e.c);
   b.classList.toggle('spin',e.c==='spin');
-  b.style.color=(e.c==='st-ok')?'':(e.c==='st-bloque')?'var(--red)':(e.c==='st-attente')?'var(--org)':(_syncOn?'var(--acc)':'');
+  b.style.color=(e.c==='st-ok')?'':(e.c==='st-bloque')?'var(--red)':(e.c==='st-attente')?'var(--org)':(_syncOn?'var(--acc-txt)':'');
   /* ⛔ LE TITRE PORTE LE SENS EN TOUTES LETTRES. Le point de couleur ne parle jamais seul :
      en niveaux de gris, ou pour qui ne distingue pas l'orange du vert, il ne dirait rien. */
   b.title=e.t; b.setAttribute('aria-label','Synchroniser — '+e.t);

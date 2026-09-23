@@ -22,24 +22,40 @@
    ⛔ Bêta uniquement, copie locale servie en 127.0.0.1.                                    */
 const fs=require('fs'), path=require('path');
 const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
+/* PLAT=winweb : la même passe SANS le verre (Android, Windows, tout ce qui n'est pas Safari 26) —
+   les fonds y sont opaques, la composition est donc exacte ; sous le verre, elle ignore le flou
+   et les pastilles se vérifient au pixel. */
+const TEL=process.env.TEL==='1';                        /* profil téléphone : 390×844, tactile */
+const PLAT=process.env.PLAT||(TEL?'iosweb':'macweb');
+const RUB=(process.env.RUB||'').split(',').filter(Boolean);      /* rubriques à garder (vide = toutes) */
+const ZPLUS=(process.env.ZONE_PLUS||'').split(',').filter(Boolean); /* chrome en plus : .sidebar, #tabbar… */
+const FEN=process.env.FEN!=='0';                                  /* FEN=0 : sans les fenêtres */
+const ACC_SEULS=(process.env.ACC||'').split(',').filter(Boolean);  /* teintes à garder (le vert reste : c'est la référence) */
+const TH_SEULS=(process.env.TH||'').split(',').filter(Boolean);    /* thèmes à garder */
+const TOUT=process.env.FAM==='tout';
+const DETAIL=process.env.DETAIL==='1';                            /* DETAIL=1 : encre, fond et HTML de chaque reste */                              /* FAM=tout : TOUT texte, pas seulement l'accent */
+const SUFFIXE=(TOUT?'-tout':'')+(TEL?'-tel':'')+(PLAT===(TEL?'iosweb':'macweb')?'':'-'+PLAT)+(ZPLUS.length?'-chrome':'')+(ACC_SEULS.length||TH_SEULS.length?'-extrait':'');
 
 (async()=>{
   const S=await ouvrir();
   console.log('  page mesurée : '+S.version);
-  await S.c.envoyer('Emulation.setDeviceMetricsOverride',{width:1280,height:860,deviceScaleFactor:1,mobile:false});
+  await S.c.envoyer('Emulation.setDeviceMetricsOverride',TEL?{width:390,height:844,deviceScaleFactor:2,mobile:true}:{width:1280,height:860,deviceScaleFactor:1,mobile:false});
+  if(TEL) await S.c.envoyer('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
   await S.ev(`window.horsLigneDebut=function(){}; try{_horsLigne=false;}catch(e){} const h=document.getElementById('hl-ecran'); if(h)h.remove(); window.pushPropose=function(){}; return 1;`);
   await S.ev(`if(!db.users.length){db.users.push({id:'u1',prenom:'Justin',nom:'B',role:'admin',username:'j',pass:'x',actif:true,pref:{}});save();}
     currentUser=db.users[0]; try{ localStorage.setItem('elanB_onboarded_'+currentUser.id,'1'); }catch(e){} enterApp(currentUser); return 1;`);
   await dormir(1300);
   await S.ev(`window.confirm=()=>true; try{ betaRemplir(false); }catch(e){} return 1;`); await dormir(2500);
-  await S.ev(`window.confirm=()=>false; try{ setPlatForce('macweb'); }catch(e){} return 1;`);
+  await S.ev(`window.confirm=()=>false; try{ setPlatForce('${PLAT}'); }catch(e){} return 1;`);
+  console.log('  plateforme : '+PLAT+' · verre '+(await S.ev(`return document.documentElement.getAttribute('data-verre')||'éteint';`)));
   await dormir(5000);   /* les minuteurs de démarrage tirent avant qu'on mesure */
   await S.ev(`try{ closeModal(); }catch(e){} return 1;`);
 
-  const ACCENTS=await S.ev(`return Object.keys(ACCENTS);`);
-  const CATS=await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]);`);
+  const ACCENTS=(await S.ev(`return Object.keys(ACCENTS);`)).filter(a=>!ACC_SEULS.length||ACC_SEULS.includes(a)||a==='green');
+  const CATS=(await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]);`)).filter(k=>!RUB.length||RUB.includes(k));
   console.log('  teintes : '+ACCENTS.length+' · rubriques : '+CATS.length+' · thèmes : 2  → '+(ACCENTS.length*CATS.length*2)+' écrans');
-  if(ACCENTS.length<8||CATS.length<20){ console.log('  ✗ population trop maigre'); S.fermer(); process.exit(4); }
+  /* le plancher de population suit la demande : toutes les rubriques, ou celles qu'on a nommées */
+  if(ACCENTS.length<(ACC_SEULS.length?1:8)||CATS.length<(RUB.length?RUB.length:20)){ console.log('  ✗ population trop maigre'); S.fermer(); process.exit(4); }
 
   const MESURE=`
     const lire=(v)=>{ if(!v) return null; v=v.trim();
@@ -70,8 +86,9 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
     const ECARTES=['av'];   /* span.av : la couleur du TECHNICIEN, pas l'accent — contre-épreuve faite */
     const nom=e=>e.tagName.toLowerCase()+(typeof e.className==='string'&&e.className?'.'+e.className.trim().split(/\\s+/).slice(0,2).join('.'):'');
     const zone=(typeof ZONE!=='undefined'&&ZONE)?[document.querySelector(ZONE)].filter(Boolean)
-      :[document.getElementById('content'),document.querySelector('.topbar'),document.getElementById('page-head')].filter(Boolean);
-    const out={ texteAcc:0, aplats:0, aplatsTous:0, faibles:[], restes:[] };
+      :[document.getElementById('content'),document.querySelector('.topbar'),document.getElementById('page-head')]
+         .concat(${JSON.stringify(ZPLUS)}.flatMap(q=>[...document.querySelectorAll(q)])).filter(Boolean);
+    const out={ texteAcc:0, aplats:0, aplatsTous:0, textes:0, faibles:[], restes:[] };
     const vus=new Set();
     zone.forEach(z=>z.querySelectorAll('*').forEach(e=>{
       if(vus.has(e)) return; vus.add(e);
@@ -102,6 +119,19 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
           const c=ctr(encre&&encre.a>0.5?encre:{r:0,g:0,b:0,a:1}, fond);
           if(c<seuil) out.faibles.push({ genre:'encre sur aplat coloré', n:nom(e), t:e.textContent.trim().slice(0,24), c:+c.toFixed(2), seuil }); }
       }
+      /* ── 4. (FAM=tout) TOUT AUTRE TEXTE contre son vrai fond. La teinte ne colore pas que
+         les lettres : elle colore les SURFACES (vitre teintée à 4 %, halos, sélections à
+         14 %). Un texte ordinaire peut y tomber sans être lui-même en accent — mesuré le
+         22 septembre 2026 : la pastille orange « non effectuées » à 4,38 au pixel sous la
+         teinte orange. Une commande inactive est exemptée (WCAG 1.4.3). */
+      if(${TOUT} && propre && encre && encre.a>0.05 && !proche(encre,ACC,6) && !e.closest('[disabled],[aria-disabled="true"]')){
+        out.textes++;
+        const f=fondDe(e), op=+st.opacity||1;
+        const ink=(encre.a*op<0.999)?sur({r:encre.r,g:encre.g,b:encre.b,a:encre.a*op},f):encre;
+        const c=ctr(ink,f);
+        if(c<seuil) out.faibles.push({ genre:'texte ordinaire', n:nom(e), t:e.textContent.trim().slice(0,24), c:+c.toFixed(2), seuil,
+          ...(${DETAIL}?{ encre:[ink.r,ink.g,ink.b].map(Math.round).join(','), fond:[f.r,f.g,f.b].map(Math.round).join(','), h:e.outerHTML.slice(0,220) }:{}) });
+      }
       if(VERT && (proche(encre,VERT,6)||proche(fond,VERT,6)) && (propre||fond&&fond.a>0.5))
         out.restes.push({ n:nom(e), t:e.textContent.trim().slice(0,24) });
     }));
@@ -118,8 +148,17 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
     const pris=(t&&t.faibles||[]).filter(f=>/témoin/.test(f.t)).map(f=>f.genre);
     console.log('  contre-épreuve — le témoin illisible est attrapé : '+(pris.length>=2?'OUI ✓ ('+pris.join(', ')+')':'NON ✗ '+JSON.stringify(pris)));
     if(pris.length<2){ S.fermer(); process.exit(7); } }
+  /* ⛔ et la famille « texte ordinaire » a SON témoin : gris sur gris, 1,2:1. */
+  if(TOUT){ await S.ev(`try{ go('dashboard'); }catch(e){} return 1;`); await dormir(400);
+    const t=await S.ev(`const x=document.createElement('span'); x.id='__temoin2'; x.textContent='témoin gris';
+      x.style.cssText='color:#8a8a8a;background:#9a9a9a;display:inline-block;padding:4px';
+      document.getElementById('content').prepend(x); const VERT=null; ${MESURE}`);
+    await S.ev(`const x=document.getElementById('__temoin2'); if(x) x.remove(); return 1;`);
+    const pris=(t&&t.faibles||[]).filter(f=>/témoin gris/.test(f.t)).map(f=>f.genre);
+    console.log('  contre-épreuve — le témoin gris est attrapé : '+(pris.includes('texte ordinaire')?'OUI ✓':'NON ✗ '+JSON.stringify(pris))+' · '+(t&&t.textes)+' textes ordinaires sur cet écran');
+    if(!pris.includes('texte ordinaire')||!(t&&t.textes>20)){ S.fermer(); process.exit(8); } }
 
-  const R={faibles:[],restes:[],texteAcc:0,aplats:0,aplatsTous:0,ecrans:0,fenetres:0,fenRatees:[]};
+  const R={faibles:[],restes:[],texteAcc:0,aplats:0,aplatsTous:0,textes:0,ecrans:0,fenetres:0,fenRatees:[]};
   const FENETRES=[
     {nom:'Intervention', zone:'#overlay .modal', ouvrir:`formIntervention();`,
      puis:`try{ intNuis.add('Rats'); renderIntNuis(); }catch(e){} const m=document.querySelector('#int-meth button'); if(m) m.click();`},
@@ -135,7 +174,7 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
     {nom:'Devis xylophage', zone:'#overlay .modal', ouvrir:`formDevisXylo();`, puis:``},
   ];
   /* le vert par défaut, résolu une fois par thème, sert de cible aux « restes » */
-  for(const th of ['dark','light']){
+  for(const th of ['dark','light'].filter(t=>!TH_SEULS.length||TH_SEULS.includes(t))){
     await S.ev(`try{ setThemePref('${th}'); }catch(e){} try{ setAccent('green'); }catch(e){} return 1;`); await dormir(200);
     const VERT=await S.ev(`let so=document.getElementById('__so'); if(!so){ so=document.createElement('div'); so.id='__so';
       so.style.cssText='position:fixed;left:-9999px;top:0;width:8px;height:8px'; document.body.appendChild(so); }
@@ -148,14 +187,14 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
         const vert = a==='green' ? 'null' : JSON.stringify(VERT)+'.map(v=>{ const m=v.match(/^color\\(srgb ([^)]+)\\)$/)||v.match(/^rgba?\\(([^)]+)\\)$/); if(!m) return null; const p=m[1].split(/[\\s,\\/]+/).filter(Boolean).map(Number); return /srgb/.test(v)?{r:p[0]*255,g:p[1]*255,b:p[2]*255}:{r:p[0],g:p[1],b:p[2]}; }).filter(Boolean)';
         let o; try{ o=await S.ev(`const VERT=${vert}; ${MESURE}`); }catch(e){ continue; }
         if(!o || o.erreur){ console.log('  ✗ '+th+' '+a+' '+k+' : '+(o&&o.erreur)); S.fermer(); process.exit(6); }
-        R.ecrans++; R.texteAcc+=o.texteAcc; R.aplats+=o.aplats;
+        R.ecrans++; R.texteAcc+=o.texteAcc; R.aplats+=o.aplats; R.textes+=o.textes||0;
         o.faibles.forEach(x=>R.faibles.push({...x,ou:th+'/'+a+'/'+k}));
         o.restes.forEach(x=>R.restes.push({...x,ou:th+'/'+a+'/'+k}));
       }
       /* ⛔ LES FENÊTRES AUSSI, ET DANS L'ÉTAT « CHOISI ». Une pastille n'a d'aplat d'accent que
          cochée : on coche la première de chaque groupe, par la fonction ou le clic que
          l'application emploie elle-même — sinon on mesurerait des pastilles grises. */
-      for(const F of FENETRES){
+      for(const F of (FEN?FENETRES:[])){
         await S.ev(`try{ closeModal(); }catch(e){} try{ closeSub(); }catch(e){} return 1;`); await dormir(150);
         try{ await S.ev(F.ouvrir+' return 1;'); }catch(e){ R.fenRatees.push(F.nom+' : '+String(e.message).slice(0,60)); continue; }
         await dormir(450);
@@ -164,7 +203,7 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
         const vert = a==='green' ? 'null' : JSON.stringify(VERT)+'.map(v=>{ const m=v.match(/^color\\(srgb ([^)]+)\\)$/)||v.match(/^rgba?\\(([^)]+)\\)$/); if(!m) return null; const p=m[1].split(/[\\s,\\/]+/).filter(Boolean).map(Number); return /srgb/.test(v)?{r:p[0]*255,g:p[1]*255,b:p[2]*255}:{r:p[0],g:p[1],b:p[2]}; }).filter(Boolean)';
         let o; try{ o=await S.ev(`const VERT=${vert}; const ZONE=${JSON.stringify(F.zone)}; ${MESURE}`); }catch(e){ R.fenRatees.push(F.nom+' : mesure'); continue; }
         if(!o || o.erreur){ R.fenRatees.push(F.nom+' : '+(o&&o.erreur)); continue; }
-        R.fenetres++; R.texteAcc+=o.texteAcc; R.aplats+=o.aplats; R.aplatsTous+=o.aplatsTous||0;
+        R.fenetres++; R.texteAcc+=o.texteAcc; R.aplats+=o.aplats; R.aplatsTous+=o.aplatsTous||0; R.textes+=o.textes||0;
         o.faibles.forEach(x=>R.faibles.push({...x,ou:th+'/'+a+'/fenêtre '+F.nom}));
         o.restes.forEach(x=>R.restes.push({...x,ou:th+'/'+a+'/fenêtre '+F.nom}));
       }
@@ -176,13 +215,30 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
   console.log('\n════════ AUDIT DES TEINTES — ÉTAPE 3 ════════');
   console.log('  page mesurée : '+S.version);
   console.log('  population : '+R.ecrans+' écrans + '+R.fenetres+' fenêtres · '+R.texteAcc+' textes en accent mesurés · '+R.aplats+' encres sur aplat d’accent · '+R.aplatsTous+' encres sur un autre aplat coloré');
+  if(TOUT) console.log('  + '+R.textes+' textes ordinaires mesurés (FAM=tout)');
   if(R.fenRatees.length) console.log('  ⚠ fenêtres non mesurées : '+R.fenRatees.length+' — '+[...new Set(R.fenRatees)].slice(0,6).join(' · '));
   console.log('\n══ CONTRASTES SOUS LE SEUIL : '+R.faibles.length+' ══');
-  grouper(R.faibles,x=>x.genre+' · '+x.n+' « '+x.t+' »').slice(0,30).forEach(([g,v])=>{
+  grouper(R.faibles.filter(x=>x.genre!=='texte ordinaire'),x=>x.genre+' · '+x.n+' « '+x.t.replace(/\d+/g,'#')+' »').slice(0,30).forEach(([g,v])=>{
     const pire=v.reduce((m,x)=>x.c<m.c?x:m,v[0]);
     console.log('   '+String(v.length).padStart(3)+'×  '+g+'   pire '+pire.c+':1 (seuil '+pire.seuil+') ['+pire.ou+']'); });
+  if(TOUT){
+    /* un défaut qui existe AUSSI en vert n'est pas celui d'une teinte : on le range à part */
+    const ord=R.faibles.filter(x=>x.genre==='texte ordinaire');
+    const cle=x=>{ const [th,,...ou]=x.ou.split('/'); return th+'/'+ou.join('/')+'|'+x.n+'|'+x.t.replace(/\d+/g,'#'); };
+    const enVert=new Set(ord.filter(x=>x.ou.split('/')[1]==='green').map(cle));
+    const propres=ord.filter(x=>x.ou.split('/')[1]!=='green'&&!enVert.has(cle(x)));
+    const generaux=ord.filter(x=>x.ou.split('/')[1]==='green'||enVert.has(cle(x)));
+    console.log('\n══ TEXTES ORDINAIRES SOUS LE SEUIL : '+ord.length+'  ('+generaux.length+' qui existent aussi en vert · '+propres.length+' propres à une teinte) ══');
+    for(const [titre,l] of [['propres à une teinte',propres],['aussi en vert (généraux)',generaux]]){
+      console.log('  — '+titre+' —');
+      grouper(l,x=>x.n+' « '+x.t.replace(/\d+/g,'#')+' »').slice(0,40).forEach(([g,v])=>{
+        const pire=v.reduce((m,x)=>x.c<m.c?x:m,v[0]);
+        const ou=[...new Set(v.map(x=>x.ou.split('/').slice(0,2).join('/')))];
+        console.log('   '+String(v.length).padStart(4)+'×  '+g+'   pire '+pire.c+':1 ['+pire.ou+']  · '+ou.length+' combinaisons'); });
+    }
+  }
   console.log('\n══ RESTES DE VERT SOUS UNE AUTRE TEINTE : '+R.restes.length+' ══');
   grouper(R.restes,x=>x.n+' « '+x.t+' »').slice(0,20).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ['+v[0].ou+']'));
-  fs.writeFileSync(__dirname+'/audit-teintes.json',JSON.stringify({version:S.version,...R}));
+  fs.writeFileSync(__dirname+'/audit-teintes'+SUFFIXE+'.json',JSON.stringify({version:S.version,...R}));
   S.fermer(); process.exit(0);
 })().catch(e=>{console.error('AUDIT MORT :',e&&e.stack||e);process.exit(2);});
