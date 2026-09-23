@@ -233,5 +233,35 @@ console.log('\n── 776 · 12. un nom coupé à l’écran garde son nom entie
   vrai('(les deux sont bien coupés par la feuille — sinon l’infobulle ne servirait à rien)',
     /\.tdb-tec b\{[^}]*text-overflow:ellipsis/.test(SRC) && /\.tdb-act b\{[^}]*text-overflow:ellipsis/.test(SRC)); }
 
+console.log('\n── 776 · 13. « Ma journée », l’écran du technicien, tient au téléphone ──');
+/* Tous les audits tournent en ADMINISTRATEUR : l'écran qu'un technicien ouvre chaque matin n'y
+   paraissait jamais. Mesuré le 23 septembre 2026 en se connectant comme technicien
+   (scratchpad/sonde-ma-journee.js), noms longs : à 360 px le texte d'une carte tombait à 100 px
+   (titre sur dix lignes), à 390 à 128 ; et le rappel du matin « Ta journée : … » écrasait son
+   message à 70 px — un mot par ligne, « Établissements » coupé par « Voir ma journée ». */
+{ const iK = SRC.indexOf('function intTechCard(i,opts){'), fK = iK > 0 ? SRC.slice(iK, SRC.indexOf('\nfunction ', iK + 30)) : '';
+  vrai('population : la carte du technicien est trouvée', fK.length > 800, fK.length);
+  vrai('sa ligne, son heure et son texte portent leur classe', /class="mj-l"/.test(fK) && /class="mj-h"/.test(fK) && /class="mj-t"/.test(fK));
+  const iD = SRC.indexOf('function renderIntTechDay(SRC){'), fD = iD > 0 ? SRC.slice(iD, SRC.indexOf('\nfunction ', iD + 30)) : '';
+  vrai('⛔ la journée entière est dans le conteneur qu’on interroge', /\$\('content'\)\.innerHTML=`<div class="mj">/.test(fD) && /<\/div>`;\s*\}?\s*$/.test(fD.trim()), fD.slice(-80));
+  vrai('… et ce conteneur est interrogeable sur sa largeur', /html\[data-refonte\] \.mj\{container-type:inline-size\}/.test(SRC));
+  const mq = regle('html[data-refonte] .mj-l{flex-wrap:wrap;');
+  vrai('⛔ sous 440 px de liste, la carte passe sur deux étages', !!mq && /^@container \(max-width:440px\)$/.test(mq.media), mq && mq.media);
+  const base = regle('html[data-refonte] .mj-l > .mj-t{flex:1 1 calc(100% - 80px)!important}');
+  vrai('⛔ … avec une base qui BAT le `flex:1` écrit en ligne sur la colonne de texte (sans !important, rien ne passe à la ligne — mesuré)',
+    !!base && base.media === (mq && mq.media) && /class="mj-t" style="flex:1;/.test(fK));
+  vrai('… et le statut passe dessous, à droite', !!regle('html[data-refonte] .mj-l > .st{margin-left:auto}'));
+  const res = 80, hh = +((fK.match(/class="mj-h" style="text-align:center;min-width:(\d+)px/) || [])[1] || NaN), gg = +((fK.match(/class="mj-l" style="display:flex;gap:(\d+)px/) || [])[1] || NaN);
+  vrai('⛔ le premier étage garde l’heure (même élargie de 10 px par « ⏱ en cours ») et rien d’autre',
+    Number.isFinite(hh) && Number.isFinite(gg) && hh + gg + 10 <= res && res - (hh + gg) < gg + 40, { heure: hh, ecart: gg, reserve: res });
+  const iB = SRC.indexOf("b.id='fdr-banner';"), fB = iB > 0 ? SRC.slice(iB, SRC.indexOf('document.body.appendChild(b);', iB)) : '';
+  vrai('population : le rappel du matin est trouvé', fB.length > 300, fB.length);
+  vrai('⛔ le rappel se pose entre deux marges (plus de « left:50% » qui ne lui laissait que la moitié de l’écran)',
+    /position:fixed;left:12px;right:12px;/.test(fB) && /margin:0 auto;width:max-content;max-width:min\(\d+px,calc\(100vw - 24px\)\)/.test(fB) && !/left:50%/.test(fB));
+  vrai('… son message garde une ligne à lui quand tout ne tient pas (base 220 px, boutons dessous à droite)',
+    /flex-wrap:wrap/.test(fB) && /<span style="flex:1 1 220px;min-width:0">/.test(fB) && /style="flex-shrink:0;margin-left:auto"/.test(fB));
+  vrai('… et il passe au-dessus de la barre d’onglets, comme les messages', /body\.rf-onglets #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 66px\)!important\}/.test(SRC));
+  vrai('la preuve au navigateur existe (en technicien, quatre appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-ma-journee.js'))); }
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

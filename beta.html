@@ -4441,6 +4441,17 @@ html[data-refonte] .int-liste{container-type:inline-size}
      les enverrait tous sur un troisième étage, loin du compte à rebours. */
   html[data-refonte] .int-l > .int-a{flex:1 1 0;flex-direction:row!important;flex-wrap:wrap;justify-content:flex-end;align-items:center!important;column-gap:8px!important}
 }
+/* ⛔ « MA JOURNÉE », L'ÉCRAN DU TECHNICIEN : MÊME DÉFAUT, ET AUCUN AUDIT NE LE VOYAIT — ils tournent
+   tous en administrateur. Mesuré le 23 septembre 2026 en se connectant comme technicien
+   (scratchpad/sonde-ma-journee.js) : à 360 px, heure (52 px) et statut (94 px) laissaient 100 px
+   au texte, titre sur dix lignes ; 128 px à 390. Sous 440 px de liste, le statut passe sous le
+   texte, à droite — le texte garde toute la largeur à côté de l'heure. */
+html[data-refonte] .mj{container-type:inline-size}
+@container (max-width:440px){
+  html[data-refonte] .mj-l{flex-wrap:wrap;row-gap:8px!important}
+  html[data-refonte] .mj-l > .mj-t{flex:1 1 calc(100% - 80px)!important}   /* ⚠ `flex:1` est écrit EN LIGNE : sans !important, la base ne prend pas et rien ne passe à la ligne */
+  html[data-refonte] .mj-l > .st{margin-left:auto}
+}
 
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
    C'est ce qui manquait pour que ça se lise comme une application de terrain et non comme un
@@ -4510,6 +4521,8 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
   /* Le message se posait sur la bulle d'aide, exactement là où le pouce allait la chercher.
      Il passe AU-DESSUS d'elle : les deux se voient, aucun des deux ne bloque l'autre. */
   html[data-refonte] body.rf-onglets .toast{bottom:calc(var(--tabh) + 66px)!important;max-width:min(90vw,440px)}
+  /* le rappel du matin aussi : posé à 22 px du bas, il couvrait la barre d'onglets pendant 15 s */
+  html[data-refonte] body.rf-onglets #fdr-banner{bottom:calc(var(--tabh) + 66px)!important}
   /* ⛔⛔ DEUX BOUTONS FLOTTANTS DANS LE MÊME COIN, ET C'EST LE PLUS HAUT QUI GAGNE.
      Justin, capture à l'appui, 22 septembre 2026 : sur le Planning, une forme verte en
      cachait une autre. Mesuré sur un iPhone de 390 px, panneau d'assistance fermé :
@@ -17972,8 +17985,14 @@ function planFdrCheck(){ try{ if(!currentUser) return;
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){ try{ new Notification('OP GESTION — Ta journée',{body:msg}); }catch(e){} }
   const b=document.createElement('div');
   b.id='fdr-banner';
-  b.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:400;background:var(--card);color:var(--t1);border:1px solid var(--brd);border-radius:14px;padding:12px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;gap:12px;align-items:center;max-width:92vw;font-size:13px';
-  b.innerHTML='<span style="min-width:0">'+esc(msg)+'</span><button class="btn sm" style="flex-shrink:0" onclick="document.getElementById(\'fdr-banner\').remove();go(\'planning\')">Voir ma journée</button><button class="btn ghost sm" style="flex-shrink:0" onclick="document.getElementById(\'fdr-banner\').remove()">✕</button>';
+  /* ⛔ LE TEXTE TOMBAIT À 65 PX ET PASSAIT SOUS LE BOUTON. Mesuré le 23 septembre 2026 sur un
+     Android de 360, avec une raison sociale longue : un mot par ligne, « Établissements » coupé
+     par « Voir ma journée ». Les deux boutons ne cèdent rien (flex-shrink:0), et `left:50%` ne
+     laissait à la boîte que la MOITIÉ de l'écran pour se mesurer. La boîte se pose entre deux
+     marges et prend la largeur de son contenu, plafonnée ; quand tout ne tient pas sur une ligne,
+     le message garde la sienne et les boutons passent dessous, à droite. */
+  b.style.cssText='position:fixed;left:12px;right:12px;bottom:22px;margin:0 auto;width:max-content;max-width:min(760px,calc(100vw - 24px));box-sizing:border-box;z-index:400;background:var(--card);color:var(--t1);border:1px solid var(--brd);border-radius:14px;padding:12px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;font-size:13px';
+  b.innerHTML='<span style="flex:1 1 220px;min-width:0">'+esc(msg)+'</span><button class="btn sm" style="flex-shrink:0;margin-left:auto" onclick="document.getElementById(\'fdr-banner\').remove();go(\'planning\')">Voir ma journée</button><button class="btn ghost sm" style="flex-shrink:0" onclick="document.getElementById(\'fdr-banner\').remove()">✕</button>';
   document.body.appendChild(b);
   setTimeout(()=>{ try{ const el=document.getElementById('fdr-banner'); if(el) el.remove(); }catch(e){} },15000);
 }catch(e){} }
@@ -18930,9 +18949,9 @@ function intTechCard(i,opts){ opts=opts||{}; const cli=db.clients.find(c=>c.id==
   const adr=i.adresse||cli.adresse||''; const tc=typeColor(i.type)||INT_STCOLOR[i.statut]||'var(--acc)';
   const enCours=i.statut==='encours'||(i.debutReel&&!i.finReel&&i.statut!=='terminee');
   return `<div class="card" onclick="detailIntervention('${i.id}')" style="padding:14px 15px;margin-bottom:10px;cursor:pointer;border-left:4px solid ${tc}">
-    <div style="display:flex;gap:12px;align-items:flex-start">
-      <div style="text-align:center;min-width:52px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:${opts.big?'19px':'16px'};color:var(--t1)">${esc(i.heure||'—')}</div>${opts.showDate?`<div style="font-size:10.5px;color:var(--t3)">${fmtShort(i.date)}</div>`:''}${enCours?`<div style="font-size:10px;font-weight:800;color:var(--org)">⏱ en cours</div>`:''}</div>
-      <div style="flex:1;min-width:0">
+    <div class="mj-l" style="display:flex;gap:12px;align-items:flex-start">
+      <div class="mj-h" style="text-align:center;min-width:52px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:${opts.big?'19px':'16px'};color:var(--t1)">${esc(i.heure||'—')}</div>${opts.showDate?`<div style="font-size:10.5px;color:var(--t3)">${fmtShort(i.date)}</div>`:''}${enCours?`<div style="font-size:10px;font-weight:800;color:var(--org)">⏱ en cours</div>`:''}</div>
+      <div class="mj-t" style="flex:1;min-width:0">
         <div style="font-weight:800;font-size:${opts.big?'15.5px':'14px'};color:var(--t1)">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">⚠️ Urgent</span>':''}</div>
         <div style="font-size:13px;color:var(--t2);margin-top:3px">${esc(clientName(i.clientId)||'—')}</div>
         ${adr?`<div style="font-size:12px;color:var(--t3);margin-top:2px">📍 ${esc(adr)}</div>`:''}
@@ -18958,14 +18977,14 @@ function renderIntTechDay(SRC){
   const done=SRC.filter(i=>i.statut==='terminee').sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||''))).slice(0,10);
   const nextId=(auj.find(i=>i.statut==='planifiee')||{}).id;
   const secD=(title,color,arr,open,opts)=>arr.length?`<details ${open?'open':''}><summary style="cursor:pointer;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:${color};margin:14px 2px 8px;font-weight:800;list-style:none">▸ ${title} · ${arr.length}</summary>${arr.map(i=>intTechCard(i,Object.assign({},opts,{startBtn:false}))).join('')}</details>`:'';
-  $('content').innerHTML=`
+  $('content').innerHTML=`<div class="mj">
     ${secD('🔴 En retard','var(--red)',retard,true,{showDate:true})}
     <div style="font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--acc-txt);margin:14px 2px 8px;font-weight:800">▶ Aujourd'hui — ${new Date(today+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
     ${auj.length?auj.map(i=>intTechCard(i,{big:true})).join(''):`<div class="card">${emptyState('🎉','Aucune intervention aujourd’hui.','Profite pour vérifier ton stock et ton véhicule.','')}</div>`}
     ${secD('📆 Demain','var(--blue)',demain,false,{showDate:true})}
     ${secD('📆 Cette semaine','var(--blue)',semaine,false,{showDate:true})}
     ${secD('📆 Plus tard / à planifier','var(--t3)',plusTard,false,{showDate:true})}
-    ${secD('✓ Terminées récentes','var(--t3)',done,false,{showDate:true})}`;
+    ${secD('✓ Terminées récentes','var(--t3)',done,false,{showDate:true})}</div>`;
 }
 /* ── B/F1. En-tête enrichi de la fiche : fil de statut, boutons utiles, badges site ── */
 function intHeadExtras(i){ const cli=db.clients.find(c=>c.id===i.clientId)||{};
