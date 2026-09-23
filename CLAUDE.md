@@ -896,6 +896,14 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   500 px et la page entière défilait de côté. `segTient()` le vérifie désormais, et un groupe
   qui ne tient pas redevient une rangée de pastilles — réévalué quand la tablette tourne. C'est
   la règle « un commentaire n'est pas une garde », côté mise en page.
+- ⛔⛔ **UNE RANGÉE DE DESTINATIONS NE DOIT PAS DÉFILER — ET SUR TÉLÉPHONE, `.filters` DÉFILE.**
+  La refonte met chaque `.filters` sur UNE ligne qui défile au doigt, avec un fondu à droite :
+  juste pour des filtres. Mais le 23 septembre 2026, la rangée « 📋 Liste · 🗺️ Carte des box ·
+  🎁 Produits donnés » faisait 440 px : **la sous-catégorie que Justin venait de demander était
+  coupée au bord droit à 360, 390 ET 430 px**. Une destination qu'on ne voit pas n'existe pas.
+  Libellés courts, sans émoji (316 px) : elle tient partout et `segInit` en fait le segmenté.
+  Et un filtre ne se range pas dans une rangée de destinations — dans un segmenté, il passerait
+  pour un écran de plus (`boxSousCats`, `tests/test-779.js`).
 - ⛔⛔ **LES DONNÉES DE DÉMONSTRATION SONT COURTES — UNE MISE EN PAGE SE MESURE AVEC LES VALEURS LES
   PLUS LONGUES PLAUSIBLES.** Le 23 septembre 2026, douze audits d'appareils sont passés à zéro sur
   Pointage : la bêta y affiche « 0h00 ». Seule la sonde de charpente a vu 9 px de trop, à 360 px.
@@ -1122,6 +1130,13 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   effacer la valeur déjà posée : `saveIntervention` FUSIONNE (`{...ancienne, ...formulaire}`),
   et la sonde le prouve sur un enregistrement qui a EU LIEU (une ligne « Fiche modifiée » de
   plus) — sans ça, « la donnée survit » passait sur un formulaire jamais envoyé.
+- ⛔⛔ **UNE VUE QUI N'EST PAS AU MENU ÉCHAPPE À LA GARDE DE `go()`.** La garde cherche la vue
+  dans `NAV` ; absente, elle ne refuse rien. Mesuré sur la v730 : un commercial (fermé par défaut)
+  ouvrait « Produits donnés » en tapant `#v=produitsDonnes`. Une sous-catégorie se DÉCLARE donc
+  dans `SOUS_CATS` (son parent, son libellé) : le menu et la barre du bas allument le parent
+  (`VUE_PARENT`, dérivée), `go()` exige le droit du parent ET le sien, et la grille des droits la
+  montre sous son parent — sinon « réglable dans Permissions » est faux. ⚠️ Recensé le même
+  jour : `techniciens` est encore hors menu et se LIT par l'adresse (voir `REPRISE.md`).
 - ⛔ **UN SOUS-TITRE NE COMMENCE PAS PAR `/* ══` : C'EST LA MARQUE D'UN BLOC, ET LES BANCS
   DÉCOUPENT DESSUS.** Le 22 septembre 2026, un sous-titre ajouté au milieu du bloc NAVIGATION
   a réduit la tranche de `test-758` de 2 500 à 1 011 caractères, et le banc a accusé la
@@ -1295,6 +1310,13 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ⚠️ Et son jumeau, pris dans la même heure : **l'application remplace certains émojis par des
   icônes SVG** (classe `rf-ic`). Chercher `⏹ Dépointer` dans le HTML rend FAUX alors que le
   bouton dit bien « Dépointer » — son `⏹` est devenu un `<svg>`. Lire le **`textContent`**.
+  ⚠️ Et ce ne sont pas que des émojis : **« → », « ← », « ✔ », « ✓ » sont remplacés aussi**
+  (table `EMO` d'`icones()`), et l'icône est `aria-hidden`. Pris le 23 septembre 2026 au soir :
+  une sonde cherchait « X → Y » dans le texte, n'en trouvait AUCUN, et son contrôle « aucun
+  Pour moi dans la liste » passait sur zéro ligne. On lit la STRUCTURE (le `<b>` du
+  destinataire). Et côté écran, le même remplacement rendait muette la relation « qui donne à
+  qui » pour un lecteur d'écran : une ligne qui repose sur une flèche porte sa phrase en
+  `aria-label`.
 - ⛔⛔ **UNE DÉCOUPE DE BANC QUI DÉBORDE REND UN VERDICT FAUX — TROIS FOIS EN DEUX JOURS.**
   `corps(nom)` s'arrête à la prochaine `function ` de premier niveau. Mais `ptTickStart` est
   suivie de `views.pointage=function(){`, et `visiblePointages` de `ptPeutVoirAutres` : la

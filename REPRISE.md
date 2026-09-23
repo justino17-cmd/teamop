@@ -39,6 +39,81 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 23 SEPTEMBRE 2026 (soir) — PRODUITS DONNÉS : UNE SOUS-CATÉGORIE DES BOX (v731, bêta)
+
+Justin : **« Produit donné, c'est quand des personnes donnent des produits à quelqu'un. Il
+faudrait le mettre en sous-catégorie dans Box : quand un technicien retire des produits de sa
+box, il choisit si c'est pour lui ou pour une autre personne. »** (Et, sur la v730 : **« La
+bulle c'est parfait. »**)
+
+Le geste existait déjà — « Ces produits sont pour qui ? » à la sortie d'une box, par les deux
+chemins (sortie directe, et sortie soumise au DR) — et le bon de remise en gardait la trace. Ce
+qui manquait, c'était l'ENDROIT : l'ancien écran ne listait que les dons saisis à la main depuis
+la fiche d'un véhicule, et n'était plus au menu.
+
+- **Boxes porte une rangée « Liste · Carte · Produits donnés »**, la même sur les trois écrans
+  (`boxSousCats`). Sur Produits donnés, c'est **Boxes** qui reste allumé — au menu, dans la barre
+  du bas, et la bulle est posée dessous (`SOUS_CATS` → `VUE_PARENT`, une seule table).
+- **La liste vient des sorties de box** (`donsListe`) : chaque bon de remise dont le destinataire
+  n'est PAS celui qui a sorti. **« Pour moi » n'est pas un don** : il reste dans Mouvements stock.
+  Chacun voit ce qui le regarde, avec **la règle de Mouvements stock** (« tout voir » sans
+  périmètre : tout ; sinon ses box, plus ce qu'il a donné ou reçu). Les anciens dons saisis à la
+  main restent listés.
+- Toucher une ligne : qui a remis, à qui, depuis quelle box, validé par qui — et **le bon de remise
+  en PDF**. Une recherche (nom, produit, box).
+- Les deux fenêtres disent désormais **« Pour moi » / « Pour une autre personne »** (les mots de
+  Justin), et proposent les personnes de l'entreprise sans les imposer (un intérimaire n'a pas de
+  compte).
+- **Bons de remise coupés dans Paramètres** : l'écran vide le DIT (la question « pour qui ? » ne se
+  pose plus), et l'administrateur peut réactiver d'ici.
+- **Les droits** : Produits donnés reste fermé par défaut au commercial et à la comptable. La
+  grille des droits le montre désormais **sous Boxes** (« ↳ Produits donnés — dans Boxes ») : le
+  message « réglable dans Permissions » était faux, faute de ligne à cocher.
+
+Mesuré au navigateur, de vraies sorties de box (`scratchpad/sonde-dons.js`) : **63 ✓ 0 ✗** ;
+sur la bêta v730, **23 ✓ 40 ✗**. `tests/test-779.js` exécute la vraie liste, le vrai total et la
+vraie rangée (78 contrôles).
+
+### Trois défauts trouvés EN mesurant
+
+- **« Produits donnés » était coupé au bord de l'écran** — à 360, 390 ET 430 px. La rangée
+  « 📋 Liste · 🗺️ Carte des box · 🎁 Produits donnés » faisait 440 px, et sur téléphone une rangée
+  de pastilles tient sur UNE ligne qui défile : l'écran demandé par Justin était précisément
+  celui qu'on ne voyait pas. Libellés courts, sans émoji (« Liste · Carte · Produits donnés ») :
+  316 px, elle tient partout et redevient le segmenté de l'application. Le filtre « Avec du
+  stock » passe sur sa propre ligne — dans un segmenté, il aurait eu l'air d'un quatrième écran.
+- **Sur la v730, un commercial ouvrait Produits donnés en tapant l'adresse** : la vue n'étant
+  plus au menu, la garde de `go()` ne la trouvait pas. Fermé (la sous-catégorie a ses propres
+  droits, en plus de ceux des box).
+- **« → » et « ✔ » deviennent des icônes muettes** (`icones()`) : un lecteur d'écran lisait
+  « Jean Terrain Karim Benali », deux noms sans dire qui donne à qui. Chaque ligne porte sa
+  phrase (« Jean Terrain a remis à Karim Benali : … validé par … »).
+
+⚠️ **Et la sonde s'est trompée une fois** : sa première version cherchait « X → Y » dans le texte,
+que l'icône avait remplacé — son contrôle « aucun Pour moi » passait sur ZÉRO ligne reconnue. Elle
+lit maintenant la STRUCTURE (le nom en gras = le destinataire) et compte d'abord sa population.
+
+### ⚠️ Vu en chemin, pas touché
+
+**Mouvements stock montre TOUS les bons de remise de l'entreprise à quiconque ouvre l'écran**
+(`views.mouvements`, la liste `brs` n'est pas filtrée), alors que les mouvements, eux, le sont
+(`visibleMouvements`). Ce n'est pas une fuite hors de l'entreprise, mais c'est une règle de moins
+qu'ailleurs. Produits donnés applique la règle des mouvements ; aligner Mouvements stock est une
+décision à part.
+
+**Le trou du commercial a un voisin.** Recensé mécaniquement : sur 43 vues, quatre ne sont pas au
+menu — donc la garde de `go()` ne les connaît pas. `produitsDonnes` est gardée désormais ;
+`histoDemandes` renvoie à Mes demandes (gardée) ; `parametres` est ouvert à tous par construction.
+Reste **`techniciens`** (l'écran « Équipe », atteint par « Ouvrir l'équipe » depuis les congés) :
+n'importe quel compte qui tape `#v=techniciens` lit la liste (noms, métiers, téléphones).
+Modifier (`saveTech`) et supprimer (`delItem`) restent gardés. À trancher : qui doit la lire ?
+
+### ⏳ Ce qui attend Justin
+
+- **Regarder Boxes › Produits donnés sur ton iPhone**, et faire une vraie sortie « Pour une autre
+  personne » : c'est elle qui doit apparaître.
+- **La publication publique** : toujours suspendue par ta décision, jusqu'au serveur séparé.
+
 ## ✅ 23 SEPTEMBRE 2026 (après-midi) — LA BULLE AU DOIGT, UN SEUL ACCUEIL, CHANTIERS RETIRÉ (v730, bêta)
 
 ### La barre du bas : on attrape la bulle, elle suit le doigt
@@ -101,12 +176,9 @@ de CPU chacun (charge 5,5). Arrêtés : le flux coûte ~1 ms sur les deux bases,
 
 ### ⏳ Ce qui attend Justin
 
-- **Regarder la bulle sur ton iPhone.** Les mesures sont faites dans un Chrome qui imite un
-  iPhone : le geste, les positions et les couleurs sont vrais, mais le **verre** d'iOS 26 (la
-  barre translucide façon « Liquid Glass ») ne se rend pas au pixel près dans Chrome. C'est ton
-  œil sur un vrai iPhone qui dira si la bulle tenue en main est belle et lisible.
-- **« Produits donnés »** (la liste retirée du menu, `views.produitsDonnes`) : toujours du code
-  mort — tu n'as parlé que de Chantier. Un « vas-y » suffit.
+- ✅ **La bulle : « La bulle c'est parfait »** (Justin, sur son iPhone, le 23 au soir).
+- ✅ **« Produits donnés »** : tranché le 23 au soir — ce n'est pas du code mort à retirer, c'est
+  une sous-catégorie des Box (v731, plus haut).
 - **La publication publique** : suspendue par ta décision ci-dessus, jusqu'au serveur séparé.
 
 ## ✅ 23 SEPTEMBRE 2026 — DOUZE APPAREILS, DEUX RÔLES, ÉCRAN PAR ÉCRAN, BOUTON PAR BOUTON (v729, bêta)
@@ -299,13 +371,11 @@ Preuves : `tests/test-775.js` (38 contrôles — l'aiguillage de `go()` est EXÉ
 ### ⏳ Ce qui attend Justin (le garde-fou automatique a refusé de le faire seul)
 
 - ✅ **`views.chantiers` et le champ « Chantier » : RETIRÉS en v730** sur le « oui » de Justin
-  (la donnée reste). **`views.produitsDonnes` attend toujours son mot.**
-- **Les deux listes orphelines elles-mêmes** (`views.produitsDonnes` et son impression,
-  `views.chantiers`) : plus rien ne les ouvre depuis cette version — c'est du code mort, sans
-  risque, mais le retrait a été refusé par le garde-fou automatique de la session. Même chose
-  pour le champ « Chantier » du formulaire d'intervention : aucune entreprise ne peut plus créer
-  de chantier (la liste n'est plus au menu), le champ reste donc vide chez tout le monde.
-  **Il suffit d'un « vas-y » pour les retirer.**
+  (la donnée reste). ✅ **`views.produitsDonnes` : devenu la sous-catégorie « Produits donnés »
+  des Box en v731**, alimentée par les sorties de box (Justin, 23 au soir).
+- ✅ **Les deux listes orphelines** : réglées — `views.chantiers` et le champ « Chantier »
+  retirés en v730 ; `views.produitsDonnes` n'était pas à retirer mais à RANGER, c'est la
+  sous-catégorie des Box de la v731.
 - **Les chiffres d'usage par rubrique existent** (la Tour les reçoit, `/api/usage`) : c'est la
   seule vraie mesure de ce qui ne sert pas. Un coup d'œil sur l'écran d'usage de la Tour dirait
   quelles rubriques ELAN n'ouvre jamais — la décision de les retirer serait alors fondée sur ses
