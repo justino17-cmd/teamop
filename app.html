@@ -2539,7 +2539,7 @@ html[data-refonte]{
   --acc-txt:#55D6A2; --tint:rgba(47,191,135,.14); --tint-gris:rgba(143,163,188,.12);
   --hover:#18233A; --hover-tint:#18233A; --eleve:#18233A; --chip:#18233A;
   --inpBorder:rgba(143,163,188,.20); --trait-ui:#5B6E8C; --scrim:rgba(4,7,14,.68);
-  --org:#E8A857; --red:#EF7C72; --green:#3FD097; --blue:#6FB3E8; --purple:#B39DF2;
+  --org:#E8A857; --red:#EF7C72; --green:#3FD097; --blue:#7DBCEC; --purple:#B39DF2;
   --danger-bg:rgba(239,124,114,.14); --danger-ink:#F2938B;
   /* Le gris SECONDAIRE : tout ce qui n'est ni l'action principale ni un état actif. Sans lui,
      un écran finit avec six boutons verts et l'accent ne veut plus rien dire. */
@@ -2814,6 +2814,7 @@ html[data-refonte][data-theme="light"][data-accent="red"]   { --on-acc:#FFFFFF; 
 html[data-refonte][data-theme="light"][data-accent="orange"]{ --acc-txt:color-mix(in srgb,#000 46%,var(--acc-src)); }
 html[data-refonte][data-theme="light"][data-accent="teal"]  { --acc-txt:color-mix(in srgb,#000 46%,var(--acc-src)); }
 html[data-refonte][data-theme="dark"][data-accent="indigo"] { --acc-txt:color-mix(in srgb,#fff 34%,var(--acc-src)); }
+html[data-refonte][data-theme="dark"][data-accent="blue"]   { --acc-txt:color-mix(in srgb,#fff 34%,var(--acc-src)); }
 /* ⛔⛔ LE ROUGE ET L'ORANGE DE NUIT SONT DES ENCRES, PAS DES APLATS. De nuit, `--red` (#F07470)
    et `--org` (#F0A94A) sont éclaircis pour se LIRE sur un fond sombre — et c'est exactement ce
    qui les rend impropres à PORTER du blanc : 2,69:1 pour la pastille de la cloche (sur les
@@ -5470,6 +5471,13 @@ html[data-verre="1"][data-theme="dark"]{
      de nuit c'est la lumière qui élève, et la teinter la ferait redescendre. */
   --vr-fond:color-mix(in srgb,var(--acc-src,#2EB872) 7%,rgba(44,56,84,.55));
   --vr-fond2:rgba(255,255,255,.08);
+  /* ⛔ LE TEXTE SECONDAIRE SUIT LA VITRE QUI L'ÉLÈVE. De nuit, une carte en verre est PLUS
+     CLAIRE que la page (c'est voulu, voir plus haut) et les halos passent à travers : le
+     --t3 de nuit (#8FA3BC), réglé pour des cartes opaques, y tombait à 3,60–4,27 — lu au
+     PIXEL le 23 septembre 2026 sur le Mac et l'iPhone (étiquettes des indicateurs, totaux
+     du planning, en-têtes du week-end ; sans verre : zéro). Un cran plus clair, pas plus :
+     le second plan doit rester un second plan (4,60 au pire pixel mesuré). */
+  --t3:#A7B8CC;
   --vr-fond-dense:color-mix(in srgb,var(--acc-src,#2EB872) 7%,rgba(44,56,84,.92));
   --vr-liseret:rgba(255,255,255,.18);
   --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.02) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.03) 100%);
@@ -7667,16 +7675,17 @@ function encreSur(hex){
    liseré, un fond à 18 % — et elles ont été choisies pour ça : un jaune, un vert d'eau, un
    bleu roi. Écrites telles quelles en TEXTE, elles tombaient à 1,64:1 de jour
    (« Désinfection ») et 1,58:1 de nuit (« MABI ») — mesuré le 23 septembre 2026, les neuf
-   teintes, les deux thèmes (scratchpad/audit-teintes.js, FAM=tout). Le texte prend la
-   couleur à MOITIÉ, mêlée à l'encre du thème : la teinte reste reconnaissable et la lettre
-   se lit dans les deux thèmes (pire cas des huit catégories : 5,30 de jour, 6,48 de nuit).
+   teintes, les deux thèmes (scratchpad/audit-teintes.js, FAM=tout). Le texte prend un peu
+   moins de la moitié de la couleur, mêlée à l'encre du thème : la teinte reste reconnaissable
+   et la lettre se lit dans les deux thèmes. 45 % et non 50 : sous le verre de nuit, « MABI »
+   (le bleu roi) restait à 4,18 au pixel à parts égales.
    Les jetons sémantiques sont déjà des encres, on les rend tels quels — sauf l'accent, qui
    est la couleur d'un APLAT et prend son encre de texte. */
 function encreDonnee(c){
   if(!c) return 'var(--t2)';
   if(c==='var(--acc)') return 'var(--acc-txt)';
   if(/^var\(--(?:org|red|blue|purple|green|t1|t2|t3|acc-txt)\)$/.test(c)) return c;
-  return 'color-mix(in srgb,'+c+' 50%,var(--t1))';
+  return 'color-mix(in srgb,'+c+' 45%,var(--t1))';
 }
 /* Une SURFACE pleine et son encre, jamais l'une sans l'autre. De nuit, l'accent, l'orange,
    le rouge et le bleu sont éclaircis pour se LIRE : y poser du blanc donnait 1,9:1 sur le

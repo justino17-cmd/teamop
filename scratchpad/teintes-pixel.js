@@ -38,7 +38,17 @@ const FENETRES = eval(mF[1]);
   await S.ev(`window.confirm=()=>false; try{ setPlatForce('${PLAT}'); }catch(e){} return 1;`); await dormir(5000);
   console.log('  plateforme : ' + PLAT + ' · verre ' + (await S.ev(`return document.documentElement.getAttribute('data-verre')||'éteint';`)) + '\n');
   let passe = 0, reste = 0, introuvable = 0;
+  /* un reste par GROUPE (thème, teinte, élément, texte aux chiffres près) : on relit le PIRE —
+     la passe complète en rend des milliers, dont la plupart sont le même élément sur 42 écrans */
+  const groupes = new Map();
   for (const f of A.faibles) {
+    const [th, ac] = f.ou.split('/'); const k = th + '/' + ac + '|' + f.n + '|' + f.t.replace(/\d+/g, '#');
+    const g = groupes.get(k); if (!g) groupes.set(k, { f, n: 1 }); else { g.n++; if (f.c < g.f.c) g.f = f; }
+  }
+  const liste = [...groupes.values()];
+  console.log('  ' + liste.length + ' groupes à relire (sur ' + A.faibles.length + ' restes)\n');
+  const bilan = [];
+  for (const { f, n: nb } of liste) {
     const [th, ac, ou] = f.ou.split('/');
     const F = ou.startsWith('fenêtre ') ? FENETRES.find(x => x.nom === ou.slice(8)) : null;
     await S.ev(`try{ closeSub(); }catch(e){} try{ closeModal(); }catch(e){} try{ setThemePref('${th}'); }catch(e){} try{ setAccent('${ac}'); }catch(e){} return 1;`); await dormir(300);
@@ -50,12 +60,12 @@ const FENETRES = eval(mF[1]);
     const r = await S.ev(`const Z=${zone}; const racine=Z?document.querySelector(Z):document;
       if(!racine) return null;
       const c=[...racine.querySelectorAll(${JSON.stringify(tag + cls.map(x => '.' + x).join(''))})].filter(e=>{
-        const b=e.getBoundingClientRect(); return b.width>2&&b.height>2&&(e.textContent||'').trim().startsWith(${JSON.stringify(f.t.slice(0, 12))}); });
+        const b=e.getBoundingClientRect(); return b.width>2&&b.height>2&&(e.textContent||'').trim().replace(/\\d+/g,'#').startsWith(${JSON.stringify(f.t.replace(/\d+/g, '#').slice(0, 10))}); });
       if(!c.length) return null; const e=c[0]; e.scrollIntoView({block:'center'});
       await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void e.offsetWidth; await new Promise(r=>setTimeout(r,250));
       const b=e.getBoundingClientRect();
       return {x:b.left+scrollX, y:b.top+scrollY, w:b.width, h:b.height, encre:getComputedStyle(e).color};`);
-    if (!r) { introuvable++; console.log('  ?  ' + f.ou.padEnd(34) + f.n + ' « ' + f.t + ' » : introuvable'); continue; }
+    if (!r) { introuvable++; bilan.push({ ou: f.ou, n: f.n, t: f.t, calcul: f.c, nb, introuvable: true }); console.log('  ?  ' + f.ou.padEnd(34) + f.n + ' « ' + f.t + ' » : introuvable'); continue; }
     const cap = await S.c.envoyer('Page.captureScreenshot', { format: 'png', clip: { x: r.x, y: r.y, width: Math.max(1, r.w), height: Math.max(1, r.h), scale: 1 } });
     const img = decoder(Buffer.from(cap.data, 'base64'));
     const encre = lireCouleur(r.encre);
@@ -70,9 +80,11 @@ const FENETRES = eval(mF[1]);
     const fond = mode[0].split(',').map(Number);
     const c = contraste(encre, fond);
     const ok = c >= f.seuil; ok ? passe++ : reste++;
+    bilan.push({ ou: f.ou, n: f.n, t: f.t, calcul: f.c, pixel: +c.toFixed(2), seuil: f.seuil, nb, ok, fond: fond.join(','), encre: encre.map(Math.round).join(',') });
     console.log('  ' + (ok ? '✓' : '✗') + '  ' + f.ou.padEnd(34) + (f.n + ' « ' + f.t + ' »').padEnd(52) + ' calcul ' + f.c.toFixed(2) + ' → pixel ' + c.toFixed(2)
       + '   (fond ' + fond.join(',') + ', encre ' + encre.map(Math.round).join(',') + ')');
   }
-  console.log('\n  ══ au pixel : ' + passe + ' passent, ' + reste + ' restent sous le seuil, ' + introuvable + ' introuvables ══');
+  console.log('\n  ══ au pixel : ' + passe + ' groupes passent, ' + reste + ' restent sous le seuil, ' + introuvable + ' introuvables ══');
+  fs.writeFileSync(FICHIER.replace(/\.json$/, '-pixel.json'), JSON.stringify({ version: S.version, plat: PLAT, bilan }));
   S.fermer(); process.exit(0);
 })().catch(e => { console.error('SONDE MORTE :', e && e.stack || e); process.exit(2); });

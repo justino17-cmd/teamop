@@ -93,7 +93,10 @@ for (const f of ['app.html', 'beta.html']) {
     const aplatDe = c => APLATS[c] || [c, encreSur(c)];
     vrai('encreDonnee : l’accent (un aplat) rend son encre de texte', encreDonnee('var(--acc)') === 'var(--acc-txt)');
     vrai('encreDonnee : une encre sémantique passe telle quelle', encreDonnee('var(--org)') === 'var(--org)' && encreDonnee('var(--t3)') === 'var(--t3)');
-    vrai('encreDonnee : une couleur de donnée se mêle à moitié à l’encre du thème', encreDonnee('#EF9F27') === 'color-mix(in srgb,#EF9F27 50%,var(--t1))');
+    const part = +(mED[1].match(/'\+c\+' (\d+)%,var\(--t1\)/) || [0, 0])[1] / 100;
+    vrai('population : la part de couleur d’encreDonnee est lue (' + Math.round(part * 100) + ' %)', part > 0.3 && part < 0.6);
+    vrai('encreDonnee : une couleur de donnée se mêle à l’encre du thème (moins de la moitié de couleur)',
+      encreDonnee('#EF9F27') === 'color-mix(in srgb,#EF9F27 ' + Math.round(part * 100) + '%,var(--t1))' && part <= 0.45);
     vrai('encreDonnee : rien → le texte secondaire', encreDonnee('') === 'var(--t2)');
     /* le mélange réel, contre les deux thèmes, sur les huit catégories ET les fournisseurs */
     const CAT = SRC.match(/const CAT_COLORS=(\{[^}]+\});/), FOUR = SRC.match(/const FOUR_COLORS=(\{[^}]+\});/);
@@ -102,7 +105,7 @@ for (const f of ['app.html', 'beta.html']) {
       const couleurs = [...Object.values(eval('(' + CAT[1] + ')')), ...Object.values(eval('(' + FOUR[1] + ')'))];
       const THEMES = { jour: { t1: '#0A1020', fond: '#FFFFFF' }, nuit: { t1: '#EFF2F7', fond: '#101A2E' } };
       for (const [nom, T] of Object.entries(THEMES)) {
-        const pire = Math.min(...couleurs.map(c => { const ink = mix(hex(c), hex(T.t1), .5);
+        const pire = Math.min(...couleurs.map(c => { const ink = mix(hex(c), hex(T.t1), part);
           return Math.min(ctr(ink, hex(T.fond)), ctr(ink, mix(hex(c), hex(T.fond), .18))); }));
         vrai('⛔ ' + nom + ' : le texte d’une catégorie ou d’un fournisseur tient 4,5:1, sur la carte ET sur sa pastille à 18 % (pire ' + pire.toFixed(2) + ')', pire >= 4.5);
       }
@@ -117,6 +120,27 @@ for (const f of ['app.html', 'beta.html']) {
     vrai('⛔ encreSur lit hsl() — un gris-beige moyen prend l’encre sombre, un bleu nuit le blanc', e1 === '#12202F' && e2 === '#FFFFFF', e1 + ' / ' + e2);
     vrai('   … et garde son comportement sur un hexadécimal', encreSur('#E8A33D') === '#12202F' && encreSur('#1E7A4E') === '#FFFFFF');
   }
+
+  /* ── sous le verre de nuit : lu au PIXEL, pas calculé ──
+     Fonds RÉELS relevés le 23 septembre 2026 par scratchpad/teintes-pixel.js (Mac et iPhone,
+     verre allumé) sous les restes de la passe 5 — des MESURES datées, pas des jetons : une
+     carte en verre de nuit laisse passer les halos, aucun jeton ne dit sa couleur finale.
+     Les relire (et mettre à jour cette liste) si le verre de nuit change. */
+  const FONDS_VERRE_NUIT = [[48,72,88],[60,60,100],[64,64,72],[44,76,80],[36,64,104],[76,64,60],[44,68,84]];
+  const iVN = SRC.indexOf('html[data-verre="1"][data-theme="dark"]{');
+  const t3vn = iVN > 0 ? (SRC.slice(iVN, iVN + 4000).match(/--t3:(#[0-9A-F]{6});/) || [])[1] : null;
+  vrai('⛔ sous le verre de nuit, le texte secondaire a SA valeur (la vitre est plus claire que la carte opaque)', !!t3vn, t3vn || 'absente');
+  if (t3vn) {
+    const pire = Math.min(...FONDS_VERRE_NUIT.map(f => ctr(hex(t3vn), f)));
+    vrai('   … et elle tient 4,5:1 sur les fonds réels mesurés au pixel (pire ' + pire.toFixed(2) + ')', pire >= 4.5);
+    const t2n = (SRC.match(/--t1:#EFF2F7; --t2:(#[0-9A-F]{6}); --t3:#8FA3BC;/) || [])[1];
+    vrai('   … sans rejoindre le texte principal : le second plan reste un second plan', !!t2n && lum(hex(t2n)) / lum(hex(t3vn)) >= 1.2, t2n);
+  }
+  vrai('⛔ de nuit, le bleu (comme l’indigo) écrit son texte d’un cran plus clair',
+    /\[data-theme="dark"\]\[data-accent="blue"\]   \{ --acc-txt:color-mix\(in srgb,#fff 34%,var\(--acc-src\)\); \}/.test(SRC));
+  const bleuNuit = (SRC.match(/--org:#E8A857; --red:#EF7C72; --green:#3FD097; --blue:(#[0-9A-F]{6});/) || [])[1];
+  vrai('⛔ la pastille « Planifiée » (le bleu de nuit) tient sur la vitre mesurée au pixel (44,72,92)',
+    !!bleuNuit && ctr(hex(bleuNuit), [44, 72, 92]) >= 4.5, bleuNuit + ' → ' + (bleuNuit ? ctr(hex(bleuNuit), [44, 72, 92]).toFixed(2) : '?'));
 
   /* ── 4. plus de blanc en dur sur une couleur variable, hors pastilles d'avatar ── */
   const blancs = [...SRC.matchAll(/background:\$\{[^}]{1,80}\}[^"'`]{0,120}?color:#fff\b/gi)].map(m => SRC.slice(Math.max(0, m.index - 140), m.index + 10));
