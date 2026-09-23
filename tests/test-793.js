@@ -74,7 +74,8 @@ console.log('── 793 · 1. la règle, exécutée ──');
   v('Alpha : son nom, sa couleur, SON logo, SON SIRET, SON IBAN, sa raison sociale', [A.nom, A.couleur, A.logo, A.siret, A.iban, A.raison, A.coordsPropres],
     ['Alpha Nuisibles', '#C0392B', 'data:A', '22222222200022', 'FR76 2222', 'Alpha Nuisibles SAS', true]);
   v('⛔ Alpha a un SIRET mais pas de TVA : sa TVA reste VIDE (jamais celle de l’entreprise) — pas de chimère', [A.tvaIntra, A.bic], ['', '']);
-  v('… téléphone : celui de l’entreprise complète (champ par champ)', A.tel, '0500000000');
+  v('… ni le téléphone ni l’e-mail de l’entreprise : Alpha est une entreprise DISTINCTE (le client répondrait chez l’autre)', [A.tel, A.email], ['', '']);
+  v('… alors qu’un nom commercial (Bêta) prend ceux de l’entreprise', W.docEntete('Bêta Hygiène').tel, '0500000000');
   v('Bêta (sans SIRET, sans logo) : son nom et sa couleur, le bloc légal ENTIER de l’entreprise, et PAS le logo de l’entreprise',
     [B.nom, B.couleur, B.siret, B.tvaIntra, B.iban, B.logo, B.coordsPropres], ['Bêta Hygiène', '#2E86C1', '11111111100011', 'FR11111111111', 'FR76 1111', '', false]);
   v('le générique : le NOM DE L’ENTREPRISE, son logo, ses coordonnées — jamais « Modèle générique » ni « OP GESTION »', [G.nom, G.logo, G.siret, G.generique], ['Nettoyage Excellence SARL', 'data:E', '11111111100011', true]);
@@ -85,7 +86,8 @@ console.log('── 793 · 1. la règle, exécutée ──');
   v('socDuClient : ni l’annulée du 20/09, ni la future de 2099 — la dernière RÉELLE (Bêta, 15/09)', W.socDuClient('cX'), 'Bêta Hygiène');
   v('… parmi les passages d’un document : la dernière de CE document', W.socDuClient('cX', [W.db.interventions[0]]), 'Alpha Nuisibles');
   v('les bons : leur société, sinon l’en-tête des bons, sinon l’entreprise', [W.bcEntete(W.db.bons[0]), W.bcEntete(W.db.bons[1]), W.bcCouleur(W.db.bons[0])], ['Alpha Nuisibles', 'Nettoyage Excellence SARL', '#C0392B']);
-  v('les coordonnées s’impriment dans l’ordre de tous les documents', W.docCoordLignes(A), ['2 quai Alpha, 33000 Bordeaux', 'Tél. 0500000000', 'SIRET 22222222200022']); }
+  v('les coordonnées s’impriment dans l’ordre de tous les documents (Alpha n’a pas de téléphone : pas de ligne vide)', W.docCoordLignes(A), ['2 quai Alpha, 33000 Bordeaux', 'SIRET 22222222200022']);
+  v('… et avec un téléphone, il prend sa place', W.docCoordLignes(B), ['1 rue de la Mairie, 17000 La Rochelle', 'Tél. 0500000000', 'SIRET 11111111100011  ·  TVA FR11111111111']); }
 
 console.log('── 793 · 2. les PDF de vente et d’achat, exécutés ──');
 { const W = monter(BASE);

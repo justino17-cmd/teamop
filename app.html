@@ -7661,7 +7661,7 @@ function socLogoDel(ix){ socStylePose(ix,'logo',null); views.parametres(); }
 /* v740 — les coordonnées d'une société. Avec un SIRET, elle est une entreprise DISTINCTE : tout son
    bloc légal (raison sociale, adresse, SIRET, TVA, IBAN) va sur ses documents, et un champ laissé
    vide y reste vide. Sans SIRET, c'est un nom commercial : ses documents portent les coordonnées de
-   l'entreprise. Téléphone et e-mail se complètent un par un. (docEntete) */
+   l'entreprise, téléphone et e-mail compris (docEntete). */
 const SOC_COORD=[['raison','Raison sociale','Ex : 3D Sud-Ouest SARL'],['adresse','Adresse',''],['cp','Code postal',''],['ville','Ville',''],
   ['tel','Téléphone',''],['email','E-mail',''],['siret','SIRET','14 chiffres — rempli, la société a ses propres coordonnées'],['tvaIntra','N° TVA intracommunautaire',''],['iban','IBAN',''],['bic','BIC','']];
 function socCoordModal(ix){ const nom=(db.societes||[])[ix]; if(nom==null) return; const st=socStyle(nom);
@@ -7688,7 +7688,8 @@ function socCoordSave(e,ix){ e.preventDefault(); if(!adminSeul()) return; const 
    · les coordonnées légales par BLOC : une société qui a son SIRET fournit tout son bloc
      (adresse, SIRET, TVA, IBAN) et un champ vide y reste vide ; sans SIRET, c'est un nom
      commercial de l'entreprise, et tout le bloc vient de l'entreprise. Jamais « SIRET de B +
-     TVA de A ». Téléphone et e-mail se complètent un par un. */
+     TVA de A ». Le téléphone et l'e-mail d'un NOM COMMERCIAL se complètent un par un par ceux
+     de l'entreprise ; ceux d'une entreprise distincte, jamais — le client répondrait chez l'autre. */
 function docEntete(m,o){ o=o||{}; const s=socNom(m), E=(db&&db.entreprise)||{}, st=s?socStyle(s):{};
   const hex=v=>/^#[0-9a-fA-F]{6}$/.test(v||'')?v:'';
   const estEnt=!s||s.toLowerCase()===String(entNom()).toLowerCase();
@@ -7699,7 +7700,7 @@ function docEntete(m,o){ o=o||{}; const s=socNom(m), E=(db&&db.entreprise)||{}, 
     logo: s?(st.logo||(estEnt?(E.logo||''):'')):(E.logo||''),
     raison: propre?(String(st.raison||'').trim()||s):(String(E.nom||'').trim()||entNom()),
     adresse:L.adresse||'', cp:L.cp||'', ville:L.ville||'', siret:L.siret||'', tvaIntra:L.tvaIntra||'',
-    iban:L.iban||'', bic:L.bic||'', tel:st.tel||E.tel||'', email:st.email||E.email||'',
+    iban:L.iban||'', bic:L.bic||'', tel:st.tel||(propre?'':E.tel)||'', email:st.email||(propre?'':E.email)||'',
     coordsPropres:propre }; }
 /* Les lignes de coordonnées sous le nom, dans l'ordre de tous les documents */
 function docCoordLignes(h){ return [[h.adresse,[h.cp,h.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),
@@ -34647,7 +34648,7 @@ function printDoc(kind,id){
         ${estFact?(tvaP===0?`TVA non applicable, article 293 B du CGI.<br>`:'')
           +`En cas de retard de paiement : pénalités calculées au taux d'intérêt légal majoré et indemnité forfaitaire de recouvrement de 40 € (art. L441-10 du Code de commerce). Pas d'escompte pour paiement anticipé.`:''}
       </div>
-      <div class="ftr">${esc(soc)}${E.siret?' · SIRET '+esc(E.siret):''}${E.tvaIntra?' · TVA '+esc(E.tvaIntra):''}${[E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).length?'<br>'+esc([E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).join(' — '))+(E.tel?' · Tél. '+esc(E.tel):''):''}<br>Document généré par OP GESTION le ${new Date().toLocaleDateString('fr-FR')}</div>
+      <div class="ftr">${esc(soc)}${E.siret?' · SIRET '+esc(E.siret):''}${E.tvaIntra?' · TVA '+esc(E.tvaIntra):''}${[E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).length?'<br>'+esc([E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).join(' — '))+(E.tel?' · Tél. '+esc(E.tel):''):''}<br>Document édité le ${new Date().toLocaleDateString('fr-FR')}</div>
     </div></body></html>`);
   w.document.close(); w.focus();
 }
