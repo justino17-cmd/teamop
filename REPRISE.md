@@ -23,6 +23,92 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
+## ⛔⛔ DÉCISION DE JUSTIN, 23 SEPTEMBRE 2026 — RIEN EN VERSION PUBLIQUE TANT QUE LE SERVEUR N'EST PAS SÉPARÉ DE FIREBASE
+
+Mot pour mot : **« On ne publie rien en version publique tant que le serveur n'est pas fait à
+part de Firebase. »**
+
+- `app.html` et `sw.js` **ne partent plus sur `main`**, même prêts, même éprouvés, même sur une
+  demande qui viserait un seul changement — tant que le chantier « TOUT SUR LE SERVEUR » n'a pas
+  sorti OP GESTION de Firebase (l'étape E, « couper Firestore », décrite plus bas avec les étapes
+  A à C ; OP MESSAGES, elle, part sur son propre serveur). La production reste en **v695**.
+- La bêta, elle, continue de se publier librement : c'est là qu'il regarde.
+- ⚠️ **L'exception « ce qui casse chez un client » n'a pas été rediscutée.** Si ELAN ne peut plus
+  travailler, on ne publie pas de soi-même : on DEMANDE à Justin, avec le défaut mesuré et le
+  correctif limité à lui.
+- ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
+  le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
+
+## ✅ 23 SEPTEMBRE 2026 (après-midi) — LA BULLE AU DOIGT, UN SEUL ACCUEIL, CHANTIERS RETIRÉ (v730, bêta)
+
+### La barre du bas : on attrape la bulle, elle suit le doigt
+
+Justin, au doigt : **« ça marche, mais ça fait pas du tout comme sur Instagram. Moi je voudrais
+qu'on soit appuyé sur la bulle et qu'on déplace la bulle avec notre doigt. Là on glisse comme
+si on descendait sur une page Internet. »** Le glissement de PAGE poussait la bulle à l'OPPOSÉ
+du doigt. La barre a désormais son geste à elle (`ongletsBulle`) :
+
+- on pose le doigt **sur** la bulle : elle se soulève tout de suite (elle grandit, son ombre
+  s'élargit) ;
+- on glisse : elle suit le doigt **dans le même sens**, à l'endroit exact où on l'a prise ;
+- l'onglet sous la bulle s'allume en passant, celui de départ s'éteint ;
+- on lâche : elle se pose, la rubrique s'ouvre — **une** navigation ;
+- parti d'un AUTRE onglet : la bulle vient sous le doigt en 170 ms, puis le suit ;
+- « Plus » n'est pas une place pour elle : elle résiste au bord comme un ressort.
+
+Le glissement sur le CONTENU (changer de rubrique en balayant la page) est inchangé. Le tap, « Plus »
+et l'appui long (choisir ses onglets — sur un AUTRE onglet que la bulle, ou dans Paramètres) aussi.
+
+Mesuré avec de vrais événements tactiles (`scratchpad/sonde-geste.js`, **48 ✓ 0 ✗**) : la bulle
+reste à **0,0–0,1 px** du doigt, image par image. Deux défauts trouvés EN mesurant :
+- **la « prise en main » faisait prendre du retard à la bulle** — jusqu'à 8,5 px, croissant avec
+  la distance : la propriété `scale` s'applique avant `transform`, donc elle multipliait aussi le
+  déplacement. La position vit maintenant dans `translate` ;
+- **un chiffre nu flottait au coin des icônes de la barre** (« 0 » sur la mallette) : le TOTAL des
+  fiches recopié du menu. Sur une barre d'onglets, un chiffre sur une icône se lit « à traiter » ;
+  retiré de la barre, le menu garde ses compteurs.
+
+### Un seul accueil le matin
+
+Justin : **« chaque matin pour tes techniciens, fais ce qui est le mieux. »** Un technicien
+occupé recevait DEUX accueils à 200 ms d'écart (Leia « Petits rappels du jour » ET « Ta
+journée »). La règle, une fois par jour et par personne (`accueilJournee`) :
+
+| qui | ce qu'il voit en ouvrant l'application |
+|---|---|
+| technicien qui a des interventions aujourd'hui | **« Ta journée »** — nombre, première intervention, et désormais ses retards |
+| responsable (administrateur, DR, chef d'équipe) | les rappels de Leia (demandes à valider, factures…) |
+| technicien sans intervention ce jour-là | les rappels de Leia |
+| tout premier lancement | la bienvenue, rien d'autre |
+
+Rien n'est perdu : « Rappels » reste dans la bulle 💬. Mesuré au vrai `enterApp`, cinq matins
+(`scratchpad/sonde-accueil.js`) : **18 ✓** ; sur la bêta d'avant, **7 ✗**. `tests/test-778.js`
+exécute la vraie règle (26 contrôles).
+
+### « Chantiers / Projets » retiré — la donnée reste
+
+Justin : **« chantier, oui tu peux le supprimer. »** Partis : l'écran, la fiche, le formulaire,
+la ligne de la recherche globale, le champ « Chantier » de l'intervention. Un ancien lien mène aux
+Interventions. **Restent exprès : les données** (`db.chantiers`, `i.chantierId`) — elles voyagent
+toujours à la synchro, et enregistrer une intervention garde son chantier (mesuré : enregistrement
+PROUVÉ au navigateur, `scratchpad/sonde-categories.js` 25 ✓ ; 4 ✗ sur la bêta d'avant).
+
+### ⛔ Ce que la machine a coûté en chemin
+
+`test-724` (le coût du flux du socle) est tombé deux fois sur trois, même lancé seul. Ce n'était
+pas le serveur : **quatre navigateurs de sondes mortes tournaient depuis 3 à 5 heures**, à 85 %
+de CPU chacun (charge 5,5). Arrêtés : le flux coûte ~1 ms sur les deux bases, 5 passages sur 5.
+
+### ⏳ Ce qui attend Justin
+
+- **Regarder la bulle sur ton iPhone.** Les mesures sont faites dans un Chrome qui imite un
+  iPhone : le geste, les positions et les couleurs sont vrais, mais le **verre** d'iOS 26 (la
+  barre translucide façon « Liquid Glass ») ne se rend pas au pixel près dans Chrome. C'est ton
+  œil sur un vrai iPhone qui dira si la bulle tenue en main est belle et lisible.
+- **« Produits donnés »** (la liste retirée du menu, `views.produitsDonnes`) : toujours du code
+  mort — tu n'as parlé que de Chantier. Un « vas-y » suffit.
+- **La publication publique** : suspendue par ta décision ci-dessus, jusqu'au serveur séparé.
+
 ## ✅ 23 SEPTEMBRE 2026 — DOUZE APPAREILS, DEUX RÔLES, ÉCRAN PAR ÉCRAN, BOUTON PAR BOUTON (v729, bêta)
 
 Justin : **« vérifie l'application au complet, ce qui va et ce qui va pas, les problèmes
@@ -155,12 +241,10 @@ d'heures à l'écran), pas les blocs.
 
 ### ⏳ Ce qui attend Justin
 
-- **Deux accueils en même temps, chaque matin, pour un technicien.** À la première ouverture du
-  jour, Leia ouvre ses « Petits rappels du jour » (un grand panneau) ET le rappel « Ta journée »
-  paraît en bas. Chacun est voulu ; ensemble, ils couvrent l'écran du téléphone. Garder les
-  deux, ou un seul ?
-- **Publier `app.html`** : la production est en v695, avec le plantage de « Consommation
-  produits » corrigé en bêta depuis la v726, et tout ce qui précède.
+- ✅ ~~Deux accueils en même temps, chaque matin, pour un technicien~~ — **tranché le 23 au
+  soir** (« fais ce qui est le mieux ») : un seul, voir la section v730 ci-dessus.
+- ⛔ ~~Publier `app.html`~~ — **suspendu par Justin** : rien en version publique tant que le
+  serveur n'est pas séparé de Firebase (section ci-dessus). La production reste en v695.
 
 ### ⚠️ Ce que ces passes ne couvrent pas
 
@@ -214,6 +298,8 @@ Preuves : `tests/test-775.js` (38 contrôles — l'aiguillage de `go()` est EXÉ
 
 ### ⏳ Ce qui attend Justin (le garde-fou automatique a refusé de le faire seul)
 
+- ✅ **`views.chantiers` et le champ « Chantier » : RETIRÉS en v730** sur le « oui » de Justin
+  (la donnée reste). **`views.produitsDonnes` attend toujours son mot.**
 - **Les deux listes orphelines elles-mêmes** (`views.produitsDonnes` et son impression,
   `views.chantiers`) : plus rien ne les ouvre depuis cette version — c'est du code mort, sans
   risque, mais le retrait a été refusé par le garde-fou automatique de la session. Même chose

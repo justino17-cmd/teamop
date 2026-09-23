@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**134 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 —
+**135 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 134 suites · 6 029 vérifications (mesuré le 23/09/2026, v729)
+bash scripts/bancs-ci.sh        # 135 suites · 6 104 vérifications (mesuré le 23/09/2026, v730)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -563,6 +563,13 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   surcouche au lieu de la page. Deux files de cinq passent ; dix d'un coup ne passent pas.
   Et le compteur d'attente ne doit pas guetter `pgrep` : des processus fantômes survivent aux
   sondes et le guetteur n'est jamais satisfait.
+  ⛔ **ET CES FANTÔMES FONT TOMBER LES BANCS DE TEMPS.** Le 23 septembre 2026, `test-724` (le
+  coût du flux du socle) tombait deux fois sur trois, même lancé seul : quatre navigateurs de
+  sondes mortes tournaient depuis 3 à 5 heures, à ~85 % de CPU chacun (charge 5,5). Arrêtés, le
+  flux coûtait ~1 ms sur les deux bases, 5 passages sur 5. **Avant de croire un chrono qui
+  tombe, regarder la machine** (`uptime`, `ps --sort=-%cpu`) ; les processus s'appellent
+  `chromium-1194/chrome-linux/chrome` — le lien `/opt/pw-browsers/chromium` n'apparaît pas
+  dans leur ligne de commande, un motif qui le vise ne trouve rien.
 - ⛔ **`document.getAnimations()` NE SE VIDE JAMAIS DANS CETTE APPLICATION** : le halo du fond
   (`vrOrbes`) tourne en boucle infinie. Attendre « plus aucune animation » est une attente qui
   ne finit pas — et filtrer sur une DURÉE infinie ne suffit pas, c'est le nombre d'ITÉRATIONS
@@ -1078,10 +1085,43 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   sous-arbre et emporterait le défilement latéral du planning et des tableaux.
   ⚠ Corollaire : `pointercancel` n'annule RIEN dans ce contexte, il arrive à chaque geste.
   C'est `touchcancel` qui dit vraiment que le doigt a été perdu.
+- ⛔⛔ **UN OBJET QU'ON TIENT SUIT LA MAIN ; UNE PAGE QU'ON POUSSE VA À L'OPPOSÉ.** Le
+  22 septembre 2026, le glissement sur la barre du bas poussait la pastille dans le sens
+  contraire du doigt — juste pour une page, contre-nature pour un objet. Justin, au doigt :
+  « ça marche, mais ça fait pas du tout comme sur Instagram ; je voudrais qu'on soit appuyé sur
+  la bulle et qu'on la déplace avec notre doigt ». La barre a donc son geste à elle
+  (`ongletsBulle`, v730), séparé du glissement de page, et la barre est ÉCARTÉE de ce dernier —
+  deux machines sur un même doigt navigueraient deux fois. Avant d'écrire un geste : **l'élément
+  sous le doigt est-il un objet (il suit) ou une surface (on la pousse) ?**
+- ⛔⛔ **LA PROPRIÉTÉ `scale` PASSE AVANT `transform` — ELLE MULTIPLIE LE DÉPLACEMENT.** Les
+  propriétés individuelles s'appliquent dans l'ordre `translate`, `rotate`, `scale`, puis
+  `transform`. Une pastille positionnée par `transform:translateX(D)` et soulevée par `scale:1.06`
+  glisse donc de 1,06 × D : mesuré le 23 septembre 2026, un retard sur le doigt qui CROISSAIT
+  avec la distance (8,5 px à deux onglets). La position va dans `translate`, qui passe avant
+  `scale` : l'objet grossit sur place. Le signe : un écart qui grandit régulièrement avec la
+  distance, jamais un écart constant.
+- ⛔⛔ **CE CHROMIUM PILOTÉ NE TRANSMET AUCUN `touchmove` DE MOINS DE ~15 PX — ET IL LES LIVRE AU
+  RYTHME DES IMAGES.** Mesuré le 23 septembre 2026 : mouvements de 1, 2, 4, 8, 13 px envoyés par
+  `Input.dispatchTouchEvent`, rien reçu par la page ; 17,6 px reçu — même quand la page retient
+  le contact par `preventDefault`. Et relu trop tôt, le dernier mouvement n'est pas encore
+  arrivé. Une sonde qui compare un objet aux positions ENVOYÉES accuse l'application d'un retard
+  qu'elle n'a pas (13 px mesurés, 0,0 réels). **On relève le doigt côté page** (un écouteur
+  `touchmove` en capture), on attend deux images après chaque mouvement, et on NOMME ce que le
+  navigateur a retenu (`scratchpad/sonde-geste.js`). Un iPhone transmet dès le premier pixel.
 - ⛔ **UN ÉCOUTEUR POSÉ SUR UN CONTENEUR QUI NE COUVRE PAS L'ÉCRAN EST UN ÉCOUTEUR QU'ON CROIT
   AVOIR POSÉ.** `#content` mesurait −390 → 900 (la page était défilée) et
   `elementFromPoint(220,420)` rendait `HTML` : le doigt ne touchait donc pas la zone écoutée.
   On écoute le document et on ÉCARTE ce qui ne doit pas recevoir le geste.
+- ⛔⛔ **RETIRER UN ÉCRAN N'EST PAS RETIRER UNE DONNÉE.** « Chantiers / Projets » a été supprimé
+  le 23 septembre 2026 (v730) : vue, fiche, formulaire, champ de l'intervention. `db.chantiers`
+  et `i.chantierId` restent dans la synchro (`COLLECTIONS_DONNEES`, `COLLS_GARDEES`,
+  `OP_CLASSES`) — une collection retirée de la fusion serait effacée chez tous les appareils par
+  le premier à jour. `test-731` refusait alors une entrée de classement que plus aucun code ne
+  lit ; elle est DÉCLARÉE dans `SANS_ECRAN`, vérifiée dans les deux sens (c'est une collection
+  synchronisée ; le code ne la lit plus). Et un formulaire qui perd un champ ne doit pas
+  effacer la valeur déjà posée : `saveIntervention` FUSIONNE (`{...ancienne, ...formulaire}`),
+  et la sonde le prouve sur un enregistrement qui a EU LIEU (une ligne « Fiche modifiée » de
+  plus) — sans ça, « la donnée survit » passait sur un formulaire jamais envoyé.
 - ⛔ **UN SOUS-TITRE NE COMMENCE PAS PAR `/* ══` : C'EST LA MARQUE D'UN BLOC, ET LES BANCS
   DÉCOUPENT DESSUS.** Le 22 septembre 2026, un sous-titre ajouté au milieu du bloc NAVIGATION
   a réduit la tranche de `test-758` de 2 500 à 1 011 caractères, et le banc a accusé la
@@ -1513,6 +1553,18 @@ aussi ses erreurs vite. Le client, lui, les reçoit toutes.
 worker comme avant, on régénère `beta.html`, on fait passer les suites — et **on s'arrête là**.
 Le report sur `main` de `app.html`/`sw.js` attend sa phrase. La bêta, elle, se publie librement :
 c'est son rôle.
+
+### ⛔⛔ SUSPENDUE LE 23 SEPTEMBRE 2026 — RIEN EN VERSION PUBLIQUE TANT QUE LE SERVEUR N'EST PAS SÉPARÉ DE FIREBASE
+
+Justin, mot pour mot : **« On ne publie rien en version publique tant que le serveur n'est pas
+fait à part de Firebase. »** La règle du 11 septembre disait « `app.html` attend une phrase de
+Justin » ; celle-ci dit qu'**aucune phrase ciblée ne suffit plus** tant que le chantier « TOUT
+SUR LE SERVEUR » n'a pas sorti OP GESTION de Firebase (étape E de `REPRISE.md`, « couper
+Firestore »). La production reste en v695 ; la bêta continue de se publier librement.
+⚠️ L'exception « ce qui casse chez un client » n'a pas été rediscutée : en cas de panne réelle
+chez ELAN, on ne publie pas de soi-même — on lui DEMANDE, avec le défaut mesuré.
+⚠️ Et `server/` n'est pas visé : c'est justement le chantier que cette décision attend (un push
+qui le touche déploie toujours le VPS, avec ses propres preuves).
 
 ### ⛔ LES APPAREILS D'ABORD, LA PORTE ENSUITE — APPLIQUÉ AUX PHOTOS (19 septembre 2026)
 
