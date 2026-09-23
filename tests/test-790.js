@@ -112,6 +112,12 @@ vrai('… et les champs du RAPPORT restent au terrain (matériel, zones, note in
   && !['materiel', 'zones', 'noteInterne', 'justifAppatage', 'nonTravaille'].some(x => CF.includes("'" + x + "'")), CF);
 const va = bloc('views.assistantDevis=function(){');
 vrai('l\'Assistant devis refuse son écran sans « Devis IA » ni « Ventes → Ajouter »', /if\(!can\('devisIA'\)\|\|!canCat\('ventes','ajouter'\)\)/.test(va) && va.indexOf("can('devisIA')") < va.indexOf('adCode()'), va.slice(0, 160));
+/* ⛔ ce contexte part chez Anthropic (sous-traitance.html) : c'est la seule liste de clients
+   envoyée à l'IA — les deux autres appels n'envoient qu'une intervention ou un PDF importé.
+   Mutation « tous les clients partent » : aucun banc ne tombait avant ce contrôle. */
+const ae = fonction('adEnvoyer'), aeCtx = ae.slice(ae.indexOf('contexte:'), ae.indexOf('contexte:') + 260);
+vrai('… et n\'envoie à Anthropic que les clients qu\'on voit (visibleClients), jamais db.clients entier',
+  ae.includes('contexte:') && /clients:visibleClients\(db\.clients\|\|\[\]\)/.test(aeCtx) && !/clients:\s*\(?\s*db\.clients/.test(aeCtx), aeCtx);
 
 console.log('\n── 790 · 2. ⛔⛔ les deux droits globaux ne décident plus d\'aucune porte ──');
 v("can('creerIntervention') : plus aucune lecture — c'est « Interventions → Ajouter »", compte("can('creerIntervention')"), 0);
