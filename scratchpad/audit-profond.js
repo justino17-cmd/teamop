@@ -26,13 +26,14 @@
    · on compte la POPULATION de chaque famille avant de croire un zéro.
    ⛔ Bêta uniquement, copie locale servie en 127.0.0.1.
 
-   Usage : node scratchpad/audit-profond.js tel|bureau                                     */
+   Usage : node scratchpad/audit-profond.js <profil>  (tel, bureau, se, promax, android,
+           petitand, ipad, ipadh, mac14, mac27, win, winapp — voir scratchpad/profils.js)   */
 const fs=require('fs'), path=require('path');
 const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
 const PROFIL=process.argv[2]||'tel';
-const P = PROFIL==='bureau'
-  ? {plat:'macweb', w:1440, h:900, tac:false, theme:'light'}
-  : {plat:'iosweb', w:390,  h:844, tac:true,  theme:'dark'};
+/* les appareils vivent dans UNE table, partagée avec l'autre sonde (scratchpad/profils.js) */
+const {profil,poserProfil}=require(path.join(__dirname,'profils.js'));
+const P = profil(PROFIL);
 
 /* ⛔ CE QU'ON NE CLIQUE PAS — sortir de la session, détruire la base d'essai, ou changer la
    langue de toute l'interface (les libellés suivants ne se reconnaîtraient plus). */
@@ -44,12 +45,9 @@ const ECARTS=[
 
 (async()=>{
   const S=await ouvrir();
-  console.log('  page mesurée : '+S.version+'   ·   profil : '+PROFIL+' ('+P.plat+' '+P.w+'×'+P.h+', '+P.theme+')');
+  console.log('  page mesurée : '+S.version+'   ·   profil : '+PROFIL+' — '+P.lbl+' ('+P.plat+' '+P.w+'×'+P.h+', '+P.theme+')');
 
-  await S.c.envoyer('Emulation.setDeviceMetricsOverride',{width:P.w,height:P.h,deviceScaleFactor:P.tac?3:2,mobile:P.tac});
-  await S.c.envoyer('Emulation.setTouchEmulationEnabled',{enabled:P.tac,maxTouchPoints:P.tac?5:1});
-  if(P.tac){ try{ await S.c.envoyer('Emulation.setSafeAreaInsetsOverride',
-    {insets:{top:47,bottom:34,left:0,right:0,topMax:47,bottomMax:34,leftMax:0,rightMax:0}}); }catch(e){} }
+  await poserProfil(S,P);
 
   await S.ev(`window.horsLigneDebut=function(){}; try{_horsLigne=false;}catch(e){}
     const h=document.getElementById('hl-ecran'); if(h)h.remove();
