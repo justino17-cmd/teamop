@@ -263,5 +263,30 @@ console.log('\n── 776 · 13. « Ma journée », l’écran du technicien, ti
   vrai('… et il passe au-dessus de la barre d’onglets, comme les messages', /body\.rf-onglets #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 66px\)!important\}/.test(SRC));
   vrai('la preuve au navigateur existe (en technicien, quatre appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-ma-journee.js'))); }
 
+console.log('\n── 776 · 14. une boîte centrée par « left:50% » se mesure sur la moitié de son cadre ──');
+/* Mesuré le 23 septembre 2026 (scratchpad/sonde-opt-barre.js) : la barre « Ordre proposé » posée sur
+   la carte après « Optimiser la tournée » faisait 164 px dans une carte de 328 — quatre lignes,
+   152 px de haut sur la carte — et 250 px dans les 500 de l'iPad. Une boîte absolue ou fixe à
+   largeur AUTOMATIQUE se mesure sur la place qui reste à droite de son bord gauche : avec
+   `left:50%`, la moitié. Même cause que le rappel du matin (section 13). */
+{ const iO = SRC.indexOf('.opt-barre{'), rO = iO > 0 ? SRC.slice(iO, SRC.indexOf('}', iO)) : '';
+  vrai('population : la barre de la tournée optimisée est trouvée', rO.length > 100, rO.length);
+  vrai('⛔ elle se pose entre deux marges, à la largeur de son contenu', /left:10px; right:10px; margin:0 auto; width:max-content;/.test(rO) && !/left:50%/.test(rO) && !/translateX\(-50%\)/.test(rO));
+  /* Et le piège ne revient pas ailleurs : toute boîte centrée par left:50% + translateX(-50%) doit
+     déclarer sa LARGEUR, ou ne pas pouvoir se replier (texte insécable, pseudo-élément sans contenu). */
+  const cas = []; const re = /translateX\(-50%\)/g; let m;
+  while ((m = re.exec(SRC))) { const i = m.index;
+    const d = Math.max(SRC.lastIndexOf('{', i), SRC.lastIndexOf('style="', i), SRC.lastIndexOf("cssText='", i));
+    const f = Math.min(...[SRC.indexOf('}', i), SRC.indexOf('"', i), SRC.indexOf("'", i)].filter(x => x > 0));
+    const b = SRC.slice(d, f); if (!/left:\s*50%/.test(b)) continue;
+    const sel = SRC.slice(SRC.lastIndexOf('\n', d) + 1, d).trim();
+    const sur = /(^|[;{\s"'])(width|inline-size):/.test(b) || /white-space:\s*nowrap/.test(b) || /content:\s*''/.test(b)
+      /* .toast : la refonte lui donne sa largeur (width:max-content), relu ici plutôt que cru */
+      || (/^\.toast$/.test(sel) && /html\[data-refonte\] \.toast\{width:max-content;max-width:min\(/.test(SRC));
+    cas.push({ sel: sel.slice(-40), sur }); }
+  vrai('population : les boîtes centrées par left:50% sont recensées', cas.length >= 5, cas.length);
+  vrai('⛔ chacune déclare sa largeur ou ne peut pas se replier', cas.every(c => c.sur), cas.filter(c => !c.sur));
+  vrai('la preuve au navigateur existe (la vraie planOptBarre, quatre appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-opt-barre.js'))); }
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

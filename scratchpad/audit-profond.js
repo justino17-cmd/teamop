@@ -62,6 +62,19 @@ const ECARTS=[
   await dormir(2500);
   /* LONGUES=1 : les valeurs les plus longues plausibles (une seule copie : profils.js) */
   if(process.env.LONGUES){ const n=await S.ev(DONNEES_LONGUES); console.log('  données LONGUES posées sur '+n+' enregistrements'); if(!(n>50)){ console.log('  ✗ population trop maigre'); process.exit(4); } }
+  /* ROLE=technicien : l'audit tourne EN TECHNICIEN. Tous les audits tournaient en administrateur, et
+     l'écran qu'un technicien ouvre chaque matin (« Ma journée ») n'y paraissait jamais — mesuré le
+     23 septembre 2026 : texte à 100 px au téléphone. On lui donne une vraie journée (en retard,
+     aujourd'hui dont une en cours, demain, la semaine, plus tard, terminées). */
+  const ROLE=process.env.ROLE||'';
+  if(ROLE){ const n=await S.ev(`const t=db.techniciens[0]; if(!t) return 0; const J=d=>shiftDay(todayISO(),d);
+      const plan=[[-1,'planifiee'],[0,'encours'],[0,'planifiee'],[0,'planifiee'],[1,'planifiee'],[3,'planifiee'],[12,'planifiee'],[-2,'terminee'],[-3,'terminee']];
+      db.interventions.slice(0,plan.length).forEach((i,k)=>{ i.techId=t.id; i.techIds=[t.id]; i.date=J(plan[k][0]); i.heure=String(8+k).padStart(2,'0')+':30'; i.statut=plan[k][1]; if(plan[k][1]==='encours') i.debutReel=Date.now()-3600000; });
+      const u={id:'u-'+${JSON.stringify(ROLE)},prenom:'Jean-Christophe',nom:'Delacroix-Montgolfier',role:${JSON.stringify(ROLE)},techId:t.id,username:'jc',pass:'x',actif:true,pref:{}};
+      db.users.push(u); save(); try{ localStorage.setItem('elan_onboarded_'+u.id,'1'); localStorage.setItem('elanB_onboarded_'+u.id,'1'); localStorage.setItem('elanB_rappels_'+u.id,todayISO()); localStorage.setItem('elanB_fdr_'+todayISO()+'_'+u.id,'1'); }catch(e){}   /* les deux accueils du matin (Leia, rappel du bas) couvriraient l'écran : sonde-ma-journee.js les mesure */
+      currentUser=u; window._intViewInit=0; enterApp(u); return db.interventions.filter(i=>(i.techIds||[]).includes(t.id)).length;`);
+    console.log('  connecté en '+ROLE+' — '+n+' interventions à lui'); if(!(n>=6)){ console.log('  ✗ population trop maigre'); process.exit(4); }
+    await dormir(1500); }
   await S.ev(`try{ setPlatForce('${P.plat}'); }catch(e){} try{ setThemePref('${P.theme}'); }catch(e){} try{ setAccent('green'); }catch(e){} return 1;`);
 
   /* ── LES GARDE-FOUS : plus rien ne se confirme, rien ne quitte la page ── */
@@ -339,11 +352,11 @@ const ECARTS=[
     return 99;`;
   const attendreVue=async()=>{ try{ await S.ev(ATTENDRE_VUE); }catch(e){} };
 
-  let CATS=await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]);`);
+  let CATS=await S.ev(`return NAV.flatMap(g=>g.items).filter(x=>x.k&&views[x.k]&&(!${JSON.stringify(!!process.env.ROLE)}||canSee(x))).map(x=>x.k);`);
   /* essai court : SEULES=interventions,clients — pour prouver la sonde avant la vraie passe */
   if(process.env.SEULES){ const s=process.env.SEULES.split(','); CATS=CATS.filter(k=>s.includes(k)); }
   console.log('  catégories : '+CATS.length);
-  if(CATS.length<20 && !process.env.SEULES){ console.log('  ✗ population trop maigre'); S.fermer(); process.exit(4); }
+  if(CATS.length<(process.env.ROLE?6:20) && !process.env.SEULES){ console.log('  ✗ population trop maigre'); S.fermer(); process.exit(4); }
 
   /* Les plafonds tiennent une passe sur douze appareils dans un temps raisonnable. Pour la passe
      « bouton par bouton » (Justin, 23 septembre 2026), on les lève par l'environnement :
@@ -473,6 +486,6 @@ const ECARTS=[
     grouper(R.zoom,x=>x.n+' « '+x.t+' »').slice(0,25).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   '+v[0].fs+' px   ex. '+v[0].ou)); }
   console.log('\n══ LES ÉCRANS PROFONDS AUDITÉS ══');
   [...vus].forEach(v=>console.log('   · '+v));
-  fs.writeFileSync(__dirname+'/audit-profond-'+PROFIL+(TOUT?'-tout':'')+(process.env.LONGUES?'-longues':'')+'.json',JSON.stringify({version:S.version,profil:PROFIL,tout:TOUT,sautes,plafonnees,clics,audits,elements,par,ecrans:[...vus],fermees,...R},null,0));
+  fs.writeFileSync(__dirname+'/audit-profond-'+PROFIL+(TOUT?'-tout':'')+(process.env.LONGUES?'-longues':'')+(process.env.ROLE?'-'+process.env.ROLE:'')+'.json',JSON.stringify({version:S.version,profil:PROFIL,tout:TOUT,sautes,plafonnees,clics,audits,elements,par,ecrans:[...vus],fermees,...R},null,0));
   S.fermer(); process.exit(0);
 })().catch(e=>{console.error('AUDIT MORT :',e&&e.stack||e);process.exit(2);});
