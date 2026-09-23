@@ -128,8 +128,11 @@ vrai('⛔ tourner la tablette RÉÉVALUE chaque groupe (segInit), pas seulement 
 console.log('\n── 776 · 6. deux boutons flottants ne se couvrent plus, même sans barre ──');
 const fab = regle('html[data-refonte] body:has(#assistant > .fab) .plm-fab{bottom:calc(24px + 58px + 10px)!important}');
 vrai('⛔ « Voir sur la carte » monte au-dessus de la bulle d’aide À TOUTE LARGEUR (hors bloc téléphone)', !!fab && fab.media === '', fab && fab.media);
-vrai('… et la règle du téléphone, plus précise, garde la main sous 780 px',
-  /html\[data-refonte\] body\.rf-onglets:has\(#assistant > \.fab\) \.plm-fab\{\s*bottom:calc\(var\(--tabh\) \+ 10px \+ 58px \+ 10px\)!important\}/.test(SRC));
+/* v732 : sous 780 px, le bouton ne flotte plus du tout — il couvrait le bandeau des jours, le zoom
+   et les Réglages (vidéo de Justin du 23). Le nouveau placement est gardé par test-781. */
+const fabTel = regle('html[data-refonte] body .plm-fab{display:none!important}');
+vrai('… et sous 780 px il ne flotte plus du tout (il vit dans les actions de l’écran, test-781)',
+  !!fabTel && /max-width:780px/.test(fabTel.media), fabTel && fabTel.media);
 
 console.log('\n── 776 · 7. une rangée d’indicateurs ne force jamais ses colonnes ──');
 /* Mesuré le 23 septembre 2026 (scratchpad/kpi-longs.js) : Pointage, Enveloppes et la fiche d'une
@@ -156,8 +159,11 @@ vrai('⛔ … et la plus longue valeur mesurée (159 px) tient dans chaque carte
 console.log('\n── 776 · 8. « Côte à côte » en une colonne : une colonne qui peut rétrécir ──');
 /* Mesuré le 23 septembre 2026 : en vue Multi, la grille des techniciens imposait 396 px à un
    iPhone de 390 et 696 px à un iPad portrait — `1fr` ne descend pas sous le contenu. */
-const split = regle('.plm-split{ grid-template-columns:minmax(0,1fr); }');
-vrai('⛔ sous 1 100 px, la colonne unique est minmax(0,1fr)', !!split && /max-width:1100px/.test(split.media), split && split.media);
+/* v732 : la colonne unique est devenue une colonne FLEX (la carte y passe en tête, test-781) ; la
+   garde est la même idée, écrite sur les enfants : `min-width:0`, sinon `1fr`/`auto` ne descend pas
+   sous la largeur du contenu. */
+const split = regle('.plm-split > *{ min-width:0; width:100%; }');
+vrai('⛔ sous 1 100 px, chaque enfant de la colonne unique peut rétrécir (min-width:0)', !!split && /max-width:1100px/.test(split.media), split && split.media);
 vrai('… et plus aucune règle ne la remet à « 1fr » nu', !/\.plm-split\{\s*grid-template-columns:1fr;/.test(SRC));
 
 console.log('\n── 776 · 9. le libellé de la période passe à la ligne au téléphone ──');

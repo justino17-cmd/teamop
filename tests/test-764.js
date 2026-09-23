@@ -115,16 +115,20 @@ vrai('… un défilement horizontal sous le doigt garde la priorité', /swipeDef
 
 console.log('\n══ 4. ⛔ LES DEUX BOUTONS FLOTTANTS NE SE MARCHENT PLUS DESSUS ══\n');
 { const t=NU.replace(/\s*\n\s*/g,'');
-  const m=t.match(/html\[data-refonte\] body\.rf-onglets:has\(#assistant > \.fab\) \.plm-fab\{([^}]*)\}/);
-  vrai('⛔ « Voir sur la carte » monte au-dessus de la bulle', !!m);
+  /* v732 : au téléphone, « Voir sur la carte » a QUITTÉ le calque flottant — empilé sur la bulle,
+     il couvrait le bandeau des jours, le zoom et les Réglages (vidéo de Justin du 23 septembre).
+     Il ne peut donc plus se poser sur elle ; test-781 garde son nouveau placement. Au-dessus de
+     780 px, il flotte toujours, monté au-dessus de la bulle. */
+  vrai('⛔ au téléphone, « Voir sur la carte » ne flotte plus (il ne peut plus couvrir la bulle)',
+       /html\[data-refonte\] body \.plm-fab\{display:none!important\}/.test(t));
+  const m=t.match(/html\[data-refonte\] body:has\(#assistant > \.fab\) \.plm-fab\{([^}]*)\}/);
+  vrai('⛔ ailleurs, il monte au-dessus de la bulle', !!m);
   if(m) vrai('… d’au moins la hauteur de la bulle (58 px) plus un écart',
              /\+\s*58px\s*\+/.test(m[1]) || /\+\s*7[0-9]px/.test(m[1]));
   /* ⚠️ La règle se conditionne à la PRÉSENCE de la bulle : sans elle, le bouton redescend et
      ne laisse pas un trou de 80 px au-dessus de la barre. Même discipline que le
      soulignement d’onglet (test-763). */
-  vrai('⛔ … et seulement quand la bulle est là (:has)', /:has\(#assistant > \.fab\)/.test(t));
-  vrai('population : la règle de repli existe toujours',
-       /body\.rf-onglets \.plm-fab\{bottom:calc\(var\(--tabh\) \+ 12px\)!important\}/.test(t)); }
+  vrai('⛔ … et seulement quand la bulle est là (:has)', /:has\(#assistant > \.fab\)/.test(t)); }
 
 console.log('\n══ 4 bis. ⛔ LES MENUS DE LA BARRE D’OUTILS NE SE MESURENT PAS SUR LEUR BOUTON ══\n');
 /* Justin, capture à l'appui : une colonne blanche au milieu de l'écran avec

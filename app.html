@@ -898,10 +898,20 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 /* ⛔ UNE SEULE COLONNE, MAIS QUI PEUT RÉTRÉCIR. `1fr` ne descend pas sous la largeur minimale de
    son contenu : en vue Multi, la grille des techniciens imposait 396 px à un iPhone de 390 et
    696 px à un iPad portrait (colonne de 500) — mesuré le 23 septembre 2026, disposition « Côte à
-   côte ». La page entière défilait de côté. `minmax(0,1fr)`, comme la colonne du planning en
-   grand écran juste au-dessus : la grille défile alors dans son propre cadre, comme en
-   « Planning seul ». */
-@media(max-width:1100px){ .plm-split{ grid-template-columns:minmax(0,1fr); } }
+   côte ». La page entière défilait de côté. D'où `min-width:0` sur chaque enfant, comme en
+   « Carte en grand » plus bas : la grille défile alors dans son propre cadre, comme en
+   « Planning seul ».
+   ⛔⛔ ET LA CARTE PASSE EN TÊTE. Mesuré le même jour au téléphone, vues semaine, jour et mois :
+   toucher « Voir sur la carte » posait la carte SOUS tout le planning — à 2 187 px du haut, sur un
+   écran de 874. À l'écran, rien ne se passait, sauf le bouton qui disparaissait. En une colonne,
+   « côte à côte » n'existe pas : la carte monte au-dessus du planning, là où on la voit.
+   Une colonne flex et `order`, pas la grille : c'est la forme que « Carte en grand » a déjà
+   éprouvée dans Safari (« la grille et order se comportaient mal », plus bas). */
+@media(max-width:1100px){
+  .plm-split{ display:flex; flex-direction:column; gap:12px; align-items:stretch; }
+  .plm-split > *{ min-width:0; width:100%; }
+  .plm-split > .plm-carte{ order:-1; }
+}
 .plm-wrap{ padding:0; overflow:auto; }
 .plm-grid{ display:grid; min-width:100%; }
 .plm-b0{ background:var(--card); position:sticky; left:0; z-index:3; }
@@ -943,6 +953,21 @@ body.plan-plein .plm-carte{ top:8px; max-height:calc(100vh - 20px); max-height:c
 .plm-mbar > b{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto; }
 .plm-mbar .btn{ flex:none; white-space:nowrap; }
 @media(max-width:900px){ .plm-mbar > b{ flex-basis:100%; } }
+/* Au téléphone, l'en-tête de la carte tenait sur TROIS lignes — 141 px, mesuré le 23 septembre
+   2026 : l'enveloppe de « Satellite » est une `.filters`, et la règle des rangées de filtres qui
+   DÉFILENT lui donnait 16 px de marge de chaque côté ET son fondu à droite. Un seul bouton,
+   rogné comme s'il avait une suite. L'écarteur, lui, poussait vers la droite des boutons qui
+   passaient de toute façon à la ligne : une rangée en escalier. */
+@media(max-width:780px){
+  html[data-refonte] .plm-mbar .filters{ padding:0; -webkit-mask-image:none; mask-image:none; overflow:visible; }
+  .plm-mbar .plm-mb-sp{ display:none; }
+  /* …et ce qui reste tenait à 4 px près sur un iPhone de 402 : « Replier » passait à la ligne
+     selon la police chargée. Un cran de rembourrage en moins donne une vraie marge de 390 à
+     430 px ; en dessous, la rangée passe à la ligne proprement, alignée à gauche. */
+  html[data-refonte] .plm-mbar{ gap:6px; }
+  html[data-refonte] .plm-mbar .btn.sm{ padding:0 10px!important; }
+  html[data-refonte] .plm-mbar .chip{ padding-left:12px!important; padding-right:12px!important; }
+}
 .plm-tour{ border-top:1px solid var(--brd); padding:10px 12px 12px; max-height:270px; overflow:auto; flex:0 1 auto; min-height:120px; }
 .plm-th2{ font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--t3); margin-bottom:7px; }
 /* la carte en grand : elle prend tout l'écran, le planning est juste en dessous.
@@ -988,6 +1013,10 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .pf-disp .di.a s{ flex:1; }
 .pf-disp .di.b s:first-child{ flex:2; } .pf-disp .di.b s:last-child{ flex:1; opacity:.8; }
 .pf-disp .di.c{ flex-direction:column; } .pf-disp .di.c s:first-child{ flex:2; opacity:.8; } .pf-disp .di.c s:last-child{ flex:1; }
+/* En une colonne, « côte à côte » met la carte AU-DESSUS du planning (voir `.plm-split`) : l'icône
+   le montre — une petite carte en haut, le planning dessous —, comme « Carte en grand » montre
+   une grande carte en haut. Une icône qui dessine deux colonnes là où il n'y en a qu'une ment. */
+@media(max-width:1100px){ .pf-disp .di.b{ flex-direction:column; } .pf-disp .di.b s:last-child{ order:-1; } }
 @media(max-width:900px){ .pf-disp button b{ display:none; } .pf-disp button{ padding:6px 8px; } }
 #plm-map{ height:520px; background:var(--bg2); flex:1 1 auto; min-height:200px; }
 @media(max-width:1100px){ #plm-map{ height:340px; } .plm-carte{ position:static; } }
@@ -4589,21 +4618,22 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      76 et non 66 comme le message : il reste 15 s, et à 66 son bord touchait la bulle d'aide
      (58 px posés à 10 px de la barre : 68) — mesuré, 2 px de chevauchement. */
   html[data-refonte] body.rf-onglets #fdr-banner{bottom:calc(var(--tabh) + 76px)!important}
-  /* ⛔⛔ DEUX BOUTONS FLOTTANTS DANS LE MÊME COIN, ET C'EST LE PLUS HAUT QUI GAGNE.
-     Justin, capture à l'appui, 22 septembre 2026 : sur le Planning, une forme verte en
-     cachait une autre. Mesuré sur un iPhone de 390 px, panneau d'assistance fermé :
-     · la bulle d'assistance — `right:24px`, 58×58, `bottom:calc(var(--tabh) + 10px)` ;
-     · « Voir sur la carte » — `right:22px`, 153×44, `bottom:calc(var(--tabh) + 12px)`.
-     Résultat : la bulle était **recouverte à 83 %** et **INATTEIGNABLE** (`elementFromPoint`
-     en son centre rendait `button.plm-fab`, z-index 900 contre 46). Sur Accueil et
-     Interventions, la même bulle est atteignable et couverte à 3 % — c'est la comparaison
-     qui désigne le Planning, pas une impression.
-     Les deux montent donc l'un SUR l'autre : 10 px au-dessus de la bulle (58 px de haut).
-     ⚠️ La règle se conditionne à la PRÉSENCE de la bulle (`:has`) — sans elle, le bouton
-     redescend à sa place et ne laisse pas un trou de 80 px au-dessus de la barre. */
-  html[data-refonte] body.rf-onglets .plm-fab{bottom:calc(var(--tabh) + 12px)!important}
-  html[data-refonte] body.rf-onglets:has(#assistant > .fab) .plm-fab{
-    bottom:calc(var(--tabh) + 10px + 58px + 10px)!important}
+  /* ⛔⛔ DEUX BOUTONS FLOTTANTS DANS LE MÊME COIN — PUIS LA PILE A COUVERT LE PLANNING.
+     Justin, capture à l'appui, 22 septembre 2026 : sur le Planning, « Voir sur la carte »
+     cachait la bulle d'assistance — recouverte à 83 % et INATTEIGNABLE (`elementFromPoint` en
+     son centre rendait `button.plm-fab`, z-index 900 contre 46). On les avait alors EMPILÉS,
+     le bouton 10 px au-dessus de la bulle.
+     Sa vidéo du 23 a montré le prix de la pile : 112 px de boutons flottants au milieu de
+     l'écran, posés sur le bandeau des jours à l'ouverture — et, selon la hauteur de l'écran, sur
+     le zoom et les Réglages (`scratchpad/sonde-flottants.js`, iPhone de 815 px : quatre
+     commandes couvertes en leur centre). Le contenu ne dégageait d'ailleurs que la bulle.
+     Au téléphone, « Voir sur la carte » QUITTE donc le calque flottant : il rejoint « Journal »
+     dans les actions de l'écran (`.plan-carte-tete`), sur la ligne des boutons secondaires — il
+     n'y coûte aucune hauteur —, et la barre d'outils garde la même commande (les trois
+     dispositions). Au-dessus de 780 px, rien ne change : le bouton flotte, monté au-dessus de la
+     bulle (règle hors de ce bloc, plus bas). */
+  html[data-refonte] body .plm-fab{display:none!important}
+  html[data-refonte] .ph-actions .plan-carte-tete{display:inline-flex!important}
   /* La barre « Retirer / Ajouter » de la sélection multiple est collante en bas de la liste :
      à bottom:0 elle passait SOUS la barre d'onglets et ses deux boutons étaient coupés.
      Elle s'arrête donc juste au-dessus. */
@@ -4616,9 +4646,12 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
 /* ⛔ ET SANS BARRE D'ONGLETS AUSSI (tablette, ordinateur) : la bulle d'assistance (right 24,
    bottom 24, 58 px) et « Voir sur la carte » (right 22, bottom 22) se posaient l'une sur
    l'autre dans le coin — mesuré sur l'iPad le 23 septembre 2026, la bulle cachée derrière le
-   bouton. Même geste qu'au téléphone : le bouton monte au-dessus de la bulle, SEULEMENT si
-   elle est là. La règle du téléphone, plus précise, garde la main sous 780 px. */
+   bouton. Le bouton monte au-dessus de la bulle, SEULEMENT si elle est là. Sous 780 px, il
+   ne flotte plus du tout : il vit dans les actions de l'écran (voir le bloc du téléphone). */
 html[data-refonte] body:has(#assistant > .fab) .plm-fab{bottom:calc(24px + 58px + 10px)!important}
+/* …et c'est pourquoi sa copie dans les actions de l'écran ne se montre qu'au téléphone : ailleurs,
+   le bouton flottant porte la commande, et deux fois la même commande à l'écran, c'est une de trop. */
+.ph-actions .plan-carte-tete{display:none!important}
 /* Le rappel du matin, pareil : élargi pour que son message se lise, il atteignait le coin de la
    bulle sur iPad (mesuré par sonde-ma-journee.js). Au-dessus d'elle, sous 780 px c'est la règle
    de la barre d'onglets qui le place. */
@@ -16026,14 +16059,38 @@ function planDispSet(v){
   if(planMode==='multi'){ planCarteOn=(v!=='plan'); try{ localStorage.setItem('elan_plan_cartem',planCarteOn?'1':'0'); }catch(e){} }
   else { planCarteAutre=(v!=='plan'); try{ localStorage.setItem('elan_plan_carte',planCarteAutre?'1':'0'); }catch(e){} }
   views.planning();
+  if(v!=='plan') planCarteMontrer();
+}
+/* ⛔ DEMANDER LA CARTE DOIT LA MONTRER. En une colonne (téléphone, tablette en portrait), elle
+   s'ouvre au-dessus du planning, sous la barre d'outils — mais souvent à moitié dans l'écran, et
+   on peut l'avoir demandée d'une page défilée (le bouton flottant d'une tablette, « Agrandir »).
+   Si elle n'est pas ENTIÈREMENT sous les yeux, on l'y amène. Au bureau, elle est collée à droite
+   et toujours visible : on ne touche à rien. */
+function planCarteMontrer(){
+  if(!(window.matchMedia && matchMedia('(max-width:1100px)').matches)) return;
+  requestAnimationFrame(()=>{ try{
+    const c=document.querySelector('.plm-carte'), m=document.getElementById('plm-map'); if(!c||!m) return;
+    const tb=document.querySelector('.topbar'), tab=document.getElementById('tabbar');
+    const haut=tb?Math.max(0,tb.getBoundingClientRect().bottom):0;
+    const qt=tab?tab.getBoundingClientRect():null;
+    const bas=(qt && qt.height>0 && qt.top<innerHeight)?qt.top:innerHeight;
+    const q=c.getBoundingClientRect(), qm=m.getBoundingClientRect();
+    if(q.top>=haut && qm.bottom<=bas) return;
+    const doux=!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    window.scrollTo({top:Math.max(0,window.scrollY+q.top-haut-8),behavior:doux?'smooth':'auto'});
+  }catch(e){} });
 }
 function planDispBar(){
   const cur=planDisp();
+  /* En une colonne, « côte à côte » n'existe pas : la carte passe au-dessus. Le nom le dit — c'est
+     lui que lit un lecteur d'écran (`nommer()` part de data-tip). */
+  const uneColonne=!!(window.matchMedia && matchMedia('(max-width:1100px)').matches);
   const ic={plan:'<span class="di a"><s></s></span>',
             cote:'<span class="di b"><s></s><s></s></span>',
             carte:'<span class="di c"><s></s><s></s></span>'};
-  return `<span class="pf-disp">${PLAN_DISPOS.map(([k,l,t])=>
-    `<button class="${cur===k?'on':''}" onclick="planDispSet('${k}')" data-tip="${esc(l)} — ${esc(t)}">${ic[k]}</button>`).join('')}</span>`;
+  return `<span class="pf-disp">${PLAN_DISPOS.map(([k,l,t])=>{
+    if(uneColonne && k==='cote'){ l='Carte au-dessus'; t='La carte au-dessus du planning'; }
+    return `<button class="${cur===k?'on':''}" onclick="planDispSet('${k}')" data-tip="${esc(l)} — ${esc(t)}">${ic[k]}</button>`; }).join('')}</span>`;
 }
 function planCarteActive(){ return planDisp()!=='plan'; }
 function planCarteBascule(){ planDispSet(planCarteActive()?'plan':'cote'); }
@@ -17334,7 +17391,7 @@ views.planning=function(){
   const joursC=planJoursCarte();
   planNumCalc(SRC.filter(i=>joursC.indexOf(i.date)>=0&&planCarteInt(i)),joursC);
   setHeader('Planning', planMode==='jour'?'Vue jour par technicien':planMode==='mois'?'Vue mois':planMode==='multi'?'Plusieurs jours + carte':'Vue semaine',
-    `<button class="btn ghost" onclick="openPlanJournal()" data-tip="Qui a placé ou déplacé quoi">Journal</button> ${can('creerIntervention')?`<button class="btn" onclick="formIntervention('','${planSel}')">＋ Intervention</button>`:''}`);
+    `<button class="btn ghost" onclick="openPlanJournal()" data-tip="Qui a placé ou déplacé quoi">Journal</button> ${planCarteActive()?'':`<button class="btn ghost plan-carte-tete" onclick="planDispSet('cote')">Voir sur la carte</button>`} ${can('creerIntervention')?`<button class="btn" onclick="formIntervention('','${planSel}')">＋ Intervention</button>`:''}`);
   // Sélecteur de vue + filtre technicien (style Organilog)
 
   let body='';
