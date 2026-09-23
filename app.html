@@ -14367,7 +14367,7 @@ function tdbPlanning(){
     const mnT=SRC.filter(i=>(planTechsOf(i)[0]||'')===gr.id).reduce((s,i)=>s+(parseInt(i.duree)||60),0);
     const nInt=SRC.filter(i=>(planTechsOf(i)[0]||'')===gr.id).length;
     const sous=gr.id===''?(nInt?nInt+' à répartir':'—'):(absSem.length?absInfo(absSem[0].type).l.toLowerCase():(nInt?fmtHmin(mnT):'libre'));
-    g+=`<div class="tdb-tec" style="--tc:${c}" ${gr.id?`onclick="planVersTech('${gr.id}')"`:''}>
+    g+=`<div class="tdb-tec" style="--tc:${c}" title="${esc(gr.nom)}" ${gr.id?`onclick="planVersTech('${gr.id}')"`:''}>
         <span class="av">${gr.id?initials(gr.nom):'NA'}</span>
         <span style="min-width:0"><b>${esc(gr.nom)}</b><small>${esc(sous)}</small></span></div>`;
     jours.forEach(j=>{
@@ -14377,7 +14377,7 @@ function tdbPlanning(){
       let cel='';
       if(ab){ cel=`<div class="tdb-abs" style="--ac:${absInfo(ab.type).c}"><b>${esc(absInfo(ab.type).l)}</b></div>`; }
       else {
-        acts.slice(0,2).forEach(a=>{ cel+=`<div class="tdb-act"><b>${esc(actTitre(a))}</b></div>`; });
+        acts.slice(0,2).forEach(a=>{ cel+=`<div class="tdb-act" title="${esc(actTitre(a))}"><b>${esc(actTitre(a))}</b></div>`; });
         mine.slice(0,4).forEach(i=>{ cel+=`<div class="tdb-pc" style="--cc:${planCardColor(i)}"
             title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}"
             onclick="event.stopPropagation();detailIntervention('${i.id}')">

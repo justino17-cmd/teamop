@@ -220,5 +220,18 @@ vrai('⛔ … et rien d’autre : le reste ne peut pas accueillir un bouton de 3
 vrai('la preuve au navigateur existe (sonde des lignes, cinq appareils, quatre formes de ligne)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-int-liste.js')));
 }
 
+console.log('\n── 776 · 12. un nom coupé à l’écran garde son nom entier en infobulle ──');
+/* Mesuré le 23 septembre 2026 (audit des écrans profonds, valeurs longues, Android de 360) : le
+   nom du technicien dans la grille « Équipe » du tableau de bord se lisait « Jean-Christophe
+   Delacroix-Mo » — 106 px visibles sur 276 — sans rien pour lire le reste. Même coupe sur les
+   pastilles d'activité (nowrap + ellipsis). */
+{ const iT = SRC.indexOf('<div class="tdb-tec"'), lT = iT > 0 ? SRC.slice(iT, SRC.indexOf('>', iT) + 1) : '';
+  vrai('population : la ligne d’équipe du tableau de bord est trouvée', lT.length > 20, lT);
+  vrai('⛔ la ligne porte le nom entier du technicien en infobulle', /title="\$\{esc\(gr\.nom\)\}"/.test(lT), lT);
+  const iA2 = SRC.indexOf('<div class="tdb-act"'), lA = iA2 > 0 ? SRC.slice(iA2, SRC.indexOf('>', iA2) + 1) : '';
+  vrai('… et la pastille d’activité son titre entier', /title="\$\{esc\(actTitre\(a\)\)\}"/.test(lA), lA);
+  vrai('(les deux sont bien coupés par la feuille — sinon l’infobulle ne servirait à rien)',
+    /\.tdb-tec b\{[^}]*text-overflow:ellipsis/.test(SRC) && /\.tdb-act b\{[^}]*text-overflow:ellipsis/.test(SRC)); }
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
