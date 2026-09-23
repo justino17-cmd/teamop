@@ -36,7 +36,8 @@ function bloc(debut) {
 console.log('\n── 782 · 0. la population ──');
 const NOMS = ['minutes(deb,fin)', 'pt2(n)', 'ptHM(ts)', 'ptHMS(ts)', 'ptJourDe(d)', 'ptJour(ts)', 'ptOuvert(p)', 'ptOubli(p,now)',
   'ptSecs(p,now)', 'ptDuree(sec)', 'ptChrono(sec)', 'ptHoraires(p)', 'ptEstAMoi(p)', 'ptMesPointages()', 'ptOuverteMoi()', 'ptNom(p)',
-  'ptPauseEntre(a,b)', 'ptTotal(list,now)', 'ptBoutonJour()', 'pointerDebut()', 'pointerFin()', 'ptFermer(id,ts)'];
+  'ptCle(p)', 'ptDit(p)', 'ptPauseEntre(a,b)', 'ptTotal(list,now)', 'ptBoutonJour()', 'pointerDebut()', 'pointerFin()', 'ptFermer(id,ts)',
+  'ptMaJournee(now)'];
 const CODE = NOMS.map(n => bloc('function ' + n + '{'));
 const manquent = NOMS.filter((n, i) => !CODE[i]);
 v('les ' + NOMS.length + ' fonctions du pointage sont trouvées', manquent, []);
@@ -60,6 +61,8 @@ function monde({ tid = null, moi = 'uA', users = [{ id: 'uA', prenom: 'Justin', 
     var logEvent = (a, b) => { journal.push(b); };
     var views = { pointage: () => { rendus++; } };
     var ptCloreOubli = id => { clore.push(id); };
+    var esc = x => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    var fmtShort = iso => iso;
     const PT_MAX_H = ${maxH};
     ${CODE.join('\n')}
     var todayISO = () => ptJour(Date.now());
@@ -151,6 +154,63 @@ console.log('\n── 782 · 4. ⛔ la journée des autres ──');
   v('… et le bouton n’est pas dessiné', W.run('ptBoutonJour()'), '');
 }
 
+/* ⛔ Trouvé en remettant le défaut (mutation) : fermer SA journée totalisait tous les comptes sans
+   fiche du même jour — l'administrateur « terminait » avec les heures de la comptable. Aucun
+   contrôle ne le voyait : il n'y avait jamais qu'UN compte sans fiche dans le bac à sable. */
+console.log('\n── 782 · 4 bis. ⛔ DEUX comptes sans fiche, le même jour : chacun SES heures ──');
+{ const W = monde({ users: [{ id: 'uA', prenom: 'Justin', nom: 'Biret' }, { id: 'uB', prenom: 'Léa', nom: 'Roux' }] });
+  W.a(8, 0); W.run('pointerDebut()');
+  W.run('currentUser = {id:"uB"}'); W.a(9, 0); W.run('pointerDebut()'); W.a(11, 0); W.run('pointerFin()');
+  vrai('population : la comptable a bien sa propre ligne, fermée', W.db.pointages.length === 2 && W.db.pointages[1].userId === 'uB' && !!W.db.pointages[1].finTs,
+    W.db.pointages.map(p => [p.userId, p.debut, p.fin || null]));
+  vrai('… et SA fin de journée dit 2h00, sans « pauses »', /Journée terminée — 2h00 travaillées$/.test(W.toasts.at(-1)), W.toasts.at(-1));
+  W.run('currentUser = {id:"uA"}'); W.a(12, 0); W.run('pointerFin()');
+  vrai('⛔⛔ l’administrateur termine avec SES 4h00 — pas 6h00, pas « pauses non comptées »',
+    /Journée terminée — 4h00 travaillées$/.test(W.toasts.at(-1)), W.toasts.at(-1));
+  v('les deux ne font pas UNE personne (ptCle)', W.run('[ptCle(db.pointages[0]), ptCle(db.pointages[1])]'), ['u:uA', 'u:uB']);
+  v('… et une fiche reste une fiche, même quand le compte est gardé en trace', W.run('ptCle({techId:"t1", userId:"uT"})'), 't:t1');
+}
+v('⛔ « qui a pointé » n’a qu’UNE définition : aucune autre clé u:/fiche écrite à la main',
+  (SRC.match(/'u:'\+\(p\.userId/g) || []).length, 1);
+vrai('… « Par personne » et le PDF regroupent par ptCle', (SRC.match(/const k=ptCle\(p\); const e=parTech\.get\(k\)/g) || []).length === 2);
+
+/* ⛔ Trouvé de la même façon : retirer la ligne « Pause … non comptée » de « Ma journée » ne
+   faisait tomber AUCUN contrôle — le banc lisait que le texte « non comptée » existait quelque
+   part dans la vue, il n'exécutait pas le rendu. `ptMaJournee` est sortie de la vue pour ça. */
+console.log('\n── 782 · 4 ter. ⛔ l’historique sous « Ma journée », EXÉCUTÉ : les périodes et les pauses ──');
+{ const W = monde();
+  const rendu = () => W.run('ptMaJournee(Date.now())');
+  const nb = (h, cl) => (h.match(new RegExp('class="' + cl + '"', 'g')) || []).length;
+  const chrono = h => (h.match(/id="pt-jour-sec"[^>]*>([^<]*)</) || [])[1];
+  W.a(7, 30); let h = rendu();
+  vrai('population : la carte est dessinée pour un compte SANS fiche', /⏱️ Ma journée/.test(h), h.slice(0, 80));
+  vrai('avant de commencer : « pas encore commencée », aucune période', /pas encore commencée/.test(h) && nb(h, 'pt-seg') === 0, h.length);
+  W.a(8, 0); W.run('pointerDebut()'); W.a(10, 0); h = rendu();
+  vrai('en cours : « depuis 08:00:00 », une période dont le chrono avance', /en cours — depuis 08:00:00/.test(h) && nb(h, 'pt-seg') === 1 && /data-pt-chrono="/.test(h), h.length);
+  v('… le compteur du jour dit 02:00:00', chrono(h), '02:00:00');
+  W.a(12, 0); W.run('pointerFin()'); W.a(13, 30); W.run('pointerDebut()'); W.a(15, 0); h = rendu();
+  v('⛔ après une reprise : DEUX périodes et UNE pause entre elles', [nb(h, 'pt-seg'), nb(h, 'pt-pause')], [2, 1]);
+  const pause = (h.match(/<div class="pt-pause"[\s\S]*?<\/div>/) || [''])[0].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  v('⛔⛔ … qui dit sa durée ET qu’elle n’est pas comptée', pause, 'Pause 1h30 non comptée');
+  const ordre = [h.indexOf('Période 1,'), h.indexOf('class="pt-pause"'), h.indexOf('Période 2,')];
+  vrai('… rangée ENTRE les deux périodes', ordre[0] > 0 && ordre[0] < ordre[1] && ordre[1] < ordre[2], ordre);
+  v('⛔ le compteur du jour CUMULE sans la pause : 4 h + 1 h 30 = 05:30:00', chrono(h), '05:30:00');
+  vrai('chaque période se DIT (lecteur d’écran — la flèche est une icône muette)',
+    /aria-label="Période 1, de 08:00:00 à 12:00:00, 4h00"/.test(h) && /aria-label="Période 2, depuis 13:30:00, en cours"/.test(h), h.length);
+  W.a(17, 30); W.run('pointerFin()'); h = rendu();
+  vrai('journée finie : « travaillées aujourd’hui — les pauses ne sont pas comptées »', /travaillées aujourd’hui — les pauses ne sont pas comptées/.test(h));
+  v('… 08:00:00, la pause n’y est pas', chrono(h), '08:00:00');
+  W.run('setT(' + (W.a(17, 30) + 30000) + ')'); W.run('pointerDebut()');
+  vrai('⛔ … et le message ne parle pas d’une « pause de 0h00 » : même seuil que la ligne',
+    /^Journée reprise à 17:30$/.test(W.toasts.at(-1)), W.toasts.at(-1));
+  W.a(18, 0); W.run('pointerFin()'); h = rendu();
+  v('une reprise dans la minute ne dessine pas une « pause 0h00 » (seuil d’une minute)', [nb(h, 'pt-seg'), nb(h, 'pt-pause')], [3, 1]);
+  W.run('currentUser = {id:"uB"}');
+  vrai('⛔ un autre compte ne voit pas MES périodes dans SA carte', nb(rendu(), 'pt-seg') === 0 && /pas encore commencée/.test(rendu()));
+  W.run('currentUser = null');
+  v('sans compte connecté, pas de carte', rendu(), '');
+}
+
 console.log('\n── 782 · 5. l’écran : UN bouton du jour, en tête ; plus de saisie manuelle ──');
 const vue = bloc('views.pointage=function(){');
 vrai('population : la vue Pointage est trouvée', vue.length > 2000, vue.length);
@@ -161,8 +221,7 @@ vrai('… l’export PDF reste, en bouton secondaire', /class="btn ghost" onclic
 v('⛔ la vue n’appelle plus le formulaire VIDE (formPointage() sans ligne)', (vue.match(/formPointage\(\)/g) || []).length, 0);
 v('⛔ deux boutons pour le même geste sur le même écran, c’est un de trop : la carte n’en porte plus',
   (vue.match(/pointerDebut\(\)|pointerFin\(\)/g) || []).length, 0);
-vrai('« Ma journée » est dessinée pour TOUT compte connecté, avec ou sans fiche', /if\(currentUser\)\{\s*const ouv=ptOuverteMoi\(\)/.test(vue));
-vrai('⛔ l’historique du jour montre les PAUSES, « non comptée »', /ptPauseEntre\(mj\[i-1\],p\)/.test(vue) && /non comptée/.test(vue));
+vrai('« Ma journée » vient de ptMaJournee — la fonction que la section 4 ter EXÉCUTE', /const moi=ptMaJournee\(now\);/.test(vue));
 vrai('les lignes et le total par personne passent par ptNom (jamais « Non assigné » pour un compte)',
   /esc\(ptNom\(p\)\)/.test(vue) && !/techName\(p\.techId\)/.test(vue));
 vrai('le chrono du jour lit la même journée que la carte', /ptMesPointages\(\)\.filter\(p=>\(p\.date\|\|''\)===todayISO\(\)\)/.test(bloc('function ptTickStart(){')));

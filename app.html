@@ -33719,6 +33719,11 @@ function ptOuverteMoi(){ return ptMesPointages().find(ptOuvert) || null; }
    « Non assigné » — un pointage n'est jamais « non assigné », il a toujours quelqu'un. */
 function ptNom(p){ if(!p) return '—'; if(p.techId) return techName(p.techId);
   const u=(db.users||[]).find(x=>x.id===p.userId); return u?fullName(u):'—'; }
+/* QUI a pointé, en une clé : la fiche quand il y en a une, le compte sinon. Trois endroits
+   regroupent par personne (le total de « Fin de journée », « Par personne », le PDF) : une seule
+   définition, sinon l'un d'eux finit par réunir tous les comptes sans fiche en une seule
+   personne — et le total de l'administrateur englobe les heures de la comptable. */
+function ptCle(p){ return p.techId ? 't:'+p.techId : 'u:'+(p.userId||''); }
 /* La phrase d'une ligne d'horaires. « → » est remplacé par une icône MUETTE (icones(), EMO) : sans
    cette phrase, un lecteur d'écran lisait « 08:00:00 12:00:00 », deux heures sans dire laquelle
    ouvre et laquelle ferme. */
@@ -33809,7 +33814,7 @@ function pointerDebut(){
   logEvent('Pointage',ptNom(rec)+(avant.length?' a repris sa journée à ':' a commencé sa journée à ')+ptHMS(ts),'general');
   save();
   const derniere=avant.reduce((m,p)=>Math.max(m,p.finTs||0),0);
-  toast(avant.length ? 'Journée reprise à '+ptHM(ts)+(derniere&&ts>derniere?' — pause de '+ptDuree((ts-derniere)/1000)+' non comptée':'')
+  toast(avant.length ? 'Journée reprise à '+ptHM(ts)+(derniere&&ts-derniere>=60000?' — pause de '+ptDuree((ts-derniere)/1000)+' non comptée':'')
                      : 'Journée commencée à '+ptHM(ts));
   if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(pos=>{ rec.lat=+pos.coords.latitude.toFixed(5); rec.lng=+pos.coords.longitude.toFixed(5); save(); if(current==='pointage') views.pointage(); },()=>{},{timeout:5000}); }
   if(current==='pointage') views.pointage();
@@ -33832,7 +33837,7 @@ function ptFermer(id,ts){
   logEvent('Pointage',ptNom(p)+' a terminé sa journée à '+ptHMS(ts)+' — '+ptDuree(ptSecs(p)),'general');
   /* « Fin de journée » dit ce qui compte : le total du JOUR, toutes reprises confondues — les
      pauses entre deux reprises n'y sont pas. */
-  const memeJour=(db.pointages||[]).filter(x=>(x.date||'')===(p.date||'') && (p.techId ? x.techId===p.techId : (!x.techId && x.userId===p.userId)));
+  const memeJour=(db.pointages||[]).filter(x=>(x.date||'')===(p.date||'') && ptCle(x)===ptCle(p));
   toast(ptEstAMoi(p) ? 'Journée terminée — '+ptDuree(ptTotal(memeJour))+' travaillées'+(memeJour.length>1?' (pauses non comptées)':'')
                      : 'Pointage de '+ptNom(p)+' clôturé — '+ptDuree(ptSecs(p)));
   if(current==='pointage') views.pointage();
@@ -33874,41 +33879,42 @@ function ptTickStart(){
       j.textContent=ptChrono(ptTotal(mj,now)); }
   },1000);
 }
+/* ── Ma journée ── le bouton est EN TÊTE (ptBoutonJour) : deux boutons pour le même geste sur
+   le même écran, c'est un de trop. Ici, ce qui a été compté aujourd'hui, ligne par ligne, et
+   les PAUSES entre deux reprises — montrées, jamais comptées. Pour tout compte, avec ou sans
+   fiche du personnel (ptEstAMoi). */
+function ptMaJournee(now){
+  if(!currentUser) return '';
+  const ouv=ptOuverteMoi();
+  const mj=ptMesPointages().filter(p=>(p.date||'')===todayISO()).sort((a,b)=>String(a.debutTs||a.debut||'').localeCompare(String(b.debutTs||b.debut||'')));
+  const secJour=ptTotal(mj,now);
+  const lignes=[];
+  mj.forEach((p,i)=>{
+    const g=i?ptPauseEntre(mj[i-1],p):0;
+    if(g>=60) lignes.push(`<div class="pt-pause" style="display:flex;align-items:center;gap:10px;padding:3px 0 3px 32px;font-size:12.5px;color:var(--t3)">
+        <span>Pause</span><span style="font-variant-numeric:tabular-nums">${ptDuree(g)}</span><span style="margin-left:auto">non comptée</span></div>`);
+    lignes.push(`<div class="pt-seg" role="group" aria-label="Période ${i+1}, ${esc(ptDit(p))}" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px">
+        <span style="width:22px;height:22px;border-radius:50%;background:var(--bg3);display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--t2);flex-shrink:0">${i+1}</span>
+        <span style="font-variant-numeric:tabular-nums;color:var(--t2)">${ptHoraires(p)}</span>
+        <span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums"${ptOuvert(p)?` data-pt-chrono="${p.id}"`:''}>${ptOuvert(p)?ptChrono(ptSecs(p,now)):ptDuree(ptSecs(p))}</span>
+      </div>`);
+  });
+  return `<div class="card pt-jour" style="border:1px solid ${ouv?'color-mix(in srgb,var(--green) 55%,transparent)':'var(--brd)'};background:${ouv?'color-mix(in srgb,var(--green) 7%,var(--bg1))':'var(--bg1)'}">
+    <div class="card-head"><h3>⏱️ Ma journée</h3><span style="font-size:12.5px;color:var(--t3)">${fmtShort(todayISO())}</span></div>
+    <div style="margin:4px 0 2px">
+      <div id="pt-jour-sec" style="font-size:34px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:${ouv?'var(--green)':'var(--t1)'}">${ptChrono(secJour)}</div>
+      <div style="font-size:13px;color:var(--t3)">${ouv?'en cours — depuis '+(ouv.debutTs?ptHMS(ouv.debutTs):esc(ouv.debut))
+        :(mj.length?'travaillées aujourd’hui'+(mj.length>1?' — les pauses ne sont pas comptées':''):'pas encore commencée — touche « Début de journée »')}</div>
+    </div>
+    ${lignes.length?`<div style="border-top:1px solid var(--brd);margin-top:10px;padding-top:6px">${lignes.join('')}</div>`:''}
+  </div>`;
+}
 views.pointage=function(){
   const now=Date.now(), autres=ptPeutVoirAutres();
   setHeader('Pointage','Temps de travail — le compteur se fait tout seul',
     `${ptBoutonJour()} <button class="btn ghost" onclick="ptPdf()">📄 Export PDF</button>`);
 
-  /* ── Ma journée ── le bouton est EN TÊTE (ptBoutonJour) : deux boutons pour le même geste sur
-     le même écran, c'est un de trop. Ici, ce qui a été compté aujourd'hui, ligne par ligne, et
-     les PAUSES entre deux reprises — montrées, jamais comptées. Pour tout compte, avec ou sans
-     fiche du personnel (ptEstAMoi). */
-  let moi='';
-  if(currentUser){
-    const ouv=ptOuverteMoi();
-    const mj=ptMesPointages().filter(p=>(p.date||'')===todayISO()).sort((a,b)=>String(a.debutTs||a.debut||'').localeCompare(String(b.debutTs||b.debut||'')));
-    const secJour=ptTotal(mj,now);
-    const lignes=[];
-    mj.forEach((p,i)=>{
-      const g=i?ptPauseEntre(mj[i-1],p):0;
-      if(g>=60) lignes.push(`<div class="pt-pause" style="display:flex;align-items:center;gap:10px;padding:3px 0 3px 32px;font-size:12.5px;color:var(--t3)">
-          <span>Pause</span><span style="font-variant-numeric:tabular-nums">${ptDuree(g)}</span><span style="margin-left:auto">non comptée</span></div>`);
-      lignes.push(`<div class="pt-seg" role="group" aria-label="Période ${i+1}, ${esc(ptDit(p))}" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px">
-          <span style="width:22px;height:22px;border-radius:50%;background:var(--bg3);display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--t2);flex-shrink:0">${i+1}</span>
-          <span style="font-variant-numeric:tabular-nums;color:var(--t2)">${ptHoraires(p)}</span>
-          <span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums"${ptOuvert(p)?` data-pt-chrono="${p.id}"`:''}>${ptOuvert(p)?ptChrono(ptSecs(p,now)):ptDuree(ptSecs(p))}</span>
-        </div>`);
-    });
-    moi=`<div class="card pt-jour" style="border:1px solid ${ouv?'color-mix(in srgb,var(--green) 55%,transparent)':'var(--brd)'};background:${ouv?'color-mix(in srgb,var(--green) 7%,var(--bg1))':'var(--bg1)'}">
-      <div class="card-head"><h3>⏱️ Ma journée</h3><span style="font-size:12.5px;color:var(--t3)">${fmtShort(todayISO())}</span></div>
-      <div style="margin:4px 0 2px">
-        <div id="pt-jour-sec" style="font-size:34px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:${ouv?'var(--green)':'var(--t1)'}">${ptChrono(secJour)}</div>
-        <div style="font-size:13px;color:var(--t3)">${ouv?'en cours — depuis '+(ouv.debutTs?ptHMS(ouv.debutTs):esc(ouv.debut))
-          :(mj.length?'travaillées aujourd’hui'+(mj.length>1?' — les pauses ne sont pas comptées':''):'pas encore commencée — touche « Début de journée »')}</div>
-      </div>
-      ${lignes.length?`<div style="border-top:1px solid var(--brd);margin-top:10px;padding-top:6px">${lignes.join('')}</div>`:''}
-    </div>`;
-  }
+  const moi=ptMaJournee(now);
 
   /* ── Les oublis, en tête : un pointage ouvert depuis la veille fausse tous les totaux. ── */
   const oublis=visiblePointages(db.pointages||[]).filter(p=>ptOubli(p,now));
@@ -33937,7 +33943,7 @@ views.pointage=function(){
   /* Par PERSONNE : la fiche quand il y en a une, le compte sinon — deux comptes sans fiche ne
      doivent pas se fondre sous une clé vide. */
   const parTech=new Map();
-  list.forEach(p=>{ const k=p.techId||('u:'+(p.userId||'')); const e=parTech.get(k)||{nom:ptNom(p),s:0}; e.s+=ptSecs(p,now); parTech.set(k,e); });
+  list.forEach(p=>{ const k=ptCle(p); const e=parTech.get(k)||{nom:ptNom(p),s:0}; e.s+=ptSecs(p,now); parTech.set(k,e); });
 
   const corps=jours.map(j=>`<div style="border-bottom:1px solid var(--brd)">
       <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg2)">
@@ -34053,7 +34059,7 @@ function ptPdfStr(list,b){
   const jours=ptParJour(list,now);
   const secTot=ptTotal(list,now);
   const parTech=new Map();
-  list.forEach(p=>{ const k=p.techId||('u:'+(p.userId||'')); const e=parTech.get(k)||{nom:ptNom(p),s:0}; e.s+=ptSecs(p,now); parTech.set(k,e); });
+  list.forEach(p=>{ const k=ptCle(p); const e=parTech.get(k)||{nom:ptNom(p),s:0}; e.s+=ptSecs(p,now); parTech.set(k,e); });
   // ─ récapitulatif par personne, en tête : c'est le chiffre qu'on cherche sur une feuille de temps
   const recap=[...parTech.values()].sort((a,b)=>b.s-a.s);
   const rh=26+recap.length*13+6;
