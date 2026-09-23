@@ -790,7 +790,8 @@ table, .tbl, .list-row {
   /* Une teinte, pas un aplat. L'aplat vert sapin ne changeait pas l'encre : en mode jour
      le texte tombait à 1,01:1 dès que le curseur passait sur une ligne ou une carte. */
   background: var(--hover-tint) !important;
-  border-color: color-mix(in srgb,var(--acc) 30%,transparent) !important;
+  /* Pas de `border-color` ici : le bord porte une information (la bande de statut d'une
+     intervention, le liseré du verre) — la recolorer au survol l'effaçait sous le doigt. */
 }
 .nav-item{ transition: background .2s, color .2s, border-color .2s; }
 .nav-item:hover{
@@ -1020,8 +1021,9 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 @media print{ .ph-back{ display:none } }
 /* ── barre de filtres du planning ── */
 .pf-bar{ padding:10px 11px; margin-bottom:10px; position:relative; z-index:20; }
-/* la barre de filtres n'est pas un bouton : elle ne doit jamais se remplir au survol */
-.card.pf-bar:hover{ background:var(--bg1) !important; border-color:color-mix(in srgb,var(--acc) 45%,transparent) !important; }
+/* La barre de filtres n'est pas un bouton : elle ne change PAS au survol — ni fond, ni bord, ni
+   marge. Il n'y a donc plus de règle `.pf-bar:hover` du tout (voir « LA BARRE D'OUTILS DU
+   PLANNING », plus bas : c'est d'elle que venait le saut sous le doigt). */
 /* calendrier de choix des jours */
 .plm-j.cal{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 13%,transparent); color:var(--acc-txt); cursor:pointer; }
 .plm-j.cal .n{ background:var(--acc); color:var(--on-acc); border-radius:100px; padding:0 6px; font-size:10px; }
@@ -1563,7 +1565,10 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .plg-cell.heur{padding:0;overflow:hidden}
 .plg-mh{position:absolute;left:2px;right:2px;background:var(--card2);border:1px solid var(--brd);border-left:3px solid var(--cc);
   border-radius:5px;padding:0 4px;overflow:hidden;cursor:pointer;z-index:2}
-.plg-mh:hover{border-color:var(--brd2);z-index:4}
+/* Le liseré s'éclaire au survol, la BANDE de gauche garde sa couleur : c'est le technicien. Sans
+   `border-left-color`, `border-color` la repeignait en gris — sous le doigt sur un iPhone, où le
+   survol reste collé après un toucher (mesuré le 23 septembre 2026, `sonde-survol.js`). */
+.plg-mh:hover{border-color:var(--brd2);border-left-color:var(--cc);z-index:4}
 .plg-mh b{font-size:9px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.45}
 /* dès que la case est assez haute, le titre s'écrit sur deux lignes au lieu d'être coupé */
 .plg-mh.deux b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:clip}
@@ -2392,8 +2397,13 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .kpi-ico{border-radius:var(--r-2);width:36px;height:36px;font-size:17px;margin-bottom:12px}
 .kpi-val{font-size:30px!important;font-weight:700!important;letter-spacing:-.025em;line-height:1.05}
 .kpi-lbl{font-size:12.5px;font-weight:500;color:var(--t3);margin-top:6px;letter-spacing:0}
+/* ⛔ LE SURVOL CHANGE LE FOND, JAMAIS LE BORD. `border:0` datait du dessin « surfaces sans bord » ;
+   depuis, le verre a donné aux cartes un liseré et aux interventions leur bande de couleur : au
+   survol — donc sous le DOIGT, sur un iPhone — le liseré partait, le contenu bougeait d'un pixel
+   et la couleur de statut disparaissait. Mesuré le 23 septembre 2026 : 64 éléments sur 42
+   rubriques, au téléphone comme au bureau (`scratchpad/sonde-survol.js`). */
 .kpi[onclick]:hover,.kpi.clickable:hover,.card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover,.olsec summary:hover,.list-row:hover,tr[onclick]:hover{
-  background:var(--hover)!important;border:0!important}
+  background:var(--hover)!important}
 .kpi[onclick]:hover,.kpi.clickable:hover,.card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover{box-shadow:var(--ombre-2)}
 .olsec{border-radius:var(--r-4)!important}
 .olsec summary{background:transparent;font-weight:600;font-size:15px;border-bottom:1px solid var(--brd)}
@@ -3300,10 +3310,18 @@ html[data-refonte] .plm-fab{transition:background-color var(--d-1) var(--e-sorti
    DÉLIBÉRÉES. Une seule hauteur (36 px), un seul rayon, deux matières et deux seulement :
    creux pour une piste segmentée, relief pour un contrôle qu'on presse. La barre elle-même cesse
    d'être une carte pleine et redevient ce qu'elle est — des contrôles posés au-dessus du contenu
-   (Liquid Glass : les contrôles élèvent le contenu, ils ne le coupent pas). */
-html[data-refonte] .pf-bar,html[data-refonte] .card.pf-bar:hover{
-  background:transparent!important;box-shadow:none!important;border:0!important;
-  padding:0!important;margin-bottom:14px!important}
+   (Liquid Glass : les contrôles élèvent le contenu, ils ne le coupent pas).
+   ⛔⛔ CETTE INTENTION NE TENAIT QU'AU SURVOL, ET LA BARRE SAUTAIT SOUS LE DOIGT. Vidéo de Justin,
+   iPhone, 23 septembre 2026 : la barre basculait entre deux mises en page, de 346 à 300 px de
+   haut et retour. Mesuré par `CSS.getMatchedStylesForNode` : `html[data-refonte] .card`
+   (marge 22/24 px), de même force et écrite PLUS LOIN, écrasait `.pf-bar{padding:0}` — la barre
+   était donc une carte… sauf au survol, où `.card.pf-bar:hover`, plus spécifique, reprenait la
+   main. Or sur un iPhone, poser le doigt DÉCLENCHE le survol : chaque geste la faisait sauter,
+   et au bureau la souris aussi (135 → 89 px). Le fond partait mais pas le flou du verre, d'où le
+   panneau pâle « collé aux bords » de la vidéo — une moitié de règle survivant à l'autre.
+   On garde la carte, c'est ce que tout le monde voit depuis des semaines ; et plus RIEN ne
+   dépend du survol. `scratchpad/sonde-survol.js` le mesure sur toutes les rubriques. */
+html[data-refonte] .pf-bar{margin-bottom:14px!important}
 html[data-refonte] .pf-row{gap:8px!important;row-gap:9px!important;align-items:center}
 html[data-refonte] .pf-nav,html[data-refonte] .pf-b,html[data-refonte] .pf-ib,
 html[data-refonte] .pf-inw,html[data-refonte] .pf-cnt2{
