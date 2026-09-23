@@ -144,6 +144,8 @@ console.log('── 793 · 5. les courriels portent la même société que le do
   vrai('… un texte sans pièce jointe ne dit plus « ci-joint »', /\(joint\?'Veuillez trouver ci-joint votre ':'Voici votre '\)/.test(corps('genDocTexte')));
   vrai('la facture automatique part en PDF, signée de la société de l’intervention', /docPdfChaine\('factures',f\)/.test(SRC) && /Cordialement,\\n'\+soc;/.test(SRC));
   vrai('le bon envoyé au fournisseur : la société DU BON quand il en porte une — sinon le « Nom d’expéditeur » des Réglages e-mail, comme avant', /const ent=socNom\(b\.societe\)\?bcEntete\(b\):mailBrandName\(\);/.test(corps('envoiBonEmail')));
+  vrai('un envoi refusé ne met pas l’adresse du client dans le rapport d’erreur (/api/bug) — le domaine seulement',
+    /stack:'domaine du destinataire : '\+\(String\(to\|\|''\)\.split\('@'\)\[1\]\|\|'—'\)/.test(corps('srvMail')) && !/'destinataire '\+to/.test(corps('srvMail')));
   { const fx = corps('exportFacturX'), ach = fx.slice(fx.indexOf('<ram:BuyerTradeParty>'), fx.indexOf('</ram:BuyerTradeParty>'));
     vrai('Factur-X : l’adresse de l’acheteur suit l’ordre CII (code postal, puis rue, puis ville) — comme celle du vendeur',
       ach.length > 50 && ach.indexOf('<ram:PostcodeCode>') > 0 && ach.indexOf('<ram:PostcodeCode>') < ach.indexOf('<ram:LineOne>') && ach.indexOf('<ram:LineOne>') < ach.indexOf('<ram:CityName>'), ach.slice(0, 200)); }

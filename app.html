@@ -19261,7 +19261,10 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
     const d=await r.json().catch(()=>({}));
     _srvMailErr=d.error||('erreur serveur HTTP '+r.status);
     toast('Envoi refusé ('+_srvMailErr+')'+(opts&&opts.sansMailto?' — rien n’est parti':' — e-mail préparé dans Mail'));
-    try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+_srvMailErr,src:'srvMail',line:0,stack:'destinataire '+to,ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
+    /* v740 : le DOMAINE seulement. L'adresse d'un client n'a rien à faire dans un rapport d'erreur
+       (pas de données personnelles de clients dans les journaux) ; le domaine suffit à voir qu'un
+       fournisseur de messagerie refuse. */
+    try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+_srvMailErr,src:'srvMail',line:0,stack:'domaine du destinataire : '+(String(to||'').split('@')[1]||'—'),ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
   }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable'+(opts&&opts.sansMailto?' — rien n’est parti, réessaie quand le réseau revient':' — e-mail préparé dans Mail')); }
   /* ⛔ v740 — un courriel qui porte une PIÈCE JOINTE ne se rabat pas sur un brouillon : le lien
      mailto: ne sait pas joindre de fichier, et le brouillon dirait « ci-joint » sans rien joindre.
