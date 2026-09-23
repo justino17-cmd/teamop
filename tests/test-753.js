@@ -300,8 +300,11 @@ console.log('\n══ 8. LE STYLE DU SEGMENTÉ DU TABLEAU DE BORD ══\n');
      glisse feraient un halo autour d\'un halo, et le curseur arriverait sur un fond déjà peint. */
   vrai('⛔⛔ le segment actif ne peint plus sa propre pastille — c\'est le curseur qui le désigne',
     /\.tdb-seg span\.on\{background:none!important/.test(css) && /\.tdb-seg span\.on\{[^}]*box-shadow:none/.test(css));
+  /* depuis le 23 septembre 2026 l'encre de l'accent y est MÊLÉE à l'encre principale : posée sur
+     le curseur (plus clair que la carte), l'accent seul tombait à 2,87 au pixel (violet de nuit).
+     La couleur dit toujours lequel est choisi — c'est ce que ce contrôle garde. */
   vrai('   … mais la couleur du texte reste (elle dit lequel est choisi sans le curseur)',
-    /\.tdb-seg span\.on\{[^}]*color:var\(--acc-txt\)/.test(css));
+    /\.tdb-seg span\.on\{[^}]*color:(var\(--acc-txt\)|color-mix\(in srgb,var\(--acc-txt\) [5-9]\d%,var\(--t1\)\))/.test(css));
   /* ⛔ Mesuré sur la capture de Justin : « 7 jours », « 14 jours » et « Le mois » passaient À
      LA LIGNE — le groupe doublait de hauteur et le curseur devenait plus haut que large. */
   vrai('⛔⛔ aucune période ne passe à la ligne', /\.tdb-seg span\{[^}]*white-space:nowrap/.test(css)

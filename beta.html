@@ -1099,7 +1099,10 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .plt-bh .n{ background:var(--acc); color:var(--on-acc); border-radius:100px; padding:1px 8px; font-size:9.5px; flex-shrink:0; }
 .plt-bh .qui{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .plt-bh .sp{ flex:1; }
-.plt-bh .tot{ font-weight:600; color:var(--t3); white-space:nowrap; }
+/* Le total d'une bande (« 5 interventions · 6h ») est une information, pas un décor : la bande
+   est teintée à 9 % de l'accent, et sous le verre de nuit du graphite (un accent presque blanc)
+   le texte secondaire y restait à 4,24 au pixel. Il prend l'encre du second plan lisible. */
+.plt-bh .tot{ font-weight:600; color:var(--t2); white-space:nowrap; }
 /* ── Fenêtres de planning : chaque fenêtre porte les couleurs de ses techniciens ── */
 .fen-bar{ height:4px; }
 .fen-h{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:8px 11px; border-bottom:1px solid var(--brd);
@@ -2539,7 +2542,7 @@ html[data-refonte]{
   --acc-txt:#55D6A2; --tint:rgba(47,191,135,.14); --tint-gris:rgba(143,163,188,.12);
   --hover:#18233A; --hover-tint:#18233A; --eleve:#18233A; --chip:#18233A;
   --inpBorder:rgba(143,163,188,.20); --trait-ui:#5B6E8C; --scrim:rgba(4,7,14,.68);
-  --org:#E8A857; --red:#EF7C72; --green:#3FD097; --blue:#7DBCEC; --purple:#B39DF2;
+  --org:#E8A857; --red:#F3938A; --green:#3FD097; --blue:#7DBCEC; --purple:#B39DF2;
   --danger-bg:rgba(239,124,114,.14); --danger-ink:#F2938B;
   /* Le gris SECONDAIRE : tout ce qui n'est ni l'action principale ni un état actif. Sans lui,
      un écran finit avec six boutons verts et l'accent ne veut plus rien dire. */
@@ -2813,8 +2816,11 @@ html[data-refonte][data-theme="light"][data-accent="red"]   { --on-acc:#FFFFFF; 
    comme l'orange. */
 html[data-refonte][data-theme="light"][data-accent="orange"]{ --acc-txt:color-mix(in srgb,#000 46%,var(--acc-src)); }
 html[data-refonte][data-theme="light"][data-accent="teal"]  { --acc-txt:color-mix(in srgb,#000 46%,var(--acc-src)); }
+html[data-refonte][data-theme="light"][data-accent="pink"]  { --acc-txt:color-mix(in srgb,#000 38%,var(--acc-src)); }
+html[data-refonte][data-theme="light"][data-accent="red"]   { --acc-txt:color-mix(in srgb,#000 38%,var(--acc-src)); }
 html[data-refonte][data-theme="dark"][data-accent="indigo"] { --acc-txt:color-mix(in srgb,#fff 34%,var(--acc-src)); }
-html[data-refonte][data-theme="dark"][data-accent="blue"]   { --acc-txt:color-mix(in srgb,#fff 34%,var(--acc-src)); }
+html[data-refonte][data-theme="dark"][data-accent="blue"]   { --acc-txt:color-mix(in srgb,#fff 40%,var(--acc-src)); }
+html[data-refonte][data-theme="dark"][data-accent="pink"]   { --acc-txt:color-mix(in srgb,#fff 40%,var(--acc-src)); }
 /* ⛔⛔ LE ROUGE ET L'ORANGE DE NUIT SONT DES ENCRES, PAS DES APLATS. De nuit, `--red` (#F07470)
    et `--org` (#F0A94A) sont éclaircis pour se LIRE sur un fond sombre — et c'est exactement ce
    qui les rend impropres à PORTER du blanc : 2,69:1 pour la pastille de la cloche (sur les
@@ -2824,7 +2830,7 @@ html[data-refonte][data-theme="dark"][data-accent="blue"]   { --acc-txt:color-mi
    une encre SOMBRE — à aucune profondeur raisonnable le blanc n'y tient. De jour, les deux
    sont déjà foncés : le blanc y passe (5,3 et 6,4). */
 html[data-refonte]{ --red-fill:var(--red); --on-red:#FFFFFF; --org-fill:var(--org); --on-org:#FFFFFF; --blue-fill:var(--blue); --on-blue:#FFFFFF; }
-html[data-refonte][data-theme="dark"]{ --red-fill:color-mix(in srgb,#000 30%,var(--red)); --on-org:#2A1304; --on-blue:#0B1426; }
+html[data-refonte][data-theme="dark"]{ --red-fill:color-mix(in srgb,#000 30%,#EF7C72); --on-org:#2A1304; --on-blue:#0B1426; }
 html[data-refonte][data-theme="light"][data-accent="blue"]  { --on-acc:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="purple"]{ --on-acc:#FFFFFF; }
 
@@ -2933,7 +2939,9 @@ html[data-refonte] .sidebar .nav.a-glisse .nav-item.active{background:transparen
 html[data-refonte] .nav-glisse{box-shadow:var(--rf-pastille)}
 html[data-refonte] .nav-item.active,html[data-refonte] .sidebar .nav-item.active{
   color:var(--side-active-ink)!important;font-weight:650!important}
-html[data-refonte] .nav-item.active .badge{background:var(--rf-2nd-h)!important;color:var(--side-active-ink)!important}
+/* La pastille de la rubrique active est un voile CLAIR sur la pastille active : l'encre de
+   l'accent seule y tombait à 3,94 (indigo de nuit, au pixel) — on la mêle à l'encre principale. */
+html[data-refonte] .nav-item.active .badge{background:var(--rf-2nd-h)!important;color:color-mix(in srgb,var(--side-active-ink) 70%,var(--t1))!important}
 /* La barre latérale se touche plus que tout le reste et ne répondait pas à la pression. */
 html[data-refonte] .nav-item{
   font-size:14.5px!important;padding:9px 12px!important;min-height:38px;
@@ -3268,7 +3276,7 @@ html[data-refonte] .avatar{
    sombres du tableau de bord, un violet ou un bleu saisis par l'utilisateur tombent à 2,8:1 : on ne
    lit plus l'heure, qui est justement l'information. On ne change pas SA couleur — on la ramène
    vers l'encre du thème : la teinte reste reconnaissable, la luminance redevient lisible. */
-html[data-refonte] .tdb-pc b .hh{color:color-mix(in srgb,var(--cc) 52%,var(--t1))!important}
+html[data-refonte] .tdb-pc b .hh{color:color-mix(in srgb,var(--cc) 45%,var(--t1))!important}
 
 html[data-refonte] .plm-fab{border-radius:var(--r-pill)!important;min-height:var(--rf-tap);padding:0 20px!important;
   box-shadow:0 10px 30px rgba(0,0,0,.42),0 0 0 1px color-mix(in srgb,var(--glace) 10%,transparent)}
@@ -3696,7 +3704,7 @@ html[data-refonte] .tdb-seg span:active{transform:scale(.96);transition-duration
    Deux surfaces pour une même chose feraient un halo autour d'un halo — même règle que la
    barre du bas. Seule la couleur du texte reste, elle dit lequel est choisi même sans le
    curseur (mouvement réduit, curseur pas encore posé). */
-html[data-refonte] .tdb-seg span.on{background:none!important;color:var(--acc-txt)!important;box-shadow:none!important}
+html[data-refonte] .tdb-seg span.on{background:none!important;color:color-mix(in srgb,var(--acc-txt) 70%,var(--t1))!important;box-shadow:none!important}
 /* ⛔ `nowrap` — mesuré sur la capture de Justin le 22 septembre 2026 : « 7 jours »,
    « 14 jours » et « Le mois » passaient À LA LIGNE, ce qui doublait la hauteur du groupe et
    rendait le curseur plus haut que large. Un segmenté ne se lit que d'un coup d'œil. */
@@ -5476,8 +5484,23 @@ html[data-verre="1"][data-theme="dark"]{
      --t3 de nuit (#8FA3BC), réglé pour des cartes opaques, y tombait à 3,60–4,27 — lu au
      PIXEL le 23 septembre 2026 sur le Mac et l'iPhone (étiquettes des indicateurs, totaux
      du planning, en-têtes du week-end ; sans verre : zéro). Un cran plus clair, pas plus :
-     le second plan doit rester un second plan (4,60 au pire pixel mesuré). */
-  --t3:#A7B8CC;
+     le second plan doit rester un second plan. Deuxième passe au pixel, tous les textes : les
+     étiquettes des indicateurs tombaient encore à 4,35 sur la vitre du vert → #ADBDD0 (et pas plus
+     clair : il doit rester un cran sous le texte principal). */
+  --t3:#ADBDD0;
+  /* ⛔ ET LES ENCRES SÉMANTIQUES AUSSI — surtout dans leurs pastilles. Une pastille d'état
+     (« Planifiée », « Annulée »…) écrit sa couleur sur un fond teinté à 14 % de la MÊME
+     couleur ; posée sur une vitre de nuit, elle tombait à 3,28 (rouge), 3,61 (violet),
+     3,88 (bleu), 4,05 (orange), 4,13 (vert) — lu au PIXEL le 23 septembre 2026, six
+     pastilles dans une vraie carte, neuf teintes, Mac et iPhone (scratchpad/st-tous.js).
+     Sans verre, sur une carte opaque : toutes au-dessus de 4,5. Le rouge est le plus dur :
+     sa luminance est basse, aucune vitre claire ne le porte sans l'éclaircir. On éclaircit
+     chaque encre du strict nécessaire, et la teinte des pastilles passe à 8 % (plus bas).
+     ⚠ L'APLAT rouge garde sa couleur d'origine : il porte du BLANC, qu'un rouge éclairci ne
+     porterait plus. L'orange et le bleu, eux, portent une encre SOMBRE : plus clairs, ils
+     contrastent mieux. */
+  --red:#F4A69F; --purple:#C2B1F5; --blue:#8FC5EF; --org:#EAAF64; --green:#47D29B;
+  --red-fill:color-mix(in srgb,#000 30%,#EF7C72);
   --vr-fond-dense:color-mix(in srgb,var(--acc-src,#2EB872) 7%,rgba(44,56,84,.92));
   --vr-liseret:rgba(255,255,255,.18);
   --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.02) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.03) 100%);
@@ -5518,6 +5541,34 @@ html[data-verre="1"][data-theme="dark"]{
     rgba(var(--acc-rgb,46,184,114),.03) 55%,
     rgba(var(--acc-rgb,46,184,114),.07) 100%);
 }
+/* ⛔ LE GRAPHITE DE NUIT NE TEINTE PAS LA VITRE, IL L'ÉCLAIRCIT — même arithmétique que
+   la barre, plus haut. Son accent de nuit est presque blanc (#F5F5F7) : mêlé à la vitre et à
+   ses halos, il ne colore rien, il remonte tout. Lu au PIXEL le 23 septembre 2026 (Mac et
+   iPhone) : les vitres du graphite étaient les plus claires des neuf teintes, et le texte
+   secondaire y restait à 3,98 quand toutes les autres teintes passaient. Le graphite est le
+   choix « sans couleur » : sa vitre et ses halos prennent l'ACIER, la teinte du logo. */
+html[data-verre="1"][data-theme="dark"][data-accent="graphite"]{
+  --vr-fond:color-mix(in srgb,#8FA3BC 7%,rgba(44,56,84,.55));
+  --vr-fond-dense:color-mix(in srgb,#8FA3BC 7%,rgba(44,56,84,.92));
+  --vr-halos:
+    radial-gradient(62vmax 62vmax at 12% 8%, rgba(143,163,188,.12), rgba(143,163,188,0) 70%),
+    radial-gradient(56vmax 56vmax at 90% 4%, rgba(91,143,214,.13), rgba(91,143,214,0) 70%),
+    radial-gradient(70vmax 70vmax at 72% 98%, rgba(143,163,188,.09), rgba(143,163,188,0) 70%);
+}
+/* ⛔ L'ENCRE DE L'ACCENT SOUS LE VERRE DE NUIT, POUR LES NEUF TEINTES. Réglée sur des cartes
+   opaques (24 % de blanc, 34 à 40 pour les teintes sombres), elle tombait sur une vitre de nuit
+   — plus claire, teintée à 7 % par l'accent, traversée par ses halos — à 4,0–4,3 au PIXEL :
+   liens des fournisseurs, nom d'une bande du planning, jour courant, « payé par l'entreprise »
+   (indigo, violet, rouge ; audit-pixel.js, 23 septembre 2026). 46 % pour toutes : la règle
+   vient APRÈS les exceptions par teinte, à même force, et les remplace sous le verre. */
+html[data-verre="1"][data-theme="dark"][data-accent]{--acc-txt:color-mix(in srgb,#fff 46%,var(--acc-src))}
+/* La pastille d'état sous le verre de nuit : 8 % de sa couleur au lieu de 14 — une teinte
+   plus légère sous une encre plus claire (voir les encres sémantiques du verre de nuit). */
+html[data-verre="1"][data-theme="dark"] .st-blue{background:color-mix(in srgb,var(--blue) 8%,transparent)}
+html[data-verre="1"][data-theme="dark"] .st-org{background:color-mix(in srgb,var(--org) 8%,transparent)}
+html[data-verre="1"][data-theme="dark"] .st-green{background:color-mix(in srgb,var(--green) 8%,transparent)}
+html[data-verre="1"][data-theme="dark"] .st-red{background:color-mix(in srgb,var(--red) 8%,transparent)}
+html[data-verre="1"][data-theme="dark"] .st-purple{background:color-mix(in srgb,var(--purple) 8%,transparent)}
 /* ⛔⛔ LE FOND DE LA PAGE VA SUR <html>, PAS SUR <body> — SINON IL RECOUVRE LES HALOS.
    Mesuré le 22 septembre 2026, au pixel : `body` portait
    `linear-gradient(#f4f5f8,#e9ebf0)` et `body::after` était en `z-index:-1`. Or `body`
@@ -5562,6 +5613,11 @@ html[data-verre="1"] .modal{
 html[data-verre="1"][data-theme="light"] .modal{
   background:var(--vr-reflet),var(--vr-fond-dense)!important;
 }
+/* ⛔ DE JOUR AUSSI, LE TEXTE SECONDAIRE SUIT LA VITRE. Sous le verre, la page de jour est un
+   dégradé teinté plus FONCÉ que la page opaque (ses halos la creusent) : le sous-titre de chaque
+   rubrique tombait à 4,01 au PIXEL sous le graphite, 4,13–4,30 ailleurs (audit-pixel.js,
+   23 septembre 2026 ; sans verre : 4,80 au pire). Un cran plus sombre, sous le verre seulement. */
+html[data-verre="1"][data-theme="light"]{--t3:#485569}
 html[data-verre="1"] .topbar{
   background:var(--vr-reflet),var(--rf-barre),var(--vr-fond)!important;
   -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
@@ -28773,7 +28829,7 @@ views.utilisateurs=function(){
         ?`<button class="btn ghost" style="border-color:var(--org)" onclick="revueExclusions()">🔎 Box retirées</button> `:'')
     +((peutCreer&&db.users.length<500)?`<button class="btn" onclick="formUser()">＋ Utilisateur</button>`:''));
   const rows=db.users.map(u=>{ const moi=u.id===currentUser.id; const ouv=(usrOuvert===u.id);
-    return `<div class="card usr-c${ouv?' on':''}" style="padding:13px 16px;margin-bottom:10px;${u.actif?'':'opacity:.6'}">
+    return `<div class="card usr-c${ouv?' on':''}" style="padding:13px 16px;margin-bottom:10px;${u.actif?'':'filter:grayscale(1)'}">
       <div style="display:flex;gap:13px;align-items:center;flex-wrap:wrap;cursor:pointer" onclick="usrDeplier('${u.id}')" role="button" tabindex="0" aria-expanded="${ouv?'true':'false'}" aria-label="Voir les droits de ${esc(fullName(u))}">
         <span class="avatar" style="width:44px;height:44px;font-size:15px;flex-shrink:0">${initials(fullName(u))}</span>
         <div style="flex:1;min-width:180px">

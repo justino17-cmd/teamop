@@ -57,7 +57,7 @@ const FENETRES = eval(mF[1]);
     else { await S.ev(`try{ go('${ou}'); }catch(e){} return 1;`); await dormir(700); }
     const [tag, ...cls] = f.n.split('.');
     const zone = F ? JSON.stringify(F.zone) : 'null';
-    const r = await S.ev(`const Z=${zone}; const racine=Z?document.querySelector(Z):document;
+    const chercher = () => S.ev(`const Z=${zone}; const racine=Z?document.querySelector(Z):document;
       if(!racine) return null;
       const c=[...racine.querySelectorAll(${JSON.stringify(tag + cls.map(x => '.' + x).join(''))})].filter(e=>{
         const b=e.getBoundingClientRect(); return b.width>2&&b.height>2&&(e.textContent||'').trim().replace(/\\d+/g,'#').startsWith(${JSON.stringify(f.t.replace(/\d+/g, '#').slice(0, 10))}); });
@@ -65,6 +65,15 @@ const FENETRES = eval(mF[1]);
       await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void e.offsetWidth; await new Promise(r=>setTimeout(r,250));
       const b=e.getBoundingClientRect();
       return {x:b.left+scrollX, y:b.top+scrollY, w:b.width, h:b.height, encre:getComputedStyle(e).color};`);
+    let r = await chercher(), ouTrouve = ou;
+    /* la passe range un reste sous l'écran où elle l'a vu le PIRE — parfois un écran où
+       l'élément n'est plus (données de démonstration tirées au hasard) : on le cherche dans
+       les rubriques qui portent ce genre d'élément avant de le déclarer introuvable */
+    if (!r && !F) for (const k of ['archives', 'dashboard', 'planning', 'planningGeneral', 'taches', 'interventions', 'rapports', 'modulesElan', 'statistiques', 'absences']) {
+      if (k === ou) continue;
+      await S.ev(`try{ go('${k}'); }catch(e){} return 1;`); await dormir(700);
+      r = await chercher(); if (r) { ouTrouve = k; break; }
+    }
     if (!r) { introuvable++; bilan.push({ ou: f.ou, n: f.n, t: f.t, calcul: f.c, nb, introuvable: true }); console.log('  ?  ' + f.ou.padEnd(34) + f.n + ' « ' + f.t + ' » : introuvable'); continue; }
     const cap = await S.c.envoyer('Page.captureScreenshot', { format: 'png', clip: { x: r.x, y: r.y, width: Math.max(1, r.w), height: Math.max(1, r.h), scale: 1 } });
     const img = decoder(Buffer.from(cap.data, 'base64'));
@@ -81,7 +90,7 @@ const FENETRES = eval(mF[1]);
     const c = contraste(encre, fond);
     const ok = c >= f.seuil; ok ? passe++ : reste++;
     bilan.push({ ou: f.ou, n: f.n, t: f.t, calcul: f.c, pixel: +c.toFixed(2), seuil: f.seuil, nb, ok, fond: fond.join(','), encre: encre.map(Math.round).join(',') });
-    console.log('  ' + (ok ? '✓' : '✗') + '  ' + f.ou.padEnd(34) + (f.n + ' « ' + f.t + ' »').padEnd(52) + ' calcul ' + f.c.toFixed(2) + ' → pixel ' + c.toFixed(2)
+    console.log('  ' + (ok ? '✓' : '✗') + '  ' + (f.ou + (ouTrouve !== ou ? ' → ' + ouTrouve : '')).padEnd(34) + (f.n + ' « ' + f.t + ' »').padEnd(52) + ' calcul ' + f.c.toFixed(2) + ' → pixel ' + c.toFixed(2)
       + '   (fond ' + fond.join(',') + ', encre ' + encre.map(Math.round).join(',') + ')');
   }
   console.log('\n  ══ au pixel : ' + passe + ' groupes passent, ' + reste + ' restent sous le seuil, ' + introuvable + ' introuvables ══');

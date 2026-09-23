@@ -136,11 +136,39 @@ for (const f of ['app.html', 'beta.html']) {
     const t2n = (SRC.match(/--t1:#EFF2F7; --t2:(#[0-9A-F]{6}); --t3:#8FA3BC;/) || [])[1];
     vrai('   … sans rejoindre le texte principal : le second plan reste un second plan', !!t2n && lum(hex(t2n)) / lum(hex(t3vn)) >= 1.2, t2n);
   }
-  vrai('⛔ de nuit, le bleu (comme l’indigo) écrit son texte d’un cran plus clair',
-    /\[data-theme="dark"\]\[data-accent="blue"\]   \{ --acc-txt:color-mix\(in srgb,#fff 34%,var\(--acc-src\)\); \}/.test(SRC));
-  const bleuNuit = (SRC.match(/--org:#E8A857; --red:#EF7C72; --green:#3FD097; --blue:(#[0-9A-F]{6});/) || [])[1];
-  vrai('⛔ la pastille « Planifiée » (le bleu de nuit) tient sur la vitre mesurée au pixel (44,72,92)',
-    !!bleuNuit && ctr(hex(bleuNuit), [44, 72, 92]) >= 4.5, bleuNuit + ' → ' + (bleuNuit ? ctr(hex(bleuNuit), [44, 72, 92]).toFixed(2) : '?'));
+  vrai('⛔ de nuit, le bleu et le rose écrivent leur texte plus clair (le bandeau du jour du planning : 4,44 et 4,03 au pixel)',
+    /\[data-theme="dark"\]\[data-accent="blue"\]   \{ --acc-txt:color-mix\(in srgb,#fff 40%,var\(--acc-src\)\); \}/.test(SRC)
+    && /\[data-theme="dark"\]\[data-accent="pink"\]   \{ --acc-txt:color-mix\(in srgb,#fff 40%,var\(--acc-src\)\); \}/.test(SRC));
+  /* les encres sémantiques de nuit : sans verre (bloc de la refonte) et sous le verre (bloc du verre) */
+  /* le bloc de nuit de la REFONTE (« html[data-refonte]{ » : la nuit est le thème par défaut) ;
+     les anciens blocs, plus haut dans la page, portent d'autres valeurs et ne s'appliquent plus */
+  const iNuit = SRC.indexOf('\nhtml[data-refonte]{\n');
+  const semN = iNuit > 0 ? SRC.slice(iNuit, iNuit + 6000).match(/--org:(#[0-9A-F]{6}); --red:(#[0-9A-F]{6}); --green:(#[0-9A-F]{6}); --blue:(#[0-9A-F]{6}); --purple:(#[0-9A-F]{6});/) : null;
+  const semV = iVN > 0 ? SRC.slice(iVN, iVN + 5000).match(/--red:(#[0-9A-F]{6}); --purple:(#[0-9A-F]{6}); --blue:(#[0-9A-F]{6}); --org:(#[0-9A-F]{6}); --green:(#[0-9A-F]{6});/) : null;
+  vrai('population : les encres sémantiques de nuit sont lues, avec et sans verre', !!(semN && semV));
+  if (semN && semV) {
+    vrai('⛔ la pastille « Planifiée » (le bleu de nuit) tient sur la vitre mesurée au pixel (44,72,92)',
+      ctr(hex(semN[4]), [44, 72, 92]) >= 4.5, semN[4] + ' → ' + ctr(hex(semN[4]), [44, 72, 92]).toFixed(2));
+    /* sous le verre, chaque encre est plus CLAIRE que sa version sans verre — sinon la
+       surcharge ne sert à rien (ou pire, elle assombrit) */
+    const [, oN, rN, gN, bN, pN] = semN, [, rV, pV, bV, oV, gV] = semV;
+    vrai('⛔ sous le verre de nuit, les cinq encres sémantiques sont plus claires que sans verre',
+      [[rN, rV], [pN, pV], [bN, bV], [oN, oV], [gN, gV]].every(([a, b]) => lum(hex(b)) > lum(hex(a))));
+    vrai('⛔ l’aplat rouge de nuit ne suit PAS l’encre éclaircie : il se fonce depuis #EF7C72 et porte le blanc',
+      /html\[data-refonte\]\[data-theme="dark"\]\{ --red-fill:color-mix\(in srgb,#000 30%,#EF7C72\);/.test(SRC)
+      && /--red-fill:color-mix\(in srgb,#000 30%,#EF7C72\);/.test(SRC.slice(iVN, iVN + 5000))
+      && ctr(mix([0, 0, 0], hex('#EF7C72'), .3), [255, 255, 255]) >= 4.5);
+    vrai('⛔ la pastille rouge SANS verre tient sur la carte graphite mesurée au pixel (64,56,72)', ctr(hex(rN), [64, 56, 72]) >= 4.5, rN + ' → ' + ctr(hex(rN), [64, 56, 72]).toFixed(2));
+  }
+  vrai('⛔ sous le verre de nuit, les pastilles d’état se teintent à 8 % (au lieu de 14)',
+    ['blue', 'org', 'green', 'red', 'purple'].every(k => SRC.includes('html[data-verre="1"][data-theme="dark"] .st-' + k + '{background:color-mix(in srgb,var(--' + k + ') 8%,transparent)}')));
+  vrai('⛔ le graphite de nuit teinte sa vitre et ses halos à l’ACIER, pas à son accent presque blanc',
+    /html\[data-verre="1"\]\[data-theme="dark"\]\[data-accent="graphite"\]\{\s*--vr-fond:color-mix\(in srgb,#8FA3BC 7%,rgba\(44,56,84,\.55\)\);/.test(SRC));
+  vrai('⛔ un compte désactivé se marque en GRIS (grayscale), pas en transparence : estompée à 60 %, sa ligne tombait à 1,94 au pixel sous le verre de nuit',
+    /style="padding:13px 16px;margin-bottom:10px;\$\{u\.actif\?'':'filter:grayscale\(1\)'\}"/.test(SRC)
+    && !/margin-bottom:10px;\$\{u\.actif\?'':'opacity:\.6'\}/.test(SRC));
+  vrai('⛔ le total d’une bande du planning est une information : encre du second plan lisible',
+    /\.plt-bh \.tot\{ font-weight:600; color:var\(--t2\);/.test(SRC));
 
   /* ── 4. plus de blanc en dur sur une couleur variable, hors pastilles d'avatar ── */
   const blancs = [...SRC.matchAll(/background:\$\{[^}]{1,80}\}[^"'`]{0,120}?color:#fff\b/gi)].map(m => SRC.slice(Math.max(0, m.index - 140), m.index + 10));

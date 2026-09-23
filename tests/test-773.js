@@ -55,8 +55,11 @@ for (const f of ['app.html', 'beta.html']) {
   /* ── 2. les aplats rouge et orange ont leur encre ── */
   vrai('⛔ les jetons d’aplat existent (rouge, orange) avec leur encre',
     /html\[data-refonte\]\{ --red-fill:var\(--red\); --on-red:#FFFFFF; --org-fill:var\(--org\); --on-org:#FFFFFF;[^}]*\}/.test(SRC));
+  /* depuis le 23 septembre, l'aplat rouge de nuit se fonce depuis SA teinte d'origine (#EF7C72) :
+     l'encre rouge, elle, a été éclaircie pour se lire, et un aplat qui la suivrait ne porterait
+     plus le blanc (test-774) */
   vrai('⛔ de nuit : le rouge se FONCE pour le blanc, l’orange prend une encre sombre',
-    /html\[data-refonte\]\[data-theme="dark"\]\{ --red-fill:color-mix\(in srgb,#000 30%,var\(--red\)\); --on-org:#2A1304;[^}]*\}/.test(SRC));
+    /html\[data-refonte\]\[data-theme="dark"\]\{ --red-fill:color-mix\(in srgb,#000 30%,#EF7C72\); --on-org:#2A1304;[^}]*\}/.test(SRC));
   vrai('⛔ la pastille de la cloche (les 42 rubriques)', /\.bell-count\{[^}]*background:var\(--red-fill,var\(--red\)\);color:var\(--on-red,#fff\)/.test(SRC));
   vrai('⛔ plus aucun rouge plein avec du blanc en dur', !/background:var\(--red\)\s*(!important)?;\s*(border-color:var\(--red\)\s*!important;)?color:#fff/.test(SRC));
   vrai('⛔ le « Non » choisi des questionnaires (trois écritures + la fiche)',
