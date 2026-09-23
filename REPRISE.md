@@ -23,6 +23,161 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
+## ✅ 23 SEPTEMBRE 2026 — DOUZE APPAREILS, DEUX RÔLES, ÉCRAN PAR ÉCRAN, BOUTON PAR BOUTON (v729, bêta)
+
+Justin : **« vérifie l'application au complet, ce qui va et ce qui va pas, les problèmes
+d'affichage ou autre, pour tous les appareils. »** Jusque-là, toutes les sondes tournaient sur
+DEUX profils (iPhone Safari de nuit, Mac Safari de jour), en ADMINISTRATEUR, avec les données de
+démonstration. Les trois étaient des angles morts, et chacun cachait de vrais défauts.
+
+| famille | profils (largeur, plateforme, thème) — `scratchpad/profils.js`, une seule table |
+|---|---|
+| téléphones | petit Android Chrome 360 · iPhone SE installée 375 · iPhone 15 Safari 390 · Pixel installée 412 · iPhone Pro Max installée 430 |
+| tablettes | iPad Air portrait Safari 820 · iPad paysage installée 1180 |
+| ordinateurs | Mac macOS 15 1280 · portable Windows Edge 1366 · Mac Safari 26 1440 · MacBook Pro 16 installée 1728 · Windows installée 1920 |
+
+Jour ET nuit en alternance, encoches posées (`Emulation.setSafeAreaInsetsOverride` — elles
+valent 0 dans un navigateur piloté).
+
+### Les passes, et ce qu'elles ont rendu
+
+`scratchpad/audit-profond.js <profil>` — chaque rubrique, puis chaque commande qui ouvre un
+écran profond (onglet, filtre, fenêtre, fiche). Plafonds comptés et imprimés (4 commandes par
+genre, 14 sous-vues, 150 s par rubrique) ; `TOUT=1` les lève, `LONGUES=1` pose les valeurs les
+plus longues plausibles, `ROLE=technicien` se connecte en technicien.
+
+| passe | clics | écrans profonds | éléments | erreurs JS | ce qu'elle a trouvé |
+|---|---|---|---|---|---|
+| 11 appareils, démonstration, avec plafonds | 413–480 chacun | 220–229 chacun | 5 698–6 311 chacun | 0 | iPad : 2 recouverts, 56 cibles sous 38 px au doigt (portrait et paysage) → corrigés, repassés à 0 |
+| iPhone 15, **sans plafond** | 1 210 | 348 | 17 606 | 0 | 1 131 cibles sous 38 px au doigt, TOUTES dans le Planning général (en-têtes de jour 35 px, légende des tournées 23 px) → 38 px |
+| petit Android, **sans plafond** (lancé après ce correctif) | 1 074 | 345 | 16 433 | 0 | cibles : 0 ; la liste des Interventions et l'analyse de Consommation (voir plus bas), corrigées depuis son lancement |
+| petit Android, **valeurs longues** | 475 | 214 | 5 570 | 0 | 6 pages qui glissent (Interventions 415–422 px, Consommation 529 px), 12 noms coupés sans infobulle (tableau de bord) → corrigés |
+| petit Android, **technicien**, valeurs longues | 294 | 148 | 4 037 | 0 | 0 partout |
+| iPhone, **technicien**, valeurs longues | 307 | 144 | 3 943 | 0 | 0 partout |
+| iPad, **sans plafond** | 1 156 | 355 | 17 340 | 0 | 4 « cibles » à 37,4 px : des en-têtes de 38 px lus pendant l'animation d'entrée → l'instrument attend désormais sa fin |
+| iPad, **valeurs longues** | 349 | 194 | 4 248 | 0 | 0 texte écrasé ; 6 blocs de la vue Jour coupés sans infobulle et 10 blocs de la grille Semaine à 25 px → infobulle posée, hauteur gardée (voir plus bas) |
+| petit Android, valeurs longues, **critère « texte écrasé »** (administrateur / technicien) | 486 / 297 | 212 / 148 | 5 589 / 3 970 | 0 | 44 / 14 textes écrasés — Carte des interventions, cartes du Planning, Validations, un titre de fenêtre → corrigés |
+| **passe finale** — petit Android, **technicien**, valeurs longues, v729 | 296 | 148 | 4 037 | 0 | **0 partout, textes écrasés compris** |
+| **passe finale** — petit Android, **administrateur**, valeurs longues | 472 | 213 | 5 510 | 0 | 17 textes écrasés encore : Factures (59 px) et l'historique de Validations (92 px) → corrigés, puis une passe ciblée sur les 9 rubriques touchées : 247 clics, 91 écrans, 2 811 éléments, **0 partout** |
+
+(Les écrans d'ordinateur n'ont pas de doigt : ni plancher tactile ni zoom de Safari à y mesurer.)
+
+`scratchpad/sonde-appareils.js` — la CHARPENTE : largeur de la page contre la largeur de
+l'APPAREIL (deux lectures), éléments fixes deux à deux, une seule navigation, le menu sur une
+ligne. **12 appareils × 7 contrôles : 84 ✓** ; `LONGUES=1` : **21 ✓** (petit Android, iPhone,
+iPad).
+
+Sondes ciblées, chacune éprouvée sur la version d'avant (contre-épreuve) :
+
+| sonde | ce qu'elle joue | après | avant |
+|---|---|---|---|
+| `sonde-planning.js` | 4 vues × 3 dispositions × 4 appareils | 48/48 | 9 ✗ |
+| `kpi-longs.js` | rangées d'indicateurs avec « 1523h30 », « 12 345,67 € » | 5/5 | 1/5 |
+| `sonde-conso.js` | l'analyse de consommation, AVEC des consommations | 4/4 | ✗ |
+| `sonde-int-liste.js` | liste des Interventions, 4 formes de ligne, 5 appareils | 5/5 | 3 ✗ |
+| `sonde-ma-journee.js` | « Ma journée » EN TECHNICIEN + le rappel du matin | 4/4 | 3 ✗ |
+| `sonde-opt-barre.js` | la barre « Ordre proposé » sur la carte (vraie `planOptBarre`) | 4/4 | 3 ✗ |
+| `sonde-lignes-heure.js` | Planning (Semaine, Jour, Mois) + tournée de la Carte, 4 appareils | 72 lignes, 0 écrasé | 15 écrasés |
+| `sans-nom.js` | commandes sans nom, 41 rubriques | 0 | 13 (bureau), 14 (téléphone) |
+
+### ⛔ L'instrument était aveugle CINQ fois — et c'est là que passaient les défauts
+
+1. **Il mesurait contre `innerWidth`.** Sur téléphone, une page qui déborde élargit la fenêtre
+   de mise en page, et `innerWidth` avec elle : rien ne dépassait jamais. Il mesure désormais
+   contre la largeur POSÉE du profil, et demande à la PAGE si elle glisse.
+2. **Il ne regardait que ce qui se clique.** Les indicateurs de Pointage, le libellé de la
+   période du Planning et « Côte à côte » sont passés dessous, sur douze appareils.
+3. **Il mesurait la démonstration.** Des titres courts, « 0h00 », aucune consommation : la
+   liste des Interventions, l'analyse de Consommation et les indicateurs ne cassaient qu'avec
+   des valeurs réelles. `LONGUES=1` (une seule copie : `profils.js`).
+4. **Il tournait en administrateur, et il ne voyait pas un texte ÉCRASÉ.** « Ma journée », le
+   seul écran propre à un rôle (vérifié : c'est l'unique branche `if(!can('voirTout'))` qui rend
+   une autre vue), n'y paraissait jamais ; et une colonne qui cède tout ne déborde pas, elle
+   s'allonge — titres sur dix et treize lignes, zéro alerte. `ROLE=technicien`, et un critère
+   « texte écrasé » (sous ~12 signes par ligne sur 4 lignes ou plus), éprouvé dans les deux
+   sens : 6 et 2 sur les versions d'avant, 0 et 0 après. **Lâché sur toute l'application, il a
+   aussitôt trouvé quatre familles de plus** (tableau ci-dessous) : les cartes du Planning et la
+   tournée de la Carte, les lignes à gestes (Validations, Factures, Comptabilité), les titres de
+   fenêtre, et une pastille coupée en deux.
+5. **Il lisait pendant l'animation d'entrée.** Son attente guettait les transitions de vue, pas
+   `.content.entre` : pendant l'entrée des cartes, le contenu est mis à l'échelle (~0,984) et un
+   en-tête de 38 px se peint à 37,4. Les 4 « petites cibles » de la passe iPad sans plafond
+   étaient cela (mesuré : 38 px de mise en page tout du long, 38,0 peints après 400 ms).
+
+### Ce qui a été trouvé et corrigé
+
+| appareil | défaut | corrigé par |
+|---|---|---|
+| **iPad** (les deux) | la barre d'onglets ET le menu latéral à la fois (l'iPad se déclare « mobile ») ; la pilule recouvrait la carte utilisateur | la barre et le bouton du tiroir s'effacent dès 781 px |
+| **iPad** | 56 commandes sous 38 px au doigt : leurs planchers visaient la LARGEUR d'un téléphone | planchers sous `(pointer:coarse)` |
+| **iPad, tiroir** | « Consommation produits » sur deux lignes au doigt | menu de 272 px au doigt |
+| **iPad portrait** | segmentés de Produits et de Bons : page de 840 et 898 px | `segTient()` : un groupe qui ne tient pas redevient une rangée de pastilles |
+| **petit Android, iPhone SE** | le segmenté du tableau de bord poussait la page à 382 px | resserré sous 440 px, libellé court « Auj. » sous 390 (le long reste lu par un lecteur d'écran) |
+| **tablettes, ordinateurs** | « Voir sur la carte » posé sur la bulle d'aide | il monte au-dessus d'elle |
+| **téléphones** | écrans Carte : la dernière carte restait sous la barre d'onglets | le bord à bord garde son dégagement |
+| **téléphones, iPad** | indicateurs de Pointage, Enveloppes, fiche d'enveloppe : page à 444–547 px (téléphones), 827 (iPad) | `auto-fit`, 200 px par colonne |
+| **petit Android, iPhone** | Planning Jour et Semaine : le libellé de la période poussait la page à 366–391 px | il passe sur deux lignes |
+| **iPhone, iPad** | « Côte à côte » : page à 413 px (iPhone), 993 (iPad) | `minmax(0,1fr)` |
+| **au doigt** | en-tête de jour du Planning général (35 px), légende des tournées (23 px) | 38 px |
+| **téléphones** | analyse de Consommation, dès qu'il existe des consommations : page à 529 px, barres à 0 px | deux étages au téléphone : qui et combien, puis la barre |
+| **téléphones, iPad portrait** | liste des Interventions : texte à **0 px** (titre sur 13 lignes, page à 415 px) au téléphone, **87 px** sur iPad portrait menu ouvert | deux étages quand la LISTE fait moins de 640 px — première requête de CONTENEUR du fichier |
+| **tous** | tableau de bord : « Jean-Christophe Delacroix-Mo… », sans rien pour lire la suite | nom entier en infobulle |
+| **téléphones, EN TECHNICIEN** | « Ma journée » : texte des cartes à **100 px** (titre sur dix lignes) | le statut passe sous le texte (conteneur < 440 px) |
+| **téléphones, iPad, EN TECHNICIEN** | le rappel du matin « Ta journée » : message à 70 px, un mot par ligne, « Établissements » coupé par son propre bouton ; posé sur la barre d'onglets | entre deux marges, message sur sa ligne, au-dessus de la barre et de la bulle |
+| **tous** | la barre « Ordre proposé » posée sur la carte : 164 px dans 328 (4 lignes, 152 px de haut sur la carte) | entre deux marges, à la largeur de son contenu |
+| **téléphones** | cartes du Planning (vues Semaine, Jour, Mois) : titre à 101 px sur dix lignes ; tournée de la Carte des interventions : adresse à 86 px sur seize lignes | la LIGNE devient son propre conteneur : sous 440 px, le statut passe sous le texte |
+| **téléphones** | Validations, demandes de commande : texte à **18 px** à côté de Refuser/Valider, le bouton posé sur le texte | texte et chevron en haut, gestes dessous (222 px de texte, 163 px de haut au lieu de 283) |
+| **téléphones** | 32 fenêtres [Annuler] titre [Enregistrer] : « Ajouter un produit aux boxes » sur cinq lignes, barre de 188 px | le titre passe sous les deux gestes, en grand titre (barre de 116 px) ; « Produits de la box » garde sa ligne |
+| **téléphones** | « À facturer » : texte à 59 px à côté de « Générer la facture » ; impayés, encaissements, historique des mouvements de box (92 px à côté de « Validé · … ») | même composant « ligne à gestes » |
+| **tous** | une pastille se coupait en deux (« 3 / produit(s) », chaque morceau avec son fond) | insécable |
+| **tablettes, ordinateurs** | Planning : titres des blocs de la vue Jour et de la grille Semaine coupés, sans rien pour lire la suite | heure, titre et client en infobulle |
+| **lecteur d'écran** | 33 commandes n'avaient QUE leur émoji : la refonte l'a remplacé par un trait muet, le bouton n'avait plus de nom | `nommerIcone()` : le nom de leur geste |
+
+Le rappel du matin et la barre « Ordre proposé » ont la même cause : une boîte absolue centrée par
+`left:50%` + `translateX(-50%)` ne se mesure que sur la MOITIÉ de son cadre. `test-776` §14
+recense les sept boîtes centrées ainsi dans le fichier et exige de chacune une largeur, du texte
+insécable ou aucun contenu.
+
+**Bancs** : `tests/test-776.js` (104 contrôles en 15 sections ; **32 mutations** remettent chacune
+un défaut, les 32 mordent), `tests/test-777.js` (18 contrôles, la vraie `nommerIcone` exécutée ;
+5 mutations, les 5 mordent), `test-753` mis à jour. Suite complète : **134 suites · 6 029
+vérifications, code 0**.
+
+### ⚠️ Écarté exprès, et nommé
+
+Les blocs **à l'échelle du temps** du Planning — grille Semaine (`.plg-mh`, 25 px pour une heure)
+et vue Jour (`.plt-blk`) — restent sous le plancher de 38 px au doigt : leur hauteur EST la
+durée, et la porter à 38 px mentirait sur l'horaire en faisant se chevaucher deux créneaux
+voisins. C'est la décision déjà écrite pour les cases du Planning général, étendue nommément
+(`app.html`, bloc « au doigt ») et appliquée par l'audit, qui les compte à part (10 sur iPad).
+Si tu préfères des blocs plus hauts au doigt, il faut agrandir l'échelle de la grille (moins
+d'heures à l'écran), pas les blocs.
+
+### ⏳ Ce qui attend Justin
+
+- **Deux accueils en même temps, chaque matin, pour un technicien.** À la première ouverture du
+  jour, Leia ouvre ses « Petits rappels du jour » (un grand panneau) ET le rappel « Ta journée »
+  paraît en bas. Chacun est voulu ; ensemble, ils couvrent l'écran du téléphone. Garder les
+  deux, ou un seul ?
+- **Publier `app.html`** : la production est en v695, avec le plantage de « Consommation
+  produits » corrigé en bêta depuis la v726, et tout ce qui précède.
+
+### ⚠️ Ce que ces passes ne couvrent pas
+
+- **Des profils ÉMULÉS** dans Chromium : largeur, encoches, toucher, plateforme. Le moteur de
+  Safari n'est pas celui de Chromium ; les écarts connus sont faibles sur ce que l'application
+  utilise, mais ils ne sont pas mesurés. La barre d'onglets en verre reste à regarder sur un
+  vrai iPhone.
+- **La carte** (Leaflet vient d'un CDN, pas de réseau ici) : les écrans Carte sont mesurés sans
+  leur fond de carte ; la barre de la tournée l'est dans un cadre posé à sa place.
+- **Les autres rôles** (chef d'équipe, DR, commercial, comptable) voient des sous-ensembles des
+  écrans de l'administrateur ; ils ne sont pas audités à part.
+- **Le clavier virtuel** qui monte sous un champ, la rotation EN COURS de geste, le retour
+  système d'Android : non joués.
+- **En technicien, les fenêtres ont été ouvertes et mesurées, mais leurs boutons n'ont été
+  frappés qu'en administrateur** (la passe de clics de l'étape 2) — ce sont les mêmes fenêtres,
+  un technicien en voit moins.
+
 ## ✅ 23 SEPTEMBRE 2026 — LES CATÉGORIES INUTILES (v728, bêta)
 
 Justin : **« si tu vois des catégories qui sont pas utiles ou autre, je t'autorise de les
