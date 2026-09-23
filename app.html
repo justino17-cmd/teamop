@@ -11799,7 +11799,8 @@ function utilisateurNettoyer(u){ if(!u) return;
   if(u.techId && !db.users.some(x=>x.id!==u.id && x.techId===u.techId)) techArchiver(u.techId); }
 /* doublons de techniciens (même nom) et leur fusion : une seule fiche gardée, tout lui est rattaché */
 function techDoublons(){ const g={}; (db.techniciens||[]).forEach(t=>{ const k=nomNorm(t.nom); if(!k) return; (g[k]=g[k]||[]).push(t); }); return Object.values(g).filter(l=>l.length>1); }
-function techFusionnerDoublons(){ const grp=techDoublons(); if(!grp.length){ toast('Aucun doublon de technicien'); return; }
+function techFusionnerDoublons(){ if(!permGarde('equipe','modifier','les fiches du personnel')) return;
+  const grp=techDoublons(); if(!grp.length){ toast('Aucun doublon de technicien'); return; }
   if(!confirm(grp.length+' nom(s) en double : '+grp.map(l=>l[0].nom+' ×'+l.length).join(', ')+'.\n\nFusionner ? Pour chaque nom, une seule fiche est gardée (celle reliée à un compte, sinon la plus ancienne) ; interventions, pointages, box et véhicules des doublons lui sont rattachés.')) return;
   let fusions=0;
   grp.forEach(l=>{ const garde=l.find(t=>db.users.some(u=>u.techId===t.id))||l[0];
@@ -12825,6 +12826,25 @@ function visiblePointages(list){
     return (list||[]).filter(x=>p.has(x.techId) || (!x.techId && us.has(x.userId))); }
   return (list||[]).filter(ptEstAMoi); }
 function ptPeutVoirAutres(){ return !!(can('voirTout')||can('voirPointages')); }
+/* ⛔ CORRIGER DES HEURES EST UN GESTE DE RESPONSABLE — décision de Justin, 23 septembre 2026 :
+   « le ✎ du Pointage réservé au responsable ». Avant, ni le formulaire ni l'enregistrement ne
+   vérifiaient rien : un technicien voyait ses lignes et pouvait réécrire son début et sa fin —
+   c'est-à-dire sa paie. Responsable = qui voit les feuilles de temps des autres
+   (`ptPeutVoirAutres`), et seulement sur les lignes que son périmètre lui montre. La suppression
+   suit la même règle : effacer une journée n'est pas moins grave que la réécrire. */
+function ptPeutCorriger(p){ return ptPeutVoirAutres() && !!p && visiblePointages([p]).length===1; }
+/* ⛔ L'ÉQUIPE : CHACUN VOIT CE QUI LE CONCERNE — décision de Justin, 23 septembre 2026 :
+   « chacun voit ce qui le concerne, et le DR ou autres personnes assignés ». L'écran « Équipe »
+   (`views.techniciens`) n'est pas au menu, donc la garde de `go()` ne le connaissait pas : il se
+   lisait par l'adresse (#v=techniciens) ou par la recherche, et n'importe quel compte voyait les
+   téléphones, les e-mails, le Certibiocide et le TEMPS POINTÉ de toute l'entreprise. Même règle
+   que les feuilles de temps : « tout voir » ou « voir les pointages » → son périmètre (les
+   personnes rattachées à ce DR ou à ce chef, et lui-même ; toute l'entreprise sans personne de
+   rattaché, comme l'administrateur) ; sinon, sa propre fiche, et rien d'autre. */
+function visibleTechniciens(list){
+  if(can('voirTout')||can('voirPointages')){ const p=perimetreTechIds(); return (list||[]).filter(t=>t&&(!p||p.has(t.id))); }
+  if(!currentUser) return [];
+  const tid=myTechId(); return (list||[]).filter(t=>t&&tid&&t.id===tid); }
 /* Formule impayée : les rubriques de la formule réservée restent VISIBLES dans le
    menu, mais grisées avec un cadenas — on voit ce qu'on récupère en payant. */
 function verrouFormule(item){
@@ -29411,7 +29431,7 @@ function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
   if(m){ openBox(m.id,{sansAuto:true}); return; }
   m=db.produits.find(x=>x.nom&&x.nom.length>3&&dn.includes(norm(x.nom)));
   if(m){ go('produits'); setTimeout(()=>{ try{ prdSearch=m.nom; views.produits(); }catch(e){} },60); return; }
-  m=db.techniciens.find(x=>x.nom&&x.nom.length>2&&dn.includes(norm(x.nom)));
+  m=visibleTechniciens(db.techniciens).find(x=>x.nom&&x.nom.length>2&&dn.includes(norm(x.nom)));
   if(m){ try{ ficheTech(m.id); }catch(e){ go('techniciens'); } return; }
   m=db.vehicules.find(x=>x.immat&&dn.includes(norm(x.immat)));
   if(m){ go('vehicules'); return; }
@@ -29464,13 +29484,19 @@ function certibBadge(t){ if(!t||!t.certibiocideExp) return '<span class="st st-g
   if(days<=60) return `<span class="st st-org">Expire dans ${days} j</span>`;
   return '<span class="st st-green">À jour</span>'; }
 views.techniciens=function(){
-  setHeader('Techniciens',`${db.techniciens.length} membre(s)`,`${techDoublons().length?`<button class="btn ghost" onclick="techFusionnerDoublons()" title="Des fiches portent le même nom">🧹 Fusionner ${techDoublons().length} doublon(s)</button> `:''}<button class="btn" onclick="formTech()">＋ Technicien</button>`);
-  const rows=db.techniciens.map(t=>{ const n=db.interventions.filter(i=>i.techId===t.id).length;
+  /* « ＋ Technicien » crée aussi un COMPTE : il demande, en plus de « ajouter », le droit de créer des comptes. */
+  const L=visibleTechniciens(db.techniciens), peutAjout=canCat('equipe','ajouter')&&!!currentUser&&(currentUser.role==='admin'||can('creerUtilisateurs')), peutModif=canCat('equipe','modifier'), peutSuppr=canCat('equipe','supprimer');
+  /* La fusion des doublons réécrit des fiches de TOUTE l'entreprise : réservée à qui la voit entière. */
+  const nbDbl=(peutModif&&L.length===(db.techniciens||[]).length)?techDoublons().length:0;
+  setHeader('Techniciens',`${L.length} membre(s)`,`${nbDbl?`<button class="btn ghost" onclick="techFusionnerDoublons()" title="Des fiches portent le même nom">🧹 Fusionner ${nbDbl} doublon(s)</button> `:''}${peutAjout?`<button class="btn" onclick="formTech()">＋ Technicien</button>`:''}`);
+  const rows=L.map(t=>{ const n=db.interventions.filter(i=>i.techId===t.id).length;
     return `<tr class="row-clk" onclick="ficheTech('${t.id}')"><td><div class="ppl"><span class="avatar">${initials(t.nom)}</span> <span class="strong">${esc(t.nom)}</span></div></td><td>${esc(t.metier)||'—'}</td><td>${esc(t.tel)||'—'}</td><td>${certibBadge(t)}</td><td>${n}</td>
-    <td style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button> <button class="btn danger sm" onclick="delItem('techniciens','${t.id}')">🗑</button></td></tr>`;}).join('');
-  $('content').innerHTML=db.techniciens.length? tableCard(['Technicien','Rôle','Téléphone','Certibiocide','Interv.',''],rows):`<div class="card">${emptyState('👷','Aucun technicien.','Ajouter','formTech()')}</div>`;
+    <td style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">${peutModif?`<button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button>`:''}${peutModif&&peutSuppr?' ':''}${peutSuppr?`<button class="btn danger sm" onclick="delItem('techniciens','${t.id}')">🗑</button>`:''}</td></tr>`;}).join('');
+  $('content').innerHTML=L.length? tableCard(['Technicien','Rôle','Téléphone','Certibiocide','Interv.',''],rows)
+    :`<div class="card">${peutAjout?emptyState('👷','Aucun technicien.','Ajouter','formTech()'):emptyState('👷','Aucune fiche du personnel n’est rattachée à ton compte.','','')}</div>`;
 }
-function ficheTech(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) return;
+function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id===id);
+  if(!t){ if((db.techniciens||[]).some(x=>x.id===id)) toast('Cette fiche ne te concerne pas'); return; }
   const ints=db.interventions.filter(i=>i.techId===id).sort((a,b)=>(b.date+b.heure).localeCompare(a.date+a.heure));
   const pts=db.pointages.filter(p=>p.techId===id);
   const totMin=pts.reduce((s,p)=>s+Math.max(0,minutes(p.debut,p.fin)-(p.pause||0)),0);
@@ -29491,7 +29517,7 @@ function ficheTech(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) return
       ${k('⏱️','color-mix(in srgb,var(--acc) 16%,transparent)',dureeStr(totMin),'Temps pointé')}</div>
     <div class="dt-lbl" style="margin:8px 0">Dernières interventions</div>
     ${ints.length? ints.slice(0,5).map(i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention</div>'}
-    <div class="modal-foot"><button class="btn ghost" onclick="closeModal();formTech('${t.id}')">Modifier</button><button class="btn" onclick="closeModal();go('pointage')">Pointage</button></div>`);
+    <div class="modal-foot">${canCat('equipe','modifier')?`<button class="btn ghost" onclick="closeModal();formTech('${t.id}')">Modifier</button>`:''}<button class="btn" onclick="closeModal();go('pointage')">Pointage</button></div>`);
 }
 async function saveTech(e,id){ e.preventDefault();
   /* ⛔ LE DROIT AVANT LA PLACE. Les deux refusent, mais pas pour la même raison : un droit
@@ -29499,8 +29525,21 @@ async function saveTech(e,id){ e.preventDefault();
      Les intervertir ferait proposer un abonnement à quelqu'un qui n'avait de toute façon pas le
      droit de créer — et c'est ce que le premier relevé a pris pour un verrou qui n'existait pas. */
   if(!permGarde('equipe', id?'modifier':'ajouter','un technicien')) return;
+  /* ⛔⛔ LA FICHE N'EST PAS UNE PORTE DÉROBÉE VERS LES COMPTES — trouvé le 23 septembre 2026. Le droit
+     « modifier » de Temps & équipe vaut OUI par défaut pour tout le monde, et `saveTech` réécrivait
+     le RÔLE du compte relié à la fiche : un technicien ouvrait SA fiche, choisissait « Chef
+     d'équipe », enregistrait — et son compte changeait de rôle, donc de droits. Créer une fiche
+     créait aussi un COMPTE (identifiant et mot de passe affichés) sans le droit « Créer des
+     utilisateurs ». L'écran Utilisateurs pose ces deux règles depuis longtemps (`saveUser`) ;
+     celui-ci les contournait. Mêmes règles ici, mêmes messages : modifier un compte est réservé
+     à l'administrateur, en créer un demande le droit « Créer des utilisateurs ». La fiche elle-même
+     (téléphone, secteur, Certibiocide…) reste modifiable selon « Temps & équipe ». */
+  const admin=!!currentUser&&currentUser.role==='admin';
+  if(!id && !admin && !can('creerUtilisateurs')){ toast('Créer des comptes demande le droit « Créer des utilisateurs » (Permissions)'); return; }
   const d=Object.fromEntries(new FormData(e.target));
   if(!id && !planPlaceLibre()){ proposerAbonnement(); return; }
+  /* le rôle, verrouillé à l'écran pour qui n'est pas administrateur, ne se lit pas non plus au formulaire */
+  if(id && !admin) d.metier=(db.techniciens.find(x=>x.id===id)||{}).metier||'Technicien';
   const obj={nom:d.nom,metier:d.metier||'Technicien',tel:d.tel,email:d.email,departements:d.departements,couleur:d.couleur,certibiocide:d.certibiocide||'',certibiocideExp:d.certibiocideExp||'',capMin:Math.round((parseFloat(String(d.capH||'').replace(',','.'))||7)*60),
     droitConges:(d.droitConges===''||d.droitConges==null)?25:(parseFloat(String(d.droitConges).replace(',','.'))||0),
     chef:d.chef||''};
@@ -29508,14 +29547,14 @@ async function saveTech(e,id){ e.preventDefault();
   if(id){ const ix=db.techniciens.findIndex(x=>x.id===id); db.techniciens[ix]={...db.techniciens[ix],...obj};
     // Le rôle du compte suit la fiche — SAUF pour un administrateur : « Chef d'équipe » sur une
     // fiche technicien ne doit pas rétrograder le patron, qui perdrait Utilisateurs et Permissions.
-    const u=db.users.find(x=>x.techId===id); if(u&&u.role!=='admin'){ u.role=role; }
+    const u=db.users.find(x=>x.techId===id); if(admin&&u&&u.role!=='admin'){ u.role=role; }
     save(); closeModal(); toast('Technicien mis à jour'); views.techniciens(); return; }
   // Création : technicien + compte de connexion — sans doublon
   if(db.techniciens.some(x=>nomNorm(x.nom)===nomNorm(d.nom))){ toast('Un technicien porte déjà ce nom — modifie sa fiche plutôt que d\'en créer une deuxième'); return; }
   const tid=uid(); db.techniciens.push({id:tid,...obj});
   const parts=(d.nom||'').trim().split(/\s+/); const prenom=parts[0]||''; const nom=parts.slice(1).join(' ')||'';
   const dejaU=db.users.find(u=>!u.techId && nomNorm((u.prenom||'')+' '+(u.nom||''))===nomNorm(d.nom));
-  if(dejaU){ dejaU.techId=tid; if(dejaU.role!=='admin') dejaU.role=role; /* jamais rétrograder un administrateur */ logEvent('Technicien créé (relié au compte existant)',d.nom+' (@'+dejaU.login+')','crud'); save(); closeModal(); views.techniciens(); toast('Fiche technicien créée et reliée au compte existant @'+dejaU.login); return; }
+  if(dejaU){ dejaU.techId=tid; if(admin&&dejaU.role!=='admin') dejaU.role=role; /* jamais rétrograder un administrateur ; et changer le rôle d'un compte existant est une modification de compte */ logEvent('Technicien créé (relié au compte existant)',d.nom+' (@'+dejaU.login+')','crud'); save(); closeModal(); views.techniciens(); toast('Fiche technicien créée et reliée au compte existant @'+dejaU.login); return; }
   let base=(prenom||nom||'tech').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'')||'tech';
   let login=base, k=1; while(db.users.some(u=>u.login&&u.login.toLowerCase()===login)){ login=base+(++k); }
   // même circuit que Utilisateurs → Nouvel utilisateur : mot de passe provisoire, e-mail d'accès avec le lien de l'entreprise, fiche à transmettre
@@ -29525,11 +29564,13 @@ async function saveTech(e,id){ e.preventDefault();
   logEvent('Technicien + compte créés',d.nom+' (@'+login+')','auth'); save(); closeModal(); views.techniciens();
   setTimeout(()=>userIdentifiantsModal(nu,pwd),120);
 }
-function formTech(id){ const t=id?db.techniciens.find(x=>x.id===id):{};
+function formTech(id){ if(!permGarde('equipe', id?'modifier':'ajouter','un technicien')) return;
+  if(!id && !(currentUser&&(currentUser.role==='admin'||can('creerUtilisateurs')))){ toast('Créer des comptes demande le droit « Créer des utilisateurs » (Permissions)'); return; }
+  const t=id?db.techniciens.find(x=>x.id===id):{};
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} technicien</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="saveTech(event,'${id||''}')">
       <div class="field"><label>Nom complet *</label><input name="nom" required value="${esc(t.nom)}"></div>
-      <div class="field"><label>Rôle</label><select name="metier"><option ${(t.metier||'Technicien')==='Technicien'?'selected':''}>Technicien</option><option ${t.metier==="Chef d'équipe"?'selected':''}>Chef d'équipe</option></select></div>
+      <div class="field"><label>Rôle</label><select name="metier" ${id&&currentUser&&currentUser.role!=='admin'?'disabled title="Changer le rôle d’un compte est réservé à l’administrateur"':''}><option ${(t.metier||'Technicien')==='Technicien'?'selected':''}>Technicien</option><option ${t.metier==="Chef d'équipe"?'selected':''}>Chef d'équipe</option></select></div>
       <div class="field-row"><div class="field"><label>Téléphone</label><input name="tel" value="${esc(t.tel)}"></div><div class="field"><label>Email</label><input type="email" name="email" value="${esc(t.email)}"></div></div>
       <div class="field"><label>Secteur — départements</label><input name="departements" value="${esc(t.departements)}" placeholder="Ex : 85 Vendée, 44, Paris 75011"><div style="font-size:11px;color:var(--t3);margin-top:4px">Un département entier (n° ou nom). Grandes villes : par arrondissement (ex. 75011).</div></div>
       <div class="field"><label>Couleur (carte)</label><select name="couleur"><option value="" ${!t.couleur?'selected':''}>Auto (couleur unique)</option>${TECH_PALETTE.map((c,i)=>`<option value="${c}" ${t.couleur===c?'selected':''} style="background:${c}">${['Vert','Bleu','Violet','Orange','Rouge','Cyan','Jaune','Rose'][i]}</option>`).join('')}</select></div>
@@ -31230,6 +31271,7 @@ function saveSimple(e,coll,id,numFields){ e.preventDefault();
 function delItem(coll,id){
   const _grp=COLL_GRP[coll]||'';
   if(_grp ? !canCat(_grp,'supprimer') : !can('supprimer')){ toast('Suppression non autorisée pour ton compte (Permissions)'); return; }
+  if(coll==='pointages' && !ptPeutCorriger((db.pointages||[]).find(x=>x.id===id))){ toast('Supprimer des heures est réservé aux responsables'); return; }
   if(coll==='interventions'){ const it=db.interventions.find(x=>x.id===id);
     if(it){ if(it.groupId&&serieAutresActifs(it).length){ delSerieModal(id); return; }
       delIntModal(id); return; } }
@@ -34039,7 +34081,7 @@ views.pointage=function(){
         ${p.note?`<span style="font-size:12px;color:var(--t3)">${esc(p.note)}</span>`:''}
         ${p.lat?`<a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank" rel="noopener" title="Position au pointage">📍</a>`:''}
         <span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums"${ptOuvert(p)?` data-pt-chrono="${p.id}"`:''}>${ptOuvert(p)?ptChrono(ptSecs(p,now)):ptDuree(ptSecs(p))}</span>
-        <span style="white-space:nowrap"><button class="btn ghost sm" onclick="formPointage('${p.id}')">✎</button> <button class="btn danger sm" onclick="delItem('pointages','${p.id}')">🗑</button></span>
+        ${ptPeutCorriger(p)?`<span style="white-space:nowrap"><button class="btn ghost sm" onclick="formPointage('${p.id}')" aria-label="Corriger les heures">✎</button> <button class="btn danger sm" onclick="delItem('pointages','${p.id}')" aria-label="Supprimer le pointage">🗑</button></span>`:''}
       </div>`).join('')}</div>`).join('');
 
   /* ⛔ PAS DE « repeat(3,1fr) » POUR DES VALEURS QUI S'ALLONGENT. Mesuré le 23 septembre 2026 sur
@@ -34060,6 +34102,7 @@ views.pointage=function(){
   ptTickStart();
 };
 function formPointage(id){ const p=id?db.pointages.find(x=>x.id===id):{};
+  if(id?!ptPeutCorriger(p):!ptPeutVoirAutres()){ toast('Corriger des heures est réservé aux responsables'); return; }
   const dTs=p&&p.debutTs, fTs=p&&p.finTs;
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} pointage</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="savePointage(event,'${id||''}')">
@@ -34086,7 +34129,9 @@ function formPointage(id){ const p=id?db.pointages.find(x=>x.id===id):{};
    afficherait 16:35 et compterait jusqu'à 17:00. C'est exactement la panne silencieuse que ce
    dépôt paie à chaque fois qu'une donnée existe en deux exemplaires — ici, on les réécrit
    ensemble ou pas du tout. */
-function savePointage(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target)); d.pause=parseInt(d.pause)||0;
+function savePointage(e,id){ e.preventDefault();
+  if(id?!ptPeutCorriger(db.pointages.find(x=>x.id===id)):!ptPeutVoirAutres()){ toast('Corriger des heures est réservé aux responsables'); return; }
+  const d=Object.fromEntries(new FormData(e.target)); d.pause=parseInt(d.pause)||0;
   const jour=d.date||todayISO();
   d.debutTs=new Date(jour+'T'+(d.debut||'00:00')+':00').getTime()||null;
   d.finTs=new Date(jour+'T'+(d.fin||'00:00')+':00').getTime()||null;
@@ -34829,7 +34874,7 @@ function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=no
   add(db.devis,'Devis','💰',d=>d.num,d=>clientName(d.clientId),()=>`closeModal();go('devis')`);
   add(db.factures,'Facture','🧾',f=>f.num,f=>clientName(f.clientId),()=>`closeModal();go('factures')`);
   add(db.fournisseurs,'Fournisseur','🏭',f=>f.nom,f=>f.ville,()=>`closeModal();go('fournisseurs')`);
-  add(db.techniciens,'Technicien','👷',t=>t.nom,t=>t.metier,t=>`closeModal();ficheTech('${t.id}')`);
+  add(visibleTechniciens(db.techniciens),'Technicien','👷',t=>t.nom,t=>t.metier,t=>`closeModal();ficheTech('${t.id}')`);   // chacun voit ce qui le concerne
   el.innerHTML = R.length? R.map(r=>`<div class="pl-row" onclick="${r.act}"><span style="font-size:18px;width:24px;text-align:center">${r.ic}</span><div class="pl-info"><div class="pl-title">${esc(r.nom)}</div><div class="pl-meta">${esc(r.type)}${r.sub?' · '+esc(r.sub):''}</div></div></div>`).join('') : '<div style="color:var(--t3);font-size:13px;padding:8px">Aucun résultat pour « '+esc(qq)+' »</div>';
 }
 
