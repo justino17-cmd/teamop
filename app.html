@@ -37254,6 +37254,32 @@ function traitDe(nom){
   return e;
 }
 var HORS=/^(SCRIPT|STYLE|TEXTAREA|INPUT|SVG|CODE|PRE)$/;
+/* ⛔ UNE ICÔNE SEULE A BESOIN D'UN NOM — ET C'EST CE REMPLACEMENT QUI LE LUI RETIRAIT. Mesuré le
+   23 septembre 2026 : 33 commandes du fichier ne portent QU'UN émoji (✎ Modifier, 🗑 Supprimer,
+   🔄, 🖨️…), sans title ni aria-label. Avant la refonte, un lecteur d'écran lisait l'émoji ; le
+   trait qui le remplace est `aria-hidden`, et le bouton n'avait plus AUCUN nom — ni pour
+   l'oreille, ni en infobulle. Quand le remplacement vide une commande de tout texte, elle reçoit
+   le nom de son GESTE, à défaut l'émoji qu'on vient de retirer (ce qu'on lisait avant). Jamais
+   par-dessus un nom que l'application a déjà posé : si elle a nommé, c'est elle qui a raison
+   (même règle que `nommer()` plus bas). */
+var GESTE={crayon:'Modifier',poubelle:'Supprimer',actualiser:'Actualiser',imprimante:'Imprimer',
+  loupe:'Rechercher',plus:'Ajouter',engrenage:'Réglages',tel:'Appeler',enveloppe:'Écrire',
+  disquette:'Enregistrer',oeil:'Voir',retour:'Retour',fleche:'Suivant',cloche:'Notifications',
+  lien:'Lien',photo:'Photo',trombone:'Pièce jointe',annuler:'Annuler',envoi:'Envoyer'};
+function nommerIcone(hote,cle){
+  var c=hote&&hote.closest&&hote.closest('button,a[href],[onclick],[role=button]');
+  if(!c||c.hasAttribute('aria-label')||c.hasAttribute('aria-labelledby')||(c.getAttribute('title')||'').trim()) return;
+  /* ⚠ `nommer()` passe APRÈS nous et nomme mieux : l'infobulle écrite par l'application
+     (`data-tip`) et le bouton du menu (« Ouvrir le menu »). Nommer avant eux leur volerait la
+     place — ils ne remplacent jamais un nom déjà posé. */
+  if(c.hasAttribute('data-tip')||c.classList.contains('menu-btn')) return;
+  if((c.textContent||'').replace(/\s+/g,'')) return;          // il lui reste un texte : c'est son nom
+  var n=GESTE[EMO[cle]]||cle;
+  try{ if(typeof window.t==='function') n=window.t(n)||n; }catch(e){}
+  c.setAttribute('aria-label',n); c.setAttribute('title',n);
+  /* un span qui agit n'a pas de rôle : sans lui, son nom n'est pas garanti d'être lu */
+  if(!/^(BUTTON|A)$/.test(c.tagName) && !c.hasAttribute('role')) c.setAttribute('role','button');
+}
 function icones(racine){
   if(!racine) return;
   var w, aFaire=[];
@@ -37267,11 +37293,12 @@ function icones(racine){
     for(var i=0;i<CLES.length;i++){ if(t.indexOf(CLES[i])>=0){ aFaire.push(n); break; } }
   }
   for(var k=0;k<aFaire.length;k++){
-    var noeud=aFaire[k], reste=noeud.nodeValue, frag=document.createDocumentFragment(), garde=0;
+    var noeud=aFaire[k], reste=noeud.nodeValue, frag=document.createDocumentFragment(), garde=0, premiere=null;
     while(reste && garde++<40){
       var pos=-1, cle=null;
       for(var j=0;j<CLES.length;j++){ var q=reste.indexOf(CLES[j]); if(q>=0 && (pos<0||q<pos)){ pos=q; cle=CLES[j]; } }
       if(pos<0) break;
+      if(!premiere) premiere=cle;
       if(pos>0) frag.appendChild(document.createTextNode(reste.slice(0,pos)));
       frag.appendChild(traitDe(EMO[cle]));
       reste=reste.slice(pos+cle.length);
@@ -37279,7 +37306,9 @@ function icones(racine){
     }
     if(frag.childNodes.length){
       if(reste) frag.appendChild(document.createTextNode(reste));
-      try{ noeud.parentNode.replaceChild(frag,noeud); }catch(e){}
+      var hote=noeud.parentNode;
+      try{ hote.replaceChild(frag,noeud); }catch(e){}
+      if(premiere) try{ nommerIcone(hote,premiere); }catch(e){}
     }
   }
 }
