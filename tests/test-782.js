@@ -118,6 +118,11 @@ console.log('\n── 782 · 2. le lendemain, la journée repart à zéro ──
   W.a(8, 0); W.run('pointerDebut()'); W.a(17, 0); W.run('pointerFin()');
   const d = new Date('2026-09-24T00:00:00'); d.setHours(7, 45, 0, 0); W.run('setT(' + d.getTime() + ')');
   v('un autre jour, le bouton redit « Début de journée » (pas « Reprendre »)', libelle(W.run('ptBoutonJour()')).replace(/^[^A-ZÀ-Ý]*/, ''), 'Début de journée');
+  /* Trouvé par mutation : un compteur qui additionnait TOUTES les journées passait au vert, le
+     seul rendu exécuté n'en avait qu'une. */
+  const carte = W.run('ptMaJournee(Date.now())');
+  v('⛔ … et « Ma journée » repart de 00:00:00 — la veille n’y est pas', (carte.match(/id="pt-jour-sec"[^>]*>([^<]*)</) || [])[1], '00:00:00');
+  vrai('… « pas encore commencée », aucune période d’hier', /pas encore commencée/.test(carte) && !/class="pt-seg"/.test(carte));
   W.run('pointerDebut()');
   vrai('… et le message ne parle d’aucune pause (la nuit n’en est pas une)', /Journée commencée à 07:45/.test(W.toasts.at(-1)) && !/pause/.test(W.toasts.at(-1)), W.toasts.at(-1));
 }
