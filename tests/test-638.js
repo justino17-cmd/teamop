@@ -91,8 +91,12 @@ console.log('\nLe devis qui part chez le client');
     bac.ligHT([0,1,2,3].map(()=>({qte:.5,pu:24.99}))),49.96);
   v('le PDF utilise le même arrondi que l\'écran',
     /const q=Number\(l\.qte\)\|\|0, pu=Number\(l\.pu\)\|\|0, tot=ligTotLigne\(l\);/.test(APP),true);
-  v('« Modèle générique » ne s\'imprime plus en tête du devis',
-    /const socNom=\/g\[ée\]n\[ée\]rique\|aucune\/i\.test\(String\(d\.rapportModele\|\|''\)\)\?'':String\(d\.rapportModele\|\|''\);/.test(APP),true);
+  /* v740 : la règle vit dans socNom/docEntete, que TOUS les documents appellent — la fabrique du
+     devis (docPdfStr) lit l'en-tête par docEntete(d.rapportModele), et socNom est EXÉCUTÉE ici. */
+  v('« Modèle générique » ne s\'imprime plus en tête du devis — la fabrique passe par docEntete',
+    /const h=docEntete\(d\.rapportModele\), ent=h\.nom;/.test(APP),true);
+  { const socNom=new Function('m',decoupe('function socNom(m){').replace(/^function socNom\(m\)\{/,'').replace(/\}\s*$/,''));
+    v('… et socNom rend vide le générique, pas la société',[socNom('Modèle générique'),socNom('modele generique'),socNom(''),socNom(' Alpha ')],['','','','Alpha']); }
 }
 
 console.log('\nLa virgule décimale — mesurée sur Chromium en fr-FR');
