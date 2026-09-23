@@ -46,6 +46,7 @@ const gardeAvant = (c, g) => { const i = c.indexOf(g); if (i < 0) return false;
 console.log('── 791 · 1. les quatre gestes d\'administrateur sont des CASES, fermées par défaut ──');
 const QUATRE = { effacerPrix: ['prixEffacer', 'stock'], supprimerHistoDemandes: ['demHistoSuppr', 'achats'],
   supprimerHistoCommandes: ['boxCmdSuppr', 'stock'], revoirDistincts: ['produitsDistinctsRevoir', 'stock'] };
+/* la livraison sans bon (boxLivrSuppr) lit la même case que la commande : c'est le même historique de box */
 const UC = decoupe('const USER_CAPS=['), PS = decoupe('const PERM_SPECIAUX=');
 const W = { Object, JSON, Set, Array, String, db: { users: [], permissions: {} }, currentUser: null, __t: [] };
 vm.createContext(W);
@@ -76,6 +77,13 @@ for (const [k, [fn]] of Object.entries(QUATRE)) {
   vrai(fn + ' : sa garde lit la case « ' + k + ' », AVANT toute écriture et toute question', gardeAvant(c, "caseGarde('" + k + "'"), c.slice(0, 160));
   vrai(fn + ' : plus aucune lecture du nom de rôle ni d\'adminSeul()', !/role\s*[!=]==?\s*'admin'|adminSeul\(\)/.test(c), c.slice(0, 160));
 }
+{ const c = corps('boxLivrSuppr');
+  vrai('boxLivrSuppr (une livraison de l\'historique) : la même case que les commandes, AVANT toute question', gardeAvant(c, "caseGarde('supprimerHistoCommandes'") && !/adminSeul\(\)/.test(c), c.slice(0, 160)); }
+vrai('le ✕ d\'une livraison lit la case', /\$\{can\('supprimerHistoCommandes'\)\?`<button type="button" class="dos-x" onclick="event\.stopPropagation\(\);boxLivrSuppr\(/.test(SRC));
+{ const c = corps('boxCmdSuppr');
+  vrai('⛔ une commande dont la réception ATTEND le DR ne s\'efface pas — même par l\'admin (le stock ne serait jamais crédité)',
+    /if\(bonAttenteDR\(b\)\)\{ toast\(/.test(c) && c.indexOf('bonAttenteDR(b)') < c.indexOf('confirm('), c.slice(0, 300)); }
+vrai('l\'éditeur des droits ne dit plus « ce n\'est pas une case à cocher »', !/n\\'est pas une case à cocher/.test(APP) && /Il peut confier chacun de ces gestes/.test(APP));
 vrai('le bouton « Effacer les prix » lit la case', /\(_np&&can\('effacerPrix'\)\)\?/.test(SRC));
 vrai('le ✕ d\'une demande de l\'historique lit la case', /\$\{can\('supprimerHistoDemandes'\)\?`<button type="button" class="dos-x" onclick="event\.stopPropagation\(\);demHistoSuppr\(/.test(SRC));
 vrai('le ✕ d\'une commande de l\'historique d\'une box lit la case', /\$\{can\('supprimerHistoCommandes'\)\?`<button type="button" class="dos-x" onclick="event\.stopPropagation\(\);boxCmdSuppr\(/.test(SRC));
@@ -98,20 +106,37 @@ W.db.permissions.technicien.caps.modifierPlans = true;
 vrai('un technicien sans réglage personnel a donc le droit, et le perd si l\'admin le décoche',
   W.userCap(pers({}, 'technicien'), 'modifierPlans') === true && W.userCap(pers({ modifierPlans: false }, 'technicien'), 'modifierPlans') === false);
 
+{ const c = corps('paDelPlan');
+  vrai('⛔ supprimer un plan ENTIER lit aussi « Interventions → Supprimer » (le technicien modifie, il n\'efface pas un plan)',
+    /if\(!canCat\('int','supprimer'\)\)\{ toast\(/.test(c) && c.indexOf("canCat('int','supprimer')") < c.indexOf('confirm('), c.slice(0, 300));
+  vrai('… et son 🗑 ne s\'affiche qu\'avec ce droit', /\$\{canCat\('int','supprimer'\)\?`<button class="btn ghost sm" style="color:var\(--red\)" onclick="paDelPlan\(/.test(SRC)); }
+
 console.log('\n── 791 · 3. une intervention SANS technicien : qui peut planifier la voit, pour l\'affecter ──');
 { const X = { Set, Array };
   vm.createContext(X);
   vm.runInContext(['var __caps={}, __perim=null, __moi="tMoi";',
     'function can(c){ return !!__caps[c]; }', 'function perimetreTechIds(){ return __perim; }', 'function myTechId(){ return __moi; }',
-    decoupe('function intTechIds(i){'), decoupe('function canPlan(){'), decoupe('function visibleInts(list){')].join('\n'), X);
+    decoupe('function intTechIds(i){'), decoupe('function canPlan(){'), decoupe('function visibleInts(list,aAffecter){')].join('\n'), X);
   const L = [{ id: 'moi', techIds: ['tMoi'] }, { id: 'equipe', techIds: ['tEq'] }, { id: 'autre', techIds: ['tAutre'] }, { id: 'libre', techIds: [] }, { id: 'libreAncien', techId: '' }];
-  const vu = (caps, perim) => { X.__caps = caps; X.__perim = perim ? new Set(perim) : null; return X.visibleInts(L).map(i => i.id); };
-  v('DR rattaché à une équipe ET qui planifie : son équipe, et les interventions à affecter', vu({ voirTout: 1, planifDeplacer: 1 }, ['tEq', 'tMoi']), ['moi', 'equipe', 'libre', 'libreAncien']);
-  v('… sans « Déplacer le planning » : son équipe seulement (comme avant)', vu({ voirTout: 1 }, ['tEq', 'tMoi']), ['moi', 'equipe']);
-  v('… et jamais l\'intervention d\'une AUTRE équipe', vu({ voirTout: 1, planifDeplacer: 1 }, ['tEq']).includes('autre'), false);
+  const vu = (caps, perim, aff) => { X.__caps = caps; X.__perim = perim ? new Set(perim) : null; return X.visibleInts(L, aff).map(i => i.id); };
+  v('DR rattaché à une équipe ET qui planifie, dans un écran où l\'on affecte : son équipe, et les interventions à affecter', vu({ voirTout: 1, planifDeplacer: 1 }, ['tEq', 'tMoi'], true), ['moi', 'equipe', 'libre', 'libreAncien']);
+  v('⛔⛔ … mais PARTOUT AILLEURS (clients, documents, compteurs, exports) : la règle d\'avant, sans elles', vu({ voirTout: 1, planifDeplacer: 1 }, ['tEq', 'tMoi']), ['moi', 'equipe']);
+  v('… sans « Déplacer le planning » : son équipe seulement, même dans le planning', vu({ voirTout: 1 }, ['tEq', 'tMoi'], true), ['moi', 'equipe']);
+  v('… et jamais l\'intervention d\'une AUTRE équipe', vu({ voirTout: 1, planifDeplacer: 1 }, ['tEq'], true).includes('autre'), false);
   v('« Tout voir » sans équipe : tout, comme avant', vu({ voirTout: 1 }, null), ['moi', 'equipe', 'autre', 'libre', 'libreAncien']);
-  v('un technicien à qui l\'on donne « Déplacer le planning » : les siennes et celles à affecter', vu({ planifDeplacer: 1 }, null), ['moi', 'libre', 'libreAncien']);
-  v('un technicien sans ce droit : les siennes seulement', vu({}, null), ['moi']); }
+  v('un technicien à qui l\'on donne « Déplacer le planning » : les siennes et celles à affecter, dans le planning', vu({ planifDeplacer: 1 }, null, true), ['moi', 'libre', 'libreAncien']);
+  v('⛔⛔ … et ses CLIENTS restent les siens : l\'option n\'est pas passée hors du planning', vu({ planifDeplacer: 1 }, null), ['moi']);
+  v('un technicien sans ce droit : les siennes seulement', vu({}, null, true), ['moi']); }
+/* Où l'option est passée, et surtout où elle NE l'est PAS — la cascade qui ouvrait les clients. */
+{ const fonc = n => corps(n) || (SRC.indexOf(n + '=function(){') >= 0 ? (() => { const i = SRC.indexOf(n + '=function(){'); let k = SRC.indexOf('{', i), p = 0; for (; k < SRC.length; k++) { if (SRC[k] === '{') p++; else if (SRC[k] === '}') { p--; if (!p) break; } } return SRC.slice(i, k + 1); })() : '');
+  const AVEC = ['gsearch', 'pgPersOccupes', 'pgPersRender', 'views.planningGeneral', 'tdbDetail', 'tdbPlanning', 'planFilterSrc', 'planPeriodeInts', 'planTypesConnus', 'planJoursMenu', 'planCalHtml', 'views.interventions', 'renderSearch', 'ouvrables'];
+  const SANS = ['mesClientIds', 'refreshBadges', 'tdbRetards', 'exportInterventionsCsv', 'exportClientsCsv', 'views.rapports', 'intPoints', 'views.factures', 'views.statistiques', 'computeNotifs'];
+  v('les écrans où l\'on affecte passent l\'option (planning, liste, recherche, ouverture de la fiche)', AVEC.filter(n => !/visibleInts\(db\.interventions(\|\|\[\])?,true\)/.test(fonc(n))), []);
+  v('⛔⛔ et AUCUN autre ne la passe : clients (mesClientIds), compteurs, exports, rapports, carte, factures, statistiques, notifications', SANS.filter(n => /visibleInts\([^)]*,true\)/.test(fonc(n)) || !fonc(n)), []);
+  v('… en tout : 16 appels avec l\'option, pas un de plus', (SRC.match(/visibleInts\([^()]*(?:\([^()]*\))?[^()]*,true\)/g) || []).length, 16);
+  const O = corps('ouvrables');
+  vrai('ouvrables : la fiche d\'une intervention à affecter s\'ouvre, mais les CLIENTS restent ceux qu\'on voit (visibleClients, sans option)',
+    /const clis=new Set\(visibleClients\(db\.clients\|\|\[\]\)/.test(O) && /const ints=new Set\(visibleInts\(db\.interventions\|\|\[\],true\)/.test(O), O); }
 const TD = corps('renderIntTechDay');
 vrai('« Ma journée » ne montre que SES interventions — pas celles à affecter',
   /\{ const tid=myTechId\(\); SRC=\(SRC\|\|\[\]\)\.filter\(i=>intTechIds\(i\)\.includes\(tid\)\); \}/.test(TD) && TD.indexOf('SRC=(SRC||[]).filter') < TD.indexOf('const act=SRC.filter'), TD.slice(0, 300));
@@ -122,6 +147,8 @@ v('boxMvtValider : chaque ligne de mouvement qu\'elle écrit porte un identifian
   (VAL.match(/'mvv:'\+m\.id\+':'/g) || []).length, 7);
 v('… et celles qui parcourent des LIGNES (arrivage, lot) y mettent le rang de la ligne : deux lignes du même produit ne partagent pas un identifiant',
   (VAL.match(/'mvv:'\+m\.id\+':'\+kl\+':'/g) || []).length, 3);
+vrai('l\'arrivage validé entre UNE fois dans l\'historique de la box (b.arrivages, réuni par identifiant)', /b\.arrivages\.unshift\(\{id:'mvv:'\+m\.id\+':arr',/.test(VAL));
+vrai('le bon de remise né d\'une validation porte un identifiant tiré du mouvement (un seul bon, même validé deux fois)', /br=\{id:\(m&&m\.id\?'br:'\+m\.id:uid\(\)\),num:nextNum\('bonsRemise'/.test(corps('remiseAjoute')));
 vrai('… traceBox le prend, et garde uid() pour tout le reste', /function traceBox\(b,pid,delta,unit,motif,par,validePar,donneA,idFixe\)\{[\s\S]{0,80}db\.mouvements\.unshift\(\{id:idFixe\|\|uid\(\),/.test(SRC));
 vrai('… et le journal, lui, garde une ligne PAR PERSONNE qui a cliqué (une ligne par geste)', /logEvent\('Mouvement box validé'/.test(VAL) && !/logEvent\([^;]*'mvv:/.test(VAL));
 { /* Deux appareils, les VRAIES fonctions : traceBox, estampiller, ombreRelever, boxFusionFine, fusionnerBases. */

@@ -57,7 +57,7 @@ const MORCEAUX = [
   'function perimetreUserIds(u){',
   /* visibleInts lit canPlan() depuis la v739 : qui peut planifier voit les interventions sans technicien */
   'function canPlan(){',
-  'function visibleInts(list){',
+  'function visibleInts(list,aAffecter){',
   'function mesClientIds(){',
   'function creeParMoi(x){',
   'function visibleClients(list){',

@@ -12648,11 +12648,17 @@ function perimetreUserIds(u){ u=u||currentUser; if(!u) return new Set();
    l'administrateur et les « Tout voir » sans équipe la voyaient. Justin, 23 septembre 2026 (qui doit
    l'affecter ? l'admin, qui peut planifier, le DR de l'équipe) : « ils ont tout le pouvoir de le
    faire, c'est normal ». Qui peut planifier (« Déplacer le planning ») la voit donc, pour l'affecter
-   — le planning a déjà sa colonne « Non assigné ». « Ma journée » ne la montre pas (renderIntTechDay). */
-function visibleInts(list){
-  const libre=canPlan(), aPrendre=i=>libre&&!intTechIds(i).length;
-  if(can('voirTout')){ const p=perimetreTechIds(); return p?(list||[]).filter(i=>intTechIds(i).some(t=>p.has(t))||aPrendre(i)):(list||[]); }
-  const tid=myTechId(); return (list||[]).filter(i=>intTechIds(i).includes(tid)||aPrendre(i)); }
+   — le planning a déjà sa colonne « Non assigné ». « Ma journée » ne la montre pas (renderIntTechDay).
+   ⛔⛔ SEULEMENT LÀ OÙ L'ON AFFECTE (`aAffecter`, relecture de la v739). Élargie pour tout le monde,
+   la liste nourrissait aussi mesClientIds → visibleClients → visibleDocs : un technicien à qui l'on
+   donnait « Déplacer le planning » voyait les CLIENTS de toutes les interventions non affectées, leurs
+   devis, leurs factures, leur registre, l'export CSV — mesuré par relecture et bac à sable. Le
+   planning, la liste des interventions, la recherche et l'ouverture de la fiche passent `true` ; le
+   reste (clients, documents, compteurs, exports, statistiques, notifications) garde la règle d'avant. */
+function visibleInts(list,aAffecter){
+  const aPrendre=(aAffecter&&canPlan())?(i=>!intTechIds(i).length):null;
+  if(can('voirTout')){ const p=perimetreTechIds(); return p?(list||[]).filter(i=>intTechIds(i).some(t=>p.has(t))||(aPrendre&&aPrendre(i))):(list||[]); }
+  const tid=myTechId(); return (list||[]).filter(i=>intTechIds(i).includes(tid)||(aPrendre&&aPrendre(i))); }
 /* Box visibles selon le rôle : tout (admin/chef/DR/commercial/compta = « voir tout »), ou seulement
    les box assignés au technicien connecté. Même logique que les interventions → séparation par technicien. */
 /* ⛔ LE PÉRIMÈTRE S'APPLIQUE AUSSI À QUI A « TOUT VOIR » — décision de Justin, 10 septembre 2026 :
@@ -12898,7 +12904,7 @@ function clientPropose(id,garde){ return !!id&&clientsProposes(garde).some(c=>c.
 function ouvrables(){
   const clis=new Set(visibleClients(db.clients||[]).map(c=>c.id));
   visibleBoxes(db.boxes||[]).forEach(b=>{ if(b&&b.clientId) clis.add(b.clientId); });
-  const ints=new Set(visibleInts(db.interventions||[]).map(i=>i.id));
+  const ints=new Set(visibleInts(db.interventions||[],true).map(i=>i.id));
   return { int:i=>!!i&&(ints.has(i.id)||(!!i.clientId&&clis.has(i.clientId))), cli:c=>!!c&&clis.has(c.id) };
 }
 /* ⛔ TROIS CERCLES, PAS DEUX. Avant, seul « tout voir » ouvrait les pointages des autres —
@@ -14214,7 +14220,7 @@ function rechVoit(k){ return !!currentUser&&userSeesModule(currentUser,k); }
 function gsearch(q){ const box=$('gsrch-res'); if(!box) return; q=norm((q||'').trim()); if(q.length<2){ box.style.display='none'; box.innerHTML=''; return; }
   const out=[];
   (rechVoit('clients')?visibleClients(db.clients):[]).forEach(c=>{ if(norm(c.nom||'').includes(q)) out.push({ic:'🏢',t:c.nom,sub:'Client',fn:"ficheClient('"+c.id+"')"}); });
-  (rechVoit('interventions')?visibleInts(db.interventions):[]).forEach(i2=>{ if(norm((i2.num||'')+' '+(i2.titre||'')+' '+clientName(i2.clientId)).includes(q)) out.push({ic:'🧰',t:(i2.num?i2.num+' · ':'')+(i2.titre||''),sub:(i2.date?fmtShort(i2.date)+' · ':'')+((STATUT_INT[i2.statut]||{}).l||''),fn:"detailIntervention('"+i2.id+"')"}); });
+  (rechVoit('interventions')?visibleInts(db.interventions,true):[]).forEach(i2=>{ if(norm((i2.num||'')+' '+(i2.titre||'')+' '+clientName(i2.clientId)).includes(q)) out.push({ic:'🧰',t:(i2.num?i2.num+' · ':'')+(i2.titre||''),sub:(i2.date?fmtShort(i2.date)+' · ':'')+((STATUT_INT[i2.statut]||{}).l||''),fn:"detailIntervention('"+i2.id+"')"}); });
   (rechVoit('taches')?mesTaches():[]).forEach(t2=>{ if(norm(t2.titre||'').includes(q)) out.push({ic:'✅',t:t2.titre,sub:'Tâche',fn:"go('taches')"}); });
   const top=out.slice(0,8);
   box.innerHTML=top.length?top.map(r=>`<div class="gr" onclick="gsrchGo(this)" data-fn="${esc(r.fn)}"><span>${r.ic}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.t)}</span><span class="gt">${esc(r.sub)}</span></div>`).join(''):'<div class="gr" style="cursor:default;color:var(--t3)">Aucun résultat</div>';
@@ -14385,7 +14391,7 @@ function pgPersSeuls(ids){ const s2=pgPersSet(); s2.clear(); (ids||[]).forEach(i
 function pgPersOccupes(){
   const jours=[]; const n=pgPortee(); for(let k=0;k<n;k++) jours.push(shiftDay(pgRef||todayISO(),k));
   const ok={};
-  visibleInts(db.interventions).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee').forEach(i=>{ ok[planTechsOf(i)[0]||'']=1; });
+  visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee').forEach(i=>{ ok[planTechsOf(i)[0]||'']=1; });
   actAll().filter(a=>jours.indexOf(a.date)>=0).forEach(a=>{ ok[a.techId||'']=1; });
   (db.absences||[]).filter(a=>absValidee(a)&&jours.some(j=>a.du<=j&&j<=(a.au||a.du))).forEach(a=>{ ok[a.techId]=1; });
   return Object.keys(ok);
@@ -14396,7 +14402,7 @@ function pgPersRender(){
   const q=norm(pgPersQ||'');
   const jours=[]; const n=pgPortee(); for(let k=0;k<n;k++) jours.push(shiftDay(pgRef||todayISO(),k));
   const nomDe=id=>id===''?'Non assigné':((db.techniciens.find(t=>t.id===id)||{}).nom||'—');
-  const nbDe=id=>visibleInts(db.interventions).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee'&&(planTechsOf(i)[0]||'')===id).length;
+  const nbDe=id=>visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee'&&(planTechsOf(i)[0]||'')===id).length;
   const chefs=(db.techniciens||[]).filter(t=>techEstChef(t.id));
   const occ=pgPersOccupes();
   const raccourcis=[
@@ -14496,7 +14502,7 @@ views.planningGeneral=function(){
   let gens=db.techniciens.map(t=>({id:t.id,nom:t.nom,role:'Technicien'})).concat([{id:'',nom:'Non assigné',role:'à répartir'}]);
   gens=gens.filter(g=>sPers.has(g.id));
   if(q) gens=gens.filter(g=>norm(g.nom).includes(q));
-  const SRC=visibleInts(db.interventions).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee');
+  const SRC=visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee');
   const seg=[7,14,30,90].map(v=>`<span class="${n===v?'on':''}" onclick="pgPorteeSet(${v})">${v===7?'7 jours':v===14?'14 jours':v===30?'1 mois':'3 mois'}</span>`).join('');
   const segF=[['tout','Tout'],['int','Interventions'],['abs','Absences']]
     .map(([k,l])=>`<span class="${pgFiltre===k?'on':''}" onclick="pgFiltreSet('${k}')">${l}</span>`).join('');
@@ -14743,7 +14749,7 @@ function tdbRetards(){ const j=todayISO();
 /* le détail d'une case : on clique un chiffre, on voit ce qu'il compte */
 function tdbDetail(k){
   const jours=tdbJours();
-  const SRC=visibleInts(db.interventions).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee');
+  const SRC=visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee');
   const st=i=>{ const x=STATUT_INT[i.statut]||{}; return `<span class="st" style="background:color-mix(in srgb,${INT_STCOLOR[i.statut]||'var(--t3)'} 18%,transparent);color:${INT_STCOLOR[i.statut]||'var(--t3)'}">${esc(x.l||i.statut)}</span>`; };
   const ligne=(i,extra)=>{ const t=planTechsOf(i)[0]||'';
     const adr=[i.adresse||'',(db.clients.find(c=>c.id===i.clientId)||{}).ville||''].filter(Boolean).join(' · ');
@@ -14761,7 +14767,7 @@ function tdbDetail(k){
     pied=`<button class="btn" onclick="tdbDetailFerme();go('planningGeneral')">Ouvrir le planning général</button>`;
   }
   else if(k==='plan'){
-    const l=visibleInts(db.interventions).filter(i=>!i.date||i.statut==='aplanifier');
+    const l=visibleInts(db.interventions,true).filter(i=>!i.date||i.statut==='aplanifier');
     titre=l.length+' intervention'+(l.length>1?'s':'')+' à planifier';
     corps=l.map(i=>ligne(i,`<span class="st" style="background:color-mix(in srgb,var(--org) 18%,transparent);color:var(--org)">à planifier</span>`)).join('');
     pied=`<button class="btn" onclick="tdbDetailFerme();go('planning')">Ouvrir le planning</button>`;
@@ -14839,7 +14845,7 @@ function tdbPlanning(){
   const jours=tdbJours(); if(!jours.length) return '';
   const toutVoir=can('voirTout'), tidMoi=myTechId();
   const groupes=(toutVoir?db.techniciens:db.techniciens.filter(t=>t.id===tidMoi)).map(t=>({id:t.id,nom:t.nom})).concat(toutVoir?[{id:'',nom:'Non assigné'}]:[]);
-  const SRC=visibleInts(db.interventions).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee');
+  const SRC=visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee');
   const parJT={}; SRC.forEach(i=>{ const k=(planTechsOf(i)[0]||'')+'|'+i.date; (parJT[k]=parJT[k]||[]).push(i); });
   const ABS=tdbAbsences(), ACTS=tdbActs();
   /* on ne montre que les lignes qui ont quelque chose, sauf « Non assigné » qui reste utile */
@@ -14848,7 +14854,7 @@ function tdbPlanning(){
     ||ABS.some(a=>a.techId===g.id&&absValidee(a)&&jours.some(j=>a.du<=j&&j<=(a.au||a.du))));
   const lignes=util.length?util:groupes.slice(0,4);
   /* résumé */
-  const aPlanifier=visibleInts(db.interventions).filter(i=>!i.date||i.statut==='aplanifier').length;
+  const aPlanifier=visibleInts(db.interventions,true).filter(i=>!i.date||i.statut==='aplanifier').length;
   const enRetard=tdbRetards().length;
   const absents=new Set(ABS.filter(a=>absValidee(a)&&jours.some(j=>a.du<=j&&j<=(a.au||a.du))).map(a=>a.techId)).size;
   const mn=SRC.reduce((s,i)=>s+(parseInt(i.duree)||60),0)
@@ -15001,7 +15007,7 @@ function planIntCard(i,opts){ opts=opts||{}; const sc=opts.couleurTech?planCardC
     <div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''} ${cf?'<span class="tag hot" style="font-size:9px" title="Chevauchement avec une autre intervention">Conflit</span>':''}</div><div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?esc(i.type)+' · ':''}${esc(clientName(i.clientId))}${(i.checklist&&i.checklist.length)?` · ☑ ${i.checklist.filter(x=>x.done).length}/${i.checklist.length}`:''}</div>${opts.hideTech?'':`<div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(techNames(i))}${i.recurrence&&i.recurrence!=='aucune'?' · 🔁 '+(INT_RECUR[i.recurrence]||''):''}</div>`}</div>
     ${badge(STATUT_INT,i.statut)}</div>`; }
 function planFilterSrc(){
-  let SRC=visibleInts(db.interventions);
+  let SRC=visibleInts(db.interventions,true);
   SRC=SRC.filter(planTechVisible);                                     // un seul filtre technicien pour tous les modes
   if(planTypeS.size) SRC=SRC.filter(i=>planTypeS.has(i.type||''));     // plusieurs types possibles
   if(planHideDone()) SRC=SRC.filter(i=>i.statut!=='terminee'&&i.statut!=='annulee');
@@ -15662,10 +15668,10 @@ document.addEventListener('click',function(e){
 /* interventions de la période affichée, avant filtrage : sert aux compteurs */
 function planPeriodeInts(){
   const j=planJoursCarte();
-  return visibleInts(db.interventions).filter(i=>j.indexOf(i.date)>=0);
+  return visibleInts(db.interventions,true).filter(i=>j.indexOf(i.date)>=0);
 }
 function planTypesConnus(){
-  return [...new Set(visibleInts(db.interventions).filter(i=>i.type).map(i=>i.type))].sort();
+  return [...new Set(visibleInts(db.interventions,true).filter(i=>i.type).map(i=>i.type))].sort();
 }
 /* ── plusieurs plannings empilés : N techniciens par ligne ── */
 function planParLigneChoix(){ const n=parseInt(localStorage.getItem('elanB_plan_parligne')||'4',10); return (n>0)?n:4; }
@@ -15920,7 +15926,7 @@ function planJoursMenu(){
     const d0=new Date(sem[0]+'T00:00:00'), d6=new Date(sem[6]+'T00:00:00');
     const lib='Semaine du '+d0.getDate()+' '+d0.toLocaleDateString('fr-FR',{month:'short'})
              +' au '+d6.getDate()+' '+d6.toLocaleDateString('fr-FR',{month:'short'});
-    const nInt=iso=>visibleInts(db.interventions).filter(i=>i.date===iso&&i.statut!=='annulee').length;
+    const nInt=iso=>visibleInts(db.interventions,true).filter(i=>i.date===iso&&i.statut!=='annulee').length;
     return `<div class="pf-pan large">
       <div class="pf-semnav">
         <u onclick="planJoursSemaine(-1)" data-tip="Semaine précédente">‹</u>
@@ -16898,7 +16904,7 @@ function planCalHtml(){
   const [an,mo]=mois.split('-').map(Number);
   const prem=new Date(an,mo-1,1), dec=(prem.getDay()+6)%7;
   const dep=new Date(prem); dep.setDate(1-dec);
-  const cnt={}; visibleInts(db.interventions).forEach(i=>{ if(i.date) cnt[i.date]=(cnt[i.date]||0)+1; });
+  const cnt={}; visibleInts(db.interventions,true).forEach(i=>{ if(i.date) cnt[i.date]=(cnt[i.date]||0)+1; });
   let cases='';
   for(let k=0;k<42;k++){
     const d=new Date(dep); d.setDate(dep.getDate()+k);
@@ -19344,7 +19350,7 @@ function weekDays(ref){ const d=new Date(ref+'T00:00:00'); const dow=(d.getDay()
 views.interventions=function(){
   // Un technicien arrive d'abord sur « Ma journée » (liste) ; la vue semaine reste accessible
   if(!can('voirTout') && !window._intViewInit){ window._intViewInit=1; intView='liste'; }
-  const SRC=visibleInts(db.interventions);
+  const SRC=visibleInts(db.interventions,true);
   const att=SRC.filter(i=>i.statut==='planifiee'||i.statut==='encours').length;
   setHeader('Interventions',`${SRC.length} au total · ${att} à venir`,`${can('voirTout')?`<button class="btn ghost" onclick="exportInterventionsCsv()">CSV</button> `:''}<button class="btn ghost" onclick="intView='${intView==='semaine'?'liste':'semaine'}';views.interventions()">${intView==='semaine'?'Liste':'Semaine'}</button> ${canCat('int','ajouter')?`<button class="btn" onclick="formIntervention('',${intView==='semaine'?`'${intSelDay||todayISO()}'`:'undefined'})">＋ Intervention</button>`:''}`);
   if(intView==='liste' && !can('voirTout')){ renderIntTechDay(SRC); return; }
@@ -20005,6 +20011,10 @@ function paRenamePlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId
   const v=prompt('Nom du plan :',pl.nom); if(!v) return; pl.nom=v.slice(0,40); papTouch(pl,'Plan renommé « '+pl.nom+' »'); save(); renderIntDetail(intId); }
 function paDelPlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
+  /* v739 : « Modifier les plans » est donné au technicien par défaut (décision de Justin) — il
+     déplace, ajoute, corrige. Effacer un plan ENTIER, avec tous ses postes, est une suppression :
+     elle lit aussi « Interventions → Supprimer », comme toute suppression de la catégorie. */
+  if(!canCat('int','supprimer')){ toast('Supprimer un plan entier demande « Interventions → Supprimer » (Permissions)'); return; }
   const plans=plansOf(i.clientId); const ix=plans.findIndex(p=>p.id===plid); if(ix<0) return;
   if(!confirm('Supprimer ce plan et ses '+(plans[ix].postes||[]).length+' poste(s) ? (les relevés déjà enregistrés sont conservés)')) return;
   plans.splice(ix,1); _paSel=(plans[0]||{}).id||''; save(); renderIntDetail(intId); toast('Plan supprimé'); }
@@ -20221,7 +20231,7 @@ function papPlanProHtml(i,pl,canEd){
         <div style="font-size:10.5px;color:var(--t3)">Plan ${papPlanNum(pl)} · version ${pl.version||1}${pl.implantationEnvoyee?' · implantation envoyée le '+new Date(pl.implantationEnvoyee.ts).toLocaleDateString('fr-FR'):''}</div></div>
       ${canEd?`<button class="btn ghost sm" onclick="paRenamePlan('${i.id}','${pl.id}')">✏️</button>
       ${(pl.mode!=='geo'&&pl.mode!=='rooms'&&!(pl.postes||[]).length)?`<button class="btn ghost sm" onclick="document.getElementById('pap-rephoto').click()">📷 Reprendre la photo</button>`:''}
-      <button class="btn ghost sm" style="color:var(--red)" onclick="paDelPlan('${i.id}','${pl.id}')">🗑</button>`:''}
+      ${canCat('int','supprimer')?`<button class="btn ghost sm" style="color:var(--red)" onclick="paDelPlan('${i.id}','${pl.id}')">🗑</button>`:''}`:''}
     </div>
     ${tb}${hint}
     ${papViewHtml(i,pl,canEd)}
@@ -24766,8 +24776,12 @@ function adminSeul(){
   toast('Réservé à l\'administrateur — ce droit ne se délègue pas'); return false;
 }
 function boxCmdSuppr(bonId,boxId){
-  if(!caseGarde('supprimerHistoCommandes','Supprimer une commande de l\'historique d\'une box')) return;
+  if(!caseGarde('supprimerHistoCommandes','Supprimer une commande ou une livraison de l\'historique d\'une box')) return;
   const b=(db.bons||[]).find(x=>x.id===bonId); if(!b) return;
+  /* v739 (relecture) : devenu délégable, ce geste effaçait aussi une réception EN ATTENTE du DR
+     (db.boxMvtAttente filtré plus bas) — le stock n'aurait jamais été crédité, sans que le DR le
+     sache. On valide ou on refuse d'abord ; l'administrateur compris. */
+  if(bonAttenteDR(b)){ toast('Cette commande a une réception qui attend la validation du DR — valide-la ou refuse-la d\'abord'); return; }
   if(!confirm('Supprimer définitivement la commande '+bonNum(b)+' ?\n\nSon PDF, sa réception et la photo du bon de livraison partent avec.\nLe stock déjà crédité n\'est PAS retiré.')) return;
   db.bons=(db.bons||[]).filter(x=>x.id!==bonId);
   db.boxMvtAttente=(db.boxMvtAttente||[]).filter(m=>m.bcId!==bonId);
@@ -24777,7 +24791,7 @@ function boxCmdSuppr(bonId,boxId){
   save(); toast('Commande supprimée'); boxCommandes(boxId);
 }
 function boxLivrSuppr(arrId,boxId){
-  if(!adminSeul()) return;
+  if(!caseGarde('supprimerHistoCommandes','Supprimer une commande ou une livraison de l\'historique d\'une box')) return;
   const bx=(db.boxes||[]).find(x=>x.id===boxId); if(!bx) return;
   if(!confirm('Supprimer cette livraison et sa photo ?\n\nLe stock déjà crédité n\'est PAS retiré.')) return;
   bx.arrivages=(bx.arrivages||[]).filter(a=>a.id!==arrId);
@@ -24810,7 +24824,7 @@ function boxCommandes(boxId){
       <div class="dos-h" style="cursor:default">
         <div class="dos-i"><div class="dos-t">${esc(a.fournisseur||'Livraison')} — ${(a.lignes||[]).length} produit(s)</div>
           <div class="dos-m">Sans bon de commande · ${(a.lignes||[]).reduce((t,l)=>t+(l.qte||0),0)} u · ${fmtTs(a.ts)}${a.par?` · par ${esc(a.par)}`:''}</div></div>
-        <span class="st st-blue">Livraison</span>${currentUser&&currentUser.role==='admin'?`<button type="button" class="dos-x" onclick="event.stopPropagation();boxLivrSuppr('${a.id}','${boxId}')" title="Supprimer définitivement" aria-label="Supprimer cette livraison">🗑</button>`:''}</div>
+        <span class="st st-blue">Livraison</span>${can('supprimerHistoCommandes')?`<button type="button" class="dos-x" onclick="event.stopPropagation();boxLivrSuppr('${a.id}','${boxId}')" title="Supprimer définitivement" aria-label="Supprimer cette livraison">🗑</button>`:''}</div>
       <div class="dos-p">
         ${a.photo?`<button type="button" class="dos-pi" onclick="window.open('${a.photo}')"><img src="${a.photo}" alt="Bon de livraison"><span><b>Bon de livraison</b><i>Photo à la réception</i></span></button>`
                  :`<div class="dos-pi vide"><span class="dos-ic">📷</span><span><b>Bon de livraison</b><i>Aucune photo prise</i></span></div>`}
@@ -25585,7 +25599,7 @@ function boxMvtValider(id,statut,accords){ _resteApresValid='';
     (m.lignes||[]).forEach((l,kl)=>{ const q=mvAcc(l,'qte'); if(!q) return; const cur=b.stock[l.produitId]||{ctn:0,u:0}; cur.u=(cur.u||0)+q; b.stock[l.produitId]=cur;
       db.mouvements.unshift({id:'mvv:'+m.id+':'+kl+':'+l.produitId+':arr',ts:Date.now(),produitId:l.produitId,type:'entree',qte:q,motif:'Arrivage '+(m.fournisseur||'')+' — '+(b.nom||b.numero||'')+' (validé DR'+(mvModif(l,'qte')?' — '+mvCorrigeTxt(l):'')+')',vehiculeId:'',boxId:b.id,boxNomTxt:(b.nom||b.numero||''),technicien:m.par||'',validePar:fullName(currentUser),roleConso:roleDeNom(m.par||'')}); });
     const bonArr=m.bcId?((db.bons||[]).find(x=>x.id===m.bcId)||null):null;
-    b.arrivages=b.arrivages||[]; b.arrivages.unshift({id:uid(),ts:Date.now(),fournisseur:m.fournisseur||'',lignes:(m.lignes||[]).filter(l=>mvAcc(l,'qte')>0).map(l=>({produitId:l.produitId,qte:mvAcc(l,'qte')})),photo:m.photo||'',par:m.par||'',bcId:m.bcId||'',bcNum:bonArr?bonNum(bonArr):''});
+    b.arrivages=b.arrivages||[]; b.arrivages.unshift({id:'mvv:'+m.id+':arr',ts:Date.now(),fournisseur:m.fournisseur||'',lignes:(m.lignes||[]).filter(l=>mvAcc(l,'qte')>0).map(l=>({produitId:l.produitId,qte:mvAcc(l,'qte')})),photo:m.photo||'',par:m.par||'',bcId:m.bcId||'',bcNum:bonArr?bonNum(bonArr):''});
     if(b.arrivages.length>40) b.arrivages.length=40;
     if(m.bcId){ const bonV=(db.bons||[]).find(x=>x.id===m.bcId);
       if(bonV){ const complet=bonToutRecu(bonV);
@@ -25810,7 +25824,8 @@ function remiseAjoute(m,qte,unite){
     let br=db.bonsRemise.find(x=>x.boxId===m.boxId&&x.par===m.par&&x.pourQui===m.pourQui&&x.date===jour);
     if(!br){ const uPar=db.users.find(u2=>u2.id===m.parId)||{};
       const bxR=db.boxes.find(b2=>b2.id===m.boxId)||{};
-      br={id:uid(),num:nextNum('bonsRemise','BR','num'),date:jour,ts:Date.now(),boxId:m.boxId,boxNomTxt:(bxR.nom||bxR.numero||''),
+      br={id:(m&&m.id?'br:'+m.id:uid()),num:nextNum('bonsRemise','BR','num'),   // v739 : né d'une validation, un seul bon même validé deux fois
+        date:jour,ts:Date.now(),boxId:m.boxId,boxNomTxt:(bxR.nom||bxR.numero||''),
         par:m.par||'',parRole:(typeof ROLE!=='undefined'&&roleLbl(uPar.role))||'',pourQui:m.pourQui||'',valideDr:fullName(currentUser),lignes:[]};
       db.bonsRemise.push(br); }
     const l=br.lignes.find(x=>x.produitId===m.produitId&&(x.unite||'u')===uR);
@@ -29926,7 +29941,7 @@ function usrDeplier(id){ usrOuvert=(usrOuvert===id)?'':id; views.utilisateurs();
 function usrDroitsHtml(u,admin){
   if(u.role==='admin') return '<div class="usr-d"><div class="usr-t">🛠️ Administrateur</div>'+
     '<p class="usr-x">Tous les droits, sur tout, tout le temps. Il n\'y a rien à régler pour ce compte — et rien qu\'on puisse lui retirer sans changer son rôle.</p>'+
-    '<p class="usr-x" style="margin-top:8px">🗑 <b>Lui seul peut effacer définitivement</b> une commande, une livraison ou une demande d\'un historique. Ce pouvoir n\'est pas une case à cocher : il tient au rôle. Pour le donner à quelqu\'un, il faut en faire un administrateur.</p></div>';
+    '<p class="usr-x" style="margin-top:8px">🗑 <b>Par défaut, lui seul peut effacer</b> une commande, une livraison ou une demande d\'un historique, effacer les prix pré-remplis et revenir sur les « c\'est normal » des doublons. Il peut confier chacun de ces gestes à qui il veut : ce sont des cases, sur la ligne de la personne (Stock, Achats internes).</p></div>';
   const dis=admin?'':' disabled';
   const swH=(name,on,extra)=>'<label class="switch"><input type="checkbox" data-d="'+name+'"'+(on?' checked':'')+dis+(extra||'')+'><span class="track"></span><span class="knob"></span></label>';
   const ligne=(lbl,desc,sw)=>'<div class="perm-row"><div class="pn">'+lbl+(desc?'<div class="pn-d">'+desc+'</div>':'')+'</div>'+sw+'</div>';
@@ -30260,7 +30275,7 @@ const USER_CAPS=[
      l'administrateur les a d'office (userCap), et il les coche pour qui il veut. */
   ['effacerPrix','Effacer les prix pré-remplis du catalogue','Produits : le bouton qui efface d\'un coup les tarifs que l\'ancien catalogue avait posés dans les fiches, pour que l\'entreprise mette les siens'],
   ['supprimerHistoDemandes','Supprimer une demande de l\'historique','Supprimer définitivement une demande de l\'historique des demandes (le stock ne bouge pas)'],
-  ['supprimerHistoCommandes','Supprimer une commande de l\'historique d\'une box','Supprimer définitivement une commande, son PDF, sa réception et la photo du bon de livraison (le stock déjà crédité ne bouge pas)'],
+  ['supprimerHistoCommandes','Supprimer une commande ou une livraison de l\'historique d\'une box','Supprimer définitivement une commande (son PDF, sa réception, la photo du bon de livraison) ou une livraison sans bon — jamais une réception qui attend encore la validation du DR ; le stock déjà crédité ne bouge pas'],
   ['revoirDistincts','Revenir sur les « c\'est normal » (doublons)','Annuler les réponses « ce sont deux produits différents » : les doublons de produits seront signalés à nouveau'],
 ];
 /* Une seule question, un seul endroit : « cette personne a-t-elle le droit de passer une
@@ -35442,7 +35457,7 @@ function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=no
   /* v738 : chaque famille par le filtre de son écran ET seulement si ce menu lui est ouvert (rechVoit) */
   const V=(k,l)=>rechVoit(k)?l:[];
   add(V('clients',visibleClients(db.clients)),'Client','🏢',c=>c.nom,c=>c.adresse,c=>`closeModal();ficheClient('${c.id}')`);
-  add(V('interventions',visibleInts(db.interventions)),'Intervention','🧰',i=>i.titre,i=>clientName(i.clientId)+' · '+fmtShort(i.date),i=>`closeModal();detailIntervention('${i.id}')`);
+  add(V('interventions',visibleInts(db.interventions,true)),'Intervention','🧰',i=>i.titre,i=>clientName(i.clientId)+' · '+fmtShort(i.date),i=>`closeModal();detailIntervention('${i.id}')`);
   add(V('produits',db.produits),'Produit','📦',p=>p.nom,p=>p.ref,p=>`closeModal();formProduit('${p.id}')`);
   add(V('boxes',visibleBoxes(db.boxes)),'Box','🧱',b=>b.nom||b.numero,b=>b.ville,b=>`closeModal();openBox('${b.id}')`);   // la recherche respecte le périmètre
   add(V('vehicules',visibleVehicules(db.vehicules)),'Véhicule','🚐',v=>vPlaque(v),v=>(v.marque||'')+' '+(v.modele||''),v=>`closeModal();ficheVehicule('${v.id}')`);
