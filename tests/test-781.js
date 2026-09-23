@@ -104,6 +104,10 @@ v('⛔ carte SOUS l’écran (la v731 : 2 187 px) → on défile jusqu’à elle
   jouerMontrer({ carte: [2100, 2600], map: [2187, 2527] }), [{ top: 400 + 2100 - 114 - 8, behavior: 'smooth' }]);
 v('carte ENTIÈREMENT visible → on ne bouge pas', jouerMontrer({ carte: [300, 800], map: [340, 700] }), []);
 v('carte à moitié dans l’écran (son bas passe sous la barre d’onglets) → on l’amène', jouerMontrer({ carte: [560, 1100], map: [605, 945] }).length, 1);
+/* Le cas qui départage : le bas de la carte est DANS l'écran (800 < 874) mais SOUS la barre
+   d'onglets (800 > 766). Sans ce cas, un calcul qui oublie la barre passait au vert — mesuré par
+   mutation : c'était la seule des treize à ne rien faire tomber. */
+v('⛔ le bas de la carte caché SOUS la barre d’onglets (mais dans l’écran) → on l’amène quand même', jouerMontrer({ carte: [380, 850], map: [425, 800] }).length, 1);
 v('carte passée AU-DESSUS (page défilée plus bas) → on remonte jusqu’à elle',
   jouerMontrer({ carte: [-500, 0], map: [-455, -115], scrollY: 1800 }), [{ top: 1800 - 500 - 114 - 8, behavior: 'smooth' }]);
 v('⛔ « réduire les animations » → le même saut, sans glissé', jouerMontrer({ carte: [2100, 2600], map: [2187, 2527], reduit: true }).map(o => o.behavior), ['auto']);
