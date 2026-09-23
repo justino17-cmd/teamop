@@ -4525,8 +4525,10 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
   /* Le message se posait sur la bulle d'aide, exactement là où le pouce allait la chercher.
      Il passe AU-DESSUS d'elle : les deux se voient, aucun des deux ne bloque l'autre. */
   html[data-refonte] body.rf-onglets .toast{bottom:calc(var(--tabh) + 66px)!important;max-width:min(90vw,440px)}
-  /* le rappel du matin aussi : posé à 22 px du bas, il couvrait la barre d'onglets pendant 15 s */
-  html[data-refonte] body.rf-onglets #fdr-banner{bottom:calc(var(--tabh) + 66px)!important}
+  /* le rappel du matin aussi : posé à 22 px du bas, il couvrait la barre d'onglets pendant 15 s.
+     76 et non 66 comme le message : il reste 15 s, et à 66 son bord touchait la bulle d'aide
+     (58 px posés à 10 px de la barre : 68) — mesuré, 2 px de chevauchement. */
+  html[data-refonte] body.rf-onglets #fdr-banner{bottom:calc(var(--tabh) + 76px)!important}
   /* ⛔⛔ DEUX BOUTONS FLOTTANTS DANS LE MÊME COIN, ET C'EST LE PLUS HAUT QUI GAGNE.
      Justin, capture à l'appui, 22 septembre 2026 : sur le Planning, une forme verte en
      cachait une autre. Mesuré sur un iPhone de 390 px, panneau d'assistance fermé :
@@ -4557,6 +4559,10 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
    bouton. Même geste qu'au téléphone : le bouton monte au-dessus de la bulle, SEULEMENT si
    elle est là. La règle du téléphone, plus précise, garde la main sous 780 px. */
 html[data-refonte] body:has(#assistant > .fab) .plm-fab{bottom:calc(24px + 58px + 10px)!important}
+/* Le rappel du matin, pareil : élargi pour que son message se lise, il atteignait le coin de la
+   bulle sur iPad (mesuré par sonde-ma-journee.js). Au-dessus d'elle, sous 780 px c'est la règle
+   de la barre d'onglets qui le place. */
+@media (min-width:781px){ html[data-refonte] body:has(#assistant > .fab) #fdr-banner{bottom:calc(24px + 58px + 12px)!important} }
 /* ── VOTRE LISTE EN COURS ─── elle se compose en tapant −/+, sans mode à activer ───
    Posée EN HAUT de la liste des produits : c'est là qu'on regarde avant de valider, et c'est
    là qu'elle doit être. Le liseré vert dit qu'elle est à vous et qu'elle n'est pas encore

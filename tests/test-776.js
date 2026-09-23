@@ -260,7 +260,10 @@ console.log('\n── 776 · 13. « Ma journée », l’écran du technicien, ti
     /position:fixed;left:12px;right:12px;/.test(fB) && /margin:0 auto;width:max-content;max-width:min\(\d+px,calc\(100vw - 24px\)\)/.test(fB) && !/left:50%/.test(fB));
   vrai('… son message garde une ligne à lui quand tout ne tient pas (base 220 px, boutons dessous à droite)',
     /flex-wrap:wrap/.test(fB) && /<span style="flex:1 1 220px;min-width:0">/.test(fB) && /style="flex-shrink:0;margin-left:auto"/.test(fB));
-  vrai('… et il passe au-dessus de la barre d’onglets, comme les messages', /body\.rf-onglets #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 66px\)!important\}/.test(SRC));
+  vrai('… et il passe au-dessus de la barre d’onglets, comme les messages', /body\.rf-onglets #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 76px\)!important\}/.test(SRC));
+  const hb = regle('html[data-refonte] body:has(#assistant > .fab) #fdr-banner{bottom:calc(24px + 58px + 12px)!important}');
+  vrai('⛔ … et, sans barre d’onglets (tablette, ordinateur), au-dessus de la bulle d’aide qu’il atteint une fois élargi',
+    !!hb && /min-width:781px/.test(hb.media), hb && hb.media);
   vrai('la preuve au navigateur existe (en technicien, quatre appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-ma-journee.js'))); }
 
 console.log('\n── 776 · 14. une boîte centrée par « left:50% » se mesure sur la moitié de son cadre ──');

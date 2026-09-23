@@ -30,7 +30,11 @@ const { ouvrir, dormir } = require(path.join(__dirname,'pilote.js')); const { pr
     const ban=await S.ev(`await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); const b=document.getElementById('fdr-banner'); if(!b) return null;
       const bb=b.getBoundingClientRect(), sp=b.querySelector('span'), sb=sp.getBoundingClientRect(); const bt=[...b.querySelectorAll('button')].map(x=>x.getBoundingClientRect());
       const touche=bt.some(x=>Math.min(x.right,sb.right)-Math.max(x.left,sb.left)>1&&Math.min(x.bottom,sb.bottom)-Math.max(x.top,sb.top)>1);
-      return {gauche:Math.round(bb.left), droite:Math.round(bb.right), texte:Math.round(sb.width), deborde:sp.scrollWidth>sp.clientWidth+1, touche};`);
+      /* et il ne se pose sur rien de ce qui flotte déjà en bas : la bulle d'aide, la barre d'onglets */
+      const flottants=[...document.querySelectorAll('#assistant > .fab, #tabbar')].filter(x=>{ const q=getComputedStyle(x); return q.display!=='none'&&q.visibility!=='hidden'; }).map(x=>x.getBoundingClientRect());
+      const pose=flottants.some(x=>Math.min(x.right,bb.right)-Math.max(x.left,bb.left)>1&&Math.min(x.bottom,bb.bottom)-Math.max(x.top,bb.top)>1);
+      return {gauche:Math.round(bb.left), droite:Math.round(bb.right), texte:Math.round(sb.width), deborde:sp.scrollWidth>sp.clientWidth+1, touche, pose, flottants:flottants.length};`);
+    if(process.env.CAPTURE_RAPPEL){ await S.ev(`try{ closeAsst(); }catch(e){} return 1;`); await dormir(500); const png=await S.c.envoyer('Page.captureScreenshot',{format:'png'}); fs.writeFileSync('/tmp/sonde-ma-journee-rappel-'+nom+'.png',Buffer.from(png.data,'base64')); }
     await S.ev(`const b=document.getElementById('fdr-banner'); if(b) b.remove(); try{ closeAsst(); }catch(e){} return 1;`); await dormir(400);
     const r=await S.ev(`document.querySelectorAll('#content details').forEach(d=>d.open=true);
       await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void document.body.offsetWidth; await new Promise(r=>setTimeout(r,700));
@@ -49,7 +53,7 @@ const { ouvrir, dormir } = require(path.join(__dirname,'pilote.js')); const { pr
     if(r.texteMin<180) fautes.push('colonne de texte à '+r.texteMin+' px');
     if(!ban) fautes.push('population : le rappel du matin n’a pas paru');
     else { if(ban.gauche<0||ban.droite>P.w) fautes.push('rappel hors de l’écran ('+ban.gauche+'→'+ban.droite+')');
-      if(ban.texte<200) fautes.push('rappel : message sur '+ban.texte+' px'); if(ban.deborde) fautes.push('rappel : un mot déborde'); if(ban.touche) fautes.push('rappel : le message passe sous un bouton'); }
+      if(ban.texte<200) fautes.push('rappel : message sur '+ban.texte+' px'); if(ban.deborde) fautes.push('rappel : un mot déborde'); if(ban.touche) fautes.push('rappel : le message passe sous un bouton'); if(ban.pose) fautes.push('rappel posé sur la bulle d’aide ou la barre d’onglets'); }
     console.log((fautes.length?'✗ ':'✓ ')+nom.padEnd(9)+String(P.w).padStart(5)+' px · '+r.cartes+' cartes · texte ≥ '+r.texteMin+' px · titre ≤ '+r.titreMax+' lignes · '+r.exemple+(ban?' · rappel '+ban.texte+' px':'')+(fautes.length?'  → '+fautes.join(' · '):''));
     if(fautes.length) ko++;
     if(process.env.CAPTURE){ const png=await S.c.envoyer('Page.captureScreenshot',{format:'png'}); fs.writeFileSync('/tmp/sonde-ma-journee-'+nom+'.png',Buffer.from(png.data,'base64')); }
