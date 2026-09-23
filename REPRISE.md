@@ -39,6 +39,78 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 23 SEPTEMBRE 2026 (nuit) — L'ÉQUIPE PAR PERSONNE, LE ✎ AUX RESPONSABLES, ET SES DÉCISIONS (v735, bêta)
+
+Réponses de Justin aux questions de la v734 :
+
+| | ce qu'il a dit | ce qui est fait |
+|---|---|---|
+| Écran « Équipe » | « chacun voit ce qui le concerne, et le DR ou autres personnes assignés » | ✅ v735, ci-dessous |
+| ✎ du Pointage | « réservé au responsable » | ✅ v735, ci-dessous |
+| Courrier ELAN | « c'est moi qui ai vu avec eux en réunion, donc c'est bon ; ça, tu t'en occupes pas » | ✅ **réglé par Justin, en réunion.** Le chemin critique de l'étape 4 est levé ; ne plus le relancer |
+| Application sur mesure | voir « ⏳ Pour plus tard » ci-dessous | 📝 noté, à faire après le serveur |
+| La priorité | « que tu me finisses les premières choses et qu'on continue le serveur pour envoyer l'application au plus vite sur nos serveurs à nous et quitter Google » | ▶️ le chantier « TOUT SUR LE SERVEUR » repart |
+
+### Ce que contient la v735 (bêta)
+
+- **« Équipe » : chacun voit ce qui le concerne** (`visibleTechniciens`). L'administrateur et ceux
+  qui voient tout — ou les feuilles de temps — voient leur périmètre : les personnes rattachées à
+  ce DR ou à ce chef (`drId`/`chefId`), et eux-mêmes ; toute l'entreprise quand personne ne leur
+  est rattaché. Les autres voient **leur propre fiche**. La règle vaut pour TOUTES les portes :
+  l'écran (hors menu, donc atteignable par l'adresse `#v=techniciens`), la fiche, la recherche, le
+  journal. « ＋ Technicien », ✎ et 🗑 ne paraissent qu'avec le droit correspondant.
+- **Le ✎ du Pointage aux responsables** (`ptPeutCorriger`) : qui voit les feuilles de temps des
+  autres, sur les lignes de son périmètre. Vérifié à l'écran, au formulaire, à l'enregistrement et
+  à la suppression (une ligne cachée n'est pas une garde). Une correction ne laisse toujours pas de
+  ligne au journal — c'était l'autre option, Justin a choisi celle-ci.
+- ⛔⛔ **Trouvé en écrivant le banc, et fermé : une élévation de droits.** Le droit « modifier » de
+  Temps & équipe vaut OUI par défaut pour tout le monde, et `saveTech` réécrivait le RÔLE du compte
+  relié à la fiche : un technicien ouvrait SA fiche, choisissait « Chef d'équipe », enregistrait —
+  et son compte changeait de rôle. Créer une fiche créait aussi un compte (identifiant et mot de
+  passe affichés) sans le droit « Créer des utilisateurs ». L'écran Utilisateurs pose ces deux
+  règles depuis longtemps (`saveUser`) ; la fiche les contournait. Mêmes règles désormais : changer
+  un rôle est réservé à l'administrateur (le sélecteur est verrouillé, et le formulaire n'est pas
+  relu), créer une fiche demande le droit de créer des comptes. Antérieur à la v735 — avant, le
+  technicien pouvait même le faire sur les fiches de TOUS ses collègues. ⚠️ **En production
+  (v695), la porte est ouverte** : à publier avec le reste, le jour où la production repart.
+
+Mesuré : `tests/test-786.js` **51 ✓** — exécute les vraies fonctions sur six personnes et la vraie
+`saveTech` (dont le DR dont la fiche dit « Technicien », qu'un correctif naïf rétrogradait) ;
+**15 mutations, 15 attrapées**. `scratchpad/sonde-equipe.js` **17 ✓** ; sur la bêta publiée v734 :
+**7 ✓ 10 ✗** — le technicien y voyait les quatre fiches, ouvrait celle d'une collègue avec son
+téléphone, et **réécrivait ses propres heures** (« Pointage mis à jour »). Suite complète :
+**143 suites · 6 563 vérifications, code de sortie 0**.
+⚠️ Deux faux défauts écartés en route, et c'est la méthode du dépôt : une entrée vide dans
+`db.techniciens` faisait planter `myTechId()` — mais l'application ne produit pas cet état, c'est
+le banc qui le fabriquait (retiré) ; et la sonde attendait « réservé aux responsables » sur la
+suppression, refusée PLUS TÔT par le droit « supprimer » — juste, deux gardes valent mieux qu'une.
+
+### ⏳ Pour plus tard — l'application de démonstration et la commande à la carte
+
+Justin, 23 septembre 2026, mot pour mot sur l'essentiel : « je veux que les futurs utilisateurs ou
+entreprises puissent avoir accès à l'application sur le site quand ils cliquent sur l'application
+démonstration […] ils voient toute l'application comme si j'étais en mode premium, ils peuvent tout
+tester sans que ça enregistre quoi que ce soit — c'est une démo, c'est pour vendre l'application
+aussi — et de là ils peuvent passer, quand ils vont faire la commande pour avoir accès à
+l'application, sélectionner les catégories qui les intéressent […] ils peuvent décocher, et en
+fonction de ça c'est à nous derrière de faire le forfait à un prix un peu plus attractif […] mais
+le prix reste toujours par utilisateur — je ne fais plus de prix à deux utilisateurs ou autre […]
+c'est maintenant un prix par utilisateur. Ça c'est un plus à faire pour le futur, mais on va le
+mettre en place dès que possible. »
+
+Trois morceaux, à faire APRÈS le serveur :
+1. **Une démonstration publique** depuis le site : toute l'application, en premium, **sans rien
+   enregistrer** (ni appareil ni nuage) — ce que la bêta sait déjà presque faire (`BETA_ESSAI`,
+   espace isolé), mais pour un anonyme et sans compte. ⚠️ Une démo qui écrit quelque part se
+   remplit de déchets ; une démo qui n'écrit nulle part doit le DIRE (« rien n'est gardé »).
+2. **La commande à la carte** : cocher les catégories voulues ; le serveur rend la formule et ses
+   catégories comme il rend déjà `formule` (`/api/espaces/etat`), et l'application grise le reste
+   par le chemin de `PLAN_BLOQUE`. ⛔ La liste des catégories payées vient du SERVEUR, jamais du
+   corps d'une requête (règle des codes promo).
+3. **Le site en prix par utilisateur** : plus de formule « à 2 utilisateurs » ; Tarifs et
+   `recap-abonnement.html` à revoir, et les prix Stripe avec.
+Rien n'est commencé ; le prix d'une catégorie reste à fixer par Justin.
+
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — CE QUE JUSTIN A TRANCHÉ, ET LA v734 (bêta)
 
 Réponses de Justin à la liste du soir, point par point, et ce qui en est sorti :
@@ -111,19 +183,19 @@ pages ; production toujours en v695, bêta en v733 au moment du contrôle.
 
 ### ⏳ Ce qui attend Justin
 
-1. **L'écran « Équipe » (`techniciens`)** — captures envoyées : l'admin l'ouvre depuis les
+1. ✅ **Tranché et fait en v735** (voir plus haut). **L'écran « Équipe » (`techniciens`)** — captures envoyées : l'admin l'ouvre depuis les
    congés ; un technicien ne l'a pas au menu, mais **en tapant l'adresse `#v=techniciens`** (ou
    par la recherche) il lit toute l'équipe, et la fiche d'un collègue montre son téléphone, son
    e-mail, son Certibiocide et **son temps pointé**. Recommandation, dans la ligne « chacun voit
    ce qui le concerne » : l'administrateur et ceux qui voient tout → toute l'équipe ; un chef
    d'équipe → son équipe ; un technicien → sa propre fiche seulement. Rien n'est touché avant sa
    réponse.
-2. **Le ✎ du Pointage** (question de la v733, sans réponse) : réserver aux responsables, ou
+2. ✅ **Tranché et fait en v735 : réservé aux responsables.** **Le ✎ du Pointage** (question de la v733) : réserver aux responsables, ou
    laisser à chacun mais tracer chaque correction au journal.
-3. **Le courrier ELAN** : il l'a fait, « vu avec eux ». Il faut savoir si c'est un **accord
+3. ✅ **Réglé : vu en réunion avec ELAN, « c'est bon, tu t'en occupes pas ».** **Le courrier ELAN** : il l'a fait, « vu avec eux ». Il faut savoir si c'est un **accord
    écrit** (l'étape 4 peut commencer) ou un **préavis de 30 jours** (elle attend le
    23 octobre) — et en garder la trace écrite : c'est ce qui couvre `sous-traitance.html`.
-4. **L'application sur mesure** — ce qui existe déjà : aucune entreprise ne crée son espace
+4. 📝 **Décidé : démonstration publique + commande à la carte + prix par utilisateur, APRÈS le serveur** (voir v735). **L'application sur mesure** — ce qui existe déjà : aucune entreprise ne crée son espace
    seule (l'inscription du portail crée un compte et une DEMANDE ; l'espace se crée depuis la
    Tour, `tourEspaceDe()`), et `creer.html` recueille déjà les besoins cochés. Ce qui manque est
    une décision de prix : une formule « sur mesure » dont la Tour fixe les catégories (le
@@ -3719,8 +3791,8 @@ sont classées, le convertisseur écrit, les quatre bancs verts. L'étape 3 n'a 
   plafonner toute l'API pour cette IP.
 - ⛔ **Le préavis de 30 jours / l'accord écrit à ELAN** — chemin critique de l'étape 4. Rien ne
   peut avancer au-delà de l'étape 3 sans ça. ✅ **Justin l'a fait le 23 septembre 2026** (« déjà
-  fait par moi-même, vu avec eux ») — ⏳ reste à savoir si c'est un accord écrit (l'étape 4 peut
-  commencer) ou un préavis (elle attend le 23 octobre), et à en garder la trace écrite.
+  fait par moi-même, vu avec eux ») — ✅ **en réunion ; Justin : « c'est bon, tu t'en occupes
+  pas »** (23 septembre au soir). L'étape 4 n'attend plus rien de ce côté.
 - ⛔ **La phrase qui autorise la publication d'`app.html`** — 7 versions attendent.
 - **Le séquestre de la clé maître** du socle, le jour de l'allumage (deux endroits distincts).
 - ~~`roles/datastore.owner` à ajouter pour les sauvegardes Firestore~~ — ✅ **FAIT le
@@ -4200,7 +4272,7 @@ contrat 404/403 des trois appelants ne bouge pas d'un iota.
   d'abord. Changer la clé d'équipe, geste qui n'écrit AUCUNE donnée métier, l'exige déjà.
 - `/api/op/fichier` → étape 3 ; `/api/op/atteste` → étape 7
 - ⛔ **Sur le chemin critique et ce n'est pas technique : le courrier à ELAN.** ✅ Fait par
-  Justin le 23 septembre 2026 — forme à préciser (accord écrit ou préavis), voir la section v734.
+  Justin le 23 septembre 2026, en réunion avec ELAN — réglé, voir la section v735.
   `sous-traitance.html` promet que TeamOP ne peut pas lire les données. Les mettre chez nous
   change ça : **préavis de 30 jours, ou accord écrit d'ELAN qui le remplace.** Tant que ce
   n'est pas parti, l'étape 4 ne peut pas commencer, quel que soit l'avancement du code.
