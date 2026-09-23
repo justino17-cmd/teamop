@@ -155,7 +155,7 @@ Deux demandes de Justin, mot pour mot :
 | `tests/test-793.js` (la règle exécutée, les PDF fabriqués, « Envoyer » joué, la vraie `srvMail`, la fusion datée) | **70 ✓** |
 | `tests/test-792.js` (le plan : empreinte, version, trace, PDF, instantané) | **79 ✓** |
 | mutations (défauts remis un par un) | **34/34** au premier tour ; la seule ratée (« devis envoyé sans PDF ») a fait écrire l'essai JOUÉ de §5 bis ; puis **15/16** sur les correctifs de relecture — la seizième (photos lues sur le plan vivant) ne change rien tant que la photo ne bouge pas pendant l'envoi |
-| suite complète (`scripts/bancs-ci.sh`) | 150 suites · 7 084 vérifications, 0 ✗ (avant le dernier correctif — le recompte final suit) |
+| suite complète (`scripts/bancs-ci.sh`, état final) | **150 suites · 7 091 vérifications, code 0** |
 
 Les captures avant / après sont dans une page publiée pour Justin (lien dans la conversation du
 23 septembre au soir) ; elles se refont avec les deux sondes ci-dessus.
