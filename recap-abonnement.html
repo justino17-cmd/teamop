@@ -464,7 +464,7 @@ const FORMULES = {
       { ok: true,  titre: 'Fiches clients', detail: 'et historique des passages' },
       { ok: true,  titre: 'Rapports d\'intervention simples', detail: '' },
       { ok: true,  titre: 'App web + mobile', detail: 'iPhone, Android, Mac, PC' },
-      { ok: true,  titre: 'Temps réel et mode hors-ligne', detail: '' },
+      { ok: true,  titre: 'Temps réel', detail: 'toute l\'équipe voit les mêmes données au même moment' },
       { ok: true,  titre: 'Données chiffrées', detail: 'AES-256, espace isolé' },
       { ok: true,  titre: 'Support par e-mail', detail: '' },
       { ok: false, titre: 'Rapports complets, devis et factures', detail: 'disponibles dès la formule Pro' },
@@ -603,6 +603,11 @@ const FORMULES = {
 };
 
 const REMISE_ANNUELLE = 2; // 2 mois offerts sur l'année
+/* OP MESSAGES est fermé le temps de passer sur son propre serveur (décision de Justin, 22 et
+   23 septembre 2026 : « tu peux marquer bientôt disponible »). Une formule qu'on ne peut pas
+   servir ne se vend pas : ni paiement, ni compte gratuit. Ses droits restent LISIBLES à gauche,
+   pour que la page dise ce qui arrive. Repasser à false le jour de la réouverture. */
+const OPMSG_BIENTOT = true;
 
 /* ---------- ÉTAT ---------- */
 const params = new URLSearchParams(window.location.search);
@@ -680,6 +685,16 @@ function rendreDroits() {
 function rendrePaiement() {
   const f = FORMULES[formuleActive];
   const c = document.getElementById('cartePaiement');
+  if (OPMSG_BIENTOT && f.groupe === 'msg') {
+    c.innerHTML = `
+      <div style="text-align:center; padding: 6px 4px 2px;">
+        <span style="display:inline-flex; align-items:center; gap:8px; background:rgba(124,58,237,.14); border:1px solid rgba(167,139,250,.45); color:#ddd6fe; font-size:13px; font-weight:800; padding:6px 14px; border-radius:999px;">⏳ Bientôt disponible</span>
+        <div style="margin-top:14px; font-size:16px; font-weight:800; color:var(--texte);">OP MESSAGES rouvre bientôt</div>
+        <div style="margin-top:8px; font-size:13.5px; line-height:1.6; color:var(--texte-2);">L'application change d'infrastructure. La formule ${f.nom} ouvrira avec la nouvelle version ; rien n'est facturé d'ici là.</div>
+        <a class="btn-payer" href="tarifs.html" style="margin-top:18px; justify-content:center; text-decoration:none; background:${f.boutonFond};">Voir les formules OP GESTION</a>
+      </div>`;
+    return;
+  }
   const gratuit = f.prixMensuel === 0;
   if (nbUsersVoulu < 1) nbUsersVoulu = f.utilisateurs;   // par défaut : les places incluses
   const nbAbos = gratuit ? 1 : Math.max(1, Math.ceil(nbUsersVoulu / f.utilisateurs));
