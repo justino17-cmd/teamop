@@ -263,8 +263,14 @@ console.log('\n══ 6. LE GLISSEMENT DU DOIGT ══\n');
   vrai('un changement se sent sous le doigt, s\'il y a de quoi', /navigator\.vibrate/.test(ge));
   /* ⛔ Le repositionnement au redimensionnement ne connaissait QUE `.filters` : le segmenté du
      tableau de bord gardait un curseur à la mauvaise place. */
+  /* v728 : il passe désormais par `segInit(document)` — qui RÉÉVALUE chaque groupe (un segmenté
+     qui ne tient plus redevient une rangée de pastilles, test-776). La propriété gardée reste
+     la même : les deux familles, donc le sélecteur de `segInit` doit venir de SEG_FAMILLES. */
+  const rep = corps('segRepositionner'), ini = corps('segInit');
   vrai('⛔ le redimensionnement replace les DEUX familles, pas seulement .filters',
-    /querySelectorAll\('\.seg-on'\)/.test(corps('segRepositionner')));
+    /querySelectorAll\('\.seg-on'\)/.test(rep)
+    || (/segInit\(document\)/.test(rep) && /querySelectorAll\(SEG_FAMILLES\.map\(f=>f\.sel\)\.join\(','\)\)/.test(ini)),
+    { rep: rep.slice(0, 160), ini: ini.slice(0, 160) });
 }
 
 console.log('\n══ 7. UN ÉCRAN QUI SE REDESSINE EN PARTIE GARDE SON CURSEUR ══\n');

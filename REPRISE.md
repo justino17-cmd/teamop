@@ -23,7 +23,54 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
-## ⏳ 23 SEPTEMBRE 2026 — LES NEUF TEINTES, ÉCRAN PAR ÉCRAN, JUSQU'AU PIXEL (v728 EN PRÉPARATION — la passe 6 tourne)
+## ✅ 23 SEPTEMBRE 2026 — LES CATÉGORIES INUTILES (v728, bêta)
+
+Justin : **« si tu vois des catégories qui sont pas utiles ou autre, je t'autorise de les
+supprimer totalement, pour mieux faire et optimiser l'application. »**
+
+Le critère, écrit AVANT de toucher : on retire un **doublon avéré** (même fonction, mêmes
+données) ou ce que **plus rien n'ouvre**. Jamais une catégorie qu'une entreprise utilise,
+jamais une donnée. Les 42 rubriques du menu et les 48 écrans définis ont été croisés un par un.
+
+| retiré | pourquoi | ce qui le remplace |
+|---|---|---|
+| **« Audit »** (menu Tableau de bord) | le MÊME écran qu'Historique : même fonction `journalView`, même source `visibleJournal(db.journal)` — seul le titre changeait | Historique ; un ancien lien, un onglet ou un favori mémorisé y mène (`VUES_RETIREES`) |
+| **« Droits par rôle »** (`views.permissions`, 95 lignes + 5 fonctions) | plus rien n'y menait depuis la v585 (« Pas de bouton « par rôle » », écrit dans son commit) | Utilisateurs, où se règlent les droits ; les réglages déjà posés par rôle restent LUS |
+
+**Et deux écrans orphelins qu'un enregistrement posait en travers de l'écran courant** —
+mesurés sur la v727 : après « Donner produit » (fiche d'un véhicule), le titre disait
+« Produits donnés » pendant que l'application se croyait sur Véhicules, sans chemin de retour ;
+même chose après la modification d'un chantier (« Chantiers / Projets » sur Interventions).
+On reste désormais où l'on était ; le don reste écrit dans Mouvements.
+
+Preuves : `tests/test-775.js` (38 contrôles — l'aiguillage de `go()` est EXÉCUTÉ, pas relu),
+`test-701` mis à jour, `scratchpad/sonde-categories.js` au navigateur : **20 ✓ sur la v728,
+5 ✗ sur la v727** (la contre-épreuve tombe exactement sur les cinq défauts).
+
+### ⚠️ Examinées et GARDÉES — ce ne sont pas des doublons
+
+- **Devis xylophage** : ses devis sont EXCLUS de la liste Devis (`!d.xylo`) — la retirer les
+  rendrait invisibles. Et elle fait partie du pack métier 3D.
+- **Stock** (le stock de toutes les box, et « à commander » → bon) ≠ **Produits** (le catalogue).
+- **Commandes en cours** : le suivi de livraison (jours d'attente, reste dû) que Bons ne montre pas.
+- **Les onze modules « mis de côté »** (Registre, Carte des box, Brouillon, Mes demandes,
+  Validations DR…) : masqués par défaut, mais **ELAN s'en sert** (Mes demandes, Validations DR
+  sont au cœur de son circuit) — rien à retirer sans ses chiffres d'usage.
+
+### ⏳ Ce qui attend Justin (le garde-fou automatique a refusé de le faire seul)
+
+- **Les deux listes orphelines elles-mêmes** (`views.produitsDonnes` et son impression,
+  `views.chantiers`) : plus rien ne les ouvre depuis cette version — c'est du code mort, sans
+  risque, mais le retrait a été refusé par le garde-fou automatique de la session. Même chose
+  pour le champ « Chantier » du formulaire d'intervention : aucune entreprise ne peut plus créer
+  de chantier (la liste n'est plus au menu), le champ reste donc vide chez tout le monde.
+  **Il suffit d'un « vas-y » pour les retirer.**
+- **Les chiffres d'usage par rubrique existent** (la Tour les reçoit, `/api/usage`) : c'est la
+  seule vraie mesure de ce qui ne sert pas. Un coup d'œil sur l'écran d'usage de la Tour dirait
+  quelles rubriques ELAN n'ouvre jamais — la décision de les retirer serait alors fondée sur ses
+  données, pas sur une lecture du code.
+
+## ✅ 23 SEPTEMBRE 2026 — LES NEUF TEINTES, ÉCRAN PAR ÉCRAN, JUSQU'AU PIXEL (v728, bêta)
 
 Étape 3 de « 1 après 2 après 3 ». Les 42 rubriques ET sept fenêtres (pastilles cochées), sous
 les 9 teintes × 2 thèmes — 756 écrans et 126 fenêtres par passe — sur trois plateformes : le
@@ -46,9 +93,28 @@ s'arrête : un zéro ne se cite que si la mesure regarde quelque chose.
 | 3 (v727) | calcul | idem, après les aplats rouge / orange et `encreSur` | 13 |
 | 4 | calcul, sans verre | **tous** les textes (`FAM=tout`, 61 571) | **2 349** |
 | 5 | calcul, sans verre | tous les textes | 1 241, **0 au pixel** |
-| 6 (v728) | **pixel**, les trois plateformes | tous les textes | **en cours** (instrument réparé, voir plus bas) |
+| 6 (v728) | **pixel**, les trois plateformes | tous les textes (170 000 lus) | Windows **0** · Mac 16 · iPhone 27 → **0** après correction |
 
-### Ce qui a été corrigé (`tests/test-773.js` 58 contrôles, `tests/test-774.js` 94)
+### La passe 6, au pixel — le chiffre final
+
+| plateforme | écrans + fenêtres | textes lus au pixel | sous le seuil | après correction |
+|---|---|---|---|---|
+| Windows (sans verre) | 756 + 126 | **70 064** | **0** | — |
+| Mac (verre, Safari 26) | 756 + 126 | **70 045** | 16, en 5 groupes | **0** — les 63 écrans concernés remesurés (7 rubriques × 9 teintes, nuit) : 5 894 textes |
+| iPhone (verre) | 756 + 126 | **29 883** | 27, en 8 groupes | **0** — mêmes 63 écrans : 2 304 textes |
+
+Les 16 et les 27 étaient tous **de nuit, sous le verre**, et tous la même famille : une vitre
+posée sur une autre vitre (la pastille active d'un groupe de filtres, le segment choisi du
+tableau de bord, l'étiquette d'une pastille, le libellé d'un indicateur) — le fond réel y est
+plus clair que ce que chaque couche laisse croire. Corrigé par une encre blanche sur le segment
+choisi et une étiquette assombrie (`test-774`, section 7). **Trois des 27 étaient faux** : le
+numéro d'étape d'une tournée, lu SOUS la barre d'onglets ou hors du cadre capturé — la sonde
+écarte désormais les deux, et les compte.
+
+Ce qui reste hors de ce zéro, et qui est rangé à part : **42 libellés posés SUR la barre
+d'onglets en verre** du téléphone (voir « ce que ces passes ne couvrent pas »).
+
+### Ce qui a été corrigé (`tests/test-773.js` 58 contrôles, `tests/test-774.js` 106)
 
 - **327 textes écrits en `var(--acc)`**, la couleur d'un APLAT → `--acc-txt`. **Plus vingt
   endroits qui passaient l'accent à travers une variable** (`const col='var(--acc)'`,
