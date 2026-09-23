@@ -256,6 +256,24 @@ const ECARTS=[
           .push({ n:nom(e), t:(e.textContent||'').trim().replace(/\\s+/g,' ').slice(0,34),
                           vu:Math.round(e.clientWidth), reel:Math.round(e.scrollWidth), bulle:!!(e.title||e.closest('[title]')) });
     }
+    /* ⛔ LE TEXTE ÉCRASÉ. Une colonne qui cède tout ne DÉBORDE pas : elle s'allonge. Mesuré le
+       23 septembre 2026 : texte à 0 px (liste des Interventions) et à 100 px (« Ma journée »),
+       titres sur dix et treize lignes, sans qu'aucun contrôle de débordement ni de coupe ne crie.
+       On relit chaque bloc qui porte du texte en propre : sous ~12 signes par ligne ET sur au
+       moins 4 lignes, c'est une colonne écrasée, pas une mise en page. */
+    out.ecrases=[];
+    for(const e of R.querySelectorAll('*')){
+      if(out.ecrases.length>=40) break;
+      let txt=''; for(const nd of e.childNodes) if(nd.nodeType===3) txt+=nd.nodeValue; txt=txt.trim();
+      if(txt.length<25) continue;
+      if(!vis(e)||dansTiroirFerme(e)||dansRouleau(e)) continue;
+      const cs=getComputedStyle(e); if(cs.display==='inline'||/nowrap|pre/.test(cs.whiteSpace)) continue;
+      const fz=parseFloat(cs.fontSize)||14, lh=parseFloat(cs.lineHeight)||fz*1.3;
+      const w=e.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0);
+      const lignes=Math.round((e.getBoundingClientRect().height-(parseFloat(cs.paddingTop)||0)-(parseFloat(cs.paddingBottom)||0))/lh);
+      const signes=w/(0.55*fz);
+      if(signes<12 && lignes>=4) out.ecrases.push({ n:nom(e), t:txt.replace(/\s+/g,' ').slice(0,28), w:Math.round(w), lignes, signes:Math.round(signes) });
+    }
     return out;`;
 
   /* ⛔⛔ RECOUVERT — la version 3, la seule juste : on amène chaque élément au MILIEU de
@@ -365,7 +383,7 @@ const ECARTS=[
   const TOUT=!!process.env.TOUT;
   const PARGENRE=TOUT?999:4, PARCAT_SEC=TOUT?1500:150, SOUSVUES_MAX=TOUT?999:14;
   const sousVues={}; let plafonnees=0;   /* ⛔ pas de plafond silencieux : on compte ce qu'on saute */
-  const vus=new Set(), R={pages:[],hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[],denses:[],zoom:[],sousMenu:[],titresBarre:[]};
+  const vus=new Set(), R={pages:[],hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[],denses:[],zoom:[],sousMenu:[],titresBarre:[],ecrases:[]};
   let candidatsTotal=0, sousMenuCibles=0;
   const par={rubrique:0,fenetre:0,fiche:0,sousvue:0}, sautes={}; let clics=0, audits=0, elements=0;
 
@@ -403,7 +421,7 @@ const ECARTS=[
     o.petits.forEach(x=>R.petits.push({...x,ou:cle}));
     cv.forEach(x=>(x.menu?R.sousMenu:R.couverts).push({...x,ou:cle})); sousMenuCibles+=o.sousMenu||0;
     (o.titres||[]).forEach(x=>R.titres.push({...x,ou:cle}));
-    (o.denses||[]).forEach(x=>R.denses.push({n:x,ou:cle})); (o.zoom||[]).forEach(x=>R.zoom.push({...x,ou:cle}));
+    (o.denses||[]).forEach(x=>R.denses.push({n:x,ou:cle})); (o.zoom||[]).forEach(x=>R.zoom.push({...x,ou:cle})); (o.ecrases||[]).forEach(x=>R.ecrases.push({...x,ou:cle}));
     (o.titresBarre||[]).forEach(x=>R.titresBarre.push({...x,ou:cle}));
     candidatsTotal+=o.candidats||0;
   };
@@ -484,6 +502,8 @@ const ECARTS=[
     grouper(R.petits,x=>x.n+' « '+x.t+' »').slice(0,25).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   '+v[0].h+' px dessiné · '+v[0].eff+' px qui répondent   ex. '+v[0].ou+(v[0].preuve?'   ['+v[0].preuve+']':'')));
     console.log('\n══ CHAMPS SOUS 16 px (Safari zoome la page au toucher) : '+R.zoom.length+' ══');
     grouper(R.zoom,x=>x.n+' « '+x.t+' »').slice(0,25).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   '+v[0].fs+' px   ex. '+v[0].ou)); }
+  console.log('\n══ TEXTES ÉCRASÉS (moins de 12 signes par ligne, sur 4 lignes ou plus) : '+R.ecrases.length+' ══');
+  grouper(R.ecrases,x=>x.n+' « '+x.t+' »').slice(0,25).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   '+v[0].w+' px · '+v[0].signes+' signes/ligne · '+v[0].lignes+' lignes   ex. '+v[0].ou));
   console.log('\n══ LES ÉCRANS PROFONDS AUDITÉS ══');
   [...vus].forEach(v=>console.log('   · '+v));
   fs.writeFileSync(__dirname+'/audit-profond-'+PROFIL+(TOUT?'-tout':'')+(process.env.LONGUES?'-longues':'')+(process.env.ROLE?'-'+process.env.ROLE:'')+'.json',JSON.stringify({version:S.version,profil:PROFIL,tout:TOUT,sautes,plafonnees,clics,audits,elements,par,ecrans:[...vus],fermees,...R},null,0));
