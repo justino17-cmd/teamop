@@ -25428,7 +25428,13 @@ function boxDonneChanger(boxId){ _boxDonne=null; boxDonneModal(boxId,function(){
 let _donListe=[], _donRech='', _donAjoutOuvert=false;
 function boxDonneModal(boxId,suite,depart){
   const b=(db.boxes||[]).find(x=>x.id===boxId)||{};
-  _boxDonneSuite=suite||null; _boxDonneBox=boxId; _donRech='';
+  /* ⛔⛔ OUVERTE DEPUIS UNE SORTIE (`depart`), C'EST LA LISTE QUI PORTE LA SORTIE — on ne garde
+     AUCUNE suite. Celle que `boxAdj` passait rejouait le « − » d'origine : liste vidée au ✕, puis
+     « Continuer », et le produit sortait quand même — tracé, porté sur un bon de remise au nom
+     choisi, sans un mot à l'écran. Trouvé en relecture le 23 septembre 2026, reproduit par
+     `tests/test-784.js` §3 bis avec la vraie fenêtre. Seul « changer de personne », qui n'a pas de
+     produit touché, garde sa suite (redessiner la box). */
+  _boxDonneSuite=depart?null:(suite||null); _boxDonneBox=boxId; _donRech='';
   _donListe=(depart&&depart.pid&&(+depart.delta||0)<0)?[{pid:depart.pid,field:depart.field==='ctn'?'ctn':'u',qte:Math.abs(+depart.delta)}]:[];
   _donAjoutOuvert=!_donListe.length;
   /* La liste des personnes de l'entreprise est proposée, sans être imposée : on remet aussi du
@@ -25510,7 +25516,10 @@ function boxDonneSave(){
   _boxDonne={boxId:_boxDonneBox,nom:nom,ts:Date.now()};
   const suite=_boxDonneSuite; _boxDonneSuite=null; _donListe=[];
   closeModal();
-  if(!lignes.length){ if(suite) suite(); return; }   // « changer de personne » : rien à sortir
+  if(!lignes.length){   // rien à sortir : « changer de personne », ou une liste vidée au ✕
+    if(suite){ suite(); return; }
+    try{ if(b&&boxView===b.id) renderBoxProdList(); }catch(e){}
+    toast('Rien n’est sorti de la box'); return; }
   if(!b||boxView!==b.id){ toast('Box fermée entre-temps — rien n’est sorti'); return; }
   /* UN geste : un mouvement par produit (le journal dit « −3 », pas trois fois « −1 »), et UN bon
      de remise — `remiseAjoute` range sur le même bon tout ce qui part le même jour, de la même box,
@@ -26050,7 +26059,7 @@ function boxAdj(pid,field,delta){ const b=db.boxes.find(x=>x.id===boxView); if(!
      Différé de 80 ms : boxQteGo() appelle closeModal() juste après boxSaisir(), ce qui
      refermerait la fenêtre à l'instant où elle s'ouvre. On la pose donc après ce closeModal. */
   if(delta<0 && !db.bonsRemiseOff && !boxDonneNom(b.id)){
-    setTimeout(function(){ boxDonneModal(b.id,function(){ boxAdj(pid,field,delta); },{pid:pid,field:field,delta:delta}); },80);
+    setTimeout(function(){ boxDonneModal(b.id,null,{pid:pid,field:field,delta:delta}); },80);   // la liste porte la sortie : aucun geste à rejouer
     return; }
   /* Le stock plafonne à zéro : retirer 5 d'une box qui en a 3 en sort 3. La trace et le bon
      de remise doivent dire 3, pas 5 — sinon l'historique invente deux unités. */

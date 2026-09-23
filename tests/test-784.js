@@ -26,7 +26,8 @@ function bloc(debut) {
 
 console.log('\n── 784 · 0. la population ──');
 const NOMS = ['function donBox(){', 'function donStock(b,l){', 'function donUnite(l){', 'function donStep(pid,d){', 'function donSet(pid,v){',
-  'function donAjout(pid){', 'function donRetirer(pid){', 'function boxDonneSave(){', 'function boxDonneAnnuler(){'];
+  'function donAjout(pid){', 'function donRetirer(pid){', 'function boxDonneSave(){', 'function boxDonneAnnuler(){',
+  'function boxDonneModal(boxId,suite,depart){'];
 const CODE = NOMS.map(bloc);
 v('les fonctions de la liste sont trouvées', NOMS.filter((n, i) => !CODE[i]), []);
 for (const n of NOMS) { const tete = n.slice(0, n.indexOf('(') + 1); v('… une seule définition de ' + tete.slice(9, -1), SRC.split(tete).length - 1, 1); }
@@ -35,7 +36,8 @@ for (const n of NOMS) { const tete = n.slice(0, n.indexOf('(') + 1); v('… une 
    le nom, et un `boxAdj` témoin qui SORT vraiment du stock et compte chaque appel. */
 function monde({ autre = false, nom = '', liste = [], suite = null, vue = 'bx' } = {}) {
   const ctx = {
-    db: { boxes: [{ id: 'bx', stock: { A: { u: 10, ctn: 0 }, B: { u: 5, ctn: 0 }, C: { u: 0, ctn: 2 } } }] },
+    db: { boxes: [{ id: 'bx', nom: 'Box Nord', stock: { A: { u: 10, ctn: 0 }, B: { u: 5, ctn: 0 }, C: { u: 0, ctn: 2 } } }], users: [] },
+    esc: x => String(x == null ? '' : x), openModal: () => { ctx.ouvre++; }, donAjoutRender: () => {}, ouvre: 0,
     boxView: vue, currentUser: { prenom: 'Justin', nom: 'Roux' }, _boxDonne: null, _boxDonneBox: 'bx', _boxLotSilence: false,
     appels: [], rendus: 0, sauves: 0, toasts: [], ferme: 0, suiteJouee: 0, silencePendant: [],
     fullName: u => u.prenom + ' ' + u.nom, produit: pid => ({ id: pid, nom: 'Produit ' + pid }),
@@ -83,6 +85,31 @@ if (CODE.every(Boolean)) {
   v('… la suite est jouée (elle redessine la box)', [C.suiteJouee, C.rendus], [1, 1]);
   v('… et la personne est changée', C.run('_boxDonne.nom'), 'Léo Martin');
 
+  console.log('\n── 784 · 3 bis. ⛔⛔ LE PRODUIT TOUCHÉ, RETIRÉ DE LA LISTE, NE SORT PAS ──');
+  /* Trouvé en relecture le 23 septembre 2026. La séquence RÉELLE : un « − » ouvre la fenêtre avec la
+     suite que `boxAdj` lui passe (rejouer le tap) ; on retire la ligne au ✕ ; on valide. La liste
+     est vide — et la suite rejouait le « − » : le produit sortait quand même, tracé et porté sur un
+     bon de remise au nom choisi, sans un mot à l'écran. On joue ici la VRAIE fenêtre, pas un
+     `_boxDonneSuite` posé à la main. */
+  const Q = monde({ autre: true, nom: 'Nadia Lopez' });
+  Q.run("boxDonneModal('bx', function(){ boxAdj('A','u',-1); }, {pid:'A',field:'u',delta:-1})");
+  v('population : la fenêtre s’ouvre, le produit touché en tête de liste', [Q.ouvre, Q.run('JSON.stringify(_donListe)')], [1, JSON.stringify([{ pid: 'A', field: 'u', qte: 1 }])]);
+  Q.run("donRetirer('A')");
+  v('… ✕ le retire : la liste est vide', Q.run('_donListe.length'), 0);
+  Q.run('boxDonneSave()');
+  v('⛔⛔ RIEN ne sort — ni par la liste, ni par le geste d’origine rejoué', Q.appels, []);
+  v('… le stock de A reste à 10', Q.db.boxes[0].stock.A.u, 10);
+  vrai('⛔ et l’écran le DIT (un geste sans effet visible se refait)', Q.toasts.some(t => /Rien n’est sorti/.test(t)), Q.toasts);
+  v('la personne choisie est retenue pour les prochaines sorties de la box', Q.run('_boxDonne&&_boxDonne.nom'), 'Nadia Lopez');
+  const Q2 = monde();
+  Q2.run("boxDonneModal('bx', function(){ boxAdj('A','u',-1); }, {pid:'A',field:'u',delta:-1})");
+  Q2.run('boxDonneSave()');
+  v('contre-épreuve : sans rien retirer, le produit touché sort UNE fois', Q2.appels, [['A', 'u', -1]]);
+  const Q3 = monde();
+  Q3.run("boxDonneModal('bx', function(){ renderBoxProdList(); })");
+  Q3.run('boxDonneSave()');
+  v('contre-épreuve : « changer de personne » (sans produit touché) garde sa suite — elle redessine', [Q3.appels, Q3.rendus], [[], 1]);
+
   console.log('\n── 784 · 4. ⛔ ON NE SORT PAS À MOITIÉ ──');
   const T = monde({ autre: true, nom: 'Nadia Lopez', liste: [{ pid: 'A', field: 'u', qte: 1 }, { pid: 'B', field: 'u', qte: 9 }], suite: rejoueLeTap });
   T.run('boxDonneSave()');
@@ -115,10 +142,11 @@ if (CODE.every(Boolean)) {
 
 console.log('\n── 784 · 6. ⛔ LE CÂBLAGE : le « − » passe le produit touché à la fenêtre ──');
 const adj = bloc('function boxAdj(pid,field,delta){');
-vrai('population : boxAdj est trouvé', adj.length > 2000, adj.length);
-vrai('⛔ boxAdj passe à la fenêtre le produit, son unité et la quantité touchés',
-  /boxDonneModal\(b\.id,function\(\)\{ boxAdj\(pid,field,delta\); \},\{pid:pid,field:field,delta:delta\}\)/.test(adj));
 const modal = bloc('function boxDonneModal(boxId,suite,depart){');
+vrai('population : boxAdj est trouvé', adj.length > 2000, adj.length);
+vrai('⛔ boxAdj passe à la fenêtre le produit, son unité et la quantité touchés — et AUCUN geste à rejouer',
+  /boxDonneModal\(b\.id,null,\{pid:pid,field:field,delta:delta\}\)/.test(adj) && !/boxDonneModal\(b\.id,function/.test(adj));
+vrai('⛔ … et la fenêtre ne garde aucune suite quand elle porte une sortie', /_boxDonneSuite=depart\?null:\(suite\|\|null\)/.test(modal));
 vrai('population : la fenêtre est trouvée', modal.length > 1500, modal.length);
 vrai('⛔ la fenêtre commence la liste avec le produit touché', /_donListe=\(depart&&depart\.pid&&\(\+depart\.delta\|\|0\)<0\)\?\[\{pid:depart\.pid/.test(modal));
 vrai('… et porte la liste, l’ajout et un bouton qui dit ce qui va se passer', /id="don-liste"/.test(modal) && /id="don-ajout-bloc"/.test(modal) && /id="don-go"/.test(modal));

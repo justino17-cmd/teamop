@@ -138,6 +138,20 @@ const v=(t,a,b)=>vrai(t,JSON.stringify(a)===JSON.stringify(b),a);
   const E7=await etat();
   v('rien n’a bougé', [E7.A,E7.B,E7.C,E7.mvts.length], [E6.A,E6.B,E6.C,E6.mvts.length]);
 
+  /* Trouvé en relecture le 23 septembre 2026 : la fenêtre gardait le geste d'origine et le
+     rejouait quand la liste était vidée au ✕ — le produit sortait quand même, sans un mot. */
+  console.log('\n══ 7 ter. ⛔⛔ LE PRODUIT TOUCHÉ, RETIRÉ AU ✕, NE SORT PAS ══');
+  await S.ev(`boxDonneOublier(); return 1;`);
+  await toucher(`button[onclick="boxAdj('p-don-a','u',-1)"]`); await dormir(400);
+  F=await fenetre(); v('la fenêtre s’ouvre avec A ×1', F && F.lignes.map(l=>[l.nom,l.q]), [['Appât pâte A','1']]);
+  vrai('le ✕ de la ligne A est touché', await toucher(`#don-r-p-don-a .bl-x`));
+  F=F0(await fenetre()); v('… la liste est vide', F.lignes.length, 0);
+  await toucher('#don-go'); await dormir(500);
+  const E7t=await etat();
+  v('⛔⛔ rien n’a bougé : ni A, ni les mouvements, ni les bons', [E7t.A, E7t.mvts.length, E7t.bons.length], [E7.A, E7.mvts.length, E7.bons.length]);
+  vrai('⛔ et l’écran le dit', (await S.ev(`return window.__toasts.slice(-1)[0]||''`)).includes('Rien n’est sorti'));
+  vrai('la fenêtre est fermée', !(await fenetre()));
+
   /* À la fin seulement : quitter la fiche de la box fait reposer la question « pour qui ? » —
      c'est voulu, et c'est ce qui avait fait dérailler les étapes 4 et 5 de la première version. */
   console.log('\n══ 7 bis. PRODUITS DONNÉS MONTRE LA REMISE ══');
