@@ -3403,7 +3403,7 @@ html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-
   html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close{width:var(--rf-tap);height:var(--rf-tap)}
 }
 
-/* ══ LES FICHES EN FENÊTRE ══ dix fiches (intervention, client, chantier, bon, demande, enveloppe,
+/* ══ LES FICHES EN FENÊTRE ══ neuf fiches (intervention, client, bon, demande, enveloppe,
    retour, récapitulatif, technicien, véhicule) partagent une seule charpente : un en-tête en verre
    qui reste en haut, un corps qui défile dessous, une barre d'actions en verre posée en bas.
    Le corps ne touche plus l'en-tête par un trait : il s'y fond (apple-design §12). */
@@ -5950,22 +5950,57 @@ html[data-kind="desktop"] .tabbar{display:none!important}
    n'est plus copiée nulle part.
    ⚠ `translateX` en pourcentage se rapporte à la largeur de l'ÉLÉMENT LUI-MÊME — c'est-à-dire
    exactement une colonne. D'où `calc(var(--tab-i) * (100% + gouttiere))`, sans aucun chiffre
-   en dur. */
+   en dur.
+   ⛔⛔ ET LA POSITION VIT DANS `translate`, PAS DANS `transform` — mesuré le 23 septembre 2026.
+   Quand on tient la bulle, elle grossit par la propriété `scale`. Or les propriétés
+   individuelles s'appliquent dans un ordre fixe — `translate`, puis `rotate`, puis `scale`,
+   puis `transform` : un `transform:translateX(D)` se retrouve donc MULTIPLIÉ par l'échelle.
+   La bulle tenue en main glissait de 1,06 × D, et prenait sur le doigt un retard qui CROISSAIT
+   avec la distance — 8,5 px à deux onglets, relevé image par image par la sonde. `translate`
+   passe AVANT `scale` : la bulle grossit sur place, et reste sous le doigt. */
 .tabbar{--tab-n:4;--tab-i:0;--tab-gout:2px;--tab-px:8px;--tab-py:6px;--tab-dx:0px}
 .tab-cur{
   position:absolute;z-index:0;pointer-events:none;opacity:0;
   left:var(--tab-px);top:var(--tab-py);
   bottom:calc(env(safe-area-inset-bottom,0px) + var(--tab-py));
   width:calc((100% - 2*var(--tab-px) - (var(--tab-n) - 1)*var(--tab-gout)) / var(--tab-n));
-  transform:translateX(calc(var(--tab-i) * (100% + var(--tab-gout)) + var(--tab-dx)));
+  translate:calc(var(--tab-i) * (100% + var(--tab-gout)) + var(--tab-dx));
   border-radius:14px;
   background:color-mix(in srgb,var(--acc) 16%,transparent);
-  transition:transform .42s cubic-bezier(.32,.72,0,1),width .42s cubic-bezier(.32,.72,0,1),opacity .22s ease;
+  transition:translate .42s cubic-bezier(.32,.72,0,1),width .42s cubic-bezier(.32,.72,0,1),opacity .22s ease,
+             scale .26s cubic-bezier(.32,.72,0,1),box-shadow .26s ease;
+  scale:1;
 }
 .tabbar.cur-on .tab-cur{opacity:1}
 /* Les onglets passent AU-DESSUS de la pastille, sinon elle couvre l'icône qu'elle désigne. */
 .tab{z-index:1}
 @media (prefers-reduced-motion: reduce){ .tab-cur{transition:opacity .15s ease} }
+/* ── LA BULLE QU'ON ATTRAPE — voir `ongletsBulle` ─────────────────────────────────────────
+   ⛔ `touch-action:none` SUR LA BARRE. Sans lui, le navigateur reprend la main dès que le doigt
+   dévie de deux pixels — il croit à un défilement — et la bulle s'arrête net sous le doigt qui
+   la tient. La barre est fixe, elle ne défile rien : on ne retire aucun geste utile.
+   Et pas de sélection de texte ni de loupe d'iOS : on tient la barre une demi-seconde pour
+   attraper la bulle, et la loupe de sélection arriverait par-dessus. */
+.tabbar{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+/* Soulevée, elle grandit plus en HAUTEUR qu'en largeur — elle sort de la barre au lieu de
+   s'étaler sur les voisins — et son ombre s'élargit : on voit qu'elle est dans la main. */
+.tabbar.tire .tab-cur{scale:1.06 1.16;box-shadow:0 6px 18px rgba(0,0,0,.16)}
+/* L'onglet sous la bulle s'allume en passant : c'est lui qu'on obtiendra en lâchant. Et
+   l'onglet de départ s'éteint tant que la bulle l'a quitté — deux onglets allumés, ce serait
+   deux réponses à une seule question. Les deux jeux de règles suivent ceux de `.tab.on` :
+   la refonte y met `!important`, il faut donc l'y mettre aussi. */
+.tabbar .tab.survol{color:var(--acc-txt)}
+html[data-refonte] .tabbar .tab.survol{color:var(--t1)!important}
+.tabbar.tire .tab.on:not(.survol){color:var(--t3)}
+html[data-refonte] .tabbar.tire .tab.on:not(.survol){color:var(--t3)!important}
+.tabbar.tire .tab.survol .tab-ic{transform:scale(1.14)}
+/* ⚠ L'onglet où le doigt s'est posé garde `:active` pendant TOUT le geste : il resterait
+   rétréci à 94 % pendant que la bulle est trois onglets plus loin. */
+.tabbar.tire .tab:active{transform:none}
+@media (prefers-reduced-motion: reduce){
+  .tabbar.tire .tab-cur{scale:1}
+  .tabbar.tire .tab.survol .tab-ic{transform:none}
+}
 /* ⛔⛔ `.tab` DÉSIGNE DEUX CHOSES DANS CE FICHIER, ET C'EST CE QUI RENDAIT LA BARRE ÉNORME.
    Il y a les onglets de FILTRE (« Général / Plans / Fichiers » sur une fiche) et les boutons
    de la BARRE DU BAS. La refonte donne `padding:10px 14px!important` à `.tab` — pensé pour un
@@ -5980,7 +6015,7 @@ html[data-refonte] .tabbar .tab{padding:4px 2px!important;gap:2px!important;min-
    et de la HIG, sur un écran qu'on touche avec des gants. Le contenu tient en 42,6 — c'est
    donc le plancher qui fixe la hauteur, pas l'inverse. Descendre la barre plus bas voudrait
    dire descendre SOUS 44, et ça on ne le fait pas. */
-.tab-ic{font-size:18px;line-height:1;transition:background var(--d-1,.14s) ease,padding var(--d-1,.14s) ease}
+.tab-ic{font-size:18px;line-height:1;transition:background var(--d-1,.14s) ease,padding var(--d-1,.14s) ease,transform .2s cubic-bezier(.32,.72,0,1)}
 /* ⚠ UN LIBELLÉ TRONQUÉ NE NOMME RIEN, ET « Planni… » NE DIT PLUS SI C'EST « Planning » ou
    « Planning général ». Mesuré à 430 px : cinq colonnes de 78 px, et « Planning » débordait
    d'un caractère. Un chouia de crénage négatif le fait rentrer sans toucher à la taille — on
@@ -6006,7 +6041,6 @@ html[data-refonte] .tabbar:has(.tab-cur) .tab.on::after,
 html[data-refonte] .tabbar:has(.tab-cur) .tab.active::after{
   opacity:0!important;transform:scaleX(0)!important;animation:none!important;
 }
-.tab .tab-b{position:absolute;top:2px;right:calc(50% - 22px);font-size:9.5px;min-width:16px;padding:0 4px;line-height:16px}
 .tab:active{transform:scale(.94)}
 @media (prefers-reduced-motion: reduce){ .tab,.tab-ic{transition:none} .tab:active{transform:none} }
 
@@ -6074,6 +6108,14 @@ html[data-verre="1"][data-kind="mobile"][data-theme="dark"] .tab-cur{
   background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05)),
              color-mix(in srgb,var(--acc) 22%,transparent);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 8px rgba(0,0,0,.35);
+}
+/* Tenue en main, la capsule garde son liseré de lumière et prend une ombre plus longue :
+   c'est l'élévation qui dit « elle est au-dessus de la barre », pas une couleur de plus. */
+html[data-verre="1"][data-kind="mobile"] .tabbar.tire .tab-cur{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 22px rgba(31,38,64,.18);
+}
+html[data-verre="1"][data-kind="mobile"][data-theme="dark"] .tabbar.tire .tab-cur{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 8px 22px rgba(0,0,0,.45);
 }
 /* ⚠ DANS UN NAVIGATEUR, LA PILULE RESTE UNE PILULE — elle monte, elle ne s'aplatit plus.
    Cette règle disait le contraire jusqu'au 22 septembre 2026 : la barre redevenait plate et
@@ -6801,7 +6843,7 @@ var tmLastSend=0, tmSending=false, tmT=Date.now();
       Et la catégorie dit CE QU'EST L'ÉCRAN, pas où il est rangé dans le menu : « Boîte mail »
       était classée dans « Commandes » parce qu'on y envoie les bons de commande. C'est une
       boîte e-mail. */
-var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',chantiers:'Interventions',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
+var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
 /* ⛔ CE QUE CETTE VALEUR EST, ET CE QU'ELLE N'EST PAS. `tmCat()` nomme L'ÉCRAN OUVERT au moment
    de l'incident. Ce n'est PAS l'endroit d'où vient l'erreur, et rien ne le garantit : une
    promesse rejetée par un travail de fond (le poll IndexedDB de Firebase Auth, par exemple)
@@ -6952,7 +6994,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '729-beta';
+const APP_VERSION = '730-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13175,14 +13217,22 @@ function renderOnglets(){
     return;
   }
   bar.dataset.sig=_sig;
+  /* ⛔ PAS DE COMPTEUR SUR LES ICÔNES DE LA BARRE. Jusqu'au 23 septembre 2026, chaque onglet
+     recopiait le compteur du menu : un chiffre nu au coin de l'icône, sans pastille — « 0 » sur
+     la mallette dans la bêta, et chez une entreprise le TOTAL de ses fiches (trois cents
+     interventions). Sur une barre d'onglets, un chiffre posé sur une icône se lit « tant de
+     choses t'attendent » : c'est la grammaire d'iOS et d'Instagram, et ce total ne dit jamais
+     rien de neuf. Le menu garde ses compteurs, où ils sont une colonne de totaux et se lisent
+     comme tels. Si un jour la barre doit signaler quelque chose, ce sera du NOUVEAU (à
+     valider, non lu), dans une pastille — pas un total. */
   bar.innerHTML = ongletsLire().map(k=>{ const it=ongletItem(k); if(!it) return '';
     return `<button class="tab${current===k?' on':''}" data-tab="${k}" onclick="go('${k}')" aria-label="${esc(t(it.l))}">
-      <span class="tab-ic">${it.ic||'•'}</span><span class="tab-l">${esc(ongletCourt(k,t(it.l)))}</span>
-      ${it.b?`<span class="badge tab-b" data-badge="${it.b}">0</span>`:''}</button>`; }).join('')
+      <span class="tab-ic">${it.ic||'•'}</span><span class="tab-l">${esc(ongletCourt(k,t(it.l)))}</span></button>`; }).join('')
     + `<button class="tab" data-tab="_plus" onclick="document.getElementById('sidebar').classList.add('open')" aria-label="Toutes les catégories">
         <span class="tab-ic">☰</span><span class="tab-l">Plus</span></button>`;
   tabCurPoser(bar);
   ongletsPresse(bar);
+  ongletsBulle(bar);
   ongletsGeste();
   try{ refreshBadges(); }catch(e){}
   renderMsgFlottant();
@@ -13210,6 +13260,11 @@ let _tabCurDepuis=0;
 /* On ne pose qu'un NUMÉRO de colonne et un décalage de doigt : le CSS fait le reste. */
 function tabCurPlacer(anime,decalage){
   const bar=document.getElementById('tabbar'); if(!bar) return;
+  /* ⛔ PENDANT QU'UN DOIGT TIENT LA BULLE, ELLE EST À LUI. Un rafraîchissement de la barre
+     (synchro, pastilles) rappelle cette fonction toutes les quelques secondes : sans cette
+     garde, la bulle repartirait vers son onglet EN PLEIN GESTE, sous le doigt qui la tient.
+     C'est `ongletsBulle` qui la rend, en retirant `tire` avant de la reposer. */
+  if(bar.classList.contains('tire')) return;
   const cur=bar.querySelector('#tab-cur'); if(!cur) return;
   const tabs=[...bar.querySelectorAll('.tab')];
   /* ⛔ PAS D'ONGLET ACTIF = PAS DE PASTILLE. Une pastille laissée sur le dernier onglet connu
@@ -13255,15 +13310,21 @@ function swipeDefileH(n){
    rendait `HTML` — le doigt ne touchait donc PAS la zone écoutée, et le balayage ne partait
    jamais. Un écouteur posé sur un conteneur qui ne couvre pas l'écran est un écouteur qu'on
    croit avoir posé. On écoute le document et on ÉCARTE ce qui ne doit pas recevoir le geste. */
-/* ⛔⛔ LA BARRE ÉTAIT EXCLUE, ET C'EST LÀ QUE LE DOIGT VA. Justin, 22 septembre 2026, deux
-   fois : « le glissement du doigt sur la barre marche toujours pas ». Mesuré avec de VRAIS
-   événements tactiles : glisser sur le CONTENU marche dans les deux sens ; glisser sur la
-   BARRE ne fait **rien**, parce que `#tabbar` figurait ici. Rien ne le disait à l'écran — la
-   pastille est là, elle a l'air de se prendre, et elle ne bouge pas.
-   C'est pourtant le geste le plus naturel : la pastille est SOUS le doigt, on la pousse.
-   La barre sort donc de la liste. Ce qui reste exclu l'est pour une vraie raison : un tiroir,
-   un voile, un panneau ou la barre du haut ne sont pas des rubriques qu'on parcourt. */
-const SWIPE_HORS=['.sidebar','#overlay','#overlay2','#assistant','#login','.topbar','.creer-ov'];
+/* ⛔⛔ LA BARRE EST DE NOUVEAU EXCLUE — PARCE QU'ELLE A SON PROPRE GESTE, PAS PARCE QU'ON
+   L'OUBLIE. Historique, pour ne pas refaire le tour :
+   · jusqu'au 22 septembre 2026, `#tabbar` figurait ici sans geste à elle : glisser sur la
+     barre ne faisait RIEN (« le glissement du doigt sur la barre marche toujours pas ») ;
+   · le 22, on l'a sortie de la liste : le balayage de PAGE partait aussi de la barre, et la
+     pastille filait À L'OPPOSÉ du doigt — c'est le sens d'une page qu'on pousse ;
+   · le 23, Justin l'a essayé au doigt : « ça marche, mais ça fait pas du tout comme sur
+     Instagram ; je voudrais qu'on soit appuyé sur la bulle et qu'on déplace la bulle avec
+     notre doigt. Là on glisse comme si on descendait sur une page Internet. »
+   La barre a désormais SON geste (`ongletsBulle`) : on attrape la bulle, elle suit la main.
+   Elle revient donc ici — deux machines sur le même doigt navigueraient deux fois, et le
+   balayage de page pousserait la bulle dans le sens contraire de celle qui la tient.
+   Ce qui reste exclu l'est pour une vraie raison : un tiroir, un voile, un panneau ou la barre
+   du haut ne sont pas des rubriques qu'on parcourt. */
+const SWIPE_HORS=['.sidebar','#overlay','#overlay2','#assistant','#login','.topbar','.creer-ov','#tabbar'];
 function swipeExclu(n){
   while(n && n.nodeType===1 && n!==document.body){
     for(const sel of SWIPE_HORS){ try{ if(n.matches&&n.matches(sel)) return true; }catch(e){} }
@@ -13395,14 +13456,197 @@ function ongletsGeste(){
    défilement commence toujours par un appui. */
 function ongletsPresse(bar){
   if(bar._presse) return; bar._presse=true;
-  let minuterie=null, long=false;
+  let minuterie=null, long=false, px=0, py=0;
   const desarmer=()=>{ if(minuterie){ clearTimeout(minuterie); minuterie=null; } };
-  bar.addEventListener('pointerdown',()=>{ long=false; desarmer();
-    minuterie=setTimeout(()=>{ long=true; minuterie=null;
+  bar.addEventListener('pointerdown',e=>{ long=false; desarmer(); px=e.clientX; py=e.clientY;
+    minuterie=setTimeout(()=>{ minuterie=null;
+      /* ⛔ UN APPUI TENU SUR LA BULLE EST UNE PRISE, PAS UN MENU. Depuis qu'on l'attrape pour
+         la déplacer (`ongletsBulle`), on la tient souvent une demi-seconde avant de glisser :
+         ouvrir le choix des onglets à ce moment-là arracherait le geste de la main. La bulle
+         se signale en portant `tire` — dès le contact si on l'a prise, dès qu'on glisse si on
+         est parti d'un autre onglet. Le choix reste à un appui long sur un AUTRE onglet, et
+         dans les Paramètres (« Choisir mes onglets »). */
+      if(bar.classList.contains('tire')) return;
+      long=true;
       try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
       formOnglets(); },550); });
-  ['pointerup','pointercancel','pointermove','pointerleave'].forEach(ev=>bar.addEventListener(ev,desarmer));
+  /* ⚠ On désarme au MOUVEMENT, pas au premier `pointermove`. La barre porte désormais
+     `touch-action:none` : le navigateur n'y prend plus la main, et un doigt posé tremble
+     toujours d'un pixel — le premier `pointermove` arrive donc tout de suite, et l'appui
+     long n'aurait plus jamais abouti. Huit pixels, c'est un doigt qui glisse. */
+  bar.addEventListener('pointermove',e=>{ if(minuterie && Math.hypot(e.clientX-px,e.clientY-py)>8) desarmer(); });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>bar.addEventListener(ev,desarmer));
   bar.addEventListener('click',e=>{ if(long){ e.preventDefault(); e.stopPropagation(); long=false; } },true);
+}
+
+/* ══ LA BULLE QU'ON ATTRAPE ══════════════════════════════════════════════════════════════
+   Justin, 23 septembre 2026, après l'avoir essayé au doigt : « ça marche, mais ça fait pas du
+   tout comme sur Instagram. Moi je voudrais qu'on soit appuyé sur la bulle et qu'on déplace
+   la bulle avec notre doigt. Là on glisse comme si on descendait sur une page Internet, mais
+   j'aime pas du tout. »
+   C'était une question de SENS. Le balayage de page pousse la pastille À L'OPPOSÉ du doigt :
+   on pousse la page vers la gauche, la rubrique suivante arrive par la droite. Sur une page,
+   c'est juste. Sur une barre, c'est contre-nature : la pastille est un OBJET, et un objet
+   qu'on touche suit la main.
+   Ce que fait la barre d'iOS 26 — donc Instagram —, et ce qu'on fait ici :
+   · on pose le doigt SUR la bulle : elle se soulève tout de suite, au contact, pas au premier
+     mouvement ;
+   · on glisse : elle suit le doigt 1:1, à l'endroit exact où on l'a prise — sans sauter pour
+     se centrer sous lui ;
+   · l'onglet sous la bulle s'allume en passant : c'est lui qu'on obtiendra ;
+   · on lâche : elle se pose sur cet onglet, et la rubrique s'ouvre ;
+   · on part d'un AUTRE onglet et on glisse : la bulle vient sous le doigt en 170 ms, puis le
+     suit 1:1.
+   ⛔ PAS DE PROJECTION DE VITESSE ICI, contrairement au balayage de page. Sur un curseur qu'on
+   promène, ce qui est allumé au moment où l'on lâche est ce qu'on obtient : une bulle qui
+   filerait plus loin que l'onglet allumé tromperait l'œil au tout dernier moment.
+   ⛔ « PLUS » N'EST PAS UNE PLACE POUR LA BULLE. Ce n'est pas une rubrique, c'est le tiroir :
+   la bulle résiste au bord comme un ressort (`elastique`), et un geste parti de « Plus » ne
+   l'attrape pas.
+   ⚠ LE DOIGT ET LA SOURIS. Le TACTILE pour un doigt, le POINTEUR pour une souris — même leçon
+   que `ongletsGeste`. Et la capture de pointeur ne se pose qu'une fois le geste ENGAGÉ : posée
+   dès l'appui, elle ferait partir le `click` sur la barre au lieu de l'onglet, et un simple
+   clic de souris n'ouvrirait plus rien.
+   La MESURE est dans `scratchpad/sonde-geste.js` : de vrais événements tactiles, la bulle
+   relevée image par image sous le doigt. */
+function ongletsBulle(bar){
+  if(!bar || bar._bulle) return; bar._bulle=true;
+  const SEUIL=6;                       // en deçà, c'est un tap : la bulle n'emmène nulle part
+  let s=null, finBulle=0;
+  /* Le ressort d'Apple : plus on tire au-delà du bord, moins la bulle suit. */
+  const elastique=(d,dim)=>(d*dim*0.55)/(dim+0.55*d);
+  /* Les centres se MESURENT au contact, et seulement là : c'est une mesure qu'on emploie tout
+     de suite, pas une géométrie qu'on recopie et qui périme (voir `tabCurPlacer`). */
+  const colonnes=()=>[...bar.querySelectorAll('.tab')].map((b,n)=>{
+      const r=b.getBoundingClientRect(); return {b,n,k:b.dataset.tab,c:r.left+r.width/2,w:r.width}; })
+    .filter(o=>o.k && o.k!=='_plus');
+  const plusProche=(cols,x)=>{ let m=0,d=Infinity; cols.forEach((o,n)=>{ const e=Math.abs(o.c-x); if(e<d){ d=e; m=n; } }); return m; };
+  const survoler=(j,muet)=>{
+    if(!s || j===s.j) return;
+    s.j=j; s.cols.forEach((o,n)=>o.b.classList.toggle('survol',n===j));
+    if(!muet){ try{ if(navigator.vibrate) navigator.vibrate(6); }catch(e){} }
+  };
+  const nettoyer=(st)=>{
+    if(st.raf){ cancelAnimationFrame(st.raf); st.raf=0; }
+    bar.classList.remove('tire');
+    st.cols.forEach(o=>o.b.classList.remove('survol'));
+    st.cur.style.transition='';
+  };
+  const abandon=()=>{ if(!s) return; const st=s; s=null; nettoyer(st); tabCurPlacer(true,0); };
+  const poser=()=>{
+    if(!s) return; s.raf=0;
+    if(!s.cur.isConnected){ abandon(); return; }     // la barre a été réécrite sous le doigt
+    const now=performance.now();
+    let t=s.x-s.prise;
+    const a=s.cols[0].c, z=s.cols[s.cols.length-1].c, dim=s.cols[0].w/2;
+    if(t<a) t=a-elastique(a-t,dim); else if(t>z) t=z+elastique(t-z,dim);
+    if(s.rattrape){
+      /* Elle VIENT sous le doigt, elle ne s'y téléporte pas — et le rattrapage a une FIN :
+         au bout de 170 ms elle est exactement sous le doigt, et le suit 1:1. Un simple
+         lissage exponentiel resterait en retard tant que le doigt bouge, c'est-à-dire tout
+         le temps. */
+      const k=Math.min(1,(now-s.tEng)/170), e=1-Math.pow(1-k,3);
+      s.pos=s.pos0+(t-s.pos0)*e;
+      if(k>=1) s.rattrape=false;
+    } else s.pos=t;
+    bar.style.setProperty('--tab-dx',(s.pos-s.cBase).toFixed(1)+'px');
+    survoler(plusProche(s.cols,s.pos),false);
+    if(s.rattrape) s.raf=requestAnimationFrame(poser);
+  };
+  const demander=()=>{ if(s && !s.raf) s.raf=requestAnimationFrame(poser); };
+  /* Hors rattrapage, la bulle se pose DANS l'événement du doigt, pas une image plus tard :
+     une image de retard, c'est cinq pixels sous un doigt qui glisse — l'objet ne colle plus. */
+  const suivreDoigt=()=>{ if(!s) return; if(s.rattrape){ demander(); return; }
+    if(s.raf){ cancelAnimationFrame(s.raf); s.raf=0; } poser(); };
+  /* La bulle se soulève : elle quitte la transition de position (elle suit la main, elle ne
+     glisse plus toute seule) mais garde celle de sa PRISE — `scale` est une propriété à part
+     de `transform`, c'est ce qui permet les deux à la fois. */
+  const soulever=()=>{
+    s.cur.style.transition='scale .26s cubic-bezier(.32,.72,0,1),box-shadow .26s ease,opacity .22s ease';
+    bar.style.setProperty('--tab-n',s.n);
+    bar.style.setProperty('--tab-i',s.base);
+    bar.style.setProperty('--tab-dx',(s.pos-s.cBase).toFixed(1)+'px');
+    bar.classList.add('cur-on','tire');
+    survoler(plusProche(s.cols,s.pos),true);
+  };
+  const debut=(x,y,cible,pid)=>{
+    if(s) abandon();
+    const tab=cible&&cible.closest?cible.closest('.tab'):null;
+    if(!tab || !bar.contains(tab) || tab.dataset.tab==='_plus') return;
+    const ov=document.getElementById('overlay'); if(ov && ov.classList.contains('open')) return;
+    const sb=document.getElementById('sidebar'); if(sb && sb.classList.contains('open')) return;
+    const cur=bar.querySelector('#tab-cur'); if(!cur) return;
+    const cols=colonnes(); if(cols.length<2) return;
+    const iOn=cols.findIndex(o=>o.b.classList.contains('on'));
+    const iTab=cols.findIndex(o=>o.b===tab);
+    const visible=iOn>=0 && bar.classList.contains('cur-on');
+    const r=cur.getBoundingClientRect(), pc=r.left+r.width/2;
+    /* « Sur la bulle », c'est sous son rectangle VISUEL — elle peut être encore en route d'un
+       onglet à l'autre : on la prend là où on la voit, pas là où elle va. */
+    const surBulle=visible && x>=r.left-4 && x<=r.right+4;
+    const b=iOn>=0?iOn:iTab;
+    s={x0:x,y0:y,x,y,pid,cur,cols,n:bar.querySelectorAll('.tab').length,base:cols[b].n,cBase:cols[b].c,
+       iOn,surBulle,pos:surBulle?pc:(visible?pc:x),prise:surBulle?x-pc:0,engage:false,rattrape:false,
+       pos0:0,tEng:0,j:-1,raf:0};
+    if(surBulle) soulever();
+  };
+  const bouger=(x,y)=>{
+    if(!s) return false;
+    s.x=x; s.y=y;
+    if(!s.engage){
+      const ax=Math.abs(x-s.x0), ay=Math.abs(y-s.y0);
+      /* Parti d'un autre onglet, un doigt qui monte n'emmène pas la bulle : c'est un tap
+         qu'on annule en s'éloignant, la grammaire de tous les boutons d'iOS. */
+      if(!s.surBulle && ay>=SEUIL && ay>ax){ const st=s; s=null; nettoyer(st); return false; }
+      if(ax<SEUIL){ if(s.surBulle) suivreDoigt(); return false; }
+      s.engage=true;
+      if(!s.surBulle){ s.rattrape=true; s.tEng=performance.now(); s.pos0=s.pos; soulever(); }
+      if(s.pid!=null){ try{ bar.setPointerCapture(s.pid); }catch(e){} }
+    }
+    suivreDoigt();
+    return true;
+  };
+  const lacher=()=>{
+    if(!s) return;
+    const st=s; s=null;
+    const j=st.j>=0?st.j:plusProche(st.cols,st.pos);
+    nettoyer(st);
+    if(!st.engage){ if(st.surBulle) tabCurPlacer(true,0); return; }   // un tap : le clic de l'onglet fait le reste
+    finBulle=Date.now();
+    /* Le bloc d'historique lit ce marqueur pour ne pas défaire ce que le doigt vient de faire. */
+    try{ window._balayageFin=finBulle; }catch(e){}
+    const dest=st.cols[j] && st.cols[j].k;
+    if(!dest || dest===current){ tabCurPlacer(true,0); return; }
+    try{ _sensForce = st.iOn<0 ? '' : (j>st.iOn ? 'avant' : 'retour'); }catch(e){}
+    go(dest);
+  };
+  bar.addEventListener('touchstart',e=>{
+    if(!e.touches || e.touches.length!==1){ abandon(); return; }
+    const t=e.touches[0]; debut(t.clientX,t.clientY,e.target,null);
+  },{passive:true});
+  /* ⚠ Non passif, et seulement celui-ci : une fois le geste engagé, on garde le doigt pour la
+     bulle même là où `touch-action` ne serait pas honoré. Il est posé sur la BARRE, qui ne
+     défile pas — il ne ralentit aucun défilement. */
+  bar.addEventListener('touchmove',e=>{
+    if(!s) return;
+    if(!e.touches || e.touches.length!==1){ abandon(); return; }
+    const t=e.touches[0];
+    if(bouger(t.clientX,t.clientY) && e.cancelable) e.preventDefault();
+  },{passive:false});
+  bar.addEventListener('touchend',()=>lacher(),{passive:true});
+  bar.addEventListener('touchcancel',()=>abandon(),{passive:true});
+  bar.addEventListener('pointerdown',e=>{ if(e.pointerType!=='mouse' || e.button!==0) return; debut(e.clientX,e.clientY,e.target,e.pointerId); });
+  bar.addEventListener('pointermove',e=>{ if(e.pointerType!=='mouse') return; bouger(e.clientX,e.clientY); });
+  bar.addEventListener('pointerup',e=>{ if(e.pointerType!=='mouse') return; lacher(); });
+  bar.addEventListener('pointercancel',e=>{ if(e.pointerType!=='mouse') return; abandon(); });
+  /* ⛔ UN GESTE, UNE NAVIGATION. Le doigt lâché au-dessus d'un onglet peut encore produire le
+     `click` de cet onglet : on l'avale, et seulement juste après un geste ENGAGÉ — un tap ne
+     l'est jamais (il faut six pixels), il passe intact. En capture sur la barre : les onglets
+     portent un `onclick` en ligne, qu'un écouteur d'ancêtre en capture devance. */
+  bar.addEventListener('click',e=>{
+    if(Date.now()-finBulle>350) return;
+    e.preventDefault(); e.stopPropagation();
+  },true);
 }
 /* Le réglage : on choisit quatre rubriques, dans l'ordre où on les touche. */
 let _ongletsBrouillon=null;
@@ -13726,7 +13970,7 @@ let _sensForce='';
    `#v=audit` ou une notification déjà reçue continuent de le demander : sans cette table,
    `go()` retombait sur le tableau de bord, et la personne ne comprenait pas où était passé
    son écran. */
-const VUES_RETIREES={audit:'historique', permissions:'utilisateurs'};
+const VUES_RETIREES={audit:'historique', permissions:'utilisateurs', chantiers:'interventions'};
 function go(view){
   /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
   try{ multiCapturer(); }catch(e){}
@@ -13776,7 +14020,6 @@ function gsearch(q){ const box=$('gsrch-res'); if(!box) return; q=norm((q||'').t
   const out=[];
   db.clients.forEach(c=>{ if(norm(c.nom||'').includes(q)) out.push({ic:'🏢',t:c.nom,sub:'Client',fn:"ficheClient('"+c.id+"')"}); });
   db.interventions.forEach(i2=>{ if(norm((i2.num||'')+' '+(i2.titre||'')+' '+clientName(i2.clientId)).includes(q)) out.push({ic:'🧰',t:(i2.num?i2.num+' · ':'')+(i2.titre||''),sub:(i2.date?fmtShort(i2.date)+' · ':'')+((STATUT_INT[i2.statut]||{}).l||''),fn:"detailIntervention('"+i2.id+"')"}); });
-  (db.chantiers||[]).forEach(ch=>{ if(norm(ch.nom||'').includes(q)) out.push({ic:'🏗️',t:ch.nom,sub:'Chantier',fn:"detailChantier('"+ch.id+"')"}); });
   (db.taches||[]).forEach(t2=>{ if(norm(t2.titre||'').includes(q)) out.push({ic:'✅',t:t2.titre,sub:'Tâche',fn:"go('taches')"}); });
   const top=out.slice(0,8);
   box.innerHTML=top.length?top.map(r=>`<div class="gr" onclick="gsrchGo(this)" data-fn="${esc(r.fn)}"><span>${r.ic}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.t)}</span><span class="gt">${esc(r.sub)}</span></div>`).join(''):'<div class="gr" style="cursor:default;color:var(--t3)">Aucun résultat</div>';
@@ -18026,15 +18269,40 @@ function garAlertCheck(){ try{ if(!currentUser||currentUser.role!=='admin') retu
   toast(msg);
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){ try{ new Notification('OP GESTION — Garanties',{body:msg}); }catch(e){} }
 }catch(e){} }
+/* ⛔⛔ UN SEUL ACCUEIL LE MATIN — décidé le 23 septembre 2026, Justin : « chaque matin pour tes
+   techniciens, fais ce qui est le mieux ». Jusque-là, un technicien qui avait des interventions
+   recevait DEUX accueils à 200 ms d'écart : le panneau de Leia s'ouvrait avec « Petits rappels
+   du jour » (« 3 intervention(s) prévue(s) aujourd'hui »…) ET ce bandeau montait en bas
+   (« Ta journée : 3 interventions »). La même nouvelle deux fois, dont une qui couvre l'écran.
+   La sonde du matin devait elle-même fermer Leia pour pouvoir photographier le bandeau.
+   La règle, une fois par jour et par personne :
+   · un TECHNICIEN qui a des interventions aujourd'hui reçoit « Ta journée » — court, sa
+     première intervention, un bouton, et il s'efface seul ; c'est ce qu'il vient chercher le
+     matin, le téléphone à la main. Ses interventions EN RETARD y sont dites (c'était la seule
+     ligne de Leia qui ne s'y trouvait pas) ;
+   · tous les autres — un responsable (administrateur, DR, chef d'équipe : il a des demandes à
+     valider, des factures, l'équipe entière), ou un technicien sans intervention ce jour-là —
+     reçoivent les rappels de Leia, comme avant.
+   Rien n'est perdu : les rappels restent dans la bulle 💬 (« Rappels »), à la demande. */
+function accueilJournee(){ try{ if(!currentUser) return false;
+  const r=currentUser.role; if(r==='admin'||r==='dr'||r==='chefEquipe') return false;
+  const tid=myTechId(); if(!tid) return false;
+  const today=todayISO();
+  return (db.interventions||[]).some(i=>i.date===today&&intTechIds(i).includes(tid)&&i.statut!=='annulee');
+}catch(e){ return false; } }
 /* ── P7 : rappel de la journée le matin (techniciens, 1 fois par jour) ── */
 function planFdrCheck(){ try{ if(!currentUser) return;
+  if(!accueilJournee()) return;
   const tid=myTechId(); if(!tid) return;
   const key='elanB_fdr_'+todayISO()+'_'+currentUser.id; if(localStorage.getItem(key)) return;
   const mine=(db.interventions||[]).filter(i=>i.date===todayISO()&&intTechIds(i).includes(tid)&&i.statut!=='annulee').sort((a,b)=>(a.heure||'').localeCompare(b.heure||''));
   if(!mine.length) return;
   localStorage.setItem(key,'1');
   const first=mine[0];
-  const msg='📋 Ta journée : '+mine.length+' intervention'+(mine.length>1?'s':'')+(first.heure?' · 1\u02b3\u1d49 : '+first.heure+' '+(clientName(first.clientId)||first.titre||''):'');
+  /* Ses retards à lui — pas ceux de toute l'entreprise : c'est SA journée. */
+  const retard=(db.interventions||[]).filter(i=>i.date<todayISO()&&intTechIds(i).includes(tid)&&(i.statut==='planifiee'||i.statut==='encours')).length;
+  const msg='📋 Ta journée : '+mine.length+' intervention'+(mine.length>1?'s':'')+(first.heure?' · 1\u02b3\u1d49 : '+first.heure+' '+(clientName(first.clientId)||first.titre||''):'')
+    +(retard?' · ⏰ '+retard+' en retard':'');
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){ try{ new Notification('OP GESTION — Ta journée',{body:msg}); }catch(e){} }
   const b=document.createElement('div');
   b.id='fdr-banner';
@@ -18594,45 +18862,16 @@ function toggleTag(coll,id,t){ t=(t||'').trim(); const x=db[coll].find(v=>v.id==
 function addNewTag(coll,id){ const v=($('tag-new').value||'').trim().slice(0,24); if(!v) return; const x=db[coll].find(w=>w.id===id); x.tags=x.tags||[]; if(!x.tags.includes(v)) x.tags.push(v); save(); openTagEditor(coll,id); }
 let cliTagFilter='';
 
-/* ── Chantiers / Projets ── */
-const CHANTIER_ST={encours:{l:'En cours',c:'st-blue'},termine:{l:'Terminé',c:'st-green'},pause:{l:'En pause',c:'st-org'}};
-views.chantiers=function(){ db.chantiers=db.chantiers||[];
-  setHeader('Chantiers / Projets',`${db.chantiers.filter(c=>c.statut!=='termine').length} en cours`,`<button class="btn" onclick="formChantier()">＋ Chantier</button>`);
-  const rows=[...db.chantiers].sort((a,b)=>(b.debut||'').localeCompare(a.debut||'')).map(ch=>{
-    const ints=db.interventions.filter(i=>i.chantierId===ch.id);
-    const done=ints.filter(i=>i.statut==='terminee').length;
-    const pct=ints.length?Math.round(done*100/ints.length):0;
-    return `<div class="pl-row" onclick="detailChantier('${ch.id}')" style="border-left:3px solid ${ch.statut==='termine'?'var(--acc)':ch.statut==='pause'?'var(--org)':'var(--blue)'}">
-      <div class="pl-info"><div class="pl-title">🏗️ ${esc(ch.nom)}</div>
-        <div class="pl-meta">${esc(clientName(ch.clientId))||'—'}${ch.debut?' · du '+fmtShort(ch.debut):''}${ch.fin?' au '+fmtShort(ch.fin):''}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:5px"><div style="flex:1;height:6px;border-radius:4px;background:var(--card2);overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--acc)"></div></div><span style="font-size:11px;color:var(--t3)">${done}/${ints.length} · ${pct}%</span></div></div>
-      ${badge(CHANTIER_ST,ch.statut||'encours')}</div>`; }).join('');
-  $('content').innerHTML=rows||`<div class="card">${emptyState('🏗️','Aucun chantier. Regroupez plusieurs interventions dans un projet.','＋ Chantier','formChantier()')}</div>`;
-};
-function formChantier(id){ db.chantiers=db.chantiers||[]; const c=id?db.chantiers.find(x=>x.id===id):{};
-  openModal(`<div class="modal-head"><h3>${id?'Modifier le chantier':'Nouveau chantier'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <form onsubmit="saveChantier(event,'${id||''}')">
-      <div class="field"><label>Nom *</label><input name="nom" required value="${esc(c.nom||'')}" placeholder="Ex : Résidence Les Pins — traitement complet"></div>
-      <div class="field"><label>Client</label><select name="clientId"><option value="">—</option>${optOf(db.clients,c.clientId)}</select></div>
-      <div class="field-row"><div class="field"><label>Début</label><input type="date" name="debut" value="${c.debut||todayISO()}"></div>
-        <div class="field"><label>Fin prévue</label><input type="date" name="fin" value="${c.fin||''}"></div></div>
-      <div class="field"><label>Statut</label><select name="statut">${Object.entries(CHANTIER_ST).map(([k,v])=>`<option value="${k}" ${(c.statut||'encours')===k?'selected':''}>${v.l}</option>`).join('')}</select></div>
-      <div class="field"><label>Note</label><input name="note" value="${esc(c.note||'')}"></div>
-      <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`); }
-function saveChantier(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
-  if(id){ const ix=db.chantiers.findIndex(x=>x.id===id); db.chantiers[ix]={...db.chantiers[ix],...d}; }
-  else db.chantiers.push({id:uid(),...d});
-  logEvent(id?'Chantier modifié':'Nouveau chantier',d.nom,'crud'); save(); closeModal(); try{ views[current](); }catch(_e){} }
-function detailChantier(id){ const ch=db.chantiers.find(x=>x.id===id); if(!ch) return;
-  ecranDetail(()=>detailChantier(id));   // une synchro ne doit pas refermer le chantier ouvert
-  const ints=db.interventions.filter(i=>i.chantierId===id).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  const done=ints.filter(i=>i.statut==='terminee').length;
-  openModal(`<div class="modal-head"><h3>🏗️ ${esc(ch.nom)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <p style="color:var(--t3);font-size:13px;margin-bottom:12px">${esc(clientName(ch.clientId))||''} · ${done}/${ints.length} intervention(s) terminée(s)${ch.note?' · '+esc(ch.note):''}</p>
-    ${ints.map(i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${i.date?fmtShort(i.date):'À planifier'}${i.heure?' · '+i.heure:''} · ${esc(techNames(i))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('')||'<p style="color:var(--t3)">Aucune intervention liée. Choisissez ce chantier dans la fiche intervention.</p>'}
-    <div class="modal-foot"><button class="btn ghost" onclick="closeModal();formChantier('${ch.id}')">Modifier</button><button class="btn" onclick="closeModal();formIntervention()">＋ Intervention</button>${can('supprimer')?`<button class="btn danger" onclick="delChantier('${ch.id}')">🗑</button>`:''}</div>`); }
-function delChantier(id){ if(!confirm('Supprimer ce chantier ? (les interventions ne sont pas supprimées)')) return;
-  db.chantiers=db.chantiers.filter(x=>x.id!==id); db.interventions.forEach(i=>{ if(i.chantierId===id) delete i.chantierId; }); save(); closeModal(); try{ views[current](); }catch(_e){} toast('Chantier supprimé'); }
+/* ⛔ LA RUBRIQUE « CHANTIERS / PROJETS » EST RETIRÉE — décision de Justin, 23 septembre 2026 :
+   « chantier, oui tu peux le supprimer, je ne vois pas l'intérêt ». Elle n'était dans aucun menu
+   (on n'y entrait que par la recherche globale) et le champ « Chantier » de l'intervention
+   renvoyait vers elle. Ce qui disparaît : la vue, la fiche, le formulaire, la ligne de recherche,
+   le champ de l'intervention. Ce qui RESTE, exprès : les données. `db.chantiers` et
+   `i.chantierId` gardent leur place dans la synchro (`COLLECTIONS_DONNEES`, `COLLS_GARDEES`…) :
+   une collection retirée de la fusion serait effacée par le premier appareil à jour chez tous
+   les autres, et une base est la propriété du client. Enregistrer une intervention fusionne
+   (`{...ancienne, ...formulaire}`) : le `chantierId` déjà posé n'est pas effacé. L'ancienne
+   adresse `#v=chantiers` mène aux Interventions (`VUES_RETIREES`). */
 
 /* ── E-mails métier : envoyés depuis les adresses de L'ENTREPRISE (Paramètres → E-mails d'entreprise).
    Plusieurs boîtes possibles, chacune affectée à un type d'envoi. Sans configuration → app Mail (mailto).
@@ -20599,7 +20838,6 @@ function formIntervention(id,presetDate){
             <div id="dur-chips" style="display:flex;gap:6px;flex-wrap:wrap">${intDureeChips(i.duree||60)}</div>
             <div id="fin-dit" style="margin-top:8px;font-size:12.5px;color:var(--t3)">Fin prévue : <b style="color:var(--t1)">${addMin(i.heure||'09:00',i.duree||60)}</b></div>
           </div>
-          <div class="frow"><span class="frow-lbl">Chantier</span><div class="frow-val"><select name="chantierId"><option value="">—</option>${optOf(db.chantiers||[],i.chantierId)}</select></div></div>
           <div class="frow"><span class="frow-lbl">Récurrence</span><div class="frow-val"><select name="recurrence">${Object.entries(INT_RECUR).map(([k,l])=>`<option value="${k}" ${(i.recurrence||'aucune')===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
           <div class="frow"><span class="frow-lbl">Statut</span><div class="frow-val"><select name="statut">${Object.entries(STATUT_INT).map(([k,v])=>`<option value="${k}" ${(i.statut||'planifiee')===k?'selected':''}>${v.l}</option>`).join('')}</select></div></div>
         </div></div>
@@ -35222,8 +35460,13 @@ function enterApp(u){ currentUser=u;
   if(typeof syncInit==='function') syncInit();
   // migration : le code Devis IA saisi sur l'appareil d'un admin rejoint les données d'équipe (partagé, invisible)
   try{ if(u.role==='admin'&&!db.devisIACode){ const c=localStorage.getItem('opB_devis_code'); if(c){ db.devisIACode=c; localStorage.removeItem('opB_devis_code'); save(); } } }catch(e){}
-  if(!maybeWelcome()) maybeRappels();
-  setTimeout(()=>{ try{ planFdrCheck(); }catch(e){} },1200);       // P7 : rappel de la journée le matin (techniciens)
+  /* ⛔ UN SEUL ACCUEIL : la bienvenue la toute première fois ; ensuite « Ta journée » pour un
+     technicien qui a des interventions aujourd'hui, les rappels de Leia pour tous les autres.
+     Jamais les deux — voir `accueilJournee`. */
+  if(!maybeWelcome()){
+    if(accueilJournee()) setTimeout(()=>{ try{ planFdrCheck(); }catch(e){} },1200);   // P7 : rappel de la journée le matin (techniciens)
+    else maybeRappels();
+  }
   setTimeout(()=>{ try{ garAlertCheck(); }catch(e){} },2600);      // P11 : garanties qui expirent sous 30 j (admin)
   if(secuAFaire(u)) setTimeout(forcePwdModal,600);                 // ⛔ mot de passe personnel + e-mail : sans les deux, l'accès n'est pas activé
   else if(!(u.email||'').trim()) setTimeout(emailRappelModal,1100); // ⛔ e-mail OBLIGATOIRE aussi : sans lui, « Mot de passe oublié » ne peut rien faire
