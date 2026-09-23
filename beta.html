@@ -7652,6 +7652,10 @@ function socLogoPick(ix,e){ const f=e.target.files&&e.target.files[0]; if(!f) re
 function socLogoDel(ix){ socStylePose(ix,'logo',null); views.parametres(); }
 /* Options d'envoi e-mail au nom de la société de l'intervention (expéditeur/signature) */
 function intSocMailOpts(i){ const m=i&&i.rapportModele; if(!m||/g[ée]n[ée]rique|aucune/i.test(m)) return undefined; return {brandName:rapportSociete(m)}; }
+/* v740 — même règle pour un devis/une facture : elle ne lit que `.rapportModele`, donc elle
+   sert aussi bien à une intervention qu'à un document de vente. Nommée à part pour que
+   `envoiDoc` ne semble pas manipuler une intervention qu'elle n'a pas. */
+function docSocMailOpts(d){ return intSocMailOpts(d); }
 /* Société d'un client (documents client-niveau : implantation, dossier sanitaire) = celle de sa dernière intervention */
 function papSocOf(cid){ const last=(db.interventions||[]).filter(x=>x.clientId===cid&&x.rapportModele&&!/g[ée]n[ée]rique/i.test(x.rapportModele))
     .sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||'')))[0];
@@ -19197,9 +19201,13 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
     if(r.ok){ _srvMailErr=''; toast(okMsg||('✉️ E-mail envoyé à '+to)); return true; }
     const d=await r.json().catch(()=>({}));
     _srvMailErr=d.error||('erreur serveur HTTP '+r.status);
-    toast('Envoi refusé ('+_srvMailErr+') — e-mail préparé dans Mail');
+    toast('Envoi refusé ('+_srvMailErr+')'+(opts&&opts.sansMailto?' — rien n’est parti':' — e-mail préparé dans Mail'));
     try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+_srvMailErr,src:'srvMail',line:0,stack:'destinataire '+to,ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
-  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable — e-mail préparé dans Mail'); }
+  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable'+(opts&&opts.sansMailto?' — rien n’est parti, réessaie quand le réseau revient':' — e-mail préparé dans Mail')); }
+  /* ⛔ v740 — un courriel qui porte une PIÈCE JOINTE ne se rabat pas sur un brouillon : le lien
+     mailto: ne sait pas joindre de fichier, et le brouillon dirait « ci-joint » sans rien joindre.
+     L'appelant (le plan d'implantation) le demande par `sansMailto` ; il n'écrit alors rien. */
+  if(opts&&opts.sansMailto) return false;
   location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent((opts&&opts.mailtoBody)||body);
   return false;
 }
@@ -20636,10 +20644,13 @@ function papSheetZone(intId,posteId,v){ const i=db.interventions.find(x=>x.id===
   const isAppat=!po.type||po.type==='appat';
   if(v&&isAppat&&papZoneAlimName(v)){ // blocage conformité au moment du choix de la zone
     papAlimBlock({nom:v},`papPosteSheet('${intId}','${posteId}')`); return; }
+  /* v740 : la zone s'imprime sur le plan d'implantation — le changement se note dans l'historique du plan */
+  if((po.zone||'')!==(v||'')) papTouch(hit.pl,'Poste n°'+po.num+' : zone « '+(v||'—')+' »');
   po.zone=v||''; save(); papPosteSheet(intId,posteId); }
 function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
   const old=hit.po.produitId;
+  if((old||'')!==(pid||'')) papTouch(hit.pl,'Poste n°'+hit.po.num+' : produit posé « '+((pid&&produit(pid).nom)||'aucun')+' »');   // v740 : imprimé, avec son n° d'AMM
   hit.po.produitId=pid||'';
   // l'appât posé sur un poste compte dans les produits utilisés → déduit du stock et tracé au registre
   i.produitsUtilises=i.produitsUtilises||[];
@@ -20648,6 +20659,7 @@ function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.
   save(); papPosteSheet(intId,posteId); }
 function papSheetSecure(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
+  if(!!hit.po.secure!==!!v) papTouch(hit.pl,'Poste n°'+hit.po.num+' : '+(v?'boîte sécurisée':'boîte non sécurisée'));   // v740 : imprimé
   hit.po.secure=!!v; save(); }
 function papSheetTubes(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
@@ -22331,16 +22343,22 @@ views.registre=function(){
 };
 function printRegistre(cid){ const c=db.clients.find(x=>x.id===cid)||{}; const ints=registreInts(cid); const bio=registreBiocides(cid);
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-ups');return;}
+  /* v740 — même règle que le dossier sanitaire et le plan d'implantation : ce document part
+     chez le client, donc son en-tête porte la société de SES interventions (papSocOf), pas
+     l'accroche générique. Sans ça, un client à deux sociétés recevait un registre qui ne
+     disait jamais laquelle des deux l'avait traité. */
+  const soc=papSocOf(cid); const stSoc=(typeof socStyle==='function')?socStyle(soc):{};
+  const acc=/^#[0-9a-fA-F]{6}$/.test(stSoc.couleur||'')?stSoc.couleur:'#1E7A4E';
   const rows=ints.map(i=>{ const co=i.constat||{}; return `<tr><td>${new Date((i.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</td><td>${esc(i.type||i.titre)}</td><td>${esc(i.nuisible&&i.nuisible!=='—'?i.nuisible:'')}</td><td>${esc(intTechIds(i).map(techName).filter(Boolean).join(', '))}</td><td>${esc(co.infestation||'')}</td><td>${esc((co.indices||[]).join(', '))}</td><td>${esc(co.conformite||'')}</td><td>${esc(co.recommandations||i.compteRendu||'')}</td></tr>`; }).join('');
   const bioRows=bio.map(l=>{ const t=db.techniciens.find(x=>x.nom===l.tech); const certif=t&&t.certibiocide?t.certibiocide:'';
     return `<tr><td>${new Date((l.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</td><td>${esc(l.nom)}</td><td>${esc(l.amm)||'—'}</td><td>${esc(l.ma)||'—'}</td><td style="text-align:right">${l.qte} ${esc(l.unite)}</td><td>${esc(l.tech)||'—'}${certif?'<br><span style="color:#666;font-size:10px">Certibiocide '+esc(certif)+'</span>':''}</td></tr>`; }).join('');
-  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Registre sanitaire — ${esc(c.nom)}</title><style>body{font-family:Arial;padding:32px;color:#1A1F28;font-size:12px}h1{color:#1E7A4E;font-size:20px;margin:0}h2{color:#1E7A4E;font-size:15px;margin:26px 0 8px}.sub{color:#666;margin:4px 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}th{background:#1E7A4E;color:#fff;font-size:11px}</style></head>
-  <body><h1>Registre sanitaire de lutte antiparasitaire</h1><div class="sub"><b>${esc(c.nom)}</b>${c.adresse?' — '+esc(c.adresse):''} · Édité le ${new Date().toLocaleDateString('fr-FR')} · ${ints.length} passage(s) · ${bio.length} application(s) de produit</div>
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Registre sanitaire — ${esc(c.nom)}</title><style>body{font-family:Arial;padding:32px;color:#1A1F28;font-size:12px}.soc{color:${acc};font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase}h1{color:${acc};font-size:20px;margin:2px 0 0}h2{color:${acc};font-size:15px;margin:26px 0 8px}.sub{color:#666;margin:4px 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}th{background:${acc};color:${encreSur(acc)};font-size:11px}</style></head>
+  <body><div class="soc">${esc(soc)}</div><h1>Registre sanitaire de lutte antiparasitaire</h1><div class="sub"><b>${esc(c.nom)}</b>${c.adresse?' — '+esc(c.adresse):''} · Édité le ${new Date().toLocaleDateString('fr-FR')} · ${ints.length} passage(s) · ${bio.length} application(s) de produit</div>
   <h2>Passages</h2>
   <table><thead><tr><th>Date</th><th>Prestation</th><th>Nuisible</th><th>Intervenant</th><th>Infestation</th><th>Indices</th><th>Conformité</th><th>Observations / recommandations</th></tr></thead><tbody>${rows||'<tr><td colspan=8>Aucun passage</td></tr>'}</tbody></table>
   <h2>Produits biocides utilisés</h2>
   <table><thead><tr><th>Date</th><th>Produit</th><th>N° AMM</th><th>Matière active</th><th>Quantité</th><th>Applicateur</th></tr></thead><tbody>${bioRows||'<tr><td colspan=6>Aucun produit enregistré</td></tr>'}</tbody></table>
-  <p style="margin-top:24px;color:#666">Document de traçabilité réglementaire (arrêté du 8 octobre 2021 — Certibiocide) — OP GESTION</p></body></html>`);
+  <p style="margin-top:24px;color:#666">Document de traçabilité réglementaire (arrêté du 8 octobre 2021 — Certibiocide) — ${esc(soc)}</p></body></html>`);
   w.document.close(); setTimeout(()=>w.print(),300);
 }
 
@@ -34259,7 +34277,10 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
   } else {
     if(!c.email){ if(confirm('Ce client n\'a pas d\'email. Envoyer par SMS à la place ?')){ envoiDoc(kind,id,'sms'); } else { toast('Ajoute un email au client (fiche) ou utilise le SMS'); } return; }
     const sujet=cfg.titre+' '+(d.num||'')+' — '+soc;
-    setTimeout(()=>{ srvMail(c.email,sujet,texte,'✉️ '+cfg.titre+' envoyé à '+(c.nom||c.email),'devis'); },700);
+    /* v740 : l'expéditeur affiché au client doit être CETTE société, pas le nom par défaut de
+       l'entreprise — sinon le sujet dit « Société B » et le « De : » dit « Société A », comme
+       mailClientRdv/rapportVia/envoyerAvisPassage le font déjà via intSocMailOpts. */
+    setTimeout(()=>{ srvMail(c.email,sujet,texte,'✉️ '+cfg.titre+' envoyé à '+(c.nom||c.email),'devis',null,docSocMailOpts(d)); },700);
   }
   if(kind==='devis'&&d.statut==='brouillon'){ d.statut='envoye'; save(); }
   else if(kind==='factures'&&d.statut==='brouillon'){ d.statut='envoyee'; save(); }
