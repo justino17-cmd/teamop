@@ -4410,6 +4410,37 @@ html[data-refonte] .content{padding-top:10px}
   html[data-refonte] .cs-l > .cs-val{order:4;width:auto!important;margin-top:6px}
   html[data-refonte] .cs-det{margin-left:0!important}
 }
+/* ⛔ LA LISTE DES INTERVENTIONS METTAIT QUATRE COLONNES CÔTE À CÔTE : heure, texte, compte à
+   rebours, statut et boutons. Mesuré le 23 septembre 2026 avec des noms longs : à 360 px la
+   colonne de TEXTE tombait à 0 px, le titre passait sur treize lignes (une ligne de 642 px de
+   haut) et les boutons sortaient de l'écran (page à 415 px) ; à 390 px, pareil. Rien ne cédait,
+   sauf le texte — c'est-à-dire ce qu'on vient lire. Quand la liste est étroite, deux étages :
+   l'heure et le texte en haut, pleine largeur ; en dessous, le compte à rebours à gauche (sous
+   l'heure qu'il décompte) et les gestes à droite. Aligné sous le TEXTE, le compte à rebours
+   repoussait les gestes sur un troisième étage : 60 + 88 + 14 + 149 px ne tiennent pas dans 312.
+   ⚠ C'est la largeur de la LISTE qui décide, pas celle de l'écran : sur iPad en portrait, le menu
+   latéral en prend 272 et le texte tombait à 87 px (onze lignes de titre) dans un écran de 820.
+   D'où une requête de CONTENEUR — la première du fichier. Pas de copie en @media pour les vieux
+   navigateurs : `color-mix()`, dont toute la palette dépend, est arrivé APRÈS les requêtes de
+   conteneur dans les trois moteurs (Safari 16.2 contre 16.0, Chrome 111 contre 105, Firefox 113
+   contre 110) — un navigateur qui peint les couleurs de cette application lit aussi cette règle.
+   ⚠ `::before` (le filet entre deux lignes) et `::after` (le chevron) sont déjà pris sur
+   `.pl-row` : le saut de ligne se fait donc par la BASE du texte, assez large pour que rien
+   d'autre ne tienne à côté — sauf le chevron, remonté par `order` à droite du texte.
+   640 px : en dessous, la colonne de texte d'une ligne à compte à rebours passe sous 260 px. */
+html[data-refonte] .int-liste{container-type:inline-size}
+@container (max-width:640px){
+  html[data-refonte] .int-l{flex-wrap:wrap;row-gap:10px!important}
+  html[data-refonte] .int-l > .pl-info{flex:1 1 calc(100% - 110px)}
+  html[data-refonte] .int-l::after{order:1}
+  html[data-refonte] .int-l > .int-cd,html[data-refonte] .int-l > .int-a{order:2}
+  html[data-refonte] .int-l > .int-h{align-self:flex-start}   /* l'heure en face du TITRE, pas au milieu d'un bloc de cinq lignes */
+  html[data-refonte] .int-l > .int-cd{margin:0!important}
+  /* les gestes prennent le reste de l'étage et s'y rangent en LIGNE (statut, puis boutons), à
+     droite ; ce qui ne tient pas passe dessous. Base nulle : sinon leur largeur d'une seule ligne
+     les enverrait tous sur un troisième étage, loin du compte à rebours. */
+  html[data-refonte] .int-l > .int-a{flex:1 1 0;flex-direction:row!important;flex-wrap:wrap;justify-content:flex-end;align-items:center!important;column-gap:8px!important}
+}
 
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
    C'est ce qui manquait pour que ça se lise comme une application de terrain et non comme un
@@ -18766,8 +18797,8 @@ views.interventions=function(){
   setHeader('Interventions',`${SRC.length} au total · ${att} à venir`,`${can('voirTout')?`<button class="btn ghost" onclick="exportInterventionsCsv()">CSV</button> `:''}<button class="btn ghost" onclick="intView='${intView==='semaine'?'liste':'semaine'}';views.interventions()">${intView==='semaine'?'Liste':'Semaine'}</button> ${can('creerIntervention')?`<button class="btn" onclick="formIntervention('',${intView==='semaine'?`'${intSelDay||todayISO()}'`:'undefined'})">＋ Intervention</button>`:''}`);
   if(intView==='liste' && !can('voirTout')){ renderIntTechDay(SRC); return; }
   const card=i=>{ const sc=INT_STCOLOR[i.statut]||'var(--t3)'; const fin=i.statut==='terminee';
-    return `<div class="pl-row" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
-      <div style="text-align:center;min-width:46px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:15px;color:var(--t1)">${esc(i.heure||'—')}</div><div style="font-size:10px;color:var(--t3)">${fmtShort(i.date)}</div></div>
+    return `<div class="pl-row int-l" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
+      <div class="int-h" style="text-align:center;min-width:46px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:15px;color:var(--t1)">${esc(i.heure||'—')}</div><div style="font-size:10px;color:var(--t3)">${fmtShort(i.date)}</div></div>
       <div class="pl-info">
         <div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">⚠️ Urgent</span>':''}</div>
         <div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?`<span style="color:${encreDonnee(typeColor(i.type))};font-weight:700">${esc(i.type)}</span> · `:''}${esc(clientName(i.clientId))}</div>
@@ -18775,8 +18806,8 @@ views.interventions=function(){
         ${i.statut==='annulee'&&i.motifAnnulation?`<div style="font-size:11px;color:var(--red);font-weight:700;margin-top:2px">🚫 ${esc(i.motifAnnulation)}</div>`:''}
         ${intCkBar(i)}
       </div>
-      ${(i.statut==='planifiee'&&i.date&&i.heure&&new Date(i.date+'T'+i.heure).getTime()>Date.now())?`<div style="font-size:11px;color:var(--acc-txt);font-weight:700;white-space:nowrap;margin-right:8px">🕐 ${esc(fmtCountdown(new Date(i.date+'T'+i.heure).getTime()-Date.now()))}<div style="color:var(--t3);font-weight:400">${esc(i.heure)} – ${esc(addMin(i.heure,i.duree||60))}</div></div>`:''}
-      <span onclick="event.stopPropagation()" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+      ${(i.statut==='planifiee'&&i.date&&i.heure&&new Date(i.date+'T'+i.heure).getTime()>Date.now())?`<div class="int-cd" style="font-size:11px;color:var(--acc-txt);font-weight:700;white-space:nowrap;margin-right:8px">🕐 ${esc(fmtCountdown(new Date(i.date+'T'+i.heure).getTime()-Date.now()))}<div style="color:var(--t3);font-weight:400">${esc(i.heure)} – ${esc(addMin(i.heure,i.duree||60))}</div></div>`:''}
+      <span class="int-a" onclick="event.stopPropagation()" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
         ${badge(STATUT_INT,i.statut)}
         <span style="display:flex;gap:4px">${!fin&&i.statut!=='annulee'?`${i.statut==='planifiee'?`<button class="btn ghost sm" title="Démarrer (passe en cours)" onclick="intDemarrerQuick('${i.id}')">▶</button>`:''}<button class="btn sm" title="Effectué" onclick="intEffectuer('${i.id}')">Effectué</button>`:`<button class="btn ghost sm" title="Rapport" onclick="formRapport('${i.id}')">Rapport</button>`}</span>
       </span>
@@ -18830,7 +18861,7 @@ views.interventions=function(){
       ${intHistF==='supprimees'?'':`<div class="filters" style="margin-top:6px">${Object.keys(labels).map(k=>`<div class="chip ${intFilter===k?'active':''}" onclick="intFilter='${k}';views.interventions()">${labels[k]} (${counts[k]})</div>`).join('')}</div>`}
       <div class="filters" style="margin-top:6px"><div class="chip ${!intTechF?'active':''}" onclick="intTechF='';views.interventions()">Tous</div>${db.techniciens.map(t=>`<div class="chip ${intTechF===t.id?'active':''}" onclick="intTechF='${t.id}';views.interventions()">${esc(t.nom)}</div>`).join('')}</div>
       <div class="filters" style="margin-top:6px">${[['tout','Toute période'],['jour','Aujourd’hui'],['semaine','Cette semaine'],['mois','Ce mois']].map(([k,l])=>`<div class="chip ${intPeriod===k?'active':''}" onclick="intPeriod='${k}';views.interventions()">${l}</div>`).join('')}<span style="width:10px"></span>${[['jour','Grouper : jour'],['statut','Grouper : statut']].map(([k,l])=>`<div class="chip ${intGroup===k?'active':''}" onclick="intGroup='${k}';views.interventions()">${l}</div>`).join('')}</div>
-      ${intHistF==='supprimees'?body:(list.length? body : `<div class="card" style="margin-top:12px">${emptyState('🧰',q?'Aucun résultat pour cette recherche.':'Aucune intervention dans ces filtres.','Nouvelle','formIntervention()')}</div>`)}`;
+      ${intHistF==='supprimees'?body:(list.length? `<div class="int-liste">${body}</div>` : `<div class="card" style="margin-top:12px">${emptyState('🧰',q?'Aucun résultat pour cette recherche.':'Aucune intervention dans ces filtres.','Nouvelle','formIntervention()')}</div>`)}`;
     if(arguments[0]===true){ const si=$('int-search'); if(si){ si.focus(); try{ si.setSelectionRange(si.value.length,si.value.length); }catch(e){} } }
     return;
   }

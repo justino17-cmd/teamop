@@ -29,11 +29,11 @@ const BRUT = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
 const SRC = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d) : '')); } };
-/* Le bloc @media qui CONTIENT une position donnée (par ses accolades), ou '' au premier niveau. */
+/* Le bloc @media (ou @container) qui CONTIENT une position donnée (par ses accolades), ou '' au premier niveau. */
 function mediaDe(i) {
   let prof = 0, j = i;
   for (; j > 0; j--) { const c = SRC[j]; if (c === '}') prof++; else if (c === '{') { if (prof === 0) { const d = SRC.lastIndexOf('\n', j); const tete = SRC.slice(d + 1, j).trim();
-    if (/^@media/.test(tete)) return tete; /* un sélecteur : on remonte d'un cran */ prof = 0; continue; } prof--; } }
+    if (/^@(media|container)/.test(tete)) return tete; /* un sélecteur : on remonte d'un cran */ prof = 0; continue; } prof--; } }
   return '';
 }
 function regle(sel) { const i = SRC.indexOf(sel); return i < 0 ? null : { i, media: mediaDe(i) }; }
@@ -181,6 +181,44 @@ const csl = regle('html[data-refonte] .cs-l{flex-wrap:wrap;row-gap:0!important}'
 vrai('⛔ au téléphone (≤ 560 px), chaque ligne passe sur deux étages', !!csl && /max-width:560px/.test(csl.media), csl && csl.media);
 vrai('… le nom sur toute la première ligne, la barre et la valeur sur la seconde',
   /\.cs-l::after\{content:'';flex:0 0 100%;order:2/.test(SRC) && /\.cs-l > \.cs-bar\{order:3/.test(SRC) && /\.cs-l > \.cs-val\{order:4/.test(SRC));
+
+console.log('\n── 776 · 11. la liste des interventions passe sur deux étages quand la LISTE est étroite ──');
+/* Mesuré le 23 septembre 2026 (scratchpad/sonde-int-liste.js), noms longs et interventions à venir :
+   à 360 et 390 px la colonne de texte tombait à 0 px (titre sur 13 lignes, page à 395–415 px) ; sur
+   iPad portrait, menu latéral ouvert, à 87–106 px dans un écran de 820. Heure, texte, compte à
+   rebours, statut et boutons étaient côte à côte, et seul le texte cédait. */
+{ /* bloc : les noms de cette section ne débordent pas sur les autres */
+const iI = SRC.indexOf('views.interventions=function(){'), fI = iI > 0 ? SRC.slice(iI, SRC.indexOf('\nfunction ', iI + 30)) : '';
+vrai('population : la vue Interventions est trouvée', fI.length > 5000, fI.length);
+const iC = fI.indexOf('const card=i=>{'), fC = iC > 0 ? fI.slice(iC, fI.indexOf('</div>`; };', iC)) : '';
+vrai('population : le modèle de ligne est trouvé', fC.length > 1000, fC.length);
+vrai('la ligne, son heure, son compte à rebours et ses gestes portent leur classe',
+  /class="pl-row int-l"/.test(fC) && /class="int-h"/.test(fC) && /class="int-cd"/.test(fC) && /class="int-a"/.test(fC));
+vrai('⛔ la liste est enveloppée dans le conteneur qu’on interroge', /list\.length\? `<div class="int-liste">\$\{body\}<\/div>`/.test(fI));
+vrai('… et ce conteneur est interrogeable sur sa largeur', /html\[data-refonte\] \.int-liste\{container-type:inline-size\}/.test(SRC));
+const cq = regle('html[data-refonte] .int-l{flex-wrap:wrap;row-gap:10px!important}');
+vrai('⛔ les deux étages dépendent de la largeur de la LISTE (requête de conteneur), pas de l’écran',
+  !!cq && /^@container \(max-width:640px\)$/.test(cq.media), cq && cq.media);
+const dans = sel => { const r = regle(sel); return !!r && !!cq && r.media === cq.media; };
+vrai('… le chevron reste à droite du texte, compte à rebours et gestes passent dessous',
+  dans('html[data-refonte] .int-l::after{order:1}') && dans('html[data-refonte] .int-l > .int-cd,html[data-refonte] .int-l > .int-a{order:2}'));
+vrai('… les gestes se rangent en ligne à droite, sur une base nulle (sinon : un troisième étage)',
+  dans('html[data-refonte] .int-l > .int-a{flex:1 1 0;flex-direction:row!important;flex-wrap:wrap;justify-content:flex-end'));
+/* Le saut de ligne tient à une soustraction : la base du texte laisse de la place au CHEVRON sur
+   le premier étage, et à RIEN d'autre. On relit les quatre nombres là où ils sont écrits. */
+const reserve = +((SRC.match(/\.int-l > \.pl-info\{flex:1 1 calc\(100% - (\d+)px\)\}/) || [])[1] || NaN);
+const heure = +((fC.match(/class="int-h" style="text-align:center;min-width:(\d+)px/) || [])[1] || NaN);
+const bPl = SRC.slice(SRC.indexOf('html[data-refonte] .pl-row{\n  position:relative'), SRC.indexOf('}', SRC.indexOf('html[data-refonte] .pl-row{\n  position:relative')));
+const ecart = +((bPl.match(/gap:(\d+)px!important/) || [])[1] || NaN);
+const bCh = (SRC.match(/html\[data-refonte\] \.pl-row\[onclick\]::after\{\s*content:'';width:(\d+)px;height:\d+px;flex-shrink:0;margin-left:(\d+)px;\s*border-right:(\d+)px/) || []);
+const chevron = +bCh[1] + +bCh[2] + +bCh[3];
+vrai('population : réserve, heure, écart et chevron sont lus dans le code', [reserve, heure, ecart, chevron].every(Number.isFinite), { reserve, heure, ecart, chevron });
+vrai('⛔ le chevron tient à côté du texte (heure + écart + écart + chevron ≤ réserve)', heure + 2 * ecart + chevron <= reserve,
+  heure + 2 * ecart + chevron + ' pour ' + reserve);
+vrai('⛔ … et rien d’autre : le reste ne peut pas accueillir un bouton de 38 px', reserve - (heure + 2 * ecart + chevron) < ecart + 38,
+  reserve - (heure + 2 * ecart + chevron));
+vrai('la preuve au navigateur existe (sonde des lignes, cinq appareils, quatre formes de ligne)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-int-liste.js')));
+}
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
