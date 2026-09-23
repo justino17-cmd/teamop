@@ -200,7 +200,7 @@ vrai('⛔ … et un ancien don garde son produit, même sorti du catalogue (sino
 vrai('la recherche du haut ne promet plus les chantiers (retirés en v730)', !/intervention, chantier…/.test(SRC) && /placeholder="Rechercher client, intervention, tâche…"/.test(SRC));
 
 console.log('\n── 779 · 7. la question « pour qui ? », aux deux sorties de box ──');
-const fDirect = bloc('function boxDonneModal(boxId,suite){'), fDr = bloc('function remiseDestModal(mid){');
+const fDirect = bloc('function boxDonneModal(boxId,suite,depart){'), fDr = bloc('function remiseDestModal(mid){');
 vrai('population : boxDonneModal et remiseDestModal', fDirect.length > 800 && fDr.length > 800, [fDirect.length, fDr.length]);
 vrai('⛔ les deux proposent « Pour moi » et « Pour une autre personne » (les mots de Justin)',
   [fDirect, fDr].every(f => /Pour moi — <b>/.test(f) && /Pour une autre personne<\/span>/.test(f)));
