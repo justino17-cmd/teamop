@@ -82,7 +82,7 @@ console.log('── 793 · 1. la règle, exécutée ──');
   v('… vide, « aucune » et undefined pareil', [W.docEntete('').nom, W.docEntete('Aucune société').nom, W.docEntete(undefined).nom], Array(3).fill('Nettoyage Excellence SARL'));
   v('rapportSociete (28 appelants) : le générique rend l’entreprise', [W.rapportSociete('Modèle générique'), W.rapportSociete('Alpha Nuisibles')], ['Nettoyage Excellence SARL', 'Alpha Nuisibles']);
   const W2 = monter({ ...BASE, entreprise: {} }); v('une entreprise SANS nom : « OP GESTION » en tout dernier recours', W2.docEntete('').nom, 'OP GESTION');
-  v('le nom d’expéditeur suit : la société, sinon rien d’imposé', [W.docMailOpts('Alpha Nuisibles'), W.docMailOpts('Modèle générique')], [{ brandName: 'Alpha Nuisibles' }, undefined]);
+  v('le nom d’expéditeur suit : la société, sinon rien d’imposé', [W.docMailOpts('Alpha Nuisibles'), W.docMailOpts('Modèle générique')], [{ brandName: 'Alpha Nuisibles', societe: 'Alpha Nuisibles' }, undefined]);
   v('socDuClient : ni l’annulée du 20/09, ni la future de 2099 — la dernière RÉELLE (Bêta, 15/09)', W.socDuClient('cX'), 'Bêta Hygiène');
   v('… parmi les passages d’un document : la dernière de CE document', W.socDuClient('cX', [W.db.interventions[0]]), 'Alpha Nuisibles');
   v('les bons : leur société, sinon l’en-tête des bons, sinon l’entreprise', [W.bcEntete(W.db.bons[0]), W.bcEntete(W.db.bons[1]), W.bcCouleur(W.db.bons[0])], ['Alpha Nuisibles', 'Nettoyage Excellence SARL', '#C0392B']);
@@ -162,30 +162,71 @@ console.log('── 793 · 6. les données de société ──');
    JOUE donc « Envoyer » : la vraie envoiDoc, la vraie fabrique du PDF, un srvMail qui note. */
 console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vraiment ──');
 (async () => {
-  for (const casse of [false, true]) {
-    const W = monter(BASE); W.__envois = [];
+  for (const casse of [false, true, 'refus']) {
+    const W = monter(BASE); W.__envois = []; W.__mailOk = casse !== 'refus';
     W.btoa = s => Buffer.from(String(s), 'latin1').toString('base64');
     vm.runInContext([decoupe('function genDocTexte('), decoupe('function envoiDoc('), decoupe('async function docPdfChaine('),
       `function permGarde(){ return true; } function save(){} function confirm(){ return false; }
        async function devisLogoJpeg(){ return null; }
-       function srvMail(){ __envois.push([...arguments]); return Promise.resolve(true); }` +
-      (casse ? `\n docPdfChaine = async function(){ throw new Error('canvas indisponible'); };` : '')].join('\n'), W);
-    W.envoiDoc('devis', 'dA', 'email');
-    for (let k = 0; k < 20; k++) await new Promise(r => setImmediate(r));
+       var current='devis'; const views={ devis(){ __vues=(typeof __vues==='number'?__vues:0)+1; } };
+       function srvMail(){ __envois.push([...arguments]); return Promise.resolve(__mailOk); }` +
+      (casse === true ? `\n docPdfChaine = async function(){ throw new Error('canvas indisponible'); };` : '')].join('\n'), W);
+    const rendu = await W.envoiDoc('devis', 'dA', 'email');
     const [a] = W.__envois, o = (a && a[6]) || {}, pj = (o.atts || [])[0];
-    if (!casse) {
+    if (casse === 'refus') {
+      vrai('courriel REFUSÉ par le serveur : le devis reste « brouillon » — l’équipe ne le croit pas envoyé', W.__envois.length === 1 && W.db.devis.find(x => x.id === 'dA').statut === 'brouillon', W.db.devis.find(x => x.id === 'dA').statut);
+      vrai('… et envoiDoc le dit à son appelant (faux)', rendu === false, rendu);
+    } else if (!casse) {
       vrai('« Envoyer » le devis d’Alpha : UN courriel, au client', W.__envois.length === 1 && a[0] === 'elise@exemple.fr', W.__envois.length);
       vrai('… avec UN PDF joint, nommé d’après le devis', !!pj && (o.atts || []).length === 1 && pj.filename === 'Devis-DV-1.pdf', o.atts && o.atts.map(x => x.filename));
       const pdf = pj ? Buffer.from(pj.content, 'base64').toString('latin1') : '';
       vrai('… un vrai PDF, à l’en-tête d’Alpha et à SON SIRET', pdf.startsWith('%PDF-1.4') && pdf.includes('Alpha Nuisibles') && pdf.includes('22222222200022') && !pdf.includes('11111111100011'));
       vrai('… expédié au nom d’Alpha, et le texte dit « ci-joint »', o.brandName === 'Alpha Nuisibles' && /ci-joint/.test(a[2]), [o.brandName, String(a[2]).slice(0, 80)]);
       vrai('… mais pas le brouillon de secours, qui ne sait rien joindre', typeof o.mailtoBody === 'string' && !/ci-joint/.test(o.mailtoBody));
-      vrai('… et le devis passe « envoyé »', W.db.devis.find(x => x.id === 'dA').statut === 'envoye');
+      vrai('… et le devis passe « envoyé » QUAND il est parti — la liste se redessine', W.db.devis.find(x => x.id === 'dA').statut === 'envoye' && rendu === true && W.__vues === 1, [W.db.devis.find(x => x.id === 'dA').statut, rendu, W.__vues]);
     } else {
       vrai('PDF impossible à construire : le courriel part quand même, SANS pièce, au nom d’Alpha', W.__envois.length === 1 && !o.atts && o.brandName === 'Alpha Nuisibles', o);
       vrai('… et son texte ne prétend pas joindre ce qu’il ne joint pas', !/ci-joint/.test(String(a && a[2])), String(a && a[2]).slice(0, 80));
     }
   }
+  { /* factEnvoyer (« Envoyer » d'une facture en attente) : « Envoyée » quand elle est partie */
+    for (const part of [true, false]) {
+      const W = monter(BASE); W.__envois = []; W.__mailOk = part; W.btoa = s => Buffer.from(String(s), 'latin1').toString('base64');
+      W.db.factures.find(x => x.id === 'fB').statut = 'attente';
+      vm.runInContext([decoupe('function genDocTexte('), decoupe('function envoiDoc('), decoupe('async function docPdfChaine('), decoupe('function factEnvoyer('),
+        `function permGarde(){ return true; } function save(){} function confirm(){ return false; } function logEvent(){}
+         async function devisLogoJpeg(){ return null; } var current='factures'; const views={ factures(){} };
+         function srvMail(){ __envois.push([...arguments]); return Promise.resolve(__mailOk); }`].join('\n'), W);
+      W.factEnvoyer('fB'); for (let k = 0; k < 30; k++) await new Promise(r => setImmediate(r));
+      v(part ? 'facture en attente, courriel PARTI : « envoyée »' : 'facture en attente, courriel REFUSÉ : elle reste « en attente »',
+        [W.__envois.length, W.db.factures.find(x => x.id === 'fB').statut], [1, part ? 'envoyee' : 'attente']);
+    } }
+
+  console.log('── 793 · 5 ter. la VRAIE srvMail : la boîte connectée envoie au nom de la société ──');
+  { const essai = async (boite, opts) => {
+      const W = { console, Object, JSON, String, Math, Date, Array, Number, parseInt, __req: [], __boite: boite };
+      W.fetch = async (u, o) => { W.__req.push(JSON.parse(o.body)); return { ok: true, status: 200, json: async () => ({}) }; };
+      vm.createContext(W);
+      vm.runInContext([decoupe('async function srvMail('), decoupe('let _srvMailErr='),
+        `const PUSH_API='http://essai'; async function enteteEquipe(h){ return h; } function syncTeam(){ return 't'; }
+         function mailBoxFor(){ return __boite; } function can(){ return true; } var currentUser=null; function toast(){}
+         var db={ mailFrom:'Excellence Pro', entreprise:{ nom:'Nettoyage Excellence SARL' } };
+         function mailBrandName(){ return 'Excellence Pro'; } const location={}; const navigator={ userAgent:'' };`].join('\n'), W);
+      const ok = await W.srvMail('elise@exemple.fr', 'Devis', 'Bonjour', '', 'devis', null, opts);
+      return { ok, p: W.__req[0] || {} }; };
+    const BOITE = { user: 'contact@excellence.fr', pass: 'x', host: 'smtp.essai', from: 'Nettoyage Excellence' };
+    const alpha = { brandName: 'Alpha Nuisibles', societe: 'Alpha Nuisibles' };
+    let r = await essai(BOITE, alpha);
+    v('boîte connectée, document d’Alpha : l’expéditeur affiché est Alpha, l’adresse reste celle de la boîte', (r.p.smtp || {}).from, '"Alpha Nuisibles" <contact@excellence.fr>');
+    r = await essai(BOITE, undefined);
+    v('… document générique : le nom réglé sur la boîte, comme avant', (r.p.smtp || {}).from, 'Nettoyage Excellence <contact@excellence.fr>');
+    r = await essai(BOITE, { brandName: 'Tom · Nettoyage', meta: {} });
+    v('… un bon (brandName sans société) ne change pas le nom de la boîte', (r.p.smtp || {}).from, 'Nettoyage Excellence <contact@excellence.fr>');
+    r = await essai(BOITE, { brandName: 'x', societe: 'Alpha, "Nuisibles" <SAS>' });
+    v('… un nom à virgule et guillemets ne fabrique ni deux adresses ni un en-tête cassé', (r.p.smtp || {}).from, '"Alpha, Nuisibles SAS" <contact@excellence.fr>');
+    r = await essai(null, alpha);
+    v('sans boîte connectée : la plateforme envoie au nom d’Alpha', [(r.p.brand || {}).name, !!r.p.smtp], ['Alpha Nuisibles', false]); }
+
   console.log(`\n════ test-793 : ${ok} ✓ ${ko} ✗ ════`);
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ exception : ' + (e && e.stack || e)); console.log(`\n════ test-793 : ${ok} ✓ ${ko + 1} ✗ ════`); process.exit(1); });
