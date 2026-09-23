@@ -35316,7 +35316,10 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
   if(vBox){
     (db.boxes||[]).filter(b=>b.actif!==false && b.prochaineVisite && b.prochaineVisite<today && notifBoxConcerne(b)).forEach(b=>{ out.push({id:'boxpv:'+b.id,ic:'📍',txt:`Contrôle de box <b>en retard</b> : <b>${esc(b.nom||b.numero)}</b> (prévu ${fmtShort(b.prochaineVisite)})`,act:"openBox('"+b.id+"')"}); }); }
   // Matériel pris OU ajouté dans une box → notification (PAS de validation) pour DR / Admin / Chef d'équipe — seulement leurs box
-  /* v737 : qui valide ou voit tout (plus « admin, dr, chefEquipe ») — et toujours pour SES box seulement */
+  /* v737 : qui valide ou voit tout (plus « admin, dr, chefEquipe » par leur nom) — et toujours pour SES
+     box seulement. ⚠️ Commercial et compta, qui ont « Tout voir » d'origine, y entrent aussi : sans
+     droit de valider, notifBoxConcerne ne leur rend que les box qui les NOMMENT (responsable, membre,
+     fiche cochée) — relu par `relecteur`, aucune alerte de plus sans ce lien. */
   if(vBox && currentUser && (can('validerDR')||can('voirTout'))){
     const recent=Date.now()-3*86400000;
     /* UNE notification par PASSAGE, et non par produit. Une personne qui vide sa box en

@@ -150,7 +150,17 @@ tour (« ↻ Catalogue OP » sans garde : la découpe de `test-747` débordait s
 qui porte la même garde — le piège écrit dans CLAUDE.md).
 `scratchpad/sonde-droits.js` (vraie page, vraies connexions) **37 ✓** ; sur la bêta d'avant
 **15 ✓ 20 ✗** — dont le « Gestion compta » créé par un chef avec la comptabilité en trop.
-Relecture par `relecteur` : en cours au moment de ce commit — son verdict s'ajoute ici.
+Relecture par `relecteur` (diff complet, bancs rejoués sur les fichiers FIGÉS du commit, bêta
+régénérée et comparée octet pour octet) : **aucun défaut bloquant** — pas de zone morte temporelle,
+pas de porte de création restée ouverte, les deux passes de `droitsBorner`, l'inversion de
+`bonsLectureSeule` et l'exemption de « Validations » rejouées à la main et justes. Une remarque
+appliquée : le commentaire de « matériel pris » tait que commercial et compta y entrent (pour les
+seules box qui les nomment) — il le dit désormais.
+⚠️ Piège de méthode payé pendant la relecture : l'agent tournait dans la MÊME copie de travail, a
+vu mes modifications en cours comme un « processus concurrent », a régénéré `beta.html` puis l'a
+restauré par `git checkout` — ma bêta perdait le bouton « Rôles » sans un mot. Rien n'a été perdu
+parce que tout le reste était commité. **Committer avant de lancer un relecteur, pas seulement
+avant de muter.**
 Suite complète : **146 suites · 6 804 vérifications, code de sortie 0**.
 
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — LE SCANNER LIT L'ÉTIQUETTE, TOUT VIDE POUR LES NOUVELLES ENTREPRISES, LA PORTE DE SECTEURS (v736, bêta)
