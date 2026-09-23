@@ -123,8 +123,12 @@ console.log('\n── 778 · 3. ⛔ CE QUE LEIA ÉTAIT SEULE À DIRE EST DANS LA
     vrai('… et la ligne mène aux Interventions', !!r && r.act === "go('interventions')", r && r.act);
     vrai('⛔ les factures IMPAYÉES : envoyée et en retard, pas la payée ni le brouillon', !!f && /<b>2 factures impayées<\/b>/.test(f.txt), f && f.txt);
     vrai('… et la ligne mène à la Comptabilité', !!f && f.act === "go('comptabilite')", f && f.act);
-    vrai('⛔ quand le compte change, la ligne revient « non lue » (l’identifiant porte le compte)',
-      !!r && r.id !== (jouer({ ints: ints.slice(0, 1), facts }).find(x => /^retard:/.test(x.id)) || {}).id);
+    /* ⛔ Trouvé par mutation : la première version comparait deux jeux dont la date la plus ancienne
+       différait AUSSI — un identifiant qui ne portait que la date passait au vert. Ici la plus
+       ancienne reste le 18 : seul le NOMBRE change. */
+    const plus = jouer({ ints: ints.concat([{ id: 'g', date: '2026-09-21', statut: 'planifiee' }]), facts }).find(x => /^retard:/.test(x.id));
+    vrai('⛔ quand le NOMBRE change (même plus ancienne), la ligne revient « non lue » — l’identifiant porte le compte',
+      !!r && !!plus && /<b>3 interventions en retard<\/b>/.test(plus.txt) && /18\/09/.test(plus.txt) && r.id !== plus.id, [r && r.id, plus && plus.id]);
     vrai('⛔ sans le droit de voir la compta, AUCUNE ligne de factures', !jouer({ ints, facts, compta: false }).some(x => /^impayees:/.test(x.id)));
     vrai('⛔ sans la rubrique Interventions ni Planning, AUCUNE ligne de retard', !jouer({ ints, facts, voit: ['factures'] }).some(x => /^retard:/.test(x.id)));
     vrai('rien en retard, rien d’impayé → rien d’ajouté', jouer({ ints: ints.slice(2), facts: facts.slice(2) }).length === 0);
