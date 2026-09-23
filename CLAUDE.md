@@ -940,6 +940,25 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   navigateurs : `color-mix()`, dont toute la palette dépend, est arrivé après les requêtes de
   conteneur dans les trois moteurs. ⚠️ `container-type` va sur une enveloppe qui ne contient QUE
   la liste — jamais sur `#content`, où l'endiguement pourrait toucher des éléments fixes.
+- ⛔⛔ **UNE COLONNE QUI CÈDE TOUT NE DÉBORDE PAS — ELLE S'ALLONGE, ET AUCUN CONTRÔLE DE
+  DÉBORDEMENT NE LA VOIT.** Le 23 septembre 2026, avec des valeurs longues, au téléphone : texte
+  à **0 px** (liste des Interventions), **18 px** (demandes de Validations, le bouton posé sur le
+  texte), 86 px (tournée de la Carte), 100–101 px (« Ma journée », cartes du Planning), et un
+  titre de fenêtre sur cinq lignes. Rien ne dépassait, rien n'était coupé : tous les audits
+  passaient. `audit-profond.js` porte désormais un critère « texte écrasé » (sous ~12 signes par
+  ligne ET sur 4 lignes ou plus) — lâché sur l'application, il a trouvé quatre familles de plus
+  en une passe. La parade de mise en page : la LIGNE est son propre conteneur
+  (`container: nom / inline-size`), `flex-wrap:wrap` posé en permanence — sans effet tant que la
+  colonne de texte a une base nulle — et sous le seuil, le texte prend sa ligne, statut et
+  gestes passent dessous. Un composant qui vit dans trois vues n'a qu'une règle.
+- ⛔ **UNE SONDE EST DU JAVASCRIPT DANS UN GABARIT : UN ACCENT GRAVE LE REFERME, UN `\s` Y
+  PERD SON ANTISLASH.** Le 23 septembre 2026, deux fois dans `audit-profond.js` : un commentaire
+  citant `.content.entre` entre accents graves a refermé le gabarit — du JavaScript VALIDE,
+  `node --check` vert, et l'audit mourait au démarrage ; et un `\s` écrit par Python est arrivé
+  `s` dans la page, qui effaçait tous les « s » des extraits (« Établi ement Ho pitalier »).
+  ⚠️ **Une passe d'audit qui rend en quelques secondes est morte, pas finie** : relire sa
+  sortie avant de croire une fin rapide, et faire une passe courte (`SEULES=…`) après toute
+  retouche de l'instrument.
 - ⛔⛔ **`--acc` EST LA COULEUR D'UN APLAT, PAS CELLE D'UNE LETTRE — UN TEXTE ÉCRIT `--acc-txt`.**
   Le 22 septembre 2026, l'audit des neuf teintes (756 écrans + 126 fenêtres,
   `scratchpad/audit-teintes.js`) a trouvé **327 textes en `var(--acc)`** : justes sur le vert
