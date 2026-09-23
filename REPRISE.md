@@ -39,6 +39,95 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 23 SEPTEMBRE 2026 (nuit) — LE SCANNER LIT L'ÉTIQUETTE, TOUT VIDE POUR LES NOUVELLES ENTREPRISES, LA PORTE DE SECTEURS (v736, bêta)
+
+Deux demandes de Justin, le même message (capture du scanner à l'appui, réduit sur son iPhone au
+seul champ « Référence produit ») :
+- « que ça fasse un scan d'étiquette à la place des codes-barres, pour éviter les problèmes
+  d'erreur ; vu que les noms sont renseignés dans Produits, ils pourront scanner, ajouter ou
+  déduire — si tu peux me montrer un exemple » ;
+- « chaque entreprise démarre avec tout vide, c'est à eux de remplir, on fait plus ce travail […]
+  le 3D, c'est ELAN qui nous l'avait demandé, on l'a fait pour eux, on le fera pas pour les
+  autres ».
+
+### 1. Le scanner lit l'étiquette (plus aucun code-barres)
+
+- On cadre le NOM du produit (une bande, « le nom du produit ici »), « Lire l'étiquette » : lecture
+  SUR L'APPAREIL (Tesseract 5.1.1 épinglé, jsdelivr, chargé à la première lecture — ~4,8 Mo, puis
+  en cache), du seul cadre, en gris, contraste étiré. L'écran dit ce qu'il a lu (« Lu : « … » »).
+- La correspondance (`etiqCandidats`) ne regarde QUE `db.produits` : un mot compte selon sa rareté
+  au catalogue, les nombres départagent les formats et ne se lisent jamais « à un chiffre près »
+  (mesuré : « XILIX 1000 » sortait pour une étiquette « 100 g »), fautes d'une lettre / O pour 0 /
+  mots collés ou coupés pardonnés. Une étiquette inconnue ne propose rien. On choisit, on confirme.
+- ⛔⛔ **Dans une box, la quantité passe par `boxSaisir` → `boxAdj`**, comme le « ± » : validation
+  du DR, « pour qui ? » (qui prend la place du scanner, caméra coupée), bon de remise. **L'ancien
+  scanner écrivait `b.stock` en direct** : contre-épreuve sur la bêta d'avant, un technicien
+  soumis au DR ajoutait +2 dans sa box SANS validation. Fermé.
+- Le **Stock** scanne dans une box (on la choisit) — il réglait le stock du CATALOGUE, un nombre
+  que l'écran Stock n'affiche pas. **Produits** garde le stock du catalogue, avec une trace qui dit
+  la vraie quantité (elle disait toujours 1).
+- Sur iPhone, l'écran rappelle que l'appareil lit aussi : champ, puis « Scanner le texte ».
+  Sans caméra : une photo de l'étiquette.
+
+Mesuré : `tests/test-788.js` **54 ✓** — la vraie correspondance sur le pack 3D (160 fiches, les
+sœurs MAGNUM CAFARDS/FOURMIS/OPTIMUM, DOBOL 20 g/100 g), lectures bruitées ; **19 mutations, 19
+attrapées** (quatre passaient au premier tour : les cas qui DÉCIDENT n'étaient pas joués).
+`scratchpad/sonde-scanner.js` **32 ✓** avec le VRAI moteur (servi en local) sur une caméra simulée
+(étiquette penchée, floue, bruitée, mentions légales autour) : lecture 1 à 5 s selon la charge,
+« MAGNUM GEL CAFARDS SERINGUE 40 G » et « DOBOL FUMIGATEUR PROFESSIONNEL 100 g » lus mot pour mot ;
+sans caméra, la photo prend le relais et se lit. Contre-épreuve sur la bêta d'avant : 1 ✓ 2 ✗.
+Relu par `relecteur` : aucun défaut certain (un `scanTimer` qui ne sert plus, sans effet).
+⚠️ **Pas encore mesuré sur un vrai téléphone, sur une vraie étiquette** (courbe, brillante, mal
+éclairée) : c'est à Justin de l'essayer sur la bêta. Si la lecture est trop faible sur le terrain,
+le chemin « Scanner le texte » de l'iPhone (bien meilleur moteur) reste là.
+Pas fait, à proposer : **créer la fiche depuis l'étiquette** quand le produit n'existe pas (« tout
+vide » : c'est comme ça qu'une entreprise remplirait son catalogue le plus vite), et **apprendre**
+les étiquettes confirmées.
+
+### 2. Tout vide pour les nouvelles entreprises
+
+Les portes AUTOMATIQUES étaient déjà fermées (`PACK_METIER_AUTO`). Restaient trois portes
+MANUELLES vers les 2 809 références de CATFOUR, ouvertes à tous : 🏭 Fournisseurs (Produits), le
+pont de la recherche, l'onglet Fournisseurs de la box. Elles ne s'ouvrent plus que chez une
+entreprise dont le pack est en place (ELAN, `catalogueEnPlace`) ou qui a déjà posé au moins cinq
+fiches venues de ces catalogues (`cataloguesFournisseurs`) ; chaque porte se garde elle-même. Rien
+n'est retiré à personne. Plus d'onglet « Catalogue 3D (nuisibles) · 0 » chez qui n'a pas de
+catalogue ; un catalogue vide dit comment se remplir.
+Mesuré : `tests/test-787.js` **34 ✓**, 14/14 mutations ; `scratchpad/sonde-tout-vide.js` **18 ✓**
+(la bêta d'avant : 10 ✓ 8 ✗ — une entreprise neuve y voyait « 🏭 Fournisseurs » et « 2809
+références y attendent »).
+Et le **site** le promettait trois fois (`metiers.html` : « fournisseurs habituels pré-remplis »,
+« fournisseurs de votre secteur pré-chargés automatiquement », « Fournisseurs 3D et catalogues
+pré-chargés ») — c'était déjà faux depuis le 22 septembre. La page dit désormais ce qui se règle
+vraiment selon le métier (types d'intervention, fiche de rapport, modules) et que produits et
+fournisseurs s'ajoutent ; l'aperçu de la refonte porte la même correction. Publiée sur `main` avec
+la bêta (texte seul).
+
+### 3. La porte oubliée de la v735 (trouvée par la relecture)
+
+« Équipe », la fiche, la recherche et le journal passaient par le périmètre ; **Secteurs non** —
+toute l'entreprise, et chaque ligne ouvrait le formulaire complet d'un collègue. Fermé, ainsi que
+`formTech`/`saveTech` appelés directement. Et, dans la même veine que « le ✎ du Pointage réservé au
+responsable » : ⚠️ **j'ai étendu cette règle aux champs de GESTION de la fiche** (jours de congés,
+capacité, secteur, rattachement) — mesuré sur la bêta d'avant : un technicien s'accordait 60 jours
+de congés depuis SA fiche. Téléphone, e-mail, couleur, Certibiocide restent à lui. **À confirmer
+par Justin** (s'il préfère qu'un technicien règle lui-même son secteur, c'est une ligne).
+Mesuré : `tests/test-786.js` **71 ✓**, 9/9 mutations ; `scratchpad/sonde-equipe.js` **22 ✓** (la
+bêta d'avant : 18 ✓ 4 ✗).
+
+Suite complète : **145 suites · 6 671 vérifications, code de sortie 0**.
+
+### 4. ⛔⛔ CE QUE LA CARTE DU CHANTIER SERVEUR A TROUVÉ — ET QUI ATTEND JUSTIN
+
+**Le serveur du socle n'est PAS sur le VPS.** `server/socle.js`, `op-socle.js`, `comptes.js`,
+`portail.js` (≈ 6 000 lignes avec le reste de `server/`) vivent sur la branche, **absents
+d'`origin/main`** (vérifié par `git ls-tree`). Tout ce que cette page appelle « déployé et inerte »
+(étape 1) est en réalité **écrit, pas déployé**. Pousser `server/` sur `main` déploie le VPS : c'est
+une décision de Justin, et ce n'est PAS « sans effet » : `index.js` porte aussi des routes qu'ELAN
+utilise déjà, `sauvegarde.js` touche la sauvegarde qui tourne, et `PLAFOND_PIECES` (le plafond
+anti-abus des pièces jointes que la bêta publiée appelle déjà) n'y est pas. **Question posée à
+Justin le 23 septembre au soir** ; en attendant, le chantier serveur continue sur la branche.
+
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — L'ÉQUIPE PAR PERSONNE, LE ✎ AUX RESPONSABLES, ET SES DÉCISIONS (v735, bêta)
 
 Réponses de Justin aux questions de la v734 :
