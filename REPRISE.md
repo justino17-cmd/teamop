@@ -73,7 +73,17 @@ Réponses de Justin à la liste du soir, point par point, et ce qui en est sorti
 - **Box : donner plusieurs produits d'un coup.** « Ces produits sont pour qui ? » devient une
   liste : on ajoute les produits de la box, on règle chaque quantité (bornée au stock), un seul
   « Valider » sort tout — sur UN bon de remise. Une quantité trop forte est refusée AVANT toute
-  écriture. `tests/test-784.js`, `scratchpad/sonde-dons-liste.js` (34 ✓, vrais touchers).
+  écriture. `tests/test-784.js` (65 ✓), `scratchpad/sonde-dons-liste.js` (40 ✓, vrais touchers).
+  ⛔⛔ **La relecture a trouvé un vrai défaut AVANT la publication** (agent `relecteur`) : ouverte
+  depuis un « − », la fenêtre gardait une suite qui REJOUAIT ce « − ». Retirer le produit de la
+  liste au ✕ puis « Continuer » : la liste était vide, la suite rejouait le geste, et le produit
+  sortait quand même — mouvement, bon de remise au nom choisi — sans un mot. Aucun de mes bancs ne
+  le voyait : ils posaient `_boxDonneSuite` À LA MAIN au lieu d'ouvrir la vraie fenêtre, donc ils
+  ne jouaient jamais la combinaison « suite de `boxAdj` + liste vidée ». Corrigé des deux côtés
+  (`boxAdj` ne passe plus de geste, la fenêtre n'en garde aucun quand elle a un produit de départ)
+  et l'écran dit « Rien n'est sorti de la box ». Au doigt, la bêta d'avant : A sort, un mouvement
+  et un bon de plus. ⚠️ Et une cinquième mutation (« changer de personne » privé de sa suite) ne
+  mordait pas — le banc n'appelait pas le vrai `boxDonneChanger` ; il l'appelle désormais.
 - **Les commandes des tableaux retrouvent leur plancher** — trouvé en préparant les captures de
   l'écran « Équipe » : `#content .tbl button{min-height:0}`, écrite pour les boutons NUS, battait
   par son identifiant le plancher de `.btn.sm`. Le ✎ de Techniciens, Devis, Contrats mesurait
@@ -85,7 +95,7 @@ Réponses de Justin à la liste du soir, point par point, et ce qui en est sorti
   (la bêta d'avant : 9 ✓ 2 ✗).
 
 Mutations remises, toutes attrapées : Leia 14/14, bons de remise 11/11, liste de dons 13/13,
-tableaux 9/9. Suite complète : **142 suites · 6 498 vérifications, code de sortie 0 (la première passe avait rendu 3 ✗ dans test-779 : son ancre visait l'ancienne signature de boxDonneModal, la tranche était vide, et le contrôle de population l'a dit)**.
+tableaux 9/9, sortie rejouée 5/5. Suite complète : **142 suites · 6 512 vérifications, code de sortie 0 (la première passe avait rendu 3 ✗ dans test-779 : son ancre visait l'ancienne signature de boxDonneModal, la tranche était vide, et le contrôle de population l'a dit)**.
 
 ### Le site (publié le 23 septembre au soir, sur la phrase de Justin)
 

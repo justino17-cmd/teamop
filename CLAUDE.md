@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 142 suites · 6 498 vérifications (mesuré le 23/09/2026, v734)
+bash scripts/bancs-ci.sh        # 142 suites · 6 512 vérifications (mesuré le 23/09/2026, v734)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
