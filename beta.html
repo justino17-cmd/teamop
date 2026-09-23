@@ -502,6 +502,14 @@
   .bscan-tg{flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--brd);background:var(--bg1);color:var(--t3);font-weight:700;font-size:14px;cursor:pointer;transition:.15s;}
   .bscan-tg.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent);color:var(--acc-txt);}
   .bscan-tg.rem.on{border-color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red);}
+  .etiq-vue .scan-frame{inset:27% 6%;display:flex;align-items:flex-start;justify-content:center}
+  .etiq-vue .scan-frame span{margin-top:-11px;padding:1px 9px;border-radius:999px;background:var(--acc);color:var(--on-acc);font-size:11px;font-weight:700;letter-spacing:.02em;line-height:18px;white-space:nowrap}
+  .etiq-lire,.etiq-photo{width:100%;justify-content:center;margin:0 0 8px;padding:13px}
+  .etiq-lire[hidden],.etiq-photo[hidden]{display:none!important}
+  .etiq-etat{font-size:13px;line-height:1.45;color:var(--t2);text-align:center;margin:2px 4px 12px;min-height:19px;overflow-wrap:anywhere}
+  .etiq-etat.info{color:var(--t2)} .etiq-etat.err{color:var(--red);font-weight:600}
+  .etiq-astuce{font-size:12px;color:var(--t3);margin-top:6px;line-height:1.45}
+  .etiq-ok{border-color:color-mix(in srgb,var(--acc) 50%,transparent)}
   .bscan-err{background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 35%,transparent);color:var(--red);border-radius:12px;padding:13px 15px;font-size:13.5px;font-weight:600;text-align:center;}
   /* VISITE GUIDÉE */
   .tour-card{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;width:min(440px,calc(100vw - 28px));background:var(--bg1);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.6);padding:20px 20px 16px;animation:tourIn .3s ease;}
@@ -23606,7 +23614,7 @@ views.stock=function(){
   const totalU=all.reduce((s,l)=>s+l.eff,0);
   const nbBoxesPleines=visibleBoxes(db.boxes).filter(b=>Object.keys(b.stock||{}).length).length;
   const nbACmd=all.filter(l=>boxEtat(l.eff).k!=='enStock').length;
-  setHeader('Stock','Tout le stock de toutes les box',`<button class="btn ghost" onclick="openScanner()">Scanner</button>`);
+  setHeader('Stock','Tout le stock de toutes les box',`<button class="btn ghost" onclick="openScannerStock()">Scanner</button>`);
   $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
     <div class="kpi" style="cursor:pointer" onclick="go('produits')" title="Voir le catalogue produits"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📦</div><div class="kpi-val">${all.length}</div><div class="kpi-lbl">Produits ›</div></div>
     <div class="kpi" style="cursor:pointer" onclick="go('mouvements')" title="Voir les mouvements de stock"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">🔢</div><div class="kpi-val">${totalU}</div><div class="kpi-lbl">Unités (cartons compris) ›</div></div>
@@ -31340,136 +31348,264 @@ function delItem(coll,id){
   } else if(!confirm('Supprimer cet élément ?'))return;
   db[coll]=db[coll].filter(x=>x.id!==id); logEvent('Suppression',coll,'crud'); save(); closeModal(); toast('Supprimé'); go(current); }
 
-/* ═══════════════ SCANNER ═══════════════ */
-let scanStream=null, scanTimer=null;
-function openScanner(){ const hasBD='BarcodeDetector' in window;
-  openModal(`<div class="modal-head"><h3>Scanner</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    ${hasBD?`<div class="scan-view"><video id="scan-video" playsinline muted></video><div class="scan-frame"></div></div><p style="color:var(--t3);font-size:13px;text-align:center;margin-bottom:14px">Placez le code dans le cadre…</p>`:''}
-    <div class="field"><label>${hasBD?'Ou saisissez la référence':'Référence produit'}</label><input id="scan-ref" list="rl" placeholder="Ex : PLB-001" oninput="scanLookup(this.value)" autofocus>
-    <datalist id="rl">${db.produits.map(r=>`<option value="${esc(r.ref)}">${esc(r.nom)}</option>`).join('')}</datalist></div>
-    <div id="scan-match"></div>`);
-  if(hasBD) startCamera();
-}
-async function startCamera(){ try{ scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); const v=$('scan-video'); if(!v)return; v.srcObject=scanStream; await v.play();
-  const det=new BarcodeDetector(); scanTimer=setInterval(async()=>{ try{ const c=await det.detect(v); if(c.length){ const val=c[0].rawValue; const i=$('scan-ref'); if(i)i.value=val; scanLookup(val); } }catch(e){} },600);
-  }catch(e){} }
-function scanLookup(ref){ const r=(ref||'').toLowerCase(); const item=db.produits.find(p=>(p.ref||'').toLowerCase()===r);
-  const el=$('scan-match'); if(!el)return;
-  if(!item){ el.innerHTML=ref?`<p style="color:var(--t3);font-size:13px">Aucun produit pour « ${esc(ref)} »</p>`:''; return; }
-  el.innerHTML=`<div class="scan-result"><div style="font-weight:600;margin-bottom:4px">${esc(item.nom)}</div>
-    <div style="color:var(--t3);font-size:13px;margin-bottom:14px">${esc(item.ref)} · Stock actuel</div>
-    <div style="display:flex;gap:12px;align-items:center;justify-content:center"><button class="btn ghost" onclick="scanAdjust('produits','${item.id}',-1)">−</button>
-    <span id="scan-qte" class="mono" style="font-size:26px;font-weight:700;min-width:50px;text-align:center">${item.qte}</span>
-    <button class="btn ghost" onclick="scanAdjust('produits','${item.id}',1)">＋</button></div></div>`;
-}
-function scanAdjust(coll,id,dl){ const it=db[coll].find(x=>x.id===id); it.qte=Math.max(0,it.qte+dl);
-  if(coll==='produits') db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:id,type:dl>0?'entree':'sortie',qte:1,motif:'Scan',vehiculeId:''});
-  save(); const q=$('scan-qte'); if(q)q.textContent=it.qte; toast('Stock mis à jour'); }
-
-/* ═══════════════ SCANNER DE BOX (étiquette → produits ENREGISTRÉS uniquement) ═══════════════ */
-/* Repris de GestionScannerView.swift : reconnaissance OCR/code-barres restreinte au
-   catalogue enregistré. Aucun produit/nom inconnu n'est accepté — sécurité avant tout. */
-let boxScan = { boxId:null, action:'ajouter', stream:null, timer:null, busy:false, cands:[] };
-let boxScanSel = null;
-
-function similarite(a,b){ a=a||''; b=b||''; if(a===b) return 1; if(!a||!b) return 0;
-  if(a.includes(b)||b.includes(a)) return .95;
-  const split=s=>s.split(/[^a-z0-9]+/i).filter(w=>w.length>2);
-  const ma=split(a), mb=split(b); if(!mb.length) return 0; let s=0;
-  for(const w of mb){ if(ma.includes(w)) s+=1; else if(ma.some(x=>x.startsWith(w)||w.startsWith(x))) s+=.7; }
-  return s/mb.length; }
-
-function openBoxScanner(boxId){ const b=db.boxes.find(x=>x.id===boxId); if(!b) return;
-  boxScan={ boxId:boxId, action:'ajouter', stream:null, timer:null, busy:false, cands:[] }; boxScanSel=null;
-  openModal(`<div class="modal-head"><h3>Scanner — ${esc(b.nom||b.numero||'Box')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="bscan-toggle">
-      <button id="bscan-add" class="bscan-tg on" onclick="boxScanAction('ajouter')">＋ Ajouter</button>
-      <button id="bscan-rem" class="bscan-tg rem" onclick="boxScanAction('retirer')">－ Retirer</button>
-    </div>
-    <div class="scan-view"><video id="bscan-video" playsinline muted></video><div class="scan-frame"></div></div>
-    <p style="color:var(--t3);font-size:12.5px;text-align:center;margin:0 0 12px">Vise l'étiquette ou le code-barres du produit…</p>
-    <button class="btn" style="width:100%;justify-content:center;margin-bottom:12px" onclick="boxScanCapture()">Lire l'étiquette</button>
-    <div class="field"><label>Ou saisis le nom / la référence</label>
-      <input id="bscan-text" list="bscan-dl" placeholder="Ex : ALTA 7000" oninput="boxScanProcess(this.value)" autocomplete="off">
-      <datalist id="bscan-dl">${db.produits.map(p=>`<option value="${esc(p.nom)}">${esc(p.ref||'')}</option>`).join('')}</datalist></div>
-    <div id="bscan-result"></div>`);
-  boxScanStartCamera();
-}
-async function boxScanStartCamera(){ try{
-    boxScan.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    const v=$('bscan-video'); if(!v){ stopBoxScanCamera(); return; } v.srcObject=boxScan.stream; await v.play();
-    if('BarcodeDetector' in window){ const det=new BarcodeDetector();
-      boxScan.timer=setInterval(async()=>{ if(boxScan.busy)return; try{ const c=await det.detect(v); if(c&&c.length) boxScanProcess(c[0].rawValue); }catch(e){} },700); }
-  }catch(e){ const r=$('bscan-result'); if(r) r.innerHTML=`<p style="color:var(--t3);font-size:13px;text-align:center">Caméra indisponible — utilise « Lire l'étiquette » via photo ou la saisie manuelle.</p>`; } }
-function stopBoxScanCamera(){ if(boxScan.timer){clearInterval(boxScan.timer);boxScan.timer=null;} if(boxScan.stream){boxScan.stream.getTracks().forEach(t=>t.stop());boxScan.stream=null;}
-  if(boxScan.boxId){ const bid=boxScan.boxId; boxScan.boxId=null; if(typeof boxView!=='undefined' && boxView===bid){ try{ renderBoxDetail(); }catch(e){} } } }
-function boxScanAction(a){ boxScan.action=a;
-  const add=$('bscan-add'), rem=$('bscan-rem');
-  if(add) add.classList.toggle('on',a==='ajouter');
-  if(rem) rem.classList.toggle('on',a==='retirer');
-  if(boxScan.cands&&boxScan.cands.length) boxScanShowChoices(boxScan.cands); }
+/* ═══════════════ SCANNER D'ÉTIQUETTE ═══════════════ */
+/* ⛔ PLUS DE CODE-BARRES — Justin, 23 septembre 2026 : « que ça fasse un scan d'étiquette à la place
+   des codes-barres, pour éviter les problèmes d'erreur ; vu que les noms sont renseignés dans
+   Produits, ils pourront scanner, ajouter ou déduire ». Un code-barres ne désignait RIEN : aucune
+   fiche n'en porte (le champ n'existe pas), la lecture retombait donc sur une référence tapée à la
+   main — et un iPhone n'a pas de lecteur de codes dans le navigateur : l'écran s'y réduisait au
+   champ « Référence produit ». L'étiquette, elle, porte le NOM, celui que l'entreprise a écrit dans
+   Produits.
+   Ce qui tient la sécurité, et ne se relâche pas :
+   · on ne propose QUE des fiches enregistrées (db.produits) : un nom inconnu n'entre jamais ;
+   · la lecture PROPOSE, la personne choisit et confirme : rien ne s'applique sans un tap ;
+   · dans une box, la quantité passe par boxSaisir → boxAdj, exactement comme le « − » : validation
+     du DR, « pour qui ? » et bon de remise ne se contournent pas par la caméra. L'ancien scanner
+     écrivait b.stock en direct — une box soumise au DR bougeait sans lui.
+   La lecture se fait SUR L'APPAREIL (Tesseract, chargé à la première lecture puis gardé par le
+   navigateur) : l'image ne part nulle part. Versions ÉPINGLÉES : une bibliothèque qui change sous
+   nos pieds changerait la lecture chez tous les clients le même jour. */
+const OCR={ script:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+  workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+  corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1', langPath:'', langue:'fra' };
+let scanStream=null, scanTimer=null;   // lus par closeModal et majOccupe : une seule caméra, un seul nom
+let _ocrW=null, _ocrP=null, _ocrLog=null, _ocrGen=0;
+let etiq={ mode:'', boxId:null, action:'ajouter', busy:false, cands:[], sel:null, lu:'' };
 
 function loadTesseract(){ return new Promise((res,rej)=>{ if(window.Tesseract) return res();
-  const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-  s.onload=()=>res(); s.onerror=()=>rej(new Error('ocr')); document.head.appendChild(s); }); }
+  const s=document.createElement('script'); s.src=OCR.script; s.onload=()=>res(); s.onerror=()=>rej(new Error('ocr')); document.head.appendChild(s); }); }
+/* Un lecteur pour toute la visite : le recréer à chaque étiquette rechargerait le moteur et la langue
+   (plusieurs secondes sur un téléphone). Il est libéré à la fermeture — y compris s'il naît APRÈS
+   (la génération a changé : on le termine au lieu de le garder pour rien). */
+function ocrLecteur(){ if(_ocrW) return Promise.resolve(_ocrW);
+  if(!_ocrP){ const gen=_ocrGen;
+    _ocrP=(async()=>{ await loadTesseract();
+      const o={ workerPath:OCR.workerPath, corePath:OCR.corePath, logger:m=>{ try{ if(_ocrLog) _ocrLog(m); }catch(e){} } };
+      if(OCR.langPath) o.langPath=OCR.langPath;
+      const w=await Tesseract.createWorker(OCR.langue,1,o);
+      if(gen!==_ocrGen){ try{ w.terminate(); }catch(e){} throw new Error('ferme'); }
+      _ocrW=w; return w; })().catch(e=>{ _ocrP=null; throw e; }); }
+  return _ocrP; }
+function ocrLiberer(){ _ocrGen++; const w=_ocrW; _ocrW=null; _ocrP=null; _ocrLog=null; if(w){ try{ w.terminate(); }catch(e){} } }
 
-async function boxScanCapture(){ if(boxScan.busy) return; const v=$('bscan-video');
-  const r=$('bscan-result');
-  if(!v||!v.videoWidth){ toast('Caméra non prête — ou saisis le nom'); return; }
-  boxScan.busy=true; if(r) r.innerHTML=`<p style="color:var(--t2);font-size:13px;text-align:center">Lecture de l'étiquette…</p>`;
-  try{
-    const cv=document.createElement('canvas'); cv.width=v.videoWidth; cv.height=v.videoHeight;
-    cv.getContext('2d').drawImage(v,0,0);
-    if('BarcodeDetector' in window){ try{ const det=new BarcodeDetector(); const c=await det.detect(cv); if(c&&c.length){ boxScan.busy=false; boxScanProcess(c[0].rawValue); return; } }catch(e){} }
-    await loadTesseract();
-    const {data}=await Tesseract.recognize(cv,'fra+eng');
-    boxScan.busy=false;
-    const txt=((data&&data.text)||'').replace(/\s+/g,' ').trim();
-    if(!txt){ if(r) r.innerHTML=`<div class="bscan-err">Rien de lisible. Réessaie ou saisis le nom.</div>`; return; }
-    boxScanProcess(txt);
-  }catch(e){ boxScan.busy=false; if(r) r.innerHTML=`<div class="bscan-err">Lecture photo indisponible hors-ligne. Utilise le code-barres ou la saisie manuelle.</div>`; } }
+/* ── La correspondance : le texte lu contre les NOMS du catalogue ──
+   Un mot compte d'autant plus qu'il est RARE dans le catalogue (« gel », que dix fiches portent, ne
+   désigne personne ; « advion » si), et un nombre plus qu'un mot (« 20g » contre « 100g » sépare deux
+   formats). La lecture se trompe d'une lettre, colle deux mots, prend un O pour un 0 : on pardonne
+   ces trois-là, pas davantage. Une fiche n'est proposée que si un mot FORT a été lu — quatre lettres
+   au moins, ou un nombre — sans quoi « pour », « de » et « gel » suffiraient à désigner n'importe
+   quoi. Et le nom entier lu dans l'ordre l'emporte sur tout. */
+const ETIQ_VIDES=new Set('de du des la le les et en au aux un une pour par sur avec sans ou ne pas ce cet cette est son sa ses the and of for with g kg mg ml cl l m cm mm lot ref no num pro'.split(' '));
+function etiqMots(s){ return norm(String(s||'')).replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(Boolean); }
+function etiqCanon(t){ return t.replace(/o/g,'0').replace(/[il]/g,'1').replace(/s/g,'5').replace(/b/g,'8').replace(/z/g,'2'); }
+function etiqDist(a,b,max){ if(Math.abs(a.length-b.length)>max) return max+1; let p=Array.from({length:b.length+1},(_,j)=>j);
+  for(let i=1;i<=a.length;i++){ const c=[i]; let m=i; for(let j=1;j<=b.length;j++){ c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1)); if(c[j]<m) m=c[j]; } if(m>max) return max+1; p=c; }
+  return p[b.length]; }
+function etiqProche(w,x){ if(w===x) return 1;
+  if(Math.min(w.length,x.length)>=3&&etiqCanon(w)===etiqCanon(x)) return .9;
+  const chiffre=/^\d+$/;
+  if(chiffre.test(w)&&x.startsWith(w)&&/^[a-z]{1,3}$/.test(x.slice(w.length))) return .9;   // « 20 » sur l'étiquette « 20g »
+  if(chiffre.test(x)&&w.startsWith(x)&&/^[a-z]{1,3}$/.test(w.slice(x.length))) return .9;
+  if((w.length>=5||(/\d/.test(w)&&w.length>=3))&&x.length>w.length&&x.includes(w)) return .8;   // deux mots collés à la lecture
+  /* ⛔ Un NOMBRE ne se lit jamais « à un chiffre près » : 100 et 1000, 20 et 200 sont deux formats.
+     Mesuré sur une étiquette « DOBOL … 100 g » : « XILIX 1000 » arrivait troisième. */
+  if(/\d/.test(w)||/\d/.test(x)) return 0;
+  const n=Math.max(w.length,x.length); if(n<4) return 0;
+  const d=etiqDist(w,x,2); return d<=1?.85:(d===2&&n>=7?.7:0); }
+function etiqCandidats(texte,produits){
+  const lus=[...new Set(etiqMots(texte))]; if(!lus.length) return [];
+  const joint=' '+etiqMots(texte).join(' ')+' ', colle=etiqMots(texte).join('');
+  const fiches=(produits||[]).filter(p=>p&&p.id&&p.nom);
+  const motsDe=new Map(), df=new Map();
+  fiches.forEach(p=>{ const m=[...new Set(etiqMots(p.nom).filter(w=>!ETIQ_VIDES.has(w)&&(w.length>=2||/\d/.test(w))))]; motsDe.set(p.id,m); m.forEach(w=>df.set(w,(df.get(w)||0)+1)); });
+  const N=Math.max(1,fiches.length), memo=new Map(), out=[];
+  const meilleur=w=>{ if(memo.has(w)) return memo.get(w); let b=0; for(const x of lus){ const s=etiqProche(w,x); if(s>b){ b=s; if(b===1) break; } } memo.set(w,b); return b; };
+  /* Un mot FORT porte au moins quatre lettres. Un nombre seul ne désigne personne (« 1000 » lu sur un
+     bidon ne fait pas un XILIX 1000) ; il ne compte comme preuve que pour un nom qui n'a pas de mot
+     fort (« MIB 80 ») — et alors avec l'un de ses mots. */
+  const lettres=w=>(w.match(/[a-z]/g)||[]).length;
+  for(const p of fiches){ const m=motsDe.get(p.id); if(!m.length) continue;
+    let tot=0, pris=0, fort=false, lu1=false, lu9=false; const sansFort=!m.some(w=>lettres(w)>=4);
+    for(const w of m){ const poids=Math.log(1+N/(df.get(w)||1))*(/\d/.test(w)?1.5:1)*(w.length>=4||/\d/.test(w)?1:.6); tot+=poids;
+      const b=meilleur(w)||((w.length>=5&&colle.includes(w))?.75:0);   // un mot COUPÉ à la lecture (« ADVI ON »)
+      if(b){ pris+=poids*b; if(lettres(w)>=4) fort=true; if(/[a-z]/.test(w)) lu1=true; if(/\d/.test(w)) lu9=true; } }
+    if(sansFort&&lu1&&lu9) fort=true;
+    let s=tot?pris/tot:0;
+    if(m.length>=2&&joint.includes(' '+etiqMots(p.nom).join(' ')+' ')) { s=1; fort=true; }
+    const ref=etiqMots(p.ref).join(''); if(ref.length>=4&&colle.includes(ref)){ s=Math.max(s,.97); fort=true; }
+    if(fort&&s>=.5) out.push({p,s:Math.round(s*1000)/1000}); }
+  return out.sort((a,b)=>b.s-a.s||(b.p.nom||'').length-(a.p.nom||'').length).slice(0,6); }
+/* Ce qu'on TAPE se cherche comme une recherche (chaque mot tapé, au début d'un mot du nom ou de la
+   référence) ; un long texte — celui que « Scanner le texte » de l'iPhone colle dans le champ — se
+   lit comme une étiquette. */
+function etiqChercher(q,produits){ const mots=etiqMots(q); if(!mots.length) return [];
+  if(mots.length>3) return etiqCandidats(q,produits);
+  const out=(produits||[]).filter(p=>p&&p.id&&p.nom).map(p=>{ const nm=etiqMots(p.nom).concat(etiqMots(p.ref));
+      return mots.every(w=>nm.some(x=>x.startsWith(w)))?{p,s:1}:null; }).filter(Boolean)
+    .sort((a,b)=>(a.p.nom||'').length-(b.p.nom||'').length).slice(0,6);
+  return out.length?out:etiqCandidats(q,produits); }
 
-/* SÉCURITÉ : on ne matche QUE le catalogue enregistré (db.produits). */
-function boxScanProcess(text){ const r=$('bscan-result'); if(!r) return;
-  const t=(text||'').toLowerCase().trim(); if(!t){ r.innerHTML=''; boxScan.cands=[]; return; }
-  const cands=db.produits.map(p=>{ const nom=(p.nom||'').toLowerCase(), ref=(p.ref||'').toLowerCase();
-      let s=similarite(t,nom); if(ref&&(t===ref||t.includes(ref)||ref.includes(t))) s=Math.max(s,0.97); return {p,s}; })
-    .filter(x=>x.s>0.25).sort((a,b)=>b.s-a.s).slice(0,6);
-  if(!cands.length){ boxScan.cands=[]; r.innerHTML=`<div class="bscan-err">Aucun produit reconnu pour « ${esc(text)} ».<br>Produit non enregistré dans le catalogue.</div>`; return; }
-  boxScanShowChoices(cands); }
+/* ── L'image ── */
+/* Ce que la personne a CADRÉ, et rien d'autre : le texte autour (mentions légales, pictogrammes, le
+   produit d'à côté) ne fait que brouiller. On relit le cadre À L'ÉCRAN, puis on le ramène dans
+   l'image de la caméra — la vidéo est en object-fit:cover, donc rognée, et le cadre ne tombe pas au
+   même endroit dans les deux. */
+function etiqCadre(v,f){ const vw=v.videoWidth, vh=v.videoHeight; if(!vw||!vh) return null;
+  const rv=v.getBoundingClientRect(), rf=f?f.getBoundingClientRect():null;
+  if(!rv.width||!rv.height||!rf||!rf.width) return {x:0,y:0,w:vw,h:vh};
+  const s=Math.max(rv.width/vw,rv.height/vh), ox=(rv.width-vw*s)/2, oy=(rv.height-vh*s)/2;
+  const x0=Math.max(0,(rf.left-rv.left-ox)/s), y0=Math.max(0,(rf.top-rv.top-oy)/s);
+  const x1=Math.min(vw,(rf.right-rv.left-ox)/s), y1=Math.min(vh,(rf.bottom-rv.top-oy)/s);
+  return (x1-x0>20&&y1-y0>20)?{x:x0,y:y0,w:x1-x0,h:y1-y0}:{x:0,y:0,w:vw,h:vh}; }
+/* L'image que lit le moteur : agrandie quand le cadre est petit (il lit mal sous une vingtaine de
+   pixels de hauteur de lettre), en niveaux de gris, contraste étiré — une étiquette photographiée
+   sous un néon ou au soleil n'a souvent ni vrai noir ni vrai blanc. */
+function etiqImage(src,r){ const k=Math.max(.5,Math.min(2.5,1600/Math.max(1,r.w)));
+  const cv=document.createElement('canvas'); cv.width=Math.round(r.w*k); cv.height=Math.round(r.h*k);
+  const g=cv.getContext('2d',{willReadFrequently:true}); g.imageSmoothingEnabled=true; g.imageSmoothingQuality='high';
+  g.drawImage(src,r.x,r.y,r.w,r.h,0,0,cv.width,cv.height);
+  try{ const im=g.getImageData(0,0,cv.width,cv.height), d=im.data, n=d.length/4, h=new Uint32Array(256);
+    for(let j=0;j<d.length;j+=4){ const y=(d[j]*77+d[j+1]*150+d[j+2]*29)>>8; d[j]=y; h[y]++; }
+    let c=0, lo=0, hi=255; for(let v=0;v<256;v++){ c+=h[v]; if(c<n*.02) lo=v; if(c<n*.98) hi=v; }
+    const e=hi-lo;
+    for(let j=0;j<d.length;j+=4){ let y=d[j]; if(e>24) y=Math.max(0,Math.min(255,Math.round((y-lo)*255/e))); d[j]=d[j+1]=d[j+2]=y; }
+    g.putImageData(im,0,0); }catch(e){}
+  return cv; }
 
-function boxScanRow(p,on){ const b=db.boxes.find(x=>x.id===boxScan.boxId); const s=(b&&b.stock&&b.stock[p.id])||{u:0,ctn:0};
-  return `<div class="pl-row" style="cursor:pointer;margin:0" onclick="boxScanPick('${p.id}')">
-    <span style="font-size:18px;color:${on?'var(--acc-txt)':'var(--t3)'}">${on?'◉':'○'}</span>
-    <div class="pl-info"><div class="pl-title">${esc(p.nom)}</div><div class="pl-meta">${esc(p.ref||'')}${p.ref?' · ':''}en box : ${s.u||0} u</div></div></div>`; }
-function boxScanShowChoices(cands){ const r=$('bscan-result'); if(!r) return; boxScan.cands=cands;
-  if(!cands.some(c=>c.p.id===boxScanSel)) boxScanSel=cands[0].p.id;
-  const single=cands.length===1; const col=boxScan.action==='ajouter'?'var(--acc)':'var(--red)', colF=aplatDe(col);
+/* ── L'écran ── Le même pour les deux usages : dans une box (« box »), ou sur le stock du catalogue
+   (« cat », depuis Produits). Seule l'écriture diffère. */
+function etiqIos(){ return /iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); }
+function etiqOuvrir(mode,boxId){ const b=mode==='box'?(db.boxes||[]).find(x=>x.id===boxId):null; if(mode==='box'&&!b) return;
+  etiq={ mode, boxId:b?b.id:null, action:'ajouter', busy:false, cands:[], sel:null, lu:'' };
+  openModal(`<div class="modal-head"><h3>${mode==='box'?'Scanner — '+esc(b.nom||b.numero||'Box'):'Scanner une étiquette'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="bscan-toggle" role="group" aria-label="Ajouter ou retirer">
+      <button type="button" id="etiq-add" class="bscan-tg on" aria-pressed="true" onclick="etiqSens('ajouter')">＋ Ajouter</button>
+      <button type="button" id="etiq-rem" class="bscan-tg rem" aria-pressed="false" onclick="etiqSens('retirer')">－ Retirer</button></div>
+    <div class="scan-view etiq-vue"><video id="etiq-video" playsinline muted autoplay></video><div class="scan-frame" id="etiq-cadre"><span>le nom du produit ici</span></div></div>
+    <button type="button" class="btn etiq-lire" id="etiq-lire" onclick="etiqLire()">📷 Lire l'étiquette</button>
+    <label class="btn ghost etiq-photo" id="etiq-photo" hidden>📷 Prendre une photo de l'étiquette<input type="file" accept="image/*" capture="environment" hidden onchange="etiqPhoto(this)"></label>
+    <div class="etiq-etat" id="etiq-etat" aria-live="polite">Cadre le NOM du produit, puis touche « Lire l'étiquette ».</div>
+    <div id="etiq-result"></div>
+    <div class="field etiq-champ"><label for="etiq-text">Ou tape le nom du produit</label>
+      <input id="etiq-text" list="etiq-dl" placeholder="Ex : ALTA 7000" oninput="etiqTexte(this.value)" autocomplete="off">
+      <datalist id="etiq-dl">${(db.produits||[]).map(p=>`<option value="${esc(p.nom)}">`).join('')}</datalist>
+      ${etiqIos()?'<div class="etiq-astuce">Sur iPhone, l’appareil sait lire aussi : touche le champ, puis « Scanner le texte ».</div>':''}</div>`);
+  etiqCamera(); }
+function openBoxScanner(boxId){ etiqOuvrir('box',boxId); }
+function openScanner(){ etiqOuvrir('cat'); }
+/* Le Stock est la somme des box : scanner « dans le stock », c'est scanner dans UNE box. On la choisit
+   (une seule : on y va), on l'OUVRE — boxSaisir travaille sur la box affichée — puis c'est le scanner
+   de la box, avec toutes ses règles. Scanner depuis le Stock réglait le stock du CATALOGUE, un nombre
+   que l'écran Stock n'affiche pas : on scannait, et rien ne bougeait sous les yeux. */
+function openScannerStock(){ const L=visibleBoxes((db.boxes||[]).filter(b=>b&&b.actif!==false));
+  if(!L.length){ toast('Aucune box à scanner — le scanner travaille dans une box'); return; }
+  if(L.length===1){ etiqVersBox(L[0].id); return; }
+  openModal(`<div class="modal-head"><h3>Scanner dans quelle box ?</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="display:flex;flex-direction:column;gap:8px">${L.map(b=>{ const n=Object.keys(b.stock||{}).filter(pid=>produit(pid).id).length;
+      return `<div class="pl-row" style="margin:0;cursor:pointer" onclick="etiqVersBox('${b.id}')"><span style="font-size:20px">🧱</span><div class="pl-info"><div class="pl-title">${esc(b.nom||b.numero||'Box')}</div><div class="pl-meta">${n} produit${n>1?'s':''}</div></div><span style="color:var(--t3)">›</span></div>`; }).join('')}</div>`,'carte'); }
+function etiqVersBox(id){ closeModal(); openBox(id); setTimeout(()=>{ if(boxView===id) openBoxScanner(id); },450); }
+async function etiqCamera(){
+  try{ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('camera');
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}},audio:false});
+    const v=$('etiq-video'); if(!v||!etiq.mode){ st.getTracks().forEach(t=>t.stop()); return; }
+    scanStream=st; v.srcObject=st; await v.play();
+  }catch(e){ const b=$('etiq-lire'), ph=$('etiq-photo'); if(b) b.hidden=true; if(ph) ph.hidden=false;
+    etiqEtat('La caméra ne s’ouvre pas ici : prends une photo de l’étiquette, ou tape le nom du produit.','info'); } }
+function stopBoxScanCamera(){ if(scanTimer){ clearInterval(scanTimer); scanTimer=null; } if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+  ocrLiberer();
+  const m=etiq.mode, bid=etiq.boxId; etiq.mode=''; etiq.boxId=null; etiq.cands=[]; etiq.sel=null;
+  if(m==='box'&&bid&&typeof boxView!=='undefined'&&boxView===bid){ try{ renderBoxDetail(); }catch(e){} }
+  else if(m==='cat'&&current==='produits'){ try{ renderProduitsList(); }catch(e){} } }
+function etiqEtat(t,k){ const el=$('etiq-etat'); if(!el) return; el.className='etiq-etat'+(k?' '+k:''); el.textContent=t; }
+function etiqSens(a){ etiq.action=a==='retirer'?'retirer':'ajouter';
+  const add=$('etiq-add'), rem=$('etiq-rem');
+  if(add){ add.classList.toggle('on',etiq.action==='ajouter'); add.setAttribute('aria-pressed',etiq.action==='ajouter'); }
+  if(rem){ rem.classList.toggle('on',etiq.action==='retirer'); rem.setAttribute('aria-pressed',etiq.action==='retirer'); }
+  if(etiq.cands.length) etiqChoix(etiq.cands); }
+
+/* ── La lecture ── */
+function etiqLire(){ if(etiq.busy) return; const v=$('etiq-video');
+  if(!v||!v.videoWidth){ etiqEtat('La caméra démarre — réessaie dans une seconde.','info'); return; }
+  return etiqLireImage(etiqImage(v,etiqCadre(v,$('etiq-cadre')))); }
+function etiqPhoto(inp){ const f=inp&&inp.files&&inp.files[0]; if(!f) return;
+  const im=new Image(), u=URL.createObjectURL(f);
+  im.onload=()=>{ URL.revokeObjectURL(u); etiqLireImage(etiqImage(im,{x:0,y:0,w:im.naturalWidth,h:im.naturalHeight})); inp.value=''; };
+  im.onerror=()=>{ URL.revokeObjectURL(u); etiqEtat('Cette photo ne se lit pas — réessaie.','err'); };
+  im.src=u; }
+async function etiqLireImage(cv){ if(etiq.busy||!cv) return; etiq.busy=true; const mode=etiq.mode, btn=$('etiq-lire'); if(btn) btn.disabled=true;
+  etiqEtat('Lecture de l’étiquette…','info');
+  _ocrLog=m=>{ if(!m||etiq.mode!==mode) return;
+    if(m.status==='recognizing text') etiqEtat('Lecture de l’étiquette… '+Math.round((m.progress||0)*100)+' %','info');
+    else if(!_ocrW) etiqEtat('Préparation de la lecture — la première fois seulement…','info'); };
+  try{ const w=await ocrLecteur(); const r=await w.recognize(cv); if(etiq.mode!==mode) return;
+    const txt=((r&&r.data&&r.data.text)||'').replace(/\s+/g,' ').trim(); etiq.lu=txt;
+    etiqResultat(txt,etiqCandidats(txt,db.produits||[]),true);
+    const rs=$('etiq-result'); if(rs&&rs.firstElementChild){ try{ rs.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(e){} }
+  }catch(e){ if(etiq.mode===mode) etiqEtat(navigator.onLine===false?'La première lecture a besoin d’Internet (le lecteur se télécharge une fois) — tape le nom du produit.':'La lecture n’a pas pu se faire — réessaie, ou tape le nom du produit.','err'); }
+  finally{ if(etiq.mode===mode){ etiq.busy=false; if(btn) btn.disabled=false; } _ocrLog=null; } }
+function etiqTexte(q){ const t=String(q||'').trim(); if(!t){ etiq.cands=[]; etiq.sel=null; const r=$('etiq-result'); if(r) r.innerHTML=''; return; }
+  etiqResultat(t,etiqChercher(t,db.produits||[]),false); }
+function etiqResultat(texte,cands,lu){ const r=$('etiq-result'); if(!r) return;
+  if(lu) etiqEtat(texte?'Lu : « '+(texte.length>90?texte.slice(0,90)+'…':texte)+' »':'Rien de lisible dans le cadre — rapproche-toi, ou éclaire l’étiquette.',texte?'':'err');
+  if(!cands.length){ etiq.cands=[]; etiq.sel=null;
+    r.innerHTML=texte?`<div class="bscan-err">Aucun produit enregistré ne correspond.<br><span style="font-weight:500">Cadre bien le NOM du produit, ou tape-le. S’il n’existe pas encore, il se crée dans Produits.</span></div>`:''; return; }
+  etiqChoix(cands); }
+function etiqPidDansBox(b,p){ if(!b||!p) return null; b.stock=b.stock||{}; if(b.stock[p.id]) return p.id;
+  if(produitDistinct(p)) return null; const k=produitCle(p);
+  return Object.keys(b.stock).find(pid=>{ const q=produit(pid); return q&&q.id&&!produitDistinct(q)&&produitCle(q)===k; })||null; }
+function etiqLigne(p,on){ let meta='';
+  if(etiq.mode==='box'){ const b=(db.boxes||[]).find(x=>x.id===etiq.boxId), pid=etiqPidDansBox(b,p); meta=pid?'en box : '+(((b.stock[pid]||{}).u)||0)+' u':'pas encore dans cette box'; }
+  else meta='stock : '+(+p.qte||0);
+  return `<div class="pl-row etiq-l" role="radio" aria-checked="${on}" style="cursor:pointer;margin:0" onclick="etiqChoisir('${p.id}')">
+    <span style="font-size:18px;color:${on?'var(--acc-txt)':'var(--t3)'}" aria-hidden="true">${on?'◉':'○'}</span>
+    <div class="pl-info"><div class="pl-title">${esc(p.nom)}</div><div class="pl-meta">${p.ref?esc(p.ref)+' · ':''}${meta}</div></div></div>`; }
+function etiqChoix(cands){ const r=$('etiq-result'); if(!r) return; etiq.cands=cands;
+  if(!cands.some(c=>c.p.id===etiq.sel)) etiq.sel=cands[0].p.id;
+  const ajout=etiq.action==='ajouter', col=ajout?'var(--acc)':'var(--red)', colF=aplatDe(col);
+  const q=Math.max(1,parseInt(($('etiq-qty')||{}).value)||1);
   r.innerHTML=`<div class="scan-result" style="text-align:left">
-    <div style="font-weight:700;margin-bottom:10px">${single?'Produit trouvé':'Choisis le produit'}</div>
-    <div id="bscan-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">${cands.map(c=>boxScanRow(c.p,c.p.id===boxScanSel)).join('')}</div>
+    <div style="font-weight:700;margin-bottom:10px">${cands.length===1?'Produit reconnu':'Choisis le produit'}</div>
+    <div id="etiq-list" role="radiogroup" aria-label="Produit" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">${cands.map(c=>etiqLigne(c.p,c.p.id===etiq.sel)).join('')}</div>
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px">
-      <button class="btn ghost" onclick="boxScanQty(-1)" style="font-size:20px">−</button>
-      <input id="bscan-qty" type="number" min="1" value="1" style="width:70px;text-align:center;font-size:22px;font-weight:800;color:${encreDonnee(col)}">
-      <button class="btn ghost" onclick="boxScanQty(1)" style="font-size:20px">＋</button></div>
-    <button class="btn" style="width:100%;justify-content:center;background:${colF[0]};color:${colF[1]}" onclick="boxScanApply()">${boxScan.action==='ajouter'?'＋ Ajouter au stock':'－ Retirer du stock'}</button></div>`; }
-function boxScanPick(pid){ boxScanSel=pid; const list=$('bscan-list'); if(list&&boxScan.cands) list.innerHTML=boxScan.cands.map(c=>boxScanRow(c.p,c.p.id===pid)).join(''); }
-function boxScanQty(d){ const i=$('bscan-qty'); if(i) i.value=Math.max(1,(parseInt(i.value)||1)+d); }
-function boxScanApply(){ const b=db.boxes.find(x=>x.id===boxScan.boxId); if(!b){ toast('Box introuvable'); return; }
-  const p=produit(boxScanSel); if(!p||!p.id){ toast('Produit invalide'); return; }
-  const qty=Math.max(1,parseInt(($('bscan-qty')||{}).value)||1); b.stock=b.stock||{};
-  const r=$('bscan-result');
-  if(boxScan.action==='retirer' && !b.stock[boxScanSel]){ if(r) r.innerHTML=`<div class="bscan-err">${esc(p.nom)} n'est pas dans cette box.</div>`; return; }
-  const cur=b.stock[boxScanSel]||{ctn:0,u:0}; const prevU=cur.u||0;
-  if(boxScan.action==='ajouter'){ cur.u=(cur.u||0)+qty; }
-  else { cur.u=Math.max(0,(cur.u||0)-qty); }
-  b.stock[boxScanSel]=cur;
-  if(boxScan.action!=='ajouter') notifyDrBoxLow(b,boxScanSel,prevU);
-  notifyDrBoxMove(b,boxScanSel,boxScan.action==='ajouter'?'entree':'sortie',qty,'u');
-  db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:boxScanSel,type:boxScan.action==='ajouter'?'entree':'sortie',qte:qty,motif:(boxScan.action==='ajouter'?'Scan + ':'Scan − ')+(b.nom||b.numero||''),vehiculeId:'',boxId:b.id,technicien:fullName(currentUser)});
-  logEvent('Scan box',`${boxScan.action==='ajouter'?'+':'-'}${qty} × ${p.nom} — ${b.nom||b.numero||''}`,'stock'); save();
-  if(r) r.innerHTML=`<div class="scan-result" style="border-color:color-mix(in srgb,var(--acc) 50%,transparent)"><div style="font-weight:700;color:var(--acc-txt)">✓ ${boxScan.action==='ajouter'?'Ajouté':'Retiré'} : ${qty} × ${esc(p.nom)}</div><div style="color:var(--t3);font-size:13px;margin-top:4px">Stock en box : ${cur.u} u — continue à scanner ou ferme.</div></div>`;
-  const ti=$('bscan-text'); if(ti) ti.value=''; boxScan.cands=[]; boxScanSel=null; toast('Stock mis à jour'); }
+      <button type="button" class="btn ghost" onclick="etiqQte(-1)" style="font-size:20px" aria-label="Un de moins">−</button>
+      <input id="etiq-qty" type="number" inputmode="numeric" min="1" value="${q}" aria-label="Quantité" style="width:70px;text-align:center;font-size:22px;font-weight:800;color:${encreDonnee(col)}">
+      <button type="button" class="btn ghost" onclick="etiqQte(1)" style="font-size:20px" aria-label="Un de plus">＋</button></div>
+    <button type="button" class="btn" id="etiq-go" style="width:100%;justify-content:center;background:${colF[0]};color:${colF[1]}" onclick="etiqAppliquer()">${ajout?'＋ Ajouter':'－ Retirer'} ${etiq.mode==='box'?(ajout?'dans la box':'de la box'):(ajout?'au stock':'du stock')}</button></div>`; }
+function etiqChoisir(pid){ etiq.sel=pid; const l=$('etiq-list'); if(l) l.innerHTML=etiq.cands.map(c=>etiqLigne(c.p,c.p.id===pid)).join(''); }
+function etiqQte(d){ const i=$('etiq-qty'); if(i) i.value=Math.max(1,(parseInt(i.value)||1)+d); }
+function etiqSuivant(html){ const r=$('etiq-result'); if(r) r.innerHTML=html; const t=$('etiq-text'); if(t) t.value=''; etiq.cands=[]; etiq.sel=null; }
+
+/* ── L'écriture ── */
+function etiqAppliquer(){ return etiq.mode==='box'?etiqAppliquerBox():etiqAppliquerCat(); }
+function etiqAppliquerBox(){ const b=(db.boxes||[]).find(x=>x.id===etiq.boxId); if(!b){ toast('Box introuvable'); return; }
+  /* boxSaisir travaille sur la box AFFICHÉE : un scanner ouvert sur une autre écrirait ailleurs */
+  if(boxView!==b.id){ toast('Ouvre la box avant de scanner'); return; }
+  const p=produit(etiq.sel); if(!p||!p.id){ toast('Choisis le produit'); return; }
+  const n=Math.max(1,parseInt(($('etiq-qty')||{}).value)||1), ajout=etiq.action==='ajouter';
+  let pid=etiqPidDansBox(b,p);
+  if(!pid){ if(!ajout){ etiqSuivant(`<div class="bscan-err">${esc(p.nom)} n’est pas dans cette box — rien n’est sorti.</div>`); return; }
+    /* poser la ligne comme « Produits de la box » le fait : garde d'identité par nom comprise */
+    pid=boxPoserProduits(b,[p.id],{}).poses[0]||etiqPidDansBox(b,p);
+    if(!pid){ etiqSuivant(`<div class="bscan-err">${esc(p.nom)} ne peut pas entrer dans cette box.</div>`); return; } }
+  const lot=boxValidRequis();
+  /* « Pour qui ? » : la même question que le « − », par la même fenêtre — qui prend la place du
+     scanner. On coupe donc la caméra AVANT : sinon elle tournerait derrière, voyant allumé. */
+  const pourQui=!ajout&&!lot&&!db.bonsRemiseOff&&!boxDonneNom(b.id);
+  if(pourQui) stopBoxScanCamera();
+  if(!boxSaisir(pid,ajout?n:-n)) return;   // refusé (pas assez dans la box) : boxSaisir l'a dit
+  if(pourQui) return;
+  const u=((b.stock[pid]||{}).u)||0;
+  etiqSuivant(`<div class="scan-result etiq-ok"><div style="font-weight:700;color:var(--acc-txt)">${lot?'✓ Noté dans ta liste':'✓ '+(ajout?'Ajouté':'Retiré')} : ${ajout?'+':'−'}${n} × ${esc(p.nom)}</div>
+    <div style="color:var(--t3);font-size:13px;margin-top:4px">${lot?'La liste part au DR quand tu la valides (en haut de la box).':'Il y en a maintenant '+u+' dans la box.'} Scanne le suivant, ou ferme.</div></div>`);
+  etiqEtat('Cadre le NOM du produit suivant, puis touche « Lire l’étiquette ».',''); }
+function etiqAppliquerCat(){ const p=produit(etiq.sel); if(!p||!p.id){ toast('Choisis le produit'); return; }
+  const n=Math.max(1,parseInt(($('etiq-qty')||{}).value)||1), d=etiq.action==='ajouter'?n:-n;
+  const av=+p.qte||0; p.qte=Math.max(0,av+d); const reel=p.qte-av;
+  if(!reel){ etiqSuivant(`<div class="bscan-err">${esc(p.nom)} est déjà à 0 — rien n’est sorti.</div>`); return; }
+  /* la trace dit ce qui a BOUGÉ : retirer 5 d'un stock de 3 en sort 3 */
+  db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:reel>0?'entree':'sortie',qte:Math.abs(reel),motif:'Scan d’étiquette',vehiculeId:''});
+  save();
+  etiqSuivant(`<div class="scan-result etiq-ok"><div style="font-weight:700;color:var(--acc-txt)">✓ ${reel>0?'Ajouté':'Retiré'} : ${Math.abs(reel)} × ${esc(p.nom)}</div><div style="color:var(--t3);font-size:13px;margin-top:4px">Stock du catalogue : ${p.qte}. Scanne le suivant, ou ferme.</div></div>`); }
 
 /* ═══════════════ COMMERCIAL : DEVIS & FACTURES (façon Organilog) ═══════════════ */
 const DEVIS_ST={brouillon:{l:'Brouillon',c:'st-grey'},envoye:{l:'Envoyé',c:'st-blue'},accepte:{l:'Accepté',c:'st-green'},refuse:{l:'Refusé',c:'st-red'}};

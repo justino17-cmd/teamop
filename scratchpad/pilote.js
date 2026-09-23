@@ -44,6 +44,14 @@ async function ouvrir(opts) {
     const u = q.url.split('?')[0].split('#')[0];
     if (u === '/' || u === '/essai.html' || u === '/beta.html') {
       r.writeHead(200, { 'Content-Type': 'text/html;charset=utf-8' }); return r.end(PAGE); }
+    /* `servir` : des fichiers qui ne vivent PAS dans le dépôt (le moteur de lecture d'étiquettes,
+       4,8 Mo) — on les sert tels quels, sans Content-Encoding : le moteur décompresse lui-même. */
+    for (const [pre, dir] of Object.entries(o.servir || {})) {
+      if (!u.startsWith(pre)) continue;
+      const f = path.join(dir, u.slice(pre.length));
+      if (!f.startsWith(dir)) { r.writeHead(403); return r.end(); }
+      return fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); return r.end(); }
+        r.writeHead(200, { 'Content-Type': f.endsWith('.js') ? 'text/javascript' : f.endsWith('.png') ? 'image/png' : 'application/octet-stream', 'Access-Control-Allow-Origin': '*' }); r.end(d); }); }
     const x = path.join(RACINE, u.replace(/^\/+/, ''));
     if (!x.startsWith(RACINE)) { r.writeHead(403); return r.end(); }
     fs.readFile(x, (e, d) => { if (e) { r.writeHead(404); return r.end(); }
