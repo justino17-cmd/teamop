@@ -195,6 +195,23 @@ console.log('── 792 · 9. la fiche poste note ce qui s’imprime ──');
   W.papSheetSecure('iB', 'a', false); v('changer la boîte sécurisée aussi', [pl().version, /non sécurisée/.test(pl().historique.slice(-1)[0].action)], [5, true]);
   W.papSheetSecure('iB', 'a', false); v('… à l’identique, rien', pl().version, 5); }
 
+console.log('── 792 · 9 bis. un plan modifié PENDANT l’envoi : PDF, courriel et trace décrivent le même instantané ──');
+/* La compression de la photo est asynchrone : pendant ce temps, une synchro ou un doigt peut
+   ajouter un poste. Relecture du 23 septembre 2026 : le PDF relisait le plan vivant pendant que le
+   numéro de version, le texte et la trace venaient de l'état pris avant — le client recevait un
+   document que le registre de l'application ne décrivait pas. */
+{ const W = monter(BASE);
+  W.__jpeg = () => { W.db.plansSite.cX[0].postes.push({ id: 'z', num: 9, x: .9, y: .9, type: 'piege', zone: 'Grenierzz' }); W.__jpeg = null; return { b64: JPEG1, w: 1, h: 1 }; };
+  await W.papImplantationEnvoyer('cX', 'iB');
+  const m = W.__mails[0] || { opts: { atts: [{}] }, body: '' }, pdf = Buffer.from(m.opts.atts[0].content || '', 'base64').toString('latin1');
+  vrai('population : le poste a bien été ajouté pendant l’envoi, et un PDF est parti', W.db.plansSite.cX[0].postes.some(p => p.id === 'z') && pdf.startsWith('%PDF'));
+  vrai('le poste ajouté PENDANT la compression n’est pas dans le PDF parti', !pdf.includes('Grenierzz'));
+  vrai('… le courriel compte les postes du PDF (4), pas ceux du plan vivant (5)', /, 4 poste\(s\)/.test(m.body), m.body.slice(0, 220));
+  v('… et la carte dit « modifié » : le client n’a pas encore le poste 9', W.papImplEtat('cX').etat, 'modifie');
+  const W2 = monter(BASE); W2.db.plansSite.cX[0].postes.push({ id: 'z', num: 9, x: .9, y: .9, type: 'piege', zone: 'Grenierzz' });
+  await W2.papImplantationEnvoyer('cX', 'iB');
+  vrai('contre-épreuve : posé AVANT l’envoi, le même poste est bien dans le PDF', Buffer.from(W2.__mails[0].opts.atts[0].content, 'base64').toString('latin1').includes('Grenierzz')); }
+
 console.log('── 792 · 10. la forme, là où l’exécution ne va pas ──');
 { vrai('la carte de l’onglet Plan passe par papImplCarteHtml', /if\(canEd\) h\+=papImplCarteHtml\(i\);/.test(SRC));
   vrai('l’ancien envoi « délivré une fois » n’existe plus', !/function papPrintImplantation\(/.test(SRC) && !/délivré une fois/.test(APP));

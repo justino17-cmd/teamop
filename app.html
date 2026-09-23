@@ -19378,7 +19378,7 @@ function exportFacturX(fid){ const f=db.factures.find(x=>x.id===fid); if(!f) ret
           +((H.adresse||H.cp||H.ville)?`<ram:PostalTradeAddress>${H.cp?`<ram:PostcodeCode>${esc(H.cp)}</ram:PostcodeCode>`:''}${H.adresse?`<ram:LineOne>${esc(H.adresse)}</ram:LineOne>`:''}${H.ville?`<ram:CityName>${esc(H.ville)}</ram:CityName>`:''}<ram:CountryID>FR</ram:CountryID></ram:PostalTradeAddress>`:'')
           +(H.tvaIntra?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${esc(String(H.tvaIntra).replace(/\s/g,''))}</ram:ID></ram:SpecifiedTaxRegistration>`:'')
           +`</ram:SellerTradeParty>`; })()}
-      <ram:BuyerTradeParty><ram:Name>${esc(c.nom||'Client')}</ram:Name>${c.adresse?`<ram:PostalTradeAddress><ram:LineOne>${esc(c.adresse)}</ram:LineOne>${c.codePostal?`<ram:PostcodeCode>${esc(c.codePostal)}</ram:PostcodeCode>`:''}${c.ville?`<ram:CityName>${esc(c.ville)}</ram:CityName>`:''}<ram:CountryID>FR</ram:CountryID></ram:PostalTradeAddress>`:''}</ram:BuyerTradeParty>
+      <ram:BuyerTradeParty><ram:Name>${esc(c.nom||'Client')}</ram:Name>${c.adresse?`<ram:PostalTradeAddress>${c.codePostal?`<ram:PostcodeCode>${esc(c.codePostal)}</ram:PostcodeCode>`:''}<ram:LineOne>${esc(c.adresse)}</ram:LineOne>${c.ville?`<ram:CityName>${esc(c.ville)}</ram:CityName>`:''}<ram:CountryID>FR</ram:CountryID></ram:PostalTradeAddress>`:''}</ram:BuyerTradeParty>
     </ram:ApplicableHeaderTradeAgreement>
     <ram:ApplicableHeaderTradeDelivery/>
     <ram:ApplicableHeaderTradeSettlement>
@@ -20865,7 +20865,8 @@ function _pdfCoupe(txt,sz,gras,max){ let s=String(txt==null?'':txt); if(_pdfLarg
    (nom, couleur, lignes, logo) ; `imgs[pl.id]` la photo prête ; `meta` ce qui ne se déduit pas
    des plans (versions imprimées, date de vigueur, passage, technicien). */
 function papImplPdfStr(cid,E,imgs,meta){
-  const c=(db.clients||[]).find(x=>x.id===cid)||{}; const plans=papImplPlans(cid); meta=meta||{}; imgs=imgs||{};
+  meta=meta||{}; imgs=imgs||{};
+  const c=(db.clients||[]).find(x=>x.id===cid)||{}; const plans=meta.plans||papImplPlans(cid);
   const hx=/^#[0-9a-fA-F]{6}$/.test(E&&E.couleur||'')?E.couleur:'#1E7A4E';
   const rgbS=h=>[1,3,5].map(i=>(parseInt(h.slice(i,i+2),16)/255).toFixed(3)).join(' ');
   const ACC=rgbS(hx), ACCLT=[1,3,5].map(i=>(0.93+parseInt(hx.slice(i,i+2),16)/255*0.07).toFixed(3)).join(' ');
@@ -21024,24 +21025,28 @@ async function papImplDocument(cid,i,st){
      est sur l'intervention ») ; générique, celle qui sert le client ; sinon l'entreprise. */
   const soc=(i&&socNom(i.rapportModele))?i.rapportModele:socDuClient(cid), H=docEntete(soc);
   const E={nom:H.nom,couleur:H.couleur,lignes:docCoordLignes(H),expediteur:(docMailOpts(soc)||{}).brandName||''};
+  /* L'INSTANTANÉ, pris avant le premier `await` : la compression des photos prend du temps, et une
+     synchro ou un poste déplacé pendant ce temps ferait partir un PDF qui ne correspond plus à la
+     version, au texte du courriel ni à la trace (relecture du 23 septembre 2026). */
+  const figes=st.plans.map(x=>JSON.parse(JSON.stringify(x.pl)));
   let logo=null; try{ logo=H.logo?await devisLogoJpeg(H.logo):null; }catch(e){}
   const meta={ versions:Object.fromEntries(st.plans.map(x=>[x.pl.id,x.v])),
     depuis:st.etat==='inchange'?st.depuis:Date.now(), edite:Date.now(),
     passage:i&&i.date?new Date(i.date+'T00:00:00').getTime():0, technicien:(currentUser&&fullName(currentUser))||'' };
   for(const [max,q] of [[1400,0.8],[900,0.6]]){
     const imgs={}; let k=0;
-    for(const x of st.plans){ const pl=x.pl; if(pl.mode==='geo'||pl.mode==='rooms') continue;
+    for(const pl of figes){ if(pl.mode==='geo'||pl.mode==='rooms') continue;
       if(!pl.img) continue;                                   // un plan sans photo : ses postes se dessinent sur fond blanc
       const j=await papImplJpeg(pl.img,max,q);   // une photo de plan ne sort jamais du document (plansSite est un dictionnaire, syncSortirPieces ne le visite pas)
       if(!j) return {err:'La photo du plan « '+(pl.nom||'Plan')+' » ne peut pas être mise en PDF — rien n’est parti.'};
       imgs[pl.id]={...j,nom:'I'+(++k)}; }
-    let pdf; try{ pdf=papImplPdfStr(cid,{nom:E.nom,couleur:E.couleur,lignes:E.lignes,logo},imgs,meta); }
+    let pdf; try{ pdf=papImplPdfStr(cid,{nom:E.nom,couleur:E.couleur,lignes:E.lignes,logo},imgs,{...meta,plans:figes}); }
     catch(e){ return {err:'Le plan d’implantation n’a pas pu être construit ('+(e&&e.message||e)+') — rien n’est parti.'}; }
     const b64=btoa(pdf);
     if(b64.length<=PAP_IMPL_MAX_B64){
       const nom=('Plan-implantation-'+String(c.nom||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)
         +'-v'+st.plans.map(x=>x.v).join('-')+'.pdf');
-      return {pdf,b64,nom,E}; } }
+      return {pdf,b64,nom,E,plans:figes}; } }
   return {err:'Le plan d’implantation dépasse la taille qu’un courriel peut porter, même photos réduites — rien n’est parti.'}; }
 /* Aperçu : le PDF qui partirait, sans rien écrire. */
 async function papImplApercu(cid,intId){
@@ -21071,7 +21076,7 @@ async function papImplantationEnvoyer(cid,intId){
     const d=await papImplDocument(cid,i,st);
     if(d.err){ toast(d.err); try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Plan d’implantation non construit : '+d.err.slice(0,120)})}); }catch(e){} return; }
     const nouveau=st.etat!=='inchange', vs=st.plans.map(x=>x.v).join(' / ');
-    const nb=st.plans.reduce((s,x)=>s+(x.pl.postes||[]).length,0);
+    const nb=d.plans.reduce((s,pl)=>s+(pl.postes||[]).length,0);   // l'instantané du PDF, pas le plan vivant
     const le=st.dernier?new Date(st.dernier.ts).toLocaleDateString('fr-FR'):'';
     const sujet='Plan d’implantation des postes — '+(c.nom||'')+(st.etat==='modifie'?' (mis à jour, version '+vs+')':'');
     const corps='Bonjour,\n\n'+(i&&i.date?'Suite à notre passage du '+fmtShort(i.date)+', veuillez':'Veuillez')+' trouver ci-joint le plan d’implantation des postes de votre site : '+st.plans.length+' plan(s), '+nb+' poste(s).\n\n'
@@ -29129,7 +29134,10 @@ async function envoiBonEmail(id,quiet,mbId){ const b=db.bons.find(x=>x.id===id);
   /* En envoi groupé (quiet) on ne peut pas ouvrir une fenêtre par bon : on saute celui-ci en
      le disant, les autres partent. Seul l'envoi à l'unité propose la saisie. */
   if(!dest){ if(quiet){ toast('⚠️ '+bonNum(b)+' : pas d\'adresse fournisseur — non envoyé'); return false; } bonEmailSaisir(id); return false; }
-  const nl='\n'; const ent=bcEntete(b);   // v740 : la société DU BON (celle de l'en-tête du PDF joint), plus le nom global
+  /* v740 : un bon qui porte une société part sous SON nom (celui de l'en-tête du PDF joint). Sans
+     société, rien ne change : le « Nom d'expéditeur » des Réglages e-mail passe avant le nom légal
+     (mailBrandName) — bcEntete le mettait derrière, et une entreprise qui l'avait réglé le perdait. */
+  const nl='\n'; const ent=socNom(b.societe)?bcEntete(b):mailBrandName();
   const detail=(b.lignes||[]).map(l=>`- ${l.designation} : ${bonQteTxt(l)}${l.commentaire?` — ${l.commentaire}`:''}`).join(nl);
   const liv=b.nomSiteLivraison?('Livraison : '+b.nomSiteLivraison+' '+(b.adresseLivraison||'')+' '+(b.villeLivraison||'')+nl+nl):'';
   const subject='Bon de commande '+bonNum(b)+' — '+ent;
@@ -34612,7 +34620,7 @@ function printDoc(kind,id){
     <body><div class="noprint"><button onclick="window.print()">Imprimer</button><button onclick="window.close()">Fermer</button></div><div style="height:54px"></div>
     <div class="feuille">
       <div class="hd">
-        <div>${logo?`<img class="logo-img" src="${logo}" alt="">`:''}<div class="soc">${esc(soc)}<small>Gestion d'interventions</small></div></div>
+        <div>${logo?`<img class="logo-img" src="${esc(logo)}" alt="">`:''}<div class="soc">${esc(soc)}<small>Gestion d'interventions</small></div></div>
         <div class="dt"><h1>${cfg.titre.toUpperCase()}</h1><div class="num">N° ${esc(d.num)}</div>
           ${stL?`<span class="pill" style="background:${stFond}">${stL}</span>`:''}
           <div class="dates">

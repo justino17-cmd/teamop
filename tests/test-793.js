@@ -112,7 +112,10 @@ console.log('── 793 · 3. l’impression d’un devis ou d’une facture, ex
   vrai('… PAS le logo de l’entreprise (Bêta n’en a pas)', !hB.includes('data:E'));
   vrai('… les coordonnées de l’entreprise (Bêta est un nom commercial)', hB.includes('SIRET 11111111100011'));
   W.printDoc('devis', 'dA'); const hA = W.__html;
-  vrai('devis Alpha : son logo, sa couleur, son SIRET et sa raison sociale — rien de l’entreprise', hA.includes('data:A') && hA.includes('#C0392B') && hA.includes('SIRET 22222222200022') && hA.includes('Alpha Nuisibles SAS') && !hA.includes('11111111100011')); }
+  vrai('devis Alpha : son logo, sa couleur, son SIRET et sa raison sociale — rien de l’entreprise', hA.includes('data:A') && hA.includes('#C0392B') && hA.includes('SIRET 22222222200022') && hA.includes('Alpha Nuisibles SAS') && !hA.includes('11111111100011'));
+  const bq = JSON.parse(JSON.stringify(BASE)); bq.societesStyle['Alpha Nuisibles'].logo = 'data:A" onerror="alerte()';
+  const Wq = monter(bq); Wq.printDoc('devis', 'dA');
+  vrai('un logo qui porte un guillemet ne sort pas de son attribut (esc, comme les autres fabriques)', Wq.__html.includes('data:A&quot; onerror') && !Wq.__html.includes('" onerror="alerte()')); }
 
 console.log('── 793 · 4. chaque fabrique passe par la même règle ──');
 { /* recensement depuis le FICHIER, pas depuis une liste : toute fonction qui écrit un document */
@@ -140,7 +143,10 @@ console.log('── 793 · 5. les courriels portent la même société que le do
   vrai('devis / facture « Envoyer » : le PDF JOINT, et l’expéditeur de SA société', /opts\.atts=\[\{filename:/.test(corps('envoiDoc')) && /docMailOpts\(d\.rapportModele\)/.test(corps('envoiDoc')) && /docPdfChaine\(kind,d\)/.test(corps('envoiDoc')));
   vrai('… un texte sans pièce jointe ne dit plus « ci-joint »', /\(joint\?'Veuillez trouver ci-joint votre ':'Voici votre '\)/.test(corps('genDocTexte')));
   vrai('la facture automatique part en PDF, signée de la société de l’intervention', /docPdfChaine\('factures',f\)/.test(SRC) && /Cordialement,\\n'\+soc;/.test(SRC));
-  vrai('le bon envoyé au fournisseur : la société DU BON, plus le nom global', /const ent=bcEntete\(b\);/.test(corps('envoiBonEmail')) && !/mailBrandName\(\)/.test(corps('envoiBonEmail')));
+  vrai('le bon envoyé au fournisseur : la société DU BON quand il en porte une — sinon le « Nom d’expéditeur » des Réglages e-mail, comme avant', /const ent=socNom\(b\.societe\)\?bcEntete\(b\):mailBrandName\(\);/.test(corps('envoiBonEmail')));
+  { const fx = corps('exportFacturX'), ach = fx.slice(fx.indexOf('<ram:BuyerTradeParty>'), fx.indexOf('</ram:BuyerTradeParty>'));
+    vrai('Factur-X : l’adresse de l’acheteur suit l’ordre CII (code postal, puis rue, puis ville) — comme celle du vendeur',
+      ach.length > 50 && ach.indexOf('<ram:PostcodeCode>') > 0 && ach.indexOf('<ram:PostcodeCode>') < ach.indexOf('<ram:LineOne>') && ach.indexOf('<ram:LineOne>') < ach.indexOf('<ram:CityName>'), ach.slice(0, 200)); }
   vrai('Factur-X : le vendeur est la société de la facture, avec son identifiant légal', /docEntete\(f\.rapportModele\)/.test(corps('exportFacturX')) && /SpecifiedLegalOrganization/.test(corps('exportFacturX')) && !/f\.societe/.test(corps('exportFacturX'))); }
 
 console.log('── 793 · 6. les données de société ──');
