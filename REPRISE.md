@@ -79,6 +79,48 @@ et `balayageOk` vrais, `sauvegarde` active sans échec ; `ls /opt/teamop/data | 
 `POST /api/op/session` → 404 ; le journal sans « NON monté » ni « DEUX FOIS ». Le lendemain : la
 sauvegarde de la nuit `ok`, et une seule copie sous `teamop/mensuel/`.
 
+## ✅ 23 SEPTEMBRE 2026 (nuit) — LES EN-TÊTES DE PDF PORTENT LA SOCIÉTÉ DE L'INTERVENTION (bêta, non publié)
+
+Demande de Justin : « pour les PDF selon les interventions ou autres, chaque en-tête doit
+reconnaître l'entreprise qui est sur l'intervention, pour que le client reçoive bien le bon
+PDF ». Vérifié fonction par fonction (`rapportSociete`, `intSocMailOpts`/`docSocMailOpts`,
+`papSocOf`, `bcEntete`/`bcCouleur`) :
+
+- **Rapport d'intervention, devis (PDF + impression + envoi), plan d'implantation, dossier
+  sanitaire, bons de commande** : DÉJÀ corrects — chacun lit `rapportModele` de l'intervention
+  ou du document (ou `papSocOf(cid)` pour un document client-niveau) et en tire le nom, la
+  couleur et le logo.
+- **Facture — bouton « Envoyer » (`envoiDoc`)** : l'EN-TÊTE imprimé était déjà juste
+  (`rapportSociete(d.rapportModele)`), mais le courriel envoyé au client ne passait AUCUN
+  `opts` à `srvMail` — l'expéditeur affiché restait le nom global de l'entreprise, jamais la
+  société du devis/de la facture. Corrigé : `docSocMailOpts(d)` (qui relit `intSocMailOpts` sur
+  `.rapportModele`) est maintenant passé à `srvMail`, comme le fait déjà `rapportVia` pour le
+  rapport d'intervention.
+- **Registre sanitaire (`printRegistre`, écran Interventions → Registre)** : n'avait AUCUN
+  habillage société — couleur et footer fixes, « — OP GESTION » en dur — alors que le dossier
+  sanitaire et le plan d'implantation du MÊME client portent déjà `papSocOf(cid)`. Un client à
+  plusieurs sociétés recevait un registre qui ne disait jamais laquelle l'avait traité. Corrigé
+  avec le même en-tête (nom + couleur via `socStyle`) et le même footer dynamique ; couleur de
+  table passée par `encreSur()` (exigé par `test-774`, qui interdit un `color:#fff` fixe après
+  un fond de couleur variable — trouvé et corrigé pendant la vérification).
+
+Vérifié au navigateur (`beta.html`, 127.0.0.1, deux sociétés déclarées « Société Alpha » /
+« Société Beta ») : intervention et facture posées sur « Société Beta » (couleur `#C0392B`) →
+`printRegistre` et `printDoc('factures',…)` rendent un en-tête, un footer ET (pour la facture)
+un expéditeur de courriel qui portent tous « Société Beta », jamais le nom générique.
+Suite complète : `scripts/bancs-ci.sh` → 148 suites · 6941 vérifications, 0 échec.
+
+⚠️ **Restent hors du périmètre de cette passe, à trancher si Justin les veut aussi :**
+`printDossierClient` (le petit export interne « Dossier client » depuis la fiche client :
+aucun en-tête de société — mais il agrège l'historique complet du client, potentiellement
+plusieurs sociétés à la fois, donc afficher UNE société serait trompeur ; probablement pas un
+document envoyé au client tel quel) et `remisePdf` (bon de remise de stock : footer
+« OP GESTION » en dur, mais c'est un document interne entre équipe et DR, jamais vu par un
+client).
+
+⛔ **Non publié — reste sur la bêta**, conformément à la suspension du 23 septembre 2026
+ci-dessus : `app.html`/`beta.html` modifiés sur la branche, rien poussé sur `main`.
+
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — LES DÉCISIONS DE JUSTIN SUR LES DROITS (v739, bêta)
 
 Justin a tranché les sept questions posées avec la v738 (ses mots : section v738 ci-dessous,
