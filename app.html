@@ -20937,7 +20937,10 @@ function papImplPdfStr(cid,E,imgs,meta){
   TR(RGT,y+3,15,'PLAN D’IMPLANTATION',1,DARK);
   TR(RGT,y-12,9,_pdfCoupe(plans.map(papPlanNum).join(' · '),9,1,250),1,GREY);
   TR(RGT,y-24,8.5,_pdfCoupe('Version '+plans.map(vOf).join(' / ')+(meta.depuis?' — en vigueur depuis le '+dateFr(meta.depuis):''),8.5,0,300),0,GREY);
-  let ey=y-14; (E.lignes||[]).forEach(t=>{ TW(M,ey,8.3,t,0,GREY,RGT-M-300); ey-=10.5; });
+  /* sous le nom, à droite du logo, et sans passer sous la colonne de droite : une ligne trop longue
+     se coupe à ses « · » (SIRET, TVA) plutôt que de perdre sa fin */
+  const lgMax=RGT-310-nx; let ey=y-14;
+  (E.lignes||[]).flatMap(t=>_pdfLarg(t,8.3,0)<=lgMax?[t]:String(t).split(/\s+·\s+/)).forEach(t=>{ TW(nx,ey,8.3,t,0,GREY,lgMax); ey-=10.5; });
   y=Math.min(y-34,ey-6); R(M,y,W-2*M,1.4,ACC); y-=14;
   /* ─ client et passage */
   const nb=plans.reduce((s,p)=>s+(p.postes||[]).length,0);
@@ -28732,7 +28735,7 @@ function bonPdfStr(b){
   const W=595,H=842,M=42,RGT=W-M;
   const pages=[]; let ops=[]; let y;
   const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',x.toFixed(1)+' '+yy.toFixed(1)+' Td','('+_pdfTxt(txt)+') Tj','ET');
-  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-String(txt).length*sz*0.545,yy,sz,txt,bold,col);
+  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-_pdfLarg(txt,sz,bold),yy,sz,txt,bold,col);   // v740 : largeur réelle (Helvetica)
   const R=(x,yy,w,h,col)=>ops.push(col+' rg',x.toFixed(1)+' '+yy.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re f');
   const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
   const dateFr=d=>{ try{ return new Date((d||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return d||''; } };
@@ -28865,7 +28868,7 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
   const W=595,H=842,M=42,RGT=W-M;
   const pages=[]; let ops=[]; let y;
   const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',x.toFixed(1)+' '+yy.toFixed(1)+' Td','('+_pdfTxt(txt)+') Tj','ET');
-  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-String(txt).length*sz*0.545,yy,sz,txt,bold,col);
+  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-_pdfLarg(txt,sz,bold),yy,sz,txt,bold,col);   // v740 : largeur réelle (Helvetica), le titre ne sort plus de la marge
   const R=(x,yy,w,h,col)=>ops.push(col+' rg',x.toFixed(1)+' '+yy.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re f');
   const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
   const eur=n=>Number(n||0).toFixed(2).replace('.',',')+' EUR';
@@ -28891,7 +28894,7 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
   const paye=estFact&&d.statut==='payee', echISO=isoDe(new Date(new Date((d.date||todayISO())+'T00:00:00').getTime()+30*86400000));
   if(estFact) TR(RGT,y-37,9,paye?'Réglée le '+dateFr(d.datePaiement||d.date):'Échéance : '+dateFr(echISO),1,paye?GREEN:DARK);
   const EI=h; let ey=y-14;
-  docCoordLignes(h).forEach(t2=>{ T(M,ey,8.5,cut(t2,58),0,GREY); ey-=11; });
+  docCoordLignes(h).forEach(t2=>{ T(nx,ey,8.5,cut(t2,58),0,GREY); ey-=11; });   // sous le nom, à droite du logo
   y=Math.min(y-(estFact?44:32),ey-8); R(M,y,W-2*M,1.6,GREEN); y-=16;
 
   const cl=[cli.nom||'', cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '),
