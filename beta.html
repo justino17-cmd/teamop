@@ -790,7 +790,8 @@ table, .tbl, .list-row {
   /* Une teinte, pas un aplat. L'aplat vert sapin ne changeait pas l'encre : en mode jour
      le texte tombait à 1,01:1 dès que le curseur passait sur une ligne ou une carte. */
   background: var(--hover-tint) !important;
-  border-color: color-mix(in srgb,var(--acc) 30%,transparent) !important;
+  /* Pas de `border-color` ici : le bord porte une information (la bande de statut d'une
+     intervention, le liseré du verre) — la recolorer au survol l'effaçait sous le doigt. */
 }
 .nav-item{ transition: background .2s, color .2s, border-color .2s; }
 .nav-item:hover{
@@ -1020,8 +1021,9 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 @media print{ .ph-back{ display:none } }
 /* ── barre de filtres du planning ── */
 .pf-bar{ padding:10px 11px; margin-bottom:10px; position:relative; z-index:20; }
-/* la barre de filtres n'est pas un bouton : elle ne doit jamais se remplir au survol */
-.card.pf-bar:hover{ background:var(--bg1) !important; border-color:color-mix(in srgb,var(--acc) 45%,transparent) !important; }
+/* La barre de filtres n'est pas un bouton : elle ne change PAS au survol — ni fond, ni bord, ni
+   marge. Il n'y a donc plus de règle `.pf-bar:hover` du tout (voir « LA BARRE D'OUTILS DU
+   PLANNING », plus bas : c'est d'elle que venait le saut sous le doigt). */
 /* calendrier de choix des jours */
 .plm-j.cal{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 13%,transparent); color:var(--acc-txt); cursor:pointer; }
 .plm-j.cal .n{ background:var(--acc); color:var(--on-acc); border-radius:100px; padding:0 6px; font-size:10px; }
@@ -1563,7 +1565,10 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .plg-cell.heur{padding:0;overflow:hidden}
 .plg-mh{position:absolute;left:2px;right:2px;background:var(--card2);border:1px solid var(--brd);border-left:3px solid var(--cc);
   border-radius:5px;padding:0 4px;overflow:hidden;cursor:pointer;z-index:2}
-.plg-mh:hover{border-color:var(--brd2);z-index:4}
+/* Le liseré s'éclaire au survol, la BANDE de gauche garde sa couleur : c'est le technicien. Sans
+   `border-left-color`, `border-color` la repeignait en gris — sous le doigt sur un iPhone, où le
+   survol reste collé après un toucher (mesuré le 23 septembre 2026, `sonde-survol.js`). */
+.plg-mh:hover{border-color:var(--brd2);border-left-color:var(--cc);z-index:4}
 .plg-mh b{font-size:9px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.45}
 /* dès que la case est assez haute, le titre s'écrit sur deux lignes au lieu d'être coupé */
 .plg-mh.deux b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:clip}
@@ -2392,8 +2397,13 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .kpi-ico{border-radius:var(--r-2);width:36px;height:36px;font-size:17px;margin-bottom:12px}
 .kpi-val{font-size:30px!important;font-weight:700!important;letter-spacing:-.025em;line-height:1.05}
 .kpi-lbl{font-size:12.5px;font-weight:500;color:var(--t3);margin-top:6px;letter-spacing:0}
+/* ⛔ LE SURVOL CHANGE LE FOND, JAMAIS LE BORD. `border:0` datait du dessin « surfaces sans bord » ;
+   depuis, le verre a donné aux cartes un liseré et aux interventions leur bande de couleur : au
+   survol — donc sous le DOIGT, sur un iPhone — le liseré partait, le contenu bougeait d'un pixel
+   et la couleur de statut disparaissait. Mesuré le 23 septembre 2026 : 64 éléments sur 42
+   rubriques, au téléphone comme au bureau (`scratchpad/sonde-survol.js`). */
 .kpi[onclick]:hover,.kpi.clickable:hover,.card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover,.olsec summary:hover,.list-row:hover,tr[onclick]:hover{
-  background:var(--hover)!important;border:0!important}
+  background:var(--hover)!important}
 .kpi[onclick]:hover,.kpi.clickable:hover,.card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover{box-shadow:var(--ombre-2)}
 .olsec{border-radius:var(--r-4)!important}
 .olsec summary{background:transparent;font-weight:600;font-size:15px;border-bottom:1px solid var(--brd)}
@@ -3300,10 +3310,18 @@ html[data-refonte] .plm-fab{transition:background-color var(--d-1) var(--e-sorti
    DÉLIBÉRÉES. Une seule hauteur (36 px), un seul rayon, deux matières et deux seulement :
    creux pour une piste segmentée, relief pour un contrôle qu'on presse. La barre elle-même cesse
    d'être une carte pleine et redevient ce qu'elle est — des contrôles posés au-dessus du contenu
-   (Liquid Glass : les contrôles élèvent le contenu, ils ne le coupent pas). */
-html[data-refonte] .pf-bar,html[data-refonte] .card.pf-bar:hover{
-  background:transparent!important;box-shadow:none!important;border:0!important;
-  padding:0!important;margin-bottom:14px!important}
+   (Liquid Glass : les contrôles élèvent le contenu, ils ne le coupent pas).
+   ⛔⛔ CETTE INTENTION NE TENAIT QU'AU SURVOL, ET LA BARRE SAUTAIT SOUS LE DOIGT. Vidéo de Justin,
+   iPhone, 23 septembre 2026 : la barre basculait entre deux mises en page, de 346 à 300 px de
+   haut et retour. Mesuré par `CSS.getMatchedStylesForNode` : `html[data-refonte] .card`
+   (marge 22/24 px), de même force et écrite PLUS LOIN, écrasait `.pf-bar{padding:0}` — la barre
+   était donc une carte… sauf au survol, où `.card.pf-bar:hover`, plus spécifique, reprenait la
+   main. Or sur un iPhone, poser le doigt DÉCLENCHE le survol : chaque geste la faisait sauter,
+   et au bureau la souris aussi (135 → 89 px). Le fond partait mais pas le flou du verre, d'où le
+   panneau pâle « collé aux bords » de la vidéo — une moitié de règle survivant à l'autre.
+   On garde la carte, c'est ce que tout le monde voit depuis des semaines ; et plus RIEN ne
+   dépend du survol. `scratchpad/sonde-survol.js` le mesure sur toutes les rubriques. */
+html[data-refonte] .pf-bar{margin-bottom:14px!important}
 html[data-refonte] .pf-row{gap:8px!important;row-gap:9px!important;align-items:center}
 html[data-refonte] .pf-nav,html[data-refonte] .pf-b,html[data-refonte] .pf-ib,
 html[data-refonte] .pf-inw,html[data-refonte] .pf-cnt2{
@@ -6749,7 +6767,7 @@ html[data-verre="1"] .sidebar .nav-label{font-weight:640!important}
         <h1 id="page-title">Tableau de bord</h1>
         <div class="sub" id="page-sub"></div>
       </div>
-      <div class="gsrch" onclick="event.stopPropagation()"><span style="display:inline-flex;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input id="gsrch-in" placeholder="Rechercher client, intervention, chantier…" oninput="gsearch(this.value)" onfocus="gsearch(this.value)"><div id="gsrch-res"></div></div>
+      <div class="gsrch" onclick="event.stopPropagation()"><span style="display:inline-flex;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input id="gsrch-in" placeholder="Rechercher client, intervention, tâche…" oninput="gsearch(this.value)" onfocus="gsearch(this.value)"><div id="gsrch-res"></div></div>
       <div class="topbar-actions" id="topbar-actions"></div>
       <button class="bell" id="sync-btn" onclick="syncNow()" title="Synchroniser"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span class="sync-pt" aria-hidden="true"></span><svg class="sync-ok" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></button>
       <button class="bell" id="theme-btn" onclick="toggleTheme(event)" title="Mode jour / sombre"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
@@ -6994,7 +7012,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '730-beta';
+const APP_VERSION = '731-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -12072,8 +12090,9 @@ const NAV = [
     {k:'mouvements',ic:'🔁',l:'Mouvements stock'},
     {k:'boxes',ic:'🧱',l:'Boxes',b:'box'},
     {k:'saisieConso',ic:'📋',l:'Consommation produits',aside:true},
-    /* « Produits donnés » retiré du menu : le journal Mouvements stock trace déjà
-       qui a donné quoi à qui (colonne Donné à + bons de remise) */
+    /* « Produits donnés » n'est pas au menu : c'est une SOUS-CATÉGORIE de Boxes (la rangée
+       Liste · Carte · Produits donnés, `boxSousCats`), décidé par Justin le 23 septembre 2026.
+       `SOUS_CATS` la déclare, `VUE_PARENT` y allume la ligne Boxes. */
     {k:'enveloppes',ic:'📮',l:'Enveloppes',b:'env',admin:true,aside:true},
   ]},
   {g:'Temps & équipe', items:[
@@ -12099,6 +12118,16 @@ const NAV = [
     {k:'modulesElan',ic:'🧩',l:'Modules OP',admin:true},
   ]},
 ];
+/* ⛔ UNE SOUS-CATÉGORIE EST UN ÉCRAN À PART ENTIÈRE, SANS LIGNE AU MENU. Elle vit dans la rangée
+   de son parent (Liste · Carte · Produits donnés : `boxSousCats`), et c'est le parent qui
+   s'allume au menu comme dans la barre du bas (`VUE_PARENT`). Mais c'est un DROIT comme un autre :
+   la grille des droits la montre sous son parent — sinon « réglable dans Permissions » serait
+   faux, et un droit qu'on ne voit pas est un droit qu'on ne corrige pas. UNE table, que le menu,
+   les droits et les libellés lisent tous : deux listes finiraient par dire deux choses.
+   ⛔ ET SANS ELLE, LA VUE ÉCHAPPAIT À LA GARDE DE `go()`, qui ne connaît que `NAV` : mesuré sur la
+   v730, un commercial (fermé par défaut) ouvrait Produits donnés en tapant l'adresse. */
+const SOUS_CATS=[{k:'produitsDonnes',ic:'🎁',l:'Produits donnés',parent:'boxes'}];
+function avecSousCats(items){ return items.flatMap(it=>[it].concat(SOUS_CATS.filter(s=>s.parent===it.k))); }
 function showAside(){ return localStorage.getItem('elanB_aside')==='1'; }
 
 /* Accès d'un module pour un utilisateur donné : surcharge par utilisateur > défaut du rôle */
@@ -13226,7 +13255,7 @@ function renderOnglets(){
      comme tels. Si un jour la barre doit signaler quelque chose, ce sera du NOUVEAU (à
      valider, non lu), dans une pastille — pas un total. */
   bar.innerHTML = ongletsLire().map(k=>{ const it=ongletItem(k); if(!it) return '';
-    return `<button class="tab${current===k?' on':''}" data-tab="${k}" onclick="go('${k}')" aria-label="${esc(t(it.l))}">
+    return `<button class="tab${(VUE_PARENT[current]||current)===k?' on':''}" data-tab="${k}" onclick="go('${k}')" aria-label="${esc(t(it.l))}">
       <span class="tab-ic">${it.ic||'•'}</span><span class="tab-l">${esc(ongletCourt(k,t(it.l)))}</span></button>`; }).join('')
     + `<button class="tab" data-tab="_plus" onclick="document.getElementById('sidebar').classList.add('open')" aria-label="Toutes les catégories">
         <span class="tab-ic">☰</span><span class="tab-l">Plus</span></button>`;
@@ -13243,7 +13272,8 @@ function renderOnglets(){
 /* ⛔ REPEINDRE L'ÉTAT, PAS LA BARRE. Appelée par `go()`. */
 function ongletsActif(){
   const bar=document.getElementById('tabbar'); if(!bar) return;
-  bar.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===current));
+  const ici=VUE_PARENT[current]||current;
+  bar.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===ici));
   tabCurPlacer(true);
 }
 /* ══ LA PASTILLE QUI GLISSE ══════════════════════════════════════════════
@@ -13354,7 +13384,7 @@ function ongletsGeste(){
        ne balaye pas vers un menu — un geste qui ouvre un tiroir sans qu'on l'ait demandé est
        une surprise, pas une navigation. */
     const vues=l.filter(k=>k && k!=='_plus');
-    const j=vues.indexOf(current);
+    const j=vues.indexOf(VUE_PARENT[current]||current);
     if(j<0){ tabCurPlacer(true,0); return; }
     const k=j+aller;
     if(k<0||k>=vues.length){ tabCurPlacer(true,0); return; }
@@ -13616,7 +13646,9 @@ function ongletsBulle(bar){
     /* Le bloc d'historique lit ce marqueur pour ne pas défaire ce que le doigt vient de faire. */
     try{ window._balayageFin=finBulle; }catch(e){}
     const dest=st.cols[j] && st.cols[j].k;
-    if(!dest || dest===current){ tabCurPlacer(true,0); return; }
+    /* Reposée sur l'onglet d'où elle part — celui de la sous-catégorie ouverte compris — on
+       reste où l'on est : lâcher la bulle là où elle était, c'est ne rien demander. */
+    if(!dest || dest===(VUE_PARENT[current]||current)){ tabCurPlacer(true,0); return; }
     try{ _sensForce = st.iOn<0 ? '' : (j>st.iOn ? 'avant' : 'retour'); }catch(e){}
     go(dest);
   };
@@ -13971,6 +14003,12 @@ let _sensForce='';
    `go()` retombait sur le tableau de bord, et la personne ne comprenait pas où était passé
    son écran. */
 const VUES_RETIREES={audit:'historique', permissions:'utilisateurs', chantiers:'interventions'};
+/* ⛔ UNE SOUS-CATÉGORIE N'A PAS DE LIGNE AU MENU : C'EST SON PARENT QUI S'ALLUME. « Produits
+   donnés » vit dans Boxes (Justin, 23 septembre 2026 : « il faudrait le mettre en sous-catégorie
+   dans box »). Sans cette table, ouvrir Produits donnés éteignait TOUT : aucune ligne du menu
+   allumée, aucun onglet sous la bulle — on ne voyait plus où l'on était. Le menu, la barre du
+   bas et le glissement de page la lisent tous les trois. */
+const VUE_PARENT=Object.fromEntries(SOUS_CATS.map(s=>[s.k,s.parent]));
 function go(view){
   /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
   try{ multiCapturer(); }catch(e){}
@@ -13981,9 +14019,11 @@ function go(view){
   // garde d'accès : une vue qu'on n'a pas le droit de voir (menu, rôle, forfait)
   // n'est pas atteignable non plus en tapant l'adresse à la main
   if(view!=='dashboard'&&currentUser){ try{
-    const cible=(view==='carteBox')?'boxes':view;   // la carte des box suit les droits des box
+    const cible=(view==='carteBox'||VUE_PARENT[view]==='boxes')?'boxes':view;   // la carte des box et les sous-catégories suivent les droits des box
     let item=null; NAV.forEach(s=>s.items.forEach(it=>{ if(it.k===cible) item=it; }));
-    if(item && !canSee(item)){ view='dashboard'; try{ toast('🔒 Cette rubrique n\'est pas ouverte à ton compte (réglable dans Permissions)'); }catch(e){} }
+    /* … et une sous-catégorie a AUSSI ses propres droits : « Produits donnés » est fermé au
+       commercial et à la comptable par défaut (`defaultPerms`), même quand ils voient les Box. */
+    if((item && !canSee(item)) || (VUE_PARENT[view] && !userSeesModule(currentUser,view))){ view='dashboard'; try{ toast('🔒 Cette rubrique n\'est pas ouverte à ton compte (réglable dans Permissions)'); }catch(e){} }
   }catch(e){} }
   closeModal();
   planPleinQuitteSiBesoin(view);
@@ -13996,7 +14036,7 @@ function go(view){
   current=view;
   try{ history.replaceState(null,'','#v='+view); }catch(e){}
   document.getElementById('sidebar').classList.remove('open');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===view));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===(VUE_PARENT[view]||view)));
   placerGlisse(true);
   $('topbar-actions').innerHTML='';
   $('content').classList.toggle('content-map', view==='carteBox'||view==='carteInt');
@@ -14089,7 +14129,7 @@ document.addEventListener('click',function(e){
   if(c.tagName==='SELECT' && typeof c.showPicker==='function'){ try{ c.showPicker(); }catch(_){ } }
 });
 /* Nom lisible d'une page, pour dire au bouton retour d'où l'on vient */
-function navLabel(k){ try{ const it=NAV.flatMap(s2=>s2.items).find(x=>x.k===k); return it?t(it.l):''; }catch(e){ return ''; } }
+function navLabel(k){ try{ const it=avecSousCats(NAV.flatMap(s2=>s2.items)).find(x=>x.k===k); return it?t(it.l):''; }catch(e){ return ''; } }
 /* Bouton « ← page précédente » : il n'apparaît que s'il y a vraiment où revenir */
 function navRetourBtn(){
   try{
@@ -23996,6 +24036,23 @@ function boxTotalStock(b){ let u=0,c=0;
   for(const s of Object.values((b&&b.stock)||{})){
     if(s&&typeof s==='object'){ u+=(+s.u||0); c+=(+s.ctn||0); } else u+=(+s||0); }
   return {u,c}; }
+/* ══ LES SOUS-CATÉGORIES DES BOX ══════════════════════════════════════════════════════════
+   Une seule rangée pour les trois écrans (Liste, Carte, Produits donnés) : écrite trois fois,
+   elle finirait par dire trois choses — un onglet de plus ici, un oubli là. « Produits donnés »
+   n'y paraît que pour qui a le droit de l'ouvrir.
+   ⛔ DES LIBELLÉS COURTS, SANS ÉMOJI, ET RIEN D'AUTRE DANS LA RANGÉE. Mesuré le 23 septembre
+   2026 : « 📋 Liste · 🗺️ Carte des box · 🎁 Produits donnés » faisait 440 px, et sur téléphone
+   une rangée de pastilles tient sur UNE ligne qui défile — « Produits donnés » était coupé au
+   bord droit à 360, 390 ET 430 px, c'est-à-dire que l'écran demandé par Justin était celui
+   qu'on ne voyait pas. Ainsi raccourcie, la rangée tient partout, et `segInit` en fait le
+   segmenté de l'application (curseur qui glisse). Le filtre « Avec du stock » de la Liste vit
+   donc sur SA ligne : une destination et un filtre ne se rangent pas côte à côte — dans un
+   segmenté, il passerait pour un quatrième écran. */
+function boxSousCats(actif){
+  let dons=false; try{ dons=userSeesModule(currentUser,'produitsDonnes'); }catch(e){}
+  const c=(k,lib)=>`<div class="chip${actif===k?' active':''}"${actif===k?' aria-current="page"':` onclick="go('${k}')"`}>${lib}</div>`;
+  return `<nav class="filters" aria-label="Boxes" style="margin:0 0 10px">${c('boxes','Liste')}${c('carteBox','Carte')}${dons?c('produitsDonnes','Produits donnés'):''}</nav>`;
+}
 views.boxes=function(){
   const mine=visibleBoxes(db.boxes), perim=can('voirTout')&&perimetreTechIds();   // « tout voir » mais rattaché à des équipes (v622) : la liste est réduite, l'en-tête doit le dire
   /* ⛔ COMBIEN DE CES BOX ONT VRAIMENT DU STOCK. Sans ce chiffre, deux personnes de la même
@@ -24018,7 +24075,7 @@ views.boxes=function(){
      ou tout vide, un filtre qui ne filtre rien n'est qu'un bouton de plus. */
   const nStock=mine.filter(boxADuStock).length, filtrable=nStock>0&&nStock<mine.length;
   if(!filtrable) boxFiltreStock=false;
-  $('content').innerHTML=`<div class="filters" style="margin:0 0 8px"><div class="chip active">📋 Liste</div><div class="chip" onclick="go('carteBox')">🗺️ Carte des box</div>${filtrable?`<div class="chip${boxFiltreStock?' active':''}" onclick="boxFiltreStock=!boxFiltreStock;views.boxes()">📦 Avec du stock · ${nStock}</div>`:''}</div>
+  $('content').innerHTML=`${boxSousCats('boxes')}${filtrable?`<div class="filters" style="margin:0 0 8px"><div class="chip${boxFiltreStock?' active':''}" onclick="boxFiltreStock=!boxFiltreStock;views.boxes()">📦 Avec du stock · ${nStock}</div></div>`:''}
     <input class="search-inp" id="box-search" placeholder="Numéro, nom, ville…" value="${esc(boxListSearch)}" oninput="boxListSearch=this.value;renderBoxesList()"><div id="boxes-list"></div>`;
   renderBoxesList();
 };
@@ -25307,7 +25364,7 @@ function boxDonneModal(boxId,suite){
     <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px">Sortie de <b>${esc(b.nom||b.numero||'la box')}</b>. Le nom sera écrit sur le mouvement et sur le bon de remise — on saura qui a reçu quoi.<br><span style="color:var(--t3)">La question ne se pose qu'une fois : les sorties suivantes de cette box iront à la même personne, jusqu'à ce que vous en changiez.</span></p>
     <div class="fgroup" style="margin-bottom:12px">
       <label class="frow" style="cursor:pointer"><input type="radio" name="bd-qui" value="moi" checked onchange="document.getElementById('bd-autre-bloc').style.display='none'" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour moi — <b>${esc(fullName(currentUser))}</b></span></label>
-      <label class="frow" style="cursor:pointer;border-bottom:none"><input type="radio" name="bd-qui" value="autre" onchange="document.getElementById('bd-autre-bloc').style.display='block';setTimeout(()=>{const i=document.getElementById('bd-nom');if(i)i.focus();},60)" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour quelqu'un d'autre</span></label>
+      <label class="frow" style="cursor:pointer;border-bottom:none"><input type="radio" name="bd-qui" value="autre" onchange="document.getElementById('bd-autre-bloc').style.display='block';setTimeout(()=>{const i=document.getElementById('bd-nom');if(i)i.focus();},60)" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour une autre personne</span></label>
     </div>
     <div class="field" id="bd-autre-bloc" style="display:none"><label>Nom, prénom</label><input id="bd-nom" list="bd-gens" placeholder="ex : Benali Karim" autocapitalize="words" autocomplete="off"><datalist id="bd-gens">${gens}</datalist></div>
     <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="boxDonneSave()">Continuer</button>`,'carte');
@@ -25332,16 +25389,16 @@ function remiseDestModal(mid){
     <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px">Ta sortie de box part au DR pour validation. Dis-nous à qui vont les produits — ce sera écrit sur le bon de remise.</p>
     <div class="fgroup" style="margin-bottom:12px">
       <label class="frow" style="cursor:pointer"><input type="radio" name="rd-qui" value="moi" checked onchange="document.getElementById('rd-autre-bloc').style.display='none'" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour moi — <b>${esc(fullName(currentUser))}</b></span></label>
-      <label class="frow" style="cursor:pointer;border-bottom:none"><input type="radio" name="rd-qui" value="autre" onchange="document.getElementById('rd-autre-bloc').style.display='block';setTimeout(()=>{const i=document.getElementById('rd-nom');if(i)i.focus();},60)" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour un autre technicien</span></label>
+      <label class="frow" style="cursor:pointer;border-bottom:none"><input type="radio" name="rd-qui" value="autre" onchange="document.getElementById('rd-autre-bloc').style.display='block';setTimeout(()=>{const i=document.getElementById('rd-nom');if(i)i.focus();},60)" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour une autre personne</span></label>
     </div>
-    <div class="field" id="rd-autre-bloc" style="display:none"><label>Nom, prénom du technicien</label><input id="rd-nom" placeholder="ex : Benali Karim" autocapitalize="words"></div>
+    <div class="field" id="rd-autre-bloc" style="display:none"><label>Nom, prénom</label><input id="rd-nom" list="rd-gens" placeholder="ex : Benali Karim" autocapitalize="words" autocomplete="off"><datalist id="rd-gens">${(db.users||[]).filter(u=>u&&u.actif!==false).map(u=>`<option value="${esc(fullName(u))}">`).join('')}</datalist></div>
     <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="remiseDestSave('${mid}')">Valider</button>`);
 }
 function remiseDestSave(mid){
   const m=(db.boxMvtAttente||[]).find(x=>x.id===mid); if(!m){ closeModal(); return; }
   const autre=(document.querySelector('input[name=rd-qui]:checked')||{}).value==='autre';
   const nom=autre?(($('rd-nom')||{}).value||'').trim():'';
-  if(autre&&!nom){ toast('Écris le nom et le prénom du technicien'); return; }
+  if(autre&&!nom){ toast('Écris le nom et le prénom'); return; }
   m.pourQui=autre?nom:fullName(currentUser);
   save(); closeModal(); toast('👤 Destinataire noté — en attente du DR');
 }
@@ -28510,7 +28567,7 @@ views.carteBox=function(){
   const nLoc=myBoxes.filter(b=>b.lat!=null).length, nMiss=myBoxes.filter(b=>(b.adresse||b.ville)&&b.lat==null).length;
   setHeader('Carte des box',`${nLoc} box localisée(s)${nMiss?` · ${nMiss} à géolocaliser`:''}`,
     `<button class="btn ghost" onclick="go('boxes')">← Boxes</button> ${nMiss?`<button class="btn ghost" onclick="geocodeBoxes()">Géolocaliser (${nMiss})</button> `:''}${mapFondBarre()}`);
-  $('content').innerHTML=`<div class="filters" style="margin:0 0 8px"><div class="chip" onclick="go('boxes')">📋 Liste</div><div class="chip active">🗺️ Carte des box</div></div>
+  $('content').innerHTML=`${boxSousCats('carteBox')}
     <div class="card map-card" style="padding:0;overflow:hidden"><div id="map" style="height:70vh;background:var(--bg2)"></div></div><div id="map-fb"></div>`;
   loadLeaflet().then(()=>{ const el=$('map'); if(!el||!window.L)return; if(_map){try{_map.remove();}catch(e){}_map=null;} fitMapHeight(); _map=L.map(el).setView([46.6,2.4],5); mapTiles(_map);
     const pts=[]; myBoxes.filter(b=>b.lat!=null).forEach(b=>{ const m=L.marker([b.lat,b.lng]).addTo(_map); m.bindTooltip(esc(b.nom||b.numero||'Box'),{permanent:true,direction:'top',offset:[0,-8],className:'box-tip'}); m.bindPopup(`<b>${esc(b.nom||b.numero)}</b>${b.categorie?'<br><span style="color:#1E7A4E">'+esc(b.categorie)+'</span>':''}<br><span style="color:#666">${esc([b.adresse,b.codePostal,b.ville].filter(Boolean).join(' '))}</span>${gpsLinks(b.lat+','+b.lng)}<br><a href="#" onclick="openBox('${b.id}');return false">Ouvrir la fiche →</a>`); pts.push([b.lat,b.lng]); });
@@ -29412,7 +29469,7 @@ function usrDroitsHtml(u,admin){
   const swH=(name,on,extra)=>'<label class="switch"><input type="checkbox" data-d="'+name+'"'+(on?' checked':'')+dis+(extra||'')+'><span class="track"></span><span class="knob"></span></label>';
   const ligne=(lbl,desc,sw)=>'<div class="perm-row"><div class="pn">'+lbl+(desc?'<div class="pn-d">'+desc+'</div>':'')+'</div>'+sw+'</div>';
   const capLbl=k=>{ const c=USER_CAPS.find(x=>x[0]===k); return c?[c[1],c[2]||'']:[k,'']; };
-  const tousMods=NAV.filter(x=>PERM_GRP_OF[x.g]).flatMap(x=>x.items).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
+  const tousMods=avecSousCats(NAV.filter(x=>PERM_GRP_OF[x.g]).flatMap(x=>x.items)).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
   const vus=tousMods.filter(m=>userSeesModule(u,m.k)).length;
   const toutVoir=userCap(u,'voirTout');
   const boxes=(db.boxes||[]).filter(b=>b.actif!==false);
@@ -29420,14 +29477,14 @@ function usrDroitsHtml(u,admin){
   const boxOuverte=b=>!boxExclu(b,u.id)&&(boxFixe(b)||(b.userIds||[]).includes(u.id));
   const nBox=boxes.filter(boxOuverte).length;
   const cats=PERM_GRPS.map(([g,titre])=>{
-    const ms=NAV.filter(x=>PERM_GRP_OF[x.g]===g).flatMap(x=>x.items).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
+    const ms=avecSousCats(NAV.filter(x=>PERM_GRP_OF[x.g]===g).flatMap(x=>x.items)).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
     const specs=PERM_SPECIAUX[g]||[];
     const sansDroits=['tdb','admin'].includes(g);
     const nVus=ms.filter(m=>userSeesModule(u,m.k)).length;
     const nAct=sansDroits?0:['ajouter','modifier','supprimer'].filter(d=>catDroit(u,g,d)).length;
     return `<details class="usr-cat"><summary><b>${esc(titre)}</b><span class="usr-cn">${nVus}/${ms.length} menu${ms.length>1?'s':''}${sansDroits?'':' · '+nAct+'/3 actions'}</span><span class="usr-cc" aria-hidden="true">▾</span></summary><div class="usr-cb">
       <div class="usr-sec">👁 Ce qu'il voit — menus</div>
-      ${ms.map(m=>ligne(m.ic+' '+esc(t(m.l)),'',swH('mod_'+m.k,userSeesModule(u,m.k)))).join('')||'<div class="usr-x">—</div>'}
+      ${ms.map(m=>ligne((m.parent?'↳ ':'')+m.ic+' '+esc(t(m.l)),m.parent?'dans '+esc(navLabel(m.parent)):'',swH('mod_'+m.k,userSeesModule(u,m.k)))).join('')||'<div class="usr-x">—</div>'}
       ${sansDroits?'':'<div class="usr-sec">✎ Ce qu\'il peut faire ici</div>'+[['ajouter','＋ Ajouter'],['modifier','✎ Modifier'],['supprimer','🗑 Supprimer']].map(([d,l])=>ligne(l,'',swH('cat_'+g+'_'+d,catDroit(u,g,d)))).join('')}
       ${specs.length?'<div class="usr-sec">🔑 Droits spéciaux</div>'+specs.map(k=>{ const l2=capLbl(k); return ligne(esc(l2[0]),esc(l2[1]),swH('cap_'+k,userCap(u,k),k==='voirTout'?' onchange="usrVoirTout(this)"':'')); }).join(''):''}
     </div></details>`; }).join('');
@@ -29503,7 +29560,7 @@ function profilLireZone(zone){
   const caps={}, modules={};
   USER_CAPS.forEach(([k])=>{ const v=val('cap_'+k); if(v!==null) caps[k]=v; });
   PERM_GRPS.forEach(([g])=>{ ['ajouter','modifier','supprimer'].forEach(d=>{ const v=val('cat_'+g+'_'+d); if(v!==null) caps['cat_'+g+'_'+d]=v; }); });
-  NAV.flatMap(x=>x.items).forEach(m=>{ const v=val('mod_'+m.k); if(v!==null) modules[m.k]=v; });
+  avecSousCats(NAV.flatMap(x=>x.items)).forEach(m=>{ const v=val('mod_'+m.k); if(v!==null) modules[m.k]=v; });
   return {caps,modules};
 }
 function profilPoserZone(zone,pr){
@@ -29643,7 +29700,7 @@ function usrDroitsValider(uid,btn){
   u.acces=u.acces||{caps:{},modules:{}}; u.acces.caps=u.acces.caps||{}; u.acces.modules=u.acces.modules||{};
   USER_CAPS.forEach(([k])=>{ const v=val('cap_'+k); if(v!==null) u.acces.caps[k]=v; });
   PERM_GRPS.forEach(([g])=>{ ['ajouter','modifier','supprimer'].forEach(d=>{ const v=val('cat_'+g+'_'+d); if(v!==null) u.acces.caps['cat_'+g+'_'+d]=v; }); });
-  NAV.flatMap(x=>x.items).forEach(m=>{ const v=val('mod_'+m.k); if(v!==null) u.acces.modules[m.k]=v; });
+  avecSousCats(NAV.flatMap(x=>x.items)).forEach(m=>{ const v=val('mod_'+m.k); if(v!==null) u.acces.modules[m.k]=v; });
   if(!u.acces.caps.voirTout){ (db.boxes||[]).forEach(b=>{ const v=val('box_'+b.id); if(v!==null) userBoxVoit(u.id,b.id,v); });
     (db.vehicules||[]).forEach(vh=>{ const v=val('veh_'+vh.id); if(v!==null) userVehiculeVoit(u.id,vh.id,v); }); }
   logEvent('Droits modifiés','@'+(u.login||'')+' — depuis la liste des utilisateurs','auth');
@@ -30139,7 +30196,7 @@ async function delUserConfirme(){
 function formAccess(id){ const u=db.users.find(x=>x.id===id); if(!u)return; if(currentUser.role!=='admin'){ toast('Réservé à l\'administrateur'); return; }
   if(u.role==='admin'){ toast('L\'administrateur a déjà tous les accès'); return; }
   const caps=[['creerIntervention','Créer / planifier des interventions'],['planifDeplacer','Déplacer / réassigner le planning'],['modifierPlans','Modifier les plans d\'appâtage'],['planifObligerTravail','Obliger à travailler (planifier sur une absence)'],['annuler','Annuler une intervention'],['supprimer','Supprimer des éléments'],['voirTout','Voir TOUTES les interventions (sinon seulement les siennes)']];
-  const mods=NAV.flatMap(s=>s.items).filter(it=>it.k!=='dashboard');
+  const mods=avecSousCats(NAV.flatMap(s=>s.items)).filter(it=>it.k!=='dashboard');
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal();views.utilisateurs()">Fermer</button><h3>Accès — ${esc(fullName(u))}</h3><button type="button" class="btn sm" onclick="closeModal();views.utilisateurs()">OK</button></div>
     <div style="padding:2px">
       <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:10px">Rôle : <b>${esc(roleLbl(u.role)||'')}</b>. Coche exactement ce que cette personne peut <b>faire</b> et <b>voir</b> — ça remplace les réglages du rôle. <button class="btn ghost sm" style="margin-left:4px" onclick="accessReset('${u.id}')">↩︎ Suivre le rôle</button></p>
@@ -34350,19 +34407,110 @@ function saveGroupe(e,id){ e.preventDefault(); db.groupes=db.groupes||[]; const 
 function delGroupe(id){ if(!confirm('Supprimer ce groupe ?'))return; db.groupes=(db.groupes||[]).filter(x=>x.id!==id); if(msgSel==='group:'+id) msgSel='general'; save(); closeModal(); views.messagerie(); }
 
 /* ═══════════════ PRODUITS DONNÉS (remis depuis un véhicule) ═══════════════ */
+/* ══ PRODUITS DONNÉS — une sous-catégorie des Box ═════════════════════════════════════════
+   Justin, 23 septembre 2026 : « Produit donné, c'est quand des personnes donnent des produits à
+   quelqu'un ; il faudrait le mettre en sous-catégorie dans Box. Quand un technicien retire des
+   produits de sa box, il choisit si c'est pour lui ou pour une autre personne. »
+   Le geste existait déjà : à la sortie d'une box, « Ces produits sont pour qui ? » (sortie
+   directe : `boxDonneModal` ; sortie validée par le DR : `remiseDestModal`), et un bon de remise
+   garde la trace. Ce qui manquait, c'était l'ENDROIT : la liste d'avant ne voyait que des dons
+   saisis à la main depuis la fiche d'un véhicule, et les vrais dons se lisaient dans le journal
+   Mouvements stock, filtre « Donné » — là où un technicien ne cherche pas.
+   ⛔ « Pour moi » N'EST PAS UN DON. Un bon dont le destinataire est la personne qui a sorti les
+   produits est une sortie ordinaire : il reste dans Mouvements stock, pas ici.
+   ⛔ Chacun voit ce qui le regarde, selon la règle de Mouvements stock (`visibleMouvements`) :
+   « tout voir » sans périmètre voit tout, box supprimées comprises ; sinon les box qu'il voit,
+   plus ce qu'il a donné ou reçu lui-même. Deux règles pour le même acte finiraient par montrer
+   un don ici et le cacher là.
+   Les anciens dons saisis à la main restent listés — une donnée ne disparaît pas parce qu'un
+   écran change. */
+let donsRecherche='';
+function donsListe(){
+  const me=currentUser?fullName(currentUser):'';
+  let toutes=false; try{ toutes=!!can('voirTout')&&!perimetreTechIds(); }catch(e){}
+  const vues=new Set(visibleBoxes(db.boxes||[]).map(b=>b.id));
+  const nomBox=id=>{ const b=(db.boxes||[]).find(x=>x.id===id); return b?(b.nom||b.numero||'Box'):''; };
+  const out=[];
+  (db.bonsRemise||[]).forEach(r=>{
+    if(!r||!r.pourQui||r.pourQui===r.par) return;
+    if(!(toutes||vues.has(r.boxId)||r.par===me||r.pourQui===me)) return;
+    out.push({type:'bon',id:r.id,num:r.num||'',ts:+r.ts||0,date:r.date||'',boxId:r.boxId,boxNom:nomBox(r.boxId)||r.boxNomTxt||'',
+      /* Sans validation DR, `remiseAjoute` inscrit comme « validé par » celui qui a sorti les
+         produits lui-même : le répéter ne dirait rien. On ne le montre que s'il est un autre. */
+      par:r.par||'',pourQui:r.pourQui,valideDr:(r.valideDr&&r.valideDr!==r.par)?r.valideDr:'',
+      lignes:(r.lignes||[]).map(l=>({nom:produit(l.produitId).nom||'—',qte:+l.qte||0,unite:l.unite||'u'}))});
+  });
+  (db.produitsDonnes||[]).forEach(p=>{
+    if(!p||!(toutes||p.auteurNom===me)) return;
+    out.push({type:'saisie',id:p.id,num:'',ts:Date.parse((p.date||'')+'T12:00:00')||0,date:p.date||'',vehiculeId:p.vehiculeId||'',
+      par:p.auteurNom||'',pourQui:'',notes:p.notes||'',lignes:[{nom:p.produitNom||'—',qte:+p.quantite||0,unite:p.unite||''}]});
+  });
+  return out.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.ts-a.ts));
+}
+/* « 5 u · 2 cart. » — deux unités ne s'additionnent pas (même règle que `remiseTotTxt`). */
+function donTotTxt(lignes){ const t={};
+  (lignes||[]).forEach(l=>{ const u=l.unite||'u'; t[u]=(t[u]||0)+(+l.qte||0); });
+  const k=Object.keys(t); return k.length?k.map(u=>(Math.round(t[u]*100)/100)+' '+u).join(' · '):'0'; }
 views.produitsDonnes=function(){
-  setHeader('Produits donnés','Produits remis aux clients',`<button class="btn" onclick="formProduitDonne()">＋ Donner</button>`);
-  const list=[...db.produitsDonnes].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const rows=list.map(p=>`<div class="pl-row"><span style="width:40px;height:40px;border-radius:10px;background:color-mix(in srgb,var(--acc) 16%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0">🎁</span>
-    <div class="pl-info"><div class="pl-title">${esc(p.produitNom)} ×${p.quantite} ${esc(p.unite||'')}</div><div class="pl-meta">${fmtShort(p.date)} · 🚐 ${esc(p.vehiculeId?vehName(p.vehiculeId):'—')} · ${esc(p.auteurNom||'')}${p.notes?' · '+esc(p.notes):''}</div></div>
-    <span onclick="event.stopPropagation()" style="display:flex;gap:4px"><button class="btn ghost sm" onclick="printProduitDonne('${p.id}')">🖨️</button><button class="btn ghost sm" onclick="formProduitDonne('${p.id}')">✎</button><button class="btn danger sm" onclick="delItem('produitsDonnes','${p.id}')">🗑</button></span></div>`).join('');
-  $('content').innerHTML=db.produitsDonnes.length? rows:`<div class="card">${emptyState('🎁','Aucun produit donné.','Donner','formProduitDonne()')}</div>`;
+  const n=donsListe().length;
+  setHeader('Produits donnés',n?`${n} remise${n>1?'s':''} · ce qui est sorti d’une box pour quelqu’un d’autre`:'ce qui est sorti d’une box pour quelqu’un d’autre','');
+  $('content').innerHTML=boxSousCats('produitsDonnes')+(n?`<input class="search-inp" id="don-search" placeholder="Nom, produit, box…" value="${esc(donsRecherche)}" oninput="donsRecherche=this.value;donsRendre()"><div id="dons-list"></div>`:`<div id="dons-list"></div>`);
+  donsRendre();
 };
+function donsRendre(){
+  const el=$('dons-list'); if(!el) return;
+  const tout=donsListe(), q=norm(donsRecherche||'');
+  if(!tout.length){
+    /* ⛔ UN ÉCRAN VIDE DIT POURQUOI IL EST VIDE. Bons de remise coupés dans Paramètres : la
+       question « pour qui ? » ne se pose plus, donc rien ne peut arriver ici — le dire, sinon on
+       cherche une panne qui n'existe pas. */
+    const coupe=!!db.bonsRemiseOff, admin=currentUser&&currentUser.role==='admin';
+    el.innerHTML=`<div class="card">${coupe
+      ? emptyState('🎁','La question « pour qui ? » est coupée : les bons de remise sont désactivés dans Paramètres, donc une sortie de box ne dit plus à qui vont les produits.',admin?'Réactiver':'',admin?'bonsRemiseSet(true);views.produitsDonnes()':'')
+      : emptyState('🎁','Rien n’a encore été donné. Quand quelqu’un sort des produits de sa box, il choisit « Pour moi » ou « Pour une autre personne » : ce qui est donné arrive ici, avec son bon de remise.','📦 Ouvrir les box',"go('boxes')")}</div>`;
+    return; }
+  const liste=q?tout.filter(r=>norm([r.par,r.pourQui,r.boxNom,r.num,r.notes].concat(r.lignes.map(l=>l.nom)).join(' ')).includes(q)):tout;
+  if(!liste.length){ el.innerHTML=`<div class="card">${emptyState('🔍','Aucun don ne correspond à « '+esc(donsRecherche)+' ».','','')}</div>`; return; }
+  el.innerHTML=liste.map(r=>{
+    const noms=r.lignes.map(l=>l.nom);
+    const titre=esc(noms[0]||'—')+(noms.length>1?` <span style="color:var(--t3);font-weight:600">+ ${noms.length-1} autre${noms.length>2?'s':''}</span>`:'');
+    const ou=r.type==='bon'?'📦 '+esc(r.boxNom||'Box'):'🚐 '+esc(r.vehiculeId?vehName(r.vehiculeId):'—');
+    const qui=r.type==='bon'?`${esc(r.par||'—')} → <b>${esc(r.pourQui)}</b>`:esc(r.par||'—');
+    const meta=[qui,ou,r.date?fmtShort(r.date):''].concat(r.type==='bon'&&r.valideDr?['✔ '+esc(r.valideDr)]:[]).concat(r.notes?[esc(r.notes)]:[]).filter(Boolean).join(' · ');
+    /* ⛔ « → » ET « ✔ » DEVIENNENT DES ICÔNES MUETTES (`icones()`, `aria-hidden`) : un lecteur
+       d'écran lisait « Jean Terrain Karim Benali » — deux noms, sans dire qui donne à qui. La
+       ligne porte donc sa phrase. */
+    const dit=(r.type==='bon'?(r.par||'—')+' a remis à '+r.pourQui:(r.par||'—')+' a donné')+' : '+noms.join(', ')+' ('+donTotTxt(r.lignes)+')'
+      +(r.type==='bon'&&r.valideDr?', validé par '+r.valideDr:'')+(r.date?', le '+fmtShort(r.date):'');
+    return `<div class="pl-row lga" role="button" tabindex="0" onclick="donDetail('${r.type}','${r.id}')" onkeydown="if(event.key==='Enter')donDetail('${r.type}','${r.id}')" aria-label="${esc(dit)}" title="${esc(noms.join(', '))}">
+      <span aria-hidden="true" style="width:40px;height:40px;border-radius:10px;background:color-mix(in srgb,var(--acc) 16%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0">🎁</span>
+      <div class="pl-info"><div class="pl-title">${titre}</div><div class="pl-meta">${meta}</div></div>
+      <div class="lga-a" style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-weight:700;color:var(--org);white-space:nowrap">−${esc(donTotTxt(r.lignes))}</span></div>
+    </div>`; }).join('');
+}
+function donDetail(type,id){
+  const r=donsListe().find(x=>x.type===type&&x.id===id); if(!r) return;
+  const ligne=(k,v)=>v?`<div class="frow"><span class="frow-lbl">${k}</span><div class="frow-val">${v}</div></div>`:'';
+  openModal(`<div class="modal-head"><h3>🎁 ${esc(r.num||'Produit donné')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="fgroup" style="margin-bottom:12px">${ligne('Remis par',esc(r.par||'—'))}${ligne('Remis à',r.pourQui?'<b>'+esc(r.pourQui)+'</b>':'')}${ligne(r.type==='bon'?'Box':'Véhicule',r.type==='bon'?esc(r.boxNom||'—'):esc(r.vehiculeId?vehName(r.vehiculeId):'—'))}${ligne('Date',r.date?fmtShort(r.date):'')}${ligne('Validé par',esc(r.valideDr||''))}${ligne('Notes',esc(r.notes||''))}</div>
+    <div class="dt-lbl" style="margin:4px 0 6px">Produits</div>
+    ${r.lignes.map(l=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">${esc(l.nom)}</div></div><span class="mono" style="font-weight:700;color:var(--org);white-space:nowrap">−${esc(String(l.qte))} ${esc(l.unite||'')}</span></div>`).join('')}
+    <div class="modal-foot">${r.type==='bon'?`<button class="btn" onclick="remisePdf('${r.id}')">📄 Bon de remise (PDF)</button>`
+      /* Un don saisi à la main se corrige et se retire ici : l'ancien écran le permettait, et c'est
+         désormais le seul endroit où il paraît. Les droits sont gardés à l'enregistrement
+         (`permGarde`) et à la suppression (`delItem`). Un bon de remise, lui, est une pièce : il ne
+         se modifie pas. */
+      :`<button class="btn danger" onclick="delItem('produitsDonnes','${r.id}')">🗑 Supprimer</button><button class="btn ghost" onclick="formProduitDonne('${r.id}')">✎ Modifier</button><button class="btn ghost" onclick="printProduitDonne('${r.id}')">🖨️ Imprimer</button>`}</div>`);
+}
+/* ⛔ UN ANCIEN DON GARDE SON PRODUIT, MÊME SORTI DU CATALOGUE. La liste ne proposait que le
+   catalogue du jour : un don dont le produit a été renommé ou retiré s'ouvrait sur « — », champ
+   obligatoire — impossible de corriger une date sans rechoisir un AUTRE produit. Mesuré le
+   23 septembre 2026 (sonde-dons), quand « Modifier » est arrivé dans le détail du don. */
 function formProduitDonne(id,presetVeh){ const p=id?db.produitsDonnes.find(x=>x.id===id):(presetVeh?{vehiculeId:presetVeh}:{});
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>${id?'Modifier':'Produit donné'}</h3><button type="submit" form="pdform" class="btn sm">${id?'Enregistrer':'Créer'}</button></div>
     <form id="pdform" onsubmit="saveProduitDonne(event,'${id||''}')">
       <div class="form-sec">Produit</div>
-      <div class="field"><label>Produit *</label><select name="produitNom" required><option value="">—</option>${db.produits.map(pr=>`<option ${p.produitNom===pr.nom?'selected':''}>${esc(pr.nom)}</option>`).join('')}</select></div>
+      <div class="field"><label>Produit *</label><select name="produitNom" required><option value="">—</option>${p.produitNom&&!db.produits.some(pr=>pr.nom===p.produitNom)?`<option selected>${esc(p.produitNom)}</option>`:''}${db.produits.map(pr=>`<option ${p.produitNom===pr.nom?'selected':''}>${esc(pr.nom)}</option>`).join('')}</select></div>
       <div class="field-row"><div class="field"><label>Quantité *</label><input type="number" name="quantite" min="1" value="${p.quantite||1}" required></div>
         <div class="field"><label>Unité</label><input name="unite" value="${esc(p.unite)||'unité'}"></div></div>
       <div class="form-sec">Contexte</div>
@@ -34381,10 +34529,10 @@ function saveProduitDonne(e,id){ e.preventDefault();
     if(p){ p.qte=Math.max(0,(p.qte||0)-d.quantite);
       db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:d.quantite,motif:'Produit donné'+(d.notes?' — '+d.notes:''),vehiculeId:d.vehiculeId||'',unite:d.unite||p.unite||'u',technicien:fullName(currentUser)}); }
     logEvent('Produit donné',`${d.produitNom} ×${d.quantite}`,'stock'); toast('Enregistré'); }
-  /* ⛔ ON RESTE OÙ L'ON ÉTAIT. « Produits donnés » n'est plus au menu (le journal Mouvements
-     trace qui a donné quoi) : afficher sa liste ici posait dans #content un écran que la
-     barre, le titre et le menu ne connaissaient pas — on se retrouvait « sur Véhicules » en
-     regardant autre chose, sans chemin de retour. Le don reste lisible dans Mouvements. */
+  /* ⛔ ON RESTE OÙ L'ON ÉTAIT. Afficher la liste des dons ici posait dans #content un écran que
+     la barre, le titre et le menu ne connaissaient pas — on se retrouvait « sur Véhicules » en
+     regardant autre chose, sans chemin de retour. Le don se lit dans Boxes › Produits donnés,
+     et dans Mouvements stock. */
   save(); closeModal(); try{ views[current](); }catch(_e){}
 }
 function printProduitDonne(id){ const p=db.produitsDonnes.find(x=>x.id===id); if(!p)return;
@@ -36407,7 +36555,7 @@ const TOUR = [
   {v:'parametres',ic:'⚙️',t:'Les paramètres',h:"Personnalise tout : <b>thème</b>, <b>langue</b>, <b>sauvegarde</b> (export/import), <b>email du comptable</b> et activation de l'<b>Assistant IA</b>."},
 ];
 let tourIdx=0, tourSteps=[];
-function menuLabel(v){ const it=NAV.flatMap(s=>s.items).find(x=>x.k===v); return it?t(it.l):v; }
+function menuLabel(v){ const it=avecSousCats(NAV.flatMap(s=>s.items)).find(x=>x.k===v); return it?t(it.l):v; }
 function startTour(){ if(!currentUser) return; if(typeof closeAsst==='function') closeAsst();
   tourSteps=TOUR.filter(s=>userSeesModule(currentUser,s.v));
   if(!tourSteps.length) return; tourIdx=0; tourShow(); }
