@@ -59,9 +59,25 @@ const nonClassees = employees.filter(k => !CLASSES[k]);
 v('⛔ AUCUNE clé de `db` n\'est employée sans être classée', nonClassees, []);
 
 /* Et l'inverse : une entrée qui ne correspond à rien est du classement mort, qui donne
-   l'illusion d'une couverture. */
-const fantomes = Object.keys(CLASSES).filter(k => !employees.includes(k));
+   l'illusion d'une couverture.
+   ⛔ SAUF UNE DONNÉE DONT ON A RETIRÉ L'ÉCRAN. Le 23 septembre 2026, « Chantiers / Projets »
+   a été supprimé (Justin : « chantier, oui tu peux le supprimer ») : plus une ligne de code
+   ne lit `db.chantiers` — mais la collection vit dans les bases des entreprises, et elle doit
+   continuer de voyager. La retirer d'ici la ferait disparaître au passage par le socle :
+   c'est exactement le défaut des « onze collections qui s'évanouissaient » (`test-732`).
+   L'exception est donc DÉCLARÉE, avec sa raison, et VÉRIFIÉE dans les deux sens : ce doit
+   être une collection de données de la synchro, et le code ne doit plus l'employer — sinon
+   l'exception est périmée. Même mécanisme que « vu et pas surveillé » de `test-726`. */
+const SANS_ECRAN = {
+  chantiers: 'écran « Chantiers / Projets » retiré le 23 septembre 2026 (v730) — la donnée reste chez les clients, et voyage',
+};
+const fantomes = Object.keys(CLASSES).filter(k => !employees.includes(k) && !SANS_ECRAN[k]);
 v('⛔ et aucune entrée du classement ne vise une clé qui n\'existe plus', fantomes, []);
+const DONNEES_SYNC = (/const COLLECTIONS_DONNEES=\[([^\]]*)\]/.exec(CODE) || [])[1] || '';
+v('⛔ chaque exception déclarée est une collection de DONNÉES synchronisée (sinon c’est du classement mort)',
+  Object.keys(SANS_ECRAN).filter(k => !DONNEES_SYNC.includes("'" + k + "'")), []);
+v('⛔ … et le code ne l’emploie plus (sinon l’exception est périmée : on la retire)',
+  Object.keys(SANS_ECRAN).filter(k => employees.includes(k)), []);
 const genresInconnus = Object.entries(CLASSES).filter(([, g]) => !GENRES.includes(g)).map(([k]) => k);
 v('   tous les genres employés sont des genres connus', genresInconnus, []);
 

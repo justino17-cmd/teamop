@@ -3403,7 +3403,7 @@ html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-
   html[data-refonte] .bell,html[data-refonte] .menu-btn,html[data-refonte] .modal-close{width:var(--rf-tap);height:var(--rf-tap)}
 }
 
-/* ══ LES FICHES EN FENÊTRE ══ dix fiches (intervention, client, chantier, bon, demande, enveloppe,
+/* ══ LES FICHES EN FENÊTRE ══ neuf fiches (intervention, client, bon, demande, enveloppe,
    retour, récapitulatif, technicien, véhicule) partagent une seule charpente : un en-tête en verre
    qui reste en haut, un corps qui défile dessous, une barre d'actions en verre posée en bas.
    Le corps ne touche plus l'en-tête par un trait : il s'y fond (apple-design §12). */
@@ -6843,7 +6843,7 @@ var tmLastSend=0, tmSending=false, tmT=Date.now();
       Et la catégorie dit CE QU'EST L'ÉCRAN, pas où il est rangé dans le menu : « Boîte mail »
       était classée dans « Commandes » parce qu'on y envoie les bons de commande. C'est une
       boîte e-mail. */
-var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',chantiers:'Interventions',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
+var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
 /* ⛔ CE QUE CETTE VALEUR EST, ET CE QU'ELLE N'EST PAS. `tmCat()` nomme L'ÉCRAN OUVERT au moment
    de l'incident. Ce n'est PAS l'endroit d'où vient l'erreur, et rien ne le garantit : une
    promesse rejetée par un travail de fond (le poll IndexedDB de Firebase Auth, par exemple)
@@ -13970,7 +13970,7 @@ let _sensForce='';
    `#v=audit` ou une notification déjà reçue continuent de le demander : sans cette table,
    `go()` retombait sur le tableau de bord, et la personne ne comprenait pas où était passé
    son écran. */
-const VUES_RETIREES={audit:'historique', permissions:'utilisateurs'};
+const VUES_RETIREES={audit:'historique', permissions:'utilisateurs', chantiers:'interventions'};
 function go(view){
   /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
   try{ multiCapturer(); }catch(e){}
@@ -14020,7 +14020,6 @@ function gsearch(q){ const box=$('gsrch-res'); if(!box) return; q=norm((q||'').t
   const out=[];
   db.clients.forEach(c=>{ if(norm(c.nom||'').includes(q)) out.push({ic:'🏢',t:c.nom,sub:'Client',fn:"ficheClient('"+c.id+"')"}); });
   db.interventions.forEach(i2=>{ if(norm((i2.num||'')+' '+(i2.titre||'')+' '+clientName(i2.clientId)).includes(q)) out.push({ic:'🧰',t:(i2.num?i2.num+' · ':'')+(i2.titre||''),sub:(i2.date?fmtShort(i2.date)+' · ':'')+((STATUT_INT[i2.statut]||{}).l||''),fn:"detailIntervention('"+i2.id+"')"}); });
-  (db.chantiers||[]).forEach(ch=>{ if(norm(ch.nom||'').includes(q)) out.push({ic:'🏗️',t:ch.nom,sub:'Chantier',fn:"detailChantier('"+ch.id+"')"}); });
   (db.taches||[]).forEach(t2=>{ if(norm(t2.titre||'').includes(q)) out.push({ic:'✅',t:t2.titre,sub:'Tâche',fn:"go('taches')"}); });
   const top=out.slice(0,8);
   box.innerHTML=top.length?top.map(r=>`<div class="gr" onclick="gsrchGo(this)" data-fn="${esc(r.fn)}"><span>${r.ic}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.t)}</span><span class="gt">${esc(r.sub)}</span></div>`).join(''):'<div class="gr" style="cursor:default;color:var(--t3)">Aucun résultat</div>';
@@ -18863,45 +18862,16 @@ function toggleTag(coll,id,t){ t=(t||'').trim(); const x=db[coll].find(v=>v.id==
 function addNewTag(coll,id){ const v=($('tag-new').value||'').trim().slice(0,24); if(!v) return; const x=db[coll].find(w=>w.id===id); x.tags=x.tags||[]; if(!x.tags.includes(v)) x.tags.push(v); save(); openTagEditor(coll,id); }
 let cliTagFilter='';
 
-/* ── Chantiers / Projets ── */
-const CHANTIER_ST={encours:{l:'En cours',c:'st-blue'},termine:{l:'Terminé',c:'st-green'},pause:{l:'En pause',c:'st-org'}};
-views.chantiers=function(){ db.chantiers=db.chantiers||[];
-  setHeader('Chantiers / Projets',`${db.chantiers.filter(c=>c.statut!=='termine').length} en cours`,`<button class="btn" onclick="formChantier()">＋ Chantier</button>`);
-  const rows=[...db.chantiers].sort((a,b)=>(b.debut||'').localeCompare(a.debut||'')).map(ch=>{
-    const ints=db.interventions.filter(i=>i.chantierId===ch.id);
-    const done=ints.filter(i=>i.statut==='terminee').length;
-    const pct=ints.length?Math.round(done*100/ints.length):0;
-    return `<div class="pl-row" onclick="detailChantier('${ch.id}')" style="border-left:3px solid ${ch.statut==='termine'?'var(--acc)':ch.statut==='pause'?'var(--org)':'var(--blue)'}">
-      <div class="pl-info"><div class="pl-title">🏗️ ${esc(ch.nom)}</div>
-        <div class="pl-meta">${esc(clientName(ch.clientId))||'—'}${ch.debut?' · du '+fmtShort(ch.debut):''}${ch.fin?' au '+fmtShort(ch.fin):''}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:5px"><div style="flex:1;height:6px;border-radius:4px;background:var(--card2);overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--acc)"></div></div><span style="font-size:11px;color:var(--t3)">${done}/${ints.length} · ${pct}%</span></div></div>
-      ${badge(CHANTIER_ST,ch.statut||'encours')}</div>`; }).join('');
-  $('content').innerHTML=rows||`<div class="card">${emptyState('🏗️','Aucun chantier. Regroupez plusieurs interventions dans un projet.','＋ Chantier','formChantier()')}</div>`;
-};
-function formChantier(id){ db.chantiers=db.chantiers||[]; const c=id?db.chantiers.find(x=>x.id===id):{};
-  openModal(`<div class="modal-head"><h3>${id?'Modifier le chantier':'Nouveau chantier'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <form onsubmit="saveChantier(event,'${id||''}')">
-      <div class="field"><label>Nom *</label><input name="nom" required value="${esc(c.nom||'')}" placeholder="Ex : Résidence Les Pins — traitement complet"></div>
-      <div class="field"><label>Client</label><select name="clientId"><option value="">—</option>${optOf(db.clients,c.clientId)}</select></div>
-      <div class="field-row"><div class="field"><label>Début</label><input type="date" name="debut" value="${c.debut||todayISO()}"></div>
-        <div class="field"><label>Fin prévue</label><input type="date" name="fin" value="${c.fin||''}"></div></div>
-      <div class="field"><label>Statut</label><select name="statut">${Object.entries(CHANTIER_ST).map(([k,v])=>`<option value="${k}" ${(c.statut||'encours')===k?'selected':''}>${v.l}</option>`).join('')}</select></div>
-      <div class="field"><label>Note</label><input name="note" value="${esc(c.note||'')}"></div>
-      <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`); }
-function saveChantier(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
-  if(id){ const ix=db.chantiers.findIndex(x=>x.id===id); db.chantiers[ix]={...db.chantiers[ix],...d}; }
-  else db.chantiers.push({id:uid(),...d});
-  logEvent(id?'Chantier modifié':'Nouveau chantier',d.nom,'crud'); save(); closeModal(); try{ views[current](); }catch(_e){} }
-function detailChantier(id){ const ch=db.chantiers.find(x=>x.id===id); if(!ch) return;
-  ecranDetail(()=>detailChantier(id));   // une synchro ne doit pas refermer le chantier ouvert
-  const ints=db.interventions.filter(i=>i.chantierId===id).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  const done=ints.filter(i=>i.statut==='terminee').length;
-  openModal(`<div class="modal-head"><h3>🏗️ ${esc(ch.nom)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <p style="color:var(--t3);font-size:13px;margin-bottom:12px">${esc(clientName(ch.clientId))||''} · ${done}/${ints.length} intervention(s) terminée(s)${ch.note?' · '+esc(ch.note):''}</p>
-    ${ints.map(i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${i.date?fmtShort(i.date):'À planifier'}${i.heure?' · '+i.heure:''} · ${esc(techNames(i))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('')||'<p style="color:var(--t3)">Aucune intervention liée. Choisissez ce chantier dans la fiche intervention.</p>'}
-    <div class="modal-foot"><button class="btn ghost" onclick="closeModal();formChantier('${ch.id}')">Modifier</button><button class="btn" onclick="closeModal();formIntervention()">＋ Intervention</button>${can('supprimer')?`<button class="btn danger" onclick="delChantier('${ch.id}')">🗑</button>`:''}</div>`); }
-function delChantier(id){ if(!confirm('Supprimer ce chantier ? (les interventions ne sont pas supprimées)')) return;
-  db.chantiers=db.chantiers.filter(x=>x.id!==id); db.interventions.forEach(i=>{ if(i.chantierId===id) delete i.chantierId; }); save(); closeModal(); try{ views[current](); }catch(_e){} toast('Chantier supprimé'); }
+/* ⛔ LA RUBRIQUE « CHANTIERS / PROJETS » EST RETIRÉE — décision de Justin, 23 septembre 2026 :
+   « chantier, oui tu peux le supprimer, je ne vois pas l'intérêt ». Elle n'était dans aucun menu
+   (on n'y entrait que par la recherche globale) et le champ « Chantier » de l'intervention
+   renvoyait vers elle. Ce qui disparaît : la vue, la fiche, le formulaire, la ligne de recherche,
+   le champ de l'intervention. Ce qui RESTE, exprès : les données. `db.chantiers` et
+   `i.chantierId` gardent leur place dans la synchro (`COLLECTIONS_DONNEES`, `COLLS_GARDEES`…) :
+   une collection retirée de la fusion serait effacée par le premier appareil à jour chez tous
+   les autres, et une base est la propriété du client. Enregistrer une intervention fusionne
+   (`{...ancienne, ...formulaire}`) : le `chantierId` déjà posé n'est pas effacé. L'ancienne
+   adresse `#v=chantiers` mène aux Interventions (`VUES_RETIREES`). */
 
 /* ── E-mails métier : envoyés depuis les adresses de L'ENTREPRISE (Paramètres → E-mails d'entreprise).
    Plusieurs boîtes possibles, chacune affectée à un type d'envoi. Sans configuration → app Mail (mailto).
@@ -20868,7 +20838,6 @@ function formIntervention(id,presetDate){
             <div id="dur-chips" style="display:flex;gap:6px;flex-wrap:wrap">${intDureeChips(i.duree||60)}</div>
             <div id="fin-dit" style="margin-top:8px;font-size:12.5px;color:var(--t3)">Fin prévue : <b style="color:var(--t1)">${addMin(i.heure||'09:00',i.duree||60)}</b></div>
           </div>
-          <div class="frow"><span class="frow-lbl">Chantier</span><div class="frow-val"><select name="chantierId"><option value="">—</option>${optOf(db.chantiers||[],i.chantierId)}</select></div></div>
           <div class="frow"><span class="frow-lbl">Récurrence</span><div class="frow-val"><select name="recurrence">${Object.entries(INT_RECUR).map(([k,l])=>`<option value="${k}" ${(i.recurrence||'aucune')===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
           <div class="frow"><span class="frow-lbl">Statut</span><div class="frow-val"><select name="statut">${Object.entries(STATUT_INT).map(([k,v])=>`<option value="${k}" ${(i.statut||'planifiee')===k?'selected':''}>${v.l}</option>`).join('')}</select></div></div>
         </div></div>

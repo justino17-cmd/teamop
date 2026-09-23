@@ -18,8 +18,19 @@
       navigateur sur la v727 : le titre disait « Produits donnés » pendant que `current`
       valait « vehicules », sans chemin de retour. On reste désormais où l'on était.
 
+   4. ⛔ « CHANTIERS / PROJETS » EST RETIRÉ (v730) — Justin, 23 septembre 2026 : « chantier,
+      oui tu peux le supprimer, je ne vois pas l'intérêt ». Il n'était dans aucun menu : on n'y
+      entrait que par la recherche globale et par le champ « Chantier » d'une intervention.
+      Partis : la vue, la fiche, le formulaire, la ligne de recherche, le champ. RESTENT, exprès :
+      les DONNÉES (`db.chantiers`, `i.chantierId`) — une collection retirée de la synchro serait
+      effacée chez tous les autres appareils par le premier à jour. La section 4 ci-dessous
+      gardait hier « enregistrer un chantier ne pose plus d'écran orphelin » ; elle garde
+      aujourd'hui qu'il n'y a plus d'écran du tout, et que la donnée survit.
+
    La preuve de bout en bout est au navigateur : `scratchpad/sonde-categories.js` (20 ✓ sur
-   la v728 ; 5 ✗ sur la v727 — la contre-épreuve tombe là où il faut).                    */
+   la v728 ; 5 ✗ sur la v727 — la contre-épreuve tombe là où il faut). Avec le retrait des
+   chantiers : 25 ✓ sur la v730, et 4 ✗ sur la v729, exactement sur les quatre contrôles du
+   retrait — ceux de la donnée qui survit passent des deux côtés, comme il se doit.        */
 const fs = require('fs'), path = require('path');
 const BRUT = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
 /* ⛔ nettoyage SÛR : seuls les blocs qui COMMENCENT une ligne (règle du dépôt) */
@@ -62,6 +73,7 @@ const mV = SRC.match(/const VUES_RETIREES=(\{[^}]*\});/);
 vrai('population : la table des adresses de suite est trouvée', !!mV);
 const VR = mV ? eval('(' + mV[1] + ')') : {};
 vrai('audit → historique, permissions → utilisateurs', VR.audit === 'historique' && VR.permissions === 'utilisateurs', VR);
+vrai('⛔ chantiers → interventions (un ancien lien ne retombe pas sur le tableau de bord)', VR.chantiers === 'interventions', VR);
 vrai('chaque adresse de suite est un écran VIVANT et au menu',
   Object.values(VR).every(k => VUES.has(k) && NAVK.includes(k)), Object.values(VR).filter(k => !VUES.has(k) || !NAVK.includes(k)));
 /* on EXÉCUTE les lignes réelles de go() qui aiguillent — pas une copie */
@@ -83,7 +95,7 @@ if (aiguille) {
 }
 
 console.log('\n── 775 · 4. un enregistrement ne pose plus d’écran orphelin ──');
-for (const [fn, orphelin] of [['function saveProduitDonne(', 'views.produitsDonnes('], ['function saveChantier(', 'views.chantiers('], ['function delChantier(', 'views.chantiers(']]) {
+for (const [fn, orphelin] of [['function saveProduitDonne(', 'views.produitsDonnes(']]) {
   const c = corps(fn);
   vrai('population : ' + fn.slice(9, -1) + ' est trouvée', c.length > 40, c.length);
   vrai('⛔ ' + fn.slice(9, -1) + ' ne pose plus « ' + orphelin.slice(6, -1) + ' » en travers de l’écran', c.indexOf(orphelin) < 0);
@@ -92,6 +104,24 @@ for (const [fn, orphelin] of [['function saveProduitDonne(', 'views.produitsDonn
 vrai('« Donner produit » reste sur la fiche d’un véhicule (le geste n’est pas retiré)',
   /formProduitDonne\(null,'\$\{v\.id\}'\)/.test(SRC));
 vrai('… et le don s’écrit toujours dans Mouvements', /motif:'Produit donné'/.test(corps('function saveProduitDonne(')));
+
+console.log('\n── 775 · 5. ⛔ « Chantiers / Projets » : l’écran est parti, la donnée reste ──');
+vrai('⛔ plus de views.chantiers', !VUES.has('chantiers'));
+for (const f of ['formChantier', 'saveChantier', 'detailChantier', 'delChantier'])
+  vrai('… ni de ' + f + '()', !new RegExp('function ' + f + '\\(').test(SRC));
+vrai('⛔ aucun appel ne vise encore un chantier (recherche, fiche, formulaire)',
+  !/detailChantier\(|formChantier\(|go\(\s*'chantiers'\s*\)/.test(SRC), (SRC.match(/detailChantier\(|formChantier\(|go\(\s*'chantiers'\s*\)/g) || []));
+vrai('⛔ la fenêtre Intervention n’a plus de champ « Chantier »', !/name="chantierId"/.test(SRC));
+vrai('la télémétrie ne classe plus un écran qui n’existe pas', !/\bchantiers:'Interventions'/.test(SRC));
+/* ⛔⛔ LA DONNÉE RESTE. Retirer une collection de la synchro, c'est laisser le premier appareil
+   à jour l'effacer chez tous les autres — et une base est la propriété du client. */
+{ const mC = SRC.match(/const COLLECTIONS_DONNEES=\[([^\]]*)\]/), mG = SRC.match(/const COLLS_GARDEES=\[([^\]]*)\]/);
+  vrai('population : les deux listes de la synchro sont trouvées', !!mC && !!mG);
+  vrai('⛔⛔ `chantiers` reste une collection de données synchronisée', mC && /'chantiers'/.test(mC[1]));
+  vrai('⛔⛔ … et une collection gardée à la fusion', mG && /'chantiers'/.test(mG[1]));
+  vrai('⛔ … fusionnée comme une liste', /chantiers: 'liste'/.test(SRC)); }
+vrai('⛔ enregistrer une intervention FUSIONNE : le `chantierId` déjà posé n’est pas effacé',
+  /db\.interventions\[ix\]=\{\.\.\.db\.interventions\[ix\],\.\.\.data\}/.test(corps('function saveIntervention(')));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
