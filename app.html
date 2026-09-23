@@ -25738,7 +25738,8 @@ function bxpRafraichir(){ const b=bxpBox(); if(!b||!$('bxp-corps')) return; bxpC
 function bxpRendre(){ const b=bxpBox(); if(!b||!$('bxp-corps')) return; const c=bxpCache||bxpCalculer(b);
   const d=$('bxp-doublons'); if(d) d.innerHTML=produitsDoublonsBandeau({boxId:b.id,replie:true});
   const ret=Object.keys(b.stock).filter(pid=>boxRetirable(b,pid).ok).length;
-  const nPack=(c.pack||[]).length, cf=cataloguesFournisseurs();
+  const nPack=(c.pack||[]).length;
+  const cf=cataloguesFournisseurs();
   if(!cf&&bxpOnglet==='four') bxpOnglet='ajouter';
   $('bxp-onglets').innerHTML=`<div class="chip ${bxpOnglet==='ajouter'?'active':''}" onclick="bxpOngletChoisir('ajouter')">Ajouter (${c.dispo.length})${nPack?`<span class="bxp-bulle">${nPack}</span>`:''}</div>${cf?`<div class="chip ${bxpOnglet==='four'?'active':''}" onclick="bxpOngletChoisir('four')">Fournisseurs</div>`:''}<div class="chip ${bxpOnglet==='retirer'?'active':''}" onclick="bxpOngletChoisir('retirer')">Retirer (${ret})</div>`;
   if(bxpOnglet==='ajouter') bxpRendreAjout(b,c); else if(bxpOnglet==='four') bxpRendreFour(b); else bxpRendreRetrait(b); }
