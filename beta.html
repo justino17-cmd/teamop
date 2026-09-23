@@ -7030,7 +7030,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '739-beta';
+const APP_VERSION = '740-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7604,7 +7604,13 @@ const STATUT_INT = { aplanifier:{l:'À planifier',c:'st-grey'}, planifiee:{l:'Pl
 const INT_STCOLOR = { aplanifier:'var(--t3)', planifiee:'var(--blue)', encours:'var(--org)', terminee:'var(--acc-txt)', annulee:'var(--red)' };
 const INT_TYPES = ['Contrat anti nuisibles (HACCP)','Dératisation','Désinsectisation anthrène de tapis','Désinsectisation blattes','Désinsectisation fourmis','Désinsectisation guêpes / frelons','Désinsectisation mites','Désinsectisation poux de poules','Désinsectisation psoques','Désinsectisation puces','Désinsectisation punaise de lit','Désinsectisation tiques','Détection punaise de lit','Espèce protégée','Traitement xylophage','Visite technique'];
 const REPORT_TEMPLATES = ["Modèle générique"];   /* Vidée le 5 sept. 2026 : cette liste portait en dur les ~90 agences d'un seul client et partait chez TOUS les autres — le réseau commercial de l'un devenait visible chez ses concurrents. Chaque entreprise déclare ses sociétés dans Paramètres → Mes sociétés ; entSocietes() ne retombe ici que si elle n'en a aucune. */
-function rapportSociete(m){ if(!m||/g[ée]n[ée]rique|aucune/i.test(m)) return 'OP GESTION'; return String(m).trim(); }
+/* ⛔ v740 — « Modèle générique » n'est pas une société : c'est la valeur de TOUTE entreprise qui
+   n'en a déclaré aucune. Elle s'imprimait « OP GESTION » — le nom du LOGICIEL — en tête des
+   rapports, des courriels et du Factur-X reçus par ses clients. Le générique rend désormais le
+   nom de l'entreprise (entNom), et « OP GESTION » n'en est plus que le tout dernier recours,
+   pour une entreprise qui n'a aucun nom. */
+function socNom(m){ const s=String(m==null?'':m).trim(); return (!s||/g[ée]n[ée]rique|aucune/i.test(s))?'':s; }
+function rapportSociete(m){ return socNom(m)||entNom(); }
 /* ── Multi-sociétés : une entreprise peut déclarer SES sociétés (Paramètres → db.societes).
    Si déclarées, elles remplacent la liste générique ; une seule → sélecteur masqué et appliquée partout. ── */
 function entSocietes(){ const cust=((db&&db.societes)||[]).map(s=>String(s).trim()).filter(Boolean);
@@ -7630,15 +7636,21 @@ function bonSocietePick(sel){
 }
 function entSocAdd(){ const inp=$('ent-soc-new'); const v=((inp&&inp.value)||'').trim().slice(0,60); if(!v){ toast('Tape le nom de la société'); return; }
   db.societes=db.societes||[]; if(db.societes.some(s=>s.toLowerCase()===v.toLowerCase())){ toast('Cette société existe déjà'); return; }
-  db.societes.push(v); save(); toast('🏢 Société « '+v+' » ajoutée'); views.parametres(); }
+  /* v740 : retirer une société garde son style (les documents émis gardent leur en-tête) ; la
+     recréer sous le même nom reprend donc ses anciennes coordonnées — on le DIT, on ne le tait pas. */
+  const o=(db.societesStyle||{})[v], ancien=!!(o&&(o.siret||o.iban||o.adresse));   // socStyle lit le nom EXACT
+  db.societes.push(v); save(); toast(ancien?'🏢 « '+v+' » existait déjà : ses anciennes coordonnées sont reprises — vérifie-les dans 🏢 Coordonnées':'🏢 Société « '+v+' » ajoutée'); views.parametres(); }
 function entSocDel(ix){ db.societes=db.societes||[]; const s=db.societes[ix]; if(s==null) return;
   if(!confirm('Retirer la société « '+s+' » de la liste ? (les documents déjà émis gardent leur nom)')) return;
-  db.societes.splice(ix,1); if(db.societesStyle) delete db.societesStyle[s]; save(); views.parametres(); }
+  /* v740 : le style (couleur, logo, coordonnées) RESTE — les documents déjà émis sous ce nom
+     continuent de s'imprimer avec leur en-tête. Seule la liste de choix perd la société. */
+  db.societes.splice(ix,1); save(); views.parametres(); }
 /* ── Le style de chaque société : sa couleur et son logo, appliqués sur ses documents ── */
 function socStyle(nom){ return ((db&&db.societesStyle)||{})[nom]||{}; }
 function socStylePose(ix,cle,val){ const nom=(db.societes||[])[ix]; if(nom==null) return;
   db.societesStyle=db.societesStyle||{}; db.societesStyle[nom]={...(db.societesStyle[nom]||{})};
   if(val==null) delete db.societesStyle[nom][cle]; else db.societesStyle[nom][cle]=val;
+  db.societesStyle[nom]._m=Date.now();   // v740 : la fusion garde la plus récente (dictFusion)
   save(); }
 function socCouleurSet(ix,hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex||'')) return;
   socStylePose(ix,'couleur',hex); toast('🎨 Couleur de « '+((db.societes||[])[ix]||'')+' » enregistrée'); views.parametres(); }
@@ -7650,13 +7662,68 @@ function socLogoPick(ix,e){ const f=e.target.files&&e.target.files[0]; if(!f) re
     toast('🏷️ Logo de « '+((db.societes||[])[ix]||'')+' » enregistré'); views.parametres(); };
     im.src=r.result; }; r.readAsDataURL(f); }
 function socLogoDel(ix){ socStylePose(ix,'logo',null); views.parametres(); }
-/* Options d'envoi e-mail au nom de la société de l'intervention (expéditeur/signature) */
-function intSocMailOpts(i){ const m=i&&i.rapportModele; if(!m||/g[ée]n[ée]rique|aucune/i.test(m)) return undefined; return {brandName:rapportSociete(m)}; }
-/* Société d'un client (documents client-niveau : implantation, dossier sanitaire) = celle de sa dernière intervention */
-function papSocOf(cid){ const last=(db.interventions||[]).filter(x=>x.clientId===cid&&x.rapportModele&&!/g[ée]n[ée]rique/i.test(x.rapportModele))
-    .sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||'')))[0];
-  if(last) return rapportSociete(last.rapportModele);
-  return entSocUnique()?rapportSociete(entSocUnique()):rapportSociete(''); }
+/* v740 — les coordonnées d'une société. Avec un SIRET, elle est une entreprise DISTINCTE : tout son
+   bloc légal (raison sociale, adresse, SIRET, TVA, IBAN) va sur ses documents, et un champ laissé
+   vide y reste vide. Sans SIRET, c'est un nom commercial : ses documents portent les coordonnées de
+   l'entreprise, téléphone et e-mail compris (docEntete). */
+const SOC_COORD=[['raison','Raison sociale','Ex : 3D Sud-Ouest SARL'],['adresse','Adresse',''],['cp','Code postal',''],['ville','Ville',''],
+  ['tel','Téléphone',''],['email','E-mail',''],['siret','SIRET','14 chiffres — rempli, la société a ses propres coordonnées'],['tvaIntra','N° TVA intracommunautaire',''],['iban','IBAN',''],['bic','BIC','']];
+function socCoordModal(ix){ const nom=(db.societes||[])[ix]; if(nom==null) return; const st=socStyle(nom);
+  openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>${esc(nom)}</h3><button type="submit" form="soc-coord" class="btn sm">Enregistrer</button></div>
+    <form id="soc-coord" onsubmit="socCoordSave(event,${ix})">
+      <p style="font-size:12px;color:var(--t3);margin:2px 0 12px">Une société qui a <b>son propre SIRET</b> imprime SES coordonnées sur ses documents. Sans SIRET, ce sont celles de l’entreprise (Paramètres → Mon entreprise).</p>
+      ${SOC_COORD.map(([k,l,ph])=>`<div class="field"><label>${esc(l)}</label><input name="${k}" value="${esc(st[k]||'')}"${ph?` placeholder="${esc(ph)}"`:''}></div>`).join('')}
+    </form>`); }
+function socCoordSave(e,ix){ e.preventDefault(); if(!adminSeul()) return; const nom=(db.societes||[])[ix]; if(nom==null) return;
+  const d=Object.fromEntries(new FormData(e.target));
+  db.societesStyle=db.societesStyle||{}; const st={...(db.societesStyle[nom]||{})};
+  SOC_COORD.forEach(([k])=>{ const v=String(d[k]||'').trim().slice(0,120); if(v) st[k]=v; else delete st[k]; });
+  st._m=Date.now();   // v740 : la fusion garde la plus récente (dictFusion)
+  db.societesStyle[nom]=st; logEvent('Coordonnées de société',nom,'crud'); save(); closeModal(); toast('🏢 Coordonnées de « '+nom+' » enregistrées'); views.parametres(); }
+/* ══ L'EN-TÊTE D'UN DOCUMENT — UN SEUL ENDROIT (v740) ═════════════════════════════════════
+   Justin, 23 septembre 2026 : « pour les PDF selon les interventions ou autres, chaque en-tête
+   doit reconnaître l'entreprise qui est sur l'intervention, pour que le client reçoive bien le
+   bon PDF ». Recensé ce jour-là : quinze fabriques de documents, CINQ façons de choisir la
+   société (rapportSociete, papSocOf, bcEntete, socStyle, mailBrandName), des couleurs écrites en
+   dur, et les COORDONNÉES de l'entreprise principale sous le nom de n'importe quelle société —
+   une facture de la société B portait le SIRET, la TVA et l'IBAN de A. Toutes passent par ici.
+   · le nom : la société déclarée, sinon le nom de l'entreprise (jamais « Modèle générique ») ;
+   · la couleur : celle de la société, sinon le vert ;
+   · le logo : celui de la société — une société sans logo n'emprunte PAS celui d'une autre ;
+   · les coordonnées légales par BLOC : une société qui a son SIRET fournit tout son bloc
+     (adresse, SIRET, TVA, IBAN) et un champ vide y reste vide ; sans SIRET, c'est un nom
+     commercial de l'entreprise, et tout le bloc vient de l'entreprise. Jamais « SIRET de B +
+     TVA de A ». Le téléphone et l'e-mail d'un NOM COMMERCIAL se complètent un par un par ceux
+     de l'entreprise ; ceux d'une entreprise distincte, jamais — le client répondrait chez l'autre. */
+function docEntete(m,o){ o=o||{}; const s=socNom(m), E=(db&&db.entreprise)||{}, st=s?socStyle(s):{};
+  const hex=v=>/^#[0-9a-fA-F]{6}$/.test(v||'')?v:'';
+  const estEnt=!s||s.toLowerCase()===String(entNom()).toLowerCase();
+  const propre=!!String(st.siret||'').trim(), L=propre?st:E;
+  return { societe:s, generique:!s,
+    nom: s||(o.bon&&String(E.enteteBC||'').trim())||entNom(),
+    couleur: hex(st.couleur)||'#1E7A4E',
+    logo: s?(st.logo||(estEnt?(E.logo||''):'')):(E.logo||''),
+    raison: propre?(String(st.raison||'').trim()||s):(String(E.nom||'').trim()||entNom()),
+    adresse:L.adresse||'', cp:L.cp||'', ville:L.ville||'', siret:L.siret||'', tvaIntra:L.tvaIntra||'',
+    iban:L.iban||'', bic:L.bic||'', tel:st.tel||(propre?'':E.tel)||'', email:st.email||(propre?'':E.email)||'',
+    coordsPropres:propre }; }
+/* Les lignes de coordonnées sous le nom, dans l'ordre de tous les documents */
+function docCoordLignes(h){ return [[h.adresse,[h.cp,h.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+  [h.tel?'Tél. '+h.tel:'',h.email||''].filter(Boolean).join('  ·  '),
+  [h.siret?'SIRET '+h.siret:'',h.tvaIntra?'TVA '+h.tvaIntra:''].filter(Boolean).join('  ·  ')].filter(Boolean); }
+/* Le nom d'expéditeur d'un courriel suit la même source que l'en-tête du document joint.
+   Générique : on n'impose rien, le réglage « Nom d'expéditeur » de l'entreprise s'applique. */
+function docMailOpts(m){ const s=socNom(m); return s?{brandName:s,societe:s}:undefined; }
+function intSocMailOpts(i){ return docMailOpts(i&&i.rapportModele); }
+function docSocMailOpts(d){ return docMailOpts(d&&d.rapportModele); }
+/* La société d'un document CLIENT (dossier sanitaire, registre, box) : celle de la dernière
+   intervention QUI FIGURE DANS LE DOCUMENT (`parmi`), sinon la dernière intervention réelle du
+   client — ni annulée, ni à venir : une intervention annulée ou planifiée le mois prochain sous
+   une autre société prenait l'en-tête de documents qui ne la contiennent pas. */
+function socDuClient(cid,parmi){ const L=(parmi||(db.interventions||[]).filter(x=>x.clientId===cid&&x.statut!=='annulee'&&(x.date||'')<=todayISO()))
+    .filter(x=>socNom(x.rapportModele)).sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||'')))[0];
+  return L?socNom(L.rapportModele):(entSocUnique()||''); }
+function papSocOf(cid){ return rapportSociete(socDuClient(cid)); }
 /* ═══════════════════════════════════════════════════════════════════════════
    PACKS METIER — l'application parle le langage du metier de l'entreprise
    · '3d' est le pack historique : rien ne change pour les comptes existants
@@ -8193,9 +8260,18 @@ function collsFusion(d){ return Object.keys(d||{}).filter(k=>Array.isArray(d[k])
    deux » : vrai d'un réglage, faux d'un plan d'appâtage dessiné sur le terrain tous les
    jours. On les réunit donc clé par clé — l'union des clients, chacun gardant son plan ; à
    égalité sur la MÊME clé, le côté prioritaire, comme pour un enregistrement. */
-const COLLS_DICT=['plansSite','planNotes','permissions'];
+/* v740 : `societesStyle` aussi — une société y porte désormais ses coordonnées légales (SIRET,
+   TVA, IBAN) : deux appareils qui règlent deux sociétés ne doivent pas s'écraser en bloc. */
+const COLLS_DICT=['plansSite','planNotes','permissions','societesStyle'];
+/* v740 (relecture) : une entrée DATÉE (`_m` — une société, qui porte SIRET et IBAN) ne se tranche
+   plus par le côté prioritaire : la plus récente gagne. Sans ça, un IBAN corrigé sur le téléphone
+   disparaissait à la réception d'une couleur changée au bureau, et la signature ne le voyait pas.
+   Sans date des deux côtés (plans, notes, permissions), rien ne change. */
 function dictFusion(prio,autre){ const out=Object.assign({},autre&&typeof autre==='object'?autre:{});
-  Object.keys(prio&&typeof prio==='object'?prio:{}).forEach(k=>{ out[k]=prio[k]; }); return out; }
+  Object.keys(prio&&typeof prio==='object'?prio:{}).forEach(k=>{ const p=prio[k], a=out[k];
+    const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+    if(obj(p)&&obj(a)&&(Number(a._m)||0)>(Number(p._m)||0)) return;
+    out[k]=p; }); return out; }
 /* ══ LE CLASSEMENT DES 83 CLÉS DE `db` — ÉTAPE 2 DU SOCLE ═══════════════════════════════════
    ⛔ POURQUOI CETTE TABLE EXISTE, ET POURQUOI ELLE EST LA PREMIÈRE CHOSE ÉCRITE DE L'ÉTAPE 2.
    `collsFusion` prend « toute clé qui se trouve être un tableau » (ligne ~6137) : la règle est
@@ -8974,7 +9050,7 @@ function fusionnerBases(local,remote,prioriteLocale){
    de convergence dans une course à trois. On ajoute donc l'empreinte des marques de lignes :
    elles changent exactement quand une ligne de stock change. Signalé par `relecteur`. */
 function baseSignature(d){ return collsFusion(d).sort().map(c=>c+':'+(d[c]||[]).map(r=>(r&&r.id!=null)?(String(r.id)+'@'+(r._m||0)+(c==='boxes'&&r._ms?'~'+recEmpreinte(r._ms):'')):'').sort().join(',')).join('|')
-  +'§'+COLLS_DICT.map(c=>c+':'+Object.keys((d&&d[c])||{}).sort().join(',')).join('|')
+  +'§'+COLLS_DICT.map(c=>c+':'+Object.keys((d&&d[c])||{}).sort().map(k=>{ const v=d[c][k]; return k+((v&&typeof v==='object'&&!Array.isArray(v)&&v._m)?'@'+v._m:''); }).join(',')).join('|')
   +'#'+JSON.stringify(d._tombes||{}); }
 let db = load();
 try{ ombreRelever(); }catch(e){}   // l'ombre part de ce qui est chargé : rien n'est « modifié » tant qu'on n'a rien touché
@@ -15242,7 +15318,7 @@ function orgaTexte(i){
     .split('{debut}').join(cr.a)
     .split('{fin}').join(cr.b)
     .split('{technicien}').join(intTechIds(i).map(techName).filter(Boolean).join(' et ')||'notre technicien')
-    .split('{societe}').join(mailBrandName()||'OP GESTION');
+    .split('{societe}').join(socNom(i.rapportModele)||mailBrandName());   // v740 : la société de CETTE intervention — un envoi groupé en mélange plusieurs
 }
 let ORGA={ids:{},dates:[],canal:{}};
 function orgaModal(){
@@ -15331,7 +15407,7 @@ async function orgaEnvoyer(){
     const can=orgaCanal(i), txt=orgaTexte(i);
     if(can==='mail'||can==='deux'){
       let envoye=false;
-      try{ envoye=await srvMail((c.email||'').trim(),'Votre intervention du '+fmtShort(i.date),txt,'',"client"); }catch(e){}
+      try{ envoye=await srvMail((c.email||'').trim(),'Votre intervention du '+fmtShort(i.date),txt,'',"client",null,docMailOpts(i.rapportModele)); }catch(e){}   // v740 : l'expéditeur est la société de CETTE intervention
       if(envoye){ ok++; i.clientPrevenu={le:Date.now(),canal:'mail',par:(currentUser?fullName(currentUser):'')};
         try{ intHisto(i,'Client prévenu par e-mail de son créneau'); }catch(e){} }
       else ko++;
@@ -19128,10 +19204,9 @@ function mailBoxFor(cat){ const bx=db.mailBoxes||[]; if(!bx.length) return null;
 function entNom(){ return (((db.entreprise||{}).nom)||'').trim() || (localStorage.getItem('elanB_entreprise_nom')||'').trim() || ((db.mailFrom||'').trim()) || 'OP GESTION'; }
 /* En-tête des bons de commande : la société choisie sur le bon (Paramètres → Mes sociétés),
    sinon le texte réglé dans Paramètres → Mon entreprise, sinon le nom de l'entreprise */
-function bcEntete(b){ const s=(b&&b.societe?String(b.societe):'').trim(); if(s) return s;
-  return (((db.entreprise||{}).enteteBC)||'').trim() || entNom(); }
+function bcEntete(b){ return docEntete(b&&b.societe,{bon:true}).nom; }   // v740 : l'en-tête passe par docEntete
 /* Couleur du bon : celle de la société choisie (si réglée), sinon le vert TeamOP */
-function bcCouleur(b){ const s=(b&&b.societe)?(socStyle(String(b.societe)).couleur||''):''; return /^#[0-9a-fA-F]{6}$/.test(s)?s:'#1E7A4E'; }
+function bcCouleur(b){ return docEntete(b&&b.societe,{bon:true}).couleur; }
 /* 🏷️ Marque de l'entreprise dans la barre — Business : logo uniquement · Business Premium : logo + nom + couleur */
 function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('brand-sub'); if(!img||!nm) return;
   const E=db.entreprise||{}, f=forfait();
@@ -19181,7 +19256,12 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
   if(opts&&opts.atts&&opts.atts.length) payload.atts=opts.atts;   // pièces jointes (ex : bon de commande en PDF)
   if(opts&&opts.meta) payload.meta=opts.meta;                     // rattachement des réponses (n° de bon)
   if(opts&&opts.mailboxId) payload.useMailbox={id:opts.mailboxId};   // envoi via la boîte connectée choisie
-  if(b&&b.user&&b.pass){ payload.smtp={host:b.host||'smtp.mail.ovh.net',port:parseInt(b.port)||465,user:b.user,pass:b.pass,from:(b.from?b.from+' ':'')+'<'+b.user+'>'}; }
+  /* v740 (relecture) : un document d'une société NOMMÉE (opts.societe, posé par docMailOpts) part sous
+     son nom aussi par une boîte connectée — sinon le client reçoit le PDF d'« Alpha » d'un expéditeur
+     au nom de l'entreprise. Le nom réglé sur la boîte reste celui de tout le reste. Entre guillemets
+     et sans « <>" » : une virgule dans un nom ferait deux adresses. */
+  const nomSoc=(opts&&opts.societe)?String(opts.societe).replace(/["<>\r\n]/g,'').trim().slice(0,80):'';
+  if(b&&b.user&&b.pass){ payload.smtp={host:b.host||'smtp.mail.ovh.net',port:parseInt(b.port)||465,user:b.user,pass:b.pass,from:nomSoc?'"'+nomSoc+'" <'+b.user+'>':(b.from?b.from+' ':'')+'<'+b.user+'>'}; }
   else{ payload.brand={name:(opts&&opts.brandName)||mailBrandName(),replyTo:(opts&&opts.replyTo)||((currentUser&&currentUser.mailReply)||'').trim()||((db.mailReply||'').trim())}; }   // la plateforme envoie au nom de l'entreprise / de l'utilisateur
   try{
     let r=await fetch(PUSH_API+'/api/sendmail',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify(payload)});
@@ -19197,9 +19277,16 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
     if(r.ok){ _srvMailErr=''; toast(okMsg||('✉️ E-mail envoyé à '+to)); return true; }
     const d=await r.json().catch(()=>({}));
     _srvMailErr=d.error||('erreur serveur HTTP '+r.status);
-    toast('Envoi refusé ('+_srvMailErr+') — e-mail préparé dans Mail');
-    try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+_srvMailErr,src:'srvMail',line:0,stack:'destinataire '+to,ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
-  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable — e-mail préparé dans Mail'); }
+    toast('Envoi refusé ('+_srvMailErr+')'+(opts&&opts.sansMailto?' — rien n’est parti':' — e-mail préparé dans Mail'));
+    /* v740 : le DOMAINE seulement. L'adresse d'un client n'a rien à faire dans un rapport d'erreur
+       (pas de données personnelles de clients dans les journaux) ; le domaine suffit à voir qu'un
+       fournisseur de messagerie refuse. */
+    try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+_srvMailErr,src:'srvMail',line:0,stack:'domaine du destinataire : '+(String(to||'').split('@')[1]||'—'),ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
+  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable'+(opts&&opts.sansMailto?' — rien n’est parti, réessaie quand le réseau revient':' — e-mail préparé dans Mail')); }
+  /* ⛔ v740 — un courriel qui porte une PIÈCE JOINTE ne se rabat pas sur un brouillon : le lien
+     mailto: ne sait pas joindre de fichier, et le brouillon dirait « ci-joint » sans rien joindre.
+     L'appelant (le plan d'implantation) le demande par `sansMailto` ; il n'écrit alors rien. */
+  if(opts&&opts.sansMailto) return false;
   location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent((opts&&opts.mailtoBody)||body);
   return false;
 }
@@ -19302,8 +19389,16 @@ function exportFacturX(fid){ const f=db.factures.find(x=>x.id===fid); if(!f) ret
   <rsm:ExchangedDocument><ram:ID>${esc(f.num||'')}</ram:ID><ram:TypeCode>380</ram:TypeCode><ram:IssueDateTime><udt:DateTimeString format="102">${date}</udt:DateTimeString></ram:IssueDateTime></rsm:ExchangedDocument>
   <rsm:SupplyChainTradeTransaction>${lig}
     <ram:ApplicableHeaderTradeAgreement>
-      <ram:SellerTradeParty><ram:Name>${esc(rapportSociete(f.societe||''))}</ram:Name></ram:SellerTradeParty>
-      <ram:BuyerTradeParty><ram:Name>${esc(c.nom||'Client')}</ram:Name>${c.adresse?`<ram:PostalTradeAddress><ram:LineOne>${esc(c.adresse)}</ram:LineOne>${c.codePostal?`<ram:PostcodeCode>${esc(c.codePostal)}</ram:PostcodeCode>`:''}${c.ville?`<ram:CityName>${esc(c.ville)}</ram:CityName>`:''}<ram:CountryID>FR</ram:CountryID></ram:PostalTradeAddress>`:''}</ram:BuyerTradeParty>
+      ${(()=>{ /* v740 : le vendeur est la société DE LA FACTURE (f.rapportModele — le champ « societe » qu'il lisait n'existe
+         sur aucune facture, le vendeur sortait toujours « OP GESTION »), avec son identifiant légal,
+         son adresse et sa TVA quand elle les a (EN 16931 : identification du vendeur). */
+        const H=docEntete(f.rapportModele), sir=String(H.siret||'').replace(/\s/g,'');
+        return `<ram:SellerTradeParty><ram:Name>${esc(H.raison||H.nom)}</ram:Name>`
+          +(sir?`<ram:SpecifiedLegalOrganization><ram:ID schemeID="${sir.length===14?'0009':'0002'}">${esc(sir)}</ram:ID>${H.raison&&H.raison!==H.nom?`<ram:TradingBusinessName>${esc(H.nom)}</ram:TradingBusinessName>`:''}</ram:SpecifiedLegalOrganization>`:'')
+          +((H.adresse||H.cp||H.ville)?`<ram:PostalTradeAddress>${H.cp?`<ram:PostcodeCode>${esc(H.cp)}</ram:PostcodeCode>`:''}${H.adresse?`<ram:LineOne>${esc(H.adresse)}</ram:LineOne>`:''}${H.ville?`<ram:CityName>${esc(H.ville)}</ram:CityName>`:''}<ram:CountryID>FR</ram:CountryID></ram:PostalTradeAddress>`:'')
+          +(H.tvaIntra?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${esc(String(H.tvaIntra).replace(/\s/g,''))}</ram:ID></ram:SpecifiedTaxRegistration>`:'')
+          +`</ram:SellerTradeParty>`; })()}
+      <ram:BuyerTradeParty><ram:Name>${esc(c.nom||'Client')}</ram:Name>${c.adresse?`<ram:PostalTradeAddress>${c.codePostal?`<ram:PostcodeCode>${esc(c.codePostal)}</ram:PostcodeCode>`:''}<ram:LineOne>${esc(c.adresse)}</ram:LineOne>${c.ville?`<ram:CityName>${esc(c.ville)}</ram:CityName>`:''}<ram:CountryID>FR</ram:CountryID></ram:PostalTradeAddress>`:''}</ram:BuyerTradeParty>
     </ram:ApplicableHeaderTradeAgreement>
     <ram:ApplicableHeaderTradeDelivery/>
     <ram:ApplicableHeaderTradeSettlement>
@@ -19321,14 +19416,17 @@ function exportFacturX(fid){ const f=db.factures.find(x=>x.id===fid); if(!f) ret
 
 /* ── Dossier client imprimable (portail client papier/PDF) ── */
 function printDossierClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
+  /* v740 : ce dossier réunit des passages et des documents de TOUTES les sociétés du client :
+     il porte l'en-tête de l'entreprise elle-même (docEntete('')), jamais une seule de ses sociétés */
+  const H=docEntete(''), AC=H.couleur;
   const ints=db.interventions.filter(i=>i.clientId===id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,25);
   const devis=db.devis.filter(d=>d.clientId===id), facts=db.factures.filter(f=>f.clientId===id);
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups'); return; }
   const irows=ints.map(i=>`<tr><td>${i.date?fmtShort(i.date):'—'}</td><td>${esc(i.titre)}</td><td>${esc(techNames(i))}</td><td>${(STATUT_INT[i.statut]||{}).l||''}</td></tr>`).join('');
   const frows=facts.map(f=>`<tr><td>${esc(f.num||'')}</td><td>${f.date?fmtShort(f.date):''}</td><td style="text-align:right">${eur(docTot(f).ttc)}</td><td>${f.statut==='payee'?'Payée':f.statut==='envoyee'?'En attente':'Brouillon'}</td></tr>`).join('');
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Dossier client — ${esc(c.nom)}</title>
-    <style>body{font-family:Arial;padding:30px;color:#1A1F28;font-size:12px}h1{color:#1E7A4E;font-size:20px;margin:0}h2{font-size:14px;color:#1E7A4E;margin:20px 0 8px}.sub{color:#666;margin:4px 0 14px}table{width:100%;border-collapse:collapse;margin-bottom:8px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:#1E7A4E;color:#fff;font-size:11px}</style></head>
-    <body><h1>Dossier client</h1><div class="sub"><b>${esc(c.nom)}</b>${c.contact?' — '+esc(c.contact):''}${c.tel?' · '+esc(c.tel):''}${c.email?' · '+esc(c.email):''}<br>${esc(c.adresse||'')} ${esc(c.codePostal||'')} ${esc(c.ville||'')} · Édité le ${new Date().toLocaleDateString('fr-FR')}</div>
+    <style>body{font-family:Arial;padding:30px;color:#1A1F28;font-size:12px}h1{color:${AC};font-size:20px;margin:0}h2{font-size:14px;color:${AC};margin:20px 0 8px}.sub{color:#666;margin:4px 0 14px}table{width:100%;border-collapse:collapse;margin-bottom:8px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:${AC};color:${encreSur(AC)};font-size:11px}</style></head>
+    <body>${H.logo?`<img src="${esc(H.logo)}" alt="" style="max-height:44px;max-width:170px;display:block;margin-bottom:6px">`:''}<div style="font-size:12px;font-weight:800;color:${AC};letter-spacing:1px;text-transform:uppercase">${esc(H.nom)}</div>${docCoordLignes(H).length?`<div style="color:#666;font-size:10.5px;margin:2px 0 8px">${docCoordLignes(H).map(esc).join(' · ')}</div>`:''}<h1>Dossier client</h1><div class="sub"><b>${esc(c.nom)}</b>${c.contact?' — '+esc(c.contact):''}${c.tel?' · '+esc(c.tel):''}${c.email?' · '+esc(c.email):''}<br>${esc(c.adresse||'')} ${esc(c.codePostal||'')} ${esc(c.ville||'')} · Édité le ${new Date().toLocaleDateString('fr-FR')}</div>
     <h2>Interventions (${ints.length})</h2><table><thead><tr><th>Date</th><th>Intervention</th><th>Intervenant</th><th>Statut</th></tr></thead><tbody>${irows||'<tr><td colspan=4>Aucune</td></tr>'}</tbody></table>
     <h2>Factures (${facts.length})</h2><table><thead><tr><th>N°</th><th>Date</th><th>Montant TTC</th><th>Statut</th></tr></thead><tbody>${frows||'<tr><td colspan=4>Aucune</td></tr>'}</tbody></table>
     <h2>Devis</h2><div>${devis.length} devis (dont ${devis.filter(d=>d.statut==='accepte').length} accepté(s))</div>
@@ -20251,15 +20349,7 @@ function papPlanProHtml(i,pl,canEd){
       return `<div style="display:flex;gap:8px;align-items:center;padding:4px 0;font-size:12.5px;border-bottom:1px solid var(--brd)"><span>${e2[2]}</span><b>Poste ${po.num}</b><span style="color:var(--t3)">${esc(pn)}</span><span style="color:${e2[1]};font-weight:700">${e2[0]}</span>${r.photo?'<span>📷</span>':''}<span style="flex:1;color:var(--t3);text-align:right">${esc(r.note||'')}</span></div>`; }).join('')}</div>`:'<div style="font-size:12px;color:var(--t3);margin-top:5px">Aucun relevé pour l’instant — touche les postes sur le plan.</div>'}
     <div style="font-size:11.5px;color:var(--t3);margin-top:8px">Le plan et les relevés sont intégrés au rapport PDF. Les postes gardent la couleur du dernier relevé connu.</div>
   </div>`;
-  if(canEd) h+=`<div class="card" style="margin-top:12px;padding:12px 14px">
-    <b style="font-size:13.5px">📄 Plan d'implantation</b>
-    <div style="font-size:11.5px;color:var(--t3);margin:4px 0 9px">Document officiel délivré une fois au client : plan technique fond blanc, postes, produits & n° AMM, zone de signature.</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn ghost sm" onclick="papPrintImplantation('${i.clientId}')">📄 Plan d'implantation (PDF)</button>
-      <button class="btn sm" onclick="papImplantationEnvoyer('${i.clientId}')">✉️ Envoyer au client</button>
-    </div>
-    ${pl.implantationEnvoyee?`<div style="font-size:11px;color:var(--acc-txt);margin-top:6px">✓ Envoyé le ${new Date(pl.implantationEnvoyee.ts).toLocaleDateString('fr-FR')}${pl.implantationEnvoyee.par?' par '+esc(pl.implantationEnvoyee.par):''}</div>`:''}
-  </div>`;
+  if(canEd) h+=papImplCarteHtml(i);   // v740 : l'état du client ET de ce passage (papImplCarteHtml)
   return h; }
 /* ── Écran « zéro saisie » : création automatique du plan du site ── */
 function papAutoCard(i,canEd){
@@ -20636,10 +20726,13 @@ function papSheetZone(intId,posteId,v){ const i=db.interventions.find(x=>x.id===
   const isAppat=!po.type||po.type==='appat';
   if(v&&isAppat&&papZoneAlimName(v)){ // blocage conformité au moment du choix de la zone
     papAlimBlock({nom:v},`papPosteSheet('${intId}','${posteId}')`); return; }
+  /* v740 : la zone s'imprime sur le plan d'implantation — le changement se note dans l'historique du plan */
+  if((po.zone||'')!==(v||'')) papTouch(hit.pl,'Poste n°'+po.num+' : zone « '+(v||'—')+' »');
   po.zone=v||''; save(); papPosteSheet(intId,posteId); }
 function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
   const old=hit.po.produitId;
+  if((old||'')!==(pid||'')) papTouch(hit.pl,'Poste n°'+hit.po.num+' : produit posé « '+((pid&&produit(pid).nom)||'aucun')+' »');   // v740 : imprimé, avec son n° d'AMM
   hit.po.produitId=pid||'';
   // l'appât posé sur un poste compte dans les produits utilisés → déduit du stock et tracé au registre
   i.produitsUtilises=i.produitsUtilises||[];
@@ -20648,6 +20741,7 @@ function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.
   save(); papPosteSheet(intId,posteId); }
 function papSheetSecure(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
+  if(!!hit.po.secure!==!!v) papTouch(hit.pl,'Poste n°'+hit.po.num+' : '+(v?'boîte sécurisée':'boîte non sécurisée'));   // v740 : imprimé
   hit.po.secure=!!v; save(); }
 function papSheetTubes(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
@@ -20692,62 +20786,376 @@ function papPlanPrintHtml(pl,etatOf){
     <defs><pattern id="papg${pid}" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="#e9edf4" stroke-width="1"/></pattern></defs>
     <rect width="768" height="768" fill="#ffffff"/><rect width="768" height="768" fill="url(#papg${pid})"/>
     ${base}${roomsSvg}${postesSvg}</svg></div>`; }
-/* ── Plan d'implantation délivré une fois (PDF + envoi client) ── */
-function papPrintImplantation(cid){
-  if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
-  const c=db.clients.find(x=>x.id===cid); if(!c) return;
-  const plans=plansOf(cid).filter(p=>(p.postes||[]).length||(p.rooms||[]).length);
-  if(!plans.length){ toast('Aucun plan avec des postes pour ce client'); return; }
-  const E=db.entreprise||{}; const soc=papSocOf(cid);
-  const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
-  const rows=[];
-  plans.forEach(pl=>(pl.postes||[]).forEach(po=>{ const zone=papZoneOf(pl,po);
-    const prod=db.produits.find(p=>p.id===po.produitId)||{};
-    rows.push(`<tr><td><b>${po.num}</b></td><td>${esc(pl.nom)}${zone?' — '+esc(zone):''}</td><td>${esc((PA_TYPES[po.type]||PA_TYPES.appat).lbl)}</td><td>${esc(prod.nom||'—')}</td><td>${esc(prod.amm||'—')}</td><td>${po.secure?'🔒 Oui':'—'}</td></tr>`); }));
-  const plansHtml=plans.map(pl=>`<div style="page-break-inside:avoid;margin:16px 0"><b style="font-size:12px">${esc(pl.nom)} — Plan ${papPlanNum(pl)} · version ${pl.version||1}</b>${papPlanPrintHtml(pl,null)}</div>`).join('');
-  const legend=`<p style="font-size:10.5px;color:#555;margin:6px 0 0">■ appât rodonticide sécurisé · ● piège mécanique · ◆ détecteur insectes / DEIV — cadre orange : zone de production alimentaire (appâts rodonticides exclus).</p>`;
-  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Plan d'implantation — ${esc(c.nom)}</title>
-    <style>*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}body{margin:0;padding:36px;color:#1A1F28;font-size:12px}
-    .hd{display:flex;justify-content:space-between;border-bottom:3px solid #1E7A4E;padding-bottom:14px;margin-bottom:18px}
-    .logo{font-size:22px;font-weight:800;color:#1E7A4E;letter-spacing:1px}.logo small{display:block;font-size:11px;color:#666;font-weight:400}
-    h1{font-size:17px;margin:0}.muted{color:#666;font-size:11.5px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin:10px 0}
-    table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#1E7A4E;color:#fff;padding:6px 7px;text-align:left;font-size:11px}td{padding:6px 7px;border-bottom:1px solid #E3E8F0;font-size:11px}
-    .sig{display:flex;gap:28px;margin-top:26px}.sig div{flex:1;border:1px dashed #9aa3b2;border-radius:8px;min-height:90px;padding:8px;font-size:11px;color:#666}
-    .ft{margin-top:26px;font-size:10px;color:#999;text-align:center}@media print{body{padding:16px}}</style></head>
-    <body><div class="hd"><div class="logo">${esc(soc)}<small>Plan d'implantation des postes</small>${(()=>{const l=[[E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),[E.tel?'Tél. '+E.tel:'',E.siret?'SIRET '+E.siret:''].filter(Boolean).join(' · ')].filter(Boolean);return l.map(x=>`<div class="muted">${esc(x)}</div>`).join('');})()}</div>
-      <div style="text-align:right"><h1>PLAN D'IMPLANTATION</h1><div class="muted">${plans.map(pl=>papPlanNum(pl)).join(' · ')}<br>Version ${plans.map(pl=>pl.version||1).join(' / ')} — ${new Date((todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</div></div></div>
-      <div class="box"><b>Client :</b> ${esc(c.nom)}${c.adresse?' · <b>Site :</b> '+esc(c.adresse):''}<br>
-        <span class="muted"><b>Technicien :</b> ${esc((currentUser&&fullName(currentUser))||'—')} · ${plans.length} plan(s) · ${rows.length} poste(s)</span></div>
-      ${plansHtml}${legend}
-      <h3 style="font-size:13px;margin-top:16px">Détail des postes</h3>
-      <table><thead><tr><th>N°</th><th>Plan / pièce</th><th>Type</th><th>Produit</th><th>N° AMM</th><th>Sécurisé</th></tr></thead><tbody>${rows.join('')}</tbody></table>
-      <p style="font-size:10px;color:#777;margin-top:12px">${esc(MENTION_REGL)}</p>
-      <div class="sig"><div>Signature du client<br><span style="font-size:9.5px">« Plan d'implantation reçu et approuvé »</span></div><div>Signature du technicien</div></div>
-      <div class="ft">${esc(soc)} — Plan d'implantation généré le ${new Date().toLocaleDateString('fr-FR')} — document à conserver dans le registre sanitaire</div>
-    </body></html>`);
-  w.document.close(); w.focus(); setTimeout(()=>{ try{w.print();}catch(e){} },350); }
-function papImplantationEnvoyer(cid){
-  if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
-  const c=db.clients.find(x=>x.id===cid); if(!c) return;
-  if(!c.email){ toast('Ajoute l’e-mail du client dans sa fiche'); return; }
-  const plans=plansOf(cid).filter(p=>(p.postes||[]).length);
-  if(!plans.length){ toast('Aucun plan avec des postes'); return; }
+/* ══ PLAN D'IMPLANTATION — REMIS À CHAQUE PASSAGE (v740) ═══════════════════════════════════
+   Justin, 23 septembre 2026 : « à chaque intervention il envoie un nouveau plan s'il a été
+   modifié, sinon il renvoie le même, c'est tout ». Trois choses en découlent, et aucune n'était
+   vraie jusqu'ici :
+   · « modifié » se lit sur le CONTENU imprimé, pas sur `pl.version` — trois gestes de la fiche
+     poste (zone, produit posé, boîte sécurisée) changeaient le document sans monter la version,
+     corriger un n° d'AMM dans la fiche produit aussi, et la fusion de `plansSite` prend le
+     tableau d'un client en bloc : deux appareils peuvent chacun écrire une « version 3 ».
+     L'empreinte de ce que le document AFFICHE est l'arbitre ; la version reste le numéro que le
+     client range dans son registre, et elle monte d'un cran à chaque nouveau contenu envoyé ;
+   · l'envoi se lit PAR PASSAGE (`i.planEnvoi`) : un « ✓ Envoyé » d'il y a trois mois ne dit rien
+     du passage d'aujourd'hui ;
+   · le client REÇOIT le document. Le courriel disait « veuillez trouver le plan » sans rien
+     joindre, et portait une phrase destinée au technicien (« le PDF s'ouvre pour être joint »).
+     Le plan part désormais en PDF joint, construit ici sans bibliothèque, et rien ne part
+     quand le PDF ne peut pas être construit. */
+const PAP_IMPL_MAX_B64=5000000;   // sous les 5 500 000 caractères que le serveur accepte (server/index.js, /api/sendmail)
+/* Les plans qui implantent quelque chose : ceux qui portent au moins un poste. L'aperçu, l'envoi
+   et l'état lisent la MÊME sélection — l'aperçu prenait aussi les plans à pièces sans poste. */
+function papImplPlans(cid){ return plansOf(cid).filter(p=>(p.postes||[]).length); }
+/* L'empreinte d'une photo de plan pèse des centaines de Ko : on la garde tant que la chaîne ne
+   change pas (comparée en entier, pas à sa longueur). */
+const _papImgEmp=new Map();
+function papImgEmpreinte(pl){ const s=String(pl.img||''); if(!s) return '';
+  const c=_papImgEmp.get(pl.id); if(c&&c.s===s) return c.h;
+  const h=s.length+':'+recEmpreinte(s); _papImgEmp.set(pl.id,{s,h}); return h; }
+/* Ce que le document imprime, et rien d'autre : ni `version`, ni `historique`, ni la trace
+   d'envoi, ni `_m`, ni la date des tubes UV (non imprimée), ni l'en-tête. */
+function papImplContenuPlan(pl){
+  const geo=pl.mode==='geo';
+  return { id:pl.id, nom:pl.nom||'', mode:pl.mode||'img', fond:pl.fond||'',
+    img:(pl.mode!=='geo'&&pl.mode!=='rooms')?papImgEmpreinte(pl):'',
+    geo:geo?{bat:pl.bat||[],autres:pl.autres||[],center:pl.center||null,zoom:pl.zoom||19}:null,
+    rooms:(pl.rooms||[]).map(r=>[r.x,r.y,r.w,r.h,r.nom||'',!!r.zoneAlim]),
+    postes:(pl.postes||[]).map(po=>{ const pr=(db.produits||[]).find(p=>p.id===po.produitId)||{};
+      return [po.id,po.num,po.x,po.y,po.type||'appat',papZoneOf(pl,po)||'',pr.nom||'',pr.amm||'',!!po.secure]; }) }; }
+function papImplEmpreintes(cid){ const par={}; const plans=papImplPlans(cid);
+  plans.forEach(pl=>{ par[pl.id]=recEmpreinte(papImplContenuPlan(pl)); });
+  return { doc:recEmpreinte(plans.map(pl=>[pl.id,par[pl.id]])), par }; }
+/* Le dernier envoi connu pour ce client : sur les plans (ce qu'un appareil d'avant écrit aussi)
+   ET sur les passages — les interventions se fusionnent enregistrement par enregistrement, donc
+   la trace du passage survit quand l'autre appareil gagne `plansSite` en bloc. */
+function papImplDernier(cid){ let d=null;
+  const prendre=x=>{ if(x&&x.ts&&(!d||x.ts>d.ts)) d=x; };
+  plansOf(cid).forEach(pl=>prendre(pl.implantationEnvoyee));
+  (db.interventions||[]).forEach(i=>{ if(i.clientId===cid) prendre(i.planEnvoi); });
+  return d; }
+/* Le dernier envoi d'UN plan, avec son empreinte et sa version : même double source. */
+function papImplDernierPlan(cid,pl){ let d=null;
+  const e=pl.implantationEnvoyee; if(e&&e.ts&&e.emp) d={ts:e.ts,v:e.v,emp:e.emp};
+  (db.interventions||[]).forEach(i=>{ const x=i.clientId===cid&&i.planEnvoi; if(!x||!x.ts||!Array.isArray(x.plans)) return;
+    const l=x.plans.find(q=>q&&q[0]===pl.id); if(l&&l[2]&&(!d||x.ts>d.ts)) d={ts:x.ts,v:l[1],emp:l[2]}; });
+  return d; }
+/* L'état d'un client, et ce qui partirait maintenant. PUR : rien ne s'écrit à l'affichage.
+   Un plan inchangé repart avec la version DÉJÀ envoyée ; un plan changé monte d'un cran au-dessus
+   de ce qui a été envoyé (ou garde sa version s'il l'a déjà dépassée par un geste noté). */
+function papImplEtat(cid){
+  const plans=papImplPlans(cid), emp=papImplEmpreintes(cid), dernier=papImplDernier(cid);
+  const plan=plans.map(pl=>{ const e=papImplDernierPlan(cid,pl);
+    const change=!e||e.emp!==emp.par[pl.id];
+    const v=!change?(e.v||pl.version||1):Math.max(pl.version||1,e&&e.v?e.v+1:1);
+    return {pl,change,v,emp:emp.par[pl.id]}; });
+  let etat;
+  if(!dernier) etat='jamais';
+  else if(!dernier.doc) etat='inconnu';           // envoyé avant le suivi (v739 et avant) : on ne sait pas
+  else etat=(dernier.doc===emp.doc)?'inchange':'modifie';
+  const depuis=(etat==='inchange')?(dernier.depuis||dernier.ts):0;
+  return {etat,dernier,emp,plans:plan,depuis}; }
+function papImplEtatTxt(st){
+  const d=st.dernier, qui=d&&d.par?' par '+d.par:'', le=d?new Date(d.ts).toLocaleDateString('fr-FR'):'';
+  const vs=st.plans.map(x=>x.v).join(' / ');
+  if(st.etat==='jamais') return {t:'Jamais envoyé à ce client.', b:'✉️ Envoyer le plan (version '+vs+')'};
+  if(st.etat==='inchange') return {t:'Inchangé depuis l’envoi du '+le+qui+' — version '+vs+'.', b:'✉️ Renvoyer le même plan'};
+  if(st.etat==='modifie') return {t:'Modifié depuis l’envoi du '+le+qui+'.', b:'✉️ Envoyer le nouveau plan (version '+vs+')'};
+  return {t:'Envoyé le '+le+qui+', avant le suivi des modifications : on ne sait pas s’il a changé depuis. Le plan actuel partira (version '+vs+').', b:'✉️ Envoyer le plan actuel'}; }
+/* Largeur réelle d'un texte en Helvetica (métriques AFM des 95 caractères ASCII, en millièmes
+   d'em) : les fabriques existantes estiment 0,545 em par signe, ce qui fait déborder un titre en
+   capitales grasses de la marge droite. Une lettre accentuée a la largeur de sa lettre de base. */
+const _PDF_L=[
+  '278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 278 278 584 584 584 556 1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 667 778 722 667 611 722 667 944 667 667 611 278 278 278 469 556 333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 556 556 333 500 278 556 500 722 500 500 500 334 260 334 584',
+  '278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 333 333 584 584 584 611 975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 667 778 722 667 611 722 667 944 667 667 611 333 278 333 584 556 333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 611 611 389 556 333 611 556 778 556 556 500 389 280 389 584'
+].map(l=>l.split(' ').map(Number));
+function _pdfLarg(txt,sz,gras){ const t=_PDF_L[gras?1:0]; let w=0;
+  for(const ch of String(txt==null?'':txt)){ let c=ch.normalize('NFD').codePointAt(0);
+    if(c>=32&&c<=126) w+=t[c-32]; else if(c===0x2014||c===0x2026) w+=1000; else if(c===0x2013||c===0xAB||c===0xBB||c===0x20AC) w+=556;
+    else if(c===0x2019||c===0x2018) w+=gras?278:222; else if(c===0x152||c===0x153) w+=1000; else w+=556; }
+  return w*sz/1000; }
+/* Coupe un texte à une largeur donnée, avec « … » */
+function _pdfCoupe(txt,sz,gras,max){ let s=String(txt==null?'':txt); if(_pdfLarg(s,sz,gras)<=max) return s;
+  while(s.length>1&&_pdfLarg(s+'…',sz,gras)>max) s=s.slice(0,-1); return s.replace(/\s+$/,'')+'…'; }
+/* ── Le PDF, écrit à la main comme le bon de commande et le devis ──
+   Les plans « geo » et « rooms » se DESSINENT en vecteurs depuis la même géométrie que l'écran
+   (papLL2F, papFrac, papMPerPx) : net, quelques Ko, et exécutable hors navigateur. Un plan photo
+   embarque sa photo en JPEG (DCTDecode) — convertie avant par le canevas (papImplPreparer), qui
+   donne aussi sa largeur et sa hauteur sans lire l'en-tête du fichier. Les symboles ■ ● ◆ ▲
+   n'existent pas en WinAnsi : ils sont dessinés, jamais écrits. `E` est l'en-tête de la société
+   (nom, couleur, lignes, logo) ; `imgs[pl.id]` la photo prête ; `meta` ce qui ne se déduit pas
+   des plans (versions imprimées, date de vigueur, passage, technicien). */
+function papImplPdfStr(cid,E,imgs,meta){
+  meta=meta||{}; imgs=imgs||{};
+  const c=(db.clients||[]).find(x=>x.id===cid)||{}; const plans=meta.plans||papImplPlans(cid);
+  const hx=/^#[0-9a-fA-F]{6}$/.test(E&&E.couleur||'')?E.couleur:'#1E7A4E';
+  const rgbS=h=>[1,3,5].map(i=>(parseInt(h.slice(i,i+2),16)/255).toFixed(3)).join(' ');
+  const ACC=rgbS(hx), ACCLT=[1,3,5].map(i=>(0.93+parseInt(hx.slice(i,i+2),16)/255*0.07).toFixed(3)).join(' ');
+  const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', LINE='0.85 0.88 0.91', POSTE=rgbS('#64748b');
+  const W=595,H=842,M=42,RGT=W-M;
+  const pages=[]; let ops=[]; let y;
+  const f2=v=>(+v).toFixed(1);
+  const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',f2(x)+' '+f2(yy)+' Td','('+_pdfTxt(txt)+') Tj','ET');
+  const larg=(txt,sz,b)=>_pdfLarg(txt,sz,b);
+  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-larg(txt,sz,bold),yy,sz,txt,bold,col);
+  const TC=(xc,yy,sz,txt,bold,col)=>T(xc-larg(txt,sz,bold)/2,yy,sz,txt,bold,col);
+  const TW=(x,yy,sz,txt,bold,col,max)=>T(x,yy,sz,_pdfCoupe(txt,sz,bold,max),bold,col);
+  const R=(x,yy,w,h,col)=>ops.push(col+' rg',f2(x)+' '+f2(yy)+' '+f2(w)+' '+f2(h)+' re f');
+  const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
+  const wrap=(s,n)=>{ const out=[]; let cur=''; String(s||'').split(/\s+/).filter(Boolean).forEach(w=>{ if(cur&&(cur+' '+w).length>n){ out.push(cur); cur=w; } else cur=cur?cur+' '+w:w; }); if(cur) out.push(cur); return out; };
+  const dateFr=ts=>{ try{ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } };
+  const vOf=pl=>(meta.versions&&meta.versions[pl.id])||pl.version||1;
+  /* formes des postes, en coordonnées PDF (centre x,y ; demi-taille r) */
+  const forme=(sh,x,yy,r,fill)=>{ const k=0.5523*r;
+    ops.push(fill+' rg','1 1 1 RG',f2(Math.max(1,r*0.2))+' w');
+    if(sh==='ci') ops.push(f2(x+r)+' '+f2(yy)+' m',f2(x+r)+' '+f2(yy+k)+' '+f2(x+k)+' '+f2(yy+r)+' '+f2(x)+' '+f2(yy+r)+' c',
+      f2(x-k)+' '+f2(yy+r)+' '+f2(x-r)+' '+f2(yy+k)+' '+f2(x-r)+' '+f2(yy)+' c',f2(x-r)+' '+f2(yy-k)+' '+f2(x-k)+' '+f2(yy-r)+' '+f2(x)+' '+f2(yy-r)+' c',
+      f2(x+k)+' '+f2(yy-r)+' '+f2(x+r)+' '+f2(yy-k)+' '+f2(x+r)+' '+f2(yy)+' c','h B');
+    else if(sh==='di'){ const d=r*1.12; ops.push(f2(x)+' '+f2(yy+d)+' m',f2(x+d)+' '+f2(yy)+' l',f2(x)+' '+f2(yy-d)+' l',f2(x-d)+' '+f2(yy)+' l','h B'); }
+    else ops.push(f2(x-r)+' '+f2(yy-r)+' '+f2(2*r)+' '+f2(2*r)+' re B'); };
+  const posteDessin=(pl,po,px,py,s)=>{ const sh=(PA_TYPES[po.type]||PA_TYPES.appat).shape; const r=Math.max(5,12*s);
+    forme(sh,px,py,r,POSTE); const n=String(po.num||''); const sz=Math.max(5.5,11*s);
+    TC(px,py-sz*0.36,sz,n,1,'1 1 1');
+    const z=papZoneOf(pl,po); if(z){ const zs=Math.max(5,9*s), zt=cut(z,16), zw=larg(zt,zs,1)+4;
+      R(px-zw/2,py-r-zs-3,zw,zs+2,'1 1 1'); TC(px,py-r-zs-1.2,zs,zt,1,'0.24 0.29 0.38'); } };
+  /* le cadre d'un plan : un carré de 768 unités (geo, rooms) ou la photo à sa proportion */
+  const planDessin=(pl,x0,ytop,bw,bh)=>{
+    const y0=ytop-bh;
+    ops.push(LINE+' RG','0.8 w',f2(x0)+' '+f2(y0)+' '+f2(bw)+' '+f2(bh)+' re S');
+    if(pl.mode==='geo'||pl.mode==='rooms'){
+      const s=bw/768; const P=(u,v)=>[x0+u*s, ytop-v*s];
+      ops.push('0.914 0.929 0.957 RG','0.4 w');                         // quadrillage #e9edf4 tous les 26
+      for(let g=26;g<768;g+=26){ const a=P(g,0),b=P(g,768),cc=P(0,g),d=P(768,g); ops.push(f2(a[0])+' '+f2(a[1])+' m '+f2(b[0])+' '+f2(b[1])+' l S',f2(cc[0])+' '+f2(cc[1])+' m '+f2(d[0])+' '+f2(d[1])+' l S'); }
+      if(pl.mode==='geo'&&pl.center){
+        const poly=(ring,fill,stroke,lw)=>{ if(!(ring||[]).length) return; const pts=ring.map(p=>{ const f=papLL2F(pl,p[0],p[1]); return P(f[0]*768,f[1]*768); });
+          ops.push(rgbS(fill)+' rg',rgbS(stroke)+' RG',f2(lw*s)+' w',pts.map((q,k)=>f2(q[0])+' '+f2(q[1])+(k?' l':' m')).join(' ')+' h B'); };
+        (pl.autres||[]).forEach(r=>poly(r,'#f1f4f9','#c3ccdb',1.2));
+        poly(pl.bat,'#e9f2ec','#1A1F28',3);
+        const mpp=papMPerPx(pl); const m=[2,5,10,20,50].find(t=>t/mpp>=80)||50; const wm=m/mpp;
+        const a=P(22,745); R(a[0],a[1],wm*s,5*s,rgbS('#1A1F28')); T(a[0],P(0,732)[1],Math.max(6,15*s),m+' m',0,rgbS('#1A1F28'));
+        const nn=P(736,40); TC(nn[0],nn[1],Math.max(7,17*s),'N',1,rgbS('#1A1F28'));
+        const t0=P(736,46), t1=P(728,62), t2=P(744,62); ops.push(rgbS('#1A1F28')+' rg',f2(t0[0])+' '+f2(t0[1])+' m '+f2(t1[0])+' '+f2(t1[1])+' l '+f2(t2[0])+' '+f2(t2[1])+' l h f'); }
+      (pl.rooms||[]).forEach(r=>{ const a=P(r.x*768,(r.y+r.h)*768);
+        ops.push(rgbS(r.zoneAlim?'#fdf7ef':'#fafbfc')+' rg',rgbS(r.zoneAlim?'#E79A3C':'#8a93a8')+' RG',f2(2.5*s)+' w',f2(a[0])+' '+f2(a[1])+' '+f2(r.w*768*s)+' '+f2(r.h*768*s)+' re B');
+        const t=P(r.x*768+9,r.y*768+21); T(t[0],t[1],Math.max(5.5,13*s),cut(String(r.nom||'').toUpperCase()+(r.zoneAlim?' (ZONE ALIM.)':''),30),1,rgbS(r.zoneAlim?'#c9871f':'#8a93a8')); });
+      (pl.postes||[]).forEach(po=>{ const f=papFrac(pl,po); const q=P(f.x*768,f.y*768); posteDessin(pl,po,q[0],q[1],s); });
+    } else {
+      const im=imgs[pl.id];
+      if(im&&im.nom) ops.push('q',f2(bw)+' 0 0 '+f2(bh)+' '+f2(x0)+' '+f2(y0)+' cm','/'+im.nom+' Do','Q');
+      const s=bw/480; const P=(fx,fy)=>[x0+fx*bw, ytop-fy*bh];
+      (pl.rooms||[]).forEach(r=>{ const a=P(r.x,r.y+r.h);
+        ops.push(rgbS(r.zoneAlim?'#E79A3C':'#8a93a8')+' RG','1.6 w',f2(a[0])+' '+f2(a[1])+' '+f2(r.w*bw)+' '+f2(r.h*bh)+' re S');
+        const t=P(r.x,r.y); const nm=cut(String(r.nom||'').toUpperCase(),24); if(nm){ const sz=7; R(t[0]+2,t[1]-sz-3,larg(nm,sz,1)+4,sz+3,'1 1 1'); T(t[0]+4,t[1]-sz-1.5,sz,nm,1,rgbS(r.zoneAlim?'#c9871f':'#5b6474')); } });
+      (pl.postes||[]).forEach(po=>{ const f=papFrac(pl,po); const q=P(f.x,f.y); posteDessin(pl,po,q[0],q[1],Math.max(0.55,s*0.9)); });
+    } };
+  const pied=(i,n)=>['0.85 0.88 0.91 rg',M+' 56 '+(W-2*M)+' 0.8 re f',
+    GREY+' rg','BT','/F1 7.2 Tf',M+' 44 Td','('+_pdfTxt(_pdfCoupe((E.nom||'')+' — Plan d’implantation, à conserver dans le registre sanitaire — édité le '+new Date(meta.edite||Date.now()).toLocaleDateString('fr-FR'),7.2,0,RGT-60-M))+') Tj','ET',
+    GREY+' rg','BT','/F1 7.5 Tf',(RGT-40)+' 44 Td','('+_pdfTxt('Page '+i+'/'+n)+') Tj','ET'].join('\n');
+  const nouvellePage=()=>{ pages.push(ops.join('\n')); ops=[]; R(0,H-6,W,6,ACC); y=H-M-10; };
+  /* ─ en-tête */
+  R(0,H-6,W,6,ACC); y=H-M-16;
+  let nx=M; if(E.logo&&E.logo.b64){ const lh=34, lw=Math.round(E.logo.w*(lh/E.logo.h)); ops.push('q',lw+' 0 0 '+lh+' '+f2(M)+' '+f2(y-9)+' cm','/L1 Do','Q'); nx=M+lw+12; }
+  TW(nx,y,19,E.nom||'',1,ACC,RGT-190-nx);
+  TR(RGT,y+3,15,'PLAN D’IMPLANTATION',1,DARK);
+  TR(RGT,y-12,9,_pdfCoupe(plans.map(papPlanNum).join(' · '),9,1,250),1,GREY);
+  TR(RGT,y-24,8.5,_pdfCoupe('Version '+plans.map(vOf).join(' / ')+(meta.depuis?' — en vigueur depuis le '+dateFr(meta.depuis):''),8.5,0,300),0,GREY);
+  /* sous le nom, à droite du logo, et sans passer sous la colonne de droite : une ligne trop longue
+     se coupe à ses « · » (SIRET, TVA) plutôt que de perdre sa fin */
+  const lgMax=RGT-310-nx; let ey=y-14;
+  (E.lignes||[]).flatMap(t=>_pdfLarg(t,8.3,0)<=lgMax?[t]:String(t).split(/\s+·\s+/)).forEach(t=>{ TW(nx,ey,8.3,t,0,GREY,lgMax); ey-=10.5; });
+  y=Math.min(y-34,ey-6); R(M,y,W-2*M,1.4,ACC); y-=14;
+  /* ─ client et passage */
   const nb=plans.reduce((s,p)=>s+(p.postes||[]).length,0);
-  const soc=papSocOf(cid);
-  const corps='Bonjour,\n\nVeuillez trouver le plan d\'implantation des postes de votre site : '+plans.length+' plan(s), '+nb+' poste(s).\n\nCe document décrit l\'emplacement, le type et la sécurisation de chaque poste, ainsi que les produits utilisés et leurs numéros d\'AMM (le PDF s\'ouvre pour être joint).\n\nCordialement,\n'+soc;
-  const ts=Date.now(), par=(currentUser&&fullName(currentUser))||'';
-  plans.forEach(pl=>{ pl.implantationEnvoyee={ts,par}; });
-  save();
-  papPrintImplantation(cid);
-  setTimeout(()=>{ srvMail(c.email,'Plan d\'implantation des postes — '+soc,corps,'✉️ Plan d\'implantation envoyé à '+c.email,'rapport',null,soc!=='OP GESTION'?{brandName:soc}:undefined); },700);
-  if(window._curIntId) renderIntDetail(window._curIntId); }
+  const cl=[c.nom||'—',[c.adresse,[c.cp,c.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+    [meta.passage?'Passage du '+dateFr(meta.passage):'',meta.technicien?'Technicien : '+meta.technicien:'',plans.length+' plan(s) · '+nb+' poste(s)'].filter(Boolean).join('  ·  ')].filter(Boolean);
+  const ph=20+cl.length*13; R(M,y-ph+10,W-2*M,ph,ACCLT); T(M+10,y-4,8,'CLIENT ET SITE',1,ACC);
+  cl.forEach((t,k)=>TW(M+10,y-18-k*13,k===0?10.5:8.6,t,k===0?1:0,k===0?DARK:GREY,W-2*M-20)); y-=ph+12;
+  /* ─ légende, formes dessinées */
+  const leg=[['sq','Appât rodonticide sécurisé'],['ci','Piège mécanique'],['di','Insectes / DEIV']]; let lx=M;
+  leg.forEach(([sh,t])=>{ forme(sh,lx+5,y+3,4.5,POSTE); T(lx+14,y,8,t,0,GREY); lx+=26+larg(t,8); });
+  y-=12; ops.push(rgbS('#E79A3C')+' RG','1.4 w',f2(M+1)+' '+f2(y-1)+' 9 7 re S'); T(M+14,y,8,'Cadre orange : zone de production alimentaire — appâts rodonticides exclus.',0,GREY); y-=16;
+  /* ─ un plan par bloc, sur toute la largeur utile */
+  plans.forEach(pl=>{
+    const im=imgs[pl.id]; const carre=(pl.mode==='geo'||pl.mode==='rooms');
+    let bw=W-2*M, bh=carre?bw:(im&&im.w?bw*im.h/im.w:bw*0.75);
+    const maxH=H-2*M-80; if(bh>maxH){ bw=bw*maxH/bh; bh=maxH; }
+    if(y-bh-18<74) nouvellePage();
+    TW(M,y,10,(pl.nom||'Plan')+' — Plan '+papPlanNum(pl)+' · version '+vOf(pl),1,DARK,W-2*M); y-=8;
+    planDessin(pl,M+(W-2*M-bw)/2,y,bw,bh); y-=bh+18; });
+  /* ─ détail des postes */
+  const cols=[M+6,M+30,M+176,M+274,M+400,M+470], larges=[22,140,92,120,66,40];
+  const tete=()=>{ R(M,y-5,W-2*M,19,ACC); ['N°','Plan / pièce','Type','Produit','N° AMM','Sécurisé'].forEach((t,k)=>TW(cols[k],y+1,8,t,1,'1 1 1',larges[k])); y-=21; };
+  if(y<150) nouvellePage(); T(M,y,11,'Détail des postes',1,DARK); y-=16; tete();
+  let rang=0;
+  plans.forEach(pl=>(pl.postes||[]).forEach(po=>{
+    if(y<96){ nouvellePage(); tete(); }
+    const pr=(db.produits||[]).find(p=>p.id===po.produitId)||{}; const z=papZoneOf(pl,po);
+    if(rang++%2) R(M,y-5,W-2*M,15,'0.962 0.97 0.976');
+    const v=[String(po.num||''),(pl.nom||'')+(z?' — '+z:''),(PA_TYPES[po.type]||PA_TYPES.appat).lbl,pr.nom||'—',pr.amm||'—',po.secure?'Oui':'—'];
+    v.forEach((t,k)=>TW(cols[k],y,k===0?8.4:8,t,k===0||(k===5&&po.secure)?1:0,DARK,larges[k])); y-=15; }));
+  /* ─ mention réglementaire et signatures */
+  const ml=wrap(MENTION_REGL,118); if(y-ml.length*10-110<70) nouvellePage();
+  y-=8; ml.forEach(t=>{ T(M,y,7.6,t,0,GREY); y-=10; }); y-=10;
+  const sw=(W-2*M-20)/2;
+  [[M,'Signature du client','« Plan d’implantation reçu et approuvé »'],[M+sw+20,'Signature du technicien','']].forEach(([x,a,b])=>{
+    ops.push('0.60 0.64 0.70 RG','0.8 w','[3 3] 0 d',f2(x)+' '+f2(y-78)+' '+f2(sw)+' 80 re S','[] 0 d'); T(x+8,y-12,8.5,a,1,DARK); if(b) T(x+8,y-24,7.5,b,0,GREY); });
+  y-=90;
+  pages.push(ops.join('\n'));
+  for(let i=0;i<pages.length;i++) pages[i]+='\n'+pied(i+1,pages.length);
+  /* ─ objets */
+  const objs=[]; objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
+  objs[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  let n=5; const xo=[];
+  const image=(nom,o)=>{ const bin=atob(o.b64); const io=n++;
+    objs[io]={s:bin,dict:'<< /Type /XObject /Subtype /Image /Width '+o.w+' /Height '+o.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bin.length+' >>'};
+    xo.push('/'+nom+' '+io+' 0 R'); };
+  if(E.logo&&E.logo.b64) image('L1',E.logo);
+  Object.keys(imgs).forEach(k=>{ const o=imgs[k]; if(o&&o.b64&&o.nom) image(o.nom,o); });
+  const res='/Font << /F1 3 0 R /F2 4 0 R >>'+(xo.length?' /XObject << '+xo.join(' ')+' >>':'');
+  const kids=[];
+  pages.forEach(ct0=>{ const pg=n++, ct=n++; kids.push(pg+' 0 R');
+    objs[pg]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << '+res+' >> /Contents '+ct+' 0 R >>';
+    objs[ct]={s:ct0}; });
+  objs[2]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+pages.length+' >>';
+  let out='%PDF-1.4\n'; const offs=[];
+  for(let i=1;i<objs.length;i++){ offs[i]=out.length; const o=objs[i];
+    out+=(o&&o.s!==undefined)?i+' 0 obj\n'+(o.dict||('<< /Length '+o.s.length+' >>'))+'\nstream\n'+o.s+'\nendstream\nendobj\n':i+' 0 obj\n'+o+'\nendobj\n'; }
+  const xr=out.length;
+  out+='xref\n0 '+objs.length+'\n0000000000 65535 f \n';
+  for(let i=1;i<objs.length;i++) out+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
+  out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+  return out; }
+/* ── Préparer les images : la photo de chaque plan et le logo, en JPEG, par le canevas ──
+   La source est une donnée locale (pl.img, le logo de la société) : le canevas n'est pas
+   « souillé ». Une photo qui ne se décode pas n'est PAS remplacée par un cadre vide : on le dit. */
+function papImplJpeg(src,max,q){
+  return new Promise(res=>{ if(!src){ res(null); return; }
+    const im=new Image();
+    im.onload=()=>{ try{ let w=im.naturalWidth||im.width, h=im.naturalHeight||im.height; if(!w||!h){ res(null); return; }
+      if(w>max||h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } }
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const cx=cv.getContext('2d');
+      cx.fillStyle='#fff'; cx.fillRect(0,0,w,h); cx.drawImage(im,0,0,w,h);
+      res({b64:cv.toDataURL('image/jpeg',q).split(',')[1],w,h}); }catch(e){ res(null); } };
+    im.onerror=()=>res(null); im.src=src; }); }
+/* Le document complet, prêt à partir : la même fabrique sert l'aperçu et l'envoi, donc ce que
+   la personne regarde est ce que reçoit le client. Rend {pdf, b64, nom} ou {err}. */
+async function papImplDocument(cid,i,st){
+  const c=(db.clients||[]).find(x=>x.id===cid)||{};
+  /* La société de CETTE intervention (Justin : « chaque en-tête doit reconnaître l'entreprise qui
+     est sur l'intervention ») ; générique, celle qui sert le client ; sinon l'entreprise. */
+  const soc=(i&&socNom(i.rapportModele))?i.rapportModele:socDuClient(cid), H=docEntete(soc);
+  const E={nom:H.nom,couleur:H.couleur,lignes:docCoordLignes(H),expediteur:(docMailOpts(soc)||{}).brandName||''};
+  /* L'INSTANTANÉ, pris avant le premier `await` : la compression des photos prend du temps, et une
+     synchro ou un poste déplacé pendant ce temps ferait partir un PDF qui ne correspond plus à la
+     version, au texte du courriel ni à la trace (relecture du 23 septembre 2026). */
+  const figes=st.plans.map(x=>JSON.parse(JSON.stringify(x.pl)));
+  let logo=null; try{ logo=H.logo?await devisLogoJpeg(H.logo):null; }catch(e){}
+  const meta={ versions:Object.fromEntries(st.plans.map(x=>[x.pl.id,x.v])),
+    depuis:st.etat==='inchange'?st.depuis:Date.now(), edite:Date.now(),
+    passage:i&&i.date?new Date(i.date+'T00:00:00').getTime():0, technicien:(currentUser&&fullName(currentUser))||'' };
+  for(const [max,q] of [[1400,0.8],[900,0.6]]){
+    const imgs={}; let k=0;
+    for(const pl of figes){ if(pl.mode==='geo'||pl.mode==='rooms') continue;
+      if(!pl.img) continue;                                   // un plan sans photo : ses postes se dessinent sur fond blanc
+      const j=await papImplJpeg(pl.img,max,q);   // une photo de plan ne sort jamais du document (plansSite est un dictionnaire, syncSortirPieces ne le visite pas)
+      if(!j) return {err:'La photo du plan « '+(pl.nom||'Plan')+' » ne peut pas être mise en PDF — rien n’est parti.'};
+      imgs[pl.id]={...j,nom:'I'+(++k)}; }
+    let pdf; try{ pdf=papImplPdfStr(cid,{nom:E.nom,couleur:E.couleur,lignes:E.lignes,logo},imgs,{...meta,plans:figes}); }
+    catch(e){ return {err:'Le plan d’implantation n’a pas pu être construit ('+(e&&e.message||e)+') — rien n’est parti.'}; }
+    const b64=btoa(pdf);
+    if(b64.length<=PAP_IMPL_MAX_B64){
+      const nom=('Plan-implantation-'+String(c.nom||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)
+        +'-v'+st.plans.map(x=>x.v).join('-')+'.pdf');
+      return {pdf,b64,nom,E,plans:figes}; } }
+  return {err:'Le plan d’implantation dépasse la taille qu’un courriel peut porter, même photos réduites — rien n’est parti.'}; }
+/* Aperçu : le PDF qui partirait, sans rien écrire. */
+async function papImplApercu(cid,intId){
+  if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
+  if(!papImplPlans(cid).length){ toast('Aucun plan avec des postes pour ce client'); return; }
+  const w=window.open('','_blank');            // ouverte dans le geste, sinon le navigateur la bloque
+  const i=(db.interventions||[]).find(x=>x.id===intId)||null;
+  const d=await papImplDocument(cid,i,papImplEtat(cid));
+  if(d.err){ try{ w&&w.close(); }catch(e){} toast(d.err); return; }
+  const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
+  const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+  if(w) w.location.href=u; else toast('Autorise les pop-ups pour voir le PDF');
+  setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000); }
+/* L'envoi : le PDF d'abord, le courriel ensuite, la trace SEULEMENT si le courriel est parti.
+   Aujourd'hui le plan était marqué « ✓ Envoyé » avant de savoir si le courriel partait. */
+let _papImplEnvoi=false;
+async function papImplantationEnvoyer(cid,intId){
+  if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
+  if(_papImplEnvoi) return;
+  const c=(db.clients||[]).find(x=>x.id===cid); if(!c) return;
+  if(!c.email){ toast('Ajoute l’e-mail du client dans sa fiche'); return; }
+  if(!papImplPlans(cid).length){ toast('Aucun plan avec des postes'); return; }
+  const i=(db.interventions||[]).find(x=>x.id===intId)||null;
+  _papImplEnvoi=true; document.querySelectorAll('.pap-impl-btn:not([disabled])').forEach(b=>{ b.disabled=true; b.style.opacity='.55'; b.setAttribute('data-verrou','1'); });
+  try{
+    const st=papImplEtat(cid);
+    const d=await papImplDocument(cid,i,st);
+    if(d.err){ toast(d.err); try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Plan d’implantation non construit : '+d.err.slice(0,120)})}); }catch(e){} return; }
+    const nouveau=st.etat!=='inchange', vs=st.plans.map(x=>x.v).join(' / ');
+    const nb=d.plans.reduce((s,pl)=>s+(pl.postes||[]).length,0);   // l'instantané du PDF, pas le plan vivant
+    const le=st.dernier?new Date(st.dernier.ts).toLocaleDateString('fr-FR'):'';
+    const sujet='Plan d’implantation des postes — '+(c.nom||'')+(st.etat==='modifie'?' (mis à jour, version '+vs+')':'');
+    const corps='Bonjour,\n\n'+(i&&i.date?'Suite à notre passage du '+fmtShort(i.date)+', veuillez':'Veuillez')+' trouver ci-joint le plan d’implantation des postes de votre site : '+st.plans.length+' plan(s), '+nb+' poste(s).\n\n'
+      +(st.etat==='modifie'?'Ce plan a été mis à jour depuis notre envoi du '+le+' ; il remplace le précédent dans votre registre sanitaire (version '+vs+').\n\n'
+        :st.etat==='inchange'?'Ce plan est inchangé depuis notre envoi du '+le+' (version '+vs+') ; nous vous le transmettons à nouveau pour votre registre sanitaire.\n\n':'')
+      +'Il indique l’emplacement, le type et la sécurisation de chaque poste, ainsi que les produits utilisés et leur numéro d’AMM.\n\nCordialement,\n'+d.E.nom;
+    const opts={atts:[{filename:d.nom,content:d.b64}],sansMailto:true}; if(d.E.expediteur){ opts.brandName=d.E.expediteur; opts.societe=d.E.expediteur; }
+    const ok=await srvMail(c.email,sujet,corps,'✉️ Plan d’implantation envoyé à '+c.email+' (PDF joint)','rapport',null,opts);
+    if(!ok) return;                                                    // srvMail a dit pourquoi ; rien n'est écrit
+    const ts=Date.now(), par=(currentUser&&fullName(currentUser))||'', depuis=st.etat==='inchange'?st.depuis:ts;
+    st.plans.forEach(x=>{ const pl=x.pl;
+      if(x.v>(pl.version||1)){ pl.version=x.v; pl.historique=pl.historique||[]; pl.historique.push({ts,par,action:'Plan d’implantation mis à jour (version '+x.v+')'}); if(pl.historique.length>50) pl.historique=pl.historique.slice(-50); }
+      pl.implantationEnvoyee={ts,par,a:c.email,v:x.v,emp:x.emp,doc:st.emp.doc,depuis,intId:i?i.id:''}; });
+    if(i){ i.planEnvoi={ts,par,a:c.email,doc:st.emp.doc,depuis,nouveau,plans:st.plans.map(x=>[x.pl.id,x.v,x.emp])};
+      intHisto(i,'Plan d’implantation envoyé à '+c.email+' — '+(nouveau?'nouveau plan':'même plan renvoyé')+' (version '+vs+')'); }
+    save();
+  }finally{ _papImplEnvoi=false;
+    document.querySelectorAll('.pap-impl-btn[data-verrou]').forEach(b=>{ b.disabled=false; b.style.opacity=''; b.removeAttribute('data-verrou'); });
+    const z=document.getElementById('clot-plan'); if(z&&i) z.outerHTML=papImplClotureLigne(i);
+    else if(window._curIntId) renderIntDetail(window._curIntId); } }
+/* Le rappel dans la fenêtre de fin de passage : Justin dit « à chaque intervention il envoie ».
+   La carte vit dans l'onglet Plan, hors du chemin de clôture — sans ce rappel, l'envoi s'oublie.
+   Un appui, jamais un envoi automatique ; rien si le passage l'a déjà fait. */
+function papImplClotureLigne(i){
+  if(!i||!i.clientId||!can('modifierPlans')||!papImplPlans(i.clientId).length) return '';
+  if(i.planEnvoi) return `<div id="clot-plan" style="font-size:12.5px;color:var(--acc-txt);margin:6px 0 12px">✓ Plan d'implantation envoyé pour ce passage</div>`;
+  const c=(db.clients||[]).find(x=>x.id===i.clientId)||{}, st=papImplEtat(i.clientId), tx=papImplEtatTxt(st);
+  const lib=st.etat==='inchange'?'Plan d’implantation inchangé':st.etat==='modifie'?'Plan d’implantation modifié depuis le dernier envoi':st.etat==='jamais'?'Plan d’implantation jamais envoyé à ce client':'Plan d’implantation';
+  return `<div id="clot-plan" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--brd);border-radius:12px;padding:10px 12px;margin:6px 0 12px">
+    <span style="flex:1;min-width:160px;font-size:12.5px;color:var(--t1)">📄 ${esc(lib)}${c.email?'':' — ajoute l’e-mail du client dans sa fiche'}</span>
+    ${c.email?`<button type="button" class="btn sm pap-impl-btn" onclick="papImplantationEnvoyer('${i.clientId}','${i.id}')">${esc(tx.b)}</button>`:''}</div>`; }
+/* La carte, dans l'onglet Plan de l'intervention : l'état du CLIENT (tous ses plans), puis celui
+   de CE passage. Pure : elle lit, elle n'écrit rien. */
+function papImplCarteHtml(i){
+  const cid=i.clientId, c=(db.clients||[]).find(x=>x.id===cid)||{};
+  if(!papImplPlans(cid).length) return `<div class="card" style="margin-top:12px;padding:12px 14px"><b style="font-size:13.5px">📄 Plan d'implantation</b>
+    <div style="font-size:12px;color:var(--t3);margin-top:4px">Pose au moins un poste sur un plan : c'est lui que le client reçoit.</div></div>`;
+  const st=papImplEtat(cid), tx=papImplEtatTxt(st), pe=i.planEnvoi;
+  const col=st.etat==='modifie'?'var(--org)':st.etat==='inchange'?'var(--acc-txt)':'var(--t2)';
+  const passe=pe?`<div style="font-size:11.5px;color:var(--acc-txt);margin-top:8px">✓ Envoyé pour ce passage le ${new Date(pe.ts).toLocaleDateString('fr-FR')} à ${new Date(pe.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} → ${esc(pe.a||'')} (${pe.nouveau?'nouveau plan':'même plan'}, version ${(pe.plans||[]).map(x=>x[1]).join(' / ')})</div>`
+    :`<div style="font-size:11.5px;margin-top:8px;color:${i.statut==='terminee'?'var(--org)':'var(--t3)'};font-weight:${i.statut==='terminee'?700:400}">Pas encore envoyé pour ce passage</div>`;
+  return `<div class="card" style="margin-top:12px;padding:12px 14px">
+    <b style="font-size:13.5px">📄 Plan d'implantation</b>
+    <div style="font-size:11.5px;color:var(--t3);margin:4px 0 8px">Remis au client à chaque passage : le nouveau plan s'il a changé, sinon le même. Plan technique, postes, produits et n° d'AMM, en PDF joint au courriel.</div>
+    <div style="font-size:12.5px;color:${col};font-weight:600;margin-bottom:9px">${esc(tx.t)}</div>
+    ${c.email?'':`<div style="font-size:12px;color:var(--org);margin-bottom:8px">Ajoute l'e-mail du client dans sa fiche pour pouvoir l'envoyer.</div>`}
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn ghost sm pap-impl-btn" onclick="papImplApercu('${cid}','${i.id}')">📄 Aperçu (PDF)</button>
+      <button class="btn sm pap-impl-btn" ${c.email?'':'disabled style="opacity:.55"'} onclick="papImplantationEnvoyer('${cid}','${i.id}')">${esc(tx.b)}</button>
+    </div>${passe}</div>`; }
 /* ── Classeur / dossier sanitaire complet (client professionnel) ── */
 function papDossierSanitaire(cid){
   const c=db.clients.find(x=>x.id===cid); if(!c) return;
   const plans=plansOf(cid);
   const allInts=db.interventions.filter(x=>x.clientId===cid);
   const ints=allInts.filter(x=>x.statut==='terminee').sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||''))).slice(0,12);
-  const E=db.entreprise||{}; const soc=papSocOf(cid);
+  /* v740 : la société des passages QUI FIGURENT dans le dossier (socDuClient), avec sa couleur,
+     son logo et ses coordonnées — plus « la dernière intervention », annulées et futures comprises */
+  const E=docEntete(socDuClient(cid,ints)), soc=E.nom, AC=E.couleur;
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
   const per=ints.length?fmtShort(ints[ints.length-1].date)+' → '+fmtShort(ints[0].date):'—';
   const posteName={}; plans.forEach(pl=>(pl.postes||[]).forEach(po=>{ posteName[po.id]='n°'+po.num+' ('+pl.nom+')'; }));
@@ -20804,13 +21212,13 @@ function papDossierSanitaire(cid){
     :'<p class="muted">Aucun passage terminé pour l\'instant.</p>';
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Dossier sanitaire — ${esc(c.nom)}</title>
     <style>*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}body{margin:0;padding:36px;color:#1A1F28;font-size:12px}
-    h1{color:#1E7A4E;font-size:22px;margin:0}h2{color:#1E7A4E;font-size:15px;margin:26px 0 8px;border-bottom:2px solid #1E7A4E;padding-bottom:4px}
+    h1{color:${AC};font-size:22px;margin:0}h2{color:${AC};font-size:15px;margin:26px 0 8px;border-bottom:2px solid ${AC};padding-bottom:4px}
     .muted{color:#666;font-size:11.5px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin:10px 0}
-    table{width:100%;border-collapse:collapse;margin-top:6px}th{background:#1E7A4E;color:#fff;padding:6px 7px;text-align:left;font-size:10.5px}td{padding:6px 7px;border-bottom:1px solid #E3E8F0;font-size:10.5px;vertical-align:top}
-    .garde{border:2px solid #1E7A4E;border-radius:12px;padding:34px;text-align:center;margin:30px 0;page-break-after:always}
+    table{width:100%;border-collapse:collapse;margin-top:6px}th{background:${AC};color:${encreSur(AC)};padding:6px 7px;text-align:left;font-size:10.5px}td{padding:6px 7px;border-bottom:1px solid #E3E8F0;font-size:10.5px;vertical-align:top}
+    .garde{border:2px solid ${AC};border-radius:12px;padding:34px;text-align:center;margin:30px 0;page-break-after:always}
     @media print{body{padding:16px}}</style></head>
     <body>
-      <div class="garde"><div style="font-size:13px;font-weight:bold;color:#1E7A4E;letter-spacing:2px">${esc(soc)}</div>
+      <div class="garde">${E.logo?`<img src="${esc(E.logo)}" alt="" style="max-height:56px;max-width:190px;margin:0 auto 10px;display:block">`:''}<div style="font-size:13px;font-weight:bold;color:${AC};letter-spacing:2px">${esc(soc)}</div>${docCoordLignes(E).map(x=>`<div style="font-size:10.5px;color:#666;margin-top:2px">${esc(x)}</div>`).join('')}
         <h1 style="margin:18px 0 6px;font-size:26px">📕 DOSSIER SANITAIRE</h1>
         <div style="font-size:14px;font-weight:bold;margin:10px 0 4px">${esc(c.nom)}</div>
         ${c.adresse?`<div class="muted">Site : ${esc(c.adresse)}</div>`:''}
@@ -20826,7 +21234,7 @@ function papDossierSanitaire(cid){
       ${techRows?`<table><thead><tr><th>Technicien</th><th>N° de certificat</th><th>Valide jusqu'au</th><th>Statut</th></tr></thead><tbody>${techRows}</tbody></table>`:'<p class="muted">Aucun technicien renseigné (n° Certibiocide à saisir dans la fiche équipe).</p>'}
       <h2>5. Courbe d'activité par zone — 12 derniers mois</h2>${curvesHtml}
       <h2>6. Attestation de passage</h2>${attest}
-      <div style="margin-top:26px;font-size:10px;color:#999;text-align:center">${esc(soc)} — Dossier sanitaire généré le ${new Date().toLocaleDateString('fr-FR')} — OP GESTION</div>
+      <div style="margin-top:26px;font-size:10px;color:#999;text-align:center">${esc(soc)} — Dossier sanitaire généré le ${new Date().toLocaleDateString('fr-FR')}</div>
     </body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{ try{w.print();}catch(e){} },400); }
 
@@ -20891,8 +21299,8 @@ function clotureSuiteModal(id,askNext,recurMsg){ const it=db.interventions.find(
   toast('Intervention effectuée ✓'+(recurMsg||''));
   openModal(`<div class="modal-head"><h3>Intervention effectuée</h3><button class="modal-close" onclick="closeModal();go('interventions')">✕</button></div>
       <div style="padding:2px">
-        <p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px">Le rapport de <b>${esc(it.titre)}</b> est enregistré.${it.clientAbsent?' <span style="color:var(--org);font-weight:700">Client absent lors du passage</span> — la mention légale figure sur le rapport.':''} Veux-tu l'<b>envoyer au client</b> maintenant (le PDF inclut les photos et le plan d'appâtage) ?</p>
-        ${garQuickHtml(id)}
+        <p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px">Le rapport de <b>${esc(it.titre)}</b> est enregistré.${it.clientAbsent?' <span style="color:var(--org);font-weight:700">Client absent lors du passage</span> — la mention légale figure sur le rapport.':''} Veux-tu l'<b>envoyer au client</b> maintenant ?</p>
+        ${garQuickHtml(id)}${papImplClotureLigne(it)}
         <div class="modal-foot" style="flex-wrap:wrap">${askNext?`<button type="button" class="btn" style="background:var(--org);border-color:var(--org)" onclick="planNextModal('${id}')">🔁 Passage suivant…</button>`:''}${it.clientAbsent?`<button type="button" class="btn ghost" onclick="closeModal();envoyerAvisPassage('${id}')">📮 Avis de passage</button>`:''}<button type="button" class="btn ghost" onclick="closeModal();go('interventions')">Plus tard</button><button type="button" class="btn" onclick="closeModal();envoiRapportClient('${id}')">Envoyer au client</button></div>
       </div>`); }
 /* ── F6. CLÔTURE GUIDÉE — assistant par étapes qui remplit les mêmes champs que le rapport ── */
@@ -22331,16 +22739,21 @@ views.registre=function(){
 };
 function printRegistre(cid){ const c=db.clients.find(x=>x.id===cid)||{}; const ints=registreInts(cid); const bio=registreBiocides(cid);
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-ups');return;}
+  /* v740 — ce document part chez le client : son en-tête porte la société des passages QU'IL
+     CONTIENT (socDuClient), avec sa couleur, son logo et ses coordonnées. Il n'en portait
+     aucune (« OP GESTION » en dur), et un client à deux sociétés ne savait pas laquelle l'avait
+     traité. */
+  const H=docEntete(socDuClient(cid,ints)), soc=H.nom, acc=H.couleur;
   const rows=ints.map(i=>{ const co=i.constat||{}; return `<tr><td>${new Date((i.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</td><td>${esc(i.type||i.titre)}</td><td>${esc(i.nuisible&&i.nuisible!=='—'?i.nuisible:'')}</td><td>${esc(intTechIds(i).map(techName).filter(Boolean).join(', '))}</td><td>${esc(co.infestation||'')}</td><td>${esc((co.indices||[]).join(', '))}</td><td>${esc(co.conformite||'')}</td><td>${esc(co.recommandations||i.compteRendu||'')}</td></tr>`; }).join('');
   const bioRows=bio.map(l=>{ const t=db.techniciens.find(x=>x.nom===l.tech); const certif=t&&t.certibiocide?t.certibiocide:'';
     return `<tr><td>${new Date((l.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</td><td>${esc(l.nom)}</td><td>${esc(l.amm)||'—'}</td><td>${esc(l.ma)||'—'}</td><td style="text-align:right">${l.qte} ${esc(l.unite)}</td><td>${esc(l.tech)||'—'}${certif?'<br><span style="color:#666;font-size:10px">Certibiocide '+esc(certif)+'</span>':''}</td></tr>`; }).join('');
-  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Registre sanitaire — ${esc(c.nom)}</title><style>body{font-family:Arial;padding:32px;color:#1A1F28;font-size:12px}h1{color:#1E7A4E;font-size:20px;margin:0}h2{color:#1E7A4E;font-size:15px;margin:26px 0 8px}.sub{color:#666;margin:4px 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}th{background:#1E7A4E;color:#fff;font-size:11px}</style></head>
-  <body><h1>Registre sanitaire de lutte antiparasitaire</h1><div class="sub"><b>${esc(c.nom)}</b>${c.adresse?' — '+esc(c.adresse):''} · Édité le ${new Date().toLocaleDateString('fr-FR')} · ${ints.length} passage(s) · ${bio.length} application(s) de produit</div>
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Registre sanitaire — ${esc(c.nom)}</title><style>body{font-family:Arial;padding:32px;color:#1A1F28;font-size:12px}.soc{color:${acc};font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase}h1{color:${acc};font-size:20px;margin:2px 0 0}h2{color:${acc};font-size:15px;margin:26px 0 8px}.sub{color:#666;margin:4px 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}th{background:${acc};color:${encreSur(acc)};font-size:11px}</style></head>
+  <body>${H.logo?`<img src="${esc(H.logo)}" alt="" style="max-height:44px;max-width:170px;display:block;margin-bottom:6px">`:''}<div class="soc">${esc(soc)}</div>${docCoordLignes(H).length?`<div style="color:#666;font-size:10.5px;margin-top:2px">${docCoordLignes(H).map(esc).join(' · ')}</div>`:''}<h1>Registre sanitaire de lutte antiparasitaire</h1><div class="sub"><b>${esc(c.nom)}</b>${c.adresse?' — '+esc(c.adresse):''} · Édité le ${new Date().toLocaleDateString('fr-FR')} · ${ints.length} passage(s) · ${bio.length} application(s) de produit</div>
   <h2>Passages</h2>
   <table><thead><tr><th>Date</th><th>Prestation</th><th>Nuisible</th><th>Intervenant</th><th>Infestation</th><th>Indices</th><th>Conformité</th><th>Observations / recommandations</th></tr></thead><tbody>${rows||'<tr><td colspan=8>Aucun passage</td></tr>'}</tbody></table>
   <h2>Produits biocides utilisés</h2>
   <table><thead><tr><th>Date</th><th>Produit</th><th>N° AMM</th><th>Matière active</th><th>Quantité</th><th>Applicateur</th></tr></thead><tbody>${bioRows||'<tr><td colspan=6>Aucun produit enregistré</td></tr>'}</tbody></table>
-  <p style="margin-top:24px;color:#666">Document de traçabilité réglementaire (arrêté du 8 octobre 2021 — Certibiocide) — OP GESTION</p></body></html>`);
+  <p style="margin-top:24px;color:#666">Document de traçabilité réglementaire (arrêté du 8 octobre 2021 — Certibiocide) — ${esc(soc)}</p></body></html>`);
   w.document.close(); setTimeout(()=>w.print(),300);
 }
 
@@ -22876,7 +23289,9 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
     await photosResoudre(i.photos);
     const reste=i.photos.filter(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; }).length;
     if(reste&&!confirm(reste+' photo(s) n\'ont pas pu être récupérées — elles manqueront dans le PDF.\n\nContinuer quand même ?')) return;
-  } const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
+  } const c=db.clients.find(x=>x.id===i.clientId)||{};
+  /* v740 : nom, couleur, logo et coordonnées de la société de CETTE intervention (docEntete) */
+  const H=docEntete(i.rapportModele), soc=H.nom, AC=H.couleur;
   // les produits rattachés à un type de traitement apparaissent dans leur section ; ici, les lignes « libres »
   const prod=(i.produitsUtilises||[]).filter(l=>!l.categorie||!(((i.quest||{})[l.categorie]||{}).actif)).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td><td>${esc(prodLineAmm(l)||'—')}</td><td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(l.unite||'')}</td></tr>`;}).join('');
   const equip=(i.equipements||[]).map(e=>`<tr><td>${esc(e.nom)}</td><td>${esc(e.reference)||''}</td></tr>`).join('');
@@ -22889,12 +23304,12 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport ${esc(i.titre)}</title>
     <style>*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}body{margin:0;padding:40px;color:#1A1F28}
-    .hd{display:flex;justify-content:space-between;border-bottom:3px solid #1E7A4E;padding-bottom:14px;margin-bottom:20px}
-    .logo{font-size:22px;font-weight:800;color:#1E7A4E;letter-spacing:1px}.logo small{display:block;font-size:11px;color:#666;font-weight:400}
+    .hd{display:flex;justify-content:space-between;border-bottom:3px solid ${AC};padding-bottom:14px;margin-bottom:20px}
+    .logo{font-size:22px;font-weight:800;color:${AC};letter-spacing:1px}.logo img{display:block;max-height:52px;max-width:180px;margin-bottom:6px}.coord{font-size:11px;color:#666;font-weight:400;letter-spacing:0;margin-top:2px}.logo small{display:block;font-size:11px;color:#666;font-weight:400}
     h1{font-size:18px;margin:0}.muted{color:#666;font-size:13px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin:10px 0;font-size:13px}
-    table{width:100%;border-collapse:collapse}th{background:#1E7A4E;color:#fff;padding:7px;text-align:left;font-size:12px}td{padding:7px;border-bottom:1px solid #E3E8F0;font-size:12px}
+    table{width:100%;border-collapse:collapse}th{background:${AC};color:${encreSur(AC)};padding:7px;text-align:left;font-size:12px}td{padding:7px;border-bottom:1px solid #E3E8F0;font-size:12px}
     .ft{margin-top:30px;font-size:11px;color:#999;text-align:center}@media print{body{padding:18px}}</style></head>
-    <body><div class="hd"><div class="logo">${esc(soc)}<small>Rapport d'intervention</small></div>
+    <body><div class="hd"><div class="logo">${H.logo?`<img src="${esc(H.logo)}" alt="">`:''}${esc(soc)}<small>Rapport d'intervention</small>${docCoordLignes(H).map(x=>`<div class="coord">${esc(x)}</div>`).join('')}</div>
       <div style="text-align:right"><h1>RAPPORT D'INTERVENTION</h1><div class="muted">${new Date((i.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')} · ${i.heure||''}</div></div></div>
       <div class="box"><b>${esc(i.titre)}</b><br><span class="muted">Client : ${esc(c.nom||'—')} · Technicien(s) : ${esc(techNames(i))} · Durée : ${i.duree||0} min<br>${esc(i.adresse||'')}</span></div>
       ${i.desc?`<p><b>Description :</b> ${esc(i.desc)}</p>`:''}
@@ -22919,7 +23334,7 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
         try{ metierRelevesLignes(i).forEach(r=>rows.push(r)); }catch(e){}
         return rows.length?`<div class="box"><b>Constat & prestation</b>${rows.map(r=>`<p style="margin:4px 0"><b>${esc(r[0])} :</b> ${esc(r[1])}</p>`).join('')}</div>`:''; })()}
       ${(()=>{ let t3=''; try{ t3=t3dPdfHtml(i); }catch(e){ t3=''; } return t3?`<h3 style="font-size:14px;margin-top:18px">Traitements réalisés — détail par type</h3>${t3}`:''; })()}
-      ${(i.constat&&i.constat.recommandations)?`<div class="box" style="border-color:#1E7A4E"><b>Recommandations</b><br>${esc(i.constat.recommandations).replace(/\n/g,'<br>')}</div>`:''}
+      ${(i.constat&&i.constat.recommandations)?`<div class="box" style="border-color:${AC}"><b>Recommandations</b><br>${esc(i.constat.recommandations).replace(/\n/g,'<br>')}</div>`:''}
       ${champs}
       ${prod?`<h3 style="font-size:14px;margin-top:18px">Produits utilisés</h3><table><thead><tr><th>Désignation</th><th>Réf.</th><th>N° AMM</th><th style="text-align:right">Qté</th></tr></thead><tbody>${prod}</tbody></table>`:''}
       ${planApp}
@@ -24608,18 +25023,21 @@ async function shareBoxStock(id){ const b=db.boxes.find(x=>x.id===id); if(!b)ret
   toast('Génération du PDF…');
   try{
     await loadJsPDF(); const { jsPDF }=window.jspdf; const doc=new jsPDF({unit:'pt',format:'a4'}); let y=50;
-    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(22,128,60); doc.text('STOCK DE LA BOX',40,y); y+=24;
+    /* v740 : la société qui sert ce client (socDuClient), sa couleur ; sinon l'entreprise */
+    const H=docEntete(b.clientId?socDuClient(b.clientId):''), RGB=[1,3,5].map(k=>parseInt(H.couleur.slice(k,k+2),16));
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(RGB[0],RGB[1],RGB[2]); doc.text(String(H.nom).slice(0,60),40,y); y+=22;
+    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(RGB[0],RGB[1],RGB[2]); doc.text('STOCK DE LA BOX',40,y); y+=24;
     doc.setFontSize(13); doc.setTextColor(30,31,40); doc.text(String(b.nom||b.numero||'Box'),40,y); y+=17;
     doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(110);
     if(b.numero){ doc.text('N° '+b.numero,40,y); y+=13; }
     const lieu=[b.adresse,((b.codePostal||'')+' '+(b.ville||'')).trim()].filter(Boolean).join(' - '); if(lieu){ doc.text(lieu,40,y); y+=13; }
     if(b.categorie){ doc.text('Categorie : '+b.categorie,40,y); y+=13; }
-    y+=8; doc.setDrawColor(22,128,60); doc.setLineWidth(1.2); doc.line(40,y,555,y); y+=20;
+    y+=8; doc.setDrawColor(RGB[0],RGB[1],RGB[2]); doc.setLineWidth(1.2); doc.line(40,y,555,y); y+=20;
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(30,31,40); doc.text('Produit',40,y); doc.text('Unites',480,y); y+=8;
     doc.setDrawColor(220); doc.setLineWidth(.5); doc.line(40,y,555,y); y+=16; doc.setFont('helvetica','normal'); doc.setFontSize(10);
     if(prods.length){ prods.forEach(x=>{ if(y>800){ doc.addPage(); y=50; } doc.setTextColor(30,31,40); doc.text(String(x.p.nom||'').slice(0,58),40,y); doc.text(String(x.s.u||0),492,y); y+=16; }); }
     else { doc.setTextColor(130); doc.text('Aucun produit dans cette box.',40,y); y+=16; }
-    doc.setFontSize(9); doc.setTextColor(150); doc.text('OP GESTION - '+new Date().toLocaleDateString('fr-FR'),40,820);
+    doc.setFontSize(9); doc.setTextColor(150); doc.text(String(H.nom).slice(0,60)+' - '+new Date().toLocaleDateString('fr-FR'),40,820);
     const fname='stock_'+String(b.numero||b.nom||'box').replace(/[^a-z0-9]/gi,'_')+'.pdf';
     const blob=doc.output('blob'); const file=new File([blob],fname,{type:'application/pdf'});
     if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:'Stock '+(b.nom||b.numero||'Box')}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
@@ -24629,26 +25047,29 @@ async function shareBoxStock(id){ const b=db.boxes.find(x=>x.id===id); if(!b)ret
 /* Fiche PDF d'un poste (box) : infos + historique des passages */
 function printBox(id){ const b=db.boxes.find(x=>x.id===id); if(!b)return; const cli=b.clientId?(db.clients.find(x=>x.id===b.clientId)||{}):null;
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups'); return; }
+  /* v740 : l'en-tête de la société qui sert ce client (socDuClient), sinon celui de l'entreprise */
+  const H=docEntete(b.clientId?socDuClient(b.clientId):''), AC=H.couleur;
   const ps=(b.passages||[]).slice().sort((a,b2)=>(b2.date||'').localeCompare(a.date||''));
   const prods=Object.keys(b.stock||{}).map(pid=>({p:produit(pid),s:b.stock[pid]})).filter(x=>x.p&&x.p.id);
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Fiche poste ${esc(b.numero||'')}</title>
     <style>*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}body{margin:0;padding:36px;color:#1A1F28}
-    .noprint{position:fixed;top:0;left:0;right:0;background:#1E7A4E;display:flex;gap:10px;justify-content:center;padding:10px}.noprint button{background:#fff;color:#1E7A4E;border:none;border-radius:8px;padding:9px 18px;font-weight:700;cursor:pointer}
-    h1{font-size:20px;color:#1E7A4E;margin:0}.muted{color:#666;font-size:13px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin:10px 0;font-size:13px}
-    table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#1E7A4E;color:#fff;padding:7px;text-align:left;font-size:12px}td{padding:7px;border-bottom:1px solid #E3E8F0;font-size:12px}
+    .noprint{position:fixed;top:0;left:0;right:0;background:${AC};display:flex;gap:10px;justify-content:center;padding:10px}.noprint button{background:#fff;color:${AC};border:none;border-radius:8px;padding:9px 18px;font-weight:700;cursor:pointer}
+    h1{font-size:20px;color:${AC};margin:0}.muted{color:#666;font-size:13px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin:10px 0;font-size:13px}
+    table{width:100%;border-collapse:collapse;margin-top:8px}th{background:${AC};color:${encreSur(AC)};padding:7px;text-align:left;font-size:12px}td{padding:7px;border-bottom:1px solid #E3E8F0;font-size:12px}
     @media print{body{padding:18px}.noprint{display:none!important}}</style></head>
     <body><div class="noprint"><button onclick="window.print()">Imprimer</button><button onclick="window.close()">Fermer</button></div><div style="height:50px"></div>
+    <div style="display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid ${AC};padding-bottom:10px;margin-bottom:14px"><div>${H.logo?`<img src="${esc(H.logo)}" alt="" style="max-height:44px;max-width:170px;display:block;margin-bottom:5px">`:''}<div style="font-size:18px;font-weight:800;color:${AC}">${esc(H.nom)}</div>${docCoordLignes(H).map(x=>`<div class="muted" style="font-size:11px">${esc(x)}</div>`).join('')}</div></div>
     <h1>FICHE POSTE — ${esc(b.numero||'')}</h1><div class="muted">${esc(b.nom||'')}${b.categorie?' · '+esc(b.categorie):''}</div>
     <div class="box"><b>Emplacement :</b> ${esc([b.adresse,((b.codePostal||'')+' '+(b.ville||'')).trim(),b.etage].filter(Boolean).join(' · '))||'—'}${cli?`<br><b>Client :</b> ${esc(cli.nom||'')}`:''}
       ${(b.codesAcces||[]).length?'<br><b>Accès :</b> '+b.codesAcces.map(c=>esc(c.type)+' '+esc(c.valeur)).join(' · '):''}
       ${b.frequence&&b.frequence!=='Aucune'?'<br><b>Fréquence :</b> '+esc(b.frequence):''}${b.prochaineVisite?' · <b>Prochaine visite :</b> '+new Date(b.prochaineVisite+'T00:00:00').toLocaleDateString('fr-FR'):''}
       ${b.notes?'<br><b>Notes :</b> '+esc(b.notes):''}</div>
     ${b.photo?`<img src="${b.photo}" style="max-width:280px;border-radius:8px;border:1px solid #E3E8F0;margin:6px 0">`:''}
-    <h3 style="color:#1E7A4E;font-size:14px">Produits (${prods.length})</h3>
+    <h3 style="color:${AC};font-size:14px">Produits (${prods.length})</h3>
     <table><thead><tr><th>Produit</th><th>Unités</th></tr></thead><tbody>${prods.map(x=>`<tr><td>${esc(x.p.nom)}</td><td>${x.s.u||0}</td></tr>`).join('')||'<tr><td colspan="2">—</td></tr>'}</tbody></table>
-    <h3 style="color:#1E7A4E;font-size:14px;margin-top:18px">Passages & relevés (${ps.length})</h3>
+    <h3 style="color:${AC};font-size:14px;margin-top:18px">Passages & relevés (${ps.length})</h3>
     <table><thead><tr><th>Date</th><th>Technicien</th><th>État</th><th>Observations</th></tr></thead><tbody>${ps.map(p=>`<tr><td>${new Date((p.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</td><td>${esc(p.technicienNom||'')}</td><td>${esc((APPAT_ETATS[p.etat]||{}).l||'')}</td><td>${esc(p.note||'')}</td></tr>`).join('')||'<tr><td colspan="4">Aucun passage</td></tr>'}</tbody></table>
-    <div style="margin-top:24px;font-size:11px;color:#999;text-align:center">Document généré par OP GESTION — ${new Date().toLocaleDateString('fr-FR')}</div>
+    <div style="margin-top:24px;font-size:11px;color:#999;text-align:center">${esc(H.nom)} — ${new Date().toLocaleDateString('fr-FR')}</div>
     </body></html>`); w.document.close();
 }
 let _arrPhoto=null, _arrLignes=[];
@@ -25854,7 +26275,7 @@ async function remisePdf(id){
   (r.lignes||[]).forEach(l=>{ const p=produit(l.produitId); if(y>790){ doc.addPage(); y=50; }
     doc.text(String(p.nom||'Produit').slice(0,60),40,y); doc.text(String(l.qte)+' '+(l.unite||'u'),480,y); y+=15; });
   y+=10; doc.setFont('helvetica','bold'); doc.text('TOTAL : '+(r.lignes||[]).length+' ligne(s) · '+remiseTotTxt(r),40,y);
-  doc.setFontSize(9); doc.setTextColor(150); doc.text('OP GESTION — genere le '+new Date().toLocaleDateString('fr-FR'),40,820);
+  doc.setFontSize(9); doc.setTextColor(150); doc.text(String(entNom()).slice(0,50)+' — genere le '+new Date().toLocaleDateString('fr-FR'),40,820);
   doc.save((r.num||'bon-remise')+'.pdf');
 }
 function removeBoxProd(pid){ const b=db.boxes.find(x=>x.id===boxView); if(!b)return;
@@ -28308,7 +28729,7 @@ function printBon(id){ const b=db.bons.find(x=>x.id===id); if(!b)return; const f
   const CO=bcCouleur(b);
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Bon ${esc(bonNum(b))}</title>
     <style>*{box-sizing:border-box;font-family:Arial,sans-serif}body{margin:0;padding:40px;color:#1A1F28}.hd{display:flex;justify-content:space-between;border-bottom:3px solid ${CO};padding-bottom:14px;margin-bottom:20px}.logo{font-size:22px;font-weight:800;color:${CO}}.muted{color:#666;font-size:13px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:10px}th{background:${CO};color:${encreSur(CO)};padding:8px;text-align:left;font-size:12px}td{padding:8px;border-bottom:1px solid #E3E8F0;font-size:12px}.tot{margin-top:14px;margin-left:auto;width:260px}.tot div{display:flex;justify-content:space-between;padding:5px 0}.tot .ttc{font-size:16px;font-weight:800;color:${CO};border-top:2px solid ${CO};margin-top:6px;padding-top:8px}@media print{body{padding:20px}}</style></head>
-    <body><div class="hd"><div><div class="logo">${esc(bcEntete(b))}</div>${(()=>{const E=db.entreprise||{};const l=[[E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),[E.tel?'Tél. '+E.tel:'',E.siret?'SIRET '+E.siret:''].filter(Boolean).join(' · ')].filter(Boolean);return l.map(x=>`<div class="muted">${esc(x)}</div>`).join('');})()}</div><div style="text-align:right"><h1 style="margin:0;font-size:18px">BON DE COMMANDE</h1><div class="muted">N° ${esc(bonNum(b))}<br>${new Date((b.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</div></div></div>
+    <body><div class="hd"><div>${(()=>{const h=docEntete(b.societe,{bon:true});return (h.logo?`<img src="${esc(h.logo)}" alt="" style="max-height:48px;max-width:170px;display:block;margin-bottom:6px">`:'')+`<div class="logo">${esc(h.nom)}</div>`+docCoordLignes(h).map(x=>`<div class="muted">${esc(x)}</div>`).join('');})()}</div><div style="text-align:right"><h1 style="margin:0;font-size:18px">BON DE COMMANDE</h1><div class="muted">N° ${esc(bonNum(b))}<br>${new Date((b.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</div></div></div>
       <div class="box"><b>Fournisseur :</b> ${esc(f.nom||b.fournisseur||'—')}${f.email?'<br>'+esc(f.email):''}${f.adresse?'<br>'+esc(f.adresse)+' '+esc(f.codePostal||'')+' '+esc(f.ville||''):''}</div>
       ${(b.nomSiteLivraison||b.adresseLivraison)?`<div class="box"><b>Livraison :</b> ${esc(b.nomSiteLivraison||'')}${b.adresseLivraison?'<br>'+esc(b.adresseLivraison):''}${(b.codePostalLivraison||b.villeLivraison)?'<br>'+esc([b.codePostalLivraison,b.villeLivraison].filter(Boolean).join(' ')):''}${b.contactSurPlace?'<br>Contact sur place : '+esc(b.contactSurPlace):''}${b.telephoneContact?'<br>Tél. sur place : '+esc(b.telephoneContact):''}</div>`:''}
       <table><thead><tr><th>Réf</th><th>Désignation</th><th style="text-align:right">Quantité</th></tr></thead><tbody>${rows}</tbody></table>
@@ -28339,7 +28760,7 @@ function bonPdfStr(b){
   const W=595,H=842,M=42,RGT=W-M;
   const pages=[]; let ops=[]; let y;
   const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',x.toFixed(1)+' '+yy.toFixed(1)+' Td','('+_pdfTxt(txt)+') Tj','ET');
-  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-String(txt).length*sz*0.545,yy,sz,txt,bold,col);
+  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-_pdfLarg(txt,sz,bold),yy,sz,txt,bold,col);   // v740 : largeur réelle (Helvetica)
   const R=(x,yy,w,h,col)=>ops.push(col+' rg',x.toFixed(1)+' '+yy.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re f');
   const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
   const dateFr=d=>{ try{ return new Date((d||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return d||''; } };
@@ -28354,10 +28775,9 @@ function bonPdfStr(b){
   TR(RGT,y+3,16,'BON DE COMMANDE',1,DARK);
   TR(RGT,y-13,10,'N° '+bonNum(b),1,GREY);
   TR(RGT,y-25,9,dateFr(b.date),0,GREY);
-  const EI=db.entreprise||{}; let ey=y-14;
-  const eL=[[EI.adresse,[EI.cp,EI.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),
-            [EI.tel?'Tél. '+EI.tel:'',EI.siret?'SIRET '+EI.siret:''].filter(Boolean).join('  ·  ')].filter(Boolean);
-  eL.forEach(tx=>{ T(M,ey,8.5,cut(tx,58),0,GREY); ey-=11; });
+  /* v740 : les coordonnées de la société DU BON (docEntete), plus toujours celles de l'entreprise */
+  let ey=y-14;
+  docCoordLignes(docEntete(b.societe,{bon:true})).forEach(tx=>{ T(M,ey,8.5,cut(tx,58),0,GREY); ey-=11; });
   y=Math.min(y-32,ey-8); R(M,y,W-2*M,1.6,GREEN); y-=16;
   // ─ panneaux Fournisseur / Livraison
   const livOn=!!(b.nomSiteLivraison||b.adresseLivraison);
@@ -28455,23 +28875,25 @@ function devisLogoJpeg(src){
     im.src=src;
   });
 }
-function devisPdfStr(d,logo){
+function devisPdfStr(d,logo){ return docPdfStr('devis',d,logo); }
+/* v740 — la même fabrique pour la FACTURE : un courriel qui disait « veuillez trouver ci-joint
+   votre facture » ne joignait rien. En-tête, coordonnées légales, IBAN : ceux de la société DU
+   document (docEntete). Mentions de facture reprises de printDoc, qui les porte déjà. */
+function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
   const cli=db.clients.find(x=>x.id===d.clientId)||{};
   /* « Modèle générique » n'est pas une société : c'est le choix par défaut quand
      l'entreprise n'en a déclaré aucune — donc la valeur de TOUS ses devis. bcEntete ne
      retombe sur l'en-tête réglé puis sur le nom de l'entreprise que si la chaîne est vide ;
      ces deux mots s'imprimaient donc en tête du devis reçu par le client. L'e-mail et
      l'impression le traduisaient déjà par rapportSociete() — seul le PDF mentait. */
-  const socNom=/g[ée]n[ée]rique|aucune/i.test(String(d.rapportModele||''))?'':String(d.rapportModele||'');
-  const soc={societe:socNom};
-  const ent=bcEntete(soc);
-  const hx=bcCouleur(soc), rgb=[1,3,5].map(i=>parseInt(hx.slice(i,i+2),16)/255);
+  const h=docEntete(d.rapportModele), ent=h.nom;
+  const hx=h.couleur, rgb=[1,3,5].map(i=>parseInt(hx.slice(i,i+2),16)/255);
   const GREEN=rgb.map(v=>v.toFixed(3)).join(' '), GREENLT=rgb.map(v=>(0.93+v*0.07).toFixed(3)).join(' ');
   const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', LINE='0.85 0.88 0.91';
   const W=595,H=842,M=42,RGT=W-M;
   const pages=[]; let ops=[]; let y;
   const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',x.toFixed(1)+' '+yy.toFixed(1)+' Td','('+_pdfTxt(txt)+') Tj','ET');
-  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-String(txt).length*sz*0.545,yy,sz,txt,bold,col);
+  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-_pdfLarg(txt,sz,bold),yy,sz,txt,bold,col);   // v740 : largeur réelle (Helvetica), le titre ne sort plus de la marge
   const R=(x,yy,w,h,col)=>ops.push(col+' rg',x.toFixed(1)+' '+yy.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re f');
   const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
   const eur=n=>Number(n||0).toFixed(2).replace('.',',')+' EUR';
@@ -28491,20 +28913,20 @@ function devisPdfStr(d,logo){
     ops.push('q',lw+' 0 0 '+lh+' '+M.toFixed(1)+' '+(y-9).toFixed(1)+' cm','/I1 Do','Q');
     nx=M+lw+12; }
   T(nx,y,21,cut(ent,logo&&logo.b64?20:28),1,GREEN);
-  TR(RGT,y+3,16,'DEVIS',1,DARK);
+  TR(RGT,y+3,16,estFact?'FACTURE':'DEVIS',1,DARK);
   TR(RGT,y-13,10,'N° '+(d.num||''),1,GREY);
   TR(RGT,y-25,9,dateFr(d.date),0,GREY);
-  const EI=db.entreprise||{}; let ey=y-14;
-  const eL=[[EI.adresse,[EI.cp,EI.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),
-            [EI.tel?'Tél. '+EI.tel:'',EI.siret?'SIRET '+EI.siret:'',EI.tvaIntra?'TVA '+EI.tvaIntra:''].filter(Boolean).join('  ·  ')].filter(Boolean);
-  eL.forEach(t2=>{ T(M,ey,8.5,cut(t2,58),0,GREY); ey-=11; });
-  y=Math.min(y-32,ey-8); R(M,y,W-2*M,1.6,GREEN); y-=16;
+  const paye=estFact&&d.statut==='payee', echISO=isoDe(new Date(new Date((d.date||todayISO())+'T00:00:00').getTime()+30*86400000));
+  if(estFact) TR(RGT,y-37,9,paye?'Réglée le '+dateFr(d.datePaiement||d.date):'Échéance : '+dateFr(echISO),1,paye?GREEN:DARK);
+  const EI=h; let ey=y-14;
+  docCoordLignes(h).forEach(t2=>{ T(nx,ey,8.5,cut(t2,58),0,GREY); ey-=11; });   // sous le nom, à droite du logo
+  y=Math.min(y-(estFact?44:32),ey-8); R(M,y,W-2*M,1.6,GREEN); y-=16;
 
   const cl=[cli.nom||'', cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '),
             [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')].filter(Boolean);
   const ph=20+cl.length*13;
   R(M,y-ph+10,W-2*M,ph,GREENLT);
-  T(M+10,y-4,8,'CLIENT',1,GREEN);
+  T(M+10,y-4,8,estFact?'FACTURÉ À':'CLIENT',1,GREEN);
   cl.forEach((t2,i)=>{ T(M+10,y-18-i*13,i===0?10.5:8.8,cut(t2,i===0?52:70),i===0?1:0,i===0?DARK:GREY); });
   y-=ph+14;
 
@@ -28541,6 +28963,15 @@ function devisPdfStr(d,logo){
 
   if(y<160) newPage();
   y-=14;
+  if(estFact){
+    (paye?['Facture réglée'+(d.datePaiement?' le '+dateFr(d.datePaiement):'')+'. Nous vous remercions de votre confiance.']
+      :['Règlement au plus tard le '+dateFr(echISO)+'.'+(EI.iban?' Par virement : IBAN '+EI.iban+(EI.bic?' · BIC '+EI.bic:''):'')])
+    .concat(tx===0?['TVA non applicable, article 293 B du CGI.']:[])
+    .concat(['En cas de retard de paiement : pénalités au taux d\'intérêt légal majoré et indemnité forfaitaire',
+             'de recouvrement de 40 EUR (art. L441-10 du Code de commerce). Pas d\'escompte pour paiement anticipé.'])
+    .forEach((t2,k)=>{ T(M,y,8,cut(t2,118),k===0?1:0,k===0?DARK:GREY); y-=11; });
+    y-=10;
+  } else {
   [ 'Devis valable 30 jours à compter de sa date d\'émission.',
     tx===0?'TVA non applicable, article 293 B du CGI.':'Prix en euros, TVA au taux indiqué ci-dessus.',
     'Bon pour accord : date, signature et mention « Bon pour accord ».'
@@ -28549,7 +28980,7 @@ function devisPdfStr(d,logo){
   R(RGT-210,y-52,210,54,'0.98 0.985 0.99');
   T(RGT-200,y-14,8.5,'Bon pour accord',1,DARK);
   T(RGT-200,y-28,7.5,'Date et signature du client',0,GREY);
-  y-=64;
+  y-=64; }
 
   pages.push(ops.join('\n'));
 
@@ -28591,11 +29022,13 @@ function devisPdfStr(d,logo){
 /* Le logo doit être chargé avant d'écrire le PDF : la fabrique devient donc
    asynchrone. Sans logo, ou si son chargement échoue, le devis sort quand même
    — le nom et la couleur de la société portent déjà la marque. */
-async function devisPdfBlob(d){
-  const st=(typeof socStyle==='function')?socStyle(d.rapportModele||''):{};
-  const src=st.logo||((db.entreprise||{}).logo)||'';
-  let logo=null; try{ logo=await devisLogoJpeg(src); }catch(e){}
-  const s=devisPdfStr(d,logo); const bytes=new Uint8Array(s.length);
+async function devisPdfBlob(d){ return docPdfBlob('devis',d); }
+/* Le PDF d'un devis ou d'une facture, logo de SA société compris (docEntete : une société sans
+   logo n'emprunte plus celui de l'entreprise principale). */
+async function docPdfChaine(kind,d){ let logo=null; try{ logo=await devisLogoJpeg(docEntete(d.rapportModele).logo); }catch(e){}
+  return docPdfStr(kind,d,logo); }
+async function docPdfBlob(kind,d){
+  const s=await docPdfChaine(kind,d); const bytes=new Uint8Array(s.length);
   for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
   return new Blob([bytes],{type:'application/pdf'}); }
 async function devisPdfOpen(id){ const d=db.devis.find(x=>x.id===id); if(!d){ toast('Devis introuvable'); return; }
@@ -28721,7 +29154,10 @@ async function envoiBonEmail(id,quiet,mbId){ const b=db.bons.find(x=>x.id===id);
   /* En envoi groupé (quiet) on ne peut pas ouvrir une fenêtre par bon : on saute celui-ci en
      le disant, les autres partent. Seul l'envoi à l'unité propose la saisie. */
   if(!dest){ if(quiet){ toast('⚠️ '+bonNum(b)+' : pas d\'adresse fournisseur — non envoyé'); return false; } bonEmailSaisir(id); return false; }
-  const nl='\n'; const ent=mailBrandName();
+  /* v740 : un bon qui porte une société part sous SON nom (celui de l'en-tête du PDF joint). Sans
+     société, rien ne change : le « Nom d'expéditeur » des Réglages e-mail passe avant le nom légal
+     (mailBrandName) — bcEntete le mettait derrière, et une entreprise qui l'avait réglé le perdait. */
+  const nl='\n'; const ent=socNom(b.societe)?bcEntete(b):mailBrandName();
   const detail=(b.lignes||[]).map(l=>`- ${l.designation} : ${bonQteTxt(l)}${l.commentaire?` — ${l.commentaire}`:''}`).join(nl);
   const liv=b.nomSiteLivraison?('Livraison : '+b.nomSiteLivraison+' '+(b.adresseLivraison||'')+' '+(b.villeLivraison||'')+nl+nl):'';
   const subject='Bon de commande '+bonNum(b)+' — '+ent;
@@ -28740,7 +29176,7 @@ async function envoiBonEmail(id,quiet,mbId){ const b=db.bons.find(x=>x.id===id);
   if(opts.atts) body=`Bonjour,${nl}${nl}Veuillez trouver ci-joint notre bon de commande ${bonNum(b)} (${(b.lignes||[]).length} article(s) — ${bonQteTotTxt(b)}).${nl}Voir le PDF joint pour le détail de la commande.${nl}${nl}${liv}Cordialement,${nl}${fullName(currentUser)}${nl}${ent}`;
   const ok=await srvMail(dest,subject,body,'✉️ Bon '+bonNum(b)+' envoyé à '+dest+(opts.atts?' (PDF joint)':''),'bon',null,opts);
   if(ok){ // le bon envoyé apparaît aussi dans 📤 Envoyés de la Boîte mail, avec tout son détail
-    let fromLbl=mailBrandName();
+    let fromLbl=ent;
     if(selEnv&&selEnv.kind==='mb'){ const mb=(_mailboxes||[]).find(x=>x.id===selEnv.id); if(mb) fromLbl=mb.email; }
     db.mailSent=db.mailSent||[]; db.mailSent.push({ts:Date.now(),to:dest,subject,text:body,att:opts.atts?opts.atts[0].filename:'',from:fromLbl,bonNum:bonNum(b)});
     if(db.mailSent.length>200) db.mailSent=db.mailSent.slice(-200); save(); }
@@ -31329,9 +31765,10 @@ views.parametres=function(){
           <input type="file" id="soc-logo-${ix}" accept="image/*" style="display:none" onchange="socLogoPick(${ix},event)">
           <button class="btn ghost sm" onclick="document.getElementById('soc-logo-${ix}').click()">${st.logo?'Changer le logo':'＋ Logo'}</button>
           ${st.logo?`<button class="btn ghost sm" style="color:var(--red)" onclick="socLogoDel(${ix})">Retirer le logo</button>`:''}
+          <button class="btn ghost sm" onclick="socCoordModal(${ix})">${String(st.siret||'').trim()?'🏢 Coordonnées propres':'🏢 Coordonnées'}</button>
           <b style="cursor:pointer;color:var(--red);font-size:15px;padding:0 3px" title="Retirer la société" onclick="entSocDel(${ix})">✕</b>
         </div>`; }).join('')||'<span style="font-size:12px;color:var(--t3)">Aucune société déclarée — la liste générique est proposée.</span>'}</div>
-      ${(db.societes||[]).length?'<p style="font-size:11.5px;color:var(--t3);margin:0 0 8px">Chaque société a <b>sa couleur</b> et <b>son logo</b> : ses factures et devis s’habillent automatiquement à ses couleurs.</p>':''}
+      ${(db.societes||[]).length?'<p style="font-size:11.5px;color:var(--t3);margin:0 0 8px">Chaque société a <b>sa couleur</b>, <b>son logo</b> et, si c’est une entreprise distincte, <b>ses coordonnées</b> (SIRET, TVA, IBAN) : tous ses documents — rapports, plans, devis, factures, bons — les portent.</p>':''}
       <div style="display:flex;gap:6px;margin-bottom:4px"><input id="ent-soc-new" placeholder="Ex : 3D Sud-Ouest SARL" style="flex:1;background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;color:var(--t1);font-family:inherit" onkeydown="if(event.key==='Enter'){event.preventDefault();entSocAdd()}"><button class="btn sm" onclick="entSocAdd()">＋ Ajouter</button></div>
       ${['business','premium'].includes(forfait())?`
       <div class="form-sec">🏷️ Marque dans l'application <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--acc-txt)">— inclus avec ton forfait</span></div>
@@ -32444,8 +32881,8 @@ function factSetStatut(id,st){ if(!permGarde('ventes','modifier','une facture'))
 function factEnvoyer(id){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return;
   const c=db.clients.find(x=>x.id===f.clientId)||{};
   if(!c.email&&!c.tel){ toast('Ajoute un e-mail (ou un téléphone) sur la fiche du client d\'abord'); return; }
-  envoiDoc('factures',id,'mail');
-  f.statut='envoyee'; logEvent('Facture envoyée',f.num,'finance'); save(); views.factures(); }
+  Promise.resolve(envoiDoc('factures',id,'mail')).then(ok=>{ if(!ok) return;   // v740 : « Envoyée » quand elle est PARTIE
+    f.statut='envoyee'; logEvent('Facture envoyée',f.num,'finance'); save(); if(current==='factures') views.factures(); }); }
 function delFacture(id){ if(!canCat('ventes','supprimer')){toast('Suppression non autorisée pour ton compte (Permissions)');return;} if(!confirm('Supprimer cette facture ?'))return; db.factures=(db.factures||[]).filter(x=>x.id!==id); logEvent('Facture supprimée',id,'finance'); save(); views.factures(); toast('Facture supprimée'); }
 views.factures=function(){
   const canDel=canCat('ventes','supprimer');
@@ -32630,15 +33067,18 @@ function factureAutoIntervention(it){
   logEvent('Facture automatique',f.num+' — '+eur(mnt)+' ('+clientName(it.clientId)+')','finance'); save();
   const c=(db.clients||[]).find(x=>x.id===it.clientId);
   if(c&&(c.email||'').trim()){
-    const t=docTot(f), soc=(typeof rapportSociete==='function'&&it.rapportModele)?rapportSociete(it.rapportModele):'';
-    const corps='Bonjour,\n\nVeuillez trouver ci-dessous votre facture, réglée ce jour.\n\n'
+    const t=docTot(f), soc=rapportSociete(it.rapportModele);   // v740 : la signature nomme la société de l'intervention
+    const corpsDe=joint=>'Bonjour,\n\n'+(joint?'Veuillez trouver ci-joint votre facture, réglée ce jour (le détail suit).':'Veuillez trouver ci-dessous votre facture, réglée ce jour.')+'\n\n'
       +'Facture '+f.num+' du '+fmtShort(f.date)+'\n'
       +'— '+(it.titre||'Intervention')+' (le '+fmtShort(it.date||todayISO())+')\n\n'
       +'Total HT : '+eur(t.ht)+'\nTVA '+tvaR+'% : '+eur(t.tva)+'\nTotal TTC : '+eur(t.ttc)+'\n\n'
       +'Règlement reçu : '+(it.moyenPaiement||'sur place')+' — le '+fmtShort(todayISO())+'.\n\n'
-      +'Nous vous remercions de votre confiance.\n\nCordialement';
-    srvMail((c.email||'').trim(),'Votre facture '+f.num,corps,'',
-      'facture',null,(typeof intSocMailOpts==='function')?intSocMailOpts(it):undefined)
+      +'Nous vous remercions de votre confiance.\n\nCordialement,\n'+soc;
+    /* v740 : la facture part aussi en PDF joint, à l'en-tête de SA société (docPdfChaine) */
+    (async()=>{ let pdf=''; try{ pdf=await docPdfChaine('factures',f); }catch(e){ pdf=''; }
+      const opts=Object.assign({},docMailOpts(it.rapportModele)||{});
+      if(pdf){ opts.atts=[{filename:('Facture-'+(f.num||'')).replace(/[^\w-]+/g,'-')+'.pdf',content:btoa(pdf)}]; opts.mailtoBody=corpsDe(false); }
+      return srvMail((c.email||'').trim(),'Votre facture '+f.num,corpsDe(!!pdf),'','facture',null,Object.keys(opts).length?opts:undefined); })()
       .then(okE=>{ if(okE){ f.mailEnvoye=Date.now(); save(); toast('🧾 Facture '+f.num+' créée et envoyée à '+c.email); }
         else toast('🧾 Facture '+f.num+' créée — l\'email n\'est pas parti (à renvoyer depuis Factures)'); })
       .catch(()=>{ toast('🧾 Facture '+f.num+' créée — l\'email n\'est pas parti'); });
@@ -34135,13 +34575,13 @@ function devisToFacture(id){ if(!permGarde('ventes','ajouter','une facture')) re
 function printDoc(kind,id){
   const cfg=DOC[kind], d=db[cfg.coll].find(x=>x.id===id);
   if(!d){ toast('Ce document n’existe plus'); return; }
-  const c=db.clients.find(x=>x.id===d.clientId)||{}, t=docTot(d); const soc=rapportSociete(d.rapportModele);
-  const E=db.entreprise||{};
+  const c=db.clients.find(x=>x.id===d.clientId)||{}, t=docTot(d);
+  /* v740 : nom, couleur, logo ET coordonnées (SIRET, TVA, IBAN) de la société DU document —
+     une facture de la société B portait le SIRET et l'IBAN de l'entreprise principale. */
+  const E=docEntete(d.rapportModele), soc=E.nom;
   const estFact=(kind==='factures'), paye=(d.statut==='payee');
   /* chaque société a son habit : sa couleur et son logo colorent le document */
-  const stSoc=(typeof socStyle==='function')?socStyle(soc):{};
-  const acc=/^#[0-9a-fA-F]{6}$/.test(stSoc.couleur||'')?stSoc.couleur:'#1E7A4E';
-  const logo=stSoc.logo||E.logo||'';
+  const acc=E.couleur, logo=E.logo||'';
   const stL=(cfg.st[d.statut]||{}).l||'';
   const stFond=(d.statut==='payee'||d.statut==='accepte')?acc
     :((d.statut==='retard'||d.statut==='refuse')?'#B3372F'
@@ -34200,7 +34640,7 @@ function printDoc(kind,id){
     <body><div class="noprint"><button onclick="window.print()">Imprimer</button><button onclick="window.close()">Fermer</button></div><div style="height:54px"></div>
     <div class="feuille">
       <div class="hd">
-        <div>${logo?`<img class="logo-img" src="${logo}" alt="">`:''}<div class="soc">${esc(soc)}<small>Gestion d'interventions</small></div></div>
+        <div>${logo?`<img class="logo-img" src="${esc(logo)}" alt="">`:''}<div class="soc">${esc(soc)}<small>Gestion d'interventions</small></div></div>
         <div class="dt"><h1>${cfg.titre.toUpperCase()}</h1><div class="num">N° ${esc(d.num)}</div>
           ${stL?`<span class="pill" style="background:${stFond}">${stL}</span>`:''}
           <div class="dates">
@@ -34212,7 +34652,7 @@ function printDoc(kind,id){
       </div>
       <div class="adr">
         <div class="colg"><div class="lbl">Émetteur</div>
-          <div class="nm">${esc(soc)}</div>
+          <div class="nm">${esc(soc)}</div>${E.raison&&E.raison!==soc?`<div class="mut">${esc(E.raison)}</div>`:''}
           <div class="mut">${emetteur.join('<br>')}</div></div>
         <div class="cold"><div class="lbl">${estFact?'Facturé à':'Adressé à'}</div>
           <div class="nm">${esc(c.nom||'—')}</div>
@@ -34239,12 +34679,14 @@ function printDoc(kind,id){
         ${estFact?(tvaP===0?`TVA non applicable, article 293 B du CGI.<br>`:'')
           +`En cas de retard de paiement : pénalités calculées au taux d'intérêt légal majoré et indemnité forfaitaire de recouvrement de 40 € (art. L441-10 du Code de commerce). Pas d'escompte pour paiement anticipé.`:''}
       </div>
-      <div class="ftr">${esc(soc)}${E.siret?' · SIRET '+esc(E.siret):''}${E.tvaIntra?' · TVA '+esc(E.tvaIntra):''}${[E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).length?'<br>'+esc([E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).join(' — '))+(E.tel?' · Tél. '+esc(E.tel):''):''}<br>Document généré par OP GESTION le ${new Date().toLocaleDateString('fr-FR')}</div>
+      <div class="ftr">${esc(soc)}${E.siret?' · SIRET '+esc(E.siret):''}${E.tvaIntra?' · TVA '+esc(E.tvaIntra):''}${[E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).length?'<br>'+esc([E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).join(' — '))+(E.tel?' · Tél. '+esc(E.tel):''):''}<br>Document édité le ${new Date().toLocaleDateString('fr-FR')}</div>
     </div></body></html>`);
   w.document.close(); w.focus();
 }
-function genDocTexte(kind,d){ const cfg=DOC[kind], c=db.clients.find(x=>x.id===d.clientId)||{}, t=docTot(d), soc=rapportSociete(d.rapportModele), nl='\n';
-  const L=[]; L.push('Bonjour'+(c.nom?' '+c.nom:'')+',',''); L.push('Veuillez trouver ci-joint votre '+cfg.un+' '+(d.num||'')+' ('+soc+').','');
+/* `joint` : le PDF part avec le courriel. Sans lui, le texte ne dit pas « ci-joint » — un SMS, ou
+   un brouillon de secours, ne joint rien (v740). */
+function genDocTexte(kind,d,joint){ const cfg=DOC[kind], c=db.clients.find(x=>x.id===d.clientId)||{}, t=docTot(d), soc=rapportSociete(d.rapportModele), nl='\n';
+  const L=[]; L.push('Bonjour'+(c.nom?' '+c.nom:'')+',',''); L.push((joint?'Veuillez trouver ci-joint votre ':'Voici votre ')+cfg.un+' '+(d.num||'')+' ('+soc+')'+(joint?'.':' :'),'');
   (d.lignes||[]).forEach(l=>L.push('• '+(l.designation||'')+' — '+(l.qte||1)+' × '+eur(l.pu||0)+' = '+eur((+l.qte||0)*(+l.pu||0))));
   L.push('','Total TTC : '+eur(t.ttc)); if(d.notes)L.push('',d.notes);
   L.push('','Cordialement,',soc); return L.join(nl);
@@ -34252,17 +34694,31 @@ function genDocTexte(kind,d){ const cfg=DOC[kind], c=db.clients.find(x=>x.id===d
 /* Envoi du document : email par défaut, SMS en exception */
 function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devis'?'un devis':'une facture')) return; const cfg=DOC[kind], d=db[cfg.coll].find(x=>x.id===id); if(!d)return; const c=db.clients.find(x=>x.id===d.clientId)||{};
   const texte=genDocTexte(kind,d), soc=rapportSociete(d.rapportModele);
+  /* v740 (relecture) : « Envoyé » se pose quand le document est PARTI, pas quand on a appuyé. Le
+     courriel est asynchrone (PDF puis serveur) : le statut attend sa réponse. Un refus, ou un
+     brouillon de secours ouvert dans Mail, laisse le document en brouillon — l'équipe ne croit plus
+     envoyé ce que le client n'a jamais reçu. Rend une promesse : vrai si parti. */
+  const marquer=()=>{ if(kind==='devis'&&d.statut==='brouillon'){ d.statut='envoye'; save(); }
+    else if(kind==='factures'&&d.statut==='brouillon'){ d.statut='envoyee'; save(); } };
   if(canal==='sms'){
-    const tel=(c.tel||'').replace(/\s/g,''); if(!tel){ toast('Pas de numéro pour ce client'); return; }
+    const tel=(c.tel||'').replace(/\s/g,''); if(!tel){ toast('Pas de numéro pour ce client'); return Promise.resolve(false); }
     setTimeout(()=>{ location.href='sms:'+tel+'?&body='+encodeURIComponent(texte); },700);
-    toast('SMS préparé pour '+(c.nom||tel));
+    toast('SMS préparé pour '+(c.nom||tel)); marquer(); return Promise.resolve(true);
   } else {
-    if(!c.email){ if(confirm('Ce client n\'a pas d\'email. Envoyer par SMS à la place ?')){ envoiDoc(kind,id,'sms'); } else { toast('Ajoute un email au client (fiche) ou utilise le SMS'); } return; }
+    if(!c.email){ if(confirm('Ce client n\'a pas d\'email. Envoyer par SMS à la place ?')){ return envoiDoc(kind,id,'sms'); } toast('Ajoute un email au client (fiche) ou utilise le SMS'); return Promise.resolve(false); }
     const sujet=cfg.titre+' '+(d.num||'')+' — '+soc;
-    setTimeout(()=>{ srvMail(c.email,sujet,texte,'✉️ '+cfg.titre+' envoyé à '+(c.nom||c.email),'devis'); },700);
+    /* v740 : l'expéditeur affiché au client est CETTE société (docMailOpts), et le document part
+       EN PDF JOINT — le courriel disait « veuillez trouver ci-joint » sans rien joindre. Si le PDF
+       ne peut pas être construit, le courriel part sans, et son texte ne prétend plus le contraire.
+       Le brouillon de secours (mailto) ne sait pas joindre : son texte ne dit pas « ci-joint ». */
+    return (async()=>{ let pdf=''; try{ pdf=await docPdfChaine(kind,d); }catch(e){ pdf=''; }
+      const opts=Object.assign({},docMailOpts(d.rapportModele)||{});
+      if(pdf){ opts.atts=[{filename:(cfg.titre+'-'+(d.num||'document')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'-')+'.pdf',content:btoa(pdf)}];
+        opts.mailtoBody=genDocTexte(kind,d,false); }
+      const ok=await srvMail(c.email,sujet,genDocTexte(kind,d,!!pdf),'✉️ '+cfg.titre+' envoyé à '+(c.nom||c.email)+(pdf?' (PDF joint)':''),'devis',null,Object.keys(opts).length?opts:undefined);
+      if(ok){ marquer(); if(current===kind&&views[kind]) views[kind](); }
+      return ok; })();
   }
-  if(kind==='devis'&&d.statut==='brouillon'){ d.statut='envoye'; save(); }
-  else if(kind==='factures'&&d.statut==='brouillon'){ d.statut='envoyee'; save(); }
 }
 
 /* ═══════════════ CONTRATS DE MAINTENANCE ═══════════════ */
@@ -35362,6 +35818,11 @@ function formProduitDonne(id,presetVeh){ const p=id?db.produitsDonnes.find(x=>x.
       <div class="form-sec">Contexte</div>
       <div class="field"><label>Véhicule</label><select name="vehiculeId"><option value="">—</option>${db.vehicules.map(v=>`<option value="${v.id}" ${v.id===p.vehiculeId?'selected':''}>${esc(vPlaque(v))}</option>`).join('')}</select></div>
       <div class="field"><label>Date</label><input type="date" name="date" value="${p.date||todayISO()}"></div>
+      ${(()=>{ /* v740 : le bon de remise est signé par le client — il porte la société qui remet. Une
+         seule société (ou aucune) : elle s'applique d'elle-même, le choix n'est pas montré. */
+        const L=entSocietes(); if(L.length<3) return `<input type="hidden" name="rapportModele" value="${esc(p.rapportModele||intSocDefaut())}">`;
+        const cur=p.rapportModele||intSocDefaut();
+        return `<div class="field"><label>Société (en-tête du bon)</label><select name="rapportModele">${L.map(t=>`<option value="${esc(t)}" ${t===cur?'selected':''}>${esc(socNom(t)||entNom())}</option>`).join('')}</select></div>`; })()}
       <div class="field"><label>Notes</label><input name="notes" value="${esc(p.notes)}" placeholder="Client, motif…"></div>
     </form>`);
 }
@@ -35383,8 +35844,9 @@ function saveProduitDonne(e,id){ e.preventDefault();
 }
 function printProduitDonne(id){ const p=db.produitsDonnes.find(x=>x.id===id); if(!p)return;
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-ups');return;}
-  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Bon de remise</title><style>body{font-family:Arial;padding:40px;color:#1A1F28}.hd{border-bottom:3px solid #1E7A4E;padding-bottom:12px;margin-bottom:20px}.logo{font-size:22px;font-weight:800;color:#1E7A4E}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:14px;margin:10px 0}</style></head>
-  <body><div class="hd"><div class="logo">OP GESTION</div><div style="color:#666;font-size:13px">Bon de remise de produit — ${new Date((p.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</div></div>
+  const H=docEntete(p.rapportModele);   // v740 : la société qui remet (choisie sur le bon), jamais « OP GESTION »
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Bon de remise</title><style>body{font-family:Arial;padding:40px;color:#1A1F28}.hd{border-bottom:3px solid ${H.couleur};padding-bottom:12px;margin-bottom:20px}.logo{font-size:22px;font-weight:800;color:${H.couleur}}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:14px;margin:10px 0}</style></head>
+  <body><div class="hd">${H.logo?`<img src="${esc(H.logo)}" alt="" style="max-height:44px;max-width:170px;display:block;margin-bottom:6px">`:''}<div class="logo">${esc(H.nom)}</div>${docCoordLignes(H).map(x=>`<div style="color:#666;font-size:11px">${esc(x)}</div>`).join('')}<div style="color:#666;font-size:13px">Bon de remise de produit — ${new Date((p.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')}</div></div>
   <div class="box"><b>${esc(p.produitNom)}</b> — Quantité : <b>${p.quantite} ${esc(p.unite||'')}</b><br>Véhicule : ${esc(p.vehiculeId?vehName(p.vehiculeId):'—')}<br>Remis par : ${esc(p.auteurNom||'')}${p.notes?'<br>Notes : '+esc(p.notes):''}</div>
   <div style="margin-top:40px;display:flex;justify-content:space-between"><div>Signature remettant<br><br>____________________</div><div>Signature client<br><br>____________________</div></div>
   </body></html>`); w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350); }
