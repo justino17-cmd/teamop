@@ -25397,31 +25397,111 @@ let _boxDonne=null, _boxDonneSuite=null, _boxDonneBox='';
 function boxDonneNom(boxId){ return (_boxDonne&&_boxDonne.boxId===boxId)?(_boxDonne.nom||''):''; }
 function boxDonneOublier(){ _boxDonne=null; }
 function boxDonneChanger(boxId){ _boxDonne=null; boxDonneModal(boxId,function(){ renderBoxProdList(); }); }
-function boxDonneModal(boxId,suite){
+/* ⛔⛔ PLUSIEURS PRODUITS DANS LA MÊME LISTE — Justin, 23 septembre 2026, capture de cette fenêtre
+   à l'appui : « il faudrait pouvoir ajouter plusieurs produits dans la même liste quand on donne
+   les produits ». Pour un administrateur ou un DR, un « − » sortait UN produit ; la question ne se
+   posait qu'au premier, et les suivants partaient en silence vers la même personne. La liste
+   existait déjà côté données (un seul bon de remise par jour, par box et par destinataire), mais
+   personne ne la VOYAIT se composer. La fenêtre la porte donc : le produit touché y est déjà, on en
+   ajoute d'autres avec leur quantité, et un seul geste sort le tout — un mouvement par produit,
+   UN bon de remise. Les comptes soumis au DR ont déjà la leur (« Votre liste »).
+   ⛔ Le produit touché ne sort QU'UNE fois : c'est la liste qui le sort, plus la suite qu'on nous
+   passait (elle ne sert que quand la liste est vide — « changer de personne »). */
+let _donListe=[], _donRech='', _donAjoutOuvert=false;
+function boxDonneModal(boxId,suite,depart){
   const b=(db.boxes||[]).find(x=>x.id===boxId)||{};
-  _boxDonneSuite=suite||null; _boxDonneBox=boxId;
+  _boxDonneSuite=suite||null; _boxDonneBox=boxId; _donRech='';
+  _donListe=(depart&&depart.pid&&(+depart.delta||0)<0)?[{pid:depart.pid,field:depart.field==='ctn'?'ctn':'u',qte:Math.abs(+depart.delta)}]:[];
+  _donAjoutOuvert=!_donListe.length;
   /* La liste des personnes de l'entreprise est proposée, sans être imposée : on remet aussi du
      matériel à un intérimaire ou à un sous-traitant, qui n'a pas de compte. */
   const gens=(db.users||[]).filter(u=>u&&u.actif!==false).map(u=>`<option value="${esc(fullName(u))}">`).join('');
   openModal(`<div class="modal-head"><h3>👤 Ces produits sont pour qui ?</h3><button class="modal-close" onclick="boxDonneAnnuler()">✕</button></div>
-    <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px">Sortie de <b>${esc(b.nom||b.numero||'la box')}</b>. Le nom sera écrit sur le mouvement et sur le bon de remise — on saura qui a reçu quoi.<br><span style="color:var(--t3)">La question ne se pose qu'une fois : les sorties suivantes de cette box iront à la même personne, jusqu'à ce que vous en changiez.</span></p>
+    <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px">Sortie de <b>${esc(b.nom||b.numero||'la box')}</b>. Le nom sera écrit sur le mouvement et sur le bon de remise — on saura qui a reçu quoi.<br><span style="color:var(--t3)">Mets ici tout ce qui part avec la personne : un seul bon de remise pour la liste. Les sorties suivantes de cette box iront à la même personne, jusqu'à ce que vous en changiez.</span></p>
     <div class="fgroup" style="margin-bottom:12px">
-      <label class="frow" style="cursor:pointer"><input type="radio" name="bd-qui" value="moi" checked onchange="document.getElementById('bd-autre-bloc').style.display='none'" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour moi — <b>${esc(fullName(currentUser))}</b></span></label>
-      <label class="frow" style="cursor:pointer;border-bottom:none"><input type="radio" name="bd-qui" value="autre" onchange="document.getElementById('bd-autre-bloc').style.display='block';setTimeout(()=>{const i=document.getElementById('bd-nom');if(i)i.focus();},60)" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour une autre personne</span></label>
+      <label class="frow" style="cursor:pointer"><input type="radio" name="bd-qui" value="moi" checked onchange="document.getElementById('bd-autre-bloc').style.display='none';donPiedRender()" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour moi — <b>${esc(fullName(currentUser))}</b></span></label>
+      <label class="frow" style="cursor:pointer;border-bottom:none"><input type="radio" name="bd-qui" value="autre" onchange="document.getElementById('bd-autre-bloc').style.display='block';donPiedRender();setTimeout(()=>{const i=document.getElementById('bd-nom');if(i)i.focus();},60)" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour une autre personne</span></label>
     </div>
-    <div class="field" id="bd-autre-bloc" style="display:none"><label>Nom, prénom</label><input id="bd-nom" list="bd-gens" placeholder="ex : Benali Karim" autocapitalize="words" autocomplete="off"><datalist id="bd-gens">${gens}</datalist></div>
-    <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="boxDonneSave()">Continuer</button>`,'carte');
+    <div class="field" id="bd-autre-bloc" style="display:none"><label>Nom, prénom</label><input id="bd-nom" list="bd-gens" placeholder="ex : Benali Karim" autocapitalize="words" autocomplete="off" oninput="donPiedRender()"><datalist id="bd-gens">${gens}</datalist></div>
+    <div class="form-sec" style="margin-top:4px">Produits de la liste</div>
+    <div class="bl-list" id="don-liste"></div>
+    <div id="don-ajout-bloc"></div>
+    <button class="btn" id="don-go" style="width:100%;justify-content:center;padding:13px;margin-top:12px" onclick="boxDonneSave()">Continuer</button>`,'carte');
+  donListeRender();
 }
+function donBox(){ return (db.boxes||[]).find(x=>x.id===_boxDonneBox)||null; }
+function donStock(b,l){ const s=(b&&b.stock&&b.stock[l.pid])||{}; return Math.max(0,+s[l.field]||0); }
+function donUnite(l){ return l.field==='ctn'?'cart.':'u'; }
+/* Une ligne se réécrit seule quand on change sa quantité : le clavier reste là où l'on tape. */
+function donLigne(b,l){ const p=produit(l.pid)||{}, reste=donStock(b,l)-l.qte;
+  return '<div class="bl-r" id="don-r-'+l.pid+'"><div class="bl-h"><div class="bl-nom">'+esc(p.nom||'Produit supprimé')+'</div>'+
+      '<button type="button" class="bl-x" onclick="donRetirer(\''+l.pid+'\')" aria-label="Retirer '+esc(p.nom||'ce produit')+' de la liste">✕</button></div>'+
+    '<div class="bl-s" id="don-s-'+l.pid+'">'+(reste<0?'<b style="color:var(--red)">il n’y en a que '+donStock(b,l)+' '+donUnite(l)+'</b>':'il en restera <b>'+reste+' '+donUnite(l)+'</b> dans la box')+'</div>'+
+    '<div class="bl-c"><div class="bl-q">'+
+      '<button type="button" class="bl-mm" onclick="donStep(\''+l.pid+'\',-1)" aria-label="Un de moins">−</button>'+
+      '<input class="bl-n" id="don-i-'+l.pid+'" type="number" inputmode="numeric" min="1" step="1" value="'+l.qte+'" oninput="donSet(\''+l.pid+'\',this.value)" aria-label="Quantité pour '+esc(p.nom||'')+'">'+
+      '<button type="button" class="bl-mm" onclick="donStep(\''+l.pid+'\',1)" aria-label="Un de plus">＋</button>'+
+    '</div></div></div>'; }
+function donListeRender(){
+  const el=$('don-liste'); if(!el) return; const b=donBox();
+  el.innerHTML=_donListe.length?_donListe.map(l=>donLigne(b,l)).join('')
+    :'<div class="bl-vide">Aucun produit pour l’instant — ajoute ceux qui partent avec la personne.</div>';
+  donAjoutRender(); donPiedRender(); }
+function donAjoutRender(){
+  const el=$('don-ajout-bloc'); if(!el) return; const b=donBox(); if(!b){ el.innerHTML=''; return; }
+  if(!_donAjoutOuvert){ el.innerHTML='<button type="button" class="btn ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="_donAjoutOuvert=true;donAjoutRender();setTimeout(()=>{const i=document.getElementById(\'don-rech\');if(i)i.focus();},60)">＋ Ajouter un autre produit</button>'; return; }
+  const dedans=_donListe.map(l=>l.pid), q=norm(_donRech||'');
+  const liste=Object.keys(b.stock||{}).map(pid=>({pid,p:produit(pid),s:b.stock[pid]||{}}))
+    .filter(e=>e.p&&e.p.id&&dedans.indexOf(e.pid)<0&&((+e.s.u||0)>0||(+e.s.ctn||0)>0))
+    .filter(e=>!q||norm((e.p.nom||'')+' '+(e.p.ref||'')+' '+(e.p.categorie||'')).includes(q))
+    .sort((a,c)=>(+c.s.u||0)-(+a.s.u||0)||(a.p.nom||'').localeCompare(c.p.nom||''));
+  const ligneAjout=e=>'<button type="button" class="bl-add" onclick="donAjout(\''+e.pid+'\')"><span class="bl-add-n">'+esc(e.p.nom||'')+'</span>'+
+    '<span class="bl-add-s">'+((+e.s.u||0)>0?(+e.s.u)+' u':(+e.s.ctn)+' cart.')+' en stock</span><span class="bl-add-p">＋</span></button>';
+  el.innerHTML='<div class="form-sec">Ajouter un autre produit</div>'+
+    '<input class="search-inp" id="don-rech" placeholder="Chercher dans cette box…" value="'+esc(_donRech)+'" oninput="_donRech=this.value;donAjoutListe()">'+
+    '<div id="don-ajout">'+(liste.length?liste.slice(0,40).map(ligneAjout).join('')+(liste.length>40?'<div class="bl-vide">'+(liste.length-40)+' autres — affine la recherche.</div>':'')
+      :'<div class="bl-vide">'+(_donRech?'Aucun produit ne correspond.':'Tout ce qui reste dans la box est déjà dans la liste.')+'</div>')+'</div>'; }
+/* La recherche ne redessine que les résultats — sinon le champ perdrait le clavier à chaque lettre. */
+function donAjoutListe(){ const garde=_donRech; donAjoutRender(); const i=$('don-rech'); if(i){ i.focus(); try{ i.setSelectionRange(garde.length,garde.length); }catch(e){} } }
+function donAjout(pid){ const b=donBox(); if(!b||_donListe.some(l=>l.pid===pid)) return;
+  const s=(b.stock&&b.stock[pid])||{}; _donListe.push({pid,field:(+s.u||0)>0?'u':'ctn',qte:1});
+  _donRech=''; _donAjoutOuvert=false; donListeRender(); }
+function donRetirer(pid){ _donListe=_donListe.filter(l=>l.pid!==pid); _donAjoutOuvert=!_donListe.length||_donAjoutOuvert; donListeRender(); }
+function donStep(pid,d){ const l=_donListe.find(x=>x.pid===pid); if(!l) return; const b=donBox();
+  l.qte=Math.max(1,Math.min(Math.max(1,donStock(b,l)),(+l.qte||0)+d)); const i=$('don-i-'+pid); if(i) i.value=l.qte; donLigneMaj(l); }
+function donSet(pid,v){ const l=_donListe.find(x=>x.pid===pid); if(!l) return; l.qte=Math.max(0,parseInt(v,10)||0); donLigneMaj(l); }
+function donLigneMaj(l){ const b=donBox(), el=$('don-s-'+l.pid); if(el){ const reste=donStock(b,l)-l.qte;
+    el.innerHTML=reste<0?'<b style="color:var(--red)">il n’y en a que '+donStock(b,l)+' '+donUnite(l)+'</b>':'il en restera <b>'+reste+' '+donUnite(l)+'</b> dans la box'; }
+  donPiedRender(); }
+/* Le bouton dit ce qui va se passer : à qui, et combien de produits. */
+function donPiedRender(){ const bt=$('don-go'); if(!bt) return;
+  const autre=(document.querySelector('input[name=bd-qui]:checked')||{}).value==='autre';
+  const nom=autre?((($('bd-nom')||{}).value)||'').trim():'';
+  const n=_donListe.filter(l=>l.qte>0).length;
+  bt.textContent=!n?'Continuer':(autre?('Donner'+(nom?' à '+nom:'')):'Sortir pour moi')+' · '+n+' produit'+(n>1?'s':''); }
 /* Annuler, c'est renoncer à la sortie — pas la passer en douce sans nom. */
-function boxDonneAnnuler(){ _boxDonneSuite=null; closeModal(); toast('Sortie annulée — aucun mouvement enregistré'); }
+function boxDonneAnnuler(){ _boxDonneSuite=null; _donListe=[]; closeModal(); toast('Sortie annulée — aucun mouvement enregistré'); }
 function boxDonneSave(){
   const autre=(document.querySelector('input[name=bd-qui]:checked')||{}).value==='autre';
   const nom=autre?(($('bd-nom')||{}).value||'').trim():fullName(currentUser);
   if(autre&&!nom){ toast('Écris le nom et le prénom'); return; }
+  const b=donBox(), lignes=_donListe.filter(l=>l.qte>0);
+  /* Refusé AVANT de rien toucher : une liste qui demande plus que la box n'a ne sort pas à moitié. */
+  const trop=lignes.find(l=>l.qte>donStock(b,l));
+  if(trop){ toast('Il n’y a que '+donStock(b,trop)+' '+donUnite(trop)+' de « '+((produit(trop.pid)||{}).nom||'ce produit')+' » dans la box',3800); return; }
   _boxDonne={boxId:_boxDonneBox,nom:nom,ts:Date.now()};
-  const suite=_boxDonneSuite; _boxDonneSuite=null;
+  const suite=_boxDonneSuite; _boxDonneSuite=null; _donListe=[];
   closeModal();
-  if(suite) suite();
+  if(!lignes.length){ if(suite) suite(); return; }   // « changer de personne » : rien à sortir
+  if(!b||boxView!==b.id){ toast('Box fermée entre-temps — rien n’est sorti'); return; }
+  /* UN geste : un mouvement par produit (le journal dit « −3 », pas trois fois « −1 »), et UN bon
+     de remise — `remiseAjoute` range sur le même bon tout ce qui part le même jour, de la même box,
+     vers la même personne. Silencieux pendant la boucle : un seul rendu, un seul message. */
+  let n=0; _boxLotSilence=true;
+  try{ lignes.forEach(l=>{ const avant=donStock(b,l); boxAdj(l.pid,l.field,-l.qte); if(donStock(b,l)<avant) n++; }); }
+  finally{ _boxLotSilence=false; }
+  save(); renderBoxProdList();
+  toast(n+' produit'+(n>1?'s':'')+(autre?' remis à '+nom:(n>1?' sortis':' sorti')+' pour toi')+(n>1?' — sur un seul bon de remise':''),3600);
 }
 /* ── BON DE REMISE ── quand un utilisateur soumis à la validation DR SORT des
    produits d'une box, on lui demande pour qui ils sont ; au « Valider » du DR,
@@ -25952,7 +26032,7 @@ function boxAdj(pid,field,delta){ const b=db.boxes.find(x=>x.id===boxView); if(!
      Différé de 80 ms : boxQteGo() appelle closeModal() juste après boxSaisir(), ce qui
      refermerait la fenêtre à l'instant où elle s'ouvre. On la pose donc après ce closeModal. */
   if(delta<0 && !db.bonsRemiseOff && !boxDonneNom(b.id)){
-    setTimeout(function(){ boxDonneModal(b.id,function(){ boxAdj(pid,field,delta); }); },80);
+    setTimeout(function(){ boxDonneModal(b.id,function(){ boxAdj(pid,field,delta); },{pid:pid,field:field,delta:delta}); },80);
     return; }
   /* Le stock plafonne à zéro : retirer 5 d'une box qui en a 3 en sort 3. La trace et le bon
      de remise doivent dire 3, pas 5 — sinon l'historique invente deux unités. */
