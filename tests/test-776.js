@@ -168,5 +168,19 @@ vrai('⛔ au téléphone, le libellé de la période passe sur deux lignes au li
 const navM = regle('html[data-refonte] .pf-nav{min-width:0}');
 vrai('… et la barre peut rétrécir sous la largeur du libellé', !!navM && navM.media === (navB && navB.media));
 
+console.log('\n── 776 · 10. l’analyse de consommation tient sur un téléphone ──');
+/* Mesuré le 23 septembre 2026 (scratchpad/sonde-conso.js) : dès qu'il existe des consommations,
+   page à 529 px sur un Android de 360 et barres écrasées à 0 px — libellé produit 270 px, noms
+   230 / 250 px, valeurs 64 à 100 px, écrits EN LIGNE. La démonstration n'a aucune consommation. */
+const iA = SRC.indexOf('function consoAnalyseHTML(){'), fA = iA > 0 ? SRC.slice(iA, SRC.indexOf('\nfunction ', iA + 30)) : '';
+vrai('population : consoAnalyseHTML est trouvée', fA.length > 3000, fA.length);
+vrai('⛔ le libellé produit n’a plus de largeur fixe (il peut rétrécir)', !/class="bar-lbl[^"]*" style="width:270px/.test(fA) && /flex:0 1 270px;min-width:0/.test(fA));
+vrai('les quatre modèles de ligne portent la classe qui les replie au téléphone', (fA.match(/class="(bar-row )?cs-l"/g) || []).length === 4, (fA.match(/class="(bar-row )?cs-l"/g) || []).length);
+vrai('… avec leur nom, leur barre et leur valeur nommés', (fA.match(/cs-nom/g) || []).length >= 4 && (fA.match(/cs-bar/g) || []).length >= 4 && (fA.match(/cs-val/g) || []).length >= 4);
+const csl = regle('html[data-refonte] .cs-l{flex-wrap:wrap;row-gap:0!important}');
+vrai('⛔ au téléphone (≤ 560 px), chaque ligne passe sur deux étages', !!csl && /max-width:560px/.test(csl.media), csl && csl.media);
+vrai('… le nom sur toute la première ligne, la barre et la valeur sur la seconde',
+  /\.cs-l::after\{content:'';flex:0 0 100%;order:2/.test(SRC) && /\.cs-l > \.cs-bar\{order:3/.test(SRC) && /\.cs-l > \.cs-val\{order:4/.test(SRC));
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

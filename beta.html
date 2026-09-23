@@ -4393,6 +4393,23 @@ html[data-refonte] .content{padding-top:10px}
   html[data-refonte] .modal-head{padding-top:max(14px,env(safe-area-inset-top))!important}
   html[data-refonte] .modal-foot{padding-bottom:max(14px,env(safe-area-inset-bottom))!important}
 }
+/* ⛔ L'ANALYSE DE CONSOMMATION POSAIT DES LARGEURS FIXES : page à 529 px sur un téléphone de 360.
+   Mesuré le 23 septembre 2026, dès qu'il existe des consommations (la démonstration n'en a aucune,
+   c'est pour ça que douze audits sont passés dessus) : libellé produit 270 px, nom 230 ou 250 px,
+   valeur 64 à 100 px, écrits EN LIGNE. Au bureau rien ne change ; au téléphone chaque ligne passe
+   sur deux étages — qui et combien en haut, la barre en dessous, pleine largeur. */
+@media (max-width:560px){
+  /* 1ʳᵉ ligne : qui (ou quoi), sur toute la largeur — un nom coupé à 110 px ne nomme personne, et
+     un téléphone n'a pas d'infobulle. 2ᵉ ligne : la barre et la valeur. Le saut de ligne est le
+     pseudo-élément à 100 % (placé entre les deux par `order`) ; pas d'écart de rangée, sinon la
+     ligne vide qu'il occupe en compterait deux. */
+  html[data-refonte] .cs-l{flex-wrap:wrap;row-gap:0!important}   /* ⚠ le `gap:13px` écrit en ligne l'emporterait, deux fois */
+  html[data-refonte] .cs-l::after{content:'';flex:0 0 100%;order:2;height:0}
+  html[data-refonte] .cs-l > .cs-nom{flex:1 1 0!important;width:auto!important;min-width:0}
+  html[data-refonte] .cs-l > .cs-bar{order:3;flex:1 1 0!important;margin-top:6px}
+  html[data-refonte] .cs-l > .cs-val{order:4;width:auto!important;margin-top:6px}
+  html[data-refonte] .cs-det{margin-left:0!important}
+}
 
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
    C'est ce qui manquait pour que ça se lise comme une application de terrain et non comme un
@@ -28715,22 +28732,22 @@ function consoAnalyseHTML(){
               +(cmp===null?'nouveau ce mois-ci':(cmp>0?'▲ +'+cmp+' % vs mois dernier':(cmp<0?'▼ '+cmp+' % vs mois dernier':'stable vs mois dernier')))+'</span>'
             : '';
           const coul=trop?'var(--red)':'var(--acc-txt)';
-          return '<div style="display:flex;align-items:center;gap:13px;margin-bottom:13px">'
+          return '<div class="cs-l" style="display:flex;align-items:center;gap:13px;margin-bottom:13px">'
           +'<span style="width:34px;height:34px;flex:none;border-radius:50%;background:color-mix(in srgb,'+coul+' 18%,transparent);color:'+coul+';font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+esc(iniG(g.n))+'</span>'
-          +'<div style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(g.n)+(trop?' &#9888;':'')+'</div>'
+          +'<div class="cs-nom" style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(g.n)+(trop?' &#9888;':'')+'</div>'
           +'<div style="font-size:11.5px;color:'+(trop?'var(--red)':'var(--t3)')+'">'+(roleDe[g.n]?esc(roleNom(roleDe[g.n]))+' &middot; ':'')
             +g.q+' u'+(parMoisPers?' &middot; d\'habitude '+parMoisPers+'/mois':'')+(trop?' &middot; '+(Math.round(fois*10)/10)+'&times; son habitude':'')+'</div>'
           +(badgeCmp?'<div style="margin-top:1px">'+badgeCmp+'</div>':'')+'</div>'
-          +'<div style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(g.q/maxG*100)+'%;background:'+(trop?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
-          +'<div style="width:100px;flex:none;text-align:right"><span style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+'">'+g.q+' u</span>'
+          +'<div class="cs-bar" style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(g.q/maxG*100)+'%;background:'+(trop?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
+          +'<div class="cs-val" style="width:100px;flex:none;text-align:right"><span style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(trop?'var(--red)':'var(--t1)')+'">'+g.q+' u</span>'
           +'<div style="font-size:11.5px;color:var(--t3)">'+part+' % du produit</div></div></div>'; }).join('')
           +'<div style="font-size:11.5px;color:var(--t3);padding-top:2px">Chacun est compar&eacute; &agrave; ce qu\'on lui donne d\'habitude chaque mois. Au-dessus, la ligne passe en rouge.</div>';
       })()
         :'<div style="font-size:13px;color:var(--t3)">Personne pour l\'instant.</div>')+'</div>':'';
     return '<div onclick="consoToggleProd(\''+t.pid+'\')" title="'+(ouv?'Replier':'Voir qui consomme ce produit')+'" style="cursor:pointer;padding:3px 0">'
-      +'<div class="bar-row" style="margin-bottom:11px;align-items:center"><div class="bar-lbl" style="width:270px;font-size:13.5px;white-space:normal;line-height:1.4" title="'+esc(t.nom)+'"><div style="display:flex;align-items:center;gap:2px;overflow:hidden"><span style="display:inline-block;width:15px;flex:none;color:'+(ouv?'var(--acc-txt)':'var(--t3)')+';font-size:12px;transform:rotate('+(ouv?90:0)+'deg)">&#9656;</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+'</span></div>'+(puce?'<div style="padding-left:17px;margin-top:2px">'+puce+'</div>':'')+'</div>'
-      +'<div class="bar-track" style="height:20px"><div class="bar-fill" style="width:'+(t.q/maxP*100)+'%;background:'+(rep&&dep?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
-      +'<div class="bar-val" style="font-size:14px'+(rep&&dep?';color:var(--red)':'')+'">'+t.q+' u</div></div></div>'+detail; }).join('');
+      +'<div class="bar-row cs-l" style="margin-bottom:11px;align-items:center"><div class="bar-lbl cs-nom" style="flex:0 1 270px;min-width:0;font-size:13.5px;white-space:normal;line-height:1.4" title="'+esc(t.nom)+'"><div style="display:flex;align-items:center;gap:2px;overflow:hidden"><span style="display:inline-block;width:15px;flex:none;color:'+(ouv?'var(--acc-txt)':'var(--t3)')+';font-size:12px;transform:rotate('+(ouv?90:0)+'deg)">&#9656;</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+'</span></div>'+(puce?'<div style="padding-left:17px;margin-top:2px">'+puce+'</div>':'')+'</div>'
+      +'<div class="bar-track cs-bar" style="height:20px;min-width:48px"><div class="bar-fill" style="width:'+(t.q/maxP*100)+'%;background:'+(rep&&dep?'var(--red)':'linear-gradient(90deg,var(--acc2),var(--acc))')+'"></div></div>'
+      +'<div class="bar-val cs-val" style="font-size:14px'+(rep&&dep?';color:var(--red)':'')+'">'+t.q+' u</div></div></div>'+detail; }).join('');
   const maxH=Math.max(1,...topPers.slice(0,10).map(t=>t.q));
   // qui consomme quoi — sert au panneau qui s'ouvre sous chaque personne
   const croise={}; sorties.forEach(m=>{ const q=quiConso(m); (croise[q]=croise[q]||{})[m.produitId]=(croise[q][m.produitId]||0)+(m.qte||0); });
@@ -28744,21 +28761,21 @@ function consoAnalyseHTML(){
     const part=Math.round(t.q/Math.max(1,unites)*100);
     const prods=Object.entries(croise[t.nom]||{}).map(([pid,q])=>({pid,q,nom:produit(pid).nom||'—'})).sort((a,b)=>b.q-a.q);
     const maxPr=Math.max(1,...prods.map(p=>p.q));
-    const detail=ouv?'<div style="margin:4px 0 14px 51px;padding:14px 18px;background:var(--bg1);border:1px solid color-mix(in srgb,'+coul+' 30%,transparent);border-radius:14px">'
+    const detail=ouv?'<div class="cs-det" style="margin:4px 0 14px 51px;padding:14px 18px;background:var(--bg1);border:1px solid color-mix(in srgb,'+coul+' 30%,transparent);border-radius:14px">'
       +'<div style="font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:'+coul+';margin-bottom:12px">Ce qu\'on lui a donn&eacute; &middot; '+prods.length+' produit'+(prods.length>1?'s':'')+'</div>'
-      +prods.slice(0,10).map(p=>'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
-        +'<div style="width:250px;flex:none;font-size:13px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(p.nom)+'">'+esc(p.nom)+'</div>'
-        +'<div style="flex:1;min-width:60px;height:16px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(p.q/maxPr*100)+'%;background:'+coul+'"></div></div>'
-        +'<div style="width:64px;flex:none;text-align:right;font-family:monospace;font-size:13.5px;font-weight:700;color:var(--t1)">'+p.q+' u</div></div>').join('')
+      +prods.slice(0,10).map(p=>'<div class="cs-l" style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
+        +'<div class="cs-nom" style="width:250px;flex:none;font-size:13px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(p.nom)+'">'+esc(p.nom)+'</div>'
+        +'<div class="cs-bar" style="flex:1;min-width:60px;height:16px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(p.q/maxPr*100)+'%;background:'+coul+'"></div></div>'
+        +'<div class="cs-val" style="width:64px;flex:none;text-align:right;font-family:monospace;font-size:13.5px;font-weight:700;color:var(--t1)">'+p.q+' u</div></div>').join('')
       +(prods.length>10?'<div style="font-size:12px;color:var(--t3)">'+(prods.length-10)+' autres produits.</div>':'')+'</div>':'';
     return '<div onclick="consoTogglePers('+i+')" title="'+(ouv?'Replier':'Voir ce qu\'on lui a donn&eacute;')+'" style="cursor:pointer">'
-      +'<div style="display:flex;align-items:center;gap:13px;padding:8px 0">'
+      +'<div class="cs-l" style="display:flex;align-items:center;gap:13px;padding:8px 0">'
       +'<span style="display:inline-block;width:13px;flex:none;color:'+(ouv?'var(--acc-txt)':'var(--t3)')+';font-size:12px;transform:rotate('+(ouv?90:0)+'deg)">&#9656;</span>'
       +'<span style="width:38px;height:38px;flex:none;border-radius:50%;background:color-mix(in srgb,'+coul+' 18%,transparent);color:'+coul+';font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+esc(iniP(t.nom))+'</span>'
-      +'<div style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+(fort?' &#9888;':'')+'</div>'
+      +'<div class="cs-nom" style="width:230px;flex:none;min-width:0"><div style="font-size:14px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.nom)+(fort?' &#9888;':'')+'</div>'
       +'<div style="font-size:11.5px;color:var(--t3)">'+(roleDe[t.nom]?esc(roleNom(roleDe[t.nom]))+' &middot; ':'')+evol(t.q,parPersAvant[t.nom]||0)+'</div></div>'
-      +'<div style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(t.q/maxH*100)+'%;background:'+(fort?'var(--org)':'linear-gradient(90deg,color-mix(in srgb,'+coul+' 70%,black),'+coul+')')+'"></div></div>'
-      +'<div style="width:96px;flex:none;text-align:right"><div style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+'">'+t.q+' u</div>'
+      +'<div class="cs-bar" style="flex:1;min-width:60px;height:20px;background:var(--bg);border-radius:100px;overflow:hidden"><div style="height:100%;border-radius:100px;width:'+(t.q/maxH*100)+'%;background:'+(fort?'var(--org)':'linear-gradient(90deg,color-mix(in srgb,'+coul+' 70%,black),'+coul+')')+'"></div></div>'
+      +'<div class="cs-val" style="width:96px;flex:none;text-align:right"><div style="font-family:monospace;font-size:14.5px;font-weight:700;color:'+(fort?'var(--org)':'var(--t1)')+'">'+t.q+' u</div>'
       +'<div style="font-size:11.5px;color:var(--t3)">'+part+' % du total</div></div></div></div>'+detail; }).join('');
   const alertes=topPers.filter(t=>t.nom!==SANS_NOM&&moyPers>0&&t.q>moyPers*1.6&&t.q>=5);
   // ── récapitulatif mois par mois ──
