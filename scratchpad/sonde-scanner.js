@@ -68,8 +68,26 @@ const v = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), a);
     return {produits:db.produits.length, P:window.__P, ocr:typeof OCR!=='undefined'};`);
   console.log('\n══ 0. LA POPULATION ══');
   vrai('le catalogue du pack 3D est posé (160 fiches), les produits visés existent', pop.produits === 160 && Object.values(pop.P).every(Boolean), pop);
-  vrai('le moteur de lecture est pointé sur les fichiers locaux', pop.ocr, pop);
 
+  /* ── CONTRE-ÉPREUVE : l'ANCIEN scanner (SOURCE=<bêta d'avant>), joué avec les mêmes gestes ──
+     Il n'a ni les mêmes écrans ni les mêmes fonctions : on mesure donc ce qu'il FAIT, pas ses
+     sélecteurs — l'écran du Stock, et la quantité d'un technicien soumis au DR. */
+  if (await S.ev(`return typeof etiq==='undefined' && typeof boxScanApply==='function';`)) {
+    console.log('\n══ CONTRE-ÉPREUVE : L’ANCIEN SCANNER ══');
+    const V1 = await S.ev(`go('stock'); await new Promise(r=>setTimeout(r,600)); openScanner(); await new Promise(r=>setTimeout(r,500));
+      const t=document.getElementById('modal').innerText; try{ closeModal(true); }catch(e){} return {codeBarre:/Référence produit|code dans le cadre|Placez le code/i.test(t), lire:/Lire l.étiquette/i.test(t)};`);
+    vrai('⛔ l’écran du Stock ne sait lire que des codes-barres (sur iPhone : « Référence produit »)', !V1.codeBarre && V1.lire, V1);
+    await S.ev(`try{ logout(); }catch(e){} await new Promise(r=>setTimeout(r,300)); const u=db.users.find(x=>x.id==='uK'); currentUser=u; enterApp(u); await new Promise(r=>setTimeout(r,1200)); try{ closeModal(true); }catch(e){} return 1;`);
+    const V2 = await S.ev(`openBox('b2'); await new Promise(r=>setTimeout(r,600)); openBoxScanner('b2'); await new Promise(r=>setTimeout(r,500));
+      const i=document.getElementById('bscan-text'); i.value='MAGNUM GEL CAFARDS'; boxScanProcess(i.value); await new Promise(r=>setTimeout(r,200));
+      boxScanPick(__P.cafards); const q=document.getElementById('bscan-qty'); if(q) q.value='2'; boxScanApply(); await new Promise(r=>setTimeout(r,300));
+      const b=db.boxes.find(x=>x.id==='b2'); return {requis:boxValidRequis(), stock:(b.stock[__P.cafards]||{}).u||0};`);
+    vrai('⛔⛔ un technicien soumis au DR : le stock ne doit PAS bouger avant la validation', V2.stock === 0, V2);
+    console.log(`\n════ sonde-scanner (contre-épreuve) : ${ok} ✓ ${ko} ✗ ════\n`);
+    S.fermer(); process.exit(ko ? 1 : 0);
+  }
+
+  vrai('le moteur de lecture est pointé sur les fichiers locaux', pop.ocr, pop);
   const etiquette = e => S.ev(`window.__etiquette=${JSON.stringify(e)}; await new Promise(r=>setTimeout(r,400)); return 1;`);
   /* lire : toucher le VRAI bouton, attendre la fin de la lecture, rendre ce que l'écran dit */
   const lire = () => S.ev(`const b=document.getElementById('etiq-lire'); if(!b) return {err:'pas de bouton'}; const t0=performance.now(); b.click();
