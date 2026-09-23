@@ -12725,15 +12725,31 @@ function visibleBoxMvts(list){ if(!currentUser) return []; if(currentUser.role==
     return (list||[]).filter(m=>m.parId===me||p.has(m.parId)||(m.boxId&&mesBox.has(m.boxId))); }
   if(can('voirTout')) return list||[];
   return (list||[]).filter(m=>m.parId===me); }
+/* Un mouvement et un bon de remise portent le NOM des gens — fullName, pas un identifiant. Les
+   noms qui ME concernent : le mien, et pour qui « voit tout » avec une équipe rattachée, ceux de
+   son périmètre — les utilisateurs de ses équipes d'abord (c'est ce qui est écrit sur la ligne),
+   leurs fiches technicien ensuite (lignes de démo ou d'import). Écrit UNE fois : les deux
+   filtres ci-dessous le lisent, sinon ils finiraient par ne plus reconnaître les mêmes gens. */
+function nomCle(x){ return String(x||'').toLowerCase().trim(); }
+function nomsConcernes(p){ const noms=new Set();
+  if(currentUser) noms.add(nomCle(fullName(currentUser)));
+  if(p){ const pu=perimetreUserIds()||new Set();
+    (db.users||[]).forEach(u=>{ if(u&&pu.has(u.id)) noms.add(nomCle(fullName(u))); });
+    (db.techniciens||[]).forEach(t=>{ if(t&&p.has(t.id)) noms.add(nomCle(fullName(t))); }); }
+  return noms; }
 function visibleMouvements(list){ const p=can('voirTout')?perimetreTechIds():null; if(can('voirTout')&&!p) return list||[]; if(!currentUser) return [];
-  const ids=mesBoxIds(), me=fullName(currentUser);
-  /* un mouvement porte le NOM de qui l'a fait — fullName(currentUser), pas un id : on traduit le
-     périmètre en noms, ceux des utilisateurs de ses équipes d'abord (c'est ce qui est écrit sur la
-     ligne), ceux de leurs fiches technicien ensuite (lignes de démo ou d'import) */
-  const noms=new Set(); if(p){ const pu=perimetreUserIds()||new Set(), nom=x=>fullName(x).toLowerCase().trim();
-    (db.users||[]).forEach(u=>{ if(u&&pu.has(u.id)) noms.add(nom(u)); });
-    (db.techniciens||[]).forEach(t=>{ if(t&&p.has(t.id)) noms.add(nom(t)); }); }
-  return (list||[]).filter(m=>(m.boxId&&ids.has(m.boxId))||(m.technicien&&(m.technicien===me||noms.has(String(m.technicien).toLowerCase().trim())))); }
+  const ids=mesBoxIds(), noms=nomsConcernes(p);
+  return (list||[]).filter(m=>(m.boxId&&ids.has(m.boxId))||(m.technicien&&noms.has(nomCle(m.technicien)))); }
+/* ⛔ LES BONS DE REMISE SUIVENT LA RÈGLE DES MOUVEMENTS — Justin, 23 septembre 2026 : « Mouvement
+   stock pareil, tu appliques les mêmes règles, chacun voit ce qui le concerne ». Jusque-là,
+   Mouvements stock filtrait les mouvements mais montrait TOUS les bons de l'entreprise à tout le
+   monde : un technicien lisait qui avait reçu quoi, dans des box qui ne sont pas les siennes.
+   Un bon concerne sa BOX, celui qui l'a FAIT, et celui qui a REÇU les produits — c'est son nom
+   qui est écrit dessus. Produits donnés lit la même fonction : deux règles pour le même acte
+   finiraient par montrer un don ici et le cacher là. */
+function visibleRemises(list){ const p=can('voirTout')?perimetreTechIds():null; if(can('voirTout')&&!p) return (list||[]).filter(Boolean); if(!currentUser) return [];
+  const ids=mesBoxIds(), noms=nomsConcernes(p);
+  return (list||[]).filter(r=>r&&((r.boxId&&ids.has(r.boxId))||(r.par&&noms.has(nomCle(r.par)))||(r.pourQui&&noms.has(nomCle(r.pourQui))))); }
 /* ══════════ LES VÉHICULES SE DÉSIGNENT, COMME LES BOX ═══════════════════════════════════
    Justin, 9 septembre 2026 : « pour les box il sélectionne le box, pour les véhicules il
    sélectionne le véhicule qui lui est assigné. En gros, pour toutes les catégories où ça
@@ -23878,7 +23894,7 @@ views.mouvements=function(){
       <span style="color:var(--t3);font-size:12px;text-align:right;font-family:'Space Mono',monospace">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
     </div>`; };
   // ── bons de remise : mêmes colonnes que le journal, un clic ouvre le PDF ──
-  const brs=(db.bonsRemise||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const brs=visibleRemises(db.bonsRemise||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));   // chacun ne voit que les bons qui le concernent
   const brLigne=r=>{ const tot=remiseTotTxt(r);
     const noms=(r.lignes||[]).map(l=>produit(l.produitId).nom||'—');
     const prodTxt=esc(noms[0]||'—')+(noms.length>1?' <span style="color:var(--t3);font-weight:600">+ '+(noms.length-1)+' autre'+(noms.length>2?'s':'')+'</span>':'');
@@ -34517,22 +34533,20 @@ function delGroupe(id){ if(!confirm('Supprimer ce groupe ?'))return; db.groupes=
    Mouvements stock, filtre « Donné » — là où un technicien ne cherche pas.
    ⛔ « Pour moi » N'EST PAS UN DON. Un bon dont le destinataire est la personne qui a sorti les
    produits est une sortie ordinaire : il reste dans Mouvements stock, pas ici.
-   ⛔ Chacun voit ce qui le regarde, selon la règle de Mouvements stock (`visibleMouvements`) :
+   ⛔ Chacun voit ce qui le regarde, par LA MÊME fonction que Mouvements stock (`visibleRemises`) :
    « tout voir » sans périmètre voit tout, box supprimées comprises ; sinon les box qu'il voit,
-   plus ce qu'il a donné ou reçu lui-même. Deux règles pour le même acte finiraient par montrer
-   un don ici et le cacher là.
+   plus ce que lui (ou son équipe) a donné ou reçu. Deux règles pour le même acte finiraient par
+   montrer un don ici et le cacher là — elles étaient deux jusqu'au 23 septembre 2026.
    Les anciens dons saisis à la main restent listés — une donnée ne disparaît pas parce qu'un
    écran change. */
 let donsRecherche='';
 function donsListe(){
   const me=currentUser?fullName(currentUser):'';
   let toutes=false; try{ toutes=!!can('voirTout')&&!perimetreTechIds(); }catch(e){}
-  const vues=new Set(visibleBoxes(db.boxes||[]).map(b=>b.id));
   const nomBox=id=>{ const b=(db.boxes||[]).find(x=>x.id===id); return b?(b.nom||b.numero||'Box'):''; };
   const out=[];
-  (db.bonsRemise||[]).forEach(r=>{
+  visibleRemises(db.bonsRemise||[]).forEach(r=>{
     if(!r||!r.pourQui||r.pourQui===r.par) return;
-    if(!(toutes||vues.has(r.boxId)||r.par===me||r.pourQui===me)) return;
     out.push({type:'bon',id:r.id,num:r.num||'',ts:+r.ts||0,date:r.date||'',boxId:r.boxId,boxNom:nomBox(r.boxId)||r.boxNomTxt||'',
       /* Sans validation DR, `remiseAjoute` inscrit comme « validé par » celui qui a sorti les
          produits lui-même : le répéter ne dirait rien. On ne le montre que s'il est un autre. */

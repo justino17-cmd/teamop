@@ -34,12 +34,17 @@ function bloc(debut) {
 }
 
 console.log('\n── 779 · 0. la population ──');
+/* La règle de visibilité des bons est UNE fonction partagée avec Mouvements stock depuis le
+   23 septembre 2026 (`visibleRemises`, qui lit `nomsConcernes`) : on l'extrait aussi, pour jouer la
+   VRAIE règle et pas une copie. */
+const fRem = ['function nomCle(x){', 'function nomsConcernes(p){', 'function visibleRemises(list){'].map(bloc);
 const fListe = bloc('function donsListe(){'), fTot = bloc('function donTotTxt(lignes){'),
       fCats = bloc('function boxSousCats(actif){'), fAvec = bloc('function avecSousCats(items){');
 const lSous = (SRC.match(/^const SOUS_CATS=\[[^\n]*\];$/m) || [''])[0];
 vrai('donsListe, donTotTxt, boxSousCats, avecSousCats et SOUS_CATS sont trouvés',
-  fListe.length > 600 && fTot.length > 80 && fCats.length > 200 && fAvec.length > 40 && lSous.length > 40,
+  fListe.length > 500 && fTot.length > 80 && fCats.length > 200 && fAvec.length > 40 && lSous.length > 40,
   [fListe.length, fTot.length, fCats.length, fAvec.length, lSous.length]);
+vrai('… et la règle partagée (nomCle, nomsConcernes, visibleRemises)', fRem.every(x => x.length > 40), fRem.map(x => x.length));
 
 console.log('\n── 779 · 1. la liste des dons, JOUÉE ──');
 const MOI = { id: 'u-k', prenom: 'Karim', nom: 'Benali', role: 'technicien' };
@@ -68,11 +73,13 @@ const jouer = ({ user = MOI, voitTout = false, perim = null, db = BASE() } = {})
     fullName: u => ((u.prenom || '') + ' ' + (u.nom || '')).trim(),
     can: k => k === 'voirTout' && voitTout,
     perimetreTechIds: () => perim,
+    perimetreUserIds: () => null,
     visibleBoxes: bx => bx.filter(b => b.vis),
     produit: pid => ({ p1: { id: 'p1', nom: 'Appât A' }, p2: { id: 'p2', nom: 'Colle B' } })[pid] || {},
   };
+  bac.mesBoxIds = () => new Set(bac.visibleBoxes(bac.db.boxes || []).map(b => b.id));
   vm.createContext(bac);
-  vm.runInContext(fListe + '\nthis.r = donsListe();', bac);
+  vm.runInContext(fRem.join('\n') + '\n' + fListe + '\nthis.r = donsListe();', bac);
   return bac.r;
 };
 if (fListe) {
@@ -101,7 +108,9 @@ if (fListe) {
   vrai('⛔ … mais jamais « Pour moi », même pour qui voit tout', !T.map(r => r.id).includes('r2'));
   const P = jouer({ voitTout: true, perim: new Set(['t1']) }).map(r => r.id);
   vrai('⛔ « tout voir » RATTACHÉ à des équipes : seulement ses box (et ce qui le regarde)', !P.includes('r5') && !P.includes('pd2') && P.includes('r1') && P.includes('r4'));
-  v('personne de connecté → aucun don de personne en particulier, seulement les box visibles', jouer({ user: null }).map(r => r.id), ['r1']);
+  /* Depuis que la règle est celle de Mouvements stock (`visibleRemises`) : personne de connecté,
+     rien — un écran ne s'ouvre pas sans compte, et « rien » est la réponse sûre. */
+  v('personne de connecté → aucun don (la règle de Mouvements stock)', jouer({ user: null }).map(r => r.id), []);
   v('base sans bons ni dons → liste vide, sans erreur', jouer({ db: { boxes: [] } }), []);
 }
 
