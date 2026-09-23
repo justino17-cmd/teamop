@@ -6567,7 +6567,7 @@ var tmLastSend=0, tmSending=false, tmT=Date.now();
       Et la catégorie dit CE QU'EST L'ÉCRAN, pas où il est rangé dans le menu : « Boîte mail »
       était classée dans « Commandes » parce qu'on y envoie les bons de commande. C'est une
       boîte e-mail. */
-var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',chantiers:'Interventions',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',audit:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
+var TM_CAT={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning',taches:'Planning',absences:'Planning',pointage:'Planning',chantiers:'Interventions',interventions:'Interventions',registre:'Interventions',clients:'Clients',contrats:'Clients',rapports:'Rapports',archives:'Rapports',devis:'Devis & Factures',devisXylo:'Devis & Factures',factures:'Devis & Factures',comptabilite:'Comptabilité',telecollecte:'Comptabilité',enveloppes:'Comptabilité',produits:'Stock',fournisseurs:'Stock',stock:'Stock',mouvements:'Stock',conso:'Stock',saisieConso:'Stock',produitsDonnes:'Stock',boxes:'Plans',carteBox:'Plans',carteInt:'Plans',demandes:'Commandes',validations:'Commandes',bons:'Commandes',commandes:'Commandes',boiteMail:'Messages',brouillon:'Commandes',histoDemandes:'Commandes',vehicules:'Véhicules',conducteurs:'Véhicules',historique:'Historique',techniciens:'Équipe',utilisateurs:'Équipe',permissions:'Équipe',secteurs:'Équipe',parametres:'Paramètres',modulesElan:'Paramètres',messagerie:'Messages',statistiques:'Statistiques'};
 /* ⛔ CE QUE CETTE VALEUR EST, ET CE QU'ELLE N'EST PAS. `tmCat()` nomme L'ÉCRAN OUVERT au moment
    de l'incident. Ce n'est PAS l'endroit d'où vient l'erreur, et rien ne le garantit : une
    promesse rejetée par un travail de fond (le poll IndexedDB de Firebase Auth, par exemple)
@@ -7671,10 +7671,10 @@ const LANG_FLAG={fr:'🇫🇷',en:'🇬🇧',es:'🇪🇸'};
 function getLang(){ return localStorage.getItem('elan_lang')||'fr'; }
 const I18N={
   en:{ 'Pilotage':'Overview','Interventions':'Jobs','Commercial':'Sales','Stock & produits':'Stock & products','Demandes & commandes':'Requests & orders','Communication':'Communication','Communication / Fournisseurs':'Communication / Suppliers','Flotte':'Fleet','Administration':'Administration',
-    'Tableau de bord':'Dashboard','Statistiques':'Statistics','Dashboard conso':'Consumption','Archives mensuelles':'Monthly archives','Carte interventions':'Jobs map','Carte des box':'Boxes map','Historique':'History','Audit':'Audit','Planning':'Schedule','Clients':'Clients','Rapports':'Reports','Registre sanitaire':'Sanitary register','Pointage':'Time clock','Devis':'Quotes','Devis xylophage':'Woodworm quotes','Factures':'Invoices','Contrats':'Contracts','Produits':'Products','Boxes':'Boxes','Stock':'Stock','Saisie conso':'Consumption entry','Mouvements stock':'Stock moves','Produits donnés':'Given products','Fournisseurs':'Suppliers','Enveloppes':'Envelopes','Brouillon':'Draft','Mes demandes':'My requests','Validations DR':'RD approvals','Bons de commande':'Purchase orders','Commandes en cours':'Open orders','Historique demandes':'Requests history','Messagerie':'Messages','Véhicules':'Vehicles','Secteurs':'Sectors','Utilisateurs':'Users','Permissions':'Permissions','Paramètres':'Settings','Langue':'Language','Apparence':'Appearance','Thème':'Theme',
+    'Tableau de bord':'Dashboard','Statistiques':'Statistics','Dashboard conso':'Consumption','Archives mensuelles':'Monthly archives','Carte interventions':'Jobs map','Carte des box':'Boxes map','Historique':'History','Planning':'Schedule','Clients':'Clients','Rapports':'Reports','Registre sanitaire':'Sanitary register','Pointage':'Time clock','Devis':'Quotes','Devis xylophage':'Woodworm quotes','Factures':'Invoices','Contrats':'Contracts','Produits':'Products','Boxes':'Boxes','Stock':'Stock','Saisie conso':'Consumption entry','Mouvements stock':'Stock moves','Produits donnés':'Given products','Fournisseurs':'Suppliers','Enveloppes':'Envelopes','Brouillon':'Draft','Mes demandes':'My requests','Validations DR':'RD approvals','Bons de commande':'Purchase orders','Commandes en cours':'Open orders','Historique demandes':'Requests history','Messagerie':'Messages','Véhicules':'Vehicles','Secteurs':'Sectors','Utilisateurs':'Users','Permissions':'Permissions','Paramètres':'Settings','Langue':'Language','Apparence':'Appearance','Thème':'Theme',
     'Annuler':'Cancel','Enregistrer':'Save','Créer':'Create','Modifier':'Edit','Supprimer':'Delete','Fermer':'Close','Envoyer':'Send','Ajouter':'Add','Valider':'Approve','Refuser':'Reject','Rechercher':'Search','Aujourd\'hui':'Today','Semaine':'Week','Liste':'List','Oui':'Yes','Non':'No','Effectué':'Done','Terminer':'Finish','Rapport':'Report','Au client':'To client','Facture':'Invoice','Appeler':'Call','Itinéraire':'Directions','Intervention':'Job','Nouvelle intervention':'New job','Nouveau':'New','Client':'Client','Adresse':'Address','Téléphone':'Phone','Email':'Email','Statut':'Status','Priorité':'Priority','Date':'Date','Heure':'Time','Durée (min)':'Duration (min)','Catégorie':'Category','Technicien':'Technician','Commercial':'Sales','Société':'Company','Description':'Description','Notes':'Notes','Compte-rendu':'Report','Recommandations':'Recommendations','Équipement':'Equipment','Général':'General','Photos':'Photos','Signature':'Signature','Couleur':'Color','Rôle':'Role','Identifiant':'Login','Actif':'Active','Désactivé':'Disabled','Accès':'Access','Prévenir de l\'arrivée':'Notify arrival','Tél. client':'Client phone','Email client':'Client email','Prénom':'First name','Nom':'Last name','Nom complet':'Full name','Ville':'City','Planifiée':'Scheduled','En cours':'In progress','Terminée':'Done','Annulée':'Cancelled','Basse':'Low','Normale':'Normal','Haute':'High','Brouillon':'Draft','Validée':'Approved','Refusée':'Rejected','En attente':'Pending','Assistant IA':'AI assistant' },
   es:{ 'Pilotage':'Resumen','Interventions':'Intervenciones','Commercial':'Comercial','Stock & produits':'Stock y productos','Demandes & commandes':'Solicitudes y pedidos','Communication':'Comunicación','Communication / Fournisseurs':'Comunicación / Proveedores','Flotte':'Flota','Administration':'Administración',
-    'Tableau de bord':'Panel','Statistiques':'Estadísticas','Dashboard conso':'Consumo','Archives mensuelles':'Archivos mensuales','Carte interventions':'Mapa intervenciones','Carte des box':'Mapa de cajas','Historique':'Historial','Audit':'Auditoría','Planning':'Agenda','Clients':'Clientes','Rapports':'Informes','Registre sanitaire':'Registro sanitario','Pointage':'Fichaje','Devis':'Presupuestos','Devis xylophage':'Presup. carcoma','Factures':'Facturas','Contrats':'Contratos','Produits':'Productos','Boxes':'Cajas','Stock':'Stock','Saisie conso':'Registro consumo','Mouvements stock':'Movimientos','Produits donnés':'Productos entregados','Fournisseurs':'Proveedores','Enveloppes':'Sobres','Brouillon':'Borrador','Mes demandes':'Mis solicitudes','Validations DR':'Validaciones DR','Bons de commande':'Órdenes de compra','Commandes en cours':'Pedidos en curso','Historique demandes':'Historial solicitudes','Messagerie':'Mensajería','Véhicules':'Vehículos','Secteurs':'Sectores','Utilisateurs':'Usuarios','Permissions':'Permisos','Paramètres':'Ajustes','Langue':'Idioma','Apparence':'Apariencia','Thème':'Tema',
+    'Tableau de bord':'Panel','Statistiques':'Estadísticas','Dashboard conso':'Consumo','Archives mensuelles':'Archivos mensuales','Carte interventions':'Mapa intervenciones','Carte des box':'Mapa de cajas','Historique':'Historial','Planning':'Agenda','Clients':'Clientes','Rapports':'Informes','Registre sanitaire':'Registro sanitario','Pointage':'Fichaje','Devis':'Presupuestos','Devis xylophage':'Presup. carcoma','Factures':'Facturas','Contrats':'Contratos','Produits':'Productos','Boxes':'Cajas','Stock':'Stock','Saisie conso':'Registro consumo','Mouvements stock':'Movimientos','Produits donnés':'Productos entregados','Fournisseurs':'Proveedores','Enveloppes':'Sobres','Brouillon':'Borrador','Mes demandes':'Mis solicitudes','Validations DR':'Validaciones DR','Bons de commande':'Órdenes de compra','Commandes en cours':'Pedidos en curso','Historique demandes':'Historial solicitudes','Messagerie':'Mensajería','Véhicules':'Vehículos','Secteurs':'Sectores','Utilisateurs':'Usuarios','Permissions':'Permisos','Paramètres':'Ajustes','Langue':'Idioma','Apparence':'Apariencia','Thème':'Tema',
     'Annuler':'Cancelar','Enregistrer':'Guardar','Créer':'Crear','Modifier':'Editar','Supprimer':'Eliminar','Fermer':'Cerrar','Envoyer':'Enviar','Ajouter':'Añadir','Valider':'Aprobar','Refuser':'Rechazar','Rechercher':'Buscar','Aujourd\'hui':'Hoy','Semaine':'Semana','Liste':'Lista','Oui':'Sí','Non':'No','Effectué':'Hecho','Terminer':'Finalizar','Rapport':'Informe','Au client':'Al cliente','Facture':'Factura','Appeler':'Llamar','Itinéraire':'Ruta','Intervention':'Intervención','Nouvelle intervention':'Nueva intervención','Nouveau':'Nuevo','Client':'Cliente','Adresse':'Dirección','Téléphone':'Teléfono','Email':'Correo','Statut':'Estado','Priorité':'Prioridad','Date':'Fecha','Heure':'Hora','Durée (min)':'Duración (min)','Catégorie':'Categoría','Technicien':'Técnico','Commercial':'Comercial','Société':'Empresa','Description':'Descripción','Notes':'Notas','Compte-rendu':'Informe','Recommandations':'Recomendaciones','Équipement':'Equipo','Général':'General','Photos':'Fotos','Signature':'Firma','Couleur':'Color','Rôle':'Rol','Identifiant':'Usuario','Actif':'Activo','Désactivé':'Desactivado','Accès':'Acceso','Prévenir de l\'arrivée':'Avisar llegada','Tél. client':'Tel. cliente','Email client':'Correo cliente','Prénom':'Nombre','Nom':'Apellido','Nom complet':'Nombre completo','Ville':'Ciudad','Planifiée':'Programada','En cours':'En curso','Terminée':'Terminada','Annulée':'Cancelada','Basse':'Baja','Normale':'Normal','Haute':'Alta','Brouillon':'Borrador','Validée':'Aprobada','Refusée':'Rechazada','En attente':'Pendiente','Assistant IA':'Asistente IA' }
 };
 function t(s){ const l=getLang(); if(l==='fr'||!s) return s; const d=I18N[l]; return (d&&d[s]!=null)?d[s]:s; }
@@ -11354,7 +11354,7 @@ function defaultPerms(){
       clients:true, planning:true, interventions:true, historique:true, rapports:true, messagerie:true, conso:true, statistiques:true,
       registre:false, produits:false, boxes:false, stock:false, mouvements:false, saisieConso:false, produitsDonnes:false,
       vehicules:false, conducteurs:false, carteBox:false, carteInt:false, commandes:false, brouillon:false, histoDemandes:false,
-      demandes:false, archives:false, audit:false, fournisseurs:false, secteurs:false, pointage:false, techniciens:false }
+      demandes:false, archives:false, fournisseurs:false, secteurs:false, pointage:false, techniciens:false }
   };
 }
 
@@ -11734,7 +11734,7 @@ const CAT_COUL_IOS={bleu:'#007AFF',vert:'#34C759',orange:'#FF9500',rouge:'#FF3B3
   violet:'#AF52DE',indigo:'#5856D6',teal:'#30B0C7',rose:'#FF2D55',gris:'#8E8E93'};
 const CAT_COUL={
   /* Pilotage — bleu */
-  dashboard:'bleu', statistiques:'bleu', historique:'gris', audit:'gris', archives:'gris',
+  dashboard:'bleu', statistiques:'bleu', historique:'gris', archives:'gris',
   /* Planification — rouge (c'est un calendrier) */
   planning:'rouge', planningGeneral:'rouge', taches:'rouge', absences:'rose',
   /* Terrain — vert, la couleur du métier */
@@ -11758,7 +11758,11 @@ const NAV = [
     {k:'dashboard',ic:'📊',l:'Tableau de bord'},
     {k:'statistiques',ic:'📈',l:'Statistiques',admin:true},
     {k:'historique',ic:'🕘',l:'Historique'},
-    {k:'audit',ic:'🛡️',l:'Audit',admin:true},
+    /* ⛔ « Audit » RETIRÉ le 23 septembre 2026 (Justin : « si tu vois des catégories qui sont
+       pas utiles, je t'autorise de les supprimer »). C'était le MÊME écran qu'Historique :
+       même fonction (`journalView`), même source (`visibleJournal(db.journal)`), seul le
+       titre changeait — deux entrées de menu pour une seule chose. Un ancien lien ou un
+       onglet mémorisé mène à Historique (`VUES_RETIREES`). */
     {k:'archives',ic:'🗄️',l:'Archives mensuelles',admin:true,aside:true},
   ]},
   {g:'Planification', items:[
@@ -11843,7 +11847,7 @@ const PLAN_BLOQUE={
   premium:[],
   business:[],
   pro:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes'],
-  gratuit:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes','devis','factures','contrats','devisXylo','archives','carteInt','carteBox','secteurs','taches','absences','statistiques','audit','vehicules','pointage','messagerie','chantiers','modulesElan']
+  gratuit:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes','devis','factures','contrats','devisXylo','archives','carteInt','carteBox','secteurs','taches','absences','statistiques','vehicules','pointage','messagerie','chantiers','modulesElan']
 };
 /* ══ LA SUSPENSION POUR IMPAYÉ ═══════════════════════════════════════════════════════════
    ⛔⛔ CE QUI EXISTAIT AVANT CE BLOC ÉTAIT PIRE QUE RIEN. Mesuré le 22 septembre 2026 sur un
@@ -13464,9 +13468,15 @@ function refreshEcran(){
 }
 /* Le sens imposé par un geste, posé juste avant `go()` et consommé par lui. */
 let _sensForce='';
+/* ⛔ UN ÉCRAN RETIRÉ A UNE ADRESSE DE SUITE. Un onglet mémorisé, un raccourci, un ancien lien
+   `#v=audit` ou une notification déjà reçue continuent de le demander : sans cette table,
+   `go()` retombait sur le tableau de bord, et la personne ne comprenait pas où était passé
+   son écran. */
+const VUES_RETIREES={audit:'historique', permissions:'utilisateurs'};
 function go(view){
   /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
   try{ multiCapturer(); }catch(e){}
+  if(!views[view] && VUES_RETIREES[view]) view=VUES_RETIREES[view];
   if(!views[view]) view='dashboard';
   _ecranRendu=null;   // on quitte le détail pour une rubrique : plus rien à redessiner
   try{ usageNote(view); }catch(e){}
@@ -18348,7 +18358,7 @@ function formChantier(id){ db.chantiers=db.chantiers||[]; const c=id?db.chantier
 function saveChantier(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
   if(id){ const ix=db.chantiers.findIndex(x=>x.id===id); db.chantiers[ix]={...db.chantiers[ix],...d}; }
   else db.chantiers.push({id:uid(),...d});
-  logEvent(id?'Chantier modifié':'Nouveau chantier',d.nom,'crud'); save(); closeModal(); views.chantiers(); }
+  logEvent(id?'Chantier modifié':'Nouveau chantier',d.nom,'crud'); save(); closeModal(); try{ views[current](); }catch(_e){} }
 function detailChantier(id){ const ch=db.chantiers.find(x=>x.id===id); if(!ch) return;
   ecranDetail(()=>detailChantier(id));   // une synchro ne doit pas refermer le chantier ouvert
   const ints=db.interventions.filter(i=>i.chantierId===id).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
@@ -18358,7 +18368,7 @@ function detailChantier(id){ const ch=db.chantiers.find(x=>x.id===id); if(!ch) r
     ${ints.map(i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${i.date?fmtShort(i.date):'À planifier'}${i.heure?' · '+i.heure:''} · ${esc(techNames(i))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('')||'<p style="color:var(--t3)">Aucune intervention liée. Choisissez ce chantier dans la fiche intervention.</p>'}
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal();formChantier('${ch.id}')">Modifier</button><button class="btn" onclick="closeModal();formIntervention()">＋ Intervention</button>${can('supprimer')?`<button class="btn danger" onclick="delChantier('${ch.id}')">🗑</button>`:''}</div>`); }
 function delChantier(id){ if(!confirm('Supprimer ce chantier ? (les interventions ne sont pas supprimées)')) return;
-  db.chantiers=db.chantiers.filter(x=>x.id!==id); db.interventions.forEach(i=>{ if(i.chantierId===id) delete i.chantierId; }); save(); closeModal(); views.chantiers(); toast('Chantier supprimé'); }
+  db.chantiers=db.chantiers.filter(x=>x.id!==id); db.interventions.forEach(i=>{ if(i.chantierId===id) delete i.chantierId; }); save(); closeModal(); try{ views[current](); }catch(_e){} toast('Chantier supprimé'); }
 
 /* ── E-mails métier : envoyés depuis les adresses de L'ENTREPRISE (Paramètres → E-mails d'entreprise).
    Plusieurs boîtes possibles, chacune affectée à un type d'envoi. Sans configuration → app Mail (mailto).
@@ -28707,8 +28717,10 @@ const HIST_PAS=80;
 let _histMax=HIST_PAS, _histVue='';
 function histPlus(n){ _histMax+=n; try{ go(current); }catch(e){} }
 function journalView(title,sub){
-  /* ⛔ LA TRANCHE APPARTIENT À L'ÉCRAN QU'ON REGARDE. `journalView` sert Historique ET Audit :
-     sans ce repère, déplier l'Historique à 240 lignes ouvrait ensuite l'Audit à 240 aussi —
+  /* ⛔ LA TRANCHE APPARTIENT À L'ÉCRAN QU'ON REGARDE. `journalView` servait Historique ET Audit
+     (Audit, doublon exact, est retiré depuis la v728 — la garde reste pour le prochain écran
+     qui s'en servira) : sans ce repère, déplier l'Historique à 240 lignes ouvrait ensuite
+     l'Audit à 240 aussi —
      la lenteur qu'on vient de retirer, réintroduite par la porte d'à côté. On compare à
      `current` et non à un drapeau posé par l'appelant, parce que `histPlus` re-rend le MÊME
      écran (`go(current)`) : remettre la tranche à 80 à chaque passage annulerait le bouton. */
@@ -28726,8 +28738,7 @@ function journalView(title,sub){
       +(reste?`<div style="padding:14px 0 4px;text-align:center"><button class="btn ghost" onclick="histPlus(${HIST_PAS*2})">Afficher la suite · ${reste} évènement(s) plus anciens</button></div>`:'')
       : emptyState('🕘','Aucun évènement.','','')}</div>`;
 }
-views.historique=function(){ journalView('Historique','Activité récente de l\'application'); };
-views.audit=function(){ journalView('Audit','Journal de traçabilité (lecture seule)'); };
+views.historique=function(){ journalView('Historique','Activité de l\'application — journal de traçabilité, en lecture seule'); };
 
 /* ═══════════════ TECHNICIENS ═══════════════ */
 function certibBadge(t){ if(!t||!t.certibiocideExp) return '<span class="st st-grey">—</span>';
@@ -29634,102 +29645,11 @@ function accessSetMod(id,k,v){ const u=db.users.find(x=>x.id===id); if(!u)return
 function accessReset(id){ const u=db.users.find(x=>x.id===id); if(!u)return; delete u.acces; save(); if(currentUser&&u.id===currentUser.id) renderNav(); toast('Réinitialisé au rôle par défaut'); formAccess(id); }
 
 /* ═══════════════ PERMISSIONS ═══════════════ */
-let permRole='technicien';
-/* ═══ PERMISSIONS v2 — par personne ou par rôle, catégorie par catégorie :
-   pour chaque groupe du menu, 👁 Voir (module par module) + Ajouter / Modifier /
-   Supprimer + les droits spéciaux, avec la provenance de chaque réglage. ═══ */
-let permMode='perso', permSelUser='';
-views.permissions=function(){
-  if(currentUser.role!=='admin'){ setHeader('Accès restreint',''); $('content').innerHTML=emptyState('🔒','Réservé aux administrateurs.','',''); return; }
-  setHeader('Droits par rôle','Le point de départ des comptes — les droits d\'une personne se règlent dans sa fiche',
-    `<button class="btn ghost" onclick="go('utilisateurs')">‹ Utilisateurs</button>`);
-  const roles=[['technicien','Technicien'],['chefEquipe',"Chef d'équipe"],['commercial','Commercial'],['compta','Gestion compta'],['dr','Directeur régional']];
-  if(!roles.some(r=>r[0]===permRole)) permRole='technicien';
-  const usersL=db.users.filter(u=>u.actif!==false);
-  if(!usersL.some(u=>u.id===permSelUser)) permSelUser=((usersL.find(u=>u.role!=='admin')||usersL[0])||{}).id||'';
-  /* Cet écran ne règle plus que les rôles : « par personne » a fusionné avec la fiche
-     utilisateur. On force donc le mode, au lieu de laisser une bascule qui renverrait vers
-     un doublon qu'on vient de retirer. */
-  permMode='role';
-  const perso=false;
-  const sujet=perso?db.users.find(u=>u.id===permSelUser):{role:permRole};
-  const nomSujet=perso?fullName(sujet||{}):('tous les « '+(roleLbl(permRole)||permRole)+' »');
-  const provCap=k=>{ if(perso){ const ov=sujet&&sujet.acces&&sujet.acces.caps; if(ov&&Object.prototype.hasOwnProperty.call(ov,k)) return 'perso'; }
-    const rp=db.permissions&&db.permissions[sujet.role]&&db.permissions[sujet.role].caps; if(rp&&Object.prototype.hasOwnProperty.call(rp,k)) return 'role'; return ''; };
-  const provMod=k=>{ if(perso){ const ov=sujet&&sujet.acces&&sujet.acces.modules; if(ov&&Object.prototype.hasOwnProperty.call(ov,k)) return 'perso'; }
-    const rp=db.permissions&&db.permissions[sujet.role]; if(rp&&Object.prototype.hasOwnProperty.call(rp,k)) return 'role'; return ''; };
-  const srcTag=p=>p==='perso'?'<span style="font-size:10px;font-weight:800;border-radius:100px;padding:2px 8px;margin-right:8px;background:color-mix(in srgb,var(--org) 16%,transparent);color:var(--org);white-space:nowrap">réglé à part</span>'
-    :p==='role'?'<span style="font-size:10px;font-weight:800;border-radius:100px;padding:2px 8px;margin-right:8px;background:var(--bg3);color:var(--t3);white-space:nowrap">réglage du rôle</span>':'';
-  const swH=(on,fn)=>`<label class="switch"><input type="checkbox" ${on?'checked':''} onchange="${fn}"><span class="track"></span><span class="knob"></span></label>`;
-  const capLbl=k=>{ const c=USER_CAPS.find(x=>x[0]===k); return c?[c[1],c[2]||'']:[k,'']; };
-  let corps='';
-  if(perso&&sujet&&sujet.role==='admin'){
-    corps=`<div class="card">${emptyState('🛠️','Un administrateur a toujours tous les droits.','Rien à régler pour ce compte.','')}</div>`;
-  } else if(sujet){
-    corps=PERM_GRPS.map(([g,titre])=>{
-      // TOUS les modules de la catégorie (y compris ceux réservés à l'admin par défaut), sauf le tableau de bord (toujours visible) et Permissions
-      const mods=NAV.filter(s=>PERM_GRP_OF[s.g]===g).flatMap(s=>s.items).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
-      const droits=[['ajouter','＋ Ajouter'],['modifier','✎ Modifier'],['supprimer','🗑 Supprimer']];
-      const specs=PERM_SPECIAUX[g]||[];
-      const sansDroits=['tdb','admin'].includes(g);   // ces catégories n'ont que du « voir »
-      // Box vues par la personne (sans « Tout voir ») : réglable ici, dans sa fiche utilisateur, ou sur la box
-      const boxPerm = g!=='stock' ? '' : (!perso ? `<div style="font-size:12px;color:var(--t3);margin:8px 0 2px">📦 Les box se choisissent <b>par personne</b> (onglet « Par personne ») ; un rôle qui a « Tout voir » voit toutes les box.</div>`
-        : (userCap(sujet,'voirTout') ? `<div style="font-size:12px;color:var(--t3);margin:8px 0 2px">📦 Voit <b>toutes les box</b> (droit « Tout voir », catégorie Interventions). Décoche « Tout voir » pour choisir ses box.</div>`
-        : `<div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--t3);text-transform:uppercase;margin:12px 0 2px">📦 Box qu'il voit</div>`+((db.boxes||[]).filter(b=>b.actif!==false).map(b=>{ const viaTech=!!(sujet.techId&&(b.techIds||[]).includes(sujet.techId)); const resp=b.respUserId===sujet.id; const fixe=b.visibleTous||viaTech||resp; const on=fixe||(b.userIds||[]).includes(sujet.id);
-            return `<div class="perm-row"><div class="pn">🧱 ${esc(b.nom||b.numero||'Box')}${b.visibleTous?'<div style="font-size:11px;color:var(--t3);font-weight:400">visible par toute l\'équipe</div>':viaTech?'<div style="font-size:11px;color:var(--t3);font-weight:400">via sa fiche technicien</div>':resp?'<div style="font-size:11px;color:var(--t3);font-weight:400">responsable de la box</div>':''}</div>${fixe?'<span class="st st-green">Voit</span>':swH(on,`permSetBox('${b.id}',this.checked)`)}</div>`; }).join('')||'<div style="font-size:12px;color:var(--t3);padding:6px 0">Aucune box.</div>')));
-      const persoOv = perso && sujet.acces && ((Object.keys((sujet.acces.caps)||{}).some(k=>k.indexOf('cat_'+g+'_')===0||specs.includes(k))) || mods.some(m=>Object.prototype.hasOwnProperty.call((sujet.acces.modules)||{},m.k)));
-      return `<details style="background:var(--card);border:1px solid var(--brd);border-radius:14px;margin-bottom:10px;overflow:hidden" ${g==='int'?'open':''}>
-        <summary style="list-style:none;cursor:pointer;padding:13px 15px;display:flex;align-items:center;gap:10px"><b style="font-size:14.5px;flex:1">${titre}</b><span style="font-size:11px;color:var(--t3)">${mods.filter(m=>userSeesModule(sujet,m.k)).length}/${mods.length} visibles</span><span style="color:var(--t3)">▾</span></summary>
-        <div style="padding:2px 15px 12px;border-top:1px solid var(--brd)">
-          <div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--t3);text-transform:uppercase;margin:10px 0 2px">👁 Ce qu'il voit (menus)</div>
-          ${mods.map(m=>`<div class="perm-row"><div class="pn">${m.ic} ${esc(t(m.l))}</div>${srcTag(provMod(m.k))}${swH(userSeesModule(sujet,m.k),`permSetMod('${m.k}',this.checked)`)}</div>`).join('')||'<div style="font-size:12px;color:var(--t3);padding:6px 0">—</div>'}
-          ${boxPerm}
-          ${sansDroits?'':`<div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--t3);text-transform:uppercase;margin:12px 0 2px">Ce qu'il peut faire ici</div>
-          ${droits.map(([d,l])=>`<div class="perm-row"><div class="pn">${l}</div>${srcTag(provCap('cat_'+g+'_'+d))}${swH(catDroit(sujet,g,d),`permSetCap('cat_${g}_${d}',this.checked)`)}</div>`).join('')}`}
-          ${specs.length?`<div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--t3);text-transform:uppercase;margin:12px 0 2px">Droits spéciaux</div>`+specs.map(k=>{const l2=capLbl(k);return `<div class="perm-row"><div class="pn">${l2[0]}${l2[1]?`<div style="font-size:11px;color:var(--t3);font-weight:400">${l2[1]}</div>`:''}</div>${srcTag(provCap(k))}${swH(userCap(sujet,k),`permSetCap('${k}',this.checked)`)}</div>`;}).join(''):''}
-          ${persoOv?`<div style="text-align:right;margin-top:8px"><a style="font-size:12px;color:var(--acc-txt);font-weight:700;text-decoration:underline;cursor:pointer" onclick="permResetGrp('${g}')">↩ revenir au réglage du rôle</a></div>`:''}
-        </div></details>`;
-    }).join('');
-    corps+=`<div class="card" style="background:var(--bg2);border-style:dashed"><p style="font-size:13px;color:var(--t2);line-height:1.6">${permResume(sujet,nomSujet)}</p></div>`;
-  }
-  $('content').innerHTML=`
-    <div class="card" style="background:var(--bg2);border-style:dashed;margin-bottom:12px">
-      <p style="font-size:13px;color:var(--t2);line-height:1.65;margin:0">👤 <b>Les droits d'une personne ne se règlent plus ici.</b> Va dans <b>Utilisateurs</b>, touche son nom pour voir ce qu'elle a, puis « ✎ Modifier » pour changer. Un seul endroit, actif tout de suite.</p></div>
-    ${perso
-      ?`<div class="filters" style="margin:0 0 12px;flex-wrap:wrap">${usersL.map(u=>`<div class="chip ${permSelUser===u.id?'active':''}" onclick="permSelUser='${u.id}';views.permissions()">${esc(fullName(u))}${u.role==='admin'?' 🛠️':''}</div>`).join('')}</div>`
-      :`<div class="filters" style="margin:0 0 12px;flex-wrap:wrap">${roles.map(([k,l])=>`<div class="chip ${permRole===k?'active':''}" onclick="permRole='${k}';views.permissions()">${l}</div>`).join('')}</div>`}
-    <p style="color:var(--t3);font-size:12.5px;margin:0 2px 12px">${perso?`Réglages de <b>${esc(nomSujet)}</b> — même chose que dans sa fiche (Utilisateurs → ✎). Ce qui est réglé ici fait loi pour ce compte.`:`Réglages de <b>${esc(nomSujet)}</b> — ce n'est qu'un <b>point de départ</b> : il s'applique aux comptes de ce rôle dont la fiche n'a jamais été enregistrée. Dès qu'on ouvre la fiche de quelqu'un et qu'on l'enregistre, c'est SA fiche qui décide.`}</p>
-    ${corps}`;
-};
-function permSetMod(k,val){
-  if(permMode==='perso'){ const u=db.users.find(x=>x.id===permSelUser); if(!u) return; u.acces=u.acces||{caps:{},modules:{}}; u.acces.modules=u.acces.modules||{}; u.acces.modules[k]=val; logEvent('Permission modifiée','@'+(u.login||'')+' · menu '+k+' : '+(val?'visible':'masqué'),'auth'); }
-  else { (db.permissions[permRole]=db.permissions[permRole]||{})[k]=val; logEvent('Permission modifiée',(roleLbl(permRole)||permRole)+' · menu '+k+' : '+(val?'visible':'masqué'),'auth'); }
-  save(); views.permissions();
-}
-function permSetCap(k,val){
-  if(permMode==='perso'){ const u=db.users.find(x=>x.id===permSelUser); if(!u) return; u.acces=u.acces||{caps:{},modules:{}}; u.acces.caps=u.acces.caps||{}; u.acces.caps[k]=val; logEvent('Permission modifiée','@'+(u.login||'')+' · '+k+' : '+(val?'autorisé':'refusé'),'auth'); }
-  else { const p=(db.permissions[permRole]=db.permissions[permRole]||{}); (p.caps=p.caps||{})[k]=val; logEvent('Permission modifiée',(roleLbl(permRole)||permRole)+' · '+k+' : '+(val?'autorisé':'refusé'),'auth'); }
-  save(); views.permissions();
-}
-function permSetBox(boxId,val){
-  const u=db.users.find(x=>x.id===permSelUser); if(!u) return; userBoxSet(u.id,boxId,val); const b=(db.boxes||[]).find(x=>x.id===boxId)||{};
-  logEvent('Permission modifiée','@'+(u.login||'')+' · box '+(b.nom||b.numero||boxId)+' : '+(val?'visible':'masquée'),'auth'); save(); views.permissions();
-}
-function permResetGrp(g){
-  const u=db.users.find(x=>x.id===permSelUser); if(!u||!u.acces) return;
-  const mods=NAV.filter(s=>PERM_GRP_OF[s.g]===g).flatMap(s=>s.items).map(m=>m.k);
-  if(u.acces.modules) mods.forEach(k=>{ delete u.acces.modules[k]; });
-  if(u.acces.caps) Object.keys(u.acces.caps).forEach(k=>{ if(k.indexOf('cat_'+g+'_')===0||(PERM_SPECIAUX[g]||[]).includes(k)) delete u.acces.caps[k]; });
-  logEvent('Permissions remises au rôle','@'+(u.login||'')+' · groupe '+g,'auth'); save(); toast('Réglages remis à ceux du rôle'); views.permissions();
-}
-function permResume(sujet,nom){
-  const tousMods=NAV.filter(s=>PERM_GRP_OF[s.g]).flatMap(s=>s.items).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
-  const voit=tousMods.filter(it=>userSeesModule(sujet,it.k)).length;
-  const pas=[];
-  PERM_GRPS.filter(([g])=>!['tdb','admin'].includes(g)).forEach(([g,t2])=>{ [['ajouter','ajouter'],['modifier','modifier'],['supprimer','supprimer']].forEach(([d])=>{ if(!catDroit(sujet,g,d)) pas.push(d+' — '+t2.replace(/^\S+\s/,'')); }); });
-  const extras=[]; if(userCap(sujet,'voirTout')) extras.push('voit toutes les interventions et toutes les box'); else if(sujet.id) extras.push('voit '+(function(){ const me=sujet; return (db.boxes||[]).filter(b=>b.actif!==false&&(b.visibleTous||(me.techId&&(b.techIds||[]).includes(me.techId))||b.respUserId===me.id||(b.userIds||[]).includes(me.id))).length; })()+' box'); if(userCap(sujet,'validerDR')) extras.push('valide les mouvements et demandes (DR)'); if(userCap(sujet,'devisIA')) extras.push('✨ Devis IA');
-  return `<b>Résumé :</b> ${esc(nom)} voit <b>${voit}</b> menus sur ${tousMods.length}${extras.length?' · '+extras.join(' · '):''}${pas.length?'<br>Ne peut pas : '+pas.slice(0,9).join(' · ')+(pas.length>9?' …':''):' · aucune restriction d\'action.'}`;
-}
+/* ⛔ L'ÉCRAN « DROITS PAR RÔLE » EST RETIRÉ (v728). Depuis la v585, « le dépliage d'un compte
+   dans Utilisateurs EST l'éditeur de droits… Pas de bouton « par rôle » » : plus rien n'y
+   menait — ni le menu, ni un bouton, ni un lien. Il restait 95 lignes que personne ne pouvait
+   ouvrir. Les réglages déjà posés par rôle (`db.permissions[rôle]`) restent lus comme défaut
+   par `moduleReglage` (donc `userSeesModule`) et `catDroit` : on retire l'éditeur mort, pas les données. */
 
 /* ═══════════════ PARAMÈTRES / SYNC ═══════════════ */
 
@@ -33944,7 +33864,11 @@ function saveProduitDonne(e,id){ e.preventDefault();
     if(p){ p.qte=Math.max(0,(p.qte||0)-d.quantite);
       db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:d.quantite,motif:'Produit donné'+(d.notes?' — '+d.notes:''),vehiculeId:d.vehiculeId||'',unite:d.unite||p.unite||'u',technicien:fullName(currentUser)}); }
     logEvent('Produit donné',`${d.produitNom} ×${d.quantite}`,'stock'); toast('Enregistré'); }
-  save(); closeModal(); views.produitsDonnes();
+  /* ⛔ ON RESTE OÙ L'ON ÉTAIT. « Produits donnés » n'est plus au menu (le journal Mouvements
+     trace qui a donné quoi) : afficher sa liste ici posait dans #content un écran que la
+     barre, le titre et le menu ne connaissaient pas — on se retrouvait « sur Véhicules » en
+     regardant autre chose, sans chemin de retour. Le don reste lisible dans Mouvements. */
+  save(); closeModal(); try{ views[current](); }catch(_e){}
 }
 function printProduitDonne(id){ const p=db.produitsDonnes.find(x=>x.id===id); if(!p)return;
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-ups');return;}
@@ -37260,7 +37184,7 @@ var COURT={dashboard:'Accueil',interventions:'Interv.',planningGeneral:'Plan. g�
   archives:'Archives',absences:'Absences',conducteurs:'Conduct.',devisXylo:'Xylo'};
 /* Un trait par rubrique. Ce qui n'est pas nommé ici retombe sur « rubrique », un carré neutre :
    mieux vaut un signe honnête qu'une icône qui raconte autre chose que l'écran. */
-var TRAIT_VUE={dashboard:'maison',statistiques:'stats',historique:'horloge',audit:'bouclier',
+var TRAIT_VUE={dashboard:'maison',statistiques:'stats',historique:'horloge',
   archives:'archive',planning:'calendrier',planningGeneral:'immeuble',taches:'cochec',
   absences:'conge',interventions:'caisse',rapports:'doc',carteInt:'carte',registre:'presse',
   carteBox:'pin',clients:'equipe',devis:'argent',assistantDevis:'robot',factures:'recu',

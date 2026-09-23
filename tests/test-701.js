@@ -102,9 +102,12 @@ v('… en se repérant sur `current`, pas sur un drapeau de l\'appelant',
 const hp = corps('function histPlus(');
 v('histPlus AJOUTE à la tranche, il ne la remet pas', /_histMax\+=n/.test(hp) && !/_histMax=HIST_PAS/.test(hp), true);
 v('… et il re-rend le même écran (donc sans déclencher la remise à zéro)', /go\(current\)/.test(hp), true);
-/* Les deux écrans servis par journalView : si un troisième arrive, il hérite de la règle. */
-v('Historique et Audit passent tous deux par journalView',
-  /views\.historique=function\(\)\{ journalView\(/.test(APP) && /views\.audit=function\(\)\{ journalView\(/.test(APP), true);
+/* Historique passe par journalView. « Audit », son doublon exact, est retiré depuis la v728
+   (test-775) ; la garde de la tranche reste pour le prochain écran qui s'en servira. */
+v('Historique passe par journalView',
+  /views\.historique=function\(\)\{ journalView\(/.test(APP), true);
+v('… et Audit n\'est plus un écran à part (il mène à Historique)',
+  !/views\.audit\s*=/.test(APP) && /VUES_RETIREES=\{[^}]*audit:'historique'/.test(APP), true);
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
