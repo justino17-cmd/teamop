@@ -42,6 +42,10 @@ function corps(nom) { const m = new RegExp('(?:async\\s+)?function ' + nom + '\\
 const ECRITURES = ['save()', '.push(', '.unshift(', 'confirm(', '.splice(', '=[]'];
 const gardeAvant = (c, g) => { const i = c.indexOf(g); if (i < 0) return false;
   const w = ECRITURES.map(x => c.indexOf(x)).filter(x => x >= 0); return i < (w.length ? Math.min(...w) : Infinity); };
+/* « avant » ne suffit pas : `if(false&&!caseGarde(…)) return;` est avant tout, et ne garde plus rien —
+   c'est la seule mutation v739 que ce banc laissait passer. La garde doit être la PREMIÈRE instruction,
+   sous sa forme exacte, sans rien qui la court-circuite. */
+const gardePremiere = (c, k) => new RegExp("^function \\w+\\([^)]*\\)\\{\\s*if\\(!caseGarde\\('" + k + "','(?:[^'\\\\]|\\\\.)*'\\)\\) return;").test(c);
 
 console.log('── 791 · 1. les quatre gestes d\'administrateur sont des CASES, fermées par défaut ──');
 const QUATRE = { effacerPrix: ['prixEffacer', 'stock'], supprimerHistoDemandes: ['demHistoSuppr', 'achats'],
@@ -75,10 +79,11 @@ v('… et laisse passer qui l\'a reçue', W.caseGarde('revoirDistincts', 'x'), t
 for (const [k, [fn]] of Object.entries(QUATRE)) {
   const c = corps(fn);
   vrai(fn + ' : sa garde lit la case « ' + k + ' », AVANT toute écriture et toute question', gardeAvant(c, "caseGarde('" + k + "'"), c.slice(0, 160));
+  vrai(fn + ' : … et c\'est sa PREMIÈRE instruction, que rien ne court-circuite', gardePremiere(c, k), c.slice(0, 160));
   vrai(fn + ' : plus aucune lecture du nom de rôle ni d\'adminSeul()', !/role\s*[!=]==?\s*'admin'|adminSeul\(\)/.test(c), c.slice(0, 160));
 }
 { const c = corps('boxLivrSuppr');
-  vrai('boxLivrSuppr (une livraison de l\'historique) : la même case que les commandes, AVANT toute question', gardeAvant(c, "caseGarde('supprimerHistoCommandes'") && !/adminSeul\(\)/.test(c), c.slice(0, 160)); }
+  vrai('boxLivrSuppr (une livraison de l\'historique) : la même case que les commandes, AVANT toute question', gardeAvant(c, "caseGarde('supprimerHistoCommandes'") && gardePremiere(c, 'supprimerHistoCommandes') && !/adminSeul\(\)/.test(c), c.slice(0, 160)); }
 vrai('le ✕ d\'une livraison lit la case', /\$\{can\('supprimerHistoCommandes'\)\?`<button type="button" class="dos-x" onclick="event\.stopPropagation\(\);boxLivrSuppr\(/.test(SRC));
 { const c = corps('boxCmdSuppr');
   vrai('⛔ une commande dont la réception ATTEND le DR ne s\'efface pas — même par l\'admin (le stock ne serait jamais crédité)',
