@@ -190,8 +190,9 @@ for (const [n, attendu] of [['saveDoc', 'clientPropose('], ['saveContrat', 'clie
 
 console.log('\n── 790 · 6. ⛔⛔ voir : la règle est dans la FONCTION, pas seulement dans la liste ──');
 const g = fonction('gsearch'), rs = fonction('renderSearch');
+/* v739 : les interventions de la recherche passent l'option « à affecter » (on cherche pour affecter) — les clients, jamais */
 vrai('la recherche du bandeau : clients, interventions et tâches par le filtre de leur écran',
-  /rechVoit\('clients'\)\?visibleClients\(db\.clients\)/.test(g) && /rechVoit\('interventions'\)\?visibleInts\(db\.interventions\)/.test(g) && /rechVoit\('taches'\)\?mesTaches\(\)/.test(g), g.slice(0, 400));
+  /rechVoit\('clients'\)\?visibleClients\(db\.clients\)/.test(g) && /rechVoit\('interventions'\)\?visibleInts\(db\.interventions,true\)/.test(g) && /rechVoit\('taches'\)\?mesTaches\(\)/.test(g), g.slice(0, 400));
 vrai('« Rechercher partout » : aucune famille lue en entier',
   !/add\(db\.(clients|devis|factures|produits|fournisseurs|boxes|vehicules)\b/.test(rs) && /V\('devis',visibleDocs\(db\.devis\)\)/.test(rs) && /V\('clients',visibleClients\(db\.clients\)\)/.test(rs));
 /* ⛔ relecture v738 : ouvrir n'est pas lister — les deux fiches passent par ouvrables() (exécutée au § 6 bis) */
