@@ -71,8 +71,15 @@ for (const sel of ['html[data-refonte] .pld-j,html[data-refonte] .pld-note,html[
 console.log('\n── 776 · 4. le segmenté de période tient sur un petit téléphone ──');
 const serre = regle('html[data-refonte] .tdb-seg span{padding-left:6px!important;padding-right:6px!important;font-size:11px}');
 vrai('sous 440 px, le segmenté se resserre', !!serre && /max-width:440px/.test(serre.media), serre && serre.media);
-const court = regle('html[data-refonte] .tdb-seg .sl{display:none}');
+const court = regle('html[data-refonte] .tdb-seg .sc{display:inline}');
 vrai('sous 390 px, il prend le libellé court', !!court && /max-width:389px/.test(court.media), court && court.media);
+/* ⛔ Le long ne part PAS en display:none : il sortirait aussi de ce que lit un lecteur d'écran, et
+   le court y est caché (aria-hidden). Un aria-label sur un span sans rôle ne le remplaçait pas. */
+const long = SRC.match(/html\[data-refonte\] \.tdb-seg \.sl\{([^}]*)\}/);
+vrai('⛔ sous 390 px, le libellé long est masqué À L’ŒIL seulement (lu par un lecteur d’écran)',
+  !!long && /position:absolute/.test(long[1]) && /clip:rect\(0 0 0 0\)/.test(long[1]) && /width:1px/.test(long[1])
+  && /max-width:389px/.test(mediaDe(SRC.indexOf(long[0]))), long && long[1]);
+vrai('⛔ … et aucune règle ne le passe en display:none', !/\.tdb-seg \.sl\{[^}]*display:none/.test(SRC));
 vrai('… et le libellé court est caché partout ailleurs', /html\[data-refonte\] \.tdb-seg \.sc\{display:none\}/.test(SRC));
 /* l'écriture RÉELLE du segmenté, exécutée */
 const mSeg = SRC.match(/const seg=(\[\['jour'[\s\S]*?\.join\(''\));/);
@@ -81,8 +88,8 @@ if (mSeg) {
   const html = new Function('per', 'tdbPorteeSet', 'return ' + mSeg[1])('7', () => {});
   vrai('« Aujourd’hui » porte les deux libellés, le court masqué aux lecteurs d’écran',
     /<i class="sl">Aujourd’hui<\/i><i class="sc" aria-hidden="true">Auj\.<\/i>/.test(html));
-  vrai('… et le bouton garde son nom complet (aria-label, infobulle) quand le long est caché',
-    /<span class="" onclick="tdbPorteeSet\('jour'\)" title="Aujourd’hui" aria-label="Aujourd’hui">/.test(html));
+  vrai('… le bouton ne s’en remet pas à un aria-label sur un span sans rôle : le long reste son texte',
+    /<span class="" onclick="tdbPorteeSet\('jour'\)"><i class="sl">Aujourd’hui<\/i>/.test(html) && !/aria-label/.test(html));
   vrai('les autres choix restent des mots simples', />7 jours<\/span>/.test(html) && />Le mois<\/span>/.test(html));
   vrai('le choix actif garde sa classe', /<span class="on" onclick="tdbPorteeSet\('7'\)">7 jours<\/span>/.test(html));
 }

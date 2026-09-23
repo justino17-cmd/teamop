@@ -3735,7 +3735,7 @@ html[data-os="windows"] .tdb-seg .seg-cur{border-radius:6px}
    ou se dézoomait. Un segmenté ne passe pas à la ligne (son curseur mentirait) : sous 440 px il
    se resserre — 6 px de marge au lieu de 11, 11 px au lieu de 11,5 — et demande 273 px.
    ⚠ Et la rangée a 15 px de marge intérieure : à 360 px il ne reste que 248 px, où quatre
-   choix ne tiennent qu'avec un libellé court (« Auj. », le nom complet reste celui du bouton).
+   choix ne tiennent qu'avec un libellé court (« Auj. », le long reste lu par un lecteur d'écran).
    Jusqu'à 440 px la pilule débordait aussi de sa rangée (326 pour 300 à 412 px). */
 html[data-refonte] .tdb-seg i{font-style:normal}
 html[data-refonte] .tdb-seg .sc{display:none}
@@ -3743,7 +3743,13 @@ html[data-refonte] .tdb-seg .sc{display:none}
   html[data-refonte] .tdb-seg{gap:2px}
   html[data-refonte] .tdb-seg span{padding-left:6px!important;padding-right:6px!important;font-size:11px}
 }
-@media (max-width:389px){ html[data-refonte] .tdb-seg .sl{display:none} html[data-refonte] .tdb-seg .sc{display:inline} }
+/* ⚠ Le libellé long n'est PAS retiré (`display:none` le retirerait aussi aux lecteurs d'écran, et
+   le court leur est caché) : il est masqué À L'ŒIL seulement. Un `aria-label` sur un `span` nu
+   ne le remplaçait pas — un élément sans rôle n'a pas de nom garanti. */
+@media (max-width:389px){
+  html[data-refonte] .tdb-seg .sl{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+  html[data-refonte] .tdb-seg .sc{display:inline}
+}
 html[data-refonte] .tdb-rz{border-color:var(--rf-plan-trait)!important}
 html[data-refonte] .tdb-pc{border-radius:7px!important}
 
@@ -14273,9 +14279,10 @@ function tdbPlanning(){
     +ACTS.filter(a=>jours.indexOf(a.date)>=0).reduce((s,a)=>s+(parseInt(a.duree)||30),0);
   const per=tdbPortee();
   /* un libellé COURT pour un petit téléphone : quatre choix avec « Aujourd'hui » ne tiennent pas
-     dans 248 px (voir le bloc `.tdb-seg` de la feuille). Le nom complet reste le nom du bouton. */
+     dans 248 px (voir le bloc `.tdb-seg` de la feuille). Le long reste dans la page, masqué à
+     l'œil seulement : c'est lui que lit un lecteur d'écran, le court lui est caché. */
   const seg=[['jour','Aujourd’hui','Auj.'],['7','7 jours'],['14','14 jours'],['mois','Le mois']]
-    .map(([k,l,c])=>`<span class="${per===k?'on':''}" onclick="tdbPorteeSet('${k}')"${c?` title="${l}" aria-label="${l}"`:''}>${c?`<i class="sl">${l}</i><i class="sc" aria-hidden="true">${c}</i>`:l}</span>`).join('');
+    .map(([k,l,c])=>`<span class="${per===k?'on':''}" onclick="tdbPorteeSet('${k}')">${c?`<i class="sl">${l}</i><i class="sc" aria-hidden="true">${c}</i>`:l}</span>`).join('');
   const WD=['DIM','LUN','MAR','MER','JEU','VEN','SAM'];
   let g=`<div class="tdb-jh t">Équipe</div>`;
   jours.forEach(j=>{ const d=new Date(j+'T00:00:00');
