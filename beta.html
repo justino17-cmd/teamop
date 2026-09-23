@@ -18270,15 +18270,40 @@ function garAlertCheck(){ try{ if(!currentUser||currentUser.role!=='admin') retu
   toast(msg);
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){ try{ new Notification('OP GESTION — Garanties',{body:msg}); }catch(e){} }
 }catch(e){} }
+/* ⛔⛔ UN SEUL ACCUEIL LE MATIN — décidé le 23 septembre 2026, Justin : « chaque matin pour tes
+   techniciens, fais ce qui est le mieux ». Jusque-là, un technicien qui avait des interventions
+   recevait DEUX accueils à 200 ms d'écart : le panneau de Leia s'ouvrait avec « Petits rappels
+   du jour » (« 3 intervention(s) prévue(s) aujourd'hui »…) ET ce bandeau montait en bas
+   (« Ta journée : 3 interventions »). La même nouvelle deux fois, dont une qui couvre l'écran.
+   La sonde du matin devait elle-même fermer Leia pour pouvoir photographier le bandeau.
+   La règle, une fois par jour et par personne :
+   · un TECHNICIEN qui a des interventions aujourd'hui reçoit « Ta journée » — court, sa
+     première intervention, un bouton, et il s'efface seul ; c'est ce qu'il vient chercher le
+     matin, le téléphone à la main. Ses interventions EN RETARD y sont dites (c'était la seule
+     ligne de Leia qui ne s'y trouvait pas) ;
+   · tous les autres — un responsable (administrateur, DR, chef d'équipe : il a des demandes à
+     valider, des factures, l'équipe entière), ou un technicien sans intervention ce jour-là —
+     reçoivent les rappels de Leia, comme avant.
+   Rien n'est perdu : les rappels restent dans la bulle 💬 (« Rappels »), à la demande. */
+function accueilJournee(){ try{ if(!currentUser) return false;
+  const r=currentUser.role; if(r==='admin'||r==='dr'||r==='chefEquipe') return false;
+  const tid=myTechId(); if(!tid) return false;
+  const today=todayISO();
+  return (db.interventions||[]).some(i=>i.date===today&&intTechIds(i).includes(tid)&&i.statut!=='annulee');
+}catch(e){ return false; } }
 /* ── P7 : rappel de la journée le matin (techniciens, 1 fois par jour) ── */
 function planFdrCheck(){ try{ if(!currentUser) return;
+  if(!accueilJournee()) return;
   const tid=myTechId(); if(!tid) return;
   const key='elanB_fdr_'+todayISO()+'_'+currentUser.id; if(localStorage.getItem(key)) return;
   const mine=(db.interventions||[]).filter(i=>i.date===todayISO()&&intTechIds(i).includes(tid)&&i.statut!=='annulee').sort((a,b)=>(a.heure||'').localeCompare(b.heure||''));
   if(!mine.length) return;
   localStorage.setItem(key,'1');
   const first=mine[0];
-  const msg='📋 Ta journée : '+mine.length+' intervention'+(mine.length>1?'s':'')+(first.heure?' · 1\u02b3\u1d49 : '+first.heure+' '+(clientName(first.clientId)||first.titre||''):'');
+  /* Ses retards à lui — pas ceux de toute l'entreprise : c'est SA journée. */
+  const retard=(db.interventions||[]).filter(i=>i.date<todayISO()&&intTechIds(i).includes(tid)&&(i.statut==='planifiee'||i.statut==='encours')).length;
+  const msg='📋 Ta journée : '+mine.length+' intervention'+(mine.length>1?'s':'')+(first.heure?' · 1\u02b3\u1d49 : '+first.heure+' '+(clientName(first.clientId)||first.titre||''):'')
+    +(retard?' · ⏰ '+retard+' en retard':'');
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){ try{ new Notification('OP GESTION — Ta journée',{body:msg}); }catch(e){} }
   const b=document.createElement('div');
   b.id='fdr-banner';
@@ -35466,8 +35491,13 @@ function enterApp(u){ currentUser=u;
   if(typeof syncInit==='function') syncInit();
   // migration : le code Devis IA saisi sur l'appareil d'un admin rejoint les données d'équipe (partagé, invisible)
   try{ if(u.role==='admin'&&!db.devisIACode){ const c=localStorage.getItem('opB_devis_code'); if(c){ db.devisIACode=c; localStorage.removeItem('opB_devis_code'); save(); } } }catch(e){}
-  if(!maybeWelcome()) maybeRappels();
-  setTimeout(()=>{ try{ planFdrCheck(); }catch(e){} },1200);       // P7 : rappel de la journée le matin (techniciens)
+  /* ⛔ UN SEUL ACCUEIL : la bienvenue la toute première fois ; ensuite « Ta journée » pour un
+     technicien qui a des interventions aujourd'hui, les rappels de Leia pour tous les autres.
+     Jamais les deux — voir `accueilJournee`. */
+  if(!maybeWelcome()){
+    if(accueilJournee()) setTimeout(()=>{ try{ planFdrCheck(); }catch(e){} },1200);   // P7 : rappel de la journée le matin (techniciens)
+    else maybeRappels();
+  }
   setTimeout(()=>{ try{ garAlertCheck(); }catch(e){} },2600);      // P11 : garanties qui expirent sous 30 j (admin)
   if(secuAFaire(u)) setTimeout(forcePwdModal,600);                 // ⛔ mot de passe personnel + e-mail : sans les deux, l'accès n'est pas activé
   else if(!(u.email||'').trim()) setTimeout(emailRappelModal,1100); // ⛔ e-mail OBLIGATOIRE aussi : sans lui, « Mot de passe oublié » ne peut rien faire
