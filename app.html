@@ -3988,7 +3988,12 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
      de la grille du planning et de la frise du tableau de bord ne sont pas des boutons. Les
      élargir ferait tenir trois jours de moins sur un écran — on perdrait la lecture d'une
      semaine pour gagner un plancher tactile sur une case qu'on ouvre en tapant n'importe où
-     dedans. Elles gardent leur densité. */
+     dedans. Elles gardent leur densité.
+     ⚠ Même décision, nommée le 23 septembre 2026 (audit iPad, valeurs longues) : les BLOCS À
+     L'ÉCHELLE DU TEMPS de la grille Semaine (`.plg-mh`, 25 px pour une heure) et de la vue Jour
+     (`.plt-blk`) — leur hauteur EST la durée ; les porter à 38 px mentirait sur l'horaire et
+     ferait se chevaucher deux créneaux voisins. Ils reçoivent en revanche leur infobulle
+     (heure, titre, client), comme les cartes du tableau de bord. */
   html[data-refonte] #content .pg-pt,html[data-refonte] #content .tdb-pc,
   html[data-refonte] #content .tdb-cel,html[data-refonte] #content .plm-card,
   html[data-refonte] #content .tbl button{min-height:0}
@@ -17144,6 +17149,7 @@ function planWeekHtml(SRC){ if((window.innerWidth||1200)<700) return planWeekLis
         const lg=(m===null||nVoies<2)?'left:2px;right:2px'
           :`left:calc(2px + ${(100/nVoies*v).toFixed(3)}%);width:calc(${(100/nVoies).toFixed(3)}% - 3px)`;
         return `<div class="plg-mh ${hpx>=25?'deux':''} ${m===null?'sh':''} ${cf?'cf':''} ${planMatch(i)?'':'dim'}" data-int="${i.id}" data-drag-int="${i.id}"
+          title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}"
           draggable="${canPlan()?'true':'false'}" ondragstart="planDragStart(event,'${i.id}')"
           onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}"
           style="${lg};${pos};height:${Math.round(hpx)}px;--cc:${sc}">
@@ -17287,7 +17293,7 @@ function planDayHtml(SRC){ if((window.innerWidth||1200)<700) return planDayListH
       if(m===null){ top=4+sansHeure*40; hpx=36; sansHeure++; dash='border-style:dashed;'; }
       else { top=Math.max(0,(m-h0*60)/60*PPH); hpx=Math.max(34,dur/60*PPH-4); }   // la case fait la durée ; le contenu s'adapte
       const posJ=(m===null)?null:coteJ[i.id];
-      blocks+=`<div class="plt-blk ${cf?'cf':''} ${(posJ&&posJ.n>1)?'chev':''} ${i.propose?'prop':''} ${planMatch(i)?'':'dim'}" draggable="${canPlan()?'true':'false'}" data-drag-int="${i.id}" ondragstart="planDragStart(event,'${i.id}')" onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}" style="top:${top}px;height:${hpx}px;border-left-color:${sc};${dash}${planCoteStyle(posJ)}">
+      blocks+=`<div class="plt-blk ${cf?'cf':''} ${(posJ&&posJ.n>1)?'chev':''} ${i.propose?'prop':''} ${planMatch(i)?'':'dim'}" title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}" draggable="${canPlan()?'true':'false'}" data-drag-int="${i.id}" ondragstart="planDragStart(event,'${i.id}')" onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}" style="top:${top}px;height:${hpx}px;border-left-color:${sc};${dash}${planCoteStyle(posJ)}">
         ${by}${(function(){ const n=planNumOf(i.id); return n?`<span class="pnum" style="background:${planCoulOf(i)}" title="Intervention n°${n} de la tournée">${n}</span>`:''; })()}<b>${i.heure?`<span class="hh">${esc(i.heure)}</span>`:'— sans heure'} · <span class="tt">${esc(i.titre||'')}</span>${badges}</b>${planCarteInfos(i,{h:hpx})}${planCartePied(i,hpx)}${(i.obligation&&hpx>=110)?'<small class="ci" style="color:var(--org)">placée malgré un congé</small>':''}</div>`; });
     // Battement entre 2 interventions consécutives d'un même technicien (P4) — clients différents
     for(let k=0;k<timed.length-1;k++){ const a=timed[k], b=timed[k+1];

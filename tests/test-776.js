@@ -329,7 +329,16 @@ console.log('\n── 776 · 15. un texte ne s’écrase plus : lignes à heure,
   const AUD = fs.readFileSync(path.join(__dirname, '..', 'scratchpad', 'audit-profond.js'), 'utf8');
   vrai('l’audit porte le critère qui les a trouvés (texte écrasé), et attend la fin de l’animation d’entrée',
     /if\(signes<12 && lignes>=4\) out\.ecrases\.push/.test(AUD) && /!document\.querySelector\('\.content\.entre'\)\) return i;/.test(AUD));
-  vrai('la preuve au navigateur des lignes à heure existe (Planning × 3 vues, tournée, 4 appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-lignes-heure.js'))); }
+  vrai('la preuve au navigateur des lignes à heure existe (Planning × 3 vues, tournée, 4 appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-lignes-heure.js')));
+  /* Les blocs à l'échelle du temps (Semaine `.plg-mh`, Jour `.plt-blk`) : titre coupé sans rien pour
+     lire la suite (audit iPad, valeurs longues) — et une hauteur qui EST la durée, donc écartée du
+     plancher tactile par décision écrite, que l'audit applique nommément. */
+  const bulle = /title="\$\{esc\(\(i\.heure\|\|''\)\+' '\+\(i\.titre\|\|''\)\+' — '\+\(clientName\(i\.clientId\)\|\|''\)\)\}"/;
+  const iM = SRC.indexOf('<div class="plg-mh '), iB = SRC.indexOf('<div class="plt-blk ');
+  vrai('⛔ les blocs de la grille Semaine et de la vue Jour portent heure, titre et client en infobulle',
+    iM > 0 && iB > 0 && bulle.test(SRC.slice(iM, iM + 400)) && bulle.test(SRC.slice(iB, iB + 300)));
+  vrai('… et la décision qui les écarte du plancher tactile est écrite, et appliquée par l’audit',
+    /BLOCS À\s+L'ÉCHELLE DU TEMPS de la grille Semaine \(`\.plg-mh`/.test(BRUT) && /e\.closest\('\.pg-pt,\.tdb-pc,\.tdb-cel,\.plm-card,\.tbl,\.plg-mh,\.plt-blk'\)\) out\.denses\.push/.test(AUD)); }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

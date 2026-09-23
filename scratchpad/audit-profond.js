@@ -193,7 +193,7 @@ const ECARTS=[
          && !(e.tagName==='INPUT' && /checkbox|radio/.test(e.type))){
         /* ⛔ ÉCARTÉS PAR DÉCISION ÉCRITE (app.html, bloc « au doigt ») : les cases des grilles
            de planning, de la frise, et les tableaux. Comptés à part et NOMMÉS. */
-        if(e.closest('.pg-pt,.tdb-pc,.tdb-cel,.plm-card,.tbl')) out.denses.push(nom(e));
+        if(e.closest('.pg-pt,.tdb-pc,.tdb-cel,.plm-card,.tbl,.plg-mh,.plt-blk')) out.denses.push(nom(e));
         else candidats.push({e, n:nom(e), t, h:Math.round(b.height*10)/10});
       }
     }
