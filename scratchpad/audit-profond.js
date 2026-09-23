@@ -272,7 +272,7 @@ const ECARTS=[
       const w=e.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0);
       const lignes=Math.round((e.getBoundingClientRect().height-(parseFloat(cs.paddingTop)||0)-(parseFloat(cs.paddingBottom)||0))/lh);
       const signes=w/(0.55*fz);
-      if(signes<12 && lignes>=4) out.ecrases.push({ n:nom(e), t:txt.replace(/\s+/g,' ').slice(0,28), w:Math.round(w), lignes, signes:Math.round(signes) });
+      if(signes<12 && lignes>=4) out.ecrases.push({ n:nom(e), t:txt.replace(/\\s+/g,' ').slice(0,28), w:Math.round(w), lignes, signes:Math.round(signes) });
     }
     return out;`;
 
@@ -365,7 +365,10 @@ const ECARTS=[
     for(let i=0;i<20;i++){
       const vt=document.getAnimations().filter(a=>a.effect&&a.effect.pseudoElement&&/view-transition/.test(a.effect.pseudoElement)&&a.playState==='running').length;
       const c=document.elementFromPoint(innerWidth/2,innerHeight/2);
-      if(!vt && c && c!==document.documentElement) return i;
+      /* ⚠ et l'animation d'entrée des cartes : pendant `.content.entre`, le contenu est mis à
+         l'échelle (~0,984) — un en-tête de 38 px se PEINT à 37,4. Mesuré le 23 septembre 2026 :
+         4 « petites cibles » sur iPad qui n'en étaient pas (38 px de mise en page tout du long). */
+      if(!vt && c && c!==document.documentElement && !document.querySelector('.content.entre')) return i;
       await new Promise(r=>setTimeout(r,100)); }
     return 99;`;
   const attendreVue=async()=>{ try{ await S.ev(ATTENDRE_VUE); }catch(e){} };

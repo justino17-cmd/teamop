@@ -3050,7 +3050,7 @@ html[data-refonte] .dt-lbl{font-size:11.5px!important;font-weight:600!important;
 html[data-refonte] .dt-val{font-size:15.5px!important;color:var(--t1);line-height:1.4}
 html[data-refonte] .tbl td{font-size:14px}
 html[data-refonte] .st{font-size:12px!important;font-weight:600!important;padding:4px 11px!important}
-html[data-refonte] .tag{font-size:12px;font-weight:600}
+html[data-refonte] .tag{font-size:12px;font-weight:600;white-space:nowrap}   /* une pastille ne se coupe pas en deux : « 3 / produit(s) », chacun avec son morceau de fond (mesuré le 23 septembre 2026, Validations au téléphone) */
 /* La prose des écrans de réglages court sinon sur 1 100 px : illisible, on revient à la ligne
    sans savoir où. On la borne, on ne la centre pas — l'alignement à gauche reste l'ancre de l'œil. */
 html[data-refonte] .card > p,html[data-refonte] .olsec > p,
@@ -4414,6 +4414,19 @@ html[data-refonte] .content{padding-top:10px}
   html[data-refonte] .cs-l > .cs-val{order:4;width:auto!important;margin-top:6px}
   html[data-refonte] .cs-det{margin-left:0!important}
 }
+/* ⛔ LE TITRE D'UNE FENÊTRE TOMBAIT EN COLONNE D'UN MOT PAR LIGNE. 32 fenêtres portent la barre
+   [Annuler] titre [Enregistrer] ; au téléphone, les deux gestes (≈ 95 px chacun) ne laissaient au
+   titre que 109 px : « Ajouter un produit aux boxes » passait sur CINQ lignes de 20 px, et la barre
+   montait à 188 px de haut (mesuré le 23 septembre 2026, critère « texte écrasé » de l'audit). Au
+   téléphone la barre garde ses deux gestes, et le titre passe DESSOUS, aligné à gauche, sur toute
+   la largeur : la feuille à grand titre d'iOS. Au-delà de 560 px rien ne change.
+   ⚠ `.bxp-titre` (Produits de la box) garde sa ligne : il est dessiné pour elle — 17 px insécable,
+   avec son sous-titre centré. */
+@media (max-width:560px){
+  html[data-refonte] .sheet-head:has(> h3:not(.bxp-titre)){flex-wrap:wrap;row-gap:6px}
+  html[data-refonte] .sheet-head > h3:not(.bxp-titre){order:3;flex:1 1 100%;text-align:left;text-wrap:balance}
+  html[data-refonte] .sheet-head > h3:not(.bxp-titre) ~ :last-child{margin-left:auto}
+}
 /* ⛔ LA LISTE DES INTERVENTIONS METTAIT QUATRE COLONNES CÔTE À CÔTE : heure, texte, compte à
    rebours, statut et boutons. Mesuré le 23 septembre 2026 avec des noms longs : à 360 px la
    colonne de TEXTE tombait à 0 px, le titre passait sur treize lignes (une ligne de 642 px de
@@ -4455,6 +4468,29 @@ html[data-refonte] .mj{container-type:inline-size}
   html[data-refonte] .mj-l{flex-wrap:wrap;row-gap:8px!important}
   html[data-refonte] .mj-l > .mj-t{flex:1 1 calc(100% - 80px)!important}   /* ⚠ `flex:1` est écrit EN LIGNE : sans !important, la base ne prend pas et rien ne passe à la ligne */
   html[data-refonte] .mj-l > .st{margin-left:auto}
+}
+/* ⛔ ET LES AUTRES LIGNES « HEURE · TEXTE · STATUT » : les cartes du Planning (`planIntCard` —
+   vues Semaine, Jour, Mois) et la tournée de la Carte des interventions (`renderTournee`).
+   Trouvées par le critère « texte écrasé » de l'audit, en technicien, valeurs longues : titre à
+   101 px sur dix lignes, adresse du client à 86 px sur quinze. Ici c'est la LIGNE elle-même qui
+   est le conteneur interrogé — elle vit dans trois vues et un panneau, une enveloppe par écran
+   en oublierait une. Au-dessus de 440 px rien ne change : la base du texte est nulle
+   (`flex:1`), tout tient sur une ligne et `flex-wrap` ne sert pas. */
+html[data-refonte] .pl-row.lh{container:ligne-heure / inline-size;flex-wrap:wrap;row-gap:8px!important}
+@container ligne-heure (max-width:440px){
+  html[data-refonte] .lh > .pl-info{flex:1 1 calc(100% - 80px)}
+  html[data-refonte] .lh > .st{margin-left:auto}
+  html[data-refonte] .lh > :first-child{align-self:flex-start}
+}
+/* ⛔ LA MÊME CHOSE, SANS L'HEURE : une ligne de texte suivie de ses GESTES (Refuser · Valider) ou
+   de son statut. Les demandes de commande de Validations laissaient 18 px au texte au téléphone,
+   à côté de 190 px de boutons (audit, valeurs longues, 23 septembre 2026). Sous 440 px de ligne,
+   le texte prend sa ligne avec le chevron, gestes et statut passent dessous, à droite. */
+html[data-refonte] .pl-row.lga{container:ligne-gestes / inline-size;flex-wrap:wrap;row-gap:10px!important}
+@container ligne-gestes (max-width:440px){
+  html[data-refonte] .lga > .pl-info{flex:1 1 calc(100% - 40px)}
+  html[data-refonte] .lga::after{order:1}
+  html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st{order:2;margin-left:auto}
 }
 
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
@@ -14516,7 +14552,7 @@ let planMode='semaine';
 function planOpenDay(iso){ if(!iso) return; planSel=iso; planWeekRef=iso; planMode='jour'; views.planning(); }
 function planIntCard(i,opts){ opts=opts||{}; const sc=opts.couleurTech?planCardColor(i):(INT_STCOLOR[i.statut]||'var(--t3)');
   const cf=i.date&&i.heure&&i.techId?intConflictOf(i,i.id):null;
-  return `<div class="pl-row" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
+  return `<div class="pl-row lh" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
     <div style="text-align:center;min-width:48px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:15px;color:var(--t1)">${esc(i.heure||'—')}</div><div style="font-size:10px;color:var(--t3)">${i.date?(opts.showDate?fmtShort(i.date):(i.duree||60)+' min'):'—'}</div></div>
     <div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''} ${cf?'<span class="tag hot" style="font-size:9px" title="Chevauchement avec une autre intervention">Conflit</span>':''}</div><div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?esc(i.type)+' · ':''}${esc(clientName(i.clientId))}${(i.checklist&&i.checklist.length)?` · ☑ ${i.checklist.filter(x=>x.done).length}/${i.checklist.length}`:''}</div>${opts.hideTech?'':`<div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(techNames(i))}${i.recurrence&&i.recurrence!=='aucune'?' · 🔁 '+(INT_RECUR[i.recurrence]||''):''}</div>`}</div>
     ${badge(STATUT_INT,i.statut)}</div>`; }
@@ -26101,7 +26137,7 @@ views.validations=function(){
   // le DR / l'admin voit tout ; les autres ne voient que LEURS demandes et LEURS mouvements (avec la décision du DR)
   const att=visibleDemandes(db.demandes).filter(d=>d.statut==='enAttente');
   const autres=visibleDemandes(db.demandes).filter(d=>d.statut!=='enAttente').sort((a,b)=>(b.dateValidation||b.date||'').localeCompare(a.dateValidation||a.date||''));
-  const row=d=>`<div class="pl-row" data-dem="${d.id}" onclick="ficheDemande('${d.id}')"><div class="pl-info"><div class="pl-title">${esc(d.boxNom||boxLabel(d.boxId))} <span class="tag">${(d.lignes||[]).length} produit(s)</span></div><div class="pl-meta">${esc(d.num)} · ${esc(d.chefNom||userName(d.chefId))} · ${demTotal(d)} unité(s)</div></div>`;
+  const row=d=>`<div class="pl-row lga" data-dem="${d.id}" onclick="ficheDemande('${d.id}')"><div class="pl-info"><div class="pl-title">${esc(d.boxNom||boxLabel(d.boxId))} <span class="tag">${(d.lignes||[]).length} produit(s)</span></div><div class="pl-meta">${esc(d.num)} · ${esc(d.chefNom||userName(d.chefId))} · ${demTotal(d)} unité(s)</div></div>`;
   // ── Mouvements de box en attente du DR (arrivages, ajustements, retraits) ──
   const estDr=!!(currentUser&&can('validerDR'));
   const MICO={arrivage:'📦',ajustement:'✏️',retrait:'🗑️'};
@@ -26133,7 +26169,7 @@ views.validations=function(){
   </div>`;
   const bandeauV=demoV?`<div class="card" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-style:dashed"><span style="font-size:17px">🧪</span><div style="flex:1;min-width:220px"><b>Simulation d'essai</b><div style="font-size:12px;color:var(--t3)">Pose des mouvements et une demande en attente de ton Valider, pour tester le circuit DR en vrai. Tout est marqué (démo).</div></div>${demoOnV?`<button type="button" class="btn ghost sm" onclick="mvtDemoRetirer();views.validations()">Retirer la simulation</button>`:(demoVBeta?`<button type="button" class="btn sm" onclick="mvtDemoPoser();views.validations()">Lancer la simulation</button>`:'')}</div>`:'';
   $('content').innerHTML=bandeauV+blocMv+`<div class="card"><div class="card-head"><h3>Demandes de commande (${att.length})</h3></div>
-    ${att.length? att.map(d=>row(d)+`${estDr?`<div onclick="event.stopPropagation()" style="display:flex;gap:6px"><button class="btn danger sm" onclick="validerDemande('${d.id}','refuse')">Refuser</button> <button class="btn sm" onclick="validerDemande('${d.id}','valide')">Valider</button></div>`:'<span class="st st-org">En attente du DR</span>'}</div>`).join('') : emptyState('✅','Aucune demande en attente.','','')}
+    ${att.length? att.map(d=>row(d)+`${estDr?`<div class="lga-a" onclick="event.stopPropagation()" style="display:flex;gap:6px"><button class="btn danger sm" onclick="validerDemande('${d.id}','refuse')">Refuser</button> <button class="btn sm" onclick="validerDemande('${d.id}','valide')">Valider</button></div>`:'<span class="st st-org">En attente du DR</span>'}</div>`).join('') : emptyState('✅','Aucune demande en attente.','','')}
   </div>${(autres.length||mvHisto.length)?`<div class="card"><div class="card-head"><h3>Historique</h3></div>
     ${mvHisto.map(m=>mvRow(m,m.modifieDR?'mvc':'')+`${m.modifieDR?'<div class="mvl-st">':''}<span class="st ${m.statut==='valide'?'st-green':'st-red'}">${m.statut==='valide'?'Validé':'Refusé'}${m.drNom?' · '+esc(m.drNom):''}</span>${m.modifieDR?'<span class="st st-org">Corrigé par le DR</span></div>':''}`+mvLignesHtml(m,false)+'</div>'+mvEcart(m)).join('')}
     ${autres.map(d=>row(d)+`${badge(STATV,d.statut)}</div>`).join('')}</div>`:''}`;
@@ -28376,7 +28412,7 @@ async function renderTournee(pts){
   const el=$('tournee'); if(!el) return;
   if(!pts.length){ el.innerHTML='<div style="color:var(--t3);font-size:13px">Aucune intervention géolocalisée ce jour (le client doit avoir une adresse localisée).</div>'; return; }
   el.innerHTML = pts.map((p,i)=>`
-    <div class="pl-row" style="cursor:pointer" onclick="detailIntervention('${p.id}')"><div class="pl-time">${p.heure}</div>
+    <div class="pl-row lh" style="cursor:pointer" onclick="detailIntervention('${p.id}')"><div class="pl-time">${p.heure}</div>
       <div class="pl-info"><div class="pl-title"><span style="display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--acc);color:var(--on-acc);align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-right:6px">${i+1}</span>${esc(p.titre)}</div><div class="pl-meta">${esc(p.clientNom||'')} · ${esc(p.adresse||'')}</div></div>${badge(STATUT_INT,p.statut)}</div>
     ${i<pts.length-1?`<div id="leg-${i}" style="display:flex;align-items:center;gap:8px;padding:4px 0 4px 50px;color:var(--t3);font-size:13px">calcul du trajet…</div>`:''}`).join('')
     + `<div id="tournee-total" style="margin-top:10px;text-align:right;font-size:14px;color:var(--t2)"></div>`;

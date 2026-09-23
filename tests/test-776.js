@@ -291,5 +291,45 @@ console.log('\n── 776 · 14. une boîte centrée par « left:50% » se mesur
   vrai('⛔ chacune déclare sa largeur ou ne peut pas se replier', cas.every(c => c.sur), cas.filter(c => !c.sur));
   vrai('la preuve au navigateur existe (la vraie planOptBarre, quatre appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-opt-barre.js'))); }
 
+console.log('\n── 776 · 15. un texte ne s’écrase plus : lignes à heure, lignes à gestes, titres de fenêtre ──');
+/* Trouvés le 23 septembre 2026 par le critère « texte écrasé » de l'audit (valeurs longues,
+   administrateur et technicien, Android de 360) — une colonne qui cède tout ne déborde pas, elle
+   s'allonge, et aucun autre contrôle ne la voyait :
+   · cartes du Planning (`planIntCard`) : titre à 101 px sur dix lignes ; tournée de la Carte des
+     interventions (`renderTournee`) : adresse à 86 px sur seize lignes ;
+   · demandes de commande de Validations : texte à 18 px à côté de 190 px de boutons ;
+   · titre de fenêtre [Annuler] titre [Ajouter] : « Ajouter un produit aux boxes » sur cinq lignes,
+     une barre de 188 px de haut. */
+{ const corpsDe = d => { const i = SRC.indexOf(d); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\nfunction ', i + 20)); };
+  const fP = corpsDe('function planIntCard(i,opts){'), fT = corpsDe('async function renderTournee(pts){');
+  vrai('population : planIntCard et renderTournee sont trouvées', fP.length > 500 && fT.length > 500, [fP.length, fT.length]);
+  vrai('les deux lignes « heure · texte · statut » portent la classe du composant', /class="pl-row lh"/.test(fP) && /class="pl-row lh"/.test(fT));
+  const cl = regle('html[data-refonte] .pl-row.lh{container:ligne-heure / inline-size;flex-wrap:wrap;row-gap:8px!important}');
+  vrai('⛔ la LIGNE est son propre conteneur (elle vit dans trois vues et un panneau)', !!cl && cl.media === '', cl && cl.media);
+  const cb = regle('html[data-refonte] .lh > .pl-info{flex:1 1 calc(100% - 80px)}');
+  vrai('⛔ sous 440 px de ligne, le texte prend la largeur et le statut passe dessous',
+    !!cb && /^@container ligne-heure \(max-width:440px\)$/.test(cb.media) && !!regle('html[data-refonte] .lh > .st{margin-left:auto}'), cb && cb.media);
+  const h1 = +((fP.match(/<div style="text-align:center;min-width:(\d+)px;flex-shrink:0">/) || [])[1] || NaN);
+  const h2 = +((SRC.match(/\.pl-time\{[^}]*min-width:(\d+)px/) || [])[1] || NaN);
+  vrai('⛔ … et la base laisse la place de l’heure (48 et 50 px, +10 de marge), rien de plus', [h1, h2].every(h => Number.isFinite(h) && h + 14 + 10 <= 80 && 80 - (h + 14) < 14 + 40), { planIntCard: h1, tournee: h2 });
+  const fV = corpsDe('views.validations=function(){');
+  vrai('population : la vue Validations est trouvée', fV.length > 2000, fV.length);
+  vrai('les demandes de commande sont des lignes à gestes, leurs boutons nommés', /class="pl-row lga" data-dem=/.test(fV) && /<div class="lga-a" onclick="event\.stopPropagation\(\)"/.test(fV));
+  const cg = regle('html[data-refonte] .lga > .pl-info{flex:1 1 calc(100% - 40px)}');
+  vrai('⛔ sous 440 px de ligne : le texte et son chevron en haut, gestes et statut dessous, à droite',
+    !!cg && /^@container ligne-gestes \(max-width:440px\)$/.test(cg.media) && !!regle('html[data-refonte] .lga::after{order:1}')
+    && !!regle('html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st{order:2;margin-left:auto}')
+    && /html\[data-refonte\] \.pl-row\.lga\{container:ligne-gestes \/ inline-size;flex-wrap:wrap/.test(SRC), cg && cg.media);
+  const sh = regle('html[data-refonte] .sheet-head > h3:not(.bxp-titre){order:3;flex:1 1 100%;text-align:left;text-wrap:balance}');
+  vrai('⛔ au téléphone, le titre d’une fenêtre passe sous ses deux gestes (grand titre, pleine largeur)', !!sh && /max-width:560px/.test(sh.media), sh && sh.media);
+  vrai('… la barre peut passer à la ligne, le geste de droite reste à droite, et « Produits de la box » garde sa ligne',
+    !!regle('html[data-refonte] .sheet-head:has(> h3:not(.bxp-titre)){flex-wrap:wrap;row-gap:6px}')
+    && !!regle('html[data-refonte] .sheet-head > h3:not(.bxp-titre) ~ :last-child{margin-left:auto}') && /\.bxp-titre\{white-space:nowrap\}/.test(SRC));
+  vrai('une pastille ne se coupe pas en deux', /html\[data-refonte\] \.tag\{font-size:12px;font-weight:600;white-space:nowrap\}/.test(SRC));
+  const AUD = fs.readFileSync(path.join(__dirname, '..', 'scratchpad', 'audit-profond.js'), 'utf8');
+  vrai('l’audit porte le critère qui les a trouvés (texte écrasé), et attend la fin de l’animation d’entrée',
+    /if\(signes<12 && lignes>=4\) out\.ecrases\.push/.test(AUD) && /!document\.querySelector\('\.content\.entre'\)\) return i;/.test(AUD));
+  vrai('la preuve au navigateur des lignes à heure existe (Planning × 3 vues, tournée, 4 appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-lignes-heure.js'))); }
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
