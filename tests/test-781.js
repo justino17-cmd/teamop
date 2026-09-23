@@ -135,7 +135,16 @@ vrai('… qu’on ne montre QU’au téléphone : ailleurs le bouton flottant la
   !!ailleurs && ailleurs.media === '', ailleurs && ailleurs.media);
 /* Les deux règles portent !important : c'est la SPÉCIFICITÉ qui départage (0,3,1 contre 0,2,0).
    Une troisième règle sur ce bouton pourrait les renverser en silence — il n'y en a que deux. */
-const surBouton = [...SRC.matchAll(/([^{}]*\.plan-carte-tete[^{}]*)\{([^{}]*)\}/g)].map(m => m[1].trim().replace(/\s+/g, ' ') + '{' + m[2].trim() + '}');
+/* ⚠️ Recensement LINÉAIRE, par indexOf : une expression `[^{}]*\.plan-carte-tete[^{}]*\{` sur les
+   3,5 Mo du fichier prenait 51 s sur une mutation (et quelques ms sur le fichier normal) — le
+   retour arrière de `[^{}]*` à chaque position. Un banc qui se fige sur une mutation se fait
+   couper, puis désactiver. */
+const surBouton = [];
+for (let i = SRC.indexOf('.plan-carte-tete'); i >= 0; i = SRC.indexOf('.plan-carte-tete', i + 1)) {
+  const d = Math.max(SRC.lastIndexOf('}', i), SRC.lastIndexOf('{', i)) + 1, o = SRC.indexOf('{', i), f = SRC.indexOf('}', o);
+  if (o < 0 || f < 0) continue;
+  surBouton.push(SRC.slice(d, o).trim().replace(/\s+/g, ' ') + '{' + SRC.slice(o + 1, f).trim() + '}');
+}
 v('… et ce sont les SEULES règles qui visent ce bouton (une troisième pourrait les renverser)', surBouton.sort(),
   ['.ph-actions .plan-carte-tete{display:none!important}', 'html[data-refonte] .ph-actions .plan-carte-tete{display:inline-flex!important}'].sort());
 vrai('plus AUCUNE règle ne monte le bouton au-dessus de la bulle AU TÉLÉPHONE (elle serait morte)',
