@@ -3723,7 +3723,27 @@ html[data-verre="1"] .tdb-seg .seg-cur{
 html[data-os="windows"] .tdb-seg .seg-cur{border-radius:6px}
 @media (prefers-reduced-motion: reduce){ html[data-refonte] .tdb-seg .seg-cur{transition:opacity .15s ease} }
 /* ⛔ 44 px sous le doigt, toujours — un segmenté serré est le premier endroit où on tape à côté. */
-@media(max-width:780px){ html[data-refonte] .tdb-seg span{min-height:44px;display:inline-flex;align-items:center} }
+/* ⛔ AU DOIGT, PAS « SOUS 780 PX ». Mesuré le 23 septembre 2026 sur un iPad (820 px, tactile) :
+   « Aujourd'hui », « 7 jours », « 14 jours », « Le mois » répondaient sur 30 px — la règle ne
+   visait que la largeur d'un téléphone. C'est la mauvaise question, et le bloc « au doigt »
+   plus bas le dit déjà : une tablette a la place d'un ordinateur et le pointage d'un téléphone. */
+@media (max-width:780px),(pointer:coarse){ html[data-refonte] .tdb-seg span{min-height:44px;display:inline-flex;align-items:center} }
+/* ⛔⛔ SUR UN PETIT TÉLÉPHONE, LE SEGMENTÉ POUSSAIT TOUTE LA PAGE. Mesuré le 23 septembre 2026 :
+   « Aujourd'hui · 7 jours · 14 jours · Le mois » fait 326 px à toute largeur ; sa rangée n'en
+   offre que 278 sur un Android de 360 px (la largeur la plus courante) et 293 sur un iPhone SE
+   — le navigateur élargissait alors la page entière à 382 px : tout l'écran glissait de côté,
+   ou se dézoomait. Un segmenté ne passe pas à la ligne (son curseur mentirait) : sous 440 px il
+   se resserre — 6 px de marge au lieu de 11, 11 px au lieu de 11,5 — et demande 273 px.
+   ⚠ Et la rangée a 15 px de marge intérieure : à 360 px il ne reste que 248 px, où quatre
+   choix ne tiennent qu'avec un libellé court (« Auj. », le nom complet reste celui du bouton).
+   Jusqu'à 440 px la pilule débordait aussi de sa rangée (326 pour 300 à 412 px). */
+html[data-refonte] .tdb-seg i{font-style:normal}
+html[data-refonte] .tdb-seg .sc{display:none}
+@media (max-width:440px){
+  html[data-refonte] .tdb-seg{gap:2px}
+  html[data-refonte] .tdb-seg span{padding-left:6px!important;padding-right:6px!important;font-size:11px}
+}
+@media (max-width:389px){ html[data-refonte] .tdb-seg .sl{display:none} html[data-refonte] .tdb-seg .sc{display:inline} }
 html[data-refonte] .tdb-rz{border-color:var(--rf-plan-trait)!important}
 html[data-refonte] .tdb-pc{border-radius:7px!important}
 
@@ -3964,6 +3984,14 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
      · `.ic-act` — l'icône 📅 d'une ligne d'intervention, écrite EN STYLE DIRECT sans
        classe : elle n'en avait pas, on lui en donne une plutôt que de viser un `span` nu. */
   html[data-refonte] #content .tdb-jh{min-height:38px}
+  /* ⛔ LA BARRE DES JOURS DU PLANNING ET L'ÉPINGLE DE NOTE, TROUVÉES SUR L'IPAD (23 septembre
+     2026, audit des écrans profonds, profil tablette) : un téléphone ouvre le planning autrement
+     et ne les montrait pas, donc aucun audit au téléphone ne pouvait les voir. Jours de la vue
+     Jour 29 px, flèches 26, « Note » et « La semaine » 27, et l'épingle 📌 d'un en-tête de
+     semaine à 11 × 14 px — une vraie commande (la note du jour), pas une case de grille. */
+  html[data-refonte] .pld-j,html[data-refonte] .pld-note,html[data-refonte] .pld-lk{min-height:38px}
+  html[data-refonte] .pld-nav u{width:38px;height:38px}
+  html[data-refonte] .plg-pin{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:38px;vertical-align:middle}
   html[data-refonte] .pf-zoom b{min-height:38px;display:inline-flex;align-items:center;justify-content:center}
   html[data-refonte] .ic-act{min-height:38px;min-width:38px;display:inline-flex;align-items:center;justify-content:center}
   /* ⛔⛔ LE CHAMP D'UNE RANGÉE DE FORMULAIRE NE RÉPONDAIT QUE SUR 17 PX. `.frow` est la rangée
@@ -4427,6 +4455,12 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      moment-là : ils s'effacent le temps du geste et reviennent après. */
   body.boxsel .fab,body.boxsel #assistant > .fab,body.boxsel .plm-fab{display:none!important}
 }
+/* ⛔ ET SANS BARRE D'ONGLETS AUSSI (tablette, ordinateur) : la bulle d'assistance (right 24,
+   bottom 24, 58 px) et « Voir sur la carte » (right 22, bottom 22) se posaient l'une sur
+   l'autre dans le coin — mesuré sur l'iPad le 23 septembre 2026, la bulle cachée derrière le
+   bouton. Même geste qu'au téléphone : le bouton monte au-dessus de la bulle, SEULEMENT si
+   elle est là. La règle du téléphone, plus précise, garde la main sous 780 px. */
+html[data-refonte] body:has(#assistant > .fab) .plm-fab{bottom:calc(24px + 58px + 10px)!important}
 /* ── VOTRE LISTE EN COURS ─── elle se compose en tapant −/+, sans mode à activer ───
    Posée EN HAUT de la liste des produits : c'est là qu'on regarde avant de valider, et c'est
    là qu'elle doit être. Le liseré vert dit qu'elle est à vous et qu'elle n'est pas encore
@@ -5834,7 +5868,41 @@ html[data-refonte] .tabbar:has(.tab-cur) .tab.active::after{
 
 /* Le contenu s'arrête au-dessus de la barre — sinon la dernière ligne d'une liste est
    inatteignable, ce qui ne se voit qu'en bas d'un écran plein. */
-html[data-kind="mobile"] .content{padding-bottom:calc(var(--tabh) + 16px)}
+@media (max-width:780px){
+  html[data-kind="mobile"] .content{padding-bottom:calc(var(--tabh) + 16px)}
+  /* ⛔ LES ÉCRANS CARTE AUSSI. `.content-map{padding:0!important}` (la carte bord à bord)
+     retirait du même coup ce dégagement : la dernière carte de l'écran — la tournée du jour
+     sous la Carte des interventions — restait SOUS la barre d'onglets, même page tout en bas.
+     Mesuré le 23 septembre 2026. La carte garde ses bords ; seul le bas dégage la barre. */
+  html[data-kind="mobile"] .content.content-map{padding-bottom:calc(var(--tabh) + 16px)!important}
+}
+/* ⛔⛔ SUR TABLETTE, C'EST LE MENU LATÉRAL QUI NAVIGUE — PAS DEUX NAVIGATIONS À LA FOIS.
+   Mesuré le 23 septembre 2026 sur les profils iPad (820 portrait, 1180 paysage) : un iPad se
+   déclare « mobile » (`opOS` le range sous iOS), donc la barre d'onglets s'affichait — ET le
+   menu latéral, permanent dès 781 px. Deux navigations pour une seule chose, et la pilule,
+   posée sur toute la largeur, recouvrait la carte utilisateur du menu (« Justin » et
+   « Accueil » superposés). Ses décalages, eux, sont bornés au téléphone (≤ 780 px) : la bulle
+   d'aide et « Voir sur la carte » restaient DANS la barre. C'est la règle du dépôt : deux
+   barres qui font la même chose, c'est une de trop. Le menu latéral reste, parce que la
+   mise en page de tablette (781–1180) est bâtie autour de lui ; le bouton du tiroir, qui
+   n'ouvre rien quand le menu est déjà là, s'efface avec la barre. Et le menu prend la largeur
+   de 272 px : à 226, quatre libellés passaient sur deux lignes (« Tableau de / bord »,
+   « Carte / interventions »…) — la règle « on ÉLARGIT, on ne coupe pas » vaut aussi ici. */
+/* ⛔ AU DOIGT, LE MENU S'ÉCRIT PLUS GROS : 272 px, PAS 258. Mesuré le 23 septembre 2026 : la
+   rangée du menu passe à 15,5 px (12 px de marge de chaque côté) sur un appareil « mobile », et
+   « Consommation produits » y demande 183 px ; à 258 (tablette) il en restait 177, dans le
+   tiroir du téléphone (262) 181 — il passait sur deux lignes, 68 px au lieu de 48. 272 laisse
+   191 px : les huit de marge que le bureau s'impose déjà (voir `html[data-kind="desktop"]
+   .sidebar`). Le tiroir du téléphone suit, il ne couvre que 272 px d'un écran de 360 au moins. */
+html[data-kind="mobile"] .sidebar{width:272px}
+@media (min-width:781px){
+  html[data-kind="mobile"] .tabbar{display:none!important}
+  html[data-kind="mobile"] .menu-btn{display:none!important}
+  /* Une fenêtre plein écran commence au bord du menu : elle partait de 226 ou 262 px, écrits
+     pour d'anciennes largeurs — elle mordait sur le menu ou laissait une bande de page nue. */
+  html[data-kind="mobile"] .overlay.full{left:272px}
+  html[data-kind="desktop"] .overlay.full{left:258px}
+}
 @media(max-width:780px){ .content{padding-bottom:calc(var(--tabh) + 16px)} }
 html[data-kind="desktop"] .content{padding-bottom:22px}
 
@@ -7694,10 +7762,10 @@ function getLang(){ return localStorage.getItem('elanB_lang')||'fr'; }
 const I18N={
   en:{ 'Pilotage':'Overview','Interventions':'Jobs','Commercial':'Sales','Stock & produits':'Stock & products','Demandes & commandes':'Requests & orders','Communication':'Communication','Communication / Fournisseurs':'Communication / Suppliers','Flotte':'Fleet','Administration':'Administration',
     'Tableau de bord':'Dashboard','Statistiques':'Statistics','Dashboard conso':'Consumption','Archives mensuelles':'Monthly archives','Carte interventions':'Jobs map','Carte des box':'Boxes map','Historique':'History','Planning':'Schedule','Clients':'Clients','Rapports':'Reports','Registre sanitaire':'Sanitary register','Pointage':'Time clock','Devis':'Quotes','Devis xylophage':'Woodworm quotes','Factures':'Invoices','Contrats':'Contracts','Produits':'Products','Boxes':'Boxes','Stock':'Stock','Saisie conso':'Consumption entry','Mouvements stock':'Stock moves','Produits donnés':'Given products','Fournisseurs':'Suppliers','Enveloppes':'Envelopes','Brouillon':'Draft','Mes demandes':'My requests','Validations DR':'RD approvals','Bons de commande':'Purchase orders','Commandes en cours':'Open orders','Historique demandes':'Requests history','Messagerie':'Messages','Véhicules':'Vehicles','Secteurs':'Sectors','Utilisateurs':'Users','Permissions':'Permissions','Paramètres':'Settings','Langue':'Language','Apparence':'Appearance','Thème':'Theme',
-    'Annuler':'Cancel','Enregistrer':'Save','Créer':'Create','Modifier':'Edit','Supprimer':'Delete','Fermer':'Close','Envoyer':'Send','Ajouter':'Add','Valider':'Approve','Refuser':'Reject','Rechercher':'Search','Aujourd\'hui':'Today','Semaine':'Week','Liste':'List','Oui':'Yes','Non':'No','Effectué':'Done','Terminer':'Finish','Rapport':'Report','Au client':'To client','Facture':'Invoice','Appeler':'Call','Itinéraire':'Directions','Intervention':'Job','Nouvelle intervention':'New job','Nouveau':'New','Client':'Client','Adresse':'Address','Téléphone':'Phone','Email':'Email','Statut':'Status','Priorité':'Priority','Date':'Date','Heure':'Time','Durée (min)':'Duration (min)','Catégorie':'Category','Technicien':'Technician','Commercial':'Sales','Société':'Company','Description':'Description','Notes':'Notes','Compte-rendu':'Report','Recommandations':'Recommendations','Équipement':'Equipment','Général':'General','Photos':'Photos','Signature':'Signature','Couleur':'Color','Rôle':'Role','Identifiant':'Login','Actif':'Active','Désactivé':'Disabled','Accès':'Access','Prévenir de l\'arrivée':'Notify arrival','Tél. client':'Client phone','Email client':'Client email','Prénom':'First name','Nom':'Last name','Nom complet':'Full name','Ville':'City','Planifiée':'Scheduled','En cours':'In progress','Terminée':'Done','Annulée':'Cancelled','Basse':'Low','Normale':'Normal','Haute':'High','Brouillon':'Draft','Validée':'Approved','Refusée':'Rejected','En attente':'Pending','Assistant IA':'AI assistant' },
+    'Annuler':'Cancel','Enregistrer':'Save','Créer':'Create','Modifier':'Edit','Supprimer':'Delete','Fermer':'Close','Envoyer':'Send','Ajouter':'Add','Valider':'Approve','Refuser':'Reject','Rechercher':'Search','Aujourd\'hui':'Today','Auj.':'Today','Semaine':'Week','Liste':'List','Oui':'Yes','Non':'No','Effectué':'Done','Terminer':'Finish','Rapport':'Report','Au client':'To client','Facture':'Invoice','Appeler':'Call','Itinéraire':'Directions','Intervention':'Job','Nouvelle intervention':'New job','Nouveau':'New','Client':'Client','Adresse':'Address','Téléphone':'Phone','Email':'Email','Statut':'Status','Priorité':'Priority','Date':'Date','Heure':'Time','Durée (min)':'Duration (min)','Catégorie':'Category','Technicien':'Technician','Commercial':'Sales','Société':'Company','Description':'Description','Notes':'Notes','Compte-rendu':'Report','Recommandations':'Recommendations','Équipement':'Equipment','Général':'General','Photos':'Photos','Signature':'Signature','Couleur':'Color','Rôle':'Role','Identifiant':'Login','Actif':'Active','Désactivé':'Disabled','Accès':'Access','Prévenir de l\'arrivée':'Notify arrival','Tél. client':'Client phone','Email client':'Client email','Prénom':'First name','Nom':'Last name','Nom complet':'Full name','Ville':'City','Planifiée':'Scheduled','En cours':'In progress','Terminée':'Done','Annulée':'Cancelled','Basse':'Low','Normale':'Normal','Haute':'High','Brouillon':'Draft','Validée':'Approved','Refusée':'Rejected','En attente':'Pending','Assistant IA':'AI assistant' },
   es:{ 'Pilotage':'Resumen','Interventions':'Intervenciones','Commercial':'Comercial','Stock & produits':'Stock y productos','Demandes & commandes':'Solicitudes y pedidos','Communication':'Comunicación','Communication / Fournisseurs':'Comunicación / Proveedores','Flotte':'Flota','Administration':'Administración',
     'Tableau de bord':'Panel','Statistiques':'Estadísticas','Dashboard conso':'Consumo','Archives mensuelles':'Archivos mensuales','Carte interventions':'Mapa intervenciones','Carte des box':'Mapa de cajas','Historique':'Historial','Planning':'Agenda','Clients':'Clientes','Rapports':'Informes','Registre sanitaire':'Registro sanitario','Pointage':'Fichaje','Devis':'Presupuestos','Devis xylophage':'Presup. carcoma','Factures':'Facturas','Contrats':'Contratos','Produits':'Productos','Boxes':'Cajas','Stock':'Stock','Saisie conso':'Registro consumo','Mouvements stock':'Movimientos','Produits donnés':'Productos entregados','Fournisseurs':'Proveedores','Enveloppes':'Sobres','Brouillon':'Borrador','Mes demandes':'Mis solicitudes','Validations DR':'Validaciones DR','Bons de commande':'Órdenes de compra','Commandes en cours':'Pedidos en curso','Historique demandes':'Historial solicitudes','Messagerie':'Mensajería','Véhicules':'Vehículos','Secteurs':'Sectores','Utilisateurs':'Usuarios','Permissions':'Permisos','Paramètres':'Ajustes','Langue':'Idioma','Apparence':'Apariencia','Thème':'Tema',
-    'Annuler':'Cancelar','Enregistrer':'Guardar','Créer':'Crear','Modifier':'Editar','Supprimer':'Eliminar','Fermer':'Cerrar','Envoyer':'Enviar','Ajouter':'Añadir','Valider':'Aprobar','Refuser':'Rechazar','Rechercher':'Buscar','Aujourd\'hui':'Hoy','Semaine':'Semana','Liste':'Lista','Oui':'Sí','Non':'No','Effectué':'Hecho','Terminer':'Finalizar','Rapport':'Informe','Au client':'Al cliente','Facture':'Factura','Appeler':'Llamar','Itinéraire':'Ruta','Intervention':'Intervención','Nouvelle intervention':'Nueva intervención','Nouveau':'Nuevo','Client':'Cliente','Adresse':'Dirección','Téléphone':'Teléfono','Email':'Correo','Statut':'Estado','Priorité':'Prioridad','Date':'Fecha','Heure':'Hora','Durée (min)':'Duración (min)','Catégorie':'Categoría','Technicien':'Técnico','Commercial':'Comercial','Société':'Empresa','Description':'Descripción','Notes':'Notas','Compte-rendu':'Informe','Recommandations':'Recomendaciones','Équipement':'Equipo','Général':'General','Photos':'Fotos','Signature':'Firma','Couleur':'Color','Rôle':'Rol','Identifiant':'Usuario','Actif':'Activo','Désactivé':'Desactivado','Accès':'Acceso','Prévenir de l\'arrivée':'Avisar llegada','Tél. client':'Tel. cliente','Email client':'Correo cliente','Prénom':'Nombre','Nom':'Apellido','Nom complet':'Nombre completo','Ville':'Ciudad','Planifiée':'Programada','En cours':'En curso','Terminée':'Terminada','Annulée':'Cancelada','Basse':'Baja','Normale':'Normal','Haute':'Alta','Brouillon':'Borrador','Validée':'Aprobada','Refusée':'Rechazada','En attente':'Pendiente','Assistant IA':'Asistente IA' }
+    'Annuler':'Cancelar','Enregistrer':'Guardar','Créer':'Crear','Modifier':'Editar','Supprimer':'Eliminar','Fermer':'Cerrar','Envoyer':'Enviar','Ajouter':'Añadir','Valider':'Aprobar','Refuser':'Rechazar','Rechercher':'Buscar','Aujourd\'hui':'Hoy','Auj.':'Hoy','Semaine':'Semana','Liste':'Lista','Oui':'Sí','Non':'No','Effectué':'Hecho','Terminer':'Finalizar','Rapport':'Informe','Au client':'Al cliente','Facture':'Factura','Appeler':'Llamar','Itinéraire':'Ruta','Intervention':'Intervención','Nouvelle intervention':'Nueva intervención','Nouveau':'Nuevo','Client':'Cliente','Adresse':'Dirección','Téléphone':'Teléfono','Email':'Correo','Statut':'Estado','Priorité':'Prioridad','Date':'Fecha','Heure':'Hora','Durée (min)':'Duración (min)','Catégorie':'Categoría','Technicien':'Técnico','Commercial':'Comercial','Société':'Empresa','Description':'Descripción','Notes':'Notas','Compte-rendu':'Informe','Recommandations':'Recomendaciones','Équipement':'Equipo','Général':'General','Photos':'Fotos','Signature':'Firma','Couleur':'Color','Rôle':'Rol','Identifiant':'Usuario','Actif':'Activo','Désactivé':'Desactivado','Accès':'Acceso','Prévenir de l\'arrivée':'Avisar llegada','Tél. client':'Tel. cliente','Email client':'Correo cliente','Prénom':'Nombre','Nom':'Apellido','Nom complet':'Nombre completo','Ville':'Ciudad','Planifiée':'Programada','En cours':'En curso','Terminée':'Terminada','Annulée':'Cancelada','Basse':'Baja','Normale':'Normal','Haute':'Alta','Brouillon':'Borrador','Validée':'Aprobada','Refusée':'Rechazada','En attente':'Pendiente','Assistant IA':'Asistente IA' }
 };
 function t(s){ const l=getLang(); if(l==='fr'||!s) return s; const d=I18N[l]; return (d&&d[s]!=null)?d[s]:s; }
 /* Traduction du rendu : remplace les textes français connus dans le DOM (FR = repli) */
@@ -12611,6 +12679,21 @@ function segEligible(g,fam){
   if(ch.length!==enfants.length) return null;      // un bouton étranger dans le groupe
   return ch;
 }
+/* ⛔⛔ « ET QU'ILS TIENNENT SUR UNE LIGNE » — LE COMMENTAIRE DE `SEG_MAX` LE DISAIT, LE CODE NE
+   LE VÉRIFIAIT PAS. Mesuré le 23 septembre 2026 sur un iPad portrait (820 px, colonne de
+   500 px utiles) : les segmentés de Produits (544 px) et de Bons de commande (602) sortaient
+   de leur colonne, et la page entière défilait de côté (840 et 898 px). Un segmenté ne passe
+   pas à la ligne — son curseur mentirait — donc quand il ne tient pas, il n'EST pas un
+   segmenté : il redevient une rangée de pastilles, qui, elle, passe à la ligne. La mesure se
+   fait classe posée (le segmenté a ses propres marges), contre la largeur UTILE du parent.
+   Seulement pour `.filters` : `.tdb-seg` tient par sa feuille (libellé court, marges). */
+function segTient(g){
+  const p=g.parentElement; if(!p) return true;
+  const q=getComputedStyle(p);
+  const dispo=p.clientWidth-(parseFloat(q.paddingLeft)||0)-(parseFloat(q.paddingRight)||0);
+  if(!(dispo>0)) return true;      // vue pas encore mesurable : on ne décide rien sur du vide
+  return g.getBoundingClientRect().width<=dispo+1;
+}
 /* ⛔ LE CURSEUR EST UN ENFANT DU GROUPE, PAS UN ÉLÉMENT FLOTTANT. Un élément posé en
    `position:fixed` se décalerait au premier défilement ; ici il suit son conteneur. */
 function segPoser(g,ch,anime,fam){
@@ -12636,6 +12719,7 @@ function segInit(racine){
     const ch=segEligible(g,fam);
     if(!ch){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
     g.classList.add('seg-on');
+    if(fam.sel==='.filters' && !segTient(g)){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
     segPoser(g,ch,false,fam);
     if(g._seg) return; g._seg=true;
     segGeste(g,fam);
@@ -12644,6 +12728,7 @@ function segInit(racine){
        qu'à faire glisser le curseur TOUT DE SUITE, avant le redessin — sinon le doigt attend
        le rendu et le contrôle paraît mou. */
     g.addEventListener('click',e=>{
+      if(!g.classList.contains('seg-on')) return;     // redevenu rangée de pastilles : pas de curseur
       const c=e.target.closest&&e.target.closest(fam.enfant); if(!c||!g.contains(c)) return;
       const l=segEligible(g,fam); if(!l) return;
       l.forEach(x=>x.classList.toggle(fam.actif,x===c));
@@ -12665,6 +12750,7 @@ function segGeste(g,fam){
   let x0=0,y0=0,actif=false,engage=false,dernier=0,vitesse=0,tdernier=0,pas=0;
   const sobre=()=>{ try{ return window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
   const debut=(x,y)=>{
+    if(!g.classList.contains('seg-on')) return;     // rangée de pastilles : pas de glissement
     if(g.scrollWidth>g.clientWidth+4) return;      // le groupe défile : le doigt est à lui
     const l=segEligible(g,fam); if(!l||l.length<2) return;
     actif=true; engage=false; x0=x; y0=y; dernier=x; vitesse=0; tdernier=Date.now();
@@ -12737,8 +12823,10 @@ function segRepositionner(){
   /* ⚠ LES DEUX FAMILLES, PAS UNE. Ce repositionnement ne connaissait que `.filters` : le
      segmenté du tableau de bord gardait un curseur à la mauvaise place dès qu'on changeait la
      largeur de la fenêtre. C'est exactement le genre d'oubli qu'une seconde copie fabrique. */
-  _segMinuterie=setTimeout(()=>{ document.querySelectorAll('.seg-on').forEach(g=>{
-    const fam=segFamille(g); const ch=segEligible(g,fam); if(ch) segPoser(g,ch,false,fam); }); },80);
+  /* ⚠ Et on RÉÉVALUE chaque groupe, pas seulement ceux qui sont segmentés : tourner une
+     tablette peut faire tenir (ou ne plus tenir) un segmenté — `segInit` repose la classe,
+     le curseur, sans animation. */
+  _segMinuterie=setTimeout(()=>{ try{ segInit(document); }catch(e){} },80);
 }
 try{ window.addEventListener('resize',segRepositionner); }catch(e){}
 /* ⛔⛔ UN ÉCRAN QUI SE REDÉDESSINE EN PARTIE PERD SON CURSEUR ET SON GESTE. `segInit` n'était
@@ -14184,8 +14272,10 @@ function tdbPlanning(){
   const mn=SRC.reduce((s,i)=>s+(parseInt(i.duree)||60),0)
     +ACTS.filter(a=>jours.indexOf(a.date)>=0).reduce((s,a)=>s+(parseInt(a.duree)||30),0);
   const per=tdbPortee();
-  const seg=[['jour','Aujourd’hui'],['7','7 jours'],['14','14 jours'],['mois','Le mois']]
-    .map(([k,l])=>`<span class="${per===k?'on':''}" onclick="tdbPorteeSet('${k}')">${l}</span>`).join('');
+  /* un libellé COURT pour un petit téléphone : quatre choix avec « Aujourd'hui » ne tiennent pas
+     dans 248 px (voir le bloc `.tdb-seg` de la feuille). Le nom complet reste le nom du bouton. */
+  const seg=[['jour','Aujourd’hui','Auj.'],['7','7 jours'],['14','14 jours'],['mois','Le mois']]
+    .map(([k,l,c])=>`<span class="${per===k?'on':''}" onclick="tdbPorteeSet('${k}')"${c?` title="${l}" aria-label="${l}"`:''}>${c?`<i class="sl">${l}</i><i class="sc" aria-hidden="true">${c}</i>`:l}</span>`).join('');
   const WD=['DIM','LUN','MAR','MER','JEU','VEN','SAM'];
   let g=`<div class="tdb-jh t">Équipe</div>`;
   jours.forEach(j=>{ const d=new Date(j+'T00:00:00');
