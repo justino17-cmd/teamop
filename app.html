@@ -4361,6 +4361,14 @@ html[data-refonte] .content{padding-top:10px}
   html[data-refonte] .pf-inw{flex:1 1 150px!important;max-width:none}
   html[data-refonte] .pf-nav{flex:1 1 100%!important;justify-content:space-between}
   html[data-refonte] .pf-nav b{font-size:12.5px}
+  /* ⛔ LE LIBELLÉ DE LA PÉRIODE POUSSAIT LA PAGE. Mesuré le 23 septembre 2026 : « mercredi
+     23 septembre 2026 » et « Semaine du 21 sept. au 27 sept. » ne passaient pas à la ligne
+     (nowrap), et avec les trois boutons de 38 px la barre faisait 326 à 350 px — la page glissait
+     de 6 px (Jour) et de 30 px (Semaine) sur un Android de 360, d'1 px sur un iPhone de 390.
+     Invisible aux sondes : le Planning s'ouvre en vue Multi. Le libellé passe sur deux lignes,
+     centré, plutôt que de se couper — une date tronquée ne dit plus quel jour on regarde. */
+  html[data-refonte] .pf-nav{min-width:0}
+  html[data-refonte] .pf-nav b{white-space:normal;text-align:center;flex:1 1 auto;min-width:0;line-height:1.2}
   html[data-refonte] .pf-row{row-gap:8px!important}
 
   /* LES LIGNES DE LISTE À AVATAR : sur 390 px, le compteur et les deux boutons de droite

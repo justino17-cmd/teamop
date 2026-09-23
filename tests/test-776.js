@@ -160,5 +160,13 @@ const split = regle('.plm-split{ grid-template-columns:minmax(0,1fr); }');
 vrai('⛔ sous 1 100 px, la colonne unique est minmax(0,1fr)', !!split && /max-width:1100px/.test(split.media), split && split.media);
 vrai('… et plus aucune règle ne la remet à « 1fr » nu', !/\.plm-split\{\s*grid-template-columns:1fr;/.test(SRC));
 
+console.log('\n── 776 · 9. le libellé de la période passe à la ligne au téléphone ──');
+/* Mesuré le 23 septembre 2026 : « Semaine du 21 sept. au 27 sept. » en nowrap + trois boutons de
+   38 px = 350 px ; la page glissait de 30 px sur un Android de 360 (Jour : 6 px). */
+const navB = regle('html[data-refonte] .pf-nav b{white-space:normal;text-align:center;flex:1 1 auto;min-width:0;line-height:1.2}');
+vrai('⛔ au téléphone, le libellé de la période passe sur deux lignes au lieu de pousser la page', !!navB && /max-width:780px/.test(navB.media), navB && navB.media);
+const navM = regle('html[data-refonte] .pf-nav{min-width:0}');
+vrai('… et la barre peut rétrécir sous la largeur du libellé', !!navM && navM.media === (navB && navB.media));
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
