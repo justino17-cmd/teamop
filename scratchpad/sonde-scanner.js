@@ -188,6 +188,23 @@ const v = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), a);
   vrai('le DOBOL 100 g est lu', L7.choisi === 'DOBOL FUMIGATEUR PROFESSIONNEL (100g)', L7);
   vrai('⛔ +4 au stock du catalogue, et la trace dit 4 (l’ancien scanner écrivait toujours 1)', A7.q - A7.q0 === 4 && A7.m && A7.m.qte === 4 && A7.m.type === 'entree', A7);
 
+  console.log('\n══ 7 bis. SANS CAMÉRA : UNE PHOTO DE L’ÉTIQUETTE ══');
+  const K8 = await S.ev(`try{ closeModal(true); }catch(e){} const gum=navigator.mediaDevices.getUserMedia; navigator.mediaDevices.getUserMedia=async()=>{ throw new Error('NotAllowedError'); };
+    openBox('b1'); await new Promise(r=>setTimeout(r,500)); openBoxScanner('b1'); await new Promise(r=>setTimeout(r,500));
+    const lire=document.getElementById('etiq-lire'), ph=document.getElementById('etiq-photo');
+    const vu=el=>!!el&&getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().height>0;
+    const avant={lire:vu(lire), photo:vu(ph), etat:(document.getElementById('etiq-etat')||{}).textContent};
+    /* la photo : l'image que dessinerait un appareil photo, en fichier */
+    const cv=document.createElement('canvas'); cv.width=1600; cv.height=900; const g=cv.getContext('2d'); g.fillStyle='#f4f1e8'; g.fillRect(0,0,1600,900);
+    g.fillStyle='#111'; g.textAlign='center'; g.font='bold 150px sans-serif'; g.fillText('TEENOX EC',800,420); g.font='bold 60px sans-serif'; g.fillText('Concentré émulsionnable',800,540);
+    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',.9)); const f=new File([blob],'etiquette.jpg',{type:'image/jpeg'});
+    etiqPhoto({files:[f], value:''});
+    for(let i=0;i<600;i++){ await new Promise(r=>setTimeout(r,100)); if(!etiq.busy&&etiq.lu) break; }
+    navigator.mediaDevices.getUserMedia=gum;
+    return {avant, choisi:etiq.sel?(produit(etiq.sel)||{}).nom:null, lu:etiq.lu};`);
+  vrai('sans caméra : « Lire l’étiquette » laisse la place à « Prendre une photo », et l’écran le dit', !K8.avant.lire && K8.avant.photo && /photo/.test(K8.avant.etat || ''), K8.avant);
+  vrai('la photo se lit : TEENOX EC est reconnu', K8.choisi === 'TEENOX EC', K8);
+
   console.log('\n══ 8. AUCUNE ERREUR ══');
   await S.ev(`try{ closeModal(true); }catch(e){} return 1;`);
   v('exceptions', S.exceptions, []);
