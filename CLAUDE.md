@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**135 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 —
+**137 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 135 suites · 6 104 vérifications (mesuré le 23/09/2026, v730)
+bash scripts/bancs-ci.sh        # 137 suites · 6 208 vérifications (mesuré le 23/09/2026, v731)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -653,6 +653,21 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   **La question à se poser avant de changer une largeur, un fond, un marqueur : QUI D'AUTRE
   se mesure là-dessus ?** Et la parade constante : conditionner la règle à la présence de ce
   qui reste (`:has(…)`), pour que le jour où l'autre moitié disparaît, tout revienne seul.
+- ⛔⛔ **UN SURVOL QUI CHANGE UNE TAILLE FAIT SAUTER L'ÉCRAN SOUS LE DOIGT — ET AUCUNE PHOTO NE
+  LE VOIT.** Vidéo de Justin, iPhone, 23 septembre 2026 : la barre du Planning basculait entre
+  346 et 300 px de haut pendant qu'il faisait défiler. `html[data-refonte] .card` (22/24 px), de
+  même force et écrite plus loin, écrasait `.pf-bar{padding:0}` — sauf au `:hover`, où
+  `.card.pf-bar:hover`, plus spécifique, reprenait la main. **Sur un iPhone, poser le doigt
+  déclenche le survol, et il reste collé.** Tous les audits photographient un instant, doigt levé :
+  ils ne pouvaient pas le voir. Pire, **des gestes tactiles simulés ne le reproduisent pas non
+  plus** (essayé : la barre restait stable) — Chromium piloté ne colle pas le survol comme iOS.
+  On FORCE donc l'état, élément par élément (`CSS.forcePseudoState`), et on compare la taille de
+  MISE EN PAGE (`offsetWidth/Height`, que les transformations n'affectent pas) :
+  `scratchpad/sonde-survol.js` a trouvé 76 éléments sur 106 qui changeaient, dont la bande de
+  statut des interventions et celle du technicien au planning. `tests/test-780.js` exige que toute
+  règle de survol qui change une taille soit NOMMÉE avec sa raison. Corollaire de méthode : **la
+  vidéo d'un client est le meilleur rapport de défaut** — `ffmpeg -vf fps=4`, puis relever une
+  colonne de pixels image par image date chaque bascule sans rien supposer.
 - ⛔ **UN PANNEAU FLOTTANT NE SE MESURE NI SUR SON BOUTON NI SUR SON PARENT, MAIS SUR
   L'ÉCRAN.** Corollaire du précédent, avec ses deux symptômes opposés, mesurés le même jour :
   trop ÉTROIT (42 px, les libellés passent à la ligne lettre par lettre) et trop LARGE

@@ -39,6 +39,50 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 23 SEPTEMBRE 2026 (soir) — PLUS RIEN NE CHANGE DE TAILLE SOUS LE DOIGT (v731, bêta)
+
+Justin, vidéo de 6 s filmée sur son iPhone à 13 h 02 : **« J'ai toujours des petits bugs comme ça
+ici. Franchement, t'as tout vérifié ou t'as rien fait ? »** La vidéo, découpée en 24 images : la
+carte des réglages du Planning **basculait** entre deux mises en page — marge de 24 px, puis
+contenu collé aux bords (la carte perd 46 px, le bandeau des jours remonte) — et ça recommençait :
+compacte de 1 à 3 s, normale à 3,25 s, compacte à 3,5 s…
+
+**La cause, demandée au navigateur** (`CSS.getMatchedStylesForNode`, pas devinée) :
+`html[data-refonte] .card{padding:22px 24px!important}`, de même force et écrite PLUS LOIN,
+écrasait `.pf-bar{padding:0}` — la barre était donc une carte… **sauf au survol**, où
+`.card.pf-bar:hover`, plus spécifique, reprenait la main. Or sur un iPhone, **poser le doigt
+déclenche le survol**, et il reste collé : la barre sautait à chaque geste. Au bureau, la souris
+faisait pareil (135 → 89 px). Le fond partait, mais pas le flou du verre (`blur(40px)`) : c'est
+le panneau pâle « collé aux bords » de la vidéo — une moitié de règle survivant à l'autre.
+
+**Pourquoi aucun audit ne l'avait vu** : ils PHOTOGRAPHIENT un instant, doigt levé. Ce défaut
+n'existe que pendant le geste. `scratchpad/sonde-survol.js` le provoque : sur chaque rubrique, elle
+FORCE le survol élément par élément (`CSS.forcePseudoState`) et compare la taille de mise en page.
+Lâchée sur tout, elle a trouvé la même famille ailleurs :
+
+| ce qui changeait sous le doigt (ou la souris) | combien |
+|---|---|
+| la barre du Planning (346 → 300 px ; 135 → 89 au bureau) | 10 |
+| cartes du tableau de bord, cartes d'intervention, demandes : `border:0` au survol, un reste du dessin « surfaces sans bord » — le liseré du verre partait, le contenu bougeait d'un pixel, **la bande de statut d'une intervention disparaissait** | 52 |
+| planning semaine : la **bande de couleur du technicien** devenait grise (`.plg-mh:hover`) | 14 |
+
+**Mesuré** (90 écrans : 42 rubriques + fiche d'intervention + vues semaine et jour, au téléphone
+« sans survol » comme un iPhone ET au bureau) : **76 éléments sur 106 changeaient sur la v730, 0
+sur la v731.** `tests/test-780.js` (21 contrôles) exige que toute règle de survol qui change une
+taille soit NOMMÉE avec sa raison — il en reste quatre, toutes hors du flux (infobulles, menu
+volant, flèche d'en-tête) — et qu'aucun survol de surface ne touche au bord. Éprouvé : chacun des
+quatre défauts remis le fait tomber.
+
+**Ce qui a été choisi** : la barre du Planning **reste une carte** — c'est ce que tout le monde voit
+depuis des semaines ; l'intention d'origine (« des contrôles posés sur la page, sans carte ») ne
+tenait qu'au survol. Si tu préfères la barre sans carte, c'est une ligne.
+
+⚠️ **Ce que ça ne couvre pas** : les effets de survol qui ne changent PAS de taille (un bouton qui
+se soulève, une teinte) restent collés après un toucher sur iPhone — c'est le rôle du bloc
+`@media (hover:none)`, qui les annule déjà pour les cartes, boutons et lignes. Et le Chromium
+piloté ne sait pas se déclarer « avec souris » : le profil bureau est mesuré comme le téléphone,
+survol forcé — sans effet sur les tailles, mais c'est à savoir.
+
 ## ✅ 23 SEPTEMBRE 2026 (soir) — PRODUITS DONNÉS : UNE SOUS-CATÉGORIE DES BOX (v731, bêta)
 
 Justin : **« Produit donné, c'est quand des personnes donnent des produits à quelqu'un. Il
@@ -60,7 +104,9 @@ la fiche d'un véhicule, et n'était plus au menu.
   périmètre : tout ; sinon ses box, plus ce qu'il a donné ou reçu). Les anciens dons saisis à la
   main restent listés.
 - Toucher une ligne : qui a remis, à qui, depuis quelle box, validé par qui — et **le bon de remise
-  en PDF**. Une recherche (nom, produit, box).
+  en PDF**. Une recherche (nom, produit, box). Un ancien don saisi à la main se **corrige** et se
+  **retire** depuis son détail (l'ancien écran le permettait ; c'est désormais le seul endroit où
+  il paraît).
 - Les deux fenêtres disent désormais **« Pour moi » / « Pour une autre personne »** (les mots de
   Justin), et proposent les personnes de l'entreprise sans les imposer (un intérimaire n'a pas de
   compte).
@@ -70,11 +116,11 @@ la fiche d'un véhicule, et n'était plus au menu.
   grille des droits le montre désormais **sous Boxes** (« ↳ Produits donnés — dans Boxes ») : le
   message « réglable dans Permissions » était faux, faute de ligne à cocher.
 
-Mesuré au navigateur, de vraies sorties de box (`scratchpad/sonde-dons.js`) : **63 ✓ 0 ✗** ;
-sur la bêta v730, **23 ✓ 40 ✗**. `tests/test-779.js` exécute la vraie liste, le vrai total et la
-vraie rangée (78 contrôles).
+Mesuré au navigateur, de vraies sorties de box (`scratchpad/sonde-dons.js`) : **68 ✓ 0 ✗**,
+trois passages ; la même sonde sur la bêta v730 : **23 ✓ 45 ✗**. `tests/test-779.js` exécute la
+vraie liste, le vrai total et la vraie rangée (83 contrôles).
 
-### Trois défauts trouvés EN mesurant
+### Quatre défauts trouvés EN mesurant (et un reste de la v730)
 
 - **« Produits donnés » était coupé au bord de l'écran** — à 360, 390 ET 430 px. La rangée
   « 📋 Liste · 🗺️ Carte des box · 🎁 Produits donnés » faisait 440 px, et sur téléphone une rangée
@@ -88,10 +134,18 @@ vraie rangée (78 contrôles).
 - **« → » et « ✔ » deviennent des icônes muettes** (`icones()`) : un lecteur d'écran lisait
   « Jean Terrain Karim Benali », deux noms sans dire qui donne à qui. Chaque ligne porte sa
   phrase (« Jean Terrain a remis à Karim Benali : … validé par … »).
+- **Un ancien don dont le produit a quitté le catalogue ne s'enregistrait plus** : le formulaire
+  ne proposait que le catalogue du jour, s'ouvrait sur « — » (champ obligatoire), et il fallait
+  choisir un AUTRE produit pour corriger une simple date. L'ancien nom reste proposé.
+- Et un reste de la v730 : la recherche du haut promettait encore « client, intervention,
+  **chantier** ». Elle cherche clients, interventions et tâches ; elle le dit.
 
-⚠️ **Et la sonde s'est trompée une fois** : sa première version cherchait « X → Y » dans le texte,
-que l'icône avait remplacé — son contrôle « aucun Pour moi » passait sur ZÉRO ligne reconnue. Elle
-lit maintenant la STRUCTURE (le nom en gras = le destinataire) et compte d'abord sa population.
+⚠️ **Et la sonde s'est trompée deux fois** : sa première version cherchait « X → Y » dans le
+texte, que l'icône avait remplacé — son contrôle « aucun Pour moi » passait sur ZÉRO ligne
+reconnue. Elle lit maintenant la STRUCTURE (le nom en gras = le destinataire) et compte d'abord sa
+population. Puis, une fois sur trois, elle relevait la liste AVANT que la transition de vue l'ait
+redessinée (« la ligne supprimée est encore là », alors que la donnée était partie) : elle attend
+désormais que les transitions ouvertes soient closes, comme `audit-pixel.js`.
 
 ### ⚠️ Vu en chemin, pas touché
 
