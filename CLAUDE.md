@@ -865,6 +865,30 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   SAUTENT à gauche au premier défilement du tableau de bord, la barre tassée à 360 px
   (`display:none` retire aussi la PLACE ; `visibility:hidden` la garde), et un `gap:8px` du
   palier téléphone qui n'avait JAMAIS pris contre un `!important` écrit plus loin.
+- ⛔⛔ **UN AUDIT SUR DEUX APPAREILS NE DIT RIEN DES DIX AUTRES — ET UNE TABLETTE N'EST NI UN
+  TÉLÉPHONE NI UN ORDINATEUR.** Jusqu'au 23 septembre 2026, toutes les sondes tournaient sur un
+  iPhone et un Mac. Étendues à douze profils (`scratchpad/profils.js`), elles ont trouvé en une
+  passe ce qu'aucun des deux ne pouvait voir, et sur l'iPad d'abord :
+  · un iPad se déclare `data-kind="mobile"` : la barre d'onglets s'y affichait **ET** le menu
+    latéral, permanent dès 781 px — deux navigations, la pilule posée sur la carte du menu ;
+  · les planchers tactiles étaient bornés à `max-width:780px` — la LARGEUR d'un téléphone, pas
+    le DOIGT : sur tablette, le segmenté de période répondait sur 30 px, l'épingle du planning
+    sur 14. **La navigation se choisit à la largeur ; un plancher tactile se pose sous
+    `(pointer:coarse)`** ;
+  · la barre des jours du planning n'existe QUE dans la mise en page tablette : aucun audit au
+    téléphone ne pouvait la mesurer. Un écran qui change de forme selon la largeur a autant
+    de populations que de formes.
+- ⛔⛔ **UNE PAGE QUI S'ÉLARGIT EMPORTE `innerWidth` AVEC ELLE — UN DÉBORDEMENT SE MESURE CONTRE
+  LA LARGEUR DE L'APPAREIL.** Sur un Android de 360 px, le segmenté du tableau de bord poussait
+  la page à 382 px ; un navigateur mobile agrandit alors sa fenêtre de mise en page, et
+  `innerWidth` rendait 382 lui aussi. Tout audit qui comparait `scrollWidth` à `innerWidth`
+  concluait « rien ne dépasse » sur une page qui glissait de côté sous le doigt. On compare à
+  la largeur POSÉE du profil (`scratchpad/sonde-appareils.js`).
+- ⛔ **« ET QU'ILS TIENNENT SUR UNE LIGNE » ÉTAIT ÉCRIT DANS LE COMMENTAIRE DE `SEG_MAX`, PAS DANS
+  LE CODE.** Sur iPad portrait, deux segmentés (Produits, Bons) sortaient de leur colonne de
+  500 px et la page entière défilait de côté. `segTient()` le vérifie désormais, et un groupe
+  qui ne tient pas redevient une rangée de pastilles — réévalué quand la tablette tourne. C'est
+  la règle « un commentaire n'est pas une garde », côté mise en page.
 - ⛔⛔ **`--acc` EST LA COULEUR D'UN APLAT, PAS CELLE D'UNE LETTRE — UN TEXTE ÉCRIT `--acc-txt`.**
   Le 22 septembre 2026, l'audit des neuf teintes (756 écrans + 126 fenêtres,
   `scratchpad/audit-teintes.js`) a trouvé **327 textes en `var(--acc)`** : justes sur le vert
