@@ -79,6 +79,88 @@ et `balayageOk` vrais, `sauvegarde` active sans échec ; `ls /opt/teamop/data | 
 `POST /api/op/session` → 404 ; le journal sans « NON monté » ni « DEUX FOIS ». Le lendemain : la
 sauvegarde de la nuit `ok`, et une seule copie sous `teamop/mensuel/`.
 
+## ✅ 23 SEPTEMBRE 2026 (nuit) — LES DÉCISIONS DE JUSTIN SUR LES DROITS (v739, bêta)
+
+Justin a tranché les sept questions posées avec la v738 (ses mots : section v738 ci-dessous,
+« TRANCHÉ PAR JUSTIN »). **Cinq sont écrites sur la bêta.** La première (l'entrepôt) attend une
+question de conception, la cinquième (« Mis de côté ») est une exigence du chantier serveur.
+
+### Ce qui a changé
+
+- **(4) Les gestes d'administrateur deviennent des CASES**, fermées par défaut, que l'administrateur
+  coche sur la ligne de qui il veut : « Effacer les prix pré-remplis du catalogue » (Stock),
+  « Supprimer une commande ou une livraison de l'historique d'une box » (Stock), « Supprimer une
+  demande de l'historique » (Achats internes), « Revenir sur les “c'est normal” (doublons) » (Stock).
+  Chaque fonction lit sa case en PREMIÈRE instruction (`caseGarde`), chaque bouton aussi.
+  ⚠️ Ils étaient CINQ, pas quatre : l'effacement d'une livraison sans bon (`boxLivrSuppr`) était lui
+  aussi à l'administrateur seul — il lit la même case que la commande, c'est le même historique.
+  ⚠️ Trouvé en chemin : sur la v738, « Revenir sur les c'est normal » ne vérifiait RIEN — bouton
+  caché, fonction ouverte.
+  ⛔ **Une commande dont la réception attend la validation du DR ne s'efface plus, même par
+  l'administrateur** : effacée, son stock n'aurait jamais été crédité (relecture).
+- **(3) Plans d'appâtage** : « Modifier les plans » est ouverte au profil Technicien par défaut
+  (`CAPS_HERITE`). ⚠️ **Seulement pour une entreprise NEUVE** : la reprise des droits ne tourne
+  qu'une fois (`db.permsRepris`) et ne réécrit jamais une case déjà posée. **Chez ELAN comme sur la
+  bêta, il faut cocher « Modifier les plans » dans le profil Technicien** — un geste de
+  l'administrateur, pas une écriture silencieuse au chargement. Supprimer un plan ENTIER (tous ses
+  postes) demande en plus « Interventions → Supprimer » : Justin a dit « modifier », pas
+  « supprimer » (relecture).
+- **(7) Interventions sans technicien** : l'administrateur, tout compte qui peut planifier
+  (« Déplacer / réassigner le planning ») et le DR les voient et les affectent — planning, liste
+  Interventions, tableau de bord, recherche du bandeau, et la fiche s'ouvre. Seize appels passent
+  `visibleInts(list, true)`, exprès. ⛔ **La première version était FAUSSE, et c'est la relecture
+  adversariale qui l'a vue (bloquant)** : l'élargissement passait par `visibleInts` pour tout le
+  monde, donc par `mesClientIds` — les clients de ces interventions, leurs devis, factures, montants
+  encaissés et le registre sanitaire complet du site s'ouvraient à tout compte qui peut déplacer le
+  planning. Désormais seuls les écrans d'affectation prennent l'option ; clients, documents,
+  exports, rapports et compteurs restent au périmètre, et « Ma journée » reste SA journée.
+  ⚠️ Un DR rattaché à une équipe voit les interventions à affecter de TOUTE l'entreprise : elles
+  n'appartiennent à aucune équipe (soulevé par la relecture, réfuté comme fuite — c'est le « C » de
+  Justin).
+- **(6) Une validation = une ligne.** L'application est déjà en ligne seulement (« Connexion
+  requise »). Restait deux appareils EN LIGNE qui valident le même mouvement dans la même seconde :
+  chacun écrivait ses lignes d'historique sous un identifiant au hasard, et la fusion (une UNION)
+  les gardait toutes — **l'historique disait 8 unités sorties pour 4**, pendant que le stock restait
+  juste. Les identifiants sont désormais DÉDUITS du mouvement validé (`'mvv:'+m.id+…`, avec le rang
+  de ligne pour un lot ; `'br:'+m.id` pour le bon de remise ; de même l'historique d'arrivage de la
+  box, que la première version oubliait — relecture) : deux validations écrivent les mêmes lignes,
+  la fusion les réunit. Joué avec la VRAIE fusion à deux appareils (`test-791` §4 : 4, pas 8 ;
+  contre-épreuve au hasard : 8). ⚠️ Reste : deux DR qui CORRIGENT la quantité différemment dans la
+  même seconde — le plus récent gagne, comme pour tout enregistrement.
+- **(2) Historique d'un client** : rien à changer, c'était déjà le cas — **mesuré** : un commercial
+  et un DR (profils par défaut) lisent le compte-rendu du premier technicien ; un technicien lit en
+  entier l'historique d'un site qu'il sert, passages des collègues compris.
+
+### ⏳ Ce qui attend Justin
+
+- **(1) L'entrepôt** : question de conception posée (le « Stock » d'aujourd'hui est la SOMME des box ;
+  le stock général n'a pas d'écran à lui, aucune livraison ne l'alimente).
+- **(5) « Mis de côté »** → exigence du chantier serveur : le journal du socle garde déjà qui a écrit
+  quoi et quand, mais il est inactif tant qu'OP GESTION écrit dans Firestore, et la Tour n'a aucun
+  écran pour le lire. À construire avec l'étape E.
+- **Envoyer le plan d'implantation au client par e-mail** reste ouvert à qui a « Modifier les
+  plans » — donc au technicien par défaut, sur une entreprise neuve. Lu comme un geste de terrain ;
+  à confirmer.
+
+### Mesuré
+
+`tests/test-791.js` (neuf) **56 ✓** : les cases EXÉCUTÉES (fermées par défaut, données par
+l'administrateur, le refus nomme la case), la garde en première instruction, les boutons, la
+reprise des plans exécutée, `visibleInts` exécutée dans les deux sens avec la liste des seize appels
+qui passent l'option et de ceux qui ne doivent PAS, et la fusion réelle à deux appareils.
+`test-790`, `test-789`, `scripts/verifier-permissions.js` ajustés.
+**Mutations** : 33 défauts remis un par un dans un arbre à part — 32 attrapés au premier passage ;
+le trente-troisième (`if(false&&!caseGarde(…))`) passait, parce que le banc exigeait la garde
+« avant toute écriture » et pas « en première instruction ». Renforcé : **33 sur 33**.
+**Relecture adversariale** (trois lecteurs — droits, régressions, synchro — puis un réfutateur par
+constat) : 16 constats, **12 réels, 4 réfutés** ; les réels sont corrigés ci-dessus ou nommés
+dans « Ce qui attend Justin ».
+`scratchpad/sonde-matrice-droits.js` (94 essais, dont dix neufs pour la v739, joués en « animations
+réduites ») : **159 ✓ 0 ✗**. Sur la v738, les six essais des nouveaux comportements tombent — eux
+seuls ; sur la première version de la v739, l'essai « le CLIENT d'une intervention à affecter n'entre
+pas dans sa liste, ni son registre » tombait (2 ✗) : c'était le défaut bloquant de la relecture.
+Suite complète : **148 suites · 6 941 vérifications, aucun échec**.
+
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — TOUTES LES RÈGLES, CATÉGORIE PAR CATÉGORIE, ET LE CIRCUIT DE VALIDATION (v738, bêta)
 
 Justin, au lendemain de la v737 : **« revois toutes les règles de chaque catégorie, tous les droits,
@@ -190,6 +272,8 @@ notifications d'une AUTRE équipe (secteur non couvert, travail terminé, demand
 valider) — son écran Validations ne les lui montrait déjà pas.
 
 ### ✅ TRANCHÉ PAR JUSTIN — 23 septembre 2026, tard le soir (ses mots, puis ce qu'on en fait)
+
+→ **Appliqué en v739 (bêta) : voir la section du dessus.** Restent (1) et (5).
 
 1. **Entrepôt et box** — « le stock général, ça serait plus pour un entrepôt : avoir tout ce que
    l'entreprise contient. Le stock box et celui des box bien séparés, et bien expliqué que ce n'est

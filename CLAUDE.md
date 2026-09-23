@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**147 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 dans la nuit —
+**148 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 dans la nuit —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 147 suites · 6 885 vérifications (mesuré le 23/09/2026, v738)
+bash scripts/bancs-ci.sh        # 148 suites · 6 941 vérifications (mesuré le 23/09/2026, v739)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -642,6 +642,14 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   Avant de poser une garde à la porte d'une fiche, **recenser TOUS ses appelants** (39 pour la fiche
   intervention) et demander, pour chacun, d'où vient l'identifiant. La règle d'ouverture est UNE
   fonction (`ouvrables()`) et les notifications passent par le test de l'écran qu'elles ouvrent.
+  ⛔ **Et ÉLARGIR une visibilité se fait par une OPTION, jamais dans la fonction de périmètre.** v739 :
+  « les interventions sans technicien paraissent à qui peut les affecter » a d'abord été écrit DANS
+  `visibleInts` — qui nourrit `mesClientIds`, donc les clients, leurs factures, le registre sanitaire
+  d'un site. Relecture adversariale, bloquant. Seuls les écrans d'affectation passent
+  `visibleInts(list, true)` ; `test-791` liste les appels qui DOIVENT et ceux qui ne doivent PAS.
+  Et une garde se contrôle en PREMIÈRE instruction, pas « avant toute écriture » :
+  `if(false&&!caseGarde(…)) return;` est avant tout, et ne garde rien — la seule mutation sur 33 qui
+  passait.
   Et un contrôle de CI peut mourir sans que personne le voie : `scripts/verifier-permissions.js`
   (étape de `verification.yml`, qui ne tourne que sur `main` et les demandes de fusion) plantait
   depuis la v733 — trois fonctions manquaient à son bac à sable.
