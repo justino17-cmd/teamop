@@ -75,10 +75,16 @@ console.log('\n══ 2. LE STYLE : la colonne se déduit, elle ne se copie pas 
     /width:calc\(\(100% - 2\*var\(--tab-px\) - \(var\(--tab-n\) - 1\)\*var\(--tab-gout\)\) \/ var\(--tab-n\)\)/.test(css));
   /* ⚠ `translateX` en pourcentage se rapporte à la largeur de l'ÉLÉMENT, c'est-à-dire
      exactement une colonne : d'où le déplacement sans un seul chiffre en dur. */
-  vrai('⛔ … et la position aussi, sans un chiffre en dur',
-    /transform:translateX\(calc\(var\(--tab-i\) \* \(100% \+ var\(--tab-gout\)\) \+ var\(--tab-dx\)\)\)/.test(css));
-  vrai('la transition porte sur transform ET width (la barre peut changer de nombre d’onglets)',
-    /transition:transform \.42s cubic-bezier\(\.32,\.72,0,1\),width \.42s cubic-bezier\(\.32,\.72,0,1\)/.test(css));
+  /* ⛔⛔ LA POSITION VIT DANS `translate`, PLUS DANS `transform` — 23 septembre 2026. Tenue en
+     main, la bulle grossit par la propriété `scale` ; or les propriétés individuelles passent
+     AVANT `transform` : un `transform:translateX(D)` était donc multiplié par l'échelle, et la
+     bulle prenait sur le doigt un retard qui croissait avec la distance (8,5 px à deux
+     onglets, relevé image par image par `scratchpad/sonde-geste.js`). Le principe gardé ici ne
+     change pas : la colonne se DÉDUIT de son numéro, sans un chiffre en dur. */
+  vrai('⛔ … et la position aussi, sans un chiffre en dur (dans `translate`, que `scale` ne multiplie pas)',
+    /translate:calc\(var\(--tab-i\) \* \(100% \+ var\(--tab-gout\)\) \+ var\(--tab-dx\)\)/.test(css));
+  vrai('la transition porte sur la position ET la largeur (la barre peut changer de nombre d’onglets)',
+    /transition:translate \.42s cubic-bezier\(\.32,\.72,0,1\),width \.42s cubic-bezier\(\.32,\.72,0,1\)/.test(css));
   vrai('⛔ elle porte NOTRE accent, pas un gris neutre',
     /\.tab-cur\{[\s\S]{0,420}background:color-mix\(in srgb,var\(--acc\) 16%,transparent\)/.test(css));
   vrai('⛔ sur verre elle devient une CAPSULE, comme la barre qui la porte (concentricité)',
@@ -146,11 +152,20 @@ console.log('\n══ 4. LES TROIS GARDES DU GESTE ══\n');
      Un banc qui garde une décision périmée bloque la correction et a l'air d'avoir raison.
      Il est donc RECENTRÉ : on garde ce qui reste écarté pour une vraie raison (un tiroir,
      un voile, un panneau, la barre du haut ne sont pas des rubriques qu'on parcourt), et on
-     exige que la barre, elle, ne le soit PLUS. Voir `tests/test-764.js`. */
+     exige que la barre, elle, ne le soit PLUS. Voir `tests/test-764.js`.
+     ⚠️ ET IL A RECHANGÉ LE 23 SEPTEMBRE 2026 — même leçon, dans l'autre sens. Justin, au
+     doigt : « ça marche, mais ça fait pas du tout comme sur Instagram ; je voudrais qu'on
+     soit appuyé sur la bulle et qu'on la déplace avec le doigt ». Le balayage de PAGE poussait
+     la pastille à l'opposé du doigt. La barre a désormais SON geste (`ongletsBulle`) : elle
+     RETOURNE dans la liste, parce que deux machines sur un même doigt navigueraient deux fois.
+     Le contrôle n'exige donc plus « pas écartée » mais « écartée ET dotée de son propre
+     geste » — une barre écartée SANS geste, c'est le défaut du 22, et il retomberait rouge. */
   const HORS758=(NU.match(/const SWIPE_HORS=\[([^\]]*)\]/)||[])[1]||'';
   vrai('population : la liste des zones écartées est trouvée', HORS758.length>10);
-  vrai('⛔ la barre d’onglets N’EST PLUS écartée (c’est là que le doigt va)',
-    !/#tabbar/.test(HORS758));
+  vrai('⛔ la barre d’onglets est écartée du balayage de PAGE (elle a son propre geste)',
+    /'#tabbar'/.test(HORS758));
+  vrai('⛔⛔ … et ce geste existe bien, posé avec la barre (sinon c’est le défaut du 22 : rien ne bouge)',
+    /function ongletsBulle\(bar\)\{/.test(NU) && /ongletsPresse\(bar\);\s*ongletsBulle\(bar\);/.test(NU));
   vrai('⛔ le tiroir, les voiles, l’assistant et la barre du haut restent écartés',
     ["'.sidebar'","'#overlay'","'#overlay2'","'#assistant'","'#login'","'.topbar'","'.creer-ov'"]
       .every(s=>HORS758.includes(s)));
