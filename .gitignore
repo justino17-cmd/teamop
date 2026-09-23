@@ -35,3 +35,14 @@ node_modules/
 # commit suivant : c'est exactement la règle des secrets, quelques lignes plus haut.
 scratchpad/base-reelle.json
 scratchpad/base-*.json
+
+# ── Sorties BRUTES des sondes du scratchpad : jamais versionnées ──
+# Une passe complète écrit plusieurs Mo par plateforme (audit-teintes-tout-chrome.json :
+# 7,6 Mo) et se RÉÉCRIT à chaque lancement : versionnée, elle gonflerait l'historique d'un
+# dépôt servi tel quel, pour une mesure qui périme au commit suivant. Ce qui compte d'une
+# passe s'écrit dans REPRISE.md, avec ses chiffres ; le SCRIPT qui la reproduit, lui, est
+# versionné. Les trois résultats déjà suivis (audit-accents, audit-clics, audit-total) le
+# restent : un motif n'efface pas ce qui est déjà dans l'index.
+scratchpad/audit-*-*.json
+scratchpad/audit-teintes.json
+scratchpad/residus*.json

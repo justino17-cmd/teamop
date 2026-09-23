@@ -865,6 +865,54 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   SAUTENT à gauche au premier défilement du tableau de bord, la barre tassée à 360 px
   (`display:none` retire aussi la PLACE ; `visibility:hidden` la garde), et un `gap:8px` du
   palier téléphone qui n'avait JAMAIS pris contre un `!important` écrit plus loin.
+- ⛔⛔ **`--acc` EST LA COULEUR D'UN APLAT, PAS CELLE D'UNE LETTRE — UN TEXTE ÉCRIT `--acc-txt`.**
+  Le 22 septembre 2026, l'audit des neuf teintes (756 écrans + 126 fenêtres,
+  `scratchpad/audit-teintes.js`) a trouvé **327 textes en `var(--acc)`** : justes sur le vert
+  par défaut, pour lequel tout avait été réglé à l'œil, et sous le seuil ailleurs — l'indigo de
+  nuit à 2,90:1, l'orange de jour à 2,95. **Un choix de couleur offert à l'utilisateur se mesure
+  sous CHACUNE de ses valeurs**, pas sous celle qu'on regarde tous les jours. Même famille : de
+  nuit, `--red` et `--org` sont éclaircis pour se LIRE, donc ils ne portent pas de blanc (2,69
+  sur la pastille de la cloche, 42 rubriques). Une surface pleine prend son jeton d'aplat ET
+  son encre (`--red-fill`/`--on-red`, `--org-fill`/`--on-org`). `tests/test-773.js`.
+  ⛔ **Et un audit qui ne mesure que les textes EN ACCENT ne voit pas le reste de ce que la
+  teinte touche** : elle colore aussi les SURFACES (page de jour à 7 %, vitres à 4 %,
+  sélections à 14 %). La passe « tous les textes » (`FAM=tout`, 61 571 textes) a trouvé le
+  sous-titre de chaque rubrique à 4,14–4,48 de jour, les couleurs de catégories et de
+  fournisseurs écrites telles quelles (1,58:1), et vingt endroits qui passaient l'accent comme
+  encre **à travers une variable** (`const col='var(--acc)'`) — invisibles au motif
+  `color:var(--acc)`. Une couleur de donnée s'écrit par `encreDonnee()`, une surface pleine
+  par `aplatDe()` (fond ET encre). `tests/test-774.js`.
+- ⛔⛔ **UNE FONCTION DÉCLARÉE DEUX FOIS : LA SECONDE GAGNE PARTOUT, EN SILENCE.** Le même jour,
+  un `encreSur()` a été écrit sans chercher s'il existait — il existait, sept mille lignes plus
+  haut, et servait « Ma couleur ». Une déclaration de fonction est remontée : la seconde
+  remplace la première pour TOUTE la page, sans erreur ni avertissement. Avant d'écrire un
+  utilitaire : `grep -n "function <nom>("`. `test-773` compte les définitions et en exige une.
+- ⛔ **SOUS LE VERRE, UN CONTRASTE SE LIT AU PIXEL.** Composer les fonds des ancêtres ignore ce
+  que la vitre laisse passer. Mesuré le 22 septembre 2026 : une fenêtre posée sur le voile de
+  `#overlay` avait un fond RÉEL gris moyen (204,211,211) — texte secondaire à 3,56 — parce que
+  la vitre des cartes (58 % de blanc) laissait passer le voile ; et le cyan réglé « à 4,50 » au
+  calcul rendait 4,30 au pixel. Une vitre au-dessus d'une scène assombrie est DENSE
+  (`--vr-fond-dense`).
+  ⛔⛔ **ET LE CALCUL MENT DANS LES DEUX SENS — RELIRE SES SEULS SUSPECTS NE SUFFIT PAS.** Le
+  23 septembre 2026, les six pastilles d'état (« Planifiée », « Annulée »…), que le calcul
+  donnait lisibles sous le verre de nuit, tombaient à 3,28 au pixel : la vitre laisse passer
+  des halos que la composition ignore, et la rend PLUS CLAIRE qu'elle ne le croit. Un faux
+  négatif ne se relit pas, puisqu'il n'est pas dans la liste. Sous le verre, on mesure TOUT au
+  pixel : `scratchpad/audit-pixel.js` (une capture par écran, fenêtre de rendu haute,
+  transitions menées à terme, l'encre peinte d'un élément estompé = son encre mêlée au fond).
+- ⛔⛔ **UNE MESURE PRISE PENDANT UNE TRANSITION DE VUE LIT LE CALQUE DE LA TRANSITION — ET
+  `elementFromPoint` DIT QUI REÇOIT LE CLIC, PAS QUI EST PEINT.** Le 23 septembre 2026, le
+  témoin de la passe au pixel était vu « une fois sur deux ». `go()` passe par
+  `document.startViewTransition`, dont le rendu s'exécute PLUS TARD, hors de l'appel : relevé
+  au milieu, l'écran rendait **86 textes « presque invisibles »** (les cartes neuves à leur état
+  de départ) et **65 « recouverts »** (le calque `::view-transition` au-dessus de tout) pour
+  UN texte lu. On enveloppe `startViewTransition` au démarrage de la sonde pour COMPTER les
+  transitions ouvertes, et on attend qu'elles soient closes avant de relever.
+  ⚠️ Et « recouvert » ne se déduit pas d'un `elementFromPoint` seul : un texte en
+  `pointer-events:none` rend son PARENT, un calque transparent posé dessus ne cache rien, un
+  texte coupé en ellipse déborde de sa boîte dans un `Range` et son centre tombe chez le
+  voisin. Les 11 « recouverts » du tableau de bord étaient faux, les 11. Recouvert veut dire :
+  hors de la lignée, ET une chaîne qui peint un fond.
 
 - ⛔ **UNE ANCRE DE BANC EST UN COMMENTAIRE — ON DÉCOUPE DANS LE TEXTE BRUT, ON NETTOIE APRÈS.**
   Chercher le titre d'un bloc dans un texte dont on vient de retirer les commentaires rend −1,

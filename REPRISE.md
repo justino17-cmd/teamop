@@ -23,6 +23,98 @@ les abonnements. »**
 Cette page-ci est la LISTE. Le détail de chaque point est plus bas dans le fichier.
 
 
+## ⏳ 23 SEPTEMBRE 2026 — LES NEUF TEINTES, ÉCRAN PAR ÉCRAN, JUSQU'AU PIXEL (v728 EN PRÉPARATION — la passe 6 tourne)
+
+Étape 3 de « 1 après 2 après 3 ». Les 42 rubriques ET sept fenêtres (pastilles cochées), sous
+les 9 teintes × 2 thèmes — 756 écrans et 126 fenêtres par passe — sur trois plateformes : le
+Mac et l'iPhone en verre (Safari 26), Windows/Android sans verre. Deux instruments :
+
+- `scratchpad/audit-teintes.js` compose les fonds des ancêtres jusqu'à un fond opaque. Exact
+  sans verre ; sous le verre il ignore les halos que la vitre laisse passer, et **ment dans
+  les deux sens** (voir plus bas).
+- `scratchpad/audit-pixel.js` lit TOUS les textes au pixel : une capture par écran, l'encre
+  calculée de chaque élément contre la couleur la plus fréquente de son rectangle, l'encre
+  PEINTE d'un élément estompé (mêlée au fond selon son opacité).
+
+Chaque passe commence par un témoin illisible posé exprès, qui doit être vu — sinon elle
+s'arrête : un zéro ne se cite que si la mesure regarde quelque chose.
+
+| passe | instrument | ce qu'elle mesure | sous le seuil |
+|---|---|---|---|
+| 1 (v726) | calcul | les textes écrits EN ACCENT, les encres sur aplat | **850** |
+| 2 | calcul | idem, après `--acc-txt` | 26 |
+| 3 (v727) | calcul | idem, après les aplats rouge / orange et `encreSur` | 13 |
+| 4 | calcul, sans verre | **tous** les textes (`FAM=tout`, 61 571) | **2 349** |
+| 5 | calcul, sans verre | tous les textes | 1 241, **0 au pixel** |
+| 6 (v728) | **pixel**, les trois plateformes | tous les textes | **en cours** (instrument réparé, voir plus bas) |
+
+### Ce qui a été corrigé (`tests/test-773.js` 58 contrôles, `tests/test-774.js` 94)
+
+- **327 textes écrits en `var(--acc)`**, la couleur d'un APLAT → `--acc-txt`. **Plus vingt
+  endroits qui passaient l'accent à travers une variable** (`const col='var(--acc)'`,
+  `INT_STCOLOR`…), invisibles au premier motif. L'encre de la rubrique active suit `--acc-txt`.
+- **Les couleurs de DONNÉES écrites en texte** (catégories, fournisseurs, types, sources du
+  registre) : 1,64:1 de jour, 1,58:1 de nuit → `encreDonnee()` (45 % de la couleur, 55 % de
+  l'encre du thème — même geste que les pastilles `.avatar` de la refonte).
+- **Du blanc en dur sur une couleur qui peut être claire** (prestations, nuisibles, postes
+  d'appâtage, photos avant/après, histogramme, couleur d'entreprise des documents imprimés,
+  départements, secteurs) → `aplatDe()` rend toujours un fond ET son encre ; `encreSur()` lit
+  aussi `hsl()`. Le rouge, l'orange et le bleu ont leurs paires `--*-fill` / `--on-*`.
+- **Jour** : `--t3` sur la page teintée (4,14–4,48 selon la teinte, le sous-titre de chaque
+  rubrique) → `#536177`, et `#485569` sous le verre ; les encres sémantiques foncées du strict nécessaire pour tenir en
+  pastille à 13 % sur cette page ; la fenêtre en verre prend la vitre DENSE (le voile de
+  `#overlay` passait à travers : fond réel 204,211,211, texte secondaire à 3,56).
+- **Nuit, sous le verre** (la vitre est plus claire que la carte opaque — c'est voulu, Justin
+  l'a demandé — et les halos passent à travers) : `--t3` → `#ADBDD0` ; les cinq encres
+  sémantiques éclaircies du strict nécessaire et les pastilles d'état teintées à 8 % au lieu de
+  14 (elles tombaient à **3,28** pour le rouge) ; l'aplat rouge, lui, garde sa couleur
+  d'origine pour porter le blanc ; le graphite teinte sa vitre et ses halos à l'ACIER (son
+  accent presque blanc éclaircissait tout) ; le bleu et le rose écrivent leur texte plus clair.
+- **Nuit, sans verre** : le rouge d'un cran plus clair (#F3938A) — la pastille « Désactivé »
+  tombait à 4,35 sur la carte du graphite.
+- « Il reste 7 lignes à confirmer » grisé à 45 % (2,1:1) → un bouton secondaire lisible ; un
+  compte désactivé marqué en gris (`grayscale`) au lieu d'une ligne estompée à 60 % (1,94) ;
+  le ▼ des filtres, l'astérisque en rouge écrit en dur, le total d'une bande du planning.
+
+### ⛔ Sous le verre, le calcul ment dans les DEUX sens
+
+Relire au pixel les seuls suspects du calcul (`scratchpad/teintes-pixel.js`) a d'abord suffi
+à écarter des centaines de faux défauts — la barre d'onglets du téléphone « à 1,03 » était à
+5,61 au pixel. Mais les six pastilles d'état, que le calcul donnait LISIBLES, tombaient à 3,28
+au pixel sous le verre de nuit (`scratchpad/st-tous.js`) : un faux négatif ne se relit pas,
+puisqu'il n'est pas dans la liste. D'où la passe 6, entièrement au pixel.
+
+### ⛔ L'INSTRUMENT AU PIXEL A MENTI LUI AUSSI, UNE FOIS SUR DEUX (réparé le 23 au matin)
+
+Le témoin illisible était vu une passe sur deux. `go()` passe par `startViewTransition`, dont
+le rendu s'exécute PLUS TARD : relevé au milieu, le tableau de bord rendait **1 texte lu,
+86 « presque invisibles » et 65 « recouverts »** — les cartes neuves à leur état de départ, et
+le calque de la transition au-dessus de tout. La sonde compte désormais les transitions
+ouvertes et attend qu'elles soient closes. Et « recouvert » se déduisait d'`elementFromPoint`,
+qui dit qui reçoit le CLIC, pas qui est PEINT : les 11 « recouverts » du tableau de bord
+étaient faux (textes en `pointer-events:none`, texte en ellipse qui déborde chez le voisin).
+Après réparation : **152 textes lus** sur le même écran, le témoin vu à chaque exécution depuis (sept sur sept), et
+deux exécutions de la même petite passe rendent le même total à l'unité (1 656).
+
+### ⚠️ Ce que ces passes ne couvrent pas, et il faut le dire
+
+- **Les libellés posés SUR une barre en verre** (onglets du téléphone, barre du haut, menu) :
+  Chromium sans GPU ne floute pas ce qui passe dessous — vérifié, une bande vive glissée sous
+  la barre d'onglets reste nette, alors que le même flou marche sur une page simple. Ils sont
+  donc mesurés sur un fond NON flouté, plus sévère que Safari, et rangés à part. **À regarder
+  sur un vrai iPhone et un vrai Mac** : c'est le seul endroit où aucune mesure de ce conteneur
+  ne tranche.
+- **Les chiffres au pixel sont ceux de Chromium.** Le flou de Safari 26 n'est pas le même ;
+  l'écart attendu est faible (la vitre est la même, les halos aussi), il n'est pas mesuré.
+- **Les écrans profonds au-delà des sept fenêtres ouvertes par la passe** ne sont gardés que
+  par les bancs statiques (`test-773`, `test-774` : plus aucun `color:var(--acc)`, plus de
+  blanc écrit en dur après un fond variable) — pas au pixel.
+- **Les documents imprimés** (rapports, bons, devis) : la couleur d'entreprise passe par
+  `encreSur()`, mais aucun document n'a été rendu puis mesuré.
+- **Un artefact non reproduit, nommé pour qu'il ne revienne pas** : pendant les passes au
+  calcul, la rubrique active et le « ＋ » du menu sont sortis une fois en vert clair sur vert
+  clair ; relus au pixel dans le même état, 14,5 et 6,7. Jamais reproduit depuis.
+
 ## ✅ 22 SEPTEMBRE 2026 — CHAQUE BOUTON, FRAPPÉ POUR DE VRAI (v727, bêta publiée)
 
 Étape 2 de « 1 après 2 après 3 ». `scratchpad/audit-clics2.js` appuie sur CHAQUE commande de
@@ -164,19 +256,24 @@ Mesuré sur 3 largeurs × 3 rubriques × 2 états de défilement : plus un saut,
   4 éléments par genre, 14 sous-vues par rubrique, 150 s par rubrique — au bureau, le tableau de
   bord et le planning atteignent ce plafond même lancés seuls. La passe EXHAUSTIVE, bouton par
   bouton, est l'étape 2.
-- **Deux encres à reprendre à l'étape 3 (teintes)** : les prestations choisies du Compte-rendu
-  (`renderRapPresta`) et les nuisibles choisis de l'Intervention écrivent du BLANC en dur sur
-  `var(--acc)` — dans un ordre que la règle de rattrapage ne reconnaît pas. Sur le graphite de
-  nuit (#F5F5F7), c'est du blanc sur du blanc.
+- ✅ **Deux encres reprises à l'étape 3 (v728)** : les prestations choisies du Compte-rendu
+  (`renderRapPresta`) et les nuisibles choisis de l'Intervention écrivaient du BLANC en dur sur
+  `var(--acc)` (1,09:1 sur le graphite de nuit). Ils prennent `--acc-fill` et `--on-fill`.
 - ⛔ **ATTEND JUSTIN — une panne en PRODUCTION (v695)** : l'analyse de « Consommation produits »
   plante dès qu'elle doit écrire le rôle d'une personne (`const roleLbl=r=>roleLbl(r)…` s'appelle
   lui-même, depuis la v613 — relu sur `origin/main`). Corrigé dans la bêta depuis la v726 (et le
   commit b287e1b). `app.html` ne part que sur sa phrase.
 
-## ✅ 22 SEPTEMBRE 2026 — LES NEUF COULEURS, CATÉGORIE PAR CATÉGORIE (mesuré, rien à corriger)
+## ✅ 22 SEPTEMBRE 2026 — LES NEUF COULEURS, CATÉGORIE PAR CATÉGORIE (les JETONS — voir l'étape 3 pour les TEXTES)
 
 Justin : « au niveau des couleurs du thème de l'application, t'as vérifié toutes les catégories
 par catégorie ? » — la réponse était **non**, et c'est fait depuis. `scratchpad/audit-accents.js`.
+
+⛔ **« Rien à corriger » était FAUX, et ce titre l'a dit pendant une journée.** Cette passe a
+mesuré les JETONS (vivants, et leurs trois encres sur leurs trois aplats) — pas les TEXTES
+écrits avec eux sur les écrans. L'étape 3 (plus haut, v728) a mesuré ceux-là : **850
+contrastes sous le seuil**, dont 327 textes écrits en `var(--acc)`, la couleur d'un aplat.
+Un jeton juste ne dit rien de l'endroit où on l'emploie.
 
 | ce qui est mesuré | résultat |
 |---|---|
