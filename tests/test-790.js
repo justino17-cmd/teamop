@@ -277,7 +277,7 @@ const vd = fonction('usrDroitsValider'), pl = fonction('profilLireZone'), dz = f
 vrai('la validation n\'écrit pas une action de catégorie déduite qu\'on n\'a pas touchée', /if\(!c\|\|c\.dataset\.deduit==='1'\) return; u\.acces\.caps\['cat_'\+g\+'_'\+d\]=!!c\.checked/.test(vd));
 vrai('… un profil non plus', /if\(!c\|\|c\.dataset\.deduit==='1'\) return; caps\['cat_'\+g\+'_'\+d\]=!!c\.checked/.test(pl));
 vrai('… et l\'écran la recalcule en direct depuis sa base (catDeduitRegle)', /d\.indexOf\('cat_'\)===0\)\{ const m=d\.split\('_'\); const r=catDeduitRegle\(m\[1\],m\[2\]\)/.test(dz));
-v('« Gérer les box » a sa case, rangée dans le Stock', [/\['gererBoxes','Gérer les box',/.test(SRC), /stock:\['gererBoxes'\]/.test(ligne('const PERM_SPECIAUX={'))], [true, true]);
+v('« Gérer les box » a sa case, rangée dans le Stock', [/\['gererBoxes','Gérer les box',/.test(SRC), /stock:\['gererBoxes'[,\]]/.test(ligne('const PERM_SPECIAUX={'))], [true, true]);
 
 console.log(`\n════ test-790 : ${ok} ✓ ${ko} ✗ ════\n`);
 process.exit(ko ? 1 : 0);

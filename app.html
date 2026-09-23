@@ -7030,7 +7030,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '738';
+const APP_VERSION = '739';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -12404,8 +12404,14 @@ const CAPS_HERITE = {
   chefEquipe: { supprimer:1, annuler:1, voirTout:1, creerIntervention:1, planifDeplacer:1, planifObligerTravail:1, modifierPlans:1, devisIA:0, validerDR:0, voirCompta:0 },
   commercial: { supprimer:0, annuler:1, voirTout:1, creerIntervention:1, planifDeplacer:0, planifObligerTravail:0, modifierPlans:0, devisIA:0, validerDR:0, voirCompta:0 },
   compta:     { supprimer:0, annuler:0, voirTout:1, creerIntervention:0, planifDeplacer:0, planifObligerTravail:0, modifierPlans:0, devisIA:0, validerDR:0, voirCompta:1 },
-  technicien: { supprimer:0, annuler:0, voirTout:0, creerIntervention:0, planifDeplacer:0, planifObligerTravail:0, modifierPlans:0, devisIA:0, validerDR:0, voirCompta:0 },
+  technicien: { supprimer:0, annuler:0, voirTout:0, creerIntervention:0, planifDeplacer:0, planifObligerTravail:0, modifierPlans:1, devisIA:0, validerDR:0, voirCompta:0 },
 };
+/* ⛔ v739 — `modifierPlans:1` pour le technicien, et ce n'est PAS ce qu'il avait avant : décision de
+   Justin, 23 septembre 2026 — « si ce n'est pas le même technicien, il faut qu'il puisse modifier le
+   plan ». Les plans vivent par CLIENT (db.plansSite) : celui qui passe après doit pouvoir déplacer
+   un poste, en ajouter, corriger une zone. La reprise pose ce défaut dans le profil Technicien des
+   entreprises qui ne l'ont pas encore faite ; là où elle a déjà eu lieu (la bêta), le profil garde
+   sa case telle qu'elle est — on ne réécrit pas un droit au seul chargement : on la coche. */
 /* Le rôle n'est plus qu'un nom : il ne donne aucun droit de lui-même. Tout vient des cases de
    Permissions, cochées par la personne qui crée les comptes. CAPS_HERITE ci-dessus garde ce que
    chaque rôle donnait d'office AVANT ce changement — il ne sert qu'une fois, à la reprise, pour
@@ -12566,7 +12572,7 @@ const COLL_GRP={interventions:'int',clients:'crm',devis:'ventes',factures:'vente
    réclame fabrique un faux verrou.
    Le libellé sert au message de refus : « Créer un fournisseur n'est pas autorisé… ». */
 const COLL_QUOI={fournisseurs:'un fournisseur',techniciens:'un technicien',brouillons:'un produit au brouillon',bons:'un bon de commande',demandes:'une demande',conducteurs:'un conducteur',clients:'un client',produits:'un produit',boxes:'une box',vehicules:'un véhicule',taches:'une tâche',absences:'une absence',devis:'un devis',factures:'une facture',contrats:'un contrat'};
-const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],stock:['gererBoxes'],com:['opMessages','bonsLectureSeule','respBons','gererGroupes','mailPro'],equipe:['creerUtilisateurs','voirPointages','voirEquipe','corrigerPointages','gererFiches'],achats:['validerDR']};
+const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],stock:['gererBoxes','effacerPrix','supprimerHistoCommandes','revoirDistincts'],com:['opMessages','bonsLectureSeule','respBons','gererGroupes','mailPro'],equipe:['creerUtilisateurs','voirPointages','voirEquipe','corrigerPointages','gererFiches'],achats:['validerDR','supprimerHistoDemandes']};
 /* ⛔ v738 — UNE ACTION DE CATÉGORIE QUI N'EST PAS RÉGLÉE SUIT SA CASE DE BASE, EN DIRECT.
    « 🗑 Supprimer » de chaque catégorie suit « Supprimer des éléments », « Interventions → ＋ Ajouter »
    suit « Créer / planifier des interventions ». Jusqu'à la v737, la ligne d'une personne écrivait TOUTES
@@ -12637,9 +12643,16 @@ function perimetreUserIds(u){ u=u||currentUser; if(!u) return new Set();
   const membres=equipeDe(u); if(!membres.length) return null;
   return new Set(membres.map(x=>x.id).concat([u.id])); }
 /* Interventions visibles : tout l'espace, le périmètre de son équipe, ou les siennes */
+/* ⛔ v739 — UNE INTERVENTION SANS TECHNICIEN N'APPARTIENT À AUCUNE ÉQUIPE. Le périmètre se lit par
+   technicien : une intervention qui n'en a pas ne tombait dans celui de personne, et seuls
+   l'administrateur et les « Tout voir » sans équipe la voyaient. Justin, 23 septembre 2026 (qui doit
+   l'affecter ? l'admin, qui peut planifier, le DR de l'équipe) : « ils ont tout le pouvoir de le
+   faire, c'est normal ». Qui peut planifier (« Déplacer le planning ») la voit donc, pour l'affecter
+   — le planning a déjà sa colonne « Non assigné ». « Ma journée » ne la montre pas (renderIntTechDay). */
 function visibleInts(list){
-  if(can('voirTout')){ const p=perimetreTechIds(); return p?(list||[]).filter(i=>intTechIds(i).some(t=>p.has(t))):(list||[]); }
-  const tid=myTechId(); return (list||[]).filter(i=>intTechIds(i).includes(tid)); }
+  const libre=canPlan(), aPrendre=i=>libre&&!intTechIds(i).length;
+  if(can('voirTout')){ const p=perimetreTechIds(); return p?(list||[]).filter(i=>intTechIds(i).some(t=>p.has(t))||aPrendre(i)):(list||[]); }
+  const tid=myTechId(); return (list||[]).filter(i=>intTechIds(i).includes(tid)||aPrendre(i)); }
 /* Box visibles selon le rôle : tout (admin/chef/DR/commercial/compta = « voir tout »), ou seulement
    les box assignés au technicien connecté. Même logique que les interventions → séparation par technicien. */
 /* ⛔ LE PÉRIMÈTRE S'APPLIQUE AUSSI À QUI A « TOUT VOIR » — décision de Justin, 10 septembre 2026 :
@@ -19488,6 +19501,8 @@ function intDemarrerFiche(id){ const i=db.interventions.find(x=>x.id===id); if(!
   logEvent('Intervention démarrée',i.titre,'intervention'); save(); toast('▶ C’est parti — bonne intervention !'); detailIntervention(id); }
 function renderIntTechDay(SRC){
   const today=todayISO();
+  /* v739 : SA journée — pas les interventions non affectées que « Déplacer le planning » lui montre */
+  { const tid=myTechId(); SRC=(SRC||[]).filter(i=>intTechIds(i).includes(tid)); }
   setHeader('Interventions','Ma journée de travail',`<button class="btn ghost" onclick="intView='semaine';views.interventions()">Semaine</button> ${canCat('int','ajouter')?`<button class="btn" onclick="formIntervention()">＋ Intervention</button>`:''}`);
   const act=SRC.filter(i=>i.statut!=='annulee');
   const retard=act.filter(i=>i.date&&i.date<today&&i.statut!=='terminee').sort((a,b)=>((a.date||'')+(a.heure||'')).localeCompare((b.date||'')+(b.heure||'')));
@@ -23228,7 +23243,7 @@ function fcAddAll(){ if(!cataloguesFournisseurs()){ toast(CATFOUR_FERME,4200); r
    ⚠️ Le champ prix RESTE : ce qui part, c'est ce que NOUS avons écrit. Chacun met le sien. */
 function prixPoses(){ return (db.produits||[]).filter(p=>p&&+p.prix>0).length; }
 function prixEffacer(){
-  if(!currentUser||currentUser.role!=='admin'){ toast('Réservé à l\'administrateur'); return; }
+  if(!caseGarde('effacerPrix','Effacer les prix pré-remplis du catalogue')) return;
   const n=prixPoses(); if(!n){ toast('Aucun prix n\'est renseigné'); return; }
   if(!confirm('Effacer le prix de '+n+' produit'+(n>1?'s':'')+' ?\n\nCes tarifs viennent du catalogue fournisseur relevé en juillet 2026 : ils ne sont plus à jour et ne devraient pas faire foi. Le champ reste — vous pourrez y mettre vos propres prix négociés.\n\nLes quantités, les box et les mouvements ne bougent pas.')) return;
   (db.produits||[]).forEach(p=>{ if(p) p.prix=0; });
@@ -23238,7 +23253,7 @@ function prixEffacer(){
 let prdOnglet='tous';   // tous | perso | catalogue
 views.produits=function(){
   const _np=prixPoses(), _cf=cataloguesFournisseurs();
-  setHeader('Produits',`Catalogue · ${db.produits.length} références`,`${_cf?'<button class="btn ghost" onclick="openFourCat()">🏭 Fournisseurs</button> ':''}${(_np&&currentUser&&currentUser.role==='admin')?`<button class="btn ghost" onclick="prixEffacer()" title="Retirer les tarifs venus du catalogue fournisseur">💶 Effacer les prix (${_np})</button> `:''}${catalogueEnPlace()?'<button class="btn ghost" onclick="restoreCatalogue()">↻ Catalogue OP</button> ':''}<button class="btn ghost" onclick="openScanner()">Scanner</button> <button class="btn ghost" onclick="produitsCopier()" title="Copier la liste affichée, pour la coller dans un autre espace avec « ＋ Liste »">⧉ Copier la liste</button> <button class="btn ghost" onclick="formProduitsListe()">＋ Liste</button> <button class="btn" onclick="formProduit()">＋ Produit</button>`);
+  setHeader('Produits',`Catalogue · ${db.produits.length} références`,`${_cf?'<button class="btn ghost" onclick="openFourCat()">🏭 Fournisseurs</button> ':''}${(_np&&can('effacerPrix'))?`<button class="btn ghost" onclick="prixEffacer()" title="Retirer les tarifs venus du catalogue fournisseur">💶 Effacer les prix (${_np})</button> `:''}${catalogueEnPlace()?'<button class="btn ghost" onclick="restoreCatalogue()">↻ Catalogue OP</button> ':''}<button class="btn ghost" onclick="openScanner()">Scanner</button> <button class="btn ghost" onclick="produitsCopier()" title="Copier la liste affichée, pour la coller dans un autre espace avec « ＋ Liste »">⧉ Copier la liste</button> <button class="btn ghost" onclick="formProduitsListe()">＋ Liste</button> <button class="btn" onclick="formProduit()">＋ Produit</button>`);
   const nbP=db.produits.filter(p=>p.perso).length, nbC=db.produits.length-nbP;
   /* « Mes produits » contre « Catalogue 3D » ne départage que là où un catalogue a été posé : chez une
      entreprise qui a tout créé elle-même, ce serait « Tous · 12 » et « Mes produits · 12 » — et un
@@ -23498,9 +23513,9 @@ function produitsDistinctsDeclarerUI(i){ if(!permGarde('stock','modifier','un pr
 function produitsFusionnerUnGroupe(i){ if(!permGarde('stock','modifier','un produit')) return; const l=_doublonsTri[i]; if(!l) return; const cle=produitCle(l[0]); _doublonsApercu='';
   const r=produitsFusionnerDoublons(new Set([cle])); toast('Fusionné : « '+(l[0].nom||'')+' » — '+r.fiches+' fiche'+(r.fiches>1?'s':'')+' en moins',3200); produitsDoublonsRafraichir(); }
 /* Écran Produits, administrateur : ce que l'équipe a déclaré distinct, et le moyen d'y revenir. */
-function produitsDistinctsLigne(){ const L=(db.produitsDistincts||[]).filter(d=>d&&d.ids&&d.ids.filter(id=>produit(id).id).length>1); if(!L.length||!currentUser||currentUser.role!=='admin') return '';
+function produitsDistinctsLigne(){ const L=(db.produitsDistincts||[]).filter(d=>d&&d.ids&&d.ids.filter(id=>produit(id).id).length>1); if(!L.length||!can('revoirDistincts')) return '';
   return `<div class="dbl-distincts"><span>${L.length} paire${L.length>1?'s':''} acceptée${L.length>1?'s':''} comme distincte${L.length>1?'s':''} : ${L.slice(0,4).map(d=>'« '+esc(d.nom||d.id)+' »').join(', ')}${L.length>4?'…':''}</span><button type="button" class="btn ghost sm" onclick="produitsDistinctsRevoir()">Revoir</button></div>`; }
-function produitsDistinctsRevoir(){ const L=(db.produitsDistincts||[]); if(!L.length) return; if(!confirm('Annuler '+L.length+' déclaration(s) « c\'est normal » ?\n\nLes doublons seront signalés à nouveau ; rien d\'autre ne change.')) return;
+function produitsDistinctsRevoir(){ if(!caseGarde('revoirDistincts','Revenir sur les « c\'est normal » (doublons)')) return; const L=(db.produitsDistincts||[]); if(!L.length) return; if(!confirm('Annuler '+L.length+' déclaration(s) « c\'est normal » ?\n\nLes doublons seront signalés à nouveau ; rien d\'autre ne change.')) return;
   db.produitsDistincts=[]; logEvent('Déclarations de doublons annulées',L.length+' paire(s)','stock'); save(); views.produits(); }
 /* ⛔ v738 — FUSIONNER RÉÉCRIT LE CATALOGUE DE TOUTE L'ÉQUIPE (fiches retirées, box, mouvements,
    demandes et bons redirigés), sans retour arrière : « Stock → Modifier ». Le bandeau ne propose plus
@@ -24743,12 +24758,15 @@ function delArrivage(boxId,aid){ if(!canCat('stock','supprimer')){ toast('Suppre
    STOCK, lui, ne bouge pas — les unités entrées à la réception ont été consommées depuis, et
    les retirer maintenant fausserait un inventaire au lieu de le corriger. C'est la même règle
    que `delArrivage`, et elle est écrite dans la confirmation. */
+/* v739 : un geste d'administrateur que l'admin peut confier (voir USER_CAPS) — le refus nomme la case. */
+function caseGarde(cap,libelle){ if(can(cap)) return true;
+  toast('Réservé à l\'administrateur, ou à qui il donne « '+libelle+' » (Permissions)'); return false; }
 function adminSeul(){
   if(currentUser&&currentUser.role==='admin') return true;
   toast('Réservé à l\'administrateur — ce droit ne se délègue pas'); return false;
 }
 function boxCmdSuppr(bonId,boxId){
-  if(!adminSeul()) return;
+  if(!caseGarde('supprimerHistoCommandes','Supprimer une commande de l\'historique d\'une box')) return;
   const b=(db.bons||[]).find(x=>x.id===bonId); if(!b) return;
   if(!confirm('Supprimer définitivement la commande '+bonNum(b)+' ?\n\nSon PDF, sa réception et la photo du bon de livraison partent avec.\nLe stock déjà crédité n\'est PAS retiré.')) return;
   db.bons=(db.bons||[]).filter(x=>x.id!==bonId);
@@ -24803,7 +24821,7 @@ function boxCommandes(boxId){
       <div class="dos-h" onclick="ficheBon('${x.id}',true,'${boxId}')" role="button" tabindex="0">
         <div class="dos-i"><div class="dos-t">${esc(fournName(x.fournisseurId)||x.fournisseur||'Fournisseur')} — ${(x.lignes||[]).length} article(s)</div>
           <div class="dos-m">${esc(bonNum(x))} · ${bonQteTotTxt(x)} · ${fmtShort(x.dateReception||x.livreLe||x.date)}${x.recuPar?` · reçu par ${esc(x.recuPar)}`:''}</div></div>
-        <span class="st ${st.c}">${esc(st.l)}</span>${currentUser&&currentUser.role==='admin'?`<button type="button" class="dos-x" onclick="event.stopPropagation();boxCmdSuppr('${x.id}','${boxId}')" title="Supprimer définitivement" aria-label="Supprimer cette commande">🗑</button>`:''}<span class="dos-c" aria-hidden="true">›</span></div>
+        <span class="st ${st.c}">${esc(st.l)}</span>${can('supprimerHistoCommandes')?`<button type="button" class="dos-x" onclick="event.stopPropagation();boxCmdSuppr('${x.id}','${boxId}')" title="Supprimer définitivement" aria-label="Supprimer cette commande">🗑</button>`:''}<span class="dos-c" aria-hidden="true">›</span></div>
       <div class="dos-p">
         <button type="button" class="dos-pi" onclick="event.stopPropagation();bonPdfOpen('${x.id}')">
           <span class="dos-ic">📄</span><span><b>Bon de commande</b><i>PDF · ${esc(bonNum(x))}</i></span></button>
@@ -25373,8 +25391,12 @@ function roleDeNom(nom){ const n=norm(nom||''); if(!n) return '';
   const u=(db.users||[]).find(x=>norm(fullName(x))===n); if(u&&u.role) return u.role;
   const t=(db.techniciens||[]).find(x=>norm(x.nom||'')===n); if(t) return 'technicien';
   return ''; }
-function traceBox(b,pid,delta,unit,motif,par,validePar,donneA){ if(!b||!pid||!delta) return;
-  db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:pid,type:delta<0?'sortie':'entree',qte:Math.abs(delta),motif:(motif||(delta<0?'Sortie box':'Entrée box'))+' — '+(b.nom||b.numero||''),vehiculeId:'',boxId:b.id,boxNomTxt:(b.nom||b.numero||''),unite:unit||'u',technicien:par||(currentUser&&fullName(currentUser))||'',validePar:validePar||'',donneA:donneA||'',
+/* `idFixe` (v739) : une ligne née d'une VALIDATION porte un identifiant tiré du mouvement validé.
+   Deux appareils qui valident le même mouvement dans la même seconde écrivent alors la MÊME ligne,
+   et la synchro — qui réunit par identifiant — n'en garde qu'une : mesuré sur la v738, l'historique
+   disait 8 unités sorties pour 4 réelles (deux uid(), deux lignes). Le stock, lui, tombait juste. */
+function traceBox(b,pid,delta,unit,motif,par,validePar,donneA,idFixe){ if(!b||!pid||!delta) return;
+  db.mouvements.unshift({id:idFixe||uid(),ts:Date.now(),produitId:pid,type:delta<0?'sortie':'entree',qte:Math.abs(delta),motif:(motif||(delta<0?'Sortie box':'Entrée box'))+' — '+(b.nom||b.numero||''),vehiculeId:'',boxId:b.id,boxNomTxt:(b.nom||b.numero||''),unite:unit||'u',technicien:par||(currentUser&&fullName(currentUser))||'',validePar:validePar||'',donneA:donneA||'',
     roleConso:roleDeNom(donneA||par||(currentUser&&fullName(currentUser))||'')}); }
 /* ── VALIDATION DR DES MOUVEMENTS DE BOX ──
    Quand le réglage est actif (c'est le cas par défaut), TOUT mouvement de box fait
@@ -25560,8 +25582,8 @@ function boxMvtValider(id,statut,accords){ _resteApresValid='';
   if(m.type==='arrivage'&&m.bcId){ const bv=(db.bons||[]).find(x=>x.id===m.bcId); if(bv&&bv.statut==='livree'&&bonToutRecu(bv)){ boxMvtRefuser(m,'bon déjà entièrement réceptionné'); toast('Ce bon a déjà été reçu en entier — mouvement refusé (pas de double crédit)',4600); return; } }
   b.stock=b.stock||{};
   if(m.type==='arrivage'){
-    (m.lignes||[]).forEach(l=>{ const q=mvAcc(l,'qte'); if(!q) return; const cur=b.stock[l.produitId]||{ctn:0,u:0}; cur.u=(cur.u||0)+q; b.stock[l.produitId]=cur;
-      db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:l.produitId,type:'entree',qte:q,motif:'Arrivage '+(m.fournisseur||'')+' — '+(b.nom||b.numero||'')+' (validé DR'+(mvModif(l,'qte')?' — '+mvCorrigeTxt(l):'')+')',vehiculeId:'',boxId:b.id,boxNomTxt:(b.nom||b.numero||''),technicien:m.par||'',validePar:fullName(currentUser),roleConso:roleDeNom(m.par||'')}); });
+    (m.lignes||[]).forEach((l,kl)=>{ const q=mvAcc(l,'qte'); if(!q) return; const cur=b.stock[l.produitId]||{ctn:0,u:0}; cur.u=(cur.u||0)+q; b.stock[l.produitId]=cur;
+      db.mouvements.unshift({id:'mvv:'+m.id+':'+kl+':'+l.produitId+':arr',ts:Date.now(),produitId:l.produitId,type:'entree',qte:q,motif:'Arrivage '+(m.fournisseur||'')+' — '+(b.nom||b.numero||'')+' (validé DR'+(mvModif(l,'qte')?' — '+mvCorrigeTxt(l):'')+')',vehiculeId:'',boxId:b.id,boxNomTxt:(b.nom||b.numero||''),technicien:m.par||'',validePar:fullName(currentUser),roleConso:roleDeNom(m.par||'')}); });
     const bonArr=m.bcId?((db.bons||[]).find(x=>x.id===m.bcId)||null):null;
     b.arrivages=b.arrivages||[]; b.arrivages.unshift({id:uid(),ts:Date.now(),fournisseur:m.fournisseur||'',lignes:(m.lignes||[]).filter(l=>mvAcc(l,'qte')>0).map(l=>({produitId:l.produitId,qte:mvAcc(l,'qte')})),photo:m.photo||'',par:m.par||'',bcId:m.bcId||'',bcNum:bonArr?bonNum(bonArr):''});
     if(b.arrivages.length>40) b.arrivages.length=40;
@@ -25579,11 +25601,11 @@ function boxMvtValider(id,statut,accords){ _resteApresValid='';
     /* Le stock plafonne à zéro, la trace doit dire la même chose. Entre la demande et
        l'accord du DR, la box peut avoir baissé : valider −4 sur une box tombée à 1 sortait
        1 unité et en inscrivait 4. On mesure donc le delta réellement appliqué. */
-    (m.lignes||[]).forEach(l=>{ const cur=b.stock[l.produitId]||{ctn:0,u:0}; const du=mvAcc(l,'du'), dc=mvAcc(l,'dc');
+    (m.lignes||[]).forEach((l,kl)=>{ const cur=b.stock[l.produitId]||{ctn:0,u:0}; const du=mvAcc(l,'du'), dc=mvAcc(l,'dc');
       const corr=mvCorrigeTxt(l); const mot=(m.note||'Ajustement')+' (validé DR'+(corr?' — '+corr:'')+')';
       let ru=0, rc=0;
-      if(du){ const av=cur.u||0; cur.u=Math.max(0,av+du); ru=cur.u-av; if(ru) traceBox(b,l.produitId,ru,'u',mot,m.par,fullName(currentUser),ru<0?m.pourQui:''); }
-      if(dc){ const av=cur.ctn||0; cur.ctn=Math.max(0,av+dc); rc=cur.ctn-av; if(rc) traceBox(b,l.produitId,rc,'ctn',mot,m.par,fullName(currentUser),rc<0?m.pourQui:''); }
+      if(du){ const av=cur.u||0; cur.u=Math.max(0,av+du); ru=cur.u-av; if(ru) traceBox(b,l.produitId,ru,'u',mot,m.par,fullName(currentUser),ru<0?m.pourQui:'','mvv:'+m.id+':'+kl+':'+l.produitId+':u'); }
+      if(dc){ const av=cur.ctn||0; cur.ctn=Math.max(0,av+dc); rc=cur.ctn-av; if(rc) traceBox(b,l.produitId,rc,'ctn',mot,m.par,fullName(currentUser),rc<0?m.pourQui:'','mvv:'+m.id+':'+kl+':'+l.produitId+':ctn'); }
       b.stock[l.produitId]=cur;
       /* Le bon de remise se tient par PRODUIT : remiseAjoute() lit m.produitId, qu'un lot
          n'a pas. Lui passer le lot tel quel aurait écrasé toutes les quantités sur une seule
@@ -25593,8 +25615,8 @@ function boxMvtValider(id,statut,accords){ _resteApresValid='';
       if(m.pourQui&&rc<0) remiseAjoute(Object.assign({},m,{produitId:l.produitId}),-rc,'ctn'); });
   } else if(m.type==='retrait'){
     const s=(b.stock||{})[m.produitId]||{ctn:0,u:0};
-    if(s.u) traceBox(b,m.produitId,-s.u,'u','Retiré de la box (validé DR)',m.par,fullName(currentUser),m.pourQui);
-    if(s.ctn) traceBox(b,m.produitId,-s.ctn,'ctn','Retiré de la box (validé DR)',m.par,fullName(currentUser),m.pourQui);
+    if(s.u) traceBox(b,m.produitId,-s.u,'u','Retiré de la box (validé DR)',m.par,fullName(currentUser),m.pourQui,'mvv:'+m.id+':'+m.produitId+':u');
+    if(s.ctn) traceBox(b,m.produitId,-s.ctn,'ctn','Retiré de la box (validé DR)',m.par,fullName(currentUser),m.pourQui,'mvv:'+m.id+':'+m.produitId+':ctn');
     delete b.stock[m.produitId]; boxDecider(b,[m.produitId]);   // idem : un retrait validé est une décision
     if(m.pourQui&&s.u) remiseAjoute(m,s.u,'u');
     if(m.pourQui&&s.ctn) remiseAjoute(m,s.ctn,'ctn');
@@ -25602,8 +25624,8 @@ function boxMvtValider(id,statut,accords){ _resteApresValid='';
     const cur=b.stock[m.produitId]||{ctn:0,u:0}; const du=mvAcc(m,'du'), dc=mvAcc(m,'dc');
     const corr=mvCorrigeTxt(m); const mot=(m.note||'Ajustement')+' (validé DR'+(corr?' — '+corr:'')+')';
     let ru=0, rc=0;   // même règle que le lot : on trace ce qui bouge vraiment
-    if(du){ const av=cur.u||0; cur.u=Math.max(0,av+du); ru=cur.u-av; if(ru) traceBox(b,m.produitId,ru,'u',mot,m.par,fullName(currentUser),ru<0?m.pourQui:''); }
-    if(dc){ const av=cur.ctn||0; cur.ctn=Math.max(0,av+dc); rc=cur.ctn-av; if(rc) traceBox(b,m.produitId,rc,'ctn',mot,m.par,fullName(currentUser),rc<0?m.pourQui:''); }
+    if(du){ const av=cur.u||0; cur.u=Math.max(0,av+du); ru=cur.u-av; if(ru) traceBox(b,m.produitId,ru,'u',mot,m.par,fullName(currentUser),ru<0?m.pourQui:'','mvv:'+m.id+':'+m.produitId+':u'); }
+    if(dc){ const av=cur.ctn||0; cur.ctn=Math.max(0,av+dc); rc=cur.ctn-av; if(rc) traceBox(b,m.produitId,rc,'ctn',mot,m.par,fullName(currentUser),rc<0?m.pourQui:'','mvv:'+m.id+':'+m.produitId+':ctn'); }
     b.stock[m.produitId]=cur;
     if(m.pourQui&&ru<0) remiseAjoute(m,-ru,'u');
     if(m.pourQui&&rc<0) remiseAjoute(m,-rc,'ctn');
@@ -26739,11 +26761,11 @@ function demLigneHtml(d){
   return `<div class="pl-row" data-dem="${d.id}" onclick="ficheDemande('${d.id}')"><div class="pl-info">
     <div class="pl-title">${esc(d.boxNom||boxLabel(d.boxId))}</div>
     <div class="pl-meta">${esc(d.num)} · ${esc(d.chefNom||userName(d.chefId))} · ${(d.lignes||[]).length} produit(s) · ${fmtShort(d.date)}</div>
-    </div>${badgeEtat(demandeEtat(d))}${currentUser&&currentUser.role==='admin'?`<button type="button" class="dos-x" onclick="event.stopPropagation();demHistoSuppr('${d.id}')" title="Supprimer définitivement" aria-label="Supprimer cette demande">🗑</button>`:''}</div>`;
+    </div>${badgeEtat(demandeEtat(d))}${can('supprimerHistoDemandes')?`<button type="button" class="dos-x" onclick="event.stopPropagation();demHistoSuppr('${d.id}')" title="Supprimer définitivement" aria-label="Supprimer cette demande">🗑</button>`:''}</div>`;
 }
 /* L'historique des demandes se vide aussi — même règle, même réserve au rôle. */
 function demHistoSuppr(id){
-  if(!adminSeul()) return;
+  if(!caseGarde('supprimerHistoDemandes','Supprimer une demande de l\'historique')) return;
   const d=(db.demandes||[]).find(x=>x.id===id); if(!d) return;
   if(!confirm('Supprimer définitivement la demande '+(d.num||'')+' ?\n\nLe bon de commande qu\'elle a déclenché, s\'il existe, reste en place.')) return;
   db.demandes=(db.demandes||[]).filter(x=>x.id!==id);
@@ -30231,6 +30253,15 @@ const USER_CAPS=[
      — écrit en dur, invisible dans les droits, impossible à donner ou à retirer à quelqu'un. */
   ['gererGroupes','Gérer les groupes de discussion','Messagerie : créer, modifier et supprimer des groupes, et lire tous les groupes, même ceux dont il n\'est pas membre. Sans ce droit, il ne voit que les groupes dont il fait partie.'],
   ['mailPro','Envoyer depuis son adresse e-mail pro','Paramètres → « Mon e-mail professionnel » : ses envois aux clients (rapports, avis, devis…) partent de sa propre adresse au lieu de celle de l\'entreprise. Sans ce droit, ils partent de l\'adresse de l\'entreprise.'],
+  /* ⛔ v739 — QUATRE GESTES D'ADMINISTRATEUR, DEVENUS DES CASES. Justin, 23 septembre 2026 : « réservés
+     à l'admin, mais il peut donner le droit à la personne qu'il veut ». Ils tenaient au NOM du rôle
+     (`role==='admin'`, `adminSeul()`) : impossibles à confier à qui que ce soit. FERMÉS par défaut
+     pour tout le monde — CAPS met les rôles à zéro et capDeduitRegle ne leur donne rien ; seul
+     l'administrateur les a d'office (userCap), et il les coche pour qui il veut. */
+  ['effacerPrix','Effacer les prix pré-remplis du catalogue','Produits : le bouton qui efface d\'un coup les tarifs que l\'ancien catalogue avait posés dans les fiches, pour que l\'entreprise mette les siens'],
+  ['supprimerHistoDemandes','Supprimer une demande de l\'historique','Supprimer définitivement une demande de l\'historique des demandes (le stock ne bouge pas)'],
+  ['supprimerHistoCommandes','Supprimer une commande de l\'historique d\'une box','Supprimer définitivement une commande, son PDF, sa réception et la photo du bon de livraison (le stock déjà crédité ne bouge pas)'],
+  ['revoirDistincts','Revenir sur les « c\'est normal » (doublons)','Annuler les réponses « ce sont deux produits différents » : les doublons de produits seront signalés à nouveau'],
 ];
 /* Une seule question, un seul endroit : « cette personne a-t-elle le droit de passer une
    commande ? ». Les cinq portes (créer, suggérer, regrouper, envoyer en lot, envoyer un bon)

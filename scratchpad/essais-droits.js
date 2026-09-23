@@ -73,6 +73,11 @@ const NOTIF_Z = `db.clients.find(x=>x.id==='cZ').codePostal='40100';
   db.interventions.push(Object.assign({},db.interventions.find(x=>x.id==='iZ'),{id:'iZ2',num:'INT-S7',titre:'Dératisation Zoésonde finie',statut:'terminee',finReel:Date.now()-3600000}));
   ${MVT('mZ', 'uZ')} ${DEM('dmZ', 'uZ')}`;
 
+/* v739 : un compte au profil PAR DÉFAUT (aucune case personnelle) et le compte-rendu du premier passage. */
+const HISTO_BASE = (id, role, prenom) => `if(!db.users.some(u=>u.id==='${id}')) db.users.push({id:'${id}',prenom:'${prenom}',nom:'Profilsonde',login:'${id}',role:'${role}',actif:true,pref:{}});
+  const _u=db.users.find(u=>u.id==='${id}'); delete _u.acces; delete _u.drId; delete _u.chefId;
+  db.interventions.find(x=>x.id==='iTf').compteRendu='Rapport sonde du premier passage';`;
+
 const ESSAIS = [
   /* ═════ v737 — les deux essais d'origine ═════ */
   { nom: 'Stock → Ajouter : « ＋ Liste » ne crée aucune fiche', retire: { cat_stock_ajouter: false }, dit: true,
@@ -384,6 +389,33 @@ const ESSAIS = [
     mesure: `window.__vu` },
   { nom: '   … et sans « Gérer les box », il reste là : deux cases, deux boutons', type: 'unique', attendu: 'passe', retire: { gererBoxes: false },
     geste: `openBox('bT'); for(let k=0;k<30&&!$('content').textContent.includes('BX-S-T');k++) await __attendre(100); ${ATT(200)} window.__vu=$('content').textContent.includes('BX-S-T')&&[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'').includes("delItem('boxes'"))?1:0;`,
+    mesure: `window.__vu` },
+
+  /* ═════ v739 — les décisions de Justin (23 septembre, tard le soir) ═════ */
+  { nom: 'Case « Effacer les prix pré-remplis » : sans elle, aucun prix ne s’efface', retire: { effacerPrix: false }, dit: true,
+    geste: `prixEffacer();`, mesure: nb(`db.produits.filter(p=>/sonde/i.test(p.nom||'')&&+p.prix>0)`) },
+  { nom: 'Case « Supprimer une demande de l’historique »', retire: { supprimerHistoDemandes: false }, dit: true,
+    base: `function(){ ${DEM('dmT', 'uT')} db.demandes.find(d=>d.id==='dmT').statut='valide'; }`,
+    geste: `demHistoSuppr('dmT');`, mesure: nb(`db.demandes.filter(d=>d.id==='dmT')`) },
+  { nom: 'Case « Supprimer une commande de l’historique d’une box »', retire: { supprimerHistoCommandes: false }, dit: true,
+    base: `function(){ db.bons=(db.bons||[]).filter(b=>b.id!=='bcS'); db.bons.push({id:'bcS',num:'BC-S',boxId:'bT',statut:'livree',lignes:[],date:'2026-10-06'}); }`,
+    geste: `boxCmdSuppr('bcS','bT');`, mesure: nb(`(db.bons||[]).filter(b=>b.id==='bcS')`) },
+  { nom: 'Case « Revenir sur les “c’est normal” (doublons) »', retire: { revoirDistincts: false }, dit: true,
+    base: `function(){ db.produitsDistincts=(db.produitsDistincts||[]).concat([{id:'dsS',ids:['pd1','pd2'],nom:'Essai sonde doublon'}]); }`,
+    geste: `produitsDistinctsRevoir();`, mesure: nb(`(db.produitsDistincts||[]).filter(d=>(d.ids||[]).includes('pd1'))`) },
+  { nom: 'Plans d’appâtage : un technicien SANS réglage personnel peut modifier le plan (profil par défaut)', type: 'unique', attendu: 'passe', qui: 'uK',
+    geste: `window.__vu=can('modifierPlans')?1:0;`, mesure: `window.__vu` },
+  { nom: 'Intervention SANS technicien : un DR rattaché à une équipe la trouve (recherche) pour l’affecter', retire: { planifDeplacer: false },
+    base: `function(){ db.users.find(u=>u.id==='uK').drId='uT'; db.interventions.push(Object.assign({},db.interventions.find(x=>x.id==='iZ'),{id:'iL',num:'INT-S8',titre:'Dératisation Affectersonde',techId:'',techIds:[]})); }`,
+    geste: `openSearch(); ${ATT(100)} renderSearch('Affectersonde'); window.__vu=[...document.querySelectorAll('#gsearch-res .pl-row')].filter(x=>x.textContent.includes('Affectersonde')).length;`,
+    mesure: `window.__vu` },
+  { nom: 'Historique : un COMMERCIAL (profil par défaut) lit le compte-rendu du premier technicien', type: 'unique', attendu: 'passe', qui: 'uC',
+    base: `function(){ ${HISTO_BASE('uC', 'commercial', 'Chloé')} }`,
+    geste: `$('content').innerHTML='<div>neutre</div>'; detailIntervention('iTf'); for(let k=0;k<30&&!$('content').textContent.includes('Rapport sonde du premier passage');k++) await __attendre(100); window.__vu=$('content').textContent.includes('Rapport sonde du premier passage')?1:0;`,
+    mesure: `window.__vu` },
+  { nom: 'Historique : un DR (profil par défaut) aussi', type: 'unique', attendu: 'passe', qui: 'uD',
+    base: `function(){ ${HISTO_BASE('uD', 'dr', 'Dora')} }`,
+    geste: `$('content').innerHTML='<div>neutre</div>'; detailIntervention('iTf'); for(let k=0;k<30&&!$('content').textContent.includes('Rapport sonde du premier passage');k++) await __attendre(100); window.__vu=$('content').textContent.includes('Rapport sonde du premier passage')?1:0;`,
     mesure: `window.__vu` },
 ];
 
