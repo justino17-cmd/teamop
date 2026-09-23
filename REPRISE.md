@@ -39,6 +39,60 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 23 SEPTEMBRE 2026 (soir) — POINTAGE : « DÉBUT DE JOURNÉE » ⇄ « FIN DE JOURNÉE » (v733, bêta)
+
+Justin, capture de son iPhone à l'appui : **« je veux plus ce bouton saisir manuellement, je veux
+un bouton début de journée, une fois cliqué dessus ça met le bouton en fin de journée […] et si
+ils reprennent la même journée, ça cumule, mais ça coupe la pause entre la fin et la reprise […]
+ils appuient, ça démarre, avec un historique qui se mettra en dessous. »**
+
+**Pourquoi il ne voyait que « Saisie manuelle »** : le bouton « ▶ Pointer » existait, dans une
+carte « Ma journée » réservée aux comptes reliés à une fiche du personnel. Un rôle de bureau
+(administrateur, comptable, commercial) n'en reçoit jamais — c'est le rôle qui décide
+(`roleEstTech`). Sur son compte, l'écran n'offrait donc que la saisie à la main.
+
+Ce qui change :
+- **un seul bouton, en tête de l'écran** (`ptBoutonJour`) : « Début de journée », puis
+  « Fin de journée » (teinte de l'arrêt, pleine largeur au téléphone), puis
+  « Reprendre la journée » le même jour. « Saisie manuelle » n'existe plus nulle part ;
+- **un pointage appartient à la fiche quand le compte en a une** (rien ne change pour un
+  technicien), **au compte sinon** (`userId`). `ptEstAMoi` tranche, `ptNom` nomme, et « qui a
+  pointé » n'a qu'une définition, `ptCle` — le total de fin de journée, « Par personne » et le
+  PDF (colonne PERSONNE) regroupent tous par elle ;
+- **reprendre cumule, la pause n'est pas comptée** : « Ma journée » (pour tout compte connecté)
+  montre les périodes numérotées et, entre deux, « Pause 1h30 · non comptée ». Le message le dit
+  aussi : « Journée reprise à 13:30 — pause de 1h30 non comptée », puis « Journée terminée —
+  8h00 travaillées (pauses non comptées) ». Les heures s'écrivent à la seconde, à l'heure de
+  l'appareil ;
+- **une journée restée ouverte plus de 16 h** (`PT_MAX_H`) ne se ferme pas à « maintenant » :
+  « Fin de journée » demande l'heure (`ptCloreOubli`), sinon on inscrirait 30 h à quelqu'un qui
+  en a fait 8 ;
+- un responsable qui voit les pointages de son périmètre voit aussi ceux des comptes sans fiche
+  de son équipe (`visiblePointages`).
+
+Mesuré : `tests/test-782.js` **79 ✓** (exécute 25 fonctions réelles, horloge en main),
+`tests/test-749.js` **95 ✓** ; `scratchpad/sonde-pointage.js` (vrais touchers sur le bouton de
+l'en-tête, compte sans fiche ET technicien, rechargement) **33 ✓ 0 ✗** — la même sonde sur la
+bêta v732 : **6 ✓ 31 ✗**. Jour et nuit relus en capture. Suite complète : **139 suites · 6 351
+vérifications**.
+⛔ **Deux angles morts trouvés en remettant les défauts** (15 sur 17 attrapés au premier tour) :
+retirer la ligne « Pause … non comptée » ne faisait rien tomber (le banc lisait le texte de la
+vue sans exécuter le rendu — d'où `ptMaJournee`, sortie de la vue pour être exécutée), et deux
+comptes sans fiche le même jour n'étaient jamais joués (la fin de journée de l'administrateur
+pouvait englober les heures de la comptable). Second tour : **22 défauts remis, 22 attrapés.**
+Et un petit défaut réel vu en écrivant le contrôle : une reprise dans la minute annonçait
+« pause de 0h00 » — le message a pris le seuil d'une minute de la ligne.
+
+### ⏳ EN ATTENTE DE JUSTIN — qui peut CORRIGER des heures ?
+
+Chaque ligne de l'historique porte un ✎ qui ouvre le formulaire des horaires, et **ni
+`formPointage` ni `savePointage` ne vérifient de droit** : un technicien voit ses propres lignes
+et peut donc réécrire son début et sa fin. La suppression (🗑), elle, passe par le droit
+« supprimer » de Temps & équipe. Et une correction ne laisse **aucune ligne au journal** (le
+message « Pointage mis à jour » seulement). Deux options, à lui de trancher : réserver le ✎ aux
+responsables (ceux qui voient les pointages des autres), ou le laisser à chacun mais tracer
+chaque correction au journal (qui, quand, avant → après). Rien n'a été touché.
+
 ## ✅ 23 SEPTEMBRE 2026 (soir) — « VOIR SUR LA CARTE » MONTRE LA CARTE, ET NE FLOTTE PLUS (v732, bêta)
 
 Même vidéo de Justin (iPhone, 13 h 02). Au-delà de la barre qui sautait (v731, plus bas), les
