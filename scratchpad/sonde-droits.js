@@ -50,6 +50,10 @@ const v = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), a);
 
   console.log('\n══ 1. ⛔⛔ ADMINISTRATEUR : LES CINQ CASES SONT DANS LA LIGNE DE KARIM ══');
   await entrer('uA', 'utilisateurs');
+  const R1 = await S.ev(`go('utilisateurs'); await new Promise(r=>setTimeout(r,500)); const b=document.querySelector('button[onclick="rolesGerer()"]');   /* par le GESTE : l'émoji peut devenir une icône (icones()) */
+    if(!b) return {bouton:false}; b.click(); await new Promise(r=>setTimeout(r,300)); const o=document.getElementById('overlay');
+    const t=o?o.textContent:''; try{ closeModal(true); }catch(e){} return {bouton:true, ouvre:/Nouveau rôle/.test(t), dr:/Directeur Régional/.test(t)};`);
+  v('⛔ « 🏷 Rôles » est dans l’en-tête d’Utilisateurs et ouvre la liste des rôles', R1, { bouton: true, ouvre: true, dr: true });
   const L1 = await S.ev(`usrOuvert=''; usrDeplier('uK'); await new Promise(r=>setTimeout(r,300));
     const z=document.getElementById('usr-d-uK'); if(!z) return {zone:false};
     const cat=k=>{ const i=z.querySelector('[data-d="cap_'+k+'"]'); if(!i) return null; const d=i.closest('details'); const b=d&&d.querySelector('summary b'); return {cat:b?b.textContent.trim():'', on:i.checked, deduit:i.dataset.deduit||'', lbl:((i.closest('.perm-row')||{}).textContent||'').trim()}; };   /* textContent : le volet est replié, innerText y rend du vide */
@@ -94,6 +98,8 @@ const v = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), a);
   vrai('population : le chef ouvre bien le formulaire de création', C1.form, C1);
   vrai('⛔⛔ le rôle « DR » lui est proposé (un nom ne porte rien) — « Administrateur » non', C1.roles && C1.roles.includes('dr') && !C1.roles.includes('admin'), C1.roles);
   vrai('… pas de profil de droits (réservé à l’administrateur)', C1.profil === false, C1);
+  const R2 = await S.ev(`try{ closeModal(true); }catch(e){} return !document.querySelector('button[onclick="rolesGerer()"]');`);
+  vrai('… ni le bouton « 🏷 Rôles » (réservé à l’administrateur)', R2);
   console.log('    droits du chef dans cette base :', JSON.stringify(C1.chef));
   const C2 = await S.ev(`const f=document.querySelector('#overlay form[onsubmit^="saveUser"]');
     f.querySelector('[name="prenom"]').value='Nadia'; f.querySelector('[name="nom"]').value='Lopez'; f.querySelector('[name="login"]').value='nadia';

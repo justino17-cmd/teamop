@@ -249,6 +249,14 @@ vrai('⛔ les box et véhicules proposés à un créateur qui n’est pas admini
   /if\(currentUser&&currentUser\.role!=='admin'\) bs=visibleBoxes\(bs\);/.test(SRC) && /if\(currentUser&&currentUser\.role!=='admin'\) vs=visibleVehicules\(vs\);/.test(SRC));
 vrai('… et la boucle de création le vérifie (test-710 l’exécute)', /if\(currentUser\.role!=='admin'&&!visibleBoxes\(\[b\]\)\.length\) return;/.test(su) && /if\(currentUser\.role!=='admin'&&!visibleVehicules\(\[v\]\)\.length\) return;/.test(su));
 
+/* « …et les rôles dans les paramètres utilisateur » : la liste des rôles ne s'atteignait que par un
+   lien au milieu du formulaire d'un compte. Elle a désormais son bouton dans l'en-tête d'Utilisateurs,
+   à côté des profils — pour l'administrateur seul, comme rolesGerer elle-même. */
+const vu = bloc('views.utilisateurs=function(){');
+vrai('⛔ « 🏷 Rôles » est dans l’en-tête d’Utilisateurs, réservé à l’administrateur',
+  /\(currentUser&&currentUser\.role==='admin'\?`<button class="btn ghost" onclick="rolesGerer\(\)"[^>]*>🏷 Rôles<\/button>/.test(vu), vu.slice(0, 120));
+vrai('… et rolesGerer se garde elle-même', /function rolesGerer\(\)\{\n  if\(!currentUser\|\|currentUser\.role!=='admin'\)\{ toast\('Réservé aux administrateurs'\); return; \}/.test(SRC));
+
 console.log('\n── 789 · 8. ⛔⛔ plus AUCUNE décision prise sur le nom d’un rôle ──');
 /* Recensement sur tout le fichier, commentaires retirés : `role==='dr'`, `['admin','dr',…].includes(…role)`…
    Deux lectures restent, NOMMÉES : ce sont des DÉFAUTS, pas des décisions — et elles ne donnent

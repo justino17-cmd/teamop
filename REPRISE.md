@@ -39,6 +39,120 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ⛔⛔ SERVEUR — CE QUE LE GARDIEN A RELU AVANT UN DÉPLOIEMENT « INERTE » (23 septembre 2026, nuit) — ATTEND JUSTIN
+
+Question : peut-on pousser `server/` de la branche sur `main` (donc déployer le VPS) avec les deux
+drapeaux du socle éteints, sans rien changer pour les clients ? Relu par `gardien` : **993 ✓ 0 ✗**
+sur les dix bancs serveur de la branche, `npm audit` propre, et les DEUX serveurs réels (main contre
+branche) démarrés côte à côte sur une configuration identique à celle du VPS (sans champ `socle` ni
+`comptes`, sans clé maître) : même 123 routes plus une (`GET /api/monitor/conservation`, gardée),
+`/api/op/*` et `/api/comptes/*` en 404, aucun fichier `socle*` créé.
+
+**Verdict : déployable éteint, OUI — à quatre conditions. Et ce n'est PAS « sans effet ».**
+1. **Un commit qui ne porte QUE `server/`**, jamais la fusion de la branche (elle publierait
+   `app.html` v737 : +8 900 lignes). ⚠️ Et ce commit part **SANS AUCUN BANC** : le job `bancs` de
+   `deploiement.yml` n'existe QUE sur la branche (vérifié : sur `main`, un seul job, `deployer`).
+   Apporter la porte telle quelle bloquerait le déploiement (67 suites lisent l'`app.html` de la
+   branche) ; il faudrait un job `bancs` restreint aux suites serveur (726, 724, 641, 716, 722, 723,
+   725, 729, 745 passent en simulation).
+2. **Justin accepte — ou fait corriger — deux changements** :
+   · la **suspension change de sens, à moitié** : `/api/espaces/etat` ne renvoie plus `ferme:true`
+     à un suspendu et `/suspendre` ne coupe plus Firebase (c'est sa décision du 20 septembre), MAIS
+     `/api/fb/jeton` et `/api/espaces/ouvrir` refusent encore un suspendu en 403. Chez un client v695
+     suspendu : les appareils connectés gardent tout, un appareil neuf tombe sur l'écran de refus,
+     et rien ne grise tant que Stripe dit `past_due` (compté comme payé) ;
+   · **`/health` (public) publierait des chiffres commerciaux** : `conservation.suivis`,
+     `jamaisAbonnes`, `enPreavis`, `echus` — le nombre d'espaces qui ne paient pas. Proposition :
+     n'y laisser que `actif`, `balayageOk` et deux booléens.
+3. **Deux comptages sur le VPS AVANT** (sans lire `config.json`, sans rien nommer) : le nombre
+   d'entrées `suspendus` dans `data/entreprises-fermees.json`, et le nombre d'espaces d'`espaces.json`
+   qui portent un `codePromo` absent de `promos-usages.json`. ⚠️ L'horloge de conservation se monte
+   SANS drapeau et appelle `espacePaye()` au démarrage : un code promo en attente s'active tout seul
+   (compteur +1, courriel au client) — mesuré sur le serveur réel. Garder une copie de
+   `promos-usages.json` pour comparer après.
+4. **La copie mensuelle de la sauvegarde s'allume par défaut** (une archive complète de plus par
+   mois au coffre, 24 gardées) : l'accepter, ou poser `"mensuel": false` dans la configuration.
+
+Juste après le déploiement, `curl -s localhost:8080/health` doit rendre `ok:true`,
+`routesDoublons:0`, `socle:{actif:false}` et `portail` éteint sans `erreur`, `conservation.actif`
+et `balayageOk` vrais, `sauvegarde` active sans échec ; `ls /opt/teamop/data | grep socle` → rien ;
+`POST /api/op/session` → 404 ; le journal sans « NON monté » ni « DEUX FOIS ». Le lendemain : la
+sauvegarde de la nuit `ok`, et une seule copie sous `teamop/mensuel/`.
+
+## ✅ 23 SEPTEMBRE 2026 (nuit) — LE RÔLE N'EST QU'UN NOM : CHAQUE RÈGLE EST UNE CASE (v737, bêta)
+
+Justin, mot pour mot : **« tout ce qui est quand on avait dit technicien, DR, qu'on avait
+pré-enregistrés, c'est juste des noms, c'est pas des rôles — tout doit être sélectionné : qu'est-ce
+qu'il voit, qu'est-ce qu'il voit pas, qu'est-ce qu'il peut faire, qu'est-ce qu'il peut pas faire.
+Oublie pas d'ajouter aussi toutes les nouvelles règles et rôles dans les paramètres utilisateur. »**
+
+### Ce que la relecture du modèle de droits a trouvé
+
+- **Trois règles des v735-736 n'avaient pas de case** : voir les fiches de son équipe, corriger des
+  heures, régler les champs de gestion d'une fiche — déduites de « Tout voir » / « Voir les
+  pointages », impossibles à donner ou à retirer à une personne.
+- **Dix décisions tenaient encore au NOM du rôle** (`role==='dr'`, `['admin','dr','chefEquipe',
+  'commercial'].includes(role)`…) : gérer les groupes de discussion, la carte « Mon e-mail
+  professionnel », « Ta journée », l'onglet « Supprimées » des interventions, cinq familles de
+  notifications (alertes de box, stock bas, enveloppes, travaux terminés, matériel pris).
+- **La création de comptes interdisait « DR » par son nom, et ne bornait rien d'autre.** Mesuré sur
+  la bêta d'avant : un chef d'équipe SANS comptabilité créait un « Gestion compta » qui l'avait.
+- **« Stock → Ajouter » ne fermait qu'une porte sur dix** : seul « ＋ Produit » le lisait ;
+  « ＋ Liste », 🏭 à l'unité et en bloc, le pont de la recherche, l'onglet Fournisseurs de la box,
+  « ajouter à mon stock » depuis une intervention, la case d'un produit recommandé, « ↻ Catalogue
+  OP » et la bulle du pack créaient des fiches sans le consulter. `test-747` ne les voyait pas :
+  il cherchait `db.produits.push(`, et une fiche naît par `produitCreer`.
+
+### Ce qui a changé
+
+- **Cinq cases neuves**, dans la ligne de chaque personne (Utilisateurs) et dans les profils :
+  « Voir les fiches de son équipe », « Corriger les pointages », « Régler les fiches du personnel »
+  (Temps & équipe) ; « Gérer les groupes de discussion », « Envoyer depuis son adresse e-mail pro »
+  (Communication). Leur DÉFAUT se déduit d'autres cases, jamais du nom (`capDeduitRegle`), et
+  reproduit la veille ; à l'écran une case déduite suit ses bases en direct (cocher « Tout voir »
+  coche « Voir les fiches »…) et ne s'écrit que si on la touche.
+- **Les dix décisions lisent une case** (liste exacte : `tests/test-789.js` §8). Il ne reste que
+  deux lectures du nom, qui sont des DÉFAUTS et pas des décisions : le gabarit de menus d'un rôle
+  sans réglage (`moduleReglage`) et la reprise de la v585 (`moduleHeriteRole`) — nommées dans le banc.
+- **Personne ne donne un droit qu'il n'a pas** (`droitsBorner`) : un non-administrateur peut créer
+  un compte de n'importe quel rôle sauf Administrateur ; le compte ne reçoit aucune case, aucune
+  action de catégorie, aucun menu, aucune dispense de validation DR que son créateur n'a pas — et
+  le créateur le lit (« Compte créé sans N droits que tu n'as pas toi-même… »). Box et véhicules
+  proposés : les siens seulement.
+- **Les dix portes de création de fiches produit consultent « Stock → Ajouter »**, les fenêtres
+  refusent dès l'ouverture ; le scanner du catalogue (qui règle un stock) consulte « Stock → Modifier ».
+- **Saisie d'heures à la main** : le menu ne proposait TOUTE l'entreprise ; il ne propose plus que
+  son périmètre, et l'enregistrement le vérifie.
+- La question laissée ouverte en v736 (« un technicien peut-il régler son propre secteur ? ») se
+  règle maintenant dans l'écran : c'est la case « Régler les fiches du personnel ».
+- **« 🏷 Rôles » a son bouton dans l'en-tête d'Utilisateurs**, à côté des profils (administrateur
+  seul) : la liste des rôles ne s'atteignait que par un lien au milieu du formulaire d'un compte.
+
+### ⚠️ Ce qui change pour un compte existant le jour de la mise à jour
+
+Rien ne se retire à personne. Trois gains, écrits pour qu'on ne les découvre pas :
+- un **chef d'équipe** voit la carte « Mon e-mail professionnel » (il y règle SA propre adresse ;
+  la veille elle était réservée à « admin, dr, commercial, compta ») ;
+- **qui a le droit de valider** sans s'appeler « DR » reçoit aussi les alertes de stock bas des box,
+  des enveloppes en attente et des secteurs sans technicien (la veille : « admin ou dr » par nom) ;
+- **qui a « Tout voir »** sans être admin/DR/chef reçoit « matériel pris dans une box » — pour les
+  seules box qui le nomment.
+Et un compte nommé « DR » ou « chef d'équipe » à qui l'on aurait RETIRÉ « Tout voir » reçoit
+désormais « Ta journée » le matin s'il a des interventions (il ne voit que les siennes).
+
+### Mesuré
+
+`tests/test-789.js` **86 ✓** (neuf : exécute userCap, capDeduitRegle, droitsBorner, l'éditeur, la
+validation) ; `test-747` **49 ✓** (voit 61 chemins de création, dont les appelants de produitCreer et
+de cataloguePoser) ; `test-786` **84 ✓** (sur les VRAIS userCap/can) ; `test-787` **42 ✓** ;
+`test-778` **46 ✓** ; `test-710` **34 ✓**. **51 mutations, 51 attrapées** — une passait au premier
+tour (« ↻ Catalogue OP » sans garde : la découpe de `test-747` débordait sur la fonction voisine,
+qui porte la même garde — le piège écrit dans CLAUDE.md).
+`scratchpad/sonde-droits.js` (vraie page, vraies connexions) **37 ✓** ; sur la bêta d'avant
+**15 ✓ 20 ✗** — dont le « Gestion compta » créé par un chef avec la comptabilité en trop.
+Relecture par `relecteur` : en cours au moment de ce commit — son verdict s'ajoute ici.
+Suite complète : **146 suites · 6 804 vérifications, code de sortie 0**.
+
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — LE SCANNER LIT L'ÉTIQUETTE, TOUT VIDE POUR LES NOUVELLES ENTREPRISES, LA PORTE DE SECTEURS (v736, bêta)
 
 Deux demandes de Justin, le même message (capture du scanner à l'appui, réduit sur son iPhone au
@@ -127,6 +241,10 @@ une décision de Justin, et ce n'est PAS « sans effet » : `index.js` porte aus
 utilise déjà, `sauvegarde.js` touche la sauvegarde qui tourne, et `PLAFOND_PIECES` (le plafond
 anti-abus des pièces jointes que la bêta publiée appelle déjà) n'y est pas. **Question posée à
 Justin le 23 septembre au soir** ; en attendant, le chantier serveur continue sur la branche.
+→ Le verdict du `gardien` (déployable éteint, à quatre conditions) est plus haut, section
+« SERVEUR — CE QUE LE GARDIEN A RELU ».
+⚠️ Et `PLAFOND_PIECES` : c'était vrai de la v736 publiée ; le `gardien` a vérifié que la v695 de
+production n'appelle pas `/api/pieces/*` — aucun effet client aujourd'hui.
 
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — L'ÉQUIPE PAR PERSONNE, LE ✎ AUX RESPONSABLES, ET SES DÉCISIONS (v735, bêta)
 

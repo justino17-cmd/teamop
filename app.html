@@ -29694,7 +29694,7 @@ views.utilisateurs=function(){
   const places=planPlaces();
   const peutCreer=admin||can('creerUtilisateurs');   // voir la rubrique ne suffit pas pour créer des comptes
   setHeader('Utilisateurs',`${db.users.length} / ${places} place(s) de l'abonnement`,
-    (currentUser&&currentUser.role==='admin'?`<button class="btn ghost" onclick="profilsGerer()">🎛 Profils${profilsDroits().length?' · '+profilsDroits().length:''}</button> `:'')
+    (currentUser&&currentUser.role==='admin'?`<button class="btn ghost" onclick="rolesGerer()" title="Les noms de rôle de l'entreprise — un rôle n'ouvre aucun droit">🏷 Rôles</button> <button class="btn ghost" onclick="profilsGerer()">🎛 Profils${profilsDroits().length?' · '+profilsDroits().length:''}</button> `:'')
     /* ⛔ LE BOUTON N'APPARAÎT QUE S'IL Y A QUELQUE CHOSE À VOIR. Un bouton qui ne fait rien
        apprend à cliquer pour rien — même raison que le « Tout remettre à zéro » de la Tour. */
     +((admin&&(db.users||[]).some(u=>u&&u.actif!==false&&exclusionsPrivantes(u).length))

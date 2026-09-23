@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**145 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 au soir —
+**146 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 au soir —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 145 suites · 6 671 vérifications (mesuré le 23/09/2026, v736)
+bash scripts/bancs-ci.sh        # 146 suites · 6 804 vérifications (mesuré le 23/09/2026, v737)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -596,6 +596,24 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   C'est la jumelle de « une assertion sur un ensemble vide » : là on ne comptait rien, ici on
   comptait le mauvais refus. **Quand une mesure refuse, demander CE QUI refuse** — le message
   affiché le dit souvent, et il faut le lire plutôt que compter un delta à zéro.
+- ⛔⛔ **UN RÔLE EST UN NOM : UNE RÈGLE NEUVE EST UNE CASE, JAMAIS `role==='dr'`.** Justin,
+  23 septembre 2026 : « technicien, DR… c'est juste des noms, c'est pas des rôles ; tout doit être
+  sélectionné — ce qu'il voit, ce qu'il ne voit pas, ce qu'il peut faire ». Mesuré ce jour-là : dix
+  décisions tenaient encore au NOM (groupes de discussion, e-mail pro, « Ta journée », l'onglet
+  « Supprimées », cinq familles de notifications) et les trois règles des v735-736 n'avaient pas de
+  case. Une règle neuve entre dans `USER_CAPS` (libellé + ce qu'elle ouvre) ET dans `PERM_SPECIAUX`
+  (sa catégorie) : elle paraît alors d'elle-même sur la ligne de chaque personne et dans les
+  profils. Si elle doit reproduire un comportement d'avant, son DÉFAUT se déduit d'autres cases dans
+  `capDeduitRegle` — jamais du nom du rôle — et l'éditeur la fait suivre ses bases en direct
+  (`usrDeduireZone`) sans l'écrire tant qu'on n'y touche pas. `tests/test-789.js` §8 recense tout le
+  fichier et n'admet que deux lectures du nom, nommées (le gabarit de menus, la reprise de la v585).
+  ⛔ **Et personne ne donne un droit qu'il n'a pas** : un compte créé par un non-administrateur passe
+  par `droitsBorner`. Interdire un NOM (« un chef ne crée pas de DR ») n'était pas une garde — mesuré
+  sur la v736, un chef sans comptabilité créait un « Gestion compta » qui l'avait.
+  ⛔ Corollaire, même jour : **une case de création se lit à TOUTES les portes**. « Stock → Ajouter »
+  ne gardait que « ＋ Produit » ; dix autres chemins créaient des fiches (＋ Liste, 🏭, la box, une
+  intervention, « ↻ Catalogue OP »…). `test-747` compte désormais les appelants de `produitCreer` et
+  de `cataloguePoser` — ils ne s'écrivent pas `db.produits.push(`.
 - ⛔ **LES BONS DE COMMANDE ONT LEUR PROPRE DROIT, PAS CELUI DE LEUR CATÉGORIE.** Tout le
   circuit passe par `peutCommander()` — c'est-à-dire `!userCap(u,'bonsLectureSeule')` —, avec
   **15 sites d'appel** (`formBon`, `bonFourNew`, `bonSuggere`, `bonDupliquer`, les envois…).
@@ -1695,6 +1713,17 @@ tournaient, et leur échec ne rattrapait rien.
 contourner par une modification de `ci.yml`. `tests/test-728.js` lit la DÉPENDANCE entre jobs,
 pas l'intention — retirer le `needs` fait tomber le banc. **Cela ne remplace pas la règle
 ci-dessus** : les bancs verts autorisent le déploiement, ils ne décident pas de le faire.
+
+⛔⛔ **CETTE PORTE N'EXISTE QUE SUR LA BRANCHE — PAS SUR `main`, QUI EST CELUI QUI DÉPLOIE.**
+Vérifié le 23 septembre 2026 au soir (`git show origin/main:.github/workflows/deploiement.yml`) :
+sur `main`, un seul job, `deployer`, sans `needs`. Le paragraphe ci-dessus décrit le fichier de la
+branche de travail, jamais reporté sur `main` — et il ne peut pas l'être tel quel : les bancs de la
+branche lisent son `app.html` (v737), `main` sert la v695, et 67 suites tomberaient (simulé par
+`gardien`). **Un push de `server/` sur `main` part donc SANS AUCUN BANC** tant qu'un job `bancs`
+restreint aux suites SERVEUR n'y est pas posé (726, 724, 641, 716, 722, 723, 725, 729, 745 passent
+contre l'`app.html` de `main`). `test-728` ne peut pas le voir : il lit le fichier de la branche.
+C'est la leçon de `mailRefus`, par l'autre bout : une garde décrite dans ce fichier n'est pas une
+garde — aller lire le fichier qui DÉPLOIE, sur la branche qui déploie.
 
 ## La bêta : un outil de développement, jamais un canal public
 
