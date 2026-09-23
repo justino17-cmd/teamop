@@ -126,8 +126,12 @@ const iR = SRC.indexOf('function segRepositionner(');
 vrai('⛔ tourner la tablette RÉÉVALUE chaque groupe (segInit), pas seulement les segmentés', iR > 0 && /segInit\(document\)/.test(SRC.slice(iR, iR + 700)));
 
 console.log('\n── 776 · 6. deux boutons flottants ne se couvrent plus, même sans barre ──');
-const fab = regle('html[data-refonte] body:has(#assistant > .fab) .plm-fab{bottom:calc(24px + 58px + 10px)!important}');
-vrai('⛔ « Voir sur la carte » monte au-dessus de la bulle d’aide À TOUTE LARGEUR (hors bloc téléphone)', !!fab && fab.media === '', fab && fab.media);
+/* La bulle d'aide Leia a été retirée le 23 septembre 2026 : il n'y a plus qu'UN bouton flottant
+   dans ce coin. La règle qui y montait « Voir sur la carte » part avec la bulle — conditionnée à
+   sa présence (`:has`), elle ne s'appliquait déjà plus ; la laisser, c'était garder une garde
+   pour du vide. */
+vrai('⛔ plus aucune bulle d’aide dans le coin : ni élément, ni règle qui monte un bouton au-dessus d’elle',
+  !/id="assistant"/.test(SRC) && !/#assistant/.test(SRC) && !regle('.plm-fab{bottom:calc(24px + 58px'));
 /* v732 : sous 780 px, le bouton ne flotte plus du tout — il couvrait le bandeau des jours, le zoom
    et les Réglages (vidéo de Justin du 23). Le nouveau placement est gardé par test-781. */
 const fabTel = regle('html[data-refonte] body .plm-fab{display:none!important}');
@@ -266,10 +270,13 @@ console.log('\n── 776 · 13. « Ma journée », l’écran du technicien, ti
     /position:fixed;left:12px;right:12px;/.test(fB) && /margin:0 auto;width:max-content;max-width:min\(\d+px,calc\(100vw - 24px\)\)/.test(fB) && !/left:50%/.test(fB));
   vrai('… son message garde une ligne à lui quand tout ne tient pas (base 220 px, boutons dessous à droite)',
     /flex-wrap:wrap/.test(fB) && /<span style="flex:1 1 220px;min-width:0">/.test(fB) && /style="flex-shrink:0;margin-left:auto"/.test(fB));
-  vrai('… et il passe au-dessus de la barre d’onglets, comme les messages', /body\.rf-onglets #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 76px\)!important\}/.test(SRC));
-  const hb = regle('html[data-refonte] body:has(#assistant > .fab) #fdr-banner{bottom:calc(24px + 58px + 12px)!important}');
-  vrai('⛔ … et, sans barre d’onglets (tablette, ordinateur), au-dessus de la bulle d’aide qu’il atteint une fois élargi',
-    !!hb && /min-width:781px/.test(hb.media), hb && hb.media);
+  /* Leia retirée le 23 septembre 2026 : le rappel ne se pose plus AU-DESSUS de sa bulle (76 px),
+     il redescend à 10 px de la barre d'onglets, comme les messages — sinon un trou de 56 px. */
+  vrai('… et il se pose juste au-dessus de la barre d’onglets, comme les messages',
+    /body\.rf-onglets #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 10px\)!important\}/.test(SRC)
+    && /body\.rf-onglets \.toast\{bottom:calc\(var\(--tabh\) \+ 10px\)!important/.test(SRC));
+  vrai('⛔ … et il monte au-dessus du bouton d’OP MESSAGES SEULEMENT quand celui-ci est affiché (:has)',
+    /body\.rf-onglets:has\(#msg-flot\[style\*="flex"\]\) #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 80px\)!important\}/.test(SRC));
   vrai('la preuve au navigateur existe (en technicien, quatre appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-ma-journee.js'))); }
 
 console.log('\n── 776 · 14. une boîte centrée par « left:50% » se mesure sur la moitié de son cadre ──');

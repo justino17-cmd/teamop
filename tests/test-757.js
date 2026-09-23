@@ -634,9 +634,12 @@ console.log('\n══ 7. UNE SEULE BARRE DU BAS ══\n');
      Tout dérive désormais de `--tabh`, qui dit la place prise sur CETTE plateforme. */
   vrai('⛔⛔ le contenu se décale d’après --tabh, jamais d’un chiffre écrit à la main',
     /body\.rf-onglets \.content\{padding-bottom:calc\(var\(--tabh\) \+ 16px\)!important\}/.test(NU));
-  vrai('⛔ … et la bulle d’aide aussi (une barre qui monte fait monter ce qui flotte au-dessus)',
-    /body\.rf-onglets #assistant > \.fab\{bottom:calc\(var\(--tabh\) \+ 10px\)!important\}/.test(NU));
-  vrai('⛔ … et le message de confirmation', /body\.rf-onglets \.toast\{bottom:calc\(var\(--tabh\) \+ 66px\)/.test(NU));
+  /* La bulle d'aide Leia a été retirée le 23 septembre 2026 (Justin : « on supprime totalement ») :
+     ce qui flottait AU-DESSUS d'elle redescend à 10 px de la barre, d'après --tabh toujours. */
+  vrai('⛔ … et le message de confirmation aussi, posé juste au-dessus de la barre (plus de bulle à éviter)',
+    /body\.rf-onglets \.toast\{bottom:calc\(var\(--tabh\) \+ 10px\)!important/.test(NU));
+  vrai('⛔ la bulle d’aide n’existe plus : ni élément, ni règle qui la vise',
+    !/id="assistant"/.test(NU) && !/#assistant\b/.test(NU) && !/class="fab"/.test(NU));
   vrai('⛔⛔ ANDROID EST FIGÉ — Justin l’a demandé, ce n’est pas un oubli',
     /html\[data-refonte\]\[data-os="android"\] \.tabbar \.tab\{padding:10px 14px!important/.test(NU)
     && /html\[data-os="android"\] \.tab-ic\{font-size:19px\}/.test(NU));

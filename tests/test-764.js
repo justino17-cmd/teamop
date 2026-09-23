@@ -62,8 +62,10 @@ vrai('⛔ `#tabbar` est écarté du balayage de PAGE (la bulle a le sien)', /'#t
 /* ⚠️ Ce qui reste exclu l’est pour une vraie raison : un tiroir, un voile, un panneau et la
    barre du haut ne sont pas des rubriques qu’on parcourt. Les retirer ferait naviguer
    pendant qu’on fait autre chose. */
-['.sidebar','#overlay','#assistant','.topbar'].forEach(s=>
+['.sidebar','#overlay','.topbar'].forEach(s=>
   vrai(`… et « ${s} » reste exclu (ce n’est pas une rubrique qu’on parcourt)`, (HORS||'').includes(s)));
+/* La bulle d'aide Leia (`#assistant`) a été retirée le 23 septembre 2026 : son entrée part avec elle. */
+vrai('… et la bulle d’aide retirée n’y est plus', !(HORS||'').includes('#assistant'));
 
 console.log('\n══ 2. ⛔ LE CLIC QUI SUIT UN BALAYAGE EST AVALÉ ══\n');
 const GESTE=(()=>{ const d=NU.indexOf('function ongletsGeste(){');
@@ -121,14 +123,12 @@ console.log('\n══ 4. ⛔ LES DEUX BOUTONS FLOTTANTS NE SE MARCHENT PLUS DESS
      780 px, il flotte toujours, monté au-dessus de la bulle. */
   vrai('⛔ au téléphone, « Voir sur la carte » ne flotte plus (il ne peut plus couvrir la bulle)',
        /html\[data-refonte\] body \.plm-fab\{display:none!important\}/.test(t));
-  const m=t.match(/html\[data-refonte\] body:has\(#assistant > \.fab\) \.plm-fab\{([^}]*)\}/);
-  vrai('⛔ ailleurs, il monte au-dessus de la bulle', !!m);
-  if(m) vrai('… d’au moins la hauteur de la bulle (58 px) plus un écart',
-             /\+\s*58px\s*\+/.test(m[1]) || /\+\s*7[0-9]px/.test(m[1]));
-  /* ⚠️ La règle se conditionne à la PRÉSENCE de la bulle : sans elle, le bouton redescend et
-     ne laisse pas un trou de 80 px au-dessus de la barre. Même discipline que le
-     soulignement d’onglet (test-763). */
-  vrai('⛔ … et seulement quand la bulle est là (:has)', /:has\(#assistant > \.fab\)/.test(t)); }
+  /* 23 septembre 2026 : la bulle d'aide Leia est RETIRÉE (Justin : « on supprime totalement »).
+     La règle qui montait « Voir sur la carte » au-dessus d'elle était conditionnée à sa présence
+     (`:has`) — c'est ce qui permettait de la retirer sans laisser de trou. Elle part avec elle :
+     une règle qui attend un élément qui n'existe plus est du code mort qui a l'air d'une garde. */
+  vrai('⛔ ailleurs, plus aucune règle ne le monte au-dessus d’une bulle disparue', !/#assistant/.test(t));
+  vrai('⛔ … et plus aucune bulle d’aide dans la page', !/id="assistant"/.test(t) && !/class="fab"/.test(t)); }
 
 console.log('\n══ 4 bis. ⛔ LES MENUS DE LA BARRE D’OUTILS NE SE MESURENT PAS SUR LEUR BOUTON ══\n');
 /* Justin, capture à l'appui : une colonne blanche au milieu de l'écran avec

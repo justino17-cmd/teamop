@@ -153,8 +153,10 @@ v('… et ce sont les SEULES règles qui visent ce bouton (une troisième pourra
   ['.ph-actions .plan-carte-tete{display:none!important}', 'html[data-refonte] .ph-actions .plan-carte-tete{display:inline-flex!important}'].sort());
 vrai('plus AUCUNE règle ne monte le bouton au-dessus de la bulle AU TÉLÉPHONE (elle serait morte)',
   !/body\.rf-onglets(:has\(#assistant > \.fab\))? \.plm-fab\{\s*bottom:/.test(SRC));
-const fab = regle('html[data-refonte] body:has(#assistant > .fab) .plm-fab{bottom:calc(24px + 58px + 10px)!important}');
-vrai('au-dessus de 780 px, il flotte toujours, monté au-dessus de la bulle', !!fab && fab.media === '', fab && fab.media);
+/* La bulle d'aide Leia a été retirée le 23 septembre 2026 : au-dessus de 780 px le bouton flotte
+   toujours, mais SEUL dans son coin — plus rien à éviter, donc plus de règle qui le monte. */
+vrai('au-dessus de 780 px, il flotte toujours, seul dans son coin (plus de bulle à éviter)',
+  /<button class="plm-fab" onclick="planDispSet\('cote'\)"/.test(SRC) && !/#assistant/.test(SRC) && !regle('.plm-fab{bottom:calc(24px + 58px'));
 
 const iP = SRC.indexOf('views.planning=function(){');
 const planning = iP > 0 ? SRC.slice(iP, SRC.indexOf('let body=', iP)) : '';
@@ -182,7 +184,10 @@ vrai('… elle TOUCHE pour de vrai (Input.dispatchTouchEvent), elle n’appelle 
 vrai('… elle exige la carte ENTIÈRE entre la barre du haut et la barre d’onglets', /q\.top>=h-1 && q\.bottom<=b\+1/.test(SONDE));
 vrai('… dans les vues semaine, jour et mois', /\['semaine','jour','mois'\]/.test(SONDE));
 vrai('… elle regarde l’ouverture ET le bas de page, et compte sa population', /window\.scrollTo\(0,1e6\)/.test(SONDE) && /regardeesBas/.test(SONDE) && /population/.test(SONDE));
-vrai('… la bulle d’assistance est comptée À PART, nommée — jamais mêlée au verdict', /c\.par!=='bulle'/.test(SONDE) && /connu, compté à part/.test(SONDE));
+/* Leia retirée le 23 septembre 2026 : la bulle n'est plus « connue et comptée à part », son compte
+   DOIT être zéro — et la sonde vérifie qu'il n'y a plus de bulle du tout dans la page. */
+vrai('⛔ … la bulle d’assistance n’est plus tolérée : zéro commande cachée par elle, et plus de bulle dans la page',
+  /c\.par!=='bulle'/.test(SONDE) && /!parBulle\.length/.test(SONDE) && /document\.querySelector\('#assistant, \.fab'\)/.test(SONDE));
 vrai('⛔ … et pas la barre du HAUT (`.creer-btn`) : du contenu qui défile sous une barre fixe n’est pas caché',
   !/const FLOTTANTS='[^']*creer-btn/.test(SONDE));
 vrai('… elle sait tourner sur une bêta d’avant (contre-épreuve)', /process\.env\.SOURCE/.test(SONDE));

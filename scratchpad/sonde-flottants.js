@@ -13,10 +13,10 @@
    3. « Voir sur la carte », touché POUR DE VRAI (`Input.dispatchTouchEvent`) dans les vues
       semaine, jour et mois : la carte doit être ENTIÈREMENT entre la barre du haut et la barre
       d'onglets. Mesuré sur la v731 : elle s'ouvrait à 2 187 px, sous tout le planning.
-   ⚠️ La bulle d'assistance cache encore, selon la hauteur de l'écran, une commande ou deux à
-   l'ouverture (c'est le lot de toute bulle flottante : on fait défiler, et la question 2 garantit
-   qu'on peut). Elle est comptée À PART et NOMMÉE, jamais mêlée au verdict : la sortir du calque
-   flottant (à côté de la barre d'onglets, comme iOS 26) est une décision de Justin — REPRISE.md.
+   ⚠️ La bulle d'assistance (Leia) cachait encore, selon la hauteur de l'écran, une commande ou
+   deux à l'ouverture. Justin a tranché le 23 septembre 2026 au soir : « on supprime la bulle
+   Leia, totalement ». Elle reste comptée À PART — et désormais ce compte DOIT être zéro, sur une
+   page qui ne porte plus la bulle du tout (sur une bêta d'avant, la contre-épreuve la retrouve).
    ⛔ On compte la population (écrans, commandes regardées, vues de carte jouées).
    ⛔ Bêta uniquement, copie locale servie en 127.0.0.1.                                     */
 const path=require('path');
@@ -81,8 +81,9 @@ const BULLE='#assistant > .fab';
   const surPlanning=haut.filter(c=>c.vue==='planning' && c.centre);
   vrai('⛔ sur le Planning, aucun centre caché — ni par « Voir sur la carte », ni par la bulle', !surPlanning.length, surPlanning.map(c=>'« '+c.t+' » sous '+c.par));
   const parBulle=haut.filter(c=>c.centre && c.par==='bulle');
-  console.log(`  ⚠ connu, compté à part — centres cachés par la BULLE d'assistance à l'ouverture : ${parBulle.length}`);
   parBulle.forEach(c=>console.log(`     · ${c.vue} — « ${c.t} » (${c.cl}) y ${c.y}`));
+  vrai('⛔ la bulle d’assistance est RETIRÉE : aucune commande cachée par elle, et plus de bulle dans la page',
+    !parBulle.length && !(await S.ev(`return !!document.querySelector('#assistant, .fab')`)), parBulle.length);
   const effleures=haut.filter(c=>!c.centre);
   console.log(`  (commandes seulement effleurées — un coin, pas le centre : ${effleures.length})`);
 

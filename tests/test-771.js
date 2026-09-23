@@ -97,8 +97,11 @@ for (const f of ['app.html', 'beta.html']) {
     /html\[data-refonte\] \.bdt-row > \.bdt-val\[onclick\]\{align-self:stretch;margin-top:-15px;margin-bottom:-15px;\s*padding-top:15px;padding-bottom:15px\}/.test(doigt));
   vrai('⛔ « ✓ Confirmé » (qui annule) a le plancher : règle et classe',
     regle('html[data-refonte] .tele-conf', 'min-height:38px') && /<span class="tele-conf" onclick="teleConfirmeBasc\(/.test(SRC));
-  vrai('⛔ le bas du contenu dégage la bulle de Leia, pas seulement la barre d’onglets',
-    /html\[data-refonte\] body\.rf-onglets:has\(#assistant > \.fab\) \.content\{padding-bottom:calc\(var\(--tabh\) \+ 84px\)!important\}/.test(SRC));
+  /* La bulle de Leia couvrait « Envoyer » en fin de page : le bas du contenu la dégageait (84 px).
+     Leia retirée le 23 septembre 2026, le dégagement part avec elle — sinon un trou de 68 px
+     sous chaque page. Il reste celui de la barre d'onglets, d'après --tabh. */
+  vrai('⛔ le bas du contenu ne dégage plus une bulle disparue — seulement la barre d’onglets',
+    !/#assistant > \.fab/.test(SRC) && /html\[data-refonte\] body\.rf-onglets \.content\{padding-bottom:calc\(var\(--tabh\) \+ 16px\)!important\}/.test(SRC));
 
   /* ── 4. Safari ne zoome plus : TOUT champ saisissable est à 16 px au doigt ── */
   const zoom = (doigt.match(/[^{}]*\{font-size:16px!important\}/g) || []).join(' ');

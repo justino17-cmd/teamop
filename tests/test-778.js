@@ -10,9 +10,13 @@
    La règle, une fois par jour et par personne (`accueilJournee`) :
    · un TECHNICIEN qui a des interventions aujourd'hui → « Ta journée », ses retards compris ;
    · tous les autres (un responsable : administrateur, DR, chef d'équipe ; un technicien sans
-     intervention ce jour-là) → les rappels de Leia, comme avant ;
-   · la toute première fois → la bienvenue, rien d'autre.
-   Rien n'est perdu : « Rappels » reste dans la bulle 💬, à la demande.
+     intervention ce jour-là) → leurs rappels sont dans la CLOCHE.
+
+   ⛔ 23 SEPTEMBRE 2026 AU SOIR — LEIA EST RETIRÉE. Justin : « on supprime la bulle Leia, on
+   supprime totalement, on fera un vrai agent dans le futur ». Plus de bulle, plus de bienvenue
+   qu'elle ouvrait, plus de rappels qu'elle ouvrait chaque matin. Ce qu'elle était SEULE à dire
+   (les interventions en retard, les factures impayées) est passé dans la cloche — la section 3
+   l'EXÉCUTE. La visite guidée et « Signaler un problème » vivent dans Paramètres → Aide.
 
    Ce banc EXÉCUTE la vraie `accueilJournee` extraite du fichier livré — une règle se mesure à ce
    qu'elle laisse passer, pas au texte qui la nomme. Le comportement de bout en bout (vrai
@@ -55,11 +59,11 @@ v1: {
   vrai('⛔ un technicien qui a une intervention aujourd’hui → « Ta journée »', jouer(tech, jour) === true);
   vrai('… même quand elle ne porte que l’ancien champ `techId`', jouer(tech, [{ date: AUJ, techId: 't1', statut: 'encours' }]) === true);
   vrai('⛔ une intervention ANNULÉE ne fait pas une journée', jouer(tech, [{ date: AUJ, techIds: ['t1'], statut: 'annulee' }]) === false);
-  vrai('⛔ rien aujourd’hui (seulement du retard) → Leia, pas le bandeau', jouer(tech, [{ date: '2026-09-22', techIds: ['t1'], statut: 'planifiee' }]) === false);
+  vrai('⛔ rien aujourd’hui (seulement du retard) → la cloche, pas le bandeau', jouer(tech, [{ date: '2026-09-22', techIds: ['t1'], statut: 'planifiee' }]) === false);
   vrai('⛔ la journée d’un AUTRE technicien ne compte pas', jouer(tech, [{ date: AUJ, techIds: ['t2'], statut: 'planifiee' }]) === false);
   for (const r of ['admin', 'dr', 'chefEquipe'])
-    vrai(`⛔ un responsable (${r}), même technicien et occupé → Leia`, jouer({ id: 'u2', role: r, techId: 't1' }, jour) === false);
-  vrai('un compte sans technicien lié → Leia', jouer({ id: 'u3', role: 'technicien' }, jour) === false);
+    vrai(`⛔ un responsable (${r}), même technicien et occupé → la cloche, pas le bandeau`, jouer({ id: 'u2', role: r, techId: 't1' }, jour) === false);
+  vrai('un compte sans technicien lié → la cloche', jouer({ id: 'u3', role: 'technicien' }, jour) === false);
   vrai('personne de connecté → rien', jouer(null, jour) === false);
 }
 
@@ -67,26 +71,83 @@ console.log('\n── 778 · 2. le câblage : jamais les deux ──');
 const fEnter = bloc('function enterApp(u){');
 vrai('population : enterApp est trouvé', fEnter.length > 2000, fEnter.length);
 const plat = fEnter.replace(/\s*\n\s*/g, ' ');
-vrai('⛔⛔ Leia ne s’ouvre QUE quand « Ta journée » n’est pas l’accueil du jour',
-  /if\(!maybeWelcome\(\)\)\{ if\(accueilJournee\(\)\) setTimeout\(\(\)=>\{ try\{ planFdrCheck\(\); \}catch\(e\)\{\} \},\d+\);[^{}]{0,120}? else maybeRappels\(\); \}/.test(plat));
-vrai('⛔ … et le bandeau n’est plus programmé HORS de ce choix (sinon il revient à côté de Leia)',
-  (plat.match(/planFdrCheck\(\)/g) || []).length === 1);
-vrai('⛔ … ni maybeRappels appelé ailleurs dans enterApp', (plat.match(/maybeRappels\(\)/g) || []).length === 1);
+vrai('⛔⛔ « Ta journée » est le SEUL accueil programmé, et seulement quand c’est l’accueil du jour',
+  /if\(accueilJournee\(\)\) setTimeout\(\(\)=>\{ try\{ planFdrCheck\(\); \}catch\(e\)\{\} \},\d+\);/.test(plat)
+  && (plat.match(/planFdrCheck\(\)/g) || []).length === 1);
+vrai('⛔ plus rien n’ouvre Leia au démarrage (ni bienvenue, ni rappels)', !/maybeWelcome|maybeRappels|renderAsst|asstOpen/.test(plat));
+vrai('⛔⛔ Leia n’existe plus nulle part : ni élément, ni fonction, ni état',
+  !/id="assistant"/.test(SRC) && !/function (maybeWelcome|maybeRappels|computeRappels|renderAsst|askAssistant|openAsst|toggleAsst)\(/.test(SRC)
+  && !/\basstMsgs\b|\basstOpen\b|APP_GUIDE|ASST_KB/.test(SRC));
 const fFdr = bloc('function planFdrCheck(){');
 vrai('population : planFdrCheck est trouvé', fFdr.length > 400, fFdr.length);
 vrai('⛔ planFdrCheck porte la même règle (un autre appelant ne la contourne pas)', /if\(!accueilJournee\(\)\) return;/.test(fFdr));
 vrai('⛔ le bandeau dit les retards DU technicien (pas ceux de l’entreprise)',
   /const retard=\(db\.interventions\|\|\[\]\)\.filter\(i=>i\.date<todayISO\(\)&&intTechIds\(i\)\.includes\(tid\)/.test(fFdr) && /en retard/.test(fFdr));
-vrai('les rappels restent accessibles à la demande dans la bulle', /if\(c==='Rappels'\)\{ asstRappels\(\); return; \}/.test(SRC));
 v('une seule définition de accueilJournee', (SRC.match(/function accueilJournee\(/g) || []).length, 1);
+/* ⛔ Trouvé par la sonde le 23 septembre 2026 au soir : le minuteur de 15 s effaçait « le bandeau
+   qui porte ce nom », pas le sien — un collègue qui se connecte dans les 15 s perdait le sien. */
+vrai('⛔ le minuteur efface SON bandeau, pas celui qui porte le même nom', /setTimeout\(\(\)=>\{ try\{ b\.remove\(\); \}catch\(e\)\{\} \},15000\);/.test(fFdr)
+  && !/setTimeout\(\(\)=>\{ try\{ const el=document\.getElementById\('fdr-banner'\)/.test(fFdr));
+vrai('⛔ … un nouveau bandeau remplace l’ancien au lieu de s’empiler sous le même identifiant',
+  /const ancien=document\.getElementById\('fdr-banner'\); if\(ancien\) ancien\.remove\(\);\s*document\.body\.appendChild\(b\);/.test(fFdr));
+vrai('⛔ … et la déconnexion le retire (sa journée et ses clients ne restent pas sur l’écran de connexion)',
+  /const fb=document\.getElementById\('fdr-banner'\); if\(fb\) fb\.remove\(\);/.test(bloc('function logout(){')));
 function v(t, a, b) { vrai(t, JSON.stringify(a) === JSON.stringify(b), a); }
 
-console.log('\n── 778 · 3. la mesure de bout en bout existe ──');
+console.log('\n── 778 · 3. ⛔ CE QUE LEIA ÉTAIT SEULE À DIRE EST DANS LA CLOCHE — exécuté ──');
+/* On découpe les deux lignes neuves de `computeNotifs` dans le fichier livré, et on les JOUE avec
+   une horloge, des droits et une base. Un contrôle sur le texte laisserait passer une condition
+   inversée ; celui-ci la voit. */
+{ const iR = SRC.indexOf("const retard=visibleInts(db.interventions||[])");
+  const iD = SRC.lastIndexOf("if(notifVoitModule('interventions')||notifVoitModule('planning')){", iR);
+  const iI = SRC.indexOf("if(can('voirCompta') && (notifVoitModule('factures')||notifVoitModule('comptabilite'))){", iR);
+  let fin = -1; if (iI > 0) { let p = 0; for (let k = SRC.indexOf('{', iI); k < SRC.length; k++) { if (SRC[k] === '{') p++; else if (SRC[k] === '}') { p--; if (p === 0) { fin = k + 1; break; } } } }
+  const code = (iD > 0 && iR > iD && iI > iR && fin > iI) ? SRC.slice(iD, fin) : '';
+  vrai('population : les deux lignes de la cloche sont trouvées dans computeNotifs', code.length > 400 && iR - iD < 120, code.length);
+  const jouer = ({ voit = ['interventions', 'factures', 'comptabilite'], compta = true, ints = [], facts = [] } = {}) => {
+    const bac = { out: [], today: '2026-09-23', db: { interventions: ints, factures: facts },
+      notifVoitModule: k => voit.includes(k), can: k => k === 'voirCompta' && compta,
+      visibleInts: l => l, fmtShort: d => d.slice(8) + '/' + d.slice(5, 7), esc: x => x };
+    vm.createContext(bac); vm.runInContext(code, bac); return bac.out;
+  };
+  const ints = [{ id: 'a', date: '2026-09-20', statut: 'planifiee' }, { id: 'b', date: '2026-09-18', statut: 'encours' },
+                { id: 'c', date: '2026-09-21', statut: 'terminee' }, { id: 'd', date: '2026-09-23', statut: 'planifiee' },
+                { id: 'e', date: '2026-09-19', statut: 'annulee' }];
+  const facts = [{ id: 'f1', statut: 'envoyee' }, { id: 'f2', statut: 'retard' }, { id: 'f3', statut: 'payee' }, { id: 'f4', statut: 'brouillon' }];
+  if (code) {
+    const o = jouer({ ints, facts });
+    const r = o.find(x => /^retard:/.test(x.id)), f = o.find(x => /^impayees:/.test(x.id));
+    vrai('⛔ les interventions EN RETARD : deux (planifiée ou en cours, d’avant aujourd’hui) — ni la terminée, ni l’annulée, ni celle du jour',
+      !!r && /<b>2 interventions en retard<\/b>/.test(r.txt), r && r.txt);
+    vrai('… la plus ancienne est nommée (18/09)', !!r && /la plus ancienne du 18\/09/.test(r.txt), r && r.txt);
+    vrai('… et la ligne mène aux Interventions', !!r && r.act === "go('interventions')", r && r.act);
+    vrai('⛔ les factures IMPAYÉES : envoyée et en retard, pas la payée ni le brouillon', !!f && /<b>2 factures impayées<\/b>/.test(f.txt), f && f.txt);
+    vrai('… et la ligne mène à la Comptabilité', !!f && f.act === "go('comptabilite')", f && f.act);
+    vrai('⛔ quand le compte change, la ligne revient « non lue » (l’identifiant porte le compte)',
+      !!r && r.id !== (jouer({ ints: ints.slice(0, 1), facts }).find(x => /^retard:/.test(x.id)) || {}).id);
+    vrai('⛔ sans le droit de voir la compta, AUCUNE ligne de factures', !jouer({ ints, facts, compta: false }).some(x => /^impayees:/.test(x.id)));
+    vrai('⛔ sans la rubrique Interventions ni Planning, AUCUNE ligne de retard', !jouer({ ints, facts, voit: ['factures'] }).some(x => /^retard:/.test(x.id)));
+    vrai('rien en retard, rien d’impayé → rien d’ajouté', jouer({ ints: ints.slice(2), facts: facts.slice(2) }).length === 0);
+  }
+}
+{ const fPar = bloc('views.parametres=function(){'), fAide = bloc('function carteAide(){');
+  vrai('⛔ la visite guidée et « Signaler un problème » ont une maison : Paramètres → Aide',
+    /<h3>Aide<\/h3>/.test(fAide) && /onclick="startTour\(\)"/.test(fAide) && /onclick="signalerProbleme\(\)"/.test(fAide));
+  /* ⛔ Et POUR TOUT LE MONDE : la carte vit dans `_app`, la partie que voient aussi les comptes non
+     administrateurs — un technicien n'ouvre de Paramètres que ses propres réglages. */
+  const iApp = fPar.indexOf('const _app=`'), iNonAdmin = fPar.indexOf("if(currentUser.role!=='admin')");
+  vrai('⛔ … et un technicien la voit aussi (elle est dans la partie commune, avant le partage admin / non-admin)',
+    iApp > 0 && iNonAdmin > iApp && /carteAppareil\(\)\+carteAide\(\);/.test(fPar.slice(iApp, iNonAdmin)));
+  vrai('… et le signalement arrive toujours à l’Historique (catégorie support)', /logEvent\('Problème signalé',txt,'support'\)/.test(bloc('function signalerEnvoyer(e){')));
+  vrai('… et la visite ne ferme plus une bulle qui n’existe pas', !/closeAsst/.test(bloc('function startTour(){')));
+}
+
+console.log('\n── 778 · 4. la mesure de bout en bout existe ──');
 const P = path.join(__dirname, '..', 'scratchpad', 'sonde-accueil.js');
 const SONDE = fs.existsSync(P) ? fs.readFileSync(P, 'utf8') : '';
 vrai('scratchpad/sonde-accueil.js existe', !!SONDE);
 vrai('… elle passe par le VRAI enterApp', /enterApp\(u\)/.test(SONDE));
-vrai('… elle COMPTE les accueils affichés (bandeau + Leia)', /accueils\(/.test(SONDE));
+vrai('… elle COMPTE les accueils affichés (bandeau, et plus jamais de bulle)', /accueils\(/.test(SONDE) && /Leia/.test(SONDE));
 vrai('… elle joue le responsable ET le premier lancement', /ADMINISTRATEUR/.test(SONDE) && /PREMIER LANCEMENT/.test(SONDE));
 vrai('… elle sait tourner sur une bêta d’avant (contre-épreuve)', /process\.env\.SOURCE/.test(SONDE));
 vrai('… sur la BÊTA, jamais sur app.html', !/app\.html/.test(SONDE));

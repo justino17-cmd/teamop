@@ -166,9 +166,12 @@ console.log('\n══ 4. LES TROIS GARDES DU GESTE ══\n');
     /'#tabbar'/.test(HORS758));
   vrai('⛔⛔ … et ce geste existe bien, posé avec la barre (sinon c’est le défaut du 22 : rien ne bouge)',
     /function ongletsBulle\(bar\)\{/.test(NU) && /ongletsPresse\(bar\);\s*ongletsBulle\(bar\);/.test(NU));
-  vrai('⛔ le tiroir, les voiles, l’assistant et la barre du haut restent écartés',
-    ["'.sidebar'","'#overlay'","'#overlay2'","'#assistant'","'#login'","'.topbar'","'.creer-ov'"]
+  vrai('⛔ le tiroir, les voiles, la connexion et la barre du haut restent écartés',
+    ["'.sidebar'","'#overlay'","'#overlay2'","'#login'","'.topbar'","'.creer-ov'"]
       .every(s=>HORS758.includes(s)));
+  /* La bulle d'aide Leia a été retirée le 23 septembre 2026 : une zone écartée qui n'existe plus
+     serait un sélecteur qui ne trouve rien — l'entrée part avec elle. */
+  vrai('… et plus d’entrée pour la bulle d’aide retirée', !HORS758.includes("'#assistant'"));
   vrai('⛔ une fenêtre ouverte coupe le geste',
     /if\(document\.getElementById\('overlay'\) && document\.getElementById\('overlay'\)\.classList\.contains\('open'\)\) return;/.test(NU));
   /* ⛔ LA DOMINANCE, PAS SEULEMENT LA DISTANCE : un défilement vertical commence toujours par
