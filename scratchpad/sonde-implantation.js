@@ -52,6 +52,13 @@ const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { k
     const s = await S.c.envoyer('Page.captureScreenshot', { format: 'png', clip: { x: Math.max(0, r.x - 8), y: Math.max(0, r.y - 8), width: r.w + 16, height: r.h + 16, scale: 1 }, captureBeyondViewport: true });
     fs.writeFileSync(path.join(SORTIE, nom + '.png'), Buffer.from(s.data, 'base64'));
   };
+  /* une FENÊTRE se capture telle que l'écran la montre : fixe, elle défile en elle-même, et
+     « l'amener au centre » puis capturer au-delà de l'écran la découpait sous son titre collant */
+  const capturerEcran = async nom => {
+    await S.ev(`document.querySelectorAll('#overlay .modal, #overlay .modal *').forEach(e=>{ if(e.scrollTop) e.scrollTop=0; }); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); await new Promise(r=>setTimeout(r,300)); return 1;`);
+    const s = await S.c.envoyer('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(path.join(SORTIE, nom + '.png'), Buffer.from(s.data, 'base64'));
+  };
   const carte = `[...document.querySelectorAll('#content .card')].find(c=>/Plan d.implantation/.test(c.textContent))`;
   const texte = () => S.ev(`const c=${carte}; return c?c.textContent.replace(/\\s+/g,' ').trim():''`);
   const ouvrirPlan = id => S.ev(`detailIntervention('${id}'); intTab='planApp'; renderIntDetail('${id}'); await new Promise(r=>setTimeout(r,700)); return current;`);
@@ -94,7 +101,7 @@ const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { k
   const clo = await S.ev(`const z=document.getElementById('clot-plan'); return z?z.textContent.replace(/\\s+/g,' ').trim():''`);
   vrai('fin de passage : la fenêtre rappelle le plan d’implantation, avec son bouton', /Plan d.implantation/.test(clo) && /Renvoyer le même plan|Envoyer/.test(clo), clo);
   vrai('… et ne prétend plus que le rapport par e-mail inclut le plan', !(await S.ev(`return /le PDF inclut les photos et le plan/.test(document.querySelector('.modal')?.textContent||'')`)));
-  await capturer('4-fin-de-passage', `document.querySelector('#overlay .modal')||document.querySelector('.modal')`);
+  await capturerEcran('4-fin-de-passage');
   await S.ev(`const b=document.querySelector('#clot-plan .pap-impl-btn'); b.click(); await new Promise(r=>setTimeout(r,2500)); return 1;`);
   const clo2 = await S.ev(`const z=document.getElementById('clot-plan'); return z?z.textContent.replace(/\\s+/g,' ').trim():''`);
   vrai('… un appui, et la ligne dit « envoyé pour ce passage »', /envoyé pour ce passage/.test(clo2), clo2);
@@ -104,7 +111,7 @@ const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { k
   await S.ev(`go('parametres'); await new Promise(r=>setTimeout(r,700)); socCoordModal(0); await new Promise(r=>setTimeout(r,400)); return 1;`);
   const champs = await S.ev(`return [...document.querySelectorAll('#soc-coord input')].map(i=>i.name)`);
   vrai('Paramètres → Mes sociétés → Coordonnées : les dix champs', champs.length === 10 && champs.includes('siret') && champs.includes('iban'), champs);
-  await capturer('5-coordonnees-societe', `document.querySelector('#overlay .modal')||document.querySelector('.modal')`);
+  await capturerEcran('5-coordonnees-societe');
   vrai('aucune erreur JavaScript', S.exceptions.length === 0, S.exceptions.slice(0, 3));
   S.fermer();
   console.log(`\n════ sonde-implantation : ${ok} ✓ ${ko} ✗ ════   (captures : ${SORTIE})`);
