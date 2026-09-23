@@ -19197,9 +19197,13 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
     if(r.ok){ _srvMailErr=''; toast(okMsg||('✉️ E-mail envoyé à '+to)); return true; }
     const d=await r.json().catch(()=>({}));
     _srvMailErr=d.error||('erreur serveur HTTP '+r.status);
-    toast('Envoi refusé ('+_srvMailErr+') — e-mail préparé dans Mail');
+    toast('Envoi refusé ('+_srvMailErr+')'+(opts&&opts.sansMailto?' — rien n’est parti':' — e-mail préparé dans Mail'));
     try{ fetch(PUSH_API+'/api/bug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),app:'opgestion',version:String(typeof APP_VERSION!=='undefined'?APP_VERSION:''),msg:'Envoi e-mail refusé par le serveur : '+_srvMailErr,src:'srvMail',line:0,stack:'destinataire '+to,ua:navigator.userAgent.slice(0,150)})}).catch(()=>{}); }catch(_){}
-  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable — e-mail préparé dans Mail'); }
+  }catch(e){ _srvMailErr='serveur d\'envoi injoignable'; toast('Serveur injoignable'+(opts&&opts.sansMailto?' — rien n’est parti, réessaie quand le réseau revient':' — e-mail préparé dans Mail')); }
+  /* ⛔ v740 — un courriel qui porte une PIÈCE JOINTE ne se rabat pas sur un brouillon : le lien
+     mailto: ne sait pas joindre de fichier, et le brouillon dirait « ci-joint » sans rien joindre.
+     L'appelant (le plan d'implantation) le demande par `sansMailto` ; il n'écrit alors rien. */
+  if(opts&&opts.sansMailto) return false;
   location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent((opts&&opts.mailtoBody)||body);
   return false;
 }
@@ -20636,10 +20640,13 @@ function papSheetZone(intId,posteId,v){ const i=db.interventions.find(x=>x.id===
   const isAppat=!po.type||po.type==='appat';
   if(v&&isAppat&&papZoneAlimName(v)){ // blocage conformité au moment du choix de la zone
     papAlimBlock({nom:v},`papPosteSheet('${intId}','${posteId}')`); return; }
+  /* v740 : la zone s'imprime sur le plan d'implantation — le changement se note dans l'historique du plan */
+  if((po.zone||'')!==(v||'')) papTouch(hit.pl,'Poste n°'+po.num+' : zone « '+(v||'—')+' »');
   po.zone=v||''; save(); papPosteSheet(intId,posteId); }
 function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
   const old=hit.po.produitId;
+  if((old||'')!==(pid||'')) papTouch(hit.pl,'Poste n°'+hit.po.num+' : produit posé « '+((pid&&produit(pid).nom)||'aucun')+' »');   // v740 : imprimé, avec son n° d'AMM
   hit.po.produitId=pid||'';
   // l'appât posé sur un poste compte dans les produits utilisés → déduit du stock et tracé au registre
   i.produitsUtilises=i.produitsUtilises||[];
@@ -20648,6 +20655,7 @@ function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.
   save(); papPosteSheet(intId,posteId); }
 function papSheetSecure(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
+  if(!!hit.po.secure!==!!v) papTouch(hit.pl,'Poste n°'+hit.po.num+' : '+(v?'boîte sécurisée':'boîte non sécurisée'));   // v740 : imprimé
   hit.po.secure=!!v; save(); }
 function papSheetTubes(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
