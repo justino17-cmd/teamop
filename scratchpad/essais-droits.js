@@ -380,10 +380,10 @@ const ESSAIS = [
     geste: `go('contrats'); ${ATT(700)} window.__vu=[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'')==='formContrat()')?1:0;`,
     mesure: `window.__vu` },
   { nom: 'Box : sans « Stock → Supprimer », le 🗑 n’est pas proposé (delItem le refuserait)', retire: { cat_stock_supprimer: false },
-    geste: `openBox('bT'); ${ATT(600)} window.__vu=[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'').includes("delItem('boxes'"))?1:0;`,
+    geste: `openBox('bT'); for(let k=0;k<30&&!$('content').textContent.includes('BX-S-T');k++) await __attendre(100); ${ATT(200)} window.__vu=$('content').textContent.includes('BX-S-T')&&[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'').includes("delItem('boxes'"))?1:0;`,
     mesure: `window.__vu` },
   { nom: '   … et sans « Gérer les box », il reste là : deux cases, deux boutons', type: 'unique', attendu: 'passe', retire: { gererBoxes: false },
-    geste: `openBox('bT'); ${ATT(600)} window.__vu=[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'').includes("delItem('boxes'"))?1:0;`,
+    geste: `openBox('bT'); for(let k=0;k<30&&!$('content').textContent.includes('BX-S-T');k++) await __attendre(100); ${ATT(200)} window.__vu=$('content').textContent.includes('BX-S-T')&&[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'').includes("delItem('boxes'"))?1:0;`,
     mesure: `window.__vu` },
 ];
 
