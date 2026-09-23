@@ -5569,6 +5569,28 @@ html[data-verre="1"][data-theme="dark"] .st-org{background:color-mix(in srgb,var
 html[data-verre="1"][data-theme="dark"] .st-green{background:color-mix(in srgb,var(--green) 8%,transparent)}
 html[data-verre="1"][data-theme="dark"] .st-red{background:color-mix(in srgb,var(--red) 8%,transparent)}
 html[data-verre="1"][data-theme="dark"] .st-purple{background:color-mix(in srgb,var(--purple) 8%,transparent)}
+/* ⛔ LE CURSEUR D'UN SEGMENTÉ EST UNE VITRE POSÉE SUR UNE VITRE. Sous le verre de nuit il est
+   plus CLAIR que le creux qu'il parcourt (son reflet s'ajoute à celui de la carte) : le mot
+   choisi tombait à 4,36 au pixel (« Tout », « Contrôle du jour » sur le graphite), l'onglet de
+   période du tableau de bord à 4,08 en indigo, et le compteur posé dans la pastille choisie à
+   3,07 (audit-pixel.js, 23 septembre 2026). C'est la règle d'iOS : sur le segment choisi, de
+   nuit, l'encre est BLANCHE ; un compteur y prend un creux sombre, pas une teinte claire.
+   ⚠ Même teinté à 35 % d'accent, le mot tombait à 3,79 sur le curseur le plus clair (graphite) :
+   sous ce verre-là, seule l'encre blanche tient (4,89 au pire). Le mot choisi reste distinct
+   des autres, écrits au second plan. */
+html[data-verre="1"][data-theme="dark"] .filters.seg-on .chip.active{color:#fff!important}
+html[data-verre="1"][data-theme="dark"] .filters.seg-on .chip.active .tag{background:rgba(0,0,0,.24)!important;color:#fff!important}
+html[data-verre="1"][data-theme="dark"] .tdb-seg span.on{color:#fff!important}
+/* Les segments NON choisis vivent dans le creux, qui s'éclaircit lui aussi sous les halos : au
+   second plan pur, « Mois » et « Tout » de Pointage tombaient à 4,49 (sarcelle, Mac). Un cran
+   vers l'encre principale, sans rejoindre le mot choisi. */
+html[data-verre="1"][data-theme="dark"] .seg span:not(.on),html[data-verre="1"][data-theme="dark"] .seg button:not(.on),
+html[data-verre="1"][data-theme="dark"] .pf-seg2 span:not(.on),html[data-verre="1"][data-theme="dark"] .pf-vues span:not(.on),
+html[data-verre="1"][data-theme="dark"] .pf-disp button:not(.on){color:color-mix(in srgb,var(--t2) 60%,var(--t1))!important}
+/* Une tuile de chiffre POSÉE DANS une carte est, elle aussi, une vitre sur une vitre : de nuit
+   elle s'éclaircit, et son libellé au troisième plan tombait à 4,33 (Archives mensuelles). Dans
+   une carte, le libellé passe au second plan ; le chiffre reste ce qu'on lit en premier. */
+html[data-verre="1"][data-theme="dark"] .card .kpi .kpi-lbl{color:var(--t2)}
 /* ⛔⛔ LE FOND DE LA PAGE VA SUR <html>, PAS SUR <body> — SINON IL RECOUVRE LES HALOS.
    Mesuré le 22 septembre 2026, au pixel : `body` portait
    `linear-gradient(#f4f5f8,#e9ebf0)` et `body::after` était en `z-index:-1`. Or `body`

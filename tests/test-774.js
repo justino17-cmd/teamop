@@ -195,6 +195,34 @@ for (const f of ['app.html', 'beta.html']) {
     && !/class="btn" style="width:100%;margin-top:10px;opacity:\.45;cursor:not-allowed"/.test(SRC));
   vrai('⛔ le ▼ des filtres n’est plus à 50 % d’opacité', !/opacity:\.5;font-size:9px">▼/.test(SRC));
   vrai('⛔ l’astérisque des champs obligatoires suit le rouge du thème', !/color:#EF4444">\*/.test(SRC) && !/req='color:#EF4444/.test(SRC));
+
+  /* ── 7. une vitre posée sur une vitre, sous le verre de nuit (audit-pixel.js, iPhone, v728) ──
+     Le curseur d'un segmenté et une tuile de chiffre posée dans une carte s'ÉCLAIRCISSENT : les
+     fonds ci-dessous sont ceux lus au PIXEL sous le mot choisi (graphite, vert, indigo, rose). */
+  const CURSEURS = [[102, 114, 130], [94, 114, 126], [70, 86, 126], [82, 82, 110]];
+  const srcNuit = {};
+  for (const m of SRC.matchAll(/html\[data-refonte\]\[data-theme="dark"\]\[data-accent="(\w+)"\]\s*\{ --acc-src:(#[0-9A-Fa-f]{6});/g)) srcNuit[m[1]] = m[2];
+  vrai('population : les sources de nuit sont lues (' + Object.keys(srcNuit).length + ')', Object.keys(srcNuit).length >= 5, Object.keys(srcNuit).join(','));
+  vrai('⛔ sous le verre de nuit, le mot choisi d’un segmenté est BLANC (règle d’iOS)',
+    SRC.includes('html[data-verre="1"][data-theme="dark"] .filters.seg-on .chip.active{color:#fff!important}')
+    && Math.min(...CURSEURS.map(f => ctr([255, 255, 255], f))) >= 4.5, Math.min(...CURSEURS.map(f => ctr([255, 255, 255], f))).toFixed(2));
+  const mTag = SRC.match(/html\[data-verre="1"\]\[data-theme="dark"\] \.filters\.seg-on \.chip\.active \.tag\{background:rgba\(0,0,0,\.(\d+)\)!important;color:#fff!important\}/);
+  vrai('⛔ … et le compteur posé dans la pastille choisie prend un creux sombre (3,07 avant)',
+    !!mTag && Math.min(...CURSEURS.map(f => ctr([255, 255, 255], mix([0, 0, 0], f, +('.' + mTag[1]))))) >= 4.5);
+  /* ⚠ une teinte d'accent, même à 35 %, retombe à 3,79 sur le curseur le plus clair : on
+     garde le calcul pour qu'un « on remet un peu de couleur » se voie tomber tout de suite */
+  const mSeg = SRC.match(/html\[data-verre="1"\]\[data-theme="dark"\] \.tdb-seg span\.on\{color:([^;}]+?)!important\}/);
+  vrai('population : la règle de l’onglet de période choisi est lue', !!mSeg);
+  if (mSeg) {
+    const sources = Object.values({ ...srcJour, ...srcNuit });
+    const encre = s => { const v = mSeg[1].trim(); if (/^#fff(fff)?$/i.test(v)) return [255, 255, 255];
+      const m = v.match(/^color-mix\(in srgb,var\(--acc-txt\) (\d+)%,#fff\)$/); if (!m) return null;
+      return mix(mix([255, 255, 255], hex(s), .46), [255, 255, 255], +m[1] / 100); };
+    const pire = Math.min(...sources.map(s => { const ink = encre(s); return ink ? Math.min(...CURSEURS.map(f => ctr(ink, f))) : 0; }));
+    vrai('⛔ l’onglet de période choisi (tableau de bord) tient 4,5 sur les fonds lus au pixel, toutes teintes (4,08 avant)', pire >= 4.5, pire.toFixed(2));
+  }
+  vrai('⛔ dans une carte, le libellé d’une tuile de chiffre passe au second plan sous le verre de nuit (4,33 avant)',
+    SRC.includes('html[data-verre="1"][data-theme="dark"] .card .kpi .kpi-lbl{color:var(--t2)}'));
 }
 
 console.log('\n═══ test-774 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');

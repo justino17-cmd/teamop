@@ -53,7 +53,18 @@ const RELEVE = `
   const zones=(typeof ZONE!=='undefined'&&ZONE)?[document.querySelector(ZONE)].filter(Boolean)
     :[document.getElementById('content'),document.querySelector('.topbar'),document.getElementById('page-head'),document.getElementById('tabbar'),document.getElementById('assistant')${TEL ? '' : ",document.querySelector('.sidebar')"}].filter(Boolean);
   document.querySelectorAll('[data-px]').forEach(x=>x.removeAttribute('data-px'));
-  const vus=new Set(), out={els:[],estompes:0,inactifs:0,pictos:0,recouverts:0,vtOuvertes,exRecouverts:[]};
+  /* ⛔ UNE BARRE FIXE TOMBE SUR LE CONTENU DANS UNE FENÊTRE HAUTE. Au téléphone, la barre
+     d'onglets est fixée en bas d'une fenêtre de 2 200 px : elle se pose sur la dernière carte
+     de l'écran (la tournée de la Carte), qu'un vrai téléphone ferait défiler au-dessus. Mesuré
+     le 23 septembre 2026 : le badge « 1 » de la tournée lu à 2,97 — il était SOUS la barre
+     (elementsFromPoint : .tab-l < .tab < #tabbar), et elementFromPoint ne l'avait pas vu à
+     l'instant du relevé. On écarte donc PAR LA GÉOMÉTRIE tout texte qui croise une barre fixe
+     dont il ne fait pas partie, et on le compte. */
+  const barres=[...document.querySelectorAll('#tabbar,.topbar,.fab,#msg-flot,#assistant')].filter(x=>{
+    const q=getComputedStyle(x), r=x.getBoundingClientRect();
+    return (q.position==='fixed'||q.position==='sticky')&&q.display!=='none'&&q.visibility!=='hidden'&&r.width>8&&r.height>8; })
+    .map(x=>({x, r:x.getBoundingClientRect()}));
+  const vus=new Set(), out={els:[],estompes:0,inactifs:0,pictos:0,recouverts:0,sousBarre:0,vtOuvertes,exRecouverts:[]};
   const opEff=e=>{ let o=1; for(let n=e;n&&n.nodeType===1;n=n.parentElement){ const v=+getComputedStyle(n).opacity; if(!isNaN(v)) o*=v; } return o; };
   const nom=e=>e.tagName.toLowerCase()+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\\s+/).slice(0,2).join('.'):'');
   zones.forEach(z=>z.querySelectorAll('*').forEach(e=>{
@@ -88,6 +99,12 @@ const RELEVE = `
        transparent posé dessus ne cache rien. Recouvert veut donc dire : un élément qui n'est ni
        lui, ni l'un de ses enfants, ni l'un de ses ANCÊTRES, et dont la chaîne jusqu'à l'ancêtre
        commun peint un fond. Mesuré : 11 « recouverts » sur le tableau de bord, tous faux. */
+    /* ⛔ UN TEXTE À MOITIÉ HORS DU CADRE CAPTURÉ SE LIT MAL : ses pixels du bas n'existent pas,
+       et ce qui reste au bord peut appartenir à autre chose. Le badge « 1 » de la tournée, à
+       y 2 190–2 210 d'une fenêtre de 2 200, était lu sur l'ombre de la barre d'onglets. Écarté
+       et compté, jamais rogné. */
+    if(y0<0||x0<0||y1>${H}-1||x1>${W}){ out.horsCadre=(out.horsCadre||0)+1; return; }
+    if(barres.some(({x,r})=>!x.contains(e)&&x0<r.right&&x1>r.left&&y0<r.bottom&&y1>r.top)){ out.sousBarre++; return; }
     const cx=(x0+x1)/2, cy=(y0+y1)/2;
     if(cy>=0&&cy<${H}&&cx>=0&&cx<${W}){ const dessus=document.elementFromPoint(cx,cy);
       if(dessus&&dessus!==e&&!e.contains(dessus)&&!dessus.contains(e)){
@@ -151,7 +168,7 @@ const RELEVE = `
       if (/^témoin gris/.test(e.t)) temoin = { c: +c.toFixed(2), encre: vue.map(Math.round).join(','), fond: fond.join(','), rect: [x0, y0, x1, y1].join(',') };
       if (c < seuil) faibles.push({ ou, n: e.n, t: e.t, c, seuil, op: e.op, barre: e.barre, encre: vue.map(Math.round).join(','), fond: fond.join(',') });
     }
-    return { n: r.els.length - bouges, faibles, estompes: r.estompes, inactifs: r.inactifs, pictos: r.pictos, recouverts: r.recouverts, coupes: r.coupes || 0, bouges, temoin, relevesTemoin: r.els.filter(x => /^témoin gris/.test(x.t)).length, vtOuvertes: r.vtOuvertes, exRecouverts: r.exRecouverts };
+    return { n: r.els.length - bouges, faibles, estompes: r.estompes, inactifs: r.inactifs, pictos: r.pictos, recouverts: r.recouverts, sousBarre: r.sousBarre || 0, horsCadre: r.horsCadre || 0, coupes: r.coupes || 0, bouges, temoin, relevesTemoin: r.els.filter(x => /^témoin gris/.test(x.t)).length, vtOuvertes: r.vtOuvertes, exRecouverts: r.exRecouverts };
   };
   {
     await S.ev(`try{ setThemePref('dark'); setAccent('green'); go('dashboard'); }catch(e){} return 1;`); await dormir(900);
@@ -168,7 +185,7 @@ const RELEVE = `
     if (!pris || m.n < 40) { S.fermer(); process.exit(7); }
   }
 
-  const R = { version: S.version, plat: PLAT, tel: TEL, ecrans: 0, fenetres: 0, textes: 0, estompes: 0, inactifs: 0, pictos: 0, recouverts: 0, coupes: 0, bouges: 0, vtOuvertes: 0, faibles: [] };
+  const R = { version: S.version, plat: PLAT, tel: TEL, ecrans: 0, fenetres: 0, textes: 0, estompes: 0, inactifs: 0, pictos: 0, recouverts: 0, sousBarre: 0, horsCadre: 0, coupes: 0, bouges: 0, vtOuvertes: 0, faibles: [] };
   for (const th of THEMES) for (const a of ACCENTS) {
     await S.ev(`try{ closeSub(); }catch(e){} try{ closeModal(); }catch(e){} try{ setThemePref('${th}'); setAccent('${a}'); }catch(e){} return 1;`); await dormir(300);
     for (const k of CATS) {
@@ -176,14 +193,14 @@ const RELEVE = `
       await S.ev(`try{ closeModal(); }catch(e){} try{ tdbDetailFerme(); }catch(e){} window.scrollTo(0,0); return 1;`);
       for (let i = 0; i < 20; i++) { if (!(await S.ev(`return !!document.querySelector('.content.entre');`))) break; await dormir(100); }
       const m = await mesurer(th + '/' + a + '/' + k);
-      R.ecrans++; R.textes += m.n; R.estompes += m.estompes; R.inactifs += m.inactifs; R.pictos += m.pictos; R.recouverts += m.recouverts; R.coupes += m.coupes; R.bouges += m.bouges; R.vtOuvertes += m.vtOuvertes ? 1 : 0; R.faibles.push(...m.faibles);
+      R.ecrans++; R.textes += m.n; R.estompes += m.estompes; R.inactifs += m.inactifs; R.pictos += m.pictos; R.recouverts += m.recouverts; R.sousBarre += m.sousBarre; R.horsCadre += m.horsCadre; R.coupes += m.coupes; R.bouges += m.bouges; R.vtOuvertes += m.vtOuvertes ? 1 : 0; R.faibles.push(...m.faibles);
     }
     if (FEN) for (const F of FENETRES) {
       await S.ev(`try{ closeModal(); }catch(e){} try{ closeSub(); }catch(e){} return 1;`); await dormir(150);
       try { await S.ev(F.ouvrir + ' return 1;'); } catch (e) { continue; }
       await dormir(500); try { await S.ev(F.puis + ' return 1;'); } catch (e) {} await dormir(300);
       const m = await mesurer(th + '/' + a + '/fenêtre ' + F.nom, F.zone);
-      R.fenetres++; R.textes += m.n; R.estompes += m.estompes; R.inactifs += m.inactifs; R.pictos += m.pictos; R.recouverts += m.recouverts; R.coupes += m.coupes; R.bouges += m.bouges; R.vtOuvertes += m.vtOuvertes ? 1 : 0; R.faibles.push(...m.faibles);
+      R.fenetres++; R.textes += m.n; R.estompes += m.estompes; R.inactifs += m.inactifs; R.pictos += m.pictos; R.recouverts += m.recouverts; R.sousBarre += m.sousBarre; R.horsCadre += m.horsCadre; R.coupes += m.coupes; R.bouges += m.bouges; R.vtOuvertes += m.vtOuvertes ? 1 : 0; R.faibles.push(...m.faibles);
     }
     await S.ev(`try{ closeSub(); }catch(e){} try{ closeModal(); }catch(e){} return 1;`);
     console.log('  ' + th.padEnd(6) + a.padEnd(9) + ' — ' + R.ecrans + ' écrans + ' + R.fenetres + ' fenêtres, ' + R.faibles.length + ' sous le seuil');
@@ -195,7 +212,7 @@ const RELEVE = `
   const surBarre = R.faibles.filter(f => f.barre); R.faibles = R.faibles.filter(f => !f.barre); R.surBarre = surBarre;
   const grp = {}; R.faibles.forEach(f => { const g = f.ou.split('/')[0] + ' | ' + f.n + ' « ' + f.t.replace(/\d+/g, '#') + ' »'; (grp[g] = grp[g] || []).push(f); });
   console.log('\n════════ AU PIXEL — ' + PLAT + (TEL ? ' (téléphone)' : '') + ' ════════');
-  console.log('  population : ' + R.ecrans + ' écrans + ' + R.fenetres + ' fenêtres · ' + R.textes + ' textes lus au pixel · écartés et comptés : ' + R.estompes + ' presque invisibles, ' + R.inactifs + ' inactifs, ' + R.pictos + ' pictogrammes, ' + R.recouverts + ' recouverts, ' + R.coupes + ' coupés à ras, ' + R.bouges + ' qui ont bougé'
+  console.log('  population : ' + R.ecrans + ' écrans + ' + R.fenetres + ' fenêtres · ' + R.textes + ' textes lus au pixel · écartés et comptés : ' + R.estompes + ' presque invisibles, ' + R.inactifs + ' inactifs, ' + R.pictos + ' pictogrammes, ' + R.recouverts + ' recouverts, ' + R.sousBarre + ' sous une barre fixe, ' + R.horsCadre + ' hors du cadre capturé, ' + R.coupes + ' coupés à ras, ' + R.bouges + ' qui ont bougé'
     + (R.vtOuvertes ? ' · ⚠ ' + R.vtOuvertes + ' relevés avec une transition de vue encore ouverte' : ''));
   console.log('  SOUS LE SEUIL : ' + R.faibles.length + ' (' + Object.keys(grp).length + ' groupes)');
   Object.entries(grp).sort((a, b) => b[1].length - a[1].length).slice(0, 40).forEach(([g, v]) => {
