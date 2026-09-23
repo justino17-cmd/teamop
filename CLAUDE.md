@@ -889,6 +889,17 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   500 px et la page entière défilait de côté. `segTient()` le vérifie désormais, et un groupe
   qui ne tient pas redevient une rangée de pastilles — réévalué quand la tablette tourne. C'est
   la règle « un commentaire n'est pas une garde », côté mise en page.
+- ⛔⛔ **UNE ICÔNE QUI REMPLACE UN ÉMOJI EMPORTE LE NOM DU BOUTON.** La refonte change les émojis
+  en traits dessinés (`icones()`, classe `rf-ic`) marqués `aria-hidden` — juste pour une icône
+  posée à côté d'un mot. Mais 33 commandes ne portaient QUE leur émoji (✎ Modifier, 🗑 Supprimer,
+  🔄, 🖨️) : avant la refonte, un lecteur d'écran lisait l'émoji ; après, le bouton n'avait plus
+  AUCUN nom, ni à l'oreille ni en infobulle. Trouvé le 23 septembre 2026 en rejouant un clic
+  « sans effet » sur iPad : le ✎ de Secteurs n'avait ni texte, ni title, ni aria-label.
+  `nommerIcone()` lui rend le nom de son geste au moment du remplacement, **jamais par-dessus un
+  nom que l'application a posé, jamais avant `nommer()`** (qui passe après et nomme mieux :
+  `data-tip`, « Ouvrir le menu »). ⚠️ Et un recensement « sans nom » doit écarter les CONTENEURS
+  qui bloquent un clic (`onclick="event.stopPropagation()"`) : ils n'agissent pas, et sans ce tri
+  la mesure en comptait 51 de trop. `tests/test-777.js`, `scratchpad/sans-nom.js`.
 - ⛔⛔ **`--acc` EST LA COULEUR D'UN APLAT, PAS CELLE D'UNE LETTRE — UN TEXTE ÉCRIT `--acc-txt`.**
   Le 22 septembre 2026, l'audit des neuf teintes (756 écrans + 126 fenêtres,
   `scratchpad/audit-teintes.js`) a trouvé **327 textes en `var(--acc)`** : justes sur le vert
