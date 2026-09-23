@@ -31406,7 +31406,7 @@ function etiqProche(w,x){ if(w===x) return 1;
   const chiffre=/^\d+$/;
   if(chiffre.test(w)&&x.startsWith(w)&&/^[a-z]{1,3}$/.test(x.slice(w.length))) return .9;   // « 20 » sur l'étiquette « 20g »
   if(chiffre.test(x)&&w.startsWith(x)&&/^[a-z]{1,3}$/.test(w.slice(x.length))) return .9;
-  if((w.length>=5||(/\d/.test(w)&&w.length>=3))&&x.length>w.length&&x.includes(w)) return .8;   // deux mots collés à la lecture
+  if((w.length>=4||(/\d/.test(w)&&w.length>=3))&&x.length>w.length&&x.includes(w)) return .8;   // deux mots collés à la lecture (« ALTA7000 »)
   /* ⛔ Un NOMBRE ne se lit jamais « à un chiffre près » : 100 et 1000, 20 et 200 sont deux formats.
      Mesuré sur une étiquette « DOBOL … 100 g » : « XILIX 1000 » arrivait troisième. */
   if(/\d/.test(w)||/\d/.test(x)) return 0;
@@ -31427,7 +31427,7 @@ function etiqCandidats(texte,produits){
   for(const p of fiches){ const m=motsDe.get(p.id); if(!m.length) continue;
     let tot=0, pris=0, fort=false, lu1=false, lu9=false; const sansFort=!m.some(w=>lettres(w)>=4);
     for(const w of m){ const poids=Math.log(1+N/(df.get(w)||1))*(/\d/.test(w)?1.5:1)*(w.length>=4||/\d/.test(w)?1:.6); tot+=poids;
-      const b=meilleur(w)||((w.length>=5&&colle.includes(w))?.75:0);   // un mot COUPÉ à la lecture (« ADVI ON »)
+      const b=meilleur(w)||((w.length>=5&&colle.includes(w))?.75:0);   // un mot COUPÉ à la lecture (« FOUR MIS »)
       if(b){ pris+=poids*b; if(lettres(w)>=4) fort=true; if(/[a-z]/.test(w)) lu1=true; if(/\d/.test(w)) lu9=true; } }
     if(sansFort&&lu1&&lu9) fort=true;
     let s=tot?pris/tot:0;
