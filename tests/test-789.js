@@ -193,6 +193,24 @@ console.log('\n── 789 · 6. ⛔⛔ PERSONNE NE DONNE UN DROIT QU’IL N’A 
   v('   … et se lisent bien NON', ['voirEquipe', 'gererGroupes'].map(k => M.userCap(nu, k)), [false, false]);
 }
 { const M = monde();
+  /* ⚠️ la SECONDE passe a sa propre raison d'être : un créateur qui a « Tout voir » mais à qui l'on a
+     retiré « Voir les fiches » À PART. Ses bases passent, sa case déduite non — sans la seconde
+     passe, le nouveau compte recevrait ce que son créateur s'est vu retirer. */
+  const chef = { id: 'uR', role: 'chefEquipe', acces: { caps: { creerUtilisateurs: true, voirEquipe: false } } };
+  const nu = { id: 'nu', role: 'dr', acces: { caps: {}, modules: {} } };
+  M.droitsBorner(nu, chef);
+  v('⛔⛔ une case DÉDUITE retirée à part au créateur l’est aussi au nouveau compte (ses bases, elles, passent)', [M.userCap(nu, 'voirTout'), M.userCap(nu, 'voirEquipe'), nu.acces.caps.voirEquipe], [true, false, false]);
+}
+{ const M = monde();
+  /* ⚠️ « Validations » : un créateur qui ne la voit pas crée un compte SOUMIS à la validation DR
+     (la case du formulaire) — ce compte doit voir où en sont ses demandes. */
+  const chef = { id: 'uR', role: 'chefEquipe', acces: { caps: { creerUtilisateurs: true } } };
+  const nu = { id: 'nu', role: 'technicien', boxValidDR: true, acces: { caps: {}, modules: {} } };
+  vrai('population : le créateur ne voit pas « Validations », le nouveau compte soumis la verrait', !M.userSeesModule(chef, 'validations') && M.userSeesModule(nu, 'validations'));
+  M.droitsBorner(nu, chef);
+  v('⛔ … et la garde la lui laisse (le contenu y est filtré à SES demandes)', [M.userSeesModule(nu, 'validations'), Object.prototype.hasOwnProperty.call(nu.acces.modules, 'validations')], [true, false]);
+}
+{ const M = monde();
   const lecteur = { id: 'uB', role: 'technicien', acces: { caps: { creerUtilisateurs: true, bonsLectureSeule: true } } };
   const nu = { id: 'nu', role: 'technicien', acces: { caps: {}, modules: {} } };
   M.droitsBorner(nu, lecteur);
