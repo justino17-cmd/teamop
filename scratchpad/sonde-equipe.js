@@ -25,7 +25,7 @@ const v = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), a);
     db.users=[{id:'uA',prenom:'Justin',nom:'Roux',login:'justin',role:'admin',actif:true,pref:{}},
       {id:'uL',prenom:'Léo',nom:'Martin',login:'leo',role:'dr',techId:'tL',actif:true,pref:{}},
       {id:'uS',prenom:'Sofia',nom:'Perez',login:'sofia',role:'technicien',techId:'tS',drId:'uL',actif:true,pref:{}},
-      {id:'uK',prenom:'Karim',nom:'Benali',login:'karim',role:'technicien',techId:'tK',actif:true,pref:{}}];
+      {id:'uK',prenom:'Karim',nom:'Benali',login:'karim',role:'technicien',techId:'tK',actif:true,pref:{},acces:{modules:{secteurs:true}}}];
     const d=todayISO();
     db.pointages=[{id:'pK',techId:'tK',date:d,debut:'07:30',fin:'12:00',pause:0},{id:'pS',techId:'tS',date:d,debut:'08:00',fin:'12:30',pause:0}];
     save(); return {techs:db.techniciens.length, pts:db.pointages.length};`);
@@ -92,6 +92,27 @@ const v = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), a);
   console.log('    « tout voir » pour le DR dans cette base :', L.voirTout);
   if (L.voirTout) v('⛔ il voit Sofia et lui-même — pas Karim ni Jean', L.noms.slice().sort(), ['Léo Martin', 'Sofia Perez']);
   else v('sans « tout voir », il ne voit que sa fiche', L.noms, ['Léo Martin']);
+
+  console.log('\n══ 4 bis. ⛔⛔ LA PORTE OUBLIÉE : SECTEURS, OUVERT À KARIM PAR L’ADMINISTRATEUR ══');
+  const KS = await entrer('uK', 'secteurs');
+  const KSx = await S.ev(`const c=document.getElementById('content'); const t=c?c.innerText:'';
+    return {vue:current, karim:/Karim Benali/.test(t), autres:['Sofia Perez','Léo Martin','Jean Terrain'].filter(n=>t.includes(n))};`);
+  v('l’écran Secteurs s’ouvre pour lui (réglage par personne)', KSx.vue, 'secteurs');
+  vrai('⛔⛔ il n’y voit que sa ligne', KSx.karim && !KSx.autres.length, KSx);
+  const KF2 = await S.ev(`window.__toasts=[]; try{ closeModal(true); }catch(e){} formTech('tS'); await new Promise(r=>setTimeout(r,300));
+    const o=document.getElementById('overlay'), ouvert=!!(o&&o.classList.contains('open')&&o.querySelector('form[onsubmit^="saveTech"]')); try{ closeModal(true); }catch(e){}
+    return {ouvert, toasts:window.__toasts.slice()};`);
+  vrai('⛔⛔ le formulaire de Sofia ne s’ouvre pas (même appelé directement)', !KF2.ouvert && KF2.toasts.includes('Cette fiche ne te concerne pas'), KF2);
+  const KF3 = await S.ev(`window.__toasts=[]; formTech('tK'); await new Promise(r=>setTimeout(r,300));
+    const o=document.getElementById('overlay'), f=o&&o.querySelector('form[onsubmit^="saveTech"]');
+    const dis=f?['departements','capH','droitConges','chef'].filter(n=>{ const e=f.querySelector('[name="'+n+'"]'); return e&&e.disabled; }):[];
+    const tel=f&&f.querySelector('[name="tel"]'); const telLibre=!!tel&&!tel.disabled;
+    if(f){ f.querySelector('[name="tel"]').value='06 00 11 22 33'; const c=f.querySelector('[name="droitConges"]'); c.disabled=false; c.value='60';
+      saveTech({preventDefault(){}, target:f}, 'tK'); await new Promise(r=>setTimeout(r,300)); }
+    const t=db.techniciens.find(x=>x.id==='tK'); try{ closeModal(true); }catch(e){}
+    return {ouvert:!!f, dis, telLibre, tel:t.tel, conges:t.droitConges==null?25:t.droitConges};`);
+  vrai('sa fiche s’ouvre ; congés, capacité, secteur, rattachement verrouillés ; téléphone libre', KF3.ouvert && KF3.dis.length === 4 && KF3.telLibre, KF3);
+  vrai('⛔⛔ même en déverrouillant le champ à la main, ses congés restent à 25 — son téléphone, lui, change', KF3.conges == 25 && KF3.tel === '06 00 11 22 33', KF3);
 
   console.log('\n══ 5. AUCUNE ERREUR ══');
   v('exceptions', S.exceptions, []);
