@@ -189,7 +189,28 @@ Et seulement chez une entreprise qui a rattaché des équipes à un DR : il ne r
 notifications d'une AUTRE équipe (secteur non couvert, travail terminé, demande, mouvement ou bon à
 valider) — son écran Validations ne les lui montrait déjà pas.
 
-### ⛔ À TRANCHER PAR JUSTIN (rien n'a été changé)
+### ✅ TRANCHÉ PAR JUSTIN — 23 septembre 2026, tard le soir (ses mots, puis ce qu'on en fait)
+
+1. **Entrepôt et box** — « le stock général, ça serait plus pour un entrepôt : avoir tout ce que
+   l'entreprise contient. Le stock box et celui des box bien séparés, et bien expliqué que ce n'est
+   pas la même chose. » → le stock général devient l'ENTREPÔT, présenté et expliqué comme tel ; le
+   stock d'une box est à part, et aucun geste ne mélange les deux sans le dire.
+2. **Historique d'un client** — « visible en entier, avec toutes les informations données par le
+   1er technicien, et même les commerciaux, DR et admin doivent voir. » → on garde, et on vérifie
+   que ces trois-là le voient vraiment.
+3. **Plans d'appâtage** — « si ce n'est pas le même technicien, il faut qu'il puisse modifier le
+   plan ou autre. » → un technicien qui intervient chez ce client modifie le plan.
+4. **Les quatre gestes d'administrateur** — « réservés à l'admin, mais il peut donner le droit à la
+   personne qu'il veut. » → des cases, fermées par défaut, que l'admin donne à qui il veut.
+5. **Mis de côté** — « il faut pouvoir récupérer tout le travail d'un technicien, et ça, ça va être
+   la force du serveur. » → exigence du chantier « TOUT SUR LE SERVEUR ».
+6. **Hors ligne** — « je veux plus rien en hors ligne, que du en ligne. » → c'est déjà le cas
+   (« Connexion requise », `horsLigneDebut`) ; reste le cas de deux appareils EN LIGNE qui valident
+   dans la même seconde, à mesurer.
+7. **Interventions sans technicien** — « ils ont tout le pouvoir de le faire, c'est normal » (A, B
+   et C) → l'admin, tout compte qui peut planifier, et le DR de l'équipe les voient et les affectent.
+
+### ⛔ À TRANCHER PAR JUSTIN (rien n'a été changé) — posé le 23 septembre, tranché ci-dessus
 
 1. **Le stock « catalogue » (`p.qte`) échappe à la validation DR** : « Produits donnés » depuis un
    véhicule, la clôture d'une intervention quand aucune box ne suffit, le scanner en mode catalogue.
