@@ -3012,6 +3012,16 @@ html[data-refonte] .btn{border-radius:12px!important}
 html[data-refonte] .nav-item,html[data-refonte] .nav-glisse{border-radius:11px!important}
 html[data-refonte] .kpi-ico{border-radius:12px}
 html[data-refonte] .kpi-val{font-size:34px!important;letter-spacing:-.03em}
+/* ⛔ LES CHIFFRES D'UNE FICHE SONT COMPACTS, ET LA RÈGLE CI-DESSUS NE LE SAVAIT PAS. Les fiches
+   Client et Technicien écrivaient leur `.kpi-val` à 22 px EN LIGNE ; le `!important` de la refonte
+   le portait à 34, dans une grille à 108 px la colonne. Mesuré le 23 septembre 2026 au téléphone :
+   « 76h30 » (temps pointé) sortait de sa carte — 114 px pour 80 — et « 0,00 € » de CA encaissé
+   déjà aussi, avant même la première facture. La taille se déclare donc ici, par une classe
+   (un style en ligne ne gagne pas contre un `!important`), et la grille passe à 140 px :
+   « 12 345,67 € » et « 1523h30 » tiennent à 22 px. Ce qui dépasserait encore passe à la ligne
+   plutôt que d'être coupé. */
+html[data-refonte] .kpi.kpi-fiche{min-width:0}
+html[data-refonte] .kpi.kpi-fiche .kpi-val{font-size:22px!important;overflow-wrap:anywhere}
 html[data-refonte] .topbar h1{letter-spacing:-.03em!important}
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -4023,7 +4033,15 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
      (heure, titre, client), comme les cartes du tableau de bord. */
   html[data-refonte] #content .pg-pt,html[data-refonte] #content .tdb-pc,
   html[data-refonte] #content .tdb-cel,html[data-refonte] #content .plm-card,
-  html[data-refonte] #content .tbl button{min-height:0}
+  html[data-refonte] #content .tbl button:not(.btn):not(.chip):not(.tab):not(.pf-b){min-height:0}
+  /* ⛔⛔ L'EXCEPTION NE DÉFAIT QUE CE QUE LE PLANCHER A FAIT. Écrite `#content .tbl button`, elle
+     pesait un IDENTIFIANT : elle battait aussi `html[data-refonte] .btn.sm` (trois classes, pas
+     d'identifiant) et retirait leur plancher aux VRAIES commandes des tableaux. Mesuré le
+     23 septembre 2026 : le ✎ de Techniciens, de Devis, de Factures, de Contrats à 16 px de haut
+     — au téléphone comme au bureau — pendant que le 🗑 d'à côté, qui porte son propre 44 px en
+     `!important`, tenait. Et aucun audit ne pouvait le voir : tous écartaient `.tbl` de la
+     population (`!e.closest('.tbl')`). Même liste d'exclusions que le plancher, mot pour mot
+     (scratchpad/sonde-boutons-tableaux.js, tests/test-785.js). */
   /* ⚠️ ET LES TROIS DERNIERS, TROUVÉS EN REGARDANT CE QUI RESTAIT — chacun est une VRAIE
      commande, pas une case de grille, donc chacun prend le plancher :
      · `.tdb-jh` (32,4 px) — l'en-tête de jour de la frise : il ouvre le planning de ce jour ;
@@ -4082,7 +4100,7 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
      Même plancher, même liste d'exceptions, plus les deux boutons qui ont déjà le leur. */
   html[data-refonte] .modal button:not(.btn):not(.chip):not(.tab):not(.pf-b):not(.modal-close):not(.mdp-oeil),
   html[data-refonte] .dp button:not(.btn):not(.chip):not(.tab):not(.pf-b){min-height:38px}
-  html[data-refonte] .modal .tbl button{min-height:0}
+  html[data-refonte] .modal .tbl button:not(.btn):not(.chip):not(.tab):not(.pf-b){min-height:0}
   /* L'œil du mot de passe (32 px) : il se touche pour VÉRIFIER ce qu'on vient de taper au
      pouce, c'est-à-dire exactement quand on a un doigt sur l'écran. Le champ lui réserve déjà
      44 px à droite (`.mdp-wrap>input{padding-right:44px}`) : il les prend. */
@@ -22168,7 +22186,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
   const devis=db.devis.filter(d=>d.clientId===id), facts=db.factures.filter(f=>f.clientId===id);
   const cli=db.clients.find(x=>x.id===id)||{}; const ctrs=db.contrats.filter(x=>x.clientId===id && x.statut==='actif'), envs=db.enveloppes.filter(e=>(e.clientNom||'')&&cli.nom&&norm(e.clientNom).includes(norm(cli.nom.split(' ')[0])));
   const caFact=facts.filter(f=>f.statut==='payee').reduce((s,f)=>s+docTot(f).ttc,0);
-  const k=(ic,bg,val,lbl)=>`<div class="kpi" style="padding:14px"><div class="kpi-ico" style="width:34px;height:34px;font-size:16px;margin-bottom:8px;background:${bg}">${ic}</div><div class="kpi-val" style="font-size:22px">${val}</div><div class="kpi-lbl">${lbl}</div></div>`;
+  const k=(ic,bg,val,lbl)=>`<div class="kpi kpi-fiche" style="padding:14px"><div class="kpi-ico" style="width:34px;height:34px;font-size:16px;margin-bottom:8px;background:${bg}">${ic}</div><div class="kpi-val">${val}</div><div class="kpi-lbl">${lbl}</div></div>`;
   const sec=(t,arr,fn)=>`<div class="dt-lbl" style="margin:16px 0 8px">${t}</div>${arr.length?arr.slice(0,4).map(fn).join(''):'<div style="color:var(--t3);font-size:13px;padding:4px 0">Aucun</div>'}`;
   openModal(`<div class="modal-head"><h3>${cliIsPro(c)?'🏢':'🏠'} ${esc(c.nom)} <span style="font-size:10.5px;font-weight:700;color:var(--t3);border:1px solid var(--brd2);border-radius:100px;padding:2px 9px;vertical-align:middle">${cliIsPro(c)?'Professionnel':'Particulier'}</span></h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="detail-grid" style="margin-bottom:8px">
@@ -22177,7 +22195,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
       <div><div class="dt-lbl">Email</div><div class="dt-val">${esc(c.email)||'—'}</div></div>
       <div><div class="dt-lbl">Adresse</div><div class="dt-val">${esc(c.adresse)||'—'}</div></div></div>
     ${c.acces?`<div style="display:flex;gap:9px;align-items:flex-start;margin-top:10px;background:color-mix(in srgb,var(--org) 10%,transparent);border:1px solid color-mix(in srgb,var(--org) 35%,transparent);border-radius:10px;padding:9px 12px"><span>🔑</span><div style="font-size:12.5px;color:var(--t1);white-space:pre-wrap"><b>Note d'accès :</b> ${esc(c.acces)}</div></div>`:''}
-    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(108px,1fr));margin:14px 0">
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:14px 0">
       ${k('🧰','rgba(96,165,250,.14)',ints.length,'Interventions')}
       ${k('💶','color-mix(in srgb,var(--acc) 16%,transparent)',eur(caFact),'CA encaissé')}
       ${k('💰','rgba(167,139,250,.14)',devis.length,'Devis')}
@@ -29449,7 +29467,7 @@ function ficheTech(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) return
   const totMin=pts.reduce((s,p)=>s+Math.max(0,minutes(p.debut,p.fin)-(p.pause||0)),0);
   const veh=db.vehicules.find(v=>v.techId===id);
   const enCours=ints.filter(i=>i.statut==='encours'||i.statut==='planifiee').length;
-  const k=(ic,bg,val,lbl)=>`<div class="kpi" style="padding:14px"><div class="kpi-ico" style="width:34px;height:34px;font-size:16px;margin-bottom:8px;background:${bg}">${ic}</div><div class="kpi-val" style="font-size:22px">${val}</div><div class="kpi-lbl">${lbl}</div></div>`;
+  const k=(ic,bg,val,lbl)=>`<div class="kpi kpi-fiche" style="padding:14px"><div class="kpi-ico" style="width:34px;height:34px;font-size:16px;margin-bottom:8px;background:${bg}">${ic}</div><div class="kpi-val">${val}</div><div class="kpi-lbl">${lbl}</div></div>`;
   openModal(`<div class="modal-head"><h3>👷 ${esc(t.nom)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="detail-grid" style="margin-bottom:6px">
       <div><div class="dt-lbl">Rôle</div><div class="dt-val">${esc(t.metier)||'Technicien'}</div></div>
@@ -29458,7 +29476,7 @@ function ficheTech(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) return
       <div><div class="dt-lbl">Véhicule</div><div class="dt-val">${veh?esc(veh.immat):'—'}</div></div>
       <div><div class="dt-lbl">Certibiocide</div><div class="dt-val">${esc(t.certibiocide)||'—'} ${certibBadge(t)}</div></div>
       ${t.certibiocideExp?`<div><div class="dt-lbl">Valide jusqu'au</div><div class="dt-val">${fmtShort(t.certibiocideExp)}</div></div>`:''}</div>
-    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(108px,1fr));margin:14px 0">
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:14px 0">
       ${k('🧰','rgba(96,165,250,.14)',ints.length,'Interventions')}
       ${k('📅','rgba(251,146,60,.14)',enCours,'En cours/à venir')}
       ${k('⏱️','color-mix(in srgb,var(--acc) 16%,transparent)',dureeStr(totMin),'Temps pointé')}</div>
