@@ -909,6 +909,37 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   `data-tip`, « Ouvrir le menu »). ⚠️ Et un recensement « sans nom » doit écarter les CONTENEURS
   qui bloquent un clic (`onclick="event.stopPropagation()"`) : ils n'agissent pas, et sans ce tri
   la mesure en comptait 51 de trop. `tests/test-777.js`, `scratchpad/sans-nom.js`.
+- ⛔⛔ **TOUS LES AUDITS TOURNAIENT EN ADMINISTRATEUR — L'ÉCRAN DU TECHNICIEN N'Y PARAISSAIT
+  JAMAIS.** C'est pourtant lui qui tient le téléphone. Mesuré le 23 septembre 2026 en se
+  connectant comme technicien, noms longs : dans « Ma journée » (`renderIntTechDay`), heure et
+  statut laissaient **100 px** au texte d'une carte à 360 px (titre sur dix lignes), et le rappel
+  du matin écrasait son message à 70 px, « Établissements » coupé par son propre bouton. Un rôle
+  qui change les écrans est une POPULATION, comme un appareil : `ROLE=technicien` dans
+  `audit-profond.js`, `scratchpad/sonde-ma-journee.js`.
+- ⛔⛔ **UN STYLE ÉCRIT EN LIGNE BAT LA FEUILLE — TROIS FOIS LE MÊME JOUR, ET UNE FOIS LE CORRECTIF
+  NE CHANGEAIT RIEN.** Le 23 septembre 2026 : `gap:13px` (Consommation — l'écart de rangée
+  compté deux fois), `margin-right:8px` (compte à rebours), et `flex:1` sur la colonne de texte
+  de « Ma journée » : la base posée par la feuille ne prenait pas, et **la sonde rendait
+  exactement les mêmes chiffres avant et après** (100 px, 128 px). C'est le signe, déjà écrit
+  pour les correctifs lancés en arrière-plan : deux mesures qui devraient différer et ne
+  diffèrent pas. Une règle de correctif porte `!important` sur CHAQUE propriété que le HTML
+  écrit déjà en ligne — on relit le `style="…"` avant d'écrire la règle.
+- ⛔⛔ **UNE BOÎTE ABSOLUE OU FIXE CENTRÉE PAR `left:50%` + `translateX(-50%)` SE MESURE SUR LA
+  MOITIÉ DE SON CADRE.** À largeur automatique, elle ne prend que la place qui reste à droite de
+  son bord gauche : 180 px sur un téléphone de 360. Mesuré le 23 septembre 2026 : le rappel du
+  matin (message à 70 px) et la barre « Ordre proposé » posée sur la carte (164 px dans 328,
+  quatre lignes, 152 px de haut sur la carte ; deux lignes même au bureau). Rien ne déborde,
+  donc aucun audit de débordement ne le voit. La forme sûre : `left:X;right:X;margin:0 auto;
+  width:max-content;max-width:…`. `tests/test-776.js` §14 recense toutes les boîtes centrées
+  ainsi et exige une largeur, du texte insécable ou aucun contenu.
+- ⛔ **C'EST LA LARGEUR DE LA LISTE QUI DÉCIDE, PAS CELLE DE L'ÉCRAN.** La liste des Interventions
+  mettait heure, texte, compte à rebours, statut et boutons côte à côte : texte à 0 px sur les
+  téléphones — et à **87 px sur iPad portrait**, dans un écran de 820, parce que le menu latéral
+  en prend 272. Un `@media` sur l'écran ne pouvait pas le voir. D'où les deux premières requêtes
+  de CONTENEUR du fichier (`.int-liste`, `.mj`). Pas de copie en `@media` pour les vieux
+  navigateurs : `color-mix()`, dont toute la palette dépend, est arrivé après les requêtes de
+  conteneur dans les trois moteurs. ⚠️ `container-type` va sur une enveloppe qui ne contient QUE
+  la liste — jamais sur `#content`, où l'endiguement pourrait toucher des éléments fixes.
 - ⛔⛔ **`--acc` EST LA COULEUR D'UN APLAT, PAS CELLE D'UNE LETTRE — UN TEXTE ÉCRIT `--acc-txt`.**
   Le 22 septembre 2026, l'audit des neuf teintes (756 écrans + 126 fenêtres,
   `scratchpad/audit-teintes.js`) a trouvé **327 textes en `var(--acc)`** : justes sur le vert
