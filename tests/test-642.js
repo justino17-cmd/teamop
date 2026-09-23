@@ -64,7 +64,7 @@ console.log('\nUn bouton de box qui ne peut pas agir le DIT');
   v('…et elle parle', /toast\('Cette box n\\'est plus dans ta base/.test(APP), true);
   /* `retour` n'est vrai que pour le bouton : ramener à la liste au milieu d'un geste déjà
      commencé dans la feuille serait pire que le silence. */
-  v('le bouton de la box ramène à la liste', /function openBoxProduits\(\)\{ const b=bxpBoxDite\(true\);/.test(APP), true);
+  v('le bouton de la box ramène à la liste', /function openBoxProduits\(\)\{ if\(!permGarde\('stock','modifier','une box'\)\) return; const b=bxpBoxDite\(true\);/.test(APP), true);
   v('les gestes DANS la feuille parlent sans ramener en arrière',
     (APP.match(/const b=bxpBoxDite\(\); if\(!b\) return;/g)||[]).length, 6);
   /* Les fonctions internes (bxpFeuille, bxpMajPied) restent muettes : elles sont appelées

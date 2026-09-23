@@ -89,7 +89,7 @@ console.log('Un écran vide dit pourquoi, et « jamais connecté » n’est pas 
   v('le vide compte les box de l’ENTREPRISE avant de conclure', /const total=\(db\.boxes\|\|\[\]\)\.length;/.test(bloc), true);
   v('et le dit quand il y en a', /Aucune box ne t'est attribuée pour l'instant — l'entreprise en compte \$\{total\}/.test(bloc), true);
   v('une recherche sans résultat ne dit PAS « aucune box attribuée »', /Aucune box ne correspond à cette recherche\./.test(bloc), true);
-  v('…et ne propose pas d’en créer une (le bouton ne répare pas une recherche)', /\(!q&&can\('supprimer'\)\)\?'Ajouter':''/.test(bloc), true);
+  v('…et ne propose pas d’en créer une (le bouton ne répare pas une recherche)', /\(!q&&boxGerer\('ajouter'\)\)\?'Ajouter':''/.test(bloc), true);
   v('la liste Utilisateurs porte le badge', /\$\{usrSansBox\(u\)\?'<span class="st st-org"/.test(APP), true);
 }
 

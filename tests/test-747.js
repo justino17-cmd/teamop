@@ -55,14 +55,14 @@ const VU_ET_PAS_GARDE = {
   /* ⚠️ Ces deux-là n'apparaissaient PAS tant que le nettoyage des commentaires était naïf :
      elles tombaient dans les 107 069 caractères avalés. Le banc voit plus large depuis. */
   genDemoData: 'démonstration', genTestNuisibles: 'démonstration (jeu d essai nuisibles)',
-  planDup: 'duplication d une intervention existante', planNextCreate: 'récurrence automatique',
-  intRecurNext: 'récurrence automatique', creerProchainPassage: 'passage suivant automatique',
-  dupliquerIntervention: 'duplication d une intervention existante',
-  genererInterventionContrat: 'généré depuis un contrat signé',
+  /* ⛔ v738 : planDup, creerProchainPassage, dupliquerIntervention, genererInterventionContrat,
+     devisToFacture, devisIAGo, devisIAAppliquer, aiGenDevisXylo et adCreerDevis étaient rangés ICI,
+     « dérivés » ou « gardés par devisIA ». Joués dans une vraie page (sonde-matrice-droits), tous
+     créaient sans la case de leur catégorie : une duplication EST une création, une facture tirée
+     d'un devis aussi. Ils portent désormais leur garde — et la section 6 refuse qu'une entrée d'ici
+     nomme une fonction gardée : la justification serait périmée. */
+  planNextCreate: 'récurrence automatique', intRecurNext: 'récurrence automatique (clôture de SON intervention)',
   factureAFacturer: 'facture dérivée d une intervention', factureAutoIntervention: 'facture dérivée',
-  devisToFacture: 'facture dérivée d un devis',
-  devisIAGo: 'gardé par le droit devisIA', devisIAAppliquer: 'gardé par le droit devisIA',
-  aiGenDevisXylo: 'gardé par le droit devisIA', adCreerDevis: 'gardé par le droit devisIA',
   stockExportBon: 'circuit bons - peutCommander', validerDemande: 'circuit bons - validerDR',
   bonDupliquer: 'circuit bons - peutCommander', bonGarder: 'circuit bons - peutCommander',
   bonValider: 'circuit bons - peutCommander', bonSeparer: 'circuit bons - peutCommander',
@@ -122,7 +122,8 @@ for (const f of fns) {
      invisible au motif `db.produits.push(`. Ses appelants créent des fiches par centaines : pris
      par la mutation « ↻ Catalogue OP sans garde », qui passait au vert (v737). */
   if (f.nom !== 'cataloguePoser' && f.corps.includes('cataloguePoser(') && !push.includes('produits')) push.push('produits');
-  if (push.length) creatrices.push({ nom: f.nom, colls: push, garde: /permGarde\(|canCat\(/.test(f.corps) });
+  /* v738 : `boxGererGarde` (la box : « Gérer les box » + la case du Stock) est une garde de catégorie */
+  if (push.length) creatrices.push({ nom: f.nom, colls: push, garde: /permGarde\(|canCat\(|boxGererGarde\(/.test(f.corps) });
 }
 
 console.log('\n══ 2. ⛔⛔ CHAQUE CRÉATION EST GARDÉE, OU NOMMÉE ══\n');
@@ -191,8 +192,11 @@ console.log('\n══ 4. ⛔ LES HUIT AUTRES GARDES N\'ONT PAS BOUGÉ ══\n')
 for (const [fn, grp] of [['saveTache', 'plan'], ['saveAbsence', 'plan'], ['saveIntervention', 'int'],
   ['saveClientForm', 'crm'], ['saveProduit', 'stock'], ['saveBox', 'stock'],
   ['saveDoc', 'ventes'], ['saveContrat', 'ventes'], ['saveVehicule', 'equipe']]) {
-  vrai('   ' + fn.padEnd(18) + ' → permGarde(' + grp + ')', new RegExp("permGarde\\('" + grp + "'").test(corps(fn)));
+  /* v738 : la box passe par `boxGererGarde`, qui exige « Gérer les box » PUIS permGarde('stock',…) */
+  const re = fn === 'saveBox' ? /boxGererGarde\(id\?'modifier':'ajouter'\)/ : new RegExp("permGarde\\('" + grp + "'");
+  vrai('   ' + fn.padEnd(18) + ' → ' + (fn === 'saveBox' ? 'boxGererGarde' : 'permGarde(' + grp + ')'), re.test(corps(fn)));
 }
+vrai('   … et boxGererGarde finit bien par permGarde(\'stock\', …)', /function boxGererGarde\(droit\)\{[\s\S]{0,260}return permGarde\('stock',droit,'une box'\); \}/.test(NU));
 
 console.log('\n══ 5. ⛔ LA SUPPRESSION RESTE GÉNÉRIQUE ══\n');
 /* `delItem` déduit la catégorie de la collection : c'est ce qui fait que « supprimer » vaut
@@ -206,6 +210,10 @@ console.log('\n══ 6. ⛔ LA LISTE BLANCHE NE PARLE PAS DE FANTÔMES ══\n
 const nomsVus = new Set(creatrices.map(c => c.nom));
 const fantomes = [...Object.keys(VU_ET_PAS_GARDE), ...Object.keys(A_TRANCHER)].filter(n => !nomsVus.has(n));
 v('⛔ aucune entrée ne parle d\'une fonction qui ne crée plus rien', fantomes, []);
+/* v738 : et aucune ne « justifie » l'absence d'une garde qui est désormais là — une décision périmée
+   ferait croire le chemin ouvert exprès, et le jour où la garde saute, personne ne le verrait */
+const perimees = creatrices.filter(c => c.garde && VU_ET_PAS_GARDE[c.nom]).map(c => c.nom);
+v('⛔ aucune entrée de la liste blanche ne nomme une fonction gardée', perimees, []);
 vrai('   et la liste « à trancher » n\'est pas vide tant que Justin n\'a pas tranché', Object.keys(A_TRANCHER).length > 0);
 
 console.log('\n══ 7. ⛔ LES TRENTE DROITS EXISTENT ET SE SAUVEGARDENT ══\n');

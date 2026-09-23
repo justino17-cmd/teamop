@@ -41,7 +41,7 @@ const ligne = debut => { const i = SRC.indexOf(debut); if (i < 0) return ''; ret
 console.log('\n── 789 · 0. la population ──');
 const P = {
   regle: bloc('function capDeduitRegle(cap){'), userCap: bloc('function userCap(u,cap){'), can: bloc('function can(cap){'),
-  catDroit: bloc('function catDroit(u,grp,droit){'), borner: bloc('function droitsBorner(nu,par){'),
+  catRegle: bloc('function catDeduitRegle(grp,droit){'), catDroit: bloc('function catDroit(u,grp,droit){'), borner: bloc('function droitsBorner(nu,par){'),
   zone: bloc('function usrDeduireZone(z){'), deduire: bloc('function usrDeduire(el){'),
   valider: bloc('function usrDroitsValider(uid,btn){'), lire: bloc('function profilLireZone(zone){'),
   USER_CAPS: constante('const USER_CAPS=[', '\n];'), PERM_GRPS: ligne('const PERM_GRPS=['), PERM_SPECIAUX: ligne('const PERM_SPECIAUX={'),
@@ -57,7 +57,7 @@ function monde(opts) {
   const o = opts || {};
   const ctx = { db: { users: [], permissions: {}, boxes: [], vehicules: [] }, currentUser: null, Object, JSON, String, Set, Array };
   vm.createContext(ctx);
-  vm.runInContext([P.USER_CAPS, P.PERM_GRPS, P.PERM_SPECIAUX, P.CAPS_HERITE, P.CAPS, P.regle, P.userCap, P.can, P.catDroit, P.borner].join('\n')
+  vm.runInContext([P.USER_CAPS, P.PERM_GRPS, P.PERM_SPECIAUX, P.CAPS_HERITE, P.CAPS, P.regle, P.userCap, P.can, P.catRegle, P.catDroit, P.borner].join('\n')
     + '\nthis.USER_CAPS=USER_CAPS; this.PERM_GRPS=PERM_GRPS; this.PERM_SPECIAUX=PERM_SPECIAUX; this.CAPS_HERITE=CAPS_HERITE;', ctx);
   if (o.reprise !== false) for (const [r, c] of Object.entries(ctx.CAPS_HERITE)) if (r !== 'admin')
     ctx.db.permissions[r] = { caps: Object.fromEntries(Object.entries(c).map(([k, x]) => [k, !!x])) };

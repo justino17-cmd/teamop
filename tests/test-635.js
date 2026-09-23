@@ -151,8 +151,11 @@ console.log('Le formulaire d\'une box ne peut plus écarter ce qu\'il n\'a jamai
 { v('le départ mémorise les VALEURS, pas seulement les clés',/boxFormStockDepart *= *JSON\.parse\(JSON\.stringify\(boxFormStock\)\)/.test(APP),true);
   v('saveBox part du stock VIVANT, jamais de l\'instantané du formulaire',
     /const stock=\{\}; Object\.keys\(vivant\)\.forEach\(pid=>\{ stock\[pid\]=vivant\[pid\]; \}\)/.test(APP),true);
+  /* v738 : la même règle, écrite en garde de sortie — et ce qui est retapé part au DR sous validation,
+     ou s'applique ET se trace sinon (test-790 §7, sonde-matrice-droits) */
   v('seule une fiche ajoutée ou une quantité retapée s\'applique par-dessus',
-    /if\(!av\|\|\(av\.u\|\|0\)!==\(ap\.u\|\|0\)\|\|\(av\.ctn\|\|0\)!==\(ap\.ctn\|\|0\)\) stock\[pid\]=ap;/.test(APP),true);
+    /if\(!\(!av\|\|\(av\.u\|\|0\)!==\(ap\.u\|\|0\)\|\|\(av\.ctn\|\|0\)!==\(ap\.ctn\|\|0\)\)\) return;/.test(APP)
+    && /const v=vivant\[pid\]\|\|\{ctn:0,u:0\}; stock\[pid\]=ap;/.test(APP),true);
   v('un produit qui a du stock ne part pas d\'un décochage — la croix ✕',/onclick="bfcRetirerUn\('\$\{pid\}'\)"/.test(APP),true);
   v('…ni la case du catalogue',/function toggleBfc\(pid\)\{ if\(boxFormStock\[pid\]\)\{ if\(!bfcRetirable\(pid\)\) return;/.test(APP),true);
   v('…ni « Tout retirer »',/if\(\(\+st\.u\|\|0\)\|\|\(\+st\.ctn\|\|0\)\)\{ bloques\+\+; return; \}/.test(APP),true);

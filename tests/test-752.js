@@ -46,8 +46,11 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
   return NU.slice(i, j<0? i+2600 : j); };
 
 console.log('\n══ 1. LES SIX ENTRÉES, ET LE FILTRE DES DROITS ══\n');
-{ const M=new Function('navVu',`
+/* v738 : une tuile demande AUSSI le droit de créer (canCat / boxGerer) — le bac les reçoit en paramètre,
+   tout permis par défaut ; la section 1 bis les ferme un par un */
+{ const M=new Function('navVu','refus',`
     const NAV=navVu; const canSee=it=>it.vu!==false;
+    const R=refus||[]; const canCat=(g,d)=>R.indexOf(g+'_'+d)<0; const boxGerer=d=>R.indexOf('box_'+d)<0;
     ${decoupe('const CREER_ENTREES=[')}
     ${decoupe('function creerDispo(){')}
     return { CREER_ENTREES, creerDispo };`);
@@ -69,6 +72,14 @@ console.log('\n══ 1. LES SIX ENTRÉES, ET LE FILTRE DES DROITS ══\n');
   v('⛔ une rubrique ABSENTE du menu ne donne pas de tuile (pas seulement « non visible »)',
     M(absent).creerDispo().map(e=>e.k), ['interventions']);
   v('⛔ un menu vide ne donne aucune tuile, et ne plante pas', M([]).creerDispo(), []);
+
+  console.log('\n══ 1 bis. ⛔ v738 : ET QUE CE QU\'ELLE PEUT CRÉER ══\n');
+  v('⛔ sans « Interventions → Ajouter », pas de tuile Intervention (le formulaire serait refusé)',
+    M(tout,['int_ajouter']).creerDispo().map(e=>e.k), ['clients','devis','factures','demandes','boxes']);
+  v('⛔⛔ sans « Gérer les box », pas de tuile Box (elle créait une box que l\'écran Boxes refusait)',
+    M(tout,['box_ajouter']).creerDispo().map(e=>e.k), ['interventions','clients','devis','factures','demandes']);
+  v('⛔ sans « Ventes → Ajouter », ni Devis ni Facture', M(tout,['ventes_ajouter']).creerDispo().map(e=>e.k), ['interventions','clients','demandes','boxes']);
+  v('⛔ chaque tuile dit quel droit la gouverne', A.CREER_ENTREES.every(e=>typeof e.peut==='function'), true);
 }
 
 console.log('\n══ 2. ⛔ UNE FEUILLE À PART, JAMAIS `openModal` ══\n');

@@ -215,6 +215,7 @@ async function partieSaveTech() {
     { const cu = users.find(u => u.id === moi); if (cu) cu.acces = { caps: Object.fromEntries(caps.map(k => [k, true])) }; }
     const toasts = [];
     const redessins = [];
+    const bornes = [];
     const ctx = { currentUser: users.find(u => u.id === moi), db: { users, techniciens: [{ id: 'tK', nom: 'Karim Benali', metier: 'Technicien', tel: '06 12', droitConges: 25, capMin: 420, departements: '44', chef: '' }, { id: 'tL', nom: 'Léo Martin', metier: 'Technicien', tel: '07 11' }] },
       /* les VRAIS userCap / can (dans CODE) : l'administrateur a tout, les autres leurs cases */
       CAPS: { technicien: {} }, permGarde: () => true, planPlaceLibre: () => true, proposerAbonnement: () => toasts.push('abonnement'),
@@ -223,11 +224,14 @@ async function partieSaveTech() {
       fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(),
       uid: (() => { let n = 0; return () => 'id' + (++n); })(), nomNorm: x => String(x || '').toLowerCase().trim(),
       sha256: async () => 'h', mdpProvisoire: () => 'pw', userIdentifiantsModal: () => {}, setTimeout: f => f(),
+      /* v738 : saveTech borne le compte qu'elle crée (droitsBorner, exécuté pour de vrai par test-789) —
+         ici un témoin qui NOTE l'appel : la règle est ailleurs, ce banc vérifie qu'elle est appelée */
+      droitsBorner: (nu, par) => { bornes.push([nu.role, par && par.id]); return []; },
       FormData: function (t) { return Object.entries(t); } };
     ctx.db.pointages = [];
     vm.createContext(ctx); vm.runInContext(CODE.join('\n') + '\n' + st, ctx);
     await vm.runInContext('saveTech({preventDefault(){},target:' + JSON.stringify(form) + '},' + JSON.stringify(id || '') + ')', ctx);
-    return { roleK: users.find(u => u.id === 'uK').role, roleL: users.find(u => u.id === 'uL').role, metierK: ctx.db.techniciens[0].metier, comptes: users.length, fiches: ctx.db.techniciens.length, toasts,
+    return { roleK: users.find(u => u.id === 'uK').role, roleL: users.find(u => u.id === 'uL').role, metierK: ctx.db.techniciens[0].metier, comptes: users.length, fiches: ctx.db.techniciens.length, toasts, bornes,
       K: JSON.parse(JSON.stringify(ctx.db.techniciens[0])), L: JSON.parse(JSON.stringify(ctx.db.techniciens[1])), redessins };
   };
   const K1 = await essai('uK', [], { nom: 'Karim Benali', metier: "Chef d'équipe", tel: '06 00 00 00 00' }, 'tK');
@@ -245,6 +249,7 @@ async function partieSaveTech() {
   v('contre-épreuve : l’administrateur, lui, change le rôle (fiche ET compte)', [A1.roleK, A1.metierK], ['chefEquipe', "Chef d'équipe"]);
   const R1 = await essai('uR', ['creerUtilisateurs'], { nom: 'Nouveau Venu', metier: 'Technicien' });
   v('contre-épreuve : un chef avec « Créer des utilisateurs » crée la fiche et son compte', [R1.comptes, R1.fiches], [5, 3]);
+  v('⛔ v738 : … et le compte créé passe par droitsBorner, avec le chef comme créateur', R1.bornes, [['technicien', 'uR']]);
   /* ⛔⛔ la porte oubliée, à l'enregistrement (une ligne cachée n'est pas une garde) */
   const K3 = await essai('uK', [], { nom: 'Léo Martin', tel: '06 66 66 66 66' }, 'tL');
   v('⛔⛔ Karim n’enregistre pas la fiche de Léo : son téléphone ne bouge pas', K3.L.tel, '07 11');
