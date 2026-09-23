@@ -39,6 +39,61 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 23 SEPTEMBRE 2026 (soir) — « VOIR SUR LA CARTE » MONTRE LA CARTE, ET NE FLOTTE PLUS (v732, bêta)
+
+Même vidéo de Justin (iPhone, 13 h 02). Au-delà de la barre qui sautait (v731, plus bas), les
+images montraient deux boutons flottants EMPILÉS au bord droit du Planning : la bulle 💬
+d'assistance posée sur la flèche « jours suivants » du bandeau des jours, et « Voir sur la
+carte » au-dessus d'elle, au milieu de l'écran.
+
+Rejoué au navigateur, écran par écran (`scratchpad/sonde-flottants.js`) :
+- à 815 px de haut, le zoom « − 100 % + » avait son centre SOUS « Voir sur la carte » ;
+- et en le touchant POUR DE VRAI, un défaut plus grave : **la carte s'ouvrait sous tout le
+  planning** — à 2 187 px du haut pour un écran de 874 (semaine ; 2 385 en jour, 2 354 en mois).
+  À l'écran, rien ne se passait, sauf le bouton qui disparaissait. `planDisp()` rendait bien
+  « cote » : l'ÉTAT était juste, c'est ce que l'œil voyait qui ne l'était pas.
+
+Ce qui change :
+- **en une colonne** (téléphone, iPad en portrait), la carte passe **au-dessus** du planning ;
+- **demander la carte l'amène entièrement sous les yeux** ; au bureau, rien ne bouge (elle y
+  est collée à droite) ;
+- **au téléphone, « Voir sur la carte » ne flotte plus** : il rejoint « Journal » dans les
+  actions de l'écran, sur la même ligne — aucune hauteur de plus. Au-dessus de 780 px, il
+  flotte comme avant ;
+- le bouton « côte à côte » s'appelle et se dessine « carte au-dessus » quand il n'y a qu'une
+  colonne (c'est ce nom que lit un lecteur d'écran) ;
+- l'en-tête de la carte au téléphone : **95 px au lieu de 141** de 390 à 430 px — « Satellite »
+  héritait du rembourrage et du FONDU des rangées de filtres qui défilent, il était rogné.
+
+Mesuré : `sonde-flottants` **16 ✓ 0 ✗** à 874 et à 815 px (ouverture de 42 écrans, bas de page,
+vrai toucher dans les trois vues) ; la même sonde sur la bêta v731 : **5 ✓ 11 ✗**. Tablette et
+bureau inchangés (820, 1180 et 1440 px). `tests/test-781.js` (46 contrôles) exécute les vraies
+fonctions ; les **treize** mutations le font tomber — la treizième ne mordait pas au premier tour
+(le banc ne jouait pas une carte dont seul le bas est caché sous la barre d'onglets, c'est-à-dire
+le cas du téléphone).
+
+### ⏳ EN ATTENTE DE JUSTIN — la bulle d'assistance à côté de la barre d'onglets
+
+La bulle 💬 reste un bouton flottant : selon la hauteur de l'écran et ce qu'il contient, elle
+couvre une commande à l'ouverture — sur la vidéo, la flèche du bandeau des jours ; à 815 px,
+l'icône d'action d'une ligne d'Interventions. On fait défiler et le bas de page la dégage
+(vérifié), mais c'est le lot de tout bouton flottant, et la sonde la compte à part, nommée.
+
+**La sortie propre** : la poser À CÔTÉ de la barre d'onglets, dans la même rangée, comme la
+recherche d'Apple Music sous iOS 26. Maquette faite au navigateur, rien d'écrit dans le fichier :
+barre raccourcie de 66 px, onglets de 71 à 58 px, les cinq libellés tiennent, et plus rien ne
+flotte au-dessus du contenu. **C'est la navigation : décision de Justin.** Si c'est oui : la barre,
+la bulle et le dégagement du contenu (trois règles), plus le message de confirmation et le
+rappel du matin, qui se calent aujourd'hui AU-DESSUS de la bulle — à redescendre ensemble, sinon
+ils laisseraient un trou.
+
+### Vu en chemin, pas touché
+
+La carte du Planning est rembourrée comme toutes les cartes (22/24 px) alors qu'elle a été
+dessinée sans marge (`.plm-carte{padding:0}`) — la même moitié de règle que la barre du
+Planning en v731 : la carte est posée en retrait dans son cadre, avec ses propres coins arrondis.
+C'est ce que tout le monde voit depuis la refonte ; changer ça serait redessiner, pas réparer.
+
 ## ✅ 23 SEPTEMBRE 2026 (soir) — PLUS RIEN NE CHANGE DE TAILLE SOUS LE DOIGT (v731, bêta)
 
 Justin, vidéo de 6 s filmée sur son iPhone à 13 h 02 : **« J'ai toujours des petits bugs comme ça

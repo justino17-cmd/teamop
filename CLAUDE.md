@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**137 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 —
+**138 suites dans `tests/`**, sans dépendance ni installation (recompté le 23 septembre 2026 —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 137 suites · 6 208 vérifications (mesuré le 23/09/2026, v731)
+bash scripts/bancs-ci.sh        # 138 suites · 6 254 vérifications (mesuré le 23/09/2026, v732)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -668,6 +668,25 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   règle de survol qui change une taille soit NOMMÉE avec sa raison. Corollaire de méthode : **la
   vidéo d'un client est le meilleur rapport de défaut** — `ffmpeg -vf fps=4`, puis relever une
   colonne de pixels image par image date chaque bascule sans rien supposer.
+- ⛔⛔ **UN GESTE SE MESURE À CE QUE L'ŒIL VOIT APRÈS, PAS À L'ÉTAT QU'IL POSE.** Même vidéo,
+  même jour : « Voir sur la carte » posait bien `planDisp()==='cote'` — et la carte s'ouvrait à
+  **2 187 px du haut, sur un écran de 874**, sous tout le planning (en une colonne, la grille la
+  rangeait après). Un contrôle de l'état passait ; à l'écran, rien ne se passait, sauf le bouton
+  qui disparaissait. La sonde TOUCHE pour de vrai et exige la carte ENTIÈRE entre la barre du
+  haut et la barre d'onglets (`scratchpad/sonde-flottants.js`). Et pour les boutons flottants,
+  la même leçon que les barres fixes, par l'autre bout : l'audit qui amène chaque candidat AU
+  MILIEU de l'écran (la bonne parade contre les faux « recouverts ») ne regarde jamais le BAS,
+  là où ils flottent — il faut aussi relever l'écran tel qu'il s'ouvre, et en bas de page.
+- ⛔ **`[^{}]*` DEVANT UN LITTÉRAL, SUR LES 3,5 Mo D'`app.html`, PEUT PRENDRE 51 SECONDES — ET
+  SEULEMENT SUR UNE MUTATION.** Le retour arrière repart de chaque position : quelques ms sur le
+  fichier normal, 51 s une fois une ligne retirée. Un banc qui se fige se fait couper, puis
+  désactiver. Recenser par `indexOf`, en temps linéaire (`test-781`).
+- ⛔ **UN LOT DE MUTATIONS INTERROMPU PEUT LAISSER UNE MUTATION DANS LE FICHIER — MÊME APRÈS LA
+  RESTAURATION.** Le 23 septembre 2026 : lot arrêté, `git checkout`, `git status` propre… et
+  quelques minutes plus tard, la mutation était de retour dans `app.html`, par un chemin que je
+  n'ai pas su établir. C'est le banc qui l'a vue (deux ✗ sans rapport avec ce que je venais de
+  toucher — le signe décrit plus haut). **`git diff` vide juste avant chaque commit**, et chaque
+  lot au premier plan, avec un délai par exécution (`subprocess.run(…, timeout=30)`).
 - ⛔ **UN PANNEAU FLOTTANT NE SE MESURE NI SUR SON BOUTON NI SUR SON PARENT, MAIS SUR
   L'ÉCRAN.** Corollaire du précédent, avec ses deux symptômes opposés, mesurés le même jour :
   trop ÉTROIT (42 px, les libellés passent à la ligne lettre par lettre) et trop LARGE
