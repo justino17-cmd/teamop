@@ -32,7 +32,7 @@ const fs=require('fs'), path=require('path');
 const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
 const PROFIL=process.argv[2]||'tel';
 /* les appareils vivent dans UNE table, partagée avec l'autre sonde (scratchpad/profils.js) */
-const {profil,poserProfil}=require(path.join(__dirname,'profils.js'));
+const {profil,poserProfil,DONNEES_LONGUES}=require(path.join(__dirname,'profils.js'));
 const P = profil(PROFIL);
 
 /* ⛔ CE QU'ON NE CLIQUE PAS — sortir de la session, détruire la base d'essai, ou changer la
@@ -60,6 +60,8 @@ const ECARTS=[
   await dormir(1300);
   await S.ev(`window.confirm=()=>true; window.alert=()=>{}; try{ betaRemplir(false); }catch(e){} return 1;`);
   await dormir(2500);
+  /* LONGUES=1 : les valeurs les plus longues plausibles (une seule copie : profils.js) */
+  if(process.env.LONGUES){ const n=await S.ev(DONNEES_LONGUES); console.log('  données LONGUES posées sur '+n+' enregistrements'); if(!(n>50)){ console.log('  ✗ population trop maigre'); process.exit(4); } }
   await S.ev(`try{ setPlatForce('${P.plat}'); }catch(e){} try{ setThemePref('${P.theme}'); }catch(e){} try{ setAccent('green'); }catch(e){} return 1;`);
 
   /* ── LES GARDE-FOUS : plus rien ne se confirme, rien ne quitte la page ── */
@@ -471,6 +473,6 @@ const ECARTS=[
     grouper(R.zoom,x=>x.n+' « '+x.t+' »').slice(0,25).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   '+v[0].fs+' px   ex. '+v[0].ou)); }
   console.log('\n══ LES ÉCRANS PROFONDS AUDITÉS ══');
   [...vus].forEach(v=>console.log('   · '+v));
-  fs.writeFileSync(__dirname+'/audit-profond-'+PROFIL+(TOUT?'-tout':'')+'.json',JSON.stringify({version:S.version,profil:PROFIL,tout:TOUT,sautes,plafonnees,clics,audits,elements,par,ecrans:[...vus],fermees,...R},null,0));
+  fs.writeFileSync(__dirname+'/audit-profond-'+PROFIL+(TOUT?'-tout':'')+(process.env.LONGUES?'-longues':'')+'.json',JSON.stringify({version:S.version,profil:PROFIL,tout:TOUT,sautes,plafonnees,clics,audits,elements,par,ecrans:[...vus],fermees,...R},null,0));
   S.fermer(); process.exit(0);
 })().catch(e=>{console.error('AUDIT MORT :',e&&e.stack||e);process.exit(2);});

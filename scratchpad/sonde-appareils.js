@@ -20,7 +20,7 @@
    Usage : node scratchpad/sonde-appareils.js [profil,profil…]                              */
 const path = require('path');
 const { ouvrir, dormir } = require(path.join(__dirname, 'pilote.js'));
-const { profil, poserProfil } = require(path.join(__dirname, 'profils.js'));
+const { profil, poserProfil, DONNEES_LONGUES } = require(path.join(__dirname, 'profils.js'));
 const LISTE = (process.argv[2] || 'petitand,se,tel,android,promax,ipad,ipadh,bureau,mac14,mac27,win,winapp').split(',');
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d).slice(0, 400) : '')); } };
@@ -42,18 +42,7 @@ const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { k
        flattent toute mise en page. On pose les valeurs les plus longues plausibles avant de
        parcourir — c'est ainsi que Pointage et Enveloppes ont été trouvés (règle du dépôt). */
     if (process.env.LONGUES) {
-      const n = await S.ev(`const NOM='Établissements Hospitaliers Universitaires de la Côte-Saint-Laurent';
-        const ADR='1234 boulevard du Maréchal-de-Lattre-de-Tassigny, Résidence Les Hauts-de-Seine, bâtiment C';
-        const LIB='Traitement curatif et préventif complet des parties communes, caves et locaux techniques';
-        let k=0;
-        (db.clients||[]).forEach((c,i)=>{ c.nom=NOM+' — site '+(i+1); c.adresse=ADR; c.ville='Saint-Rémy-de-Provence-sur-Mer'; k++; });
-        (db.techniciens||[]).forEach((t,i)=>{ t.nom='Jean-Christophe Delacroix-Montgolfier '+(i+1); k++; });
-        (db.produits||[]).forEach((x,i)=>{ x.nom='Gel appât cafards professionnel longue durée, seringue de 35 g — réf. '+(i+1); k++; });
-        (db.fournisseurs||[]).forEach((f,i)=>{ f.nom='Société Européenne de Distribution de Produits Biocides '+(i+1); k++; });
-        ['factures','devis'].forEach(c=>(db[c]||[]).forEach(d=>{ (d.lignes||[]).forEach(l=>{ if(l.pu!=null) l.pu=(+l.pu||1)*1000+0.67; if(l.designation!=null) l.designation=LIB; }); k++; }));
-        (db.interventions||[]).forEach((x,i)=>{ x.titre=LIB+' '+(i+1); k++; });
-        (db.enveloppes||[]).forEach(e=>{ (e.paiements||[]).forEach(q=>{ q.montant=(+q.montant||1)*1000+0.67; }); k++; });
-        save(); return k;`);
+      const n = await S.ev(DONNEES_LONGUES);
       console.log('  données LONGUES posées sur ' + n + ' enregistrements');
     }
     const CATS = await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]&&canSee(NAV.flatMap(g=>g.items).find(i=>i.k===k)));`);
