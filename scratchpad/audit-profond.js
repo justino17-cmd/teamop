@@ -44,7 +44,7 @@ const ECARTS=[
 ];
 
 (async()=>{
-  const S=await ouvrir();
+  const S=await ouvrir(process.env.SOURCE?{source:process.env.SOURCE}:{});   /* SOURCE=<beta d'avant> : la contre-épreuve */
   console.log('  page mesurée : '+S.version+'   ·   profil : '+PROFIL+' — '+P.lbl+' ('+P.plat+' '+P.w+'×'+P.h+', '+P.theme+')');
 
   await poserProfil(S,P);
@@ -139,7 +139,10 @@ const ECARTS=[
   /* ── LE CONTRÔLE D'AFFICHAGE, porté sur une RACINE (la zone de contenu ou la fenêtre) ── */
   const SONDE=(racine)=>`
     const R=${racine}; if(!R) return null;
-    const W=innerWidth, TACTILE=${P.tac};
+    /* ⛔ LA LARGEUR DE L'APPAREIL, PAS innerWidth : sur téléphone, une page qui déborde ÉLARGIT la
+       fenêtre de mise en page, et innerWidth avec elle — mesuré contre elle, rien ne dépasse
+       jamais (23 septembre 2026 : Pointage et le libellé du Planning, invisibles à cet audit). */
+    const W=${P.w}, TACTILE=${P.tac};
     const vis=e=>{ const b=e.getBoundingClientRect(); if(b.width<6||b.height<6) return false;
       const st=getComputedStyle(e); return st.visibility!=='hidden'&&st.display!=='none'&&+st.opacity>0.05; };
     const nom=e=>e.tagName.toLowerCase()+(e.id?'#'+e.id:'')
@@ -347,7 +350,7 @@ const ECARTS=[
   const TOUT=!!process.env.TOUT;
   const PARGENRE=TOUT?999:4, PARCAT_SEC=TOUT?1500:150, SOUSVUES_MAX=TOUT?999:14;
   const sousVues={}; let plafonnees=0;   /* ⛔ pas de plafond silencieux : on compte ce qu'on saute */
-  const vus=new Set(), R={hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[],denses:[],zoom:[],sousMenu:[],titresBarre:[]};
+  const vus=new Set(), R={pages:[],hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[],denses:[],zoom:[],sousMenu:[],titresBarre:[]};
   let candidatsTotal=0, sousMenuCibles=0;
   const par={rubrique:0,fenetre:0,fiche:0,sousvue:0}, sautes={}; let clics=0, audits=0, elements=0;
 
@@ -360,9 +363,22 @@ const ECARTS=[
     try{ const png=await S.c.envoyer('Page.captureScreenshot',{format:'png'});
       const f=PREUVES+'/'+PROFIL+'-'+String(++nPreuve).padStart(2,'0')+'.png';
       fs.writeFileSync(f,Buffer.from(png.data,'base64')); return f; }catch(e){ return null; } };
+  /* ⛔ LA PAGE QUI GLISSE DE CÔTÉ. Le contrôle d'éléments ne regarde que ce qui se clique : une rangée
+     d'indicateurs ou un libellé qui pousse la page lui échappe. On demande donc à la PAGE si elle
+     dépasse la largeur de l'appareil, deux fois (règle du dépôt), et on nomme le plus haut élément
+     qui dépasse sans être dans un cadre qui défile. */
+  const PAGE=`await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void document.body.offsetWidth;
+    const W=${P.w}, marge=${P.tac?1:16};   /* au bureau, la barre de défilement verticale n'est pas un débordement */
+    const sw=document.documentElement.scrollWidth; if(sw<=W+marge) return null;
+    const rouleau=e=>{ for(let n=e.parentElement;n&&n!==document.body;n=n.parentElement){ const q=getComputedStyle(n); if(/auto|scroll|hidden|clip/.test(q.overflowX)&&n.getBoundingClientRect().right<=W+0.5) return true; } return false; };
+    const tiroir=e=>{ const s=e.closest('.sidebar'); return !!(s&&!s.classList.contains('open')); };
+    const l=[...document.querySelectorAll('body *')].filter(e=>{ const b=e.getBoundingClientRect(); return b.width>0&&b.right>W+0.5&&getComputedStyle(e).position!=='fixed'&&!rouleau(e)&&!tiroir(e); });
+    const h=l.filter(e=>!l.includes(e.parentElement))[0];
+    return {page:sw, n:h?(h.tagName.toLowerCase()+(h.id?'#'+h.id:'')+(typeof h.className==='string'&&h.className?'.'+h.className.trim().split(/\\s+/).slice(0,2).join('.'):'')):'?', t:h?h.textContent.replace(/\\s+/g,' ').trim().slice(0,40):''};`;
   const auditer=async(cle,sorte,racine)=>{
     let o=null; try{ o=await S.ev(SONDE(racine)); }catch(e){ R.erreurs.push({ou:cle,e:'sonde : '+String(e.message).slice(0,90)}); return; }
     if(!o) return;
+    try{ let pg=await S.ev(PAGE); if(pg){ await dormir(700); pg=await S.ev(PAGE); } if(pg) R.pages.push({...pg,ou:cle}); }catch(e){}
     let cv=[]; try{ cv=await S.ev(COUVERTS(racine)); }catch(e){}
     audits++; elements+=o.vus; par[sorte]++;
     const aProuver = o.hors.length || (P.tac && o.petits.length) || (o.titres||[]).length || cv.filter(x=>!x.menu).length;
@@ -432,6 +448,8 @@ const ECARTS=[
   [...new Set(fermees)].slice(0,12).forEach(x=>console.log('      · '+x));
   console.log('\n══ ERREURS JAVASCRIPT : '+R.erreurs.length+' ══');
   R.erreurs.slice(0,20).forEach(x=>console.log('   '+x.ou+'\n      '+x.e));
+  console.log('\n══ PAGES QUI GLISSENT DE CÔTÉ (plus larges que l’appareil, '+P.w+' px) : '+R.pages.length+' ══');
+  grouper(R.pages,x=>x.n).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+' « '+v[0].t+' »   page '+v[0].page+' px   ex. '+v[0].ou));
   console.log('\n══ HORS DE L’ÉCRAN : '+R.hors.length+' ══');
   grouper(R.hors,x=>x.ou).slice(0,15).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   ex. '+v[0].n+' « '+v[0].t+' » x '+v[0].x+'→'+v[0].d+(v[0].preuve?'   ['+v[0].preuve+']':'')));
   console.log('\n══ RECOUVERTS (candidat centré) : '+R.couverts.length+' ══');
