@@ -889,6 +889,15 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   500 px et la page entière défilait de côté. `segTient()` le vérifie désormais, et un groupe
   qui ne tient pas redevient une rangée de pastilles — réévalué quand la tablette tourne. C'est
   la règle « un commentaire n'est pas une garde », côté mise en page.
+- ⛔⛔ **LES DONNÉES DE DÉMONSTRATION SONT COURTES — UNE MISE EN PAGE SE MESURE AVEC LES VALEURS LES
+  PLUS LONGUES PLAUSIBLES.** Le 23 septembre 2026, douze audits d'appareils sont passés à zéro sur
+  Pointage : la bêta y affiche « 0h00 ». Seule la sonde de charpente a vu 9 px de trop, à 360 px.
+  Avec « 1523h30 » ou « 12 345,67 € » posés à la main, la page passait à **444–547 px sur les trois
+  téléphones** et à 827 sur iPad : la rangée forçait `repeat(3,1fr)`, et un chiffre en 34 px gras
+  ne se coupe pas. Chez un client, c'était le défaut de TOUS les jours. **Un audit qui mesure la
+  démonstration mesure la démonstration** : pour toute zone qui affiche un montant, une durée, un
+  nom, on pose la valeur la plus longue plausible et on redemande à la page si elle tient
+  (`scratchpad/kpi-longs.js`). Et une grille ne force jamais son nombre de colonnes (`auto-fit`).
 - ⛔⛔ **UNE ICÔNE QUI REMPLACE UN ÉMOJI EMPORTE LE NOM DU BOUTON.** La refonte change les émojis
   en traits dessinés (`icones()`, classe `rf-ic`) marqués `aria-hidden` — juste pour une icône
   posée à côté d'un mot. Mais 33 commandes ne portaient QUE leur émoji (✎ Modifier, 🗑 Supprimer,
