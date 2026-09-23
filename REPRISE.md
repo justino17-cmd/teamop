@@ -204,8 +204,15 @@ valider) — son écran Validations ne les lui montrait déjà pas.
 4. **Quatre gestes restent à l'administrateur seul, sans case** : effacer un prix, une demande de
    l'historique, une commande de l'historique, et revenir sur les déclarations « produits
    distincts ». Les rendre délégables ?
-5. **« Mis de côté »** (Paramètres) reste ouvert à tous : c'est la base de CET appareil, pour
-   récupérer un travail non synchronisé — mais elle s'exporte en entier.
+5. **« Mis de côté »** — ⚠️ CORRIGÉ le 23 septembre au soir, la première rédaction disait « ouvert à
+   tous », c'était faux (relu dans le code). Quand un appareil était en retard sur l'équipe, sa base
+   est remplacée par celle de l'équipe et ce qu'on y avait saisi est gardé SUR CET APPAREIL ; le
+   message dit « Paramètres → Synchroniser → Mis de côté ». Or ce bouton n'est montré qu'à
+   l'administrateur (`views.parametres` s'arrête avant pour les autres), et la fenêtre ne propose
+   qu'« Exporter » (la base entière, en fichier). Un technicien dont le téléphone était en retard ne
+   trouve donc rien, et l'administrateur ne peut pas atteindre une copie rangée sur le téléphone
+   d'un autre. Le montrer à chacun sur son appareil ? (La base entière est déjà sur chaque appareil ;
+   l'export la rend seulement facile à sortir.)
 6. **Deux appareils hors ligne qui valident le même mouvement** : non mesuré (il faudrait une sonde
    à deux profils).
 7. **Une intervention SANS technicien n'entre dans le périmètre de personne** : un DR rattaché à une
