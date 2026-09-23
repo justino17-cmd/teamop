@@ -355,7 +355,7 @@ const ESSAIS = [
      nommaient ce que l'écran ne montre pas ; deux boutons ne lisaient pas la case de leur fonction. */
   { nom: 'Voir · l’historique d’un site qu’on sert s’ouvre EN ENTIER (le passage d’un collègue chez son client)', type: 'unique', attendu: 'passe', retire: { voirTout: false },
     base: `function(){ db.interventions.push(Object.assign({},db.interventions.find(x=>x.id==='iK'),{id:'iKT',num:'INT-S6',titre:'Passage collègue Tomsonde',clientId:'cT'})); }`,
-    geste: `$('content').innerHTML='<div>neutre</div>'; detailIntervention('iKT'); ${ATT(800)} window.__vu=$('content').textContent.includes('Passage collègue')?1:0;`,
+    geste: `$('content').innerHTML='<div>neutre</div>'; detailIntervention('iKT'); for(let k=0;k<30&&!$('content').textContent.includes('Passage collègue');k++) await __attendre(100); window.__vu=$('content').textContent.includes('Passage collègue')?1:0;`,
     mesure: `window.__vu` },
   { nom: 'Voir · le lien « Client » de SA box ouvre la fiche, même d’un client qu’on ne sert pas', type: 'unique', attendu: 'passe', retire: { voirTout: false },
     base: `function(){ db.boxes.find(b=>b.id==='bT').clientId='cK'; }`,
@@ -374,16 +374,16 @@ const ESSAIS = [
     geste: `const ids=computeNotifs().map(n=>n.id); window.__vu=['sect:iZ','done:iZ2','mvatt:mZ','dem:dmZ'].every(x=>ids.includes(x))?1:0;`,
     mesure: `window.__vu` },
   { nom: 'Contrats : sans « Interventions → Ajouter », le 🔁 n’est pas proposé', retire: { cat_int_ajouter: false },
-    geste: `go('contrats'); ${ATT(700)} window.__vu=[...document.querySelectorAll('#content button')].some(b=>/genererInterventionContrat\(/.test(b.getAttribute('onclick')||''))?1:0;`,
+    geste: `go('contrats'); ${ATT(700)} window.__vu=[...document.querySelectorAll('#content button')].some(b=>(b.getAttribute('onclick')||'').includes('genererInterventionContrat('))?1:0;`,
     mesure: `window.__vu` },
   { nom: 'Contrats : sans « Ventes → Ajouter », « ＋ Contrat » n’est pas proposé', retire: { cat_ventes_ajouter: false },
     geste: `go('contrats'); ${ATT(700)} window.__vu=[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'')==='formContrat()')?1:0;`,
     mesure: `window.__vu` },
   { nom: 'Box : sans « Stock → Supprimer », le 🗑 n’est pas proposé (delItem le refuserait)', retire: { cat_stock_supprimer: false },
-    geste: `openBox('bT'); ${ATT(600)} window.__vu=[...document.querySelectorAll('button')].some(b=>/delItem\('boxes'/.test(b.getAttribute('onclick')||''))?1:0;`,
+    geste: `openBox('bT'); ${ATT(600)} window.__vu=[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'').includes("delItem('boxes'"))?1:0;`,
     mesure: `window.__vu` },
   { nom: '   … et sans « Gérer les box », il reste là : deux cases, deux boutons', type: 'unique', attendu: 'passe', retire: { gererBoxes: false },
-    geste: `openBox('bT'); ${ATT(600)} window.__vu=[...document.querySelectorAll('button')].some(b=>/delItem\('boxes'/.test(b.getAttribute('onclick')||''))?1:0;`,
+    geste: `openBox('bT'); ${ATT(600)} window.__vu=[...document.querySelectorAll('button')].some(b=>(b.getAttribute('onclick')||'').includes("delItem('boxes'"))?1:0;`,
     mesure: `window.__vu` },
 ];
 

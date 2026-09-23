@@ -3,7 +3,8 @@
    Justin, 23 septembre 2026, au lendemain de la v737. Cinq relectures (Stock et Achats, Clients et
    Ventes, Planification et Interventions, Communication / Équipe / Administration, circuit de
    validation DR), puis chaque constat JOUÉ dans la vraie page par `scratchpad/sonde-matrice-droits.js`
-   : un compte qui a TOUT sauf la case essayée. Sur la v737 : 66 ✓ 66 ✗. Ce que ce banc garde :
+   : un compte qui a TOUT sauf la case essayée. Sur la v737, 55 des 59 gestes qui devaient refuser
+   passaient. Ce que ce banc garde :
 
    · DEUX DROITS GLOBAUX DOUBLAIENT LES CASES DE CATÉGORIE. Onze portes lisaient encore « Supprimer
      des éléments » ou « Créer / planifier des interventions » là où le reste lisait la catégorie :

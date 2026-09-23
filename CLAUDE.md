@@ -617,7 +617,7 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
 - ⛔⛔ **UNE CASE SE LIT DANS LA FONCTION QUI ÉCRIT — ET UNE RÈGLE DE VISIBILITÉ DANS LA FONCTION
   QUI OUVRE.** v738, 23 septembre 2026, à la demande de Justin (« revois toutes les règles de chaque
   catégorie ») : joué dans la vraie page par un compte qui a tout SAUF une case
-  (`scratchpad/sonde-matrice-droits.js`), **66 gestes sur 75 passaient sans elle** — le ✎ de la fiche
+  (`scratchpad/sonde-matrice-droits.js`), **55 des 59 gestes qui devaient refuser passaient sans elle** — le ✎ de la fiche
   intervention, son menu de statut, dupliquer, envoyer ou marquer payée une facture, les encaissements
   d'une enveloppe, le panneau « Produits » d'une box, la tuile « Box » de la feuille « Créer », la
   recherche du bandeau, la fiche client ouverte par son identifiant… Le bouton était caché, ou la liste
@@ -635,6 +635,16 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
     même une ligne de mouvement).
   ⚠️ Et une relecture d'agent se MESURE avant de se corriger : sur une quarantaine de constats, deux
   étaient faux — l'écran Paramètres réservait déjà export, import et e-mails à l'administrateur.
+  ⛔⛔ **ET OUVRIR N'EST PAS LISTER — la garde de visibilité posée à l'OUVERTURE a tué des clics voulus.**
+  Le même jour, `relecteur` : `detailIntervention` refusait tout ce qui n'était pas dans SA liste —
+  or « Historique des passages » promet « touchez pour ouvrir la fiche, quel que soit le technicien »,
+  et le registre, les garanties, le lien « Client » d'une box, cinq notifications y menaient aussi.
+  Avant de poser une garde à la porte d'une fiche, **recenser TOUS ses appelants** (39 pour la fiche
+  intervention) et demander, pour chacun, d'où vient l'identifiant. La règle d'ouverture est UNE
+  fonction (`ouvrables()`) et les notifications passent par le test de l'écran qu'elles ouvrent.
+  Et un contrôle de CI peut mourir sans que personne le voie : `scripts/verifier-permissions.js`
+  (étape de `verification.yml`, qui ne tourne que sur `main` et les demandes de fusion) plantait
+  depuis la v733 — trois fonctions manquaient à son bac à sable.
 - ⛔ **LES BONS DE COMMANDE ONT LEUR PROPRE DROIT, PAS CELUI DE LEUR CATÉGORIE.** Tout le
   circuit passe par `peutCommander()` — c'est-à-dire `!userCap(u,'bonsLectureSeule')` —, avec
   **15 sites d'appel** (`formBon`, `bonFourNew`, `bonSuggere`, `bonDupliquer`, les envois…).
