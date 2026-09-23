@@ -46,3 +46,10 @@ scratchpad/base-*.json
 scratchpad/audit-*-*.json
 scratchpad/audit-teintes.json
 scratchpad/residus*.json
+
+# ── Bibliothèques tierces téléchargées pour une sonde : jamais versionnées ──
+# `scratchpad/sonde-carte.js` sert Leaflet depuis ce dossier, parce que le navigateur piloté
+# n'a pas de réseau sortant. La commande qui le remplit est écrite en tête de la sonde : c'est
+# elle qu'on versionne. Une copie de bibliothèque dans un dépôt servi tel quel serait du code
+# tiers qu'on ne relit pas, et qu'on finirait par servir sans le savoir.
+scratchpad/leaflet/
