@@ -33,14 +33,27 @@ const src = fs.readFileSync(path.join(__dirname, 'audit-teintes.js'), 'utf8');
 const FENETRES = eval(src.match(/const FENETRES=(\[[\s\S]*?\n  \]);/)[1]);
 
 const RELEVE = `
+  /* ⛔⛔ UNE TRANSITION DE VUE EN COURS COUVRE TOUT L'ÉCRAN — go() passe par
+     document.startViewTransition, et son rendu s'exécute PLUS TARD, hors de l'appel. Relevé au
+     milieu, la page rendait « 86 presque invisibles, 65 recouverts, 1 texte » : les cartes
+     neuves à leur état de départ (opacité 0), et le calque ::view-transition au-dessus de tout
+     (elementFromPoint rend <html>). Le témoin passait une fois sur deux, selon l'instant.
+     On attend donc que les transitions ouvertes soient CLOSES (compteur posé au démarrage),
+     en poussant leurs animations au bout pour ne pas attendre leur durée. */
+  for(let i=0;i<80&&window.__vtN>0;i++){
+    document.getAnimations().forEach(a=>{ try{ const pe=a.effect&&a.effect.pseudoElement; if(pe&&pe.indexOf('::view-transition')===0) a.finish(); }catch(e){} });
+    await new Promise(r=>setTimeout(r,50)); }
+  const vtOuvertes=window.__vtN||0;
   /* transitions ET animations finies menées à leur terme (une carte qui entre en fondu se lit
-     à son état de départ sinon) ; les boucles infinies (le halo du fond) restent */
-  document.getAnimations().forEach(a=>{ try{ const t=a.effect&&a.effect.getComputedTiming&&a.effect.getComputedTiming(); if(t&&isFinite(t.endTime)) a.finish(); }catch(e){} });
-  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void document.body.offsetWidth;
+     à son état de départ sinon) ; les boucles infinies (le halo du fond) restent. DEUX tours :
+     le rendu différé d'une transition crée ses animations d'entrée après le premier */
+  for(let tour=0;tour<2;tour++){
+    document.getAnimations().forEach(a=>{ try{ const t=a.effect&&a.effect.getComputedTiming&&a.effect.getComputedTiming(); if(t&&isFinite(t.endTime)) a.finish(); }catch(e){} });
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void document.body.offsetWidth; }
   const zones=(typeof ZONE!=='undefined'&&ZONE)?[document.querySelector(ZONE)].filter(Boolean)
     :[document.getElementById('content'),document.querySelector('.topbar'),document.getElementById('page-head'),document.getElementById('tabbar'),document.getElementById('assistant')${TEL ? '' : ",document.querySelector('.sidebar')"}].filter(Boolean);
   document.querySelectorAll('[data-px]').forEach(x=>x.removeAttribute('data-px'));
-  const vus=new Set(), out={els:[],estompes:0,inactifs:0,pictos:0,recouverts:0};
+  const vus=new Set(), out={els:[],estompes:0,inactifs:0,pictos:0,recouverts:0,vtOuvertes,exRecouverts:[]};
   const opEff=e=>{ let o=1; for(let n=e;n&&n.nodeType===1;n=n.parentElement){ const v=+getComputedStyle(n).opacity; if(!isNaN(v)) o*=v; } return o; };
   const nom=e=>e.tagName.toLowerCase()+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\\s+/).slice(0,2).join('.'):'');
   zones.forEach(z=>z.querySelectorAll('*').forEach(e=>{
@@ -60,12 +73,28 @@ const RELEVE = `
     let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
     for(const n of e.childNodes){ if(n.nodeType!==3||!n.textContent.trim()) continue; const rg=document.createRange(); rg.selectNodeContents(n);
       for(const q of rg.getClientRects()){ if(q.width<1||q.height<1) continue; x0=Math.min(x0,q.left); y0=Math.min(y0,q.top); x1=Math.max(x1,q.right); y1=Math.max(y1,q.bottom); } }
-    if(x1<=x0||y1<=y0) return;
+    /* un texte coupé (nowrap + ellipse, overflow:hidden) déborde de sa boîte dans le Range :
+       on le borne à ce qui est VRAIMENT visible — sa boîte et celles des ancêtres qui coupent.
+       Sinon le centre tombe dans la case voisine (« Dératisation — pas… » lu sous un autre
+       créneau du planning) */
+    for(let n=e;n&&n.nodeType===1&&n!==document.body;n=n.parentElement){ if(n!==e&&getComputedStyle(n).overflow==='visible') continue;
+      const q=n.getBoundingClientRect(); x0=Math.max(x0,q.left); y0=Math.max(y0,q.top); x1=Math.min(x1,q.right); y1=Math.min(y1,q.bottom); }
+    if(x1-x0<3||y1-y0<4){ out.coupes=(out.coupes||0)+1; return; }
     /* ⛔ UN TEXTE RECOUVERT N'EST PAS UN TEXTE LU : au centre de son texte, l'élément du dessus
        doit être lui (ou l'un de ses enfants) — sinon on mesurerait ce qui le cache (la barre
        d'onglets posée sur le champ de la messagerie) */
+    /* ⚠ elementFromPoint dit qui reçoit le CLIC, pas qui est PEINT : un texte en
+       pointer-events:none rend son PARENT (« MAR 29 » rendait div.content), et un calque
+       transparent posé dessus ne cache rien. Recouvert veut donc dire : un élément qui n'est ni
+       lui, ni l'un de ses enfants, ni l'un de ses ANCÊTRES, et dont la chaîne jusqu'à l'ancêtre
+       commun peint un fond. Mesuré : 11 « recouverts » sur le tableau de bord, tous faux. */
     const cx=(x0+x1)/2, cy=(y0+y1)/2;
-    if(cy>=0&&cy<${H}&&cx>=0&&cx<${W}){ const dessus=document.elementFromPoint(cx,cy); if(dessus&&dessus!==e&&!e.contains(dessus)){ out.recouverts++; return; } }
+    if(cy>=0&&cy<${H}&&cx>=0&&cx<${W}){ const dessus=document.elementFromPoint(cx,cy);
+      if(dessus&&dessus!==e&&!e.contains(dessus)&&!dessus.contains(e)){
+        let peint=false;
+        for(let n=dessus;n&&n.nodeType===1&&!n.contains(e);n=n.parentElement){ const q=getComputedStyle(n);
+          if(q.backgroundImage!=='none'||(q.backdropFilter&&q.backdropFilter!=='none')||!/^(transparent|rgba\([^)]*,\s*0\))$/.test(q.backgroundColor)){ peint=true; break; } }
+        if(peint){ out.recouverts++; if(out.exRecouverts.length<6) out.exRecouverts.push(nom(e)+' « '+t.slice(0,18)+' » sous '+nom(dessus)); return; } } }
     e.setAttribute('data-px', out.els.length);
     out.els.push({ n:nom(e), t:t.slice(0,26), x:Math.max(0,x0), y:Math.max(0,y0), w:Math.min(x1,${W})-Math.max(0,x0), h:Math.min(y1,${H})-Math.max(0,y0),
       bx:b.left, by:b.top, barre:!!(document.documentElement.getAttribute('data-verre')==='1'&&e.closest('#tabbar,.topbar,.sidebar')), encre:st.color, op:+op.toFixed(3), gros:(fs>=24||(fs>=18.66&&fw>=700)) });
@@ -83,6 +112,8 @@ const RELEVE = `
   await dormir(1300);
   await S.ev(`window.confirm=()=>true; try{ betaRemplir(false); }catch(e){} return 1;`); await dormir(2500);
   await S.ev(`window.confirm=()=>false; try{ setPlatForce('${PLAT}'); }catch(e){} return 1;`); await dormir(5000);
+  await S.ev(`if(document.startViewTransition&&!window.__vtSuivi){ window.__vtSuivi=1; window.__vtN=0; const o=document.startViewTransition.bind(document);
+    document.startViewTransition=function(cb){ window.__vtN++; const vt=o(cb); const f=()=>{ window.__vtN--; }; vt.finished.then(f,f); return vt; }; } return 1;`);
   console.log('  verre : ' + (await S.ev(`return document.documentElement.getAttribute('data-verre')||'éteint';`)));
   const ACCENTS = (await S.ev(`return Object.keys(ACCENTS);`)).filter(a => !ACC_SEULS.length || ACC_SEULS.includes(a));
   const CATS = (await S.ev(`return NAV.flatMap(g=>g.items).map(x=>x.k).filter(k=>k&&views[k]);`)).filter(k => !RUB.length || RUB.includes(k));
@@ -97,7 +128,7 @@ const RELEVE = `
        aujourd'hui, une liste qui se réordonne — le rectangle ne pointerait plus sur le texte */
     const apres = await S.ev(`return [...document.querySelectorAll('[data-px]')].map(e=>{ const b=e.getBoundingClientRect(); return [+e.getAttribute('data-px'),Math.round(b.left),Math.round(b.top)]; });`);
     const posApres = new Map(apres.map(([i, x, y]) => [i, [x, y]]));
-    let bouges = 0;
+    let bouges = 0, temoin = null;
     const faibles = [];
     for (const [ix, e] of r.els.entries()) {
       const pa = posApres.get(ix); if (!pa || Math.abs(pa[0] - Math.round(e.bx)) > 1 || Math.abs(pa[1] - Math.round(e.by)) > 1) { bouges++; continue; }
@@ -117,22 +148,27 @@ const RELEVE = `
          de l'encre et de ce qui est derrière — c'est elle qu'on compare */
       const vue = e.op < 0.999 ? enc.map((v, i) => v * e.op + fond[i] * (1 - e.op)) : enc;
       const c = contraste(vue, fond), seuil = e.gros ? 3 : 4.5;
+      if (/^témoin gris/.test(e.t)) temoin = { c: +c.toFixed(2), encre: vue.map(Math.round).join(','), fond: fond.join(','), rect: [x0, y0, x1, y1].join(',') };
       if (c < seuil) faibles.push({ ou, n: e.n, t: e.t, c, seuil, op: e.op, barre: e.barre, encre: vue.map(Math.round).join(','), fond: fond.join(',') });
     }
-    return { n: r.els.length - bouges, faibles, estompes: r.estompes, inactifs: r.inactifs, pictos: r.pictos, recouverts: r.recouverts, bouges };
+    return { n: r.els.length - bouges, faibles, estompes: r.estompes, inactifs: r.inactifs, pictos: r.pictos, recouverts: r.recouverts, coupes: r.coupes || 0, bouges, temoin, relevesTemoin: r.els.filter(x => /^témoin gris/.test(x.t)).length, vtOuvertes: r.vtOuvertes, exRecouverts: r.exRecouverts };
   };
   {
     await S.ev(`try{ setThemePref('dark'); setAccent('green'); go('dashboard'); }catch(e){} return 1;`); await dormir(900);
+    for (let i = 0; i < 40; i++) { if (await S.ev(`return !(window.__vtN>0) && !document.querySelector('.content.entre');`)) break; await dormir(100); }
     await S.ev(`const x=document.createElement('span'); x.id='__temoin'; x.textContent='témoin gris'; x.style.cssText='color:#8a8a8a;background:#9a9a9a;display:inline-block;padding:4px';
       document.getElementById('content').prepend(x); return 1;`);
     const m = await mesurer('témoin');
     await S.ev(`const x=document.getElementById('__temoin'); if(x) x.remove(); return 1;`);
     const pris = m.faibles.some(f => /témoin gris/.test(f.t));
-    console.log('  contre-épreuve — le témoin gris est vu au pixel : ' + (pris ? 'OUI ✓' : 'NON ✗') + ' · ' + m.n + ' textes sur cet écran');
+    console.log('  contre-épreuve — le témoin gris est vu au pixel : ' + (pris ? 'OUI ✓' : 'NON ✗') + ' · ' + m.n + ' textes sur cet écran'
+      + ' (écartés : ' + m.recouverts + ' recouverts, ' + m.bouges + ' qui ont bougé, ' + m.estompes + ' estompés, ' + m.pictos + ' pictos)');
+    if (m.exRecouverts.length) console.log('    recouverts, exemples : ' + m.exRecouverts.join(' · '));
+    if (!pris) console.log('    témoin : relevé ' + m.relevesTemoin + ' fois · mesure ' + JSON.stringify(m.temoin));
     if (!pris || m.n < 40) { S.fermer(); process.exit(7); }
   }
 
-  const R = { version: S.version, plat: PLAT, tel: TEL, ecrans: 0, fenetres: 0, textes: 0, estompes: 0, inactifs: 0, pictos: 0, recouverts: 0, bouges: 0, faibles: [] };
+  const R = { version: S.version, plat: PLAT, tel: TEL, ecrans: 0, fenetres: 0, textes: 0, estompes: 0, inactifs: 0, pictos: 0, recouverts: 0, coupes: 0, bouges: 0, vtOuvertes: 0, faibles: [] };
   for (const th of THEMES) for (const a of ACCENTS) {
     await S.ev(`try{ closeSub(); }catch(e){} try{ closeModal(); }catch(e){} try{ setThemePref('${th}'); setAccent('${a}'); }catch(e){} return 1;`); await dormir(300);
     for (const k of CATS) {
@@ -140,14 +176,14 @@ const RELEVE = `
       await S.ev(`try{ closeModal(); }catch(e){} try{ tdbDetailFerme(); }catch(e){} window.scrollTo(0,0); return 1;`);
       for (let i = 0; i < 20; i++) { if (!(await S.ev(`return !!document.querySelector('.content.entre');`))) break; await dormir(100); }
       const m = await mesurer(th + '/' + a + '/' + k);
-      R.ecrans++; R.textes += m.n; R.estompes += m.estompes; R.inactifs += m.inactifs; R.pictos += m.pictos; R.recouverts += m.recouverts; R.bouges += m.bouges; R.faibles.push(...m.faibles);
+      R.ecrans++; R.textes += m.n; R.estompes += m.estompes; R.inactifs += m.inactifs; R.pictos += m.pictos; R.recouverts += m.recouverts; R.coupes += m.coupes; R.bouges += m.bouges; R.vtOuvertes += m.vtOuvertes ? 1 : 0; R.faibles.push(...m.faibles);
     }
     if (FEN) for (const F of FENETRES) {
       await S.ev(`try{ closeModal(); }catch(e){} try{ closeSub(); }catch(e){} return 1;`); await dormir(150);
       try { await S.ev(F.ouvrir + ' return 1;'); } catch (e) { continue; }
       await dormir(500); try { await S.ev(F.puis + ' return 1;'); } catch (e) {} await dormir(300);
       const m = await mesurer(th + '/' + a + '/fenêtre ' + F.nom, F.zone);
-      R.fenetres++; R.textes += m.n; R.estompes += m.estompes; R.inactifs += m.inactifs; R.pictos += m.pictos; R.recouverts += m.recouverts; R.bouges += m.bouges; R.faibles.push(...m.faibles);
+      R.fenetres++; R.textes += m.n; R.estompes += m.estompes; R.inactifs += m.inactifs; R.pictos += m.pictos; R.recouverts += m.recouverts; R.coupes += m.coupes; R.bouges += m.bouges; R.vtOuvertes += m.vtOuvertes ? 1 : 0; R.faibles.push(...m.faibles);
     }
     await S.ev(`try{ closeSub(); }catch(e){} try{ closeModal(); }catch(e){} return 1;`);
     console.log('  ' + th.padEnd(6) + a.padEnd(9) + ' — ' + R.ecrans + ' écrans + ' + R.fenetres + ' fenêtres, ' + R.faibles.length + ' sous le seuil');
@@ -159,7 +195,8 @@ const RELEVE = `
   const surBarre = R.faibles.filter(f => f.barre); R.faibles = R.faibles.filter(f => !f.barre); R.surBarre = surBarre;
   const grp = {}; R.faibles.forEach(f => { const g = f.ou.split('/')[0] + ' | ' + f.n + ' « ' + f.t.replace(/\d+/g, '#') + ' »'; (grp[g] = grp[g] || []).push(f); });
   console.log('\n════════ AU PIXEL — ' + PLAT + (TEL ? ' (téléphone)' : '') + ' ════════');
-  console.log('  population : ' + R.ecrans + ' écrans + ' + R.fenetres + ' fenêtres · ' + R.textes + ' textes lus au pixel · écartés et comptés : ' + R.estompes + ' presque invisibles, ' + R.inactifs + ' inactifs, ' + R.pictos + ' pictogrammes, ' + R.recouverts + ' recouverts, ' + R.bouges + ' qui ont bougé');
+  console.log('  population : ' + R.ecrans + ' écrans + ' + R.fenetres + ' fenêtres · ' + R.textes + ' textes lus au pixel · écartés et comptés : ' + R.estompes + ' presque invisibles, ' + R.inactifs + ' inactifs, ' + R.pictos + ' pictogrammes, ' + R.recouverts + ' recouverts, ' + R.coupes + ' coupés à ras, ' + R.bouges + ' qui ont bougé'
+    + (R.vtOuvertes ? ' · ⚠ ' + R.vtOuvertes + ' relevés avec une transition de vue encore ouverte' : ''));
   console.log('  SOUS LE SEUIL : ' + R.faibles.length + ' (' + Object.keys(grp).length + ' groupes)');
   Object.entries(grp).sort((a, b) => b[1].length - a[1].length).slice(0, 40).forEach(([g, v]) => {
     const p = v.reduce((m, x) => x.c < m.c ? x : m, v[0]);
