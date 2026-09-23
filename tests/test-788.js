@@ -45,6 +45,10 @@ v('… et DOBOL 20 g : le 20 g devant le 100 g', premier('DOBOL FUMIGATEUR PROFE
 v('un O lu pour un 0 : « ALTA 7OOO »', premier('ALTA 7OOO'), 'ALTA 7000');
 v('deux mots collés à la lecture : « MAGNUMGEL CAFARDS »', premier('MAGNUMGEL CAFARDS SERINGUE'), 'MAGNUM GEL CAFARDS SERINGUE 40G');
 v('un mot coupé à la lecture : « ADVI ON GEL BLATTES 30 G »', premier('ADVI ON GEL BLATTES 30 G'), 'ADVION GEL BLATTES 30G');
+/* ⚠️ les deux cas qui DÉCIDENT : sans eux, retirer « mot collé » ou « mot coupé » ne faisait rien
+   tomber (les autres mots suffisaient à classer) — deux mutations passaient au vert */
+v('⛔ un nom collé qui est TOUT le nom : « ALTA7000 »', premier('ALTA7000'), 'ALTA 7000');
+v('⛔ le mot coupé qui départage deux sœurs : « FOUR MIS » → FOURMIS, pas CAFARDS', premier('MAGNUM GEL FOUR MIS SERINGUE 40 G'), 'MAGNUM GEL FOURMIS SERINGUE 40G');
 v('la référence de l’entreprise lue sur l’étiquette', premier('Réf. PLB-001 — lot 44'), 'Plaque de bois');
 v('un nom sans mot de quatre lettres (« MIB 80 ») se lit par ses deux mots', premier('MIB 80 traitement du bois'), 'MIB 80');
 
@@ -54,6 +58,10 @@ v('⛔ des mots génériques seulement (« gel », « insecticide », « profess
 v('⛔⛔ un nombre seul ne désigne personne (« 1000 » ne fait pas un XILIX 1000)', noms('Contenance 1000 ml'), []);
 vrai('⛔ un nombre ne se lit pas « à un chiffre près » : l’étiquette 100 g ne propose pas XILIX 1000', !noms('DOBOL FUMIGATEUR PROFESSIONNEL 100 g').includes('XILIX 1000'), noms('DOBOL FUMIGATEUR PROFESSIONNEL 100 g'));
 v('… ni « 20 » pour « 200 »', G.etiqProche('200', '20'), 0);
+v('⛔ … ni « 100 » pour « 1000 », ni « 7001 » pour « 7000 » (une lettre près, oui ; un chiffre près, non)', [G.etiqProche('1000', '100'), G.etiqProche('7000', '7001'), G.etiqProche('cafards', 'cafaros') > 0], [0, 0, true]);
+/* la RARETÉ : « pâte » que six fiches portent pèse moins que « placedex » qu'une seule porte — sans
+   ce poids, une étiquette « VULCANO PÂTE » proposait PLACEDEX PÂTE (un mot sur deux lu) */
+vrai('⛔ un mot courant ne suffit pas à désigner une fiche : « VULCANO PÂTE » ne propose pas PLACEDEX PÂTE', !noms('VULCANO PÂTE').includes('PLACEDEX PÂTE') && noms('VULCANO PÂTE')[0] === 'VULCANO PATE', noms('VULCANO PÂTE'));
 v('un texte vide', noms(''), []);
 v('⛔ jamais plus de six propositions', G.etiqCandidats('VULCANO SPECIAL', CAT).length <= 6, true);
 
