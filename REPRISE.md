@@ -96,7 +96,8 @@ Communication + Équipe + Administration + menus · circuit DR), puis **chaque c
 vraie page** par `scratchpad/sonde-matrice-droits.js` : un compte de terrain à qui l'on donne TOUT
 (chaque case, chaque action, chaque menu) SAUF la case essayée ; on joue le geste que le bouton
 appelle, on regarde la base — puis le même geste, case remise, doit agir (contre-épreuve).
-**Sur la bêta v737 : 66 ✓ 66 ✗. Sur la v738 : 132 ✓ 0 ✗** (75 essais).
+**Sur la bêta v737 : 60 des 64 gestes qui devaient refuser passaient sans leur case, et
+4 comportements attendus manquaient. Sur la v738 : aucun** (84 essais, 144 ✓ 0 ✗ — voir « Mesuré »).
 ⚠️ Deux constats des relecteurs étaient FAUX à la mesure : l'export / l'import / les copies de
 sauvegarde et les e-mails de l'entreprise ne sont montrés qu'à l'administrateur
 (`views.parametres` s'arrête avant pour les autres). Les fonctions ne vérifiaient rien pour autant :
@@ -149,6 +150,31 @@ elles se gardent désormais elles-mêmes.
   le créateur — `droitsBorner` s'y applique comme dans Utilisateurs. Le fournisseur modifié depuis
   un bon lit « Communication → Modifier ».
 
+### La relecture (`relecteur`) : trois constats vrais — et une famille entière derrière le premier
+
+1. **Ouvrir n'est pas lister.** La garde posée en v738 sur la fiche intervention (« la même règle que
+   la liste ») rendait MORTS des clics voulus : « Historique des passages » d'un client, qui promet
+   « touchez pour ouvrir la fiche, quel que soit le technicien », le registre, les garanties, le lien
+   « Client » d'une box, et la notification « Secteur non couvert » d'un DR à périmètre. Le relecteur
+   en avait vu un ; le recensement des 39 appels de `detailIntervention` et des 8 de `ficheClient` en
+   a trouvé cinq. Une seule règle désormais, `ouvrables()` : un client s'ouvre si on le voit ou si
+   l'une de SES box est à nous ; une intervention s'ouvre si on la voit ou si son client s'ouvre. La
+   fiche client montre de nouveau l'historique entier du site (comme avant la v738) ; ses montants
+   restent au périmètre. Reste fermé ce qu'aucun lien n'amène : un identifiant, une recherche.
+2. **Les notifications nommaient ce que l'écran ne montre pas.** « Secteur non couvert », « Travail
+   terminé », « Demande à valider », « À valider » et « Bon réceptionné » parcouraient TOUTE
+   l'entreprise : un DR rattaché à une équipe recevait les titres et les noms d'une autre, et son clic
+   tombait sur un écran qui ne les avait pas. Elles passent désormais par le test de leur écran
+   (`ouvrables`, `visibleDemandes`, `visibleBoxMvts`). ⚠️ Celui de « Bon réceptionné » disait
+   « sur les box qu'ils voient » — dans le COMMENTAIRE seulement.
+3. **Deux boutons ne lisaient pas la case de leur fonction** : Contrats (« ＋ Contrat », ✎, 🔁, 🗑) et
+   le 🗑 d'une box, qui pendait à « Gérer les box » quand `delItem` vérifie « Stock → Supprimer ».
+
+Et hors du diff : `scripts/verifier-permissions.js` — l'étape « Chacun ne voit que ce qui le
+concerne » de `verification.yml` — **mourait depuis la v733** : trois fonctions (`ptEstAMoi`,
+`capDeduitRegle`, `nomsConcernes`) manquaient à son bac à sable. Personne ne le voyait : ce
+workflow ne tourne que sur `main` et les demandes de fusion. Il repasse (32 vérifications).
+
 ### ⚠️ Ce qui change pour un compte existant le jour de la mise à jour
 
 Avec les réglages par défaut, **rien ne se retire** : les actions ajouter / modifier restent
@@ -159,14 +185,19 @@ planifier », gérer les box suit « Supprimer des éléments ». Trois différe
 - il ne voit plus « Intervention » ni « Box » dans la feuille « Créer » (l'enregistrement les lui
   refusait déjà, ou — pour la box — ne les lui refusait pas du tout) ;
 - un commercial ne voit plus le bouton « Excel » des Factures sans « Voir la comptabilité ».
+Et seulement chez une entreprise qui a rattaché des équipes à un DR : il ne reçoit plus les
+notifications d'une AUTRE équipe (secteur non couvert, travail terminé, demande, mouvement ou bon à
+valider) — son écran Validations ne les lui montrait déjà pas.
 
 ### ⛔ À TRANCHER PAR JUSTIN (rien n'a été changé)
 
 1. **Le stock « catalogue » (`p.qte`) échappe à la validation DR** : « Produits donnés » depuis un
    véhicule, la clôture d'une intervention quand aucune box ne suffit, le scanner en mode catalogue.
    Le circuit n'a jamais promis que les BOX — mais Justin a nommé « produits donnés ».
-2. **Le registre sanitaire d'un client reste complet** (tous les passages, de toute l'équipe) pour
-   qui voit ce client : c'est le document réglementaire du site. Le restreindre ?
+2. **L'historique d'un site reste complet pour qui sert ce site** : le registre sanitaire (le
+   document réglementaire), « Historique des passages », la fiche client, les garanties — tous les
+   passages, de toute l'équipe. C'était le cas avant la v738 et c'est ce que ces écrans promettent
+   (voir la relecture). Le restreindre à ses propres passages ?
 3. **La fiche d'un poste d'appâtage** : « Produit posé », « Boîte sécurisée », « Tubes UV » restent
    au technicien sans « Modifier les plans » (seule la « Zone » le demande) — lu comme le relevé du
    passage. À confirmer.
@@ -177,17 +208,26 @@ planifier », gérer les box suit « Supprimer des éléments ». Trois différe
    récupérer un travail non synchronisé — mais elle s'exporte en entier.
 6. **Deux appareils hors ligne qui valident le même mouvement** : non mesuré (il faudrait une sonde
    à deux profils).
+7. **Une intervention SANS technicien n'entre dans le périmètre de personne** : un DR rattaché à une
+   équipe ne la voit ni au planning ni dans la liste (règle de la v622) ; seuls l'administrateur et
+   les comptes « Tout voir » sans équipe la voient — et depuis la relecture, le DR l'ouvre quand même
+   si c'est chez un client qu'il sert. Qui doit affecter les interventions non affectées ?
 
 ### Mesuré
 
-`tests/test-790.js` **59 ✓** (neuf : 75 portes, chacune sa garde AVANT la première
-écriture ; les règles pures exécutées) ; `test-747` 51 ✓ (il refuse désormais une entrée de sa liste
-blanche qui nomme une fonction gardée — neuf y étaient, « dérivées » ou « gardées par devisIA ») ;
-`test-786` 85 ✓, `test-789` 86 ✓, et cinq anciens bancs ajustés (625, 635, 642, 658, 708).
-Mutations : en cours (le résultat sera écrit ici).
-`scratchpad/sonde-matrice-droits.js` : **132 ✓ 0 ✗** sur la v738, **66 ✗** sur la v737.
-Relecture (`relecteur`) : en cours.
-Suite complète : premier passage 147 suites · 6 789 vérifications, six suites en échec — les six bancs ajustés depuis (625, 635, 642, 658, 708, 752), qui repassent un par un ; second passage en cours.
+`tests/test-790.js` **74 ✓** (neuf : 75 portes, chacune sa garde AVANT la première écriture ; les
+règles pures EXÉCUTÉES, `ouvrables()` comprise ; les cinq notifications ; les boutons) ; `test-747`
+51 ✓ (il refuse désormais une entrée de sa liste blanche qui nomme une fonction gardée — neuf y
+étaient, « dérivées » ou « gardées par devisIA ») ; `test-786` 85 ✓, `test-789` 86 ✓, et cinq anciens
+bancs ajustés (625, 635, 642, 658, 708).
+**Mutations** : 60 défauts remis un par un dans un arbre de travail à part — 59 attrapés au premier
+passage ; le soixantième (l'Assistant devis renvoie à Anthropic TOUS les clients) ne faisait tomber
+AUCUN banc : `test-790` le garde depuis, 60 sur 60. Puis 15 défauts de la relecture : 15
+attrapés.
+`scratchpad/sonde-matrice-droits.js` (84 essais) : **144 ✓ 0 ✗** sur la v738 ; sur la v738
+d'avant la relecture, les nouveaux essais tombent (137 ✓ 7 ✗ — exactement les sept essais neufs) ; sur la v737, 60 trous.
+`scripts/verifier-permissions.js` : 32 ✓ (mort depuis la v733).
+Suite complète : **147 suites · 6 885 vérifications, aucun échec**.
 
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — LE RÔLE N'EST QU'UN NOM : CHAQUE RÈGLE EST UNE CASE (v737, bêta)
 

@@ -617,7 +617,7 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
 - ⛔⛔ **UNE CASE SE LIT DANS LA FONCTION QUI ÉCRIT — ET UNE RÈGLE DE VISIBILITÉ DANS LA FONCTION
   QUI OUVRE.** v738, 23 septembre 2026, à la demande de Justin (« revois toutes les règles de chaque
   catégorie ») : joué dans la vraie page par un compte qui a tout SAUF une case
-  (`scratchpad/sonde-matrice-droits.js`), **55 des 59 gestes qui devaient refuser passaient sans elle** — le ✎ de la fiche
+  (`scratchpad/sonde-matrice-droits.js`), **60 des 64 gestes qui devaient refuser passaient sans elle** — le ✎ de la fiche
   intervention, son menu de statut, dupliquer, envoyer ou marquer payée une facture, les encaissements
   d'une enveloppe, le panneau « Produits » d'une box, la tuile « Box » de la feuille « Créer », la
   recherche du bandeau, la fiche client ouverte par son identifiant… Le bouton était caché, ou la liste
