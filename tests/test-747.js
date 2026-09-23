@@ -169,9 +169,11 @@ vrai('   les dix catégories sont déclarées', /const PERM_GRPS=\[/.test(NU) &&
 vrai('⛔ les trois droits se sauvegardent par catégorie',
   /PERM_GRPS\.forEach\(\(\[g\]\)=>\{\s*\['ajouter','modifier','supprimer'\]/.test(NU));
 /* ⚠️ « voir » n'est PAS un droit de catégorie : masquer une rubrique passe par
-   `acces.modules[<écran>]`, écran par écran — et `go()` le fait respecter. */
+   `acces.modules[<écran>]`, écran par écran — et `go()` le fait respecter.
+   Depuis la v731 la garde est COMPOSÉE (la rubrique, OU la sous-catégorie qui a son propre
+   droit : `VUE_PARENT`) : le motif accepte les deux formes, mais exige toujours la redirection. */
 vrai('⛔ masquer une rubrique passe par acces.modules, et go() le fait respecter',
-  /u\.acces\.modules\[m\.k\]/.test(NU) && /if\(item && !canSee\(item\)\)/.test(NU));
+  /u\.acces\.modules\[m\.k\]/.test(NU) && /if\(\(?item && !canSee\(item\)\)[^{]*\{ view='dashboard';/.test(NU));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

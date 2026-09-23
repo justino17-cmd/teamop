@@ -6749,7 +6749,7 @@ html[data-verre="1"] .sidebar .nav-label{font-weight:640!important}
         <h1 id="page-title">Tableau de bord</h1>
         <div class="sub" id="page-sub"></div>
       </div>
-      <div class="gsrch" onclick="event.stopPropagation()"><span style="display:inline-flex;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input id="gsrch-in" placeholder="Rechercher client, intervention, chantier…" oninput="gsearch(this.value)" onfocus="gsearch(this.value)"><div id="gsrch-res"></div></div>
+      <div class="gsrch" onclick="event.stopPropagation()"><span style="display:inline-flex;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input id="gsrch-in" placeholder="Rechercher client, intervention, tâche…" oninput="gsearch(this.value)" onfocus="gsearch(this.value)"><div id="gsrch-res"></div></div>
       <div class="topbar-actions" id="topbar-actions"></div>
       <button class="bell" id="sync-btn" onclick="syncNow()" title="Synchroniser"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span class="sync-pt" aria-hidden="true"></span><svg class="sync-ok" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></button>
       <button class="bell" id="theme-btn" onclick="toggleTheme(event)" title="Mode jour / sombre"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
@@ -12073,8 +12073,8 @@ const NAV = [
     {k:'boxes',ic:'🧱',l:'Boxes',b:'box'},
     {k:'saisieConso',ic:'📋',l:'Consommation produits',aside:true},
     /* « Produits donnés » n'est pas au menu : c'est une SOUS-CATÉGORIE de Boxes (la rangée
-       Liste · Carte des box · Produits donnés, `boxSousCats`), décidé par Justin le
-       23 septembre 2026. `VUE_PARENT` y allume la ligne Boxes. */
+       Liste · Carte · Produits donnés, `boxSousCats`), décidé par Justin le 23 septembre 2026.
+       `SOUS_CATS` la déclare, `VUE_PARENT` y allume la ligne Boxes. */
     {k:'enveloppes',ic:'📮',l:'Enveloppes',b:'env',admin:true,aside:true},
   ]},
   {g:'Temps & équipe', items:[
@@ -12101,11 +12101,13 @@ const NAV = [
   ]},
 ];
 /* ⛔ UNE SOUS-CATÉGORIE EST UN ÉCRAN À PART ENTIÈRE, SANS LIGNE AU MENU. Elle vit dans la rangée
-   de son parent (Liste · Carte des box · Produits donnés : `boxSousCats`), et c'est le parent qui
+   de son parent (Liste · Carte · Produits donnés : `boxSousCats`), et c'est le parent qui
    s'allume au menu comme dans la barre du bas (`VUE_PARENT`). Mais c'est un DROIT comme un autre :
    la grille des droits la montre sous son parent — sinon « réglable dans Permissions » serait
    faux, et un droit qu'on ne voit pas est un droit qu'on ne corrige pas. UNE table, que le menu,
-   les droits et les libellés lisent tous : deux listes finiraient par dire deux choses. */
+   les droits et les libellés lisent tous : deux listes finiraient par dire deux choses.
+   ⛔ ET SANS ELLE, LA VUE ÉCHAPPAIT À LA GARDE DE `go()`, qui ne connaît que `NAV` : mesuré sur la
+   v730, un commercial (fermé par défaut) ouvrait Produits donnés en tapant l'adresse. */
 const SOUS_CATS=[{k:'produitsDonnes',ic:'🎁',l:'Produits donnés',parent:'boxes'}];
 function avecSousCats(items){ return items.flatMap(it=>[it].concat(SOUS_CATS.filter(s=>s.parent===it.k))); }
 function showAside(){ return localStorage.getItem('elan_aside')==='1'; }
@@ -34475,13 +34477,22 @@ function donDetail(type,id){
     <div class="fgroup" style="margin-bottom:12px">${ligne('Remis par',esc(r.par||'—'))}${ligne('Remis à',r.pourQui?'<b>'+esc(r.pourQui)+'</b>':'')}${ligne(r.type==='bon'?'Box':'Véhicule',r.type==='bon'?esc(r.boxNom||'—'):esc(r.vehiculeId?vehName(r.vehiculeId):'—'))}${ligne('Date',r.date?fmtShort(r.date):'')}${ligne('Validé par',esc(r.valideDr||''))}${ligne('Notes',esc(r.notes||''))}</div>
     <div class="dt-lbl" style="margin:4px 0 6px">Produits</div>
     ${r.lignes.map(l=>`<div class="pl-row"><div class="pl-info"><div class="pl-title">${esc(l.nom)}</div></div><span class="mono" style="font-weight:700;color:var(--org);white-space:nowrap">−${esc(String(l.qte))} ${esc(l.unite||'')}</span></div>`).join('')}
-    <div class="modal-foot">${r.type==='bon'?`<button class="btn" onclick="remisePdf('${r.id}')">📄 Bon de remise (PDF)</button>`:`<button class="btn ghost" onclick="printProduitDonne('${r.id}')">🖨️ Imprimer</button>`}</div>`);
+    <div class="modal-foot">${r.type==='bon'?`<button class="btn" onclick="remisePdf('${r.id}')">📄 Bon de remise (PDF)</button>`
+      /* Un don saisi à la main se corrige et se retire ici : l'ancien écran le permettait, et c'est
+         désormais le seul endroit où il paraît. Les droits sont gardés à l'enregistrement
+         (`permGarde`) et à la suppression (`delItem`). Un bon de remise, lui, est une pièce : il ne
+         se modifie pas. */
+      :`<button class="btn danger" onclick="delItem('produitsDonnes','${r.id}')">🗑 Supprimer</button><button class="btn ghost" onclick="formProduitDonne('${r.id}')">✎ Modifier</button><button class="btn ghost" onclick="printProduitDonne('${r.id}')">🖨️ Imprimer</button>`}</div>`);
 }
+/* ⛔ UN ANCIEN DON GARDE SON PRODUIT, MÊME SORTI DU CATALOGUE. La liste ne proposait que le
+   catalogue du jour : un don dont le produit a été renommé ou retiré s'ouvrait sur « — », champ
+   obligatoire — impossible de corriger une date sans rechoisir un AUTRE produit. Mesuré le
+   23 septembre 2026 (sonde-dons), quand « Modifier » est arrivé dans le détail du don. */
 function formProduitDonne(id,presetVeh){ const p=id?db.produitsDonnes.find(x=>x.id===id):(presetVeh?{vehiculeId:presetVeh}:{});
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>${id?'Modifier':'Produit donné'}</h3><button type="submit" form="pdform" class="btn sm">${id?'Enregistrer':'Créer'}</button></div>
     <form id="pdform" onsubmit="saveProduitDonne(event,'${id||''}')">
       <div class="form-sec">Produit</div>
-      <div class="field"><label>Produit *</label><select name="produitNom" required><option value="">—</option>${db.produits.map(pr=>`<option ${p.produitNom===pr.nom?'selected':''}>${esc(pr.nom)}</option>`).join('')}</select></div>
+      <div class="field"><label>Produit *</label><select name="produitNom" required><option value="">—</option>${p.produitNom&&!db.produits.some(pr=>pr.nom===p.produitNom)?`<option selected>${esc(p.produitNom)}</option>`:''}${db.produits.map(pr=>`<option ${p.produitNom===pr.nom?'selected':''}>${esc(pr.nom)}</option>`).join('')}</select></div>
       <div class="field-row"><div class="field"><label>Quantité *</label><input type="number" name="quantite" min="1" value="${p.quantite||1}" required></div>
         <div class="field"><label>Unité</label><input name="unite" value="${esc(p.unite)||'unité'}"></div></div>
       <div class="form-sec">Contexte</div>

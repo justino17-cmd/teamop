@@ -182,7 +182,13 @@ vrai('… sinon il dit d’où viennent les dons, et mène aux box', /Pour une a
 vrai('une ligne s’ouvre au doigt ET au clavier', /role="button" tabindex="0" onclick="donDetail\(/.test(fRendre) && /onkeydown="if\(event\.key==='Enter'\)donDetail\(/.test(fRendre));
 vrai('⛔ chaque ligne DIT qui donne à qui (« → » et « ✔ » deviennent des icônes muettes)',
   /' a remis à '\+r\.pourQui/.test(fRendre) && /', validé par '\+r\.valideDr/.test(fRendre) && /aria-label="\$\{esc\(dit\)\}"/.test(fRendre));
-vrai('le détail d’un bon rend son PDF', /remisePdf\('\$\{r\.id\}'\)/.test(bloc('function donDetail(type,id){')));
+const fDetail = bloc('function donDetail(type,id){');
+vrai('le détail d’un bon rend son PDF', /remisePdf\('\$\{r\.id\}'\)/.test(fDetail));
+vrai('⛔ un ancien don saisi à la main se CORRIGE et se RETIRE depuis son détail (l’ancien écran le permettait)',
+  /delItem\('produitsDonnes','\$\{r\.id\}'\)/.test(fDetail) && /formProduitDonne\('\$\{r\.id\}'\)/.test(fDetail) && /printProduitDonne\('\$\{r\.id\}'\)/.test(fDetail));
+vrai('⛔ … et un ancien don garde son produit, même sorti du catalogue (sinon « — », champ obligatoire : on ne peut plus l’enregistrer)',
+  /p\.produitNom&&!db\.produits\.some\(pr=>pr\.nom===p\.produitNom\)\?`<option selected>\$\{esc\(p\.produitNom\)\}<\/option>`/.test(bloc('function formProduitDonne(id,presetVeh){')));
+vrai('la recherche du haut ne promet plus les chantiers (retirés en v730)', !/intervention, chantier…/.test(SRC) && /placeholder="Rechercher client, intervention, tâche…"/.test(SRC));
 
 console.log('\n── 779 · 7. la question « pour qui ? », aux deux sorties de box ──');
 const fDirect = bloc('function boxDonneModal(boxId,suite){'), fDr = bloc('function remiseDestModal(mid){');
@@ -221,6 +227,8 @@ vrai('… elle regarde le menu ET la bulle', /nav-item\.active/.test(SONDE) && /
 vrai('… elle mesure que la rangée TIENT au téléphone et devient le segmenté', /scrollWidth<=f\.clientWidth/.test(SONDE) && /seg-on/.test(SONDE));
 vrai('… elle lit la STRUCTURE des lignes, pas les glyphes remplacés par des icônes', /querySelector\('b'\)/.test(SONDE) && /aria-label/.test(SONDE));
 vrai('… elle joue un compte qui n’y a pas droit', /commercial/.test(SONDE));
+vrai('… elle corrige et retire un ancien don, en prouvant que les deux gestes ONT EU LIEU', /pd-essai/.test(SONDE) && /q:5/.test(SONDE) && /existe:false/.test(SONDE));
+vrai('… elle attend la fin des transitions de vue avant de relever (sinon elle lit l’écran d’avant)', /window\.__vtN/.test(SONDE));
 vrai('… elle sait tourner sur une bêta d’avant (contre-épreuve)', /process\.env\.SOURCE/.test(SONDE));
 vrai('… sur la BÊTA, jamais sur app.html', !/app\.html/.test(SONDE));
 

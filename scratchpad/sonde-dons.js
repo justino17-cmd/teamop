@@ -38,9 +38,16 @@ const titre=t=>L.push('\n══ '+t+' ══\n');
   try{ await S.c.envoyer('Emulation.setSafeAreaInsetsOverride',{insets:{top:47,bottom:34,left:0,right:0,topMax:47,bottomMax:34,leftMax:0,rightMax:0}}); }catch(e){}
   await S.ev(`setPlatForce('iosweb'); setThemePref('light'); return 1;`); await dormir(500);
 
-  const ranger=()=>S.ev(`try{ asstOpen=false; renderAsst(); }catch(e){} try{ closeModal(); }catch(e){}
-    try{ document.getElementById('sidebar').classList.remove('open'); }catch(e){} const b=document.getElementById('fdr-banner'); if(b) b.remove(); return 1;`);
+  /* ⛔ `go()` passe par `document.startViewTransition` : le nouvel écran s'écrit PLUS TARD, hors
+     de l'appel. Relevé trop tôt, on lit l'écran d'avant — pris ici une fois sur trois (« la ligne
+     supprimée est encore là » alors que la donnée était partie). On COMPTE les transitions
+     ouvertes et on attend qu'elles soient closes, comme `audit-pixel.js`. */
+  await S.ev(`if(document.startViewTransition&&!window.__vtSuivi){ window.__vtSuivi=1; window.__vtN=0; const o=document.startViewTransition.bind(document);
+    document.startViewTransition=function(cb){ window.__vtN++; const vt=o(cb); const f=()=>{ window.__vtN--; }; vt.finished.then(f,f); return vt; }; } return 1;`);
   const deuxImages=()=>S.ev(`return new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>{ void document.body.offsetWidth; r(1); })));`);
+  const calme=async()=>{ for(let i=0;i<50;i++){ if(await S.ev(`return !(window.__vtN>0) && !document.querySelector('.content.entre');`)) break; await dormir(100); } await deuxImages(); };
+  const ranger=async()=>{ await calme(); await S.ev(`try{ asstOpen=false; renderAsst(); }catch(e){} try{ closeModal(); }catch(e){}
+    try{ document.getElementById('sidebar').classList.remove('open'); }catch(e){} const b=document.getElementById('fdr-banner'); if(b) b.remove(); return 1;`); };
   const fenetre=()=>S.ev(`const o=document.getElementById('overlay'), m=document.getElementById('modal');
     return (o&&o.classList.contains('open')&&m) ? m.textContent.replace(/\\s+/g,' ').trim() : '';`);
   const admin=`db.users.find(u=>u.role==='admin')`;
@@ -199,8 +206,34 @@ const titre=t=>L.push('\n══ '+t+' ══\n');
   vrai('⛔ le filtre « Avec du stock » est sur SA ligne, pas dans la navigation', R1.rangs.length===2 && !R1.rangs[1].nav && /Avec du stock/.test((R1.rangs[1].chips||[]).join(' ')) && R1.rangs[0].seg);
   await S.ev(`[...document.querySelectorAll('#content nav.filters .chip')].find(x=>x.textContent.trim()==='Produits donnés')?.click(); return 1;`); await dormir(900); await ranger();
   v('… et toucher « Produits donnés » y revient', await S.ev(`return current;`), 'produitsDonnes');
-  await S.ev(`go('carteBox'); return 1;`); await dormir(900); await ranger();
+  await S.ev(`go('carteBox'); return 1;`); await dormir(900); await ranger(); await calme();
   v('la carte des box porte la même rangée, « Carte » marqué', await S.ev(`const f=document.querySelector('#content nav.filters'); return f?[...f.querySelectorAll('.chip')].map(x=>(x.classList.contains('active')?'*':'')+x.textContent.trim()):null;`), ['Liste','*Carte','Produits donnés']);
+
+  /* ── D2. UN ANCIEN DON SAISI À LA MAIN ── l'ancien écran le corrigeait et le retirait ; le
+     détail est désormais le seul endroit où il paraît. On prouve que les deux gestes ONT EU LIEU. */
+  titre('D2. UN ANCIEN DON SAISI À LA MAIN — SE CORRIGE ET SE RETIRE');
+  await S.ev(`currentUser=${admin}; db.produitsDonnes=db.produitsDonnes||[];
+    if(!db.produitsDonnes.some(x=>x.id==='pd-essai')) db.produitsDonnes.push({id:'pd-essai',vehiculeId:'',produitNom:'Gel essai',quantite:2,unite:'tube',date:todayISO(),auteurNom:fullName(currentUser),notes:'remis au client'});
+    save(); go('produitsDonnes'); return 1;`); await dormir(900); await ranger();
+  const ouvrirEssai=()=>S.ev(`[...document.querySelectorAll('#dons-list .pl-row')].find(x=>(x.getAttribute('aria-label')||'').includes('a donné : Gel essai'))?.click(); return 1;`);
+  vrai('l’ancien don est listé, et sa ligne dit qui l’a donné', await S.ev(`return [...document.querySelectorAll('#dons-list .pl-row')].some(x=>(x.getAttribute('aria-label')||'').includes('a donné : Gel essai'));`));
+  await ouvrirEssai(); await dormir(500);
+  const bD2=await S.ev(`return [...document.querySelectorAll('#modal .modal-foot button')].map(b=>b.textContent.replace(/\\s+/g,' ').trim());`);
+  vrai('… son détail propose Modifier, Supprimer et Imprimer', bD2.some(b=>/Modifier/.test(b)) && bD2.some(b=>/Supprimer/.test(b)) && bD2.some(b=>/Imprimer/.test(b)));
+  await S.ev(`[...document.querySelectorAll('#modal .modal-foot button')].find(b=>/Modifier/.test(b.textContent))?.click(); return 1;`); await dormir(500);
+  await S.ev(`const f=document.getElementById('pdform'); if(f){ const q=f.querySelector('[name=quantite]'); if(q){ q.value='5'; q.dispatchEvent(new Event('input',{bubbles:true})); }
+    document.querySelector('#modal button[type=submit][form=pdform]')?.click(); } return 1;`); await dormir(700);
+  await calme();
+  v('⛔ « Modifier » enregistre VRAIMENT (2 → 5), et on reste sur Produits donnés',
+    await S.ev(`const x=(db.produitsDonnes||[]).find(y=>y.id==='pd-essai'); return {q:x?x.quantite:null, current};`), {q:5,current:'produitsDonnes'});
+  await ranger(); await ouvrirEssai(); await dormir(500);
+  await S.ev(`[...document.querySelectorAll('#modal .modal-foot button')].find(b=>/Supprimer/.test(b.textContent))?.click(); return 1;`); await dormir(700);
+  await calme();
+  v('⛔ « Supprimer » le retire VRAIMENT, et la liste se redessine sans lui',
+    await S.ev(`return {existe:(db.produitsDonnes||[]).some(x=>x.id==='pd-essai'), current,
+      ligne:[...document.querySelectorAll('#dons-list .pl-row')].some(x=>(x.getAttribute('aria-label')||'').includes('Gel essai'))};`),
+    {existe:false,current:'produitsDonnes',ligne:false});
+  await ranger();
 
   /* ── E. LES DROITS ── */
   titre('E. LES DROITS');
@@ -266,6 +299,9 @@ const titre=t=>L.push('\n══ '+t+' ══\n');
   vrai('⛔ le texte n’est pas écrasé : titre et détails gardent au moins 150 px', G1.titre>=150 && G1.meta>=150);
   vrai('le montant reste DANS la ligne', G1.dedans);
   vrai('les trois onglets tiennent dans l’écran, sans défiler', G1.chips.length===3 && Math.max(...G1.chips)<=390 && G1.tient);
+
+  titre('G2. LA RECHERCHE DU HAUT NE PROMET PLUS LES CHANTIERS (retirés en v730)');
+  v('le champ dit ce qu’il cherche vraiment', await S.ev(`return (document.getElementById('gsrch-in')||{}).placeholder||null;`), 'Rechercher client, intervention, tâche…');
 
   titre('H. AUCUNE ERREUR JAVASCRIPT');
   v('exceptions', S.exceptions, []);
