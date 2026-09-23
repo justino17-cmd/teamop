@@ -340,7 +340,12 @@ const ECARTS=[
   console.log('  catégories : '+CATS.length);
   if(CATS.length<20 && !process.env.SEULES){ console.log('  ✗ population trop maigre'); S.fermer(); process.exit(4); }
 
-  const PARGENRE=4, PARCAT_SEC=150, SOUSVUES_MAX=14;
+  /* Les plafonds tiennent une passe sur douze appareils dans un temps raisonnable. Pour la passe
+     « bouton par bouton » (Justin, 23 septembre 2026), on les lève par l'environnement :
+     TOUT=1 → chaque commande de chaque rubrique, chaque sous-vue distincte, sans limite de temps
+     raisonnable. Les plafonds restent COMPTÉS et imprimés dans les deux modes. */
+  const TOUT=!!process.env.TOUT;
+  const PARGENRE=TOUT?999:4, PARCAT_SEC=TOUT?1500:150, SOUSVUES_MAX=TOUT?999:14;
   const sousVues={}; let plafonnees=0;   /* ⛔ pas de plafond silencieux : on compte ce qu'on saute */
   const vus=new Set(), R={hors:[],couverts:[],tronques:[],petits:[],titres:[],erreurs:[],spontanees:[],denses:[],zoom:[],sousMenu:[],titresBarre:[]};
   let candidatsTotal=0, sousMenuCibles=0;
@@ -448,6 +453,6 @@ const ECARTS=[
     grouper(R.zoom,x=>x.n+' « '+x.t+' »').slice(0,25).forEach(([g,v])=>console.log('   '+String(v.length).padStart(3)+'×  '+g+'   '+v[0].fs+' px   ex. '+v[0].ou)); }
   console.log('\n══ LES ÉCRANS PROFONDS AUDITÉS ══');
   [...vus].forEach(v=>console.log('   · '+v));
-  fs.writeFileSync(__dirname+'/audit-profond-'+PROFIL+'.json',JSON.stringify({version:S.version,profil:PROFIL,clics,audits,elements,par,ecrans:[...vus],fermees,...R},null,0));
+  fs.writeFileSync(__dirname+'/audit-profond-'+PROFIL+(TOUT?'-tout':'')+'.json',JSON.stringify({version:S.version,profil:PROFIL,tout:TOUT,sautes,plafonnees,clics,audits,elements,par,ecrans:[...vus],fermees,...R},null,0));
   S.fermer(); process.exit(0);
 })().catch(e=>{console.error('AUDIT MORT :',e&&e.stack||e);process.exit(2);});
