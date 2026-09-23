@@ -66,12 +66,22 @@ console.log('\n── 787 · 1. ⛔⛔ la règle : qui garde les catalogues four
 v('⛔⛔ une entreprise NEUVE : non', G0.cataloguesFournisseurs(), false);
 const Gsaisie = entreprise({ produits: uniques.slice(0, 12).map(n => fiche(n, true)), fournisseurs: [] });
 v('⛔ une entreprise qui a SAISI douze produits aux noms du catalogue (＋ Produit, ＋ Liste) : non — une coïncidence ne rouvre rien', Gsaisie.cataloguesFournisseurs(), false);
-const G4 = entreprise({ produits: uniques.slice(0, 4).map(n => fiche(n, false)), fournisseurs: [] });
-v('quatre fiches venues des catalogues : pas assez (le seuil est de cinq, comme « ↻ Catalogue OP »)', G4.cataloguesFournisseurs(), false);
+/* ⚠️ au moins cinq fiches en tout : sous cinq, la règle sort par la porte du haut et le seuil ne se
+   jouerait jamais (une mutation « seuil à 4 » passait au vert) */
+const G4 = entreprise({ produits: uniques.slice(0, 4).map(n => fiche(n, false)).concat(['Savon maison', 'Gants nitrile taille M', 'Sacs 100 L'].map(n => fiche(n, true))), fournisseurs: [] });
+v('quatre fiches venues des catalogues (et trois saisies) : pas assez — le seuil est de cinq, comme « ↻ Catalogue OP »', G4.cataloguesFournisseurs(), false);
 const G5 = entreprise({ produits: uniques.slice(0, 5).map(n => fiche(n, false)), fournisseurs: [] });
 v('cinq fiches venues des catalogues : l’entreprise s’en sert déjà, elle les garde', G5.cataloguesFournisseurs(), true);
 const Gelan = entreprise({ produits: G0.CATALOGUE.slice(0, 110).map(c => fiche(c[0], false)), fournisseurs: [] });
 v('⛔⛔ ELAN (le pack 3D en place) : oui — on ne lui retire rien', [Gelan.catalogueEnPlace(), Gelan.cataloguesFournisseurs()], [true, true]);
+/* ⚠️ 90 des 160 références du pack sont AUSSI dans les catalogues fournisseurs : un ELAN bâti sur
+   celles-là passerait par la seconde moitié de la règle, et retirer catalogueEnPlace ne ferait
+   rien tomber. On joue donc aussi un pack fait des 70 références qui lui sont PROPRES. */
+const cleCF = new Set(G0.CATFOUR.map(x => G0.norm(x[0]).replace(/\s+/g, ' ').trim()));
+const packPropre = G0.CATALOGUE.filter(c => !cleCF.has(G0.norm(c[0]).replace(/\s+/g, ' ').trim()));
+vrai('population : des références propres au pack', packPropre.length >= 20, packPropre.length);
+const Gelan2 = entreprise({ produits: packPropre.slice(0, 20).map(c => fiche(c[0], false)), fournisseurs: [] });
+v('⛔ … même quand ses fiches ne viennent que du pack (c’est catalogueEnPlace qui la garde)', Gelan2.cataloguesFournisseurs(), true);
 const Gnet = entreprise({ metier: 'nettoyage', produits: G0.CATALOGUE.slice(0, 20).map(c => fiche(c[0], true)), fournisseurs: [] });
 v('un plombier ou une entreprise de nettoyage, même avec des noms du pack saisis à la main : non', Gnet.cataloguesFournisseurs(), false);
 
