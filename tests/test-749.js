@@ -42,15 +42,23 @@ function decoupe(h){ const d=APP.indexOf(h); if(d<0) throw new Error('introuvabl
 const CODE=['const PT_MAX_H = 16;','function minutes(deb,fin){','function dureeStr(min){','function pt2(n){',
   'function ptHM(ts){','function ptHMS(ts){','function ptJourDe(d){','function ptJour(ts){','function ptOuvert(p){',
   'function ptOubli(p,now){','function ptSecs(p,now){','function ptDuree(sec){','function ptChrono(sec){',
-  'function ptHoraires(p){','function ptOuverteDe(tid){','function ptTotal(list,now){','function ptParJour(list,now){',
+  'function ptHoraires(p){','function ptEstAMoi(p){','function ptMesPointages(){','function ptOuverteMoi(){',
+  'function ptNom(p){','function ptPauseEntre(a,b){','function ptTotal(list,now){','function ptParJour(list,now){',
   'function ptLundi(d){','function ptBornes(){','function ptListe(){'].map(h=>decoupe(h)).join('\n');
 
-const M=new Function(`let db={pointages:[]}; let _ptPeriode='semaine',_ptRef='',_ptTech='';
+/* Qui est « moi » : la fiche (myTechId) ET le compte (currentUser) — depuis la v733, un compte
+   SANS fiche pointe sous son compte. Les deux se règlent ici, séparément. */
+const M=new Function(`let db={pointages:[],users:[]}; let _ptPeriode='semaine',_ptRef='',_ptTech='';
+  let _tid='t1', currentUser={id:'u1'};
+  const myTechId=()=>_tid;
+  const techName=id=>'Fiche '+id;
+  const fullName=u=>((u.prenom||'')+' '+(u.nom||'')).trim();
   const visiblePointages=l=>l;
   ${CODE}
   return { PT_MAX_H, minutes, ptSecs, ptOuvert, ptOubli, ptDuree, ptChrono, ptHoraires, ptHM, ptHMS,
-           ptJour, ptJourDe, ptOuverteDe, ptTotal, ptParJour, ptBornes, ptLundi, ptListe,
-           setDb:d=>{db=d;}, setPeriode:(p,r)=>{_ptPeriode=p;_ptRef=r||'';} };`)();
+           ptJour, ptJourDe, ptEstAMoi, ptMesPointages, ptOuverteMoi, ptNom, ptPauseEntre, ptTotal, ptParJour, ptBornes, ptLundi, ptListe,
+           setDb:d=>{db=Object.assign({users:[]},d);}, setMoi:(tid,uid)=>{_tid=tid; currentUser=uid?{id:uid}:null;},
+           setPeriode:(p,r)=>{_ptPeriode=p;_ptRef=r||'';} };`)();
 
 const H=3600000;
 const jourDe=(iso,h,m,s)=>new Date(iso+'T'+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s||0).padStart(2,'0')).getTime();
@@ -114,6 +122,41 @@ console.log('\n══ 5. ⛔⛔ REPOINTER LE MÊME JOUR : ÇA S\'AJOUTE, LES DEU
     ['2026-09-21','2026-09-20','2026-09-19']);
 }
 
+console.log('\n══ 5 bis. ⛔⛔ UN COMPTE SANS FICHE POINTE — SOUS SON COMPTE, JAMAIS SOUS UNE FICHE (v733) ══\n');
+/* Justin, 23 septembre 2026, sur son compte d'administrateur : l'écran n'offrait que « Saisie
+   manuelle ». Un rôle de bureau n'a jamais de fiche du personnel, et le pointage l'exigeait.
+   Un pointage appartient désormais à la FICHE quand le compte en a une, au COMPTE sinon. */
+{ const j='2026-09-21';
+  const a1={id:'x1',techId:'',userId:'uA',date:j,debut:'08:00',debutTs:jourDe(j,8,0,0),fin:'12:00',finTs:jourDe(j,12,0,0),pause:0};
+  const a2={id:'x2',techId:'',userId:'uA',date:j,debut:'13:30',debutTs:jourDe(j,13,30,0),fin:'17:30',finTs:jourDe(j,17,30,0),pause:0};
+  const b1={id:'y',techId:'',userId:'uB',date:j,debut:'08:00',debutTs:jourDe(j,8,0,0),fin:'09:00',finTs:jourDe(j,9,0,0),pause:0};
+  const t1={id:'z',techId:'t1',userId:'uT',date:j,debut:'07:00',debutTs:jourDe(j,7,0,0),fin:'15:00',finTs:jourDe(j,15,0,0),pause:0};
+  M.setDb({pointages:[a1,a2,b1,t1],users:[{id:'uA',prenom:'Justin',nom:'Biret'},{id:'uB',prenom:'Léa',nom:'Roux'}]});
+  M.setMoi(null,'uA');
+  v('⛔ un compte SANS fiche retrouve ses pointages, et eux seuls', M.ptMesPointages().map(x=>x.id), ['x1','x2']);
+  M.setMoi('t1','uT');
+  v('⛔ un technicien retrouve ceux de SA fiche — jamais ceux des comptes sans fiche', M.ptMesPointages().map(x=>x.id), ['z']);
+  M.setMoi('t9','uA');
+  v('⛔ un compte relié PLUS TARD à une fiche garde ses anciens pointages de compte', M.ptMesPointages().map(x=>x.id), ['x1','x2']);
+  M.setDb({pointages:[{id:'r',techId:'t2',userId:'uA',date:j,debut:'08:00',fin:'12:00'}]});
+  M.setMoi(null,'uA');
+  v('⛔ une ligne passée sur la fiche de quelqu’un d’autre n’est plus « à moi », même si c’est moi qui ai appuyé', M.ptMesPointages().length, 0);
+  M.setMoi(null,null);
+  v('sans compte connecté, rien n’est à personne', M.ptMesPointages().length, 0);
+  M.setDb({pointages:[a1,a2,b1,t1],users:[{id:'uA',prenom:'Justin',nom:'Biret'}]});
+  v('le nom d’une ligne sans fiche est celui du COMPTE', M.ptNom(a1), 'Justin Biret');
+  v('… celui d’une ligne avec fiche, celui de la FICHE', M.ptNom(t1), 'Fiche t1');
+  v('… et jamais « Non assigné » : un compte disparu se dit « — »', M.ptNom({techId:'',userId:'parti'}), '—');
+
+  console.log('');
+  v('⛔⛔ LA PAUSE ENTRE LA FIN ET LA REPRISE : 12:00 → 13:30, 1 h 30', M.ptPauseEntre(a1,a2), 5400);
+  v('⛔⛔ … et elle n’entre PAS dans le total : 4 h + 4 h = 8 h, pas 9 h 30', M.ptDuree(M.ptTotal([a1,a2])), '8h00');
+  v('… la journée regroupée dit la même chose', M.ptDuree(M.ptParJour([a2,a1])[0].sec), '8h00');
+  v('une pause se lit aussi sur les anciens pointages (HH:MM seuls)', M.ptPauseEntre({debut:'08:00',fin:'12:00'},{debut:'13:30',fin:'17:00'}), 5400);
+  v('pas de pause après un pointage encore ouvert', M.ptPauseEntre({debut:'08:00',debutTs:1},a2), 0);
+  v('deux pointages collés : pause nulle, jamais négative', M.ptPauseEntre(a2,{debutTs:jourDe(j,17,0,0)}), 0);
+}
+
 console.log('\n══ 6. LA SEMAINE ET LE MOIS ══\n');
 { M.setPeriode('semaine','2026-09-23');           // un mercredi
   const b=M.ptBornes();
@@ -146,8 +189,10 @@ console.log('\n══ 7. LE FILTRE : PÉRIODE, PUIS PERSONNE ══\n');
   v('« Tout » les retient toutes', M.ptListe().length, 3);
   const ouverte={id:'o',techId:'t1',date:'2026-09-21',debutTs:1};
   M.setDb({pointages:[...lignes,ouverte]});
-  v('ptOuverteDe trouve le pointage en cours du bon technicien', M.ptOuverteDe('t1').id, 'o');
-  v('… et rien pour un autre', M.ptOuverteDe('t2'), null);
+  M.setMoi('t1','u1');
+  v('ptOuverteMoi trouve la journée en cours de la bonne fiche', M.ptOuverteMoi().id, 'o');
+  M.setMoi('t2','u2');
+  v('… et rien pour un autre', M.ptOuverteMoi(), null);
 }
 
 console.log('\n══ 8. CE QUI EST GARDÉ DANS LE TEXTE (ne s\'exécute pas hors navigateur) ══\n');
@@ -176,8 +221,11 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
   const pd=corps('pointerDebut');
   vrai('⛔ pointer prend l\'heure de l\'APPAREIL (Date.now), pas un champ',
     /const ts\s*=\s*Date\.now\(\)/.test(pd));
-  vrai('⛔ pointer refuse quand le compte n\'a pas de fiche technicien', /if\(!tid\)/.test(pd));
-  vrai('⛔ … et refuse un second pointage en cours', /ptOuverteDe\(tid\)/.test(pd));
+  /* v733 : la règle « un compte sans fiche ne pointe pas » est RETOURNÉE, exprès (Justin, capture
+     à l'appui). Ce qui la remplace : la ligne porte la fiche si elle existe, le compte toujours. */
+  vrai('⛔ un compte sans fiche pointe sous son COMPTE : la fiche seulement si elle existe, le compte toujours',
+    /techId:tid\|\|''/.test(pd) && /userId:currentUser\.id/.test(pd));
+  vrai('⛔ … et une seconde journée en cours est refusée', /if\(ptOuverteMoi\(\)\)/.test(pd));
   vrai('pointer pose les DEUX formes (HH:MM et horodatage)', /debut:ptHM\(ts\)/.test(pd)&&/debutTs:ts/.test(pd));
 
   const pf=corps('ptFermer');
@@ -200,10 +248,13 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
    fausse — exactement le défaut corrigé quinze lignes plus haut sur `corps()`.
    La parade n'est pas une fenêtre mieux bornée : c'est d'EXÉCUTER la vraie fonction. Un droit
    se mesure par ce qu'il laisse passer, pas par le texte qui le nomme. */
-{ const D=new Function('cap','peri','tid',`
+{ const D=new Function('cap','peri','tid','moi','equipe',`
     const can=c=>cap[c]===true;
     const perimetreTechIds=()=>peri;
     const myTechId=()=>tid;
+    const currentUser=moi?{id:moi}:null;
+    const equipeDe=()=>(equipe||[]).map(id=>({id}));
+    ${decoupe('function ptEstAMoi(p){')}
     ${decoupe('function visiblePointages(')}
     ${decoupe('function ptPeutVoirAutres(){')}
     return { visiblePointages, ptPeutVoirAutres };`);
@@ -230,6 +281,18 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
   const autre=D({voirTout:true}, new Set(['t3']), 't1');
   v('⛔ … mais toujours borné au périmètre quand il y en a un',
     autre.visiblePointages(lignes).map(x=>x.id), ['c']);
+
+  /* v733 — les lignes SANS fiche, rangées sous un compte : même règle, par l'autre clé. */
+  const lignes2=[...lignes,{id:'s1',techId:'',userId:'uS'},{id:'s2',techId:'',userId:'uX'}];
+  const secretaire=D({}, null, null, 'uS');
+  v('⛔ un compte sans fiche et sans droit ne voit QUE ses propres lignes',
+    secretaire.visiblePointages(lignes2).map(x=>x.id), ['s1']);
+  const chefEq=D({voirPointages:true}, new Set(['t1']), 't1', 'uC', ['uS']);
+  v('⛔ un chef à périmètre voit les lignes sans fiche des comptes RATTACHÉS à lui — pas des autres',
+    chefEq.visiblePointages(lignes2).map(x=>x.id), ['a','s1']);
+  const toutVoir=D({voirTout:true}, null, null, 'uA');
+  v('« tout voir » sans périmètre voit aussi les lignes sans fiche', toutVoir.visiblePointages(lignes2).length, 5);
+  v('⛔ un technicien ne voit pas la ligne d’un compte sans fiche', D({}, null, 't1', 'uT').visiblePointages(lignes2).map(x=>x.id), ['a']);
 
   vrai('le droit est déclaré dans USER_CAPS', /\['voirPointages'/.test(NU));
   vrai('… et rangé dans la catégorie Temps & équipe',

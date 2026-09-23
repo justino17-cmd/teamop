@@ -2458,6 +2458,13 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .btn.sm{min-height:32px;padding:0 12px!important;font-size:13.5px!important}
 .btn.danger{background:var(--danger-bg)!important;color:var(--danger-ink)!important}
 .btn.danger:hover{background:var(--red)!important;color:#FFFFFF!important}
+/* « Fin de journée » (Pointage) : le bouton PRINCIPAL de l'écran reste en tête — pleine largeur au
+   téléphone, où la ligne des actions range `.danger` avec les secondaires —, mais il en prend la
+   teinte : c'est l'arrêt du chronomètre, comme le bouton rouge du Chronomètre d'iOS. Au survol,
+   l'aplat rouge porte SON encre (`--on-red`) : de nuit, `--red` est éclairci pour se lire et ne
+   porte pas de blanc. */
+.btn.pt-fin,html[data-refonte] .btn.pt-fin{background:var(--danger-bg)!important;color:var(--danger-ink)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger-ink) 30%,transparent)!important}
+.btn.pt-fin:hover,html[data-refonte] .btn.pt-fin:hover{background:var(--red-fill)!important;color:var(--on-red)!important}
 /* ⛔ UNE ACTION DESTRUCTIVE TIENT LE PLANCHER TACTILE, MÊME QUAND LE RESTE NE LE TIENT PAS.
    Mesuré le 17 septembre 2026 sur la bêta, à 390 px, sur les 42 écrans : 1 109 cibles sur
    1 810 sont sous 44 px — c'est un compromis de DENSITÉ, assumé et documenté (`.btn.sm` est
@@ -7949,7 +7956,7 @@ function roleEditer(cle){
   openModal('<div class="modal-head"><h3>'+(cle?'Modifier le rôle':'Nouveau rôle')+'</h3><button class="modal-close" onclick="rolesGerer()">✕</button></div>'+
     '<div class="field"><label>Nom du rôle *</label><input id="rl-nom" value="'+esc(d.nom)+'" placeholder="ex : Technicien 3D, Applicateur, Responsable dépôt" autocapitalize="words"></div>'+
     '<div class="fgroup" style="margin-bottom:12px">'+
-      '<label class="frow" style="cursor:pointer"><span style="flex:1">🧰 <b>Crée une fiche technicien</b><div style="font-size:11.5px;color:var(--t3);line-height:1.5;margin-top:2px">Nécessaire pour lui assigner des interventions, un véhicule et des pointages.</div></span><input type="checkbox" id="rl-tech"'+(d.tech?' checked':'')+' style="width:40px;height:24px;accent-color:var(--acc);flex-shrink:0"></label>'+
+      '<label class="frow" style="cursor:pointer"><span style="flex:1">🧰 <b>Crée une fiche technicien</b><div style="font-size:11.5px;color:var(--t3);line-height:1.5;margin-top:2px">Nécessaire pour lui assigner des interventions et un véhicule.</div></span><input type="checkbox" id="rl-tech"'+(d.tech?' checked':'')+' style="width:40px;height:24px;accent-color:var(--acc);flex-shrink:0"></label>'+
       '<label class="frow" style="cursor:pointer;border-bottom:none"><span style="flex:1">👥 <b>Peut être le chef de quelqu\'un</b><div style="font-size:11.5px;color:var(--t3);line-height:1.5;margin-top:2px">Il apparaîtra dans le menu « Chef d\'équipe » des autres comptes.</div></span><input type="checkbox" id="rl-chef"'+(d.chef?' checked':'')+' style="width:40px;height:24px;accent-color:var(--acc);flex-shrink:0"></label>'+
     '</div>'+
     (n?'<div class="fgroup" style="padding:12px 14px;font-size:12.5px;color:var(--t2);line-height:1.55">⚠️ <b>'+n+' compte'+(n>1?'s portent':' porte')+' ce rôle.</b> Le renommer change ce qui s\'affiche partout ; cocher ou décocher « fiche technicien » ne touche pas aux fiches déjà créées.</div>':'')+
@@ -12825,8 +12832,12 @@ function visibleDocs(list){
    comportement est conservé : qui a « tout voir » continue de voir, sans rien changer chez
    personne le jour de la mise à jour. */
 function visiblePointages(list){
-  if(can('voirTout')||can('voirPointages')){ const p=perimetreTechIds(); return p?(list||[]).filter(x=>p.has(x.techId)):(list||[]); }
-  const tid=myTechId(); return (list||[]).filter(x=>x.techId===tid); }
+  if(can('voirTout')||can('voirPointages')){ const p=perimetreTechIds(); if(!p) return (list||[]);
+    /* un pointage SANS fiche se range sous son COMPTE (ptEstAMoi) : il suit donc le périmètre
+       des comptes — les personnes rattachées à ce chef, et lui-même —, jamais au-delà. */
+    const us=new Set([currentUser&&currentUser.id].concat(equipeDe(currentUser).map(u=>u.id)).filter(Boolean));
+    return (list||[]).filter(x=>p.has(x.techId) || (!x.techId && us.has(x.userId))); }
+  return (list||[]).filter(ptEstAMoi); }
 function ptPeutVoirAutres(){ return !!(can('voirTout')||can('voirPointages')); }
 /* Formule impayée : les rubriques de la formule réservée restent VISIBLES dans le
    menu, mais grisées avec un cadenas — on voit ce qu'on récupère en payant. */
@@ -29905,7 +29916,7 @@ function formUser(id){ const u=id?db.users.find(x=>x.id===id):{}; window._formUs
         <div class="field"><label>Nom *</label><input name="nom" required value="${esc(u.nom)}" ${id?'':'oninput="nuLoginAuto()"'}></div></div>
       <div class="field"><label>Identifiant *</label><input name="login" id="nu-login" required value="${esc(u.login)}" placeholder="ex : marc" autocapitalize="off" ${id?'':'oninput="this.dataset.libre=\'1\'"'}>${id?'':'<div style="font-size:11px;color:var(--t3);margin-top:4px">Se remplit tout seul à partir du prénom — tu peux le modifier, maintenant ou plus tard.</div>'}</div>
       <div class="field"><label>E-mail <span style="font-weight:400;color:var(--t3)">— sert à « Mot de passe oublié »</span></label><input name="email" type="email" value="${esc(u.email||'')}" placeholder="prenom@entreprise.fr" autocapitalize="off"></div>
-      <div class="field"><label>Rôle <span style="font-weight:400;color:var(--t3)">— juste un nom, pour s'y retrouver</span>${currentUser.role==='admin'?` <a onclick="rolesGerer()" style="color:var(--acc-txt);cursor:pointer;text-decoration:underline;font-weight:400;font-size:12px">gérer les rôles</a>`:''}</label><select name="role" onchange="userToggleRole(this.value)">${rolesTous(u.role).filter(d=>currentUser.role==='admin'||!['admin','dr'].includes(d.cle)).map(d=>`<option value="${esc(d.cle)}" ${u.role===d.cle?'selected':''}>${esc(d.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px"><b>Le rôle n'ouvre aucun droit</b> : ce sont le profil ci-dessous et la ligne de la personne qui les posent. Il sert à s'y retrouver dans la liste — et il décide d'une seule chose : si une <b>fiche technicien</b> est créée (nécessaire pour les interventions, le véhicule et les pointages).</div></div>
+      <div class="field"><label>Rôle <span style="font-weight:400;color:var(--t3)">— juste un nom, pour s'y retrouver</span>${currentUser.role==='admin'?` <a onclick="rolesGerer()" style="color:var(--acc-txt);cursor:pointer;text-decoration:underline;font-weight:400;font-size:12px">gérer les rôles</a>`:''}</label><select name="role" onchange="userToggleRole(this.value)">${rolesTous(u.role).filter(d=>currentUser.role==='admin'||!['admin','dr'].includes(d.cle)).map(d=>`<option value="${esc(d.cle)}" ${u.role===d.cle?'selected':''}>${esc(d.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px"><b>Le rôle n'ouvre aucun droit</b> : ce sont le profil ci-dessous et la ligne de la personne qui les posent. Il sert à s'y retrouver dans la liste — et il décide d'une seule chose : si une <b>fiche technicien</b> est créée (nécessaire pour les interventions et le véhicule).</div></div>
       ${(!id&&currentUser.role==='admin')?`<div class="field"><label>Profil de droits <span style="font-weight:400;color:var(--t3)">— tout se met d'un coup</span></label>
         <select name="profil" id="nu-profil" onchange="nuProfilChange(this.value)">${[`<option value="">— aucun : le compte partira sans droits, à régler dans la liste —</option>`].concat(profilsDroits().slice().sort((a,b)=>(a.nom||'').localeCompare(b.nom||'','fr',{sensitivity:'base'})).map(pr=>`<option value="${pr.id}">${esc(pr.nom)} — ${profilCompte(pr)}</option>`)).join('')}</select>
         <div style="font-size:11px;color:var(--t3);margin-top:4px">${profilsDroits().length
@@ -33640,9 +33651,11 @@ function saveContrat(e,id){ e.preventDefault(); if(!permGarde('ventes',id?'modif
 }
 
 /* ═══════════════ POINTAGE (temps de travail) ═══════════════
-   Le technicien tape « Pointer » : l'heure est prise par l'appareil, à la seconde. Il retape
-   « Dépointer » : la durée se calcule toute seule. Plusieurs pointages dans la même journée
-   s'AJOUTENT sans se confondre — chacun reste sur sa ligne, avec ses horaires.
+   On tape « Début de journée » : l'heure est prise par l'appareil, à la seconde. On tape
+   « Fin de journée » : la durée se calcule toute seule. On reprend la même journée
+   (« Reprendre la journée ») : les pointages s'AJOUTENT sans se confondre — chacun reste sur sa
+   ligne, avec ses horaires — et la pause entre la fin et la reprise n'est PAS comptée : elle
+   n'est que l'écart entre deux lignes, et l'écran la montre comme telle.
 
    ⛔ DEUX HORODATAGES, PAS UN — et c'est ce qui rend la mise à jour sûre. `debut`/`fin`
    restent en 'HH:MM' : tous les pointages déjà saisis les portent, et la fusion entre
@@ -33689,7 +33702,37 @@ function ptHoraires(p){
   const f = p.finTs? ptHMS(p.finTs) : (p.fin||'—');
   return d+' → '+f;
 }
-function ptOuverteDe(tid){ return (db.pointages||[]).find(p=>p.techId===tid && ptOuvert(p)) || null; }
+/* ⛔ UN COMPTE SANS FICHE POINTE AUSSI — 23 septembre 2026. Justin, capture à l'appui : sur son
+   compte d'administrateur, l'écran n'offrait que « Saisie manuelle ». Le bouton existait, mais dans
+   une carte réservée aux comptes reliés à une fiche du personnel — et un rôle de bureau
+   (administrateur, comptable, commercial) n'en reçoit JAMAIS (c'est le rôle qui décide, voir
+   `roleEstTech`). Un pointage appartient donc à la FICHE quand le compte en a une — rien ne change
+   pour un technicien — et au COMPTE sinon : `userId`, jamais la fiche de quelqu'un d'autre.
+   Le pointage porte `userId` dans les deux cas : c'est la trace de qui a appuyé.
+   ⚠️ Créer une fiche à la volée aurait été l'autre sortie, refusée : une fiche fait entrer la
+   personne dans le Planning et dans chaque liste d'affectation. */
+function ptEstAMoi(p){ const tid=myTechId(), moi=currentUser&&currentUser.id;
+  return !!p && ((!!tid && p.techId===tid) || (!p.techId && !!moi && p.userId===moi)); }
+function ptMesPointages(){ return (db.pointages||[]).filter(ptEstAMoi); }
+function ptOuverteMoi(){ return ptMesPointages().find(ptOuvert) || null; }
+/* Le nom d'une ligne : la fiche si elle en a une, le compte sinon. `techName('')` rendrait
+   « Non assigné » — un pointage n'est jamais « non assigné », il a toujours quelqu'un. */
+function ptNom(p){ if(!p) return '—'; if(p.techId) return techName(p.techId);
+  const u=(db.users||[]).find(x=>x.id===p.userId); return u?fullName(u):'—'; }
+/* La phrase d'une ligne d'horaires. « → » est remplacé par une icône MUETTE (icones(), EMO) : sans
+   cette phrase, un lecteur d'écran lisait « 08:00:00 12:00:00 », deux heures sans dire laquelle
+   ouvre et laquelle ferme. */
+function ptDit(p){
+  if(ptOuvert(p)) return 'depuis '+(p.debutTs?ptHMS(p.debutTs):(p.debut||'—'))+', en cours';
+  return 'de '+(p.debutTs?ptHMS(p.debutTs):(p.debut||'—'))+' à '+(p.finTs?ptHMS(p.finTs):(p.fin||'—'))+', '+ptDuree(ptSecs(p));
+}
+/* La pause entre deux pointages d'une même journée, en secondes : l'écart entre la fin de l'un
+   et le début du suivant. Elle n'entre dans AUCUN total — on la calcule pour la MONTRER. */
+function ptPauseEntre(a,b){
+  if(!a||!b||ptOuvert(a)) return 0;
+  if(a.finTs && b.debutTs) return Math.max(0,Math.round((b.debutTs-a.finTs)/1000));
+  return minutes(a.fin,b.debut)*60;
+}
 function ptTotal(list,now){ return (list||[]).reduce((s,p)=>s+ptSecs(p,now),0); }
 /* Regroupe par JOUR D'EMBAUCHE, du plus récent au plus ancien, chaque journée portant ses
    pointages dans l'ordre où ils ont eu lieu. C'est ce que Justin demande : « qu'on voit bien
@@ -33742,22 +33785,41 @@ function ptTechsVisibles(){
   return (db.techniciens||[]).filter(x=>!p||p.has(x.id));
 }
 
-/* ── Pointer / dépointer ─────────────────────────────────────────────────────────────── */
+/* ── Début / fin de journée ──────────────────────────────────────────────────────────── */
+/* Le bouton du jour, EN TÊTE de l'écran, à la place de « Saisie manuelle » — Justin, 23 septembre
+   2026 : « je veux plus ce bouton saisir manuellement, je veux un bouton début de journée ; une
+   fois cliqué, ça met le bouton en fin de journée ». Trois états, lus sur les pointages : pas
+   commencée, en cours, reprise après une fin le même jour. Rien ne se tape à la main : l'heure
+   est celle de l'appareil. */
+function ptBoutonJour(){
+  if(!currentUser) return '';
+  /* « ▶️ » et non « ▶ » : seule la forme avec son sélecteur de variante est dans la table des
+     icônes (icones(), EMO) — le triangle nu restait du TEXTE à côté d'un « ⏹ » dessiné. */
+  if(ptOuverteMoi()) return `<button class="btn pt-fin" onclick="pointerFin()">⏹ Fin de journée</button>`;
+  const repris=ptMesPointages().some(p=>(p.date||'')===todayISO());
+  return `<button class="btn" onclick="pointerDebut()">▶️ ${repris?'Reprendre la journée':'Début de journée'}</button>`;
+}
 function pointerDebut(){
-  const tid=myTechId();
-  if(!tid){ toast('Ton compte n’est rattaché à aucune fiche technicien'); return; }
-  if(ptOuverteDe(tid)){ toast('Un pointage est déjà en cours'); return; }
-  const ts=Date.now();
-  const rec={id:uid(), techId:tid, date:ptJour(ts), debut:ptHM(ts), debutTs:ts, pause:0, note:''};
+  if(!currentUser) return;
+  if(ptOuverteMoi()){ toast('Ta journée est déjà en cours'); return; }
+  const ts=Date.now(), tid=myTechId(), jour=ptJour(ts);
+  const avant=ptMesPointages().filter(p=>(p.date||'')===jour && !ptOuvert(p));
+  const rec={id:uid(), techId:tid||'', userId:currentUser.id, date:jour, debut:ptHM(ts), debutTs:ts, pause:0, note:''};
   db.pointages.push(rec);
-  logEvent('Pointage',techName(tid)+' a pointé à '+ptHMS(ts),'general');
-  save(); toast('⏱️ Pointé à '+ptHMS(ts));
+  logEvent('Pointage',ptNom(rec)+(avant.length?' a repris sa journée à ':' a commencé sa journée à ')+ptHMS(ts),'general');
+  save();
+  const derniere=avant.reduce((m,p)=>Math.max(m,p.finTs||0),0);
+  toast(avant.length ? 'Journée reprise à '+ptHM(ts)+(derniere&&ts>derniere?' — pause de '+ptDuree((ts-derniere)/1000)+' non comptée':'')
+                     : 'Journée commencée à '+ptHM(ts));
   if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(pos=>{ rec.lat=+pos.coords.latitude.toFixed(5); rec.lng=+pos.coords.longitude.toFixed(5); save(); if(current==='pointage') views.pointage(); },()=>{},{timeout:5000}); }
   if(current==='pointage') views.pointage();
 }
 function pointerFin(){
-  const tid=myTechId(); const p=tid?ptOuverteDe(tid):null;
-  if(!p){ toast('Aucun pointage en cours'); return; }
+  const p=ptOuverteMoi();
+  if(!p){ toast('Aucune journée en cours'); return; }
+  /* Ouverte depuis plus de PT_MAX_H, c'est un OUBLI : il se clôture à l'heure qu'on dit, jamais
+     maintenant — sinon « Fin de journée » inscrirait 30 h à quelqu'un qui en a fait 8. */
+  if(ptOubli(p)){ ptCloreOubli(p.id); return; }
   ptFermer(p.id);
 }
 /* Fermer un pointage à l'instant présent. `ts` n'est passé que par la reprise d'un oubli. */
@@ -33767,8 +33829,12 @@ function ptFermer(id,ts){
   if(p.debutTs && ts < p.debutTs) ts = p.debutTs;
   p.finTs=ts; p.fin=ptHM(ts);
   save();
-  logEvent('Pointage',techName(p.techId)+' a dépointé à '+ptHMS(ts)+' — '+ptDuree(ptSecs(p)),'general');
-  toast('✅ Dépointé — '+ptDuree(ptSecs(p))+' travaillées');
+  logEvent('Pointage',ptNom(p)+' a terminé sa journée à '+ptHMS(ts)+' — '+ptDuree(ptSecs(p)),'general');
+  /* « Fin de journée » dit ce qui compte : le total du JOUR, toutes reprises confondues — les
+     pauses entre deux reprises n'y sont pas. */
+  const memeJour=(db.pointages||[]).filter(x=>(x.date||'')===(p.date||'') && (p.techId ? x.techId===p.techId : (!x.techId && x.userId===p.userId)));
+  toast(ptEstAMoi(p) ? 'Journée terminée — '+ptDuree(ptTotal(memeJour))+' travaillées'+(memeJour.length>1?' (pauses non comptées)':'')
+                     : 'Pointage de '+ptNom(p)+' clôturé — '+ptDuree(ptSecs(p)));
   if(current==='pointage') views.pointage();
 }
 /* Un pointage oublié se clôture à l'heure qu'on dit, pas à l'heure qu'il est : sinon on
@@ -33804,35 +33870,43 @@ function ptTickStart(){
       if(p&&ptOuvert(p)) el.textContent=ptChrono(ptSecs(p,now));
     });
     const j=$('pt-jour-sec');
-    if(j){ const tid=myTechId(); const mj=(db.pointages||[]).filter(p=>p.techId===tid&&(p.date||'')===todayISO());
+    if(j){ const mj=ptMesPointages().filter(p=>(p.date||'')===todayISO());
       j.textContent=ptChrono(ptTotal(mj,now)); }
   },1000);
 }
 views.pointage=function(){
-  const now=Date.now(), tid=myTechId(), autres=ptPeutVoirAutres();
+  const now=Date.now(), autres=ptPeutVoirAutres();
   setHeader('Pointage','Temps de travail — le compteur se fait tout seul',
-    `<button class="btn ghost" onclick="formPointage()">＋ Saisie manuelle</button> <button class="btn" onclick="ptPdf()">📄 Export PDF</button>`);
+    `${ptBoutonJour()} <button class="btn ghost" onclick="ptPdf()">📄 Export PDF</button>`);
 
-  /* ── Ma journée ── seulement pour qui a une fiche technicien : c'est SON pointage. */
+  /* ── Ma journée ── le bouton est EN TÊTE (ptBoutonJour) : deux boutons pour le même geste sur
+     le même écran, c'est un de trop. Ici, ce qui a été compté aujourd'hui, ligne par ligne, et
+     les PAUSES entre deux reprises — montrées, jamais comptées. Pour tout compte, avec ou sans
+     fiche du personnel (ptEstAMoi). */
   let moi='';
-  if(tid){
-    const ouv=ptOuverteDe(tid);
-    const mj=(db.pointages||[]).filter(p=>p.techId===tid&&(p.date||'')===todayISO()).sort((a,b)=>String(a.debutTs||a.debut||'').localeCompare(String(b.debutTs||b.debut||'')));
+  if(currentUser){
+    const ouv=ptOuverteMoi();
+    const mj=ptMesPointages().filter(p=>(p.date||'')===todayISO()).sort((a,b)=>String(a.debutTs||a.debut||'').localeCompare(String(b.debutTs||b.debut||'')));
     const secJour=ptTotal(mj,now);
-    moi=`<div class="card" style="border:1px solid ${ouv?'color-mix(in srgb,var(--green) 55%,transparent)':'var(--brd)'};background:${ouv?'color-mix(in srgb,var(--green) 7%,var(--bg1))':'var(--bg1)'}">
-      <div class="card-head"><h3>⏱️ Ma journée</h3><span style="font-size:12.5px;color:var(--t3)">${fmtShort(todayISO())}</span></div>
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:6px 0 4px">
-        <button class="btn ${ouv?'danger':''}" style="min-height:56px;font-size:16.5px;padding:0 26px;flex:1 1 210px" onclick="${ouv?'pointerFin()':'pointerDebut()'}">${ouv?'⏹ Dépointer':'▶ Pointer'}</button>
-        <div style="flex:1 1 170px;text-align:right">
-          <div id="pt-jour-sec" style="font-size:30px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:${ouv?'var(--green)':'var(--t1)'}">${ptChrono(secJour)}</div>
-          <div style="font-size:12.5px;color:var(--t3)">${ouv?'en cours — depuis '+(ouv.debutTs?ptHMS(ouv.debutTs):esc(ouv.debut)):'travaillées aujourd’hui'}</div>
-        </div></div>
-      ${mj.length?`<div style="border-top:1px solid var(--brd);margin-top:10px;padding-top:8px">${mj.map((p,i)=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px">
+    const lignes=[];
+    mj.forEach((p,i)=>{
+      const g=i?ptPauseEntre(mj[i-1],p):0;
+      if(g>=60) lignes.push(`<div class="pt-pause" style="display:flex;align-items:center;gap:10px;padding:3px 0 3px 32px;font-size:12.5px;color:var(--t3)">
+          <span>Pause</span><span style="font-variant-numeric:tabular-nums">${ptDuree(g)}</span><span style="margin-left:auto">non comptée</span></div>`);
+      lignes.push(`<div class="pt-seg" role="group" aria-label="Période ${i+1}, ${esc(ptDit(p))}" style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px">
           <span style="width:22px;height:22px;border-radius:50%;background:var(--bg3);display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--t2);flex-shrink:0">${i+1}</span>
           <span style="font-variant-numeric:tabular-nums;color:var(--t2)">${ptHoraires(p)}</span>
           <span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums"${ptOuvert(p)?` data-pt-chrono="${p.id}"`:''}>${ptOuvert(p)?ptChrono(ptSecs(p,now)):ptDuree(ptSecs(p))}</span>
-        </div>`).join('')}</div>`:''}
+        </div>`);
+    });
+    moi=`<div class="card pt-jour" style="border:1px solid ${ouv?'color-mix(in srgb,var(--green) 55%,transparent)':'var(--brd)'};background:${ouv?'color-mix(in srgb,var(--green) 7%,var(--bg1))':'var(--bg1)'}">
+      <div class="card-head"><h3>⏱️ Ma journée</h3><span style="font-size:12.5px;color:var(--t3)">${fmtShort(todayISO())}</span></div>
+      <div style="margin:4px 0 2px">
+        <div id="pt-jour-sec" style="font-size:34px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:${ouv?'var(--green)':'var(--t1)'}">${ptChrono(secJour)}</div>
+        <div style="font-size:13px;color:var(--t3)">${ouv?'en cours — depuis '+(ouv.debutTs?ptHMS(ouv.debutTs):esc(ouv.debut))
+          :(mj.length?'travaillées aujourd’hui'+(mj.length>1?' — les pauses ne sont pas comptées':''):'pas encore commencée — touche « Début de journée »')}</div>
+      </div>
+      ${lignes.length?`<div style="border-top:1px solid var(--brd);margin-top:10px;padding-top:6px">${lignes.join('')}</div>`:''}
     </div>`;
   }
 
@@ -33841,7 +33915,7 @@ views.pointage=function(){
   const alerte=oublis.length?`<div class="card" style="border:1px solid color-mix(in srgb,var(--org) 55%,transparent);background:color-mix(in srgb,var(--org) 9%,var(--bg1))">
     <div class="card-head"><h3>⚠️ ${oublis.length} pointage${oublis.length>1?'s':''} resté${oublis.length>1?'s':''} ouvert${oublis.length>1?'s':''}</h3></div>
     <p style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:8px">Le compteur est plafonné à ${PT_MAX_H}&nbsp;h tant qu’il n’est pas clôturé, pour ne pas fausser les totaux.</p>
-    ${oublis.map(p=>`<div class="pl-row"><span>${esc(techName(p.techId))} — ${fmtShort(p.date)} à ${p.debutTs?ptHMS(p.debutTs):esc(p.debut)}</span>
+    ${oublis.map(p=>`<div class="pl-row"><span>${esc(ptNom(p))} — ${fmtShort(p.date)} à ${p.debutTs?ptHMS(p.debutTs):esc(p.debut)}</span>
       <button class="btn sm" style="margin-left:auto" onclick="ptCloreOubli('${p.id}')">Clôturer</button></div>`).join('')}</div>`:'';
 
   /* ── Période + technicien ── */
@@ -33860,16 +33934,18 @@ views.pointage=function(){
   const list=ptListe();
   const jours=ptParJour(list,now);
   const secTot=ptTotal(list,now);
+  /* Par PERSONNE : la fiche quand il y en a une, le compte sinon — deux comptes sans fiche ne
+     doivent pas se fondre sous une clé vide. */
   const parTech=new Map();
-  list.forEach(p=>parTech.set(p.techId,(parTech.get(p.techId)||0)+ptSecs(p,now)));
+  list.forEach(p=>{ const k=p.techId||('u:'+(p.userId||'')); const e=parTech.get(k)||{nom:ptNom(p),s:0}; e.s+=ptSecs(p,now); parTech.set(k,e); });
 
   const corps=jours.map(j=>`<div style="border-bottom:1px solid var(--brd)">
       <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg2)">
         <b style="font-size:13.5px">${fmtShort(j.jour)}</b>
         <span style="font-size:12px;color:var(--t3)">${j.ps.length} pointage${j.ps.length>1?'s':''}</span>
         <b style="margin-left:auto;font-variant-numeric:tabular-nums;font-size:14.5px;color:${j.ouvert?'var(--green)':'var(--t1)'}">${ptDuree(j.sec)}</b></div>
-      ${j.ps.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:13.5px;flex-wrap:wrap">
-        <span class="strong" style="min-width:110px">${esc(techName(p.techId))}</span>
+      ${j.ps.map(p=>`<div role="group" aria-label="${esc(ptNom(p))}, ${esc(ptDit(p))}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:13.5px;flex-wrap:wrap">
+        <span class="strong" style="min-width:110px">${esc(ptNom(p))}</span>
         <span style="font-variant-numeric:tabular-nums;color:var(--t2);min-width:150px">${ptHoraires(p)}</span>
         ${p.pause?`<span style="font-size:12px;color:var(--t3)">pause ${p.pause} min</span>`:''}
         ${p.note?`<span style="font-size:12px;color:var(--t3)">${esc(p.note)}</span>`:''}
@@ -33891,15 +33967,16 @@ views.pointage=function(){
       <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">📅</div><div class="kpi-val">${jours.length}</div><div class="kpi-lbl">Jour${jours.length>1?'s':''} travaillé${jours.length>1?'s':''}</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(251,191,36,.16)">🗒️</div><div class="kpi-val">${list.length}</div><div class="kpi-lbl">Pointages</div></div></div>
     ${(autres&&parTech.size>1)?`<div class="card"><div class="card-head"><h3>Par personne</h3></div>
-      ${[...parTech.entries()].sort((a,b)=>b[1]-a[1]).map(([t,s])=>`<div class="pl-row"><span class="strong">${esc(techName(t))}</span><b style="margin-left:auto;font-variant-numeric:tabular-nums">${ptDuree(s)}</b></div>`).join('')}</div>`:''}
-    ${list.length?`<div class="card" style="padding:0;overflow:hidden">${corps}</div>`:`<div class="card">${emptyState('⏱️','Aucun pointage sur cette période.',tid?'Pointer':'','pointerDebut()')}</div>`}`;
+      ${[...parTech.values()].sort((a,b)=>b.s-a.s).map(e=>`<div class="pl-row"><span class="strong">${esc(e.nom)}</span><b style="margin-left:auto;font-variant-numeric:tabular-nums">${ptDuree(e.s)}</b></div>`).join('')}</div>`:''}
+    ${list.length?`<div class="card" style="padding:0;overflow:hidden">${corps}</div>`:`<div class="card">${emptyState('⏱️','Aucun pointage sur cette période.')}</div>`}`;
   ptTickStart();
 };
 function formPointage(id){ const p=id?db.pointages.find(x=>x.id===id):{};
   const dTs=p&&p.debutTs, fTs=p&&p.finTs;
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} pointage</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="savePointage(event,'${id||''}')">
-      <div class="field"><label>Technicien *</label><select name="techId" required><option value="">—</option>${db.techniciens.map(t=>`<option value="${t.id}" ${t.id===p.techId||(!id&&t.id===myTechId())?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>
+      ${(id && !p.techId && p.userId)?`<div class="field"><label>Personne</label><div style="padding:9px 0;font-weight:600">${esc(ptNom(p))} <span style="font-weight:400;color:var(--t3)">— compte sans fiche du personnel</span></div></div>`
+        :`<div class="field"><label>Technicien *</label><select name="techId" required><option value="">—</option>${db.techniciens.map(t=>`<option value="${t.id}" ${t.id===p.techId||(!id&&t.id===myTechId())?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>`}
       <div class="field"><label>Date</label><input type="date" name="date" value="${p.date||todayISO()}"></div>
       <div class="field-row"><div class="field"><label>Début *</label><input type="time" name="debut" required value="${dTs?ptHM(dTs):(p.debut||'08:00')}"></div>
         <div class="field"><label>Fin *</label><input type="time" name="fin" required value="${fTs?ptHM(fTs):(p.fin||'17:00')}"></div></div>
@@ -33957,14 +34034,14 @@ function ptPdfStr(list,b){
   const R=(x,yy,w,h,col)=>ops.push(col+' rg',x.toFixed(1)+' '+yy.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re f');
   const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
   const tableHead=()=>{ R(M,y-6,W-2*M,22,GREEN);
-    T(M+8,y,9,'DATE',1,'1 1 1'); T(M+96,y,9,'TECHNICIEN',1,'1 1 1'); T(M+250,y,9,'HORAIRES',1,'1 1 1'); T(M+372,y,9,'PAUSE',1,'1 1 1'); TR(RGT-8,y,9,'DURÉE',1,'1 1 1'); y-=24; };
+    T(M+8,y,9,'DATE',1,'1 1 1'); T(M+96,y,9,'PERSONNE',1,'1 1 1'); T(M+250,y,9,'HORAIRES',1,'1 1 1'); T(M+372,y,9,'PAUSE',1,'1 1 1'); TR(RGT-8,y,9,'DURÉE',1,'1 1 1'); y-=24; };
   const newPage=()=>{ pages.push(ops.join('\n')); ops=[]; R(0,H-6,W,6,GREEN); y=H-M-14; tableHead(); };
   R(0,H-6,W,6,GREEN);
   y=H-M-16;
   T(M,y,21,cut(bcEntete({}),28),1,GREEN);
   TR(RGT,y+3,16,'FEUILLE DE TEMPS',1,DARK);
   TR(RGT,y-13,10,cut(b.lbl,42),1,GREY);
-  const qui=_ptTech?techName(_ptTech):(ptPeutVoirAutres()?'Toute l’équipe':techName(myTechId()));
+  const qui=_ptTech?techName(_ptTech):(ptPeutVoirAutres()?'Toute l’équipe':ptNom({techId:myTechId()||'',userId:currentUser&&currentUser.id}));
   TR(RGT,y-25,9,cut(qui,52),0,GREY);
   const EI=db.entreprise||{};
   let ey=y-14;
@@ -33976,14 +34053,14 @@ function ptPdfStr(list,b){
   const jours=ptParJour(list,now);
   const secTot=ptTotal(list,now);
   const parTech=new Map();
-  list.forEach(p=>parTech.set(p.techId,(parTech.get(p.techId)||0)+ptSecs(p,now)));
+  list.forEach(p=>{ const k=p.techId||('u:'+(p.userId||'')); const e=parTech.get(k)||{nom:ptNom(p),s:0}; e.s+=ptSecs(p,now); parTech.set(k,e); });
   // ─ récapitulatif par personne, en tête : c'est le chiffre qu'on cherche sur une feuille de temps
-  const recap=[...parTech.entries()].sort((a,b)=>b[1]-a[1]);
+  const recap=[...parTech.values()].sort((a,b)=>b.s-a.s);
   const rh=26+recap.length*13+6;
   R(M,y-rh,W-2*M,rh,PANEL); R(M,y-rh,W-2*M,1,LINE); R(M,y-1,W-2*M,1,LINE);
   T(M+10,y-16,9.5,'TOTAL PAR PERSONNE',1,GREY);
   let ry=y-30;
-  recap.forEach(([t,s])=>{ T(M+10,ry,10,cut(techName(t),46),0,DARK); TR(RGT-10,ry,10,ptDuree(s),1,DARK); ry-=13; });
+  recap.forEach(e=>{ T(M+10,ry,10,cut(e.nom,46),0,DARK); TR(RGT-10,ry,10,ptDuree(e.s),1,DARK); ry-=13; });
   y-=rh+18;
 
   tableHead();
@@ -33996,7 +34073,7 @@ function ptPdfStr(list,b){
     j.ps.forEach(p=>{
       if(y<M+34) newPage();
       T(M+8,y,9,'',0,DARK);
-      T(M+96,y,9,cut(techName(p.techId),26),0,DARK);
+      T(M+96,y,9,cut(ptNom(p),26),0,DARK);
       T(M+250,y,9,cut(ptHoraires(p),22),0,GREY);
       T(M+372,y,9,(p.pause?p.pause+' min':'—'),0,GREY);
       TR(RGT-8,y,9,ptOuvert(p)?'en cours':ptDuree(ptSecs(p,now)),0,DARK);
