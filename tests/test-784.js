@@ -27,7 +27,7 @@ function bloc(debut) {
 console.log('\n── 784 · 0. la population ──');
 const NOMS = ['function donBox(){', 'function donStock(b,l){', 'function donUnite(l){', 'function donStep(pid,d){', 'function donSet(pid,v){',
   'function donAjout(pid){', 'function donRetirer(pid){', 'function boxDonneSave(){', 'function boxDonneAnnuler(){',
-  'function boxDonneModal(boxId,suite,depart){'];
+  'function boxDonneModal(boxId,suite,depart){', 'function boxDonneChanger(boxId){'];
 const CODE = NOMS.map(bloc);
 v('les fonctions de la liste sont trouvées', NOMS.filter((n, i) => !CODE[i]), []);
 for (const n of NOMS) { const tete = n.slice(0, n.indexOf('(') + 1); v('… une seule définition de ' + tete.slice(9, -1), SRC.split(tete).length - 1, 1); }
@@ -109,6 +109,14 @@ if (CODE.every(Boolean)) {
   Q3.run("boxDonneModal('bx', function(){ renderBoxProdList(); })");
   Q3.run('boxDonneSave()');
   v('contre-épreuve : « changer de personne » (sans produit touché) garde sa suite — elle redessine', [Q3.appels, Q3.rendus], [[], 1]);
+  /* … et par la VRAIE porte : `boxDonneChanger`, le bouton « changer » de la box. Sans ce contrôle,
+     lui retirer sa suite ne faisait rien tomber (mutation du 23 septembre 2026). */
+  const Q4 = monde({ autre: true, nom: 'Léo Martin' });
+  Q4.run("_boxDonne={boxId:'bx',nom:'Nadia Lopez',ts:1}; boxDonneChanger('bx')");
+  v('population : « changer » ouvre la fenêtre, liste vide, l’ancienne personne oubliée', [Q4.ouvre, Q4.run('_donListe.length'), Q4.run('_boxDonne')], [1, 0, null]);
+  Q4.run('boxDonneSave()');
+  v('⛔ changer de personne : rien ne sort, la box est redessinée, la nouvelle personne retenue', [Q4.appels, Q4.rendus, Q4.run('_boxDonne&&_boxDonne.nom')], [[], 1, 'Léo Martin']);
+  vrai('… et l’écran ne dit PAS « Rien n’est sorti » (on n’avait rien voulu sortir)', !Q4.toasts.some(t => /Rien n’est sorti/.test(t)), Q4.toasts);
 
   console.log('\n── 784 · 4. ⛔ ON NE SORT PAS À MOITIÉ ──');
   const T = monde({ autre: true, nom: 'Nadia Lopez', liste: [{ pid: 'A', field: 'u', qte: 1 }, { pid: 'B', field: 'u', qte: 9 }], suite: rejoueLeTap });
