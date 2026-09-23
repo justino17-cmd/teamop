@@ -28,6 +28,13 @@ const ESSAIS = SEULS ? ESSAIS_TOUS.filter(e => SEULS.test(e.nom)) : ESSAIS_TOUS;
   const S = await ouvrir(process.env.SOURCE ? { source: process.env.SOURCE } : {});
   console.log('page mesurée :', S.version, '·', ESSAIS.length, 'essais');
   await S.c.envoyer('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+  /* ⛔ « animations réduites » — un VRAI réglage d'utilisateur, que l'application sert sans transition de vue
+     (rendreDirige, go). Sans lui, sur la série complète, l'écran rouvert à la connexion (#v=parametres, laissé
+     par les essais d'avant) arrivait par une transition qui s'exécutait APRÈS le geste et écrasait la fiche
+     qu'on venait d'ouvrir : « l'historique d'un site » et « le 🗑 d'une box » tombaient en série, passaient
+     seuls. Mesuré le 23 septembre 2026 : l'écran relu était Paramètres, pas la fiche. On mesure des DROITS,
+     pas des transitions. */
+  await S.c.envoyer('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   await S.ev(`window.horsLigneDebut=function(){}; try{_horsLigne=false;}catch(e){} const h=document.getElementById('hl-ecran'); if(h)h.remove(); window.pushPropose=function(){};
     window.__toasts=[]; const t0=window.toast; window.toast=function(m){ window.__toasts.push(String(m)); return t0.apply(this,arguments); };
     window.loginExisteAilleurs=async()=>false; window.identifiantsParMail=async()=>({sans:true}); window.planPlaceLibre=()=>true;
