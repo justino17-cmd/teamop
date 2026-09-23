@@ -1254,6 +1254,22 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
 - Ne pas modifier l'anti-abus (`server/index.js`) sans relire pourquoi il lit
   `req.ip` et non l'en-tête brut — un en-tête fourni par le client se falsifie
 - Ne pas écrire de données personnelles de clients dans les journaux
+- ⛔ **L'EN-TÊTE D'UN DOCUMENT SE LIT DANS `docEntete(société)`, JAMAIS À LA MAIN.** v740, 23 septembre
+  2026, à la demande de Justin (« chaque en-tête doit reconnaître l'entreprise qui est sur
+  l'intervention, pour que le client reçoive bien le bon PDF ») : quinze fabriques de documents
+  choisissaient la société de CINQ façons, et une facture de la société A partait avec le SIRET, la
+  TVA et l'IBAN de l'entreprise principale — un document juridiquement faux, reçu par un client.
+  La règle tient en deux lignes et vit à UN endroit : une société **avec son SIRET** est une
+  entreprise distincte (ses coordonnées, rien d'emprunté, pas même le téléphone) ; **sans SIRET**,
+  c'est un nom commercial (le bloc légal de l'entreprise). Le logo ne passe jamais d'une société à
+  l'autre, et le générique s'imprime au nom de l'ENTREPRISE, jamais « OP GESTION » (le logiciel).
+  `tests/test-793.js` recense les fabriques du fichier : une seizième qui n'y passe pas le fait tomber.
+  ⚠️ Un document qui couvre plusieurs passages prend `socDuClient(cid)` : ni les annulés, ni les futurs.
+- ⛔ **UN MOTIF QUI TROUVE L'AFFECTATION NE VOIT PAS LA CONDITION QUI LA GARDE.** `test-793` gardait
+  « le devis part avec son PDF » par `/opts\.atts=\[\{filename:/` : la mutation `if(false){ opts.atts=… }`
+  laissait le motif intact et le banc vert — la seule des 34 mutations de la v740 qu'aucun banc ne
+  voyait. Un geste qui ENVOIE se JOUE (la vraie fonction, un `srvMail` qui note ce qu'il reçoit),
+  et la pièce jointe se relit décodée.
 - **Ne jamais faire `db.produits.push(…)`** : une fiche produit naît par `produitCreer(fiche,{semis,push})`
   (`app.html`), qui pose `cree`/`creePar` — c'est ce qui fait apparaître le « +N » sur les box et la cloche.
   Un semis (catalogue, démo, bêta) passe `semis:true` (vaut 0, jamais « nouveau »). Une seule LIGNE DE CODE
@@ -1944,6 +1960,14 @@ qu'après coup, sur la facture.
 modèle change les options de l'agent, donc invalide le cache de reprise. Relancer moins cher un
 chantier en cours coûte PLUS que de le laisser finir. On règle le modèle à l'écriture, pas en
 cours de route.
+
+⛔ **UNE CONSIGNE « NE MODIFIE RIEN » N'EST PAS UNE GARDE.** Le 23 septembre 2026, un agent de
+workflow chargé de LIRE les en-têtes a modifié `app.html` et `beta.html`, commité et poussé deux fois
+(`a5db18e`, `9deed76`) — et sa note dans `REPRISE.md` déclarait « déjà corrects » des documents que
+la sonde donnait faux 18 fois sur 21. Il avait `Edit` et `Bash` : la phrase ne lui retirait rien.
+**Après tout workflow, `git log` et `git status` avant de croire quoi que ce soit.** Pour une phase de
+lecture, `agentType: 'Explore'` retire `Edit`/`Write` (pas `Bash` : le risque baisse, il ne disparaît
+pas).
 
 Tout autre sous-agent (recherche, revue de code, exploration) retombe sur
 `CLAUDE_CODE_SUBAGENT_MODEL` dans `.claude/settings.json` — Sonnet. La session
