@@ -266,6 +266,8 @@ async function monter(nom, espaces, usagesTexte) {
 const K = { bs: 'CLE-BOULANGERIE-803', gs: 'CLE-GARAGE-803', gs2: 'CLE-GARAGE-NEUVE-803', ms: 'CLE-MENUISERIE-803', fs: 'CLE-FLEURISTE-803',
   cs: 'CLE-CAFE-803', cs2: 'CLE-CAFE-REPRISE-803', ps: 'CLE-PLOMBIER-803', at: 'CLE-ATELIER-803', at2: 'CLE-ATELIER-REPRISE-803' };
 const kh = k => ({ 'x-teamop-kh': sha(k) });
+const CLE_PARTAGEE = (/^const CLE_PAR_DEFAUT = '([^']+)';/m.exec(SRV) || [])[1] || '';
+vrai('la clé partagée est trouvée dans le serveur (sinon le cas « clé partagée » ne joue rien)', CLE_PARTAGEE.length > 20);
 const ESPACES = {
   boulangeriesonde: { nom: 'Boulangerie Sonde', email: 'patron@boulangerie-sonde.fr', t: 'ent-bs-1', code: b64({ t: 'ent-bs-1', k: K.bs }), ts: 1 },
   garagesonde: { nom: 'Garage Sonde', email: 'garage@sonde-exemple.fr', t: 'ent-gs-1', code: b64({ t: 'ent-gs-1', k: K.gs }), ts: 2, formule: 'premium', codePromo: CODE },
@@ -273,6 +275,10 @@ const ESPACES = {
   fleuristesonde: { nom: 'Fleuriste Sonde', email: 'fleurs@sonde-exemple.fr', t: 'ent-fs-1', code: b64({ t: 'ent-fs-1', k: K.fs }), ts: 4, formule: 'premium', codePromo: AUTRE },
   cafesonde: { nom: 'Café Sonde', email: 'cafe@sonde-exemple.fr', t: 'ent-cs-1', code: b64({ t: 'ent-cs-1', k: K.cs }), ts: 5 },
   plombiersonde: { nom: 'Plombier Sonde', email: 'plomb@sonde-exemple.fr', t: 'ent-ps-1', code: b64({ t: 'ent-ps-1', k: K.ps }), ts: 6, formule: 'premium' },
+  /* Une entreprise restée sur la clé PARTAGÉE : sa preuve est « valide », et c'est cleEstPublique
+     qui la refuse. La clé est LUE dans le serveur, pas recopiée ici : ce banc n'écrit pas un
+     secret de plus dans le dépôt. */
+  partagesonde: { nom: 'Partage Sonde', email: 'partage@sonde-exemple.fr', t: 'ent-pt-1', code: b64({ t: 'ent-pt-1', k: CLE_PARTAGEE }), ts: 7 },
 };
 const USAGES = { [CODE]: { n: 3, equipes: {
   'ent-gs-1': { date: '2026-01-01', finLe: PASSE },                                                              // d'avant la règle : ni adresse ni empreinte
@@ -313,6 +319,25 @@ const USAGES = { [CODE]: { n: 3, equipes: {
     /* Sans preuve, rien : la règle ne donne pas un oracle sur les codes des autres. */
     r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-gs-1' });
     v('sans preuve de clé : 403, comme avant', r.code, 403);
+    vrai('   … et le refus dit le bon geste : mettre l\'application à jour (l\'appareil n\'a rien présenté)', /mets l’application à jour/.test(r.json.error || ''));
+
+    /* ⛔ UN REFUS DIT VRAI — capture de Justin, 24 septembre 2026 : sur la bêta À JOUR, ce refus
+       disait « mets l'application à jour ». Et il ne doit pas en dire PLUS qu'avant : une clé
+       fausse, un espace hors annuaire et une clé partagée reçoivent le MÊME message, sinon cette
+       route ouverte à tous dirait qui est à l'annuaire, et qui vit sur la clé écrite en clair. */
+    const nAvant = n(CODE);
+    r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'opgestion-beta' }, kh('CLE-QUELCONQUE-803'));
+    v('⛔ la bêta : 403, rien ne s\'active', [r.code, n(CODE), eq(CODE, 'opgestion-beta')], [403, nAvant, undefined]);
+    vrai('   … et le refus dit VRAI : la bêta ne prend pas de code (plus « mets l\'application à jour »)', /bêta/.test(r.json.error || '') && !/mets l’application à jour/.test(r.json.error || ''));
+    r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'opgestion-beta' });
+    vrai('   … même sans en-tête : c\'est l\'espace qui décide de ce message, pas la version', r.code === 403 && /bêta/.test(r.json.error || ''));
+    const rInv = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-bs-1' }, kh('CLE-FAUSSE-803'));
+    const rInc = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-inconnue-803' }, kh(K.bs));
+    const rPar = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-pt-1' }, kh(CLE_PARTAGEE));
+    v('clé fausse, espace hors annuaire, clé partagée : 403 tous les trois', [rInv.code, rInc.code, rPar.code], [403, 403, 403]);
+    vrai('⛔ … et le MÊME message pour les trois : la route ne dit ni qui est à l\'annuaire, ni qui est sur la clé partagée', !!rInv.json.error && rInv.json.error === rInc.json.error && rInc.json.error === rPar.json.error);
+    vrai('   … un message qui renvoie au lien de connexion, pas à une mise à jour qui n\'y changerait rien', /lien de connexion/.test(rInv.json.error || '') && !/mets l’application à jour/.test(rInv.json.error || ''));
+    v('   … et rien ne s\'est écrit', [n(CODE), eq(CODE, 'ent-inconnue-803'), eq(CODE, 'ent-pt-1')], [nAvant, undefined, undefined]);
     r = await S.appel('POST', '/api/promo/valider', { code: AUTRE, teamId: 'ent-bs-1', apercu: true });
     v('⛔ l\'aperçu ne lit rien de l\'entreprise nommée (plus de 409 qui dit son code en cours)', [r.code, r.json.ok, r.json.dejaUtilise], [200, true, false]);
     r = await S.appel('POST', '/api/promo/valider', { code: AUTRE, teamId: 'ent-bs-1' }, kh(K.bs));

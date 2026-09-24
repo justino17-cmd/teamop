@@ -7829,6 +7829,19 @@ function promoPresente(c, t, slug) {
 function promoRefusServi(c, finLe) {
   return 'Le code « ' + c + ' » a déjà été utilisé par cette entreprise' + (finLe ? ' — sa période offerte s’est terminée le ' + promoDateFr(finLe) : '')
     + '. Un code promo ne sert qu’une fois par entreprise.'; }
+/* ⛔ UN REFUS DIT VRAI (Justin, 24 septembre 2026, capture à l'appui) : sur la bêta À JOUR, ce
+   refus disait « mets l'application à jour ». Mettre à jour n'est le bon geste que quand
+   l'appareil n'a RIEN présenté (`absent` : une version d'avant la preuve) ; ailleurs ça ne
+   change rien, et ça envoie la personne chercher une panne qu'elle n'a pas.
+   ⚠️ TROIS messages, pas cinq, et c'est voulu : les deux premiers ne dépendent que de ce qui
+   est PUBLIC (la liste des espaces techniques est écrite dans ce fichier) ou de la requête
+   elle-même (a-t-elle un en-tête ?). Séparer `invalide`, `inconnu` et la clé partagée ferait
+   de cette route, ouverte à tous, un oracle : « cet identifiant est à l'annuaire », voire
+   « cette entreprise est encore sur la clé écrite en clair dans app.html ». */
+function promoRefusCle(t, v) {
+  if (ESPACES_INTOUCHABLES.includes(t)) return 'Les codes promo ne s’activent pas sur la bêta ni sur l’espace partagé — seulement dans l’espace d’une entreprise.';
+  if (v === 'absent') return 'Cet appareil n’a pas prouvé la clé de son entreprise — mets l’application à jour, puis réessaie.';
+  return 'Cet appareil n’est pas reconnu par son entreprise — reconnecte-toi avec le lien de connexion de l’entreprise, puis réessaie. Si ça persiste : contact@teamop.fr.'; }
 
 /* ── 🎁 Les codes promo, vus depuis la Tour ──────────────────────────────────────────────
    Les codes sont définis dans config.promos (sur le VPS) et leurs usages vivent dans
@@ -7920,7 +7933,7 @@ app.post('/api/promo/valider', (req, res) => {
        la présentant : même refus que /api/fb/jeton, pour le même secret. */
     const v = cleEquipeVerdict(team, req.headers['x-teamop-kh'] || '');
     if (v !== 'valide' || cleEstPublique(team))
-      return res.status(403).json({ error: 'Cet appareil n\'a pas prouvé la clé de son entreprise — mets l\'application à jour, puis réessaie.' });
+      return res.status(403).json({ error: promoRefusCle(team, v) });
   }
   /* ⛔⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE (Justin, 24 septembre 2026 — voir `promoPresente`).
      Retapé pendant sa période : la MÊME échéance, rien ne se recompte, et on le DIT
