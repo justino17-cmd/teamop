@@ -220,7 +220,10 @@ const reserve = +((SRC.match(/\.int-l > \.pl-info\{flex:1 1 calc\(100% - (\d+)px
 const heure = +((fC.match(/class="int-h" style="text-align:center;min-width:(\d+)px/) || [])[1] || NaN);
 const bPl = SRC.slice(SRC.indexOf('html[data-refonte] .pl-row{\n  position:relative'), SRC.indexOf('}', SRC.indexOf('html[data-refonte] .pl-row{\n  position:relative')));
 const ecart = +((bPl.match(/gap:(\d+)px!important/) || [])[1] || NaN);
-const bCh = (SRC.match(/html\[data-refonte\] \.pl-row\[onclick\]::after\{\s*content:'';width:(\d+)px;height:\d+px;flex-shrink:0;margin-left:(\d+)px;\s*border-right:(\d+)px/) || []);
+/* v744 (B5) : le chevron EN BOUT DE LIGNE ne vit plus que sur les lignes qui portent un bouton —
+   celles-ci en portent (les gestes, `.int-a`) ; les autres ont le chevron absolu de la règle des
+   listes. Deux règles visaient le même `::after` et dessinaient un chevron à trois côtés. */
+const bCh = (SRC.match(/html\[data-refonte\] \.pl-row\[onclick\]:is\(:has\(\.btn\),:has\(button\)\)::after\{\s*content:'';width:(\d+)px;height:\d+px;flex-shrink:0;margin-left:(\d+)px;\s*border-right:(\d+)px/) || []);
 const chevron = +bCh[1] + +bCh[2] + +bCh[3];
 vrai('population : réserve, heure, écart et chevron sont lus dans le code', [reserve, heure, ecart, chevron].every(Number.isFinite), { reserve, heure, ecart, chevron });
 vrai('⛔ le chevron tient à côté du texte (heure + écart + écart + chevron ≤ réserve)', heure + 2 * ecart + chevron <= reserve,
