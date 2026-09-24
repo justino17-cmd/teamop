@@ -144,6 +144,8 @@ console.log('\n══ 2 bis. ⛔ CE QUE WINANSI N\'ÉCRIT PAS SE DIT AUTREMENT, 
   const trop3 = P3.textes.filter(t => t.x + W3._pdfLarg(t.u, t.sz, t.gras) > 553 + 1.5);
   v('   et ce qu\'on mesure est ce qu\'on écrit : rien ne sort de la marge', trop3.map(t => t.t.slice(0, 40)), []);
   v('   la mesure voit la flèche en « -> », pas en un seul caractère', W3._pdfLarg('\u2192', 10, false), W3._pdfLarg('->', 10, false));
+  /* Et TOUS les PDF, pas seulement le rapport : devis, bons, plan d'implantation passent par `_pdfTxt`. */
+  v('   `_pdfTxt` lui-même (devis, bons, implantation) : plus de « ? »', W3._pdfTxt('24h \u2192 48h \u2022 \u2265 \u2122 \uD83E\uDDF4'), '24h -> 48h \x95 >= \x99 ');
 }
 
 console.log('\n══ 3. ⛔ RIEN NE SORT DE LA PAGE ══\n');
