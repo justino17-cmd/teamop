@@ -114,8 +114,16 @@ console.log('\n── 714 · les six endroits qui affichent une photo passent pa
    le déposer puis le remet derrière le marqueur. Ce banc a d'abord attendu 7 et rougi à 9 :
    c'est exactement ce qu'il doit faire quand le compte bouge — on regarde POURQUOI, et on ne
    remonte le nombre qu'une fois les deux nouvelles occurrences identifiées. */
-v('⚠️ exactement 9 occurrences de photoSrc — une de plus doit faire rougir ce banc',
-  (APP.match(/photoSrc\(/g) || []).length, 9);
+/* v744 : 13. Les quatre de plus sont les PHOTOS DE PLANS, identifiées une par une : `planImgSrc`
+   (la source d'un plan d'appâtage, que l'écran, l'impression et le dossier lisent), deux dans
+   `papImplDocument` (le contenu relu dans l'instantané, puis mis en JPEG), et la grille de l'onglet
+   « Plans ». `tests/test-801.js` les éprouve. */
+v('⚠️ exactement 13 occurrences de photoSrc — une de plus doit faire rougir ce banc',
+  (APP.match(/photoSrc\(/g) || []).length, 13);
+v('   … dont celle de planImgSrc', /function planImgSrc\(pl\)\{ return photoSrc\(pl&&pl\.img\); \}/.test(APP), true);
+{ const doc = APP.slice(APP.indexOf('async function papImplDocument('), APP.indexOf('async function papImplApercu('));
+  v('   … deux dans papImplDocument', (doc.match(/photoSrc\(/g) || []).length, 2); }
+v('   … et la grille de l\'onglet « Plans »', APP.indexOf('${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}"') > 0, true);
 { const add = APP.slice(APP.indexOf('async function intPhotoAdd('), APP.indexOf('/* Suppression de m\u00e9dias'));
   v('… et les deux de plus sont bien dans intPhotoAdd', (add.match(/photoSrc\(/g) || []).length, 2); }
 

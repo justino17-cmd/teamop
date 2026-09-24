@@ -8519,11 +8519,17 @@ function opFichiersDe(r) {
   const ajoute = (x) => { if (/^[0-9a-f]{64}$/.test(String(x || '')) && out.indexOf(x) < 0) out.push(x); };
   (Array.isArray(r.photos) ? r.photos : []).forEach(ph => { const m = PH_MARQUE.exec(String(ph || '')); if (m) ajoute(m[1]); });
   (Array.isArray(r.docs) ? r.docs : []).forEach(d => { if (d && d.pid) ajoute(String(d.pid)); });
+  /* v744 : les photos de l'onglet « Plans », et celles des plans d'appâtage — une ligne de
+     `plansSite` est `{v:[plans]}` (le cas « dict » de `opDecomposer`). Une pièce qu'aucune ligne ne
+     déclare est une pièce que le ménage du serveur finira par effacer, sous un plan bien vivant. */
+  (Array.isArray(r.plans) ? r.plans : []).forEach(ph => { const m = PH_MARQUE.exec(String(ph || '')); if (m) ajoute(m[1]); });
+  (Array.isArray(r.v) ? r.v : []).forEach(pl => { const m = pl && typeof pl === 'object' && PH_MARQUE.exec(String(pl.img || '')); if (m) ajoute(m[1]); });
   return out;
 }
 function opAmpute(r) {
   if (!r || typeof r !== 'object') return '';
   if (r.photosHorsNuage > 0) return 'photos';
+  if (r.plansHorsNuage > 0) return 'plans';
   if (Array.isArray(r.champsHorsNuage) && r.champsHorsNuage.length) return 'champs';
   if (Array.isArray(r.docs) && r.docs.some(d => d && d.horsNuage && !d.data)) return 'documents';
   return '';
@@ -8956,7 +8962,25 @@ function opRecomposer(lignes, base, opts) {
 
   return db2;
 }
-function recEmpreinte(r){ let h=2166136261; const t=JSON.stringify(r,(k,v)=>(k==='_m'||k==='_ms')?undefined:v)||''; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36); }
+/* ⛔ UNE PIÈCE DÉPOSÉE S'EMPREINTE PAR SON IDENTIFIANT, JAMAIS PAR SON CONTENU (v744).
+   Une photo déposée est « piece:<64 hex> » là où elle arrive par la synchro, et
+   « piece:<64 hex>:data:… » là où son contenu est en mémoire — pris ici, ou relu du serveur pour
+   l'afficher. C'est LA MÊME photo : le contenu d'un identifiant ne change jamais. L'empreinte les
+   distinguait pourtant, donc un appareil qui ne faisait que REGARDER une fiche (la photo relue
+   pour l'écran, `intPhotosCombler`) la voyait « modifiée » au premier `save()` venu, lui posait un
+   `_m` neuf et gagnait toutes les fusions sur elle — « un appareil qui ne fait que lire
+   s'attribuait la base » (CLAUDE.md), rouvert par les photos. On coupe donc au marqueur.
+   ⚠️ Pas de `PH_MARQUE` ici : cette fonction tourne au CHARGEMENT (`ombreRelever`), bien avant que
+   la constante soit déclarée — une zone morte temporelle, avalée par le `try` qui l'entoure, et
+   l'ombre ne se construirait plus. Des comparaisons de caractères, sans rien qui dépende de
+   l'ordre du fichier ; et le test de longueur d'abord, qui écarte presque toutes les chaînes.
+   ⚠️ Tout est DANS la fonction : une dizaine de bancs l'extraient seule dans un bac à sable, et une
+   aide posée à côté les faisait tous mourir (« _pieceSansContenu is not defined »). */
+function recEmpreinte(r){ let h=2166136261; const t=JSON.stringify(r,(k,v)=>{ if(k==='_m'||k==='_ms') return undefined;
+    if(typeof v==='string'&&v.length>71&&v.charCodeAt(70)===58&&v.charCodeAt(0)===112&&v.startsWith('piece:')){
+      for(let q=6;q<70;q++){ const c=v.charCodeAt(q); if(!((c>=48&&c<=57)||(c>=97&&c<=102))) return v; }
+      return v.slice(0,70); }
+    return v; })||''; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36); }
 /* ⛔ LA MAILLE DE LA FUSION : UNE BOX EST UN ENREGISTREMENT, MAIS DEUX PERSONNES Y TRAVAILLENT.
    Demande de Justin, 10 septembre 2026 : « il faut que personne n'écrase rien ». Le défaut est
    là et pas ailleurs — Alexis change le stock de l'ADVION, Justin celui du DEBUSK, dans la MÊME
@@ -10077,6 +10101,31 @@ async function photosResoudre(liste){
   }
   return n;
 }
+/* ══ LA PHOTO D'UN PLAN D'APPÂTAGE EST UNE PIÈCE COMME LES AUTRES (v744) ═════════════════════
+   `pl.img` prend le format des photos : "data:…" (locale), "piece:<64 hex>:data:…" (déposée,
+   contenu là), "piece:<64 hex>" (déposée, contenu à aller chercher). Même source d'affichage
+   (`photoSrc`), même règle de résolution : EN MÉMOIRE, jamais de `save()`. */
+function planImgSrc(pl){ return photoSrc(pl&&pl.img); }
+/* Rend {n, reste} : combien de photos sont arrivées, combien n'ont pas pu l'être. ⛔ La synchro
+   peut remplacer `db` pendant l'attente du réseau : on repose le contenu sur le plan VIVANT, et
+   seulement s'il porte encore ce marqueur nu — une photo reprise entre-temps n'est pas celle-ci. */
+/* ⛔ TROIS ÉTATS, JAMAIS DEUX — la règle de `pieceLire`. `_papImgEtat[pid]` retient pour l'écran
+   ce que le dernier essai a appris : 'absente' (le serveur dit 404, c'est un fait) ou 'inconnu'
+   (réseau, clé : on ne sait pas). Sans lui, l'écran ne pourrait dire qu'« en cours », pour toujours. */
+const _papImgEtat={};
+async function planImgsResoudre(cid){
+  const liste=()=>{ const d=(db&&db.plansSite)||{}; return Array.isArray(d[cid])?d[cid]:[]; };
+  let n=0, reste=0;
+  for(const pl of liste().slice()){
+    const m=PH_MARQUE.exec(String((pl&&pl.img)||'')); if(!m||m[2]) continue;
+    const r=await pieceLire(m[1]);
+    if(!(r&&r.dataUrl)){ reste++; _papImgEtat[m[1]]={e:(r&&r.absente)?'absente':'inconnu',ts:Date.now()}; continue; }
+    delete _papImgEtat[m[1]];
+    const cur=liste().find(x=>x&&x.id===pl.id);
+    if(cur&&cur.img==='piece:'+m[1]){ cur.img=photoMarquer(m[1],r.dataUrl); n++; }
+  }
+  return {n,reste};
+}
 /* ══ UN DOCUMENT QUI EST SUR LE SERVEUR N'A PLUS À VOYAGER DANS LE DOCUMENT FIRESTORE ════
    C'est le gain de l'étape 0, et il est structurel : ce qui a un `pid` est en sûreté sur le
    VPS, donc sa copie base64 dans le document de l'équipe ne sert plus qu'à consommer le
@@ -10095,23 +10144,38 @@ async function photosResoudre(liste){
    suit. C'est l'ordre du dépôt : les appareils d'abord, la porte ensuite. */
 function syncSortirPieces(base){
   let copie=base, n=0;
+  const plein=ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return !!(m&&m[2]); };   // déposée ET contenu présent
   try{
     Object.keys(base||{}).forEach(c=>{ if(!Array.isArray(base[c])) return;
       base[c].forEach((r,ix)=>{
         if(!r||typeof r!=='object') return;
         const docsASortir=Array.isArray(r.docs)&&r.docs.some(d=>d&&d.pid&&d.data);
-        /* Une photo déposée porte son identifiant DANS sa chaîne : on ne garde que lui. */
-        const phASortir=Array.isArray(r.photos)&&r.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&m[2]; });
-        if(!docsASortir&&!phASortir) return;
+        /* Une photo déposée porte son identifiant DANS sa chaîne : on ne garde que lui. Les photos
+           de l'onglet « Plans » d'une intervention ont le même format depuis la v744 — avant, une
+           seule y pesait 400 Ko de base64 dans le document de l'équipe, sans jamais en sortir. */
+        const tabs=['photos','plans'].filter(f=>Array.isArray(r[f])&&r[f].some(plein));
+        if(!docsASortir&&!tabs.length) return;
         if(copie===base) copie=Object.assign({},base);
         if(copie[c]===base[c]) copie[c]=base[c].slice();
         const x=Object.assign({},r);
         if(docsASortir) x.docs=r.docs.map(d=>{ if(!d||!d.pid||!d.data) return d;
           n++; return Object.assign({},d,{data:'',surServeur:true}); });
-        if(phASortir) x.photos=r.photos.map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
-          if(!m||!m[2]) return ph; n++; return 'piece:'+m[1]; });
+        tabs.forEach(f=>{ x[f]=r[f].map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
+          if(!m||!m[2]) return ph; n++; return 'piece:'+m[1]; }); });
         copie[c][ix]=x;
       }); });
+    /* ⛔ ET LES PLANS D'APPÂTAGE, QUI NE SONT PAS UNE LISTE (v744). `plansSite` est un
+       dictionnaire {client: [plans]} : la boucle ci-dessus ne le voyait pas, et c'est ce qui
+       laissait CHAQUE photo de plan dans le document de l'équipe. Même geste, même discipline :
+       des COPIES à chaque étage (le dictionnaire, la liste du client, le plan), et seulement ce
+       qui porte un identifiant — sans lui, la photo locale est le seul exemplaire au monde. */
+    const ps=base&&base.plansSite;
+    if(ps&&typeof ps==='object'&&!Array.isArray(ps)) Object.keys(ps).forEach(cid=>{ const l=ps[cid]; if(!Array.isArray(l)) return;
+      l.forEach((pl,ix)=>{ if(!pl||typeof pl!=='object'||!plein(pl.img)) return;
+        if(copie===base) copie=Object.assign({},base);
+        if(copie.plansSite===ps) copie.plansSite=Object.assign({},ps);
+        if(copie.plansSite[cid]===l) copie.plansSite[cid]=l.slice();
+        copie.plansSite[cid][ix]=Object.assign({},pl,{img:'piece:'+photoPid(pl.img)}); n++; }); });
   }catch(e){ return {copie:base,sorties:0}; }
   return {copie:copie,sorties:n};
 }
@@ -10131,6 +10195,10 @@ function syncAlleger(base, budget){
   colls.forEach(c=>{ base[c].forEach((r,ix)=>{ if(!r||typeof r!=='object') return;
     (Array.isArray(r.docs)?r.docs:[]).forEach((d,k)=>{ const n=(d&&typeof d.data==='string'?d.data:'').length; if(n>1024) pieces.push({c,ix,k,type:'doc',n}); });
     (Array.isArray(r.photos)?r.photos:[]).forEach((ph,k)=>{ const n=(typeof ph==='string'?ph:'').length; if(n>1024) pieces.push({c,ix,k,type:'photo',n}); });
+    /* v744 : les photos de l'onglet « Plans » d'une intervention n'étaient dans AUCUNE liste — ni
+       sorties (pas de pièce), ni allégeables : trois photos de plan prises hors réseau suffisaient
+       à rendre la base « impossible » et à arrêter la synchro de toute l'entreprise. */
+    (Array.isArray(r.plans)?r.plans:[]).forEach((ph,k)=>{ const n=(typeof ph==='string'?ph:'').length; if(n>1024) pieces.push({c,ix,k,type:'plan',n}); });
     ['signature','signatureTech','signatureCli','apercu','image','logo','photo'].forEach(f=>{ const n=(typeof r[f]==='string'?r[f]:'').length; if(n>1024) pieces.push({c,ix,f,type:'champ',n}); });
   }); });
   pieces.sort((a,b)=>b.n-a.n);   // les plus lourdes d'abord : le moins de pièces retirées pour rentrer
@@ -10142,15 +10210,17 @@ function syncAlleger(base, budget){
       const o=base[c][ix]; x=Object.assign({},o);
       if(Array.isArray(o.docs)) x.docs=o.docs.map(d=>d&&typeof d==='object'?Object.assign({},d):d);
       if(Array.isArray(o.photos)) x.photos=o.photos.slice();
+      if(Array.isArray(o.plans)) x.plans=o.plans.slice();
       clones.set(k,x); copie[c][ix]=x; }
     return x; };
   let excedent=t-B, n=0;
   for(const p of pieces){ if(excedent<=0) break; const x=cl(p.c,p.ix);
     if(p.type==='doc'){ const d=x.docs[p.k]; if(!d||!d.data) continue; excedent-=d.data.length; d.data=''; d.horsNuage=true; }
     else if(p.type==='photo'){ if(x.photos[p.k]==null) continue; excedent-=p.n; x.photos[p.k]=null; x.photosHorsNuage=(x.photosHorsNuage||0)+1; }
+    else if(p.type==='plan'){ if(x.plans[p.k]==null) continue; excedent-=p.n; x.plans[p.k]=null; x.plansHorsNuage=(x.plansHorsNuage||0)+1; }
     else { if(!x[p.f]) continue; excedent-=p.n; x[p.f]=''; x.champsHorsNuage=(x.champsHorsNuage||[]).concat([p.f]); }
     n++; }
-  clones.forEach(x=>{ if(Array.isArray(x.photos)&&x.photos.some(v=>v===null)) x.photos=x.photos.filter(v=>v!==null); });
+  clones.forEach(x=>{ ['photos','plans'].forEach(f=>{ if(Array.isArray(x[f])&&x[f].some(v=>v===null)) x[f]=x[f].filter(v=>v!==null); }); });
   /* ⛔ ET SI LES PIÈCES NE SUFFISENT PAS, ON RACCOURCIT LES JOURNAUX DE LA COPIE POUSSÉE.
      Mesuré sur la base réelle d'ELAN le 15 septembre 2026 : 621,1 Ko pour 620,0 Ko permis —
      un dépassement de 1,1 Ko, et toute la synchro de l'entreprise à l'arrêt. Aucune pièce
@@ -10240,6 +10310,9 @@ function syncRegreffer(local, fusion){ try{
     const L=new Map(); local[c].forEach(r=>{ if(r&&r.id!=null) L.set(String(r.id),r); });
     fusion[c].forEach(r=>{ if(!r||r.id==null) return; const l=L.get(String(r.id)); if(!l||l===r) return;
       if(r.photosHorsNuage>0 && Array.isArray(l.photos) && l.photos.length>((r.photos&&r.photos.length)||0)){ r.photos=l.photos.slice(); n++; }
+      /* v744 : les photos de l'onglet « Plans » suivent exactement la même règle — allégées de la
+         même façon (`plansHorsNuage`), déposées de la même façon (le marqueur, ci-dessous). */
+      if(r.plansHorsNuage>0 && Array.isArray(l.plans) && l.plans.length>((r.plans&&r.plans.length)||0)){ r.plans=l.plans.slice(); n++; }
       /* ⛔ ET LES PHOTOS DÉPOSÉES SUR LE SERVEUR, APPARIÉES PAR LEUR IDENTIFIANT. La règle
          au-dessus ne voit QUE l'ancien allègement : elle exige `photosHorsNuage>0` et des
          tableaux de LONGUEURS DIFFÉRENTES. Or `syncSortirPieces` ne retire aucune entrée — il
@@ -10250,11 +10323,11 @@ function syncRegreffer(local, fusion){ try{
          On apparie donc par le `pid`, comme les docs le font par (nom, ts) : c'est tout
          l'intérêt du choix « l'identifiant vit DANS la chaîne ». Jamais par l'index — deux
          appareils peuvent avoir rangé les mêmes photos dans un ordre différent. */
-      if(Array.isArray(r.photos)&&Array.isArray(l.photos)){
-        const clair={}; l.photos.forEach(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); if(m&&m[2]&&!clair[m[1]]) clair[m[1]]=ph; });
-        r.photos=r.photos.map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
+      ['photos','plans'].forEach(f=>{ if(!Array.isArray(r[f])||!Array.isArray(l[f])) return;
+        const clair={}; l[f].forEach(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); if(m&&m[2]&&!clair[m[1]]) clair[m[1]]=ph; });
+        r[f]=r[f].map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
           if(!m||m[2]||!clair[m[1]]) return ph; n++; return clair[m[1]]; });
-      }
+      });
       /* `surServeur` autant que `horsNuage` : l'appareil qui A le fichier l'affiche tout de
          suite au lieu d'aller le rechercher — sur le terrain, c'est la différence entre voir
          le document et attendre un réseau qu'on n'a pas. */
@@ -10262,6 +10335,19 @@ function syncRegreffer(local, fusion){ try{
         const ld=l.docs.find(x=>x&&x.data&&x.nom===d.nom&&x.ts===d.ts); if(ld){ d.data=ld.data; n++; } });
       (Array.isArray(r.champsHorsNuage)?r.champsHorsNuage:[]).forEach(f=>{ if(!r[f]&&typeof l[f]==='string'&&l[f]){ r[f]=l[f]; n++; } });
     }); });
+  /* ⛔ ET LES PHOTOS DES PLANS D'APPÂTAGE, appariées par leur identifiant (v744). `plansSite` est
+     un dictionnaire : la boucle ci-dessus ne le voit pas. Sans ce bloc, l'appareil qui vient de
+     photographier le plan d'un client le perdait de sa PROPRE base dès qu'une fusion donnait
+     raison à l'autre côté (un collègue qui renomme le plan), et devait aller le rechercher au
+     réseau — sur le terrain, c'est un plan vide dans une cave. */
+  const lp=local&&local.plansSite, fp=fusion&&fusion.plansSite;
+  if(lp&&fp&&typeof lp==='object'&&typeof fp==='object'){
+    const clair={};
+    Object.keys(lp).forEach(cid=>{ (Array.isArray(lp[cid])?lp[cid]:[]).forEach(pl=>{ const m=pl&&PH_MARQUE.exec(String(pl.img||''));
+      if(m&&m[2]&&!clair[m[1]]) clair[m[1]]=pl.img; }); });
+    Object.keys(fp).forEach(cid=>{ (Array.isArray(fp[cid])?fp[cid]:[]).forEach(pl=>{ if(!pl||typeof pl!=='object') return;
+      const m=PH_MARQUE.exec(String(pl.img||'')); if(!m||m[2]||!clair[m[1]]) return; pl.img=clair[m[1]]; n++; }); });
+  }
   return n; }catch(e){ return 0; } }
 function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) return; clearTimeout(_syncTimer);
   /* Trois portes fermées, dans l'ordre où elles coûtent le moins :
@@ -20207,15 +20293,39 @@ function paLastEtat(i,posteId){ const cur=paReleveOf(i,posteId); if(cur) return 
 function paZoneChaude(i,posteId){ const h=paHistoPoste(i.clientId,posteId);
   if(h.length<2) return false;
   return h[h.length-1].rel.etat==='consomme'&&h[h.length-2].rel.etat==='consomme'; }
+/* ══ LA PHOTO D'UN PLAN PART SUR LE SERVEUR, COMME UNE PHOTO DE MÉDIA (v744) ═══════════════
+   `plansSite` est un dictionnaire : `syncSortirPieces` ne le visitait pas et `syncAlleger` ne
+   savait pas l'alléger. Chaque photo de plan voyageait donc en base64 dans le document de
+   l'équipe — 150 à 400 Ko pièce, sous un plafond de 1 Mio pour TOUTE l'entreprise.
+   ⛔ L'INVARIANT DE `pieceDeposer`, tel quel : la photo est ENREGISTRÉE d'abord (le clair), déposée
+   ensuite, et le marqueur s'AJOUTE au retour. Sans identifiant, rien ne change : le plan garde
+   sa photo comme avant. Et la synchro a pu remplacer `db` pendant l'envoi : on reprend le plan
+   VIVANT par son identifiant, et on ne marque que s'il porte encore CETTE photo. */
+async function planImgDeposer(cid,plid){
+  const vivant=()=>((((db&&db.plansSite)||{})[cid])||[]).find(x=>x&&x.id===plid);
+  const pl=vivant(); if(!pl) return;
+  const d=String(pl.img||''); if(!d||photoPid(d)) return;          // pas de photo, ou déjà déposée
+  const dep=await pieceDeposer(d);
+  if(!(dep&&dep.id)){ if(dep&&dep.erreur) toast(pieceMotifTexte(dep.motif).replace('Document','Plan').replace('document','plan'),7000); return; }
+  const cur=vivant(); if(!cur||cur.img!==d) return;                 // reprise ou supprimée entre-temps
+  /* `papMarque` : la version marquée doit GAGNER la fusion contre la version en clair que la
+     première synchro a pu répandre — à égalité de date, deux appareils se la renverraient. */
+  cur.img=photoMarquer(dep.id,d); papMarque(cur); save(); }
+/* L'empreinte d'une photo de plan, calculée UNE fois sur son contenu, au moment où on la prend :
+   elle ne doit pas changer quand la photo devient « piece:… » (déposée), ni selon que son contenu
+   est en mémoire ou non. C'est ce qui dit à l'envoi du plan d'implantation « inchangé » ou
+   « modifié » — la même formule qu'avant, donc les plans déjà envoyés ne changent pas d'état. */
+function papImgEmpCalc(s){ s=String(s||''); return s?s.length+':'+recEmpreinte(s):''; }
 async function paAddPlan(e,intId){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   const i=db.interventions.find(x=>x.id===intId); if(!i||!i.clientId){ toast('Associez d’abord un client à l’intervention'); return; }
   const img=await compressImage(f,1200,0.72); if(!img){ toast('Image illisible'); return; }
   const plans=plansOf(i.clientId);
   const nom=prompt('Nom du plan (ex : RDC, Cave, Réserve…) :','Plan '+(plans.length+1))||('Plan '+(plans.length+1));
-  const pl={id:uid(),nom:nom.slice(0,40),mode:'img',img,postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo / image importée)'}]};
+  const pl={id:uid(),nom:nom.slice(0,40),mode:'img',img,imgEmp:papImgEmpCalc(img),postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo / image importée)'}]};
   papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel'; intHisto(i,'Plan d’appâtage ajouté : '+pl.nom);
-  save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » ajouté — activez « ＋ Poste » puis touchez le plan'); }
+  save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » ajouté — activez « ＋ Poste » puis touchez le plan');
+  planImgDeposer(i.clientId,pl.id); }
 function paRenamePlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   const pl=plansOf(i.clientId).find(p=>p.id===plid); if(!pl) return;
@@ -20228,7 +20338,9 @@ function paDelPlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); 
   if(!canCat('int','supprimer')){ toast('Supprimer un plan entier demande « Interventions → Supprimer » (Permissions)'); return; }
   const plans=plansOf(i.clientId); const ix=plans.findIndex(p=>p.id===plid); if(ix<0) return;
   if(!confirm('Supprimer ce plan et ses '+(plans[ix].postes||[]).length+' poste(s) ? (les relevés déjà enregistrés sont conservés)')) return;
-  papTombe(i.clientId,plans[ix].id); plans.splice(ix,1); _paSel=(plans[0]||{}).id||''; save(); renderIntDetail(intId); toast('Plan supprimé'); }
+  const pid=photoPid(plans[ix].img);
+  papTombe(i.clientId,plans[ix].id); plans.splice(ix,1); _paSel=(plans[0]||{}).id||''; save(); renderIntDetail(intId); toast('Plan supprimé');
+  if(pid) pieceSupprimer(pid); }   // APRÈS la suppression locale, qui ne dépend pas du réseau
 function paPosteDot(i,po,forPdf){ const etat=paLastEtat(i,po.id); const cur=!!paReleveOf(i,po.id);
   const col=etat?(PA_ETATS[etat]||[])[1]||'var(--t3)':'var(--t3)';
   const hot=paZoneChaude(i,po.id);
@@ -20401,6 +20513,21 @@ function papLegendHtml(){
     <span style="display:inline-flex;align-items:center;gap:5px">${sym('border-radius:2px;transform:rotate(45deg)')} Insectes / DEIV</span>
     <span>🟢 RAS · 🟠 Partiel · 🔴 Consommé · 🔵 Remplacé</span><span>🔥 zone chaude</span>
     <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:9px;border:2px solid var(--org);border-radius:2px;display:inline-block"></span> zone alimentaire</span></div>`; }
+/* ⛔ RÉSOUDRE APRÈS AVOIR AFFICHÉ, ET SANS ÉCRIRE — la règle de `intPhotosCombler`. On ne relance
+   pas en boucle un essai qui vient d'échouer (le redessin rappellerait cette fonction à chaque
+   tour) : 30 s de répit par client après un échec, et un 404 ne se retente plus de la session. */
+let _papImgEnCours=false; const _papImgEchec={};
+function papImgCombler(i){
+  if(_papImgEnCours||!i||!i.clientId) return;
+  const cid=i.clientId, intId=i.id;
+  if(Date.now()-(_papImgEchec[cid]||0)<30000) return;
+  const l=(((db&&db.plansSite)||{})[cid])||[];
+  if(!l.some(pl=>{ const pid=photoPid(pl&&pl.img); return pid&&!planImgSrc(pl)&&(_papImgEtat[pid]||{}).e!=='absente'; })) return;
+  _papImgEnCours=true;
+  planImgsResoudre(cid).then(r=>{ _papImgEnCours=false; if(r.reste) _papImgEchec[cid]=Date.now();
+      if((r.n||r.reste)&&window._curIntId===intId&&intTab==='planApp'&&document.getElementById('pap-view')) renderIntDetail(intId); })
+    .catch(()=>{ _papImgEnCours=false; _papImgEchec[cid]=Date.now(); });
+}
 function papViewHtml(i,pl,canEd){
   const mode=window._papMode||'rel';
   const roomsHtml=(pl.rooms||[]).map(r=>papRoomEl(r,false)).join(''); // pièces historiques : affichage seul
@@ -20408,8 +20535,15 @@ function papViewHtml(i,pl,canEd){
   const addOutline=(mode==='add')?'outline:2px dashed var(--org);':'';
   const gridBg=`background:var(--card2);background-image:linear-gradient(color-mix(in srgb,var(--t3) 14%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--t3) 14%,transparent) 1px,transparent 1px);background-size:24px 24px;`;
   if(pl.mode!=='geo'&&pl.mode!=='rooms'){
+    /* v744 : la photo peut vivre sur le serveur. Sans son contenu, un `<img src="">` n'a pas de
+       hauteur : le plan s'écrasait à zéro et tous les postes s'empilaient en haut. On garde un
+       cadre, on dit ce qui se passe, et on va la chercher — sans rien écrire. */
+    const src=planImgSrc(pl), pid=photoPid(pl.img), attend=!src&&!!pid;
+    if(attend) papImgCombler(i);
+    const et=attend?(_papImgEtat[pid]||{}).e:'';
     return `<div id="pap-view" data-mode="img" style="position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--brd);${addOutline}touch-action:${mode==='rel'?'pan-y':'none'}">
-      <img src="${pl.img}" draggable="false" alt="" style="display:block;width:100%;user-select:none;-webkit-user-drag:none">
+      ${attend?`<div class="pap-attente" style="aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;background:var(--card2);color:var(--t2);font-size:13px;line-height:1.5">${et==='absente'?'⛔ La photo de ce plan n’est plus sur le serveur — reprends-la (📷).':et==='inconnu'?'📶 La photo du plan n’a pas pu être récupérée — elle s’affichera avec du réseau.':'⬇️ Récupération de la photo du plan…'}</div>`
+        :`<img src="${src}" draggable="false" alt="" style="display:block;width:100%;user-select:none;-webkit-user-drag:none">`}
       <div id="pap-world" style="position:absolute;inset:0">${roomsHtml}${postesHtml}</div></div>`; }
   if(pl.mode==='rooms'){
     return `<div id="pap-view" data-mode="rooms" style="position:relative;width:100%;aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid var(--brd);${addOutline}${gridBg}touch-action:none">
@@ -20698,17 +20832,23 @@ async function papAddPhotoNiveau(e,intId){ const f=e.target.files&&e.target.file
   const plans=plansOf(i.clientId);
   const nom=(((window._papNivNom||'').trim())||('Intérieur '+(plans.length+1))).slice(0,40);
   window._papNivNom='';
-  const pl={id:uid(),nom,mode:'img',img,postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo du plan client)'}]};
+  const pl={id:uid(),nom,mode:'img',img,imgEmp:papImgEmpCalc(img),postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo du plan client)'}]};
   papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel';
   intHisto(i,'Plan intérieur « '+pl.nom+' » créé (photo)');
-  save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » créé — pose les postes (＋ Poste), la zone se choisit dans la fiche poste'); }
+  save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » créé — pose les postes (＋ Poste), la zone se choisit dans la fiche poste');
+  planImgDeposer(i.clientId,pl.id); }
 async function papRephoto(e,intId){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const pl=plansOf(i.clientId).find(p=>p.id===_paSel); if(!pl||pl.mode==='geo'||pl.mode==='rooms') return;
   if((pl.postes||[]).length){ toast('Impossible : des postes sont déjà posés sur ce plan'); return; }
   const img=await compressImage(f,1200,0.72); if(!img){ toast('Image illisible'); return; }
-  pl.img=img; papMarque(pl); papTouch(pl,'Photo du plan reprise'); save(); renderIntDetail(intId); toast('📷 Photo remplacée'); }
+  const ancienne=photoPid(pl.img);
+  pl.img=img; pl.imgEmp=papImgEmpCalc(img); papMarque(pl); papTouch(pl,'Photo du plan reprise'); save(); renderIntDetail(intId); toast('📷 Photo remplacée');
+  /* L'ancienne photo ne sert plus à rien sur le serveur (la même règle que la suppression d'un
+     média) ; la nouvelle part ensuite, et le marqueur s'ajoute à son retour. */
+  if(ancienne) pieceSupprimer(ancienne);
+  planImgDeposer(i.clientId,pl.id); }
 /* ── Conformité alimentaire (zones standard + pièces dessinées historiques) ── */
 function papRoomAt(pl,x,y){ return (pl.rooms||[]).find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)||null; }
 function papRoomAlimAt(pl,x,y){ return (pl.rooms||[]).find(r=>r.zoneAlim&&x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)||null; }
@@ -20717,7 +20857,11 @@ function papAlimBlock(room,back){
     <p style="font-size:14px;color:var(--t1);line-height:1.65;margin-bottom:14px">🚫 Impossible de placer un appât rodonticide en <b>${esc((room.nom||'').toUpperCase())}</b> — zone de production alimentaire. Choisis un piège mécanique ou un détecteur.</p>
     <div class="modal-foot"><button class="btn" onclick="closeModal();${back||''}">Compris</button></div>`); }
 /* ── Interactions sur le plan (postes + pièces), tous modes ── */
+/* v744 : pas de poste posé ni déplacé À L'AVEUGLE — tant que la photo du plan n'est pas arrivée,
+   le cadre d'attente n'a pas ses proportions, et un poste posé là tomberait à côté de sa place. */
+function papSansFond(pl){ return pl&&pl.mode!=='geo'&&pl.mode!=='rooms'&&!!photoPid(pl.img)&&!planImgSrc(pl); }
 function papMovePoste(intId,pl,pid,fx,fy){
+  if(papSansFond(pl)){ toast('La photo du plan n’est pas encore là — attends-la pour déplacer un poste'); renderIntDetail(intId); return; }
   const po=(pl.postes||[]).find(x=>x.id===pid); if(po==null){ renderIntDetail(intId); return; }
   const isAppat=!po.type||po.type==='appat';
   if(isAppat){ const room=papRoomAlimAt(pl,fx,fy); if(room){ papAlimBlock(room); renderIntDetail(intId); return; } }
@@ -20725,6 +20869,7 @@ function papMovePoste(intId,pl,pid,fx,fy){
   save(); renderIntDetail(intId); toast('Poste '+po.num+' déplacé'); }
 function papPlacePoste(intId,pl,fx,fy,type){
   if(!can('modifierPlans')) return;
+  if(papSansFond(pl)){ toast('La photo du plan n’est pas encore là — attends-la pour poser un poste'); return; }
   if(type==='appat'){ const room=papRoomAlimAt(pl,fx,fy); if(room){ papAlimBlock(room); return; } }
   const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const num=plansOf(i.clientId).reduce((m,pp)=>(pp.postes||[]).reduce((m2,po)=>Math.max(m2,po.num||0),m),0)+1;
@@ -20882,8 +21027,11 @@ function papPlanPrintHtml(pl,etatOf){
     const posteEl=po=>{ const f=papFrac(pl,po); const c=colOf(po); const sh=(PA_TYPES[po.type]||PA_TYPES.appat).shape;
       const br=sh==='ci'?'50%':sh==='di'?'4px':'5px'; const rot=sh==='di'?' rotate(45deg)':''; const zone=papZoneOf(pl,po);
       return `<span style="position:absolute;left:${f.x*100}%;top:${f.y*100}%;transform:translate(-50%,-50%)${rot};width:20px;height:20px;border-radius:${br};background:${c};border:2px solid #fff;display:flex;align-items:center;justify-content:center"><span style="transform:${sh==='di'?'rotate(-45deg)':'none'};color:#fff;font-size:10px;font-weight:bold">${po.num}</span></span>${zone?`<span style="position:absolute;left:${f.x*100}%;top:calc(${f.y*100}% + 13px);transform:translateX(-50%);font-size:8px;font-weight:bold;color:#1A1F28;background:rgba(255,255,255,.75);border-radius:3px;padding:0 3px;white-space:nowrap">${esc(String(zone).slice(0,16))}</span>`:''}`; };
+    /* v744 : jamais un cadre vide muet sur un document remis en contrôle — si la photo n'a pas pu
+       être récupérée, on l'ÉCRIT, et les postes gardent leur place relative. */
+    const src=planImgSrc(pl), manque=!src&&!!photoPid(pl.img);
     return `<div style="position:relative;display:block;max-width:480px;border:1px solid #E3E8F0;border-radius:6px;overflow:hidden;margin-top:4px">
-      <img src="${pl.img}" style="display:block;width:100%">${(pl.rooms||[]).map(roomEl).join('')}${(pl.postes||[]).map(posteEl).join('')}</div>`; }
+      ${!manque?`<img src="${src}" style="display:block;width:100%">`:`<div style="aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;background:#F7F9FC;color:#5b6474;font-size:11px">Photo du plan non disponible au moment de l’impression (serveur injoignable) — les postes sont à leur place relative.</div>`}${(pl.rooms||[]).map(roomEl).join('')}${(pl.postes||[]).map(posteEl).join('')}</div>`; }
   // fond blanc technique (geo / rooms) en SVG carré 768×768
   const pid=String(pl.id||'x').replace(/[^a-z0-9]/gi,'');
   let base='';
@@ -20930,9 +21078,15 @@ function papImplPlans(cid){ return plansOf(cid).filter(p=>(p.postes||[]).length)
 /* L'empreinte d'une photo de plan pèse des centaines de Ko : on la garde tant que la chaîne ne
    change pas (comparée en entier, pas à sa longueur). */
 const _papImgEmp=new Map();
-function papImgEmpreinte(pl){ const s=String(pl.img||''); if(!s) return '';
+/* v744 : une photo DÉPOSÉE s'écrit « piece:… » et son contenu n'est pas toujours en mémoire —
+   l'empreinte ne se lit donc plus sur la chaîne, mais sur `imgEmp`, posée au moment de la prise
+   (`papImgEmpCalc`, même formule). Un plan d'avant la v744 n'en a pas : sa photo est en clair et
+   rend exactement l'empreinte d'avant — aucun plan déjà envoyé ne passe à « modifié ». */
+function papImgEmpreinte(pl){ if(pl.imgEmp) return String(pl.imgEmp);
+  const s=String(pl.img||''); if(!s) return '';
+  const pid=photoPid(s); if(pid) return 'p:'+pid;   // déposée sans empreinte : l'identifiant la tient (il ne change qu'avec la photo)
   const c=_papImgEmp.get(pl.id); if(c&&c.s===s) return c.h;
-  const h=s.length+':'+recEmpreinte(s); _papImgEmp.set(pl.id,{s,h}); return h; }
+  const h=papImgEmpCalc(s); _papImgEmp.set(pl.id,{s,h}); return h; }
 /* Ce que le document imprime, et rien d'autre : ni `version`, ni `historique`, ni la trace
    d'envoi, ni `_m`, ni la date des tubes UV (non imprimée), ni l'en-tête. */
 function papImplContenuPlan(pl){
@@ -21174,11 +21328,20 @@ async function papImplDocument(cid,i,st){
   const meta={ versions:Object.fromEntries(st.plans.map(x=>[x.pl.id,x.v])),
     depuis:st.etat==='inchange'?st.depuis:Date.now(), edite:Date.now(),
     passage:i&&i.date?new Date(i.date+'T00:00:00').getTime():0, technicien:(currentUser&&fullName(currentUser))||'' };
+  /* v744 : la photo d'un plan peut vivre sur le serveur (« piece:… »). On la relit dans
+     l'INSTANTANÉ — jamais dans la base : rien ne s'écrit pour fabriquer un document — et AVANT de
+     construire quoi que ce soit. Un plan d'implantation sans son fond ne part pas : il dirait au
+     client « voici vos postes » sur une page blanche. */
+  for(const pl of figes){ if(pl.mode==='geo'||pl.mode==='rooms') continue;
+    const pid=photoPid(pl.img); if(!pid||photoSrc(pl.img)) continue;
+    const r=await pieceLire(pid);
+    if(r&&r.dataUrl){ pl.img=photoMarquer(pid,r.dataUrl); continue; }
+    return {err:'La photo du plan « '+(pl.nom||'Plan')+' » '+(r&&r.absente?'n’est plus sur le serveur — reprends-la':'n’a pas pu être récupérée (pas de réseau ?)')+' — rien n’est parti.'}; }
   for(const [max,q] of [[1400,0.8],[900,0.6]]){
     const imgs={}; let k=0;
     for(const pl of figes){ if(pl.mode==='geo'||pl.mode==='rooms') continue;
       if(!pl.img) continue;                                   // un plan sans photo : ses postes se dessinent sur fond blanc
-      const j=await papImplJpeg(pl.img,max,q);   // une photo de plan ne sort jamais du document (plansSite est un dictionnaire, syncSortirPieces ne le visite pas)
+      const j=await papImplJpeg(photoSrc(pl.img),max,q);   // le contenu, jamais le marqueur : « piece:… » n'est pas une image
       if(!j) return {err:'La photo du plan « '+(pl.nom||'Plan')+' » ne peut pas être mise en PDF — rien n’est parti.'};
       imgs[pl.id]={...j,nom:'I'+(++k)}; }
     let pdf; try{ pdf=papImplPdfStr(cid,{nom:E.nom,couleur:E.couleur,lignes:E.lignes,logo},imgs,{...meta,plans:figes}); }
@@ -21269,15 +21432,23 @@ function papImplCarteHtml(i){
       <button class="btn sm pap-impl-btn" ${c.email?'':'disabled style="opacity:.55"'} onclick="papImplantationEnvoyer('${cid}','${i.id}')">${esc(tx.b)}</button>
     </div>${passe}</div>`; }
 /* ── Classeur / dossier sanitaire complet (client professionnel) ── */
-function papDossierSanitaire(cid){
+async function papDossierSanitaire(cid){
   const c=db.clients.find(x=>x.id===cid); if(!c) return;
+  /* v744 : la fenêtre s'ouvre DANS le geste (sinon le navigateur la bloque), puis on attend les
+     photos de plans qui vivent sur le serveur — sans rien écrire. Celles qui manquent encore
+     s'impriment comme un cadre qui le DIT (`papPlanPrintHtml`), jamais comme un blanc muet. */
+  const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
+  if(((db.plansSite||{})[cid]||[]).some(pl=>pl&&photoPid(pl.img)&&!planImgSrc(pl))){
+    /* Fermé tout de suite : l'écriture finale ROUVRE alors le document et le remplace. Laissé
+       ouvert, ce paragraphe resterait en tête du dossier imprimé. */
+    try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Récupération des plans…</p>'); w.document.close(); }catch(e){}
+    try{ await planImgsResoudre(cid); }catch(e){} }
   const plans=plansOf(cid);
   const allInts=db.interventions.filter(x=>x.clientId===cid);
   const ints=allInts.filter(x=>x.statut==='terminee').sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||''))).slice(0,12);
   /* v740 : la société des passages QUI FIGURENT dans le dossier (socDuClient), avec sa couleur,
      son logo et ses coordonnées — plus « la dernière intervention », annulées et futures comprises */
   const E=docEntete(socDuClient(cid,ints)), soc=E.nom, AC=E.couleur;
-  const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
   const per=ints.length?fmtShort(ints[ints.length-1].date)+' → '+fmtShort(ints[0].date):'—';
   const posteName={}; plans.forEach(pl=>(pl.postes||[]).forEach(po=>{ posteName[po.id]='n°'+po.num+' ('+pl.nom+')'; }));
   // 3. relevés des 12 derniers passages
@@ -21888,6 +22059,17 @@ function intPhotosCombler(id){
     if(n&&document.getElementById('int-detail-photos')) renderIntDetail(id); })
    .catch(()=>{ _phEnCours.delete(id); });
 }
+/* v744 : le même geste pour l'onglet « Plans » — en mémoire, sans rien enregistrer, redessin
+   seulement si quelque chose est arrivé et que la grille est encore à l'écran. */
+function intPlansCombler(id){
+  const k='plans:'+id; if(_phEnCours.has(k)) return;
+  const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.plans)) return;
+  if(!i.plans.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })) return;
+  _phEnCours.add(k);
+  photosResoudre(i.plans).then(n=>{ _phEnCours.delete(k);
+    if(n&&document.getElementById('int-detail-plans')) renderIntDetail(id); })
+   .catch(()=>{ _phEnCours.delete(k); });
+}
 function renderIntDetail(id){
   const i=db.interventions.find(x=>x.id===id); if(!i)return;
   /* v738 : réaffectée par la synchro pendant qu'on la regarde, elle ne se redessine plus chez qui ne la voit plus */
@@ -22108,9 +22290,10 @@ function renderIntDetail(id){
       <p style="font-size:11px;color:var(--t3);margin-top:10px">Les deux signatures (nom, date et heure) sont reprises sur le rapport d'intervention.</p>`;
     }
   } else if(intTab==='plans'){
-    body=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:10px">
+    intPlansCombler(id);   // v744 : les photos de plan qui vivent sur le serveur arrivent après coup
+    body=`<div id="int-detail-plans" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:10px">
       ${intEdit?`<div onclick="document.getElementById('int-plan-file').click()" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un plan</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un plan')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${ph}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
+      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
     </div>
     <input type="file" id="int-plan-file" accept="image/*" style="display:none" onchange="intPlanAdd(event,'${id}')">
     <p style="color:var(--t3);font-size:12.5px">Plans du site : postes d'appâtage, zones traitées, accès… (photo ou capture du plan)</p>
@@ -22565,9 +22748,20 @@ function sigAbsentToggle(id,v){ const i=db.interventions.find(x=>x.id===id); if(
 function intPlanAdd(e,id){ const f=e.target.files[0]; if(!f) return; e.target.value=''; const r=new FileReader();
   r.onload=()=>{ const img=new Image(); img.onload=()=>{ let w=img.width,h=img.height; const mx=1400; if(w>mx||h>mx){ if(w>h){h=h*mx/w;w=mx;}else{w=w*mx/h;h=mx;} }
     const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
-    const i=db.interventions.find(x=>x.id===id); if(!i) return; i.plans=i.plans||[]; i.plans.push(cv.toDataURL('image/jpeg',0.75));
-    intHisto(i,'Plan ajouté'); save(); renderIntDetail(id); }; img.src=r.result; }; r.readAsDataURL(f); }
-function intPlanDel(id,ix){ if(!confirm('Supprimer ce plan ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.plans) return; i.plans.splice(ix,1); save(); renderIntDetail(id); }
+    const i=db.interventions.find(x=>x.id===id); if(!i) return; i.plans=i.plans||[]; const d=cv.toDataURL('image/jpeg',0.75); i.plans.push(d);
+    intHisto(i,'Plan ajouté'); save(); renderIntDetail(id); intPlanDeposer(id,d); }; img.src=r.result; }; r.readAsDataURL(f); }
+/* ⛔ v744 — MÊME INVARIANT QUE `intPhotoAdd` : la photo est ENREGISTRÉE d'abord, déposée ensuite,
+   et le marqueur s'AJOUTE au retour. On la retrouve par son CONTENU, pas par son rang : une photo
+   supprimée entre-temps décalerait les rangs, et le marqueur irait sur la voisine. */
+async function intPlanDeposer(id,d){
+  const dep=await pieceDeposer(d);
+  if(!(dep&&dep.id)){ if(dep&&dep.erreur) toast(pieceMotifTexte(dep.motif).replace('Document','Plan').replace('document','plan'),7000); return; }
+  const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.plans)) return;
+  const k=i.plans.indexOf(d); if(k<0) return;
+  i.plans[k]=photoMarquer(dep.id,d); save(); }
+function intPlanDel(id,ix){ if(!confirm('Supprimer ce plan ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.plans) return;
+  const pid=photoPid(i.plans[ix]); i.plans.splice(ix,1); save(); renderIntDetail(id);
+  if(pid) pieceSupprimer(pid); }   // APRÈS la suppression locale, qui ne dépend pas du réseau
 /* ⛔ ET L'ÉTIQUETTE SUIT LA PHOTO. Défaut préexistant, trouvé en écrivant le point 5 :
    `i.photos.splice(ix,1)` ne touchait pas à `i.photoTags`, donc supprimer la première photo
    décalait TOUTES les légendes d'un cran — sur un rapport sanitaire, une photo légendée
@@ -23369,6 +23563,14 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
     await photosResoudre(i.photos);
     const reste=i.photos.filter(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; }).length;
     if(reste&&!confirm(reste+' photo(s) n\'ont pas pu être récupérées — elles manqueront dans le PDF.\n\nContinuer quand même ?')) return;
+  }
+  /* v744 : la page « Plan d'appâtage » du rapport imprime la photo de chaque plan à postes — elle
+     peut vivre sur le serveur. Même règle que les photos : le PDF attend, et il demande s'il en manque. */
+  if(i.clientId&&(((db.plansSite||{})[i.clientId])||[]).some(pl=>pl&&(pl.postes||[]).length&&photoPid(pl.img)&&!planImgSrc(pl))){
+    toast('⬇️ Récupération des plans…',2500);
+    await planImgsResoudre(i.clientId);
+    const reste=(((db.plansSite||{})[i.clientId])||[]).filter(pl=>pl&&(pl.postes||[]).length&&photoPid(pl.img)&&!planImgSrc(pl)).length;
+    if(reste&&!confirm(reste+' photo(s) de plan n\'ont pas pu être récupérées — le plan sera imprimé sans son fond.\n\nContinuer quand même ?')) return;
   } const c=db.clients.find(x=>x.id===i.clientId)||{};
   /* v740 : nom, couleur, logo et coordonnées de la société de CETTE intervention (docEntete) */
   const H=docEntete(i.rapportModele), soc=H.nom, AC=H.couleur;

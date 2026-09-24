@@ -39,17 +39,18 @@ function corps(nom) { const m = new RegExp('(?:async\\s+)?function ' + nom + '\\
 const JPEG1 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
 const FONCTIONS = ['function plansOf(', 'function papZoneOf(', 'function papRoomAt(', 'function papFrac(', 'function papMerc(', 'function papWorld(',
   'function papLL2F(', 'function papMPerPx(', 'function papPlanNum(', 'function _pdfTxt(', 'function recEmpreinte(', 'const _PDF_L=', 'function _pdfLarg(',
-  'function _pdfCoupe(', 'const PAP_IMPL_MAX_B64=', 'const _papImgEmp=', 'function papImgEmpreinte(', 'function papImplPlans(', 'function papImplContenuPlan(',
+  'function _pdfCoupe(', 'const PAP_IMPL_MAX_B64=', 'const _papImgEmp=', 'function papImgEmpCalc(', 'function papImgEmpreinte(',
+  'function photoPid(', 'function photoSrc(', 'function photoMarquer(', 'function papImplPlans(', 'function papImplContenuPlan(',
   'function papImplEmpreintes(', 'function papImplDernier(', 'function papImplDernierPlan(', 'function papImplEtat(', 'function papImplEtatTxt(',
   'function papImplPdfStr(', 'async function papImplDocument(', 'let _papImplEnvoi=', 'async function papImplantationEnvoyer(', 'function papImplCarteHtml(', 'function papImplClotureLigne(',
   'function papMarque(', 'function papTombe(', 'function papTouch(', 'function papFindPoste(', 'function papZoneAlimName(', 'function papSheetZone(', 'function papSheetProduit(', 'function papSheetSecure(',
   'function socNom(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function socDuClient(', 'function socStyle(', 'function entSocUnique('];
-const CONSTS = ['const PA_TYPES=', 'const PAP_ZONES_ALIM=', 'const MENTION_REGL='];
+const CONSTS = ['const PA_TYPES=', 'const PAP_ZONES_ALIM=', 'const MENTION_REGL=', 'const PH_MARQUE='];
 function monter(base) {
   const W = { console, Map, Set, Object, JSON, String, Math, Date, Array, Number, Promise, Uint8Array, Error, isNaN,
     atob: s => Buffer.from(s, 'base64').toString('latin1'), btoa: s => Buffer.from(s, 'latin1').toString('base64'),
     PUSH_API: 'http://127.0.0.1:1', fetch: () => Promise.resolve({ ok: true }), syncTeam: () => 't', APP_VERSION: '740',
-    window: {}, __mails: [], __toasts: [], __saves: 0, __histo: [], __droit: true, __mailOk: true, __jpeg: null,
+    window: {}, __mails: [], __toasts: [], __saves: 0, __histo: [], __droit: true, __mailOk: true, __jpeg: null, __pieces: {},
     document: { querySelectorAll: () => [], getElementById: () => null } };
   W.db = JSON.parse(JSON.stringify(base));
   vm.createContext(W);
@@ -58,7 +59,10 @@ function monter(base) {
      function toast(m){ __toasts.push(m); } function save(){ __saves++; } function intHisto(i,t){ (i.histo=i.histo||[]).push({txt:t}); __histo.push(t); }
      function fullName(u){ return u?(u.prenom+' '+u.nom):''; } function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
      function fmtShort(d){ return String(d||''); } function todayISO(){ return '2026-09-23'; } function entNom(){ return (db.entreprise&&db.entreprise.nom)||'OP GESTION'; }
-     function photoSrc(p){ return p; } function renderIntDetail(){} function papPosteSheet(){} function papAlimBlock(){}
+     /* v744 : les VRAIES fonctions de pièce (photoPid, photoSrc, photoMarquer) sont extraites ; seul
+        le réseau est simulé — une pièce connue de __pieces est rendue, les autres « on ne sait pas ». */
+     async function pieceLire(id){ return (__pieces&&__pieces[id])?{dataUrl:__pieces[id]}:{inconnu:true,motif:'reseau'}; }
+     function renderIntDetail(){} function papPosteSheet(){} function papAlimBlock(){}
      const produit=id=>db.produits.find(p=>p.id===id)||{};
      async function devisLogoJpeg(src){ return null; }
      async function papImplJpeg(src,max,q){ return __jpeg?__jpeg(src,max,q):(src?{b64:'${JPEG1}',w:1,h:1}:null); }
@@ -211,6 +215,33 @@ console.log('── 792 · 9 bis. un plan modifié PENDANT l’envoi : PDF, cour
   const W2 = monter(BASE); W2.db.plansSite.cX[0].postes.push({ id: 'z', num: 9, x: .9, y: .9, type: 'piege', zone: 'Grenierzz' });
   await W2.papImplantationEnvoyer('cX', 'iB');
   vrai('contre-épreuve : posé AVANT l’envoi, le même poste est bien dans le PDF', Buffer.from(W2.__mails[0].opts.atts[0].content, 'base64').toString('latin1').includes('Grenierzz')); }
+
+console.log('── 792 · 9 ter. v744 : la photo du plan vit sur le serveur ──');
+/* Une photo de plan déposée s'écrit « piece:<64 hex> » là où son contenu n'est pas en mémoire. Le
+   PDF la relit dans l'INSTANTANÉ, jamais dans la base ; s'il ne peut pas, rien ne part, et on dit
+   pourquoi — un plan d'implantation sans son fond dirait « voici vos postes » sur une page blanche. */
+{ const H = 'e'.repeat(64), IMGP = 'data:image/jpeg;base64,' + JPEG1;
+  const avec = (etat) => { const W = monter(BASE); W.db.plansSite.cX[1].img = 'piece:' + H; W.db.plansSite.cX[1].imgEmp = 'emp-fixe'; if (etat) W.__pieces[H] = IMGP; return W; };
+  { const W = avec(true); let vu = ''; W.__jpeg = (src) => { vu = src; return { b64: JPEG1, w: 1, h: 1 }; };
+    const d = await W.papImplDocument('cX', W.db.interventions[1], W.papImplEtat('cX'));
+    vrai('⛔ la photo relue du serveur part dans le PDF', !d.err && d.pdf && d.pdf.startsWith('%PDF'));
+    v('   c\'est le CONTENU qui est converti, pas le marqueur', vu, IMGP);
+    v('⛔ la base n\'a pas bougé (relue dans l\'instantané, pas dans db)', W.db.plansSite.cX[1].img, 'piece:' + H);
+    v('   aucun save()', W.__saves, 0); }
+  { const W = avec(false); let appele = 0; W.__jpeg = () => { appele++; return { b64: JPEG1, w: 1, h: 1 }; };
+    const d = await W.papImplDocument('cX', W.db.interventions[1], W.papImplEtat('cX'));
+    vrai('⛔ sans réseau : rien ne part, et le message dit pourquoi', /n’a pas pu être récupérée.*rien n’est parti/.test(d.err || ''), d.err);
+    v('   et aucune conversion n\'a été tentée sur un marqueur', appele, 0);
+    await W.papImplantationEnvoyer('cX', 'iB');
+    v('   l\'envoi ne part pas, ne trace rien', [W.__mails.length, W.db.interventions[1].planEnvoi || null], [0, null]); }
+  { const W = avec(false); W.__pieces = null;
+    const r = { absente: true }; W.pieceLire = async () => r;
+    const d = await W.papImplDocument('cX', W.db.interventions[1], W.papImplEtat('cX'));
+    vrai('   une pièce effacée du serveur (404) le dit autrement : « reprends-la »', /n’est plus sur le serveur — reprends-la/.test(d.err || ''), d.err); }
+  { const W = avec(true);
+    v('⛔ l\'empreinte du plan tient à imgEmp, pas à la chaîne : déposé ou non, même état', W.papImplContenuPlan(W.db.plansSite.cX[1]).img, 'emp-fixe');
+    W.db.plansSite.cX[1].img = 'piece:' + H + ':' + IMGP;
+    v('   … contenu en mémoire ou non', W.papImplContenuPlan(W.db.plansSite.cX[1]).img, 'emp-fixe'); } }
 
 console.log('── 792 · 10. la forme, là où l’exécution ne va pas ──');
 { vrai('la carte de l’onglet Plan passe par papImplCarteHtml', /if\(canEd\) h\+=papImplCarteHtml\(i\);/.test(SRC));
