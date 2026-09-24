@@ -7931,6 +7931,12 @@ app.post('/api/promo/valider', (req, res) => {
        cleEstPublique a besoin pour ne pas rendre « laisse passer » par défaut (voir sa mise
        en garde). Un espace resté sur la clé écrite en clair dans app.html ne prouve rien en
        la présentant : même refus que /api/fb/jeton, pour le même secret. */
+    /* ⛔ LES ESPACES TECHNIQUES D'ABORD, ET SANS CONDITION (relecture de `gardien`, 24 septembre
+       2026) : le refus AFFIRME que la bêta ne prend pas de code — c'est le code qui doit le
+       faire, pas la phrase. Jugés sur le seul verdict, un espace technique inscrit à l'annuaire
+       avec une clé propre (la Tour le permet) passait et consommait une utilisation, rejoué :
+       200, `n:1`. Même ordre que `cleEquipeExige` : la liste est statique, on la lit en premier. */
+    if (ESPACES_INTOUCHABLES.includes(team)) return res.status(403).json({ error: promoRefusCle(team, '') });
     const v = cleEquipeVerdict(team, req.headers['x-teamop-kh'] || '');
     if (v !== 'valide' || cleEstPublique(team))
       return res.status(403).json({ error: promoRefusCle(team, v) });

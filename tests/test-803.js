@@ -264,7 +264,8 @@ async function monter(nom, espaces, usagesTexte) {
 
 /* Les entreprises du banc — noms et adresses FICTIFS. */
 const K = { bs: 'CLE-BOULANGERIE-803', gs: 'CLE-GARAGE-803', gs2: 'CLE-GARAGE-NEUVE-803', ms: 'CLE-MENUISERIE-803', fs: 'CLE-FLEURISTE-803',
-  cs: 'CLE-CAFE-803', cs2: 'CLE-CAFE-REPRISE-803', ps: 'CLE-PLOMBIER-803', at: 'CLE-ATELIER-803', at2: 'CLE-ATELIER-REPRISE-803' };
+  cs: 'CLE-CAFE-803', cs2: 'CLE-CAFE-REPRISE-803', ps: 'CLE-PLOMBIER-803', at: 'CLE-ATELIER-803', at2: 'CLE-ATELIER-REPRISE-803',
+  beta: 'CLE-BETA-PROPRE-803' };
 const kh = k => ({ 'x-teamop-kh': sha(k) });
 const CLE_PARTAGEE = (/^const CLE_PAR_DEFAUT = '([^']+)';/m.exec(SRV) || [])[1] || '';
 vrai('la clé partagée est trouvée dans le serveur (sinon le cas « clé partagée » ne joue rien)', CLE_PARTAGEE.length > 20);
@@ -279,6 +280,9 @@ const ESPACES = {
      qui la refuse. La clé est LUE dans le serveur, pas recopiée ici : ce banc n'écrit pas un
      secret de plus dans le dépôt. */
   partagesonde: { nom: 'Partage Sonde', email: 'partage@sonde-exemple.fr', t: 'ent-pt-1', code: b64({ t: 'ent-pt-1', k: CLE_PARTAGEE }), ts: 7 },
+  /* La bêta INSCRITE à l'annuaire avec une clé propre (la Tour le permet) : sa preuve est
+     « valide », et c'est la liste des espaces techniques qui doit la refuser (relecture de `gardien`). */
+  betasonde: { nom: 'Beta Sonde', t: 'opgestion-beta', code: b64({ t: 'opgestion-beta', k: K.beta }), ts: 8 },
 };
 const USAGES = { [CODE]: { n: 3, equipes: {
   'ent-gs-1': { date: '2026-01-01', finLe: PASSE },                                                              // d'avant la règle : ni adresse ni empreinte
@@ -331,6 +335,9 @@ const USAGES = { [CODE]: { n: 3, equipes: {
     vrai('   … et le refus dit VRAI : la bêta ne prend pas de code (plus « mets l\'application à jour »)', /bêta/.test(r.json.error || '') && !/mets l’application à jour/.test(r.json.error || ''));
     r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'opgestion-beta' });
     vrai('   … même sans en-tête : c\'est l\'espace qui décide de ce message, pas la version', r.code === 403 && /bêta/.test(r.json.error || ''));
+    r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'opgestion-beta' }, kh(K.beta));
+    v('⛔⛔ la bêta INSCRITE à l\'annuaire, clé propre PROUVÉE : 403 quand même, rien ne s\'active', [r.code, n(CODE), eq(CODE, 'opgestion-beta')], [403, nAvant, undefined]);
+    vrai('   … le message dit ce que le code FAIT : la bêta ne prend pas de code', /bêta/.test(r.json.error || ''));
     const rInv = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-bs-1' }, kh('CLE-FAUSSE-803'));
     const rInc = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-inconnue-803' }, kh(K.bs));
     const rPar = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-pt-1' }, kh(CLE_PARTAGEE));
