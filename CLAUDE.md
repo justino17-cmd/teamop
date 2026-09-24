@@ -1294,14 +1294,29 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   décision de Justin du 24 septembre 2026 (« si des entreprises n'ont pas de box, elles peuvent tout
   mettre dans le stock directement… avec un suivi de qui prend quoi »). Ne pas lui écrire une seconde
   mécanique : arrivage, validation DR, « Pour qui ? », bon de remise, journal, fusion ligne à ligne et
-  accès personne par personne sont ceux d'une box. Trois règles, gardées par `tests/test-794.js` :
+  accès personne par personne sont ceux d'une box. Quatre règles, gardées par `tests/test-794.js` :
   · **UN total** — `stockTotaux()` (le stockage + les box qu'on voit + l'ancien `p.qte` tant qu'il
     n'est pas rangé) — lu par Stock, Produits, la cloche et la commande suggérée. Jamais `p.qte` seul :
     c'est ce qui faisait dire « 40 unités » ici et « Épuisé » là ;
-  · **la clôture d'une intervention n'y puise JAMAIS** (`intStockDeduire` l'écarte) : il baisse à la
-    PRISE (« Me servir »), le déduire aussi à la clôture compterait deux fois ;
   · **son accès est celui d'une box** (`userBoxVoit`), fermé par défaut sauf à « Tout voir », donné
     depuis « Qui peut s'y servir » ; le stockage ne compte pas comme une box (`usrSansBox`, Boxes).
+    Son identifiant est écrit en clair : **`openBox` revérifie l'accès** (un lien du journal, une
+    notification, une étiquette l'ouvraient à qui n'y avait pas accès), et la fiche à chaque rendu ;
+  · ⛔ **il ne se SUPPRIME pas, il se DÉSACTIVE** (« Stockage actif »). Sa pierre tombale, sur un
+    identifiant fixe, élimine à la synchro le stockage qu'un autre appareil tenait hors ligne — tout
+    son contenu, sans un mot (relecture v741, reproduit sur le vrai `fusionnerBases`). `delItem` refuse ;
+  · une fois créé, **l'ancien compteur `p.qte` ne reçoit plus rien** (le scanner du catalogue refuse) :
+    il ferait renaître un stock « hors box » où personne ne peut se servir.
+- ⛔⛔ **UNE INTERVENTION NE DÉDUIT RIEN, NULLE PART — NI BOX, NI STOCKAGE, NI COMPTEUR.** Justin,
+  24 septembre 2026 : « le produit ne doit pas se déduire par intervention, on doit juste savoir ce
+  qu'il a utilisé, sinon ça fausserait tout le stock ou la box ». La clôture déduisait de la box ce que
+  le technicien en avait DÉJÀ sorti : la box finissait fausse, et le journal comptait double dans la
+  consommation. `intStockDeduire` et `intStockAjuste` n'existent plus ; le stock bouge par un geste qui
+  dit QUI (une sortie « Pour qui ? », un arrivage, une correction, le scanner). Ce qui a été utilisé
+  reste sur l'intervention (`produitsUtilises`) : fiche, rapport, registre biocide, dossier, facture.
+  **Cinq portes posent « terminée »** (compte-rendu, assistant, « terminée à la date prévue », case
+  « Effectué ? », menu de statut) : `test-794` les garde toutes, et joue onze gestes sur les lignes
+  avant ET après la clôture ; `scratchpad/sonde-stockage.js` en joue cinq au doigt, par quatre d'entre elles.
 - **Retirer un produit d'une box s'écrit TOUJOURS dans `db.boxDecisions`** (`boxDecider`). Quatre
   chemins le font : la feuille « Retirer », la croix ✕ de « Modifier la box », le retrait direct de la
   fiche, et le retrait validé par le DR. Sans cette trace, le catalogue repose tout seul ce qu'une
@@ -1343,7 +1358,8 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
 - **Une trace de mouvement dit ce qui a BOUGÉ, jamais ce qui était demandé.** Le stock plafonne à
   zéro ; la ligne de `db.mouvements` ou de `traceBox` doit plafonner sur le même nombre. Valider −4
   sur une box tombée à 1 sort une unité : le mouvement en dit une, pas quatre. Même règle dans
-  `intStockDeduire`, `boxMvtValider` (lot ET mouvement isolé) et `boxAdj`. Et un bon de remise ne
+  `boxMvtValider` (lot ET mouvement isolé), `boxAdj` et le don saisi à la main (`saveProduitDonne` :
+  l'ancien compteur rangé à 0 inscrivait une sortie fantôme à chaque don). Et un bon de remise ne
   totalise pas des unités avec des cartons : `remiseAjoute(m,qte,unite)`, une ligne par unité.
 - ⛔ **Le stock d'une box ne se réécrit JAMAIS en bloc.** Un formulaire porte l'instantané pris à son
   ouverture ; l'appliquer tel quel rembobine la box à cette minute-là, avec un `_m` neuf donc
