@@ -277,6 +277,32 @@ function relire(chemin, cle, extraireVers) {
   });
 }
 
+/* ⛔ UNE SAUVEGARDE PAR NUIT, À L'HEURE DITE — PAS « DÈS QUE LA DERNIÈRE A VINGT HEURES ».
+   La règle d'avant — « l'heure est passée ET la dernière réussie a plus de vingt heures » — ne
+   s'ancrait à 3 h que si la précédente y était déjà : vingt heures après 3 h, il est 23 h, et
+   23 h est « passé 3 h ». Relevé dans le coffre le 24 septembre 2026 : 14:30, 10:31, 06:41,
+   03:01, 23:11, 19:21, 15:31, 11:41 — une archive toutes les 20 h 10 (vingt heures plus le pas
+   de dix minutes de la minuterie), qui reculait de quatre heures par jour et tombait en pleine
+   journée de travail. Exactement ce que le commentaire de la minuterie promettait d'éviter.
+   La règle juste regarde la DERNIÈRE ÉCHÉANCE — l'heure dite d'aujourd'hui si elle est passée,
+   celle d'hier sinon — et lance s'il n'existe aucune sauvegarde RÉUSSIE depuis. Une nuit
+   manquée (serveur arrêté à 3 h) se rattrape au premier réveil ; une sauvegarde lancée à la
+   main dans la journée ne décale plus rien, puisqu'elle précède l'échéance suivante.
+   Un échec ne se rejoue pas toutes les dix minutes : au plus une fois par heure, sinon une
+   panne du coffre remplirait le journal et taperait sur l'hébergeur.
+   Fonction pure, exportée : `tests/test-722.js` fait tourner la minuterie sur des jours
+   simulés, ce que l'horloge réelle ne permet pas. */
+function sauvegardeDue(maintenant, histo, heure) {
+  const d = new Date(maintenant);
+  let echeance = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), heure);
+  if (maintenant < echeance) echeance -= 86400000;
+  const lignes = histo || [];
+  const derniere = lignes[0] || null;
+  if (derniere && !derniere.ok && maintenant - derniere.ts < 3600000) return false;
+  const reussie = lignes.find(l => l && l.ok);
+  return !reussie || reussie.ts < echeance;
+}
+
 function monterSauvegarde(app, deps) {
   const { config, DATA_DIR, CONFIG_PATH, garde } = deps || {};
   const conf = (config && config.sauvegarde) || null;
@@ -632,23 +658,20 @@ function monterSauvegarde(app, deps) {
     });
   }
 
-  /* La minuterie : un réveil toutes les dix minutes, une sauvegarde si l'heure est passée et
-     que la dernière RÉUSSIE date de plus de vingt heures. Pas de cron système (il faudrait le
-     poser à l'installation et il se perdrait à la réinstallation), pas de « toutes les
-     24 heures » depuis le démarrage (le serveur redémarre à chaque déploiement, et une
-     sauvegarde tomberait alors en pleine journée de travail). `unref()` : cette minuterie ne
-     doit pas, à elle seule, empêcher un processus de se terminer — c'est ce qui ferait
-     s'éterniser les bancs d'essai. */
+  /* La minuterie : un réveil toutes les dix minutes, une sauvegarde quand la dernière échéance
+     (l'heure dite, en UTC) n'a pas encore sa sauvegarde réussie — voir `sauvegardeDue`. Pas de
+     cron système (il faudrait le poser à l'installation et il se perdrait à la réinstallation),
+     pas de « toutes les 24 heures » depuis le démarrage (le serveur redémarre à chaque
+     déploiement, et une sauvegarde tomberait alors en pleine journée de travail). `unref()` :
+     cette minuterie ne doit pas, à elle seule, empêcher un processus de se terminer — c'est ce
+     qui ferait s'éterniser les bancs d'essai. */
   let minuterie = null;
   if (actif) {
     const tic = () => {
-      const maintenant = new Date();
-      if (maintenant.getUTCHours() < HEURE) return;
-      const d = etat.derniere;
-      if (d && d.ok && Date.now() - d.ts < 20 * 3600000) return;
-      /* Un échec ne se rejoue pas toutes les dix minutes : on réessaie au plus une fois par
-         heure, sinon une panne du coffre remplirait le journal et taperait sur l'hébergeur. */
-      if (d && !d.ok && Date.now() - d.ts < 3600000) return;
+      /* `histo` porte les soixante dernières tentatives, la plus récente en tête ; un état
+         écrit avant lui n'a que `derniere`. */
+      const histo = (etat.histo && etat.histo.length) ? etat.histo : (etat.derniere ? [etat.derniere] : []);
+      if (!sauvegardeDue(Date.now(), histo, HEURE)) return;
       lancer('minuterie').catch(e => console.error('sauvegarde : ' + e.message));
     };
     minuterie = setInterval(tic, 600000); minuterie.unref();
@@ -657,4 +680,4 @@ function monterSauvegarde(app, deps) {
   return { actif, lancer, sante, etat: () => etat, _minuterie: () => minuterie };
 }
 
-module.exports = { monterSauvegarde, fabriquer, relire, verifierInstantane, aElaguer, cleDepuis, nomArchive, ENTETE, TAILLE_IV, TAILLE_TAG };
+module.exports = { monterSauvegarde, fabriquer, relire, verifierInstantane, aElaguer, sauvegardeDue, cleDepuis, nomArchive, ENTETE, TAILLE_IV, TAILLE_TAG };
