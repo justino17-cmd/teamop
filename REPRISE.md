@@ -166,8 +166,20 @@ agent qui a rejoué le code : trois confirmés, zéro faux.
   au téléphone, le bouton « ＋ Utilisateur » de la barre du haut EXISTE mais est masqué (0 × 0) — celui
   qu'on touche est dans l'en-tête de page.
 - Mutations : **19/19** mordues, puis **14/14** sur les correctifs de la relecture.
-- Suite complète : **152 suites · 7 229 vérifications, code 0**. Relecture adversariale en cours au
-  moment de ce commit ; la bêta v742 n'est PAS encore publiée.
+- Suite complète : **152 suites · 7 248 vérifications, code 0** (après les correctifs de la relecture).
+  Bêta **publiée seule** sur `main` (`83ef6f6`) et vérifiée en ligne : `teamop.fr/beta.html` sert
+  `742-beta` (avec `stkLienOk`), `app.html` reste en `695`, le service worker de production inchangé.
+
+### À dire à Justin, et ce qui reste
+
+- **Les accès donnés en v741 depuis l'ancienne fenêtre** (des noms posés sur la box du stockage, bêta
+  seulement, une heure de vie) ne sont plus lus : à redonner par la case.
+- **Par défaut, la case est à l'administrateur et à qui « voit tout » sans équipe** — le bureau, mais
+  aussi un chef d'équipe à qui personne n'est encore rattaché (mesuré : Rémi, chef sans équipe, est coché
+  par défaut dans « Qui peut s'y servir »). C'est la règle d'avant (v741 : « Tout voir » ouvrait le
+  stockage) ; si Justin veut « l'administrateur seul » par défaut, c'est une ligne (`capDeduitRegle`).
+- Les doublons de noms d'AVANT la règle ne sont pas corrigés tout seuls : la liste les signale, on
+  ajoute une initiale à l'un des deux. Et la dette « les noms servent de clé » reste vraie pour eux.
 
 ## ✅ 24 SEPTEMBRE 2026 — LE STOCKAGE, ET UNE INTERVENTION NE DÉDUIT PLUS RIEN (v741, bêta)
 
