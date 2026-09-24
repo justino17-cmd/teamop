@@ -251,6 +251,15 @@ question de conception, la cinquième (« Mis de côté ») est une exigence du 
 
 - **(1) L'entrepôt** : question de conception posée (le « Stock » d'aujourd'hui est la SOMME des box ;
   le stock général n'a pas d'écran à lui, aucune livraison ne l'alimente).
+  ⚠️ **Mesuré le 24 septembre 2026 sur la bêta v740** (`scratchpad/sonde-entrepot.js`) : un produit
+  à 25 + 15 unités dans deux box affiche **40 unités « En stock »** dans « Stock », **« Épuisé »**
+  dans le catalogue « Produits », et la cloche dit **« Stock bas (0/5) »** — le catalogue, l'alerte
+  et la commande suggérée (`bonSuggere`) lisent `p.qte`, que seuls un produit donné saisi à la main,
+  la clôture d'une intervention quand aucune box ne suffit et le scanner en mode catalogue font
+  bouger. `bonRecu`, qui créditait `p.qte` à la réception d'un bon sans box, n'a plus aucun appelant.
+  Justin a demandé qu'on lui explique A/B (24 septembre) : la question qui tranche est « une
+  livraison arrive-t-elle dans un LOCAL de l'entreprise, ou directement dans la box d'un
+  technicien ? ». Les deux options corrigent l'incohérence ci-dessus.
 - **(5) « Mis de côté »** → exigence du chantier serveur : le journal du socle garde déjà qui a écrit
   quoi et quand, mais il est inactif tant qu'OP GESTION écrit dans Firestore, et la Tour n'a aucun
   écran pour le lire. À construire avec l'étape E.
