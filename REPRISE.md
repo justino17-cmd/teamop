@@ -102,14 +102,14 @@ du 24 au 25 septembre (`mensuelJ:null`) ; le premier soir, elle est identique à
 l'écart grandit ensuite (le 20 octobre, la flèche aurait montré le 1ᵉʳ).
 - **Corrigé** : les copies du jour d'abord, la plus récente fléchée ; les mensuelles listées à
   part, dessous ; `essai` ne prend une mensuelle que s'il n'y a aucune copie du jour.
-- **`tests/test-805.js`** (25 ✓) : la VRAIE commande, dans un processus à part, **sans
+- **`tests/test-805.js`** (26 ✓) : la VRAIE commande, dans un processus à part, **sans
   `config.json`** (`TEAMOP_CONFIG` vers rien, `TEAMOP_SAUV_CLE` + `TEAMOP_SAUV_COFFRE`), contre un
   coffre HTTP local qui parle S3 et porte deux copies du jour et une mensuelle — de vraies archives
   fabriquées par `sauvegarde.js`. Il vérifie ce qui a été OUVERT (le nombre de fichiers de
   l'archive), pas le nom recopié dans une phrase ; l'ordre des quatre valeurs du coffre (la clé
   d'accès reçue par le coffre est bien la troisième) ; qu'une clé fausse fait échouer ; que la clé
   seule ou rien du tout refusent en disant quoi fournir. Sur le code d'avant : **4 ✗**.
-- Ajouté à `scripts/bancs-serveur.liste` (35 suites, plancher relevé à 1 950 ; 2 071 vérifications
+- Ajouté à `scripts/bancs-serveur.liste` (35 suites, plancher relevé à 1 950 ; 2 072 vérifications
   mesurées sur la branche).
 - ⚠️ **Sur le VPS, et dans un clone neuf de `main`, l'ancien outil reste jusqu'au prochain
   déploiement du serveur** (phrase de Justin). D'ici là, en cas de restauration : lire la DATE dans
