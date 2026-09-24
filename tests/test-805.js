@@ -140,6 +140,9 @@ function lancer(args, env) {
     const fleche = L.out.split('\n').find(l => /^\s*→/.test(l)) || '';
     vrai('⛔ la flèche « la plus récente » désigne la copie de la NUIT', fleche.includes(NUIT));
     vrai('   et pas la copie mensuelle', !/mensuel\//.test(fleche));
+    /* Deux flèches, c'est deux « plus récentes » : celle qu'on lit en premier dépend de l'œil.
+       (La mutation qui fléchait AUSSI la mensuelle passait sans ce contrôle.) */
+    v('   et une SEULE flèche dans la liste', (L.out.match(/^\s*→/gm) || []).length, 1);
     vrai('   la mensuelle reste listée (elle existe, on ne la cache pas)', L.out.includes(MOIS));
     vrai('   l\'ancienne aussi', L.out.includes(ANCIENNE));
     /* ⛔ L'ORDRE DES QUATRE VALEURS est écrit dans ALLUMER-LE-SOCLE.md : si l'outil lisait les
