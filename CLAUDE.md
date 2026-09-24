@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**152 suites dans `tests/`**, sans dépendance ni installation (recompté le 24 septembre 2026 au matin —
+**160 suites dans `tests/`**, sans dépendance ni installation (recompté le 24 septembre 2026 au soir —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -68,7 +68,7 @@ Quatre familles visent `server/`, et elles ne se remplacent pas :
 | `test-716`, `test-722`, `test-723`, `test-725` | un MODULE, dépendances injectées | la logique d'une pièce |
 | `test-641`, `test-724` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
 | `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces du SERVEUR sont branchées |
-| `test-735` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
+| `test-735`, `test-803` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
 | `test-740`, `test-741` | les fonctions RÉELLES d'`espace.html` et de `reinit.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent |
 | `test-744` | le VRAI `op-fs.js` contre le vrai serveur, deux appareils | que le filtre de lecture ne CACHE rien |
 
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 152 suites · 7 249 vérifications (mesuré le 24/09/2026, v743)
+bash scripts/bancs-ci.sh        # 160 suites · 7 698 vérifications (mesuré le 24/09/2026, v744)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
