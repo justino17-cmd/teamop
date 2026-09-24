@@ -79,6 +79,22 @@ et `balayageOk` vrais, `sauvegarde` active sans échec ; `ls /opt/teamop/data | 
 `POST /api/op/session` → 404 ; le journal sans « NON monté » ni « DEUX FOIS ». Le lendemain : la
 sauvegarde de la nuit `ok`, et une seule copie sous `teamop/mensuel/`.
 
+## ✅ 24 SEPTEMBRE 2026 — LA CASE DU STOCKAGE : L'ADMINISTRATEUR SEUL PAR DÉFAUT (v743, bêta)
+
+À la question « par défaut, la case va à l'administrateur et à qui voit tout sans équipe — y compris
+un chef d'équipe à qui personne n'est rattaché ; tu préfères l'administrateur seul ? », Justin :
+**« l'administrateur seul »**.
+
+- La case « Se servir dans le stockage » n'est plus à personne tant qu'on ne la coche pas — sauf
+  l'administrateur, qui l'a d'office. Plus aucun défaut déduit (`capDeduitRegle`) : ni le bureau, ni
+  un chef d'équipe ou un DR sans équipe. Le libellé de la case le dit.
+- Preuves : `test-789` §10 (93 ✓ ; les deux mutations — remettre le défaut d'avant, ouvrir à tous —
+  font tomber 2 et 3 contrôles) ; `scratchpad/sonde-v742.js` **48 ✓ 0 ✗** sur la 743 : le bureau lit
+  « ne t'est pas ouvert », l'administrateur le coche dans « Qui peut s'y servir », il se sert ; Rémi
+  (chef sans équipe) n'est plus coché d'office.
+- Pour ELAN, le jour où ce sera publié : rien à retirer (le stockage n'existe pas chez eux) ; il
+  faudra COCHER la case pour chaque personne qui s'y sert, bureau compris.
+
 ## ✅ 24 SEPTEMBRE 2026 — DEUX COMPTES NE PORTENT JAMAIS LE MÊME NOM, ET L'ACCÈS AU STOCKAGE EST UNE PERMISSION (v742, bêta)
 
 Deux réponses de Justin au rapport de la v741, mot pour mot :
@@ -174,10 +190,8 @@ agent qui a rejoué le code : trois confirmés, zéro faux.
 
 - **Les accès donnés en v741 depuis l'ancienne fenêtre** (des noms posés sur la box du stockage, bêta
   seulement, une heure de vie) ne sont plus lus : à redonner par la case.
-- **Par défaut, la case est à l'administrateur et à qui « voit tout » sans équipe** — le bureau, mais
-  aussi un chef d'équipe à qui personne n'est encore rattaché (mesuré : Rémi, chef sans équipe, est coché
-  par défaut dans « Qui peut s'y servir »). C'est la règle d'avant (v741 : « Tout voir » ouvrait le
-  stockage) ; si Justin veut « l'administrateur seul » par défaut, c'est une ligne (`capDeduitRegle`).
+- ~~Par défaut, la case est à l'administrateur et à qui « voit tout » sans équipe.~~ ✅ Tranché par
+  Justin : « l'administrateur seul » — v743, section au-dessus.
 - Les doublons de noms d'AVANT la règle ne sont pas corrigés tout seuls : la liste les signale, on
   ajoute une initiale à l'un des deux. Et la dette « les noms servent de clé » reste vraie pour eux.
 

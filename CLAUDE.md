@@ -1307,8 +1307,9 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
     n'est pas rangé) — lu par Stock, Produits, la cloche et la commande suggérée. Jamais `p.qte` seul :
     c'est ce qui faisait dire « 40 unités » ici et « Épuisé » là ;
   · ⛔ **son accès est une PERMISSION, pas une liste de la box** (v742, Justin : « l'accès au stockage
-    est une permission ») : la case `stockage` (« Se servir dans le stockage », catégorie Stock), par
-    défaut à qui « voit tout » sans équipe rattachée, l'administrateur d'office. `visibleBoxes` ne le
+    est une permission ») : la case `stockage` (« Se servir dans le stockage », catégorie Stock), à
+    PERSONNE par défaut sauf l'administrateur (v743, Justin : « l'administrateur seul » — aucun défaut
+    déduit dans `capDeduitRegle` : donner l'accès est un geste). `visibleBoxes` ne le
     montre qu'à `can('stockage')` — ni « Tout voir », ni `userIds`/`visibleTous`/`techIds` posés sur la
     box, ni une délégation. ⛔ Et un RATTACHEMENT (responsable, nom posé sur la box) n'y vaut que pour qui a
     la case (`stkLienOk`) : sans ça, le stockage PARLAIT à qui ne le voit pas — cloche (produits,
