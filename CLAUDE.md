@@ -879,6 +879,36 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   croyance ; un banc qui relit la source garde un accord.** ⚠️ Et les écarts au document sont
   DÉCLARÉS un par un dans `ECARTS` (test-759), avec leur mesure — même mécanisme que « vu et pas
   surveillé » de `test-726`. Un écart tacite devient un oubli en une semaine.
+  ✅ **Le 24 septembre 2026, Justin a fourni son thème FINAL** (« je veux que tu l'appliques, que tu
+  le vérifies, que tu le testes de A à Z — mais garde le système de la barre ») : il REMPLACE la
+  référence du 22 (rangée dans `design/archives/`), et `test-759` relit le nouveau bloc `jetons`.
+  Ce qu'il a fixé, et qui ne se rediscute pas en passant : **deux thèmes** (`data-marque` : TEAM OP
+  par défaut, OP GESTION au choix) qui ne changent que les COULEURS ; **l'application s'appelle
+  « OP GESTION », avec son logo, partout** — Justin, capture de la maquette à l'appui : « pour tous
+  les types d'appareil tu mets bien OP GESTION avec le logo OP GESTION » ; le nom de l'entreprise
+  s'écrit DESSOUS, même en Business Premium (`applyBrand`, jouée forfait par forfait dans
+  `test-759`) ; **le verre sur les dix plateformes** (`data-verre="1"` partout, `data-verre-natif`
+  ne décide plus que des rayons) ; la couche vit dans `<style id="theme-final">`, APRÈS la grande
+  feuille. ⛔ La mécanique de la barre d'onglets (bulle au doigt, colonnes en CSS, `--tabh`) n'y
+  est pas touchée — seul son habillage. ⛔ **Le sens d'un statut ne suit pas la teinte** : « Terminée »
+  s'écrit `--green` (`INT_STCOLOR`), pas `--acc-txt` — la teinte par défaut est devenue le marine,
+  et une intervention finie prenait un liseré marine sous une étiquette verte. Les listes de la
+  maquette passent par UNE pièce, `.tf-rangee` dans un `.tf-groupe` (`test-806`).
+- ⛔⛔ **LE CHROMIUM DU CONTENEUR, EN `--disable-gpu`, NE FLOUTE PAS UNE VITRE MINCE — ET AUCUN
+  APPAREIL RÉEL NE PASSE PAR CE CHEMIN.** Mesuré le 24 septembre 2026 sur une page minimale : sous
+  sept vitres de 59 px de haut, `blur(20px)`, `blur(30px)`, `blur(40px)` laissaient des rayures de
+  10 px NETTES (seul `blur(12px)` les fondait) ; la barre d'onglets de la bêta (59 px, `blur(40px)`)
+  laissait lire le texte de la page à travers ses libellés. Les MÊMES vitres par SwiftShader
+  (`--use-angle=swiftshader --enable-unsafe-swiftshader --enable-gpu-rasterization
+  --ignore-gpu-blocklist`, le chemin GPU émulé) rendent un aplat uniforme — ce que font Safari et
+  Chrome sur un vrai appareil. Le seuil observé : un flou dont trois fois le rayon dépasse la hauteur
+  de la vitre. **Toute mesure AU PIXEL sous le verre passe par SwiftShader** : `scratchpad/pilote.js`
+  le fait par défaut depuis ce jour (`CPU=1` rend l'ancien chemin, pour comparer). Les audits au
+  pixel faits AVANT (`audit-pixel.js`, `teintes-pixel.js`) ont lu les barres minces à travers un
+  flou faux — leurs chiffres sous la barre d'onglets et les capsules sont à reprendre, pas à croire.
+  Le signe : un texte de la page LISIBLE à travers une vitre qui déclare `blur(40px)`. ⚠️ Et la
+  contre-épreuve qui a tranché tient en trente lignes : la même page minimale, les deux chemins,
+  côte à côte — on ne devine pas un rendu, on le compare.
 - ⛔⛔ **LE VERT PASSAIT À CÔTÉ DE SA PROPRE PALETTE, ET C'EST LA COULEUR DE PRESQUE TOUT LE
   MONDE.** `applyTheme` faisait `if(a&&a!=='green') r.setAttribute('data-accent',a); else
   r.removeAttribute(...)`. Donc pour le DÉFAUT, ni `[data-accent="green"]` ni le bloc de

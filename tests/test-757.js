@@ -671,7 +671,9 @@ console.log('\n══ 7. UNE SEULE BARRE DU BAS ══\n');
     !/:not\(\[data-autonome="1"\]\) \.tabbar\{[^}]*border-radius:0/.test(NU));
   /* Les icônes SVG de l'application doivent passer sur la barre : sinon elle garde des émojis
      là où tout le reste de l'interface a des traits. */
-  vrai('la barre est balayée par le passage qui pose les icônes', /'#mail-read','#tabbar'\]/.test(NU));
+  /* ⚠ On lit l'APPARTENANCE à la liste, pas sa dernière place : la feuille « Créer » (`#creer`) y
+     est entrée après la barre le 24 septembre 2026, et « '#tabbar'] » tombait sur un ajout juste. */
+  vrai('la barre est balayée par le passage qui pose les icônes', /var RACINES=\[[^\]]*'#tabbar'[^\]]*\]/.test(NU));
   /* ⛔ UNE SEULE CLÉ POUR UNE SEULE BARRE — et la reprise de l'ancienne, sinon ceux qui
      l'avaient réglée verraient leur choix revenir aux quatre rubriques d'origine sans un mot. */
   vrai('⛔ le réglage de l’ancienne barre est repris',

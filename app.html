@@ -4087,8 +4087,8 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
      · `.tdb-jh` (32,4 px) — l'en-tête de jour de la frise : il ouvre le planning de ce jour ;
      · `.pf-zoom b` (16,2 px !) — le « 100 % » entre − et + remet le zoom, et il était deux
        fois plus petit que les deux boutons qui l'entourent ;
-     · `.ic-act` — l'icône 📅 d'une ligne d'intervention, écrite EN STYLE DIRECT sans
-       classe : elle n'en avait pas, on lui en donne une plutôt que de viser un `span` nu. */
+     · (l'icône 📅 d'une ligne d'intervention en portait une troisième, `.ic-act` : la ligne est
+       devenue une rangée du thème final, et l'icône un bouton `.tf-act` de 40 px.) */
   html[data-refonte] #content .tdb-jh{min-height:38px}
   /* ⛔ LA BARRE DES JOURS DU PLANNING ET L'ÉPINGLE DE NOTE, TROUVÉES SUR L'IPAD (23 septembre
      2026, audit des écrans profonds, profil tablette) : un téléphone ouvre le planning autrement
@@ -4110,7 +4110,6 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
        filtre la carte sur ses tournées. */
   html[data-refonte] #content .pg-hd{min-height:38px;display:flex;flex-direction:column;justify-content:center}
   html[data-refonte] .plm-leg .lg.clic{min-height:38px;padding:0 12px}
-  html[data-refonte] .ic-act{min-height:38px;min-width:38px;display:inline-flex;align-items:center;justify-content:center}
   /* ⛔⛔ LE CHAMP D'UNE RANGÉE DE FORMULAIRE NE RÉPONDAIT QUE SUR 17 PX. `.frow` est la rangée
      façon Réglages d'iOS (libellé, champ nu, filet) : 179 formulaires en sont faits. Mais
      `.frow > input{padding:0;border:none}` réduit le champ à sa seule ligne de texte —
@@ -7246,6 +7245,41 @@ html[data-marque][data-verre] .filters.seg-on .chip.active{font-weight:600!impor
 html[data-marque][data-verre][data-theme="dark"] .filters.seg-on .chip.active{color:#fff!important}
 html[data-marque][data-verre] input.search-inp{border-radius:var(--tf-r-recherche)!important}
 html[data-marque][data-verre] .pl-row:active{background:var(--tf-presse)}
+/* La RANGÉE de la maquette (Interventions, Clients, Boxes) : un groupe de verre, et dedans des
+   lignes d'au moins 64 px — une pastille de 40 px (le numéro en chasse fixe, à la couleur du
+   sens), le titre en 17 semi-gras, ce qui compte à droite en gris, la méta en 15 avec son point
+   de statut, et le chevron. Les filets s'arrêtent au bord de la pastille, comme sur iOS.
+   Pas de préfixe de thème : ce sont des pièces NEUVES, pas des surcharges — sans attribut, elles
+   gardent leur forme (les jetons ont chacun leur repli). */
+.tf-groupe{position:relative;margin:0 0 14px;border-radius:var(--rf-r-carte,14px);overflow:hidden;
+  background:var(--vr-fond,var(--card));border:1px solid var(--vr-liseret,var(--brd));box-shadow:var(--vr-ombre,none);
+  -webkit-backdrop-filter:var(--vr-flou,none);backdrop-filter:var(--vr-flou,none)}
+.tf-rangee{position:relative;display:flex;align-items:center;gap:12px;min-height:64px;padding:11px 12px 11px 16px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:background .2s cubic-bezier(.32,.72,0,1)}
+.tf-rangee+.tf-rangee::before{content:'';position:absolute;top:0;left:68px;right:0;height:1px;background:var(--tf-filet,var(--brd))}
+.tf-rangee:active{background:var(--tf-presse,var(--hover))}
+@media(hover:hover){ .tf-rangee:hover{background:var(--tf-presse,var(--hover))} }
+.tf-badge{flex:0 0 40px;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+  font:600 13px/1 ui-monospace,'SF Mono',Menlo,monospace;letter-spacing:-.02em;
+  background:color-mix(in srgb,var(--tf-c,var(--t3)) 15%,transparent);color:var(--tf-c,var(--t2))}
+.tf-badge.ini{font-family:ui-monospace,'SF Mono',Menlo,monospace;background:var(--rf-2nd,var(--chip));color:var(--t2)}
+.tf-corps{flex:1;min-width:0}
+.tf-l1{display:flex;align-items:baseline;gap:8px;min-width:0}
+.tf-titre{flex:1;min-width:0;font-size:17px;line-height:1.25;font-weight:600;letter-spacing:-.02em;color:var(--t1);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-fin{flex:0 0 auto;font-size:15px;color:var(--t3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tf-l2,.tf-l3{display:flex;align-items:center;gap:6px;min-width:0;margin-top:2px;font-size:15px;line-height:1.3;color:var(--t3)}
+.tf-l3{font-size:13px}
+.tf-l2>span,.tf-l3>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-pt{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:var(--tf-c,var(--t3))}
+.tf-chev{flex:0 0 auto;width:8px;height:14px;color:var(--t3);opacity:.7}
+.tf-act{flex:0 0 40px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:0;cursor:pointer;
+  background:var(--rf-2nd,var(--chip));color:var(--acc-txt);font-size:17px}
+.tf-pied{margin:-6px 4px 14px;font-size:13px;color:var(--t3)}
+@media(max-width:599px){ .tf-rangee .tf-large{display:none} }
+@media(min-width:600px){ .tf-rangee .tf-etroit{display:none} }
+.tf-entete{margin:18px 16px 7px;font-size:13px;font-weight:400;letter-spacing:.02em;text-transform:uppercase;color:var(--t3)}
+html[data-os="windows"] .tf-groupe{border-radius:8px}
 
 /* ── 15. LES FICHES — l'en-tête de section teinté de la maquette (un voile neutre, pas vert) ── */
 html[data-marque][data-verre][data-refonte] #content:has(.det-back) .card-head{
@@ -8247,7 +8281,12 @@ function fmtTs(ts){ const d=new Date(ts); const f=_F('ts','fr-FR',_O_TS);
 
 /* ── Constantes statuts ── */
 const STATUT_INT = { aplanifier:{l:'À planifier',c:'st-grey'}, planifiee:{l:'Planifiée',c:'st-blue'}, encours:{l:'En cours',c:'st-org'}, terminee:{l:'Terminée',c:'st-green'}, annulee:{l:'Annulée',c:'st-red'} };
-const INT_STCOLOR = { aplanifier:'var(--t3)', planifiee:'var(--blue)', encours:'var(--org)', terminee:'var(--acc-txt)', annulee:'var(--red)' };
+/* ⛔ « Terminée » s'écrit en VERT, pas à la teinte : depuis le thème final, la teinte par défaut
+   est le marine de TEAM OP, et une intervention finie prenait le liseré marine pendant que son
+   étiquette (st-green) restait verte — deux couleurs pour un même état. Le sens d'un statut ne
+   suit pas le goût de l'utilisateur. `--green` est une ENCRE (#1C7A3A de jour, #30D158 de nuit) :
+   la règle de test-774 (« il sert de liseré ET de libellé ») tient toujours. */
+const INT_STCOLOR = { aplanifier:'var(--t3)', planifiee:'var(--blue)', encours:'var(--org)', terminee:'var(--green)', annulee:'var(--red)' };
 const INT_TYPES = ['Contrat anti nuisibles (HACCP)','Dératisation','Désinsectisation anthrène de tapis','Désinsectisation blattes','Désinsectisation fourmis','Désinsectisation guêpes / frelons','Désinsectisation mites','Désinsectisation poux de poules','Désinsectisation psoques','Désinsectisation puces','Désinsectisation punaise de lit','Désinsectisation tiques','Détection punaise de lit','Espèce protégée','Traitement xylophage','Visite technique'];
 const REPORT_TEMPLATES = ["Modèle générique"];   /* Vidée le 5 sept. 2026 : cette liste portait en dur les ~90 agences d'un seul client et partait chez TOUS les autres — le réseau commercial de l'un devenait visible chez ses concurrents. Chaque entreprise déclare ses sociétés dans Paramètres → Mes sociétés ; entSocietes() ne retombe ici que si elle n'en a aucune. */
 /* ⛔ v740 — « Modèle générique » n'est pas une société : c'est la valeur de TOUTE entreprise qui
@@ -20452,24 +20491,36 @@ views.interventions=function(){
   </div>`;
   const dayInts=SRC.filter(i=>i.date===intSelDay).sort((a,b)=>(a.heure||'').localeCompare(b.heure||''));
   askPos();
+  /* ⛔ LA RANGÉE DE LA MAQUETTE (thème final, 24 septembre 2026). La carte « façon Organilog »
+     écrivait le titre et le client EN CAPITALES, sur quatre lignes à icônes, 170 px par passage :
+     trois interventions remplissaient l'écran d'un iPhone. La maquette de Justin en montre cinq :
+     le numéro dans une pastille à la couleur du statut, le titre tel qu'il est écrit, l'heure à
+     droite, « ● Statut · Client » dessous, puis l'adresse (ou le compte à rebours et la distance).
+     Rien n'est perdu : le glisser vers un jour de la semaine, « Voir au planning » (le bouton rond
+     à droite), le compte à rebours, la distance. Le statut s'écrit EN TOUTES LETTRES à côté du
+     point : une couleur seule ne dit rien à qui ne la distingue pas. */
   const cardOrg=i=>{ const cli=db.clients.find(c=>c.id===i.clientId)||{};
     const start=i.date&&i.heure?new Date(i.date+'T'+i.heure).getTime():0;
     const fut=start&&start>Date.now()&&(i.statut==='planifiee'||i.statut==='encours');
     const dist=(_myPos&&cli.lat&&cli.lng)?distKm(_myPos,{lat:+cli.lat,lng:+cli.lng}):null;
     const adr=i.adresse||cli.adresse||'';
-    return `<div class="card" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" onclick="detailIntervention('${i.id}')" style="padding:15px 16px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${INT_STCOLOR[i.statut]||'var(--acc)'}">
-      <div style="display:flex;gap:12px">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:800;color:var(--acc-txt);font-size:14.5px;letter-spacing:.02em;margin-bottom:9px">${esc((i.titre||'').toUpperCase())}</div>
-          <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px"><span style="color:var(--t3)">👤</span><b style="font-size:13.5px">${esc((clientName(i.clientId)||'—').toUpperCase())}</b></div>
-          <div style="display:flex;gap:9px;margin-bottom:8px"><span style="color:var(--t3)">📍</span><div style="min-width:0">${dist!=null?`<b style="font-size:13px">à ${dist} km de votre position</b><br>`:''}<span style="font-size:12.5px;color:var(--t2)">${esc(adr)||'—'}</span></div></div>
-          <div style="display:flex;gap:9px"><span style="color:var(--t3)">🕐</span><div>${fut?`<b style="font-size:13.5px">${esc(fmtCountdownLong(start-Date.now()))}</b><br>`:''}<span style="font-size:12.5px;color:var(--t2)">${new Date((i.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} ${esc(i.heure||'')}${i.heure?'-'+esc(addMin(i.heure,i.duree||60)):''}</span></div></div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0">
-          <span class="ic-act" onclick="event.stopPropagation();planSel='${i.date}';planWeekRef='${i.date}';planMode='jour';go('planning')" title="Voir au planning" style="font-size:24px;color:var(--acc-txt);cursor:pointer">📅</span>
-          ${badge(STATUT_INT,i.statut)}
-        </div>
+    const sc=INT_STCOLOR[i.statut]||'var(--t3)', st=(STATUT_INT[i.statut]||{}).l||i.statut||'';
+    /* à droite, l'heure de DÉBUT seule : « 09:00–10:30 » prenait 95 px et coupait le titre à
+       « Dératisatio… » sur un iPhone (mesuré). La fin se lit sur la ligne du bas.
+       Le mot du statut s'écrit sauf pour l'état ordinaire (« Planifiée » : le point bleu suffit,
+       comme dans la maquette) — « En cours », « Terminée », « Annulée », « À planifier » ont le leur.
+       « Voir au planning » reste un bouton rond sur tablette et bureau ; sur un téléphone c'est le
+       chevron (l'onglet Planning est sous le pouce) : avec le bouton, le titre tombait à 150 px. */
+    const l3=[fut?`<b style="color:var(--t2);font-weight:600">${esc(fmtCountdownLong(start-Date.now()))}</b>`:'', i.heure?'jusqu’à '+esc(addMin(i.heure,i.duree||60)):'', dist!=null?`à ${dist} km`:'', esc(adr)].filter(Boolean).join(' · ');
+    return `<div class="tf-rangee" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" onclick="detailIntervention('${i.id}')" style="--tf-c:${sc}">
+      <span class="tf-badge">${esc(String(i.num||'—'))}</span>
+      <div class="tf-corps">
+        <div class="tf-l1"><b class="tf-titre">${esc(i.titre||'Intervention')}</b><span class="tf-fin">${esc(i.heure||'—')}</span></div>
+        <div class="tf-l2"><i class="tf-pt" aria-hidden="true"></i><span>${i.statut==='planifiee'?'':esc(st)+' · '}${i.prio==='haute'?'<b style="color:var(--red)">Urgent</b> · ':''}${esc(clientName(i.clientId)||'—')}</span></div>
+        ${l3?`<div class="tf-l3"><span>${l3}</span></div>`:''}
       </div>
+      <button class="tf-act tf-large" onclick="event.stopPropagation();planSel='${i.date}';planWeekRef='${i.date}';planMode='jour';go('planning')" title="Voir au planning" aria-label="Voir au planning">📅</button>
+      <svg class="tf-chev tf-etroit" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>`; };
   $('content').innerHTML=strip
     +`<div style="text-align:center;margin:2px 0 14px"><span style="background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--t1);font-weight:800;padding:9px 22px;border-radius:100px;font-size:14.5px;text-transform:capitalize">${new Date(intSelDay+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'short'})}</span></div>`
@@ -20479,7 +20530,7 @@ views.interventions=function(){
       <span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--org) 13%,transparent);color:var(--org);border:1px solid color-mix(in srgb,var(--org) 40%,transparent)">⏳ ${nAF} non effectuée${nAF>1?'s':''}</span>
       ${nAnn?`<span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red);border:1px solid color-mix(in srgb,var(--red) 38%,transparent)">🚫 ${nAnn} annulée${nAnn>1?'s':''}</span>`:''}
       </div>`:''; })()
-    +(dayInts.length? dayInts.map(cardOrg).join('') : `<div class="card">${emptyState('🗓️','Aucune intervention ce jour.','Planifier',`formIntervention('','${intSelDay}')`)}</div>`);
+    +(dayInts.length? `<div class="tf-groupe">${dayInts.map(cardOrg).join('')}</div>` : `<div class="card">${emptyState('🗓️','Aucune intervention ce jour.','Planifier',`formIntervention('','${intSelDay}')`)}</div>`);
 };
 function intDropDay(e,iso){ e.preventDefault(); if(!canPlan()){ toast('Déplacer le planning n\'est pas autorisé pour ton compte (Permissions)'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i)return; if(i.date===iso)return; i.date=iso; save(); intSelDay=iso; views.interventions(); toast('Intervention déplacée au '+fmtShort(iso)); }
 function intEffectuer(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return; if(!intStatutPermis(i,'terminee')){ toast('Changer ce statut n\'est pas autorisé pour ton compte (Permissions)'); return; } if(!i.debutReel)i.debutReel=Date.now(); save(); assistCloture(id); }
@@ -23756,26 +23807,35 @@ function printRegistre(cid){ const c=db.clients.find(x=>x.id===cid)||{}; const i
 }
 
 /* ═══════════════ CLIENTS ═══════════════ */
+let cliTypeF='tous';
 views.clients=function(){
   const _tous=visibleClients(db.clients);
   setHeader('Clients',`${_tous.length} client(s)`,`${can('voirTout')?`<button class="btn ghost" onclick="exportClientsCsv()">CSV</button> `:''}<button class="btn" onclick="formClient()">＋ Client</button>`);
   const _tags=allTags();
   let _clis=_tous; if(cliTagFilter) _clis=_clis.filter(c=>(c.tags||[]).includes(cliTagFilter));
+  /* ⛔ LA RANGÉE DE LA MAQUETTE (thème final, 24 septembre 2026) : les initiales dans une pastille,
+     le nom en 17 semi-gras, le nombre d'interventions à droite, « Ville · téléphone » dessous, le
+     chevron. Chaque client portait ✎ et 🗑 sur sa carte — 200 px par client, deux boutons sous le
+     pouce à chaque défilement, dont un qui supprime. Les deux gestes vivent dans la FICHE (« Modifier »,
+     « Supprimer »), à un tap, gardés par les mêmes cases (`delItem` relit « Clients → Supprimer »).
+     « Pro » / « Particulier » devient un segmenté au-dessus de la liste, comme dans la maquette. */
+  if(cliTypeF==='pro') _clis=_clis.filter(c=>cliIsPro(c)); else if(cliTypeF==='part') _clis=_clis.filter(c=>!cliIsPro(c));
   const rows=_clis.map(c=>{ const n=db.interventions.filter(i=>i.clientId===c.id).length; const pro=cliIsPro(c);
-    return `<div class="card" onclick="ficheClient('${c.id}')" style="cursor:pointer;padding:13px 16px;margin-bottom:10px">
-      <div style="display:flex;gap:13px;align-items:center">
-        <span class="avatar" style="width:44px;height:44px;font-size:15px;flex-shrink:0">${initials(c.nom)}</span>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:14.5px;color:var(--t1)">${esc(c.nom)}</b><span style="font-size:10px;font-weight:700;color:var(--t3);border:1px solid var(--brd2);border-radius:100px;padding:1px 8px;white-space:nowrap">${pro?'🏢 Pro':'🏠 Particulier'}</span>${(c.tags||[]).length?tagChipsHtml(c):''}</div>
-          <div style="font-size:12.5px;color:var(--t3);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap">
-            ${c.contact?`<span>👤 ${esc(c.contact)}</span>`:''}${c.tel?`<span>📞 ${esc(c.tel)}</span>`:''}${c.email?`<span>✉️ ${esc(c.email)}</span>`:''}${c.adresse?`<span>📍 ${esc(c.adresse)}</span>`:''}${(!c.tel&&!c.email&&!c.adresse&&!c.contact)?'<span style="color:var(--org)">Fiche à compléter — touche ✎</span>':''}
-          </div>
-        </div>
-        <div style="text-align:center;flex-shrink:0;min-width:50px"><div style="font-weight:800;font-size:17px;color:var(--acc-txt)">${n}</div><div style="font-size:10px;color:var(--t3)">interv.</div></div>
-        <span style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="formClient('${c.id}')" title="Modifier">✎</button><button class="btn danger sm" onclick="delItem('clients','${c.id}')" title="Supprimer">🗑</button></span>
-      </div></div>`;}).join('');
+    const ou=(c.ville||'').trim()||(c.adresse||'').trim();
+    const meta=[pro?'':'Particulier', esc(ou), esc(c.tel||'')].filter(Boolean).join(' · ');
+    return `<div class="tf-rangee" onclick="ficheClient('${c.id}')">
+      <span class="tf-badge ini">${esc(initials(c.nom))}</span>
+      <div class="tf-corps">
+        <div class="tf-l1"><b class="tf-titre">${esc(c.nom)}</b>${n?`<span class="tf-fin">${n} int.</span>`:''}</div>
+        <div class="tf-l2"><span>${meta||'<span style="color:var(--org)">Fiche à compléter</span>'}</span></div>
+        ${(c.tags||[]).length?`<div class="tf-l3" style="flex-wrap:wrap">${tagChipsHtml(c)}</div>`:''}
+      </div>
+      <svg class="tf-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>`;}).join('');
+  const nPro=_tous.filter(c=>cliIsPro(c)).length;
+  const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
   const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}</div>`:'';
-  $('content').innerHTML=tagBar+(_clis.length? rows:`<div class="card">${emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`);
+  $('content').innerHTML=typeBar+tagBar+(_clis.length? `<div class="tf-groupe">${rows}</div>`:`<div class="card">${emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`);
 }
 /* ⛔ v738 — UNE FICHE S'OUVRE PAR SON IDENTIFIANT, PAS PAR SON MENU. La recherche, un lien, une
    notification y mènent : la règle de visibilité doit donc être ICI, pas seulement dans la liste. */
@@ -23812,6 +23872,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
     ${sec('Dernières interventions',ints,i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(techNames(i))}</div></div>${badge(STATUT_INT,i.statut)}</div>`)}
     ${sec('Factures',facts,f=>`<div class="pl-row" onclick="closeModal();go('factures')"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(docTot(f).ttc)}</div><div class="pl-meta">${fmtShort(f.date)}</div></div>${badge(FACT_ST,f.statut)}</div>`)}
     <div class="modal-foot" style="flex-wrap:wrap"><button class="btn ghost" onclick="closeModal();formClient('${c.id}')">Modifier</button>
+      ${canCat('crm','supprimer')?`<button class="btn danger" onclick="closeModal();delItem('clients','${c.id}')">Supprimer</button>`:''}
       <button class="btn ghost" onclick="openTagEditor('clients','${c.id}')">Étiquettes</button>
       <button class="btn ghost" onclick="printDossierClient('${c.id}')">Dossier client</button>
       <button class="btn" onclick="closeModal();formIntervention()">＋ Intervention</button>
@@ -26200,7 +26261,10 @@ views.boxes=function(){
   const unites=mine.reduce((t,b)=>t+Object.values(b.stock||{}).reduce((n,s)=>n+((s&&typeof s==='object')?(+s.u||0):(+s||0)),0),0);
   const cadre=`${mine.length} box${can('voirTout')?(perim?' (mon équipe)':''):' (mes box)'}`
     +(mine.length?` · ${avecStock} avec du stock · ${unites.toLocaleString('fr-FR')} u`:'')+(stkVu?' · + le stockage':'');
-  setHeader('Boxes',cadre,`<button class="btn ghost" onclick="go('carteBox')">🗺️ Carte</button> <button class="btn ghost" onclick="openAjoutProduitBoxes()">Ajouter produit</button> ${boxGerer('ajouter')?'<button class="btn" onclick="formBox()">＋ Box</button>':''}`);
+  /* « 🗺️ Carte » n'est plus dans l'en-tête : le segmenté juste dessous (Liste · Carte · Produits
+     donnés) y mène déjà — deux portes côte à côte vers le même écran, et sur un iPhone les trois
+     actions passaient sur deux lignes, « ＋ Box » seul sur la seconde (mesuré, thème final). */
+  setHeader('Boxes',cadre,`<button class="btn ghost" onclick="openAjoutProduitBoxes()">Ajouter produit</button> ${boxGerer('ajouter')?'<button class="btn" onclick="formBox()">＋ Box</button>':''}`);
   /* ⛔ LA PUCE QUI ÉVITE DE DÉFILER À TRAVERS TREIZE BOX VIDES. Chez ELAN, l'administrateur
      est le seul à voir les dix-huit ; cinq seulement ont du stock, et elles sont noyées. Il
      faisait défiler, ne lisait que des zéros, et concluait que tout était vide — trois fois
@@ -26215,14 +26279,21 @@ views.boxes=function(){
 };
 /* Une ligne de la liste des box — le stockage passe par la même (v741), avec son emblème et sans ville.
    `nv` rend les nouveautés du catalogue, calculées une fois pour toute la liste. */
+/* ⛔ LA RANGÉE DE LA MAQUETTE (thème final, 24 septembre 2026) : le NUMÉRO de la box dans la
+   pastille, en chasse fixe (« 012 » pour BX-012), vert quand elle a du stock, gris quand elle est
+   vide, rouge quand elle est désactivée — le mot est écrit à côté, la couleur ne parle pas seule.
+   Le nom en 17 semi-gras, le numéro complet à droite, la ville et le secteur dessous, puis la
+   pastille du stock total et le chevron. Les box se rangent par GROUPE dans des groupes de verre
+   (`renderBoxesList`), comme les réglages d'iOS. */
 function boxLigneHtml(b,nv){
-  const ab=estStockage(b)?'🏬':((b.categorie||'').replace(/[^A-Za-zÀ-ÿ0-9]/g,'').slice(0,2).toUpperCase()||'BX');
-    return `<div class="pl-row" onclick="openBox('${b.id}')">
-      <span style="width:44px;height:44px;border-radius:10px;background:color-mix(in srgb,var(--acc) 12%,transparent);color:var(--acc-txt);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${estStockage(b)?22:11}px;flex-shrink:0">${esc(ab)}</span>
-      <div class="pl-info">
-        <div style="display:flex;align-items:center;gap:6px"><span class="mono" style="color:var(--acc-txt);font-size:11px;font-weight:700">${esc(b.numero||'')}</span>${b.actif===false?'<span class="st st-red" style="font-size:9px">Inactif</span>':''}</div>
-        <div class="pl-title">${esc(b.nom)||esc(b.adresse)||esc(b.numero)||'Box'}${(()=>{ const n=nv().length?boxNouveautes(b,nv()).length:0; return n?` <span class="bxp-pastille bxp-pastille-carte" title="Nouveaux produits au catalogue, pas encore dans cette box">+${n>9?'9+':n}</span>`:''; })()}</div>
-        <div style="display:flex;align-items:center;gap:6px"><span class="pl-meta">${estStockage(b)?'Le stock hors des box':(esc(b.ville||'')||'—')}</span>${b.secteur?`<span class="st st-green" style="font-size:9px">${esc(b.secteur)}</span>`:''}</div>
+  const stk=estStockage(b);
+  const ab=stk?'🏬':(((b.numero||'').match(/(\d+)\s*$/)||[])[1]||'').slice(-4)||((b.categorie||'').replace(/[^A-Za-zÀ-ÿ0-9]/g,'').slice(0,2).toUpperCase()||'BX');
+  const coul=b.actif===false?'var(--red)':(boxADuStock(b)?'var(--green)':'var(--t3)');
+    return `<div class="tf-rangee" onclick="openBox('${b.id}')" style="--tf-c:${coul}">
+      <span class="tf-badge"${stk?' style="font-size:20px"':''}>${esc(ab)}</span>
+      <div class="tf-corps">
+        <div class="tf-l1"><b class="tf-titre">${esc(b.nom)||esc(b.adresse)||esc(b.numero)||'Box'}${(()=>{ const n=nv().length?boxNouveautes(b,nv()).length:0; return n?` <span class="bxp-pastille bxp-pastille-carte" title="Nouveaux produits au catalogue, pas encore dans cette box">+${n>9?'9+':n}</span>`:''; })()}</b>${b.numero?`<span class="tf-fin mono" style="font-size:13px">${esc(b.numero)}</span>`:''}</div>
+        <div class="tf-l2"><span>${[b.actif===false?'<b style="color:var(--red)">Inactif</b>':'', stk?'Le stock hors des box':(esc(b.ville||'')||'—'), b.secteur?esc(b.secteur):''].filter(Boolean).join(' · ')}</span></div>
       </div>
       ${(()=>{ const t=boxTotalStock(b);
         /* Rien quand il n'y a rien : une box sans stock n'a pas besoin d'un « 0 » de plus à
@@ -26230,7 +26301,8 @@ function boxLigneHtml(b,nv){
         if(!t.u&&!t.c) return '';
         const txt=[t.u?t.u.toLocaleString('fr-FR')+' u':'',t.c?t.c.toLocaleString('fr-FR')+' ctn':''].filter(Boolean).join(' · ');
         return `<span class="st st-green" style="font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0" title="Stock total de cette box">${txt}</span>`; })()}
-    </div>`; }   /* ⛔ pas de « › » écrit : la ligne `.pl-row[onclick]` porte déjà celui de la feuille — deux marques pour une chose */
+      <svg class="tf-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>`; }
 function renderBoxesList(){
   const el=$('boxes-list'); if(!el) return;
   const q=norm(boxListSearch);
@@ -26238,7 +26310,7 @@ function renderBoxesList(){
   /* v741 : le stockage passe en tête, hors des groupes — ce n'est pas une box parmi d'autres. */
   const stk=list.find(estStockage); list=list.filter(b=>!estStockage(b));
   let _nv=null; const candsNv=()=>_nv||(_nv=produitsRecents());   // une fois pour toutes les cartes, et seulement s'il y en a
-  const tete=stk?boxLigneHtml(stk,candsNv):'';
+  const tete=stk?`<div class="tf-groupe">${boxLigneHtml(stk,candsNv)}</div>`:'';
   /* ⛔ « Aucune box. » MENT quand l'entreprise en a dix-huit. Mesuré chez ELAN le 11 septembre
      2026 : quatre techniciens (Mathys, Romain Avignon, Zampa, Antho Piovanacci) ouvraient cet
      écran sur un vide muet — aucune box ne les nommait, ni dans `techIds`, ni dans `userIds`,
@@ -26277,7 +26349,7 @@ function renderBoxesList(){
     const sa=boxADuStock(a), sb=boxADuStock(b2);
     if(sa!==sb) return sa?-1:1;
     return ((a.nom||a.numero||'')+'').localeCompare((b2.nom||b2.numero||'')+'','fr',{sensitivity:'base'}); }));
-  el.innerHTML=tete+Object.keys(groups).sort().map(g=>`<div class="nav-label" style="padding:14px 4px 6px">${esc(g==='Sans groupe'?'Sans groupe':g)}</div>`+groups[g].map(b=>boxLigneHtml(b,candsNv)).join('')).join('');
+  el.innerHTML=tete+Object.keys(groups).sort().map(g=>`<div class="tf-entete">${esc(g==='Sans groupe'?'Sans groupe':g)}</div><div class="tf-groupe">`+groups[g].map(b=>boxLigneHtml(b,candsNv)).join('')+'</div>').join('');
 }
 /* Ajouter un produit à plusieurs boxes (en masse) */
 let bulkBoxes=new Set();

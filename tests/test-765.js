@@ -88,8 +88,11 @@ vrai('⛔ la carte du planning porte son libellé entier en infobulle',
 console.log('\n══ 4. LES TROIS DERNIÈRES COMMANDES RELEVÉES ══\n');
 vrai('⛔ l’en-tête de jour de la frise (32,4 px) prend le plancher', /#content \.tdb-jh\{min-height:38px\}/.test(T));
 vrai('⛔ le « 100 % » du zoom (16,2 px) aussi', /\.pf-zoom b\{min-height:38px/.test(T));
-vrai('⛔ l’icône 📅 d’une ligne d’intervention a reçu une CLASSE plutôt qu’un sélecteur nu',
-  /class="ic-act"/.test(APP) && /\.ic-act\{min-height:38px;min-width:38px/.test(T));
+/* ⚠ Depuis le thème final (24 septembre 2026), la ligne d'intervention est une rangée de la
+   maquette : l'ancienne icône en style direct (`.ic-act`) est devenue un BOUTON rond (`.tf-act`),
+   nommé « Voir au planning », de 40 px — au-dessus du plancher. On garde la règle, sur la pièce neuve. */
+vrai('⛔ l’icône 📅 d’une ligne d’intervention est un vrai bouton, au-dessus du plancher',
+  /<button class="tf-act tf-large"[^>]*aria-label="Voir au planning">/.test(APP) && /\.tf-act\{flex:0 0 40px;width:40px;height:40px/.test(T));
 
 console.log('\n══ 5. LA MESURE QUI GARDE LE RESTE EXISTE ══\n');
 const P=__dirname+'/../scratchpad/audit-total.js';

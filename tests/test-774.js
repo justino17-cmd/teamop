@@ -182,8 +182,11 @@ for (const f of ['app.html', 'beta.html']) {
     /th\{background:\$\{CO\};color:\$\{encreSur\(CO\)\};/.test(SRC) && /\.ttc\{[^}]*background:\$\{acc\};color:\$\{encreSur\(acc\)\};/.test(SRC));
 
   /* ── 5. l'accent comme encre, à travers une variable ── */
+  /* ⚠ Depuis le thème final (24 septembre 2026), « terminée » s'écrit en `--green` et non plus à la
+     teinte : la teinte par défaut est le marine de TEAM OP, et le sens d'un statut ne suit pas le
+     goût de l'utilisateur. La règle d'origine tient : c'est une ENCRE, jamais l'aplat `--acc`. */
   vrai('⛔ « terminée » écrit son statut en encre de texte (il sert de liseré ET de libellé)',
-    /const INT_STCOLOR = \{[^}]*terminee:'var\(--acc-txt\)'/.test(SRC) && !/terminee:'var\(--acc\)'/.test(SRC));
+    /const INT_STCOLOR = \{[^}]*terminee:'var\(--green\)'/.test(SRC) && !/terminee:'var\(--acc\)'/.test(SRC));
   const styleAcc = (SRC.match(/\.style\.color=[^;\n]{0,90}'var\(--acc\)'/g) || []);
   vrai('⛔ plus aucun .style.color qui reçoit l’accent', styleAcc.length === 0, styleAcc.join(' | '));
   vrai('⛔ les couleurs de catégorie et de fournisseur ne sont plus écrites telles quelles en texte',

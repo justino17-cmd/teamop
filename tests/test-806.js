@@ -101,5 +101,57 @@ console.log('\n── 4. La barre « Reprendre » : le nom d’abord, la durée 
   vrai('la croix a un nom (elle n’a que son ✕)', /aria-label="Oublier"/.test(h5));
 }
 
+console.log('\n── 5. Les listes prennent la rangée de la maquette');
+{
+  /* ⚠ Mesuré le 24 septembre 2026 (iPhone 393 px, thème final) : la carte « façon Organilog » d'une
+     intervention écrivait titre et client EN CAPITALES sur quatre lignes à icônes (170 px) ; un
+     client portait ✎ et 🗑 sur sa carte (200 px) ; les trois listes ne ressemblaient pas à la
+     maquette de Justin. Elles passent toutes par la même pièce, `.tf-rangee` dans un `.tf-groupe`.
+     La ligne de box est JOUÉE (elle est pure) ; les deux autres sont lues dans le code. */
+  const i0 = APP.indexOf('function boxLigneHtml(b,nv){'), i1 = APP.indexOf('function renderBoxesList(', i0);
+  const corpsBox = i0 > 0 && i1 > i0 ? APP.slice(i0, i1) : '';
+  vrai('la ligne de box est trouvée', corpsBox.length > 800, corpsBox.length);
+  const ligne = (b, stock) => new Function('estStockage', 'boxADuStock', 'boxNouveautes', 'boxTotalStock', 'esc',
+    corpsBox + '\nreturn boxLigneHtml;')(x => !!x.stockage, () => stock > 0, () => [], () => ({ u: stock, c: 0 }),
+      x => String(x == null ? '' : x))(b, () => []);
+  const pleine = ligne({ id: 'b1', numero: 'BX-012', nom: 'Poste cuisine', ville: 'Marseille' }, 40);
+  const vide = ligne({ id: 'b2', numero: 'BX-007', nom: 'Camion 2', ville: 'Lyon' }, 0);
+  const eteinte = ligne({ id: 'b3', numero: 'BX-003', nom: 'Dépôt', ville: 'Lyon', actif: false }, 0);
+  vrai('⛔ c’est une rangée, et elle ouvre la box', /class="tf-rangee" onclick="openBox\('b1'\)"/.test(pleine));
+  vrai('⛔ la pastille porte le NUMÉRO en chasse fixe (« 012 » pour BX-012)', /<span class="tf-badge">012<\/span>/.test(pleine), (pleine.match(/tf-badge[^<]*<\/span>/) || [''])[0]);
+  vrai('⛔ vert quand la box a du stock, gris quand elle est vide, rouge désactivée',
+    /--tf-c:var\(--green\)/.test(pleine) && /--tf-c:var\(--t3\)/.test(vide) && /--tf-c:var\(--red\)/.test(eteinte));
+  vrai('⛔ … et le mot « Inactif » est écrit (la couleur ne parle pas seule)', /Inactif/.test(eteinte) && !/Inactif/.test(pleine));
+  vrai('la pastille du stock total reste, et rien quand il n’y a rien', /title="Stock total de cette box">40 u</.test(pleine) && !/Stock total/.test(vide));
+  vrai('le numéro complet est à droite du nom', /<span class="tf-fin mono"[^>]*>BX-012<\/span>/.test(pleine));
+  vrai('⛔ un seul chevron (le dessiné), jamais un « › » écrit', (pleine.match(/class="tf-chev"/g) || []).length === 1 && !/›/.test(pleine));
+  const ab = APP.slice(APP.indexOf('function renderBoxesList('), APP.indexOf('function renderBoxesList(') + 6000);
+  vrai('⛔ chaque groupe de box est un groupe de verre sous son en-tête', /<div class="tf-entete">\$\{esc\(g==='Sans groupe'\?'Sans groupe':g\)\}<\/div><div class="tf-groupe">`\+groups\[g\]\.map\(b=>boxLigneHtml\(b,candsNv\)\)\.join\(''\)\+'<\/div>'/.test(ab));
+
+  /* les interventions du jour (vue semaine) */
+  /* bornée sur sa propre fin (« </div>`; }; ») : une fin plus vague emportait le code d'après */
+  const co = (NU.match(/const cardOrg=i=>\{[\s\S]*?<\/div>`; \};/) || [''])[0];
+  vrai('la rangée d’intervention est trouvée', co.length > 600, co.length);
+  vrai('⛔ plus aucune CAPITALE forcée (titre et client s’écrivent comme ils sont saisis)', !/toUpperCase/.test(co));
+  vrai('⛔ la pastille porte le numéro, à la couleur du statut', /<span class="tf-badge">\$\{esc\(String\(i\.num\|\|'—'\)\)\}<\/span>/.test(co) && /--tf-c:\$\{sc\}/.test(co));
+  vrai('⛔ le mot du statut est écrit, sauf pour l’état ordinaire', /\$\{i\.statut==='planifiee'\?'':esc\(st\)\+' · '\}/.test(co));
+  vrai('⛔ rien n’est perdu : le glisser, « Voir au planning », le compte à rebours, la distance',
+    /draggable="true"/.test(co) && /aria-label="Voir au planning"/.test(co) && /fmtCountdownLong/.test(co) && /à \$\{dist\} km/.test(co));
+  vrai('   … le bouton rond sur tablette et bureau, le chevron sur téléphone', /class="tf-act tf-large"/.test(co) && /class="tf-chev tf-etroit"/.test(co)
+    && /@media\(max-width:599px\)\{ \.tf-rangee \.tf-large\{display:none\} \}/.test(NU) && /@media\(min-width:600px\)\{ \.tf-rangee \.tf-etroit\{display:none\} \}/.test(NU));
+  vrai('   … et les passages du jour sont dans UN groupe de verre', /`<div class="tf-groupe">\$\{dayInts\.map\(cardOrg\)\.join\(''\)\}<\/div>`/.test(NU));
+
+  /* les clients */
+  const vc = (NU.match(/views\.clients=function\(\)\{[\s\S]*?\n\}\n/) || [''])[0];
+  vrai('la liste des clients est trouvée', vc.length > 600, vc.length);
+  vrai('⛔ plus de ✎ ni de 🗑 sur chaque client', !/formClient\('\$\{c\.id\}'\)/.test(vc) && !/delItem\('clients'/.test(vc));
+  vrai('⛔ la rangée ouvre la fiche', /class="tf-rangee" onclick="ficheClient\('\$\{c\.id\}'\)"/.test(vc));
+  const fc = (NU.match(/function ficheClient\(id\)\{[\s\S]*?\n\}\n/) || [''])[0];
+  vrai('⛔ … et la FICHE porte « Modifier » et « Supprimer », ce dernier gardé par sa case',
+    /onclick="closeModal\(\);formClient\('\$\{c\.id\}'\)">Modifier/.test(fc)
+    && /\$\{canCat\('crm','supprimer'\)\?`<button class="btn danger" onclick="closeModal\(\);delItem\('clients','\$\{c\.id\}'\)">Supprimer<\/button>`:''\}/.test(fc));
+  vrai('le segmenté Tous · Pros · Particuliers ne paraît que s’il trie quelque chose', /const typeBar=\(nPro&&nPro<_tous\.length\)\?/.test(vc));
+}
+
 console.log('\n═══ test-806 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
 process.exit(ko ? 1 : 0);
