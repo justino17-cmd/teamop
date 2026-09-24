@@ -58,3 +58,7 @@ tests/test-742.js
 tests/test-743.js
 tests/test-745.js
 tests/test-796.js
+# 24 septembre 2026 : « un code promo sert une fois par entreprise » (Justin). Elle passe contre les
+# DEUX pages — contre la v695 de `main`, elle vérifie que le refus du serveur neuf s'y AFFICHE et
+# n'écrit rien (103 vérifications ; 109 contre la page de la branche).
+tests/test-803.js

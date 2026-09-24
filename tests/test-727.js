@@ -38,10 +38,25 @@ let d = 0, fin = -1;
 for (let k = SRC.indexOf('{', i); k < SRC.length; k++) { if (SRC[k] === '{') d++; else if (SRC[k] === '}') { d--; if (!d) { fin = k + 1; break; } } }
 vrai('espacePaye est trouvée dans le fichier réel', i > 0 && fin > i);
 
-const avec = (abos) => new Function('config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console',
-  SRC.slice(i, fin) + '\nreturn espacePaye;')(
+/* ⛔ ET SES AIDES, EXTRAITES ELLES AUSSI (24 septembre 2026). Le rattrapage d'`espacePaye` lit
+   désormais `promoServiA` (« un code sert une fois par ENTREPRISE »), `promoAutreActif` et
+   `promoEntree`. Un bac à sable qui ne les fournit pas fait jeter le rattrapage DANS son `try` —
+   avalé en silence : c'est ainsi que ce banc est tombé le jour où la règle est arrivée. On extrait
+   les VRAIES, par leur nom, avec la même découpe. */
+function extraire(nom) {
+  const d0 = SRC.indexOf('function ' + nom + '(');
+  if (d0 < 0) return '';
+  let p = 0;
+  for (let k = SRC.indexOf('{', d0); k < SRC.length; k++) { if (SRC[k] === '{') p++; else if (SRC[k] === '}') { p--; if (!p) return SRC.slice(d0, k + 1); } }
+  return '';
+}
+const AIDES = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif', 'promoEntree'].map(extraire);
+vrai('les sept aides du code promo sont trouvées dans le fichier réel', AIDES.every(Boolean));
+const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
+const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
+const avec = (abos) => construire()(
   { stripe: { secretKey: 'sk_de_banc' }, promos: [] },
-  { ts: Date.now(), data: abos }, {}, async () => abos, { error() {} });
+  { ts: Date.now(), data: abos }, {}, async () => abos, { error() {} }, () => true, () => {}, {}, () => null, require('crypto'), false);
 
 const ABO = o => Object.assign({ status: 'active', current_period_end: 1800000000 }, o);
 const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@client.fr', formule: 'premium' }, o);
@@ -219,11 +234,10 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const monter = () => {
       const trace = { ecrit: 0, mails: [] };
       const usages = {};
-      const f = new Function('config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console',
-        'savePromoUsages', 'mailPromoActive', SRC.slice(i, fin) + '\nreturn espacePaye;')(
+      const f = construire()(
         { promos: [{ code: CODE, mois: 3, formule: 'premium', maxUtilisations: 2 }] },
         { ts: 0, data: null }, usages, async () => [], { log() {}, error() {} },
-        () => { trace.ecrit++; }, (t, c) => { trace.mails.push(c); });
+        () => { trace.ecrit++; }, (t, c) => { trace.mails.push(c); }, {}, () => null, require('crypto'), false);
       return { f, trace, usages };
     };
     const ENT = { slug: 'enattente', t: 'ent-attente-qk', email: 'patron@exemple.fr', formule: 'premium', codePromo: CODE };

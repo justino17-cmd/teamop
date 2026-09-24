@@ -70,8 +70,8 @@ function get(url) {
        une liste de fermetures illisible ROUVRE toutes les entreprises fermées. Le serveur ne
        réécrit plus par-dessus (le fichier abîmé est peut-être récupérable) — encore faut-il que
        quelqu'un le sache. `=== false` : un serveur d'avant, sans le champ, ne crie pas. */
-    if (j.registres && (j.registres.espaces === false || j.registres.fermes === false)) {
-      problems.push('⛔⛔ UN REGISTRE DU SERVEUR EST ILLISIBLE (' + [j.registres.espaces === false ? 'espaces.json — l’annuaire des entreprises' : '', j.registres.fermes === false ? 'entreprises-fermees.json — les fermetures ne s’appliquent plus' : ''].filter(Boolean).join(' ; ') + '). Le fichier n’est plus réécrit : le réparer (ou le restaurer depuis la sauvegarde) PUIS redémarrer. Sur le VPS : journalctl -u teamop-api | grep ILLISIBLE');
+    if (j.registres && (j.registres.espaces === false || j.registres.fermes === false || j.registres.promos === false)) {
+      problems.push('⛔⛔ UN REGISTRE DU SERVEUR EST ILLISIBLE (' + [j.registres.espaces === false ? 'espaces.json — l’annuaire des entreprises' : '', j.registres.fermes === false ? 'entreprises-fermees.json — les fermetures ne s’appliquent plus' : '', j.registres.promos === false ? 'promos-usages.json — les codes déjà servis sont oubliés, les périodes offertes en cours ne comptent plus' : ''].filter(Boolean).join(' ; ') + '). Le fichier n’est plus réécrit : le réparer (ou le restaurer depuis la sauvegarde) PUIS redémarrer. Sur le VPS : journalctl -u teamop-api | grep ILLISIBLE');
     }
     if (j.conservation && j.conservation.erreur) {
       problems.push('⛔⛔ L’HORLOGE DE CONSERVATION NE TOURNE PLUS (' + j.conservation.erreur + ') — plus aucune date « ne paie plus depuis » n’est enregistrée, et ces dates NE SE RATTRAPENT PAS : chaque heure de panne est une information perdue pour toujours. Sur le VPS : journalctl -u teamop-api | grep conservation');

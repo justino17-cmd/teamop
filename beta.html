@@ -12512,9 +12512,28 @@ function planOpMsg(){ return true; }        // OP MESSAGES : application indépe
    sert qu'à pré-remplir le champ : il n'active rien, et il s'efface dès qu'un code a été
    appliqué, pour ne pas ressurgir des mois plus tard. */
 function promoEnAttente(){ try{ return String(localStorage.getItem('teamop_promo_en_attente')||'').trim().toUpperCase().slice(0,40); }catch(e){ return ''; } }
+/* ⛔⛔ UN CODE PROMO SERT UNE FOIS PAR ENTREPRISE (Justin, 24 septembre 2026 : « une fois qu'une
+   entreprise l'a activé, ils peuvent pas le remettre »). Le serveur le refuse désormais (410,
+   `dejaUtilise`). Mais le serveur d'AVANT répond encore « ok » à un code déjà servi, avec son
+   échéance PASSÉE — et cette fonction affichait « 🎉 Code accepté ! », repassait toute l'équipe en
+   formule payante et remettait le début de la période à aujourd'hui, jusqu'à ce que
+   `promoEssaiCheck` la referme avec « Ton essai est terminé ». On refuse donc AUSSI ici, sans
+   attendre le serveur : une période derrière nous n'active rien, et le même code déjà terminé
+   dans cette base ne part même pas le demander. Une écriture n'a lieu que pour une période EN
+   COURS. */
+function promoRefusModal(code,finLe,texteServeur){
+  const eE=db.forfaitEssai, f=(eE&&eE.code===code&&PLANS[eE.formule]&&eE.formule!=='gratuit')?eE.formule:'premium';
+  const txt=texteServeur||('Le code « '+code+' » a déjà été utilisé par ton entreprise'+(finLe?' — sa période offerte s’est terminée le '+fmtShort(finLe):'')+'. Un code promo ne sert qu’une fois par entreprise.');
+  openModal(`<div class="modal-head"><h3>🎁 Code déjà utilisé</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">${esc(txt)}<br><br>Tes données sont intactes. Pour retrouver toutes les fonctions, prends l'abonnement (2 minutes) :</p>
+    <button class="btn" style="width:100%;justify-content:center;padding:13px;margin-bottom:8px" onclick="window.open('https://teamop.fr/recap-abonnement.html?formule=${f}&utilisateurs='+db.users.length,'_blank')">Prendre l'abonnement ${PLANS[f]?PLANS[f].l:''}</button>
+    <button class="btn ghost" style="width:100%;justify-content:center" onclick="closeModal()">Fermer</button>`);
+}
 async function promoAppliquer(codeDirect){
   const code=String(codeDirect||($('promo-inp')||{}).value||'').trim().toUpperCase();
   if(!code){ toast('Entre ton code promo'); return; }
+  const eL=db.forfaitEssai;
+  if(eL&&eL.code===code&&(eL.termine||(eL.finLe&&eL.finLe<todayISO()))){ promoRefusModal(code,eL.finLe); return; }
   try{
     /* La preuve de clé, comme la famille courrier : depuis le 11 septembre 2026 le serveur
        l'EXIGE pour activer un code sur un espace. Sans elle, n'importe qui offrait
@@ -12524,16 +12543,26 @@ async function promoAppliquer(codeDirect){
     const r=await fetch(PUSH_API+'/api/promo/valider',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),
       body:JSON.stringify({code,teamId:(typeof syncTeam==='function'?(syncTeam()||''):'')})});
     const j=await r.json().catch(()=>({}));
-    if(!r.ok){ toast('⚠ '+(j.error||('Erreur '+r.status))); return; }
+    if(!r.ok){ if(j&&j.dejaUtilise){ promoRefusModal(code,j.finLe||'',j.error||''); return; } toast('⚠ '+(j.error||('Erreur '+r.status))); return; }
     if(!j.finLe||!j.mois){ toast('Réponse du serveur incomplète — réessaie'); return; }
+    if(j.finLe<todayISO()){ promoRefusModal(code,j.finLe); return; }   // le serveur d'avant : « ok » sur une période terminée
     try{ localStorage.removeItem('teamop_promo_en_attente'); }catch(e){}   // il a servi : il ne doit pas ressurgir
     const f=PLANS[j.formule]?j.formule:'premium';
-    db.forfait=f;
-    db.forfaitEssai={code,formule:f,debut:todayISO(),finLe:j.finLe,mois:j.mois,rappels:{}};
-    logEvent('Code promo activé',code+' → '+PLANS[f].l+" jusqu'au "+fmtShort(j.finLe),'auth');
-    save(); renderNav();
-    try{ suiteRefresh(); }catch(e){}
-    openModal(`<div class="modal-head"><h3>🎉 Code accepté !</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    /* Déjà actif (retapé pendant sa période) : la MÊME échéance, et le début d'origine. On n'écrit
+       que si cette base ne le savait pas encore — un autre appareil, un code posé depuis le site. */
+    const deja=!!j.dejaUtilise, eA=(db.forfaitEssai&&db.forfaitEssai.code===code)?db.forfaitEssai:null;
+    if(!(deja&&eA&&!eA.termine&&eA.finLe===j.finLe&&db.forfait===f)){
+      db.forfait=f;
+      db.forfaitEssai={code,formule:f,debut:deja?((eA&&eA.debut)||j.debut||todayISO()):todayISO(),finLe:j.finLe,mois:j.mois,rappels:(deja&&eA&&eA.rappels)||{}};
+      if(!deja) logEvent('Code promo activé',code+' → '+PLANS[f].l+" jusqu'au "+fmtShort(j.finLe),'auth');
+      save(); renderNav();
+      try{ suiteRefresh(); }catch(e){}
+    }
+    openModal(deja
+      ?`<div class="modal-head"><h3>🎁 Code déjà actif</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Le code <b>${esc(code)}</b> offre déjà la formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> à ton entreprise, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Rien ne change : un code promo ne sert qu'une fois, et il ne se prolonge pas. Avant la fin, un rappel te préviendra pour prendre l'abonnement.</p>
+      <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="closeModal();if(current==='parametres')views.parametres()">Compris</button>`
+      :`<div class="modal-head"><h3>🎉 Code accepté !</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
       <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">La formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> est activée pour toute l'équipe : <b>${j.mois} mois offert(s)</b>, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Aucune carte bancaire n'est enregistrée. Avant la fin, un rappel te préviendra pour prendre l'abonnement et continuer sans coupure.</p>
       <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="closeModal();if(current==='parametres')views.parametres()">C'est parti !</button>`);
   }catch(e){ toast('Le serveur ne répond pas — réessaie'); }

@@ -425,7 +425,7 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
   /* Les deux registres dont la perte ne se voit pas : l'annuaire des entreprises et la liste des
      fermetures. `false` = le fichier existe mais n'a pas pu être lu — il n'est plus réécrit, et la
      surveillance crie. Deux booléens : rien sur personne. */
-  registres: { espaces: !espacesIllisible, fermes: !fermesIllisible },
+  registres: { espaces: !espacesIllisible, fermes: !fermesIllisible, promos: !promosIllisible },
   routesDoublons: routesDoublons.length,
   /* Étape 0 du socle : où en est le stockage des pièces jointes.
      ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
@@ -2071,10 +2071,14 @@ async function espacePaye(e, opts) {
       const c = String(e.codePromo).toUpperCase();
       const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c);
       const u0 = promoUsages[c] || { n: 0, equipes: {} };
-      if (p && !u0.equipes[e.t] && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
+      /* ⛔ `promoServiA`, pas `u0.equipes[e.t]` : après « repartir à neuf », l'entreprise a un
+         NOUVEL identifiant, et un code qu'elle avait déjà servi redevenait neuf ici — le
+         rattrapage l'activait une seconde fois, avec une période neuve (voir `promoPresente`).
+         Et « un seul code à la fois », comme les quatre autres chemins : celui-ci ne le faisait pas. */
+      if (p && !promosIllisible && !promoServiA(c, e.t, e.slug) && !promoAutreActif(c, e.t, e.slug) && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
         if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — il s\'active au prochain lancement de l\'application', promoCode: c, enAttente: true };
         const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(p.mois) || 1));
-        u0.n++; u0.equipes[e.t] = { date: new Date().toISOString().slice(0, 10), finLe: dF.toISOString().slice(0, 10) };
+        u0.n++; u0.equipes[e.t] = promoEntree(dF.toISOString().slice(0, 10), e.t, e.slug);
         promoUsages[c] = u0; savePromoUsages();
         console.log('code promo', c, 'activé en rattrapage pour', e.t);
         mailPromoActive(e.t, c, dF.toISOString().slice(0, 10), ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium');
@@ -3266,6 +3270,10 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
   let t = e.t; try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
   if (t && accesReg[t]) { delete accesReg[t]; accesEcrire(); }   // l'espace repart à neuf : son code aussi
   if (t && comptesReg[t]) { delete comptesReg[t]; comptesEcrire(); }   // et son annuaire de connexion : sinon d'anciens identifiants ouvrent le nouvel espace
+  /* ⛔ UN CODE PROMO NE SERT QU'UNE FOIS PAR ENTREPRISE, ET « REPARTIR À NEUF » NE L'OUBLIE PAS
+     (Justin, 24 septembre 2026) : ses utilisations passées portent désormais son adresse et
+     l'empreinte de son e-mail, AVANT que l'annuaire ne les oublie (voir `promoPresente`). */
+  if (t) promoMarquerAvantRenaitre(t, slug, e.email);
   delete espacesReg[slug];
   espacesEcrire();
   let efface = false;
@@ -3317,19 +3325,28 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
   if (!c) return res.status(400).json({ error: 'Entre le code promo' });
   const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c);
   if (!p) return res.status(404).json({ error: 'Code promo inconnu' });
-  for (const [c2, u2] of Object.entries(promoUsages || {})) {   // un seul code à la fois
-    const eq2 = u2 && u2.equipes && u2.equipes[t];
-    if (c2 !== c && eq2 && eq2.finLe && eq2.finLe >= new Date().toISOString().slice(0, 10))
-      return res.status(409).json({ error: 'Un code (« ' + c2 + ' ») est déjà actif pour cette entreprise jusqu\'au ' + eq2.finLe });
+  /* ⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE, MÊME DEPUIS LA TOUR (Justin, 24 septembre 2026 — voir
+     `promoPresente`). Pour offrir une nouvelle période à une entreprise qui a déjà servi ce code,
+     la Tour a son propre geste : l'abonnement réglé à la main (« Essai offert », avec une date de fin). */
+  const pres = promoPresente(c, t, slug);
+  if (pres.etat === 'indisponible') return res.status(503).json({ error: 'Registre des codes promo illisible (promos-usages.json) — rien n\'est activé tant qu\'il n\'est pas réparé. Journal : grep ILLISIBLE.' });
+  if (pres.etat === 'servi')
+    return res.status(410).json({ error: promoRefusServi(c, pres.finLe) + ' Pour lui offrir une nouvelle période : Abonnement → « Essai offert », avec une date de fin.', dejaUtilise: true, finLe: pres.finLe });
+  if (pres.etat === 'neuf') {
+    for (const [c2] of Object.entries(promoUsages || {})) {   // un seul code à la fois (par l'adresse aussi : voir `promoServiA`)
+      const eq2 = c2 !== c ? promoServiA(c2, t, slug) : null;
+      if (eq2 && eq2.finLe && eq2.finLe >= promoAujourdhui())
+        return res.status(409).json({ error: 'Un code (« ' + c2 + ' ») est déjà actif pour cette entreprise jusqu\'au ' + promoDateFr(eq2.finLe) });
+    }
   }
   const u = promoUsages[c] || { n: 0, equipes: {} };
   let finLe;
-  if (u.equipes[t]) finLe = u.equipes[t].finLe;
+  if (pres.etat === 'actif') finLe = pres.finLe;   // déjà en cours : la même échéance, rien ne se recompte
   else {
     if (p.maxUtilisations && u.n >= p.maxUtilisations) return res.status(410).json({ error: 'Ce code a atteint son maximum d\'utilisations' });
     const d = new Date(); d.setMonth(d.getMonth() + Math.max(1, Number(p.mois) || 1));
     finLe = d.toISOString().slice(0, 10);
-    u.n++; u.equipes[t] = { date: new Date().toISOString().slice(0, 10), finLe }; promoUsages[c] = u; savePromoUsages();
+    u.n++; u.equipes[t] = promoEntree(finLe, t, slug); promoUsages[c] = u; savePromoUsages();
     mailPromoActive(t, c, finLe, ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium');
   }
   e.codePromo = c;
@@ -3337,7 +3354,7 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
   if (!e.formule || e.formule === 'gratuit') { e.formule = f; e.quantite = e.quantite || 1; e.formulePar = req.tourUser.nom + ' (code)'; e.formuleTs = Date.now(); }
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'active le code', c, 'pour', slug, '→ fin', finLe);
-  res.json({ ok: true, code: c, formule: e.formule, finLe });
+  res.json({ ok: true, code: c, formule: e.formule, finLe, dejaUtilise: pres.etat === 'actif' });
 });
 // le patron envoie au client son lien + identifiants de départ (bel e-mail TeamOP)
 // ── 📣 ANNONCE DE MISE À JOUR : un e-mail à TOUTES les entreprises ──
@@ -5555,8 +5572,9 @@ function entInventaire(t) {
      avec un teamId supprimé et le réécrit dans replies.jsonl qu'on vient de purger. */
   let bonsEnvoyes = 0;
   try { for (const l of fs.readFileSync(SENTMAP_PATH, 'utf8').trim().split('\n')) { try { const x = JSON.parse(l); if (x && x.teamId === t) bonsEnvoyes++; } catch (err) {} } } catch (err) {}
-  const promos = [];
-  for (const [code, u] of Object.entries(promoUsages || {})) if (u && u.equipes && u.equipes[t]) promos.push(code);
+  /* Par l'identifiant ET par l'empreinte de l'e-mail : une utilisation d'avant « repartir à neuf »
+     appartient à la même entreprise (voir `promoCles`). */
+  const promos = [...new Set(promoCles(t, slugs, emails).map(x => x.code))];
   const cnx = cnxData[t] || [];
   const usage = usageData[t] || null;
   /* comptesAnnuaire est une PREUVE, pas un indice : comptesReg[t] ne peut être écrit que par
@@ -5836,7 +5854,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.connexions = inv.connexions;
   if (devisAcces[t]) { delete devisAcces[t]; saveDevisAcces(); }
   fait.devisIA = !!inv.devisIA;
-  if (inv.promos.length) { for (const code of inv.promos) { if (promoUsages[code] && promoUsages[code].equipes) delete promoUsages[code].equipes[t]; } savePromoUsages(); }
+  if (inv.promos.length) { for (const { code, cle } of promoCles(t, inv.slugs, inv.emails)) { if (promoUsages[code] && promoUsages[code].equipes) delete promoUsages[code].equipes[cle]; } savePromoUsages(); }
   fait.promos = inv.promos.length;
 
   // ── 5. L'annuaire EN DERNIER parmi les registres : il est le seul à relier nom, slug,
@@ -6798,21 +6816,29 @@ app.post('/api/clients/sync', async (req, res) => {
       let tEsp = esp && esp.t;
       if (esp && !tEsp) { try { tEsp = String(JSON.parse(Buffer.from(esp.code, 'base64').toString('utf8')).t || ''); } catch (e2) {} }
       const u = tEsp ? (promoUsages[pc] || { n: 0, equipes: {} }) : null;
+      /* ⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE (voir `promoPresente`) : déjà servi, il ne se
+         réactive pas ici — le portail le renvoie à CHAQUE synchro tant que SA propre offre court.
+         Une période encore en cours sous un ancien identifiant (« repartir à neuf ») se reporte. */
+      const pres = u ? promoPresente(pc, tEsp, '') : null;
       /* Un autre code déjà en cours pour cet espace : on ne l'empile pas. Même règle, même
          raison qu'à la Tour — deux codes actifs rendent l'échéance réelle illisible. */
       let autre = '';
-      if (u && !u.equipes[tEsp]) {
+      if (pres && pres.etat === 'neuf') {
         const auj = new Date().toISOString().slice(0, 10);
-        for (const [c2, u2] of Object.entries(promoUsages || {})) {
-          const eq2 = u2 && u2.equipes && u2.equipes[tEsp];
-          if (c2 !== pc && eq2 && eq2.finLe && eq2.finLe >= auj) { autre = c2; break; }
+        for (const [c2] of Object.entries(promoUsages || {})) {
+          const eq2 = c2 !== pc ? promoServiA(c2, tEsp, '') : null;
+          if (eq2 && eq2.finLe && eq2.finLe >= auj) { autre = c2; break; }
         }
       }
-      if (u && !u.equipes[tEsp] && !autre && !(pDef.maxUtilisations && u.n >= pDef.maxUtilisations)) {
-        const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(pDef.mois) || 1));
-        const finLe = dF.toISOString().slice(0, 10);
-        u.n++; u.equipes[tEsp] = { date: new Date().toISOString().slice(0, 10), finLe };
-        promoUsages[pc] = u; savePromoUsages();
+      const nouveau = !!(pres && pres.etat === 'neuf' && !autre && !(pDef.maxUtilisations && u.n >= pDef.maxUtilisations));
+      if (nouveau || (pres && pres.reporte)) {
+        let finLe = pres.finLe;
+        if (nouveau) {
+          const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(pDef.mois) || 1));
+          finLe = dF.toISOString().slice(0, 10);
+          u.n++; u.equipes[tEsp] = promoEntree(finLe, tEsp, '');
+          promoUsages[pc] = u; savePromoUsages();
+        }
         /* ⛔ SANS CES DEUX LIGNES, LE CODE EST CONSOMMÉ ET L'APPLICATION RESTE VERROUILLÉE.
            espacePaye() sort sur « aucune formule » AVANT même de regarder promoUsages : un
            espace qui n'a pas encore de formule voyait donc son code décompté, recevait
@@ -6829,8 +6855,8 @@ app.post('/api/clients/sync', async (req, res) => {
           if (!eMaj.formule || eMaj.formule === 'gratuit') { eMaj.formule = fPromo; eMaj.quantite = eMaj.quantite || 1; eMaj.formulePar = 'code ' + pc + ' (site)'; eMaj.formuleTs = Date.now(); }
           espacesEcrire();
         }
-        console.log('code promo du site relayé →', pc, tEsp, 'fin', finLe);
-        mailPromoActive(tEsp, pc, finLe, fPromo);
+        if (nouveau) { console.log('code promo du site relayé →', pc, tEsp, 'fin', finLe);
+          mailPromoActive(tEsp, pc, finLe, fPromo); }
       }
     } else if (pc) {
       /* Le code seul, sans l'adresse ni l'espace : savoir qu'un code inconnu a été tenté
@@ -6878,34 +6904,41 @@ app.post('/api/clients/sync', async (req, res) => {
       const enrAuto = auto.t ? accesCodeDe(auto.t, 'inscription automatique') : null;
       const accesAuto = enrAuto ? enrAuto.code : '';
       // activation du code pour cet espace : la formule est offerte, sans carte bancaire
-      let promoActif = null;
-      if (promoDef) { const eEsp = espacesReg[auto.slug];
-        if (eEsp && eEsp.codePromo !== promoDef.code) { eEsp.codePromo = promoDef.code;
-          espacesEcrire(); } }
+      /* ⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE (Justin, 24 septembre 2026 — voir `promoPresente`).
+         Une entreprise qui refait une demande avec un code déjà servi recevait « votre code est
+         activé … jusqu'au » une date PASSÉE, et aucun lien de paiement. Elle reçoit désormais le
+         refus, dit en clair, et le chemin du paiement. `promoRefuse` = le code et sa fin passée. */
+      let promoActif = null, promoRefuse = null;
       if (promoDef && auto.t) {
         const u = promoUsages[promoDef.code] || { n: 0, equipes: {} };
-        const deja = u.equipes[auto.t];
+        const pres = promoPresente(promoDef.code, auto.t, auto.slug);
+        if (pres.etat === 'servi') promoRefuse = { code: promoDef.code, finLe: pres.finLe };
         /* « Un seul code à la fois », la règle que font déjà la Tour, /api/promo/valider et
            le relais juste au-dessus : ce quatrième chemin était le dernier à ne pas la faire.
            Deux codes actifs rendent l'échéance réelle illisible — pour le client comme pour
            la Tour, qui affiche le premier trouvé. */
         let autreActif = '';
-        if (!deja) {
+        if (pres.etat === 'neuf') {
           const auj = new Date().toISOString().slice(0, 10);
-          for (const [c2, u2] of Object.entries(promoUsages || {})) {
-            const eq2 = u2 && u2.equipes && u2.equipes[auto.t];
-            if (c2 !== promoDef.code && eq2 && eq2.finLe && eq2.finLe >= auj) { autreActif = c2; break; }
+          for (const [c2] of Object.entries(promoUsages || {})) {
+            const eq2 = c2 !== promoDef.code ? promoServiA(c2, auto.t, auto.slug) : null;
+            if (eq2 && eq2.finLe && eq2.finLe >= auj) { autreActif = c2; break; }
           }
         }
-        if (deja) promoActif = Object.assign({}, promoDef, { finLe: deja.finLe });
-        else if (!autreActif && !(promoDef.max && u.n >= promoDef.max)) {
+        if (pres.etat === 'actif') promoActif = Object.assign({}, promoDef, { finLe: pres.finLe, deja: true });
+        else if (pres.etat === 'neuf' && !autreActif && !(promoDef.max && u.n >= promoDef.max)) {
           const dF = new Date(); dF.setMonth(dF.getMonth() + promoDef.mois);
           const finLe = dF.toISOString().slice(0, 10);
-          u.n++; u.equipes[auto.t] = { date: new Date().toISOString().slice(0, 10), finLe };
+          u.n++; u.equipes[auto.t] = promoEntree(finLe, auto.t, auto.slug);
           promoUsages[promoDef.code] = u; savePromoUsages();
           promoActif = Object.assign({}, promoDef, { finLe });
         }
       }
+      /* `codePromo` est ce que relit le rattrapage d'`espacePaye()` : on ne le pose jamais pour un
+         code refusé — il ne se réactiverait pas (`promoServiA`), mais la Tour le lirait comme « en attente ». */
+      if (promoDef && !promoRefuse) { const eEsp = espacesReg[auto.slug];
+        if (eEsp && eEsp.codePromo !== promoDef.code) { eEsp.codePromo = promoDef.code;
+          espacesEcrire(); } }
       const promoLib = promoActif ? ({ pro: 'Pro', business: 'Business', premium: 'Business Premium' }[promoActif.formule] || promoActif.formule) : '';
       // les demandes qui viennent d'arriver sont marquées traitées (le lien est parti)
       for (let i = avant; i < demandes.length; i++) clientsData[email].demandesTraitees[i] = { par: 'auto — adresse envoyée', ts: Date.now() };
@@ -6922,8 +6955,9 @@ app.post('/api/clients/sync', async (req, res) => {
         'Nom à taper sur la page de connexion : « ' + auto.nom + ' »\n' +
         (auto.neuf ? 'Première connexion : identifiant « ' + auto.ident + ' » · mot de passe provisoire « ' + auto.mdp + ' » (son nom + !!) — l\'app lui fait choisir son vrai mot de passe.\n'
                    : 'Connexion : ses identifiants habituels.\n') +
-        (promoActif ? '🎁 Code teste « ' + promoActif.code + ' » activé : ' + promoLib + ' offert jusqu\'au ' + promoActif.finLe + ' — espace débloqué SANS paiement.'
+        (promoActif ? '🎁 Code teste « ' + promoActif.code + ' » ' + (promoActif.deja ? 'DÉJÀ ACTIF pour cette entreprise (rien de recompté)' : 'activé') + ' : ' + promoLib + ' offert jusqu\'au ' + promoDateFr(promoActif.finLe) + ' — espace débloqué SANS paiement.'
           : (dCode.code && !promoDef ? '⚠️ Code « ' + dCode.code + ' » INCONNU — ignoré.\n' : '') +
+            (promoRefuse ? '⛔ Code « ' + promoRefuse.code + ' » REFUSÉ : déjà utilisé par cette entreprise' + (promoRefuse.finLe ? ' (période offerte terminée le ' + promoDateFr(promoRefuse.finLe) + ')' : '') + ' — un code ne sert qu\'une fois par entreprise.\n' : '') +
             (auto.formule ? 'Formule enregistrée : ' + auto.formule + ' × ' + auto.quantite + ' — se débloque au paiement (ou code promo).'
                           : 'Formule non précisée par le client → à attribuer dans ta Tour (Abonnements).')) +
         '\n\nTout est visible dans ta Tour de contrôle : https://teamop.fr/tour.html';
@@ -6942,17 +6976,21 @@ app.post('/api/clients/sync', async (req, res) => {
         (accesAuto
           ? 'VOTRE TOUTE PREMIÈRE CONNEXION — une seule fois, pour ouvrir l\'espace :\nSur cette adresse, touchez « Première connexion de l\'entreprise ? » et entrez votre code d\'accès :\n\n     ' + accesAuto + '\n\nGardez ce code pour vous : il ouvre votre espace.\n\n'
           : 'Écrivez-nous pour recevoir votre code d\'accès : il ouvre votre espace la première fois.\n\n') + premiereCo +
-        (promoActif ? '\n🎁 Votre code « ' + promoActif.code + ' » est activé : formule ' + promoLib + ' offerte jusqu\'au ' + promoActif.finLe + ' — aucune carte bancaire requise.\n' : '') +
+        (promoActif ? '\n🎁 Votre code « ' + promoActif.code + ' » est ' + (promoActif.deja ? 'déjà actif' : 'activé') + ' : formule ' + promoLib + ' offerte jusqu\'au ' + promoDateFr(promoActif.finLe) + ' — aucune carte bancaire requise.\n'
+          : promoRefuse ? '\n⚠️ ' + promoRefusServi(promoRefuse.code, promoRefuse.finLe).replace('cette entreprise', 'votre entreprise') + ' Votre formule s\'activera dès le paiement de votre abonnement (Mon espace client → Mon abonnement) ; vos données ne sont jamais perdues.\n' : '') +
         '\nEnsuite, créez les comptes de vos collègues dans Administration → Utilisateurs.\n\n' +
         '— L\'équipe TEAM OP · teamop.fr';
       const premiereCoHtml = auto.neuf
         ? MAIL_BLOCS.ident(auto.ident, auto.mdp) + '<br><br>'
         : 'Connectez-vous avec vos <b>identifiants habituels</b>.<br><br>';
       const payer = promoActif
-        ? '🎁 Votre code « ' + promoActif.code + ' » est activé : formule <b>' + promoLib + '</b> offerte jusqu\'au <b>' + promoActif.finLe + '</b> — aucune carte bancaire requise.<br>'
-        : (auto.formule && auto.formule !== 'gratuit')
-        ? '💳 Votre formule « ' + (dFormule.formule || auto.formule) + ' » s\'activera dès le paiement de votre abonnement (Mon espace client → Mon abonnement). En attendant, l\'application fonctionne en mode Découverte.<br>'
-        : '';
+        ? '🎁 Votre code « ' + promoActif.code + ' » est ' + (promoActif.deja ? 'déjà actif' : 'activé') + ' : formule <b>' + promoLib + '</b> offerte jusqu\'au <b>' + promoDateFr(promoActif.finLe) + '</b> — aucune carte bancaire requise.<br>'
+        /* Le refus d'un code déjà servi : son texte vient de `promoRefusServi` (le code sort de
+           config.promos, la date du registre — rien qui vienne du client). */
+        : (promoRefuse ? '⚠️ ' + promoRefusServi(promoRefuse.code, promoRefuse.finLe).replace('cette entreprise', 'votre entreprise') + '<br>' : '') +
+          ((auto.formule && auto.formule !== 'gratuit')
+            ? '💳 Votre formule « ' + (dFormule.formule || auto.formule) + ' » s\'activera dès le paiement de votre abonnement (Mon espace client → Mon abonnement). En attendant, l\'application fonctionne en mode Découverte.<br>'
+            : '');
       const accuseHtml = mailTeamOP({
         chip: 'Accès prêt',
         titre: 'Votre application est prête 🎉',
@@ -7632,8 +7670,130 @@ app.post('/api/monitor/devisia', monAdmin, (req, res) => {
    data/promos-usages.json — un même code ne compte qu'une fois par équipe. */
 const PROMO_USAGE_PATH = path.join(DATA_DIR, 'promos-usages.json');
 let promoUsages = {};
-try { promoUsages = JSON.parse(fs.readFileSync(PROMO_USAGE_PATH, 'utf8')); } catch (e) {}
-function savePromoUsages() { try { fs.writeFileSync(PROMO_USAGE_PATH, JSON.stringify(promoUsages)); } catch (e) {} }
+/* ⛔ UN REGISTRE ILLISIBLE N'EST PAS UN REGISTRE VIDE — la règle de l'annuaire (`espacesIllisible`,
+   relevée par `gardien` le 24 septembre 2026), appliquée aux codes le même jour. Relu vide, ce
+   fichier OUBLIE quelles entreprises ont déjà servi leur code : chacune pourrait le remettre (voir
+   `promoServiA`), et chaque période offerte en cours sortirait du calcul d'`espacePaye()`. On le DIT
+   (journal, `/health.registres.promos`, la surveillance crie) et on n'écrit plus par-dessus. */
+let promosIllisible = false;
+try { promoUsages = JSON.parse(fs.readFileSync(PROMO_USAGE_PATH, 'utf8')); }
+catch (e) { if (e && e.code !== 'ENOENT') { promosIllisible = true; console.error('⛔ promos-usages.json ILLISIBLE — les codes déjà servis sont oubliés en mémoire, et le fichier ne sera pas réécrit tant qu\'il n\'est pas réparé :', e.message); } }
+/* Temporaire puis renommage : un fichier tronqué à l'écriture, c'est le même oubli que plus haut. */
+function savePromoUsages() {
+  if (promosIllisible) { console.error('⛔ promos-usages.json NON réécrit : il était illisible au démarrage — le réparer, puis redémarrer'); return false; }
+  try { const tmp = PROMO_USAGE_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(promoUsages)); fs.renameSync(tmp, PROMO_USAGE_PATH); return true; }
+  catch (e) { console.error('promos-usages.json non écrit :', e.message); return false; } }
+
+/* ══ ⛔⛔ UN CODE PROMO SERT UNE FOIS PAR ENTREPRISE — Justin, 24 septembre 2026 ═══════════════════
+   « Une fois qu'une entreprise l'a activé, ils peuvent pas le remettre. »
+   L'échéance ne se prolongeait déjà jamais : retaper un code rendait la MÊME date. Mais :
+   · la réponse disait « ok » — l'application affichait « 🎉 Code accepté ! » et repassait toute
+     l'équipe en formule payante jusqu'à la vérification suivante ; le courriel d'une demande faite
+     sur le site écrivait « votre code est activé … jusqu'au » une date PASSÉE, sans lien de paiement ;
+   · « repartir à neuf » (la Tour) donne à l'entreprise un NOUVEL identifiant d'espace : sans
+     mémoire, le même code redevenait neuf pour la même entreprise.
+   Une entreprise se reconnaît d'abord à son identifiant d'espace (`t`). Mais « repartir à neuf »
+   lui en donne un NOUVEAU : chaque utilisation porte donc aussi l'EMPREINTE de l'adresse e-mail de
+   l'entreprise (`em`, jamais l'adresse elle-même) et son adresse de connexion (`slug`,
+   `teamop.fr/e/…`), et `/espaces/renaitre` les pose sur les anciennes avant d'effacer l'espace.
+   ⚠️ LE SLUG SEUL NE SUFFIT PAS : une adresse libérée peut être reprise par une AUTRE entreprise,
+   qui ne doit rien hériter — ni un refus, ni une période. On ne rapproche par l'adresse que si
+   aucun des deux côtés n'a d'e-mail (un accès ouvert par la Tour sans adresse) ; sinon c'est
+   l'empreinte de l'e-mail qui décide.
+   ⚠️ Cette mémoire ne sert qu'à REFUSER — ou à reporter sur le nouvel identifiant une période
+   ENCORE EN COURS, quand l'entreprise la présente avec la preuve de sa clé. Jamais à rendre une
+   entreprise « payée » dans `espacePaye()`, qui ne regarde que `t`.
+   ⚠️ Pas au-delà d'une suppression TOTALE (Tour) : elle efface tout, codes compris (« plus rien
+   n'est enregistré nulle part »). C'est voulu, et c'est un geste de la Tour, jamais du client. */
+function promoAujourdhui() { return new Date().toISOString().slice(0, 10); }
+function promoDateFr(d) { return String(d || '').split('-').reverse().join('/'); }
+/* L'empreinte d'une adresse : de quoi RECONNAÎTRE une entreprise, pas de quoi la lire. Le fichier
+   des usages n'a pas à devenir un second carnet d'adresses. */
+function promoEmpreinteMail(email) {
+  const m = String(email || '').trim().toLowerCase();
+  return m ? crypto.createHash('sha256').update('teamop-promo:' + m).digest('hex').slice(0, 24) : ''; }
+/* Qui est cette entreprise : ses adresses de connexion (un espace renommé en garde plusieurs) et
+   l'empreinte de ses e-mails, lues dans l'annuaire. */
+function promoIdentite(t, slug) {
+  const slugs = new Set(slug ? [String(slug)] : []), ems = new Set();
+  for (const [k, x] of Object.entries(espacesReg || {})) {
+    if (!x) continue;
+    let tx = x.t;
+    if (!tx) { try { tx = String(JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')).t || ''); } catch (e) {} }
+    if ((t && tx === t) || (slug && k === slug)) { slugs.add(k); const em = promoEmpreinteMail(x.email); if (em) ems.add(em); }
+  }
+  return { slugs, ems }; }
+/* L'utilisation du code `c` par cette entreprise ({date, finLe, slug, em}), ou null. LECTURE seule. */
+function promoServiA(c, t, slug) {
+  const u = promoUsages[c]; if (!u || !u.equipes) return null;
+  if (t && u.equipes[t]) return u.equipes[t];
+  const id = promoIdentite(t, slug);
+  for (const eq of Object.values(u.equipes)) {
+    if (!eq) continue;
+    if (eq.em && id.ems.has(eq.em)) return eq;
+    if (!eq.em && !id.ems.size && eq.slug && id.slugs.has(eq.slug)) return eq;
+  }
+  return null; }
+/* Ce qu'on inscrit à l'activation : la date, l'échéance CALCULÉE par l'appelant, l'adresse de
+   connexion la plus récente de l'espace et l'empreinte de son e-mail. */
+function promoEntree(finLe, t, slug) {
+  let s = slug ? String(slug) : '', em = '';
+  try { const e = t ? espaceParT(t) : null;
+    if (e) { if (!s) s = e.slug || ''; em = promoEmpreinteMail(e.email); }
+    if (!em && s && espacesReg[s]) em = promoEmpreinteMail(espacesReg[s].email); } catch (err) {}
+  return { date: promoAujourdhui(), finLe, slug: s, em }; }
+/* Un AUTRE code encore en cours pour cette entreprise (son nom, ou '') — « un seul code à la fois ». */
+function promoAutreActif(c, t, slug) {
+  for (const c2 of Object.keys(promoUsages || {})) {
+    if (c2 === c) continue;
+    const eq2 = promoServiA(c2, t, slug);
+    if (eq2 && eq2.finLe && eq2.finLe >= promoAujourdhui()) return c2;
+  }
+  return ''; }
+/* « Repartir à neuf » (Tour) : l'entreprise va revenir sous un NOUVEL identifiant. Ses utilisations
+   passées prennent son adresse de connexion et l'empreinte de son e-mail AVANT que l'annuaire
+   l'oublie — sans ça, le même code redevenait neuf pour elle. */
+function promoMarquerAvantRenaitre(t, slug, email) {
+  const em = promoEmpreinteMail(email); let n = 0;
+  for (const u of Object.values(promoUsages || {})) {
+    const eq = u && u.equipes && t ? u.equipes[t] : null; if (!eq) continue;
+    eq.slug = String(slug || eq.slug || ''); if (em) eq.em = em; n++;
+  }
+  if (n) savePromoUsages();
+  return n; }
+/* Toutes les utilisations d'une entreprise, pour la suppression TOTALE : celles de son identifiant,
+   et celles d'un identifiant d'avant « repartir à neuf » qui portent son e-mail (ou, sans e-mail des
+   deux côtés, son adresse). Une utilisation qui porte l'e-mail d'une AUTRE entreprise ne part pas. */
+function promoCles(t, slugs, emails) {
+  const ss = new Set(slugs || []), ems = new Set([...(emails || [])].map(promoEmpreinteMail).filter(Boolean)), out = [];
+  for (const [code, u] of Object.entries(promoUsages || {})) {
+    for (const [cle, eq] of Object.entries((u && u.equipes) || {})) {
+      if (cle === t || (eq && eq.em && ems.has(eq.em)) || (eq && !eq.em && !ems.size && eq.slug && ss.has(eq.slug))) out.push({ code, cle });
+    }
+  }
+  return out; }
+/* Le verdict pour une entreprise qui PRÉSENTE le code (une demande d'activation, pas une lecture) :
+     { etat: 'neuf' }                  → jamais servi : l'appelant l'active et compte UNE utilisation ;
+     { etat: 'actif', finLe, date, reporte } → déjà servi, période en cours : même échéance, rien ne se recompte
+                                         (`reporte` : elle vient d'un ancien identifiant — repartir à neuf —
+                                         et on l'inscrit sur le nouveau, toujours sans rien recompter) ;
+     { etat: 'servi', finLe }          → déjà servi, période terminée : REFUS, dit par `promoRefusServi` ;
+     { etat: 'indisponible' }          → registre illisible : on ne sait pas, donc on n'active RIEN. */
+function promoPresente(c, t, slug) {
+  /* Registre illisible : on ne SAIT pas si cette entreprise a déjà servi le code — et ce qu'on
+     activerait ne serait pas écrit. Aucune activation tant qu'il n'est pas réparé. */
+  if (promosIllisible) return { etat: 'indisponible' };
+  const eq = promoServiA(c, t, slug);
+  if (!eq) return { etat: 'neuf' };
+  if (eq.finLe && eq.finLe >= promoAujourdhui()) {
+    const u = promoUsages[c]; let reporte = false;
+    if (t && u && u.equipes && !u.equipes[t]) { u.equipes[t] = Object.assign({}, eq, { reporte: true }); savePromoUsages(); reporte = true; }
+    return { etat: 'actif', finLe: eq.finLe, date: eq.date || '', reporte };
+  }
+  return { etat: 'servi', finLe: eq.finLe || '' }; }
+function promoRefusServi(c, finLe) {
+  return 'Le code « ' + c + ' » a déjà été utilisé par cette entreprise' + (finLe ? ' — sa période offerte s’est terminée le ' + promoDateFr(finLe) : '')
+    + '. Un code promo ne sert qu’une fois par entreprise.'; }
 
 /* ── 🎁 Les codes promo, vus depuis la Tour ──────────────────────────────────────────────
    Les codes sont définis dans config.promos (sur le VPS) et leurs usages vivent dans
@@ -7657,7 +7817,10 @@ app.get('/api/monitor/promos', monAdmin, (req, res) => {
         nom: esp ? (esp.nom || esp.slug || '') : '',
         depuis: (e && e.date) || '',
         finLe: (e && e.finLe) || '',
-        actif: !!(e && e.finLe && e.finLe >= aujourdhui)
+        actif: !!(e && e.finLe && e.finLe >= aujourdhui),
+        /* Une période REPORTÉE sur le nouvel identifiant d'une entreprise repartie à neuf : la même
+           période que la ligne d'origine, pas une utilisation de plus (voir `promoPresente`). */
+        reporte: !!(e && e.reporte)
       };
     }).sort((a, b) => String(b.finLe || '').localeCompare(String(a.finLe || '')));
     return {
@@ -7667,7 +7830,7 @@ app.get('/api/monitor/promos', monAdmin, (req, res) => {
       maxUtilisations: Number(p.maxUtilisations) || 0,
       utilisations: Number(u.n) || 0,
       restantes: p.maxUtilisations ? Math.max(0, Number(p.maxUtilisations) - (Number(u.n) || 0)) : null,
-      actifs: usages.filter(x => x.actif).length,
+      actifs: usages.filter(x => x.actif && !x.reporte).length,
       usages
     };
   }).sort((a, b) => (b.actifs - a.actifs) || a.code.localeCompare(b.code));
@@ -7724,20 +7887,32 @@ app.post('/api/promo/valider', (req, res) => {
     if (v !== 'valide' || cleEstPublique(team))
       return res.status(403).json({ error: 'Cet appareil n\'a pas prouvé la clé de son entreprise — mets l\'application à jour, puis réessaie.' });
   }
-  const deja = team && u.equipes[team];
+  /* ⛔⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE (Justin, 24 septembre 2026 — voir `promoPresente`).
+     Retapé pendant sa période : la MÊME échéance, rien ne se recompte, et on le DIT
+     (`dejaUtilise`). Retapé APRÈS : refus — jusqu'ici la réponse disait « ok » avec une
+     échéance passée, et l'application affichait « 🎉 Code accepté ! » puis repassait toute
+     l'équipe en formule payante jusqu'à la vérification suivante.
+     ⚠️ Seulement pour une entreprise qui a PROUVÉ sa clé : l'aperçu n'a pas d'identité, il ne
+     lit donc rien de personne — avant, `{apercu:1, teamId}` disait à n'importe qui quel code
+     une entreprise avait en cours, et jusqu'à quand. */
+  const pres = (!apercu && team) ? promoPresente(c, team, '') : null;
+  if (pres && pres.etat === 'indisponible') return res.status(503).json({ error: 'Les codes promo sont momentanément indisponibles — réessaie un peu plus tard.' });
+  if (pres && pres.etat === 'servi')
+    return res.status(410).json({ error: promoRefusServi(c, pres.finLe), dejaUtilise: true, finLe: pres.finLe });
+  const deja = (pres && pres.etat === 'actif') ? pres : null;
   // un seul code à la fois par espace : si un AUTRE code est encore actif, refus clair
-  if (team && !deja) {
-    for (const [c2, u2] of Object.entries(promoUsages || {})) {
-      const eq2 = u2 && u2.equipes && u2.equipes[team];
-      if (c2 !== c && eq2 && eq2.finLe && eq2.finLe >= new Date().toISOString().slice(0, 10))
-        return res.status(409).json({ error: 'Un code (« ' + c2 + ' ») est déjà actif sur cet espace jusqu\'au ' + eq2.finLe + ' — un seul code à la fois.' });
+  if (pres && !deja) {
+    for (const [c2] of Object.entries(promoUsages || {})) {
+      const eq2 = c2 !== c ? promoServiA(c2, team, '') : null;   // par l'adresse aussi : un code en cours survit à « repartir à neuf »
+      if (eq2 && eq2.finLe && eq2.finLe >= promoAujourdhui())
+        return res.status(409).json({ error: 'Un code (« ' + c2 + ' ») est déjà actif sur cet espace jusqu\'au ' + promoDateFr(eq2.finLe) + ' — un seul code à la fois.' });
     }
   }
   if (!deja && p.maxUtilisations && u.n >= p.maxUtilisations) return res.status(410).json({ error: "Ce code a atteint son nombre maximum d'utilisations" });
   const mois = Math.max(1, Number(p.mois) || 1);
   let finLe;
   if (deja) {
-    finLe = deja.finLe;   // le même code retape par la même équipe : on redonne la même échéance
+    finLe = deja.finLe;   // le même code retapé pendant sa période : la même échéance, jamais une nouvelle
   } else {
     const d = new Date(); d.setMonth(d.getMonth() + mois);
     finLe = d.toISOString().slice(0, 10);
@@ -7745,10 +7920,10 @@ app.post('/api/promo/valider', (req, res) => {
        consommait une utilisation et l'écrivait sur disque — un code à maxUtilisations:2
        s'épuisait en deux requêtes, et un vrai client lisait ensuite « ce code a atteint son
        maximum ». On ne compte que ce qu'on a réellement donné à quelqu'un. */
-    if (!apercu && team) { u.n++; u.equipes[team] = { date: new Date().toISOString().slice(0, 10), finLe }; promoUsages[c] = u; savePromoUsages();
+    if (!apercu && team) { u.n++; u.equipes[team] = promoEntree(finLe, team, ''); promoUsages[c] = u; savePromoUsages();
       mailPromoActive(team, c, finLe, ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium'); }
   }
-  res.json({ ok: true, formule: ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium', mois, finLe, dejaUtilise: !!deja });
+  res.json({ ok: true, formule: ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium', mois, finLe, dejaUtilise: !!deja, debut: deja ? (deja.date || '') : '' });
 });
 
 // ── ⏳ Rappel d'échéance : 7 jours avant la fin d'une période offerte, l'entreprise
