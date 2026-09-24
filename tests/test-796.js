@@ -293,7 +293,9 @@ process.on('exit', arreter);
       for (let i = 0; i < 150 && !vivant2; i++) { await dormir(100); try { vivant2 = (await fetch(B2 + '/health')).ok; } catch (e) {} }
       vrai('   le serveur démarre quand même (les autres entreprises doivent vivre)', vivant2);
       const h = await (await fetch(B2 + '/health')).json();
-      v('⛔ /health le DIT : l\'annuaire est illisible', h.registres, { espaces: false, fermes: true });
+      /* `promos` depuis le 24 septembre (le registre des codes, gardé par `test-803`) : ici il est
+         lisible, et il doit le rester quand c'est l'AUTRE registre qui est abîmé. */
+      v('⛔ /health le DIT : l\'annuaire est illisible', h.registres, { espaces: false, fermes: true, promos: true });
       vrai('   et le journal le crie', /espaces\.json ILLISIBLE/.test(journal2));
       const e2 = await (await fetch(B2 + '/api/espaces/etat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: S.t }) })).json();
       v('⛔⛔ la suspendue n\'est PAS condamnée par un annuaire qu\'on n\'a pas pu lire', [e2.ferme, e2.suspendu], [undefined, true]);
@@ -319,7 +321,7 @@ process.on('exit', arreter);
       let vivant3 = false;
       for (let i = 0; i < 150 && !vivant3; i++) { await dormir(100); try { vivant3 = (await fetch(B3 + '/health')).ok; } catch (e) {} }
       const h3 = await (await fetch(B3 + '/health')).json();
-      v('⛔ /health le DIT : la liste des fermetures est illisible', h3.registres, { espaces: true, fermes: false });
+      v('⛔ /health le DIT : la liste des fermetures est illisible', h3.registres, { espaces: true, fermes: false, promos: true });
       vrai('   et le journal le crie', /entreprises-fermees\.json ILLISIBLE/.test(journal3));
       const tour3 = await (await fetch(B3 + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nom: 'Patron', pass: MDP }) })).json();
       const su = await fetch(B3 + '/api/monitor/espaces/suspendre', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour3.token },
