@@ -94,6 +94,9 @@ un chef d'équipe à qui personne n'est rattaché ; tu préfères l'administrate
   (chef sans équipe) n'est plus coché d'office.
 - Pour ELAN, le jour où ce sera publié : rien à retirer (le stockage n'existe pas chez eux) ; il
   faudra COCHER la case pour chaque personne qui s'y sert, bureau compris.
+- Suite complète : **152 suites · 7 249 vérifications, code 0**. Bêta **publiée seule** sur `main`
+  (`69687aa`) et vérifiée en ligne : `teamop.fr/beta.html` sert `743-beta` (nouveau libellé de la case
+  présent), `app.html` reste en `695`, le service worker de production inchangé.
 
 ## ✅ 24 SEPTEMBRE 2026 — DEUX COMPTES NE PORTENT JAMAIS LE MÊME NOM, ET L'ACCÈS AU STOCKAGE EST UNE PERMISSION (v742, bêta)
 
