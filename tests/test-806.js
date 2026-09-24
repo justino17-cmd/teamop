@@ -73,5 +73,33 @@ console.log('\n── 3. Un bouton n’est jamais plus étroit que son nom');
   }
 }
 
+console.log('\n── 4. La barre « Reprendre » : le nom d’abord, la durée entière');
+{
+  /* ⚠ Mesuré le 24 septembre 2026 : en une seule phrase (« ↩︎ Tu avais commencé : … · il y a N min »),
+     la barre passait sur QUATRE lignes sur un iPhone de 393 px. Elle en a deux : le nom en gras, la
+     fraîcheur dessous. Et un brouillon vit douze heures : « il y a 700 min » ne se lit pas. On JOUE
+     la vraie `multiProposer` dans un bac à sable qui capture ce qu'elle insère. */
+  const corps = (APP.match(/function multiProposer\(vue\)\{[\s\S]*?\n\}/) || [''])[0];
+  vrai('multiProposer est trouvée', corps.length > 300, corps.length);
+  const jouer = (minutes) => {
+    let pose = null;
+    const contenu = { querySelector: () => null, firstChild: null, insertBefore: d => { pose = d; } };
+    const doc = { createElement: () => ({ className: '', innerHTML: '' }) };
+    const f = new Function('multiTout', 'multiFrais', 'multiPoserDefil', '$', 'document', 'esc', 'Date',
+      corps + '\n; multiProposer("clients");');
+    const maintenant = 1_800_000_000_000;
+    f(() => ({ clients: { ts: maintenant - minutes * 60000, html: '<div>x</div>', titre: 'Nouveau client' } }),
+      () => true, () => {}, id => (id === 'content' ? contenu : null), doc, x => String(x),
+      { now: () => maintenant });
+    return pose ? pose.innerHTML : '';
+  };
+  const h5 = jouer(5), h180 = jouer(180);
+  vrai('⛔ la barre est posée, et c’est bien la barre', /class="multi-txt"/.test(h5) && /Reprendre/.test(h5), h5.slice(0, 80));
+  vrai('⛔ le NOM vient d’abord, en gras', /<span class="multi-txt"><b>Nouveau client<\/b><small>/.test(h5));
+  vrai('⛔ 5 minutes s’écrivent en minutes', /il y a 5 min</.test(h5), (h5.match(/<small>[^<]*/) || [''])[0]);
+  vrai('⛔ 3 heures s’écrivent en heures, pas « 180 min »', /il y a 3 h</.test(h180) && !/180 min/.test(h180), (h180.match(/<small>[^<]*/) || [''])[0]);
+  vrai('la croix a un nom (elle n’a que son ✕)', /aria-label="Oublier"/.test(h5));
+}
+
 console.log('\n═══ test-806 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
 process.exit(ko ? 1 : 0);

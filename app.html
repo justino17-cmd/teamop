@@ -855,6 +855,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     .multi-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;
       border-radius:12px;background:var(--bg2);border:1px solid var(--brd);font-size:13.5px;color:var(--t2)}
     .multi-bar b{color:var(--t1)}
+    .multi-bar .multi-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+    .multi-bar .multi-txt b,.multi-bar .multi-txt small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .multi-bar .multi-txt small{font-size:12.5px;color:var(--t3)}
     .nav-item .multi-pt{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}
 </style>
 <style id="plg-css">
@@ -7190,6 +7193,33 @@ html[data-os="windows"][data-marque][data-verre][data-refonte] .ph-actions .btn{
   html[data-marque][data-verre][data-refonte] .ph-actions .btn{min-height:44px!important;padding:0 16px!important}
 }
 
+/* La barre « Reprendre » du multitâche : une vitre posée en haut de l'écran, comme une
+   notification du système — le nom de ce qu'on avait commencé, sa fraîcheur dessous, l'action
+   en voile de la teinte (le même langage que l'action d'un en-tête), et une croix ronde. */
+html[data-marque][data-verre][data-refonte] .multi-bar{
+  flex-wrap:nowrap!important;gap:10px!important;padding:10px 10px 10px 16px!important;
+  border-radius:var(--tf-r-carte2,18px)!important;border:1px solid var(--vr-liseret)!important;
+  background:var(--vr-fond2)!important;box-shadow:var(--vr-ombre)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  font-size:15px!important;color:var(--t2)!important;
+}
+html[data-marque][data-verre][data-refonte] .multi-bar .multi-txt b{font-size:15px;font-weight:600;letter-spacing:-.01em}
+html[data-marque][data-verre][data-refonte] .multi-bar .btn:not(.multi-x){
+  flex:0 0 auto;border:0!important;box-shadow:none!important;font-weight:600!important;
+  background:rgba(var(--tf-acc-rgb),.14)!important;color:var(--acc-txt)!important;
+}
+html[data-marque][data-verre][data-refonte] .multi-bar .multi-x{
+  flex:0 0 auto;width:38px;min-width:38px!important;padding:0!important;justify-content:center;
+  border:0!important;box-shadow:none!important;background:var(--rf-2nd)!important;color:var(--t2)!important;
+}
+html[data-os="windows"][data-marque][data-verre][data-refonte] .multi-bar{border-radius:8px!important}
+/* Sur un Android de 360 px, « Commencé il y a 1 min » demandait 144 px et en recevait 126 : la
+   durée finissait en « … ». On resserre la barre avant de couper une information. */
+@media(max-width:380px){
+  html[data-marque][data-verre][data-refonte] .multi-bar{gap:8px!important;padding-left:12px!important}
+  html[data-marque][data-verre][data-refonte] .multi-bar .btn:not(.multi-x){padding:0 12px!important;font-size:14px!important}
+}
+
 /* ── 13. LES TUILES CHIFFRÉES DU TABLEAU DE BORD ── 40 pt, la tuile d'icône colorée au-dessus */
 html[data-marque][data-refonte] .kpis{gap:12px!important}
 html[data-marque][data-refonte] .kpis .kpi{padding:18px!important;display:flex;flex-direction:column;gap:16px}
@@ -12874,9 +12904,14 @@ function multiProposer(vue){
   const mn = Math.max(1, Math.round((Date.now() - e.ts) / 60000));
   const d = document.createElement('div');
   d.className = 'multi-bar';
-  d.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">↩︎ Tu avais commencé : <b>' + esc(e.titre || 'une fenêtre') + '</b> · il y a ' + mn + ' min</span>'
+  /* Deux lignes plutôt qu'une phrase : le NOM de ce qu'on avait commencé d'abord, en gras, puis
+     « Commencé il y a N min » (court : la durée est l'information, elle ne doit pas finir en
+     « … »). En une seule phrase, la barre passait sur QUATRE lignes
+     sur un iPhone (mesuré le 24 septembre 2026, 393 px) : le texte partageait la rangée avec les
+     deux boutons et se repliait mot par mot. */
+  d.innerHTML = '<span class="multi-txt"><b>' + esc(e.titre || 'une fenêtre') + '</b><small>Commencé il y a ' + (mn < 60 ? mn + ' min' : Math.round(mn / 60) + ' h') + '</small></span>'
     + '<button class="btn sm" onclick="multiReprendre(' + esc(JSON.stringify(vue)) + ')">Reprendre</button>'
-    + '<button class="btn ghost sm" title="Oublier" onclick="multiOublier(' + esc(JSON.stringify(vue)) + '); this.parentNode.remove()">✕</button>';
+    + '<button class="btn ghost sm multi-x" title="Oublier" aria-label="Oublier" onclick="multiOublier(' + esc(JSON.stringify(vue)) + '); this.parentNode.remove()">✕</button>';
   c.insertBefore(d, c.firstChild);
 }
 function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html || '');
