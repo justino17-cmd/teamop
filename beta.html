@@ -7030,7 +7030,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '740-beta';
+const APP_VERSION = '741-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -11800,7 +11800,7 @@ function seed(){
         {id:uid(),mode:'Virement',montant:850,date:d(0),reference:'VIR-2026-02',statut:'attente'}]},
     ],
     mouvements:[
-      {id:uid(),ts:Date.now()-86400000,produitId:p1,type:'sortie',qte:5,motif:'Intervention Tilleuls',vehiculeId:v1},
+      {id:uid(),ts:Date.now()-86400000,produitId:p1,type:'sortie',qte:5,motif:'Sortie véhicule',vehiculeId:v1},
       {id:uid(),ts:Date.now()-43200000,produitId:p3,type:'entree',qte:20,motif:'Réception commande',vehiculeId:''},
       {id:uid(),ts:Date.now()-3600000,produitId:p2,type:'sortie',qte:12,motif:'Chantier Boulogne',vehiculeId:v2},
     ],
@@ -12826,9 +12826,11 @@ function revueExclusions(){
 }
 function usrSansBox(u){
   if(!u||u.actif===false) return false;
-  if(!(db.boxes||[]).length) return false;        // l'entreprise n'a pas de box : ce n'est pas un oubli
+  /* v741 : le stockage n'est pas une box. Il s'ouvre à ceux qui s'y servent, pas à tout le monde :
+     ne pas le voir n'est pas un oubli, et le marquer pousserait à l'ouvrir à toute l'équipe. */
+  if(!(db.boxes||[]).some(b=>!estStockage(b))) return false;        // l'entreprise n'a pas de box : ce n'est pas un oubli
   const avant=currentUser;
-  try{ currentUser=u; return visibleBoxes(db.boxes).length===0; }
+  try{ currentUser=u; return visibleBoxes(db.boxes).filter(b=>!estStockage(b)).length===0; }
   catch(e){ return false; }
   finally{ currentUser=avant; }
 }
@@ -12909,7 +12911,9 @@ function nomsConcernes(p){ const noms=new Set();
   return noms; }
 function visibleMouvements(list){ const p=can('voirTout')?perimetreTechIds():null; if(can('voirTout')&&!p) return list||[]; if(!currentUser) return [];
   const ids=mesBoxIds(), noms=nomsConcernes(p);
-  return (list||[]).filter(m=>(m.boxId&&ids.has(m.boxId))||(m.technicien&&noms.has(nomCle(m.technicien)))); }
+  /* v741 : et celui qui a REÇU — « Donné à » porte son nom, comme le bon de remise (visibleRemises).
+     Un DR qui sort du stockage pour Karim : Karim voit la ligne, sans avoir accès au stockage. */
+  return (list||[]).filter(m=>(m.boxId&&ids.has(m.boxId))||(m.technicien&&noms.has(nomCle(m.technicien)))||(m.donneA&&noms.has(nomCle(m.donneA)))); }
 /* ⛔ LES BONS DE REMISE SUIVENT LA RÈGLE DES MOUVEMENTS — Justin, 23 septembre 2026 : « Mouvement
    stock pareil, tu appliques les mêmes règles, chacun voit ce qui le concerne ». Jusque-là,
    Mouvements stock filtrait les mouvements mais montrait TOUS les bons de l'entreprise à tout le
@@ -19698,14 +19702,14 @@ function intDiagCard(i,edit){ const sel=i.nuisibles||[];
     <div class="dt-lbl" style="margin-bottom:6px">Niveau d'infestation</div>
     ${intInfGauge(i,true,'_diagSetInf')}
   </div>`; }
-/* ── B/F4. Produits & matériel (traçabilité AMM, stock déduit à la clôture) ── */
+/* ── B/F4. Produits & matériel (traçabilité AMM — noté sur l'intervention, jamais déduit du stock) ── */
 function intProdCard(i,edit){ const lines=i.produitsUtilises||[];
   const roLine=(lbl,val)=>`<div><div class="dt-lbl" style="margin-bottom:4px">${lbl}</div><div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);min-height:19px">${esc(val||'')||'<span style="color:var(--t3)">—</span>'}</div></div>`;
   return `<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>🧪 Produits & matériel</h3>${edit?'':'<span style="font-size:10.5px;color:var(--t3)">✏️ stylo pour modifier</span>'}</div>
     ${lines.length?lines.map(l=>{ const cat3=l.categorie&&T3D_CATS[l.categorie];
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px"><b style="flex:1;min-width:0">${cat3?cat3.ic+' ':''}${esc(prodLineName(l))}</b>${prodLineAmm(l)?`<span class="tag mono" style="font-size:10px">AMM ${esc(prodLineAmm(l))}</span>`:(l.nomLibre?'<span class="tag" style="font-size:10px">hors stock</span>':'')}<span style="color:var(--t2)">× ${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</span></div>`; }).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:2px 0 8px">Aucun produit renseigné.</div>'}
-    ${i.stockDeduit?'<div style="font-size:11.5px;color:var(--acc-txt);font-weight:700;margin-top:6px">✓ Stock déduit à la clôture</div>':'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Le stock sera déduit automatiquement à la clôture.</div>'}
+    ${i.stockDeduit?'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Stock déduit à sa clôture (règle d’avant).</div>':'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Noté sur le rapport et au registre — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.</div>'}
     <div style="display:grid;gap:8px;margin-top:10px">
       ${edit?`<div><div class="dt-lbl" style="margin-bottom:4px">Matériel utilisé</div><input value="${esc(i.materiel||'')}" placeholder="Ex : 2 pièges à glu, 1 grille anti-intrusion…" onchange="intEditField('${i.id}','materiel',this.value)" style="width:100%"></div>
       <div><div class="dt-lbl" style="margin-bottom:4px">Zones traitées</div><input value="${esc(i.zones||'')}" placeholder="Ex : cuisine, cave, réserve…" onchange="intEditField('${i.id}','zones',this.value)" style="width:100%"></div>`
@@ -19737,7 +19741,7 @@ const MENTION_REGL='Produits biocides utilisés conformément aux conditions de 
 /* ═══════════ TRAITEMENTS PAR TYPE — questionnaires + matériel + produits RANGÉS PAR TYPE (style Organilog).
    · i.quest = { cat:{actif:true,reponses:{...}} }
    · i.materiel3d = { cle:{on,qte,note,cat} }
-   · i.produitsUtilises étendu : {produitId | nomLibre, qte, unite, categorie} — source unique (stock déduit à la clôture). ═══════════ */
+   · i.produitsUtilises étendu : {produitId | nomLibre, qte, unite, categorie} — source unique (noté, jamais déduit du stock). ═══════════ */
 const T3D_CATS={
   punaises:{ic:'🪳',lbl:'Punaises / puces / poux / anthrène',mat:'rampants',prod:'insecticide'},
   rongeurs:{ic:'🐀',lbl:'Rongeurs',mat:'deratisation',prod:'rodonticide'},
@@ -19915,7 +19919,6 @@ function t3dProdAdd(intId,cat){ const i=db.interventions.find(x=>x.id===intId); 
   const ex=i.produitsUtilises.find(l=>l.produitId===pid&&l.categorie===cat);
   if(ex) ex.qte=(+ex.qte||0)+1;
   else i.produitsUtilises.push({produitId:pid,qte:1,unite:p.unite||'u',categorie:cat});
-  intStockAjuste(i,pid,1,p.unite);
   save(); t3dRefresh(intId); }
 function t3dProdLibre(intId,cat,nom){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!nom){ const inp=$('t3d-prodlibre-'+cat); nom=((inp&&inp.value)||'').trim(); if(!nom){ toast('Tape le nom du produit'); return; } }
@@ -19943,20 +19946,15 @@ function t3dProdToStock(intId,ix){ const i=db.interventions.find(x=>x.id===intId
   l.produitId=pid; delete l.nomLibre;
   save(); t3dRefresh(intId); }
 function t3dProdDelta(intId,ix,d){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
-  const l=(i.produitsUtilises||[])[ix]; if(!l) return; const av=+l.qte||0; l.qte=Math.max(0,av+d); intStockAjuste(i,l.produitId,l.qte-av,l.unite); save(); t3dRefresh(intId); }
+  const l=(i.produitsUtilises||[])[ix]; if(!l) return; l.qte=Math.max(0,(+l.qte||0)+d); save(); t3dRefresh(intId); }
 function t3dProdSet(intId,ix,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
-  const l=(i.produitsUtilises||[])[ix]; if(!l) return; const av=+l.qte||0; l.qte=Math.max(0,parseFloat(String(v).replace(',','.'))||0); intStockAjuste(i,l.produitId,l.qte-av,l.unite); save(); t3dRefresh(intId); }
-/* Changer l'unité après avoir tapé la quantité déplaçait la ligne sans rien dire au stock :
-   « 250 » saisi en L puis corrigé en mL laissait 250 L déduits pour 0,25 L réellement
-   utilisés. On rend dans l'ancienne unité, on reprend dans la nouvelle — l'ordre inverse
-   (unité puis quantité) marchait déjà, d'où le caractère silencieux du défaut. */
+  const l=(i.produitsUtilises||[])[ix]; if(!l) return; l.qte=Math.max(0,parseFloat(String(v).replace(',','.'))||0); save(); t3dRefresh(intId); }
+/* L'unité d'une ligne se change librement : la ligne est une TRACE (rapport, registre), elle ne touche
+   pas au stock (v741). Les documents convertissent à la lecture (prodLineUnit, stockConv). */
 function t3dProdUnit(intId,ix,u){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const l=(i.produitsUtilises||[])[ix]; if(!l) return;
-  const av=prodLineUnit(l), q=l.qte!=null?(+l.qte||0):1;
-  if(q&&av!==u){ intStockAjuste(i,l.produitId,-q,av); intStockAjuste(i,l.produitId,q,u); }
   l.unite=u; save(); t3dRefresh(intId); }
 function t3dProdDel(intId,ix){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
-  const l=(i.produitsUtilises||[])[ix]; if(l) intStockAjuste(i,l.produitId,-(+l.qte||0),l.unite);
   (i.produitsUtilises||[]).splice(ix,1); save(); t3dRefresh(intId); }
 /* ── Réglementaire (appâtage permanent 2019) + cohérence avec le plan d'appâtage ── */
 function t3dRegAlerte(i){ const m=i.materiel3d||{};
@@ -20737,10 +20735,10 @@ function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.
   const old=hit.po.produitId;
   if((old||'')!==(pid||'')) papTouch(hit.pl,'Poste n°'+hit.po.num+' : produit posé « '+((pid&&produit(pid).nom)||'aucun')+' »');   // v740 : imprimé, avec son n° d'AMM
   hit.po.produitId=pid||'';
-  // l'appât posé sur un poste compte dans les produits utilisés → déduit du stock et tracé au registre
+  // l'appât posé sur un poste compte dans les produits utilisés → tracé au registre (le stock ne bouge pas, v741)
   i.produitsUtilises=i.produitsUtilises||[];
-  if(old&&old!==pid){ const ix=i.produitsUtilises.findIndex(l=>l.produitId===old&&l._pap===posteId); if(ix>=0){ intStockAjuste(i,old,-1); i.produitsUtilises.splice(ix,1); } }
-  if(pid&&!i.produitsUtilises.some(l=>l.produitId===pid&&l._pap===posteId)){ const p=produit(pid); i.produitsUtilises.push({produitId:pid,qte:1,unite:p.unite||'u',_pap:posteId}); intStockAjuste(i,pid,1); }
+  if(old&&old!==pid){ const ix=i.produitsUtilises.findIndex(l=>l.produitId===old&&l._pap===posteId); if(ix>=0) i.produitsUtilises.splice(ix,1); }
+  if(pid&&!i.produitsUtilises.some(l=>l.produitId===pid&&l._pap===posteId)){ const p=produit(pid); i.produitsUtilises.push({produitId:pid,qte:1,unite:p.unite||'u',_pap:posteId}); }
   save(); papPosteSheet(intId,posteId); }
 function papSheetSecure(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
@@ -21241,62 +21239,25 @@ function papDossierSanitaire(cid){
     </body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{ try{w.print();}catch(e){} },400); }
 
-/* ── F4. Déduction du stock à la clôture (une seule fois par intervention) ── */
-/* Conversion d'unités pour la déduction (le technicien saisit en mL, le stock est en L…) */
+/* ⛔⛔ v741 — UNE INTERVENTION NE DÉDUIT RIEN, NULLE PART. Justin, 24 septembre 2026 : « le produit ne doit
+   pas se déduire par intervention, on doit juste savoir ce qu'il a utilisé, sinon ça fausserait tout le
+   stock ou la box ». Le stock — box et stockage — bouge quand quelqu'un s'y sert, qu'un arrivage entre ou
+   qu'on le corrige : des gestes qui disent QUI. La clôture déduisait une seconde fois ce que le technicien
+   avait déjà sorti ; la box finissait fausse, et les deux lignes du journal comptaient double dans la
+   consommation.
+   Ce qui a été utilisé reste écrit sur l'intervention (`produitsUtilises`) : sa fiche, le rapport, le
+   registre sanitaire, le dossier, la facture. `intStockDeduire` et `intStockAjuste` n'existent plus
+   (tests/test-794.js le garde) ; une intervention close avant garde son « ✓ Stock déduit », vrai pour elle. */
+/* Conversion d'unités (le technicien saisit en mL, la fiche est en L…) — les documents additionnent. */
 function stockConv(q,de,vers){ if(!de||!vers||de===vers) return q;
   const k={'ml.l':.001,'l.ml':1000,'g.kg':.001,'kg.g':1000};
   const f=k[(de+'').toLowerCase()+'.'+(vers+'').toLowerCase()]; return f?q*f:q; }
 /* Deux unités s'additionnent-elles ? stockConv rend la quantité INCHANGÉE quand il ne sait
-   pas convertir — pratique pour déduire du stock, piégeux pour faire une somme : 2 cart. et
+   pas convertir — pratique pour une ligne seule, piégeux pour faire une somme : 2 cart. et
    3 u devenaient 5. Là où l'on totalise, demander d'abord si l'addition a un sens. */
 function uniteCompat(de,vers){ if(!de||!vers) return true;
   de=String(de).toLowerCase(); vers=String(vers).toLowerCase();
   return de===vers || ['ml.l','l.ml','g.kg','kg.g'].indexOf(de+'.'+vers)>=0; }
-function intStockDeduire(i){ if(!i||i.stockDeduit) return; const lines=i.produitsUtilises||[];
-  i.stockDeduit=true;                                  // posé quoi qu'il arrive : plus de « sera déduit » fantôme
-  if(!lines.length) return;
-  let n=0,_intBoxAttente=0; const manques=[];
-  // la box du technicien : la première qu'il a le droit de voir et qui contient le produit
-  const tids=intTechIds(i);
-  const boxDuTech=pid=>db.boxes.find(b=>b.actif!==false&&(b.stock&&b.stock[pid]&&(b.stock[pid].u||0)>0)&&(b.visibleTous||(b.techIds||[]).some(t=>tids.includes(t))));
-  lines.forEach(l=>{ const p=db.produits.find(x=>x.id===l.produitId); if(!p) return;
-    let q=l.qte!=null?+l.qte:1; if(!q||q<=0) return;                      // ligne à 0 : rien à déduire
-    q=stockConv(q,l.unite||p.unite,p.unite);
-    const b=boxDuTech(p.id); let restant=q;
-    if(b){ const s=b.stock[p.id]; const prevU=s.u||0; const pris=Math.min(restant,prevU);
-      if(pris>0){
-        if(boxValidRequis()){
-          // la part prise dans la box attend le « Valider » du DR — rien ne se retire avant
-          restant-=pris; _intBoxAttente++;
-          boxMvtEnvoyer({type:'ajustement',boxId:b.id,produitId:p.id,du:-pris,dc:0,note:'Intervention '+(i.num||i.titre||'')},true);
-        } else {
-          s.u=prevU-pris; restant-=pris;
-          db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:pris,motif:'Intervention '+(i.num||i.titre||''),vehiculeId:'',boxId:b.id,unite:p.unite||'u',technicien:(currentUser&&fullName(currentUser))||''});
-          try{ notifyDrBoxLow(b,p.id,prevU); notifyDrBoxMove(b,p.id,'sortie',pris,'u'); }catch(_){}
-        } } }
-    if(restant>0){ const dispo=p.qte||0; const pris=Math.max(0,Math.min(restant,dispo));
-      if(pris<restant) manques.push(p.nom+' (manque '+(Math.round((restant-pris)*10000)/10000)+' '+(p.unite||'u')+')');
-      /* Le stock plafonne à zéro depuis toujours ; le mouvement, lui, écrivait la quantité
-         DEMANDÉE. Cinq unités déclarées sur un stock de deux inscrivaient une sortie de cinq
-         — trois unités qui n'ont jamais existé, dans l'historique et dans les indicateurs de
-         consommation. Le calcul de `pris` était déjà là, il n'était simplement pas utilisé. */
-      p.qte=Math.max(0,dispo-pris);
-      if(pris>0) db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:pris,motif:'Intervention '+(i.num||i.titre||''),vehiculeId:'',unite:p.unite||'u',technicien:(currentUser&&fullName(currentUser))||''}); }
-    n++; });
-  if(n) intHisto(i,'Stock déduit à la clôture : '+n+' produit(s)'+(_intBoxAttente?' — dont '+_intBoxAttente+' pris en box, en attente de validation DR':''));
-  if(_intBoxAttente){
-    try{ const dest=valideursPour(null);
-      if(dest.length) pushNotify('🔒 À valider — produits pris en box','Intervention '+(i.num||i.titre||'')+' : '+_intBoxAttente+' produit(s) · par '+((currentUser&&fullName(currentUser))||''),'/app.html#v=validations',dest); }catch(e){}
-    toast('📨 Produits pris en box envoyés au DR pour validation'); }
-  if(manques.length) toast('⚠️ Stock insuffisant : '+manques.join(', ')); }
-/* Retouche des produits APRÈS la clôture : le stock suit immédiatement,
-   et un mouvement « Ajustement après clôture » le raconte — plus d'écart
-   silencieux entre la fiche et l'inventaire. */
-function intStockAjuste(i,produitId,delta,unite){ if(!i||!i.stockDeduit||!produitId||!delta) return;
-  const p=db.produits.find(x=>x.id===produitId); if(!p) return;
-  const d=stockConv(delta,unite||p.unite,p.unite);
-  p.qte=Math.max(0,(p.qte||0)-d);
-  db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:d>0?'sortie':'entree',qte:Math.abs(d),motif:'Ajustement après clôture — '+(i.num||i.titre||''),vehiculeId:'',unite:p.unite||'u',technicien:(currentUser&&fullName(currentUser))||''}); }
 /* ── F6. Modale de suite de clôture (partagée : rapport classique + assistant) ── */
 function clotureSuiteModal(id,askNext,recurMsg){ const it=db.interventions.find(x=>x.id===id)||{};
   toast('Intervention effectuée ✓'+(recurMsg||''));
@@ -21354,15 +21315,15 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
     <div class="field"><label>Zones traitées</label><input value="${esc(asW.zones)}" oninput="asW.zones=this.value" placeholder="Ex : cuisine, cave, réserve…"></div>
     <div class="field"><label>Matériel utilisé</label><input value="${esc(asW.materiel)}" oninput="asW.materiel=this.value" placeholder="Ex : 2 pièges à glu, 1 grille anti-intrusion…"></div>`;
   } else if(s===2){ const lines=i.produitsUtilises=i.produitsUtilises||[];
-    body=`<div class="form-sec" style="margin-top:0">3 · Produits utilisés (registre & stock)</div>
+    body=`<div class="form-sec" style="margin-top:0">3 · Produits utilisés (registre)</div>
     ${lines.length?lines.map((l,ix)=>{ const p=produit(l.produitId);
       return `<div class="fgroup" style="margin-bottom:8px"><div class="frow"><div style="flex:1;min-width:0"><b style="font-size:13.5px">${esc(p.nom||'—')}</b>${p.amm?`<div class="mono" style="font-size:11px;color:var(--t3)">AMM ${esc(p.amm)}</div>`:'<div style="font-size:11px;color:var(--t3)">AMM non renseignée (fiche produit)</div>'}</div>
         <div style="display:flex;align-items:center;gap:6px"><button type="button" class="btn ghost sm" onclick="asProdQte('${i.id}',${ix},-1)">−</button><b class="mono" style="min-width:26px;text-align:center">${l.qte||1}</b><button type="button" class="btn ghost sm" onclick="asProdQte('${i.id}',${ix},1)">＋</button><button type="button" class="btn danger sm" onclick="asProdDel('${i.id}',${ix})">✕</button></div></div></div>`; }).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:4px 0 10px">Aucun produit pour l’instant.</div>'}
     <div style="display:flex;gap:7px;align-items:center;margin-top:6px">
-      <select id="as-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:12px;color:var(--t1)"><option value="">— Ajouter un produit du registre —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.nom)}${p.amm?' · AMM '+esc(p.amm):''} (stock ${p.qte||0})</option>`).join('')}</select>
+      <select id="as-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:12px;color:var(--t1)"><option value="">— Ajouter un produit du registre —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.nom)}${p.amm?' · AMM '+esc(p.amm):''}</option>`).join('')}</select>
       <button type="button" class="btn" onclick="asProdAdd('${i.id}')">＋</button></div>
-    <div style="font-size:12px;color:var(--t3);margin-top:8px">Le stock sera déduit automatiquement à la clôture. Les n° AMM apparaissent sur le rapport (traçabilité biocide).</div>`;
+    <div style="font-size:12px;color:var(--t3);margin-top:8px">Noté sur le rapport et au registre (n° AMM, traçabilité biocide) — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.</div>`;
   } else if(s===3){
     body=`<div class="form-sec" style="margin-top:0">4 · Photos avant / après</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:9px;margin-bottom:10px">
@@ -21402,15 +21363,13 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
 }
 function intCkToggleQuiet(id,k){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.checklist||!i.checklist[k]) return; i.checklist[k].done=!i.checklist[k].done; save(); }
 function asProdQte(id,ix,d){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.produitsUtilises[ix]) return;
-  const l=i.produitsUtilises[ix]; const av=l.qte||1; l.qte=Math.max(1,av+d); intStockAjuste(i,l.produitId,l.qte-av,l.unite); save(); assistRender(); }
+  const l=i.produitsUtilises[ix]; l.qte=Math.max(1,(l.qte||1)+d); save(); assistRender(); }
 function asProdDel(id,ix){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
-  const l=i.produitsUtilises[ix]; if(l) intStockAjuste(i,l.produitId,-(+l.qte||1),l.unite);
   i.produitsUtilises.splice(ix,1); save(); assistRender(); }
 function asProdAdd(id){ const i=db.interventions.find(x=>x.id===id); const pid=($('as-prod')||{}).value; if(!i||!pid){ toast('Choisis un produit'); return; }
   i.produitsUtilises=i.produitsUtilises||[];
   const ex=i.produitsUtilises.find(l=>l.produitId===pid);
   if(ex) ex.qte=(ex.qte||1)+1; else i.produitsUtilises.push({produitId:pid,qte:1});
-  intStockAjuste(i,pid,1);
   save(); assistRender(); }
 async function asAddPhotos(e){ const files=[...e.target.files]; e.target.value='';
   for(const f of files){ const d=await compressImage(f); if(d){ rapPhotos.push(d); rapTags.push(''); } } assistRender(); }
@@ -21433,7 +21392,6 @@ function assistFinish(id){ if(!asW) return; const ix=db.interventions.findIndex(
   it.statut='terminee'; it.finReel=Date.now();
   if(it.debutReel) it.dureeReelle=Math.round((it.finReel-it.debutReel)/60000)||it.duree;
   intRecaleAuJourFait(it);
-  intStockDeduire(it);
   syncFactureFromIntervention(it);
   let recurMsg='';
   const askNext=it.date&&!it.nextCreated&&((it.recurrence&&it.recurrence!=='aucune')||it.passageTotal>1||it.groupId);
@@ -21970,10 +21928,10 @@ function renderIntDetail(id){
       : '<div style="color:var(--t3);font-size:13px;padding:6px 0">Aucun produit utilisé.</div>'}
       <div style="text-align:right;font-size:14px;margin:8px 0 14px">Coût matériel : <b style="color:var(--acc-txt)">${eur(cout)}</b></div>
       <div style="display:flex;gap:7px;align-items:center">
-        <select id="ip-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)"><option value="">— Produit —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.ref)} — ${esc(p.nom)} (stock ${p.qte})</option>`).join('')}</select>
+        <select id="ip-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)"><option value="">— Produit —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.ref)} — ${esc(p.nom)}</option>`).join('')}</select>
         <input id="ip-qte" type="number" min="0.01" step="any" value="1" style="width:64px;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)">
         <button class="btn" onclick="intAddProduit('${id}')">＋</button></div>
-      <div style="font-size:12px;color:var(--t3);margin-top:8px">${i.stockDeduit?'✓ Stock déjà déduit à la clôture de cette intervention.':'Le stock sera déduit automatiquement à la clôture (mouvement de sortie). Les n° AMM du catalogue apparaissent sur le rapport.'}</div>`;
+      <div style="font-size:12px;color:var(--t3);margin-top:8px">${i.stockDeduit?'Stock déduit à la clôture de cette intervention (règle d’avant).':'Noté sur le rapport et au registre — le stock ne bouge pas. Les n° AMM du catalogue apparaissent sur le rapport.'}</div>`;
   } else if(intTab==='equipement'){
     body=`${i.equipements.length? i.equipements.map((e,ix)=>`<div class="pl-row" style="cursor:default"><div class="pl-info"><div class="pl-title">${esc(e.nom)}</div><div class="pl-meta">${esc(e.reference)||'—'}${e.note?' · '+esc(e.note):''}</div></div><button class="btn danger sm" onclick="intDelEquip('${id}',${ix})">✕</button></div>`).join('')
       : '<div style="color:var(--t3);font-size:13px;padding:6px 0">Aucun équipement.</div>'}
@@ -22618,8 +22576,8 @@ function intCkToggle(id,k){ const i=db.interventions.find(x=>x.id===id); if(!i||
 function intCkDel(id,k){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.checklist) return; i.checklist.splice(k,1); save(); renderIntDetail(id); }
 function intGenererDoc(id,kind){ if(!permGarde('ventes','ajouter',kind==='devis'?'un devis':'une facture')) return; const i=db.interventions.find(x=>x.id===id); if(!i)return;
   /* Le technicien saisit dans SON unité (250 mL) ; le prix de la fiche est par unité de
-     stock (48 €/L). Sans stockConv — que intStockDeduire applique déjà sur exactement la
-     même donnée — la facture partait chez le client à 12 000 € au lieu de 12 €. L'unité
+     stock (48 €/L). Sans stockConv — que la déduction de stock appliquait sur exactement la
+     même donnée, jusqu'à la v741 — la facture partait chez le client à 12 000 € au lieu de 12 €. L'unité
      figure dans la désignation : le client doit lire ce qu'on lui compte. */
   const lignes=(i.produitsUtilises||[]).map(l=>{ const p=produit(l.produitId);
     const uL=prodLineUnit(l), uP=p.unite||uL;
@@ -22667,16 +22625,15 @@ async function smsArrivee(id){ const i=db.interventions.find(x=>x.id===id); if(!
   location.href='sms:'+tel+'?&body='+encodeURIComponent(msg);
 }
 function intAddProduit(id){ const i=db.interventions.find(x=>x.id===id); const pid=$('ip-prod').value, q=parseFloat(String($('ip-qte').value).replace(',','.'))||1; if(!pid){toast('Choisis un produit');return;}
-  i.produitsUtilises.push({produitId:pid,qte:q}); intStockAjuste(i,pid,q); save(); renderIntDetail(id); }
+  i.produitsUtilises.push({produitId:pid,qte:q}); save(); renderIntDetail(id); }
 function intDelProduit(id,ix){ const i=db.interventions.find(x=>x.id===id);
-  const l=(i.produitsUtilises||[])[ix]; if(l) intStockAjuste(i,l.produitId,-(+l.qte||1),l.unite);
   i.produitsUtilises.splice(ix,1); save(); renderIntDetail(id); }
 function intToggleProd(id,nom){ const i=db.interventions.find(x=>x.id===id); if(!i)return; i.produitsUtilises=i.produitsUtilises||[];
   let p=db.produits.find(x=>produitCle(x)===produitCle({nom}));
   if(!p){ if(!permGarde('stock','ajouter','un produit')) return; p=produitCreer({id:idProduit(nom),nom,categorie:'',fournisseurs:[],ref:'',unite:'unité',prix:0,qte:0,seuil:0}); }
   const ix=i.produitsUtilises.findIndex(l=>l.produitId===p.id);
-  if(ix>=0){ const l=i.produitsUtilises[ix]; intStockAjuste(i,p.id,-(+l.qte||1),l.unite); i.produitsUtilises.splice(ix,1); }
-  else { i.produitsUtilises.push({produitId:p.id,qte:1}); intStockAjuste(i,p.id,1); }
+  if(ix>=0) i.produitsUtilises.splice(ix,1);
+  else i.produitsUtilises.push({produitId:p.id,qte:1});
   save(); renderIntDetail(id); }
 function intAddEquip(id){ const i=db.interventions.find(x=>x.id===id); const nom=$('ie-nom').value.trim(); if(!nom){toast('Nom requis');return;}
   i.equipements.push({nom,reference:$('ie-ref').value.trim(),note:''}); save(); renderIntDetail(id); }
@@ -23255,7 +23212,7 @@ function saveRapport(e,id){ e.preventDefault(); const f=e.target; const data=Obj
   { const m={'Aucune présence':'faible','Faible':'faible','Moyen':'moyen','Fort':'fort','Critique':'fort'}; if(constat.infestation) db.interventions[ix].infestation=m[constat.infestation]||''; }
   // Étiquettes avant/après : invalidées si la liste de photos a changé hors assistant
   if(db.interventions[ix].photoTags&&db.interventions[ix].photoTags.length!==rapPhotos.length) delete db.interventions[ix].photoTags;
-  if(effectuee){ if(sig) db.interventions[ix].clientAbsent=false; try{ intStockDeduire(db.interventions[ix]); }catch(err){} }
+  if(effectuee&&sig) db.interventions[ix].clientAbsent=false;   // v741 : effectuer ne déduit plus rien du stock
   /* EFFECTUER écrit dans le registre : une intervention payée = UNE ligne,
      créée ici et jamais recomptée ailleurs. */
   try{ if(typeof regMigration==='function') regMigration();
@@ -23844,8 +23801,8 @@ function produitsFusionnerDoublons(cles){
       if(!s.ref&&x.ref) s.ref=x.ref; if(!s.categorie&&x.categorie) s.categorie=x.categorie;
       if(!s.prix&&x.prix) s.prix=x.prix; if(!s.seuil&&x.seuil) s.seuil=x.seuil; if(!s.amm&&x.amm) s.amm=x.amm;
       if(!s.qteCarton&&x.qteCarton) s.qteCarton=x.qteCarton; if(x.perso) s.perso=true;
-      /* p.qte est le stock GLOBAL du produit, celui qu'intStockAjuste décrémente à chaque
-         intervention — il n'a rien à voir avec b.stock. Il n'était pas repris : fusionner deux
+      /* p.qte est l'ancien stock GLOBAL du produit (hors box, avant le stockage) — il n'a rien à
+         voir avec b.stock. Il n'était pas repris : fusionner deux
          fiches à 30 et 12 en laissait 30, et 12 unités disparaissaient du catalogue. */
       s.qte=(+s.qte||0)+(+x.qte||0);
       s.cree=Math.min(produitCree(s),produitCree(x)); });   // la plus ancienne des deux dates : une fusion ne fabrique pas une nouveauté
@@ -24044,6 +24001,10 @@ function produitsCopier(){
 function renderProduitsList(){
   const el=$('prd-list'); if(!el) return;
   const q=norm(prdSearch);
+  /* v741 : l'état d'une fiche se lit sur le MÊME total que Stock (le stockage et les box qu'on voit).
+     Il lisait `p.qte` — « Épuisé » ici, « 40 unités » là. Pour qui ne voit pas tout, un produit absent
+     de ses box n'est pas épuisé : il n'est pas chez lui, et l'écran le dit comme ça. */
+  const TOT=stockTotaux(), toutVu=stockVoitTout();
   let list=produitsVisibles();
   if(!list.length){ const vide=!(db.produits||[]).length&&!q;
     el.innerHTML=prdCataloguePont(q,false)+`<div class="card">${emptyState('📦',vide?'Ton catalogue est vide. Ajoute tes produits un par un (＋ Produit) ou colle ta liste entière (＋ Liste) : ils serviront ensuite dans les box, les interventions et les bons de commande.':prdOnglet==='perso'?'Aucun produit à toi pour l\'instant — ajoute-les un par un (＋ Produit) ou colle ta liste entière (＋ Liste).':'Aucun produit trouvé.','Ajouter','formProduit()')}</div>`; return; }
@@ -24053,11 +24014,11 @@ function renderProduitsList(){
   el.innerHTML=(q?prdCataloguePont(q,true):'')+`<div style="font-size:12px;color:var(--t3);margin:2px 2px 10px">${list.length} produit(s) · ${orderedCats.length} catégorie(s)</div>`+orderedCats.map(cat=>{
     const col=catColor(cat); const prods=groups[cat].slice().sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
     const open = !!q || prdExpanded[cat];
-    const rows=open? prods.map(p=>{ const e=boxEtat(p.qte); const bc=prdBoxCount(p);
+    const rows=open? prods.map(p=>{ const tq=TOT[p.id]; const e=(tq==null&&!toutVu)?{k:'hors',l:'Pas dans tes box',c:'var(--t3)'}:boxEtat(tq||0); const bc=prdBoxCount(p);
       return `<div class="pl-row" style="border:none;border-bottom:.5px solid color-mix(in srgb,var(--brd) 60%,transparent);border-radius:0;margin:0" onclick="formProduit('${p.id}')">
         <div class="pl-info">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:14px;font-weight:600;color:var(--t1)">${esc(p.nom)}</span>${p.ref?`<span class="mono" style="font-size:9px;color:var(--t3)">${esc(p.ref)}</span>`:''}</div>
-          <div style="display:flex;align-items:center;gap:5px;margin-top:3px;font-size:13px;font-weight:600;color:${e.c}"><span style="width:8px;height:8px;border-radius:50%;background:${e.c}"></span>${e.l}</div>
+          <div style="display:flex;align-items:center;gap:5px;margin-top:3px;font-size:13px;font-weight:600;color:${e.c}"><span style="width:8px;height:8px;border-radius:50%;background:${e.c}"></span>${e.l}${tq?' · '+tq.toLocaleString('fr-FR')+' u':''}</div>
           <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${(p.fournisseurs||[]).map(fourBadge).join(' ')}</div>
         </div>
         <div style="text-align:right;white-space:nowrap">${bc?`<div style="font-size:11px;color:var(--t3)">${bc} box${bc>1?'es':''}</div>`:''}</div>
@@ -24194,25 +24155,170 @@ function formFournisseur(id){ const f=id?db.fournisseurs.find(x=>x.id===id):{};
 }
 
 /* ═══════════════ STOCK ═══════════════ */
+/* ⛔⛔ LE STOCKAGE — LE STOCK RANGÉ HORS DES BOX (v741). Justin, 24 septembre 2026 : « B, ça regroupe
+   toutes les box — et si des entreprises n'ont pas de box, elles peuvent tout mettre dans le stock
+   directement, et donner un accès aux utilisateurs qui se servent dans le stockage, avec un suivi de
+   qui prend quoi ».
+   Mesuré la veille (scratchpad/sonde-entrepot.js) : le même produit disait « 40 unités » dans Stock,
+   « Épuisé » dans Produits et « Stock bas (0/5) » dans la cloche. Stock additionnait les box ; les
+   deux autres lisaient `p.qte`, un compteur caché que plus aucune livraison ne créditait.
+   LE STOCKAGE EST UNE BOX, et c'est délibéré : elle a déjà tout ce qu'on demande — l'arrivage avec la
+   photo du bon de livraison et le bon de commande rattaché, la validation du DR, « Pour qui ? » et le
+   bon de remise (qui prend quoi), le journal rangé par box, la fusion ligne à ligne entre appareils
+   (`boxFusionFine`) et l'accès PERSONNE PAR PERSONNE. Une seconde mécanique aurait dit la même chose
+   autrement, et divergé un jour. Trois choses le distinguent d'une box :
+   · son identifiant est FIXE : deux appareils qui le créent en même temps créent le MÊME
+     enregistrement, fusionné ligne à ligne — jamais deux stockages ;
+   · il ne s'ouvre d'office qu'à qui « voit tout » : l'accès se DONNE (stockageAcces) ;
+   · il baisse quand quelqu'un S'Y SERT — comme une box : une intervention ne déduit rien, nulle part
+     (« UNE INTERVENTION NE DÉDUIT RIEN ») ; ce qu'un technicien a pris est déjà sorti. */
+const STOCKAGE_ID='stockage';
+function estStockage(b){ return !!(b&&b.id===STOCKAGE_ID); }
+function stockageBox(){ return (db.boxes||[]).find(b=>b&&b.id===STOCKAGE_ID&&b.actif!==false)||null; }
+function stockageVisible(){ const s=stockageBox(); return !!(s&&visibleBoxes([s]).length); }
 let stockSearch='';
+/* Une ligne par produit : les box qu'on voit — le stockage en tête — plus l'ancien stock du catalogue
+   (`p.qte`) tant qu'il n'a pas été rangé dans le stockage. Sans lui, Stock et Produits divergeraient
+   de nouveau chez une entreprise qui a scanné son catalogue sans jamais créer de box. */
 function stockLines(){ const map={};
+  const ajoute=(p,nom,u,ctn,stk)=>{ if(!map[p.id]) map[p.id]={p,total:0,ctn:0,boxes:[]}; map[p.id].total+=u; map[p.id].ctn+=ctn; map[p.id].boxes.push({nom,u,ctn,stockage:!!stk}); };
   visibleBoxes(db.boxes).forEach(b=>{ const st=b.stock||{}; Object.keys(st).forEach(pid=>{ const p=produit(pid); if(!p.id)return; const u=(st[pid]||{}).u||0; const ctn=(st[pid]||{}).ctn||0;
-    if(!map[pid]) map[pid]={p,total:0,ctn:0,boxes:[]}; map[pid].total+=u; map[pid].ctn+=ctn; map[pid].boxes.push({nom:b.nom||b.numero,u,ctn}); }); });
+    ajoute(p,estStockage(b)?(b.nom||'Stockage'):(b.nom||b.numero),u,ctn,estStockage(b)); }); });
+  (db.produits||[]).forEach(p=>{ const q=+(p&&p.qte)||0; if(p&&p.id&&q>0) ajoute(p,'Hors box (catalogue)',q,0,false); });
   // eff = unités réellement disponibles, cartons compris (1 carton = qteCarton unités, sinon 1)
-  Object.values(map).forEach(l=>{ l.eff=l.total+l.ctn*(l.p.qteCarton>0?l.p.qteCarton:1); });
+  Object.values(map).forEach(l=>{ l.eff=l.total+l.ctn*(l.p.qteCarton>0?l.p.qteCarton:1); l.boxes.sort((a,b)=>(b.stockage?1:0)-(a.stockage?1:0)); });
   return Object.values(map);
 }
+/* Le total d'un produit TEL QUE STOCK LE MONTRE — lu par Produits, la cloche et la commande
+   suggérée. UNE règle : c'est d'en avoir eu deux que venait « 40 unités » à côté d'« Épuisé ». */
+function stockTotaux(){ const t={}; stockLines().forEach(l=>{ t[l.p.id]=l.eff; }); return t; }
+/* Voit-il le périmètre entier ? Alors un produit absent de ses lignes est vraiment à zéro ; sinon il
+   est seulement absent de SES box, et le dire « épuisé » serait faux. */
+function stockVoitTout(){ return can('voirTout')&&!perimetreTechIds(); }
+/* Cette personne voit-elle cette box ? On REJOUE visibleBoxes pour elle, comme usrSansBox : une
+   seconde écriture de la règle divergerait un jour. currentUser est TOUJOURS remis, même si ça lève. */
+function boxVuePar(u,b){ if(!u||!b) return false; const avant=currentUser;
+  try{ currentUser=u; return visibleBoxes([b]).length>0; }
+  catch(e){ return false; }
+  finally{ currentUser=avant; } }
+/* D'office, et sans rien qu'on puisse décocher ici : qui « voit tout » sans équipe rattachée voit
+   toutes les box — l'exception d'une box ne joue pas pour lui (visibleBoxes). */
+function stockageOffice(u){ return !!u&&userCap(u,'voirTout')&&!perimetreTechIds(u); }
+function stockageGens(s){ return (db.users||[]).filter(u=>u&&u.actif!==false&&boxVuePar(u,s)); }
+/* La carte du stockage, en tête de Stock : ce qu'il contient, les gestes, et qui peut s'y servir.
+   ⛔ Un écran qui ne montre rien doit dire pourquoi : sans stockage, on propose de le créer (à qui
+   peut créer une box) ; stockage fermé à cette personne, on le lui DIT — sinon elle cherche une panne. */
+function stockageCarte(){
+  const s=stockageBox();
+  if(!s){
+    if(!boxGerer('ajouter')) return '';
+    const anc=(db.produits||[]).filter(p=>p&&p.id&&(+p.qte||0)>0), u=anc.reduce((t,p)=>t+(+p.qte||0),0);
+    /* « Pas de box ? » ne se dit pas à une entreprise qui en a dix-huit : pour elle, c'est un dépôt central. */
+    const aDesBox=(db.boxes||[]).some(b=>b&&!estStockage(b));
+    return `<div class="card stk-carte" style="margin:0 0 14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:26px;line-height:1" aria-hidden="true">🏬</span>
+      <div style="flex:1;min-width:220px"><div style="font-weight:800;font-size:15px">${aDesBox?'Un stock central, hors des box ? Crée le stockage':'Pas de box ? Range tout dans le stockage'}</div>
+        <div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-top:3px">Un stock central, hors des box : les arrivages y entrent, ceux à qui tu donnes l’accès s’y servent, et chaque sortie dit <b>qui a pris quoi</b>.${anc.length?` Le stock noté dans le catalogue (${anc.length} produit${anc.length>1?'s':''} · ${u.toLocaleString('fr-FR')} u) y sera rangé.`:''}</div></div>
+      <button class="btn" onclick="stockageCreer()">Créer le stockage</button></div>`;
+  }
+  if(!visibleBoxes([s]).length) return `<div class="card" style="margin:0 0 14px;padding:12px 16px;font-size:12.5px;color:var(--t3);line-height:1.55">🏬 Le stockage de l’entreprise ne t’est pas ouvert. Si tu dois t’y servir, demande l’accès à ton administrateur.</div>`;
+  const t=boxTotalStock(s), n=Object.keys(s.stock||{}).filter(pid=>produit(pid).id).length;
+  const journal=userSeesModule(currentUser,'mouvements'), acces=boxGerer('modifier'), nb=acces?stockageGens(s).length:0;
+  /* Une ligne qu'on touche : 46 px de haut (plancher tactile), un chevron, et le clavier aussi. */
+  const ligne=(fn,lib,val)=>`<div class="stk-l" role="button" tabindex="0" onclick="${fn}" onkeydown="if(event.key==='Enter')${fn}" style="display:flex;align-items:center;gap:10px;min-height:46px;border-top:1px solid color-mix(in srgb,var(--brd) 70%,transparent);cursor:pointer">
+      <span style="flex:1;min-width:0;font-size:14px;font-weight:600">${lib}</span>
+      ${val?`<span style="color:var(--t3);font-size:13px;white-space:nowrap">${val}</span>`:''}
+      <span style="color:var(--t3);font-size:20px;font-weight:300" aria-hidden="true">›</span></div>`;
+  /* La marge intérieure est celle de la carte (la refonte la fixe) : les lignes s'y alignent, sans
+     en ajouter une seconde qui décalerait tout vers l'intérieur. */
+  return `<div class="card stk-carte" style="margin:0 0 14px">
+    <div role="button" tabindex="0" title="Ouvrir le stockage" onclick="openBox('${STOCKAGE_ID}')" onkeydown="if(event.key==='Enter')openBox('${STOCKAGE_ID}')" style="display:flex;gap:12px;align-items:center;padding:0 0 12px;cursor:pointer">
+      <span style="font-size:26px;line-height:1" aria-hidden="true">🏬</span>
+      <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:15px">${esc(s.nom||'Stockage')}</div>
+        <div style="font-size:12.5px;color:var(--t3)">${n} produit${n>1?'s':''} · ${t.u.toLocaleString('fr-FR')} u${t.c?' · '+t.c.toLocaleString('fr-FR')+' ctn':''} — le stock hors des box</div></div>
+      <span style="color:var(--t3);font-size:22px;font-weight:300" aria-hidden="true">›</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 0 12px;max-width:480px">
+      <button class="btn" style="justify-content:center" onclick="stockageServir()">Me servir</button>
+      <button class="btn ghost" style="justify-content:center" onclick="stockageArrivage()">Arrivage</button></div>
+    ${journal?ligne('stockageJournal()','Qui a pris quoi',''):''}
+    ${acces?ligne('stockageAcces()','Qui peut s’y servir',nb+' personne'+(nb>1?'s':'')):''}
+  </div>`;
+}
+/* Créer le stockage : un tap, jamais au chargement (rien ne s'écrit dans les données d'une entreprise
+   sans un geste). L'ancien stock du catalogue y est RANGÉ, pas recopié : `p.qte` repasse à zéro et le
+   stockage reçoit la même quantité, tracée — le total de l'entreprise ne bouge pas, il change de place. */
+function stockageCreer(){ if(!boxGererGarde('ajouter')) return;
+  const ex=(db.boxes||[]).find(b=>b&&b.id===STOCKAGE_ID);
+  if(ex){ if(ex.actif===false){ ex.actif=true; logEvent('Stockage réactivé','','stock'); save(); toast('🏬 Stockage réactivé'); } else toast('Le stockage existe déjà');
+    refreshEcran(); return; }
+  const anc=(db.produits||[]).filter(p=>p&&p.id&&(+p.qte||0)>0);
+  if(anc.length&&!confirm('Créer le stockage ?\n\nLe stock noté dans le catalogue ('+anc.length+' produit'+(anc.length>1?'s':'')+') y sera rangé : il quitte le catalogue et entre dans le stockage, avec une ligne au journal pour chacun.')) return;
+  const st={id:STOCKAGE_ID,stockage:true,nom:'Stockage',numero:'',groupe:'Sans groupe',stock:{},techIds:[],userIds:[],visibleTous:false,respUserId:'',actif:true,arrivages:[],notes:''};
+  db.boxes.unshift(st);
+  anc.forEach(p=>{ const q=+p.qte||0; st.stock[p.id]={ctn:0,u:q}; p.qte=0; traceBox(st,p.id,q,'u','Stock du catalogue rangé dans le stockage',fullName(currentUser)); });
+  /* Une ligne de journal par GESTE, jamais par produit (db.journal est plafonné à 500). */
+  logEvent('Stockage créé',anc.length?anc.length+' produit(s) du catalogue y sont rangés':'vide','stock');
+  save();
+  toast('🏬 Stockage créé'+(anc.length?' — '+anc.length+' produit(s) du catalogue y sont rangés':'')+'. Donne l’accès à ceux qui s’y servent.',4600);
+  refreshEcran(); }
+function stockageOuvert(){ const s=stockageBox(); if(!s){ toast('Pas encore de stockage'); return null; }
+  if(!visibleBoxes([s]).length){ toast('Le stockage ne t’est pas ouvert — demande l’accès à ton administrateur',3800); return null; }
+  return s; }
+/* « Me servir » : la sortie se fait DANS le stockage, comme dans une box — boxAdj travaille sur la box
+   affichée. Sans validation du DR, la liste « Pour qui ? » s'ouvre sur « Pour moi » ; soumis au DR, on
+   touche « − » sur ce qu'on prend, et la liste part à la validation. */
+function stockageServir(){ const s=stockageOuvert(); if(!s) return;
+  openBox(s.id);
+  if(!boxValidRequis()&&!db.bonsRemiseOff) setTimeout(()=>{ if(boxView===s.id) boxDonneModal(s.id,function(){ renderBoxProdList(); }); },450);
+  else toast(boxValidRequis()?'Touche − sur ce que tu prends : ta liste part au DR quand tu la valides':'Touche − sur ce que tu prends',3800); }
+function stockageArrivage(){ const s=stockageOuvert(); if(!s) return;
+  openBox(s.id); setTimeout(()=>{ if(boxView===s.id) openArrivage(s.id); },450); }
+function stockageJournal(){ mvtFBox=STOCKAGE_ID; mvtFType='sortie'; mvtFQ=''; go('mouvements'); }
+/* ⛔ « DONNER UN ACCÈS AUX UTILISATEURS QUI SE SERVENT DANS LE STOCKAGE ». Pas de case de plus :
+   l'accès au stockage EST l'accès à une box, qui existe déjà personne par personne (`userBoxVoit` :
+   « Autres personnes autorisées », et l'exception quand la box est ouverte à toute l'équipe). Cette
+   fenêtre le montre en une liste ; la fiche de chaque utilisateur (ses box) le montre aussi — UNE
+   donnée, deux portes. Qui « voit tout » y a accès d'office : ça se règle dans ses droits, pas ici. */
+let _stkAcces=null;
+function stockageAcces(){ if(!boxGererGarde('modifier')) return;
+  const s=stockageBox(); if(!s){ toast('Pas encore de stockage'); return; }
+  _stkAcces={tous:!!s.visibleTous,on:{}};
+  (db.users||[]).filter(u=>u&&u.actif!==false).forEach(u=>{ _stkAcces.on[u.id]=boxVuePar(u,s); });
+  openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>Qui peut s’y servir ?</h3><button type="button" class="btn sm" onclick="stockageAccesSave()">Enregistrer</button></div>
+    <p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 2px 12px">Ceux que tu coches voient le stockage et s’y servent : chaque sortie porte leur nom. Qui « voit tout » y a accès d’office.</p>
+    <div class="fgroup"><label class="frow" style="cursor:pointer;border-bottom:none"><span style="flex:1;font-weight:700">Toute l’équipe</span><input type="checkbox" id="stk-tous" ${_stkAcces.tous?'checked':''} onchange="stockageAccesTous(this.checked)" style="width:22px;height:22px;accent-color:var(--acc);flex-shrink:0"></label></div>
+    <div class="form-sec" style="margin-top:12px">Personne par personne</div>
+    <div class="fgroup" id="stk-gens"></div>`);
+  stockageAccesRender(); }
+function stockageAccesTous(on){ if(!_stkAcces) return; _stkAcces.tous=!!on;
+  (db.users||[]).filter(u=>u&&u.actif!==false&&!stockageOffice(u)).forEach(u=>{ _stkAcces.on[u.id]=!!on; });
+  stockageAccesRender(); }
+function stockageAccesRender(){ const el=$('stk-gens'); if(!el||!_stkAcces) return;
+  const gens=(db.users||[]).filter(u=>u&&u.actif!==false).sort((a,b)=>fullName(a).localeCompare(fullName(b),'fr',{sensitivity:'base'}));
+  el.innerHTML=gens.map(u=>{ const off=stockageOffice(u), on=off||!!_stkAcces.on[u.id];
+    return `<label class="frow" style="cursor:${off?'default':'pointer'}"><span style="flex:1;min-width:0"><span style="font-weight:600">${esc(fullName(u))}</span> <span style="color:var(--t3);font-size:12px">· ${esc(roleLbl(u.role)||'')}${off?' · d’office':''}</span></span>
+      <input type="checkbox" ${on?'checked':''} ${off?'disabled':''} onchange="_stkAcces.on['${u.id}']=this.checked" style="width:22px;height:22px;accent-color:var(--acc);flex-shrink:0"></label>`; }).join('')
+    ||'<div class="frow" style="color:var(--t3)">Aucun compte actif.</div>'; }
+function stockageAccesSave(){ if(!boxGererGarde('modifier')) return;
+  const s=stockageBox(); if(!s||!_stkAcces){ closeModal(); return; }
+  s.visibleTous=!!_stkAcces.tous;   // AVANT userBoxVoit : c'est lui qui dit si l'accès est d'office ou à part
+  const gens=(db.users||[]).filter(u=>u&&u.actif!==false&&!stockageOffice(u));
+  gens.forEach(u=>userBoxVoit(u.id,s.id,!!_stkAcces.on[u.id]));
+  const n=gens.filter(u=>_stkAcces.on[u.id]).length; _stkAcces=null;
+  logEvent('Accès au stockage',(s.visibleTous?'toute l’équipe':n+' personne(s)')+', en plus de qui voit tout','auth');
+  save(); closeModal(); toast('Accès au stockage enregistré'); refreshEcran(); }
 views.stock=function(){
   const all=stockLines();
   const totalU=all.reduce((s,l)=>s+l.eff,0);
-  const nbBoxesPleines=visibleBoxes(db.boxes).filter(b=>Object.keys(b.stock||{}).length).length;
+  const nbBoxesPleines=visibleBoxes(db.boxes).filter(b=>!estStockage(b)&&Object.keys(b.stock||{}).length).length;   // le stockage a sa carte : il ne compte pas pour une box
   const nbACmd=all.filter(l=>boxEtat(l.eff).k!=='enStock').length;
-  setHeader('Stock','Tout le stock de toutes les box',`<button class="btn ghost" onclick="openScannerStock()">Scanner</button>`);
+  setHeader('Stock','Le stockage et toutes les box',`<button class="btn ghost" onclick="openScannerStock()">Scanner</button>`);
   $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
     <div class="kpi" style="cursor:pointer" onclick="go('produits')" title="Voir le catalogue produits"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📦</div><div class="kpi-val">${all.length}</div><div class="kpi-lbl">Produits ›</div></div>
     <div class="kpi" style="cursor:pointer" onclick="go('mouvements')" title="Voir les mouvements de stock"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">🔢</div><div class="kpi-val">${totalU}</div><div class="kpi-lbl">Unités (cartons compris) ›</div></div>
     <div class="kpi" style="cursor:pointer" onclick="go('boxes')" title="Voir les box"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">🧱</div><div class="kpi-val">${nbBoxesPleines}</div><div class="kpi-lbl">Box ›</div></div>
     <div class="kpi" style="cursor:pointer${stockFiltreManque?';outline:2px solid var(--org)':''}" onclick="stockFiltreManque=!stockFiltreManque;renderStockList();" title="Ne montrer que ce qui est à commander"><div class="kpi-ico" style="background:rgba(239,68,68,.13)">🛒</div><div class="kpi-val" style="color:${nbACmd?'var(--org)':'var(--acc-txt)'}">${nbACmd}</div><div class="kpi-lbl">À commander ›</div></div></div>
+    ${stockageCarte()}
     <input class="search-inp" id="stock-search" placeholder="Nom, référence…" value="${esc(stockSearch)}" oninput="stockSearch=this.value;renderStockList()">
     <div id="stock-list"></div>`;
   renderStockList();
@@ -24224,7 +24330,7 @@ function stockExportBon(){
   const num=nextNum('bons','BC','numero');
   db.bons.push({id:uid(),numero:num,date:todayISO(),fournisseurId:'',boxId:'',statut:'brouillon',faitPar:fullName(currentUser),
     notes:'Créé depuis le Stock — produits à commander ('+lines.length+')',
-    lignes:lines.map(l=>{const p=l.p;return {produitId:p.id,reference:p.ref||'',designation:p.nom||'',categorie:p.categorie||'',cartons:0,upc:p.qteCarton||0,quantite:Math.max(1,p.qteCarton||10),prixUnitaireHT:p.prix||0,tvaRate:20,commentaire:'Reste '+l.eff+' u en box'};})});
+    lignes:lines.map(l=>{const p=l.p;return {produitId:p.id,reference:p.ref||'',designation:p.nom||'',categorie:p.categorie||'',cartons:0,upc:p.qteCarton||0,quantite:Math.max(1,p.qteCarton||10),prixUnitaireHT:p.prix||0,tvaRate:20,commentaire:'Reste '+l.eff+' u en stock'};})});
   logEvent('Bon créé depuis le stock',num+' — '+lines.length+' produit(s) à commander','commande');
   save(); toast('🛒 '+num+' créé en préparation — complète le fournisseur et envoie-le');
   go('bons');
@@ -24234,7 +24340,7 @@ function renderStockList(){ const el=$('stock-list'); if(!el)return; let lines=s
   const q=norm(stockSearch); if(q) lines=lines.filter(l=>norm((l.p.nom||'')+' '+(l.p.ref||'')+' '+(l.p.categorie||'')).includes(q));
   if(stockFiltreManque) lines=lines.filter(l=>boxEtat(l.eff).k!=='enStock');
   lines.sort((a,b)=>(a.p.nom||'').localeCompare(b.p.nom||''));
-  if(!lines.length){ el.innerHTML=`<div class="card">${emptyState('🗃️',stockSearch?'Aucun résultat.':'Aucun produit en stock dans les box. Ouvre une box et ajoute des produits.','','')}</div>`; return; }
+  if(!lines.length){ el.innerHTML=`<div class="card">${emptyState('🗃️',stockSearch?'Aucun résultat.':(stockageVisible()?'Aucun produit en stock — ni dans le stockage, ni dans les box. Un arrivage les fera entrer.':'Aucun produit en stock dans les box. Ouvre une box et ajoute des produits.'),'','')}</div>`; return; }
   const barreExport=stockFiltreManque?`<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px 16px;margin-bottom:10px;border-left:3px solid var(--org)">
     <span style="flex:1;min-width:180px;font-size:13.5px"><b>${lines.length} produit(s) à commander</b> — exporte-les en bon de commande, prêt à compléter.</span>
     <button class="btn sm" onclick="stockExportBon()">🛒 Créer le bon de commande</button>
@@ -24246,7 +24352,7 @@ function renderStockList(){ const el=$('stock-list'); if(!el)return; let lines=s
     return `<div class="pl-row" data-pid="${l.p.id}" style="border-left:3px solid ${e.k!=='enStock'?e.c:'transparent'}">
       <div class="pl-info"><div class="pl-title">${esc(l.p.nom)}</div>
         <div class="pl-meta">${l.p.ref?'<span class="mono">'+esc(l.p.ref)+'</span> · ':''}${esc(l.p.categorie||'')}</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:3px">${l.boxes.map(bx=>esc(bx.nom)+' : '+((bx.ctn||0)?bx.ctn+' ctn + ':'')+bx.u+' u').join(' · ')}</div></div>
+        <div style="font-size:11px;color:var(--t3);margin-top:3px">${l.boxes.map(bx=>(bx.stockage?'🏬 ':'')+esc(bx.nom)+' : '+((bx.ctn||0)?bx.ctn+' ctn + ':'')+bx.u+' u').join(' · ')}</div></div>
       <div style="text-align:right;white-space:nowrap"><div class="mono" style="font-weight:800;font-size:18px;color:${e.c}">${l.eff}</div><div style="font-size:10px;color:var(--t3)">unités</div></div>
     </div>`; };
   const sec=(titre,c,arr)=>arr.length?`<div style="font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:${c};margin:14px 2px 7px">${titre} (${arr.length})</div>`+arr.map(ligne).join(''):'';
@@ -24254,8 +24360,8 @@ function renderStockList(){ const el=$('stock-list'); if(!el)return; let lines=s
 }
 
 /* ═══════════════ MOUVEMENTS STOCK ═══════════════ */
-/* Journal 100 % automatique : il se remplit tout seul (box, clôtures
-   d'interventions, arrivages, conso…) — on ne crée plus de mouvement à la main. */
+/* Journal 100 % automatique : il se remplit tout seul (box, stockage, arrivages, sorties, validations…)
+   — on ne crée plus de mouvement à la main. Une intervention n'y écrit plus rien (v741). */
 /* ── 🧪 SIMULATION D'ESSAI (bêta seulement) : remplit le journal avec des exemples
    de tout — bon de commande, ajouts, consommations, validations DR, remises —
    marqués _demo, et se retire d'un clic sans toucher aux vraies données. ── */
@@ -24272,12 +24378,12 @@ function mvtDemoPoser(){
     {ts:t(0,1), produitId:'demo_alt', type:'entree', qte:30, motif:'Arrivage SODIF — Box Démo Nord (validé DR) · bon BC-2026-011', boxId:'demo_bx1', technicien:'Léo Martin (démo)', validePar:moi},
     {ts:t(0,3), produitId:'demo_adv', type:'sortie', qte:2, motif:'Ajustement (validé DR) — Box Démo Nord', boxId:'demo_bx1', unite:'u', technicien:'Karim Benali (démo)', validePar:moi, donneA:'Karim Benali (démo)'},
     {ts:t(0,5), produitId:'demo_deb', type:'sortie', qte:5, motif:'Ajustement (validé DR) — Box Démo Sud', boxId:'demo_bx2', unite:'u', technicien:'Léo Martin (démo)', validePar:moi, donneA:'Justin Roux (démo)'},
-    {ts:t(1,2), produitId:'demo_adv', type:'sortie', qte:4, motif:'Intervention Tilleuls', boxId:'demo_bx1', unite:'u', technicien:'Sofia Perez (démo)'},
+    {ts:t(1,2), produitId:'demo_adv', type:'sortie', qte:4, motif:'Sortie — Box Démo Nord', boxId:'demo_bx1', unite:'u', technicien:'Sofia Perez (démo)', donneA:'Sofia Perez (démo)'},
     {ts:t(1,6), produitId:'demo_rat', type:'entree', qte:10, motif:'Entrée box — Box Démo Sud', boxId:'demo_bx2', technicien:moi},
-    {ts:t(2,4), produitId:'demo_alt', type:'sortie', qte:3, motif:'Chantier Boulogne', boxId:'demo_bx1', unite:'u', technicien:'Karim Benali (démo)'},
+    {ts:t(2,4), produitId:'demo_alt', type:'sortie', qte:3, motif:'Sortie — Box Démo Nord', boxId:'demo_bx1', unite:'u', technicien:'Karim Benali (démo)', donneA:'Karim Benali (démo)'},
     {ts:t(6,2), produitId:'demo_deb', type:'entree', qte:20, motif:'Réception commande BC-2026-008 — Box Démo Sud', boxId:'demo_bx2', technicien:'Léo Martin (démo)', validePar:moi},
     {ts:t(35,3), produitId:'demo_adv', type:'entree', qte:30, motif:'Arrivage MABI — Box Démo Nord (validé DR)', boxId:'demo_bx1', technicien:'Léo Martin (démo)', validePar:moi},
-    {ts:t(36,5), produitId:'demo_alt', type:'sortie', qte:6, motif:'Intervention Marceau', boxId:'demo_bx1', unite:'u', technicien:'Sofia Perez (démo)'},
+    {ts:t(36,5), produitId:'demo_alt', type:'sortie', qte:6, motif:'Sortie — Box Démo Nord', boxId:'demo_bx1', unite:'u', technicien:'Sofia Perez (démo)', donneA:'Sofia Perez (démo)'},
     {ts:t(66,2), produitId:'demo_rat', type:'sortie', qte:4, motif:'Ajustement (validé DR) — Box Démo Sud', boxId:'demo_bx2', unite:'u', technicien:'Karim Benali (démo)', validePar:moi, donneA:'Nadia Lopez (démo)'},
     {ts:t(67,4), produitId:'demo_deb', type:'entree', qte:12, motif:'Réception commande BC-2026-002 — Box Démo Sud', boxId:'demo_bx2', technicien:moi}
   ];
@@ -24377,7 +24483,7 @@ function mvtDemoGrande(){
         const pourAutre=(ip+k)%4===0;
         const recoit=pourAutre?equipe[(ip+k+2)%equipe.length]:[qui,role];
         db.mouvements.push({id:uid(),ts,produitId:p.id,type:'sortie',qte,unite:'u',
-          motif:(k%3===0?'Intervention chantier':'Ajustement (validé DR)')+' — '+(box.nom||box.numero||''),
+          motif:(k%3===0?'Sortie box':'Ajustement (validé DR)')+' — '+(box.nom||box.numero||''),   // v741 : une intervention n'écrit rien au journal
           boxId:box.id,boxNomTxt:(box.nom||box.numero||''),vehiculeId:'',
           technicien:qui,donneA:recoit[0],roleConso:recoit[1],validePar:dr,_demo:true});
         n++;
@@ -24592,7 +24698,7 @@ views.mouvements=function(){
     const cle=d+'|b:'+r.boxId;
     (brParCle[cle]=brParCle[cle]||[]).push(r); });
   const jLbl=d=>{ const dt=new Date(d+'T12:00:00'); return dt.toLocaleDateString('fr-FR',{weekday:'long'})+' '+dt.toLocaleDateString('fr-FR'); };
-  const grpLbl=(k,g)=>k.charAt(0)==='b'?('📦 '+esc(boxNom(k.slice(2))||(g&&g[0]&&g[0].boxNomTxt)||'Box')):(k.charAt(0)==='v'?('🚐 '+esc(vehName(k.slice(2)))):'📋 Hors box');
+  const grpLbl=(k,g)=>k.charAt(0)==='b'?((k.slice(2)===STOCKAGE_ID?'🏬 ':'📦 ')+esc(boxNom(k.slice(2))||(g&&g[0]&&g[0].boxNomTxt)||'Box')):(k.charAt(0)==='v'?('🚐 '+esc(vehName(k.slice(2)))):'📋 Hors box');
   /* TOUT PLIÉ : une case par box et par jour — la bande porte la date, le nom
      de la box et le résumé ; un clic déplie le détail. */
   const jourCartes=arr=>{ const jours={};
@@ -24640,7 +24746,7 @@ views.mouvements=function(){
   const demoBeta=(APP_VERSION.indexOf('beta')>=0&&currentUser&&currentUser.role==='admin');
   const bandeauDemo=(demoBeta||(demoOn&&currentUser&&currentUser.role==='admin'))?`<div class="card" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-style:dashed"><span style="font-size:17px">🧪</span><div style="flex:1;min-width:220px"><b>Simulation d'essai</b><div style="font-size:12px;color:var(--t3)">Remplit le journal avec des exemples de tout : bon de commande, ajouts, consommations, validations DR, remises, mois passés. Tout est marqué (démo) et se retire d'un clic.</div></div>${demoOn?`<button type="button" class="btn ghost sm" onclick="mvtDemoRetirer()">Retirer la simulation</button>`:(demoBeta?`<button type="button" class="btn ghost sm" onclick="mvtDemoPoser()">Petite simulation</button> <button type="button" class="btn sm" onclick="mvtDemoGrande()">Tout le catalogue · 6 mois</button>`:'')}</div>`:'';
   $('content').innerHTML=tuiles+barre+bandeauDemo
-    +`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Ce journal s'écrit tout seul : chaque ajout ou retrait dans une box, chaque clôture d'intervention, chaque arrivage et chaque bon de remise y laisse une trace — rangé par jour puis par box, avec le nom de la personne qui l'a fait et de celle qui a validé.</div>`
+    +`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Ce journal s'écrit tout seul : chaque ajout ou retrait dans une box ou dans le stockage, chaque arrivage et chaque bon de remise y laisse une trace — rangé par jour puis par box, avec le nom de la personne qui l'a fait et de celle qui a validé.</div>`
     +(list.length?cartes:`<div class="card">${emptyState('🔁',(mvtFType||mvtFBox)?'Aucun mouvement ne correspond à ce filtre.':'Aucun mouvement pour l\'instant. Ils apparaîtront automatiquement dès que le stock bouge.','','')}</div>`);
 };
 
@@ -24768,7 +24874,9 @@ function boxSousCats(actif){
   return `<nav class="filters" aria-label="Boxes" style="margin:0 0 10px">${c('boxes','Liste')}${c('carteBox','Carte')}${dons?c('produitsDonnes','Produits donnés'):''}</nav>`;
 }
 views.boxes=function(){
-  const mine=visibleBoxes(db.boxes), perim=can('voirTout')&&perimetreTechIds();   // « tout voir » mais rattaché à des équipes (v622) : la liste est réduite, l'en-tête doit le dire
+  /* v741 : le stockage a sa ligne en tête de liste ; il ne compte pas pour « une box ». */
+  const vues=visibleBoxes(db.boxes), mine=vues.filter(b=>!estStockage(b)), stkVu=vues.length!==mine.length;
+  const perim=can('voirTout')&&perimetreTechIds();   // « tout voir » mais rattaché à des équipes (v622) : la liste est réduite, l'en-tête doit le dire
   /* ⛔ COMBIEN DE CES BOX ONT VRAIMENT DU STOCK. Sans ce chiffre, deux personnes de la même
      entreprise décrivent deux réalités et les deux ont raison. Mesuré chez ELAN le 11 septembre
      2026 : l'administrateur voit les DIX-HUIT box, dont TREIZE n'ont jamais reçu une entrée —
@@ -24779,7 +24887,7 @@ views.boxes=function(){
   const avecStock=mine.filter(boxADuStock).length;
   const unites=mine.reduce((t,b)=>t+Object.values(b.stock||{}).reduce((n,s)=>n+((s&&typeof s==='object')?(+s.u||0):(+s||0)),0),0);
   const cadre=`${mine.length} box${can('voirTout')?(perim?' (mon équipe)':''):' (mes box)'}`
-    +(mine.length?` · ${avecStock} avec du stock · ${unites.toLocaleString('fr-FR')} u`:'');
+    +(mine.length?` · ${avecStock} avec du stock · ${unites.toLocaleString('fr-FR')} u`:'')+(stkVu?' · + le stockage':'');
   setHeader('Boxes',cadre,`<button class="btn ghost" onclick="go('carteBox')">🗺️ Carte</button> <button class="btn ghost" onclick="openAjoutProduitBoxes()">Ajouter produit</button> ${boxGerer('ajouter')?'<button class="btn" onclick="formBox()">＋ Box</button>':''}`);
   /* ⛔ LA PUCE QUI ÉVITE DE DÉFILER À TRAVERS TREIZE BOX VIDES. Chez ELAN, l'administrateur
      est le seul à voir les dix-huit ; cinq seulement ont du stock, et elles sont noyées. Il
@@ -24793,10 +24901,33 @@ views.boxes=function(){
     <input class="search-inp" id="box-search" placeholder="Numéro, nom, ville…" value="${esc(boxListSearch)}" oninput="boxListSearch=this.value;renderBoxesList()"><div id="boxes-list"></div>`;
   renderBoxesList();
 };
+/* Une ligne de la liste des box — le stockage passe par la même (v741), avec son emblème et sans ville.
+   `nv` rend les nouveautés du catalogue, calculées une fois pour toute la liste. */
+function boxLigneHtml(b,nv){
+  const ab=estStockage(b)?'🏬':((b.categorie||'').replace(/[^A-Za-zÀ-ÿ0-9]/g,'').slice(0,2).toUpperCase()||'BX');
+    return `<div class="pl-row" onclick="openBox('${b.id}')">
+      <span style="width:44px;height:44px;border-radius:10px;background:color-mix(in srgb,var(--acc) 12%,transparent);color:var(--acc-txt);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${estStockage(b)?22:11}px;flex-shrink:0">${esc(ab)}</span>
+      <div class="pl-info">
+        <div style="display:flex;align-items:center;gap:6px"><span class="mono" style="color:var(--acc-txt);font-size:11px;font-weight:700">${esc(b.numero||'')}</span>${b.actif===false?'<span class="st st-red" style="font-size:9px">Inactif</span>':''}</div>
+        <div class="pl-title">${esc(b.nom)||esc(b.adresse)||esc(b.numero)||'Box'}${(()=>{ const n=nv().length?boxNouveautes(b,nv()).length:0; return n?` <span class="bxp-pastille bxp-pastille-carte" title="Nouveaux produits au catalogue, pas encore dans cette box">+${n>9?'9+':n}</span>`:''; })()}</div>
+        <div style="display:flex;align-items:center;gap:6px"><span class="pl-meta">${estStockage(b)?'Le stock hors des box':(esc(b.ville||'')||'—')}</span>${b.secteur?`<span class="st st-green" style="font-size:9px">${esc(b.secteur)}</span>`:''}</div>
+      </div>
+      ${(()=>{ const t=boxTotalStock(b);
+        /* Rien quand il n'y a rien : une box sans stock n'a pas besoin d'un « 0 » de plus à
+           lire, elle se reconnaît à l'absence de pastille. Le vide se voit mieux en creux. */
+        if(!t.u&&!t.c) return '';
+        const txt=[t.u?t.u.toLocaleString('fr-FR')+' u':'',t.c?t.c.toLocaleString('fr-FR')+' ctn':''].filter(Boolean).join(' · ');
+        return `<span class="st st-green" style="font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0" title="Stock total de cette box">${txt}</span>`; })()}
+      <span style="color:var(--t3);font-size:22px;font-weight:300">›</span>
+    </div>`; }
 function renderBoxesList(){
   const el=$('boxes-list'); if(!el) return;
   const q=norm(boxListSearch);
   let list=visibleBoxes(db.boxes).filter(b=> (!boxFiltreStock||boxADuStock(b)) && (!q || norm((b.numero||'')+' '+(b.nom||'')+' '+(b.ville||'')+' '+(b.codePostal||'')).includes(q)));
+  /* v741 : le stockage passe en tête, hors des groupes — ce n'est pas une box parmi d'autres. */
+  const stk=list.find(estStockage); list=list.filter(b=>!estStockage(b));
+  let _nv=null; const candsNv=()=>_nv||(_nv=produitsRecents());   // une fois pour toutes les cartes, et seulement s'il y en a
+  const tete=stk?boxLigneHtml(stk,candsNv):'';
   /* ⛔ « Aucune box. » MENT quand l'entreprise en a dix-huit. Mesuré chez ELAN le 11 septembre
      2026 : quatre techniciens (Mathys, Romain Avignon, Zampa, Antho Piovanacci) ouvraient cet
      écran sur un vide muet — aucune box ne les nommait, ni dans `techIds`, ni dans `userIds`,
@@ -24806,14 +24937,15 @@ function renderBoxesList(){
      Même règle que pour le refus de /api/replies : un écran vide doit savoir dire POURQUOI il
      est vide, et distinguer « il n'y a rien » de « il y a, mais pas pour toi ». */
   if(!list.length){
-    const total=(db.boxes||[]).length;
+    const total=(db.boxes||[]).filter(b=>!estStockage(b)).length;
     if(total && !q){
-      el.innerHTML=`<div class="card">${emptyState('🔒',
+      el.innerHTML=tete+`<div class="card">${emptyState('🔒',
         `Aucune box ne t'est attribuée pour l'instant — l'entreprise en compte ${total}.`,
         boxGerer('ajouter')?'Ajouter une box':'', boxGerer('ajouter')?'formBox()':'')}
         <p style="font-size:12.5px;color:var(--t3);line-height:1.6;margin:0 2px">Ce n'est pas une panne : une box s'affiche ici quand tu y es nommé — comme responsable, dans ses intervenants, ou via ta fiche technicien. Demande à ton administrateur de t'ajouter aux box dont tu t'occupes.</p></div>`;
       return;
     }
+    if(tete){ el.innerHTML=tete; return; }   // une entreprise sans box, avec son stockage : rien ne manque
     el.innerHTML=`<div class="card">${emptyState('🧱',q?'Aucune box ne correspond à cette recherche.':'Aucune box.',(!q&&boxGerer('ajouter'))?'Ajouter':'',(!q&&boxGerer('ajouter'))?'formBox()':'')}</div>`; return;
   }
   /* ⛔ LE MÊME ORDRE QUE LES PRODUITS D'UNE BOX, ET POUR LA MÊME RAISON. Demande de Justin,
@@ -24834,24 +24966,7 @@ function renderBoxesList(){
     const sa=boxADuStock(a), sb=boxADuStock(b2);
     if(sa!==sb) return sa?-1:1;
     return ((a.nom||a.numero||'')+'').localeCompare((b2.nom||b2.numero||'')+'','fr',{sensitivity:'base'}); }));
-  const candsNv=produitsRecents();   // une fois pour toutes les cartes
-  el.innerHTML=Object.keys(groups).sort().map(g=>`<div class="nav-label" style="padding:14px 4px 6px">${esc(g==='Sans groupe'?'Sans groupe':g)}</div>`+groups[g].map(b=>{
-    const ab=(b.categorie||'').replace(/[^A-Za-zÀ-ÿ0-9]/g,'').slice(0,2).toUpperCase()||'BX';
-    return `<div class="pl-row" onclick="openBox('${b.id}')">
-      <span style="width:44px;height:44px;border-radius:10px;background:color-mix(in srgb,var(--acc) 12%,transparent);color:var(--acc-txt);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">${esc(ab)}</span>
-      <div class="pl-info">
-        <div style="display:flex;align-items:center;gap:6px"><span class="mono" style="color:var(--acc-txt);font-size:11px;font-weight:700">${esc(b.numero||'')}</span>${b.actif===false?'<span class="st st-red" style="font-size:9px">Inactif</span>':''}</div>
-        <div class="pl-title">${esc(b.nom)||esc(b.adresse)||esc(b.numero)||'Box'}${(()=>{ const nv=candsNv.length?boxNouveautes(b,candsNv).length:0; return nv?` <span class="bxp-pastille bxp-pastille-carte" title="Nouveaux produits au catalogue, pas encore dans cette box">+${nv>9?'9+':nv}</span>`:''; })()}</div>
-        <div style="display:flex;align-items:center;gap:6px"><span class="pl-meta">${esc(b.ville||'')||'—'}</span>${b.secteur?`<span class="st st-green" style="font-size:9px">${esc(b.secteur)}</span>`:''}</div>
-      </div>
-      ${(()=>{ const t=boxTotalStock(b);
-        /* Rien quand il n'y a rien : une box sans stock n'a pas besoin d'un « 0 » de plus à
-           lire, elle se reconnaît à l'absence de pastille. Le vide se voit mieux en creux. */
-        if(!t.u&&!t.c) return '';
-        const txt=[t.u?t.u.toLocaleString('fr-FR')+' u':'',t.c?t.c.toLocaleString('fr-FR')+' ctn':''].filter(Boolean).join(' · ');
-        return `<span class="st st-green" style="font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0" title="Stock total de cette box">${txt}</span>`; })()}
-      <span style="color:var(--t3);font-size:22px;font-weight:300">›</span>
-    </div>`;}).join('')).join('');
+  el.innerHTML=tete+Object.keys(groups).sort().map(g=>`<div class="nav-label" style="padding:14px 4px 6px">${esc(g==='Sans groupe'?'Sans groupe':g)}</div>`+groups[g].map(b=>boxLigneHtml(b,candsNv)).join('')).join('');
 }
 /* Ajouter un produit à plusieurs boxes (en masse) */
 let bulkBoxes=new Set();
@@ -24900,7 +25015,13 @@ function boxStock(b,pid){ return (b.stock&&b.stock[pid]) || {ctn:0,u:0}; }
    cette box seule, ou sur les box qu'on choisit. Une écriture attend un tap ; ouvrir un écran
    n'en est pas un.
    opts.sansAuto n'a plus d'objet mais reste accepté : ses appelants le passent encore. */
-function openBox(id,opts){ boxView=id; boxProdSearch=''; _doublonsOuvert=false; _doublonsUnParUn=false;   // le bandeau doublons se rouvre par « Voir », jamais d'office sur une autre box
+function openBox(id,opts){
+  /* v741 : le stockage a un identifiant FIXE, écrit en clair dans la page — un lien du journal, une
+     notification, une étiquette scannée l'ouvriraient à qui n'y a pas accès. La porte revérifie, comme
+     detailIntervention ; une box ordinaire garde son comportement (ses portes sont déjà filtrées). */
+  if(id===STOCKAGE_ID){ const s=(db.boxes||[]).find(b=>b&&b.id===STOCKAGE_ID);   // l'enregistrement, actif ou non : désactivé, il se rouvre par ✎
+    if(s&&!visibleBoxes([s]).length){ toast('Le stockage ne t’est pas ouvert — demande l’accès à ton administrateur',3800); return; } }
+  boxView=id; boxProdSearch=''; _doublonsOuvert=false; _doublonsUnParUn=false;   // le bandeau doublons se rouvre par « Voir », jamais d'office sur une autre box
   /* Le destinataire vaut pour UNE visite : rouvrir la box, c'est un nouveau geste, souvent
      pour quelqu'un d'autre. Le garder d'une visite à l'autre attribuerait en silence des
      produits au technicien d'hier. */
@@ -24908,22 +25029,28 @@ function openBox(id,opts){ boxView=id; boxProdSearch=''; _doublonsOuvert=false; 
   ecranDetail(renderBoxDetail); rendreDirige('avant',renderBoxDetail); }
 function renderBoxDetail(){
   const b=db.boxes.find(x=>x.id===boxView); if(!b){ go('boxes'); return; }
+  /* v741 : un accès RETIRÉ pendant qu'on est sur la fiche — le prochain rafraîchissement ne la redessine pas. */
+  if(estStockage(b)&&!visibleBoxes([b]).length){ boxView=null; toast('Le stockage ne t’est pas ouvert — demande l’accès à ton administrateur',3800); go(current==='stock'?'stock':'boxes'); return; }
   b.stock=b.stock||{};
   const nbProd=Object.keys(b.stock).filter(pid=>produit(pid).id).length;
   setHeader('','','');
   const codeIco=t=>/clé|cle/i.test(t)?'🔑':/entrée|entree/i.test(t)?'🚪':'🔢';
   const cli=b.clientId?(db.clients.find(x=>x.id===b.clientId)||{}):null;
   const pv=b.prochaineVisite||''; const late=pv && pv<todayISO();
+  /* v741 : le stockage s'ouvre depuis Stock comme depuis Boxes — on revient d'où l'on vient. */
+  const stk=estStockage(b), retour=(stk&&current==='stock')?'stock':'boxes';
+  const servir=stk&&!boxValidRequis()&&!db.bonsRemiseOff;
   $('content').innerHTML=`
     <div style="display:flex;align-items:center;gap:6px;margin:0">
-      <button class="btn ghost sm det-back" onclick="ficheRetour('boxes')" title="Revenir aux boxes">← ${esc(navLabel('boxes')||'Boxes')}</button>
-      <div class="mono" style="font-size:14px;font-weight:600;color:var(--acc-txt);letter-spacing:.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(b.numero||'Box')}</div>
+      <button class="btn ghost sm det-back" onclick="ficheRetour('${retour}')" title="${retour==='stock'?'Revenir au stock':'Revenir aux boxes'}">← ${esc(navLabel(retour)||(stk?'Stock':'Boxes'))}</button>
+      <div class="mono" style="font-size:14px;font-weight:600;color:var(--acc-txt);letter-spacing:.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${stk?'<span aria-hidden="true">🏬</span>':esc(b.numero||'Box')}</div>
       <span style="flex:1"></span>
       ${boxGerer('modifier')?`<button onclick="formBox('${b.id}')" title="Modifier" style="background:none;border:none;color:var(--acc-txt);cursor:pointer;padding:4px 10px;line-height:1">${fic('edit',20)}</button>`:''}
-      ${canCat('stock','supprimer')?`<button onclick="delItem('boxes','${b.id}')" title="Supprimer" style="background:none;border:none;color:var(--red);cursor:pointer;padding:4px 2px 4px 10px;line-height:1">${fic('trash',20)}</button>`:''}
+      ${!stk&&canCat('stock','supprimer')?`<button onclick="delItem('boxes','${b.id}')" title="Supprimer" style="background:none;border:none;color:var(--red);cursor:pointer;padding:4px 2px 4px 10px;line-height:1">${fic('trash',20)}</button>`:''}
     </div>
     <div style="font-size:17px;font-weight:600;color:var(--acc-txt);margin:2px 2px 3px;line-height:1.3">${esc(b.nom||b.numero||'Box')}</div>
     <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">${esc(b.ville||'')}${b.ville&&nbProd?' · ':''}${nbProd?nbProd+' produit(s)':''}</div>
+    ${stk?`<div style="font-size:12.5px;color:var(--t2);line-height:1.55;margin:-4px 2px 12px;max-width:620px">Le stock de l’entreprise, hors des box. Il baisse quand quelqu’un s’y sert — une intervention ne déduit rien — et chaque sortie dit <b>qui a pris quoi</b>.</div>`:''}
     <div style="max-width:620px">
     <div style="display:flex;gap:8px;margin:0 0 8px">
       <button class="btn" style="flex:1;justify-content:center;gap:8px;padding:12px;border-radius:100px;font-weight:800" onclick="openBoxScanner('${b.id}')">${fic('scan',17)} Scanner</button>
@@ -24931,7 +25058,8 @@ function renderBoxDetail(){
     </div>
     <div style="display:flex;gap:8px;margin:0 0 14px">
       <button class="btn ghost" style="flex:1;justify-content:center;gap:8px;padding:12px;border-radius:100px;font-weight:800" onclick="shareBoxStock('${b.id}')">${fic('share',17)} Partager le stock</button>
-      <button class="btn ghost" style="flex:1;justify-content:center;gap:8px;padding:12px;border-radius:100px;font-weight:800" onclick="openPassage('${b.id}')">${fic('csq',17)} Relevé</button>
+      ${stk?(servir?`<button class="btn ghost" style="flex:1;justify-content:center;gap:8px;padding:12px;border-radius:100px;font-weight:800" onclick="boxDonneModal('${b.id}',function(){ renderBoxProdList(); })">Me servir</button>`:'')
+        :`<button class="btn ghost" style="flex:1;justify-content:center;gap:8px;padding:12px;border-radius:100px;font-weight:800" onclick="openPassage('${b.id}')">${fic('csq',17)} Relevé</button>`}
     </div>
     ${(()=>{ /* Tout l'historique des commandes ET des livraisons de CETTE box derrière un seul
          bouton — demande de Justin, 8 septembre 2026 : « on voit historique de commande du box,
@@ -24970,17 +25098,17 @@ function renderBoxDetail(){
         </div>`; }).join('')+`</div>`; })()}
     ${b.photo?`<div style="margin:4px 0 12px"><img src="${b.photo}" onclick="window.open(this.src)" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid var(--brd);cursor:pointer"></div>`:''}
     <div class="card" style="margin-top:4px;padding:4px 4px">
-      <div class="bdt-row"><span class="bdt-ic">🔢</span><span class="bdt-lbl">Numéro</span><span class="bdt-val mono">${esc(b.numero||'—')}</span></div>
+      ${stk&&!b.numero?'':`<div class="bdt-row"><span class="bdt-ic">🔢</span><span class="bdt-lbl">Numéro</span><span class="bdt-val mono">${esc(b.numero||'—')}</span></div>`}
       ${(()=>{ const r=b.respUserId?(db.users||[]).find(u=>u.id===b.respUserId):null;
         return r?`<div class="bdt-row"><span class="bdt-ic">👤</span><span class="bdt-lbl">Responsable</span><span class="bdt-val">${esc(fullName(r))} <span style="color:var(--t3);font-weight:400">· ${esc(roleLbl(r.role)||'')}</span></span></div>`:''; })()}
       ${cli?`<div class="bdt-row"><span class="bdt-ic">🏢</span><span class="bdt-lbl">Client</span><span class="bdt-val" style="cursor:pointer;color:var(--acc-txt)" onclick="ficheClient('${cli.id}')">${esc(cli.nom||'')}</span></div>`:''}
-      ${(b.codesAcces||[]).length? b.codesAcces.map(c=>`<div class="bdt-row"><span class="bdt-ic">${codeIco(c.type)}</span><span class="bdt-lbl">${esc(c.type)}</span><span class="bdt-val mono">${esc(c.valeur)}</span></div>`).join('') : `<div class="bdt-row"><span class="bdt-ic">🔒</span><span class="bdt-lbl">Codes d'accès</span><span class="bdt-val" style="color:var(--t3)">—</span></div>`}
-      <div class="bdt-row"><span class="bdt-ic">🏢</span><span class="bdt-lbl">Étage</span><span class="bdt-val">${esc(b.etage)||'—'}</span></div>
+      ${(b.codesAcces||[]).length? b.codesAcces.map(c=>`<div class="bdt-row"><span class="bdt-ic">${codeIco(c.type)}</span><span class="bdt-lbl">${esc(c.type)}</span><span class="bdt-val mono">${esc(c.valeur)}</span></div>`).join('') : (stk?'':`<div class="bdt-row"><span class="bdt-ic">🔒</span><span class="bdt-lbl">Codes d'accès</span><span class="bdt-val" style="color:var(--t3)">—</span></div>`)}
+      ${stk&&!b.etage?'':`<div class="bdt-row"><span class="bdt-ic">🏢</span><span class="bdt-lbl">Étage</span><span class="bdt-val">${esc(b.etage)||'—'}</span></div>`}
       ${b.categorie?`<div class="bdt-row"><span class="bdt-ic">🏷️</span><span class="bdt-lbl">Catégorie</span><span class="bdt-val">${esc(b.categorie)}</span></div>`:''}
       ${(b.frequence&&b.frequence!=='Aucune')?`<div class="bdt-row"><span class="bdt-ic">🔁</span><span class="bdt-lbl">Fréquence</span><span class="bdt-val">${esc(b.frequence)}</span></div>`:''}
       ${pv?`<div class="bdt-row"><span class="bdt-ic">${late?'⚠️':'📅'}</span><span class="bdt-lbl">Prochaine visite</span><span class="bdt-val" style="font-weight:700;color:${late?'var(--red)':'var(--t1)'}">${fmtShort(pv)}${late?' · en retard':''}</span></div>`:''}
       ${(b.ville||b.codePostal)?`<div class="bdt-row"><span class="bdt-ic">📍</span><span class="bdt-lbl">Ville</span><span class="bdt-val">${esc(b.codePostal||'')} ${esc(b.ville||'')}</span></div>`:''}
-      <div class="bdt-row"><span class="bdt-ic">👁️</span><span class="bdt-lbl">Visible par</span><span class="bdt-val" style="text-align:right;max-width:62%">${b.visibleTous?'Toute l\'équipe':(boxPersonnes(b).length?esc(boxPersonnes(b).join(', ')):'<span style="color:var(--t3)">Admins / DR / « Tout voir » seulement</span>')}</span></div>
+      <div class="bdt-row"><span class="bdt-ic">👁️</span><span class="bdt-lbl">${stk?'Qui peut s’y servir':'Visible par'}</span><span class="bdt-val" style="text-align:right;max-width:62%">${b.visibleTous?'Toute l\'équipe':(boxPersonnes(b).length?esc(boxPersonnes(b).join(', ')):'<span style="color:var(--t3)">Admins / DR / « Tout voir » seulement</span>')}${stk&&boxGerer('modifier')?` <button class="btn ghost sm" style="margin-left:6px" onclick="stockageAcces()">Régler</button>`:''}</span></div>
       ${(()=>{ /* Une exception qui ne se voit que sur la fiche de la personne est une exception
            qu'on oublie. Elle s'écrit aussi ici, là où l'on décide qui voit la box. */
         const hors=(b.userIdsExclus||[]).map(id=>(db.users||[]).find(x=>x&&x.id===id)).filter(Boolean);
@@ -25006,8 +25134,8 @@ function renderBoxDetail(){
       <div style="font-size:11px;color:var(--t3);margin-top:3px">${(a.lignes||[]).map(l=>{const p=produit(l.produitId);return esc((p.nom||'?'))+' ×'+l.qte;}).join(' · ')}</div></div>
       ${canCat('stock','supprimer')?`<button class="btn ghost sm" style="padding:2px 8px" onclick="delArrivage('${b.id}','${a.id}')">✕</button>`:''}
     </div>`).join('') : '<div style="color:var(--t3);font-size:13px;padding:2px 2px 6px">Aucun arrivage — touche « Arrivage » pour enregistrer une réception.</div>'}
-    <div class="card-head" style="margin:18px 2px 6px"><h3>Passages & relevés (${(b.passages||[]).length})</h3></div>
-    <div id="box-passages"></div>`;
+    ${stk&&!(b.passages||[]).length?'':`<div class="card-head" style="margin:18px 2px 6px"><h3>Passages & relevés (${(b.passages||[]).length})</h3></div>
+    <div id="box-passages"></div>`}`;   /* v741 : le stockage n'est pas un poste chez un client — pas de relevé à y faire */
   renderBoxProdList(); renderBoxPassages();
 }
 const APPAT_ETATS={ras:{l:'RAS',c:'st-green'},consomme:{l:'Consommé',c:'st-org'},traces:{l:'Traces',c:'st-org'},degrade:{l:'Dégradé',c:'st-red'},disparu:{l:'Disparu',c:'st-red'},remplace:{l:'Remplacé',c:'st-blue'}};
@@ -25592,7 +25720,7 @@ function boxListeRender(){
     return '<div class="bl-r" id="bl-r-'+l.produitId+'">'+boxListeLigne(b,l)+'</div>'; }).join('');
   el.innerHTML='<div class="bl-list">'+rows+'</div>'+
     '<div class="form-sec">Ajouter un autre produit</div>'+
-    '<input class="search-inp" id="bl-rech" placeholder="Chercher dans cette box…" value="'+esc(_listeRech)+'" oninput="boxListeRech(this.value)">'+
+    '<input class="search-inp" id="bl-rech" placeholder="Chercher dans '+(_listeBox===STOCKAGE_ID?'le stockage':'cette box')+'…" value="'+esc(_listeRech)+'" oninput="boxListeRech(this.value)">'+
     '<div id="bl-ajout"></div>'+
     '<div class="bl-pied" id="bl-pied"></div>';
   boxListeAjoutRender(); boxListePied();
@@ -25834,7 +25962,8 @@ function roleDeNom(nom){ const n=norm(nom||''); if(!n) return '';
    et la synchro — qui réunit par identifiant — n'en garde qu'une : mesuré sur la v738, l'historique
    disait 8 unités sorties pour 4 réelles (deux uid(), deux lignes). Le stock, lui, tombait juste. */
 function traceBox(b,pid,delta,unit,motif,par,validePar,donneA,idFixe){ if(!b||!pid||!delta) return;
-  db.mouvements.unshift({id:idFixe||uid(),ts:Date.now(),produitId:pid,type:delta<0?'sortie':'entree',qte:Math.abs(delta),motif:(motif||(delta<0?'Sortie box':'Entrée box'))+' — '+(b.nom||b.numero||''),vehiculeId:'',boxId:b.id,boxNomTxt:(b.nom||b.numero||''),unite:unit||'u',technicien:par||(currentUser&&fullName(currentUser))||'',validePar:validePar||'',donneA:donneA||'',
+  let mo=motif||(delta<0?'Sortie box':'Entrée box'); if(estStockage(b)) mo=mo.replace(/ box$/,'');   // v741 : « Sortie — Stockage », pas « Sortie box — Stockage »
+  db.mouvements.unshift({id:idFixe||uid(),ts:Date.now(),produitId:pid,type:delta<0?'sortie':'entree',qte:Math.abs(delta),motif:mo+' — '+(b.nom||b.numero||''),vehiculeId:'',boxId:b.id,boxNomTxt:(b.nom||b.numero||''),unite:unit||'u',technicien:par||(currentUser&&fullName(currentUser))||'',validePar:validePar||'',donneA:donneA||'',
     roleConso:roleDeNom(donneA||par||(currentUser&&fullName(currentUser))||'')}); }
 /* ── VALIDATION DR DES MOUVEMENTS DE BOX ──
    Quand le réglage est actif (c'est le cas par défaut), TOUT mouvement de box fait
@@ -26118,7 +26247,7 @@ function boxDonneModal(boxId,suite,depart){
      matériel à un intérimaire ou à un sous-traitant, qui n'a pas de compte. */
   const gens=(db.users||[]).filter(u=>u&&u.actif!==false).map(u=>`<option value="${esc(fullName(u))}">`).join('');
   openModal(`<div class="modal-head"><h3>👤 Ces produits sont pour qui ?</h3><button class="modal-close" onclick="boxDonneAnnuler()">✕</button></div>
-    <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px">Sortie de <b>${esc(b.nom||b.numero||'la box')}</b>. Le nom sera écrit sur le mouvement et sur le bon de remise — on saura qui a reçu quoi.<br><span style="color:var(--t3)">Mets ici tout ce qui part avec la personne : un seul bon de remise pour la liste. Les sorties suivantes de cette box iront à la même personne, jusqu'à ce que vous en changiez.</span></p>
+    <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:14px">${estStockage(b)?'Sortie du <b>stockage</b>':'Sortie de <b>'+esc(b.nom||b.numero||'la box')+'</b>'}. Le nom sera écrit sur le mouvement et sur le bon de remise — on saura qui a reçu quoi.<br><span style="color:var(--t3)">Mets ici tout ce qui part avec la personne : un seul bon de remise pour la liste. Les sorties suivantes ${estStockage(b)?'du stockage':'de cette box'} iront à la même personne, jusqu'à ce que vous en changiez.</span></p>
     <div class="fgroup" style="margin-bottom:12px">
       <label class="frow" style="cursor:pointer"><input type="radio" name="bd-qui" value="moi" checked onchange="document.getElementById('bd-autre-bloc').style.display='none';donPiedRender()" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour moi — <b>${esc(fullName(currentUser))}</b></span></label>
       <label class="frow" style="cursor:pointer;border-bottom:none"><input type="radio" name="bd-qui" value="autre" onchange="document.getElementById('bd-autre-bloc').style.display='block';donPiedRender();setTimeout(()=>{const i=document.getElementById('bd-nom');if(i)i.focus();},60)" style="width:20px;height:20px;accent-color:var(--acc)"><span style="margin-left:10px">Pour une autre personne</span></label>
@@ -26158,10 +26287,11 @@ function donAjoutRender(){
     .sort((a,c)=>(+c.s.u||0)-(+a.s.u||0)||(a.p.nom||'').localeCompare(c.p.nom||''));
   const ligneAjout=e=>'<button type="button" class="bl-add" onclick="donAjout(\''+e.pid+'\')"><span class="bl-add-n">'+esc(e.p.nom||'')+'</span>'+
     '<span class="bl-add-s">'+((+e.s.u||0)>0?(+e.s.u)+' u':(+e.s.ctn)+' cart.')+' en stock</span><span class="bl-add-p">＋</span></button>';
-  el.innerHTML='<div class="form-sec">Ajouter un autre produit</div>'+
-    '<input class="search-inp" id="don-rech" placeholder="Chercher dans cette box…" value="'+esc(_donRech)+'" oninput="_donRech=this.value;donAjoutListe()">'+
+  const ici=estStockage(b)?'le stockage':'cette box';
+  el.innerHTML='<div class="form-sec">'+(_donListe.length?'Ajouter un autre produit':'Ajouter un produit')+'</div>'+
+    '<input class="search-inp" id="don-rech" placeholder="Chercher dans '+ici+'…" value="'+esc(_donRech)+'" oninput="_donRech=this.value;donAjoutListe()">'+
     '<div id="don-ajout">'+(liste.length?liste.slice(0,40).map(ligneAjout).join('')+(liste.length>40?'<div class="bl-vide">'+(liste.length-40)+' autres — affine la recherche.</div>':'')
-      :'<div class="bl-vide">'+(_donRech?'Aucun produit ne correspond.':'Tout ce qui reste dans la box est déjà dans la liste.')+'</div>')+'</div>'; }
+      :'<div class="bl-vide">'+(_donRech?'Aucun produit ne correspond.':'Tout ce qui reste dans '+(estStockage(b)?'le stockage':'la box')+' est déjà dans la liste.')+'</div>')+'</div>'; }
 /* La recherche ne redessine que les résultats — sinon le champ perdrait le clavier à chaque lettre. */
 function donAjoutListe(){ const garde=_donRech; donAjoutRender(); const i=$('don-rech'); if(i){ i.focus(); try{ i.setSelectionRange(garde.length,garde.length); }catch(e){} } }
 function donAjout(pid){ const b=donBox(); if(!b||_donListe.some(l=>l.pid===pid)) return;
@@ -26189,14 +26319,14 @@ function boxDonneSave(){
   const b=donBox(), lignes=_donListe.filter(l=>l.qte>0);
   /* Refusé AVANT de rien toucher : une liste qui demande plus que la box n'a ne sort pas à moitié. */
   const trop=lignes.find(l=>l.qte>donStock(b,l));
-  if(trop){ toast('Il n’y a que '+donStock(b,trop)+' '+donUnite(trop)+' de « '+((produit(trop.pid)||{}).nom||'ce produit')+' » dans la box',3800); return; }
+  if(trop){ toast('Il n’y a que '+donStock(b,trop)+' '+donUnite(trop)+' de « '+((produit(trop.pid)||{}).nom||'ce produit')+' » '+(estStockage(b)?'dans le stockage':'dans la box'),3800); return; }
   _boxDonne={boxId:_boxDonneBox,nom:nom,ts:Date.now()};
   const suite=_boxDonneSuite; _boxDonneSuite=null; _donListe=[];
   closeModal();
   if(!lignes.length){   // rien à sortir : « changer de personne », ou une liste vidée au ✕
     if(suite){ suite(); return; }
     try{ if(b&&boxView===b.id) renderBoxProdList(); }catch(e){}
-    toast('Rien n’est sorti de la box'); return; }
+    toast('Rien n’est sorti '+(estStockage(b)?'du stockage':'de la box')); return; }
   if(!b||boxView!==b.id){ toast('Box fermée entre-temps — rien n’est sorti'); return; }
   /* UN geste : un mouvement par produit (le journal dit « −3 », pas trois fois « −1 »), et UN bon
      de remise — `remiseAjoute` range sur le même bon tout ce qui part le même jour, de la même box,
@@ -26865,7 +26995,7 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
         <div class="frow"><span class="frow-lbl">Date d'installation</span><div class="frow-val"><input type="date" name="dateInstallation" value="${b.dateInstallation?String(b.dateInstallation).slice(0,10):todayISO()}" style="width:auto"></div></div>
         <div class="frow"><span class="frow-lbl">Fréquence de passage</span><div class="frow-val"><select name="frequence">${['Aucune','Mensuel','Bimestriel','Trimestriel','Semestriel','Annuel'].map(o=>`<option ${(b.frequence||'Aucune')===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
         <div class="frow"><span class="frow-lbl">Prochaine visite</span><div class="frow-val"><input type="date" name="prochaineVisite" value="${b.prochaineVisite?String(b.prochaineVisite).slice(0,10):''}" style="width:auto"></div></div>
-        <div class="frow"><span class="frow-lbl">Box active</span><div class="frow-val"><input type="checkbox" name="actif" ${b.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div>
+        <div class="frow"><span class="frow-lbl">${estStockage(b)?'Stockage actif':'Box active'}</span><div class="frow-val"><input type="checkbox" name="actif" ${b.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div>
         <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Notes</span><textarea name="notes" placeholder="Emplacement précis, consignes d'accès…">${esc(b.notes||'')}</textarea></div>
       </div>
     </form>`);
@@ -28406,13 +28536,16 @@ function bonPdfDraftFour(k){ const d=_bonDraftGroups; if(!d) return; const ls=d.
   _bonPdfOpenObj({numero:d.f.numero+(k?' — '+k:''),date:d.f.date,fournisseurId:fid,notes:d.f.notes,...bonLivOf(bonSites[0]),faitPar:fullName(currentUser),lignes:ls});
 }
 /* ── ⚡ Commande suggérée : pré-remplit un bon avec tout ce qui est à réapprovisionner ──
-   Box : produits épuisés ou ≤ 2 u (besoin = remonter chaque box à 3 u minimum)
-   Stock général : produits sous leur seuil (besoin = remonter à 2 × seuil) */
+   Box (le stockage compris) : produits épuisés ou ≤ 2 u (besoin = remonter chaque box à 3 u minimum)
+   Seuil de la fiche : le total que Stock montre sous le seuil (besoin = remonter à 2 × seuil).
+   ⛔ v741 : le PLUS GRAND des deux besoins, pas leur somme — le total contient déjà les box, les
+   additionner commanderait deux fois la même chose. */
 function bonSuggere(){ if(!peutCommander()){ refusCommander(); return; }
   const need={};
   visibleBoxes(db.boxes||[]).filter(b=>b.actif!==false).forEach(b=>{ const st=b.stock||{};
     Object.keys(st).forEach(pid=>{ const u=(st[pid]||{}).u||0; if(u<=2){ const p=produit(pid); if(!p.id) return; need[pid]=(need[pid]||0)+Math.max(3-u,1); } }); });
-  (db.produits||[]).filter(p=>(p.seuil||0)>0&&(p.qte||0)<=p.seuil).forEach(p=>{ need[p.id]=(need[p.id]||0)+Math.max(p.seuil*2-(p.qte||0),1); });
+  { const TOT=stockTotaux();
+    (db.produits||[]).filter(p=>(p.seuil||0)>0&&(TOT[p.id]||0)<=p.seuil).forEach(p=>{ need[p.id]=Math.max(need[p.id]||0,p.seuil*2-(TOT[p.id]||0),1); }); }
   const pids=Object.keys(need);
   if(!pids.length){ toast('Rien à réapprovisionner — tout est au-dessus des seuils ✅'); return; }
   formBon();
@@ -32101,6 +32234,12 @@ function delItem(coll,id){
     if(!confirm('Supprimer ce produit ?'+(nb?' Il est encore présent dans '+nb+' box — ses quantités seront retirées partout.':''))) return;
     db.boxes.forEach(b=>{ if(b.stock) delete b.stock[id]; });
   } else if(coll==='boxes'){ const b=db.boxes.find(x=>x.id===id)||{};
+    /* ⛔ v741 — LE STOCKAGE NE SE SUPPRIME PAS, IL SE DÉSACTIVE. Son identifiant est FIXE : sa pierre
+       tombale éliminerait, à la synchro, le stockage qu'un autre appareil tenait encore hors ligne — tout
+       son contenu, sans un mot (relecture v741, reproduit sur le vrai fusionnerBases) — et le recréer
+       repartirait vide, l'ancien stock du catalogue y ayant été rangé une fois pour toutes. Désactivé
+       (« Stockage actif », ✎), il quitte les écrans, garde son contenu, et « Créer le stockage » le rouvre. */
+    if(id===STOCKAGE_ID||estStockage(b)){ toast('Le stockage ne se supprime pas : c’est le stock de l’entreprise. Pour ne plus t’en servir, décoche « Stockage actif » (✎) — il reviendra tel quel si tu le recrées.',6500); return; }
     if(!confirm('Supprimer la box « '+(b.nom||b.numero||'')+' » ? Son stock et son historique disparaîtront.')) return;
     /* APRÈS le confirm, jamais avant : ce filtre s'exécutait même quand on répondait « Annuler », et
        la box gardait alors une base sans ses écartés — le premier save() venu posait la tombe et la
@@ -32260,7 +32399,11 @@ function etiqOuvrir(mode,boxId){ const b=mode==='box'?(db.boxes||[]).find(x=>x.i
       ${etiqIos()?'<div class="etiq-astuce">Sur iPhone, l’appareil sait lire aussi : touche le champ, puis « Scanner le texte ».</div>':''}</div>`);
   etiqCamera(); }
 function openBoxScanner(boxId){ etiqOuvrir('box',boxId); }
-function openScanner(){ if(!permGarde('stock','modifier','le stock')) return; etiqOuvrir('cat'); }   // v737 : il règle le stock du catalogue
+function openScanner(){ if(!permGarde('stock','modifier','le stock')) return;   // v737 : il règle le stock du catalogue
+  /* v741 : le stock hors box vit dans le stockage — le scanner y range, par le chemin d'une box
+     (validation du DR, « Pour qui ? »). Sans stockage, l'ancien compteur du catalogue. */
+  if(stockageBox()){ if(stockageOuvert()) etiqVersBox(STOCKAGE_ID); return; }   // sans accès : on le dit, on n'écrit pas ailleurs
+  etiqOuvrir('cat'); }
 /* Le Stock est la somme des box : scanner « dans le stock », c'est scanner dans UNE box. On la choisit
    (une seule : on y va), on l'OUVRE — boxSaisir travaille sur la box affichée — puis c'est le scanner
    de la box, avec toutes ses règles. Scanner depuis le Stock réglait le stock du CATALOGUE, un nombre
@@ -32270,7 +32413,7 @@ function openScannerStock(){ const L=visibleBoxes((db.boxes||[]).filter(b=>b&&b.
   if(L.length===1){ etiqVersBox(L[0].id); return; }
   openModal(`<div class="modal-head"><h3>Scanner dans quelle box ?</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div style="display:flex;flex-direction:column;gap:8px">${L.map(b=>{ const n=Object.keys(b.stock||{}).filter(pid=>produit(pid).id).length;
-      return `<div class="pl-row" style="margin:0;cursor:pointer" onclick="etiqVersBox('${b.id}')"><span style="font-size:20px">🧱</span><div class="pl-info"><div class="pl-title">${esc(b.nom||b.numero||'Box')}</div><div class="pl-meta">${n} produit${n>1?'s':''}</div></div><span style="color:var(--t3)">›</span></div>`; }).join('')}</div>`,'carte'); }
+      return `<div class="pl-row" style="margin:0;cursor:pointer" onclick="etiqVersBox('${b.id}')"><span style="font-size:20px">${estStockage(b)?'🏬':'🧱'}</span><div class="pl-info"><div class="pl-title">${esc(b.nom||b.numero||'Box')}</div><div class="pl-meta">${n} produit${n>1?'s':''}</div></div><span style="color:var(--t3)">›</span></div>`; }).join('')}</div>`,'carte'); }
 function etiqVersBox(id){ closeModal(); openBox(id); setTimeout(()=>{ if(boxView===id) openBoxScanner(id); },450); }
 async function etiqCamera(){
   try{ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('camera');
@@ -32366,7 +32509,11 @@ function etiqAppliquerBox(){ const b=(db.boxes||[]).find(x=>x.id===etiq.boxId); 
   etiqSuivant(`<div class="scan-result etiq-ok"><div style="font-weight:700;color:var(--acc-txt)">${lot?'✓ Noté dans ta liste':'✓ '+(ajout?'Ajouté':'Retiré')} : ${ajout?'+':'−'}${n} × ${esc(p.nom)}</div>
     <div style="color:var(--t3);font-size:13px;margin-top:4px">${lot?'La liste part au DR quand tu la valides (en haut de la box).':'Il y en a maintenant '+u+' dans la box.'} Scanne le suivant, ou ferme.</div></div>`);
   etiqEtat('Cadre le NOM du produit suivant, puis touche « Lire l’étiquette ».',''); }
-function etiqAppliquerCat(){ if(!permGarde('stock','modifier','le stock')) return; const p=produit(etiq.sel); if(!p||!p.id){ toast('Choisis le produit'); return; }
+function etiqAppliquerCat(){ if(!permGarde('stock','modifier','le stock')) return;
+  /* v741 : une fois le stockage créé, l'ancien compteur du catalogue ne reçoit plus rien — il ferait
+     renaître, à côté du stockage, un stock « hors box » où personne ne peut se servir. */
+  if(stockageBox()){ toast('Le stock hors box vit dans le stockage : scanne depuis le stockage.',4200); return; }
+  const p=produit(etiq.sel); if(!p||!p.id){ toast('Choisis le produit'); return; }
   const n=Math.max(1,parseInt(($('etiq-qty')||{}).value)||1), d=etiq.action==='ajouter'?n:-n;
   const av=+p.qte||0; p.qte=Math.max(0,av+d); const reel=p.qte-av;
   if(!reel){ etiqSuivant(`<div class="bscan-err">${esc(p.nom)} est déjà à 0 — rien n’est sorti.</div>`); return; }
@@ -35836,8 +35983,12 @@ function saveProduitDonne(e,id){ e.preventDefault();
   else{ db.produitsDonnes.push({id:uid(),auteurNom:fullName(currentUser),...d});
     // un don est une vraie sortie de stock : journalisée, et déduite du stock global
     const p=db.produits.find(x=>x.nom===d.produitNom);
-    if(p){ p.qte=Math.max(0,(p.qte||0)-d.quantite);
-      db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:d.quantite,motif:'Produit donné'+(d.notes?' — '+d.notes:''),vehiculeId:d.vehiculeId||'',unite:d.unite||p.unite||'u',technicien:fullName(currentUser)}); }
+    /* ⛔ la trace dit ce qui a BOUGÉ : depuis le stockage (v741), l'ancien compteur est rangé à 0 — une
+       sortie de d.quantite y inscrivait une consommation qui n'a eu lieu nulle part. Un don tiré d'une box
+       ou du stockage passe par sa sortie (« Pour qui ? ») : son bon de remise le range dans « Produits donnés ». */
+    const pris=p?Math.max(0,Math.min(d.quantite,+p.qte||0)):0;
+    if(p&&pris>0){ p.qte=(+p.qte||0)-pris;
+      db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:pris,motif:'Produit donné'+(d.notes?' — '+d.notes:''),vehiculeId:d.vehiculeId||'',unite:d.unite||p.unite||'u',technicien:fullName(currentUser)}); }
     logEvent('Produit donné',`${d.produitNom} ×${d.quantite}`,'stock'); toast('Enregistré'); }
   /* ⛔ ON RESTE OÙ L'ON ÉTAIT. Afficher la liste des dons ici posait dans #content un écran que
      la barre, le titre et le menu ne connaissaient pas — on se retrouvait « sur Véhicules » en
@@ -35993,7 +36144,13 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
       if(bxs.length){ const tous={}; bxs.forEach(x=>x.n.forEach(p=>{ tous[p.id]=p; })); const liste=Object.values(tous).sort((a,b)=>produitCree(b)-produitCree(a)); const maxC=produitCree(liste[0]);
         out.push({id:'prdnew:'+maxC+':'+liste.length,ts:maxC,ic:'✨',txt:`<b>${liste.length} nouveau${liste.length>1?'x':''} produit${liste.length>1?'s':''}</b> au catalogue — ${liste.slice(0,3).map(p=>'« '+esc(p.nom)+' »').join(', ')}${liste.length>3?'…':''} — dans vos box dès leur prochaine ouverture${bxs.length>1?' · '+bxs.length+' box concernées':''}`,
           act:bxs.length===1?("openBox('"+bxs[0].b.id+"');setTimeout(openBoxProduits,450)"):"go('boxes')"}); } }
-  if(vStock) db.produits.filter(p=>(p.seuil||0)>0&&(p.qte||0)<=p.seuil).forEach(p=>out.push({id:'stock:'+p.id,ic:'📦',txt:`Stock bas : <b>${esc(p.nom)}</b> (${p.qte}/${p.seuil})`,act:"go('stock');cible('pid','"+p.id+"','retrait')"}));
+  /* v741 : le seuil de la fiche se compare à ce que Stock MONTRE (stockage + box), plus au compteur
+     caché `p.qte` — qui criait « Stock bas (0/5) » sur un produit à 40 unités en box. Pour qui ne voit
+     pas tout, un produit absent de ses box n'est pas à lui de signaler. */
+  if(vStock){ const avecSeuil=db.produits.filter(p=>(p.seuil||0)>0);
+    if(avecSeuil.length){ const TOT=stockTotaux(), toutVu=stockVoitTout();
+      avecSeuil.forEach(p=>{ const t=TOT[p.id]; if(t==null&&!toutVu) return; const q=t||0;
+        if(q<=p.seuil) out.push({id:'stock:'+p.id,ic:'📦',txt:`Stock bas : <b>${esc(p.nom)}</b> (${q}/${p.seuil})`,act:"go('stock');cible('pid','"+p.id+"','retrait')"}); }); } }
   /* ⛔ v737 : « admin ou dr » par leur NOM devient le droit de valider — le DR, c'est ce droit. */
   const estDir=can('validerDR');
   if(estDir || can('validerDR')){
