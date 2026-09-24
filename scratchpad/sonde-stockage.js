@@ -31,9 +31,10 @@ const {ouvrir,dormir}=require(path.join(__dirname,'pilote.js'));
 let ok=0,ko=0; const vrai=(t,c,d)=>{ c?ok++:ko++; console.log((c?'  ✓ ':'  ✗ ')+t+(c||d===undefined?'':'  → '+JSON.stringify(d))); };
 const v=(t,a,b)=>vrai(t,JSON.stringify(a)===JSON.stringify(b),a);
 const CAP=process.env.CAPTURES||'';
+let navigateur=null;
 
 (async()=>{
-  const S=await ouvrir(process.env.SOURCE?{source:process.env.SOURCE}:{});
+  const S=await ouvrir(process.env.SOURCE?{source:process.env.SOURCE}:{}); navigateur=S;
   console.log('page mesurée :', S.version);
   await S.c.envoyer('Emulation.setDeviceMetricsOverride',{width:402,height:874,deviceScaleFactor:3,mobile:true});
   await S.c.envoyer('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
@@ -191,6 +192,7 @@ const CAP=process.env.CAPTURES||'';
   await S.ev(`try{ closeModal(true); }catch(e){} detailIntervention('i-stk-1'); await new Promise(r=>setTimeout(r,900)); return 1;`);
   const f5=await S.ev(`return document.getElementById('content').textContent.replace(/\\s+/g,' ');`);
   vrai('la fiche le dit : « Noté sur le rapport et au registre — le stock ne bouge pas », jamais « sera déduit »', /ADVION GEL BLATTES 30G/.test(f5) && /Noté sur le rapport et au registre/.test(f5) && /le stock ne bouge pas/.test(f5) && !/sera déduit/.test(f5), f5.slice(0,500));
+  await S.ev(`const h=[...document.querySelectorAll('#content .card h3')].find(x=>/Produits & matériel/.test(x.textContent)); if(h) h.closest('.card').scrollIntoView({block:'center'}); return 1;`);
   await cap('A5-fiche-cloturee');
 
   console.log('\n══ A.6 SOFIA, SANS ACCÈS ══');
@@ -300,4 +302,6 @@ const CAP=process.env.CAPTURES||'';
   v('aucune exception JavaScript', S.exceptions, []);
   console.log(`\n════ sonde-stockage : ${ok} ✓ ${ko} ✗ ════`);
   S.fermer(); process.exit(ko?1:0);
-})().catch(e=>{ console.error(e); console.log(`\n════ sonde-stockage : ${ok} ✓ ${ko+1} ✗ ════`); process.exit(1); });
+/* Une sonde qui meurt ferme son navigateur : sinon il tourne des heures à 90 % d'un processeur et fait
+   tomber les bancs de temps (CLAUDE.md, « ces fantômes font tomber les bancs de temps »). */
+})().catch(e=>{ console.error(e); console.log(`\n════ sonde-stockage : ${ok} ✓ ${ko+1} ✗ ════`); try{ navigateur&&navigateur.fermer(); }catch(_){} process.exit(1); });
