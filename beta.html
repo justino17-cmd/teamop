@@ -6819,7 +6819,7 @@ html[data-marque][data-verre][data-theme="light"]{
   --rf-relief:none; --rf-voile:none; --rf-lumiere:none; --rf-barre:none;
   --ombre-2:0 18px 44px rgba(11,20,38,.14); --ombre-3:0 30px 80px rgba(11,20,38,.22);
   /* Les encres de SENS, alignées sur les statuts de la maquette (§ 2) */
-  --green:#1C7A3A; --blue:#0A5FC2; --red:#A81F16; --org:#8A5300;
+  --green:#1C7A3A; --blue:#0A5FC2; --red:#A81F16; --org:#7A4900;   /* #8A5300 : 4,34 sur sa pastille (pixel) */
   --danger-bg:rgba(255,59,48,.12); --danger-ink:#A81F16;
 }
 /* ── 1 bis. LA MATIÈRE — nuit, commune aux deux thèmes ──
@@ -6904,6 +6904,24 @@ html[data-marque="opgestion"][data-verre][data-theme="dark"]{
   --deep:#0B3B2E; --eleve:#135443;
   --tf-page-plein:#0B3B2E;
   --tf-bord-haut:rgba(13,66,52,.72);
+  /* ⚠ ÉCART DÉCLARÉ (test-759, « flou de nuit OP GESTION ») : la maquette sature le fond de 220 %.
+     Sur le bleu nuit de TEAM OP, saturer pousse le BLEU, qui pèse 7 % dans la luminance : la vitre
+     reste sombre. Sur le vert forêt, saturer pousse le VERT, qui pèse 72 % : la vitre s'éclaire
+     jusqu'à (22,110,74) et les encres claires y tombent sous 4,5. Mesuré au pixel, par le vrai flou
+     (SwiftShader), le 24 septembre 2026 : 30 textes sous le seuil sur 5 écrans, contre 0 sous
+     TEAM OP. Le vert se sature donc à 120 %. */
+  --vr-flou:blur(40px) saturate(120%) brightness(1.02);
+  /* et sur cette vitre verte, deux encres claires d'un cran (mesuré au pixel, même passe) : le
+     curseur d'un segmenté (blanc à 22 % : 4,36 sous le libellé blanc) et l'orange des statuts
+     (« non effectuées » : 4,33) */
+  --tf-curseur:rgba(255,255,255,.15);
+  --org:#F0B96E;
+  /* et, sur le verre de BUREAU (la barre latérale, une plus grande surface saturée) : le second
+     verre à 8 % et le fond des boutons secondaires à 6 % (« Aujourd'hui » à 4,19), et la pastille
+     des compteurs du menu assombrie (« 14 » à 3,32 sur un voile gris clair) */
+  --vr-fond2:rgba(255,255,255,.08);
+  --tint-gris:rgba(0,0,0,.22);
+  --rf-2nd:rgba(255,255,255,.06); --rf-2nd-h:rgba(255,255,255,.12);
 }
 
 /* ── 4. LES TEINTES — ce que chacune remplit, et l'encre qu'on écrit dessus ─────────────────
@@ -6932,7 +6950,7 @@ html[data-marque][data-accent="red"]      { --tf-acc-rgb:255,59,48; }
    en lettres tombaient à 4,0–4,4:1 : on les éclaircit d'un cran de plus. */
 html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent]{--acc-txt:color-mix(in srgb,#fff 58%,var(--acc-src))}
 html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="teamop"],
-html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="opgestion"]{--acc-txt:color-mix(in srgb,#fff 46%,var(--acc-src))}
+html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="opgestion"]{--acc-txt:color-mix(in srgb,#fff 66%,var(--acc-src))}
 
 /* ── 5. LA PAGE — le dégradé du thème, sans halo ─────────────────────────────────────────────
    ⚠ ÉCART DÉCLARÉ : `THEME.md` § 0 parle de « trois halos animés derrière le verre » ; la
@@ -7043,9 +7061,13 @@ html[data-marque][data-verre][data-refonte] .topbar .rf-plier{
   -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
   box-shadow:var(--vr-ombre-barre)!important;color:var(--acc-txt)!important;
 }
-/* Le compteur de la cloche : la pastille rouge d'iOS, cerclée de la capsule */
+/* Le compteur de la cloche : la pastille rouge d'iOS, cerclée de la capsule.
+   ⚠ Pas le #FF3B30 de la maquette : le blanc n'y tient que 3,58:1 (mesuré au pixel, les deux thèmes,
+   jour et nuit). C'est le rouge « contraste renforcé » d'Apple, #D70015 (5,4:1), et il passe par les
+   jetons d'aplat du dépôt (`--red-fill` / `--on-red`) — une surface pleine porte SON encre. */
+html[data-marque][data-verre]{ --red-fill:#D70015; --on-red:#FFFFFF; }
 html[data-marque][data-verre][data-refonte] .topbar .bell-count{
-  background:#FF3B30!important;color:#fff!important;font-size:11px!important;font-weight:700!important;
+  background:var(--red-fill)!important;color:var(--on-red)!important;font-size:11px!important;font-weight:700!important;
   min-width:18px;height:17px;padding:0 5px;border-radius:999px;box-shadow:0 0 0 2px var(--tf-page-plein);
 }
 /* Sur un téléphone la capsule reste entière : les ronds de synchro et de recherche ne se
@@ -7161,7 +7183,9 @@ html[data-marque][data-refonte] .ph-title{
   font-family:var(--fs)!important;font-size:34px!important;line-height:41px!important;
   letter-spacing:.37px!important;font-weight:700!important;color:var(--t1)!important;
 }
-html[data-marque][data-refonte] .ph-sub{font-size:15px!important;color:var(--t3)!important;margin-top:2px!important}
+/* le sous-titre au second plan (--t2) : au troisième, il tombait à 4,26 sur le haut de la page de
+   jour, là où le dégradé du thème est le plus soutenu (mesuré au pixel, Boxes) */
+html[data-marque][data-refonte] .ph-sub{font-size:15px!important;color:var(--t2)!important;margin-top:2px!important}
 html[data-marque][data-refonte] .ph-surtitre{
   font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--acc-txt);margin-bottom:2px;
 }
@@ -7218,6 +7242,23 @@ html[data-os="windows"][data-marque][data-verre][data-refonte] .multi-bar{border
   html[data-marque][data-verre][data-refonte] .multi-bar{gap:8px!important;padding-left:12px!important}
   html[data-marque][data-verre][data-refonte] .multi-bar .btn:not(.multi-x){padding:0 12px!important;font-size:14px!important}
 }
+
+/* L'heure d'une carte de la frise prenait la couleur de sa carte TELLE QUELLE (`color:var(--cc)`) :
+   violet sur le vert d'OP GESTION de nuit, 3,71 au pixel — et encore 3,71 mêlée à 45 % (la règle
+   d'`encreDonnee`, faite pour le bleu nuit). À 25 %, la teinte de la personne se devine encore et
+   l'heure se lit (5,1 calculé sur le même fond) ; la carte porte déjà sa couleur, en liseré. */
+/* Les en-têtes de la frise (« Équipe », les jours) et la charge d'un technicien (« 8h ») passent au
+   second plan : au troisième, ils tombaient à 4,16 sur le verre de bureau (TEAM OP de nuit, où la
+   vitre saturée tire vers le bleu) — mesuré au pixel. Le jour du jour garde la teinte. */
+html[data-marque] .tdb-jh:not(.auj),html[data-marque] .tdb-tec small{color:var(--t2)!important}
+html[data-marque] .tdb-pc b .hh{color:color-mix(in srgb,var(--cc) 25%,var(--t1))!important}
+
+/* De nuit, le compteur d'une rubrique ACTIVE du menu est une pastille SOMBRE : l'item actif est déjà
+   un voile blanc, et un second voile blanc dessus portait « 14 » à 3,32 (pixel, OP GESTION, bureau). */
+html[data-marque][data-theme="dark"] .nav-item.active .badge{background:rgba(0,0,0,.28)!important;color:var(--t1)!important}
+/* Les initiales d'un avatar, de nuit : 55 % de la teinte tombait à 4,37 sur le verre vert du menu
+   (pixel, bureau). Un tiers de teinte, le reste à l'encre du thème. */
+html[data-marque][data-theme="dark"] .avatar{color:color-mix(in srgb,var(--acc) 35%,var(--t1))!important}
 
 /* ── 13. LES TUILES CHIFFRÉES DU TABLEAU DE BORD ── 40 pt, la tuile d'icône colorée au-dessus */
 html[data-marque][data-refonte] .kpis{gap:12px!important}

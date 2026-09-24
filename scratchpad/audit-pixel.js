@@ -31,10 +31,17 @@ const ACC_SEULS = (process.env.ACC || '').split(',').filter(Boolean);
    d'OP GESTION — un choix offert à l'utilisateur se mesure sous CHACUNE de ses valeurs. */
 const MARQUE = process.env.MARQUE || '';
 const RUB = (process.env.RUB || '').split(',').filter(Boolean);
+/* FEN=0 : aucune fenêtre ; FEN=1 ou absent : toutes ; FEN=nom,nom : celles dont le nom commence ainsi
+   (« Thème » pour l'écran Thème et couleur, qui n'est pas une rubrique : aucun audit ne le lisait) */
+const FEN_SEULES = (process.env.FEN && process.env.FEN !== '1' && process.env.FEN !== '0') ? process.env.FEN.split(',').filter(Boolean) : [];
 const FEN = process.env.FEN !== '0';
 const W = TEL ? 390 : 1280, H = 2200;
 const src = fs.readFileSync(path.join(__dirname, 'audit-teintes.js'), 'utf8');
 const FENETRES = eval(src.match(/const FENETRES=(\[[\s\S]*?\n  \]);/)[1]);
+/* l'écran « Thème et couleur » (Paramètres › Apparence) : les pastilles des teintes, l'aperçu, les
+   segments Jour/Nuit/Auto — tout ce qu'il affiche change avec la teinte qu'on mesure */
+FENETRES.push({ nom: 'Thème et couleur', zone: '#overlay .modal', ouvrir: `themeCouleur();`, puis: `` });
+const FEN_LISTE = FENETRES.filter(F => !FEN_SEULES.length || FEN_SEULES.some(n => F.nom.startsWith(n)));
 
 const RELEVE = `
   /* ⛔⛔ UNE TRANSITION DE VUE EN COURS COUVRE TOUT L'ÉCRAN — go() passe par
@@ -199,7 +206,7 @@ const RELEVE = `
       const m = await mesurer(th + '/' + a + '/' + k);
       R.ecrans++; R.textes += m.n; R.estompes += m.estompes; R.inactifs += m.inactifs; R.pictos += m.pictos; R.recouverts += m.recouverts; R.sousBarre += m.sousBarre; R.horsCadre += m.horsCadre; R.coupes += m.coupes; R.bouges += m.bouges; R.vtOuvertes += m.vtOuvertes ? 1 : 0; R.faibles.push(...m.faibles);
     }
-    if (FEN) for (const F of FENETRES) {
+    if (FEN) for (const F of FEN_LISTE) {
       await S.ev(`try{ closeModal(); }catch(e){} try{ closeSub(); }catch(e){} return 1;`); await dormir(150);
       try { await S.ev(F.ouvrir + ' return 1;'); } catch (e) { continue; }
       await dormir(500); try { await S.ev(F.puis + ' return 1;'); } catch (e) {} await dormir(300);

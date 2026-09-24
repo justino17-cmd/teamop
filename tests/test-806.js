@@ -178,5 +178,28 @@ console.log('\n── 7. Ce que la relecture et l’audit profond ont relevé su
   vrai('⛔ box : nom et ville portent leur infobulle', /<b class="tf-titre" title="\$\{esc\(b\.nom\|\|b\.adresse\|\|b\.numero\|\|'Box'\)\}">/.test(bl) && /<div class="tf-l2"><span title="/.test(bl));
 }
 
+console.log('\n── 8. Les contrastes relevés AU PIXEL, par le vrai flou (SwiftShader)');
+{
+  /* ⚠ `scratchpad/audit-pixel.js` (TEL=1, TH=dark,light, MARQUE=opgestion puis TEAM OP, 5 écrans) :
+     OP GESTION de nuit rendait 30 textes sous 4,5 (la vitre verte saturée à 220 % s'éclaircissait),
+     TEAM OP 1 (le sous-titre de page) ; et la pastille de la cloche 3,58 dans les deux. Après : 0 et 0.
+     Ce banc garde la FORME des correctifs ; la preuve reste la mesure au pixel. */
+  const lum = h => { const n = parseInt(h.replace('#', ''), 16), c = [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
+  const ctr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  const rf = (NU.match(/html\[data-marque\]\[data-verre\]\{ --red-fill:(#[0-9A-Fa-f]{6}); --on-red:(#[0-9A-Fa-f]{6}); \}/) || []);
+  vrai('⛔ la pastille de la cloche prend l’aplat rouge du thème et SON encre', rf.length === 3 && /\.topbar \.bell-count\{\s*background:var\(--red-fill\)!important;color:var\(--on-red\)!important/.test(NU));
+  vrai('   … et son blanc tient 4,5 sur ce rouge (calculé)', rf.length === 3 && ctr(rf[1], rf[2]) >= 4.5, rf.length === 3 ? ctr(rf[1], rf[2]).toFixed(2) : '?');
+  vrai('⛔ le sous-titre de page s’écrit au second plan (--t2)', /html\[data-marque\]\[data-refonte\] \.ph-sub\{font-size:15px!important;color:var\(--t2\)!important/.test(NU));
+  vrai('⛔ l’heure d’une carte de la frise : un quart de sa couleur, le reste à l’encre du thème', /html\[data-marque\] \.tdb-pc b \.hh\{color:color-mix\(in srgb,var\(--cc\) 25%,var\(--t1\)\)!important\}/.test(NU));
+  vrai('⛔ les en-têtes de la frise et la charge d’un technicien au second plan (le jour du jour garde la teinte)', /html\[data-marque\] \.tdb-jh:not\(\.auj\),html\[data-marque\] \.tdb-tec small\{color:var\(--t2\)!important\}/.test(NU));
+  vrai('⛔ de nuit, les initiales d’un avatar : un tiers de teinte', /html\[data-marque\]\[data-theme="dark"\] \.avatar\{color:color-mix\(in srgb,var\(--acc\) 35%,var\(--t1\)\)!important\}/.test(NU));
+  const opgN = (NU.match(/html\[data-marque="opgestion"\]\[data-verre\]\[data-theme="dark"\]\{[\s\S]*?\n\}/) || [''])[0];
+  vrai('⛔ OP GESTION de nuit : le curseur du segmenté à 15 % et l’orange éclairci', /--tf-curseur:rgba\(255,255,255,\.15\)/.test(opgN) && /--org:#F0B96E/.test(opgN));
+  vrai('⛔ OP GESTION de nuit : second verre à 8 %, boutons secondaires à 6 %, pastille du menu assombrie', /--vr-fond2:rgba\(255,255,255,\.08\)/.test(opgN) && /--tint-gris:rgba\(0,0,0,\.22\)/.test(opgN) && /--rf-2nd:rgba\(255,255,255,\.06\)/.test(opgN));
+  vrai('⛔ de nuit, le compteur d’une rubrique active est une pastille sombre', /html\[data-marque\]\[data-theme="dark"\] \.nav-item\.active \.badge\{background:rgba\(0,0,0,\.28\)!important/.test(NU));
+  vrai('⛔ OP GESTION de nuit : la teinte de marque s’écrit à 66 % de blanc', /\[data-accent="opgestion"\]\{--acc-txt:color-mix\(in srgb,#fff 66%,var\(--acc-src\)\)\}/.test(NU));
+  vrai('⛔ de jour, l’orange des statuts un cran plus sombre (#7A4900)', /--org:#7A4900;/.test(NU));
+}
+
 console.log('\n═══ test-806 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
 process.exit(ko ? 1 : 0);

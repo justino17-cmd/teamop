@@ -46,6 +46,14 @@ const ECARTS = {
      clair de la page de nuit du vert forêt (le haut du dégradé, sous la diagonale), sur la vitre,
      il tombe à 3,4:1 — sous le plancher, et même 92 % n'y rend que 4,40. Mesuré : la menthe PLEINE
      (#C4E0D6) y tient 5,0:1. La teinte est gardée, seule la force change.`,
+  'flou de nuit OP GESTION': `la maquette sature le fond de ses vitres à 220 % dans les deux thèmes. Sur
+     le bleu nuit, saturer pousse le BLEU (7 % de la luminance) et la vitre reste sombre ; sur le vert
+     forêt, saturer pousse le VERT (72 %) et la vitre s'éclaire jusqu'à (22,110,74). Mesuré au pixel,
+     par le vrai flou (SwiftShader), le 24 septembre 2026 : 30 textes sous 4,5 sur 5 écrans sous
+     OP GESTION de nuit, 0 sous TEAM OP. Le vert se sature à 120 %, et le document garde 220 %.
+     Même passe : sur cette vitre, le curseur d'un segmenté passe de 22 à 15 % de blanc (libellé blanc
+     à 4,36) et l'orange des statuts s'éclaircit (#F0B96E, « non effectuées » à 4,33) ; sur le verre
+     de bureau, le second verre passe de 12 à 8 % (« Aujourd'hui » à 4,19).`,
   'feuille de nuit': `la maquette pose ses feuilles de nuit sur rgba(28,28,30,.7), un gris neutre ;
      on les teinte du thème (bleu nuit pour TEAM OP, vert forêt pour OP GESTION) et on les
      densifie (.86–.88). La règle du dépôt, écrite après la capture de Justin du 22 septembre :
@@ -123,6 +131,12 @@ console.log('\n══ 2. LE VERRE — lu dans le document (§ 4) ══\n');
     .map(c => jeton(c, '--vr-fond-dense'));
   const alphas = fn.map(x => parseFloat((x.match(/,\s*(0?\.\d+|1)\)$/) || [, '0'])[1]));
   const aDoc = parseFloat((J['verre.nuit.feuille'].match(/,\s*(0?\.\d+)\)$/) || [, '0'])[1]);
+  /* ⛔ ÉCART DÉCLARÉ : le flou de nuit d'OP GESTION sature moins (le vert éclaire la vitre). */
+  const fOpg = jeton(regle('html[data-marque="opgestion"][data-verre][data-theme="dark"]'), '--vr-flou');
+  const satOpg = parseFloat((fOpg.match(/saturate\((\d+)%\)/) || [, '0'])[1]);
+  vrai('nuit OP GESTION — le vert se sature MOINS que la maquette (écart déclaré, mesuré au pixel)',
+    !!ECARTS['flou de nuit OP GESTION'] && satOpg > 0 && satOpg <= 150 && /blur\(40px\)/.test(fOpg), fOpg);
+  vrai('   … et TEAM OP de nuit garde le flou du document', !jeton(regle('html[data-marque="teamop"][data-verre][data-theme="dark"]'), '--vr-flou'));
   vrai('nuit — la feuille est AU MOINS aussi dense que la maquette (écart déclaré : teinte du thème)',
     alphas.every(a => a >= aDoc) && !!ECARTS['feuille de nuit'], fn.join(' · ') + ' / document ' + J['verre.nuit.feuille']);
   v('la bulle de l’onglet choisi, jour', net(jeton(jour, '--tf-bulle')), net(J['bulle.jour']));
