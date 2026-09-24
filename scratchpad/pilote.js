@@ -115,6 +115,11 @@ async function ouvrir(opts) {
   /* les fenêtres modales natives bloquent le pilotage : on répond toujours oui */
   await ev('window.confirm=()=>true; window.alert=()=>{}; window.prompt=(q,d)=>d||""; return 1;');
 
+  /* ⛔ UNE SONDE COUPÉE PAR `timeout` NE FERMAIT PAS SON NAVIGATEUR. Mesuré le 24 septembre 2026 :
+     deux Chromium orphelins depuis 1 h 48, dont un processus GPU à 98 % de CPU — c'est ce qui fait
+     tomber les bancs de temps (règle du dépôt). Le signal de fin tue le navigateur avec la sonde. */
+  for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.once(sig, () => { try { chrome.kill('SIGKILL'); } catch (e) {} process.exit(130); });
+  process.once('exit', () => { try { chrome.kill('SIGKILL'); } catch (e) {} });
   const fermer = () => { try { chrome.kill('SIGKILL'); } catch (e) {} try { statique.close(); } catch (e) {}
     try { fs.rmSync(BANC, { recursive: true, force: true }); } catch (e) {} };
   return { ev, c, exceptions, consoleErr, fermer, BASE, version };

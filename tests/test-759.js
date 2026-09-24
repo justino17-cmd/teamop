@@ -213,7 +213,9 @@ console.log('\n══ 5. LES FORMES (§ 5) ══\n');
   const sb = (APP.match(/html\[data-kind="desktop"\] \.sidebar\{width:(\d+)px\}/) || [, ''])[1];
   vrai('⛔ la sidebar de bureau s’écarte du document, et l’écart est DÉCLARÉ', sb === '258' && !!ECARTS['largeur de la sidebar'], 'sidebar = ' + sb + ' px');
   vrai('⛔ cibles tactiles ≥ 44 px (la capsule du menu, « Créer »)',
-    /\.topbar \.menu-btn,[\s\S]{0,120}\{\s*width:44px!important;height:44px!important/.test(NU) && /\.topbar \.creer-btn\{\s*height:44px!important;min-height:44px!important/.test(NU));
+    /* (le sélecteur ne porte plus `.tb-back` : le retour de la barre est caché sous la refonte —
+       relecture v745, une règle posée sur un élément qui ne paraît jamais) */
+    /\.topbar \.menu-btn\{\s*width:44px!important;height:44px!important/.test(NU) && /\.topbar \.creer-btn\{\s*height:44px!important;min-height:44px!important/.test(NU));
 }
 
 console.log('\n══ 6. LE SECOND PLAN SE LIT (écart déclaré : couleurs pleines) ══\n');

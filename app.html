@@ -6988,9 +6988,9 @@ html[data-marque][data-verre][data-refonte] body.defile .topbar::before{opacity:
 html[data-marque][data-verre][data-refonte] .topbar .topbar-brand{display:none!important}
 html[data-marque][data-verre][data-refonte] .topbar #theme-btn{display:none!important}
 html[data-marque][data-verre][data-refonte] .topbar .gsrch{display:none!important}
-/* La pastille du menu, et celle du retour quand elle paraît */
-html[data-marque][data-verre][data-refonte] .topbar .menu-btn,
-html[data-marque][data-verre][data-refonte] .topbar .tb-back{
+/* La pastille du menu. (Le retour de la barre, #topbar-back, est caché partout sous la refonte :
+   le retour vit dans l'en-tête de page, `.ph-back`.) */
+html[data-marque][data-verre][data-refonte] .topbar .menu-btn{
   width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important;
   border-radius:50%!important;flex:0 0 44px!important;
   background:var(--vr-fond)!important;border:1px solid var(--vr-liseret)!important;
@@ -7374,6 +7374,8 @@ html[data-verre][data-theme="dark"] .tc-teinte.on .tc-rond{box-shadow:0 0 0 3px 
 .tc-teinte-p{position:relative;display:flex;justify-content:center}
 .tc-retirer{position:absolute;top:-6px;right:calc(50% - 34px);width:24px;height:24px;border-radius:50%;border:1px solid var(--brd);
   background:var(--bg1);color:var(--t2);font-size:13px;line-height:1;cursor:pointer;padding:0}
+/* la croix se DESSINE à 24 px mais RÉPOND sur 38 : le plancher tactile du dépôt (relecture v745) */
+.tc-retirer::after{content:'';position:absolute;inset:-7px;border-radius:50%}
 .tc-ajout input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .tc-demo{display:flex;flex-direction:column;gap:14px;padding:16px}
 .tc-demo-l{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -7718,7 +7720,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '744';
+const APP_VERSION = '745';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -14246,7 +14248,7 @@ try{ document.addEventListener('DOMContentLoaded',()=>{ try{ segObserver(); }cat
    l'enregistrement refusait. Pire, la tuile « Box » ouvrait `formBox()` que rien ne gardait : on créait
    une box d'ici quand l'écran Boxes cachait « ＋ Box ». Chaque tuile lit la case de SA création. */
 const CREER_ENTREES=[
-  {k:'interventions', ic:'🧰', l:'Intervention', c:'#007aff', fn:"formIntervention()", peut:()=>canCat('int','ajouter')},
+  {k:'interventions', ic:'🧰', l:'Intervention', fn:"formIntervention()", peut:()=>canCat('int','ajouter')},
   {k:'clients',       ic:'🏢', l:'Client',       c:'#34c759', fn:"formClient()",       peut:()=>canCat('crm','ajouter')},
   {k:'devis',         ic:'💰', l:'Devis',        c:'#ff9500', fn:"formDoc('devis')",   peut:()=>canCat('ventes','ajouter')},
   {k:'factures',      ic:'🧾', l:'Facture',      c:'#af52de', fn:"formDoc('factures')",peut:()=>canCat('ventes','ajouter')},
@@ -20520,12 +20522,16 @@ views.interventions=function(){
        « Voir au planning » reste un bouton rond sur tablette et bureau ; sur un téléphone c'est le
        chevron (l'onglet Planning est sous le pouce) : avec le bouton, le titre tombait à 150 px. */
     const l3=[fut?`<b style="color:var(--t2);font-weight:600">${esc(fmtCountdownLong(start-Date.now()))}</b>`:'', i.heure?'jusqu’à '+esc(addMin(i.heure,i.duree||60)):'', dist!=null?`à ${dist} km`:'', esc(adr)].filter(Boolean).join(' · ');
+    /* ce qu'une ligne coupe par « … » se lit en entier dans son infobulle (audit profond : 39 coupures
+       muettes sur les noms longs, relevées sur la v745 avant correction) */
+    const l3t=[fut?fmtCountdownLong(start-Date.now()):'', i.heure?'jusqu’à '+addMin(i.heure,i.duree||60):'', dist!=null?'à '+dist+' km':'', adr].filter(Boolean).join(' · ');
+    const l2t=[i.statut==='planifiee'?'':st, i.prio==='haute'?'Urgent':'', clientName(i.clientId)||'—'].filter(Boolean).join(' · ');
     return `<div class="tf-rangee" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" onclick="detailIntervention('${i.id}')" style="--tf-c:${sc}">
       <span class="tf-badge">${esc(String(i.num||'—'))}</span>
       <div class="tf-corps">
-        <div class="tf-l1"><b class="tf-titre">${esc(i.titre||'Intervention')}</b><span class="tf-fin">${esc(i.heure||'—')}</span></div>
-        <div class="tf-l2"><i class="tf-pt" aria-hidden="true"></i><span>${i.statut==='planifiee'?'':esc(st)+' · '}${i.prio==='haute'?'<b style="color:var(--red)">Urgent</b> · ':''}${esc(clientName(i.clientId)||'—')}</span></div>
-        ${l3?`<div class="tf-l3"><span>${l3}</span></div>`:''}
+        <div class="tf-l1"><b class="tf-titre" title="${esc(i.titre||'Intervention')}">${esc(i.titre||'Intervention')}</b><span class="tf-fin">${esc(i.heure||'—')}</span></div>
+        <div class="tf-l2"><i class="tf-pt" aria-hidden="true"></i><span title="${esc(l2t)}">${i.statut==='planifiee'?'':esc(st)+' · '}${i.prio==='haute'?'<b style="color:var(--red)">Urgent</b> · ':''}${esc(clientName(i.clientId)||'—')}</span></div>
+        ${l3?`<div class="tf-l3"><span title="${esc(l3t)}">${l3}</span></div>`:''}
       </div>
       <button class="tf-act tf-large" onclick="event.stopPropagation();planSel='${i.date}';planWeekRef='${i.date}';planMode='jour';go('planning')" title="Voir au planning" aria-label="Voir au planning">📅</button>
       <svg class="tf-chev tf-etroit" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -22963,7 +22969,7 @@ function renderIntDetail(id){
           <div class="bdt-row"><span class="bdt-lbl">Non travaillé (min)</span><span class="bdt-val"><input type="number" min="0" value="${i.nonTravaille||0}" onchange="intEditField('${id}','nonTravaille',parseInt(this.value)||0)" style="width:90px"></span></div>
           <div class="bdt-row" style="border-bottom:none;display:block"><span class="bdt-lbl" style="display:block;margin-bottom:6px">Commentaire</span>
             <input value="${esc(i.commTechnicien||'')}" placeholder="Commentaire…" oninput="(db.interventions.find(x=>x.id==='${id}')||{}).commTechnicien=this.value" onchange="save()" style="width:100%"></div>`:`
-          <div class="bdt-row"><span class="bdt-lbl">Effectué ?</span><span class="bdt-val" style="display:flex;align-items:center;gap:9px" onclick="toast('Touche le stylo ✏️ pour modifier')" title="Touche le stylo ✏️ pour modifier">${i.statut==='terminee'?'<b style="color:var(--acc-txt)">✓ Oui</b>':'<span style="color:var(--t3)">Non</span>'}<input type="checkbox" ${i.statut==='terminee'?'checked':''} disabled style="width:26px;height:26px;accent-color:var(--acc);opacity:.45;cursor:default;pointer-events:none"></span></div>
+          <div class="bdt-row"><span class="bdt-lbl">Effectué ?</span><span class="bdt-val" style="display:flex;align-items:center;gap:9px" onclick="toast('Touche le stylo ✏️ pour modifier')" title="Touche le stylo ✏️ pour modifier">${i.statut==='terminee'?'<b style="color:var(--green)">✓ Oui</b>':'<span style="color:var(--t3)">Non</span>'}<input type="checkbox" ${i.statut==='terminee'?'checked':''} disabled style="width:26px;height:26px;accent-color:var(--acc);opacity:.45;cursor:default;pointer-events:none"></span></div>
           ${drow(fic('cal',16),'Début', i.debutReel?dmy(fmtDTpart(i.debutReel,'d'))+' '+hh(fmtDTpart(i.debutReel,'t')):'—')}
           ${drow(fic('csq',16),'Fin', i.finReel?dmy(fmtDTpart(i.finReel,'d'))+' '+hh(fmtDTpart(i.finReel,'t')):'—')}
           ${drow(fic('clock',16),'Durée', `<b id="eff-dur" class="mono">${i.dureeReelle?d2(i.dureeReelle):(i.debutReel&&!i.finReel?'…':'00h00')}</b>`)}
@@ -23831,11 +23837,12 @@ views.clients=function(){
   const rows=_clis.map(c=>{ const n=db.interventions.filter(i=>i.clientId===c.id).length; const pro=cliIsPro(c);
     const ou=(c.ville||'').trim()||(c.adresse||'').trim();
     const meta=[pro?'':'Particulier', esc(ou), esc(c.tel||'')].filter(Boolean).join(' · ');
+    const metaT=[pro?'':'Particulier', ou, c.tel||''].filter(Boolean).join(' · ');
     return `<div class="tf-rangee" onclick="ficheClient('${c.id}')">
       <span class="tf-badge ini">${esc(initials(c.nom))}</span>
       <div class="tf-corps">
-        <div class="tf-l1"><b class="tf-titre">${esc(c.nom)}</b>${n?`<span class="tf-fin">${n} int.</span>`:''}</div>
-        <div class="tf-l2"><span>${meta||'<span style="color:var(--org)">Fiche à compléter</span>'}</span></div>
+        <div class="tf-l1"><b class="tf-titre" title="${esc(c.nom)}">${esc(c.nom)}</b>${n?`<span class="tf-fin">${n} int.</span>`:''}</div>
+        <div class="tf-l2"><span title="${esc(metaT||'Fiche à compléter')}">${meta||'<span style="color:var(--org)">Fiche à compléter</span>'}</span></div>
         ${(c.tags||[]).length?`<div class="tf-l3" style="flex-wrap:wrap">${tagChipsHtml(c)}</div>`:''}
       </div>
       <svg class="tf-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -26300,8 +26307,8 @@ function boxLigneHtml(b,nv){
     return `<div class="tf-rangee" onclick="openBox('${b.id}')" style="--tf-c:${coul}">
       <span class="tf-badge"${stk?' style="font-size:20px"':''}>${esc(ab)}</span>
       <div class="tf-corps">
-        <div class="tf-l1"><b class="tf-titre">${esc(b.nom)||esc(b.adresse)||esc(b.numero)||'Box'}${(()=>{ const n=nv().length?boxNouveautes(b,nv()).length:0; return n?` <span class="bxp-pastille bxp-pastille-carte" title="Nouveaux produits au catalogue, pas encore dans cette box">+${n>9?'9+':n}</span>`:''; })()}</b>${b.numero?`<span class="tf-fin mono" style="font-size:13px">${esc(b.numero)}</span>`:''}</div>
-        <div class="tf-l2"><span>${[b.actif===false?'<b style="color:var(--red)">Inactif</b>':'', stk?'Le stock hors des box':(esc(b.ville||'')||'—'), b.secteur?esc(b.secteur):''].filter(Boolean).join(' · ')}</span></div>
+        <div class="tf-l1"><b class="tf-titre" title="${esc(b.nom||b.adresse||b.numero||'Box')}">${esc(b.nom)||esc(b.adresse)||esc(b.numero)||'Box'}${(()=>{ const n=nv().length?boxNouveautes(b,nv()).length:0; return n?` <span class="bxp-pastille bxp-pastille-carte" title="Nouveaux produits au catalogue, pas encore dans cette box">+${n>9?'9+':n}</span>`:''; })()}</b>${b.numero?`<span class="tf-fin mono" style="font-size:13px">${esc(b.numero)}</span>`:''}</div>
+        <div class="tf-l2"><span title="${esc([b.actif===false?'Inactif':'', stk?'Le stock hors des box':(b.ville||'—'), b.secteur||''].filter(Boolean).join(' · '))}">${[b.actif===false?'<b style="color:var(--red)">Inactif</b>':'', stk?'Le stock hors des box':(esc(b.ville||'')||'—'), b.secteur?esc(b.secteur):''].filter(Boolean).join(' · ')}</span></div>
       </div>
       ${(()=>{ const t=boxTotalStock(b);
         /* Rien quand il n'y a rien : une box sans stock n'a pas besoin d'un « 0 » de plus à

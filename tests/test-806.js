@@ -161,5 +161,22 @@ console.log('\n── 6. La connexion prend le fond du thème');
   vrai('⛔ la connexion peint la page du thème (diagonale et dégradés)', /html\[data-marque\]\[data-verre\] \.login\{background:var\(--vr-page\)!important\}/.test(NU));
 }
 
+console.log('\n── 7. Ce que la relecture et l’audit profond ont relevé sur la v745');
+{
+  /* ⚠ Relecture (24 septembre 2026, nuit) : « Terminée » est passée au vert, mais le « ✓ Oui » de la
+     fiche restait à la teinte (marine par défaut) juste en dessous — deux couleurs pour un état. */
+  vrai('⛔ le « ✓ Oui » d’une intervention terminée est vert, comme son statut', /'<b style="color:var\(--green\)">✓ Oui<\/b>'/.test(NU) && !/'<b style="color:var\(--acc-txt\)">✓ Oui<\/b>'/.test(NU));
+  vrai('⛔ la croix d’une couleur perso répond sur 38 px (24 dessinés + 7 de chaque côté)', /\.tc-retirer::after\{content:'';position:absolute;inset:-7px/.test(NU));
+  /* ⚠ Audit profond (iPhone 390 et Android 360, valeurs longues) : 39 titres et métas coupés par
+     « … » SANS infobulle dans les nouvelles rangées. Chaque texte coupable porte son texte entier. */
+  const co = (NU.match(/const cardOrg=i=>\{[\s\S]*?<\/div>`; \};/) || [''])[0];
+  const vc = (NU.match(/views\.clients=function\(\)\{[\s\S]*?\n\}\n/) || [''])[0];
+  const bl = NU.slice(NU.indexOf('function boxLigneHtml('), NU.indexOf('function renderBoxesList('));
+  vrai('⛔ intervention : titre, statut·client et adresse portent leur infobulle',
+    /<b class="tf-titre" title="\$\{esc\(i\.titre\|\|'Intervention'\)\}">/.test(co) && /<span title="\$\{esc\(l2t\)\}">/.test(co) && /<span title="\$\{esc\(l3t\)\}">/.test(co));
+  vrai('⛔ client : nom et « ville · téléphone » portent leur infobulle', /<b class="tf-titre" title="\$\{esc\(c\.nom\)\}">/.test(vc) && /<span title="\$\{esc\(metaT\|\|'Fiche à compléter'\)\}">/.test(vc));
+  vrai('⛔ box : nom et ville portent leur infobulle', /<b class="tf-titre" title="\$\{esc\(b\.nom\|\|b\.adresse\|\|b\.numero\|\|'Box'\)\}">/.test(bl) && /<div class="tf-l2"><span title="/.test(bl));
+}
+
 console.log('\n═══ test-806 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
 process.exit(ko ? 1 : 0);

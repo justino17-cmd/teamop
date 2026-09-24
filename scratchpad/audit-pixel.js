@@ -26,6 +26,10 @@ const TEL = process.env.TEL === '1';
 const PLAT = process.env.PLAT || (TEL ? 'iosweb' : 'macweb');
 const THEMES = (process.env.TH || 'dark,light').split(',');
 const ACC_SEULS = (process.env.ACC || '').split(',').filter(Boolean);
+/* MARQUE=teamop|opgestion : le THÈME du 24 septembre 2026 (data-marque). La teinte ne le choisit
+   pas : sans ce réglage, l'audit ne lisait que le thème par défaut (TEAM OP), jamais le vert forêt
+   d'OP GESTION — un choix offert à l'utilisateur se mesure sous CHACUNE de ses valeurs. */
+const MARQUE = process.env.MARQUE || '';
 const RUB = (process.env.RUB || '').split(',').filter(Boolean);
 const FEN = process.env.FEN !== '0';
 const W = TEL ? 390 : 1280, H = 2200;
@@ -185,9 +189,9 @@ const RELEVE = `
     if (!pris || m.n < 40) { S.fermer(); process.exit(7); }
   }
 
-  const R = { version: S.version, plat: PLAT, tel: TEL, ecrans: 0, fenetres: 0, textes: 0, estompes: 0, inactifs: 0, pictos: 0, recouverts: 0, sousBarre: 0, horsCadre: 0, coupes: 0, bouges: 0, vtOuvertes: 0, faibles: [] };
+  const R = { version: S.version, plat: PLAT, tel: TEL, marque: MARQUE || "teamop", ecrans: 0, fenetres: 0, textes: 0, estompes: 0, inactifs: 0, pictos: 0, recouverts: 0, sousBarre: 0, horsCadre: 0, coupes: 0, bouges: 0, vtOuvertes: 0, faibles: [] };
   for (const th of THEMES) for (const a of ACCENTS) {
-    await S.ev(`try{ closeSub(); }catch(e){} try{ closeModal(); }catch(e){} try{ setThemePref('${th}'); setAccent('${a}'); }catch(e){} return 1;`); await dormir(300);
+    await S.ev(`try{ closeSub(); }catch(e){} try{ closeModal(); }catch(e){} try{ if(${JSON.stringify(MARQUE)}) setMarque(${JSON.stringify(MARQUE)}); setThemePref('${th}'); setAccent('${a}'); }catch(e){} return 1;`); await dormir(300);
     for (const k of CATS) {
       await S.ev(`try{ go('${k}'); }catch(e){} return 1;`); await dormir(450);
       await S.ev(`try{ closeModal(); }catch(e){} try{ tdbDetailFerme(); }catch(e){} window.scrollTo(0,0); return 1;`);
@@ -220,6 +224,6 @@ const RELEVE = `
     console.log('   ' + String(v.length).padStart(4) + '×  ' + g + '   pire ' + p.c.toFixed(2) + ' [' + p.ou + '] encre ' + p.encre + ' fond ' + p.fond);
   });
   console.log('  sur une barre en verre (fond non flouté par Chromium, voir plus haut) : ' + surBarre.length + ' — rangés à part');
-  fs.writeFileSync(path.join(__dirname, 'audit-pixel-' + PLAT + (TEL ? '-tel' : '') + '-' + THEMES.join('') + '.json'), JSON.stringify(R));
+  fs.writeFileSync(path.join(__dirname, 'audit-pixel-' + PLAT + (TEL ? '-tel' : '') + '-' + THEMES.join('') + (MARQUE ? '-' + MARQUE : '') + '.json'), JSON.stringify(R));
   S.fermer(); process.exit(0);
 })().catch(e => { console.error('AUDIT MORT :', e && e.stack || e); process.exit(2); });
