@@ -1,0 +1,120 @@
+/* ══ PROPOSITION « LOGO » — la diagonale menthe / vert forêt du logo OP GESTION ══════════════
+   ⛔ NON APPLIQUÉE, ET CHARGÉE PAR AUCUNE PAGE. Justin, 24 septembre 2026, logo à l'appui :
+   « montre-moi un thème avec ce style en couleur du logo, mais ne l'applique pas, je veux le
+   voir ». Ce fichier est ce qui a produit les captures qu'il a reçues (iPhone : accueil jour et
+   nuit, Interventions jour, Planning nuit ; Mac : accueil jour et nuit). Il attend sa décision :
+   troisième thème au choix, remplacement de l'habillage OP GESTION, ou retouches.
+
+   Pour le revoir : ouvrir une copie LOCALE de la bêta (127.0.0.1, jamais la production), puis
+   dans la console : poser ce fichier dans un <style> et `document.documentElement
+   .setAttribute('data-proto','logo')`. Tout est accroché à `html[data-proto="logo"]` : sans
+   l'attribut, rien ne change. (Les captures masquaient aussi la barre « Reprendre »
+   — `.multi-bar{display:none}` — pour dégager l'en-tête : ce n'est pas une règle du thème.)
+
+   ⚠️ C'est une MAQUETTE, pas un thème éprouvé : aucun banc ne la garde, aucun audit au pixel
+   ne l'a relue. Si Justin l'adopte, elle entre dans `<style id="theme-final">` comme une
+   marque (`data-marque`), et passe par les mêmes preuves que la v746 — les douze teintes au
+   pixel, les douze appareils, `test-759` et `test-806`.
+
+   Couleurs relevées au pixel sur le logo : menthe #E9F3F0, forêt #0A4035, sauge #6CA896,
+   liseré #D8E5EA ; la diagonale fait 58° avec l'horizontale (dégradé à 122deg). La sauge du
+   logo (#6CA896) ne se lit pas sur la menthe (2,41:1) : le texte en sauge prend #2B7159 (5,14:1).
+   Les autres paires, calculées (pas relevées au pixel) : forêt sur menthe 10,32, blanc sur forêt
+   11,68, libellé d'onglet #BCD9CD sur forêt 7,76 ; de nuit, forêt sur #9CC6B6 6,21. */
+html[data-proto="logo"]{
+  --lg-menthe:#E9F3F0; --lg-foret:#0A4035; --lg-foret2:#062E25; --lg-sauge:#6CA896;
+  --lg-sauge-txt:#2B7159; --lg-liseret:#D8E5EA; --lg-angle:122deg; --lg-cut:58%; --lg-coupe-titre:235px;   /* mesurée depuis le coin haut gauche, le long de l'angle : la coupe tombe entre « de » et « bord » quelle que soit la largeur */
+}
+/* ── jour ── la page est la menthe du logo, et la diagonale y passe en filigrane */
+html[data-proto="logo"][data-marque][data-verre][data-theme="light"]{
+  --vr-page:linear-gradient(var(--lg-angle),#EEF6F3 0 var(--lg-cut),#E3EEE9 var(--lg-cut) 100%);
+  --tf-page-plein:#E9F3F0;
+  --t1:#0A4035; --t2:#3A5A50; --t3:#4E6F64; --vr-encre:#0A4035; --vr-encre2:#3A5A50; --vr-encre3:#4E6F64;
+  --vr-fond:rgba(255,255,255,.88); --vr-fond2:rgba(255,255,255,.72); --vr-fond-dense:rgba(246,250,248,.94);
+  --vr-liseret:#D8E5EA;
+  --vr-reflet:linear-gradient(rgba(255,255,255,0),rgba(255,255,255,0));
+  --vr-ombre:0 10px 28px rgba(10,64,53,.08),inset 0 1px 0 #fff;
+  --vr-ombre-barre:0 16px 40px rgba(10,64,53,.28);
+  --tf-kpi:rgba(255,255,255,.9); --tf-cote:rgba(255,255,255,.6);
+  --tf-barre:rgba(10,64,53,.94);               /* la barre d'onglets : le coin foncé du logo */
+  --tf-bulle:#E9F3F0; --tf-bulle-ombre:0 4px 12px rgba(0,0,0,.18);
+  --tf-bord-haut:rgba(233,243,240,.8); --tf-filet:rgba(10,64,53,.08);
+  --brd:rgba(10,64,53,.1); --brd2:rgba(10,64,53,.16); --cardline:rgba(10,64,53,.08);
+  --rf-2nd:rgba(10,64,53,.07); --rf-2nd-h:rgba(10,64,53,.11);
+}
+/* ── nuit ── le vert forêt devient la page, la diagonale reste en filigrane */
+html[data-proto="logo"][data-marque][data-verre][data-theme="dark"]{
+  --vr-page:linear-gradient(var(--lg-angle),#0C4538 0 var(--lg-cut),#072F26 var(--lg-cut) 100%);
+  --tf-page-plein:#0A4035;
+  --t1:#E9F3F0; --t2:#C2DCD2; --t3:#A9CBBE; --vr-encre:#E9F3F0; --vr-encre2:#C2DCD2; --vr-encre3:#A9CBBE;
+  --vr-fond:rgba(233,243,240,.07); --vr-fond2:rgba(233,243,240,.10); --vr-fond-dense:rgba(8,48,39,.94);
+  --vr-liseret:rgba(216,229,234,.14);
+  --vr-reflet:linear-gradient(rgba(255,255,255,0),rgba(255,255,255,0));
+  --vr-ombre:0 12px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(233,243,240,.10);
+  --vr-flou:blur(30px) saturate(120%);
+  --tf-kpi:rgba(233,243,240,.07);
+  --tf-barre:rgba(4,34,27,.9);
+  --tf-bulle:#E9F3F0; --tf-bulle-ombre:0 4px 14px rgba(0,0,0,.35);
+  --tf-bord-haut:rgba(10,64,53,.8);
+}
+/* ── la teinte : le vert forêt de jour (plein, encre blanche), la menthe de nuit (pleine, encre forêt) ── */
+html[data-proto="logo"][data-theme="light"]{ --acc-src:#0A4035; --acc:#0A4035; --acc-fill:#0A4035; --acc-txt:#0A4035; --on-acc:#FFFFFF; --on-fill:#FFFFFF; --tf-onglet:#0A4035; }
+html[data-proto="logo"][data-theme="dark"] { --acc-src:#E9F3F0; --acc:#E9F3F0; --acc-fill:#E9F3F0; --acc-txt:#E9F3F0; --on-acc:#0A4035; --on-fill:#0A4035; --tf-onglet:#0A4035; }
+
+/* ── LA SIGNATURE : l'en-tête du tableau de bord EST le logo ──
+   Une tuile arrondie coupée en diagonale, menthe à gauche, forêt à droite, et le texte qui
+   CHANGE DE COULEUR en traversant la coupe — le « OP » du logo. Deux couches de fond sur la
+   même boîte : la surface (coupée au bord) et l'encre (coupée au texte), même angle, même coupe. */
+html[data-proto="logo"] #page-head:has(.ph-surtitre) .ph-row{flex-wrap:wrap}
+html[data-proto="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child{
+  flex:1 1 100%; box-sizing:border-box; padding:20px 22px; border-radius:26px; border:1px solid var(--lg-liseret);
+  background:
+    linear-gradient(var(--lg-angle),var(--lg-foret) 0 var(--lg-coupe-titre),#FFFFFF var(--lg-coupe-titre) 100%) border-box,
+    linear-gradient(var(--lg-angle),var(--lg-menthe) 0 var(--lg-coupe-titre),var(--lg-foret) var(--lg-coupe-titre) 100%) border-box;
+  -webkit-background-clip:text,border-box; background-clip:text,border-box;
+  box-shadow:0 14px 34px rgba(10,64,53,.14);
+}
+/* sur un écran large, la tuile garde les proportions du logo : juste la place du titre, plus le coin foncé */
+@media (min-width:600px){
+  html[data-proto="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child{flex:0 0 auto; width:fit-content; padding:20px 150px 20px 22px}
+}
+html[data-proto="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child :is(.ph-title,.ph-sub){
+  color:transparent!important; -webkit-text-fill-color:transparent!important;
+}
+/* la date : le « GESTION » du logo — sauge, capitales espacées, et elle reste dans la menthe */
+html[data-proto="logo"] #page-head:has(.ph-surtitre) .ph-surtitre{
+  color:var(--lg-sauge-txt)!important; -webkit-text-fill-color:var(--lg-sauge-txt)!important;
+  letter-spacing:.16em!important;font-weight:700!important;font-size:12.5px!important;margin-bottom:6px!important}
+html[data-proto="logo"] #page-head:has(.ph-surtitre) .ph-title{font-weight:800!important;letter-spacing:-.6px!important;white-space:nowrap}
+html[data-proto="logo"] #page-head:has(.ph-surtitre) .ph-sub{letter-spacing:.14em!important;text-transform:uppercase;font-size:12.5px!important;font-weight:600!important;margin-top:6px!important}
+/* de nuit : la même coupe, en deux verts — la menthe passe au sauge clair */
+html[data-proto="logo"][data-theme="dark"] #page-head:has(.ph-surtitre) .ph-row > div:first-child{
+  border-color:rgba(216,229,234,.16);
+  background:
+    linear-gradient(var(--lg-angle),#0A4035 0 var(--lg-coupe-titre),#E9F3F0 var(--lg-coupe-titre) 100%) border-box,
+    linear-gradient(var(--lg-angle),#9CC6B6 0 var(--lg-coupe-titre),#062E25 var(--lg-coupe-titre) 100%) border-box;
+  -webkit-background-clip:text,border-box; background-clip:text,border-box;
+  box-shadow:0 14px 34px rgba(0,0,0,.35);
+}
+html[data-proto="logo"][data-theme="dark"] #page-head:has(.ph-surtitre) .ph-surtitre{color:#0A4035!important;-webkit-text-fill-color:#0A4035!important}
+/* les autres écrans : le grand titre en forêt, un surtitre en capitales espacées comme « GESTION » */
+html[data-proto="logo"] .ph-surtitre{color:var(--lg-sauge-txt)!important}
+html[data-proto="logo"][data-theme="dark"] .ph-surtitre{color:#9CC6B6!important}
+
+/* ── la barre d'onglets : le coin foncé du logo, la bulle menthe ── */
+html[data-proto="logo"][data-marque][data-refonte] .tabbar .tab{color:#BCD9CD!important}
+html[data-proto="logo"][data-marque][data-refonte] .tabbar .tab.on,
+html[data-proto="logo"][data-marque][data-refonte] .tabbar .tab.survol{color:#0A4035!important}
+html[data-proto="logo"][data-marque][data-verre][data-kind="mobile"] .tabbar{border-color:rgba(216,229,234,.18)!important}
+
+/* ── les tuiles d'icône : en deux tons du logo, plus en couleurs de catégorie ── */
+html[data-proto="logo"][data-marque][data-refonte] .kpis .kpi .kpi-ico,
+html[data-proto="logo"][data-marque][data-refonte] .nav-item .ico,
+html[data-proto="logo"][data-marque][data-refonte] .creer-ic{background:#E9F3F0!important;color:#0A4035!important}
+html[data-proto="logo"][data-marque][data-refonte][data-theme="dark"] .kpis .kpi .kpi-ico,
+html[data-proto="logo"][data-marque][data-refonte][data-theme="dark"] .nav-item .ico,
+html[data-proto="logo"][data-marque][data-refonte][data-theme="dark"] .creer-ic{background:rgba(233,243,240,.12)!important;color:#E9F3F0!important}
+html[data-proto="logo"][data-marque][data-refonte] .nav-item.active .ico{background:#0A4035!important;color:#FFFFFF!important}
+html[data-proto="logo"][data-marque][data-refonte][data-theme="dark"] .nav-item.active .ico{background:#E9F3F0!important;color:#0A4035!important}
+/* le chiffre d'une tuile, en forêt très gras : le « OP » */
+html[data-proto="logo"][data-marque][data-refonte] .kpis .kpi .kpi-val{font-weight:800!important}
