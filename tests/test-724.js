@@ -617,10 +617,21 @@ const session = (t, cle, extra) => appel('POST', '/api/op/session', { corps: Obj
       /* ⛔ `close()` fusionne le WAL et le fait disparaître. S'il reste, la fermeture n'a pas
          eu lieu — et un SIGKILL de systemd laisserait le journal à rejouer au démarrage. */
       v('⛔ le WAL a été fusionné à l\'arrêt, MALGRÉ un flux ouvert', fs.existsSync(base + '-wal'), false);
+      /* ⛔⛔ ON ATTEND QUE LE PROCESSUS AIT FINI AVANT DE LIRE CE QU'IL A ÉCRIT. Le serveur ferme la
+         base (le WAL DISPARAÎT) PUIS écrit « socle fermé » (`console.log('socle fermé :',
+         JSON.stringify(opSocle.fermer()))`) : lire la sortie dès que le WAL a disparu est une
+         course contre le tuyau. Elle a fait tomber ce banc le 24 septembre 2026, sous charge, sur
+         du code juste — « flake » n'était pas la cause, l'ORDRE l'était. `close` n'arrive
+         qu'après la dernière donnée des deux flux. Plafond à 6 s : au-delà, l'arrêt a pris le
+         secours de 5 s, et le contrôle de durée ci-dessous le dit. */
+      await new Promise(r => { if (enfant.exitCode !== null && enfant.stdout.destroyed) return r();
+        enfant.once('close', r); setTimeout(r, 6000); });
+      const duree = Date.now() - t0;
       vrai('le serveur dit qu\'il a fermé le socle', /socle fermé/.test(sortie));
       vrai('⛔ et il a relâché les flux AVANT de fermer', /flux relâchés/.test(sortie));
-      /* Sans la correction, l'arrêt durait les 5 s du secours. Il doit être quasi immédiat. */
-      v('⛔ l\'arrêt n\'attend pas les 5 s du secours', (Date.now() - t0) < 4000, true);
+      /* Sans la correction, l'arrêt durait les 5 s du secours. Il doit être quasi immédiat —
+         mesuré jusqu'à la FIN du processus, plus seulement jusqu'à la disparition du WAL. */
+      v('⛔ l\'arrêt n\'attend pas les 5 s du secours', duree < 4000, true);
       await fluxTenu;
     }
   } catch (e) {
