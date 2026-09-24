@@ -141,6 +141,31 @@ console.log('\n══ 7. LE FORÇAGE — ÉPROUVER SANS MENTIR ══\n');
   v('⛔ un forçage inconnu est IGNORÉ, il ne casse pas l\'écran', z.plat, 'androidweb');
   v('   … et le rendu redevient « détecté »', z.detecte, true); }
 
+console.log('\n══ 7 bis. ⛔ LE VERRE EST POSÉ SUR LES DIX RENDUS — la VRAIE fonction, jouée ══\n');
+/* ⛔ Le texte ne suffit pas : une mutation qui remettait « if(d.verre) » devant la pose passait
+   un motif écrit sur la forme (mesuré le 24 septembre 2026). On JOUE donc `opPlatAppliquer` sur
+   un faux <html>, pour les dix rendus forcés, et on lit ce qu'elle a posé. */
+{
+  const APPL=decoupe('function opPlatAppliquer(){');
+  vrai('⛔ opPlatAppliquer est trouvée', APPL.length>300, APPL.length+' caractères');
+  const poser=(force)=>new Function('ua','force',`
+    const navigator={userAgent:ua, maxTouchPoints:0, standalone:false};
+    const window={matchMedia:()=>({matches:false})}; const matchMedia=window.matchMedia;
+    const localStorage={getItem:k=>force||null,setItem(){},removeItem(){}};
+    let _platHaute=null;
+    const attrs={}; const document={documentElement:{setAttribute:(k,v)=>{attrs[k]=String(v);},removeAttribute:k=>{delete attrs[k];}}};
+    ${CODE}
+    ${APPL}
+    opPlatAppliquer(); return attrs;`)(A.winChrome,force);
+  let n=0;
+  for (const k of Object.keys(VERRE)) {
+    const a=poser(k); n++;
+    v('rendu '+k.padEnd(10)+' : le verre est posé (thème final, dix plateformes)', a['data-verre'], '1');
+    v('   … et « natif » '+(VERRE[k]?'posé':'absent'), a['data-verre-natif']||null, VERRE[k]?'1':null);
+  }
+  vrai('⛔ les dix rendus ont été joués (un zéro sur rien ne prouve rien)', n===10);
+}
+
 console.log('\n══ 8. CE QUI EST GARDÉ DANS LE TEXTE ══\n');
 const NU=APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ').replace(/^[ \t]*\/\/.*$/gm,' ');
 { vrai('⛔ le rendu forcé vit sur l\'APPAREIL (localStorage), jamais dans db',

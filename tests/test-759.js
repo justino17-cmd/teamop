@@ -39,12 +39,13 @@ const ECARTS = {
      qui les portait est éteinte (une couche peinte en moins, qui tournait en boucle).`,
   'second plan en couleur pleine': `la maquette écrit son second plan en rgba (.62 le jour) ; on
      l'écrit en couleurs PLEINES, calculées sur la vitre posée sur la page — #454C5B et #5A616F
-     le jour, #B8C0CD et #A1AABA la nuit (TEAM OP). Mesuré plus bas : ≥ 4,5:1 sur la vitre dans
-     les quatre cas. Une encre translucide change de contraste avec tout ce qui passe dessous ;
+     le jour, #B8C0CD et #ABB3C2 la nuit (TEAM OP). Mesuré plus bas, au PIRE point de chaque
+     page : ≥ 4,5:1 sur la vitre dans les quatre cas. Une encre translucide change de contraste avec tout ce qui passe dessous ;
      une encre pleine tient partout, et c'est la règle du dépôt (le calcul ment sous le verre).`,
-  'second plan de nuit OP GESTION': `la maquette écrit rgba(196,224,214,.72) ; sur la vitre de nuit
-     du vert forêt il tombe à 4,15:1 — sous le plancher. Mesuré : .84 (#A9C8BD) le remonte à 5,0.
-     La teinte est gardée, seule la force change.`,
+  'second plan de nuit OP GESTION': `la maquette écrit rgba(196,224,214,.72) ; au point le plus
+     clair de la page de nuit du vert forêt (le haut du dégradé, sous la diagonale), sur la vitre,
+     il tombe à 3,4:1 — sous le plancher, et même 92 % n'y rend que 4,40. Mesuré : la menthe PLEINE
+     (#C4E0D6) y tient 5,0:1. La teinte est gardée, seule la force change.`,
   'feuille de nuit': `la maquette pose ses feuilles de nuit sur rgba(28,28,30,.7), un gris neutre ;
      on les teinte du thème (bleu nuit pour TEAM OP, vert forêt pour OP GESTION) et on les
      densifie (.86–.88). La règle du dépôt, écrite après la capture de Justin du 22 septembre :
@@ -225,12 +226,18 @@ console.log('\n══ 6. LE SECOND PLAN SE LIT (écart déclaré : couleurs plei
   const ctr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
   const sur = (a, fond) => fond.map(x => 255 * a + x * (1 - a));
   const cas = [];
+  /* ⛔ ON MESURE LE PIRE POINT DE LA PAGE, PAS UN POINT PRIS AU HASARD. La première version
+     prenait le bas du dégradé de nuit — le plus SOMBRE, donc le plus flatteur pour un texte
+     clair : une mutation qui ramenait le second plan à 4,2:1 passait (mesuré le 24 septembre
+     2026). La nuit, le pire est le point le plus CLAIR (le haut du dégradé, sous la diagonale à
+     5 %) ; le jour, le point le plus SOMBRE des quatre couleurs du fond. */
   for (const mq of ['teamop', 'opgestion']) {
-    const jour = regle('html[data-marque="' + mq + '"][data-verre][data-theme="light"]') + regle('html[data-marque][data-verre][data-theme="light"]');
     const nuit = regle('html[data-marque="' + mq + '"][data-verre][data-theme="dark"]');
-    const pJ = hex(J['theme.' + mq + '.clair']), pN = hex(J['theme.' + mq + '.nuit.bas']);
+    const pagesJ = ['A', 'B', 'C', 'clair'].map(k => hex(J['theme.' + mq + '.' + k]));
+    const pJ = pagesJ.reduce((a, b) => lum(a) <= lum(b) ? a : b);
+    const pN = sur(.05, hex(J['theme.' + mq + '.nuit.haut']));
     const t3J = jeton(regle('html[data-marque][data-verre][data-theme="light"]'), '--t3'), t3N = jeton(nuit, '--t3');
-    cas.push([mq + ' jour', ctr(hex(t3J), sur(.42, pJ))], [mq + ' nuit', ctr(hex(t3N), sur(.085, pN))]);
+    cas.push([mq + ' jour (point le plus sombre du fond)', ctr(hex(t3J), sur(.42, pJ))], [mq + ' nuit (point le plus clair du fond)', ctr(hex(t3N), sur(.085, pN))]);
   }
   vrai('⛔ il y a bien quatre cas à mesurer (un zéro sur rien ne prouve rien)', cas.length === 4 && cas.every(c => isFinite(c[1])));
   for (const [nom, c] of cas) vrai('second plan sur la vitre — ' + nom, c >= 4.5, c.toFixed(2) + ':1');

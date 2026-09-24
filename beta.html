@@ -6870,8 +6870,8 @@ html[data-marque="teamop"][data-verre][data-theme="dark"]{
   --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.05) 58.2%),
     linear-gradient(160deg,#152340,#0B1426);
   --vr-fond-dense:rgba(21,35,64,.86);
-  --t1:#F0F3F8; --t2:#B8C0CD; --t3:#A1AABA;
-  --vr-encre:#F0F3F8; --vr-encre2:#B8C0CD; --vr-encre3:#A1AABA;
+  --t1:#F0F3F8; --t2:#B8C0CD; --t3:#ABB3C2;
+  --vr-encre:#F0F3F8; --vr-encre2:#B8C0CD; --vr-encre3:#ABB3C2;
   --bg:#0B1426; --bg1:#1A2640; --bg2:#1F2D4A; --bg3:#2B3A58; --card:#1A2640; --card2:#1F2D4A;
   --deep:#0B1426; --eleve:#1F2D4A;
   --tf-page-plein:#0B1426;
@@ -6892,10 +6892,12 @@ html[data-marque="opgestion"][data-verre][data-theme="dark"]{
   --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.05) 58.2%),
     linear-gradient(160deg,#0F4A3A,#0B3B2E);
   --vr-fond-dense:rgba(12,56,44,.88);
-  /* ⚠ ÉCART DÉCLARÉ : la maquette écrit le second plan à 72 % de la menthe ; sur la vitre
-     de nuit du vert forêt il tombe à 4,15:1. 84 % le remonte à 5,0 (test-759). */
-  --t1:#E4EFEA; --t2:#BCD8CE; --t3:#A9C8BD;
-  --vr-encre:#E4EFEA; --vr-encre2:#BCD8CE; --vr-encre3:#A9C8BD;
+  /* ⚠ ÉCART DÉCLARÉ : la maquette écrit le second plan à 72 % de la menthe ; au point le plus
+     CLAIR de la page de nuit (le haut du dégradé, sous la diagonale) il tombe à 3,4:1 sur la
+     vitre. La menthe pleine y tient 5,0:1 — c'est elle, et le second plan s'éclaircit d'autant
+     (test-759 mesure ce pire point). */
+  --t1:#E4EFEA; --t2:#D4E8E0; --t3:#C4E0D6;
+  --vr-encre:#E4EFEA; --vr-encre2:#D4E8E0; --vr-encre3:#C4E0D6;
   --bg:#0B3B2E; --bg1:#104A3A; --bg2:#135443; --bg3:#1A5A48; --card:#104A3A; --card2:#135443;
   --deep:#0B3B2E; --eleve:#135443;
   --tf-page-plein:#0B3B2E;
