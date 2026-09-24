@@ -146,8 +146,11 @@ console.log('\nLe bon de remise distingue les unités des cartons');
 
 console.log('\nOuvrir un écran n\'écrit jamais dans les données de l\'entreprise');
 { v('boxAutoNouveautes a disparu',/function boxAutoNouveautes\(/.test(APP),false);
+  /* v741 : la porte revérifie l'accès au stockage AVANT de poser la vue — une lecture et un message,
+     rien qui écrive. On garde la forme de la suite, et on exige que ce qui la précède n'écrive pas. */
+  const OB=APP.match(/function openBox\(id,opts\)\{([\s\S]{0,1200}?)boxView=id; boxProdSearch=''; _doublonsOuvert=false; _doublonsUnParUn=false;\s+\/\//);
   v('openBox n\'appelle plus rien qui écrive',
-    /function openBox\(id,opts\)\{ boxView=id; boxProdSearch=''; _doublonsOuvert=false; _doublonsUnParUn=false;\s+\/\//.test(APP),true);
+    !!OB && !/save\(|\.push\(|\.unshift\(|db\.[A-Za-z_]+\s*=[^=]|\.stock\[/.test(OB[1].replace(/\/\*[\s\S]*?\*\//g,'')),true);
   v('la pastille « \\+N » reste, elle : on prévient sans écrire',
     (APP.match(/bxp-pastille/g)||[]).length>=3,true);
 }

@@ -251,7 +251,7 @@ vrai('Contrats : chaque bouton lit la case que SA fonction lit (＋ et ✎ Vente
   && /\$\{cMod\?`<button class="btn ghost sm" onclick="formContrat\(/.test(VC) && /\$\{cSup\?`<button class="btn danger sm" onclick="delItem\('contrats'/.test(VC)
   && /const cAj=canCat\('ventes','ajouter'\), cMod=canCat\('ventes','modifier'\), cSup=canCat\('ventes','supprimer'\), iAj=canCat\('int','ajouter'\);/.test(VC), VC.slice(0, 200));
 vrai('la box : le 🗑 lit « Stock → Supprimer » (comme delItem), le ✎ « Gérer les box » — deux cases, deux boutons',
-  /\$\{canCat\('stock','supprimer'\)\?`<button onclick="delItem\('boxes'/.test(SRC) && !/boxGerer\('modifier'\)\?`<button onclick="formBox\('\$\{b\.id\}'\)"[^`]*delItem\('boxes'/.test(SRC));
+  /\$\{!stk&&canCat\('stock','supprimer'\)\?`<button onclick="delItem\('boxes'/.test(SRC) && !/boxGerer\('modifier'\)\?`<button onclick="formBox\('\$\{b\.id\}'\)"[^`]*delItem\('boxes'/.test(SRC));
 
 console.log('\n── 790 · 7. ⛔⛔ le circuit DR : plus de porte de côté ──');
 const ca = fonction('consoAdj');

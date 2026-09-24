@@ -24218,10 +24218,10 @@ function stockageCarte(){
     return `<div class="card stk-carte" style="margin:0 0 14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <span style="font-size:26px;line-height:1" aria-hidden="true">🏬</span>
       <div style="flex:1;min-width:220px"><div style="font-weight:800;font-size:15px">${aDesBox?'Un stock central, hors des box ? Crée le stockage':'Pas de box ? Range tout dans le stockage'}</div>
-        <div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-top:3px">Un stock central, hors des box : les arrivages y entrent, ceux à qui tu donnes l'accès s'y servent, et chaque sortie dit <b>qui a pris quoi</b>.${anc.length?` Le stock noté dans le catalogue (${anc.length} produit${anc.length>1?'s':''} · ${u.toLocaleString('fr-FR')} u) y sera rangé.`:''}</div></div>
+        <div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-top:3px">Un stock central, hors des box : les arrivages y entrent, ceux à qui tu donnes l’accès s’y servent, et chaque sortie dit <b>qui a pris quoi</b>.${anc.length?` Le stock noté dans le catalogue (${anc.length} produit${anc.length>1?'s':''} · ${u.toLocaleString('fr-FR')} u) y sera rangé.`:''}</div></div>
       <button class="btn" onclick="stockageCreer()">Créer le stockage</button></div>`;
   }
-  if(!visibleBoxes([s]).length) return `<div class="card" style="margin:0 0 14px;padding:12px 16px;font-size:12.5px;color:var(--t3);line-height:1.55">🏬 Le stockage de l'entreprise ne t'est pas ouvert. Si tu dois t'y servir, demande l'accès à ton administrateur.</div>`;
+  if(!visibleBoxes([s]).length) return `<div class="card" style="margin:0 0 14px;padding:12px 16px;font-size:12.5px;color:var(--t3);line-height:1.55">🏬 Le stockage de l’entreprise ne t’est pas ouvert. Si tu dois t’y servir, demande l’accès à ton administrateur.</div>`;
   const t=boxTotalStock(s), n=Object.keys(s.stock||{}).filter(pid=>produit(pid).id).length;
   const journal=userSeesModule(currentUser,'mouvements'), acces=boxGerer('modifier'), nb=acces?stockageGens(s).length:0;
   /* Une ligne qu'on touche : 46 px de haut (plancher tactile), un chevron, et le clavier aussi. */
@@ -24241,7 +24241,7 @@ function stockageCarte(){
       <button class="btn" style="justify-content:center" onclick="stockageServir()">Me servir</button>
       <button class="btn ghost" style="justify-content:center" onclick="stockageArrivage()">Arrivage</button></div>
     ${journal?ligne('stockageJournal()','Qui a pris quoi',''):''}
-    ${acces?ligne('stockageAcces()','Qui peut s\'y servir',nb+' personne'+(nb>1?'s':'')):''}
+    ${acces?ligne('stockageAcces()','Qui peut s’y servir',nb+' personne'+(nb>1?'s':'')):''}
   </div>`;
 }
 /* Créer le stockage : un tap, jamais au chargement (rien ne s'écrit dans les données d'une entreprise
@@ -25015,7 +25015,13 @@ function boxStock(b,pid){ return (b.stock&&b.stock[pid]) || {ctn:0,u:0}; }
    cette box seule, ou sur les box qu'on choisit. Une écriture attend un tap ; ouvrir un écran
    n'en est pas un.
    opts.sansAuto n'a plus d'objet mais reste accepté : ses appelants le passent encore. */
-function openBox(id,opts){ boxView=id; boxProdSearch=''; _doublonsOuvert=false; _doublonsUnParUn=false;   // le bandeau doublons se rouvre par « Voir », jamais d'office sur une autre box
+function openBox(id,opts){
+  /* v741 : le stockage a un identifiant FIXE, écrit en clair dans la page — un lien du journal, une
+     notification, une étiquette scannée l'ouvriraient à qui n'y a pas accès. La porte revérifie, comme
+     detailIntervention ; une box ordinaire garde son comportement (ses portes sont déjà filtrées). */
+  if(id===STOCKAGE_ID){ const s=(db.boxes||[]).find(b=>b&&b.id===STOCKAGE_ID);   // l'enregistrement, actif ou non : désactivé, il se rouvre par ✎
+    if(s&&!visibleBoxes([s]).length){ toast('Le stockage ne t’est pas ouvert — demande l’accès à ton administrateur',3800); return; } }
+  boxView=id; boxProdSearch=''; _doublonsOuvert=false; _doublonsUnParUn=false;   // le bandeau doublons se rouvre par « Voir », jamais d'office sur une autre box
   /* Le destinataire vaut pour UNE visite : rouvrir la box, c'est un nouveau geste, souvent
      pour quelqu'un d'autre. Le garder d'une visite à l'autre attribuerait en silence des
      produits au technicien d'hier. */
@@ -25023,6 +25029,8 @@ function openBox(id,opts){ boxView=id; boxProdSearch=''; _doublonsOuvert=false; 
   ecranDetail(renderBoxDetail); rendreDirige('avant',renderBoxDetail); }
 function renderBoxDetail(){
   const b=db.boxes.find(x=>x.id===boxView); if(!b){ go('boxes'); return; }
+  /* v741 : un accès RETIRÉ pendant qu'on est sur la fiche — le prochain rafraîchissement ne la redessine pas. */
+  if(estStockage(b)&&!visibleBoxes([b]).length){ boxView=null; toast('Le stockage ne t’est pas ouvert — demande l’accès à ton administrateur',3800); go(current==='stock'?'stock':'boxes'); return; }
   b.stock=b.stock||{};
   const nbProd=Object.keys(b.stock).filter(pid=>produit(pid).id).length;
   setHeader('','','');
@@ -25034,15 +25042,15 @@ function renderBoxDetail(){
   const servir=stk&&!boxValidRequis()&&!db.bonsRemiseOff;
   $('content').innerHTML=`
     <div style="display:flex;align-items:center;gap:6px;margin:0">
-      <button class="btn ghost sm det-back" onclick="ficheRetour('${retour}')" title="Revenir">← ${esc(navLabel(retour)||(stk?'Stock':'Boxes'))}</button>
+      <button class="btn ghost sm det-back" onclick="ficheRetour('${retour}')" title="${retour==='stock'?'Revenir au stock':'Revenir aux boxes'}">← ${esc(navLabel(retour)||(stk?'Stock':'Boxes'))}</button>
       <div class="mono" style="font-size:14px;font-weight:600;color:var(--acc-txt);letter-spacing:.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${stk?'<span aria-hidden="true">🏬</span>':esc(b.numero||'Box')}</div>
       <span style="flex:1"></span>
       ${boxGerer('modifier')?`<button onclick="formBox('${b.id}')" title="Modifier" style="background:none;border:none;color:var(--acc-txt);cursor:pointer;padding:4px 10px;line-height:1">${fic('edit',20)}</button>`:''}
-      ${canCat('stock','supprimer')?`<button onclick="delItem('boxes','${b.id}')" title="Supprimer" style="background:none;border:none;color:var(--red);cursor:pointer;padding:4px 2px 4px 10px;line-height:1">${fic('trash',20)}</button>`:''}
+      ${!stk&&canCat('stock','supprimer')?`<button onclick="delItem('boxes','${b.id}')" title="Supprimer" style="background:none;border:none;color:var(--red);cursor:pointer;padding:4px 2px 4px 10px;line-height:1">${fic('trash',20)}</button>`:''}
     </div>
     <div style="font-size:17px;font-weight:600;color:var(--acc-txt);margin:2px 2px 3px;line-height:1.3">${esc(b.nom||b.numero||'Box')}</div>
     <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">${esc(b.ville||'')}${b.ville&&nbProd?' · ':''}${nbProd?nbProd+' produit(s)':''}</div>
-    ${stk?`<div style="font-size:12.5px;color:var(--t2);line-height:1.55;margin:-4px 2px 12px;max-width:620px">Le stock de l'entreprise, hors des box. Il baisse quand quelqu'un s'y sert — pas à la clôture d'une intervention — et chaque sortie dit <b>qui a pris quoi</b>.</div>`:''}
+    ${stk?`<div style="font-size:12.5px;color:var(--t2);line-height:1.55;margin:-4px 2px 12px;max-width:620px">Le stock de l’entreprise, hors des box. Il baisse quand quelqu’un s’y sert — une intervention ne déduit rien — et chaque sortie dit <b>qui a pris quoi</b>.</div>`:''}
     <div style="max-width:620px">
     <div style="display:flex;gap:8px;margin:0 0 8px">
       <button class="btn" style="flex:1;justify-content:center;gap:8px;padding:12px;border-radius:100px;font-weight:800" onclick="openBoxScanner('${b.id}')">${fic('scan',17)} Scanner</button>
@@ -25100,7 +25108,7 @@ function renderBoxDetail(){
       ${(b.frequence&&b.frequence!=='Aucune')?`<div class="bdt-row"><span class="bdt-ic">🔁</span><span class="bdt-lbl">Fréquence</span><span class="bdt-val">${esc(b.frequence)}</span></div>`:''}
       ${pv?`<div class="bdt-row"><span class="bdt-ic">${late?'⚠️':'📅'}</span><span class="bdt-lbl">Prochaine visite</span><span class="bdt-val" style="font-weight:700;color:${late?'var(--red)':'var(--t1)'}">${fmtShort(pv)}${late?' · en retard':''}</span></div>`:''}
       ${(b.ville||b.codePostal)?`<div class="bdt-row"><span class="bdt-ic">📍</span><span class="bdt-lbl">Ville</span><span class="bdt-val">${esc(b.codePostal||'')} ${esc(b.ville||'')}</span></div>`:''}
-      <div class="bdt-row"><span class="bdt-ic">👁️</span><span class="bdt-lbl">${stk?'Qui peut s\'y servir':'Visible par'}</span><span class="bdt-val" style="text-align:right;max-width:62%">${b.visibleTous?'Toute l\'équipe':(boxPersonnes(b).length?esc(boxPersonnes(b).join(', ')):'<span style="color:var(--t3)">Admins / DR / « Tout voir » seulement</span>')}${stk&&boxGerer('modifier')?` <button class="btn ghost sm" style="margin-left:6px" onclick="stockageAcces()">Régler</button>`:''}</span></div>
+      <div class="bdt-row"><span class="bdt-ic">👁️</span><span class="bdt-lbl">${stk?'Qui peut s’y servir':'Visible par'}</span><span class="bdt-val" style="text-align:right;max-width:62%">${b.visibleTous?'Toute l\'équipe':(boxPersonnes(b).length?esc(boxPersonnes(b).join(', ')):'<span style="color:var(--t3)">Admins / DR / « Tout voir » seulement</span>')}${stk&&boxGerer('modifier')?` <button class="btn ghost sm" style="margin-left:6px" onclick="stockageAcces()">Régler</button>`:''}</span></div>
       ${(()=>{ /* Une exception qui ne se voit que sur la fiche de la personne est une exception
            qu'on oublie. Elle s'écrit aussi ici, là où l'on décide qui voit la box. */
         const hors=(b.userIdsExclus||[]).map(id=>(db.users||[]).find(x=>x&&x.id===id)).filter(Boolean);
@@ -26987,7 +26995,7 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
         <div class="frow"><span class="frow-lbl">Date d'installation</span><div class="frow-val"><input type="date" name="dateInstallation" value="${b.dateInstallation?String(b.dateInstallation).slice(0,10):todayISO()}" style="width:auto"></div></div>
         <div class="frow"><span class="frow-lbl">Fréquence de passage</span><div class="frow-val"><select name="frequence">${['Aucune','Mensuel','Bimestriel','Trimestriel','Semestriel','Annuel'].map(o=>`<option ${(b.frequence||'Aucune')===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
         <div class="frow"><span class="frow-lbl">Prochaine visite</span><div class="frow-val"><input type="date" name="prochaineVisite" value="${b.prochaineVisite?String(b.prochaineVisite).slice(0,10):''}" style="width:auto"></div></div>
-        <div class="frow"><span class="frow-lbl">Box active</span><div class="frow-val"><input type="checkbox" name="actif" ${b.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div>
+        <div class="frow"><span class="frow-lbl">${estStockage(b)?'Stockage actif':'Box active'}</span><div class="frow-val"><input type="checkbox" name="actif" ${b.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div>
         <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Notes</span><textarea name="notes" placeholder="Emplacement précis, consignes d'accès…">${esc(b.notes||'')}</textarea></div>
       </div>
     </form>`);
@@ -32226,6 +32234,12 @@ function delItem(coll,id){
     if(!confirm('Supprimer ce produit ?'+(nb?' Il est encore présent dans '+nb+' box — ses quantités seront retirées partout.':''))) return;
     db.boxes.forEach(b=>{ if(b.stock) delete b.stock[id]; });
   } else if(coll==='boxes'){ const b=db.boxes.find(x=>x.id===id)||{};
+    /* ⛔ v741 — LE STOCKAGE NE SE SUPPRIME PAS, IL SE DÉSACTIVE. Son identifiant est FIXE : sa pierre
+       tombale éliminerait, à la synchro, le stockage qu'un autre appareil tenait encore hors ligne — tout
+       son contenu, sans un mot (relecture v741, reproduit sur le vrai fusionnerBases) — et le recréer
+       repartirait vide, l'ancien stock du catalogue y ayant été rangé une fois pour toutes. Désactivé
+       (« Stockage actif », ✎), il quitte les écrans, garde son contenu, et « Créer le stockage » le rouvre. */
+    if(id===STOCKAGE_ID||estStockage(b)){ toast('Le stockage ne se supprime pas : c’est le stock de l’entreprise. Pour ne plus t’en servir, décoche « Stockage actif » (✎) — il reviendra tel quel si tu le recrées.',6500); return; }
     if(!confirm('Supprimer la box « '+(b.nom||b.numero||'')+' » ? Son stock et son historique disparaîtront.')) return;
     /* APRÈS le confirm, jamais avant : ce filtre s'exécutait même quand on répondait « Annuler », et
        la box gardait alors une base sans ses écartés — le premier save() venu posait la tombe et la
@@ -32388,7 +32402,7 @@ function openBoxScanner(boxId){ etiqOuvrir('box',boxId); }
 function openScanner(){ if(!permGarde('stock','modifier','le stock')) return;   // v737 : il règle le stock du catalogue
   /* v741 : le stock hors box vit dans le stockage — le scanner y range, par le chemin d'une box
      (validation du DR, « Pour qui ? »). Sans stockage, l'ancien compteur du catalogue. */
-  if(stockageVisible()){ etiqVersBox(STOCKAGE_ID); return; }
+  if(stockageBox()){ if(stockageOuvert()) etiqVersBox(STOCKAGE_ID); return; }   // sans accès : on le dit, on n'écrit pas ailleurs
   etiqOuvrir('cat'); }
 /* Le Stock est la somme des box : scanner « dans le stock », c'est scanner dans UNE box. On la choisit
    (une seule : on y va), on l'OUVRE — boxSaisir travaille sur la box affichée — puis c'est le scanner
@@ -32495,7 +32509,11 @@ function etiqAppliquerBox(){ const b=(db.boxes||[]).find(x=>x.id===etiq.boxId); 
   etiqSuivant(`<div class="scan-result etiq-ok"><div style="font-weight:700;color:var(--acc-txt)">${lot?'✓ Noté dans ta liste':'✓ '+(ajout?'Ajouté':'Retiré')} : ${ajout?'+':'−'}${n} × ${esc(p.nom)}</div>
     <div style="color:var(--t3);font-size:13px;margin-top:4px">${lot?'La liste part au DR quand tu la valides (en haut de la box).':'Il y en a maintenant '+u+' dans la box.'} Scanne le suivant, ou ferme.</div></div>`);
   etiqEtat('Cadre le NOM du produit suivant, puis touche « Lire l’étiquette ».',''); }
-function etiqAppliquerCat(){ if(!permGarde('stock','modifier','le stock')) return; const p=produit(etiq.sel); if(!p||!p.id){ toast('Choisis le produit'); return; }
+function etiqAppliquerCat(){ if(!permGarde('stock','modifier','le stock')) return;
+  /* v741 : une fois le stockage créé, l'ancien compteur du catalogue ne reçoit plus rien — il ferait
+     renaître, à côté du stockage, un stock « hors box » où personne ne peut se servir. */
+  if(stockageBox()){ toast('Le stock hors box vit dans le stockage : scanne depuis le stockage.',4200); return; }
+  const p=produit(etiq.sel); if(!p||!p.id){ toast('Choisis le produit'); return; }
   const n=Math.max(1,parseInt(($('etiq-qty')||{}).value)||1), d=etiq.action==='ajouter'?n:-n;
   const av=+p.qte||0; p.qte=Math.max(0,av+d); const reel=p.qte-av;
   if(!reel){ etiqSuivant(`<div class="bscan-err">${esc(p.nom)} est déjà à 0 — rien n’est sorti.</div>`); return; }
@@ -35965,8 +35983,12 @@ function saveProduitDonne(e,id){ e.preventDefault();
   else{ db.produitsDonnes.push({id:uid(),auteurNom:fullName(currentUser),...d});
     // un don est une vraie sortie de stock : journalisée, et déduite du stock global
     const p=db.produits.find(x=>x.nom===d.produitNom);
-    if(p){ p.qte=Math.max(0,(p.qte||0)-d.quantite);
-      db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:d.quantite,motif:'Produit donné'+(d.notes?' — '+d.notes:''),vehiculeId:d.vehiculeId||'',unite:d.unite||p.unite||'u',technicien:fullName(currentUser)}); }
+    /* ⛔ la trace dit ce qui a BOUGÉ : depuis le stockage (v741), l'ancien compteur est rangé à 0 — une
+       sortie de d.quantite y inscrivait une consommation qui n'a eu lieu nulle part. Un don tiré d'une box
+       ou du stockage passe par sa sortie (« Pour qui ? ») : son bon de remise le range dans « Produits donnés ». */
+    const pris=p?Math.max(0,Math.min(d.quantite,+p.qte||0)):0;
+    if(p&&pris>0){ p.qte=(+p.qte||0)-pris;
+      db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:pris,motif:'Produit donné'+(d.notes?' — '+d.notes:''),vehiculeId:d.vehiculeId||'',unite:d.unite||p.unite||'u',technicien:fullName(currentUser)}); }
     logEvent('Produit donné',`${d.produitNom} ×${d.quantite}`,'stock'); toast('Enregistré'); }
   /* ⛔ ON RESTE OÙ L'ON ÉTAIT. Afficher la liste des dons ici posait dans #content un écran que
      la barre, le titre et le menu ne connaissaient pas — on se retrouvait « sur Véhicules » en

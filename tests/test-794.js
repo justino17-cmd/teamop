@@ -267,11 +267,11 @@ console.log('\n── 794 · 11. la carte de Stock dit pourquoi, et ne montre qu
     && /Un stock central, hors des box \? Crée le stockage/.test(carte({ moi, db: Object.assign({}, avecAncien, { boxes: [{ id: 'bxN', nom: 'Nord' }] }), gerer: { ajouter: 1 } })));
   const avecS = { produits: [P('a', 'ADVION')], boxes: [{ id: 'stockage', nom: 'Stockage', stock: { a: { u: 4, ctn: 0 } } }], mouvements: [], users: [] };
   const c2 = carte({ moi, db: avecS, vus: [] });
-  vrai('⛔ un stockage fermé à cette personne : on le lui DIT', /ne t'est pas ouvert/.test(c2) && !/Me servir/.test(c2), c2);
+  vrai('⛔ un stockage fermé à cette personne : on le lui DIT', /ne t[’']est pas ouvert/.test(c2) && !/Me servir/.test(c2), c2);
   const c3 = carte({ moi, db: avecS, vus: ['stockage'], gerer: {}, modules: ['stock'] });
-  vrai('ouvert, sans gérer les box ni voir le journal : « Me servir » et « Arrivage », rien d’autre', /Me servir/.test(c3) && /Arrivage/.test(c3) && !/Qui peut s'y servir/.test(c3) && !/Qui a pris quoi/.test(c3), c3);
+  vrai('ouvert, sans gérer les box ni voir le journal : « Me servir » et « Arrivage », rien d’autre', /Me servir/.test(c3) && /Arrivage/.test(c3) && !/Qui peut s[’']y servir/.test(c3) && !/Qui a pris quoi/.test(c3), c3);
   const c4 = carte({ moi, db: avecS, vus: ['stockage'], gerer: { modifier: 1 }, modules: ['stock', 'mouvements'] });
-  vrai('… avec les droits : « Qui a pris quoi » et « Qui peut s’y servir »', /Qui a pris quoi/.test(c4) && /Qui peut s'y servir/.test(c4), c4);
+  vrai('… avec les droits : « Qui a pris quoi » et « Qui peut s’y servir »', /Qui a pris quoi/.test(c4) && /Qui peut s[’']y servir/.test(c4), c4);
   const VS = bloc('views.stock=function(){');
   vrai('Stock dit ce qu’il regroupe, et porte la carte', /setHeader\('Stock','Le stockage et toutes les box'/.test(VS) && /\$\{stockageCarte\(\)\}/.test(VS), VS.length); }
 
@@ -280,7 +280,71 @@ console.log('\n── 794 · 12. le scanner du catalogue range dans le stockage 
   let W = monde({ moi, db: { produits: [], boxes: [{ id: 'stockage' }] }, vus: ['stockage'] }); W.openScanner();
   v('stockage visible : le scanner s’ouvre DANS le stockage (chemin d’une box)', W.__etiq, ['box:stockage']);
   W = monde({ moi, db: { produits: [], boxes: [] } }); W.openScanner();
-  v('sans stockage : l’ancien scanner du catalogue', W.__etiq, ['cat']); }
+  v('sans stockage : l’ancien scanner du catalogue', W.__etiq, ['cat']);
+  W = monde({ moi, db: { produits: [], boxes: [{ id: 'stockage' }] }, vus: [] }); W.openScanner();
+  v('⛔ un stockage qui ne m’est pas ouvert : on le DIT, et rien ne s’écrit dans l’ancien compteur (relecture v741)', [W.__etiq, W.__toasts.some(t => /ne t’est pas ouvert/.test(t))], [[], true]); }
+
+console.log('\n── 794 · 14. la relecture : le stockage ne se supprime pas, ne s’ouvre qu’avec l’accès, et l’ancien compteur ne revit pas ──');
+/* Relecture adversariale du 24 septembre 2026 (trois angles, chaque constat contre-vérifié). On JOUE les vraies
+   fonctions, dans un bac à sable à part : openBox, delItem, etiqAppliquerCat, saveProduitDonne. */
+{ const NOMS = ['openBox', 'delItem', 'etiqAppliquerCat', 'saveProduitDonne', 'estStockage', 'stockageBox', 'stockageOuvert'];
+  const C = {}; NOMS.forEach(n => { C[n] = bloc('function ' + n + '('); });
+  v('population : les sept fonctions sont trouvées', NOMS.filter(n => !C[n]), []);
+  const bac = o => { const ctx = { console, JSON, Math, Date, Set, Object, Array, String, Number,
+      db: o.db, currentUser: moi, __vus: o.vus === undefined ? null : o.vus, __toasts: [], __ouvert: [], __conf: [], __saves: 0 };
+    vm.createContext(ctx);
+    vm.runInContext(`${K_ID.replace('const ', 'var ')}
+      var boxView=null, current='boxes', etiq={sel:'a',action:'ajouter'}, COLL_GRP={boxes:'stock',produitsDonnes:'stock'}, views={boxes(){}};
+      function visibleBoxes(l){ return __vus===null?(l||[]).slice():(l||[]).filter(b=>__vus.includes(b.id)); }
+      function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){} function go(v){ current=v; }
+      function logEvent(){} function canCat(){ return true; } function can(){ return true; } function permGarde(){ return true; }
+      function confirm(m){ __conf.push(m); return true; } function ptPeutCorriger(){ return true; }
+      function boxDonneOublier(){} function ecranDetail(f){ __ouvert.push(boxView); } function rendreDirige(){} function renderBoxDetail(){}
+      function produit(id){ return (db.produits||[]).find(p=>p.id===id)||{}; } function uid(){ return 'u'+Math.random(); }
+      function fullName(u){ return u?((u.prenom||'')+' '+(u.nom||'')).trim():''; } function esc(x){ return String(x); }
+      function $(id){ return id==='etiq-qty'?{value:'3'}:null; } function etiqSuivant(){}
+      ${NOMS.map(n => C[n]).join('\n')}`, ctx);
+    return ctx; };
+  const S = () => ({ id: 'stockage', nom: 'Stockage', actif: true, stock: { a: { u: 9, ctn: 0 } } });
+  // a. supprimer
+  let W = bac({ db: { boxes: [S(), { id: 'bxN', nom: 'Nord', stock: {} }], boxDecisions: [], bons: [], demandes: [], produits: [] } });
+  W.delItem('boxes', 'stockage');
+  v('⛔⛔ « supprimer » le stockage : refusé, AVANT toute question, et il est toujours là avec son contenu',
+    [W.db.boxes.some(b => b.id === 'stockage' && b.stock.a.u === 9), W.__conf.length, W.__saves, W.__toasts.some(t => /ne se supprime pas/.test(t) && /Stockage actif/.test(t))], [true, 0, 0, true]);
+  W.db.boxes.find(b => b.id === 'stockage').actif = false; W.delItem('boxes', 'stockage');
+  v('… même désactivé (c’est son identifiant fixe qui compte, pas son état)', W.db.boxes.some(b => b.id === 'stockage'), true);
+  W.delItem('boxes', 'bxN');
+  v('contre-épreuve : une box ordinaire se supprime toujours, après confirmation', [W.db.boxes.some(b => b.id === 'bxN'), W.__conf.length], [false, 1]);
+  const RBD = bloc('function renderBoxDetail(){');
+  vrai('la fiche du stockage n’offre pas la corbeille (le bouton est conditionné à « pas le stockage »)', /\$\{!stk&&canCat\('stock','supprimer'\)\?`<button onclick="delItem\('boxes'/.test(RBD), RBD.length);
+  vrai('… et la case du formulaire dit « Stockage actif »', /\$\{estStockage\(b\)\?'Stockage actif':'Box active'\}/.test(bloc('function formBox(id){')));
+  // b. ouvrir
+  W = bac({ db: { boxes: [S(), { id: 'bxN' }] }, vus: ['bxN'] });
+  W.openBox('stockage');
+  v('⛔⛔ ouvrir le stockage SANS y avoir accès (lien, notification, étiquette, adresse) : refusé, rien ne s’affiche', [W.boxView, W.__ouvert, W.__toasts.some(t => /ne t’est pas ouvert/.test(t))], [null, [], true]);
+  W.db.boxes[0].actif = false; W.openBox('stockage');
+  v('… désactivé non plus', [W.boxView, W.__ouvert], [null, []]);
+  W.openBox('bxN');
+  v('contre-épreuve : une box ordinaire s’ouvre comme avant', [W.boxView, W.__ouvert], ['bxN', ['bxN']]);
+  W = bac({ db: { boxes: [Object.assign(S(), { actif: false })] }, vus: ['stockage'] }); W.openBox('stockage');
+  v('… et qui y a accès l’ouvre, même désactivé (c’est par sa fiche qu’on le réactive)', W.__ouvert, ['stockage']);
+  vrai('⛔ la fiche revérifie à CHAQUE rendu (un accès retiré pendant qu’on la regarde)', /if\(!b\)\{ go\('boxes'\); return; \}\s*\n\s*(\/\*[^\n]*\*\/\s*\n\s*)?if\(estStockage\(b\)&&!visibleBoxes\(\[b\]\)\.length\)\{ boxView=null;/.test(RBD), RBD.slice(0, 400));
+  vrai('le bouton retour dit où il ramène', /title="\$\{retour==='stock'\?'Revenir au stock':'Revenir aux boxes'\}"/.test(RBD));
+  // c. l'ancien compteur ne revit pas
+  W = bac({ db: { boxes: [S()], produits: [P('a', 'ADVION', { qte: 0 })], mouvements: [] } });
+  W.etiqAppliquerCat();
+  v('⛔ scanner « catalogue » alors qu’un stockage existe : refusé, l’ancien compteur reste à 0, rien au journal', [W.db.produits[0].qte, W.db.mouvements.length, W.__toasts.some(t => /vit dans le stockage/.test(t))], [0, 0, true]);
+  W = bac({ db: { boxes: [], produits: [P('a', 'ADVION', { qte: 2 })], mouvements: [] } });
+  W.etiqAppliquerCat();
+  v('contre-épreuve : sans stockage, le scanner du catalogue ajoute comme avant (2 + 3)', [W.db.produits[0].qte, W.db.mouvements.length], [5, 1]);
+  // d. « Produits donnés » saisi à la main : la trace dit ce qui a BOUGÉ
+  const don = (qte, q) => { const X = bac({ db: { boxes: [S()], produits: [P('a', 'ADVION', { qte })], mouvements: [], produitsDonnes: [] } });
+    vm.runInContext(`FormData=function(t){ this.t=t; }; FormData.prototype[Symbol.iterator]=function*(){ yield* Object.entries(this.t); };`, X);
+    X.saveProduitDonne({ preventDefault() {}, target: { produitNom: 'ADVION', quantite: String(q), date: '2026-09-24' } }, '');
+    return [X.db.produits[0].qte, X.db.mouvements.map(m => m.qte), X.db.produitsDonnes.length]; };
+  v('⛔ un don saisi à la main quand l’ancien compteur est à 0 (rangé dans le stockage) : noté, et AUCUNE sortie fantôme', don(0, 4), [0, [], 1]);
+  v('… compteur à 2 pour un don de 4 : la sortie dit 2, pas 4', don(2, 4), [0, [2], 1]);
+  v('contre-épreuve : compteur à 10, don de 4 → 6, une sortie de 4', don(10, 4), [6, [4], 1]); }
 
 console.log('\n── 794 · 13. la mesure dans une vraie page existe ──');
 { const P2 = path.join(__dirname, '..', 'scratchpad', 'sonde-stockage.js');
