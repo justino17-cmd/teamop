@@ -21,6 +21,10 @@
 # toutes les suites ci-dessous passent, code de sortie 0 (voir REPRISE.md).
 # ⚠️ Une ligne qui nomme un fichier absent fait ÉCHOUER le compteur (`scripts/bancs-ci.sh`) :
 # une suite renommée ne peut pas sortir de la porte en silence. `tests/test-728.js` relit la liste.
+# ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie
+# exécutée (sans `server/node_modules`, elles se déclarent vertes). Mesuré le 24 septembre 2026 :
+# 1 876 sur cette liste. Le relever quand on ajoute une suite, jamais le baisser pour passer.
+#plancher 1800
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js

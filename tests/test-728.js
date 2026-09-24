@@ -210,6 +210,10 @@ if (fs.existsSync(dep)) {
   if (fs.existsSync(liste)) {
     const L = fs.readFileSync(liste, 'utf8').split('\n').map(x => x.trim()).filter(x => x && !x.startsWith('#'));
     vrai('   ⛔ elle n\'est pas vide (au moins 25 suites)', L.length >= 25);
+    /* ⛔ ET ELLE PORTE SON PLANCHER : sans lui, une suite qui saute sa partie exécutée rend un
+       total plus petit et VERT (relevé par `gardien`). */
+    const pl = +((fs.readFileSync(liste, 'utf8').match(/^#plancher (\d+)\s*$/m) || [])[1] || 0);
+    vrai('   ⛔ elle porte un plancher de vérifications (≥ 1 500)', pl >= 1500);
     v('   ⛔ chaque suite nommée existe', L.filter(f => !fs.existsSync(path.join(__dirname, '..', f))), []);
     v('   pas de doublon', L.length, new Set(L).size);
     v('   ⛔ chacune a le SERVEUR pour sujet',
@@ -227,6 +231,9 @@ if (fs.existsSync(dep)) {
       v('   ⛔ il ne pousse RIEN lui-même', t.split('\n').filter(l => /git\b.*\bpush\b/.test(l) && !/^\s*echo /.test(l)), []);
       vrai('   il lance les bancs de la liste avant de commiter', /bash scripts\/bancs-ci\.sh "\$\{SUITES\[@\]\}"/.test(t)
         && t.indexOf('bash scripts/bancs-ci.sh "${SUITES[@]}"') < t.indexOf('commit -q'));
+      vrai('   ⛔ avec le plancher de la liste — ici ET dans les workflows qu\'il écrit',
+        /BANCS_PLANCHER="\$\(sed -n 's\/\^#plancher \/\/p' scripts\/bancs-serveur\.liste\)" bash scripts\/bancs-ci\.sh/.test(t)
+        && /run: BANCS_PLANCHER=\$\(sed -n/.test(t));
       vrai('   et il refuse une liste trop courte', /-ge 25/.test(t));
       vrai('   et il exige server/node_modules (sinon les suites sautent, vertes sans rien prouver)', /node_modules manque/.test(t));
     }

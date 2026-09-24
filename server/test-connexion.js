@@ -186,32 +186,46 @@ const fin = (code) => { try { srv.kill(); } catch (e) {} try { fs.rmSync(dir, { 
   dit('sans jeton, refus', (await post('/api/monitor/espaces/suspendre', { slug: 'entreprisedemo' })).statut === 403);
   const sus = await post('/api/monitor/espaces/suspendre', { slug: 'entreprisedemo' }, T);
   dit('le patron suspend', sus.statut === 200 && sus.suspendu === true, JSON.stringify(sus).slice(0, 90));
-  dit('la connexion par identifiant ne passe plus',
-    (await post('/api/espaces/connexion', { nom: 'Entreprise Démo', login: 'marc', h: sha(MARC) })).statut !== 200);
-  dit('le code d\'accès non plus (même porte fermée)',
+  /* ⛔ UNE SUSPENSION N'EST PAS UNE COUPURE — décision de Justin, 20 septembre 2026 : « rien n'est
+     perdu », sept jours d'accès complet puis le forfait gratuit ; « c'est pas aux utilisateurs de
+     savoir si l'entreprise paye ou pas ». Ces trois cas attendaient l'inverse (porte fermée) et
+     sont restés rouges sur la vérification de `main` — relevé par `gardien` le 24 septembre 2026.
+     Le détail porte par porte est joué par `tests/test-796.js`. */
+  dit('la connexion par identifiant PASSE TOUJOURS (un impayé travaille)',
+    (await post('/api/espaces/connexion', { nom: 'Entreprise Démo', login: 'marc', h: sha(MARC) })).statut === 200);
+  dit('un code d\'accès FAUX reste refusé, suspendu ou non',
     (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: 'ZZZZZZZZZZ' })).statut === 403);
-  dit('l\'application apprend que l\'espace est fermé', (await post('/api/espaces/etat', { t: 'demo-t1' })).ferme === true);
+  const etS = await post('/api/espaces/etat', { t: 'demo-t1' });
+  dit('l\'application apprend qu\'il est SUSPENDU — pas fermé', etS.ferme !== true && etS.suspendu === true, JSON.stringify(etS).slice(0, 90));
   const rou = await post('/api/monitor/espaces/suspendre', { slug: 'entreprisedemo', rouvrir: true }, T);
   dit('rouvrir rend l\'accès', rou.statut === 200 && rou.suspendu === false);
   dit('et la connexion remarche, sans avoir rien redéposé',
     (await post('/api/espaces/connexion', { nom: 'Entreprise Démo', login: 'marc', h: sha(MARC) })).statut === 200);
 
-  /* Un espace porte PLUSIEURS noms dans l'annuaire (c'est la fixture, et c'est la production).
-     Renommer en lisant espacesReg[slug] renommait une entrée pendant que le serveur en servait
-     une autre : la route répondait « fait » et l'ancienne adresse continuait de marcher. */
-  console.log('\n── renommer change vraiment l\'adresse, tous les anciens noms compris ──');
+  /* ⛔ RENOMMER NE TOUCHE PLUS À L'ADRESSE — décision de Justin, 14 septembre 2026 : « le lien une
+     fois créé ne peut plus être changé ». L'adresse est posée à la création et ne bouge plus ;
+     renommer ne change que le NOM AFFICHÉ, sur TOUTES les entrées de l'espace (un espace porte
+     plusieurs noms dans l'annuaire — c'est la fixture, et c'est la production). Ces six cas
+     décrivaient l'ancien comportement (l'adresse déplacée) et sont restés rouges sur la
+     vérification de `main` depuis la v669 — relevé par `gardien` le 24 septembre 2026. */
+  console.log('\n── renommer change le NOM, jamais l\'adresse (tous les anciens noms compris) ──');
   const rn = await post('/api/monitor/espaces/renommer', { slug: 'entreprisedemo', nouveau: 'Nouveau Nom SAS' }, T);
-  dit('le patron renomme', rn.statut === 200 && rn.slug === 'nouveaunomsas', JSON.stringify(rn).slice(0, 100));
-  dit('la nouvelle adresse ouvre l\'espace',
-    (await post('/api/espaces/connexion', { nom: 'Nouveau Nom SAS', login: 'marc', h: sha(MARC) })).statut === 200);
-  dit('le nom rendu est le NOUVEAU',
-    (await post('/api/espaces/connexion', { nom: 'nouveaunomsas', login: 'marc', h: sha(MARC) })).nom === 'Nouveau Nom SAS');
-  dit('l\'ancienne adresse ne marche plus',
-    (await post('/api/espaces/connexion', { nom: 'Entreprise Démo', login: 'marc', h: sha(MARC) })).statut !== 200);
-  dit('l\'AUTRE ancien nom du même espace non plus',
-    (await post('/api/espaces/connexion', { nom: 'entreprise demo paris', login: 'sophie', h: sha(SOPHIE) })).statut !== 200);
-  dit('renommer vers l\'adresse d\'une autre entreprise est refusé',
-    (await post('/api/monitor/espaces/renommer', { slug: 'nouveaunomsas', nouveau: 'Autre Boite' }, T)).statut === 409);
+  dit('le patron renomme — et la réponse dit que l\'adresse est inchangée',
+    rn.statut === 200 && rn.adresseInchangee === true && rn.slug !== 'nouveaunomsas', JSON.stringify(rn).slice(0, 100));
+  dit('le nouveau nom n\'est PAS une adresse',
+    (await post('/api/espaces/connexion', { nom: 'Nouveau Nom SAS', login: 'marc', h: sha(MARC) })).statut !== 200);
+  const cAnc = await post('/api/espaces/connexion', { nom: 'Entreprise Démo', login: 'marc', h: sha(MARC) });
+  dit('⛔ l\'ancienne adresse MARCHE TOUJOURS (le lien donné aux équipes ne meurt pas)', cAnc.statut === 200);
+  dit('et le nom rendu est le NOUVEAU', cAnc.nom === 'Nouveau Nom SAS', JSON.stringify(cAnc.nom));
+  const cAutre = await post('/api/espaces/connexion', { nom: 'entreprise demo paris', login: 'sophie', h: sha(SOPHIE) });
+  dit('l\'AUTRE ancien nom du même espace marche aussi, avec le nouveau nom', cAutre.statut === 200 && cAutre.nom === 'Nouveau Nom SAS', JSON.stringify(cAutre).slice(0, 80));
+  /* Plus de collision d'adresse à craindre : prendre le nom d'affichage d'une autre entreprise ne
+     lui prend RIEN — son adresse, posée à sa création, mène toujours chez elle. */
+  const rn2 = await post('/api/monitor/espaces/renommer', { slug: 'entreprisedemo', nouveau: 'Autre Boite' }, T);
+  dit('porter le même nom qu\'une autre entreprise est permis', rn2.statut === 200);
+  const cVoisin = await post('/api/espaces/connexion', { nom: 'Autre Boite', login: 'marc', h: sha(AILLEURS) });
+  dit('⛔ et l\'adresse de l\'autre entreprise mène toujours chez ELLE, avec SA clé',
+    cVoisin.statut === 200 && JSON.parse(Buffer.from(cVoisin.code, 'base64').toString('utf8')).k === CLE['autre-t2']);
 
   /* OP MESSAGES est sorti des formules d'OP GESTION : c'est une application à part, ouverte
      entreprise par entreprise. Le DÉFAUT doit être fermé — un espace jamais touché ne doit pas

@@ -51,7 +51,7 @@ git checkout -q "$SOURCE" -- .github/workflows/deploiement.yml .github/workflows
 node -e '
   const fs = require("fs");
   const avant = "run: bash scripts/bancs-ci.sh\n";
-  const apres = "run: bash scripts/bancs-ci.sh $(grep -vE \x27^[[:space:]]*(#|$)\x27 scripts/bancs-serveur.liste)\n";
+  const apres = "run: BANCS_PLANCHER=$(sed -n \x27s/^#plancher //p\x27 scripts/bancs-serveur.liste) bash scripts/bancs-ci.sh $(grep -vE \x27^[[:space:]]*(#|$)\x27 scripts/bancs-serveur.liste)\n";
   for (const w of [".github/workflows/deploiement.yml", ".github/workflows/ci.yml"]) {
     const s = fs.readFileSync(w, "utf8");
     const n = s.split(avant).length - 1;
@@ -68,7 +68,7 @@ trap 'rm -f "$DEST/server/node_modules"' EXIT
 ln -s "$RACINE/server/node_modules" server/node_modules
 for f in server/*.js; do node --check "$f"; done
 node scripts/verifier-syntaxe.js >/dev/null
-bash scripts/bancs-ci.sh "${SUITES[@]}"
+BANCS_PLANCHER="$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste)" bash scripts/bancs-ci.sh "${SUITES[@]}"
 rm server/node_modules
 
 # 4. Le commit — dans l'arbre à part, JAMAIS poussé par ce script.

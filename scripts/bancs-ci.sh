@@ -45,6 +45,13 @@ for f in "${liste[@]}"; do
     echecs=$((echecs+1)); coupables="$coupables $f(interrompu)"; continue
   fi
 
+  # ⛔ UNE SUITE QUI SE SAUTE ELLE-MÊME SORT EN 0 SANS RIEN DIRE — la règle de `verification.yml`,
+  # que ce compteur n'appliquait pas (relevé par `gardien`, 24 septembre 2026).
+  if printf '%s\n' "$sortie" | grep -qi 'SAUTÉE'; then
+    echo "::error::$f a SAUTÉ une partie en silence"
+    echecs=$((echecs+1)); coupables="$coupables $f(sautée)"
+  fi
+
   ok=$(printf '%s' "$ligne" | grep -oE '^[0-9]+')
   ko=$(printf '%s' "$ligne" | grep -oE '[0-9]+ ✗' | grep -oE '[0-9]+')
   total=$((total+ok))
@@ -64,6 +71,13 @@ for f in "${liste[@]}"; do
 done
 
 echo "$suites suites · $total vérifications"
+# ⛔ UN PLANCHER, parce qu'une suite qui saute sa partie exécutée (sans `server/node_modules`, par
+# exemple) rend un total plus petit et VERT. `BANCS_PLANCHER` le fixe pour une liste donnée —
+# le déploiement du serveur seul le pose (voir `scripts/bancs-serveur.liste`).
+if [ -n "${BANCS_PLANCHER:-}" ] && [ "$total" -lt "$BANCS_PLANCHER" ]; then
+  echo "::error::$total vérifications seulement, le plancher est $BANCS_PLANCHER — des suites ont sauté une partie"
+  echecs=$((echecs+1)); coupables="$coupables (plancher:$total<$BANCS_PLANCHER)"
+fi
 # ⛔ LE NOM DU COUPABLE DOIT TENIR DANS LES TROIS DERNIÈRES LIGNES. Le détail de l'échec est
 # imprimé plus haut, au moment où il survient — et c'est trop haut. Le 20 septembre 2026, une
 # suite est tombée, la sortie a été lue par `| tail -3`, et le nom du banc est parti avec :
