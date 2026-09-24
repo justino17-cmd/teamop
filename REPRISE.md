@@ -39,6 +39,70 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 24 SEPTEMBRE 2026 — SORTIE DE FIREBASE, ÉTAPE 1 : LA CLÉ MAÎTRE DU SOCLE EST POSÉE, EN SÉQUESTRE, ET LUE
+
+Justin : « firebase […] ont en aura plu besoin tout sera avec le serveur et vps », puis « on
+commence par Firebase, guide-moi pour la clé ». Fait par lui sur le VPS, guidé geste par geste
+(`ALLUMER-LE-SOCLE.md`, section 1) :
+
+| heure (UTC) | geste | constaté |
+|---|---|---|
+| 16:01 | `node /opt/teamop/repo/server/poser-cle.js` | **0 base** → clé générée (`/etc/teamop/kek`, 0600), réglage systemd `kek.conf` ajouté |
+| — | deux copies : gestionnaire de mots de passe + papier | chacune relue par la commande masquée : **« ✓ identique » deux fois** |
+| 17:07 | `daemon-reload` + redémarrage, puis `cmp` entre la clé posée et `/run/credentials/teamop-api.service/teamop_kek` | `active` · **« ✓ le service lit la clé »** ; `/health` relu d'ici : `ok:true`, `uptime` reparti |
+
+- ⛔ **La clé n'a transité ni par la conversation, ni par un courriel, ni par le dépôt** : Justin
+  l'a masquée dans ses copies d'écran ; la relecture la demande en saisie masquée (`read -s`, ni
+  écho ni historique) ; `cmp` n'affiche rien.
+- ✅ **Deux clés existent désormais, toutes deux en séquestre** : `sauvegarde.cle` (depuis le
+  20 septembre) et la clé maître (depuis ce jour). Une archive transférée exige les deux —
+  `ALLUMER-LE-SOCLE.md`, section 5.
+- ⏳ **Le socle reste ÉTEINT** (`socle.actif:false`) : rien n'a changé pour ELAN ni pour
+  personne. La clé ne sert qu'à partir de l'allumage (section 3).
+
+### ⛔ Incident de méthode — une commande de secours a défait un geste qui marchait
+
+Mon message de l'étape 4 donnait, dans le même texte, le contrôle ET la commande de secours
+(`rm …/kek.conf && daemon-reload && restart`, « si tu vois autre chose que `active` »). Elle a
+été lancée juste après le contrôle, et elle a effacé un réglage qui MARCHAIT. Le journal de
+systemd l'a prouvé après coup : démarrage AVEC la clé à 16:55:11, puis
+`run-credentials-teamop\x2dapi.service.mount: Deactivated` à l'arrêt de 16:55:29 (le dossier de
+la clé se démontait, donc il existait), et plus de clé ensuite — d'où un « ✗ » au contrôle
+suivant. Le diagnostic, en lecture seule, a trouvé la cause en un envoi : `DropInPaths` vide, pas
+de `CREDENTIALS_DIRECTORY` dans `/proc/<pid>/environ`, dossier de `kek.conf` vide et modifié à
+16:55. Relancer `poser-cle.js` a reposé le réglage sans toucher à la clé. **Aucune coupure** : le
+service n'a jamais cessé d'être `active`, le socle étant éteint.
+**Leçon** : un retour en arrière ne voyage pas avec le geste qu'il défait. Il se donne SEUL, une
+fois la panne constatée — et il met de côté (`mv`), il n'efface pas.
+
+### Ce que l'étape a corrigé dans le dépôt (branche — sur le VPS au prochain déploiement serveur)
+
+- **`poser-cle.js` donnait `/health` comme preuve** (`"cle":true`). Or `/health` ne publie la clé
+  qu'une fois le socle ALLUMÉ, et on pose la clé AVANT : le jour J, ce contrôle ne pouvait rien
+  répondre. Ses trois chemins qui réussissent donnent désormais `daemon-reload` + le `cmp` qui a
+  servi ; « Puis : systemctl restart teamop-api », son dernier conseil, omettait `daemon-reload`.
+  `test-729` (56 ✓) exige aussi la concordance des TROIS noms : celui que le réglage donne à la
+  clé, celui que le contrôle compare, celui que `socle.js` lit.
+- **`ALLUMER-LE-SOCLE.md`, section 1** : la même correction, la commande de relecture masquée (et
+  son piège mesuré : « longueur : 0 » quand Entrée part avant le collage — elle redemande), le
+  diagnostic en lecture seule, la règle de la commande de secours. Sections 0 et 6 cochées.
+- **`surveillance.js`** : l'alarme « le socle tourne sans sa clé » disait `restart` sans
+  `daemon-reload`.
+
+### ⏳ La suite — `ALLUMER-LE-SOCLE.md`, sections 3 et 6 (gestes de Justin, un à la fois)
+
+1. ⛔ **Ranger les quatre coordonnées du coffre** (endpoint, bucket, accessKey, secretKey) à côté
+   des deux clés : elles ne vivent que dans `/opt/teamop/config.json`, sur la machine qu'un
+   sinistre ferait disparaître. Trois clés parfaites et aucune porte, c'est un coffre perdu.
+2. **Un essai de restauration SANS `config.json`** (les deux variables d'environnement seules) —
+   le seul qui ressemble au sinistre réel. Celui du 18 septembre s'est fait avec.
+3. **Allumer** : `"socle": { "actif": true }` dans `config.json`, redémarrer, `/health` →
+   `actif:true`, `cle:true`, `bases:0`. Revenir en arrière = remettre `false` et redémarrer.
+4. **Une première entreprise d'essai — pas ELAN**, puis sa double écriture (Tour,
+   `/api/monitor/op/double`, espace par espace). ⚠️ La bêta ne peut pas servir telle quelle :
+   `sauvRefus` refuse les espaces techniques (`ESPACES_INTOUCHABLES`) ; et la production (v695)
+   n'a pas le code du socle. Le chemin exact de l'essai est à préparer AVANT d'allumer.
+
 ## ✅ SERVEUR — DÉPLOYÉ SEUL LE 24 SEPTEMBRE 2026 À 15 H 14 UTC (la production reste en v695)
 
 Justin, 24 septembre, 15 h 10 UTC : **« pousse le serveur, et oui pour la sauvegarde mensuelle »**
@@ -4105,6 +4169,8 @@ pendant 90 jours. Pas besoin d'une photo par heure — on a la seconde près.
   les pièces jointes, des SQLite qui s'ouvrent parfaitement, et **pas une ligne de données
   client**.
   ✅ **Justin a rangé sa clé le 20 septembre 2026** (« j'ai déjà mes clés »).
+  ✅ **La clé maître existe depuis le 24 septembre 2026, et elle est en séquestre** (voir la
+  section en tête de ce fichier). Ce qui suit décrit l'état du 20 septembre.
   ⚠️ Et il faut être précis sur CE QUI est rangé, sinon on se croira couvert deux fois : à cette
   date, **seule `sauvegarde.cle` existe**. La clé maître n'a jamais été créée — `/etc/teamop/kek`
   est absent, `socle.actif` vaut `false`. Elle naîtra au premier `poser-cle.js`, qui l'affichera
@@ -4850,7 +4916,8 @@ sont classées, le convertisseur écrit, les quatre bancs verts. L'étape 3 n'a 
   fait par moi-même, vu avec eux ») — ✅ **en réunion ; Justin : « c'est bon, tu t'en occupes
   pas »** (23 septembre au soir). L'étape 4 n'attend plus rien de ce côté.
 - ⛔ **La phrase qui autorise la publication d'`app.html`** — 7 versions attendent.
-- **Le séquestre de la clé maître** du socle, le jour de l'allumage (deux endroits distincts).
+- ✅ **Le séquestre de la clé maître** du socle — **FAIT le 24 septembre 2026** : clé posée sur le
+  VPS, deux copies relues, service qui la lit (voir la section en tête de ce fichier).
 - ~~`roles/datastore.owner` à ajouter pour les sauvegardes Firestore~~ — ✅ **FAIT le
   20 septembre 2026 au soir**, voir plus haut : PITR 7 jours + une sauvegarde par jour
   gardée 14 jours. Se revérifie par `node server/firebase-console.js sauvegardes`.

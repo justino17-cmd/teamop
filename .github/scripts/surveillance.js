@@ -234,7 +234,7 @@ function get(url) {
        Huit jours, pas deux : un serveur redémarré souvent a le droit de glisser, et une
        alarme qui crie pour rien finit ignorée — la leçon est déjà écrite plus haut. */
     if (j.socle && j.socle.actif === true && typeof j.socle.ancreJours === 'number' && j.socle.ancreJours > 8) problems.push('⛔ l\'ancre du journal de diagnostic n\'est pas sortie de la machine depuis ' + j.socle.ancreJours + ' jours — le journal chaîné ne prouve plus rien contre une réécriture complète. Vérifier `notifDemandes` et le SMTP dans /opt/teamop/config.json.');
-    if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre, la poser avec « node /opt/teamop/repo/server/poser-cle.js » sur le VPS, puis systemctl restart teamop-api.');
+    if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre, la poser avec « node /opt/teamop/repo/server/poser-cle.js <les 64 caractères> » sur le VPS, puis systemctl daemon-reload && systemctl restart teamop-api — le contrôle qui le prouve est dans ALLUMER-LE-SOCLE.md, section 1.');
     /* ══ ÉTAPE 6 DU SOCLE — « LE MIROIR, UNE SEMAINE » ═══════════════════════════════════
        ⛔ L'étape 6 ne livre « rien » : elle REGARDE. Sans ces trois alarmes, regarder voudrait
        dire ouvrir `/health` à la main tous les jours pendant une semaine — c'est-à-dire ne pas

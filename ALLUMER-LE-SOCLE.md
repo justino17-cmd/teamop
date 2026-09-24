@@ -8,7 +8,12 @@ savoir qu'on est prêt AVANT de basculer le drapeau, ni comment revenir en arri�
 Il est écrit pour **quelqu'un qui n'a pas écrit ce code**. Chaque geste dit ce qu'on attend de
 voir. Si ce n'est pas ce qui s'affiche, **on s'arrête** — on ne continue jamais « en espérant ».
 
-⚠️ **Rien ici n'est à faire aujourd'hui.** L'étape 1 s'allume à l'étape 4 du
+✅ **Section 1 FAITE le 24 septembre 2026** (Justin, guidé) : clé générée à 16 h 01 UTC sur un
+VPS sans aucune base, deux copies rangées (gestionnaire de mots de passe + papier) et relues
+chacune par la commande masquée — « ✓ identique » deux fois —, service redémarré à 17 h 07 UTC
+qui la LIT (`cmp` ✓). Le socle, lui, est toujours éteint : la section 3 reste à faire.
+
+⚠️ **Rien d'autre ici n'est à faire aujourd'hui.** L'étape 1 s'allume à l'étape 4 du
 `PLAN-OP-SOCLE.md`, après le préavis écrit à ELAN. Tant que ce préavis n'est pas parti, la
 seule bonne valeur de `socle.actif` est `false`.
 
@@ -23,7 +28,7 @@ Aucune n'est facultative. Si une seule est fausse, on ne commence pas.
 | 1 | Le préavis / l'accord écrit est parti chez ELAN | Justin le sait. Personne d'autre. |
 | 2 | La sauvegarde hors site tourne et a réussi récemment | `curl -s https://api.teamop.fr/health` → `sauvegarde: {active:true, ok:true, ageH:<24}` |
 | 3 | Une restauration a été **essayée pour de faux**, au moins une fois | `node server/restaurer.js essai` sur le VPS |
-| 4 | La clé maître sera en séquestre à DEUX endroits distincts | gestionnaire de mots de passe **+** copie scellée hors ligne |
+| 4 | La clé maître sera en séquestre à DEUX endroits distincts | gestionnaire de mots de passe **+** copie scellée hors ligne — ✅ **fait le 24 septembre 2026**, les deux relues |
 | 5 | La suite complète passe sur la branche qu'on déploie | `for f in tests/test-*.js; do node "$f"; done` → 0 échec |
 
 ⛔ **La 3 est celle qu'on saute, et c'est celle qui coûte.** Une sauvegarde qu'on n'a jamais su
@@ -62,15 +67,50 @@ Les deux autres réponses possibles, et ce qu'elles veulent dire :
   installation.** On ne génère rien. On va chercher la clé au séquestre et on la pose :
   `node server/poser-cle.js <les 64 caractères>`.
 
-Puis, pour que le service la lise :
+⛔ **Relire chaque copie SANS l'afficher.** Cette commande demande la clé en saisie masquée
+(rien à l'écran, rien dans l'historique), la compare à celle du serveur, et ne dit que
+« ✓ identique » ou la position du premier caractère faux. Une fois par copie — pour le papier,
+on TAPE la clé (espaces et majuscules acceptés) :
 
 ```bash
-systemctl daemon-reload && systemctl restart teamop-api
-curl -s localhost:8080/health | grep -o '"socle":{[^}]*}'
+K=; while [ -z "${K// /}" ]; do read -rsp "Colle (ou tape) la clé, puis Entrée : " K || break; echo; done; K=${K// /}; K=${K,,}; V=$(cat /etc/teamop/kek); echo "longueur : ${#K} (attendu 64)"; [ "$K" = "$V" ] && echo "✓ identique" || { i=0; while [ $i -lt 64 ] && [ "${K:$i:1}" = "${V:$i:1}" ]; do i=$((i+1)); done; echo "✗ différente — première différence : caractère n° $((i+1))"; }; unset K V i
 ```
 
-→ on attend `"cle":true`. **Si c'est `false`, la clé est posée là où le serveur ne la regarde
-pas** — on s'arrête et on règle ça avant tout le reste.
+⚠️ Mesuré le 24 septembre 2026 : une première version rendait « longueur : 0 » — Entrée partie
+avant le collage, ou un presse-papiers qui commençait par une ligne vide. Celle-ci redemande tant
+que la saisie est vide. Une différence au caractère n se corrige sur la copie, pas sur le serveur.
+
+Puis, pour que le service la lise — et le PROUVER :
+
+```bash
+systemctl daemon-reload && systemctl restart teamop-api; sleep 3; systemctl is-active teamop-api; cmp -s /etc/teamop/kek /run/credentials/teamop-api.service/teamop_kek && echo "✓ le service lit la clé" || echo "✗ le service ne voit pas la clé"
+```
+
+→ on attend `active`, puis `✓ le service lit la clé`. Rien ne s'affiche de la clé.
+
+⛔ **`/health` ne peut PAS servir ici** : il ne publie la clé (`"cle":true`) qu'une fois le
+socle ALLUMÉ, à la section 3. Éteint, il rend `"socle":{"actif":false}` et rien d'autre — ni
+réussite ni échec, une question qu'il ne pose pas encore. Cette page le donnait pourtant comme
+preuve, et `poser-cle.js` aussi, jusqu'au 24 septembre 2026 : le jour où on s'en est servi pour
+de vrai, le contrôle ne pouvait rien répondre.
+
+**Si c'est `✗`, on s'arrête**, et on regarde ce que systemd a VRAIMENT chargé avant de corriger
+quoi que ce soit (aucune de ces lignes n'affiche la clé) :
+
+```bash
+systemctl show teamop-api -p DropInPaths          # doit citer …/kek.conf
+P=$(systemctl show -p MainPID --value teamop-api); tr '\0' '\n' < /proc/$P/environ | grep '^CREDENTIALS_DIRECTORY='
+journalctl --since "-15min" --no-pager -t systemd | grep -i "teamop\|reloading"
+```
+
+Un `DropInPaths` vide veut dire que le réglage n'existe plus : relancer `poser-cle.js`, qui le
+repose sans toucher à la clé. Dans le journal, `run-credentials-teamop\x2dapi.service.mount:
+Deactivated` à un arrêt prouve que le service qui s'arrêtait AVAIT la clé.
+
+⛔ **Pas de commande de secours « au cas où ».** Le 24 septembre 2026, celle qui défaisait ce
+geste (`rm …/kek.conf`) voyageait dans le même message que le contrôle : elle a été lancée à la
+suite, et elle a effacé un réglage qui MARCHAIT — le journal l'a montré après coup. Un retour en
+arrière se donne SEUL, une fois la panne constatée, et il met de côté (`mv`), il n'efface pas.
 
 ---
 
@@ -215,7 +255,7 @@ proprement : elles sont remises quand même, et elles demandent un examen. Ne pa
 
 ## 6. La liste avant de dire « c'est allumé »
 
-- [ ] la clé maître est en séquestre à DEUX endroits, et on sait la relire
+- [x] la clé maître est en séquestre à DEUX endroits, et on sait la relire (24 septembre 2026)
 - [ ] la clé de SAUVEGARDE y est aussi — ce n'est pas la même (voir le tableau, section 5)
 - [ ] ⛔ **les quatre coordonnées du coffre** (endpoint, bucket, accessKey, secretKey) y sont
       également : elles ne vivent aujourd'hui que dans `/opt/teamop/config.json`, c'est-à-dire
