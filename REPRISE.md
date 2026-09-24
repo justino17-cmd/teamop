@@ -119,20 +119,42 @@ Deux réponses de Justin au rapport de la v741, mot pour mot :
 - ⚠️ **Ce qui a été réglé en v741** (bêta seulement, une heure de vie) depuis l'ancienne fenêtre —
   des noms posés sur la box du stockage — **n'est plus lu** : à redonner par la case.
 
+### La relecture adversariale — trois défauts réels, corrigés
+
+Trois angles (le stockage, les noms, l'hygiène du diff), chaque constat cherché en défaut par un second
+agent qui a rejoué le code : trois confirmés, zéro faux.
+- **Le « Responsable » du stockage le faisait parler à qui ne le voit pas** (le ✎ le laissait choisir, et
+  les noms posés sur la box en v741 aussi) : la cloche racontait ses arrivages (produits, fournisseur), un
+  DR en voyait l'historique, recevait ses validations, les avis « pour ta box » partaient. `stkLienOk` :
+  sur le stockage, un rattachement ne vaut que pour qui a la case. Le ✎ propose un responsable parmi ceux
+  qui ont la permission (celui d'avant reste lisible, marqué « sans la permission »).
+- **« Tout voir » sans la case disait « Épuisé »** d'un produit qui n'est QUE dans le stockage (Produits,
+  cloche), et la commande suggérée le rachetait. `stockVoitTout` exige la case quand un stockage existe ;
+  `bonSuggere` suit la même règle que Produits et la cloche (⚠️ effet de bord voulu : qui ne voit pas
+  tout ne se voit plus suggérer le seuil d'un produit absent de SES lignes — comme la cloche).
+- **Renommer une fiche technicien ne passait par aucune règle** : prénom ET nom, jamais le nom d'une autre
+  fiche ni d'un autre compte (seulement si le nom change). Et le premier administrateur d'une entreprise
+  ne prend pas le nom d'un autre compte.
+
 ### Les preuves
 
-- `tests/test-795.js` (nouveau) — **25 ✓** : EXÉCUTE la vraie `saveUser` (création refusée AVANT tout
+- `tests/test-795.js` (nouveau) — **26 ✓** : EXÉCUTE la vraie `saveUser` (création refusée AVANT tout
   appel au serveur, variantes d'écriture, compte désactivé, initiale acceptée, renommage), et l'ordre
   des gardes de la fiche technicien et du premier administrateur.
 - `tests/test-789.js` §10 — la case, sa catégorie, ses défauts (bureau, DR avec équipe, technicien,
   administrateur), les deux sens d'un réglage, `droitsBorner` (un chef sans la case ne la donne pas).
-- `tests/test-794.js` — **101 ✓** : §9 la fenêtre (refusée au chef, n'écrit que ce qui change, rien
-  sur la box), §15 la VRAIE `visibleBoxes` jouée case par case, §16 **exécute
+- `tests/test-794.js` — **112 ✓** : §9 la fenêtre (refusée au chef, n'écrit que ce qui change, rien
+  sur la box), §15 la VRAIE `visibleBoxes` jouée case par case, §17 les vraies `notifBoxOk`,
+  `notifBoxConcerne`, `visibleBoxMvts`, `valideursPour`, `boxGensIds`, `stockVoitTout`, `bonSuggere`
+  (relecture), §16 **exécute
   `scripts/verifier-permissions.js`** — le contrôle de CI des droits mourait sur `estStockage` : deux
   morts silencieuses (v733, v742), il tourne désormais à chaque suite.
-- `tests/test-786.js` — la fiche technicien (un mot refusé, un homonyme refusé, un compte sans fiche
-  relié). `test-710` suit.
-- `scratchpad/sonde-v742.js`, au doigt, iPhone 402 px : **34 ✓ 0 ✗** — « Karim Benali » refusé avec
+- `tests/test-786.js` — **94 ✓** : la fiche technicien (un mot refusé, un homonyme refusé, un compte sans
+  fiche relié) et son RENOMMAGE (cinq cas). `test-650` (15 ✓) joue le stockage dans la cloche d'un DR.
+  `test-710` suit.
+- `scratchpad/sonde-v742.js`, au doigt, iPhone 402 px : **43 ✓ 0 ✗** (partie C, la relecture : la cloche
+  de Sofia responsable du stockage sans la case, le ✎ du stockage, Produits du bureau décoché, le
+  renommage d'une fiche au doigt) — « Karim Benali » refusé avec
   le bon message puis « Karim A. Benali » créé, les deux « Jean Dupont » signalés, la case cochée sur
   la ligne de Karim puis validée, Karim se sert et Sofia lit « ne t'est pas ouvert », un chef qui gère
   les box ne voit pas « Qui peut s'y servir », l'administrateur décoche Karim (sa case écrite NON, le
@@ -143,7 +165,7 @@ Deux réponses de Justin au rapport de la v741, mot pour mot :
   comptes de sonde les dépassaient et « Créer » ouvrait la page d'abonnement AVANT la règle des noms ; et
   au téléphone, le bouton « ＋ Utilisateur » de la barre du haut EXISTE mais est masqué (0 × 0) — celui
   qu'on touche est dans l'en-tête de page.
-- Mutations : **19/19** mordues.
+- Mutations : **19/19** mordues, puis **14/14** sur les correctifs de la relecture.
 - Suite complète : **152 suites · 7 229 vérifications, code 0**. Relecture adversariale en cours au
   moment de ce commit ; la bêta v742 n'est PAS encore publiée.
 

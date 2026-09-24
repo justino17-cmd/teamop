@@ -1310,7 +1310,10 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
     est une permission ») : la case `stockage` (« Se servir dans le stockage », catégorie Stock), par
     défaut à qui « voit tout » sans équipe rattachée, l'administrateur d'office. `visibleBoxes` ne le
     montre qu'à `can('stockage')` — ni « Tout voir », ni `userIds`/`visibleTous`/`techIds` posés sur la
-    box, ni une délégation. « Qui peut s'y servir » écrit la CASE de chacun (administrateur seulement) ;
+    box, ni une délégation. ⛔ Et un RATTACHEMENT (responsable, nom posé sur la box) n'y vaut que pour qui a
+    la case (`stkLienOk`) : sans ça, le stockage PARLAIT à qui ne le voit pas — cloche (produits,
+    fournisseur), historique d'un DR, validations, avis « pour ta box » (relecture v742). « Tout voir »
+    sans la case ne « voit » pas tout (`stockVoitTout`). « Qui peut s'y servir » écrit la CASE de chacun (administrateur seulement) ;
     la ligne de droits et la création ne le listent plus parmi les box. Il ne compte pas comme une box
     (`usrSansBox`, Boxes). Son identifiant est écrit en clair : **`openBox` revérifie l'accès** (un lien
     du journal, une notification, une étiquette l'ouvraient à qui n'y avait pas accès), et la fiche à
@@ -1338,7 +1341,9 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   espaces), contre TOUS les comptes, désactivés compris ; à la modification, seulement si le nom
   CHANGE (corriger le téléphone d'un doublon d'avant ne se bloque pas) ; les doublons d'avant la règle
   sont SIGNALÉS dans la liste. Une porte neuve qui crée un compte passe par `compteHomonyme` ou
-  n'existe pas (`tests/test-795.js`, qui exécute la vraie `saveUser`).
+  n'existe pas (`tests/test-795.js`, qui exécute la vraie `saveUser`). ⚠️ Et RENOMMER compte autant que
+  créer : la fiche technicien se renommait sans aucune règle (deux cartes « Léo Martin » au planning, que
+  la liste des utilisateurs ne voyait pas — elle compare les COMPTES). Relecture v742, `test-786`.
 - **Retirer un produit d'une box s'écrit TOUJOURS dans `db.boxDecisions`** (`boxDecider`). Quatre
   chemins le font : la feuille « Retirer », la croix ✕ de « Modifier la box », le retrait direct de la
   fiche, et le retrait validé par le DR. Sans cette trace, le catalogue repose tout seul ce qu'une
