@@ -6436,8 +6436,14 @@ html[data-refonte] .tbl.list-tbl td.strong,html[data-refonte] .tbl.list-tbl td .
 /* Les colonnes de chiffres s'alignent : c'est ce qui permet de comparer d'un coup d'œil. */
 html[data-refonte] .tbl.list-tbl td[style*="text-align:right"],
 html[data-refonte] .pl-row .pl-val{font-variant-numeric:tabular-nums}
-/* Une ligne qui s'ouvre le DIT — un chevron, pas une devinette. */
-html[data-refonte] .pl-row[onclick]::after{
+/* Une ligne qui s'ouvre le DIT — un chevron, pas une devinette.
+   ⛔⛔ SEULEMENT LÀ OÙ LA RÈGLE « LES LISTES DISENT QU'ELLES S'OUVRENT » NE PASSE PAS — une ligne qui
+   porte un bouton. Les deux règles visaient le MÊME `::after` : l'une pose le trait du HAUT (chevron
+   absolu, à droite), l'autre celui du BAS (chevron en bout de ligne) — et une propriété qui n'est pas
+   en conflit ne s'écrase pas, elle s'AJOUTE. Mesuré le 24 septembre 2026 sur la liste des box : un
+   chevron à TROIS côtés (haut, droite, bas) sur chaque ligne cliquable de l'application. C'est la
+   règle « une moitié de règle survit à l'autre », par un chemin de plus. */
+html[data-refonte] .pl-row[onclick]:is(:has(.btn),:has(button))::after{
   content:'';width:7px;height:7px;flex-shrink:0;margin-left:2px;
   border-right:2px solid var(--t3);border-bottom:2px solid var(--t3);
   transform:rotate(-45deg);opacity:.75;
@@ -24945,8 +24951,7 @@ function boxLigneHtml(b,nv){
         if(!t.u&&!t.c) return '';
         const txt=[t.u?t.u.toLocaleString('fr-FR')+' u':'',t.c?t.c.toLocaleString('fr-FR')+' ctn':''].filter(Boolean).join(' · ');
         return `<span class="st st-green" style="font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0" title="Stock total de cette box">${txt}</span>`; })()}
-      <span style="color:var(--t3);font-size:22px;font-weight:300">›</span>
-    </div>`; }
+    </div>`; }   /* ⛔ pas de « › » écrit : la ligne `.pl-row[onclick]` porte déjà celui de la feuille — deux marques pour une chose */
 function renderBoxesList(){
   const el=$('boxes-list'); if(!el) return;
   const q=norm(boxListSearch);
@@ -28204,8 +28209,8 @@ function mailChoisirBoite(titre,cb){
   _mailPickList=opts; _mailPick=(i)=>{ cb(_mailPickList[i]||{kind:'plat'}); };
   openModal(`<div class="modal-head"><h3>📤 ${esc(titre||'Envoyer avec quelle adresse ?')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     ${opts.map((o,i)=>o.kind==='mb'?
-      `<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(o.email)}</div><div class="pl-meta">boîte connectée — réponses dans l'app</div></div><span style="color:var(--t3)">›</span></div>`
-      :`<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">🏢</span><div class="pl-info"><div class="pl-title">Plateforme (au nom de ${esc(mailBrandName())})</div></div><span style="color:var(--t3)">›</span></div>`).join('')}`);
+      `<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(o.email)}</div><div class="pl-meta">boîte connectée — réponses dans l'app</div></div></div>`
+      :`<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">🏢</span><div class="pl-info"><div class="pl-title">Plateforme (au nom de ${esc(mailBrandName())})</div></div></div>`).join('')}`);
 }
 let _mailAtt=null;
 function mailCompose(to,subject){ _mailAtt=null;
@@ -32485,7 +32490,7 @@ function openScannerStock(){ const L=visibleBoxes((db.boxes||[]).filter(b=>b&&b.
   if(L.length===1){ etiqVersBox(L[0].id); return; }
   openModal(`<div class="modal-head"><h3>Scanner dans quelle box ?</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div style="display:flex;flex-direction:column;gap:8px">${L.map(b=>{ const n=Object.keys(b.stock||{}).filter(pid=>produit(pid).id).length;
-      return `<div class="pl-row" style="margin:0;cursor:pointer" onclick="etiqVersBox('${b.id}')"><span style="font-size:20px">${estStockage(b)?'🏬':'🧱'}</span><div class="pl-info"><div class="pl-title">${esc(b.nom||b.numero||'Box')}</div><div class="pl-meta">${n} produit${n>1?'s':''}</div></div><span style="color:var(--t3)">›</span></div>`; }).join('')}</div>`,'carte'); }
+      return `<div class="pl-row" style="margin:0;cursor:pointer" onclick="etiqVersBox('${b.id}')"><span style="font-size:20px">${estStockage(b)?'🏬':'🧱'}</span><div class="pl-info"><div class="pl-title">${esc(b.nom||b.numero||'Box')}</div><div class="pl-meta">${n} produit${n>1?'s':''}</div></div></div>`; }).join('')}</div>`,'carte'); }
 function etiqVersBox(id){ closeModal(); openBox(id); setTimeout(()=>{ if(boxView===id) openBoxScanner(id); },450); }
 async function etiqCamera(){
   try{ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('camera');

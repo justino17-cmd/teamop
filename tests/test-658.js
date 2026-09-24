@@ -175,8 +175,14 @@ console.log('Un écran vide dit pourquoi, et « jamais connecté » n’est pas 
   v('rien ne casse sur une box sans stock', [boxTotalStock({}), boxTotalStock(null)], [{ u: 0, c: 0 }, { u: 0, c: 0 }]);
   /* ELAN, mesuré : Nantes 7 199 u, et treize box à zéro. */
   v('la pastille n’apparaît pas quand il n’y a rien à montrer', /if\(!t\.u&&!t\.c\) return '';/.test(APP), true);
-  v('elle est posée sur la ligne de la liste, avant le chevron',
-    APP.indexOf('title="Stock total de cette box"') < APP.indexOf('font-size:22px;font-weight:300">›'), true);
+  /* ⛔ Le « › » écrit a disparu le 24 septembre 2026 : la ligne `.pl-row[onclick]` porte déjà le
+     chevron de la feuille, et la liste en montrait DEUX (`test-798` garde « un chevron par ligne »).
+     La pastille reste la DERNIÈRE chose de la ligne — le chevron de la feuille se pose après elle. */
+  const iLigne = APP.indexOf('function boxLigneHtml(');
+  const ligne = iLigne > 0 ? APP.slice(iLigne, APP.indexOf('function renderBoxesList(', iLigne)) : '';
+  v('la ligne de box est trouvée', ligne.length > 200, true);
+  v('elle porte la pastille du stock total', /title="Stock total de cette box"/.test(ligne), true);
+  v('et plus aucun « › » écrit à côté du chevron de la feuille', /">›<\/span>/.test(ligne), false);
   v('les chiffres sont alignés en colonne (chasse fixe)', /font-variant-numeric:tabular-nums;white-space:nowrap/.test(APP), true);
   v('et écrits à la française', /t\.u\.toLocaleString\('fr-FR'\)\+' u'/.test(APP), true);
 }
