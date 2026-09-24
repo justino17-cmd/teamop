@@ -56,18 +56,19 @@ posé). Préparé par `scripts/preparer-deploiement-serveur.sh` depuis `6c581d0a
 - ⏳ **`mensuelJ:null` = allumé, jamais faite** : la première copie mensuelle part à la prochaine
   nuitée. Si elle n'est pas faite à 9 h UTC, la surveillance le dit (une fois par jour, à 9 h) —
   « Lancer » dans la Tour (sauvegarde) la fait tout de suite.
-- ⚠️ **« Vérification des pages » (`verification.yml`) est ROUGE sur `main` — pas à cause du
-  serveur**, et depuis la v739 au moins (23 septembre : rouge à CHAQUE publication de la bêta,
-  runs 456 à 463). Deux étapes, une seule cause : elles exigent que la bêta porte la MÊME version
-  qu'`app.html`, ce qui est faux par construction depuis que `main` garde la production en v695
-  pendant que la bêta avance — `verifier-version.js` (« app v695 contre bêta v744 ») et l'étape
-  `node beta-build.js`, qui refuse d'écrire une bêta v695 par-dessus la v744. Toutes les AUTRES
-  étapes passent (elles sont en `if: always()`), dont « Les suites du dépôt passent » et
-  « Chacun ne voit que ce qui le concerne ». ⚠️ Mais un rouge permanent masque le prochain vrai
-  rouge : **à corriger** — accepter « bêta EN AVANCE sur `app.html` » comme un état déclaré,
-  et garder le refus pour une bêta EN RETARD ou de même version mais pas régénérée
-  (`verifier-version.js` + `tests/test-709.js` + l'étape bêta). Ne touche ni le site ni le
-  serveur ; proposé à Justin le 24 septembre.
+- ✅ **« Vérification des pages » (`verification.yml`) était ROUGE sur `main` — pas à cause du
+  serveur** : rouge à CHAQUE publication de la bêta depuis la v739 au moins (runs 456 à 463).
+  Deux étapes, une seule cause : elles exigeaient que la bêta porte la MÊME version qu'`app.html`,
+  faux par construction depuis que `main` garde la production en v695 pendant que la bêta avance.
+  **Corrigé et poussé sur `main` le 24 septembre (`190811c`, Justin : « oui corrige le contrôle
+  et pousse-le »)** : `etatBeta()` dans `verifier-version.js` (avance · egale · retard) — le
+  RETARD reste une faute, l'avance est dite ; l'étape bêta s'arrête en le disant quand la bêta
+  est en avance, régénère et compare à version égale ; `tests/test-804.js` fait la comparaison
+  à l'octet sur la branche (sans lui, « la génération se contrôle sur la branche » n'était
+  qu'une phrase : RIEN ne la comparait). Éprouvé avant de pousser : l'étape rejouée sur une
+  copie de `main` (vert en avance, rouge en retard) et de la branche (vert à égalité, rouge sur
+  une bêta retouchée à la main) ; `test-709` 24 ✓, `test-804` 5 ✓ ; 5 mutations sur 5 mordent.
+  Les pages servies n'ont pas bougé (app v695, bêta v744), le VPS non plus.
 
 ### Ce qui précédait le déploiement (pour mémoire)
 
