@@ -214,6 +214,15 @@ export TEAMOP_SAUV_COFFRE=<endpoint>,<bucket>,<accessKey>,<secretKey>
 node server/restaurer.js liste
 ```
 
+⛔ **La flèche « → » de `liste` désigne la dernière copie du JOUR ; les copies mensuelles sont
+listées à part, dessous.** Jusqu'au 24 septembre 2026, l'outil triait tout le coffre par ordre
+alphabétique : `teamop/mensuel/…` passait devant `teamop/2026-…` (« m » après « 2 »), la
+flèche désignait donc la copie du MOIS, et `essai` l'ouvrait à la place de celle de la nuit —
+jusqu'à un mois de données perdues pour qui restaure sur la foi de la flèche. Corrigé sur la
+branche (`tests/test-805.js`). ⚠️ **Tant que ce correctif n'est pas sur `main`** (déploiement du
+serveur), l'outil du VPS — et celui d'un clone neuf — garde le défaut : **lire la DATE dans le
+nom de l'archive**, ne pas se fier à la flèche.
+
 Dans cet ordre, séparés par des virgules (une cinquième valeur, la région, est facultative).
 ⚠️ **Ces quatre valeurs doivent être au séquestre À CÔTÉ des deux clés.** Elles vivent
 aujourd'hui dans `/opt/teamop/config.json` — c'est-à-dire sur la machine qu'on est en train de
@@ -265,7 +274,14 @@ proprement : elles sont remises quand même, et elles demandent un examen. Ne pa
 - [ ] `/health` → `sauvegarde.active:true` et une sauvegarde a réussi depuis l'allumage
 - [ ] une restauration a été essayée POUR DE FAUX depuis l'allumage
 - [ ] ⚠️ et au moins une fois **sans `config.json`**, avec les deux variables d'environnement
-      seules : c'est le seul essai qui ressemble au sinistre réel
+      seules : c'est le seul essai qui ressemble au sinistre réel — sur le VPS lui-même, sans rien
+      toucher : `TEAMOP_CONFIG=/nulle-part` fait ignorer son `config.json`, et les valeurs se
+      TAPENT depuis le séquestre, en saisie masquée (ni écran, ni historique). Éprouvé le
+      24 septembre 2026 contre un coffre local : « RESTAURABLE », variables effacées après,
+      aucun secret dans la sortie.
+      ```bash
+      read -rsp "Clé de SAUVEGARDE (64 caractères) : " TEAMOP_SAUV_CLE; echo; read -rsp "Coffre — endpoint,bucket,accessKey,secretKey : " TEAMOP_SAUV_COFFRE; echo; export TEAMOP_SAUV_CLE TEAMOP_SAUV_COFFRE; TEAMOP_CONFIG=/nulle-part node /opt/teamop/repo/server/restaurer.js essai; unset TEAMOP_SAUV_CLE TEAMOP_SAUV_COFFRE
+      ```
 - [ ] la première entreprise servie n'est pas ELAN
 - [ ] `socle.refus` est vide et `socle.illisibles` vaut 0 après 24 h
 - [ ] la surveillance horaire voit les compteurs (`.github/scripts/surveillance.js`)

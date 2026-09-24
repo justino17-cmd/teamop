@@ -89,13 +89,43 @@ fois la panne constatée — et il met de côté (`mv`), il n'efface pas.
 - **`surveillance.js`** : l'alarme « le socle tourne sans sa clé » disait `restart` sans
   `daemon-reload`.
 
+### ⛔ Trouvé en préparant la suite — `restaurer.js` aurait restauré la copie du MOIS (corrigé, branche)
+
+En préparant l'essai « sans `config.json` » (section 6), le banc qui manquait a été écrit :
+**aucun ne lançait `restaurer.js`** — `test-722`, `725` et `726` éprouvent l'archive, jamais la
+commande qu'on tape le jour du sinistre. Il a trouvé du premier coup le défaut qu'`aElaguer` avait
+eu le 20 septembre : `liste` triait tout le coffre par ordre alphabétique, et `teamop/mensuel/…`
+passe devant `teamop/2026-…` (« m » après « 2 »). La flèche « la plus récente » désignait la copie
+du MOIS, et `essai` l'ouvrait à la place de la nuit — **jusqu'à un mois de données perdues** pour
+qui restaure sur la foi de la flèche. Inerte jusqu'ici : la première copie mensuelle part la nuit
+du 24 au 25 septembre (`mensuelJ:null`) ; le premier soir, elle est identique à celle du jour, et
+l'écart grandit ensuite (le 20 octobre, la flèche aurait montré le 1ᵉʳ).
+- **Corrigé** : les copies du jour d'abord, la plus récente fléchée ; les mensuelles listées à
+  part, dessous ; `essai` ne prend une mensuelle que s'il n'y a aucune copie du jour.
+- **`tests/test-805.js`** (25 ✓) : la VRAIE commande, dans un processus à part, **sans
+  `config.json`** (`TEAMOP_CONFIG` vers rien, `TEAMOP_SAUV_CLE` + `TEAMOP_SAUV_COFFRE`), contre un
+  coffre HTTP local qui parle S3 et porte deux copies du jour et une mensuelle — de vraies archives
+  fabriquées par `sauvegarde.js`. Il vérifie ce qui a été OUVERT (le nombre de fichiers de
+  l'archive), pas le nom recopié dans une phrase ; l'ordre des quatre valeurs du coffre (la clé
+  d'accès reçue par le coffre est bien la troisième) ; qu'une clé fausse fait échouer ; que la clé
+  seule ou rien du tout refusent en disant quoi fournir. Sur le code d'avant : **4 ✗**.
+- Ajouté à `scripts/bancs-serveur.liste` (35 suites, plancher relevé à 1 950 ; 2 071 vérifications
+  mesurées sur la branche).
+- ⚠️ **Sur le VPS, et dans un clone neuf de `main`, l'ancien outil reste jusqu'au prochain
+  déploiement du serveur** (phrase de Justin). D'ici là, en cas de restauration : lire la DATE dans
+  le nom de l'archive, ne pas se fier à la flèche. L'essai de la section 6, lui, peut se faire dès
+  maintenant avec l'ancien outil tant que la première mensuelle n'existe pas — et après, sans
+  danger : il ne restaure rien, il ouvre et compte.
+
 ### ⏳ La suite — `ALLUMER-LE-SOCLE.md`, sections 3 et 6 (gestes de Justin, un à la fois)
 
 1. ⛔ **Ranger les quatre coordonnées du coffre** (endpoint, bucket, accessKey, secretKey) à côté
    des deux clés : elles ne vivent que dans `/opt/teamop/config.json`, sur la machine qu'un
    sinistre ferait disparaître. Trois clés parfaites et aucune porte, c'est un coffre perdu.
 2. **Un essai de restauration SANS `config.json`** (les deux variables d'environnement seules) —
-   le seul qui ressemble au sinistre réel. Celui du 18 septembre s'est fait avec.
+   le seul qui ressemble au sinistre réel. Celui du 18 septembre s'est fait avec. La commande,
+   éprouvée contre un coffre local (saisie masquée, rien dans l'historique), est dans
+   `ALLUMER-LE-SOCLE.md`, section 6.
 3. **Allumer** : `"socle": { "actif": true }` dans `config.json`, redémarrer, `/health` →
    `actif:true`, `cle:true`, `bases:0`. Revenir en arrière = remettre `false` et redémarrer.
 4. **Une première entreprise d'essai — pas ELAN**, puis sa double écriture (Tour,

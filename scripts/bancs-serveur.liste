@@ -24,8 +24,8 @@
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie
 # exécutée (sans `server/node_modules`, elles se déclarent vertes). Mesuré le 24 septembre 2026 :
 # 1 876 sur cette liste, puis 2 004 une fois `test-803` ajouté (34 suites, contre les pages de
-# `main`). Le relever quand on ajoute une suite, jamais le baisser pour passer.
-#plancher 1925
+# `main`), puis +25 avec `test-805`. Le relever quand on ajoute une suite, jamais le baisser pour passer.
+#plancher 1950
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -63,3 +63,6 @@ tests/test-796.js
 # DEUX pages — contre la v695 de `main`, elle vérifie que le refus du serveur neuf s'y AFFICHE et
 # n'écrit rien (103 vérifications ; 109 contre la page de la branche).
 tests/test-803.js
+# 24 septembre 2026 : `restaurer.js` exécuté comme le jour du sinistre — sans config.json, contre un
+# coffre local qui porte copies du jour ET mensuelle. Il ne lit aucune page : il passe partout.
+tests/test-805.js
