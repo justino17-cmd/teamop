@@ -76,6 +76,10 @@ const ECARTS = {
      trois rubriques passaient sur deux lignes. Les maquettes sont écrites en anglais ; la règle du
      dépôt tranche : « un libellé français est plus long — toute grille copiée d'une référence
      anglophone doit être ÉLARGIE ». Mesuré après : 171 px disponibles, zéro rubrique sur deux lignes.`,
+  'pastille de la cloche': `la maquette peint le compteur de la cloche en rouge système #FF3B30,
+     blanc dessus. Mesuré au pixel (24 septembre 2026, les deux thèmes, jour et nuit) : le blanc n'y
+     tient que 3,58:1. On prend le rouge « contraste renforcé » d'Apple, #D70015 (5,4:1), par les
+     jetons d'aplat du dépôt (--red-fill / --on-red) — une surface pleine porte SON encre.`,
   'une douzième teinte': `le document en nomme onze et n'a pas de rouge ; on garde \`red\` EN PLUS,
      sans le proposer. Retirer une teinte que quelqu'un a peut-être choisie laisserait --acc-src
      vide, donc tuerait les treize jetons dérivés — la panne mesurée du 11 au 22 septembre 2026.
@@ -237,6 +241,8 @@ console.log('\n══ 5. LES FORMES (§ 5) ══\n');
     && /html\[data-os="windows"\]\[data-marque\]\[data-verre\]\[data-refonte\] \.btn\{border-radius:6px!important\}/.test(NU));
   const sb = (APP.match(/html\[data-kind="desktop"\] \.sidebar\{width:(\d+)px\}/) || [, ''])[1];
   vrai('⛔ la sidebar de bureau s’écarte du document, et l’écart est DÉCLARÉ', sb === '258' && !!ECARTS['largeur de la sidebar'], 'sidebar = ' + sb + ' px');
+  vrai('⛔ la pastille de la cloche s’écarte de la maquette (#D70015), et l’écart est DÉCLARÉ',
+    /html\[data-marque\]\[data-verre\]\{ --red-fill:#D70015; --on-red:#FFFFFF; \}/.test(NU) && !!ECARTS['pastille de la cloche']);
   vrai('⛔ cibles tactiles ≥ 44 px (la capsule du menu, « Créer »)',
     /* (le sélecteur ne porte plus `.tb-back` : le retour de la barre est caché sous la refonte —
        relecture v745, une règle posée sur un élément qui ne paraît jamais) */

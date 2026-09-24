@@ -11,8 +11,13 @@ const { ouvrir, dormir } = require(require('path').join(__dirname, 'pilote.js'))
     currentUser=db.users[0]; try{ localStorage.setItem('elanB_onboarded_'+currentUser.id,'1'); localStorage.setItem('elanB_push_ask_'+currentUser.id,'1'); }catch(e){} enterApp(currentUser); return 1;`);
   await dormir(1500);
   await S.ev(`window.confirm=()=>true; try{ betaRemplir(false); }catch(e){} return 1;`); await dormir(2500);
-  await S.ev(`try{ setPlatForce('ios26'); }catch(e){} return 1;`); await dormir(1500);
+  await S.ev(`try{ setPlatForce('iosweb'); }catch(e){} return 1;`); await dormir(1500);
   let ok = 0, ko = 0; const vrai = (n, c, d) => { console.log((c ? '  ✓ ' : '  ✗ ') + n + (d ? ' — ' + d : '')); c ? ok++ : ko++; };
+  /* ⛔ UNE CLÉ DE PLATEFORME INCONNUE RETOMBE EN SILENCE SUR LA DÉTECTION RÉELLE — « ios26 » donnait
+     un bureau Windows de 390 px, sans barre d'onglets (mesuré le 24 septembre 2026). On PROUVE le
+     téléphone avant de mesurer. */
+  const pf = await S.ev(`const r=document.documentElement; return r.getAttribute('data-plat')+'/'+r.getAttribute('data-kind');`);
+  vrai('la page est bien un iPhone (population juste)', pf === 'iosweb/mobile', pf);
   const tiennent = [], defilent = [];
   for (const v of ['boxes', 'bons', 'dashboard', 'interventions', 'produits', 'stock', 'factures', 'devis', 'clients', 'planning', 'pointage', 'mouvements', 'validations', 'demandes']) {
     await S.ev(`try{ go('${v}'); }catch(e){} return 1;`); await dormir(1100);

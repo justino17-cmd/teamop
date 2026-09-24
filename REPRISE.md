@@ -39,6 +39,129 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 24 SEPTEMBRE 2026 (nuit) — LE THÈME FINAL D'OP GESTION, STYLE APPLE (v745 puis v746, bêta)
+
+Justin : **« voilà mon thème final pour OP GESTION, je veux que tu l'appliques, que tu le
+vérifies, que tu le testes de A à Z — mais je veux que tu gardes le système de la barre qu'on
+avait fait ensemble, sur iPhone et en version web »** ; « ce thème est 100 % style et design
+Apple » ; puis, capture de la maquette à l'appui : **« pour tous les types d'appareil tu mets
+bien OP GESTION avec le logo OP GESTION »**.
+
+### Ce qui est en place (bêta, branche `claude/op-gestion-interface-yb6p32`)
+
+- **La référence** : `design/THEME-REFERENCE.md` est RÉÉCRIT d'après la maquette finale (bloc
+  `jetons` lisible par machine) ; l'ancienne (22 septembre) est dans `design/archives/`.
+  `tests/test-759.js` relit le bloc et le compare au code, écarts DÉCLARÉS un par un.
+- **Deux thèmes** (`data-marque`) : TEAM OP (marine, par défaut) et OP GESTION (vert forêt), jour
+  et nuit, onze teintes proposées. Écran « Thème et couleur » (Paramètres › Apparence).
+- **Le verre sur les dix plateformes** (`data-verre="1"` partout ; `data-verre-natif` ne décide
+  plus que des rayons). La couche vit dans `<style id="theme-final">`, après la grande feuille.
+- **Barre du haut en capsules**, en-tête du tableau de bord (date à la teinte), tuiles de catégorie
+  colorées (`CAT_TEINTES`), feuille « Créer » en traits, barre « Reprendre » en deux lignes.
+- ⛔ **La barre d'onglets garde sa mécanique** (bulle attrapée au doigt, colonnes en CSS,
+  `--tabh`) : seul son habillage change.
+- **Le nom** : « OP GESTION » et son logo partout, connexion comprise ; le nom de l'entreprise
+  s'écrit DESSOUS, même en Business Premium (qui l'écrivait en titre). Le logo payé reste.
+- **Les listes de la maquette** : Interventions (vue semaine), Clients, Boxes passent par une seule
+  pièce, `.tf-rangee` dans un `.tf-groupe`. ⚠️ **À dire à Justin** : sur la liste des clients, ✎ et
+  🗑 ont quitté chaque ligne pour la FICHE du client (« Modifier », « Supprimer », gardés par leurs
+  cases) ; le bouton « Voir au planning » d'une intervention reste sur tablette et ordinateur, le
+  chevron le remplace sur téléphone (l'onglet Planning est sous le pouce).
+- **« Terminée » s'écrit en vert**, plus à la teinte : avec le marine par défaut, une intervention
+  finie avait un liseré marine sous une étiquette verte.
+- **La connexion** prend le fond du thème (elle gardait une lueur verte sur un aplat bleu nuit).
+
+### Trouvé en vérifiant, et corrigé (antérieur au thème)
+
+- « Historique du site (1) » débordait sur le bouton voisin dans la fiche intervention (plancher
+  fixe plus petit que son nom) — 2 débordements avant, 0 après sur 41 rubriques et 3 fiches.
+
+### La passe des DOUZE teintes, au pixel — ce qu'aucun audit n'avait lu
+
+Les audits au pixel d'avant ne lisaient qu'UNE teinte par thème (la sienne) et quatre écrans. La
+passe complète (téléphone, les deux thèmes, jour et nuit, les douze teintes, Planning, Stock et
+l'écran « Thème et couleur » compris — 8 402 textes) en a trouvé **207 sous TEAM OP et 76 sous
+OP GESTION**, plus **49 et 36 sur la barre d'onglets**, presque tous de nuit :
+
+- **la barre d'onglets de nuit** : quand un bloc coloré du Planning passe dessous, la vitre saturée
+  devient bleu vif (50,90,170) et ses libellés tombent à 3,13. ⚠ **ÉCART DÉCLARÉ** (`test-759`,
+  « barre d'onglets de nuit ») : chaque thème glisse SOUS le blanc de la maquette un voile de sa
+  couleur de fond à 55 % — sur un fond calme la pilule ne change pas ;
+- **le Planning** : un jour sur deux, le bandeau s'écrivait en bleu sur sa propre teinte (3,01 sur
+  le vert) ; le bandeau d'une fenêtre écrivait la teinte sur un voile de la même teinte ;
+- **l'écran « Thème et couleur »** : ses cartes (second verre + reflet sur une fenêtre dense)
+  devenaient gris-bleu clair de nuit — libellés à 3,11 ;
+- **le jour du jour de la frise** sur la vitre verte de nuit (rose, rouge, violet, bleu : 3,94),
+  l'indigo sur OP GESTION, le vert système de jour sur son propre voile (4,36).
+
+**Après : 0 sous le seuil, dans les deux thèmes** (6 794 textes par thème sur les écrans touchés,
+barre comprise ; 2 196 pour la frise et le Planning d'OP GESTION de nuit). Au bureau, la même passe
+(10 514 textes par thème) a trouvé ce qui restait — un texte à la teinte posé sur un voile de la
+même teinte (le jour du jour de la frise, le bandeau du jour du Planning : 3,69 en bleu sur
+OP GESTION), l'indigo sous TEAM OP, le graphite et l'orange de jour sur leur pastille. ⛔ **Règle
+de structure, de nuit : le voile porte la teinte, le texte prend l'encre du thème** (§ 21,
+`test-806` § 9, et CLAUDE.md). **Après : 0 sur 10 514 au bureau, 0 sur 6 386 au téléphone,
+dans les deux thèmes, pour les douze teintes.**
+
+Et deux choses vues en regardant, hors contraste :
+- **le fondu « il y a une suite »** des rangées qui défilent effaçait le bout des segmentés qui
+  TIENNENT (Boxes, Clients, Demandes, « Jour / Nuit / Auto »), bord compris. Il ne va plus qu'à ce
+  qui défile vraiment (`seg-deborde`, posé par `segInit`) : `scratchpad/sonde-segmentes.js`, 5 ✓ 0 ✗
+  (trois qui tiennent sans fondu, deux qui défilent le gardent) ;
+- **le mode Auto** suit l'appareil à CHAQUE changement signalé (applyTheme appelé une fois par
+  événement, attribut juste) ; ⚠ le navigateur piloté, lui, ne signale pas toutes les bascules
+  ÉMULÉES — mesuré par un écouteur indépendant de l'application. Ce n'est pas un défaut de la page.
+
+### ⛔ Trouvé sur l'OUTIL de mesure — à connaître avant de relire un vieux chiffre
+
+- Le Chromium du conteneur en `--disable-gpu` ne floute pas une vitre plus mince que ~3 fois son
+  rayon : la barre d'onglets laissait lire la page à travers. SwiftShader rend le vrai flou.
+  `scratchpad/pilote.js` passe par SwiftShader par défaut (`CPU=1` pour l'ancien chemin) ; les
+  audits au pixel d'AVANT ont lu les barres minces à travers un flou faux (voir CLAUDE.md).
+- Une sonde coupée par `timeout` laissait son navigateur tourner (deux orphelins depuis 1 h 48,
+  dont un à 98 % de CPU) : `pilote.js` et la sonde du thème le tuent désormais à la sortie.
+
+### Les preuves
+
+- **Suite** : **163 suites · 8 004 vérifications, 0 échec** en v746 (`scripts/bancs-ci.sh`), dont `test-806` (le thème final hors maquette :
+  feuille « Créer », barre « Reprendre », rangées, connexion, contrastes relevés au pixel) et
+  `test-759` (la référence, `applyBrand` JOUÉE forfait par forfait, écarts déclarés). Chaque garde
+  neuve a été éprouvée par mutation : 15 sur 15 (contrastes du bureau), puis 19 sur 19 (passe des
+  douze teintes) — toutes mordent. ⚠ `test-724` (un chronomètre) est tombé UNE fois, sous la charge de
+  quatre navigateurs d'audit : seul, machine au calme, 3 fois sur 3 (la règle du dépôt sur les chronos).
+- **Douze appareils** (`scratchpad/sonde-appareils.js`) : petit Android 360, iPhone SE, iPhone 15,
+  Pixel, iPhone Pro Max, iPad portrait et paysage, trois Mac, Windows portable et plein écran —
+  **84 ✓ 0 ✗**, les 41 rubriques de chacun : aucune page plus large que l'écran, aucun élément
+  fixe sur un autre, barre d'onglets OU menu (jamais les deux), aucun « Affichage indisponible »,
+  menu sur une ligne, 0 erreur JavaScript.
+- **Audits profonds** (`scratchpad/audit-profond.js`, valeurs longues) : iPhone 390, petit Android
+  360, bureau, technicien sur iPhone — 0 erreur JavaScript, 0 page qui glisse de côté, 0 élément
+  hors de l'écran, 0 recouvert, 0 cible sous 38 px, 0 champ sous 16 px, 0 texte écrasé ; les 39
+  coupures sans infobulle des rangées sont corrigées (le technicien, après : 0 sur 151).
+- **Au pixel, par le vrai flou** (`scratchpad/audit-pixel.js`, SwiftShader) : les douze teintes,
+  TEAM OP et OP GESTION, jour et nuit, téléphone ET bureau, tableau de bord, Interventions,
+  Planning et « Thème et couleur » (Boxes aussi au téléphone ; Clients et Stock y étaient à 0 dès
+  la première passe) — **0 sous le seuil**,
+  barre d'onglets comprise (voir la passe ci-dessus).
+- **Le mode Auto** (`scratchpad/sonde-auto.js`) : 5 ✓ 0 ✗ — la page suit chaque changement signalé par
+  l'appareil, un choix « Jour » explicite tient, l'écran dit ce qu'Auto applique.
+- **Le geste de la barre** (`scratchpad/sonde-geste.js`) : 48 ✓ 0 ✗ — bulle attrapée et déplacée au
+  doigt, tap, « Plus », appui long, balayage du contenu, souris, 0 erreur.
+- **Relecture indépendante** (agent `relecteur`) : un vrai oubli (« ✓ Oui » à la teinte) et trois
+  retouches mineures — corrigés.
+- **Servi** : `teamop.fr/beta.html` rend `746-beta` (relu à 23 h 17 UTC) ; `app.html` rend toujours
+  `695` et `sw.js` `elan-gestion-v895` (la production n'a pas bougé). Sur `main`, le commit bêta seul
+  `2803055` : « Vérifications » et « Vérification des pages » vertes.
+
+### Ce qui attend Justin
+
+- Regarder la bêta 746 sur son iPhone et son Mac, dans les deux thèmes, de jour et de nuit.
+- **Une question de goût, pas un défaut** : de nuit, la bulle de l'onglet choisi est MARINE sous les
+  deux thèmes — la maquette l'écrit ainsi (`rgba(34,59,110,.72)`, sans branche OP GESTION). Sous le
+  vert forêt, une bulle vert profond serait plus cohérente ; on ne l'a pas changée sans son avis.
+- Les écarts à la maquette sont tous déclarés dans `test-759` (flou vert à 120 %, voile de la barre
+  d'onglets de nuit, pastille de la cloche #D70015, largeur du menu, feuille de nuit teintée…).
+
 ## ✅ 24 SEPTEMBRE 2026 — SORTIE DE FIREBASE, ÉTAPE 1 : LA CLÉ MAÎTRE DU SOCLE EST POSÉE, EN SÉQUESTRE, ET LUE
 
 Justin : « firebase […] ont en aura plu besoin tout sera avec le serveur et vps », puis « on
