@@ -14199,6 +14199,14 @@ function rendreDirige(sens,rendu){
    ce qui est voulu : la barre doit survivre au rafraîchissement, sinon elle disparaît toute
    seule au bout de quelques secondes. */
 function rendreVueSure(view){
+  /* ⛔ PERSONNE CONNECTÉ, AUCUNE VUE. `go()` rend la vue dans une transition de vue, donc PLUS TARD,
+     hors de l'appel : si la déconnexion passe entre les deux (un compte désactivé par la synchro juste
+     à l'entrée, un jeton refusé, une session expirée), la vue se rendait SANS utilisateur. Mesuré le
+     24 septembre 2026 (`scratchpad/sonde-deconnexion.js`, déconnexion à 0 ms de l'entrée) :
+     « Vue dashboard : TypeError … (reading 'role') » dans la console, et « Affichage indisponible »
+     écrit dans un `#content` que plus personne ne regarde. C'est le seul endroit qui écrit une vue :
+     la garde est ICI, pas dans chacune des quarante. */
+  if(!currentUser) return;
   try{ views[view](); }
   catch(e){ console.error('Vue '+view+' :',e); $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Affichage indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Une erreur est survenue sur cette page.<br><span style="color:var(--t3)">${esc(e&&e.message||e)}</span></p><button class="btn ghost sm" style="margin-top:10px" onclick="go('dashboard')">← Retour au tableau de bord</button></div>`; }
   /* ⛔ APRÈS la vue, pas avant : `rendreVueAnimee` écrit `#content` plus tard, donc une barre
