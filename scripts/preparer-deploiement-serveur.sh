@@ -35,7 +35,10 @@ BASE="$(git rev-parse --short HEAD)"
 echo "arbre : $DEST (main = $BASE, branche = ${SOURCE:0:8})"
 
 # 1. Ce qui part : le serveur, sa surveillance, le compteur et sa liste, et les suites de la liste.
-git checkout -q "$SOURCE" -- server .github/scripts/surveillance.js scripts/bancs-ci.sh scripts/bancs-serveur.liste
+# ⚠️ Le script lui-même part aussi : `test-728` (dans la liste) le relit, et c'est lui qui dit
+#    comment ce commit a été fait. Oublié à la première exécution — et c'est la porte qui l'a dit.
+git checkout -q "$SOURCE" -- server .github/scripts/surveillance.js scripts/bancs-ci.sh scripts/bancs-serveur.liste \
+  scripts/preparer-deploiement-serveur.sh
 mapfile -t SUITES < <(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-serveur.liste)
 # ⚠️ Une liste vide ou tronquée ferait passer la porte sur rien : on exige la population.
 [ "${#SUITES[@]}" -ge 25 ] || { echo "✗ la liste des bancs serveur n'a que ${#SUITES[@]} suite(s)"; exit 1; }
@@ -58,6 +61,10 @@ node -e '
 
 # 3. Les preuves, dans cet arbre-là — contre les pages que `main` sert VRAIMENT.
 [ -d "$RACINE/server/node_modules" ] || { echo "✗ $RACINE/server/node_modules manque : les suites qui montent le serveur SAUTERAIENT, vertes sans rien prouver"; exit 1; }
+# ⛔ Le lien ne doit JAMAIS finir dans le commit, même si un banc tombe : on le retire à la sortie,
+#    quelle qu'elle soit (un arbre laissé avec lui, puis commité à la main, pousserait un lien
+#    vers le disque d'une session morte).
+trap 'rm -f "$DEST/server/node_modules"' EXIT
 ln -s "$RACINE/server/node_modules" server/node_modules
 for f in server/*.js; do node --check "$f"; done
 node scripts/verifier-syntaxe.js >/dev/null
@@ -66,7 +73,8 @@ rm server/node_modules
 
 # 4. Le commit — dans l'arbre à part, JAMAIS poussé par ce script.
 git add server .github/scripts/surveillance.js .github/workflows/deploiement.yml .github/workflows/ci.yml \
-        scripts/bancs-ci.sh scripts/bancs-serveur.liste "${SUITES[@]}"
+        scripts/bancs-ci.sh scripts/bancs-serveur.liste scripts/preparer-deploiement-serveur.sh "${SUITES[@]}"
+git diff --cached --name-only | grep -q 'node_modules' && { echo "✗ node_modules dans le commit — rien ne se fait"; exit 1; }
 git -c user.name="$(git -C "$RACINE" config user.name || echo TeamOP)" \
     -c user.email="$(git -C "$RACINE" config user.email || echo noreply@teamop.fr)" \
     commit -q -F - <<MSG
