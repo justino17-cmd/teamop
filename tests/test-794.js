@@ -1,0 +1,275 @@
+/* ══ v741 · LE STOCKAGE — LE STOCK RANGÉ HORS DES BOX ═══════════════════════════════════════════
+   Justin, 24 septembre 2026 : « B, ça regroupe toutes les box — et si des entreprises n'ont pas de
+   box, elles peuvent tout mettre dans le stock directement, et donner un accès aux utilisateurs qui
+   se servent dans le stockage, avec un suivi de qui prend quoi ».
+
+   Mesuré la veille (scratchpad/sonde-entrepot.js) : le même produit disait « 40 unités » dans Stock,
+   « Épuisé » dans Produits et « Stock bas (0/5) » dans la cloche — deux règles pour une question.
+   Le stockage est UNE BOX à identifiant fixe : il hérite de l'arrivage, de la validation du DR, de
+   « Pour qui ? » et du bon de remise (qui prend quoi), du journal et de l'accès personne par personne.
+
+   Ce banc EXÉCUTE les vraies fonctions, extraites d'app.html, dans un bac à sable :
+     1. qui est le stockage (identifiant fixe, inactif = absent) ;
+     2. Stock, Produits, la cloche et la commande suggérée lisent UN total (stockLines) ;
+     3. le créer RANGE l'ancien stock du catalogue (p.qte → 0), une fois, et jamais deux stockages ;
+     4. ⛔ la clôture d'une intervention ne puise JAMAIS dans le stockage ;
+     5. l'ajustement après clôture ne le touche pas (sans stockage, l'ancien compteur, tel quel) ;
+     6. la commande suggérée prend le PLUS GRAND des deux besoins, pas leur somme ;
+     7. la cloche : le seuil contre ce que Stock montre ;
+     8. celui qui a REÇU voit la ligne qui porte son nom ;
+     9. « qui peut s'y servir » écrit l'accès d'une box, dans le bon ordre ;
+    10. la carte de Stock dit pourquoi elle est vide, et ne montre que les gestes permis ;
+    11. le scanner du catalogue range dans le stockage quand il existe.
+   Le comportement au doigt, dans la vraie page, est mesuré par scratchpad/sonde-stockage.js.        */
+const fs = require('fs'), path = require('path'), vm = require('vm');
+const BRUT = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
+/* ⛔ Seuls les blocs de commentaire qui COMMENCENT une ligne (CLAUDE.md : le motif naïf avale du code). */
+const SRC = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+let ok = 0, ko = 0;
+const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d) : '')); } };
+const v = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), a);
+function bloc(debut, depuis) {
+  const i = SRC.indexOf(debut, depuis || 0); if (i < 0) return '';
+  let j = SRC.indexOf('{', i), prof = 0;
+  for (let k = j; k < SRC.length; k++) { const c = SRC[k];
+    if (c === '{') prof++; else if (c === '}') { prof--; if (prof === 0) return SRC.slice(i, k + 1); } }
+  return '';
+}
+const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)); };
+
+console.log('\n── 794 · 0. la population ──');
+const FN = ['estStockage', 'stockageBox', 'stockageVisible', 'stockLines', 'stockTotaux', 'stockVoitTout', 'boxVuePar', 'stockageOffice',
+  'stockageGens', 'stockageCarte', 'stockageCreer', 'stockageOuvert', 'stockageServir', 'stockageArrivage', 'stockageJournal', 'stockageAcces',
+  'stockageAccesTous', 'stockageAccesSave', 'traceBox', 'intStockDeduire', 'intStockAjuste', 'bonSuggere', 'boxTotalStock', 'boxEtat',
+  'intTechIds', 'stockConv', 'userBoxVoit', 'nomCle', 'nomsConcernes', 'visibleMouvements', 'openScanner'];
+const CODE = {};
+FN.forEach(n => { CODE[n] = bloc('function ' + n + '('); });
+v('toutes les fonctions sont trouvées', FN.filter(n => !CODE[n]), []);
+v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)', FN.filter(n => SRC.split('function ' + n + '(').length - 1 !== 1), []);
+const K_ID = ligne('const STOCKAGE_ID='), K_EXCLU = ligne('const boxExclu=');
+vrai('l’identifiant du stockage est UNE constante, fixe', /^const STOCKAGE_ID='stockage';$/.test(K_ID) && SRC.split('const STOCKAGE_ID=').length === 2, K_ID);
+vrai('la règle d’exception d’une box est trouvée', K_EXCLU.length > 30, K_EXCLU);
+
+/* ── Le bac à sable : les vraies fonctions, et des doubles pour ce qui touche l'écran. ── */
+function monde(opts) {
+  const o = opts || {};
+  const ctx = { console, Date, Math, JSON, Set, Map, Object, Array, String, Number, Promise, setTimeout: f => f(),
+    db: o.db || { produits: [], boxes: [], mouvements: [], users: [], techniciens: [] },
+    currentUser: o.moi || null,
+    __vus: o.vus || null,             // visibleBoxes : l'ensemble des ids visibles (null = tout)
+    __caps: o.caps || {}, __perim: o.perim || null, __gerer: o.gerer || {}, __valid: !!o.valid, __modules: o.modules || null,
+    __toasts: [], __logs: [], __saves: 0, __confirm: o.confirm !== false, __ouvert: [], __modales: [], __go: [], __rafr: 0, __etiq: [],
+    __uid: 0 };
+  vm.createContext(ctx);
+  vm.runInContext(`
+    var K=${JSON.stringify(K_ID)};
+    ${K_ID.replace('const ', 'var ')}
+    ${K_EXCLU.replace('const ', 'var ')}
+    var mvtFBox='', mvtFType='', mvtFQ='', boxView=null, bonLignes=[], _stkAcces=null, current='stock';
+    function uid(){ return 'id'+(++__uid); }
+    function visibleBoxes(l){ if(__vus===null) return (l||[]).slice(); return (l||[]).filter(b=>__vus.includes(b.id)); }
+    function can(c){ return !!__caps[c]; }
+    function userCap(u,c){ return !!(u&&u.caps&&u.caps[c]); }
+    function perimetreTechIds(u){ return __perim; }
+    function perimetreUserIds(){ return null; }
+    function mesBoxIds(){ return new Set(visibleBoxes(db.boxes||[]).map(b=>b.id)); }
+    function produit(id){ return (db.produits||[]).find(p=>p.id===id)||{}; }
+    function fullName(u){ return u?((u.prenom||'')+' '+(u.nom||'')).trim():''; }
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+    function roleLbl(r){ return r||''; }
+    function toast(m){ __toasts.push(String(m)); }
+    function logEvent(a,b){ __logs.push(a+' · '+b); }
+    function save(){ __saves++; }
+    function refreshEcran(){ __rafr++; }
+    function confirm(){ return __confirm; }
+    function boxGerer(d){ return !!__gerer[d]; }
+    function boxGererGarde(d){ if(__gerer[d]) return true; toast('refus '+d); return false; }
+    function boxValidRequis(){ return __valid; }
+    function userSeesModule(u,k){ return __modules?__modules.includes(k):true; }
+    function openBox(id){ __ouvert.push(id); boxView=id; }
+    function openArrivage(id){ __modales.push('arrivage:'+id); }
+    function boxDonneModal(id){ __modales.push('donne:'+id); }
+    function renderBoxProdList(){}
+    function openModal(h){ __modales.push('modal'); }
+    function closeModal(){}
+    function go(v){ __go.push(v); current=v; }
+    function $(){ return null; }
+    function notifyDrBoxLow(){} function notifyDrBoxMove(){} function boxMvtEnvoyer(){} function valideursPour(){ return []; } function pushNotify(){}
+    function intHisto(i,t){ (i.histo=i.histo||[]).push(t); }
+    function roleDeNom(){ return ''; }
+    function peutCommander(){ return true; } function refusCommander(){}
+    function formBon(){} function renderBonLignes(){} function bonQtyOpen(){}
+    function permGarde(){ return true; }
+    function etiqVersBox(id){ __etiq.push('box:'+id); } function etiqOuvrir(m){ __etiq.push(m); }
+    ${FN.map(n => CODE[n]).join('\n')}
+  `, ctx);
+  return ctx;
+}
+const P = (id, nom, extra) => Object.assign({ id, nom, unite: 'u' }, extra || {});
+const moi = { id: 'uA', prenom: 'Justin', nom: 'Roux', role: 'admin' };
+
+console.log('\n── 794 · 1. qui est le stockage ──');
+{ const W = monde({ db: { produits: [], boxes: [{ id: 'bx1', nom: 'Nord' }, { id: 'stockage', nom: 'Dépôt', actif: false }] }, moi });
+  v('reconnu par son identifiant, quel que soit son nom', [W.estStockage({ id: 'stockage', nom: 'Dépôt' }), W.estStockage({ id: 'bx1', stockage: true }), W.estStockage(null)], [true, false, false]);
+  v('⛔ un stockage désactivé n’est pas « le stockage » : l’écran propose de le rouvrir', W.stockageBox(), null);
+  W.db.boxes[1].actif = true;
+  v('… actif, il l’est', (W.stockageBox() || {}).id, 'stockage');
+  W.__vus = ['bx1'];
+  v('⛔ visible ou pas : la règle d’une box (visibleBoxes), pas une seconde', W.stockageVisible(), false);
+  W.__vus = null; v('… vue par qui voit tout', W.stockageVisible(), true); }
+
+console.log('\n── 794 · 2. UN total pour Stock, Produits, la cloche et la commande ──');
+{ const W = monde({ moi, db: { produits: [P('a', 'ADVION', { qteCarton: 10 }), P('c', 'RATICIDE', { qte: 3 }), P('x', 'CACHÉ')],
+    boxes: [{ id: 'bxN', nom: 'Nord', stock: { a: { u: 5, ctn: 1 } } }, { id: 'stockage', nom: 'Stockage', stock: { a: { u: 12, ctn: 0 } } },
+      { id: 'bxZ', nom: 'Zone interdite', stock: { x: { u: 9, ctn: 0 } } }] }, vus: ['bxN', 'stockage'] });
+  const L = W.stockLines(), a = L.find(l => l.p.id === 'a'), c = L.find(l => l.p.id === 'c');
+  v('ADVION : stockage 12 + box 5 u + 1 carton de 10 = 27', a && a.eff, 27);
+  v('⛔ le stockage passe en tête de la ligne', a && a.boxes.map(b => [b.nom, b.stockage]), [['Stockage', true], ['Nord', false]]);
+  v('⛔ l’ancien stock du catalogue compte, nommé « hors box »', c && [c.eff, c.boxes.map(b => b.nom)], [3, ['Hors box (catalogue)']]);
+  v('⛔ une box qu’on ne voit pas ne compte pas', L.some(l => l.p.id === 'x'), false);
+  v('stockTotaux rend exactement les mêmes chiffres que les lignes', W.stockTotaux(), { a: 27, c: 3 });
+  const SP = bloc('function renderProduitsList(');
+  vrai('⛔ Produits lit stockTotaux — plus `boxEtat(p.qte)`', /const TOT=stockTotaux\(\), toutVu=stockVoitTout\(\);/.test(SP) && /boxEtat\(tq\|\|0\)/.test(SP) && !/boxEtat\(p\.qte\)/.test(SP), SP.length);
+  vrai('… et un produit absent de SES box n’est pas « Épuisé » pour qui ne voit pas tout', /\(tq==null&&!toutVu\)\?\{k:'hors',l:'Pas dans tes box'/.test(SP));
+  vrai('⛔ plus aucun écran ne lit l’état d’un produit sur `p.qte`', !/boxEtat\(\s*p\.qte/.test(SRC)); }
+
+console.log('\n── 794 · 3. créer le stockage : l’ancien stock y est RANGÉ, une fois ──');
+{ vrai('⛔ la garde est la PREMIÈRE instruction', /function stockageCreer\(\)\{ if\(!boxGererGarde\('ajouter'\)\) return;/.test(BRUT));
+  const base = () => ({ produits: [P('a', 'ADVION', { qte: 12 }), P('c', 'RATICIDE', { qte: 3 }), P('b', 'PIÈGE', { qte: 0 })], boxes: [], mouvements: [] });
+  let W = monde({ db: base(), moi, gerer: {} });
+  W.stockageCreer();
+  v('⛔ sans le droit de créer une box : rien n’est écrit', [W.db.boxes.length, W.__saves, W.db.produits.map(p => p.qte)], [0, 0, [12, 3, 0]]);
+  W = monde({ db: base(), moi, gerer: { ajouter: 1 }, confirm: false });
+  W.stockageCreer();
+  v('⛔ la confirmation refusée : rien n’est écrit', [W.db.boxes.length, W.__saves], [0, 0]);
+  W = monde({ db: base(), moi, gerer: { ajouter: 1 } });
+  W.stockageCreer();
+  const s = W.db.boxes.find(b => b.id === 'stockage') || {};
+  v('le stockage naît avec l’identifiant fixe, fermé à tous d’office', [s.id, s.stockage, s.visibleTous, s.userIds, s.actif], ['stockage', true, false, [], true]);
+  v('⛔⛔ il reçoit l’ancien stock du catalogue', s.stock, { a: { ctn: 0, u: 12 }, c: { ctn: 0, u: 3 } });
+  v('⛔⛔ … qui QUITTE le catalogue — sinon le total le compterait deux fois', W.db.produits.map(p => p.qte), [0, 0, 0]);
+  v('⛔ une ligne au journal par produit rangé, dans le stockage', W.db.mouvements.map(m => [m.produitId, m.type, m.qte, m.boxId]).sort(), [['a', 'entree', 12, 'stockage'], ['c', 'entree', 3, 'stockage']]);
+  v('… et UNE ligne d’historique pour le geste (le journal est plafonné)', W.__logs.length, 1);
+  v('le total ne bouge pas : il change de place', W.stockTotaux(), { a: 12, c: 3 });
+  W.stockageCreer();
+  v('⛔ un second geste ne crée pas un second stockage', [W.db.boxes.filter(b => b.id === 'stockage').length, W.__toasts.slice(-1)[0]], [1, 'Le stockage existe déjà']);
+  s.actif = false; W.stockageCreer();
+  v('⛔ un stockage désactivé se ROUVRE (même enregistrement, même stock)', [W.db.boxes.length, s.actif, s.stock.a.u], [1, true, 12]);
+  W.traceBox(s, 'a', -2, 'u', 'Sortie box', 'Karim Benali', '', 'Karim Benali'); W.traceBox({ id: 'bxN', nom: 'Nord' }, 'a', 1, 'u', 'Entrée box');
+  v('la trace d’une sortie du stockage ne dit pas « box » ; celle d’une box, si', W.db.mouvements.slice(0, 2).map(m => m.motif), ['Entrée box — Nord', 'Sortie — Stockage']); }
+
+console.log('\n── 794 · 4. ⛔ la clôture d’une intervention ne puise JAMAIS dans le stockage ──');
+{ const karim = { id: 'uK', prenom: 'Karim', nom: 'Benali', techId: 'tK' };
+  const dbI = () => ({ produits: [P('a', 'ADVION', { qte: 0 }), P('c', 'RATICIDE', { qte: 0 })], mouvements: [],
+    boxes: [{ id: 'bxN', nom: 'Nord', actif: true, techIds: ['tK'], stock: { a: { u: 5, ctn: 0 } } },
+      { id: 'stockage', nom: 'Stockage', actif: true, visibleTous: true, techIds: ['tK'], stock: { a: { u: 20, ctn: 0 }, c: { u: 9, ctn: 0 } } }] });
+  let W = monde({ db: dbI(), moi: karim, vus: ['bxN', 'stockage'] });
+  let i = { id: 'i1', num: 'INT-1', techIds: ['tK'], produitsUtilises: [{ produitId: 'a', qte: 7, unite: 'u' }, { produitId: 'c', qte: 2, unite: 'u' }] };
+  W.intStockDeduire(i);
+  const N = W.db.boxes[0], S = W.db.boxes[1];
+  v('⛔⛔ sa box donne ses 5 ; le stockage — visible par tous, fiche cochée, produit présent — garde 20 et 9', [N.stock.a.u, S.stock.a.u, S.stock.c.u], [0, 20, 9]);
+  v('⛔ le compteur du catalogue n’est pas touché non plus', W.db.produits.map(p => p.qte), [0, 0]);
+  v('une seule ligne au journal : ce qui est sorti de SA box', W.db.mouvements.map(m => [m.produitId, m.qte, m.boxId]), [['a', 5, 'bxN']]);
+  v('⛔ il a accès au stockage : pas de faux « stock insuffisant » (le reste y a été pris)', W.__toasts.filter(t => /insuffisant/.test(t)), []);
+  W = monde({ db: dbI(), moi: karim, vus: ['bxN'] });
+  i = { id: 'i2', num: 'INT-2', techIds: ['tK'], produitsUtilises: [{ produitId: 'a', qte: 7, unite: 'u' }] };
+  W.intStockDeduire(i);
+  vrai('⛔ SANS accès au stockage, le manque de sa box est signalé', W.__toasts.some(t => /Stock insuffisant : ADVION \(manque 2 u\)/.test(t)), W.__toasts);
+  v('… et le stockage ne bouge pas davantage', W.db.boxes[1].stock.a.u, 20);
+  const dbL = { produits: [P('a', 'ADVION', { qte: 10 })], mouvements: [], boxes: [] };
+  W = monde({ db: dbL, moi: karim, vus: [] });
+  W.intStockDeduire({ id: 'i3', num: 'INT-3', techIds: ['tK'], produitsUtilises: [{ produitId: 'a', qte: 4, unite: 'u' }] });
+  v('sans stockage : l’ancien compteur, comme avant (10 → 6, une sortie de 4)', [dbL.produits[0].qte, dbL.mouvements.map(m => [m.type, m.qte])], [6, [['sortie', 4]]]); }
+
+console.log('\n── 794 · 5. l’ajustement après clôture ──');
+{ const W = monde({ moi, db: { produits: [P('a', 'ADVION', { qte: 0 })], mouvements: [], boxes: [{ id: 'stockage', stock: { a: { u: 5, ctn: 0 } } }] } });
+  const i = { stockDeduit: true, num: 'INT-9' };
+  W.intStockAjuste(i, 'a', 2, 'u');
+  v('⛔ avec un stockage : rien — la clôture n’y a rien pris', [W.db.produits[0].qte, W.db.mouvements.length, W.db.boxes[0].stock.a.u], [0, 0, 5]);
+  W.db.boxes = [];
+  W.db.produits[0].qte = 5; W.intStockAjuste(i, 'a', 2, 'u');
+  v('sans stockage : l’ancien compteur, TEL QUEL (5 → 3, une sortie de 2) — ce que lisent les statistiques', [W.db.produits[0].qte, W.db.mouvements.map(m => [m.type, m.qte])], [3, [['sortie', 2]]]); }
+
+console.log('\n── 794 · 6. la commande suggérée : le PLUS GRAND des deux besoins ──');
+{ const W = monde({ moi, db: { produits: [P('a', 'ADVION', { seuil: 5 }), P('c', 'RATICIDE', { seuil: 10 }), P('r', 'RIEN', { seuil: 4 }), P('z', 'SANS SEUIL')], mouvements: [],
+    boxes: [{ id: 'bxN', nom: 'Nord', stock: { a: { u: 0, ctn: 0 } } }, { id: 'stockage', stock: { a: { u: 20, ctn: 0 }, c: { u: 1, ctn: 0 } } }] } });
+  W.bonSuggere();
+  v('⛔⛔ ADVION 3 (la box à 0), RATICIDE 19 (2×10−1, pas 2+19), RIEN 8 (absent partout)', W.bonLignes.map(l => [l.produitId, l.quantite]).sort(), [['a', 3], ['c', 19], ['r', 8]]); }
+
+console.log('\n── 794 · 7. la cloche : le seuil contre ce que Stock montre ──');
+{ const iC = SRC.indexOf('if(vStock){ const avecSeuil=');
+  const code = iC > 0 ? bloc('if(vStock){ const avecSeuil=') : '';
+  vrai('population : la ligne « Stock bas » de computeNotifs est trouvée', code.length > 200, code.length);
+  vrai('⛔ plus aucune alerte sur le compteur caché `p.qte`', !/\(p\.qte\|\|0\)<=p\.seuil/.test(SRC));
+  const jouer = (toutVoir, vus) => { const W = monde({ moi, caps: toutVoir ? { voirTout: 1 } : {}, vus,
+      db: { produits: [P('a', 'ADVION', { seuil: 5 }), P('c', 'RATICIDE', { seuil: 10 }), P('r', 'RIEN', { seuil: 4 })], mouvements: [],
+        boxes: [{ id: 'stockage', stock: { a: { u: 20, ctn: 0 }, c: { u: 3, ctn: 0 } } }] } });
+    W.out = []; W.vStock = true; vm.runInContext(code, W); return W.out.map(n => n.txt.replace(/<[^>]+>/g, '')); };
+  v('qui voit tout : RATICIDE (3/10) et RIEN (0/4) — pas ADVION (20/5)', jouer(true, null), ['Stock bas : RATICIDE (3/10)', 'Stock bas : RIEN (0/4)']);
+  v('⛔ qui ne voit que ses box : ce qu’il n’a pas n’est pas à lui de signaler', jouer(false, ['stockage']), ['Stock bas : RATICIDE (3/10)']); }
+
+console.log('\n── 794 · 8. qui a pris quoi : celui qui a REÇU voit sa ligne ──');
+{ const W = monde({ moi: { id: 'uK', prenom: 'Karim', nom: 'Benali' }, vus: [], caps: {},
+    db: { produits: [], boxes: [{ id: 'stockage' }], users: [], techniciens: [],
+      mouvements: [] } });
+  const M = [{ id: 'm1', boxId: 'stockage', technicien: 'Justin Roux', donneA: '  KARIM benali ' }, { id: 'm2', boxId: 'stockage', technicien: 'Justin Roux', donneA: 'Sofia Perez' },
+    { id: 'm3', boxId: '', technicien: 'Karim Benali' }];
+  v('⛔ la sortie du stockage faite POUR lui est visible, même sans accès — pas celle d’une autre', W.visibleMouvements(M).map(m => m.id), ['m1', 'm3']); }
+
+console.log('\n── 794 · 9. « qui peut s’y servir » écrit l’accès d’une box, dans le bon ordre ──');
+{ vrai('⛔ la garde est la PREMIÈRE instruction, à l’ouverture ET à l’enregistrement', /function stockageAcces\(\)\{ if\(!boxGererGarde\('modifier'\)\) return;/.test(BRUT) && /function stockageAccesSave\(\)\{ if\(!boxGererGarde\('modifier'\)\) return;/.test(BRUT));
+  const gens = [{ id: 'uA', prenom: 'Justin', nom: 'Roux', actif: true, caps: { voirTout: 1 } }, { id: 'uK', prenom: 'Karim', nom: 'Benali', actif: true },
+    { id: 'uS', prenom: 'Sofia', nom: 'Perez', actif: true }, { id: 'uP', prenom: 'Parti', nom: 'Ancien', actif: false }];
+  const neuf = () => ({ produits: [], mouvements: [], users: JSON.parse(JSON.stringify(gens)), boxes: [{ id: 'stockage', visibleTous: false, userIds: [], userIdsExclus: [] }] });
+  let W = monde({ moi, gerer: {}, db: neuf() });
+  W._stkAcces = { tous: true, on: { uK: true, uS: true } }; vm.runInContext('_stkAcces={tous:true,on:{uK:true,uS:true}}; stockageAccesSave();', W);
+  v('⛔ sans le droit : rien n’est écrit', [W.db.boxes[0].visibleTous, W.db.boxes[0].userIds, W.__saves], [false, [], 0]);
+  W = monde({ moi, gerer: { modifier: 1 }, db: neuf() });
+  vm.runInContext('_stkAcces={tous:false,on:{uK:true,uS:false}}; stockageAccesSave();', W);
+  let s = W.db.boxes[0];
+  v('Karim coché : il entre dans les personnes autorisées, rien d’autre', [s.visibleTous, s.userIds, s.userIdsExclus], [false, ['uK'], []]);
+  v('… une ligne d’historique, un enregistrement', [W.__logs.length, W.__saves], [1, 1]);
+  W = monde({ moi, gerer: { modifier: 1 }, db: neuf() });
+  vm.runInContext('_stkAcces={tous:true,on:{uK:true,uS:false}}; stockageAccesSave();', W);
+  s = W.db.boxes[0];
+  v('⛔⛔ « toute l’équipe » sauf Sofia : ouvert à tous, Sofia en exception — et Karim n’est pas écrit à part (l’ordre compte)', [s.visibleTous, s.userIds, s.userIdsExclus], [true, [], ['uS']]);
+  v('⛔ qui voit tout n’est jamais écrit (d’office) ; un compte désactivé non plus', [s.userIds.includes('uA'), s.userIdsExclus.includes('uA'), s.userIds.includes('uP'), s.userIdsExclus.includes('uP')], [false, false, false, false]); }
+
+console.log('\n── 794 · 10. boxVuePar rend TOUJOURS l’utilisateur courant ──');
+{ const W = monde({ moi });
+  vm.runInContext('visibleBoxes=function(){ throw new Error("boum"); };', W);
+  v('une règle qui lève rend « non » …', W.boxVuePar({ id: 'uX' }, { id: 'stockage' }), false);
+  v('⛔ … et currentUser est remis', W.currentUser && W.currentUser.id, 'uA'); }
+
+console.log('\n── 794 · 11. la carte de Stock dit pourquoi, et ne montre que les gestes permis ──');
+{ const carte = o => { const W = monde(o); return W.stockageCarte().replace(/\s+/g, ' '); };
+  const avecAncien = { produits: [P('a', 'ADVION', { qte: 12 }), P('c', 'RATICIDE', { qte: 3 })], boxes: [], mouvements: [], users: [] };
+  v('pas de stockage, pas le droit de le créer : rien', carte({ moi, db: avecAncien, gerer: {} }), '');
+  const c1 = carte({ moi, db: avecAncien, gerer: { ajouter: 1 } });
+  vrai('pas de stockage, droit de créer : on le propose, et on dit ce qui y sera rangé', /Créer le stockage/.test(c1) && /2 produits · 15 u/.test(c1), c1.slice(0, 300));
+  const avecS = { produits: [P('a', 'ADVION')], boxes: [{ id: 'stockage', nom: 'Stockage', stock: { a: { u: 4, ctn: 0 } } }], mouvements: [], users: [] };
+  const c2 = carte({ moi, db: avecS, vus: [] });
+  vrai('⛔ un stockage fermé à cette personne : on le lui DIT', /ne t'est pas ouvert/.test(c2) && !/Me servir/.test(c2), c2);
+  const c3 = carte({ moi, db: avecS, vus: ['stockage'], gerer: {}, modules: ['stock'] });
+  vrai('ouvert, sans gérer les box ni voir le journal : « Me servir » et « Arrivage », rien d’autre', /Me servir/.test(c3) && /Arrivage/.test(c3) && !/Qui peut s'y servir/.test(c3) && !/Qui a pris quoi/.test(c3), c3);
+  const c4 = carte({ moi, db: avecS, vus: ['stockage'], gerer: { modifier: 1 }, modules: ['stock', 'mouvements'] });
+  vrai('… avec les droits : « Qui a pris quoi » et « Qui peut s’y servir »', /Qui a pris quoi/.test(c4) && /Qui peut s'y servir/.test(c4), c4);
+  const VS = bloc('views.stock=function(){');
+  vrai('Stock dit ce qu’il regroupe, et porte la carte', /setHeader\('Stock','Le stockage et toutes les box'/.test(VS) && /\$\{stockageCarte\(\)\}/.test(VS), VS.length); }
+
+console.log('\n── 794 · 12. le scanner du catalogue range dans le stockage quand il existe ──');
+{ vrai('⛔ sa garde reste la PREMIÈRE instruction (test-747)', /function openScanner\(\)\{ if\(!permGarde\('stock','modifier','le stock'\)\) return;/.test(BRUT));
+  let W = monde({ moi, db: { produits: [], boxes: [{ id: 'stockage' }] }, vus: ['stockage'] }); W.openScanner();
+  v('stockage visible : le scanner s’ouvre DANS le stockage (chemin d’une box)', W.__etiq, ['box:stockage']);
+  W = monde({ moi, db: { produits: [], boxes: [] } }); W.openScanner();
+  v('sans stockage : l’ancien scanner du catalogue', W.__etiq, ['cat']); }
+
+console.log('\n── 794 · 13. la mesure dans une vraie page existe ──');
+{ const P2 = path.join(__dirname, '..', 'scratchpad', 'sonde-stockage.js');
+  const SONDE = fs.existsSync(P2) ? fs.readFileSync(P2, 'utf8') : '';
+  vrai('scratchpad/sonde-stockage.js existe', !!SONDE);
+  vrai('… elle joue les deux entreprises (sans box, avec box) au doigt', /A\.0 LA POPULATION/.test(SONDE) && /B\.7/.test(SONDE) && /Input\.dispatchTouchEvent/.test(SONDE));
+  vrai('… sur la BÊTA, jamais sur app.html', !!SONDE && !/app\.html/.test(SONDE)); }
+
+console.log(`\n════ test-794 : ${ok} ✓ ${ko} ✗ ════\n`);
+process.exit(ko ? 1 : 0);

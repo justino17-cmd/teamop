@@ -29,6 +29,8 @@ const NOMS = ['function donBox(){', 'function donStock(b,l){', 'function donUnit
   'function donAjout(pid){', 'function donRetirer(pid){', 'function boxDonneSave(){', 'function boxDonneAnnuler(){',
   'function boxDonneModal(boxId,suite,depart){', 'function boxDonneChanger(boxId){'];
 const CODE = NOMS.map(bloc);
+const STK = (() => { const i = SRC.indexOf("const STOCKAGE_ID="); return (i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)).replace('const ', 'var ')) + '\n' + bloc('function estStockage(b){'); })();
+v('la règle du stockage est trouvée (v741)', /var STOCKAGE_ID='stockage';/.test(STK) && /function estStockage\(b\)\{/.test(STK), true);
 v('les fonctions de la liste sont trouvées', NOMS.filter((n, i) => !CODE[i]), []);
 for (const n of NOMS) { const tete = n.slice(0, n.indexOf('(') + 1); v('… une seule définition de ' + tete.slice(9, -1), SRC.split(tete).length - 1, 1); }
 
@@ -49,7 +51,8 @@ function monde({ autre = false, nom = '', liste = [], suite = null, vue = 'bx' }
   ctx.boxAdj = (pid, field, delta) => { ctx.appels.push([pid, field, delta]); ctx.silencePendant.push(ctx._boxLotSilence);
     const s = ctx.db.boxes[0].stock[pid]; s[field] = Math.max(0, (s[field] || 0) + delta); };
   vm.createContext(ctx);
-  vm.runInContext('var _donListe=[], _donRech="", _donAjoutOuvert=false, _boxDonneSuite=null;\n' + CODE.join('\n'), ctx);
+  /* v741 : la liste parle du stockage quand c'est lui — la vraie règle (estStockage), extraite du fichier. */
+  vm.runInContext('var _donListe=[], _donRech="", _donAjoutOuvert=false, _boxDonneSuite=null;\n' + STK + '\n' + CODE.join('\n'), ctx);
   ctx._donListe = liste; vm.runInContext('_donListe=this._donListe', ctx);
   ctx._boxDonneSuite = suite ? () => { ctx.suiteJouee++; suite(ctx); } : null; vm.runInContext('_boxDonneSuite=this._boxDonneSuite', ctx);
   ctx.run = js => vm.runInContext(js, ctx);

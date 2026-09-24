@@ -154,14 +154,15 @@ v('… et celles qui parcourent des LIGNES (arrivage, lot) y mettent le rang de 
   (VAL.match(/'mvv:'\+m\.id\+':'\+kl\+':'/g) || []).length, 3);
 vrai('l\'arrivage validé entre UNE fois dans l\'historique de la box (b.arrivages, réuni par identifiant)', /b\.arrivages\.unshift\(\{id:'mvv:'\+m\.id\+':arr',/.test(VAL));
 vrai('le bon de remise né d\'une validation porte un identifiant tiré du mouvement (un seul bon, même validé deux fois)', /br=\{id:\(m&&m\.id\?'br:'\+m\.id:uid\(\)\),num:nextNum\('bonsRemise'/.test(corps('remiseAjoute')));
-vrai('… traceBox le prend, et garde uid() pour tout le reste', /function traceBox\(b,pid,delta,unit,motif,par,validePar,donneA,idFixe\)\{[\s\S]{0,80}db\.mouvements\.unshift\(\{id:idFixe\|\|uid\(\),/.test(SRC));
+vrai('… traceBox le prend, et garde uid() pour tout le reste', /function traceBox\(b,pid,delta,unit,motif,par,validePar,donneA,idFixe\)\{[\s\S]{0,260}db\.mouvements\.unshift\(\{id:idFixe\|\|uid\(\),/.test(SRC));
 vrai('… et le journal, lui, garde une ligne PAR PERSONNE qui a cliqué (une ligne par geste)', /logEvent\('Mouvement box validé'/.test(VAL) && !/logEvent\([^;]*'mvv:/.test(VAL));
 { /* Deux appareils, les VRAIES fonctions : traceBox, estampiller, ombreRelever, boxFusionFine, fusionnerBases. */
   const CODE = ['const COLLS_HORS_FUSION=', 'function collsFusion(d){', 'const COLLS_DICT=', 'function dictFusion(prio,autre){',
     'function recEmpreinte(r){', 'const stockEmpreinte=', 'const MS_MAX=', 'let _ombre={}, _ombreStock={};',
     'function ombreRelever(o,os){', 'const TOMBE_JOURS=', 'function estampiller(){', 'function msElaguer(ms,st,now){',
     'function boxFusionFine(gagnante,perdante){', 'function tombesElaguer(t,now){', 'function tombesUnion(a,b){', 'function numMaxUnion(a,b){',
-    'function fusionnerBases(local,remote,prioriteLocale){', 'function traceBox(b,pid,delta,unit,motif,par,validePar,donneA,idFixe){'].map(decoupe).join('\n');
+    'function fusionnerBases(local,remote,prioriteLocale){', 'const STOCKAGE_ID=', 'function estStockage(b){',   // v741 : traceBox nomme le stockage
+    'function traceBox(b,pid,delta,unit,motif,par,validePar,donneA,idFixe){'].map(decoupe).join('\n');
   const neuf = new Function('etat', `let db=etat.db; const syncEnabled=()=>true; let currentUser=null;
     const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8); const roleDeNom=()=>'';
     ${CODE}
