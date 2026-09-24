@@ -71,6 +71,11 @@ const MORCEAUX = [
   'function delegationActive(u){',
   'function delegationsRecues(u){',
   'const boxExclu=',
+  /* visibleBoxes met le stockage à part depuis la v742 (sa visibilité est une PERMISSION, pas une
+     liste de la box) : sans ces deux morceaux, le bac à sable mourait sur estStockage — deuxième
+     fois que ce contrôle meurt en silence, d'où le banc qui l'exécute désormais (test-794 §16). */
+  "const STOCKAGE_ID='stockage';",
+  'function estStockage(b){',
   'function visibleBoxes(list){',
   'function mesBoxIds(){',
   /* visibleMouvements lit les NOMS de son périmètre depuis la v735 (les bons de remise qui le

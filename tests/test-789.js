@@ -67,6 +67,8 @@ function monde(opts) {
     dr: ['interventions', 'planning', 'equipe', 'comptabilite', 'validations'], commercial: ['interventions', 'clients'], compta: ['comptabilite'] };
   ctx.NAV = [{ items: ['interventions', 'planning', 'equipe', 'comptabilite', 'clients', 'validations'].map(k => ({ k, l: k })) }];
   ctx.avecSousCats = x => x; ctx.t = x => x;
+  /* v742 : le défaut de « Se servir dans le stockage » lit le périmètre (qui voit tout SANS équipe) */
+  ctx.perimetreTechIds = u => (o.perim && u && o.perim[u.id]) ? new Set(o.perim[u.id]) : null;
   ctx.userSeesModule = (u, k) => { if (!u) return false; if (u.role === 'admin') return true;
     const ov = u.acces && u.acces.modules; if (ov && Object.prototype.hasOwnProperty.call(ov, k)) return ov[k] !== false;
     if (k === 'validations' && (ctx.userCap(u, 'validerDR') || u.boxValidDR)) return true;
@@ -283,6 +285,33 @@ vrai('⛔ les alertes de box : le droit de valider, plus le nom « dr »', /func
 vrai('⛔ stock bas, enveloppes, secteurs sans technicien : le droit de valider', /const estDir=can\('validerDR'\);/.test(SRC));
 vrai('⛔ « Travail terminé » : le valideur, et le commercial NOMMÉ sur l’intervention quel que soit son rôle', /const forMe=\(can\('validerDR'\)\|\|\(!!com&&[^;]*\)&&OUV\(\)\.int\(i\);/.test(SRC));
 vrai('⛔ « Matériel pris dans une box » : qui valide ou voit tout', /if\(vBox && currentUser && \(can\('validerDR'\)\|\|can\('voirTout'\)\)\)\{/.test(SRC));
+
+console.log('\n── 789 · 10. ⛔⛔ « Se servir dans le stockage » est une CASE (v742) ──');
+/* Justin, 24 septembre 2026 : « l'accès au stockage est une permission ». En v741 il se donnait comme
+   l'accès d'une box, depuis une liste posée sur le stockage : invisible dans les droits de la personne,
+   absent des profils. On JOUE ici les vraies fonctions de droits : la case existe, est rangée dans le
+   Stock, suit un défaut (le bureau) tant qu'on n'y touche pas, et ne se donne pas sans l'avoir. */
+{ const M = monde();
+  const K = M.USER_CAPS.find(c => c[0] === 'stockage');
+  vrai('la case existe, nommée pour ce qu’elle ouvre', !!K && /Se servir dans le stockage/.test(K[1]) && /Me servir/.test(K[2]), K);
+  vrai('… rangée dans la catégorie Stock (elle paraît d’elle-même sur la ligne de chaque personne et dans les profils)', (M.PERM_SPECIAUX.stock || []).includes('stockage'), M.PERM_SPECIAUX.stock);
+  const bureau = { id: 'uB', role: 'compta', acces: { caps: { voirTout: true } } };
+  const dr = { id: 'uD', role: 'dr', acces: { caps: { voirTout: true } } };
+  const tech = { id: 'uT', role: 'technicien', acces: { caps: { voirTout: false } } };
+  const M2 = monde({ perim: { uD: ['t1', 't2'] } });
+  v('⛔ défaut (rien de réglé) : le bureau oui, un DR avec son équipe non, un technicien non, l’administrateur toujours',
+    [M2.userCap(bureau, 'stockage'), M2.userCap(dr, 'stockage'), M2.userCap(tech, 'stockage'), M2.userCap({ id: 'uA', role: 'admin' }, 'stockage')], [true, false, false, true]);
+  tech.acces.caps.stockage = true; bureau.acces.caps.stockage = false;
+  v('⛔⛔ la case RÉGLÉE décide, dans les deux sens (on la donne au technicien, on la retire au bureau)', [M2.userCap(tech, 'stockage'), M2.userCap(bureau, 'stockage')], [true, false]);
+  const chef = { id: 'uR', role: 'chefEquipe', acces: { caps: { creerUtilisateurs: true, voirTout: true } } };
+  const M3 = monde({ perim: { uR: ['t9'] } });
+  const nu = { id: 'nu', role: 'technicien', acces: { caps: { stockage: true }, modules: {} } };
+  const ret = M3.droitsBorner(nu, chef);
+  v('⛔⛔ personne ne donne le stockage sans l’avoir : un chef à équipe (sans la case) crée un compte coché → retenu', [M3.userCap(nu, 'stockage'), ret.some(x => /stockage/.test(x))], [false, true]);
+  const chef2 = { id: 'uR2', role: 'chefEquipe', acces: { caps: { creerUtilisateurs: true, stockage: true } } };
+  const nu2 = { id: 'nu2', role: 'technicien', acces: { caps: { stockage: true }, modules: {} } };
+  M3.droitsBorner(nu2, chef2);
+  v('contre-épreuve : un créateur qui l’a la transmet', M3.userCap(nu2, 'stockage'), true); }
 
 console.log('\n── 789 · 9. la mesure dans une vraie page existe ──');
 const PS = path.join(__dirname, '..', 'scratchpad', 'sonde-droits.js');

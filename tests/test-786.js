@@ -33,7 +33,9 @@ console.log('\n── 786 · 0. la population ──');
    Le bac à sable reçoit donc les VRAIS userCap / can / capDeduitRegle — un faux `can` qui connaît
    « voirTout » ne connaissait pas les nouvelles cases, et le banc aurait gardé une copie. */
 const NOMS = ['function capDeduitRegle(cap){', 'function userCap(u,cap){', 'function can(cap){', 'function equipeDe(u){', 'function perimetreTechIds(u){', 'function myTechId(){', 'function ptEstAMoi(p){',
-  'function visiblePointages(list){', 'function ptPeutVoirAutres(){', 'function fichesGere(){', 'function ptPeutCorriger(p){', 'function visibleTechniciens(list){'];
+  'function visiblePointages(list){', 'function ptPeutVoirAutres(){', 'function fichesGere(){', 'function ptPeutCorriger(p){', 'function visibleTechniciens(list){',
+  /* v742 : la fiche crée un compte — prénom ET nom, jamais celui d'un autre technicien qui a son compte */
+  'function compteHomonyme(prenom,nom,sauf){', 'function homonymeMessage(h,prenom,nom){'];
 const CODE = NOMS.map(bloc);
 v('les fonctions sont trouvées', NOMS.filter((n, i) => !CODE[i]), []);
 for (const n of ['function ptPeutCorriger(', 'function visibleTechniciens(', 'function fichesGere(']) v('… une seule définition de ' + n.slice(9, -1), SRC.split(n).length - 1, 1);
@@ -264,6 +266,16 @@ async function partieSaveTech() {
   v('contre-épreuve : un responsable (DR, « tout voir ») les règle aussi', L3.K.droitConges, 28);
   const A4 = await essai('uA', [], { nom: 'Léo Martin', tel: '07 22' }, 'tL', 'secteurs');
   v('enregistrer depuis Secteurs redessine Secteurs (et plus « Équipe » par-dessus)', A4.redessins, ['secteurs']);
+  /* ⛔ v742 — Justin, 24 septembre 2026 : « l'obligation est d'avoir le prénom et le nom de famille pour
+     différencier les deux personnes ». La fiche d'un technicien CRÉE un compte : elle suit la même règle. */
+  const N1 = await essai('uA', [], { nom: 'Nouveau', metier: 'Technicien' });
+  v('⛔⛔ un seul mot (« Nouveau ») : ni fiche ni compte, et on dit pourquoi', [N1.comptes, N1.fiches, N1.toasts.some(t => /prénom ET le nom/.test(t))], [4, 2, true]);
+  const N2 = await essai('uA', [], { nom: 'karim  BENALI', metier: 'Technicien' });
+  v('⛔⛔ le nom d’un autre technicien qui a son compte (casse et espaces confondus) : refusé, et le message dit comment distinguer', [N2.comptes, N2.fiches, N2.toasts.some(t => /est déjà le nom d’un autre compte \(@/.test(t) && /initiale ou un second prénom/.test(t))], [4, 2, true]);
+  const N3 = await essai('uA', [], { nom: 'Rémi Chef', metier: 'Technicien' });
+  v('contre-épreuve : le nom d’un compte SANS fiche technicien est la même personne — la fiche s’y relie, aucun compte de plus', [N3.comptes, N3.fiches], [4, 3]);
+  const N4 = await essai('uA', [], { nom: 'Karim Benali-Roux', metier: 'Technicien' });
+  v('contre-épreuve : un nom distinct crée la fiche et son compte', [N4.comptes, N4.fiches], [5, 3]);
   vrai('le sélecteur de rôle est verrouillé à l’écran pour qui n’est pas administrateur (en modification)',
     /<select name="metier" \$\{id&&currentUser&&currentUser\.role!=='admin'\?'disabled title=/.test(SRC));
 }

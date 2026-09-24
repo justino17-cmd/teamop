@@ -7030,7 +7030,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '741-beta';
+const APP_VERSION = '742-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -11865,6 +11865,20 @@ function seed(){
 const techName = id => { const t=db.techniciens.find(t=>t.id===id); if(t) return t.nom||'Non assigné'; const a=(db.techArchive||[]).find(t=>t.id===id); return a?(a.nom||'Ancien technicien'):'Non assigné'; };
 /* ── Départ d'une personne : retirée PARTOUT (box, véhicules, chefs, planning à venir), sans casser l'historique ── */
 function nomNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+/* ⛔ v742 — DEUX COMPTES NE PORTENT JAMAIS LE MÊME PRÉNOM ET LE MÊME NOM. Justin, 24 septembre 2026 :
+   « si deux comptes ont le même nom, l'obligation est d'avoir le prénom et le nom de famille pour
+   différencier les deux personnes ». Le nom complet sert de clé à plusieurs endroits — qui a écrit une
+   ligne du journal, à qui elle a été donnée, le « pour qui » d'un bon de remise, le périmètre d'un
+   responsable : deux « Karim Benali » s'y confondraient et se verraient l'un l'autre. On compare comme
+   on lit, en plus strict (accents, casse, ponctuation et espaces confondus : nomNorm), et contre TOUS
+   les comptes, désactivés compris — un ancien salarié homonyme verrait sinon l'historique du nouveau.
+   Rend l'autre compte, ou null. */
+function compteHomonyme(prenom,nom,sauf){ const k=nomNorm((prenom||'')+' '+(nom||'')); if(!k) return null;
+  return (db.users||[]).find(x=>x&&x.id!==sauf&&nomNorm((x.prenom||'')+' '+(x.nom||''))===k)||null; }
+function homonymeMessage(h,prenom,nom){ const off=h.actif===false;
+  return '« '+fullName(h)+' » est déjà le nom '+(off?'d’un compte désactivé':'d’un autre compte')+' (@'+(h.login||'—')+'). '
+    +(off?'S’il s’agit de la même personne, réactive ce compte ; sinon, ':'Pour distinguer les deux personnes, ')
+    +'ajoute une initiale ou un second prénom — ex. « '+String(prenom||'').trim()+' A. '+String(nom||'').trim()+' ».'; }
 /* remplace un identifiant technicien par un autre dans TOUTES les collections (fusion de doublons) */
 function techRemap(de,vers){ let n=0; Object.keys(db).forEach(k=>{ const c=db[k]; if(!Array.isArray(c)) return; c.forEach(r=>{ if(!r||typeof r!=='object') return;
     if(r.techId===de){ r.techId=vers||''; n++; }
@@ -12619,6 +12633,9 @@ function capDeduitRegle(cap){
     /* v738 : « Gérer les box » tenait à « Supprimer des éléments » — c'est lui qui montrait « ＋ Box »
        et le ✎ d'une box. Le défaut reproduit exactement la veille. */
     case 'gererBoxes':   return u=>userCap(u,'supprimer');
+    /* v742 : le stockage reproduit la v741 — ouvert d'office à qui voit tout SANS équipe rattachée (le
+       bureau), fermé aux autres tant qu'on ne leur donne pas la case. */
+    case 'stockage':     return u=>userCap(u,'voirTout')&&!perimetreTechIds(u);
   }
   return null; }
 function userCap(u,cap){ if(!u) return false; if(u.role==='admin') return true;
@@ -12651,7 +12668,7 @@ const COLL_GRP={interventions:'int',clients:'crm',devis:'ventes',factures:'vente
    réclame fabrique un faux verrou.
    Le libellé sert au message de refus : « Créer un fournisseur n'est pas autorisé… ». */
 const COLL_QUOI={fournisseurs:'un fournisseur',techniciens:'un technicien',brouillons:'un produit au brouillon',bons:'un bon de commande',demandes:'une demande',conducteurs:'un conducteur',clients:'un client',produits:'un produit',boxes:'une box',vehicules:'un véhicule',taches:'une tâche',absences:'une absence',devis:'un devis',factures:'une facture',contrats:'un contrat'};
-const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],stock:['gererBoxes','effacerPrix','supprimerHistoCommandes','revoirDistincts'],com:['opMessages','bonsLectureSeule','respBons','gererGroupes','mailPro'],equipe:['creerUtilisateurs','voirPointages','voirEquipe','corrigerPointages','gererFiches'],achats:['validerDR','supprimerHistoDemandes']};
+const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],stock:['gererBoxes','stockage','effacerPrix','supprimerHistoCommandes','revoirDistincts'],com:['opMessages','bonsLectureSeule','respBons','gererGroupes','mailPro'],equipe:['creerUtilisateurs','voirPointages','voirEquipe','corrigerPointages','gererFiches'],achats:['validerDR','supprimerHistoDemandes']};
 /* ⛔ v738 — UNE ACTION DE CATÉGORIE QUI N'EST PAS RÉGLÉE SUIT SA CASE DE BASE, EN DIRECT.
    « 🗑 Supprimer » de chaque catégorie suit « Supprimer des éléments », « Interventions → ＋ Ajouter »
    suit « Créer / planifier des interventions ». Jusqu'à la v737, la ligne d'une personne écrivait TOUTES
@@ -12747,7 +12764,13 @@ function visibleInts(list,aAffecter){
    les interventions : « tout voir » SANS périmètre (admin, ou chef/DR sans équipe rattachée) rend
    tout l'espace, comme avant ; AVEC un périmètre, un DR voit ses box — cochées pour lui, dont il
    est responsable, visibles par tous, celles de ses équipes — et celles d'un absent qu'il remplace. */
-function visibleBoxes(list){ const p=can('voirTout')?perimetreTechIds():null; if(can('voirTout')&&!p) return list||[]; if(!currentUser) return []; const tid=myTechId(), me=currentUser.id;
+function visibleBoxes(list){
+  /* ⛔ v742 — LE STOCKAGE NE SE VOIT QUE PAR SA PERMISSION. Justin : « l'accès au stockage est une
+     permission ». Ni « Tout voir », ni une liste posée sur la box, ni une délégation de congés : la case
+     « Se servir dans le stockage » (can('stockage')), et elle seule. Les autres box, la règle d'avant. */
+  if((list||[]).some(estStockage)){ const ok=!!currentUser&&can('stockage'); const vus=new Set(visibleBoxes((list||[]).filter(b=>!estStockage(b))));
+    return (list||[]).filter(b=>estStockage(b)?ok:vus.has(b)); }
+  const p=can('voirTout')?perimetreTechIds():null; if(can('voirTout')&&!p) return list||[]; if(!currentUser) return []; const tid=myTechId(), me=currentUser.id;
   // sans « Tout voir » : les box visibles par tous, celles où sa fiche technicien est cochée, celles dont il est responsable,
   // et celles choisies pour lui (fiche utilisateur / Permissions / « Autres personnes autorisées » de la box) — DR compris
   /* Pendant les congés d'un DR, son remplaçant VOIT ses box. Sans ça, la délégation
@@ -24201,9 +24224,6 @@ function boxVuePar(u,b){ if(!u||!b) return false; const avant=currentUser;
   try{ currentUser=u; return visibleBoxes([b]).length>0; }
   catch(e){ return false; }
   finally{ currentUser=avant; } }
-/* D'office, et sans rien qu'on puisse décocher ici : qui « voit tout » sans équipe rattachée voit
-   toutes les box — l'exception d'une box ne joue pas pour lui (visibleBoxes). */
-function stockageOffice(u){ return !!u&&userCap(u,'voirTout')&&!perimetreTechIds(u); }
 function stockageGens(s){ return (db.users||[]).filter(u=>u&&u.actif!==false&&boxVuePar(u,s)); }
 /* La carte du stockage, en tête de Stock : ce qu'il contient, les gestes, et qui peut s'y servir.
    ⛔ Un écran qui ne montre rien doit dire pourquoi : sans stockage, on propose de le créer (à qui
@@ -24223,7 +24243,7 @@ function stockageCarte(){
   }
   if(!visibleBoxes([s]).length) return `<div class="card" style="margin:0 0 14px;padding:12px 16px;font-size:12.5px;color:var(--t3);line-height:1.55">🏬 Le stockage de l’entreprise ne t’est pas ouvert. Si tu dois t’y servir, demande l’accès à ton administrateur.</div>`;
   const t=boxTotalStock(s), n=Object.keys(s.stock||{}).filter(pid=>produit(pid).id).length;
-  const journal=userSeesModule(currentUser,'mouvements'), acces=boxGerer('modifier'), nb=acces?stockageGens(s).length:0;
+  const journal=userSeesModule(currentUser,'mouvements'), acces=!!currentUser&&currentUser.role==='admin', nb=acces?stockageGens(s).length:0;   // v742 : une permission se règle par qui règle les droits
   /* Une ligne qu'on touche : 46 px de haut (plancher tactile), un chevron, et le clavier aussi. */
   const ligne=(fn,lib,val)=>`<div class="stk-l" role="button" tabindex="0" onclick="${fn}" onkeydown="if(event.key==='Enter')${fn}" style="display:flex;align-items:center;gap:10px;min-height:46px;border-top:1px solid color-mix(in srgb,var(--brd) 70%,transparent);cursor:pointer">
       <span style="flex:1;min-width:0;font-size:14px;font-weight:600">${lib}</span>
@@ -24274,39 +24294,39 @@ function stockageServir(){ const s=stockageOuvert(); if(!s) return;
 function stockageArrivage(){ const s=stockageOuvert(); if(!s) return;
   openBox(s.id); setTimeout(()=>{ if(boxView===s.id) openArrivage(s.id); },450); }
 function stockageJournal(){ mvtFBox=STOCKAGE_ID; mvtFType='sortie'; mvtFQ=''; go('mouvements'); }
-/* ⛔ « DONNER UN ACCÈS AUX UTILISATEURS QUI SE SERVENT DANS LE STOCKAGE ». Pas de case de plus :
-   l'accès au stockage EST l'accès à une box, qui existe déjà personne par personne (`userBoxVoit` :
-   « Autres personnes autorisées », et l'exception quand la box est ouverte à toute l'équipe). Cette
-   fenêtre le montre en une liste ; la fiche de chaque utilisateur (ses box) le montre aussi — UNE
-   donnée, deux portes. Qui « voit tout » y a accès d'office : ça se règle dans ses droits, pas ici. */
+/* ⛔ v742 — « QUI PEUT S'Y SERVIR » EST UN RACCOURCI VERS UNE PERMISSION. Justin, 24 septembre 2026 :
+   « l'accès au stockage est une permission ». Cette fenêtre montre, en une liste, la case « Se servir dans
+   le stockage » de chaque personne, et l'écrit au même endroit que Utilisateurs (u.acces.caps.stockage) —
+   UNE donnée, deux portes. Elle est donc à qui règle les droits : l'administrateur (usrDroitsValider). Une
+   case qu'on n'a pas touchée ne s'écrit pas : elle garde son défaut (capDeduitRegle). */
 let _stkAcces=null;
-function stockageAcces(){ if(!boxGererGarde('modifier')) return;
+function stockageAccesGens(){ return (db.users||[]).filter(u=>u&&u.actif!==false).sort((a,b)=>fullName(a).localeCompare(fullName(b),'fr',{sensitivity:'base'})); }
+function stockageAcces(){ if(!adminSeul()) return;
   const s=stockageBox(); if(!s){ toast('Pas encore de stockage'); return; }
-  _stkAcces={tous:!!s.visibleTous,on:{}};
-  (db.users||[]).filter(u=>u&&u.actif!==false).forEach(u=>{ _stkAcces.on[u.id]=boxVuePar(u,s); });
+  _stkAcces={on:{},avant:{}};
+  stockageAccesGens().forEach(u=>{ const v=userCap(u,'stockage'); _stkAcces.on[u.id]=v; _stkAcces.avant[u.id]=v; });
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>Qui peut s’y servir ?</h3><button type="button" class="btn sm" onclick="stockageAccesSave()">Enregistrer</button></div>
-    <p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 2px 12px">Ceux que tu coches voient le stockage et s’y servent : chaque sortie porte leur nom. Qui « voit tout » y a accès d’office.</p>
-    <div class="fgroup"><label class="frow" style="cursor:pointer;border-bottom:none"><span style="flex:1;font-weight:700">Toute l’équipe</span><input type="checkbox" id="stk-tous" ${_stkAcces.tous?'checked':''} onchange="stockageAccesTous(this.checked)" style="width:22px;height:22px;accent-color:var(--acc);flex-shrink:0"></label></div>
-    <div class="form-sec" style="margin-top:12px">Personne par personne</div>
+    <p style="font-size:13px;color:var(--t2);line-height:1.6;margin:0 2px 12px">C’est la permission <b>« Se servir dans le stockage »</b> — la même que dans les droits de chaque personne (Utilisateurs). Ceux que tu coches voient le stockage et s’y servent : chaque sortie porte leur nom.</p>
+    <div style="display:flex;gap:8px;margin:0 2px 12px"><button type="button" class="btn ghost sm" onclick="stockageAccesTous(true)">Tout cocher</button><button type="button" class="btn ghost sm" onclick="stockageAccesTous(false)">Tout décocher</button></div>
     <div class="fgroup" id="stk-gens"></div>`);
   stockageAccesRender(); }
-function stockageAccesTous(on){ if(!_stkAcces) return; _stkAcces.tous=!!on;
-  (db.users||[]).filter(u=>u&&u.actif!==false&&!stockageOffice(u)).forEach(u=>{ _stkAcces.on[u.id]=!!on; });
+function stockageAccesTous(on){ if(!_stkAcces) return;
+  stockageAccesGens().filter(u=>u.role!=='admin').forEach(u=>{ _stkAcces.on[u.id]=!!on; });
   stockageAccesRender(); }
 function stockageAccesRender(){ const el=$('stk-gens'); if(!el||!_stkAcces) return;
-  const gens=(db.users||[]).filter(u=>u&&u.actif!==false).sort((a,b)=>fullName(a).localeCompare(fullName(b),'fr',{sensitivity:'base'}));
-  el.innerHTML=gens.map(u=>{ const off=stockageOffice(u), on=off||!!_stkAcces.on[u.id];
-    return `<label class="frow" style="cursor:${off?'default':'pointer'}"><span style="flex:1;min-width:0"><span style="font-weight:600">${esc(fullName(u))}</span> <span style="color:var(--t3);font-size:12px">· ${esc(roleLbl(u.role)||'')}${off?' · d’office':''}</span></span>
+  el.innerHTML=stockageAccesGens().map(u=>{ const off=u.role==='admin', on=off||!!_stkAcces.on[u.id];
+    return `<label class="frow" style="cursor:${off?'default':'pointer'}"><span style="flex:1;min-width:0"><span style="font-weight:600">${esc(fullName(u))}</span> <span style="color:var(--t3);font-size:12px">· ${esc(roleLbl(u.role)||'')}${off?' · d’office (administrateur)':''}</span></span>
       <input type="checkbox" ${on?'checked':''} ${off?'disabled':''} onchange="_stkAcces.on['${u.id}']=this.checked" style="width:22px;height:22px;accent-color:var(--acc);flex-shrink:0"></label>`; }).join('')
     ||'<div class="frow" style="color:var(--t3)">Aucun compte actif.</div>'; }
-function stockageAccesSave(){ if(!boxGererGarde('modifier')) return;
-  const s=stockageBox(); if(!s||!_stkAcces){ closeModal(); return; }
-  s.visibleTous=!!_stkAcces.tous;   // AVANT userBoxVoit : c'est lui qui dit si l'accès est d'office ou à part
-  const gens=(db.users||[]).filter(u=>u&&u.actif!==false&&!stockageOffice(u));
-  gens.forEach(u=>userBoxVoit(u.id,s.id,!!_stkAcces.on[u.id]));
-  const n=gens.filter(u=>_stkAcces.on[u.id]).length; _stkAcces=null;
-  logEvent('Accès au stockage',(s.visibleTous?'toute l’équipe':n+' personne(s)')+', en plus de qui voit tout','auth');
-  save(); closeModal(); toast('Accès au stockage enregistré'); refreshEcran(); }
+function stockageAccesSave(){ if(!adminSeul()) return;
+  if(!_stkAcces){ closeModal(); return; }
+  let n=0;
+  stockageAccesGens().filter(u=>u.role!=='admin').forEach(u=>{ const v=!!_stkAcces.on[u.id]; if(v===!!_stkAcces.avant[u.id]) return;
+    u.acces=u.acces||{caps:{},modules:{}}; u.acces.caps=u.acces.caps||{}; u.acces.modules=u.acces.modules||{};
+    u.acces.caps.stockage=v; n++; });
+  _stkAcces=null;
+  if(n) logEvent('Droits modifiés','« Se servir dans le stockage » — '+n+' personne(s), depuis la carte du stockage','auth');
+  save(); closeModal(); toast(n?'✓ Permission « Se servir dans le stockage » mise à jour — '+n+' personne'+(n>1?'s':''):'Rien n’a changé'); refreshEcran(); }
 views.stock=function(){
   const all=stockLines();
   const totalU=all.reduce((s,l)=>s+l.eff,0);
@@ -25108,7 +25128,7 @@ function renderBoxDetail(){
       ${(b.frequence&&b.frequence!=='Aucune')?`<div class="bdt-row"><span class="bdt-ic">🔁</span><span class="bdt-lbl">Fréquence</span><span class="bdt-val">${esc(b.frequence)}</span></div>`:''}
       ${pv?`<div class="bdt-row"><span class="bdt-ic">${late?'⚠️':'📅'}</span><span class="bdt-lbl">Prochaine visite</span><span class="bdt-val" style="font-weight:700;color:${late?'var(--red)':'var(--t1)'}">${fmtShort(pv)}${late?' · en retard':''}</span></div>`:''}
       ${(b.ville||b.codePostal)?`<div class="bdt-row"><span class="bdt-ic">📍</span><span class="bdt-lbl">Ville</span><span class="bdt-val">${esc(b.codePostal||'')} ${esc(b.ville||'')}</span></div>`:''}
-      <div class="bdt-row"><span class="bdt-ic">👁️</span><span class="bdt-lbl">${stk?'Qui peut s’y servir':'Visible par'}</span><span class="bdt-val" style="text-align:right;max-width:62%">${b.visibleTous?'Toute l\'équipe':(boxPersonnes(b).length?esc(boxPersonnes(b).join(', ')):'<span style="color:var(--t3)">Admins / DR / « Tout voir » seulement</span>')}${stk&&boxGerer('modifier')?` <button class="btn ghost sm" style="margin-left:6px" onclick="stockageAcces()">Régler</button>`:''}</span></div>
+      <div class="bdt-row"><span class="bdt-ic">👁️</span><span class="bdt-lbl">${stk?'Qui peut s’y servir':'Visible par'}</span><span class="bdt-val" style="text-align:right;max-width:62%">${stk?((()=>{ const g=stockageGens(b); return g.length?esc(g.map(fullName).join(', ')):'<span style="color:var(--t3)">Personne pour l’instant</span>'; })()+(currentUser&&currentUser.role==='admin'?` <button class="btn ghost sm" style="margin-left:6px" onclick="stockageAcces()">Régler</button>`:'')):(b.visibleTous?'Toute l\'équipe':(boxPersonnes(b).length?esc(boxPersonnes(b).join(', ')):'<span style="color:var(--t3)">Admins / DR / « Tout voir » seulement</span>'))}</span></div>
       ${(()=>{ /* Une exception qui ne se voit que sur la fiche de la personne est une exception
            qu'on oublie. Elle s'écrit aussi ici, là où l'on décide qui voit la box. */
         const hors=(b.userIdsExclus||[]).map(id=>(db.users||[]).find(x=>x&&x.id===id)).filter(Boolean);
@@ -26968,6 +26988,7 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
       </div>
       <div id="box-codes"></div>
       <div class="fgroup"><div class="frow"><span class="frow-lbl">Étage</span><input name="etage" value="${esc(b.etage)}" placeholder="ex : 3ème" style="text-align:right"></div></div>
+      ${estStockage(b)?`<div class="form-sec">Qui peut s’y servir</div><div class="fgroup"><div class="frow" style="display:block;font-size:13px;color:var(--t2);line-height:1.55">C’est une <b>permission</b> : « Se servir dans le stockage », dans les droits de chaque personne (Utilisateurs), ou « Qui peut s’y servir » sur la carte du stockage. Les réglages de visibilité d’une box ne s’appliquent pas au stockage.</div></div><div style="display:none" aria-hidden="true">`:''}
       <div class="form-sec">Qui peut voir ce box</div>
       <div class="fgroup">
         <div class="frow" style="cursor:pointer" onclick="toggleBoxVisibleTous()">
@@ -26982,6 +27003,7 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
       <div class="form-sec">Autres personnes autorisées (<span id="box-user-count">${boxUserSel.size}</span>)</div>
       <p style="font-size:12px;color:var(--t3);margin:-6px 4px 8px">Comptes sans fiche technicien (DR, commercial, comptabilité…) : coche ceux qui doivent voir cette box quand ils n'ont pas « Tout voir ». Réglable aussi depuis leur fiche utilisateur et dans Permissions.</p>
       <div class="fgroup" id="box-users"></div>
+      ${estStockage(b)?'</div>':''}
       <div class="form-sec">Produits (<span id="box-prod-count">0</span>)</div>
       <div class="fgroup" id="box-form-prods"></div>
       <button type="button" class="btn ghost sm" style="margin:-8px 0 8px" onclick="toggleBoxFormCat()">＋ Ajouter des produits</button>
@@ -30395,6 +30417,13 @@ async function saveTech(e,id){ e.preventDefault();
     const u=db.users.find(x=>x.techId===id); if(admin&&u&&u.role!=='admin'){ u.role=role; }
     save(); closeModal(); toast('Technicien mis à jour'); (views[current]||views.techniciens)(); return; }
   // Création : technicien + compte de connexion — sans doublon
+  /* v742 : la fiche crée un COMPTE — prénom ET nom, comme dans Utilisateurs (Justin, 10 puis 24 septembre
+     2026), et jamais le nom d'un autre technicien qui a déjà son compte (compteHomonyme). Un compte sans
+     fiche technicien au même nom, lui, est RELIÉ plus bas : c'est la même personne. */
+  { const ps=(d.nom||'').trim().split(/\s+/).filter(Boolean);
+    if(ps.length<2){ toast('Indique le prénom ET le nom (ex. « Karim Benali ») : ils distinguent deux personnes',4200); return; }
+    const h=compteHomonyme(ps[0],ps.slice(1).join(' '),'');
+    if(h&&h.techId){ toast(homonymeMessage(h,ps[0],ps.slice(1).join(' ')),7500); return; } }
   if(db.techniciens.some(x=>nomNorm(x.nom)===nomNorm(d.nom))){ toast('Un technicien porte déjà ce nom — modifie sa fiche plutôt que d\'en créer une deuxième'); return; }
   const tid=uid(); db.techniciens.push({id:tid,...obj});
   const parts=(d.nom||'').trim().split(/\s+/); const prenom=parts[0]||''; const nom=parts.slice(1).join(' ')||'';
@@ -30465,7 +30494,7 @@ views.utilisateurs=function(){
             <span class="mono">@${esc(u.login)}</span>${u.email?`<span>✉️ ${esc(u.email)}</span>`:(admin?'<span style="color:var(--org)" title="Sans e-mail, « Mot de passe oublié » ne marchera pas pour ce compte">✉️ e-mail à ajouter (Modifier)</span>':'')}
           </div>
         </div>
-        <span style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">${u.actif?'<span class="st st-green">Actif</span>':'<span class="st st-red">Désactivé</span>'}${(!u.pwdHash||u.mustChangePwd)?'<span class="st st-org" title="Ce compte n\'a pas encore choisi son mot de passe personnel">🔑 à définir</span>':''}${usrSansBox(u)?'<span class="st st-org" title="Cette personne ouvre « Boxes » sur un écran vide : aucune box ne la nomme, ni comme responsable, ni dans ses intervenants, ni par sa fiche technicien. Ajoute-la aux box dont elle s\'occupe.">🔒 aucune box</span>':''}</span>
+        <span style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">${u.actif?'<span class="st st-green">Actif</span>':'<span class="st st-red">Désactivé</span>'}${(!u.pwdHash||u.mustChangePwd)?'<span class="st st-org" title="Ce compte n\'a pas encore choisi son mot de passe personnel">🔑 à définir</span>':''}${(admin&&compteHomonyme(u.prenom,u.nom,u.id))?'<span class="st st-org" title="Un autre compte porte exactement ce prénom et ce nom : les lignes à ce nom (journal, bons de remise) se confondent. Ajoute une initiale ou un second prénom (✎ Modifier).">👥 même nom qu’un autre compte</span>':''}${usrSansBox(u)?'<span class="st st-org" title="Cette personne ouvre « Boxes » sur un écran vide : aucune box ne la nomme, ni comme responsable, ni dans ses intervenants, ni par sa fiche technicien. Ajoute-la aux box dont elle s\'occupe.">🔒 aucune box</span>':''}</span>
         <span style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end" onclick="event.stopPropagation()">${admin?`<button class="btn ghost sm" onclick="resetPwd('${u.id}')" title="Poser un mot de passe provisoire">🔑</button><button class="btn ghost sm" onclick="formUser('${u.id}')">✎ Modifier</button>${moi?'':`<button class="btn danger sm" onclick="delUser('${u.id}')" title="Supprimer">🗑</button>`}`:''}</span>
         <span class="usr-ch" aria-hidden="true">${ouv?'⌄':'›'}</span>
       </div>${ouv?usrDroitsHtml(u,admin):''}</div>`;}).join('');
@@ -30526,7 +30555,7 @@ function usrDroitsHtml(u,admin){
   const tousMods=avecSousCats(NAV.filter(x=>PERM_GRP_OF[x.g]).flatMap(x=>x.items)).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
   const vus=tousMods.filter(m=>userSeesModule(u,m.k)).length;
   const toutVoir=userCap(u,'voirTout');
-  const boxes=(db.boxes||[]).filter(b=>b.actif!==false);
+  const boxes=(db.boxes||[]).filter(b=>b.actif!==false&&!estStockage(b));   // v742 : le stockage est une case (catégorie Stock), pas une box qu'on ouvre
   const boxFixe=b=>!!(b.visibleTous||(u.techId&&(b.techIds||[]).includes(u.techId))||b.respUserId===u.id);
   const boxOuverte=b=>!boxExclu(b,u.id)&&(boxFixe(b)||(b.userIds||[]).includes(u.id));
   const nBox=boxes.filter(boxOuverte).length;
@@ -30819,6 +30848,11 @@ const USER_CAPS=[
      fallait lui donner le droit de TOUT supprimer, et le lui retirer fermait aussi ses box. Le ✎
      retape les quantités : c'est la porte que la validation DR doit garder (saveBox). */
   ['gererBoxes','Gérer les box','Créer une box, modifier sa fiche (nom, adresse, responsables, techniciens, visibilité) et retaper ses quantités — soumises à la validation DR si elle lui est demandée. Sans ce droit : il ouvre les box qu\'il voit, y prend et y repose du stock. Par défaut : qui a « Supprimer des éléments ».'],
+  /* ⛔ v742 — L'ACCÈS AU STOCKAGE EST UNE PERMISSION. Justin, 24 septembre 2026 : « l'accès au stockage est
+     une permission ». En v741 il se donnait comme celui d'une box, depuis une liste posée sur le stockage :
+     invisible dans les droits de la personne, absent des profils. C'est désormais une case, réglée ici comme
+     les autres ; la carte du stockage n'en est qu'un raccourci. Défaut : capDeduitRegle. */
+  ['stockage','Se servir dans le stockage','Voit le stockage — le stock hors des box — et s’y sert : « Me servir » (chaque sortie dit qui a pris quoi), « Arrivage », son contenu. Sans ce droit, le stockage ne lui est pas ouvert. Par défaut : qui « voit tout » sans équipe rattachée (le bureau).'],
   ['validerDR','Valider les mouvements de box et les demandes (rôle DR)','Voit « Validations DR », valide ou refuse les arrivages, réceptions, prises et demandes de commande de l\'équipe, et reçoit les alertes « à valider » — ainsi que celles des box en stock bas, des travaux terminés et des enveloppes en attente'],
   ['voirCompta','Voir / gérer la comptabilité et les tarifs','Comptabilité, télécollectes, prix et marges (par défaut : administrateur, DR et gestion compta)'],
   ['opMessages','Accès à OP MESSAGES','Affiche OP MESSAGES dans sa barre latérale — sans effet tant que TEAM OP n\'a pas ouvert cette application à l\'entreprise (elle a son propre abonnement)'],
@@ -30875,7 +30909,7 @@ function refusCommander(){ toast('Consultation seule : tu vois les commandes et 
 let nuBoxes=new Set(), nuBoxTout=false;
 function nuBoxHtml(){
   /* v737 : un créateur qui n'est pas administrateur n'ouvre que les box qu'il voit lui-même */
-  let bs=(db.boxes||[]).filter(b=>b&&b.actif!==false); if(currentUser&&currentUser.role!=='admin') bs=visibleBoxes(bs);
+  let bs=(db.boxes||[]).filter(b=>b&&b.actif!==false&&!estStockage(b)); if(currentUser&&currentUser.role!=='admin') bs=visibleBoxes(bs);   // v742 : le stockage a sa case (nuStkHtml)
   if(!bs.length) return `<div class="field"><label>Box qu'il ouvre</label>
     <div style="font-size:12px;color:var(--t3)">Aucune box créée pour l'instant. Tu pourras les lui ouvrir depuis sa ligne, une fois les box en place.</div></div>`;
   return `<div class="field" id="nu-box-bloc" style="display:${nuBoxTout?'none':'block'}"><label>📦 Box qu'il ouvre <span style="font-weight:400;color:var(--t3)">— coche celles qu'il doit voir</span></label>
@@ -30887,6 +30921,17 @@ function nuBoxHtml(){
     <div style="font-size:11px;color:var(--t3);margin-top:4px">Coche les box à lui ouvrir <b>en plus</b> de celles qui sont déjà ouvertes à toute l'équipe — celles-là, il les aura de toute façon. Pour lui en <b>retirer</b> une, ça se fait depuis sa fiche juste après : les cases y montrent ce qu'il voit vraiment. Modifiable ensuite depuis sa ligne.</div></div>
     <div id="nu-box-tout" style="display:${nuBoxTout?'block':'none'}"><div class="fgroup" style="padding:12px 14px;font-size:12.5px;color:var(--t2);line-height:1.55">📦 Ce profil donne <b>« Tout voir »</b> : ce compte ouvrira <b>toutes</b> les box, y compris celles créées plus tard. Il n'y a rien à cocher.</div></div>`;
 }
+/* v742 : « l'accès au stockage est une permission » — à la création, une case à part, qu'on coche comme
+   on coche ses box. Cochée, elle s'écrit (et droitsBorner la retire si le créateur ne l'a pas lui-même) ;
+   non cochée, rien ne s'écrit : le compte suit le défaut (capDeduitRegle) — une case vide n'est pas un
+   retrait, c'est « je n'ai pas regardé » (la règle des box, juste en dessous). */
+let nuStk=false;
+function nuStkHtml(){ if(!stockageBox()) return '';
+  if(currentUser&&currentUser.role!=='admin'&&!can('stockage')) return '';   // on ne propose pas un droit qu'on n'a pas
+  return `<div class="field" id="nu-stk-bloc"><label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
+      <input type="checkbox" id="nu-stk" ${nuStk?'checked':''} onchange="nuStk=this.checked" style="width:20px;height:20px;accent-color:var(--acc);flex-shrink:0">
+      <span>🏬 Se servir dans le stockage</span></label>
+    <div style="font-size:11px;color:var(--t3);margin-top:4px">La permission du stock hors des box : « Me servir », « Arrivage ». Modifiable ensuite dans ses droits.</div></div>`; }
 let nuVehs=new Set();
 function nuVehHtml(){
   let vs=(db.vehicules||[]).filter(v=>v&&v.actif!==false); if(currentUser&&currentUser.role!=='admin') vs=visibleVehicules(vs);
@@ -30908,9 +30953,11 @@ function nuProfilChange(pid){
   if(b) b.style.display=nuBoxTout?'none':'block';
   if(t) t.style.display=nuBoxTout?'block':'none';
   if(vb) vb.style.display=nuBoxTout?'none':'block';
+  /* v742 : le profil qui donne la permission du stockage la coche ; on peut encore la décocher */
+  nuStk=!!(pr&&pr.caps&&pr.caps.stockage); const sk=document.getElementById('nu-stk'); if(sk) sk.checked=nuStk;
 }
 function formUser(id){ const u=id?db.users.find(x=>x.id===id):{}; window._formUserNew=!id; window._formUserRole0=u.role||'technicien';
-  if(!id){ nuBoxes=new Set(); nuVehs=new Set(); nuBoxTout=false; }
+  if(!id){ nuBoxes=new Set(); nuVehs=new Set(); nuBoxTout=false; nuStk=false; }
   // Rattachements vus depuis le DR : avec 65 techniciens, ouvrir 65 fiches n'a pas de sens.
   // Même donnée que le champ « Directeur régional responsable », lue dans l'autre sens.
   drRattaches = new Set((db.users||[]).filter(x=>x&&id&&x.drId===id).map(x=>x.id));
@@ -30932,6 +30979,7 @@ function formUser(id){ const u=id?db.users.find(x=>x.id===id):{}; window._formUs
         <select name="drId">${[`<option value="">— aucun (tous les DR sont prévenus) —</option>`].concat(valideursDR().filter(x=>x.id!==u.id).map(x=>`<option value="${x.id}" ${u.drId===x.id?'selected':''}>${esc(fullName(x))}</option>`)).join('')}</select>
         <div style="font-size:11px;color:var(--t3);margin-top:4px">Ses demandes et ses mouvements de box partent à ce DR, et lui seul les voit dans « Validations DR ». Sans DR choisi, tous les valideurs sont prévenus, comme avant.</div></div>
       ${!id?nuBoxHtml():''}
+      ${!id?nuStkHtml():''}
       ${!id?nuVehHtml():''}
       ${id&&capOf('validerDR')?`<div class="field"><label>Personnes rattachées à ce valideur</label>
         <div style="max-height:210px;overflow:auto;border:1px solid var(--brd);border-radius:10px;padding:6px">${(db.users||[]).filter(x=>x&&x.actif!==false&&x.id!==id).map(x=>`
@@ -31153,6 +31201,11 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
   if(!id && !planPlaceLibre()){ proposerAbonnement(); return; }
   const loginNorm=(d.login||'').trim().toLowerCase();
   if(db.users.some(x=>x.login&&x.login.toLowerCase()===loginNorm&&x.id!==id)){ toast('Identifiant déjà utilisé'); return; }
+  /* v742 : prénom + nom distinguent deux personnes (compteHomonyme). À la modification, seulement si le
+     nom CHANGE : corriger le téléphone d'un doublon d'avant ne doit pas être bloqué — la liste le signale. */
+  { const avant=id?nomNorm(fullName(db.users.find(x=>x.id===id)||{})):'';
+    if(!id||nomNorm(d.prenom+' '+d.nom)!==avant){ const h=compteHomonyme(d.prenom,d.nom,id);
+      if(h){ toast(homonymeMessage(h,d.prenom,d.nom),7500); return; } } }
   /* ⛔ ET CONTRE LE NUAGE, PAS SEULEMENT CONTRE CET APPAREIL — ELAN, 9 septembre 2026. Les trois
      « @florent » sont nés ainsi : un appareil qui ne voyait plus le compte l'a recréé — même
      identifiant, id différent — parce que l'unicité n'était jugée que sur la base locale. On relit
@@ -31207,6 +31260,7 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
       const en=(d.entNom||'').trim(); if(!en){ toast('Indique le nom de ton entreprise : il va dans le lien de connexion'); return; }
       db.entreprise={...(db.entreprise||{}),nom:en}; try{ localStorage.setItem('elanB_entreprise_nom',en); }catch(_e){}
     }
+    if(nuStk&&stockageBox()) acces.caps.stockage=true;   // v742 : cochée à la création — droitsBorner la retire si le créateur ne l'a pas
     const nu={id:uid(),prenom:d.prenom,nom:d.nom,login:loginNorm,email:(d.email||'').trim(),drId:(d.drId||''),chefId:(d.chefId||''),role:d.role,techId,actif:true,acces,boxValidDR:(d.boxValidDR!==undefined),pwdHash:await sha256(pwd),mustChangePwd:true};
     const _retenus=droitsBorner(nu,currentUser);
     db.users.push(nu);
@@ -31233,7 +31287,7 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
        toujours. Les véhicules portaient le même défaut, à la ligne près. */
     let _nBox=0;
     let _nVeh=0;
-    if(!acces.caps.voirTout){ (db.boxes||[]).filter(b=>b&&b.actif!==false).forEach(b=>{
+    if(!acces.caps.voirTout){ (db.boxes||[]).filter(b=>b&&b.actif!==false&&!estStockage(b)).forEach(b=>{
       if(!nuBoxes.has(b.id)) return;                    // pas coché = pas encore décidé, surtout pas « exclu »
       if(currentUser.role!=='admin'&&!visibleBoxes([b]).length) return;   // v737 : un créateur n'ouvre que ce qu'il voit lui-même
       userBoxVoit(nu.id,b.id,true);
@@ -36822,6 +36876,7 @@ async function submitCreateAdmin(e){ e.preventDefault();
   const prenom=$('ca-prenom').value.trim(), nom=$('ca-nom').value.trim(), login=$('ca-login').value.trim().toLowerCase();
   const pin=$('ca-pin').value.trim(), pin2=$('ca-pin2').value.trim();
   const err=$('ca-error'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
+  if(!prenom||!nom){ show('Le prénom et le nom sont obligatoires.'); return; }   // v742 : des espaces passent « required »
   if(pin.length<8){ show('Le mot de passe doit faire au moins 8 caractères.'); return; }
   if(pin!==pin2){ show('Les deux mots de passe ne correspondent pas.'); return; }
   let admin=db.users.find(u=>u.role==='admin');

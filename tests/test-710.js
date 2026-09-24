@@ -42,6 +42,9 @@ function extraire(nom) {
 const SRC_VOIT = extraire('userBoxVoit');
 const SRC_VIS = extraire('visibleBoxes');
 const L_EXCLU = (APP.match(/^const boxExclu=.*$/m) || [])[0];
+/* v742 : visibleBoxes et la boucle de création mettent le stockage à part (une PERMISSION, pas une box
+   qu'on ouvre) — ils lisent estStockage, extraite ici du fichier livré avec sa constante. */
+const L_STK = (APP.match(/^const STOCKAGE_ID=.*$/m) || [])[0] + '\n' + extraire('estStockage');
 /* ⛔ ET SURTOUT : LA BOUCLE DE CRÉATION ELLE-MÊME, découpée dans le fichier livré. Un banc qui
    rejoue une COPIE de la boucle ne dit rien de ce qui part en production — il dirait seulement
    que ma transcription est juste. Bornée par deux repères de texte, jamais par une longueur. */
@@ -64,7 +67,7 @@ function banc(db, moi) {
   ctx.userVehiculeVoit = () => {};
   ctx.vehiculeAuto = () => false;
   vm.createContext(ctx);
-  vm.runInContext(L_EXCLU + '\n' + SRC_VOIT + '\n' + SRC_VIS, ctx);
+  vm.runInContext(L_EXCLU.replace('const ', 'var ') + '\n' + L_STK.replace('const ', 'var ') + '\n' + SRC_VOIT + '\n' + SRC_VIS, ctx);
   /* On rejoue la VRAIE boucle de création, avec les variables qu'elle attend autour d'elle.
      ⚠️ v737 : c'est le CRÉATEUR qui est connecté pendant la boucle (un administrateur, sauf si
      l'essai en nomme un autre) — la boucle ne laisse un créateur ouvrir que ce qu'il voit

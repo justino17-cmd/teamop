@@ -10,7 +10,8 @@
            cloche et Produits lisent le MÊME total ;
         2. « Créer le stockage » : l'ancien stock y est RANGÉ (p.qte → 0, le stockage le reçoit,
            une ligne au journal par produit), et un second geste n'en crée pas un second ;
-        3. « Qui peut s'y servir » : l'administrateur coche Karim, enregistre ;
+        3. « Qui peut s'y servir » : l'administrateur coche Karim, enregistre — v742 : c'est SA
+           PERMISSION « Se servir dans le stockage » qui est écrite, plus rien sur la box ;
         4. Karim se connecte, « Me servir », « Pour moi », 3 unités → le stockage baisse de 3, le
            mouvement et le bon de remise portent son nom ; « Qui a pris quoi » le montre ;
         5. ⛔⛔ Karim clôture une intervention par le compte-rendu : RIEN ne bouge — ni stockage, ni
@@ -129,8 +130,11 @@ let navigateur=null;
   await S.ev(`const l=[...document.querySelectorAll('#stk-gens label')].find(x=>/Karim Benali/.test(x.textContent)); l.querySelector('input').setAttribute('data-sonde','1'); return 1;`);
   await toucher('[data-sonde="1"]');
   vrai('« Enregistrer » est touché', await toucherTexte('#overlay .modal-head','Enregistrer'));
-  const acc=await S.ev(`const s=db.boxes.find(b=>b.id==='stockage'); return {userIds:s.userIds||[], exclus:s.userIdsExclus||[], tous:!!s.visibleTous};`);
-  v('⛔⛔ Karim est dans les personnes autorisées ; personne n’est ouvert d’office à tort', acc, {userIds:['u-stk-k'], exclus:[], tous:false});
+  /* v742 — Justin : « l'accès au stockage est une permission ». La fenêtre écrit la CASE de chacun
+     (« Se servir dans le stockage »), plus rien sur la box. */
+  const acc=await S.ev(`const s=db.boxes.find(b=>b.id==='stockage'); const c=id=>{ const u=db.users.find(x=>x.id===id); return u&&u.acces&&u.acces.caps&&Object.prototype.hasOwnProperty.call(u.acces.caps,'stockage')?u.acces.caps.stockage:'non réglée'; };
+    return {karim:c('u-stk-k'), sofia:c('u-stk-s'), userIds:s.userIds||[], exclus:s.userIdsExclus||[], tous:!!s.visibleTous};`);
+  v('⛔⛔ la permission de Karim est écrite ; Sofia n’est pas touchée ; rien n’est posé sur la box', acc, {karim:true, sofia:'non réglée', userIds:[], exclus:[], tous:false});
   const carte3=await texte('#content .stk-carte');
   vrai('la carte compte 2 personnes (l’administrateur et Karim)', !!carte3 && /Qui peut s[’']y servir 2 personnes/.test(carte3), carte3);
 
