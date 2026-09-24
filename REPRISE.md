@@ -115,6 +115,43 @@ rien ; seule la rotation compte.
   VPS par saisie masquée. Une consigne « ne me colle pas le résultat » ne tient pas contre une
   méthode où l'on colle TOUS les résultats.
 
+### ✅ LA ROTATION EST FAITE, ET L'ESSAI « COMME APRÈS UNE PANNE » A RÉUSSI (24 septembre, 19 h UTC)
+
+- **19:04 UTC** — `configurer-sauvegarde.js` avec la paire NEUVE (saisie masquée) : coffre
+  joignable (dépôt, relecture, effacement), `config.json` réécrit, **clé de chiffrement
+  conservée** ; première sauvegarde **8 474 Kio, 76 entrées, déposée ET relue**.
+  ⚠️ Deux faux départs avant, sans conséquence (l'outil refuse AVANT d'écrire) : l'endpoint tapé
+  sous la forme du nom du coffre, et un bucket `teamop-sauvegardes1` créé chez IONOS en pensant
+  qu'il fallait un coffre neuf — **c'est la CLÉ qui a fuité, pas le coffre** : chez IONOS une clé
+  ouvre tous les buckets du compte. Le bucket en trop a été supprimé par Justin.
+- **19:06** — `systemctl restart` : `/health` relu d'ici, `ageH:0`, `mensuelJ:0` (la première
+  copie mensuelle est partie avec cette sauvegarde).
+- **19:07 — l'essai du sinistre, SANS `config.json`** (`TEAMOP_CONFIG=/nulle-part`), avec les
+  seules valeurs du gestionnaire de Justin tapées en saisie masquée : **10 archives listées
+  (18 → 24 septembre), la dernière téléchargée, déchiffrée, déballée — 32 fichiers +
+  `config.json`, « RESTAURABLE »**. Ce que ça prouve et que rien d'autre ne prouvait : la copie
+  de `sauvegarde.cle` rangée le 20 septembre est la BONNE, et la paire neuve aussi. (La flèche y
+  désignait la copie `mensuel/` — le défaut ci-dessous, sans effet ce soir : même seconde,
+  même archive.)
+- **19:14** — « Lancer une sauvegarde maintenant » dans la Tour : « Sauvegarde réussie », et
+  le journal du SERVICE dit `sauvegarde OK · 8474 Kio` (pid 118321, celui d'après le
+  redémarrage) : c'est le serveur lui-même qui travaille avec la paire neuve.
+- ⏳ **Suppression de l'ancienne paire chez IONOS** (celle du 17-18 septembre) : demandée à
+  Justin, à confirmer. Tant qu'elle existe, la clé collée dans la conversation ouvre le coffre.
+
+### ✅ Trouvé en lisant la liste du coffre — la minuterie ne sauvegardait pas « chaque nuit » (corrigé, branche)
+
+La liste de l'essai montrait 14:30, 10:31, 06:41, 03:01, 23:11, 19:21, 15:31, 11:41 : une archive
+toutes les **20 h 10**, qui reculait de quatre heures par jour. La règle (« l'heure est passée ET
+la dernière réussie a plus de vingt heures ») ne s'ancrait à 3 h que par hasard — vingt heures
+après 3 h, il est 23 h. `sauvegardeDue()` regarde désormais la dernière ÉCHÉANCE (3 h UTC
+aujourd'hui si passée, d'hier sinon) et lance s'il n'y a aucune réussite depuis : une nuit
+manquée se rattrape au premier réveil, un « Lancer » dans la journée ne décale plus rien, un échec
+se retente au bout d'une heure. `test-722` (164 ✓) fait tourner la minuterie sur des jours
+simulés — l'ancienne règle y DÉRIVE (contre-épreuve) — et vérifie que `tic` s'en sert ;
+5 mutations sur 5 mordent. ⚠️ Sur le VPS au prochain déploiement du serveur ; d'ici là, la
+prochaine sauvegarde automatique part vers 15 h 20 UTC le 25 (vingt heures après le « Lancer »).
+
 ### ⛔ Trouvé en préparant la suite — `restaurer.js` aurait restauré la copie du MOIS (corrigé, branche)
 
 En préparant l'essai « sans `config.json` » (section 6), le banc qui manquait a été écrit :
@@ -148,12 +185,10 @@ l'écart grandit ensuite (le 20 octobre, la flèche aurait montré le 1ᵉʳ).
 1. ⛔ **Ranger les quatre coordonnées du coffre** (endpoint, bucket, accessKey, secretKey) à côté
    des deux clés : elles ne vivent que dans `/opt/teamop/config.json`, sur la machine qu'un
    sinistre ferait disparaître. Trois clés parfaites et aucune porte, c'est un coffre perdu.
-   ⏳ **Se fait PAR la rotation ci-dessus** : la nouvelle paire va de la console IONOS au
-   gestionnaire directement — jamais en l'affichant sur le VPS.
-2. **Un essai de restauration SANS `config.json`** (les deux variables d'environnement seules) —
-   le seul qui ressemble au sinistre réel. Celui du 18 septembre s'est fait avec. La commande,
-   éprouvée contre un coffre local (saisie masquée, rien dans l'historique), est dans
-   `ALLUMER-LE-SOCLE.md`, section 6.
+   ✅ **Fait par la rotation du 24 septembre** : la paire neuve est allée de la console IONOS au
+   gestionnaire directement, et l'essai sans `config.json` l'a relue.
+2. ✅ **Un essai de restauration SANS `config.json`** — **fait le 24 septembre à 19 h 07 UTC,
+   « RESTAURABLE »** avec les seules valeurs du gestionnaire (voir plus haut).
 3. **Allumer** : `"socle": { "actif": true }` dans `config.json`, redémarrer, `/health` →
    `actif:true`, `cle:true`, `bases:0`. Revenir en arrière = remettre `false` et redémarrer.
 4. **Une première entreprise d'essai — pas ELAN**, puis sa double écriture (Tour,

@@ -27,7 +27,7 @@ Aucune n'est facultative. Si une seule est fausse, on ne commence pas.
 |---|---|---|
 | 1 | Le préavis / l'accord écrit est parti chez ELAN | Justin le sait. Personne d'autre. |
 | 2 | La sauvegarde hors site tourne et a réussi récemment | `curl -s https://api.teamop.fr/health` → `sauvegarde: {active:true, ok:true, ageH:<24}` |
-| 3 | Une restauration a été **essayée pour de faux**, au moins une fois | `node server/restaurer.js essai` sur le VPS |
+| 3 | Une restauration a été **essayée pour de faux**, au moins une fois | `node server/restaurer.js essai` sur le VPS — ✅ 18 septembre 2026, puis **sans `config.json`** le 24 |
 | 4 | La clé maître sera en séquestre à DEUX endroits distincts | gestionnaire de mots de passe **+** copie scellée hors ligne — ✅ **fait le 24 septembre 2026**, les deux relues |
 | 5 | La suite complète passe sur la branche qu'on déploie | `for f in tests/test-*.js; do node "$f"; done` → 0 échec |
 
@@ -265,8 +265,9 @@ proprement : elles sont remises quand même, et elles demandent un examen. Ne pa
 ## 6. La liste avant de dire « c'est allumé »
 
 - [x] la clé maître est en séquestre à DEUX endroits, et on sait la relire (24 septembre 2026)
-- [ ] la clé de SAUVEGARDE y est aussi — ce n'est pas la même (voir le tableau, section 5)
-- [ ] ⛔ **les quatre coordonnées du coffre** (endpoint, bucket, accessKey, secretKey) y sont
+- [x] la clé de SAUVEGARDE y est aussi — ce n'est pas la même (voir le tableau, section 5) —
+      prouvé le 24 septembre 2026 par l'essai sans `config.json`
+- [x] ⛔ **les quatre coordonnées du coffre** (endpoint, bucket, accessKey, secretKey) y sont
       également : elles ne vivent aujourd'hui que dans `/opt/teamop/config.json`, c'est-à-dire
       sur la machine qu'un sinistre fait disparaître. Trois clés parfaites et aucune porte,
       c'est un coffre perdu.
@@ -276,7 +277,7 @@ proprement : elles sont remises quand même, et elles demandent un examen. Ne pa
 - [ ] `/health` → `socle.actif:true`, `socle.cle:true`
 - [ ] `/health` → `sauvegarde.active:true` et une sauvegarde a réussi depuis l'allumage
 - [ ] une restauration a été essayée POUR DE FAUX depuis l'allumage
-- [ ] ⚠️ et au moins une fois **sans `config.json`**, avec les deux variables d'environnement
+- [x] ⚠️ et au moins une fois **sans `config.json`**, avec les deux variables d'environnement
       seules : c'est le seul essai qui ressemble au sinistre réel — sur le VPS lui-même, sans rien
       toucher : `TEAMOP_CONFIG=/nulle-part` fait ignorer son `config.json`, et les valeurs se
       TAPENT depuis le séquestre, en saisie masquée (ni écran, ni historique). Éprouvé le
