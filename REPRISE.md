@@ -79,6 +79,74 @@ et `balayageOk` vrais, `sauvegarde` active sans échec ; `ls /opt/teamop/data | 
 `POST /api/op/session` → 404 ; le journal sans « NON monté » ni « DEUX FOIS ». Le lendemain : la
 sauvegarde de la nuit `ok`, et une seule copie sous `teamop/mensuel/`.
 
+## ✅ 24 SEPTEMBRE 2026 — DEUX COMPTES NE PORTENT JAMAIS LE MÊME NOM, ET L'ACCÈS AU STOCKAGE EST UNE PERMISSION (v742, bêta)
+
+Deux réponses de Justin au rapport de la v741, mot pour mot :
+
+1. **« C'est pour ça que si il y a deux comptes qui ont le même nom quand ils créent les comptes,
+   l'obligation est d'avoir le prénom et le nom de famille pour différencier les deux personnes »** —
+   la réponse à la dette « les noms servent de clé » (Mouvements, bons de remise, « Pour qui ? ») ;
+2. **« L'accès au stockage est une permission »** — la réponse au « choix fait pour Justin » de la
+   v741 (un accès de box, réglé depuis la carte du stockage).
+
+### Les noms
+
+- **Prénom ET nom partout où un compte naît** : Utilisateurs (c'était déjà le cas), la fiche
+  Technicien (qui crée un compte — « Karim » seul est refusé, il faut « Karim Benali »), le premier
+  administrateur d'une entreprise.
+- **Jamais le prénom + nom d'un autre compte** (`compteHomonyme`) — comparés sans accents, sans casse,
+  sans ponctuation ni espaces en trop (« karim  BENALI » = « Karim Benali »), contre TOUS les comptes,
+  désactivés compris. Le message dit qui porte déjà le nom (@identifiant) et comment distinguer :
+  « ajoute une initiale ou un second prénom — ex. « Karim A. Benali » ». Si c'est un compte
+  désactivé : « s'il s'agit de la même personne, réactive ce compte ».
+- **À la modification, seulement si le nom CHANGE** : corriger le téléphone d'un doublon d'avant n'est
+  pas bloqué — mais on ne peut plus renommer quelqu'un en homonyme.
+- **Les doublons d'avant la règle sont signalés** dans la liste des utilisateurs (à l'administrateur) :
+  « 👥 même nom qu'un autre compte ». On les corrige en ajoutant une initiale.
+
+### Le stockage
+
+- **Une case « Se servir dans le stockage »**, dans la catégorie 📦 Stock des droits de chaque personne
+  (Utilisateurs → sa ligne), comme toutes les autres. Par défaut : l'administrateur (d'office), et qui
+  « voit tout » sans équipe rattachée (le bureau). Personne d'autre tant qu'on ne l'a pas cochée.
+- **Le stockage ne se voit QUE par cette case** : ni « Tout voir », ni une liste posée sur la box, ni
+  une fiche technicien, ni une délégation de congés ne l'ouvrent. `visibleBoxes` le met à part.
+- **« Qui peut s'y servir »** (sur la carte du stockage) reste, comme raccourci : la même permission,
+  toute l'équipe d'un coup, **réservé à l'administrateur** (c'est lui qui règle les droits). Il n'écrit
+  que les cases qu'on a changées, et le journal le dit (« Droits modifiés »).
+- **La création d'un compte propose la case** ; le stockage n'est plus listé parmi les box de la
+  personne. Le ✎ du stockage le dit : « c'est une permission ».
+- ⚠️ **Ce qui a été réglé en v741** (bêta seulement, une heure de vie) depuis l'ancienne fenêtre —
+  des noms posés sur la box du stockage — **n'est plus lu** : à redonner par la case.
+
+### Les preuves
+
+- `tests/test-795.js` (nouveau) — **25 ✓** : EXÉCUTE la vraie `saveUser` (création refusée AVANT tout
+  appel au serveur, variantes d'écriture, compte désactivé, initiale acceptée, renommage), et l'ordre
+  des gardes de la fiche technicien et du premier administrateur.
+- `tests/test-789.js` §10 — la case, sa catégorie, ses défauts (bureau, DR avec équipe, technicien,
+  administrateur), les deux sens d'un réglage, `droitsBorner` (un chef sans la case ne la donne pas).
+- `tests/test-794.js` — **101 ✓** : §9 la fenêtre (refusée au chef, n'écrit que ce qui change, rien
+  sur la box), §15 la VRAIE `visibleBoxes` jouée case par case, §16 **exécute
+  `scripts/verifier-permissions.js`** — le contrôle de CI des droits mourait sur `estStockage` : deux
+  morts silencieuses (v733, v742), il tourne désormais à chaque suite.
+- `tests/test-786.js` — la fiche technicien (un mot refusé, un homonyme refusé, un compte sans fiche
+  relié). `test-710` suit.
+- `scratchpad/sonde-v742.js`, au doigt, iPhone 402 px : **34 ✓ 0 ✗** — « Karim Benali » refusé avec
+  le bon message puis « Karim A. Benali » créé, les deux « Jean Dupont » signalés, la case cochée sur
+  la ligne de Karim puis validée, Karim se sert et Sofia lit « ne t'est pas ouvert », un chef qui gère
+  les box ne voit pas « Qui peut s'y servir », l'administrateur décoche Karim (sa case écrite NON, le
+  bureau reste sur son défaut, rien sur la box), le compte créé avec la case la porte. Contre-épreuve
+  sur la v741 : l'homonyme y est créé, la case n'existe pas. `sonde-stockage.js` (v741, adaptée) :
+  **69 ✓ 0 ✗**.
+- Deux pièges de sonde payés en chemin (voir CLAUDE.md) : la bêta n'a que **3 places au forfait** — sept
+  comptes de sonde les dépassaient et « Créer » ouvrait la page d'abonnement AVANT la règle des noms ; et
+  au téléphone, le bouton « ＋ Utilisateur » de la barre du haut EXISTE mais est masqué (0 × 0) — celui
+  qu'on touche est dans l'en-tête de page.
+- Mutations : **19/19** mordues.
+- Suite complète : **152 suites · 7 229 vérifications, code 0**. Relecture adversariale en cours au
+  moment de ce commit ; la bêta v742 n'est PAS encore publiée.
+
 ## ✅ 24 SEPTEMBRE 2026 — LE STOCKAGE, ET UNE INTERVENTION NE DÉDUIT PLUS RIEN (v741, bêta)
 
 Deux décisions de Justin, le même jour, mot pour mot :
@@ -145,10 +213,11 @@ Deux décisions de Justin, le même jour, mot pour mot :
   « Hors box (catalogue) » tant que le stockage n'est pas créé. Et la cloche compare désormais le
   seuil au total des box — les fausses alertes « (0/5) » sur des produits pleins en box disparaissent.
 
-### Un choix fait pour Justin — réversible, à lui confirmer
+### Un choix fait pour Justin — TRANCHÉ en v742
 
-**L'accès au stockage est fermé par défaut** (sauf « Tout voir ») et se donne personne par personne
-ou à toute l'équipe, depuis la carte du stockage.
+~~L'accès au stockage est fermé par défaut (sauf « Tout voir ») et se donne personne par personne ou à
+toute l'équipe, depuis la carte du stockage.~~ Justin : **« l'accès au stockage est une permission »**
+— une case des droits de chacun, voir la section v742 au-dessus.
 
 ### Les preuves
 
@@ -174,13 +243,13 @@ ou à toute l'équipe, depuis la carte du stockage.
 
 ### Dettes connues, NON corrigées
 
-- **Les noms servent de clé** : deux comptes homonymes (« Karim Benali » ×2) voient chacun les lignes
+- ✅ *(v742 : plus de NOUVEL homonyme possible, les anciens sont signalés — voir au-dessus.)*
+  **Les noms servent de clé** : deux comptes homonymes (« Karim Benali » ×2) voient chacun les lignes
   de Mouvements données à ce nom, comme ils voient déjà celles écrites par l'autre (auteur) et ses bons
   de remise (« Pour qui »). C'est le modèle depuis la v739 ; la v741 n'y ajoute qu'une porte du même
   modèle. La vraie correction porte l'identifiant du compte sur la ligne (auteur, destinataire).
-- Une personne qui voit le stockage **par son équipe** (un DR rattaché, dont un technicien est coché
-  sur la fiche du stockage) ne peut pas en être retirée depuis « Qui peut s'y servir » : l'exception
-  d'une box ne joue que sur les accès d'office. Même règle que pour une box.
+- ~~Une personne qui voit le stockage **par son équipe** ne peut pas en être retirée depuis « Qui peut
+  s'y servir ».~~ ✅ v742 : le stockage ne se voit plus que par la case de chacun.
 - Le ✎ du stockage ouvre le formulaire COMPLET d'une box (numéro, client, étage, codes d'accès) :
   inoffensif, mais bavard.
 - Vu en chemin : chaque ligne de la liste des box porte DEUX chevrons (le « › » écrit dans la ligne

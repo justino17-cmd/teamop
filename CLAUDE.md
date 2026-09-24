@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**151 suites dans `tests/`**, sans dépendance ni installation (recompté le 24 septembre 2026 dans la nuit —
+**152 suites dans `tests/`**, sans dépendance ni installation (recompté le 24 septembre 2026 au matin —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 151 suites · 7 177 vérifications (mesuré le 24/09/2026, v741)
+bash scripts/bancs-ci.sh        # 152 suites · 7 229 vérifications (mesuré le 24/09/2026, v742)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -596,6 +596,10 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   C'est la jumelle de « une assertion sur un ensemble vide » : là on ne comptait rien, ici on
   comptait le mauvais refus. **Quand une mesure refuse, demander CE QUI refuse** — le message
   affiché le dit souvent, et il faut le lire plutôt que compter un delta à zéro.
+  ⚠️ Repris le 24 septembre 2026 (sonde v742) : **la bêta n'a que TROIS places au forfait.** Sept
+  comptes de sonde les dépassaient, et « Créer » ouvrait la page d'abonnement (un `confirm`) AVANT la
+  règle qu'on mesurait : aucun compte, aucun message. Une sonde qui pose plus de trois comptes ACHÈTE
+  ses places (`db.forfaitQty`) et le prouve dans sa population (`planPlaceLibre()`).
 - ⛔⛔ **UN RÔLE EST UN NOM : UNE RÈGLE NEUVE EST UNE CASE, JAMAIS `role==='dr'`.** Justin,
   23 septembre 2026 : « technicien, DR… c'est juste des noms, c'est pas des rôles ; tout doit être
   sélectionné — ce qu'il voit, ce qu'il ne voit pas, ce qu'il peut faire ». Mesuré ce jour-là : dix
@@ -1166,6 +1170,10 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   et **tant que le compteur ne montre pas une couverture franche, le « 0 erreur » ne se cite
   pas.** C'est la règle « une assertion sur un ensemble vide » appliquée à un geste : ici on ne
   comptait pas des absences, on comptait des clics qui n'avaient pas eu lieu.
+  ⚠️ Et **`querySelector('a, b')` rend le premier élément dans l'ordre du DOCUMENT, pas de la liste** :
+  au téléphone, « ＋ Utilisateur » existe dans la barre du haut, MASQUÉ (0 × 0), avant celui de l'en-tête
+  de page — la sonde touchait (0,0) et comptait la frappe (v742). Une frappe prouve que l'élément a
+  une taille ET qu'`elementFromPoint` au point touché est lui ou son libellé, sinon elle se DIT perdue.
 
 - ⛔⛔ **UNE GÉOMÉTRIE RECOPIÉE EN JAVASCRIPT DÉPEND DU MOMENT OÙ ON LA COPIE.** La pastille de
   la barre d'onglets lisait `offsetWidth` de l'onglet actif et se le recopiait. Mesuré le
@@ -1293,15 +1301,20 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
 - ⛔ **LE STOCKAGE (le stock hors des box) EST UNE BOX À IDENTIFIANT FIXE — `STOCKAGE_ID`.** v741,
   décision de Justin du 24 septembre 2026 (« si des entreprises n'ont pas de box, elles peuvent tout
   mettre dans le stock directement… avec un suivi de qui prend quoi »). Ne pas lui écrire une seconde
-  mécanique : arrivage, validation DR, « Pour qui ? », bon de remise, journal, fusion ligne à ligne et
-  accès personne par personne sont ceux d'une box. Quatre règles, gardées par `tests/test-794.js` :
+  mécanique : arrivage, validation DR, « Pour qui ? », bon de remise, journal et fusion ligne à ligne
+  sont ceux d'une box. Quatre règles, gardées par `tests/test-794.js` :
   · **UN total** — `stockTotaux()` (le stockage + les box qu'on voit + l'ancien `p.qte` tant qu'il
     n'est pas rangé) — lu par Stock, Produits, la cloche et la commande suggérée. Jamais `p.qte` seul :
     c'est ce qui faisait dire « 40 unités » ici et « Épuisé » là ;
-  · **son accès est celui d'une box** (`userBoxVoit`), fermé par défaut sauf à « Tout voir », donné
-    depuis « Qui peut s'y servir » ; le stockage ne compte pas comme une box (`usrSansBox`, Boxes).
-    Son identifiant est écrit en clair : **`openBox` revérifie l'accès** (un lien du journal, une
-    notification, une étiquette l'ouvraient à qui n'y avait pas accès), et la fiche à chaque rendu ;
+  · ⛔ **son accès est une PERMISSION, pas une liste de la box** (v742, Justin : « l'accès au stockage
+    est une permission ») : la case `stockage` (« Se servir dans le stockage », catégorie Stock), par
+    défaut à qui « voit tout » sans équipe rattachée, l'administrateur d'office. `visibleBoxes` ne le
+    montre qu'à `can('stockage')` — ni « Tout voir », ni `userIds`/`visibleTous`/`techIds` posés sur la
+    box, ni une délégation. « Qui peut s'y servir » écrit la CASE de chacun (administrateur seulement) ;
+    la ligne de droits et la création ne le listent plus parmi les box. Il ne compte pas comme une box
+    (`usrSansBox`, Boxes). Son identifiant est écrit en clair : **`openBox` revérifie l'accès** (un lien
+    du journal, une notification, une étiquette l'ouvraient à qui n'y avait pas accès), et la fiche à
+    chaque rendu ;
   · ⛔ **il ne se SUPPRIME pas, il se DÉSACTIVE** (« Stockage actif »). Sa pierre tombale, sur un
     identifiant fixe, élimine à la synchro le stockage qu'un autre appareil tenait hors ligne — tout
     son contenu, sans un mot (relecture v741, reproduit sur le vrai `fusionnerBases`). `delItem` refuse ;
@@ -1317,6 +1330,15 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   **Cinq portes posent « terminée »** (compte-rendu, assistant, « terminée à la date prévue », case
   « Effectué ? », menu de statut) : `test-794` les garde toutes, et joue onze gestes sur les lignes
   avant ET après la clôture ; `scratchpad/sonde-stockage.js` en joue cinq au doigt, par quatre d'entre elles.
+- ⛔ **DEUX COMPTES NE PORTENT JAMAIS LE MÊME PRÉNOM + NOM — `compteHomonyme`, à TOUTES les portes qui
+  créent ou renomment un compte.** v742, Justin (24 septembre 2026) : « l'obligation est d'avoir le
+  prénom et le nom de famille pour différencier les deux personnes ». Les noms servent de CLÉ —
+  Mouvements (« Donné à »), bons de remise (« Pour qui ? »), `nomsConcernes` : deux « Karim Benali »
+  voient chacun les lignes de l'autre. Comparaison par `nomNorm` (accents, casse, ponctuation,
+  espaces), contre TOUS les comptes, désactivés compris ; à la modification, seulement si le nom
+  CHANGE (corriger le téléphone d'un doublon d'avant ne se bloque pas) ; les doublons d'avant la règle
+  sont SIGNALÉS dans la liste. Une porte neuve qui crée un compte passe par `compteHomonyme` ou
+  n'existe pas (`tests/test-795.js`, qui exécute la vraie `saveUser`).
 - **Retirer un produit d'une box s'écrit TOUJOURS dans `db.boxDecisions`** (`boxDecider`). Quatre
   chemins le font : la feuille « Retirer », la croix ✕ de « Modifier la box », le retrait direct de la
   fiche, et le retrait validé par le DR. Sans cette trace, le catalogue repose tout seul ce qu'une
