@@ -855,6 +855,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     .multi-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;
       border-radius:12px;background:var(--bg2);border:1px solid var(--brd);font-size:13.5px;color:var(--t2)}
     .multi-bar b{color:var(--t1)}
+    .multi-bar .multi-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+    .multi-bar .multi-txt b,.multi-bar .multi-txt small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .multi-bar .multi-txt small{font-size:12.5px;color:var(--t3)}
     .nav-item .multi-pt{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}
 </style>
 <style id="plg-css">
@@ -2769,7 +2772,14 @@ html[data-refonte][data-theme="light"]{
    donc la teinte du document et on prend l'encre qui CONTRASTE le plus — la même règle que
    `encreSur()` applique déjà à « Ma couleur ». Sans ça, la palette nommée et la couleur
    personnalisée n'obéiraient pas au même principe. Tout est ≥ 4,4:1, mesuré. */
-html[data-refonte][data-accent="green"]   { --acc-src:#1F7A5C; --on-acc:#FFFFFF; }
+/* ⛔ THÈME FINAL (24 septembre 2026) : trois teintes de MARQUE en tête — TEAM OP (le défaut),
+   OP GESTION et Marine — et le vert devient le vert SYSTÈME de la maquette (#34C759/#30D158) ;
+   le graphite prend ses gris de la maquette. Leurs remplissages exacts et leurs encres calculées
+   sont posés par le bloc THÈME FINAL, en fin de feuille. */
+html[data-refonte][data-accent="teamop"]   { --acc-src:#0B1426; --on-acc:#FFFFFF; }
+html[data-refonte][data-accent="opgestion"]{ --acc-src:#0B3B2E; --on-acc:#FFFFFF; }
+html[data-refonte][data-accent="marine"]   { --acc-src:#0B1426; --on-acc:#FFFFFF; }
+html[data-refonte][data-accent="green"]   { --acc-src:#34C759; --on-acc:#0B1426; }
 html[data-refonte][data-accent="blue"]    { --acc-src:#007AFF; --on-acc:#0B1426; }
 html[data-refonte][data-accent="teal"]    { --acc-src:#30B0C7; --on-acc:#0B1426; }
 html[data-refonte][data-accent="indigo"]  { --acc-src:#5856D6; --on-acc:#FFFFFF; }
@@ -2777,8 +2787,11 @@ html[data-refonte][data-accent="purple"]  { --acc-src:#AF52DE; --on-acc:#0B1426;
 html[data-refonte][data-accent="pink"]    { --acc-src:#FF2D55; --on-acc:#0B1426; }
 html[data-refonte][data-accent="red"]     { --acc-src:#FF3B30; --on-acc:#0B1426; }
 html[data-refonte][data-accent="orange"]  { --acc-src:#FF9500; --on-acc:#0B1426; }
-html[data-refonte][data-accent="graphite"]{ --acc-src:#1D1D1F; --on-acc:#FFFFFF; }
-html[data-refonte][data-theme="dark"][data-accent="green"]   { --acc-src:#4FD18A; --on-acc:#0B1426; }
+html[data-refonte][data-accent="graphite"]{ --acc-src:#8E8E93; --on-acc:#FFFFFF; }
+html[data-refonte][data-theme="dark"][data-accent="teamop"]   { --acc-src:#A9B6CC; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="opgestion"]{ --acc-src:#6AA896; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="marine"]   { --acc-src:#8FB4FF; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="green"]   { --acc-src:#30D158; --on-acc:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="blue"]    { --acc-src:#0A84FF; --on-acc:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="teal"]    { --acc-src:#40C8E0; --on-acc:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="indigo"]  { --acc-src:#5E5CE6; --on-acc:#FFFFFF; }
@@ -2786,7 +2799,7 @@ html[data-refonte][data-theme="dark"][data-accent="purple"]  { --acc-src:#BF5AF2
 html[data-refonte][data-theme="dark"][data-accent="pink"]    { --acc-src:#FF375F; --on-acc:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="red"]     { --acc-src:#FF453A; --on-acc:#0B1426; }
 html[data-refonte][data-theme="dark"][data-accent="orange"]  { --acc-src:#FF9F0A; --on-acc:#0B1426; }
-html[data-refonte][data-theme="dark"][data-accent="graphite"]{ --acc-src:#F5F5F7; --on-acc:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="graphite"]{ --acc-src:#98989D; --on-acc:#0B1426; }
 /* ⛔⛔ LE GRAPHITE DE NUIT NE PEUT PAS TEINTER LA BARRE — ET C'EST DE L'ARITHMÉTIQUE, PAS UN
    GOÛT. Son accent de nuit est #F5F5F7, presque blanc : mélangé au navy de la barre, il ne
    la COLORE pas, il l'ÉCLAIRCIT. Mesuré au navigateur, bureau, verre allumé : le pire
@@ -2881,6 +2894,21 @@ html[data-refonte]{ --red-fill:var(--red); --on-red:#FFFFFF; --org-fill:var(--or
 html[data-refonte][data-theme="dark"]{ --red-fill:color-mix(in srgb,#000 30%,#EF7C72); --on-org:#2A1304; --on-blue:#0B1426; }
 html[data-refonte][data-theme="light"][data-accent="blue"]  { --on-acc:#FFFFFF; }
 html[data-refonte][data-theme="light"][data-accent="purple"]{ --on-acc:#FFFFFF; }
+/* ⛔ THÈME FINAL (24 septembre 2026) — CE QUE LA MAQUETTE DONNE EN PLUS DE LA SOURCE.
+   Les trois teintes de MARQUE ont un remplissage exact, pas un dérivé : le « Créer » est marine
+   de jour et GRIS-BLEU CLAIR de nuit (#F0F3F8, encre marine) pour TEAM OP et Marine, vert forêt /
+   vert d'eau pour OP GESTION. Et deux teintes système ont leurs encres calculées (règle
+   d'`encreSur()` : la plus contrastée des deux) — le vert porte du marine, le graphite garde
+   le gris foncé de la maquette pour son bouton. Tout est ≥ 4,5:1 : `test-757` le calcule. */
+html[data-refonte][data-theme="light"][data-accent="teamop"]  { --acc-fill:#0B1426; --acc-fill-hover:#152340; --acc-fill-press:#060C18; --on-acc:#FFFFFF; --on-fill:#FFFFFF; --on-acc2:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="marine"]  { --acc-fill:#0B1426; --acc-fill-hover:#152340; --acc-fill-press:#060C18; --on-acc:#FFFFFF; --on-fill:#FFFFFF; --on-acc2:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="opgestion"]{ --acc-fill:#0B3B2E; --acc-fill-hover:#0F4A3A; --acc-fill-press:#062419; --on-acc:#FFFFFF; --on-fill:#FFFFFF; --on-acc2:#FFFFFF; }
+html[data-refonte][data-theme="dark"][data-accent="teamop"]   { --acc-fill:#F0F3F8; --acc-fill-hover:#FFFFFF; --acc-fill-press:#D7DDE8; --on-fill:#0B1426; --on-acc2:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="marine"]   { --acc-fill:#F0F3F8; --acc-fill-hover:#FFFFFF; --acc-fill-press:#D7DDE8; --on-fill:#0B1426; --on-acc2:#0B1426; }
+html[data-refonte][data-theme="dark"][data-accent="opgestion"]{ --acc-fill:#6AA896; --acc-fill-hover:#7BB6A5; --acc-fill-press:#5A9483; --on-fill:#0B1426; --on-acc2:#0B1426; }
+html[data-refonte][data-theme="light"][data-accent="green"]   { --acc-txt:color-mix(in srgb,#000 42%,var(--acc-src)); --on-acc:#0B1426; --on-fill:#0B1426; --on-acc2:#FFFFFF; }
+html[data-refonte][data-theme="light"][data-accent="graphite"]{ --acc-fill:#636366; --acc-fill-hover:#56565A; --acc-fill-press:#48484C; --on-acc:#FFFFFF; --on-fill:#FFFFFF; --on-acc2:#FFFFFF; }
+html[data-refonte][data-theme="dark"][data-accent="graphite"] { --acc-fill:#8E8E93; --acc-fill-hover:#9D9DA2; --acc-fill-press:#7C7C81; --acc2:#8E8E93; --on-fill:#0B1426; --on-acc2:#0B1426; }
 
 /* ══ ET UNE SECONDE ENCRE, PARCE QU'IL Y A DEUX SURFACES ══
    ⛔⛔ `--on-acc` EST L'ENCRE DE `--acc`, ET ELLE NE VAUT PAS SUR `--acc-fill`. L'application
@@ -4059,8 +4087,8 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
      · `.tdb-jh` (32,4 px) — l'en-tête de jour de la frise : il ouvre le planning de ce jour ;
      · `.pf-zoom b` (16,2 px !) — le « 100 % » entre − et + remet le zoom, et il était deux
        fois plus petit que les deux boutons qui l'entourent ;
-     · `.ic-act` — l'icône 📅 d'une ligne d'intervention, écrite EN STYLE DIRECT sans
-       classe : elle n'en avait pas, on lui en donne une plutôt que de viser un `span` nu. */
+     · (l'icône 📅 d'une ligne d'intervention en portait une troisième, `.ic-act` : la ligne est
+       devenue une rangée du thème final, et l'icône un bouton `.tf-act` de 40 px.) */
   html[data-refonte] #content .tdb-jh{min-height:38px}
   /* ⛔ LA BARRE DES JOURS DU PLANNING ET L'ÉPINGLE DE NOTE, TROUVÉES SUR L'IPAD (23 septembre
      2026, audit des écrans profonds, profil tablette) : un téléphone ouvre le planning autrement
@@ -4082,7 +4110,6 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
        filtre la carte sur ses tournées. */
   html[data-refonte] #content .pg-hd{min-height:38px;display:flex;flex-direction:column;justify-content:center}
   html[data-refonte] .plm-leg .lg.clic{min-height:38px;padding:0 12px}
-  html[data-refonte] .ic-act{min-height:38px;min-width:38px;display:inline-flex;align-items:center;justify-content:center}
   /* ⛔⛔ LE CHAMP D'UNE RANGÉE DE FORMULAIRE NE RÉPONDAIT QUE SUR 17 PX. `.frow` est la rangée
      façon Réglages d'iOS (libellé, champ nu, filet) : 179 formulaires en sont faits. Mais
      `.frow > input{padding:0;border:none}` réduit le champ à sa seule ligne de texte —
@@ -6735,6 +6762,657 @@ html[data-verre="1"] .sidebar .nav-label{font-weight:640!important}
 /* La coupe qui suit les favoris sépare deux familles, pas deux écrans : elle respire plus. */
 .nav-item-fav + .nav-label,.nav-fav-vide + .nav-label{padding-top:22px!important}
 </style>
+<style id="theme-final">
+/* ══ THÈME FINAL — OP GESTION au style Apple (Justin, 24 septembre 2026) ═════════════════════
+   « Voilà mon thème final pour OP GESTION : je veux que tu l'appliques, que tu le vérifies, que
+   tu le testes de A à Z — mais je veux que tu gardes le système de la barre qu'on avait fait
+   ensemble, sur iPhone et en version web. » La référence est `design/THEME-REFERENCE.md`, tirée
+   du dossier de Justin (`OP Gestion Apple`) ; `tests/test-759.js` le relit et le compare à ce
+   bloc, valeur par valeur.
+
+   Ce que ce bloc change, et ce qu'il ne touche pas :
+   · les COULEURS : deux thèmes (TEAM OP par défaut, OP GESTION au choix) qui posent le fond, le
+     texte et le menu ; onze teintes qui ne colorent que les boutons, les liens, les onglets, le
+     menu actif et les icônes de barre ;
+   · la MATIÈRE : le verre de la maquette, sur les dix plateformes ;
+   · la FORME de quelques pièces : la barre du haut en capsules, l'en-tête du tableau de bord,
+     la bulle de la barre d'onglets, la rubrique active du menu, les tuiles de catégorie.
+   ⛔ La MÉCANIQUE de la barre d'onglets (la bulle qu'on attrape et qu'on glisse au doigt, ses
+   colonnes calculées en CSS, `--tabh`) n'est PAS touchée : seul son habillage change.
+   ⛔ L'application s'appelle OP GESTION, avec son logo, dans les deux thèmes (`applyBrand`).
+
+   Tout est posé sur `html[data-marque][data-verre]` : `applyTheme()` pose `data-marque`,
+   `opPlatAppliquer()` pose `data-verre` — sans JavaScript, rien de ce bloc ne s'applique, et la
+   page n'est de toute façon pas visible avant (l'application et la connexion naissent cachées).
+   Ce bloc vient APRÈS la grande feuille : à spécificité égale, c'est lui qui parle. */
+
+/* ── 1. LA MATIÈRE — jour, commune aux deux thèmes ─────────────────────────────────────────── */
+html[data-marque][data-verre][data-theme="light"]{
+  --vr-flou:blur(40px) saturate(220%) brightness(1.04);
+  --vr-fond:rgba(255,255,255,.42);
+  --vr-fond2:rgba(255,255,255,.4);
+  --vr-fond-dense:rgba(246,247,249,.78);
+  --vr-liseret:rgba(255,255,255,.85);
+  --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.75) 0%,rgba(255,255,255,.25) 38%,rgba(255,255,255,.05) 55%,rgba(255,255,255,.45) 100%);
+  --vr-ombre:0 18px 44px rgba(11,20,38,.14),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -1px 0 rgba(255,255,255,.55),inset 1px 0 0 rgba(255,255,255,.7);
+  --vr-ombre-barre:0 24px 56px rgba(11,20,38,.2),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -1px 0 rgba(255,255,255,.6);
+  --vr-halos:none;
+  --tf-barre:rgba(255,255,255,.46);          /* la barre d'onglets */
+  --tf-cote:rgba(255,255,255,.35);           /* la barre latérale du bureau */
+  --tf-kpi:rgba(255,255,255,.44);            /* les tuiles chiffrées */
+  --tf-curseur:rgba(255,255,255,.95);        /* le curseur d'un segmenté */
+  --tf-entete:rgba(11,20,38,.05);            /* l'en-tête teinté d'une section de fiche */
+  --tf-filet:rgba(255,255,255,.6);           /* le filet entre deux lignes, sur le verre */
+  --tf-presse:rgba(11,20,38,.05);            /* une ligne sous le doigt */
+  --tf-poignee:rgba(60,60,67,.3);
+  --tf-bulle:rgba(255,255,255,.85);          /* la bulle de l'onglet choisi */
+  --tf-bulle-ombre:0 6px 16px rgba(11,20,38,.14),inset 0 1px 0 #fff;
+  --tf-bulle-tenue:0 10px 24px rgba(11,20,38,.2),inset 0 1px 0 #fff;
+  --tf-bord-haut:rgba(240,243,248,.72);      /* le bord de défilement sous les capsules */
+  --t2:#454C5B; --t3:#5A616F;
+  --vr-encre2:#454C5B; --vr-encre3:#5A616F;
+  --bg1:#FFFFFF; --bg2:#F6F8FB; --card:#FFFFFF; --card2:#F6F8FB; --eleve:#FFFFFF;
+  --brd:rgba(11,20,38,.09); --brd2:rgba(11,20,38,.15); --cardline:rgba(11,20,38,.08);
+  --hover:rgba(11,20,38,.05); --hover-tint:rgba(11,20,38,.05); --chip:rgba(11,20,38,.06);
+  --inpBorder:rgba(11,20,38,.14); --scrim:rgba(0,0,0,.35);
+  --rf-2nd:rgba(11,20,38,.06); --rf-2nd-h:rgba(11,20,38,.1); --rf-filet:rgba(11,20,38,.1);
+  --rf-relief:none; --rf-voile:none; --rf-lumiere:none; --rf-barre:none;
+  --ombre-2:0 18px 44px rgba(11,20,38,.14); --ombre-3:0 30px 80px rgba(11,20,38,.22);
+  /* Les encres de SENS, alignées sur les statuts de la maquette (§ 2) */
+  --green:#1C7A3A; --blue:#0A5FC2; --red:#A81F16; --org:#8A5300;
+  --danger-bg:rgba(255,59,48,.12); --danger-ink:#A81F16;
+}
+/* ── 1 bis. LA MATIÈRE — nuit, commune aux deux thèmes ──
+   De nuit c'est la LUMIÈRE qui élève : la vitre est un voile blanc à 8,5 %, plus claire que la
+   page, et son reflet est un cheveu. */
+html[data-marque][data-verre][data-theme="dark"]{
+  --vr-flou:blur(40px) saturate(220%) brightness(1.08);
+  --vr-fond:rgba(255,255,255,.085);
+  --vr-fond2:rgba(255,255,255,.12);
+  --vr-liseret:rgba(255,255,255,.16);
+  --vr-reflet:linear-gradient(135deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.04) 38%,rgba(255,255,255,0) 55%,rgba(255,255,255,.07) 100%);
+  --vr-ombre:0 18px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(255,255,255,.06),inset 1px 0 0 rgba(255,255,255,.08);
+  --vr-ombre-barre:0 24px 56px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.32),inset 0 -1px 0 rgba(255,255,255,.08);
+  --vr-halos:none;
+  --tf-barre:rgba(255,255,255,.1);
+  --tf-cote:rgba(255,255,255,.04);
+  --tf-kpi:rgba(255,255,255,.085);
+  --tf-curseur:rgba(255,255,255,.22);
+  --tf-entete:rgba(255,255,255,.08);
+  --tf-filet:rgba(84,84,88,.65);
+  --tf-presse:rgba(255,255,255,.08);
+  --tf-poignee:rgba(255,255,255,.3);
+  --tf-bulle:rgba(34,59,110,.72);
+  --tf-bulle-ombre:0 6px 16px rgba(34,59,110,.3),inset 0 1px 0 rgba(255,255,255,.28);
+  --tf-bulle-tenue:0 10px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.3);
+  --brd:rgba(255,255,255,.1); --brd2:rgba(255,255,255,.16); --cardline:rgba(255,255,255,.08);
+  --hover:rgba(255,255,255,.08); --hover-tint:rgba(255,255,255,.08); --chip:rgba(255,255,255,.1);
+  --inpBorder:rgba(255,255,255,.16); --scrim:rgba(0,0,0,.35);
+  --rf-2nd:rgba(255,255,255,.1); --rf-2nd-h:rgba(255,255,255,.16); --rf-filet:rgba(255,255,255,.12);
+  --rf-relief:none; --rf-voile:none; --rf-lumiere:none; --rf-barre:none;
+  --ombre-2:0 18px 44px rgba(0,0,0,.45); --ombre-3:0 30px 80px rgba(0,0,0,.6);
+  --green:#30D158; --blue:#64B5FF;
+}
+
+/* ── 2. LE THÈME TEAM OP (défaut) — marine et gris-bleu, les couleurs du logo TEAM OP ──────── */
+html[data-marque="teamop"][data-verre][data-theme="light"]{
+  /* Le dégradé du logo : bleu glacé en haut à gauche, lavande en bas à droite, et la diagonale
+     blanche à 112° qui coupe le carré TEAM OP. Chaque arrêt transparent garde SA teinte : un
+     dégradé qui finit sur `transparent` passe par du noir (CLAUDE.md). */
+  --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.35) 58.2%),
+    radial-gradient(120% 90% at 0% 0%,#DFE9FF 0%,rgba(223,233,255,0) 55%),
+    radial-gradient(110% 80% at 100% 100%,#E6DFF6 0%,rgba(230,223,246,0) 60%),
+    linear-gradient(160deg,#EEF3FB 0%,#F0F3F8 100%);
+  --t1:#0B1426; --vr-encre:#0B1426;
+  --bg:#F0F3F8; --bg3:#E3E8F0; --deep:#EEF3FB;
+  --tf-page-plein:#F0F3F8;
+}
+html[data-marque="teamop"][data-verre][data-theme="dark"]{
+  /* Jamais de noir pur : le bleu nuit du logo, #152340 → #0B1426, et la diagonale à 5 %. */
+  --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.05) 58.2%),
+    linear-gradient(160deg,#152340,#0B1426);
+  --vr-fond-dense:rgba(21,35,64,.86);
+  --t1:#F0F3F8; --t2:#B8C0CD; --t3:#ABB3C2;
+  --vr-encre:#F0F3F8; --vr-encre2:#B8C0CD; --vr-encre3:#ABB3C2;
+  --bg:#0B1426; --bg1:#1A2640; --bg2:#1F2D4A; --bg3:#2B3A58; --card:#1A2640; --card2:#1F2D4A;
+  --deep:#0B1426; --eleve:#1F2D4A;
+  --tf-page-plein:#0B1426;
+  --tf-bord-haut:rgba(16,29,53,.7);
+}
+/* ── 3. LE THÈME OP GESTION — vert forêt et menthe, les couleurs du logo OP GESTION ────────── */
+html[data-marque="opgestion"][data-verre][data-theme="light"]{
+  --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.35) 58.2%),
+    radial-gradient(120% 90% at 0% 0%,#DCF3EA 0%,rgba(220,243,234,0) 55%),
+    radial-gradient(110% 80% at 100% 100%,#E3F0E2 0%,rgba(227,240,226,0) 60%),
+    linear-gradient(160deg,#EEF8F4 0%,#E4EFEA 100%);
+  --t1:#0B3B2E; --vr-encre:#0B3B2E;
+  --bg:#E4EFEA; --bg3:#D8E7E0; --deep:#EEF8F4;
+  --tf-page-plein:#E4EFEA;
+  --tf-bord-haut:rgba(228,239,234,.72);
+}
+html[data-marque="opgestion"][data-verre][data-theme="dark"]{
+  --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.05) 58.2%),
+    linear-gradient(160deg,#0F4A3A,#0B3B2E);
+  --vr-fond-dense:rgba(12,56,44,.88);
+  /* ⚠ ÉCART DÉCLARÉ : la maquette écrit le second plan à 72 % de la menthe ; au point le plus
+     CLAIR de la page de nuit (le haut du dégradé, sous la diagonale) il tombe à 3,4:1 sur la
+     vitre. La menthe pleine y tient 5,0:1 — c'est elle, et le second plan s'éclaircit d'autant
+     (test-759 mesure ce pire point). */
+  --t1:#E4EFEA; --t2:#D4E8E0; --t3:#C4E0D6;
+  --vr-encre:#E4EFEA; --vr-encre2:#D4E8E0; --vr-encre3:#C4E0D6;
+  --bg:#0B3B2E; --bg1:#104A3A; --bg2:#135443; --bg3:#1A5A48; --card:#104A3A; --card2:#135443;
+  --deep:#0B3B2E; --eleve:#135443;
+  --tf-page-plein:#0B3B2E;
+  --tf-bord-haut:rgba(13,66,52,.72);
+}
+
+/* ── 4. LES TEINTES — ce que chacune remplit, et l'encre qu'on écrit dessus ─────────────────
+   Les SOURCES (--acc-src, jour et nuit) vivent avec les autres dans le bloc « LA COULEUR
+   D'ACCENT » ; la feuille en dérive treize jetons. Ici : ce que la maquette donne EN PLUS de la
+   source — le remplissage exact des trois teintes de marque (le « Créer » marine de jour,
+   gris-bleu clair de nuit) — et les encres calculées (la plus contrastée des deux, comme
+   `encreSur()` : blanc ou #0B1426).
+   `--tf-acc-rgb` : les canaux du VOILE de la teinte (le fond de la rubrique active, du bouton
+   d'une liste). Ils viennent de la maquette et ne sont pas toujours la source : TEAM OP voile en
+   gris-bleu (142,154,174), pas en marine — un voile marine à 14 % sur du verre fait une tache. */
+html[data-marque]{ --tf-acc-rgb:var(--acc-rgb,142,154,174); --tf-onglet:var(--acc-txt); }
+html[data-marque][data-accent="teamop"]   { --tf-acc-rgb:142,154,174; --tf-onglet:var(--t1); }
+html[data-marque][data-accent="opgestion"]{ --tf-acc-rgb:106,168,150; --tf-onglet:var(--t1); }
+html[data-marque][data-accent="marine"]   { --tf-acc-rgb:11,20,38;    --tf-onglet:var(--t1); }
+html[data-marque][data-accent="blue"]     { --tf-acc-rgb:0,122,255; }
+html[data-marque][data-accent="green"]    { --tf-acc-rgb:52,199,89; }
+html[data-marque][data-accent="indigo"]   { --tf-acc-rgb:88,86,214; }
+html[data-marque][data-accent="purple"]   { --tf-acc-rgb:175,82,222; }
+html[data-marque][data-accent="pink"]     { --tf-acc-rgb:255,45,85; }
+html[data-marque][data-accent="orange"]   { --tf-acc-rgb:255,149,0; }
+html[data-marque][data-accent="teal"]     { --tf-acc-rgb:48,176,199; }
+html[data-marque][data-accent="graphite"] { --tf-acc-rgb:142,142,147; }
+html[data-marque][data-accent="red"]      { --tf-acc-rgb:255,59,48; }
+/* Sous la vitre de nuit du vert forêt, les teintes sombres (indigo, rose, rouge, bleu) écrites
+   en lettres tombaient à 4,0–4,4:1 : on les éclaircit d'un cran de plus. */
+html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent]{--acc-txt:color-mix(in srgb,#fff 58%,var(--acc-src))}
+html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="teamop"],
+html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="opgestion"]{--acc-txt:color-mix(in srgb,#fff 46%,var(--acc-src))}
+
+/* ── 5. LA PAGE — le dégradé du thème, sans halo ─────────────────────────────────────────────
+   ⚠ ÉCART DÉCLARÉ : `THEME.md` § 0 parle de « trois halos animés derrière le verre » ; la
+   source finale les définit mais n'en peint AUCUN, et c'est la source que Justin a regardée.
+   Le fond est donc le seul dégradé du thème. Les halos d'avant (la couche `body::after`) sont
+   éteints — une couche peinte en moins, qui tournait en boucle. */
+html[data-marque][data-verre] body::after{display:none!important}
+html[data-marque][data-verre] body::before{background:none!important}
+
+/* ── 6. LES RAYONS DE CHAQUE SYSTÈME — le verre partout, la forme de chacun ──
+   26 px sur les appareils qui ont le Liquid Glass natif, 28 sur Android, 8 sur Windows, 12 sur
+   les Apple plus anciens (iOS 18, macOS 14) — `cardR` de la source. `data-verre-natif` est posé
+   par `opPlatAppliquer` : c'est lui qui dit « Liquid Glass de Safari 26 », pas `data-verre`. */
+html[data-marque][data-verre]{ --rf-r-carte:12px; --rf-r-fenetre:12px; --tf-r-carte2:12px; --tf-r-recherche:12px; }
+html[data-marque][data-verre][data-verre-natif]{ --rf-r-carte:26px; --rf-r-fenetre:26px; --tf-r-carte2:20px; --tf-r-recherche:999px; }
+html[data-marque][data-verre][data-os="android"]{ --rf-r-carte:28px; --rf-r-fenetre:28px; --tf-r-carte2:24px; --tf-r-recherche:999px; }
+html[data-marque][data-verre][data-os="windows"]{ --rf-r-carte:8px; --rf-r-fenetre:9px; --tf-r-carte2:8px; --tf-r-recherche:12px; }
+html[data-marque][data-verre] .card,html[data-marque][data-verre] .kpi,
+html[data-marque][data-verre] .tbl{border-radius:var(--rf-r-carte)!important}
+
+/* ── 7. LES SURFACES ──
+   Les cartes, les tableaux et les fenêtres prennent déjà le verre (bloc PLATEFORME) : les jetons
+   ci-dessus suffisent. Deux exceptions de la source : la tuile chiffrée n'a PAS de reflet (une
+   surface pleine de verre), et une fenêtre de nuit se pose sur une scène assombrie — elle prend
+   le verre DENSE, comme de jour. */
+html[data-marque][data-verre] .kpi{background:var(--tf-kpi)!important}
+html[data-marque][data-verre][data-theme="dark"] .modal{background:var(--vr-reflet),var(--vr-fond-dense)!important}
+
+/* ── 8. LA BARRE DU HAUT : DES CAPSULES, PAS UNE BARRE ──────────────────────────────────────
+   La barre d'outils d'iOS 26 : aucun fond, trois objets qui flottent sur le contenu — le menu
+   (une pastille de verre de 44 px), « Créer » (plein, à la teinte), et UNE capsule de verre
+   pour la synchro, la cloche et la recherche. Quand le contenu passe dessous, un bord de
+   défilement (flou qui s'efface vers le bas) garde les capsules lisibles — pas une barre qui
+   réapparaît. */
+html[data-marque][data-verre][data-refonte] .topbar{
+  background:none!important;border:0!important;box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+html[data-marque][data-verre][data-refonte] body.defile .topbar{background:none!important;box-shadow:none!important}
+html[data-marque][data-verre][data-refonte] .topbar::after{display:none!important}
+html[data-marque][data-verre][data-refonte] .topbar::before{
+  content:"";position:absolute;left:0;right:0;top:0;bottom:-22px;z-index:-1;pointer-events:none;
+  opacity:0;transition:opacity .24s cubic-bezier(.32,.72,0,1);
+  background:linear-gradient(to bottom,var(--tf-bord-haut) 0%,var(--tf-bord-haut) 52%,rgba(0,0,0,0) 100%);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 55%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 55%,rgba(0,0,0,0) 100%);
+}
+html[data-marque][data-verre][data-refonte] body.defile .topbar::before{opacity:1}
+/* Le nom en petites capitales et la bascule jour/nuit quittent la barre : le nom vit dans le
+   menu et à la connexion, le mode dans « Thème et couleur ». La recherche de bureau se replie
+   sur sa loupe, qui ouvre la même recherche en grand. */
+html[data-marque][data-verre][data-refonte] .topbar .topbar-brand{display:none!important}
+html[data-marque][data-verre][data-refonte] .topbar #theme-btn{display:none!important}
+html[data-marque][data-verre][data-refonte] .topbar .gsrch{display:none!important}
+/* La pastille du menu. (Le retour de la barre, #topbar-back, est caché partout sous la refonte :
+   le retour vit dans l'en-tête de page, `.ph-back`.) */
+html[data-marque][data-verre][data-refonte] .topbar .menu-btn{
+  width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important;
+  border-radius:50%!important;flex:0 0 44px!important;
+  background:var(--vr-fond)!important;border:1px solid var(--vr-liseret)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  box-shadow:var(--vr-ombre-barre)!important;color:var(--acc-txt)!important;
+}
+/* « Créer » : la seule chose pleine de la barre */
+html[data-marque][data-verre][data-refonte] .topbar .creer-btn{
+  height:44px!important;min-height:44px!important;padding:0 18px 0 14px!important;border-radius:999px!important;
+  background:var(--acc-fill)!important;color:var(--on-fill)!important;border:0!important;
+  font-size:17px!important;font-weight:600!important;letter-spacing:-.02em!important;gap:6px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 0 rgba(0,0,0,.12),0 8px 20px rgba(0,0,0,.18)!important;
+}
+html[data-marque][data-verre][data-refonte] .topbar .creer-btn .creer-lbl{display:inline!important}
+/* Il ne se réduit à sa croix que quand le titre remonte dans la barre (téléphone, page
+   défilée : `body.ctx.rf-haut`) — c'est alors le titre qui a besoin de la place. */
+@media(max-width:560px){
+  html[data-marque][data-verre][data-refonte] body.ctx.rf-haut .topbar .creer-btn .creer-lbl{display:none!important}
+  html[data-marque][data-verre][data-refonte] body.ctx.rf-haut .topbar .creer-btn{padding:0 14px!important}
+}
+html[data-marque][data-verre][data-refonte] .topbar .creer-btn > span:first-child{font-size:15px;font-weight:700;line-height:1}
+html[data-marque][data-verre][data-refonte] .topbar .creer-btn:active{transform:scale(.96)!important;opacity:.85}
+/* ⛔ LA CAPSULE PORTE SON VERRE SUR UN PSEUDO-ÉLÉMENT, PAS SUR ELLE-MÊME. Un `backdrop-filter`
+   posé sur la capsule en ferait une « racine d'arrière-plan » : le panneau des notifications,
+   qui vit DEDANS, ne verrait plus la page derrière lui et perdrait son flou. Posé sur `::before`,
+   le verre reste une couche de la capsule, et la capsule reste une boîte ordinaire. */
+html[data-marque][data-verre][data-refonte] .topbar .tb-grappe{
+  position:relative;isolation:isolate;display:flex;align-items:center;gap:2px;flex:0 0 auto;
+  height:44px;padding:0 3px;border-radius:999px;margin-left:auto;
+}
+html[data-marque][data-verre][data-refonte] .topbar .tb-grappe::before{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  background:var(--vr-fond);border:1px solid var(--vr-liseret);
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  box-shadow:var(--vr-ombre-barre);
+}
+html[data-marque][data-verre][data-refonte] .topbar .tb-grappe .bell{
+  display:inline-flex!important;align-items:center;justify-content:center;vertical-align:middle;line-height:0;flex:0 0 38px;
+  width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;
+  margin:0!important;padding:0!important;border-radius:50%!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;color:var(--acc-txt)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+html[data-marque][data-verre][data-refonte] .topbar .tb-grappe .bell:active{transform:scale(.92);opacity:.7}
+html[data-marque][data-verre][data-refonte] .topbar .tb-grappe .topbar-bell{margin:0!important;flex:0 0 auto;display:flex;align-items:center}
+/* « Replier le menu » (bureau) : une pastille de verre, sœur de celle du menu */
+html[data-marque][data-verre][data-refonte] .topbar .rf-plier{
+  width:44px!important;height:44px!important;border-radius:50%!important;flex:0 0 44px;
+  background:var(--vr-fond)!important;border:1px solid var(--vr-liseret)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  box-shadow:var(--vr-ombre-barre)!important;color:var(--acc-txt)!important;
+}
+/* Le compteur de la cloche : la pastille rouge d'iOS, cerclée de la capsule */
+html[data-marque][data-verre][data-refonte] .topbar .bell-count{
+  background:#FF3B30!important;color:#fff!important;font-size:11px!important;font-weight:700!important;
+  min-width:18px;height:17px;padding:0 5px;border-radius:999px;box-shadow:0 0 0 2px var(--tf-page-plein);
+}
+/* Sur un téléphone la capsule reste entière : les ronds de synchro et de recherche ne se
+   cachent plus (la place tient : mesuré dans la maquette, 44 + « Créer » + 122 px à 393). Sur la
+   barre contextuelle (un titre qui a besoin de place), on garde la règle d'avant. */
+@media(max-width:560px){
+  html[data-marque][data-verre][data-refonte] body:not(.rf-haut) .topbar #sync-btn,
+  html[data-marque][data-verre][data-refonte] body:not(.rf-haut) .topbar #search-btn{display:inline-flex!important}
+}
+@media(max-width:340px){
+  html[data-marque][data-verre][data-refonte] .topbar .creer-btn .creer-lbl{display:none!important}
+}
+
+/* ── 9. LA BARRE D'ONGLETS — même mécanique, nouvel habillage ───────────────────────────────
+   ⛔ Rien ici ne touche à la géométrie de la bulle (`--tab-n`, `--tab-i`, `translate`, `scale`
+   tenue en main) ni à `--tabh` : c'est le système que Justin a fait avec nous, et il le garde.
+   Ce qui change : la pilule prend le verre de la maquette, et la bulle de l'onglet choisi
+   devient la bulle BLANCHE de jour (85 %) et MARINE de nuit, encre marine / blanche. */
+html[data-marque][data-verre][data-kind="mobile"] .tabbar{
+  background:var(--tf-barre)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border:1px solid var(--vr-liseret)!important;box-shadow:var(--vr-ombre-barre)!important;
+}
+html[data-marque][data-verre][data-kind="mobile"] .tab-cur{
+  background:var(--tf-bulle)!important;box-shadow:var(--tf-bulle-ombre)!important;border-radius:999px!important;
+}
+html[data-marque][data-verre][data-kind="mobile"] .tabbar.tire .tab-cur{box-shadow:var(--tf-bulle-tenue)!important}
+html[data-marque][data-refonte] .tabbar .tab{color:var(--t3)!important;font-weight:500}
+html[data-marque][data-refonte] .tabbar .tab.on,
+html[data-marque][data-refonte] .tabbar .tab.survol{color:var(--tf-onglet)!important}
+html[data-marque][data-refonte] .tabbar .tab.on .tab-l,
+html[data-marque][data-refonte] .tabbar .tab.survol .tab-l{font-weight:600}
+html[data-marque][data-refonte] .tabbar.tire .tab.on:not(.survol){color:var(--t3)!important}
+html[data-marque][data-refonte] .tabbar .tab-l{font-size:11px!important;letter-spacing:-.01em}
+html[data-marque][data-refonte] .tabbar .tab-ic .rf-ic{width:22px!important;height:22px!important;stroke-width:1.8}
+/* ⛔ ANDROID PREND LA MÊME BARRE. Le 22 septembre, Justin avait figé Android (« on change rien,
+   ça reste comme je t'ai montré ») ; le thème final du 24 dit « barre d'onglets (toutes
+   plateformes) : pilule flottante en verre ». On lui rend donc les mesures communes — la
+   typographie Roboto et les rayons de Material restent les siens. */
+html[data-marque][data-verre][data-refonte][data-os="android"] .tabbar .tab{padding:4px 2px!important;gap:2px!important}
+html[data-marque][data-verre][data-os="android"] .tab-ic{font-size:18px}
+html[data-marque][data-verre][data-os="android"] .tab-l{font-weight:500}
+
+/* ── 10. LE MENU — barre latérale du bureau et tiroir du téléphone ──────────────────────────── */
+html[data-marque][data-verre] .sidebar{
+  background:var(--vr-reflet),var(--tf-cote)!important;
+  border-right:1px solid var(--vr-liseret)!important;
+  --side-active:rgba(var(--tf-acc-rgb),.14);
+}
+html[data-marque][data-verre][data-theme="dark"] .sidebar{--side-active:rgba(255,255,255,.14)}
+/* Le tiroir du téléphone reprend le FOND de la page sous son verre (la maquette : « le tiroir
+   et la barre latérale reprennent le même fond ») : il est opaque, et son ombre dit qu'il est
+   au-dessus. */
+@media(max-width:780px){
+  html[data-marque][data-verre] .sidebar{
+    background:var(--vr-reflet),var(--vr-page)!important;
+    box-shadow:22px 0 50px rgba(0,0,0,.22)!important;
+  }
+}
+/* La rubrique active : un voile de la teinte, l'encre de la teinte (blanche la nuit) — plus un
+   aplat plein. Le glisseur (`.nav-glisse`) porte le voile ; la ligne porte l'encre. */
+html[data-marque][data-verre] .sidebar .nav-item.active{
+  background:transparent!important;color:var(--acc-txt)!important;font-weight:600!important;
+}
+html[data-marque][data-verre] .sidebar .nav:not(.a-glisse) .nav-item.active{background:var(--side-active)!important}
+html[data-marque][data-verre][data-theme="dark"] .sidebar .nav-item.active{color:#fff!important}
+html[data-marque][data-verre] .nav-glisse{
+  background:var(--side-active)!important;box-shadow:inset 0 0 0 .5px rgba(var(--tf-acc-rgb),.25)!important;
+}
+html[data-marque][data-verre][data-theme="dark"] .nav-glisse{box-shadow:none!important}
+/* Les titres de groupe : petites capitales grises, comme la maquette (TERRAIN, COMMERCIAL…) */
+html[data-marque][data-verre] .sidebar .nav-label{
+  text-transform:uppercase!important;letter-spacing:.06em!important;font-size:11px!important;font-weight:600!important;
+  color:var(--t3)!important;
+}
+/* La tête du menu : OP GESTION en toutes lettres, l'entreprise dessous */
+html[data-marque][data-verre] #brand-name{
+  font-family:var(--fs)!important;letter-spacing:-.012em!important;font-size:14px!important;font-weight:700!important;color:var(--t1)!important;
+}
+html[data-marque][data-verre] #brand-sub{
+  font-size:11.5px!important;letter-spacing:0!important;color:var(--t3)!important;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;
+}
+html[data-marque][data-verre] #brand-logo{border-radius:11px!important;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+html[data-marque][data-verre] .sidebar .brand::after{display:none}
+
+/* ── 11. LES TUILES DE CATÉGORIE — une couleur par rubrique, jour et nuit ──
+   `catVars(k)` pose `--cat-j` et `--cat-n` en ligne ; la feuille choisit. 13 % de la couleur le
+   jour, 20 % la nuit — les « 22 » et « 33 » hexadécimaux de la maquette. */
+html[data-marque] .nav-item .ico,html[data-marque] .creer-ic,html[data-marque] .kpi-ico{--cat:var(--cat-j,#636366)}
+html[data-marque][data-theme="dark"] .nav-item .ico,html[data-marque][data-theme="dark"] .creer-ic,
+html[data-marque][data-theme="dark"] .kpi-ico{--cat:var(--cat-n,var(--cat-j,#8E8E93))}
+html[data-marque][data-refonte] .nav-item .ico,
+html[data-marque][data-refonte] .nav-item.active .ico{
+  background:color-mix(in srgb,var(--cat) 13%,transparent)!important;color:var(--cat)!important;
+}
+html[data-marque][data-refonte][data-theme="dark"] .nav-item .ico,
+html[data-marque][data-refonte][data-theme="dark"] .nav-item.active .ico{background:color-mix(in srgb,var(--cat) 20%,transparent)!important}
+html[data-marque][data-refonte] .creer-ic{background:color-mix(in srgb,var(--cat) 13%,transparent)!important;color:var(--cat)!important}
+html[data-marque][data-refonte][data-theme="dark"] .creer-ic{background:color-mix(in srgb,var(--cat) 20%,transparent)!important}
+html[data-marque][data-refonte] .kpis .kpi .kpi-ico,
+html[data-marque][data-refonte] .kpis .kpi:first-child .kpi-ico{
+  background:color-mix(in srgb,var(--cat) 13%,transparent)!important;color:var(--cat)!important;
+  width:40px!important;height:40px!important;border-radius:12px!important;margin-bottom:0!important;
+}
+html[data-marque][data-refonte][data-theme="dark"] .kpis .kpi .kpi-ico{background:color-mix(in srgb,var(--cat) 20%,transparent)!important}
+html[data-marque][data-refonte] .kpi-ico .rf-ic{width:22px!important;height:22px!important;stroke-width:1.9}
+
+/* ── 12. L'EN-TÊTE D'UN ÉCRAN — le grand titre d'iOS ──
+   34/41, graisse 700, +0,37 pt : l'échelle Large Title de la HIG, telle que la maquette l'écrit.
+   Sur le tableau de bord, la date en capitales au-dessus, à la teinte ; l'entreprise dessous. */
+html[data-marque][data-refonte] .ph-title{
+  font-family:var(--fs)!important;font-size:34px!important;line-height:41px!important;
+  letter-spacing:.37px!important;font-weight:700!important;color:var(--t1)!important;
+}
+html[data-marque][data-refonte] .ph-sub{font-size:15px!important;color:var(--t3)!important;margin-top:2px!important}
+html[data-marque][data-refonte] .ph-surtitre{
+  font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--acc-txt);margin-bottom:2px;
+}
+@media(max-width:380px){
+  html[data-marque][data-refonte] .ph-title{font-size:30px!important;line-height:36px!important;letter-spacing:.2px!important}
+}
+/* Les actions de l'en-tête : la maquette n'y met pas d'aplat. L'action de la liste est un
+   voile de la teinte, écrit à la teinte (« + Nouvelle ») ; une action secondaire est une
+   pastille de verre (« Personnaliser », « Enregistrer »). */
+html[data-marque][data-verre][data-refonte] .ph-actions .btn:not(.danger){
+  border-radius:999px!important;font-size:15px!important;font-weight:600!important;letter-spacing:-.01em!important;
+  box-shadow:none!important;border:0!important;
+}
+html[data-marque][data-verre][data-refonte] .ph-actions .btn:not(.ghost):not(.danger){
+  background:rgba(var(--tf-acc-rgb),.14)!important;color:var(--acc-txt)!important;
+}
+html[data-marque][data-verre][data-refonte] .ph-actions .btn.ghost{
+  background:var(--vr-fond2)!important;color:var(--t1)!important;
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+}
+html[data-os="windows"][data-marque][data-verre][data-refonte] .ph-actions .btn{border-radius:6px!important}
+/* Sur un téléphone, l'action se range à DROITE du titre quand elle y tient (la maquette :
+   « Interventions … + Nouvelle ») et passe dessous sinon — plus une barre pleine largeur. */
+@media(max-width:780px){
+  html[data-marque][data-verre][data-refonte] .ph-row > div:first-child{flex:1 1 200px!important}
+  html[data-marque][data-verre][data-refonte] .ph-actions{flex:0 1 auto!important;justify-content:flex-end}
+  html[data-marque][data-verre][data-refonte] .ph-actions .btn:not(.ghost):not(.danger){order:0!important;flex:0 0 auto!important}
+  html[data-marque][data-verre][data-refonte] .ph-actions .btn{min-height:44px!important;padding:0 16px!important}
+}
+
+/* La barre « Reprendre » du multitâche : une vitre posée en haut de l'écran, comme une
+   notification du système — le nom de ce qu'on avait commencé, sa fraîcheur dessous, l'action
+   en voile de la teinte (le même langage que l'action d'un en-tête), et une croix ronde. */
+html[data-marque][data-verre][data-refonte] .multi-bar{
+  flex-wrap:nowrap!important;gap:10px!important;padding:10px 10px 10px 16px!important;
+  border-radius:var(--tf-r-carte2,18px)!important;border:1px solid var(--vr-liseret)!important;
+  background:var(--vr-fond2)!important;box-shadow:var(--vr-ombre)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  font-size:15px!important;color:var(--t2)!important;
+}
+html[data-marque][data-verre][data-refonte] .multi-bar .multi-txt b{font-size:15px;font-weight:600;letter-spacing:-.01em}
+html[data-marque][data-verre][data-refonte] .multi-bar .btn:not(.multi-x){
+  flex:0 0 auto;border:0!important;box-shadow:none!important;font-weight:600!important;
+  background:rgba(var(--tf-acc-rgb),.14)!important;color:var(--acc-txt)!important;
+}
+html[data-marque][data-verre][data-refonte] .multi-bar .multi-x{
+  flex:0 0 auto;width:38px;min-width:38px!important;padding:0!important;justify-content:center;
+  border:0!important;box-shadow:none!important;background:var(--rf-2nd)!important;color:var(--t2)!important;
+}
+html[data-os="windows"][data-marque][data-verre][data-refonte] .multi-bar{border-radius:8px!important}
+/* Sur un Android de 360 px, « Commencé il y a 1 min » demandait 144 px et en recevait 126 : la
+   durée finissait en « … ». On resserre la barre avant de couper une information. */
+@media(max-width:380px){
+  html[data-marque][data-verre][data-refonte] .multi-bar{gap:8px!important;padding-left:12px!important}
+  html[data-marque][data-verre][data-refonte] .multi-bar .btn:not(.multi-x){padding:0 12px!important;font-size:14px!important}
+}
+
+/* ── 13. LES TUILES CHIFFRÉES DU TABLEAU DE BORD ── 40 pt, la tuile d'icône colorée au-dessus */
+html[data-marque][data-refonte] .kpis{gap:12px!important}
+html[data-marque][data-refonte] .kpis .kpi{padding:18px!important;display:flex;flex-direction:column;gap:16px}
+html[data-marque][data-refonte] .kpis .kpi-val{
+  font-family:var(--fs)!important;font-size:40px!important;line-height:1!important;
+  font-weight:700!important;letter-spacing:-.035em!important;color:var(--t1)!important;
+}
+html[data-marque][data-refonte] .kpis .kpi-lbl{font-size:15px!important;color:var(--t3)!important;letter-spacing:-.01em;margin-top:2px!important}
+html[data-marque][data-refonte] .kpis .kpi:active{transform:scale(.97)}
+@media(max-width:780px){ html[data-marque][data-refonte] .kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important} }
+@media(min-width:1181px){ html[data-marque][data-refonte] .kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important} }
+
+/* ── 14. LES LISTES — la recherche en pilule, le segmenté au curseur blanc, les lignes ── */
+html[data-marque][data-verre] .filters.seg-on{
+  background:var(--vr-fond2)!important;border:1px solid var(--vr-liseret);
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+}
+html[data-marque][data-verre] .filters.seg-on .seg-cur{
+  background:var(--tf-curseur)!important;box-shadow:0 3px 10px rgba(0,0,0,.12)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+html[data-marque][data-verre] .filters.seg-on .chip{font-size:13px!important;font-weight:400!important;color:var(--t1)!important}
+html[data-marque][data-verre] .filters.seg-on .chip.active{font-weight:600!important;color:var(--t1)!important}
+html[data-marque][data-verre][data-theme="dark"] .filters.seg-on .chip.active{color:#fff!important}
+html[data-marque][data-verre] input.search-inp{border-radius:var(--tf-r-recherche)!important}
+html[data-marque][data-verre] .pl-row:active{background:var(--tf-presse)}
+/* La RANGÉE de la maquette (Interventions, Clients, Boxes) : un groupe de verre, et dedans des
+   lignes d'au moins 64 px — une pastille de 40 px (le numéro en chasse fixe, à la couleur du
+   sens), le titre en 17 semi-gras, ce qui compte à droite en gris, la méta en 15 avec son point
+   de statut, et le chevron. Les filets s'arrêtent au bord de la pastille, comme sur iOS.
+   Pas de préfixe de thème : ce sont des pièces NEUVES, pas des surcharges — sans attribut, elles
+   gardent leur forme (les jetons ont chacun leur repli). */
+.tf-groupe{position:relative;margin:0 0 14px;border-radius:var(--rf-r-carte,14px);overflow:hidden;
+  background:var(--vr-fond,var(--card));border:1px solid var(--vr-liseret,var(--brd));box-shadow:var(--vr-ombre,none);
+  -webkit-backdrop-filter:var(--vr-flou,none);backdrop-filter:var(--vr-flou,none)}
+.tf-rangee{position:relative;display:flex;align-items:center;gap:12px;min-height:64px;padding:11px 12px 11px 16px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:background .2s cubic-bezier(.32,.72,0,1)}
+.tf-rangee+.tf-rangee::before{content:'';position:absolute;top:0;left:68px;right:0;height:1px;background:var(--tf-filet,var(--brd))}
+.tf-rangee:active{background:var(--tf-presse,var(--hover))}
+@media(hover:hover){ .tf-rangee:hover{background:var(--tf-presse,var(--hover))} }
+.tf-badge{flex:0 0 40px;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+  font:600 13px/1 ui-monospace,'SF Mono',Menlo,monospace;letter-spacing:-.02em;
+  background:color-mix(in srgb,var(--tf-c,var(--t3)) 15%,transparent);color:var(--tf-c,var(--t2))}
+.tf-badge.ini{font-family:ui-monospace,'SF Mono',Menlo,monospace;background:var(--rf-2nd,var(--chip));color:var(--t2)}
+.tf-corps{flex:1;min-width:0}
+.tf-l1{display:flex;align-items:baseline;gap:8px;min-width:0}
+.tf-titre{flex:1;min-width:0;font-size:17px;line-height:1.25;font-weight:600;letter-spacing:-.02em;color:var(--t1);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-fin{flex:0 0 auto;font-size:15px;color:var(--t3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tf-l2,.tf-l3{display:flex;align-items:center;gap:6px;min-width:0;margin-top:2px;font-size:15px;line-height:1.3;color:var(--t3)}
+.tf-l3{font-size:13px}
+.tf-l2>span,.tf-l3>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-pt{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:var(--tf-c,var(--t3))}
+.tf-chev{flex:0 0 auto;width:8px;height:14px;color:var(--t3);opacity:.7}
+.tf-act{flex:0 0 40px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:0;cursor:pointer;
+  background:var(--rf-2nd,var(--chip));color:var(--acc-txt);font-size:17px}
+.tf-pied{margin:-6px 4px 14px;font-size:13px;color:var(--t3)}
+@media(max-width:599px){ .tf-rangee .tf-large{display:none} }
+@media(min-width:600px){ .tf-rangee .tf-etroit{display:none} }
+.tf-entete{margin:18px 16px 7px;font-size:13px;font-weight:400;letter-spacing:.02em;text-transform:uppercase;color:var(--t3)}
+html[data-os="windows"] .tf-groupe{border-radius:8px}
+
+/* ── 15. LES FICHES — l'en-tête de section teinté de la maquette (un voile neutre, pas vert) ── */
+html[data-marque][data-verre][data-refonte] #content:has(.det-back) .card-head{
+  background:var(--tf-entete)!important;border-bottom:1px solid var(--tf-filet)!important;
+}
+html[data-marque][data-refonte] #content:has(.det-back) .card-head h3{font-size:17px!important;font-weight:600!important;letter-spacing:-.02em}
+html[data-marque][data-refonte] .btn.det-back{
+  background:transparent!important;color:var(--acc-txt)!important;font-size:17px!important;font-weight:400!important;
+  padding-left:2px!important;letter-spacing:-.02em;
+}
+
+/* ── 16. LA FEUILLE « CRÉER » ── verre de feuille, poignée, tuiles colorées, trois colonnes ── */
+html[data-marque][data-verre] .creer-sheet{
+  background:var(--vr-reflet),var(--vr-fond-dense)!important;border:1px solid var(--vr-liseret)!important;
+  box-shadow:0 -16px 44px rgba(0,0,0,.24)!important;
+}
+html[data-marque][data-verre] .creer-poignee{width:36px;height:5px;border-radius:999px;background:var(--tf-poignee)}
+html[data-marque][data-verre] .creer-head b{font-size:17px;font-weight:700;letter-spacing:-.017em}
+html[data-marque][data-verre] .creer-grille{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px}
+html[data-marque][data-verre] .creer-t{
+  background:var(--vr-fond2)!important;border:0!important;border-radius:var(--tf-r-carte2)!important;
+  padding:16px 8px 14px!important;min-height:0!important;gap:9px!important;
+}
+html[data-marque][data-verre] .creer-t:active{transform:scale(.96);opacity:.85}
+html[data-marque][data-verre] .creer-ic{width:46px!important;height:46px!important;border-radius:14px!important}
+html[data-marque][data-verre] .creer-l{font-size:13.5px!important;font-weight:600!important;letter-spacing:-.01em}
+
+/* ── 17. LE MESSAGE ET LE BOUTON FLOTTANT ── */
+html[data-marque][data-verre][data-refonte] .toast{
+  background:var(--vr-reflet),var(--vr-fond-dense)!important;color:var(--t1)!important;
+  -webkit-backdrop-filter:var(--vr-flou);backdrop-filter:var(--vr-flou);
+  border:1px solid var(--vr-liseret)!important;box-shadow:var(--vr-ombre-barre)!important;border-radius:999px!important;
+}
+html[data-marque][data-verre] .msg-flot{background:var(--acc-fill)!important;color:var(--on-fill)!important}
+
+/* ── 18. LA CONNEXION — la même matière, la teinte sur le bouton ── */
+/* Le FOND de la page aussi (la diagonale et les dégradés du thème) : la connexion gardait une lueur
+   VERTE posée sur un aplat bleu nuit, du temps où l'application était verte — mesuré le 24 septembre
+   2026, `radial-gradient(… rgba(74,222,128,.14) …), var(--deep)` sous le thème TEAM OP. */
+html[data-marque][data-verre] .login{background:var(--vr-page)!important}
+html[data-marque][data-verre] .login-card .btn[type="submit"],
+html[data-marque][data-verre] .login-card button.btn:not(.ghost){background:var(--acc-fill)!important;color:var(--on-fill)!important;border:0!important}
+
+/* ── 19. LES BOUTONS — des pilules (Windows : 6 px), comme toute la maquette ── */
+html[data-marque][data-verre][data-refonte] .btn{border-radius:999px!important}
+html[data-os="windows"][data-marque][data-verre][data-refonte] .btn{border-radius:6px!important}
+
+/* ── 21. L'ÉCRAN « THÈME ET COULEUR » ── la grammaire des Réglages d'iOS : des groupes titrés en
+   petites lettres grises, des cartes de lignes, une grille de pastilles rondes. */
+/* Sur un grand écran, la fenêtre prend toute la zone de contenu (1 157 px mesurés sur un Mac de
+   1 440) : quatre pastilles par rangée à 247 px l'une de l'autre, un segmenté de 1 000 px. Les
+   Réglages d'un Mac tiennent dans une COLONNE — on borne le contenu, l'en-tête garde sa largeur. */
+@media(min-width:900px){ #modal .tc-ecran{max-width:680px;margin:0 auto} }
+.tc-intro{font-size:14px;color:var(--t3);line-height:1.45;margin:0 0 6px;text-wrap:pretty}
+.tc-groupe{font-size:13px;color:var(--t3);letter-spacing:-.008em;padding:18px 4px 7px}
+.tc-note{font-size:12.5px;color:var(--t3);margin-top:8px;padding:0 4px}
+.tc-modes{margin:0!important}
+/* Le mode est un segmenté d'iOS : une piste, un curseur blanc (voile clair la nuit). */
+html[data-refonte] .filters.tc-modes{display:grid!important;grid-auto-flow:column;grid-auto-columns:1fr;gap:0!important;padding:3px;
+  border-radius:999px;background:var(--vr-fond2,var(--bg2));border:1px solid var(--vr-liseret,var(--brd));overflow:visible}
+html[data-refonte] .filters.tc-modes .chip{justify-content:center;border:0!important;background:transparent!important;box-shadow:none!important;
+  color:var(--t1)!important;font-size:13px!important;font-weight:400!important;min-height:40px;border-radius:999px!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html[data-refonte] .filters.tc-modes .chip.active{background:var(--tf-curseur,var(--bg1))!important;box-shadow:0 3px 10px rgba(0,0,0,.12)!important;font-weight:600!important}
+html[data-os="windows"][data-refonte] .filters.tc-modes,html[data-os="windows"][data-refonte] .filters.tc-modes .chip{border-radius:6px!important}
+.tc-carte{border-radius:var(--rf-r-carte,20px);overflow:hidden;background:var(--bg1);border:1px solid var(--brd)}
+html[data-verre] .tc-carte{background:var(--vr-reflet),var(--vr-fond2);border:1px solid var(--vr-liseret);box-shadow:var(--vr-ombre)}
+.tc-theme,.tc-rangee{width:100%;display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 16px;border:0;background:transparent;
+  font-family:inherit;text-align:left;color:var(--t1);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tc-theme + .tc-theme{border-top:.5px solid var(--tf-filet,var(--brd))}
+.tc-theme:active,.tc-rangee:active{background:var(--tf-presse,var(--hover))}
+.tc-rangee{border-radius:var(--rf-r-carte,20px);background:var(--bg1);border:1px solid var(--brd)}
+html[data-verre] .tc-rangee{background:var(--vr-reflet),var(--vr-fond2);border:1px solid var(--vr-liseret);box-shadow:var(--vr-ombre)}
+.tc-apercu{width:42px;height:42px;border-radius:12px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.tc-rangee-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tc-rangee-txt b{font-size:17px;font-weight:600;letter-spacing:-.02em}
+.tc-rangee-txt span{font-size:14px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc-coche{width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;color:var(--on-fill,#fff)}
+.tc-theme.on .tc-coche{background:var(--acc-fill)}
+.tc-chevron{width:8px;height:8px;flex:none;border-right:2px solid var(--t3);border-top:2px solid var(--t3);transform:rotate(45deg);opacity:.6;margin-right:4px}
+.tc-grille{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 6px;padding:16px 10px}
+.tc-teinte{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:transparent;padding:0;
+  font-family:inherit;color:var(--t3);cursor:pointer;min-width:0;-webkit-tap-highlight-color:transparent}
+.tc-rond{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:18px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);transition:transform .2s cubic-bezier(.32,.72,0,1)}
+.tc-teinte:active .tc-rond{transform:scale(.92)}
+.tc-teinte.on .tc-rond{box-shadow:0 0 0 3px var(--bg1),0 0 0 5px var(--tc-rond,var(--acc))}
+html[data-verre] .tc-teinte.on .tc-rond{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 0 5px var(--tc-rond,var(--acc))}
+html[data-verre][data-theme="dark"] .tc-teinte.on .tc-rond{box-shadow:0 0 0 3px rgba(11,20,38,.85),0 0 0 5px var(--tc-rond,var(--acc))}
+.tc-teinte.on .tc-nom{color:var(--t1);font-weight:600}
+.tc-nom{font-size:12px;line-height:1.2;text-align:center;max-width:100%;overflow-wrap:anywhere}
+.tc-teinte-p{position:relative;display:flex;justify-content:center}
+.tc-retirer{position:absolute;top:-6px;right:calc(50% - 34px);width:24px;height:24px;border-radius:50%;border:1px solid var(--brd);
+  background:var(--bg1);color:var(--t2);font-size:13px;line-height:1;cursor:pointer;padding:0}
+/* la croix se DESSINE à 24 px mais RÉPOND sur 38 : le plancher tactile du dépôt (relecture v745) */
+.tc-retirer::after{content:'';position:absolute;inset:-7px;border-radius:50%}
+.tc-ajout input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.tc-demo{display:flex;flex-direction:column;gap:14px;padding:16px}
+.tc-demo-l{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tc-demo-creer{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:999px;background:var(--acc-fill);
+  color:var(--on-fill);font-size:17px;font-weight:600;letter-spacing:-.02em}
+.tc-demo-onglet{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:999px;background:var(--tf-bulle,var(--bg2));
+  box-shadow:var(--tf-bulle-ombre,none);color:var(--tf-onglet,var(--acc-txt));font-size:17px;font-weight:600;letter-spacing:-.02em}
+.tc-demo-lien{color:var(--acc-txt);font-size:17px;text-decoration:underline;text-underline-offset:3px;width:max-content}
+.tc-termine{width:100%;justify-content:center;margin-top:18px;min-height:50px;font-size:17px!important}
+html[data-os="windows"] .tc-carte,html[data-os="windows"] .tc-rangee{border-radius:8px}
+
+/* ── 20. LES RÉGLAGES SYSTÈME — toujours respectés ──
+   Transparence réduite : les surfaces redeviennent pleines, à la couleur du thème, la page
+   aussi. Mouvement réduit : rien ne glisse (les règles communes le font déjà). Contraste accru :
+   les filets redeviennent des traits. Et un navigateur qui ne sait pas flouter reçoit des
+   surfaces DENSES — une vitre à 42 % sans flou, c'est du texte posé sur du texte. */
+@media (prefers-reduced-transparency: reduce){
+  html[data-marque][data-verre]{background:var(--tf-page-plein)!important}
+  html[data-marque][data-verre] .topbar .menu-btn,html[data-marque][data-verre] .topbar .tb-back,
+  html[data-marque][data-verre] .topbar .tb-grappe::before,html[data-marque][data-verre][data-kind="mobile"] .tabbar,
+  html[data-marque][data-verre] .sidebar,html[data-marque][data-verre] .kpi,html[data-marque][data-verre] .creer-sheet,
+  html[data-marque][data-verre] .creer-t,html[data-marque][data-verre] .toast,html[data-marque][data-verre] .filters.seg-on,
+  html[data-marque][data-verre] .ph-actions .btn.ghost{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--bg1)!important;
+  }
+  html[data-marque][data-verre] .topbar::before{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+}
+@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  html[data-marque][data-verre] .card,html[data-marque][data-verre] .kpi,html[data-marque][data-verre] .tbl,
+  html[data-marque][data-verre] .modal,html[data-marque][data-verre] .sidebar,html[data-marque][data-verre][data-kind="mobile"] .tabbar,
+  html[data-marque][data-verre] .creer-sheet,html[data-marque][data-verre] .topbar .menu-btn,
+  html[data-marque][data-verre] .topbar .tb-grappe::before{background:var(--bg1)!important}
+}
+@media (prefers-contrast: more){
+  html[data-marque][data-verre]{--vr-liseret:var(--t3); --tf-filet:var(--t3)}
+}
+</style>
 </head>
 <body>
 
@@ -6798,6 +7476,7 @@ html[data-verre="1"] .sidebar .nav-label{font-weight:640!important}
       </div>
       <div class="gsrch" onclick="event.stopPropagation()"><span style="display:inline-flex;color:var(--t3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input id="gsrch-in" placeholder="Rechercher client, intervention, tâche…" oninput="gsearch(this.value)" onfocus="gsearch(this.value)"><div id="gsrch-res"></div></div>
       <div class="topbar-actions" id="topbar-actions"></div>
+      <div class="tb-grappe">
       <button class="bell" id="sync-btn" onclick="syncNow()" title="Synchroniser"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span class="sync-pt" aria-hidden="true"></span><svg class="sync-ok" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></button>
       <button class="bell" id="theme-btn" onclick="toggleTheme(event)" title="Mode jour / sombre"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <div class="topbar-bell">
@@ -6805,6 +7484,7 @@ html[data-verre="1"] .sidebar .nav-label{font-weight:640!important}
         <div id="notif-panel"></div>
       </div>
       <button class="bell" id="search-btn" onclick="openSearch()" title="Rechercher partout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+      </div>
     </div>
     <div class="page-head" id="page-head"></div>
     <div class="content" id="content"></div>
@@ -7040,7 +7720,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '744-beta';
+const APP_VERSION = '745-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -7611,7 +8291,12 @@ function fmtTs(ts){ const d=new Date(ts); const f=_F('ts','fr-FR',_O_TS);
 
 /* ── Constantes statuts ── */
 const STATUT_INT = { aplanifier:{l:'À planifier',c:'st-grey'}, planifiee:{l:'Planifiée',c:'st-blue'}, encours:{l:'En cours',c:'st-org'}, terminee:{l:'Terminée',c:'st-green'}, annulee:{l:'Annulée',c:'st-red'} };
-const INT_STCOLOR = { aplanifier:'var(--t3)', planifiee:'var(--blue)', encours:'var(--org)', terminee:'var(--acc-txt)', annulee:'var(--red)' };
+/* ⛔ « Terminée » s'écrit en VERT, pas à la teinte : depuis le thème final, la teinte par défaut
+   est le marine de TEAM OP, et une intervention finie prenait le liseré marine pendant que son
+   étiquette (st-green) restait verte — deux couleurs pour un même état. Le sens d'un statut ne
+   suit pas le goût de l'utilisateur. `--green` est une ENCRE (#1C7A3A de jour, #30D158 de nuit) :
+   la règle de test-774 (« il sert de liseré ET de libellé ») tient toujours. */
+const INT_STCOLOR = { aplanifier:'var(--t3)', planifiee:'var(--blue)', encours:'var(--org)', terminee:'var(--green)', annulee:'var(--red)' };
 const INT_TYPES = ['Contrat anti nuisibles (HACCP)','Dératisation','Désinsectisation anthrène de tapis','Désinsectisation blattes','Désinsectisation fourmis','Désinsectisation guêpes / frelons','Désinsectisation mites','Désinsectisation poux de poules','Désinsectisation psoques','Désinsectisation puces','Désinsectisation punaise de lit','Désinsectisation tiques','Détection punaise de lit','Espèce protégée','Traitement xylophage','Visite technique'];
 const REPORT_TEMPLATES = ["Modèle générique"];   /* Vidée le 5 sept. 2026 : cette liste portait en dur les ~90 agences d'un seul client et partait chez TOUS les autres — le réseau commercial de l'un devenait visible chez ses concurrents. Chaque entreprise déclare ses sociétés dans Paramètres → Mes sociétés ; entSocietes() ne retombe ici que si elle n'en a aucune. */
 /* ⛔ v740 — « Modèle générique » n'est pas une société : c'est la valeur de TOUTE entreprise qui
@@ -12268,9 +12953,14 @@ function multiProposer(vue){
   const mn = Math.max(1, Math.round((Date.now() - e.ts) / 60000));
   const d = document.createElement('div');
   d.className = 'multi-bar';
-  d.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">↩︎ Tu avais commencé : <b>' + esc(e.titre || 'une fenêtre') + '</b> · il y a ' + mn + ' min</span>'
+  /* Deux lignes plutôt qu'une phrase : le NOM de ce qu'on avait commencé d'abord, en gras, puis
+     « Commencé il y a N min » (court : la durée est l'information, elle ne doit pas finir en
+     « … »). En une seule phrase, la barre passait sur QUATRE lignes
+     sur un iPhone (mesuré le 24 septembre 2026, 393 px) : le texte partageait la rangée avec les
+     deux boutons et se repliait mot par mot. */
+  d.innerHTML = '<span class="multi-txt"><b>' + esc(e.titre || 'une fenêtre') + '</b><small>Commencé il y a ' + (mn < 60 ? mn + ' min' : Math.round(mn / 60) + ' h') + '</small></span>'
     + '<button class="btn sm" onclick="multiReprendre(' + esc(JSON.stringify(vue)) + ')">Reprendre</button>'
-    + '<button class="btn ghost sm" title="Oublier" onclick="multiOublier(' + esc(JSON.stringify(vue)) + '); this.parentNode.remove()">✕</button>';
+    + '<button class="btn ghost sm multi-x" title="Oublier" aria-label="Oublier" onclick="multiOublier(' + esc(JSON.stringify(vue)) + '); this.parentNode.remove()">✕</button>';
   c.insertBefore(d, c.firstChild);
 }
 function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html || '');
@@ -12302,29 +12992,43 @@ function closeModal(force){ if(_modalForcee&&force!==true) return; $('overlay').
    ⚠ ET ELLE NE PORTE JAMAIS SEULE UNE INFORMATION : le libellé est toujours écrit à côté.
    Neuf teintes pour quarante-deux rubriques, groupées par sens — pas une par écran, ce qui
    ferait un arc-en-ciel illisible. */
-const CAT_COUL_IOS={bleu:'#007AFF',vert:'#34C759',orange:'#FF9500',rouge:'#FF3B30',
-  violet:'#AF52DE',indigo:'#5856D6',teal:'#30B0C7',rose:'#FF2D55',gris:'#8E8E93'};
-const CAT_COUL={
-  /* Pilotage — bleu */
-  dashboard:'bleu', statistiques:'bleu', historique:'gris', archives:'gris',
-  /* Planification — rouge (c'est un calendrier) */
-  planning:'rouge', planningGeneral:'rouge', taches:'rouge', absences:'rose',
-  /* Terrain — vert, la couleur du métier */
-  interventions:'vert', rapports:'vert', carteInt:'vert', registre:'vert', carteBox:'vert',
-  /* Commerce — indigo */
-  clients:'bleu', devis:'indigo', assistantDevis:'indigo', factures:'indigo',
-  contrats:'indigo', comptabilite:'indigo', devisXylo:'indigo', recap:'indigo',
-  /* Stock — orange */
-  box:'orange', boxes:'orange', produits:'orange', mouvements:'orange', stock:'orange',
-  fournisseurs:'orange', bons:'orange', commandes:'orange', remises:'orange',
-  /* Échanges — teal */
-  messagerie:'teal', enveloppes:'teal', demandes:'teal', mesDemandes:'teal', courrier:'teal',
-  /* Équipe et réglages — violet / gris */
-  techniciens:'violet', equipe:'violet', utilisateurs:'violet', permissions:'violet',
-  vehicules:'violet', pointage:'violet',
-  parametres:'gris', profil:'gris', aide:'gris', sync:'gris', plans:'gris', dossier:'gris',
+/* ⛔⛔ ET CHAQUE COULEUR EN A DEUX : UNE DE JOUR, UNE DE NUIT — thème final du 24 septembre 2026
+   (`design/THEME-REFERENCE.md` § 5, « Catégories »). La palette d'avant (le système iOS pur :
+   #34C759, #FF9500…) portait sa couleur SUR la tuile, en 15 % — une icône vert pomme sur du
+   vert pomme pâle. La maquette fonce la teinte de jour (#1C7A3A, #C25E00…) et l'éclaircit la
+   nuit : c'est la même famille, lisible des deux côtés. Tuile : 13 % de la couleur le jour,
+   20 % la nuit (« 22 » et « 33 » en hexadécimal dans la maquette).
+   ⚠ `catCoul(k)` rend toujours la couleur de JOUR (repli des feuilles qui n'ont qu'une valeur) ;
+   ce qui s'affiche passe par `catVars(k)`, qui pose les deux et laisse la feuille choisir. */
+const CAT_TEINTES={
+  gris:['#636366','#8E8E93'],   bleu:['#0A5FC2','#0A84FF'],   orange:['#C25E00','#FF9F0A'], indigo:['#4B48C9','#5E5CE6'],
+  violet:['#8E44AD','#BF5AF2'], vert:['#1C7A3A','#30D158'],   sapin:['#1F7A5C','#34C759'],  cyan:['#0A7C8A','#40C8E0'],
+  rouge:['#B0263C','#FF375F'],  ambre:['#8A5300','#FFD60A'],  ciel:['#0A5FC2','#64D2FF'],   ardoise:['#636366','#AEAEB2']
 };
-function catCoul(k){ return CAT_COUL_IOS[CAT_COUL[k]||'gris']; }
+const CAT_COUL={
+  /* Pilotage */
+  dashboard:'gris', statistiques:'bleu', historique:'ardoise', archives:'ardoise', modulesElan:'gris',
+  /* Planification */
+  planning:'orange', planningGeneral:'orange', taches:'orange', absences:'rouge', pointage:'indigo',
+  /* Terrain */
+  interventions:'bleu', carteInt:'bleu', secteurs:'bleu', rapports:'ciel', registre:'ambre', telecollecte:'ambre',
+  dossier:'ambre', sanitaire:'ambre', plans:'vert',
+  /* Commerce */
+  clients:'indigo', devis:'violet', assistantDevis:'violet', devisXylo:'violet', factures:'vert',
+  comptabilite:'vert', recap:'vert', contrats:'cyan',
+  /* Stock */
+  box:'sapin', boxes:'sapin', carteBox:'sapin', produitsDonnes:'sapin', produits:'cyan', stock:'cyan', saisieConso:'cyan',
+  mouvements:'rouge', remises:'rouge', fournisseurs:'violet', bons:'ciel', commandes:'ciel',
+  /* Échanges */
+  messagerie:'sapin', enveloppes:'orange', demandes:'rouge', mesDemandes:'rouge', validations:'rouge',
+  courrier:'ciel', boiteMail:'ciel', brouillon:'ciel',
+  /* Équipe et réglages */
+  techniciens:'indigo', equipe:'indigo', utilisateurs:'indigo', permissions:'gris', vehicules:'ardoise', conducteurs:'ardoise',
+  parametres:'gris', profil:'gris', aide:'gris', sync:'gris',
+};
+function catTeinte(k){ return CAT_TEINTES[CAT_COUL[k]||'gris']; }
+function catCoul(k){ return catTeinte(k)[0]; }
+function catVars(k){ const t=catTeinte(k); return '--cat-j:'+t[0]+';--cat-n:'+t[1]; }
 const NAV = [
   {g:'Tableau de bord', items:[
     {k:'dashboard',ic:'📊',l:'Tableau de bord'},
@@ -13544,13 +14248,18 @@ try{ document.addEventListener('DOMContentLoaded',()=>{ try{ segObserver(); }cat
    l'enregistrement refusait. Pire, la tuile « Box » ouvrait `formBox()` que rien ne gardait : on créait
    une box d'ici quand l'écran Boxes cachait « ＋ Box ». Chaque tuile lit la case de SA création. */
 const CREER_ENTREES=[
-  {k:'interventions', ic:'🧰', l:'Intervention', c:'#007aff', fn:"formIntervention()", peut:()=>canCat('int','ajouter')},
+  {k:'interventions', ic:'🧰', l:'Intervention', fn:"formIntervention()", peut:()=>canCat('int','ajouter')},
   {k:'clients',       ic:'🏢', l:'Client',       c:'#34c759', fn:"formClient()",       peut:()=>canCat('crm','ajouter')},
   {k:'devis',         ic:'💰', l:'Devis',        c:'#ff9500', fn:"formDoc('devis')",   peut:()=>canCat('ventes','ajouter')},
   {k:'factures',      ic:'🧾', l:'Facture',      c:'#af52de', fn:"formDoc('factures')",peut:()=>canCat('ventes','ajouter')},
   {k:'demandes',      ic:'📥', l:'Demande',      c:'#5856d6', fn:"formDemande()",      peut:()=>canCat('achats','ajouter')},
   {k:'boxes',         ic:'📦', l:'Box',          c:'#30b0c7', fn:"formBox()",          peut:()=>boxGerer('ajouter')},
 ];
+/* ⛔ LE SIGNE D'UNE TUILE EST CELUI DE SA RUBRIQUE AU MENU. La feuille écrivait 📦 pour « Box » et
+   📥 pour « Demande » quand le menu écrit 🧱 et ✈️ : deux dessins pour une même chose, et le module
+   des icônes les change en DEUX traits différents (« colis » contre « brique »). On lit NAV — la
+   liste de la feuille ne garde son émoji que pour une rubrique absente du menu. */
+function creerIc(e){ try{ const it=NAV.flatMap(s=>s.items).find(x=>x.k===e.k); return (it&&it.ic)||e.ic; }catch(err){ return e.ic; } }
 function creerDispo(){
   return CREER_ENTREES.filter(e=>{ try{
     const it=NAV.flatMap(s=>s.items).find(x=>x.k===e.k);
@@ -13567,7 +14276,7 @@ function creerOuvrir(){
       <div class="creer-head"><b>Créer</b><button class="modal-close" onclick="creerFermer()" aria-label="Fermer">✕</button></div>
       <div class="creer-grille">${l.map(e=>`
         <button class="creer-t" onclick="creerAller(${JSON.stringify(e.fn).replace(/"/g,'&quot;')})">
-          <span class="creer-ic" style="background:${e.c}22;color:${e.c}">${e.ic}</span>
+          <span class="creer-ic" style="${catVars(e.k)}">${creerIc(e)}</span>
           <span class="creer-l">${esc(e.l)}</span></button>`).join('')}</div>
     </div>`;
   ov.classList.add('on');
@@ -14250,7 +14959,7 @@ function favorisBloc(){
   if(!l.length && !_favEdit) return '';
   const lignes = l.map(k=>{ const it=ongletItem(k); if(!it) return '';
     return `<div class="nav-item nav-item-fav${multiEnCours(k)?' nav-encours':''}" data-view="${k}" data-fav="1"
-       onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${k}','_blank');return;}go('${k}')">${it.ic?`<span class="ico" style="--cat:${catCoul(k)}">${it.ic}</span>`:''}${esc(t(it.l))}${_favEdit?favorisEtoile(k):''}</div>`;
+       onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${k}','_blank');return;}go('${k}')">${it.ic?`<span class="ico" style="${catVars(k)}">${it.ic}</span>`:''}${esc(t(it.l))}${_favEdit?favorisEtoile(k):''}</div>`;
   }).join('');
   const vide = !l.length ? `<div class="nav-fav-vide">Touche l’étoile d’une rubrique pour l’épingler ici.</div>` : '';
   return `<div class="nav-label nav-label-fav"><span>Favoris</span>${bouton}</div>`+lignes+vide;
@@ -14274,8 +14983,8 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
     const tete = repete ? `<div class="nav-coupe" aria-hidden="true"></div>`
                         : `<div class="nav-label">${esc(t(sec.g))}</div>`;
     return tete + rows.map(r=> r.verrou
-      ? `<div class="nav-item nav-verrou" style="opacity:.38;cursor:not-allowed" title="Réservé à ta formule ${esc((PLANS[att.formule]||{}).l||'')} — en attente de paiement" onclick="verrouMessage()"><span class="ico" style="--cat:#8E8E93">🔒</span>${esc(t(r.it.l))}</div>`
-      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${r.it.ic?`<span class="ico" style="--cat:${catCoul(r.it.k)}">${r.it.ic}</span>`:''}${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
+      ? `<div class="nav-item nav-verrou" style="opacity:.38;cursor:not-allowed" title="Réservé à ta formule ${esc((PLANS[att.formule]||{}).l||'')} — en attente de paiement" onclick="verrouMessage()"><span class="ico" style="--cat-j:#636366;--cat-n:#8E8E93">🔒</span>${esc(t(r.it.l))}</div>`
+      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${r.it.ic?`<span class="ico" style="${catVars(r.it.k)}">${r.it.ic}</span>`:''}${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
     ).join('');
   }).join('');
   /* La loupe seulement quand il y a de quoi chercher : sous une dizaine de rubriques, elle
@@ -14611,8 +15320,11 @@ function navRetourBtn(){
     return `<button class="btn ghost sm ph-back" onclick="goBack()" title="Revenir à ${esc(l)}">← ${esc(l)}</button>`;
   }catch(e){ return ''; }
 }
-function setHeader(title,sub,actions=''){ title=t(title); $('page-title').textContent=title; $('page-sub').textContent=sub||''; $('topbar-actions').innerHTML=actions;
-  const ph=$('page-head'); if(ph) ph.innerHTML=(title||sub||actions)?`${navRetourBtn()}<div class="ph-row"><div><h1 class="ph-title">${esc(title)}</h1>${sub?`<div class="ph-sub">${esc(sub)}</div>`:''}</div><div class="ph-actions">${actions}</div></div>`:'';
+/* `o.surtitre` : une ligne en capitales AU-DESSUS du titre — la date du tableau de bord, dans la
+   maquette du thème final (« JEUDI 24 SEPTEMBRE »). Facultatif : les autres écrans n'en ont pas. */
+function setHeader(title,sub,actions='',o){ title=t(title); $('page-title').textContent=title; $('page-sub').textContent=sub||''; $('topbar-actions').innerHTML=actions;
+  const sur=o&&o.surtitre?`<div class="ph-surtitre">${esc(o.surtitre)}</div>`:'';
+  const ph=$('page-head'); if(ph) ph.innerHTML=(title||sub||actions)?`${navRetourBtn()}<div class="ph-row"><div>${sur}<h1 class="ph-title">${esc(title)}</h1>${sub?`<div class="ph-sub">${esc(sub)}</div>`:''}</div><div class="ph-actions">${actions}</div></div>`:'';
   // Bouton retour de la barre du haut : il nomme la page où l'on revient.
   // Une fiche (intervention, box…) appelle setHeader('','','') et porte son propre
   // bouton retour : on masque alors celui du haut pour ne pas en montrer deux qui
@@ -15236,11 +15948,17 @@ views.dashboard=function(){
   const demAtt=visibleDemandes(db.demandes).filter(d=>d.statut==='enAttente');
   const bonsAEnvoyer=visibleBons(db.bons).filter(b=>b.statut==='brouillon');
   const toutVoir=can('voirTout');
-  setHeader('Tableau de bord', currentUser.role==='admin'?"Vue d'ensemble OP GESTION":(toutVoir?'Votre activité':'Mon activité — mes box, mes bons, mon planning'), `<button class="btn ghost" onclick="dashToggleEdit()">${dashEdit?'Terminé':'Personnaliser'}</button>`);
-  const card=(k)=>{ const c=DASH_CARDS[k]; if(!c)return ''; const bg=`color-mix(in srgb,${c.color} 18%,transparent)`;
+  /* Thème final : la date du jour en surtitre, et le NOM DE L'ENTREPRISE sous le titre — c'est
+     l'écran qui dit « tu es chez ELAN GESTION, et on est jeudi ». Sans nom réglé, l'ancienne
+     phrase reste : un sous-titre vide ne renseigne rien. */
+  const dLoc=({fr:'fr-FR',en:'en-GB',es:'es-ES'})[getLang()]||'fr-FR';
+  let surtitre=''; try{ surtitre=new Date().toLocaleDateString(dLoc,{weekday:'long',day:'numeric',month:'long'}); }catch(e){}
+  const entN=entrepriseNom();
+  setHeader('Tableau de bord', currentUser.role==='admin'?(entN||"Vue d'ensemble OP GESTION"):(toutVoir?'Votre activité':'Mon activité — mes box, mes bons, mon planning'), `<button class="btn ghost" onclick="dashToggleEdit()">${dashEdit?'Terminé':'Personnaliser'}</button>`, {surtitre});
+  const card=(k)=>{ const c=DASH_CARDS[k]; if(!c)return '';
     return `<div class="kpi" data-dk="${k}" style="position:relative;${dashEdit?'':'cursor:pointer'}" ${dashEdit?'':`onclick="if(window._dashDragged){window._dashDragged=false;return;}go('${c.view}')"`}>
       ${dashEdit?`<button onclick="event.stopPropagation();dashRemove('${k}')" style="position:absolute;top:-8px;right:-8px;background:var(--red-fill,var(--red));color:var(--on-red,#fff);border:none;border-radius:50%;width:24px;height:24px;font-size:13px;cursor:pointer;z-index:2">✕</button>`:''}
-      <div class="kpi-ico" style="background:${bg}">${c.ic}</div><div class="kpi-val">${c.val()}</div><div class="kpi-lbl">${c.label}</div></div>`; };
+      <div class="kpi-ico" style="${catVars(c.view)}">${c.ic}</div><div class="kpi-val">${c.val()}</div><div class="kpi-lbl">${c.label}</div></div>`; };
   const hidden=Object.keys(DASH_CARDS).filter(k=>!layout.includes(k)&&carteOk(k));
   $('content').innerHTML=`
     ${dashEdit?`<div class="card" style="border-color:color-mix(in srgb,var(--acc) 40%,transparent);background:color-mix(in srgb,var(--acc) 6%,transparent)"><div style="font-size:13px;color:var(--t2)">Mode personnalisation : <b>glisse une carte</b> pour la déplacer (souris : cliquer-glisser · téléphone : rester appuyé puis glisser), <b>✕</b> pour retirer. <button class="btn ghost sm" onclick="dashReset()">↻ Réinitialiser</button></div></div>`:''}
@@ -19441,12 +20159,21 @@ function entNom(){ return (((db.entreprise||{}).nom)||'').trim() || (localStorag
 function bcEntete(b){ return docEntete(b&&b.societe,{bon:true}).nom; }   // v740 : l'en-tête passe par docEntete
 /* Couleur du bon : celle de la société choisie (si réglée), sinon le vert TeamOP */
 function bcCouleur(b){ return docEntete(b&&b.societe,{bon:true}).couleur; }
-/* 🏷️ Marque de l'entreprise dans la barre — Business : logo uniquement · Business Premium : logo + nom + couleur */
+/* 🏷️ Marque de l'entreprise dans la barre — Business : son logo · Business Premium : son logo et sa couleur.
+   Dans tous les cas le NOM est « OP GESTION » et celui de l'entreprise s'écrit dessous (voir plus bas). */
 function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('brand-sub'); if(!img||!nm) return;
   const E=db.entreprise||{}, f=forfait();
-  if(f==='premium' && ((E.nom||'').trim()||E.logo)){ img.src=E.logo||PLAN_BADGE[f]; nm.textContent=(E.nom||'').trim()||'OP GESTION'; if(sub) sub.style.display='block'; }
-  else if(f==='business' && E.logo){ img.src=E.logo; nm.innerHTML='OP&nbsp;GESTION'; if(sub) sub.style.display='none'; }
-  else { img.src=PLAN_BADGE[f]||'icons/icon-192.png'; nm.innerHTML='OP&nbsp;GESTION'; if(sub) sub.style.display='none'; }
+  if(f==='premium' && ((E.nom||'').trim()||E.logo)){ img.src=E.logo||PLAN_BADGE[f]; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=(E.nom||'').trim()||entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
+  /* ⛔⛔ L'APPLICATION S'APPELLE « OP GESTION », AVEC SON LOGO, SUR TOUS LES APPAREILS ET DANS
+     LES DEUX THÈMES. Justin, 24 septembre 2026, capture de la maquette à l'appui (elle écrivait
+     « TEAM OP » à la connexion) : « pour tous les types d'appareil tu mets bien OP GESTION avec
+     le logo OP GESTION ». Le thème TEAM OP ne change que les COULEURS. Ce que l'entreprise a
+     payé reste : son logo (Business et Business Premium) et sa couleur (Premium). Son NOM, lui,
+     ne remplace plus celui de l'application — jusqu'à la v744, Premium écrivait « ELAN GESTION »
+     en titre et « OP GESTION » dessous : il s'écrit désormais dessous, comme dans la maquette
+     et comme pour tout le monde. */
+  else if(f==='business' && E.logo){ img.src=E.logo; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
+  else { img.src=PLAN_BADGE[f]||'icons/icon-192.png'; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   // Nom du forfait écrit en couleur sous le nom
   const pl=$('brand-plan'); if(pl){
     if(APP_VERSION.indexOf('beta')>=0){ pl.textContent='BÊTA TESTE'; pl.style.color='#E0A33F'; }
@@ -19774,24 +20501,40 @@ views.interventions=function(){
   </div>`;
   const dayInts=SRC.filter(i=>i.date===intSelDay).sort((a,b)=>(a.heure||'').localeCompare(b.heure||''));
   askPos();
+  /* ⛔ LA RANGÉE DE LA MAQUETTE (thème final, 24 septembre 2026). La carte « façon Organilog »
+     écrivait le titre et le client EN CAPITALES, sur quatre lignes à icônes, 170 px par passage :
+     trois interventions remplissaient l'écran d'un iPhone. La maquette de Justin en montre cinq :
+     le numéro dans une pastille à la couleur du statut, le titre tel qu'il est écrit, l'heure à
+     droite, « ● Statut · Client » dessous, puis l'adresse (ou le compte à rebours et la distance).
+     Rien n'est perdu : le glisser vers un jour de la semaine, « Voir au planning » (le bouton rond
+     à droite), le compte à rebours, la distance. Le statut s'écrit EN TOUTES LETTRES à côté du
+     point : une couleur seule ne dit rien à qui ne la distingue pas. */
   const cardOrg=i=>{ const cli=db.clients.find(c=>c.id===i.clientId)||{};
     const start=i.date&&i.heure?new Date(i.date+'T'+i.heure).getTime():0;
     const fut=start&&start>Date.now()&&(i.statut==='planifiee'||i.statut==='encours');
     const dist=(_myPos&&cli.lat&&cli.lng)?distKm(_myPos,{lat:+cli.lat,lng:+cli.lng}):null;
     const adr=i.adresse||cli.adresse||'';
-    return `<div class="card" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" onclick="detailIntervention('${i.id}')" style="padding:15px 16px;margin-bottom:12px;cursor:pointer;border-left:4px solid ${INT_STCOLOR[i.statut]||'var(--acc)'}">
-      <div style="display:flex;gap:12px">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:800;color:var(--acc-txt);font-size:14.5px;letter-spacing:.02em;margin-bottom:9px">${esc((i.titre||'').toUpperCase())}</div>
-          <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px"><span style="color:var(--t3)">👤</span><b style="font-size:13.5px">${esc((clientName(i.clientId)||'—').toUpperCase())}</b></div>
-          <div style="display:flex;gap:9px;margin-bottom:8px"><span style="color:var(--t3)">📍</span><div style="min-width:0">${dist!=null?`<b style="font-size:13px">à ${dist} km de votre position</b><br>`:''}<span style="font-size:12.5px;color:var(--t2)">${esc(adr)||'—'}</span></div></div>
-          <div style="display:flex;gap:9px"><span style="color:var(--t3)">🕐</span><div>${fut?`<b style="font-size:13.5px">${esc(fmtCountdownLong(start-Date.now()))}</b><br>`:''}<span style="font-size:12.5px;color:var(--t2)">${new Date((i.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} ${esc(i.heure||'')}${i.heure?'-'+esc(addMin(i.heure,i.duree||60)):''}</span></div></div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0">
-          <span class="ic-act" onclick="event.stopPropagation();planSel='${i.date}';planWeekRef='${i.date}';planMode='jour';go('planning')" title="Voir au planning" style="font-size:24px;color:var(--acc-txt);cursor:pointer">📅</span>
-          ${badge(STATUT_INT,i.statut)}
-        </div>
+    const sc=INT_STCOLOR[i.statut]||'var(--t3)', st=(STATUT_INT[i.statut]||{}).l||i.statut||'';
+    /* à droite, l'heure de DÉBUT seule : « 09:00–10:30 » prenait 95 px et coupait le titre à
+       « Dératisatio… » sur un iPhone (mesuré). La fin se lit sur la ligne du bas.
+       Le mot du statut s'écrit sauf pour l'état ordinaire (« Planifiée » : le point bleu suffit,
+       comme dans la maquette) — « En cours », « Terminée », « Annulée », « À planifier » ont le leur.
+       « Voir au planning » reste un bouton rond sur tablette et bureau ; sur un téléphone c'est le
+       chevron (l'onglet Planning est sous le pouce) : avec le bouton, le titre tombait à 150 px. */
+    const l3=[fut?`<b style="color:var(--t2);font-weight:600">${esc(fmtCountdownLong(start-Date.now()))}</b>`:'', i.heure?'jusqu’à '+esc(addMin(i.heure,i.duree||60)):'', dist!=null?`à ${dist} km`:'', esc(adr)].filter(Boolean).join(' · ');
+    /* ce qu'une ligne coupe par « … » se lit en entier dans son infobulle (audit profond : 39 coupures
+       muettes sur les noms longs, relevées sur la v745 avant correction) */
+    const l3t=[fut?fmtCountdownLong(start-Date.now()):'', i.heure?'jusqu’à '+addMin(i.heure,i.duree||60):'', dist!=null?'à '+dist+' km':'', adr].filter(Boolean).join(' · ');
+    const l2t=[i.statut==='planifiee'?'':st, i.prio==='haute'?'Urgent':'', clientName(i.clientId)||'—'].filter(Boolean).join(' · ');
+    return `<div class="tf-rangee" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" onclick="detailIntervention('${i.id}')" style="--tf-c:${sc}">
+      <span class="tf-badge">${esc(String(i.num||'—'))}</span>
+      <div class="tf-corps">
+        <div class="tf-l1"><b class="tf-titre" title="${esc(i.titre||'Intervention')}">${esc(i.titre||'Intervention')}</b><span class="tf-fin">${esc(i.heure||'—')}</span></div>
+        <div class="tf-l2"><i class="tf-pt" aria-hidden="true"></i><span title="${esc(l2t)}">${i.statut==='planifiee'?'':esc(st)+' · '}${i.prio==='haute'?'<b style="color:var(--red)">Urgent</b> · ':''}${esc(clientName(i.clientId)||'—')}</span></div>
+        ${l3?`<div class="tf-l3"><span title="${esc(l3t)}">${l3}</span></div>`:''}
       </div>
+      <button class="tf-act tf-large" onclick="event.stopPropagation();planSel='${i.date}';planWeekRef='${i.date}';planMode='jour';go('planning')" title="Voir au planning" aria-label="Voir au planning">📅</button>
+      <svg class="tf-chev tf-etroit" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>`; };
   $('content').innerHTML=strip
     +`<div style="text-align:center;margin:2px 0 14px"><span style="background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--t1);font-weight:800;padding:9px 22px;border-radius:100px;font-size:14.5px;text-transform:capitalize">${new Date(intSelDay+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'short'})}</span></div>`
@@ -19801,7 +20544,7 @@ views.interventions=function(){
       <span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--org) 13%,transparent);color:var(--org);border:1px solid color-mix(in srgb,var(--org) 40%,transparent)">⏳ ${nAF} non effectuée${nAF>1?'s':''}</span>
       ${nAnn?`<span style="font-size:12px;font-weight:800;padding:5px 13px;border-radius:100px;background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red);border:1px solid color-mix(in srgb,var(--red) 38%,transparent)">🚫 ${nAnn} annulée${nAnn>1?'s':''}</span>`:''}
       </div>`:''; })()
-    +(dayInts.length? dayInts.map(cardOrg).join('') : `<div class="card">${emptyState('🗓️','Aucune intervention ce jour.','Planifier',`formIntervention('','${intSelDay}')`)}</div>`);
+    +(dayInts.length? `<div class="tf-groupe">${dayInts.map(cardOrg).join('')}</div>` : `<div class="card">${emptyState('🗓️','Aucune intervention ce jour.','Planifier',`formIntervention('','${intSelDay}')`)}</div>`);
 };
 function intDropDay(e,iso){ e.preventDefault(); if(!canPlan()){ toast('Déplacer le planning n\'est pas autorisé pour ton compte (Permissions)'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i)return; if(i.date===iso)return; i.date=iso; save(); intSelDay=iso; views.interventions(); toast('Intervention déplacée au '+fmtShort(iso)); }
 function intEffectuer(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return; if(!intStatutPermis(i,'terminee')){ toast('Changer ce statut n\'est pas autorisé pour ton compte (Permissions)'); return; } if(!i.debutReel)i.debutReel=Date.now(); save(); assistCloture(id); }
@@ -19861,6 +20604,11 @@ function renderIntTechDay(SRC){
     ${secD('✓ Terminées récentes','var(--t3)',done,false,{showDate:true})}</div>`;
 }
 /* ── B/F1. En-tête enrichi de la fiche : fil de statut, boutons utiles, badges site ── */
+/* ⚠ « Indiquer l'arrivée » et « Historique du site (n) » portaient un plancher FIXE (130 et 150 px)
+   plus petit que leur texte (154 et 169 px, insécable) : sur un iPhone de 393 px, chacun recevait
+   152 px et le texte du premier débordait dans le second — mesuré le 24 septembre 2026, et déjà là
+   avant le thème final. `min-width:max-content` : un bouton n'est jamais plus étroit que son nom,
+   et la rangée (flex-wrap) passe à la ligne plutôt que de laisser deux libellés se chevaucher. */
 function intHeadExtras(i){ const cli=db.clients.find(c=>c.id===i.clientId)||{};
   const adr=i.adresse||cli.adresse||'';
   const itin=adr?('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(adr)):'';
@@ -19876,8 +20624,8 @@ function intHeadExtras(i){ const cli=db.clients.find(c=>c.id===i.clientId)||{};
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
       ${itin?`<a href="${itin}" target="_blank" onclick="event.stopPropagation()" class="btn sm" style="text-decoration:none;flex:1;min-width:110px;justify-content:center">🗺️ Itinéraire</a>`:''}
       ${tel?`<a href="tel:${esc(tel)}" onclick="event.stopPropagation()" class="btn ghost sm" style="text-decoration:none;flex:1;min-width:110px;justify-content:center">📞 Appeler</a>`:''}
-      ${(tel&&i.statut!=='terminee'&&i.statut!=='annulee')?`<button class="btn ghost sm" style="flex:1;min-width:130px;justify-content:center" onclick="event.stopPropagation();smsArrivee('${i.id}')">💬 Indiquer l'arrivée</button>`:''}
-      <button class="btn ghost sm" style="flex:1;min-width:150px;justify-content:center" onclick="intHistoriquePassages('${i.id}')">🕘 Historique du site (${nb})</button>
+      ${(tel&&i.statut!=='terminee'&&i.statut!=='annulee')?`<button class="btn ghost sm" style="flex:1;min-width:max-content;justify-content:center" onclick="event.stopPropagation();smsArrivee('${i.id}')">💬 Indiquer l'arrivée</button>`:''}
+      <button class="btn ghost sm" style="flex:1;min-width:max-content;justify-content:center" onclick="intHistoriquePassages('${i.id}')">🕘 Historique du site (${nb})</button>
     </div>
     ${(gar||i.sousGarantie||i.passageTotal>1)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
       ${gar?`<span class="tag" style="font-size:11px;color:var(--purple);border-color:var(--purple)">🛡️ Site sous garantie → ${fmtShort(gar.garantie.fin)}</span>`:''}
@@ -22221,7 +22969,7 @@ function renderIntDetail(id){
           <div class="bdt-row"><span class="bdt-lbl">Non travaillé (min)</span><span class="bdt-val"><input type="number" min="0" value="${i.nonTravaille||0}" onchange="intEditField('${id}','nonTravaille',parseInt(this.value)||0)" style="width:90px"></span></div>
           <div class="bdt-row" style="border-bottom:none;display:block"><span class="bdt-lbl" style="display:block;margin-bottom:6px">Commentaire</span>
             <input value="${esc(i.commTechnicien||'')}" placeholder="Commentaire…" oninput="(db.interventions.find(x=>x.id==='${id}')||{}).commTechnicien=this.value" onchange="save()" style="width:100%"></div>`:`
-          <div class="bdt-row"><span class="bdt-lbl">Effectué ?</span><span class="bdt-val" style="display:flex;align-items:center;gap:9px" onclick="toast('Touche le stylo ✏️ pour modifier')" title="Touche le stylo ✏️ pour modifier">${i.statut==='terminee'?'<b style="color:var(--acc-txt)">✓ Oui</b>':'<span style="color:var(--t3)">Non</span>'}<input type="checkbox" ${i.statut==='terminee'?'checked':''} disabled style="width:26px;height:26px;accent-color:var(--acc);opacity:.45;cursor:default;pointer-events:none"></span></div>
+          <div class="bdt-row"><span class="bdt-lbl">Effectué ?</span><span class="bdt-val" style="display:flex;align-items:center;gap:9px" onclick="toast('Touche le stylo ✏️ pour modifier')" title="Touche le stylo ✏️ pour modifier">${i.statut==='terminee'?'<b style="color:var(--green)">✓ Oui</b>':'<span style="color:var(--t3)">Non</span>'}<input type="checkbox" ${i.statut==='terminee'?'checked':''} disabled style="width:26px;height:26px;accent-color:var(--acc);opacity:.45;cursor:default;pointer-events:none"></span></div>
           ${drow(fic('cal',16),'Début', i.debutReel?dmy(fmtDTpart(i.debutReel,'d'))+' '+hh(fmtDTpart(i.debutReel,'t')):'—')}
           ${drow(fic('csq',16),'Fin', i.finReel?dmy(fmtDTpart(i.finReel,'d'))+' '+hh(fmtDTpart(i.finReel,'t')):'—')}
           ${drow(fic('clock',16),'Durée', `<b id="eff-dur" class="mono">${i.dureeReelle?d2(i.dureeReelle):(i.debutReel&&!i.finReel?'…':'00h00')}</b>`)}
@@ -23073,26 +23821,36 @@ function printRegistre(cid){ const c=db.clients.find(x=>x.id===cid)||{}; const i
 }
 
 /* ═══════════════ CLIENTS ═══════════════ */
+let cliTypeF='tous';
 views.clients=function(){
   const _tous=visibleClients(db.clients);
   setHeader('Clients',`${_tous.length} client(s)`,`${can('voirTout')?`<button class="btn ghost" onclick="exportClientsCsv()">CSV</button> `:''}<button class="btn" onclick="formClient()">＋ Client</button>`);
   const _tags=allTags();
   let _clis=_tous; if(cliTagFilter) _clis=_clis.filter(c=>(c.tags||[]).includes(cliTagFilter));
+  /* ⛔ LA RANGÉE DE LA MAQUETTE (thème final, 24 septembre 2026) : les initiales dans une pastille,
+     le nom en 17 semi-gras, le nombre d'interventions à droite, « Ville · téléphone » dessous, le
+     chevron. Chaque client portait ✎ et 🗑 sur sa carte — 200 px par client, deux boutons sous le
+     pouce à chaque défilement, dont un qui supprime. Les deux gestes vivent dans la FICHE (« Modifier »,
+     « Supprimer »), à un tap, gardés par les mêmes cases (`delItem` relit « Clients → Supprimer »).
+     « Pro » / « Particulier » devient un segmenté au-dessus de la liste, comme dans la maquette. */
+  if(cliTypeF==='pro') _clis=_clis.filter(c=>cliIsPro(c)); else if(cliTypeF==='part') _clis=_clis.filter(c=>!cliIsPro(c));
   const rows=_clis.map(c=>{ const n=db.interventions.filter(i=>i.clientId===c.id).length; const pro=cliIsPro(c);
-    return `<div class="card" onclick="ficheClient('${c.id}')" style="cursor:pointer;padding:13px 16px;margin-bottom:10px">
-      <div style="display:flex;gap:13px;align-items:center">
-        <span class="avatar" style="width:44px;height:44px;font-size:15px;flex-shrink:0">${initials(c.nom)}</span>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:14.5px;color:var(--t1)">${esc(c.nom)}</b><span style="font-size:10px;font-weight:700;color:var(--t3);border:1px solid var(--brd2);border-radius:100px;padding:1px 8px;white-space:nowrap">${pro?'🏢 Pro':'🏠 Particulier'}</span>${(c.tags||[]).length?tagChipsHtml(c):''}</div>
-          <div style="font-size:12.5px;color:var(--t3);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap">
-            ${c.contact?`<span>👤 ${esc(c.contact)}</span>`:''}${c.tel?`<span>📞 ${esc(c.tel)}</span>`:''}${c.email?`<span>✉️ ${esc(c.email)}</span>`:''}${c.adresse?`<span>📍 ${esc(c.adresse)}</span>`:''}${(!c.tel&&!c.email&&!c.adresse&&!c.contact)?'<span style="color:var(--org)">Fiche à compléter — touche ✎</span>':''}
-          </div>
-        </div>
-        <div style="text-align:center;flex-shrink:0;min-width:50px"><div style="font-weight:800;font-size:17px;color:var(--acc-txt)">${n}</div><div style="font-size:10px;color:var(--t3)">interv.</div></div>
-        <span style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="formClient('${c.id}')" title="Modifier">✎</button><button class="btn danger sm" onclick="delItem('clients','${c.id}')" title="Supprimer">🗑</button></span>
-      </div></div>`;}).join('');
+    const ou=(c.ville||'').trim()||(c.adresse||'').trim();
+    const meta=[pro?'':'Particulier', esc(ou), esc(c.tel||'')].filter(Boolean).join(' · ');
+    const metaT=[pro?'':'Particulier', ou, c.tel||''].filter(Boolean).join(' · ');
+    return `<div class="tf-rangee" onclick="ficheClient('${c.id}')">
+      <span class="tf-badge ini">${esc(initials(c.nom))}</span>
+      <div class="tf-corps">
+        <div class="tf-l1"><b class="tf-titre" title="${esc(c.nom)}">${esc(c.nom)}</b>${n?`<span class="tf-fin">${n} int.</span>`:''}</div>
+        <div class="tf-l2"><span title="${esc(metaT||'Fiche à compléter')}">${meta||'<span style="color:var(--org)">Fiche à compléter</span>'}</span></div>
+        ${(c.tags||[]).length?`<div class="tf-l3" style="flex-wrap:wrap">${tagChipsHtml(c)}</div>`:''}
+      </div>
+      <svg class="tf-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>`;}).join('');
+  const nPro=_tous.filter(c=>cliIsPro(c)).length;
+  const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
   const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}</div>`:'';
-  $('content').innerHTML=tagBar+(_clis.length? rows:`<div class="card">${emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`);
+  $('content').innerHTML=typeBar+tagBar+(_clis.length? `<div class="tf-groupe">${rows}</div>`:`<div class="card">${emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`);
 }
 /* ⛔ v738 — UNE FICHE S'OUVRE PAR SON IDENTIFIANT, PAS PAR SON MENU. La recherche, un lien, une
    notification y mènent : la règle de visibilité doit donc être ICI, pas seulement dans la liste. */
@@ -23129,6 +23887,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
     ${sec('Dernières interventions',ints,i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(techNames(i))}</div></div>${badge(STATUT_INT,i.statut)}</div>`)}
     ${sec('Factures',facts,f=>`<div class="pl-row" onclick="closeModal();go('factures')"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(docTot(f).ttc)}</div><div class="pl-meta">${fmtShort(f.date)}</div></div>${badge(FACT_ST,f.statut)}</div>`)}
     <div class="modal-foot" style="flex-wrap:wrap"><button class="btn ghost" onclick="closeModal();formClient('${c.id}')">Modifier</button>
+      ${canCat('crm','supprimer')?`<button class="btn danger" onclick="closeModal();delItem('clients','${c.id}')">Supprimer</button>`:''}
       <button class="btn ghost" onclick="openTagEditor('clients','${c.id}')">Étiquettes</button>
       <button class="btn ghost" onclick="printDossierClient('${c.id}')">Dossier client</button>
       <button class="btn" onclick="closeModal();formIntervention()">＋ Intervention</button>
@@ -25517,7 +26276,10 @@ views.boxes=function(){
   const unites=mine.reduce((t,b)=>t+Object.values(b.stock||{}).reduce((n,s)=>n+((s&&typeof s==='object')?(+s.u||0):(+s||0)),0),0);
   const cadre=`${mine.length} box${can('voirTout')?(perim?' (mon équipe)':''):' (mes box)'}`
     +(mine.length?` · ${avecStock} avec du stock · ${unites.toLocaleString('fr-FR')} u`:'')+(stkVu?' · + le stockage':'');
-  setHeader('Boxes',cadre,`<button class="btn ghost" onclick="go('carteBox')">🗺️ Carte</button> <button class="btn ghost" onclick="openAjoutProduitBoxes()">Ajouter produit</button> ${boxGerer('ajouter')?'<button class="btn" onclick="formBox()">＋ Box</button>':''}`);
+  /* « 🗺️ Carte » n'est plus dans l'en-tête : le segmenté juste dessous (Liste · Carte · Produits
+     donnés) y mène déjà — deux portes côte à côte vers le même écran, et sur un iPhone les trois
+     actions passaient sur deux lignes, « ＋ Box » seul sur la seconde (mesuré, thème final). */
+  setHeader('Boxes',cadre,`<button class="btn ghost" onclick="openAjoutProduitBoxes()">Ajouter produit</button> ${boxGerer('ajouter')?'<button class="btn" onclick="formBox()">＋ Box</button>':''}`);
   /* ⛔ LA PUCE QUI ÉVITE DE DÉFILER À TRAVERS TREIZE BOX VIDES. Chez ELAN, l'administrateur
      est le seul à voir les dix-huit ; cinq seulement ont du stock, et elles sont noyées. Il
      faisait défiler, ne lisait que des zéros, et concluait que tout était vide — trois fois
@@ -25532,14 +26294,21 @@ views.boxes=function(){
 };
 /* Une ligne de la liste des box — le stockage passe par la même (v741), avec son emblème et sans ville.
    `nv` rend les nouveautés du catalogue, calculées une fois pour toute la liste. */
+/* ⛔ LA RANGÉE DE LA MAQUETTE (thème final, 24 septembre 2026) : le NUMÉRO de la box dans la
+   pastille, en chasse fixe (« 012 » pour BX-012), vert quand elle a du stock, gris quand elle est
+   vide, rouge quand elle est désactivée — le mot est écrit à côté, la couleur ne parle pas seule.
+   Le nom en 17 semi-gras, le numéro complet à droite, la ville et le secteur dessous, puis la
+   pastille du stock total et le chevron. Les box se rangent par GROUPE dans des groupes de verre
+   (`renderBoxesList`), comme les réglages d'iOS. */
 function boxLigneHtml(b,nv){
-  const ab=estStockage(b)?'🏬':((b.categorie||'').replace(/[^A-Za-zÀ-ÿ0-9]/g,'').slice(0,2).toUpperCase()||'BX');
-    return `<div class="pl-row" onclick="openBox('${b.id}')">
-      <span style="width:44px;height:44px;border-radius:10px;background:color-mix(in srgb,var(--acc) 12%,transparent);color:var(--acc-txt);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${estStockage(b)?22:11}px;flex-shrink:0">${esc(ab)}</span>
-      <div class="pl-info">
-        <div style="display:flex;align-items:center;gap:6px"><span class="mono" style="color:var(--acc-txt);font-size:11px;font-weight:700">${esc(b.numero||'')}</span>${b.actif===false?'<span class="st st-red" style="font-size:9px">Inactif</span>':''}</div>
-        <div class="pl-title">${esc(b.nom)||esc(b.adresse)||esc(b.numero)||'Box'}${(()=>{ const n=nv().length?boxNouveautes(b,nv()).length:0; return n?` <span class="bxp-pastille bxp-pastille-carte" title="Nouveaux produits au catalogue, pas encore dans cette box">+${n>9?'9+':n}</span>`:''; })()}</div>
-        <div style="display:flex;align-items:center;gap:6px"><span class="pl-meta">${estStockage(b)?'Le stock hors des box':(esc(b.ville||'')||'—')}</span>${b.secteur?`<span class="st st-green" style="font-size:9px">${esc(b.secteur)}</span>`:''}</div>
+  const stk=estStockage(b);
+  const ab=stk?'🏬':(((b.numero||'').match(/(\d+)\s*$/)||[])[1]||'').slice(-4)||((b.categorie||'').replace(/[^A-Za-zÀ-ÿ0-9]/g,'').slice(0,2).toUpperCase()||'BX');
+  const coul=b.actif===false?'var(--red)':(boxADuStock(b)?'var(--green)':'var(--t3)');
+    return `<div class="tf-rangee" onclick="openBox('${b.id}')" style="--tf-c:${coul}">
+      <span class="tf-badge"${stk?' style="font-size:20px"':''}>${esc(ab)}</span>
+      <div class="tf-corps">
+        <div class="tf-l1"><b class="tf-titre" title="${esc(b.nom||b.adresse||b.numero||'Box')}">${esc(b.nom)||esc(b.adresse)||esc(b.numero)||'Box'}${(()=>{ const n=nv().length?boxNouveautes(b,nv()).length:0; return n?` <span class="bxp-pastille bxp-pastille-carte" title="Nouveaux produits au catalogue, pas encore dans cette box">+${n>9?'9+':n}</span>`:''; })()}</b>${b.numero?`<span class="tf-fin mono" style="font-size:13px">${esc(b.numero)}</span>`:''}</div>
+        <div class="tf-l2"><span title="${esc([b.actif===false?'Inactif':'', stk?'Le stock hors des box':(b.ville||'—'), b.secteur||''].filter(Boolean).join(' · '))}">${[b.actif===false?'<b style="color:var(--red)">Inactif</b>':'', stk?'Le stock hors des box':(esc(b.ville||'')||'—'), b.secteur?esc(b.secteur):''].filter(Boolean).join(' · ')}</span></div>
       </div>
       ${(()=>{ const t=boxTotalStock(b);
         /* Rien quand il n'y a rien : une box sans stock n'a pas besoin d'un « 0 » de plus à
@@ -25547,7 +26316,8 @@ function boxLigneHtml(b,nv){
         if(!t.u&&!t.c) return '';
         const txt=[t.u?t.u.toLocaleString('fr-FR')+' u':'',t.c?t.c.toLocaleString('fr-FR')+' ctn':''].filter(Boolean).join(' · ');
         return `<span class="st st-green" style="font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0" title="Stock total de cette box">${txt}</span>`; })()}
-    </div>`; }   /* ⛔ pas de « › » écrit : la ligne `.pl-row[onclick]` porte déjà celui de la feuille — deux marques pour une chose */
+      <svg class="tf-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>`; }
 function renderBoxesList(){
   const el=$('boxes-list'); if(!el) return;
   const q=norm(boxListSearch);
@@ -25555,7 +26325,7 @@ function renderBoxesList(){
   /* v741 : le stockage passe en tête, hors des groupes — ce n'est pas une box parmi d'autres. */
   const stk=list.find(estStockage); list=list.filter(b=>!estStockage(b));
   let _nv=null; const candsNv=()=>_nv||(_nv=produitsRecents());   // une fois pour toutes les cartes, et seulement s'il y en a
-  const tete=stk?boxLigneHtml(stk,candsNv):'';
+  const tete=stk?`<div class="tf-groupe">${boxLigneHtml(stk,candsNv)}</div>`:'';
   /* ⛔ « Aucune box. » MENT quand l'entreprise en a dix-huit. Mesuré chez ELAN le 11 septembre
      2026 : quatre techniciens (Mathys, Romain Avignon, Zampa, Antho Piovanacci) ouvraient cet
      écran sur un vide muet — aucune box ne les nommait, ni dans `techIds`, ni dans `userIds`,
@@ -25594,7 +26364,7 @@ function renderBoxesList(){
     const sa=boxADuStock(a), sb=boxADuStock(b2);
     if(sa!==sb) return sa?-1:1;
     return ((a.nom||a.numero||'')+'').localeCompare((b2.nom||b2.numero||'')+'','fr',{sensitivity:'base'}); }));
-  el.innerHTML=tete+Object.keys(groups).sort().map(g=>`<div class="nav-label" style="padding:14px 4px 6px">${esc(g==='Sans groupe'?'Sans groupe':g)}</div>`+groups[g].map(b=>boxLigneHtml(b,candsNv)).join('')).join('');
+  el.innerHTML=tete+Object.keys(groups).sort().map(g=>`<div class="tf-entete">${esc(g==='Sans groupe'?'Sans groupe':g)}</div><div class="tf-groupe">`+groups[g].map(b=>boxLigneHtml(b,candsNv)).join('')+'</div>').join('');
 }
 /* Ajouter un produit à plusieurs boxes (en masse) */
 let bulkBoxes=new Set();
@@ -32371,7 +33141,6 @@ function demoComptaRetire(silencieux){
 views.parametres=function(){
   setHeader('Synchronisation & paramètres','Apparence et sauvegarde des données');
   const t=getThemePref(), a=getAccent();
-  const swatch={green:'#1E7A4E',blue:'#2563EB',teal:'#0F7A8C',indigo:'#4B49B8',purple:'#7C3AED',pink:'#C2265A',red:'#C7332B',orange:'#EA580C'};
   const _demo=demoCompte();
   // Les outils de test (planning de démonstration, mise en production…) ne sont visibles que par l'équipe TEAM OP :
   // les entreprises et leurs utilisateurs ne voient que LEURS réglages.
@@ -32440,31 +33209,13 @@ views.parametres=function(){
         <div class="filters" style="margin:0">${Object.entries(LANGS).map(([k,v])=>`<div class="chip ${getLang()===k?'active':''}" onclick="setLang('${k}')">${LANG_FLAG[k]} ${v}</div>`).join('')}</div>
         <div style="font-size:12px;color:var(--t3);margin-top:8px">Le français reste la langue par défaut. Chaque utilisateur choisit la sienne.</div>
       </div>
-      <div style="margin-bottom:18px"><div class="dt-lbl" style="margin-bottom:10px">Thème</div>
-        <div class="filters" style="margin:0">
-          <div class="chip ${t==='auto'?'active':''}" onclick="setThemePref('auto')">Auto (système)</div>
-          <div class="chip ${t==='light'?'active':''}" onclick="setThemePref('light')">Jour</div>
-          <div class="chip ${t==='dark'?'active':''}" onclick="setThemePref('dark')">Sombre</div>
-        </div>
-        ${t==='auto'?`<div style="font-size:12px;color:var(--t3);margin-top:8px">Suit votre appareil — actuellement : <b style="color:var(--t2)">${effectiveTheme()==='dark'?'sombre':'jour'}</b></div>`:''}
-      </div>
-      <div><div class="dt-lbl" style="margin-bottom:10px">Couleur d'accent</div>
-        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">
-          ${Object.entries(ACCENTS).map(([k,lbl])=>`<div onclick="setAccent('${k}')" style="cursor:pointer;text-align:center">
-            <div style="width:42px;height:42px;border-radius:50%;background:${swatch[k]};margin:0 auto 6px;border:3px solid ${a===k?'var(--t1)':'transparent'};box-shadow:0 0 0 1px var(--brd)"></div>
-            <div style="font-size:12px;color:${a===k?'var(--t1)':'var(--t3)'}">${lbl}</div></div>`).join('')}
-          ${accentsPerso().map((hx,i)=>{ const ici = a==='custom' && (localStorage.getItem('elanB_accent_hex')||'').toUpperCase()===hx.toUpperCase();
-            return `<div onclick="setAccentCustom('${esc(hx)}')" title="${esc(hx)}" style="cursor:pointer;text-align:center;position:relative">
-            <div style="width:42px;height:42px;border-radius:50%;background:${esc(hx)};margin:0 auto 6px;border:3px solid ${ici?'var(--t1)':'transparent'};box-shadow:0 0 0 1px var(--brd)"></div>
-            <button onclick="accentPersoRetirer(event,'${esc(hx)}')" aria-label="Retirer cette couleur" style="position:absolute;top:-4px;right:-4px;width:22px;height:22px;min-height:22px;border-radius:50%;border:1px solid var(--brd);background:var(--bg1);color:var(--t2);font-size:12px;line-height:1;cursor:pointer;padding:0">×</button>
-            <div style="font-size:12px;color:${ici?'var(--t1)':'var(--t3)'}">${i===0?'La mienne':'Perso '+(i+1)}</div></div>`; }).join('')}
-          ${accentsPerso().length>=ACC_PERSO_MAX?'':`<label style="cursor:pointer;text-align:center;position:relative">
-            <div style="width:42px;height:42px;border-radius:50%;background:conic-gradient(#e0524d,#e79a3c,#f5c84c,#37c68a,#2563eb,#7a5af8,#e0524d);margin:0 auto 6px;border:3px solid transparent;box-shadow:0 0 0 1px var(--brd);display:flex;align-items:center;justify-content:center;font-size:16px">＋</div>
-            <div style="font-size:12px;color:var(--t3)">Ajouter</div>
-            <input type="color" value="${esc((localStorage.getItem('elanB_accent_hex')||'#7A5AF8'))}" onchange="setAccentCustom(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
-          </label>`}
-        </div>
-        <div style="font-size:12px;color:var(--t3);margin-top:8px">La couleur choisie s'applique partout : contours des cases, survols, menu, boutons… Les couleurs que tu ajoutes restent dans ta palette et te suivent d'un appareil à l'autre.</div></div>
+      <div><div class="dt-lbl" style="margin-bottom:10px">Thème et couleur</div>
+        <button type="button" class="tc-rangee" onclick="themeCouleur()">
+          <span class="tc-apercu" style="background:linear-gradient(158deg,${MARQUES[getMarque()].clair} 0 50%,${MARQUES[getMarque()].fonce} 50% 100%)"></span>
+          <span class="tc-rangee-txt"><b>${esc(MARQUES[getMarque()].l)}</b><span>Teinte : ${esc(a==='custom'?'personnalisée':(ACCENTS[a]||a))} · ${esc({auto:'Auto',light:'Jour',dark:'Nuit'}[t]||t)}</span></span>
+          <span class="tc-chevron" aria-hidden="true"></span>
+        </button>
+        <div style="font-size:12px;color:var(--t3);margin-top:8px">Le thème change les fonds et les menus ; la teinte s'applique aux boutons, liens et onglets — sur tous tes appareils.</div></div>
     </div>`+carteOnglets()+carteAppareil()+carteAide();
   // Utilisateur (compte créé par l'entreprise, pas sur le site) : ses réglages, la version, et la déconnexion — rien d'autre
   if(currentUser.role!=='admin'){ $('content').innerHTML=_app+`<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="color:var(--t2);font-size:13.5px">Version installée</span><b class="mono">v${APP_VERSION}</b></div><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:10px"><span style="color:var(--t2);font-size:13.5px">Session</span><button class="btn danger sm" onclick="if(confirm('Se déconnecter ?')) logout()">⏻ Déconnexion</button></div>`; return; }
@@ -37544,8 +38295,8 @@ async function submitCreateAdmin(e){ e.preventDefault();
   enterApp(admin);
 }
 /* ── Photo de profil : photo perso ou avatar généré sur le fond du logo ELAN ── */
-const ACC_SW={green:'#1E7A4E',blue:'#2563EB',purple:'#7C3AED',orange:'#EA580C'};
-const ACC_DARK={green:'#0E3B24',blue:'#12306E',purple:'#341B66',orange:'#7C2D0C'};
+const ACC_SW={green:'#1E7A4E',blue:'#2563EB',purple:'#7C3AED',orange:'#EA580C',teamop:'#152340',marine:'#152340',opgestion:'#0F4A3A'};
+const ACC_DARK={green:'#0E3B24',blue:'#12306E',purple:'#341B66',orange:'#7C2D0C',teamop:'#0B1426',marine:'#0B1426',opgestion:'#0B3B2E'};
 function accentHex(){ if(getAccent()==='custom') return localStorage.getItem('elanB_accent_hex')||'#7A5AF8'; return ACC_SW[getAccent()]||'#1E7A4E'; }
 function accentDark(){ return ACC_DARK[getAccent()]||'#0E3B24'; }
 function userAvatarApply(){ if(!currentUser) return;
@@ -38872,7 +39623,17 @@ function opPlatAppliquer(){
   r.setAttribute('data-os',d.os);
   r.setAttribute('data-kind',d.kind);
   r.setAttribute('data-nav',opNavigateur());
-  if(d.verre) r.setAttribute('data-verre','1'); else r.removeAttribute('data-verre');
+  /* ⛔⛔ LE VERRE EST SUR LES DIX PLATEFORMES — décision de Justin, thème final du 24 septembre
+     2026 (`design/THEME-REFERENCE.md` § 0 : « Liquid Glass sur les 10 plateformes »). La source
+     de la maquette coupe elle-même sa branche « surfaces pleines » (`if (false)`).
+     `PLATS[].verre` garde ce que la PLATEFORME sait faire nativement (le Liquid Glass de
+     Safari 26) : il ne décide plus de l'existence du verre, seulement des RAYONS (26 px sur
+     les appareils Apple récents, le rayon du système ailleurs) — c'est `data-verre-natif`.
+     Les deux réglages système qui retirent le verre (transparence réduite, mouvement réduit)
+     restent respectés par la feuille, et un navigateur sans `backdrop-filter` reçoit des
+     surfaces denses (bloc THÈME FINAL). */
+  r.setAttribute('data-verre','1');
+  if(d.verre) r.setAttribute('data-verre-natif','1'); else r.removeAttribute('data-verre-natif');
   if(p.autonome) r.setAttribute('data-autonome','1'); else r.removeAttribute('data-autonome');
   return p;
 }
@@ -38895,16 +39656,15 @@ function carteOnglets(){
 }
 function carteAppareil(){
   const p=opPlat(), d=PLATS[p.plat]||{}, f=opPlatForce();
-  const verre=d.verre?'oui':'non';
   const lignes=[
     ['Système', {ios:'iPhone / iPad',android:'Android',macos:'Mac',windows:'Windows',linux:'Linux',chromeos:'ChromeOS'}[p.os]||'inconnu'],
     ['Version du système', p.version? String(p.version) : '— '+p.sur],
     ['Navigateur', {safari:'Safari',chrome:'Chrome',edge:'Edge',firefox:'Firefox',samsung:'Samsung Internet'}[p.nav]||'autre'],
     ['Installée sur l’appareil', p.autonome?'oui':'non (ouverte dans un navigateur)'],
-    ['Verre (Liquid Glass)', verre+(d.verre?'':' — '+(p.os==='ios'||p.os==='macos'?('Safari '+(p.safari||'?')+', il en faut 26'):'réservé aux appareils Apple récents'))]
+    ['Verre (Liquid Glass)', 'oui — sur tous les appareils'+(d.verre?' (natif : Safari 26 et plus)':'')]
   ];
   return `<div class="card" style="margin-top:12px"><div class="card-head"><h3>📱 Appareil et rendu</h3></div>
-    <p style="color:var(--t2);font-size:13.5px;line-height:1.55;margin-bottom:12px">L’application reconnaît l’appareil et adapte son rendu : verre sur les appareils Apple récents, surfaces pleines ailleurs, rayons et typographie de chaque système.</p>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.55;margin-bottom:12px">L’application reconnaît l’appareil et adapte son rendu : le verre partout, avec les rayons et la typographie de chaque système.</p>
     <div class="fgroup">${lignes.map(([k,v])=>`<div class="frow"><span class="frow-lbl">${k}</span><span class="frow-val">${esc(String(v))}</span></div>`).join('')}</div>
     <div class="dt-lbl" style="margin:16px 0 8px">Rendu appliqué</div>
     <div style="background:${f?'color-mix(in srgb,var(--org) 11%,transparent)':'color-mix(in srgb,var(--acc) 10%,transparent)'};border:1px solid ${f?'color-mix(in srgb,var(--org) 42%,transparent)':'color-mix(in srgb,var(--acc) 35%,transparent)'};border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.5;margin-bottom:12px">
@@ -38927,13 +39687,33 @@ function setPlatForce(k){
 }
 
 /* ═══════════════ THÈME (auto système / jour / sombre + couleur d'accent) ═══════════════ */
-/* Huit teintes, comme la maquette. ⛔ LE VERT OP RESTE LE DÉFAUT et garde sa valeur :
-   changer un défaut, c'est changer la couleur de tous ceux qui n'ont rien choisi. */
-const ACCENTS = { green:'Vert OP', blue:'Bleu', indigo:'Indigo', purple:'Violet', pink:'Rose', orange:'Orange', teal:'Cyan', graphite:'Graphite', red:'Rouge' };
+/* ⛔⛔ LE THÈME ET LA TEINTE SONT DEUX RÉGLAGES — thème final de Justin, 24 septembre 2026
+   (`design/THEME-REFERENCE.md` § 0). Le THÈME (TEAM OP par défaut, OP GESTION au choix) pilote
+   les fonds, le tiroir, la barre latérale et le logo ; la TEINTE ne colore que les boutons, les
+   liens, les onglets, le menu actif et les icônes de barre. Choisir un thème pose sa teinte
+   (c'est ce que fait la maquette) ; on peut ensuite la changer.
+   ⚠ `green` reste la CLÉ du vert — quelqu'un l'a peut-être choisi, et une clé retirée laisserait
+   `--acc-src` vide (la panne du 11 au 22 septembre). Sa VALEUR devient le vert système de la
+   maquette. `red` n'est pas dans les onze : il reste servi à qui l'a déjà, sans être proposé. */
+const ACCENTS = { teamop:'TEAM OP', opgestion:'OP GESTION', marine:'Marine TEAM OP', blue:'Bleu', green:'Vert', indigo:'Indigo', purple:'Violet', pink:'Rose', orange:'Orange', teal:'Sarcelle', graphite:'Graphite', red:'Rouge' };
+const ACCENTS_PROPOSES = ['opgestion','teamop','marine','blue','green','indigo','purple','pink','orange','teal','graphite'];
+/* La pastille de chaque teinte, telle que la maquette la montre : la couleur PLEINE de jour, la
+   couleur de nuit la nuit. */
+const ACC_PASTILLE = { teamop:['#0B1426','#A9B6CC'], opgestion:['#0B3B2E','#6AA896'], marine:['#0B1426','#8FB4FF'],
+  blue:['#007AFF','#0A84FF'], green:['#34C759','#30D158'], indigo:['#5856D6','#5E5CE6'], purple:['#AF52DE','#BF5AF2'],
+  pink:['#FF2D55','#FF375F'], orange:['#FF9500','#FF9F0A'], teal:['#30B0C7','#40C8E0'], graphite:['#636366','#98989D'], red:['#FF3B30','#FF453A'] };
+/* ⚠ Ce sont des noms de THÈMES (des couleurs) : l'application, elle, s'appelle OP GESTION et
+   garde son logo dans les deux — voir `applyBrand`. */
+const MARQUES = {
+  teamop:   { l:'TEAM OP',    sous:'Marine et gris-bleu',  accent:'teamop',    clair:'#F0F3F8', fonce:'#0B1426' },
+  opgestion:{ l:'OP GESTION', sous:'Vert forêt et menthe', accent:'opgestion', clair:'#E4EFEA', fonce:'#0B3B2E' }
+};
+function getMarque(){ try{ const m=localStorage.getItem('elanB_marque'); return MARQUES[m]?m:'teamop'; }catch(e){ return 'teamop'; } }
 const THEME_LBL = { auto:'Auto (système)', light:'Mode jour', dark:'Mode sombre' };
 const THEME_ICO = { auto:'🌗', light:'☀️', dark:'🌙' };
 function getThemePref(){ return localStorage.getItem('elanB_theme')||'auto'; }
-function getAccent(){ return localStorage.getItem('elanB_accent')||'green'; }
+/* Sans choix, la teinte est celle du THÈME — plus le vert d'avant. */
+function getAccent(){ return localStorage.getItem('elanB_accent')||MARQUES[getMarque()].accent; }
 /* ⛔ L'APPARENCE SUIT LA PERSONNE, PAS LE TÉLÉPHONE. Justin, 15 septembre 2026, capture à
    l'appui : violet choisi sur son Mac, iPhone resté vert — « il faut que ça synchronise bien
    entre chaque appareil ». Thème, couleur d'accent et langue ne vivaient que dans
@@ -38948,7 +39728,7 @@ function getAccent(){ return localStorage.getItem('elanB_accent')||'green'; }
       deux téléphones ouverts se repousseraient leur thème à tour de rôle, chacun estampillant
       la fiche de l'autre. C'est un tap qui écrit. Conséquence assumée, et à dire : un réglage
       choisi AVANT cette version ne voyage qu'une fois retapé une seule fois. */
-const PREF_CLES={theme:'elanB_theme',accent:'elanB_accent',accentHex:'elanB_accent_hex',accentsPerso:'elanB_accents_perso',lang:'elanB_lang',onglets:'elanB_onglets',favoris:'elanB_favoris',carte:'elanB_carte'};
+const PREF_CLES={theme:'elanB_theme',marque:'elanB_marque',accent:'elanB_accent',accentHex:'elanB_accent_hex',accentsPerso:'elanB_accents_perso',lang:'elanB_lang',onglets:'elanB_onglets',favoris:'elanB_favoris',carte:'elanB_carte'};
 function prefEcrire(cle,val){
   if(!currentUser||!PREF_CLES[cle]||typeof val!=='string') return;
   const u=(db&&db.users&&db.users.find(x=>x.id===currentUser.id))||currentUser;
@@ -38970,8 +39750,9 @@ function prefAppliquer(u){
 function systemDark(){ return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }
 function effectiveTheme(){ const p=getThemePref(); return p==='auto' ? (systemDark()?'dark':'light') : p; }
 function applyTheme(){
-  const eff=effectiveTheme(), a=getAccent(), r=document.documentElement;
+  const eff=effectiveTheme(), a=getAccent(), r=document.documentElement, mq=getMarque();
   r.setAttribute('data-theme', eff==='light'?'light':'dark');   // explicite : l'auto (média query) ne sert que d'amorce avant le JS
+  r.setAttribute('data-marque', mq);
   /* ⛔⛔ LE VERT PASSAIT À CÔTÉ DE SA PROPRE PALETTE. Cette ligne retirait `data-accent`
      quand la couleur était le vert — c'est-à-dire pour la QUASI-TOTALITÉ des gens, puisque
      c'est le défaut. Conséquence mesurée au navigateur le 22 septembre 2026 :
@@ -39027,11 +39808,66 @@ function applyTheme(){
      dans l'application aurait été ignoré par la barre d'état dès que le système disait le
      contraire. Une fois le JavaScript passé, les trois disent la même chose et c'est le choix
      de la personne qui gagne, pas celui de son téléphone. */
-  document.querySelectorAll('meta[name=theme-color]').forEach(mc=>mc.setAttribute('content', eff==='light'?'#FFFFFF':'#0D1624'));
+  document.querySelectorAll('meta[name=theme-color]').forEach(mc=>mc.setAttribute('content', eff==='light'?MARQUES[mq].clair:MARQUES[mq].fonce));
+  try{ applyBrand(); }catch(e){}
   // La carte suit le mode jour/nuit — par la teinte des tuiles, sans reconstruire la vue
   try{ mapNuitSync(); }catch(e){}
 }
 function setThemePref(p){ localStorage.setItem('elanB_theme',p); prefEcrire('theme',p); applyTheme(); toast(THEME_ICO[p]+' '+THEME_LBL[p]); if(current==='parametres') views.parametres(); }
+/* Le thème (TEAM OP / OP GESTION) pose SA teinte, comme dans la maquette : on choisit un thème,
+   puis on peut changer la teinte. Il voyage avec la personne (`u.pref.marque`), comme le reste. */
+function setMarque(k){
+  if(!MARQUES[k]) return;
+  try{ localStorage.setItem('elanB_marque',k); localStorage.setItem('elanB_accent',MARQUES[k].accent); }catch(e){}
+  prefEcrire('marque',k); prefEcrire('accent',MARQUES[k].accent);
+  applyTheme(); try{ avatarAccentSync(); }catch(e){}
+  if(current==='parametres') views.parametres();
+}
+/* ══ L'ÉCRAN « THÈME ET COULEUR » — la maquette de Justin (Réglages › Thème et couleur) ══════
+   Trois choix, dans l'ordre où on les lit : le MODE (jour, nuit, auto), le THÈME (fonds et
+   menus), la TEINTE (boutons, liens, onglets). L'aperçu montre les trois objets que la teinte
+   colore. Chaque geste s'applique tout de suite : la fenêtre se redessine sur la nouvelle
+   couleur, on voit ce qu'on choisit. ⚠ Le rouge n'est pas dans les onze de la maquette : il
+   n'est montré qu'à qui le porte déjà (retirer sa pastille le laisserait sans choix visible). */
+function themeCouleur(){
+  const t=getThemePref(), a=getAccent(), mq=getMarque(), nuit=effectiveTheme()==='dark';
+  const perso=accentsPerso(), hexPerso=(localStorage.getItem('elanB_accent_hex')||'').toUpperCase();
+  const liste=ACCENTS_PROPOSES.concat(a==='red'?['red']:[]);
+  const coche='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>';
+  const pastille=(k)=>{ const c=(ACC_PASTILLE[k]||['#8E8E93','#8E8E93'])[nuit?1:0], on=a===k;
+    return `<button type="button" class="tc-teinte${on?' on':''}" onclick="tcTeinte('${k}')" aria-pressed="${on}">
+      <span class="tc-rond" style="background:${c};--tc-rond:${c};color:${encreSur(c)}">${on?coche:''}</span><span class="tc-nom">${esc(ACCENTS[k]||k)}</span></button>`; };
+  const persos=perso.map((hx,i)=>{ const on=a==='custom'&&hexPerso===hx.toUpperCase();
+    return `<div class="tc-teinte-p"><button type="button" class="tc-teinte${on?' on':''}" onclick="setAccentCustom('${esc(hx)}');themeCouleur()" aria-pressed="${on}" title="${esc(hx)}">
+      <span class="tc-rond" style="background:${esc(hx)};--tc-rond:${esc(hx)};color:${encreSur(hx)}">${on?coche:''}</span><span class="tc-nom">${i===0?'La mienne':'Perso '+(i+1)}</span></button>
+      <button type="button" class="tc-retirer" onclick="accentPersoRetirer(event,'${esc(hx)}');themeCouleur()" aria-label="Retirer cette couleur">×</button></div>`; }).join('');
+  const ajout=perso.length>=ACC_PERSO_MAX?'':`<label class="tc-teinte tc-ajout"><span class="tc-rond" style="background:conic-gradient(#e0524d,#e79a3c,#f5c84c,#37c68a,#2563eb,#7a5af8,#e0524d)">＋</span><span class="tc-nom">Ajouter</span>
+      <input type="color" value="${esc(hexPerso||'#7A5AF8')}" onchange="setAccentCustom(this.value);themeCouleur()" aria-label="Choisir ma couleur"></label>`;
+  const modes=[['light','Jour'],['dark','Nuit'],['auto','Auto']];
+  openModal(`<div class="modal-head"><h3>Thème et couleur</h3><button class="modal-close" onclick="closeModal()" aria-label="Fermer">✕</button></div>
+    <div class="tc-ecran"><p class="tc-intro">Le thème change les fonds et les menus ; la teinte s'applique aux boutons, liens et onglets — sur tous tes appareils.</p>
+    <div class="tc-groupe">Apparence</div>
+    <div class="filters tc-modes" role="group" aria-label="Apparence">${modes.map(([k,l])=>`<div class="chip ${t===k?'active':''}" onclick="tcMode('${k}')">${l}</div>`).join('')}</div>
+    ${t==='auto'?`<div class="tc-note">Suit ton appareil — en ce moment : <b>${nuit?'nuit':'jour'}</b>.</div>`:''}
+    <div class="tc-groupe">Thème</div>
+    <div class="tc-carte">${Object.keys(MARQUES).map(k=>{ const M=MARQUES[k], on=k===mq;
+      return `<button type="button" class="tc-theme${on?' on':''}" onclick="tcMarque('${k}')" aria-pressed="${on}">
+        <span class="tc-apercu" style="background:linear-gradient(158deg,${M.clair} 0 50%,${M.fonce} 50% 100%)"></span>
+        <span class="tc-rangee-txt"><b>${esc(M.l)}</b><span>${esc(M.sous)}</span></span>
+        <span class="tc-coche" aria-hidden="true">${on?coche:''}</span></button>`; }).join('')}</div>
+    <div class="tc-groupe">Teinte d'accentuation</div>
+    <div class="tc-carte tc-grille">${liste.map(pastille).join('')}${persos}${ajout}</div>
+    <div class="tc-groupe">Aperçu</div>
+    <div class="tc-carte tc-demo">
+      <div class="tc-demo-l"><span class="tc-demo-creer">＋ Créer</span><span class="tc-demo-onglet">Onglet actif</span></div>
+      <a class="tc-demo-lien" href="javascript:void 0" onclick="return false">06 12 34 56 78</a>
+    </div>
+    <button class="btn tc-termine" onclick="closeModal()">Terminé</button></div>`);
+}
+function tcMode(k){ localStorage.setItem('elanB_theme',k); prefEcrire('theme',k); applyTheme(); if(current==='parametres') views.parametres(); themeCouleur(); }
+function tcMarque(k){ setMarque(k); themeCouleur(); }
+function tcTeinte(k){ localStorage.setItem('elanB_accent',k); prefEcrire('accent',k); applyTheme(); try{ avatarAccentSync(); }catch(e){}
+  if(current==='parametres') views.parametres(); themeCouleur(); }
 function toggleTheme(ev){
   const o=['auto','light','dark'], suivant=o[(o.indexOf(getThemePref())+1)%3];
   const sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -39515,9 +40351,10 @@ function accentPersoRetirer(ev,hex){
   const l=accentsPerso().filter(h=>h.toUpperCase()!==String(hex).toUpperCase());
   accentsPersoEcrire(l);
   /* Retirer la couleur QU'ON PORTE laisserait l'interface teinte par une couleur absente de la
-     palette : on revient au vert de la marque, c'est le seul choix qui ne ment pas. */
+     palette : on revient à la teinte du thème, c'est le seul choix qui ne ment pas. */
   if(getAccent()==='custom' && (localStorage.getItem('elanB_accent_hex')||'').toUpperCase()===String(hex).toUpperCase()){
-    localStorage.setItem('elanB_accent','green'); prefEcrire('accent','green'); applyTheme(); avatarAccentSync();
+    const ac=MARQUES[getMarque()].accent;
+    localStorage.setItem('elanB_accent',ac); prefEcrire('accent',ac); applyTheme(); avatarAccentSync();
   }
   toast('Couleur retirée'); if(current==='parametres') views.parametres(); }
 /* Suit le thème système en direct quand le réglage est sur « Auto » */
@@ -40193,8 +41030,11 @@ function compteurs(){
    Le drapeau « occupe » empêche nos propres insertions de relancer le passage ; comme elles ne
    laissent plus aucun émoji derrière elles, le second tour ne trouve rien et la boucle s'arrête. */
 var occupe=false, attente=null;
+/* `#creer` (la feuille « Créer ») est une SŒUR de .main posée sur <body> : ni #content ni #overlay
+   ne la contiennent, et ses six tuiles restaient en émojis au milieu d'un menu tout en traits
+   (mesuré au navigateur le 24 septembre 2026, capture de la feuille). */
 var RACINES=['#content','#page-head','#overlay','#overlay2','#nav',
-  '#topbar-actions','#login','.topbar','.sidebar-foot','#mail-read','#tabbar'];
+  '#topbar-actions','#login','.topbar','.sidebar-foot','#mail-read','#tabbar','#creer'];
 function balayerRacines(){
   for(var i=0;i<RACINES.length;i++){
     var l=document.querySelectorAll(RACINES[i]);
@@ -40240,7 +41080,7 @@ function nommer(){
 function planifier(){ clearTimeout(attente); attente=setTimeout(passage,40); }
 try{
   var obs=new MutationObserver(function(){ if(!occupe) planifier(); });
-  ['#content','#page-head','#overlay','#overlay2','#nav','#login','.topbar'].forEach(function(sel){
+  ['#content','#page-head','#overlay','#overlay2','#nav','#login','.topbar','#creer'].forEach(function(sel){
     var el=document.querySelector(sel); if(el) obs.observe(el,{childList:true,subtree:true});
   });
   obs.observe(document.body,{childList:true});
@@ -40273,6 +41113,18 @@ try{
    On empile une entrée par écran, et on rend le retour système à goBack(), la fonction que
    l'application utilise déjà pour son propre bouton « ‹ ». Quand la pile est vide, on ne fait
    rien : le système reprend la main et l'utilisateur sort — jamais de piège. */
+/* La feuille « Créer » MONTE dès la deuxième image : attendre l'observateur (40 ms) laisserait voir
+   les émojis se changer en traits pendant qu'elle glisse. On passe donc juste après son écriture. */
+try{
+  if(typeof window.creerOuvrir==='function'){
+    var creerNatif=window.creerOuvrir;
+    window.creerOuvrir=function(){
+      var r=creerNatif.apply(this,arguments);
+      try{ occupe=true; icones(document.getElementById('creer')); }catch(e){} finally{ occupe=false; }
+      return r;
+    };
+  }
+}catch(e){}
 try{
   if(typeof window.go==='function'){
     var goNatif=window.go, enRetour=false;
