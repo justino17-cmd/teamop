@@ -259,6 +259,10 @@
      restait inatteignable. Le retour à la ligne ne se déclenche que lorsque ça ne tient
      pas — sur grand écran, rien ne change. Mesuré sur un écran de 390 px. */
   .frow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--brd);min-height:46px;}
+  /* ⚠️ `hidden` NE CACHE PAS UNE RANGÉE TOUT SEUL : `.frow{display:flex}` ci-dessus bat le
+     `display:none` que le navigateur donne à `[hidden]`. Une rangée masquée garde ses champs
+     (formulaire du stockage : `saveBox` relit tout le formulaire), elle ne se montre simplement pas. */
+  .frow[hidden]{display:none!important}
   .frow:last-child{border-bottom:none;}
   .frow>input,.frow>select,.frow>textarea{background:transparent;border:none;padding:0;width:100%;color:var(--t1);font-size:15px;outline:none;}
   .frow-val>input,.frow-val>select,.frow-val>textarea{background:transparent;border:none;outline:none;padding:0;color:var(--t1);font-size:15px;text-align:right;font-family:inherit;appearance:none;-webkit-appearance:none;}
@@ -6436,8 +6440,14 @@ html[data-refonte] .tbl.list-tbl td.strong,html[data-refonte] .tbl.list-tbl td .
 /* Les colonnes de chiffres s'alignent : c'est ce qui permet de comparer d'un coup d'œil. */
 html[data-refonte] .tbl.list-tbl td[style*="text-align:right"],
 html[data-refonte] .pl-row .pl-val{font-variant-numeric:tabular-nums}
-/* Une ligne qui s'ouvre le DIT — un chevron, pas une devinette. */
-html[data-refonte] .pl-row[onclick]::after{
+/* Une ligne qui s'ouvre le DIT — un chevron, pas une devinette.
+   ⛔⛔ SEULEMENT LÀ OÙ LA RÈGLE « LES LISTES DISENT QU'ELLES S'OUVRENT » NE PASSE PAS — une ligne qui
+   porte un bouton. Les deux règles visaient le MÊME `::after` : l'une pose le trait du HAUT (chevron
+   absolu, à droite), l'autre celui du BAS (chevron en bout de ligne) — et une propriété qui n'est pas
+   en conflit ne s'écrase pas, elle s'AJOUTE. Mesuré le 24 septembre 2026 sur la liste des box : un
+   chevron à TROIS côtés (haut, droite, bas) sur chaque ligne cliquable de l'application. C'est la
+   règle « une moitié de règle survit à l'autre », par un chemin de plus. */
+html[data-refonte] .pl-row[onclick]:is(:has(.btn),:has(button))::after{
   content:'';width:7px;height:7px;flex-shrink:0;margin-left:2px;
   border-right:2px solid var(--t3);border-bottom:2px solid var(--t3);
   transform:rotate(-45deg);opacity:.75;
@@ -7030,7 +7040,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '743-beta';
+const APP_VERSION = '744-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -8275,6 +8285,71 @@ function dictFusion(prio,autre){ const out=Object.assign({},autre&&typeof autre=
     const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
     if(obj(p)&&obj(a)&&(Number(a._m)||0)>(Number(p._m)||0)) return;
     out[k]=p; }); return out; }
+/* ══ LES PLANS D'APPÂTAGE SE FUSIONNENT POSTE PAR POSTE (v744, 24 septembre 2026) ══════════════
+   ⛔ LA DETTE : `plansSite[client]` est une LISTE de plans (chacun son image et ses postes), et
+   `dictFusion` la prenait EN BLOC — le côté prioritaire gagnait tout. Deux techniciens hors ligne
+   chez le même client, l'un pose les postes 13 et 14, l'autre déplace le 5 : le dernier à
+   synchroniser effaçait le travail de l'autre, sans rien signaler — et depuis la v740, un plan
+   ainsi régressé part au client comme « mis à jour ».
+   La réponse est celle du stock d'une box (`boxFusionFine`) : chaque POSTE porte sa date (`_m`,
+   posée par le geste qui le crée ou le change), chaque PLAN aussi pour ses propres champs (nom,
+   photo), et une suppression laisse une pierre tombale dans `db._tombes.plansSite`
+   (`client|plan` ou `client|plan|poste`) — le même registre, la même union au maximum, le même
+   élagage à 90 jours que toutes les autres. Trois règles :
+   1. ⛔ SANS AUCUNE MARQUE NI TOMBE POUR CE CLIENT, DES DEUX CÔTÉS → `null`, et l'ANCIENNE règle
+      reprend (le côté prioritaire en bloc). Une donnée non datée ne dit rien de ce qui a changé :
+      la réunir ressusciterait ce qu'une version d'avant a supprimé (leçon de `boxFusionFine` :
+      « une absence non datée n'est jamais une suppression », et symétriquement pas une addition).
+   2. Un poste, un plan : le plus RÉCENT gagne, à égalité le côté prioritaire — comme partout.
+   3. Une tombe ne tue que ce qui n'a pas bougé APRÈS elle : un poste retouché hors ligne après la
+      suppression du plan le fait revivre (quelqu'un y travaillait), comme un enregistrement.
+   ⚠️ LIMITE CONNUE, écrite pour ne pas la croire réglée : deux appareils hors ligne qui posent
+   chacun « le prochain numéro » donnent deux postes au MÊME numéro. Ils survivent tous les deux
+   (rien n'est perdu), mais la numérotation est à reprendre à la main — renuméroter tout seul
+   changerait l'étiquette d'un poste déjà collé sur un mur.
+   ⚠️ Et la maille fine ne vaut qu'entre appareils qui la connaissent : un appareil d'avant la v744
+   ne pose ni marque ni tombe. Comme pour le stock des box, c'est EXIGER la version (Tour) qui
+   l'active pour de bon — à la publication. `tests/test-800.js` joue les scénarios sur la vraie
+   fonction. */
+function plansFusionFine(cid,P,A,tb){
+  const liste=x=>Array.isArray(x)?x.filter(p=>p&&typeof p==='object'&&p.id!=null):[];
+  P=liste(P); A=liste(A); tb=(tb&&typeof tb==='object')?tb:{};
+  const date=o=>+(o&&o._m)||0;
+  const actif=pl=>Math.max(date(pl),...((pl&&pl.postes)||[]).map(date),0);   // la DERNIÈRE activité connue d'un plan
+  const pref=String(cid)+'|';
+  if(!P.some(pl=>actif(pl)>0)&&!A.some(pl=>actif(pl)>0)&&!Object.keys(tb).some(k=>k.startsWith(pref))) return null;
+  const mort=(cle,d)=>{ const t=+tb[cle]||0; return t>0&&t>=d; };
+  const histo=(x,y)=>{ const vus=new Set(), l=[];
+    [].concat(Array.isArray(x)?x:[],Array.isArray(y)?y:[]).forEach(h=>{ if(!h) return; const k=(h.ts||0)+'|'+(h.action||''); if(!vus.has(k)){ vus.add(k); l.push(h); } });
+    return l.sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-50); };
+  const fusionPlan=(p,a)=>{
+    const base=date(a)>date(p)?a:p;   // les champs du PLAN : le plus récent, à égalité le prioritaire
+    const pp=new Map((p.postes||[]).filter(x=>x&&x.id!=null).map(x=>[String(x.id),x]));
+    const pa=new Map((a.postes||[]).filter(x=>x&&x.id!=null).map(x=>[String(x.id),x]));
+    const postes=[];
+    [...pp.keys(),...[...pa.keys()].filter(k=>!pp.has(k))].forEach(k=>{ const x=pp.get(k), y=pa.get(k);
+      if(mort(pref+String(p.id)+'|'+k,Math.max(date(x),date(y)))) return;   // supprimé, et pas retouché depuis
+      postes.push(x&&y?(date(y)>date(x)?y:x):(x||y)); });
+    return Object.assign({},base,{postes,version:Math.max(+p.version||1,+a.version||1),historique:histo(p.historique,a.historique)}); };
+  const parId=new Map(A.map(pl=>[String(pl.id),pl])), vus=new Set(), out=[];
+  P.forEach(p=>{ const id=String(p.id); vus.add(id); const a=parId.get(id);
+    const m=a?fusionPlan(p,a):p;
+    if(mort(pref+id,Math.max(actif(p),actif(a)))) return;
+    /* un poste supprimé ne vit pas non plus dans un plan qui n'existe que d'un côté */
+    out.push(a?m:Object.assign({},m,{postes:(m.postes||[]).filter(x=>!(x&&x.id!=null&&mort(pref+id+'|'+String(x.id),date(x))))})); });
+  A.forEach(a=>{ const id=String(a.id); if(vus.has(id)||mort(pref+id,actif(a))) return;
+    out.push(Object.assign({},a,{postes:(a.postes||[]).filter(x=>!(x&&x.id!=null&&mort(pref+id+'|'+String(x.id),date(x))))})); });
+  return out; }
+/* La collection entière : l'ancienne règle clé par clé (`dictFusion`), puis la maille fine pour
+   chaque client que les DEUX côtés connaissent. */
+function plansSiteFusion(prio,autre,tombes){
+  const obj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
+  const out=dictFusion(prio,autre);
+  if(!obj(prio)||!obj(autre)) return out;
+  const tb=(tombes&&tombes.plansSite)||{};
+  Object.keys(out).forEach(cid=>{ if(!(cid in prio)||!(cid in autre)) return;
+    const f=plansFusionFine(cid,prio[cid],autre[cid],tb); if(f) out[cid]=f; });
+  return out; }
 /* ══ LE CLASSEMENT DES 83 CLÉS DE `db` — ÉTAPE 2 DU SOCLE ═══════════════════════════════════
    ⛔ POURQUOI CETTE TABLE EXISTE, ET POURQUOI ELLE EST LA PREMIÈRE CHOSE ÉCRITE DE L'ÉTAPE 2.
    `collsFusion` prend « toute clé qui se trouve être un tableau » (ligne ~6137) : la règle est
@@ -8444,11 +8519,17 @@ function opFichiersDe(r) {
   const ajoute = (x) => { if (/^[0-9a-f]{64}$/.test(String(x || '')) && out.indexOf(x) < 0) out.push(x); };
   (Array.isArray(r.photos) ? r.photos : []).forEach(ph => { const m = PH_MARQUE.exec(String(ph || '')); if (m) ajoute(m[1]); });
   (Array.isArray(r.docs) ? r.docs : []).forEach(d => { if (d && d.pid) ajoute(String(d.pid)); });
+  /* v744 : les photos de l'onglet « Plans », et celles des plans d'appâtage — une ligne de
+     `plansSite` est `{v:[plans]}` (le cas « dict » de `opDecomposer`). Une pièce qu'aucune ligne ne
+     déclare est une pièce que le ménage du serveur finira par effacer, sous un plan bien vivant. */
+  (Array.isArray(r.plans) ? r.plans : []).forEach(ph => { const m = PH_MARQUE.exec(String(ph || '')); if (m) ajoute(m[1]); });
+  (Array.isArray(r.v) ? r.v : []).forEach(pl => { const m = pl && typeof pl === 'object' && PH_MARQUE.exec(String(pl.img || '')); if (m) ajoute(m[1]); });
   return out;
 }
 function opAmpute(r) {
   if (!r || typeof r !== 'object') return '';
   if (r.photosHorsNuage > 0) return 'photos';
+  if (r.plansHorsNuage > 0) return 'plans';
   if (Array.isArray(r.champsHorsNuage) && r.champsHorsNuage.length) return 'champs';
   if (Array.isArray(r.docs) && r.docs.some(d => d && d.horsNuage && !d.data)) return 'documents';
   return '';
@@ -8881,7 +8962,25 @@ function opRecomposer(lignes, base, opts) {
 
   return db2;
 }
-function recEmpreinte(r){ let h=2166136261; const t=JSON.stringify(r,(k,v)=>(k==='_m'||k==='_ms')?undefined:v)||''; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36); }
+/* ⛔ UNE PIÈCE DÉPOSÉE S'EMPREINTE PAR SON IDENTIFIANT, JAMAIS PAR SON CONTENU (v744).
+   Une photo déposée est « piece:<64 hex> » là où elle arrive par la synchro, et
+   « piece:<64 hex>:data:… » là où son contenu est en mémoire — pris ici, ou relu du serveur pour
+   l'afficher. C'est LA MÊME photo : le contenu d'un identifiant ne change jamais. L'empreinte les
+   distinguait pourtant, donc un appareil qui ne faisait que REGARDER une fiche (la photo relue
+   pour l'écran, `intPhotosCombler`) la voyait « modifiée » au premier `save()` venu, lui posait un
+   `_m` neuf et gagnait toutes les fusions sur elle — « un appareil qui ne fait que lire
+   s'attribuait la base » (CLAUDE.md), rouvert par les photos. On coupe donc au marqueur.
+   ⚠️ Pas de `PH_MARQUE` ici : cette fonction tourne au CHARGEMENT (`ombreRelever`), bien avant que
+   la constante soit déclarée — une zone morte temporelle, avalée par le `try` qui l'entoure, et
+   l'ombre ne se construirait plus. Des comparaisons de caractères, sans rien qui dépende de
+   l'ordre du fichier ; et le test de longueur d'abord, qui écarte presque toutes les chaînes.
+   ⚠️ Tout est DANS la fonction : une dizaine de bancs l'extraient seule dans un bac à sable, et une
+   aide posée à côté les faisait tous mourir (« _pieceSansContenu is not defined »). */
+function recEmpreinte(r){ let h=2166136261; const t=JSON.stringify(r,(k,v)=>{ if(k==='_m'||k==='_ms') return undefined;
+    if(typeof v==='string'&&v.length>71&&v.charCodeAt(70)===58&&v.charCodeAt(0)===112&&v.startsWith('piece:')){
+      for(let q=6;q<70;q++){ const c=v.charCodeAt(q); if(!((c>=48&&c<=57)||(c>=97&&c<=102))) return v; }
+      return v.slice(0,70); }
+    return v; })||''; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36); }
 /* ⛔ LA MAILLE DE LA FUSION : UNE BOX EST UN ENREGISTREMENT, MAIS DEUX PERSONNES Y TRAVAILLENT.
    Demande de Justin, 10 septembre 2026 : « il faut que personne n'écrase rien ». Le défaut est
    là et pas ailleurs — Alexis change le stock de l'ADVION, Justin celui du DEBUSK, dans la MÊME
@@ -9035,7 +9134,7 @@ function fusionnerBases(local,remote,prioriteLocale){
     out[c]=ordre.map(id=>m.get(id)).concat(sansId);
   });
   COLLS_DICT.forEach(c=>{ const P=prio&&prio[c], A=autre&&autre[c];
-    if((P&&typeof P==='object'&&!Array.isArray(P))||(A&&typeof A==='object'&&!Array.isArray(A))) out[c]=dictFusion(P,A); });
+    if((P&&typeof P==='object'&&!Array.isArray(P))||(A&&typeof A==='object'&&!Array.isArray(A))) out[c]=(c==='plansSite')?plansSiteFusion(P,A,tombes):dictFusion(P,A); });
   if(Array.isArray(out.journal)) out.journal=out.journal.slice().sort((x,y)=>(y.ts||0)-(x.ts||0)).slice(0,500);
   if(Array.isArray(out.planJournal)) out.planJournal=out.planJournal.slice().sort((x,y)=>(x.ts||0)-(y.ts||0)).slice(-400);   // même plafond qu'en local, sinon il grossit à chaque fusion
   out._tombes=tombes;
@@ -9053,7 +9152,12 @@ function fusionnerBases(local,remote,prioriteLocale){
    de convergence dans une course à trois. On ajoute donc l'empreinte des marques de lignes :
    elles changent exactement quand une ligne de stock change. Signalé par `relecteur`. */
 function baseSignature(d){ return collsFusion(d).sort().map(c=>c+':'+(d[c]||[]).map(r=>(r&&r.id!=null)?(String(r.id)+'@'+(r._m||0)+(c==='boxes'&&r._ms?'~'+recEmpreinte(r._ms):'')):'').sort().join(',')).join('|')
-  +'§'+COLLS_DICT.map(c=>c+':'+Object.keys((d&&d[c])||{}).sort().map(k=>{ const v=d[c][k]; return k+((v&&typeof v==='object'&&!Array.isArray(v)&&v._m)?'@'+v._m:''); }).join(',')).join('|')
+  +'§'+COLLS_DICT.map(c=>c+':'+Object.keys((d&&d[c])||{}).sort().map(k=>{ const v=d[c][k];
+      /* v744 : un plan d'appâtage est une LISTE — sa marque est celle de ses plans et de ses postes.
+         Sans elle, une fusion qui ramène le poste d'un collègue passait pour un non-événement,
+         donc n'était jamais repoussée (le même défaut que les box, corrigé pour elles). */
+      if(c==='plansSite'&&Array.isArray(v)) return k+'@'+recEmpreinte({p:v.map(pl=>pl&&[pl.id,+pl._m||0,(pl.postes||[]).map(po=>po&&[po.id,+po._m||0])])});
+      return k+((v&&typeof v==='object'&&!Array.isArray(v)&&v._m)?'@'+v._m:''); }).join(',')).join('|')
   +'#'+JSON.stringify(d._tombes||{}); }
 let db = load();
 try{ ombreRelever(); }catch(e){}   // l'ombre part de ce qui est chargé : rien n'est « modifié » tant qu'on n'a rien touché
@@ -9997,6 +10101,31 @@ async function photosResoudre(liste){
   }
   return n;
 }
+/* ══ LA PHOTO D'UN PLAN D'APPÂTAGE EST UNE PIÈCE COMME LES AUTRES (v744) ═════════════════════
+   `pl.img` prend le format des photos : "data:…" (locale), "piece:<64 hex>:data:…" (déposée,
+   contenu là), "piece:<64 hex>" (déposée, contenu à aller chercher). Même source d'affichage
+   (`photoSrc`), même règle de résolution : EN MÉMOIRE, jamais de `save()`. */
+function planImgSrc(pl){ return photoSrc(pl&&pl.img); }
+/* Rend {n, reste} : combien de photos sont arrivées, combien n'ont pas pu l'être. ⛔ La synchro
+   peut remplacer `db` pendant l'attente du réseau : on repose le contenu sur le plan VIVANT, et
+   seulement s'il porte encore ce marqueur nu — une photo reprise entre-temps n'est pas celle-ci. */
+/* ⛔ TROIS ÉTATS, JAMAIS DEUX — la règle de `pieceLire`. `_papImgEtat[pid]` retient pour l'écran
+   ce que le dernier essai a appris : 'absente' (le serveur dit 404, c'est un fait) ou 'inconnu'
+   (réseau, clé : on ne sait pas). Sans lui, l'écran ne pourrait dire qu'« en cours », pour toujours. */
+const _papImgEtat={};
+async function planImgsResoudre(cid){
+  const liste=()=>{ const d=(db&&db.plansSite)||{}; return Array.isArray(d[cid])?d[cid]:[]; };
+  let n=0, reste=0;
+  for(const pl of liste().slice()){
+    const m=PH_MARQUE.exec(String((pl&&pl.img)||'')); if(!m||m[2]) continue;
+    const r=await pieceLire(m[1]);
+    if(!(r&&r.dataUrl)){ reste++; _papImgEtat[m[1]]={e:(r&&r.absente)?'absente':'inconnu',ts:Date.now()}; continue; }
+    delete _papImgEtat[m[1]];
+    const cur=liste().find(x=>x&&x.id===pl.id);
+    if(cur&&cur.img==='piece:'+m[1]){ cur.img=photoMarquer(m[1],r.dataUrl); n++; }
+  }
+  return {n,reste};
+}
 /* ══ UN DOCUMENT QUI EST SUR LE SERVEUR N'A PLUS À VOYAGER DANS LE DOCUMENT FIRESTORE ════
    C'est le gain de l'étape 0, et il est structurel : ce qui a un `pid` est en sûreté sur le
    VPS, donc sa copie base64 dans le document de l'équipe ne sert plus qu'à consommer le
@@ -10015,23 +10144,38 @@ async function photosResoudre(liste){
    suit. C'est l'ordre du dépôt : les appareils d'abord, la porte ensuite. */
 function syncSortirPieces(base){
   let copie=base, n=0;
+  const plein=ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return !!(m&&m[2]); };   // déposée ET contenu présent
   try{
     Object.keys(base||{}).forEach(c=>{ if(!Array.isArray(base[c])) return;
       base[c].forEach((r,ix)=>{
         if(!r||typeof r!=='object') return;
         const docsASortir=Array.isArray(r.docs)&&r.docs.some(d=>d&&d.pid&&d.data);
-        /* Une photo déposée porte son identifiant DANS sa chaîne : on ne garde que lui. */
-        const phASortir=Array.isArray(r.photos)&&r.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&m[2]; });
-        if(!docsASortir&&!phASortir) return;
+        /* Une photo déposée porte son identifiant DANS sa chaîne : on ne garde que lui. Les photos
+           de l'onglet « Plans » d'une intervention ont le même format depuis la v744 — avant, une
+           seule y pesait 400 Ko de base64 dans le document de l'équipe, sans jamais en sortir. */
+        const tabs=['photos','plans'].filter(f=>Array.isArray(r[f])&&r[f].some(plein));
+        if(!docsASortir&&!tabs.length) return;
         if(copie===base) copie=Object.assign({},base);
         if(copie[c]===base[c]) copie[c]=base[c].slice();
         const x=Object.assign({},r);
         if(docsASortir) x.docs=r.docs.map(d=>{ if(!d||!d.pid||!d.data) return d;
           n++; return Object.assign({},d,{data:'',surServeur:true}); });
-        if(phASortir) x.photos=r.photos.map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
-          if(!m||!m[2]) return ph; n++; return 'piece:'+m[1]; });
+        tabs.forEach(f=>{ x[f]=r[f].map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
+          if(!m||!m[2]) return ph; n++; return 'piece:'+m[1]; }); });
         copie[c][ix]=x;
       }); });
+    /* ⛔ ET LES PLANS D'APPÂTAGE, QUI NE SONT PAS UNE LISTE (v744). `plansSite` est un
+       dictionnaire {client: [plans]} : la boucle ci-dessus ne le voyait pas, et c'est ce qui
+       laissait CHAQUE photo de plan dans le document de l'équipe. Même geste, même discipline :
+       des COPIES à chaque étage (le dictionnaire, la liste du client, le plan), et seulement ce
+       qui porte un identifiant — sans lui, la photo locale est le seul exemplaire au monde. */
+    const ps=base&&base.plansSite;
+    if(ps&&typeof ps==='object'&&!Array.isArray(ps)) Object.keys(ps).forEach(cid=>{ const l=ps[cid]; if(!Array.isArray(l)) return;
+      l.forEach((pl,ix)=>{ if(!pl||typeof pl!=='object'||!plein(pl.img)) return;
+        if(copie===base) copie=Object.assign({},base);
+        if(copie.plansSite===ps) copie.plansSite=Object.assign({},ps);
+        if(copie.plansSite[cid]===l) copie.plansSite[cid]=l.slice();
+        copie.plansSite[cid][ix]=Object.assign({},pl,{img:'piece:'+photoPid(pl.img)}); n++; }); });
   }catch(e){ return {copie:base,sorties:0}; }
   return {copie:copie,sorties:n};
 }
@@ -10051,6 +10195,10 @@ function syncAlleger(base, budget){
   colls.forEach(c=>{ base[c].forEach((r,ix)=>{ if(!r||typeof r!=='object') return;
     (Array.isArray(r.docs)?r.docs:[]).forEach((d,k)=>{ const n=(d&&typeof d.data==='string'?d.data:'').length; if(n>1024) pieces.push({c,ix,k,type:'doc',n}); });
     (Array.isArray(r.photos)?r.photos:[]).forEach((ph,k)=>{ const n=(typeof ph==='string'?ph:'').length; if(n>1024) pieces.push({c,ix,k,type:'photo',n}); });
+    /* v744 : les photos de l'onglet « Plans » d'une intervention n'étaient dans AUCUNE liste — ni
+       sorties (pas de pièce), ni allégeables : trois photos de plan prises hors réseau suffisaient
+       à rendre la base « impossible » et à arrêter la synchro de toute l'entreprise. */
+    (Array.isArray(r.plans)?r.plans:[]).forEach((ph,k)=>{ const n=(typeof ph==='string'?ph:'').length; if(n>1024) pieces.push({c,ix,k,type:'plan',n}); });
     ['signature','signatureTech','signatureCli','apercu','image','logo','photo'].forEach(f=>{ const n=(typeof r[f]==='string'?r[f]:'').length; if(n>1024) pieces.push({c,ix,f,type:'champ',n}); });
   }); });
   pieces.sort((a,b)=>b.n-a.n);   // les plus lourdes d'abord : le moins de pièces retirées pour rentrer
@@ -10062,15 +10210,17 @@ function syncAlleger(base, budget){
       const o=base[c][ix]; x=Object.assign({},o);
       if(Array.isArray(o.docs)) x.docs=o.docs.map(d=>d&&typeof d==='object'?Object.assign({},d):d);
       if(Array.isArray(o.photos)) x.photos=o.photos.slice();
+      if(Array.isArray(o.plans)) x.plans=o.plans.slice();
       clones.set(k,x); copie[c][ix]=x; }
     return x; };
   let excedent=t-B, n=0;
   for(const p of pieces){ if(excedent<=0) break; const x=cl(p.c,p.ix);
     if(p.type==='doc'){ const d=x.docs[p.k]; if(!d||!d.data) continue; excedent-=d.data.length; d.data=''; d.horsNuage=true; }
     else if(p.type==='photo'){ if(x.photos[p.k]==null) continue; excedent-=p.n; x.photos[p.k]=null; x.photosHorsNuage=(x.photosHorsNuage||0)+1; }
+    else if(p.type==='plan'){ if(x.plans[p.k]==null) continue; excedent-=p.n; x.plans[p.k]=null; x.plansHorsNuage=(x.plansHorsNuage||0)+1; }
     else { if(!x[p.f]) continue; excedent-=p.n; x[p.f]=''; x.champsHorsNuage=(x.champsHorsNuage||[]).concat([p.f]); }
     n++; }
-  clones.forEach(x=>{ if(Array.isArray(x.photos)&&x.photos.some(v=>v===null)) x.photos=x.photos.filter(v=>v!==null); });
+  clones.forEach(x=>{ ['photos','plans'].forEach(f=>{ if(Array.isArray(x[f])&&x[f].some(v=>v===null)) x[f]=x[f].filter(v=>v!==null); }); });
   /* ⛔ ET SI LES PIÈCES NE SUFFISENT PAS, ON RACCOURCIT LES JOURNAUX DE LA COPIE POUSSÉE.
      Mesuré sur la base réelle d'ELAN le 15 septembre 2026 : 621,1 Ko pour 620,0 Ko permis —
      un dépassement de 1,1 Ko, et toute la synchro de l'entreprise à l'arrêt. Aucune pièce
@@ -10160,6 +10310,9 @@ function syncRegreffer(local, fusion){ try{
     const L=new Map(); local[c].forEach(r=>{ if(r&&r.id!=null) L.set(String(r.id),r); });
     fusion[c].forEach(r=>{ if(!r||r.id==null) return; const l=L.get(String(r.id)); if(!l||l===r) return;
       if(r.photosHorsNuage>0 && Array.isArray(l.photos) && l.photos.length>((r.photos&&r.photos.length)||0)){ r.photos=l.photos.slice(); n++; }
+      /* v744 : les photos de l'onglet « Plans » suivent exactement la même règle — allégées de la
+         même façon (`plansHorsNuage`), déposées de la même façon (le marqueur, ci-dessous). */
+      if(r.plansHorsNuage>0 && Array.isArray(l.plans) && l.plans.length>((r.plans&&r.plans.length)||0)){ r.plans=l.plans.slice(); n++; }
       /* ⛔ ET LES PHOTOS DÉPOSÉES SUR LE SERVEUR, APPARIÉES PAR LEUR IDENTIFIANT. La règle
          au-dessus ne voit QUE l'ancien allègement : elle exige `photosHorsNuage>0` et des
          tableaux de LONGUEURS DIFFÉRENTES. Or `syncSortirPieces` ne retire aucune entrée — il
@@ -10170,11 +10323,11 @@ function syncRegreffer(local, fusion){ try{
          On apparie donc par le `pid`, comme les docs le font par (nom, ts) : c'est tout
          l'intérêt du choix « l'identifiant vit DANS la chaîne ». Jamais par l'index — deux
          appareils peuvent avoir rangé les mêmes photos dans un ordre différent. */
-      if(Array.isArray(r.photos)&&Array.isArray(l.photos)){
-        const clair={}; l.photos.forEach(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); if(m&&m[2]&&!clair[m[1]]) clair[m[1]]=ph; });
-        r.photos=r.photos.map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
+      ['photos','plans'].forEach(f=>{ if(!Array.isArray(r[f])||!Array.isArray(l[f])) return;
+        const clair={}; l[f].forEach(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); if(m&&m[2]&&!clair[m[1]]) clair[m[1]]=ph; });
+        r[f]=r[f].map(ph=>{ const m=PH_MARQUE.exec(String(ph||''));
           if(!m||m[2]||!clair[m[1]]) return ph; n++; return clair[m[1]]; });
-      }
+      });
       /* `surServeur` autant que `horsNuage` : l'appareil qui A le fichier l'affiche tout de
          suite au lieu d'aller le rechercher — sur le terrain, c'est la différence entre voir
          le document et attendre un réseau qu'on n'a pas. */
@@ -10182,6 +10335,19 @@ function syncRegreffer(local, fusion){ try{
         const ld=l.docs.find(x=>x&&x.data&&x.nom===d.nom&&x.ts===d.ts); if(ld){ d.data=ld.data; n++; } });
       (Array.isArray(r.champsHorsNuage)?r.champsHorsNuage:[]).forEach(f=>{ if(!r[f]&&typeof l[f]==='string'&&l[f]){ r[f]=l[f]; n++; } });
     }); });
+  /* ⛔ ET LES PHOTOS DES PLANS D'APPÂTAGE, appariées par leur identifiant (v744). `plansSite` est
+     un dictionnaire : la boucle ci-dessus ne le voit pas. Sans ce bloc, l'appareil qui vient de
+     photographier le plan d'un client le perdait de sa PROPRE base dès qu'une fusion donnait
+     raison à l'autre côté (un collègue qui renomme le plan), et devait aller le rechercher au
+     réseau — sur le terrain, c'est un plan vide dans une cave. */
+  const lp=local&&local.plansSite, fp=fusion&&fusion.plansSite;
+  if(lp&&fp&&typeof lp==='object'&&typeof fp==='object'){
+    const clair={};
+    Object.keys(lp).forEach(cid=>{ (Array.isArray(lp[cid])?lp[cid]:[]).forEach(pl=>{ const m=pl&&PH_MARQUE.exec(String(pl.img||''));
+      if(m&&m[2]&&!clair[m[1]]) clair[m[1]]=pl.img; }); });
+    Object.keys(fp).forEach(cid=>{ (Array.isArray(fp[cid])?fp[cid]:[]).forEach(pl=>{ if(!pl||typeof pl!=='object') return;
+      const m=PH_MARQUE.exec(String(pl.img||'')); if(!m||m[2]||!clair[m[1]]) return; pl.img=clair[m[1]]; n++; }); });
+  }
   return n; }catch(e){ return 0; } }
 function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) return; clearTimeout(_syncTimer);
   /* Trois portes fermées, dans l'ordre où elles coûtent le moins :
@@ -12346,9 +12512,28 @@ function planOpMsg(){ return true; }        // OP MESSAGES : application indépe
    sert qu'à pré-remplir le champ : il n'active rien, et il s'efface dès qu'un code a été
    appliqué, pour ne pas ressurgir des mois plus tard. */
 function promoEnAttente(){ try{ return String(localStorage.getItem('teamop_promo_en_attente')||'').trim().toUpperCase().slice(0,40); }catch(e){ return ''; } }
+/* ⛔⛔ UN CODE PROMO SERT UNE FOIS PAR ENTREPRISE (Justin, 24 septembre 2026 : « une fois qu'une
+   entreprise l'a activé, ils peuvent pas le remettre »). Le serveur le refuse désormais (410,
+   `dejaUtilise`). Mais le serveur d'AVANT répond encore « ok » à un code déjà servi, avec son
+   échéance PASSÉE — et cette fonction affichait « 🎉 Code accepté ! », repassait toute l'équipe en
+   formule payante et remettait le début de la période à aujourd'hui, jusqu'à ce que
+   `promoEssaiCheck` la referme avec « Ton essai est terminé ». On refuse donc AUSSI ici, sans
+   attendre le serveur : une période derrière nous n'active rien, et le même code déjà terminé
+   dans cette base ne part même pas le demander. Une écriture n'a lieu que pour une période EN
+   COURS. */
+function promoRefusModal(code,finLe,texteServeur){
+  const eE=db.forfaitEssai, f=(eE&&eE.code===code&&PLANS[eE.formule]&&eE.formule!=='gratuit')?eE.formule:'premium';
+  const txt=texteServeur||('Le code « '+code+' » a déjà été utilisé par ton entreprise'+(finLe?' — sa période offerte s’est terminée le '+fmtShort(finLe):'')+'. Un code promo ne sert qu’une fois par entreprise.');
+  openModal(`<div class="modal-head"><h3>🎁 Code déjà utilisé</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">${esc(txt)}<br><br>Tes données sont intactes. Pour retrouver toutes les fonctions, prends l'abonnement (2 minutes) :</p>
+    <button class="btn" style="width:100%;justify-content:center;padding:13px;margin-bottom:8px" onclick="window.open('https://teamop.fr/recap-abonnement.html?formule=${f}&utilisateurs='+db.users.length,'_blank')">Prendre l'abonnement ${PLANS[f]?PLANS[f].l:''}</button>
+    <button class="btn ghost" style="width:100%;justify-content:center" onclick="closeModal()">Fermer</button>`);
+}
 async function promoAppliquer(codeDirect){
   const code=String(codeDirect||($('promo-inp')||{}).value||'').trim().toUpperCase();
   if(!code){ toast('Entre ton code promo'); return; }
+  const eL=db.forfaitEssai;
+  if(eL&&eL.code===code&&(eL.termine||(eL.finLe&&eL.finLe<todayISO()))){ promoRefusModal(code,eL.finLe); return; }
   try{
     /* La preuve de clé, comme la famille courrier : depuis le 11 septembre 2026 le serveur
        l'EXIGE pour activer un code sur un espace. Sans elle, n'importe qui offrait
@@ -12358,16 +12543,26 @@ async function promoAppliquer(codeDirect){
     const r=await fetch(PUSH_API+'/api/promo/valider',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),
       body:JSON.stringify({code,teamId:(typeof syncTeam==='function'?(syncTeam()||''):'')})});
     const j=await r.json().catch(()=>({}));
-    if(!r.ok){ toast('⚠ '+(j.error||('Erreur '+r.status))); return; }
+    if(!r.ok){ if(j&&j.dejaUtilise){ promoRefusModal(code,j.finLe||'',j.error||''); return; } toast('⚠ '+(j.error||('Erreur '+r.status))); return; }
     if(!j.finLe||!j.mois){ toast('Réponse du serveur incomplète — réessaie'); return; }
+    if(j.finLe<todayISO()){ promoRefusModal(code,j.finLe); return; }   // le serveur d'avant : « ok » sur une période terminée
     try{ localStorage.removeItem('teamop_promo_en_attente'); }catch(e){}   // il a servi : il ne doit pas ressurgir
     const f=PLANS[j.formule]?j.formule:'premium';
-    db.forfait=f;
-    db.forfaitEssai={code,formule:f,debut:todayISO(),finLe:j.finLe,mois:j.mois,rappels:{}};
-    logEvent('Code promo activé',code+' → '+PLANS[f].l+" jusqu'au "+fmtShort(j.finLe),'auth');
-    save(); renderNav();
-    try{ suiteRefresh(); }catch(e){}
-    openModal(`<div class="modal-head"><h3>🎉 Code accepté !</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    /* Déjà actif (retapé pendant sa période) : la MÊME échéance, et le début d'origine. On n'écrit
+       que si cette base ne le savait pas encore — un autre appareil, un code posé depuis le site. */
+    const deja=!!j.dejaUtilise, eA=(db.forfaitEssai&&db.forfaitEssai.code===code)?db.forfaitEssai:null;
+    if(!(deja&&eA&&!eA.termine&&eA.finLe===j.finLe&&db.forfait===f)){
+      db.forfait=f;
+      db.forfaitEssai={code,formule:f,debut:deja?((eA&&eA.debut)||j.debut||todayISO()):todayISO(),finLe:j.finLe,mois:j.mois,rappels:(deja&&eA&&eA.rappels)||{}};
+      if(!deja) logEvent('Code promo activé',code+' → '+PLANS[f].l+" jusqu'au "+fmtShort(j.finLe),'auth');
+      save(); renderNav();
+      try{ suiteRefresh(); }catch(e){}
+    }
+    openModal(deja
+      ?`<div class="modal-head"><h3>🎁 Code déjà actif</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Le code <b>${esc(code)}</b> offre déjà la formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> à ton entreprise, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Rien ne change : un code promo ne sert qu'une fois, et il ne se prolonge pas. Avant la fin, un rappel te préviendra pour prendre l'abonnement.</p>
+      <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="closeModal();if(current==='parametres')views.parametres()">Compris</button>`
+      :`<div class="modal-head"><h3>🎉 Code accepté !</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
       <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">La formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> est activée pour toute l'équipe : <b>${j.mois} mois offert(s)</b>, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Aucune carte bancaire n'est enregistrée. Avant la fin, un rappel te préviendra pour prendre l'abonnement et continuer sans coupure.</p>
       <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="closeModal();if(current==='parametres')views.parametres()">C'est parti !</button>`);
   }catch(e){ toast('Le serveur ne répond pas — réessaie'); }
@@ -14189,6 +14384,14 @@ function rendreDirige(sens,rendu){
    ce qui est voulu : la barre doit survivre au rafraîchissement, sinon elle disparaît toute
    seule au bout de quelques secondes. */
 function rendreVueSure(view){
+  /* ⛔ PERSONNE CONNECTÉ, AUCUNE VUE. `go()` rend la vue dans une transition de vue, donc PLUS TARD,
+     hors de l'appel : si la déconnexion passe entre les deux (un compte désactivé par la synchro juste
+     à l'entrée, un jeton refusé, une session expirée), la vue se rendait SANS utilisateur. Mesuré le
+     24 septembre 2026 (`scratchpad/sonde-deconnexion.js`, déconnexion à 0 ms de l'entrée) :
+     « Vue dashboard : TypeError … (reading 'role') » dans la console, et « Affichage indisponible »
+     écrit dans un `#content` que plus personne ne regarde. C'est le seul endroit qui écrit une vue :
+     la garde est ICI, pas dans chacune des quarante. */
+  if(!currentUser) return;
   try{ views[view](); }
   catch(e){ console.error('Vue '+view+' :',e); $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Affichage indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Une erreur est survenue sur cette page.<br><span style="color:var(--t3)">${esc(e&&e.message||e)}</span></p><button class="btn ghost sm" style="margin-top:10px" onclick="go('dashboard')">← Retour au tableau de bord</button></div>`; }
   /* ⛔ APRÈS la vue, pas avant : `rendreVueAnimee` écrit `#content` plus tard, donc une barre
@@ -20119,19 +20322,43 @@ function paLastEtat(i,posteId){ const cur=paReleveOf(i,posteId); if(cur) return 
 function paZoneChaude(i,posteId){ const h=paHistoPoste(i.clientId,posteId);
   if(h.length<2) return false;
   return h[h.length-1].rel.etat==='consomme'&&h[h.length-2].rel.etat==='consomme'; }
+/* ══ LA PHOTO D'UN PLAN PART SUR LE SERVEUR, COMME UNE PHOTO DE MÉDIA (v744) ═══════════════
+   `plansSite` est un dictionnaire : `syncSortirPieces` ne le visitait pas et `syncAlleger` ne
+   savait pas l'alléger. Chaque photo de plan voyageait donc en base64 dans le document de
+   l'équipe — 150 à 400 Ko pièce, sous un plafond de 1 Mio pour TOUTE l'entreprise.
+   ⛔ L'INVARIANT DE `pieceDeposer`, tel quel : la photo est ENREGISTRÉE d'abord (le clair), déposée
+   ensuite, et le marqueur s'AJOUTE au retour. Sans identifiant, rien ne change : le plan garde
+   sa photo comme avant. Et la synchro a pu remplacer `db` pendant l'envoi : on reprend le plan
+   VIVANT par son identifiant, et on ne marque que s'il porte encore CETTE photo. */
+async function planImgDeposer(cid,plid){
+  const vivant=()=>((((db&&db.plansSite)||{})[cid])||[]).find(x=>x&&x.id===plid);
+  const pl=vivant(); if(!pl) return;
+  const d=String(pl.img||''); if(!d||photoPid(d)) return;          // pas de photo, ou déjà déposée
+  const dep=await pieceDeposer(d);
+  if(!(dep&&dep.id)){ if(dep&&dep.erreur) toast(pieceMotifTexte(dep.motif).replace('Document','Plan').replace('document','plan'),7000); return; }
+  const cur=vivant(); if(!cur||cur.img!==d) return;                 // reprise ou supprimée entre-temps
+  /* `papMarque` : la version marquée doit GAGNER la fusion contre la version en clair que la
+     première synchro a pu répandre — à égalité de date, deux appareils se la renverraient. */
+  cur.img=photoMarquer(dep.id,d); papMarque(cur); save(); }
+/* L'empreinte d'une photo de plan, calculée UNE fois sur son contenu, au moment où on la prend :
+   elle ne doit pas changer quand la photo devient « piece:… » (déposée), ni selon que son contenu
+   est en mémoire ou non. C'est ce qui dit à l'envoi du plan d'implantation « inchangé » ou
+   « modifié » — la même formule qu'avant, donc les plans déjà envoyés ne changent pas d'état. */
+function papImgEmpCalc(s){ s=String(s||''); return s?s.length+':'+recEmpreinte(s):''; }
 async function paAddPlan(e,intId){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   const i=db.interventions.find(x=>x.id===intId); if(!i||!i.clientId){ toast('Associez d’abord un client à l’intervention'); return; }
   const img=await compressImage(f,1200,0.72); if(!img){ toast('Image illisible'); return; }
   const plans=plansOf(i.clientId);
   const nom=prompt('Nom du plan (ex : RDC, Cave, Réserve…) :','Plan '+(plans.length+1))||('Plan '+(plans.length+1));
-  const pl={id:uid(),nom:nom.slice(0,40),mode:'img',img,postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo / image importée)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel'; intHisto(i,'Plan d’appâtage ajouté : '+pl.nom);
-  save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » ajouté — activez « ＋ Poste » puis touchez le plan'); }
+  const pl={id:uid(),nom:nom.slice(0,40),mode:'img',img,imgEmp:papImgEmpCalc(img),postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo / image importée)'}]};
+  papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel'; intHisto(i,'Plan d’appâtage ajouté : '+pl.nom);
+  save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » ajouté — activez « ＋ Poste » puis touchez le plan');
+  planImgDeposer(i.clientId,pl.id); }
 function paRenamePlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   const pl=plansOf(i.clientId).find(p=>p.id===plid); if(!pl) return;
-  const v=prompt('Nom du plan :',pl.nom); if(!v) return; pl.nom=v.slice(0,40); papTouch(pl,'Plan renommé « '+pl.nom+' »'); save(); renderIntDetail(intId); }
+  const v=prompt('Nom du plan :',pl.nom); if(!v) return; pl.nom=v.slice(0,40); papMarque(pl); papTouch(pl,'Plan renommé « '+pl.nom+' »'); save(); renderIntDetail(intId); }
 function paDelPlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   /* v739 : « Modifier les plans » est donné au technicien par défaut (décision de Justin) — il
@@ -20140,7 +20367,9 @@ function paDelPlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); 
   if(!canCat('int','supprimer')){ toast('Supprimer un plan entier demande « Interventions → Supprimer » (Permissions)'); return; }
   const plans=plansOf(i.clientId); const ix=plans.findIndex(p=>p.id===plid); if(ix<0) return;
   if(!confirm('Supprimer ce plan et ses '+(plans[ix].postes||[]).length+' poste(s) ? (les relevés déjà enregistrés sont conservés)')) return;
-  plans.splice(ix,1); _paSel=(plans[0]||{}).id||''; save(); renderIntDetail(intId); toast('Plan supprimé'); }
+  const pid=photoPid(plans[ix].img);
+  papTombe(i.clientId,plans[ix].id); plans.splice(ix,1); _paSel=(plans[0]||{}).id||''; save(); renderIntDetail(intId); toast('Plan supprimé');
+  if(pid) pieceSupprimer(pid); }   // APRÈS la suppression locale, qui ne dépend pas du réseau
 function paPosteDot(i,po,forPdf){ const etat=paLastEtat(i,po.id); const cur=!!paReleveOf(i,po.id);
   const col=etat?(PA_ETATS[etat]||[])[1]||'var(--t3)':'var(--t3)';
   const hot=paZoneChaude(i,po.id);
@@ -20201,7 +20430,7 @@ function paSaveNote(intId,posteId){ const i=db.interventions.find(x=>x.id===intI
 function paDelPoste(intId,posteId){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   if(!confirm('Supprimer ce poste du plan ?')) return;
-  plansOf(i.clientId).forEach(p=>{ if((p.postes||[]).some(x=>x.id===posteId)){ p.postes=p.postes.filter(x=>x.id!==posteId); papTouch(p,'Poste supprimé'); } });
+  plansOf(i.clientId).forEach(p=>{ if((p.postes||[]).some(x=>x.id===posteId)){ papTombe(i.clientId,p.id,posteId); p.postes=p.postes.filter(x=>x.id!==posteId); papTouch(p,'Poste supprimé'); } });
   save(); closeModal(); renderIntDetail(intId); toast('Poste supprimé'); }
 /* Interactivité du plan — délègue au moteur PRO unifié (img / geo / rooms) */
 function planAppInit(intId){ try{ papInitView(intId); }catch(e){} try{ papGeoBadge(intId); }catch(e){} }
@@ -20240,6 +20469,14 @@ function papZoneOf(pl,po){ if(po.zone) return po.zone;
   const f=papFrac(pl,po); const r=papRoomAt(pl,f.x,f.y); return r?r.nom:''; }
 let papWiz=null;
 function cliIsPro(c){ if(!c) return false; return (c.typeClient||'pro')!=='particulier'; }
+/* v744 — la date d'un geste sur un plan ou un poste, et la tombe d'une suppression : c'est ce que
+   `plansFusionFine` lit. Un geste qui change un plan ou un poste sans passer par l'une de ces deux
+   fonctions redevient invisible à la synchro (`tests/test-800.js` recense les gestes). */
+function papMarque(o){ if(o&&typeof o==='object') o._m=Date.now(); }
+function papTombe(cid,plid,poid){ if(!cid||!plid) return;
+  if(!db._tombes||typeof db._tombes!=='object') db._tombes={};
+  const t=db._tombes.plansSite=(db._tombes.plansSite&&typeof db._tombes.plansSite==='object')?db._tombes.plansSite:{};
+  t[String(cid)+'|'+String(plid)+(poid?'|'+String(poid):'')]=Date.now(); }
 function papTouch(pl,action){ if(!pl) return; pl.version=(pl.version||1)+1;
   pl.historique=pl.historique||[]; pl.historique.push({ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:String(action||'').slice(0,120)});
   if(pl.historique.length>50) pl.historique=pl.historique.slice(-50); }
@@ -20305,6 +20542,21 @@ function papLegendHtml(){
     <span style="display:inline-flex;align-items:center;gap:5px">${sym('border-radius:2px;transform:rotate(45deg)')} Insectes / DEIV</span>
     <span>🟢 RAS · 🟠 Partiel · 🔴 Consommé · 🔵 Remplacé</span><span>🔥 zone chaude</span>
     <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:9px;border:2px solid var(--org);border-radius:2px;display:inline-block"></span> zone alimentaire</span></div>`; }
+/* ⛔ RÉSOUDRE APRÈS AVOIR AFFICHÉ, ET SANS ÉCRIRE — la règle de `intPhotosCombler`. On ne relance
+   pas en boucle un essai qui vient d'échouer (le redessin rappellerait cette fonction à chaque
+   tour) : 30 s de répit par client après un échec, et un 404 ne se retente plus de la session. */
+let _papImgEnCours=false; const _papImgEchec={};
+function papImgCombler(i){
+  if(_papImgEnCours||!i||!i.clientId) return;
+  const cid=i.clientId, intId=i.id;
+  if(Date.now()-(_papImgEchec[cid]||0)<30000) return;
+  const l=(((db&&db.plansSite)||{})[cid])||[];
+  if(!l.some(pl=>{ const pid=photoPid(pl&&pl.img); return pid&&!planImgSrc(pl)&&(_papImgEtat[pid]||{}).e!=='absente'; })) return;
+  _papImgEnCours=true;
+  planImgsResoudre(cid).then(r=>{ _papImgEnCours=false; if(r.reste) _papImgEchec[cid]=Date.now();
+      if((r.n||r.reste)&&window._curIntId===intId&&intTab==='planApp'&&document.getElementById('pap-view')) renderIntDetail(intId); })
+    .catch(()=>{ _papImgEnCours=false; _papImgEchec[cid]=Date.now(); });
+}
 function papViewHtml(i,pl,canEd){
   const mode=window._papMode||'rel';
   const roomsHtml=(pl.rooms||[]).map(r=>papRoomEl(r,false)).join(''); // pièces historiques : affichage seul
@@ -20312,8 +20564,15 @@ function papViewHtml(i,pl,canEd){
   const addOutline=(mode==='add')?'outline:2px dashed var(--org);':'';
   const gridBg=`background:var(--card2);background-image:linear-gradient(color-mix(in srgb,var(--t3) 14%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--t3) 14%,transparent) 1px,transparent 1px);background-size:24px 24px;`;
   if(pl.mode!=='geo'&&pl.mode!=='rooms'){
+    /* v744 : la photo peut vivre sur le serveur. Sans son contenu, un `<img src="">` n'a pas de
+       hauteur : le plan s'écrasait à zéro et tous les postes s'empilaient en haut. On garde un
+       cadre, on dit ce qui se passe, et on va la chercher — sans rien écrire. */
+    const src=planImgSrc(pl), pid=photoPid(pl.img), attend=!src&&!!pid;
+    if(attend) papImgCombler(i);
+    const et=attend?(_papImgEtat[pid]||{}).e:'';
     return `<div id="pap-view" data-mode="img" style="position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--brd);${addOutline}touch-action:${mode==='rel'?'pan-y':'none'}">
-      <img src="${pl.img}" draggable="false" alt="" style="display:block;width:100%;user-select:none;-webkit-user-drag:none">
+      ${attend?`<div class="pap-attente" style="aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;background:var(--card2);color:var(--t2);font-size:13px;line-height:1.5">${et==='absente'?'⛔ La photo de ce plan n’est plus sur le serveur — reprends-la (📷).':et==='inconnu'?'📶 La photo du plan n’a pas pu être récupérée — elle s’affichera avec du réseau.':'⬇️ Récupération de la photo du plan…'}</div>`
+        :`<img src="${src}" draggable="false" alt="" style="display:block;width:100%;user-select:none;-webkit-user-drag:none">`}
       <div id="pap-world" style="position:absolute;inset:0">${roomsHtml}${postesHtml}</div></div>`; }
   if(pl.mode==='rooms'){
     return `<div id="pap-view" data-mode="rooms" style="position:relative;width:100%;aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid var(--brd);${addOutline}${gridBg}touch-action:none">
@@ -20553,7 +20812,7 @@ function papWizValidate(){
     bat:w.bats[w.selIx], autres:w.bats.filter((b,ix)=>ix!==w.selIx).slice(0,40),
     postes, rooms:[], version:1,
     historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan du site créé automatiquement ('+postes.length+' postes, maillage '+w.spacing+' m)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
+  papMarque(pl); postes.forEach(papMarque); plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
   const i=db.interventions.find(x=>x.id===intId);
   if(i) intHisto(i,'Plan du site créé automatiquement — '+postes.length+' poste(s)');
   papWiz=null; save(); closeModal(); renderIntDetail(intId);
@@ -20583,7 +20842,7 @@ function papCreateBatPlan(intId){
   const pl={id:uid(),nom,mode:'geo',fond:'blanc',center:{lon:geoPl.center.lon,lat:geoPl.center.lat},zoom:geoPl.zoom||19,
     bat:JSON.parse(JSON.stringify(geoPl.bat)),autres:[],postes:[],rooms:[],version:1,
     historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Niveau intérieur créé (contour cadastre)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
+  papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
   intHisto(i,'Niveau intérieur « '+nom+' » créé (contour cadastre)');
   save(); closeModal(); renderIntDetail(intId); toast('⬚ « '+nom+' » prêt — pose les postes (＋ Poste), la zone se choisit dans la fiche poste'); }
 function papCreateRoomsPlan(intId){
@@ -20592,7 +20851,7 @@ function papCreateRoomsPlan(intId){
   const nom=((($('pap-niv-nom')||{}).value||'RDC').trim()||'RDC').slice(0,40);
   const plans=plansOf(i.clientId);
   const pl={id:uid(),nom,mode:'rooms',rooms:[],postes:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan intérieur créé (fond grille)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
+  papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
   intHisto(i,'Plan intérieur « '+nom+' » créé');
   save(); closeModal(); renderIntDetail(intId); toast('▦ « '+nom+' » prêt — pose les postes (＋ Poste), la zone se choisit dans la fiche poste'); }
 async function papAddPhotoNiveau(e,intId){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
@@ -20602,17 +20861,23 @@ async function papAddPhotoNiveau(e,intId){ const f=e.target.files&&e.target.file
   const plans=plansOf(i.clientId);
   const nom=(((window._papNivNom||'').trim())||('Intérieur '+(plans.length+1))).slice(0,40);
   window._papNivNom='';
-  const pl={id:uid(),nom,mode:'img',img,postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo du plan client)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel';
+  const pl={id:uid(),nom,mode:'img',img,imgEmp:papImgEmpCalc(img),postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo du plan client)'}]};
+  papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel';
   intHisto(i,'Plan intérieur « '+pl.nom+' » créé (photo)');
-  save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » créé — pose les postes (＋ Poste), la zone se choisit dans la fiche poste'); }
+  save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » créé — pose les postes (＋ Poste), la zone se choisit dans la fiche poste');
+  planImgDeposer(i.clientId,pl.id); }
 async function papRephoto(e,intId){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const pl=plansOf(i.clientId).find(p=>p.id===_paSel); if(!pl||pl.mode==='geo'||pl.mode==='rooms') return;
   if((pl.postes||[]).length){ toast('Impossible : des postes sont déjà posés sur ce plan'); return; }
   const img=await compressImage(f,1200,0.72); if(!img){ toast('Image illisible'); return; }
-  pl.img=img; papTouch(pl,'Photo du plan reprise'); save(); renderIntDetail(intId); toast('📷 Photo remplacée'); }
+  const ancienne=photoPid(pl.img);
+  pl.img=img; pl.imgEmp=papImgEmpCalc(img); papMarque(pl); papTouch(pl,'Photo du plan reprise'); save(); renderIntDetail(intId); toast('📷 Photo remplacée');
+  /* L'ancienne photo ne sert plus à rien sur le serveur (la même règle que la suppression d'un
+     média) ; la nouvelle part ensuite, et le marqueur s'ajoute à son retour. */
+  if(ancienne) pieceSupprimer(ancienne);
+  planImgDeposer(i.clientId,pl.id); }
 /* ── Conformité alimentaire (zones standard + pièces dessinées historiques) ── */
 function papRoomAt(pl,x,y){ return (pl.rooms||[]).find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)||null; }
 function papRoomAlimAt(pl,x,y){ return (pl.rooms||[]).find(r=>r.zoneAlim&&x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)||null; }
@@ -20621,19 +20886,24 @@ function papAlimBlock(room,back){
     <p style="font-size:14px;color:var(--t1);line-height:1.65;margin-bottom:14px">🚫 Impossible de placer un appât rodonticide en <b>${esc((room.nom||'').toUpperCase())}</b> — zone de production alimentaire. Choisis un piège mécanique ou un détecteur.</p>
     <div class="modal-foot"><button class="btn" onclick="closeModal();${back||''}">Compris</button></div>`); }
 /* ── Interactions sur le plan (postes + pièces), tous modes ── */
+/* v744 : pas de poste posé ni déplacé À L'AVEUGLE — tant que la photo du plan n'est pas arrivée,
+   le cadre d'attente n'a pas ses proportions, et un poste posé là tomberait à côté de sa place. */
+function papSansFond(pl){ return pl&&pl.mode!=='geo'&&pl.mode!=='rooms'&&!!photoPid(pl.img)&&!planImgSrc(pl); }
 function papMovePoste(intId,pl,pid,fx,fy){
+  if(papSansFond(pl)){ toast('La photo du plan n’est pas encore là — attends-la pour déplacer un poste'); renderIntDetail(intId); return; }
   const po=(pl.postes||[]).find(x=>x.id===pid); if(po==null){ renderIntDetail(intId); return; }
   const isAppat=!po.type||po.type==='appat';
   if(isAppat){ const room=papRoomAlimAt(pl,fx,fy); if(room){ papAlimBlock(room); renderIntDetail(intId); return; } }
-  papSetXY(pl,po,fx,fy); papTouch(pl,'Poste n°'+po.num+' déplacé');
+  papSetXY(pl,po,fx,fy); papMarque(po); papTouch(pl,'Poste n°'+po.num+' déplacé');
   save(); renderIntDetail(intId); toast('Poste '+po.num+' déplacé'); }
 function papPlacePoste(intId,pl,fx,fy,type){
   if(!can('modifierPlans')) return;
+  if(papSansFond(pl)){ toast('La photo du plan n’est pas encore là — attends-la pour poser un poste'); return; }
   if(type==='appat'){ const room=papRoomAlimAt(pl,fx,fy); if(room){ papAlimBlock(room); return; } }
   const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const num=plansOf(i.clientId).reduce((m,pp)=>(pp.postes||[]).reduce((m2,po)=>Math.max(m2,po.num||0),m),0)+1;
   pl.postes=pl.postes||[];
-  const po={id:uid(),num,type:type||'appat',note:''}; papSetXY(pl,po,fx,fy);
+  const po={id:uid(),num,type:type||'appat',note:''}; papSetXY(pl,po,fx,fy); papMarque(po);
   pl.postes.push(po);
   window._papMode='rel'; papTouch(pl,'Poste n°'+num+' ('+((PA_TYPES[type]||PA_TYPES.appat).lbl)+') posé');
   intHisto(i,'Poste n°'+num+' posé sur le plan '+pl.nom);
@@ -20643,7 +20913,7 @@ function papDelPoste2(intId,posteId,fromSheet){
   const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
   if(!confirm('Supprimer le poste n°'+hit.po.num+' du plan ? (les relevés déjà enregistrés sont conservés)')) return;
-  hit.pl.postes=hit.pl.postes.filter(x=>x.id!==posteId);
+  papTombe(i.clientId,hit.pl.id,posteId); hit.pl.postes=hit.pl.postes.filter(x=>x.id!==posteId);
   papTouch(hit.pl,'Poste n°'+hit.po.num+' supprimé');
   save(); if(fromSheet) closeModal(); renderIntDetail(intId); toast('Poste supprimé'); }
 function papInitView(intId){
@@ -20753,12 +21023,12 @@ function papSheetZone(intId,posteId,v){ const i=db.interventions.find(x=>x.id===
     papAlimBlock({nom:v},`papPosteSheet('${intId}','${posteId}')`); return; }
   /* v740 : la zone s'imprime sur le plan d'implantation — le changement se note dans l'historique du plan */
   if((po.zone||'')!==(v||'')) papTouch(hit.pl,'Poste n°'+po.num+' : zone « '+(v||'—')+' »');
-  po.zone=v||''; save(); papPosteSheet(intId,posteId); }
+  if((po.zone||'')!==(v||'')) papMarque(po); po.zone=v||''; save(); papPosteSheet(intId,posteId); }
 function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
   const old=hit.po.produitId;
   if((old||'')!==(pid||'')) papTouch(hit.pl,'Poste n°'+hit.po.num+' : produit posé « '+((pid&&produit(pid).nom)||'aucun')+' »');   // v740 : imprimé, avec son n° d'AMM
-  hit.po.produitId=pid||'';
+  if((old||'')!==(pid||'')) papMarque(hit.po); hit.po.produitId=pid||'';
   // l'appât posé sur un poste compte dans les produits utilisés → tracé au registre (le stock ne bouge pas, v741)
   i.produitsUtilises=i.produitsUtilises||[];
   if(old&&old!==pid){ const ix=i.produitsUtilises.findIndex(l=>l.produitId===old&&l._pap===posteId); if(ix>=0) i.produitsUtilises.splice(ix,1); }
@@ -20767,10 +21037,10 @@ function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.
 function papSheetSecure(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
   if(!!hit.po.secure!==!!v) papTouch(hit.pl,'Poste n°'+hit.po.num+' : '+(v?'boîte sécurisée':'boîte non sécurisée'));   // v740 : imprimé
-  hit.po.secure=!!v; save(); }
+  if(!!hit.po.secure!==!!v) papMarque(hit.po); hit.po.secure=!!v; save(); }
 function papSheetTubes(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
-  hit.po.dateTubes=v||''; save(); papPosteSheet(intId,posteId); }
+  if((hit.po.dateTubes||'')!==(v||'')) papMarque(hit.po); hit.po.dateTubes=v||''; save(); papPosteSheet(intId,posteId); }
 function papSheetOk(intId,posteId){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const note=($('pa-note')||{}).value||''; const r=paReleveOf(i,posteId);
   if(r){ r.note=note.trim(); save(); }
@@ -20786,8 +21056,11 @@ function papPlanPrintHtml(pl,etatOf){
     const posteEl=po=>{ const f=papFrac(pl,po); const c=colOf(po); const sh=(PA_TYPES[po.type]||PA_TYPES.appat).shape;
       const br=sh==='ci'?'50%':sh==='di'?'4px':'5px'; const rot=sh==='di'?' rotate(45deg)':''; const zone=papZoneOf(pl,po);
       return `<span style="position:absolute;left:${f.x*100}%;top:${f.y*100}%;transform:translate(-50%,-50%)${rot};width:20px;height:20px;border-radius:${br};background:${c};border:2px solid #fff;display:flex;align-items:center;justify-content:center"><span style="transform:${sh==='di'?'rotate(-45deg)':'none'};color:#fff;font-size:10px;font-weight:bold">${po.num}</span></span>${zone?`<span style="position:absolute;left:${f.x*100}%;top:calc(${f.y*100}% + 13px);transform:translateX(-50%);font-size:8px;font-weight:bold;color:#1A1F28;background:rgba(255,255,255,.75);border-radius:3px;padding:0 3px;white-space:nowrap">${esc(String(zone).slice(0,16))}</span>`:''}`; };
+    /* v744 : jamais un cadre vide muet sur un document remis en contrôle — si la photo n'a pas pu
+       être récupérée, on l'ÉCRIT, et les postes gardent leur place relative. */
+    const src=planImgSrc(pl), manque=!src&&!!photoPid(pl.img);
     return `<div style="position:relative;display:block;max-width:480px;border:1px solid #E3E8F0;border-radius:6px;overflow:hidden;margin-top:4px">
-      <img src="${pl.img}" style="display:block;width:100%">${(pl.rooms||[]).map(roomEl).join('')}${(pl.postes||[]).map(posteEl).join('')}</div>`; }
+      ${!manque?`<img src="${src}" style="display:block;width:100%">`:`<div style="aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;background:#F7F9FC;color:#5b6474;font-size:11px">Photo du plan non disponible au moment de l’impression (serveur injoignable) — les postes sont à leur place relative.</div>`}${(pl.rooms||[]).map(roomEl).join('')}${(pl.postes||[]).map(posteEl).join('')}</div>`; }
   // fond blanc technique (geo / rooms) en SVG carré 768×768
   const pid=String(pl.id||'x').replace(/[^a-z0-9]/gi,'');
   let base='';
@@ -20834,9 +21107,15 @@ function papImplPlans(cid){ return plansOf(cid).filter(p=>(p.postes||[]).length)
 /* L'empreinte d'une photo de plan pèse des centaines de Ko : on la garde tant que la chaîne ne
    change pas (comparée en entier, pas à sa longueur). */
 const _papImgEmp=new Map();
-function papImgEmpreinte(pl){ const s=String(pl.img||''); if(!s) return '';
+/* v744 : une photo DÉPOSÉE s'écrit « piece:… » et son contenu n'est pas toujours en mémoire —
+   l'empreinte ne se lit donc plus sur la chaîne, mais sur `imgEmp`, posée au moment de la prise
+   (`papImgEmpCalc`, même formule). Un plan d'avant la v744 n'en a pas : sa photo est en clair et
+   rend exactement l'empreinte d'avant — aucun plan déjà envoyé ne passe à « modifié ». */
+function papImgEmpreinte(pl){ if(pl.imgEmp) return String(pl.imgEmp);
+  const s=String(pl.img||''); if(!s) return '';
+  const pid=photoPid(s); if(pid) return 'p:'+pid;   // déposée sans empreinte : l'identifiant la tient (il ne change qu'avec la photo)
   const c=_papImgEmp.get(pl.id); if(c&&c.s===s) return c.h;
-  const h=s.length+':'+recEmpreinte(s); _papImgEmp.set(pl.id,{s,h}); return h; }
+  const h=papImgEmpCalc(s); _papImgEmp.set(pl.id,{s,h}); return h; }
 /* Ce que le document imprime, et rien d'autre : ni `version`, ni `historique`, ni la trace
    d'envoi, ni `_m`, ni la date des tubes UV (non imprimée), ni l'en-tête. */
 function papImplContenuPlan(pl){
@@ -20894,8 +21173,8 @@ const _PDF_L=[
   '278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 333 333 584 584 584 611 975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 667 778 722 667 611 722 667 944 667 667 611 333 278 333 584 556 333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 611 611 389 556 333 611 556 778 556 556 500 389 280 389 584'
 ].map(l=>l.split(' ').map(Number));
 function _pdfLarg(txt,sz,gras){ const t=_PDF_L[gras?1:0]; let w=0;
-  for(const ch of String(txt==null?'':txt)){ let c=ch.normalize('NFD').codePointAt(0);
-    if(c>=32&&c<=126) w+=t[c-32]; else if(c===0x2014||c===0x2026) w+=1000; else if(c===0x2013||c===0xAB||c===0xBB||c===0x20AC) w+=556;
+  for(const ch of _pdfTranslit(txt)){ let c=ch.normalize('NFD').codePointAt(0);
+    if(c>=32&&c<=126) w+=t[c-32]; else if(c===0x2014||c===0x2026||c===0x2122||c===0x2030) w+=1000; else if(c===0x2022) w+=350; else if(c===0x2013||c===0xAB||c===0xBB||c===0x20AC) w+=556;
     else if(c===0x2019||c===0x2018) w+=gras?278:222; else if(c===0x152||c===0x153) w+=1000; else w+=556; }
   return w*sz/1000; }
 /* Coupe un texte à une largeur donnée, avec « … » */
@@ -20909,6 +21188,60 @@ function _pdfCoupe(txt,sz,gras,max){ let s=String(txt==null?'':txt); if(_pdfLarg
    n'existent pas en WinAnsi : ils sont dessinés, jamais écrits. `E` est l'en-tête de la société
    (nom, couleur, lignes, logo) ; `imgs[pl.id]` la photo prête ; `meta` ce qui ne se déduit pas
    des plans (versions imprimées, date de vigueur, passage, technicien). */
+/* ══ LE DESSIN D'UN PLAN DANS UNE PAGE PDF — PARTAGÉ (v744) ══════════════════════════════════
+   Le plan d'implantation (v740) et le rapport d'intervention (v744) dessinent les MÊMES plans :
+   formes des postes, pièces, bâtiment géolocalisé, photo à sa proportion. Deux copies de cette
+   géométrie divergeraient au premier correctif — c'est la leçon de `fbUidEquipe`. Seule la
+   COULEUR d'un poste change d'un document à l'autre : neutre sur l'implantation (ce qui est posé),
+   l'état du passage sur le rapport (RAS, consommé…). `o.put` écrit dans la page EN COURS de
+   l'appelant (qui remplace son tableau à chaque nouvelle page) ; les autres outils sont les siens. */
+function _pdfDessinPlans(o){
+  const put=o.put, T=o.T, TC=o.TC, R=o.R, rgbS=o.rgbS, larg=o.larg, cut=o.cut, f2=o.f2, imgs=o.imgs||{}, LINE=o.LINE;
+  const teinte=o.couleurPoste||(()=>o.POSTE);
+  /* formes des postes, en coordonnées PDF (centre x,y ; demi-taille r) */
+  const forme=(sh,x,yy,r,fill)=>{ const k=0.5523*r;
+    put(fill+' rg','1 1 1 RG',f2(Math.max(1,r*0.2))+' w');
+    if(sh==='ci') put(f2(x+r)+' '+f2(yy)+' m',f2(x+r)+' '+f2(yy+k)+' '+f2(x+k)+' '+f2(yy+r)+' '+f2(x)+' '+f2(yy+r)+' c',
+      f2(x-k)+' '+f2(yy+r)+' '+f2(x-r)+' '+f2(yy+k)+' '+f2(x-r)+' '+f2(yy)+' c',f2(x-r)+' '+f2(yy-k)+' '+f2(x-k)+' '+f2(yy-r)+' '+f2(x)+' '+f2(yy-r)+' c',
+      f2(x+k)+' '+f2(yy-r)+' '+f2(x+r)+' '+f2(yy-k)+' '+f2(x+r)+' '+f2(yy)+' c','h B');
+    else if(sh==='di'){ const d=r*1.12; put(f2(x)+' '+f2(yy+d)+' m',f2(x+d)+' '+f2(yy)+' l',f2(x)+' '+f2(yy-d)+' l',f2(x-d)+' '+f2(yy)+' l','h B'); }
+    else put(f2(x-r)+' '+f2(yy-r)+' '+f2(2*r)+' '+f2(2*r)+' re B'); };
+  const posteDessin=(pl,po,px,py,s)=>{ const sh=(PA_TYPES[po.type]||PA_TYPES.appat).shape; const r=Math.max(5,12*s);
+    forme(sh,px,py,r,teinte(po)); const n=String(po.num||''); const sz=Math.max(5.5,11*s);
+    TC(px,py-sz*0.36,sz,n,1,'1 1 1');
+    const z=papZoneOf(pl,po); if(z){ const zs=Math.max(5,9*s), zt=cut(z,16), zw=larg(zt,zs,1)+4;
+      R(px-zw/2,py-r-zs-3,zw,zs+2,'1 1 1'); TC(px,py-r-zs-1.2,zs,zt,1,'0.24 0.29 0.38'); } };
+  /* le cadre d'un plan : un carré de 768 unités (geo, rooms) ou la photo à sa proportion */
+  const planDessin=(pl,x0,ytop,bw,bh)=>{
+    const y0=ytop-bh;
+    put(LINE+' RG','0.8 w',f2(x0)+' '+f2(y0)+' '+f2(bw)+' '+f2(bh)+' re S');
+    if(pl.mode==='geo'||pl.mode==='rooms'){
+      const s=bw/768; const P=(u,v)=>[x0+u*s, ytop-v*s];
+      put('0.914 0.929 0.957 RG','0.4 w');                         // quadrillage #e9edf4 tous les 26
+      for(let g=26;g<768;g+=26){ const a=P(g,0),b=P(g,768),cc=P(0,g),d=P(768,g); put(f2(a[0])+' '+f2(a[1])+' m '+f2(b[0])+' '+f2(b[1])+' l S',f2(cc[0])+' '+f2(cc[1])+' m '+f2(d[0])+' '+f2(d[1])+' l S'); }
+      if(pl.mode==='geo'&&pl.center){
+        const poly=(ring,fill,stroke,lw)=>{ if(!(ring||[]).length) return; const pts=ring.map(p=>{ const f=papLL2F(pl,p[0],p[1]); return P(f[0]*768,f[1]*768); });
+          put(rgbS(fill)+' rg',rgbS(stroke)+' RG',f2(lw*s)+' w',pts.map((q,k)=>f2(q[0])+' '+f2(q[1])+(k?' l':' m')).join(' ')+' h B'); };
+        (pl.autres||[]).forEach(r=>poly(r,'#f1f4f9','#c3ccdb',1.2));
+        poly(pl.bat,'#e9f2ec','#1A1F28',3);
+        const mpp=papMPerPx(pl); const m=[2,5,10,20,50].find(t=>t/mpp>=80)||50; const wm=m/mpp;
+        const a=P(22,745); R(a[0],a[1],wm*s,5*s,rgbS('#1A1F28')); T(a[0],P(0,732)[1],Math.max(6,15*s),m+' m',0,rgbS('#1A1F28'));
+        const nn=P(736,40); TC(nn[0],nn[1],Math.max(7,17*s),'N',1,rgbS('#1A1F28'));
+        const t0=P(736,46), t1=P(728,62), t2=P(744,62); put(rgbS('#1A1F28')+' rg',f2(t0[0])+' '+f2(t0[1])+' m '+f2(t1[0])+' '+f2(t1[1])+' l '+f2(t2[0])+' '+f2(t2[1])+' l h f'); }
+      (pl.rooms||[]).forEach(r=>{ const a=P(r.x*768,(r.y+r.h)*768);
+        put(rgbS(r.zoneAlim?'#fdf7ef':'#fafbfc')+' rg',rgbS(r.zoneAlim?'#E79A3C':'#8a93a8')+' RG',f2(2.5*s)+' w',f2(a[0])+' '+f2(a[1])+' '+f2(r.w*768*s)+' '+f2(r.h*768*s)+' re B');
+        const t=P(r.x*768+9,r.y*768+21); T(t[0],t[1],Math.max(5.5,13*s),cut(String(r.nom||'').toUpperCase()+(r.zoneAlim?' (ZONE ALIM.)':''),30),1,rgbS(r.zoneAlim?'#c9871f':'#8a93a8')); });
+      (pl.postes||[]).forEach(po=>{ const f=papFrac(pl,po); const q=P(f.x*768,f.y*768); posteDessin(pl,po,q[0],q[1],s); });
+    } else {
+      const im=imgs[pl.id];
+      if(im&&im.nom) put('q',f2(bw)+' 0 0 '+f2(bh)+' '+f2(x0)+' '+f2(y0)+' cm','/'+im.nom+' Do','Q');
+      const s=bw/480; const P=(fx,fy)=>[x0+fx*bw, ytop-fy*bh];
+      (pl.rooms||[]).forEach(r=>{ const a=P(r.x,r.y+r.h);
+        put(rgbS(r.zoneAlim?'#E79A3C':'#8a93a8')+' RG','1.6 w',f2(a[0])+' '+f2(a[1])+' '+f2(r.w*bw)+' '+f2(r.h*bh)+' re S');
+        const t=P(r.x,r.y); const nm=cut(String(r.nom||'').toUpperCase(),24); if(nm){ const sz=7; R(t[0]+2,t[1]-sz-3,larg(nm,sz,1)+4,sz+3,'1 1 1'); T(t[0]+4,t[1]-sz-1.5,sz,nm,1,rgbS(r.zoneAlim?'#c9871f':'#5b6474')); } });
+      (pl.postes||[]).forEach(po=>{ const f=papFrac(pl,po); const q=P(f.x,f.y); posteDessin(pl,po,q[0],q[1],Math.max(0.55,s*0.9)); });
+    } };
+  return {forme,posteDessin,planDessin}; }
 function papImplPdfStr(cid,E,imgs,meta){
   meta=meta||{}; imgs=imgs||{};
   const c=(db.clients||[]).find(x=>x.id===cid)||{}; const plans=meta.plans||papImplPlans(cid);
@@ -20929,49 +21262,7 @@ function papImplPdfStr(cid,E,imgs,meta){
   const wrap=(s,n)=>{ const out=[]; let cur=''; String(s||'').split(/\s+/).filter(Boolean).forEach(w=>{ if(cur&&(cur+' '+w).length>n){ out.push(cur); cur=w; } else cur=cur?cur+' '+w:w; }); if(cur) out.push(cur); return out; };
   const dateFr=ts=>{ try{ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } };
   const vOf=pl=>(meta.versions&&meta.versions[pl.id])||pl.version||1;
-  /* formes des postes, en coordonnées PDF (centre x,y ; demi-taille r) */
-  const forme=(sh,x,yy,r,fill)=>{ const k=0.5523*r;
-    ops.push(fill+' rg','1 1 1 RG',f2(Math.max(1,r*0.2))+' w');
-    if(sh==='ci') ops.push(f2(x+r)+' '+f2(yy)+' m',f2(x+r)+' '+f2(yy+k)+' '+f2(x+k)+' '+f2(yy+r)+' '+f2(x)+' '+f2(yy+r)+' c',
-      f2(x-k)+' '+f2(yy+r)+' '+f2(x-r)+' '+f2(yy+k)+' '+f2(x-r)+' '+f2(yy)+' c',f2(x-r)+' '+f2(yy-k)+' '+f2(x-k)+' '+f2(yy-r)+' '+f2(x)+' '+f2(yy-r)+' c',
-      f2(x+k)+' '+f2(yy-r)+' '+f2(x+r)+' '+f2(yy-k)+' '+f2(x+r)+' '+f2(yy)+' c','h B');
-    else if(sh==='di'){ const d=r*1.12; ops.push(f2(x)+' '+f2(yy+d)+' m',f2(x+d)+' '+f2(yy)+' l',f2(x)+' '+f2(yy-d)+' l',f2(x-d)+' '+f2(yy)+' l','h B'); }
-    else ops.push(f2(x-r)+' '+f2(yy-r)+' '+f2(2*r)+' '+f2(2*r)+' re B'); };
-  const posteDessin=(pl,po,px,py,s)=>{ const sh=(PA_TYPES[po.type]||PA_TYPES.appat).shape; const r=Math.max(5,12*s);
-    forme(sh,px,py,r,POSTE); const n=String(po.num||''); const sz=Math.max(5.5,11*s);
-    TC(px,py-sz*0.36,sz,n,1,'1 1 1');
-    const z=papZoneOf(pl,po); if(z){ const zs=Math.max(5,9*s), zt=cut(z,16), zw=larg(zt,zs,1)+4;
-      R(px-zw/2,py-r-zs-3,zw,zs+2,'1 1 1'); TC(px,py-r-zs-1.2,zs,zt,1,'0.24 0.29 0.38'); } };
-  /* le cadre d'un plan : un carré de 768 unités (geo, rooms) ou la photo à sa proportion */
-  const planDessin=(pl,x0,ytop,bw,bh)=>{
-    const y0=ytop-bh;
-    ops.push(LINE+' RG','0.8 w',f2(x0)+' '+f2(y0)+' '+f2(bw)+' '+f2(bh)+' re S');
-    if(pl.mode==='geo'||pl.mode==='rooms'){
-      const s=bw/768; const P=(u,v)=>[x0+u*s, ytop-v*s];
-      ops.push('0.914 0.929 0.957 RG','0.4 w');                         // quadrillage #e9edf4 tous les 26
-      for(let g=26;g<768;g+=26){ const a=P(g,0),b=P(g,768),cc=P(0,g),d=P(768,g); ops.push(f2(a[0])+' '+f2(a[1])+' m '+f2(b[0])+' '+f2(b[1])+' l S',f2(cc[0])+' '+f2(cc[1])+' m '+f2(d[0])+' '+f2(d[1])+' l S'); }
-      if(pl.mode==='geo'&&pl.center){
-        const poly=(ring,fill,stroke,lw)=>{ if(!(ring||[]).length) return; const pts=ring.map(p=>{ const f=papLL2F(pl,p[0],p[1]); return P(f[0]*768,f[1]*768); });
-          ops.push(rgbS(fill)+' rg',rgbS(stroke)+' RG',f2(lw*s)+' w',pts.map((q,k)=>f2(q[0])+' '+f2(q[1])+(k?' l':' m')).join(' ')+' h B'); };
-        (pl.autres||[]).forEach(r=>poly(r,'#f1f4f9','#c3ccdb',1.2));
-        poly(pl.bat,'#e9f2ec','#1A1F28',3);
-        const mpp=papMPerPx(pl); const m=[2,5,10,20,50].find(t=>t/mpp>=80)||50; const wm=m/mpp;
-        const a=P(22,745); R(a[0],a[1],wm*s,5*s,rgbS('#1A1F28')); T(a[0],P(0,732)[1],Math.max(6,15*s),m+' m',0,rgbS('#1A1F28'));
-        const nn=P(736,40); TC(nn[0],nn[1],Math.max(7,17*s),'N',1,rgbS('#1A1F28'));
-        const t0=P(736,46), t1=P(728,62), t2=P(744,62); ops.push(rgbS('#1A1F28')+' rg',f2(t0[0])+' '+f2(t0[1])+' m '+f2(t1[0])+' '+f2(t1[1])+' l '+f2(t2[0])+' '+f2(t2[1])+' l h f'); }
-      (pl.rooms||[]).forEach(r=>{ const a=P(r.x*768,(r.y+r.h)*768);
-        ops.push(rgbS(r.zoneAlim?'#fdf7ef':'#fafbfc')+' rg',rgbS(r.zoneAlim?'#E79A3C':'#8a93a8')+' RG',f2(2.5*s)+' w',f2(a[0])+' '+f2(a[1])+' '+f2(r.w*768*s)+' '+f2(r.h*768*s)+' re B');
-        const t=P(r.x*768+9,r.y*768+21); T(t[0],t[1],Math.max(5.5,13*s),cut(String(r.nom||'').toUpperCase()+(r.zoneAlim?' (ZONE ALIM.)':''),30),1,rgbS(r.zoneAlim?'#c9871f':'#8a93a8')); });
-      (pl.postes||[]).forEach(po=>{ const f=papFrac(pl,po); const q=P(f.x*768,f.y*768); posteDessin(pl,po,q[0],q[1],s); });
-    } else {
-      const im=imgs[pl.id];
-      if(im&&im.nom) ops.push('q',f2(bw)+' 0 0 '+f2(bh)+' '+f2(x0)+' '+f2(y0)+' cm','/'+im.nom+' Do','Q');
-      const s=bw/480; const P=(fx,fy)=>[x0+fx*bw, ytop-fy*bh];
-      (pl.rooms||[]).forEach(r=>{ const a=P(r.x,r.y+r.h);
-        ops.push(rgbS(r.zoneAlim?'#E79A3C':'#8a93a8')+' RG','1.6 w',f2(a[0])+' '+f2(a[1])+' '+f2(r.w*bw)+' '+f2(r.h*bh)+' re S');
-        const t=P(r.x,r.y); const nm=cut(String(r.nom||'').toUpperCase(),24); if(nm){ const sz=7; R(t[0]+2,t[1]-sz-3,larg(nm,sz,1)+4,sz+3,'1 1 1'); T(t[0]+4,t[1]-sz-1.5,sz,nm,1,rgbS(r.zoneAlim?'#c9871f':'#5b6474')); } });
-      (pl.postes||[]).forEach(po=>{ const f=papFrac(pl,po); const q=P(f.x,f.y); posteDessin(pl,po,q[0],q[1],Math.max(0.55,s*0.9)); });
-    } };
+  const {forme,planDessin}=_pdfDessinPlans({put:(...a)=>ops.push(...a),T,TC,R,rgbS,larg,cut,f2,imgs,LINE,POSTE});
   const pied=(i,n)=>['0.85 0.88 0.91 rg',M+' 56 '+(W-2*M)+' 0.8 re f',
     GREY+' rg','BT','/F1 7.2 Tf',M+' 44 Td','('+_pdfTxt(_pdfCoupe((E.nom||'')+' — Plan d’implantation, à conserver dans le registre sanitaire — édité le '+new Date(meta.edite||Date.now()).toLocaleDateString('fr-FR'),7.2,0,RGT-60-M))+') Tj','ET',
     GREY+' rg','BT','/F1 7.5 Tf',(RGT-40)+' 44 Td','('+_pdfTxt('Page '+i+'/'+n)+') Tj','ET'].join('\n');
@@ -21078,11 +21369,20 @@ async function papImplDocument(cid,i,st){
   const meta={ versions:Object.fromEntries(st.plans.map(x=>[x.pl.id,x.v])),
     depuis:st.etat==='inchange'?st.depuis:Date.now(), edite:Date.now(),
     passage:i&&i.date?new Date(i.date+'T00:00:00').getTime():0, technicien:(currentUser&&fullName(currentUser))||'' };
+  /* v744 : la photo d'un plan peut vivre sur le serveur (« piece:… »). On la relit dans
+     l'INSTANTANÉ — jamais dans la base : rien ne s'écrit pour fabriquer un document — et AVANT de
+     construire quoi que ce soit. Un plan d'implantation sans son fond ne part pas : il dirait au
+     client « voici vos postes » sur une page blanche. */
+  for(const pl of figes){ if(pl.mode==='geo'||pl.mode==='rooms') continue;
+    const pid=photoPid(pl.img); if(!pid||photoSrc(pl.img)) continue;
+    const r=await pieceLire(pid);
+    if(r&&r.dataUrl){ pl.img=photoMarquer(pid,r.dataUrl); continue; }
+    return {err:'La photo du plan « '+(pl.nom||'Plan')+' » '+(r&&r.absente?'n’est plus sur le serveur — reprends-la':'n’a pas pu être récupérée (pas de réseau ?)')+' — rien n’est parti.'}; }
   for(const [max,q] of [[1400,0.8],[900,0.6]]){
     const imgs={}; let k=0;
     for(const pl of figes){ if(pl.mode==='geo'||pl.mode==='rooms') continue;
       if(!pl.img) continue;                                   // un plan sans photo : ses postes se dessinent sur fond blanc
-      const j=await papImplJpeg(pl.img,max,q);   // une photo de plan ne sort jamais du document (plansSite est un dictionnaire, syncSortirPieces ne le visite pas)
+      const j=await papImplJpeg(photoSrc(pl.img),max,q);   // le contenu, jamais le marqueur : « piece:… » n'est pas une image
       if(!j) return {err:'La photo du plan « '+(pl.nom||'Plan')+' » ne peut pas être mise en PDF — rien n’est parti.'};
       imgs[pl.id]={...j,nom:'I'+(++k)}; }
     let pdf; try{ pdf=papImplPdfStr(cid,{nom:E.nom,couleur:E.couleur,lignes:E.lignes,logo},imgs,{...meta,plans:figes}); }
@@ -21173,15 +21473,23 @@ function papImplCarteHtml(i){
       <button class="btn sm pap-impl-btn" ${c.email?'':'disabled style="opacity:.55"'} onclick="papImplantationEnvoyer('${cid}','${i.id}')">${esc(tx.b)}</button>
     </div>${passe}</div>`; }
 /* ── Classeur / dossier sanitaire complet (client professionnel) ── */
-function papDossierSanitaire(cid){
+async function papDossierSanitaire(cid){
   const c=db.clients.find(x=>x.id===cid); if(!c) return;
+  /* v744 : la fenêtre s'ouvre DANS le geste (sinon le navigateur la bloque), puis on attend les
+     photos de plans qui vivent sur le serveur — sans rien écrire. Celles qui manquent encore
+     s'impriment comme un cadre qui le DIT (`papPlanPrintHtml`), jamais comme un blanc muet. */
+  const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
+  if(((db.plansSite||{})[cid]||[]).some(pl=>pl&&photoPid(pl.img)&&!planImgSrc(pl))){
+    /* Fermé tout de suite : l'écriture finale ROUVRE alors le document et le remplace. Laissé
+       ouvert, ce paragraphe resterait en tête du dossier imprimé. */
+    try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Récupération des plans…</p>'); w.document.close(); }catch(e){}
+    try{ await planImgsResoudre(cid); }catch(e){} }
   const plans=plansOf(cid);
   const allInts=db.interventions.filter(x=>x.clientId===cid);
   const ints=allInts.filter(x=>x.statut==='terminee').sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||''))).slice(0,12);
   /* v740 : la société des passages QUI FIGURENT dans le dossier (socDuClient), avec sa couleur,
      son logo et ses coordonnées — plus « la dernière intervention », annulées et futures comprises */
   const E=docEntete(socDuClient(cid,ints)), soc=E.nom, AC=E.couleur;
-  const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
   const per=ints.length?fmtShort(ints[ints.length-1].date)+' → '+fmtShort(ints[0].date):'—';
   const posteName={}; plans.forEach(pl=>(pl.postes||[]).forEach(po=>{ posteName[po.id]='n°'+po.num+' ('+pl.nom+')'; }));
   // 3. relevés des 12 derniers passages
@@ -21792,6 +22100,17 @@ function intPhotosCombler(id){
     if(n&&document.getElementById('int-detail-photos')) renderIntDetail(id); })
    .catch(()=>{ _phEnCours.delete(id); });
 }
+/* v744 : le même geste pour l'onglet « Plans » — en mémoire, sans rien enregistrer, redessin
+   seulement si quelque chose est arrivé et que la grille est encore à l'écran. */
+function intPlansCombler(id){
+  const k='plans:'+id; if(_phEnCours.has(k)) return;
+  const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.plans)) return;
+  if(!i.plans.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })) return;
+  _phEnCours.add(k);
+  photosResoudre(i.plans).then(n=>{ _phEnCours.delete(k);
+    if(n&&document.getElementById('int-detail-plans')) renderIntDetail(id); })
+   .catch(()=>{ _phEnCours.delete(k); });
+}
 function renderIntDetail(id){
   const i=db.interventions.find(x=>x.id===id); if(!i)return;
   /* v738 : réaffectée par la synchro pendant qu'on la regarde, elle ne se redessine plus chez qui ne la voit plus */
@@ -22012,9 +22331,10 @@ function renderIntDetail(id){
       <p style="font-size:11px;color:var(--t3);margin-top:10px">Les deux signatures (nom, date et heure) sont reprises sur le rapport d'intervention.</p>`;
     }
   } else if(intTab==='plans'){
-    body=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:10px">
+    intPlansCombler(id);   // v744 : les photos de plan qui vivent sur le serveur arrivent après coup
+    body=`<div id="int-detail-plans" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:10px">
       ${intEdit?`<div onclick="document.getElementById('int-plan-file').click()" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un plan</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un plan')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${ph}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
+      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
     </div>
     <input type="file" id="int-plan-file" accept="image/*" style="display:none" onchange="intPlanAdd(event,'${id}')">
     <p style="color:var(--t3);font-size:12.5px">Plans du site : postes d'appâtage, zones traitées, accès… (photo ou capture du plan)</p>
@@ -22469,9 +22789,20 @@ function sigAbsentToggle(id,v){ const i=db.interventions.find(x=>x.id===id); if(
 function intPlanAdd(e,id){ const f=e.target.files[0]; if(!f) return; e.target.value=''; const r=new FileReader();
   r.onload=()=>{ const img=new Image(); img.onload=()=>{ let w=img.width,h=img.height; const mx=1400; if(w>mx||h>mx){ if(w>h){h=h*mx/w;w=mx;}else{w=w*mx/h;h=mx;} }
     const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
-    const i=db.interventions.find(x=>x.id===id); if(!i) return; i.plans=i.plans||[]; i.plans.push(cv.toDataURL('image/jpeg',0.75));
-    intHisto(i,'Plan ajouté'); save(); renderIntDetail(id); }; img.src=r.result; }; r.readAsDataURL(f); }
-function intPlanDel(id,ix){ if(!confirm('Supprimer ce plan ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.plans) return; i.plans.splice(ix,1); save(); renderIntDetail(id); }
+    const i=db.interventions.find(x=>x.id===id); if(!i) return; i.plans=i.plans||[]; const d=cv.toDataURL('image/jpeg',0.75); i.plans.push(d);
+    intHisto(i,'Plan ajouté'); save(); renderIntDetail(id); intPlanDeposer(id,d); }; img.src=r.result; }; r.readAsDataURL(f); }
+/* ⛔ v744 — MÊME INVARIANT QUE `intPhotoAdd` : la photo est ENREGISTRÉE d'abord, déposée ensuite,
+   et le marqueur s'AJOUTE au retour. On la retrouve par son CONTENU, pas par son rang : une photo
+   supprimée entre-temps décalerait les rangs, et le marqueur irait sur la voisine. */
+async function intPlanDeposer(id,d){
+  const dep=await pieceDeposer(d);
+  if(!(dep&&dep.id)){ if(dep&&dep.erreur) toast(pieceMotifTexte(dep.motif).replace('Document','Plan').replace('document','plan'),7000); return; }
+  const i=db.interventions.find(x=>x.id===id); if(!i||!Array.isArray(i.plans)) return;
+  const k=i.plans.indexOf(d); if(k<0) return;
+  i.plans[k]=photoMarquer(dep.id,d); save(); }
+function intPlanDel(id,ix){ if(!confirm('Supprimer ce plan ?')) return; const i=db.interventions.find(x=>x.id===id); if(!i||!i.plans) return;
+  const pid=photoPid(i.plans[ix]); i.plans.splice(ix,1); save(); renderIntDetail(id);
+  if(pid) pieceSupprimer(pid); }   // APRÈS la suppression locale, qui ne dépend pas du réseau
 /* ⛔ ET L'ÉTIQUETTE SUIT LA PHOTO. Défaut préexistant, trouvé en écrivant le point 5 :
    `i.photos.splice(ix,1)` ne touchait pas à `i.photoTags`, donc supprimer la première photo
    décalait TOUTES les légendes d'un cran — sur un rapport sanitaire, une photo légendée
@@ -23263,42 +23594,10 @@ function saveRapport(e,id){ e.preventDefault(); const f=e.target; const data=Obj
   if(effectuee){ closeModal(); clotureSuiteModal(id,askNext,recurMsg);
   } else { closeModal(); toast('Rapport enregistré'); go(current); } }
 
-/* ── Export PDF d'un rapport d'intervention ── */
-/* ⛔ LE PDF ATTEND LES PHOTOS, là où l'écran ne les attend pas — et la différence est
-   volontaire. Un écran incomplet se recomplète une seconde plus tard ; un PDF envoyé à un
-   client avec des cadres vides est définitif, et c'est un rapport sanitaire. */
-async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return;
-  if(Array.isArray(i.photos)&&i.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })){
-    toast('⬇️ Récupération des photos…',2500);
-    await photosResoudre(i.photos);
-    const reste=i.photos.filter(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; }).length;
-    if(reste&&!confirm(reste+' photo(s) n\'ont pas pu être récupérées — elles manqueront dans le PDF.\n\nContinuer quand même ?')) return;
-  } const c=db.clients.find(x=>x.id===i.clientId)||{};
-  /* v740 : nom, couleur, logo et coordonnées de la société de CETTE intervention (docEntete) */
-  const H=docEntete(i.rapportModele), soc=H.nom, AC=H.couleur;
-  // les produits rattachés à un type de traitement apparaissent dans leur section ; ici, les lignes « libres »
-  const prod=(i.produitsUtilises||[]).filter(l=>!l.categorie||!(((i.quest||{})[l.categorie]||{}).actif)).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td><td>${esc(prodLineAmm(l)||'—')}</td><td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(l.unite||'')}</td></tr>`;}).join('');
-  const equip=(i.equipements||[]).map(e=>`<tr><td>${esc(e.nom)}</td><td>${esc(e.reference)||''}</td></tr>`).join('');
-  const champs=(db.champsPerso||[]).filter(f=>i.champs&&i.champs[f.id]!=null&&(!Array.isArray(i.champs[f.id])||i.champs[f.id].length)).map(f=>{ const v=i.champs[f.id];
-    if(f.type==='tableau'&&Array.isArray(v)) return `<div class="box"><b>${esc(f.label)}</b><table style="margin-top:6px"><thead><tr>${(f.colonnes||[]).map(co=>`<th>${esc(co)}</th>`).join('')}</tr></thead><tbody>${v.map(r=>`<tr>${(f.colonnes||[]).map((co,ci)=>`<td>${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-    return `<p style="margin:4px 0"><b>${esc(f.label)} :</b> ${esc(v)}</p>`; }).join('');
-  const photos=(i.photos||[]).map((p,ix)=>{ p=photoSrc(p); const tg=(i.photoTags||[])[ix];
-    return `<span style="display:inline-block;text-align:center;margin:4px">${tg?`<span style="display:block;font-size:10px;font-weight:bold;color:${tg==='avant'?'#C26A10':'#1E7A4E'};text-transform:uppercase">${tg==='avant'?'Avant':'Après'}</span>`:''}<img src="${p}" style="width:150px;height:150px;object-fit:cover;border-radius:6px"></span>`; }).join('');
-  let planApp=''; try{ planApp=paPdfHtml(i); }catch(e){ planApp=''; }
-  const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
-  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport ${esc(i.titre)}</title>
-    <style>*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}body{margin:0;padding:40px;color:#1A1F28}
-    .hd{display:flex;justify-content:space-between;border-bottom:3px solid ${AC};padding-bottom:14px;margin-bottom:20px}
-    .logo{font-size:22px;font-weight:800;color:${AC};letter-spacing:1px}.logo img{display:block;max-height:52px;max-width:180px;margin-bottom:6px}.coord{font-size:11px;color:#666;font-weight:400;letter-spacing:0;margin-top:2px}.logo small{display:block;font-size:11px;color:#666;font-weight:400}
-    h1{font-size:18px;margin:0}.muted{color:#666;font-size:13px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin:10px 0;font-size:13px}
-    table{width:100%;border-collapse:collapse}th{background:${AC};color:${encreSur(AC)};padding:7px;text-align:left;font-size:12px}td{padding:7px;border-bottom:1px solid #E3E8F0;font-size:12px}
-    .ft{margin-top:30px;font-size:11px;color:#999;text-align:center}@media print{body{padding:18px}}</style></head>
-    <body><div class="hd"><div class="logo">${H.logo?`<img src="${esc(H.logo)}" alt="">`:''}${esc(soc)}<small>Rapport d'intervention</small>${docCoordLignes(H).map(x=>`<div class="coord">${esc(x)}</div>`).join('')}</div>
-      <div style="text-align:right"><h1>RAPPORT D'INTERVENTION</h1><div class="muted">${new Date((i.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')} · ${i.heure||''}</div></div></div>
-      <div class="box"><b>${esc(i.titre)}</b><br><span class="muted">Client : ${esc(c.nom||'—')} · Technicien(s) : ${esc(techNames(i))} · Durée : ${i.duree||0} min<br>${esc(i.adresse||'')}</span></div>
-      ${i.desc?`<p><b>Description :</b> ${esc(i.desc)}</p>`:''}
-      ${i.compteRendu?`<div class="box"><b>Compte-rendu</b><br>${esc(i.compteRendu).replace(/\n/g,'<br>')}</div>`:''}
-      ${(()=>{ const co=i.constat||{}; const pk=Array.isArray(i.prestation)?i.prestation:Object.keys(i.prestation||{}); const presta=PRESTATION_ITEMS.filter(([k])=>pk.includes(k)).map(([k,l])=>l);
+/* ⛔ LES LIGNES « CONSTAT & PRESTATION » D'UN RAPPORT — UNE SEULE SOURCE (v744). Le rapport
+   imprimé et le rapport PDF joint au courriel les lisent ICI : deux copies diraient un jour deux
+   choses différentes au même client sur le même passage. [libellé, valeur], dans l'ordre imprimé. */
+function rapportConstatLignes(i){ const co=i.constat||{}; const pk=Array.isArray(i.prestation)?i.prestation:Object.keys(i.prestation||{}); const presta=PRESTATION_ITEMS.filter(([k])=>pk.includes(k)).map(([k,l])=>l);
         const rows=[];
         if(i.type) rows.push(['Prestation',i.type]);
         if(i.passageTotal>1) rows.push(['Passage',i.passageNum+'/'+i.passageTotal]);
@@ -23316,6 +23615,284 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
         if(co.conformite) rows.push(['Conformité',co.conformite]);
         if((i.prestaMetier||[]).length) rows.push(['Prestations réalisées',i.prestaMetier.join(', ')]);
         try{ metierRelevesLignes(i).forEach(r=>rows.push(r)); }catch(e){}
+  return rows; }
+/* Les produits « libres » d'un rapport : ceux qui ne sont pas déjà dans le détail d'un type de
+   traitement actif (où ils ont leur propre tableau). Trois lecteurs — l'impression, le courriel et
+   le PDF — et une seule règle. */
+/* Les champs personnalisés remplis sur ce passage (un tableau vide ne compte pas). */
+function rapportChampsPerso(i){ return (db.champsPerso||[]).filter(f=>i.champs&&i.champs[f.id]!=null&&(!Array.isArray(i.champs[f.id])||i.champs[f.id].length)); }
+function rapportProduitsLibres(i){ return (i.produitsUtilises||[]).filter(l=>!l.categorie||!(((i.quest||{})[l.categorie]||{}).actif)); }
+/* ══ LE RAPPORT D'INTERVENTION EN VRAI PDF, JOINT AU COURRIEL (v744) ══════════════════════════
+   Jusqu'ici, « Par e-mail » ouvrait la fenêtre d'impression et envoyait… le TEXTE du rapport :
+   le serveur ne peut pas joindre ce que l'impression fabrique, donc le client ne recevait jamais
+   le document — ni les photos, ni le plan, ni les signatures. Même fabrique que le devis, le bon
+   et le plan d'implantation : un PDF écrit à la main, sans bibliothèque, et lisible hors
+   navigateur (les bancs l'exécutent en Node).
+   ⛔ LE CONTENU EST CELUI DU RAPPORT IMPRIMÉ, ET IL LE LIT AUX MÊMES SOURCES : `rapportConstatLignes`,
+   `rapportProduitsLibres`, `rapportChampsPerso`, `t3dTexte`, `_pdfDessinPlans`. Un rapport sanitaire
+   qui dirait autre chose selon qu'on l'imprime ou qu'on le reçoit serait un document faux.
+   `E` : l'en-tête de la société (nom, couleur, lignes, logo) ; `imgs` : les images DÉJÀ converties en
+   JPEG (`rapportDocument`) — {plans:{id:{b64,w,h,nom}}, photos:[{b64,w,h,nom,tag}|{manque,tag}],
+   sigCli, sigTech}. */
+function rapportPdfStr(i,E,imgs){
+  E=E||{}; imgs=imgs||{}; const photos=imgs.photos||[], imPlans=imgs.plans||{};
+  const c=(db.clients||[]).find(x=>x.id===i.clientId)||{};
+  const hx=/^#[0-9a-fA-F]{6}$/.test(E.couleur||'')?E.couleur:'#1E7A4E';
+  const rgbS=h=>[1,3,5].map(k=>(parseInt(h.slice(k,k+2),16)/255).toFixed(3)).join(' ');
+  const ACC=rgbS(hx), ACCLT=[1,3,5].map(k=>(0.93+parseInt(hx.slice(k,k+2),16)/255*0.07).toFixed(3)).join(' ');
+  const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', LINE='0.85 0.88 0.91', ALT='0.962 0.97 0.976', BLANC='1 1 1';
+  const W=595,H=842,M=42,RGT=W-M,L=W-2*M,BAS=74;
+  const pages=[]; let ops=[]; let y;
+  const f2=v=>(+v).toFixed(1);
+  const larg=(t,sz,b)=>_pdfLarg(t,sz,b);
+  /* ⛔ WinAnsi n'a ni émoji ni flèche : `_pdfTranslit` les dit autrement ou les retire AVANT qu'on
+     mesure et qu'on écrive — sinon des « ? » dans un document remis au client. */
+  const net=s=>_pdfTranslit(s).replace(/[ \t]+/g,' ').trim();
+  const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',f2(x)+' '+f2(yy)+' Td','('+_pdfTxt(net(txt))+') Tj','ET');
+  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-larg(net(txt),sz,bold),yy,sz,txt,bold,col);
+  const TC=(xc,yy,sz,txt,bold,col)=>T(xc-larg(net(txt),sz,bold)/2,yy,sz,txt,bold,col);
+  const TW=(x,yy,sz,txt,bold,col,max)=>T(x,yy,sz,_pdfCoupe(net(txt),sz,bold,max),bold,col);
+  const R=(x,yy,w,h,col)=>ops.push(col+' rg',f2(x)+' '+f2(yy)+' '+f2(w)+' '+f2(h)+' re f');
+  const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
+  /* coupe à la LARGEUR réelle (métriques Helvetica), en gardant les retours à la ligne de la saisie ;
+     un mot plus long que la ligne (une adresse, une référence) est coupé plutôt que de déborder */
+  const lignes=(s,sz,b,max)=>{ const out=[];
+    String(s==null?'':s).split(/\r?\n/).forEach(par=>{ let cur='';
+      net(par).split(' ').filter(Boolean).forEach(m=>{
+        while(larg(m,sz,b)>max){ let k=m.length; while(k>1&&larg(m.slice(0,k),sz,b)>max) k--;
+          if(cur){ out.push(cur); cur=''; } out.push(m.slice(0,k)); m=m.slice(k); }
+        const e=cur?cur+' '+m:m; if(!m) return;
+        if(larg(e,sz,b)<=max) cur=e; else { out.push(cur); cur=m; } });
+      out.push(cur); });
+    while(out.length&&!out[out.length-1]) out.pop(); return out; };
+  const dateFr=x=>{ try{ return new Date((x||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return String(x||''); } };
+  const nouvellePage=()=>{ pages.push(ops.join('\n')); ops=[]; R(0,H-6,W,6,ACC); y=H-M-10; };
+  const place=h=>{ if(y-h<BAS) nouvellePage(); };
+  const titre=(t,suite)=>{ place(18+(suite||0)); y-=6; T(M,y,11,t,1,ACC); y-=5; R(M,y,L,0.8,LINE); y-=13; };
+  /* un paragraphe coupé à la largeur, qui passe à la page suivante ligne par ligne */
+  const texte=(s,sz,col,x0,max,bold)=>{ const lh=sz*1.32; lignes(s,sz,bold,max||L).forEach(t=>{ place(lh); if(t) T(x0||M,y,sz,t,bold,col); y-=lh; }); };
+  /* « Libellé : valeur » — le libellé en gras, la valeur coupée sous lui si elle est longue */
+  const ligneLV=(lbl,val)=>{ const sz=9, lh=12.5, l=net(lbl)+' : ', wl=larg(l,sz,1);
+    const reste=lignes(val,sz,0,L-wl-2); place(lh*Math.max(1,Math.min(2,reste.length)));
+    T(M,y,sz,l,1,DARK); if(reste.length) T(M+wl,y,sz,reste[0],0,DARK); y-=lh;
+    reste.slice(1).forEach(t=>{ place(lh); T(M+wl,y,sz,t,0,DARK); y-=lh; }); };
+  /* un tableau simple : en-tête à la couleur de la société, lignes alternées, colonnes coupées */
+  const tableau=(cols,rows)=>{ const tete=()=>{ R(M,y-5,L,18,ACC); cols.forEach(cl=>{ (cl.d?TR:TW)(cl.d?cl.x+cl.w:cl.x,y+0.5,8.2,cl.t,1,BLANC,cl.w); }); y-=20; };
+    place(40); tete();
+    rows.forEach((rw,k)=>{ if(y-15<BAS){ nouvellePage(); tete(); }
+      if(k%2) R(M,y-5,L,15,ALT);
+      cols.forEach((cl,j)=>{ const v=String(rw[j]==null?'':rw[j]); if(cl.d) TR(cl.x+cl.w,y,8.6,_pdfCoupe(net(v),8.6,j===0,cl.w),j===0,DARK); else TW(cl.x,y,8.6,v,j===0,DARK,cl.w); });
+      y-=15; });
+    y-=6; };
+  const image=(nom,x,yy,w,h)=>ops.push('q',f2(w)+' 0 0 '+f2(h)+' '+f2(x)+' '+f2(yy)+' cm','/'+nom+' Do','Q');
+
+  /* ─ en-tête : la société de CE passage (docEntete, passé par l'appelant) */
+  R(0,H-6,W,6,ACC); y=H-M-16;
+  let nx=M; if(E.logo&&E.logo.b64){ const lh=34, lw=Math.round(E.logo.w*(lh/E.logo.h)); image('L1',M,y-9,lw,lh); nx=M+lw+12; }
+  TW(nx,y,19,E.nom||'',1,ACC,RGT-200-nx);
+  TR(RGT,y+3,15,'RAPPORT D’INTERVENTION',1,DARK);
+  TR(RGT,y-12,9,dateFr(i.date)+(i.heure?' · '+i.heure:''),0,GREY);
+  if(i.num) TR(RGT,y-24,8.5,'N° '+i.num,1,GREY);
+  const lgMax=RGT-230-nx; let ey=y-14;
+  (E.lignes||[]).flatMap(t=>larg(t,8.3,0)<=lgMax?[t]:String(t).split(/\s+·\s+/)).forEach(t=>{ TW(nx,ey,8.3,t,0,GREY,lgMax); ey-=10.5; });
+  y=Math.min(y-(i.num?38:30),ey-6); R(M,y,L,1.4,ACC); y-=16;
+
+  /* ─ le passage : quoi, chez qui, par qui */
+  /* les mêmes quatre renseignements que le rapport imprimé, et les mêmes sources */
+  { const cl=[['Client',c.nom||'—'],['Technicien(s)',techNames(i)||'—'],['Durée',(i.duree||0)+' min'],['Adresse',i.adresse||'']].filter(r=>r[1]);
+    const tl=lignes(i.titre||'Intervention',10.5,1,L-20).slice(0,2);
+    const ph=16+tl.length*13+cl.length*12.5+4; place(ph+4);
+    R(M,y-ph+10,L,ph,ACCLT); T(M+10,y-4,8,'INTERVENTION',1,ACC); let yy=y-18;
+    tl.forEach(t=>{ T(M+10,yy,10.5,t,1,DARK); yy-=13; });
+    cl.forEach(([a,b])=>{ const l=a+' : '; T(M+10,yy,8.8,l,1,GREY); TW(M+10+larg(l,8.8,1),yy,8.8,b,0,DARK,L-30-larg(l,8.8,1)); yy-=12.5; });
+    y-=ph+10; }
+
+  if(i.desc){ titre('Description',12); texte(i.desc,9.2,DARK); y-=4; }
+  if(i.compteRendu){ titre('Compte-rendu',12); texte(i.compteRendu,9.4,DARK); y-=4; }
+  { const rows=rapportConstatLignes(i); if(rows.length){ titre('Constat & prestation',12); rows.forEach(r=>ligneLV(r[0],r[1])); y-=4; } }
+  { let t3=[]; try{ t3=t3dTexte(i).filter((x,k)=>k||x); }catch(e){}
+    if(t3.length){ titre('Traitements réalisés — détail par type',12);
+      t3.forEach(x=>{ if(!x){ y-=5; return; } const cat=/ :$/.test(x)&&x===x.toUpperCase(); texte(x,cat?9:8.8,cat?ACC:DARK,M+(cat?0:6),L-(cat?0:6),cat); }); y-=4; } }
+  { const co=i.constat||{}; if(co.recommandations){ titre('Recommandations',12); texte(co.recommandations,9.2,DARK); y-=4; } }
+  { const ch=rapportChampsPerso(i);
+    if(ch.length){ titre('Informations complémentaires',12);
+      ch.forEach(f=>{ const v=i.champs[f.id];
+        if(f.type==='tableau'&&Array.isArray(v)){ place(62); T(M,y,9,f.label||'',1,DARK); y-=19;
+          const n=Math.max(1,(f.colonnes||[]).length), w=L/n;
+          tableau((f.colonnes||['']).map((t,k)=>({t,x:M+6+k*w,w:w-10})),v.map(r=>(f.colonnes||['']).map((_,k)=>(r||[])[k]||''))); }
+        else ligneLV(f.label||'',Array.isArray(v)?v.join(', '):v); }); y-=4; } }
+  { const prods=rapportProduitsLibres(i);
+    if(prods.length){ titre('Produits utilisés',30);
+      tableau([{t:'Désignation',x:M+6,w:236},{t:'Réf.',x:M+248,w:80},{t:'N° AMM',x:M+334,w:96},{t:'Qté',x:M+436,w:65,d:1}],
+        prods.map(l=>{ const p=produit(l.produitId); return [prodLineName(l),p.ref||'',prodLineAmm(l)||'—',(l.qte!=null?l.qte:1)+' '+(l.unite||'')]; })); } }
+
+  /* ─ le plan d'appâtage, postes à la couleur de LEUR ÉTAT sur ce passage (la légende du rapport imprimé) */
+  { const plans=((db.plansSite||{})[i.clientId]||[]).filter(p=>p&&(p.postes||[]).length);
+    if(plans.length){
+      const COLS={ras:'#22c55e',partiel:'#E79A3C',consomme:'#E0524D',remplace:'#2563EB'};
+      const teinte=po=>rgbS(COLS[paLastEtat(i,po.id)]||'#64748b');
+      const D=_pdfDessinPlans({put:(...a)=>ops.push(...a),T,TC,R,rgbS,larg,cut,f2,imgs:imPlans,LINE,couleurPoste:teinte});
+      /* le titre et la légende réclament la place du PREMIER plan : sinon ils restent seuls en bas
+         de page et le plan part sur la suivante (vu au rendu pdf.js, 24 septembre 2026) */
+      const dims=pl=>{ const im=imPlans[pl.id], carre=(pl.mode==='geo'||pl.mode==='rooms'); let bw=L, bh=carre?bw:(im&&im.w?bw*im.h/im.w:bw*0.75); if(bh>330){ bw=bw*330/bh; bh=330; } return {bw,bh}; };
+      titre('Plan d’appâtage — état des postes',16+dims(plans[0]).bh+22);
+      let lx=M; [['#22c55e','RAS'],['#E79A3C','Consommation partielle'],['#E0524D','Consommé'],['#2563EB','Remplacé'],['#64748b','Non relevé']].forEach(([cc,t])=>{
+        D.forme('sq',lx+4,y+3,4,rgbS(cc)); T(lx+12,y,7.8,t,0,GREY); lx+=22+larg(t,7.8); }); y-=16;
+      plans.forEach(pl=>{ const im=imPlans[pl.id], carre=(pl.mode==='geo'||pl.mode==='rooms'); const {bw,bh}=dims(pl);
+        place(bh+22);
+        TW(M,y,9.5,(pl.nom||'Plan')+(pl.version?' · version '+pl.version:''),1,DARK,L); y-=8;
+        const x0=M+(L-bw)/2;
+        /* la photo n'a pas pu être récupérée : on l'ÉCRIT dans le cadre, jamais un blanc muet */
+        if(!carre&&!(im&&im.nom)&&photoPid(pl.img)){ R(x0,y-bh,bw,bh,ALT); TC(x0+bw/2,y-bh/2,8.5,'Photo du plan non disponible au moment de l’envoi — postes à leur place relative',0,GREY); }
+        D.planDessin(pl,x0,y,bw,bh); y-=bh+16; });
+      const rel=(i.relevesPlan||[]).map(r=>{ let po=null,pn=''; plans.forEach(p=>(p.postes||[]).forEach(x=>{ if(x.id===r.posteId){ po=x; pn=(p.nom||'')+(papZoneOf(p,x)?' — '+papZoneOf(p,x):''); } }));
+        if(!po) return null; const lbl={ras:'RAS',partiel:'Consommation partielle',consomme:'Consommé',remplace:'Remplacé'}[r.etat]||r.etat||'';
+        return [String(po.num||''),pn,lbl,r.note||'']; }).filter(Boolean);
+      if(rel.length){ place(62); T(M,y,9.5,'Relevé des postes',1,DARK); y-=19;
+        tableau([{t:'N°',x:M+6,w:26},{t:'Plan / zone',x:M+36,w:170},{t:'État',x:M+212,w:120},{t:'Note',x:M+338,w:165}],rel); } } }
+
+  { const eq=i.equipements||[]; if(eq.length){ titre('Équipements',30); tableau([{t:'Équipement',x:M+6,w:300},{t:'Référence',x:M+312,w:190}],eq.map(e=>[e.nom||'',e.reference||''])); } }
+
+  /* ─ les photos : vignettes carrées, recadrées au centre (comme à l'écran), étiquette Avant/Après */
+  if(photos.length){ titre('Photos',140);
+    const n=4, g=10, s=(L-(n-1)*g)/n;
+    photos.forEach((p,k)=>{ const col=k%n; if(col===0) place(s+16);
+      const x=M+col*(s+g), top=y;
+      if(p.tag){ const av=p.tag==='avant'; T(x,top,7.6,av?'AVANT':'APRÈS',1,av?'0.76 0.42 0.06':'0.12 0.48 0.31'); }
+      const y0=top-6-s;
+      if(p.nom&&p.w&&p.h){ const ar=p.w/p.h; let w=s,h=s; if(ar>1) w=s*ar; else h=s/ar;
+        ops.push('q',f2(x)+' '+f2(y0)+' '+f2(s)+' '+f2(s)+' re W n'); image(p.nom,x-(w-s)/2,y0-(h-s)/2,w,h); ops.push('Q'); }
+      else { R(x,y0,s,s,ALT); TC(x+s/2,y0+s/2,7.5,'Photo non récupérée',0,GREY); }
+      if(col===n-1||k===photos.length-1) y=y0-12; }); }
+
+  /* ─ les signatures, avec qui et quand (signatureMeta) — ou « client absent », écrit */
+  if(i.signature||i.signatureTech||i.clientAbsent){ const sm=i.signatureMeta||{}; const bw=(L-24)/2, bh=74;
+    titre('Signatures',bh+40);
+    const meta=mt=>mt&&mt.ts?(mt.nom||'')+' — le '+new Date(mt.ts).toLocaleDateString('fr-FR')+' à '+new Date(mt.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+    const bloc=(x,lbl,im,mt,absent)=>{ T(x,y,8.8,lbl,1,DARK);
+      const y0=y-8-bh; ops.push(LINE+' RG','0.8 w',f2(x)+' '+f2(y0)+' '+f2(bw)+' '+f2(bh)+' re S');
+      if(absent){ TC(x+bw/2,y0+bh/2-3,8.5,'Client absent lors du passage — non contresigné',1,'0.76 0.42 0.06'); }
+      else if(im&&im.nom){ const k=Math.min((bw-10)/im.w,(bh-10)/im.h); const w=im.w*k,h=im.h*k; image(im.nom,x+(bw-w)/2,y0+(bh-h)/2,w,h); }
+      const t=meta(mt); if(t) TW(x,y0-10,7.6,t,0,GREY,bw); };
+    bloc(M,'1. Signature du client',imgs.sigCli,sm.cli,i.clientAbsent&&!i.signature);
+    bloc(M+bw+24,'2. Signature du technicien',imgs.sigTech,sm.tech,false);
+    y-=bh+30; }
+  if((i.produitsUtilises||[]).length){ y-=4; texte(MENTION_REGL,7.6,GREY); }
+
+  pages.push(ops.join('\n'));
+  const pied=(k,n)=>[LINE+' rg',M+' 56 '+L+' 0.8 re f',GREY+' rg','BT','/F1 7.2 Tf',M+' 44 Td',
+    '('+_pdfTxt(_pdfCoupe(net((E.nom||'')+' — Rapport d’intervention du '+dateFr(i.date)+' — édité le '+new Date().toLocaleDateString('fr-FR')),7.2,0,L-60))+') Tj','ET',
+    GREY+' rg','BT','/F1 7.5 Tf',(RGT-40)+' 44 Td','('+_pdfTxt('Page '+k+'/'+n)+') Tj','ET'].join('\n');
+  for(let k=0;k<pages.length;k++) pages[k]+='\n'+pied(k+1,pages.length);
+  /* ─ objets */
+  const objs=[]; objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
+  objs[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  let n=5; const xo=[];
+  const obj=(nom,o)=>{ if(!o||!o.b64||!nom) return; const bin=atob(o.b64); const io=n++;
+    objs[io]={s:bin,dict:'<< /Type /XObject /Subtype /Image /Width '+o.w+' /Height '+o.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bin.length+' >>'};
+    xo.push('/'+nom+' '+io+' 0 R'); };
+  if(E.logo&&E.logo.b64) obj('L1',E.logo);
+  Object.keys(imPlans).forEach(k=>obj(imPlans[k]&&imPlans[k].nom,imPlans[k]));
+  photos.forEach(p=>obj(p&&p.nom,p));
+  obj(imgs.sigCli&&imgs.sigCli.nom,imgs.sigCli); obj(imgs.sigTech&&imgs.sigTech.nom,imgs.sigTech);
+  const res='/Font << /F1 3 0 R /F2 4 0 R >>'+(xo.length?' /XObject << '+xo.join(' ')+' >>':'');
+  const kids=[];
+  pages.forEach(ct0=>{ const pg=n++, ct=n++; kids.push(pg+' 0 R');
+    objs[pg]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << '+res+' >> /Contents '+ct+' 0 R >>';
+    objs[ct]={s:ct0}; });
+  objs[2]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+pages.length+' >>';
+  let out='%PDF-1.4\n'; const offs=[];
+  for(let k=1;k<objs.length;k++){ offs[k]=out.length; const o=objs[k];
+    out+=(o&&o.s!==undefined)?k+' 0 obj\n'+(o.dict||('<< /Length '+o.s.length+' >>'))+'\nstream\n'+o.s+'\nendstream\nendobj\n':k+' 0 obj\n'+o+'\nendobj\n'; }
+  const xr=out.length;
+  out+='xref\n0 '+objs.length+'\n0000000000 65535 f \n';
+  for(let k=1;k<objs.length;k++) out+=String(offs[k]).padStart(10,'0')+' 00000 n \n';
+  out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+  return out; }
+/* Le document prêt à partir : photos et plans relus du serveur (EN MÉMOIRE, sans rien écrire), tout
+   converti en JPEG par le canevas, puis réduit tant que le courriel ne peut pas le porter. Rend
+   {pdf, b64, nom, E, manque:{photos,plans}} ou {err} — jamais une exception. */
+async function rapportDocument(id){
+  const i=(db.interventions||[]).find(x=>x.id===id); if(!i) return {err:'Intervention introuvable.'};
+  const H=docEntete(i.rapportModele);
+  const E={nom:H.nom,couleur:H.couleur,lignes:docCoordLignes(H),expediteur:(docMailOpts(i.rapportModele)||{}).brandName||''};
+  let logo=null; try{ logo=H.logo?await devisLogoJpeg(H.logo):null; }catch(e){}
+  const manquePh=()=>(i.photos||[]).filter(ph=>photoPid(ph)&&!photoSrc(ph)).length;
+  const plansDe=()=>(((db.plansSite||{})[i.clientId])||[]).filter(p=>p&&(p.postes||[]).length);
+  const manquePl=()=>plansDe().filter(pl=>pl.mode!=='geo'&&pl.mode!=='rooms'&&photoPid(pl.img)&&!planImgSrc(pl)).length;
+  try{ if(manquePh()) await photosResoudre(i.photos); }catch(e){}
+  try{ if(manquePl()) await planImgsResoudre(i.clientId); }catch(e){}
+  const manque={photos:manquePh(),plans:manquePl()};
+  for(const [max,q,pmax] of [[1400,0.8,700],[1000,0.66,520],[800,0.55,400]]){
+    const imgs={plans:{},photos:[]}; let k=0;
+    for(const pl of plansDe()){ if(pl.mode==='geo'||pl.mode==='rooms') continue; const src=planImgSrc(pl); if(!src) continue;
+      const j=await papImplJpeg(src,max,q); if(!j) return {err:'La photo du plan « '+(pl.nom||'Plan')+' » ne peut pas être mise en PDF — rien n’est parti.'};
+      imgs.plans[pl.id]=Object.assign({},j,{nom:'P'+(++k)}); }
+    k=0; for(let x=0;x<(i.photos||[]).length;x++){ const src=photoSrc(i.photos[x]), tag=(i.photoTags||[])[x]||'';
+      if(!src){ imgs.photos.push({manque:true,tag}); continue; }
+      const j=await papImplJpeg(src,pmax,q); if(!j){ imgs.photos.push({manque:true,tag}); continue; }
+      imgs.photos.push(Object.assign({},j,{nom:'X'+(++k),tag})); }
+    if(i.signature){ const j=await papImplJpeg(i.signature,600,0.85); if(j) imgs.sigCli=Object.assign({},j,{nom:'S1'}); }
+    if(i.signatureTech){ const j=await papImplJpeg(i.signatureTech,600,0.85); if(j) imgs.sigTech=Object.assign({},j,{nom:'S2'}); }
+    let pdf; try{ pdf=rapportPdfStr(i,Object.assign({},E,{logo}),imgs); }
+    catch(e){ return {err:'Le rapport PDF n’a pas pu être construit ('+(e&&e.message||e)+') — rien n’est parti.'}; }
+    const b64=btoa(pdf);
+    if(b64.length<=PAP_IMPL_MAX_B64){
+      const cl=(db.clients||[]).find(x=>x.id===i.clientId)||{};
+      const nom=('Rapport-intervention-'+String(cl.nom||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)
+        +'-'+String(i.date||todayISO())+'.pdf');
+      return {pdf,b64,nom,E,manque}; } }
+  return {err:'Le rapport dépasse la taille qu’un courriel peut porter, même photos réduites — rien n’est parti.'}; }
+/* ── Export PDF d'un rapport d'intervention ── */
+/* ⛔ LE PDF ATTEND LES PHOTOS, là où l'écran ne les attend pas — et la différence est
+   volontaire. Un écran incomplet se recomplète une seconde plus tard ; un PDF envoyé à un
+   client avec des cadres vides est définitif, et c'est un rapport sanitaire. */
+async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return;
+  /* ⛔ LA FENÊTRE S'OUVRE DANS LE GESTE, AVANT D'ATTENDRE LE RÉSEAU (relecture v744) : ouverte après
+     deux allers-retours au serveur, le navigateur la bloquait. L'attente s'y affiche, et la question
+     « continuer quand même ? » s'y pose — c'est elle qui a la main, pas l'onglet derrière. */
+  const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
+  const attente=t=>{ try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">'+t+'</p>'); w.document.close(); }catch(e){} };
+  const demander=q=>{ try{ return w.confirm(q); }catch(e){ return confirm(q); } };
+  if(Array.isArray(i.photos)&&i.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })){
+    attente('Récupération des photos…');
+    await photosResoudre(i.photos);
+    const reste=i.photos.filter(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; }).length;
+    if(reste&&!demander(reste+' photo(s) n\'ont pas pu être récupérées — elles manqueront dans le PDF.\n\nContinuer quand même ?')){ try{ w.close(); }catch(e){} return; }
+  }
+  /* v744 : la page « Plan d'appâtage » du rapport imprime la photo de chaque plan à postes — elle
+     peut vivre sur le serveur. Même règle que les photos : le PDF attend, et il demande s'il en manque. */
+  if(i.clientId&&(((db.plansSite||{})[i.clientId])||[]).some(pl=>pl&&(pl.postes||[]).length&&photoPid(pl.img)&&!planImgSrc(pl))){
+    attente('Récupération des plans…');
+    await planImgsResoudre(i.clientId);
+    const reste=(((db.plansSite||{})[i.clientId])||[]).filter(pl=>pl&&(pl.postes||[]).length&&photoPid(pl.img)&&!planImgSrc(pl)).length;
+    if(reste&&!demander(reste+' photo(s) de plan n\'ont pas pu être récupérées — le plan sera imprimé sans son fond.\n\nContinuer quand même ?')){ try{ w.close(); }catch(e){} return; }
+  } const c=db.clients.find(x=>x.id===i.clientId)||{};
+  /* v740 : nom, couleur, logo et coordonnées de la société de CETTE intervention (docEntete) */
+  const H=docEntete(i.rapportModele), soc=H.nom, AC=H.couleur;
+  // les produits rattachés à un type de traitement apparaissent dans leur section ; ici, les lignes « libres »
+  const prod=rapportProduitsLibres(i).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td><td>${esc(prodLineAmm(l)||'—')}</td><td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(l.unite||'')}</td></tr>`;}).join('');
+  const equip=(i.equipements||[]).map(e=>`<tr><td>${esc(e.nom)}</td><td>${esc(e.reference)||''}</td></tr>`).join('');
+  const champs=rapportChampsPerso(i).map(f=>{ const v=i.champs[f.id];
+    if(f.type==='tableau'&&Array.isArray(v)) return `<div class="box"><b>${esc(f.label)}</b><table style="margin-top:6px"><thead><tr>${(f.colonnes||[]).map(co=>`<th>${esc(co)}</th>`).join('')}</tr></thead><tbody>${v.map(r=>`<tr>${(f.colonnes||[]).map((co,ci)=>`<td>${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    return `<p style="margin:4px 0"><b>${esc(f.label)} :</b> ${esc(v)}</p>`; }).join('');
+  const photos=(i.photos||[]).map((p,ix)=>{ p=photoSrc(p); const tg=(i.photoTags||[])[ix];
+    return `<span style="display:inline-block;text-align:center;margin:4px">${tg?`<span style="display:block;font-size:10px;font-weight:bold;color:${tg==='avant'?'#C26A10':'#1E7A4E'};text-transform:uppercase">${tg==='avant'?'Avant':'Après'}</span>`:''}<img src="${p}" style="width:150px;height:150px;object-fit:cover;border-radius:6px"></span>`; }).join('');
+  let planApp=''; try{ planApp=paPdfHtml(i); }catch(e){ planApp=''; }
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport ${esc(i.titre)}</title>
+    <style>*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}body{margin:0;padding:40px;color:#1A1F28}
+    .hd{display:flex;justify-content:space-between;border-bottom:3px solid ${AC};padding-bottom:14px;margin-bottom:20px}
+    .logo{font-size:22px;font-weight:800;color:${AC};letter-spacing:1px}.logo img{display:block;max-height:52px;max-width:180px;margin-bottom:6px}.coord{font-size:11px;color:#666;font-weight:400;letter-spacing:0;margin-top:2px}.logo small{display:block;font-size:11px;color:#666;font-weight:400}
+    h1{font-size:18px;margin:0}.muted{color:#666;font-size:13px}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:12px;margin:10px 0;font-size:13px}
+    table{width:100%;border-collapse:collapse}th{background:${AC};color:${encreSur(AC)};padding:7px;text-align:left;font-size:12px}td{padding:7px;border-bottom:1px solid #E3E8F0;font-size:12px}
+    .ft{margin-top:30px;font-size:11px;color:#999;text-align:center}@media print{body{padding:18px}}</style></head>
+    <body><div class="hd"><div class="logo">${H.logo?`<img src="${esc(H.logo)}" alt="">`:''}${esc(soc)}<small>Rapport d'intervention</small>${docCoordLignes(H).map(x=>`<div class="coord">${esc(x)}</div>`).join('')}</div>
+      <div style="text-align:right"><h1>RAPPORT D'INTERVENTION</h1><div class="muted">${new Date((i.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')} · ${i.heure||''}</div></div></div>
+      <div class="box"><b>${esc(i.titre)}</b><br><span class="muted">Client : ${esc(c.nom||'—')} · Technicien(s) : ${esc(techNames(i))} · Durée : ${i.duree||0} min<br>${esc(i.adresse||'')}</span></div>
+      ${i.desc?`<p><b>Description :</b> ${esc(i.desc)}</p>`:''}
+      ${i.compteRendu?`<div class="box"><b>Compte-rendu</b><br>${esc(i.compteRendu).replace(/\n/g,'<br>')}</div>`:''}
+      ${(()=>{ const rows=rapportConstatLignes(i);
         return rows.length?`<div class="box"><b>Constat & prestation</b>${rows.map(r=>`<p style="margin:4px 0"><b>${esc(r[0])} :</b> ${esc(r[1])}</p>`).join('')}</div>`:''; })()}
       ${(()=>{ let t3=''; try{ t3=t3dPdfHtml(i); }catch(e){ t3=''; } return t3?`<h3 style="font-size:14px;margin-top:18px">Traitements réalisés — détail par type</h3>${t3}`:''; })()}
       ${(i.constat&&i.constat.recommandations)?`<div class="box" style="border-color:${AC}"><b>Recommandations</b><br>${esc(i.constat.recommandations).replace(/\n/g,'<br>')}</div>`:''}
@@ -23334,7 +23911,7 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
 /* Texte du rapport généré automatiquement (pour l'e-mail) */
 function genRapportTexte(i){ const c=db.clients.find(x=>x.id===i.clientId)||{}; const co=i.constat||{};
   const pk=Array.isArray(i.prestation)?i.prestation:Object.keys(i.prestation||{}); const presta=PRESTATION_ITEMS.filter(([k])=>pk.includes(k)).map(([k,l])=>l);
-  const prod=(i.produitsUtilises||[]).filter(l=>!l.categorie||!(((i.quest||{})[l.categorie]||{}).actif)).map(l=>'- '+prodLineName(l)+(prodLineAmm(l)?' — AMM '+prodLineAmm(l):'')+' × '+(l.qte!=null?l.qte:1)+' '+prodLineUnit(l)).join('\n');
+  const prod=rapportProduitsLibres(i).map(l=>'- '+prodLineName(l)+(prodLineAmm(l)?' — AMM '+prodLineAmm(l):'')+' × '+(l.qte!=null?l.qte:1)+' '+prodLineUnit(l)).join('\n');
   const L=[];
   L.push('RAPPORT D\'INTERVENTION');
   L.push('Date : '+fmtLong(i.date)+' à '+(i.heure||''));
@@ -23382,8 +23959,10 @@ function envoiRapportClient(id){ const i=db.interventions.find(x=>x.id===id); if
         <button type="button" class="btn" onclick="rapportVia('${id}','sms')">Envoyer par SMS</button>
         <button type="button" class="btn ghost" onclick="printRapport('${id}')">Imprimer / PDF</button>
       </div>
-      <p style="color:var(--t3);font-size:12px;margin-top:10px">Par email, le PDF (avec photos) s'ouvre pour que tu puisses le joindre.</p>
+      <p style="color:var(--t3);font-size:12px;margin-top:10px">Par e-mail, le rapport part en PDF joint — photos, plan d’appâtage et signatures compris.</p>
     </div>`); }
+/* l'ordre du FICHIER, pas celui des appels : déclaré avant la fonction qui s'en sert */
+const _rapEnvoi={};
 async function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
   if(canal==='sms'){ const raw=$('rap-tel')?$('rap-tel').value.trim():(c.tel||''); const tel=raw.replace(/[^\d+]/g,''); if(!tel){ toast('Entrez un numéro de téléphone'); return; }
     if($('rap-save')&&$('rap-save').checked&&c.id&&canCat('crm','modifier')){ c.tel=raw; toast('Numéro enregistré sur la fiche client'); }   // v738 : la fiche client, c'est « Clients → Modifier »
@@ -23392,12 +23971,35 @@ async function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id)
     closeModal(); setTimeout(()=>{ location.href='sms:'+tel+'?&body='+encodeURIComponent(msg); },300); toast('SMS préparé'); return; }
   if(!c.email){ toast('Ajoute l\'email du client dans sa fiche'); return; }
   const sujet='Rapport d\'intervention — '+fmtShort(i.date)+(i.type?' ('+i.type+')':'');
-  const corps=genRapportTexte(i); i.rapportEnvoye={ts:Date.now(),via:'email',a:c.email}; intHisto(i,'Rapport envoyé par e-mail à '+c.email); save();
-  /* ⛔ ON ATTEND LE PDF. Depuis le point 5, `printRapport` peut aller chercher des photos
-     sur le VPS : sans `await`, le courriel partait pendant le téléchargement, donc avant
-     que le client ait son rapport sous les yeux. Le délai de 700 ms reste, il sert à
-     laisser la fenêtre d'impression s'ouvrir. */
-  closeModal(); await printRapport(id); setTimeout(()=>{ srvMail(c.email,sujet,corps,'✉️ Rapport envoyé à '+c.email,'rapport',null,intSocMailOpts(i)); },700); }
+  const corps=genRapportTexte(i);
+  /* ⛔ v744 — LE RAPPORT PART EN PDF JOINT. Jusqu'ici ce bouton ouvrait l'impression et envoyait le
+     TEXTE : le serveur ne peut pas joindre ce que l'impression fabrique, et le client ne recevait
+     jamais le document. `rapportDocument` fabrique le vrai PDF (photos, plan, signatures).
+     ⛔ ET LA TRACE S'ÉCRIT APRÈS LA RÉUSSITE. Elle s'écrivait AVANT l'envoi : un courriel refusé
+     laissait « Rapport envoyé à … » dans l'historique de l'intervention — la règle du plan
+     d'implantation (v740), qui n'avait pas été appliquée ici. */
+  if(_rapEnvoi[id]) return; _rapEnvoi[id]=1;   // deux touches rapides = un seul courriel
+  try{
+    closeModal(); toast('📄 Préparation du rapport PDF…',3000);
+    const d=await rapportDocument(id);
+    const vivant=()=>db.interventions.find(x=>x.id===id)||i;   // la synchro a pu remplacer la base pendant la préparation
+    if(d.err){
+      /* Le PDF ne peut pas être fabriqué (image illisible, trop lourd) : on retombe sur ce que ce
+         bouton faisait avant — l'impression et le texte — et on le DIT. Rien de moins qu'avant. */
+      toast(d.err+' Le rapport s’ouvre pour impression, et le courriel part en texte.',9000);
+      await printRapport(id);
+      const ok=await srvMail(c.email,sujet,corps,'✉️ Rapport envoyé à '+c.email+' (texte seul)','rapport',null,intSocMailOpts(i));
+      if(ok){ const v=vivant(); v.rapportEnvoye={ts:Date.now(),via:'email',a:c.email,pdf:false}; intHisto(v,'Rapport envoyé par e-mail à '+c.email+' (texte, sans PDF)'); save(); }
+      return; }
+    const m=d.manque||{};
+    if((m.photos||m.plans)&&!confirm((m.photos?m.photos+' photo(s)':'')+(m.photos&&m.plans?' et ':'')+(m.plans?m.plans+' photo(s) de plan':'')
+      +' n\'ont pas pu être récupérées (réseau) — le PDF le dira à leur place.\n\nEnvoyer quand même ?')) return;
+    const opts=Object.assign({},intSocMailOpts(i)||{},{atts:[{filename:d.nom,content:d.b64}],sansMailto:true});
+    const ok=await srvMail(c.email,sujet,'Le rapport complet (photos, plan, signatures) est joint à ce message, en PDF.\n\n'+corps,
+      '✉️ Rapport envoyé à '+c.email+' — PDF joint','rapport',null,opts);
+    if(!ok) return;   // srvMail a dit pourquoi ; rien n'est parti, donc rien ne se trace
+    const v=vivant(); v.rapportEnvoye={ts:Date.now(),via:'email',a:c.email,pdf:true}; intHisto(v,'Rapport envoyé par e-mail à '+c.email+' (PDF joint)'); save();
+  } finally { delete _rapEnvoi[id]; } }
 
 /* ═══════════════ PRODUITS ═══════════════ */
 let prdCat='all';
@@ -24945,8 +25547,7 @@ function boxLigneHtml(b,nv){
         if(!t.u&&!t.c) return '';
         const txt=[t.u?t.u.toLocaleString('fr-FR')+' u':'',t.c?t.c.toLocaleString('fr-FR')+' ctn':''].filter(Boolean).join(' · ');
         return `<span class="st st-green" style="font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0" title="Stock total de cette box">${txt}</span>`; })()}
-      <span style="color:var(--t3);font-size:22px;font-weight:300">›</span>
-    </div>`; }
+    </div>`; }   /* ⛔ pas de « › » écrit : la ligne `.pl-row[onclick]` porte déjà celui de la feuille — deux marques pour une chose */
 function renderBoxesList(){
   const el=$('boxes-list'); if(!el) return;
   const q=norm(boxListSearch);
@@ -26952,6 +27553,12 @@ let boxPhoto='';
 function renderBoxPhoto(){ const el=$('box-photo'); if(!el) return; el.innerHTML= boxPhoto?`<div style="position:relative;display:inline-block"><img src="${boxPhoto}" style="max-width:180px;border-radius:10px;border:1px solid var(--brd)"><button type="button" class="btn danger sm" style="position:absolute;top:4px;right:4px" onclick="boxPhoto='';renderBoxPhoto()">✕</button></div>`:'<span style="color:var(--t3);font-size:13px">Aucune photo</span>'; }
 async function boxAddPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f,1280,0.7); if(d){ boxPhoto=d; renderBoxPhoto(); } e.target.value=''; }
 function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const b=id?db.boxes.find(x=>x.id===id):{};
+  /* ⛔ LE STOCKAGE NE MONTRE QUE CE QUI A UN SENS POUR LUI — mais il GARDE tous les champs. `saveBox`
+     relit le formulaire ENTIER (`new FormData`) : un champ retiré s'écrirait vide, et la catégorie ou le
+     groupe d'hier disparaîtraient au premier enregistrement. Les rangées sans objet pour le stock de
+     l'entreprise (numéro, classement, visites de passage) sont donc MASQUÉES (`hidden`), leurs champs
+     restent et repartent tels quels. Relevé en v742 : « inoffensif, mais bavard ». */
+  const S=estStockage(b), cache=S?' hidden':'';
   boxCodes = id&&b.codesAcces ? JSON.parse(JSON.stringify(b.codesAcces)) : [{type:'Code entrée',valeur:''}];
   boxTechSel=new Set(b.techIds||[]); boxUserSel=new Set(b.userIds||[]);
   boxVisibleTous = !!b.visibleTous;
@@ -26974,19 +27581,19 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
       </div>
       <div class="form-sec">Identification</div>
       <div class="fgroup">
-        <div class="frow"><span class="frow-lbl mono" style="color:var(--acc-txt)">N°</span><input name="numero" required value="${esc(b.numero||b.ref)}" placeholder="Numéro (ex : BOX-0001)" class="mono" style="text-align:right;color:var(--acc-txt);text-transform:uppercase"></div>
+        <div class="frow"${cache}><span class="frow-lbl mono" style="color:var(--acc-txt)">N°</span><input name="numero" required value="${esc(b.numero||b.ref)}" placeholder="Numéro (ex : BOX-0001)" class="mono" style="text-align:right;color:var(--acc-txt);text-transform:uppercase"></div>
         <div class="frow"><input name="nom" value="${esc(b.nom)}" placeholder="Nom ou description"></div>
         <div class="frow"><input name="adresse" value="${esc(b.adresse)}" placeholder="Adresse" oninput="boxLat=null;boxLng=null"></div>
         <div class="frow"><input name="ville" value="${esc(b.ville)}" placeholder="Ville"></div>
         <div class="frow"><span class="frow-lbl">📞 Tél. sur place</span><input name="tel" inputmode="tel" value="${esc(b.tel||'')}" placeholder="Contact pour les livraisons" style="text-align:right"></div>
       </div>
       <div class="detail-desc" style="margin:-2px 2px 10px">Le téléphone sur place est repris automatiquement dans le bloc <b>Livraison</b> des bons de commande adressés à cette box.</div>
-      <div class="form-sec">Classification</div>
+      <div class="form-sec">${S?'Code postal et responsable':'Classification'}</div>
       <div class="fgroup">
         <div class="frow"><input name="codePostal" value="${esc(b.codePostal)}" inputmode="numeric" placeholder="Code postal">${b.codePostal?'<span style="color:var(--acc-txt)">✓</span>':''}</div>
-        <div class="frow"><span class="frow-lbl">Catégorie</span><input name="categorie" value="${esc(b.categorie||'')}" placeholder="ex : TP14 — Rodenticide"></div>
-        <div class="frow"><span class="frow-lbl">Groupe</span><input name="groupe" value="${esc(b.groupe&&b.groupe!=='Sans groupe'?b.groupe:'')}" list="box-groupes" placeholder="ex : Agence Strasbourg"><datalist id="box-groupes">${[...new Set(db.boxes.map(x=>x.groupe).filter(g=>g&&g!=='Sans groupe'))].map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
-        <div class="frow"><span class="frow-lbl">Secteur</span><input name="secteur" value="${esc(b.secteur||'')}" placeholder="ex : 67 Nord"></div>
+        <div class="frow"${cache}><span class="frow-lbl">Catégorie</span><input name="categorie" value="${esc(b.categorie||'')}" placeholder="ex : TP14 — Rodenticide"></div>
+        <div class="frow"${cache}><span class="frow-lbl">Groupe</span><input name="groupe" value="${esc(b.groupe&&b.groupe!=='Sans groupe'?b.groupe:'')}" list="box-groupes" placeholder="ex : Agence Strasbourg"><datalist id="box-groupes">${[...new Set(db.boxes.map(x=>x.groupe).filter(g=>g&&g!=='Sans groupe'))].map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
+        <div class="frow"${cache}><span class="frow-lbl">Secteur</span><input name="secteur" value="${esc(b.secteur||'')}" placeholder="ex : 67 Nord"></div>
         <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Responsable</span><select name="respUserId" style="width:100%"><option value="">— Aucun —</option>${(db.users||[]).filter(u=>u.actif!==false&&u.role!=='admin'&&(stkLienOk(b,u)||b.respUserId===u.id)).map(u=>`<option value="${u.id}" ${b.respUserId===u.id?'selected':''}>${esc(fullName(u))} — ${esc(roleLbl(u.role)||u.role||'')}${stkLienOk(b,u)?'':' — sans la permission'}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">${estStockage(b)?`Parmi ceux qui ont la permission « Se servir dans le stockage » : il reçoit ses arrivages et ses alertes.`:`N'importe quel compte (technicien, chef d'équipe, DR…) : le responsable voit toujours cette box et reçoit ses alertes.`}</div></div>
       </div>
       <div class="form-sec">Accès</div>
@@ -27015,15 +27622,15 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
       <div class="fgroup" id="box-form-prods"></div>
       <button type="button" class="btn ghost sm" style="margin:-8px 0 8px" onclick="toggleBoxFormCat()">＋ Ajouter des produits</button>
       <div id="box-form-cat" style="margin-bottom:14px"></div>
-      <div class="form-sec">Photo de la box <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour la reconnaître sur place</span></div>
+      <div class="form-sec">Photo ${S?'du stockage':'de la box'} <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour la reconnaître sur place</span></div>
       <div class="fgroup"><div id="box-photo" style="margin:4px 0"></div>
         <input type="file" accept="image/*" capture="environment" id="box-photo-file" style="display:none" onchange="boxAddPhoto(event)">
         <button type="button" class="btn ghost" onclick="document.getElementById('box-photo-file').click()">Ajouter / changer la photo</button></div>
-      <div class="form-sec">Suivi & détails</div>
+      <div class="form-sec">${S?'Détails':'Suivi & détails'}</div>
       <div class="fgroup">
-        <div class="frow"><span class="frow-lbl">Date d'installation</span><div class="frow-val"><input type="date" name="dateInstallation" value="${b.dateInstallation?String(b.dateInstallation).slice(0,10):todayISO()}" style="width:auto"></div></div>
-        <div class="frow"><span class="frow-lbl">Fréquence de passage</span><div class="frow-val"><select name="frequence">${['Aucune','Mensuel','Bimestriel','Trimestriel','Semestriel','Annuel'].map(o=>`<option ${(b.frequence||'Aucune')===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
-        <div class="frow"><span class="frow-lbl">Prochaine visite</span><div class="frow-val"><input type="date" name="prochaineVisite" value="${b.prochaineVisite?String(b.prochaineVisite).slice(0,10):''}" style="width:auto"></div></div>
+        <div class="frow"${cache}><span class="frow-lbl">Date d'installation</span><div class="frow-val"><input type="date" name="dateInstallation" value="${b.dateInstallation?String(b.dateInstallation).slice(0,10):todayISO()}" style="width:auto"></div></div>
+        <div class="frow"${cache}><span class="frow-lbl">Fréquence de passage</span><div class="frow-val"><select name="frequence">${['Aucune','Mensuel','Bimestriel','Trimestriel','Semestriel','Annuel'].map(o=>`<option ${(b.frequence||'Aucune')===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
+        <div class="frow"${cache}><span class="frow-lbl">Prochaine visite</span><div class="frow-val"><input type="date" name="prochaineVisite" value="${b.prochaineVisite?String(b.prochaineVisite).slice(0,10):''}" style="width:auto"></div></div>
         <div class="frow"><span class="frow-lbl">${estStockage(b)?'Stockage actif':'Box active'}</span><div class="frow-val"><input type="checkbox" name="actif" ${b.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div>
         <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Notes</span><textarea name="notes" placeholder="Emplacement précis, consignes d'accès…">${esc(b.notes||'')}</textarea></div>
       </div>
@@ -28204,8 +28811,8 @@ function mailChoisirBoite(titre,cb){
   _mailPickList=opts; _mailPick=(i)=>{ cb(_mailPickList[i]||{kind:'plat'}); };
   openModal(`<div class="modal-head"><h3>📤 ${esc(titre||'Envoyer avec quelle adresse ?')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     ${opts.map((o,i)=>o.kind==='mb'?
-      `<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(o.email)}</div><div class="pl-meta">boîte connectée — réponses dans l'app</div></div><span style="color:var(--t3)">›</span></div>`
-      :`<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">🏢</span><div class="pl-info"><div class="pl-title">Plateforme (au nom de ${esc(mailBrandName())})</div></div><span style="color:var(--t3)">›</span></div>`).join('')}`);
+      `<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">📧</span><div class="pl-info"><div class="pl-title">${esc(o.email)}</div><div class="pl-meta">boîte connectée — réponses dans l'app</div></div></div>`
+      :`<div class="pl-row" style="cursor:pointer" onclick="closeModal();_mailPick(${i})"><span style="font-size:18px">🏢</span><div class="pl-info"><div class="pl-title">Plateforme (au nom de ${esc(mailBrandName())})</div></div></div>`).join('')}`);
 }
 let _mailAtt=null;
 function mailCompose(to,subject){ _mailAtt=null;
@@ -28908,9 +29515,27 @@ function printBon(id){ const b=db.bons.find(x=>x.id===id); if(!b)return; const f
 }
 /* ── PDF du bon de commande, généré dans l'app (aucune dépendance, accents gérés) ──
    Sert à l'aperçu avant envoi ET de pièce jointe à l'e-mail fournisseur. */
-function _pdfTxt(s){ s=String(s==null?'':s); let out='';
+/* ⛔ CE QUE WINANSI N'ÉCRIT PAS SE DIT AUTREMENT — JAMAIS PAR UN « ? » DANS UN DOCUMENT QU'UN CLIENT
+   REÇOIT (relecture de la v744 : depuis que le rapport part en PDF joint, un « → », un « • » ou un
+   « ⏰ » tapés par un technicien y devenaient « ? »). NFC d'abord — un « é » décomposé (e + accent
+   combinant) faisait « e? » —, puis flèches, puces, comparateurs, ligatures, cases cochées ; les
+   émojis et les pictogrammes s'effacent. Appliquée par `_pdfTxt` ET par `_pdfLarg` : ce qu'on mesure
+   est ce qu'on écrit, sinon une flèche devenue « -> » déborderait de sa colonne. */
+function _pdfTranslit(s){
+  const T={'\u2010':'-','\u2011':'-','\u2012':'-','\u2212':'-','\u2043':'-','\u2023':'\u2022','\u2032':"'",'\u2033':'"',
+    '\u2190':'<-','\u2192':'->','\u2194':'<->','\u21D0':'<=','\u21D2':'=>','\u21D4':'<=>','\u2191':'^','\u2193':'v',
+    '\u27F5':'<-','\u27F6':'->','\u27F7':'<->','\u2794':'->','\u279C':'->','\u27A1':'->','\u2B05':'<-','\u2B06':'^','\u2B07':'v',
+    '\u2264':'<=','\u2265':'>=','\u2260':'!=','\u2248':'~','\u2713':'OK','\u2714':'OK','\u2611':'OK','\u2717':'X','\u2718':'X','\u2612':'X','\u2610':'[ ]',
+    '\u03BC':'\u00B5','\uFB01':'fi','\uFB02':'fl','\u2002':' ','\u2003':' ','\u2007':' '};
+  return String(s==null?'':s).normalize('NFC').replace(/[\u2010-\u2012\u2023\u2032\u2033\u2043\u2190-\u21FF\u2212\u2248\u2260\u2264\u2265\u2300-\u23FF\u25A0-\u27BF\u27F5-\u27FF\u2B00-\u2BFF\u03BC\uFB01\uFB02\u2002\u2003\u2007\u200B\u200D\u20E3\uFE0E\uFE0F\u{1F000}-\u{1FAFF}]/gu,
+    c=>(c in T)?T[c]:(c>='\u25A0'&&c<='\u25FF'?'\u2022':'')); }
+function _pdfTxt(s){ s=_pdfTranslit(s); let out='';
   for(const ch of s){ let c=ch.codePointAt(0);
-    if(c===0x20AC)c=128; else if(c===0x2019||c===0x2018)c=146; else if(c===0x201C)c=147; else if(c===0x201D)c=148; else if(c===0x2013)c=150; else if(c===0x2014)c=151; else if(c===0x0153)c=156; else if(c===0x0152)c=140; else if(c===0x2026)c=133; else if(c===0x202F||c===0x2009)c=32; else if(c>255)c=63;
+    /* Les caractères de la page de code WinAnsi au-delà de 255 : chacun a sa place (128-159). */
+    if(c===0x20AC)c=128; else if(c===0x2019)c=146; else if(c===0x2018)c=145; else if(c===0x201C)c=147; else if(c===0x201D)c=148; else if(c===0x2013)c=150; else if(c===0x2014)c=151; else if(c===0x0153)c=156; else if(c===0x0152)c=140; else if(c===0x2026)c=133; else if(c===0x202F||c===0x2009)c=32;
+    else if(c===0x2022)c=149; else if(c===0x2122)c=153; else if(c===0x2030)c=137; else if(c===0x201A)c=130; else if(c===0x201E)c=132; else if(c===0x2020)c=134; else if(c===0x2021)c=135;
+    else if(c===0x2039)c=139; else if(c===0x203A)c=155; else if(c===0x0160)c=138; else if(c===0x0161)c=154; else if(c===0x017D)c=142; else if(c===0x017E)c=158; else if(c===0x0178)c=159;
+    else if(c===0x0192)c=131; else if(c===0x02C6)c=136; else if(c===0x02DC)c=152; else if(c>255)c=63;
     if(c===40||c===41||c===92) out+='\\'+String.fromCharCode(c); else out+=String.fromCharCode(c); }
   return out; }
 function bonPdfStr(b){
@@ -32485,7 +33110,7 @@ function openScannerStock(){ const L=visibleBoxes((db.boxes||[]).filter(b=>b&&b.
   if(L.length===1){ etiqVersBox(L[0].id); return; }
   openModal(`<div class="modal-head"><h3>Scanner dans quelle box ?</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div style="display:flex;flex-direction:column;gap:8px">${L.map(b=>{ const n=Object.keys(b.stock||{}).filter(pid=>produit(pid).id).length;
-      return `<div class="pl-row" style="margin:0;cursor:pointer" onclick="etiqVersBox('${b.id}')"><span style="font-size:20px">${estStockage(b)?'🏬':'🧱'}</span><div class="pl-info"><div class="pl-title">${esc(b.nom||b.numero||'Box')}</div><div class="pl-meta">${n} produit${n>1?'s':''}</div></div><span style="color:var(--t3)">›</span></div>`; }).join('')}</div>`,'carte'); }
+      return `<div class="pl-row" style="margin:0;cursor:pointer" onclick="etiqVersBox('${b.id}')"><span style="font-size:20px">${estStockage(b)?'🏬':'🧱'}</span><div class="pl-info"><div class="pl-title">${esc(b.nom||b.numero||'Box')}</div><div class="pl-meta">${n} produit${n>1?'s':''}</div></div></div>`; }).join('')}</div>`,'carte'); }
 function etiqVersBox(id){ closeModal(); openBox(id); setTimeout(()=>{ if(boxView===id) openBoxScanner(id); },450); }
 async function etiqCamera(){
   try{ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('camera');
