@@ -65,6 +65,14 @@ function get(url) {
        ⚠️ Les deux dernières ne crient qu'UNE FOIS PAR JOUR : ce sont des états qui durent des
        semaines, et une alarme horaire sur un état stable devient du bruit, puis une alarme
        qu'on ignore. La leçon est déjà écrite plus bas pour la sauvegarde. */
+    /* ⛔⛔ LES DEUX REGISTRES DONT LA PERTE NE SE VOIT PAS (24 septembre 2026). Un `espaces.json`
+       illisible sort TOUTES les entreprises de l'annuaire (plus de verdict de clé, plus de jeton) ;
+       une liste de fermetures illisible ROUVRE toutes les entreprises fermées. Le serveur ne
+       réécrit plus par-dessus (le fichier abîmé est peut-être récupérable) — encore faut-il que
+       quelqu'un le sache. `=== false` : un serveur d'avant, sans le champ, ne crie pas. */
+    if (j.registres && (j.registres.espaces === false || j.registres.fermes === false)) {
+      problems.push('⛔⛔ UN REGISTRE DU SERVEUR EST ILLISIBLE (' + [j.registres.espaces === false ? 'espaces.json — l’annuaire des entreprises' : '', j.registres.fermes === false ? 'entreprises-fermees.json — les fermetures ne s’appliquent plus' : ''].filter(Boolean).join(' ; ') + '). Le fichier n’est plus réécrit : le réparer (ou le restaurer depuis la sauvegarde) PUIS redémarrer. Sur le VPS : journalctl -u teamop-api | grep ILLISIBLE');
+    }
     if (j.conservation && j.conservation.erreur) {
       problems.push('⛔⛔ L’HORLOGE DE CONSERVATION NE TOURNE PLUS (' + j.conservation.erreur + ') — plus aucune date « ne paie plus depuis » n’est enregistrée, et ces dates NE SE RATTRAPENT PAS : chaque heure de panne est une information perdue pour toujours. Sur le VPS : journalctl -u teamop-api | grep conservation');
     } else if (j.conservation && j.conservation.actif) {

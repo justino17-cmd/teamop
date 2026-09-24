@@ -49,8 +49,8 @@ console.log('\n══ 0. ⛔ UNE SEULE QUESTION, UNE SEULE FONCTION ══\n');
   const SRV = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   vrai('la fonction `espaceFerme` existe', /function espaceFerme\(t\) \{/.test(SRV));
   vrai('⛔ elle exclut les suspendues', /return entFermes\.espaces\.includes\(k\) && !espaceEstSuspendu\(k\);/.test(SRV));
-  vrai('⛔ et une suspendue sortie de l\'annuaire n\'en est plus une',
-    /\(entFermes\.suspendus \|\| \[\]\)\.includes\(k\) && !!espaceParT\(k\)/.test(SRV));
+  vrai('⛔ et une suspendue sortie de l\'annuaire n\'en est plus une (sauf annuaire ILLISIBLE, §8)',
+    /\(entFermes\.suspendus \|\| \[\]\)\.includes\(k\) && \(espacesIllisible \|\| !!espaceParT\(k\)\)/.test(SRV));
 
   /* ⛔⛔ AUCUNE PORTE NE RELIT LA LISTE EN BLOC. On recense TOUTES les lectures de
      `entFermes.espaces.includes(` et on n'en admet que quatre formes, nommées :
@@ -272,6 +272,60 @@ process.on('exit', arreter);
       vrai('⛔ O est toujours dans `suspendus` : rien n\'a été réécrit à sa place', (f.suspendus || []).includes(O.t));
       vrai('   sa date aussi', !!(f.suspendusLe || {})[O.t]);
       vrai('   aucun ReferenceError au journal', !/ReferenceError|TypeError/.test(journal));
+    }
+    console.log('\n══ 8. ⛔⛔ UN REGISTRE ILLISIBLE N\'EST PAS UN REGISTRE VIDE ══\n');
+    {
+      /* Relevé par `gardien` : un `espaces.json` abîmé donnait `{}` en silence — toutes les
+         suspendues condamnées (la règle « hors annuaire »), et la première écriture remplaçait le
+         fichier abîmé, peut-être récupérable, par un annuaire d'une entrée. Même chose pour la
+         liste des fermetures : illisible, elle ROUVRAIT toutes les entreprises fermées, et la
+         première suspension l'écrasait. On relance le vrai serveur sur des fichiers ABÎMÉS. */
+      arreter(); await dormir(300);
+      const ABIME_E = '{"suspenduesa":{"slug":"suspenduesa","t":"' + S.t + '"'   // coupé net : JSON invalide
+      fs.writeFileSync(path.join(data, 'espaces.json'), ABIME_E);
+      const port2 = await new Promise(r => { const s = require('net').createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
+      let journal2 = '';
+      enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
+        env: Object.assign({}, process.env, { TEAMOP_CONFIG: cfgPath, TEAMOP_DATA: data, PORT: String(port2) }), stdio: ['ignore', 'pipe', 'pipe'] });
+      enfant.stdout.on('data', d => { journal2 += d; }); enfant.stderr.on('data', d => { journal2 += d; });
+      const B2 = 'http://127.0.0.1:' + port2;
+      let vivant2 = false;
+      for (let i = 0; i < 150 && !vivant2; i++) { await dormir(100); try { vivant2 = (await fetch(B2 + '/health')).ok; } catch (e) {} }
+      vrai('   le serveur démarre quand même (les autres entreprises doivent vivre)', vivant2);
+      const h = await (await fetch(B2 + '/health')).json();
+      v('⛔ /health le DIT : l\'annuaire est illisible', h.registres, { espaces: false, fermes: true });
+      vrai('   et le journal le crie', /espaces\.json ILLISIBLE/.test(journal2));
+      const e2 = await (await fetch(B2 + '/api/espaces/etat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: S.t }) })).json();
+      v('⛔⛔ la suspendue n\'est PAS condamnée par un annuaire qu\'on n\'a pas pu lire', [e2.ferme, e2.suspendu], [undefined, true]);
+      const tour2 = await (await fetch(B2 + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nom: 'Patron', pass: MDP }) })).json();
+      const cree = await fetch(B2 + '/api/monitor/espaces', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour2.token },
+        body: JSON.stringify({ nom: 'Nouvelle Entreprise', code: b64({ t: 'ent-neuve-qk', k: 'CLE-NEUVE' }), origine: 'tour' }) });
+      v('⛔⛔ une création d\'espace est REFUSÉE (et dit pourquoi)', cree.status, 500);
+      v('⛔⛔ et le fichier abîmé n\'a PAS été remplacé (il est peut-être récupérable)', fs.readFileSync(path.join(data, 'espaces.json'), 'utf8'), ABIME_E);
+      arreter(); await dormir(300);
+
+      /* La liste des fermetures abîmée, l'annuaire réparé. */
+      fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
+        [S.slug]: { slug: S.slug, nom: S.nom, t: S.t, code: b64({ t: S.t, k: S.k }), ts: 1 },
+        [A.slug]: { slug: A.slug, nom: A.nom, t: A.t, code: b64({ t: A.t, k: A.k }), ts: 3 } }));
+      const ABIME_F = '{"emails":[],"espaces":["' + F.t + '"';
+      fs.writeFileSync(path.join(data, 'entreprises-fermees.json'), ABIME_F);
+      const port3 = await new Promise(r => { const s = require('net').createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
+      let journal3 = '';
+      enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
+        env: Object.assign({}, process.env, { TEAMOP_CONFIG: cfgPath, TEAMOP_DATA: data, PORT: String(port3) }), stdio: ['ignore', 'pipe', 'pipe'] });
+      enfant.stdout.on('data', d => { journal3 += d; }); enfant.stderr.on('data', d => { journal3 += d; });
+      const B3 = 'http://127.0.0.1:' + port3;
+      let vivant3 = false;
+      for (let i = 0; i < 150 && !vivant3; i++) { await dormir(100); try { vivant3 = (await fetch(B3 + '/health')).ok; } catch (e) {} }
+      const h3 = await (await fetch(B3 + '/health')).json();
+      v('⛔ /health le DIT : la liste des fermetures est illisible', h3.registres, { espaces: true, fermes: false });
+      vrai('   et le journal le crie', /entreprises-fermees\.json ILLISIBLE/.test(journal3));
+      const tour3 = await (await fetch(B3 + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nom: 'Patron', pass: MDP }) })).json();
+      const su = await fetch(B3 + '/api/monitor/espaces/suspendre', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour3.token },
+        body: JSON.stringify({ slug: A.slug }) });
+      v('⛔⛔ une suspension est REFUSÉE (rien n\'est écrit)', su.status, 500);
+      v('⛔⛔ et la liste abîmée n\'a PAS été écrasée par la seule nouvelle entrée', fs.readFileSync(path.join(data, 'entreprises-fermees.json'), 'utf8'), ABIME_F);
     }
   } catch (e) {
     ko++; console.log('  ✗ le banc est tombé : ' + (e && e.stack || e));

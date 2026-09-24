@@ -422,6 +422,10 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      prospects — étaient un tableau de bord commercial publié à qui passe. Voir `santePublique`
      dans `conservation.js`. Combien et qui : `/api/monitor/conservation`, gardée. */
   conservation: conservation ? Object.assign({ actif: true }, conservation.santePublique()) : etatConservation,
+  /* Les deux registres dont la perte ne se voit pas : l'annuaire des entreprises et la liste des
+     fermetures. `false` = le fichier existe mais n'a pas pu être lu — il n'est plus réécrit, et la
+     surveillance crie. Deux booléens : rien sur personne. */
+  registres: { espaces: !espacesIllisible, fermes: !fermesIllisible },
   routesDoublons: routesDoublons.length,
   /* Étape 0 du socle : où en est le stockage des pièces jointes.
      ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
@@ -1868,7 +1872,19 @@ app.post('/api/beta/etat', (req, res) => {
    le serveur lui rend le code d'espace, puis identifiant + mot de passe. */
 const ESPACES_PATH = path.join(DATA_DIR, 'espaces.json');
 let espacesReg = {};
-try { espacesReg = JSON.parse(fs.readFileSync(ESPACES_PATH, 'utf8')); } catch (e) {}
+/* ⛔⛔ UN ANNUAIRE ILLISIBLE N'EST PAS UN ANNUAIRE VIDE (24 septembre 2026, relevé par `gardien`).
+   La lecture se taisait : un `espaces.json` abîmé (disque, restauration ratée, main humaine)
+   donnait `{}` en mémoire — et DEUX choses en découlaient, toutes deux définitives :
+   · la PREMIÈRE écriture (une inscription, un lien régénéré) remplaçait le fichier abîmé, peut-être
+     récupérable, par un annuaire d'une entrée : toutes les entreprises perdues pour de bon ;
+   · `espaceEstSuspendu` exige l'annuaire (une suspendue sortie de l'annuaire est une fermée) :
+     toutes les suspendues auraient été traitées en FERMÉES, et leurs appareils vidés.
+   On le DIT donc (journal, `/health.registres.espaces`, la surveillance crie), on n'écrit plus
+   par-dessus (`espacesEcrire` refuse), et la règle « hors annuaire » ne s'applique pas. Un
+   fichier ABSENT, lui, est une installation neuve : rien à protéger. */
+let espacesIllisible = false;
+try { espacesReg = JSON.parse(fs.readFileSync(ESPACES_PATH, 'utf8')); }
+catch (e) { if (e && e.code !== 'ENOENT') { espacesIllisible = true; console.error('⛔ espaces.json ILLISIBLE — annuaire vide en mémoire, AUCUNE écriture ne le remplacera tant qu\'il n\'est pas réparé :', e.message); } }
 const espSlug = (s) => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
 /* \u2500\u2500 Le code d'espace ne porte PLUS de mot de passe en clair \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
    Le code est du base64, pas du chiffrement : tout ce qu'il contient est lisible par qui
@@ -1934,7 +1950,13 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
   espacesReg[slug] = { nom, code, t, ts: Date.now(), par: req.tourUser.nom, origine, email: monStr((req.body || {}).email, 120).toLowerCase() || prev.email || '',
     opMessages: prev.opMessages,
     formule: prev.formule, quantite: prev.quantite, formulePar: prev.formulePar, formuleTs: prev.formuleTs };
-  espacesEcrire();
+  /* ⛔ ÉCRIT, OU ON LE DIT — et on défait l'entrée en mémoire. Répondre `ok` sur une écriture
+     refusée (disque plein, annuaire illisible au démarrage) faisait croire à la Tour un espace
+     créé qui disparaissait au redémarrage suivant. */
+  if (!espacesEcrire()) {
+    if (prev && Object.keys(prev).length) espacesReg[slug] = prev; else delete espacesReg[slug];
+    return res.status(500).json({ error: 'L\'annuaire n\'a pas pu être enregistré — rien n\'a été créé. Vérifie le serveur (journal : ILLISIBLE ?) avant de recommencer.' });
+  }
   /* Le premier compte, pour que l'ADRESSE suffise dès maintenant (voir annuaireSemer). Sans
      await : ~100 ms de PBKDF2 que personne n'attend, et un échec ne doit pas faire rater
      l'inscription — il se dit au journal. */
@@ -4527,6 +4549,8 @@ app.post('/api/espaces/connexion', async (req, res) => {
    comme acces.json et comptes.json. Rend false plutôt que de lever, pour que l'appelant puisse
    revenir en arrière au lieu d'annoncer un enregistrement qui n'a pas eu lieu. */
 function espacesEcrire() {
+  /* ⛔ JAMAIS PAR-DESSUS UN ANNUAIRE QU'ON N'A PAS PU LIRE : voir `espacesIllisible`. */
+  if (espacesIllisible) { console.error('⛔ espaces.json NON réécrit : il était illisible au démarrage — le réparer, puis redémarrer'); return false; }
   try {
     const tmp = ESPACES_PATH + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(espacesReg));
@@ -4899,7 +4923,14 @@ const FERMES_PATH = path.join(DATA_DIR, 'entreprises-fermees.json');
    forfait gratuit, à quoi ressemble le rappel quotidien réservé au compte admin : ce sont des
    décisions de produit, elles appartiennent à Justin. Voir REPRISE.md. */
 let entFermes = { emails: [], espaces: [], suspendus: [], suspendusLe: {} };
-try { entFermes = JSON.parse(fs.readFileSync(FERMES_PATH, 'utf8')); } catch (e) {}
+/* ⛔⛔ UNE LISTE DE FERMETURES ILLISIBLE ROUVRE TOUT LE MONDE — même règle que `espacesIllisible`
+   (24 septembre 2026, relevé par `gardien`). La lecture se taisait : toutes les entreprises
+   FERMÉES retrouvaient leur jeton, leurs copies, leur connexion ; et la première suspension ou
+   fermeture réécrivait le fichier abîmé avec la seule nouvelle entrée — les fermetures d'avant
+   perdues pour toujours. On le dit, et `fermesSave` refuse d'écrire par-dessus. */
+let fermesIllisible = false;
+try { entFermes = JSON.parse(fs.readFileSync(FERMES_PATH, 'utf8')); }
+catch (e) { if (e && e.code !== 'ENOENT') { fermesIllisible = true; console.error('⛔ entreprises-fermees.json ILLISIBLE — les fermetures ne s\'appliquent plus, et le fichier ne sera pas réécrit tant qu\'il n\'est pas réparé :', e.message); } }
 /* ⚠️ UN FICHIER ÉCRIT AVANT CE JOUR N'A PAS `suspendusLe`. On le complète à la lecture, et
    on DATE les suspensions déjà en cours au moment où on les découvre — c'est le moins faux
    des choix possibles : on ne sait pas quand elles ont commencé, et leur donner zéro ferait
@@ -4916,7 +4947,13 @@ if (!entFermes.suspendusLe || typeof entFermes.suspendusLe !== 'object') entFerm
 if (!Array.isArray(entFermes.emails)) entFermes.emails = [];
 if (!Array.isArray(entFermes.espaces)) entFermes.espaces = [];
 if (!Array.isArray(entFermes.suspendus)) entFermes.suspendus = [];
-function fermesSave() { try { fs.writeFileSync(FERMES_PATH, JSON.stringify(entFermes)); return true; } catch (e) { console.error('entreprises-fermees.json non écrit :', e.message); return false; } }
+/* ⛔ TEMPORAIRE PUIS RENOMMAGE, comme `espacesEcrire` : écrit en place, un disque plein ou un arrêt au
+   mauvais moment laissait un fichier TRONQUÉ — lu ensuite comme illisible, c'est-à-dire toutes les
+   fermetures oubliées. Et jamais par-dessus un fichier qu'on n'a pas pu lire (`fermesIllisible`). */
+function fermesSave() {
+  if (fermesIllisible) { console.error('⛔ entreprises-fermees.json NON réécrit : il était illisible au démarrage — le réparer, puis redémarrer'); return false; }
+  try { const tmp = FERMES_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(entFermes)); fs.renameSync(tmp, FERMES_PATH); return true; }
+  catch (e) { console.error('entreprises-fermees.json non écrit :', e.message); return false; } }
 
 /* ⛔⛔ OÙ EN EST LE SURSIS DE SEPT JOURS — UNE SEULE DÉFINITION, DEUX APPELANTS.
    Elle vivait en arrow dans le montage du socle, donc invisible au reste du fichier ; et
@@ -4951,7 +4988,10 @@ function sursisJoursDe(t) {
    fichier au démarrage ferait condamner pour de bon toutes les suspendues le jour où
    `espaces.json` est tronqué (il les sort toutes de l'annuaire d'un coup) — et le restaurer ne
    les rendrait pas. */
-function espaceEstSuspendu(t) { try { const k = String(t || ''); return (entFermes.suspendus || []).includes(k) && !!espaceParT(k); } catch (e) { return false; } }
+function espaceEstSuspendu(t) { try { const k = String(t || '');
+  /* ⚠️ `espacesIllisible` : un annuaire qu'on n'a pas pu lire ne dit pas qui en est SORTI — on garde
+     alors la liste telle quelle plutôt que de condamner toutes les suspendues. */
+  return (entFermes.suspendus || []).includes(k) && (espacesIllisible || !!espaceParT(k)); } catch (e) { return false; } }
 /* ⛔⛔ FERMÉE N'EST PAS SUSPENDUE — UNE SEULE QUESTION, UNE SEULE FONCTION (24 septembre 2026).
    `entFermes.espaces` porte les DEUX états : la fermeture définitive et la simple suspension
    pour impayé. Justin, 20 septembre 2026 : une suspension est un ÉTAT DE FACTURATION — « rien
