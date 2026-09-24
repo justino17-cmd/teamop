@@ -73,6 +73,21 @@ relecture de `gardien` qui a suivi a trouvé quatre défauts de plus, corrigés 
   clients ont, l'effet visible est un seul : un code déjà servi et fini est REFUSÉ, et la page le
   dit dans son bandeau (mesuré par `test-803` contre l'`app.html` de `main`). La liste des bancs
   serveur passe à 34 suites.
+- **Et le refus d'un code sans preuve de clé dit VRAI (24 septembre, fin d'après-midi)** — capture
+  de Justin : sur la bêta À JOUR, « Activer » rendait « mets l'application à jour ». Faux : la bêta
+  est un espace technique, aucun code ne s'y active. `promoRefusCle(t, v)` : la bêta et l'espace
+  partagé le disent ; un appareil qui n'a rien présenté est envoyé à la mise à jour ; tout le reste
+  (clé fausse, hors annuaire, clé partagée) reçoit UN SEUL message — les distinguer ferait de cette
+  route publique un oracle sur l'annuaire. `test-803` : 140 ✓, 5 mutations sur 5 mordent. Le
+  message vient du serveur : la v695 comme la bêta l'affichent tel quel, sans publication d'app.
+- ✅ **Étape 1 ci-dessous FAITE par Justin le 24 septembre (14 h 47 UTC)** : une entrée à
+  l'annuaire, un seul suspendu — HORS annuaire, il reste fermé ; registre des codes lisible
+  (1 code, 2 utilisations). Rien ne s'ouvrira au déploiement.
+- ✅ **`TEAMOP3MOIS` retiré de `config.promos` par Justin le même jour** (copie :
+  `/opt/teamop/config.json.avant-promo`). Vérifié de dehors : l'aperçu rend **404 « Code promo
+  inconnu »**. Ses deux périodes en cours continuent jusqu'à leur fin — `espacePaye` les lit dans
+  `promos-usages.json` sans consulter `config.promos`, vérifié sur le serveur DÉPLOYÉ et sur celui
+  de la branche ; et l'application (v695) garde son essai par `/api/espaces/etat`, qui passe par là.
 
 **Ce qu'il reste, et c'est à Justin (ou à une session qui a l'accès SSH) :**
 1. **AVANT de pousser**, sur le VPS, en lecture seule — pour chaque ligne « S'OUVRIRA », confirmer
@@ -4774,6 +4789,9 @@ sont classées, le convertisseur écrit, les quatre bancs verts. L'étape 3 n'a 
 
 ## F. Ce qui dépend de JUSTIN, et que personne d'autre ne peut faire
 
+- ✅ **FAIT le 24 septembre 2026 — `TEAMOP3MOIS` est RETIRÉ de `config.promos`** (voir la section
+  serveur en tête de ce fichier : aperçu vérifié à 404, deux périodes en cours qui vont à leur fin).
+  Ce qui suit est l'historique de la demande.
 - ⛔⛔ **RENOUVELER OU PLAFONNER `TEAMOP3MOIS` dans `config.promos`, sur le VPS.** Le code a
   été lisible publiquement dans `tour.html` — on ne sait pas depuis quand, ni par qui. Il est
   retiré des fichiers, mais **un correctif arrête une cause, il ne range pas derrière lui** :
@@ -5331,7 +5349,10 @@ antérieur devient du bruit**.
 ### Ce qui reste, et qui ne dépend plus du code
 
 - ⏳ **Le redémarrage système du VPS** (10 mises à jour dont une de sécurité, « System restart
-  required » depuis le 17). ~30 s de coupure.
+  required » depuis le 17). ~30 s de coupure. ⚠️ **Toujours en attente le 24 septembre** : la
+  bannière annonce désormais 16 mises à jour (plus une de sécurité réservée à ESM). À faire à
+  part du déploiement serveur, sur une heure creuse — deux changements à la fois, et on ne
+  saurait plus lequel a cassé.
 - 📏 **Mesure disque enfin obtenue** : **4,3 % de 115,20 Go** utilisés. Les plafonds des pièces
   jointes (60 Gio) sont largement tenables.
 - ⚠️ `boite:false` sur `/health` : la boîte IMAP n'est pas configurée côté serveur. **Pas une
