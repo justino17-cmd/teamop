@@ -105,7 +105,7 @@ function monde(opts) {
     function formBon(){} function renderBonLignes(){} function bonQtyOpen(){}
     function permGarde(){ return true; }
     function etiqVersBox(id){ __etiq.push('box:'+id); } function etiqOuvrir(m){ __etiq.push(m); }
-    function t3dRefresh(){} function assistRender(){} function renderIntDetail(){} function papPosteSheet(){} function papTouch(){}
+    function t3dRefresh(){} function assistRender(){} function renderIntDetail(){} function papPosteSheet(){} function papTouch(){} function papMarque(){}
     function papFindPoste(cid,pid){ const po=(__poste&&__poste.id===pid)?__poste:null; return po?{pl:{},po}:null; }
     function produitCle(x){ return String((x&&x.nom)||'').toLowerCase(); } function idProduit(n){ return 'p-'+n; } function produitCreer(f){ db.produits.push(f); return f; }
     function prodLineUnit(l){ return l.unite||'u'; }

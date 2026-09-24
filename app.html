@@ -8285,6 +8285,71 @@ function dictFusion(prio,autre){ const out=Object.assign({},autre&&typeof autre=
     const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
     if(obj(p)&&obj(a)&&(Number(a._m)||0)>(Number(p._m)||0)) return;
     out[k]=p; }); return out; }
+/* ══ LES PLANS D'APPÂTAGE SE FUSIONNENT POSTE PAR POSTE (v744, 24 septembre 2026) ══════════════
+   ⛔ LA DETTE : `plansSite[client]` est une LISTE de plans (chacun son image et ses postes), et
+   `dictFusion` la prenait EN BLOC — le côté prioritaire gagnait tout. Deux techniciens hors ligne
+   chez le même client, l'un pose les postes 13 et 14, l'autre déplace le 5 : le dernier à
+   synchroniser effaçait le travail de l'autre, sans rien signaler — et depuis la v740, un plan
+   ainsi régressé part au client comme « mis à jour ».
+   La réponse est celle du stock d'une box (`boxFusionFine`) : chaque POSTE porte sa date (`_m`,
+   posée par le geste qui le crée ou le change), chaque PLAN aussi pour ses propres champs (nom,
+   photo), et une suppression laisse une pierre tombale dans `db._tombes.plansSite`
+   (`client|plan` ou `client|plan|poste`) — le même registre, la même union au maximum, le même
+   élagage à 90 jours que toutes les autres. Trois règles :
+   1. ⛔ SANS AUCUNE MARQUE NI TOMBE POUR CE CLIENT, DES DEUX CÔTÉS → `null`, et l'ANCIENNE règle
+      reprend (le côté prioritaire en bloc). Une donnée non datée ne dit rien de ce qui a changé :
+      la réunir ressusciterait ce qu'une version d'avant a supprimé (leçon de `boxFusionFine` :
+      « une absence non datée n'est jamais une suppression », et symétriquement pas une addition).
+   2. Un poste, un plan : le plus RÉCENT gagne, à égalité le côté prioritaire — comme partout.
+   3. Une tombe ne tue que ce qui n'a pas bougé APRÈS elle : un poste retouché hors ligne après la
+      suppression du plan le fait revivre (quelqu'un y travaillait), comme un enregistrement.
+   ⚠️ LIMITE CONNUE, écrite pour ne pas la croire réglée : deux appareils hors ligne qui posent
+   chacun « le prochain numéro » donnent deux postes au MÊME numéro. Ils survivent tous les deux
+   (rien n'est perdu), mais la numérotation est à reprendre à la main — renuméroter tout seul
+   changerait l'étiquette d'un poste déjà collé sur un mur.
+   ⚠️ Et la maille fine ne vaut qu'entre appareils qui la connaissent : un appareil d'avant la v744
+   ne pose ni marque ni tombe. Comme pour le stock des box, c'est EXIGER la version (Tour) qui
+   l'active pour de bon — à la publication. `tests/test-800.js` joue les scénarios sur la vraie
+   fonction. */
+function plansFusionFine(cid,P,A,tb){
+  const liste=x=>Array.isArray(x)?x.filter(p=>p&&typeof p==='object'&&p.id!=null):[];
+  P=liste(P); A=liste(A); tb=(tb&&typeof tb==='object')?tb:{};
+  const date=o=>+(o&&o._m)||0;
+  const actif=pl=>Math.max(date(pl),...((pl&&pl.postes)||[]).map(date),0);   // la DERNIÈRE activité connue d'un plan
+  const pref=String(cid)+'|';
+  if(!P.some(pl=>actif(pl)>0)&&!A.some(pl=>actif(pl)>0)&&!Object.keys(tb).some(k=>k.startsWith(pref))) return null;
+  const mort=(cle,d)=>{ const t=+tb[cle]||0; return t>0&&t>=d; };
+  const histo=(x,y)=>{ const vus=new Set(), l=[];
+    [].concat(Array.isArray(x)?x:[],Array.isArray(y)?y:[]).forEach(h=>{ if(!h) return; const k=(h.ts||0)+'|'+(h.action||''); if(!vus.has(k)){ vus.add(k); l.push(h); } });
+    return l.sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-50); };
+  const fusionPlan=(p,a)=>{
+    const base=date(a)>date(p)?a:p;   // les champs du PLAN : le plus récent, à égalité le prioritaire
+    const pp=new Map((p.postes||[]).filter(x=>x&&x.id!=null).map(x=>[String(x.id),x]));
+    const pa=new Map((a.postes||[]).filter(x=>x&&x.id!=null).map(x=>[String(x.id),x]));
+    const postes=[];
+    [...pp.keys(),...[...pa.keys()].filter(k=>!pp.has(k))].forEach(k=>{ const x=pp.get(k), y=pa.get(k);
+      if(mort(pref+String(p.id)+'|'+k,Math.max(date(x),date(y)))) return;   // supprimé, et pas retouché depuis
+      postes.push(x&&y?(date(y)>date(x)?y:x):(x||y)); });
+    return Object.assign({},base,{postes,version:Math.max(+p.version||1,+a.version||1),historique:histo(p.historique,a.historique)}); };
+  const parId=new Map(A.map(pl=>[String(pl.id),pl])), vus=new Set(), out=[];
+  P.forEach(p=>{ const id=String(p.id); vus.add(id); const a=parId.get(id);
+    const m=a?fusionPlan(p,a):p;
+    if(mort(pref+id,Math.max(actif(p),actif(a)))) return;
+    /* un poste supprimé ne vit pas non plus dans un plan qui n'existe que d'un côté */
+    out.push(a?m:Object.assign({},m,{postes:(m.postes||[]).filter(x=>!(x&&x.id!=null&&mort(pref+id+'|'+String(x.id),date(x))))})); });
+  A.forEach(a=>{ const id=String(a.id); if(vus.has(id)||mort(pref+id,actif(a))) return;
+    out.push(Object.assign({},a,{postes:(a.postes||[]).filter(x=>!(x&&x.id!=null&&mort(pref+id+'|'+String(x.id),date(x))))})); });
+  return out; }
+/* La collection entière : l'ancienne règle clé par clé (`dictFusion`), puis la maille fine pour
+   chaque client que les DEUX côtés connaissent. */
+function plansSiteFusion(prio,autre,tombes){
+  const obj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
+  const out=dictFusion(prio,autre);
+  if(!obj(prio)||!obj(autre)) return out;
+  const tb=(tombes&&tombes.plansSite)||{};
+  Object.keys(out).forEach(cid=>{ if(!(cid in prio)||!(cid in autre)) return;
+    const f=plansFusionFine(cid,prio[cid],autre[cid],tb); if(f) out[cid]=f; });
+  return out; }
 /* ══ LE CLASSEMENT DES 83 CLÉS DE `db` — ÉTAPE 2 DU SOCLE ═══════════════════════════════════
    ⛔ POURQUOI CETTE TABLE EXISTE, ET POURQUOI ELLE EST LA PREMIÈRE CHOSE ÉCRITE DE L'ÉTAPE 2.
    `collsFusion` prend « toute clé qui se trouve être un tableau » (ligne ~6137) : la règle est
@@ -9045,7 +9110,7 @@ function fusionnerBases(local,remote,prioriteLocale){
     out[c]=ordre.map(id=>m.get(id)).concat(sansId);
   });
   COLLS_DICT.forEach(c=>{ const P=prio&&prio[c], A=autre&&autre[c];
-    if((P&&typeof P==='object'&&!Array.isArray(P))||(A&&typeof A==='object'&&!Array.isArray(A))) out[c]=dictFusion(P,A); });
+    if((P&&typeof P==='object'&&!Array.isArray(P))||(A&&typeof A==='object'&&!Array.isArray(A))) out[c]=(c==='plansSite')?plansSiteFusion(P,A,tombes):dictFusion(P,A); });
   if(Array.isArray(out.journal)) out.journal=out.journal.slice().sort((x,y)=>(y.ts||0)-(x.ts||0)).slice(0,500);
   if(Array.isArray(out.planJournal)) out.planJournal=out.planJournal.slice().sort((x,y)=>(x.ts||0)-(y.ts||0)).slice(-400);   // même plafond qu'en local, sinon il grossit à chaque fusion
   out._tombes=tombes;
@@ -9063,7 +9128,12 @@ function fusionnerBases(local,remote,prioriteLocale){
    de convergence dans une course à trois. On ajoute donc l'empreinte des marques de lignes :
    elles changent exactement quand une ligne de stock change. Signalé par `relecteur`. */
 function baseSignature(d){ return collsFusion(d).sort().map(c=>c+':'+(d[c]||[]).map(r=>(r&&r.id!=null)?(String(r.id)+'@'+(r._m||0)+(c==='boxes'&&r._ms?'~'+recEmpreinte(r._ms):'')):'').sort().join(',')).join('|')
-  +'§'+COLLS_DICT.map(c=>c+':'+Object.keys((d&&d[c])||{}).sort().map(k=>{ const v=d[c][k]; return k+((v&&typeof v==='object'&&!Array.isArray(v)&&v._m)?'@'+v._m:''); }).join(',')).join('|')
+  +'§'+COLLS_DICT.map(c=>c+':'+Object.keys((d&&d[c])||{}).sort().map(k=>{ const v=d[c][k];
+      /* v744 : un plan d'appâtage est une LISTE — sa marque est celle de ses plans et de ses postes.
+         Sans elle, une fusion qui ramène le poste d'un collègue passait pour un non-événement,
+         donc n'était jamais repoussée (le même défaut que les box, corrigé pour elles). */
+      if(c==='plansSite'&&Array.isArray(v)) return k+'@'+recEmpreinte({p:v.map(pl=>pl&&[pl.id,+pl._m||0,(pl.postes||[]).map(po=>po&&[po.id,+po._m||0])])});
+      return k+((v&&typeof v==='object'&&!Array.isArray(v)&&v._m)?'@'+v._m:''); }).join(',')).join('|')
   +'#'+JSON.stringify(d._tombes||{}); }
 let db = load();
 try{ ombreRelever(); }catch(e){}   // l'ombre part de ce qui est chargé : rien n'est « modifié » tant qu'on n'a rien touché
@@ -20144,12 +20214,12 @@ async function paAddPlan(e,intId){ const f=e.target.files&&e.target.files[0]; e.
   const plans=plansOf(i.clientId);
   const nom=prompt('Nom du plan (ex : RDC, Cave, Réserve…) :','Plan '+(plans.length+1))||('Plan '+(plans.length+1));
   const pl={id:uid(),nom:nom.slice(0,40),mode:'img',img,postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo / image importée)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel'; intHisto(i,'Plan d’appâtage ajouté : '+pl.nom);
+  papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel'; intHisto(i,'Plan d’appâtage ajouté : '+pl.nom);
   save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » ajouté — activez « ＋ Poste » puis touchez le plan'); }
 function paRenamePlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   const pl=plansOf(i.clientId).find(p=>p.id===plid); if(!pl) return;
-  const v=prompt('Nom du plan :',pl.nom); if(!v) return; pl.nom=v.slice(0,40); papTouch(pl,'Plan renommé « '+pl.nom+' »'); save(); renderIntDetail(intId); }
+  const v=prompt('Nom du plan :',pl.nom); if(!v) return; pl.nom=v.slice(0,40); papMarque(pl); papTouch(pl,'Plan renommé « '+pl.nom+' »'); save(); renderIntDetail(intId); }
 function paDelPlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   /* v739 : « Modifier les plans » est donné au technicien par défaut (décision de Justin) — il
@@ -20158,7 +20228,7 @@ function paDelPlan(intId,plid){ const i=db.interventions.find(x=>x.id===intId); 
   if(!canCat('int','supprimer')){ toast('Supprimer un plan entier demande « Interventions → Supprimer » (Permissions)'); return; }
   const plans=plansOf(i.clientId); const ix=plans.findIndex(p=>p.id===plid); if(ix<0) return;
   if(!confirm('Supprimer ce plan et ses '+(plans[ix].postes||[]).length+' poste(s) ? (les relevés déjà enregistrés sont conservés)')) return;
-  plans.splice(ix,1); _paSel=(plans[0]||{}).id||''; save(); renderIntDetail(intId); toast('Plan supprimé'); }
+  papTombe(i.clientId,plans[ix].id); plans.splice(ix,1); _paSel=(plans[0]||{}).id||''; save(); renderIntDetail(intId); toast('Plan supprimé'); }
 function paPosteDot(i,po,forPdf){ const etat=paLastEtat(i,po.id); const cur=!!paReleveOf(i,po.id);
   const col=etat?(PA_ETATS[etat]||[])[1]||'var(--t3)':'var(--t3)';
   const hot=paZoneChaude(i,po.id);
@@ -20219,7 +20289,7 @@ function paSaveNote(intId,posteId){ const i=db.interventions.find(x=>x.id===intI
 function paDelPoste(intId,posteId){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!can('modifierPlans')){ toast('Droit « Modifier les plans d’appâtage » requis'); return; }
   if(!confirm('Supprimer ce poste du plan ?')) return;
-  plansOf(i.clientId).forEach(p=>{ if((p.postes||[]).some(x=>x.id===posteId)){ p.postes=p.postes.filter(x=>x.id!==posteId); papTouch(p,'Poste supprimé'); } });
+  plansOf(i.clientId).forEach(p=>{ if((p.postes||[]).some(x=>x.id===posteId)){ papTombe(i.clientId,p.id,posteId); p.postes=p.postes.filter(x=>x.id!==posteId); papTouch(p,'Poste supprimé'); } });
   save(); closeModal(); renderIntDetail(intId); toast('Poste supprimé'); }
 /* Interactivité du plan — délègue au moteur PRO unifié (img / geo / rooms) */
 function planAppInit(intId){ try{ papInitView(intId); }catch(e){} try{ papGeoBadge(intId); }catch(e){} }
@@ -20258,6 +20328,14 @@ function papZoneOf(pl,po){ if(po.zone) return po.zone;
   const f=papFrac(pl,po); const r=papRoomAt(pl,f.x,f.y); return r?r.nom:''; }
 let papWiz=null;
 function cliIsPro(c){ if(!c) return false; return (c.typeClient||'pro')!=='particulier'; }
+/* v744 — la date d'un geste sur un plan ou un poste, et la tombe d'une suppression : c'est ce que
+   `plansFusionFine` lit. Un geste qui change un plan ou un poste sans passer par l'une de ces deux
+   fonctions redevient invisible à la synchro (`tests/test-800.js` recense les gestes). */
+function papMarque(o){ if(o&&typeof o==='object') o._m=Date.now(); }
+function papTombe(cid,plid,poid){ if(!cid||!plid) return;
+  if(!db._tombes||typeof db._tombes!=='object') db._tombes={};
+  const t=db._tombes.plansSite=(db._tombes.plansSite&&typeof db._tombes.plansSite==='object')?db._tombes.plansSite:{};
+  t[String(cid)+'|'+String(plid)+(poid?'|'+String(poid):'')]=Date.now(); }
 function papTouch(pl,action){ if(!pl) return; pl.version=(pl.version||1)+1;
   pl.historique=pl.historique||[]; pl.historique.push({ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:String(action||'').slice(0,120)});
   if(pl.historique.length>50) pl.historique=pl.historique.slice(-50); }
@@ -20571,7 +20649,7 @@ function papWizValidate(){
     bat:w.bats[w.selIx], autres:w.bats.filter((b,ix)=>ix!==w.selIx).slice(0,40),
     postes, rooms:[], version:1,
     historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan du site créé automatiquement ('+postes.length+' postes, maillage '+w.spacing+' m)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
+  papMarque(pl); postes.forEach(papMarque); plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
   const i=db.interventions.find(x=>x.id===intId);
   if(i) intHisto(i,'Plan du site créé automatiquement — '+postes.length+' poste(s)');
   papWiz=null; save(); closeModal(); renderIntDetail(intId);
@@ -20601,7 +20679,7 @@ function papCreateBatPlan(intId){
   const pl={id:uid(),nom,mode:'geo',fond:'blanc',center:{lon:geoPl.center.lon,lat:geoPl.center.lat},zoom:geoPl.zoom||19,
     bat:JSON.parse(JSON.stringify(geoPl.bat)),autres:[],postes:[],rooms:[],version:1,
     historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Niveau intérieur créé (contour cadastre)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
+  papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
   intHisto(i,'Niveau intérieur « '+nom+' » créé (contour cadastre)');
   save(); closeModal(); renderIntDetail(intId); toast('⬚ « '+nom+' » prêt — pose les postes (＋ Poste), la zone se choisit dans la fiche poste'); }
 function papCreateRoomsPlan(intId){
@@ -20610,7 +20688,7 @@ function papCreateRoomsPlan(intId){
   const nom=((($('pap-niv-nom')||{}).value||'RDC').trim()||'RDC').slice(0,40);
   const plans=plansOf(i.clientId);
   const pl={id:uid(),nom,mode:'rooms',rooms:[],postes:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan intérieur créé (fond grille)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
+  papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel'; window._papZoom=1;
   intHisto(i,'Plan intérieur « '+nom+' » créé');
   save(); closeModal(); renderIntDetail(intId); toast('▦ « '+nom+' » prêt — pose les postes (＋ Poste), la zone se choisit dans la fiche poste'); }
 async function papAddPhotoNiveau(e,intId){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
@@ -20621,7 +20699,7 @@ async function papAddPhotoNiveau(e,intId){ const f=e.target.files&&e.target.file
   const nom=(((window._papNivNom||'').trim())||('Intérieur '+(plans.length+1))).slice(0,40);
   window._papNivNom='';
   const pl={id:uid(),nom,mode:'img',img,postes:[],rooms:[],version:1,historique:[{ts:Date.now(),par:(currentUser&&fullName(currentUser))||'',action:'Plan créé (photo du plan client)'}]};
-  plans.push(pl); _paSel=pl.id; window._papMode='rel';
+  papMarque(pl); plans.push(pl); _paSel=pl.id; window._papMode='rel';
   intHisto(i,'Plan intérieur « '+pl.nom+' » créé (photo)');
   save(); renderIntDetail(intId); toast('Plan « '+pl.nom+' » créé — pose les postes (＋ Poste), la zone se choisit dans la fiche poste'); }
 async function papRephoto(e,intId){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
@@ -20630,7 +20708,7 @@ async function papRephoto(e,intId){ const f=e.target.files&&e.target.files[0]; e
   const pl=plansOf(i.clientId).find(p=>p.id===_paSel); if(!pl||pl.mode==='geo'||pl.mode==='rooms') return;
   if((pl.postes||[]).length){ toast('Impossible : des postes sont déjà posés sur ce plan'); return; }
   const img=await compressImage(f,1200,0.72); if(!img){ toast('Image illisible'); return; }
-  pl.img=img; papTouch(pl,'Photo du plan reprise'); save(); renderIntDetail(intId); toast('📷 Photo remplacée'); }
+  pl.img=img; papMarque(pl); papTouch(pl,'Photo du plan reprise'); save(); renderIntDetail(intId); toast('📷 Photo remplacée'); }
 /* ── Conformité alimentaire (zones standard + pièces dessinées historiques) ── */
 function papRoomAt(pl,x,y){ return (pl.rooms||[]).find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)||null; }
 function papRoomAlimAt(pl,x,y){ return (pl.rooms||[]).find(r=>r.zoneAlim&&x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)||null; }
@@ -20643,7 +20721,7 @@ function papMovePoste(intId,pl,pid,fx,fy){
   const po=(pl.postes||[]).find(x=>x.id===pid); if(po==null){ renderIntDetail(intId); return; }
   const isAppat=!po.type||po.type==='appat';
   if(isAppat){ const room=papRoomAlimAt(pl,fx,fy); if(room){ papAlimBlock(room); renderIntDetail(intId); return; } }
-  papSetXY(pl,po,fx,fy); papTouch(pl,'Poste n°'+po.num+' déplacé');
+  papSetXY(pl,po,fx,fy); papMarque(po); papTouch(pl,'Poste n°'+po.num+' déplacé');
   save(); renderIntDetail(intId); toast('Poste '+po.num+' déplacé'); }
 function papPlacePoste(intId,pl,fx,fy,type){
   if(!can('modifierPlans')) return;
@@ -20651,7 +20729,7 @@ function papPlacePoste(intId,pl,fx,fy,type){
   const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const num=plansOf(i.clientId).reduce((m,pp)=>(pp.postes||[]).reduce((m2,po)=>Math.max(m2,po.num||0),m),0)+1;
   pl.postes=pl.postes||[];
-  const po={id:uid(),num,type:type||'appat',note:''}; papSetXY(pl,po,fx,fy);
+  const po={id:uid(),num,type:type||'appat',note:''}; papSetXY(pl,po,fx,fy); papMarque(po);
   pl.postes.push(po);
   window._papMode='rel'; papTouch(pl,'Poste n°'+num+' ('+((PA_TYPES[type]||PA_TYPES.appat).lbl)+') posé');
   intHisto(i,'Poste n°'+num+' posé sur le plan '+pl.nom);
@@ -20661,7 +20739,7 @@ function papDelPoste2(intId,posteId,fromSheet){
   const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
   if(!confirm('Supprimer le poste n°'+hit.po.num+' du plan ? (les relevés déjà enregistrés sont conservés)')) return;
-  hit.pl.postes=hit.pl.postes.filter(x=>x.id!==posteId);
+  papTombe(i.clientId,hit.pl.id,posteId); hit.pl.postes=hit.pl.postes.filter(x=>x.id!==posteId);
   papTouch(hit.pl,'Poste n°'+hit.po.num+' supprimé');
   save(); if(fromSheet) closeModal(); renderIntDetail(intId); toast('Poste supprimé'); }
 function papInitView(intId){
@@ -20771,12 +20849,12 @@ function papSheetZone(intId,posteId,v){ const i=db.interventions.find(x=>x.id===
     papAlimBlock({nom:v},`papPosteSheet('${intId}','${posteId}')`); return; }
   /* v740 : la zone s'imprime sur le plan d'implantation — le changement se note dans l'historique du plan */
   if((po.zone||'')!==(v||'')) papTouch(hit.pl,'Poste n°'+po.num+' : zone « '+(v||'—')+' »');
-  po.zone=v||''; save(); papPosteSheet(intId,posteId); }
+  if((po.zone||'')!==(v||'')) papMarque(po); po.zone=v||''; save(); papPosteSheet(intId,posteId); }
 function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
   const old=hit.po.produitId;
   if((old||'')!==(pid||'')) papTouch(hit.pl,'Poste n°'+hit.po.num+' : produit posé « '+((pid&&produit(pid).nom)||'aucun')+' »');   // v740 : imprimé, avec son n° d'AMM
-  hit.po.produitId=pid||'';
+  if((old||'')!==(pid||'')) papMarque(hit.po); hit.po.produitId=pid||'';
   // l'appât posé sur un poste compte dans les produits utilisés → tracé au registre (le stock ne bouge pas, v741)
   i.produitsUtilises=i.produitsUtilises||[];
   if(old&&old!==pid){ const ix=i.produitsUtilises.findIndex(l=>l.produitId===old&&l._pap===posteId); if(ix>=0) i.produitsUtilises.splice(ix,1); }
@@ -20785,10 +20863,10 @@ function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.
 function papSheetSecure(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
   if(!!hit.po.secure!==!!v) papTouch(hit.pl,'Poste n°'+hit.po.num+' : '+(v?'boîte sécurisée':'boîte non sécurisée'));   // v740 : imprimé
-  hit.po.secure=!!v; save(); }
+  if(!!hit.po.secure!==!!v) papMarque(hit.po); hit.po.secure=!!v; save(); }
 function papSheetTubes(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
-  hit.po.dateTubes=v||''; save(); papPosteSheet(intId,posteId); }
+  if((hit.po.dateTubes||'')!==(v||'')) papMarque(hit.po); hit.po.dateTubes=v||''; save(); papPosteSheet(intId,posteId); }
 function papSheetOk(intId,posteId){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const note=($('pa-note')||{}).value||''; const r=paReleveOf(i,posteId);
   if(r){ r.note=note.trim(); save(); }

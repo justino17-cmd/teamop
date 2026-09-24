@@ -158,6 +158,9 @@ console.log('\nOuvrir un écran n\'écrit jamais dans les données de l\'entrepr
 console.log('\nLe plan d\'appâtage ne se perd plus à la synchro');
 { const code=['const COLLS_HORS_FUSION=','function collsFusion(d){','const COLLS_DICT=','function dictFusion(prio,autre){',
     'function tombesUnion(','function numMaxUnion(a,b){','function boxFusionFine(gagnante,perdante){',
+    /* v744 : `plansSite` passe par la maille fine (plansSiteFusion), et la signature en tient compte
+       (recEmpreinte) — une fonction ajoutée à ce qu'un banc extrait doit lui être fournie. */
+    'function plansFusionFine(','function plansSiteFusion(','function recEmpreinte(',
     'function fusionnerBases(local,remote,prioriteLocale){','function baseSignature(d){'].map(d=>decoupe(d)).join('\n');
   const bac=new Function('',`${code}; return {fusionnerBases,baseSignature};`)();
   const A={clients:[{id:'c1',nom:'A'}],plansSite:{c1:{postes:new Array(24).fill(0).map((_,i)=>({id:'po'+i}))}},planNotes:{'2026-09-10':'note A'},_tombes:{}};
