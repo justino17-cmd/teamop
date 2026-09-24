@@ -78,8 +78,19 @@ relecture de `gardien` qui a suivi a trouvé quatre défauts de plus, corrigés 
   est un espace technique, aucun code ne s'y active. `promoRefusCle(t, v)` : la bêta et l'espace
   partagé le disent ; un appareil qui n'a rien présenté est envoyé à la mise à jour ; tout le reste
   (clé fausse, hors annuaire, clé partagée) reçoit UN SEUL message — les distinguer ferait de cette
-  route publique un oracle sur l'annuaire. `test-803` : 140 ✓, 5 mutations sur 5 mordent. Le
-  message vient du serveur : la v695 comme la bêta l'affichent tel quel, sans publication d'app.
+  route publique un oracle sur l'annuaire. Le message vient du serveur : la v695 comme la bêta
+  l'affichent tel quel, sans publication d'app. **Relu par `gardien` : OK**, aucun oracle nouveau,
+  le refus reste avant toute écriture — et un défaut d'avant, corrigé dans la foulée : le message
+  AFFIRMAIT que la bêta ne prend pas de code, mais seul le verdict de clé en décidait ; une bêta
+  inscrite à l'annuaire avec une clé propre (la Tour le permet) activait un code (rejoué : 200,
+  `n:1`). Les espaces techniques sont désormais refusés EN PREMIER, sans condition. `test-803` :
+  142 ✓, 6 mutations sur 6 mordent ; 34 suites serveur · 2 021 vérifications.
+  ⏳ **Noté par `gardien`, pour une passe ultérieure (d'avant, hors de ce diff)** : la route ne
+  consulte pas `espaceFerme(t)` — une entreprise FERMÉE qui prouve encore sa clé pourrait activer un
+  code. Sans effet aujourd'hui, vérifié : les deux chemins qui ferment (fermer un client, supprimer
+  une entreprise) la RETIRENT de l'annuaire, son verdict tombe en `inconnu`. Une entreprise
+  SUSPENDUE, elle, reste à l'annuaire et peut activer un code — voulu : une suspension est un état
+  de facturation, pas une coupure. Le jour où une fermeture garderait l'entrée, poser la garde.
 - ✅ **Étape 1 ci-dessous FAITE par Justin le 24 septembre (14 h 47 UTC)** : une entrée à
   l'annuaire, un seul suspendu — HORS annuaire, il reste fermé ; registre des codes lisible
   (1 code, 2 utilisations). Rien ne s'ouvrira au déploiement.
