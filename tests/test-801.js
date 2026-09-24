@@ -248,7 +248,14 @@ console.log('\n══ 7. ⛔ LE DÉPÔT : ENREGISTRÉ D\'ABORD, MARQUÉ AU RETOU
     v('⛔ résoudre pour l\'écran n\'écrit RIEN', /save\(\)/.test(comb), false);
     vrai('   et ne relance pas en boucle un essai qui vient d\'échouer', /_papImgEchec\[cid\]/.test(comb));
     const pr = corps('async function printRapport(');
-    vrai('⛔ le rapport PDF attend les photos de plans, et demande s\'il en manque', /await planImgsResoudre\(i\.clientId\)/.test(pr) && pr.indexOf('await planImgsResoudre(i.clientId)') < pr.indexOf("window.open('','_blank')"));
+    /* ⛔ ET LA FENÊTRE S'OUVRE AVANT D'ATTENDRE (relecture de la v744) : cette ligne exigeait l'ordre
+       inverse, et c'était le défaut — ouverte après deux allers-retours au serveur, le navigateur la
+       bloque. La question « continuer quand même ? » se pose DANS la fenêtre, qui a la main. */
+    vrai('⛔ le rapport PDF attend les photos de plans, et demande s\'il en manque', /await planImgsResoudre\(i\.clientId\)/.test(pr) && /demander\(reste\+' photo\(s\) de plan/.test(pr));
+    vrai('⛔ … sa fenêtre s\'ouvre DANS le geste, AVANT d\'attendre photos et plans', pr.indexOf("window.open('','_blank')") > 0
+      && pr.indexOf("window.open('','_blank')") < pr.indexOf('await photosResoudre(i.photos)') && pr.indexOf("window.open('','_blank')") < pr.indexOf('await planImgsResoudre(i.clientId)'));
+    v('   … une seule fois', (pr.match(/window\.open\(/g) || []).length, 1);
+    vrai('   … la question se pose DANS la fenêtre, et « non » la referme', /return w\.confirm\(q\)/.test(pr) && (pr.match(/\{ try\{ w\.close\(\); \}catch\(e\)\{\} return; \}/g) || []).length === 2);
     const ds = corps('async function papDossierSanitaire(');
     vrai('⛔ le dossier sanitaire ouvre sa fenêtre DANS le geste, puis attend les plans', ds.indexOf("window.open('','_blank')") > 0 && ds.indexOf("window.open('','_blank')") < ds.indexOf('await planImgsResoudre(cid)'));
     vrai('   et referme l\'attente, pour que l\'écriture finale la REMPLACE', /Récupération des plans…<\/p>'\); w\.document\.close\(\);/.test(ds));

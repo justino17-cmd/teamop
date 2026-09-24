@@ -29,7 +29,7 @@ function decoupe(h) { const d = APP.indexOf(h); if (d < 0) throw new Error('intr
 const FONCTIONS = ['const PA_TYPES=', 'const MENTION_REGL=', 'const PH_MARQUE=', 'function photoPid(', 'function photoSrc(', 'function planImgSrc(',
   'function papZoneOf(', 'function papRoomAt(', 'function papFrac(', 'function papMerc(', 'function papWorld(', 'function papLL2F(', 'function papMPerPx(',
   'function paReleveOf(', 'function paHistoPoste(', 'function paLastEtat(',
-  'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(', 'function _pdfDessinPlans(',
+  'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(', 'function _pdfDessinPlans(',
   'function rapportProduitsLibres(', 'function rapportChampsPerso(', 'const PAP_IMPL_MAX_B64=', 'function rapportPdfStr(',
   'const _rapEnvoi=', 'async function rapportVia('];
 const SOURCES = FONCTIONS.map(decoupe);
@@ -80,7 +80,7 @@ function lirePdf(pdf) {
   /* pour MESURER, on repasse de WinAnsi au caractère : « ’ » est l'octet 146 dans le flux, et sa
      largeur est celle de l'apostrophe (222), pas celle d'un caractère inconnu (556) — la première
      version de ce banc accusait le titre de déborder pour cette seule raison */
-  const WA = { 128: '\u20AC', 133: '\u2026', 140: '\u0152', 145: '\u2018', 146: '\u2019', 147: '\u201C', 148: '\u201D', 150: '\u2013', 151: '\u2014', 156: '\u0153' };
+  const WA = { 128: '\u20AC', 133: '\u2026', 140: '\u0152', 145: '\u2018', 146: '\u2019', 147: '\u201C', 148: '\u201D', 149: '\u2022', 150: '\u2013', 151: '\u2014', 153: '\u2122', 156: '\u0153' };
   r.textes.forEach(t => { t.u = t.t.replace(/[\x80-\x9F]/g, ch => WA[ch.charCodeAt(0)] || ch); });
   r.ok = !r.pb.length; return r;
 }
@@ -126,6 +126,25 @@ console.log('\n══ 2. LE CONTENU EST CELUI DU RAPPORT ══\n');
 v('⛔ pas un seul « ? » venu d\'un émoji (WinAnsi n\'en a pas)', /\?\?|\? du site| \?$/m.test(tout), false);
 vrai('   la phrase qui portait un émoji est bien là, sans lui', /contr\xF4l\xE9 les postes du site/.test(tout));
 vrai('   le plan sans poste n\'est pas imprimé', tout.indexOf('Vide') < 0);
+
+console.log('\n══ 2 bis. ⛔ CE QUE WINANSI N\'ÉCRIT PAS SE DIT AUTREMENT, JAMAIS PAR UN « ? » ══\n');
+{ /* Relecture de la v744 : depuis que le rapport part en PDF JOINT, ce qu'un technicien tape — une
+     flèche, une puce collée du clavier, un pictogramme, un « é » décomposé — y devenait « ? ». Avant,
+     le client recevait le texte, où tout passait. On joue la VRAIE fabrique et on lit le PDF. */
+  const W3 = monter(BASE); const i3 = W3.db.interventions[0];
+  i3.compteRendu = 'Consommation \u2192 \u00e0 rev\u00e9rifier lundi\n\u2022 puce coll\u00e9e \u23F0 Rappel\ndose \u2265 5 \u03BCg \u2713 Conforme\nLe \u0065\u0301t\u0065\u0301 \u25B6 suite\u2122';
+  const P3 = lirePdf(W3.rapportPdfStr(i3, E, IMGS)), t3 = P3.textes.map(t => t.t).join('\n');
+  const debut = t3.indexOf('Consommation'), bloc = debut < 0 ? '' : t3.slice(debut, t3.indexOf('suite', debut) + 8);
+  vrai('population : le compte-rendu est dans le PDF', debut >= 0 && bloc.length > 40, JSON.stringify(t3.slice(0, 200)));
+  v('⛔ pas un seul « ? » dans ces lignes', (bloc.match(/\?/g) || []).length, 0);
+  [['la flèche devient « -> »', 'Consommation -> \xE0 rev\xE9rifier lundi'], ['la puce est une puce WinAnsi (149)', '\x95 puce coll\xE9e'],
+   ['le pictogramme s\'efface', 'coll\xE9e Rappel'], ['« ≥ » devient « >= » et le mu grec devient le micro (181)', 'dose >= 5 \xB5g'],
+   ['la coche devient « OK »', 'OK Conforme'], ['un « é » décomposé redevient « é »', 'Le \xE9t\xE9'], ['le triangle devient une puce, « ™ » a sa place (153)', '\x95 suite\x99']]
+    .forEach(([q, t]) => vrai('   ' + q, bloc.indexOf(t) >= 0, 'absent : ' + JSON.stringify(t) + ' dans ' + JSON.stringify(bloc)));
+  const trop3 = P3.textes.filter(t => t.x + W3._pdfLarg(t.u, t.sz, t.gras) > 553 + 1.5);
+  v('   et ce qu\'on mesure est ce qu\'on écrit : rien ne sort de la marge', trop3.map(t => t.t.slice(0, 40)), []);
+  v('   la mesure voit la flèche en « -> », pas en un seul caractère', W3._pdfLarg('\u2192', 10, false), W3._pdfLarg('->', 10, false));
+}
 
 console.log('\n══ 3. ⛔ RIEN NE SORT DE LA PAGE ══\n');
 { const M = 42, RGT = 553; const trop = P.textes.filter(t => t.x + W._pdfLarg(t.u, t.sz, t.gras) > RGT + 1.5 || t.x < M - 0.5);

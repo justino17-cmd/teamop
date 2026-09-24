@@ -54,7 +54,7 @@ const BASE = {
   bons: [{ id: 'bA', societe: 'Alpha Nuisibles', lignes: [] }, { id: 'b0', societe: '', lignes: [] }], fournisseurs: [] };
 const FN = ['function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function intSocMailOpts(',
   'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(',
-  'function bcEntete(', 'function bcCouleur(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
+  'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
 function monter(base) {
   const W = { console, Object, JSON, String, Math, Date, Array, Number, Uint8Array, __html: '',
     localStorage: { getItem: () => null }, atob: s => Buffer.from(s, 'base64').toString('latin1') };

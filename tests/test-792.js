@@ -38,7 +38,7 @@ function corps(nom) { const m = new RegExp('(?:async\\s+)?function ' + nom + '\\
 /* un vrai petit JPEG (1×1) : la structure du PDF se vérifie, pas son rendu */
 const JPEG1 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
 const FONCTIONS = ['function plansOf(', 'function papZoneOf(', 'function papRoomAt(', 'function papFrac(', 'function papMerc(', 'function papWorld(',
-  'function papLL2F(', 'function papMPerPx(', 'function papPlanNum(', 'function _pdfTxt(', 'function recEmpreinte(', 'const _PDF_L=', 'function _pdfLarg(',
+  'function papLL2F(', 'function papMPerPx(', 'function papPlanNum(', 'function _pdfTranslit(', 'function _pdfTxt(', 'function recEmpreinte(', 'const _PDF_L=', 'function _pdfLarg(',
   'function _pdfCoupe(', 'const PAP_IMPL_MAX_B64=', 'const _papImgEmp=', 'function papImgEmpCalc(', 'function papImgEmpreinte(',
   'function photoPid(', 'function photoSrc(', 'function photoMarquer(', 'function papImplPlans(', 'function papImplContenuPlan(',
   'function papImplEmpreintes(', 'function papImplDernier(', 'function papImplDernierPlan(', 'function papImplEtat(', 'function papImplEtatTxt(',

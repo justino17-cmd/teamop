@@ -21173,8 +21173,8 @@ const _PDF_L=[
   '278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 333 333 584 584 584 611 975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 667 778 722 667 611 722 667 944 667 667 611 333 278 333 584 556 333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 611 611 389 556 333 611 556 778 556 556 500 389 280 389 584'
 ].map(l=>l.split(' ').map(Number));
 function _pdfLarg(txt,sz,gras){ const t=_PDF_L[gras?1:0]; let w=0;
-  for(const ch of String(txt==null?'':txt)){ let c=ch.normalize('NFD').codePointAt(0);
-    if(c>=32&&c<=126) w+=t[c-32]; else if(c===0x2014||c===0x2026) w+=1000; else if(c===0x2013||c===0xAB||c===0xBB||c===0x20AC) w+=556;
+  for(const ch of _pdfTranslit(txt)){ let c=ch.normalize('NFD').codePointAt(0);
+    if(c>=32&&c<=126) w+=t[c-32]; else if(c===0x2014||c===0x2026||c===0x2122||c===0x2030) w+=1000; else if(c===0x2022) w+=350; else if(c===0x2013||c===0xAB||c===0xBB||c===0x20AC) w+=556;
     else if(c===0x2019||c===0x2018) w+=gras?278:222; else if(c===0x152||c===0x153) w+=1000; else w+=556; }
   return w*sz/1000; }
 /* Coupe un texte à une largeur donnée, avec « … » */
@@ -23645,9 +23645,9 @@ function rapportPdfStr(i,E,imgs){
   const pages=[]; let ops=[]; let y;
   const f2=v=>(+v).toFixed(1);
   const larg=(t,sz,b)=>_pdfLarg(t,sz,b);
-  /* ⛔ WinAnsi n'a pas d'émoji : `_pdfTxt` en ferait des « ? » dans un document remis au client.
-     On les retire (et les sélecteurs de variante qui les accompagnent) avant d'écrire. */
-  const net=s=>String(s==null?'':s).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0E}\u{FE0F}\u{200D}\u{20E3}]/gu,'').replace(/[ \t]+/g,' ').trim();
+  /* ⛔ WinAnsi n'a ni émoji ni flèche : `_pdfTranslit` les dit autrement ou les retire AVANT qu'on
+     mesure et qu'on écrive — sinon des « ? » dans un document remis au client. */
+  const net=s=>_pdfTranslit(s).replace(/[ \t]+/g,' ').trim();
   const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',f2(x)+' '+f2(yy)+' Td','('+_pdfTxt(net(txt))+') Tj','ET');
   const TR=(xr,yy,sz,txt,bold,col)=>T(xr-larg(net(txt),sz,bold),yy,sz,txt,bold,col);
   const TC=(xc,yy,sz,txt,bold,col)=>T(xc-larg(net(txt),sz,bold)/2,yy,sz,txt,bold,col);
@@ -23849,19 +23849,25 @@ async function rapportDocument(id){
    volontaire. Un écran incomplet se recomplète une seconde plus tard ; un PDF envoyé à un
    client avec des cadres vides est définitif, et c'est un rapport sanitaire. */
 async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return;
+  /* ⛔ LA FENÊTRE S'OUVRE DANS LE GESTE, AVANT D'ATTENDRE LE RÉSEAU (relecture v744) : ouverte après
+     deux allers-retours au serveur, le navigateur la bloquait. L'attente s'y affiche, et la question
+     « continuer quand même ? » s'y pose — c'est elle qui a la main, pas l'onglet derrière. */
+  const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
+  const attente=t=>{ try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">'+t+'</p>'); w.document.close(); }catch(e){} };
+  const demander=q=>{ try{ return w.confirm(q); }catch(e){ return confirm(q); } };
   if(Array.isArray(i.photos)&&i.photos.some(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; })){
-    toast('⬇️ Récupération des photos…',2500);
+    attente('Récupération des photos…');
     await photosResoudre(i.photos);
     const reste=i.photos.filter(ph=>{ const m=PH_MARQUE.exec(String(ph||'')); return m&&!m[2]; }).length;
-    if(reste&&!confirm(reste+' photo(s) n\'ont pas pu être récupérées — elles manqueront dans le PDF.\n\nContinuer quand même ?')) return;
+    if(reste&&!demander(reste+' photo(s) n\'ont pas pu être récupérées — elles manqueront dans le PDF.\n\nContinuer quand même ?')){ try{ w.close(); }catch(e){} return; }
   }
   /* v744 : la page « Plan d'appâtage » du rapport imprime la photo de chaque plan à postes — elle
      peut vivre sur le serveur. Même règle que les photos : le PDF attend, et il demande s'il en manque. */
   if(i.clientId&&(((db.plansSite||{})[i.clientId])||[]).some(pl=>pl&&(pl.postes||[]).length&&photoPid(pl.img)&&!planImgSrc(pl))){
-    toast('⬇️ Récupération des plans…',2500);
+    attente('Récupération des plans…');
     await planImgsResoudre(i.clientId);
     const reste=(((db.plansSite||{})[i.clientId])||[]).filter(pl=>pl&&(pl.postes||[]).length&&photoPid(pl.img)&&!planImgSrc(pl)).length;
-    if(reste&&!confirm(reste+' photo(s) de plan n\'ont pas pu être récupérées — le plan sera imprimé sans son fond.\n\nContinuer quand même ?')) return;
+    if(reste&&!demander(reste+' photo(s) de plan n\'ont pas pu être récupérées — le plan sera imprimé sans son fond.\n\nContinuer quand même ?')){ try{ w.close(); }catch(e){} return; }
   } const c=db.clients.find(x=>x.id===i.clientId)||{};
   /* v740 : nom, couleur, logo et coordonnées de la société de CETTE intervention (docEntete) */
   const H=docEntete(i.rapportModele), soc=H.nom, AC=H.couleur;
@@ -23874,7 +23880,6 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
   const photos=(i.photos||[]).map((p,ix)=>{ p=photoSrc(p); const tg=(i.photoTags||[])[ix];
     return `<span style="display:inline-block;text-align:center;margin:4px">${tg?`<span style="display:block;font-size:10px;font-weight:bold;color:${tg==='avant'?'#C26A10':'#1E7A4E'};text-transform:uppercase">${tg==='avant'?'Avant':'Après'}</span>`:''}<img src="${p}" style="width:150px;height:150px;object-fit:cover;border-radius:6px"></span>`; }).join('');
   let planApp=''; try{ planApp=paPdfHtml(i); }catch(e){ planApp=''; }
-  const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups pour le PDF'); return; }
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport ${esc(i.titre)}</title>
     <style>*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}body{margin:0;padding:40px;color:#1A1F28}
     .hd{display:flex;justify-content:space-between;border-bottom:3px solid ${AC};padding-bottom:14px;margin-bottom:20px}
@@ -29510,9 +29515,27 @@ function printBon(id){ const b=db.bons.find(x=>x.id===id); if(!b)return; const f
 }
 /* ── PDF du bon de commande, généré dans l'app (aucune dépendance, accents gérés) ──
    Sert à l'aperçu avant envoi ET de pièce jointe à l'e-mail fournisseur. */
-function _pdfTxt(s){ s=String(s==null?'':s); let out='';
+/* ⛔ CE QUE WINANSI N'ÉCRIT PAS SE DIT AUTREMENT — JAMAIS PAR UN « ? » DANS UN DOCUMENT QU'UN CLIENT
+   REÇOIT (relecture de la v744 : depuis que le rapport part en PDF joint, un « → », un « • » ou un
+   « ⏰ » tapés par un technicien y devenaient « ? »). NFC d'abord — un « é » décomposé (e + accent
+   combinant) faisait « e? » —, puis flèches, puces, comparateurs, ligatures, cases cochées ; les
+   émojis et les pictogrammes s'effacent. Appliquée par `_pdfTxt` ET par `_pdfLarg` : ce qu'on mesure
+   est ce qu'on écrit, sinon une flèche devenue « -> » déborderait de sa colonne. */
+function _pdfTranslit(s){
+  const T={'\u2010':'-','\u2011':'-','\u2012':'-','\u2212':'-','\u2043':'-','\u2023':'\u2022','\u2032':"'",'\u2033':'"',
+    '\u2190':'<-','\u2192':'->','\u2194':'<->','\u21D0':'<=','\u21D2':'=>','\u21D4':'<=>','\u2191':'^','\u2193':'v',
+    '\u27F5':'<-','\u27F6':'->','\u27F7':'<->','\u2794':'->','\u279C':'->','\u27A1':'->','\u2B05':'<-','\u2B06':'^','\u2B07':'v',
+    '\u2264':'<=','\u2265':'>=','\u2260':'!=','\u2248':'~','\u2713':'OK','\u2714':'OK','\u2611':'OK','\u2717':'X','\u2718':'X','\u2612':'X','\u2610':'[ ]',
+    '\u03BC':'\u00B5','\uFB01':'fi','\uFB02':'fl','\u2002':' ','\u2003':' ','\u2007':' '};
+  return String(s==null?'':s).normalize('NFC').replace(/[\u2010-\u2012\u2023\u2032\u2033\u2043\u2190-\u21FF\u2212\u2248\u2260\u2264\u2265\u2300-\u23FF\u25A0-\u27BF\u27F5-\u27FF\u2B00-\u2BFF\u03BC\uFB01\uFB02\u2002\u2003\u2007\u200B\u200D\u20E3\uFE0E\uFE0F\u{1F000}-\u{1FAFF}]/gu,
+    c=>(c in T)?T[c]:(c>='\u25A0'&&c<='\u25FF'?'\u2022':'')); }
+function _pdfTxt(s){ s=_pdfTranslit(s); let out='';
   for(const ch of s){ let c=ch.codePointAt(0);
-    if(c===0x20AC)c=128; else if(c===0x2019||c===0x2018)c=146; else if(c===0x201C)c=147; else if(c===0x201D)c=148; else if(c===0x2013)c=150; else if(c===0x2014)c=151; else if(c===0x0153)c=156; else if(c===0x0152)c=140; else if(c===0x2026)c=133; else if(c===0x202F||c===0x2009)c=32; else if(c>255)c=63;
+    /* Les caractères de la page de code WinAnsi au-delà de 255 : chacun a sa place (128-159). */
+    if(c===0x20AC)c=128; else if(c===0x2019)c=146; else if(c===0x2018)c=145; else if(c===0x201C)c=147; else if(c===0x201D)c=148; else if(c===0x2013)c=150; else if(c===0x2014)c=151; else if(c===0x0153)c=156; else if(c===0x0152)c=140; else if(c===0x2026)c=133; else if(c===0x202F||c===0x2009)c=32;
+    else if(c===0x2022)c=149; else if(c===0x2122)c=153; else if(c===0x2030)c=137; else if(c===0x201A)c=130; else if(c===0x201E)c=132; else if(c===0x2020)c=134; else if(c===0x2021)c=135;
+    else if(c===0x2039)c=139; else if(c===0x203A)c=155; else if(c===0x0160)c=138; else if(c===0x0161)c=154; else if(c===0x017D)c=142; else if(c===0x017E)c=158; else if(c===0x0178)c=159;
+    else if(c===0x0192)c=131; else if(c===0x02C6)c=136; else if(c===0x02DC)c=152; else if(c>255)c=63;
     if(c===40||c===41||c===92) out+='\\'+String.fromCharCode(c); else out+=String.fromCharCode(c); }
   return out; }
 function bonPdfStr(b){
