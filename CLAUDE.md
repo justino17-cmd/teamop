@@ -1870,7 +1870,14 @@ contourner par une modification de `ci.yml`. `tests/test-728.js` lit la DÉPENDA
 pas l'intention — retirer le `needs` fait tomber le banc. **Cela ne remplace pas la règle
 ci-dessus** : les bancs verts autorisent le déploiement, ils ne décident pas de le faire.
 
-⛔⛔ **CETTE PORTE N'EXISTE QUE SUR LA BRANCHE — PAS SUR `main`, QUI EST CELUI QUI DÉPLOIE.**
+✅ **DEPUIS LE 24 SEPTEMBRE 2026 (15 h 14 UTC, commit `1be3b75`), LA PORTE EST SUR `main` AUSSI.**
+Le déploiement du serveur seul y a posé le job `bancs`, restreint à `scripts/bancs-serveur.liste`
+(34 suites, plancher de vérifications), et `deployer` le déclare en `needs` — premier passage :
+bancs verts en 39 s, PUIS le VPS. Tout commit de déploiement du serveur seul se FABRIQUE par
+`scripts/preparer-deploiement-serveur.sh`, qui réécrit la ligne des bancs pour lancer CETTE liste.
+Le paragraphe qui suit reste pour l'histoire — et pour sa leçon, qui ne vieillit pas.
+
+⛔⛔ **CETTE PORTE N'EXISTAIT QUE SUR LA BRANCHE — PAS SUR `main`, QUI EST CELUI QUI DÉPLOIE.**
 Vérifié le 23 septembre 2026 au soir (`git show origin/main:.github/workflows/deploiement.yml`) :
 sur `main`, un seul job, `deployer`, sans `needs`. Le paragraphe ci-dessus décrit le fichier de la
 branche de travail, jamais reporté sur `main` — et il ne peut pas l'être tel quel : les bancs de la

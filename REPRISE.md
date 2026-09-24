@@ -39,7 +39,37 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
-## ⛔⛔ SERVEUR — PRÊT À DÉPLOYER SEUL, ATTEND JUSTIN (24 septembre 2026) — remplace la section du 23 au soir
+## ✅ SERVEUR — DÉPLOYÉ SEUL LE 24 SEPTEMBRE 2026 À 15 H 14 UTC (la production reste en v695)
+
+Justin, 24 septembre, 15 h 10 UTC : **« pousse le serveur, et oui pour la sauvegarde mensuelle »**
+(la copie mensuelle est active par défaut — `MENSUEL = !(conf.mensuel === false)` — aucun réglage
+posé). Préparé par `scripts/preparer-deploiement-serveur.sh` depuis `6c581d0a` sur `main = 8429cba`
+(34 suites · 2 015 vérifications contre les pages de `main`), poussé en **`1be3b75`**.
+- **GitHub** : « Déploiement du serveur » n° 94 VERT — le job `bancs` (39 s) PUIS `deployer`
+  (dépôt mis à jour et service redémarré à 15:14:03) ; « Vérifications » (`ci.yml`) VERT.
+- **`/health` relu de dehors** : `ok:true`, `uptime` qui monte (23 → 33 → 43 s, pas de boucle de
+  redémarrage), `registres:{espaces:true,fermes:true,promos:true}`, `socle.actif:false`,
+  `portail.comptes.actif:false`, `portail.dossiers.actif:false`, `conservation` réduit à
+  `{actif:true,balayageOk:true,echu:false,preavis:false}`, `sauvegarde:{active:true,configuree:true,
+  ok:true,ageH:4,instantaneEchecs:0,elagageEchecs:0,mensuelActif:true,mensuelJ:null}`, `email`,
+  `stripe`, `atts` à `true`, `routesDoublons:0`, `bugs1h:0`.
+- ⏳ **`mensuelJ:null` = allumé, jamais faite** : la première copie mensuelle part à la prochaine
+  nuitée. Si elle n'est pas faite à 9 h UTC, la surveillance le dit (une fois par jour, à 9 h) —
+  « Lancer » dans la Tour (sauvegarde) la fait tout de suite.
+- ⚠️ **« Vérification des pages » (`verification.yml`) est ROUGE sur `main` — pas à cause du
+  serveur**, et depuis la v739 au moins (23 septembre : rouge à CHAQUE publication de la bêta,
+  runs 456 à 463). Deux étapes, une seule cause : elles exigent que la bêta porte la MÊME version
+  qu'`app.html`, ce qui est faux par construction depuis que `main` garde la production en v695
+  pendant que la bêta avance — `verifier-version.js` (« app v695 contre bêta v744 ») et l'étape
+  `node beta-build.js`, qui refuse d'écrire une bêta v695 par-dessus la v744. Toutes les AUTRES
+  étapes passent (elles sont en `if: always()`), dont « Les suites du dépôt passent » et
+  « Chacun ne voit que ce qui le concerne ». ⚠️ Mais un rouge permanent masque le prochain vrai
+  rouge : **à corriger** — accepter « bêta EN AVANCE sur `app.html` » comme un état déclaré,
+  et garder le refus pour une bêta EN RETARD ou de même version mais pas régénérée
+  (`verifier-version.js` + `tests/test-709.js` + l'étape bêta). Ne touche ni le site ni le
+  serveur ; proposé à Justin le 24 septembre.
+
+### Ce qui précédait le déploiement (pour mémoire)
 
 Justin, le 24 au matin : **« Fais ce que tu peux faire sans moi, étape par étape avec vérification. »**
 Les quatre conditions posées par `gardien` le 23 au soir sont traitées sur la branche, et la
