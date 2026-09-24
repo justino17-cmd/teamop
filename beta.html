@@ -11800,7 +11800,7 @@ function seed(){
         {id:uid(),mode:'Virement',montant:850,date:d(0),reference:'VIR-2026-02',statut:'attente'}]},
     ],
     mouvements:[
-      {id:uid(),ts:Date.now()-86400000,produitId:p1,type:'sortie',qte:5,motif:'Intervention Tilleuls',vehiculeId:v1},
+      {id:uid(),ts:Date.now()-86400000,produitId:p1,type:'sortie',qte:5,motif:'Sortie véhicule',vehiculeId:v1},
       {id:uid(),ts:Date.now()-43200000,produitId:p3,type:'entree',qte:20,motif:'Réception commande',vehiculeId:''},
       {id:uid(),ts:Date.now()-3600000,produitId:p2,type:'sortie',qte:12,motif:'Chantier Boulogne',vehiculeId:v2},
     ],
@@ -24483,7 +24483,7 @@ function mvtDemoGrande(){
         const pourAutre=(ip+k)%4===0;
         const recoit=pourAutre?equipe[(ip+k+2)%equipe.length]:[qui,role];
         db.mouvements.push({id:uid(),ts,produitId:p.id,type:'sortie',qte,unite:'u',
-          motif:(k%3===0?'Intervention chantier':'Ajustement (validé DR)')+' — '+(box.nom||box.numero||''),
+          motif:(k%3===0?'Sortie box':'Ajustement (validé DR)')+' — '+(box.nom||box.numero||''),   // v741 : une intervention n'écrit rien au journal
           boxId:box.id,boxNomTxt:(box.nom||box.numero||''),vehiculeId:'',
           technicien:qui,donneA:recoit[0],roleConso:recoit[1],validePar:dr,_demo:true});
         n++;

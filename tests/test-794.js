@@ -203,6 +203,8 @@ console.log('\n── 794 · 4. ⛔⛔ une intervention ne déduit RIEN — ni b
   }
   const T = bloc('function t3dProdUnit(intId,ix,u){');
   vrai('changer l’unité d’une ligne ne touche que la ligne', /l\.unite=u; save\(\); t3dRefresh\(intId\);/.test(T) && !/stock/i.test(T), T);
+  v('⛔ plus aucun code n’écrit une ligne de journal « Intervention … » (démonstrations comprises — relecture v741)',
+    SRC.match(/motif:[^,}\n]*Intervention[^,}\n]*/g) || [], []);
   const txt = BRUT.split('Le stock sera déduit').length - 1;
   v('⛔ plus aucun écran n’annonce « Le stock sera déduit »', txt, 0); }
 
