@@ -225,8 +225,15 @@ process.on('exit', arreter);
     {
       const ab = await post('/api/subscribe', { sub: { endpoint: 'https://push.exemple/suspendue-qk', keys: {} }, teamId: S.t, userId: 'u1', userName: 'Test' });
       v('⛔ la suspendue s\'abonne aux notifications', [ab.code, ab.j.ferme], [200, undefined]);
-      await dormir(300);
-      let subs = {}; try { subs = JSON.parse(fs.readFileSync(path.join(data, 'subscriptions.json'), 'utf8')); } catch (e) {}
+      /* ⛔ `saveSubs()` écrit en DIFFÉRÉ, 300 ms après le dernier abonnement. Attendre 300 ms tout
+         juste, c'était parier sur le même délai que le serveur : mesuré le 24 septembre 2026, la
+         course se perd sous charge (le banc lancé par `preparer-deploiement-serveur.sh` a lu le
+         fichier avant l'écriture). On attend l'ÉCRITURE, 3 s au plus — le contrôle reste le même. */
+      let subs = {};
+      for (let k = 0; k < 30 && !subs['https://push.exemple/suspendue-qk']; k++) {
+        await dormir(100);
+        try { subs = JSON.parse(fs.readFileSync(path.join(data, 'subscriptions.json'), 'utf8')); } catch (e) {}
+      }
       vrai('   et l\'abonnement est ÉCRIT', !!subs['https://push.exemple/suspendue-qk']);
       const abf = await post('/api/subscribe', { sub: { endpoint: 'https://push.exemple/fermee-zk', keys: {} }, teamId: F.t });
       v('   la fermée : répondu « fermé », rien d\'écrit', abf.j.ferme, true);
