@@ -14,7 +14,8 @@
         4. Karim voit la carte et « Me servir » ; Sofia, sans la case, lit « ne t'est pas ouvert » ;
         5. « Qui peut s'y servir » (administrateur) : décocher Karim → sa case écrite NON → il ne le voit
            plus ; un chef qui gère les box ne voit pas la ligne, et la fenêtre le refuse ;
-        6. le bureau (« tout voir », sans équipe, rien de réglé) y a accès par défaut ;
+        6. v743 — Justin : « l'administrateur seul ». Le bureau (« tout voir », sans équipe, rien de réglé)
+           n'y a PAS accès d'office ; l'administrateur le coche dans « Qui peut s'y servir » → il s'y sert ;
         7. le ✎ du stockage dit « c'est une permission » ; la création d'un compte propose la case, et
            cochée, elle est écrite.
    ⛔ On compte la population avant de croire un zéro. ⛔ Bêta uniquement, 127.0.0.1. SOURCE=<une bêta
@@ -126,7 +127,7 @@ let navigateur=null;
     const boxes=[...z.querySelectorAll('input[data-d^="box_"]')].map(x=>x.dataset.d);
     return {sw:!!sw, coche:sw?sw.checked:null, deduit:sw?sw.dataset.deduit:null, categorie:cat?cat.querySelector('summary b').textContent.trim():'', boxes};`);
   vrai('la case existe sur la ligne de Karim, dans « 📦 Stock »', !!b3&&b3.sw&&/Stock/.test(b3.categorie), b3);
-  v('⛔ décochée (un technicien n’a pas le stockage par défaut), et suit son défaut tant qu’on n’y touche pas', [b3&&b3.coche, b3&&b3.deduit], [false,'1']);
+  v('⛔ décochée (v743 : personne ne l’a par défaut, sauf l’administrateur) — et plus aucun défaut déduit d’autres cases', [b3&&b3.coche, b3&&(b3.deduit||null)], [false,null]);
   v('⛔ le stockage n’est plus dans « Box qu’il ouvre »', (b3&&b3.boxes||[]).filter(x=>/stockage/.test(x)), []);
   await S.ev(`const z=document.getElementById('usr-d-u-v42-k'); const sw=z.querySelector('input[data-d="cap_stockage"]'); const d=sw.closest('details'); if(d) d.open=true; return 1;`);
   vrai('la case est touchée', await toucher('#usr-d-u-v42-k label.switch:has(input[data-d="cap_stockage"])'));
@@ -156,9 +157,9 @@ let navigateur=null;
   await S.ev(`go('stock'); await new Promise(r=>setTimeout(r,800)); return 1;`);
   vrai('l’administrateur touche « Qui peut s’y servir »', await toucherTexte('#content .stk-carte','Qui peut s'));
   await dormir(500);
-  const b5=await S.ev(`return [...document.querySelectorAll('#stk-gens label')].map(l=>({t:l.textContent.replace(/\\s+/g,' ').trim(), on:l.querySelector('input').checked, off:l.querySelector('input').disabled})).filter(x=>/Benali|Perez|Compta|Roux/.test(x.t)).map(x=>[x.t.split(' ·')[0],x.on,x.off]);`);
-  v('⛔ la fenêtre montre la PERMISSION de chacun : Bureau (défaut), Justin (administrateur, d’office), Karim (réglée), Karim A., Sofia',
-    b5, [['Bureau Compta',true,false],['Justin Roux',true,true],['Karim A. Benali',false,false],['Karim Benali',true,false],['Sofia Perez',false,false]]);
+  const b5=await S.ev(`return [...document.querySelectorAll('#stk-gens label')].map(l=>({t:l.textContent.replace(/\\s+/g,' ').trim(), on:l.querySelector('input').checked, off:l.querySelector('input').disabled})).filter(x=>/Benali|Perez|Compta|Roux|Rémi/.test(x.t)).map(x=>[x.t.split(' ·')[0],x.on,x.off]);`);
+  v('⛔⛔ la fenêtre montre la PERMISSION de chacun — v743 : Justin (administrateur, d’office) et Karim (cochée) SEULS ; ni le bureau ni Rémi (chef sans équipe, « Tout voir ») d’office',
+    b5, [['Bureau Compta',false,false],['Justin Roux',true,true],['Karim A. Benali',false,false],['Karim Benali',true,false],['Rémi Chef',false,false],['Sofia Perez',false,false]]);
   await cap('B5-qui-peut');
   await S.ev(`const l=[...document.querySelectorAll('#stk-gens label')].find(x=>/^Karim Benali/.test(x.textContent.trim())); l.querySelector('input').setAttribute('data-sonde','1'); return 1;`);
   await toucher('[data-sonde="1"]');
@@ -172,12 +173,24 @@ let navigateur=null;
   const b5o=await S.ev(`window.__toasts=[]; boxView=null; openBox('stockage'); await new Promise(r=>setTimeout(r,500)); return {boxView, toast:window.__toasts.slice(-1)[0]||''};`);
   vrai('⛔ … ni par un lien (openBox)', b5o.boxView!=='stockage' && /ne t’est pas ouvert/.test(b5o.toast), b5o);
 
-  console.log('\n══ B.6 LE BUREAU : « TOUT VOIR », SANS ÉQUIPE, RIEN DE RÉGLÉ → OUVERT PAR DÉFAUT ══');
+  console.log('\n══ B.6 v743 — LE BUREAU (« TOUT VOIR », SANS ÉQUIPE) : FERMÉ TANT QUE L’ADMINISTRATEUR NE LE COCHE PAS ══');
   /* le bureau a le menu Stock (la comptable ne l'a pas par défaut : la carte du stockage vit DANS ce
      menu — c'est la case de sa catégorie, pas une porte à part). */
   await connecter('u-v42-b');
   await S.ev(`go('stock'); await new Promise(r=>setTimeout(r,800)); return 1;`);
-  vrai('le bureau voit « Me servir »', /Me servir/.test(await contenu()));
+  { const t=await contenu(); vrai('⛔⛔ le bureau, rien de réglé : « ne t’est pas ouvert », pas de « Me servir »', /ne t’est pas ouvert/.test(t) && !/Me servir/.test(t), t.slice(0,200)); }
+  await connecter('u-v42-a');
+  await S.ev(`go('stock'); await new Promise(r=>setTimeout(r,800)); return 1;`);
+  vrai('l’administrateur touche « Qui peut s’y servir »', await toucherTexte('#content .stk-carte','Qui peut s'));
+  await dormir(500);
+  await S.ev(`const l=[...document.querySelectorAll('#stk-gens label')].find(x=>/^Bureau Compta/.test(x.textContent.trim())); l.querySelector('input').setAttribute('data-sonde','1'); return 1;`);
+  vrai('la case du bureau est touchée', await toucher('[data-sonde="1"]'));
+  vrai('« Enregistrer » est touché', await toucherTexte('#overlay .modal-head','Enregistrer'));
+  await dormir(500);
+  v('⛔ sa permission est ÉCRITE : oui', await cle('u-v42-b'), true);
+  await connecter('u-v42-b');
+  await S.ev(`go('stock'); await new Promise(r=>setTimeout(r,800)); return 1;`);
+  vrai('contre-épreuve : cochée par l’administrateur, le bureau voit « Me servir »', /Me servir/.test(await contenu()));
 
   console.log('\n══ B.7 LE ✎ DU STOCKAGE, ET LA CRÉATION D’UN COMPTE ══');
   await connecter('u-v42-a');
@@ -215,9 +228,9 @@ let navigateur=null;
     const o=[...document.querySelectorAll('#overlay select[name="respUserId"] option')].map(x=>x.textContent.replace(/\\s+/g,' ').trim()).filter(t=>!/Aucun/.test(t));
     const aide=(document.querySelector('#overlay select[name="respUserId"]')||{}).parentElement; const t=aide?aide.textContent.replace(/\\s+/g,' '):'';
     try{ closeModal(true); }catch(e){} return {o, aide:/Parmi ceux qui ont la permission/.test(t)};`);
-  v('⛔ le ✎ du stockage : le bureau (permission par défaut) et Nadia (cochée) sont proposés ; Sofia (l’actuelle, sans la case) reste lisible et signalée ; ni Karim, ni les Jean — Rémi (chef sans équipe) l’a par défaut',
+  v('⛔ le ✎ du stockage : le bureau (coché en B.6) et Nadia (cochée à sa création) sont proposés ; Sofia (l’actuelle, sans la case) reste lisible et signalée ; ni Karim, ni les Jean, ni Rémi (v743 : plus d’accès d’office)',
     [c9.o.map(x=>x.split(' — ')[0]).sort(), c9.o.filter(x=>/sans la permission/.test(x)).map(x=>x.split(' — ')[0]), c9.aide],
-    [['Bureau Compta','Nadia Kacem','Rémi Chef','Sofia Perez'], ['Sofia Perez'], true]);   // Rémi : chef SANS équipe, « Tout voir » par défaut, donc la permission par défaut
+    [['Bureau Compta','Nadia Kacem','Sofia Perez'], ['Sofia Perez'], true]);   // v743 : Rémi (chef sans équipe) n'a plus la case d'office
 
   /* Le bureau DÉCOCHÉ (« Tout voir » sans la case) : un produit qui n'est QUE dans le stockage n'est pas « Épuisé » à ses yeux. */
   const prod=async()=>{ await S.ev(`prdSearch=''; prdExpanded={}; go('produits'); await new Promise(r=>setTimeout(r,800)); CAT_LIST.forEach(c=>prdExpanded[c]=true); renderProduitsList(); return 1;`);
@@ -226,10 +239,10 @@ let navigateur=null;
   await connecter('u-v42-b');
   const c10=await prod();
   vrai('⛔⛔ le bureau SANS la case : « CARTON APPÂTS SOURIS » (8 u, seulement au stockage) dit « Pas dans tes box », pas « Épuisé »', !!c10 && /Pas dans tes box/.test(c10) && !/Épuisé/.test(c10), c10);
-  await S.ev(`const u=db.users.find(x=>x.id==='u-v42-b'); delete u.acces.caps.stockage; save(); return 1;`);
+  await S.ev(`const u=db.users.find(x=>x.id==='u-v42-b'); u.acces.caps.stockage=true; save(); return 1;`);
   await connecter('u-v42-b');
   const c10b=await prod();
-  vrai('contre-épreuve : le bureau AVEC sa case (défaut) le voit « En stock · 8 u »', !!c10b && /En stock · 8 u/.test(c10b), c10b);
+  vrai('contre-épreuve : le bureau AVEC sa case (cochée) le voit « En stock · 8 u »', !!c10b && /En stock · 8 u/.test(c10b), c10b);
 
   /* Renommer une fiche technicien, au doigt : ✎ de Karim → « Sofia Perez » (une autre fiche) → refusé, rien ne bouge. */
   await connecter('u-v42-a');

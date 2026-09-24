@@ -290,7 +290,8 @@ console.log('\n── 789 · 10. ⛔⛔ « Se servir dans le stockage » est une
 /* Justin, 24 septembre 2026 : « l'accès au stockage est une permission ». En v741 il se donnait comme
    l'accès d'une box, depuis une liste posée sur le stockage : invisible dans les droits de la personne,
    absent des profils. On JOUE ici les vraies fonctions de droits : la case existe, est rangée dans le
-   Stock, suit un défaut (le bureau) tant qu'on n'y touche pas, et ne se donne pas sans l'avoir. */
+   Stock, n'est à PERSONNE tant qu'on ne la coche pas — sauf l'administrateur (v743, Justin : « l'administrateur
+   seul ») —, et ne se donne pas sans l'avoir. */
 { const M = monde();
   const K = M.USER_CAPS.find(c => c[0] === 'stockage');
   vrai('la case existe, nommée pour ce qu’elle ouvre', !!K && /Se servir dans le stockage/.test(K[1]) && /Me servir/.test(K[2]), K);
@@ -299,10 +300,14 @@ console.log('\n── 789 · 10. ⛔⛔ « Se servir dans le stockage » est une
   const dr = { id: 'uD', role: 'dr', acces: { caps: { voirTout: true } } };
   const tech = { id: 'uT', role: 'technicien', acces: { caps: { voirTout: false } } };
   const M2 = monde({ perim: { uD: ['t1', 't2'] } });
-  v('⛔ défaut (rien de réglé) : le bureau oui, un DR avec son équipe non, un technicien non, l’administrateur toujours',
-    [M2.userCap(bureau, 'stockage'), M2.userCap(dr, 'stockage'), M2.userCap(tech, 'stockage'), M2.userCap({ id: 'uA', role: 'admin' }, 'stockage')], [true, false, false, true]);
-  tech.acces.caps.stockage = true; bureau.acces.caps.stockage = false;
-  v('⛔⛔ la case RÉGLÉE décide, dans les deux sens (on la donne au technicien, on la retire au bureau)', [M2.userCap(tech, 'stockage'), M2.userCap(bureau, 'stockage')], [true, false]);
+  /* v743 : la v742 la donnait d'office à qui « voit tout » sans équipe — le bureau, mais aussi un chef ou un DR
+     créé sans personne rattaché. Justin : « l'administrateur seul ». Donner l'accès est un geste. */
+  const chefSeul = { id: 'uC', role: 'chefEquipe', acces: { caps: { voirTout: true } } };
+  v('⛔⛔ v743 — défaut (rien de réglé) : l’administrateur SEUL — ni le bureau, ni un chef sans équipe, ni un DR, ni un technicien',
+    [M2.userCap({ id: 'uA', role: 'admin' }, 'stockage'), M2.userCap(bureau, 'stockage'), M2.userCap(chefSeul, 'stockage'), M2.userCap(dr, 'stockage'), M2.userCap(tech, 'stockage')], [true, false, false, false, false]);
+  v('⛔ … et plus aucun défaut DÉDUIT d’autres cases (l’éditeur ne la fait plus suivre « Tout voir »)', M2.capDeduitRegle('stockage'), null);
+  tech.acces.caps.stockage = true; bureau.acces.caps.stockage = true; dr.acces.caps.stockage = false;
+  v('⛔⛔ la case RÉGLÉE décide, dans les deux sens (on la donne au technicien et au bureau, on la retire à un DR)', [M2.userCap(tech, 'stockage'), M2.userCap(bureau, 'stockage'), M2.userCap(dr, 'stockage')], [true, true, false]);
   const chef = { id: 'uR', role: 'chefEquipe', acces: { caps: { creerUtilisateurs: true, voirTout: true } } };
   const M3 = monde({ perim: { uR: ['t9'] } });
   const nu = { id: 'nu', role: 'technicien', acces: { caps: { stockage: true }, modules: {} } };

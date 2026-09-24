@@ -7030,7 +7030,7 @@ try{
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 })();
-const APP_VERSION = '742';
+const APP_VERSION = '743';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -12633,9 +12633,10 @@ function capDeduitRegle(cap){
     /* v738 : « Gérer les box » tenait à « Supprimer des éléments » — c'est lui qui montrait « ＋ Box »
        et le ✎ d'une box. Le défaut reproduit exactement la veille. */
     case 'gererBoxes':   return u=>userCap(u,'supprimer');
-    /* v742 : le stockage reproduit la v741 — ouvert d'office à qui voit tout SANS équipe rattachée (le
-       bureau), fermé aux autres tant qu'on ne leur donne pas la case. */
-    case 'stockage':     return u=>userCap(u,'voirTout')&&!perimetreTechIds(u);
+    /* ⛔ v743 — PAS de défaut pour le stockage : Justin, 24 septembre 2026, « l'administrateur seul ». La
+       v742 l'ouvrait d'office à qui « voit tout » sans équipe — donc à tout chef d'équipe ou DR créé
+       sans personne rattaché, sans que personne l'ait décidé. Donner l'accès est un GESTE : la case
+       n'est vraie que cochée (l'administrateur l'a d'office, par userCap). */
   }
   return null; }
 function userCap(u,cap){ if(!u) return false; if(u.role==='admin') return true;
@@ -30869,7 +30870,7 @@ const USER_CAPS=[
      une permission ». En v741 il se donnait comme celui d'une box, depuis une liste posée sur le stockage :
      invisible dans les droits de la personne, absent des profils. C'est désormais une case, réglée ici comme
      les autres ; la carte du stockage n'en est qu'un raccourci. Défaut : capDeduitRegle. */
-  ['stockage','Se servir dans le stockage','Voit le stockage — le stock hors des box — et s’y sert : « Me servir » (chaque sortie dit qui a pris quoi), « Arrivage », son contenu. Sans ce droit, le stockage ne lui est pas ouvert. Par défaut : qui « voit tout » sans équipe rattachée (le bureau).'],
+  ['stockage','Se servir dans le stockage','Voit le stockage — le stock hors des box — et s’y sert : « Me servir » (chaque sortie dit qui a pris quoi), « Arrivage », son contenu. Sans ce droit, le stockage ne lui est pas ouvert. Par défaut : personne — seul l’administrateur l’a d’office ; on la coche pour chaque personne qui s’y sert.'],
   ['validerDR','Valider les mouvements de box et les demandes (rôle DR)','Voit « Validations DR », valide ou refuse les arrivages, réceptions, prises et demandes de commande de l\'équipe, et reçoit les alertes « à valider » — ainsi que celles des box en stock bas, des travaux terminés et des enveloppes en attente'],
   ['voirCompta','Voir / gérer la comptabilité et les tarifs','Comptabilité, télécollectes, prix et marges (par défaut : administrateur, DR et gestion compta)'],
   ['opMessages','Accès à OP MESSAGES','Affiche OP MESSAGES dans sa barre latérale — sans effet tant que TEAM OP n\'a pas ouvert cette application à l\'entreprise (elle a son propre abonnement)'],
