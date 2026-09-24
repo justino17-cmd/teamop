@@ -312,6 +312,17 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   public **par nécessité** : `espace.html` et `recap-abonnement.html` valident un code avant
   qu'un espace existe, il n'y a alors aucune clé à prouver ; il n'écrit rien, donc il ne donne
   rien. Ne pas le fermer « pour faire propre », ça casserait la page d'abonnement.
+- ⛔⛔ **UN CODE PROMO SERT UNE FOIS PAR ENTREPRISE — `promoPresente` EST LE SEUL VERDICT.**
+  Justin, 24 septembre 2026 : « une fois qu'une entreprise l'a activé, ils peuvent pas le remettre ».
+  Cinq chemins activent un code (application, Tour, relais du portail, demande du site, rattrapage
+  d'`espacePaye`) et les cinq demandent `promoPresente(c, t, slug)` : neuf, en cours (même échéance,
+  rien ne se recompte), servi (**refus 410**, dit par `promoRefusServi`), registre illisible (rien ne
+  s'active). Un sixième chemin passe par elle ou n'existe pas ; une utilisation s'écrit par
+  `promoEntree`, jamais `equipes[t] = { date: … }` à la main (`tests/test-803.js` compte les deux).
+  ⚠️ « Repartir à neuf » change `t` : l'entreprise se reconnaît aussi à l'EMPREINTE de son e-mail
+  (`em`, jamais l'adresse en clair dans `promos-usages.json`) ; le slug seul ne suffit pas, une
+  adresse libérée peut être reprise par une AUTRE entreprise, qui n'hérite de rien.
+  ⚠️ La suppression TOTALE efface la mémoire des codes avec le reste — voulu, geste de la Tour.
 - ⛔ **`espaces.json` ne s'écrit QUE par `espacesEcrire()`** (temporaire puis renommage).
   Tronqué, il sort TOUTES les entreprises de l'annuaire d'un coup — et depuis que la règle
   Firestore est publiée, ça ne casse plus seulement la Tour : plus de verdict de clé, plus de
@@ -1688,6 +1699,21 @@ PDF → client (choisi ou saisi) → envoi par `envoiDoc()`. Le moteur dépend d
 l'offre de l'entreprise, décidée côté serveur : Haiku inclus, Sonnet en supplément,
 ou les deux au choix de l'utilisateur.
 
+⛔ **LE RAPPORT D'INTERVENTION PART EN VRAI PDF JOINT DEPUIS LA v744 (bêta)** — `rapportPdfStr`,
+même fabrique, et `rapportDocument` qui relit photos et plans du serveur sans rien enregistrer.
+Deux règles :
+- **le rapport imprimé (`printRapport`) et le PDF lisent les MÊMES fonctions** —
+  `rapportConstatLignes`, `rapportProduitsLibres`, `rapportChampsPerso`, et `_pdfDessinPlans` pour
+  le plan (partagé avec le plan d'implantation). Une section ajoutée à l'un sans l'autre, et le
+  client reçoit un document différent de celui qu'on a imprimé (`tests/test-802.js` §5) ;
+- ⛔ **aucun « ? » dans un document qu'un client reçoit** : WinAnsi n'a ni flèche, ni pictogramme,
+  ni « é » décomposé. `_pdfTranslit` les dit autrement ou les efface, et `_pdfTxt` ET `_pdfLarg`
+  l'appliquent tous deux — ce qu'on mesure est ce qu'on écrit. Un nouveau générateur écrit par
+  `_pdfTxt` et mesure par `_pdfLarg`, jamais autrement.
+- ⚠️ **une fenêtre d'impression s'ouvre DANS le geste**, avant tout `await` : ouverte après un
+  aller-retour au serveur, le navigateur la bloque. L'attente et la question s'affichent dedans
+  (`printRapport`, `papDossierSanitaire`).
+
 ## ⛔ RÈGLE DE TRAVAIL — tout le développement sur la BÊTA
 
 Posée par Justin le 11 septembre 2026, après une matinée où deux défauts sont remontés d'ELAN :
@@ -1788,6 +1814,17 @@ aurait envoyé des PDF cassés à des clients d'ELAN dans la journée.
 ⚠️ Corollaire pour toute fonctionnalité future qui ALLÈGE un enregistrement synchronisé : se
 demander d'abord **ce qu'en fait la version d'AVANT**. Un allègement n'est jamais neutre pour
 un parc mélangé — et un parc est toujours mélangé pendant quelques jours.
+
+⛔ **ET LES PHOTOS DE PLANS SUIVENT LA MÊME RÈGLE DEPUIS LA v744 (bêta, 24 septembre 2026).** La
+photo d'un plan d'appâtage et celles de l'onglet « Plans » d'une intervention prennent le format
+`piece:…` (`planImgSrc`, `planImgDeposer`, `intPlanDeposer`). Une v743 ou antérieure mettrait le
+marqueur dans l'image d'un plan : même ordre (publier, attendre, PUIS exiger la version), et pas de
+plan photographié depuis un appareil à jour tant que le parc est mélangé. La fusion des plans poste
+par poste (`plansFusionFine`) ne s'active, elle, qu'une fois les deux côtés à jour.
+⛔ **Et regarder une photo ne la modifie pas** : `recEmpreinte` coupe une pièce à son marqueur
+(70 caractères). Sans ça, relire le contenu pour l'écran changeait l'empreinte de la fiche, et le
+`save()` suivant la TAMPONNAIT — un appareil qui ne faisait que regarder gagnait la fusion (défaut
+de la v702, mesuré dans la vraie page v743).
 
 ### ⛔ REDURCIE LE 15 SEPTEMBRE 2026 AU SOIR — RIEN NE PART SANS ÊTRE ÉPROUVÉ
 

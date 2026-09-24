@@ -39,45 +39,161 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
-## ⛔⛔ SERVEUR — CE QUE LE GARDIEN A RELU AVANT UN DÉPLOIEMENT « INERTE » (23 septembre 2026, nuit) — ATTEND JUSTIN
+## ⛔⛔ SERVEUR — PRÊT À DÉPLOYER SEUL, ATTEND JUSTIN (24 septembre 2026) — remplace la section du 23 au soir
 
-Question : peut-on pousser `server/` de la branche sur `main` (donc déployer le VPS) avec les deux
-drapeaux du socle éteints, sans rien changer pour les clients ? Relu par `gardien` : **993 ✓ 0 ✗**
-sur les dix bancs serveur de la branche, `npm audit` propre, et les DEUX serveurs réels (main contre
-branche) démarrés côte à côte sur une configuration identique à celle du VPS (sans champ `socle` ni
-`comptes`, sans clé maître) : même 123 routes plus une (`GET /api/monitor/conservation`, gardée),
-`/api/op/*` et `/api/comptes/*` en 404, aucun fichier `socle*` créé.
+Justin, le 24 au matin : **« Fais ce que tu peux faire sans moi, étape par étape avec vérification. »**
+Les quatre conditions posées par `gardien` le 23 au soir sont traitées sur la branche, et la
+relecture de `gardien` qui a suivi a trouvé quatre défauts de plus, corrigés eux aussi :
 
-**Verdict : déployable éteint, OUI — à quatre conditions. Et ce n'est PAS « sans effet ».**
-1. **Un commit qui ne porte QUE `server/`**, jamais la fusion de la branche (elle publierait
-   `app.html` v737 : +8 900 lignes). ⚠️ Et ce commit part **SANS AUCUN BANC** : le job `bancs` de
-   `deploiement.yml` n'existe QUE sur la branche (vérifié : sur `main`, un seul job, `deployer`).
-   Apporter la porte telle quelle bloquerait le déploiement (67 suites lisent l'`app.html` de la
-   branche) ; il faudrait un job `bancs` restreint aux suites serveur (726, 724, 641, 716, 722, 723,
-   725, 729, 745 passent en simulation).
-2. **Justin accepte — ou fait corriger — deux changements** :
-   · la **suspension change de sens, à moitié** : `/api/espaces/etat` ne renvoie plus `ferme:true`
-     à un suspendu et `/suspendre` ne coupe plus Firebase (c'est sa décision du 20 septembre), MAIS
-     `/api/fb/jeton` et `/api/espaces/ouvrir` refusent encore un suspendu en 403. Chez un client v695
-     suspendu : les appareils connectés gardent tout, un appareil neuf tombe sur l'écran de refus,
-     et rien ne grise tant que Stripe dit `past_due` (compté comme payé) ;
-   · **`/health` (public) publierait des chiffres commerciaux** : `conservation.suivis`,
-     `jamaisAbonnes`, `enPreavis`, `echus` — le nombre d'espaces qui ne paient pas. Proposition :
-     n'y laisser que `actif`, `balayageOk` et deux booléens.
-3. **Deux comptages sur le VPS AVANT** (sans lire `config.json`, sans rien nommer) : le nombre
-   d'entrées `suspendus` dans `data/entreprises-fermees.json`, et le nombre d'espaces d'`espaces.json`
-   qui portent un `codePromo` absent de `promos-usages.json`. ⚠️ L'horloge de conservation se monte
-   SANS drapeau et appelle `espacePaye()` au démarrage : un code promo en attente s'active tout seul
-   (compteur +1, courriel au client) — mesuré sur le serveur réel. Garder une copie de
-   `promos-usages.json` pour comparer après.
-4. **La copie mensuelle de la sauvegarde s'allume par défaut** (une archive complète de plus par
-   mois au coffre, 24 gardées) : l'accepter, ou poser `"mensuel": false` dans la configuration.
+- **A1 — `/health` ne publie plus de chiffres commerciaux.** `conservation` n'y porte plus que
+  `{actif, balayageOk, echu, preavis}` (deux BOOLÉENS) ; les comptes (`suivis`, `enPreavis`,
+  `echus`…) passent dans `/api/monitor/conservation` (la Tour, gardée), sous `compte`.
+- **A2 — une suspension n'est plus une coupure, nulle part.** `/api/fb/jeton` et
+  `/api/espaces/ouvrir` ne refusent plus un espace SUSPENDU (seulement un espace FERMÉ) :
+  `espaceFerme(t)` est la question unique, `espaceEstSuspendu` exige la présence dans l'annuaire.
+  Suspendre un espace fermé rend 409 ; fermer retire des suspendus.
+- **A3 — un code promo en attente ne s'active plus tout seul au démarrage.** `espacePaye(e,
+  {lecture:true})` pour la liste, le statut et la conservation : il rend « en attente », sans
+  compteur ni courriel. Il ne s'active qu'au prochain lancement de l'application (le chemin d'avant).
+- **A4 — le commit de déploiement se FABRIQUE, il ne se recopie pas.**
+  `bash scripts/preparer-deploiement-serveur.sh` part du `main` du moment, y pose `server/`, sa
+  surveillance, le compteur et les suites de `scripts/bancs-serveur.liste` (34 suites depuis
+  `test-803`, avec son plancher de vérifications), réécrit la ligne des bancs des deux workflows pour qu'elle lance CETTE
+  liste (la suite complète tomberait : elle lit l'`app.html` de la branche), lance les bancs
+  contre les pages que `main` sert vraiment, et commite dans un arbre à part. **Il ne pousse
+  rien** — et le conteneur d'une session est éphémère : on le relance le jour J.
+- **Relecture de `gardien` (24 septembre)** : un annuaire ou un registre des fermetures ILLISIBLE
+  n'est plus pris pour un registre VIDE (`espacesIllisible`, `fermesIllisible` : on refuse d'écrire
+  par-dessus, `/health` publie `registres:{espaces,fermes}` et la surveillance crie) ;
+  `fermesSave` écrit par fichier temporaire + renommage ; `server/test-connexion.js` joue la
+  suspension et le renommage (66 ✓) ; `scripts/bancs-ci.sh` refuse une liste qui nomme un fichier
+  absent, attrape une suite « SAUTÉE » et tient un plancher (`BANCS_PLANCHER`).
+- **Et la règle des codes promo (24 septembre, après-midi) part AVEC ce déploiement** — voir la
+  section « UN CODE PROMO NE SERT QU'UNE FOIS PAR ENTREPRISE » plus bas. Contre la v695 que les
+  clients ont, l'effet visible est un seul : un code déjà servi et fini est REFUSÉ, et la page le
+  dit dans son bandeau (mesuré par `test-803` contre l'`app.html` de `main`). La liste des bancs
+  serveur passe à 34 suites.
 
-Juste après le déploiement, `curl -s localhost:8080/health` doit rendre `ok:true`,
-`routesDoublons:0`, `socle:{actif:false}` et `portail` éteint sans `erreur`, `conservation.actif`
-et `balayageOk` vrais, `sauvegarde` active sans échec ; `ls /opt/teamop/data | grep socle` → rien ;
-`POST /api/op/session` → 404 ; le journal sans « NON monté » ni « DEUX FOIS ». Le lendemain : la
-sauvegarde de la nuit `ok`, et une seule copie sous `teamop/mensuel/`.
+**Ce qu'il reste, et c'est à Justin (ou à une session qui a l'accès SSH) :**
+1. **AVANT de pousser**, sur le VPS, en lecture seule — pour chaque ligne « S'OUVRIRA », confirmer
+   que c'est un impayé qu'on accepte de voir retrouver l'accès complet (la v695 ignore le sursis de
+   sept jours : un suspendu retrouve tout, et rien ne grise) :
+   ```bash
+   cd /opt/teamop/data && node -e '
+   const fs=require("fs");
+   const F=JSON.parse(fs.readFileSync("entreprises-fermees.json","utf8"));
+   const A=JSON.parse(fs.readFileSync("espaces.json","utf8"));
+   const tDe=e=>{if(e.t)return String(e.t);try{return String(JSON.parse(Buffer.from(e.code,"base64").toString()).t||"")}catch(_){return ""}};
+   const parT={};for(const[s,e]of Object.entries(A)){const t=tDe(e);if(t)(parT[t]=parT[t]||[]).push(s+(e.email?" <"+e.email+">":" <sans adresse>"));}
+   const S=F.suspendus||[],E=F.espaces||[];
+   console.log("annuaire:",Object.keys(A).length,"entrées · fermés+suspendus:",E.length,"· dont suspendus:",S.length,"· adresses fermées:",(F.emails||[]).length);
+   for(const t of S){const sl=parT[t]||[];console.log((sl.length?"S\x27OUVRIRA      ":"restera fermée ")+t+"  "+(sl.join(", ")||"(hors annuaire)")+(E.includes(t)?"":"  [absent de espaces]"));}
+   let U;try{U=JSON.parse(fs.readFileSync("promos-usages.json","utf8"))}catch(e){U=e.code==="ENOENT"?{}:null}
+   console.log("codes promo :",U===null?"⛔ promos-usages.json ILLISIBLE — le réparer AVANT de pousser":Object.keys(U).length+" code(s) · "+Object.values(U).reduce((n,u)=>n+Object.keys((u&&u.equipes)||{}).length,0)+" utilisation(s)");'
+   journalctl -u teamop-api --no-pager | grep -E "Tour : .* (suspend|rouvre) l'espace|code de fermeture envoyé"
+   curl -s https://api.teamop.fr/health | python3 -m json.tool | head -80
+   ```
+2. **Décider de pousser** : `bash scripts/preparer-deploiement-serveur.sh` puis, seulement sur sa
+   décision, la commande `git -C <arbre> push origin HEAD:main` que le script affiche.
+3. **Juste après** : `/health` doit rendre `socle.actif:false`, `portail.*.actif:false`,
+   `conservation` limité à `{actif,balayageOk,echu,preavis}`, `registres:{espaces:true,fermes:true,promos:true}`,
+   la sauvegarde active sans échec (la copie mensuelle s'allume par défaut : une archive complète
+   de plus par mois au coffre, 24 gardées — la refuser = poser `"mensuel": false`).
+
+## ✅ 24 SEPTEMBRE 2026 — LES DETTES DE LA BÊTA : PLANS, PHOTOS DE PLANS, RAPPORT EN PDF (v744, bêta)
+
+Faites sans Justin, une par une, chacune avec son banc, sa sonde dans la vraie page (bêta locale),
+sa contre-épreuve sur la v743 et ses mutations.
+
+- **B1 — les plans d'appâtage se fusionnent POSTE PAR POSTE** (`plansFusionFine`, `papMarque`,
+  `papTombe`) : deux techniciens hors ligne sur le même plan ne s'effacent plus ; une suppression
+  laisse une tombe, un poste retouché après elle vit. `test-800` (27 ✓), sonde
+  `sonde-plans-fusion.js`.
+- **B2 — les photos de plans sortent du document de l'équipe.** La photo d'un plan d'appâtage et
+  celles de l'onglet « Plans » d'une intervention prennent le format des photos (`piece:<64 hex>`) :
+  déposées sur le VPS, relues en mémoire pour l'écran, le rapport, le dossier sanitaire et le plan
+  d'implantation — qui DISENT quand elles manquent au lieu d'un cadre vide. Mesuré : une photo de
+  plan pesait **113 667 caractères** dans la copie poussée, elle en pèse **70**. Pas de poste posé
+  sur un plan dont la photo n'est pas arrivée. `test-801` (73 ✓), sonde `sonde-plans-photos.js`
+  (26 ✓ ; 21 ✗ sur la v743), 17 mutations sur 17.
+  ⛔ **Et un défaut de la v702 trouvé en l'écrivant** : relire une photo pour l'écran changeait
+  l'empreinte de la fiche, et le `save()` suivant la TAMPONNAIT — un appareil qui ne faisait que
+  regarder gagnait la fusion. Mesuré dans la vraie page v743. `recEmpreinte` coupe au marqueur.
+- **B3 — le rapport d'intervention part en VRAI PDF joint.** Avant : l'impression s'ouvrait et le
+  courriel partait en TEXTE (le client ne recevait ni photos, ni plan, ni signatures), et la trace
+  « Rapport envoyé » s'écrivait même quand l'envoi était refusé. Maintenant : un PDF écrit à la
+  main (comme le devis), aux mêmes sources que le rapport imprimé, trace APRÈS la réussite, un seul
+  courriel sur double appui, repli sur l'ancien envoi si le PDF est impossible (et on le dit).
+  Ouvert par **pdf.js** (le moteur de Firefox) : 4 pages, 6 images, tout le contenu retrouvé.
+  Le rapport imprimé sort identique (5 340 caractères comparés), le plan d'implantation aussi (à
+  l'octet). `test-802` (60 ✓), sonde `sonde-rapport-pdf.js` (33 ✓ ; 28 ✗ sur la v743), 16
+  mutations sur 16.
+- **B4** — le ✎ du stockage ne montre que ce qui a un sens pour lui (`test-794` §18).
+- **B5** — un chevron par ligne (le « › » écrit en plus de celui de la feuille de style).
+- **B6** — plus d'erreur à la déconnexion (une vue ne se dessine plus sans personne connecté) ;
+  la variante « à la reprise de synchro » n'a pas été reproduite — dit tel quel.
+
+⚠️ **Pour le jour où ce sera publié** (production v695) : un appareil resté en version antérieure
+met `piece:…` dans l'image d'un plan — la règle des photos s'étend aux plans : publier, attendre que
+la Tour ne montre plus d'appareil ancien, PUIS exiger la version, et ne pas photographier de plan
+depuis un appareil à jour tant que le parc est mélangé. La fusion poste par poste, elle, ne
+s'active qu'une fois les deux côtés à jour (`plansFusionFine` rend `null` sans marques).
+
+## ✅ 24 SEPTEMBRE 2026 — UN CODE PROMO NE SERT QU'UNE FOIS PAR ENTREPRISE (serveur + v744 bêta)
+
+Justin, mot pour mot : **« Pour le code promo, une fois qu'une entreprise l'a activé, ils peuvent
+pas le remettre. »**
+
+Ce qui se passait : l'échéance ne se prolongeait déjà pas, mais un code retapé APRÈS sa période
+répondait « ok » avec la date passée. L'application affichait « 🎉 Code accepté ! », repassait toute
+l'équipe en formule payante et remettait le début à aujourd'hui (jusqu'à ce que `promoEssaiCheck` la
+referme) ; une nouvelle demande faite sur le site promettait au client « votre code est activé …
+jusqu'au » une date PASSÉE, sans lien de paiement ; et « repartir à neuf » (la Tour) donnait un
+nouvel identifiant d'espace, donc un code redevenu neuf pour la même entreprise.
+
+- **Serveur** — un seul verdict, `promoPresente`, pour les CINQ chemins qui activent (application,
+  Tour, relais du portail, demande du site, rattrapage d'`espacePaye`) : neuf → activé et compté ;
+  en cours → même échéance, rien ne se recompte, `dejaUtilise` ; servi → **refus 410**, dit en clair
+  (le code, la date de fin, « un code ne sert qu'une fois par entreprise ») ; registre illisible →
+  rien ne s'active (503). La Tour aussi est refusée — elle a son geste pour offrir une nouvelle
+  période : Abonnement → « Essai offert », avec une date de fin.
+- **« Repartir à neuf »** : chaque utilisation porte l'adresse de connexion et l'EMPREINTE de l'e-mail
+  de l'entreprise (jamais l'adresse en clair), posées sur les anciennes AVANT d'effacer l'annuaire.
+  Une période encore en cours se REPORTE sur le nouvel identifiant (sans se recompter) ; une période
+  finie reste finie. Une AUTRE entreprise qui reprend une adresse libérée n'hérite de rien.
+- ⚠️ **La suppression TOTALE (Tour) efface aussi la mémoire des codes** — c'était déjà le cas, c'est
+  voulu (« plus rien n'est enregistré nulle part ») : une entreprise supprimée puis réinscrite
+  pourrait resservir un code. Un geste de la Tour, jamais du client.
+- **Le registre** (`promos-usages.json`) s'écrit par temporaire + renommage, n'est plus réécrit s'il
+  était illisible au démarrage, et `/health.registres.promos` + la surveillance le disent. ⚠️ Tant
+  qu'il est illisible, les périodes offertes en cours ne comptent plus dans `espacePaye` (comme
+  avant) : le réparer vite.
+- **L'aperçu public** (`apercu:true`, sans identité) ne lit plus rien de l'entreprise nommée : il
+  disait à n'importe qui connaissant un identifiant quel code elle avait en cours, et jusqu'à quand.
+- **Bêta** : `promoAppliquer` refuse aussi une période passée même quand le serveur d'AVANT (la
+  production actuelle) dit « ok », ne demande même pas au serveur pour un code déjà terminé dans la
+  base, et dit « Code déjà actif » sans rien réécrire (le début d'origine est gardé).
+- ⚠️ **Ce qui n'est PAS couvert, et c'est écrit** : le portail (`espace.html`) garde son propre
+  mémo par COMPTE (`promoUsed`) et son aperçu n'a pas d'identité : une personne d'une entreprise qui
+  a déjà servi un code, avec un AUTRE compte du portail, y lit « Code valide » — puis le serveur
+  refuse l'activation et le courriel de la demande le dit. `espace.html` n'a pas été touché (site).
+
+Bancs : `test-803` (109 ✓ ; 103 ✓ contre la v695 de `main` — le refus du nouveau serveur s'y affiche
+en toast et n'écrit rien), `test-727` reçoit les vraies aides. **21 mutations sur 21 mordent.**
+`test-803` est dans `scripts/bancs-serveur.liste`.
+
+## ✅ 24 SEPTEMBRE 2026 — RELECTURE DE LA v744 : DEUX CORRECTIONS
+
+`relecteur` a rendu « prêt pour la bêta », avec deux points à corriger — corrigés, mesurés :
+- **le PDF joint mettait des « ? »** à la place d'une flèche, d'une puce, d'un pictogramme ou d'un
+  « é » décomposé tapés par un technicien. `_pdfTranslit` les dit autrement (-> • >= µ OK fi…) ou
+  les efface, et `_pdfTxt` place enfin les caractères WinAnsi 128-159 qu'il ignorait (• ™ ‰ „ Š…).
+  Appliquée à la mesure ET à l'écriture ; TOUS les PDF en profitent (devis, bons, implantation).
+- **la fenêtre du rapport imprimé s'ouvrait après deux allers-retours au serveur** — le navigateur
+  la bloquait. Elle s'ouvre dans le geste, l'attente s'y affiche, la question « continuer quand
+  même ? » s'y pose, et « non » la referme.
+Mesuré dans la vraie page : `scratchpad/sonde-rapport-fenetre.js` 6 ✓ (5 ✗ sur la v744 d'avant :
+« Consommation ? à revoir ? dose ? 5 ?g »). 7 mutations sur 7 mordent.
 
 ## ✅ 24 SEPTEMBRE 2026 — LA CASE DU STOCKAGE : L'ADMINISTRATEUR SEUL PAR DÉFAUT (v743, bêta)
 
