@@ -75,11 +75,15 @@ function get(url) {
       if (j.conservation.balayageOk === false) {
         problems.push('⛔⛔ L’HORLOGE DE CONSERVATION EST MONTÉE MAIS SON BALAYAGE ÉCHOUE — elle affiche « 0 suivie » sans qu’on puisse le distinguer d’une plateforme où tout le monde paie. Chaque heure ainsi est une date « ne paie plus depuis » perdue POUR TOUJOURS. Sur le VPS : journalctl -u teamop-api | grep balayage');
       }
-      if (j.conservation.echus > 0 && new Date().getUTCHours() === 9) {
-        problems.push('⛔ ' + j.conservation.echus + ' entreprise(s) ont dépassé les ' + (j.conservation.jours || 730) + ' jours de conservation annoncés dans les CGV — nous gardons leurs données au-delà de ce que nous avons écrit publiquement. Qui : Tour → /api/monitor/conservation (gardée).');
+      /* ⚠️ DES BOOLÉENS DEPUIS LE 24 SEPTEMBRE 2026 : `/health` ne publie plus les comptes (un
+         tableau de bord commercial offert à qui passe). La surveillance n'a besoin que de savoir
+         s'il faut prévenir ; combien et qui se lisent sur la route gardée. `=== true` : un champ
+         absent (serveur d'avant) ne crie pas à tort. */
+      if (j.conservation.echu === true && new Date().getUTCHours() === 9) {
+        problems.push('⛔ au moins une entreprise a dépassé les 24 mois de conservation annoncés dans les CGV — nous gardons ses données au-delà de ce que nous avons écrit publiquement. Combien et qui : Tour → /api/monitor/conservation (gardée).');
       }
-      if (j.conservation.enPreavis > 0 && new Date().getUTCHours() === 9) {
-        problems.push('⏳ ' + j.conservation.enPreavis + ' entreprise(s) entrent dans les 30 derniers jours de conservation — les CGV promettent un courriel de préavis, et RIEN ne l’envoie encore : c’est à faire à la main. Qui : Tour → /api/monitor/conservation.');
+      if (j.conservation.preavis === true && new Date().getUTCHours() === 9) {
+        problems.push('⏳ au moins une entreprise entre dans les 30 derniers jours de conservation — les CGV promettent un courriel de préavis, et RIEN ne l’envoie encore : c’est à faire à la main. Combien et qui : Tour → /api/monitor/conservation (gardée).');
       }
     }
     /* ⛔⛔ LA PORTE DU COURRIER — `mailRefus` ÉTAIT PUBLIÉ ET LU PAR PERSONNE.

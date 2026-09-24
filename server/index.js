@@ -416,10 +416,12 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      seul — une alarme qui sonne sur un état voulu devient du bruit, puis une alarme qu'on
      ignore, puis une alarme qui ne sert plus à rien le jour où elle dit vrai. */
   portail: etatPortail,
-  /* L'horloge des 24 mois : combien d'entreprises sont suivies, combien approchent de
-     l'échéance, combien l'ont passée. ⛔ DES NOMBRES, JAMAIS UN NOM — `/health` est PUBLIQUE,
-     et y nommer une entreprise dirait au monde qui ne paie plus. */
-  conservation: conservation ? Object.assign({ actif: true }, conservation.sante()) : etatConservation,
+  /* L'horloge des 24 mois : tourne-t-elle, son dernier balayage a-t-il réussi, y a-t-il AU
+     MOINS une entreprise en préavis, AU MOINS une échue. ⛔⛔ DES BOOLÉENS, PLUS AUCUN NOMBRE
+     (24 septembre 2026, relevé par `gardien`) : les comptes — combien ne paient pas, combien de
+     prospects — étaient un tableau de bord commercial publié à qui passe. Voir `santePublique`
+     dans `conservation.js`. Combien et qui : `/api/monitor/conservation`, gardée. */
+  conservation: conservation ? Object.assign({ actif: true }, conservation.santePublique()) : etatConservation,
   routesDoublons: routesDoublons.length,
   /* Étape 0 du socle : où en est le stockage des pièces jointes.
      ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
@@ -4663,6 +4665,9 @@ app.get('/api/monitor/conservation', monAdmin, (req, res) => {
   if (!conservation) return res.status(503).json({ error: 'horloge non montée', motif: etatConservation.erreur || 'inactive' });
   const l = conservation.tout().sort((a, b) => a.depuis - b.depuis);
   res.json({ ok: true, jours: conservation.CONSERVATION_JOURS, preavisJours: conservation.PREAVIS_JOURS,
+    /* Les comptes que `/health` ne publie plus (24 septembre 2026) : ils vivent ICI, derrière
+       une identité. `balayageOk` avec, pour que la Tour dise aussi si l'horloge tourne. */
+    compte: conservation.sante(),
     /* Le nom lisible se joint ici, pas dans le module : lui ne connaît que des identifiants,
        et c'est bien ainsi — il n'a aucune raison de savoir comment s'appelle une entreprise. */
     espaces: l.map(x => { const e = espaceParT(x.t); return Object.assign({}, x, { nom: (e && e.nom) || '', slug: (e && e.slug) || '' }); }) });

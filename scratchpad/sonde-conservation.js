@@ -26,7 +26,10 @@ const dormir=ms=>new Promise(r=>setTimeout(r,ms));
   console.log('\n══ L\'HORLOGE SUR LE VRAI SERVEUR ══\n');
   console.log('  /health.conservation : '+JSON.stringify(h.conservation));
   console.log('  · montée sans erreur        : '+(!!h.conservation && h.conservation.actif===true && !h.conservation.erreur));
-  console.log('  · une seule suivie (l\'impayée) : '+(h.conservation&&h.conservation.suivis===1));
+  /* ⛔ Depuis le 24 septembre 2026, `/health` ne publie plus de COMPTES (tableau de bord
+     commercial offert à qui passe) : trois booléens, et le compte se lit sur la route gardée. */
+  console.log('  · /health : aucun nombre      : '+(!!h.conservation && Object.values(h.conservation).every(x=>typeof x!=='number')));
+  console.log('  · /health : exactement 4 champs : '+JSON.stringify(Object.keys(h.conservation||{}).sort()));
   console.log('  · aucun nom d\'entreprise publié : '+(!/ajour|impaye/.test(JSON.stringify(h.conservation))));
   const f=(()=>{try{return JSON.parse(fs.readFileSync(path.join(data,'conservation.json'),'utf8'));}catch(_){return null;}})();
   console.log('  · fichier sur le disque     : '+JSON.stringify(f));
@@ -39,11 +42,12 @@ const dormir=ms=>new Promise(r=>setTimeout(r,ms));
   const avec=await (await fetch('http://127.0.0.1:'+port+'/api/monitor/conservation',
     {headers:{Authorization:'Bearer '+t.token}})).json();
   console.log('  · la Tour voit QUI          : '+JSON.stringify((avec.espaces||[]).map(x=>({nom:x.nom,restants:x.restants}))));
+  console.log('  · la Tour voit COMBIEN (une seule suivie, l\'impayée) : '+(!!avec.compte&&avec.compte.suivis===1)+' '+JSON.stringify(avec.compte));
   console.log('  · aucun ReferenceError      : '+(!/ReferenceError/.test(j)));
   const lignes=j.split("\n").filter(l=>/conservation|balayage/.test(l));
   console.log("  · journal : "+JSON.stringify(lignes));
   const esp=await (await fetch("http://127.0.0.1:"+port+"/api/monitor/espaces",{headers:{Authorization:"Bearer "+t.token}})).json().catch(()=>({}));
-  console.log("  · ce que la Tour voit des espaces : "+JSON.stringify((esp.espaces||esp||[]).slice(0,4)).slice(0,500));
+  console.log("  · ce que la Tour voit des espaces : "+JSON.stringify((Array.isArray(esp.espaces)?esp.espaces:Array.isArray(esp)?esp:Object.keys(esp||{})).slice(0,4)).slice(0,500));
   if(/ReferenceError|conservation NON/.test(j)) console.log(j.split('\n').filter(l=>/Reference|conservation/.test(l)).join('\n'));
   try{e.kill('SIGKILL');}catch(_){ }
   fs.rmSync(B,{recursive:true,force:true});

@@ -134,14 +134,19 @@ const fichier = (d) => { try { return JSON.parse(fs.readFileSync(path.join(d, 'c
     c2 = poser(699);
     v('   à 699 jours : 31 restants', c2.etat('v').restants, 31);
     vrai('   (toujours pas de préavis)', !c2.etat('v').preavis);
+    v('   `/health` ne dit rien encore', c2.santePublique(), { balayageOk: null, echu: false, preavis: false });
     /* ⛔ LE PRÉAVIS DES CGV : 30 jours avant l'échéance, donc au 700e jour. */
     c2 = poser(700);
     v('⛔ à 700 jours : 30 restants, et le PRÉAVIS s\'allume', c2.etat('v').restants, 30);
     vrai('   (les CGV promettent un courriel ici)', c2.etat('v').preavis);
     vrai('   mais pas encore échu', !c2.etat('v').echu);
+    /* ⛔ LE BOOLÉEN PUBLIC S'ALLUME AVEC LE PRÉAVIS — c'est lui, et lui seul, qui fait crier la
+       surveillance depuis que `/health` ne publie plus de comptes. */
+    v('⛔ `/health` dit « au moins une en préavis », et rien d\'autre', c2.santePublique(), { balayageOk: null, echu: false, preavis: true });
     c2 = poser(730);
     v('⛔ à 730 jours : 0 restant, et c\'est ÉCHU', c2.etat('v').restants, 0);
     vrai('   (échu)', c2.etat('v').echu);
+    v('⛔ `/health` dit « au moins une échue » — et plus « en préavis »', c2.santePublique(), { balayageOk: null, echu: true, preavis: false });
     /* ⛔ ET ÇA NE DESCEND PAS SOUS ZÉRO. Un client parti depuis trois ans rendrait -365, et un
        écran qui affiche « -365 jours restants » est un écran qu'on ne croit plus. */
     c2 = poser(1200);
@@ -149,10 +154,14 @@ const fichier = (d) => { try { return JSON.parse(fs.readFileSync(path.join(d, 'c
     vrai('   et toujours échu', c2.etat('v').echu);
   }
 
-  console.log('\n══ 6. ⛔ CE QUE `/health` PUBLIE : DES NOMBRES, JAMAIS UN NOM ══\n');
+  console.log('\n══ 6. ⛔ CE QUE `/health` PUBLIE : DES BOOLÉENS, JAMAIS UN NOM NI UN COMPTE ══\n');
   {
     /* ⛔ `/health` est PUBLIQUE. Y nommer une entreprise dirait au monde QUI ne paie plus —
-       même règle que `mailRefus` et que le socle. */
+       même règle que `mailRefus` et que le socle.
+       ⛔⛔ ET PLUS AUCUN COMPTE DEPUIS LE 24 SEPTEMBRE 2026 : « combien ne paient pas »,
+       « combien de prospects », heure par heure, c'est un tableau de bord commercial offert à
+       qui passe (relevé par `gardien`). `sante()` garde les comptes POUR LA TOUR (route
+       gardée) ; `/health` publie `santePublique()`. */
     const { c } = monter(() => [{ t: 'entreprise-bernard-hygiene', paye: false },
       { t: 'entreprise-durand-nettoyage', paye: false }]);
     await c.balayer();
@@ -161,8 +170,13 @@ const fichier = (d) => { try { return JSON.parse(fs.readFileSync(path.join(d, 'c
     v('   aucune en préavis', s.enPreavis, 0);
     v('   aucune échue', s.echus, 0);
     v('   la durée annoncée est publiée', s.jours, 730);
-    v('⛔⛔ AUCUN identifiant d\'entreprise dans ce que /health publie',
+    v('⛔⛔ AUCUN identifiant d\'entreprise dans les comptes de la Tour',
       /bernard|durand|entreprise-/.test(JSON.stringify(s)), false);
+    const pub = c.santePublique();
+    v('⛔⛔ `/health` publie EXACTEMENT trois champs', Object.keys(pub).sort(), ['balayageOk', 'echu', 'preavis']);
+    v('⛔⛔ et AUCUN nombre parmi eux', Object.values(pub).filter(x => typeof x === 'number'), []);
+    v('   ni un identifiant', /bernard|durand|entreprise-/.test(JSON.stringify(pub)), false);
+    v('   ce qu\'il dit ici : le balayage a réussi, rien à signaler', pub, { balayageOk: true, echu: false, preavis: false });
     /* La Tour, elle, est gardée : elle a le droit de savoir QUI. */
     const l = c.tout();
     v('   la Tour, elle, voit les deux', l.length, 2);
@@ -237,7 +251,9 @@ const fichier = (d) => { try { return JSON.parse(fs.readFileSync(path.join(d, 'c
     const iMont = SRV.indexOf("require('./conservation').monterConservation(");
     vrai('⛔⛔ le montage vient APRÈS `ESPACES_INTOUCHABLES` (zone morte temporelle)',
       iListe > 0 && iMont > iListe);
-    vrai('   `/health` publie l\'agrégé', /conservation: conservation \? Object\.assign\(\{ actif: true \}, conservation\.sante\(\)\)/.test(SRV));
+    vrai('⛔⛔ `/health` publie la vue PUBLIQUE (des booléens)', /conservation: conservation \? Object\.assign\(\{ actif: true \}, conservation\.santePublique\(\)\)/.test(SRV));
+    v('⛔⛔ et nulle part ailleurs les COMPTES dans `/health`', /app\.get\('\/health'[\s\S]{0,6000}?conservation\.sante\(\)/.test(SRV), false);
+    vrai('   les comptes vivent sur la route gardée', /app\.get\('\/api\/monitor\/conservation', monAdmin,[\s\S]{0,600}?compte: conservation\.sante\(\)/.test(SRV));
     vrai('   la Tour a sa route, et elle est gardée', /app\.get\('\/api\/monitor\/conservation', monAdmin,/.test(SRV));
     /* ⛔ ET LA SURVEILLANCE LE LIT. Un champ de `/health` que personne ne lit est du code mort
        qui a l'air d'une garde — la leçon du 21 septembre, payée sur `mailRefus`. */
@@ -245,8 +261,11 @@ const fichier = (d) => { try { return JSON.parse(fs.readFileSync(path.join(d, 'c
       .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     vrai('⛔ la surveillance crie si l\'horloge n\'est PAS MONTÉE', /j\.conservation\.erreur/.test(SURV));
     vrai('⛔⛔ et si elle est montée mais que son BALAYAGE échoue', /j\.conservation\.balayageOk === false/.test(SURV));
-    vrai('   et si une échéance est dépassée', /j\.conservation\.echus/.test(SURV));
-    vrai('   et sur le préavis que personne n\'envoie encore', /j\.conservation\.enPreavis/.test(SURV));
+    vrai('   et si une échéance est dépassée', /j\.conservation\.echu === true/.test(SURV));
+    vrai('   et sur le préavis que personne n\'envoie encore', /j\.conservation\.preavis === true/.test(SURV));
+    /* ⛔ ET PLUS SUR LES ANCIENS COMPTES : un champ disparu qu'on lit encore est une alarme
+       qui ne sonnera jamais — l'exact inverse de `atts` écrit `true` en dur. */
+    v('⛔ la surveillance ne lit plus `echus`, `enPreavis`, `jours`', /j\.conservation\.(echus|enPreavis|jours|suivis)\b/.test(SURV), false);
   }
 
   console.log('\n══ 11. ⛔ UN `lister` SYNCHRONE MARCHE AUSSI ══\n');
@@ -270,6 +289,7 @@ const fichier = (d) => { try { return JSON.parse(fs.readFileSync(path.join(d, 'c
     const { c } = monter(() => { if (casse) throw new Error('annuaire illisible'); return [{ t: 'q', paye: false }]; });
     await c.balayer();
     v('⛔⛔ le dernier balayage se déclare EN ÉCHEC', c.sante().balayageOk, false);
+    v('⛔⛔ et `/health` le publie', c.santePublique().balayageOk, false);
     vrai('   et le motif est gardé', /illisible/.test(c.dernierBalayage().motif));
     v('   `suivis` reste à zéro — mais on sait POURQUOI', c.sante().suivis, 0);
     casse = false;

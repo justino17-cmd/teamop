@@ -178,9 +178,9 @@ function monterConservation(deps) {
     return { poses: poses, leves: leves, suivis: Object.keys(reg).length, vus: vus.size };
   }
 
-  /* ── CE QUE `/health` PUBLIE ─────────────────────────────────────────────────────────────
-     ⛔ DES NOMBRES, JAMAIS UN NOM D'ESPACE. `/health` est PUBLIQUE : y nommer une entreprise
-     dirait au monde qui ne paie plus. C'est la même règle que `mailRefus` et que le socle. */
+  /* ── CE QUE LA TOUR LIT (route gardée) ───────────────────────────────────────────────────
+     Les COMPTES : combien d'entreprises suivies, en préavis, échues, jamais abonnées. Jamais un
+     nom ici non plus — la Tour joint les noms elle-même, sur sa route gardée. */
   function sante() {
     let suivis = 0, enPreavis = 0, echus = 0, jamais = 0;
     for (const t of Object.keys(reg)) {
@@ -195,6 +195,20 @@ function monterConservation(deps) {
        quelqu'un, parce qu'une horloge arrêtée ne se rattrape pas. */
     return { suivis: suivis, enPreavis: enPreavis, echus: echus, jours: CONSERVATION_JOURS,
       jamaisAbonnes: jamais, balayageOk: dernier.ok };
+  }
+
+  /* ── CE QUE `/health` PUBLIE ─────────────────────────────────────────────────────────────
+     ⛔⛔ DEUX BOOLÉENS ET L'ÉTAT DU BALAYAGE — PLUS AUCUN NOMBRE. Jusqu'au 24 septembre 2026,
+     `/health` publiait `sante()` telle quelle : `suivis` (combien d'entreprises ne paient pas),
+     `jamaisAbonnes` (combien de prospects), `enPreavis`, `echus`. Aucun nom, donc « rien de
+     personnel » — mais `/health` est PUBLIQUE et sans identité : ces comptes sont un tableau de
+     bord COMMERCIAL offert à qui passe (un concurrent lit notre taux d'impayés et de prospects,
+     heure par heure). Relevé par `gardien` avant tout déploiement. La surveillance n'a besoin
+     que de savoir S'IL FAUT PRÉVENIR : « au moins une échue », « au moins une en préavis ».
+     Combien, et qui : la Tour, sur `/api/monitor/conservation`, qui exige une identité. */
+  function santePublique() {
+    const s = sante();
+    return { balayageOk: s.balayageOk, echu: s.echus > 0, preavis: s.enPreavis > 0 };
   }
 
   /* Pour la Tour, qui est gardée : elle, elle a le droit de savoir QUI. */
@@ -222,7 +236,7 @@ function monterConservation(deps) {
   Promise.resolve().then(balayer).catch(e => journal('balayage initial —', e && e.message));
 
   return {
-    etat: etat, balayer: balayer, sante: sante, tout: tout,
+    etat: etat, balayer: balayer, sante: sante, santePublique: santePublique, tout: tout,
     dernierBalayage: () => Object.assign({}, dernier),
     CONSERVATION_JOURS: CONSERVATION_JOURS, PREAVIS_JOURS: PREAVIS_JOURS,
     _minuterie: () => minuterie,
