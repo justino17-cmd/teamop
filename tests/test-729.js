@@ -177,7 +177,10 @@ console.log('\n── 729 · la clé maître du socle, exécutée ──');
   const controle = (b, txt, quoi) => {
     const m = /cmp -s (\S+) \/run\/credentials\/([^/\s]+)\/(\S+) && echo/.exec(txt);
     vrai('⛔ ' + quoi + ' : il donne le contrôle par comparaison', !!m);
-    vrai('   précédé de daemon-reload', /systemctl daemon-reload && systemctl restart teamop-api/.test(txt));
+    /* ⚠️ Collé au contrôle, pas n'importe où : deux chemins affichent DÉJÀ « daemon-reload »
+       dans l'avis du réglage systemd, et un motif libre s'en contentait — la mutation qui le
+       retirait du conseil ne faisait tomber qu'UN chemin sur trois. */
+    vrai('   précédé de daemon-reload', /systemctl daemon-reload && systemctl restart teamop-api\n\s*cmp -s /.test(txt));
     v('   il ne donne plus /health comme preuve', /curl[^\n]*health/.test(txt), false);
     if (!m) return;
     v('   il compare la clé qu\'on vient de poser', m[1], b.cle);
