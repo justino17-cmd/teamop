@@ -153,9 +153,26 @@ jobs:
 
       # beta.html est GÉNÉRÉE depuis app.html par beta-build.js. Si quelqu'un modifie beta.html
       # à la main, ou oublie de la régénérer, la bêta et la production divergent en silence.
+      # ⛔ SUR `main`, LA BÊTA EST EN AVANCE PAR CONSTRUCTION (corrigé le 24 septembre 2026) : elle
+      # se publie seule depuis la branche de travail pendant que la production reste gelée — v744
+      # contre v695 ce jour-là. Régénérer ici fabriquerait une bêta plus vieille que celle qu'on
+      # publie ; beta-build.js le refuse, et ce refus rendait l'étape rouge à CHAQUE poussée (runs
+      # 456 à 463 au moins). Un rouge permanent est un contrôle mort. D'où trois cas : EN AVANCE,
+      # on le dit et on s'arrête — la comparaison à l'octet vit dans tests/test-804.js, que ci.yml
+      # lance sur la branche, où les deux versions sont égales ; EN RETARD, faute ; ÉGALES, on
+      # régénère et on compare, comme avant.
       - name: beta.html est bien la génération de app.html
         if: always()
         run: |
+          etat=$(node scripts/verifier-version.js --etat-beta) || { echo "::error::app.html ou beta.html ne porte pas de version lisible"; exit 1; }
+          if [ "$etat" = "avance" ]; then
+            echo "::notice::beta.html est EN AVANCE sur app.html — publiée depuis la branche de travail, production gelée. La génération se compare sur la branche (tests/test-804.js)."
+            exit 0
+          fi
+          if [ "$etat" = "retard" ]; then
+            echo "::error::beta.html est EN RETARD sur app.html — lance « node beta-build.js » et commite le résultat."
+            exit 1
+          fi
           node beta-build.js
           if ! git diff --quiet -- beta.html; then
             echo "::error::beta.html ne correspond pas à app.html — lance « node beta-build.js » et commite le résultat."
