@@ -87,7 +87,13 @@ console.log('\n══ 0. Les cinq chemins qui activent un code passent par la m�
   v('   … les cinq chemins passent par `promoEntree`', entrees, 5);
 
   vrai('« repartir à neuf » marque les utilisations AVANT d\'effacer l\'annuaire', /if \(t\) promoMarquerAvantRenaitre\(t, slug, e\.email\);\s*delete espacesReg\[slug\];/.test(renaitre));
-  vrai('la suppression totale efface par `promoCles` (identifiant ET empreinte)', /for \(const \{ code, cle \} of promoCles\(t, inv\.slugs, inv\.emails\)\)/.test(CODE_SRV));
+  vrai('la suppression totale passe par `promoEffacerEntreprise` (qui garde la mémoire d\'une entreprise VIVANTE)', /if \(inv\.promos\.length\) promoEffacerEntreprise\(t, inv\.slugs, inv\.emails\);/.test(CODE_SRV));
+  /* ⛔ ÉCRIT, OU ON LE DIT (relecture de `gardien`) : l'échec d'écriture défait l'activation et
+     répond 503 — AVANT le courriel « votre code est actif ». */
+  vrai('l\'application : un registre non écrit défait et répond 503, AVANT le courriel', /if \(!savePromoUsages\(\)\) \{ u\.n--; delete u\.equipes\[team\];[\s\S]{0,160}return res\.status\(503\)/.test(valider) && valider.indexOf('if (!savePromoUsages())') < valider.indexOf('mailPromoActive('));
+  vrai('   la Tour aussi', /if \(!savePromoUsages\(\)\) \{ u\.n--; delete u\.equipes\[t\];[\s\S]{0,260}return res\.status\(503\)/.test(tour) && tour.indexOf('if (!savePromoUsages())') < tour.indexOf('mailPromoActive('));
+  vrai('le doute paie : registre illisible ET code posé sur l\'espace', /if \(promosIllisible && e\.codePromo\) return \{ paye: true,/.test(CODE_SRV));
+  vrai('⛔ plus aucun rapprochement par le NOM d\'accès (slug)', !/eq\.slug/.test(CODE_SRV));
   vrai('   … et son inventaire compte de la même façon', /const promos = \[\.\.\.new Set\(promoCles\(t, slugs, emails\)\.map\(x => x\.code\)\)\];/.test(CODE_SRV));
 
   /* Le registre : écrit à côté puis renommé, et jamais par-dessus un fichier illisible. */
@@ -102,9 +108,9 @@ console.log('\n══ 0. Les cinq chemins qui activent un code passent par la m�
 /* ══ 1. LES VRAIES FONCTIONS DE LA RÈGLE, EXÉCUTÉES ═══════════════════════════════════════════ */
 console.log('\n══ 1. Les vraies fonctions de la règle, exécutées ══');
 const NOMS = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif',
-  'promoEntree', 'promoPresente', 'promoRefusServi', 'promoMarquerAvantRenaitre', 'promoCles', 'espaceParT'];
+  'promoEntree', 'promoPresente', 'promoRefusServi', 'promoMarquerAvantRenaitre', 'promoCles', 'promoHeritier', 'promoEffacerEntreprise', 'espaceParT'];
 const SOURCES = NOMS.map(n => extraire(SRV, n));
-vrai('population : les douze fonctions sont trouvées dans le fichier réel', SOURCES.every(Boolean));
+vrai('population : les quatorze fonctions sont trouvées dans le fichier réel', SOURCES.every(Boolean));
 function bac(espacesReg, promoUsages, illisible) {
   const trace = { ecrit: 0 };
   const api = new Function('espacesReg', 'promoUsages', 'crypto', 'savePromoUsages', 'etatIllisible',
@@ -128,14 +134,17 @@ const fp = P0.promoEmpreinteMail;
   };
   const us = { [CODE]: { n: 4, equipes: {
     'ent-cafe-1': { date: '2026-01-01', finLe: PASSE, slug: 'cafesonde', em: fp('cafe@sonde-exemple.fr') },   // l'ancien identifiant du café
-    'ent-atelier-1': { date: '2026-01-01', finLe: PASSE, slug: 'atelier', em: '' },                         // un accès sans e-mail
+    'ent-atelier-1': { date: '2026-01-01', finLe: PASSE, slug: 'atelier', em: '' },                         // un accès sans e-mail (slug : une entrée d'avant)
     'ent-reprise-1': { date: '2026-01-01', finLe: PASSE, slug: 'reprise', em: fp('ancien@proprietaire-exemple.fr') },
     'ent-vieux': { date: '2026-01-01', finLe: PASSE, slug: 'reprise', em: '' },                              // sans e-mail, même adresse
   } } };
   const { api: P } = bac(reg, us);
   vrai('par l\'identifiant : l\'utilisation est retrouvée', P.promoServiA(CODE, 'ent-cafe-1', ''));
   vrai('⛔ par l\'EMPREINTE de l\'e-mail : la même entreprise sous un NOUVEL identifiant', P.promoServiA(CODE, 'ent-cafe-2', ''));
-  vrai('   par l\'adresse, quand AUCUN des deux côtés n\'a d\'e-mail', P.promoServiA(CODE, 'ent-atelier-2', ''));
+  /* ⛔ Relecture de `gardien` : le rapprochement par le NOM d'accès, quand aucun des deux côtés n'a
+     d'e-mail, faisait hériter une AUTRE entreprise reprenant un nom libéré. Plus de nom : sans
+     e-mail, pas de mémoire au-delà de `t`. */
+  faux('⛔ sans e-mail, pas de rapprochement par le NOM d\'accès (ni refus ni période héritée)', P.promoServiA(CODE, 'ent-atelier-2', ''));
   faux('⛔ une AUTRE entreprise qui reprend une adresse libérée n\'hérite de rien (ni refus ni période)', P.promoServiA(CODE, 'ent-reprise-9', ''));
   faux('   une entreprise inconnue non plus', P.promoServiA(CODE, 'ent-inconnue', ''));
   faux('   un autre code non plus', P.promoServiA(AUTRE, 'ent-cafe-2', ''));
@@ -168,12 +177,13 @@ const fp = P0.promoEmpreinteMail;
   /* Ce qu'on inscrit, et ce que « repartir à neuf » marque. */
   const regE = { boulangeriesonde: { email: 'Patron@Boulangerie-Sonde.fr', t: 'ent-bs-1', code: b64({ t: 'ent-bs-1', k: 'k' }), ts: 5 } };
   const en = bac(regE, {}).api.promoEntree(dans(3), 'ent-bs-1', '');
-  v('`promoEntree` : la date, l\'échéance, l\'adresse, l\'empreinte', [en.date, en.finLe, en.slug, en.em], [AUJ, dans(3), 'boulangeriesonde', fp('patron@boulangerie-sonde.fr')]);
+  v('`promoEntree` : la date, l\'échéance, l\'empreinte — rien d\'autre', en, { date: AUJ, finLe: dans(3), em: fp('patron@boulangerie-sonde.fr') });
   faux('   … et jamais l\'adresse e-mail en clair', /@/.test(JSON.stringify(en)));
   const legs = { [CODE]: { n: 1, equipes: { 'ent-bs-1': { date: '2026-01-01', finLe: PASSE } } } };   // une utilisation d'avant la règle
   const BM = bac(regE, legs);
   v('« repartir à neuf » marque une utilisation d\'avant la règle', BM.api.promoMarquerAvantRenaitre('ent-bs-1', 'boulangeriesonde', 'patron@boulangerie-sonde.fr'), 1);
-  v('   … son adresse et l\'empreinte de son e-mail', [legs[CODE].equipes['ent-bs-1'].slug, legs[CODE].equipes['ent-bs-1'].em], ['boulangeriesonde', fp('patron@boulangerie-sonde.fr')]);
+  v('   … l\'empreinte de son e-mail', legs[CODE].equipes['ent-bs-1'].em, fp('patron@boulangerie-sonde.fr'));
+  v('   … et, sans e-mail, rien à poser', bac(regE, { [CODE]: { n: 1, equipes: { 'ent-x': { finLe: PASSE } } } }).api.promoMarquerAvantRenaitre('ent-x', 'x', ''), 0);
   v('   … et l\'écrit', BM.trace.ecrit, 1);
 
   /* La suppression totale : tout ce qui est à l'entreprise, rien de ce qui est à une autre. */
@@ -181,6 +191,21 @@ const fp = P0.promoEmpreinteMail;
   v('⛔ la suppression totale emporte l\'utilisation d\'AVANT « repartir à neuf »', cles, ['ent-cafe-1']);
   const cles2 = bac(reg, us).api.promoCles('ent-reprise-9', ['reprise'], ['autre@ailleurs-exemple.fr']).map(x => x.cle).sort();
   v('   … et laisse celles d\'une AUTRE entreprise passée par la même adresse', cles2, []);
+
+  /* ⛔⛔ Relecture de `gardien`, rejouée : supprimer totalement l'ANCIEN identifiant (resté hors
+     annuaire) effaçait la mémoire de l'entreprise qui vit sous le nouveau — le code redevenait neuf. */
+  const regG = { garagesonde: { email: 'garage@sonde-exemple.fr', t: 'ent-g-2', code: b64({ t: 'ent-g-2', k: 'k' }), ts: 1 } };
+  const usG = { [CODE]: { n: 2, equipes: { 'ent-g-1': { date: '2026-01-01', finLe: PASSE, em: fp('garage@sonde-exemple.fr') }, 'ent-z': { date: '2026-01-01', finLe: PASSE, em: fp('z@ailleurs-exemple.fr') } } } };
+  const BG = bac(regG, usG);
+  v('supprimer l\'ancien identifiant hors annuaire : une utilisation traitée', BG.api.promoEffacerEntreprise('ent-g-1', [], []), 1);
+  faux('   … l\'ancien identifiant n\'est plus nulle part', usG[CODE].equipes['ent-g-1']);
+  const gardes = Object.entries(usG[CODE].equipes).filter(([k]) => /^garde-[0-9a-f]{12}$/.test(k));
+  v('⛔ … mais la mémoire de l\'entreprise VIVANTE est gardée (sans trace de l\'identifiant supprimé)', gardes.map(([, e]) => [e.em, e.finLe, e.garde]), [[fp('garage@sonde-exemple.fr'), PASSE, true]]);
+  v('⛔ … et le code reste REFUSÉ pour elle', BG.api.promoPresente(CODE, 'ent-g-2', '').etat, 'servi');
+  vrai('   … celle d\'une autre entreprise n\'a pas bougé', usG[CODE].equipes['ent-z'] && usG[CODE].n === 2);
+  v('   … et c\'est écrit', BG.trace.ecrit, 1);
+  const n2 = BG.api.promoEffacerEntreprise('ent-g-2', ['garagesonde'], ['garage@sonde-exemple.fr']);
+  v('la suppression totale de l\'entreprise VIVANTE, elle, emporte tout ce qui est à elle', [n2, Object.keys(usG[CODE].equipes)], [1, ['ent-z']]);
 }
 
 /* ══ 2. LE VRAI SERVEUR, ISOLÉ, PARLÉ EN HTTP ═════════════════════════════════════════════════ */
@@ -207,8 +232,21 @@ async function monter(nom, espaces, usagesTexte) {
   fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify(espaces));
   if (usagesTexte !== undefined) fs.writeFileSync(path.join(data, 'promos-usages.json'), usagesTexte);
   const port = await new Promise(res => { const s = require('net').createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
+  /* ⛔ RIEN NE SORT DU BANC (relecture de `gardien`) : « repartir à neuf » essaie d'effacer chez
+     Google (inscription anonyme, suppression Firestore). Clé et projet sont faux, mais une requête
+     partait quand même. Un préchargement coupe tout ce qui ne vise pas 127.0.0.1, et le DIT au
+     journal — c'est ce que la partie 2d vérifie. */
+  const coupe = path.join(dir, 'reseau-coupe.js');
+  fs.writeFileSync(coupe, "const local = u => /^https?:\\/\\/(127\\.0\\.0\\.1|localhost)(:|\\/|$)/.test(String((u && (u.url || u.href)) || u));\n"
+    + "const vrai = globalThis.fetch;\n"
+    + "globalThis.fetch = function (u, o) { if (!local(u)) { console.error('réseau coupé par le banc : ' + String((u && (u.url || u.href)) || u).slice(0, 50)); return Promise.reject(new Error('réseau coupé par le banc')); } return vrai.apply(this, arguments); };\n"
+    + "for (const m of ['http', 'https']) { const mod = require(m), req = mod.request, get = mod.get;\n"
+    + "  const ok = a => { const h = typeof a === 'string' ? a : String((a && (a.href || a.hostname || a.host)) || ''); return /(^|\\/\\/)(127\\.0\\.0\\.1|localhost)/.test(h); };\n"
+    + "  mod.request = function (a) { if (!ok(a)) throw new Error('réseau coupé par le banc'); return req.apply(this, arguments); };\n"
+    + "  mod.get = function (a) { if (!ok(a)) throw new Error('réseau coupé par le banc'); return get.apply(this, arguments); }; }\n");
   const enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
-    env: Object.assign({}, process.env, { TEAMOP_CONFIG: cfgPath, TEAMOP_DATA: data, PORT: String(port) }), stdio: ['ignore', 'pipe', 'pipe'] });
+    env: Object.assign({}, process.env, { TEAMOP_CONFIG: cfgPath, TEAMOP_DATA: data, PORT: String(port),
+      NODE_OPTIONS: ((process.env.NODE_OPTIONS || '') + ' --require ' + coupe).trim() }), stdio: ['ignore', 'pipe', 'pipe'] });
   enfants.push(enfant);
   let journal = ''; enfant.stdout.on('data', d => { journal += d; }); enfant.stderr.on('data', d => { journal += d; });
   const B = 'http://127.0.0.1:' + port;
@@ -226,7 +264,7 @@ async function monter(nom, espaces, usagesTexte) {
 
 /* Les entreprises du banc — noms et adresses FICTIFS. */
 const K = { bs: 'CLE-BOULANGERIE-803', gs: 'CLE-GARAGE-803', gs2: 'CLE-GARAGE-NEUVE-803', ms: 'CLE-MENUISERIE-803', fs: 'CLE-FLEURISTE-803',
-  cs: 'CLE-CAFE-803', cs2: 'CLE-CAFE-REPRISE-803' };
+  cs: 'CLE-CAFE-803', cs2: 'CLE-CAFE-REPRISE-803', ps: 'CLE-PLOMBIER-803', at: 'CLE-ATELIER-803', at2: 'CLE-ATELIER-REPRISE-803' };
 const kh = k => ({ 'x-teamop-kh': sha(k) });
 const ESPACES = {
   boulangeriesonde: { nom: 'Boulangerie Sonde', email: 'patron@boulangerie-sonde.fr', t: 'ent-bs-1', code: b64({ t: 'ent-bs-1', k: K.bs }), ts: 1 },
@@ -234,6 +272,7 @@ const ESPACES = {
   menuiseriesonde: { nom: 'Menuiserie Sonde', email: 'atelier@menuiserie-sonde.fr', t: 'ent-ms-2', code: b64({ t: 'ent-ms-2', k: K.ms }), ts: 3, formule: 'premium', codePromo: CODE },
   fleuristesonde: { nom: 'Fleuriste Sonde', email: 'fleurs@sonde-exemple.fr', t: 'ent-fs-1', code: b64({ t: 'ent-fs-1', k: K.fs }), ts: 4, formule: 'premium', codePromo: AUTRE },
   cafesonde: { nom: 'Café Sonde', email: 'cafe@sonde-exemple.fr', t: 'ent-cs-1', code: b64({ t: 'ent-cs-1', k: K.cs }), ts: 5 },
+  plombiersonde: { nom: 'Plombier Sonde', email: 'plomb@sonde-exemple.fr', t: 'ent-ps-1', code: b64({ t: 'ent-ps-1', k: K.ps }), ts: 6, formule: 'premium' },
 };
 const USAGES = { [CODE]: { n: 3, equipes: {
   'ent-gs-1': { date: '2026-01-01', finLe: PASSE },                                                              // d'avant la règle : ni adresse ni empreinte
@@ -260,7 +299,7 @@ const USAGES = { [CODE]: { n: 3, equipes: {
     v('première fois : activé', [r.code, r.json.ok, r.json.dejaUtilise, r.json.finLe], [200, true, false, dans(3)]);
     v('   … une utilisation de plus', n(CODE), 4);
     const e1 = eq(CODE, 'ent-bs-1') || {};
-    v('   … inscrite avec son adresse et l\'empreinte de son e-mail', [e1.slug, e1.em], ['boulangeriesonde', fp('patron@boulangerie-sonde.fr')]);
+    v('   … inscrite avec l\'empreinte de son e-mail, et rien d\'autre', Object.keys(e1).sort().concat(e1.em), ['date', 'em', 'finLe', fp('patron@boulangerie-sonde.fr')]);
     faux('   … et JAMAIS l\'adresse en clair dans le registre', /boulangerie-sonde\.fr/.test(S.brut() || ''));
     r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-bs-1' }, kh(K.bs));
     v('retapé PENDANT la période : la même échéance, dit « déjà utilisé »', [r.code, r.json.dejaUtilise, r.json.finLe, r.json.debut], [200, true, dans(3), AUJ]);
@@ -312,8 +351,8 @@ const USAGES = { [CODE]: { n: 3, equipes: {
     /* Le garage : utilisation d'AVANT la règle (ni adresse ni empreinte), période passée. */
     let r = await S.appel('POST', '/api/monitor/espaces/renaitre', { nom: 'garagesonde' }, T);
     v('la Tour fait repartir le garage à neuf', r.code, 200);
-    v('⛔ son utilisation passée porte maintenant son adresse et l\'empreinte de son e-mail',
-      [(eq(CODE, 'ent-gs-1') || {}).slug, (eq(CODE, 'ent-gs-1') || {}).em], ['garagesonde', fp('garage@sonde-exemple.fr')]);
+    v('⛔ son utilisation passée porte maintenant l\'empreinte de son e-mail', (eq(CODE, 'ent-gs-1') || {}).em, fp('garage@sonde-exemple.fr'));
+    vrai('   (et « repartir à neuf » a bien tenté d\'effacer chez Google — coupé par le banc, rien n\'est sorti)', /réseau coupé par le banc/.test(S.journal()));
     r = await S.appel('POST', '/api/monitor/espaces', { nom: 'garagesonde', code: b64({ t: 'ent-gs-2', k: K.gs2, n: 'Garage Sonde' }), email: 'garage@sonde-exemple.fr', origine: 'tour' }, T);
     v('… et le recrée, même adresse, même e-mail, NOUVEL identifiant', [r.code, r.json.slug], [200, 'garagesonde']);
     r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-gs-2' }, kh(K.gs2));
@@ -348,6 +387,40 @@ const USAGES = { [CODE]: { n: 3, equipes: {
     const r2 = await S.appel('POST', '/api/monitor/entreprise/apercu-suppression', { t: 'ent-cs-9' }, T);
     v('   … et celui du repreneur du café ne compte que le sien', (r2.json.apercu || {}).promos, [CODE]);
   }
+
+  console.log('\n══ 2e bis. Un NOM d\'accès repris n\'hérite de rien (relecture de gardien) ══');
+  {
+    /* Un accès ouvert par la Tour SANS e-mail sert un code ; la Tour le supprime (« Supprimer
+       l'accès » passe par /renaitre) ; une AUTRE entreprise est ouverte sous le même nom, sans e-mail
+       elle non plus. Avant : 200 `dejaUtilise`, la période de la première reportée sur elle. */
+    let r = await S.appel('POST', '/api/monitor/espaces', { nom: 'atelierrejeu', code: b64({ t: 'ent-at-1', k: K.at, n: 'Atelier' }), origine: 'tour' }, T);
+    v('la Tour ouvre un accès sans e-mail', [r.code, r.json.slug], [200, 'atelierrejeu']);
+    const avant = n(CODE);
+    r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-at-1' }, kh(K.at));
+    v('   il sert le code', [r.code, r.json.dejaUtilise, n(CODE)], [200, false, avant + 1]);
+    await S.appel('POST', '/api/monitor/espaces/renaitre', { nom: 'atelierrejeu' }, T);
+    r = await S.appel('POST', '/api/monitor/espaces', { nom: 'atelierrejeu', code: b64({ t: 'ent-at-2', k: K.at2, n: 'Atelier' }), origine: 'tour' }, T);
+    v('   la Tour le supprime, puis ouvre une AUTRE entreprise sous le même nom', r.code, 200);
+    r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-at-2' }, kh(K.at2));
+    v('⛔ la nouvelle n\'hérite ni d\'un refus ni de la période : un code NEUF pour elle', [r.code, r.json.dejaUtilise, (eq(CODE, 'ent-at-2') || {}).reporte, n(CODE)], [200, false, undefined, avant + 2]);
+  }
+
+  console.log('\n══ 2e ter. Écrit, ou on le dit (relecture de gardien) ══');
+  {
+    /* Un disque plein, simulé : le temporaire du registre est un DOSSIER, l'écriture échoue. Avant :
+       « ok » au client et un courriel, la période en mémoire seulement — neuve au redémarrage. */
+    const tmp = path.join(S.data, 'promos-usages.json.tmp');
+    fs.mkdirSync(tmp);
+    const avant = S.brut(), nAvant = n(TROISIEME);
+    let r = await S.appel('POST', '/api/promo/valider', { code: TROISIEME, teamId: 'ent-ps-1' }, kh(K.ps));
+    v('⛔ le registre ne s\'écrit pas : 503, et le client le lit', [r.code, /pas pu être enregistré/.test(r.json.error || '')], [503, true]);
+    v('   … le fichier n\'a pas bougé', S.brut(), avant);
+    r = await S.appel('POST', '/api/monitor/espaces/promo', { nom: 'plombiersonde', code: TROISIEME }, T);
+    v('   … la Tour aussi le dit (503)', r.code, 503);
+    fs.rmdirSync(tmp);
+    r = await S.appel('POST', '/api/promo/valider', { code: TROISIEME, teamId: 'ent-ps-1' }, kh(K.ps));
+    v('⛔ … et la mémoire aussi est défaite : le disque réparé, le code est NEUF, compté une fois', [r.code, r.json.dejaUtilise, n(TROISIEME)], [200, false, (nAvant || 0) + 1]);
+  }
   arreterTout();
 
   console.log('\n══ 2f. Un registre ILLISIBLE n\'est pas un registre vide ══');
@@ -363,7 +436,11 @@ const USAGES = { [CODE]: { n: 3, equipes: {
     r = await I.appel('POST', '/api/monitor/espaces/promo', { nom: 'garagesonde', code: CODE }, { Authorization: 'Bearer ' + tI.token });
     v('   … depuis la Tour aussi', r.code, 503);
     r = await I.appel('POST', '/api/espaces/etat', { t: 'ent-fs-1' });
-    faux('   … et le rattrapage n\'active rien', r.json.paye);
+    /* ⛔ LE DOUTE PAIE (relecture de `gardien`) : un espace qui porte un code n'est pas grisé parce
+       que le registre est abîmé — et rien ne s'active pour autant (le fichier, ci-dessous, est intact). */
+    v('⛔ un espace qui porte un code : dans le doute, PAYÉ — et il le dit', [r.json.paye, /illisible/.test(r.json.motif || '')], [true, true]);
+    r = await I.appel('POST', '/api/espaces/etat', { t: 'ent-ps-1' });
+    v('   le témoin : un espace SANS code n\'en profite pas', [r.json.formule, r.json.paye], ['premium', false]);
     v('⛔ le fichier abîmé est INTACT (récupérable), pas écrasé', I.brut(), CASSE);
     vrai('   … et le journal le crie', /promos-usages\.json ILLISIBLE/.test(I.journal()));
     arreterTout();

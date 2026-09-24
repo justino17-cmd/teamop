@@ -2085,6 +2085,11 @@ async function espacePaye(e, opts) {
       }
     }
   } catch (err) {}
+  /* Registre des codes ILLISIBLE : on ne peut plus savoir si la période de cet espace court encore.
+     « En cas de doute, on dit ça paie » — pour un espace qui porte un code (relecture de `gardien`) :
+     sinon l'application grisait une entreprise en pleine période offerte, et l'horloge de
+     conservation la datait. Rien n'est écrit ; `/health` et la surveillance crient déjà. */
+  if (promosIllisible && e.codePromo) return { paye: true, motif: 'code promo ' + String(e.codePromo).toUpperCase() + ' — registre des codes illisible, dans le doute on ne coupe pas', promoCode: String(e.codePromo).toUpperCase(), doute: true };
   try {   // code promo : compté par espace (teamId = identifiant de l'espace)
     for (const [code, u] of Object.entries(promoUsages || {})) {
       const eq = u && u.equipes && u.equipes[e.t];
@@ -3346,7 +3351,9 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
     if (p.maxUtilisations && u.n >= p.maxUtilisations) return res.status(410).json({ error: 'Ce code a atteint son maximum d\'utilisations' });
     const d = new Date(); d.setMonth(d.getMonth() + Math.max(1, Number(p.mois) || 1));
     finLe = d.toISOString().slice(0, 10);
-    u.n++; u.equipes[t] = promoEntree(finLe, t, slug); promoUsages[c] = u; savePromoUsages();
+    const neufU = !promoUsages[c]; u.n++; u.equipes[t] = promoEntree(finLe, t, slug); promoUsages[c] = u;
+    if (!savePromoUsages()) { u.n--; delete u.equipes[t]; if (neufU) delete promoUsages[c];   // écrit, ou on le dit — voir /api/promo/valider
+      return res.status(503).json({ error: 'Le registre des codes (promos-usages.json) n\'a pas pu être écrit — rien n\'est activé. Journal : « non écrit ».' }); }
     mailPromoActive(t, c, finLe, ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium');
   }
   e.codePromo = c;
@@ -5854,7 +5861,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.connexions = inv.connexions;
   if (devisAcces[t]) { delete devisAcces[t]; saveDevisAcces(); }
   fait.devisIA = !!inv.devisIA;
-  if (inv.promos.length) { for (const { code, cle } of promoCles(t, inv.slugs, inv.emails)) { if (promoUsages[code] && promoUsages[code].equipes) delete promoUsages[code].equipes[cle]; } savePromoUsages(); }
+  if (inv.promos.length) promoEffacerEntreprise(t, inv.slugs, inv.emails);
   fait.promos = inv.promos.length;
 
   // ── 5. L'annuaire EN DERNIER parmi les registres : il est le seul à relier nom, slug,
@@ -7694,17 +7701,21 @@ function savePromoUsages() {
      mémoire, le même code redevenait neuf pour la même entreprise.
    Une entreprise se reconnaît d'abord à son identifiant d'espace (`t`). Mais « repartir à neuf »
    lui en donne un NOUVEAU : chaque utilisation porte donc aussi l'EMPREINTE de l'adresse e-mail de
-   l'entreprise (`em`, jamais l'adresse elle-même) et son adresse de connexion (`slug`,
-   `teamop.fr/e/…`), et `/espaces/renaitre` les pose sur les anciennes avant d'effacer l'espace.
-   ⚠️ LE SLUG SEUL NE SUFFIT PAS : une adresse libérée peut être reprise par une AUTRE entreprise,
-   qui ne doit rien hériter — ni un refus, ni une période. On ne rapproche par l'adresse que si
-   aucun des deux côtés n'a d'e-mail (un accès ouvert par la Tour sans adresse) ; sinon c'est
-   l'empreinte de l'e-mail qui décide.
+   l'entreprise (`em`, jamais l'adresse elle-même), et `/espaces/renaitre` la pose sur les
+   anciennes avant d'effacer l'espace.
+   ⛔ PAS PAR LE NOM D'ACCÈS (le slug de `teamop.fr/e/…`) — relecture de `gardien`, le même jour :
+   un nom libéré (« Supprimer l'accès » passe par `/renaitre`) peut être repris par une AUTRE
+   entreprise, qui héritait alors de la période en cours — ou d'un refus. Une entreprise SANS
+   e-mail (un accès ouvert par la Tour sans adresse) n'a donc pas de mémoire au-delà de son `t` :
+   « repartir à neuf » la remet à zéro. C'est la Tour qui les ouvre, jamais un client.
    ⚠️ Cette mémoire ne sert qu'à REFUSER — ou à reporter sur le nouvel identifiant une période
    ENCORE EN COURS, quand l'entreprise la présente avec la preuve de sa clé. Jamais à rendre une
    entreprise « payée » dans `espacePaye()`, qui ne regarde que `t`.
-   ⚠️ Pas au-delà d'une suppression TOTALE (Tour) : elle efface tout, codes compris (« plus rien
-   n'est enregistré nulle part »). C'est voulu, et c'est un geste de la Tour, jamais du client. */
+   ⚠️ L'empreinte est une donnée PSEUDONYMISÉE, donc encore personnelle au sens du RGPD : qui a le
+   fichier et une adresse candidate peut vérifier qu'elle y figure. Elle part avec la suppression
+   totale de l'entreprise — sauf la mémoire d'une entreprise VIVANTE (`promoEffacerEntreprise`).
+   ⚠️ Deux espaces posés par la Tour sous la MÊME adresse se partagent cette mémoire : l'adresse,
+   c'est l'entreprise (le site dédoublonne par adresse ; la Tour, non — voir REPRISE.md). */
 function promoAujourdhui() { return new Date().toISOString().slice(0, 10); }
 function promoDateFr(d) { return String(d || '').split('-').reverse().join('/'); }
 /* L'empreinte d'une adresse : de quoi RECONNAÎTRE une entreprise, pas de quoi la lire. Le fichier
@@ -7712,36 +7723,32 @@ function promoDateFr(d) { return String(d || '').split('-').reverse().join('/');
 function promoEmpreinteMail(email) {
   const m = String(email || '').trim().toLowerCase();
   return m ? crypto.createHash('sha256').update('teamop-promo:' + m).digest('hex').slice(0, 24) : ''; }
-/* Qui est cette entreprise : ses adresses de connexion (un espace renommé en garde plusieurs) et
-   l'empreinte de ses e-mails, lues dans l'annuaire. */
+/* Qui est cette entreprise : l'empreinte des e-mails de ses entrées d'annuaire (un espace renommé en
+   garde plusieurs), plus celle de l'entrée qu'on connaît. */
 function promoIdentite(t, slug) {
-  const slugs = new Set(slug ? [String(slug)] : []), ems = new Set();
+  const ems = new Set();
   for (const [k, x] of Object.entries(espacesReg || {})) {
     if (!x) continue;
     let tx = x.t;
     if (!tx) { try { tx = String(JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')).t || ''); } catch (e) {} }
-    if ((t && tx === t) || (slug && k === slug)) { slugs.add(k); const em = promoEmpreinteMail(x.email); if (em) ems.add(em); }
+    if ((t && tx === t) || (slug && k === slug)) { const em = promoEmpreinteMail(x.email); if (em) ems.add(em); }
   }
-  return { slugs, ems }; }
-/* L'utilisation du code `c` par cette entreprise ({date, finLe, slug, em}), ou null. LECTURE seule. */
+  return { ems }; }
+/* L'utilisation du code `c` par cette entreprise ({date, finLe, em}), ou null. LECTURE seule. */
 function promoServiA(c, t, slug) {
   const u = promoUsages[c]; if (!u || !u.equipes) return null;
   if (t && u.equipes[t]) return u.equipes[t];
-  const id = promoIdentite(t, slug);
-  for (const eq of Object.values(u.equipes)) {
-    if (!eq) continue;
-    if (eq.em && id.ems.has(eq.em)) return eq;
-    if (!eq.em && !id.ems.size && eq.slug && id.slugs.has(eq.slug)) return eq;
-  }
+  const id = promoIdentite(t, slug); if (!id.ems.size) return null;
+  for (const eq of Object.values(u.equipes)) if (eq && eq.em && id.ems.has(eq.em)) return eq;
   return null; }
-/* Ce qu'on inscrit à l'activation : la date, l'échéance CALCULÉE par l'appelant, l'adresse de
-   connexion la plus récente de l'espace et l'empreinte de son e-mail. */
+/* Ce qu'on inscrit à l'activation : la date, l'échéance CALCULÉE par l'appelant, et l'empreinte de
+   l'e-mail de l'espace (celle de l'entrée la plus récente). */
 function promoEntree(finLe, t, slug) {
-  let s = slug ? String(slug) : '', em = '';
+  let em = '';
   try { const e = t ? espaceParT(t) : null;
-    if (e) { if (!s) s = e.slug || ''; em = promoEmpreinteMail(e.email); }
-    if (!em && s && espacesReg[s]) em = promoEmpreinteMail(espacesReg[s].email); } catch (err) {}
-  return { date: promoAujourdhui(), finLe, slug: s, em }; }
+    if (e) em = promoEmpreinteMail(e.email);
+    if (!em && slug && espacesReg[slug]) em = promoEmpreinteMail(espacesReg[slug].email); } catch (err) {}
+  return { date: promoAujourdhui(), finLe, em }; }
 /* Un AUTRE code encore en cours pour cette entreprise (son nom, ou '') — « un seul code à la fois ». */
 function promoAutreActif(c, t, slug) {
   for (const c2 of Object.keys(promoUsages || {})) {
@@ -7751,27 +7758,55 @@ function promoAutreActif(c, t, slug) {
   }
   return ''; }
 /* « Repartir à neuf » (Tour) : l'entreprise va revenir sous un NOUVEL identifiant. Ses utilisations
-   passées prennent son adresse de connexion et l'empreinte de son e-mail AVANT que l'annuaire
-   l'oublie — sans ça, le même code redevenait neuf pour elle. */
+   passées prennent l'empreinte de son e-mail AVANT que l'annuaire l'oublie — sans ça, le même code
+   redevenait neuf pour elle. Sans e-mail, rien à poser (voir l'en-tête). */
 function promoMarquerAvantRenaitre(t, slug, email) {
   const em = promoEmpreinteMail(email); let n = 0;
+  if (!em) return 0;
   for (const u of Object.values(promoUsages || {})) {
     const eq = u && u.equipes && t ? u.equipes[t] : null; if (!eq) continue;
-    eq.slug = String(slug || eq.slug || ''); if (em) eq.em = em; n++;
+    eq.em = em; n++;
   }
   if (n) savePromoUsages();
   return n; }
 /* Toutes les utilisations d'une entreprise, pour la suppression TOTALE : celles de son identifiant,
-   et celles d'un identifiant d'avant « repartir à neuf » qui portent son e-mail (ou, sans e-mail des
-   deux côtés, son adresse). Une utilisation qui porte l'e-mail d'une AUTRE entreprise ne part pas. */
+   et celles d'un identifiant d'avant « repartir à neuf » qui portent son e-mail. Une utilisation qui
+   porte l'e-mail d'une AUTRE entreprise ne part pas. */
 function promoCles(t, slugs, emails) {
-  const ss = new Set(slugs || []), ems = new Set([...(emails || [])].map(promoEmpreinteMail).filter(Boolean)), out = [];
+  const ems = new Set([...(emails || [])].map(promoEmpreinteMail).filter(Boolean)), out = [];
   for (const [code, u] of Object.entries(promoUsages || {})) {
     for (const [cle, eq] of Object.entries((u && u.equipes) || {})) {
-      if (cle === t || (eq && eq.em && ems.has(eq.em)) || (eq && !eq.em && !ems.size && eq.slug && ss.has(eq.slug))) out.push({ code, cle });
+      if (cle === t || (eq && eq.em && ems.has(eq.em))) out.push({ code, cle });
     }
   }
   return out; }
+/* Une utilisation dont l'e-mail est celui d'une entreprise VIVANTE — un AUTRE identifiant, à
+   l'annuaire : la même entreprise, repartie à neuf. */
+function promoHeritier(eq, t) {
+  if (!eq || !eq.em) return false;
+  for (const x of Object.values(espacesReg || {})) {
+    if (!x) continue;
+    let tx = x.t;
+    if (!tx) { try { tx = String(JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')).t || ''); } catch (e) {} }
+    if (tx && tx !== t && promoEmpreinteMail(x.email) === eq.em) return true;
+  }
+  return false; }
+/* ⛔ LA SUPPRESSION TOTALE N'EFFACE PAS LA MÉMOIRE D'UNE ENTREPRISE VIVANTE — relevé par `gardien`
+   le 24 septembre 2026, rejoué sur un serveur isolé : repartir à neuf, puis supprimer totalement
+   l'ANCIEN identifiant resté hors annuaire (le ménage le plus courant de cette route : un appareil
+   resté connecté le fait renaître) — et le code redevenait neuf pour l'entreprise qui vit sous le
+   nouveau. Ces utilisations-là quittent l'identifiant supprimé (il n'en reste aucune trace) et
+   restent attachées à l'empreinte de l'entreprise vivante. Tout le reste part. */
+function promoEffacerEntreprise(t, slugs, emails) {
+  let n = 0;
+  for (const { code, cle } of promoCles(t, slugs, emails)) {
+    const u = promoUsages[code]; if (!u || !u.equipes || !u.equipes[cle]) continue;
+    const eq = u.equipes[cle];
+    if (cle === t && promoHeritier(eq, t)) u.equipes['garde-' + crypto.randomBytes(6).toString('hex')] = Object.assign({}, eq, { garde: true });
+    delete u.equipes[cle]; n++;
+  }
+  if (n) savePromoUsages();
+  return n; }
 /* Le verdict pour une entreprise qui PRÉSENTE le code (une demande d'activation, pas une lecture) :
      { etat: 'neuf' }                  → jamais servi : l'appelant l'active et compte UNE utilisation ;
      { etat: 'actif', finLe, date, reporte } → déjà servi, période en cours : même échéance, rien ne se recompte
@@ -7842,10 +7877,10 @@ app.get('/api/monitor/promos', monAdmin, (req, res) => {
     if (connus.has(c)) continue;
     const usages = Object.entries((u && u.equipes) || {}).map(([t, e]) => {
       const esp = espaceParT(t);
-      return { t, nom: esp ? (esp.nom || esp.slug || '') : '', depuis: (e && e.date) || '', finLe: (e && e.finLe) || '', actif: !!(e && e.finLe && e.finLe >= aujourdhui) };
+      return { t, nom: esp ? (esp.nom || esp.slug || '') : '', depuis: (e && e.date) || '', finLe: (e && e.finLe) || '', actif: !!(e && e.finLe && e.finLe >= aujourdhui), reporte: !!(e && e.reporte) };
     });
     codes.push({ code: c, formule: '', mois: 0, maxUtilisations: 0, utilisations: Number(u.n) || 0, restantes: null,
-      actifs: usages.filter(x => x.actif).length, usages, horsConfig: true });
+      actifs: usages.filter(x => x.actif && !x.reporte).length, usages, horsConfig: true });
   }
   res.json({ codes, total: codes.length, actifsTotal: codes.reduce((n, c) => n + c.actifs, 0) });
 });
@@ -7920,7 +7955,12 @@ app.post('/api/promo/valider', (req, res) => {
        consommait une utilisation et l'écrivait sur disque — un code à maxUtilisations:2
        s'épuisait en deux requêtes, et un vrai client lisait ensuite « ce code a atteint son
        maximum ». On ne compte que ce qu'on a réellement donné à quelqu'un. */
-    if (!apercu && team) { u.n++; u.equipes[team] = promoEntree(finLe, team, ''); promoUsages[c] = u; savePromoUsages();
+    if (!apercu && team) { u.n++; const neufU = !promoUsages[c]; u.equipes[team] = promoEntree(finLe, team, ''); promoUsages[c] = u;
+      /* ⛔ ÉCRIT, OU ON LE DIT (relecture de `gardien`, 24 septembre 2026) : sur un disque plein, la
+         période n'existait qu'en mémoire — « ok » au client, et le code redevenait neuf au
+         redémarrage. On défait, et on le dit, AVANT le courriel. */
+      if (!savePromoUsages()) { u.n--; delete u.equipes[team]; if (neufU) delete promoUsages[c];
+        return res.status(503).json({ error: 'Le code n\'a pas pu être enregistré — réessaie dans un instant.' }); }
       mailPromoActive(team, c, finLe, ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium'); }
   }
   res.json({ ok: true, formule: ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium', mois, finLe, dejaUtilise: !!deja, debut: deja ? (deja.date || '') : '' });
