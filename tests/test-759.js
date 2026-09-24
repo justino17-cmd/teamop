@@ -261,8 +261,42 @@ console.log('\n══ 7. LES ÉCARTS SONT TOUS MOTIVÉS ══\n');
      une tranche VIDE — mesuré à la première exécution. */
   const ab = (NU.match(/function applyBrand\(\)\{[\s\S]*?const pl=\$\('brand-plan'\)/) || [''])[0];
   vrai('⛔ applyBrand est trouvée', ab.length > 300, ab.length + ' caractères');
-  vrai('⛔ … le menu écrit « OP GESTION » dans les deux branches ordinaires', (ab.match(/nm\.innerHTML='OP&nbsp;GESTION'/g) || []).length === 2);
   vrai('⛔ … et JAMAIS le nom du thème', !/MARQUES\[[^\]]*\]\.l/.test(ab));
+  /* ⛔⛔ ET ON JOUE LA VRAIE FONCTION, FORFAIT PAR FORFAIT. La première version de ce contrôle
+     comptait « deux `nm.innerHTML='OP&nbsp;GESTION'` » dans le texte — et laissait passer la
+     TROISIÈME branche, celle de Business Premium, qui écrivait le nom de l'entreprise en titre :
+     c'est le forfait de la bêta, et c'est ce que la capture du tiroir montrait (« ELAN GESTION »,
+     « OP GESTION » dessous). Un motif qui compte des affectations ne voit pas les branches qu'il
+     ne compte pas. On exécute donc `applyBrand` telle qu'elle est écrite, dans un bac à sable
+     qui fournit le strict nécessaire, pour les quatre situations qu'une entreprise peut avoir. */
+  const corpsAB = (APP.match(/function applyBrand\(\)\{[\s\S]*?\n(?=function brandBadgeSrc)/) || [''])[0];
+  vrai('⛔ le corps complet d’applyBrand est trouvé', corpsAB.length > 800, corpsAB.length + ' caractères');
+  const jouer = (forfait, entreprise) => {
+    const el = () => ({ src: '', textContent: '', innerHTML: '', style: { display: '', color: '' } });
+    const els = { 'brand-logo': el(), 'brand-name': el(), 'brand-sub': el(), 'brand-plan': el(), 'suite-ic-elan': el() };
+    const f = new Function('$', 'db', 'forfait', 'PLAN_BADGE', 'PLANS', 'PLAN_COLOR', 'APP_VERSION', 'entrepriseNom', 'localStorage', 'entCouleur', 'applyTheme', 'document',
+      corpsAB + '\n; applyBrand();');
+    f(id => els[id] || null, { entreprise: entreprise }, () => forfait,
+      { gratuit: 'icons/plan-gratuit.png', business: 'icons/plan-business.png', premium: 'icons/plan-premium.png' },
+      { gratuit: { l: 'Gratuit' }, business: { l: 'Business' }, premium: { l: 'Business Premium' } }, {},
+      '745-beta', () => ((entreprise || {}).nom || '').trim(), { getItem: () => '1' }, () => '', () => {},
+      { documentElement: { style: { getPropertyValue: () => '' } } });
+    const nom = (els['brand-name'].innerHTML || els['brand-name'].textContent).replace(/&nbsp;/g, ' ');
+    return { nom, sous: els['brand-sub'].textContent, logo: els['brand-logo'].src };
+  };
+  const CAS = [
+    ['gratuit, sans nom', 'gratuit', {}],
+    ['gratuit, avec nom', 'gratuit', { nom: 'ELAN GESTION' }],
+    ['Business avec son logo', 'business', { nom: 'ELAN GESTION', logo: 'data:image/png;base64,QQ' }],
+    ['Business Premium avec nom et logo', 'premium', { nom: 'ELAN GESTION', logo: 'data:image/png;base64,QQ' }],
+    ['Business Premium avec son nom seul', 'premium', { nom: 'ELAN GESTION' }],
+  ];
+  for (const [lib, fo, E] of CAS) {
+    let r; try { r = jouer(fo, E); } catch (e) { r = { nom: 'ERREUR ' + e.message, sous: '', logo: '' }; }
+    vrai('⛔ ' + lib + ' → le menu s’appelle « OP GESTION »', r.nom === 'OP GESTION', JSON.stringify(r.nom));
+    if (E.nom) vrai('   … et le nom de l’entreprise s’écrit dessous', r.sous === E.nom, JSON.stringify(r.sous));
+    if (E.logo) vrai('   … et le logo payé par l’entreprise reste le sien', r.logo === E.logo, r.logo.slice(0, 30));
+  }
   vrai('⛔ la connexion porte le titre OP GESTION et le logo OP GESTION',
     /<img class="login-logo" src="\$\{_logo\}" alt="OP GESTION"><h2>OP GESTION<\/h2>/.test(NU) && /icons\/logo-day\.png/.test(NU));
 }

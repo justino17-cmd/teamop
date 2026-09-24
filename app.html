@@ -20070,16 +20070,19 @@ function entNom(){ return (((db.entreprise||{}).nom)||'').trim() || (localStorag
 function bcEntete(b){ return docEntete(b&&b.societe,{bon:true}).nom; }   // v740 : l'en-tête passe par docEntete
 /* Couleur du bon : celle de la société choisie (si réglée), sinon le vert TeamOP */
 function bcCouleur(b){ return docEntete(b&&b.societe,{bon:true}).couleur; }
-/* 🏷️ Marque de l'entreprise dans la barre — Business : logo uniquement · Business Premium : logo + nom + couleur */
+/* 🏷️ Marque de l'entreprise dans la barre — Business : son logo · Business Premium : son logo et sa couleur.
+   Dans tous les cas le NOM est « OP GESTION » et celui de l'entreprise s'écrit dessous (voir plus bas). */
 function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('brand-sub'); if(!img||!nm) return;
   const E=db.entreprise||{}, f=forfait();
-  if(f==='premium' && ((E.nom||'').trim()||E.logo)){ img.src=E.logo||PLAN_BADGE[f]; nm.textContent=(E.nom||'').trim()||'OP GESTION'; if(sub){ sub.textContent='OP GESTION'; sub.style.display='block'; } }
+  if(f==='premium' && ((E.nom||'').trim()||E.logo)){ img.src=E.logo||PLAN_BADGE[f]; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=(E.nom||'').trim()||entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   /* ⛔⛔ L'APPLICATION S'APPELLE « OP GESTION », AVEC SON LOGO, SUR TOUS LES APPAREILS ET DANS
      LES DEUX THÈMES. Justin, 24 septembre 2026, capture de la maquette à l'appui (elle écrivait
      « TEAM OP » à la connexion) : « pour tous les types d'appareil tu mets bien OP GESTION avec
-     le logo OP GESTION ». Le thème TEAM OP ne change que les COULEURS. Seul ce que l'entreprise
-     a payé passe devant : son logo (Business), son logo et son nom (Business Premium).
-     Le nom de l'entreprise s'écrit dessous, comme dans la maquette. */
+     le logo OP GESTION ». Le thème TEAM OP ne change que les COULEURS. Ce que l'entreprise a
+     payé reste : son logo (Business et Business Premium) et sa couleur (Premium). Son NOM, lui,
+     ne remplace plus celui de l'application — jusqu'à la v744, Premium écrivait « ELAN GESTION »
+     en titre et « OP GESTION » dessous : il s'écrit désormais dessous, comme dans la maquette
+     et comme pour tout le monde. */
   else if(f==='business' && E.logo){ img.src=E.logo; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   else { img.src=PLAN_BADGE[f]||'icons/icon-192.png'; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   // Nom du forfait écrit en couleur sous le nom
