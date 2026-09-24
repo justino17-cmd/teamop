@@ -12551,7 +12551,7 @@ function valideursPour(box){
   const ids=new Set();
   const dr=currentUser&&currentUser.drId;
   if(dr&&tous.some(x=>x.id===dr)) ids.add(dr);
-  if(box&&box.respUserId&&tous.some(x=>x.id===box.respUserId)) ids.add(box.respUserId);
+  if(box&&box.respUserId&&tous.some(x=>x.id===box.respUserId)&&stkLienOk(box,(db.users||[]).find(u=>u&&u.id===box.respUserId))) ids.add(box.respUserId);
   /* Un DR en congés ne reçoit plus rien : ses demandes partent chez celui qui le remplace.
      Sans cette substitution, la délégation serait muette — le remplaçant aurait le droit de
      valider mais ne saurait jamais qu'il y a quelque chose à valider. */
@@ -12916,7 +12916,7 @@ function visibleDemandes(list){ if(!currentUser) return [];
 function visibleBoxMvts(list){ if(!currentUser) return []; if(currentUser.role==='admin') return list||[];
   const me=currentUser.id;
   if(can('validerDR')){ const p=drPerimetre(currentUser); if(!p.size) return list||[];   // aucun assigné : comportement d'avant
-    const mesBox=new Set((db.boxes||[]).filter(b=>b.respUserId===me).map(b=>b.id));
+    const mesBox=new Set((db.boxes||[]).filter(b=>b.respUserId===me&&stkLienOk(b,currentUser)).map(b=>b.id));
     return (list||[]).filter(m=>m.parId===me||p.has(m.parId)||(m.boxId&&mesBox.has(m.boxId))); }
   if(can('voirTout')) return list||[];
   return (list||[]).filter(m=>m.parId===me); }
@@ -24197,6 +24197,12 @@ function formFournisseur(id){ const f=id?db.fournisseurs.find(x=>x.id===id):{};
      (« UNE INTERVENTION NE DÉDUIT RIEN ») ; ce qu'un technicien a pris est déjà sorti. */
 const STOCKAGE_ID='stockage';
 function estStockage(b){ return !!(b&&b.id===STOCKAGE_ID); }
+/* ⛔ v742 (relecture) — SUR LE STOCKAGE, UN RATTACHEMENT NE VAUT QUE POUR QUI A LA PERMISSION. La case ouvre le
+   stockage, et elle seule (visibleBoxes) ; mais un responsable ou un nom posé sur la box (v741) faisait encore
+   PARLER le stockage à quelqu'un qui ne le voit pas : arrivages et alertes dans la cloche, historique des
+   mouvements d'un DR, validations, avis « pour ta box » — noms de produits, quantités et fournisseur compris.
+   Toute porte qui lit un rattachement de box passe par ici. */
+function stkLienOk(b,u){ return !estStockage(b) || (!!u && userCap(u,'stockage')); }
 function stockageBox(){ return (db.boxes||[]).find(b=>b&&b.id===STOCKAGE_ID&&b.actif!==false)||null; }
 function stockageVisible(){ const s=stockageBox(); return !!(s&&visibleBoxes([s]).length); }
 let stockSearch='';
@@ -24217,7 +24223,7 @@ function stockLines(){ const map={};
 function stockTotaux(){ const t={}; stockLines().forEach(l=>{ t[l.p.id]=l.eff; }); return t; }
 /* Voit-il le périmètre entier ? Alors un produit absent de ses lignes est vraiment à zéro ; sinon il
    est seulement absent de SES box, et le dire « épuisé » serait faux. */
-function stockVoitTout(){ return can('voirTout')&&!perimetreTechIds(); }
+function stockVoitTout(){ return can('voirTout')&&!perimetreTechIds()&&(can('stockage')||!(db.boxes||[]).some(estStockage)); }   // v742 : le stockage est une permission — sans elle, un produit qui n'est QUE là n'est pas « épuisé »
 /* Cette personne voit-elle cette box ? On REJOUE visibleBoxes pour elle, comme usrSansBox : une
    seconde écriture de la règle divergerait un jour. currentUser est TOUJOURS remis, même si ça lève. */
 function boxVuePar(u,b){ if(!u||!b) return false; const avant=currentUser;
@@ -26980,7 +26986,7 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
         <div class="frow"><span class="frow-lbl">Catégorie</span><input name="categorie" value="${esc(b.categorie||'')}" placeholder="ex : TP14 — Rodenticide"></div>
         <div class="frow"><span class="frow-lbl">Groupe</span><input name="groupe" value="${esc(b.groupe&&b.groupe!=='Sans groupe'?b.groupe:'')}" list="box-groupes" placeholder="ex : Agence Strasbourg"><datalist id="box-groupes">${[...new Set(db.boxes.map(x=>x.groupe).filter(g=>g&&g!=='Sans groupe'))].map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
         <div class="frow"><span class="frow-lbl">Secteur</span><input name="secteur" value="${esc(b.secteur||'')}" placeholder="ex : 67 Nord"></div>
-        <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Responsable</span><select name="respUserId" style="width:100%"><option value="">— Aucun —</option>${(db.users||[]).filter(u=>u.actif!==false&&u.role!=='admin').map(u=>`<option value="${u.id}" ${b.respUserId===u.id?'selected':''}>${esc(fullName(u))} — ${esc(roleLbl(u.role)||u.role||'')}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">N'importe quel compte (technicien, chef d'équipe, DR…) : le responsable voit toujours cette box et reçoit ses alertes.</div></div>
+        <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Responsable</span><select name="respUserId" style="width:100%"><option value="">— Aucun —</option>${(db.users||[]).filter(u=>u.actif!==false&&u.role!=='admin'&&(stkLienOk(b,u)||b.respUserId===u.id)).map(u=>`<option value="${u.id}" ${b.respUserId===u.id?'selected':''}>${esc(fullName(u))} — ${esc(roleLbl(u.role)||u.role||'')}${stkLienOk(b,u)?'':' — sans la permission'}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">${estStockage(b)?`Parmi ceux qui ont la permission « Se servir dans le stockage » : il reçoit ses arrivages et ses alertes.`:`N'importe quel compte (technicien, chef d'équipe, DR…) : le responsable voit toujours cette box et reçoit ses alertes.`}</div></div>
       </div>
       <div class="form-sec">Accès</div>
       <div class="fgroup">
@@ -27630,7 +27636,7 @@ function boxGensIds(b){
   (b.userIds||[]).forEach(id=>out.add(id));
   (b.techIds||[]).forEach(tid=>{ (db.users||[]).forEach(u=>{ if(u&&u.techId===tid) out.add(u.id); }); });
   (b.userIdsExclus||[]).forEach(id=>out.delete(id));
-  return [...out].filter(id=>{ const u=(db.users||[]).find(x=>x&&x.id===id); return !!u&&u.actif!==false; });
+  return [...out].filter(id=>{ const u=(db.users||[]).find(x=>x&&x.id===id); return !!u&&u.actif!==false&&stkLienOk(b,u); });
 }
 function boxGensPrevenir(boxId,titre,corps,sauf){
   try{
@@ -28566,8 +28572,10 @@ function bonSuggere(){ if(!peutCommander()){ refusCommander(); return; }
   const need={};
   visibleBoxes(db.boxes||[]).filter(b=>b.actif!==false).forEach(b=>{ const st=b.stock||{};
     Object.keys(st).forEach(pid=>{ const u=(st[pid]||{}).u||0; if(u<=2){ const p=produit(pid); if(!p.id) return; need[pid]=(need[pid]||0)+Math.max(3-u,1); } }); });
-  { const TOT=stockTotaux();
-    (db.produits||[]).filter(p=>(p.seuil||0)>0&&(TOT[p.id]||0)<=p.seuil).forEach(p=>{ need[p.id]=Math.max(need[p.id]||0,p.seuil*2-(TOT[p.id]||0),1); }); }
+  /* v742 (relecture) : la MÊME règle que Produits et la cloche — qui ne voit pas tout (ni le stockage, ni
+     toutes les box) ne juge le seuil que des produits qu'il voit ; sinon il rachèterait ce qui est ailleurs. */
+  { const TOT=stockTotaux(), toutVu=stockVoitTout();
+    (db.produits||[]).filter(p=>(p.seuil||0)>0&&(toutVu||TOT[p.id]!=null)&&(TOT[p.id]||0)<=p.seuil).forEach(p=>{ need[p.id]=Math.max(need[p.id]||0,p.seuil*2-(TOT[p.id]||0),1); }); }
   const pids=Object.keys(need);
   if(!pids.length){ toast('Rien à réapprovisionner — tout est au-dessus des seuils ✅'); return; }
   formBon();
@@ -30411,6 +30419,15 @@ async function saveTech(e,id){ e.preventDefault();
     chef:d.chef||''};
   if(!gere) ['departements','capMin','droitConges','chef'].forEach(k=>delete obj[k]);   // la fiche garde ce qu'elle avait
   const role = d.metier==="Chef d'équipe" ? 'chefEquipe' : 'technicien';
+  /* v742 (relecture) : RENOMMER une fiche passe par la règle qui la crée — prénom ET nom, jamais le nom d'une
+     autre fiche ni d'un autre compte (sinon deux cartes « Léo Martin » au planning, que la liste des
+     utilisateurs ne signale pas : elle compare les COMPTES). Seulement si le nom CHANGE, comme saveUser. */
+  if(id){ const t0=(db.techniciens||[]).find(x=>x.id===id);
+    if(t0&&nomNorm(d.nom)!==nomNorm(t0.nom)){ const ps=(d.nom||'').trim().split(/\s+/).filter(Boolean);
+      if(ps.length<2){ toast('Indique le prénom ET le nom (ex. « Karim Benali ») : ils distinguent deux personnes',4200); return; }
+      if((db.techniciens||[]).some(x=>x.id!==id&&nomNorm(x.nom)===nomNorm(d.nom))){ toast('Un autre technicien porte déjà ce nom — ajoute une initiale ou un second prénom pour distinguer les deux personnes',5200); return; }
+      const lie=(db.users||[]).find(u=>u&&u.techId===id), h=compteHomonyme(ps[0],ps.slice(1).join(' '),lie?lie.id:'');
+      if(h){ toast(homonymeMessage(h,ps[0],ps.slice(1).join(' ')),7500); return; } } }
   if(id){ const ix=db.techniciens.findIndex(x=>x.id===id); db.techniciens[ix]={...db.techniciens[ix],...obj};
     // Le rôle du compte suit la fiche — SAUF pour un administrateur : « Chef d'équipe » sur une
     // fiche technicien ne doit pas rétrograder le patron, qui perdrait Utilisateurs et Permissions.
@@ -36156,7 +36173,7 @@ function saveNotifSeen(){ localStorage.setItem(notifSeenCle(), JSON.stringify(Ob
    ou visibles par tous) et les modules auxquels il a accès — jamais celles des autres services ni des
    autres box. En cas de doute (erreur), on ne montre PAS. */
 function notifVoitModule(k){ try{ if(!currentUser) return false; if(currentUser.role==='admin') return true; return !!userSeesModule(currentUser,k); }catch(e){ return false; } }
-function notifBoxOk(b){ if(!b||!currentUser) return false; if(b.respUserId&&b.respUserId===currentUser.id) return true; try{ return visibleBoxes([b]).length>0; }catch(e){ return false; } }
+function notifBoxOk(b){ if(!b||!currentUser) return false; if(b.respUserId&&b.respUserId===currentUser.id&&stkLienOk(b,currentUser)) return true; try{ return visibleBoxes([b]).length>0; }catch(e){ return false; } }
 /* box « qui me concerne » pour les alertes opérationnelles : admin / DR → toutes celles qu'ils voient ;
    les autres (chef d'équipe, technicien…) → uniquement celles qui leur sont assignées ou dont ils sont responsables */
 /* ⛔ UN DR N'EST ALERTÉ QUE POUR SES BOX — plus « tout, par défaut ». Signalé par Justin le
@@ -36170,6 +36187,7 @@ function notifBoxOk(b){ if(!b||!currentUser) return false; if(b.respUserId&&b.re
    d'alerte. ⚠️ Cela ne change QUE les alertes — ce qu'un DR a le droit de VOIR et d'ouvrir
    n'est pas touché : la vue reste réglée par visibleBoxes. Un administrateur, lui, garde tout. */
 function notifBoxConcerne(b){ if(!b||!currentUser) return false;
+  if(!stkLienOk(b,currentUser)) return false;   // v742 : le stockage ne parle qu'à qui a la permission
   const me=currentUser.id, tid=myTechId();
   const lien=(b.respUserId&&b.respUserId===me) || (b.userIds||[]).includes(me) || (!!tid&&(b.techIds||[]).includes(tid));
   if(currentUser.role==='admin') return notifBoxOk(b);
@@ -36877,6 +36895,8 @@ async function submitCreateAdmin(e){ e.preventDefault();
   const pin=$('ca-pin').value.trim(), pin2=$('ca-pin2').value.trim();
   const err=$('ca-error'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
   if(!prenom||!nom){ show('Le prénom et le nom sont obligatoires.'); return; }   // v742 : des espaces passent « required »
+  { const a0=db.users.find(u=>u.role==='admin'), h=compteHomonyme(prenom,nom,a0?a0.id:'');   // v742 : jamais le nom d'un autre compte
+    if(h){ show(homonymeMessage(h,prenom,nom)); return; } }
   if(pin.length<8){ show('Le mot de passe doit faire au moins 8 caractères.'); return; }
   if(pin!==pin2){ show('Les deux mots de passe ne correspondent pas.'); return; }
   let admin=db.users.find(u=>u.role==='admin');

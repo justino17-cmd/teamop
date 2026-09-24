@@ -210,22 +210,26 @@ console.log('\n── 794 · 4. ⛔⛔ une intervention ne déduit RIEN — ni b
   v('⛔ plus aucun écran n’annonce « Le stock sera déduit »', txt, 0); }
 
 console.log('\n── 794 · 6. la commande suggérée : le PLUS GRAND des deux besoins ──');
-{ const W = monde({ moi, db: { produits: [P('a', 'ADVION', { seuil: 5 }), P('c', 'RATICIDE', { seuil: 10 }), P('r', 'RIEN', { seuil: 4 }), P('z', 'SANS SEUIL')], mouvements: [],
+/* v742 : « voir tout », c'est « Tout voir » ET la case du stockage (une permission, depuis la v742) — sans
+   elle, un produit absent de ses lignes n'est pas « à zéro » à ses yeux : la même règle que Produits et la cloche. */
+{ const W6 = caps => { const W = monde({ moi, caps, db: { produits: [P('a', 'ADVION', { seuil: 5 }), P('c', 'RATICIDE', { seuil: 10 }), P('r', 'RIEN', { seuil: 4 }), P('z', 'SANS SEUIL')], mouvements: [],
     boxes: [{ id: 'bxN', nom: 'Nord', stock: { a: { u: 0, ctn: 0 } } }, { id: 'stockage', stock: { a: { u: 20, ctn: 0 }, c: { u: 1, ctn: 0 } } }] } });
-  W.bonSuggere();
-  v('⛔⛔ ADVION 3 (la box à 0), RATICIDE 19 (2×10−1, pas 2+19), RIEN 8 (absent partout)', W.bonLignes.map(l => [l.produitId, l.quantite]).sort(), [['a', 3], ['c', 19], ['r', 8]]); }
+    W.bonSuggere(); return W.bonLignes.map(l => [l.produitId, l.quantite]).sort(); };
+  v('⛔⛔ ADVION 3 (la box à 0), RATICIDE 19 (2×10−1, pas 2+19), RIEN 8 (absent partout)', W6({ voirTout: 1, stockage: 1 }), [['a', 3], ['c', 19], ['r', 8]]);
+  v('⛔ v742 : « Tout voir » SANS la case stockage — RIEN (absent de ses lignes) n’est pas racheté à l’aveugle', W6({ voirTout: 1 }), [['a', 3], ['c', 19]]); }
 
 console.log('\n── 794 · 7. la cloche : le seuil contre ce que Stock montre ──');
 { const iC = SRC.indexOf('if(vStock){ const avecSeuil=');
   const code = iC > 0 ? bloc('if(vStock){ const avecSeuil=') : '';
   vrai('population : la ligne « Stock bas » de computeNotifs est trouvée', code.length > 200, code.length);
   vrai('⛔ plus aucune alerte sur le compteur caché `p.qte`', !/\(p\.qte\|\|0\)<=p\.seuil/.test(SRC));
-  const jouer = (toutVoir, vus) => { const W = monde({ moi, caps: toutVoir ? { voirTout: 1 } : {}, vus,
+  const jouer = (toutVoir, vus, caps) => { const W = monde({ moi, caps: caps || (toutVoir ? { voirTout: 1, stockage: 1 } : {}), vus,   // v742 : voir tout = « Tout voir » + la case du stockage
       db: { produits: [P('a', 'ADVION', { seuil: 5 }), P('c', 'RATICIDE', { seuil: 10 }), P('r', 'RIEN', { seuil: 4 })], mouvements: [],
         boxes: [{ id: 'stockage', stock: { a: { u: 20, ctn: 0 }, c: { u: 3, ctn: 0 } } }] } });
     W.out = []; W.vStock = true; vm.runInContext(code, W); return W.out.map(n => n.txt.replace(/<[^>]+>/g, '')); };
   v('qui voit tout : RATICIDE (3/10) et RIEN (0/4) — pas ADVION (20/5)', jouer(true, null), ['Stock bas : RATICIDE (3/10)', 'Stock bas : RIEN (0/4)']);
-  v('⛔ qui ne voit que ses box : ce qu’il n’a pas n’est pas à lui de signaler', jouer(false, ['stockage']), ['Stock bas : RATICIDE (3/10)']); }
+  v('⛔ qui ne voit que ses box : ce qu’il n’a pas n’est pas à lui de signaler', jouer(false, ['stockage']), ['Stock bas : RATICIDE (3/10)']);
+  v('⛔ v742 : « Tout voir » SANS la case stockage ne connaît pas le total de l’entreprise — RIEN n’est pas « à 0 » pour lui', jouer(true, null, { voirTout: 1 }), ['Stock bas : RATICIDE (3/10)']); }
 
 console.log('\n── 794 · 8. qui a pris quoi : celui qui a REÇU voit sa ligne ──');
 { const W = monde({ moi: { id: 'uK', prenom: 'Karim', nom: 'Benali' }, vus: [], caps: {},
@@ -395,6 +399,67 @@ console.log('\n── 794 · 16. ⛔ le contrôle de CI des permissions tourne J
   const sortie = (r.stdout || '') + (r.stderr || ''), fin = (sortie.match(/✓ (\d+) vérifications, aucun échec/) || [])[1];
   vrai('⛔ il se termine en 0, sans exception', r.status === 0 && !/Error|introuvable/.test(sortie), { code: r.status, erreur: (sortie.match(/^\w*Error.*$/m) || [''])[0] });
   vrai('… et il a vraiment vérifié quelque chose (population ≥ 30 contrôles)', +fin >= 30, fin); }
+
+console.log('\n── 794 · 17. ⛔⛔ le stockage ne PARLE qu’à qui a la permission — responsable et noms d’avant compris (relecture v742) ──');
+/* La relecture adversariale de la v742 l'a trouvé, et rejoué : la case ouvrait le stockage, mais un
+   « Responsable » choisi sur sa fiche (ou un nom posé sur la box en v741) le faisait encore parler à
+   quelqu'un qui ne le voit pas — arrivages et alertes dans la cloche (produits, quantités, fournisseur),
+   historique des mouvements d'un DR, validations, avis « pour ta box ». Et « Tout voir » sans la case
+   disait « Épuisé » d'un produit qui n'est QUE dans le stockage, et la commande suggérée le rachetait.
+   On EXÉCUTE les vraies fonctions. */
+{ const NOMS17 = ['stkLienOk', 'estStockage', 'visibleBoxes', 'notifBoxOk', 'notifBoxConcerne', 'visibleBoxMvts', 'valideursDR', 'valideursPour', 'boxGensIds',
+    'stockLines', 'stockTotaux', 'stockVoitTout', 'bonSuggere'];
+  const C17 = NOMS17.map(n => bloc('function ' + n + '('));
+  v('population : les vraies fonctions sont trouvées', NOMS17.filter((n, i) => !C17[i]), []);
+  const jouer = (moiId, users, boxes, extra) => {
+    const x = extra || {};
+    const ctx = { console, Set, Map, Object, Array, String, JSON, Math, db: { users, boxes, produits: x.produits || [] }, __drp: x.drp || null, __toasts: [] };
+    vm.createContext(ctx);
+    vm.runInContext(K_ID.replace('const ', 'var ') + '\n' + K_EXCLU.replace('const ', 'var ') + '\n' + C17.join('\n') + `
+      var currentUser=db.users.find(u=>u.id===${JSON.stringify(moiId)})||null, bonLignes=[];
+      function userCap(u,c){ if(!u) return false; if(u.role==='admin') return true; return !!(u.acces&&u.acces.caps&&u.acces.caps[c]); }
+      function can(c){ return userCap(currentUser,c); }
+      function myTechId(){ return (currentUser&&currentUser.techId)||''; }
+      function perimetreTechIds(){ return null; } function perimetreUserIds(){ return null; }
+      function drPerimetre(){ return new Set(__drp||[]); } function delegationsRecues(){ return []; } function remplacantDe(x){ return x; }
+      function produit(id){ return db.produits.find(p=>p.id===id)||{}; }
+      function peutCommander(){ return true; } function refusCommander(){} function formBon(){} function renderBonLignes(){} function bonQtyOpen(){}
+      function toast(m){ __toasts.push(String(m)); }`, ctx);
+    return ctx; };
+  const gens = () => [{ id: 'uA', prenom: 'Justin', nom: 'Roux', role: 'admin' },
+    { id: 'uR', prenom: 'Rita', nom: 'Resp', role: 'technicien' },                                   // responsable du stockage, SANS la case
+    { id: 'uK', prenom: 'Karim', nom: 'Benali', role: 'technicien', drId: 'uD2' },                  // nommé sur le stockage en v741, SANS la case
+    { id: 'uP', prenom: 'Paul', nom: 'Perm', role: 'technicien', acces: { caps: { stockage: true } } },
+    { id: 'uD', prenom: 'Dora', nom: 'Dir', role: 'dr', acces: { caps: { validerDR: true, voirTout: true } } },
+    { id: 'uD2', prenom: 'Didier', nom: 'Dir', role: 'dr', acces: { caps: { validerDR: true, voirTout: true, stockage: true } } }];
+  const avecCase = (users, id) => { const u = users.find(x => x.id === id); u.acces = u.acces || { caps: {} }; u.acces.caps.stockage = true; return users; };
+  const B = (resp) => [{ id: 'stockage', stockage: true, respUserId: resp, userIds: ['uK', 'uP'], techIds: [], stock: { p1: { u: 20 } } },
+    { id: 'bN', respUserId: resp, userIds: ['uK', 'uP'], techIds: [], stock: { p2: { u: 1 } } }];
+  const S = w => w.db.boxes[0], N = w => w.db.boxes[1];
+  { const w = jouer('uR', gens(), B('uR')), w2 = jouer('uR', avecCase(gens(), 'uR'), B('uR'));
+    v('⛔⛔ cloche : le responsable SANS la case n’a ni les arrivages ni les alertes du stockage — avec la case, oui ; une box ordinaire, oui',
+      [w.notifBoxOk(S(w)), w.notifBoxConcerne(S(w)), w2.notifBoxOk(S(w2)), w2.notifBoxConcerne(S(w2)), w.notifBoxOk(N(w)), w.notifBoxConcerne(N(w))], [false, false, true, true, true, true]); }
+  { const w = jouer('uK', gens(), B('uR'));
+    v('⛔ … ni le nom posé sur la box en v741 (Karim, sans la case)', [w.notifBoxConcerne(S(w)), w.notifBoxConcerne(N(w))], [false, true]); }
+  { const m = [{ id: 'm1', boxId: 'stockage', parId: 'uX' }, { id: 'm2', boxId: 'bN', parId: 'uX' }];
+    const w = jouer('uD', gens(), B('uD'), { drp: ['uY'] }), w2 = jouer('uD', avecCase(gens(), 'uD'), B('uD'), { drp: ['uY'] });
+    v('⛔⛔ historique d’un DR responsable du stockage SANS la case : pas ses mouvements (la box ordinaire, si) ; avec la case, les deux',
+      [w.visibleBoxMvts(m).map(x => x.id), w2.visibleBoxMvts(m).map(x => x.id)], [['m2'], ['m1', 'm2']]); }
+  { const w = jouer('uK', gens(), B('uD')), w2 = jouer('uK', avecCase(gens(), 'uD'), B('uD'));
+    v('⛔⛔ validations : le DR responsable du stockage SANS la case n’en reçoit pas les sorties (celui de Karim, si) ; avec la case, les deux ; une box ordinaire, les deux',
+      [w.valideursPour(S(w)), w2.valideursPour(S(w2)), w.valideursPour(N(w))], [['uD2'], ['uD2', 'uD'], ['uD2', 'uD']]); }
+  { const w = jouer('uA', gens(), B('uR'));
+    v('⛔ avis « pour ta box » : sur le stockage, seuls ceux qui ont la case (Paul) ; une box ordinaire, tous ses rattachés',
+      [w.boxGensIds(S(w)), w.boxGensIds(N(w))], [['uP'], ['uR', 'uK', 'uP']]); }
+  { const P = [{ id: 'p1', nom: 'P1', seuil: 5 }, { id: 'p2', nom: 'P2', seuil: 5 }];
+    const wD = jouer('uD', gens(), B(''), { produits: P }), wD2 = jouer('uD2', gens(), B(''), { produits: P }), wSans = jouer('uD', gens(), [B('')[1]], { produits: P });
+    v('⛔⛔ « Tout voir » SANS la case ne voit pas tout quand un stockage existe ; avec la case, si ; sans stockage du tout, « Tout voir » suffit',
+      [wD.stockVoitTout(), wD2.stockVoitTout(), wSans.stockVoitTout()], [false, true, true]);
+    wD.bonSuggere(); wD2.bonSuggere();
+    v('⛔⛔ commande suggérée : sans la case, P1 (20 u au stockage, seuil 5) n’est PAS rachetée ; P2 (1 u en box) l’est — même chose avec la case',
+      [wD.bonLignes.map(l => l.produitId + ':' + l.quantite), wD2.bonLignes.map(l => l.produitId + ':' + l.quantite)], [['p2:9'], ['p2:9']]); }
+  vrai('⛔ le ✎ du stockage propose un responsable parmi ceux qui ont la permission (celui d’avant reste lisible, signalé)',
+    /filter\(u=>u\.actif!==false&&u\.role!=='admin'&&\(stkLienOk\(b,u\)\|\|b\.respUserId===u\.id\)\)/.test(SRC) && /\$\{stkLienOk\(b,u\)\?'':' — sans la permission'\}/.test(SRC)); }
 
 console.log('\n── 794 · 13. la mesure dans une vraie page existe ──');
 { const P2 = path.join(__dirname, '..', 'scratchpad', 'sonde-stockage.js');

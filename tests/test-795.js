@@ -109,6 +109,9 @@ const modifier = async (id, champs) => { const W = monde(base(), admin); const u
   { const CA = bloc('async function submitCreateAdmin(e){');
     const iNom = CA.indexOf("if(!prenom||!nom){ show('Le prénom et le nom sont obligatoires.'); return; }"), iPush = CA.indexOf('db.users.push(admin)');
     vrai('⛔ le premier administrateur : prénom et nom vérifiés (des espaces passent « required ») AVANT de créer le compte', iNom > 0 && iPush > iNom, [iNom, iPush]);
+    const iHa = CA.indexOf("h=compteHomonyme(prenom,nom,a0?a0.id:'');"), iMsg = CA.indexOf('if(h){ show(homonymeMessage(h,prenom,nom)); return; }');
+    vrai('⛔ … et jamais le nom d’un autre compte (le compte d’administrateur qu’on remplit est écarté), vérifié AVANT de le créer',
+      iHa > iNom && iMsg > iHa && iPush > iMsg && /const a0=db\.users\.find\(u=>u\.role==='admin'\)/.test(CA), [iHa, iMsg, iPush]);
     const ST = bloc('async function saveTech(e,id){');
     const iH = ST.indexOf('const h=compteHomonyme(ps[0],ps.slice(1).join(\' \'),\'\');'), iT = ST.indexOf('db.techniciens.push({id:tid,...obj});');
     vrai('⛔ la fiche technicien (qui crée un compte) vérifie AVANT de créer (joué par test-786)', iH > 0 && iT > iH, [iH, iT]);

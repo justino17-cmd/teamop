@@ -276,6 +276,21 @@ async function partieSaveTech() {
   v('contre-épreuve : le nom d’un compte SANS fiche technicien est la même personne — la fiche s’y relie, aucun compte de plus', [N3.comptes, N3.fiches], [4, 3]);
   const N4 = await essai('uA', [], { nom: 'Karim Benali-Roux', metier: 'Technicien' });
   v('contre-épreuve : un nom distinct crée la fiche et son compte', [N4.comptes, N4.fiches], [5, 3]);
+  /* ⛔ v742 (relecture, rejoué sur la vraie fonction) : RENOMMER une fiche suivait la création… sauf qu'elle ne
+     suivait rien — « Karim Benali » devenait « Léo Martin » à côté d'un vrai « Léo Martin », deux cartes
+     indiscernables au planning, et la liste des utilisateurs (qui compare les COMPTES) ne disait rien. */
+  const M1 = await essai('uA', [], { nom: 'Léo Martin', tel: '06 12' }, 'tK');
+  v('⛔⛔ renommer la fiche de Karim en « Léo Martin » (une AUTRE fiche) : refusé, rien ne bouge, et on dit pourquoi',
+    [M1.K.nom, M1.toasts.some(t => /Un autre technicien porte déjà ce nom/.test(t))], ['Karim Benali', true]);
+  const M2 = await essai('uA', [], { nom: 'Karim', tel: '06 12' }, 'tK');
+  v('⛔ … en un seul mot : refusé', [M2.K.nom, M2.toasts.some(t => /prénom ET le nom/.test(t))], ['Karim Benali', true]);
+  const M3 = await essai('uA', [], { nom: 'Rémi Chef', tel: '06 12' }, 'tK');
+  v('⛔⛔ … au nom d’un AUTRE compte (Rémi, sans fiche) : refusé, avec le message des homonymes',
+    [M3.K.nom, M3.toasts.some(t => /« Rémi Chef » est déjà le nom d’un autre compte/.test(t))], ['Karim Benali', true]);
+  const M4 = await essai('uA', [], { nom: 'Karim A. Benali', tel: '06 12' }, 'tK');
+  v('contre-épreuve : un nom qui distingue passe', M4.K.nom, 'Karim A. Benali');
+  const M5 = await essai('uA', [], { nom: 'karim benali', tel: '06 34' }, 'tK');
+  v('contre-épreuve : SON propre nom (casse changée) n’est pas un doublon — le téléphone s’enregistre', [M5.K.nom, M5.K.tel], ['karim benali', '06 34']);
   vrai('le sélecteur de rôle est verrouillé à l’écran pour qui n’est pas administrateur (en modification)',
     /<select name="metier" \$\{id&&currentUser&&currentUser\.role!=='admin'\?'disabled title=/.test(SRC));
 }

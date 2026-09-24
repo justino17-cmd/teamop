@@ -57,6 +57,10 @@ console.log('\nUn DR n\'est alerté que pour SES box');
   // de notifBoxConcerne, pas la mécanique des droits (éprouvée ailleurs).
   let CAN_VALIDER=true; const can=c=>c==='validerDR'?CAN_VALIDER:false;
   const notifBoxOk=()=>true;   // un admin voit tout : la doublure le dit
+  /* v742 : notifBoxConcerne lit la PERMISSION du stockage (stkLienOk) — sur le stockage, un rattachement ne
+     vaut que pour qui a la case. Les vraies estStockage et stkLienOk ; userCap en doublure (la case du compte). */
+  const STOCKAGE_ID='stockage'; eval(extraire('estStockage'));
+  const userCap=(u,c)=>c==='stockage'&&!!(u&&u.caseStk); eval(extraire('stkLienOk'));
   eval(extraire('notifBoxConcerne'));
 
   const dr={id:'dr1',prenom:'Alex',nom:'Huby',role:'dr',actif:true};
@@ -78,6 +82,12 @@ console.log('\nUn DR n\'est alerté que pour SES box');
     notifBoxConcerne({id:'b4',techIds:['TEC-1'],userIds:[],respUserId:''}), true);
   v('…et celle d\'une autre équipe ne l\'alerte pas',
     notifBoxConcerne({id:'b5',techIds:['TEC-9'],userIds:[],respUserId:'dr2'}), false);
+  // v742 (relecture) : le STOCKAGE ne parle qu'à qui a sa permission — même son responsable, même nommé dessus
+  v('v742 : responsable ET nommé sur le stockage, mais sans la case : pas d\'alerte',
+    notifBoxConcerne({id:'stockage',techIds:['TEC-1'],userIds:['dr1'],respUserId:'dr1'}), false);
+  dr.caseStk=true;
+  v('…avec la case, l\'alerte revient', notifBoxConcerne({id:'stockage',techIds:[],userIds:[],respUserId:'dr1'}), true);
+  delete dr.caseStk;
 
   // Un administrateur garde TOUT
   const admin={id:'a1',prenom:'OP',nom:'Admin',role:'admin',actif:true};

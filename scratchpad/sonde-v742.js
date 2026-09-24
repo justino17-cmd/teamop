@@ -71,13 +71,14 @@ let navigateur=null;
       {id:'u-v42-k',prenom:'Karim',nom:'Benali',login:'kb-v42',role:'technicien',techId:'t-v42-k',actif:true,pref:{}},
       {id:'u-v42-s',prenom:'Sofia',nom:'Perez',login:'sp-v42',role:'technicien',techId:'t-v42-s',actif:true,pref:{}},
       {id:'u-v42-r',prenom:'Rémi',nom:'Chef',login:'rc-v42',role:'chefEquipe',actif:true,pref:{},acces:{caps:{gererBoxes:true,creerUtilisateurs:true},modules:{}}},
-      {id:'u-v42-b',prenom:'Bureau',nom:'Compta',login:'bc-v42',role:'compta',actif:true,pref:{},acces:{caps:{voirTout:true},modules:{stock:true}}},
+      {id:'u-v42-b',prenom:'Bureau',nom:'Compta',login:'bc-v42',role:'compta',actif:true,pref:{},acces:{caps:{voirTout:true},modules:{stock:true,produits:true}}},
       {id:'u-v42-j1',prenom:'Jean',nom:'Dupont',login:'jd1-v42',role:'technicien',actif:true,pref:{}},
       {id:'u-v42-j2',prenom:'Jean',nom:'Dupont',login:'jd2-v42',role:'technicien',actif:true,pref:{}});
     db.techniciens=(db.techniciens||[]).filter(t=>!/^t-v42-/.test(t.id)).concat([{id:'t-v42-k',nom:'Karim Benali'},{id:'t-v42-s',nom:'Sofia Perez'}]);
     db.produits=(db.produits||[]).filter(p=>!/^p-v42-/.test(p.id));
     produitCreer({id:'p-v42-a',nom:'ADVION GEL BLATTES 30G',ref:'ADV30',categorie:'TP18 — Insecticide',unite:'u',seuil:5},{semis:true});
-    db.boxes=[{id:'stockage',stockage:true,nom:'Stockage',numero:'',groupe:'Sans groupe',actif:true,visibleTous:false,userIds:[],techIds:[],stock:{'p-v42-a':{u:20,ctn:0}}},
+    produitCreer({id:'p-v42-c',nom:'CARTON APPÂTS SOURIS',ref:'CAS',categorie:'TP14 — Rodenticide',unite:'u',seuil:3},{semis:true});   // QUE dans le stockage
+    db.boxes=[{id:'stockage',stockage:true,nom:'Stockage',numero:'',groupe:'Sans groupe',actif:true,visibleTous:false,userIds:[],techIds:[],stock:{'p-v42-a':{u:20,ctn:0},'p-v42-c':{u:8,ctn:0}}},
       {id:'bx-v42-n',nom:'Box Nord (sonde)',numero:'BX-1',actif:true,techIds:['t-v42-k'],stock:{'p-v42-a':{u:5,ctn:0}}}];
     db.validDRTous=false; db.bonsRemiseOff=false;
     /* ⛔ LE TÉMOIN NE DOIT PAS CONSOMMER LA RESSOURCE QUE L'ESSAI RÉCLAME : la bêta a 3 places au forfait,
@@ -193,6 +194,57 @@ let navigateur=null;
   vrai('« Créer » est touché', await toucher(`#overlay form [type="submit"], #overlay button[type="submit"]`));
   await dormir(1200);
   v('⛔⛔ le compte créé porte la permission, écrite', await S.ev(`const u=db.users.find(x=>x.prenom==='Nadia'&&x.nom==='Kacem'); return u?(u.acces&&u.acces.caps&&u.acces.caps.stockage):'absent';`), true);
+
+  console.log('\n══ C. ⛔⛔ RELECTURE v742 : LE STOCKAGE NE PARLE QU’À QUI A LA PERMISSION ══');
+  /* Sofia (technicienne, SANS la case) est faite « Responsable » du stockage — le ✎ d'avant le permettait. Un
+     arrivage y entre : avant le correctif, SA cloche le racontait (produits, fournisseur) sans qu'elle le voie. */
+  const c8=await S.ev(`const s=db.boxes.find(b=>b.id==='stockage'); s.respUserId='u-v42-s';
+    s.arrivages=(s.arrivages||[]).filter(a=>a.id!=='arr-v42').concat([{id:'arr-v42',ts:Date.now(),par:'Karim Benali',fournisseur:'SODIF',lignes:[{produitId:'p-v42-c',qte:4}]}]); save(); return 1;`);
+  await connecter('u-v42-s');
+  const c8a=await S.ev(`return computeNotifs().filter(n=>/^arr:arr-v42/.test(n.id)).length;`);
+  v('⛔⛔ Sofia, « Responsable » du stockage SANS la case : sa cloche ne raconte PAS l’arrivage du stockage', c8a, 0);
+  await S.ev(`const u=db.users.find(x=>x.id==='u-v42-s'); u.acces={caps:{stockage:true},modules:{}}; save(); return 1;`);
+  await connecter('u-v42-s');
+  const c8b=await S.ev(`return computeNotifs().filter(n=>/^arr:arr-v42/.test(n.id)).map(n=>n.txt.replace(/<[^>]+>/g,''));`);
+  vrai('contre-épreuve : la case donnée, l’arrivage lui parvient (elle est responsable)', c8b.length===1 && /Stockage/.test(c8b[0]) && /SODIF/.test(c8b[0]), c8b);
+  await S.ev(`const u=db.users.find(x=>x.id==='u-v42-s'); delete u.acces; save(); return 1;`);
+
+  /* Le ✎ du stockage : le « Responsable » se choisit parmi ceux qui ont la permission ; celui d'avant reste lisible, signalé. */
+  await connecter('u-v42-a');
+  const c9=await S.ev(`openBox('stockage'); await new Promise(r=>setTimeout(r,600)); formBox('stockage'); await new Promise(r=>setTimeout(r,500));
+    const o=[...document.querySelectorAll('#overlay select[name="respUserId"] option')].map(x=>x.textContent.replace(/\\s+/g,' ').trim()).filter(t=>!/Aucun/.test(t));
+    const aide=(document.querySelector('#overlay select[name="respUserId"]')||{}).parentElement; const t=aide?aide.textContent.replace(/\\s+/g,' '):'';
+    try{ closeModal(true); }catch(e){} return {o, aide:/Parmi ceux qui ont la permission/.test(t)};`);
+  v('⛔ le ✎ du stockage : le bureau (permission par défaut) et Nadia (cochée) sont proposés ; Sofia (l’actuelle, sans la case) reste lisible et signalée ; ni Karim, ni les Jean — Rémi (chef sans équipe) l’a par défaut',
+    [c9.o.map(x=>x.split(' — ')[0]).sort(), c9.o.filter(x=>/sans la permission/.test(x)).map(x=>x.split(' — ')[0]), c9.aide],
+    [['Bureau Compta','Nadia Kacem','Rémi Chef','Sofia Perez'], ['Sofia Perez'], true]);   // Rémi : chef SANS équipe, « Tout voir » par défaut, donc la permission par défaut
+
+  /* Le bureau DÉCOCHÉ (« Tout voir » sans la case) : un produit qui n'est QUE dans le stockage n'est pas « Épuisé » à ses yeux. */
+  const prod=async()=>{ await S.ev(`prdSearch=''; prdExpanded={}; go('produits'); await new Promise(r=>setTimeout(r,800)); CAT_LIST.forEach(c=>prdExpanded[c]=true); renderProduitsList(); return 1;`);
+    return S.ev(`const r=[...document.querySelectorAll('#prd-list .pl-row')].find(x=>/CARTON APPÂTS SOURIS/.test(x.textContent)); return r?r.textContent.replace(/\\s+/g,' ').trim():null;`); };
+  await S.ev(`const u=db.users.find(x=>x.id==='u-v42-b'); u.acces.caps.stockage=false; save(); return 1;`);
+  await connecter('u-v42-b');
+  const c10=await prod();
+  vrai('⛔⛔ le bureau SANS la case : « CARTON APPÂTS SOURIS » (8 u, seulement au stockage) dit « Pas dans tes box », pas « Épuisé »', !!c10 && /Pas dans tes box/.test(c10) && !/Épuisé/.test(c10), c10);
+  await S.ev(`const u=db.users.find(x=>x.id==='u-v42-b'); delete u.acces.caps.stockage; save(); return 1;`);
+  await connecter('u-v42-b');
+  const c10b=await prod();
+  vrai('contre-épreuve : le bureau AVEC sa case (défaut) le voit « En stock · 8 u »', !!c10b && /En stock · 8 u/.test(c10b), c10b);
+
+  /* Renommer une fiche technicien, au doigt : ✎ de Karim → « Sofia Perez » (une autre fiche) → refusé, rien ne bouge. */
+  await connecter('u-v42-a');
+  await S.ev(`try{ closeModal(true); }catch(e){} formTech('t-v42-k'); await new Promise(r=>setTimeout(r,600)); window.__toasts=[]; return 1;`);
+  await taper('#overlay input[name="nom"]','Sofia Perez');
+  vrai('« Enregistrer » est touché', await toucher(`#overlay form [type="submit"]`));
+  await dormir(700);
+  const c11=await S.ev(`return {nom:(db.techniciens.find(t=>t.id==='t-v42-k')||{}).nom, toast:window.__toasts.filter(t=>/porte déjà ce nom/.test(t))[0]||''};`);
+  v('⛔⛔ la fiche de Karim renommée « Sofia Perez » : refusée, elle garde son nom, et on dit pourquoi', [c11.nom, /Un autre technicien porte déjà ce nom/.test(c11.toast)], ['Karim Benali', true]);
+  await cap('C11-renommer-fiche');
+  await taper('#overlay input[name="nom"]','Karim Benali-Roux');   // « Karim A. Benali » est déjà un COMPTE (créé en A.1) : refusé à juste titre
+  await S.ev(`window.__toasts=[]; return 1;`);
+  vrai('« Enregistrer » est touché (nom qui distingue)', await toucher(`#overlay form [type="submit"]`));
+  await dormir(700);
+  v('contre-épreuve : « Karim Benali-Roux » s’enregistre', await S.ev(`return (db.techniciens.find(t=>t.id==='t-v42-k')||{}).nom;`), 'Karim Benali-Roux');
 
   console.log('\n══ PAGE ══');
   v('aucune exception JavaScript', S.exceptions, []);
