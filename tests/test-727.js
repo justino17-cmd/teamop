@@ -119,51 +119,15 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('une adresse à la casse ou aux espaces près paie quand même', r.paye, true);
   }
 
-  /* 5. ET LA RÉFÉRENCE DOIT VRAIMENT VOYAGER, DE LA PAGE JUSQU'À STRIPE.
-     ⛔ CES DEUX CONTRÔLES ÉTAIENT DES `grep` SUR LE TEXTE DU SERVEUR, ET LES DEUX MOTIFS
-     APPARAISSENT DANS LE COMMENTAIRE qui explique le correctif, juste au-dessus du code.
-     On pouvait donc SUPPRIMER les deux lignes de code et le banc restait vert : il gardait
-     une explication, pas un comportement. Relevé par la troisième vérification.
-     ⛔ ET IL MANQUAIT LA MOITIÉ DU CHEMIN. `/api/stripe/checkout` ne grave la référence que si
-     la PAGE lui envoie un `ref` — et `recap-abonnement.html`, la seule page du site qui ouvre
-     une page de paiement, ne l'envoyait pas. Tout le correctif du serveur était donc inerte,
-     et personne ne pouvait le voir. On exerce désormais LES DEUX BOUTS, exécutés :
-       a) le corps que la page construit vraiment, évalué avec un `localStorage` simulé ;
-       b) la VRAIE route, appelée avec ce corps, dont on lit ce qui part chez Stripe. */
-  const PAGE = fs.readFileSync(path.join(__dirname, '..', 'recap-abonnement.html'), 'utf8');
-
-  /* a) Le corps de la page. On extrait l'expression littérale et la fonction qu'elle appelle,
-        puis on les exécute — aucune recopie : si la page change de forme, ce banc tombe. */
-  const mFn = /const espaceRattacheRef = \(\) => \{[\s\S]*?\};/.exec(PAGE);
-  vrai('la page sait lire l\'espace rattach\u00e9', !!mFn);
-  /* ⚠️ Ancré sur L'APPEL DE PAIEMENT, pas sur le premier `JSON.stringify` de la page : elle
-     en compte plusieurs (la validation du code promo en fait un aussi), et prendre le premier
-     venu faisait évaluer le mauvais corps. */
-  /* ⛔ ANCRÉ SUR L'APPEL, PAS SUR LA CHAÎNE : le chemin est aussi cité dans le commentaire
-     qui explique le correctif, vingt lignes plus haut. Chercher `/api/stripe/checkout` tout
-     court tombait dessus et évaluait le mauvais corps — la même faute que celle qu'on vient
-     de corriger ici. Un motif de banc doit viser du CODE, jamais une phrase. */
-  const iCo = PAGE.indexOf("fetch('https://api.teamop.fr/api/stripe/checkout'");
-  vrai('   la page appelle bien la route de paiement', iCo > 0);
-  const mBody = /body: JSON\.stringify\((\{.*?\})\), signal/.exec(PAGE.slice(iCo, iCo + 800));
-  vrai('   et le corps du paiement est trouvable', !!mBody);
-  let corps = null;
-  if (mFn && mBody) {
-    corps = new Function('localStorage', 'priceId', 'nbAbos',
-      mFn[0] + '\nreturn JSON.stringify(' + mBody[1] + ');')(
-      { getItem: (k) => (k === 'elan_sync_team' ? 'monclient-9f2a' : null) }, 'price_1Abc', 3);
-    corps = JSON.parse(corps);
-    v('⛔ le corps envoy\u00e9 par la page PORTE la r\u00e9f\u00e9rence de l\'espace', corps.ref, 'monclient-9f2a');
-    v('   et garde le tarif et la quantit\u00e9', [corps.price, corps.quantity], ['price_1Abc', 3]);
-    /* Un prospect qui paie AVANT d'avoir un espace : pas de référence, et c'est prévu — le
-       serveur l'ignore, le repli par adresse reste. Ce n'est pas une panne, c'est le cas
-       nominal du site public : le banc l'écrit pour qu'on ne le « répare » pas un jour. */
-    const vide = new Function('localStorage', 'priceId', 'nbAbos',
-      mFn[0] + '\nreturn JSON.stringify(' + mBody[1] + ');')(
-      { getItem: () => null }, 'price_1Abc', 1);
-    v('un prospect sans espace envoie une r\u00e9f\u00e9rence vide, sans casser', JSON.parse(vide).ref, '');
-  }
-
+  /* 5. LA ROUTE DE PAIEMENT GRAVE LA RÉFÉRENCE SUR L'ABONNEMENT.
+     ⛔ CES CONTRÔLES ÉTAIENT DES `grep` SUR LE TEXTE DU SERVEUR, ET LES MOTIFS APPARAISSAIENT
+     DANS LE COMMENTAIRE qui explique le correctif : on pouvait supprimer le code et le banc
+     restait vert. La route est donc EXÉCUTÉE, et on lit ce qui partirait chez Stripe.
+     ⚠️ L'AUTRE MOITIÉ DU CHEMIN — la page `recap-abonnement.html` qui ENVOIE la référence — vit
+     dans `test-797`, qui fait parler la vraie page à la vraie route. Elle a quitté ce fichier
+     le 24 septembre 2026 pour que celui-ci ne garde que le SERVEUR : c'est lui que le
+     déploiement du serveur seul lance sur `main`, où la page n'est pas encore publiée
+     (`scripts/bancs-serveur.liste`). */
   /* b) La VRAIE route, exécutée. On extrait le gestionnaire du fichier livré et on intercepte
         `fetch` : ce qu'on lit est littéralement ce qui partirait chez Stripe. */
   const iR = SRC.indexOf("app.post('/api/stripe/checkout'");
@@ -187,7 +151,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   };
 
   {
-    const r = await appeler(corps || { price: 'price_1Abc', quantity: 3, ref: 'monclient-9f2a' });
+    const r = await appeler({ price: 'price_1Abc', quantity: 3, ref: 'monclient-9f2a' });
     vrai('⛔ ce qui part chez Stripe grave la r\u00e9f\u00e9rence sur l\'ABONNEMENT',
       /subscription_data%5Bmetadata%5D%5Bespace%5D=monclient-9f2a/.test(r.envoye));
     vrai('   et la garde sur la session, comme avant',

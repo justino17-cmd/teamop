@@ -17,8 +17,24 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
+# ⛔ UNE LISTE EN ARGUMENT, OU TOUT. Le déploiement du SERVEUR SEUL sur `main` ne peut pas
+# lancer toutes les suites : la plupart lisent `app.html`, et celui de `main` n'est pas celui
+# de la branche (67 suites tomberaient, mesuré par `gardien`). Il lance donc la liste de
+# `scripts/bancs-serveur.liste` — PAR CE MÊME FICHIER, pour que le compteur reste unique.
+# ⚠️ Une liste qui nomme un fichier absent est une ERREUR, jamais un saut : une suite
+# renommée ou oubliée dans un commit ferait sinon passer le déploiement sur une suite de moins,
+# sans un mot — « une assertion sur un ensemble vide passe et ne prouve rien ».
+if [ "$#" -gt 0 ]; then
+  for f in "$@"; do
+    [ -f "$f" ] || { echo "::error::la liste nomme $f, qui n'existe pas — rien ne part"; exit 1; }
+  done
+  liste=("$@")
+else
+  liste=(tests/test-*.js)
+fi
+
 echecs=0; total=0; suites=0; coupables=''
-for f in tests/test-*.js; do
+for f in "${liste[@]}"; do
   sortie=$(node "$f" 2>&1); rc=$?
   suites=$((suites+1))
   ligne=$(printf '%s\n' "$sortie" | grep -oE '[0-9]+ ✓ +[0-9]+ ✗' | tail -1)

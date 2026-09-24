@@ -1,0 +1,56 @@
+# Les suites qui gardent le SERVEUR — celles que le déploiement du serveur seul lance sur `main`.
+#
+# ⛔ POURQUOI UNE LISTE, ET PAS TOUT. Justin, 23 septembre 2026 : « on ne publie rien en version
+# publique tant que le serveur n'est pas fait à part de Firebase ». `main` sert donc app.html en
+# v695 pendant que la branche est en v743 : la plupart des suites lisent `app.html`, et 67
+# d'entre elles tombent contre celui de `main` (mesuré par `gardien`). Le déploiement du serveur
+# ne peut pas attendre qu'elles passent — elles ne le peuvent pas — et il ne doit pas partir sans
+# banc non plus : c'était le cas de `main` jusqu'ici (un seul job, sans `needs`).
+#
+# ⛔ CE QUI ENTRE ICI : une suite dont le SUJET est `server/` (elle le monte, ou elle en extrait
+# les fonctions), ET qui passe contre les pages servies par `main`. Celles qui lisent aussi
+# `app.html` ou `tour.html` y sont À DESSEIN : elles vérifient que le serveur neuf parle toujours
+# aux pages que les clients ont VRAIMENT (la v695, la Tour en ligne) — c'est la couture la plus
+# dangereuse du dépôt, et c'est exactement elle qu'un déploiement du serveur seul met en jeu.
+# ⛔ CE QUI N'Y ENTRE PAS : les suites de l'application seule, et celles qui ne passent qu'avec
+# les pages de la branche — `test-735` (le socle côté appareil n'existe pas en v695),
+# `test-740`/`741`/`744`/`746` (portail, `espace.html` et `op-fs.js` non publiés),
+# `test-797` (la page de paiement non publiée). Elles tournent dans la suite complète, sur la branche.
+#
+# Mesuré le 24 septembre 2026 sur un arbre `origin/main` + `server/` de la branche :
+# toutes les suites ci-dessous passent, code de sortie 0 (voir REPRISE.md).
+# ⚠️ Une ligne qui nomme un fichier absent fait ÉCHOUER le compteur (`scripts/bancs-ci.sh`) :
+# une suite renommée ne peut pas sortir de la porte en silence. `tests/test-728.js` relit la liste.
+tests/test-640.js
+tests/test-641.js
+tests/test-668.js
+tests/test-669.js
+tests/test-675.js
+tests/test-680.js
+tests/test-683.js
+tests/test-686.js
+tests/test-687.js
+tests/test-689.js
+tests/test-691.js
+tests/test-696.js
+tests/test-697.js
+tests/test-702.js
+tests/test-703.js
+tests/test-711.js
+tests/test-715.js
+tests/test-716.js
+tests/test-722.js
+tests/test-723.js
+tests/test-724.js
+tests/test-725.js
+tests/test-726.js
+tests/test-727.js
+tests/test-728.js
+tests/test-729.js
+tests/test-736.js
+tests/test-738.js
+tests/test-739.js
+tests/test-742.js
+tests/test-743.js
+tests/test-745.js
+tests/test-796.js

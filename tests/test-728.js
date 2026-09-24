@@ -200,6 +200,39 @@ if (fs.existsSync(dep)) {
   v('   et les deux workflows l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement.yml']);
 }
 
+/* ⛔ LA LISTE DES BANCS DU SERVEUR — ce que le déploiement du serveur SEUL lance sur `main`
+   (`scripts/preparer-deploiement-serveur.sh`, 24 septembre 2026). Une liste qui s'amincit en
+   silence est une porte qui s'ouvre en silence : on en exige la population, l'existence de
+   chaque suite, et que chacune ait bien le SERVEUR pour sujet. */
+{
+  const liste = path.join(__dirname, '..', 'scripts', 'bancs-serveur.liste');
+  vrai('la liste des bancs serveur existe', fs.existsSync(liste));
+  if (fs.existsSync(liste)) {
+    const L = fs.readFileSync(liste, 'utf8').split('\n').map(x => x.trim()).filter(x => x && !x.startsWith('#'));
+    vrai('   ⛔ elle n\'est pas vide (au moins 25 suites)', L.length >= 25);
+    v('   ⛔ chaque suite nommée existe', L.filter(f => !fs.existsSync(path.join(__dirname, '..', f))), []);
+    v('   pas de doublon', L.length, new Set(L).size);
+    v('   ⛔ chacune a le SERVEUR pour sujet',
+      L.filter(f => { try { return !/'server'|server\/|test-728/.test(f + fs.readFileSync(path.join(__dirname, '..', f), 'utf8')); } catch (e) { return true; } }), []);
+    /* Celles qui ne passent QU'AVEC les pages de la branche n'y entrent pas : elles bloqueraient
+       le déploiement du serveur sur `main`, où ces pages ne sont pas publiées. */
+    v('   ⛔ et aucune de celles qui exigent les pages de la branche',
+      L.filter(f => /test-(735|740|741|744|746|797)\.js$/.test(f)), []);
+    const prep = path.join(__dirname, '..', 'scripts', 'preparer-deploiement-serveur.sh');
+    vrai('   le script de préparation existe', fs.existsSync(prep));
+    if (fs.existsSync(prep)) {
+      const t = fs.readFileSync(prep, 'utf8').replace(/^\s*#.*$/gm, '');
+      /* ⛔ IL NE POUSSE RIEN : pousser sur `main` un commit qui touche `server/**` déploie le VPS.
+         La commande de poussée n'est qu'AFFICHÉE (dans un `echo`), jamais exécutée. */
+      v('   ⛔ il ne pousse RIEN lui-même', t.split('\n').filter(l => /git\b.*\bpush\b/.test(l) && !/^\s*echo /.test(l)), []);
+      vrai('   il lance les bancs de la liste avant de commiter', /bash scripts\/bancs-ci\.sh "\$\{SUITES\[@\]\}"/.test(t)
+        && t.indexOf('bash scripts/bancs-ci.sh "${SUITES[@]}"') < t.indexOf('commit -q'));
+      vrai('   et il refuse une liste trop courte', /-ge 25/.test(t));
+      vrai('   et il exige server/node_modules (sinon les suites sautent, vertes sans rien prouver)', /node_modules manque/.test(t));
+    }
+  }
+}
+
 try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) {}
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exitCode = ko ? 1 : 0;
