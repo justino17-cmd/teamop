@@ -320,9 +320,12 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   s'active). Un sixième chemin passe par elle ou n'existe pas ; une utilisation s'écrit par
   `promoEntree`, jamais `equipes[t] = { date: … }` à la main (`tests/test-803.js` compte les deux).
   ⚠️ « Repartir à neuf » change `t` : l'entreprise se reconnaît aussi à l'EMPREINTE de son e-mail
-  (`em`, jamais l'adresse en clair dans `promos-usages.json`) ; le slug seul ne suffit pas, une
-  adresse libérée peut être reprise par une AUTRE entreprise, qui n'hérite de rien.
-  ⚠️ La suppression TOTALE efface la mémoire des codes avec le reste — voulu, geste de la Tour.
+  (`em`, jamais l'adresse en clair dans `promos-usages.json`) — ⛔ JAMAIS au nom d'accès (slug) :
+  un nom libéré (« Supprimer l'accès ») repris par une AUTRE entreprise lui faisait hériter la
+  période ou un refus (`gardien`, rejoué). Sans e-mail, pas de mémoire au-delà de `t`.
+  ⚠️ La suppression TOTALE efface la mémoire des codes avec le reste — voulu, geste de la Tour —
+  SAUF celle d'une entreprise VIVANTE (supprimer l'ancien identifiant d'une entreprise repartie à
+  neuf) : `promoEffacerEntreprise`. Et un registre non écrit se DIT (503), avant le courriel.
 - ⛔ **`espaces.json` ne s'écrit QUE par `espacesEcrire()`** (temporaire puis renommage).
   Tronqué, il sort TOUTES les entreprises de l'annuaire d'un coup — et depuis que la règle
   Firestore est publiée, ça ne casse plus seulement la Tour : plus de verdict de clé, plus de

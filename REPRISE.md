@@ -157,13 +157,16 @@ nouvel identifiant d'espace, donc un code redevenu neuf pour la même entreprise
   (le code, la date de fin, « un code ne sert qu'une fois par entreprise ») ; registre illisible →
   rien ne s'active (503). La Tour aussi est refusée — elle a son geste pour offrir une nouvelle
   période : Abonnement → « Essai offert », avec une date de fin.
-- **« Repartir à neuf »** : chaque utilisation porte l'adresse de connexion et l'EMPREINTE de l'e-mail
-  de l'entreprise (jamais l'adresse en clair), posées sur les anciennes AVANT d'effacer l'annuaire.
-  Une période encore en cours se REPORTE sur le nouvel identifiant (sans se recompter) ; une période
-  finie reste finie. Une AUTRE entreprise qui reprend une adresse libérée n'hérite de rien.
-- ⚠️ **La suppression TOTALE (Tour) efface aussi la mémoire des codes** — c'était déjà le cas, c'est
-  voulu (« plus rien n'est enregistré nulle part ») : une entreprise supprimée puis réinscrite
-  pourrait resservir un code. Un geste de la Tour, jamais du client.
+- **« Repartir à neuf »** : chaque utilisation porte l'EMPREINTE de l'e-mail de l'entreprise
+  (jamais l'adresse en clair), posée sur les anciennes AVANT d'effacer l'annuaire. Une période
+  encore en cours se REPORTE sur le nouvel identifiant (sans se recompter) ; une période finie reste
+  finie. Une AUTRE entreprise qui reprend un nom d'accès libéré n'hérite de rien.
+- ⚠️ **La suppression TOTALE (Tour) efface la mémoire des codes de l'entreprise supprimée** —
+  c'était déjà le cas, c'est voulu (« plus rien n'est enregistré nulle part ») : une entreprise
+  supprimée puis réinscrite pourrait resservir un code. Un geste de la Tour, jamais du client.
+  **Sauf** la mémoire d'une entreprise VIVANTE : supprimer l'ancien identifiant d'une entreprise
+  repartie à neuf (le ménage courant d'un espace hors annuaire) la garde, détachée de l'identifiant
+  supprimé (`promoEffacerEntreprise`).
 - **Le registre** (`promos-usages.json`) s'écrit par temporaire + renommage, n'est plus réécrit s'il
   était illisible au démarrage, et `/health.registres.promos` + la surveillance le disent. ⚠️ Tant
   qu'il est illisible, les périodes offertes en cours ne comptent plus dans `espacePaye` (comme
@@ -178,9 +181,34 @@ nouvel identifiant d'espace, donc un code redevenu neuf pour la même entreprise
   a déjà servi un code, avec un AUTRE compte du portail, y lit « Code valide » — puis le serveur
   refuse l'activation et le courriel de la demande le dit. `espace.html` n'a pas été touché (site).
 
-Bancs : `test-803` (109 ✓ ; 103 ✓ contre la v695 de `main` — le refus du nouveau serveur s'y affiche
-en toast et n'écrit rien), `test-727` reçoit les vraies aides. **21 mutations sur 21 mordent.**
-`test-803` est dans `scripts/bancs-serveur.liste`.
+**Relecture de `gardien` (même jour), rien de bloquant, tout rejoué sur un serveur isolé, et
+corrigé :** la suppression de l'ancien identifiant effaçait la mémoire de l'entreprise vivante
+(ci-dessus) ; le rapprochement par le NOM d'accès, quand aucun des deux côtés n'a d'e-mail, faisait
+hériter une AUTRE entreprise reprenant un nom libéré (« Supprimer l'accès » passe par
+`/renaitre`) — il a disparu ; un registre non écrit (disque plein) défait l'activation et répond
+503 avant le courriel ; registre illisible + code posé sur l'espace → « payé, dans le doute », et
+dit ; la liste de la Tour ne compte plus deux fois une période reportée ; le banc coupe le réseau
+de ses serveurs (« repartir à neuf » tentait Google) et le prouve au journal.
+
+⚠️ **Ce qui reste, dit tel quel** (remarques de `gardien`) :
+- **une entreprise SANS e-mail** (un accès ouvert par la Tour sans adresse) n'a pas de mémoire au-delà
+  de son identifiant : « repartir à neuf » la remet à zéro. La vraie réponse serait une filiation
+  explicite (« ce nouvel espace succède à tel ancien »), qui demande de toucher `tour.html` ;
+- **deux espaces posés par la Tour sous la MÊME adresse se partagent la mémoire** (l'adresse, c'est
+  l'entreprise ; le site dédoublonne par adresse, la Tour non) : la Tour devrait prévenir ;
+- **les entreprises déjà reparties à neuf AVANT ce déploiement** n'ont aucune empreinte sur leurs
+  anciennes utilisations : elles peuvent reprendre leur code. Rien ne permet de le rattraper ;
+- **l'empreinte est une donnée pseudonymisée**, donc encore personnelle (RGPD) : qui a le fichier et
+  une adresse candidate peut vérifier qu'elle y figure. Elle suit l'entreprise dans la sauvegarde
+  et part avec sa suppression totale ;
+- **hors de ce chantier, mais à vérifier** : `fbVerifie` ne regarde pas `email_verified`. Si le
+  projet Firebase laisse s'inscrire sans vérifier l'adresse, un tiers inscrit avec l'adresse
+  publique d'une entreprise pourrait, par le relais du portail, activer un code à sa place.
+
+Bancs : `test-803` (131 ✓ ; 125 ✓ contre la v695 de `main` — le refus du nouveau serveur s'y affiche
+en toast et n'écrit rien), `test-727` reçoit les vraies aides. **21 + 7 mutations, toutes mordent.**
+`test-803` est dans `scripts/bancs-serveur.liste` : 34 suites, **2 004 vérifications contre les pages
+de `main`** (plancher relevé à 1 925).
 
 ## ✅ 24 SEPTEMBRE 2026 — RELECTURE DE LA v744 : DEUX CORRECTIONS
 

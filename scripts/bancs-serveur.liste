@@ -23,8 +23,9 @@
 # une suite renommée ne peut pas sortir de la porte en silence. `tests/test-728.js` relit la liste.
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie
 # exécutée (sans `server/node_modules`, elles se déclarent vertes). Mesuré le 24 septembre 2026 :
-# 1 876 sur cette liste. Le relever quand on ajoute une suite, jamais le baisser pour passer.
-#plancher 1800
+# 1 876 sur cette liste, puis 2 004 une fois `test-803` ajouté (34 suites, contre les pages de
+# `main`). Le relever quand on ajoute une suite, jamais le baisser pour passer.
+#plancher 1925
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
