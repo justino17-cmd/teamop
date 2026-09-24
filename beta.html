@@ -14171,6 +14171,11 @@ const CREER_ENTREES=[
   {k:'demandes',      ic:'📥', l:'Demande',      c:'#5856d6', fn:"formDemande()",      peut:()=>canCat('achats','ajouter')},
   {k:'boxes',         ic:'📦', l:'Box',          c:'#30b0c7', fn:"formBox()",          peut:()=>boxGerer('ajouter')},
 ];
+/* ⛔ LE SIGNE D'UNE TUILE EST CELUI DE SA RUBRIQUE AU MENU. La feuille écrivait 📦 pour « Box » et
+   📥 pour « Demande » quand le menu écrit 🧱 et ✈️ : deux dessins pour une même chose, et le module
+   des icônes les change en DEUX traits différents (« colis » contre « brique »). On lit NAV — la
+   liste de la feuille ne garde son émoji que pour une rubrique absente du menu. */
+function creerIc(e){ try{ const it=NAV.flatMap(s=>s.items).find(x=>x.k===e.k); return (it&&it.ic)||e.ic; }catch(err){ return e.ic; } }
 function creerDispo(){
   return CREER_ENTREES.filter(e=>{ try{
     const it=NAV.flatMap(s=>s.items).find(x=>x.k===e.k);
@@ -14187,7 +14192,7 @@ function creerOuvrir(){
       <div class="creer-head"><b>Créer</b><button class="modal-close" onclick="creerFermer()" aria-label="Fermer">✕</button></div>
       <div class="creer-grille">${l.map(e=>`
         <button class="creer-t" onclick="creerAller(${JSON.stringify(e.fn).replace(/"/g,'&quot;')})">
-          <span class="creer-ic" style="${catVars(e.k)}">${e.ic}</span>
+          <span class="creer-ic" style="${catVars(e.k)}">${creerIc(e)}</span>
           <span class="creer-l">${esc(e.l)}</span></button>`).join('')}</div>
     </div>`;
   ov.classList.add('on');
@@ -20070,16 +20075,19 @@ function entNom(){ return (((db.entreprise||{}).nom)||'').trim() || (localStorag
 function bcEntete(b){ return docEntete(b&&b.societe,{bon:true}).nom; }   // v740 : l'en-tête passe par docEntete
 /* Couleur du bon : celle de la société choisie (si réglée), sinon le vert TeamOP */
 function bcCouleur(b){ return docEntete(b&&b.societe,{bon:true}).couleur; }
-/* 🏷️ Marque de l'entreprise dans la barre — Business : logo uniquement · Business Premium : logo + nom + couleur */
+/* 🏷️ Marque de l'entreprise dans la barre — Business : son logo · Business Premium : son logo et sa couleur.
+   Dans tous les cas le NOM est « OP GESTION » et celui de l'entreprise s'écrit dessous (voir plus bas). */
 function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('brand-sub'); if(!img||!nm) return;
   const E=db.entreprise||{}, f=forfait();
-  if(f==='premium' && ((E.nom||'').trim()||E.logo)){ img.src=E.logo||PLAN_BADGE[f]; nm.textContent=(E.nom||'').trim()||'OP GESTION'; if(sub){ sub.textContent='OP GESTION'; sub.style.display='block'; } }
+  if(f==='premium' && ((E.nom||'').trim()||E.logo)){ img.src=E.logo||PLAN_BADGE[f]; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=(E.nom||'').trim()||entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   /* ⛔⛔ L'APPLICATION S'APPELLE « OP GESTION », AVEC SON LOGO, SUR TOUS LES APPAREILS ET DANS
      LES DEUX THÈMES. Justin, 24 septembre 2026, capture de la maquette à l'appui (elle écrivait
      « TEAM OP » à la connexion) : « pour tous les types d'appareil tu mets bien OP GESTION avec
-     le logo OP GESTION ». Le thème TEAM OP ne change que les COULEURS. Seul ce que l'entreprise
-     a payé passe devant : son logo (Business), son logo et son nom (Business Premium).
-     Le nom de l'entreprise s'écrit dessous, comme dans la maquette. */
+     le logo OP GESTION ». Le thème TEAM OP ne change que les COULEURS. Ce que l'entreprise a
+     payé reste : son logo (Business et Business Premium) et sa couleur (Premium). Son NOM, lui,
+     ne remplace plus celui de l'application — jusqu'à la v744, Premium écrivait « ELAN GESTION »
+     en titre et « OP GESTION » dessous : il s'écrit désormais dessous, comme dans la maquette
+     et comme pour tout le monde. */
   else if(f==='business' && E.logo){ img.src=E.logo; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   else { img.src=PLAN_BADGE[f]||'icons/icon-192.png'; nm.innerHTML='OP&nbsp;GESTION'; if(sub){ const en=entrepriseNom(); sub.textContent=en; sub.style.display=en?'block':'none'; } }
   // Nom du forfait écrit en couleur sous le nom
@@ -40895,8 +40903,11 @@ function compteurs(){
    Le drapeau « occupe » empêche nos propres insertions de relancer le passage ; comme elles ne
    laissent plus aucun émoji derrière elles, le second tour ne trouve rien et la boucle s'arrête. */
 var occupe=false, attente=null;
+/* `#creer` (la feuille « Créer ») est une SŒUR de .main posée sur <body> : ni #content ni #overlay
+   ne la contiennent, et ses six tuiles restaient en émojis au milieu d'un menu tout en traits
+   (mesuré au navigateur le 24 septembre 2026, capture de la feuille). */
 var RACINES=['#content','#page-head','#overlay','#overlay2','#nav',
-  '#topbar-actions','#login','.topbar','.sidebar-foot','#mail-read','#tabbar'];
+  '#topbar-actions','#login','.topbar','.sidebar-foot','#mail-read','#tabbar','#creer'];
 function balayerRacines(){
   for(var i=0;i<RACINES.length;i++){
     var l=document.querySelectorAll(RACINES[i]);
@@ -40942,7 +40953,7 @@ function nommer(){
 function planifier(){ clearTimeout(attente); attente=setTimeout(passage,40); }
 try{
   var obs=new MutationObserver(function(){ if(!occupe) planifier(); });
-  ['#content','#page-head','#overlay','#overlay2','#nav','#login','.topbar'].forEach(function(sel){
+  ['#content','#page-head','#overlay','#overlay2','#nav','#login','.topbar','#creer'].forEach(function(sel){
     var el=document.querySelector(sel); if(el) obs.observe(el,{childList:true,subtree:true});
   });
   obs.observe(document.body,{childList:true});
@@ -40975,6 +40986,18 @@ try{
    On empile une entrée par écran, et on rend le retour système à goBack(), la fonction que
    l'application utilise déjà pour son propre bouton « ‹ ». Quand la pile est vide, on ne fait
    rien : le système reprend la main et l'utilisateur sort — jamais de piège. */
+/* La feuille « Créer » MONTE dès la deuxième image : attendre l'observateur (40 ms) laisserait voir
+   les émojis se changer en traits pendant qu'elle glisse. On passe donc juste après son écriture. */
+try{
+  if(typeof window.creerOuvrir==='function'){
+    var creerNatif=window.creerOuvrir;
+    window.creerOuvrir=function(){
+      var r=creerNatif.apply(this,arguments);
+      try{ occupe=true; icones(document.getElementById('creer')); }catch(e){} finally{ occupe=false; }
+      return r;
+    };
+  }
+}catch(e){}
 try{
   if(typeof window.go==='function'){
     var goNatif=window.go, enRetour=false;

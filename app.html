@@ -14171,6 +14171,11 @@ const CREER_ENTREES=[
   {k:'demandes',      ic:'📥', l:'Demande',      c:'#5856d6', fn:"formDemande()",      peut:()=>canCat('achats','ajouter')},
   {k:'boxes',         ic:'📦', l:'Box',          c:'#30b0c7', fn:"formBox()",          peut:()=>boxGerer('ajouter')},
 ];
+/* ⛔ LE SIGNE D'UNE TUILE EST CELUI DE SA RUBRIQUE AU MENU. La feuille écrivait 📦 pour « Box » et
+   📥 pour « Demande » quand le menu écrit 🧱 et ✈️ : deux dessins pour une même chose, et le module
+   des icônes les change en DEUX traits différents (« colis » contre « brique »). On lit NAV — la
+   liste de la feuille ne garde son émoji que pour une rubrique absente du menu. */
+function creerIc(e){ try{ const it=NAV.flatMap(s=>s.items).find(x=>x.k===e.k); return (it&&it.ic)||e.ic; }catch(err){ return e.ic; } }
 function creerDispo(){
   return CREER_ENTREES.filter(e=>{ try{
     const it=NAV.flatMap(s=>s.items).find(x=>x.k===e.k);
@@ -14187,7 +14192,7 @@ function creerOuvrir(){
       <div class="creer-head"><b>Créer</b><button class="modal-close" onclick="creerFermer()" aria-label="Fermer">✕</button></div>
       <div class="creer-grille">${l.map(e=>`
         <button class="creer-t" onclick="creerAller(${JSON.stringify(e.fn).replace(/"/g,'&quot;')})">
-          <span class="creer-ic" style="${catVars(e.k)}">${e.ic}</span>
+          <span class="creer-ic" style="${catVars(e.k)}">${creerIc(e)}</span>
           <span class="creer-l">${esc(e.l)}</span></button>`).join('')}</div>
     </div>`;
   ov.classList.add('on');
@@ -40898,8 +40903,11 @@ function compteurs(){
    Le drapeau « occupe » empêche nos propres insertions de relancer le passage ; comme elles ne
    laissent plus aucun émoji derrière elles, le second tour ne trouve rien et la boucle s'arrête. */
 var occupe=false, attente=null;
+/* `#creer` (la feuille « Créer ») est une SŒUR de .main posée sur <body> : ni #content ni #overlay
+   ne la contiennent, et ses six tuiles restaient en émojis au milieu d'un menu tout en traits
+   (mesuré au navigateur le 24 septembre 2026, capture de la feuille). */
 var RACINES=['#content','#page-head','#overlay','#overlay2','#nav',
-  '#topbar-actions','#login','.topbar','.sidebar-foot','#mail-read','#tabbar'];
+  '#topbar-actions','#login','.topbar','.sidebar-foot','#mail-read','#tabbar','#creer'];
 function balayerRacines(){
   for(var i=0;i<RACINES.length;i++){
     var l=document.querySelectorAll(RACINES[i]);
@@ -40945,7 +40953,7 @@ function nommer(){
 function planifier(){ clearTimeout(attente); attente=setTimeout(passage,40); }
 try{
   var obs=new MutationObserver(function(){ if(!occupe) planifier(); });
-  ['#content','#page-head','#overlay','#overlay2','#nav','#login','.topbar'].forEach(function(sel){
+  ['#content','#page-head','#overlay','#overlay2','#nav','#login','.topbar','#creer'].forEach(function(sel){
     var el=document.querySelector(sel); if(el) obs.observe(el,{childList:true,subtree:true});
   });
   obs.observe(document.body,{childList:true});
@@ -40978,6 +40986,18 @@ try{
    On empile une entrée par écran, et on rend le retour système à goBack(), la fonction que
    l'application utilise déjà pour son propre bouton « ‹ ». Quand la pile est vide, on ne fait
    rien : le système reprend la main et l'utilisateur sort — jamais de piège. */
+/* La feuille « Créer » MONTE dès la deuxième image : attendre l'observateur (40 ms) laisserait voir
+   les émojis se changer en traits pendant qu'elle glisse. On passe donc juste après son écriture. */
+try{
+  if(typeof window.creerOuvrir==='function'){
+    var creerNatif=window.creerOuvrir;
+    window.creerOuvrir=function(){
+      var r=creerNatif.apply(this,arguments);
+      try{ occupe=true; icones(document.getElementById('creer')); }catch(e){} finally{ occupe=false; }
+      return r;
+    };
+  }
+}catch(e){}
 try{
   if(typeof window.go==='function'){
     var goNatif=window.go, enRetour=false;
