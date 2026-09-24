@@ -247,6 +247,8 @@ console.log('\n── 794 · 11. la carte de Stock dit pourquoi, et ne montre qu
   v('pas de stockage, pas le droit de le créer : rien', carte({ moi, db: avecAncien, gerer: {} }), '');
   const c1 = carte({ moi, db: avecAncien, gerer: { ajouter: 1 } });
   vrai('pas de stockage, droit de créer : on le propose, et on dit ce qui y sera rangé', /Créer le stockage/.test(c1) && /2 produits · 15 u/.test(c1), c1.slice(0, 300));
+  vrai('… « Pas de box ? » à une entreprise sans box ; « un stock central » à celle qui en a', /Pas de box \?/.test(c1)
+    && /Un stock central, hors des box \? Crée le stockage/.test(carte({ moi, db: Object.assign({}, avecAncien, { boxes: [{ id: 'bxN', nom: 'Nord' }] }), gerer: { ajouter: 1 } })));
   const avecS = { produits: [P('a', 'ADVION')], boxes: [{ id: 'stockage', nom: 'Stockage', stock: { a: { u: 4, ctn: 0 } } }], mouvements: [], users: [] };
   const c2 = carte({ moi, db: avecS, vus: [] });
   vrai('⛔ un stockage fermé à cette personne : on le lui DIT', /ne t'est pas ouvert/.test(c2) && !/Me servir/.test(c2), c2);

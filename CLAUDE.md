@@ -1290,6 +1290,18 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   les recopier. Deux règles y sont gravées : le NOM passe avant l'étiquette (un rayon nomme une cible,
   le nom nomme l'objet), et rien qui nomme une cible ne se replie sur TP14 ni TP18 — ce sont les types
   du règlement biocide qu'une entreprise trace, pas deux étagères parmi huit.
+- ⛔ **LE STOCKAGE (le stock hors des box) EST UNE BOX À IDENTIFIANT FIXE — `STOCKAGE_ID`.** v741,
+  décision de Justin du 24 septembre 2026 (« si des entreprises n'ont pas de box, elles peuvent tout
+  mettre dans le stock directement… avec un suivi de qui prend quoi »). Ne pas lui écrire une seconde
+  mécanique : arrivage, validation DR, « Pour qui ? », bon de remise, journal, fusion ligne à ligne et
+  accès personne par personne sont ceux d'une box. Trois règles, gardées par `tests/test-794.js` :
+  · **UN total** — `stockTotaux()` (le stockage + les box qu'on voit + l'ancien `p.qte` tant qu'il
+    n'est pas rangé) — lu par Stock, Produits, la cloche et la commande suggérée. Jamais `p.qte` seul :
+    c'est ce qui faisait dire « 40 unités » ici et « Épuisé » là ;
+  · **la clôture d'une intervention n'y puise JAMAIS** (`intStockDeduire` l'écarte) : il baisse à la
+    PRISE (« Me servir »), le déduire aussi à la clôture compterait deux fois ;
+  · **son accès est celui d'une box** (`userBoxVoit`), fermé par défaut sauf à « Tout voir », donné
+    depuis « Qui peut s'y servir » ; le stockage ne compte pas comme une box (`usrSansBox`, Boxes).
 - **Retirer un produit d'une box s'écrit TOUJOURS dans `db.boxDecisions`** (`boxDecider`). Quatre
   chemins le font : la feuille « Retirer », la croix ✕ de « Modifier la box », le retrait direct de la
   fiche, et le retrait validé par le DR. Sans cette trace, le catalogue repose tout seul ce qu'une

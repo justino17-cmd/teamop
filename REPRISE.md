@@ -79,6 +79,86 @@ et `balayageOk` vrais, `sauvegarde` active sans échec ; `ls /opt/teamop/data | 
 `POST /api/op/session` → 404 ; le journal sans « NON monté » ni « DEUX FOIS ». Le lendemain : la
 sauvegarde de la nuit `ok`, et une seule copie sous `teamop/mensuel/`.
 
+## ✅ 24 SEPTEMBRE 2026 — LE STOCKAGE : LE STOCK RANGÉ HORS DES BOX (v741, bêta)
+
+La réponse de Justin à la question de l'entrepôt, mot pour mot : **« B, ça regroupe toutes les box
+— et si des entreprises n'ont pas de box, elles peuvent tout mettre dans le stock directement, et
+donner un accès aux utilisateurs qui se servent dans le stockage, avec un suivi de qui prend
+quoi »**.
+
+### Ce qui était faux — mesuré sur la v740 (`scratchpad/sonde-entrepot.js`)
+
+Le même produit disait **« 40 unités »** dans Stock, **« Épuisé »** dans Produits et **« Stock bas
+(0/5) »** dans la cloche : Stock additionnait les box, les trois autres (Produits, la cloche, la
+commande suggérée) lisaient `p.qte`, un compteur caché que plus AUCUNE livraison ne créditait. Une
+entreprise sans box n'avait nulle part où ranger son stock.
+
+### Ce qui est en place (bêta)
+
+- **Le stockage est UNE BOX, à identifiant fixe (`STOCKAGE_ID='stockage'`)** — décision de
+  conception, pas une facilité : il hérite de tout ce que Justin demande et qui existe déjà pour les
+  box — l'arrivage (photo du bon de livraison, bon de commande rattaché, livraisons partielles), la
+  validation du DR, « Pour qui ? » et le bon de remise (**qui a pris quoi**), le journal par box,
+  la fusion ligne à ligne entre appareils, et l'accès personne par personne. L'identifiant fixe fait
+  que deux appareils qui le créent en même temps créent le MÊME enregistrement.
+- **Stock = le stockage + toutes les box qu'on voit** (+ l'ancien `p.qte` tant qu'il n'est pas
+  rangé, écrit « Hors box (catalogue) »). **UNE règle, `stockTotaux()`**, que lisent Produits
+  (« En stock · 12 u »), la cloche (le seuil de la fiche contre ce total) et la commande suggérée.
+  Pour qui ne voit pas tout, un produit absent de SES box s'écrit « Pas dans tes box », plus
+  « Épuisé », et la cloche ne le signale pas.
+- **Créer le stockage** : une carte en tête de Stock (« Pas de box ? Range tout dans le stockage »),
+  à qui peut créer une box. Le stock noté dans le catalogue y est **RANGÉ** (`p.qte` → 0, le
+  stockage le reçoit, une ligne au journal par produit) : le total ne bouge pas, il change de place.
+- **« Me servir »** ouvre le stockage et la liste « Pour qui ? » sur « Pour moi » ; soumis au DR, on
+  touche « − » et la liste part à la validation. **« Qui a pris quoi »** ouvre le journal sur les
+  sorties du stockage. **« Arrivage »** : celui des box.
+- **« Qui peut s'y servir »** : pas de case de plus — l'accès au stockage EST l'accès à une box
+  (`userBoxVoit`), montré en une liste. Fermé par défaut, sauf à qui « voit tout ». La fiche de
+  chaque utilisateur (ses box) le montre aussi : une donnée, deux portes.
+- **⛔ La clôture d'une intervention ne puise JAMAIS dans le stockage** (`intStockDeduire` l'écarte,
+  même visible par tous, même coché) : il baisse quand quelqu'un s'y sert, et ce qu'un technicien a
+  pris est déjà sorti. L'ajustement après clôture ne le touche pas non plus. Sans stockage, l'ancien
+  comportement reste (le compteur du catalogue).
+- Celui qui a **reçu** voit dans Mouvements la ligne qui porte son nom (`visibleMouvements` lit
+  aussi « Donné à », comme les bons de remise). Le scanner du catalogue range dans le stockage
+  quand il existe. Le stockage n'est pas compté comme une box (« sans box », compteurs de Boxes).
+
+### ⚠️ Deux choix faits pour Justin — réversibles, à lui confirmer
+
+1. **Le stockage baisse à la PRISE, pas à la clôture d'une intervention.** C'est ce que dit « qui se
+   servent dans le stockage, avec un suivi de qui prend quoi ». L'autre modèle (déduire à la clôture)
+   compterait deux fois ce qu'un technicien a pris puis utilisé.
+2. **L'accès est fermé par défaut** (sauf « Tout voir ») et se donne personne par personne ou à
+   toute l'équipe, depuis la carte du stockage.
+
+### Les preuves
+
+- `tests/test-794.js` (EXÉCUTE les vraies fonctions) — voir la suite complète ci-dessous ;
+  `tests/test-658.js` mis à jour (le stockage n'est pas une box).
+- `scratchpad/sonde-stockage.js`, au doigt, iPhone 402 px : **44 ✓ 0 ✗** — entreprise sans box
+  (créer, ranger l'ancien stock, donner l'accès à Karim, Karim se sert, le journal le montre, la
+  clôture ne déduit rien, Sofia sans accès le lit), puis entreprise avec box (la clôture puise dans
+  la box, jamais dans le stockage ; la commande prend le plus grand des deux besoins).
+
+### Dettes connues, NON corrigées
+
+- Une personne qui voit le stockage **par son équipe** (un DR rattaché, dont un technicien est coché
+  sur la fiche du stockage) ne peut pas en être retirée depuis « Qui peut s'y servir » : l'exception
+  d'une box ne joue que sur les accès d'office (toute l'équipe, sa fiche, responsable). Même règle
+  que pour une box.
+- **Avant toute publication chez ELAN** : compter les produits dont `p.qte > 0` (l'ancien stock du
+  catalogue) — ils s'afficheront « Hors box (catalogue) » tant que le stockage n'est pas créé. Et
+  la cloche change : « Stock bas » compare désormais le seuil au total des box (plus au compteur
+  caché) — les fausses alertes « (0/5) » sur des produits pleins en box disparaissent.
+- **Sans stockage, `intStockAjuste` (retouche des produits après clôture) écrit la quantité RETOUCHÉE
+  même quand l'ancien compteur est à zéro** : la ligne ne dit pas ce qui a bougé (règle de ce dépôt),
+  mais c'est elle que lisent les statistiques de consommation. Laissé tel quel en v741 (sinon les
+  chiffres d'ELAN changeraient) ; la vraie correction est que la retouche touche la BOX d'où le
+  produit est sorti, comme la clôture — à décider.
+- Vu en chemin : chaque ligne de la liste des box porte DEUX chevrons (le « › » écrit dans la ligne
+  et celui que la refonte pose en CSS sur toute `.pl-row[onclick]`). `test-658` garde le « › » écrit :
+  à retirer avec son banc.
+
 ## ✅ 23 SEPTEMBRE 2026 (nuit) — CHAQUE DOCUMENT PORTE LA SOCIÉTÉ DE SON INTERVENTION, ET LE PLAN D'IMPLANTATION PART À CHAQUE PASSAGE (v740, bêta)
 
 Deux demandes de Justin, mot pour mot :
@@ -249,7 +329,9 @@ question de conception, la cinquième (« Mis de côté ») est une exigence du 
 
 ### ⏳ Ce qui attend Justin
 
-- **(1) L'entrepôt** : question de conception posée (le « Stock » d'aujourd'hui est la SOMME des box ;
+- ✅ **(1) L'entrepôt — TRANCHÉ ET ÉCRIT (v741, 24 septembre 2026)** : voir « LE STOCKAGE » en tête de
+  ce fichier. Ce qui suit est la question telle qu'elle était posée.
+  Question de conception posée (le « Stock » d'aujourd'hui est la SOMME des box ;
   le stock général n'a pas d'écran à lui, aucune livraison ne l'alimente).
   ⚠️ **Mesuré le 24 septembre 2026 sur la bêta v740** (`scratchpad/sonde-entrepot.js`) : un produit
   à 25 + 15 unités dans deux box affiche **40 unités « En stock »** dans « Stock », **« Épuisé »**

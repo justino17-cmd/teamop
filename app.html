@@ -24271,9 +24271,11 @@ function stockageCarte(){
   if(!s){
     if(!boxGerer('ajouter')) return '';
     const anc=(db.produits||[]).filter(p=>p&&p.id&&(+p.qte||0)>0), u=anc.reduce((t,p)=>t+(+p.qte||0),0);
+    /* « Pas de box ? » ne se dit pas à une entreprise qui en a dix-huit : pour elle, c'est un dépôt central. */
+    const aDesBox=(db.boxes||[]).some(b=>b&&!estStockage(b));
     return `<div class="card stk-carte" style="margin:0 0 14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <span style="font-size:26px;line-height:1" aria-hidden="true">🏬</span>
-      <div style="flex:1;min-width:220px"><div style="font-weight:800;font-size:15px">Pas de box ? Range tout dans le stockage</div>
+      <div style="flex:1;min-width:220px"><div style="font-weight:800;font-size:15px">${aDesBox?'Un stock central, hors des box ? Crée le stockage':'Pas de box ? Range tout dans le stockage'}</div>
         <div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-top:3px">Un stock central, hors des box : les arrivages y entrent, ceux à qui tu donnes l'accès s'y servent, et chaque sortie dit <b>qui a pris quoi</b>.${anc.length?` Le stock noté dans le catalogue (${anc.length} produit${anc.length>1?'s':''} · ${u.toLocaleString('fr-FR')} u) y sera rangé.`:''}</div></div>
       <button class="btn" onclick="stockageCreer()">Créer le stockage</button></div>`;
   }
@@ -24293,7 +24295,7 @@ function stockageCarte(){
       <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:15px">${esc(s.nom||'Stockage')}</div>
         <div style="font-size:12.5px;color:var(--t3)">${n} produit${n>1?'s':''} · ${t.u.toLocaleString('fr-FR')} u${t.c?' · '+t.c.toLocaleString('fr-FR')+' ctn':''} — le stock hors des box</div></div>
       <span style="color:var(--t3);font-size:22px;font-weight:300" aria-hidden="true">›</span></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 0 12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 0 12px;max-width:480px">
       <button class="btn" style="justify-content:center" onclick="stockageServir()">Me servir</button>
       <button class="btn ghost" style="justify-content:center" onclick="stockageArrivage()">Arrivage</button></div>
     ${journal?ligne('stockageJournal()','Qui a pris quoi',''):''}
