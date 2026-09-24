@@ -862,11 +862,17 @@ function basePetite(m) {
        vérifie pas que sa MISE EN SCÈNE a eu lieu ne teste rien. */
     const sus = await appel('POST', '/api/monitor/espaces/suspendre', { jeton: JETON_TOUR, corps: { slug: SLUG } });
     v('la Tour suspend l\'espace', sus.code, 200);
-    /* ⛔ ET ON CONSTATE LA SUSPENSION AVANT D'EN TIRER QUOI QUE CE SOIT : une route qui refuse
-       la sauvegarde est la preuve que l'espace est bien dans `entFermes`. Sans elle, tout ce
-       bloc reste une mise en scène qu'on n'a pas jouée. */
-    const preuve = await appel('POST', '/api/espaces/sauvegardes', { corps: { t: T, kh: sha(CLE) } });
-    v('⛔ et la suspension est RÉELLE : la sauvegarde, elle, refuse', preuve.code, 403);
+    /* ⛔ ET ON CONSTATE LA SUSPENSION AVANT D'EN TIRER QUOI QUE CE SOIT. Sans cette preuve, tout
+       ce bloc reste une mise en scène qu'on n'a pas jouée.
+       ⚠️ LA PREUVE ÉTAIT « LA SAUVEGARDE REFUSE » — c'est-à-dire LE DÉFAUT lui-même : une
+       entreprise suspendue perdait ses copies de sauvegarde, ses photos, son jeton Firebase…
+       (relevé par `gardien`, corrigé le 24 septembre 2026, joué porte par porte par `test-796`).
+       La preuve est désormais ce que l'APPLICATION lit : l'état la dit suspendue, sept jours. */
+    const preuve = await appel('POST', '/api/espaces/etat', { corps: { t: T } });
+    v('⛔ et la suspension est RÉELLE : l\'état la dit suspendue, avec ses sept jours',
+      [preuve.j && preuve.j.suspendu, preuve.j && preuve.j.sursisJours], [true, 7]);
+    const copies = await appel('POST', '/api/espaces/sauvegardes', { corps: { t: T, kh: sha(CLE) } });
+    v('⛔ et « aucune sauvegarde n\'est perdue » : ses copies restent accessibles', copies.code, 200);
     const ses = await appel('POST', '/api/op/session', { corps: { t: T, kh: sha(CLE), app_id: '', nom: 'dev-impaye' } });
     v('⛔ elle ouvre quand même sa session de socle', ses.code, 200);
     vrai('   avec un vrai jeton', !!(ses.j && ses.j.jeton));

@@ -574,7 +574,7 @@ app.post('/api/bug', (req, res) => {
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
-  if (entFermes.espaces.includes(team)) return res.json({ ok: true, ferme: true });
+  if (espaceFerme(team)) return res.json({ ok: true, ferme: true });
   const q = bugQuota.get(team) || { count: 0, reset: Date.now() + 3600000 };
   if (Date.now() > q.reset) { q.count = 0; q.reset = Date.now() + 3600000; }
   if (q.count >= 20) return res.json({ ok: true, muted: true });
@@ -896,7 +896,7 @@ async function importHistorique(b, limit = 60) {
           /* Même course qu'en relève : releveBoite() appelle importHistorique AVANT
              releveUneBoite, et une passe déjà lancée réécrirait ~60 corps de messages d'un
              espace qu'on vient de supprimer. entFermes est écrit en premier : on le lit. */
-          if (b.teamId && entFermes.espaces.includes(b.teamId)) { if (mid) seenMids.add(mid); continue; }
+          if (b.teamId && espaceFerme(b.teamId)) { if (mid) seenMids.add(mid); continue; }
           try { fs.appendFileSync(REPLIES_PATH, JSON.stringify(entry) + '\n'); n++; } catch (_) {}
           if (mid) seenMids.add(mid);
         }
@@ -958,7 +958,7 @@ async function releveUneBoite(cfg, tag) {   // cfg = {host/port/user/pass} ; tag
            la purge. Pire : purgeJournal lit-filtre-renomme, donc les lignes ajoutées entre-temps par
            une AUTRE entreprise étaient perdues. entFermes est écrit en PREMIER par la suppression :
            le lire ici referme la fenêtre de lui-même. */
-        const ferme = entry.teamId && entFermes.espaces.includes(entry.teamId);
+        const ferme = entry.teamId && espaceFerme(entry.teamId);
         if (!ferme) { try { fs.appendFileSync(REPLIES_PATH, JSON.stringify(entry) + '\n'); } catch (_) {} }
         if (mid) seenMids.add(mid);
         /* On marque quand même le message comme lu, y compris pour un espace fermé : sinon la
@@ -1011,7 +1011,7 @@ app.post('/api/subscribe', (req, res) => {
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
-  if (entFermes.espaces.includes(String(teamId).slice(0, 80))) return res.json({ ok: true, ferme: true });
+  if (espaceFerme(String(teamId).slice(0, 80))) return res.json({ ok: true, ferme: true });
   subs[sub.endpoint] = { sub, teamId: String(teamId).slice(0, 80), userId: String(userId || '').slice(0, 80), userName: String(userName || '').slice(0, 80), ts: Date.now() };
   saveSubs();
   res.json({ ok: true });
@@ -2126,7 +2126,7 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
       /* Un accès coupé d'ici se rouvre ; une entreprise fermée définitivement, non. Les
          confondre à l'écran ferait cliquer « Rouvrir » sur une fermeture, et croire à un bogue
          quand le serveur refuse. */
-      ferme: entFermes.espaces.includes(espaceT(e)) && !(entFermes.suspendus || []).includes(espaceT(e)),
+      ferme: espaceFerme(espaceT(e)),
       /* Repli pour les entrées d'avant « origine » : une adresse connue du fichier clients
          est une entreprise inscrite sur le site ; les autres sont des accès ouverts d'ici.
          Ce n'est qu'un repli — dès qu'un espace est réenregistré, le champ fait foi. */
@@ -2168,7 +2168,7 @@ app.post('/api/usage', (req, res) => {
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
-  if (entFermes.espaces.includes(t)) return res.json({ ok: true, ferme: true });
+  if (espaceFerme(t)) return res.json({ ok: true, ferme: true });
   const vues = (b.vues && typeof b.vues === 'object' && !Array.isArray(b.vues)) ? b.vues : {};
   if (Object.keys(usageData).length >= 3000 && !usageData[t]) return res.json({ ok: true });
   const u = usageData[t] = usageData[t] || { vues: {}, total: 0, dernier: 0, version: '' };
@@ -2329,7 +2329,7 @@ app.post('/api/connexions', (req, res) => {
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
-  if (entFermes.espaces.includes(t)) return res.json({ ok: true, ferme: true });
+  if (espaceFerme(t)) return res.json({ ok: true, ferme: true });
   if (Object.keys(cnxData).length >= 3000 && !cnxData[t]) return res.json({ ok: true });
   const ev = { ts: Date.now(), ev: ['connexion', 'echec', 'session', 'deconnexion', 'bloque', 'refus'].includes(b.ev) ? b.ev : 'connexion',
     login: monStr(b.login, 40), nom: monStr(b.nom, 60), role: monStr(b.role, 16), version: monStr(b.version, 12), app: monStr(b.app, 12) || 'gestion',
@@ -2800,7 +2800,7 @@ let sauvQuota = new Map();
    une clé fausse. */
 function sauvRefus(t, kh, quoi) {
   if (ESPACES_INTOUCHABLES.includes(t)) return { code: 403, error: 'pas de ' + (quoi || 'copie') + ' pour l\'espace de repli' };
-  if (entFermes.espaces.includes(t)) return { code: 403, error: 'espace fermé' };
+  if (espaceFerme(t)) return { code: 403, error: 'espace fermé' };
   const ok = espaceCleOk(t, kh); if (ok === null) return { code: 404, error: 'espace inconnu' }; if (!ok) return { code: 403, error: 'clé d\'équipe incorrecte' };
   return null;
 }
@@ -2950,7 +2950,7 @@ app.post('/api/espaces/sauvegarde/lire', (req, res) => {
 app.post('/api/espaces/ordres', (req, res) => {
   const b = req.body || {}; const t = monStr(b.t, 80), kh = monStr(b.kh, 64).toLowerCase();
   if (!t) return res.status(400).json({ error: 't requis' });
-  if (entFermes.espaces.includes(t)) return res.status(403).json({ error: 'espace fermé' });
+  if (espaceFerme(t)) return res.status(403).json({ error: 'espace fermé' });
   const ok = espaceCleOk(t, kh); if (ok === null) return res.status(404).json({ error: 'espace inconnu' }); if (!ok) return res.status(403).json({ error: 'clé d\'équipe incorrecte' });
   /* ⛔ LA CLÉ PARTAGÉE NE PROUVE RIEN, ET CETTE ROUTE SERT DÉSORMAIS DES ÉQUIVALENTS DE MOT DE
      PASSE. `cleEstPublique(t)` est vraie quand la clé de l'espace est celle écrite EN CLAIR dans
@@ -3521,8 +3521,8 @@ app.post('/api/espaces/etat', (req, res) => {
      · `mentions-legales.html:74` promet qu'un impayé n'entraîne AUCUNE suppression ;
      · le jour où le socle est la seule copie à jour, c'est une coupure de données.
      Une entreprise suspendue reçoit donc son état NORMAL, plus de quoi griser au bon moment. */
+  if (espaceFerme(t)) return res.json({ ok: true, ferme: true });
   const suspendu = espaceEstSuspendu(t);
-  if (entFermes.espaces.includes(t) && !suspendu) return res.json({ ok: true, ferme: true });
   const sursisJours = sursisJoursDe(t);
   /* OP MESSAGES ne fait plus partie des formules d'OP GESTION. C'est une application à part,
      avec son propre abonnement : on l'ouvre entreprise par entreprise depuis la Tour, et son
@@ -3888,11 +3888,7 @@ try {
        aurait coupé une entreprise de ses propres données — en contradiction directe avec
        `mentions-legales.html:74`, qui promet qu'un impayé « n'entraîne aucune suppression » et
        que le client « retrouve l'intégralité de ses données s'il revient ». */
-    espaceBloque: (t) => { try {
-      const k = String(t || '');
-      if (!entFermes.espaces.includes(k)) return false;
-      return !(entFermes.suspendus || []).includes(k);   // suspendu → pas bloqué ; fermé → bloqué
-    } catch (e) { return null; } },
+    espaceBloque: (t) => { try { return espaceFerme(t); } catch (e) { return null; } },   // suspendu → pas bloqué ; fermé → bloqué
     /* `true` suspendu (abonnement en défaut, mais l'entreprise travaille), `false` sinon. */
     espaceSuspendu: (t) => espaceEstSuspendu(t),
     /* ⛔ LE SURSIS SE CALCULE À UN SEUL ENDROIT — voir `sursisJoursDe`, près d'`entFermes`.
@@ -4022,7 +4018,7 @@ app.post('/api/espaces/ouvrir', (req, res) => {
   /* Une entreprise fermée ne se rouvre pas par ce chemin. /api/espaces/etat le vérifiait déjà ;
      ici, l'oublier laissait un ex-client — ou quiconque a reçu le code — continuer d'obtenir la
      clé de ses anciennes données. */
-  if (t && entFermes.espaces.includes(t)) return res.status(403).json({ error: 'Nom d\'entreprise ou code d\'accès incorrect.' });
+  if (t && espaceFerme(t)) return res.status(403).json({ error: 'Nom d\'entreprise ou code d\'accès incorrect.' });
   const bon = (() => {
     if (!e || !e.code || !enr || !enr.code) return false;
     const attendu = Buffer.from(accesNorm(enr.code));
@@ -4200,7 +4196,7 @@ app.post('/api/espaces/comptes', (req, res) => {
   try { cle = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).k || ''); } catch (err) {}
   if (!cle || crypto.createHash('sha256').update(cle).digest('hex') !== kh)
     return res.status(403).json({ error: 'clé d\'équipe incorrecte' });
-  if (entFermes.espaces.includes(t)) return res.status(403).json({ error: 'espace fermé' });
+  if (espaceFerme(t)) return res.status(403).json({ error: 'espace fermé' });
   const recu = Array.isArray(b.comptes) ? b.comptes.slice(0, 300) : null;
   if (!recu) return res.status(400).json({ error: 'comptes requis' });
   /* ⛔ ET RIEN NE SE DÉPOSE SUR L'ESPACE PAR DÉFAUT — même décision que la route de connexion.
@@ -4452,7 +4448,7 @@ app.post('/api/espaces/connexion', async (req, res) => {
   if (e && e.slug && espacesReg[e.slug] && espacesReg[e.slug].clePerimee)
     return res.status(409).json({ motif: 'cle_perimee',
       error: 'L\'espace de cette entreprise est à réinscrire chez TEAM OP — contacte-nous, la connexion ne peut pas aboutir.' });
-  const ann = (t && !entFermes.espaces.includes(t)) ? comptesReg[t] : null;
+  const ann = (t && !espaceFerme(t)) ? comptesReg[t] : null;
   /* « Pas encore activé » est rendu AUSSI pour un nom qui n'existe pas. Sans cela, la
      différence entre les deux réponses dirait qui est client de TEAM OP. Rendu pour les deux,
      le message ne dit rien de plus qu'il ne faut, et il évite qu'une personne s'acharne une
@@ -4699,6 +4695,13 @@ app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => 
   if (!Array.isArray(entFermes.suspendus)) entFermes.suspendus = [];
   if (rouvrir && !entFermes.suspendus.includes(t))
     return res.status(409).json({ error: 'Cet espace n\'a pas été suspendu depuis la Tour : il a été fermé définitivement (fermeture d\'entreprise). Ce bouton ne défait pas une fermeture — elle demande un code de confirmation par e-mail.' });
+  /* ⛔⛔ ET ON NE SUSPEND PAS UNE ENTREPRISE FERMÉE. Depuis qu'une suspension laisse TRAVAILLER
+     (24 septembre 2026), « suspendre » une entreprise déjà fermée la ROUVRIRAIT par le côté —
+     sans le code par courriel que la fermeture a exigé. Avant, c'était sans effet : toutes les
+     portes lisaient la liste en bloc. Le cas existe : une entreprise fermée qu'on réinscrit
+     sous la même adresse retrouve une entrée d'annuaire et son ancien identifiant. */
+  if (!rouvrir && entFermes.espaces.includes(t) && !entFermes.suspendus.includes(t))
+    return res.status(409).json({ error: 'Cet espace a été fermé définitivement (fermeture d\'entreprise) : il ne se suspend pas. Le rouvrir demande un code de confirmation par e-mail.' });
   const avant = entFermes.espaces.slice(), avantS = entFermes.suspendus.slice(),
         avantD = Object.assign({}, entFermes.suspendusLe);
   if (rouvrir) {
@@ -4921,8 +4924,35 @@ function sursisJoursDe(t) {
     return Math.max(0, Math.min(7, 7 - Math.floor((Date.now() - depuis) / 86400000)));
   } catch (e) { return null; }
 }
-/* `true` suspendu (abonnement en défaut, mais l'entreprise TRAVAILLE), `false` sinon. */
-function espaceEstSuspendu(t) { try { return (entFermes.suspendus || []).includes(String(t || '')); } catch (e) { return false; } }
+/* `true` suspendu (abonnement en défaut, mais l'entreprise TRAVAILLE), `false` sinon.
+   ⛔ ET UNE ENTREPRISE SORTIE DE L'ANNUAIRE N'EST PLUS « SUSPENDUE », MÊME SI LA LISTE LE DIT
+   ENCORE. Les deux fermetures définitives (fermer un client, supprimer une entreprise) ajoutent
+   l'identifiant à `entFermes.espaces` et retirent l'entreprise de l'annuaire — mais jusqu'au
+   24 septembre 2026 elles ne le retiraient PAS de `suspendus`. Une entreprise suspendue PUIS
+   fermée restait donc « suspendue » : `/api/espaces/etat` lui rendait son état normal au lieu
+   de `ferme` (ses appareils ne se vidaient jamais), le socle la laissait ouvrir sa session, et
+   la Tour affichait « Rouvrir » sur une fermeture qui avait exigé un code par courriel.
+   Les fermetures la retirent désormais de la liste ; pour un fichier écrit AVANT, on exige que
+   l'entreprise soit encore à l'annuaire. ⚠️ Calculé à chaque appel, JAMAIS écrit : réparer le
+   fichier au démarrage ferait condamner pour de bon toutes les suspendues le jour où
+   `espaces.json` est tronqué (il les sort toutes de l'annuaire d'un coup) — et le restaurer ne
+   les rendrait pas. */
+function espaceEstSuspendu(t) { try { const k = String(t || ''); return (entFermes.suspendus || []).includes(k) && !!espaceParT(k); } catch (e) { return false; } }
+/* ⛔⛔ FERMÉE N'EST PAS SUSPENDUE — UNE SEULE QUESTION, UNE SEULE FONCTION (24 septembre 2026).
+   `entFermes.espaces` porte les DEUX états : la fermeture définitive et la simple suspension
+   pour impayé. Justin, 20 septembre 2026 : une suspension est un ÉTAT DE FACTURATION — « rien
+   n'est perdu », sept jours d'accès complet puis le forfait gratuit, « c'est pas aux
+   utilisateurs de savoir si l'entreprise paye ou pas ». La route de suspension ne coupait
+   plus Firebase depuis ce jour-là ; mais ONZE portes lisaient encore la liste en bloc, et
+   refusaient donc un impayé comme une entreprise partie : son jeton Firebase (plus de synchro
+   sur un appareil neuf), ses photos (les pièces jointes passent par `sauvRefus`), ses copies
+   de sauvegarde, sa connexion par nom et code comme par identifiant, le dépôt de son annuaire,
+   ses ordres, ses abonnements aux notifications, son courrier REÇU (jeté à la relève), ses
+   rapports d'erreur et ses connexions (invisibles à la Tour). Relevé par `gardien` avant tout
+   déploiement. Le socle et `/api/espaces/etat` faisaient déjà la différence, chacun à sa façon.
+   ⛔ Toute porte qui refuse un espace fermé lit CETTE fonction, jamais `entFermes.espaces`
+   directement — `tests/test-641.js` compte les lectures directes. */
+function espaceFerme(t) { const k = String(t || ''); return entFermes.espaces.includes(k) && !espaceEstSuspendu(k); }
 /* ══ LA VERSION MINIMALE ET LE MODE EN LIGNE — réglés depuis la Tour, 9 septembre 2026 ══
    Ce qui a détruit les comptes d'ELAN : un appareil en vieille version qui réécrit toute la base
    toutes les deux minutes. On ne met pas à jour un appareil qu'on ne tient pas ; on lui ferme la
@@ -5303,7 +5333,10 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
     if ((e.email || '').toLowerCase() === email) {
       let t = e.t;
       try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
+      /* ⛔ FERMER DÉFINITIVEMENT RETIRE LA SUSPENSION : sinon une entreprise suspendue puis
+         fermée restait « suspendue », donc ouverte (voir `espaceEstSuspendu`). */
       if (t) { if (!entFermes.espaces.includes(t)) entFermes.espaces.push(t); espacesAEffacer.push(t);
+        entFermes.suspendus = (entFermes.suspendus || []).filter(x => x !== t); delete (entFermes.suspendusLe || {})[t];
         delete accesReg[t]; delete comptesReg[t]; }   // le code d'accès ET l'annuaire de connexion s'en vont avec l'espace, sinon ils ouvrent encore
       delete espacesReg[slug];
     }
@@ -5487,7 +5520,7 @@ function entInventaire(t) {
   return {
     t, nom, slugs, emails: [...emails], adressesCourrier: aPurger, partagees, comptesSiteHorsAnnuaire,
     dansAnnuaire: slugs.length > 0,
-    dejaFerme: entFermes.espaces.includes(t),
+    dejaFerme: espaceFerme(t),   // une SUSPENDUE n'est pas « déjà fermée » : sa suppression ferme vraiment quelque chose
     boites: boites.length, abonnesPush: abos.length,
     codeAcces: !!accesReg[t], comptesAnnuaire: comptes, copiesSauvegarde: sauvListe(t).length,
     devisIA: !!devisAcces[t],
@@ -5691,6 +5724,9 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   // ── 1. LE BLOCAGE D'ABORD. Sans lui, le premier appareil qui rouvre repousse toute sa
   //       base chiffrée et défait tout ce qui suit. Voir app.html vers la ligne 5131.
   if (!entFermes.espaces.includes(t)) entFermes.espaces.push(t);
+  /* ⛔ SUPPRIMER RETIRE LA SUSPENSION — même raison que la fermeture d'un client : sinon
+     l'entreprise supprimée restait « suspendue », donc ouverte (voir `espaceEstSuspendu`). */
+  entFermes.suspendus = (entFermes.suspendus || []).filter(x => x !== t); delete (entFermes.suspendusLe || {})[t];
   for (const m of inv.emails) if (!entFermes.emails.includes(m)) entFermes.emails.push(m);
   const fermesOk = fermesSave();
   if (!fermesOk) return res.status(500).json({ error: 'Le blocage de l\'espace n\'a pas pu être enregistré — RIEN n\'a été supprimé. Vérifie le serveur (disque plein ?) avant de recommencer.' });
