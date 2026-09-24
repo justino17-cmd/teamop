@@ -51,7 +51,7 @@ async function ouvrir(opts) {
       const f = path.join(dir, u.slice(pre.length));
       if (!f.startsWith(dir)) { r.writeHead(403); return r.end(); }
       return fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); return r.end(); }
-        r.writeHead(200, { 'Content-Type': f.endsWith('.js') ? 'text/javascript' : f.endsWith('.png') ? 'image/png' : 'application/octet-stream', 'Access-Control-Allow-Origin': '*' }); r.end(d); }); }
+        r.writeHead(200, { 'Content-Type': /\.m?js$/.test(f) ? 'text/javascript' : f.endsWith('.png') ? 'image/png' : 'application/octet-stream', 'Access-Control-Allow-Origin': '*' }); r.end(d); }); }
     const x = path.join(RACINE, u.replace(/^\/+/, ''));
     if (!x.startsWith(RACINE)) { r.writeHead(403); return r.end(); }
     fs.readFile(x, (e, d) => { if (e) { r.writeHead(404); return r.end(); }

@@ -118,8 +118,12 @@ console.log('\n── 714 · les six endroits qui affichent une photo passent pa
    (la source d'un plan d'appâtage, que l'écran, l'impression et le dossier lisent), deux dans
    `papImplDocument` (le contenu relu dans l'instantané, puis mis en JPEG), et la grille de l'onglet
    « Plans ». `tests/test-801.js` les éprouve. */
-v('⚠️ exactement 13 occurrences de photoSrc — une de plus doit faire rougir ce banc',
-  (APP.match(/photoSrc\(/g) || []).length, 13);
+/* … et 15 avec le rapport PDF (v744, B3) : `rapportDocument` lit ce qui manque encore
+   (`manquePh`) puis le contenu de chaque photo pour la mettre en JPEG. `tests/test-802.js` l'éprouve. */
+v('⚠️ exactement 15 occurrences de photoSrc — une de plus doit faire rougir ce banc',
+  (APP.match(/photoSrc\(/g) || []).length, 15);
+{ const rd = APP.slice(APP.indexOf('async function rapportDocument('), APP.indexOf('/* ── Export PDF d\'un rapport d\'intervention ── */'));
+  v('   … dont deux dans rapportDocument', (rd.match(/photoSrc\(/g) || []).length, 2); }
 v('   … dont celle de planImgSrc', /function planImgSrc\(pl\)\{ return photoSrc\(pl&&pl\.img\); \}/.test(APP), true);
 { const doc = APP.slice(APP.indexOf('async function papImplDocument('), APP.indexOf('async function papImplApercu('));
   v('   … deux dans papImplDocument', (doc.match(/photoSrc\(/g) || []).length, 2); }

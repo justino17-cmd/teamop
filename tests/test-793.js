@@ -128,7 +128,7 @@ console.log('── 793 · 4. chaque fabrique passe par la même règle ──')
   const INTERNES = { absJustifVoir: 'justificatif d’absence d’un salarié', remisePdf: 'bon de remise entre l’équipe et le DR', printTelecollecte: 'relevé de télécollecte, pour la comptabilité',
     ptPdfStr: 'relevé de pointage des heures', printArchive: 'archive mensuelle de l’entreprise' };
   /* la fabrique reçoit son en-tête tout prêt : c'est l'appelant qui lit docEntete */
-  const PAR_APPELANT = { papImplPdfStr: 'papImplDocument' };
+  const PAR_APPELANT = { papImplPdfStr: 'papImplDocument', rapportPdfStr: 'rapportDocument' };   // v744 : le rapport joint au courriel
   vrai('population : au moins 15 fabriques trouvées dans le fichier', fab.length >= 15, fab.map(x => x.n));
   const sans = fab.filter(x => !INTERNES[x.n] && !PAR_APPELANT[x.n] && !/docEntete\(|bcEntete\(/.test(x.b)).map(x => x.n);
   v('toute fabrique remise à un client passe par docEntete (ou bcEntete) — ou elle est nommée INTERNE', sans, []);

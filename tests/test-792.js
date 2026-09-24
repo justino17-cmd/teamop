@@ -42,7 +42,7 @@ const FONCTIONS = ['function plansOf(', 'function papZoneOf(', 'function papRoom
   'function _pdfCoupe(', 'const PAP_IMPL_MAX_B64=', 'const _papImgEmp=', 'function papImgEmpCalc(', 'function papImgEmpreinte(',
   'function photoPid(', 'function photoSrc(', 'function photoMarquer(', 'function papImplPlans(', 'function papImplContenuPlan(',
   'function papImplEmpreintes(', 'function papImplDernier(', 'function papImplDernierPlan(', 'function papImplEtat(', 'function papImplEtatTxt(',
-  'function papImplPdfStr(', 'async function papImplDocument(', 'let _papImplEnvoi=', 'async function papImplantationEnvoyer(', 'function papImplCarteHtml(', 'function papImplClotureLigne(',
+  'function _pdfDessinPlans(', 'function papImplPdfStr(', 'async function papImplDocument(', 'let _papImplEnvoi=', 'async function papImplantationEnvoyer(', 'function papImplCarteHtml(', 'function papImplClotureLigne(',
   'function papMarque(', 'function papTombe(', 'function papTouch(', 'function papFindPoste(', 'function papZoneAlimName(', 'function papSheetZone(', 'function papSheetProduit(', 'function papSheetSecure(',
   'function socNom(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function socDuClient(', 'function socStyle(', 'function entSocUnique('];
 const CONSTS = ['const PA_TYPES=', 'const PAP_ZONES_ALIM=', 'const MENTION_REGL=', 'const PH_MARQUE='];
