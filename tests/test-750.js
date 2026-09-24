@@ -150,8 +150,14 @@ const NU=APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ').replace(/^[ \t]*\/\/.*$/gm
   const ap=NU.slice(NU.indexOf('function opPlatAppliquer(){'), NU.indexOf('function opPlatAppliquer(){')+900);
   ['data-plat','data-os','data-kind','data-verre','data-nav','data-autonome'].forEach(a=>
     vrai('   <html> porte '+a, ap.indexOf("'"+a+"'")>=0));
-  vrai('⛔ le verre se RETIRE quand il ne s\'applique pas (pas d\'attribut fantôme)',
-    /removeAttribute\('data-verre'\)/.test(ap));
+  /* ⛔ THÈME FINAL (24 septembre 2026) : le verre est sur les DIX plateformes — décision de
+     Justin (`design/THEME-REFERENCE.md` § 0). `data-verre` est donc toujours posé ; ce qui se
+     retire, c'est `data-verre-natif` (le Liquid Glass de Safari 26, qui ne choisit plus que les
+     rayons). Un attribut fantôme resterait là quand on force un autre rendu. */
+  vrai('⛔ le verre est posé sur TOUTES les plateformes (thème final)',
+    /r\.setAttribute\('data-verre','1'\);\s*if\(d\.verre\)/.test(ap));
+  vrai('⛔ … et la marque « natif » se RETIRE quand elle ne s\'applique pas (pas d\'attribut fantôme)',
+    /removeAttribute\('data-verre-natif'\)/.test(ap));
 }
 { /* ⛔ Le CSS est du TEXTE pour ce banc : ce qu'on garde, c'est que RIEN ne s'applique sans
      attribut — un appareil non reconnu doit retrouver exactement le rendu d'avant.
@@ -211,14 +217,18 @@ const blocCss = (titre) => {
    pas — retirer une teinte que quelqu'un a peut-être choisie laisserait `--acc-src` vide, donc
    tuerait les treize jetons dérivés. C'est la panne du 11 au 22 septembre, à l'envers.
    Les valeurs, elles, sont celles du document : `tests/test-759.js` relit le document. */
-{ vrai('⛔ neuf teintes : les huit du document, plus le rouge qu’on ne retire pas',
-    (NU.match(/const ACCENTS = \{[^}]*\}/)||[''])[0].split(':').length-1===9);
+{ vrai('⛔ douze teintes : les onze de la maquette, plus le rouge qu’on ne retire pas',
+    (NU.match(/const ACCENTS = \{[^}]*\}/)||[''])[0].split(':').length-1===12);
   ['teal','indigo','pink','red'].forEach(k=>
     vrai('   la teinte « '+k+' » existe en nuit ET en jour',
       new RegExp('html\\[data-accent="'+k+'"\\]').test(NU) &&
       new RegExp('html\\[data-theme="light"\\]\\[data-accent="'+k+'"\\]').test(NU)));
-  vrai('⛔ le vert OP reste le défaut (personne ne voit sa couleur changer)',
-    /getAccent\(\)\{ return localStorage\.getItem\('elan_accent'\)\|\|'green'/.test(NU));
+  /* ⛔ LE DÉFAUT CHANGE, ET C'EST UNE DÉCISION DE JUSTIN : le thème final dit « thème TEAM OP
+     par défaut », et la teinte par défaut est celle du thème. Qui a CHOISI une teinte la garde
+     (elle est rangée) ; qui n'a rien choisi suit le thème. */
+  vrai('⛔ sans choix, la teinte est celle du thème (TEAM OP par défaut)',
+    /getAccent\(\)\{ return localStorage\.getItem\('elan_accent'\)\|\|MARQUES\[getMarque\(\)\]\.accent/.test(NU)
+    && /function getMarque\(\)\{[^}]*return MARQUES\[m\]\?m:'teamop'/.test(NU));
 }
 
 console.log('\n═══ test-750 : '+ok+' ✓ '+ko+' ✗ ═══\n');

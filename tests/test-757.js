@@ -200,7 +200,9 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
 
   const teintes = Object.keys(src);
   /* ⛔ COMPTER LA POPULATION AVANT DE CROIRE UN VERDICT : sur une liste vide, « tout passe ». */
-  vrai('les neuf teintes sont lues, jour et nuit', teintes.length === 9 && Object.keys(srcN).length === 9,
+  /* Douze depuis le thème final du 24 septembre 2026 : les onze de la maquette (trois de marque —
+     TEAM OP, OP GESTION, Marine — et huit système), plus le rouge qu'on ne retire pas. */
+  vrai('les douze teintes sont lues, jour et nuit', teintes.length === 12 && Object.keys(srcN).length === 12,
     teintes.length + ' de jour, ' + Object.keys(srcN).length + ' de nuit');
   /* le fonçage par défaut du jour, lu dans la feuille plutôt que recopié ici */
   const parDefaut = (/html\[data-refonte\]\[data-theme="light"\]\[data-accent\]\{\s*--acc:color-mix\(in srgb,#000 (\d+)%/.exec(NU_TEINTE) || [, '22'])[1] / 100;
@@ -235,6 +237,16 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
     return { base, jour, nuit };
   };
   const eFill = lireEncre('on-fill'), eAcc2 = lireEncre('on-acc2');
+  /* ⛔ ET UN REMPLISSAGE PEUT ÊTRE DÉCLARÉ, PAS DÉRIVÉ. Le thème final donne aux trois teintes de
+     marque le remplissage EXACT de la maquette (le « Créer » marine de jour, gris-bleu clair de
+     nuit), et au graphite son gris foncé : ce sont des surfaces que le calcul par fonçage ne
+     connaît pas. On les lit comme les encres — une exception déclarée, par teinte et par mode —
+     et c'est ELLE qu'on éprouve quand elle existe. Sans ça, le banc jugerait une surface qui
+     n'est jamais peinte. */
+  const pFill = lireEncre('acc-fill'), pAcc2 = lireEncre('acc2');
+  vrai('⛔ les remplissages déclarés sont lus (trois teintes de marque et le graphite)',
+    ['teamop', 'marine', 'opgestion', 'graphite'].every(t => pFill.jour[t] && pFill.nuit[t]),
+    JSON.stringify({ jour: pFill.jour, nuit: pFill.nuit }));
   /* `--on-fill` hérite de `--on-acc`, `--on-acc2` hérite de `--on-fill` : on rejoue la chaîne. */
   const encreFill = (t, jour) => (jour ? eFill.jour[t] : eFill.nuit[t]) || (jour ? onJour[t] : onNuit[t]) || onBase[t];
   const encreAcc2 = (t, jour) => (jour ? eAcc2.jour[t] : eAcc2.nuit[t]) || encreFill(t, jour);
@@ -252,13 +264,17 @@ console.log('\n══ 2. LE VERRE AUX VALEURS DE LA MAQUETTE ══\n');
     vrai('   ' + t.padEnd(9) + ' l’encre tient sur l’accent de JOUR', cJ >= 4.5, cJ.toFixed(2) + ':1');
     vrai('   ' + t.padEnd(9) + ' … et sur celui de NUIT', cN >= 4.5, cN.toFixed(2) + ':1');
     /* --acc-fill : le bouton principal */
-    const fJ = contraste(foncer(hex(src[t]), fillJ), hex(encreFill(t, true)));
-    const fN = contraste(foncer(hex(srcN[t] || src[t]), fillN), hex(encreFill(t, false)));
+    const surfFJ = pFill.jour[t] ? hex(pFill.jour[t]) : foncer(hex(src[t]), fillJ);
+    const surfFN = pFill.nuit[t] ? hex(pFill.nuit[t]) : foncer(hex(srcN[t] || src[t]), fillN);
+    const fJ = contraste(surfFJ, hex(encreFill(t, true)));
+    const fN = contraste(surfFN, hex(encreFill(t, false)));
     vrai('   ' + t.padEnd(9) + ' … sur le BOUTON (--acc-fill) de jour', fJ >= 4.5, fJ.toFixed(2) + ':1');
     vrai('   ' + t.padEnd(9) + ' … et de nuit', fN >= 4.5, fN.toFixed(2) + ':1');
     /* --acc2 : la bulle du message, « Fait », « Occupé » */
-    const dJ = contraste(foncer(hex(src[t]), acc2J), hex(encreAcc2(t, true)));
-    const dN = contraste(foncer(hex(srcN[t] || src[t]), acc2N), hex(encreAcc2(t, false)));
+    const surfDJ = pAcc2.jour[t] ? hex(pAcc2.jour[t]) : foncer(hex(src[t]), acc2J);
+    const surfDN = pAcc2.nuit[t] ? hex(pAcc2.nuit[t]) : foncer(hex(srcN[t] || src[t]), acc2N);
+    const dJ = contraste(surfDJ, hex(encreAcc2(t, true)));
+    const dN = contraste(surfDN, hex(encreAcc2(t, false)));
     vrai('   ' + t.padEnd(9) + ' … sur le SECOND accent (--acc2) de jour', dJ >= 4.5, dJ.toFixed(2) + ':1');
     vrai('   ' + t.padEnd(9) + ' … et de nuit', dN >= 4.5, dN.toFixed(2) + ':1');
   });
@@ -538,7 +554,7 @@ console.log('\n══ 3. LES HALOS VIENNENT DES LOGOS, PLUS DE LA COULEUR CHOISI
     /prefers-reduced-transparency: reduce/.test(css) && /body::after\{display:none\}/.test(css));
 }
 
-console.log('\n══ 4. ⛔⛔ LES HUIT TEINTES, PAS TROIS ══\n');
+console.log('\n══ 4. ⛔⛔ TOUTES LES TEINTES, PAS TROIS ══\n');
 {
   /* La liste affichée dans les Paramètres, et la liste des teintes sources. Les deux doivent
      coïncider EXACTEMENT : une entrée d'ACCENTS sans --acc-src est une couleur MORTE, et une
@@ -553,7 +569,9 @@ console.log('\n══ 4. ⛔⛔ LES HUIT TEINTES, PAS TROIS ══\n');
      et supprimer sa règle laisserait `--acc-src` vide, donc tuerait les treize dérivés — la
      panne exacte du 11 au 22 septembre 2026. Une couleur ne se retire pas d'une palette que
      des gens utilisent. */
-  vrai('   … et il y en a bien neuf', [...new Set(sources)].length === 9,
+  /* ⛔ DOUZE depuis le thème final (24 septembre 2026) : les onze de la maquette et le rouge,
+     qu'on sert encore à qui l'a choisi sans le proposer. */
+  vrai('   … et il y en a bien douze', [...new Set(sources)].length === 12,
     [...new Set(sources)].length + ' : ' + [...new Set(sources)].sort().join(', '));
   /* ⛔⛔ ET CHACUNE A DEUX VALEURS : UNE DE JOUR, UNE DE NUIT. C'est ce qui manquait
      entièrement avant le 22 septembre — une seule teinte servait dans les deux thèmes. */
@@ -591,9 +609,10 @@ console.log('\n══ 5. « MA COULEUR » EST UNE PALETTE, PAS UNE CASE ══\n
     /setAccentCustom\(hex\)\{[\s\S]{0,400}filter\(h=>h\.toUpperCase\(\)!==hex\)/.test(NU));
   vrai('on peut en retirer une', /function accentPersoRetirer\(ev,hex\)\{/.test(NU));
   /* ⛔ Retirer la couleur QU'ON PORTE laisserait l'interface teintée par une couleur absente
-     de la palette : on revient au vert de la marque, le seul choix qui ne ment pas. */
-  vrai('⛔ retirer celle qu’on porte ramène au vert de la marque',
-    /accentPersoRetirer\(ev,hex\)\{[\s\S]{0,700}localStorage\.setItem\('elan_accent','green'\)/.test(NU));
+     de la palette : on revient à la teinte du THÈME (thème final : TEAM OP ou OP GESTION), le
+     seul choix qui ne ment pas. */
+  vrai('⛔ retirer celle qu’on porte ramène à la teinte du thème',
+    /accentPersoRetirer\(ev,hex\)\{[\s\S]{0,800}const ac=MARQUES\[getMarque\(\)\]\.accent;\s*localStorage\.setItem\('elan_accent',ac\)/.test(NU));
   vrai('la liste voyage avec la personne', /accentsPerso:'elan_accents_perso'/.test(NU));
   vrai('⛔ le mélange vers le noir est calculé en JavaScript (color-mix ne se lit pas d’ici)',
     /function melangeNoir\(hex,pc\)\{/.test(NU));

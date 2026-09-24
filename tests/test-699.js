@@ -195,11 +195,13 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
      choix de lisibilité de la personne, pas une caractéristique de la machine. Il reste
      DOUBLÉ dans le rangement de l'appareil, pour que la carte s'ouvre juste avant même que
      la fiche du compte soit relue. */
-  v('huit réglages voyagent', Object.keys(cles).sort(),
-    ['accent', 'accentHex', 'accentsPerso', 'carte', 'favoris', 'lang', 'onglets', 'theme']);
+  /* Le 24 septembre 2026, un neuvième : le THÈME de couleurs (TEAM OP / OP GESTION, thème
+     final de Justin). Même raison que le mode et la teinte : il suit la personne. */
+  v('neuf réglages voyagent', Object.keys(cles).sort(),
+    ['accent', 'accentHex', 'accentsPerso', 'carte', 'favoris', 'lang', 'marque', 'onglets', 'theme']);
   v('… et ce sont les vraies clés de stockage',
-    [cles.theme, cles.accent, cles.accentHex, cles.accentsPerso, cles.lang, cles.onglets, cles.favoris, cles.carte],
-    ['elan_theme', 'elan_accent', 'elan_accent_hex', 'elan_accents_perso', 'elan_lang', 'elan_onglets', 'elan_favoris', 'elan_carte']);
+    [cles.theme, cles.marque, cles.accent, cles.accentHex, cles.accentsPerso, cles.lang, cles.onglets, cles.favoris, cles.carte],
+    ['elan_theme', 'elan_marque', 'elan_accent', 'elan_accent_hex', 'elan_accents_perso', 'elan_lang', 'elan_onglets', 'elan_favoris', 'elan_carte']);
 
   /* La vraie fonction, éprouvée sur un faux stockage. */
   const mem = {};

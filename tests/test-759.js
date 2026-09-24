@@ -1,273 +1,263 @@
 /* ══ LE DOCUMENT CONTRE LE CODE ══════════════════════════════════════════════════════════
-   Justin a fourni `design/THEME-REFERENCE.md` le 22 septembre 2026 : « regarde bien que tout
-   le reste soit comme le thème ». Ce banc ne garde pas des valeurs RECOPIÉES d'un document —
-   il RELIT le document et le compare à `app.html`. La différence compte :
+   Justin a fourni son thème FINAL le 24 septembre 2026 — « voilà mon thème final pour OP GESTION,
+   je veux que tu l'appliques, que tu le vérifies, que tu le testes de A à Z ». La référence est
+   `design/THEME-REFERENCE.md` ; ce banc ne garde pas des valeurs RECOPIÉES d'un document, il
+   RELIT le bloc `jetons` du document et le compare à `app.html`, valeur par valeur.
 
-   ⛔⛔ CE DÉPÔT A DÉJÀ PAYÉ EXACTEMENT CE PIÈGE. `tests/test-757.js` exigeait « le verre de
-   jour est à 34 %, pas 58 % » — un réglage fait à l'œil, gardé comme une vérité. Le document
-   dit .58, et il dit AUSSI liseré .72, reflet .85, ombre 0 10px 28px : c'est un ENSEMBLE.
-   À .34 avec un liseré à .85, le liseré était plus opaque que la vitre qu'il borde. Le banc
-   gardait une moitié d'accord, et il l'a gardée sans que personne ne puisse s'en apercevoir.
-   La règle de CLAUDE.md, appliquée à un thème : « une garde décrite dans un fichier n'est pas
-   une garde — aller lire le code qui crie. » Ici, le fichier EST relu.
+   ⛔⛔ CE DÉPÔT A DÉJÀ PAYÉ LE PIÈGE INVERSE. `tests/test-757.js` exigeait un jour « le verre de
+   jour est à 34 %, pas 58 % » — un réglage fait à l'œil, gardé comme une vérité. Un banc qui
+   recopie des valeurs garde une croyance ; un banc qui relit la source garde un accord.
 
-   ⛔ ET LES ÉCARTS SONT DÉCLARÉS, UN PAR UN, AVEC LEUR RAISON. Trois jetons du document ne
-   sont pas repris tels quels ; chacun figure dans `ECARTS` ci-dessous. En ajouter un oblige à
-   écrire pourquoi — c'est le même mécanisme que « vu et pas surveillé » de `test-726`, et il
-   existe pour la même raison : un écart tacite se transforme en oubli en une semaine.       */
+   ⛔ ET LES ÉCARTS SONT DÉCLARÉS, UN PAR UN, AVEC LEUR RAISON ET LEUR MESURE (`ECARTS`). En
+   ajouter un oblige à écrire pourquoi — le même mécanisme que « vu et pas surveillé » de
+   `test-726` : un écart tacite se transforme en oubli en une semaine.
+   (La référence du 22 septembre et son banc sont dans l'historique : `design/archives/`.) */
 const fs = require('fs');
 const APP = fs.readFileSync(__dirname + '/../app.html', 'utf8');
 const DOC = fs.readFileSync(__dirname + '/../design/THEME-REFERENCE.md', 'utf8');
-/* ⛔ On retire les commentaires du CODE avant de chercher : ce dépôt cite ses propres valeurs
-   dans les commentaires qui les expliquent, et un motif qui tombe dans un commentaire garde
-   une phrase, pas un comportement. Nettoyage SÛR (blocs qui commencent une ligne) — le motif
-   naïf avale 107 069 caractères d'app.html, dont `saveVehicule` entière. */
-const NU_TEINTE = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-
-/* ⛔ LES SURFACES SONT TEINTÉES PAR LA COULEUR CHOISIE (21 septembre 2026). Les valeurs du
-   document sont donc enveloppées : --vr-fond:color-mix(in srgb,var(--acc-src,#…) 4%,<valeur>).
-   Ce banc compare au DOCUMENT : il doit donc lire la valeur du document, pas son enveloppe.
-   On la dévoile — et la teinte elle-même est un ÉCART DÉCLARÉ, contrôlé plus bas comme les
-   cinq autres : un écart tacite devient un oubli en une semaine. */
-function devoile(txt) {
-  let out = txt, tour = 0;
-  const RE = /color-mix\(in srgb,\s*var\(--acc-src,\s*#[0-9A-Fa-f]{3,8}\)\s*[\d.]+%\s*,\s*((?:[^()]|\([^()]*\))*)\)/g;
-  while (RE.test(out) && tour++ < 6) { RE.lastIndex = 0; out = out.replace(RE, '$1'); }
-  return out.replace(/,\s*\n\s*/g, ',').replace(/\(\s+/g, '(');
-}
-const NU = devoile(NU_TEINTE);
+/* ⛔ On retire les commentaires du CODE avant de chercher (nettoyage SÛR : blocs qui commencent
+   une ligne) — un motif qui tombe dans un commentaire garde une phrase, pas un comportement. */
+const NU = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); }
   else { ko++; console.log('  ✗ ' + t + '\n      document : ' + JSON.stringify(b) + '\n      app.html : ' + JSON.stringify(a)); } };
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); }
   else { ko++; console.log('  ✗ ' + t + (d ? '\n      ' + d : '')); } };
+const net = x => String(x || '').replace(/\s+/g, '').toLowerCase();
 
 /* ⛔ TOUT ÉCART AU DOCUMENT SE DÉCLARE ICI, AVEC SA RAISON ET SA MESURE. */
 const ECARTS = {
-  'fond de nuit': `le document dit #0a0a0c→#000 ; on garde le bleu nuit #101A2E→#0A1120.
-     Deux raisons, et la première est une mesure : Justin, 22 septembre 2026, capture à
-     l'appui sur son Mac — « revois les nuances de couleur, je la trouve moins belle l'app »,
-     sur la version qui portait le noir du document. La seconde est écrite dans CLAUDE.md
-     (apple-visual-craft § 8) : pas de noir pur — halation du blanc sur OLED, contraste dur.
-     Le document lui-même l'applique à sa palette Marine (« jamais noir pur »).`,
-  'teinte de la surface de nuit': `le document dit rgba(44,44,46,.55), un gris neutre ; on
-     garde son ALPHA (.55) et on teinte en bleu nuit rgba(44,56,84,.55). Conséquence directe
-     de l'écart ci-dessus, lui-même mesuré : un film gris posé sur une page bleu
-     nuit se voit, et se voit mal. L'ALPHA du document, lui, est tenu — c'est exactement
-     ce que ce banc vérifie plus bas.`,
-  'force du reflet': `le document décrit le reflet comme un inset 0 1px 0 rgba(255,255,255,.85)
-     — on le POSE bien, dans --vr-ombre. Mais ce dépôt peint EN PLUS un dégradé à 135°, qui
-     donne la matière et s'AJOUTE à la surface. Empilé tel quel sur .58, le coin clair montait
-     à .58 + .42×.65 = .85 : un aplat blanc. Ramené à .22, il plafonne à .67, sous le liseré
-     (.72), qui redevient la ligne la plus lumineuse de la carte. Mesuré au navigateur après
-     coup : la carte est peinte en rgba(255,255,255,0.58), dégradé à .22 par-dessus.`,
-  'teinte des surfaces par la couleur choisie': `le document donne des surfaces NEUTRES ; on
-     mélange 3 à 8 % de la SOURCE de l'accent dans chacune (page, verre, cartes, lignes).
-     Demandé par Justin le 21 septembre 2026 : « chaque couleur qu'on sélectionne, ça change
-     toutes les nuances », puis « c'est trop gris là ». Mesuré au navigateur sur les NEUF
-     teintes, jour et nuit : l'alpha du verre passe de .58 à .596 le jour et reste à .58 la
-     nuit ; le verre dense reste plus dense (.88 jour, .93 nuit) ; la carte reste PLUS CLAIRE
-     que la page (+17 à +21 de luminance le jour, +13 à +15 la nuit) ; la page de nuit reste
-     entre 17 et 25 de luminance, donc pas noire. Aucun accord du document n'est rompu —
-     seules les valeurs sont enveloppées, et ce banc les dévoile pour les comparer.`,
+  'le nom et le logo': `la maquette écrit « TEAM OP » (et son logo) sous le thème TEAM OP ; on garde
+     « OP GESTION » et le logo OP GESTION dans les DEUX thèmes, sur tous les appareils. Décision de
+     Justin, 24 septembre 2026 à 21 h 51, capture de la maquette à l'appui : « pour tous les types
+     d'appareil tu mets bien OP GESTION avec le logo OP GESTION ». Le thème ne change que les
+     couleurs ; le § 0 du document l'écrit désormais.`,
+  'les halos': `le THEME.md du dossier parle de « trois halos animés derrière le verre » ; la source
+     finale (\`OP Gestion Apple.dc.html\`) les DÉFINIT mais n'en peint aucun — aucun élément ne lit
+     orb1, orb2, orb3. Mesuré sur les captures de la maquette (jour et nuit, iPhone et Mac) : pas
+     un halo. On suit ce que Justin a regardé : le fond est le seul dégradé du thème, et la couche
+     qui les portait est éteinte (une couche peinte en moins, qui tournait en boucle).`,
+  'second plan en couleur pleine': `la maquette écrit son second plan en rgba (.62 le jour) ; on
+     l'écrit en couleurs PLEINES, calculées sur la vitre posée sur la page — #454C5B et #5A616F
+     le jour, #B8C0CD et #A1AABA la nuit (TEAM OP). Mesuré plus bas : ≥ 4,5:1 sur la vitre dans
+     les quatre cas. Une encre translucide change de contraste avec tout ce qui passe dessous ;
+     une encre pleine tient partout, et c'est la règle du dépôt (le calcul ment sous le verre).`,
+  'second plan de nuit OP GESTION': `la maquette écrit rgba(196,224,214,.72) ; sur la vitre de nuit
+     du vert forêt il tombe à 4,15:1 — sous le plancher. Mesuré : .84 (#A9C8BD) le remonte à 5,0.
+     La teinte est gardée, seule la force change.`,
+  'feuille de nuit': `la maquette pose ses feuilles de nuit sur rgba(28,28,30,.7), un gris neutre ;
+     on les teinte du thème (bleu nuit pour TEAM OP, vert forêt pour OP GESTION) et on les
+     densifie (.86–.88). La règle du dépôt, écrite après la capture de Justin du 22 septembre :
+     « un film gris posé sur une page bleu nuit se voit, et se voit mal » ; et une fenêtre se pose
+     sur une scène assombrie — son verre doit être DENSE (mesuré au pixel, 22 septembre 2026).`,
+  'encre sur le vert et le graphite': `la maquette écrit du blanc sur toutes les teintes système ;
+     mesuré, le blanc tombe à 2,2:1 sur le vert (#34c759) et 4,27:1 sur le bouton graphite dérivé.
+     On garde la TEINTE de la maquette et on prend l'encre qui contraste le plus — la règle
+     d'encreSur() — et le graphite garde le remplissage de la maquette (#636366). test-757 calcule
+     chaque combinaison : toutes ≥ 4,5:1.`,
   'largeur de la sidebar': `le document dit 236 px ; on met 258. Mesuré au navigateur, tuile
-     d'icône comprise : 149 px restaient au libellé et « Consommation produits » en demande
-     163 — trois rubriques passaient sur deux lignes (59 px contre 44). Les maquettes du
-     document sont écrites en anglais ; la règle du dépôt tranche : « un libellé français est
-     plus long — toute grille copiée d'une référence anglophone doit être ÉLARGIE. »
-     Mesuré après : 171 px disponibles, zéro rubrique sur deux lignes.`,
-  'une neuvième teinte': `le document en nomme huit et n'a pas de rouge ; on garde \`red\`
-     EN PLUS de \`graphite\`. Retirer une teinte que quelqu'un a peut-être choisie laisserait
-     --acc-src vide, donc tuerait les treize jetons dérivés — la panne exacte du 11 au
-     22 septembre 2026, mesurée au navigateur (--acc-src vide, les treize dérivés morts). Une couleur ne se retire pas d'une palette que des gens utilisent.
-     Sa valeur est alignée sur le rouge système iOS du document (#ff3b30 / #ff453a).`,
-  'encre sur accent': `le document dit « #fff, et #0b1426 sur les teintes claires ». Appliqué
-     tel quel, le blanc tombe à 3,41:1 sur le rouge de nuit et 3,52:1 sur le rose — sous le
-     plancher. On garde la TEINTE du document et on prend l'encre qui contraste le plus, ce
-     qui est déjà la règle d'encreSur() pour « Ma couleur » : la palette nommée et la couleur
-     personnalisée obéissent ainsi au même principe. Tout est ≥ 4,4:1, mesuré.`,
+     d'icône comprise : 149 px restaient au libellé et « Consommation produits » en demande 163 —
+     trois rubriques passaient sur deux lignes. Les maquettes sont écrites en anglais ; la règle du
+     dépôt tranche : « un libellé français est plus long — toute grille copiée d'une référence
+     anglophone doit être ÉLARGIE ». Mesuré après : 171 px disponibles, zéro rubrique sur deux lignes.`,
+  'une douzième teinte': `le document en nomme onze et n'a pas de rouge ; on garde \`red\` EN PLUS,
+     sans le proposer. Retirer une teinte que quelqu'un a peut-être choisie laisserait --acc-src
+     vide, donc tuerait les treize jetons dérivés — la panne mesurée du 11 au 22 septembre 2026.
+     Il n'est montré dans « Thème et couleur » qu'à qui le porte déjà (règle du dépôt).`,
 };
 
 console.log('\n══ 0. LE DOCUMENT EST BIEN LÀ ET IL EST ENTIER ══\n');
-/* ⛔ Une ancre qui ne se trouve pas rend une tranche vide, et une tranche vide passe au vert
-   sur TOUT. On prouve d'abord qu'il y a de quoi comparer. */
-vrai('le fichier de référence existe et a de la matière', DOC.length > 20000, DOC.length + ' caractères');
-vrai('   … et il porte bien la section des jetons', /## 1\. Typographie/.test(DOC) && /## 4\. Verre/.test(DOC));
+const bloc = (DOC.match(/```jetons\n([\s\S]*?)```/) || [, ''])[1];
+const J = {};
+bloc.split('\n').forEach(l => { const m = l.match(/^([\w.-]+)\s*=\s*(.+)$/); if (m) J[m[1]] = m[2].trim(); });
+/* ⛔ Une ancre qui ne se trouve pas rend une tranche vide, et une tranche vide passe au vert sur
+   TOUT : on compte la population avant de croire le moindre verdict. */
+vrai('le document existe et a de la matière', DOC.length > 6000, DOC.length + ' caractères');
+vrai('⛔ le bloc « jetons » est lu, et il est entier', Object.keys(J).length >= 70, Object.keys(J).length + ' jetons');
+vrai('   … il porte les deux thèmes, le verre, les teintes, les catégories et les rayons',
+  ['theme.teamop.A', 'theme.opgestion.A', 'verre.jour.surface', 'teinte.teamop', 'categorie.sapin', 'rayon.carte.natif'].every(k => J[k]));
+vrai('⛔ le § 0 du document dit bien « OP GESTION et son logo, partout »',
+  /OP GESTION, partout/.test(DOC) && /logo OP GESTION/.test(DOC));
 
-console.log('\n══ 1. LES TEINTES D’ACCENT — LUES DANS LE DOCUMENT ══\n');
+/* Une règle CSS de la page, trouvée par son sélecteur EXACT. */
+const regle = (sel) => { const i = NU.indexOf(sel + '{'); if (i < 0) return ''; const f = NU.indexOf('}', i); return NU.slice(i + sel.length + 1, f); };
+const jeton = (corps, nom) => { const m = corps.match(new RegExp('(?:^|[;\\s{])' + nom.replace(/-/g, '\\-') + ':([^;]+);')); return m ? m[1].trim() : ''; };
+
+console.log('\n══ 1. LES DEUX THÈMES — la page et l’encre ══\n');
+for (const mq of ['teamop', 'opgestion']) {
+  const jour = regle('html[data-marque="' + mq + '"][data-verre][data-theme="light"]');
+  const nuit = regle('html[data-marque="' + mq + '"][data-verre][data-theme="dark"]');
+  vrai('⛔ les règles de jour ET de nuit du thème « ' + mq + ' » sont trouvées', jour.length > 100 && nuit.length > 100);
+  v(mq + ' — encre de jour', jeton(jour, '--t1'), J['theme.' + mq + '.encre.jour']);
+  v(mq + ' — encre de nuit', jeton(nuit, '--t1'), J['theme.' + mq + '.encre.nuit']);
+  const pj = net(jeton(jour, '--vr-page')), pn = net(jeton(nuit, '--vr-page'));
+  /* Le fond de jour : diagonale à 112°, halo A en haut à gauche, halo C en bas à droite, puis B
+     vers le clair — dans CET ordre (le premier fond peint est le dernier écrit). */
+  const pos = ['A', 'C', 'B', 'clair'].map(k => pj.indexOf(net(J['theme.' + mq + '.' + k]) + ' '.trim()));
+  vrai(mq + ' — le fond de jour porte A, C, B et le clair, dans l’ordre de la maquette',
+    pos.every(p => p > 0) && pos[0] < pos[1] && pos[1] < pos[2] && pos[2] < pos[3], JSON.stringify(pos));
+  vrai(mq + ' — … et la diagonale blanche à 112° (35 % de jour)', pj.startsWith('linear-gradient(112deg,') && pj.includes('rgba(255,255,255,.35)58.2%'));
+  vrai(mq + ' — le fond de nuit va du haut au bas du thème', pn.includes(net('linear-gradient(160deg,' + J['theme.' + mq + '.nuit.haut'] + ',' + J['theme.' + mq + '.nuit.bas'] + ')')));
+  vrai(mq + ' — … avec la diagonale à 5 %', pn.includes('rgba(255,255,255,.05)58.2%'));
+  /* ⛔ Un dégradé qui finit sur `transparent` passe par du noir (CLAUDE.md) : chaque arrêt
+     transparent garde sa teinte. */
+  vrai(mq + ' — aucun arrêt « transparent » dans le fond (il salit le bord)', !/transparent/.test(pj + pn));
+}
+
+console.log('\n══ 2. LE VERRE — lu dans le document (§ 4) ══\n');
 {
-  /* « défaut vert : jour `#1f7a5c`, nuit `#4fd18a`. Autres : bleu #007aff/#0a84ff · … » */
-  const L = DOC.split('\n').find(x => /défaut vert\s*:/.test(x));
-  vrai('⛔ la ligne des accents est trouvée dans le document', !!L, L || '—');
-  const attendu = {};
-  if (L) {
-    const g = L.match(/défaut vert\s*:\s*jour\s*`?(#[0-9a-f]{6})`?,\s*nuit\s*`?(#[0-9a-f]{6})`?/i);
-    if (g) attendu.green = [g[1].toUpperCase(), g[2].toUpperCase()];
-    const NOM = { bleu:'blue', indigo:'indigo', violet:'purple', rose:'pink',
-                  orange:'orange', teal:'teal', graphite:'graphite' };
-    for (const [fr, cle] of Object.entries(NOM)) {
-      const m = L.match(new RegExp(fr + '\\s*(#[0-9a-f]{6})\\s*/\\s*(#[0-9a-f]{6})', 'i'));
-      if (m) attendu[cle] = [m[1].toUpperCase(), m[2].toUpperCase()];
+  const jour = regle('html[data-marque][data-verre][data-theme="light"]');
+  const nuit = regle('html[data-marque][data-verre][data-theme="dark"]');
+  vrai('⛔ les deux règles de matière sont trouvées', jour.length > 500 && nuit.length > 500);
+  const paires = [['flou', '--vr-flou'], ['surface', '--vr-fond'], ['surface2', '--vr-fond2'], ['liseret', '--vr-liseret'],
+    ['reflet', '--vr-reflet'], ['ombre', '--vr-ombre'], ['ombre-barre', '--vr-ombre-barre'], ['barre', '--tf-barre'],
+    ['cote', '--tf-cote'], ['kpi', '--tf-kpi'], ['curseur', '--tf-curseur'], ['entete', '--tf-entete']];
+  for (const [k, css] of paires) {
+    v('jour — ' + k, net(jeton(jour, css)), net(J['verre.jour.' + k]));
+    v('nuit — ' + k, net(jeton(nuit, css)), net(J['verre.nuit.' + k]));
+  }
+  v('jour — la feuille (verre dense des fenêtres et de « Créer »)', net(jeton(jour, '--vr-fond-dense')), net(J['verre.jour.feuille']));
+  /* ⛔ ÉCART DÉCLARÉ : la feuille de nuit est teintée du thème et plus dense que la maquette. */
+  const fn = [regle('html[data-marque="teamop"][data-verre][data-theme="dark"]'), regle('html[data-marque="opgestion"][data-verre][data-theme="dark"]')]
+    .map(c => jeton(c, '--vr-fond-dense'));
+  const alphas = fn.map(x => parseFloat((x.match(/,\s*(0?\.\d+|1)\)$/) || [, '0'])[1]));
+  const aDoc = parseFloat((J['verre.nuit.feuille'].match(/,\s*(0?\.\d+)\)$/) || [, '0'])[1]);
+  vrai('nuit — la feuille est AU MOINS aussi dense que la maquette (écart déclaré : teinte du thème)',
+    alphas.every(a => a >= aDoc) && !!ECARTS['feuille de nuit'], fn.join(' · ') + ' / document ' + J['verre.nuit.feuille']);
+  v('la bulle de l’onglet choisi, jour', net(jeton(jour, '--tf-bulle')), net(J['bulle.jour']));
+  v('   … nuit', net(jeton(nuit, '--tf-bulle')), net(J['bulle.nuit']));
+  v('son ombre, jour', net(jeton(jour, '--tf-bulle-ombre')), net(J['bulle.jour.ombre']));
+  v('   … nuit', net(jeton(nuit, '--tf-bulle-ombre')), net(J['bulle.nuit.ombre']));
+  /* ⛔ Le verre ne s'applique pas qu'à moitié : les deux réglages système le retirent. */
+  vrai('⛔ la transparence réduite retire le flou des nouvelles surfaces',
+    /@media \(prefers-reduced-transparency: reduce\)\{\s*html\[data-marque\]\[data-verre\]\{background:var\(--tf-page-plein\)!important\}/.test(NU));
+  vrai('⛔ un navigateur sans flou reçoit des surfaces PLEINES (une vitre sans flou, c’est du texte sur du texte)',
+    /@supports not \(\(-webkit-backdrop-filter:blur\(1px\)\) or \(backdrop-filter:blur\(1px\)\)\)/.test(NU));
+  /* ÉCART DÉCLARÉ : les halos ne sont pas peints. */
+  vrai('les halos sont éteints, comme dans la source (écart déclaré)',
+    /html\[data-marque\]\[data-verre\] body::after\{display:none!important\}/.test(NU) && !!ECARTS['les halos']);
+}
+
+console.log('\n══ 3. LES TEINTES — lues dans le document (§ 3) ══\n');
+{
+  const T = {};
+  for (const [k, val] of Object.entries(J)) if (k.startsWith('teinte.')) {
+    const p = val.split('/').map(x => x.trim()); T[k.slice(7)] = { jour: p[0], nuit: p[1], fillJ: p[2], fillN: p[3], rgb: p[4] };
+  }
+  v('⛔ le document donne bien ONZE teintes', Object.keys(T).length, 11);
+  const m = NU.match(/const ACCENTS = \{[^}]+\}/);
+  const ACC = m ? new Function('return ' + m[0].replace('const ACCENTS = ', '') + ';')() : {};
+  const mp = NU.match(/const ACCENTS_PROPOSES = \[[^\]]+\]/);
+  const PROP = mp ? new Function('return ' + mp[0].replace('const ACCENTS_PROPOSES = ', '') + ';')() : [];
+  v('⛔ les teintes PROPOSÉES sont exactement les onze du document', PROP.slice().sort(), Object.keys(T).sort());
+  v('   … et la palette complète n’en a qu’une de plus, DÉCLARÉE (le rouge)',
+    Object.keys(ACC).filter(k => !T[k]), ECARTS['une douzième teinte'] ? ['red'] : []);
+  for (const [k, t] of Object.entries(T)) {
+    const sj = (NU.match(new RegExp('html\\[data-refonte\\]\\[data-accent="' + k + '"\\]\\s*\\{\\s*--acc-src:(#[0-9A-Fa-f]{6})')) || [, ''])[1].toUpperCase();
+    const sn = (NU.match(new RegExp('html\\[data-refonte\\]\\[data-theme="dark"\\]\\[data-accent="' + k + '"\\]\\s*\\{\\s*--acc-src:(#[0-9A-Fa-f]{6})')) || [, ''])[1].toUpperCase();
+    v('« ' + k + ' » de JOUR', sj, t.jour.toUpperCase());
+    v('« ' + k + ' » de NUIT', sn, t.nuit.toUpperCase());
+    if (t.fillJ !== '-') {
+      const fj = (NU.match(new RegExp('html\\[data-refonte\\]\\[data-theme="light"\\]\\[data-accent="' + k + '"\\]\\s*\\{[^}]*--acc-fill:(#[0-9A-Fa-f]{6})')) || [, ''])[1].toUpperCase();
+      const fn = (NU.match(new RegExp('html\\[data-refonte\\]\\[data-theme="dark"\\]\\[data-accent="' + k + '"\\]\\s*\\{[^}]*--acc-fill:(#[0-9A-Fa-f]{6})')) || [, ''])[1].toUpperCase();
+      v('   son remplissage de jour (le « Créer »)', fj, t.fillJ.toUpperCase());
+      v('   … et de nuit', fn, t.fillN.toUpperCase());
     }
+    const rgb = (NU.match(new RegExp('html\\[data-marque\\]\\[data-accent="' + k + '"\\]\\s*\\{\\s*--tf-acc-rgb:([\\d,]+);')) || [, ''])[1];
+    v('   son voile (rubrique active, action de liste)', rgb, t.rgb);
   }
-  v('⛔ le document donne bien HUIT teintes, chacune avec sa paire jour/nuit',
-    Object.keys(attendu).length, 8);
-
-  const jour = {}, nuit = {};
-  for (const m of NU.matchAll(/html\[data-refonte\]\[data-accent="([a-z]+)"\]\s*\{\s*--acc-src:\s*(#[0-9A-Fa-f]{6})/g))
-    jour[m[1]] = m[2].toUpperCase();
-  for (const m of NU.matchAll(/html\[data-refonte\]\[data-theme="dark"\]\[data-accent="([a-z]+)"\]\s*\{\s*--acc-src:\s*(#[0-9A-Fa-f]{6})/g))
-    nuit[m[1]] = m[2].toUpperCase();
-
-  for (const [k, [j, n]] of Object.entries(attendu)) {
-    v('« ' + k +' » de JOUR', jour[k] || '(absente)', j);
-    v('« ' + k +' » de NUIT', nuit[k] || '(absente)', n);
-  }
-  /* ⛔ LA NEUVIÈME EST DÉCLARÉE, PAS TOLÉRÉE. */
-  const enTrop = Object.keys(jour).filter(k => !attendu[k]);
-  v('⛔ la seule teinte hors document est celle qui est DÉCLARÉE dans ECARTS',
-    enTrop, ECARTS['une neuvième teinte'] ? ['red'] : []);
-  v('   … et elle a aussi sa valeur de nuit', !!nuit.red, true);
+  vrai('⛔ sans choix, la teinte est celle du THÈME (TEAM OP par défaut)',
+    /function getAccent\(\)\{ return localStorage\.getItem\('elan_accent'\)\|\|MARQUES\[getMarque\(\)\]\.accent; \}/.test(NU)
+    && /return MARQUES\[m\]\?m:'teamop'/.test(NU));
 }
 
-console.log('\n══ 2. LE VERRE — LU DANS LE DOCUMENT (§ 4) ══\n');
+console.log('\n══ 4. LES CATÉGORIES — une couleur par rubrique, jour et nuit (§ 6) ══\n');
 {
-  const ligne = (m) => DOC.split('\n').find(x => m.test(x)) || '';
-  const flou = ligne(/backdrop-filter\s*:\s*blur/).match(/blur\([^)]+\)[^`]*/);
-  vrai('⛔ la ligne du flou est trouvée', !!flou, ligne(/backdrop-filter/));
-  v('le flou est celui du document',
-    (NU.match(/--vr-flou:([^;]+);/) || [,''])[1].trim(),
-    (flou ? flou[0] : '').replace(/`/g, '').trim());
-
-  const surf = ligne(/^- Surface jour/);
-  vrai('⛔ la ligne des surfaces est trouvée', !!surf, surf);
-  const s4 = surf.match(/jour\s*`(rgba\([^)]+\))`,\s*secondaire\s*`(rgba\([^)]+\))`\s*;\s*nuit\s*`(rgba\([^)]+\))`,\s*secondaire\s*`(rgba\([^)]+\))`/);
-  const sansEspace = (x) => (x || '').replace(/\s+/g, '');
-  vrai('⛔ les quatre surfaces se lisent', !!s4, surf);
-  if (s4) {
-    v('surface de JOUR', sansEspace((NU.match(/html\[data-verre="1"\]\{[\s\S]*?--vr-fond:([^;]+);/) || [,''])[1]), sansEspace(s4[1]));
-    v('surface secondaire de JOUR', sansEspace((NU.match(/html\[data-verre="1"\]\{[\s\S]*?--vr-fond2:([^;]+);/) || [,''])[1]), sansEspace(s4[2]));
-    /* ⛔ ÉCART DÉCLARÉ : l'alpha du document, la teinte du dépôt. On garde l'ALPHA. */
-    const fn = sansEspace((NU.match(/html\[data-verre="1"\]\[data-theme="dark"\]\{[\s\S]*?--vr-fond:([^;]+);/) || [,''])[1]);
-    v('surface de NUIT — même ALPHA que le document (la teinte est un écart déclaré)',
-      (fn.match(/,(\.[0-9]+)\)$/) || [,''])[1], (sansEspace(s4[3]).match(/,(\.[0-9]+)\)$/) || [,''])[1]);
-    vrai('   … et l’écart de teinte est bien déclaré', !!ECARTS['teinte de la surface de nuit']);
-    v('surface secondaire de NUIT (voile blanc du document)',
-      sansEspace((NU.match(/html\[data-verre="1"\]\[data-theme="dark"\]\{[\s\S]*?--vr-fond2:([^;]+);/) || [,''])[1]), sansEspace(s4[4]));
-  }
-
-  const lis = ligne(/^- Liseré/);
-  const l2 = lis.match(/`\.5px solid (rgba\([^)]+\))`\s*\(jour\)\s*\/\s*`(rgba\([^)]+\))`/);
-  vrai('⛔ la ligne du liseré se lit', !!l2, lis);
-  if (l2) {
-    v('liseré de JOUR', sansEspace((NU.match(/html\[data-verre="1"\]\{[\s\S]*?--vr-liseret:([^;]+);/) || [,''])[1]), sansEspace(l2[1]));
-    v('liseré de NUIT', sansEspace((NU.match(/html\[data-verre="1"\]\[data-theme="dark"\]\{[\s\S]*?--vr-liseret:([^;]+);/) || [,''])[1]), sansEspace(l2[2]));
-  }
-  /* ⛔ LE POINT QUI A ÉTÉ MANQUÉ PENDANT UNE JOURNÉE : le liseré doit rester MOINS opaque que
-     la vitre, sinon il est plus lumineux que ce qu'il borde et la carte cesse d'être une vitre. */
-  const aFond = parseFloat((sansEspace(s4 ? s4[1] : '').match(/,(\.[0-9]+)\)/) || [,'0'])[1]);
-  const aRefl = parseFloat(((NU.match(/--vr-reflet:linear-gradient\(135deg,rgba\(255,255,255,(\.[0-9]+)\)/) || [,'0'])[1]));
-  const aLis  = parseFloat((sansEspace(l2 ? l2[1] : '').match(/,(\.[0-9]+)\)/) || [,'0'])[1]);
-  const pointClair = aFond + (1 - aFond) * aRefl;
-  vrai('⛔⛔ le point le plus clair de la vitre reste SOUS le liseré',
-    pointClair < aLis, 'vitre+reflet = ' + pointClair.toFixed(3) + ' · liseré = ' + aLis);
-
-  const omb = ligne(/^- Ombre carte/);
-  /* ⚠ LE DOCUMENT PORTE DEUX FOIS CETTE LIGNE — un résumé au § 4 et la version détaillée plus
-     bas — et elles ne sont pas écrites pareil (« (jour) » n'est que dans la seconde). Un motif
-     calé sur la seconde ne trouvait rien dans la première : tranche vide, donc vert sur tout.
-     On vise ce que les DEUX ont en commun. */
-  const o2 = omb.match(/`(0 \d+px \d+px rgba\([^)]+\))`[\s\S]*?barres\s*`(0 \d+px \d+px rgba\([^)]+\))`/);
-  vrai('⛔ la ligne des ombres se lit', !!o2, omb);
-  if (o2) {
-    vrai('ombre de carte du document', new RegExp('--vr-ombre:' + o2[1].replace(/[()]/g, c => '\\' + c) + ',').test(sansEspace(NU).replace(/,/g, ',')) || NU.includes('--vr-ombre:' + o2[1] + ','), o2[1]);
-    vrai('ombre de barre du document', NU.includes('--vr-ombre-barre:' + o2[2] + ','), o2[2]);
-  }
-  const ref = ligne(/^- Reflet interne/);
-  const r2 = ref.match(/`(inset 0 1px 0 rgba\([^)]+\))`/);
-  vrai('⛔ le reflet interne du document est POSÉ (dans l’ombre)', !!r2 && NU.includes(r2[1]), ref);
-}
-
-console.log('\n══ 3. LES COULEURS DE CATÉGORIE — PALETTE iOS DU DOCUMENT ══\n');
-{
-  /* « palette iOS : bleu #007aff, vert #34c759, orange #ff9500, rouge #ff3b30, violet
-     #af52de, indigo #5856d6, teal #30b0c7, rose #ff2d55, gris #8e8e93 » */
-  const L = DOC.split('\n').find(x => /palette iOS\s*:/.test(x) && /#34c759/i.test(x)) || '';
-  vrai('⛔ la ligne de la palette de catégories est trouvée', !!L, L.slice(0, 90));
   const att = {};
-  for (const m of L.matchAll(/(bleu|vert|orange|rouge|violet|indigo|teal|rose|gris)\s*`?(#[0-9a-f]{6})/gi))
-    att[m[1].toLowerCase()] = m[2].toUpperCase();
-  v('⛔ le document donne bien NEUF couleurs de catégorie', Object.keys(att).length, 9);
-  const m = NU.match(/const CAT_COUL_IOS=\{[\s\S]*?\};/);
-  vrai('⛔ la table CAT_COUL_IOS est trouvée dans app.html', !!m);
-  const T = m ? new Function('return ' + m[0].replace('const CAT_COUL_IOS=', '').replace(/;$/, '') + ';')() : {};
-  for (const [k, hx] of Object.entries(att)) v('catégorie « ' + k + ' »', (T[k] || '(absente)'), hx);
-
-  /* ⛔ UNE COULEUR DÉCLARÉE ET JAMAIS EMPLOYÉE EST DU STYLE MORT ; UNE RUBRIQUE QUI POINTE
-     VERS UNE COULEUR ABSENTE REND `undefined` ET LA TUILE DEVIENT GRISE SANS UN MOT. */
+  for (const [k, val] of Object.entries(J)) if (k.startsWith('categorie.')) att[k.slice(10)] = val.split('/').map(x => x.trim().toUpperCase());
+  v('⛔ le document donne bien DOUZE familles', Object.keys(att).length, 12);
+  const m = NU.match(/const CAT_TEINTES=\{[\s\S]*?\};/);
+  vrai('⛔ la table CAT_TEINTES est trouvée dans app.html', !!m);
+  const T = m ? new Function('return ' + m[0].replace('const CAT_TEINTES=', '').replace(/;$/, '') + ';')() : {};
+  for (const [k, [j, n]] of Object.entries(att)) v('famille « ' + k + ' »', (T[k] || []).map(x => x.toUpperCase()), [j, n]);
   const mc = NU.match(/const CAT_COUL=\{[\s\S]*?\n\};/);
-  vrai('⛔ la table CAT_COUL est trouvée', !!mc);
   const C = mc ? new Function('return ' + mc[0].replace('const CAT_COUL=', '').replace(/;$/, '') + ';')() : {};
-  const inconnues = [...new Set(Object.values(C))].filter(x => !T[x]);
-  v('⛔ aucune rubrique ne pointe vers une couleur qui n’existe pas', inconnues, []);
-  vrai('   … et il y a bien de quoi compter', Object.keys(C).length > 30, Object.keys(C).length + ' rubriques');
-
-  /* ⛔ LA COULEUR DE RUBRIQUE NE SE PERSONNALISE PAS : c'est un repère d'emplacement. Si elle
-     suivait --acc, tout le menu deviendrait violet et on perdrait « Interventions, c'est le
-     vert en haut ». On vérifie que la table ne contient aucune variable. */
-  vrai('⛔ aucune couleur de catégorie ne dépend de la teinte choisie par la personne',
-    !/var\(--acc/.test(m ? m[0] : ''), m ? m[0].slice(0, 80) : '');
-  /* ⛔ ET LA TUILE EST BRANCHÉE — déclarer une table que personne n'appelle est du code mort
-     qui a l'air d'une garde. */
-  /* ⛔⛔ LES DEUX SITES, PAS UN. Mesuré par mutation le 22 septembre 2026 : casser le rendu
-     des FAVORIS ne faisait pas tomber le banc, parce qu'un seul appel suffisait à le
-     satisfaire — les favoris auraient perdu leurs tuiles en silence. Le menu principal ET le
-     bloc des favoris peignent la tuile ; on les compte. */
-  const sites = (NU.match(/class="ico" style="--cat:\$\{catCoul\(/g) || []).length;
-  v('⛔ catCoul() peint la tuile aux DEUX endroits (menu et favoris)', sites, 2);
-  vrai('⛔ et la tuile a bien un style qui la peint',
-    /\.nav-item \.ico\{[\s\S]{0,300}var\(--cat/.test(APP));
-  /* ⛔ Le filtre de désaturation général rendait TOUT gris : la tuile doit le neutraliser. */
-  /* ⛔ ANCRÉ SUR NOTRE RÈGLE, PAS SUR « une règle qui parle de .nav-item .ico ». La feuille
-     en porte plusieurs (dont celle, générale, qui DÉSATURE) : un motif non ancré trouvait
-     `filter:none` ailleurs et passait au vert alors qu'on venait de le retirer de la tuile.
-     Mesuré par mutation le 22 septembre 2026. */
-  const regleTuile = (APP.match(/html\[data-refonte\] \.nav-item \.ico\{[^}]*\}/) || [''])[0];
-  vrai('⛔ la règle de la tuile est trouvée', regleTuile.length > 120, regleTuile.slice(0, 60));
-  vrai('⛔ la désaturation générale y est neutralisée (sinon tout le menu est gris)',
-    /filter:none/.test(regleTuile), regleTuile.slice(0, 200));
-  vrai('   … et la tuile fait bien 26 px, comme le document',
-    /width:26px;height:26px/.test(regleTuile));
+  v('⛔ aucune rubrique ne pointe vers une famille qui n’existe pas', [...new Set(Object.values(C))].filter(x => !T[x]), []);
+  vrai('   … et il y a bien de quoi compter', Object.keys(C).length > 40, Object.keys(C).length + ' rubriques');
+  /* Les rubriques que la maquette nomme sont dans la famille qu'elle leur donne. */
+  const maq = { dashboard: 'gris', interventions: 'bleu', planning: 'orange', enveloppes: 'orange', clients: 'indigo', utilisateurs: 'indigo',
+    devis: 'violet', fournisseurs: 'violet', factures: 'vert', plans: 'vert', boxes: 'sapin', messagerie: 'sapin', produits: 'cyan',
+    contrats: 'cyan', mouvements: 'rouge', demandes: 'rouge', registre: 'ambre', bons: 'ciel', rapports: 'ciel', vehicules: 'ardoise', historique: 'ardoise' };
+  v('⛔ les rubriques de la maquette sont dans SA famille', Object.keys(maq).filter(k => C[k] !== maq[k]), []);
+  vrai('⛔ aucune couleur de catégorie ne dépend de la teinte choisie', !/var\(--acc/.test(m ? m[0] : ''));
+  /* ⛔ ET LA TUILE EST BRANCHÉE : la table, le menu (deux sites), « Créer », les tuiles chiffrées. */
+  v('⛔ catVars() peint la tuile du menu aux DEUX endroits (menu et favoris)', (NU.match(/class="ico" style="\$\{catVars\(/g) || []).length, 2);
+  vrai('   … la feuille « Créer »', /class="creer-ic" style="\$\{catVars\(e\.k\)\}"/.test(NU));
+  vrai('   … et les tuiles du tableau de bord', /class="kpi-ico" style="\$\{catVars\(c\.view\)\}"/.test(NU));
+  vrai('⛔ la feuille choisit la couleur de NUIT la nuit', /html\[data-marque\]\[data-theme="dark"\] \.nav-item \.ico,[\s\S]{0,160}\{--cat:var\(--cat-n,var\(--cat-j,#8E8E93\)\)\}/.test(NU));
+  vrai('⛔ la tuile est à 13 % le jour et 20 % la nuit, comme la maquette',
+    /\.nav-item \.ico,\s*html\[data-marque\]\[data-refonte\] \.nav-item\.active \.ico\{\s*background:color-mix\(in srgb,var\(--cat\) 13%,transparent\)/.test(NU)
+    && /\.nav-item\.active \.ico\{background:color-mix\(in srgb,var\(--cat\) 20%,transparent\)/.test(NU));
 }
 
-console.log('\n══ 4. RAYONS ET TAILLES DU DOCUMENT (§ 5) ══\n');
+console.log('\n══ 5. LES FORMES (§ 5) ══\n');
 {
-  vrai('carte en verre : 26 px', /html\[data-verre="1"\]\{ --rf-r-carte:26px/.test(APP));
-  vrai('Android : 28 px', /--rf-r-carte:28px/.test(APP));
-  vrai('Windows : 8 px de carte, 9 px de fenêtre', /--rf-r-carte:8px;\s*--rf-r-fenetre:9px/.test(APP));
-  vrai('boutons en pilule', /--r-pill:999px/.test(APP));
-  /* ⛔ ÉCART DÉCLARÉ : la sidebar. */
-  const sb = (APP.match(/html\[data-kind="desktop"\] \.sidebar\{width:(\d+)px\}/) || [,''])[1];
-  vrai('⛔ la sidebar de bureau s’écarte du document, et l’écart est DÉCLARÉ',
-    sb === '258' && !!ECARTS['largeur de la sidebar'], 'sidebar = ' + sb + ' px');
-  vrai('⛔ cibles tactiles ≥ 44 px', /min-height:44px/.test(APP));
+  const r = (sel) => jeton(regle(sel), '--rf-r-carte');
+  v('carte, Liquid Glass natif', r('html[data-marque][data-verre][data-verre-natif]'), J['rayon.carte.natif']);
+  v('carte, Android', r('html[data-marque][data-verre][data-os="android"]'), J['rayon.carte.android']);
+  v('carte, Windows', r('html[data-marque][data-verre][data-os="windows"]'), J['rayon.carte.windows']);
+  v('carte, les autres (iOS 18, macOS 14)', r('html[data-marque][data-verre]'), J['rayon.carte.autre']);
+  vrai('boutons en pilule (Windows : 6 px)', /html\[data-marque\]\[data-verre\]\[data-refonte\] \.btn\{border-radius:999px!important\}/.test(NU)
+    && /html\[data-os="windows"\]\[data-marque\]\[data-verre\]\[data-refonte\] \.btn\{border-radius:6px!important\}/.test(NU));
+  const sb = (APP.match(/html\[data-kind="desktop"\] \.sidebar\{width:(\d+)px\}/) || [, ''])[1];
+  vrai('⛔ la sidebar de bureau s’écarte du document, et l’écart est DÉCLARÉ', sb === '258' && !!ECARTS['largeur de la sidebar'], 'sidebar = ' + sb + ' px');
+  vrai('⛔ cibles tactiles ≥ 44 px (la capsule du menu, « Créer »)',
+    /\.topbar \.menu-btn,[\s\S]{0,120}\{\s*width:44px!important;height:44px!important/.test(NU) && /\.topbar \.creer-btn\{\s*height:44px!important;min-height:44px!important/.test(NU));
 }
 
-console.log('\n══ 5. LES ÉCARTS SONT TOUS MOTIVÉS ══\n');
+console.log('\n══ 6. LE SECOND PLAN SE LIT (écart déclaré : couleurs pleines) ══\n');
 {
-  /* ⛔ Un écart sans raison écrite est un oubli qui a l'air d'une décision. */
+  /* On CALCULE, sur la vitre de la maquette posée sur la page de chaque thème : le second plan
+     (--t3) doit tenir 4,5:1. C'est la mesure que l'écart promet. */
+  const hex = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16));
+  const lin = c => { c /= 255; return c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4); };
+  const lum = c => .2126 * lin(c[0]) + .7152 * lin(c[1]) + .0722 * lin(c[2]);
+  const ctr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  const sur = (a, fond) => fond.map(x => 255 * a + x * (1 - a));
+  const cas = [];
+  for (const mq of ['teamop', 'opgestion']) {
+    const jour = regle('html[data-marque="' + mq + '"][data-verre][data-theme="light"]') + regle('html[data-marque][data-verre][data-theme="light"]');
+    const nuit = regle('html[data-marque="' + mq + '"][data-verre][data-theme="dark"]');
+    const pJ = hex(J['theme.' + mq + '.clair']), pN = hex(J['theme.' + mq + '.nuit.bas']);
+    const t3J = jeton(regle('html[data-marque][data-verre][data-theme="light"]'), '--t3'), t3N = jeton(nuit, '--t3');
+    cas.push([mq + ' jour', ctr(hex(t3J), sur(.42, pJ))], [mq + ' nuit', ctr(hex(t3N), sur(.085, pN))]);
+  }
+  vrai('⛔ il y a bien quatre cas à mesurer (un zéro sur rien ne prouve rien)', cas.length === 4 && cas.every(c => isFinite(c[1])));
+  for (const [nom, c] of cas) vrai('second plan sur la vitre — ' + nom, c >= 4.5, c.toFixed(2) + ':1');
+  vrai('   … et les écarts qui le promettent sont déclarés', !!ECARTS['second plan en couleur pleine'] && !!ECARTS['second plan de nuit OP GESTION']);
+}
+
+console.log('\n══ 7. LES ÉCARTS SONT TOUS MOTIVÉS ══\n');
+{
   for (const [k, r] of Object.entries(ECARTS))
-    vrai('« ' + k + ' » porte une raison écrite', typeof r === 'string' && r.trim().length > 120,
-      k + ' : ' + String(r).length + ' caractères');
-  /* ⛔ Et la raison doit parler du JETON concerné, pas être un paragraphe quelconque : une
-     explication recopiée d'un écart voisin en vaut zéro. */
-  vrai('⛔ l’écart du fond de nuit parle bien du fond de nuit',
-    /#0a0a0c|noir pur/i.test(ECARTS['fond de nuit']));
-  vrai('⛔ celui du reflet parle bien du reflet', /reflet|135°|\.22/.test(ECARTS['force du reflet']));
-  vrai('⛔ celui de la sidebar donne bien la mesure qui manquait',
-    /\b163\b/.test(ECARTS['largeur de la sidebar']) && /\b149\b/.test(ECARTS['largeur de la sidebar']));
-  vrai('⛔ et chaque écart cite une MESURE ou une règle du dépôt, pas un goût',
-    Object.values(ECARTS).every(r => /[Mm]esuré|CLAUDE\.md|règle du dépôt|capture à\s*\n?\s*l'appui|plancher/.test(r)));
+    vrai('« ' + k + ' » porte une raison écrite', typeof r === 'string' && r.trim().length > 160, k + ' : ' + String(r).length + ' caractères');
+  /* La raison doit parler du JETON concerné, pas être un paragraphe recopié. */
+  vrai('⛔ l’écart du nom cite bien la phrase de Justin', /OP GESTION avec le logo OP GESTION/.test(ECARTS['le nom et le logo']));
+  vrai('⛔ celui des halos dit que la source ne les peint pas', /n'en peint aucun/.test(ECARTS['les halos']));
+  vrai('⛔ celui de la sidebar donne bien la mesure qui manquait', /\b163\b/.test(ECARTS['largeur de la sidebar']) && /\b149\b/.test(ECARTS['largeur de la sidebar']));
+  vrai('⛔ et chaque écart cite une MESURE, une règle du dépôt ou une décision de Justin, pas un goût',
+    Object.values(ECARTS).every(r => /[Mm]esuré|règle du dépôt|CLAUDE\.md|Décision de\s*\n?\s*Justin|test-757/.test(r)));
+  /* ⛔ ET L'ÉCART DU NOM EST TENU DANS LE CODE : `applyBrand` écrit OP GESTION dans les deux
+     branches ordinaires, jamais le nom du thème ; la connexion écrit OP GESTION. */
+  /* ⚠ L'ancre de fin est du CODE (`const pl=$('brand-plan')`) : le commentaire « // Nom du
+     forfait » qui la précède est retiré par le nettoyage, et une ancre dans un commentaire rendait
+     une tranche VIDE — mesuré à la première exécution. */
+  const ab = (NU.match(/function applyBrand\(\)\{[\s\S]*?const pl=\$\('brand-plan'\)/) || [''])[0];
+  vrai('⛔ applyBrand est trouvée', ab.length > 300, ab.length + ' caractères');
+  vrai('⛔ … le menu écrit « OP GESTION » dans les deux branches ordinaires', (ab.match(/nm\.innerHTML='OP&nbsp;GESTION'/g) || []).length === 2);
+  vrai('⛔ … et JAMAIS le nom du thème', !/MARQUES\[[^\]]*\]\.l/.test(ab));
+  vrai('⛔ la connexion porte le titre OP GESTION et le logo OP GESTION',
+    /<img class="login-logo" src="\$\{_logo\}" alt="OP GESTION"><h2>OP GESTION<\/h2>/.test(NU) && /icons\/logo-day\.png/.test(NU));
 }
 
 console.log('\n═══ test-759 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');

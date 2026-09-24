@@ -44,7 +44,7 @@ for (const f of ['app.html', 'beta.html']) {
   /* ── les jetons, lus dans la page ── */
   const srcJour = {};
   for (const m of SRC.matchAll(/html\[data-refonte\]\[data-accent="(\w+)"\]\s*\{ --acc-src:(#[0-9A-Fa-f]{6});/g)) srcJour[m[1]] = m[2];
-  vrai('population : les neuf teintes et leur source sont lues', Object.keys(srcJour).length === 9, Object.keys(srcJour).join(','));
+  vrai('population : les douze teintes et leur source sont lues', Object.keys(srcJour).length === 12, Object.keys(srcJour).join(','));
   const mBg = SRC.match(/html\[data-refonte\]\[data-theme="light"\]\{[\s\S]{0,1600}?--bg:color-mix\(in srgb,var\(--acc-src,#[0-9A-F]{6}\) (\d+)%,(#[0-9A-F]{6})\);/);
   vrai('population : la formule de la page de jour est lue (teinte × %, base)', !!mBg);
   const pages = mBg ? Object.values(srcJour).map(s => mix(hex(s), hex(mBg[2]), +mBg[1] / 100)) : [];
