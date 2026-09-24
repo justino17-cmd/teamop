@@ -20504,6 +20504,11 @@ function renderIntTechDay(SRC){
     ${secD('✓ Terminées récentes','var(--t3)',done,false,{showDate:true})}</div>`;
 }
 /* ── B/F1. En-tête enrichi de la fiche : fil de statut, boutons utiles, badges site ── */
+/* ⚠ « Indiquer l'arrivée » et « Historique du site (n) » portaient un plancher FIXE (130 et 150 px)
+   plus petit que leur texte (154 et 169 px, insécable) : sur un iPhone de 393 px, chacun recevait
+   152 px et le texte du premier débordait dans le second — mesuré le 24 septembre 2026, et déjà là
+   avant le thème final. `min-width:max-content` : un bouton n'est jamais plus étroit que son nom,
+   et la rangée (flex-wrap) passe à la ligne plutôt que de laisser deux libellés se chevaucher. */
 function intHeadExtras(i){ const cli=db.clients.find(c=>c.id===i.clientId)||{};
   const adr=i.adresse||cli.adresse||'';
   const itin=adr?('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(adr)):'';
@@ -20519,8 +20524,8 @@ function intHeadExtras(i){ const cli=db.clients.find(c=>c.id===i.clientId)||{};
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
       ${itin?`<a href="${itin}" target="_blank" onclick="event.stopPropagation()" class="btn sm" style="text-decoration:none;flex:1;min-width:110px;justify-content:center">🗺️ Itinéraire</a>`:''}
       ${tel?`<a href="tel:${esc(tel)}" onclick="event.stopPropagation()" class="btn ghost sm" style="text-decoration:none;flex:1;min-width:110px;justify-content:center">📞 Appeler</a>`:''}
-      ${(tel&&i.statut!=='terminee'&&i.statut!=='annulee')?`<button class="btn ghost sm" style="flex:1;min-width:130px;justify-content:center" onclick="event.stopPropagation();smsArrivee('${i.id}')">💬 Indiquer l'arrivée</button>`:''}
-      <button class="btn ghost sm" style="flex:1;min-width:150px;justify-content:center" onclick="intHistoriquePassages('${i.id}')">🕘 Historique du site (${nb})</button>
+      ${(tel&&i.statut!=='terminee'&&i.statut!=='annulee')?`<button class="btn ghost sm" style="flex:1;min-width:max-content;justify-content:center" onclick="event.stopPropagation();smsArrivee('${i.id}')">💬 Indiquer l'arrivée</button>`:''}
+      <button class="btn ghost sm" style="flex:1;min-width:max-content;justify-content:center" onclick="intHistoriquePassages('${i.id}')">🕘 Historique du site (${nb})</button>
     </div>
     ${(gar||i.sousGarantie||i.passageTotal>1)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
       ${gar?`<span class="tag" style="font-size:11px;color:var(--purple);border-color:var(--purple)">🛡️ Site sous garantie → ${fmtShort(gar.garantie.fin)}</span>`:''}

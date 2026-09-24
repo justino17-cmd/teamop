@@ -57,5 +57,21 @@ console.log('\n── 2. Le module des icônes couvre la feuille');
   vrai('⛔ l’ouverture de la feuille pose ses traits tout de suite', /icones\(document\.getElementById\('creer'\)\)/.test(env) && /creerNatif\.apply\(this,arguments\)/.test(env));
 }
 
+console.log('\n── 3. Un bouton n’est jamais plus étroit que son nom');
+{
+  /* ⚠ Mesuré au navigateur le 24 septembre 2026 (iPhone 393 px) : « Historique du site (1) »
+     demandait 169 px et en recevait 152 — son plancher FIXE de 150 px laissait le texte insécable
+     déborder sur le bouton voisin. `scratchpad/tf/q-deborde.js` parcourt les 41 rubriques et trois
+     fiches : 2 débordements avant, 0 après. Ici on garde la forme du correctif, dans le CODE. */
+  const ih = (NU.match(/function intHeadExtras\(i\)\{[\s\S]*?\n(?=function |\/\* ── )/) || [''])[0];
+  vrai('l’en-tête de la fiche intervention est trouvé', ih.length > 800, ih.length);
+  const btn = lib => (ih.match(new RegExp('<button[^>]*style="([^"]*)"[^>]*>[^<]*' + lib)) || ['', ''])[1];
+  for (const lib of ["Indiquer l'arrivée", 'Historique du site']) {
+    const st = btn(lib);
+    vrai('« ' + lib + ' » est trouvé', st.length > 0);
+    vrai('⛔ … et son plancher est son nom (max-content), pas un chiffre', /min-width:max-content/.test(st) && !/min-width:\d+px/.test(st), st);
+  }
+}
+
 console.log('\n═══ test-806 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
 process.exit(ko ? 1 : 0);

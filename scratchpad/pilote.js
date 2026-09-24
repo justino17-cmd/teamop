@@ -62,7 +62,16 @@ async function ouvrir(opts) {
   });
   await new Promise(res => statique.listen(pp, '127.0.0.1', res));
 
-  const chrome = spawn(CHROME, ['--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
+  /* ⛔ LE CHEMIN LOGICIEL (--disable-gpu) NE FLOUTE PAS UNE VITRE MINCE. Mesuré le 24 septembre
+     2026 sur une page minimale : sous des vitres de 59 px de haut, blur(20/30/40px) laissait des
+     rayures de 10 px NETTES (seul blur(12px) les fondait) — et la barre d'onglets de la bêta, en
+     blur(40px), laissait lire le texte de la page à travers ses libellés. Par SwiftShader (le chemin
+     GPU, émulé), les sept vitres rendent un aplat uniforme : c'est ce que font Safari et Chrome sur
+     un vrai appareil. Toute mesure AU PIXEL sous le verre passe donc par ce chemin ; `CPU=1` rend
+     l'ancien, pour comparer. */
+  const rendu = process.env.CPU ? ['--disable-gpu']
+    : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-gpu-rasterization', '--ignore-gpu-blocklist'];
+  const chrome = spawn(CHROME, ['--headless=new', '--no-sandbox', ...rendu, '--disable-dev-shm-usage',
     '--remote-debugging-port=' + pc, '--user-data-dir=' + path.join(BANC, 'ch'), 'about:blank'],
     { stdio: ['ignore', 'pipe', 'pipe'] });
   for (let i = 0; i < 150; i++) { await dormir(100);
