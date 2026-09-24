@@ -166,7 +166,11 @@ ou à toute l'équipe, depuis la carte du stockage.
   neutralisée par une autre garde, re-visée et tombée).
 - Relecture adversariale (trois angles, chaque constat contre-vérifié en exécutant le code) : six
   constats confirmés, dont deux bloquants (la pierre tombale du stockage, son ouverture sans accès) —
-  corrigés, sauf les homonymes ci-dessous. La suite complète : voir le compteur de `CLAUDE.md`.
+  corrigés, sauf les homonymes ci-dessous. Puis `relecteur` sur les deux commits suivants : un reste
+  (« Tout le catalogue · 6 mois » écrivait encore « Intervention chantier ») — corrigé, et `test-794`
+  refuse désormais tout motif de journal « Intervention … » écrit dans le code.
+- Suite complète : **151 suites · 7 177 vérifications, code 0**. Bêta **publiée seule** sur `main`
+  (`aba6c95`) et vérifiée en ligne : `teamop.fr/beta.html` sert `741-beta`, `app.html` reste en `695`.
 
 ### Dettes connues, NON corrigées
 
