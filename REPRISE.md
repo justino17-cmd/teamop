@@ -139,6 +139,24 @@ la Tour ne montre plus d'appareil ancien, PUIS exiger la version, et ne pas phot
 depuis un appareil à jour tant que le parc est mélangé. La fusion poste par poste, elle, ne
 s'active qu'une fois les deux côtés à jour (`plansFusionFine` rend `null` sans marques).
 
+⏸ **Justin, 24 septembre au soir : les essais « plan d'appâtage » et « rapport en PDF » attendront —
+« je veux refaire le système intervention ».** La v744 n'a donc PAS été éprouvée par lui sur ces deux
+points (seulement par les bancs et les sondes ci-dessus). La refonte n'est pas décrite : attendre ce
+qu'il veut avant d'écrire une ligne. Ce qu'elle devra garder, parce que chacun a coûté un défaut réel
+(le détail est dans `CLAUDE.md`) :
+- **rien ne sort de la synchro** : un champ ou un écran retiré n'est pas une donnée retirée
+  (`COLLECTIONS_DONNEES`), et `saveIntervention` FUSIONNE (`{...ancienne, ...formulaire}`) ;
+- **une intervention ne déduit rien du stock** : `produitsUtilises` seulement, et les cinq portes qui
+  posent « terminée » (`test-794`) ;
+- **le rapport imprimé et le PDF lisent les mêmes fonctions** (`rapportConstatLignes`,
+  `rapportProduitsLibres`, `rapportChampsPerso`, `_pdfDessinPlans`), l'en-tête vient de
+  `docEntete(société de l'intervention)`, aucun « ? » (`_pdfTranslit`), la fenêtre s'ouvre dans le geste ;
+- **photos et photos de plans au format `piece:`** (`photoSrc`, `planImgSrc`), et l'ordre de publication
+  qui va avec ; le plan d'implantation à chaque passage (`papImplDocument`) ;
+- **un numéro ne se réutilise jamais** (`intNum`, `numPlafondRelever`) ;
+- **les droits** : chaque fonction qui écrit lit sa case, et la fiche s'ouvre par `ouvrables()`
+  (39 appelants de `detailIntervention` recensés le 23 septembre).
+
 ## ✅ 24 SEPTEMBRE 2026 — UN CODE PROMO NE SERT QU'UNE FOIS PAR ENTREPRISE (serveur + v744 bêta)
 
 Justin, mot pour mot : **« Pour le code promo, une fois qu'une entreprise l'a activé, ils peuvent
