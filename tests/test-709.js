@@ -22,7 +22,8 @@
    protège pas mieux qu'un contrôle absent : on apprend à passer outre, et le jour où il a
    raison, personne ne le lit. */
 
-const { lireApp, lireBeta, lireSw, verdict } = require('../scripts/verifier-version.js');
+const { lireApp, lireBeta, lireSw, verdict, etatBeta } = require('../scripts/verifier-version.js');
+const fs = require('fs'), path = require('path'), cp = require('child_process');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + JSON.stringify(b) + '\n      obtenu  : ' + JSON.stringify(a)); } };
 const rougit = (t, e, motif) => { const f = verdict(e); v(t, f.length > 0 && motif.test(f.join(' | ')), true); };
@@ -54,6 +55,8 @@ rougit('⛔ un numéro RECULE, même sans changement d’app.html',
   { app: 692, beta: 692, sw: 893, appAvant: 693, swAvant: 893, appChange: false }, /RECUL/);
 rougit('⛔ la bêta n’a pas été régénérée',
   { app: 694, beta: 693, sw: 894, appAvant: 693, swAvant: 893, appChange: true }, /bêta/);
+rougit('⛔ la bêta EN RETARD, même sur un commit qui ne touche pas app.html',
+  { app: 695, beta: 694, sw: 895, appAvant: 695, swAvant: 895, appChange: false }, /EN RETARD/);
 
 // ── 3) ⚠️ LES CAS QUI DOIVENT RESTER VERTS — sans eux, le banc ne vaut rien
 console.log('\n── et ce qui doit rester vert ──');
@@ -65,6 +68,29 @@ vert('⚠️ l’ÉCART entre les deux numéros n’est PAS un invariant — +2 
   { app: 695, beta: 695, sw: 896, appAvant: 693, swAvant: 893, appChange: true });
 vert('sans point de comparaison, on ne juge pas ce qu’on ne sait pas',
   { app: 693, beta: 693, sw: 893, appAvant: null, swAvant: null, appChange: true });
+/* ⛔ LE CAS DE `main` DEPUIS LE 23 SEPTEMBRE 2026 : la production gelée en v695, la bêta publiée
+   seule depuis la branche (v744 le 24). L'ancienne règle exigeait l'égalité et rougissait à chaque
+   poussée — runs 456 à 463 au moins. Un rouge permanent ne protège de rien. */
+vert('⚠️ la bêta EN AVANCE — publiée depuis la branche pendant que la production est gelée (main, 24 septembre : v695 contre v744)',
+  { app: 695, beta: 744, sw: 895, appAvant: 695, swAvant: 895, appChange: false });
+
+// ── 4) l'état de la bêta, tel que l'étape de verification.yml le demande AVANT de régénérer
+console.log('\n── l’état de la bêta (verification.yml le lit avant de régénérer) ──');
+v('bêta plus haute : « avance »', etatBeta(695, 744), 'avance');
+v('même version : « egale » (on régénère et on compare)', etatBeta(744, 744), 'egale');
+v('bêta plus basse : « retard »', etatBeta(745, 744), 'retard');
+v('⛔ une version absente n’est pas une égalité : « illisible »', [etatBeta(undefined, 744), etatBeta(744, NaN)], ['illisible', 'illisible']);
+/* La commande que le workflow lance vraiment, sur les VRAIS fichiers : sa réponse doit être celle
+   de la fonction — sur la branche « egale », sur `main` « avance ». Un shell qui lit une ligne
+   vide ou un mot inattendu retomberait sur la régénération, donc sur le refus d'avant. */
+{
+  const RACINE = path.join(__dirname, '..');
+  const a = lireApp(fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8'));
+  const b = lireBeta(fs.readFileSync(path.join(RACINE, 'beta.html'), 'utf8'));
+  const r = cp.spawnSync(process.execPath, [path.join(RACINE, 'scripts', 'verifier-version.js'), '--etat-beta'], { encoding: 'utf8' });
+  v('« --etat-beta » répond une ligne, code 0, et la même chose que la fonction (app v' + a.n + ', bêta v' + b.n + ')',
+    [r.status, r.stdout, ['avance', 'egale'].includes(r.stdout.trim())], [0, etatBeta(a.n, b.n) + '\n', true]);
+}
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 if (ko) process.exitCode = 1;

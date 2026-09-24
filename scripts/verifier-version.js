@@ -21,6 +21,7 @@
  *
  * Usage :  node scripts/verifier-version.js
  *          node scripts/verifier-version.js --base <commit>   (sinon : HEAD~1, puis origin/main)
+ *          node scripts/verifier-version.js --etat-beta       (une ligne : avance, egale ou retard)
  */
 const fs = require('fs');
 const path = require('path');
@@ -53,10 +54,23 @@ const lireSw = (txt) => {
    fabriquer un faux commit pour vérifier qu'il rougit. Ici, `tests/test-709.js` lui présente
    les six situations, dont celles qui doivent le faire rougir, ET celles qui doivent le
    laisser vert : un contrôle qui rougit toujours ne protège pas mieux qu'un contrôle absent. */
+/* ⛔ LA BÊTA PEUT ÊTRE EN AVANCE, JAMAIS EN RETARD — corrigé le 24 septembre 2026, à la demande de
+   Justin. Cette règle exigeait l'ÉGALITÉ : juste tant que la bêta et la production partaient
+   ensemble, fausse depuis que la bêta se publie SEULE depuis la branche de travail pendant que la
+   production reste gelée (v695 sur `main`, décision du 23 septembre ; `beta-build.js` l'écrit depuis
+   le 17 : « la bêta publiée est souvent EN AVANCE, c'est tout son rôle »). Sur `main`, ce contrôle
+   rougissait donc à CHAQUE poussée — runs 456 à 463 au moins — et un rouge permanent est un contrôle
+   mort : le jour où il aurait eu raison, personne ne l'aurait lu.
+   Ce qui reste une faute, c'est le RETARD : une version de production partie sans que la bêta soit
+   régénérée — l'outil d'essai derrière ce que les clients ont déjà. */
+function etatBeta(app, beta) {
+  if (!Number.isInteger(app) || !Number.isInteger(beta)) return 'illisible';
+  return beta > app ? 'avance' : beta < app ? 'retard' : 'egale';
+}
 function verdict(e) {
   const fautes = [];
-  if (e.beta != null && e.app != null && e.beta !== e.app)
-    fautes.push('la bêta n\'est pas la même version que l\'application : app v' + e.app + ' contre bêta v' + e.beta + ' — régénère avec « node beta-build.js »');
+  if (e.beta != null && e.app != null && etatBeta(e.app, e.beta) === 'retard')
+    fautes.push('la bêta est EN RETARD sur l\'application : app v' + e.app + ' contre bêta v' + e.beta + ' — régénère avec « node beta-build.js »');
   if (e.appAvant == null || e.swAvant == null) return fautes;   // pas de point de comparaison
   if (e.appChange) {
     if (!(e.app > e.appAvant))
@@ -69,9 +83,22 @@ function verdict(e) {
   }
   return fautes;
 }
-module.exports = { lireApp, lireBeta, lireSw, verdict };
+module.exports = { lireApp, lireBeta, lireSw, verdict, etatBeta };
 
 if (require.main !== module) return;
+
+/* ── `--etat-beta` : la question que pose l'étape « beta.html est bien la génération de
+   app.html » de verification.yml, AVANT de régénérer. Régénérer une bêta en avance fabriquerait
+   une bêta plus vieille que celle qu'on publie — `beta-build.js` le refuse, et c'est ce refus qui
+   rendait l'étape rouge à chaque poussée sur `main`. Une ligne sur la sortie, rien d'autre : c'est
+   un shell qui la lit. ───────────────────────────────────────────────────────────────────────── */
+if (process.argv.includes('--etat-beta')) {
+  const a = lireApp(fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8'));
+  const b = lireBeta(fs.readFileSync(path.join(RACINE, 'beta.html'), 'utf8'));
+  const etat = (a.erreur || b.erreur) ? 'illisible' : etatBeta(a.n, b.n);
+  console.log(etat);
+  process.exit(etat === 'illisible' ? 1 : 0);
+}
 
 /* ── ce qui se lit sans point de comparaison ───────────────────────────────────────────── */
 let ko = 0;
@@ -84,6 +111,9 @@ const sw = lireSw(fs.readFileSync(path.join(RACINE, 'sw.js'), 'utf8'));
 dit('app.html porte un APP_VERSION unique et numérique', app.erreur);
 dit('beta.html porte « N-beta »', beta.erreur);
 dit('sw.js porte un cache unique et numérique', sw.erreur);
+/* Dit, jamais tu : un état attendu qu'on ne nomme pas passe un jour pour un oubli. */
+if (!app.erreur && !beta.erreur && etatBeta(app.n, beta.n) === 'avance')
+  console.log('  · la bêta (v' + beta.n + ') est EN AVANCE sur app.html (v' + app.n + ') — publiée seule depuis la branche de travail pendant que la production est gelée : attendu');
 /* ── ce qui demande un point de comparaison ────────────────────────────────────────────── */
 /* ⛔ `maxBuffer` N'EST PAS UN DÉTAIL DE CONFORT. Il vaut 1 Mio par défaut, et `app.html` en
    fait 3,2 : sans cette ligne, `git show HEAD~1:app.html` DÉPASSE le tampon, `execFileSync`
