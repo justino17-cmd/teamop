@@ -259,6 +259,10 @@
      restait inatteignable. Le retour à la ligne ne se déclenche que lorsque ça ne tient
      pas — sur grand écran, rien ne change. Mesuré sur un écran de 390 px. */
   .frow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--brd);min-height:46px;}
+  /* ⚠️ `hidden` NE CACHE PAS UNE RANGÉE TOUT SEUL : `.frow{display:flex}` ci-dessus bat le
+     `display:none` que le navigateur donne à `[hidden]`. Une rangée masquée garde ses champs
+     (formulaire du stockage : `saveBox` relit tout le formulaire), elle ne se montre simplement pas. */
+  .frow[hidden]{display:none!important}
   .frow:last-child{border-bottom:none;}
   .frow>input,.frow>select,.frow>textarea{background:transparent;border:none;padding:0;width:100%;color:var(--t1);font-size:15px;outline:none;}
   .frow-val>input,.frow-val>select,.frow-val>textarea{background:transparent;border:none;outline:none;padding:0;color:var(--t1);font-size:15px;text-align:right;font-family:inherit;appearance:none;-webkit-appearance:none;}
@@ -26957,6 +26961,12 @@ let boxPhoto='';
 function renderBoxPhoto(){ const el=$('box-photo'); if(!el) return; el.innerHTML= boxPhoto?`<div style="position:relative;display:inline-block"><img src="${boxPhoto}" style="max-width:180px;border-radius:10px;border:1px solid var(--brd)"><button type="button" class="btn danger sm" style="position:absolute;top:4px;right:4px" onclick="boxPhoto='';renderBoxPhoto()">✕</button></div>`:'<span style="color:var(--t3);font-size:13px">Aucune photo</span>'; }
 async function boxAddPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f,1280,0.7); if(d){ boxPhoto=d; renderBoxPhoto(); } e.target.value=''; }
 function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const b=id?db.boxes.find(x=>x.id===id):{};
+  /* ⛔ LE STOCKAGE NE MONTRE QUE CE QUI A UN SENS POUR LUI — mais il GARDE tous les champs. `saveBox`
+     relit le formulaire ENTIER (`new FormData`) : un champ retiré s'écrirait vide, et la catégorie ou le
+     groupe d'hier disparaîtraient au premier enregistrement. Les rangées sans objet pour le stock de
+     l'entreprise (numéro, classement, visites de passage) sont donc MASQUÉES (`hidden`), leurs champs
+     restent et repartent tels quels. Relevé en v742 : « inoffensif, mais bavard ». */
+  const S=estStockage(b), cache=S?' hidden':'';
   boxCodes = id&&b.codesAcces ? JSON.parse(JSON.stringify(b.codesAcces)) : [{type:'Code entrée',valeur:''}];
   boxTechSel=new Set(b.techIds||[]); boxUserSel=new Set(b.userIds||[]);
   boxVisibleTous = !!b.visibleTous;
@@ -26979,19 +26989,19 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
       </div>
       <div class="form-sec">Identification</div>
       <div class="fgroup">
-        <div class="frow"><span class="frow-lbl mono" style="color:var(--acc-txt)">N°</span><input name="numero" required value="${esc(b.numero||b.ref)}" placeholder="Numéro (ex : BOX-0001)" class="mono" style="text-align:right;color:var(--acc-txt);text-transform:uppercase"></div>
+        <div class="frow"${cache}><span class="frow-lbl mono" style="color:var(--acc-txt)">N°</span><input name="numero" required value="${esc(b.numero||b.ref)}" placeholder="Numéro (ex : BOX-0001)" class="mono" style="text-align:right;color:var(--acc-txt);text-transform:uppercase"></div>
         <div class="frow"><input name="nom" value="${esc(b.nom)}" placeholder="Nom ou description"></div>
         <div class="frow"><input name="adresse" value="${esc(b.adresse)}" placeholder="Adresse" oninput="boxLat=null;boxLng=null"></div>
         <div class="frow"><input name="ville" value="${esc(b.ville)}" placeholder="Ville"></div>
         <div class="frow"><span class="frow-lbl">📞 Tél. sur place</span><input name="tel" inputmode="tel" value="${esc(b.tel||'')}" placeholder="Contact pour les livraisons" style="text-align:right"></div>
       </div>
       <div class="detail-desc" style="margin:-2px 2px 10px">Le téléphone sur place est repris automatiquement dans le bloc <b>Livraison</b> des bons de commande adressés à cette box.</div>
-      <div class="form-sec">Classification</div>
+      <div class="form-sec">${S?'Code postal et responsable':'Classification'}</div>
       <div class="fgroup">
         <div class="frow"><input name="codePostal" value="${esc(b.codePostal)}" inputmode="numeric" placeholder="Code postal">${b.codePostal?'<span style="color:var(--acc-txt)">✓</span>':''}</div>
-        <div class="frow"><span class="frow-lbl">Catégorie</span><input name="categorie" value="${esc(b.categorie||'')}" placeholder="ex : TP14 — Rodenticide"></div>
-        <div class="frow"><span class="frow-lbl">Groupe</span><input name="groupe" value="${esc(b.groupe&&b.groupe!=='Sans groupe'?b.groupe:'')}" list="box-groupes" placeholder="ex : Agence Strasbourg"><datalist id="box-groupes">${[...new Set(db.boxes.map(x=>x.groupe).filter(g=>g&&g!=='Sans groupe'))].map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
-        <div class="frow"><span class="frow-lbl">Secteur</span><input name="secteur" value="${esc(b.secteur||'')}" placeholder="ex : 67 Nord"></div>
+        <div class="frow"${cache}><span class="frow-lbl">Catégorie</span><input name="categorie" value="${esc(b.categorie||'')}" placeholder="ex : TP14 — Rodenticide"></div>
+        <div class="frow"${cache}><span class="frow-lbl">Groupe</span><input name="groupe" value="${esc(b.groupe&&b.groupe!=='Sans groupe'?b.groupe:'')}" list="box-groupes" placeholder="ex : Agence Strasbourg"><datalist id="box-groupes">${[...new Set(db.boxes.map(x=>x.groupe).filter(g=>g&&g!=='Sans groupe'))].map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
+        <div class="frow"${cache}><span class="frow-lbl">Secteur</span><input name="secteur" value="${esc(b.secteur||'')}" placeholder="ex : 67 Nord"></div>
         <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Responsable</span><select name="respUserId" style="width:100%"><option value="">— Aucun —</option>${(db.users||[]).filter(u=>u.actif!==false&&u.role!=='admin'&&(stkLienOk(b,u)||b.respUserId===u.id)).map(u=>`<option value="${u.id}" ${b.respUserId===u.id?'selected':''}>${esc(fullName(u))} — ${esc(roleLbl(u.role)||u.role||'')}${stkLienOk(b,u)?'':' — sans la permission'}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">${estStockage(b)?`Parmi ceux qui ont la permission « Se servir dans le stockage » : il reçoit ses arrivages et ses alertes.`:`N'importe quel compte (technicien, chef d'équipe, DR…) : le responsable voit toujours cette box et reçoit ses alertes.`}</div></div>
       </div>
       <div class="form-sec">Accès</div>
@@ -27020,15 +27030,15 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
       <div class="fgroup" id="box-form-prods"></div>
       <button type="button" class="btn ghost sm" style="margin:-8px 0 8px" onclick="toggleBoxFormCat()">＋ Ajouter des produits</button>
       <div id="box-form-cat" style="margin-bottom:14px"></div>
-      <div class="form-sec">Photo de la box <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour la reconnaître sur place</span></div>
+      <div class="form-sec">Photo ${S?'du stockage':'de la box'} <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour la reconnaître sur place</span></div>
       <div class="fgroup"><div id="box-photo" style="margin:4px 0"></div>
         <input type="file" accept="image/*" capture="environment" id="box-photo-file" style="display:none" onchange="boxAddPhoto(event)">
         <button type="button" class="btn ghost" onclick="document.getElementById('box-photo-file').click()">Ajouter / changer la photo</button></div>
-      <div class="form-sec">Suivi & détails</div>
+      <div class="form-sec">${S?'Détails':'Suivi & détails'}</div>
       <div class="fgroup">
-        <div class="frow"><span class="frow-lbl">Date d'installation</span><div class="frow-val"><input type="date" name="dateInstallation" value="${b.dateInstallation?String(b.dateInstallation).slice(0,10):todayISO()}" style="width:auto"></div></div>
-        <div class="frow"><span class="frow-lbl">Fréquence de passage</span><div class="frow-val"><select name="frequence">${['Aucune','Mensuel','Bimestriel','Trimestriel','Semestriel','Annuel'].map(o=>`<option ${(b.frequence||'Aucune')===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
-        <div class="frow"><span class="frow-lbl">Prochaine visite</span><div class="frow-val"><input type="date" name="prochaineVisite" value="${b.prochaineVisite?String(b.prochaineVisite).slice(0,10):''}" style="width:auto"></div></div>
+        <div class="frow"${cache}><span class="frow-lbl">Date d'installation</span><div class="frow-val"><input type="date" name="dateInstallation" value="${b.dateInstallation?String(b.dateInstallation).slice(0,10):todayISO()}" style="width:auto"></div></div>
+        <div class="frow"${cache}><span class="frow-lbl">Fréquence de passage</span><div class="frow-val"><select name="frequence">${['Aucune','Mensuel','Bimestriel','Trimestriel','Semestriel','Annuel'].map(o=>`<option ${(b.frequence||'Aucune')===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
+        <div class="frow"${cache}><span class="frow-lbl">Prochaine visite</span><div class="frow-val"><input type="date" name="prochaineVisite" value="${b.prochaineVisite?String(b.prochaineVisite).slice(0,10):''}" style="width:auto"></div></div>
         <div class="frow"><span class="frow-lbl">${estStockage(b)?'Stockage actif':'Box active'}</span><div class="frow-val"><input type="checkbox" name="actif" ${b.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div>
         <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Notes</span><textarea name="notes" placeholder="Emplacement précis, consignes d'accès…">${esc(b.notes||'')}</textarea></div>
       </div>

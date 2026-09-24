@@ -468,5 +468,24 @@ console.log('\n── 794 · 13. la mesure dans une vraie page existe ──');
   vrai('… elle joue les deux entreprises (sans box, avec box) au doigt', /A\.0 LA POPULATION/.test(SONDE) && /B\.7/.test(SONDE) && /Input\.dispatchTouchEvent/.test(SONDE));
   vrai('… sur la BÊTA, jamais sur app.html', !!SONDE && !/app\.html/.test(SONDE)); }
 
+console.log('\n── 794 · 18. ⛔ le ✎ du stockage ne montre que ce qui a un sens pour lui — et ne perd rien ──');
+{ /* Relevé en v742 (« inoffensif, mais bavard ») : le ✎ du stockage ouvrait le formulaire COMPLET
+     d'une box. ⛔ `saveBox` relit le formulaire ENTIER (`new FormData`) : un champ RETIRÉ s'écrirait
+     vide. Les rangées sans objet sont donc MASQUÉES, leurs champs restent. Le comportement (champs
+     cachés, valeurs conservées à l'enregistrement) est mesuré au navigateur :
+     `scratchpad/sonde-stockage-form.js`, 7 ✓ — contre-épreuve sur la v743 : les 7 champs visibles. */
+  const i = SRC.indexOf('function formBox(id){');
+  const F = i > 0 ? SRC.slice(i, SRC.indexOf('let drRattaches=new Set();', i)) : '';
+  vrai('   formBox est trouvé', F.length > 2000);
+  vrai('   le stockage est reconnu une fois, en tête', /const S=estStockage\(b\), cache=S\?' hidden':'';/.test(F));
+  const cachesId = ['numero', 'categorie', 'groupe', 'secteur'].map(n => new RegExp('<div class="frow"\\$\\{cache\\}>[^\\n]*name="' + n + '"').test(F));
+  v('⛔ numéro, catégorie, groupe, secteur : masqués pour le stockage', cachesId, [true, true, true, true]);
+  const suivi = ["Date d'installation", 'Fréquence de passage', 'Prochaine visite'].map(l => F.includes('<div class="frow"${cache}><span class="frow-lbl">' + l));
+  v('⛔ installation, fréquence, prochaine visite : masquées aussi', suivi, [true, true, true]);
+  /* ⛔⛔ ET LES CHAMPS SONT TOUJOURS LÀ : c'est la seule chose qui empêche l'enregistrement de les vider. */
+  v('⛔⛔ aucun de ces champs n\'est RETIRÉ du formulaire', ['numero', 'categorie', 'groupe', 'secteur', 'dateInstallation', 'frequence', 'prochaineVisite'].filter(n => !F.includes('name="' + n + '"')), []);
+  /* ⚠️ `hidden` ne cache pas une `.frow` tout seul : `.frow{display:flex}` bat le `display:none` du navigateur. */
+  vrai('⛔ et `hidden` cache vraiment une rangée (`.frow[hidden]`)', /\.frow\[hidden\]\{display:none!important\}/.test(SRC)); }
+
 console.log(`\n════ test-794 : ${ok} ✓ ${ko} ✗ ════\n`);
 process.exit(ko ? 1 : 0);
