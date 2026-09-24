@@ -63,26 +63,47 @@ const A = 'teamop/2026-09-10T03-00-00Z.tar.gz.chiffre';
 const B = 'teamop/2026-09-11T03-00-00Z.tar.gz.chiffre';
 const C = 'teamop/2026-09-12T03-00-00Z.tar.gz.chiffre';
 const D = 'teamop/2026-09-13T03-00-00Z.tar.gz.chiffre';
-v('coffre vide : rien à effacer', S.aElaguer([], 30), []);
-v('null : rien à effacer (et pas d\'exception)', S.aElaguer(null, 30), []);
-v('une seule copie, on en garde 30 : on n\'y touche pas', S.aElaguer(obj(A), 30), []);
-v('quatre copies, on en garde 2 : les DEUX PLUS ANCIENNES partent', S.aElaguer(obj(A, B, C, D), 2), [B, A]);
-v('… quel que soit l\'ordre d\'arrivée de la liste', S.aElaguer(obj(C, A, D, B), 2), [B, A]);
-v('on garde exactement ce qu\'on a demandé', S.aElaguer(obj(A, B, C, D), 4), []);
+v('coffre vide : rien à effacer', S.aElaguer([], 30, 'teamop/'), []);
+v('null : rien à effacer (et pas d\'exception)', S.aElaguer(null, 30, 'teamop/'), []);
+v('une seule copie, on en garde 30 : on n\'y touche pas', S.aElaguer(obj(A), 30, 'teamop/'), []);
+v('quatre copies, on en garde 2 : les DEUX PLUS ANCIENNES partent', S.aElaguer(obj(A, B, C, D), 2, 'teamop/'), [B, A]);
+v('… quel que soit l\'ordre d\'arrivée de la liste', S.aElaguer(obj(C, A, D, B), 2, 'teamop/'), [B, A]);
+v('on garde exactement ce qu\'on a demandé', S.aElaguer(obj(A, B, C, D), 4, 'teamop/'), []);
 /* ⛔ LES CAS QUI FONT PEUR — ET LA RÈGLE QUE CE BANC A CORRIGÉE. Au premier jet, ce test
    exigeait que `garder:0` ne laisse qu'UNE copie. C'était le mauvais réflexe : un zéro dans
    `config.json` est une faute de frappe, pas une instruction, et l'honorer coûterait tout
    l'historique d'un coup. La règle juste est l'inverse — un réglage absurde retombe sur le
    défaut, on efface MOINS quand on ne comprend pas. Le code était bon, le test avait tort. */
-v('garder:0 (faute de frappe) → on retombe sur le défaut, rien n\'est effacé', S.aElaguer(obj(A, B, C), 0), []);
-v('garder:-5 → idem', S.aElaguer(obj(A, B, C), -5), []);
-v('garder:"trois" → idem, on n\'efface pas sur une valeur qu\'on ne comprend pas', S.aElaguer(obj(A, B, C), 'trois'), []);
-v('… et au-delà du défaut de 30, l\'élagage reprend', S.aElaguer(Array.from({ length: 33 }, (_, i) => ({ cle: 'teamop/2026-09-' + String(i + 1).padStart(2, '0') + 'T03-00-00Z.tar.gz.chiffre', octets: 1 })), 0).length, 3);
-vrai('⛔ … et jamais la plus récente', !S.aElaguer(obj(A, B, C, D), 1).includes(D));
+v('garder:0 (faute de frappe) → on retombe sur le défaut, rien n\'est effacé', S.aElaguer(obj(A, B, C), 0, 'teamop/'), []);
+v('garder:-5 → idem', S.aElaguer(obj(A, B, C), -5, 'teamop/'), []);
+v('garder:"trois" → idem, on n\'efface pas sur une valeur qu\'on ne comprend pas', S.aElaguer(obj(A, B, C), 'trois', 'teamop/'), []);
+v('… et au-delà du défaut de 30, l\'élagage reprend', S.aElaguer(Array.from({ length: 33 }, (_, i) => ({ cle: 'teamop/2026-09-' + String(i + 1).padStart(2, '0') + 'T03-00-00Z.tar.gz.chiffre', octets: 1 })), 0, 'teamop/').length, 3);
+vrai('⛔ … et jamais la plus récente', !S.aElaguer(obj(A, B, C, D), 1, 'teamop/').includes(D));
 /* ⛔ Et on ne touche à rien qui ne vienne pas de nous : le coffre peut contenir autre chose. */
 v('un objet étranger au format n\'est jamais effacé',
-  S.aElaguer(obj(A, B, C, 'teamop/notes-de-justin.txt', 'autre-chose.zip'), 1), [B, A]);
-v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt', 'deux.zip'), 1), []);
+  S.aElaguer(obj(A, B, C, 'teamop/notes-de-justin.txt', 'autre-chose.zip'), 1, 'teamop/'), [B, A]);
+v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt', 'deux.zip'), 1, 'teamop/'), []);
+/* ⛔⛔ ET LA RÈGLE AJOUTÉE LE 20 SEPTEMBRE 2026, QUI VIENT D'UN VRAI DÉFAUT. Cette fonction ne
+   filtrait QUE sur le suffixe. `lister('teamop/')` rend aussi le contenu des SOUS-DOSSIERS —
+   donc la copie mensuelle, rangée sous `teamop/mensuel/`, serait tombée sous la rétention du
+   JOUR. Et le détail qui rend la chose vicieuse : le tri est alphabétique, et `teamop/mensuel/`
+   passe APRÈS `teamop/2026-…` — les mensuelles auraient donc squatté les premières places du
+   « plus récent d'abord », poussant dehors de vraies sauvegardes du jour AVANT de se faire
+   effacer à leur tour. Un dossier de conservation longue qui mange l'historique court. */
+const M1 = 'teamop/mensuel/2026-08-01T03-00-00Z.tar.gz.chiffre';
+const M2 = 'teamop/mensuel/2026-09-01T03-00-00Z.tar.gz.chiffre';
+v('⛔ la rétention du JOUR ne voit pas le dossier mensuel',
+  S.aElaguer(obj(A, B, C, D, M1, M2), 2, 'teamop/'), [B, A]);
+v('⛔ … et celle du MOIS ne voit pas les archives du jour',
+  S.aElaguer(obj(A, B, C, D, M1, M2), 1, 'teamop/mensuel/'), [M1]);
+/* ⚠️ La contre-épreuve du tri : sans l'ancrage, `M2` serait classée « la plus récente » de tout
+   le coffre alors qu'elle date d'un mois. C'est bien `D` qui doit survivre. */
+vrai('⛔ … donc la plus récente du jour survit, pas la mensuelle',
+  !S.aElaguer(obj(A, B, C, D, M1, M2), 1, 'teamop/').includes(D));
+v('⛔ sans préfixe, on n\'efface RIEN — dans le doute, on efface moins',
+  S.aElaguer(obj(A, B, C, D), 1), []);
+v('   ni avec un préfixe vide', S.aElaguer(obj(A, B, C, D), 1, ''), []);
+v('   ni avec un préfixe qui ne désigne rien', S.aElaguer(obj(A, B, C, D), 1, 'ailleurs/'), []);
 
 /* ── 4. LA CHAÎNE COMPLÈTE, sur de vrais fichiers ──────────────────────────────────────── */
 (async () => {
@@ -201,6 +222,9 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
       },
       async lireCleVers(k, sortie) {
         if (c.pannes.lire) return { ok: false, statut: c.pannes.lire };
+        /* Abîmer la copie MENSUELLE seule : la nuit doit rester un succès pendant que la copie
+           longue durée, elle, est recalée. Deux sorts différents pour le même octet source. */
+        if (c.pannes.mensuelAbime && String(k).indexOf('mensuel/') >= 0) return { ok: true, octets: 1, empreinte: 'ff' };
         if (!objets.has(k)) return { ok: false, absente: true };
         let b = objets.get(k);
         if (c.pannes.lireAbime) { b = Buffer.from(b); b[10] ^= 0xFF; }
@@ -226,7 +250,14 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
   vrai('le module est actif quand la configuration est complète', mod.actif);
   let r = await mod.lancer('banc');
   v('une sauvegarde complète réussit', r.ok, true);
-  v('… et le coffre en porte une', coffre._n(), 1);
+  /* ⛔ DEUX OBJETS, PAS UN : l'archive du jour ET la copie du mois. La copie mensuelle est le
+     MÊME fichier déposé sous une seconde clé — ni second `tar`, ni second chiffrement, ni second
+     passage sur les bases. Le coût d'une nuit de mensuel est un envoi de plus, pas une
+     sauvegarde de plus. */
+  v('… et le coffre en porte DEUX : celle du jour et celle du mois', coffre._n(), 2);
+  vrai('⛔ la copie du mois est rangée à part', coffre._cles().some(c => c.indexOf('teamop/mensuel/') === 0));
+  vrai('   et celle du jour reste à la racine', coffre._cles().some(c => c.indexOf('teamop/') === 0 && c.indexOf('mensuel/') < 0));
+  vrai('   la nuit le dit', !!(r.mensuel && r.mensuel.fait === true));
   vrai('… l\'archive relue contenait des entrées', r.entrees >= 6);
   v('⛔ … et /health la dit fraîche', mod.sante().ok, true);
   v('⛔ … sans jamais donner son POIDS (c\'est le volume de données de tous les clients)', 'octets' in mod.sante(), false);
@@ -234,6 +265,47 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
      route publique si la plateforme saurait se relever. Il est servi à la Tour, sous le patron. */
   v('⛔ … ni le motif de l\'échec', 'motif' in mod.sante(), false);
   v('… ni le nom du coffre', JSON.stringify(mod.sante()).includes('bucket'), false);
+
+  /* ⛔ UNE FOIS PAR MOIS, PAS UNE PAR NUIT — sinon le dossier de conservation longue devient
+     une seconde sauvegarde quotidienne, et la facture double pour rien. La deuxième nuit du
+     même mois dépose bien son archive du jour, et rien de plus. */
+  const clesApres1 = coffre._n();
+  const r2 = await mod.lancer('banc');
+  v('la deuxième nuit réussit aussi', r2.ok, true);
+  v('⛔ mais elle ne redépose PAS de mensuelle ce mois-ci', (r2.mensuel || {}).fait, false);
+  v('   et elle le dit', (r2.mensuel || {}).motif, 'deja');
+  v('   toujours une seule copie mensuelle', coffre._cles().filter(c => c.indexOf('teamop/mensuel/') === 0).length, 1);
+  /* ⚠️ On ne compte PAS les objets du coffre ici : les deux lancements tombent dans la même
+     seconde, donc `nomArchive()` rend le même nom et l'archive du jour s'écrase elle-même.
+     C'est sans importance en production (une par nuit) et ça ferait un contrôle qui mesure
+     l'horloge du banc plutôt que la règle. Ce qui compte est au-dessus : UNE mensuelle. */
+  void clesApres1;
+
+  /* ⛔⛔ ET UNE COPIE MENSUELLE QU'ON NE SAIT PAS ROUVRIR NE RESTE PAS DANS LE COFFRE. C'est la
+     copie qu'on emporte sur une autre machine et qu'on garde deux ans : la laisser là occuper
+     une place de rétention pendant qu'elle est illisible, c'est fabriquer la mauvaise surprise
+     du jour où le VPS n'est plus là. On l'efface, `etat.mensuel` reste sans `ok`, et la nuit
+     suivante réessaie pour ce mois-là — ce que le contrôle suivant prouve.
+     ⚠️ Et la sauvegarde du JOUR, elle, reste bonne : la jeter parce qu'une SECONDE copie n'est
+     pas partie serait absurde. */
+  /* ⛔⛔ ET ON REPART D'UN ÉTAT VIERGE — CE QUE LE BANC A APPRIS EN TOMBANT. `etat.mensuel` vit
+     dans `DATA_DIR/sauvegardes-hors-site.json`, donc il SURVIT au changement de coffre : le
+     module suivant relisait « septembre : déjà fait » et sautait le dépôt, si bien que la
+     section ci-dessous mesurait un `deja` en croyant mesurer une relecture ratée. La
+     persistance est le bon comportement (en production il n'y a qu'un coffre, et un redémarrage
+     ne doit pas redéposer) ; c'est le banc qui doit dire « installation neuve » explicitement. */
+  try { fs.unlinkSync(path.join(DATA, 'sauvegardes-hors-site.json')); } catch (e) {}
+  coffre = coffreNeuf(); coffre.pannes.mensuelAbime = true; mod = monter(coffre);
+  r = await mod.lancer('banc');
+  v('⛔ mensuelle illisible : la nuit reste un SUCCÈS', r.ok, true);
+  vrai('   mais la mensuelle est marquée ratée', (r.mensuel || {}).fait === false && /relecture/.test(String((r.mensuel || {}).motif)));
+  v('⛔ et elle a été RETIRÉE du coffre', coffre._cles().filter(c => c.indexOf('teamop/mensuel/') === 0).length, 0);
+  v('   /health ne prétend donc pas qu\'une mensuelle existe', mod.sante().mensuelJ, null);
+  coffre.pannes.mensuelAbime = false;
+  r = await mod.lancer('banc');
+  v('⛔ la nuit suivante la RETENTE pour le même mois', (r.mensuel || {}).fait, true);
+  v('   /health la voit maintenant', mod.sante().mensuelJ, 0);
+
 
   /* ⛔ LA PANNE LA PLUS TRAÎTRE : le dépôt répond OK, mais ce qu'on relit n'est pas ce qu'on a
      envoyé. Sans relecture, elle passerait pour un succès — et on découvrirait le jour de la
@@ -413,6 +485,29 @@ v('… même quand il n\'y a QUE des objets étrangers', S.aElaguer(obj('un.txt'
     /* ⛔ Deux clés différentes d'une installation à l'autre : `openssl rand` doit être DANS le
        script, pas une valeur figée qu'on aurait recopiée. */
     vrai('⛔ la clé de sauvegarde est tirée au hasard, pas écrite dans le script', /SAUV=\$\(openssl rand -hex 32\)/.test(sh));
+  }
+
+  /* ⛔⛔ TROIS ÉTATS, PAS DEUX — la MÊME confusion que `configuree`, refaite un cran plus bas.
+     Un `"mensuel": false` dans `config.json` rendait `mensuelJ: null`, donc la surveillance
+     criait « aucune copie MENSUELLE n'a jamais été déposée » tous les jours à 9 h UTC, pour
+     toujours, sur une plateforme réglée exactement comme on l'a voulu. Une alarme qui crie faux
+     se fait ignorer, puis désactiver : c'est comme ça qu'on perd un garde-fou. */
+  try { fs.unlinkSync(path.join(DATA, 'sauvegardes-hors-site.json')); } catch (e) {}
+  {
+    const c2 = coffreNeuf(), m2 = monter(c2, { mensuel: false });
+    const r2 = await m2.lancer('banc');
+    v('mensuel éteint : la nuit réussit quand même', r2.ok, true);
+    v('⛔ et aucune copie mensuelle n\'est déposée', c2._cles().filter(k => k.indexOf('mensuel/') >= 0).length, 0);
+    v('⛔ /health dit ÉTEINT (false), pas « jamais faite » (null)', m2.sante().mensuelJ, false);
+    v('   et le dit aussi en clair', m2.sante().mensuelActif, false);
+  }
+  /* ⚠️ Le contre-test : allumé et jamais faite doit TOUJOURS rendre `null`, sinon on vient de
+     rendre l'alarme muette pour tout le monde. */
+  try { fs.unlinkSync(path.join(DATA, 'sauvegardes-hors-site.json')); } catch (e) {}
+  {
+    const c3 = coffreNeuf(), m3 = monter(c3);
+    v('⛔ allumé et jamais faite : toujours null', m3.sante().mensuelJ, null);
+    v('   et actif', m3.sante().mensuelActif, true);
   }
 
   try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {}

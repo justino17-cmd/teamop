@@ -5,6 +5,7 @@
  *   node server/firebase-console.js regles-publier      # publie firestore.rules (demande confirmation)
  *   node server/firebase-console.js sauvegardes         # état des sauvegardes Firestore
  *   node server/firebase-console.js sauvegardes-activer # récupération à un instant donné + une par jour
+ *   node server/firebase-console.js droits              # POURQUOI une commande refuse — mesuré, pas deviné
  *
  * ⛔ CE QUE CE FICHIER RÉPARE, ET CE N'EST PAS UN CONFORT. Le 18 septembre 2026, on a découvert
  * que `firestore.rules` du dépôt affirmait « publié le 11 septembre » alors que la console
@@ -60,13 +61,40 @@ async function api(url, opts, tok) {
   return { statut: r.status, j, txt };
 }
 
+/* ⛔ NE JAMAIS RÉSUMER UN REFUS DE GOOGLE — pris le 20 septembre 2026. La phrase « le compte
+   de service n'a pas le droit de faire ça » était écrite EN DUR ici et s'affichait sur TOUT
+   403, quelle qu'en soit la cause, en jetant `r.txt` — le seul endroit du fichier où le
+   message de Google était perdu. Deux rôles ont été ajoutés dans la console sur la foi de
+   cette phrase ; le 403 est resté, et rien ne pouvait dire pourquoi. Trois causes rendent le
+   MÊME 403 et une seule se répare dans l'IAM : le rôle manque vraiment, l'API est éteinte sur
+   le projet (`SERVICE_DISABLED`), ou la clé du serveur appartient à un AUTRE projet — on
+   ajoute alors des rôles dans une console qui n'est pas celle qui refuse. Google les
+   distingue, nomme la permission manquante et la ressource visée. On le lit, on ne devine
+   plus. */
+function motsDeGoogle(r) {
+  const e = (r.j && r.j.error) || {};
+  const det = (e.details || []).map(d => [d.reason, d.metadata && d.metadata.service]
+    .filter(Boolean).join(' · ')).filter(Boolean);
+  const msg = String(e.message || r.txt || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+  /* Le motif technique EN TÊTE, pas en queue : c'est lui qui distingue une API éteinte d'un
+     droit absent, et le seul appelant qui abrège coupait justement la fin. Mis devant, il
+     survit à toute troncature — ce qui est le propre d'un renseignement qui décide. */
+  return [det.length ? '(' + det.join(' | ') + ')' : '', msg].filter(Boolean).join(' ');
+}
+
 function expliquerRefus(r) {
-  if (r.statut === 403) {
-    console.error('✗ REFUSÉ (403) : le compte de service n\'a pas le droit de faire ça.');
-    console.error('  Console Google Cloud → IAM → ' + (cle.client_email || '') + ' → ajouter le rôle');
-    console.error('  « Administrateur des règles Firebase » (roles/firebaserules.admin) pour les règles,');
-    console.error('  ou « Propriétaire Cloud Datastore » (roles/datastore.owner) pour les sauvegardes.');
-  } else console.error('✗ HTTP ' + r.statut + ' : ' + String(r.txt).slice(0, 300));
+  const mots = motsDeGoogle(r);
+  console.error('✗ HTTP ' + r.statut + ' — Google répond :');
+  console.error('  « ' + (mots || '(aucun message)') + ' »');
+  if (r.statut !== 403) return;
+  if (/SERVICE_DISABLED|has not been used in project|API .*is disabled/i.test(mots)) {
+    console.error('\n  → Ce n\'est PAS un problème de rôle : l\'API elle-même est éteinte sur le projet.');
+    console.error('    Le lien d\'activation est dans le message ci-dessus. Le suivre, attendre deux');
+    console.error('    minutes, relancer.');
+  } else {
+    console.error('\n  → Avant de cliquer dans la console, MESURER ce qui manque vraiment :');
+    console.error('    node server/firebase-console.js droits');
+  }
 }
 
 /* ── LES RÈGLES ─────────────────────────────────────────────────────────────────────────── */
@@ -187,8 +215,8 @@ async function cmdEtat(tok) {
       const l = sch.j.backupSchedules || [];
       console.log('   sauvegardes programmées : ' + (l.length ? '✅ ' + l.length : '⛔ AUCUNE'));
       if (!pitr || !l.length) aFaire.push('sauvegardes-activer  ← Google ne sauvegarde RIEN pour toi par défaut');
-    } else { console.log('   sauvegardes programmées : non lisibles (droits) — il manque « Propriétaire Cloud Datastore »'); aFaire.push('IAM : ajouter roles/datastore.owner au compte de service'); }
-  } else console.log('   ⚠ non lisible (droits)');
+    } else { console.log('   sauvegardes programmées : ' + pourquoiPas(sch)); aFaire.push('droits               ← pourquoi les sauvegardes refusent, MESURÉ'); }
+  } else { console.log('   ⚠ ' + pourquoiPas(db)); aFaire.push('droits               ← pourquoi Firestore refuse, MESURÉ'); }
 
   /* 3. Les comptes : qui peut se créer une identité, et d'où. */
   console.log('\n── 3. LES COMPTES — qui peut se présenter, et depuis quel site ──');
@@ -204,7 +232,7 @@ async function cmdEtat(tok) {
     console.log('   sites autorisés (' + dom.length + ') : ' + dom.join(', '));
     const inconnus = dom.filter(d => !/teamop\.fr$|firebaseapp\.com$|web\.app$|^localhost$/.test(d));
     if (inconnus.length) { console.log('   ⚠ à vérifier : ' + inconnus.join(', ')); aFaire.push('retirer les sites inconnus dans la console Authentication'); }
-  } else console.log('   ⚠ non lisible (droits) — il manque un rôle d\'administration de l\'authentification');
+  } else console.log('   ⚠ ' + pourquoiPas(cfg));
 
   /* 4. App Check : le niveau au-dessus, à ne pas activer à la légère. */
   console.log('\n── 4. APP CHECK — refuser tout ce qui ne vient pas de ta vraie application ──');
@@ -213,7 +241,7 @@ async function cmdEtat(tok) {
     const l = (ac.j.services || []).filter(x => /ENFORCED|UNENFORCED/.test(x.enforcementMode || ''));
     const actif = l.some(x => x.enforcementMode === 'ENFORCED');
     console.log('   ' + (actif ? '✅ exigé' : '· non exigé — c\'est le cas aujourd\'hui, et c\'est normal'));
-  } else console.log('   · non lisible (droits) — sans importance tant qu\'on ne s\'en sert pas');
+  } else console.log('   · ' + pourquoiPas(ac) + ' — sans importance tant qu\'on ne s\'en sert pas');
   console.log('   ⚠️ NE PAS l\'activer sans modifier l\'application d\'abord : tout serait refusé.');
 
   /* ── CE QU'IL RESTE À FAIRE, et rien d'autre ─────────────────────────────────────────── */
@@ -237,6 +265,16 @@ async function cmdComptesMenage(tok) {
   console.log('   Sans effet sur qui travaille : un appareil actif s\'en recrée un à l\'ouverture.\n');
 }
 
+/* ⛔ MÊME RÈGLE QUE POUR `expliquerRefus`, EN UNE LIGNE. Le tableau de bord d'`etat` portait
+   quatre fois le mot « (droits) » pour une cause jamais constatée — dont une qui nommait le
+   rôle à ajouter et le poussait dans la liste des choses à faire. Le 20 septembre 2026, la
+   même phrase dans `expliquerRefus` a fait ajouter deux rôles pour rien : la cause réelle était
+   une propagation IAM en cours. Un tableau de bord dit ce qu'il a VU. */
+const pourquoiPas = (r) => {
+  const m = motsDeGoogle(r);
+  return 'non lisible — Google : « ' + (m.slice(0, 140) || 'sans message') + (m.length > 140 ? '…' : '') + ' »';
+};
+
 /* ── LES SAUVEGARDES FIRESTORE ──────────────────────────────────────────────────────────── */
 const BASE_DB = () => 'https://firestore.googleapis.com/v1/projects/' + PROJET + '/databases/(default)';
 
@@ -250,7 +288,10 @@ async function cmdSauvegardes(tok) {
   if (sch.statut !== 200) { expliquerRefus(sch); process.exit(1); }
   const l = sch.j.backupSchedules || [];
   console.log('  sauvegardes programmées : ' + (l.length ? l.length : '⛔ AUCUNE'));
-  l.forEach(s => console.log('      · ' + (s.dailyRecurrence ? 'chaque jour' : s.weeklyRecurrence ? 'chaque semaine' : '?') + ', gardée ' + (s.retention || '?')));
+  /* Google rend une durée en secondes (« 1209600s »). C'est un outil qu'on lit pour décider,
+     pas un journal machine : personne ne divise par 86 400 de tête à 22 h. */
+  const enJours = (r) => { const m = /^(\d+)s$/.exec(String(r || '')); return m ? Math.round(Number(m[1]) / 86400) + ' jours' : String(r || '?'); };
+  l.forEach(s => console.log('      · ' + (s.dailyRecurrence ? 'chaque jour' : s.weeklyRecurrence ? 'chaque semaine' : '?') + ', gardée ' + enJours(s.retention)));
   if (!/ENABLED/.test(pitr) || !l.length) {
     console.log('\n⛔ Firestore porte les données VIVANTES de tes clients, et Google n\'en garde aucune');
     console.log('   copie pour toi par défaut : une suppression accidentelle serait définitive.');
@@ -276,15 +317,121 @@ async function cmdSauvegardesActiver(tok) {
   await cmdSauvegardes(tok);
 }
 
+/* ── QUI PARLE, À QUEL PROJET, ET CE QU'IL A VRAIMENT LE DROIT DE FAIRE ─────────────────────
+ *
+ * ⛔ CETTE COMMANDE NE DEVINE RIEN, ELLE DEMANDE. Elle existe parce qu'un 403 a été « réparé »
+ * deux fois dans l'IAM sans qu'on ait jamais constaté que le droit manquait — voir le
+ * commentaire d'`expliquerRefus`. Trois mesures, dans l'ordre où elles peuvent invalider les
+ * suivantes :
+ *   1. l'identité RÉELLE du jeton, demandée à Google et non lue dans le fichier de clé : une
+ *      clé remplacée ne change pas le nom du fichier, et on éditerait alors la mauvaise ligne ;
+ *   2. le projet visé comparé au projet de la clé : s'ils diffèrent, tout rôle ajouté dans la
+ *      console du premier est invisible à la demande, qui part au nom du second ;
+ *   3. la liste des permissions que Google reconnaît à ce compte — `testIamPermissions` rend le
+ *      sous-ensemble que l'appelant DÉTIENT, et n'exige aucun droit particulier pour répondre.
+ *
+ * ⛔ N'AFFICHE AUCUN SECRET : une adresse de compte de service, des noms de projet, des noms de
+ * permission. Rien qui ne soit déjà lisible dans la console par qui y a accès.
+ */
+const DROITS_REQUIS = {
+  'datastore.databases.get': 'lire l\'état des sauvegardes',
+  'datastore.databases.update': 'activer le retour dans le temps (7 j)',
+  'datastore.backupSchedules.list': 'lire les sauvegardes programmées',
+  'datastore.backupSchedules.create': 'programmer une sauvegarde par jour',
+  'firebaserules.releases.get': 'lire la règle publiée',
+  'firebaserules.releases.update': 'publier la règle',
+  'firebaserules.rulesets.create': 'publier la règle',
+};
+
+async function cmdDroits(tok) {
+  console.log('\n══ Droits — qui parle, à quel projet, et ce qu\'il peut vraiment faire ══\n');
+
+  /* 1. L'identité réelle du jeton. Le jeton est opaque : Google seul sait à qui il appartient,
+     et c'est la seule façon de voir qu'un fichier de clé a été remplacé sous le même nom. */
+  let identite = '', confirme = '';
+  const ti = await api('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(tok), null, tok);
+  if (ti.statut === 200 && ti.j) {
+    identite = String(ti.j.email || '');
+    /* Sans la portée `userinfo.email`, Google ne rend PAS d'adresse pour un jeton de compte de
+       service — seulement son identifiant numérique. On ne va pas élargir la portée demandée
+       pour si peu : `client_id` est dans TOUT fichier de clé Google, et le comparer prouve
+       exactement ce qu'on veut savoir — le jeton appartient-il au compte écrit dans le
+       fichier ? C'est la même question, répondue sans toucher à l'échange de jeton, qui est
+       le chemin dont TOUTES les commandes dépendent. */
+    const num = String(ti.j.sub || ti.j.azp || ti.j.aud || '');
+    const attendu = String((cle && cle.client_id) || '');
+    if (!identite && num && attendu) confirme = num === attendu ? 'oui' : 'non';
+  }
+  const affiche = identite || cle.client_email || '?';
+  console.log('  compte de service : ' + affiche);
+  if (identite && cle.client_email && identite !== cle.client_email)
+    console.log('     ⛔ Google voit un AUTRE compte que celui écrit dans le fichier de clé (' + cle.client_email + ').');
+  else if (confirme === 'oui') console.log('     ✅ c\'est bien ce compte-là : Google connaît le jeton sous le même identifiant.');
+  else if (confirme === 'non') console.log('     ⛔ Google connaît ce jeton sous un AUTRE identifiant que celui du fichier de clé.');
+  else if (!identite) console.log('     ⚠ identité non confirmée par Google — adresse lue dans le fichier de clé.');
+
+  /* 2. Le piège silencieux : viser un projet avec la clé d'un autre. La console montrerait
+     alors des rôles bien ajoutés, sur une ligne que la demande ne présente jamais. */
+  const projetCle = String((cle && cle.project_id) || '');
+  console.log('  projet visé       : ' + PROJET);
+  console.log('  projet de la clé  : ' + (projetCle || '?'));
+  if (projetCle && projetCle !== PROJET) {
+    console.log('\n  ⛔ CE NE SONT PAS LE MÊME PROJET. Tout rôle ajouté dans l\'IAM de « ' + PROJET + ' »');
+    console.log('     restera sans effet : la demande part au nom de la clé de « ' + projetCle + ' ».');
+    console.log('     Corriger firebase.projectId dans config.json, ou poser la clé du bon projet.');
+  }
+
+  /* 3. Ce que Google reconnaît. `testIamPermissions` rend ce que l'appelant DÉTIENT : ce qui
+     n'y figure pas manque vraiment, et ce qui y figure innocente l'IAM. */
+  const noms = Object.keys(DROITS_REQUIS);
+  const t = await api('https://cloudresourcemanager.googleapis.com/v1/projects/' + PROJET + ':testIamPermissions',
+    { method: 'POST', body: JSON.stringify({ permissions: noms }) }, tok);
+  if (t.statut !== 200) {
+    console.log('\n  ⚠ Google refuse de dire ce que ce compte détient :');
+    expliquerRefus(t);
+    console.log('\n  Cette réponse-là est déjà un renseignement : un projet inconnu ou une API');
+    console.log('  Cloud Resource Manager éteinte refusent ainsi, et aucun rôle n\'y changerait rien.');
+    return;
+  }
+  const a = new Set(t.j.permissions || []);
+  console.log('\n  ce que Google reconnaît à ce compte :\n');
+  for (const p of noms) console.log('   ' + (a.has(p) ? '✅' : '⛔') + ' ' + p.padEnd(34) + ' ' + DROITS_REQUIS[p]);
+
+  const manque = noms.filter(p => !a.has(p));
+  if (!manque.length) {
+    console.log('\n  ✅ Aucun droit ne manque. Si une commande refuse encore, la cause n\'est PAS l\'IAM :');
+    console.log('     relancer cette commande — elle affiche désormais la phrase exacte de Google.');
+  } else {
+    const roles = new Set(manque.map(p => p.indexOf('datastore.') === 0
+      ? 'roles/datastore.owner      « Propriétaire Cloud Datastore »'
+      : 'roles/firebaserules.admin  « Administrateur des règles Firebase »'));
+    console.log('\n  ⛔ ' + manque.length + ' droit(s) sur ' + noms.length + ' manquent réellement.');
+    console.log('     Console Google Cloud → IAM et administration → IAM');
+    console.log('     → vérifier d\'abord que le projet affiché EN HAUT est « ' + PROJET + ' »');
+    console.log('     → ligne « ' + affiche + ' » → crayon → Ajouter un autre rôle :');
+    for (const r of roles) console.log('        · ' + r);
+    console.log('     → Enregistrer, attendre deux minutes, relancer cette commande.');
+  }
+
+  /* La contre-épreuve : on refait vraiment la demande qui refusait. Un droit reconnu par
+     `testIamPermissions` mais refusé sur la ressource dit que la cause est ailleurs. */
+  console.log('\n  ── contre-épreuve : la demande qui refusait ──');
+  const db = await api(BASE_DB(), null, tok);
+  if (db.statut === 200) console.log('  ✅ lecture de la base Firestore : elle passe.');
+  else { console.log('  ⛔ lecture de la base Firestore : elle refuse encore.'); expliquerRefus(db); }
+  console.log('');
+}
+
 (async () => {
   const cmd = (process.argv[2] || '').toLowerCase();
-  if (!['etat', 'regles', 'regles-publier', 'sauvegardes', 'sauvegardes-activer', 'comptes-menage'].includes(cmd)) {
+  if (!['etat', 'regles', 'regles-publier', 'sauvegardes', 'sauvegardes-activer', 'droits', 'comptes-menage'].includes(cmd)) {
     console.log('\nCommandes :');
     console.log('  etat                ⇦ TOUT ce qui compte, et ce qu\'il reste à faire');
     console.log('  regles              ce qui est VRAIMENT publié, comparé au dépôt');
     console.log('  regles-publier      publie firestore.rules (confirmation demandée)');
     console.log('  sauvegardes         état des sauvegardes Firestore');
     console.log('  sauvegardes-activer retour dans le temps + une sauvegarde par jour');
+    console.log('  droits              \u21e6 POURQUOI \u00e7a refuse : identit\u00e9, projet, permissions r\u00e9elles');
     console.log('  comptes-menage      supprime les comptes anonymes inactifs (30 j)\n');
     process.exit(1);
   }
@@ -295,4 +442,5 @@ async function cmdSauvegardesActiver(tok) {
   if (cmd === 'regles-publier') return cmdReglesPublier(tok);
   if (cmd === 'sauvegardes') return cmdSauvegardes(tok);
   if (cmd === 'sauvegardes-activer') return cmdSauvegardesActiver(tok);
+  if (cmd === 'droits') return cmdDroits(tok);
 })().catch(e => { console.error('✗ ' + e.message); process.exit(1); });

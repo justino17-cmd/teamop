@@ -129,7 +129,11 @@ console.log('\nLa route ne délivre rien sans preuve, et jamais pour le repli');
   const garde=(SRV.match(/function sauvRefus\(t, kh, quoi\)[\s\S]*?\n\}/)||[''])[0];
   v('la garde refuse l\'espace de repli — sa clé est publique, une preuve venant de lui ne prouve rien',
     /ESPACES_INTOUCHABLES\.includes\(t\)/.test(garde),true);
-  v('…un espace fermé',/entFermes\.espaces\.includes\(t\)/.test(garde),true);
+  /* ⛔ PAR `espaceFerme`, PLUS PAR LA LISTE EN BLOC (24 septembre 2026) : la liste porte aussi les
+     entreprises SUSPENDUES pour impayé, qui travaillent (décision de Justin). Le comportement —
+     une suspendue obtient son jeton, une fermée non — est JOUÉ sur le vrai serveur par `test-796`. */
+  v('…un espace fermé — par `espaceFerme`, qui laisse passer une suspendue',
+    /if \(espaceFerme\(t\)\) return \{ code: 403, error: 'espace fermé' \}/.test(garde),true);
   v('…et une clé fausse',/espaceCleOk\(t, kh\)/.test(garde),true);
 }
 

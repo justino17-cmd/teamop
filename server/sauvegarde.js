@@ -21,6 +21,19 @@
  * PARTANT DE RIEN exige la clé conservée AILLEURS — gestionnaire de mots de passe, pas le VPS.
  * `server/restaurer.js` refuse de démarrer sans elle et le dit dans ces termes.
  *
+ * ⛔⛔ ET IL FAUT **DEUX** CLÉS POUR RELEVER CETTE ARCHIVE AILLEURS, PAS UNE. C'est le point
+ * qui coûte le plus cher le jour où on en a besoin, et il n'était écrit nulle part :
+ *   1. `sauvegarde.cle` ouvre l'ENVELOPPE — sans elle, le fichier est un bloc opaque ;
+ *   2. la clé maître (`/etc/teamop/kek`, servie par `LoadCredential`) ouvre les DONNÉES DES
+ *      ENTREPRISES. Elle vit hors de `/opt` EXPRÈS, donc elle n'est **PAS DANS L'ARCHIVE**.
+ * Avec la première seule, on obtient `config.json`, les pièces jointes et des fichiers SQLite
+ * qui s'ouvrent parfaitement — et dont CHAQUE corps d'enregistrement reste scellé : l'annuaire
+ * ne porte que des DEK emballées par la clé maître. Autrement dit une archive qui a l'air
+ * complète et ne rend pas une ligne de données client. ⚠️ Quiconque emporte une copie mensuelle
+ * sur une autre machine emporte donc AUSSI les deux clés, rangées ailleurs que sur le VPS —
+ * sinon il transporte un bloc illisible en croyant tenir sa plateforme. Même famille de piège
+ * que `install.sh` et la clé maître, documentée dans `CLAUDE.md`.
+ *
  * ⛔ UNE SAUVEGARDE QU'ON N'A PAS RELUE N'EST PAS UNE SAUVEGARDE. C'est la leçon la plus chère
  * de ce métier, et la fiche du projet la porte déjà pour Firebase (« jamais restaurée par
  * nous »). Chaque dépôt est donc SUIVI D'UNE RELECTURE : on retélécharge l'objet, on vérifie
@@ -81,9 +94,28 @@ function nomArchive(quand) {
    ABSURDE (0, négatif, pas un nombre) retombe sur le DÉFAUT de 30, il ne veut pas dire « vide
    le coffre ». Le sens du garde-fou est toujours le même : dans le doute, on efface MOINS. Un
    `garder: 0` tapé par erreur dans `config.json` ne doit pas coûter tout l'historique. */
-function aElaguer(objets, garder) {
+function aElaguer(objets, garder, prefixe) {
   const n = Math.max(1, nombre(garder, 30));
-  const miens = (objets || []).filter(o => o && typeof o.cle === 'string' && /\.tar\.gz\.chiffre$/.test(o.cle));
+  /* ⛔⛔ LE PRÉFIXE EST OBLIGATOIRE, ET C'EST UN DÉFAUT TROUVÉ EN AJOUTANT LE MENSUEL, LE
+     20 SEPTEMBRE 2026. Cette fonction ne filtrait que sur le SUFFIXE. Or `lister('teamop/')`
+     rend aussi tout ce qui vit dans un SOUS-DOSSIER — et une copie mensuelle rangée sous
+     `teamop/mensuel/` serait donc tombée sous la rétention QUOTIDIENNE. Pire, et c'est le
+     détail qui rend le défaut sournois : le tri est alphabétique sur la clé, et
+     `teamop/mensuel/…` passe APRÈS `teamop/2026-…` (« m » > « 2 »). Les archives mensuelles
+     auraient donc occupé les premières places du classement « plus récent d'abord », poussant
+     dehors de VRAIES sauvegardes du jour, puis se seraient fait effacer à leur tour en
+     grossissant. Un dossier de conservation longue qui mange l'historique court : exactement
+     l'inverse de ce qu'on construit.
+     Même famille que les motifs `--exclude` non ancrés de `test-726` — un motif qui ne dit pas
+     OÙ il s'applique finit par s'appliquer ailleurs.
+     ⚠️ Sans préfixe, on ne sait pas de quel dossier on parle : on n'efface RIEN. C'est la règle
+     déjà écrite ci-dessus — dans le doute, on efface MOINS. */
+  const pre = String(prefixe || '');
+  if (!pre) return [];
+  const miens = (objets || []).filter(o => o && typeof o.cle === 'string'
+    && /\.tar\.gz\.chiffre$/.test(o.cle)
+    && o.cle.indexOf(pre) === 0
+    && o.cle.slice(pre.length).indexOf('/') < 0);
   if (miens.length <= n) return [];
   const tries = miens.slice().sort((a, b) => (a.cle < b.cle ? 1 : a.cle > b.cle ? -1 : 0));   // plus récent d'abord
   return tries.slice(n).map(o => o.cle);
@@ -148,6 +180,61 @@ async function fabriquer(sortie, cle, sources, exclure) {
    sauvegarde. Rend le nombre d'entrées, ou lève. Sert à la vérification après dépôt ET à
    `restaurer.js`, qui n'a donc pas sa propre copie de ce code (une seconde définition finirait
    par diverger, et c'est le jour de la restauration qu'on s'en apercevrait). */
+/* ⛔ CE QUI DOIT ÊTRE LÀ, PAS SEULEMENT CE QUI EST LÀ. La première version de ce contrôle
+ * ouvrait chaque fichier `.db` qu'elle trouvait et concluait « saine » — sur une archive
+ * AMPUTÉE DE L'ANNUAIRE, elle disait donc ✅. Elle fermait « compter des fichiers n'est pas
+ * relire » et laissait entière la question « est-ce que tout ce qu'il faut est là ».
+ * Trois exigences, et chacune a sa panne derrière :
+ *   · l'ANNUAIRE est présent — sans lui, aucune clé, donc aucune donnée lisible ;
+ *   · chaque base s'OUVRE et se parcourt (`quick_check`), 0 octet compris ;
+ *   · aucune copie `.brut` n'est passée en silence — c'est une base qu'on n'a PAS su
+ *     instantaner, donc une entreprise en difficulté, donc exactement celle qu'il ne faut pas
+ *     perdre de vue.
+ * ⚠️ On vérifie l'INTÉGRITÉ DES FICHIERS, pas qu'on sache les déchiffrer : ce sont deux
+ * questions distinctes et une seule est du ressort d'une sauvegarde. */
+function verifierInstantane(dossier, socle) {
+  let noms = [];
+  try { noms = fs.readdirSync(dossier); } catch (e) { return { ok: false, motif: 'instantané absent de l\'archive', bases: 0, cassees: 0, brutes: 0 }; }
+  const bases = noms.filter(f => f.endsWith('.db'));
+  const brutes = noms.filter(f => f.endsWith('.db.brut'));
+  if (!bases.some(f => f === 'socle-annuaire.db')) {
+    return { ok: false, motif: 'ANNUAIRE ABSENT — les clés de toutes les entreprises manquent, rien ne sera lisible', bases: bases.length, cassees: 0, brutes: brutes.length };
+  }
+  let cassees = 0;
+  for (const f of bases.concat(brutes)) if (!socle.controlerFichier(path.join(dossier, f)).ok) cassees++;
+  if (cassees) return { ok: false, degrade: false, motif: cassees + ' base(s) illisible(s) dans l\'archive', bases: bases.length, cassees, brutes: brutes.length };
+  /* ⛔ UNE COPIE BRUTE DÉGRADE L'ARCHIVE, ELLE NE L'INVALIDE PAS — et la nuance vaut la
+     sauvegarde de toute la plateforme. La première version rendait `ok:false` dès qu'une
+     `.brut` était là ; `lancer()` traitait ce verdict par `recaler()`, qui EFFACE l'objet du
+     coffre. REPRODUIT le 19 septembre 2026 : trois entreprises, on casse le témoin de clé
+     d'UNE SEULE → `objets au coffre = 0`. Les deux saines, correctement instantanées et
+     correctement déposées, étaient jetées avec elle. Avec `garder: 30`, un seul témoin cassé
+     chez un client et plus AUCUNE sauvegarde n'était conservée, pour personne, nuit après
+     nuit, jusqu'à intervention manuelle.
+     ⛔ C'est mot pour mot la faute que `instantanerVers` venait de fermer un étage plus bas
+     (« une base illisible ne fait pas échouer les quarante-neuf autres »), remontée d'un
+     cran — et cette fois avec une suppression active. La règle, une bonne fois : **ce qui
+     manque invalide, ce qui est dégradé alarme.** Une `.brut` qui S'OUVRE est une vraie base
+     de secours ; on la garde, et on crie. */
+  if (brutes.length) return { ok: true, degrade: true, motif: brutes.length + ' base(s) n\'ont PAS pu être instantanées (copie brute, mais lisible) — à examiner', bases: bases.length, cassees, brutes: brutes.length };
+  return { ok: true, degrade: false, motif: '', bases: bases.length, cassees: 0, brutes: 0 };
+}
+
+/* Le même contrôle, mais en partant d'une archive chiffrée : on la déballe dans un temporaire. */
+async function verifierSocle(archive, cle, socle) {
+  const dossier = archive + '.socle';
+  try { fs.rmSync(dossier, { recursive: true, force: true }); } catch (e) {}
+  fs.mkdirSync(dossier, { recursive: true });
+  try {
+    await relire(archive, cle, dossier);
+    return verifierInstantane(path.join(dossier, socle.SOCLE_INSTANTANE), socle);
+  } catch (e) {
+    return { ok: false, motif: 'archive illisible', bases: 0, cassees: -1, brutes: 0 };
+  } finally {
+    try { fs.rmSync(dossier, { recursive: true, force: true }); } catch (e) {}
+  }
+}
+
 function relire(chemin, cle, extraireVers) {
   return new Promise((resolve, reject) => {
     let stat; try { stat = fs.statSync(chemin); } catch (e) { return reject(new Error('archive introuvable')); }
@@ -236,7 +323,23 @@ function monterSauvegarde(app, deps) {
      heure : minuit est une heure parfaitement valable. On la lit donc à part. */
   const HEURE = (h => (Number.isInteger(h) && h >= 0 && h <= 23) ? h : 3)(conf && conf.heureUTC);
   const MAX_OCTETS = nombre(conf && conf.maxOctets, 4 * 1024 * 1024 * 1024);
+  /* ══ LA COPIE MENSUELLE — CELLE QU'ON EMPORTE ═══════════════════════════════════════════
+     Posée le 20 septembre 2026, sur une demande de Justin : « tous les mois, une sauvegarde
+     complète du mois que je peux transférer sur un autre serveur, pour éviter la surcharge ».
+     ⛔ ELLE NE PEUT PAS VIVRE DANS LE DOSSIER DU QUOTIDIEN. Avec `garder: 30` et une archive
+     par nuit, la fenêtre fait exactement trente jours : une copie « mensuelle » rangée là
+     serait effacée AVANT d'avoir un mois — c'est-à-dire qu'elle n'existerait jamais. D'où un
+     préfixe à elle et une rétention à elle (24 mois par défaut, deux ans).
+     ⚠️ Et c'est précisément ce dossier voisin qui a révélé le défaut d'ancrage d'`aElaguer`,
+     plus haut : sans lui, la rétention du jour serait venue le vider. */
+  const PREFIXE_MENSUEL = (conf && conf.prefixeMensuel) || (PREFIXE.replace(/\/*$/, '/') + 'mensuel/');
+  const MENSUEL_GARDER = nombre(conf && conf.mensuelGarder, 24);
+  const MENSUEL = !(conf && conf.mensuel === false);
   let enCours = false;
+
+  /* Le mois d'un instant, en UTC — la même horloge que `HEURE` et que le nom d'archive. Un
+     fuseau local ferait basculer le mois à une heure qui dépend du serveur. */
+  const moisDe = (ts) => String(new Date(ts || Date.now()).toISOString()).slice(0, 7);
 
   async function lancer(raison) {
     if (!actif) return { ok: false, motif: 'inactive' };
@@ -268,12 +371,59 @@ function monterSauvegarde(app, deps) {
       const sources = [DATA_DIR];
       try { if (CONFIG_PATH && fs.statSync(CONFIG_PATH).isFile()) sources.push(CONFIG_PATH); } catch (e) {}
 
+      /* ⛔ LES BASES SQLite DU SOCLE NE PARTENT PAS VIVANTES. `tar` lit `base.db`, un point de
+         reprise a lieu pendant l'archivage, `tar` lit ensuite `-wal` : les deux moitiés ne vont
+         plus ensemble. MESURÉ le 18 septembre 2026 — la base restaurée lève `database disk
+         image is malformed` au premier SELECT. Et rien ne le voyait, parce que la relecture
+         plus bas COMPTE des entrées de `tar -t` sans jamais ouvrir une base : l'archive était
+         déclarée « restaurable » toutes les nuits. On prend donc un instantané cohérent
+         (`VACUUM INTO`, la réponse de SQLite à exactement cette question) et on EXCLUT les
+         fichiers vivants de l'archive.
+         ⚠️ Si l'instantané échoue, on ÉCHOUE LA SAUVEGARDE — on ne dépose pas une archive
+         amputée du socle en la déclarant bonne. Une sauvegarde qui ment est pire que pas de
+         sauvegarde : on ne la découvre que le jour où on en a besoin. */
+      let instantane = null;
+      if (deps.socle) {
+        try {
+          const dossier = path.join(TMP_DIR, deps.socle.SOCLE_INSTANTANE);
+          instantane = deps.socle.instantanerVers(dossier);
+          if (instantane.bases || (instantane.echecs && instantane.echecs.length)) sources.push(dossier);
+          /* ⛔ UNE BASE QU'ON N'A PAS PU INSTANTANER EST UN INCIDENT, PAS UN DÉTAIL — mais elle
+             ne fait pas échouer la sauvegarde des autres. Ses octets bruts partent quand même
+             (un fichier abîmé se répare parfois ; absent de l'archive, jamais) et le nombre
+             remonte : `/health` le publie, la surveillance horaire le voit. */
+          if (instantane.echecs && instantane.echecs.length) {
+            etat.instantaneEchecs = instantane.echecs.length;
+            console.error('⛔ sauvegarde : ' + instantane.echecs.length + ' base(s) non instantanée(s) — copie brute, à examiner');
+          } else etat.instantaneEchecs = 0;
+        } catch (e) {
+          console.error('sauvegarde : instantané du socle IMPOSSIBLE —', e.code || 'erreur');
+          return noter(false, 'socle-instantane', {});
+        }
+      }
+
       /* Deux exclusions : le dossier temporaire actuel (il est SIBLING de DATA_DIR, donc hors
          de l'archive de toute façon — ceinture en plus des bretelles si quelqu'un règle
          `TEAMOP_DATA` autrement), et le NOM QUE PORTAIT le temporaire avant correction. Sans la
          seconde, un reste laissé par une version antérieure serait ré-archivé chaque nuit, pour
          toujours, en grossissant l'archive de son propre poids. */
-      const faite = await fabriquer(tmp, cle, sources, [path.basename(TMP_DIR), '.sauvegarde-*.tmp', '.sauvegarde-*.tmp.relu']);
+      /* ⛔ LES MOTIFS D'EXCLUSION SONT ANCRÉS SUR LE DOSSIER DE DONNÉES, ET C'EST TOUT LE
+         SUJET. Les motifs `--exclude` de GNU tar ne sont PAS ancrés quand ils ne contiennent
+         pas de barre oblique : ils filtrent N'IMPORTE QUEL composant de chemin, dans TOUTES
+         les sources. Écrits nus (`socle-annuaire.db`) pour retirer le fichier VIVANT, ils
+         retiraient aussi l'INSTANTANÉ du même nom, dans l'autre source.
+         ⛔ MESURÉ le 19 septembre 2026, avec le vrai module : l'archive contenait
+         `socle-instantane/elan-34oc.db` et `socle-instantane/entreprise-b.db` — et AUCUN
+         annuaire. Or l'annuaire porte les CLÉS de toutes les entreprises. L'archive contenait
+         donc les données de tous les clients, parfaitement intactes et définitivement
+         illisibles, et la relecture la déclarait bonne. Le correctif était PIRE que le défaut
+         qu'il réparait : l'ancien rendait des bases parfois corrompues, celui-là rendait des
+         bases jamais restaurables.
+         ⚠️ `path.basename(DATA_DIR)` et pas « data » en dur : `TEAMOP_DATA` se règle. */
+      const dd = path.basename(DATA_DIR);
+      const faite = await fabriquer(tmp, cle, sources,
+        [path.basename(TMP_DIR), '.sauvegarde-*.tmp', '.sauvegarde-*.tmp.relu',
+         dd + '/socle', dd + '/socle-annuaire.db*']);
       if (faite.octets > MAX_OCTETS) return noter(false, 'trop-volumineuse', { octets: faite.octets });
 
       /* ⛔ ENVOI ET RELECTURE EN FLUX. Ils lisaient l'archive ENTIÈRE en mémoire, deux fois —
@@ -283,30 +433,138 @@ function monterSauvegarde(app, deps) {
       const dep = await client.poserCleFlux(cleObjet, tmp, faite.octets, faite.empreinte);
       if (!dep.ok) return noter(false, 'depot-' + (dep.statut || 'erreur'), { octets: faite.octets });
 
+      /* ⛔ UNE ARCHIVE RECALÉE NE RESTE PAS DANS LE COFFRE. À partir d'ici l'objet EST déposé :
+         tout échec qui suit laisse dans le coffre une archive dont on SAIT qu'elle est mauvaise,
+         et la rétention la compte comme une copie valable. Trente nuits de suite et il ne reste
+         plus une seule copie saine — sans que rien ne l'ait jamais dit. Chaque refus passe donc
+         par ici, et chaque refus l'efface. */
+      const recaler = async (motif, extra) => {
+        try { await client.effacerCle(cleObjet); } catch (e) { console.error('sauvegarde : objet recalé NON retiré du coffre — il compte comme une copie valable'); }
+        return noter(false, motif, extra);
+      };
+
       /* ── LA RELECTURE, qui est le vrai sujet ────────────────────────────────────────────
          On retélécharge ce qui vient d'être déposé — pas le fichier local. Trois contrôles,
          du moins cher au plus probant : la taille, l'empreinte, puis l'ouverture réelle. */
       const relu = await client.lireCleVers(cleObjet, tmpRelu);
-      if (!relu.ok) return noter(false, 'relecture-' + (relu.statut || 'absente'), { octets: faite.octets });
-      if (relu.octets !== faite.octets) return noter(false, 'taille-differente', { octets: faite.octets, relu: relu.octets });
-      if (relu.empreinte !== faite.empreinte) return noter(false, 'empreinte-differente', { octets: faite.octets });
+      if (!relu.ok) return recaler('relecture-' + (relu.statut || 'absente'), { octets: faite.octets });
+      if (relu.octets !== faite.octets) return recaler('taille-differente', { octets: faite.octets, relu: relu.octets });
+      if (relu.empreinte !== faite.empreinte) return recaler('empreinte-differente', { octets: faite.octets });
 
       const ouverte = await relire(tmpRelu, cle, null);
-      if (!ouverte.entrees) return noter(false, 'archive-vide', { octets: faite.octets });
+      if (!ouverte.entrees) return recaler('archive-vide', { octets: faite.octets });
+      /* ⛔ COMPTER DES ENTRÉES N'EST PAS RELIRE. C'est ce qui a laissé passer des bases
+         corrompues pendant qu'on écrivait « ✅ restaurable » : `tar -t` liste des noms, il
+         n'ouvre rien. On DÉBALLE l'instantané et on fait un vrai SELECT dans chaque base. */
+      /* ⛔ ON VÉRIFIE DÈS QU'IL Y AVAIT QUELQUE CHOSE À INSTANTANER — succès OU échecs. La
+         première version testait `if (instantane.bases)` : si TOUTES les bases échouaient leur
+         instantané (`bases:0`), c'est-à-dire le pire cas, celui où on a le plus besoin du
+         contrôle, la vérification était purement SAUTÉE et la sauvegarde déclarée réussie
+         sans qu'une seule base ait été ouverte. */
+      if (instantane && (instantane.bases || (instantane.echecs && instantane.echecs.length))) {
+        const v = await verifierSocle(tmpRelu, cle, deps.socle);
+        if (!v.ok) {
+          console.error('⛔ sauvegarde recalée : ' + v.motif);
+          return recaler('socle-' + (v.bases ? 'illisible' : 'incomplet'),
+            { octets: faite.octets, bases: v.bases, cassees: v.cassees, brutes: v.brutes });
+        }
+        /* ⛔ DÉGRADÉE, DONC GARDÉE, DONC CRIÉE. L'archive est valable pour toutes les
+           entreprises saines ; celle qui est en copie brute a une vraie base de secours. Le
+           compteur remonte sur `/health` et `surveillance.js` en fait une alarme nominative
+           côté Tour — c'est ça, agir, plutôt que de tout jeter. */
+        if (v.degrade) console.error('⚠️ sauvegarde DÉGRADÉE mais conservée : ' + v.motif);
+      }
+
+      /* ══ LA COPIE DU MOIS ═══════════════════════════════════════════════════════════════
+         ⛔ ICI ET PAS AILLEURS : l'archive vient d'être RELUE et ouverte, donc on sait qu'elle
+         est restaurable. Déposer la copie longue durée avant cette preuve reviendrait à garder
+         deux ans une archive qu'on n'a jamais su rouvrir — le contraire exact du but.
+         On dépose le MÊME fichier sous une seconde clé : ni nouveau `tar`, ni nouveau
+         chiffrement, ni second passage sur les bases. Le coût d'une nuit de mensuel est donc un
+         envoi de plus, pas une sauvegarde de plus. */
+      let mensuel = null;
+      if (MENSUEL) {
+        const mois = moisDe(Date.now());
+        if (etat.mensuel && etat.mensuel.mois === mois && etat.mensuel.ok) {
+          mensuel = { fait: false, motif: 'deja', mois };
+        } else {
+          const cleMois = PREFIXE_MENSUEL + nom + '.tar.gz.chiffre';
+          const pose = await client.poserCleFlux(cleMois, tmp, faite.octets, faite.empreinte);
+          if (!pose.ok) {
+            /* ⛔ UN MENSUEL RATÉ NE FAIT PAS ÉCHOUER LA NUIT. L'archive du jour est bonne et
+               déposée ; la jeter parce qu'une SECONDE copie n'est pas partie serait absurde.
+               On garde le succès, on note l'échec, et `sante()` le remonte — même règle que la
+               rétention qui ne peut pas tourner. */
+            mensuel = { fait: false, motif: 'depot-' + (pose.statut || 0), mois };
+            console.error('⛔ copie mensuelle NON déposée (' + mensuel.motif + ') — la sauvegarde du jour, elle, est bonne');
+          } else {
+            /* ⛔ ET ON LA RELIT ENTIÈREMENT, ELLE AUSSI. C'est la copie qui partira sur une
+               autre machine et qu'on gardera deux ans : c'est la DERNIÈRE qu'on peut se
+               permettre de croire sur parole. Une fois par mois, un téléchargement de plus est
+               le bon prix — la nuitée quotidienne, elle, n'en paie aucun. */
+            const rmois = await client.lireCleVers(cleMois, tmpRelu);
+            const bonne = rmois.ok && rmois.octets === faite.octets && rmois.empreinte === faite.empreinte
+              && (await relire(tmpRelu, cle, null).catch(() => ({ entrees: 0 }))).entrees > 0;
+            if (!bonne) {
+              /* On retire la copie illisible plutôt que de la laisser occuper une place de
+                 rétention et rassurer au passage : `etat.mensuel` restera sans `ok`, donc la
+                 nuit suivante réessaiera pour ce mois-là. */
+              try { await client.effacerCle(cleMois); } catch (e) {}
+              mensuel = { fait: false, motif: 'relecture-' + (rmois.statut || (rmois.absente ? 'absente' : 'differente')), mois };
+              console.error('⛔ copie mensuelle recalée (' + mensuel.motif + ') — elle sera retentée demain');
+            } else {
+              mensuel = { fait: true, mois, cle: cleMois, octets: faite.octets, ts: Date.now(), ok: true };
+              etat.mensuel = mensuel;
+            }
+          }
+        }
+        /* La rétention du dossier mensuel, avec SA valeur. Elle tourne même quand le dépôt de
+           ce mois-ci n'a pas eu lieu : l'élagage ne dépend pas de la copie du jour. */
+        const lm = await client.lister(PREFIXE_MENSUEL);
+        if (lm && lm.ok) {
+          let n = 0;
+          for (const c of aElaguer(lm.objets, MENSUEL_GARDER, PREFIXE_MENSUEL)) { const r = await client.effacerCle(c); if (r.ok) n++; }
+          mensuel.elaguees = n; mensuel.gardees = Math.max(0, (lm.objets || []).length - n);
+        } else { mensuel.elagage = 'liste-' + ((lm && lm.statut) || 'erreur'); }
+      }
 
       /* La rétention seulement après une sauvegarde RÉUSSIE : on n'efface jamais une ancienne
          copie sur la foi d'une nouvelle qu'on n'a pas pu rouvrir. */
-      let elaguees = 0;
+      /* ⛔ UNE RÉTENTION QUI NE PEUT PAS TOURNER DOIT LE DIRE. `lister()` est le SEUL organe de
+         la rétention : s'il échoue, on saute l'élagage — et la sauvegarde se notait quand même
+         `ok:true`, sans un mot. Le cas n'est pas théorique, c'est même le plus courant : une
+         clé d'accès qui a `PutObject` et `GetObject` mais pas `ListBucket`, c'est-à-dire le
+         réglage qu'on obtient en resserrant les droits « pour faire propre ». Le coffre grossit
+         alors d'une archive par nuit, pour toujours, jusqu'à la facture ou le quota.
+         ⚠️ Ça ne fait PAS échouer la sauvegarde : l'archive de cette nuit est bonne et déposée,
+         la jeter serait pire. On garde le succès ET on remonte le défaut. */
+      let elaguees = 0, elagage = 'ok';
       const liste = await client.lister(PREFIXE);
       if (liste && liste.ok) {
-        for (const c of aElaguer(liste.objets, GARDER)) { const r = await client.effacerCle(c); if (r.ok) elaguees++; }
+        for (const c of aElaguer(liste.objets, GARDER, PREFIXE)) { const r = await client.effacerCle(c); if (r.ok) elaguees++; }
+        etat.elagageEchecs = 0;
+      } else {
+        elagage = 'liste-' + ((liste && liste.statut) || 'erreur');
+        etat.elagageEchecs = (etat.elagageEchecs || 0) + 1;
+        console.error('⛔ sauvegarde : rétention NON appliquée (' + elagage + ') — le coffre grossit d\'une archive par nuit');
       }
-      return noter(true, '', { octets: faite.octets, entrees: ouverte.entrees, empreinte: faite.empreinte.slice(0, 16), elaguees, gardees: liste && liste.ok ? Math.min(GARDER, (liste.objets || []).length + 1) : null });
+      return noter(true, '', { octets: faite.octets, entrees: ouverte.entrees, empreinte: faite.empreinte.slice(0, 16), elaguees, elagage, mensuel, gardees: liste && liste.ok ? Math.min(GARDER, (liste.objets || []).length + 1) : null });
     } catch (e) {
       return noter(false, 'exception', { erreur: String(e.message).slice(0, 200) });
     } finally {
       enCours = false;
       for (const f of [tmp, tmpRelu]) { try { fs.unlinkSync(f); } catch (e) {} }
+      /* ⛔ L'INSTANTANÉ S'EFFACE SUR TOUS LES CHEMINS, Y COMPRIS LES RATÉS — et c'est pour ça
+         qu'il est ICI et plus sur le chemin de succès. C'est une copie EN CLAIR de toutes les
+         bases ET de l'annuaire, donc des clés de toutes les entreprises, à plat dans un seul
+         dossier : exactement ce que le produit passe son temps à séparer, réuni en un point.
+         ⛔ Posé sur le seul chemin de succès, il survivait à CHAQUE échec : le coffre refuse
+         une nuit (403 sur une clé mal réglée, 503 un mauvais jour), et la copie restait sur le
+         disque du VPS jusqu'à la sauvegarde suivante. C'est l'inverse de ce qu'on veut — elle
+         traînait précisément les nuits où quelque chose allait déjà mal. Relevé par la
+         cinquième vérification ; `tests/test-726.js` l'exige après une sauvegarde RATÉE, pas
+         seulement après une réussie. */
+      try { fs.rmSync(path.join(TMP_DIR, deps.socle ? deps.socle.SOCLE_INSTANTANE : 'socle-instantane'), { recursive: true, force: true }); } catch (e) {}
     }
   }
 
@@ -321,11 +579,49 @@ function monterSauvegarde(app, deps) {
        ça dit à qui l'interroge si la plateforme saurait se relever. Trois valeurs suffisent à la
        surveillance ; le motif est servi à la Tour, qui exige le patron. */
     const d = etat.derniere;
-    return { active: actif, ageH: d && d.ok ? Math.round((Date.now() - d.ts) / 3600000) : null, ok: d ? !!d.ok : null };
+    /* ⛔ `instantaneEchecs` ÉTAIT ÉCRIT ET LU PAR PERSONNE — et le commentaire d'à côté
+       affirmait « /health le publie, la surveillance horaire le voit ». Une base qu'on n'a pas
+       su instantaner est une entreprise DÉJÀ en difficulté : c'est précisément celle dont on
+       doit entendre parler. Un NOMBRE, jamais un nom : /health est publique. */
+    /* ⛔ `configuree` EST LE TROISIÈME ÉTAT, ET IL VAUT UNE ALARME. Sans lui, « personne n'a
+       réglé la sauvegarde » et « quelqu'un l'a réglée et elle ne marche pas » rendent le MÊME
+       `active:false` — donc la surveillance classe les deux « pas encore branchée » et
+       murmure une fois par jour. Ce dépôt a payé pour cette confusion le 19 septembre : la
+       sauvegarde hors site est restée morte une journée entière avec une configuration
+       parfaite. Réglée et inactive, c'est une PANNE ; jamais réglée, c'est un choix. */
+    return { active: actif, configuree: !!conf,
+      ageH: d && d.ok ? Math.round((Date.now() - d.ts) / 3600000) : null,
+      ok: d ? !!d.ok : null, instantaneEchecs: etat.instantaneEchecs || 0,
+      /* Un ENTIER : combien de nuits de suite la rétention n'a pas pu tourner. Zéro quand
+         elle tourne. Sans lui, le coffre grossit sans fin et personne ne l'apprend. */
+      elagageEchecs: etat.elagageEchecs || 0,
+      /* ⛔ L'ÂGE DE LA COPIE MENSUELLE, EN JOURS — et il est ici parce qu'une copie longue
+         durée qui s'arrête ne se voit PAR AUCUN AUTRE SIGNAL. La sauvegarde du jour continue
+         de réussir, `ageH` reste bon, `/health` reste vert, et on apprend six mois plus tard
+         que le dossier des deux ans est resté à février. Un nombre, jamais une clé ni un nom :
+         /health est publique. `null` = jamais faite, troisième état comme `configuree`. */
+      /* ⛔ TROIS ÉTATS, PAS DEUX — la MÊME confusion que `configuree` vingt lignes plus haut,
+         que ce fichier venait de corriger et qu'on a aussitôt refaite un cran plus bas. Un
+         `"mensuel": false` dans `config.json` rendait `mensuelJ: null`, donc `surveillance.js`
+         criait « aucune copie MENSUELLE n'a jamais été déposée » tous les jours à 9 h UTC, pour
+         toujours, sur une plateforme réglée exactement comme on l'a voulu. Une alarme qui crie
+         faux se fait ignorer, puis désactiver : c'est comme ça qu'on perd un garde-fou.
+         `false` = éteint par décision · `null` = allumé et jamais faite · un nombre = l'âge. */
+      mensuelActif: MENSUEL,
+      mensuelJ: !MENSUEL ? false
+        : (etat.mensuel && etat.mensuel.ok ? Math.round((Date.now() - etat.mensuel.ts) / 86400000) : null) };
   }
 
   if (app && garde) {
-    app.get('/api/monitor/sauvegarde/etat', garde, (req, res) => res.json({ ok: true, active: actif, garder: GARDER, heureUTC: HEURE, derniere: etat.derniere, histo: (etat.histo || []).slice(0, 20) }));
+    app.get('/api/monitor/sauvegarde/etat', garde, (req, res) => res.json({ ok: true, active: actif, garder: GARDER, heureUTC: HEURE,
+      derniere: etat.derniere, histo: (etat.histo || []).slice(0, 20),
+      /* ⛔ LA TOUR DOIT POUVOIR DIRE OÙ CHERCHER LA COPIE DU MOIS, ET CE QU'IL FAUT AVEC.
+         Un écran qui annonce « copie mensuelle : OK » sans dire que DEUX clés sont nécessaires
+         pour l'ouvrir ailleurs prépare exactement la mauvaise surprise : celle du jour où on en
+         a besoin. La phrase est donc servie par le serveur, pas réécrite dans la page. */
+      mensuel: MENSUEL ? Object.assign({ actif: true, prefixe: PREFIXE_MENSUEL, garder: MENSUEL_GARDER,
+        clesNecessaires: ['sauvegarde.cle (dans config.json)', 'la clé maître /etc/teamop/kek — PAS dans l\'archive'] },
+        etat.mensuel || { mois: null, ok: null }) : { actif: false } }));
     /* ⛔ LE try/catch N'EST PAS DÉCORATIF. Ce serveur n'a ni `unhandledRejection` ni middleware
        d'erreur : un rejet non traité dans une route `async` ARRÊTE LE PROCESSUS sous Node 22.
        `lancer()` avale tout aujourd'hui — mais faire dépendre la survie de l'API de la
@@ -361,4 +657,4 @@ function monterSauvegarde(app, deps) {
   return { actif, lancer, sante, etat: () => etat, _minuterie: () => minuterie };
 }
 
-module.exports = { monterSauvegarde, fabriquer, relire, aElaguer, cleDepuis, nomArchive, ENTETE, TAILLE_IV, TAILLE_TAG };
+module.exports = { monterSauvegarde, fabriquer, relire, verifierInstantane, aElaguer, cleDepuis, nomArchive, ENTETE, TAILLE_IV, TAILLE_TAG };

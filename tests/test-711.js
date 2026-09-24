@@ -63,7 +63,21 @@ v('⛔ trois appels à effacerEntreprise, pas moins', (SRV.match(/pieces\.efface
 v('effacerEntreprise rend un NOMBRE, jamais true', /return n;\s*\n\s*\},/.test(MOD), true);
 
 console.log('\n── 711 · /health reste agrégé (il est public) ──');
-{ const i = SRV.indexOf("app.get('/health'"); const bloc = SRV.slice(i, i + 3000);
+/* ⛔⛔ LA FENÊTRE ÉTAIT DE 3 000 CARACTÈRES, ET LE GESTIONNAIRE EN FAIT 7 210.
+   Mesuré le 21 septembre 2026, en ajoutant un champ à `/health` : `pieces.sante()` est à la
+   position 3 355, donc HORS de la fenêtre — le banc a crié sur un comportement parfaitement
+   juste. Un banc qui crie faux se fait ignorer, puis désactiver : c'est comme ça qu'on perd
+   un garde-fou, et ce dépôt l'a déjà écrit à propos du jeton court de `test-723`.
+   ⛔ ET LE PIRE N'EST PAS CELUI-LÀ. La seconde assertion est NÉGATIVE (« PAS par total() ») :
+   sur un bloc tronqué, elle passe au vert PARCE QUE le texte manque. Un `pieces.total()` écrit
+   à la position 5 000 aurait donc été déclaré absent — un faux vert sur la garde qui empêche
+   `/health`, route PUBLIQUE, de publier le poids exact des pièces de tous les clients.
+   Une assertion négative sur une fenêtre arbitraire ne prouve rien. On borne donc sur la FIN
+   RÉELLE du gestionnaire. */
+{ const i = SRV.indexOf("app.get('/health'");
+  const finBloc = SRV.indexOf('\napp.', i + 10);
+  const bloc = SRV.slice(i, finBloc > i ? finBloc : SRV.length);
+  v('⛔ la fenêtre couvre TOUT le gestionnaire, pas un bout', bloc.length > 3000 && finBloc > i, true);
   v('/health passe par sante(), pas par le total exact', bloc.indexOf('pieces.sante()') > 0, true);
   v('⛔ et surtout PAS par total() — il est publique', bloc.indexOf('pieces.total()') < 0, true);
   /* ⛔ `sante()` ne rend qu'un palier arrondi. Le poids exact des pièces est un journal de

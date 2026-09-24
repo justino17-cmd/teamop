@@ -146,6 +146,29 @@ const MAX_IP_SUIVIES = 20000;  // borne mémoire (voir plus bas)
    600/min laisse vingt appareils en pleine reprise (20 × 10 relances + 20 × 3 battements = 260)
    très en dessous, et reste une borne : /health est une réponse JSON sans lecture disque. */
 const PLAFOND_BATTEMENT = 600; // /health seule, par minute et par IP, hors budget global
+/* ⛔ LES PIÈCES JOINTES AUSSI, ET C'EST UN BLOQUANT DE PUBLICATION, PAS UN CONFORT. Depuis que
+   les photos sortent du document Firestore (étape 0), AFFICHER une photo coûte une requête
+   `POST /api/pieces/lire`, et en AJOUTER une coûte un dépôt — `intPhotoAdd` en fait un par
+   photo. Six interventions à cinq photos, c'est trente requêtes pour UNE personne, et tout le
+   bureau d'ELAN partage une seule IP publique.
+   ⛔ MESURÉ sur le vrai serveur : 200 `POST /api/pieces/lire` depuis une seule IP → premier 429
+   à la requête n° 121, et juste après `GET /api/espaces/etat` répond 429 lui aussi. Ce n'est
+   donc pas « les photos ne s'affichent plus » : c'est TOUTE l'API par terre pour ce bureau —
+   les bons de commande ne partent plus, l'assistant devis ne répond plus. Exactement la
+   spirale du 11 septembre, par une autre porte.
+   ⚠️ Un plafond RÉEL, jamais une exemption — même raisonnement que pour le socle. 900/min/IP
+   laisse dix personnes ouvrir trois interventions à dix photos dans la même minute (300) très
+   en dessous, et reste une borne : une pièce est un fichier sur disque, pas une réponse JSON. */
+const PLAFOND_PIECES = 900;    // /api/pieces/* seules, par minute et par IP, hors budget global
+/* ⛔ LE SOCLE A SON PROPRE COMPTEUR, ET IL EST RÉEL — jamais « exempté ». Un appareil en
+   synchro fait beaucoup plus de requêtes qu'un écran : 120/min/IP l'étranglerait, et toute une
+   équipe derrière la box du bureau partage une seule IP. Mais exempter `/api/op/*` ferait de
+   `/api/op/session` la SEULE route du serveur sans aucun plafond avant preuve — c'est-à-dire
+   une porte ouverte pour épuiser la machine. 1 200/min/IP est généreux et reste une borne.
+   ⚠️ C'est un plafond par IP, donc avant toute preuve. Le budget PAR ESPACE, lui, se compte
+   APRÈS la preuve, dans `op-socle.js` : compté avant, il deviendrait une arme de déni de
+   service — n'importe qui épuiserait le quota d'une entreprise en tapant son identifiant. */
+const PLAFOND_DONNEES = 1200;  // /api/op/* seules, par minute et par IP
 
 /* « espaces/(ouvrir|relance) » et non « espaces » tout court : /api/espaces/etat est appelé à
    chaque reprise d'onglet par une entreprise en attente de paiement, et le palier strict est
@@ -181,6 +204,35 @@ app.use((req, res, next) => {
     const bat = (compteurs.get('h:' + ip) || 0) + 1;
     compteurs.set('h:' + ip, bat);
     if (bat > PLAFOND_BATTEMENT) return tropDeRequetes(res);
+    return next();
+  }
+
+  /* Le socle compte à part, comme le battement : voir PLAFOND_DONNEES.
+     ⛔ MAIS SEULEMENT S'IL EST ALLUMÉ. Sans cette condition, `/api/op/*` sortait du budget
+     global de 120/min/IP DÈS AUJOURD'HUI, drapeau éteint : des chemins qui répondent 404
+     bénéficiaient d'un plafond dix fois plus large que le reste du serveur, en production,
+     pour rien. Un assouplissement qui ne sert personne ne doit pas exister. */
+  if (opSocle && opSocle.actif && req.path.startsWith('/api/op/')) {
+    const d = (compteurs.get('d:' + ip) || 0) + 1;
+    compteurs.set('d:' + ip, d);
+    if (d > PLAFOND_DONNEES) return tropDeRequetes(res);
+    return next();
+  }
+
+  /* Les pièces comptent à part, comme le battement et le socle — voir PLAFOND_PIECES.
+     ⛔ LES QUATRE CHEMINS QUI EXISTENT, PAS LE PRÉFIXE. La première version testait
+     `req.path.startsWith('/api/pieces/')` en promettant, dans son propre commentaire, que
+     « des chemins qui répondent 404 ne bénéficieraient pas d'un plafond plus large ». La
+     condition `pieces &&` ne couvrait que le cas où le module n'est PAS monté — c'est-à-dire
+     jamais en production. `GET /api/pieces/nimporte-quoi` en boucle passait donc dans le seau
+     à 900 au lieu du budget global à 120, pour un 404. Un commentaire n'est pas une garde.
+     ⚠️ Et `/i`, parce qu'Express route SANS tenir compte de la casse : `/api/PIECES/lire`
+     atteint le vrai gestionnaire. Sans le drapeau, il était compté dans le mauvais seau — une
+     faute de frappe suffisait à changer de plafond. */
+  if (pieces && /^\/api\/pieces\/(deposer|lire|supprimer|etat)\/?$/i.test(req.path)) {
+    const p2 = (compteurs.get('p:' + ip) || 0) + 1;
+    compteurs.set('p:' + ip, p2);
+    if (p2 > PLAFOND_PIECES) return tropDeRequetes(res);
     return next();
   }
 
@@ -319,7 +371,27 @@ app.post('/api/checkcode', (req, res) => {
 });
 
 let lastRefus = null;   // dernier refus d'envoi d'e-mail (diagnostic) : { ts, raison }
-app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: true, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
+/* ⛔ UN REFUS SMTP NE VOYAGE PAS EN CLAIR SUR `/health`. `lastRefus` est publié par `/health`,
+   qui est PUBLIQUE et sans clé — et un refus de serveur de messagerie porte presque toujours
+   l'adresse concernée : « 550 5.1.1 <client@exemple.fr>: Recipient address rejected ». Deux
+   points d'appel y mettaient `e.message` tel quel, DEUX LIGNES sous le commentaire qui
+   l'interdit (« ni identifiant, ni slug, ni adresse — un motif générique »). On rend donc le
+   CODE du refus, qui suffit au dépannage (auth, connexion, destinataire, quota) et ne désigne
+   personne. Le message entier reste dans la réponse HTTP à l'appelant — qui, lui, est déjà
+   l'expéditeur — et dans le journal du VPS, qui n'est pas public.
+   ⚠️ Relevé le 19 septembre 2026, et il est DÉPLOYÉ : c'est le seul défaut de cette série qui
+   touche une exposition réelle aujourd'hui. */
+function refusSmtp(e) {
+  const code = String((e && (e.code || e.responseCode)) || '').slice(0, 24).replace(/[^A-Za-z0-9_-]/g, '');
+  const m = String((e && e.message) || '');
+  const famille = /auth/i.test(m) ? 'authentification'
+    : /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|ECONNRESET/i.test(code + m) ? 'connexion'
+    : /recipient|mailbox|user unknown|550|553/i.test(m) ? 'destinataire refusé'
+    : /quota|rate|too many|421|450/i.test(m) ? 'quota du serveur de messagerie'
+    : 'autre';
+  return 'SMTP: ' + famille + (code ? ' (' + code + ')' : '');
+}
+app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
      la suite se déciderait à l'aveugle : /api/mail/cles est protégée par une clé de
@@ -331,6 +403,30 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      fermeture a pris une vraie entreprise au passage. S'il monte, l'interrupteur
      « mailPreuve: false » rouvre le temps de comprendre (voir cleEquipeExige). */
   mailRefus: { n: mailRefus.n, parMotif: mailRefus.parMotif, ts: mailRefus.ts },
+  /* Le socle : allumé ou non, combien de bases, la clé maître est-elle là, combien de flux
+     tenus. ⛔ AUCUN NOM D'ENTREPRISE, AUCUN POIDS — /health est publique, et y nommer un
+     espace dirait au monde quelles entreprises existent. Et `routesDoublons` : voir le
+     contrôle au démarrage, plus bas. */
+  /* ⛔ TROIS ÉTATS, PAS DEUX. `{actif:false}` seul ne distingue pas « éteint par décision » de
+     « cassé au démarrage » — et ce dépôt a payé DEUX fois pour cette confusion précise
+     (`_mailboxes`, `syncDecrypt`). Un socle qui refuse de se monter doit se voir. */
+  socle: (opSocle && opSocle.sante) ? opSocle.sante() : (opSocle ? { actif: false } : { actif: false, erreur: 'montage' }),
+  /* Le portail client : voir `etatPortail` plus bas pour les trois états et pourquoi ce
+     n'est PAS un nombre. `surveillance.js` alarme sur `erreur`, jamais sur `actif:false`
+     seul — une alarme qui sonne sur un état voulu devient du bruit, puis une alarme qu'on
+     ignore, puis une alarme qui ne sert plus à rien le jour où elle dit vrai. */
+  portail: etatPortail,
+  /* L'horloge des 24 mois : tourne-t-elle, son dernier balayage a-t-il réussi, y a-t-il AU
+     MOINS une entreprise en préavis, AU MOINS une échue. ⛔⛔ DES BOOLÉENS, PLUS AUCUN NOMBRE
+     (24 septembre 2026, relevé par `gardien`) : les comptes — combien ne paient pas, combien de
+     prospects — étaient un tableau de bord commercial publié à qui passe. Voir `santePublique`
+     dans `conservation.js`. Combien et qui : `/api/monitor/conservation`, gardée. */
+  conservation: conservation ? Object.assign({ actif: true }, conservation.santePublique()) : etatConservation,
+  /* Les deux registres dont la perte ne se voit pas : l'annuaire des entreprises et la liste des
+     fermetures. `false` = le fichier existe mais n'a pas pu être lu — il n'est plus réécrit, et la
+     surveillance crie. Deux booléens : rien sur personne. */
+  registres: { espaces: !espacesIllisible, fermes: !fermesIllisible, promos: !promosIllisible },
+  routesDoublons: routesDoublons.length,
   /* Étape 0 du socle : où en est le stockage des pièces jointes.
      ⛔ UN POURCENTAGE ARRONDI À 5 %, PAS LE NOMBRE D'OCTETS, et jamais par espace. /health est
      PUBLIQUE : le poids exact des pièces est un journal de l'activité de terrain de tous les
@@ -347,7 +443,14 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      tous les clients réunis, donc un journal de leur activité, exactement ce que le compteur
      des pièces jointes arrondit déjà pour cette raison. Ni le nom du coffre : /health est
      publique. Le détail est servi à la Tour, qui exige le patron. */
-  sauvegarde: sauvegarde ? sauvegarde.sante() : { active: false },
+  /* ⛔ TROIS ÉTATS, PAS DEUX — la même règle que le socle vingt lignes plus haut, qui n'avait
+     pas été appliquée ICI, c'est-à-dire précisément là où la panne a eu lieu. Le 19 septembre,
+     une zone morte temporelle a laissé `sauvegarde` à `null` avec une configuration PARFAITE :
+     `/health` rendait `{active:false}`, et la surveillance a classé ça « pas encore branchée »
+     — donc un murmure une fois par jour, au lieu d'une alarme. `configuree:true` avec
+     `active:false` veut dire : quelqu'un a réglé la sauvegarde et elle NE MARCHE PAS. */
+  sauvegarde: sauvegarde ? sauvegarde.sante()
+    : { active: false, configuree: !!(config.sauvegarde), erreur: config.sauvegarde ? 'montage' : '' },
   /* ⛔ L'ÉCHÉANCE DU JETON GITHUB, PARCE QUE RIEN NE LA SURVEILLAIT. Le jeton du VPS expire à
      date fixe ; le jour venu, « proposer un correctif » depuis la Tour tombe en 401 et personne
      n'est prévenu — on cherche, on accuse le réseau, on finit par retrouver la date dans une
@@ -415,7 +518,19 @@ app.post('/api/stripe/checkout', async (req, res) => {
     p.append('allow_promotion_codes', 'true');
     p.append('success_url', 'https://teamop.fr/merci.html');
     p.append('cancel_url', 'https://teamop.fr/recap-abonnement.html');
-    if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) p.append('client_reference_id', ref);
+    /* ⛔ LA RÉFÉRENCE DOIT VOYAGER JUSQU'À L'ABONNEMENT, PAS S'ARRÊTER À LA SESSION.
+       `client_reference_id` vit sur la SESSION de paiement ; `espacePaye()`, lui, lit la liste
+       des ABONNEMENTS — qui ne la portent pas. Le rattachement se faisait donc sur la seule
+       ÉGALITÉ EXACTE de l'adresse e-mail : l'entreprise paie, la comptable saisit l'adresse de
+       facturation sur la page Stripe, et comme ce n'est pas celle avec laquelle l'espace a été
+       créé, l'abonnement n'est JAMAIS rattaché. Le client a payé et son application reste
+       bloquée — sans que rien, nulle part, ne dise pourquoi.
+       `subscription_data[metadata][espace]` grave la référence sur l'abonnement, où elle
+       survit au renouvellement et à tout changement d'adresse. */
+    if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
+      p.append('client_reference_id', ref);
+      p.append('subscription_data[metadata][espace]', ref);
+    }
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.url) return res.status(502).json({ error: (d.error && d.error.message) || 'stripe erreur' });
@@ -463,7 +578,7 @@ app.post('/api/bug', (req, res) => {
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
-  if (entFermes.espaces.includes(team)) return res.json({ ok: true, ferme: true });
+  if (espaceFerme(team)) return res.json({ ok: true, ferme: true });
   const q = bugQuota.get(team) || { count: 0, reset: Date.now() + 3600000 };
   if (Date.now() > q.reset) { q.count = 0; q.reset = Date.now() + 3600000; }
   if (q.count >= 20) return res.json({ ok: true, muted: true });
@@ -785,7 +900,7 @@ async function importHistorique(b, limit = 60) {
           /* Même course qu'en relève : releveBoite() appelle importHistorique AVANT
              releveUneBoite, et une passe déjà lancée réécrirait ~60 corps de messages d'un
              espace qu'on vient de supprimer. entFermes est écrit en premier : on le lit. */
-          if (b.teamId && entFermes.espaces.includes(b.teamId)) { if (mid) seenMids.add(mid); continue; }
+          if (b.teamId && espaceFerme(b.teamId)) { if (mid) seenMids.add(mid); continue; }
           try { fs.appendFileSync(REPLIES_PATH, JSON.stringify(entry) + '\n'); n++; } catch (_) {}
           if (mid) seenMids.add(mid);
         }
@@ -847,7 +962,7 @@ async function releveUneBoite(cfg, tag) {   // cfg = {host/port/user/pass} ; tag
            la purge. Pire : purgeJournal lit-filtre-renomme, donc les lignes ajoutées entre-temps par
            une AUTRE entreprise étaient perdues. entFermes est écrit en PREMIER par la suppression :
            le lire ici referme la fenêtre de lui-même. */
-        const ferme = entry.teamId && entFermes.espaces.includes(entry.teamId);
+        const ferme = entry.teamId && espaceFerme(entry.teamId);
         if (!ferme) { try { fs.appendFileSync(REPLIES_PATH, JSON.stringify(entry) + '\n'); } catch (_) {} }
         if (mid) seenMids.add(mid);
         /* On marque quand même le message comme lu, y compris pour un espace fermé : sinon la
@@ -900,7 +1015,7 @@ app.post('/api/subscribe', (req, res) => {
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
-  if (entFermes.espaces.includes(String(teamId).slice(0, 80))) return res.json({ ok: true, ferme: true });
+  if (espaceFerme(String(teamId).slice(0, 80))) return res.json({ ok: true, ferme: true });
   subs[sub.endpoint] = { sub, teamId: String(teamId).slice(0, 80), userId: String(userId || '').slice(0, 80), userName: String(userName || '').slice(0, 80), ts: Date.now() };
   saveSubs();
   res.json({ ok: true });
@@ -1054,7 +1169,7 @@ app.post('/api/sendmail', async (req, res) => {
     }
     if (meta && (meta.bonNum || meta.track)) rememberSent(teamId, meta.bonNum || '', to);   // pour rattacher la future réponse
     res.json({ ok: true });
-  } catch (e) { lastRefus = { ts: Date.now(), raison: 'SMTP: ' + String(e.message || e).slice(0, 200) }; res.status(500).json({ error: e.message }); }
+  } catch (e) { lastRefus = { ts: Date.now(), raison: refusSmtp(e) }; res.status(500).json({ error: e.message }); }
 });
 
 // Accès d'un compte créé par l'entreprise : identifiant + mot de passe provisoire + lien de connexion
@@ -1129,7 +1244,7 @@ app.post('/api/compte/identifiants', async (req, res) => {
         ],
         boutonTxt: lienEspace ? 'Ouvrir mon espace' : 'Ouvrir OP GESTION', boutonUrl: url }) });
     res.json({ ok: true, lien: url, entreprise: ent });
-  } catch (e) { lastRefus = { ts: Date.now(), raison: 'SMTP: ' + String(e.message || e).slice(0, 200) }; res.status(500).json({ error: e.message }); }
+  } catch (e) { lastRefus = { ts: Date.now(), raison: refusSmtp(e) }; res.status(500).json({ error: e.message }); }
 });
 
 /* ── Gabarit d'e-mail TEAM OP (modèle « Suivi ») : logo, pastille d'état, frise,
@@ -1757,7 +1872,19 @@ app.post('/api/beta/etat', (req, res) => {
    le serveur lui rend le code d'espace, puis identifiant + mot de passe. */
 const ESPACES_PATH = path.join(DATA_DIR, 'espaces.json');
 let espacesReg = {};
-try { espacesReg = JSON.parse(fs.readFileSync(ESPACES_PATH, 'utf8')); } catch (e) {}
+/* ⛔⛔ UN ANNUAIRE ILLISIBLE N'EST PAS UN ANNUAIRE VIDE (24 septembre 2026, relevé par `gardien`).
+   La lecture se taisait : un `espaces.json` abîmé (disque, restauration ratée, main humaine)
+   donnait `{}` en mémoire — et DEUX choses en découlaient, toutes deux définitives :
+   · la PREMIÈRE écriture (une inscription, un lien régénéré) remplaçait le fichier abîmé, peut-être
+     récupérable, par un annuaire d'une entrée : toutes les entreprises perdues pour de bon ;
+   · `espaceEstSuspendu` exige l'annuaire (une suspendue sortie de l'annuaire est une fermée) :
+     toutes les suspendues auraient été traitées en FERMÉES, et leurs appareils vidés.
+   On le DIT donc (journal, `/health.registres.espaces`, la surveillance crie), on n'écrit plus
+   par-dessus (`espacesEcrire` refuse), et la règle « hors annuaire » ne s'applique pas. Un
+   fichier ABSENT, lui, est une installation neuve : rien à protéger. */
+let espacesIllisible = false;
+try { espacesReg = JSON.parse(fs.readFileSync(ESPACES_PATH, 'utf8')); }
+catch (e) { if (e && e.code !== 'ENOENT') { espacesIllisible = true; console.error('⛔ espaces.json ILLISIBLE — annuaire vide en mémoire, AUCUNE écriture ne le remplacera tant qu\'il n\'est pas réparé :', e.message); } }
 const espSlug = (s) => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
 /* \u2500\u2500 Le code d'espace ne porte PLUS de mot de passe en clair \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
    Le code est du base64, pas du chiffrement : tout ce qu'il contient est lisible par qui
@@ -1823,7 +1950,13 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
   espacesReg[slug] = { nom, code, t, ts: Date.now(), par: req.tourUser.nom, origine, email: monStr((req.body || {}).email, 120).toLowerCase() || prev.email || '',
     opMessages: prev.opMessages,
     formule: prev.formule, quantite: prev.quantite, formulePar: prev.formulePar, formuleTs: prev.formuleTs };
-  espacesEcrire();
+  /* ⛔ ÉCRIT, OU ON LE DIT — et on défait l'entrée en mémoire. Répondre `ok` sur une écriture
+     refusée (disque plein, annuaire illisible au démarrage) faisait croire à la Tour un espace
+     créé qui disparaissait au redémarrage suivant. */
+  if (!espacesEcrire()) {
+    if (prev && Object.keys(prev).length) espacesReg[slug] = prev; else delete espacesReg[slug];
+    return res.status(500).json({ error: 'L\'annuaire n\'a pas pu être enregistré — rien n\'a été créé. Vérifie le serveur (journal : ILLISIBLE ?) avant de recommencer.' });
+  }
   /* Le premier compte, pour que l'ADRESSE suffise dès maintenant (voir annuaireSemer). Sans
      await : ~100 ms de PBKDF2 que personne n'attend, et un échec ne doit pas faire rater
      l'inscription — il se dit au journal. */
@@ -1909,7 +2042,20 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
 });
 // payé ? — le réglage manuel du patron d'abord ; sinon trois portes : formule gratuite, code promo actif, abonnement Stripe actif
 const espStripeCache = { ts: 0, data: null };
-async function espacePaye(e) {
+async function espacePaye(e, opts) {
+  /* ⛔⛔ `lecture` : RÉPONDRE SANS RIEN ACTIVER (24 septembre 2026, relevé par `gardien`).
+     Le rattrapage ci-dessous ÉCRIT (compteur du code, `promos-usages.json`) et ENVOIE un
+     courriel au client (« ton code est actif jusqu'au … »). C'est juste quand c'est
+     l'APPLICATION de l'entreprise qui demande son état : elle se sert du service. Ça ne l'est
+     pas pour une lecture de fond — l'horloge de conservation balaie TOUTES les entreprises au
+     démarrage puis chaque heure, la Tour les liste toutes d'un coup : chaque code en attente
+     se serait activé tout seul, sans que le client ait rien ouvert, une place de
+     `maxUtilisations` consommée et ses mois qui partent. « Ouvrir un écran n'écrit pas »,
+     appliqué au serveur.
+     En lecture, un code VALABLE en attente compte comme payé (« en cas de doute, on dit ça
+     paie » : l'horloge de suppression ne démarre pas sur un client qui a un code à activer),
+     et rien n'est écrit ni envoyé. */
+  const lecture = !!(opts && opts.lecture);
   if (!e || !e.formule) return { paye: false, motif: 'aucune formule' };
   if (e.aboStatut) {   // réglé à la main dans la Tour
     const auj = new Date().toISOString().slice(0, 10);
@@ -1925,15 +2071,25 @@ async function espacePaye(e) {
       const c = String(e.codePromo).toUpperCase();
       const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c);
       const u0 = promoUsages[c] || { n: 0, equipes: {} };
-      if (p && !u0.equipes[e.t] && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
+      /* ⛔ `promoServiA`, pas `u0.equipes[e.t]` : après « repartir à neuf », l'entreprise a un
+         NOUVEL identifiant, et un code qu'elle avait déjà servi redevenait neuf ici — le
+         rattrapage l'activait une seconde fois, avec une période neuve (voir `promoPresente`).
+         Et « un seul code à la fois », comme les quatre autres chemins : celui-ci ne le faisait pas. */
+      if (p && !promosIllisible && !promoServiA(c, e.t, e.slug) && !promoAutreActif(c, e.t, e.slug) && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
+        if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — il s\'active au prochain lancement de l\'application', promoCode: c, enAttente: true };
         const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(p.mois) || 1));
-        u0.n++; u0.equipes[e.t] = { date: new Date().toISOString().slice(0, 10), finLe: dF.toISOString().slice(0, 10) };
+        u0.n++; u0.equipes[e.t] = promoEntree(dF.toISOString().slice(0, 10), e.t, e.slug);
         promoUsages[c] = u0; savePromoUsages();
         console.log('code promo', c, 'activé en rattrapage pour', e.t);
         mailPromoActive(e.t, c, dF.toISOString().slice(0, 10), ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium');
       }
     }
   } catch (err) {}
+  /* Registre des codes ILLISIBLE : on ne peut plus savoir si la période de cet espace court encore.
+     « En cas de doute, on dit ça paie » — pour un espace qui porte un code (relecture de `gardien`) :
+     sinon l'application grisait une entreprise en pleine période offerte, et l'horloge de
+     conservation la datait. Rien n'est écrit ; `/health` et la surveillance crient déjà. */
+  if (promosIllisible && e.codePromo) return { paye: true, motif: 'code promo ' + String(e.codePromo).toUpperCase() + ' — registre des codes illisible, dans le doute on ne coupe pas', promoCode: String(e.codePromo).toUpperCase(), doute: true };
   try {   // code promo : compté par espace (teamId = identifiant de l'espace)
     for (const [code, u] of Object.entries(promoUsages || {})) {
       const eq = u && u.equipes && u.equipes[e.t];
@@ -1941,12 +2097,48 @@ async function espacePaye(e) {
     }
   } catch (err) {}
   const sk = config.stripe && config.stripe.secretKey;
-  if (sk && e.email) {
+  /* ⚠️ PLUS `&& e.email`. Le rattachement par RÉFÉRENCE n'a besoin d'aucune adresse : exiger
+     un e-mail ici aurait laissé sans paiement reconnu, justement, les espaces créés sans
+     adresse — ceux de la Tour. Le repli par e-mail se garde tout seul plus bas. */
+  if (sk) {
     try {
       if (Date.now() - espStripeCache.ts > 5 * 60000 || !espStripeCache.data) { espStripeCache.data = await stripeAbosBruts(sk); espStripeCache.ts = Date.now(); }
-      const abo = (espStripeCache.data || []).find(sb => ['active', 'trialing', 'past_due'].includes(sb.status) &&
-        sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').toLowerCase() === e.email);
-      if (abo) return { paye: true, motif: 'abonnement Stripe (' + abo.status + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
+      /* ⛔ DEUX RATTACHEMENTS, DANS CET ORDRE, ET LE PREMIER EST LE SEUL FIABLE.
+         1. LA RÉFÉRENCE D'ESPACE, gravée sur l'abonnement à la création de la page de paiement
+            (`subscription_data[metadata][espace]`). Elle ne dépend d'aucune adresse et survit
+            au renouvellement.
+         2. L'ADRESSE E-MAIL, gardée en REPLI — et c'est nécessaire : tous les abonnements
+            souscrits AVANT ce correctif n'ont aucune métadonnée. La retirer couperait des
+            clients qui paient. Elle reste ce qu'elle a toujours été, une correspondance
+            fragile : l'entreprise paie, la comptable saisit l'adresse de facturation de la
+            société, et comme ce n'est pas celle avec laquelle l'espace a été créé, rien ne se
+            rattache. Le client a payé et son application reste bloquée, sans un mot.
+         ⚠️ On compare le slug ET le `t` : la référence envoyée par le site peut être l'un ou
+         l'autre selon la page, et se tromper ici coûte un client qui a payé. */
+      const refs = [String(e.slug || '').toLowerCase(), String(e.t || '').toLowerCase()].filter(Boolean);
+      const vivant = sb => ['active', 'trialing', 'past_due'].includes(sb.status);
+      let abo = refs.length ? (espStripeCache.data || []).find(sb => vivant(sb)
+        && sb.metadata && refs.includes(String(sb.metadata.espace || '').toLowerCase())) : null;
+      let parQuoi = 'référence d\'espace';
+      /* ⛔ LE REPLI NE SE TENTE QUE S'IL Y A UNE ADRESSE DES DEUX CÔTÉS, ET C'EST TOUT
+         L'INTÉRÊT DE CETTE LIGNE. `String(null || '').toLowerCase()` vaut `''` : un espace
+         sans adresse — c'est-à-dire TOUT espace ouvert depuis la Tour, qui écrit
+         `email: … || ''` — se rattachait alors au premier abonnement vivant dont le client
+         Stripe n'a pas d'adresse (client effacé, paiement par lien, saisie sans e-mail).
+         Mesuré : un espace à `email:''` rendait `{paye:true, par adresse e-mail}` contre
+         l'abonnement d'une AUTRE entreprise. Deux clients, un seul paiement — et celui qui
+         paie ne le sait pas.
+         On normalise aussi les deux côtés : l'adresse de l'espace n'est nulle part mise en
+         minuscules à l'écriture, et une majuscule sur la page Stripe suffisait à bloquer un
+         client qui avait pourtant payé. */
+      const mel = String(e.email || '').trim().toLowerCase();
+      if (!abo && mel) {
+        abo = (espStripeCache.data || []).find(sb => vivant(sb)
+          && sb.customer && typeof sb.customer === 'object'
+          && String(sb.customer.email || '').trim().toLowerCase() === mel);
+        parQuoi = 'adresse e-mail';
+      }
+      if (abo) return { paye: true, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
     } catch (err) { console.error('espacePaye stripe:', err.message); }
   }
   return { paye: false, motif: 'aucun paiement ni code promo' };
@@ -1956,7 +2148,13 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
   const sortie = [];
   for (const [slug, e] of Object.entries(espacesReg)) {
     let p = { paye: false, motif: '' };
-    try { p = await espacePaye(e); } catch (err) {}
+    /* ⛔ `Object.assign({ slug }, e)` ET PAS `e` : l'entrée brute du registre NE PORTE PAS de
+       champ `slug` (la ligne qui l'écrit ne le pose pas), alors qu'`espacePaye()` rattache un
+       abonnement Stripe par `[e.slug, e.t]`. Seul `/api/espaces/etat` passait une entrée
+       enrichie, via `espaceParT()` : la Tour, elle, rattachait par le `t` seul. Le jour où la
+       référence gravée vaut le SLUG, l'application dirait « payé » et la Tour « impayé »,
+       sur la même entreprise, au même instant — et on chercherait du côté de Stripe. */
+    try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
     sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', quantite: e.quantite || 1,
       paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
       // qui a ouvert l'espace et quand : la Tour en a besoin pour lister les accès publics
@@ -1973,7 +2171,7 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
       /* Un accès coupé d'ici se rouvre ; une entreprise fermée définitivement, non. Les
          confondre à l'écran ferait cliquer « Rouvrir » sur une fermeture, et croire à un bogue
          quand le serveur refuse. */
-      ferme: entFermes.espaces.includes(espaceT(e)) && !(entFermes.suspendus || []).includes(espaceT(e)),
+      ferme: espaceFerme(espaceT(e)),
       /* Repli pour les entrées d'avant « origine » : une adresse connue du fichier clients
          est une entreprise inscrite sur le site ; les autres sont des accès ouverts d'ici.
          Ce n'est qu'un repli — dès qu'un espace est réenregistré, le champ fait foi. */
@@ -2000,7 +2198,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
   const e = espacesReg[slug];
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
-  const p = await espacePaye(e);
+  const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
   res.json({ ok: true, formule: e.formule || '', quantite: e.quantite || 1, email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
 });
 // ── Activité par onglet (anonyme : noms d'écrans + compteurs, par espace) ──
@@ -2015,7 +2213,7 @@ app.post('/api/usage', (req, res) => {
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
-  if (entFermes.espaces.includes(t)) return res.json({ ok: true, ferme: true });
+  if (espaceFerme(t)) return res.json({ ok: true, ferme: true });
   const vues = (b.vues && typeof b.vues === 'object' && !Array.isArray(b.vues)) ? b.vues : {};
   if (Object.keys(usageData).length >= 3000 && !usageData[t]) return res.json({ ok: true });
   const u = usageData[t] = usageData[t] || { vues: {}, total: 0, dernier: 0, version: '' };
@@ -2176,7 +2374,7 @@ app.post('/api/connexions', (req, res) => {
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
-  if (entFermes.espaces.includes(t)) return res.json({ ok: true, ferme: true });
+  if (espaceFerme(t)) return res.json({ ok: true, ferme: true });
   if (Object.keys(cnxData).length >= 3000 && !cnxData[t]) return res.json({ ok: true });
   const ev = { ts: Date.now(), ev: ['connexion', 'echec', 'session', 'deconnexion', 'bloque', 'refus'].includes(b.ev) ? b.ev : 'connexion',
     login: monStr(b.login, 40), nom: monStr(b.nom, 60), role: monStr(b.role, 16), version: monStr(b.version, 12), app: monStr(b.app, 12) || 'gestion',
@@ -2315,12 +2513,22 @@ function ordreMdpAttente(t, login) { const lim = Date.now() - ORDRE_MDP_VIE;
 function ordresSave() { try { const tmp = ORDRES_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(ordresData)); fs.renameSync(tmp, ORDRES_PATH); return true; } catch (e) { console.error('ordres.json non écrit :', e.message); return false; } }
 function ordreAttente(t, login) { return (ordresData[t] || []).some(o => estSuppr(o) && o.login === login && !o.fait && o.banni !== false); }
 function ordreFait(t, login) { return (ordresData[t] || []).some(o => estSuppr(o) && o.login === login && o.fait && o.banni !== false); }
-/* La clé d'équipe, comme pour l'annuaire : kh = sha256 de la clé. null = espace inconnu, false = mauvaise clé. */
+/* La clé d'équipe, comme pour l'annuaire : kh = sha256 de la clé. null = espace inconnu, false = mauvaise clé.
+   ⛔ ELLE DÉLÈGUE, ELLE NE COMPARE PLUS ELLE-MÊME. Le serveur portait DEUX implémentations de
+   la même preuve — celle-ci en `!==`, `cleEquipeVerdict()` en `crypto.timingSafeEqual()` — et
+   elles avaient DÉJÀ divergé : l'une acceptait un kh en hexadécimal majuscule, l'autre non.
+   C'est la leçon des quatre portes de `fbRevoquerEquipe`, appliquée avant d'en ouvrir une
+   cinquième : deux contrôles de sécurité qui disent la même chose finissent toujours par ne
+   plus la dire pareil, et c'est celui qu'on a oublié de corriger qui décide. Le socle
+   (`/api/op/session`) s'appuie sur `sauvRefus`, donc sur cette fonction : on unifie AVANT d'y
+   brancher quoi que ce soit, pas après.
+   ⚠️ Le contrat des trois appelants ne bouge pas d'un iota — `null` UNIQUEMENT quand l'espace
+   ou son code manquent (404), `false` pour tout le reste (403), code illisible compris. C'est
+   ce que promet le commentaire de `cleEstPublique` juste en dessous, et c'est ce qui la rend
+   sûre : on ne change pas la sémantique en même temps qu'on unifie la comparaison. */
 function espaceCleOk(t, kh) {
   const e = espaceParT(t); if (!e || !e.code) return null;
-  let cle = ''; try { cle = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).k || ''); } catch (err) {}
-  if (!cle || !/^[0-9a-f]{64}$/.test(String(kh || '')) || crypto.createHash('sha256').update(cle).digest('hex') !== kh) return false;
-  return true;
+  return cleEquipeVerdict(t, kh) === 'valide';
 }
 /* ⛔ LA CLÉ ÉCRITE EN CLAIR DANS app.html. La connaître ici n'ajoute AUCUN secret — c'est
    justement le problème qu'elle pose. Elle ne sert qu'à répondre à une question : cet espace
@@ -2637,7 +2845,7 @@ let sauvQuota = new Map();
    une clé fausse. */
 function sauvRefus(t, kh, quoi) {
   if (ESPACES_INTOUCHABLES.includes(t)) return { code: 403, error: 'pas de ' + (quoi || 'copie') + ' pour l\'espace de repli' };
-  if (entFermes.espaces.includes(t)) return { code: 403, error: 'espace fermé' };
+  if (espaceFerme(t)) return { code: 403, error: 'espace fermé' };
   const ok = espaceCleOk(t, kh); if (ok === null) return { code: 404, error: 'espace inconnu' }; if (!ok) return { code: 403, error: 'clé d\'équipe incorrecte' };
   return null;
 }
@@ -2660,6 +2868,56 @@ function sauvRefus(t, kh, quoi) {
    Deux temps, le même mécanisme que la suppression d'un compte depuis la Tour : sans `code`
    on envoie, avec `code` on vérifie. Cinq essais, dix minutes. */
 const cleCodes = new Map();   // 't' -> { code, exp, tries }
+
+/* ══ LE CODE À SIX CHIFFRES, UNE SEULE FOIS ════════════════════════════════════════════════
+ * ⛔ FACTORISÉ LE 20 SEPTEMBRE 2026, ET C'EST LA CONDITION QU'`op-socle.js` S'ÉTAIT POSÉE À
+ * LUI-MÊME. Son en-tête portait depuis l'étape 4 : « `POST /api/monitor/op/revenir` →
+ * volontairement absent tant que `cleCodeExiger` n'est pas factorisé. C'est la seule route qui
+ * ÉCRIVE dans la base d'un client depuis la Tour, et le plan exige le code à six chiffres
+ * envoyé à l'adresse de l'entreprise — par la fonction existante, pas par une copie. » La
+ * copie était le vrai danger : deux gardes qui se ressemblent finissent par diverger, et c'est
+ * toujours la moins sévère qui garde le chemin le plus dangereux.
+ *
+ * ⛔ `cleCodes` RESTE LA SEULE RÉSERVE. Un second `Map` pour le retour voudrait dire deux
+ * expirations, deux compteurs d'essais, deux ménages — donc, un jour, un code qui n'expire
+ * pas quelque part. Les usages se distinguent par un PRÉFIXE de clé, jamais par une réserve
+ * de plus.
+ *
+ * `demander()` envoie, `verifier()` tranche. Les deux rendent `{code, error}` plutôt que de
+ * répondre elles-mêmes : la route décide du verbe HTTP, la garde décide du verdict. */
+function cleCodeMenage() {
+  if (cleCodes.size > 500) for (const [k, v] of cleCodes) if (Date.now() > v.exp) cleCodes.delete(k);
+}
+/* `garde` est ce que le code EMPORTE avec lui : les nombres exacts sur lesquels la personne
+   donne son accord. `cleCodeVerifier` les rend, pour qu'on puisse vérifier que le monde n'a pas
+   changé entre l'envoi et l'usage. Sans ça, l'appelant ne peut que recomparer l'instant présent
+   à lui-même — ce qui ne compare rien. */
+async function cleCodeDemander(sujet, dest, mail, garde) {
+  cleCodeMenage();
+  const code = String(crypto.randomInt(100000, 1000000));
+  /* ⛔ JAMAIS LE CODE AU JOURNAL. `trace` nomme le geste et l'espace tronqué, rien d'autre —
+     `journalctl` se relit à plusieurs et se copie-colle. */
+  await mailerEnvoi(Object.assign({ from: config.smtp.from || config.smtp.user, to: dest, confidentiel: true }, mail(code)));
+  /* ⛔ ON POSE LE CODE APRÈS L'ENVOI RÉUSSI, PAS AVANT. Posé avant, un SMTP capricieux détruisait
+     le code PRÉCÉDENT — peut-être déjà reçu et parfaitement valable — pour le remplacer par un
+     code que personne n'a jamais vu, vivant dix minutes. Un double-clic sur « Envoyer le code »
+     pendant une panne de courriel invalidait donc, en silence, le code que la personne avait
+     sous les yeux. Aucun risque de sécurité (le code est indevinable), mais une manœuvre
+     impossible à comprendre pour qui la subit. */
+  cleCodes.set(sujet, { code, exp: Date.now() + 10 * 60000, tries: 0, garde: garde || null });
+  return { ok: true };
+}
+/* ⛔ CINQ ESSAIS PUIS LA RÉSERVE SE VIDE POUR CE SUJET : un million de combinaisons se
+   parcourt en quelques minutes si on laisse essayer. Et un code JUSTE se consomme, toujours —
+   sinon il vaut dix usages pendant dix minutes. */
+function cleCodeVerifier(sujet, recu) {
+  const c = cleCodes.get(sujet);
+  if (!c || Date.now() > c.exp) { cleCodes.delete(sujet); return { code: 400, error: 'code expiré — recommence' }; }
+  if (c.code !== String(recu || '')) { c.tries++; if (c.tries >= 5) cleCodes.delete(sujet); return { code: 400, error: 'code incorrect' }; }
+  const garde = c.garde || null;
+  cleCodes.delete(sujet);
+  return { ok: true, garde };
+}
 app.post('/api/espaces/cle/code', async (req, res) => {
   const b = req.body || {}; const t = monStr(b.t, 80), kh = monStr(b.kh, 64).toLowerCase();
   if (!t || !/^[0-9a-f]{64}$/.test(kh)) return res.status(400).json({ error: 't et kh requis' });
@@ -2672,26 +2930,26 @@ app.post('/api/espaces/cle/code', async (req, res) => {
   if (!dest) return res.status(409).json({ error: "Aucune adresse e-mail n'est enregistrée pour cette entreprise : le changement de clé ne peut pas être confirmé. Contacte TEAM OP." });
   if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
   const codeRecu = monStr(b.code, 10).trim();
+  /* ⛔ LE SUJET PORTE LE GESTE, PAS SEULEMENT L'ESPACE. Avec `t` tout court, un code demandé
+     pour changer la clé servirait à déclencher un RETOUR EN ARRIÈRE, et réciproquement : deux
+     gestes aux conséquences opposées partageraient la même autorisation. Le courriel, lui, dit
+     bien de quoi il s'agit — la garde doit dire la même chose. */
+  const sujet = 'cle:' + t;
   if (!codeRecu) {
-    if (cleCodes.size > 500) for (const [k, v] of cleCodes) if (Date.now() > v.exp) cleCodes.delete(k);
-    const code = String(crypto.randomInt(100000, 1000000));
-    cleCodes.set(t, { code, exp: Date.now() + 10 * 60000, tries: 0 });
     try {
-      await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
-        confidentiel: true, trace: 'code de changement de clé · espace ' + t.slice(0, 12),   // jamais le code au journal
+      await cleCodeDemander(sujet, dest, (code) => ({
+        trace: 'code de changement de clé · espace ' + t.slice(0, 12),   // jamais le code au journal
         subject: '🔐 Code de confirmation — clé de synchronisation de ' + (espNomPropre(e) || 'ton entreprise'),
         text: 'Quelqu\'un vient de demander à CHANGER LA CLÉ DE SYNCHRONISATION de '
           + (espNomPropre(e) || 'ton entreprise') + '.\n\nCode de confirmation : ' + code
           + '\n\nValable 10 minutes.\n\n⛔ Si ce n\'est pas toi, N\'ENVOIE PAS CE CODE et préviens TEAM OP.'
           + ' Changer cette clé rend les données de ton entreprise ILLISIBLES sur tous ses appareils, sans retour possible.'
-          + '\n\n— TEAM OP · teamop.fr' });
+          + '\n\n— TEAM OP · teamop.fr' }));
     } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
     return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest) });
   }
-  const c = cleCodes.get(t);
-  if (!c || Date.now() > c.exp) { cleCodes.delete(t); return res.status(400).json({ error: 'code expiré — recommence' }); }
-  if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) cleCodes.delete(t); return res.status(400).json({ error: 'code incorrect' }); }
-  cleCodes.delete(t);
+  const verdict = cleCodeVerifier(sujet, codeRecu);
+  if (!verdict.ok) return res.status(verdict.code).json({ error: verdict.error });
   return res.json({ ok: true, valide: true });
 });
 app.post('/api/espaces/sauvegarde', (req, res) => {
@@ -2737,7 +2995,7 @@ app.post('/api/espaces/sauvegarde/lire', (req, res) => {
 app.post('/api/espaces/ordres', (req, res) => {
   const b = req.body || {}; const t = monStr(b.t, 80), kh = monStr(b.kh, 64).toLowerCase();
   if (!t) return res.status(400).json({ error: 't requis' });
-  if (entFermes.espaces.includes(t)) return res.status(403).json({ error: 'espace fermé' });
+  if (espaceFerme(t)) return res.status(403).json({ error: 'espace fermé' });
   const ok = espaceCleOk(t, kh); if (ok === null) return res.status(404).json({ error: 'espace inconnu' }); if (!ok) return res.status(403).json({ error: 'clé d\'équipe incorrecte' });
   /* ⛔ LA CLÉ PARTAGÉE NE PROUVE RIEN, ET CETTE ROUTE SERT DÉSORMAIS DES ÉQUIVALENTS DE MOT DE
      PASSE. `cleEstPublique(t)` est vraie quand la clé de l'espace est celle écrite EN CLAIR dans
@@ -3017,6 +3275,10 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
   let t = e.t; try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
   if (t && accesReg[t]) { delete accesReg[t]; accesEcrire(); }   // l'espace repart à neuf : son code aussi
   if (t && comptesReg[t]) { delete comptesReg[t]; comptesEcrire(); }   // et son annuaire de connexion : sinon d'anciens identifiants ouvrent le nouvel espace
+  /* ⛔ UN CODE PROMO NE SERT QU'UNE FOIS PAR ENTREPRISE, ET « REPARTIR À NEUF » NE L'OUBLIE PAS
+     (Justin, 24 septembre 2026) : ses utilisations passées portent désormais son adresse et
+     l'empreinte de son e-mail, AVANT que l'annuaire ne les oublie (voir `promoPresente`). */
+  if (t) promoMarquerAvantRenaitre(t, slug, e.email);
   delete espacesReg[slug];
   espacesEcrire();
   let efface = false;
@@ -3040,6 +3302,14 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
      la genèse que ce fichier décrit plus bas. Ici l'ajouter est gratuit : l'ancien espace est
      mort, personne n'a besoin de sa session. */
   const cut = t ? await fbRevoquerEquipe(t) : { fait: true, motif: 'aucun ancien espace' };
+  /* ⛔ ON COUPE PUIS ON EFFACE — les deux, comme les trois autres portes. Celle-ci n'effaçait
+     pas, et c'est précisément la porte qui, dix lignes plus haut, supprime le document Firestore
+     de l'ancien espace et le retire des registres : la base du socle serait restée sur le
+     disque avec toutes ses données et sa clé, **sans qu'aucun registre ne porte plus ce `t`** —
+     un orphelin que personne ne saurait plus rattacher à une entreprise, donc que personne
+     n'effacerait jamais. C'est le mot pour mot du commentaire voisin sur les pièces jointes. */
+  const cutSocle = socleCouper(t, 'repartir à neuf'); if (!cutSocle.fait) { cut.fait = false; cut.motif = (cut.motif || '') + ' — ' + cutSocle.motif; }
+  if (t) { const efS = socleEffacer(t); if (!efS.ok) { cut.fait = false; cut.motif = (cut.motif || '') + ' — ' + efS.motif; } }
   /* ⛔ ET SES PIÈCES JOINTES (16 septembre 2026). Cette porte-ci efface le document de
      l'ANCIEN espace : les photos qu'il avait déposées doivent partir avec, sinon elles
      survivent à un espace que plus rien ne référence — un orphelin que personne ne saura plus
@@ -3060,19 +3330,30 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
   if (!c) return res.status(400).json({ error: 'Entre le code promo' });
   const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c);
   if (!p) return res.status(404).json({ error: 'Code promo inconnu' });
-  for (const [c2, u2] of Object.entries(promoUsages || {})) {   // un seul code à la fois
-    const eq2 = u2 && u2.equipes && u2.equipes[t];
-    if (c2 !== c && eq2 && eq2.finLe && eq2.finLe >= new Date().toISOString().slice(0, 10))
-      return res.status(409).json({ error: 'Un code (« ' + c2 + ' ») est déjà actif pour cette entreprise jusqu\'au ' + eq2.finLe });
+  /* ⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE, MÊME DEPUIS LA TOUR (Justin, 24 septembre 2026 — voir
+     `promoPresente`). Pour offrir une nouvelle période à une entreprise qui a déjà servi ce code,
+     la Tour a son propre geste : l'abonnement réglé à la main (« Essai offert », avec une date de fin). */
+  const pres = promoPresente(c, t, slug);
+  if (pres.etat === 'indisponible') return res.status(503).json({ error: 'Registre des codes promo illisible (promos-usages.json) — rien n\'est activé tant qu\'il n\'est pas réparé. Journal : grep ILLISIBLE.' });
+  if (pres.etat === 'servi')
+    return res.status(410).json({ error: promoRefusServi(c, pres.finLe) + ' Pour lui offrir une nouvelle période : Abonnement → « Essai offert », avec une date de fin.', dejaUtilise: true, finLe: pres.finLe });
+  if (pres.etat === 'neuf') {
+    for (const [c2] of Object.entries(promoUsages || {})) {   // un seul code à la fois (par l'adresse aussi : voir `promoServiA`)
+      const eq2 = c2 !== c ? promoServiA(c2, t, slug) : null;
+      if (eq2 && eq2.finLe && eq2.finLe >= promoAujourdhui())
+        return res.status(409).json({ error: 'Un code (« ' + c2 + ' ») est déjà actif pour cette entreprise jusqu\'au ' + promoDateFr(eq2.finLe) });
+    }
   }
   const u = promoUsages[c] || { n: 0, equipes: {} };
   let finLe;
-  if (u.equipes[t]) finLe = u.equipes[t].finLe;
+  if (pres.etat === 'actif') finLe = pres.finLe;   // déjà en cours : la même échéance, rien ne se recompte
   else {
     if (p.maxUtilisations && u.n >= p.maxUtilisations) return res.status(410).json({ error: 'Ce code a atteint son maximum d\'utilisations' });
     const d = new Date(); d.setMonth(d.getMonth() + Math.max(1, Number(p.mois) || 1));
     finLe = d.toISOString().slice(0, 10);
-    u.n++; u.equipes[t] = { date: new Date().toISOString().slice(0, 10), finLe }; promoUsages[c] = u; savePromoUsages();
+    const neufU = !promoUsages[c]; u.n++; u.equipes[t] = promoEntree(finLe, t, slug); promoUsages[c] = u;
+    if (!savePromoUsages()) { u.n--; delete u.equipes[t]; if (neufU) delete promoUsages[c];   // écrit, ou on le dit — voir /api/promo/valider
+      return res.status(503).json({ error: 'Le registre des codes (promos-usages.json) n\'a pas pu être écrit — rien n\'est activé. Journal : « non écrit ».' }); }
     mailPromoActive(t, c, finLe, ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium');
   }
   e.codePromo = c;
@@ -3080,7 +3361,7 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
   if (!e.formule || e.formule === 'gratuit') { e.formule = f; e.quantite = e.quantite || 1; e.formulePar = req.tourUser.nom + ' (code)'; e.formuleTs = Date.now(); }
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'active le code', c, 'pour', slug, '→ fin', finLe);
-  res.json({ ok: true, code: c, formule: e.formule, finLe });
+  res.json({ ok: true, code: c, formule: e.formule, finLe, dejaUtilise: pres.etat === 'actif' });
 });
 // le patron envoie au client son lien + identifiants de départ (bel e-mail TeamOP)
 // ── 📣 ANNONCE DE MISE À JOUR : un e-mail à TOUTES les entreprises ──
@@ -3287,7 +3568,22 @@ app.post('/api/espaces/etat', (req, res) => {
   const t = monStr((req.body || {}).t, 80);
   if (!t) return res.status(400).json({ error: 't requis' });
   const e = espaceParT(t);
-  if (entFermes.espaces.includes(t)) return res.json({ ok: true, ferme: true });
+  /* ⛔⛔ UN SUSPENDU N'EST PAS UN FERMÉ, ET LES CONFONDRE ICI COUPE UN IMPAYÉ DE SES DONNÉES.
+     `entFermes.espaces` porte les DEUX états — la fermeture définitive ET la simple suspension
+     pour impayé (`entFermes.suspendus` en est le sous-ensemble). Cette ligne ne faisait pas la
+     différence. Mesuré le 22 septembre 2026 sur un vrai serveur : une entreprise suspendue
+     recevait `{ferme:true}`, donc `app.html` affichait « Cet espace a été fermé par TEAM OP »
+     à TOUS ses utilisateurs, puis effaçait `elan_sync_team` — et le commentaire de cette
+     porte-là dit lui-même qu'elle « ne se rattrape pas au chargement suivant ».
+     Trois raisons pour lesquelles c'était faux, et pas seulement maladroit :
+     · Justin, 20 septembre : « rien n'est perdu … c'est pas aux utilisateurs de savoir si
+       l'entreprise paye ou pas. Que le compte admin. » ;
+     · `mentions-legales.html:74` promet qu'un impayé n'entraîne AUCUNE suppression ;
+     · le jour où le socle est la seule copie à jour, c'est une coupure de données.
+     Une entreprise suspendue reçoit donc son état NORMAL, plus de quoi griser au bon moment. */
+  if (espaceFerme(t)) return res.json({ ok: true, ferme: true });
+  const suspendu = espaceEstSuspendu(t);
+  const sursisJours = sursisJoursDe(t);
   /* OP MESSAGES ne fait plus partie des formules d'OP GESTION. C'est une application à part,
      avec son propre abonnement : on l'ouvre entreprise par entreprise depuis la Tour, et son
      absence ici veut dire « pas accordée ». Le défaut est donc FERMÉ, pour tout le monde —
@@ -3298,9 +3594,9 @@ app.post('/api/espaces/etat', (req, res) => {
      l'application y vide son stockage et se recharge avant même de regarder ce champ. */
   const opMessages = !!(e && e.opMessages);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
-  if (!e || !e.formule) return res.json({ ok: true, opMessages, versionMin, enLigne });
-  espacePaye(e).then(p => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne }))
-    .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, versionMin, enLigne }));
+  if (!e || !e.formule) return res.json({ ok: true, opMessages, versionMin, enLigne, suspendu, sursisJours });
+  espacePaye(e).then(p => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours }))
+    .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, versionMin, enLigne, suspendu, sursisJours }));
 });
 /* ── Création AUTOMATIQUE d'un espace à la demande d'application ──
    Dès qu'un client fait une demande sur teamop.fr, son espace est créé, inscrit à
@@ -3400,10 +3696,270 @@ try {
    on perd la sauvegarde, pas la plateforme, et `/health` le dit. */
 let sauvegarde = null;
 try {
-  sauvegarde = require('./sauvegarde').monterSauvegarde(app, { config, DATA_DIR, CONFIG_PATH, garde: monPatronStrict });
+  /* ⛔ `socle` EST PASSÉ À LA SAUVEGARDE, et ce n'est pas une commodité : sans lui, l'archive
+     nocturne emporterait les bases SQLite VIVANTES et les restaurerait corrompues, en se
+     déclarant valide. Il est passé même quand le socle est éteint : il n'y a alors aucune base
+     à instantaner, la fonction rend 0, et rien n'est exclu de l'archive — donc aucun changement
+     pour la production d'aujourd'hui. */
+  /* ⛔⛔ CETTE LIGNE A ÉTÉ CONDITIONNELLE PENDANT UN COMMIT, ET ÇA A TUÉ TOUTE LA SAUVEGARDE.
+     Elle lisait `(opSocle && opSocle.actif)` — or `let opSocle` est déclaré 56 lignes PLUS BAS,
+     donc en ZONE MORTE TEMPORELLE ici : `ReferenceError: Cannot access 'opSocle' before
+     initialization`, avalée par le `catch` juste en dessous, et `sauvegarde` restait `null`
+     POUR TOUJOURS, quelle que soit la configuration. MESURÉ sur le vrai serveur : journal
+     « sauvegarde hors site non montée », `/health` → `{active:false}`, les deux routes de la
+     Tour en 404. Le seul dispositif qui protège TeamOP d'un VPS perdu, éteint en silence — et
+     la surveillance le classait « pas encore branchée », donc un murmure une fois par jour.
+     ⛔ `CLAUDE.md` NOMME CE PIÈGE, sous ce nom exact (« zone morte temporelle », 10 septembre).
+     ⛔ LA LEÇON, PLUS LARGE QUE LE BOGUE : le besoin réel était que la sauvegarde ne réveille
+     pas le socle quand il dort. La bonne place pour cette décision est LÀ OÙ VIVENT LES
+     DONNÉES (`instantanerVers` ne crée plus rien quand il n'y a rien à copier), pas dans une
+     expression d'index.js sensible à l'ordre de chargement. Une garde posée au mauvais endroit
+     coûte plus cher que le défaut qu'elle corrige. */
+  sauvegarde = require('./sauvegarde').monterSauvegarde(app, { config, DATA_DIR, CONFIG_PATH,
+    garde: monPatronStrict, socle: require('./socle') });
 } catch (e) {
   console.error('sauvegarde hors site non montée :', e.message);
 }
+/* ⛔ LE SOCLE SE COUPE AUX MÊMES QUATRE PORTES QUE FIREBASE, PAR UNE SEULE FONCTION.
+   `gardien` l'a relevé le 18 septembre 2026 : les quatre portes appelaient `fbRevoquerEquipe`
+   et AUCUNE ne touchait le socle. Une entreprise fermée aurait continué de lire et d'écrire
+   par `/api/op/*` pendant les 30 jours de son jeton, pendant que la Tour affichait « fermée ».
+   C'est mot pour mot la panne de `fbRevoquerEquipe`, un an plus tard, sur un second stockage —
+   et la raison pour laquelle il n'y a ici qu'UNE fonction : deux copies calculeraient un jour
+   deux choses différentes, et c'est celle qu'on a oublié de corriger qui déciderait.
+   ⛔ ELLE REND UN VERDICT, ET L'APPELANT LE REMONTE. Croire une entreprise coupée alors
+   qu'elle ne l'est pas est la panne silencieuse type de ce dépôt. */
+/* ⛔ LA GARDE PORTE SUR LES DONNÉES, PAS SUR LE DRAPEAU — ET C'EST LA MÊME LEÇON QUE CELLE DU
+   19 SEPTEMBRE AU MATIN, QUI AVAIT ÉTEINT TOUTE LA SAUVEGARDE. Elle a été écrite, puis
+   appliquée à un SEUL endroit : ces trois fonctions-ci avaient gardé le défaut, et la
+   cinquième vérification les a reproduites. Ce qu'elles donnaient, drapeau éteint sur un
+   serveur qui avait DÉJÀ des bases — c'est-à-dire le retour en arrière que le plan documente :
+     · supprimer une entreprise → la Tour répond `ok`, le courriel de confirmation part, et
+       `data/socle/<t>/base.db` reste sur le disque avec les données du client dedans. Il repart
+       dans CHAQUE archive nocturne, et rallumer le drapeau ressuscite l'entreprise supprimée.
+     · rouvrir une entreprise suspendue → la Tour répond `ok` et la retire d'`entFermes`, mais
+       l'état `ferme` reste écrit SUR DISQUE. Au rallumage l'entreprise est en 403 définitif, et
+       le bouton « Rouvrir » ne peut plus rien : elle n'est plus dans `entFermes`, donc il n'y a
+       plus rien à rouvrir. Une suspension devenue une condamnation.
+   ⚠️ `presentSurDisque` et pas `existe` : le second passe par `annuaire()`, qui CRÉE le fichier
+   quand il manque — sur un serveur où le socle n'a jamais tourné, un simple clic dans la Tour
+   ferait naître un annuaire chiffré sous une clé que personne n'a encore mise en séquestre.
+   `tests/test-726.js` tient les deux bouts : la base DISPARAÎT drapeau éteint, et rien ne
+   naît sur un serveur vierge. */
+const socleDonneesLa = (t) => {
+  if (!t) return false;
+  try { return require('./socle').presentSurDisque(t); } catch (e) { return false; }
+};
+function socleCouper(t, quoi) {
+  if (!t) return { fait: true, motif: 'sans espace' };
+  if (!socleDonneesLa(t)) return { fait: true, motif: 'aucun stockage pour cet espace' };
+  try {
+    const r = require('./socle').entrepriseOuvrir(t, false);
+    return { fait: true, motif: 'espace ' + r.etat + ', ' + r.coupees + ' session(s) coupée(s)' };
+  } catch (e) {
+    /* ⛔ UNE ENTREPRISE QUI N'A JAMAIS TOUCHÉ AU SOCLE N'EST PAS UN ÉCHEC DE COUPURE — il n'y a
+       rien à couper, et c'est le résultat voulu. Même raisonnement que `fbRevoquerEquipe`, qui
+       compte `USER_NOT_FOUND` comme coupé. Le confondre avec une vraie panne ferait hurler la
+       Tour à chaque fermeture d'un client d'avant la bascule. */
+    if (e.code === 'ABSENT') return { fait: true, motif: 'aucun stockage pour cet espace' };
+    console.error('⛔ socle NON coupé (' + (quoi || '?') + ') :', e.code || 'erreur');
+    return { fait: false, motif: 'socle NON coupé — les appareils lisent et écrivent toujours' };
+  }
+}
+/* Le geste inverse, et il DOIT exister : une fermeture sans réouverture n'est pas une
+   suspension, c'est une condamnation. Même forme que `socleCouper` — un verdict que
+   l'appelant remonte, jamais un booléen muet. */
+function socleOuvrir(t) {
+  if (!t) return { fait: true, motif: 'sans espace' };
+  if (!socleDonneesLa(t)) return { fait: true, motif: 'aucun stockage pour cet espace' };
+  try {
+    const r = require('./socle').entrepriseOuvrir(t, true);
+    return { fait: true, motif: 'espace ' + r.etat };
+  } catch (e) {
+    if (e.code === 'ABSENT') return { fait: true, motif: 'aucun stockage pour cet espace' };
+    console.error('⛔ socle NON rouvert :', e.code || 'erreur');
+    return { fait: false, motif: 'socle NON rouvert — cette entreprise ne pourra PAS synchroniser' };
+  }
+}
+function socleEffacer(t) {
+  if (!t) return { ok: true, motif: 'sans espace' };
+  if (!socleDonneesLa(t)) return { ok: true, motif: 'aucun stockage pour cet espace' };
+  try { const r = require('./socle').effacerEntreprise(t); return { ok: r.ok, motif: r.ok ? 'effacé' : 'RESTES SUR LE DISQUE' }; }
+  catch (e) { console.error('⛔ socle NON effacé :', e.code || 'erreur'); return { ok: false, motif: 'socle NON effacé' }; }
+}
+
+/* ══ LE SOCLE — LE STOCKAGE QUI REMPLACERA FIRESTORE ═══════════════════════════════════════
+   Monté ICI parce qu'il reçoit `sauvRefus`, `cleEstPublique`, `monPatronStrict` (déclarations
+   de fonctions, donc hissées) et `quotaOk`, juste au-dessus.
+   ⛔ INERTE SANS `"socle": {"actif": true}` DANS `config.json` : pas une seule route déclarée,
+   pas un fichier ouvert, pas une minuterie. C'est ce qui permet de le déployer chez un client
+   qui travaille sans rien risquer — et de faire marche arrière SANS déploiement, en éteignant
+   le drapeau. Si le module refuse de se monter, le reste du serveur continue : on perd le
+   socle, pas la plateforme, et `/health` le dit. */
+/* ══ LES COMPTES DU PORTAIL, CHEZ NOUS ══════════════════════════════════════════
+   ⛔ INERTE SANS `"comptes": {"actif": true}`, pour la même raison que le socle : pas une
+   route déclarée, pas un fichier ouvert. Ces routes remplacent Firebase Auth pour le portail
+   client (`espace.html`) et les liens de mot de passe (`reinit.html`) — l'angle mort que
+   `PLAN-OP-SOCLE.md` n'avait jamais vu, parce qu'il ne parlait que de Firestore.
+   ⚠ Allumer ici n'éteint rien chez Google, et c'est voulu : un mot de passe Firebase ne se
+   LIT pas, donc chaque personne devra en reposer un. Les deux identités doivent pouvoir
+   coexister le temps de cette bascule. */
+/* ⛔ TROIS ÉTATS, PAS DEUX — LA MÊME RÈGLE QUE LE SOCLE, ET POUR LA MÊME RAISON.
+   Ces deux modules se montent DERRIÈRE UN DRAPEAU et avalent leur exception : c'est voulu (un
+   portail qui refuse de démarrer ne doit pas emporter l'API des applications), mais ça crée
+   exactement la panne silencieuse que ce dépôt paie à répétition. Sans ces trois états,
+   `/health` répondait `ok:true` à l'identique qu'ils soient montés, éteints par décision, ou
+   CASSÉS au démarrage — pendant que tous les clients du portail sont à la porte.
+   · `{actif:false}`                    — éteint par décision, rien à dire ;
+   · `{actif:false, erreur:'montage'}`  — réglé et cassé : c'est une PANNE, et ça réveille ;
+   · `{actif:true}`                     — en service.
+   ⛔ UN BOOLÉEN, JAMAIS UN NOMBRE. `/health` est PUBLIQUE : y publier le nombre de comptes ou
+   de dossiers dirait au monde combien TeamOP a de clients, et comment ça évolue. Le compte
+   exact se lit depuis la Tour, qui est gardée. */
+const etatPortail = { comptes: { actif: false }, dossiers: { actif: false } };
+
+let comptes = null;
+try {
+  if (config.comptes && config.comptes.actif) {
+    comptes = require('./comptes').monterComptes(app, {
+      dossier: DATA_DIR, mailerEnvoi: (o) => mailerEnvoi(o), quotaOk,
+      siteBase: 'https://teamop.fr',
+      journal: (...a) => console.log('comptes:', ...a),
+    });
+    etatPortail.comptes = { actif: true };
+    console.log('comptes du portail : montés (' + comptes.combien() + ' compte(s))');
+  }
+} catch (e) {
+  console.error('comptes du portail NON montés —', e && e.message);
+  comptes = null;
+  etatPortail.comptes = { actif: false, erreur: 'montage' };
+}
+
+/* ══ LE PORTAIL CLIENT, CHEZ NOUS ═════════════════════════════════════════════════
+   ⛔ IL DÉPEND DES COMPTES, DONC IL NE SE MONTE PAS SANS EUX. Savoir qui parle passe par
+   `comptes.parJeton` : sans lui, ces routes n'auraient aucune identité à vérifier et
+   répondraient à n'importe qui. La dépendance est donc EXPLICITE — pas un `if` oublié quelque
+   part qui laisserait le portail ouvert le jour où les comptes refusent de se monter. */
+let portail = null;
+try {
+  if (comptes) {
+    portail = require('./portail').monterPortail(app, {
+      dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, quotaOk,
+      journal: (...a) => console.log('portail:', ...a),
+      /* La reprise des dossiers déjà chez Google. Le serveur a déjà la clé d'administration et
+         s'en sert trois fois plus bas pour `teamop_requests` : on réutilise ce chemin-là
+         plutôt que d'en ouvrir un second. */
+      lireFirestore: async () => {
+        const tok = await fbAdminJeton();
+        if (!tok) throw Object.assign(new Error('firebase off'), { code: 'firebase_off' });
+        const out = []; let pt = '';
+        for (let tour = 0; tour < 40; tour++) {
+          const r = await fbAdminFetch(fsBase() + '/teamop_requests?pageSize=300' + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''), null, tok);
+          const j = await r.json().catch(() => ({}));
+          for (const doc of (j.documents || [])) {
+            const f = doc.fields || {}, v = (k) => (f[k] && (f[k].stringValue !== undefined ? f[k].stringValue
+              : f[k].integerValue !== undefined ? f[k].integerValue : undefined));
+            out.push({ email: v('email'), prenom: v('prenom'), nom: v('nom'), company: v('company'),
+              formule: v('formule'), users: v('users'), etat: v('etat'), promo: v('promo'),
+              apps: ((f.apps && f.apps.arrayValue && f.apps.arrayValue.values) || []).map(x => x.stringValue) });
+          }
+          pt = j.nextPageToken || '';
+          if (!pt) break;
+        }
+        return out;
+      },
+    });
+    etatPortail.dossiers = { actif: true };
+    console.log('portail client : monté (' + portail.dossiers() + ' dossier(s))');
+  }
+} catch (e) {
+  console.error('portail client NON monté —', e && e.message);
+  portail = null;
+  etatPortail.dossiers = { actif: false, erreur: 'montage' };
+}
+/* ⚠️ ET LE CAS QU'ON OUBLIE : les comptes réglés mais cassés entraînent le portail avec eux,
+   SANS exception — le `if (comptes)` est simplement faux. Sans cette ligne, `dossiers` dirait
+   « éteint par décision » pour une panne. */
+if (!portail && etatPortail.comptes.erreur) etatPortail.dossiers = { actif: false, erreur: 'comptes' };
+
+
+let opSocle = null;
+try {
+  opSocle = require('./op-socle').monterOpSocle(app, {
+    config, socle: require('./socle'), sauvRefus, cleEstPublique, quotaOk, monStr,
+    garde: monPatronStrict, mailerEnvoi: (o) => mailerEnvoi(o),
+    /* ⛔ LA MÊME GARDE QUE LE CHANGEMENT DE CLÉ, INJECTÉE — pas recopiée. Voir le bloc
+       `cleCodeDemander`/`cleCodeVerifier` : écrire dans la base d'un client ne peut pas être
+       moins gardé que changer sa clé d'équipe, qui n'écrit aucune donnée métier.
+       `espaceContact` rend l'adresse de l'entreprise et son nom propre : sans adresse, aucun
+       code ne peut partir, donc le retour est REFUSÉ — jamais autorisé par défaut. */
+    cleCodeDemander, cleCodeVerifier,
+    espaceContact: (t) => { const e = espaceParT(t); return { email: String((e && e.email) || '').trim(), nom: espNomPropre(e) || '' }; },
+    /* ⛔ LES DEUX SOURCES QUE LE SOCLE N'A PAS, ET QUI DÉCIDENT DE L'ÉTAPE 5.
+       `cnxAppareils` rend les appareils d'une entreprise VUS PAR L'API dans la fenêtre — le
+       dénominateur de la condition (a). Le socle ne connaît que ceux qui lui parlent ; c'est
+       précisément l'écart entre les deux listes qui dit s'il reste des appareils en retard.
+       ⚠️ IL REND `null` QUAND ON NE SAIT PAS, jamais une liste vide : un journal absent ferait
+       dire « aucun appareil en retard », donc « tu peux basculer », au moment exact où on n'a
+       aucune information. Ce dépôt a payé deux fois cette confusion (`_mailboxes`, puis
+       `syncDecrypt`) — la troisième coûterait la base d'un client. */
+    cnxAppareils: (t, depuis) => {
+      const j = cnxData[String(t || '')];
+      if (!Array.isArray(j) || !j.length) return null;
+      const vus = new Set();
+      let sansId = 0;
+      for (const x of j) {
+        if (!x || (x.ts || 0) < depuis) continue;
+        if (x.ev === 'echec' || x.ev === 'refus' || x.ev === 'bloque') continue;  // une tentative n'est pas un appareil
+        const d = String(x.dev || '').trim();
+        /* ⚠️ UN APPAREIL SANS IDENTIFIANT NE PEUT PAS ÊTRE APPARIÉ, DONC IL COMPTE COMME EN
+           RETARD. C'est le sens prudent : il bloque la bascule au lieu de l'autoriser. Une
+           version ancienne qui n'envoie pas `dev` est très exactement le cas qu'on cherche. */
+        if (!d) { sansId++; continue; }
+        vus.add(d);
+      }
+      for (let i = 0; i < sansId; i++) vus.add('sans-identifiant-' + i);
+      return vus.size ? [...vus] : null;
+    },
+    /* `true` connu, `false` inconnu, `null` si l'annuaire lui-même n'est pas lisible. */
+    espaceConnu: (t) => { try { return !!espaceParT(String(t || '')); } catch (e) { return null; } },
+    /* ⛔ UN ESPACE FERMÉ OU SUSPENDU NE SE BASCULE PAS, ET IL FAUT QUE ÇA SE VOIE.
+       `sauvRefus` refuse `entFermes.espaces` en 403 : un tel espace ne peut même pas ouvrir de
+       session de socle, donc il ne pousse plus rien, donc son socle se périme en silence. Le
+       basculer sur `socle` lui servirait une base figée au jour de sa suspension.
+       ⚠️ ET LA QUESTION INVERSE N'EST PAS TRANCHÉE ICI, EXPRÈS : une entreprise suspendue pour
+       impayé DOIT-ELLE continuer à LIRE ? `mentions-legales.html:74` promet qu'un impayé
+       « n'entraîne aucune suppression » et que le client « retrouve l'intégralité de ses
+       données ». Aujourd'hui c'est tenu sans rien faire, parce que la base vit aussi en local
+       et dans Firestore. Le jour où le socle est la seule copie à jour, refuser la lecture
+       contredirait ce texte. Ça se décide — voir REPRISE.md — ça ne se glisse pas dans un
+       correctif de plomberie. */
+    /* ⛔ SUSPENDU N'EST PAS FERMÉ — DÉCISION DE JUSTIN, 20 SEPTEMBRE 2026.
+       « Pour continuer à lire, ils auront un délai de 7 jours. Si c'est pas payé après dans les
+       7 jours, tous les onglets deviennent gris […] Aucune sauvegarde n'est perdue, aucune
+       tâche qu'ils étaient en train de faire, rien n'est perdu, même dans leur catégorie.
+       Juste les catégories qui sont payantes deviennent grisées et ils reviennent au forfait
+       gratuit. »
+       Conséquence pour le socle, et elle est simple : une entreprise suspendue TRAVAILLE. Elle
+       lit, elle écrit, elle synchronise — c'est son ABONNEMENT qui change, pas son accès à ses
+       propres données. Ce qui devient gris est une affaire d'écrans, pas de stockage.
+       ⛔ Seul un espace FERMÉ reste refusé : celui-là n'est plus une entreprise qui travaille.
+       ⚠️ Sans cette distinction, le jour où le socle est la seule copie à jour, un impayé
+       aurait coupé une entreprise de ses propres données — en contradiction directe avec
+       `mentions-legales.html:74`, qui promet qu'un impayé « n'entraîne aucune suppression » et
+       que le client « retrouve l'intégralité de ses données s'il revient ». */
+    espaceBloque: (t) => { try { return espaceFerme(t); } catch (e) { return null; } },   // suspendu → pas bloqué ; fermé → bloqué
+    /* `true` suspendu (abonnement en défaut, mais l'entreprise travaille), `false` sinon. */
+    espaceSuspendu: (t) => espaceEstSuspendu(t),
+    /* ⛔ LE SURSIS SE CALCULE À UN SEUL ENDROIT — voir `sursisJoursDe`, près d'`entFermes`.
+       Il vivait ici, donc `/api/espaces/etat` (la seule route que l'APPLICATION interroge)
+       ne pouvait pas le voir : la fonction était juste, commentée, et appelée par personne. */
+    espaceSursisJours: (t) => sursisJoursDe(t),
+  });
+} catch (e) {
+  console.error('socle non monté :', e.message);
+}
+
 /* Plusieurs inscriptions peuvent porter le même espace : la plus récente fait foi. */
 function espaceAJour(slug) {
   let e = espacesReg[slug]; if (!e) return null;
@@ -3522,7 +4078,7 @@ app.post('/api/espaces/ouvrir', (req, res) => {
   /* Une entreprise fermée ne se rouvre pas par ce chemin. /api/espaces/etat le vérifiait déjà ;
      ici, l'oublier laissait un ex-client — ou quiconque a reçu le code — continuer d'obtenir la
      clé de ses anciennes données. */
-  if (t && entFermes.espaces.includes(t)) return res.status(403).json({ error: 'Nom d\'entreprise ou code d\'accès incorrect.' });
+  if (t && espaceFerme(t)) return res.status(403).json({ error: 'Nom d\'entreprise ou code d\'accès incorrect.' });
   const bon = (() => {
     if (!e || !e.code || !enr || !enr.code) return false;
     const attendu = Buffer.from(accesNorm(enr.code));
@@ -3700,7 +4256,7 @@ app.post('/api/espaces/comptes', (req, res) => {
   try { cle = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).k || ''); } catch (err) {}
   if (!cle || crypto.createHash('sha256').update(cle).digest('hex') !== kh)
     return res.status(403).json({ error: 'clé d\'équipe incorrecte' });
-  if (entFermes.espaces.includes(t)) return res.status(403).json({ error: 'espace fermé' });
+  if (espaceFerme(t)) return res.status(403).json({ error: 'espace fermé' });
   const recu = Array.isArray(b.comptes) ? b.comptes.slice(0, 300) : null;
   if (!recu) return res.status(400).json({ error: 'comptes requis' });
   /* ⛔ ET RIEN NE SE DÉPOSE SUR L'ESPACE PAR DÉFAUT — même décision que la route de connexion.
@@ -3952,7 +4508,7 @@ app.post('/api/espaces/connexion', async (req, res) => {
   if (e && e.slug && espacesReg[e.slug] && espacesReg[e.slug].clePerimee)
     return res.status(409).json({ motif: 'cle_perimee',
       error: 'L\'espace de cette entreprise est à réinscrire chez TEAM OP — contacte-nous, la connexion ne peut pas aboutir.' });
-  const ann = (t && !entFermes.espaces.includes(t)) ? comptesReg[t] : null;
+  const ann = (t && !espaceFerme(t)) ? comptesReg[t] : null;
   /* « Pas encore activé » est rendu AUSSI pour un nom qui n'existe pas. Sans cela, la
      différence entre les deux réponses dirait qui est client de TEAM OP. Rendu pour les deux,
      le message ne dit rien de plus qu'il ne faut, et il évite qu'une personne s'acharne une
@@ -4017,6 +4573,8 @@ app.post('/api/espaces/connexion', async (req, res) => {
    comme acces.json et comptes.json. Rend false plutôt que de lever, pour que l'appelant puisse
    revenir en arrière au lieu d'annoncer un enregistrement qui n'a pas eu lieu. */
 function espacesEcrire() {
+  /* ⛔ JAMAIS PAR-DESSUS UN ANNUAIRE QU'ON N'A PAS PU LIRE : voir `espacesIllisible`. */
+  if (espacesIllisible) { console.error('⛔ espaces.json NON réécrit : il était illisible au démarrage — le réparer, puis redémarrer'); return false; }
   try {
     const tmp = ESPACES_PATH + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(espacesReg));
@@ -4157,6 +4715,22 @@ app.post('/api/monitor/espaces/renommer', monPatronStrict, (req, res) => {
    lancement (forfaitServeurSync lit « ferme » et efface le stockage local). Rouvrir rend
    l'espace ; les appareils devront repasser par le lien ou le code, leurs données les y
    attendent. Effacer pour de bon, c'est « Repartir à neuf » (/renaitre), pas cette route. */
+/* ⛔ LA TOUR VOIT L'HORLOGE, ET C'EST LE SEUL ENDROIT OÙ ON NOMME QUI. Tant que la suppression
+   n'existe pas, c'est un humain qui préviendra un client — encore faut-il qu'il puisse le voir
+   venir. `monAdmin` et pas `monPatronStrict` : c'est une LECTURE, et la refuser à l'équipe qui
+   répond au support reviendrait à la rendre inutile. */
+app.get('/api/monitor/conservation', monAdmin, (req, res) => {
+  if (!conservation) return res.status(503).json({ error: 'horloge non montée', motif: etatConservation.erreur || 'inactive' });
+  const l = conservation.tout().sort((a, b) => a.depuis - b.depuis);
+  res.json({ ok: true, jours: conservation.CONSERVATION_JOURS, preavisJours: conservation.PREAVIS_JOURS,
+    /* Les comptes que `/health` ne publie plus (24 septembre 2026) : ils vivent ICI, derrière
+       une identité. `balayageOk` avec, pour que la Tour dise aussi si l'horloge tourne. */
+    compte: conservation.sante(),
+    /* Le nom lisible se joint ici, pas dans le module : lui ne connaît que des identifiants,
+       et c'est bien ainsi — il n'a aucune raison de savoir comment s'appelle une entreprise. */
+    espaces: l.map(x => { const e = espaceParT(x.t); return Object.assign({}, x, { nom: (e && e.nom) || '', slug: (e && e.slug) || '' }); }) });
+});
+
 app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => {
   const slug = espSlug(monStr((req.body || {}).slug || (req.body || {}).nom, 80));
   const e = espaceAJour(slug);
@@ -4183,26 +4757,80 @@ app.post('/api/monitor/espaces/suspendre', monPatronStrict, async (req, res) => 
   if (!Array.isArray(entFermes.suspendus)) entFermes.suspendus = [];
   if (rouvrir && !entFermes.suspendus.includes(t))
     return res.status(409).json({ error: 'Cet espace n\'a pas été suspendu depuis la Tour : il a été fermé définitivement (fermeture d\'entreprise). Ce bouton ne défait pas une fermeture — elle demande un code de confirmation par e-mail.' });
-  const avant = entFermes.espaces.slice(), avantS = entFermes.suspendus.slice();
+  /* ⛔⛔ ET ON NE SUSPEND PAS UNE ENTREPRISE FERMÉE. Depuis qu'une suspension laisse TRAVAILLER
+     (24 septembre 2026), « suspendre » une entreprise déjà fermée la ROUVRIRAIT par le côté —
+     sans le code par courriel que la fermeture a exigé. Avant, c'était sans effet : toutes les
+     portes lisaient la liste en bloc. Le cas existe : une entreprise fermée qu'on réinscrit
+     sous la même adresse retrouve une entrée d'annuaire et son ancien identifiant. */
+  if (!rouvrir && entFermes.espaces.includes(t) && !entFermes.suspendus.includes(t))
+    return res.status(409).json({ error: 'Cet espace a été fermé définitivement (fermeture d\'entreprise) : il ne se suspend pas. Le rouvrir demande un code de confirmation par e-mail.' });
+  const avant = entFermes.espaces.slice(), avantS = entFermes.suspendus.slice(),
+        avantD = Object.assign({}, entFermes.suspendusLe);
   if (rouvrir) {
     entFermes.espaces = entFermes.espaces.filter(x => x !== t);
     entFermes.suspendus = entFermes.suspendus.filter(x => x !== t);
+    delete entFermes.suspendusLe[t];
   } else {
     if (!entFermes.espaces.includes(t)) entFermes.espaces.push(t);
     if (!entFermes.suspendus.includes(t)) entFermes.suspendus.push(t);
+    /* ⚠️ ON NE REDÉMARRE PAS LE DÉLAI D'UNE SUSPENSION DÉJÀ EN COURS. Suspendre deux fois
+       (un double clic, une reprise de la Tour, un réglage de facturation rejoué) rendrait sept
+       jours de sursis à chaque fois — et un impayé ne grisrait jamais. Seule la RÉOUVERTURE
+       efface la date, parce qu'elle efface la suspension. */
+    if (!entFermes.suspendusLe[t]) entFermes.suspendusLe[t] = Date.now();
   }
   /* Si l'écriture échoue, on ne dit pas que c'est fait : le serveur appliquerait la coupure
      jusqu'au redémarrage, puis l'oublierait — et le patron croirait l'accès fermé. */
-  if (!fermesSave()) { entFermes.espaces = avant; entFermes.suspendus = avantS; return res.status(500).json({ error: 'Rien n\'a été enregistré — réessaie.' }); }
+  if (!fermesSave()) { entFermes.espaces = avant; entFermes.suspendus = avantS; entFermes.suspendusLe = avantD; return res.status(500).json({ error: 'Rien n\'a été enregistré — réessaie.' }); }
   console.log('Tour :', req.tourUser.nom, (rouvrir ? 'rouvre' : 'suspend'), 'l\'espace', t);
   /* Refuser les NOUVEAUX jetons ne suffit pas : les appareils déjà pourvus tiennent une
      session renouvelable et ne repassent plus par le serveur. On coupe donc aussi côté
      Firebase — et on le DIT, parce qu'une suspension qu'on croit effective alors qu'elle ne
      l'est pas est pire que pas de suspension du tout. Rien à faire à la réouverture : les
      appareils redemanderont un jeton et l'obtiendront. */
-  if (rouvrir) return res.json({ ok: true, suspendu: false });
-  const cut = await fbRevoquerEquipe(t);
-  res.json({ ok: true, suspendu: true, coupure: cut.fait, coupureMotif: cut.motif });
+  /* ⛔ ROUVRIR DOIT ROUVRIR LE SOCLE, ET C'EST LA MOITIÉ QU'ON AVAIT OUBLIÉE. Le commentaire
+     d'origine disait « rien à faire à la réouverture : les appareils redemanderont un jeton et
+     l'obtiendront » — c'est vrai de Firebase, dont la coupure est un état volatil, et FAUX du
+     socle, dont l'état est ÉCRIT SUR DISQUE. La ligne de fermeture a été ajoutée sous ce
+     commentaire sans le rejuger. Conséquence mesurée : une entreprise suspendue pour impayé
+     qui régularise restait bloquée POUR TOUJOURS — 403 sur tous ses appareils — pendant que la
+     Tour, l'annuaire et Firebase la disaient active. C'est « croire une entreprise ouverte
+     alors qu'elle est fermée », l'exact symétrique de la panne que ce dépôt nomme, et il n'y
+     avait aucun écran pour la rouvrir. */
+  if (rouvrir) {
+    const ouv = socleOuvrir(t);
+    return res.json({ ok: true, suspendu: false, socle: ouv.fait, socleMotif: ouv.motif });
+  }
+  /* ⛔⛔ SUSPENDRE NE COUPE PLUS RIEN — DÉCISION DE JUSTIN, 20 SEPTEMBRE 2026.
+     « Pour continuer à lire, ils auront un délai de 7 jours. Si c'est pas payé après dans les
+     7 jours, tous les onglets deviennent gris. Aucune sauvegarde n'est perdue, aucune tâche
+     qu'ils étaient en train de faire, rien n'est perdu, même dans leur catégorie. Juste les
+     catégories payantes deviennent grisées et ils reviennent au forfait gratuit. »
+
+     Une suspension est donc désormais un ÉTAT DE FACTURATION, pas une coupure d'accès :
+     l'entreprise continue de lire, d'écrire et de synchroniser. Couper Firebase et fermer le
+     socle faisait exactement l'inverse — et le jour où le socle est la seule copie à jour,
+     ça aurait coupé un impayé de ses propres données, en contradiction directe avec
+     `mentions-legales.html:74` (« un impayé n'entraîne aucune suppression », « le client
+     retrouve l'intégralité de ses données »).
+
+     ⛔⛔ CE QU'IL FAUT SAVOIR AVANT DE PUBLIER CECI, ET QUI N'EST PAS UN DÉTAIL : la contrainte
+     qui remplace la coupure — les onglets payants qui grisent au bout de sept jours et le
+     retour au forfait gratuit — N'EXISTE PAS ENCORE. Tant qu'elle n'est pas écrite côté
+     application, ce bouton MARQUE une entreprise sans rien lui interdire. C'est un trou
+     d'application temporaire, assumé, et il est nommé dans REPRISE.md. Ne pas le découvrir en
+     production.
+
+     ⚠️ Et la réponse DIT la vérité : `coupure:false`. Une Tour qui afficherait une coupure qui
+     n'a pas eu lieu, c'est « croire une entreprise coupée alors qu'elle ne l'est pas » — la
+     panne silencieuse type de ce dépôt, celle que `fbRevoquerEquipe` documente déjà. */
+  res.json({ ok: true, suspendu: true, coupure: false,
+    /* La Tour a besoin du départ du délai pour l'afficher — et l'afficher est la seule façon
+       de ne pas découvrir un sursis écoulé par un appel de client. */
+    depuis: entFermes.suspendusLe[t] || null,
+    sursisJours: 7,
+    coupureMotif: 'suspension sans coupure : l\'entreprise garde l\'accès à ses données. '
+      + 'Ce qui change est son abonnement — les fonctions payantes grisent au bout de sept jours.' });
 });
 app.post('/api/espaces/relance', (req, res) => {
   // borné AVANT espSlug : son normalize('NFD') sur 6 Mo gèle la boucle d'événements, donc toute l'API
@@ -4305,15 +4933,104 @@ app.post('/api/espaces/lien', (req, res) => {
 //    puis retrait de la liste, du nom, du lien, de la formule — et les applications
 //    des appareils reliés se vident toutes seules à leur prochain lancement. ──
 const FERMES_PATH = path.join(DATA_DIR, 'entreprises-fermees.json');
-let entFermes = { emails: [], espaces: [], suspendus: [] };
-try { entFermes = JSON.parse(fs.readFileSync(FERMES_PATH, 'utf8')); } catch (e) {}
+/* ⛔ `suspendusLe` : LA DATE SANS LAQUELLE LES SEPT JOURS NE PEUVENT PAS SE COMPTER.
+   Justin, 20 septembre 2026 : « pour continuer à lire, ils auront un délai de 7 jours. Si
+   c'est pas payé après, tous les onglets deviennent gris. » La suspension était enregistrée
+   comme une simple LISTE d'identifiants : aucun moment de départ, donc le délai n'était pas
+   calculable — par personne, jamais.
+   ⚠️ Et ce n'est pas un détail qu'on rattrape plus tard : le jour où l'écran sera écrit, une
+   date ajoutée APRÈS coup donnerait à toute entreprise déjà suspendue soit un délai NEUF de
+   sept jours (un impayé de trois mois repart à zéro), soit un délai DÉJÀ ÉCOULÉ (des onglets
+   qui grisent sans prévenir). Les deux sont faux, et les deux se découvrent chez un client.
+   On date donc MAINTENANT, avant que l'écran existe.
+   ⛔ CE FICHIER NE DÉCIDE DE RIEN D'AUTRE. Quels onglets grisent, ce qu'est exactement le
+   forfait gratuit, à quoi ressemble le rappel quotidien réservé au compte admin : ce sont des
+   décisions de produit, elles appartiennent à Justin. Voir REPRISE.md. */
+let entFermes = { emails: [], espaces: [], suspendus: [], suspendusLe: {} };
+/* ⛔⛔ UNE LISTE DE FERMETURES ILLISIBLE ROUVRE TOUT LE MONDE — même règle que `espacesIllisible`
+   (24 septembre 2026, relevé par `gardien`). La lecture se taisait : toutes les entreprises
+   FERMÉES retrouvaient leur jeton, leurs copies, leur connexion ; et la première suspension ou
+   fermeture réécrivait le fichier abîmé avec la seule nouvelle entrée — les fermetures d'avant
+   perdues pour toujours. On le dit, et `fermesSave` refuse d'écrire par-dessus. */
+let fermesIllisible = false;
+try { entFermes = JSON.parse(fs.readFileSync(FERMES_PATH, 'utf8')); }
+catch (e) { if (e && e.code !== 'ENOENT') { fermesIllisible = true; console.error('⛔ entreprises-fermees.json ILLISIBLE — les fermetures ne s\'appliquent plus, et le fichier ne sera pas réécrit tant qu\'il n\'est pas réparé :', e.message); } }
+/* ⚠️ UN FICHIER ÉCRIT AVANT CE JOUR N'A PAS `suspendusLe`. On le complète à la lecture, et
+   on DATE les suspensions déjà en cours au moment où on les découvre — c'est le moins faux
+   des choix possibles : on ne sait pas quand elles ont commencé, et leur donner zéro ferait
+   griser des onglets à la seconde où l'écran sera publié. Une seule fois, puis c'est écrit. */
+if (!entFermes.suspendusLe || typeof entFermes.suspendusLe !== 'object') entFermes.suspendusLe = {};
+{
+  let aDater = 0;
+  for (const t of (entFermes.suspendus || [])) if (!entFermes.suspendusLe[t]) { entFermes.suspendusLe[t] = Date.now(); aDater++; }
+  if (aDater) { console.log('suspensions sans date reprises :', aDater, '(datées d’aujourd’hui, faute de mieux)'); try { fermesSave(); } catch (e) {} }
+}
 /* Les fichiers d'avant la suspension depuis la Tour n'ont pas ce champ. Vide et non
    « tout » : ce qui s'y trouvait déjà vient d'une fermeture d'entreprise, et ne doit
    surtout pas devenir réouvrable d'un clic. */
 if (!Array.isArray(entFermes.emails)) entFermes.emails = [];
 if (!Array.isArray(entFermes.espaces)) entFermes.espaces = [];
 if (!Array.isArray(entFermes.suspendus)) entFermes.suspendus = [];
-function fermesSave() { try { fs.writeFileSync(FERMES_PATH, JSON.stringify(entFermes)); return true; } catch (e) { console.error('entreprises-fermees.json non écrit :', e.message); return false; } }
+/* ⛔ TEMPORAIRE PUIS RENOMMAGE, comme `espacesEcrire` : écrit en place, un disque plein ou un arrêt au
+   mauvais moment laissait un fichier TRONQUÉ — lu ensuite comme illisible, c'est-à-dire toutes les
+   fermetures oubliées. Et jamais par-dessus un fichier qu'on n'a pas pu lire (`fermesIllisible`). */
+function fermesSave() {
+  if (fermesIllisible) { console.error('⛔ entreprises-fermees.json NON réécrit : il était illisible au démarrage — le réparer, puis redémarrer'); return false; }
+  try { const tmp = FERMES_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(entFermes)); fs.renameSync(tmp, FERMES_PATH); return true; }
+  catch (e) { console.error('entreprises-fermees.json non écrit :', e.message); return false; } }
+
+/* ⛔⛔ OÙ EN EST LE SURSIS DE SEPT JOURS — UNE SEULE DÉFINITION, DEUX APPELANTS.
+   Elle vivait en arrow dans le montage du socle, donc invisible au reste du fichier ; et
+   `/api/espaces/etat`, la seule route que l'APPLICATION interroge, ne pouvait pas la voir.
+   Deux copies auraient un jour compté deux délais différents — la règle `fbUidEquipe` de
+   `CLAUDE.md`. Elle est donc ici, à côté d'`entFermes`, et le socle l'appelle.
+   Trois valeurs, jamais deux : `null` = sans objet (l'entreprise n'est pas suspendue),
+   un nombre > 0 = il reste des jours, `0` = le sursis est fini. Rendre `0` pour « sans
+   objet » griserait les onglets de tout le monde.
+   ⛔ PLAFONNÉ À SEPT AUTANT QUE PLANCHÉ À ZÉRO : une date dans le FUTUR — l'horloge du VPS
+   qui recule, un fichier repris à la main — rendait 7 + l'écart. Mesuré : une date à
+   +30 jours donnait 37 jours de sursis, en silence, à une entreprise qui ne paye pas. */
+function sursisJoursDe(t) {
+  try {
+    const k = String(t || '');
+    if (!(entFermes.suspendus || []).includes(k)) return null;
+    const depuis = (entFermes.suspendusLe || {})[k];
+    if (!depuis) return null;
+    return Math.max(0, Math.min(7, 7 - Math.floor((Date.now() - depuis) / 86400000)));
+  } catch (e) { return null; }
+}
+/* `true` suspendu (abonnement en défaut, mais l'entreprise TRAVAILLE), `false` sinon.
+   ⛔ ET UNE ENTREPRISE SORTIE DE L'ANNUAIRE N'EST PLUS « SUSPENDUE », MÊME SI LA LISTE LE DIT
+   ENCORE. Les deux fermetures définitives (fermer un client, supprimer une entreprise) ajoutent
+   l'identifiant à `entFermes.espaces` et retirent l'entreprise de l'annuaire — mais jusqu'au
+   24 septembre 2026 elles ne le retiraient PAS de `suspendus`. Une entreprise suspendue PUIS
+   fermée restait donc « suspendue » : `/api/espaces/etat` lui rendait son état normal au lieu
+   de `ferme` (ses appareils ne se vidaient jamais), le socle la laissait ouvrir sa session, et
+   la Tour affichait « Rouvrir » sur une fermeture qui avait exigé un code par courriel.
+   Les fermetures la retirent désormais de la liste ; pour un fichier écrit AVANT, on exige que
+   l'entreprise soit encore à l'annuaire. ⚠️ Calculé à chaque appel, JAMAIS écrit : réparer le
+   fichier au démarrage ferait condamner pour de bon toutes les suspendues le jour où
+   `espaces.json` est tronqué (il les sort toutes de l'annuaire d'un coup) — et le restaurer ne
+   les rendrait pas. */
+function espaceEstSuspendu(t) { try { const k = String(t || '');
+  /* ⚠️ `espacesIllisible` : un annuaire qu'on n'a pas pu lire ne dit pas qui en est SORTI — on garde
+     alors la liste telle quelle plutôt que de condamner toutes les suspendues. */
+  return (entFermes.suspendus || []).includes(k) && (espacesIllisible || !!espaceParT(k)); } catch (e) { return false; } }
+/* ⛔⛔ FERMÉE N'EST PAS SUSPENDUE — UNE SEULE QUESTION, UNE SEULE FONCTION (24 septembre 2026).
+   `entFermes.espaces` porte les DEUX états : la fermeture définitive et la simple suspension
+   pour impayé. Justin, 20 septembre 2026 : une suspension est un ÉTAT DE FACTURATION — « rien
+   n'est perdu », sept jours d'accès complet puis le forfait gratuit, « c'est pas aux
+   utilisateurs de savoir si l'entreprise paye ou pas ». La route de suspension ne coupait
+   plus Firebase depuis ce jour-là ; mais ONZE portes lisaient encore la liste en bloc, et
+   refusaient donc un impayé comme une entreprise partie : son jeton Firebase (plus de synchro
+   sur un appareil neuf), ses photos (les pièces jointes passent par `sauvRefus`), ses copies
+   de sauvegarde, sa connexion par nom et code comme par identifiant, le dépôt de son annuaire,
+   ses ordres, ses abonnements aux notifications, son courrier REÇU (jeté à la relève), ses
+   rapports d'erreur et ses connexions (invisibles à la Tour). Relevé par `gardien` avant tout
+   déploiement. Le socle et `/api/espaces/etat` faisaient déjà la différence, chacun à sa façon.
+   ⛔ Toute porte qui refuse un espace fermé lit CETTE fonction, jamais `entFermes.espaces`
+   directement — `tests/test-641.js` compte les lectures directes. */
+function espaceFerme(t) { const k = String(t || ''); return entFermes.espaces.includes(k) && !espaceEstSuspendu(k); }
 /* ══ LA VERSION MINIMALE ET LE MODE EN LIGNE — réglés depuis la Tour, 9 septembre 2026 ══
    Ce qui a détruit les comptes d'ELAN : un appareil en vieille version qui réécrit toute la base
    toutes les deux minutes. On ne met pas à jour un appareil qu'on ne tient pas ; on lui ferme la
@@ -4694,7 +5411,10 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
     if ((e.email || '').toLowerCase() === email) {
       let t = e.t;
       try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
+      /* ⛔ FERMER DÉFINITIVEMENT RETIRE LA SUSPENSION : sinon une entreprise suspendue puis
+         fermée restait « suspendue », donc ouverte (voir `espaceEstSuspendu`). */
       if (t) { if (!entFermes.espaces.includes(t)) entFermes.espaces.push(t); espacesAEffacer.push(t);
+        entFermes.suspendus = (entFermes.suspendus || []).filter(x => x !== t); delete (entFermes.suspendusLe || {})[t];
         delete accesReg[t]; delete comptesReg[t]; }   // le code d'accès ET l'annuaire de connexion s'en vont avec l'espace, sinon ils ouvrent encore
       delete espacesReg[slug];
     }
@@ -4723,6 +5443,12 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      n'est borné par rien, et nginx rend 504 à 60 s — en série, trois espaces suffisaient à
      faire croire la route plantée pendant qu'elle détruisait. */
   const coupures = await Promise.all(espacesAEffacer.map(tf => fbRevoquerEquipe(tf)));
+  /* Suppression : on COUPE d'abord, on efface ensuite — un appareil qui tient encore un jeton
+     valable recréerait sinon ce qu'on vient d'enlever. */
+  for (let i = 0; i < espacesAEffacer.length; i++) {
+    const cs = socleCouper(espacesAEffacer[i], 'suppression'); if (!cs.fait) coupures[i] = { fait: false, motif: cs.motif };
+    const ef = socleEffacer(espacesAEffacer[i]); if (!ef.ok) coupures[i] = { fait: false, motif: ef.motif };
+  }
   // Effacement DÉFINITIF des données chiffrées de l'entreprise sur Firestore :
   // plus rien n'est enregistré, la place est libérée. (Les appareils reliés se
   // vident de toute façon au prochain lancement via le blocage entFermes.)
@@ -4853,8 +5579,9 @@ function entInventaire(t) {
      avec un teamId supprimé et le réécrit dans replies.jsonl qu'on vient de purger. */
   let bonsEnvoyes = 0;
   try { for (const l of fs.readFileSync(SENTMAP_PATH, 'utf8').trim().split('\n')) { try { const x = JSON.parse(l); if (x && x.teamId === t) bonsEnvoyes++; } catch (err) {} } } catch (err) {}
-  const promos = [];
-  for (const [code, u] of Object.entries(promoUsages || {})) if (u && u.equipes && u.equipes[t]) promos.push(code);
+  /* Par l'identifiant ET par l'empreinte de l'e-mail : une utilisation d'avant « repartir à neuf »
+     appartient à la même entreprise (voir `promoCles`). */
+  const promos = [...new Set(promoCles(t, slugs, emails).map(x => x.code))];
   const cnx = cnxData[t] || [];
   const usage = usageData[t] || null;
   /* comptesAnnuaire est une PREUVE, pas un indice : comptesReg[t] ne peut être écrit que par
@@ -4872,7 +5599,7 @@ function entInventaire(t) {
   return {
     t, nom, slugs, emails: [...emails], adressesCourrier: aPurger, partagees, comptesSiteHorsAnnuaire,
     dansAnnuaire: slugs.length > 0,
-    dejaFerme: entFermes.espaces.includes(t),
+    dejaFerme: espaceFerme(t),   // une SUSPENDUE n'est pas « déjà fermée » : sa suppression ferme vraiment quelque chose
     boites: boites.length, abonnesPush: abos.length,
     codeAcces: !!accesReg[t], comptesAnnuaire: comptes, copiesSauvegarde: sauvListe(t).length,
     devisIA: !!devisAcces[t],
@@ -4911,6 +5638,78 @@ function entInventaire(t) {
    l'efface depuis la Tour en croyant faire du ménage. On ne le retirera d'ici que le jour où
    plus aucun appareil n'y signale. */
 const ESPACES_INTOUCHABLES = ['elan-gestion', 'elan-gestion-beta', 'opgestion-beta'];
+
+/* ⛔⛔ L'HORLOGE SE MONTE **APRÈS** `ESPACES_INTOUCHABLES`, ET CE N'EST PAS UN DÉTAIL DE STYLE.
+   Mesuré le 21 septembre 2026 : montée 1 700 lignes plus haut, son balayage initial jetait
+   `Cannot access 'ESPACES_INTOUCHABLES' before initialization`, ne datait RIEN, et `/health`
+   répondait `actif:true, suivis:0` — exactement ce que répond une horloge qui n'a rien à
+   faire. C'est la panne qui a éteint TOUTE la sauvegarde hors site le 19 septembre, dans ce
+   fichier, pour la même raison.
+   ⚠️ ET `typeof` NE GARDE PAS DE ÇA : sur une `const` en zone morte temporelle, `typeof`
+   jette AUSSI — contrairement à une variable simplement non déclarée. La seule réparation
+   honnête est l'ORDRE. Ne pas remonter ce bloc « pour regrouper les montages ». */
+/* ══ L'HORLOGE DE CONSERVATION ═════════════════════════════════════════════════
+   `mentions-legales.html` (article 5) promet que les données sont conservées 24 mois après la
+   fin de l'abonnement, puis supprimées. Rien ne le comptait. Ce module TIENT L'HORLOGE — il ne
+   supprime rien et n'envoie aucun courriel : voir l'en-tête de `conservation.js` pour les deux
+   raisons, dont celle qui compte (un préavis qui annonce une suppression qui n'existe pas est
+   un mensonge à un client).
+   ⛔ CE QUI EST URGENT, ET LA SEULE RAISON DE LE MONTER MAINTENANT : la date ne se rattrape
+   pas. Chaque jour sans elle est un jour perdu pour toujours, et le jour où la suppression
+   s'écrira, il n'y aura que deux choix, tous deux faux — dater tout le monde d'aujourd'hui, ou
+   effacer le jour du déploiement. */
+let conservation = null;
+let etatConservation = { actif: false };
+try {
+  conservation = require('./conservation').monterConservation({
+    dossier: DATA_DIR,
+    journal: (...a) => console.log(...a),
+    /* ⛔ LES ESPACES TECHNIQUES N'ONT PAS D'ABONNEMENT. La même liste que partout ailleurs :
+       une seconde définition finirait par diverger, et l'horloge daterait la bêta. */
+    intouchable: (t) => ESPACES_INTOUCHABLES.includes(String(t || '')),
+    /* ⚠️ ON LIT L'ANNUAIRE, ON N'Y ÉCRIT JAMAIS. `espacePaye()` est déjà la seule autorité sur
+       la question « cette entreprise paie-t-elle ? » ; en fabriquer une seconde ici, c'est le
+       jour où les deux répondent différemment et où l'horloge tourne pour quelqu'un à jour. */
+    /* ⛔⛔ `espacePaye()` EST ASYNCHRONE — elle interroge Stripe. L'appeler sans l'attendre
+       rend une PROMESSE, donc `!!promesse.paye` vaut `!!undefined`, donc FAUX pour tout le
+       monde : une horloge de suppression sur CHAQUE entreprise, y compris celles à jour.
+       Mesuré sur le vrai serveur le 21 septembre 2026. C'était le seul appelant du fichier à
+       ne pas l'attendre — les deux autres font `await` ou `.then()`.
+       ⚠️ UNE À LA FOIS, PAS EN `Promise.all` : un balayage horaire a tout son temps, et
+       lancer un aller-retour Stripe par espace simultanément, c'est se faire limiter par
+       Stripe le jour où il y aura cent clients — pour une tâche de fond qui n'est pressée
+       par personne. */
+    lister: async () => {
+      const sortie = [];
+      for (const slug of Object.keys(espacesReg)) {
+        /* ⛔ L'ENTRÉE ENRICHIE DU SLUG, JAMAIS L'ENTRÉE BRUTE — défaut attrapé par `test-727`
+           sur ce code même. `espacePaye()` rattache l'abonnement par `[e.slug, e.t]`, et
+           l'entrée du registre ne porte PAS de `slug` : la passer brute ferait répondre
+           « ne paie pas » sur une entreprise à jour, donc démarrer une horloge de suppression
+           sur un client qui paye. Le slug se recolle AU POINT D'APPEL, et il doit s'y voir :
+           le cacher derrière une variable ferait taire le banc sans rien réparer. */
+        const e = espacesReg[slug];
+        const t = espaceT(e);
+        if (!t) continue;
+        let paye = true, motif = '';
+        /* ⛔ EN CAS DE DOUTE, ON DIT « ÇA PAIE ». Une exception ici ne doit JAMAIS démarrer une
+           horloge de suppression : entre une horloge en retard et une horloge qui tourne à
+           tort sur un client à jour, il n'y a pas d'hésitation. */
+        /* ⛔ `lecture: true` : balayer n'ACTIVE aucun code promo en attente (voir `espacePaye`). */
+        try { const r = await espacePaye(Object.assign({}, e, { slug: slug }), { lecture: true }); paye = !!r.paye; motif = String(r.motif || ''); }
+        catch (err) { paye = true; motif = ''; }
+        sortie.push({ t: t, paye: paye, motif: motif });
+      }
+      return sortie;
+    },
+  });
+  etatConservation = { actif: true };
+  console.log('conservation : horloge montée (' + conservation.sante().suivis + ' suivie(s))');
+} catch (e) {
+  console.error('conservation NON montée —', e && e.message);
+  conservation = null;
+  etatConservation = { actif: false, erreur: 'montage' };
+}
 const REFUS_INTOUCHABLE = 'Cet identifiant n\'est pas une entreprise : c\'est l\'espace par défaut de l\'application. '
   + 'Tout appareil qui n\'a rejoint aucun espace y signale ses connexions, et ses données sont partagées par toutes '
   + 'les entreprises qui n\'ont jamais reçu de clé personnalisée. Le supprimer les effacerait toutes à la fois.';
@@ -5005,6 +5804,9 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   // ── 1. LE BLOCAGE D'ABORD. Sans lui, le premier appareil qui rouvre repousse toute sa
   //       base chiffrée et défait tout ce qui suit. Voir app.html vers la ligne 5131.
   if (!entFermes.espaces.includes(t)) entFermes.espaces.push(t);
+  /* ⛔ SUPPRIMER RETIRE LA SUSPENSION — même raison que la fermeture d'un client : sinon
+     l'entreprise supprimée restait « suspendue », donc ouverte (voir `espaceEstSuspendu`). */
+  entFermes.suspendus = (entFermes.suspendus || []).filter(x => x !== t); delete (entFermes.suspendusLe || {})[t];
   for (const m of inv.emails) if (!entFermes.emails.includes(m)) entFermes.emails.push(m);
   const fermesOk = fermesSave();
   if (!fermesOk) return res.status(500).json({ error: 'Le blocage de l\'espace n\'a pas pu être enregistré — RIEN n\'a été supprimé. Vérifie le serveur (disque plein ?) avant de recommencer.' });
@@ -5013,7 +5815,9 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
      retire le droit d'écrire à un appareil qui ne redemande rien — c'est ce qui empêche la base
      chiffrée de revenir après tout ce qu'on efface en dessous. Elle se dit aussi : `fait` est
      recopié tel quel dans la réponse, donc dans ce que la Tour affiche. */
-  { const c = await fbRevoquerEquipe(t); fait.coupure = c.fait; fait.coupureMotif = c.motif; }
+  { const c = await fbRevoquerEquipe(t); const cs = socleCouper(t, 'suppression'); const ef = socleEffacer(t);
+    fait.coupure = c.fait && cs.fait && ef.ok;
+    fait.coupureMotif = [c.motif, cs.fait ? null : cs.motif, ef.ok ? null : ef.motif].filter(Boolean).join(' — '); }
 
   // ── 2. LES BOÎTES MAIL. releveBoite() les relit toutes les 120 s : tant qu'elles sont là,
   //       le serveur se reconnecte et réécrit dans replies.jsonl ce qu'on va en retirer.
@@ -5057,7 +5861,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.connexions = inv.connexions;
   if (devisAcces[t]) { delete devisAcces[t]; saveDevisAcces(); }
   fait.devisIA = !!inv.devisIA;
-  if (inv.promos.length) { for (const code of inv.promos) { if (promoUsages[code] && promoUsages[code].equipes) delete promoUsages[code].equipes[t]; } savePromoUsages(); }
+  if (inv.promos.length) promoEffacerEntreprise(t, inv.slugs, inv.emails);
   fait.promos = inv.promos.length;
 
   // ── 5. L'annuaire EN DERNIER parmi les registres : il est le seul à relier nom, slug,
@@ -6019,21 +6823,29 @@ app.post('/api/clients/sync', async (req, res) => {
       let tEsp = esp && esp.t;
       if (esp && !tEsp) { try { tEsp = String(JSON.parse(Buffer.from(esp.code, 'base64').toString('utf8')).t || ''); } catch (e2) {} }
       const u = tEsp ? (promoUsages[pc] || { n: 0, equipes: {} }) : null;
+      /* ⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE (voir `promoPresente`) : déjà servi, il ne se
+         réactive pas ici — le portail le renvoie à CHAQUE synchro tant que SA propre offre court.
+         Une période encore en cours sous un ancien identifiant (« repartir à neuf ») se reporte. */
+      const pres = u ? promoPresente(pc, tEsp, '') : null;
       /* Un autre code déjà en cours pour cet espace : on ne l'empile pas. Même règle, même
          raison qu'à la Tour — deux codes actifs rendent l'échéance réelle illisible. */
       let autre = '';
-      if (u && !u.equipes[tEsp]) {
+      if (pres && pres.etat === 'neuf') {
         const auj = new Date().toISOString().slice(0, 10);
-        for (const [c2, u2] of Object.entries(promoUsages || {})) {
-          const eq2 = u2 && u2.equipes && u2.equipes[tEsp];
-          if (c2 !== pc && eq2 && eq2.finLe && eq2.finLe >= auj) { autre = c2; break; }
+        for (const [c2] of Object.entries(promoUsages || {})) {
+          const eq2 = c2 !== pc ? promoServiA(c2, tEsp, '') : null;
+          if (eq2 && eq2.finLe && eq2.finLe >= auj) { autre = c2; break; }
         }
       }
-      if (u && !u.equipes[tEsp] && !autre && !(pDef.maxUtilisations && u.n >= pDef.maxUtilisations)) {
-        const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(pDef.mois) || 1));
-        const finLe = dF.toISOString().slice(0, 10);
-        u.n++; u.equipes[tEsp] = { date: new Date().toISOString().slice(0, 10), finLe };
-        promoUsages[pc] = u; savePromoUsages();
+      const nouveau = !!(pres && pres.etat === 'neuf' && !autre && !(pDef.maxUtilisations && u.n >= pDef.maxUtilisations));
+      if (nouveau || (pres && pres.reporte)) {
+        let finLe = pres.finLe;
+        if (nouveau) {
+          const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(pDef.mois) || 1));
+          finLe = dF.toISOString().slice(0, 10);
+          u.n++; u.equipes[tEsp] = promoEntree(finLe, tEsp, '');
+          promoUsages[pc] = u; savePromoUsages();
+        }
         /* ⛔ SANS CES DEUX LIGNES, LE CODE EST CONSOMMÉ ET L'APPLICATION RESTE VERROUILLÉE.
            espacePaye() sort sur « aucune formule » AVANT même de regarder promoUsages : un
            espace qui n'a pas encore de formule voyait donc son code décompté, recevait
@@ -6050,8 +6862,8 @@ app.post('/api/clients/sync', async (req, res) => {
           if (!eMaj.formule || eMaj.formule === 'gratuit') { eMaj.formule = fPromo; eMaj.quantite = eMaj.quantite || 1; eMaj.formulePar = 'code ' + pc + ' (site)'; eMaj.formuleTs = Date.now(); }
           espacesEcrire();
         }
-        console.log('code promo du site relayé →', pc, tEsp, 'fin', finLe);
-        mailPromoActive(tEsp, pc, finLe, fPromo);
+        if (nouveau) { console.log('code promo du site relayé →', pc, tEsp, 'fin', finLe);
+          mailPromoActive(tEsp, pc, finLe, fPromo); }
       }
     } else if (pc) {
       /* Le code seul, sans l'adresse ni l'espace : savoir qu'un code inconnu a été tenté
@@ -6099,34 +6911,41 @@ app.post('/api/clients/sync', async (req, res) => {
       const enrAuto = auto.t ? accesCodeDe(auto.t, 'inscription automatique') : null;
       const accesAuto = enrAuto ? enrAuto.code : '';
       // activation du code pour cet espace : la formule est offerte, sans carte bancaire
-      let promoActif = null;
-      if (promoDef) { const eEsp = espacesReg[auto.slug];
-        if (eEsp && eEsp.codePromo !== promoDef.code) { eEsp.codePromo = promoDef.code;
-          espacesEcrire(); } }
+      /* ⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE (Justin, 24 septembre 2026 — voir `promoPresente`).
+         Une entreprise qui refait une demande avec un code déjà servi recevait « votre code est
+         activé … jusqu'au » une date PASSÉE, et aucun lien de paiement. Elle reçoit désormais le
+         refus, dit en clair, et le chemin du paiement. `promoRefuse` = le code et sa fin passée. */
+      let promoActif = null, promoRefuse = null;
       if (promoDef && auto.t) {
         const u = promoUsages[promoDef.code] || { n: 0, equipes: {} };
-        const deja = u.equipes[auto.t];
+        const pres = promoPresente(promoDef.code, auto.t, auto.slug);
+        if (pres.etat === 'servi') promoRefuse = { code: promoDef.code, finLe: pres.finLe };
         /* « Un seul code à la fois », la règle que font déjà la Tour, /api/promo/valider et
            le relais juste au-dessus : ce quatrième chemin était le dernier à ne pas la faire.
            Deux codes actifs rendent l'échéance réelle illisible — pour le client comme pour
            la Tour, qui affiche le premier trouvé. */
         let autreActif = '';
-        if (!deja) {
+        if (pres.etat === 'neuf') {
           const auj = new Date().toISOString().slice(0, 10);
-          for (const [c2, u2] of Object.entries(promoUsages || {})) {
-            const eq2 = u2 && u2.equipes && u2.equipes[auto.t];
-            if (c2 !== promoDef.code && eq2 && eq2.finLe && eq2.finLe >= auj) { autreActif = c2; break; }
+          for (const [c2] of Object.entries(promoUsages || {})) {
+            const eq2 = c2 !== promoDef.code ? promoServiA(c2, auto.t, auto.slug) : null;
+            if (eq2 && eq2.finLe && eq2.finLe >= auj) { autreActif = c2; break; }
           }
         }
-        if (deja) promoActif = Object.assign({}, promoDef, { finLe: deja.finLe });
-        else if (!autreActif && !(promoDef.max && u.n >= promoDef.max)) {
+        if (pres.etat === 'actif') promoActif = Object.assign({}, promoDef, { finLe: pres.finLe, deja: true });
+        else if (pres.etat === 'neuf' && !autreActif && !(promoDef.max && u.n >= promoDef.max)) {
           const dF = new Date(); dF.setMonth(dF.getMonth() + promoDef.mois);
           const finLe = dF.toISOString().slice(0, 10);
-          u.n++; u.equipes[auto.t] = { date: new Date().toISOString().slice(0, 10), finLe };
+          u.n++; u.equipes[auto.t] = promoEntree(finLe, auto.t, auto.slug);
           promoUsages[promoDef.code] = u; savePromoUsages();
           promoActif = Object.assign({}, promoDef, { finLe });
         }
       }
+      /* `codePromo` est ce que relit le rattrapage d'`espacePaye()` : on ne le pose jamais pour un
+         code refusé — il ne se réactiverait pas (`promoServiA`), mais la Tour le lirait comme « en attente ». */
+      if (promoDef && !promoRefuse) { const eEsp = espacesReg[auto.slug];
+        if (eEsp && eEsp.codePromo !== promoDef.code) { eEsp.codePromo = promoDef.code;
+          espacesEcrire(); } }
       const promoLib = promoActif ? ({ pro: 'Pro', business: 'Business', premium: 'Business Premium' }[promoActif.formule] || promoActif.formule) : '';
       // les demandes qui viennent d'arriver sont marquées traitées (le lien est parti)
       for (let i = avant; i < demandes.length; i++) clientsData[email].demandesTraitees[i] = { par: 'auto — adresse envoyée', ts: Date.now() };
@@ -6143,8 +6962,9 @@ app.post('/api/clients/sync', async (req, res) => {
         'Nom à taper sur la page de connexion : « ' + auto.nom + ' »\n' +
         (auto.neuf ? 'Première connexion : identifiant « ' + auto.ident + ' » · mot de passe provisoire « ' + auto.mdp + ' » (son nom + !!) — l\'app lui fait choisir son vrai mot de passe.\n'
                    : 'Connexion : ses identifiants habituels.\n') +
-        (promoActif ? '🎁 Code teste « ' + promoActif.code + ' » activé : ' + promoLib + ' offert jusqu\'au ' + promoActif.finLe + ' — espace débloqué SANS paiement.'
+        (promoActif ? '🎁 Code teste « ' + promoActif.code + ' » ' + (promoActif.deja ? 'DÉJÀ ACTIF pour cette entreprise (rien de recompté)' : 'activé') + ' : ' + promoLib + ' offert jusqu\'au ' + promoDateFr(promoActif.finLe) + ' — espace débloqué SANS paiement.'
           : (dCode.code && !promoDef ? '⚠️ Code « ' + dCode.code + ' » INCONNU — ignoré.\n' : '') +
+            (promoRefuse ? '⛔ Code « ' + promoRefuse.code + ' » REFUSÉ : déjà utilisé par cette entreprise' + (promoRefuse.finLe ? ' (période offerte terminée le ' + promoDateFr(promoRefuse.finLe) + ')' : '') + ' — un code ne sert qu\'une fois par entreprise.\n' : '') +
             (auto.formule ? 'Formule enregistrée : ' + auto.formule + ' × ' + auto.quantite + ' — se débloque au paiement (ou code promo).'
                           : 'Formule non précisée par le client → à attribuer dans ta Tour (Abonnements).')) +
         '\n\nTout est visible dans ta Tour de contrôle : https://teamop.fr/tour.html';
@@ -6163,17 +6983,21 @@ app.post('/api/clients/sync', async (req, res) => {
         (accesAuto
           ? 'VOTRE TOUTE PREMIÈRE CONNEXION — une seule fois, pour ouvrir l\'espace :\nSur cette adresse, touchez « Première connexion de l\'entreprise ? » et entrez votre code d\'accès :\n\n     ' + accesAuto + '\n\nGardez ce code pour vous : il ouvre votre espace.\n\n'
           : 'Écrivez-nous pour recevoir votre code d\'accès : il ouvre votre espace la première fois.\n\n') + premiereCo +
-        (promoActif ? '\n🎁 Votre code « ' + promoActif.code + ' » est activé : formule ' + promoLib + ' offerte jusqu\'au ' + promoActif.finLe + ' — aucune carte bancaire requise.\n' : '') +
+        (promoActif ? '\n🎁 Votre code « ' + promoActif.code + ' » est ' + (promoActif.deja ? 'déjà actif' : 'activé') + ' : formule ' + promoLib + ' offerte jusqu\'au ' + promoDateFr(promoActif.finLe) + ' — aucune carte bancaire requise.\n'
+          : promoRefuse ? '\n⚠️ ' + promoRefusServi(promoRefuse.code, promoRefuse.finLe).replace('cette entreprise', 'votre entreprise') + ' Votre formule s\'activera dès le paiement de votre abonnement (Mon espace client → Mon abonnement) ; vos données ne sont jamais perdues.\n' : '') +
         '\nEnsuite, créez les comptes de vos collègues dans Administration → Utilisateurs.\n\n' +
         '— L\'équipe TEAM OP · teamop.fr';
       const premiereCoHtml = auto.neuf
         ? MAIL_BLOCS.ident(auto.ident, auto.mdp) + '<br><br>'
         : 'Connectez-vous avec vos <b>identifiants habituels</b>.<br><br>';
       const payer = promoActif
-        ? '🎁 Votre code « ' + promoActif.code + ' » est activé : formule <b>' + promoLib + '</b> offerte jusqu\'au <b>' + promoActif.finLe + '</b> — aucune carte bancaire requise.<br>'
-        : (auto.formule && auto.formule !== 'gratuit')
-        ? '💳 Votre formule « ' + (dFormule.formule || auto.formule) + ' » s\'activera dès le paiement de votre abonnement (Mon espace client → Mon abonnement). En attendant, l\'application fonctionne en mode Découverte.<br>'
-        : '';
+        ? '🎁 Votre code « ' + promoActif.code + ' » est ' + (promoActif.deja ? 'déjà actif' : 'activé') + ' : formule <b>' + promoLib + '</b> offerte jusqu\'au <b>' + promoDateFr(promoActif.finLe) + '</b> — aucune carte bancaire requise.<br>'
+        /* Le refus d'un code déjà servi : son texte vient de `promoRefusServi` (le code sort de
+           config.promos, la date du registre — rien qui vienne du client). */
+        : (promoRefuse ? '⚠️ ' + promoRefusServi(promoRefuse.code, promoRefuse.finLe).replace('cette entreprise', 'votre entreprise') + '<br>' : '') +
+          ((auto.formule && auto.formule !== 'gratuit')
+            ? '💳 Votre formule « ' + (dFormule.formule || auto.formule) + ' » s\'activera dès le paiement de votre abonnement (Mon espace client → Mon abonnement). En attendant, l\'application fonctionne en mode Découverte.<br>'
+            : '');
       const accuseHtml = mailTeamOP({
         chip: 'Accès prêt',
         titre: 'Votre application est prête 🎉',
@@ -6853,8 +7677,171 @@ app.post('/api/monitor/devisia', monAdmin, (req, res) => {
    data/promos-usages.json — un même code ne compte qu'une fois par équipe. */
 const PROMO_USAGE_PATH = path.join(DATA_DIR, 'promos-usages.json');
 let promoUsages = {};
-try { promoUsages = JSON.parse(fs.readFileSync(PROMO_USAGE_PATH, 'utf8')); } catch (e) {}
-function savePromoUsages() { try { fs.writeFileSync(PROMO_USAGE_PATH, JSON.stringify(promoUsages)); } catch (e) {} }
+/* ⛔ UN REGISTRE ILLISIBLE N'EST PAS UN REGISTRE VIDE — la règle de l'annuaire (`espacesIllisible`,
+   relevée par `gardien` le 24 septembre 2026), appliquée aux codes le même jour. Relu vide, ce
+   fichier OUBLIE quelles entreprises ont déjà servi leur code : chacune pourrait le remettre (voir
+   `promoServiA`), et chaque période offerte en cours sortirait du calcul d'`espacePaye()`. On le DIT
+   (journal, `/health.registres.promos`, la surveillance crie) et on n'écrit plus par-dessus. */
+let promosIllisible = false;
+try { promoUsages = JSON.parse(fs.readFileSync(PROMO_USAGE_PATH, 'utf8')); }
+catch (e) { if (e && e.code !== 'ENOENT') { promosIllisible = true; console.error('⛔ promos-usages.json ILLISIBLE — les codes déjà servis sont oubliés en mémoire, et le fichier ne sera pas réécrit tant qu\'il n\'est pas réparé :', e.message); } }
+/* Temporaire puis renommage : un fichier tronqué à l'écriture, c'est le même oubli que plus haut. */
+function savePromoUsages() {
+  if (promosIllisible) { console.error('⛔ promos-usages.json NON réécrit : il était illisible au démarrage — le réparer, puis redémarrer'); return false; }
+  try { const tmp = PROMO_USAGE_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(promoUsages)); fs.renameSync(tmp, PROMO_USAGE_PATH); return true; }
+  catch (e) { console.error('promos-usages.json non écrit :', e.message); return false; } }
+
+/* ══ ⛔⛔ UN CODE PROMO SERT UNE FOIS PAR ENTREPRISE — Justin, 24 septembre 2026 ═══════════════════
+   « Une fois qu'une entreprise l'a activé, ils peuvent pas le remettre. »
+   L'échéance ne se prolongeait déjà jamais : retaper un code rendait la MÊME date. Mais :
+   · la réponse disait « ok » — l'application affichait « 🎉 Code accepté ! » et repassait toute
+     l'équipe en formule payante jusqu'à la vérification suivante ; le courriel d'une demande faite
+     sur le site écrivait « votre code est activé … jusqu'au » une date PASSÉE, sans lien de paiement ;
+   · « repartir à neuf » (la Tour) donne à l'entreprise un NOUVEL identifiant d'espace : sans
+     mémoire, le même code redevenait neuf pour la même entreprise.
+   Une entreprise se reconnaît d'abord à son identifiant d'espace (`t`). Mais « repartir à neuf »
+   lui en donne un NOUVEAU : chaque utilisation porte donc aussi l'EMPREINTE de l'adresse e-mail de
+   l'entreprise (`em`, jamais l'adresse elle-même), et `/espaces/renaitre` la pose sur les
+   anciennes avant d'effacer l'espace.
+   ⛔ PAS PAR LE NOM D'ACCÈS (le slug de `teamop.fr/e/…`) — relecture de `gardien`, le même jour :
+   un nom libéré (« Supprimer l'accès » passe par `/renaitre`) peut être repris par une AUTRE
+   entreprise, qui héritait alors de la période en cours — ou d'un refus. Une entreprise SANS
+   e-mail (un accès ouvert par la Tour sans adresse) n'a donc pas de mémoire au-delà de son `t` :
+   « repartir à neuf » la remet à zéro. C'est la Tour qui les ouvre, jamais un client.
+   ⚠️ Cette mémoire ne sert qu'à REFUSER — ou à reporter sur le nouvel identifiant une période
+   ENCORE EN COURS, quand l'entreprise la présente avec la preuve de sa clé. Jamais à rendre une
+   entreprise « payée » dans `espacePaye()`, qui ne regarde que `t`.
+   ⚠️ L'empreinte est une donnée PSEUDONYMISÉE, donc encore personnelle au sens du RGPD : qui a le
+   fichier et une adresse candidate peut vérifier qu'elle y figure. Elle part avec la suppression
+   totale de l'entreprise — sauf la mémoire d'une entreprise VIVANTE (`promoEffacerEntreprise`).
+   ⚠️ Deux espaces posés par la Tour sous la MÊME adresse se partagent cette mémoire : l'adresse,
+   c'est l'entreprise (le site dédoublonne par adresse ; la Tour, non — voir REPRISE.md). */
+function promoAujourdhui() { return new Date().toISOString().slice(0, 10); }
+function promoDateFr(d) { return String(d || '').split('-').reverse().join('/'); }
+/* L'empreinte d'une adresse : de quoi RECONNAÎTRE une entreprise, pas de quoi la lire. Le fichier
+   des usages n'a pas à devenir un second carnet d'adresses. */
+function promoEmpreinteMail(email) {
+  const m = String(email || '').trim().toLowerCase();
+  return m ? crypto.createHash('sha256').update('teamop-promo:' + m).digest('hex').slice(0, 24) : ''; }
+/* Qui est cette entreprise : l'empreinte des e-mails de ses entrées d'annuaire (un espace renommé en
+   garde plusieurs), plus celle de l'entrée qu'on connaît. */
+function promoIdentite(t, slug) {
+  const ems = new Set();
+  for (const [k, x] of Object.entries(espacesReg || {})) {
+    if (!x) continue;
+    let tx = x.t;
+    if (!tx) { try { tx = String(JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')).t || ''); } catch (e) {} }
+    if ((t && tx === t) || (slug && k === slug)) { const em = promoEmpreinteMail(x.email); if (em) ems.add(em); }
+  }
+  return { ems }; }
+/* L'utilisation du code `c` par cette entreprise ({date, finLe, em}), ou null. LECTURE seule. */
+function promoServiA(c, t, slug) {
+  const u = promoUsages[c]; if (!u || !u.equipes) return null;
+  if (t && u.equipes[t]) return u.equipes[t];
+  const id = promoIdentite(t, slug); if (!id.ems.size) return null;
+  for (const eq of Object.values(u.equipes)) if (eq && eq.em && id.ems.has(eq.em)) return eq;
+  return null; }
+/* Ce qu'on inscrit à l'activation : la date, l'échéance CALCULÉE par l'appelant, et l'empreinte de
+   l'e-mail de l'espace (celle de l'entrée la plus récente). */
+function promoEntree(finLe, t, slug) {
+  let em = '';
+  try { const e = t ? espaceParT(t) : null;
+    if (e) em = promoEmpreinteMail(e.email);
+    if (!em && slug && espacesReg[slug]) em = promoEmpreinteMail(espacesReg[slug].email); } catch (err) {}
+  return { date: promoAujourdhui(), finLe, em }; }
+/* Un AUTRE code encore en cours pour cette entreprise (son nom, ou '') — « un seul code à la fois ». */
+function promoAutreActif(c, t, slug) {
+  for (const c2 of Object.keys(promoUsages || {})) {
+    if (c2 === c) continue;
+    const eq2 = promoServiA(c2, t, slug);
+    if (eq2 && eq2.finLe && eq2.finLe >= promoAujourdhui()) return c2;
+  }
+  return ''; }
+/* « Repartir à neuf » (Tour) : l'entreprise va revenir sous un NOUVEL identifiant. Ses utilisations
+   passées prennent l'empreinte de son e-mail AVANT que l'annuaire l'oublie — sans ça, le même code
+   redevenait neuf pour elle. Sans e-mail, rien à poser (voir l'en-tête). */
+function promoMarquerAvantRenaitre(t, slug, email) {
+  const em = promoEmpreinteMail(email); let n = 0;
+  if (!em) return 0;
+  for (const u of Object.values(promoUsages || {})) {
+    const eq = u && u.equipes && t ? u.equipes[t] : null; if (!eq) continue;
+    eq.em = em; n++;
+  }
+  if (n) savePromoUsages();
+  return n; }
+/* Toutes les utilisations d'une entreprise, pour la suppression TOTALE : celles de son identifiant,
+   et celles d'un identifiant d'avant « repartir à neuf » qui portent son e-mail. Une utilisation qui
+   porte l'e-mail d'une AUTRE entreprise ne part pas. */
+function promoCles(t, slugs, emails) {
+  const ems = new Set([...(emails || [])].map(promoEmpreinteMail).filter(Boolean)), out = [];
+  for (const [code, u] of Object.entries(promoUsages || {})) {
+    for (const [cle, eq] of Object.entries((u && u.equipes) || {})) {
+      if (cle === t || (eq && eq.em && ems.has(eq.em))) out.push({ code, cle });
+    }
+  }
+  return out; }
+/* Une utilisation dont l'e-mail est celui d'une entreprise VIVANTE — un AUTRE identifiant, à
+   l'annuaire : la même entreprise, repartie à neuf. */
+function promoHeritier(eq, t) {
+  if (!eq || !eq.em) return false;
+  for (const x of Object.values(espacesReg || {})) {
+    if (!x) continue;
+    let tx = x.t;
+    if (!tx) { try { tx = String(JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')).t || ''); } catch (e) {} }
+    if (tx && tx !== t && promoEmpreinteMail(x.email) === eq.em) return true;
+  }
+  return false; }
+/* ⛔ LA SUPPRESSION TOTALE N'EFFACE PAS LA MÉMOIRE D'UNE ENTREPRISE VIVANTE — relevé par `gardien`
+   le 24 septembre 2026, rejoué sur un serveur isolé : repartir à neuf, puis supprimer totalement
+   l'ANCIEN identifiant resté hors annuaire (le ménage le plus courant de cette route : un appareil
+   resté connecté le fait renaître) — et le code redevenait neuf pour l'entreprise qui vit sous le
+   nouveau. Ces utilisations-là quittent l'identifiant supprimé (il n'en reste aucune trace) et
+   restent attachées à l'empreinte de l'entreprise vivante. Tout le reste part. */
+function promoEffacerEntreprise(t, slugs, emails) {
+  let n = 0;
+  for (const { code, cle } of promoCles(t, slugs, emails)) {
+    const u = promoUsages[code]; if (!u || !u.equipes || !u.equipes[cle]) continue;
+    const eq = u.equipes[cle];
+    if (cle === t && promoHeritier(eq, t)) u.equipes['garde-' + crypto.randomBytes(6).toString('hex')] = Object.assign({}, eq, { garde: true });
+    delete u.equipes[cle]; n++;
+  }
+  if (n) savePromoUsages();
+  return n; }
+/* Le verdict pour une entreprise qui PRÉSENTE le code (une demande d'activation, pas une lecture) :
+     { etat: 'neuf' }                  → jamais servi : l'appelant l'active et compte UNE utilisation ;
+     { etat: 'actif', finLe, date, reporte } → déjà servi, période en cours : même échéance, rien ne se recompte
+                                         (`reporte` : elle vient d'un ancien identifiant — repartir à neuf —
+                                         et on l'inscrit sur le nouveau, toujours sans rien recompter) ;
+     { etat: 'servi', finLe }          → déjà servi, période terminée : REFUS, dit par `promoRefusServi` ;
+     { etat: 'indisponible' }          → registre illisible : on ne sait pas, donc on n'active RIEN. */
+function promoPresente(c, t, slug) {
+  /* Registre illisible : on ne SAIT pas si cette entreprise a déjà servi le code — et ce qu'on
+     activerait ne serait pas écrit. Aucune activation tant qu'il n'est pas réparé. */
+  if (promosIllisible) return { etat: 'indisponible' };
+  const eq = promoServiA(c, t, slug);
+  if (!eq) return { etat: 'neuf' };
+  if (eq.finLe && eq.finLe >= promoAujourdhui()) {
+    const u = promoUsages[c]; let reporte = false;
+    if (t && u && u.equipes && !u.equipes[t]) { u.equipes[t] = Object.assign({}, eq, { reporte: true }); savePromoUsages(); reporte = true; }
+    return { etat: 'actif', finLe: eq.finLe, date: eq.date || '', reporte };
+  }
+  return { etat: 'servi', finLe: eq.finLe || '' }; }
+function promoRefusServi(c, finLe) {
+  return 'Le code « ' + c + ' » a déjà été utilisé par cette entreprise' + (finLe ? ' — sa période offerte s’est terminée le ' + promoDateFr(finLe) : '')
+    + '. Un code promo ne sert qu’une fois par entreprise.'; }
+/* ⛔ UN REFUS DIT VRAI (Justin, 24 septembre 2026, capture à l'appui) : sur la bêta À JOUR, ce
+   refus disait « mets l'application à jour ». Mettre à jour n'est le bon geste que quand
+   l'appareil n'a RIEN présenté (`absent` : une version d'avant la preuve) ; ailleurs ça ne
+   change rien, et ça envoie la personne chercher une panne qu'elle n'a pas.
+   ⚠️ TROIS messages, pas cinq, et c'est voulu : les deux premiers ne dépendent que de ce qui
+   est PUBLIC (la liste des espaces techniques est écrite dans ce fichier) ou de la requête
+   elle-même (a-t-elle un en-tête ?). Séparer `invalide`, `inconnu` et la clé partagée ferait
+   de cette route, ouverte à tous, un oracle : « cet identifiant est à l'annuaire », voire
+   « cette entreprise est encore sur la clé écrite en clair dans app.html ». */
+function promoRefusCle(t, v) {
+  if (ESPACES_INTOUCHABLES.includes(t)) return 'Les codes promo ne s’activent pas sur la bêta ni sur l’espace partagé — seulement dans l’espace d’une entreprise.';
+  if (v === 'absent') return 'Cet appareil n’a pas prouvé la clé de son entreprise — mets l’application à jour, puis réessaie.';
+  return 'Cet appareil n’est pas reconnu par son entreprise — reconnecte-toi avec le lien de connexion de l’entreprise, puis réessaie. Si ça persiste : contact@teamop.fr.'; }
 
 /* ── 🎁 Les codes promo, vus depuis la Tour ──────────────────────────────────────────────
    Les codes sont définis dans config.promos (sur le VPS) et leurs usages vivent dans
@@ -6878,7 +7865,10 @@ app.get('/api/monitor/promos', monAdmin, (req, res) => {
         nom: esp ? (esp.nom || esp.slug || '') : '',
         depuis: (e && e.date) || '',
         finLe: (e && e.finLe) || '',
-        actif: !!(e && e.finLe && e.finLe >= aujourdhui)
+        actif: !!(e && e.finLe && e.finLe >= aujourdhui),
+        /* Une période REPORTÉE sur le nouvel identifiant d'une entreprise repartie à neuf : la même
+           période que la ligne d'origine, pas une utilisation de plus (voir `promoPresente`). */
+        reporte: !!(e && e.reporte)
       };
     }).sort((a, b) => String(b.finLe || '').localeCompare(String(a.finLe || '')));
     return {
@@ -6888,7 +7878,7 @@ app.get('/api/monitor/promos', monAdmin, (req, res) => {
       maxUtilisations: Number(p.maxUtilisations) || 0,
       utilisations: Number(u.n) || 0,
       restantes: p.maxUtilisations ? Math.max(0, Number(p.maxUtilisations) - (Number(u.n) || 0)) : null,
-      actifs: usages.filter(x => x.actif).length,
+      actifs: usages.filter(x => x.actif && !x.reporte).length,
       usages
     };
   }).sort((a, b) => (b.actifs - a.actifs) || a.code.localeCompare(b.code));
@@ -6900,10 +7890,10 @@ app.get('/api/monitor/promos', monAdmin, (req, res) => {
     if (connus.has(c)) continue;
     const usages = Object.entries((u && u.equipes) || {}).map(([t, e]) => {
       const esp = espaceParT(t);
-      return { t, nom: esp ? (esp.nom || esp.slug || '') : '', depuis: (e && e.date) || '', finLe: (e && e.finLe) || '', actif: !!(e && e.finLe && e.finLe >= aujourdhui) };
+      return { t, nom: esp ? (esp.nom || esp.slug || '') : '', depuis: (e && e.date) || '', finLe: (e && e.finLe) || '', actif: !!(e && e.finLe && e.finLe >= aujourdhui), reporte: !!(e && e.reporte) };
     });
     codes.push({ code: c, formule: '', mois: 0, maxUtilisations: 0, utilisations: Number(u.n) || 0, restantes: null,
-      actifs: usages.filter(x => x.actif).length, usages, horsConfig: true });
+      actifs: usages.filter(x => x.actif && !x.reporte).length, usages, horsConfig: true });
   }
   res.json({ codes, total: codes.length, actifsTotal: codes.reduce((n, c) => n + c.actifs, 0) });
 });
@@ -6941,24 +7931,42 @@ app.post('/api/promo/valider', (req, res) => {
        cleEstPublique a besoin pour ne pas rendre « laisse passer » par défaut (voir sa mise
        en garde). Un espace resté sur la clé écrite en clair dans app.html ne prouve rien en
        la présentant : même refus que /api/fb/jeton, pour le même secret. */
+    /* ⛔ LES ESPACES TECHNIQUES D'ABORD, ET SANS CONDITION (relecture de `gardien`, 24 septembre
+       2026) : le refus AFFIRME que la bêta ne prend pas de code — c'est le code qui doit le
+       faire, pas la phrase. Jugés sur le seul verdict, un espace technique inscrit à l'annuaire
+       avec une clé propre (la Tour le permet) passait et consommait une utilisation, rejoué :
+       200, `n:1`. Même ordre que `cleEquipeExige` : la liste est statique, on la lit en premier. */
+    if (ESPACES_INTOUCHABLES.includes(team)) return res.status(403).json({ error: promoRefusCle(team, '') });
     const v = cleEquipeVerdict(team, req.headers['x-teamop-kh'] || '');
     if (v !== 'valide' || cleEstPublique(team))
-      return res.status(403).json({ error: 'Cet appareil n\'a pas prouvé la clé de son entreprise — mets l\'application à jour, puis réessaie.' });
+      return res.status(403).json({ error: promoRefusCle(team, v) });
   }
-  const deja = team && u.equipes[team];
+  /* ⛔⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE (Justin, 24 septembre 2026 — voir `promoPresente`).
+     Retapé pendant sa période : la MÊME échéance, rien ne se recompte, et on le DIT
+     (`dejaUtilise`). Retapé APRÈS : refus — jusqu'ici la réponse disait « ok » avec une
+     échéance passée, et l'application affichait « 🎉 Code accepté ! » puis repassait toute
+     l'équipe en formule payante jusqu'à la vérification suivante.
+     ⚠️ Seulement pour une entreprise qui a PROUVÉ sa clé : l'aperçu n'a pas d'identité, il ne
+     lit donc rien de personne — avant, `{apercu:1, teamId}` disait à n'importe qui quel code
+     une entreprise avait en cours, et jusqu'à quand. */
+  const pres = (!apercu && team) ? promoPresente(c, team, '') : null;
+  if (pres && pres.etat === 'indisponible') return res.status(503).json({ error: 'Les codes promo sont momentanément indisponibles — réessaie un peu plus tard.' });
+  if (pres && pres.etat === 'servi')
+    return res.status(410).json({ error: promoRefusServi(c, pres.finLe), dejaUtilise: true, finLe: pres.finLe });
+  const deja = (pres && pres.etat === 'actif') ? pres : null;
   // un seul code à la fois par espace : si un AUTRE code est encore actif, refus clair
-  if (team && !deja) {
-    for (const [c2, u2] of Object.entries(promoUsages || {})) {
-      const eq2 = u2 && u2.equipes && u2.equipes[team];
-      if (c2 !== c && eq2 && eq2.finLe && eq2.finLe >= new Date().toISOString().slice(0, 10))
-        return res.status(409).json({ error: 'Un code (« ' + c2 + ' ») est déjà actif sur cet espace jusqu\'au ' + eq2.finLe + ' — un seul code à la fois.' });
+  if (pres && !deja) {
+    for (const [c2] of Object.entries(promoUsages || {})) {
+      const eq2 = c2 !== c ? promoServiA(c2, team, '') : null;   // par l'adresse aussi : un code en cours survit à « repartir à neuf »
+      if (eq2 && eq2.finLe && eq2.finLe >= promoAujourdhui())
+        return res.status(409).json({ error: 'Un code (« ' + c2 + ' ») est déjà actif sur cet espace jusqu\'au ' + promoDateFr(eq2.finLe) + ' — un seul code à la fois.' });
     }
   }
   if (!deja && p.maxUtilisations && u.n >= p.maxUtilisations) return res.status(410).json({ error: "Ce code a atteint son nombre maximum d'utilisations" });
   const mois = Math.max(1, Number(p.mois) || 1);
   let finLe;
   if (deja) {
-    finLe = deja.finLe;   // le même code retape par la même équipe : on redonne la même échéance
+    finLe = deja.finLe;   // le même code retapé pendant sa période : la même échéance, jamais une nouvelle
   } else {
     const d = new Date(); d.setMonth(d.getMonth() + mois);
     finLe = d.toISOString().slice(0, 10);
@@ -6966,10 +7974,15 @@ app.post('/api/promo/valider', (req, res) => {
        consommait une utilisation et l'écrivait sur disque — un code à maxUtilisations:2
        s'épuisait en deux requêtes, et un vrai client lisait ensuite « ce code a atteint son
        maximum ». On ne compte que ce qu'on a réellement donné à quelqu'un. */
-    if (!apercu && team) { u.n++; u.equipes[team] = { date: new Date().toISOString().slice(0, 10), finLe }; promoUsages[c] = u; savePromoUsages();
+    if (!apercu && team) { u.n++; const neufU = !promoUsages[c]; u.equipes[team] = promoEntree(finLe, team, ''); promoUsages[c] = u;
+      /* ⛔ ÉCRIT, OU ON LE DIT (relecture de `gardien`, 24 septembre 2026) : sur un disque plein, la
+         période n'existait qu'en mémoire — « ok » au client, et le code redevenait neuf au
+         redémarrage. On défait, et on le dit, AVANT le courriel. */
+      if (!savePromoUsages()) { u.n--; delete u.equipes[team]; if (neufU) delete promoUsages[c];
+        return res.status(503).json({ error: 'Le code n\'a pas pu être enregistré — réessaie dans un instant.' }); }
       mailPromoActive(team, c, finLe, ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium'); }
   }
-  res.json({ ok: true, formule: ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium', mois, finLe, dejaUtilise: !!deja });
+  res.json({ ok: true, formule: ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium', mois, finLe, dejaUtilise: !!deja, debut: deja ? (deja.date || '') : '' });
 });
 
 // ── ⏳ Rappel d'échéance : 7 jours avant la fin d'une période offerte, l'entreprise
@@ -7009,5 +8022,72 @@ function rappelsEcheances() {
 setTimeout(rappelsEcheances, 90 * 1000);      // un premier passage peu après le démarrage
 setInterval(rappelsEcheances, 6 * 3600000);   // puis toutes les 6 heures
 
+/* ══ AUCUNE ROUTE NE DOIT ÊTRE DÉCLARÉE DEUX FOIS ══════════════════════════════════════════
+   ⛔ LA PREMIÈRE ENREGISTRÉE GAGNE, ET LA SECONDE NE RÉPOND JAMAIS — sans un mot. C'est arrivé :
+   `/api/devis/etat` était déclarée dans `agent-devis.js` ET ici ; la seconde, plus riche, n'a
+   jamais servi, et personne ne l'a vu pendant des mois. Avec 145 routes sur cinq fichiers, une
+   route ajoutée en fin de fichier peut être masquée en silence.
+
+   ⚠️ ON NE REFUSE PAS DE DÉMARRER, ET C'EST UN ÉCART ASSUMÉ AU PLAN (§2.4 dit « REFUSE de
+   démarrer »). La raison est mesurée : un push sur `main` touchant `server/**` DÉPLOIE
+   (`.github/workflows/deploiement.yml`). Un serveur qui refuse de démarrer, c'est ELAN sans API
+   du tout — une panne bien pire qu'une route fantôme. L'endroit où il faut refuser, c'est AVANT
+   le déploiement : `tests/test-724.js` lance le vrai serveur et exige zéro doublon (723, lui,
+   exerce le module sans serveur), donc la CI tombe et le commit ne part pas. Ici, on crie : au journal, et sur `/health` (donc dans la
+   surveillance horaire). Bruyant et vivant plutôt que muet ou mort. */
+const routesDoublons = (() => {
+  const vu = new Map(), doubles = [];
+  for (const c of (app._router && app._router.stack) || []) {
+    if (!c.route || !c.route.path) continue;
+    for (const m of Object.keys(c.route.methods || {})) {
+      const k = m.toUpperCase() + ' ' + c.route.path;
+      if (vu.has(k)) doubles.push(k); else vu.set(k, 1);
+    }
+  }
+  if (doubles.length) {
+    console.error('⛔ ROUTES DÉCLARÉES DEUX FOIS — la seconde ne répondra JAMAIS :');
+    for (const d of doubles) console.error('   ' + d);
+  }
+  return doubles;
+})();
+
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '127.0.0.1', () => console.log('TeamOP API sur 127.0.0.1:' + PORT));
+const serveur = app.listen(PORT, '127.0.0.1', () => console.log('TeamOP API sur 127.0.0.1:' + PORT));
+
+/* ══ L'ARRÊT PROPRE ════════════════════════════════════════════════════════════════════════
+   ⛔ SIGTERM ARRIVE À CHAQUE DÉPLOIEMENT, et un push sur `main` touchant `server/**` déploie —
+   donc plusieurs fois par jour les jours chargés. Sans fermeture, les bases SQLite du socle
+   laissent leur journal WAL non fusionné : rien n'est perdu (c'est tout l'intérêt du WAL), mais
+   le démarrage suivant doit le rejouer et les fichiers `-wal`/`-shm` traînent.
+   ⚠️ LE MINUTEUR EST LA PARTIE QUI COMPTE : si une fermeture s'éternise, systemd envoie SIGKILL
+   et on perd le bénéfice. On se donne 5 secondes, puis on sort quand même — un arrêt imparfait
+   vaut mieux qu'un arrêt qui pend. */
+let enArret = false;
+function arretPropre(signal) {
+  if (enArret) return; enArret = true;
+  console.log('arrêt (' + signal + ') — fermeture en cours');
+  const secours = setTimeout(() => { console.error('arrêt : délai dépassé, sortie forcée'); process.exit(0); }, 5000);
+  secours.unref();
+  /* ⛔ `close()` EST ASYNCHRONE. La première version appelait `clearTimeout` et `process.exit`
+     sur le MÊME tick : le minuteur de secours ne pouvait jamais se déclencher, et rien
+     n'attendait les requêtes en vol — le commentaire décrivait un comportement que le code
+     n'avait pas. `gardien`, 18 septembre 2026. On ferme le socle dans le RAPPEL de `close()`,
+     et le secours sert enfin à quelque chose : si une connexion tenue (un long-poll) empêche
+     `close()` de rendre la main, on sort quand même au bout de cinq secondes plutôt que de
+     pendre jusqu'au SIGKILL de systemd. */
+  /* ⛔ ON RELÂCHE LES FLUX AVANT DE FERMER LE SERVEUR. `close()` attend que TOUTES les
+     connexions se terminent ; un long-poll est tenu 25 s et il y en a toujours au moins un en
+     production. Mesuré : avec un seul flux ouvert, `close()` ne rappelait jamais, le secours
+     de 5 s sortait, « socle fermé » n'était jamais écrit et le WAL restait sur le disque — à
+     chaque déploiement. Relâcher d'abord fait aboutir `close()` en quelques millisecondes. */
+  try { if (opSocle && opSocle.relacher) console.log('flux relâchés :', opSocle.relacher()); } catch (e) {}
+  const fermerSocle = () => {
+    try { if (opSocle && opSocle.fermer) console.log('socle fermé :', JSON.stringify(opSocle.fermer())); }
+    catch (e) { console.error('socle non fermé :', e.code || 'erreur'); }
+    clearTimeout(secours);
+    process.exit(0);
+  };
+  try { serveur.close(fermerSocle); } catch (e) { fermerSocle(); }
+}
+process.on('SIGTERM', () => arretPropre('SIGTERM'));
+process.on('SIGINT', () => arretPropre('SIGINT'));

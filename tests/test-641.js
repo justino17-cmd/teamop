@@ -114,15 +114,36 @@ console.log('\nFermer une entreprise coupe ses sessions Firebase, et le DIT');
   v('elle passe par accounts:update, l\'appel qui invalide les rafraîchissements',
     /accounts:update'[\s\S]{0,200}?validSince/.test(SRV), true);
 
-  /* ⛔ QUATRE PORTES, comme les quatre portes de sortie d'espace. Suspendre, fermer un client,
-     supprimer une entreprise — et `/api/monitor/espaces/renaitre`, trouvée par `gardien` : elle
-     n'ajoute pas à `entFermes` mais efface le document Firestore de l'ancien espace et le sort
-     de l'annuaire ; sans coupure, l'appareil garde sa session POUR TOUJOURS et fait renaître
-     l'espace hors annuaire, orphelin. Une seule oubliée et la coupure devient une loterie.
+  /* ⛔ TROIS PORTES — ET C'ÉTAIT QUATRE JUSQU'AU 20 SEPTEMBRE 2026. Fermer un client, supprimer
+     une entreprise, et `/api/monitor/espaces/renaitre` (trouvée par `gardien` : elle n'ajoute
+     pas à `entFermes` mais efface le document Firestore de l'ancien espace et le sort de
+     l'annuaire ; sans coupure, l'appareil garde sa session POUR TOUJOURS et fait renaître
+     l'espace hors annuaire, orphelin). Une seule oubliée et la coupure devient une loterie.
+
+     ⛔⛔ LA QUATRIÈME A ÉTÉ RETIRÉE EXPRÈS, ET CE CHIFFRE EST LÀ POUR QU'ON NE LA REMETTE PAS
+     SANS Y PENSER. `/api/monitor/espaces/suspendre` coupait Firebase ; Justin a tranché le
+     20 septembre 2026 qu'une suspension pour impayé n'est PAS une coupure : « aucune
+     sauvegarde n'est perdue, aucune tâche qu'ils étaient en train de faire, rien n'est perdu,
+     même dans leur catégorie. Juste les catégories payantes deviennent grisées et ils
+     reviennent au forfait gratuit. » Une suspension est un état de FACTURATION.
+     ⚠️ Si ce banc repasse à 4 un jour, la question à se poser n'est pas « qui a cassé le
+     compte » mais « est-ce qu'on vient de recouper les impayés de leurs propres données ? ».
      ⚠️ On compte les APPELS, pas les `await` : celui de la fermeture d'un client est dans un
      `Promise.all` (les révocations en parallèle — en série, trois espaces à 10 s dépassaient
      le délai de nginx et la Tour affichait 504 pendant que la route détruisait). */
-  v('les QUATRE portes coupent', (SRV.match(/fbRevoquerEquipe\(/g) || []).length - 1, 4);
+  v('⛔ les TROIS portes qui doivent couper coupent', (SRV.match(/fbRevoquerEquipe\(/g) || []).length - 1, 3);
+  /* ⛔ ET LA SUSPENSION N'EN FAIT PLUS PARTIE — vérifié sur le CORPS de la route, pas sur une
+     phrase : le commentaire qui explique la décision contient le mot, forcément. */
+  {
+    const i = SRV.indexOf("app.post('/api/monitor/espaces/suspendre'");
+    const corps = i < 0 ? '' : SRV.slice(i, SRV.indexOf("app.post('/api/espaces/relance'", i));
+    const net = corps.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    v('la route de suspension est bien là', corps.length > 200, true);
+    v('⛔ et elle ne coupe NI Firebase NI le socle', /fbRevoquerEquipe\(|socleCouper\(/.test(net), false);
+    /* Rouvrir doit toujours rouvrir le socle : une entreprise fermée puis rouverte resterait
+       sinon bloquée pour toujours, et c'est une panne que ce dépôt a déjà mesurée. */
+    v('   mais rouvrir rouvre toujours le socle', /socleOuvrir\(/.test(net), true);
+  }
   v('les révocations partent en parallèle, jamais en série',
     /await Promise\.all\(espacesAEffacer\.map\(tf => fbRevoquerEquipe\(tf\)\)\)/.test(SRV), true);
   /* Le jeton d'administration est maintenant sur le chemin de quatre fermetures : sans délai,
@@ -143,7 +164,35 @@ console.log('\nFermer une entreprise coupe ses sessions Firebase, et le DIT');
      donc aucune session à couper — c'est le résultat voulu, pas une erreur à signaler. */
   v('un compte Firebase jamais créé compte comme coupé',
     /USER_NOT_FOUND[\s\S]{0,80}?fait: true/.test(SRV), true);
-  v('rouvrir ne coupe rien', /if \(rouvrir\) return res\.json\(\{ ok: true, suspendu: false \}\);/.test(SRV), true);
+  /* ⛔ CE CONTRÔLE FIGEAIT UNE LIGNE À LA LETTRE, et il est tombé le 18 septembre 2026 sur un
+     changement JUSTE — la réouverture doit désormais rouvrir le socle, dont l'état est écrit
+     sur disque (Firebase, lui, se rouvre tout seul : les appareils redemandent un jeton et
+     l'obtiennent). Une assertion qui recopie une ligne met au rouge du bon code et pousse à
+     l'affaiblir. On vérifie donc l'INVARIANT, qui est plus fort que la ligne : la branche de
+     réouverture ne COUPE rien, et elle ROUVRE ce qui doit l'être.
+     ⚠️ C'est une leçon de `CLAUDE.md` appliquée à l'envers : on ne reconstruit pas le code pour
+     faire passer un banc, mais on ne garde pas non plus un banc qui décrit le code d'hier. */
+  {
+    /* ⚠️ LA ROUTE A DEUX BRANCHES `if (rouvrir)` — l'une retire l'espace d'`entFermes`, l'autre
+       répond. Un `indexOf` naïf trouvait la première et mettait au rouge une propriété
+       parfaitement tenue par la seconde : le banc ne regardait pas le bloc dont il parlait.
+       On s'ancre donc sur ce qui n'appartient qu'à la branche qui RÉPOND. */
+    const i = SRV.indexOf('suspendu: false');
+    const deb = i < 0 ? -1 : SRV.lastIndexOf('if (rouvrir)', i);
+    /* ⚠️ ET LA BRANCHE S'ARRÊTE À SA PROPRE ACCOLADE. Une fenêtre de « i + 200 caractères »
+       débordait sur les lignes SUIVANTES — celles qui coupent, justement — donc le contrôle
+       « rouvrir ne coupe rien » échouait sur du code juste. Une borne en caractères cesse de
+       voir le bon bloc dès qu'il bouge : c'est la leçon de `test-637`, deux fois payée. */
+    const fin = deb < 0 ? -1 : SRV.indexOf('\n  }', i);
+    const branche = (deb < 0 || fin < 0) ? '' : SRV.slice(deb, fin);
+    v('la branche de réouverture qui répond existe', deb > 0, true);
+    v('⛔ rouvrir ne coupe rien', /fbRevoquerEquipe|socleCouper/.test(branche), false);
+    /* ⛔ ET ELLE ROUVRE VRAIMENT LE SOCLE. Sans ça, une entreprise suspendue puis rouverte
+       restait bloquée POUR TOUJOURS — 403 sur tous ses appareils — pendant que la Tour,
+       l'annuaire et Firebase la disaient active, et sans aucun écran pour la débloquer. */
+    v('⛔ rouvrir rouvre le socle (son état, lui, est écrit sur disque)', /socleOuvrir\(t\)/.test(branche), true);
+    v('   et elle le REMONTE à la Tour', /socle:\s*ouv\.fait/.test(branche), true);
+  }
   /* L'ORDRE, sur la fermeture d'un client : couper AVANT d'effacer. Un appareil qui tient
      encore sa session repousse la base entière à sa prochaine synchro, et on aurait effacé
      pour rien. */

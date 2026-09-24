@@ -91,6 +91,41 @@ EOF
   chmod 600 /opt/teamop/config.json
 fi
 
+# ══ LA CLÉ MAÎTRE DU SOCLE ═══════════════════════════════════════════════════
+# ⛔ SANS ELLE, CE N'EST PAS LE SOCLE QUI CASSE EN PREMIER, CE SONT LES QUATRE PORTES DE LA TOUR.
+# Le jour où `socle.actif` passe à true, `socleCouper()` appelle une fonction qui exige la clé :
+# suspendre, fermer un client, supprimer une entreprise et « repartir à neuf » remontent alors
+# un échec — c'est-à-dire que fermer une entreprise devient impossible. D'où : on la pose À
+# L'INSTALLATION, avant que quiconque puisse allumer le drapeau.
+#
+# ⛔ ET C'EST `poser-cle.js` QUI DÉCIDE, PAS CE SCRIPT. Le bloc écrit ici testait `[ -s
+# /etc/teamop/kek ]` — la présence du FICHIER, jamais celle des BASES. Or la clé vit hors de
+# /opt EXPRÈS : un volume de données restauré, un VPS rebâti depuis une sauvegarde d'/opt, un
+# /etc écrasé — et les bases chiffrées reviennent SANS la clé. Relancer `install.sh` (c'est le
+# mode d'emploi du dépôt) posait alors une clé aléatoire neuve, l'affichait comme une
+# installation vierge, et rendait toutes les bases définitivement indéchiffrables. Le
+# commentaire promettait pourtant l'inverse, mot pour mot : « ON NE LA RÉGÉNÈRE JAMAIS SI ELLE
+# EXISTE ». Un commentaire n'est pas une garde.
+# `poser-cle.js` porte déjà le refus, et il compte l'ANNUAIRE autant que les bases. Une seule
+# définition du refus, comme `fbUidEquipe` n'a qu'une seule dérivation d'identifiant.
+echo "── Clé maître du socle…"
+node /opt/teamop/repo/server/poser-cle.js || {
+  echo ""
+  echo "  ⛔ Installation INTERROMPUE — voir le message ci-dessus."
+  echo "     Le service n'a pas été (re)démarré : rien n'est cassé, rien n'est perdu."
+  exit 1
+}
+
+# ⛔ L'UNITÉ NE PORTE PLUS `LoadCredential`, ET C'EST VOULU. Elle le portait, et le bloc de la
+# clé devait donc être écrit AVANT elle : avec `set -e` et le mode d'emploi « curl … | bash »,
+# tout ce qui échouait entre les deux laissait sur le disque une unité pointant vers un fichier
+# absent — et ⚠️ systemd REFUSE de démarrer une unité dont une source de `LoadCredential`
+# manque. Le service ne repartait alors plus DU TOUT.
+# Le réglage est désormais posé par `poser-cle.js`, en drop-in ADDITIF
+# (/etc/systemd/system/teamop-api.service.d/kek.conf), APRÈS que la clé soit sur le disque et
+# jamais sur un chemin d'erreur. Un seul endroit l'écrit, et il ne peut pas l'écrire trop tôt.
+# Le pire cas devient « le serveur démarre sans la clé » (visible sur /health, `socle.cle`)
+# plutôt que « le serveur ne démarre plus ».
 cat > /etc/systemd/system/teamop-api.service <<'EOF'
 [Unit]
 Description=TeamOP API (push + e-mails)
@@ -103,6 +138,13 @@ Restart=always
 RestartSec=3
 User=root
 Environment=PORT=8080
+# ⛔ LA CLÉ MAÎTRE DU SOCLE VIT HORS DE /opt, ET C'EST TOUT L'INTÉRÊT. Un instantané IONOS est
+# une image de VOLUME, un disque volé aussi : ranger la clé dans l'arborescence qu'elle protège
+# ne protège que d'un disque éteint qu'on aurait démonté à la main. systemd la charge depuis
+# /etc/teamop/kek (chmod 600) et la dépose dans un répertoire éphémère, effacé à l'arrêt du
+# service — le serveur la lit par $CREDENTIALS_DIRECTORY et ne la voit nulle part ailleurs.
+# La ligne `LoadCredential=` elle-même est posée par `poser-cle.js`, en drop-in, une fois la
+# clé écrite : voir le commentaire plus haut. L'écrire ICI aussi la ferait exister avant elle.
 
 [Install]
 WantedBy=multi-user.target

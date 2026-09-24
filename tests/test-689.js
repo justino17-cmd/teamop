@@ -39,8 +39,46 @@ v('⛔ sans adresse enregistrée, on REFUSE au lieu de laisser passer',
 v('le courriel dit ce que ça détruit, pas juste « voici un code »',
   /rend les données de ton entreprise ILLISIBLES sur tous ses appareils/.test(SRV), true);
 v('… et quoi faire si ce n\'est pas toi', /N\\'ENVOIE PAS CE CODE et préviens TEAM OP/.test(SRV), true);
-v('cinq essais puis le code meurt', /c\.tries\+\+; if \(c\.tries >= 5\) cleCodes\.delete\(t\)/.test(SRV), true);
-v('dix minutes de validité', /exp: Date\.now\(\) \+ 10 \* 60000/.test(SRV) && /cleCodes\.set\(t, \{ code, exp/.test(SRV), true);
+/* ⛔ LA GARDE EST FACTORISÉE DEPUIS LE 20 SEPTEMBRE 2026, ET CE BANC A DÛ SUIVRE. Ces deux
+   contrôles visaient la forme EN LIGNE (`cleCodes.delete(t)`, `cleCodes.set(t, …)`) : ils sont
+   passés au rouge le jour où le même code a été sorti dans `cleCodeDemander`/`cleCodeVerifier`,
+   alors que la garde n'avait pas bougé d'un iota — elle garde même une route DE PLUS
+   (`/api/monitor/op/revenir`, la seule qui écrive dans la base métier d'un client depuis la
+   Tour). Un motif ancré sur une FORME tombe à la première factorisation ; on ancre donc sur la
+   RÈGLE, et on exige en plus qu'il n'y ait toujours qu'UNE réserve de codes. */
+v('cinq essais puis le code meurt', /c\.tries\+\+; if \(c\.tries >= 5\) cleCodes\.delete\(sujet\)/.test(SRV), true);
+v('dix minutes de validité', /exp: Date\.now\(\) \+ 10 \* 60000/.test(SRV) && /cleCodes\.set\(sujet, \{ code, exp/.test(SRV), true);
+/* ⚠️ ANCRÉ SUR LA RÈGLE, PAS SUR LA FORME — et ce motif est tombé le jour même où le code a
+   appris à EMPORTER les nombres du consentement (`return { ok: true, garde }`). La règle gardée
+   est « un code juste est consommé » : c'est le `delete` avant le retour réussi qui la porte,
+   pas la liste exacte des champs rendus. Un motif qui décrit une forme tombe à la première
+   évolution, et fait croire à une régression qui n'existe pas. */
+v('⛔ et un code JUSTE se consomme — sinon il vaut dix usages pendant dix minutes',
+  /cleCodes\.delete\(sujet\);\s*\n\s*return \{ ok: true[,}]/.test(SRV), true);
+/* ⛔ ET CE QUE LE CODE EMPORTE LUI REVIENT : sans ça, l'appelant ne peut comparer l'instant
+   présent qu'à lui-même — deux valeurs identiques par construction, donc un contrôle qui ne
+   peut jamais se déclencher. C'est le défaut qu'a eu la première version du garde-fou d'écart. */
+v('⛔ le code emporte ce sur quoi on a consenti, et le rend',
+  /tries: 0, garde: garde \|\| null/.test(SRV) && /const garde = c\.garde \|\| null;/.test(SRV), true);
+/* ⛔ UNE SEULE RÉSERVE DE CODES. Un second `Map` pour le retour voudrait dire deux expirations,
+   deux compteurs d'essais, deux ménages — donc, un jour, un code qui n'expire pas quelque part.
+   Les usages se distinguent par un PRÉFIXE de sujet, jamais par une réserve de plus. */
+v('⛔ une seule réserve de codes dans tout le serveur',
+  (SRV.match(/new Map\(\);\s*\/\/ 't' -> \{ code, exp, tries \}/g) || []).length, 1);
+v('⛔ le changement de clé passe par la garde commune, il ne la recopie pas',
+  /const sujet = 'cle:' \+ t;/.test(SRV) && /cleCodeVerifier\(sujet, codeRecu\)/.test(SRV), true);
+/* ⛔ ET LE RETOUR EN ARRIÈRE EST GARDÉ PAR LA MÊME FONCTION, INJECTÉE — pas recopiée. C'est la
+   condition que `op-socle.js` s'était posée à lui-même et qui l'a tenu absent pendant tout ce
+   temps : deux gardes qui se ressemblent finissent par diverger, et c'est toujours la moins
+   sévère qui garde le chemin le plus dangereux. */
+const OPS = fs.readFileSync(path.join(R, 'server', 'op-socle.js'), 'utf8');
+v('⛔ la garde du code est INJECTÉE dans op-socle, pas réécrite',
+  /cleCodeDemander, cleCodeVerifier, espaceContact \} = deps;/.test(OPS)
+  && !/crypto\.randomInt\(100000/.test(OPS), true);
+v('⛔ le sujet du code porte l\'INSTANT visé — un code d\'une date ne vaut pas pour une autre',
+  /const sujet = 'retour:' \+ t \+ ':' \+ instant;/.test(OPS), true);
+v('⛔ sans adresse enregistrée, le retour REFUSE lui aussi',
+  /if \(!contact\.email\) return res\.status\(409\)/.test(OPS), true);
 v('⛔ le code ne part jamais au journal', /trace: 'code de changement de clé · espace '/.test(SRV), true);
 
 /* ── L'application ── */
