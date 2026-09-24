@@ -58,7 +58,7 @@ function monter(base) {
      function toast(m){ __toasts.push(m); } function save(){ __saves++; } function intHisto(i,t){ (i.histo=i.histo||[]).push({txt:t}); __histo.push(t); }
      function fullName(u){ return u?(u.prenom+' '+u.nom):''; } function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
      function fmtShort(d){ return String(d||''); } function todayISO(){ return '2026-09-23'; } function entNom(){ return (db.entreprise&&db.entreprise.nom)||'OP GESTION'; }
-     function photoSrc(p){ return p; } function renderIntDetail(){} function papPosteSheet(){} function papAlimBlock(){} function intStockAjuste(){}
+     function photoSrc(p){ return p; } function renderIntDetail(){} function papPosteSheet(){} function papAlimBlock(){}
      const produit=id=>db.produits.find(p=>p.id===id)||{};
      async function devisLogoJpeg(src){ return null; }
      async function papImplJpeg(src,max,q){ return __jpeg?__jpeg(src,max,q):(src?{b64:'${JPEG1}',w:1,h:1}:null); }

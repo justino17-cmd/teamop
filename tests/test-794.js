@@ -12,8 +12,9 @@
      1. qui est le stockage (identifiant fixe, inactif = absent) ;
      2. Stock, Produits, la cloche et la commande suggérée lisent UN total (stockLines) ;
      3. le créer RANGE l'ancien stock du catalogue (p.qte → 0), une fois, et jamais deux stockages ;
-     4. ⛔ la clôture d'une intervention ne puise JAMAIS dans le stockage ;
-     5. l'ajustement après clôture ne le touche pas (sans stockage, l'ancien compteur, tel quel) ;
+     4. ⛔ une intervention ne déduit RIEN — ni box, ni stockage, ni compteur (Justin : « on doit juste
+        savoir ce qu'il a utilisé ») — onze gestes joués, avant et après la clôture ;
+     5. (fondu dans 4) ;
      6. la commande suggérée prend le PLUS GRAND des deux besoins, pas leur somme ;
      7. la cloche : le seuil contre ce que Stock montre ;
      8. celui qui a REÇU voit la ligne qui porte son nom ;
@@ -40,8 +41,10 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 console.log('\n── 794 · 0. la population ──');
 const FN = ['estStockage', 'stockageBox', 'stockageVisible', 'stockLines', 'stockTotaux', 'stockVoitTout', 'boxVuePar', 'stockageOffice',
   'stockageGens', 'stockageCarte', 'stockageCreer', 'stockageOuvert', 'stockageServir', 'stockageArrivage', 'stockageJournal', 'stockageAcces',
-  'stockageAccesTous', 'stockageAccesSave', 'traceBox', 'intStockDeduire', 'intStockAjuste', 'bonSuggere', 'boxTotalStock', 'boxEtat',
-  'intTechIds', 'stockConv', 'userBoxVoit', 'nomCle', 'nomsConcernes', 'visibleMouvements', 'openScanner'];
+  'stockageAccesTous', 'stockageAccesSave', 'traceBox', 'bonSuggere', 'boxTotalStock', 'boxEtat',
+  'stockConv', 'userBoxVoit', 'nomCle', 'nomsConcernes', 'visibleMouvements', 'openScanner',
+  /* v741 : les gestes qui écrivent une ligne de produit utilisé sur une intervention */
+  't3dProdDelta', 't3dProdSet', 't3dProdUnit', 't3dProdDel', 'asProdQte', 'asProdDel', 'asProdAdd', 'intAddProduit', 'intDelProduit', 'intToggleProd', 'papSheetProduit'];
 const CODE = {};
 FN.forEach(n => { CODE[n] = bloc('function ' + n + '('); });
 v('toutes les fonctions sont trouvées', FN.filter(n => !CODE[n]), []);
@@ -101,6 +104,11 @@ function monde(opts) {
     function formBon(){} function renderBonLignes(){} function bonQtyOpen(){}
     function permGarde(){ return true; }
     function etiqVersBox(id){ __etiq.push('box:'+id); } function etiqOuvrir(m){ __etiq.push(m); }
+    function t3dRefresh(){} function assistRender(){} function renderIntDetail(){} function papPosteSheet(){} function papTouch(){}
+    function papFindPoste(cid,pid){ const po=(__poste&&__poste.id===pid)?__poste:null; return po?{pl:{},po}:null; }
+    function produitCle(x){ return String((x&&x.nom)||'').toLowerCase(); } function idProduit(n){ return 'p-'+n; } function produitCreer(f){ db.produits.push(f); return f; }
+    function prodLineUnit(l){ return l.unite||'u'; }
+    var __poste=null;
     ${FN.map(n => CODE[n]).join('\n')}
   `, ctx);
   return ctx;
@@ -158,37 +166,45 @@ console.log('\n── 794 · 3. créer le stockage : l’ancien stock y est RANG
   W.traceBox(s, 'a', -2, 'u', 'Sortie box', 'Karim Benali', '', 'Karim Benali'); W.traceBox({ id: 'bxN', nom: 'Nord' }, 'a', 1, 'u', 'Entrée box');
   v('la trace d’une sortie du stockage ne dit pas « box » ; celle d’une box, si', W.db.mouvements.slice(0, 2).map(m => m.motif), ['Entrée box — Nord', 'Sortie — Stockage']); }
 
-console.log('\n── 794 · 4. ⛔ la clôture d’une intervention ne puise JAMAIS dans le stockage ──');
-{ const karim = { id: 'uK', prenom: 'Karim', nom: 'Benali', techId: 'tK' };
-  const dbI = () => ({ produits: [P('a', 'ADVION', { qte: 0 }), P('c', 'RATICIDE', { qte: 0 })], mouvements: [],
+console.log('\n── 794 · 4. ⛔⛔ une intervention ne déduit RIEN — ni box, ni stockage, ni compteur ──');
+/* Justin, 24 septembre 2026 : « le produit ne doit pas se déduire par intervention, on doit juste savoir
+   ce qu'il a utilisé, sinon ça fausserait tout le stock ou la box ». On JOUE chaque geste qui écrit une
+   ligne de produit utilisé — avant ET après la clôture — sur une entreprise qui a une box, un stockage
+   et un ancien compteur du catalogue, et on exige que le stock n'ait pas bougé d'une unité. */
+{ vrai('⛔ intStockDeduire et intStockAjuste n’existent plus', !/function intStockDeduire\(/.test(SRC) && !/intStockAjuste\(/.test(SRC) && !/intStockDeduire\(/.test(SRC));
+  /* Cinq portes posent « terminée » : le compte-rendu, l'assistant, « terminée à la date prévue », la case
+     « effectuée » et le menu de statut. Les trois dernières n'ont jamais déduit : elles sont gardées pour
+     qu'aucune ne s'y mette le jour où l'on croira « harmoniser » les clôtures. */
+  const PORTES = [['function saveRapport(e,id){', 1200], ['function assistFinish(id){', 1200], ['function intTerminerPrevu(id){', 300],
+    ['function intEffToggle(id,checked){', 300], ['function intSetStatutDo(id,st){', 300]];
+  const FERME = PORTES.map(([n]) => bloc(n));
+  vrai('population : les cinq portes de clôture sont trouvées, et chacune pose « terminee »', FERME.every((b, k) => b.length > PORTES[k][1] && /'terminee'/.test(b)), FERME.map(b => b.length));
+  v('⛔ aucune n’écrit le stock (box, compteur, journal, validation du DR)', FERME.map(b => (b.match(/\.stock\[|mouvements\.unshift|traceBox\(|boxMvtEnvoyer\(|boxAdj\(|\.qte\s*=|stockDeduit\s*=/g) || [])), [[], [], [], [], []]);
+  const base = () => ({ produits: [P('a', 'ADVION', { qte: 7 }), P('c', 'RATICIDE', { qte: 0 })], mouvements: [], interventions: [],
     boxes: [{ id: 'bxN', nom: 'Nord', actif: true, techIds: ['tK'], stock: { a: { u: 5, ctn: 0 } } },
-      { id: 'stockage', nom: 'Stockage', actif: true, visibleTous: true, techIds: ['tK'], stock: { a: { u: 20, ctn: 0 }, c: { u: 9, ctn: 0 } } }] });
-  let W = monde({ db: dbI(), moi: karim, vus: ['bxN', 'stockage'] });
-  let i = { id: 'i1', num: 'INT-1', techIds: ['tK'], produitsUtilises: [{ produitId: 'a', qte: 7, unite: 'u' }, { produitId: 'c', qte: 2, unite: 'u' }] };
-  W.intStockDeduire(i);
-  const N = W.db.boxes[0], S = W.db.boxes[1];
-  v('⛔⛔ sa box donne ses 5 ; le stockage — visible par tous, fiche cochée, produit présent — garde 20 et 9', [N.stock.a.u, S.stock.a.u, S.stock.c.u], [0, 20, 9]);
-  v('⛔ le compteur du catalogue n’est pas touché non plus', W.db.produits.map(p => p.qte), [0, 0]);
-  v('une seule ligne au journal : ce qui est sorti de SA box', W.db.mouvements.map(m => [m.produitId, m.qte, m.boxId]), [['a', 5, 'bxN']]);
-  v('⛔ il a accès au stockage : pas de faux « stock insuffisant » (le reste y a été pris)', W.__toasts.filter(t => /insuffisant/.test(t)), []);
-  W = monde({ db: dbI(), moi: karim, vus: ['bxN'] });
-  i = { id: 'i2', num: 'INT-2', techIds: ['tK'], produitsUtilises: [{ produitId: 'a', qte: 7, unite: 'u' }] };
-  W.intStockDeduire(i);
-  vrai('⛔ SANS accès au stockage, le manque de sa box est signalé', W.__toasts.some(t => /Stock insuffisant : ADVION \(manque 2 u\)/.test(t)), W.__toasts);
-  v('… et le stockage ne bouge pas davantage', W.db.boxes[1].stock.a.u, 20);
-  const dbL = { produits: [P('a', 'ADVION', { qte: 10 })], mouvements: [], boxes: [] };
-  W = monde({ db: dbL, moi: karim, vus: [] });
-  W.intStockDeduire({ id: 'i3', num: 'INT-3', techIds: ['tK'], produitsUtilises: [{ produitId: 'a', qte: 4, unite: 'u' }] });
-  v('sans stockage : l’ancien compteur, comme avant (10 → 6, une sortie de 4)', [dbL.produits[0].qte, dbL.mouvements.map(m => [m.type, m.qte])], [6, [['sortie', 4]]]); }
-
-console.log('\n── 794 · 5. l’ajustement après clôture ──');
-{ const W = monde({ moi, db: { produits: [P('a', 'ADVION', { qte: 0 })], mouvements: [], boxes: [{ id: 'stockage', stock: { a: { u: 5, ctn: 0 } } }] } });
-  const i = { stockDeduit: true, num: 'INT-9' };
-  W.intStockAjuste(i, 'a', 2, 'u');
-  v('⛔ avec un stockage : rien — la clôture n’y a rien pris', [W.db.produits[0].qte, W.db.mouvements.length, W.db.boxes[0].stock.a.u], [0, 0, 5]);
-  W.db.boxes = [];
-  W.db.produits[0].qte = 5; W.intStockAjuste(i, 'a', 2, 'u');
-  v('sans stockage : l’ancien compteur, TEL QUEL (5 → 3, une sortie de 2) — ce que lisent les statistiques', [W.db.produits[0].qte, W.db.mouvements.map(m => [m.type, m.qte])], [3, [['sortie', 2]]]); }
+      { id: 'stockage', nom: 'Stockage', actif: true, visibleTous: true, stock: { a: { u: 20, ctn: 0 }, c: { u: 9, ctn: 0 } } }] });
+  const empreinte = d => JSON.stringify([d.boxes.map(b => b.stock), d.produits.map(p => p.qte), d.mouvements.length]);
+  for (const cloturee of [false, true]) {
+    const W = monde({ moi, db: base() }); const avant = empreinte(W.db);
+    const i = { id: 'i1', clientId: 'cl', techIds: ['tK'], stockDeduit: cloturee, produitsUtilises: [{ produitId: 'a', qte: 2, unite: 'u' }, { produitId: 'c', qte: 1, unite: 'u' }] };
+    W.db.interventions.push(i);
+    vm.runInContext(`__poste={id:'po1',num:1,produitId:''};`, W);
+    const gestes = [
+      ['t3dProdDelta +1', () => W.t3dProdDelta('i1', 0, 1)], ['t3dProdSet 6', () => W.t3dProdSet('i1', 0, '6')], ['t3dProdUnit mL', () => W.t3dProdUnit('i1', 0, 'mL')],
+      ['asProdQte +1', () => W.asProdQte('i1', 1, 1)], ['asProdAdd', () => { vm.runInContext(`$=function(id){ return id==='as-prod'?{value:'c'}:null; }`, W); W.asProdAdd('i1'); }],
+      ['intAddProduit', () => { vm.runInContext(`$=function(id){ return id==='ip-prod'?{value:'a'}:id==='ip-qte'?{value:'3'}:null; }`, W); W.intAddProduit('i1'); }],
+      ['intToggleProd (ajout puis retrait)', () => { W.intToggleProd('i1', 'RATICIDE'); W.intToggleProd('i1', 'RATICIDE'); }],
+      ['papSheetProduit (appât posé)', () => W.papSheetProduit('i1', 'po1', 'a')],
+      ['asProdDel', () => W.asProdDel('i1', 0)], ['intDelProduit', () => W.intDelProduit('i1', 0)], ['t3dProdDel', () => W.t3dProdDel('i1', 0)] ];
+    const bouge = [];
+    gestes.forEach(([nom, f]) => { try { f(); } catch (e) { bouge.push(nom + ' : ' + e.message); return; } if (empreinte(W.db) !== avant) bouge.push(nom); });
+    v('⛔⛔ ' + (cloturee ? 'APRÈS' : 'AVANT') + ' la clôture : onze gestes sur les lignes, le stock ne bouge pas d’une unité', bouge, []);
+    vrai('… et les lignes, elles, ont bien changé (population : ce n’est pas un banc qui ne fait rien)', JSON.stringify(i.produitsUtilises) !== JSON.stringify([{ produitId: 'a', qte: 2, unite: 'u' }, { produitId: 'c', qte: 1, unite: 'u' }]), i.produitsUtilises);
+  }
+  const T = bloc('function t3dProdUnit(intId,ix,u){');
+  vrai('changer l’unité d’une ligne ne touche que la ligne', /l\.unite=u; save\(\); t3dRefresh\(intId\);/.test(T) && !/stock/i.test(T), T);
+  const txt = BRUT.split('Le stock sera déduit').length - 1;
+  v('⛔ plus aucun écran n’annonce « Le stock sera déduit »', txt, 0); }
 
 console.log('\n── 794 · 6. la commande suggérée : le PLUS GRAND des deux besoins ──');
 { const W = monde({ moi, db: { produits: [P('a', 'ADVION', { seuil: 5 }), P('c', 'RATICIDE', { seuil: 10 }), P('r', 'RIEN', { seuil: 4 }), P('z', 'SANS SEUIL')], mouvements: [],

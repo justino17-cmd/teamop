@@ -19702,14 +19702,14 @@ function intDiagCard(i,edit){ const sel=i.nuisibles||[];
     <div class="dt-lbl" style="margin-bottom:6px">Niveau d'infestation</div>
     ${intInfGauge(i,true,'_diagSetInf')}
   </div>`; }
-/* ── B/F4. Produits & matériel (traçabilité AMM, stock déduit à la clôture) ── */
+/* ── B/F4. Produits & matériel (traçabilité AMM — noté sur l'intervention, jamais déduit du stock) ── */
 function intProdCard(i,edit){ const lines=i.produitsUtilises||[];
   const roLine=(lbl,val)=>`<div><div class="dt-lbl" style="margin-bottom:4px">${lbl}</div><div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);min-height:19px">${esc(val||'')||'<span style="color:var(--t3)">—</span>'}</div></div>`;
   return `<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>🧪 Produits & matériel</h3>${edit?'':'<span style="font-size:10.5px;color:var(--t3)">✏️ stylo pour modifier</span>'}</div>
     ${lines.length?lines.map(l=>{ const cat3=l.categorie&&T3D_CATS[l.categorie];
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px"><b style="flex:1;min-width:0">${cat3?cat3.ic+' ':''}${esc(prodLineName(l))}</b>${prodLineAmm(l)?`<span class="tag mono" style="font-size:10px">AMM ${esc(prodLineAmm(l))}</span>`:(l.nomLibre?'<span class="tag" style="font-size:10px">hors stock</span>':'')}<span style="color:var(--t2)">× ${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</span></div>`; }).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:2px 0 8px">Aucun produit renseigné.</div>'}
-    ${i.stockDeduit?'<div style="font-size:11.5px;color:var(--acc-txt);font-weight:700;margin-top:6px">✓ Stock déduit à la clôture</div>':'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Le stock sera déduit automatiquement à la clôture.</div>'}
+    ${i.stockDeduit?'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Stock déduit à sa clôture (règle d’avant).</div>':'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Noté sur le rapport et au registre — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.</div>'}
     <div style="display:grid;gap:8px;margin-top:10px">
       ${edit?`<div><div class="dt-lbl" style="margin-bottom:4px">Matériel utilisé</div><input value="${esc(i.materiel||'')}" placeholder="Ex : 2 pièges à glu, 1 grille anti-intrusion…" onchange="intEditField('${i.id}','materiel',this.value)" style="width:100%"></div>
       <div><div class="dt-lbl" style="margin-bottom:4px">Zones traitées</div><input value="${esc(i.zones||'')}" placeholder="Ex : cuisine, cave, réserve…" onchange="intEditField('${i.id}','zones',this.value)" style="width:100%"></div>`
@@ -19741,7 +19741,7 @@ const MENTION_REGL='Produits biocides utilisés conformément aux conditions de 
 /* ═══════════ TRAITEMENTS PAR TYPE — questionnaires + matériel + produits RANGÉS PAR TYPE (style Organilog).
    · i.quest = { cat:{actif:true,reponses:{...}} }
    · i.materiel3d = { cle:{on,qte,note,cat} }
-   · i.produitsUtilises étendu : {produitId | nomLibre, qte, unite, categorie} — source unique (stock déduit à la clôture). ═══════════ */
+   · i.produitsUtilises étendu : {produitId | nomLibre, qte, unite, categorie} — source unique (noté, jamais déduit du stock). ═══════════ */
 const T3D_CATS={
   punaises:{ic:'🪳',lbl:'Punaises / puces / poux / anthrène',mat:'rampants',prod:'insecticide'},
   rongeurs:{ic:'🐀',lbl:'Rongeurs',mat:'deratisation',prod:'rodonticide'},
@@ -19919,7 +19919,6 @@ function t3dProdAdd(intId,cat){ const i=db.interventions.find(x=>x.id===intId); 
   const ex=i.produitsUtilises.find(l=>l.produitId===pid&&l.categorie===cat);
   if(ex) ex.qte=(+ex.qte||0)+1;
   else i.produitsUtilises.push({produitId:pid,qte:1,unite:p.unite||'u',categorie:cat});
-  intStockAjuste(i,pid,1,p.unite);
   save(); t3dRefresh(intId); }
 function t3dProdLibre(intId,cat,nom){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   if(!nom){ const inp=$('t3d-prodlibre-'+cat); nom=((inp&&inp.value)||'').trim(); if(!nom){ toast('Tape le nom du produit'); return; } }
@@ -19947,20 +19946,15 @@ function t3dProdToStock(intId,ix){ const i=db.interventions.find(x=>x.id===intId
   l.produitId=pid; delete l.nomLibre;
   save(); t3dRefresh(intId); }
 function t3dProdDelta(intId,ix,d){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
-  const l=(i.produitsUtilises||[])[ix]; if(!l) return; const av=+l.qte||0; l.qte=Math.max(0,av+d); intStockAjuste(i,l.produitId,l.qte-av,l.unite); save(); t3dRefresh(intId); }
+  const l=(i.produitsUtilises||[])[ix]; if(!l) return; l.qte=Math.max(0,(+l.qte||0)+d); save(); t3dRefresh(intId); }
 function t3dProdSet(intId,ix,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
-  const l=(i.produitsUtilises||[])[ix]; if(!l) return; const av=+l.qte||0; l.qte=Math.max(0,parseFloat(String(v).replace(',','.'))||0); intStockAjuste(i,l.produitId,l.qte-av,l.unite); save(); t3dRefresh(intId); }
-/* Changer l'unité après avoir tapé la quantité déplaçait la ligne sans rien dire au stock :
-   « 250 » saisi en L puis corrigé en mL laissait 250 L déduits pour 0,25 L réellement
-   utilisés. On rend dans l'ancienne unité, on reprend dans la nouvelle — l'ordre inverse
-   (unité puis quantité) marchait déjà, d'où le caractère silencieux du défaut. */
+  const l=(i.produitsUtilises||[])[ix]; if(!l) return; l.qte=Math.max(0,parseFloat(String(v).replace(',','.'))||0); save(); t3dRefresh(intId); }
+/* L'unité d'une ligne se change librement : la ligne est une TRACE (rapport, registre), elle ne touche
+   pas au stock (v741). Les documents convertissent à la lecture (prodLineUnit, stockConv). */
 function t3dProdUnit(intId,ix,u){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const l=(i.produitsUtilises||[])[ix]; if(!l) return;
-  const av=prodLineUnit(l), q=l.qte!=null?(+l.qte||0):1;
-  if(q&&av!==u){ intStockAjuste(i,l.produitId,-q,av); intStockAjuste(i,l.produitId,q,u); }
   l.unite=u; save(); t3dRefresh(intId); }
 function t3dProdDel(intId,ix){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
-  const l=(i.produitsUtilises||[])[ix]; if(l) intStockAjuste(i,l.produitId,-(+l.qte||0),l.unite);
   (i.produitsUtilises||[]).splice(ix,1); save(); t3dRefresh(intId); }
 /* ── Réglementaire (appâtage permanent 2019) + cohérence avec le plan d'appâtage ── */
 function t3dRegAlerte(i){ const m=i.materiel3d||{};
@@ -20741,10 +20735,10 @@ function papSheetProduit(intId,posteId,pid){ const i=db.interventions.find(x=>x.
   const old=hit.po.produitId;
   if((old||'')!==(pid||'')) papTouch(hit.pl,'Poste n°'+hit.po.num+' : produit posé « '+((pid&&produit(pid).nom)||'aucun')+' »');   // v740 : imprimé, avec son n° d'AMM
   hit.po.produitId=pid||'';
-  // l'appât posé sur un poste compte dans les produits utilisés → déduit du stock et tracé au registre
+  // l'appât posé sur un poste compte dans les produits utilisés → tracé au registre (le stock ne bouge pas, v741)
   i.produitsUtilises=i.produitsUtilises||[];
-  if(old&&old!==pid){ const ix=i.produitsUtilises.findIndex(l=>l.produitId===old&&l._pap===posteId); if(ix>=0){ intStockAjuste(i,old,-1); i.produitsUtilises.splice(ix,1); } }
-  if(pid&&!i.produitsUtilises.some(l=>l.produitId===pid&&l._pap===posteId)){ const p=produit(pid); i.produitsUtilises.push({produitId:pid,qte:1,unite:p.unite||'u',_pap:posteId}); intStockAjuste(i,pid,1); }
+  if(old&&old!==pid){ const ix=i.produitsUtilises.findIndex(l=>l.produitId===old&&l._pap===posteId); if(ix>=0) i.produitsUtilises.splice(ix,1); }
+  if(pid&&!i.produitsUtilises.some(l=>l.produitId===pid&&l._pap===posteId)){ const p=produit(pid); i.produitsUtilises.push({produitId:pid,qte:1,unite:p.unite||'u',_pap:posteId}); }
   save(); papPosteSheet(intId,posteId); }
 function papSheetSecure(intId,posteId,v){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const hit=papFindPoste(i.clientId,posteId); if(!hit) return;
@@ -21245,73 +21239,25 @@ function papDossierSanitaire(cid){
     </body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{ try{w.print();}catch(e){} },400); }
 
-/* ── F4. Déduction du stock à la clôture (une seule fois par intervention) ── */
-/* Conversion d'unités pour la déduction (le technicien saisit en mL, le stock est en L…) */
+/* ⛔⛔ v741 — UNE INTERVENTION NE DÉDUIT RIEN, NULLE PART. Justin, 24 septembre 2026 : « le produit ne doit
+   pas se déduire par intervention, on doit juste savoir ce qu'il a utilisé, sinon ça fausserait tout le
+   stock ou la box ». Le stock — box et stockage — bouge quand quelqu'un s'y sert, qu'un arrivage entre ou
+   qu'on le corrige : des gestes qui disent QUI. La clôture déduisait une seconde fois ce que le technicien
+   avait déjà sorti ; la box finissait fausse, et les deux lignes du journal comptaient double dans la
+   consommation.
+   Ce qui a été utilisé reste écrit sur l'intervention (`produitsUtilises`) : sa fiche, le rapport, le
+   registre sanitaire, le dossier, la facture. `intStockDeduire` et `intStockAjuste` n'existent plus
+   (tests/test-794.js le garde) ; une intervention close avant garde son « ✓ Stock déduit », vrai pour elle. */
+/* Conversion d'unités (le technicien saisit en mL, la fiche est en L…) — les documents additionnent. */
 function stockConv(q,de,vers){ if(!de||!vers||de===vers) return q;
   const k={'ml.l':.001,'l.ml':1000,'g.kg':.001,'kg.g':1000};
   const f=k[(de+'').toLowerCase()+'.'+(vers+'').toLowerCase()]; return f?q*f:q; }
 /* Deux unités s'additionnent-elles ? stockConv rend la quantité INCHANGÉE quand il ne sait
-   pas convertir — pratique pour déduire du stock, piégeux pour faire une somme : 2 cart. et
+   pas convertir — pratique pour une ligne seule, piégeux pour faire une somme : 2 cart. et
    3 u devenaient 5. Là où l'on totalise, demander d'abord si l'addition a un sens. */
 function uniteCompat(de,vers){ if(!de||!vers) return true;
   de=String(de).toLowerCase(); vers=String(vers).toLowerCase();
   return de===vers || ['ml.l','l.ml','g.kg','kg.g'].indexOf(de+'.'+vers)>=0; }
-function intStockDeduire(i){ if(!i||i.stockDeduit) return; const lines=i.produitsUtilises||[];
-  i.stockDeduit=true;                                  // posé quoi qu'il arrive : plus de « sera déduit » fantôme
-  if(!lines.length) return;
-  let n=0,_intBoxAttente=0; const manques=[];
-  // la box du technicien : la première qu'il a le droit de voir et qui contient le produit
-  const tids=intTechIds(i);
-  /* ⛔ v741 : JAMAIS le stockage. Il baisse quand quelqu'un s'y sert (« Me servir », qui dit qui a pris
-     quoi) : ce que le technicien consomme en intervention en est déjà sorti — le déduire ici le
-     compterait deux fois. */
-  const boxDuTech=pid=>db.boxes.find(b=>b.actif!==false&&!estStockage(b)&&(b.stock&&b.stock[pid]&&(b.stock[pid].u||0)>0)&&(b.visibleTous||(b.techIds||[]).some(t=>tids.includes(t))));
-  const avecStockage=!!stockageBox(), stockageAMoi=avecStockage&&stockageVisible();
-  lines.forEach(l=>{ const p=db.produits.find(x=>x.id===l.produitId); if(!p) return;
-    let q=l.qte!=null?+l.qte:1; if(!q||q<=0) return;                      // ligne à 0 : rien à déduire
-    q=stockConv(q,l.unite||p.unite,p.unite);
-    const b=boxDuTech(p.id); let restant=q;
-    if(b){ const s=b.stock[p.id]; const prevU=s.u||0; const pris=Math.min(restant,prevU);
-      if(pris>0){
-        if(boxValidRequis()){
-          // la part prise dans la box attend le « Valider » du DR — rien ne se retire avant
-          restant-=pris; _intBoxAttente++;
-          boxMvtEnvoyer({type:'ajustement',boxId:b.id,produitId:p.id,du:-pris,dc:0,note:'Intervention '+(i.num||i.titre||'')},true);
-        } else {
-          s.u=prevU-pris; restant-=pris;
-          db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:pris,motif:'Intervention '+(i.num||i.titre||''),vehiculeId:'',boxId:b.id,unite:p.unite||'u',technicien:(currentUser&&fullName(currentUser))||''});
-          try{ notifyDrBoxLow(b,p.id,prevU); notifyDrBoxMove(b,p.id,'sortie',pris,'u'); }catch(_){}
-        } } }
-    /* L'entreprise a un stockage : le reste vient de ce qu'on y a pris, déjà sorti. On ne prévient d'un
-       manque que si la personne n'y a PAS accès — alors il ne peut pas venir de là. */
-    if(restant>0&&avecStockage){ if(!stockageAMoi) manques.push(p.nom+' (manque '+(Math.round(restant*10000)/10000)+' '+(p.unite||'u')+')'); }
-    else if(restant>0){ const dispo=p.qte||0; const pris=Math.max(0,Math.min(restant,dispo));
-      if(pris<restant) manques.push(p.nom+' (manque '+(Math.round((restant-pris)*10000)/10000)+' '+(p.unite||'u')+')');
-      /* Le stock plafonne à zéro depuis toujours ; le mouvement, lui, écrivait la quantité
-         DEMANDÉE. Cinq unités déclarées sur un stock de deux inscrivaient une sortie de cinq
-         — trois unités qui n'ont jamais existé, dans l'historique et dans les indicateurs de
-         consommation. Le calcul de `pris` était déjà là, il n'était simplement pas utilisé. */
-      p.qte=Math.max(0,dispo-pris);
-      if(pris>0) db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'sortie',qte:pris,motif:'Intervention '+(i.num||i.titre||''),vehiculeId:'',unite:p.unite||'u',technicien:(currentUser&&fullName(currentUser))||''}); }
-    n++; });
-  if(n) intHisto(i,'Stock déduit à la clôture : '+n+' produit(s)'+(_intBoxAttente?' — dont '+_intBoxAttente+' pris en box, en attente de validation DR':''));
-  if(_intBoxAttente){
-    try{ const dest=valideursPour(null);
-      if(dest.length) pushNotify('🔒 À valider — produits pris en box','Intervention '+(i.num||i.titre||'')+' : '+_intBoxAttente+' produit(s) · par '+((currentUser&&fullName(currentUser))||''),'/app.html#v=validations',dest); }catch(e){}
-    toast('📨 Produits pris en box envoyés au DR pour validation'); }
-  if(manques.length) toast('⚠️ Stock insuffisant : '+manques.join(', ')); }
-/* Retouche des produits APRÈS la clôture : le stock suit immédiatement,
-   et un mouvement « Ajustement après clôture » le raconte — plus d'écart
-   silencieux entre la fiche et l'inventaire. */
-/* v741 : avec un stockage, rien à ajuster — la clôture n'y a rien pris (intStockDeduire). Sans lui,
-   l'ancien compteur du catalogue, tel quel (sa trace écrit la quantité retouchée même quand le compteur
-   est à zéro : c'est ce que lisent les statistiques de consommation — noté dans REPRISE, pas changé). */
-function intStockAjuste(i,produitId,delta,unite){ if(!i||!i.stockDeduit||!produitId||!delta) return;
-  if(stockageBox()) return;
-  const p=db.produits.find(x=>x.id===produitId); if(!p) return;
-  const d=stockConv(delta,unite||p.unite,p.unite);
-  p.qte=Math.max(0,(p.qte||0)-d);
-  db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:d>0?'sortie':'entree',qte:Math.abs(d),motif:'Ajustement après clôture — '+(i.num||i.titre||''),vehiculeId:'',unite:p.unite||'u',technicien:(currentUser&&fullName(currentUser))||''}); }
 /* ── F6. Modale de suite de clôture (partagée : rapport classique + assistant) ── */
 function clotureSuiteModal(id,askNext,recurMsg){ const it=db.interventions.find(x=>x.id===id)||{};
   toast('Intervention effectuée ✓'+(recurMsg||''));
@@ -21369,15 +21315,15 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
     <div class="field"><label>Zones traitées</label><input value="${esc(asW.zones)}" oninput="asW.zones=this.value" placeholder="Ex : cuisine, cave, réserve…"></div>
     <div class="field"><label>Matériel utilisé</label><input value="${esc(asW.materiel)}" oninput="asW.materiel=this.value" placeholder="Ex : 2 pièges à glu, 1 grille anti-intrusion…"></div>`;
   } else if(s===2){ const lines=i.produitsUtilises=i.produitsUtilises||[];
-    body=`<div class="form-sec" style="margin-top:0">3 · Produits utilisés (registre & stock)</div>
+    body=`<div class="form-sec" style="margin-top:0">3 · Produits utilisés (registre)</div>
     ${lines.length?lines.map((l,ix)=>{ const p=produit(l.produitId);
       return `<div class="fgroup" style="margin-bottom:8px"><div class="frow"><div style="flex:1;min-width:0"><b style="font-size:13.5px">${esc(p.nom||'—')}</b>${p.amm?`<div class="mono" style="font-size:11px;color:var(--t3)">AMM ${esc(p.amm)}</div>`:'<div style="font-size:11px;color:var(--t3)">AMM non renseignée (fiche produit)</div>'}</div>
         <div style="display:flex;align-items:center;gap:6px"><button type="button" class="btn ghost sm" onclick="asProdQte('${i.id}',${ix},-1)">−</button><b class="mono" style="min-width:26px;text-align:center">${l.qte||1}</b><button type="button" class="btn ghost sm" onclick="asProdQte('${i.id}',${ix},1)">＋</button><button type="button" class="btn danger sm" onclick="asProdDel('${i.id}',${ix})">✕</button></div></div></div>`; }).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:4px 0 10px">Aucun produit pour l’instant.</div>'}
     <div style="display:flex;gap:7px;align-items:center;margin-top:6px">
-      <select id="as-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:12px;color:var(--t1)"><option value="">— Ajouter un produit du registre —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.nom)}${p.amm?' · AMM '+esc(p.amm):''} (stock ${p.qte||0})</option>`).join('')}</select>
+      <select id="as-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:12px;color:var(--t1)"><option value="">— Ajouter un produit du registre —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.nom)}${p.amm?' · AMM '+esc(p.amm):''}</option>`).join('')}</select>
       <button type="button" class="btn" onclick="asProdAdd('${i.id}')">＋</button></div>
-    <div style="font-size:12px;color:var(--t3);margin-top:8px">Le stock sera déduit automatiquement à la clôture. Les n° AMM apparaissent sur le rapport (traçabilité biocide).</div>`;
+    <div style="font-size:12px;color:var(--t3);margin-top:8px">Noté sur le rapport et au registre (n° AMM, traçabilité biocide) — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.</div>`;
   } else if(s===3){
     body=`<div class="form-sec" style="margin-top:0">4 · Photos avant / après</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:9px;margin-bottom:10px">
@@ -21417,15 +21363,13 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
 }
 function intCkToggleQuiet(id,k){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.checklist||!i.checklist[k]) return; i.checklist[k].done=!i.checklist[k].done; save(); }
 function asProdQte(id,ix,d){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.produitsUtilises[ix]) return;
-  const l=i.produitsUtilises[ix]; const av=l.qte||1; l.qte=Math.max(1,av+d); intStockAjuste(i,l.produitId,l.qte-av,l.unite); save(); assistRender(); }
+  const l=i.produitsUtilises[ix]; l.qte=Math.max(1,(l.qte||1)+d); save(); assistRender(); }
 function asProdDel(id,ix){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
-  const l=i.produitsUtilises[ix]; if(l) intStockAjuste(i,l.produitId,-(+l.qte||1),l.unite);
   i.produitsUtilises.splice(ix,1); save(); assistRender(); }
 function asProdAdd(id){ const i=db.interventions.find(x=>x.id===id); const pid=($('as-prod')||{}).value; if(!i||!pid){ toast('Choisis un produit'); return; }
   i.produitsUtilises=i.produitsUtilises||[];
   const ex=i.produitsUtilises.find(l=>l.produitId===pid);
   if(ex) ex.qte=(ex.qte||1)+1; else i.produitsUtilises.push({produitId:pid,qte:1});
-  intStockAjuste(i,pid,1);
   save(); assistRender(); }
 async function asAddPhotos(e){ const files=[...e.target.files]; e.target.value='';
   for(const f of files){ const d=await compressImage(f); if(d){ rapPhotos.push(d); rapTags.push(''); } } assistRender(); }
@@ -21448,7 +21392,6 @@ function assistFinish(id){ if(!asW) return; const ix=db.interventions.findIndex(
   it.statut='terminee'; it.finReel=Date.now();
   if(it.debutReel) it.dureeReelle=Math.round((it.finReel-it.debutReel)/60000)||it.duree;
   intRecaleAuJourFait(it);
-  intStockDeduire(it);
   syncFactureFromIntervention(it);
   let recurMsg='';
   const askNext=it.date&&!it.nextCreated&&((it.recurrence&&it.recurrence!=='aucune')||it.passageTotal>1||it.groupId);
@@ -21985,10 +21928,10 @@ function renderIntDetail(id){
       : '<div style="color:var(--t3);font-size:13px;padding:6px 0">Aucun produit utilisé.</div>'}
       <div style="text-align:right;font-size:14px;margin:8px 0 14px">Coût matériel : <b style="color:var(--acc-txt)">${eur(cout)}</b></div>
       <div style="display:flex;gap:7px;align-items:center">
-        <select id="ip-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)"><option value="">— Produit —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.ref)} — ${esc(p.nom)} (stock ${p.qte})</option>`).join('')}</select>
+        <select id="ip-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)"><option value="">— Produit —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.ref)} — ${esc(p.nom)}</option>`).join('')}</select>
         <input id="ip-qte" type="number" min="0.01" step="any" value="1" style="width:64px;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)">
         <button class="btn" onclick="intAddProduit('${id}')">＋</button></div>
-      <div style="font-size:12px;color:var(--t3);margin-top:8px">${i.stockDeduit?'✓ Stock déjà déduit à la clôture de cette intervention.':'Le stock sera déduit automatiquement à la clôture (mouvement de sortie). Les n° AMM du catalogue apparaissent sur le rapport.'}</div>`;
+      <div style="font-size:12px;color:var(--t3);margin-top:8px">${i.stockDeduit?'Stock déduit à la clôture de cette intervention (règle d’avant).':'Noté sur le rapport et au registre — le stock ne bouge pas. Les n° AMM du catalogue apparaissent sur le rapport.'}</div>`;
   } else if(intTab==='equipement'){
     body=`${i.equipements.length? i.equipements.map((e,ix)=>`<div class="pl-row" style="cursor:default"><div class="pl-info"><div class="pl-title">${esc(e.nom)}</div><div class="pl-meta">${esc(e.reference)||'—'}${e.note?' · '+esc(e.note):''}</div></div><button class="btn danger sm" onclick="intDelEquip('${id}',${ix})">✕</button></div>`).join('')
       : '<div style="color:var(--t3);font-size:13px;padding:6px 0">Aucun équipement.</div>'}
@@ -22633,8 +22576,8 @@ function intCkToggle(id,k){ const i=db.interventions.find(x=>x.id===id); if(!i||
 function intCkDel(id,k){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.checklist) return; i.checklist.splice(k,1); save(); renderIntDetail(id); }
 function intGenererDoc(id,kind){ if(!permGarde('ventes','ajouter',kind==='devis'?'un devis':'une facture')) return; const i=db.interventions.find(x=>x.id===id); if(!i)return;
   /* Le technicien saisit dans SON unité (250 mL) ; le prix de la fiche est par unité de
-     stock (48 €/L). Sans stockConv — que intStockDeduire applique déjà sur exactement la
-     même donnée — la facture partait chez le client à 12 000 € au lieu de 12 €. L'unité
+     stock (48 €/L). Sans stockConv — que la déduction de stock appliquait sur exactement la
+     même donnée, jusqu'à la v741 — la facture partait chez le client à 12 000 € au lieu de 12 €. L'unité
      figure dans la désignation : le client doit lire ce qu'on lui compte. */
   const lignes=(i.produitsUtilises||[]).map(l=>{ const p=produit(l.produitId);
     const uL=prodLineUnit(l), uP=p.unite||uL;
@@ -22682,16 +22625,15 @@ async function smsArrivee(id){ const i=db.interventions.find(x=>x.id===id); if(!
   location.href='sms:'+tel+'?&body='+encodeURIComponent(msg);
 }
 function intAddProduit(id){ const i=db.interventions.find(x=>x.id===id); const pid=$('ip-prod').value, q=parseFloat(String($('ip-qte').value).replace(',','.'))||1; if(!pid){toast('Choisis un produit');return;}
-  i.produitsUtilises.push({produitId:pid,qte:q}); intStockAjuste(i,pid,q); save(); renderIntDetail(id); }
+  i.produitsUtilises.push({produitId:pid,qte:q}); save(); renderIntDetail(id); }
 function intDelProduit(id,ix){ const i=db.interventions.find(x=>x.id===id);
-  const l=(i.produitsUtilises||[])[ix]; if(l) intStockAjuste(i,l.produitId,-(+l.qte||1),l.unite);
   i.produitsUtilises.splice(ix,1); save(); renderIntDetail(id); }
 function intToggleProd(id,nom){ const i=db.interventions.find(x=>x.id===id); if(!i)return; i.produitsUtilises=i.produitsUtilises||[];
   let p=db.produits.find(x=>produitCle(x)===produitCle({nom}));
   if(!p){ if(!permGarde('stock','ajouter','un produit')) return; p=produitCreer({id:idProduit(nom),nom,categorie:'',fournisseurs:[],ref:'',unite:'unité',prix:0,qte:0,seuil:0}); }
   const ix=i.produitsUtilises.findIndex(l=>l.produitId===p.id);
-  if(ix>=0){ const l=i.produitsUtilises[ix]; intStockAjuste(i,p.id,-(+l.qte||1),l.unite); i.produitsUtilises.splice(ix,1); }
-  else { i.produitsUtilises.push({produitId:p.id,qte:1}); intStockAjuste(i,p.id,1); }
+  if(ix>=0) i.produitsUtilises.splice(ix,1);
+  else i.produitsUtilises.push({produitId:p.id,qte:1});
   save(); renderIntDetail(id); }
 function intAddEquip(id){ const i=db.interventions.find(x=>x.id===id); const nom=$('ie-nom').value.trim(); if(!nom){toast('Nom requis');return;}
   i.equipements.push({nom,reference:$('ie-ref').value.trim(),note:''}); save(); renderIntDetail(id); }
@@ -23270,7 +23212,7 @@ function saveRapport(e,id){ e.preventDefault(); const f=e.target; const data=Obj
   { const m={'Aucune présence':'faible','Faible':'faible','Moyen':'moyen','Fort':'fort','Critique':'fort'}; if(constat.infestation) db.interventions[ix].infestation=m[constat.infestation]||''; }
   // Étiquettes avant/après : invalidées si la liste de photos a changé hors assistant
   if(db.interventions[ix].photoTags&&db.interventions[ix].photoTags.length!==rapPhotos.length) delete db.interventions[ix].photoTags;
-  if(effectuee){ if(sig) db.interventions[ix].clientAbsent=false; try{ intStockDeduire(db.interventions[ix]); }catch(err){} }
+  if(effectuee&&sig) db.interventions[ix].clientAbsent=false;   // v741 : effectuer ne déduit plus rien du stock
   /* EFFECTUER écrit dans le registre : une intervention payée = UNE ligne,
      créée ici et jamais recomptée ailleurs. */
   try{ if(typeof regMigration==='function') regMigration();
@@ -23859,8 +23801,8 @@ function produitsFusionnerDoublons(cles){
       if(!s.ref&&x.ref) s.ref=x.ref; if(!s.categorie&&x.categorie) s.categorie=x.categorie;
       if(!s.prix&&x.prix) s.prix=x.prix; if(!s.seuil&&x.seuil) s.seuil=x.seuil; if(!s.amm&&x.amm) s.amm=x.amm;
       if(!s.qteCarton&&x.qteCarton) s.qteCarton=x.qteCarton; if(x.perso) s.perso=true;
-      /* p.qte est le stock GLOBAL du produit, celui qu'intStockAjuste décrémente à chaque
-         intervention — il n'a rien à voir avec b.stock. Il n'était pas repris : fusionner deux
+      /* p.qte est l'ancien stock GLOBAL du produit (hors box, avant le stockage) — il n'a rien à
+         voir avec b.stock. Il n'était pas repris : fusionner deux
          fiches à 30 et 12 en laissait 30, et 12 unités disparaissaient du catalogue. */
       s.qte=(+s.qte||0)+(+x.qte||0);
       s.cree=Math.min(produitCree(s),produitCree(x)); });   // la plus ancienne des deux dates : une fusion ne fabrique pas une nouveauté
@@ -24228,8 +24170,8 @@ function formFournisseur(id){ const f=id?db.fournisseurs.find(x=>x.id===id):{};
    · son identifiant est FIXE : deux appareils qui le créent en même temps créent le MÊME
      enregistrement, fusionné ligne à ligne — jamais deux stockages ;
    · il ne s'ouvre d'office qu'à qui « voit tout » : l'accès se DONNE (stockageAcces) ;
-   · il baisse quand quelqu'un S'Y SERT, jamais à la clôture d'une intervention (intStockDeduire
-     l'écarte) : ce qu'un technicien a pris est déjà sorti, le déduire encore le compterait deux fois. */
+   · il baisse quand quelqu'un S'Y SERT — comme une box : une intervention ne déduit rien, nulle part
+     (« UNE INTERVENTION NE DÉDUIT RIEN ») ; ce qu'un technicien a pris est déjà sorti. */
 const STOCKAGE_ID='stockage';
 function estStockage(b){ return !!(b&&b.id===STOCKAGE_ID); }
 function stockageBox(){ return (db.boxes||[]).find(b=>b&&b.id===STOCKAGE_ID&&b.actif!==false)||null; }
@@ -24418,8 +24360,8 @@ function renderStockList(){ const el=$('stock-list'); if(!el)return; let lines=s
 }
 
 /* ═══════════════ MOUVEMENTS STOCK ═══════════════ */
-/* Journal 100 % automatique : il se remplit tout seul (box, clôtures
-   d'interventions, arrivages, conso…) — on ne crée plus de mouvement à la main. */
+/* Journal 100 % automatique : il se remplit tout seul (box, stockage, arrivages, sorties, validations…)
+   — on ne crée plus de mouvement à la main. Une intervention n'y écrit plus rien (v741). */
 /* ── 🧪 SIMULATION D'ESSAI (bêta seulement) : remplit le journal avec des exemples
    de tout — bon de commande, ajouts, consommations, validations DR, remises —
    marqués _demo, et se retire d'un clic sans toucher aux vraies données. ── */
@@ -24436,12 +24378,12 @@ function mvtDemoPoser(){
     {ts:t(0,1), produitId:'demo_alt', type:'entree', qte:30, motif:'Arrivage SODIF — Box Démo Nord (validé DR) · bon BC-2026-011', boxId:'demo_bx1', technicien:'Léo Martin (démo)', validePar:moi},
     {ts:t(0,3), produitId:'demo_adv', type:'sortie', qte:2, motif:'Ajustement (validé DR) — Box Démo Nord', boxId:'demo_bx1', unite:'u', technicien:'Karim Benali (démo)', validePar:moi, donneA:'Karim Benali (démo)'},
     {ts:t(0,5), produitId:'demo_deb', type:'sortie', qte:5, motif:'Ajustement (validé DR) — Box Démo Sud', boxId:'demo_bx2', unite:'u', technicien:'Léo Martin (démo)', validePar:moi, donneA:'Justin Roux (démo)'},
-    {ts:t(1,2), produitId:'demo_adv', type:'sortie', qte:4, motif:'Intervention Tilleuls', boxId:'demo_bx1', unite:'u', technicien:'Sofia Perez (démo)'},
+    {ts:t(1,2), produitId:'demo_adv', type:'sortie', qte:4, motif:'Sortie — Box Démo Nord', boxId:'demo_bx1', unite:'u', technicien:'Sofia Perez (démo)', donneA:'Sofia Perez (démo)'},
     {ts:t(1,6), produitId:'demo_rat', type:'entree', qte:10, motif:'Entrée box — Box Démo Sud', boxId:'demo_bx2', technicien:moi},
-    {ts:t(2,4), produitId:'demo_alt', type:'sortie', qte:3, motif:'Chantier Boulogne', boxId:'demo_bx1', unite:'u', technicien:'Karim Benali (démo)'},
+    {ts:t(2,4), produitId:'demo_alt', type:'sortie', qte:3, motif:'Sortie — Box Démo Nord', boxId:'demo_bx1', unite:'u', technicien:'Karim Benali (démo)', donneA:'Karim Benali (démo)'},
     {ts:t(6,2), produitId:'demo_deb', type:'entree', qte:20, motif:'Réception commande BC-2026-008 — Box Démo Sud', boxId:'demo_bx2', technicien:'Léo Martin (démo)', validePar:moi},
     {ts:t(35,3), produitId:'demo_adv', type:'entree', qte:30, motif:'Arrivage MABI — Box Démo Nord (validé DR)', boxId:'demo_bx1', technicien:'Léo Martin (démo)', validePar:moi},
-    {ts:t(36,5), produitId:'demo_alt', type:'sortie', qte:6, motif:'Intervention Marceau', boxId:'demo_bx1', unite:'u', technicien:'Sofia Perez (démo)'},
+    {ts:t(36,5), produitId:'demo_alt', type:'sortie', qte:6, motif:'Sortie — Box Démo Nord', boxId:'demo_bx1', unite:'u', technicien:'Sofia Perez (démo)', donneA:'Sofia Perez (démo)'},
     {ts:t(66,2), produitId:'demo_rat', type:'sortie', qte:4, motif:'Ajustement (validé DR) — Box Démo Sud', boxId:'demo_bx2', unite:'u', technicien:'Karim Benali (démo)', validePar:moi, donneA:'Nadia Lopez (démo)'},
     {ts:t(67,4), produitId:'demo_deb', type:'entree', qte:12, motif:'Réception commande BC-2026-002 — Box Démo Sud', boxId:'demo_bx2', technicien:moi}
   ];
@@ -24804,7 +24746,7 @@ views.mouvements=function(){
   const demoBeta=(APP_VERSION.indexOf('beta')>=0&&currentUser&&currentUser.role==='admin');
   const bandeauDemo=(demoBeta||(demoOn&&currentUser&&currentUser.role==='admin'))?`<div class="card" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-style:dashed"><span style="font-size:17px">🧪</span><div style="flex:1;min-width:220px"><b>Simulation d'essai</b><div style="font-size:12px;color:var(--t3)">Remplit le journal avec des exemples de tout : bon de commande, ajouts, consommations, validations DR, remises, mois passés. Tout est marqué (démo) et se retire d'un clic.</div></div>${demoOn?`<button type="button" class="btn ghost sm" onclick="mvtDemoRetirer()">Retirer la simulation</button>`:(demoBeta?`<button type="button" class="btn ghost sm" onclick="mvtDemoPoser()">Petite simulation</button> <button type="button" class="btn sm" onclick="mvtDemoGrande()">Tout le catalogue · 6 mois</button>`:'')}</div>`:'';
   $('content').innerHTML=tuiles+barre+bandeauDemo
-    +`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Ce journal s'écrit tout seul : chaque ajout ou retrait dans une box ou dans le stockage, chaque clôture d'intervention, chaque arrivage et chaque bon de remise y laisse une trace — rangé par jour puis par box, avec le nom de la personne qui l'a fait et de celle qui a validé.</div>`
+    +`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Ce journal s'écrit tout seul : chaque ajout ou retrait dans une box ou dans le stockage, chaque arrivage et chaque bon de remise y laisse une trace — rangé par jour puis par box, avec le nom de la personne qui l'a fait et de celle qui a validé.</div>`
     +(list.length?cartes:`<div class="card">${emptyState('🔁',(mvtFType||mvtFBox)?'Aucun mouvement ne correspond à ce filtre.':'Aucun mouvement pour l\'instant. Ils apparaîtront automatiquement dès que le stock bouge.','','')}</div>`);
 };
 

@@ -116,17 +116,19 @@ console.log('\nLa virgule décimale — mesurée sur Chromium en fr-FR');
 }
 
 console.log('\nLe stock ne compte plus ce qui n\'est pas sorti');
-{ v('la clôture inscrit ce qui est SORTI, pas ce qui était demandé',
-    /if\(pris>0\) db\.mouvements\.unshift\(\{[^\n]*qte:pris,/.test(APP),true);
-  v('et le stock se plafonne sur le même nombre',/p\.qte=Math\.max\(0,dispo-pris\);/.test(APP),true);
+{ /* v741 — Justin, 24 septembre 2026 : « le produit ne doit pas se déduire par intervention, on doit
+     juste savoir ce qu'il a utilisé ». La clôture n'écrit plus rien au stock : il n'y a plus de
+     quantité « demandée » à plafonner là. Ce qui reste à garder, c'est qu'elle n'y revienne pas. */
+  v('⛔ une intervention ne déduit plus rien : ni intStockDeduire, ni intStockAjuste',
+    [/function intStockDeduire\(/.test(APP), /intStockAjuste\(/.test(APP)], [false,false]);
   v('la validation DR en lot trace le delta réel',
     /if\(du\)\{ const av=cur\.u\|\|0; cur\.u=Math\.max\(0,av\+du\); ru=cur\.u-av; if\(ru\) traceBox\(b,l\.produitId,ru,'u'/.test(APP),true);
   v('le mouvement isolé aussi',
     /if\(du\)\{ const av=cur\.u\|\|0; cur\.u=Math\.max\(0,av\+du\); ru=cur\.u-av; if\(ru\) traceBox\(b,m\.produitId,ru,'u'/.test(APP),true);
   v('boxAdj aussi, et il s\'arrête si rien ne bouge',
     /const reel=b\.stock\[pid\]\[field\]-avAdj;\s*\n\s*if\(!reel\)\{/.test(APP),true);
-  v('changer l\'unité après la quantité rend puis reprend le stock',
-    /if\(q&&av!==u\)\{ intStockAjuste\(i,l\.produitId,-q,av\); intStockAjuste\(i,l\.produitId,q,u\); \}/.test(APP),true);
+  v('changer l\'unité d\'une ligne d\'intervention ne touche plus au stock (la ligne est une trace)',
+    /function t3dProdUnit\(intId,ix,u\)\{[^\n]*\n  const l=\(i\.produitsUtilises\|\|\[\]\)\[ix\]; if\(!l\) return;\n  l\.unite=u; save\(\); t3dRefresh\(intId\); \}/.test(APP),true);
 }
 
 console.log('\nLe bon de remise distingue les unités des cartons');
