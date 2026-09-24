@@ -2020,7 +2020,20 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
 });
 // payé ? — le réglage manuel du patron d'abord ; sinon trois portes : formule gratuite, code promo actif, abonnement Stripe actif
 const espStripeCache = { ts: 0, data: null };
-async function espacePaye(e) {
+async function espacePaye(e, opts) {
+  /* ⛔⛔ `lecture` : RÉPONDRE SANS RIEN ACTIVER (24 septembre 2026, relevé par `gardien`).
+     Le rattrapage ci-dessous ÉCRIT (compteur du code, `promos-usages.json`) et ENVOIE un
+     courriel au client (« ton code est actif jusqu'au … »). C'est juste quand c'est
+     l'APPLICATION de l'entreprise qui demande son état : elle se sert du service. Ça ne l'est
+     pas pour une lecture de fond — l'horloge de conservation balaie TOUTES les entreprises au
+     démarrage puis chaque heure, la Tour les liste toutes d'un coup : chaque code en attente
+     se serait activé tout seul, sans que le client ait rien ouvert, une place de
+     `maxUtilisations` consommée et ses mois qui partent. « Ouvrir un écran n'écrit pas »,
+     appliqué au serveur.
+     En lecture, un code VALABLE en attente compte comme payé (« en cas de doute, on dit ça
+     paie » : l'horloge de suppression ne démarre pas sur un client qui a un code à activer),
+     et rien n'est écrit ni envoyé. */
+  const lecture = !!(opts && opts.lecture);
   if (!e || !e.formule) return { paye: false, motif: 'aucune formule' };
   if (e.aboStatut) {   // réglé à la main dans la Tour
     const auj = new Date().toISOString().slice(0, 10);
@@ -2037,6 +2050,7 @@ async function espacePaye(e) {
       const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c);
       const u0 = promoUsages[c] || { n: 0, equipes: {} };
       if (p && !u0.equipes[e.t] && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
+        if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — il s\'active au prochain lancement de l\'application', promoCode: c, enAttente: true };
         const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(p.mois) || 1));
         u0.n++; u0.equipes[e.t] = { date: new Date().toISOString().slice(0, 10), finLe: dF.toISOString().slice(0, 10) };
         promoUsages[c] = u0; savePromoUsages();
@@ -2109,7 +2123,7 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
        enrichie, via `espaceParT()` : la Tour, elle, rattachait par le `t` seul. Le jour où la
        référence gravée vaut le SLUG, l'application dirait « payé » et la Tour « impayé »,
        sur la même entreprise, au même instant — et on chercherait du côté de Stripe. */
-    try { p = await espacePaye(Object.assign({ slug }, e)); } catch (err) {}
+    try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
     sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', quantite: e.quantite || 1,
       paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
       // qui a ouvert l'espace et quand : la Tour en a besoin pour lister les accès publics
@@ -2153,7 +2167,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
   const e = espacesReg[slug];
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
-  const p = await espacePaye(Object.assign({ slug }, e));   // le slug n'est pas dans l'entrée — voir /liste
+  const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
   res.json({ ok: true, formule: e.formule || '', quantite: e.quantite || 1, email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
 });
 // ── Activité par onglet (anonyme : noms d'écrans + compteurs, par espace) ──
@@ -5616,7 +5630,8 @@ try {
         /* ⛔ EN CAS DE DOUTE, ON DIT « ÇA PAIE ». Une exception ici ne doit JAMAIS démarrer une
            horloge de suppression : entre une horloge en retard et une horloge qui tourne à
            tort sur un client à jour, il n'y a pas d'hésitation. */
-        try { const r = await espacePaye(Object.assign({}, e, { slug: slug })); paye = !!r.paye; motif = String(r.motif || ''); }
+        /* ⛔ `lecture: true` : balayer n'ACTIVE aucun code promo en attente (voir `espacePaye`). */
+        try { const r = await espacePaye(Object.assign({}, e, { slug: slug }), { lecture: true }); paye = !!r.paye; motif = String(r.motif || ''); }
         catch (err) { paye = true; motif = ''; }
         sortie.push({ t: t, paye: paye, motif: motif });
       }

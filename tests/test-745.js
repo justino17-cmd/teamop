@@ -232,10 +232,14 @@ const fichier = (d) => { try { return JSON.parse(fs.readFileSync(path.join(d, 'c
     /* ⛔⛔ `espacePaye()` EST ASYNCHRONE — l'appeler sans l'attendre rend une PROMESSE, donc
        `!!promesse.paye` vaut FAUX pour tout le monde, donc une horloge de suppression sur
        CHAQUE entreprise. Mesuré sur le vrai serveur le 21 septembre 2026. */
-    vrai('⛔⛔ l\'appel à `espacePaye` est ATTENDU', /await espacePaye\(Object\.assign\(\{\}, e, \{ slug: slug \}\)\)/.test(SRV));
+    vrai('⛔⛔ l\'appel à `espacePaye` est ATTENDU', /await espacePaye\(Object\.assign\(\{\}, e, \{ slug: slug \}\), \{ lecture: true \}\)/.test(SRV));
+    /* ⛔⛔ ET EN LECTURE : balayer toutes les entreprises au démarrage n'ACTIVE aucun code promo
+       en attente (compteur +1, courriel au client) — relevé par `gardien`, 24 septembre 2026.
+       Le comportement est joué sur la vraie fonction par `test-727`. */
+    vrai('⛔⛔ … et en LECTURE : le balayage n\'active aucun code promo', /espacePaye\(Object\.assign\(\{\}, e, \{ slug: slug \}\), \{ lecture: true \}\)/.test(SRV));
     /* ⛔ ET L'ENTRÉE PORTE LE SLUG — défaut attrapé par `test-727` sur ce code même.
        `espacePaye()` rattache par `[e.slug, e.t]`, et l'entrée du registre n'en a pas. */
-    vrai('⛔ et il passe une entrée PORTEUSE DU SLUG', /espacePaye\(Object\.assign\(\{\}, e, \{ slug: slug \}\)\)/.test(SRV));
+    vrai('⛔ et il passe une entrée PORTEUSE DU SLUG', /espacePaye\(Object\.assign\(\{\}, e, \{ slug: slug \}\)/.test(SRV));
     /* ⚠️ UNE À LA FOIS : lancer un aller-retour Stripe par espace simultanément, c'est se faire
        limiter par Stripe le jour où il y aura cent clients — pour une tâche de fond que
        personne n'attend. */

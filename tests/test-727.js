@@ -33,7 +33,7 @@ const vrai = (t, a) => v(t, !!a, true);
 
 /* On extrait la VRAIE fonction du fichier livré, dans son texte, et on l'exécute. Rien n'est
    recopié : si elle change de dépendances, ce banc tombe — et c'est le comportement voulu. */
-const i = SRC.indexOf('async function espacePaye(e) {');
+const i = SRC.indexOf('async function espacePaye(e, opts) {');
 let d = 0, fin = -1;
 for (let k = SRC.indexOf('{', i); k < SRC.length; k++) { if (SRC[k] === '{') d++; else if (SRC[k] === '}') { d--; if (!d) { fin = k + 1; break; } } }
 vrai('espacePaye est trouvée dans le fichier réel', i > 0 && fin > i);
@@ -242,6 +242,53 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ une entrée AVEC slug se rattache par le slug', avecSlug.paye, true);
     const sans = await avec([ABO({ customer: { email: 'compta@ailleurs.fr' }, metadata: { espace: 'monclient' } })])({ t: 'ent-x', email: '', formule: 'premium' });
     v('   la même SANS slug ne se rattache pas (le défaut de la Tour)', sans.paye, false);
+  }
+
+  /* 7. ⛔⛔ UNE LECTURE N'ACTIVE AUCUN CODE PROMO (24 septembre 2026, relevé par `gardien`).
+     Le rattrapage d'`espacePaye()` ÉCRIT (compteur, `promos-usages.json`) et ENVOIE un courriel
+     au client. L'horloge de conservation balaie TOUTES les entreprises au démarrage, la Tour
+     les liste toutes d'un coup : sans `lecture`, chaque code en attente s'activait tout seul.
+     On joue la VRAIE fonction, avec un code FICTIF (jamais un vrai : règle du dépôt, et
+     `scripts/verif-secrets.sh` refuse tout code qui y ressemble). */
+  {
+    const CODE = 'ESSAI-BANC-SIX';
+    const monter = () => {
+      const trace = { ecrit: 0, mails: [] };
+      const usages = {};
+      const f = new Function('config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console',
+        'savePromoUsages', 'mailPromoActive', SRC.slice(i, fin) + '\nreturn espacePaye;')(
+        { promos: [{ code: CODE, mois: 3, formule: 'premium', maxUtilisations: 2 }] },
+        { ts: 0, data: null }, usages, async () => [], { log() {}, error() {} },
+        () => { trace.ecrit++; }, (t, c) => { trace.mails.push(c); });
+      return { f, trace, usages };
+    };
+    const ENT = { slug: 'enattente', t: 'ent-attente-qk', email: 'patron@exemple.fr', formule: 'premium', codePromo: CODE };
+
+    const L = monter();
+    const rl = await L.f(ENT, { lecture: true });
+    v('⛔⛔ en LECTURE : rien n\'est écrit', L.trace.ecrit, 0);
+    v('⛔⛔ … aucun courriel ne part', L.trace.mails, []);
+    v('   … et le compteur du code ne bouge pas', L.usages[CODE], undefined);
+    v('⛔ un code valable en attente compte comme PAYÉ (« en cas de doute, ça paie »)', [rl.paye, rl.enAttente, rl.promoCode], [true, true, CODE]);
+    vrai('   et le motif dit qu\'il est en attente', /en attente/.test(rl.motif));
+
+    /* Le témoin : sans `lecture` — l'application de l'entreprise qui demande son état —
+       le rattrapage fait son travail. Sans ce témoin, « rien n'est écrit » pourrait vouloir dire
+       que le rattrapage ne tourne plus du tout. */
+    const W = monter();
+    const rw = await W.f(ENT);
+    v('   sans `lecture` (l\'application) : le code s\'ACTIVE', [rw.paye, W.trace.ecrit, W.usages[CODE] && W.usages[CODE].n], [true, 1, 1]);
+    v('   … et le courriel part, une fois', W.trace.mails, [CODE]);
+    const rw2 = await W.f(ENT);
+    v('   … une seule fois : un second appel ne recompte rien', [rw2.paye, W.trace.ecrit, W.usages[CODE].n], [true, 1, 1]);
+
+    /* Et qui lit, qui active : la liste est courte et nommée. */
+    const CODE_SRC = SRC.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const appels = [...CODE_SRC.matchAll(/(?<!function )espacePaye\(([^\n]*)/g)].map(m => m[1]);
+    vrai('   la population des appelants est là', appels.length >= 4);
+    const actifs = appels.filter(a => !/\{ lecture: true \}/.test(a));
+    v('⛔⛔ un SEUL appelant active : l\'application qui demande son état', actifs.length, 1);
+    vrai('   … et c\'est bien `/api/espaces/etat` (espacePaye(e).then)', /^e\)\.then\(/.test(actifs[0] || ''));
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
