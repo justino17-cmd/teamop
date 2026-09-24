@@ -7316,6 +7316,10 @@ html[data-marque][data-verre][data-refonte] .toast{
 html[data-marque][data-verre] .msg-flot{background:var(--acc-fill)!important;color:var(--on-fill)!important}
 
 /* ── 18. LA CONNEXION — la même matière, la teinte sur le bouton ── */
+/* Le FOND de la page aussi (la diagonale et les dégradés du thème) : la connexion gardait une lueur
+   VERTE posée sur un aplat bleu nuit, du temps où l'application était verte — mesuré le 24 septembre
+   2026, `radial-gradient(… rgba(74,222,128,.14) …), var(--deep)` sous le thème TEAM OP. */
+html[data-marque][data-verre] .login{background:var(--vr-page)!important}
 html[data-marque][data-verre] .login-card .btn[type="submit"],
 html[data-marque][data-verre] .login-card button.btn:not(.ghost){background:var(--acc-fill)!important;color:var(--on-fill)!important;border:0!important}
 
@@ -7325,6 +7329,10 @@ html[data-os="windows"][data-marque][data-verre][data-refonte] .btn{border-radiu
 
 /* ── 21. L'ÉCRAN « THÈME ET COULEUR » ── la grammaire des Réglages d'iOS : des groupes titrés en
    petites lettres grises, des cartes de lignes, une grille de pastilles rondes. */
+/* Sur un grand écran, la fenêtre prend toute la zone de contenu (1 157 px mesurés sur un Mac de
+   1 440) : quatre pastilles par rangée à 247 px l'une de l'autre, un segmenté de 1 000 px. Les
+   Réglages d'un Mac tiennent dans une COLONNE — on borne le contenu, l'en-tête garde sa largeur. */
+@media(min-width:900px){ #modal .tc-ecran{max-width:680px;margin:0 auto} }
 .tc-intro{font-size:14px;color:var(--t3);line-height:1.45;margin:0 0 6px;text-wrap:pretty}
 .tc-groupe{font-size:13px;color:var(--t3);letter-spacing:-.008em;padding:18px 4px 7px}
 .tc-note{font-size:12.5px;color:var(--t3);margin-top:8px;padding:0 4px}
@@ -39830,7 +39838,7 @@ function themeCouleur(){
       <input type="color" value="${esc(hexPerso||'#7A5AF8')}" onchange="setAccentCustom(this.value);themeCouleur()" aria-label="Choisir ma couleur"></label>`;
   const modes=[['light','Jour'],['dark','Nuit'],['auto','Auto']];
   openModal(`<div class="modal-head"><h3>Thème et couleur</h3><button class="modal-close" onclick="closeModal()" aria-label="Fermer">✕</button></div>
-    <p class="tc-intro">Le thème change les fonds et les menus ; la teinte s'applique aux boutons, liens et onglets — sur tous tes appareils.</p>
+    <div class="tc-ecran"><p class="tc-intro">Le thème change les fonds et les menus ; la teinte s'applique aux boutons, liens et onglets — sur tous tes appareils.</p>
     <div class="tc-groupe">Apparence</div>
     <div class="filters tc-modes" role="group" aria-label="Apparence">${modes.map(([k,l])=>`<div class="chip ${t===k?'active':''}" onclick="tcMode('${k}')">${l}</div>`).join('')}</div>
     ${t==='auto'?`<div class="tc-note">Suit ton appareil — en ce moment : <b>${nuit?'nuit':'jour'}</b>.</div>`:''}
@@ -39847,7 +39855,7 @@ function themeCouleur(){
       <div class="tc-demo-l"><span class="tc-demo-creer">＋ Créer</span><span class="tc-demo-onglet">Onglet actif</span></div>
       <a class="tc-demo-lien" href="javascript:void 0" onclick="return false">06 12 34 56 78</a>
     </div>
-    <button class="btn tc-termine" onclick="closeModal()">Terminé</button>`);
+    <button class="btn tc-termine" onclick="closeModal()">Terminé</button></div>`);
 }
 function tcMode(k){ localStorage.setItem('elan_theme',k); prefEcrire('theme',k); applyTheme(); if(current==='parametres') views.parametres(); themeCouleur(); }
 function tcMarque(k){ setMarque(k); themeCouleur(); }

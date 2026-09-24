@@ -153,5 +153,13 @@ console.log('\n── 5. Les listes prennent la rangée de la maquette');
   vrai('le segmenté Tous · Pros · Particuliers ne paraît que s’il trie quelque chose', /const typeBar=\(nPro&&nPro<_tous\.length\)\?/.test(vc));
 }
 
+console.log('\n── 6. La connexion prend le fond du thème');
+{
+  /* ⚠ Mesuré le 24 septembre 2026 : sous le thème TEAM OP, la connexion peignait encore
+     `radial-gradient(… rgba(74,222,128,.14) …), var(--deep)` — une lueur VERTE du temps où
+     l'application était verte, sur un aplat. Elle prend la page du thème, comme l'application. */
+  vrai('⛔ la connexion peint la page du thème (diagonale et dégradés)', /html\[data-marque\]\[data-verre\] \.login\{background:var\(--vr-page\)!important\}/.test(NU));
+}
+
 console.log('\n═══ test-806 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
 process.exit(ko ? 1 : 0);
