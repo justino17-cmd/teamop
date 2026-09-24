@@ -89,6 +89,32 @@ fois la panne constatée — et il met de côté (`mv`), il n'efface pas.
 - **`surveillance.js`** : l'alarme « le socle tourne sans sa clé » disait `restart` sans
   `daemon-reload`.
 
+### ⛔⛔ INCIDENT — LES CLÉS DU COFFRE ONT ÉTÉ COLLÉES DANS LA CONVERSATION (24 septembre, ~17 h 50 UTC) : À REMPLACER
+
+Pour mettre les quatre coordonnées du coffre au séquestre, je lui ai fait AFFICHER la ligne
+`endpoint,bucket,accessKey,secretKey` sur le VPS (`node -e … config.sauvegarde …`), avec « ne me
+colle pas le résultat ». Justin recolle la sortie de chaque commande ici — c'est ce qu'on lui
+demande à chaque étape depuis le matin : la ligne est arrivée dans la conversation, **clé secrète
+comprise**. Elle est donc brûlée, comme celle du 17 septembre. Supprimer le message n'y change
+rien ; seule la rotation compte.
+- **Ce qui n'est PAS exposé** : le contenu des sauvegardes. Les archives sont chiffrées par
+  `sauvegarde.cle`, qui n'a pas été affichée, et les bases du socle par la clé maître.
+- **Ce qui l'est** : le coffre lui-même — avec cette paire, on peut lister, télécharger (du
+  chiffré), **effacer toutes les sauvegardes** ou remplir le coffre à nos frais. D'où la rotation
+  le jour même.
+- **La rotation, dans cet ordre** (un geste à la fois, rien d'affiché) : ① console IONOS → une
+  NOUVELLE paire, recopiée directement dans le gestionnaire de mots de passe ; ② sur le VPS,
+  `node /opt/teamop/repo/server/configurer-sauvegarde.js` (saisie masquée ; il éprouve le coffre
+  avant d'écrire et GARDE la clé de chiffrement existante), première sauvegarde, puis
+  `systemctl restart teamop-api` — le service tient les anciennes clés en mémoire jusque-là ;
+  ③ vérifier (`/health` : `sauvegarde.ok`, `ageH:0`) et faire l'essai sans `config.json`, qui
+  éprouve du même coup la copie du séquestre ; ④ **seulement alors** supprimer l'ancienne paire
+  chez IONOS (avant, la sauvegarde de la nuit tomberait).
+- ⛔ **La règle, écrite aussi dans `CLAUDE.md`** : on ne fait jamais AFFICHER un secret sur le VPS.
+  Un secret va de la console de l'hébergeur au gestionnaire de mots de passe directement, et au
+  VPS par saisie masquée. Une consigne « ne me colle pas le résultat » ne tient pas contre une
+  méthode où l'on colle TOUS les résultats.
+
 ### ⛔ Trouvé en préparant la suite — `restaurer.js` aurait restauré la copie du MOIS (corrigé, branche)
 
 En préparant l'essai « sans `config.json` » (section 6), le banc qui manquait a été écrit :
@@ -122,6 +148,8 @@ l'écart grandit ensuite (le 20 octobre, la flèche aurait montré le 1ᵉʳ).
 1. ⛔ **Ranger les quatre coordonnées du coffre** (endpoint, bucket, accessKey, secretKey) à côté
    des deux clés : elles ne vivent que dans `/opt/teamop/config.json`, sur la machine qu'un
    sinistre ferait disparaître. Trois clés parfaites et aucune porte, c'est un coffre perdu.
+   ⏳ **Se fait PAR la rotation ci-dessus** : la nouvelle paire va de la console IONOS au
+   gestionnaire directement — jamais en l'affichant sur le VPS.
 2. **Un essai de restauration SANS `config.json`** (les deux variables d'environnement seules) —
    le seul qui ressemble au sinistre réel. Celui du 18 septembre s'est fait avec. La commande,
    éprouvée contre un coffre local (saisie masquée, rien dans l'historique), est dans

@@ -270,6 +270,9 @@ proprement : elles sont remises quand même, et elles demandent un examen. Ne pa
       également : elles ne vivent aujourd'hui que dans `/opt/teamop/config.json`, c'est-à-dire
       sur la machine qu'un sinistre fait disparaître. Trois clés parfaites et aucune porte,
       c'est un coffre perdu.
+      ⛔ **On les recopie depuis la console de l'hébergeur, au moment où on crée la paire — on
+      ne les AFFICHE jamais sur le VPS.** Le 24 septembre 2026, les afficher pour les recopier
+      les a fait arriver dans une conversation, et la paire a dû être remplacée.
 - [ ] `/health` → `socle.actif:true`, `socle.cle:true`
 - [ ] `/health` → `sauvegarde.active:true` et une sauvegarde a réussi depuis l'allumage
 - [ ] une restauration a été essayée POUR DE FAUX depuis l'allumage

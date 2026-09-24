@@ -374,6 +374,15 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ferait crier toutes les heures jusqu'au prochain déploiement.
   ⛔ **La morale, plus large que ce cas : une garde décrite dans ce fichier n'est pas une
   garde. Aller lire le code qui crie.**
+- ⛔⛔ **ON NE FAIT JAMAIS AFFICHER UN SECRET SUR LE VPS — JUSTIN RECOLLE TOUTES SES SORTIES ICI.**
+  C'est la méthode, et c'est ce qu'on lui demande à chaque étape (« envoie-moi ce qui s'affiche »).
+  Le 24 septembre 2026, pour mettre les coordonnées du coffre au séquestre, une commande les a
+  affichées avec « ne me colle pas le résultat » : la ligne est arrivée dans la conversation, clé
+  secrète comprise, et la paire a dû être remplacée — la deuxième fois après le 17 septembre. Une
+  consigne ne tient pas contre une habitude qu'on a soi-même installée. **Un secret va de la
+  console de l'hébergeur au gestionnaire de mots de passe directement, et au VPS en saisie
+  masquée** (`configurer-sauvegarde.js`, `read -s`) ; pour savoir si une copie est juste, on la
+  COMPARE sans l'afficher (la relecture masquée d'`ALLUMER-LE-SOCLE.md`, section 1).
 - ⛔ **UN CODE PROMO NE S'ÉCRIT DANS AUCUN FICHIER SERVI, PAS MÊME COMME EXEMPLE.** Le
   19 septembre 2026, `TEAMOP3MOIS` était dans le placeholder d'un champ de `tour.html`. La Tour
   demande un mot de passe, mais **son authentification est côté JavaScript** : elle n'empêche
