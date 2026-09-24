@@ -1139,6 +1139,14 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   encre **à travers une variable** (`const col='var(--acc)'`) — invisibles au motif
   `color:var(--acc)`. Une couleur de donnée s'écrit par `encreDonnee()`, une surface pleine
   par `aplatDe()` (fond ET encre). `tests/test-774.js`.
+  ⛔ **Et, de nuit, une teinte ne s'écrit pas sur un voile d'elle-même.** Passe des douze teintes
+  au pixel, thème final (24 septembre 2026) : le bandeau du jour du Planning, le jour du jour de
+  la frise, le bandeau d'une fenêtre écrivaient la teinte sur un voile de la MÊME teinte — justes
+  pour les teintes claires, 3,01 à 3,95 pour le bleu et l'indigo. Le voile porte la teinte, le
+  texte prend l'encre du thème (`theme-final` § 21, `test-806` § 9). Même passe : une barre en
+  verre au-dessus d'un contenu VIF (les blocs du Planning sous la barre d'onglets) prend la
+  couleur de ce qui passe dessous — ses libellés tombaient à 3,13. Une barre se mesure sur
+  l'écran le plus coloré, pas sur la page calme où on l'a dessinée.
 - ⛔⛔ **UNE FONCTION DÉCLARÉE DEUX FOIS : LA SECONDE GAGNE PARTOUT, EN SILENCE.** Le même jour,
   un `encreSur()` a été écrit sans chercher s'il existait — il existait, sept mille lignes plus
   haut, et servait « Ma couleur ». Une déclaration de fonction est remontée : la seconde

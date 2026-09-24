@@ -201,5 +201,47 @@ console.log('\n── 8. Les contrastes relevés AU PIXEL, par le vrai flou (Swi
   vrai('⛔ de jour, l’orange des statuts un cran plus sombre (#7A4900)', /--org:#7A4900;/.test(NU));
 }
 
+console.log('\n── 9. La passe des DOUZE teintes, au pixel (les deux thèmes, jour et nuit)');
+{
+  /* ⚠ `scratchpad/audit-pixel.js` (TEL=1, ACC = les douze, TH=dark,light, MARQUE=teamop puis
+     opgestion, Planning, Stock et l'écran « Thème et couleur » compris) : 8 402 textes, 207 sous le
+     seuil sous TEAM OP et 76 sous OP GESTION — et, sur la barre d'onglets, 49 et 36 de plus.
+     Ce banc garde la FORME des correctifs et REFAIT le calcul de la barre ; la preuve reste le pixel. */
+  const lum = c => { const v = c.map(x => { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }); return .2126 * v[0] + .7152 * v[1] + .0722 * v[2]; };
+  const ctr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  const bloc = sel => { const i = NU.indexOf(sel + '{'); return i < 0 ? '' : NU.slice(i, NU.indexOf('\n}', i)); };
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const rgba = t => { const m = String(t).match(/rgba\((\d+),(\d+),(\d+),(\.\d+|1)\)/); return m ? { c: [+m[1], +m[2], +m[3]], a: +m[4] } : null; };
+  /* la barre : les fonds relevés AU PIXEL sous 10 % de blanc (la maquette), les pires de la passe */
+  const PIRES = { teamop: [[50, 90, 170], [54, 90, 162], [46, 82, 158]], opgestion: [[62, 118, 102], [66, 118, 102], [58, 114, 98]] };
+  for (const M of ['teamop', 'opgestion']) {
+    const b = bloc('html[data-marque="' + M + '"][data-verre][data-theme="dark"]');
+    const barre = rgba((b.match(/--tf-barre:(rgba\([^)]*\))/) || [])[1]);
+    const t3 = (b.match(/--t3:(#[0-9A-Fa-f]{6})/) || [])[1];
+    vrai('⛔ ' + M + ' de nuit : la pilule d’onglets porte un voile SOUS son blanc (--tf-barre)', !!barre && barre.a >= .5 && !!t3, b ? (barre ? JSON.stringify(barre) : 'absent') : 'bloc introuvable');
+    if (barre && t3) {
+      /* ce qui passe SOUS la vitre, retrouvé depuis le relevé (fond = dessous × .9 + blanc × .1) */
+      const pire = Math.min(...PIRES[M].map(F => { const des = F.map(v => (v - 25.5) / .9); return ctr(hex(t3), des.map((d, i) => d * (1 - barre.a) + barre.c[i] * barre.a)); }));
+      vrai('   … et les libellés des onglets y tiennent 4,5 sur le pire bloc relevé (calculé)', pire >= 4.5, pire.toFixed(2));
+    }
+  }
+  vrai('⛔ le Planning : un jour sur deux au second plan, plus en bleu sur sa teinte', /html\[data-marque\] \.plm-bande\.alt:not\(\.pers\)\{color:var\(--t2\)!important\}/.test(NU));
+  vrai('   … le bandeau d’une PERSONNE garde sa couleur (la règle l’écarte)', !/html\[data-marque\] \.plm-bande\.alt\{color/.test(NU));
+  vrai('⛔ de nuit, le nom et le total d’une fenêtre de planning à l’encre du thème', /html\[data-marque\]\[data-theme="dark"\] \.plt-bh \.qui,html\[data-marque\]\[data-theme="dark"\] \.plt-bh \.tot\{color:var\(--t1\)!important\}/.test(NU));
+  vrai('⛔ « Thème et couleur » de nuit : cartes au premier verre, sans reflet', /html\[data-verre\]\[data-theme="dark"\] \.tc-carte,html\[data-verre\]\[data-theme="dark"\] \.tc-rangee\{background:var\(--vr-fond\)\}/.test(NU));
+  vrai('   … libellés, sous-titres et groupes au second plan', /\.tc-nom,\.tc-rangee-txt span,\.tc-groupe\{color:var\(--t2\)\}/.test(NU));
+  vrai('   … le curseur de Jour / Nuit / Auto à 12 % de nuit', /\[data-theme="dark"\] \.filters\.tc-modes \.chip\.active\{background:rgba\(255,255,255,\.12\)!important\}/.test(NU));
+  vrai('⛔ le fondu « il y a une suite » ne va qu’à ce qui défile (tc-modes et segmentés qui tiennent)', /html\[data-refonte\] \.filters\.tc-modes,html\[data-refonte\] \.filters\.seg-on:not\(\.seg-deborde\)\{-webkit-mask-image:none!important;mask-image:none!important\}/.test(NU));
+  /* segInit pose `seg-deborde` AVANT le curseur, et seulement sur un groupe qui défile vraiment */
+  const si = NU.slice(NU.indexOf('function segInit('), NU.indexOf('\nfunction segGeste('));
+  vrai('   … et segInit le pose sur un groupe qui défile vraiment', si.length > 200 && /g\.classList\.toggle\('seg-deborde', g\.scrollWidth>g\.clientWidth\+1\);\s*segPoser\(g,ch,false,fam\);/.test(si));
+  vrai('⛔ OP GESTION de nuit : l’indigo à 70 % de blanc (la teinte la plus sombre)', /\[data-accent="indigo"\]\{--acc-txt:color-mix\(in srgb,#fff 70%,var\(--acc-src\)\)\}/.test(NU));
+  vrai('⛔ de nuit, un texte à la teinte ne se pose pas sur un voile de la même teinte (frise, bandeau du jour)', /html\[data-marque\]\[data-theme="dark"\] \.tdb-jh\.auj,html\[data-marque\]\[data-theme="dark"\] \.plm-bande:not\(\.alt\):not\(\.pers\)\{color:var\(--t1\)!important\}/.test(NU));
+  vrai('⛔ TEAM OP de nuit : l’indigo à 58 % de blanc', /html\[data-marque="teamop"\]\[data-verre\]\[data-theme="dark"\]\[data-accent="indigo"\]\{--acc-txt:color-mix\(in srgb,#fff 58%,var\(--acc-src\)\)\}/.test(NU));
+  vrai('⛔ de jour, l’encre de l’orange foncée d’un cran (50 % de noir)', /\[data-theme="light"\]\[data-accent="orange"\]\{--acc-txt:color-mix\(in srgb,#000 50%,var\(--acc-src\)\)\}/.test(NU));
+  vrai('⛔ de jour, l’encre du graphite foncée d’un cran (42 % de noir)', /\[data-theme="light"\]\[data-accent="graphite"\]\{--acc-txt:color-mix\(in srgb,#000 42%,var\(--acc-src\)\)\}/.test(NU));
+  vrai('⛔ de jour, l’encre du vert système foncée d’un cran (48 % de noir)', /\[data-theme="light"\]\[data-accent="green"\]\{--acc-txt:color-mix\(in srgb,#000 48%,var\(--acc-src\)\)\}/.test(NU));
+}
+
 console.log('\n═══ test-806 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
 process.exit(ko ? 1 : 0);

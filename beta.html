@@ -6878,6 +6878,13 @@ html[data-marque="teamop"][data-verre][data-theme="dark"]{
   --deep:#0B1426; --eleve:#1F2D4A;
   --tf-page-plein:#0B1426;
   --tf-bord-haut:rgba(16,29,53,.7);
+  /* ⚠ ÉCART DÉCLARÉ (test-759, « barre d'onglets de nuit ») : la maquette pose la pilule d'onglets
+     sur 10 % de blanc. Mesuré au pixel, par le vrai flou (SwiftShader), le 24 septembre 2026 : quand
+     un bloc coloré du Planning passe dessous, la vitre saturée devient bleu vif (50,90,170) et les
+     libellés des onglets y tombent à 3,13. On glisse SOUS le blanc un voile du bleu nuit à 55 %,
+     écrit en une seule couleur (les deux couches composées) : sur un fond calme la pilule ne
+     change pas (37,46,62 contre 38,47,64), sur un bloc vif elle reste sombre (≥ 4,8 calculé). */
+  --tf-barre:rgba(52,59,74,.6);
 }
 /* ── 3. LE THÈME OP GESTION — vert forêt et menthe, les couleurs du logo OP GESTION ────────── */
 html[data-marque="opgestion"][data-verre][data-theme="light"]{
@@ -6922,6 +6929,9 @@ html[data-marque="opgestion"][data-verre][data-theme="dark"]{
   --vr-fond2:rgba(255,255,255,.08);
   --tint-gris:rgba(0,0,0,.22);
   --rf-2nd:rgba(255,255,255,.06); --rf-2nd-h:rgba(255,255,255,.12);
+  /* et la pilule d'onglets prend le voile du vert forêt sous son blanc (même écart que TEAM OP :
+     libellés à 3,73 sur un bloc du Planning, ≥ 5,0 calculé après) */
+  --tf-barre:rgba(52,92,81,.6);
 }
 
 /* ── 4. LES TEINTES — ce que chacune remplit, et l'encre qu'on écrit dessus ─────────────────
@@ -6951,6 +6961,20 @@ html[data-marque][data-accent="red"]      { --tf-acc-rgb:255,59,48; }
 html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent]{--acc-txt:color-mix(in srgb,#fff 58%,var(--acc-src))}
 html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="teamop"],
 html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="opgestion"]{--acc-txt:color-mix(in srgb,#fff 66%,var(--acc-src))}
+/* L'indigo est la teinte la plus SOMBRE des onze (sa luminance est celle d'un bleu presque pur) :
+   à 58 % de blanc, « JEU 25 » (le jour du jour, sur la frise) tombait à 3,84 sur la vitre verte
+   (pixel, 24 septembre 2026, passe des douze teintes). À 70 %, 4,58 — et il reste lavande. */
+html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="indigo"]{--acc-txt:color-mix(in srgb,#fff 70%,var(--acc-src))}
+/* … et sous TEAM OP de nuit (46 % de blanc pour toutes les teintes) : l'indigo y tombait à 4,30 sur
+   la carte d'aperçu de « Thème et couleur », au bureau. À 58 %, ≥ 5,2 sur les mêmes fonds. */
+html[data-marque="teamop"][data-verre][data-theme="dark"][data-accent="indigo"]{--acc-txt:color-mix(in srgb,#fff 58%,var(--acc-src))}
+/* De jour, le vert système écrit sur son propre voile (« ✅ 3 effectuées », pastille à 13 % de la
+   teinte) tombait à 4,36 : on fonce son encre d'un cran (48 % de noir au lieu de 42). */
+html[data-marque][data-verre][data-theme="light"][data-accent="green"]{--acc-txt:color-mix(in srgb,#000 48%,var(--acc-src))}
+/* Même chose pour le graphite, le plus pâle des gris (« ✅ 3 effectuées » à 4,28 au bureau) : 42 %. */
+html[data-marque][data-verre][data-theme="light"][data-accent="graphite"]{--acc-txt:color-mix(in srgb,#000 42%,var(--acc-src))}
+/* … et l'orange, sur la même pastille au bureau : 4,49 à 46 % de noir ; 50 %. */
+html[data-marque][data-verre][data-theme="light"][data-accent="orange"]{--acc-txt:color-mix(in srgb,#000 50%,var(--acc-src))}
 
 /* ── 5. LA PAGE — le dégradé du thème, sans halo ─────────────────────────────────────────────
    ⚠ ÉCART DÉCLARÉ : `THEME.md` § 0 parle de « trois halos animés derrière le verre » ; la
@@ -7427,6 +7451,44 @@ html[data-verre][data-theme="dark"] .tc-teinte.on .tc-rond{box-shadow:0 0 0 3px 
 .tc-demo-lien{color:var(--acc-txt);font-size:17px;text-decoration:underline;text-underline-offset:3px;width:max-content}
 .tc-termine{width:100%;justify-content:center;margin-top:18px;min-height:50px;font-size:17px!important}
 html[data-os="windows"] .tc-carte,html[data-os="windows"] .tc-rangee{border-radius:8px}
+
+/* ── 21. CE QUE LA PASSE DES DOUZE TEINTES A RELEVÉ AU PIXEL ──
+   `scratchpad/audit-pixel.js`, SwiftShader, téléphone, les deux thèmes × jour et nuit × les douze
+   teintes, Planning, Stock et l'écran « Thème et couleur » (qu'aucun audit ne lisait) compris :
+   8 402 textes lus, 207 sous le seuil sous TEAM OP et 76 sous OP GESTION, tous de nuit sauf deux.
+   Trois familles : les bandeaux du Planning, l'écran « Thème et couleur », la barre d'onglets
+   (plus haut, § 2 et § 3). */
+/* Le Planning : un jour sur deux, le bandeau s'écrivait en BLEU (--blue) sur sa propre teinte —
+   4,29 sous TEAM OP, 3,01 sur le vert d'OP GESTION. L'alternance tient par l'encre : un jour à la
+   teinte, le suivant au second plan. */
+html[data-marque] .plm-bande.alt:not(.pers){color:var(--t2)!important}
+/* ⚠ `.pers` (le bandeau d'une PERSONNE, vue par technicien) porte la couleur de la personne et
+   alterne aussi : il garde sa couleur, c'est lui qui dit à qui est la ligne. */
+/* Le bandeau d'une fenêtre de planning est voilé de la teinte (9 %) : de nuit, la teinte écrite
+   dessus (« Sophie Martin » en indigo : 3,36–3,82) et le total au second plan (4,29) y perdent.
+   Le nom et le total passent à l'encre du thème ; la pastille numérotée garde la teinte. */
+html[data-marque][data-theme="dark"] .plt-bh .qui,html[data-marque][data-theme="dark"] .plt-bh .tot{color:var(--t1)!important}
+/* ⛔ LA RÈGLE DE STRUCTURE, de nuit : UN TEXTE À LA TEINTE NE SE POSE PAS SUR UN VOILE DE LA MÊME
+   TEINTE. Même teinte dessus et dessous, le contraste ne tient qu'aux teintes claires : au bureau,
+   le bandeau du jour du Planning (voile à 12 %) tombait à 3,69 en bleu sur OP GESTION, le jour du
+   jour de la frise (voile `--rf-auj`) à 3,95 en indigo sous TEAM OP — et d'autres teintes derrière.
+   Le VOILE porte la teinte ; le texte prend l'encre du thème. */
+html[data-marque][data-theme="dark"] .tdb-jh.auj,html[data-marque][data-theme="dark"] .plm-bande:not(.alt):not(.pers){color:var(--t1)!important}
+/* L'écran « Thème et couleur » : ses cartes sont du second verre (12 %) posé sur une fenêtre DENSE,
+   plus le reflet de la maquette (jusqu'à 14 % de blanc dans le coin haut gauche) — de nuit la
+   carte devenait gris-bleu clair (82,94,114) et les libellés au troisième plan y tombaient à 3,11.
+   De nuit, ces cartes prennent le PREMIER verre, sans reflet (au bureau, le second laissait encore
+   le lien d'aperçu indigo à 4,30) ; libellés et sous-titres au second plan (jour et nuit :
+   « Aperçu » tombait à 4,29 de jour sur le bas de la feuille). */
+html[data-verre][data-theme="dark"] .tc-carte,html[data-verre][data-theme="dark"] .tc-rangee{background:var(--vr-fond)}
+.tc-nom,.tc-rangee-txt span,.tc-groupe{color:var(--t2)}
+/* … le curseur de « Jour / Nuit / Auto » : 22 % de blanc sur le creux de la carte rendaient le
+   libellé blanc à 4,11 ; il se pose à 12 %, et l'ombre le détache. */
+html[data-marque][data-refonte][data-theme="dark"] .filters.tc-modes .chip.active{background:rgba(255,255,255,.12)!important}
+/* … et ce segmenté TIENT dans sa carte : le fondu à droite des rangées qui défilent (« il y a une
+   suite ») y effaçait le bout du contrôle, bord compris. Même chose pour tout segmenté qui tient
+   (`seg-deborde` n'est posé que sur celui qui défile vraiment : segInit). */
+html[data-refonte] .filters.tc-modes,html[data-refonte] .filters.seg-on:not(.seg-deborde){-webkit-mask-image:none!important;mask-image:none!important}
 
 /* ── 20. LES RÉGLAGES SYSTÈME — toujours respectés ──
    Transparence réduite : les surfaces redeviennent pleines, à la couleur du thème, la page
@@ -14134,6 +14196,10 @@ function segInit(racine){
     if(!ch){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
     g.classList.add('seg-on');
     if(fam.sel==='.filters' && !segTient(g)){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
+    /* ⚠ LE FONDU « IL Y A UNE SUITE » NE VA QU'À CE QUI DÉFILE. Sur téléphone toute rangée `.filters`
+       porte un fondu à droite ; sur un segmenté qui tient, il effaçait le bout du contrôle, bord
+       compris (Boxes : « Liste · Carte · Produits donnés », mesuré le 24 septembre 2026). */
+    g.classList.toggle('seg-deborde', g.scrollWidth>g.clientWidth+1);
     segPoser(g,ch,false,fam);
     if(g._seg) return; g._seg=true;
     segGeste(g,fam);

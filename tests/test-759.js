@@ -54,6 +54,13 @@ const ECARTS = {
      Même passe : sur cette vitre, le curseur d'un segmenté passe de 22 à 15 % de blanc (libellé blanc
      à 4,36) et l'orange des statuts s'éclaircit (#F0B96E, « non effectuées » à 4,33) ; sur le verre
      de bureau, le second verre passe de 12 à 8 % (« Aujourd'hui » à 4,19).`,
+  "barre d'onglets de nuit": `la maquette pose la pilule d'onglets de nuit sur 10 % de blanc, et
+     le document la garde (la règle commune de nuit porte toujours sa valeur). Mesuré au pixel, par
+     le vrai flou (SwiftShader), le 24 septembre 2026, passe des douze teintes : quand un bloc coloré
+     du Planning passe dessous, la vitre saturée devient bleu vif (50,90,170) et les libellés des
+     onglets y tombent à 3,13 (TEAM OP) et 3,73 (OP GESTION). Chaque thème glisse SOUS le blanc un
+     voile de sa couleur de fond à 55 %, écrit en une seule couleur : sur un fond calme la pilule
+     ne change pas, sur un bloc vif ses libellés tiennent (test-806 refait le calcul).`,
   'feuille de nuit': `la maquette pose ses feuilles de nuit sur rgba(28,28,30,.7), un gris neutre ;
      on les teinte du thème (bleu nuit pour TEAM OP, vert forêt pour OP GESTION) et on les
      densifie (.86–.88). La règle du dépôt, écrite après la capture de Justin du 22 septembre :
@@ -137,6 +144,10 @@ console.log('\n══ 2. LE VERRE — lu dans le document (§ 4) ══\n');
   vrai('nuit OP GESTION — le vert se sature MOINS que la maquette (écart déclaré, mesuré au pixel)',
     !!ECARTS['flou de nuit OP GESTION'] && satOpg > 0 && satOpg <= 150 && /blur\(40px\)/.test(fOpg), fOpg);
   vrai('   … et TEAM OP de nuit garde le flou du document', !jeton(regle('html[data-marque="teamop"][data-verre][data-theme="dark"]'), '--vr-flou'));
+  /* ⛔ ÉCART DÉCLARÉ : la pilule d'onglets de nuit porte un voile du thème sous son blanc. */
+  const barresNuit = ['teamop', 'opgestion'].map(m => jeton(regle('html[data-marque="' + m + '"][data-verre][data-theme="dark"]'), '--tf-barre'));
+  vrai('nuit — la pilule d’onglets de chaque thème porte son voile (écart déclaré, mesuré au pixel)',
+    barresNuit.every(b => /^rgba\(\d+,\d+,\d+,\.[5-9]\d*\)$/.test(net(b))) && !!ECARTS["barre d'onglets de nuit"], barresNuit.join(' · '));
   vrai('nuit — la feuille est AU MOINS aussi dense que la maquette (écart déclaré : teinte du thème)',
     alphas.every(a => a >= aDoc) && !!ECARTS['feuille de nuit'], fn.join(' · ') + ' / document ' + J['verre.nuit.feuille']);
   v('la bulle de l’onglet choisi, jour', net(jeton(jour, '--tf-bulle')), net(J['bulle.jour']));
