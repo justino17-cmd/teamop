@@ -105,6 +105,81 @@ v('⛔ sans préfixe, on n\'efface RIEN — dans le doute, on efface moins',
 v('   ni avec un préfixe vide', S.aElaguer(obj(A, B, C, D), 1, ''), []);
 v('   ni avec un préfixe qui ne désigne rien', S.aElaguer(obj(A, B, C, D), 1, 'ailleurs/'), []);
 
+/* ── 3 bis. LA MINUTERIE : UNE SAUVEGARDE PAR NUIT, À L'HEURE DITE ─────────────────────────
+   ⛔ Relevé dans le vrai coffre le 24 septembre 2026 : 14:30, 10:31, 06:41, 03:01, 23:11, 19:21,
+   15:31, 11:41 — une archive toutes les 20 h 10, qui reculait de quatre heures par jour. La règle
+   (« l'heure est passée ET la dernière a plus de vingt heures ») ne s'ancrait à 3 h que par
+   hasard. On fait donc TOURNER la minuterie sur des jours simulés, un réveil toutes les dix
+   minutes comme en production, et on regarde QUAND elle lance. */
+console.log('\n── 722 · la minuterie : une par nuit, à l\'heure dite ──');
+{
+  const H = 3600000, M10 = 600000;
+  const t = (jour, h, m) => Date.UTC(2026, 8, 20 + jour, h, m || 0);
+  const hm = ts => new Date(ts).toISOString().slice(11, 16);
+  /* Un réveil toutes les dix minutes de `debut` à `fin` ; `regle` décide, comme `tic`. */
+  const simuler = (regle, histo0, debut, fin, o) => {
+    o = o || {};
+    const histo = histo0.slice(), lancees = [];
+    for (let ts = debut; ts <= fin; ts += M10) {
+      if (o.panne && o.panne(ts)) continue;
+      if (!regle(ts, histo, o.heure == null ? 3 : o.heure)) continue;
+      const reussie = !(o.echoue && o.echoue(ts));
+      histo.unshift({ ts, ok: reussie });
+      lancees.push({ ts, ok: reussie });
+    }
+    return lancees;
+  };
+  /* L'ancienne règle, recopiée pour la contre-épreuve : si le simulateur ne la voyait pas
+     dériver, il ne prouverait rien de la nouvelle. */
+  const ancienne = (ts, histo, heure) => {
+    if (new Date(ts).getUTCHours() < heure) return false;
+    const d = histo[0];
+    if (d && d.ok && ts - d.ts < 20 * H) return false;
+    if (d && !d.ok && ts - d.ts < H) return false;
+    return true;
+  };
+  const debut = [{ ts: t(0, 14, 30), ok: true }];   // la sauvegarde du 20 à 14:30, comme au coffre
+  const avant = simuler(ancienne, debut, t(0, 14, 40), t(5, 14, 30));
+  vrai('contre-épreuve : l\'ancienne règle DÉRIVE dans le simulateur (' + avant.map(x => hm(x.ts)).join(', ') + ')',
+    avant.some(x => new Date(x.ts).getUTCHours() !== 3));
+
+  const apres = simuler(S.sauvegardeDue, debut, t(0, 14, 40), t(5, 14, 30));
+  v('⛔ cinq jours : cinq sauvegardes, une par nuit', apres.length, 5);
+  v('⛔ … toutes à 03:00, pas une seconde de plus qu\'un réveil', apres.map(x => hm(x.ts)), ['03:00', '03:00', '03:00', '03:00', '03:00']);
+  v('   … et chacune un jour différent', new Set(apres.map(x => new Date(x.ts).getUTCDate())).size, 5);
+
+  /* Une sauvegarde à la main dans la journée (« Lancer » dans la Tour) ne décale plus rien. */
+  const main = simuler(S.sauvegardeDue, [{ ts: t(1, 11, 41), ok: true }, { ts: t(1, 3, 0), ok: true }], t(1, 11, 50), t(3, 12, 0));
+  v('⛔ une sauvegarde lancée à 11:41 ne décale pas la nuit suivante', main.map(x => hm(x.ts)), ['03:00', '03:00']);
+
+  /* Serveur arrêté pendant l'échéance : rattrapage au premier réveil, puis retour à 3 h. */
+  const coupe = simuler(S.sauvegardeDue, [{ ts: t(0, 3, 0), ok: true }], t(0, 3, 10), t(2, 12, 0),
+    { panne: ts => ts >= t(1, 2, 0) && ts < t(1, 9, 0) });
+  v('⛔ une nuit manquée se rattrape au premier réveil, puis on revient à 3 h', coupe.map(x => hm(x.ts)), ['09:00', '03:00']);
+
+  /* Un échec se retente au bout d'une heure — pas toutes les dix minutes. */
+  const rate = simuler(S.sauvegardeDue, [{ ts: t(0, 3, 0), ok: true }], t(0, 3, 10), t(1, 12, 0),
+    { echoue: ts => ts < t(1, 4, 0) });
+  v('⛔ un échec à 03:00 se retente à 04:00, et une fois réussie on s\'arrête',
+    rate.map(x => hm(x.ts) + (x.ok ? ' ok' : ' échec')), ['03:00 échec', '04:00 ok']);
+  v('   … et la nuit suivante repart à 3 h', simuler(S.sauvegardeDue, [{ ts: t(1, 4, 0), ok: true }, { ts: t(1, 3, 0), ok: false }], t(1, 4, 10), t(2, 12, 0)).map(x => hm(x.ts)), ['03:00']);
+
+  vrai('jamais sauvegardé : on lance tout de suite, quelle que soit l\'heure', S.sauvegardeDue(t(0, 1, 0), [], 3));
+  v('l\'heure dite se règle — 23 h', simuler(S.sauvegardeDue, [{ ts: t(0, 23, 0), ok: true }], t(0, 23, 10), t(2, 23, 30), { heure: 23 }).map(x => hm(x.ts)), ['23:00', '23:00']);
+  v('l\'heure dite se règle — minuit', simuler(S.sauvegardeDue, [{ ts: t(0, 0, 0), ok: true }], t(0, 0, 10), t(2, 0, 30), { heure: 0 }).map(x => hm(x.ts)), ['00:00', '00:00']);
+
+  /* ⛔ ET LA MINUTERIE S'EN SERT VRAIMENT. Lu dans le CODE (commentaires retirés), dans le corps
+     de `tic` : une fonction juste et jamais appelée est la panne type de ce dépôt. */
+  const SRC = fs.readFileSync(path.join(RACINE, 'server', 'sauvegarde.js'), 'utf8')
+    .replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const i0 = SRC.indexOf('const tic = () => {'), i1 = SRC.indexOf('minuterie = setInterval(tic', i0);
+  vrai('le corps de la minuterie est trouvé', i0 > 0 && i1 > i0);
+  const TIC = i0 > 0 && i1 > i0 ? SRC.slice(i0, i1) : '';
+  vrai('⛔ la minuterie décide par sauvegardeDue(maintenant, histo, HEURE)', /sauvegardeDue\(Date\.now\(\), histo, HEURE\)/.test(TIC));
+  vrai('   et elle ne porte plus la règle des vingt heures', !/20 \* 3600000/.test(TIC));
+  vrai('   … et se réveille toutes les dix minutes, comme le simulateur le suppose', /setInterval\(tic, 600000\)/.test(SRC));
+}
+
 /* ── 4. LA CHAÎNE COMPLÈTE, sur de vrais fichiers ──────────────────────────────────────── */
 (async () => {
   console.log('\n── 722 · fabriquer, relire, déballer (vrais fichiers, vrai tar) ──');

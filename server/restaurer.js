@@ -57,14 +57,39 @@ function charger() {
 
 const ko = o => (o / 1024 / 1024).toFixed(1) + ' Mio';
 
+/* ⛔ « LA PLUS RÉCENTE » N'EST PAS LA PREMIÈRE PAR ORDRE ALPHABÉTIQUE. `lister('teamop/')` rend
+   aussi les copies MENSUELLES, rangées sous `teamop/mensuel/` — et « m » passe après « 2 » : trié
+   « plus récent d'abord » sur la clé, la copie du mois arrivait EN TÊTE. `liste` la marquait
+   « → » et `essai` l'ouvrait à la place de celle de la nuit ; un sinistre restauré sur la foi de
+   cette flèche perdait jusqu'à un mois de données. C'est le défaut corrigé dans `aElaguer` le
+   20 septembre 2026 (« un motif qui ne dit pas OÙ il s'applique finit par s'appliquer
+   ailleurs »), resté ici jusqu'au 24 — inerte tant qu'aucune copie mensuelle n'existait.
+   On sépare donc les deux familles : les copies du jour (directement sous le préfixe, dont le
+   nom est une date) d'abord, la plus récente en tête ; le reste ensuite, nommé à part.
+   `tests/test-805.js` exécute la commande contre un coffre qui porte les deux. */
+function classer(objets, prefixe) {
+  const pre = String(prefixe || '');
+  const recentes = (a, b) => (a.cle < b.cle ? 1 : a.cle > b.cle ? -1 : 0);
+  const duJour = objets.filter(o => o.cle.indexOf(pre) === 0 && o.cle.slice(pre.length).indexOf('/') < 0).sort(recentes);
+  const aPart = objets.filter(o => duJour.indexOf(o) < 0).sort(recentes);
+  return { duJour, aPart };
+}
+
 async function lister(ctx) {
   const r = await ctx.client.lister(ctx.prefixe);
   if (!r.ok) { console.error('✗ liste impossible : HTTP ' + r.statut); process.exit(1); }
-  const objets = r.objets.slice().sort((a, b) => (a.cle < b.cle ? 1 : -1));
-  if (!objets.length) { console.log('Le coffre est VIDE — aucune sauvegarde n\'a jamais été déposée.'); return objets; }
-  console.log(objets.length + ' sauvegarde(s) :');
-  objets.forEach((o, i) => console.log('  ' + (i === 0 ? '→' : ' ') + ' ' + o.cle + '   ' + ko(o.octets) + '   ' + o.modifie));
-  return objets;
+  const { duJour, aPart } = classer(r.objets, ctx.prefixe);
+  if (!duJour.length && !aPart.length) { console.log('Le coffre est VIDE — aucune sauvegarde n\'a jamais été déposée.'); return []; }
+  const ligne = (o, fleche) => console.log('  ' + (fleche ? '→' : ' ') + ' ' + o.cle + '   ' + ko(o.octets) + '   ' + o.modifie);
+  console.log(duJour.length + ' sauvegarde(s) du jour' + (duJour.length ? ' — la plus récente en tête :' : '.'));
+  duJour.forEach((o, i) => ligne(o, i === 0));
+  if (aPart.length) {
+    console.log(aPart.length + ' copie(s) rangée(s) à part (mensuelles, conservées plus longtemps) :');
+    aPart.forEach((o, i) => ligne(o, !duJour.length && i === 0));
+  }
+  /* L'ordre rendu est celui qu'`essai` suit : la dernière copie du jour, et la plus récente des
+     copies à part seulement s'il n'y en a aucune du jour. */
+  return duJour.concat(aPart);
 }
 
 async function telecharger(ctx, cle, vers) {

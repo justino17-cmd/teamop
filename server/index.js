@@ -38,6 +38,23 @@ if (config.smtp && config.smtp.host) {
 }
 
 const app = express();
+/* ⛔ UNE ROUTE `async` QUI REJETTE LAISSAIT LA REQUÊTE PENDUE (`gardien`, N1). Express 4 ne
+   regarde pas la promesse que rend un gestionnaire : une exception après un `await` devenait un
+   rejet orphelin (compté par le filet du processus, plus bas), et la personne en face attendait
+   jusqu'au délai du mandataire — une minute — une réponse qui ne viendrait jamais. Chaque
+   gestionnaire est enveloppé à l'enregistrement : un rejet va au middleware d'erreur final, qui
+   répond en texte brut, sans pile, et compte l'incident. Fait main plutôt qu'une dépendance de
+   plus (`express-async-errors` réécrit les entrailles du routeur). Un middleware d'erreur (quatre
+   paramètres) n'est pas touché : Express le reconnaît à son arité, et l'enveloppe en a trois. */
+const enveloppe = (fn) => (typeof fn !== 'function' || fn.length >= 4) ? fn : function (req, res, next) {
+  let r; try { r = fn.apply(this, arguments); } catch (e) { return next(e); }
+  if (r && typeof r.then === 'function') r.then(null, next);
+  return r;
+};
+for (const m of ['get', 'post', 'put', 'delete', 'patch', 'all', 'use']) {
+  const brut = app[m].bind(app);
+  app[m] = (...a) => brut(...a.map(enveloppe));
+}
 
 // Le serveur n'écoute que sur 127.0.0.1, derrière un proxy : sans ceci, toutes
 // les requêtes auraient la même IP (celle du proxy) et l'anti-abus plus bas
@@ -169,6 +186,13 @@ const PLAFOND_PIECES = 900;    // /api/pieces/* seules, par minute et par IP, ho
    APRÈS la preuve, dans `op-socle.js` : compté avant, il deviendrait une arme de déni de
    service — n'importe qui épuiserait le quota d'une entreprise en tapant son identifiant. */
 const PLAFOND_DONNEES = 1200;  // /api/op/* seules, par minute et par IP
+/* ⛔ LE DOCUMENT D'ÉQUIPE AUSSI — la synchro d'OP GESTION tout entière passe par là depuis la
+   sortie de Firebase (`documents.js`). Un téléphone qui écoute repose sa question toutes les
+   25 s, relit avant chaque envoi, puis écrit : vingt appareils derrière la box d'un bureau
+   dépassent les 120/min du budget global en une matinée ordinaire, et un 429 sur la synchro,
+   c'est le 11 septembre par une autre porte. Même règle que les pièces : les TROIS chemins qui
+   existent, pas le préfixe, et un vrai plafond, jamais une exemption. */
+const PLAFOND_DOCUMENTS = 1200; // /api/doc/(lire|ecrire|attendre) seules, par minute et par IP
 
 /* « espaces/(ouvrir|relance) » et non « espaces » tout court : /api/espaces/etat est appelé à
    chaque reprise d'onglet par une entreprise en attente de paiement, et le palier strict est
@@ -216,6 +240,15 @@ app.use((req, res, next) => {
     const d = (compteurs.get('d:' + ip) || 0) + 1;
     compteurs.set('d:' + ip, d);
     if (d > PLAFOND_DONNEES) return tropDeRequetes(res);
+    return next();
+  }
+
+  /* Le document d'équipe compte à part — voir PLAFOND_DOCUMENTS. `/i` pour la même raison que
+     les pièces : Express route sans tenir compte de la casse. */
+  if (documentsMod && /^\/api\/doc\/(lire|ecrire|attendre)\/?$/i.test(req.path)) {
+    const dd = (compteurs.get('doc:' + ip) || 0) + 1;
+    compteurs.set('doc:' + ip, dd);
+    if (dd > PLAFOND_DOCUMENTS) return tropDeRequetes(res);
     return next();
   }
 
@@ -270,7 +303,7 @@ app.post('/api/mdp/lien', async (req, res) => {
   try {
     const tok = await fbAdminJeton();
     if (!tok) return res.status(503).json({ error: 'firebase_off' });
-    const r = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:sendOobCode',
+    const r = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:sendOobCode',
       { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: email, returnOobLink: true }) }, tok);
     const j = await r.json().catch(() => ({}));
@@ -391,6 +424,24 @@ function refusSmtp(e) {
     : 'autre';
   return 'SMTP: ' + famille + (code ? ' (' + code + ')' : '');
 }
+/* ══ LE FILET DU PROCESSUS ═════════════════════════════════════════════════════════════════
+   ⛔ UNE PROMESSE REJETÉE SANS GESTIONNAIRE ARRÊTE NODE 22 — donc l'API de TOUTES les entreprises,
+   et chaque écoute en cours, le temps que systemd relance (3 s). Le commentaire de
+   `fbRevoquerEquipe` le relevait déjà : « ce fichier n'a ni `unhandledRejection` ni middleware
+   d'erreur ». On note, on dit OÙ (les deux premières lignes de la pile, jamais le message — un
+   message peut porter une adresse ou un nom de client), et on continue : une opération de fond
+   qui échoue ne justifie pas de couper tout le monde. `/health` publie le compte de la dernière
+   heure (`processus`), et la surveillance crie dès le premier.
+   ⚠️ `uncaughtException` n'est PAS attrapé, exprès : une exception synchrone non rattrapée peut
+   laisser l'état du processus à moitié écrit, et redémarrer est alors la seule réponse sûre. */
+const incidents = { rejet: [], erreur: [] };
+const incidentNoter = (k) => { const a = incidents[k]; a.push(Date.now()); if (a.length > 500) a.splice(0, a.length - 500); };
+const incidentsHeure = (k) => { const lim = Date.now() - 3600000; return incidents[k].filter(t => t > lim).length; };
+const incidentOu = (e) => String((e && e.stack) || '').split('\n').slice(1, 3).map(l => l.trim()).join(' | ').slice(0, 300);
+process.on('unhandledRejection', (r) => {
+  incidentNoter('rejet');
+  console.error('⛔ promesse rejetée sans gestionnaire —', String((r && (r.code || r.name)) || typeof r).slice(0, 40), '·', incidentOu(r));
+});
 app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
@@ -416,6 +467,14 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      seul — une alarme qui sonne sur un état voulu devient du bruit, puis une alarme qu'on
      ignore, puis une alarme qui ne sert plus à rien le jour où elle dit vrai. */
   portail: etatPortail,
+  /* Le document d'équipe rangé chez nous (`documents.js`) — la synchro d'OP GESTION depuis la
+     sortie de Firebase. Des compteurs et des booléens, jamais un identifiant d'espace.
+     `surveillance.js` crie sur un module non monté, un document illisible, une écriture ou une
+     copie depuis Firebase qui échouent : chacun de ces états est une entreprise qui ne se
+     synchronise plus, et aucun ne se voit depuis l'application d'une autre. */
+  documents: documentsMod ? documentsMod.sante() : { actif: false, erreur: 'montage' },
+  /* Le filet du processus (voir plus haut) : des nombres de la dernière heure, rien sur personne. */
+  processus: { rejets1h: incidentsHeure('rejet'), erreurs1h: incidentsHeure('erreur') },
   /* L'horloge des 24 mois : tourne-t-elle, son dernier balayage a-t-il réussi, y a-t-il AU
      MOINS une entreprise en préavis, AU MOINS une échue. ⛔⛔ DES BOOLÉENS, PLUS AUCUN NOMBRE
      (24 septembre 2026, relevé par `gardien`) : les comptes — combien ne paient pas, combien de
@@ -3285,14 +3344,17 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
   if (t) {
     let tok = await fbAdminJeton(), viaAdmin = !!tok;
     if (!tok) { try {
-      const r0 = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + ((config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8'),
+      const r0 = await fetch(IDTK_URL + '/accounts:signUp?key=' + ((config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8'),
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
       tok = ((await r0.json().catch(() => ({}))).idToken) || '';
     } catch (err) {} }
     if (tok) { try {
-      const r = await fbAdminFetch('https://firestore.googleapis.com/v1/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t), { method: 'DELETE' }, tok);
+      const r = await fbAdminFetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t), { method: 'DELETE' }, tok);
       efface = r.ok;
     } catch (err) { console.error('renaitre effacement :', err.message); } }
+    /* Et sa copie CHEZ NOUS (`documents.js`), sans condition : c'est nous qui la tenons, aucun
+       réseau ne peut la faire échouer. Oubliée, l'ancienne entreprise renaîtrait ici. */
+    if (documentsMod) { try { await documentsMod.effacer(t); } catch (err) {} }
   }
   /* ⛔ LA QUATRIÈME PORTE, trouvée par `gardien` le 11 septembre. Celle-ci n'ajoute PAS à
      `entFermes` — elle fait repartir un espace à neuf — mais elle efface le document Firestore
@@ -3369,16 +3431,16 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
 //    Une seule adresse par entreprise (dédoublonnée), tout passe par le beau
 //    gabarit TeamOP et le journal des e-mails.
 const ANNONCE = {
-  version: '666',
-  sujet: '⬆️ La mise à jour ne se reporte plus — et les messages d’erreur disent la vérité',
-  intro: 'Bonjour,<br>votre application OP GESTION vient d\'être mise à jour. Elle s\'installe toute seule à la prochaine ouverture — vous n\'avez rien à faire.',
+  version: '748',
+  sujet: '🔒 OP GESTION quitte Google — et une grande mise à jour',
+  intro: 'Bonjour,<br>votre application OP GESTION vient d\'être mise à jour. À la prochaine ouverture, chaque téléphone affiche un écran de mise à jour : un seul bouton, quelques secondes.',
   points: [
-    ['⬆️ La mise à jour s\'installe, elle ne se reporte plus', 'Jusqu\'ici, la petite bannière « mise à jour » se refermait d\'un doigt, et l\'appareil pouvait rester des semaines en retard sans que personne ne s\'en aperçoive — il lisait, mais il n\'enregistrait plus rien pour l\'équipe. Désormais un écran complet le dit, avec un seul bouton. Quelques secondes, et tout le monde travaille sur la même version. Ce qui est déjà enregistré part vers l\'équipe AVANT le redémarrage.'],
-    ['⚠️ Une saisie non validée est perdue — validez avant de quitter', 'C\'est le revers de ce qui précède, et nous préférons vous le dire : si un formulaire est ouvert sans avoir été enregistré au moment où la mise à jour part, son contenu ne survit pas. Tout ce qui a été enregistré, lui, est conservé et envoyé.'],
-    ['⛔ Une adresse qui n\'existe pas le dit tout de suite', 'Se tromper dans l\'adresse de l\'entreprise ouvrait quand même l\'écran de connexion, et l\'application répondait ensuite « identifiant ou mot de passe incorrect ». Des mots de passe ont été remis à zéro pour rien. Maintenant l\'adresse est vérifiée d\'abord : si elle n\'est pas chez nous, c\'est écrit, et l\'écran de connexion n\'apparaît pas.'],
-    ['🔎 Quand l\'application refuse d\'enregistrer, elle dit pourquoi', 'Elle annonçait parfois un retard de version qui n\'en était pas un, et poussait à refaire une mise à jour qui ne réparait rien. Elle distingue désormais les deux cas : « mise à jour nécessaire » quand c\'est vrai, « enregistrement refusé » quand la cause est ailleurs — avec, dans ce cas, la consigne de prévenir votre responsable plutôt que de tourner en rond.']
+    ['🔒 Vos données restent chez nous', 'La synchronisation de votre équipe passait jusqu\'ici par un service de Google (Firebase). Elle passe désormais par notre propre serveur : vos données y arrivent chiffrées par vos appareils, et une copie de sauvegarde en est faite chaque nuit. Mêmes écrans, mêmes données, mêmes habitudes.'],
+    ['⬆️ Chaque appareil doit prendre la mise à jour', 'Un téléphone resté sur l\'ancienne version ne peut plus enregistrer pour l\'équipe : un écran le lui dit, avec un seul bouton. Ce qu\'il avait déjà saisi part vers l\'équipe dès qu\'il est à jour — rien n\'est perdu.'],
+    ['✨ Des dizaines d\'améliorations', 'Un nouvel habillage, de jour comme de nuit, à votre couleur ; des droits réglables case par case pour chaque personne ; un stockage hors des box, avec le suivi de qui prend quoi ; le rapport d\'intervention envoyé en PDF ; le plan d\'implantation à chaque passage ; et l\'en-tête de chaque document au nom de la bonne société.'],
+    ['🔑 Espace client : un nouveau mot de passe, une seule fois', 'Si vous gérez votre abonnement sur teamop.fr, votre espace client a lui aussi quitté Google. La première fois, touchez « Mot de passe oublié ? » : un lien arrive par e-mail, vous choisissez votre mot de passe, et vous retrouvez toutes vos informations.']
   ],
-  fin: 'Rien d\'autre ne change : mêmes données, mêmes écrans, mêmes habitudes. Votre adresse et vos identifiants continuent de fonctionner.'
+  fin: 'Votre adresse et vos identifiants OP GESTION continuent de fonctionner, sans rien changer.'
 };
 app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
   if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
@@ -3844,24 +3906,49 @@ let portail = null;
 try {
   if (comptes) {
     portail = require('./portail').monterPortail(app, {
-      dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, quotaOk,
+      dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, patron: monPatronStrict, quotaOk,
+      preparer: comptes.preparer, verifie: comptes.verifie,
+      /* Un code du portail : il existe dans `config.promos`, sa durée vient de là, et il est
+         « épuisé » quand `maxUtilisations` est atteint — la même lecture que `/api/promo/valider`. */
+      promoDef: (code) => {
+        const c = String(code || '').trim().toUpperCase();
+        const p = c ? (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c) : null;
+        if (!p) return null;
+        const u = promoUsages[c] || { n: 0 };
+        return { code: c, mois: Math.max(1, Number(p.mois) || 1), epuise: !!(p.maxUtilisations && u.n >= p.maxUtilisations) };
+      },
       journal: (...a) => console.log('portail:', ...a),
       /* La reprise des dossiers déjà chez Google. Le serveur a déjà la clé d'administration et
          s'en sert trois fois plus bas pour `teamop_requests` : on réutilise ce chemin-là
-         plutôt que d'en ouvrir un second. */
+         plutôt que d'en ouvrir un second.
+         ⛔ UNE LECTURE QUI ÉCHOUE LE DIT (`gardien`, C1). `r.ok` n'était jamais lu : un 403 ou un
+         500 de Google rendait une liste VIDE, et la Tour lisait « rien à importer » — les adresses
+         non lues ne recevaient pas leur compte « à poser », donc restaient prenables. Une page qui
+         échoue arrête l'import avec son motif (la route rend 503), et le délai couvre le CORPS,
+         pas seulement les en-têtes. Et TOUT le dossier est rendu, décodé : une liste de huit
+         champs faisait perdre la facturation, les demandes, la formule et les documents. */
       lireFirestore: async () => {
         const tok = await fbAdminJeton();
         if (!tok) throw Object.assign(new Error('firebase off'), { code: 'firebase_off' });
+        const { valeurFirestore } = require('./documents');
         const out = []; let pt = '';
-        for (let tour = 0; tour < 40; tour++) {
-          const r = await fbAdminFetch(fsBase() + '/teamop_requests?pageSize=300' + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''), null, tok);
-          const j = await r.json().catch(() => ({}));
+        for (let tour = 0; ; tour++) {
+          if (tour >= 40) throw Object.assign(new Error('trop de pages'), { code: 'lecture_incomplete' });
+          const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 20000);
+          let r = null, j = null;
+          try {
+            r = await fetch(fsBase() + '/teamop_requests?pageSize=300' + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''),
+              { method: 'GET', headers: { 'Authorization': 'Bearer ' + tok }, signal: ctrl.signal });
+            j = await r.json().catch(() => null);
+          } catch (e) { throw Object.assign(new Error('lecture impossible'), { code: 'lecture_reseau' }); }
+          finally { clearTimeout(tm); }
+          if (!r.ok || !j || typeof j !== 'object') throw Object.assign(new Error('lecture refusée'), { code: 'lecture_' + r.status });
           for (const doc of (j.documents || [])) {
-            const f = doc.fields || {}, v = (k) => (f[k] && (f[k].stringValue !== undefined ? f[k].stringValue
-              : f[k].integerValue !== undefined ? f[k].integerValue : undefined));
-            out.push({ email: v('email'), prenom: v('prenom'), nom: v('nom'), company: v('company'),
-              formule: v('formule'), users: v('users'), etat: v('etat'), promo: v('promo'),
-              apps: ((f.apps && f.apps.arrayValue && f.apps.arrayValue.values) || []).map(x => x.stringValue) });
+            const f = doc.fields || {}, champs = {};
+            /* Les horodatages de Google (`createdAt`…) deviennent des nombres : la page les relit
+               par `parseInt`, et une date écrite en texte y donnait l'année. */
+            for (const k of Object.keys(f)) champs[k] = (f[k] && 'timestampValue' in f[k]) ? (Date.parse(f[k].timestampValue) || 0) : valeurFirestore(f[k]);
+            out.push({ email: String(champs.email || ''), champs });
           }
           pt = j.nextPageToken || '';
           if (!pt) break;
@@ -5117,7 +5204,10 @@ app.get('/api/monitor/version', monAdmin, async (req, res) => {
     let n = 0; for (const d of devs.values()) if (versionsCfg.min && d.v < versionsCfg.min) n++;
     if (n) { const e = espaceParT(t); sous.push({ t, nom: e ? espNomPropre(e) : '', n }); }
   }
-  res.json({ ok: true, min: versionsCfg.min, enLigne: versionsCfg.enLigne, maj: versionsCfg.maj || 0, par: versionsCfg.par || '', versionEnLigne: enLigne, sous, cleAdmin: !!fbAdminCle });
+  /* `minFirestore` : la version minimale que Google a CONFIRMÉE. La copie des documents d'équipe
+     l'attend (`VERSION_SANS_FIREBASE`) : la Tour doit pouvoir le lire avant de croire la porte fermée. */
+  res.json({ ok: true, min: versionsCfg.min, enLigne: versionsCfg.enLigne, maj: versionsCfg.maj || 0, par: versionsCfg.par || '', versionEnLigne: enLigne, sous, cleAdmin: !!fbAdminCle,
+    minFirestore: +versionsCfg.minFirestore || 0 });
 });
 app.post('/api/monitor/version-min', monPatronStrict, async (req, res) => {
   const b = req.body || {};
@@ -5143,6 +5233,10 @@ app.post('/api/monitor/version-min', monPatronStrict, async (req, res) => {
   versionsCfg.min = min; versionsCfg.enLigne = enLigne; versionsCfg.maj = Date.now(); versionsCfg.par = (req.tourUser && req.tourUser.nom) || '';
   if (!versionsSave()) return res.status(500).json({ error: 'réglage non enregistré' });
   const fsr = await versionsPousserFirestore();
+  /* ⛔ LE MINIMUM CONFIRMÉ CHEZ GOOGLE, gardé à part : tant qu'il n'atteint pas la première
+     version sans Firebase, une v695 peut encore écrire chez Firestore, et `documents.js` ne
+     recopie pas (`VERSION_SANS_FIREBASE`, `gardien` C4). Un envoi raté ne le bouge pas. */
+  if (fsr.fait) { versionsCfg.minFirestore = min; versionsSave(); }
   monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'version minimale v' + min + ' · ' + enLigne + (fsr.fait ? '' : ' · Firestore KO'));
   console.log('version minimale exigée :', min, '· mode', enLigne, '· Firestore', fsr.fait ? 'à jour' : ('NON (' + fsr.motif + ')'));
   res.json({ ok: true, min, enLigne, firestore: fsr });
@@ -5155,6 +5249,18 @@ const retraitCodes = new Map();   // email -> { code, exp, tries }
    la fermeture d'une entreprise supprime AUSSI son compte du site (espace client),
    sa fiche et sa messagerie — plus rien n'est enregistré nulle part. */
 const FB_ADMIN_PATH = process.env.TEAMOP_FB_ADMIN || '/opt/teamop/firebase-admin.json';
+/* ⛔ LES ADRESSES DE BANC NE VISENT QUE 127.0.0.1 (`gardien`, 25 septembre 2026, N3). Posée par
+   erreur sur le VPS, `TEAMOP_FB_OAUTH_URL` enverrait une assertion SIGNÉE par la clé
+   d'administration (échangeable une heure contre un jeton qui passe au-dessus des règles), et
+   `TEAMOP_FIRESTORE_URL` le jeton lui-même. Hors 127.0.0.1, la variable est ignorée. */
+const urlBanc = (v, defaut) => (typeof v === 'string' && /^http:\/\/127\.0\.0\.1:\d{2,5}(\/|$)/.test(v)) ? v : defaut;
+const FB_OAUTH_URL = urlBanc(process.env.TEAMOP_FB_OAUTH_URL, 'https://oauth2.googleapis.com/token');
+const FIRESTORE_URL = urlBanc(process.env.TEAMOP_FIRESTORE_URL, 'https://firestore.googleapis.com/v1');
+/* ⛔ ET L'IDENTITY TOOLKIT DE MÊME (`gardien`, N4). Ses adresses étaient écrites en dur à onze
+   endroits : aucun banc ne pouvait jouer la suppression d'un compte du site, sa fiche ou la liste
+   des comptes sans parler au VRAI Google — ce que ce dépôt interdit. Même porte que les deux
+   au-dessus : seul `http://127.0.0.1:<port>` est accepté, et rien ne se règle sur le VPS. */
+const IDTK_URL = urlBanc(process.env.TEAMOP_IDTK_URL, 'https://identitytoolkit.googleapis.com/v1');
 let fbAdminCle = null;
 try { fbAdminCle = JSON.parse(fs.readFileSync(FB_ADMIN_PATH, 'utf8')); } catch (e) {}
 const fbAdminTok = { jeton: '', exp: 0 };
@@ -5176,14 +5282,17 @@ async function fbAdminJeton() {
        60 s, et l'opérateur relancer une route DESTRUCTIVE en plein vol. */
     const ctrl = new AbortController();
     const tm = setTimeout(() => ctrl.abort(), 10000);
-    let r;
+    let r, j = {};
     try {
-      r = await fetch('https://oauth2.googleapis.com/token', { method: 'POST',
+      r = await fetch(FB_OAUTH_URL, { method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer') + '&assertion=' + jwtSans + '.' + sig,
         signal: ctrl.signal });
+      /* ⛔ LE CORPS AUSSI, SOUS LE MÊME DÉLAI (`gardien`, C1) : levé dès les en-têtes, un serveur
+         qui se tait ensuite laissait `r.json()` pendre pour toujours — et avec lui la copie d'un
+         document d'équipe, qui tient le verrou de son entreprise. */
+      j = await r.json().catch(() => ({}));
     } finally { clearTimeout(tm); }
-    const j = await r.json().catch(() => ({}));
     if (!j.access_token) { console.error('clé admin firebase : jeton refusé', j.error || r.status); return ''; }
     fbAdminTok.jeton = j.access_token; fbAdminTok.exp = Date.now() + 50 * 60000;
     return j.access_token;
@@ -5260,18 +5369,72 @@ app.post('/api/fb/jeton', async (req, res) => {
     return res.json({ ok: true, jeton: sans + '.' + sig });
   } catch (e) { console.error('jeton équipe : signature impossible —', e.message); return res.status(500).json({ error: 'signature impossible' }); }
 });
-const fsBase = () => 'https://firestore.googleapis.com/v1/projects/' + FB_PROJET + '/databases/(default)/documents';
+/* Par `FIRESTORE_URL` (Google en production, 127.0.0.1 dans un banc) : c'est ce qui permet à un
+   banc de jouer la confirmation de la version minimale chez Firestore, dont dépend la copie. */
+const fsBase = () => FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents';
 async function fbAdminFetch(url, opts, tok) {
   const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 10000);
   try { return await fetch(url, Object.assign({}, opts, { headers: Object.assign({ 'Authorization': 'Bearer ' + tok }, (opts || {}).headers || {}), signal: ctrl.signal })); }
   finally { clearTimeout(tm); }
+}
+/* ⛔ LE DOCUMENT D'ÉQUIPE TEL QUE FIREBASE LE GARDE — pour la copie vers `documents.js`, et pour
+   elle seule. Trois réponses, jamais deux : `{existe:false}` sur un 404 (cette entreprise n'a
+   JAMAIS rien écrit), `{existe:true, champs}` sur un 200, et `null` pour TOUT le reste — clé
+   d'administration absente, jeton refusé, réseau, 5xx. `null` veut dire « on ne sait pas » :
+   le prendre pour « vide » ferait croire à l'application que l'équipe est neuve.
+   ⚠️ `TEAMOP_FIRESTORE_URL` ne sert qu'aux bancs, qui parlent à un Firestore de banc sur
+   127.0.0.1 ; il ne se pose pas sur le VPS. */
+/* ⛔ UN 404 DE GOOGLE N'EST « ENTREPRISE NEUVE » QUE S'IL NOMME LE DOCUMENT (`gardien`, C2,
+   mesuré). « The database (default) does not exist », un projet supprimé, un `projectId` faux :
+   autant de 404 qui ne disent RIEN de cette entreprise — et les prendre pour « jamais rien écrit »
+   envoyait l'appareil dans la branche « espace neuf », qui pousse sa base comme celle de l'équipe.
+   Firestore répond, pour un document absent : `Document "projects/…/documents/<coll>/<id>" not
+   found.` — on exige ce chemin exact, guillemet fermant compris (`ent-a` n'est pas `ent-ab`).
+   ⛔ Et le délai couvre TOUT, corps compris (C1) : `fbAdminFetch` le lève aux en-têtes. */
+function fbDocumentAbsent(j, collection, t) {
+  const m = String((j && j.error && j.error.message) || '');
+  return /not found/i.test(m) && m.indexOf('/documents/' + collection + '/' + t + '"') >= 0;
+}
+async function fbLireDocument(collection, t) {
+  const tok = await fbAdminJeton();
+  if (!tok) return null;
+  const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/'
+      + encodeURIComponent(collection) + '/' + encodeURIComponent(t), { method: 'GET', headers: { 'Authorization': 'Bearer ' + tok }, signal: ctrl.signal });
+    let j = null; try { j = await r.json(); } catch (e) { j = null; }
+    if (r.status === 404) {
+      if (fbDocumentAbsent(j, collection, t)) return { existe: false };
+      console.error('copie firebase : un 404 qui ne nomme pas le document — on ne conclut rien');
+      return null;
+    }
+    if (!r.ok) { console.error('copie firebase : lecture refusée — HTTP', r.status); return null; }
+    if (!j || typeof j !== 'object') return null;
+    return { existe: true, champs: require('./documents').champsFirestore(j.fields || {}), majFirebase: String(j.updateTime || '') };
+  } catch (e) { return null; }
+  finally { clearTimeout(tm); }
+}
+/* ⛔ SUPPRIMER UN COMPTE DU SITE, C'EST CHEZ NOUS D'ABORD. Les trois portes de la Tour (fermer un
+   client, suppression totale, « comptes du site ») n'appelaient que Google : après la bascule du
+   portail, le compte, le dossier et le fil seraient restés sur notre serveur pour toujours — la
+   promesse de suppression de `confidentialite.html` §6 trahie sans un mot. `try` sur `comptes` et
+   `portail` : déclarés plus bas, et une zone morte temporelle ne doit pas se taire. */
+async function compteSiteSupprimer(email) {
+  const m = String(email || '').trim().toLowerCase();
+  let chezNous = false;
+  let c = null, p = null; try { c = comptes; p = portail; } catch (e) {}
+  try { if (c && c.supprimer(m)) chezNous = true; } catch (e) { console.error('compte du site : effacement du compte impossible —', e.code || 'erreur'); }
+  try { if (p && p.supprimer(m)) chezNous = true; } catch (e) { console.error('compte du site : effacement du dossier impossible —', e.code || 'erreur'); }
+  const g = await fbSupprimerCompteSite(m);
+  return { fait: chezNous || !!g.fait, chezNous, google: !!g.fait,
+    motif: (chezNous ? 'supprimé chez TeamOP' : 'rien chez TeamOP') + ' · Google : ' + g.motif };
 }
 // supprime le compte du site (connexion) + fiche + messagerie d'un client — via la clé admin
 async function fbSupprimerCompteSite(email) {
   const tok = await fbAdminJeton();
   if (!tok) return { fait: false, motif: 'clé admin absente sur le serveur' };
   try {
-    const rl = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:lookup',
+    const rl = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:lookup',
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: [email] }) }, tok);
     const jl = await rl.json().catch(() => ({}));
     const uid = jl.users && jl.users[0] && jl.users[0].localId;
@@ -5280,12 +5443,12 @@ async function fbSupprimerCompteSite(email) {
     for (let tour = 0; tour < 20; tour++) {
       const rm = await fbAdminFetch(fsBase() + '/teamop_threads/' + uid + '/msgs?pageSize=300' + (pageTok ? '&pageToken=' + encodeURIComponent(pageTok) : ''), { method: 'GET' }, tok);
       const jm = await rm.json().catch(() => ({}));
-      for (const d of (jm.documents || [])) { await fbAdminFetch('https://firestore.googleapis.com/v1/' + d.name, { method: 'DELETE' }, tok); n++; }
+      for (const d of (jm.documents || [])) { await fbAdminFetch(FIRESTORE_URL + '/' + d.name, { method: 'DELETE' }, tok); n++; }
       pageTok = jm.nextPageToken || ''; if (!pageTok) break;
     }
     await fbAdminFetch(fsBase() + '/teamop_threads/' + uid, { method: 'DELETE' }, tok);
     await fbAdminFetch(fsBase() + '/teamop_requests/' + uid, { method: 'DELETE' }, tok);
-    const rd = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:delete',
+    const rd = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:delete',
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ localId: uid }) }, tok);
     if (!rd.ok) return { fait: false, motif: 'suppression du compte refusée (HTTP ' + rd.status + ')' };
     return { fait: true, motif: 'compte du site + fiche + messagerie supprimés (' + n + ' message(s))' };
@@ -5335,7 +5498,7 @@ async function fbRevoquerEquipe(t) {
   try {
     const tok = await fbAdminJeton();
     if (!tok) return { fait: false, motif: 'clé d\'administration Firebase absente du serveur' };
-    const r = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:update',
+    const r = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:update',
       { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ localId: fbUidEquipe(t), validSince: String(Math.floor(Date.now() / 1000)) }) }, tok);
     /* Un compte ABSENT n'est pas un échec : l'entreprise n'a simplement jamais demandé de
@@ -5356,10 +5519,17 @@ async function fbRevoquerEquipe(t) {
    demande acceptée → badge « Accès activé », application OP GESTION active,
    abonnement affiché. Sans la clé admin, on passe silencieusement. */
 async function fbMajFicheClient(email, champs) {
+  /* ⛔ LE PORTAIL MONTÉ, LA FICHE S'ÉCRIT CHEZ NOUS — ET PLUS RIEN NE PART CHEZ GOOGLE. Après la
+     bascule, `espace.html` lit son dossier sur notre serveur : écrire « accès activé » ou la
+     formule payée dans `teamop_requests` ne se voyait plus, et envoyait encore à Google des
+     données que `sous-traitance.html` dit figées. `try` : le portail est déclaré plus bas dans le
+     fichier, et une zone morte temporelle se tait sous un `.catch(() => {})`. */
+  let p = null; try { p = portail; } catch (e) { p = null; }
+  if (p) return p.majServeur(email, champs);
   const tok = await fbAdminJeton();
   if (!tok) return false;
   try {
-    const rl = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:lookup',
+    const rl = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:lookup',
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: [email] }) }, tok);
     const jl = await rl.json().catch(() => ({}));
     const uid = jl.users && jl.users[0] && jl.users[0].localId;
@@ -5460,7 +5630,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
   if (espacesAEffacer.length) {
     jeton = await fbAdminJeton(); jetonAdmin = !!jeton;   // la clé admin passe au-dessus des règles
     if (!jeton) try {
-      const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + FB_CLE,
+      const r = await fetch(IDTK_URL + '/accounts:signUp?key=' + FB_CLE,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
       const j = await r.json().catch(() => ({}));
       jeton = j.idToken || '';
@@ -5470,11 +5640,13 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
   for (const t of espacesAEffacer) {
     try {
       const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
-      const r = await fetch('https://firestore.googleapis.com/v1/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
+      const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
         { method: 'DELETE', headers: jeton ? { 'Authorization': 'Bearer ' + jeton } : {}, signal: ctrl.signal });
       clearTimeout(tm);
       if (r.ok) effaces++; else console.error('effacement firestore', t, ': HTTP', r.status);
     } catch (e) { console.error('effacement firestore', t, ':', e.message); }
+    /* Le document rangé chez nous part aussi — voir `documents.js`, `effacer`. */
+    if (documentsMod) { try { await documentsMod.effacer(t); } catch (e) {} }
   }
   /* ⛔ LES PIÈCES JOINTES PARTENT AVEC LE DOCUMENT (16 septembre 2026). Le commentaire
      au-dessus promet « plus rien n'est enregistré, la place est libérée » : à partir du moment
@@ -5483,10 +5655,10 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      route (la même raison qui a fait passer les coupures en parallèle). */
   let piecesEffacees = 0;
   if (pieces) for (const t of espacesAEffacer) { try { piecesEffacees += pieces.effacerEntreprise(t); } catch (e) { console.error('effacement pièces :', e.code || 'erreur disque');   /* ⛔ ni `t` ni le chemin : ce journal se relit à plusieurs et se copie-colle */ } }
-  if (jeton && !jetonAdmin) { try { await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_CLE,
+  if (jeton && !jetonAdmin) { try { await fetch(IDTK_URL + '/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
   // et le compte créé sur le site (connexion espace client) : supprimé aussi, si la clé admin est là
-  const compteSite = await fbSupprimerCompteSite(email);
+  const compteSite = await compteSiteSupprimer(email);
   console.log('Tour :', req.tourUser.nom, 'a FERMÉ l\'entreprise', masqueMail(email), '— données effacées :', effaces + '/' + espacesAEffacer.length, '· compte du site :', compteSite.motif);
   /* La coupure se DIT. Si la clé d'administration manque, les appareils déjà pourvus gardent
      leur session jusqu'à une heure ET peuvent repousser la base qu'on vient d'effacer :
@@ -5945,7 +6117,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.comptesSite = [];
   for (const m of inv.emails) {
     if (clientsData[m]) { delete clientsData[m]; cliSave(); }
-    const r = await fbSupprimerCompteSite(m);
+    const r = await compteSiteSupprimer(m);
     fait.comptesSite.push({ email: masqueMail(m), motif: r.motif });
   }
 
@@ -5955,7 +6127,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   const FB_CLE = (config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8';
   let jeton = await fbAdminJeton(); const jetonAdmin = !!jeton;
   if (!jeton) try {
-    const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + FB_CLE,
+    const r = await fetch(IDTK_URL + '/accounts:signUp?key=' + FB_CLE,
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
     const j = await r.json().catch(() => ({}));
     jeton = j.idToken || '';
@@ -5963,13 +6135,17 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.donneesEffacees = false;
   try {
     const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
-    const r = await fetch('https://firestore.googleapis.com/v1/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
+    const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
       { method: 'DELETE', headers: jeton ? { 'Authorization': 'Bearer ' + jeton } : {}, signal: ctrl.signal });
     clearTimeout(tm);
     fait.donneesEffacees = r.ok;
     if (!r.ok) console.error('suppression firestore', t, ': HTTP', r.status);
   } catch (e) { console.error('suppression firestore', t, ':', e.message); }
-  if (jeton && !jetonAdmin) { try { await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_CLE,
+  /* Le document rangé chez nous (`documents.js`) : effacé sans condition, et DIT — la Tour
+     affiche ce que la suppression a vraiment fait, pas ce qu'on croit qu'elle a fait. */
+  fait.documentEfface = false;
+  if (documentsMod) { try { fait.documentEfface = await documentsMod.effacer(t); } catch (e) {} }
+  if (jeton && !jetonAdmin) { try { await fetch(IDTK_URL + '/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
 
   console.log('Tour :', req.tourUser.nom, 'a SUPPRIMÉ TOTALEMENT l\'espace', t,
@@ -6727,7 +6903,10 @@ function cliSave() {
 //    la signature avec les certificats publics de Google, puis on ne retient QUE l'e-mail
 //    contenu dans le jeton — jamais celui envoyé dans le corps de la requête.
 const FB_PROJET = (config.firebase && config.firebase.projectId) || 'elan-gestion';
-const FB_CERTS_URL = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+/* Redirigeable pour les bancs, comme les trois autres adresses de Google (`urlBanc` : seul
+   `http://127.0.0.1:<port>` est accepté) — sans elle, aucun banc ne pouvait présenter un VRAI
+   jeton signé, et la garde de `/api/clients/sync` n'était éprouvée que sur des jetons refusés. */
+const FB_CERTS_URL = urlBanc(process.env.TEAMOP_FB_CERTS_URL, 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com');
 const fbCerts = { data: null, exp: 0, encours: null };
 function fbCertificats() {
   if (fbCerts.data && Date.now() < fbCerts.exp) return Promise.resolve(fbCerts.data);
@@ -6771,8 +6950,41 @@ async function fbVerifie(jeton) {
 app.post('/api/clients/sync', async (req, res) => {
   const b = req.body || {};
   let ident = null;
-  try { ident = await fbVerifie(String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim()); }
-  catch (e) { console.error('clients sync jeton:', String(e && e.message || e).slice(0, 200)); ident = null; }
+  /* ⛔ APRÈS LA BASCULE DU PORTAIL, LA PREUVE EST UNE SESSION DE `comptes.js`, PLUS UN JETON GOOGLE.
+     `cliSync` (espace.html) n'envoyait sa fiche QUE s'il pouvait obtenir un jeton Firebase : avec
+     nos comptes, il se taisait — et avec lui tout le circuit d'inscription (espace créé, adresse et
+     code d'accès envoyés au client, récapitulatif au patron), le relais des codes promo et la
+     fiche de la Tour. Rien ne cassait à l'écran : le client attendait une réponse qui ne venait
+     jamais. Une session maison (64 hexadécimaux) se reconnaît à sa forme ; un jeton de Google est
+     un JWT et continue de passer par `fbVerifie` tant que Google existe. */
+  const brut = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  let cm = null; try { cm = comptes; } catch (e) { cm = null; }
+  if (/^[0-9a-f]{64}$/i.test(brut)) {
+    const m = cm ? cm.parJeton(brut) : '';
+    /* ⛔ UNE SESSION PROUVE UN MOT DE PASSE, PAS UNE ADRESSE (`gardien`, 3e passe, G1). N'importe
+       qui ouvre un compte au nom de n'importe quelle adresse — le lien de vérification part chez
+       son vrai propriétaire, que l'inconnu ne lit pas, mais la connexion, elle, marchait. Cette
+       route lisait l'adresse de la session comme PROUVÉE : l'adresse de contact d'une entreprise
+       (publique : un camion, une facture) suffisait pour changer sa formule par une demande —
+       « Gratuit » passe pour payé, donc une entreprise payante retombait au forfait gratuit —,
+       écraser sa fiche dans la Tour et lui relayer un code promo. Rien de cette route ne part tant
+       que l'adresse n'est pas prouvée : la page le dit et redemande le lien, et la fiche repart
+       d'elle-même à la visite suivante (`cliSync` ne mémorise que ce qui est accepté). */
+    if (m && !cm.verifie(m)) return res.status(403).json({ error: 'adresse_non_verifiee' });
+    ident = m ? { email: m } : null;
+  } else if (cm) {
+    /* ⛔ ET LE PORTAIL MAISON ALLUMÉ, UN JETON DE GOOGLE NE PROUVE PLUS RIEN ICI. Le même défaut
+       vivait par Google : un compte Firebase se crée pour n'importe quelle adresse avec la clé
+       publique de l'ancien site, et `fbVerifie` ne demande pas que l'adresse soit vérifiée — le
+       site ne l'a jamais fait vérifier, donc l'exiger aurait fermé la porte à tout le monde. Une
+       fois `comptes.actif` posé, les pages du jour J ne présentent plus que nos sessions ; seule
+       la page d'avant, pendant les minutes qui séparent le réglage de la publication, perd son
+       relais (REPRISE.md, procédure du jour J). */
+    return res.status(401).json({ error: 'connexion non vérifiée' });
+  } else {
+    try { ident = await fbVerifie(brut); }
+    catch (e) { console.error('clients sync jeton:', String(e && e.message || e).slice(0, 200)); ident = null; }
+  }
   if (!ident) return res.status(401).json({ error: 'connexion non vérifiée' });
   const email = monStr(ident.email, 120).trim().toLowerCase();   // l'e-mail vient du jeton signé, jamais du corps
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(401).json({ error: 'compte sans e-mail' });
@@ -7042,11 +7254,15 @@ app.post('/api/clients/sync', async (req, res) => {
    de clients réels. */
 app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
   const tok = await fbAdminJeton();
-  if (!tok) return res.status(503).json({ error: 'clé admin Firebase absente sur le serveur (firebase-admin.json)' });
+  /* Nos comptes (`comptes.js`) se listent même sans Google : c'est eux que le portail utilise
+     après la bascule, et Google finira éteint. */
+  let cm = null, pm = null; try { cm = comptes; pm = portail; } catch (e) {}
+  if (!tok && !cm) return res.status(503).json({ error: 'clé admin Firebase absente sur le serveur (firebase-admin.json)' });
   /* Les fiches d'inscription, lues EN UNE PASSE puis croisées par uid. Une requête par
      compte aurait fait des centaines d'allers-retours ; et sans elles on n'a que l'adresse,
      alors qu'il faut le nom de la personne et son entreprise pour supprimer sans se tromper. */
   const fiches = {};
+  if (tok) {
   const val = f => f && (f.stringValue !== undefined ? f.stringValue
     : f.integerValue !== undefined ? f.integerValue
     : f.timestampValue !== undefined ? f.timestampValue : '');
@@ -7069,13 +7285,14 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
     }
   } catch (e) { /* sans fiches, la liste reste utilisable : on ne bloque pas dessus */ }
 
-  const comptes = []; let anonymes = 0; let pageTok = '';
-  try {
+  }
+  const lignes = []; let anonymes = 0; let pageTok = '';
+  if (tok) try {
     for (let tour = 0; tour < 20; tour++) {
-      const url = 'https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET
+      const url = IDTK_URL + '/projects/' + FB_PROJET
         + '/accounts:batchGet?maxResults=500' + (pageTok ? '&nextPageToken=' + encodeURIComponent(pageTok) : '');
       const r = await fbAdminFetch(url, { method: 'GET' }, tok);
-      if (!r.ok) return res.status(502).json({ error: 'Firebase a refusé la lecture (HTTP ' + r.status + ')' });
+      if (!r.ok) { if (cm) break; return res.status(502).json({ error: 'Firebase a refusé la lecture (HTTP ' + r.status + ')' }); }
       const j = await r.json().catch(() => ({}));
       for (const u of (j.users || [])) {
         const mail = String(u.email || '').trim().toLowerCase();
@@ -7086,7 +7303,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
            COUPERAIT LA SYNCHRO DE L'APPAREIL CORRESPONDANT. Ils sont comptés, pas montrés. */
         if (!mail) { anonymes++; continue; }
         const fi = fiches[u.localId] || {};
-        comptes.push({
+        lignes.push({
           email: mail,
           nom: fi.nom || '',
           societe: fi.societe || '',
@@ -7103,9 +7320,26 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
       }
       pageTok = j.nextPageToken || ''; if (!pageTok) break;
     }
-  } catch (e) { return res.status(502).json({ error: 'lecture Firebase impossible : ' + String(e.message).slice(0, 120) }); }
-  comptes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
-  res.json({ comptes, total: comptes.length, anonymes });
+  } catch (e) { if (!cm) return res.status(502).json({ error: 'lecture Firebase impossible : ' + String(e.message).slice(0, 120) }); }
+  /* Les comptes maison, fusionnés par adresse : une personne présente des deux côtés (reprise de
+     Google, compte « à poser ») n'est qu'UNE ligne, qui dit qu'elle existe chez nous. */
+  if (cm) {
+    const parMail = new Map(lignes.map(x => [x.email, x]));
+    for (const c of cm.liste()) {
+      const dos = pm ? pm.dossierDe(c.email) : null;
+      const deja = parMail.get(c.email);
+      if (deja) { deja.chezNous = true; deja.aPoser = c.aPoser; continue; }
+      lignes.push({ email: c.email,
+        nom: ((c.prenom + ' ' + c.nom).trim() || (dos && ((dos.prenom || '') + ' ' + (dos.nom || '')).trim()) || '').slice(0, 80),
+        societe: String(c.societe || (dos && dos.company) || '').slice(0, 80),
+        statut: String((dos && dos.status) || '').slice(0, 30),
+        cree: c.cree || 0, derniere: c.maj || 0, verifie: c.verifie, desactive: false,
+        entreprise: clientsData[c.email] ? (clientsData[c.email].entreprise || clientsData[c.email].nom || '') : '',
+        aUnEspace: !!clientsData[c.email], chezNous: true, aPoser: c.aPoser });
+    }
+  }
+  lignes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
+  res.json({ comptes: lignes, total: lignes.length, anonymes, google: !!tok });
 });
 
 /* Suppression d'un compte du site — patron seulement, et JAMAIS un compte qui porte une
@@ -7118,7 +7352,7 @@ app.post('/api/monitor/comptes-site/supprimer', monPatronStrict, async (req, res
   if (clientsData[email]) return res.status(409).json({
     error: 'ce compte porte une entreprise — passe par « Fermer définitivement » dans Entreprises, qui efface aussi son espace et ses données'
   });
-  const r = await fbSupprimerCompteSite(email);
+  const r = await compteSiteSupprimer(email);
   // Journal : l'adresse est masquée, on ne met pas de données personnelles dans les logs.
   console.log('compte site supprimé ' + masqueMail(email) + ' : ' + (r.fait ? 'ok' : 'échec — ' + r.motif));
   if (!r.fait) return res.status(400).json({ error: r.motif });
@@ -8022,6 +8256,32 @@ function rappelsEcheances() {
 setTimeout(rappelsEcheances, 90 * 1000);      // un premier passage peu après le démarrage
 setInterval(rappelsEcheances, 6 * 3600000);   // puis toutes les 6 heures
 
+/* ══ LE DOCUMENT D'ÉQUIPE, CHEZ NOUS — LA SORTIE DE FIREBASE (voir `server/documents.js`) ════
+   ⛔ MONTÉ ICI, EN FIN DE FICHIER, ET C'EST UNE PRÉCAUTION MESURÉE. Le module a besoin de
+   `sauvRefus` (qui lit `ESPACES_INTOUCHABLES`), de `versionsCfg` et de `FB_PROJET` : trois
+   `const`/`let` déclarés des centaines de lignes après le montage des pièces jointes. Monté
+   là-haut, le premier appel au montage aurait touché une zone morte temporelle — la faute exacte
+   qui a éteint toute la sauvegarde hors site le 19 septembre 2026, avalée par un `catch`.
+   `versionMin` est une FONCTION pour la même raison : lue à chaque requête, jamais au montage.
+   Et s'il refuse de se monter, le reste du serveur continue — `/health` dit `actif:false`. */
+let documentsMod = null;
+try {
+  documentsMod = require('./documents').monterDocuments(app, { config, DATA_DIR, sauvRefus, cleEstPublique, quotaOk, monStr,
+    versionMin: () => versionsCfg.min, fbLireDocument,
+    /* Le minimum que Firestore a CONFIRMÉ (la copie l'attend), l'annuaire illisible (503, pas
+       404), et, pour l'inventaire d'avant l'extinction, le patron et la liste des entreprises. */
+    versionFirestore: () => +versionsCfg.minFirestore || 0,
+    annuaireIllisible: () => espacesIllisible,
+    monPatronStrict,
+    espacesConnus: () => Object.values(espacesReg).map(e => {
+      if (!e) return '';
+      if (e.t) return String(e.t);
+      try { return String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) { return ''; }
+    }).filter(Boolean) });
+} catch (e) {
+  console.error('documents d\'équipe non montés :', e.message);
+}
+
 /* ══ AUCUNE ROUTE NE DOIT ÊTRE DÉCLARÉE DEUX FOIS ══════════════════════════════════════════
    ⛔ LA PREMIÈRE ENREGISTRÉE GAGNE, ET LA SECONDE NE RÉPOND JAMAIS — sans un mot. C'est arrivé :
    `/api/devis/etat` était déclarée dans `agent-devis.js` ET ici ; la seconde, plus riche, n'a
@@ -8050,6 +8310,28 @@ const routesDoublons = (() => {
   }
   return doubles;
 })();
+
+/* ══ LE FILET DES ROUTES — EN DERNIER, APRÈS TOUTES LES ROUTES ══════════════════════════════
+   ⛔ MESURÉ LE 25 SEPTEMBRE 2026 : un corps JSON malformé (`{"t":`) envoyé à n'importe quelle
+   route rendait la page d'erreur d'Express AVEC SA PILE — chemins du serveur, versions des
+   bibliothèques — à n'importe qui. Express ne s'en abstient que sous `NODE_ENV=production`,
+   que l'unité systemd ne posait pas. Ce filet ne dépend plus de ce réglage : du texte brut, un
+   mot, jamais une pile. Le journal garde la route (son MODÈLE, jamais l'adresse demandée, qui
+   peut porter n'importe quoi) et le type d'erreur ; `/health` compte les 5xx de l'heure.
+   Aucune route n'est montée après ce point (tous les modules se montent au chargement) : le
+   404 ne peut en masquer aucune. */
+app.use((req, res) => { res.status(404).type('text/plain').send('introuvable'); });
+app.use((err, req, res, next) => {
+  const code = (err && Number.isInteger(err.status) && err.status >= 400 && err.status < 600) ? err.status : 500;
+  if (code >= 500) {
+    incidentNoter('erreur');
+    console.error('⛔ erreur de route —', req.method, (req.route && req.route.path) || 'hors route', '·',
+      String((err && (err.type || err.code || err.name)) || 'erreur').slice(0, 40), '·', incidentOu(err));
+  }
+  if (res.headersSent) return next(err);
+  res.status(code).type('text/plain').send(code === 400 ? 'requête illisible' : code === 413 ? 'requête trop lourde'
+    : code < 500 ? 'requête refusée' : 'erreur du serveur');
+});
 
 const PORT = process.env.PORT || 8080;
 const serveur = app.listen(PORT, '127.0.0.1', () => console.log('TeamOP API sur 127.0.0.1:' + PORT));

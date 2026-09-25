@@ -24,8 +24,10 @@
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie
 # exécutée (sans `server/node_modules`, elles se déclarent vertes). Mesuré le 24 septembre 2026 :
 # 1 876 sur cette liste, puis 2 004 une fois `test-803` ajouté (34 suites, contre les pages de
-# `main`). Le relever quand on ajoute une suite, jamais le baisser pour passer.
-#plancher 1925
+# `main`), puis +26 avec `test-805`. Le relever quand on ajoute une suite, jamais le baisser pour passer.
+# 25 septembre 2026 : 2 297 contre les pages de `main` (38 suites), après la sortie de Firebase et la
+# seconde passe du gardien sur le portail — plancher relevé à 2 250.
+#plancher 2250
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -63,3 +65,19 @@ tests/test-796.js
 # DEUX pages — contre la v695 de `main`, elle vérifie que le refus du serveur neuf s'y AFFICHE et
 # n'écrit rien (103 vérifications ; 109 contre la page de la branche).
 tests/test-803.js
+# 24 septembre 2026 : `restaurer.js` exécuté comme le jour du sinistre — sans config.json, contre un
+# coffre local qui porte copies du jour ET mensuelle. Il ne lit aucune page : il passe partout.
+tests/test-805.js
+# 25 septembre 2026 : la sortie de Firebase — le document d'équipe rangé chez nous (`documents.js`),
+# sa copie depuis un Firestore de banc sur 127.0.0.1, ses portes et son écoute. Il ne lit aucune page :
+# il passe contre `main` comme contre la branche.
+tests/test-809.js
+# 25 septembre 2026 : les clients du portail repris de Google — comptes « à poser », que seul le
+# lien reçu dans leur boîte ouvre. Il monte comptes.js et portail.js, sans page.
+tests/test-811.js
+# 25 septembre 2026 : le filet du serveur — jamais une pile dans une réponse (JSON malformé, corps
+# trop lourd, route inconnue), jamais un arrêt pour une promesse rejetée. Le vrai serveur, sans page.
+tests/test-812.js
+# 25 septembre 2026 : les deux interrupteurs du jour J (`server/reglage.js`) — exécuté contre une
+# configuration de banc : rien d'autre ne bouge, droits 600, aucun secret affiché. Sans page.
+tests/test-815.js

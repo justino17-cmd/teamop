@@ -137,6 +137,55 @@ console.log('\nLa route ne délivre rien sans preuve, et jamais pour le repli');
   v('…et une clé fausse',/espaceCleOk\(t, kh\)/.test(garde),true);
 }
 
+/* ⛔ LES DEUX PAGES, PAS UNE. Ce banc est dans `scripts/bancs-serveur.liste` : le déploiement du
+   serveur SEUL le lance contre l'`app.html` que `main` sert — la v695, qui parle encore à Firebase,
+   jusqu'au jour J. On garde donc ce que CHAQUE page doit tenir : la v748 ne charge plus Firebase ;
+   la v695 demande son jeton sans rien casser s'il manque (le bloc d'avant la sortie, tel quel). */
+const V748 = APP.indexOf('function docEquipe(') >= 0;
+if (V748) {
+console.log('\nCôté application : Firebase n\'est plus chargé du tout (sortie du 25 septembre 2026)');
+{ /* ⛔ CE BLOC GARDAIT LE CONTRAIRE JUSQU'À LA v747 : le jeton d'équipe (`fbJetonEquipe`), la
+     session anonyme de secours, l'application Firebase NOMMÉE qui séparait OP GESTION du portail.
+     Décision de Justin, 25 septembre 2026 : « quand j'envoie la mise à jour, Firebase est
+     supprimé ». La synchro passe par `docEquipe` et NOTRE serveur (`test-810` la joue contre le
+     vrai serveur), la première connexion d'un compte du site par nos comptes maison.
+     On cherche dans le CODE, commentaires retirés — seuls les blocs qui commencent une ligne,
+     les autres avalent du vrai code (voir CLAUDE.md, 21 septembre 2026). */
+  const CODE = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const traces = ['gstatic.com/firebasejs', 'firebase.initializeApp', 'firebase.auth', '.firestore()', 'signInAnonymously',
+    'signInWithCustomToken', 'identitytoolkit.googleapis.com', 'firestore.googleapis.com', '/api/fb/jeton', 'FB_CONFIG', 'apiKey:'];
+  v('⛔ aucun code de la page ne charge ni n\'appelle Firebase', traces.filter(x => CODE.indexOf(x) >= 0), []);
+  v('les fonctions du jeton et de la session sont parties avec lui',
+    ['function loadFirebase(', 'function fbJetonEquipe(', 'function fbApp(', 'function syncAuth(', 'function syncGetCfg(', 'function syncSave(', 'function syncGuide('].filter(x => APP.indexOf(x) >= 0), []);
+  /* La preuve de la clé reste ce qu'elle était : l'empreinte, jamais la clé. */
+  const preuve = (APP.match(/async function docPreuve\(\)\{[^\n]*\}/) || [''])[0];
+  v('le document d\'équipe se demande contre la PREUVE, jamais la clé', [/sauvKh\(\)/.test(preuve), /syncSecret\(\)/.test(preuve)], [true, false]);
+  /* ⛔ ET LE COMPTE DU SITE NE PASSE PLUS PAR GOOGLE. Sa première connexion vérifiait le mot de
+     passe chez `identitytoolkit` avec la clé de FB_CONFIG ; c'est désormais `/api/compte/connexion`,
+     avec la MÊME empreinte que le portail (`espace.html`, `reinit.html`) — sinon un mot de passe
+     posé là-bas serait refusé ici. */
+  const site = (APP.match(/const _site=\(u && !u\.pwdHash && u\.compteSite\)\?u:null;[\s\S]*?\n  \}\n/) || [''])[0];
+  v('le compte du site se vérifie chez nous, avec l\'empreinte du portail',
+    [/fetch\(PUSH_API\+'\/api\/compte\/connexion'/.test(site), /h:await sha256\('teamop-portail:'\+pin\)/.test(site), /identitytoolkit/.test(site.replace(/\/\*[\s\S]*?\*\//g, ' '))], [true, true, false]);
+  const ESP = fs.readFileSync(RAC + '/espace.html', 'utf8');
+  v('…et c\'est bien la même empreinte qu\'espace.html', /encode\('teamop-portail:' \+ String\(mdp\)\)/.test(ESP), true);
+  /* La session Firebase est le secret le plus VIVANT : elle se renouvelle indéfiniment toute
+     seule. Un appareil passé par la v747 la garde dans son navigateur ; on l'efface en quittant. */
+  const quitter=(APP.match(/function espaceQuitter\(\)\{[\s\S]*?\n\}\n(?=(?:async function |function |const |let |\/\*))/)||[''])[0];
+  /* ⛔ PAR LE STOCKAGE, PAS PAR LE SDK — qui n'est plus chargé. C'était déjà le seul retrait qui
+     marchait sur la porte de la Tour (« espace fermé », 2,6 s en 4G) ; c'est désormais le seul. */
+  v('quitter un espace efface la session Firebase qu\'un ancien appareil garde encore',
+    /indexedDB\.open\('firebaseLocalStorageDb'\)/.test(quitter),true);
+  v('en n\'effaçant QUE la clé d\'OP GESTION — la base est partagée avec le portail client',
+    /indexOf\(':opgestion'\)>0\) st\.delete\(k\)/.test(quitter),true);
+  v('la porte de la Tour laisse le temps à ce retrait de s\'exécuter',
+    /setTimeout\(\(\)=>location\.reload\(\),400\); return;/.test(APP),true);
+  /* Travailler hors ligne est une fonctionnalité ; se croire synchronisé sans l'être, non. */
+  v('et quand les quatre reprises sont épuisées, l\'utilisateur l\'apprend',
+    /Pas de connexion à l\\?'espace de l\\?'équipe/.test(APP),true);
+}
+
+} else {
 console.log('\nCôté application : le jeton s\'essaie, mais rien ne casse s\'il manque');
 { const jet=(APP.match(/async function fbJetonEquipe\(\)\{[\s\S]*?\n\}catch\(e\)\{ return ''; \} \}/)||[''])[0];
   v('fbJetonEquipe existe',jet.length>100,true);
@@ -185,6 +234,8 @@ console.log('\nCôté application : le jeton s\'essaie, mais rien ne casse s\'il
   /* Travailler hors ligne est une fonctionnalité ; se croire synchronisé sans l'être, non. */
   v('et quand les quatre reprises sont épuisées, l\'utilisateur l\'apprend',
     /Pas de connexion à l\\?'espace de l\\?'équipe/.test(APP),true);
+}
+
 }
 
 console.log('\nLa règle Firestore est REFERMÉE — publiée le 11 septembre 2026, 2 h 30');

@@ -61,6 +61,22 @@ function poserUnite() {
     + '[Service]\nLoadCredential=teamop_kek:' + CHEMIN + '\n');
 }
 
+/* ⛔ CE QU'ON VÉRIFIE, C'EST CE QUE LE SERVICE VOIT — PAS `/health` TANT QUE LE SOCLE DORT.
+   Ce message disait : « redémarre, puis `/health` : "cle":true veut dire qu'elle est lue ». Or
+   `/health` ne publie la clé qu'une fois le socle ALLUMÉ ; éteint, il rend `{"actif":false}` et
+   rien d'autre — c'est-à-dire rien, le jour même où l'on pose la clé, qui est précisément AVANT
+   d'allumer. Le 24 septembre 2026, le vrai contrôle s'est fait sur le VPS en comparant la clé
+   posée à celle que systemd dépose pour le service (`cmp`, qui n'affiche rien de la clé) : c'est
+   lui qu'on donne. Et `daemon-reload` d'abord — sans lui, systemd ignore un réglage qu'on vient
+   d'ajouter, et le service redémarre SANS la clé en ayant l'air d'aller bien. */
+const CRED = '/run/credentials/teamop-api.service/teamop_kek';
+function conseilVerifier(intro) {
+  dit('     ' + (intro || 'Pour que le service la lise, puis le vérifier (rien ne s\'affiche de la clé) :'));
+  dit('        systemctl daemon-reload && systemctl restart teamop-api');
+  dit('        cmp -s ' + CHEMIN + ' ' + CRED + ' && echo "✓ le service lit la clé" || echo "✗ le service ne voit pas la clé"');
+  dit('     `/health` ne montre la clé (« "cle":true ») qu\'une fois le socle allumé.');
+}
+
 function existante() {
   try { const v = fs.readFileSync(CHEMIN, 'utf8').trim(); return /^[0-9a-fA-F]{64}$/.test(v) ? v : null; }
   catch (e) { return null; }
@@ -113,9 +129,7 @@ if (deja) {
   dit('     illisibles. Si tu crois qu\'elle est fausse, ne la remplace pas : compare-la à');
   dit('     celle du séquestre AVANT de faire quoi que ce soit.');
   dit('');
-  dit('     Pour vérifier que le service la lit bien :');
-  dit('        systemctl restart teamop-api && curl -s localhost:8080/health | grep -o \'"socle":{[^}]*}\'');
-  dit('     → « "cle":true » veut dire qu\'elle est lue.');
+  conseilVerifier();
   dit('');
   process.exit(0);
 }
@@ -130,7 +144,7 @@ if (arg) {
   dit('');
   dit('  ✅ Clé du séquestre posée.');
   dit('');
-  dit('     systemctl restart teamop-api');
+  conseilVerifier();
   dit('');
   process.exit(0);
 }
@@ -162,7 +176,8 @@ dit('      ' + neuve);
 dit('');
 dit('     Sans elle, un VPS perdu = des sauvegardes définitivement illisibles : le coffre ne');
 dit('     stocke que du chiffré. La ranger dans DEUX endroits distincts (gestionnaire de mots');
-dit('     de passe + copie scellée hors ligne), puis vérifier qu\'on sait la relire.');
+dit('     de passe + copie scellée hors ligne), puis vérifier qu\'on sait la relire — la commande');
+dit('     qui relit une copie sans rien afficher est dans ALLUMER-LE-SOCLE.md, section 1.');
 dit('');
-dit('     Puis : systemctl restart teamop-api');
+conseilVerifier('Puis, les deux copies rangées ET relues, pour que le service la lise et le vérifier :');
 dit('');

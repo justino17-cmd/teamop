@@ -149,7 +149,13 @@ console.log('\nFermer une entreprise coupe ses sessions Firebase, et le DIT');
   /* Le jeton d'administration est maintenant sur le chemin de quatre fermetures : sans délai,
      une fermeture pouvait rester bloquée plusieurs minutes sur un cache froid. */
   v('le jeton d\'administration a un délai d\'expiration',
-    /ctrl\.abort\(\), 10000\);[\s\S]{0,300}?oauth2\.googleapis\.com\/token/.test(SRV), true);
+    /ctrl\.abort\(\), 10000\);[\s\S]{0,300}?fetch\(FB_OAUTH_URL,/.test(SRV) && /const FB_OAUTH_URL = urlBanc\(process\.env\.TEAMOP_FB_OAUTH_URL, 'https:\/\/oauth2\.googleapis\.com\/token'\);/.test(SRV), true);
+  /* ⛔ ET LE DÉLAI COUVRE LE CORPS (`gardien`, 25 septembre 2026, C1) : levé aux en-têtes, un
+     serveur qui se tait ensuite laissait `r.json()` pendre — et avec lui la copie d'un document
+     d'équipe, qui tient le verrou de son entreprise. La lecture doit précéder `clearTimeout`. */
+  { const jt = (SRV.match(/async function fbAdminJeton\(\) \{[\s\S]*?\n\}/) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const iJson = jt.indexOf('await r.json()'), iFin = jt.indexOf('finally { clearTimeout(tm); }');
+    v('   jusqu\'au bout du corps : la réponse se lit AVANT que le délai ne soit levé', iJson > 0 && iFin > 0 && iJson < iFin, true); }
   /* Une affirmation sans fait derrière, c'est ce que ce correctif combat — y compris la sienne. */
   v('aucun espace relié ne se dit pas « coupé »', /aucun espace relié — rien à couper/.test(SRV), true);
 
@@ -220,13 +226,16 @@ console.log('\nLes quatre réponses de la coupure, jouées pour de vrai');
   const UID = (SRV.match(/function fbUidEquipe\(t\) \{[\s\S]*?\n\}/) || [''])[0];
   v('la fonction est retrouvée, entière', [FN.length > 400, /validSince/.test(FN), /USER_NOT_FOUND/.test(FN)], [true, true, true]);
 
-  const monte = (jeton, reponse) => new Function('crypto', 'fbAdminJeton', 'fbAdminFetch', 'FB_PROJET',
-    UID + '\n' + FN + '\n return fbRevoquerEquipe;')(crypto, async () => jeton, async () => reponse, 'projet-essai');
+  /* `IDTK_URL` : l'adresse de l'Identity Toolkit est une constante du serveur depuis qu'un banc
+     peut la rediriger (`urlBanc`) — le bac à sable reçoit la vraie valeur par défaut. */
+  const IDTK = 'https://identitytoolkit.googleapis.com/v1';
+  const monte = (jeton, reponse) => new Function('crypto', 'fbAdminJeton', 'fbAdminFetch', 'FB_PROJET', 'IDTK_URL',
+    UID + '\n' + FN + '\n return fbRevoquerEquipe;')(crypto, async () => jeton, async () => reponse, 'projet-essai', IDTK);
 
   let vuUrl = '', vuCorps = null;
-  const avecEspion = new Function('crypto', 'fbAdminJeton', 'fbAdminFetch', 'FB_PROJET',
+  const avecEspion = new Function('crypto', 'fbAdminJeton', 'fbAdminFetch', 'FB_PROJET', 'IDTK_URL',
     UID + '\n' + FN + '\n return fbRevoquerEquipe;')(crypto, async () => 'jeton-essai',
-      async (url, opts) => { vuUrl = url; vuCorps = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({}) }; }, 'projet-essai');
+      async (url, opts) => { vuUrl = url; vuCorps = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({}) }; }, 'projet-essai', IDTK);
 
   v('sans clé d\'administration : elle ne prétend PAS avoir coupé',
     (await monte('', {}).call(null, 'ent-x')).fait, false);

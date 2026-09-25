@@ -146,6 +146,37 @@ function get(url) {
         && j.portail.dossiers && j.portail.dossiers.actif === false && !j.portail.dossiers.erreur) {
       problems.push('⛔ DEMI-PORTAIL : les comptes sont montés mais les dossiers non, sans erreur déclarée — les clients se connectent et ne voient rien. Sur le VPS : journalctl -u teamop-api | grep portail');
     }
+    /* ⛔ LE DOCUMENT D'ÉQUIPE RANGÉ CHEZ NOUS — AJOUTÉ LE 25 SEPTEMBRE 2026, AVEC LE CHAMP.
+       Depuis la sortie de Firebase, c'est TOUTE la synchro d'OP GESTION qui passe par
+       `server/documents.js`. Chacun de ces états est une entreprise qui ne se synchronise plus,
+       et rien ne le montre depuis l'application d'une autre. Les échecs sont comptés sur la
+       DERNIÈRE HEURE (pas depuis le démarrage) : un incident passé ne crie pas pour toujours. */
+    if (j.documents && j.documents.actif !== true) {
+      problems.push('⛔⛔ LE RANGEMENT DES DOCUMENTS D’ÉQUIPE NE S’EST PAS MONTÉ (' + (j.documents.erreur || 'motif inconnu') + ') — la synchro d’OP GESTION ne passe plus. Sur le VPS : journalctl -u teamop-api | grep documents');
+    }
+    if (j.documents && j.documents.illisibles1h > 0) {
+      problems.push('⛔ un document d’équipe ne se lit plus sur le serveur (' + j.documents.illisibles1h + ' essai(s) dans l’heure) — cette entreprise ne reçoit plus rien. Sur le VPS : ls -la /opt/teamop/data/documents');
+    }
+    if (j.documents && j.documents.ecrituresEchec1h > 0) {
+      problems.push('⛔ ' + j.documents.ecrituresEchec1h + ' écriture(s) de document d’équipe refusée(s) par le disque dans l’heure — le travail ne part plus. Sur le VPS : df -h');
+    }
+    /* La copie attend que la porte de version soit fermée CHEZ GOOGLE (`VERSION_SANS_FIREBASE`,
+       documents.js) : des appareils à jour travaillent sans synchro tant que ce n'est pas fait.
+       Le jour de la publication, c'est le geste qui manque — il se fait depuis la Tour. */
+    if (j.documents && j.documents.copiesEnAttente1h > 0) {
+      problems.push('⛔ ' + j.documents.copiesEnAttente1h + ' copie(s) de document d’équipe en attente dans l’heure : des appareils à jour ne se synchronisent pas tant que la version minimale n’est pas exigée ET confirmée chez Firestore. Tour → Exiger la dernière version (et vérifier que Firestore est « à jour »).');
+    }
+    /* Le filet du processus (`server/index.js`) : une promesse rejetée sans gestionnaire, ou une
+       route qui a jeté (5xx). Chacun est un défaut de code réel, jamais un client qui se trompe. */
+    if (j.processus && j.processus.rejets1h > 0) {
+      problems.push('⛔ ' + j.processus.rejets1h + ' promesse(s) rejetée(s) sans gestionnaire dans l’heure — un défaut du serveur. Sur le VPS : journalctl -u teamop-api | grep "promesse rejetée"');
+    }
+    if (j.processus && j.processus.erreurs1h > 0) {
+      problems.push('⛔ ' + j.processus.erreurs1h + ' erreur(s) de route (5xx) dans l’heure. Sur le VPS : journalctl -u teamop-api | grep "erreur de route"');
+    }
+    if (j.documents && j.documents.copiesEchec1h > 0) {
+      problems.push('⚠️ ' + j.documents.copiesEchec1h + ' copie(s) depuis Firebase impossible(s) dans l’heure — les appareils réessaient. Si ça dure : la clé d’administration Firebase (/opt/teamop/firebase-admin.json), puis journalctl -u teamop-api | grep "copie firebase"');
+    }
     /* ⛔ LA SAUVEGARDE HORS SITE — AJOUTÉE LE 17 SEPTEMBRE 2026. Une sauvegarde qui ne tourne
        plus ne fait AUCUN bruit : tout continue de marcher, jusqu'au jour où on en a besoin.
        C'est exactement la panne que cette surveillance existe pour voir venir. Trois cas :
@@ -234,7 +265,7 @@ function get(url) {
        Huit jours, pas deux : un serveur redémarré souvent a le droit de glisser, et une
        alarme qui crie pour rien finit ignorée — la leçon est déjà écrite plus haut. */
     if (j.socle && j.socle.actif === true && typeof j.socle.ancreJours === 'number' && j.socle.ancreJours > 8) problems.push('⛔ l\'ancre du journal de diagnostic n\'est pas sortie de la machine depuis ' + j.socle.ancreJours + ' jours — le journal chaîné ne prouve plus rien contre une réécriture complète. Vérifier `notifDemandes` et le SMTP dans /opt/teamop/config.json.');
-    if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre, la poser avec « node /opt/teamop/repo/server/poser-cle.js » sur le VPS, puis systemctl restart teamop-api.');
+    if (j.socle && j.socle.actif === true && j.socle.cle === false) problems.push('⛔⛔ LE SOCLE TOURNE SANS SA CLÉ MAÎTRE — les données des entreprises ne se déchiffrent plus. NE PAS générer une clé neuve (elle rendrait tout illisible) : récupérer celle du séquestre, la poser avec « node /opt/teamop/repo/server/poser-cle.js <les 64 caractères> » sur le VPS, puis systemctl daemon-reload && systemctl restart teamop-api — le contrôle qui le prouve est dans ALLUMER-LE-SOCLE.md, section 1.');
     /* ══ ÉTAPE 6 DU SOCLE — « LE MIROIR, UNE SEMAINE » ═══════════════════════════════════
        ⛔ L'étape 6 ne livre « rien » : elle REGARDE. Sans ces trois alarmes, regarder voudrait
        dire ouvrir `/health` à la main tous les jours pendant une semaine — c'est-à-dire ne pas

@@ -157,6 +157,47 @@ console.log('\n── 729 · la clé maître du socle, exécutée ──');
   vrai('⛔ et la clé se pose AVANT que l\'unité soit écrite', iCle > 0 && iUnite > iCle);
 }
 
+/* ══ 6. ⛔ LE CONTRÔLE QU'IL DONNE DOIT POUVOIR RÉPONDRE LE JOUR OÙ ON LE LANCE ════════════
+   Le 24 septembre 2026, la clé a été posée en production. L'outil disait : « redémarre, puis
+   `/health` : "cle":true veut dire qu'elle est lue ». Or `/health` ne publie la clé qu'une fois
+   le socle ALLUMÉ — et on pose la clé AVANT d'allumer : ce contrôle ne pouvait rien montrer ce
+   jour-là. Le vrai s'est fait sur le VPS : `cmp` entre la clé posée et celle que systemd dépose
+   pour le service. Il doit donc sortir des TROIS chemins qui réussissent, précédé de
+   `daemon-reload` (sans lui, un réglage neuf est ignoré et le service redémarre sans la clé).
+   ⛔ Et les trois noms doivent CONCORDER — celui que le réglage donne à la clé, celui que le
+   contrôle compare, celui que `socle.js` lit : deux copies d'un même nom divergent un jour, et
+   le contrôle dirait « ✗ » sur une clé bien lue (ou « ✓ » sur rien). */
+{
+  const SO = fs.readFileSync(path.join(RACINE, 'server', 'socle.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+  const SH = fs.readFileSync(path.join(RACINE, 'server', 'install.sh'), 'utf8');
+  const idLu = (/readFileSync\(path\.join\(dir, '([^']+)'\)/.exec(SO) || [])[1] || '';
+  const unite = (/cat > \/etc\/systemd\/system\/([\w.-]+\.service) <</.exec(SH) || [])[1] || '';
+  vrai('le nom que socle.js lit est trouvé', idLu.length > 0);
+  vrai('le nom de l\'unité écrite par install.sh est trouvé', unite.length > 0);
+  const controle = (b, txt, quoi) => {
+    const m = /cmp -s (\S+) \/run\/credentials\/([^/\s]+)\/(\S+) && echo/.exec(txt);
+    vrai('⛔ ' + quoi + ' : il donne le contrôle par comparaison', !!m);
+    /* ⚠️ Collé au contrôle, pas n'importe où : deux chemins affichent DÉJÀ « daemon-reload »
+       dans l'avis du réglage systemd, et un motif libre s'en contentait — la mutation qui le
+       retirait du conseil ne faisait tomber qu'UN chemin sur trois. */
+    vrai('   précédé de daemon-reload', /systemctl daemon-reload && systemctl restart teamop-api\n\s*cmp -s /.test(txt));
+    v('   il ne donne plus /health comme preuve', /curl[^\n]*health/.test(txt), false);
+    if (!m) return;
+    v('   il compare la clé qu\'on vient de poser', m[1], b.cle);
+    v('   dans le dossier de l\'unité qu\'install.sh écrit', m[2], unite);
+    const idReglage = (/LoadCredential=([^:\s]+):/.exec(fs.existsSync(b.dropin) ? fs.readFileSync(b.dropin, 'utf8') : '') || [])[1] || '';
+    v('   sous le nom que le réglage lui donne', m[3], idReglage);
+    v('   qui est celui que socle.js lit', m[3], idLu);
+  };
+  { const b = bac(); const r = lancer(b); controle(b, r.txt, 'clé générée'); }
+  { const b = bac(); lancer(b); const cle = cleDe(b); const r = lancer(b);
+    controle(b, r.txt, 'clé déjà posée');
+    v('   et il n\'affiche pas la clé déjà posée', r.txt.includes(cle), false); }
+  { const b = bac(); const seq = 'd'.repeat(64); const r = lancer(b, seq);
+    controle(b, r.txt, 'clé du séquestre');
+    v('   et il ne répète pas la clé qu\'on lui a donnée', r.txt.includes(seq), false); }
+}
+
 for (const d of RACINES) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) {} }
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exitCode = ko ? 1 : 0;
