@@ -155,6 +155,41 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
     await Promise.race([p3, dormir(8000)]);
     vrai('⛔ l\'événement « online » réveille la file (' + (Date.now() - t2) + ' ms)', fait3 && Date.now() - t2 < 1500);
 
+    /* ── un RELAIS entre A et le serveur, pour jouer ce qu'une vraie ligne fait : ralentir une
+       écriture (4G), ou rendre une version plus basse sans couper (un serveur restauré derrière un
+       relais). ⛔ Sans lui, deux mutations passaient (mesuré le 25 septembre) : l'envoi neuf
+       n'arrivait jamais PENDANT un vol, et la version basse n'arrivait jamais sans coupure. ── */
+    const R = { lenteur: 0, versionBasse: false, compte: {} };
+    const relais = http.createServer((q, r) => {
+      const u = q.url.split('?')[0]; R.compte[u] = (R.compte[u] || 0) + 1;
+      if (R.versionBasse && u === '/api/doc/attendre') { R.versionBasse = false; q.resume(); r.writeHead(200, { 'Content-Type': 'application/json' }); return r.end('{"v":1,"inchange":true}'); }
+      const p = http.request({ host: '127.0.0.1', port: PORT, path: q.url, method: q.method, headers: q.headers }, pr => {
+        const pause = u === '/api/doc/ecrire' ? R.lenteur : 0;
+        setTimeout(() => { r.writeHead(pr.statusCode, pr.headers); pr.pipe(r); }, pause); });
+      p.on('error', () => { try { r.writeHead(502); r.end(); } catch (e) {} }); q.pipe(p);
+    });
+    await new Promise(res => relais.listen(0, '127.0.0.1', res));
+    const RL = 'http://127.0.0.1:' + relais.address().port;
+    A.api(RL); R.lenteur = 1200;
+    const vAvantVol = (await dA.get())._v;
+    let f1 = false, f2 = false;
+    const q1 = dA.set(Object.assign({}, DOC_A, { enc: 'RU4tVk9M', writer: 'dev-a', ts: 1727000005000, ver: '748', verNum: 748 })).then(() => { f1 = true; });
+    await dormir(300);   // la première est EN VOL (le relais la retient 1,2 s)
+    const q2 = dA.set(Object.assign({}, DOC_A, { enc: 'UExVUy1ORVVWRQ==', writer: 'dev-a', ts: 1727000006000, ver: '748', verNum: 748 })).then(() => { f2 = true; });
+    await Promise.race([Promise.all([q1, q2]), dormir(8000)]);
+    R.lenteur = 0;
+    const apresVol = await dA.get();
+    v('⛔ un envoi neuf PENDANT un vol n\'est pas avalé : c\'est lui qui est rangé en dernier', [f1, f2, apresVol.data().enc], [true, true, 'UExVUy1ORVVWRQ==']);
+    v('   en deux écritures (celle en vol, puis la neuve)', apresVol._v - vAvantVol, 2);
+    /* la version basse sans coupure : l'écoute doit RELIRE, pas attendre une version qui ne viendra pas */
+    const lecturesAvant = R.compte['/api/doc/lire'] || 0;
+    /* ⚠️ SANS `online` : ce réveil relit de lui-même, et l'essai passerait sans la branche qu'il
+       vise. On laisse l'écoute finir son attente (2 s ici) : la suivante passe par le relais. */
+    R.versionBasse = true;
+    for (let i = 0; i < 80 && (R.compte['/api/doc/lire'] || 0) === lecturesAvant; i++) await dormir(100);
+    v('⛔ une version plus basse sans coupure : l\'écoute RELIT au lieu d\'attendre pour toujours', (R.compte['/api/doc/lire'] || 0) > lecturesAvant, true);
+    A.api(B); relais.close();
+
     /* ── les refus parlent la langue de Firebase ── */
     let e1 = null; await dA.set(Object.assign({}, DOC_A, { verNum: 695, ver: '695' })).catch(e => { e1 = e; });
     v('⛔ sous la version minimale : permission-denied (ce que rendait la règle Firestore)', [e1 && e1.code, e1 && e1.statut], ['permission-denied', 426]);
@@ -166,9 +201,10 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
     dX.onSnapshot(() => { cbX++; }, e => { errCb = e; });
     for (let i = 0; i < 40 && !errCb; i++) await dormir(50);
     v('⛔ mauvaise clé : l\'écoute appelle son rappel d\'erreur, permission-denied, sans rien livrer', [errCb && errCb.code, cbX], ['permission-denied', 0]);
+    const contenuAvant = (await dA.get()).data().enc;
     let e3 = null; await dA.set({ ver: '749', verNum: 749 }, { merge: true }).catch(e => { e3 = e; });
     const apresFusion = await dA.get();
-    v('la fusion de version ({merge:true}) passe, et garde le contenu', [e3, apresFusion.data().ver, apresFusion.data().enc], [null, '749', 'VjM=']);
+    v('la fusion de version ({merge:true}) passe, et garde le contenu', [e3, apresFusion.data().ver, apresFusion.data().enc], [null, '749', contenuAvant]);
 
     /* ── Firebase en panne au premier accès : JAMAIS un instantané vide ── */
     G.panne = true;
