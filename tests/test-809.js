@@ -455,6 +455,35 @@ console.log('\n── 809 · le document d\'équipe rangé chez nous — la sort
       r = await lire('ent-u1v2');
       v('⛔ vue AVEC un document par l\'inventaire, et plus de fichier ici : 503, jamais neuve', [r.s, r.j && r.j.motif, G.lectures['elan_teams/ent-u1v2']], [503, 'copie', lu]);
     }
+    /* ── C2 (seconde passe) : relancer l'inventaire APRÈS l'extinction de Google ne défait pas la
+       coupure. Google en panne, chaque entreprise sans fichier ici échoue : l'inventaire incomplet
+       ne remplace PAS le complet. ── */
+    {
+      const avantInv = fs.readFileSync(invPath, 'utf8');
+      G.panne = true;
+      const JT2 = await tour();
+      r = await postBrut('/api/monitor/documents/inventaire', '{}', JT2);
+      G.panne = false;
+      v('⛔ un inventaire incomplet (Google éteint) ne remplace pas le complet : 409, et il le dit', [r.s, r.j && r.j.error, r.j && r.j.precedentComplet], [409, 'inventaire_incomplet_conserve', true]);
+      v('   le fichier de l\'inventaire complet n\'a pas bougé', fs.readFileSync(invPath, 'utf8'), avantInv);
+      v('   et la copie reste coupée', (await sante()).copieFirebase, false);
+      r = await lire('ent-w7z8');
+      v('   une entreprise neuve reste neuve (pas de 503 « copie » pour toujours)', [r.s, r.j && r.j.v], [200, 0]);
+    }
+    /* ── C3 (seconde passe) : une entreprise FERMÉE à l'inventaire, rouverte après la coupure, repart
+       vide — son document a été effacé chez Google à la fermeture. ── */
+    {
+      enfant.kill('SIGKILL'); await dormir(300);
+      const fermesPath = path.join(banc, 'data', 'entreprises-fermees.json');
+      const fermes = JSON.parse(fs.readFileSync(fermesPath, 'utf8'));
+      fermes.espaces = fermes.espaces.filter(x => x !== 'ent-f9g0');
+      fs.writeFileSync(fermesPath, JSON.stringify(fermes));
+      const inv = JSON.parse(fs.readFileSync(invPath, 'utf8'));
+      v('   (l\'inventaire l\'avait bien classée « fermée »)', inv.espaces && inv.espaces['ent-f9g0'], 'ignore');
+      demarrer(); vrai('le serveur redémarre : l\'entreprise est rouverte', await pret());
+      r = await lire('ent-f9g0');
+      v('⛔ rouverte après la coupure, elle repart vide — pas un 503 permanent', [r.s, r.j && r.j.v, r.j && r.j.doc], [200, 0, null]);
+    }
 
     /* ── C4 : la copie attend que la porte de version soit fermée CHEZ GOOGLE ── */
     enfant.kill('SIGKILL'); await dormir(300);
