@@ -161,10 +161,10 @@ Et deux choses vues en regardant, hors contraste :
   vert forêt, une bulle vert profond serait plus cohérente ; on ne l'a pas changée sans son avis.
 - Les écarts à la maquette sont tous déclarés dans `test-759` (flou vert à 120 %, voile de la barre
   d'onglets de nuit, pastille de la cloche #D70015, largeur du menu, feuille de nuit teintée…).
-- **Une proposition « aux couleurs du logo », NON APPLIQUÉE** — Justin, logo à l'appui : « montre-moi
-  un thème avec ce style en couleur du logo, mais ne l'applique pas, je veux le voir ». Elle vit dans
-  `design/propositions/theme-logo.css`, qu'aucune page ne charge (tout est accroché à
-  `html[data-proto="logo"]`). Ce qu'elle change : l'en-tête de l'accueil devient la tuile du logo
+- **Une proposition « aux couleurs du logo »** — Justin, logo à l'appui : « montre-moi un thème avec ce
+  style en couleur du logo, mais ne l'applique pas, je veux le voir ». ✅ DEVENUE LE TROISIÈME THÈME en
+  v747 (voir la section du 25 septembre) ; la maquette `design/propositions/theme-logo.css` est retirée —
+  une copie plus vieille que la page qu'elle double ment. Ce qu'elle change : l'en-tête de l'accueil devient la tuile du logo
   (coupe en diagonale menthe / forêt, et le titre change de couleur en la traversant, comme le
   « OP ») ; la date en sauge, en capitales espacées comme « GESTION » ; la barre d'onglets en vert
   forêt, bulle menthe ; les tuiles d'icône dans les deux verts du logo ; la diagonale en filigrane
