@@ -153,14 +153,14 @@ par le juriste, comme les pages elles-mêmes.
 |---|---|---|---|
 | 0 | Justin | Préavis envoyé depuis 30 jours, ou accord écrit reçu de chaque entreprise | les réponses |
 | 1 | Justin autorise, l'agent pousse | Déploiement du serveur seul : `bash scripts/preparer-deploiement-serveur.sh` puis la commande qu'il affiche | `/health` : `documents.actif:true`, `copieFirebase:true` ; job `bancs` vert |
-| 2 | Justin (geste guidé, aucun secret) | Sur le VPS : `"comptes": {"actif": true}` dans `/opt/teamop/config.json`, puis `systemctl restart teamop-api` | `/health` : `portail.comptes.actif:true`, `portail.dossiers.actif:true` ; la Tour, encadré « Sortie de Firebase » |
+| 2 | Justin (geste guidé, aucun secret) | Sur le VPS : `node /opt/teamop/repo/server/reglage.js comptes.actif=true` puis `systemctl restart teamop-api` (le script ne touche que ce réglage, garde le 600, n'affiche aucun secret — `test-815`) | `/health` : `portail.comptes.actif:true`, `portail.dossiers.actif:true` ; la Tour, encadré « Sortie de Firebase » |
 | 3 | Justin, dans la Tour | « Reprendre les dossiers du portail » | le résultat affiché (repris, comptes à poser) |
 | 4 | Justin dit « publie » | `app.html` v748, `sw.js`, `beta.html`, `espace.html`, `reinit.html`, `tour.html` v2.65, les trois pages juridiques, `registre-traitements.html`, `VERSION-STABLE.md` | `curl teamop.fr/app.html | grep APP_VERSION` → 748 |
 | 5 | Justin, dans la Tour, AUSSITÔT | « Exiger la dernière version » (748) | encadré : « porte de version chez Google : v748 » (confirmée, pas seulement posée) |
 | 6 | Justin, dans la Tour | l'annonce v748 (préparée dans `server/index.js`) | nombre d'entreprises prévenues |
 | 7 | l'agent | surveiller `/health` : `copiesEchec1h`, `copiesEnAttente1h`, `illisibles1h`, `processus` | zéros |
 | 8 | Justin, J+quelques jours | « Faire l'inventaire » dans la Tour | « complet » |
-| 9 | Justin, J+30 | `"documents": {"copieFirebase": false}` sur le VPS, puis supprimer les données Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore, fermée) | `/health` : `copieFirebase:false` |
+| 9 | Justin, J+30 | `node /opt/teamop/repo/server/reglage.js documents.copieFirebase=false`, redémarrer, puis supprimer les données Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore, fermée) | `/health` : `copieFirebase:false` |
 
 ⚠️ Entre 4 et 5, quelques minutes : un vieux téléphone peut encore écrire chez Google, et la copie
 attend la porte (étape 5) — c'est voulu. ⚠️ Retour arrière possible pendant 30 jours (republier la

@@ -78,3 +78,6 @@ tests/test-811.js
 # 25 septembre 2026 : le filet du serveur — jamais une pile dans une réponse (JSON malformé, corps
 # trop lourd, route inconnue), jamais un arrêt pour une promesse rejetée. Le vrai serveur, sans page.
 tests/test-812.js
+# 25 septembre 2026 : les deux interrupteurs du jour J (`server/reglage.js`) — exécuté contre une
+# configuration de banc : rien d'autre ne bouge, droits 600, aucun secret affiché. Sans page.
+tests/test-815.js
