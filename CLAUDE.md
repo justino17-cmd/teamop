@@ -326,6 +326,20 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ⚠️ La suppression TOTALE efface la mémoire des codes avec le reste — voulu, geste de la Tour —
   SAUF celle d'une entreprise VIVANTE (supprimer l'ancien identifiant d'une entreprise repartie à
   neuf) : `promoEffacerEntreprise`. Et un registre non écrit se DIT (503), avant le courriel.
+- ⛔⛔ **UNE SESSION PROUVE UN MOT DE PASSE, PAS UNE ADRESSE.** 25 septembre 2026 (`gardien`, G1,
+  rejoué) : n'importe qui ouvrait un compte à l'adresse de contact d'une entreprise — publique — et
+  `/api/clients/sync` la croyait prouvée : une demande « Gratuit » faisait retomber une entreprise
+  PAYANTE au forfait gratuit (« gratuit » passe pour payé). Tout effet qui agit AU NOM d'une adresse
+  (espace, formule, fiche de la Tour, code promo, dossier) exige `comptes.verifie(adresse)`, jamais
+  la seule session ; et le portail maison allumé, un jeton Google ne prouve plus rien. Le client
+  voit « Confirmez votre adresse » et peut redemander le lien. `tests/test-813.js`.
+- ⛔⛔ **UNE SYNCHRO APPARTIENT À UNE ENTREPRISE, POUR TOUJOURS.** `docEquipe()` retient l'entreprise
+  pour laquelle il est né et se tait dès que `syncTeam()` change : changer d'entreprise écrit la
+  nouvelle PUIS recharge 0,6 s plus tard, et pendant ce battement un envoi — chiffré avec la
+  NOUVELLE clé sur la base de l'ANCIENNE — partait chez la nouvelle, qui l'aurait fusionné. Firestore
+  gardait l'écriture attachée à son document ; un transport qui relit l'entreprise courante À CHAQUE
+  APPEL doit la comparer à celle de sa naissance. `tests/test-810.js` (et `arreter()` pour
+  « Désactiver la synchro »).
 - ⛔ **`espaces.json` ne s'écrit QUE par `espacesEcrire()`** (temporaire puis renommage).
   Tronqué, il sort TOUTES les entreprises de l'annuaire d'un coup — et depuis que la règle
   Firestore est publiée, ça ne casse plus seulement la Tour : plus de verdict de clé, plus de

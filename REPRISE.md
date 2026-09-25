@@ -136,6 +136,51 @@ un faux Google, un faux facteur) est ce qui garde ce circuit désormais.
   `d57022b` (gardien 2 + arrière-guichet), `880e5f6` (test-813), `232d37c` (promo serveur),
   `fc44239`, `b3a6be3` (Tour v2.65 : gestes du jour J), puis le registre des traitements.
 
+### ✅ La nuit du 25 — troisième passe de `gardien`, et le jour J joué au navigateur
+
+Justin, le soir même : « tout ce qu'on avait sur Firebase, on doit le faire sur le serveur, mais en
+mieux […] que tu testes, que tu vérifies ». Ce qui a suivi :
+- **G1 (`gardien`, 3e passe), rejoué avant d'être corrigé** (`65561e9`). Une session de nos comptes
+  prouve un MOT DE PASSE, pas une ADRESSE : n'importe qui ouvrait un compte à l'adresse de contact
+  d'une entreprise (publique) et `/api/clients/sync` la croyait prouvée. Rejoué contre le vrai
+  serveur, vraies fonctions de la page : fiche acceptée, fiche au nom de la victime dans la Tour,
+  courriel parti chez elle, et une demande « Gratuit » faisait retomber une entreprise PAYANTE au
+  forfait gratuit (`espacePaye` : « gratuit » = payé). Même chemin par un jeton Google signé.
+  Désormais : 403 tant que l'adresse n'est pas prouvée ; le portail maison allumé, plus aucun jeton
+  Google ; le client voit « Confirmez votre adresse » et peut redemander le lien
+  (`/api/compte/verifier/renvoyer`, 3 par heure). `test-813` 59 ✓, 5 mutations sur 6 (la sixième
+  est neutralisée par une autre garde : aucune session n'existe pour un compte « à poser »).
+- **N1** (`410d23c`) : une route `async` qui rejette répondait… jamais (Express 4). Chaque
+  gestionnaire est enveloppé ; le rejet va au filet final. `test-812` 18 ✓, 3/3 mutations.
+- **La synchro appartient à UNE entreprise** (`a63bb1e`, `161a2a1`). Changer d'entreprise écrit la
+  nouvelle puis recharge 0,6 s plus tard ; pendant ce battement, une écriture en attente — ou un
+  envoi chiffré avec la NOUVELLE clé sur la base de l'ANCIENNE — partait chez la nouvelle, et
+  l'écoute relisait le document de la nouvelle pour le fusionner dans l'ancienne. Firestore gardait
+  l'écriture attachée au document d'origine : régression propre à l'adaptateur. `docEquipe` retient
+  son entreprise et se tait dès qu'elle change ; « Désactiver la synchro » vide enfin la file.
+  `test-810` 40 ✓ ; mutations : sans aucune garde 4 ✗, file 3 ✗, écoute 1 ✗, arrêt 1 ✗ (une garde
+  SEULE retirée ne mord pas : elles sont deux sur le même chemin, exprès).
+- `guide-firebase.html` retiré ; `publier-site.sh` servait le guide et OUBLIAIT le registre (`71efd7d`).
+- **Répétition du jour J au navigateur** (`scratchpad/sonde-bascule.js`, **24 ✓**) : la VRAIE v695
+  (celle de `main`) tourne dans l'onglet sur une base réaliste (218 fiches datées, une photo) et
+  produit elle-même son document « chez Google » ; du travail est fait APRÈS la dernière synchro ;
+  le MÊME onglet s'ouvre en v748 AVANT « Exiger » (la copie attend, rien ne se perd, la surveillance
+  le voit), puis la Tour exige la 748 par sa vraie route (copie ~1 s plus tard). Mesuré : **0 fiche
+  perdue, 0 re-datée, 0 ajoutée** ; le travail hors synchro arrive chez un collègue ; la photo aussi ;
+  aucun ping-pong ; Firebase lu une fois, par le serveur ; aucune page v748 ne parle à Google.
+  ⚠️ Deux faux défauts payés en chemin, et ils valent pour toute sonde future : des fiches de
+  DÉMONSTRATION sont effacées au démarrage par `boot()` (signatures exactes) — une sonde ne s'en
+  sert pas comme d'une vraie entreprise ; et les remises en place UNIQUES (e-mails des fournisseurs,
+  prix) partent 3,5 s après le chargement — une sonde qui produit son document avant les attribue à
+  la version suivante.
+- Rejoués sur l'état final : `sonde-doc-serveur.js` 19 ✓ (A → B ≈ 0,95 s), `sonde-portail-navigateur.js`
+  57 ✓ (inscription, bandeau, lien, `reinit.html`, code d'activation jusqu'à l'écran).
+- **Gardé exprès** : le plafond du document dans l'appli (780 Ko). Le serveur accepte 5,2 Mo, mais
+  chaque téléphone retélécharge le document ENTIER à chaque changement (données mobiles), et les
+  copies de sauvegarde par appareil s'arrêtent à 3 Mo. Les photos neuves vont au serveur depuis la
+  v702 ; celles d'avant restent dans le document, comme aujourd'hui (un dépôt automatique au
+  chargement réécrirait les interventions sans geste — interdit).
+
 ### ⛔ AVANT LE JOUR J — UNE DÉCISION QUI N'EST PAS TECHNIQUE
 
 `sous-traitance.html` (publié, article 5) : « toute addition ou remplacement vous sera notifié
@@ -162,21 +207,25 @@ par le juriste, comme les pages elles-mêmes.
 | 8 | Justin, J+quelques jours | « Faire l'inventaire » dans la Tour | « complet » |
 | 9 | Justin, J+30 | `node /opt/teamop/repo/server/reglage.js documents.copieFirebase=false`, redémarrer, puis supprimer les données Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore, fermée) | `/health` : `copieFirebase:false` |
 
-⚠️ Entre 4 et 5, quelques minutes : un vieux téléphone peut encore écrire chez Google, et la copie
-attend la porte (étape 5) — c'est voulu. ⚠️ Retour arrière possible pendant 30 jours (republier la
+⚠️ **De 2 à 4 d'une traite** : dès `comptes.actif=true`, le serveur ne croit plus un jeton Google
+(G1) — l'ancien portail, encore servi jusqu'à la publication, ne crée plus d'espace à l'inscription.
+Quelques minutes, pas une soirée. ⚠️ Entre 4 et 5, quelques minutes : un vieux téléphone peut encore
+écrire chez Google, et la copie attend la porte (étape 5) — c'est voulu, et c'est ce que
+`sonde-bascule.js` joue. ⚠️ Retour arrière possible pendant 30 jours (republier la
 695) — **mais ce qui a été saisi depuis le jour J reste sur notre serveur**, sans outil de recopie
 inverse à ce jour.
 
 ### Reste ouvert après le jour J (dettes connues, aucune ne bloque)
 
-- `guide-firebase.html` (sans lien, explique un projet Firebase personnel qui n'existe plus) : à retirer.
 - Les mots de passe des boîtes mail connectées (`mailboxes.json`) ne sont pas chiffrés au repos —
   dit dans le registre, à chiffrer avec la clé maître.
-- Une route `async` qui rejette laisse la requête pendue (Express 4) — aucune route anonyme n'en a
-  montré ; un enrobage `catch(next)` la fermerait (`gardien`, N1).
-- `app.html` : deux commentaires d'avant la v748 (`forfaitServeurSync`), et un bloc
-  `resource-exhausted` devenu du code mort (`relecteur`, notes 2 et 3).
-- Une écriture en cours de réessai continue après « Désactiver la synchro » (marginal, `relecteur`).
+- `app.html` : le bloc `resource-exhausted` est INERTE depuis la v748, et le dit ; `test-645` le
+  garde encore — à retirer avec lui le jour où on nettoie.
+- G2 (`gardien`) : fermé pour l'essentiel par G1 (adresse prouvée, donc plus de courriel chez un
+  tiers) ; reste 20 comptes par heure et par adresse IP. Pas de plafond global ajouté : il pourrait
+  bloquer de vraies inscriptions un jour de campagne.
+- Les photos d'avant la v702 restent dans le document d'équipe : un bouton « mettre les anciennes
+  photos sur le serveur » (geste explicite) le rendrait plus léger.
 - Les sauvegardes gardent une donnée supprimée jusqu'à 24 mois (rotation mensuelle) — à trancher
   avec le juriste (registre, point 1).
 
