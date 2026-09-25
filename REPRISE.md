@@ -39,7 +39,46 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ⛔⛔ DÉCISION DE JUSTIN, 25 SEPTEMBRE 2026 — UNE SEULE MISE À JOUR PUBLIQUE, ET FIREBASE N'Y EST PLUS
+
+Mot pour mot : **« moi je veux que quand j'envoie la mise à jour c'est que Firebase soit
+supprimé »**, puis **« donc là on fait tout ce qu'il reste à faire et on envoie la mise à jour pour
+le public ok sans délai »**.
+
+Ce que ça change à `PLAN-OP-SOCLE.md` (étapes 4 à 8) :
+- **plus de version intermédiaire** en double écriture sur les téléphones, et plus d'attente de
+  deux semaines puis d'une semaine APRÈS la publication ;
+- ⛔ **la vérification ne disparaît pas, elle passe AVANT la publication, côté serveur.** Le serveur
+  relit lui-même le document Firebase d'une entreprise : la clé d'équipe est dans l'annuaire, et
+  le format est vérifié dans `syncKey`/`syncDecrypt` (PBKDF2-SHA-256 à 120 000 tours, AES-GCM-256,
+  gzip quand `z:1`). Il le convertit par le VRAI `opDecomposer` extrait d'`app.html`, recompose par
+  le vrai `opRecomposer` et compare — d'abord sans rien écrire, autant de fois qu'on veut, sur les
+  données réelles, sans rien changer pour ELAN ;
+- **le jour J** : publier la version sans Firebase ET l'exiger aussitôt (une 695 affiche « mettre à
+  jour »), dernière copie par le serveur, les téléphones ne parlent plus qu'au VPS. Le document
+  Firebase reste intact 30 jours : republier la 695 ramène ELAN dessus, en perdant ce qui a été
+  saisi entre-temps sauf recopie inverse.
+
+À construire, dans cet ordre — **rien n'est publié avant la phrase de Justin** :
+1. l'outil de copie Firebase → socle, mode « vérifier » (n'écrit rien) puis « copier » ;
+2. la version « socle seul » (plus de SDK Firebase ni de `/api/fb/jeton`, la porte de version par
+   l'API seule, et un premier démarrage qui garde les photos restées sur le téléphone : la 695 ne
+   les envoie jamais au nuage — voir `syncRegreffer`) ;
+3. le portail et `reinit.html` basculés le même jour (code écrit, interrupteurs à lever) ;
+4. le durcissement du serveur ; les pages juridiques et le registre des traitements ;
+5. la note à ELAN.
+
+⚠️ **Deux conséquences posées à Justin le 25 septembre** : le jour J, un téléphone non mis à jour
+ne travaille plus avant sa mise à jour ; les clients du portail reposent leur mot de passe (un mot
+de passe Firebase ne se lit pas).
+⚠️ **Le déploiement des trois correctifs serveur a été REFUSÉ par la protection de la session**
+(« Production Deploy ») le 25 septembre à 10 h 05 UTC : commit `338f6ee` préparé sur
+`main = 0f630c0`, 35 suites · 2 081 vérifications. Il attend l'autorisation explicite de Justin.
+
 ## 🧭 25 SEPTEMBRE 2026 — CE QUI RESTE POUR QUE LES ENTREPRISES TRAVAILLENT SUR NOTRE SERVEUR
+
+⚠️ **Écrit le matin même, et remplacé pour les points 6 à 8 par la décision ci-dessus** (une
+seule mise à jour, sans Firebase). Le reste de la liste tient.
 
 Question de Justin : « il nous reste quoi à faire [côté] serveur VPS pour [que les] entreprises
 [puissent] travailler ». Relevé dans le dépôt et sur `origin/main` ce jour-là, pas de mémoire.
