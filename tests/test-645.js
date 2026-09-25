@@ -48,6 +48,10 @@ function extraire(nom) {
 eval(((APP.match(/const PH_MARQUE=[^\n]+/) || [''])[0]).replace('const ', 'var '));
 // eslint-disable-next-line no-eval
 eval(extraire('syncSortirPieces'));
+/* v749 : syncAlleger lit la liste des journaux qu'elle coupe dans syncJournaux (la même que la
+   réception écarte de sa décision de renvoi) — sans elle, ce bac à sable meurt au premier appel. */
+// eslint-disable-next-line no-eval
+eval(extraire('syncJournaux'));
 // eslint-disable-next-line no-eval
 eval(extraire('syncAlleger'));
 // eslint-disable-next-line no-eval
