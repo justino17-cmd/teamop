@@ -13,6 +13,38 @@ de ligne du tout.
 
 ---
 
+# ✅ 25 SEPTEMBRE 2026, NUIT — LE JOUR J EST FAIT : OP GESTION TOURNE SUR NOTRE SERVEUR (v749)
+
+**Fait, vérifié en ligne, dans l'ordre :**
+1. Serveur déployé (`d558933`, run 95 : bancs verts puis VPS) — `/health` : documents actifs,
+   copie Firebase active, 0 erreur.
+2. Justin : `reglage.js comptes.actif=true` + redémarrage — portail et dossiers en service.
+3. v748 publiée (`7db5795`, 188 fichiers : `main` = la branche, sauf les deux workflows de `main`
+   qui ne lancent que les bancs serveur) — servie en ~20 s, guide-firebase en 404.
+   ⚠️ **L'ordre réel a été 2 → 4 → 3** : le bouton « Reprendre les dossiers du portail » n'existe
+   que dans la Tour v2.65, publiée à l'étape 4. La procédure plus bas le dit à l'envers.
+4. Justin, dans la Tour : dossiers du portail repris (1 dossier, 1 compte à poser), v748 exigée.
+5. **INCIDENT — la v748 bouclait chez ELAN** dès que deux appareils étaient ouverts (« Données de
+   l'équipe mises à jour » toutes les 3,3 s, vidéo de Justin). Cause : base au-delà du budget du
+   nuage → l'envoi coupe les journaux → la réception prenait ce manque pour une donnée à renvoyer.
+   Tous les bancs étaient verts : ils tournaient sur des bases MINUSCULES. Voir CLAUDE.md.
+6. **v749 publiée (`4196012`) et exigée** — `sigRenvoi` (les journaux sortent de la seule décision de
+   renvoi). Preuves : base lourde, deux appareils au repos 61 écritures/30 s → 1 ; **15 appareils**,
+   45 gestes en 25 s : 0 perdu, mêmes données partout, 0 écriture au repos ; bascule v695 → v749
+   24 ✓ ; suite complète 172 suites · 8 495 ✓ ; `test-816` (12 ✓, mutations mordent). Quatre anciens
+   bancs extrayaient `syncAlleger` seule et sont morts à la première passe : repli identique dans la
+   page, exigé égal par `test-816`.
+7. L'annonce (e-mail aux entreprises) : **pas encore envoyée** — à la main de Justin, Tour → Entreprises.
+
+**En cours cette nuit (demande de Justin : « je veux pas attendre qu'il y ait des bugs pour que tu
+testes ») :** relecture de tout ce qui change avec une GROSSE base ou BEAUCOUP d'appareils (synchro,
+stockage de l'appareil, écrans, budgets du serveur par IP), puis mesure de chaque risque confirmé.
+
+**À J+30 (25 octobre 2026)** : `reglage.js documents.copieFirebase=false`, puis supprimer les données
+Firebase d'OP GESTION (promis par `sous-traitance.html`).
+
+---
+
 # 🧭 INVENTAIRE — RIEN NE DOIT ÊTRE OUBLIÉ (19 septembre 2026, soir)
 
 Écrit à la demande de Justin : **« il faut qu'on oublie vraiment rien. Je fais pas un truc pour
