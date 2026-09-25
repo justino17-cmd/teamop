@@ -47,8 +47,8 @@
   <div class="avis">
     <p><b>À faire relire par un juriste avant publication.</b> Ce document est un projet
     de travail. Les informations factuelles sont renseignées : hébergeur du serveur (IONOS,
-    France), liste des sous-traitants ultérieurs, et mécanismes de transfert invoqués pour
-    ceux établis hors Union européenne.</p>
+    France ; sauvegardes à Francfort), liste des sous-traitants ultérieurs, et mécanismes de
+    transfert invoqués pour ceux établis hors Union européenne.</p>
     <p>Quatre points appellent la confirmation du juriste :</p>
     <ol>
       <li><b>Les mécanismes de transfert hors UE</b> (clauses contractuelles types, Data
@@ -159,16 +159,20 @@
         <th>Prestataire</th><th>Rôle</th><th>Données confiées</th><th>Localisation</th>
       </tr>
       <tr>
-        <td>Google Ireland Ltd<br>(Firebase)</td>
-        <td>Base de données des applications</td>
-        <td>Toutes les données saisies dans les applications</td>
-        <td>Irlande — UE</td>
+        <td>IONOS SE</td>
+        <td>Serveur et base de données des applications TeamOP ; sauvegardes</td>
+        <td>Toutes les données saisies dans les applications ; boîtes mail connectées à
+        l'application et courriels relevés ou envoyés ; incidents, devis, journaux techniques ;
+        sauvegardes chiffrées de l'ensemble</td>
+        <td>Serveur : France — sauvegardes : Allemagne (Francfort) — UE</td>
       </tr>
       <tr>
-        <td>IONOS SE</td>
-        <td>Serveur applicatif TeamOP</td>
-        <td>Messagerie, incidents, devis, journaux techniques</td>
-        <td>France — UE</td>
+        <td>Google Ireland Ltd<br>(Firebase)</td>
+        <td>Ancien stockage des applications — copie de retour arrière</td>
+        <td>Les données des applications telles qu'au jour de leur passage sur le serveur
+        TeamOP, figées : plus aucune donnée nouvelle n'y est envoyée. Conservées 30 jours pour
+        pouvoir revenir en arrière, puis supprimées.</td>
+        <td>Irlande — UE</td>
       </tr>
       <tr>
         <td>Stripe Payments Europe Ltd</td>
