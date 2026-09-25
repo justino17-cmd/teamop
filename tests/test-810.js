@@ -216,6 +216,20 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
     let eY = null; await dY.set(Object.assign({}, DOC_A, { ver: '748', verNum: 748 })).catch(e => { eY = e; });
     v('   et un NOUVEL envoi de cette instance est refusé sur-le-champ, sans rien envoyer', [eY && eY.motif, (await dA.get())._v], ['espace_change', vA0]);
 
+    /* ── ⛔ ET L'ÉCOUTE NE LIT JAMAIS L'ENTREPRISE D'APRÈS : réveillée après le changement, elle
+       relisait le document de C — déchiffrable avec la nouvelle clé — et la page l'aurait fusionné
+       dans la base de A, encore en mémoire : deux entreprises mêlées au rechargement. ── */
+    const W = appareil('ent-a810', E['ent-a810']); const dW = W.docEquipe();
+    const recusW = []; const stopW = dW.onSnapshot(s => recusW.push(s.data() ? s.data().enc : null));
+    for (let i = 0; i < 50 && !recusW.length; i++) await dormir(100);
+    const C = appareil('ent-c810', E['ent-c810']);
+    await C.docEquipe().set(Object.assign({}, DOC_A, { enc: 'Q0hFWi1DLVNFVUxFTUVOVA==', writer: 'dev-c', ts: 1727000009000, ver: '748', verNum: 748 }));
+    W.stock.elan_sync_team = 'ent-c810'; W.stock.elan_sync_secret = E['ent-c810'];
+    W.declencher('online');   // l'écoute est réveillée : sans la garde, elle relit — chez C
+    await dormir(2500);
+    v('⛔ l\'écoute ne livre JAMAIS le document de l\'entreprise d\'après', [recusW.length > 0, recusW.filter(x => x === 'Q0hFWi1DLVNFVUxFTUVOVA==')], [true, []]);
+    stopW();
+
     /* ── ⛔ « DÉSACTIVER LA SYNCHRO » ARRÊTE LA FILE — l'écoute s'arrêtait, pas l'écriture en réessai ── */
     const Z = appareil('ent-a810', E['ent-a810']); const dZ = Z.docEquipe();
     vrai('l\'adaptateur sait s\'arrêter (`arreter`)', typeof dZ.arreter === 'function');
