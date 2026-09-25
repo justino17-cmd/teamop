@@ -189,22 +189,22 @@ mieux […] que tu testes, que tu vérifies ». Ce qui a suivi :
   v702 ; celles d'avant restent dans le document, comme aujourd'hui (un dépôt automatique au
   chargement réécrirait les interventions sans geste — interdit).
 
-### ⛔ AVANT LE JOUR J — UNE DÉCISION QUI N'EST PAS TECHNIQUE
+### ✅ AVANT LE JOUR J — RÉGLÉ PAR JUSTIN LE 25 SEPTEMBRE 2026 : NE PLUS LE SOULEVER
 
-`sous-traitance.html` (publié, article 5) : « toute addition ou remplacement vous sera notifié
-**30 jours à l'avance** par courriel ; vous pourrez vous y opposer et, à défaut d'accord, résilier
-sans frais ». Passer les données de Google à IONOS en relève. Donc, AVANT de publier : soit
-envoyer le préavis et attendre 30 jours, soit obtenir l'accord écrit de chaque entreprise (un
-« d'accord » en réponse). Brouillon du préavis et de la note à ELAN : remis à Justin le 25 au soir
-(texte repris ci-dessous en substance : ce qui change, où, la copie de 30 jours, la mise à jour de
-chaque téléphone, le mot de passe de l'espace client, le droit de s'opposer). À faire confirmer
-par le juriste, comme les pages elles-mêmes.
+L'accord des entreprises sur le changement de sous-traitant (article 5 de `sous-traitance.html`,
+préavis de 30 jours) est une affaire entre Justin et ses clients, et il l'a réglée. Justin : « c'est
+vu avec eux […] c'est entre moi et eux […] c'est moi qui ai vu avec eux, et en échange je leur ai
+offert trois mois de plus ». **Aucune session ne rouvre la question** : l'étape 0 est faite. Les
+brouillons (préavis, note à ELAN) restent à sa disposition s'il en veut ; les trois mois offerts
+sont son geste (Tour, facturation), rien à faire de notre côté sans sa demande.
+⚠️ Les « 30 jours » qui restent sont ceux d'APRÈS la bascule : la copie figée chez Google, gardée
+pour le retour arrière puis supprimée (étape 9) — promis par `sous-traitance.html`, donc à tenir.
 
 ### ⛔ LA PROCÉDURE DU JOUR J — dans cet ordre, sans en sauter
 
 | # | Qui | Geste | Ce qui prouve que c'est fait |
 |---|---|---|---|
-| 0 | Justin | Préavis envoyé depuis 30 jours, ou accord écrit reçu de chaque entreprise | les réponses |
+| 0 | Justin | ✅ Réglé avec ses clients (25 septembre 2026, trois mois offerts en échange) | sa parole — ne plus le demander |
 | 1 | Justin autorise, l'agent pousse | Déploiement du serveur seul : `bash scripts/preparer-deploiement-serveur.sh` puis la commande qu'il affiche | `/health` : `documents.actif:true`, `copieFirebase:true` ; job `bancs` vert |
 | 2 | Justin (geste guidé, aucun secret) | Sur le VPS : `node /opt/teamop/repo/server/reglage.js comptes.actif=true` puis `systemctl restart teamop-api` (le script ne touche que ce réglage, garde le 600, n'affiche aucun secret — `test-815`) | `/health` : `portail.comptes.actif:true`, `portail.dossiers.actif:true` ; la Tour, encadré « Sortie de Firebase » |
 | 3 | Justin, dans la Tour | « Reprendre les dossiers du portail » | le résultat affiché (repris, comptes à poser) |
@@ -5243,8 +5243,8 @@ soit bouge. Le serveur classe un corps identique en `noop` sans faire avancer `s
 
 ### 7. ⚠️ CE QUI RESTE AVANT DE POUVOIR ALLUMER QUOI QUE CE SOIT
 
-1. ⛔ **Le préavis de 30 jours / l'accord écrit d'ELAN** — chemin critique, et il n'appartient
-   qu'à Justin. Rien ne s'allume avant (voir F).
+1. ✅ ~~**Le préavis de 30 jours / l'accord écrit d'ELAN**~~ — réglé par Justin avec ses clients
+   le 25 septembre 2026 (voir « Avant le jour J »). Ne plus le soulever.
 2. Les **métriques de latence** côté serveur : aujourd'hui il n'en a aucune, donc « est-ce que ça
    ralentit les clients ? » n'a pas de réponse mesurable.
 3. Le **ménage des pièces** de l'étape 3, qui n'a de sens qu'une fois des lignes poussées.
@@ -5354,7 +5354,7 @@ production, jamais `teamop.fr`.
 
 ### 7. ⚠️ CE QUI RESTE, ET QUI N'EST PAS À MOI
 
-1. ⛔ **Le préavis de 30 jours / l'accord écrit d'ELAN** — chemin critique, inchangé (voir F).
+1. ✅ ~~**Le préavis de 30 jours / l'accord écrit d'ELAN**~~ — réglé par Justin le 25 septembre 2026.
 2. ⛔ **UNE ENTREPRISE SUSPENDUE POUR IMPAYÉ DOIT-ELLE CONTINUER À LIRE ?** Question NON
    tranchée, et délibérément : `sauvRefus` refuse `entFermes` en 403, donc un espace suspendu ne
    peut pas ouvrir de session de socle. Aujourd'hui c'est sans conséquence (la base vit aussi en
