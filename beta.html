@@ -7880,7 +7880,9 @@ function prefRangementPlein(k,e){
   let m=''; try{ m=rangementMesure(); }catch(_){}
   try{ if(typeof window.tmSignaler==='function') window.tmSignaler('erreur','Rangement de l’appareil '+(plein?'plein':'refusé')+' : réglage gardé en mémoire ('+String(k).replace(/^elanB?_/,'')+', '+((e&&e.name)||'erreur')+')'+(m?' — '+m:'')); }catch(_){}
   /* ⛔ APRÈS le geste : le dernier bandeau gagne, et celui de `save()` (« Stockage plein — réduis le
-     nombre/poids des photos », 2,2 s), écrit pendant le MÊME geste, passait par-dessus celui-ci. */
+     nombre/poids des photos », 2,2 s), écrit pendant le MÊME geste, passait par-dessus celui-ci.
+     Depuis la v750, celui de `save()` (`baseRangementPlein`) passe lui aussi après le geste, donc
+     APRÈS celui-ci : il le remplace, et c'est voulu — ne plus ranger la BASE est le plus grave. */
   try{ setTimeout(()=>{ try{ toast(plein?'⚠️ Cet appareil n’a plus de place pour ranger tes réglages : ton choix s’applique quand même, et il suit ton compte.'
     :'⚠️ Cet appareil refuse de ranger tes réglages : ton choix s’applique quand même, et il suit ton compte.',9000); }catch(_){} },0); }catch(_){}
 }
@@ -7893,7 +7895,33 @@ function rangementMesure(){
   const ko=n=>Math.round(n*2/1024)+' Ko';   // Safari compte deux octets par caractère
   return ko(tot)+' occupés : '+Object.keys(fam).sort((a,b)=>fam[b]-fam[a]).map(f=>f+' '+ko(fam[f])).join(', ');
 }
-const APP_VERSION = '749-beta';
+/* ⛔ v750 — QUAND L'APPAREIL NE PEUT PLUS RANGER LA BASE, L'ÉCRAN LE DIT JUSTE ET LA TOUR LE SAIT.
+   Le rangement est partagé par toute l'origine teamop.fr (l'application, la bêta, la Tour), et
+   Safari le borne à 5 Mo. Plein, `setItem` jette : la base reste en mémoire et part à l'équipe
+   par la synchro, mais elle n'est plus gardée SUR L'APPAREIL — fermer l'application sans réseau
+   perdrait ce qui n'est pas encore parti. L'ancien bandeau disait « réduis le nombre/poids des
+   photos » : faux depuis la v702 (les photos vivent sur le serveur), il envoyait chercher au
+   mauvais endroit ; il repassait à CHAQUE save(), par-dessus les bandeaux utiles ; et la Tour
+   n'en savait rien. Maintenant : la Tour une fois par séance, avec ce qui occupe la place (par
+   famille, jamais un contenu) ; l'écran une fois, puis un rappel toutes les cinq minutes au
+   plus ; et quand l'enregistrement repasse, on le dit. `tests/test-817.js`. */
+let _basePleinDit=false, _basePleinRappel=0, _basePlein=false;
+function baseRangementPlein(e){
+  const nom=String((e&&e.name)||''), plein=/quota/i.test(nom+' '+String((e&&e.message)||'')), now=Date.now();
+  _basePlein=true;
+  if(!_basePleinDit){ _basePleinDit=true;
+    let m='', n=0; try{ m=rangementMesure(); }catch(_){} try{ n=JSON.stringify(db).length; }catch(_){}
+    try{ if(typeof window.tmSignaler==='function') window.tmSignaler('erreur',(plein?'Rangement de l’appareil plein':'Rangement de la base impossible')+' : base non enregistrée sur l’appareil ('+(nom||'erreur')+', base '+Math.round(n*2/1024)+' Ko)'+(m?' — '+m:'')); }catch(_){} }
+  if(now-_basePleinRappel<300000) return; _basePleinRappel=now;
+  const synchro=(typeof syncEnabled==='function')&&syncEnabled();
+  /* après le geste : le dernier bandeau gagne, et celui-ci doit passer devant « ✓ Enregistré » */
+  try{ setTimeout(()=>{ try{ toast('⚠️ '+(plein?'Cet appareil n’a plus de place pour enregistrer tes données.':'Cet appareil n’a pas pu enregistrer tes données.')
+    +(synchro?' Elles partent quand même à ton équipe, mais ne sont pas gardées sur l’appareil : ne ferme pas l’application sans réseau.'
+      :' Elles restent là tant que l’application est ouverte, mais ne sont pas gardées sur l’appareil.'),12000); }catch(_){} },0); }catch(_){}
+}
+function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
+  try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
+const APP_VERSION = '750-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -9878,11 +9906,21 @@ function estampiller(){
      vient de prendre. Le jour où recEmpreinte cesserait de les ignorer, l'ombre serait périmée
      d'un tour et chaque enregistrement rebattrait sa propre pierre tombale — test-639 le tient. */
   const neuve={}, neuveStock={};
+  /* ⛔⛔ v750 — UNE LIGNE QUI SORT DU JOURNAL PARCE QU'IL EST PLEIN N'EST PAS UNE SUPPRESSION.
+     Le journal est plafonné à 500 (logEvent, et la fusion) : chaque ligne neuve en chasse une, et
+     l'ancienne règle posait une pierre tombale pour chacune. Les tombes s'élaguent ici, mais la
+     fusion les réunit par le MAXIMUM sans jamais rien retirer : dans le document de l'équipe, elles
+     ne faisaient que grossir — mesuré avec les vraies fonctions, deux appareils, 8 000 gestes :
+     des milliers de marques de journal, et un document qui enfle pour rien. Elles ne servaient à
+     rien : le plafond est le MÊME partout (les 500 plus récentes), donc une ligne chassée ici l'est
+     aussi à la fusion. La seule vraie suppression du journal, la remise à zéro, pose ses marques
+     elle-même (`razAppliquer`). `tests/test-817.js`. */
+  const JOURNAUX=(typeof syncJournaux==='function')?syncJournaux():['journal','planJournal'];
   collsFusion(db).forEach(c=>{ const om=_ombre[c]||new Map(); const vus=new Set(); const m=new Map();
     (db[c]||[]).forEach(r=>{ if(!r||r.id==null) return; const id=String(r.id); vus.add(id);
       const e=recEmpreinte(r); m.set(id,e); if(om.get(id)!==e) r._m=now; });
     neuve[c]=m;
-    om.forEach((h,id)=>{ if(!vus.has(id)){ (db._tombes[c]=db._tombes[c]||{})[id]=now; } });
+    if(JOURNAUX.indexOf(c)<0) om.forEach((h,id)=>{ if(!vus.has(id)){ (db._tombes[c]=db._tombes[c]||{})[id]=now; } });
   });
   /* Les marques de lignes, après les tampons d'enregistrement : recEmpreinte ignore `_ms`,
      donc en poser une ne fait jamais repartir `_m` — sinon chaque enregistrement rebattrait
@@ -9978,6 +10016,17 @@ function fusionnerBases(local,remote,prioriteLocale){
   const prio=prioriteLocale?local:remote, autre=prioriteLocale?remote:local;
   const out=Object.assign({},prio);
   const tombes=tombesUnion(local&&local._tombes,remote&&remote._tombes);
+  /* ⛔⛔ v750 — LES MARQUES DU JOURNAL SONT BORNÉES ICI, ET DE LA MÊME FAÇON SUR TOUS LES APPAREILS.
+     L'union ci-dessus ne retire jamais rien : c'est par elle que les marques de journal posées
+     avant la v750 (une par ligne chassée du plafond, voir `estampiller`) grossissaient sans fin
+     dans le document de l'équipe. On garde les 600 plus récentes — une remise à zéro en pose au
+     plus 500, elles passent donc toujours — et l'ordre est TOTAL (date, puis identifiant) : deux
+     appareils qui fusionnent la même chose gardent exactement les mêmes. Pas de péremption à la
+     date ici : l'horloge d'un appareil n'a pas à décider de ce que garde l'équipe.
+     Les journaux sortent de la décision de renvoi (`sigRenvoi`) : borner ne relance aucun envoi. */
+  const JOURNAUX=(typeof syncJournaux==='function')?syncJournaux():['journal','planJournal'], TOMBE_JOURNAL=600;
+  JOURNAUX.forEach(c=>{ const o=tombes[c]; if(!o) return; const ids=Object.keys(o); if(ids.length<=TOMBE_JOURNAL) return;
+    const n={}; ids.sort((a,b)=>((o[b]||0)-(o[a]||0))||(a<b?-1:a>b?1:0)).slice(0,TOMBE_JOURNAL).forEach(id=>{ n[id]=o[id]; }); tombes[c]=n; });
   new Set([].concat(collsFusion(local),collsFusion(remote))).forEach(c=>{
     const P=Array.isArray(prio&&prio[c])?prio[c]:[], A=Array.isArray(autre&&autre[c])?autre[c]:[];
     const tb=tombes[c]||{}; const m=new Map(), ordre=[], sansId=[], vusSans=new Set(), perdants=new Map();
@@ -10030,7 +10079,8 @@ function baseSignature(d){ return collsFusion(d).sort().map(c=>c+':'+(d[c]||[]).
    Deux appareils ouverts = une boucle sans fin : vidéo de Justin, « Données de l'équipe mises à
    jour » toutes les 3,3 s et l'écran redessiné à chaque fois ; rejoué sur une base lourde, 61
    écritures en 30 s (`scratchpad/sonde-boucle-lourde.js`). Les journaux et LEURS pierres tombales
-   (le plafond de 500 en pose à chaque fusion) sortent donc de CETTE comparaison — et d'elle seule :
+   (jusqu'à la v749, le plafond de 500 en posait une par ligne chassée ; depuis la v750, seule la
+   remise à zéro en pose, et la fusion les borne à 600) sortent donc de CETTE comparaison — et d'elle seule :
    ils se fusionnent comme avant, et une ligne de journal nouvelle part avec le save() qui l'écrit.
    ⚠️ La liste est UNE : `syncAlleger` la lit aussi. Un troisième journal coupé à l'envoi sans être
    écarté ici ferait renaître la boucle. `tests/test-816.js`. */
@@ -10271,7 +10321,7 @@ function numMaxUnion(a,b){ const o={};
   new Set([].concat(Object.keys(a||{}),Object.keys(b||{}))).forEach(k=>{ o[k]=Math.max(+((a||{})[k])||0,+((b||{})[k])||0); });
   return o; }
 function numPlafond(prefixe,annee){ return +((db&&db.numMax)||{})[prefixe+'-'+annee]||0; }
-function save(){ try{ numPlafondRelever(); }catch(e){} try{ estampiller(); }catch(e){} try{ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }catch(e){ try{ toast('Stockage plein — réduis le nombre/poids des photos'); }catch(_){} } refreshBadges(); updateBell(); if(typeof syncPush==='function') syncPush(); if(typeof annuaireVeille==='function') annuaireVeille(); }
+function save(){ try{ numPlafondRelever(); }catch(e){} try{ estampiller(); }catch(e){} let range=false; try{ localStorage.setItem(STORE_KEY, JSON.stringify(db)); range=true; }catch(e){ try{ baseRangementPlein(e); }catch(_){} } if(range) try{ baseRangementRetabli(); }catch(_){} refreshBadges(); updateBell(); if(typeof syncPush==='function') syncPush(); if(typeof annuaireVeille==='function') annuaireVeille(); }
 
 /* ════════ SYNCHRONISATION TEMPS RÉEL (équipe) — le document d'équipe, sur NOTRE serveur ════════
    Un document unique par entreprise, contenant toute la base chiffrée, écouté en continu
@@ -33888,7 +33938,13 @@ function razAppliquer(){
   syncRetraitVoulu(); if(c.inter){ db.interventions=[]; db.interventionsArchive=[]; db.registres=[]; (db.boxes||[]).forEach(b=>{ b.passages=[]; }); faits.push('interventions et rapports'); }
   if(c.clients){ db.clients=[]; db.plansSite={}; faits.push('clients'); }
   if(c.vente){ db.devis=[]; db.factures=[]; db.contrats=[]; db.telecollectes=[]; db.enveloppes=[]; faits.push('devis, factures et contrats'); }
-  if(c.journal){ db.journal=[]; faits.push('journal'); }
+  /* v750 : `estampiller` ne marque plus les lignes qui quittent le journal (le plafond en chasse
+     une à chaque geste). Vider le journal EST une suppression voulue : on pose ses marques ici,
+     sinon les autres appareils le rempliraient à nouveau à la première fusion. */
+  if(c.journal){ const now=Date.now(); if(!db._tombes||typeof db._tombes!=='object') db._tombes={};
+    const t=db._tombes.journal=(db._tombes.journal&&typeof db._tombes.journal==='object')?db._tombes.journal:{};
+    (db.journal||[]).forEach(r=>{ if(r&&r.id!=null) t[String(r.id)]=Math.max(now,+r._m||0); });
+    db.journal=[]; faits.push('journal'); }
   /* Le catalogue garde ses fiches ; seules les quantités du stock central repartent à 0 —
      c'est la même logique que « vider le stock des box », appliquée au dépôt. */
   if(c.stock) db.produits=(db.produits||[]).map(p=>({...p,qte:0}));
