@@ -175,6 +175,14 @@ mieux […] que tu testes, que tu vérifies ». Ce qui a suivi :
   la version suivante.
 - Rejoués sur l'état final : `sonde-doc-serveur.js` 19 ✓ (A → B ≈ 0,95 s), `sonde-portail-navigateur.js`
   57 ✓ (inscription, bandeau, lien, `reinit.html`, code d'activation jusqu'à l'écran).
+- **Les preuves de fin de nuit** : suite complète **171 suites · 8 482 vérifications**, sortie 0
+  (`bd29124`) ; `relecteur` sur tout le diff depuis `eaba1c4` : aucun bloquant, rien à corriger ;
+  déploiement du serveur seul PRÉPARÉ contre les pages de `main` : commit **`d558933`** (sur `main`
+  `0f630c0`), **39 suites · 2 317 vérifications**, vertes — NON POUSSÉ. Il ne contient que `server/`,
+  sa surveillance, ses bancs et ses scripts ; `app.html` reste en v695. Tant que `comptes.actif`
+  n'est pas posé, le portail de production garde exactement son comportement : le déployer ne
+  change rien chez ELAN, et la bêta v748 peut enfin se mesurer sur le VPS (`/api/doc/*`). Relancé
+  un autre jour, `scripts/preparer-deploiement-serveur.sh` repart du `main` de ce jour-là.
 - **Gardé exprès** : le plafond du document dans l'appli (780 Ko). Le serveur accepte 5,2 Mo, mais
   chaque téléphone retélécharge le document ENTIER à chaque changement (données mobiles), et les
   copies de sauvegarde par appareil s'arrêtent à 3 Mo. Les photos neuves vont au serveur depuis la
