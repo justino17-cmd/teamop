@@ -32,7 +32,35 @@ const MDP_ADMIN = 'mot-de-passe-du-banc-740';
 const sha = k => crypto.createHash('sha256').update(k).digest('hex');
 const dormir = ms => new Promise(r => setTimeout(r, ms));
 const BANC = fs.mkdtempSync(path.join(os.tmpdir(), 'espace-740-'));
-let enfant = null;
+let enfant = null, facteurSrv = null;
+/* Un facteur minuscule (le même que `test-741`) : le lien de vérification d'adresse naît DANS le
+   courriel du serveur, et c'est lui qu'il faut suivre — un code d'accès ne part plus qu'à une
+   adresse prouvée (`gardien`, C4). */
+function facteur() {
+  const recus = [];
+  const srvS = require('net').createServer(c => {
+    let tampon = '', corps = false, msg = '';
+    c.write('220 banc\r\n');
+    c.on('data', d => {
+      tampon += d.toString('utf8');
+      let i;
+      while ((i = tampon.indexOf('\r\n')) >= 0) {
+        const l = tampon.slice(0, i); tampon = tampon.slice(i + 2);
+        if (corps) { if (l === '.') { corps = false; recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += l + '\n'; continue; }
+        const h = l.toUpperCase();
+        if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
+        else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
+        else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
+        else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
+        else c.write('250 ok\r\n');
+      }
+    });
+    c.on('error', () => {});
+  });
+  return { s: srvS, recus };
+}
+/* Quoted-printable et coupures de ligne : on relit le courriel comme un humain le lirait. */
+const lisible = (m) => String(m || '').replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
 
 /* ── L'EXTRACTION ─────────────────────────────────────────────────────────────────────────────
    ⛔ ANCRÉE SUR LA FORME DU CODE, pas sur une phrase. Ce dépôt est très commenté : un motif qui
@@ -82,9 +110,12 @@ async function monter() {
   const cfgPath = path.join(dir, 'config.json');
   const webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push'));
   const vap = webpush.generateVAPIDKeys();
+  facteurSrv = facteur();
+  const portSmtp = await new Promise(res => facteurSrv.s.listen(0, '127.0.0.1', () => res(facteurSrv.s.address().port)));
   fs.writeFileSync(cfgPath, JSON.stringify({
     vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc',
     adminPassHash: sha(MDP_ADMIN), comptes: { actif: true },
+    smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' },
   }));
   const port = await new Promise(res => {
     const s = require('net').createServer();
@@ -103,6 +134,7 @@ async function monter() {
   return { B, vivant, data, journal: () => journal };
 }
 const arreter = async () => {
+  try { if (facteurSrv) facteurSrv.s.close(); } catch (e) {}
   if (!enfant || enfant.exitCode !== null) return;
   await new Promise(res => { enfant.once('exit', res); try { enfant.kill('SIGKILL'); } catch (e) {} res(); });
 };
@@ -224,6 +256,16 @@ const arreter = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nom: 'Patron', pass: MDP_ADMIN }) })).json();
     vrai('   la Tour se connecte', /^[a-f0-9]{48}$/.test(String(tour.token || '')));
+    const rRefus = await fetch(S.B + '/api/monitor/portail/message', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour.token },
+      body: JSON.stringify({ email: 'zoe@exemple.fr', texte: 'Votre espace est prêt', access: 'CODE-ABCXYZ', accessName: 'Bernard Hygiène' }) });
+    v('⛔ un code d\'accès vers une adresse jamais prouvée : refusé (409) — c\'est peut-être quelqu\'un qui a tapé son adresse', rRefus.status, 409);
+    /* Zoé ouvre le lien reçu à la création de son compte : son adresse est prouvée. */
+    let lettreV = '';
+    for (let i = 0; i < 60 && !lettreV; i++) { lettreV = lisible(facteurSrv.recus.filter(m => /mode=verifyEmail/.test(lisible(m))).pop() || ''); if (!lettreV) await dormir(100); }
+    const jv = (/reinit\.html\?mode=verifyEmail&jeton=([a-f0-9]{64})/.exec(lettreV.replace(/\s+/g, '')) || [])[1] || '';
+    const rv = await fetch(S.B + '/api/compte/verifier', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jeton: jv }) });
+    v('   le lien de vérification, reçu par courriel, prouve l\'adresse', [!!jv, rv.status], [true, 200]);
     const rAcc = await fetch(S.B + '/api/monitor/portail/message', { method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour.token },
       body: JSON.stringify({ email: 'zoe@exemple.fr', texte: 'Votre espace est prêt',

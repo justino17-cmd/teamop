@@ -392,6 +392,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         },
         delete: async () => jeter('auth/operation-not-allowed', 'La suppression du compte se demande au support.'),
         reauthenticateWithCredential: async () => true,
+        /* ⛔ SANS ELLE, `cliSync` SE TAISAIT — ET TOUT LE CIRCUIT D'INSCRIPTION AVEC LUI. La fiche
+           envoyée à la Tour (`/api/clients/sync`) ne part que si `user.getIdToken` existe : avec
+           Firebase, c'était le jeton de Google ; ici, c'est la session de notre serveur, qu'il
+           reconnaît à sa forme. Sans cette ligne, une demande déposée sur le portail ne créait
+           plus d'espace, n'envoyait plus son code au client ni le récapitulatif au patron, et un
+           code promo activé ici n'atteignait jamais l'application — sans une erreur à l'écran. */
+        getIdToken: async () => { if(!jeton) jeter('auth/user-token-expired', 'Session expirée — reconnectez-vous.'); return jeton; },
       };
     }
 
@@ -609,10 +616,12 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   let _signupBusy=false;
   auth.onAuthStateChanged(user=>{
     if(_unsubMsgs){_unsubMsgs();_unsubMsgs=null;} if(_unsubReqs){_unsubReqs();_unsubReqs=null;} if(_unsubNews){_unsubNews();_unsubNews=null;}
-    /* ⛔ UNE SESSION ANONYME N'EST PAS UN CLIENT — ne pas retirer ce filtre.
-       OP GESTION (app.html) ouvre une session Firebase ANONYME sur CE MÊME projet et ce même
-       domaine : c'est syncAuth() qui le fait, parce que les règles Firestore exigent un
-       utilisateur connecté pour synchroniser. Cette session sert aux données de l'entreprise,
+    /* ⛔ UNE SESSION ANONYME N'EST PAS UN CLIENT — un filtre de l'ère Firebase, gardé par prudence.
+       Jusqu'à la v747, OP GESTION (app.html) ouvrait une session Firebase ANONYME sur ce même
+       projet et ce même domaine (`syncAuth()`, retirée en v748 avec tout le SDK), parce que les
+       règles Firestore exigeaient un utilisateur connecté pour synchroniser. Nos comptes
+       (`portailMaison`) n'ont jamais de session anonyme : le filtre ne se déclenche plus, et il
+       ne coûte rien. Cette session sert aux données de l'entreprise,
        jamais à l'espace client. Sans ce filtre, ouvrir l'application puis revenir ici ouvrait
        « Mon espace » sur ce compte sans e-mail : en-tête affichant « null », « Bonjour » sans
        nom, et l'impression d'être connecté au compte de quelqu'un d'autre — y compris au beau
@@ -734,7 +743,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      une seule fois par visite — et de nouveau si le client change quelque chose.
      Jamais de mot de passe ni de contenu privé. Totalement invisible et non bloquant :
      si le serveur ne répond pas, l'espace client fonctionne exactement comme avant. */
-  const CLI_SYNC_URL='https://api.teamop.fr/api/clients/sync', CLI_SYNC_KEY='top_client_sync', CLI_SYNC_DELAI=600000;
+  /* La même base que l'adaptateur (`API_PORTAIL`) : en production c'est l'adresse d'avant, et un
+     banc qui fait parler la page à un serveur local l'atteint sans retouche. */
+  const CLI_SYNC_URL=API_PORTAIL+'/api/clients/sync', CLI_SYNC_KEY='top_client_sync', CLI_SYNC_DELAI=600000;
   function cliSigne(s){ let h=5381; for(let i=0;i<s.length;i++){ h=((h*33)^s.charCodeAt(i))>>>0; } return h.toString(36); }
   function cliResume(user,d){
     d=d||{};

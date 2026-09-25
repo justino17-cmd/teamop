@@ -226,13 +226,16 @@ console.log('\nLes quatre réponses de la coupure, jouées pour de vrai');
   const UID = (SRV.match(/function fbUidEquipe\(t\) \{[\s\S]*?\n\}/) || [''])[0];
   v('la fonction est retrouvée, entière', [FN.length > 400, /validSince/.test(FN), /USER_NOT_FOUND/.test(FN)], [true, true, true]);
 
-  const monte = (jeton, reponse) => new Function('crypto', 'fbAdminJeton', 'fbAdminFetch', 'FB_PROJET',
-    UID + '\n' + FN + '\n return fbRevoquerEquipe;')(crypto, async () => jeton, async () => reponse, 'projet-essai');
+  /* `IDTK_URL` : l'adresse de l'Identity Toolkit est une constante du serveur depuis qu'un banc
+     peut la rediriger (`urlBanc`) — le bac à sable reçoit la vraie valeur par défaut. */
+  const IDTK = 'https://identitytoolkit.googleapis.com/v1';
+  const monte = (jeton, reponse) => new Function('crypto', 'fbAdminJeton', 'fbAdminFetch', 'FB_PROJET', 'IDTK_URL',
+    UID + '\n' + FN + '\n return fbRevoquerEquipe;')(crypto, async () => jeton, async () => reponse, 'projet-essai', IDTK);
 
   let vuUrl = '', vuCorps = null;
-  const avecEspion = new Function('crypto', 'fbAdminJeton', 'fbAdminFetch', 'FB_PROJET',
+  const avecEspion = new Function('crypto', 'fbAdminJeton', 'fbAdminFetch', 'FB_PROJET', 'IDTK_URL',
     UID + '\n' + FN + '\n return fbRevoquerEquipe;')(crypto, async () => 'jeton-essai',
-      async (url, opts) => { vuUrl = url; vuCorps = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({}) }; }, 'projet-essai');
+      async (url, opts) => { vuUrl = url; vuCorps = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({}) }; }, 'projet-essai', IDTK);
 
   v('sans clé d\'administration : elle ne prétend PAS avoir coupé',
     (await monte('', {}).call(null, 'ent-x')).fait, false);

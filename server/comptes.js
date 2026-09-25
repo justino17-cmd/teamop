@@ -68,16 +68,37 @@ function monterComptes(app, deps) {
   const envoyer = d.mailerEnvoi;                   // (opts) => Promise
   const quotaOk = d.quotaOk || (() => true);
   const quota = new Map();
+  /* ⛔ UN PLAFOND PAR ADRESSE IP EN PLUS DU PLAFOND PAR ADRESSE E-MAIL (`gardien`, N5). Le second
+     seul laissait créer des comptes en masse et envoyer des rafales de courriels : cinq par
+     heure et par adresse, sans limite sur le NOMBRE d'adresses. Les chiffres sont larges exprès
+     — une entreprise de terrain sort par une seule adresse IP (voir le blocage par compte plus
+     bas) : on arrête une machine, pas un bureau. `req.ip` et non l'en-tête brut : le serveur est
+     derrière nginx (`trust proxy`), et un en-tête fourni par le client se falsifie. */
+  const parIp = (req, genre, max) => quotaOk(quota, genre + '-ip:' + String((req && req.ip) || ''), max, 3600000);
   const base = String(d.siteBase || 'https://teamop.fr').replace(/\/+$/, '');
   const journal = d.journal || ((...a) => console.log('comptes:', ...a));
+  /* Un courriel qui part DERRIÈRE la réponse. ⚠️ `mailerEnvoi` jette de façon SYNCHRONE quand le
+     courrier n'est pas configuré (`mailer.sendMail` sur `null`) : un simple `.catch()` laisserait
+     l'exception sortir de la route, et Express 4 laisserait la requête pendue. Les deux voies
+     finissent au journal, avec le motif et jamais l'adresse. */
+  const envoyerDerriere = (o, motif) => {
+    try { Promise.resolve(envoyer(o)).catch((e) => journal(motif + ' —', (e && e.code) || 'erreur')); }
+    catch (e) { journal(motif + ' —', (e && e.code) || 'erreur'); }
+  };
 
   const CHEMIN = path.join(DOSSIER, 'comptes-portail.json');
   let reg = { c: Object.create(null), j: Object.create(null) };   // comptes, jetons
 
+  /* ⛔ DES TABLES SANS PROTOTYPE, AUSSI APRÈS UNE RELECTURE (`gardien`, C6). `JSON.parse` rend des
+     objets ORDINAIRES : une clé `__proto__` y désignerait `Object.prototype`, et une écriture
+     derrière toucherait tous les objets du processus. Les adresses passent `mailOk` avant
+     d'arriver ici, mais une table se protège elle-même, elle ne compte pas sur ses appelants. */
+  const table = (o) => { const t = Object.create(null); if (o && typeof o === 'object') for (const k of Object.keys(o)) t[k] = o[k]; return t; };
+  const a = (t, k) => Object.prototype.hasOwnProperty.call(t, k) ? t[k] : undefined;
   function lire() {
     try {
       const o = JSON.parse(fs.readFileSync(CHEMIN, 'utf8'));
-      reg = { c: (o && o.c) || Object.create(null), j: (o && o.j) || Object.create(null) };
+      reg = { c: table(o && o.c), j: table(o && o.j) };
     } catch (e) { /* fichier absent au premier démarrage : c'est normal */ }
   }
   /* ⛔ TEMPORAIRE PUIS RENOMMAGE, comme `espacesEcrire`. Un fichier tronqué ici, ce sont TOUS
@@ -99,7 +120,7 @@ function monterComptes(app, deps) {
     return bouge;
   }
 
-  const compte = (mail) => reg.c[mail] || null;
+  const compte = (mail) => a(reg.c, mail) || null;
 
   /* ── LES JETONS ───────────────────────────────────────────────────────────────────────────
      32 octets au hasard ; SEUL leur sha256 est rangé, exactement comme les jetons d'appareil
@@ -111,7 +132,7 @@ function monterComptes(app, deps) {
     return brut;
   }
   function jetonLire(brut, genre) {
-    const e = reg.j[sha(String(brut || ''))];
+    const e = a(reg.j, sha(String(brut || '')));
     if (!e || e.exp < Date.now()) return null;
     if (genre && e.g !== genre) return null;
     return e;
@@ -121,7 +142,7 @@ function monterComptes(app, deps) {
      fait pirater bien plus souvent qu'un serveur. */
   function jetonBruler(brut) {
     const k = sha(String(brut || ''));
-    if (reg.j[k]) { delete reg.j[k]; ecrire(); }
+    if (a(reg.j, k)) { delete reg.j[k]; ecrire(); }
   }
 
   /* ⛔ CHANGER DE MOT DE PASSE COUPE LES SESSIONS — PAS LA VÉRIFICATION D'ADRESSE.
@@ -161,39 +182,47 @@ function monterComptes(app, deps) {
     if (!mailOk(mail)) return res.status(400).json({ error: 'email_invalide' });
     const emp = borne(b.h, 200);
     if (emp.length < 16) return res.status(400).json({ error: 'empreinte_invalide' });
-    if (!quotaOk(quota, 'creer:' + mail, 5, 3600000)) return res.status(429).json({ error: 'trop_de_tentatives' });
+    if (!quotaOk(quota, 'creer:' + mail, 5, 3600000) || !parIp(req, 'creer', 20)) return res.status(429).json({ error: 'trop_de_tentatives' });
 
+    /* ⛔ LA MÊME DURÉE, QUE L'ADRESSE AIT UN COMPTE OU NON (`gardien`, C4). Avant : une adresse
+       connue sautait la dérivation (~100 ms) et attendait un courriel, une adresse libre dérivait
+       puis attendait un autre courriel — la durée seule disait lesquelles existaient. On dérive
+       dans les deux cas, et AUCUN courriel n'est attendu : il part derrière la réponse, son échec
+       se journalise, et la réponse est la même de toute façon. */
     const deja = compte(mail);
-    if (deja) {
-      /* ⛔ ON NE DIT PAS QUE LE COMPTE EXISTE — on le dit à SON PROPRIÉTAIRE, par courriel.
-         C'est la seule façon d'être à la fois muet pour un inconnu et utile pour la personne :
-         elle apprend que quelqu'un a essayé, et on lui rappelle qu'elle peut se connecter. */
-      try {
-        await envoyer({ to: mail, confidentiel: true,
-          subject: 'Quelqu\'un a essayé de créer un compte avec votre adresse',
-          text: 'Bonjour,\n\nUne inscription vient d\'être tentée sur teamop.fr avec cette adresse, '
-            + 'qui a déjà un compte. Si c\'était vous, connectez-vous simplement :\n' + base + '/espace.html\n\n'
-            + 'Vous avez oublié votre mot de passe ? Utilisez « Mot de passe oublié » sur cette page.\n\n'
-            + 'Si ce n\'était pas vous, il n\'y a rien à faire : aucun compte n\'a été créé et le vôtre n\'a pas bougé.\n' });
-      } catch (e) { journal('avis de doublon non envoyé —', e.code || 'erreur'); }
-      return res.json(RIEN_DIRE);
-    }
-
     const sel = crypto.randomBytes(SEL_OCTETS).toString('hex');
     let cle;
     try { cle = await deriver(emp, sel); }
     catch (e) { journal('dérivation impossible —', e.code || 'erreur'); return res.status(503).json({ error: 'indisponible' }); }
+    if (deja || compte(mail)) {
+      /* ⛔ ON NE DIT PAS QUE LE COMPTE EXISTE — on le dit à SON PROPRIÉTAIRE, par courriel.
+         C'est la seule façon d'être à la fois muet pour un inconnu et utile pour la personne :
+         elle apprend que quelqu'un a essayé, et on lui dit comment entrer. ⚠️ Un compte « à
+         poser » (repris de Google) n'a pas de mot de passe : « connectez-vous simplement » lui
+         mentait (`gardien`, N3) — son chemin est « Mot de passe oublié ». */
+      const ap = !!(compte(mail) || {}).ap;
+      envoyerDerriere({ to: mail, confidentiel: true,
+        subject: 'Quelqu\'un a essayé de créer un compte avec votre adresse',
+        text: 'Bonjour,\n\nUne inscription vient d\'être tentée sur teamop.fr avec cette adresse, '
+          + (ap
+            ? 'qui a déjà un espace client. Votre espace a changé de serveur : la première fois, choisissez '
+              + 'un mot de passe avec « Mot de passe oublié » sur cette page :\n' + base + '/espace.html\n\n'
+            : 'qui a déjà un compte. Si c\'était vous, connectez-vous simplement :\n' + base + '/espace.html\n\n'
+              + 'Vous avez oublié votre mot de passe ? Utilisez « Mot de passe oublié » sur cette page.\n\n')
+          + 'Si ce n\'était pas vous, il n\'y a rien à faire : aucun compte n\'a été créé et le vôtre n\'a pas bougé.\n' },
+        'avis de doublon non envoyé');
+      return res.json(RIEN_DIRE);
+    }
 
     reg.c[mail] = { s: sel, e: cle, pr: borne(b.prenom, 60), no: borne(b.nom, 60),
       so: borne(b.societe, 120), v: 0, cree: Date.now(), maj: Date.now(), ech: 0, bloq: 0 };
     ecrire();
 
     const jv = jetonNeuf(mail, 'verif', VERIF_VIE_MS);
-    try {
-      await envoyer({ to: mail, confidentiel: true, subject: 'Confirmez votre adresse — TEAM OP',
-        text: 'Bienvenue,\n\nConfirmez votre adresse pour activer votre espace :\n'
-          + base + '/reinit.html?mode=verifyEmail&jeton=' + jv + '\n\nCe lien est valable 7 jours.\n' });
-    } catch (e) { journal('courriel de vérification non envoyé —', e.code || 'erreur'); }
+    envoyerDerriere({ to: mail, confidentiel: true, subject: 'Confirmez votre adresse — TEAM OP',
+      text: 'Bienvenue,\n\nConfirmez votre adresse pour activer votre espace :\n'
+        + base + '/reinit.html?mode=verifyEmail&jeton=' + jv + '\n\nCe lien est valable 7 jours.\n' },
+      'courriel de vérification non envoyé');
     return res.json(RIEN_DIRE);
   });
 
@@ -204,7 +233,7 @@ function monterComptes(app, deps) {
     if (!mailOk(mail)) return res.status(400).json({ error: 'email_invalide' });
     const emp = borne(b.h, 200);
     if (!emp) return res.status(400).json({ error: 'empreinte_invalide' });
-    if (!quotaOk(quota, 'cnx:' + mail, 30, 3600000)) return res.status(429).json({ error: 'trop_de_tentatives' });
+    if (!quotaOk(quota, 'cnx:' + mail, 30, 3600000) || !parIp(req, 'cnx', 200)) return res.status(429).json({ error: 'trop_de_tentatives' });
 
     const c0 = compte(mail);
     /* Un compte « à poser » (repris de Google, voir `preparer`) n'a pas encore de mot de passe :
@@ -336,16 +365,17 @@ function monterComptes(app, deps) {
   app.post('/api/compte/mdp/demander', async (req, res) => {
     const mail = normMail((req.body || {}).email);
     if (!mailOk(mail)) return res.status(400).json({ error: 'email_invalide' });
-    if (!quotaOk(quota, 'mdp:' + mail, 5, 3600000)) return res.status(429).json({ error: 'trop_de_tentatives' });
+    if (!quotaOk(quota, 'mdp:' + mail, 5, 3600000) || !parIp(req, 'mdp', 20)) return res.status(429).json({ error: 'trop_de_tentatives' });
+    /* Le courriel part DERRIÈRE la réponse (`gardien`, C4) : l'attendre pour une adresse connue
+       seulement faisait dire à la durée lesquelles existent. */
     if (compte(mail)) {
       const j = jetonNeuf(mail, 'mdp', MDP_VIE_MS);
-      try {
-        await envoyer({ to: mail, confidentiel: true, subject: 'Votre nouveau mot de passe — TEAM OP',
-          text: 'Bonjour,\n\nPour choisir un nouveau mot de passe :\n'
-            + base + '/reinit.html?mode=resetPassword&jeton=' + j + '\n\n'
-            + 'Ce lien est valable une heure et ne fonctionne qu\'une fois.\n'
-            + 'Si vous n\'avez rien demandé, ignorez ce message : votre mot de passe n\'a pas changé.\n' });
-      } catch (err) { journal('courriel de mot de passe non envoyé —', err.code || 'erreur'); }
+      envoyerDerriere({ to: mail, confidentiel: true, subject: 'Votre nouveau mot de passe — TEAM OP',
+        text: 'Bonjour,\n\nPour choisir un nouveau mot de passe :\n'
+          + base + '/reinit.html?mode=resetPassword&jeton=' + j + '\n\n'
+          + 'Ce lien est valable une heure et ne fonctionne qu\'une fois.\n'
+          + 'Si vous n\'avez rien demandé, ignorez ce message : votre mot de passe n\'a pas changé.\n' },
+        'courriel de mot de passe non envoyé');
     }
     /* Adresse inconnue : on répond exactement pareil et on n'envoie rien. */
     return res.json(RIEN_DIRE);
@@ -366,9 +396,12 @@ function monterComptes(app, deps) {
     try { cle = await deriver(emp, sel); }
     catch (err) { journal('dérivation impossible —', err.code || 'erreur'); return res.status(503).json({ error: 'indisponible' }); }
     c.s = sel; c.e = cle; c.ech = 0; c.bloq = 0; c.maj = Date.now();
-    /* Un compte « à poser » vient d'être ouvert par le lien reçu à SON adresse : c'est la preuve
-       qu'on attendait de lui, il devient un compte ordinaire, adresse vérifiée. */
-    if (c.ap) { delete c.ap; if (!c.v) c.v = Date.now(); }
+    /* Le lien est arrivé dans la boîte de l'adresse : c'est la preuve qu'on attendait. Un compte
+       « à poser » devient ordinaire, et TOUT compte a désormais son adresse vérifiée — y compris
+       celui qu'un tiers avait créé avec elle sans pouvoir la confirmer : son propriétaire le
+       reprend ici, et les sessions du tiers tombent juste en dessous. */
+    if (c.ap) delete c.ap;
+    if (!c.v) c.v = Date.now();
     /* Les sessions en cours tombent — c'est le geste qu'on fait quand on pense s'être fait
        voler quelque chose, et c'est la faute déjà payée côté Firebase (refuser les nouveaux
        jetons sans couper les sessions déjà échangées). Le lien de VÉRIFICATION, lui, survit :
@@ -385,8 +418,12 @@ function monterComptes(app, deps) {
        il ne doit PAS relire `comptes-portail.json` de son côté : deux lectures du même fichier,
        ce sont deux vérités qui divergent le jour où l'une garde un jeton que l'autre a brûlé.
        Rend l'adresse, ou '' — jamais un objet qu'on pourrait prendre pour une autorisation. */
-    parJeton: (brut) => { const e = jetonLire(brut, 'session'); return (e && compte(e.m)) ? e.m : ''; },
+    parJeton: (brut) => { const e = jetonLire(brut, 'session'); const c = e && compte(e.m); return (c && !c.ap) ? e.m : ''; },
     vue,
+    /* L'adresse de ce compte a-t-elle été prouvée (lien de vérification, ou lien de mot de passe
+       reçu dans sa boîte) ? `portail.js` le demande avant de montrer un dossier repris de Google
+       ou d'y déposer un code d'accès. */
+    verifie: (mail) => { const c = compte(normMail(mail)); return !!(c && !c.ap && c.v); },
     /* ⛔ LES COMPTES « À POSER », CRÉÉS À L'IMPORT DES DOSSIERS DE GOOGLE (`portail.js`).
        Un dossier repris est rangé sous une ADRESSE ; sans compte maison à cette adresse,
        n'importe qui pouvait le créer AVANT son propriétaire — la connexion n'exige pas une
@@ -394,19 +431,50 @@ function monterComptes(app, deps) {
        « Créer un compte » y tombe sur « déjà existant » (son propriétaire est prévenu par
        courriel, `creer`), la connexion le refuse comme une adresse inconnue, et SEUL le lien de
        « Mot de passe oublié », reçu dans la boîte du client, y pose un mot de passe (`poser`).
-       Ne touche jamais un compte existant. Rend le nombre de comptes préparés. */
+       ⛔ ET UN COMPTE DÉJÀ LÀ MAIS JAMAIS VÉRIFIÉ REDEVIENT « À POSER » (`gardien`, B1, rejoué sur le
+       vrai serveur). L'import n'existe qu'une fois les comptes allumés : entre les deux, n'importe
+       qui pouvait créer le compte d'un client de Google, s'y connecter sans jamais prouver
+       l'adresse, et lire son dossier dès l'import. Un compte dont l'adresse n'a jamais été prouvée
+       ne prouve rien : son mot de passe s'efface, ses sessions tombent, et le vrai client passe,
+       comme les autres, par « Mot de passe oublié ». Un compte VÉRIFIÉ, lui, n'est jamais touché.
+       Rend `{ prepares, remis, douteux }` — `douteux` : les adresses dont le compte n'était pas
+       sûr, que `portail.js` ne laisse pas garder un dossier posé avant l'import. */
     preparer: (liste) => {
-      let n = 0;
+      let prepares = 0, remis = 0; const douteux = [];
       for (const x of (liste || [])) {
         const mail = normMail(x && x.email);
-        if (!mailOk(mail) || compte(mail)) continue;
+        if (!mailOk(mail)) continue;
+        const c = compte(mail);
+        if (c && c.v && !c.ap) continue;                     // adresse prouvée : on n'y touche pas
+        if (c && c.ap) { douteux.push(mail); continue; }     // déjà « à poser » (import relancé)
+        if (c) {
+          for (const k of Object.keys(reg.j)) { const e = reg.j[k]; if (e && e.m === mail && e.g !== 'verif') delete reg.j[k]; }
+          c.s = ''; c.e = ''; c.ap = 1; c.ech = 0; c.bloq = 0; c.maj = Date.now();
+          c.pr = borne(x.prenom, 60) || c.pr; c.no = borne(x.nom, 60) || c.no; c.so = borne(x.societe, 120) || c.so;
+          remis++; douteux.push(mail); continue;
+        }
         reg.c[mail] = { s: '', e: '', ap: 1, pr: borne(x.prenom, 60), no: borne(x.nom, 60), so: borne(x.societe, 120),
           v: 0, cree: Date.now(), maj: Date.now(), ech: 0, bloq: 0 };
-        n++;
+        prepares++; douteux.push(mail);
       }
-      if (n) ecrire();
-      return n;
+      if (prepares || remis) ecrire();
+      return { prepares, remis, douteux };
     },
+    /* ⛔ SUPPRIMER UN COMPTE DU SITE SUPPRIME AUSSI CELUI-CI — le compte ET tous ses jetons. Les
+       trois portes de la Tour (fermer un client, suppression totale, compte du site) passaient
+       par Google seul : après la bascule, le compte, le dossier et le fil seraient restés chez
+       nous pour toujours. Rend `true` s'il existait. */
+    supprimer: (mail) => {
+      const m = normMail(mail); if (!compte(m)) return false;
+      delete reg.c[m];
+      for (const k of Object.keys(reg.j)) { const e = reg.j[k]; if (e && e.m === m) delete reg.j[k]; }
+      ecrire();
+      return true;
+    },
+    /* Pour la Tour : ce qu'il faut pour trier, jamais un sel ni un vérificateur. */
+    liste: () => Object.keys(reg.c).map(m => { const c = reg.c[m] || {};
+      return { email: m, prenom: c.pr || '', nom: c.no || '', societe: c.so || '', verifie: !!(c.v && !c.ap), aPoser: !!c.ap,
+        cree: c.cree || 0, maj: c.maj || 0 }; }),
     combien: () => Object.keys(reg.c).length,
     sessions: () => Object.keys(reg.j).filter(k => reg.j[k] && reg.j[k].g === 'session').length,
     _reg: () => reg, _relire: lire,

@@ -286,7 +286,7 @@ app.post('/api/mdp/lien', async (req, res) => {
   try {
     const tok = await fbAdminJeton();
     if (!tok) return res.status(503).json({ error: 'firebase_off' });
-    const r = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:sendOobCode',
+    const r = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:sendOobCode',
       { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: email, returnOobLink: true }) }, tok);
     const j = await r.json().catch(() => ({}));
@@ -3327,12 +3327,12 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
   if (t) {
     let tok = await fbAdminJeton(), viaAdmin = !!tok;
     if (!tok) { try {
-      const r0 = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + ((config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8'),
+      const r0 = await fetch(IDTK_URL + '/accounts:signUp?key=' + ((config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8'),
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
       tok = ((await r0.json().catch(() => ({}))).idToken) || '';
     } catch (err) {} }
     if (tok) { try {
-      const r = await fbAdminFetch('https://firestore.googleapis.com/v1/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t), { method: 'DELETE' }, tok);
+      const r = await fbAdminFetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t), { method: 'DELETE' }, tok);
       efface = r.ok;
     } catch (err) { console.error('renaitre effacement :', err.message); } }
     /* Et sa copie CHEZ NOUS (`documents.js`), sans condition : c'est nous qui la tenons, aucun
@@ -3889,24 +3889,40 @@ let portail = null;
 try {
   if (comptes) {
     portail = require('./portail').monterPortail(app, {
-      dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, quotaOk, preparer: comptes.preparer,
+      dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, patron: monPatronStrict, quotaOk,
+      preparer: comptes.preparer, verifie: comptes.verifie,
       journal: (...a) => console.log('portail:', ...a),
       /* La reprise des dossiers déjà chez Google. Le serveur a déjà la clé d'administration et
          s'en sert trois fois plus bas pour `teamop_requests` : on réutilise ce chemin-là
-         plutôt que d'en ouvrir un second. */
+         plutôt que d'en ouvrir un second.
+         ⛔ UNE LECTURE QUI ÉCHOUE LE DIT (`gardien`, C1). `r.ok` n'était jamais lu : un 403 ou un
+         500 de Google rendait une liste VIDE, et la Tour lisait « rien à importer » — les adresses
+         non lues ne recevaient pas leur compte « à poser », donc restaient prenables. Une page qui
+         échoue arrête l'import avec son motif (la route rend 503), et le délai couvre le CORPS,
+         pas seulement les en-têtes. Et TOUT le dossier est rendu, décodé : une liste de huit
+         champs faisait perdre la facturation, les demandes, la formule et les documents. */
       lireFirestore: async () => {
         const tok = await fbAdminJeton();
         if (!tok) throw Object.assign(new Error('firebase off'), { code: 'firebase_off' });
+        const { valeurFirestore } = require('./documents');
         const out = []; let pt = '';
-        for (let tour = 0; tour < 40; tour++) {
-          const r = await fbAdminFetch(fsBase() + '/teamop_requests?pageSize=300' + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''), null, tok);
-          const j = await r.json().catch(() => ({}));
+        for (let tour = 0; ; tour++) {
+          if (tour >= 40) throw Object.assign(new Error('trop de pages'), { code: 'lecture_incomplete' });
+          const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 20000);
+          let r = null, j = null;
+          try {
+            r = await fetch(fsBase() + '/teamop_requests?pageSize=300' + (pt ? '&pageToken=' + encodeURIComponent(pt) : ''),
+              { method: 'GET', headers: { 'Authorization': 'Bearer ' + tok }, signal: ctrl.signal });
+            j = await r.json().catch(() => null);
+          } catch (e) { throw Object.assign(new Error('lecture impossible'), { code: 'lecture_reseau' }); }
+          finally { clearTimeout(tm); }
+          if (!r.ok || !j || typeof j !== 'object') throw Object.assign(new Error('lecture refusée'), { code: 'lecture_' + r.status });
           for (const doc of (j.documents || [])) {
-            const f = doc.fields || {}, v = (k) => (f[k] && (f[k].stringValue !== undefined ? f[k].stringValue
-              : f[k].integerValue !== undefined ? f[k].integerValue : undefined));
-            out.push({ email: v('email'), prenom: v('prenom'), nom: v('nom'), company: v('company'),
-              formule: v('formule'), users: v('users'), etat: v('etat'), promo: v('promo'),
-              apps: ((f.apps && f.apps.arrayValue && f.apps.arrayValue.values) || []).map(x => x.stringValue) });
+            const f = doc.fields || {}, champs = {};
+            /* Les horodatages de Google (`createdAt`…) deviennent des nombres : la page les relit
+               par `parseInt`, et une date écrite en texte y donnait l'année. */
+            for (const k of Object.keys(f)) champs[k] = (f[k] && 'timestampValue' in f[k]) ? (Date.parse(f[k].timestampValue) || 0) : valeurFirestore(f[k]);
+            out.push({ email: String(champs.email || ''), champs });
           }
           pt = j.nextPageToken || '';
           if (!pt) break;
@@ -5211,6 +5227,11 @@ const FB_ADMIN_PATH = process.env.TEAMOP_FB_ADMIN || '/opt/teamop/firebase-admin
 const urlBanc = (v, defaut) => (typeof v === 'string' && /^http:\/\/127\.0\.0\.1:\d{2,5}(\/|$)/.test(v)) ? v : defaut;
 const FB_OAUTH_URL = urlBanc(process.env.TEAMOP_FB_OAUTH_URL, 'https://oauth2.googleapis.com/token');
 const FIRESTORE_URL = urlBanc(process.env.TEAMOP_FIRESTORE_URL, 'https://firestore.googleapis.com/v1');
+/* ⛔ ET L'IDENTITY TOOLKIT DE MÊME (`gardien`, N4). Ses adresses étaient écrites en dur à onze
+   endroits : aucun banc ne pouvait jouer la suppression d'un compte du site, sa fiche ou la liste
+   des comptes sans parler au VRAI Google — ce que ce dépôt interdit. Même porte que les deux
+   au-dessus : seul `http://127.0.0.1:<port>` est accepté, et rien ne se règle sur le VPS. */
+const IDTK_URL = urlBanc(process.env.TEAMOP_IDTK_URL, 'https://identitytoolkit.googleapis.com/v1');
 let fbAdminCle = null;
 try { fbAdminCle = JSON.parse(fs.readFileSync(FB_ADMIN_PATH, 'utf8')); } catch (e) {}
 const fbAdminTok = { jeton: '', exp: 0 };
@@ -5364,12 +5385,27 @@ async function fbLireDocument(collection, t) {
   } catch (e) { return null; }
   finally { clearTimeout(tm); }
 }
+/* ⛔ SUPPRIMER UN COMPTE DU SITE, C'EST CHEZ NOUS D'ABORD. Les trois portes de la Tour (fermer un
+   client, suppression totale, « comptes du site ») n'appelaient que Google : après la bascule du
+   portail, le compte, le dossier et le fil seraient restés sur notre serveur pour toujours — la
+   promesse de suppression de `confidentialite.html` §6 trahie sans un mot. `try` sur `comptes` et
+   `portail` : déclarés plus bas, et une zone morte temporelle ne doit pas se taire. */
+async function compteSiteSupprimer(email) {
+  const m = String(email || '').trim().toLowerCase();
+  let chezNous = false;
+  let c = null, p = null; try { c = comptes; p = portail; } catch (e) {}
+  try { if (c && c.supprimer(m)) chezNous = true; } catch (e) { console.error('compte du site : effacement du compte impossible —', e.code || 'erreur'); }
+  try { if (p && p.supprimer(m)) chezNous = true; } catch (e) { console.error('compte du site : effacement du dossier impossible —', e.code || 'erreur'); }
+  const g = await fbSupprimerCompteSite(m);
+  return { fait: chezNous || !!g.fait, chezNous, google: !!g.fait,
+    motif: (chezNous ? 'supprimé chez TeamOP' : 'rien chez TeamOP') + ' · Google : ' + g.motif };
+}
 // supprime le compte du site (connexion) + fiche + messagerie d'un client — via la clé admin
 async function fbSupprimerCompteSite(email) {
   const tok = await fbAdminJeton();
   if (!tok) return { fait: false, motif: 'clé admin absente sur le serveur' };
   try {
-    const rl = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:lookup',
+    const rl = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:lookup',
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: [email] }) }, tok);
     const jl = await rl.json().catch(() => ({}));
     const uid = jl.users && jl.users[0] && jl.users[0].localId;
@@ -5378,12 +5414,12 @@ async function fbSupprimerCompteSite(email) {
     for (let tour = 0; tour < 20; tour++) {
       const rm = await fbAdminFetch(fsBase() + '/teamop_threads/' + uid + '/msgs?pageSize=300' + (pageTok ? '&pageToken=' + encodeURIComponent(pageTok) : ''), { method: 'GET' }, tok);
       const jm = await rm.json().catch(() => ({}));
-      for (const d of (jm.documents || [])) { await fbAdminFetch('https://firestore.googleapis.com/v1/' + d.name, { method: 'DELETE' }, tok); n++; }
+      for (const d of (jm.documents || [])) { await fbAdminFetch(FIRESTORE_URL + '/' + d.name, { method: 'DELETE' }, tok); n++; }
       pageTok = jm.nextPageToken || ''; if (!pageTok) break;
     }
     await fbAdminFetch(fsBase() + '/teamop_threads/' + uid, { method: 'DELETE' }, tok);
     await fbAdminFetch(fsBase() + '/teamop_requests/' + uid, { method: 'DELETE' }, tok);
-    const rd = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:delete',
+    const rd = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:delete',
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ localId: uid }) }, tok);
     if (!rd.ok) return { fait: false, motif: 'suppression du compte refusée (HTTP ' + rd.status + ')' };
     return { fait: true, motif: 'compte du site + fiche + messagerie supprimés (' + n + ' message(s))' };
@@ -5433,7 +5469,7 @@ async function fbRevoquerEquipe(t) {
   try {
     const tok = await fbAdminJeton();
     if (!tok) return { fait: false, motif: 'clé d\'administration Firebase absente du serveur' };
-    const r = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:update',
+    const r = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:update',
       { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ localId: fbUidEquipe(t), validSince: String(Math.floor(Date.now() / 1000)) }) }, tok);
     /* Un compte ABSENT n'est pas un échec : l'entreprise n'a simplement jamais demandé de
@@ -5454,10 +5490,17 @@ async function fbRevoquerEquipe(t) {
    demande acceptée → badge « Accès activé », application OP GESTION active,
    abonnement affiché. Sans la clé admin, on passe silencieusement. */
 async function fbMajFicheClient(email, champs) {
+  /* ⛔ LE PORTAIL MONTÉ, LA FICHE S'ÉCRIT CHEZ NOUS — ET PLUS RIEN NE PART CHEZ GOOGLE. Après la
+     bascule, `espace.html` lit son dossier sur notre serveur : écrire « accès activé » ou la
+     formule payée dans `teamop_requests` ne se voyait plus, et envoyait encore à Google des
+     données que `sous-traitance.html` dit figées. `try` : le portail est déclaré plus bas dans le
+     fichier, et une zone morte temporelle se tait sous un `.catch(() => {})`. */
+  let p = null; try { p = portail; } catch (e) { p = null; }
+  if (p) return p.majServeur(email, champs);
   const tok = await fbAdminJeton();
   if (!tok) return false;
   try {
-    const rl = await fbAdminFetch('https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET + '/accounts:lookup',
+    const rl = await fbAdminFetch(IDTK_URL + '/projects/' + FB_PROJET + '/accounts:lookup',
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: [email] }) }, tok);
     const jl = await rl.json().catch(() => ({}));
     const uid = jl.users && jl.users[0] && jl.users[0].localId;
@@ -5558,7 +5601,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
   if (espacesAEffacer.length) {
     jeton = await fbAdminJeton(); jetonAdmin = !!jeton;   // la clé admin passe au-dessus des règles
     if (!jeton) try {
-      const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + FB_CLE,
+      const r = await fetch(IDTK_URL + '/accounts:signUp?key=' + FB_CLE,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
       const j = await r.json().catch(() => ({}));
       jeton = j.idToken || '';
@@ -5568,7 +5611,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
   for (const t of espacesAEffacer) {
     try {
       const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
-      const r = await fetch('https://firestore.googleapis.com/v1/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
+      const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
         { method: 'DELETE', headers: jeton ? { 'Authorization': 'Bearer ' + jeton } : {}, signal: ctrl.signal });
       clearTimeout(tm);
       if (r.ok) effaces++; else console.error('effacement firestore', t, ': HTTP', r.status);
@@ -5583,10 +5626,10 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      route (la même raison qui a fait passer les coupures en parallèle). */
   let piecesEffacees = 0;
   if (pieces) for (const t of espacesAEffacer) { try { piecesEffacees += pieces.effacerEntreprise(t); } catch (e) { console.error('effacement pièces :', e.code || 'erreur disque');   /* ⛔ ni `t` ni le chemin : ce journal se relit à plusieurs et se copie-colle */ } }
-  if (jeton && !jetonAdmin) { try { await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_CLE,
+  if (jeton && !jetonAdmin) { try { await fetch(IDTK_URL + '/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
   // et le compte créé sur le site (connexion espace client) : supprimé aussi, si la clé admin est là
-  const compteSite = await fbSupprimerCompteSite(email);
+  const compteSite = await compteSiteSupprimer(email);
   console.log('Tour :', req.tourUser.nom, 'a FERMÉ l\'entreprise', masqueMail(email), '— données effacées :', effaces + '/' + espacesAEffacer.length, '· compte du site :', compteSite.motif);
   /* La coupure se DIT. Si la clé d'administration manque, les appareils déjà pourvus gardent
      leur session jusqu'à une heure ET peuvent repousser la base qu'on vient d'effacer :
@@ -6045,7 +6088,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.comptesSite = [];
   for (const m of inv.emails) {
     if (clientsData[m]) { delete clientsData[m]; cliSave(); }
-    const r = await fbSupprimerCompteSite(m);
+    const r = await compteSiteSupprimer(m);
     fait.comptesSite.push({ email: masqueMail(m), motif: r.motif });
   }
 
@@ -6055,7 +6098,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   const FB_CLE = (config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8';
   let jeton = await fbAdminJeton(); const jetonAdmin = !!jeton;
   if (!jeton) try {
-    const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + FB_CLE,
+    const r = await fetch(IDTK_URL + '/accounts:signUp?key=' + FB_CLE,
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
     const j = await r.json().catch(() => ({}));
     jeton = j.idToken || '';
@@ -6063,7 +6106,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.donneesEffacees = false;
   try {
     const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
-    const r = await fetch('https://firestore.googleapis.com/v1/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
+    const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
       { method: 'DELETE', headers: jeton ? { 'Authorization': 'Bearer ' + jeton } : {}, signal: ctrl.signal });
     clearTimeout(tm);
     fait.donneesEffacees = r.ok;
@@ -6073,7 +6116,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
      affiche ce que la suppression a vraiment fait, pas ce qu'on croit qu'elle a fait. */
   fait.documentEfface = false;
   if (documentsMod) { try { fait.documentEfface = await documentsMod.effacer(t); } catch (e) {} }
-  if (jeton && !jetonAdmin) { try { await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_CLE,
+  if (jeton && !jetonAdmin) { try { await fetch(IDTK_URL + '/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
 
   console.log('Tour :', req.tourUser.nom, 'a SUPPRIMÉ TOTALEMENT l\'espace', t,
@@ -6875,8 +6918,22 @@ async function fbVerifie(jeton) {
 app.post('/api/clients/sync', async (req, res) => {
   const b = req.body || {};
   let ident = null;
-  try { ident = await fbVerifie(String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim()); }
-  catch (e) { console.error('clients sync jeton:', String(e && e.message || e).slice(0, 200)); ident = null; }
+  /* ⛔ APRÈS LA BASCULE DU PORTAIL, LA PREUVE EST UNE SESSION DE `comptes.js`, PLUS UN JETON GOOGLE.
+     `cliSync` (espace.html) n'envoyait sa fiche QUE s'il pouvait obtenir un jeton Firebase : avec
+     nos comptes, il se taisait — et avec lui tout le circuit d'inscription (espace créé, adresse et
+     code d'accès envoyés au client, récapitulatif au patron), le relais des codes promo et la
+     fiche de la Tour. Rien ne cassait à l'écran : le client attendait une réponse qui ne venait
+     jamais. Une session maison (64 hexadécimaux) se reconnaît à sa forme ; un jeton de Google est
+     un JWT et continue de passer par `fbVerifie` tant que Google existe. */
+  const brut = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  if (/^[0-9a-f]{64}$/i.test(brut)) {
+    let c = null; try { c = comptes; } catch (e) { c = null; }
+    const m = c ? c.parJeton(brut) : '';
+    ident = m ? { email: m } : null;
+  } else {
+    try { ident = await fbVerifie(brut); }
+    catch (e) { console.error('clients sync jeton:', String(e && e.message || e).slice(0, 200)); ident = null; }
+  }
   if (!ident) return res.status(401).json({ error: 'connexion non vérifiée' });
   const email = monStr(ident.email, 120).trim().toLowerCase();   // l'e-mail vient du jeton signé, jamais du corps
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(401).json({ error: 'compte sans e-mail' });
@@ -7146,11 +7203,15 @@ app.post('/api/clients/sync', async (req, res) => {
    de clients réels. */
 app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
   const tok = await fbAdminJeton();
-  if (!tok) return res.status(503).json({ error: 'clé admin Firebase absente sur le serveur (firebase-admin.json)' });
+  /* Nos comptes (`comptes.js`) se listent même sans Google : c'est eux que le portail utilise
+     après la bascule, et Google finira éteint. */
+  let cm = null, pm = null; try { cm = comptes; pm = portail; } catch (e) {}
+  if (!tok && !cm) return res.status(503).json({ error: 'clé admin Firebase absente sur le serveur (firebase-admin.json)' });
   /* Les fiches d'inscription, lues EN UNE PASSE puis croisées par uid. Une requête par
      compte aurait fait des centaines d'allers-retours ; et sans elles on n'a que l'adresse,
      alors qu'il faut le nom de la personne et son entreprise pour supprimer sans se tromper. */
   const fiches = {};
+  if (tok) {
   const val = f => f && (f.stringValue !== undefined ? f.stringValue
     : f.integerValue !== undefined ? f.integerValue
     : f.timestampValue !== undefined ? f.timestampValue : '');
@@ -7173,13 +7234,14 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
     }
   } catch (e) { /* sans fiches, la liste reste utilisable : on ne bloque pas dessus */ }
 
-  const comptes = []; let anonymes = 0; let pageTok = '';
-  try {
+  }
+  const lignes = []; let anonymes = 0; let pageTok = '';
+  if (tok) try {
     for (let tour = 0; tour < 20; tour++) {
-      const url = 'https://identitytoolkit.googleapis.com/v1/projects/' + FB_PROJET
+      const url = IDTK_URL + '/projects/' + FB_PROJET
         + '/accounts:batchGet?maxResults=500' + (pageTok ? '&nextPageToken=' + encodeURIComponent(pageTok) : '');
       const r = await fbAdminFetch(url, { method: 'GET' }, tok);
-      if (!r.ok) return res.status(502).json({ error: 'Firebase a refusé la lecture (HTTP ' + r.status + ')' });
+      if (!r.ok) { if (cm) break; return res.status(502).json({ error: 'Firebase a refusé la lecture (HTTP ' + r.status + ')' }); }
       const j = await r.json().catch(() => ({}));
       for (const u of (j.users || [])) {
         const mail = String(u.email || '').trim().toLowerCase();
@@ -7190,7 +7252,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
            COUPERAIT LA SYNCHRO DE L'APPAREIL CORRESPONDANT. Ils sont comptés, pas montrés. */
         if (!mail) { anonymes++; continue; }
         const fi = fiches[u.localId] || {};
-        comptes.push({
+        lignes.push({
           email: mail,
           nom: fi.nom || '',
           societe: fi.societe || '',
@@ -7207,9 +7269,26 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
       }
       pageTok = j.nextPageToken || ''; if (!pageTok) break;
     }
-  } catch (e) { return res.status(502).json({ error: 'lecture Firebase impossible : ' + String(e.message).slice(0, 120) }); }
-  comptes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
-  res.json({ comptes, total: comptes.length, anonymes });
+  } catch (e) { if (!cm) return res.status(502).json({ error: 'lecture Firebase impossible : ' + String(e.message).slice(0, 120) }); }
+  /* Les comptes maison, fusionnés par adresse : une personne présente des deux côtés (reprise de
+     Google, compte « à poser ») n'est qu'UNE ligne, qui dit qu'elle existe chez nous. */
+  if (cm) {
+    const parMail = new Map(lignes.map(x => [x.email, x]));
+    for (const c of cm.liste()) {
+      const dos = pm ? pm.dossierDe(c.email) : null;
+      const deja = parMail.get(c.email);
+      if (deja) { deja.chezNous = true; deja.aPoser = c.aPoser; continue; }
+      lignes.push({ email: c.email,
+        nom: ((c.prenom + ' ' + c.nom).trim() || (dos && ((dos.prenom || '') + ' ' + (dos.nom || '')).trim()) || '').slice(0, 80),
+        societe: String(c.societe || (dos && dos.company) || '').slice(0, 80),
+        statut: String((dos && dos.status) || '').slice(0, 30),
+        cree: c.cree || 0, derniere: c.maj || 0, verifie: c.verifie, desactive: false,
+        entreprise: clientsData[c.email] ? (clientsData[c.email].entreprise || clientsData[c.email].nom || '') : '',
+        aUnEspace: !!clientsData[c.email], chezNous: true, aPoser: c.aPoser });
+    }
+  }
+  lignes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
+  res.json({ comptes: lignes, total: lignes.length, anonymes, google: !!tok });
 });
 
 /* Suppression d'un compte du site — patron seulement, et JAMAIS un compte qui porte une
@@ -7222,7 +7301,7 @@ app.post('/api/monitor/comptes-site/supprimer', monPatronStrict, async (req, res
   if (clientsData[email]) return res.status(409).json({
     error: 'ce compte porte une entreprise — passe par « Fermer définitivement » dans Entreprises, qui efface aussi son espace et ses données'
   });
-  const r = await fbSupprimerCompteSite(email);
+  const r = await compteSiteSupprimer(email);
   // Journal : l'adresse est masquée, on ne met pas de données personnelles dans les logs.
   console.log('compte site supprimé ' + masqueMail(email) + ' : ' + (r.fait ? 'ok' : 'échec — ' + r.motif));
   if (!r.fait) return res.status(400).json({ error: r.motif });

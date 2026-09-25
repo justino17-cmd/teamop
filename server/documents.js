@@ -278,8 +278,12 @@ function monterDocuments(app, d) {
     if (!force && !copieActive()) {
       /* Coupée, ET prouvée par l'inventaire : une entreprise qu'il a vue AVEC un document chez
          Google, et qui n'a plus de fichier ici, n'est pas neuve — on ne sait pas, 503. */
+      /* ⛔ SEUL « document » VEUT DIRE « ON NE SAIT PAS » (`gardien`, C3). Une entreprise que
+         l'inventaire a classée FERMÉE (`ignore`) a vu son document effacé chez Google à la
+         fermeture : rouverte plus tard, elle repart vide — la traiter comme inconnue la laissait
+         en 503 pour toujours, Google éteint. */
       const inv = inventaire();
-      if (inv && inv.espaces && Object.prototype.hasOwnProperty.call(inv.espaces, t) && inv.espaces[t] !== 'absent') { noter('copie'); return null; }
+      if (inv && inv.espaces && Object.prototype.hasOwnProperty.call(inv.espaces, t) && inv.espaces[t] === 'document') { noter('copie'); return null; }
       return { vide: true };
     }
     if (!technique(t) && (+versionFirestore() || 0) < VERSION_SANS_FIREBASE) { noter('attente'); return { attente: true }; }
@@ -489,6 +493,16 @@ function monterDocuments(app, d) {
       } catch (x) { espaces[t] = 'echec'; echecs++; }
     }
     const inv = { le: Date.now(), complet: echecs === 0, espaces };
+    /* ⛔ UN INVENTAIRE COMPLET NE SE REMPLACE JAMAIS PAR UN INVENTAIRE INCOMPLET (`gardien`, C2).
+       Relancé APRÈS l'extinction de Google, il échoue pour chaque entreprise sans fichier ici : il
+       réécrivait `complet:false` par-dessus la preuve, la copie redevenait active, et toute
+       entreprise neuve prenait 503 `copie` pour toujours. On garde la preuve, et on le DIT. */
+    const avant = inventaire();
+    if (!inv.complet && avant && avant.complet === true) {
+      console.error('documents : inventaire incomplet (' + echecs + ' échec(s)) — le précédent, complet, est CONSERVÉ');
+      return res.status(409).json({ ok: false, error: 'inventaire_incomplet_conserve', complet: false, precedentComplet: true,
+        entreprises: liste.length, documents, absents, ignores, echecs });
+    }
     try { const tmp = ecrireAtomique(INVENTAIRE, JSON.stringify(inv)); fs.renameSync(tmp, INVENTAIRE); invCache = inv; }
     catch (x) { console.error('documents : inventaire non écrit —', x.code || 'erreur'); return res.status(500).json({ error: 'inventaire non écrit' }); }
     console.log('documents : inventaire —', liste.length, 'entreprise(s),', documents, 'document(s),', absents, 'absente(s),', ignores, 'fermée(s),', echecs, 'échec(s)');
