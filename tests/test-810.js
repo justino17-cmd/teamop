@@ -31,8 +31,8 @@ console.log('\n── 810 · l\'adaptateur de la page (docEquipe) face au vrai s
 /* ══ 1. EXTRAIRE LE BLOC DE LA PAGE ════════════════════════════════════════════════════════ */
 const bloc = (sig) => { const i = SRC.indexOf(sig); if (i < 0) return '';
   let d = 0, f = -1; for (let k = SRC.indexOf('{', i); k < SRC.length; k++) { if (SRC[k] === '{') d++; else if (SRC[k] === '}') { d--; if (!d) { f = k + 1; break; } } } return SRC.slice(i, f); };
-const morceaux = ['async function docPreuve(', 'function docErreur(', 'async function docAppel(', 'function docInstantane(', 'function docEquipe('].map(bloc);
-v('les cinq fonctions de l\'adaptateur existent dans la page', morceaux.map(m => m.length > 20), [true, true, true, true, true]);
+const morceaux = ['async function docPreuve(', 'function docErreur(', 'async function docAppel(', 'function docRefusVu(', 'function docInstantane(', 'function docEquipe('].map(bloc);
+v('les six fonctions de l\'adaptateur existent dans la page', morceaux.map(m => m.length > 20), [true, true, true, true, true, true]);
 /* ⛔ ET LE DÉMARRAGE DE LA SYNCHRO S'EN SERT — sans quoi l'adaptateur serait un code mort qui a
    l'air d'une sortie de Firebase. On découpe `syncInit` et on regarde ce qu'il FAIT, commentaires
    retirés : il pose `_fbDoc=docEquipe()`, et ne charge plus ni le SDK ni la session anonyme. */
@@ -67,6 +67,7 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
   inscrire('ent-a', 'ent-a810', 'CLE-A-810-QWZX', 1);
   inscrire('ent-p', 'ent-p810', 'CLE-P-810-QWZX', 2);   // Firebase en panne au premier accès
   inscrire('ent-f', 'ent-f810', 'CLE-F-810-QWZX', 3);   // fermée
+  inscrire('ent-s', 'ent-s810', 'ELAN-GESTION-7F3A9C2E-cloud-2026', 4);   // encore sur la clé partagée (écrite en clair dans app.html)
   fs.mkdirSync(path.join(banc, 'data'), { recursive: true });
   fs.writeFileSync(path.join(banc, 'data', 'espaces.json'), JSON.stringify(annuaire));
   fs.writeFileSync(path.join(banc, 'data', 'entreprises-fermees.json'), JSON.stringify({ emails: [], espaces: ['ent-f810'], suspendus: [], suspendusLe: {} }));
@@ -101,8 +102,10 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
       + 'function syncTeam(){ return (localStorage.getItem("elan_sync_team")||"").trim(); }\n'
       + 'async function sha256(s){ return h(s); }\n'
       + 'async function sauvKh(){ const t=localStorage.getItem("elan_sync_team"), k=localStorage.getItem("elan_sync_secret"); if(!t||!k) return null; return {t:t,kh:await sha256(k)}; }\n'
+      /* L'écran du refus définitif, tel que la page le déclenche : on NOTE ce qu'il reçoit. */
+      + 'let _jetonRefus=null; const ecrans=[]; function jetonRefusEcran(){ ecrans.push(_jetonRefus); }\n'
       + morceaux.join('\n')
-      + '\nreturn { docEquipe, docErreur, api:(u)=>{ PUSH_API=u; } };';
+      + '\nreturn { docEquipe, docErreur, ecrans, api:(u)=>{ PUSH_API=u; } };';
     const f = new Function('localStorage', 'window', 'document', 'api0', 'h', code);
     const x = f(env.localStorage, env.window, env.document, B, kh);
     x.declencher = n => (ecout[n] || []).slice().forEach(g => { try { g(); } catch (e) {} });
@@ -193,14 +196,26 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
     /* ── les refus parlent la langue de Firebase ── */
     let e1 = null; await dA.set(Object.assign({}, DOC_A, { verNum: 695, ver: '695' })).catch(e => { e1 = e; });
     v('⛔ sous la version minimale : permission-denied (ce que rendait la règle Firestore)', [e1 && e1.code, e1 && e1.statut], ['permission-denied', 426]);
+    /* ⛔ L'ÉCRAN « RATTACHÉ À AUCUNE ENTREPRISE » NE S'AFFICHE QUE SUR UN VRAI REFUS. Cet appareil a
+       traversé une coupure réseau (la file), des réessais et une version refusée : aucun ne dit
+       « tu n'as pas d'entreprise ». Le mettre là bloquerait un technicien pour une barre de réseau. */
+    v('   ni la coupure réseau, ni la version refusée n\'affichent l\'écran du refus définitif', A.ecrans, []);
     const F = appareil('ent-f810', E['ent-f810']); const dF = F.docEquipe();
     let e2 = null; await dF.get().catch(e => { e2 = e; });
     v('⛔ une entreprise fermée : permission-denied', [e2 && e2.code, e2 && e2.statut], ['permission-denied', 403]);
+    let e2b = null; await dF.set(Object.assign({}, DOC_A, { ver: '748', verNum: 748 })).catch(e => { e2b = e; });
+    v('⛔ son écriture est refusée ET l\'écran du refus définitif est posé (403)', [e2b && e2b.code, F.ecrans.map(x => x.statut)], ['permission-denied', [403]]);
     const X = appareil('ent-a810', 'MAUVAISE-CLE'); const dX = X.docEquipe();
     let errCb = null, cbX = 0;
     dX.onSnapshot(() => { cbX++; }, e => { errCb = e; });
     for (let i = 0; i < 40 && !errCb; i++) await dormir(50);
     v('⛔ mauvaise clé : l\'écoute appelle son rappel d\'erreur, permission-denied, sans rien livrer', [errCb && errCb.code, cbX], ['permission-denied', 0]);
+    v('   …et l\'écran du refus définitif est posé (403) — c\'était le rôle de l\'ancien jeton d\'équipe', X.ecrans.map(x => x.statut), [403]);
+    const S = appareil('ent-s810', 'ELAN-GESTION-7F3A9C2E-cloud-2026'); const dS = S.docEquipe();
+    let errS = null, cbS = 0;
+    dS.onSnapshot(() => { cbS++; }, e => { errS = e; });
+    for (let i = 0; i < 40 && !errS; i++) await dormir(50);
+    v('⛔ une entreprise sur la clé PARTAGÉE : refusée (409), rien livré, et l\'écran le dit', [errS && errS.statut, cbS, S.ecrans.map(x => x.statut + ':' + x.motif)], [409, 0, ['409:cle_partagee']]);
     const contenuAvant = (await dA.get()).data().enc;
     let e3 = null; await dA.set({ ver: '749', verNum: 749 }, { merge: true }).catch(e => { e3 = e; });
     const apresFusion = await dA.get();

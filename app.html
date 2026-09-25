@@ -10256,11 +10256,10 @@ function numMaxUnion(a,b){ const o={};
 function numPlafond(prefixe,annee){ return +((db&&db.numMax)||{})[prefixe+'-'+annee]||0; }
 function save(){ try{ numPlafondRelever(); }catch(e){} try{ estampiller(); }catch(e){} try{ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }catch(e){ try{ toast('Stockage plein — réduis le nombre/poids des photos'); }catch(_){} } refreshBadges(); updateBell(); if(typeof syncPush==='function') syncPush(); if(typeof annuaireVeille==='function') annuaireVeille(); }
 
-/* ════════ SYNCHRONISATION TEMPS RÉEL (équipe) — Firebase Firestore, gratuit ════════
-   Dormant tant qu'aucune config n'est saisie (Paramètres). Document d'équipe unique
-   contenant toute la base, écouté en temps réel (dernier enregistrement = référence). */
-/* Config Firebase intégrée (équipe OP GESTION) — synchro active pour TOUS sans réglage */
-const FB_CONFIG={ apiKey:"AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8", authDomain:"elan-gestion.firebaseapp.com", projectId:"elan-gestion", storageBucket:"elan-gestion.firebasestorage.app", messagingSenderId:"910528393731", appId:"1:910528393731:web:128d97b6a3269fb6d21436" };
+/* ════════ SYNCHRONISATION TEMPS RÉEL (équipe) — le document d'équipe, sur NOTRE serveur ════════
+   Un document unique par entreprise, contenant toute la base chiffrée, écouté en continu
+   (dernier enregistrement = référence). Jusqu'à la v747 il vivait dans Firestore ; depuis la
+   sortie de Firebase (25 septembre 2026), `docEquipe` le lit, l'écrit et l'écoute chez nous. */
 const FB_TEAM='elan-gestion';
 let _syncEssais=0;
 let _syncOn=false,_fbDoc=null,_fbUnsub=null,_syncTs=0,_syncApplying=false,_syncTimer=null,_syncGotInitial=false,_syncDemarre=false;
@@ -10393,7 +10392,6 @@ async function syncReadRemote(d){ if(!d) return null;
 /* Toutes les collections comptent — la liste de 12 d'avant ignorait les mouvements de stock, les
    bons, les pointages, les contrats : une base amputée de tout ça passait pour « aussi lourde ». */
 function dbWeight(d){ if(!d) return 0; let n=0; ['users'].concat(COLLECTIONS_DONNEES).forEach(k=>{ n+=(d[k]&&d[k].length)||0; }); return n; }
-function syncGetCfg(){ try{ const c=JSON.parse(localStorage.getItem('elan_sync_cfg')||'null'); if(c&&c.projectId) return c; }catch(e){} return FB_CONFIG; }
 /* ⛔ L'espace de repli n'accueille plus personne de nouveau — 8 septembre 2026.
    AVANT : un appareil sans rattachement tombait sur FB_TEAM, chiffré avec la clé écrite en
    clair vingt lignes plus haut. Deux conséquences, et la seconde est restée invisible
@@ -10413,50 +10411,16 @@ function syncGetCfg(){ try{ const c=JSON.parse(localStorage.getItem('elan_sync_c
   localStorage.setItem('elan_sync_secret',SYNC_SECRET_DEFAULT);
 }catch(e){} })();
 function syncTeam(){ return (localStorage.getItem('elan_sync_team')||'').trim(); }
-function syncEnabled(){ return localStorage.getItem('elan_sync_on')!=='0' && !!syncGetCfg() && !!syncTeam(); }
-function loadFirebase(){ return new Promise((res,rej)=>{ if(window.firebase&&window.firebase.firestore&&window.firebase.auth) return res();
-  const add=src=>new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=ko; document.head.appendChild(s); });
-  add('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js').then(()=>add('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js')).then(()=>add('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js')).then(res).catch(rej); }); }
-/* Le jeton d'équipe, demandé au serveur TeamOP contre la PREUVE de la clé (jamais la clé
-   elle-même). Rendu vide dès que quoi que ce soit manque — pas d'espace, pas de preuve
-   utilisable, pas de réseau, serveur sans clé d'administration : l'appareil retombe alors sur
-   la connexion anonyme et continue de fonctionner exactement comme avant. C'est voulu : on
-   met tout le monde en place AVANT de fermer la porte, jamais l'inverse. */
-async function fbJetonEquipe(){ try{
-  const t=syncTeam(); if(!t) return '';
-  const kh=await khEquipe(); if(!kh) return '';
-  /* Quatre secondes, comme la course d'authentification juste en dessous, et pas plus : ce
-     délai s'ajoute au démarrage de la synchro quand api.teamop.fr ne répond pas. Mesuré au
-     navigateur avec le serveur injoignable — huit secondes se voyaient, sur un téléphone en
-     c'est huit secondes avant le premier échange.
-     ⛔⛔ CE COMMENTAIRE A DIT « le jeton n'est pas urgent (tant que la règle Firestore n'a pas
-     changé, il ne change rien) ». LA RÈGLE A CHANGÉ LE 18 SEPTEMBRE 2026 : `monEquipe(teamId)`
-     est publiée et servie par Google, donc un appareil qui repart en anonyme n'obtient PLUS
-     RIEN. Abandonner vite reste le bon geste — personne ne doit attendre huit secondes sur un
-     chantier — mais ce n'est plus sans conséquence : au-delà de ce délai, la synchro de cet
-     appareil ne passe pas. ⚠️ Ce que l'écran en dit alors n'a PAS été mesuré. Tant que ça ne
-     l'est pas, ne pas réécrire ici que c'est sans danger. */
-  const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),4000);
-  let j={},statut=0;
-  try{ const r=await fetch(PUSH_API+'/api/fb/jeton',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:t,kh:kh}),signal:ctrl.signal});
-       statut=r.status; j=await r.json().catch(()=>({})); }
-  finally{ clearTimeout(tm); }
-  /* ⛔ UN REFUS N'EST PAS UNE COUPURE RÉSEAU, ET LES CONFONDRE A COÛTÉ DES SEMAINES DE TRAVAIL
-     DANS LE VIDE. Cette fonction rendait `''` dans les deux cas : un serveur injoignable et un
-     « cet espace est banni » se ressemblaient trait pour trait. Or le serveur refuse le jeton à
-     DEUX populations, exprès et depuis longtemps — l'espace de repli (403) et toute entreprise
-     restée sur la clé écrite en clair dans ce fichier (409). Ces appareils repartaient en
-     anonyme, la règle Firestore ne leur donnait rien, et l'application continuait comme si de
-     rien n'était. Mesuré chez ELAN le 14 septembre 2026 : cinq personnes saisissaient tous les
-     jours dans un espace coupé, sans qu'aucun écran ne le dise.
-     403 et 409 sont DÉFINITIFS : ils ne passeront pas au prochain essai. On les remonte.
-     Tout le reste — délai, 500, hors ligne — reste muet et repart en anonyme, exprès : le
-     jeton n'est pas urgent et personne ne doit être arrêté sur un chantier par un réseau
-     capricieux. */
-  if(statut===403||statut===409){ _jetonRefus={statut:statut,motif:String((j&&j.error)||'')};
-    try{ jetonRefusEcran(); }catch(_e){} }
-  return (j&&j.jeton)?String(j.jeton):'';
-}catch(e){ return ''; } }
+function syncEnabled(){ return localStorage.getItem('elan_sync_on')!=='0' && !!syncTeam(); }
+/* ⛔ FIREBASE N'EST PLUS CHARGÉ — décision de Justin, 25 septembre 2026 : « quand j'envoie la
+   mise à jour, Firebase est supprimé ». Ici vivaient le chargement du kit (gstatic), le jeton
+   d'équipe (`/api/fb/jeton`), l'application nommée et la session anonyme. La synchro parle
+   désormais à NOTRE serveur (`docEquipe`, plus bas), avec la preuve de la clé à chaque requête.
+   L'historique complet est dans git (v747 et avant).
+   ⚠️ L'ÉCRAN CI-DESSOUS RESTE. Un espace refusé — l'espace de repli (403), une clé écrite en clair
+   dans ce fichier (409) — doit SE VOIR : cinq personnes d'ELAN ont saisi des jours entiers dans un
+   espace coupé, sans qu'aucun écran ne le dise (14 septembre 2026). C'est `docEquipe` qui le
+   déclenche désormais, sur les mêmes refus (`docRefusVu`). */
 let _jetonRefus=null,_jetonEcranDit=false;
 /* L'écran du refus définitif. Il BLOQUE — laisser travailler serait reconduire le défaut qu'on
    corrige — mais il ne prend rien en otage : la base locale est la SEULE copie de ce qui a été
@@ -10483,63 +10447,6 @@ function jetonRefusEcran(){
     '</div>'+
     '<p style="color:var(--t3,#93a9d4);font-size:12.5px;line-height:1.6;margin:16px 0 0">Ton adresse ressemble à <b style="color:var(--t1,#eef2fa)">teamop.fr/e/ton-entreprise</b>. Identifiant et mot de passe suffisent ensuite, sur n\'importe quel téléphone.</p></div>';
 }
-/* Les règles Firestore exigent un utilisateur connecté. Jusqu'ici c'était une connexion
-   ANONYME : Google savait qu'un appareil était là, jamais à quelle entreprise il appartenait
-   — d'où une règle qui ne peut dire que « toute personne connectée », donc n'importe quel
-   compte anonyme lisant et écrivant le document de n'importe quelle entreprise.
-   On présente désormais un jeton signé par le serveur, qui porte l'entreprise (`claims.t`).
-   Trois cas à tenir, et chacun a coûté un défaut ailleurs dans ce fichier :
-    · session anonyme, neuve OU DÉJÀ EN PLACE → on tente le jeton. Ne regarder que le cas
-      « aucune session » laisserait tous les appareils déjà utilisés en anonyme pour toujours.
-    · le jeton échoue (réseau, serveur, espace de repli) → on GARDE la session anonyme
-      existante ou on en ouvre une : perdre la synchro pour cause de porte fermée trop tôt
-      serait pire que le mal qu'on soigne.
-    · session déjà porteuse d'un jeton mais d'une AUTRE entreprise (l'appareil a changé
-      d'espace) → on déconnecte, sinon il resterait rattaché à l'ancienne. */
-/* ⛔ OP GESTION A SA PROPRE APPLICATION FIREBASE, ET C'EST UNE QUESTION DE SESSION.
-   `espace.html` — le portail où un client gère son abonnement — déclare le MÊME projet
-   Firebase, sur la MÊME origine, sous le même nom d'application par défaut. La session est
-   donc PARTAGÉE entre les deux pages. Un patron qui règle son abonnement puis ouvre OP GESTION
-   arrivait ici avec son compte e-mail : ni anonyme, ni porteur du jeton d'équipe — donc le
-   bloc ci-dessous était sauté et cet appareil ne demandait JAMAIS de jeton. Sans effet tant
-   que la règle Firestore reste permissive ; le jour où elle exigera le jeton, Firestore
-   refuserait tout et l'application travaillerait en local toute la session, sans le dire.
-   Et le « corriger » en remplaçant sa session ferait se battre les deux pages, chacune
-   reprenant la main sur l'autre à chaque visite.
-   Une application NOMMÉE isole les deux (la persistance Firebase est rangée par nom
-   d'application) : chacune sa session, aucune ne dérange l'autre. Trouvé par `gardien`. */
-function fbApp(){ const cfg=syncGetCfg();
-  try{ return firebase.app('opgestion'); }catch(e){ return firebase.initializeApp(cfg,'opgestion'); } }
-async function syncAuth(){ try{
-  if(!firebase.auth) return;
-  const A=fbApp();
-  let u=await Promise.race([
-    new Promise(res=>{ const off=A.auth().onAuthStateChanged(x=>{ try{off();}catch(e){} res(x); }); }),
-    new Promise(res=>setTimeout(()=>res(null),4000))
-  ]);
-  const tIci=syncTeam();
-  /* On juge sur le CLAIM, pas sur l'anonymat : la question est « cette session vaut-elle pour
-     l'entreprise qu'on a sous les yeux ? ». Une session porteuse d'une AUTRE entreprise se
-     déconnecte ; une session sans claim (anonyme, ou héritée d'ailleurs) va chercher le jeton. */
-  let cl='';
-  if(u && !u.isAnonymous){ try{ const r=await u.getIdTokenResult(); cl=(r&&r.claims&&r.claims.t)||''; }catch(e){} }
-  if(cl && cl!==tIci){ try{ await A.auth().signOut(); }catch(e){} u=null; cl=''; }
-  if(!cl){
-    const jet=await fbJetonEquipe();
-    if(jet){ try{ await A.auth().signInWithCustomToken(jet); }
-             catch(e){ try{ console.warn('jeton équipe refusé :', e&&e.code); }catch(_e){} } }
-    if(!A.auth().currentUser) await A.auth().signInAnonymously();
-  }
-  /* Se connecter ne suffit pas, et attendre currentUser ne suffit pas non plus : currentUser est
-     posé dès que signInAnonymously() se résout, alors que le JETON n'est pas encore parvenu au
-     client Firestore. L'écouteur s'attachait donc sur une connexion sans jeton et Firestore
-     répondait « permission refusée » alors que les règles et l'authentification étaient bonnes.
-     getIdToken() attend la vraie remise du jeton — mesuré sur la page : une lecture passe dès
-     que c'est fait, et échouait systématiquement avant. */
-  for(let i=0; i<20 && !A.auth().currentUser; i++) await new Promise(r=>setTimeout(r,100));
-  const _u=A.auth().currentUser;
-  if(_u) await _u.getIdToken();
-}catch(e){ try{ console.warn('auth sync :', e&&e.message); }catch(_e){} } }
 /* ══════════ UNE ÉQUIPE PASSE D'UNE VERSION À L'AUTRE ENSEMBLE ══════════════════════════
    Demande de Justin, 8 septembre 2026 : « quand il y a une mise à jour, il faut que ça
    synchronise tous les utilisateurs directement ».
@@ -10650,6 +10557,10 @@ async function docAppel(route,corps,ms){ const ctl=new AbortController(); const 
     let j=null; try{ j=await r.json(); }catch(e){}
     return {statut:r.status,j:j}; }
   finally{ clearTimeout(to); } }
+/* L'écran « rattaché à aucune entreprise », sur les MÊMES refus qu'avant (403, 409) : ce sont des
+   refus DÉFINITIFS, ils ne passeront pas au prochain essai. Tout le reste (réseau, 5xx) se tait et
+   se réessaie — personne ne doit être arrêté sur un chantier par un réseau capricieux. */
+function docRefusVu(e){ try{ if(e&&(e.statut===403||e.statut===409)){ _jetonRefus={statut:e.statut,motif:e.motif||''}; jetonRefusEcran(); } }catch(_e){} }
 /* Ce que `onSnapshot` et `get()` rendaient : `data()` rend `undefined` quand le document n'existe
    pas, et l'instantané ne vient JAMAIS du cache — le récepteur l'attend (voir `fromCache` dans
    `syncInit`). `_v` est notre numéro de version, que la synchro ne lit pas. */
@@ -10690,7 +10601,7 @@ function docEquipe(){
       if(!reseau&&[400,403,404,409,413,426].indexOf(r.statut)>=0){
         /* Un refus DÉFINITIF (forme, porte, version) : le réessayer ne le changera pas. On le rend
            à tous ceux qui attendent, comme Firestore rendait `permission-denied`. */
-        const e=docErreur(r.statut,r.j&&r.j.motif); const tous=lot.attentes.splice(0);
+        const e=docErreur(r.statut,r.j&&r.j.motif); const tous=lot.attentes.splice(0); docRefusVu(e);
         if(ecriture===lot) ecriture=null; tous.forEach(a=>{ try{ a.ko(e); }catch(_e){} }); continue;
       }
       /* Réseau, 429, 503 : on réessaie, en espaçant — 15 s au plus, et tout de suite si on nous réveille. */
@@ -10717,7 +10628,7 @@ function docEquipe(){
       try{ window.addEventListener('online',reveil); document.addEventListener('visibilitychange',reveil); }catch(e){}
       const arreter=()=>{ actif=false; try{ if(ctl) ctl.abort(); }catch(e){}
         try{ window.removeEventListener('online',reveil); document.removeEventListener('visibilitychange',reveil); }catch(e){} };
-      const refus=e=>{ actif=false; arreter(); try{ if(errCb) errCb(e); }catch(_e){} };
+      const refus=e=>{ actif=false; arreter(); docRefusVu(e); try{ if(errCb) errCb(e); }catch(_e){} };
       (async()=>{
         let aRelire=true, pause=1000;
         while(actif){
@@ -10885,7 +10796,11 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
         /* « permission-denied » au démarrage veut dire que l'authentification n'était pas encore
            établie — pas que l'appareil n'a pas le droit. Abandonner ici laissait l'application
            travailler en local pour TOUTE la session, sans jamais se resynchroniser : l'équipe
-           voyait des données périmées sans qu'aucun message ne le signale. On réessaie. */
+           voyait des données périmées sans qu'aucun message ne le signale. On réessaie.
+           ⚠️ Depuis la v748 il n'y a plus de session à établir : ce refus vient de NOTRE serveur
+           (entreprise fermée ou inconnue, clé refusée — voir `docErreur`) et ne passera sans doute
+           pas au prochain essai. Les quatre reprises restent : elles ne coûtent que quatre appels,
+           et l'écran du refus définitif est déjà posé par `docRefusVu`. */
         if(err && err.code==='permission-denied' && (_syncEssais=(_syncEssais||0)+1)<=4){
           setTimeout(()=>{ try{ syncInit(); }catch(e){} }, 1200*_syncEssais); return; }
         /* ⛔ ET QUAND LES QUATRE REPRISES SONT ÉPUISÉES, ON LE DIT. Le commentaire ci-dessus
@@ -12599,12 +12514,6 @@ function miseDeCoteModal(){ miseDeCoteListe().then(l=>{
 }); }
 function miseDeCoteExporter(ts){ miseDeCoteListe().then(l=>{ const x=l.find(y=>y.ts===ts); if(!x) return;
   const blob=new Blob([x.json],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='mis-de-cote-'+new Date(ts).toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json'; a.click(); URL.revokeObjectURL(a.href); }); }
-function syncSave(){ const cfgT=(($('sync-cfg')||{}).value||'').trim(); const team=(($('sync-team')||{}).value||'').trim().toLowerCase();
-  let cfg=null; try{ cfg=JSON.parse(cfgT); }catch(e){ toast('Configuration Firebase invalide (copie le JSON complet { … })'); return; }
-  if(!cfg||!cfg.projectId||!cfg.apiKey){ toast('Config Firebase incomplète (apiKey, projectId…)'); return; }
-  if(!team){ toast('Indique un code équipe (le même pour tous)'); return; }
-  localStorage.setItem('elan_sync_cfg',JSON.stringify(cfg)); localStorage.setItem('elan_sync_team',team); localStorage.setItem('elan_sync_on','1');
-  toast('Activation de la synchro…'); syncInit().then(()=>{ if(current==='parametres') views.parametres(); }); }
 /* Couper la synchro n'efface rien, mais l'appareil cesse de recevoir ET d'envoyer : le
    travail fait ici ne rejoint plus l'équipe, et se perd s'il est réinstallé. Même barrière. */
 async function syncDisable(){
@@ -12825,8 +12734,10 @@ function espaceQuitter(){
      que Firebase ait été chargé ou non. Et on n'efface QUE la clé de l'application
      « opgestion » : la base est partagée avec le portail client (espace.html), vider la base
      entière déconnecterait le client de son propre espace abonnement.
-     Signalé par `gardien`, 10 septembre 2026, puis précisé en seconde passe. */
-  try{ if(window.firebase&&firebase.apps){ const a=firebase.apps.filter(x=>x&&x.name==='opgestion')[0]; if(a&&a.auth) a.auth().signOut(); } }catch(e){}
+     Signalé par `gardien`, 10 septembre 2026, puis précisé en seconde passe.
+     ⚠️ Depuis la sortie de Firebase (v748), le kit n'est plus jamais chargé : le retrait par le SDK
+     est parti avec lui. Celui du STOCKAGE reste — un appareil passé par la v747 garde sa session
+     dans le navigateur, et elle n'a plus rien à y faire. */
   try{
     const dm=indexedDB.open('firebaseLocalStorageDb');
     dm.onsuccess=function(){ try{ const d=dm.result;
@@ -12924,18 +12835,6 @@ async function teamopJoin(code){
   toast('Connexion à l\'espace « '+(o.n||o.t)+' »…');
   setTimeout(()=>location.reload(),700);
 }
-function syncGuide(){ openModal(`<div class="modal-head"><h3>Activer la synchro (gratuit)</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-  <div style="padding:6px;font-size:14px;line-height:1.7;color:var(--t2)">
-  <b>Une seule fois</b>, pour toute l'équipe :<br><br>
-  1. <b>console.firebase.google.com</b> → <b>Ajouter un projet</b> (gratuit, sans carte).<br>
-  2. <b>Build → Firestore Database → Créer une base</b> (mode production).<br>
-  3. Onglet <b>Règles</b> → colle puis Publier :<br><span style="font-family:monospace;font-size:11.5px;background:var(--bg2);display:block;padding:8px;border-radius:8px;margin:6px 0;white-space:pre-wrap">rules_version = '2';
-service cloud.firestore { match /databases/{d}/documents { match /{all=**} { allow read, write: if true; } } }</span>
-  4. <b>Paramètres du projet → Vos applications → &lt;/&gt; (Web)</b> → enregistre l'app → copie le bloc <b>firebaseConfig</b> ({ apiKey… }).<br>
-  5. Colle-le ci-dessous, choisis un <b>code équipe</b> (identique sur tous les appareils), puis <b>Activer</b>.<br><br>
-  Ces règles sont <b>ouvertes</b> pour démarrer. Je peux les sécuriser ensuite.
-  </div>`); }
-
 function defaultPerms(){
   // Modules accessibles par rôle (l'admin a tout ; DR et chef ont un accès large géré dans canSee)
   return {
@@ -39191,17 +39090,27 @@ async function doLogin(e){ e.preventDefault();
   // Compte relié au site teamop.fr (lien envoyé automatiquement après la demande) :
   // la 1re connexion se fait avec l'e-mail + le mot de passe du compte TeamOP du site,
   // vérifié auprès du serveur d'authentification. Ensuite tout est local (hors ligne ok).
+  /* ⛔ CE SERVEUR D'AUTHENTIFICATION EST LE NÔTRE DEPUIS LA SORTIE DE FIREBASE (25 septembre 2026).
+     Jusqu'à la v747, ce mot de passe partait chez Google (`identitytoolkit`, la clé de FB_CONFIG) ;
+     il se vérifie maintenant auprès des comptes du portail (`/api/compte/connexion`), avec la MÊME
+     empreinte qu'`espace.html` et `reinit.html` : le mot de passe ne quitte pas l'appareil.
+     Un refus n'est pas une panne : 401 dit « mauvais mot de passe », le reste « réessaie ». */
   const _site=(u && !u.pwdHash && u.compteSite)?u:null;
   if(_site){
     const er=$('li-error');
     if(!pin){ if(er){ er.textContent='Entre le mot de passe de ton compte TeamOP (celui du site teamop.fr)'; er.style.display='block'; } return; }
     try{
-      const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+FB_CONFIG.apiKey,
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:_site.login,password:pin,returnSecureToken:true})});
+      const r=await fetch(PUSH_API+'/api/compte/connexion',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:_site.login,h:await sha256('teamop-portail:'+pin)})});
       if(!r.ok){
-        if(er){ er.textContent='Mot de passe incorrect — c\'est celui de ton compte TeamOP, créé sur teamop.fr'; er.style.display='block'; }
+        if(er){ er.textContent=r.status===401?'Mot de passe incorrect — c\'est celui de ton compte TeamOP, créé sur teamop.fr'
+          :r.status===429?'Trop d\'essais sur ce compte — réessaie dans une heure'
+          :'Vérification impossible pour le moment — réessaie dans quelques minutes'; er.style.display='block'; }
         const p=$('li-pin'); if(p){ p.value=''; p.focus(); } return;
       }
+      /* La session du portail ne sert à rien ici : on la referme aussitôt, sinon elle vivrait trente
+         jours sur le serveur sans personne pour s'en servir. */
+      try{ const j=await r.json(); if(j&&j.jeton) fetch(PUSH_API+'/api/compte/deconnexion',{method:'POST',headers:{'Authorization':'Bearer '+j.jeton}}).catch(()=>{}); }catch(_e){}
     }catch(_e){ if(er){ er.textContent='Connexion internet requise pour ta toute première connexion'; er.style.display='block'; } return; }
     /* Même raison qu'à la création du compte administrateur : la personne vient de choisir ce
        mot de passe, on ne lui en redemande pas un autre dans la foulée. L'e-mail reste exigé. */

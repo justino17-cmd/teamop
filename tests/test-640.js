@@ -137,46 +137,38 @@ console.log('\nLa route ne délivre rien sans preuve, et jamais pour le repli');
   v('…et une clé fausse',/espaceCleOk\(t, kh\)/.test(garde),true);
 }
 
-console.log('\nCôté application : le jeton s\'essaie, mais rien ne casse s\'il manque');
-{ const jet=(APP.match(/async function fbJetonEquipe\(\)\{[\s\S]*?\n\}catch\(e\)\{ return ''; \} \}/)||[''])[0];
-  v('fbJetonEquipe existe',jet.length>100,true);
-  v('elle envoie la PREUVE, jamais la clé',[/khEquipe\(\)/.test(jet),/syncSecret\(\)/.test(jet)],[true,false]);
-  v('elle rend vide plutôt que de lever, quoi qu\'il arrive',/catch\(e\)\{ return ''; \}/.test(jet),true);
-  v('elle ne reste pas suspendue si le serveur ne répond pas',/AbortController/.test(jet),true);
-
-  const auth=(APP.match(/async function syncAuth\(\)\{[\s\S]*?\n\}catch\(e\)\{ try\{ console\.warn\('auth sync/)||[''])[0];
-  /* ⛔ ON JUGE SUR LE CLAIM, PAS SUR L'ANONYMAT. `espace.html` (le portail client) déclare le
-     même projet Firebase sur la même origine : sa session était PARTAGÉE avec l'application.
-     Un patron qui règle son abonnement puis ouvre OP GESTION arrivait donc ici avec un compte
-     e-mail — ni anonyme, ni porteur du jeton — et le bloc était sauté : cet appareil n'aurait
-     JAMAIS demandé de jeton, et se serait retrouvé muet le jour où la règle l'exige.
-     Trouvé par `gardien`. La vraie question est « cette session vaut-elle pour l'entreprise
-     qu'on a sous les yeux ? », et l'isolement des deux pages se fait par une application
-     Firebase NOMMÉE — la persistance étant rangée par nom d'application. */
-  v('l\'application Firestore d\'OP GESTION est NOMMÉE, séparée du portail client',
-    /firebase\.initializeApp\(cfg,'opgestion'\)/.test(APP),true);
-  v('plus aucun firebase.auth() global : tout passe par cette application',
-    (APP.match(/firebase\.auth\(\)/g)||[]).length,0);
-  v('la décision porte sur le claim, pas sur l\'anonymat',/if\(!cl\)\{/.test(auth),true);
-  v('si le jeton échoue, on garde ou on ouvre une session anonyme — la synchro ne s\'arrête pas',
-    /if\(!A\.auth\(\)\.currentUser\) await A\.auth\(\)\.signInAnonymously\(\);/.test(auth),true);
-  v('un jeton d\'une AUTRE entreprise fait déconnecter',
-    /if\(cl && cl!==tIci\)\{ try\{ await A\.auth\(\)\.signOut\(\); \}/.test(auth),true);
-  v('le jeton n\'est demandé qu\'après avoir constaté que la session ne vaut pas',
-    auth.indexOf('fbJetonEquipe()')>auth.indexOf('if(!cl)'),true);
+console.log('\nCôté application : Firebase n\'est plus chargé du tout (sortie du 25 septembre 2026)');
+{ /* ⛔ CE BLOC GARDAIT LE CONTRAIRE JUSQU'À LA v747 : le jeton d'équipe (`fbJetonEquipe`), la
+     session anonyme de secours, l'application Firebase NOMMÉE qui séparait OP GESTION du portail.
+     Décision de Justin, 25 septembre 2026 : « quand j'envoie la mise à jour, Firebase est
+     supprimé ». La synchro passe par `docEquipe` et NOTRE serveur (`test-810` la joue contre le
+     vrai serveur), la première connexion d'un compte du site par nos comptes maison.
+     On cherche dans le CODE, commentaires retirés — seuls les blocs qui commencent une ligne,
+     les autres avalent du vrai code (voir CLAUDE.md, 21 septembre 2026). */
+  const CODE = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const traces = ['gstatic.com/firebasejs', 'firebase.initializeApp', 'firebase.auth', '.firestore()', 'signInAnonymously',
+    'signInWithCustomToken', 'identitytoolkit.googleapis.com', 'firestore.googleapis.com', '/api/fb/jeton', 'FB_CONFIG', 'apiKey:'];
+  v('⛔ aucun code de la page ne charge ni n\'appelle Firebase', traces.filter(x => CODE.indexOf(x) >= 0), []);
+  v('les fonctions du jeton et de la session sont parties avec lui',
+    ['function loadFirebase(', 'function fbJetonEquipe(', 'function fbApp(', 'function syncAuth(', 'function syncGetCfg(', 'function syncSave(', 'function syncGuide('].filter(x => APP.indexOf(x) >= 0), []);
+  /* La preuve de la clé reste ce qu'elle était : l'empreinte, jamais la clé. */
+  const preuve = (APP.match(/async function docPreuve\(\)\{[^\n]*\}/) || [''])[0];
+  v('le document d\'équipe se demande contre la PREUVE, jamais la clé', [/sauvKh\(\)/.test(preuve), /syncSecret\(\)/.test(preuve)], [true, false]);
+  /* ⛔ ET LE COMPTE DU SITE NE PASSE PLUS PAR GOOGLE. Sa première connexion vérifiait le mot de
+     passe chez `identitytoolkit` avec la clé de FB_CONFIG ; c'est désormais `/api/compte/connexion`,
+     avec la MÊME empreinte que le portail (`espace.html`, `reinit.html`) — sinon un mot de passe
+     posé là-bas serait refusé ici. */
+  const site = (APP.match(/const _site=\(u && !u\.pwdHash && u\.compteSite\)\?u:null;[\s\S]*?\n  \}\n/) || [''])[0];
+  v('le compte du site se vérifie chez nous, avec l\'empreinte du portail',
+    [/fetch\(PUSH_API\+'\/api\/compte\/connexion'/.test(site), /h:await sha256\('teamop-portail:'\+pin\)/.test(site), /identitytoolkit/.test(site.replace(/\/\*[\s\S]*?\*\//g, ' '))], [true, true, false]);
+  const ESP = fs.readFileSync(RAC + '/espace.html', 'utf8');
+  v('…et c\'est bien la même empreinte qu\'espace.html', /encode\('teamop-portail:' \+ String\(mdp\)\)/.test(ESP), true);
   /* La session Firebase est le secret le plus VIVANT : elle se renouvelle indéfiniment toute
-     seule. Un appareil qu'on rend ou dont la Tour ferme l'espace la garderait sinon. */
+     seule. Un appareil passé par la v747 la garde dans son navigateur ; on l'efface en quittant. */
   const quitter=(APP.match(/function espaceQuitter\(\)\{[\s\S]*?\n\}\n(?=(?:async function |function |const |let |\/\*))/)||[''])[0];
-  v('quitter un espace emporte AUSSI la session Firebase',
-    /name==='opgestion'\)\[0\]; if\(a&&a\.auth\) a\.auth\(\)\.signOut\(\)/.test(quitter),true);
-  /* ⛔ ET PAR LE STOCKAGE, PAS SEULEMENT PAR LE SDK. L'application nommée n'existe que si
-     syncInit a dépassé le chargement des trois scripts de Google DANS CE CHARGEMENT-CI. Sur
-     la porte de la Tour (« espace fermé »), la vérification part à 2,6 s : en 4G c'est une
-     course perdue d'avance, et après elle `elan_sync_team` a disparu — donc syncAuth ne
-     repassera JAMAIS pour rattraper. Une entreprise coupée par TEAM OP gardait ainsi, sur
-     chaque appareil, une session valide et renouvelable en lecture ET écriture sur son
-     document. Trouvé par `gardien` en seconde passe. */
-  v('…et directement dans le stockage de Firebase, qui marche même si le SDK n\'est pas chargé',
+  /* ⛔ PAR LE STOCKAGE, PAS PAR LE SDK — qui n'est plus chargé. C'était déjà le seul retrait qui
+     marchait sur la porte de la Tour (« espace fermé », 2,6 s en 4G) ; c'est désormais le seul. */
+  v('quitter un espace efface la session Firebase qu\'un ancien appareil garde encore',
     /indexedDB\.open\('firebaseLocalStorageDb'\)/.test(quitter),true);
   v('en n\'effaçant QUE la clé d\'OP GESTION — la base est partagée avec le portail client',
     /indexOf\(':opgestion'\)>0\) st\.delete\(k\)/.test(quitter),true);
