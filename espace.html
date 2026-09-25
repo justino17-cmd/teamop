@@ -590,8 +590,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
        calcule l'échéance. La page écrivait `promo` elle-même dans son dossier — c'était Firestore ;
        notre serveur réserve ce champ, et l'écriture était jetée sans un mot. */
     async function promoActiver(code){ return appel('/api/portail/promo', { code }); }
+    /* Le lien qui prouve l'adresse : tant qu'il n'est pas ouvert, le serveur ne crée pas l'espace
+       et n'envoie pas de code d'accès (`/api/clients/sync` refuse une adresse non prouvée). */
+    async function verifRenvoyer(){ return appel('/api/compte/verifier/renvoyer', {}); }
 
-    return { auth, fs, FieldValue, promoActiver };
+    return { auth, fs, FieldValue, promoActiver, verifRenvoyer };
   }
 
   const _pv = portailMaison();
@@ -680,9 +683,10 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         _signupBusy=true;
         const cred=await auth.createUserWithEmailAndPassword(email,pass);
         await fs.collection('teamop_requests').doc(cred.user.uid).set({uid:cred.user.uid,email,prenom,nom,name:(prenom+' '+nom).trim(),company,apps:[],app:'',besoin:'',status:'compte',createdAt:FV.serverTimestamp()},{merge:true});
-        /* L'équipe est prévenue par e-mail : le serveur ne voit pas passer les inscriptions,
-           puisqu'elles vont directement de la page à Firebase. Volontairement non bloquant —
-           un e-mail d'alerte qui échoue ne doit jamais empêcher un client de créer son compte. */
+        /* L'équipe est prévenue par e-mail, avec le nom et l'entreprise que `comptes.js` ne garde
+           pas pour elle. Volontairement non bloquant — un e-mail d'alerte qui échoue ne doit
+           jamais empêcher un client de créer son compte. L'espace, lui, n'est créé qu'une fois
+           l'adresse PROUVÉE (le lien du courriel) : voir `verifBanner`. */
         try{ fetch('https://api.teamop.fr/api/nouveau-compte',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,prenom:prenom,nom:nom,company:company})}).catch(()=>{}); }catch(_){}
         _signupBusy=false;
         if(RETOUR_PAIEMENT){ location.href=RETOUR_PAIEMENT; return; }
@@ -829,6 +833,22 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     if(r.code!==200||!r.j.dossier) return err('Impossible de vérifier le code pour le moment. Réessayez dans un instant.');
     _meDoc=r.j.dossier;
     openView('abo'); }
+  /* 📧 L'ADRESSE N'EST PAS ENCORE PROUVÉE — ET TANT QU'ELLE NE L'EST PAS, RIEN NE S'ACTIVE.
+     Le serveur refuse la fiche d'une adresse non prouvée (`/api/clients/sync`, `gardien` G1) :
+     sans ce bandeau, le client attendrait un espace et un code d'accès qui ne viennent pas, sans
+     savoir pourquoi — un refus qui ne se dit pas est une panne pour celui qui la vit. */
+  function verifBanner(user){ if(!user||user.emailVerified!==false) return '';
+    return '<div class="panel" id="verif-banner" style="padding:14px 18px;margin-bottom:16px;border-color:rgba(96,165,250,.55);background:rgba(96,165,250,.08)"><b style="font-size:14px">📧 Confirmez votre adresse e-mail</b><p class="muted" style="margin-top:6px;line-height:1.55">Un lien vous a été envoyé à <b>'+esc(user.email||'')+'</b>. Tant que vous ne l\'avez pas ouvert, vos demandes d\'accès restent en attente. Pensez à regarder dans les indésirables.</p><button class="btn sm" style="margin-top:10px" onclick="verifLien(this)">Renvoyer le lien</button><div id="verif-msg" style="margin-top:8px"></div></div>'; }
+  async function verifLien(b){ const m=$('verif-msg'); if(b) b.disabled=true;
+    let r=null; try{ r=await _pv.verifRenvoyer(); }catch(e){ r=null; }
+    if(b) b.disabled=false;
+    if(!m) return;
+    /* Confirmée ailleurs (le lien ouvert dans un autre onglet) : la page relit le compte. */
+    if(r&&r.code===200&&r.j&&r.j.deja){ m.innerHTML='<div class="ok">✅ Votre adresse est déjà confirmée.</div>'; setTimeout(function(){ location.reload(); },1200); return; }
+    if(r&&r.code===200){ m.innerHTML='<div class="ok">📬 Un nouveau lien vient de partir. Regardez aussi dans les indésirables.</div>'; return; }
+    if(r&&r.code===429){ m.innerHTML='<div class="err">Trois liens sont déjà partis cette heure-ci : regardez dans les indésirables, ou réessayez plus tard.</div>'; return; }
+    if(r&&r.code===401){ m.innerHTML='<div class="err">Votre session a expiré : reconnectez-vous.</div>'; return; }
+    m.innerHTML='<div class="err">Envoi impossible pour le moment. Réessayez dans un instant.</div>'; }
   /* ⏳ Alerte J-2 avant la fin de l'offre : bannière + message + notification (une seule fois) */
   function promoBanner(d){ const pi=promoInfo(d); if(!pi||pi.jours>2) return '';
     return '<div class="panel" style="padding:14px 18px;margin-bottom:16px;border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08)"><b style="font-size:14px">⏳ Votre offre « '+esc(pi.label)+' » se termine dans '+pi.jours+' jour'+(pi.jours>1?'s':'')+'</b><p class="muted" style="margin-top:6px;line-height:1.55">Pour garder l\'accès à vos applications, choisissez votre abonnement dès maintenant. <b>Vos données ne sont jamais perdues</b>, quoi qu\'il arrive.</p><a class="btn sm" style="margin-top:10px;display:inline-block" href="recap-abonnement.html?formule=premium">Choisir mon abonnement →</a></div>'; }
@@ -852,6 +872,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const ROW=(v,ic,title,sub,badge)=>`<div class="setrow" onclick="openView('${v}')"><span class="si">${ic}</span><div class="sl"><b>${title}${badge||''}</b><span>${sub}</span></div><span class="sc">›</span></div>`;
     $('space').innerHTML=`
       <div class="hero-cli"><div class="cli-ava">${avaL}</div><div style="flex:1;min-width:0"><div class="hi">Bonjour ${esc(prenom||'👋')} 👋</div><div class="hs">${esc(d.company||'Ton espace TeamOP')} ${_cliBadge(d)}</div></div></div>
+      ${verifBanner(user)}
       ${(()=>{ const steps=[['Compte créé',true],['Profil complété',!!(d.prenom&&d.nom&&d.company)],['Accès demandé',d.status==='nouveau'||d.status==='encours'||d.status==='fourni'||(apps.length>0)],['Application activée',apps.length>0]]; const done=steps.filter(x=>x[1]).length; if(done>=4) return '';
         return `<div class="panel" style="padding:16px 18px;margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><b style="font-size:14px">🚀 Prise en main</b><span class="muted">${done}/4 · ${Math.round(done/4*100)}%</span></div><div class="prog"><div class="prog-b" style="width:${done/4*100}%"></div></div></div>`; })()}
 

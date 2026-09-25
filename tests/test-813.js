@@ -123,6 +123,9 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
       const bon = !!(h && p && s) && crypto.verify('RSA-SHA256', Buffer.from(h + '.' + p), paire.publicKey, Buffer.from(s, 'base64url'));
       return bon ? json(200, { access_token: JETON, expires_in: 3600 }) : json(400, { error: 'invalid_grant' });
     }
+    /* Les clés publiques qui signent les jetons d'identité de Google (`fbVerifie`) : servies ici,
+       le banc peut fabriquer un VRAI jeton signé — et prouver qu'il ne suffit plus (G1). */
+    if (q.method === 'GET' && q.url === '/certs') return json(200, { 'k-banc': paire.publicKey });
     const autorise = q.headers.authorization === 'Bearer ' + JETON;
     /* Identity Toolkit */
     const mi = /^\/idtk\/projects\/elan-gestion\/accounts:(lookup|delete|batchGet|update)/.exec(q.url);
@@ -173,7 +176,7 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
   enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
     env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: path.join(banc, 'data'), PORT: String(PORT),
       TEAMOP_FB_ADMIN: path.join(banc, 'firebase-admin.json'), TEAMOP_FB_OAUTH_URL: GURL + '/token', TEAMOP_FIRESTORE_URL: GURL,
-      TEAMOP_IDTK_URL: GURL + '/idtk' }),
+      TEAMOP_IDTK_URL: GURL + '/idtk', TEAMOP_FB_CERTS_URL: GURL + '/certs' }),
     stdio: ['ignore', 'pipe', 'pipe'] });
   enfant.stdout.on('data', d => { journal += d; }); enfant.stderr.on('data', d => { journal += d; });
   const B = 'http://127.0.0.1:' + PORT;
@@ -217,12 +220,45 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
     let d = (await doc.get()).data();
     v('sa demande est rangée dans SON dossier', [d && d.company, d && d.demandes && d.demandes.length], ['Hygiène Nouvelle', 1]);
 
+    /* ⛔ G1 (`gardien`, 3e passe) — UNE SESSION PROUVE LE MOT DE PASSE, PAS L'ADRESSE. N'importe qui
+       crée un compte au nom de n'importe quelle adresse : tant qu'elle n'est pas PROUVÉE (le lien
+       du courriel), la fiche n'entre pas — ni espace créé, ni code d'accès, ni récapitulatif. */
+    v('son adresse n\'est pas encore prouvée, et la page le sait (`emailVerified`)', user.emailVerified, false);
+    const avant0 = P.envois.length;
+    P.cliSync(user, d);
+    const envoi0 = await attendre(() => P.envois.slice(avant0).find(x => /\/api\/clients\/sync$/.test(x.u)), 30);
+    const rep0 = envoi0 ? await envoi0.p : null;
+    v('⛔ G1 — la fiche d\'une adresse NON prouvée est refusée (403)', [rep0 && rep0.status, rep0 && (await rep0.clone().json().catch(() => ({}))).error], [403, 'adresse_non_verifiee']);
+    await dormir(300);
+    v('   aucun espace n\'est créé, aucun code d\'accès ne part', [((await appel('/api/monitor/espaces/liste', undefined, tour)).j.espaces || []).some(e => String(e.email || '').toLowerCase() === 'nouveau@exemple.fr'),
+      courrierPour('nouveau@exemple.fr', /teamop\.fr\/e\//).length], [false, 0]);
+    v('   et la page retentera : un refus ne mémorise pas la fiche', P.session.get('top_client_sync'), undefined);
+
+    /* Le lien de confirmation : parti à l'inscription, et redemandable depuis la page. */
+    const lettresAvant = courrierPour('nouveau@exemple.fr', /mode=verifyEmail&jeton=/).length;
+    vrai('le lien de confirmation est parti à l\'inscription', await attendre(() => courrierPour('nouveau@exemple.fr', /mode=verifyEmail&jeton=/).length >= 1));
+    vrai('⛔ la page sait le redemander (`verifRenvoyer`, nouvelle route)', typeof P.pv.verifRenvoyer === 'function');
+    /* Une fonction absente ne fait pas tomber le banc : les contrôles d'après doivent encore parler. */
+    const renvoyer = typeof P.pv.verifRenvoyer === 'function' ? P.pv.verifRenvoyer : async () => ({ code: 0, j: {} });
+    const renvois = [];
+    for (let i = 0; i < 4; i++) renvois.push((await renvoyer()).code);
+    v('   trois renvois dans l\'heure, pas un de plus', renvois, [200, 200, 200, 429]);
+    const lettres = await attendre(() => { const l = courrierPour('nouveau@exemple.fr', /mode=verifyEmail&jeton=/); return l.length >= Math.max(lettresAvant, 1) + 3 ? l : null; });
+    vrai('   et chaque renvoi porte un lien neuf', lettres);
+    const jv = ((/mode=verifyEmail&jeton=([0-9a-f]{64})/.exec((lettres || []).slice(-1)[0] || '') || [])[1]) || '';
+    r = await appel('/api/compte/verifier', { jeton: jv });
+    v('le client ouvre le lien : son adresse est prouvée', r.s, 200);
+    const user2 = await Promise.race([new Promise(res => { const stop = auth.onAuthStateChanged(u => { if (u) { stop(); res(u); } }); }), dormir(5000).then(() => null)]);
+    v('   la page relit son compte : adresse prouvée', user2 && user2.emailVerified, true);
+    v('   un renvoi n\'a plus lieu d\'être', [(await renvoyer()).code], [200]);
+    v('   (et le serveur le dit)', (await appel('/api/compte/verifier/renvoyer', {}, jetonNouveau)).j.deja, true);
+
     const avantEnvois = P.envois.length;
     P.cliSync(user, d);
     const envoi = await attendre(() => P.envois.slice(avantEnvois).find(x => /\/api\/clients\/sync$/.test(x.u)), 30);
     vrai('⛔ `cliSync` ENVOIE la fiche (il se taisait avec nos comptes)', envoi);
     const rep = envoi ? await envoi.p : null;
-    v('⛔ et le serveur l\'accepte sur la session maison — plus de jeton Google', rep && rep.status, 200);
+    v('⛔ et le serveur l\'accepte sur la session maison, adresse prouvée — plus de jeton Google', rep && rep.status, 200);
 
     const aLui = await attendre(() => courrierPour('nouveau@exemple.fr', /teamop\.fr\/e\//).pop());
     vrai('⛔ le client reçoit l\'adresse de son espace, créé tout seul', aLui);
@@ -235,6 +271,41 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
     const esp = await appel('/api/monitor/espaces/liste', undefined, tour);
     const sonEspace = (esp.j.espaces || []).find(e => String(e.email || '').toLowerCase() === 'nouveau@exemple.fr');
     vrai('   et son espace existe dans l\'annuaire', sonEspace);
+
+    /* ══ 4 bis. G1 — SE FAIRE PASSER POUR UNE ENTREPRISE DONT ON NE POSSÈDE PAS LA BOÎTE ═══════════
+       Une entreprise ouverte par la Tour, formule payante, adresse de contact publique (un camion,
+       une facture). Avant : un compte créé à cette adresse — jamais prouvée — suffisait pour que
+       `/api/clients/sync` la traite comme prouvée, et une demande « Gratuit » faisait passer
+       l'entreprise au forfait gratuit (`espacePaye` : « gratuit » = payé). Deux chemins : nos
+       comptes, et un jeton de Google (un compte Firebase se crée aussi pour n'importe quelle
+       adresse, avec la clé publique de l'ancien site). */
+    const codeVictime = Buffer.from(JSON.stringify({ t: 'ent-victime813', k: 'CLE-VICTIME-813' })).toString('base64');
+    r = await appel('/api/monitor/espaces', { nom: 'Victime SARL', code: codeVictime, email: 'contact@victime.fr', origine: 'tour' }, tour);
+    const rf = await appel('/api/monitor/espaces/formule', { nom: 'Victime SARL', formule: 'premium', quantite: 3 }, tour);
+    const formuleVictime = async () => { const e = ((await appel('/api/monitor/espaces/liste', undefined, tour)).j.espaces || []).find(x => x.slug === 'victimesarl') || {}; return [e.formule, e.quantite]; };
+    v('la Tour ouvre l\'espace d\'une entreprise cliente, en formule payante', [r.s, rf.s, await formuleVictime()], [200, 200, ['premium', 3]]);
+    const demandeGratuite = { company: 'Victime SARL', demandes: [{ app: 'OP GESTION', formule: 'Gratuit', statut: 'nouveau', date: Date.now(), users: '1' }] };
+
+    const jetonGoogle = (email) => { const now = Math.floor(Date.now() / 1000);
+      const h = Buffer.from(JSON.stringify({ alg: 'RS256', kid: 'k-banc', typ: 'JWT' })).toString('base64url');
+      const p = Buffer.from(JSON.stringify({ aud: 'elan-gestion', iss: 'https://securetoken.google.com/elan-gestion', sub: 'uid-usurpateur', iat: now, exp: now + 3600, email, email_verified: false })).toString('base64url');
+      return h + '.' + p + '.' + crypto.sign('RSA-SHA256', Buffer.from(h + '.' + p), paire.privateKey).toString('base64url'); };
+    r = await appel('/api/clients/sync', demandeGratuite, jetonGoogle('contact@victime.fr'));
+    v('⛔ G1 — un jeton de Google SIGNÉ, adresse jamais prouvée : refusé, le portail maison est allumé', r.s, 401);
+    v('   la formule de l\'entreprise n\'a pas bougé', await formuleVictime(), ['premium', 3]);
+
+    const U = fabriquer(B);   // un AUTRE onglet : sa session ne touche pas celle du client du dessus
+    const usurpe = await U.pv.auth.createUserWithEmailAndPassword('contact@victime.fr', 'mot-de-passe-de-l-usurpateur');
+    vrai('   l\'usurpateur ouvre un compte maison à l\'adresse de contact (rien ne l\'en empêche)', usurpe && usurpe.user && usurpe.user.emailVerified === false);
+    const av = U.envois.length;
+    U.cliSync(usurpe.user, demandeGratuite);
+    const envU = await attendre(() => U.envois.slice(av).find(x => /\/api\/clients\/sync$/.test(x.u)), 30);
+    v('⛔ G1 — et sa fiche est refusée : 403, adresse non prouvée', envU && (await envU.p).status, 403);
+    await dormir(300);
+    v('⛔ la formule de l\'entreprise n\'a pas bougé', await formuleVictime(), ['premium', 3]);
+    v('   aucune fiche à son nom dans la Tour, aucun courriel parti chez la victime',
+      [((await appel('/api/monitor/clients', undefined, tour)).j.clients || []).some(c => c.email === 'contact@victime.fr'),
+        courrierPour('contact@victime.fr', /teamop\.fr\/e\/|code d'accès/).length], [false, 0]);
 
     /* ══ 5. « ACCÈS ACTIVÉ », ÉCRIT CHEZ NOUS — PLUS RIEN CHEZ GOOGLE ══════════════════════════ */
     d = (await doc.get()).data();

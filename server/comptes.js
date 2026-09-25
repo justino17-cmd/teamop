@@ -175,6 +175,16 @@ function monterComptes(app, deps) {
      dépassé (429), qui ne disent rien d'un compte. */
   const RIEN_DIRE = { ok: true };
 
+  /* Le lien qui PROUVE l'adresse. UNE seule rédaction, pour l'inscription et pour le renvoi :
+     deux copies d'un même courriel finissent par dire deux choses différentes. */
+  const envoyerVerif = (mail, salut) => {
+    const jv = jetonNeuf(mail, 'verif', VERIF_VIE_MS);
+    envoyerDerriere({ to: mail, confidentiel: true, subject: 'Confirmez votre adresse — TEAM OP',
+      text: salut + ',\n\nConfirmez votre adresse pour activer votre espace :\n'
+        + base + '/reinit.html?mode=verifyEmail&jeton=' + jv + '\n\nCe lien est valable 7 jours.\n' },
+      'courriel de vérification non envoyé');
+  };
+
   /* ── CRÉER UN COMPTE ────────────────────────────────────────────────────────────────────── */
   app.post('/api/compte/creer', async (req, res) => {
     const b = req.body || {};
@@ -218,11 +228,7 @@ function monterComptes(app, deps) {
       so: borne(b.societe, 120), v: 0, cree: Date.now(), maj: Date.now(), ech: 0, bloq: 0 };
     ecrire();
 
-    const jv = jetonNeuf(mail, 'verif', VERIF_VIE_MS);
-    envoyerDerriere({ to: mail, confidentiel: true, subject: 'Confirmez votre adresse — TEAM OP',
-      text: 'Bienvenue,\n\nConfirmez votre adresse pour activer votre espace :\n'
-        + base + '/reinit.html?mode=verifyEmail&jeton=' + jv + '\n\nCe lien est valable 7 jours.\n' },
-      'courriel de vérification non envoyé');
+    envoyerVerif(mail, 'Bienvenue');
     return res.json(RIEN_DIRE);
   });
 
@@ -290,6 +296,22 @@ function monterComptes(app, deps) {
     if (c) { c.v = Date.now(); c.maj = Date.now(); ecrire(); }
     jetonBruler(brut);
     return res.json({ ok: true, email: e.m });
+  });
+
+  /* ── RENVOYER LE LIEN DE VÉRIFICATION ─────────────────────────────────────────────────────
+     ⛔ DEPUIS QUE L'ARRIÈRE-GUICHET ATTEND UNE ADRESSE PROUVÉE (`gardien`, G1), CE LIEN EST LA
+     SEULE PORTE entre une inscription et son espace : parti dans les indésirables, ou vieux de
+     plus de sept jours, sans renvoi le client restait devant un portail qui n'active rien. Il
+     faut la session — le lien part à l'adresse DU compte, jamais à une adresse du corps — et le
+     débit est borné : c'est un envoi de courriel, donc un outil de harcèlement s'il est libre. */
+  app.post('/api/compte/verifier/renvoyer', (req, res) => {
+    const s = jetonLire(porteur(req), 'session');
+    const c = s ? compte(s.m) : null;
+    if (!s || !c || c.ap) return res.status(401).json({ error: 'session_refusee' });
+    if (c.v) return res.json({ ok: true, deja: true });
+    if (!quotaOk(quota, 'verif:' + s.m, 3, 3600000) || !parIp(req, 'verif', 20)) return res.status(429).json({ error: 'trop_de_tentatives' });
+    envoyerVerif(s.m, 'Bonjour');
+    return res.json({ ok: true });
   });
 
   /* ── CONFIRMER SON MOT DE PASSE, ET EN CHANGER ────────────────────────────────

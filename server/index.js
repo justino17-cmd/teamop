@@ -6886,7 +6886,10 @@ function cliSave() {
 //    la signature avec les certificats publics de Google, puis on ne retient QUE l'e-mail
 //    contenu dans le jeton — jamais celui envoyé dans le corps de la requête.
 const FB_PROJET = (config.firebase && config.firebase.projectId) || 'elan-gestion';
-const FB_CERTS_URL = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+/* Redirigeable pour les bancs, comme les trois autres adresses de Google (`urlBanc` : seul
+   `http://127.0.0.1:<port>` est accepté) — sans elle, aucun banc ne pouvait présenter un VRAI
+   jeton signé, et la garde de `/api/clients/sync` n'était éprouvée que sur des jetons refusés. */
+const FB_CERTS_URL = urlBanc(process.env.TEAMOP_FB_CERTS_URL, 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com');
 const fbCerts = { data: null, exp: 0, encours: null };
 function fbCertificats() {
   if (fbCerts.data && Date.now() < fbCerts.exp) return Promise.resolve(fbCerts.data);
@@ -6938,10 +6941,29 @@ app.post('/api/clients/sync', async (req, res) => {
      jamais. Une session maison (64 hexadécimaux) se reconnaît à sa forme ; un jeton de Google est
      un JWT et continue de passer par `fbVerifie` tant que Google existe. */
   const brut = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  let cm = null; try { cm = comptes; } catch (e) { cm = null; }
   if (/^[0-9a-f]{64}$/i.test(brut)) {
-    let c = null; try { c = comptes; } catch (e) { c = null; }
-    const m = c ? c.parJeton(brut) : '';
+    const m = cm ? cm.parJeton(brut) : '';
+    /* ⛔ UNE SESSION PROUVE UN MOT DE PASSE, PAS UNE ADRESSE (`gardien`, 3e passe, G1). N'importe
+       qui ouvre un compte au nom de n'importe quelle adresse — le lien de vérification part chez
+       son vrai propriétaire, que l'inconnu ne lit pas, mais la connexion, elle, marchait. Cette
+       route lisait l'adresse de la session comme PROUVÉE : l'adresse de contact d'une entreprise
+       (publique : un camion, une facture) suffisait pour changer sa formule par une demande —
+       « Gratuit » passe pour payé, donc une entreprise payante retombait au forfait gratuit —,
+       écraser sa fiche dans la Tour et lui relayer un code promo. Rien de cette route ne part tant
+       que l'adresse n'est pas prouvée : la page le dit et redemande le lien, et la fiche repart
+       d'elle-même à la visite suivante (`cliSync` ne mémorise que ce qui est accepté). */
+    if (m && !cm.verifie(m)) return res.status(403).json({ error: 'adresse_non_verifiee' });
     ident = m ? { email: m } : null;
+  } else if (cm) {
+    /* ⛔ ET LE PORTAIL MAISON ALLUMÉ, UN JETON DE GOOGLE NE PROUVE PLUS RIEN ICI. Le même défaut
+       vivait par Google : un compte Firebase se crée pour n'importe quelle adresse avec la clé
+       publique de l'ancien site, et `fbVerifie` ne demande pas que l'adresse soit vérifiée — le
+       site ne l'a jamais fait vérifier, donc l'exiger aurait fermé la porte à tout le monde. Une
+       fois `comptes.actif` posé, les pages du jour J ne présentent plus que nos sessions ; seule
+       la page d'avant, pendant les minutes qui séparent le réglage de la publication, perd son
+       relais (REPRISE.md, procédure du jour J). */
+    return res.status(401).json({ error: 'connexion non vérifiée' });
   } else {
     try { ident = await fbVerifie(brut); }
     catch (e) { console.error('clients sync jeton:', String(e && e.message || e).slice(0, 200)); ident = null; }
