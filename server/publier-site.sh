@@ -47,8 +47,8 @@ PAGES=(
   applications.html elan.html opmessages.html metiers.html tarifs.html pourquoi.html
   connexion.html creer.html creer-application.html recap-abonnement.html merci.html
   espace.html messages.html app.html reinit.html
-  mentions-legales.html confidentialite.html sous-traitance.html
-  guide-email.html guide-firebase.html
+  mentions-legales.html confidentialite.html sous-traitance.html registre-traitements.html
+  guide-email.html
   sw.js fond-anime-teamop.js op-fs.js
   manifest.webmanifest manifest-teamop.webmanifest manifest-opmsg.webmanifest
 )

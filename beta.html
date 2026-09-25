@@ -11541,7 +11541,10 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
            TOUTES les suivantes. Aucune reprise n'est possible de l'intérieur : seul un
            rechargement rend une file vide. UNE SEULE FOIS PAR CHARGEMENT, jamais deux — sinon on
            rouvre exactement la boucle de rechargement qu'on vient de fermer, et l'équipe est
-           enfermée dehors une seconde fois. Si ça se reproduit, on ne recharge plus : on le dit. */
+           enfermée dehors une seconde fois. Si ça se reproduit, on ne recharge plus : on le dit.
+           ⚠️ INERTE DEPUIS LA v748 : `docEquipe` ne rend jamais `resource-exhausted` — il garde UNE
+           écriture, la plus récente, et n'a pas de file à saturer. Gardé tant que `test-645` le
+           garde : il ne coûte rien, et redeviendrait juste si un transport à file revenait. */
         try{ if(er&&(er.code==='resource-exhausted')){
           if(!_fbFileSaturee){ _fbFileSaturee=true;
             console.warn('synchro : file d\'écriture saturée — une seule reprise, maintenant');
