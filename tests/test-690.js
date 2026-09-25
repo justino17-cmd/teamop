@@ -42,7 +42,12 @@ v('syncSortirPieces est trouvée dans app.html', dsp > 0, true);
 let nsp = 0, fsp = dsp;
 for (let i = APP.indexOf('{', dsp); i < APP.length; i++) {
   if (APP[i] === '{') nsp++; else if (APP[i] === '}') { nsp--; if (!nsp) { fsp = i; break; } } }
-const syncAlleger = new Function('NUAGE_BUDGET', 'TextEncoder', APP.slice(dsp, fsp + 1) + '\n' + APP.slice(d, f + 1) + '; return syncAlleger;')(BUDGET, TextEncoder);
+/* v749 : et la liste des journaux qu'elle coupe, lue dans syncJournaux (une seule liste, que la
+   réception écarte aussi de sa décision de renvoi). */
+const dj = APP.indexOf('function syncJournaux(){');
+v('syncJournaux est trouvée dans app.html', dj > 0, true);
+const fj = APP.indexOf('}', dj);
+const syncAlleger = new Function('NUAGE_BUDGET', 'TextEncoder', APP.slice(dj, fj + 1) + '\n' + APP.slice(dsp, fsp + 1) + '\n' + APP.slice(d, f + 1) + '; return syncAlleger;')(BUDGET, TextEncoder);
 
 /* Une base fabriquée à l'image de celle d'ELAN : le poids est du CONTENU, pas des pièces. */
 const gros = (k, nb, taille) => Array.from({ length: nb }, (_, i) =>

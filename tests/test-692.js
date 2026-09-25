@@ -48,17 +48,19 @@ const SRC = {
   /* ⛔ Depuis le point 4 de l'étape 0, les deux allègements commencent par sortir les pièces
      déjà déposées sur le VPS. Sans cette fonction, le module assemblé ici plante. */
   sortir: corps('syncSortirPieces', 'function syncSortirPieces(base){'),
+  /* v749 : la liste des journaux coupés, lue par syncAlleger (la même que la réception écarte). */
+  journaux: corps('syncJournaux', 'function syncJournaux(){'),
   alleger: corps('syncAlleger', 'function syncAlleger(base, budget){'),
   nuage: corps('syncAllegerNuage', 'async function syncAllegerNuage(base){'),
 };
-v('les six fonctions sont trouvées dans app.html', Object.keys(SRC).filter(k => !SRC[k]), []);
+v('les sept fonctions sont trouvées dans app.html', Object.keys(SRC).filter(k => !SRC[k]), []);
 
 const ENC_MAX = 780 * 1024, BUDGET = 620 * 1024;
 v('le budget du document est bien celui du fichier livré', /const NUAGE_ENC_MAX=780\*1024;/.test(APP), true);
 v('… et l\'ancien budget de texte clair n\'a pas bougé', /const NUAGE_BUDGET=620\*1024;/.test(APP), true);
 
 const mod = new Function('NUAGE_BUDGET', 'NUAGE_ENC_MAX', 'TextEncoder', 'CompressionStream', 'Blob', 'Response', 'Uint8Array',
-  SRC.doc + '\n' + SRC.possible + '\n' + SRC.gzipper + '\n' + SRC.sortir + '\n' + SRC.alleger + '\n' + SRC.nuage +
+  SRC.doc + '\n' + SRC.possible + '\n' + SRC.gzipper + '\n' + SRC.sortir + '\n' + SRC.journaux + '\n' + SRC.alleger + '\n' + SRC.nuage +
   '\n; return {nuageDocOctets:nuageDocOctets, gzipPossible:gzipPossible, gzipper:gzipper, syncAlleger:syncAlleger, syncAllegerNuage:syncAllegerNuage};'
 )(BUDGET, ENC_MAX, TextEncoder, CompressionStream, Blob, Response, Uint8Array);
 
