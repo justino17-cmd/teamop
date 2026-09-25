@@ -75,7 +75,7 @@ console.log('\n── 817 · 2. la remise à zéro du journal pose ses marques e
   const d = A.get();
   v('le journal de A ne garde que la ligne « Remise à zéro »', d.journal.map(r => r.action), ['Remise à zéro']);
   v('⛔ les 500 lignes vidées portent leur marque', nbT(d, 'journal'), 500);
-  vrai('   et chaque marque couvre la ligne (date ≥ sa dernière modification)', journal500().every(r => (d._tombes.journal[r.id] || 0) >= r._m));
+  vrai('   et chaque marque couvre la ligne (date ≥ sa dernière modification)', journal500().every(r => ((((d._tombes || {}).journal) || {})[r.id] || 0) >= r._m));
   /* B a toujours les 500 anciennes lignes et reçoit l'envoi de A */
   const recu = B.fusionnerBases(B.get(), copie(d), false);
   v('⛔ chez B, les 500 anciennes lignes ne reviennent pas', recu.journal.filter(r => /^j\d{4}$/.test(r.id)).length, 0);
