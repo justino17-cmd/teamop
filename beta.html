@@ -10079,7 +10079,8 @@ function baseSignature(d){ return collsFusion(d).sort().map(c=>c+':'+(d[c]||[]).
    Deux appareils ouverts = une boucle sans fin : vidéo de Justin, « Données de l'équipe mises à
    jour » toutes les 3,3 s et l'écran redessiné à chaque fois ; rejoué sur une base lourde, 61
    écritures en 30 s (`scratchpad/sonde-boucle-lourde.js`). Les journaux et LEURS pierres tombales
-   (le plafond de 500 en pose à chaque fusion) sortent donc de CETTE comparaison — et d'elle seule :
+   (jusqu'à la v749, le plafond de 500 en posait une par ligne chassée ; depuis la v750, seule la
+   remise à zéro en pose, et la fusion les borne à 600) sortent donc de CETTE comparaison — et d'elle seule :
    ils se fusionnent comme avant, et une ligne de journal nouvelle part avec le save() qui l'écrit.
    ⚠️ La liste est UNE : `syncAlleger` la lit aussi. Un troisième journal coupé à l'envoi sans être
    écarté ici ferait renaître la boucle. `tests/test-816.js`. */
