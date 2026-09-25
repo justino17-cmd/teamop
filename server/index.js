@@ -3414,16 +3414,16 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
 //    Une seule adresse par entreprise (dédoublonnée), tout passe par le beau
 //    gabarit TeamOP et le journal des e-mails.
 const ANNONCE = {
-  version: '666',
-  sujet: '⬆️ La mise à jour ne se reporte plus — et les messages d’erreur disent la vérité',
-  intro: 'Bonjour,<br>votre application OP GESTION vient d\'être mise à jour. Elle s\'installe toute seule à la prochaine ouverture — vous n\'avez rien à faire.',
+  version: '748',
+  sujet: '🔒 OP GESTION quitte Google — et une grande mise à jour',
+  intro: 'Bonjour,<br>votre application OP GESTION vient d\'être mise à jour. À la prochaine ouverture, chaque téléphone affiche un écran de mise à jour : un seul bouton, quelques secondes.',
   points: [
-    ['⬆️ La mise à jour s\'installe, elle ne se reporte plus', 'Jusqu\'ici, la petite bannière « mise à jour » se refermait d\'un doigt, et l\'appareil pouvait rester des semaines en retard sans que personne ne s\'en aperçoive — il lisait, mais il n\'enregistrait plus rien pour l\'équipe. Désormais un écran complet le dit, avec un seul bouton. Quelques secondes, et tout le monde travaille sur la même version. Ce qui est déjà enregistré part vers l\'équipe AVANT le redémarrage.'],
-    ['⚠️ Une saisie non validée est perdue — validez avant de quitter', 'C\'est le revers de ce qui précède, et nous préférons vous le dire : si un formulaire est ouvert sans avoir été enregistré au moment où la mise à jour part, son contenu ne survit pas. Tout ce qui a été enregistré, lui, est conservé et envoyé.'],
-    ['⛔ Une adresse qui n\'existe pas le dit tout de suite', 'Se tromper dans l\'adresse de l\'entreprise ouvrait quand même l\'écran de connexion, et l\'application répondait ensuite « identifiant ou mot de passe incorrect ». Des mots de passe ont été remis à zéro pour rien. Maintenant l\'adresse est vérifiée d\'abord : si elle n\'est pas chez nous, c\'est écrit, et l\'écran de connexion n\'apparaît pas.'],
-    ['🔎 Quand l\'application refuse d\'enregistrer, elle dit pourquoi', 'Elle annonçait parfois un retard de version qui n\'en était pas un, et poussait à refaire une mise à jour qui ne réparait rien. Elle distingue désormais les deux cas : « mise à jour nécessaire » quand c\'est vrai, « enregistrement refusé » quand la cause est ailleurs — avec, dans ce cas, la consigne de prévenir votre responsable plutôt que de tourner en rond.']
+    ['🔒 Vos données restent chez nous', 'La synchronisation de votre équipe passait jusqu\'ici par un service de Google (Firebase). Elle passe désormais par notre propre serveur : vos données y arrivent chiffrées par vos appareils, et une copie de sauvegarde en est faite chaque nuit. Mêmes écrans, mêmes données, mêmes habitudes.'],
+    ['⬆️ Chaque appareil doit prendre la mise à jour', 'Un téléphone resté sur l\'ancienne version ne peut plus enregistrer pour l\'équipe : un écran le lui dit, avec un seul bouton. Ce qu\'il avait déjà saisi part vers l\'équipe dès qu\'il est à jour — rien n\'est perdu.'],
+    ['✨ Des dizaines d\'améliorations', 'Un nouvel habillage, de jour comme de nuit, à votre couleur ; des droits réglables case par case pour chaque personne ; un stockage hors des box, avec le suivi de qui prend quoi ; le rapport d\'intervention envoyé en PDF ; le plan d\'implantation à chaque passage ; et l\'en-tête de chaque document au nom de la bonne société.'],
+    ['🔑 Espace client : un nouveau mot de passe, une seule fois', 'Si vous gérez votre abonnement sur teamop.fr, votre espace client a lui aussi quitté Google. La première fois, touchez « Mot de passe oublié ? » : un lien arrive par e-mail, vous choisissez votre mot de passe, et vous retrouvez toutes vos informations.']
   ],
-  fin: 'Rien d\'autre ne change : mêmes données, mêmes écrans, mêmes habitudes. Votre adresse et vos identifiants continuent de fonctionner.'
+  fin: 'Votre adresse et vos identifiants OP GESTION continuent de fonctionner, sans rien changer.'
 };
 app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
   if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
