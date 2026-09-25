@@ -407,6 +407,24 @@ function refusSmtp(e) {
     : 'autre';
   return 'SMTP: ' + famille + (code ? ' (' + code + ')' : '');
 }
+/* ══ LE FILET DU PROCESSUS ═════════════════════════════════════════════════════════════════
+   ⛔ UNE PROMESSE REJETÉE SANS GESTIONNAIRE ARRÊTE NODE 22 — donc l'API de TOUTES les entreprises,
+   et chaque écoute en cours, le temps que systemd relance (3 s). Le commentaire de
+   `fbRevoquerEquipe` le relevait déjà : « ce fichier n'a ni `unhandledRejection` ni middleware
+   d'erreur ». On note, on dit OÙ (les deux premières lignes de la pile, jamais le message — un
+   message peut porter une adresse ou un nom de client), et on continue : une opération de fond
+   qui échoue ne justifie pas de couper tout le monde. `/health` publie le compte de la dernière
+   heure (`processus`), et la surveillance crie dès le premier.
+   ⚠️ `uncaughtException` n'est PAS attrapé, exprès : une exception synchrone non rattrapée peut
+   laisser l'état du processus à moitié écrit, et redémarrer est alors la seule réponse sûre. */
+const incidents = { rejet: [], erreur: [] };
+const incidentNoter = (k) => { const a = incidents[k]; a.push(Date.now()); if (a.length > 500) a.splice(0, a.length - 500); };
+const incidentsHeure = (k) => { const lim = Date.now() - 3600000; return incidents[k].filter(t => t > lim).length; };
+const incidentOu = (e) => String((e && e.stack) || '').split('\n').slice(1, 3).map(l => l.trim()).join(' | ').slice(0, 300);
+process.on('unhandledRejection', (r) => {
+  incidentNoter('rejet');
+  console.error('⛔ promesse rejetée sans gestionnaire —', String((r && (r.code || r.name)) || typeof r).slice(0, 40), '·', incidentOu(r));
+});
 app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
@@ -438,6 +456,8 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      copie depuis Firebase qui échouent : chacun de ces états est une entreprise qui ne se
      synchronise plus, et aucun ne se voit depuis l'application d'une autre. */
   documents: documentsMod ? documentsMod.sante() : { actif: false, erreur: 'montage' },
+  /* Le filet du processus (voir plus haut) : des nombres de la dernière heure, rien sur personne. */
+  processus: { rejets1h: incidentsHeure('rejet'), erreurs1h: incidentsHeure('erreur') },
   /* L'horloge des 24 mois : tourne-t-elle, son dernier balayage a-t-il réussi, y a-t-il AU
      MOINS une entreprise en préavis, AU MOINS une échue. ⛔⛔ DES BOOLÉENS, PLUS AUCUN NOMBRE
      (24 septembre 2026, relevé par `gardien`) : les comptes — combien ne paient pas, combien de
@@ -8160,6 +8180,28 @@ const routesDoublons = (() => {
   }
   return doubles;
 })();
+
+/* ══ LE FILET DES ROUTES — EN DERNIER, APRÈS TOUTES LES ROUTES ══════════════════════════════
+   ⛔ MESURÉ LE 25 SEPTEMBRE 2026 : un corps JSON malformé (`{"t":`) envoyé à n'importe quelle
+   route rendait la page d'erreur d'Express AVEC SA PILE — chemins du serveur, versions des
+   bibliothèques — à n'importe qui. Express ne s'en abstient que sous `NODE_ENV=production`,
+   que l'unité systemd ne posait pas. Ce filet ne dépend plus de ce réglage : du texte brut, un
+   mot, jamais une pile. Le journal garde la route (son MODÈLE, jamais l'adresse demandée, qui
+   peut porter n'importe quoi) et le type d'erreur ; `/health` compte les 5xx de l'heure.
+   Aucune route n'est montée après ce point (tous les modules se montent au chargement) : le
+   404 ne peut en masquer aucune. */
+app.use((req, res) => { res.status(404).type('text/plain').send('introuvable'); });
+app.use((err, req, res, next) => {
+  const code = (err && Number.isInteger(err.status) && err.status >= 400 && err.status < 600) ? err.status : 500;
+  if (code >= 500) {
+    incidentNoter('erreur');
+    console.error('⛔ erreur de route —', req.method, (req.route && req.route.path) || 'hors route', '·',
+      String((err && (err.type || err.code || err.name)) || 'erreur').slice(0, 40), '·', incidentOu(err));
+  }
+  if (res.headersSent) return next(err);
+  res.status(code).type('text/plain').send(code === 400 ? 'requête illisible' : code === 413 ? 'requête trop lourde'
+    : code < 500 ? 'requête refusée' : 'erreur du serveur');
+});
 
 const PORT = process.env.PORT || 8080;
 const serveur = app.listen(PORT, '127.0.0.1', () => console.log('TeamOP API sur 127.0.0.1:' + PORT));

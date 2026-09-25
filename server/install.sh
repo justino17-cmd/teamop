@@ -138,6 +138,9 @@ Restart=always
 RestartSec=3
 User=root
 Environment=PORT=8080
+# Express ne met sa pile d'erreurs dans les réponses qu'hors production. Le serveur a son propre
+# filet (en fin d'index.js), qui ne dépend pas de ce réglage ; celui-ci ferme la porte deux fois.
+Environment=NODE_ENV=production
 # ⛔ LA CLÉ MAÎTRE DU SOCLE VIT HORS DE /opt, ET C'EST TOUT L'INTÉRÊT. Un instantané IONOS est
 # une image de VOLUME, un disque volé aussi : ranger la clé dans l'arborescence qu'elle protège
 # ne protège que d'un disque éteint qu'on aurait démonté à la main. systemd la charge depuis

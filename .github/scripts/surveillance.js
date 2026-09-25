@@ -166,6 +166,14 @@ function get(url) {
     if (j.documents && j.documents.copiesEnAttente1h > 0) {
       problems.push('⛔ ' + j.documents.copiesEnAttente1h + ' copie(s) de document d’équipe en attente dans l’heure : des appareils à jour ne se synchronisent pas tant que la version minimale n’est pas exigée ET confirmée chez Firestore. Tour → Exiger la dernière version (et vérifier que Firestore est « à jour »).');
     }
+    /* Le filet du processus (`server/index.js`) : une promesse rejetée sans gestionnaire, ou une
+       route qui a jeté (5xx). Chacun est un défaut de code réel, jamais un client qui se trompe. */
+    if (j.processus && j.processus.rejets1h > 0) {
+      problems.push('⛔ ' + j.processus.rejets1h + ' promesse(s) rejetée(s) sans gestionnaire dans l’heure — un défaut du serveur. Sur le VPS : journalctl -u teamop-api | grep "promesse rejetée"');
+    }
+    if (j.processus && j.processus.erreurs1h > 0) {
+      problems.push('⛔ ' + j.processus.erreurs1h + ' erreur(s) de route (5xx) dans l’heure. Sur le VPS : journalctl -u teamop-api | grep "erreur de route"');
+    }
     if (j.documents && j.documents.copiesEchec1h > 0) {
       problems.push('⚠️ ' + j.documents.copiesEchec1h + ' copie(s) depuis Firebase impossible(s) dans l’heure — les appareils réessaient. Si ça dure : la clé d’administration Firebase (/opt/teamop/firebase-admin.json), puis journalctl -u teamop-api | grep "copie firebase"');
     }
