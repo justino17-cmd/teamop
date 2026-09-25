@@ -2232,7 +2232,7 @@ body.plans .reg-l.cli::before{display:none}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.64</div>
+    <div class="lg-pied">console interne · v2.65</div>
   </div>
 </div>
 
@@ -2271,13 +2271,13 @@ body.plans .reg-l.cli::before{display:none}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.64</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.65</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
   </div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.64</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.65</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2341,7 +2341,7 @@ function setApp(app,sansAnim,tabVoulu){
   if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; }catch(e){} }
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
   var nom=APPS_TOUR[app].nom;
-  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.64';
+  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.65';
   var pn=$('app-pill-nom'); if(pn) pn.textContent=APPS_TOUR[app].court;
   /* l'onglet demandé par le hash prime (un lien #gestion/entreprises tapé depuis MESSAGES) ; sinon
      le dernier onglet ouvert dans cette console ; sinon l'accueil */
@@ -4710,6 +4710,62 @@ function blocVersions(){
     (sous.length?'<div style="margin-top:12px">'+sous.map(function(x){ return '<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13px"><span style="flex:1"><b>'+esc(nomEspace(x.nom,x.t))+'</b></span><span class="past p-ambre">'+x.n+' appareil'+(x.n>1?'s':'')+' bloqué'+(x.n>1?'s':'')+'</span></div>'; }).join('')+'</div>':'')+
     (d.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(d.maj))+(d.par?' par '+esc(d.par):'')+'</div>':'');
 }
+/* ══ SORTIE DE FIREBASE — les gestes du jour J (25 septembre 2026) ══
+   Deux gestes n'existaient que par l'API, donc depuis un terminal : reprendre les dossiers du
+   portail qui vivent chez Google (`/api/monitor/portail/importer`), et l'inventaire des documents
+   d'équipe qui autorise à couper la copie depuis Google (`/api/monitor/documents/inventaire`).
+   Justin travaille depuis son téléphone : un geste du jour J qui demande `curl` et un jeton ne se
+   fait pas. L'état se lit dans `/health` (public, rien de personnel) et dans la porte de version
+   CONFIRMÉE chez Google (`minFirestore`) — sans elle, aucune copie n'a lieu. Patron seul. */
+var SFB={d:null,err:'',ts:0,encours:false,imp:null,inv:null};
+function chargerSortieFirebase(){ if(SFB.encours) return; SFB.encours=true;
+  fetch(API+'/health').then(function(r){ return r.json(); }).then(function(h){
+    SFB.d={documents:(h&&h.documents)||null,portail:(h&&h.portail)||null}; SFB.err=''; SFB.ts=Date.now(); SFB.encours=false; if(TAB==='surveillance') render(); })
+  .catch(function(e){ SFB.err=msgErreur(e); SFB.ts=Date.now(); SFB.encours=false; if(TAB==='surveillance') render(); }); }
+function sfbGeste(route,cle,btn,libelle){
+  if(btn){ btn.disabled=true; btn.textContent=libelle; }
+  apiPost(route,{}).then(function(x){
+    SFB[cle]=(x&&x.ok)?(x.d||{}):{erreur:(x&&x.d&&x.d.error)||('refusé (HTTP '+(x&&x.status)+')'),d:(x&&x.d)||{}};
+    SFB.ts=0; if(TAB==='surveillance') render(); })
+  .catch(function(){ SFB[cle]={erreur:'Serveur injoignable'}; if(TAB==='surveillance') render(); }); }
+function sfbImporter(btn){
+  if(!confirm('Reprendre les dossiers du portail depuis Google ?\n\nChaque client de Google reçoit un compte « à poser » : il choisira son mot de passe par « Mot de passe oublié ». Un dossier posé par un client qui a prouvé son adresse n\u2019est jamais écrasé. L\u2019import peut se relancer.')) return;
+  sfbGeste('/api/monitor/portail/importer','imp',btn,'Import en cours…'); }
+function sfbInventaire(btn){
+  if(!confirm('Faire l\u2019inventaire des documents d\u2019équipe ?\n\nChaque entreprise est vérifiée chez nous et chez Google. À faire AVANT d\u2019éteindre Firebase — une minute environ.')) return;
+  sfbGeste('/api/monitor/documents/inventaire','inv',btn,'Inventaire en cours…'); }
+function blocSortieFirebase(){
+  if(MYROLE!=='patron') return '';
+  if(!SFB.d&&!SFB.err){ chargerSortieFirebase(); return '<div class="sous-sec"><div class="sec">SORTIE DE FIREBASE</div>'+squelListe(2)+'</div>'; }
+  if(Date.now()-(SFB.ts||0)>60000) chargerSortieFirebase();
+  if(SFB.err&&!SFB.d) return '<div class="sec" style="margin-top:18px">SORTIE DE FIREBASE</div><div style="color:var(--redText);font-size:13px;margin-top:8px">'+esc(SFB.err)+' <a onclick="SFB.err=\'\';chargerSortieFirebase()">réessayer</a></div>';
+  var doc=(SFB.d&&SFB.d.documents)||{}, por=(SFB.d&&SFB.d.portail)||{}, com=por.comptes||{}, dos=por.dossiers||{};
+  var minF=(VER.d&&VER.d.minFirestore)||0, ok748=minF>=748;
+  var p=function(l,v,c){ return '<div class="kpi"><div class="n"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
+  var etat=function(o){ return o.actif?'en service':(o.erreur?'EN PANNE':'éteint'); };
+  var coul=function(o){ return o.actif?'':(o.erreur?'var(--redText)':'var(--amber)'); };
+  var ligne=function(titre,r,f){ if(!r) return ''; return '<div style="font-size:12.5px;margin-top:8px;line-height:1.55;color:'+(r.erreur?'var(--redText)':'var(--text2)')+'"><b>'+titre+'</b> — '+(r.erreur?esc(r.erreur):f(r))+'</div>'; };
+  return '<div class="sec" style="margin-top:18px">SORTIE DE FIREBASE <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— les gestes du jour J</span></div>'+
+    '<div class="grille-kpi" style="margin-top:10px">'+
+      p('documents d’équipe chez nous', etat(doc), coul(doc))+
+      p('copie depuis Google', doc.actif?(doc.copieFirebase?'active':'coupée'):'—')+
+      p('porte de version chez Google', minF?'v'+minF:'non confirmée', ok748?'':'var(--amber)')+
+      p('comptes du portail', etat(com), coul(com))+
+      p('copies ratées · 1 h', doc.copiesEchec1h||0, doc.copiesEchec1h?'var(--redText)':'')+
+      p('copies en attente · 1 h', doc.copiesEnAttente1h||0, doc.copiesEnAttente1h?'var(--amber)':'')+
+    '</div>'+
+    '<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:10px">'+
+      'L’ordre : les comptes du portail allumés sur le serveur, <b>puis</b> la reprise des dossiers du portail, <b>puis</b> la publication, et aussitôt « Exiger la dernière version » (748). '+
+      'Tant que la porte n’est pas <b>confirmée chez Google en v748</b>, aucune entreprise n’est copiée : un vieux téléphone pourrait encore écrire chez Google après la copie. '+
+      'L’inventaire se fait <b>avant</b> d’éteindre Firebase — c’est lui qui autorise à couper la copie.'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'+
+      '<button class="btn-plein" onclick="sfbImporter(this)"'+(dos.actif?'':' disabled')+'>Reprendre les dossiers du portail</button>'+
+      '<button class="btn-fant" onclick="sfbInventaire(this)"'+(doc.actif&&ok748?'':' disabled')+'>Faire l’inventaire (avant d’éteindre Google)</button>'+
+    '</div>'+
+    ligne('Reprise du portail', SFB.imp, function(r){ return (r.repris||0)+' dossier(s) repris, '+(r.ignores||0)+' déjà là, '+(r.comptesPrepares||0)+' compte(s) à poser'+(r.comptesRemis?', '+r.comptesRemis+' compte(s) jamais vérifié(s) remis à poser':'')+(r.sansAdresse?', '+r.sansAdresse+' sans adresse':'')+(r.champsRefuses?' · '+r.champsRefuses+' champ(s) trop gros écarté(s)':''); })+
+    ligne('Inventaire', SFB.inv, function(r){ return (r.complet?'<b>complet</b>':'<b style="color:var(--redText)">incomplet</b>')+' — '+(r.entreprises||0)+' entreprise(s) : '+(r.documents||0)+' document(s), '+(r.absents||0)+' absente(s) de Google, '+(r.ignores||0)+' fermée(s)'+(r.echecs?', <b>'+r.echecs+' échec(s)</b>':''); });
+}
 function vueSurveillance(){
   if(!INC.loaded) return enTete('Surveillance',SURV_DESC)+acSquel();
   if(INC.err) return enTete('Surveillance',SURV_DESC)+acErr('La surveillance ne répond pas',INC.err,'chargerIncidents()');
@@ -4885,7 +4941,7 @@ function vueSurveillance(){
     (groupesRendus?'<div class="reg">'+groupesRendus+'</div>':listeVide)+saines+legende+
     /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents,
        et n'existe qu'en console GESTION : versions.json gouverne app.html */
-    (APP==='gestion'?blocVersions():'');
+    (APP==='gestion'?blocVersions()+blocSortieFirebase():'');
 }
 
 /* ── la page d'une entreprise : ses problèmes, regroupés par application ── */

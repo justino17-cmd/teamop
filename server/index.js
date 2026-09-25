@@ -5187,7 +5187,10 @@ app.get('/api/monitor/version', monAdmin, async (req, res) => {
     let n = 0; for (const d of devs.values()) if (versionsCfg.min && d.v < versionsCfg.min) n++;
     if (n) { const e = espaceParT(t); sous.push({ t, nom: e ? espNomPropre(e) : '', n }); }
   }
-  res.json({ ok: true, min: versionsCfg.min, enLigne: versionsCfg.enLigne, maj: versionsCfg.maj || 0, par: versionsCfg.par || '', versionEnLigne: enLigne, sous, cleAdmin: !!fbAdminCle });
+  /* `minFirestore` : la version minimale que Google a CONFIRMÉE. La copie des documents d'équipe
+     l'attend (`VERSION_SANS_FIREBASE`) : la Tour doit pouvoir le lire avant de croire la porte fermée. */
+  res.json({ ok: true, min: versionsCfg.min, enLigne: versionsCfg.enLigne, maj: versionsCfg.maj || 0, par: versionsCfg.par || '', versionEnLigne: enLigne, sous, cleAdmin: !!fbAdminCle,
+    minFirestore: +versionsCfg.minFirestore || 0 });
 });
 app.post('/api/monitor/version-min', monPatronStrict, async (req, res) => {
   const b = req.body || {};

@@ -371,6 +371,13 @@ console.log('\n── 809 · le document d\'équipe rangé chez nous — la sort
     r = await post('/api/monitor/documents/inventaire', {});
     v('l\'inventaire sans session de Tour : refusé', [401, 403].includes(r.s), true);
     const JT = await tour();
+    {
+      /* La Tour doit LIRE la porte confirmée chez Google avant de croire la copie possible
+         (`blocSortieFirebase`, tour.html) : `/api/monitor/version` la rend. */
+      const rv = await fetch(B + '/api/monitor/version', { headers: { Authorization: 'Bearer ' + JT } });
+      const jv = await rv.json().catch(() => ({}));
+      v('la Tour lit la version minimale CONFIRMÉE chez Google (`minFirestore`)', [rv.status, jv.minFirestore], [200, 748]);
+    }
     vrai('le patron ouvre une session de Tour', JT);
     r = await postBrut('/api/monitor/documents/inventaire', '{}', JT);
     v('⛔ l\'inventaire : complet, chaque entreprise de l\'annuaire vue (fermées et repli mises de côté)',
