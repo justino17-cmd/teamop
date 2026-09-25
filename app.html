@@ -7893,7 +7893,7 @@ function rangementMesure(){
   const ko=n=>Math.round(n*2/1024)+' Ko';   // Safari compte deux octets par caractère
   return ko(tot)+' occupés : '+Object.keys(fam).sort((a,b)=>fam[b]-fam[a]).map(f=>f+' '+ko(fam[f])).join(', ');
 }
-const APP_VERSION = '748';
+const APP_VERSION = '749';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -10021,6 +10021,23 @@ function baseSignature(d){ return collsFusion(d).sort().map(c=>c+':'+(d[c]||[]).
       if(c==='plansSite'&&Array.isArray(v)) return k+'@'+recEmpreinte({p:v.map(pl=>pl&&[pl.id,+pl._m||0,(pl.postes||[]).map(po=>po&&[po.id,+po._m||0])])});
       return k+((v&&typeof v==='object'&&!Array.isArray(v)&&v._m)?'@'+v._m:''); }).join(',')).join('|')
   +'#'+JSON.stringify(d._tombes||{}); }
+/* ⛔⛔ CE QUE L'ENVOI COUPE EXPRÈS NE DÉCIDE JAMAIS D'UN RENVOI — 25 septembre 2026 au soir, le jour
+   même de la sortie de Firebase. Chez ELAN, la base dépasse le budget du nuage : `syncAlleger`
+   raccourcit donc les JOURNAUX d'activité de la copie poussée, et chaque appareil garde les siens
+   (c'est voulu, et écrit là-bas). Mais la réception comparait la signature ENTIÈRE avant et après
+   fusion : l'appareil qui recevait retrouvait « ses » lignes de journal absentes de l'envoi,
+   concluait que l'équipe les ignorait, et renvoyait — coupé à nouveau, et l'autre en faisait autant.
+   Deux appareils ouverts = une boucle sans fin : vidéo de Justin, « Données de l'équipe mises à
+   jour » toutes les 3,3 s et l'écran redessiné à chaque fois ; rejoué sur une base lourde, 61
+   écritures en 30 s (`scratchpad/sonde-boucle-lourde.js`). Les journaux et LEURS pierres tombales
+   (le plafond de 500 en pose à chaque fusion) sortent donc de CETTE comparaison — et d'elle seule :
+   ils se fusionnent comme avant, et une ligne de journal nouvelle part avec le save() qui l'écrit.
+   ⚠️ La liste est UNE : `syncAlleger` la lit aussi. Un troisième journal coupé à l'envoi sans être
+   écarté ici ferait renaître la boucle. `tests/test-816.js`. */
+function syncJournaux(){ return ['journal','planJournal']; }
+function sigRenvoi(d){ if(!d||typeof d!=='object') return baseSignature(d);
+  const o=Object.assign({},d), t=Object.assign({},(d._tombes&&typeof d._tombes==='object')?d._tombes:{});
+  syncJournaux().forEach(c=>{ delete o[c]; delete t[c]; }); o._tombes=t; return baseSignature(o); }
 let db = load();
 try{ ombreRelever(); }catch(e){}   // l'ombre part de ce qui est chargé : rien n'est « modifié » tant qu'on n'a rien touché
 let currentUser = null;
@@ -10758,7 +10775,7 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
       // (sauf à l'arrivée dans l'espace : on adopte les données même si c'est cet appareil qui les avait écrites la dernière fois)
       if(!(premier&&frais)){ if(d.writer===syncDeviceId()) return; if((d.ts||0)<=(_syncTs||0)) return; }
       try{ let remote=JSON.parse(plain);
-        const _sigAvantFusion=baseSignature(remote);
+        const _sigAvantFusion=sigRenvoi(remote);   // sans les journaux : l'envoi les coupe exprès (voir sigRenvoi)
         remote=fusionnerBases(db,remote,false);   // priorité au DISTANT pour les égalités et les réglages : il est plus récent, par construction
         try{ syncRegreffer(db,remote); }catch(e){}   // ce qui est arrivé allégé ne remplace pas nos pièces (voir syncAlleger)
         let diffMsg=''; try{ diffMsg=planSyncDiff(db,remote,d.by||''); }catch(e){}
@@ -10789,7 +10806,7 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
                     || (sigPref(remote.users)!==prefAvant)
                     || (tomb.length!==tombAvant)
                     || (usersTombes(db).length>0 && usersTombes(db).length!==tomb.length)
-                    || (baseSignature(remote)!==_sigAvantFusion);   // nous avions quelque chose que l'équipe n'avait pas
+                    || (sigRenvoi(remote)!==_sigAvantFusion);   // nous avions quelque chose que l'équipe n'avait pas (hors journaux, coupés exprès à l'envoi)
         }catch(e){
           /* ⛔ SI LA FUSION ÉCHOUE, ON N'APPLIQUE PAS. Laisser passer `db=remote` après un
              échec, c'est retomber exactement dans la panne d'origine — en silence. */
@@ -11211,7 +11228,7 @@ function syncAlleger(base, budget){
      un document, ça se règle par la compression.
      La fusion étant une UNION par identifiant, une copie poussée plus courte ne retire rien
      à personne : chaque appareil garde son propre journal. */
-  const JOURNAUX=['journal','planJournal'];
+  const JOURNAUX=syncJournaux();   // la MÊME liste que celle que la réception écarte de sa décision de renvoi
   let coupes=0;
   for(const c of JOURNAUX){ if(excedent<=0) break;
     const src=copie[c]||base[c]; if(!Array.isArray(src)||src.length<60) continue;

@@ -1,5 +1,16 @@
 # Point stable TeamOP
 
+**Version stable : v749** — correctif du 25 septembre 2026 au soir, publié le soir même.
+
+v749 — deux appareils ouverts ne se renvoient plus la base sans fin. Chez ELAN (base au-delà du
+budget du nuage), l'envoi coupe exprès les journaux d'activité ; la réception prenait ce manque
+pour une donnée que l'équipe ignorait, et renvoyait — « Données de l'équipe mises à jour » toutes
+les 3,3 s, l'écran redessiné à chaque fois. Les journaux sortent de la seule décision de renvoi
+(`sigRenvoi`). Mesuré sur une base lourde : 61 écritures en 30 s avant, 1 après. `tests/test-816.js`.
+Rien d'autre ne change par rapport à la v748.
+
+## Ancien point
+
 **Version stable : v748** — gravée le 25 septembre 2026 au soir.
 
 v748 — OP GESTION quitte Firebase : la synchro de chaque entreprise passe par le serveur TeamOP.
