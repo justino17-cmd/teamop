@@ -58,7 +58,7 @@ const { decoder } = require(path.join(__dirname, 'png.js'));
       const yg=esp.y+esp.h/2-T.top, xg=esp.x+esp.w/2-T.left, xc=(coupe-.53*yg)/.848;
       const encre=k=>cs.getPropertyValue(k).trim();
       return { T:{x:T.left,y:T.top,w:T.width,h:T.height}, xg, xc, lignes:Math.round(ti.getBoundingClientRect().height/parseFloat(getComputedStyle(ti).lineHeight)),
-        mot1, dernier, d1, encres:{a:encre('--lg-encre-a'), b:encre('--lg-encre-b'), date:encre('--lg-date-a')},
+        mot1, dernier, d1, encres:{a:encre('--lg-encre-a'), b:encre('--lg-encre-b'), date:encre('--lg-date-a'), fa:encre('--lg-tuile-a'), fb:encre('--lg-tuile-b')},
         page:document.documentElement.scrollWidth, marque:document.documentElement.getAttribute('data-marque') };`);
     const lib = nom + ', ' + (mode === 'light' ? 'jour' : 'nuit');
     if (m.erreur) { vrai(lib + ' — la tuile est là', false, m.erreur); continue; }
@@ -75,7 +75,28 @@ const { decoder } = require(path.join(__dirname, 'png.js'));
           const o = (y * img.w + x) * 4, d = Math.abs(img.data[o] - cr) + Math.abs(img.data[o + 1] - cg) + Math.abs(img.data[o + 2] - cb); if (d < 45) n++; }
       return n; };
     const a = compte(m.mot1, m.encres.a), b = compte(m.dernier, m.encres.b), dt = compte(m.d1, m.encres.date);
+    /* ⛔ et le FOND entre les lettres : une couche d'encre peinte sur toute la tuile (découpe perdue)
+       remplirait le rectangle du mot de sa couleur — le compte de l'encre passerait, le texte serait
+       invisible. Un mot lisible, c'est son encre ET sa surface dans le même rectangle. */
+    const fa = compte(m.mot1, m.encres.fa), fb = compte(m.dernier, m.encres.fb);
     vrai(lib + ' — au pixel : le premier mot est peint à l’encre du côté clair, le dernier à celle du côté foncé, la date en sauge', a > 40 && b > 40 && dt > 8, a + ' / ' + b + ' / ' + dt + ' pixels');
+    vrai(lib + ' — … et la surface se voit entre les lettres (le texte est découpé, pas couvert)', fa > 100 && fb > 100, fa + ' / ' + fb + ' pixels de fond');
+    /* ⛔ LA DATE EST EN SAUGE, PAS EN FORÊT — au CŒUR des lettres. Compter les pixels « proches du
+       sauge » ne prouvait rien : les bords lissés d'une lettre forêt sur la menthe passent par des
+       verts intermédiaires qui tombent dans la tolérance (mutation « la date sans sa couche » :
+       51 ✓, rien vu). On prend les pixels les plus sombres du premier mot — le cœur des traits — et
+       on demande de quelle encre ils sont le plus près. De nuit, la date et le titre ont la même
+       encre des deux côtés : il n'y a rien à distinguer, on ne le mesure que de jour. */
+    if (mode === 'light') {
+      const px = []; const r = m.d1;
+      for (let y = Math.max(0, Math.floor(r.y - m.T.y)); y < Math.min(img.h, Math.ceil(r.y - m.T.y + r.h)); y++)
+        for (let x = Math.max(0, Math.floor(r.x - m.T.x)); x < Math.min(img.w, Math.ceil(r.x - m.T.x + r.w)); x++) {
+          const o = (y * img.w + x) * 4; px.push([img.data[o], img.data[o + 1], img.data[o + 2]]); }
+      px.sort((p, q) => (p[0] + p[1] + p[2]) - (q[0] + q[1] + q[2]));
+      const n = Math.max(5, Math.round(px.length * .08)), c = [0, 1, 2].map(k => px.slice(0, n).reduce((s, p) => s + p[k], 0) / n);
+      const dist = h => { const v = hex(h); return Math.abs(c[0] - v[0]) + Math.abs(c[1] - v[1]) + Math.abs(c[2] - v[2]); };
+      vrai(lib + ' — au cœur des lettres, la date est en sauge (pas à l’encre du titre)', dist(m.encres.date) < dist(m.encres.a), 'cœur ' + c.map(Math.round).join(',') + ' — sauge à ' + dist(m.encres.date).toFixed(0) + ', forêt à ' + dist(m.encres.a).toFixed(0));
+    }
   }
 
   console.log('\n── 4. Revenir à TEAM OP');
