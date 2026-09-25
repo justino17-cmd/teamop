@@ -116,7 +116,14 @@ la place, par famille (base de l'application, base de la bêta, Tour…).
   réglages) l'est.
 - Bancs mis à jour, délibérément : 699, 750, 751, 757, 759, 760, 762 (les nouvelles formes et les
   fonctions fournies aux bancs qui extraient), 653 (le canal de la Tour).
-- **Suite complète** : relancée après le correctif — son résultat s'écrit ici quand elle a fini (pas avant).
+- **Suite complète** : **164 suites · 8 127 vérifications, code de sortie 0** (sur la version publiée).
+  ⚠️ Une passe d'avant avait rendu 1 ✗ dans `test-788` — sans rapport avec ce correctif : sa mesure du
+  scanner (une seule prise, 117 à 136 ms ici pour 150 permis, le même coût qu'à sa naissance) basculait
+  sur un hoquet. Elle prend désormais le MEILLEUR de cinq passages ; le plafond ne bouge pas, et un
+  vrai ralentissement (+60 ms remis dans le code) la fait toujours tomber.
+- **Servi** : `teamop.fr/beta.html` rend `747-beta` (relu à 09 h 21 UTC) ; `app.html` rend toujours
+  `695` et `sw.js` `elan-gestion-v895` (la production n'a pas bougé). Sur `main`, le commit bêta seul
+  `0f630c0`.
 
 ### Ce qui attend Justin
 
