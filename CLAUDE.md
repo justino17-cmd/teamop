@@ -493,6 +493,16 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   appliquer AVANT d'écrire le prochain adaptateur : lister ce que l'API d'origine poussait, et le
   rendre — sinon chaque geste a l'air de ne pas être parti. Même piège pour les minuteries :
   une poignée de `setTimeout` PARTAGÉE entre abonnements fait qu'arrêter l'un coupe l'autre.
+- ⛔⛔ **UNE SYNCHRO SE MESURE AU REPOS, À DEUX APPAREILS, SUR UNE BASE PLUS LOURDE QUE LE BUDGET DU
+  NUAGE — PUBLIÉ SANS ÇA, LA v748 A BOUCLÉ CHEZ ELAN LE SOIR MÊME.** 25 septembre 2026 : « Données de
+  l'équipe mises à jour » toutes les 3,3 s dès que deux appareils étaient ouverts, l'écran redessiné à
+  chaque fois — « ça fait bug l'application ». Toutes les sondes de synchro étaient vertes : elles
+  faisaient bien parler deux appareils, mais sur des bases MINUSCULES. Or au-delà du budget,
+  `syncAlleger` coupe exprès les journaux de la copie poussée, et la réception prenait ce manque pour
+  une donnée à renvoyer — une boucle qui n'existe QUE sur une base lourde. Rejoué : 61 écritures en
+  30 s ; corrigé en v749 (`sigRenvoi`, `tests/test-816.js`) : 1. **Ce que l'envoi retire exprès ne
+  décide jamais d'un renvoi**, et toute sonde de synchro compte les écritures d'appareils AU REPOS sur
+  une base au-delà du budget (`scratchpad/sonde-boucle-lourde.js`) avant de dire « testé ».
 - ⛔⛔ **UN REFUS NE SURVIT PAS À LA RÉUSSITE QUI LE DÉMENT.** `_err()` d'`espace.html` ne faisait
   que POSER, jamais effacer : le verdict d'un essai raté restait à l'écran pendant l'essai
   suivant — y compris pendant un changement de mot de passe qui AVAIT réussi (deux routes à 200,
