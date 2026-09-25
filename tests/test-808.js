@@ -43,7 +43,10 @@ const CODE=['const PREF_CLES=','const _prefVue={};','function prefLocal(k,v){','
   'const ACCENTS = {','function setThemePref(p){','function setMarque(k){',
   'function tcMode(k){','function tcMarque(k){','function tcTeinte(k){','function setAccent(a){',
   'const ACC_PERSO_MAX=','function accentsPerso(){','function accentsPersoEcrire(l){','function setAccentCustom(hex){','function accentPersoRetirer(ev,hex){',
-  'function prefFusion(gagnant,autre){','function usersFusionner(','function usersSansDoublonLogin(list){'].map(decoupe).join('\n');
+  'function prefFusion(gagnant,autre){','function usersFusionner(','function usersSansDoublonLogin(list){',
+  /* la relecture de la v747 : les quatre autres réglages de PREF_CLES avaient la même fragilité */
+  'function getLang(){','function setLang(l){','const ONGLETS_MAX','function ongletsEcrire(l){',
+  'const FAV_MAX=','function favorisEcrire(l){','function mapSatOn(){','function setMapSat(on){'].map(decoupe).join('\n');
 
 /* Un appareil : son rangement (qui peut être PLEIN), sa base, son écran. `J` note l'ordre de ce
    qui se passe — « apply:mode/thème/teinte » est ce que l'affichage LIT au moment d'appliquer. */
@@ -54,10 +57,17 @@ function bac(O){
     const localStorage={ getItem:k=>(k in LS?LS[k]:null),
       setItem:(k,x)=>{ if(O.plein){ const e=new Error('The quota has been exceeded.'); e.name='QuotaExceededError'; throw e; } LS[k]=String(x); },
       removeItem:k=>{ delete LS[k]; }, get length(){ return Object.keys(LS).length; }, key:i=>Object.keys(LS)[i]||null };
-    const signaux=[], toasts=[];
+    const signaux=[], toasts=[], minuteries=[];
     const window={ tmSignaler:(t,m,st,src)=>signaux.push({t:t,m:String(m||''),src:src||''}) };
-    const toast=m=>toasts.push(String(m));
-    let current='parametres'; const views={ parametres:()=>J.push('vue') };
+    const toast=m=>{ toasts.push(String(m)); if(/plus de place|refuse de ranger/.test(String(m))) J.push('toast:plein'); };
+    /* une minuterie PART APRÈS le geste : on les garde, et le banc les vide quand le geste est fini */
+    const setTimeout=f=>{ minuteries.push(f); return minuteries.length; };
+    let current='parametres';
+    const views={ parametres:()=>J.push('vue'), carteInt:()=>J.push('carte:'+mapSatOn()), carteBox:()=>J.push('carte:'+mapSatOn()), planning:()=>J.push('carte:'+mapSatOn()) };
+    const renderNav=()=>J.push('nav:'+getLang()+':'+(prefLocalLire('elan_favoris')||''));
+    const renderOnglets=()=>J.push('onglets:'+(prefLocalLire('elan_onglets')||''));
+    const go=()=>{}; const translateNode=()=>{}; const $=()=>null;
+    const LANG_FLAG={fr:'FR',en:'EN'}, LANGS={fr:'Français',en:'English'};
     const themeCouleur=()=>J.push('fenetre');
     const avatarAccentSync=()=>{};
     const applyTheme=()=>J.push('apply:'+getThemePref()+'/'+getMarque()+'/'+getAccent());
@@ -67,6 +77,8 @@ function bac(O){
     let db={users:[{id:'u1',login:'justin',actif:true,pref:{}}]}; let currentUser=db.users[0];
     ${CODE}
     return { signaux, toasts, u:()=>db.users[0], lire:k=>LS[k], ecrire:(k,x)=>{ LS[k]=String(x); },
+      vider:()=>{ while(minuteries.length) minuteries.shift()(); }, ici:v=>{ current=v; },
+      setLang, getLang, ongletsEcrire, favorisEcrire, setMapSat, mapSatOn,
       tcTeinte, tcMode, tcMarque, setThemePref, setMarque, setAccent, setAccentCustom, accentPersoRetirer, accentsPerso,
       getAccent, getMarque, getThemePref, prefAppliquer, prefLocalLire, rangementMesure, prefFusion, usersFusionner };`)(O,J);
   return { M, J };
@@ -83,11 +95,14 @@ console.log('\n══ 1. LE RANGEMENT EST PLEIN — le geste s\'applique quand m
   v('le choix est sur la fiche de la personne', M.u().pref.accent, 'blue');
   vrai('… avec l\'heure du choix (maintenant, pas zéro)', Math.abs(Date.now()-(+(M.u().prefTs||{}).accent||0))<60000);
   v('rien n\'est rangé sur l\'appareil (il est plein)', M.lire('elan_accent'), undefined);
+  v('le message attend la fin du geste', plein(M), 0);
+  M.vider();
   v('⛔ on le DIT à l\'écran — une fois', plein(M), 1);
+  vrai('⛔ … APRÈS l\'enregistrement du geste (le dernier bandeau gagne : c\'est lui qui reste)', J.indexOf('toast:plein')>J.lastIndexOf('save'));
   const s=M.signaux.filter(x=>/Rangement de l’appareil plein/.test(x.m));
   v('⛔ et la Tour le reçoit', s.length, 1);
   vrai('… en nommant le réglage, sans préfixe d\'espace', /\(accent, QuotaExceededError\)/.test((s[0]||{}).m));
-  joue('« Rose » ensuite', ()=>M.tcTeinte('pink'));
+  joue('« Rose » ensuite', ()=>M.tcTeinte('pink')); M.vider();
   vrai('un second choix s\'applique aussi', J.includes('apply:auto/teamop/pink'));
   v('… sans second message (une fois par séance)', plein(M), 1);
   v('la mémoire tient la dernière teinte', M.getAccent(), 'pink');
@@ -165,6 +180,32 @@ console.log('\n══ 3. UNE COPIE PLUS ANCIENNE DE LA FICHE NE DÉFAIT PLUS UN 
   v('… zéro contre elle-même', (o=>M.prefFusion(o,o))(cp(ici)), 0);
 }
 
+console.log('\n══ 3 bis. LES QUATRE AUTRES RÉGLAGES QUI SUIVENT LA PERSONNE — la même règle ══\n');
+{ const {M,J}=bac({plein:true});
+  joue('la langue sur un appareil plein', ()=>M.setLang('en'));
+  vrai('⛔ l\'anglais s\'applique (le menu se redessine en anglais)', J.includes('nav:en:'));
+  v('… et suit la fiche', M.u().pref.lang, 'en');
+  joue('les onglets sur un appareil plein', ()=>M.ongletsEcrire(['planning','boxes','stock','clients']));
+  vrai('⛔ la barre du bas se redessine avec les nouveaux onglets', J.includes('onglets:planning,boxes,stock,clients'));
+  joue('un favori sur un appareil plein', ()=>M.favorisEcrire(['stock']));
+  vrai('⛔ le menu se redessine avec le favori', J.includes('nav:en:["stock"]'));
+  M.ici('carteInt');
+  joue('le satellite sur un appareil plein', ()=>M.setMapSat(true));
+  vrai('⛔ la carte se redessine en satellite', J.includes('carte:true'));
+  v('les quatre suivent la fiche', [M.u().pref.onglets,M.u().pref.favoris,M.u().pref.carte], ['planning,boxes,stock,clients','["stock"]','s']);
+}
+for(const [nom,geste,attendu] of [
+  ['setLang', M=>M.setLang('en'), 'nav:en:'],
+  ['ongletsEcrire', M=>M.ongletsEcrire(['planning','boxes','stock','clients']), 'onglets:planning,boxes,stock,clients'],
+  ['favorisEcrire', M=>M.favorisEcrire(['stock']), 'nav:fr:["stock"]'],
+  ['setMapSat', M=>{ M.ici('carteInt'); M.setMapSat(true); }, 'carte:true']]){
+  const {M,J}=bac({saveJette:true}); let jete=null;
+  try{ geste(M); }catch(e){ jete=e.message; }
+  v('   '+nom+' quand l\'enregistrement jette : le geste ne jette pas', jete, null);
+  const iA=J.indexOf(attendu), iS=J.indexOf('save');
+  vrai('   '+nom+' : appliqué avant d\'enregistrer, puis envoyé', iA>=0 && iS>iA && J.lastIndexOf('push')>iS);
+}
+
 console.log('\n══ 4. AU CHARGEMENT : on APPLIQUE la fiche, on n\'écrit rien — même sur un appareil plein ══\n');
 { const {M,J}=bac({plein:true});
   const fiche={id:'u1',pref:{accent:'purple',theme:'dark'}};
@@ -189,6 +230,19 @@ console.log('\n══ 4 bis. LA MÉMOIRE N\'EST QU\'UN REPLI — elle ne masque 
   v('… et il est bien reposé', M.lire('elan_carte'), 's');
 }
 
+console.log('\n══ 4 ter. « PLEIN » SEULEMENT SI C\'EST LE QUOTA ══\n');
+{ const O={plein:true}; const {M}=bac(O);
+  /* un rangement INTERDIT (vieux Safari privé, réglages de confidentialité) jette autre chose */
+  const f=new Function('O',`const signaux=[], toasts=[]; const window={tmSignaler:(t,m)=>signaux.push(String(m))};
+    const toast=m=>toasts.push(String(m)); const setTimeout=f=>f(); const localStorage={length:0,key:()=>null,getItem:()=>null};
+    ${decoupe('let _prefPleinDit=false;')} ${decoupe('function prefRangementPlein(k,e){')} ${decoupe('function rangementMesure(){')}
+    return (e)=>{ prefRangementPlein('elanB_accent',e); return {signaux,toasts}; };`)(O);
+  const e=new Error('The operation is insecure.'); e.name='SecurityError';
+  const r=f(e);
+  vrai('un refus qui n\'est pas le quota se dit « refusé »', /Rangement de l’appareil refusé/.test(r.signaux[0]||'') && /refuse de ranger/.test(r.toasts[0]||''));
+  faux('… jamais « plein »', /plein/.test((r.signaux[0]||'')+(r.toasts[0]||'')));
+}
+
 console.log('\n══ 5. CE QUE LA TOUR REÇOIT : des familles, jamais un nom de clé ══\n');
 { const {M}=bac({ls:{'elan_gestion_v2':'x'.repeat(5000),'elanB_gestion_v2':'y'.repeat(3000),'elanB_rappels_beta-justin':'[1,2]','teamop_spaces':'[]','zz':'1'}});
   const m=M.rangementMesure();
@@ -201,8 +255,10 @@ console.log('\n══ 5. CE QUE LA TOUR REÇOIT : des familles, jamais un nom de
 console.log('\n══ 6. LE CÂBLAGE — ce que l\'exécution n\'atteint pas ══\n');
 { /* le code seul : on ne retire que les blocs qui COMMENCENT une ligne (règle du dépôt) */
   const NU=APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ').replace(/^[ \t]*\/\/.*$/gm,' ');
-  v('⛔ plus AUCUN accès direct au rangement pour le mode, le thème et les teintes',
-    (NU.match(/localStorage\.(?:setItem|getItem|removeItem)\('elan_(?:theme|marque|accent|accent_hex|accents_perso)'/g)||[]).length, 0);
+  v('⛔ plus AUCUN accès direct au rangement pour les neuf réglages qui suivent la personne',
+    (NU.match(/localStorage\.(?:setItem|getItem|removeItem)\((?:'elan_(?:theme|marque|accent|accent_hex|accents_perso|lang|onglets|favoris|carte)'|PREF_CLES\.)/g)||[]).length, 0);
+  vrai('… et la clé du rangement est bien celle que les neuf portent (sinon le motif ne verrait rien)',
+    /const PREF_CLES=\{theme:'elan_theme',marque:'elan_marque',accent:'elan_accent',accentHex:'elan_accent_hex',accentsPerso:'elan_accents_perso',lang:'elan_lang',onglets:'elan_onglets',favoris:'elan_favoris',carte:'elan_carte'\};/.test(NU));
   const i=NU.indexOf('remote.users=usersFusionner(db.users,remote.users,tomb,false);');
   vrai('la réception est trouvée', i>0);
   vrai('… elle relève les heures AVANT la fusion', NU.slice(Math.max(0,i-400),i).includes('const prefAvant=sigPref(remote.users);'));

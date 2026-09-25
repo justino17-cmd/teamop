@@ -7836,7 +7836,7 @@ try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
    ici — rattraper une erreur ne doit pas la faire disparaître de la Tour. */
 try{ window.tmSignaler=function(type,message,stack,src){ tmPush(type,message,stack||'',src||'',0); }; }catch(_){ }
 })();
-/* ══ LES RÉGLAGES D'APPARENCE DE L'APPAREIL — ils se voient, même quand l'appareil ne peut pas les ranger ══
+/* ══ LES RÉGLAGES QUI SUIVENT LA PERSONNE — ils se voient, même quand l'appareil ne peut pas les ranger ══
    ⛔⛔ Justin, 25 septembre 2026, sur son iPhone : « les couleurs en dessous, je veux qu'elles
    marchent » — toucher Bleu ou Rose dans « Thème et couleur » ne changeait RIEN, pas même le
    « + Créer ». Le navigateur de test disait que tout marchait : son rangement est vide et il n'a
@@ -7848,9 +7848,12 @@ try{ window.tmSignaler=function(type,message,stack,src){ tmPush(type,message,sta
    2. un maillon de l'enregistrement JETTE après avoir rangé (`save()` → un rafraîchissement
       d'écran) : le choix est écrit, jamais appliqué, jamais envoyé ;
    3. la synchro ramène une copie PLUS ANCIENNE de la fiche : voir `prefFusion`.
-   D'où les règles des gestes d'apparence (`tcTeinte`, `tcMode`, `setMarque`, `setAccent`…) : le
-   choix se garde AUSSI en mémoire, et la mémoire se lit AVANT le rangement (`prefLocalLire`) ; il
-   s'APPLIQUE avant de s'enregistrer ; chaque enregistrement est gardé à part (`prefGarder`).
+   D'où les règles de TOUS les réglages de `PREF_CLES` — l'apparence (`tcTeinte`, `tcMode`,
+   `setMarque`, `setAccent`…), mais aussi la langue (`setLang`), les onglets (`ongletsEcrire`), les
+   favoris (`favorisEcrire`) et le satellite de la carte (`setMapSat`), qui avaient exactement la même
+   fragilité (relecture de la v747) : le choix se garde AUSSI en mémoire, et la mémoire se lit AVANT
+   le rangement (`prefLocalLire`) ; il s'APPLIQUE avant de s'enregistrer ; chaque enregistrement est
+   gardé à part (`prefGarder`).
    ⚠ Elles vivent ICI, tout en haut du script — un `const` lu avant sa ligne est en zone morte
    temporelle, et l'apparence se lit dès le premier rendu — mais HORS du bloc de la sentinelle
    juste au-dessus : écrites dedans (première version, mesurée), elles n'existaient pas pour le
@@ -7871,9 +7874,15 @@ function prefLocalLire(k){ if(Object.prototype.hasOwnProperty.call(_prefVue,k)) 
 let _prefPleinDit=false;
 function prefRangementPlein(k,e){
   if(_prefPleinDit) return; _prefPleinDit=true;
+  /* « plein » seulement si c'EST le quota ; sinon (rangement interdit, navigation privée d'un vieux
+     Safari…) on dit « refusé » — un libellé faux envoie chercher au mauvais endroit. */
+  const plein=/quota/i.test(String((e&&e.name)||'')+' '+String((e&&e.message)||''));
   let m=''; try{ m=rangementMesure(); }catch(_){}
-  try{ if(typeof window.tmSignaler==='function') window.tmSignaler('erreur','Rangement de l’appareil plein : réglage d’apparence gardé en mémoire ('+String(k).replace(/^elanB?_/,'')+', '+((e&&e.name)||'erreur')+')'+(m?' — '+m:'')); }catch(_){}
-  try{ toast('⚠️ Cet appareil n’a plus de place pour ranger tes réglages : ton choix s’applique quand même, et il suit ton compte.',9000); }catch(_){}
+  try{ if(typeof window.tmSignaler==='function') window.tmSignaler('erreur','Rangement de l’appareil '+(plein?'plein':'refusé')+' : réglage gardé en mémoire ('+String(k).replace(/^elanB?_/,'')+', '+((e&&e.name)||'erreur')+')'+(m?' — '+m:'')); }catch(_){}
+  /* ⛔ APRÈS le geste : le dernier bandeau gagne, et celui de `save()` (« Stockage plein — réduis le
+     nombre/poids des photos », 2,2 s), écrit pendant le MÊME geste, passait par-dessus celui-ci. */
+  try{ setTimeout(()=>{ try{ toast(plein?'⚠️ Cet appareil n’a plus de place pour ranger tes réglages : ton choix s’applique quand même, et il suit ton compte.'
+    :'⚠️ Cet appareil refuse de ranger tes réglages : ton choix s’applique quand même, et il suit ton compte.',9000); }catch(_){} },0); }catch(_){}
 }
 function rangementMesure(){
   const fam={}; let tot=0;
@@ -8909,7 +8918,7 @@ function roleSupprimer(cle){
 /* ── Multilingue (FR par défaut · EN · ES) ── */
 const LANGS={fr:'Français',en:'English',es:'Español'};
 const LANG_FLAG={fr:'🇫🇷',en:'🇬🇧',es:'🇪🇸'};
-function getLang(){ return localStorage.getItem('elanB_lang')||'fr'; }
+function getLang(){ return prefLocalLire('elanB_lang')||'fr'; }
 const I18N={
   en:{ 'Pilotage':'Overview','Interventions':'Jobs','Commercial':'Sales','Stock & produits':'Stock & products','Demandes & commandes':'Requests & orders','Communication':'Communication','Communication / Fournisseurs':'Communication / Suppliers','Flotte':'Fleet','Administration':'Administration',
     'Tableau de bord':'Dashboard','Statistiques':'Statistics','Dashboard conso':'Consumption','Archives mensuelles':'Monthly archives','Carte interventions':'Jobs map','Carte des box':'Boxes map','Historique':'History','Planning':'Schedule','Clients':'Clients','Rapports':'Reports','Registre sanitaire':'Sanitary register','Pointage':'Time clock','Devis':'Quotes','Devis xylophage':'Woodworm quotes','Factures':'Invoices','Contrats':'Contracts','Produits':'Products','Boxes':'Boxes','Stock':'Stock','Saisie conso':'Consumption entry','Mouvements stock':'Stock moves','Produits donnés':'Given products','Fournisseurs':'Suppliers','Enveloppes':'Envelopes','Brouillon':'Draft','Mes demandes':'My requests','Validations DR':'RD approvals','Bons de commande':'Purchase orders','Commandes en cours':'Open orders','Historique demandes':'Requests history','Messagerie':'Messages','Véhicules':'Vehicles','Secteurs':'Sectors','Utilisateurs':'Users','Permissions':'Permissions','Paramètres':'Settings','Langue':'Language','Apparence':'Appearance','Thème':'Theme',
@@ -8935,7 +8944,11 @@ function startI18n(){ if(_i18nObs||!window.MutationObserver) return;
   _i18nObs=new MutationObserver(ms=>{ if(getLang()==='fr')return; ms.forEach(m=>m.addedNodes.forEach(n=>translateNode(n))); });
   ['content','modal','modal2','nav','page-head','topbar-actions','overlay','overlay2'].forEach(id=>{ const el=$(id); if(el) _i18nObs.observe(el,{childList:true,subtree:true}); });
 }
-function setLang(l){ localStorage.setItem('elanB_lang',l); prefEcrire('lang',l); if(currentUser){ renderNav(); if(current) go(current); setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },30); } toast(LANG_FLAG[l]+' '+LANGS[l]); }
+/* Comme un réglage d'apparence (voir `prefLocal`, en tête du script) : on range — en mémoire si
+   l'appareil est plein —, on APPLIQUE, puis on enregistre. Avant, `setItem` jetait sur un appareil
+   plein et la langue ne changeait pas ; un `save()` qui jetait sautait le redessin. */
+function setLang(l){ prefLocal('elanB_lang',l); if(currentUser){ renderNav(); if(current) go(current); setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },30); }
+  prefGarder('lang',l); toast(LANG_FLAG[l]+' '+LANGS[l]); }
 function openLangPicker(){ openModal(`<div class="modal-head"><h3>🌍 ${t('Langue')} / Language / Idioma</h3></div>
   <div style="padding:2px"><p style="color:var(--t2);font-size:14px;margin-bottom:14px">Choisis ta langue · Choose your language · Elige tu idioma</p>
   <div style="display:flex;flex-direction:column;gap:10px">${Object.entries(LANGS).map(([k,v])=>`<button type="button" class="btn ${getLang()===k?'':'ghost'}" style="justify-content:flex-start" onclick="setLang('${k}');closeModal()">${LANG_FLAG[k]} ${v}</button>`).join('')}</div></div>`); }
@@ -14537,7 +14550,7 @@ function ongletItem(k){ try{ return NAV.flatMap(s=>s.items).find(x=>x.k===k)||nu
    on retomberait sur le tableau de bord avec un cadenas, sans comprendre pourquoi. On complète
    alors par les défauts, puis par le début du menu : la barre a toujours quatre onglets VALIDES. */
 function ongletsLire(){
-  let brut=''; try{ brut=localStorage.getItem('elanB_onglets')||''; }catch(e){}
+  let brut=prefLocalLire('elanB_onglets')||'';
   /* ⚠ REPRISE DE L'ANCIENNE BARRE. `.rf-tabs` rangeait le même choix dans
      `elan_barre_onglets`, en JSON. Elle ne s'affiche plus, mais son réglage est sur les
      appareils de ceux qui l'ont utilisée : sans cette reprise, ils verraient leur barre
@@ -14555,9 +14568,9 @@ function ongletsLire(){
 /* Une seule barre, donc une seule clé écrite : `elan_onglets`, celle qui voyage par `u.pref`. */
 function ongletsEcrire(l){
   const v=(l||[]).slice(0,ONGLETS_MAX).join(',');
-  try{ localStorage.setItem('elanB_onglets',v); }catch(e){}
-  try{ prefEcrire('onglets',v); }catch(e){}
+  prefLocal('elanB_onglets',v);
   renderOnglets();
+  prefGarder('onglets',v);
 }
 /* La messagerie n'existe que si l'entreprise y a droit ET que l'application répond : un bouton
    flottant qui ouvre une page morte est pire que pas de bouton. */
@@ -15130,7 +15143,7 @@ function ongletsValider(){
    chez toute l'équipe. */
 const FAV_MAX=8;
 function favorisLire(){
-  let l=[]; try{ l=JSON.parse(localStorage.getItem('elanB_favoris')||'[]'); }catch(e){ l=[]; }
+  let l=[]; try{ l=JSON.parse(prefLocalLire('elanB_favoris')||'[]'); }catch(e){ l=[]; }
   if(!Array.isArray(l)) l=[];
   /* On refiltre à CHAQUE lecture : un droit retiré, un forfait changé ou un métier
      différent doivent faire disparaître le raccourci, pas afficher une rubrique interdite. */
@@ -15138,8 +15151,9 @@ function favorisLire(){
 }
 function favorisEcrire(l){
   const v=JSON.stringify(l.slice(0,FAV_MAX));
-  try{ localStorage.setItem('elanB_favoris',v); }catch(e){}
-  prefEcrire('favoris',v);
+  prefLocal('elanB_favoris',v);
+  renderNav();                  // on APPLIQUE, puis on enregistre (voir `prefLocal`)
+  prefGarder('favoris',v);
 }
 function favorisBascule(ev,k){
   if(ev){ ev.stopPropagation(); ev.preventDefault(); }
@@ -15147,7 +15161,7 @@ function favorisBascule(ev,k){
   if(i>=0) l.splice(i,1);
   else if(l.length>=FAV_MAX){ toast('Huit favoris au maximum — retires-en un d’abord'); return; }
   else l.push(k);
-  favorisEcrire(l); renderNav();
+  favorisEcrire(l);
 }
 let _favEdit=false;
 function favorisEditer(){ _favEdit=!_favEdit; renderNav(); }
@@ -31138,7 +31152,7 @@ let _map=null, _deptGeo=null;
    Reste donc UN seul choix, celui que le thème ne peut pas rendre : le satellite.
    ⚠️ Une préférence 'm' ou 'n' rangée par la version d'avant vaut « pas satellite » — sinon
    quelqu'un resté sur Nuit y serait enfermé, le bouton qui l'en sortait n'existant plus. */
-function mapSatOn(){ try{ return localStorage.getItem(PREF_CLES.carte)==='s'; }catch(e){ return false; } }
+function mapSatOn(){ return prefLocalLire(PREF_CLES.carte)==='s'; }
 function mapFond(){ return mapSatOn() ? 's' : (effectiveTheme()==='dark' ? 'n' : 'm'); }
 function mapFondBarre(){
   const on=mapSatOn();
@@ -31167,9 +31181,9 @@ function setMapSat(on){
   /* On range 'a' (automatique) plutôt que d'effacer la clé : `prefAppliquer` ignore une
      valeur vide, donc éteindre le satellite ne serait jamais parti sur les autres appareils. */
   const v = on ? 's' : 'a';
-  try{ localStorage.setItem(PREF_CLES.carte,v); }catch(e){}
-  try{ prefEcrire('carte',v); }catch(e){}
+  prefLocal(PREF_CLES.carte,v);
   if(current==='carteInt') views.carteInt(); else if(current==='carteBox') views.carteBox(); else if(current==='planning') views.planning();
+  prefGarder('carte',v);
 }
 /* Le thème vient de changer : la carte bascule SANS reconstruire la vue. Jour et nuit
    partagent exactement les mêmes tuiles Google (`lyrs=m`) — seule la teinte change — donc
@@ -38756,7 +38770,7 @@ function enterApp(u){ currentUser=u;
   // vue demandée par l'adresse (#v=…) : seulement si ce compte y a droit — sinon tableau de bord, sans message (l'adresse peut venir d'un autre compte sur le même appareil)
   (function(){ const m=location.hash.match(/v=([A-Za-z0-9_-]+)/); let v=m&&views[m[1]]?m[1]:'dashboard'; try{ if(v!=='dashboard'){ let it=null; NAV.forEach(s=>s.items.forEach(x=>{ if(x.k===(v==='carteBox'?'boxes':v)) it=x; })); if(it&&!canSee(it)) v='dashboard'; } }catch(e){} go(v); })();
   if(getLang()!=='fr') setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },50);
-  if(!localStorage.getItem('elanB_lang')) setTimeout(openLangPicker,300);
+  if(!prefLocalLire('elanB_lang')) setTimeout(openLangPicker,300);
   maybeDemoTelecollecte();
   if(typeof syncInit==='function') syncInit();
   // migration : le code Devis IA saisi sur l'appareil d'un admin rejoint les données d'équipe (partagé, invisible)

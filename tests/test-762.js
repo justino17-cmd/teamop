@@ -46,7 +46,7 @@ function decoupe(h){ const d=APP.indexOf(h); if(d<0) throw new Error('introuvabl
 /* v747 : `prefAppliquer` et `getThemePref` lisent et rangent par `prefLocal`/`prefLocalLire` (la
    mémoire de repli d'un appareil plein, test-808) — fournies ici avec la chaîne. */
 const CODE=['const _prefVue={};','function prefLocal(k,v){','function prefLocalLire(k){',
-  'const PREF_CLES=','function prefEcrire(cle,val){','function prefAppliquer(u){',
+  'const PREF_CLES=','function prefEcrire(cle,val){','function prefGarder(cle,val){','function prefAppliquer(u){',
   'function systemDark(){','function effectiveTheme(){','function getThemePref(){',
   'function mapSatOn(){','function mapFond(){','function mapFondBarre(){',
   'function setMapSat(on){','function mapNuitSync(){'].map(h=>decoupe(h)).join('\n');

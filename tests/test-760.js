@@ -57,7 +57,8 @@ console.log('\n══ 1. LA DÉCISION DU 22 SEPTEMBRE, ÉCRITE DANS LE CODE ═�
 
 console.log('\n══ 2. mapTiles : L’URL ET L’ASSOMBRISSEMENT, LES DEUX EFFETS ══\n');
 {
-  const src = [corps('mapSatOn'), corps('mapFond'), corps('mapTiles')].join('\n');
+  /* v747 : `mapSatOn` lit par `prefLocalLire` (la mémoire de repli d'un appareil plein — test-808) */
+  const src = ['const _prefVue={};', corps('prefLocalLire'), corps('mapSatOn'), corps('mapFond'), corps('mapTiles')].join('\n');
   /* ⛔ Une tranche vide passe au vert sur tout : on prouve d'abord qu'on a trouvé les trois. */
   vrai('les trois morceaux sont extraits',
     !!corps('mapSatOn') && !!corps('mapFond') && !!corps('mapTiles') && src.length > 400,

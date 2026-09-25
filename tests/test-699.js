@@ -231,7 +231,7 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
   v('le thème s’enregistre sur la fiche', /prefGarder\('theme',p\)/.test(APP), true);
   v('la couleur aussi', /prefGarder\('accent',a\)/.test(APP), true);
   v('la couleur personnalisée aussi', /prefGarder\('accentHex',hex\); prefGarder\('accent','custom'\)/.test(APP), true);
-  v('la langue aussi', /prefEcrire\('lang',l\)/.test(APP), true);
+  v('la langue aussi', /prefGarder\('lang',l\)/.test(APP), true);
   const pe = extraire(APP, 'function prefEcrire(');
   v('⛔ une valeur inchangée n’estampille pas la fiche', /if\(u\.pref\[cle\]===val\) return;/.test(pe), true);
   v('… et rien ne s’écrit sans personne connectée', /if\(!currentUser\|\|!PREF_CLES\[cle\]/.test(pe), true);

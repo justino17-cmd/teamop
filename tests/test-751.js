@@ -36,7 +36,10 @@ function decoupe(h){ const d=APP.indexOf(h); if(d<0) throw new Error('introuvabl
     try{ new Function(t); return t; }catch(e){ bout=bout.slice(0,k); } }
   throw new Error('fin introuvable : '+h); }
 
-const CODE=['const ONGLETS_DEFAUT=','const ONGLETS_MAX=','function ongletsDispo(){','function ongletItem(k){',
+/* v747 : `ongletsLire` lit par `prefLocalLire` (la mémoire de repli d'un appareil plein — test-808) :
+   fournie ici avec sa mémoire, la garde d'une fonction extraite va avec elle. */
+const CODE=['const _prefVue={};','function prefLocalLire(k){',
+  'const ONGLETS_DEFAUT=','const ONGLETS_MAX=','function ongletsDispo(){','function ongletItem(k){',
   'function ongletsLire(){'].map(h=>decoupe(h)).join('\n');
 
 /* On rejoue le menu et les droits : rien d'autre n'est lu par ces fonctions. */
@@ -141,8 +144,11 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
 }
 { /* ⛔ 4 — le choix suit la personne */
   const ec=corps('ongletsEcrire');
-  vrai('⛔ le choix part sur la fiche de la personne', /prefEcrire\('onglets'/.test(ec));
-  vrai('… et sur l\'appareil', /localStorage\.setItem/.test(ec));
+  /* v747 : par `prefGarder` (un enregistrement qui échoue ne défait plus le geste) et `prefLocal`
+     (la mémoire de repli d'un appareil plein) — la chaîne est JOUÉE dans test-808 § 3 bis. */
+  vrai('⛔ le choix part sur la fiche de la personne', /prefGarder\('onglets'/.test(ec));
+  vrai('… et sur l\'appareil', /prefLocal\('elan_onglets'/.test(ec));
+  vrai('… et la barre se redessine AVANT l\'enregistrement', ec.indexOf('renderOnglets()')>0 && ec.indexOf('renderOnglets()')<ec.indexOf("prefGarder('onglets'"));
   vrai('la clé est déclarée dans PREF_CLES (donc elle voyage à la connexion)',
     /PREF_CLES=\{[^}]*onglets:/.test(NU));
   v('⛔ RIEN de tout ça n\'entre dans db en dehors de prefEcrire',
