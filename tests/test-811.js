@@ -227,9 +227,10 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
     v('⛔ un code inconnu : 404', (await post('/api/portail/promo', { code: 'INVENTE' }, au)).s, 404);
     v('⛔ un code épuisé : 410', (await post('/api/portail/promo', { code: 'EPUISE' }, au)).s, 410);
     const t0 = Date.now();
-    r = await post('/api/portail/promo', { code: ' test3 ' }, au);
+    /* Le corps essaie de choisir sa durée, son échéance et son libellé : rien de tout ça ne compte. */
+    r = await post('/api/portail/promo', { code: ' test3 ', mois: 36, until: 4102444800000, label: '36 mois offerts' }, au);
     const dp = r.j.dossier || {};
-    v('⛔ un code valide : accordé, avec la durée de `config.promos` — l\'échéance est calculée par le SERVEUR',
+    v('⛔ un code valide : accordé, avec la durée de `config.promos` — l\'échéance est calculée par le SERVEUR, le corps n\'y peut rien',
       [r.s, dp.promo && dp.promo.code, dp.promo && dp.promo.label, dp.promoUsed, Math.round(((dp.promo && dp.promo.until) - t0) / 86400000)],
       [200, 'TEST3', '3 mois offerts', ['TEST3'], 90]);
     v('   et le client le lit dans son fil, écrit par l\'équipe', (portail._reg().f['promo@exemple.fr'] || []).some(m => m.de === 'admin' && /TEST3/.test(m.t)), true);
