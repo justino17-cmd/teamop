@@ -137,6 +137,12 @@ console.log('\nLa route ne délivre rien sans preuve, et jamais pour le repli');
   v('…et une clé fausse',/espaceCleOk\(t, kh\)/.test(garde),true);
 }
 
+/* ⛔ LES DEUX PAGES, PAS UNE. Ce banc est dans `scripts/bancs-serveur.liste` : le déploiement du
+   serveur SEUL le lance contre l'`app.html` que `main` sert — la v695, qui parle encore à Firebase,
+   jusqu'au jour J. On garde donc ce que CHAQUE page doit tenir : la v748 ne charge plus Firebase ;
+   la v695 demande son jeton sans rien casser s'il manque (le bloc d'avant la sortie, tel quel). */
+const V748 = APP.indexOf('function docEquipe(') >= 0;
+if (V748) {
 console.log('\nCôté application : Firebase n\'est plus chargé du tout (sortie du 25 septembre 2026)');
 { /* ⛔ CE BLOC GARDAIT LE CONTRAIRE JUSQU'À LA v747 : le jeton d'équipe (`fbJetonEquipe`), la
      session anonyme de secours, l'application Firebase NOMMÉE qui séparait OP GESTION du portail.
@@ -177,6 +183,59 @@ console.log('\nCôté application : Firebase n\'est plus chargé du tout (sortie
   /* Travailler hors ligne est une fonctionnalité ; se croire synchronisé sans l'être, non. */
   v('et quand les quatre reprises sont épuisées, l\'utilisateur l\'apprend',
     /Pas de connexion à l\\?'espace de l\\?'équipe/.test(APP),true);
+}
+
+} else {
+console.log('\nCôté application : le jeton s\'essaie, mais rien ne casse s\'il manque');
+{ const jet=(APP.match(/async function fbJetonEquipe\(\)\{[\s\S]*?\n\}catch\(e\)\{ return ''; \} \}/)||[''])[0];
+  v('fbJetonEquipe existe',jet.length>100,true);
+  v('elle envoie la PREUVE, jamais la clé',[/khEquipe\(\)/.test(jet),/syncSecret\(\)/.test(jet)],[true,false]);
+  v('elle rend vide plutôt que de lever, quoi qu\'il arrive',/catch\(e\)\{ return ''; \}/.test(jet),true);
+  v('elle ne reste pas suspendue si le serveur ne répond pas',/AbortController/.test(jet),true);
+
+  const auth=(APP.match(/async function syncAuth\(\)\{[\s\S]*?\n\}catch\(e\)\{ try\{ console\.warn\('auth sync/)||[''])[0];
+  /* ⛔ ON JUGE SUR LE CLAIM, PAS SUR L'ANONYMAT. `espace.html` (le portail client) déclare le
+     même projet Firebase sur la même origine : sa session était PARTAGÉE avec l'application.
+     Un patron qui règle son abonnement puis ouvre OP GESTION arrivait donc ici avec un compte
+     e-mail — ni anonyme, ni porteur du jeton — et le bloc était sauté : cet appareil n'aurait
+     JAMAIS demandé de jeton, et se serait retrouvé muet le jour où la règle l'exige.
+     Trouvé par `gardien`. La vraie question est « cette session vaut-elle pour l'entreprise
+     qu'on a sous les yeux ? », et l'isolement des deux pages se fait par une application
+     Firebase NOMMÉE — la persistance étant rangée par nom d'application. */
+  v('l\'application Firestore d\'OP GESTION est NOMMÉE, séparée du portail client',
+    /firebase\.initializeApp\(cfg,'opgestion'\)/.test(APP),true);
+  v('plus aucun firebase.auth() global : tout passe par cette application',
+    (APP.match(/firebase\.auth\(\)/g)||[]).length,0);
+  v('la décision porte sur le claim, pas sur l\'anonymat',/if\(!cl\)\{/.test(auth),true);
+  v('si le jeton échoue, on garde ou on ouvre une session anonyme — la synchro ne s\'arrête pas',
+    /if\(!A\.auth\(\)\.currentUser\) await A\.auth\(\)\.signInAnonymously\(\);/.test(auth),true);
+  v('un jeton d\'une AUTRE entreprise fait déconnecter',
+    /if\(cl && cl!==tIci\)\{ try\{ await A\.auth\(\)\.signOut\(\); \}/.test(auth),true);
+  v('le jeton n\'est demandé qu\'après avoir constaté que la session ne vaut pas',
+    auth.indexOf('fbJetonEquipe()')>auth.indexOf('if(!cl)'),true);
+  /* La session Firebase est le secret le plus VIVANT : elle se renouvelle indéfiniment toute
+     seule. Un appareil qu'on rend ou dont la Tour ferme l'espace la garderait sinon. */
+  const quitter=(APP.match(/function espaceQuitter\(\)\{[\s\S]*?\n\}\n(?=(?:async function |function |const |let |\/\*))/)||[''])[0];
+  v('quitter un espace emporte AUSSI la session Firebase',
+    /name==='opgestion'\)\[0\]; if\(a&&a\.auth\) a\.auth\(\)\.signOut\(\)/.test(quitter),true);
+  /* ⛔ ET PAR LE STOCKAGE, PAS SEULEMENT PAR LE SDK. L'application nommée n'existe que si
+     syncInit a dépassé le chargement des trois scripts de Google DANS CE CHARGEMENT-CI. Sur
+     la porte de la Tour (« espace fermé »), la vérification part à 2,6 s : en 4G c'est une
+     course perdue d'avance, et après elle `elan_sync_team` a disparu — donc syncAuth ne
+     repassera JAMAIS pour rattraper. Une entreprise coupée par TEAM OP gardait ainsi, sur
+     chaque appareil, une session valide et renouvelable en lecture ET écriture sur son
+     document. Trouvé par `gardien` en seconde passe. */
+  v('…et directement dans le stockage de Firebase, qui marche même si le SDK n\'est pas chargé',
+    /indexedDB\.open\('firebaseLocalStorageDb'\)/.test(quitter),true);
+  v('en n\'effaçant QUE la clé d\'OP GESTION — la base est partagée avec le portail client',
+    /indexOf\(':opgestion'\)>0\) st\.delete\(k\)/.test(quitter),true);
+  v('la porte de la Tour laisse le temps à ce retrait de s\'exécuter',
+    /setTimeout\(\(\)=>location\.reload\(\),400\); return;/.test(APP),true);
+  /* Travailler hors ligne est une fonctionnalité ; se croire synchronisé sans l'être, non. */
+  v('et quand les quatre reprises sont épuisées, l\'utilisateur l\'apprend',
+    /Pas de connexion à l\\?'espace de l\\?'équipe/.test(APP),true);
+}
+
 }
 
 console.log('\nLa règle Firestore est REFERMÉE — publiée le 11 septembre 2026, 2 h 30');

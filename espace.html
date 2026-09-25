@@ -586,7 +586,12 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       },
     };
 
-    return { auth, fs, FieldValue };
+    /* ⛔ UN CODE PROMO S'ACTIVE CHEZ LE SERVEUR (`/api/portail/promo`) : il vérifie le code et
+       calcule l'échéance. La page écrivait `promo` elle-même dans son dossier — c'était Firestore ;
+       notre serveur réserve ce champ, et l'écriture était jetée sans un mot. */
+    async function promoActiver(code){ return appel('/api/portail/promo', { code }); }
+
+    return { auth, fs, FieldValue, promoActiver };
   }
 
   const _pv = portailMaison();
@@ -788,15 +793,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      « afficher le code source », lisait le code, créait un compte et s'attribuait trois mois —
      sans aucun plafond d'utilisation, et sans qu'une seule ligne n'apparaisse côté serveur.
      Un code promo dans une page publique n'est pas un code promo : c'est un cadeau à tous.
-     La liste vit donc dans `config.promos` sur le VPS, et c'est `/api/promo/valider` qui dit
-     si un code existe, combien de mois il donne, et s'il a atteint son plafond.
-     ⚠️ CE QUE ÇA NE FERME PAS, ET IL FAUT LE SAVOIR : l'ÉCRITURE reste côté client (ce portail
-     écrit lui-même dans son document Firestore). Quelqu'un qui CONNAÎT un code valide peut
-     donc encore se l'attribuer sans que le compteur `maxUtilisations` bouge — l'aperçu ne
-     compte pas, par construction. Ce qui est fermé, c'est la découverte du code par la lecture
-     du fichier, et la durée qui n'est plus décidée par la page. L'autorité de paiement, elle,
-     n'a jamais été ici : c'est `espacePaye()` côté serveur. */
-  const PROMO_URL='https://api.teamop.fr/api/promo/valider';
+     La liste vit donc dans `config.promos` sur le VPS, et c'est le serveur qui dit si un code
+     existe, combien de mois il donne et s'il a atteint son plafond — puis qui l'écrit dans le
+     dossier (`/api/portail/promo`, depuis la sortie de Firebase). La page ne pose plus `promo`
+     elle-même : du temps de Firestore elle le faisait, et quelqu'un qui connaissait un code
+     valide choisissait aussi sa durée. Le compteur `maxUtilisations`, lui, bouge au relais
+     (`/api/clients/sync`), quand le code est accordé à une entreprise — une fois par entreprise.
+     L'autorité de paiement n'a jamais été ici : c'est `espacePaye()` côté serveur. */
   const APPS_PROMO=['elan','opmsg'];   // ce qu'un code ouvre sur le portail, comme avant
   function promoInfo(d){ try{ const p=d&&d.promo; if(!p||!p.until) return null; const until=(p.until&&p.until.toMillis)?p.until.toMillis():p.until; const rest=until-Date.now(); if(rest<=0) return null;
     return {code:p.code||'',label:p.label||'3 mois offerts',until,jours:Math.ceil(rest/86400000),apps:(Array.isArray(p.apps)?p.apps:Object.keys(APPS)).filter(k=>APPS[k])}; }catch(e){ return null; } }
@@ -810,29 +813,22 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const d=_meDoc||{};
     if(Array.isArray(d.promoUsed)&&d.promoUsed.includes(code)) return err('Ce code a déjà été utilisé sur ce compte.');
     if(promoInfo(d)) return err('Une offre est déjà active sur votre compte.');
-    /* ⛔ C'EST LE SERVEUR QUI DIT SI LE CODE EXISTE ET COMBIEN DE MOIS IL DONNE. `apercu:true`
-       ne consomme rien et n'exige aucune identité — c'est nécessaire, cette page valide un code
-       avant qu'un espace existe. ⚠️ Un refus doit SE VOIR : si l'API ne répond pas, on le dit
-       au lieu de laisser croire que le code est mauvais. Trois états, jamais deux. */
+    /* ⛔ C'EST LE SERVEUR QUI DIT SI LE CODE EXISTE, COMBIEN DE MOIS IL DONNE, ET QUI L'ÉCRIT DANS
+       LE DOSSIER (`/api/portail/promo`) : la page ne pose plus `promo` elle-même. ⚠️ Un refus doit
+       SE VOIR : si l'API ne répond pas, on le dit au lieu de laisser croire que le code est mauvais.
+       Trois états, jamais deux. */
     if(msg) msg.innerHTML='<div class="muted">Vérification du code…</div>';
-    let def=null;
-    try{
-      const r=await fetch(PROMO_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,apercu:true})});
-      if(r.status===404) return err('Code inconnu ou expiré.');
-      if(r.status===410) return err('Ce code a atteint son nombre maximum d\'utilisations.');
-      if(!r.ok) return err('Impossible de vérifier le code pour le moment. Réessayez dans un instant.');
-      const j=await r.json();
-      if(!j||!j.ok) return err('Code inconnu ou expiré.');
-      def={mois:Math.max(1,Number(j.mois)||1), apps:APPS_PROMO, label:(Math.max(1,Number(j.mois)||1))+' mois offert'+((Number(j.mois)||1)>1?'s':'')};
-    }catch(e){ return err('Impossible de vérifier le code pour le moment. Réessayez dans un instant.'); }
-    const until=Date.now()+def.mois*30*86400000;
-    const promo={code,label:def.label,apps:def.apps,activatedAt:Date.now(),until};
-    try{
-      await fs.collection('teamop_requests').doc(uid).set({promo,promoUsed:FV.arrayUnion(code)},{merge:true});
-      _meDoc=Object.assign({},_meDoc,{promo,promoUsed:(d.promoUsed||[]).concat([code])});
-      try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'🎁 Code « '+code+' » activé : '+def.label+' sur vos applications, jusqu\'au '+new Date(until).toLocaleDateString('fr-FR')+'. Profitez bien !',ts:FV.serverTimestamp()}); }catch(e){}
-      openView('abo');
-    }catch(e){ err('Erreur : '+(e.message||e)); } }
+    let r=null;
+    try{ r=await _pv.promoActiver(code); }catch(e){ r=null; }
+    if(!r) return err('Impossible de vérifier le code pour le moment. Réessayez dans un instant.');
+    if(r.code===404) return err('Code inconnu ou expiré.');
+    if(r.code===410) return err('Ce code a atteint son nombre maximum d\'utilisations.');
+    if(r.code===409&&r.j.error==='deja_utilise') return err('Ce code a déjà été utilisé sur ce compte.');
+    if(r.code===409) return err('Une offre est déjà active sur votre compte.');
+    if(r.code===429) return err('Trop de tentatives — réessayez plus tard.');
+    if(r.code!==200||!r.j.dossier) return err('Impossible de vérifier le code pour le moment. Réessayez dans un instant.');
+    _meDoc=r.j.dossier;
+    openView('abo'); }
   /* ⏳ Alerte J-2 avant la fin de l'offre : bannière + message + notification (une seule fois) */
   function promoBanner(d){ const pi=promoInfo(d); if(!pi||pi.jours>2) return '';
     return '<div class="panel" style="padding:14px 18px;margin-bottom:16px;border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08)"><b style="font-size:14px">⏳ Votre offre « '+esc(pi.label)+' » se termine dans '+pi.jours+' jour'+(pi.jours>1?'s':'')+'</b><p class="muted" style="margin-top:6px;line-height:1.55">Pour garder l\'accès à vos applications, choisissez votre abonnement dès maintenant. <b>Vos données ne sont jamais perdues</b>, quoi qu\'il arrive.</p><a class="btn sm" style="margin-top:10px;display:inline-block" href="recap-abonnement.html?formule=premium">Choisir mon abonnement →</a></div>'; }

@@ -59,8 +59,11 @@ function facteur() {
 /* Quoted-printable en UTF-8 : chaque `=XX` est un OCTET, et un accent en fait deux. Décodé
    caractère par caractère, « Hygiène » devenait « HygiÃ¨ne » et ne se retrouvait plus. */
 const lisible = (m) => Buffer.from(String(m || '').replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8');
-/* Le sujet d'un courriel arrive encodé (=?UTF-8?…?=) : on le compare sur l'adresse et le corps. */
-const courrierPour = (adresse, motif) => facteurSrv.recus.map(lisible).filter(m => m.indexOf(adresse) >= 0 && (!motif || motif.test(m)));
+/* Le DESTINATAIRE se lit dans l'en-tête `To:`, pas n'importe où dans le message : le récapitulatif
+   du patron cite l'adresse du client ET le lien de son espace — selon l'ordre d'arrivée des deux
+   courriels, le banc lisait l'un pour l'autre (échec intermittent, mesuré). */
+const courrierPour = (adresse, motif) => facteurSrv.recus.map(lisible).filter(m =>
+  new RegExp('^To:[^\\n]*' + adresse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'mi').test(m) && (!motif || motif.test(m)));
 const attendre = async (f, n) => { for (let i = 0; i < (n || 80); i++) { const x = f(); if (x) return x; await dormir(100); } return f(); };
 
 /* ── LES VRAIES FONCTIONS DE LA PAGE ─────────────────────────────────────────────────────────
@@ -74,7 +77,7 @@ function fabriquer(base) {
   const adaptateur = tranche('const API_PORTAIL', 'const _pv = portailMaison();');
   const apps = tranche('const APPS={', '\n  const NEWS_TAGS');
   const relais = tranche('const CLI_SYNC_URL=', '/* 🎁 Codes promo');
-  const promo = tranche('const PROMO_URL=', 'async function promoActivate');
+  const promo = tranche('const APPS_PROMO=', 'async function promoActivate');
   if (!adaptateur || !apps || !relais || !promo) return null;
   const rangement = new Map(), session = new Map(), envois = [];
   const fetchEspion = (u, o) => { const p = fetch(u, o); envois.push({ u, o, p }); return p; };
@@ -239,11 +242,24 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
     v('⛔ le portail du client dit « accès activé » et OP GESTION (la fiche est écrite chez NOUS)', [d && d.status, d && d.apps], ['fourni', ['elan']]);
     v('⛔ et aucune fiche client n\'a été écrite chez Google (`teamop_requests`)', G.ecritures.filter(x => /^teamop_requests\//.test(x)), []);
 
-    /* ══ 6. UN CODE PROMO ACTIVÉ SUR LE PORTAIL ═══════════════════════════════════════════════ */
-    const until = Date.now() + 90 * 86400000;
-    await doc.set({ promo: { code: 'TEST3', label: '3 mois offerts', apps: ['elan', 'opmsg'], activatedAt: Date.now(), until }, promoUsed: ['TEST3'] }, { merge: true });
+    /* ══ 6. UN CODE PROMO ACTIVÉ SUR LE PORTAIL — par la VRAIE `promoActivate` ══════════════════
+       Elle écrivait `promo` elle-même dans le dossier (Firestore) ; notre serveur réserve ce champ,
+       et l'écriture était jetée sans un mot. Elle passe désormais par `/api/portail/promo`. */
+    const pa = tranche('async function promoActivate(uid){', '/* ⏳ Alerte J-2');
+    vrai('la vraie `promoActivate` s\'extrait de la page', pa.length > 300 && /_pv\.promoActiver\(/.test(pa));
+    const ecrans = { 'promo-code': { value: '' }, 'promo-msg': { innerHTML: '' } }, vues = [], etat = { doc: d };
+    const activer = new Function('document', 'esc', 'promoInfo', '_pv', 'openView', 'etat',
+      'let _meDoc = etat.doc;\n' + pa + '\nreturn async (uid) => { await promoActivate(uid); etat.doc = _meDoc; };')(
+      { getElementById: id => ecrans[id] || null }, x => String(x), P.promoInfo, P.pv, x => vues.push(x), etat);
+    ecrans['promo-code'].value = 'INCONNU';
+    await activer(user.uid);
+    v('⛔ un code inconnu : la page le DIT, et n\'ouvre rien', [/Code inconnu/.test(ecrans['promo-msg'].innerHTML), vues.length], [true, 0]);
+    ecrans['promo-code'].value = ' test3 ';
+    await activer(user.uid);
+    v('⛔ un code valide : accordé par le SERVEUR, la page ouvre « Mon abonnement »', [vues, etat.doc && etat.doc.promo && etat.doc.promo.code], [['abo'], 'TEST3']);
     d = (await doc.get()).data();
-    v('⛔ l\'offre activée sur le portail RESTE dans le dossier (le serveur la jetait sans un mot)', [d.promo && d.promo.code, d.promoUsed], ['TEST3', ['TEST3']]);
+    v('⛔ l\'offre est dans le dossier, avec l\'échéance calculée par le serveur (3 mois de `config.promos`)',
+      [d.promo && d.promo.code, d.promoUsed, Math.round(((d.promo && d.promo.until) - Date.now()) / 86400000)], ['TEST3', ['TEST3'], 90]);
     v('   la page la relit comme une offre en cours', !!P.promoInfo(d), true);
     const resume = P.cliResume(user, d);
     v('   et la fiche envoyée à la Tour la porte', resume.promoCode, 'TEST3');

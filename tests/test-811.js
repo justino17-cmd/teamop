@@ -57,7 +57,9 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
   ];
   const portail = require(path.join(RACINE, 'server', 'portail.js')).monterPortail(app, {
     dossier: dir, parJeton: comptes.parJeton, quotaOk: () => true, journal: () => {}, preparer: comptes.preparer, verifie: comptes.verifie,
-    admin, patron, lireFirestore: async () => google });
+    admin, patron, lireFirestore: async () => google,
+    /* Comme `index.js` : la définition du code vient de `config.promos`, pas de la page. */
+    promoDef: (c) => (c === 'TEST3' ? { code: c, mois: 3, epuise: false } : c === 'EPUISE' ? { code: c, mois: 1, epuise: true } : null) });
   const srv = await new Promise(res => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
   const B = 'http://127.0.0.1:' + srv.address().port;
   const post = async (route, corps, en) => { const r = await fetch(B + route, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, en || {}), body: JSON.stringify(corps || {}) });
@@ -213,9 +215,29 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
       [portail.majServeur('client.ancien@exemple.fr', { status: 'fourni', plan: 'Business Premium', planFin: '2027-01-01', prenom: 'Pirate' }),
         portail._reg().d['client.ancien@exemple.fr'].plan, portail._reg().d['client.ancien@exemple.fr'].planFin, portail._reg().d['client.ancien@exemple.fr'].prenom],
       [true, 'Business Premium', '2027-01-01', 'Client']);
-    r = await post('/api/portail/demande', { planFin: '9999-12-31', plan: 'Gratuit à vie', promo: { code: 'X', until: 1 } }, { Authorization: 'Bearer ' + jc });
-    v('⛔ le client n\'écrit pas sa formule ni son échéance… mais son offre affichée, si (miroir, l\'autorité est au relais)',
-      [r.j.dossier.planFin, r.j.dossier.plan, r.j.dossier.promo && r.j.dossier.promo.code], ['2027-01-01', 'Business Premium', 'X']);
+    r = await post('/api/portail/demande', { planFin: '9999-12-31', plan: 'Gratuit à vie', promo: { code: 'X', until: 4102444800000 }, promoUsed: [] }, { Authorization: 'Bearer ' + jc });
+    v('⛔ le client n\'écrit ni sa formule, ni son échéance, ni son offre (elle vient du serveur)',
+      [r.j.dossier.planFin, r.j.dossier.plan, r.j.dossier.promo && r.j.dossier.promo.code, r.j.dossier.promoUsed], ['2027-01-01', 'Business Premium', 'CODE-FICTIF', ['CODE-FICTIF']]);
+
+    /* ── un code promo s'active PAR LE SERVEUR (`/api/portail/promo`) ── */
+    await post('/api/compte/creer', { email: 'promo@exemple.fr', h: emp('mot-de-passe-promo') });
+    const jp = (await post('/api/compte/connexion', { email: 'promo@exemple.fr', h: emp('mot-de-passe-promo') })).j.jeton;
+    const au = { Authorization: 'Bearer ' + jp };
+    v('un code sans session : refusé', (await post('/api/portail/promo', { code: 'TEST3' })).s, 401);
+    v('⛔ un code inconnu : 404', (await post('/api/portail/promo', { code: 'INVENTE' }, au)).s, 404);
+    v('⛔ un code épuisé : 410', (await post('/api/portail/promo', { code: 'EPUISE' }, au)).s, 410);
+    const t0 = Date.now();
+    r = await post('/api/portail/promo', { code: ' test3 ' }, au);
+    const dp = r.j.dossier || {};
+    v('⛔ un code valide : accordé, avec la durée de `config.promos` — l\'échéance est calculée par le SERVEUR',
+      [r.s, dp.promo && dp.promo.code, dp.promo && dp.promo.label, dp.promoUsed, Math.round(((dp.promo && dp.promo.until) - t0) / 86400000)],
+      [200, 'TEST3', '3 mois offerts', ['TEST3'], 90]);
+    v('   et le client le lit dans son fil, écrit par l\'équipe', (portail._reg().f['promo@exemple.fr'] || []).some(m => m.de === 'admin' && /TEST3/.test(m.t)), true);
+    r = await post('/api/portail/promo', { code: 'TEST3' }, au);
+    v('⛔ le même code une seconde fois : refusé (409)', [r.s, r.j.error], [409, 'deja_utilise']);
+    portail._reg().d['promo@exemple.fr'].promoUsed = [];
+    r = await post('/api/portail/promo', { code: 'TEST3' }, au);
+    v('⛔ un autre pendant qu\'une offre court : refusé (409)', [r.s, r.j.error], [409, 'offre_active']);
     const l = comptes.liste();
     v('la liste pour la Tour ne contient ni sel ni vérificateur', l.every(x => !('s' in x) && !('e' in x) && x.email), true);
     v('   et dit qui est à poser', l.filter(x => x.aPoser).map(x => x.email).sort(), ['lourd@exemple.fr', 'squat@exemple.fr']);

@@ -46,6 +46,10 @@ v('l\'ancien jeton refuse toujours l\'espace de repli',
 v('… et toute entreprise restée sur la clé partagée',
   /if \(cleEstPublique\(t\)\) return res\.status\(409\)/.test(SRV), true);
 
+/* ⛔ LES DEUX PAGES, PAS UNE : ce banc garde aussi le déploiement du serveur SEUL, qui le lance
+   contre l'`app.html` de `main` — la v695, où le refus arrive encore par le jeton Firebase. */
+const V748 = APP.indexOf('function docEquipe(') >= 0;
+if (V748) {
 /* 2. Le refus remonte — et SEULEMENT le refus. On EXÉCUTE la vraie `docRefusVu` sur chaque statut
       que l'adaptateur peut rendre : un motif sur le texte garderait une phrase, pas un comportement. */
 const corps = (sig) => { const d = APP.indexOf(sig); if (d < 0) return '';
@@ -66,6 +70,14 @@ const eq = corps('function docEquipe(').replace(/\/\*[\s\S]*?\*\//g, ' ');
 v('⛔ la file d\'écriture et l\'écoute appellent docRefusVu sur leur refus définitif',
   [/const e=docErreur\(r\.statut,r\.j&&r\.j\.motif\); const tous=lot\.attentes\.splice\(0\); docRefusVu\(e\);/.test(eq),
    /const refus=e=>\{ actif=false; arreter\(\); docRefusVu\(e\);/.test(eq)], [true, true]);
+
+} else {
+/* 2 (v695). Le refus du JETON remonte — et SEULEMENT le refus (le bloc d'avant la sortie, tel quel). */
+v('⛔ un 403 ou un 409 est retenu comme définitif',
+  /if\(statut===403\|\|statut===409\)\{ _jetonRefus=\{statut:statut/.test(APP), true);
+v('⛔ tout le reste reste muet : un réseau capricieux n\'arrête personne sur un chantier',
+  /let j=\{\},statut=0;/.test(APP) && !/if\(statut!==200/.test(APP), true);
+}
 
 /* 3. ⛔ CE QUI PROTÈGE LES GENS. La base locale est la SEULE copie de ce qui a été saisi
       depuis la coupure, et rejoindre une entreprise passe par espaceQuitter(), qui l'efface.

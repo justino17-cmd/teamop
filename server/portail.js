@@ -135,16 +135,13 @@ function monterPortail(app, deps) {
      valeur du CORPS décidait de l'abonnement — refermée par la seule voie qui tienne : dire
      ce qui appartient au SERVEUR, pas essayer de deviner tout ce qui appartient au client.
      ⚠ Ajouter un champ que la Tour pose → l'ajouter ICI, sinon le client pourra l'écrire.
-     ⛔ `promo`, `promoUsed` ET `promoAlerte` N'Y SONT PLUS — ils y étaient, et c'était une panne
-     silencieuse : `promoActivate` et l'alerte J-2 d'`espace.html` les écrivent dans le dossier
-     du client, la route les ÉCARTAIT sans un mot, et l'activation d'un code depuis le portail
-     n'allait nulle part (le relais `/api/clients/sync` lit `promo.code` dans le dossier). Ce sont
-     des MIROIRS d'affichage, comme au temps de Firestore où le client les écrivait lui-même :
-     l'autorité est ailleurs — le relais revérifie le code dans `config.promos`, CALCULE
-     l'échéance depuis `p.mois` et ne l'accepte qu'une fois par entreprise (`promoPresente`), et
-     c'est `espacePaye()` qui décide de l'accès. Un `until` forgé ne change que l'écran du client. */
+     ⛔ `promo` ET `promoUsed` NE S'ÉCRIVENT QUE PAR `/api/portail/promo`, plus bas : le serveur y
+     vérifie le code dans `config.promos` et CALCULE l'échéance. Au temps de Firestore, la page les
+     écrivait elle-même ; après la bascule, cette route les écartait sans un mot, et l'activation
+     d'un code sur le portail n'allait nulle part. `promoAlerte` (l'alerte J-2 déjà montrée) reste
+     au client : c'est un repère d'affichage, rien de plus. */
   const CHAMPS_SERVEUR = ['status', 'etat', 'apps', 'plan', 'planStatus', 'planFin', 'docs',
-    'venuDe', 'cree', 'maj'];
+    'promo', 'promoUsed', 'venuDe', 'cree', 'maj'];
 
   const dossierDe = (mail) => a(reg.d, mail) || null;
   const dossierVue = (mail) => {
@@ -224,6 +221,36 @@ function monterPortail(app, deps) {
     ajouterMsg(mail, 'client', t);
     ecrire();
     return res.json({ ok: true });
+  });
+
+  /* ⛔ UN CODE PROMO S'ACTIVE ICI, PAS DANS LE CORPS D'UNE ÉCRITURE DE DOSSIER. `promoDef(code)`
+     (index.js) le cherche dans `config.promos` et dit s'il est épuisé ; la durée vient de lui,
+     jamais de la page. Ce que cette route pose n'est encore qu'un AFFICHAGE : le relais
+     (`/api/clients/sync`) revérifie le code, ne l'accorde qu'une fois par entreprise
+     (`promoPresente`) et c'est `espacePaye()` qui ouvre l'application. */
+  app.post('/api/portail/promo', (req, res) => {
+    const mail = qui(req);
+    if (!mail) return res.status(401).json({ error: 'session_refusee' });
+    const refus = refusPortail(mail); if (refus) return res.status(403).json({ error: refus });
+    if (!quotaOk(quota, 'promo:' + mail, 10, 3600000)) return res.status(429).json({ error: 'trop_de_tentatives' });
+    const code = borne((req.body || {}).code, 40).trim().toUpperCase().replace(/\s+/g, '');
+    if (!code) return res.status(400).json({ error: 'code_vide' });
+    let def = null; try { def = typeof d.promoDef === 'function' ? d.promoDef(code) : null; } catch (e) { def = null; }
+    if (!def) return res.status(404).json({ error: 'code_inconnu' });
+    const x = Object.assign({}, dossierDe(mail) || { cree: Date.now(), etat: 'nouvelle' });
+    const deja = Array.isArray(x.promoUsed) ? x.promoUsed : [];
+    if (deja.indexOf(code) >= 0) return res.status(409).json({ error: 'deja_utilise' });
+    if (x.promo && +x.promo.until > Date.now()) return res.status(409).json({ error: 'offre_active' });
+    if (def.epuise) return res.status(410).json({ error: 'code_epuise' });
+    const mois = Math.max(1, Math.min(36, Number(def.mois) || 1)), until = Date.now() + mois * 30 * 86400000;
+    const label = mois + ' mois offert' + (mois > 1 ? 's' : '');
+    x.promo = { code, label, apps: ['elan', 'opmsg'], activatedAt: Date.now(), until };
+    x.promoUsed = deja.concat([code]).slice(-40);
+    x.maj = Date.now(); reg.d[mail] = x;
+    ajouterMsg(mail, 'admin', '🎁 Code « ' + code + ' » activé : ' + label + ' sur vos applications, jusqu\'au '
+      + new Date(until).toLocaleDateString('fr-FR') + '. Profitez bien !');
+    ecrire();
+    return res.json({ ok: true, dossier: dossierVue(mail) });
   });
 
   /* Les annonces sont publiques par nature — elles s'affichent sur la page d'accueil du

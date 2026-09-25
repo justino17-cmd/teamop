@@ -139,8 +139,10 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
     const t = await appel(B, '/api/monitor/portail/etat', { email: 'alice@exemple.fr', etat: 'validee', promo: 'REEL' }, jTour);
     v('   la Tour pose l\'état', t.code, 200);
     v('   et il est visible du client', (await appel(B, '/api/portail/moi', undefined, jA)).j.dossier.etat, 'validee');
-    v('⛔ mais sans jeton de Tour, la route refuse', (await appel(B, '/api/monitor/portail/etat', { email: 'alice@exemple.fr', etat: 'x' })).code, 401);
-    v('⛔ et un jeton de CLIENT ne vaut pas un jeton de Tour', (await appel(B, '/api/monitor/portail/etat', { email: 'alice@exemple.fr', etat: 'x' }, jA)).code, 401);
+    /* Depuis la seconde passe du gardien (C5), cette route est au PATRON (`monPatronStrict`), qui
+       refuse en 403 — la règle gardée est « refusé », pas le code exact du refus. */
+    v('⛔ mais sans jeton de Tour, la route refuse', [401, 403].includes((await appel(B, '/api/monitor/portail/etat', { email: 'alice@exemple.fr', etat: 'x' })).code), true);
+    v('⛔ et un jeton de CLIENT ne vaut pas un jeton de Tour', [401, 403].includes((await appel(B, '/api/monitor/portail/etat', { email: 'alice@exemple.fr', etat: 'x' }, jA)).code), true);
   }
 
   console.log('\n══ 4. LA CONVERSATION ══\n');
@@ -178,9 +180,12 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
     };
     const bac = path.join(BANC, 'module');
     fs.mkdirSync(bac, { recursive: true });
+    /* Zoé a PROUVÉ son adresse : c'est le plafond d'une adresse vérifiée (500) qu'on éprouve ici.
+       Une adresse jamais prouvée a le sien, plus court (30), vérifié juste après. */
+    let prouvee = true;
     const M = require(path.join(RACINE, 'server', 'portail.js')).monterPortail(fauxApp, {
       dossier: bac, parJeton: () => 'zoe@exemple.fr', admin: (q, r, n) => n(), quotaOk: () => true,
-      journal: () => {},
+      journal: () => {}, verifie: () => prouvee,
     });
     const poster = (texte) => new Promise(res => {
       routes['POST /api/portail/message']({ headers: { authorization: 'Bearer ' + 'a'.repeat(64) }, body: { texte } },
@@ -193,6 +198,9 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
        récent. L'inverse rendrait la conversation inutile au moment où elle sert. */
     v('⛔ et c\'est le DÉBUT qui part, pas la fin', f[499].t, 'message 519');
     v('   le plus ancien gardé est bien le 20ᵉ', f[0].t, 'message 20');
+    prouvee = false;
+    await poster('message non prouvé');
+    v('⛔ une adresse jamais prouvée n\'a que 30 messages (`gardien`, B2) — et ce sont les plus récents', [M._reg().f['zoe@exemple.fr'].length, M._reg().f['zoe@exemple.fr'][29].t], [30, 'message non prouvé']);
   }
 
   console.log('\n══ 5 bis. UN DOSSIER EST BORNÉ EN NOMBRE DE CHAMPS ══\n');
@@ -243,7 +251,8 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
     const r = await appel(B, '/api/monitor/portail/importer', {}, jTour);
     v('⛔ sans Firebase, l\'import dit qu\'il ne peut PAS, il ne dit pas « rien à faire »', r.code, 503);
     v('   et il nomme la raison', r.j.error, 'firebase_off');
-    v('⛔ et il exige la Tour', (await appel(B, '/api/monitor/portail/importer', {}, jA)).code, 401);
+    v('⛔ et il exige la Tour — le patron, depuis la seconde passe du gardien (C5), qui refuse en 403',
+      [401, 403].includes((await appel(B, '/api/monitor/portail/importer', {}, jA)).code), true);
 
     /* ⛔ ET CE QUE L'EN-TÊTE DU MODULE PROMET, IL FAUT LE PROUVER. Il dit « on n'écrase jamais
        un dossier déjà local » — or en HTTP l'import refuse avant d'y arriver (pas de Firebase

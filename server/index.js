@@ -3891,6 +3891,15 @@ try {
     portail = require('./portail').monterPortail(app, {
       dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, patron: monPatronStrict, quotaOk,
       preparer: comptes.preparer, verifie: comptes.verifie,
+      /* Un code du portail : il existe dans `config.promos`, sa durée vient de là, et il est
+         « épuisé » quand `maxUtilisations` est atteint — la même lecture que `/api/promo/valider`. */
+      promoDef: (code) => {
+        const c = String(code || '').trim().toUpperCase();
+        const p = c ? (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c) : null;
+        if (!p) return null;
+        const u = promoUsages[c] || { n: 0 };
+        return { code: c, mois: Math.max(1, Number(p.mois) || 1), epuise: !!(p.maxUtilisations && u.n >= p.maxUtilisations) };
+      },
       journal: (...a) => console.log('portail:', ...a),
       /* La reprise des dossiers déjà chez Google. Le serveur a déjà la clé d'administration et
          s'en sert trois fois plus bas pour `teamop_requests` : on réutilise ce chemin-là
