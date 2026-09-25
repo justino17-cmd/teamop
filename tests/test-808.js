@@ -79,7 +79,7 @@ console.log('\n══ 1. LE RANGEMENT EST PLEIN — le geste s\'applique quand m
   vrai('⛔ toucher « Bleu » applique le bleu (l\'affichage LIT « blue »)', J.includes('apply:auto/teamop/blue'));
   vrai('la fenêtre se redessine sur le choix (la coche bouge)', J.includes('fenetre'));
   v('le choix est sur la fiche de la personne', M.u().pref.accent, 'blue');
-  v('… avec l\'heure du choix', typeof M.u().prefTs.accent, 'number');
+  vrai('… avec l\'heure du choix (maintenant, pas zéro)', Math.abs(Date.now()-(+M.u().prefTs.accent||0))<60000);
   v('rien n\'est rangé sur l\'appareil (il est plein)', M.lire('elan_accent'), undefined);
   v('⛔ on le DIT à l\'écran — une fois', plein(M), 1);
   const s=M.signaux.filter(x=>/Rangement de l’appareil plein/.test(x.m));
@@ -156,6 +156,10 @@ console.log('\n══ 3. UNE COPIE PLUS ANCIENNE DE LA FICHE NE DÉFAIT PLUS UN 
   const seul=[{id:'u2',login:'k',pref:{accent:'teal'},prefTs:{accent:5}}];
   v('un compte présent d\'un seul côté reste tel quel', M.usersFusionner(cp(seul),[],[],false)[0].pref, {accent:'teal'});
   v('prefFusion rend le nombre de réglages repris', M.prefFusion(cp(labas),cp(ici)), 1);
+  /* LA CHAÎNE ENTIÈRE : le VRAI geste pose l'heure, puis une copie qui ne l'a jamais reçu arrive */
+  const {M:A}=bac({}); A.tcTeinte('blue');
+  const perime=[{id:'u1',login:'justin',actif:true,pref:{accent:'teamop'}}];
+  v('⛔ le vrai geste, puis la copie d\'un appareil en retard : la teinte choisie reste', A.usersFusionner([A.u()],cp(perime),[],false)[0].pref.accent, 'blue');
   v('… zéro contre elle-même', (o=>M.prefFusion(o,o))(cp(ici)), 0);
 }
 
