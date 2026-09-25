@@ -65,6 +65,12 @@ entreprise, journal append-only, 19 routes, retour en arrière par entreprise, s
 mensuelle transférable. Les étapes 0 à 7 de `PLAN-OP-SOCLE.md` sont écrites et éprouvées.
 **Il reste l'étape 8 pour OP GESTION**, et elle attend la phrase de Justin.
 
+⚠️ **Relevé du 25 septembre 2026 : « écrites et éprouvées » veut dire le CODE, pas l'exécution.**
+Le socle est éteint, la production (v695) n'a aucun appel `/api/op/*`, et les marches 4 à 7 se
+jouent sur des appareils de client, donc après une publication. Et l'étape 0 n'est pas complète :
+le durcissement du VPS (`User=root`, pas de `NODE_ENV=production`, aucun filet d'erreur) et le
+registre des traitements manquent. La liste à jour est en tête de `REPRISE.md`.
+
 ## 4. L'ORDRE DE BATAILLE
 
 L'ordre n'est pas négociable : il va du **risque le plus faible** au plus fort, et chaque étape

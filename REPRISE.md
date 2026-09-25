@@ -39,6 +39,56 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## 🧭 25 SEPTEMBRE 2026 — CE QUI RESTE POUR QUE LES ENTREPRISES TRAVAILLENT SUR NOTRE SERVEUR
+
+Question de Justin : « il nous reste quoi à faire [côté] serveur VPS pour [que les] entreprises
+[puissent] travailler ». Relevé dans le dépôt et sur `origin/main` ce jour-là, pas de mémoire.
+
+**En place** : le code du serveur maison est sur le VPS depuis le 24 septembre (`1be3b75`) —
+socle chiffré, comptes, portail — **éteint** (`socle.actif:false`, `comptes.actif:false`). Clé
+maître posée, en double séquestre, lue par le service ; sauvegarde nocturne + mensuelle ;
+restauration éprouvée SANS `config.json` ; paire du coffre remplacée.
+
+⛔⛔ **LE NŒUD, À TRANCHER PAR JUSTIN : SA RÈGLE DU 23 SEPTEMBRE NE PEUT PAS SE SATISFAIRE SANS
+PUBLIER.** L'`app.html` de production (v695) ne contient AUCUN appel `/api/op/*` : les téléphones
+d'ELAN ne savent pas parler au socle. Toutes les marches (double écriture, bascule de la lecture,
+attestations) exigent une version publique qui porte le code du socle — et la coupure de Firestore
+(étape E) une SECONDE, parce que la pousse vers le socle part APRÈS une écriture Firestore réussie
+(`opSocleSession` et son appelant). Ces deux publications SONT la sortie de Firebase ; elles ne
+partent que sur sa phrase, comme toute publication. ⚠️ La première emporte tout ce que la bêta a
+reçu depuis la 695 (une cinquantaine de versions) : note à ELAN, et l'ordre « les appareils
+d'abord » des photos. Les marches suivantes se pilotent de la Tour, espace par espace
+(`/api/monitor/op/double`, `/lecture`, `/pret`) — sans autre publication jusqu'à E.
+
+L'ordre, et qui fait quoi :
+1. **Justin** — « pousse le serveur » : trois correctifs prêts sur la branche (la minuterie de
+   sauvegarde qui dérivait de quatre heures par jour, la flèche de `restaurer.js`, le message de
+   `poser-cle.js`).
+2. **À écrire, puis Justin sur le VPS** — le durcissement de l'étape 0 du plan, **jamais fait**
+   (vérifié) : `User=root` dans l'unité, pas de `NODE_ENV=production` (le gestionnaire d'erreur
+   par défaut d'Express 4 met alors la pile dans la réponse), ni `unhandledRejection` ni
+   middleware d'erreur terminal ; `install.sh` installe Caddy quand la production est derrière
+   nginx — une réinstallation ne reproduirait pas la machine.
+3. **Justin, console IONOS** — supprimer l'ancienne paire du coffre (à confirmer).
+4. **Justin, guidé** — allumer le socle (`ALLUMER-LE-SOCLE.md` §3).
+5. **À préparer** — le chemin exact de l'entreprise d'essai (pas ELAN) : la bêta est refusée par
+   `sauvRefus` (`ESPACES_INTOUCHABLES`), la 695 n'a pas le code.
+6. **Justin** — publier la version qui parle au serveur (1ʳᵉ publication).
+7. **Tour** — ELAN en double écriture : ≥ 14 jours dont 7 consécutifs sans divergence, exports de
+   référence sur deux appareils ; bascule de la lecture quand `/pret` dit oui ; 7 jours de
+   miroir ; attestation de chaque appareil.
+8. **Justin** — couper Firestore (étape E, 2ᵉ publication, sans retour arrière).
+9. **Portail et `reinit.html` (C, D)** — code écrit (164 contrôles) ; reste la décision d'annoncer
+   à chaque client du portail qu'il repose un mot de passe, puis `PORTAIL_SERVEUR` et
+   `comptes.actif` levés ENSEMBLE.
+10. **Étape F** — pages juridiques (Google → l'hébergeur du VPS, `sous-traitance.html:162`,
+    `mentions-legales.html:52`), le **registre des traitements** promis à
+    `sous-traitance.html:126` et qui n'existe nulle part, puis éteindre le projet Firebase.
+
+Hors du chemin : servir le site depuis le VPS (G) est indépendant — GitHub Pages n'est pas
+Firebase. Calendrier : au moins quatre semaines entre la 1ʳᵉ publication et la coupure (les
+14 + 7 jours sont imposés par le plan, aucun effort ne les raccourcit).
+
 ## ✅ 25 SEPTEMBRE 2026 — « LES COULEURS EN DESSOUS, JE VEUX QU'ELLES MARCHENT » (v747, bêta)
 
 Justin, capture de « Thème et couleur » à l'appui (iPhone, Safari) : **« laisse les 2 thèmes ici,
