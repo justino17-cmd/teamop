@@ -36,9 +36,26 @@ de ligne du tout.
    page, exigé égal par `test-816`.
 7. L'annonce (e-mail aux entreprises) : **pas encore envoyée** — à la main de Justin, Tour → Entreprises.
 
-**En cours cette nuit (demande de Justin : « je veux pas attendre qu'il y ait des bugs pour que tu
-testes ») :** relecture de tout ce qui change avec une GROSSE base ou BEAUCOUP d'appareils (synchro,
-stockage de l'appareil, écrans, budgets du serveur par IP), puis mesure de chaque risque confirmé.
+**Relecture « grosse base, beaucoup d'appareils » (demande de Justin : « je veux pas attendre qu'il y
+ait des bugs pour que tu testes ») : faite.** Deux risques confirmés, corrigés dans la **v750 (bêta,
+`8520b37`) — PAS publiée, elle attend « publie » de Justin** :
+- **les marques du journal grossissaient sans fin** dans le document de l'équipe (une par ligne
+  chassée du plafond de 500 ; la fusion les réunit sans jamais rien retirer). Vraies fonctions, deux
+  appareils, 8 000 gestes : **v749 = 8 000 marques / 203 Ko, v750 = 0**. `estampiller` ne marque plus
+  une ligne chassée, la remise à zéro pose ses marques elle-même, la fusion borne à 600 (ordre total :
+  l'héritage de la v749 retombe à 600 dès le premier envoi d'un appareil v750) ;
+- **l'appareil plein mentait** : mesuré dans la vraie page v749, rangement plein, l'écran affichait
+  « ✓ Client enregistré » et la Tour ne recevait rien (contre-épreuve 9 ✗). v750 : un signal à la
+  Tour par séance, « plus de place pour enregistrer tes données » (juste avec ou sans synchro), un
+  rappel toutes les 5 min au plus, « l'appareil enregistre de nouveau » quand la place revient.
+Preuves v750 : `test-817` 45 ✓ (12/12 mutations mordent), `scratchpad/sonde-plein-base.js` 14 ✓,
+`sonde-teintes-iphone` 15+10 ✓, base lourde deux appareils au repos 1 écriture/30 s, **15 appareils**
+12 ✓ (45 gestes, 0 perdu, mêmes données, 0 écriture au repos), bascule v695 → v750 24 ✓.
+Dettes MINEURES relevées, non corrigées : `interventionsArchive` peut dépasser 500 après une union ; coût
+d'une rafale de réceptions ; trois écrans un peu lents sur grosse base ; les marques des VRAIES
+suppressions restent non bornées dans le nuage (lentes : une par suppression).
+**Demain 26 septembre, 7 h (heure de Paris) : vérification de A à Z** (demande de Justin) — un rappel
+est programmé dans la session (`trig_0192vZPb3VJaCgujcuwjEmVu`).
 
 **À J+30 (25 octobre 2026)** : `reglage.js documents.copieFirebase=false`, puis supprimer les données
 Firebase d'OP GESTION (promis par `sous-traitance.html`).

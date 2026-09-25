@@ -109,12 +109,17 @@ async function unEtat(ETAT) {
     const errs = S.exceptions.slice(nErr);
     vrai('aucune erreur JavaScript pendant le geste', !errs.length, errs.slice(0, 2).join(' || '));
     if (ETAT === 'plein') {
-      const t = await ev(`return window._toasts.filter(x=>/plus de place/.test(x)).length;`);
-      vrai('⛔ l\'écran DIT que l\'appareil est plein — une fois', t === 1, 'messages : ' + t);
-      /* ⛔ le DERNIER message gagne (un seul bandeau) : celui de `save()` (« réduis le nombre/poids
-         des photos », 2,2 s) passait par-dessus le nôtre, dans le même geste. On lit l'écran. */
+      /* Deux rangements refusent dans le même geste : le réglage (`prefRangementPlein`) puis la base
+         (`save()` → `baseRangementPlein`, v750). Chacun le dit une fois. */
+      const t = await ev(`return [window._toasts.filter(x=>/plus de place pour ranger tes réglages/.test(x)).length, window._toasts.filter(x=>/plus de place pour enregistrer tes données/.test(x)).length];`);
+      vrai('⛔ l\'écran DIT que l\'appareil est plein — une fois pour le réglage, une fois pour la base', t[0] === 1 && t[1] === 1, 'messages : ' + JSON.stringify(t));
+      /* ⛔ le DERNIER message gagne (un seul bandeau). Avant la v750, celui de `save()` (« réduis le
+         nombre/poids des photos », 2,2 s, FAUX) passait par-dessus. Depuis, l'avertissement de la base
+         paraît au PREMIER enregistrement refusé (ici en ouvrant les Paramètres), puis se tait cinq
+         minutes : au toucher de la teinte, c'est donc celui du réglage qui reste. Mesuré, pas supposé :
+         la première attente de cette sonde voulait l'inverse, et c'est elle qui avait tort. */
       const vu = await ev(`return (document.getElementById('toast')||{}).textContent||'';`);
-      vrai('… et c\'est CE message qui reste à l\'écran', /plus de place pour ranger tes réglages/.test(vu), 'à l\'écran : ' + vu);
+      vrai('… et l\'écran dit « plus de place » — jamais l\'ancien « photos »', /plus de place pour (ranger tes réglages|enregistrer tes données)/.test(vu) && !/photo/i.test(vu), 'à l\'écran : ' + vu);
       let balise = '';
       for (let i = 0; i < 45 && !balise; i++) { await dormir(1000);
         balise = await ev(`return (window._balises.find(x=>/Rangement de l’appareil plein/.test(x))||'');`); }
