@@ -6887,9 +6887,6 @@ html[data-marque="teamop"][data-verre][data-theme="dark"]{
   --tf-barre:rgba(52,59,74,.6);
 }
 /* ── 3. LE THÈME OP GESTION — vert forêt et menthe, les couleurs du logo OP GESTION ────────── */
-/* ⚠ Ces deux blocs servent AUSSI le thème « Logo » (§ 3 bis), qui part d'OP GESTION et n'écrit que
-   ce qui change : y toucher, c'est toucher les deux. */
-html[data-marque="logo"][data-verre][data-theme="light"],
 html[data-marque="opgestion"][data-verre][data-theme="light"]{
   --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.35) 58.2%),
     radial-gradient(120% 90% at 0% 0%,#DCF3EA 0%,rgba(220,243,234,0) 55%),
@@ -6900,7 +6897,6 @@ html[data-marque="opgestion"][data-verre][data-theme="light"]{
   --tf-page-plein:#E4EFEA;
   --tf-bord-haut:rgba(228,239,234,.72);
 }
-html[data-marque="logo"][data-verre][data-theme="dark"],
 html[data-marque="opgestion"][data-verre][data-theme="dark"]{
   --vr-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.05) 58.2%),
     linear-gradient(160deg,#0F4A3A,#0B3B2E);
@@ -6938,52 +6934,6 @@ html[data-marque="opgestion"][data-verre][data-theme="dark"]{
   --tf-barre:rgba(52,92,81,.6);
 }
 
-/* ── 3 bis. LE THÈME « LOGO OP GESTION » — la coupe en diagonale du logo ─────────────────────
-   Justin, 24 septembre 2026 au soir, logo à l'appui : « montre-moi un thème avec ce style en
-   couleur du logo » — puis, sur les captures, le troisième choix (« 2 et 3 on voit après »). Il
-   part d'OP GESTION (§ 3) et ne réécrit que ce qui change : une page menthe coupée en diagonale,
-   des vitres presque pleines (le logo est un aplat, pas du verre), la barre d'onglets en vert
-   forêt avec sa bulle menthe, et la nuit en verts forêt. La forme est au § 22.
-   Couleurs relevées au pixel sur le logo : menthe #E9F3F0, forêt #0A4035, sauge #6CA896 — qui ne
-   se lit pas sur la menthe (2,41:1) : le texte en sauge prend #2B7159 (5,14:1) —, liseré #D8E5EA.
-   La coupe fait 58° avec l'horizontale : un dégradé à 122°. */
-html[data-marque="logo"]{
-  --lg-menthe:#E9F3F0; --lg-foret:#0A4035; --lg-sauge-txt:#2B7159; --lg-liseret:#D8E5EA;
-  --lg-angle:122deg; --lg-coupe:58%;
-}
-html[data-marque="logo"][data-verre][data-theme="light"]{
-  --vr-page:linear-gradient(var(--lg-angle),#EEF6F3 0 var(--lg-coupe),#E3EEE9 var(--lg-coupe) 100%);
-  --tf-page-plein:#E9F3F0;
-  --t1:#0A4035; --t2:#3A5A50; --t3:#4E6F64;
-  --vr-encre:#0A4035; --vr-encre2:#3A5A50; --vr-encre3:#4E6F64;
-  --vr-fond:rgba(255,255,255,.88); --vr-fond2:rgba(255,255,255,.72); --vr-fond-dense:rgba(246,250,248,.94);
-  --vr-liseret:#D8E5EA;
-  --vr-reflet:linear-gradient(rgba(255,255,255,0),rgba(255,255,255,0));
-  --vr-ombre:0 10px 28px rgba(10,64,53,.08),inset 0 1px 0 #fff;
-  --vr-ombre-barre:0 16px 40px rgba(10,64,53,.28);
-  --tf-kpi:rgba(255,255,255,.9); --tf-cote:rgba(255,255,255,.6);
-  --tf-barre:rgba(10,64,53,.94);             /* la barre d'onglets : le coin foncé du logo */
-  --tf-bulle:#E9F3F0; --tf-bulle-ombre:0 4px 12px rgba(0,0,0,.18);
-  --tf-bord-haut:rgba(233,243,240,.8); --tf-filet:rgba(10,64,53,.08);
-  --brd:rgba(10,64,53,.1); --brd2:rgba(10,64,53,.16); --cardline:rgba(10,64,53,.08);
-  --rf-2nd:rgba(10,64,53,.07); --rf-2nd-h:rgba(10,64,53,.11);
-}
-html[data-marque="logo"][data-verre][data-theme="dark"]{
-  --vr-page:linear-gradient(var(--lg-angle),#0C4538 0 var(--lg-coupe),#072F26 var(--lg-coupe) 100%);
-  --tf-page-plein:#0A4035;
-  --t1:#E9F3F0; --t2:#C2DCD2; --t3:#A9CBBE;
-  --vr-encre:#E9F3F0; --vr-encre2:#C2DCD2; --vr-encre3:#A9CBBE;
-  --vr-fond:rgba(233,243,240,.07); --vr-fond2:rgba(233,243,240,.10); --vr-fond-dense:rgba(8,48,39,.94);
-  --vr-liseret:rgba(216,229,234,.14);
-  --vr-reflet:linear-gradient(rgba(255,255,255,0),rgba(255,255,255,0));
-  --vr-ombre:0 12px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(233,243,240,.10);
-  --vr-flou:blur(30px) saturate(120%);
-  --tf-kpi:rgba(233,243,240,.07);
-  --tf-barre:rgba(4,34,27,.9);
-  --tf-bulle:#E9F3F0; --tf-bulle-ombre:0 4px 14px rgba(0,0,0,.35);
-  --tf-bord-haut:rgba(10,64,53,.8);
-}
-
 /* ── 4. LES TEINTES — ce que chacune remplit, et l'encre qu'on écrit dessus ─────────────────
    Les SOURCES (--acc-src, jour et nuit) vivent avec les autres dans le bloc « LA COULEUR
    D'ACCENT » ; la feuille en dérive treize jetons. Ici : ce que la maquette donne EN PLUS de la
@@ -7006,22 +6956,14 @@ html[data-marque][data-accent="orange"]   { --tf-acc-rgb:255,149,0; }
 html[data-marque][data-accent="teal"]     { --tf-acc-rgb:48,176,199; }
 html[data-marque][data-accent="graphite"] { --tf-acc-rgb:142,142,147; }
 html[data-marque][data-accent="red"]      { --tf-acc-rgb:255,59,48; }
-/* Le thème « Logo » : sa bulle d'onglet est MENTHE de jour comme de nuit (§ 3 bis) — l'onglet qui
-   est dessus s'écrit donc en vert forêt quelle que soit la teinte, sinon la nuit écrirait de la
-   menthe sur la menthe. Après les teintes : à force égale, c'est elle qui parle. */
-html[data-marque="logo"][data-accent]{ --tf-onglet:var(--lg-foret); }
 /* Sous la vitre de nuit du vert forêt, les teintes sombres (indigo, rose, rouge, bleu) écrites
    en lettres tombaient à 4,0–4,4:1 : on les éclaircit d'un cran de plus. */
-html[data-marque="logo"][data-verre][data-theme="dark"][data-accent],
 html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent]{--acc-txt:color-mix(in srgb,#fff 58%,var(--acc-src))}
-html[data-marque="logo"][data-verre][data-theme="dark"][data-accent="teamop"],
-html[data-marque="logo"][data-verre][data-theme="dark"][data-accent="opgestion"],
 html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="teamop"],
 html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="opgestion"]{--acc-txt:color-mix(in srgb,#fff 66%,var(--acc-src))}
 /* L'indigo est la teinte la plus SOMBRE des onze (sa luminance est celle d'un bleu presque pur) :
    à 58 % de blanc, « JEU 25 » (le jour du jour, sur la frise) tombait à 3,84 sur la vitre verte
    (pixel, 24 septembre 2026, passe des douze teintes). À 70 %, 4,58 — et il reste lavande. */
-html[data-marque="logo"][data-verre][data-theme="dark"][data-accent="indigo"],
 html[data-marque="opgestion"][data-verre][data-theme="dark"][data-accent="indigo"]{--acc-txt:color-mix(in srgb,#fff 70%,var(--acc-src))}
 /* … et sous TEAM OP de nuit (46 % de blanc pour toutes les teintes) : l'indigo y tombait à 4,30 sur
    la carte d'aperçu de « Thème et couleur », au bureau. À 58 %, ≥ 5,2 sur les mêmes fonds. */
@@ -7548,101 +7490,6 @@ html[data-marque][data-refonte][data-theme="dark"] .filters.tc-modes .chip.activ
    (`seg-deborde` n'est posé que sur celui qui défile vraiment : segInit). */
 html[data-refonte] .filters.tc-modes,html[data-refonte] .filters.seg-on:not(.seg-deborde){-webkit-mask-image:none!important;mask-image:none!important}
 
-/* ── 22. LE THÈME « LOGO OP GESTION » — la forme (ses couleurs sont au § 3 bis) ──────────────
-   L'en-tête du tableau de bord EST le logo : une tuile arrondie coupée en diagonale, menthe à
-   gauche et vert forêt à droite, et le titre qui CHANGE DE COULEUR en traversant la coupe, comme
-   le « OP » du logo. Deux couches de fond sur la même boîte, même angle, même coupe : la surface
-   (peinte jusqu'au bord) et l'encre (peinte au travers des lettres, `background-clip:text`).
-   ⚠ La coupe se compte en PIXELS depuis le coin haut gauche, le long de l'angle. En pourcentage
-   elle glissait avec la largeur de la tuile : entre deux mots sur un écran, au milieu d'un mot sur
-   l'autre. En pixels, elle ne dépend que de la place du titre dans la tuile, qui est fixe.
-   ⚠ La date a sa PROPRE couche (elle est en sauge, pas en forêt) : sa coupe est celle de la tuile
-   recalée de la place de la date (bord 1 px + rembourrage), projetée sur l'angle —
-   sin 122° = ,848 et −cos 122° = ,53. Sans elle, une date longue (« MERCREDI 30 SEPTEMBRE »)
-   passait en sauge sur le vert forêt, à 1,9:1. */
-html[data-marque="logo"]{
-  --lg-coupe-titre:229px;                  /* le repli : `logoCoupe()` la mesure sur le vrai titre */
-  --lg-tuile-a:var(--lg-menthe); --lg-tuile-b:var(--lg-foret);
-  --lg-encre-a:var(--lg-foret);  --lg-encre-b:#FFFFFF;
-  --lg-date-a:var(--lg-sauge-txt); --lg-date-b:#FFFFFF;
-}
-/* de nuit, la même coupe en deux verts : la menthe passe au sauge clair, le forêt s'assombrit */
-html[data-marque="logo"][data-theme="dark"]{
-  --lg-tuile-a:#9CC6B6; --lg-tuile-b:#062E25;
-  --lg-encre-a:var(--lg-foret); --lg-encre-b:var(--lg-menthe);
-  --lg-date-a:var(--lg-foret);  --lg-date-b:var(--lg-menthe);
-}
-html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child{
-  --lg-pad-v:20px; --lg-pad-h:22px;
-  --lg-coupe-date:calc(var(--lg-coupe-titre) - (1px + var(--lg-pad-h)) * .848 - (1px + var(--lg-pad-v)) * .53);
-  flex:1 1 100%!important; box-sizing:border-box; padding:var(--lg-pad-v) var(--lg-pad-h); border-radius:26px;
-  border:1px solid var(--lg-liseret); box-shadow:0 14px 34px rgba(10,64,53,.14);
-  background:var(--lg-tuile-a);            /* le repli, sans découpe : une tuile menthe… */
-}
-html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child :is(.ph-title,.ph-sub,.ph-surtitre){
-  color:var(--lg-encre-a)!important;      /* … et le texte en forêt */
-}
-html[data-marque="logo"][data-theme="dark"] #page-head:has(.ph-surtitre) .ph-row > div:first-child{
-  border-color:rgba(216,229,234,.16); box-shadow:0 14px 34px rgba(0,0,0,.35);
-}
-/* ⚠ La tuile prend toute la rangée sur un téléphone — à force supérieure à la règle du § 12
-   (« flex:1 1 200px » sous 780 px) : sur un iPhone de 430 px, elle se serrait à côté de
-   « Personnaliser » (238 px) et le titre passait sur deux lignes. Sur un écran large, elle garde
-   les proportions du logo : la place du titre, plus le coin foncé. */
-@media (min-width:600px){
-  html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child{flex:0 0 auto!important; width:fit-content; padding-right:150px}
-}
-@supports ((-webkit-background-clip:text,border-box) or (background-clip:text,border-box)){
-  html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child{
-    background:
-      linear-gradient(var(--lg-angle),var(--lg-encre-a) 0 var(--lg-coupe-titre),var(--lg-encre-b) var(--lg-coupe-titre) 100%) border-box,
-      linear-gradient(var(--lg-angle),var(--lg-tuile-a) 0 var(--lg-coupe-titre),var(--lg-tuile-b) var(--lg-coupe-titre) 100%) border-box;
-    -webkit-background-clip:text,border-box; background-clip:text,border-box;
-  }
-  html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child :is(.ph-title,.ph-sub){
-    color:transparent!important; -webkit-text-fill-color:transparent!important;
-  }
-  html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-surtitre{
-    background:linear-gradient(var(--lg-angle),var(--lg-date-a) 0 var(--lg-coupe-date),var(--lg-date-b) var(--lg-coupe-date) 100%);
-    -webkit-background-clip:text; background-clip:text;
-    color:transparent!important; -webkit-text-fill-color:transparent!important;
-  }
-}
-/* la date : le « GESTION » du logo — capitales espacées ; le titre en graisse du « OP » ; l'entreprise
-   en capitales, comme la date */
-html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-surtitre{letter-spacing:.16em!important;font-weight:700!important;font-size:12.5px!important;margin-bottom:6px!important}
-html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-title{font-weight:800!important;letter-spacing:-.6px!important}
-html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-sub{letter-spacing:.14em!important;text-transform:uppercase;font-size:12.5px!important;font-weight:600!important;margin-top:6px!important}
-/* En couleurs forcées (Windows, contraste élevé), la découpe n'a plus de sens : le système peint. */
-@media (forced-colors: active){
-  html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child,
-  html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-surtitre{background:Canvas!important}
-  html[data-marque="logo"] #page-head:has(.ph-surtitre) .ph-row > div:first-child :is(.ph-title,.ph-sub,.ph-surtitre){
-    color:CanvasText!important; -webkit-text-fill-color:CanvasText!important;
-  }
-}
-/* La barre d'onglets : le coin foncé du logo et sa bulle menthe, de jour comme de nuit. C'est une
-   île sombre sur une page claire : ses encres sont celles de la nuit, posées sur la barre même —
-   tout ce qui s'y écrit passe par --t1, --t3 et --tf-onglet (§ 9), la mécanique n'est pas touchée,
-   et l'onglet lâché pendant un glissement (`.tire`) reste lisible. */
-html[data-marque="logo"][data-refonte] .tabbar{--t1:#E9F3F0; --t2:#D2E6DE; --t3:#BCD9CD; --tf-onglet:var(--lg-foret)}
-html[data-marque="logo"][data-verre][data-kind="mobile"] .tabbar{border-color:rgba(216,229,234,.18)!important}
-/* Les tuiles d'icône : les deux tons du logo, plus les couleurs de catégorie — et la rubrique
-   active en plein. Mêmes sélecteurs que le § 11, plus loin dans la feuille : à force égale, ceux-ci
-   parlent. */
-html[data-marque="logo"][data-refonte] .nav-item .ico,
-html[data-marque="logo"][data-refonte] .creer-ic,
-html[data-marque="logo"][data-refonte] .kpis .kpi .kpi-ico,
-html[data-marque="logo"][data-refonte] .kpis .kpi:first-child .kpi-ico{background:var(--lg-menthe)!important;color:var(--lg-foret)!important}
-html[data-marque="logo"][data-refonte][data-theme="dark"] .nav-item .ico,
-html[data-marque="logo"][data-refonte][data-theme="dark"] .creer-ic,
-html[data-marque="logo"][data-refonte][data-theme="dark"] .kpis .kpi .kpi-ico,
-html[data-marque="logo"][data-refonte][data-theme="dark"] .kpis .kpi:first-child .kpi-ico{background:rgba(233,243,240,.12)!important;color:var(--lg-menthe)!important}
-html[data-marque="logo"][data-refonte] .nav-item.active .ico{background:var(--lg-foret)!important;color:#FFFFFF!important}
-html[data-marque="logo"][data-refonte][data-theme="dark"] .nav-item.active .ico{background:var(--lg-menthe)!important;color:var(--lg-foret)!important}
-/* le chiffre d'une tuile, très gras : le « OP » */
-html[data-marque="logo"][data-refonte] .kpis .kpi-val{font-weight:800!important}
-
 /* ── 20. LES RÉGLAGES SYSTÈME — toujours respectés ──
    Transparence réduite : les surfaces redeviennent pleines, à la couleur du thème, la page
    aussi. Mouvement réduit : rien ne glisse (les règles communes le font déjà). Contraste accru :
@@ -7658,15 +7505,12 @@ html[data-marque="logo"][data-refonte] .kpis .kpi-val{font-weight:800!important}
     -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--bg1)!important;
   }
   html[data-marque][data-verre] .topbar::before{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-  /* le thème « Logo » : sa barre d'onglets est une île sombre (§ 22), elle le reste — pleine */
-  html[data-marque="logo"][data-verre][data-kind="mobile"] .tabbar{background:var(--lg-foret)!important}
 }
 @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
   html[data-marque][data-verre] .card,html[data-marque][data-verre] .kpi,html[data-marque][data-verre] .tbl,
   html[data-marque][data-verre] .modal,html[data-marque][data-verre] .sidebar,html[data-marque][data-verre][data-kind="mobile"] .tabbar,
   html[data-marque][data-verre] .creer-sheet,html[data-marque][data-verre] .topbar .menu-btn,
   html[data-marque][data-verre] .topbar .tb-grappe::before{background:var(--bg1)!important}
-  html[data-marque="logo"][data-verre][data-kind="mobile"] .tabbar{background:var(--lg-foret)!important}
 }
 @media (prefers-contrast: more){
   html[data-marque][data-verre]{--vr-liseret:var(--t3); --tf-filet:var(--t3)}
@@ -15598,39 +15442,7 @@ function setHeader(title,sub,actions='',o){ title=t(title); $('page-title').text
       if(!fiche&&v&&v!==current){ const l=navLabel(v)||'la page précédente';
         tb.style.display=''; tb.title='Revenir à '+l; tb.setAttribute('data-l',l); }
       else { tb.style.display='none'; tb.removeAttribute('data-l'); } } }catch(e){}
-  try{ document.body.classList.toggle('ctx', current!=='dashboard' && !!(title||actions)); }catch(e){}
-  logoCoupe(); }
-/* ⛔ LA COUPE DU THÈME « LOGO » PASSE DANS L'ESPACE AVANT LE DERNIER MOT DU TITRE — MESURÉE, PAS
-   DEVINÉE. La tuile de l'en-tête (`theme-final` § 22) change la couleur du texte en traversant sa
-   diagonale. Posée en pixels fixes, la coupe dépendait de la POLICE : mesuré le 25 septembre 2026,
-   « bord » commençait à 235 px dans le navigateur de test (DejaVu) et une trentaine de pixels plus
-   tôt avec une police de la famille d'Helvetica, comme le SF Pro de l'iPhone — la coupe serait
-   tombée au milieu du mot chez Justin, et entre les mots dans nos captures. On mesure donc
-   l'espace avant le dernier mot, dans la tuile, et on y fait passer la coupe : sa distance le long
-   de l'angle (122° : ,848 et ,53), depuis le coin haut gauche du bord de la tuile. Divisé par
-   l'échelle de la tuile, qu'une animation d'entrée pourrait réduire.
-   Rien ne s'écrit si le titre tient en un mot ou passe à la ligne : la feuille garde sa valeur. Et
-   rien ne se mesure hors du thème « Logo » — le titre n'y a ni la même graisse ni le même
-   interlettrage, la mesure serait fausse ; `applyTheme` la refait en y entrant. */
-function logoCoupe(){
-  try{
-    const ph=$('page-head'), tuile=ph&&ph.querySelector('.ph-row > div:first-child'), ti=tuile&&tuile.querySelector('.ph-title');
-    if(!ti||!tuile.querySelector('.ph-surtitre')) return;
-    tuile.style.removeProperty('--lg-coupe-titre');
-    if(document.documentElement.getAttribute('data-marque')!=='logo') return;
-    const n=[...ti.childNodes].find(c=>c.nodeType===3), t=n?n.textContent.replace(/\s+$/,''):'', i=t.lastIndexOf(' ');
-    if(i<1) return;
-    const T=tuile.getBoundingClientRect(), k=(tuile.offsetWidth?T.width/tuile.offsetWidth:1)||1;
-    const lh=parseFloat(getComputedStyle(ti).lineHeight)||0;
-    if(lh && ti.getBoundingClientRect().height/k > lh*1.5) return;
-    const r=document.createRange(); r.setStart(n,i); r.setEnd(n,i+1);
-    const e=r.getBoundingClientRect(); if(!e.width&&!e.height) return;
-    const x=((e.left+e.right)/2-T.left)/k, y=((e.top+e.bottom)/2-T.top)/k;
-    tuile.style.setProperty('--lg-coupe-titre', (x*.848+y*.53).toFixed(1)+'px');
-  }catch(e){}
-}
-/* la tablette qui tourne, la fenêtre qu'on élargit, le titre qui passe de 34 à 30 px sous 380 px */
-try{ let _lgT=0; window.addEventListener('resize',()=>{ clearTimeout(_lgT); _lgT=setTimeout(logoCoupe,150); }); }catch(e){}
+  try{ document.body.classList.toggle('ctx', current!=='dashboard' && !!(title||actions)); }catch(e){} }
 function emptyState(ico,txt,btn,fn){ return `<div class="empty"><div class="e-ico">${ico}</div><p>${txt}</p>${btn?(fn?`<button class="btn" onclick="${fn}">${btn}</button>`:`<p style="color:var(--t3);font-size:13px;max-width:360px;margin:4px auto 0;line-height:1.5">${btn}</p>`):''}</div>`; }
 function tableCard(headers, rows){
   return `<div class="card"><div class="tbl-wrap"><table class="tbl list-tbl"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
@@ -33506,7 +33318,7 @@ views.parametres=function(){
       </div>
       <div><div class="dt-lbl" style="margin-bottom:10px">Thème et couleur</div>
         <button type="button" class="tc-rangee" onclick="themeCouleur()">
-          <span class="tc-apercu" style="background:${marqueApercu(MARQUES[getMarque()])}"></span>
+          <span class="tc-apercu" style="background:linear-gradient(158deg,${MARQUES[getMarque()].clair} 0 50%,${MARQUES[getMarque()].fonce} 50% 100%)"></span>
           <span class="tc-rangee-txt"><b>${esc(MARQUES[getMarque()].l)}</b><span>Teinte : ${esc(a==='custom'?'personnalisée':(ACCENTS[a]||a))} · ${esc({auto:'Auto',light:'Jour',dark:'Nuit'}[t]||t)}</span></span>
           <span class="tc-chevron" aria-hidden="true"></span>
         </button>
@@ -40001,18 +39813,8 @@ const ACC_PASTILLE = { teamop:['#0B1426','#A9B6CC'], opgestion:['#0B3B2E','#6AA8
    garde son logo dans les deux — voir `applyBrand`. */
 const MARQUES = {
   teamop:   { l:'TEAM OP',    sous:'Marine et gris-bleu',  accent:'teamop',    clair:'#F0F3F8', fonce:'#0B1426' },
-  opgestion:{ l:'OP GESTION', sous:'Vert forêt et menthe', accent:'opgestion', clair:'#E4EFEA', fonce:'#0B3B2E' },
-  /* ⛔ Le troisième, à la demande de Justin (24 et 25 septembre 2026, logo à l'appui) : OP GESTION
-     taillé comme son logo — la coupe en diagonale menthe / vert forêt, jusque dans l'en-tête du
-     tableau de bord (`theme-final` § 3 bis et § 22). Sa teinte est celle d'OP GESTION et se change
-     comme ailleurs. Le choix suit la PERSONNE (`u.pref.marque`) : il ne change rien pour les autres,
-     et une version qui ne le connaît pas retombe sur TEAM OP (`getMarque`) sans rien casser. */
-  logo:     { l:'Logo OP GESTION', sous:'Menthe et vert forêt, en diagonale', accent:'opgestion', clair:'#E9F3F0', fonce:'#0A4035',
-              apercu:'linear-gradient(122deg,#E9F3F0 0 58%,#0A4035 58% 100%)' }
+  opgestion:{ l:'OP GESTION', sous:'Vert forêt et menthe', accent:'opgestion', clair:'#E4EFEA', fonce:'#0B3B2E' }
 };
-/* La pastille d'un thème : sa couleur claire et sa couleur foncée, coupées en biais. « Logo » a la
-   coupe de son logo (122°, à 58 %) — sinon sa pastille serait celle d'OP GESTION, à un vert près. */
-function marqueApercu(M){ return (M&&M.apercu)||`linear-gradient(158deg,${M.clair} 0 50%,${M.fonce} 50% 100%)`; }
 function getMarque(){ try{ const m=localStorage.getItem('elanB_marque'); return MARQUES[m]?m:'teamop'; }catch(e){ return 'teamop'; } }
 const THEME_LBL = { auto:'Auto (système)', light:'Mode jour', dark:'Mode sombre' };
 const THEME_ICO = { auto:'🌗', light:'☀️', dark:'🌙' };
@@ -40115,7 +39917,6 @@ function applyTheme(){
      de la personne qui gagne, pas celui de son téléphone. */
   document.querySelectorAll('meta[name=theme-color]').forEach(mc=>mc.setAttribute('content', eff==='light'?MARQUES[mq].clair:MARQUES[mq].fonce));
   try{ applyBrand(); }catch(e){}
-  try{ logoCoupe(); }catch(e){}
   // La carte suit le mode jour/nuit — par la teinte des tuiles, sans reconstruire la vue
   try{ mapNuitSync(); }catch(e){}
 }
@@ -40158,7 +39959,7 @@ function themeCouleur(){
     <div class="tc-groupe">Thème</div>
     <div class="tc-carte">${Object.keys(MARQUES).map(k=>{ const M=MARQUES[k], on=k===mq;
       return `<button type="button" class="tc-theme${on?' on':''}" onclick="tcMarque('${k}')" aria-pressed="${on}">
-        <span class="tc-apercu" style="background:${marqueApercu(M)}"></span>
+        <span class="tc-apercu" style="background:linear-gradient(158deg,${M.clair} 0 50%,${M.fonce} 50% 100%)"></span>
         <span class="tc-rangee-txt"><b>${esc(M.l)}</b><span>${esc(M.sous)}</span></span>
         <span class="tc-coche" aria-hidden="true">${on?coche:''}</span></button>`; }).join('')}</div>
     <div class="tc-groupe">Teinte d'accentuation</div>

@@ -894,18 +894,18 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   s'écrit `--green` (`INT_STCOLOR`), pas `--acc-txt` — la teinte par défaut est devenue le marine,
   et une intervention finie prenait un liseré marine sous une étiquette verte. Les listes de la
   maquette passent par UNE pièce, `.tf-rangee` dans un `.tf-groupe` (`test-806`).
-  ✅ **Et depuis la v747 (bêta), un TROISIÈME thème, « Logo OP GESTION »** — Justin, logo à l'appui,
-  25 septembre 2026 : « montre-moi les thèmes en lien, que je voie ». Il PART d'OP GESTION (les deux
-  blocs du § 3 portent aussi son sélecteur), le défaut ne change pas, le choix suit la personne. Son
-  en-tête de tableau de bord est taillé comme le logo : le texte change de couleur en traversant la
-  diagonale. ⛔ **Cette coupe se MESURE sur le vrai titre (`logoCoupe`)** : en pixels fixes elle
-  dépendait de la POLICE — entre deux mots dans le navigateur de test (DejaVu), au milieu de « bord »
-  avec la famille d'Helvetica, donc chez Justin (SF Pro). Une capture du conteneur ne dit pas ce
-  qu'un iPhone dessine dès qu'une géométrie suit du TEXTE. `test-807`, `scratchpad/sonde-logo.js`.
-  ⛔ Et un contrôle au pixel qui compte les points « proches de l'encre attendue » compte aussi les
-  BORDS LISSÉS d'une lettre d'une autre couleur (une date restée en forêt passait pour du sauge) et
-  passe sur un aplat qui couvrirait tout : on lit le CŒUR des traits, et on exige la surface entre
-  les lettres.
+  ⛔ **DEUX THÈMES, PAS TROIS** — Justin, 25 septembre 2026 : « Non, seulement les 2 ». Un troisième,
+  « Logo OP GESTION » (la diagonale menthe / vert forêt du logo), a vécu une matinée sur la bêta
+  (v747, jamais publiée) et a été MIS DE CÔTÉ : sa version complète est dans les commits `839aa87`
+  et `a460a67`, la maquette dans `design/propositions/theme-logo.css`. On ne le rajoute pas sans
+  sa phrase. Deux leçons de mesure en restent, et elles valent pour tout thème :
+  ⛔ **une géométrie qui suit du TEXTE se MESURE sur le vrai texte** — la coupe de son en-tête,
+  posée en pixels fixes, tombait entre deux mots dans le navigateur de test (DejaVu) et au milieu
+  de « bord » avec la famille d'Helvetica, donc chez Justin (SF Pro) : une capture du conteneur ne
+  dit pas ce qu'un iPhone dessine ;
+  ⛔ un contrôle au pixel qui compte les points « proches de l'encre attendue » compte aussi les
+  BORDS LISSÉS d'une lettre d'une autre couleur, et passe sur un aplat qui couvrirait tout : on lit
+  le CŒUR des traits, et on exige la surface entre les lettres.
 - ⛔⛔ **LE CHROMIUM DU CONTENEUR, EN `--disable-gpu`, NE FLOUTE PAS UNE VITRE MINCE — ET AUCUN
   APPAREIL RÉEL NE PASSE PAR CE CHEMIN.** Mesuré le 24 septembre 2026 sur une page minimale : sous
   sept vitres de 59 px de haut, `blur(20px)`, `blur(30px)`, `blur(40px)` laissaient des rayures de
