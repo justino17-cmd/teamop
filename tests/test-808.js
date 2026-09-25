@@ -72,10 +72,12 @@ function bac(O){
   return { M, J };
 }
 const plein=l=>l.toasts.filter(t=>/plus de place/.test(t)).length;
+/* Un geste qui JETTE est un geste qui ne fait rien : on le dit comme un ✗, on ne meurt pas avec. */
+const joue=(t,f)=>{ let e=null; try{ f(); }catch(x){ e=(x&&x.name||'Error')+' : '+(x&&x.message); } v(t+' — le geste ne jette pas', e, null); };
 
 console.log('\n══ 1. LE RANGEMENT EST PLEIN — le geste s\'applique quand même ══\n');
 { const O={plein:true}, {M,J}=bac(O);
-  M.tcTeinte('blue');
+  joue('« Bleu » sur un appareil plein', ()=>M.tcTeinte('blue'));
   vrai('⛔ toucher « Bleu » applique le bleu (l\'affichage LIT « blue »)', J.includes('apply:auto/teamop/blue'));
   vrai('la fenêtre se redessine sur le choix (la coche bouge)', J.includes('fenetre'));
   v('le choix est sur la fiche de la personne', M.u().pref.accent, 'blue');
@@ -85,28 +87,28 @@ console.log('\n══ 1. LE RANGEMENT EST PLEIN — le geste s\'applique quand m
   const s=M.signaux.filter(x=>/Rangement de l’appareil plein/.test(x.m));
   v('⛔ et la Tour le reçoit', s.length, 1);
   vrai('… en nommant le réglage, sans préfixe d\'espace', /\(accent, QuotaExceededError\)/.test((s[0]||{}).m));
-  M.tcTeinte('pink');
+  joue('« Rose » ensuite', ()=>M.tcTeinte('pink'));
   vrai('un second choix s\'applique aussi', J.includes('apply:auto/teamop/pink'));
   v('… sans second message (une fois par séance)', plein(M), 1);
   v('la mémoire tient la dernière teinte', M.getAccent(), 'pink');
 }
 { const {M,J}=bac({plein:true});
-  M.tcMode('dark');       vrai('le mode Nuit s\'applique sur un appareil plein', J.includes('apply:dark/teamop/teamop'));
-  M.tcMarque('opgestion'); vrai('le thème OP GESTION aussi, avec SA teinte', J.includes('apply:dark/opgestion/opgestion'));
-  M.setAccent('purple');  vrai('la couleur des Paramètres aussi', J.includes('apply:dark/opgestion/purple'));
-  M.setThemePref('light'); vrai('le bouton de mode aussi', J.includes('apply:light/opgestion/purple'));
-  M.setAccentCustom('#12AB56');
+  joue('le mode Nuit', ()=>M.tcMode('dark'));       vrai('le mode Nuit s\'applique sur un appareil plein', J.includes('apply:dark/teamop/teamop'));
+  joue('le thème OP GESTION', ()=>M.tcMarque('opgestion')); vrai('le thème OP GESTION aussi, avec SA teinte', J.includes('apply:dark/opgestion/opgestion'));
+  joue('la couleur des Paramètres', ()=>M.setAccent('purple'));  vrai('la couleur des Paramètres aussi', J.includes('apply:dark/opgestion/purple'));
+  joue('le bouton de mode', ()=>M.setThemePref('light')); vrai('le bouton de mode aussi', J.includes('apply:light/opgestion/purple'));
+  joue('une couleur personnelle', ()=>M.setAccentCustom('#12AB56'));
   vrai('une couleur personnelle aussi', J.includes('apply:light/opgestion/custom'));
   v('… qui entre dans la palette', M.accentsPerso(), ['#12AB56']);
   v('… et dont la valeur se lit', M.prefLocalLire('elan_accent_hex'), '#12AB56');
-  M.accentPersoRetirer(null,'#12AB56');
+  joue('retirer la couleur personnelle', ()=>M.accentPersoRetirer(null,'#12AB56'));
   vrai('la retirer rend la teinte du thème', J.includes('apply:light/opgestion/opgestion'));
   v('la fiche porte tout ce qui a été choisi', [M.u().pref.theme,M.u().pref.marque,M.u().pref.accent], ['light','opgestion','opgestion']);
 }
 
 console.log('\n══ 2. L\'ENREGISTREMENT JETTE — la couleur d\'abord, l\'envoi quand même ══\n');
 { const {M,J}=bac({saveJette:true});
-  M.tcTeinte('blue');
+  joue('« Bleu » quand l\'enregistrement jette', ()=>M.tcTeinte('blue'));
   const iA=J.indexOf('apply:auto/teamop/blue'), iS=J.indexOf('save');
   vrai('⛔ la couleur s\'applique AVANT l\'enregistrement', iA>=0 && iS>iA);
   vrai('⛔ le choix part quand même vers l\'équipe', J.indexOf('push')>iS);
