@@ -906,6 +906,24 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ⛔ un contrôle au pixel qui compte les points « proches de l'encre attendue » compte aussi les
   BORDS LISSÉS d'une lettre d'une autre couleur, et passe sur un aplat qui couvrirait tout : on lit
   le CŒUR des traits, et on exige la surface entre les lettres.
+- ⛔⛔ **UN GESTE D'APPARENCE S'APPLIQUE D'ABORD, S'ENREGISTRE ENSUITE — ET LE RANGEMENT DE
+  L'APPAREIL PEUT ÊTRE PLEIN.** Justin, 25 septembre 2026, iPhone : « rien ne change » en touchant
+  une teinte, pas même le « + Créer » — tous nos essais disaient le contraire, sur un rangement VIDE
+  et sans synchro. Rejoué sur la 746 publiée, trois chemins y mènent : le rangement plein (Safari
+  borne à 5 Mo, PARTAGÉS par toute l'origine teamop.fr — app.html, la bêta, la Tour ; `setItem`
+  jetait à la première ligne du geste), un `save()` qui jette après avoir rangé, une copie plus
+  ancienne de la fiche par la synchro. Les règles depuis la v747 : un réglage d'apparence se range
+  par `prefLocal`/`prefLocalLire` (mémoire de REPLI, jamais tenue quand le rangement accepte — elle
+  masquerait ce que d'autres fonctions rangent directement), s'APPLIQUE avant `prefGarder`, et
+  porte l'heure de son choix (`u.prefTs`) : la synchro le fusionne réglage par réglage
+  (`prefFusion`). `test-808` refuse tout accès direct au rangement pour ces clés.
+  ⚠️ **Un navigateur de test au rangement vide ne voit rien de tout ça** : la sonde
+  `scratchpad/sonde-teintes-iphone.js` REMPLIT le rangement avant de toucher, et sa contre-épreuve
+  sur la 746 rend 13 ✗. Toute fonctionnalité qui range sur l'appareil se mesure aussi plein.
+  ⛔ **Et la sentinelle vit dans une fonction ISOLÉE** : hors d'elle, `tmPush` vaut `undefined`, on
+  passe par `window.tmSignaler`. `syncDiagnostic` testait `typeof tmPush` depuis l'extérieur — il
+  n'a JAMAIS atteint la Tour avant la v747, pendant que test-653 gardait le texte de l'appel. Sa
+  file tient en mémoire quand le rangement la refuse : avant, un appareil plein ne signalait rien.
 - ⛔⛔ **LE CHROMIUM DU CONTENEUR, EN `--disable-gpu`, NE FLOUTE PAS UNE VITRE MINCE — ET AUCUN
   APPAREIL RÉEL NE PASSE PAR CE CHEMIN.** Mesuré le 24 septembre 2026 sur une page minimale : sous
   sept vitres de 59 px de haut, `blur(20px)`, `blur(30px)`, `blur(40px)` laissaient des rayures de

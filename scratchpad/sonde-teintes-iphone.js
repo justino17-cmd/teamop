@@ -111,6 +111,10 @@ async function unEtat(ETAT) {
     if (ETAT === 'plein') {
       const t = await ev(`return window._toasts.filter(x=>/plus de place/.test(x)).length;`);
       vrai('⛔ l\'écran DIT que l\'appareil est plein — une fois', t === 1, 'messages : ' + t);
+      /* ⛔ le DERNIER message gagne (un seul bandeau) : celui de `save()` (« réduis le nombre/poids
+         des photos », 2,2 s) passait par-dessus le nôtre, dans le même geste. On lit l'écran. */
+      const vu = await ev(`return (document.getElementById('toast')||{}).textContent||'';`);
+      vrai('… et c\'est CE message qui reste à l\'écran', /plus de place pour ranger tes réglages/.test(vu), 'à l\'écran : ' + vu);
       let balise = '';
       for (let i = 0; i < 45 && !balise; i++) { await dormir(1000);
         balise = await ev(`return (window._balises.find(x=>/Rangement de l’appareil plein/.test(x))||'');`); }

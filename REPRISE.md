@@ -39,6 +39,96 @@ part de Firebase. »**
 - ⚠️ Et `server/` reste une publication à part entière (un push sur `main` qui le touche déploie
   le VPS) : cette décision ne l'arrête pas — c'est précisément le chantier qu'elle attend.
 
+## ✅ 25 SEPTEMBRE 2026 — « LES COULEURS EN DESSOUS, JE VEUX QU'ELLES MARCHENT » (v747, bêta)
+
+Justin, capture de « Thème et couleur » à l'appui (iPhone, Safari) : **« laisse les 2 thèmes ici,
+TEAM OP par défaut, OP GESTION aussi, et les couleurs en dessous je veux qu'elles marchent »**. À la
+question « que se passe-t-il quand tu touches une couleur ? » : **« Rien ne change »** — même le
+« + Créer » garde son ancienne couleur. Et pour le troisième thème : **« Non, seulement les 2 »**.
+
+### Le thème « Logo » : mis de côté
+
+Retiré de la page (v747 repart de la v746 pour tout ce qui est thème) ; la version complète et
+éprouvée vit dans `839aa87`/`a460a67`, la maquette dans `design/propositions/theme-logo.css`.
+
+### Pourquoi « rien ne change » — mesuré, pas supposé
+
+Tous les essais d'avant disaient que les teintes marchaient : le navigateur de test a un rangement
+VIDE et pas de synchro. Rejoué sur la bêta PUBLIÉE (746), agent Safari d'iPhone, 402 × 874, vrais
+touchers (`scratchpad/sonde-teintes-iphone.js`) : **trois chemins mènent exactement à ce que Justin
+décrit — ni coche, ni aperçu, ni « + »** :
+
+| état | ce qui se passait sur la 746 |
+|---|---|
+| **rangement plein** (5 Mo chez Safari, PARTAGÉS par app.html, la bêta et la Tour sur teamop.fr) | `localStorage.setItem` jetait à la PREMIÈRE ligne du geste : rien du tout |
+| **un maillon de `save()` qui jette** (après avoir rangé) | le choix était rangé mais jamais appliqué, jamais envoyé |
+| **une copie plus ancienne de la fiche arrive par la synchro** | la réception donne raison au distant, fiche entière : l'ancienne teinte revenait |
+
+⚠️ **On ne sait pas lequel des trois est chez Justin** — on n'a pas son appareil. Sa capture montre
+Auto, TEAM OP et la teinte TEAM OP : les trois réglages PAR DÉFAUT, c'est-à-dire aucun choix jamais
+rangé sur cet iPhone — ce qui colle au premier chemin, sans le prouver. La 747 ferme les trois, et
+elle le DIRA : si c'est le rangement, un message s'affiche une fois (« Cet appareil n'a plus de place
+pour ranger tes réglages… ») et la Tour reçoit « Rangement de l'appareil plein » avec ce qui occupe
+la place, par famille (base de l'application, base de la bêta, Tour…).
+
+### Ce que fait la v747
+
+- **Le choix s'APPLIQUE d'abord, s'enregistre ensuite**, chaque enregistrement à part
+  (`prefGarder`) : un enregistrement qui échoue ne défait plus le geste, et le choix part quand même
+  vers l'équipe. Tous les gestes d'apparence : teinte, mode, thème, couleur personnelle, palette.
+- **Une mémoire de repli** (`prefLocal`/`prefLocalLire`) : si l'appareil refuse de ranger, le choix
+  vit en mémoire et suit la fiche ; tant que le rangement accepte, c'est LUI qui fait foi (une mémoire
+  tenue en permanence masquait ce que la carte range elle-même — pris en écrivant, banc à l'appui).
+- **Chaque réglage porte l'heure de son choix** (`u.prefTs`) et la synchro fusionne les réglages
+  réglage par réglage (`prefFusion`) : la copie d'un appareil en retard ne défait plus un choix plus
+  récent, dans un sens comme dans l'autre ; la réception repousse ce qu'elle a gardé, l'envoi
+  applique ce qui est arrivé. Sans heure des deux côtés (versions d'avant), rien ne change.
+
+### Trouvé en chemin, et corrigé
+
+- ⛔ **La Tour n'entendait RIEN d'un appareil plein** : la file de la sentinelle se range elle aussi
+  dans `localStorage` ; refusée, elle se perdait en silence. Mesuré : la 746 n'envoie aucun rapport
+  depuis un appareil plein, la 747 en envoie. La file tient en mémoire jusqu'à l'envoi.
+- ⛔ **Le diagnostic de synchro n'avait JAMAIS atteint la Tour** : `syncDiagnostic` testait
+  `typeof tmPush==='function'` depuis l'extérieur de la sentinelle, où `tmPush` n'existe pas. Une
+  porte en sort (`window.tmSignaler`) ; le diagnostic passe par elle. C'est la leçon de `mailRefus` :
+  test-653 gardait le TEXTE de l'appel, pas son effet.
+
+### Les preuves
+
+- **`tests/test-808.js` — 97 ✓** : les vrais gestes joués dans les trois états, la fusion dans les
+  deux sens (convergence, égalités, versions d'avant, une copie en retard après le VRAI geste), la
+  mémoire qui ne masque pas un rangement direct, ce que la Tour reçoit (des familles, jamais un nom de
+  clé), le câblage de la réception et de l'envoi, la porte et la file de la sentinelle.
+  **21 mutations sur 21 le font tomber**, dont la 746 remise telle quelle (15 ✗).
+- **`scratchpad/sonde-teintes-iphone.js` — 44 ✓** au doigt sur la 747, quatre états ;
+  **contre-épreuve sur la 746 publiée : 13 ✗** dans les états plein, badges et retour, aucun dans
+  l'état propre — exactement ce que Justin voyait, et ce que nos essais ne voyaient pas.
+- Bancs mis à jour, délibérément : 699, 750, 757, 759, 762 (les nouvelles formes et les fonctions
+  fournies aux bancs qui extraient), 653 (le canal de la Tour).
+- **Suite complète** : relancée après le correctif — son résultat s'écrit ici quand elle a fini (pas avant).
+
+### Ce qui attend Justin
+
+- Ouvrir la bêta sur son iPhone, Paramètres › Thème et couleur, toucher une couleur : elle doit
+  s'appliquer tout de suite (la coche, l'aperçu, puis le « + » en haut une fois la fenêtre fermée).
+- **Si le message « Cet appareil n'a plus de place… » paraît**, c'était le rangement plein : la
+  couleur marche quand même, mais la base de la bêta (et peut-être celle d'ELAN, sur le même
+  téléphone) ne se range plus en entier sur cet appareil — ce n'est plus une question de couleur,
+  c'est la dette ci-dessous, et il faut me le dire.
+
+### Les dettes que ça montre
+
+- ⚠️ **Toute l'origine teamop.fr partage 5 Mo de rangement chez Safari** : la base d'ELAN
+  (app.html), celle de la bêta, la Tour. Une base qui grossit finit par le remplir, et alors plus rien
+  ne se range. Le vrai remède est de sortir les bases de `localStorage` (vers IndexedDB) — un
+  chantier à part, PAS commencé et pas encore décidé ; la 747 ne fait que rendre les réglages
+  d'apparence insensibles au problème, et le rendre VISIBLE (le message, et la Tour qui reçoit ce
+  qui occupe la place).
+- Les autres réglages qui voyagent (langue, onglets, favoris, carte) se rangent encore directement :
+  sur un appareil plein, ils échouent en silence comme les teintes avant la 747.
+- La bulle de nuit (marine sous les deux thèmes) : toujours sa question de goût, plus bas.
+
 ## ✅ 24 SEPTEMBRE 2026 (nuit) — LE THÈME FINAL D'OP GESTION, STYLE APPLE (v745 puis v746, bêta)
 
 Justin : **« voilà mon thème final pour OP GESTION, je veux que tu l'appliques, que tu le
