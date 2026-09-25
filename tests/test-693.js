@@ -96,9 +96,34 @@ v('⛔ miseDeCoteListe non plus : try/catch qui rend []',
   !!LISTE && /onsuccess=e=>\{ const d=e\.target\.result; try\{/.test(LISTE) && /\}catch\(err\)\{ res\(\[\]\); \}/.test(LISTE), true);
 v('⛔ et le ménage des clés « :opgestion » est lui aussi sous try/catch',
   /dm\.onsuccess=function\(\)\{ try\{ const d=dm\.result;/.test(APP), true);
-/* Trois usages, pas quatre : un quatrième non gardé rouvrirait le trou. */
-v('⛔ toujours exactement trois ouvertures d\'IndexedDB dans l\'application',
-  (APP.match(/indexedDB\.open\(/g) || []).length, 3);
+/* ── Les deux ouvertures de l'étape 7 : le coffre à photos du socle ──
+   `opPhotoPoser` et `opPhotoLire` (base `elan_photo`, magasin `photos`, clé `t`) rangent la
+   photo prise AVANT que la lecture bascule sur le socle : la base entière, son recensement de
+   pièces jointes et sa signature. C'est local, jamais synchronisé, et `espaceQuitter()` supprime
+   la base. Ce n'est pas dans `localStorage` parce qu'une base réaliste fait 300 Ko et davantage.
+   Elles comptent dans le recensement ci-dessous, et elles doivent tenir la MÊME promesse que les
+   trois autres : ne jamais rejeter, donc un `res(valeur)` sur CHAQUE chemin d'erreur — celui de
+   l'ouverture, celui de la transaction, et le try du dehors. */
+const POSER = corps('function opPhotoPoser(o) {'), LIRE = corps('function opPhotoLire(t) {');
+v('opPhotoPoser est trouvée', !!POSER, true);
+v('opPhotoLire est trouvée', !!LIRE, true);
+v('⛔ opPhotoPoser ne rejette jamais : onerror, onsuccess sous try/catch, et le try du dehors',
+  !!POSER && /q\.onerror = \(\) => res\(false\);/.test(POSER)
+          && /q\.onsuccess = e => \{ const d = e\.target\.result; try \{/.test(POSER)
+          && (POSER.match(/catch \(err\) \{ res\(false\); \}/g) || []).length === 2, true);
+v('⛔ opPhotoLire non plus : les mêmes trois chemins, qui rendent null',
+  !!LIRE && /q\.onerror = \(\) => res\(null\);/.test(LIRE)
+         && /q\.onsuccess = e => \{ const d = e\.target\.result; try \{/.test(LIRE)
+         && (LIRE.match(/catch \(err\) \{ res\(null\); \}/g) || []).length === 2, true);
+
+/* ⛔ CINQ usages, pas six : un sixième non gardé rouvrirait le trou.
+   Le chiffre était TROIS jusqu'au 20 septembre 2026 ; l'étape 7 du socle en a ajouté deux,
+   nommés juste au-dessus et gardés comme les autres. Ce recensement existe pour qu'une ouverture
+   NEUVE oblige à relire ce fichier et à écrire pourquoi elle est sûre — le monter d'un cran pour
+   faire passer la suite, sans le contrôle de garde qui va avec, c'est exactement ce qu'il
+   empêche. */
+v('⛔ toujours exactement cinq ouvertures d\'IndexedDB dans l\'application',
+  (APP.match(/indexedDB\.open\(/g) || []).length, 5);
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

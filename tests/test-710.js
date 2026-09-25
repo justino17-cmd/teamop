@@ -42,6 +42,9 @@ function extraire(nom) {
 const SRC_VOIT = extraire('userBoxVoit');
 const SRC_VIS = extraire('visibleBoxes');
 const L_EXCLU = (APP.match(/^const boxExclu=.*$/m) || [])[0];
+/* v742 : visibleBoxes et la boucle de création mettent le stockage à part (une PERMISSION, pas une box
+   qu'on ouvre) — ils lisent estStockage, extraite ici du fichier livré avec sa constante. */
+const L_STK = (APP.match(/^const STOCKAGE_ID=.*$/m) || [])[0] + '\n' + extraire('estStockage');
 /* ⛔ ET SURTOUT : LA BOUCLE DE CRÉATION ELLE-MÊME, découpée dans le fichier livré. Un banc qui
    rejoue une COPIE de la boucle ne dit rien de ce qui part en production — il dirait seulement
    que ma transcription est juste. Bornée par deux repères de texte, jamais par une longueur. */
@@ -64,12 +67,18 @@ function banc(db, moi) {
   ctx.userVehiculeVoit = () => {};
   ctx.vehiculeAuto = () => false;
   vm.createContext(ctx);
-  vm.runInContext(L_EXCLU + '\n' + SRC_VOIT + '\n' + SRC_VIS, ctx);
-  /* On rejoue la VRAIE boucle de création, avec les variables qu'elle attend autour d'elle. */
-  ctx.creer = (nu, coches) => {
+  vm.runInContext(L_EXCLU.replace('const ', 'var ') + '\n' + L_STK.replace('const ', 'var ') + '\n' + SRC_VOIT + '\n' + SRC_VIS, ctx);
+  /* On rejoue la VRAIE boucle de création, avec les variables qu'elle attend autour d'elle.
+     ⚠️ v737 : c'est le CRÉATEUR qui est connecté pendant la boucle (un administrateur, sauf si
+     l'essai en nomme un autre) — la boucle ne laisse un créateur ouvrir que ce qu'il voit
+     lui-même. Avant, ce banc jouait la boucle avec le NOUVEAU compte comme utilisateur connecté,
+     ce qui ne changeait rien tant que la boucle ne regardait pas qui crée. */
+  ctx.creer = (nu, coches, createur) => {
     ctx.nu = nu; ctx.nuBoxes = new Set(coches || []); ctx.nuVehs = new Set();
     ctx.acces = { caps: { voirTout: false } };
-    vm.runInContext('let _nBox=0, _nVeh=0;\n' + SRC_BOUCLE + '\nthis.nBox=_nBox;', ctx);
+    const avant = ctx.currentUser; ctx.currentUser = createur || { id: 'uAdm', role: 'admin' };
+    try { vm.runInContext('let _nBox=0, _nVeh=0;\n' + SRC_BOUCLE + '\nthis.nBox=_nBox;', ctx); }
+    finally { ctx.currentUser = avant; }
     return ctx.nBox;
   };
   return ctx;
@@ -124,6 +133,25 @@ const troisBox = () => [
   v('⚠️ la box COCHÉE lui est bien ouverte', c.visibleBoxes(db.boxes).map(b => b.id), ['b1']);
   v('…et elle seule', (db.boxes[1].userIds || []).length, 0);
   v('le journal compte exactement une box ouverte', n, 1);
+}
+
+/* ── 2c) ⛔⛔ v737 — UN CRÉATEUR QUI N'EST PAS ADMINISTRATEUR N'OUVRE QUE CE QU'IL VOIT ──
+   Le formulaire ne lui montre que ses box ; la boucle le vérifie aussi, car une case cochée
+   peut arriver d'ailleurs que du formulaire (un état resté d'une création précédente). */
+{
+  const nu = { id: 'u9', role: 'technicien' };
+  const chef = { id: 'uR', role: 'chefEquipe' };
+  const db = { boxes: [
+    { id: 'b1', nom: 'La sienne', userIds: ['uR'], actif: true },
+    { id: 'b2', nom: 'Pas la sienne', actif: true },
+  ], users: [nu, chef] };
+  const c = banc(db, nu);
+  const n = c.creer(nu, ['b1', 'b2'], chef);
+  v('⛔⛔ le chef ouvre au nouveau compte la box qu’il voit lui-même…', (db.boxes[0].userIds || []).includes('u9'), true);
+  v('⛔⛔ …et PAS celle qu’il ne voit pas, même cochée', (db.boxes[1].userIds || []).includes('u9'), false);
+  v('le journal ne compte que la box vraiment ouverte', n, 1);
+  const n2 = banc(db, nu).creer({ id: 'u8', role: 'technicien' }, ['b2']);   // un bac neuf : la boucle déclare ses compteurs
+  v('contre-épreuve : un administrateur ouvre la même box sans difficulté', [(db.boxes[1].userIds || []).includes('u8'), n2], [true, 1]);
 }
 
 /* ── 3) ⚠️ CE QUI DOIT RESTER VRAI — une exclusion VOULUE reste une exclusion ── */

@@ -339,7 +339,12 @@
   .puce-formule.active { background: var(--bleu-fond); border-color: var(--bleu); color: var(--texte); }
 
   @media (max-width: 860px) {
-    .grille { grid-template-columns: 1fr; }
+    /* ⛔ `minmax(0, 1fr)` ET PAS `1fr`. Une piste `1fr` a pour taille minimale `auto`, donc
+       elle ne descend PAS sous la largeur intrinsèque de son contenu : mesuré à 390 px, la
+       grille faisait 342 px et ses deux cartes 375 — la page débordait de 9 px et le
+       récapitulatif de prix glissait sous le bord de l'écran, sur un iPhone 12 à 15. C'est la
+       page où un prospect PAIE. `minmax(0, 1fr)` autorise la piste à rétrécir. */
+    .grille { grid-template-columns: minmax(0, 1fr); }
     .carte-paiement { position: static; }
     .titre-page { font-size: 24px; }
   }
@@ -818,6 +823,19 @@ function rendrePaiement() {
       window.location.href = CONFIG_STRIPE.inscriptionGratuite;
       return;
     }
+    /* ⛔ SANS CETTE RÉFÉRENCE, LE CORRECTIF STRIPE DU SERVEUR NE SERT À RIEN.
+       `/api/stripe/checkout` ne grave `subscription_data[metadata][espace]` sur l'abonnement
+       que si la page lui envoie un `ref` — et cette page, la SEULE du site qui ouvre une page
+       de paiement, ne l'envoyait pas. Le rattachement retombait donc sur l'égalité EXACTE des
+       adresses : la comptable paie avec l'adresse de facturation de la société, l'espace a été
+       créé avec celle de la personne qui avait demandé l'accès, et l'application reste
+       bloquée après le paiement, sans un mot.
+       `elan_sync_team` est le marqueur d'espace rattaché, le même que lit `promoValider()`
+       plus bas. Il peut être vide — un prospect paie avant d'avoir un espace — et c'est
+       prévu : le serveur ignore un `ref` vide, et le repli par adresse reste en place. */
+    const espaceRattacheRef = () => {
+      try { return String(localStorage.getItem('elan_sync_team') || '').trim(); } catch (e) { return ''; }
+    };
     const btn = document.getElementById('btnPayer');
     // 1) Paiement automatique via le serveur TeamOP : quantité déjà réglée + champ code promo
     const priceId = (STRIPE_PRICES[formuleActive] || {})[cycleAnnuel ? 'annuel' : 'mensuel'];
@@ -826,7 +844,7 @@ function rendrePaiement() {
       btn.disabled = true; btn.innerHTML = 'Préparation du paiement…';
       try {
         const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 7000);
-        const r = await fetch('https://api.teamop.fr/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: priceId, quantity: nbAbos }), signal: ctl.signal });
+        const r = await fetch('https://api.teamop.fr/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef() }), signal: ctl.signal });
         clearTimeout(to);
         if (r.ok) { const j = await r.json(); if (j && j.url) { window.location.href = j.url; return; } }
       } catch (e) {}
@@ -853,8 +871,39 @@ async function promoValider() {
     const r = await fetch('https://api.teamop.fr/api/promo/valider', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code, apercu: true }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { dis('⚠ ' + (j.error || 'Code invalide'), false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } return; }
-    dis('✓ Code valide : <b>' + j.mois + ' mois offert(s)</b> — activation dans l\'application…', true);
-    setTimeout(() => { window.location.href = 'app.html#promo=' + encodeURIComponent(code); }, 900);
+    /* ⛔ ON NE PROMET PAS UNE ACTIVATION QU'ON NE PEUT PAS TENIR. La page félicitait le
+       visiteur — « activation dans l'application… » — puis le renvoyait vers `app.html#promo=`.
+       Or `promoAppliquer` EXIGE la preuve de la clé d'équipe : un code ne s'active que SUR UN
+       ESPACE. Un prospect qui n'en a pas encore atterrissait donc sur l'écran de connexion,
+       le code perdu avec le hash, et sans jamais comprendre pourquoi. C'est quelqu'un qui
+       allait payer, et à qui on venait de dire que c'était fait.
+       ⚠️ `elan_sync_team` est le marqueur d'espace rattaché (`espaceRattache()` dans app.html),
+       et cette page est servie par la MÊME origine : elle peut donc le lire. Deux chemins,
+       deux messages vrais. */
+    var aUnEspace = false;
+    try { aUnEspace = !!String(localStorage.getItem('elan_sync_team') || '').trim(); } catch (e) {}
+    if (aUnEspace) {
+      dis('✓ Code valide : <b>' + j.mois + ' mois offert(s)</b> — activation dans l\'application…', true);
+      setTimeout(() => { window.location.href = 'app.html#promo=' + encodeURIComponent(code); }, 900);
+      return;
+    }
+    /* Pas d'espace sur cet appareil : on dit la vérité, et on donne le geste suivant. Le code
+       est mémorisé pour que le champ de l'application soit pré-rempli le jour venu — il n'est
+       PAS appliqué tout seul : une activation reste un geste de la personne. */
+    try { localStorage.setItem('teamop_promo_en_attente', code); } catch (e) {}
+    /* ⛔ ON NE SE PORTE PAS GARANT DE CE QU'ON NE TIENT QUE SUR UN NAVIGATEUR. « Nous avons
+       noté votre code » était faux dès que la personne changeait d'appareil : elle valide
+       depuis son ordinateur, demande son accès, ouvre le lien sur son téléphone — le champ
+       est vide et rien ne lui rappelle le code. C'est la même classe de défaut que celle
+       qu'on vient de fermer deux lignes plus haut : dire au visiteur qu'une chose est faite
+       alors qu'elle ne l'est qu'à moitié. On lui donne donc le code EN CLAIR, à noter — le
+       pré-remplissage reste un confort quand c'est le même navigateur, pas une promesse. */
+    dis('✓ Code valide : <b>' + j.mois + ' mois offert(s)</b>.<br>'
+      + 'Notez-le : <b style="font-size:16px;letter-spacing:.04em">' + code + '</b><br>'
+      + 'Un code s\'applique à <b>votre espace</b> : ouvrez-le d\'abord avec votre lien de connexion, '
+      + 'puis entrez ce code dans <b>Paramètres → Abonnement</b>.<br>'
+      + 'Pas encore d\'espace ? <a href="espace.html" style="color:#7ee2b8;text-decoration:underline">Demandez votre accès ici</a>.', true);
+    if (btn) { btn.disabled = false; btn.textContent = 'Activer'; }
   } catch (e) { dis('Le serveur ne répond pas — réessayez.', false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } }
 }
 

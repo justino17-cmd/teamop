@@ -36,6 +36,8 @@ const MORCEAUX = [
   'const fullName = u =>',
   'const CAPS_HERITE = {',
   'const CAPS = Object.fromEntries',
+  /* userCap lit le DÉFAUT d'une case sans réglage dans capDeduitRegle depuis la v737 */
+  'function capDeduitRegle(cap){',
   'function userCap(u,cap){',
   'function can(cap){',
   'function myTechId(){',
@@ -53,11 +55,15 @@ const MORCEAUX = [
   'function equipeDe(u){',
   'function perimetreTechIds(u){',
   'function perimetreUserIds(u){',
-  'function visibleInts(list){',
+  /* visibleInts lit canPlan() depuis la v739 : qui peut planifier voit les interventions sans technicien */
+  'function canPlan(){',
+  'function visibleInts(list,aAffecter){',
   'function mesClientIds(){',
   'function creeParMoi(x){',
   'function visibleClients(list){',
   'function visibleDocs(list){',
+  /* un pointage SANS fiche se range sous son compte (v733) — visiblePointages le lit */
+  'function ptEstAMoi(p){',
   'function visiblePointages(list){',
   'function boxValidRequis(){',
   /* Les quatre filtres qui ignoraient le périmètre d'un DR (v622, 10 septembre 2026) */
@@ -65,8 +71,18 @@ const MORCEAUX = [
   'function delegationActive(u){',
   'function delegationsRecues(u){',
   'const boxExclu=',
+  /* visibleBoxes met le stockage à part depuis la v742 (sa visibilité est une PERMISSION, pas une
+     liste de la box) : sans ces deux morceaux, le bac à sable mourait sur estStockage — deuxième
+     fois que ce contrôle meurt en silence, d'où le banc qui l'exécute désormais (test-794 §16). */
+  "const STOCKAGE_ID='stockage';",
+  'function estStockage(b){',
   'function visibleBoxes(list){',
   'function mesBoxIds(){',
+  /* visibleMouvements lit les NOMS de son périmètre depuis la v735 (les bons de remise qui le
+     concernent) : sans ces deux morceaux, le bac à sable mourait sur nomsConcernes — et le
+     contrôle « Chacun ne voit que ce qui le concerne » avec lui (relevé par relecteur, v738). */
+  'function nomCle(x){',
+  'function nomsConcernes(p){',
   'function visibleMouvements(list){',
   'function vehiculeAuto(v,u){',
   'const vehExclu=',

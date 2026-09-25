@@ -54,6 +54,7 @@ function banc(opts) {
     esc: s => String(s), save: () => { ctx.sauve = (ctx.sauve || 0) + 1; },
     logEvent: (t, d) => ctx.journal.push(t + ' · ' + d),
     toast: m => ctx.toasts.push(String(m)), closeModal: () => {}, refreshEcran: () => {},
+    adminSeul: () => true,   // v738 : réservée à l'administrateur — gardé par test-790
     Date: Date, JSON: JSON, Map: Map, Object: Object, String: String, Array: Array,
   };
   vm.createContext(ctx);

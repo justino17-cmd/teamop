@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registre des traitements — TEAM OP</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/teamop-favicon-32.png">
+<style>
+  :root { --fond:#050a14; --carte:rgba(17,29,48,.7); --bordure:rgba(75,121,189,.25); --texte:#eef1f7; --texte-2:#9fb0ca; --texte-3:#64748e; --bleu:#60a5fa; --ambre:#fbbf24; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--fond);
+    background-image:radial-gradient(ellipse 800px 400px at 20% -10%, rgba(59,130,246,.08), transparent);
+    color:var(--texte); min-height:100vh; font-size:15px; line-height:1.7; }
+  .barre { display:flex; align-items:center; justify-content:space-between; padding:18px 32px; border-bottom:1px solid var(--bordure); }
+  .logo { display:flex; align-items:center; gap:10px; font-weight:800; font-size:17px; }
+  .btn-retour { font-size:13.5px; font-weight:600; color:var(--texte-2); text-decoration:none; padding:8px 14px; border-radius:9px; border:1px solid var(--bordure); }
+  .btn-retour:hover { color:var(--texte); }
+  .conteneur { max-width:780px; margin:0 auto; padding:44px 24px 80px; }
+  h1 { font-size:28px; font-weight:800; letter-spacing:-.02em; margin-bottom:6px; }
+  .sous { color:var(--texte-2); margin-bottom:34px; }
+  .carte { background:var(--carte); border:1px solid var(--bordure); border-radius:14px; padding:26px 28px; margin-bottom:22px; }
+  h2 { font-size:18px; font-weight:800; margin-bottom:12px; color:var(--bleu); }
+  h3 { font-size:14.5px; font-weight:800; margin:16px 0 5px; }
+  p, li, td, th { color:var(--texte-2); font-size:14px; }
+  b { color:var(--texte); }
+  ul, ol { padding-left:20px; }
+  a { color:var(--bleu); }
+  .avis { border-left:3px solid var(--ambre); background:rgba(251,191,36,.07); border-radius:0 10px 10px 0; padding:14px 18px; margin-bottom:22px; }
+  .avis b { color:var(--ambre); }
+  .tableau { overflow-x:auto; margin-top:10px; }
+  table { width:100%; border-collapse:collapse; min-width:560px; }
+  th, td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--bordure); vertical-align:top; }
+  th { color:var(--texte); font-weight:800; font-size:13px; }
+  @media (max-width:600px) { .barre { padding:14px 16px; } .conteneur { padding:30px 16px 60px; } .carte { padding:20px 18px; } }
+</style>
+</head>
+<body>
+
+<header class="barre">
+  <div class="logo"><img src="icons/plan-gestion.png" alt="" style="width:34px;height:34px;border-radius:9px;object-fit:cover"> TEAM OP</div>
+  <a class="btn-retour" href="sous-traitance.html">← Contrat de sous-traitance</a>
+</header>
+
+<main class="conteneur">
+  <h1>Registre des traitements</h1>
+  <p class="sous">Article 30.2 du RGPD — traitements effectués par TEAM OP pour le compte de ses clients · version du 25 septembre 2026</p>
+
+  <div class="avis">
+    <p><b>À faire relire par un juriste avant publication.</b> Ce registre est tenu par TEAM OP
+    en qualité de sous-traitant, comme le promet l'article 3 du <a href="sous-traitance.html">contrat
+    de sous-traitance</a>. Il décrit l'état des applications à partir du passage de leurs données
+    sur le serveur TEAM OP. Trois points appellent une décision :</p>
+    <ol>
+      <li><b>Les sauvegardes et la fin de contrat.</b> Une donnée supprimée de l'application
+      disparaît des sauvegardes au terme de leur rotation (30 copies quotidiennes, 24 copies
+      mensuelles), soit au plus 24 mois. L'articulation avec l'engagement de restitution ou de
+      destruction en fin de contrat est à confirmer.</li>
+      <li><b>La durée de conservation après la fin d'un abonnement</b> : 24 mois selon les
+      conditions générales (article 5). Le décompte est tenu par le serveur ; la suppression
+      au terme n'est pas encore automatique.</li>
+      <li><b>Les mots de passe des boîtes mail connectées</b> sont conservés sur le serveur pour
+      relever le courrier, sans chiffrement propre (seules les sauvegardes sont chiffrées) : à
+      chiffrer au repos, ou à mentionner comme tel.</li>
+    </ol>
+  </div>
+
+  <div class="carte">
+    <h2>1. Le sous-traitant et les responsables de traitement</h2>
+    <p><b>Sous-traitant</b> — TEAM OP, Justin Biret, entrepreneur individuel, SIREN 107 995 011,
+    10 rue de la Gravière, 17220 Salles-sur-Mer, France · <a href="mailto:contact@teamop.fr">contact@teamop.fr</a>.
+    TEAM OP n'a pas désigné de délégué à la protection des données.</p>
+    <p style="margin-top:10px"><b>Responsables de traitement</b> — chaque entreprise cliente
+    abonnée aux applications TeamOP, pour les données de son propre espace. La liste nominative
+    des clients est tenue par TEAM OP et n'est pas publiée : chaque client obtient, sur demande,
+    l'extrait qui le concerne.</p>
+  </div>
+
+  <div class="carte">
+    <h2>2. Catégories de traitements effectués pour le compte des clients</h2>
+    <div class="tableau">
+    <table>
+      <tr><th>Traitement</th><th>Données</th><th>Personnes concernées</th></tr>
+      <tr>
+        <td><b>Hébergement et synchronisation</b> des données de l'application entre les
+        appareils de l'équipe</td>
+        <td>Clients et sites, interventions, plannings, stocks, documents (rapports, devis,
+        factures, bons de commande), photos et plans, messages internes ; comptes des salariés
+        (identifiant, prénom, nom — jamais le mot de passe, seulement une empreinte)</td>
+        <td>Clients et prospects du client, ses salariés et intervenants, ses contacts</td>
+      </tr>
+      <tr>
+        <td><b>Envoi de documents</b> par courriel au nom de l'entreprise</td>
+        <td>Adresse du destinataire, document envoyé</td>
+        <td>Clients du client</td>
+      </tr>
+      <tr>
+        <td><b>Relevé des boîtes mail</b> que l'entreprise connecte à l'application</td>
+        <td>Adresse et mot de passe d'application de la boîte, courriels reçus en réponse</td>
+        <td>Salariés du client, ses correspondants</td>
+      </tr>
+      <tr>
+        <td><b>Notifications</b> aux appareils de l'équipe</td>
+        <td>Abonnement de notification de l'appareil, texte de la notification</td>
+        <td>Salariés du client</td>
+      </tr>
+      <tr>
+        <td><b>Assistant de rédaction de devis</b> — seulement si l'entreprise s'en sert</td>
+        <td>Nom, adresse et ville des clients concernés, texte de la demande</td>
+        <td>Clients du client</td>
+      </tr>
+      <tr>
+        <td><b>Sauvegarde</b> de l'ensemble, chaque nuit</td>
+        <td>Toutes les données ci-dessus, dans une archive chiffrée</td>
+        <td>Toutes les personnes ci-dessus</td>
+      </tr>
+      <tr>
+        <td><b>Support et maintenance</b></td>
+        <td>Les données nécessaires à la résolution d'un incident signalé</td>
+        <td>Toutes les personnes ci-dessus</td>
+      </tr>
+    </table>
+    </div>
+    <p style="margin-top:12px">Aucune donnée n'est utilisée à une autre fin que le fonctionnement
+    du service : ni vente, ni cession, ni publicité, ni entraînement de modèles d'intelligence
+    artificielle.</p>
+  </div>
+
+  <div class="carte">
+    <h2>3. Sous-traitants ultérieurs et transferts hors Union européenne</h2>
+    <div class="tableau">
+    <table>
+      <tr><th>Prestataire</th><th>Rôle</th><th>Localisation</th></tr>
+      <tr><td>IONOS SE</td><td>Serveur et base de données des applications ; sauvegardes</td><td>Serveur : France — sauvegardes : Allemagne (Francfort) — UE</td></tr>
+      <tr><td>Google Ireland Ltd (Firebase)</td><td>Ancien stockage — copie figée conservée 30 jours après le passage sur le serveur TeamOP, puis supprimée</td><td>Irlande — UE</td></tr>
+      <tr><td>Anthropic PBC</td><td>Assistant de rédaction de devis</td><td>États-Unis</td></tr>
+    </table>
+    </div>
+    <p style="margin-top:12px"><b>Transfert hors Union européenne</b> : Anthropic PBC, lors de
+    chaque utilisation de l'assistant de devis — clauses contractuelles types de la Commission
+    européenne (décision d'exécution (UE) 2021/914) et cadre de protection des données
+    UE–États-Unis, <b>à confirmer par le juriste au regard du contrat souscrit</b>. Le reste du
+    service fonctionne sans l'assistant. Stripe (paiement des abonnements) et GitHub (site
+    vitrine) ne reçoivent aucune donnée des clients de nos clients.</p>
+  </div>
+
+  <div class="carte">
+    <h2>4. Mesures de sécurité</h2>
+    <ul>
+      <li>Données de l'application (le document de chaque équipe, les photos et les plans)
+      chiffrées (AES-256) par l'appareil avant leur envoi, transmises en HTTPS, conservées
+      chiffrées sur le serveur</li>
+      <li>Sauvegarde chaque nuit dans une archive chiffrée (AES-256-GCM), relue après dépôt ;
+      30 copies quotidiennes et 24 mensuelles ; restauration éprouvée</li>
+      <li>Cloisonnement : un espace de données par entreprise, ouvert par la preuve de sa clé</li>
+      <li>Comptes : mots de passe jamais transmis ni conservés en clair (empreinte dérivée,
+      PBKDF2 à 120 000 tours) ; liens de réinitialisation à usage unique et à durée limitée</li>
+      <li>Contrôle d'accès par rôle dans l'application, et par rôle dans la console d'administration</li>
+      <li>Limitation du débit des requêtes, journalisation des accès sensibles, surveillance
+      automatique de la disponibilité et de la sauvegarde, toutes les heures</li>
+      <li>Aucune donnée personnelle dans les journaux techniques</li>
+    </ul>
+  </div>
+
+  <div class="carte">
+    <h2>5. Durées de conservation</h2>
+    <p>Pendant l'abonnement, puis 24 mois après sa fin (conditions générales, article 5), sans
+    suppression en cas de changement d'offre, de résiliation ou d'impayé. Les sauvegardes suivent
+    leur propre rotation (section 4). La copie figée conservée chez Google Ireland Ltd est
+    supprimée 30 jours après le passage des données sur le serveur TeamOP.</p>
+  </div>
+
+  <div class="carte">
+    <h2>6. Pour mémoire — traitements dont TEAM OP est lui-même responsable</h2>
+    <p>Ils ne relèvent pas de la sous-traitance, et sont décrits dans la
+    <a href="confidentialite.html">politique de confidentialité</a> : les comptes de l'espace
+    client (adresse e-mail, prénom, nom, entreprise, empreinte du mot de passe), le dossier
+    d'abonnement et la conversation avec l'équipe TEAM OP, la facturation des abonnements
+    (Stripe), et la console d'administration.</p>
+  </div>
+
+  <p style="text-align:center;color:var(--texte-3);font-size:13px">© 2026 TEAM OP — <a href="index.html">teamop.fr</a></p>
+</main>
+</body>
+</html>

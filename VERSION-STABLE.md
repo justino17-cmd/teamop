@@ -1,5 +1,42 @@
 # Point stable TeamOP
 
+**Version stable : v748** — gravée le 25 septembre 2026 au soir.
+
+v748 — OP GESTION quitte Firebase : la synchro de chaque entreprise passe par le serveur TeamOP.
+
+⛔ **La synchro ne parle plus à Google.** Le document d'équipe — chiffré PAR LES APPAREILS avec
+la clé de l'entreprise, jamais lisible par le serveur — se lit, s'écrit et s'écoute sur
+`api.teamop.fr` (`server/documents.js` : `/api/doc/lire`, `/api/doc/ecrire`, `/api/doc/attendre`).
+`app.html` émule ce que Firestore faisait (`docEquipe()` : lire, écrire, écouter, pousser ses
+propres écritures tout de suite) et ne charge plus aucun script de Google. À la première lecture
+d'une entreprise, le serveur recopie son document depuis Firebase, tel quel, et garde l'original
+à côté ; cette copie n'a lieu qu'une fois la version exigée chez Google (`VERSION_SANS_FIREBASE`).
+
+⛔ **Publier ET exiger, dans la même minute.** Une v695 restée allumée écrirait encore chez Google
+pendant que les autres travaillent sur le serveur : dès la publication, la Tour exige la v748
+(« Exiger la dernière version ») : une v695 lit l'exigence chez Google et affiche l'écran « mettre
+à jour », et le serveur refuse (426) l'écriture d'un appareil plus ancien que la version exigée.
+
+**Le portail client quitte Google aussi.** `espace.html` et `reinit.html` parlent aux comptes
+maison (`server/comptes.js`, `server/portail.js`) ; chaque client choisit un nouveau mot de passe
+une fois (« Mot de passe oublié ? »). Une session prouve un mot de passe, pas une adresse : tout
+effet au nom d'une adresse exige qu'elle soit confirmée.
+
+**Et tout ce que la bêta a éprouvé depuis la v695** : le thème final (TEAM OP par défaut, OP
+GESTION au choix, verre sur les dix plateformes) ; les droits réglables case par case, lus dans
+chaque fonction qui écrit ; le stockage hors des box, avec « qui prend quoi » ; plus aucune
+déduction de stock par intervention ; le rapport d'intervention en vrai PDF joint ; le plan
+d'implantation à chaque passage ; l'en-tête de chaque document au nom de la bonne société ; deux
+comptes ne portent jamais le même prénom + nom ; et les dizaines de corrections relevées au
+navigateur sur les douze profils d'appareil.
+
+⚠️ **Retour arrière : 30 jours.** La copie Firebase reste figée 30 jours (`documents.copieFirebase`) :
+republier la v695 ramènerait les appareils dessus — mais ce qui a été saisi depuis le jour J reste
+sur le serveur, sans outil de recopie inverse. Après 30 jours, la copie est coupée et les données
+d'OP GESTION sont supprimées chez Google (promis par `sous-traitance.html`).
+
+## Ancien point
+
 **Version stable : v695** — gravée le 16 septembre 2026.
 
 v695 — les box d'ELAN, l'écran de secours, et l'origine d'une erreur.

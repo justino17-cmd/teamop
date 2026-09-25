@@ -27,3 +27,29 @@ node_modules/
 # Sans ces motifs, un « git add . » les ferait entrer dans un dépôt de production.
 *-avant.html
 *-apres.html
+
+# ⛔ LA BASE RÉELLE D'UN CLIENT NE RENTRE JAMAIS DANS L'HISTORIQUE.
+# `tests/test-732.js` éprouve le convertisseur du socle sur une base exportée par
+# `exportData()` depuis un appareil — des noms, des adresses et des coordonnées de vrais
+# clients. Ce dépôt est PUBLIC. Un fichier poussé une fois est publié, même supprimé au
+# commit suivant : c'est exactement la règle des secrets, quelques lignes plus haut.
+scratchpad/base-reelle.json
+scratchpad/base-*.json
+
+# ── Sorties BRUTES des sondes du scratchpad : jamais versionnées ──
+# Une passe complète écrit plusieurs Mo par plateforme (audit-teintes-tout-chrome.json :
+# 7,6 Mo) et se RÉÉCRIT à chaque lancement : versionnée, elle gonflerait l'historique d'un
+# dépôt servi tel quel, pour une mesure qui périme au commit suivant. Ce qui compte d'une
+# passe s'écrit dans REPRISE.md, avec ses chiffres ; le SCRIPT qui la reproduit, lui, est
+# versionné. Les trois résultats déjà suivis (audit-accents, audit-clics, audit-total) le
+# restent : un motif n'efface pas ce qui est déjà dans l'index.
+scratchpad/audit-*-*.json
+scratchpad/audit-teintes.json
+scratchpad/residus*.json
+
+# ── Bibliothèques tierces téléchargées pour une sonde : jamais versionnées ──
+# `scratchpad/sonde-carte.js` sert Leaflet depuis ce dossier, parce que le navigateur piloté
+# n'a pas de réseau sortant. La commande qui le remplit est écrite en tête de la sonde : c'est
+# elle qu'on versionne. Une copie de bibliothèque dans un dépôt servi tel quel serait du code
+# tiers qu'on ne relit pas, et qu'on finirait par servir sans le savoir.
+scratchpad/leaflet/

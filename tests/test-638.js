@@ -91,8 +91,12 @@ console.log('\nLe devis qui part chez le client');
     bac.ligHT([0,1,2,3].map(()=>({qte:.5,pu:24.99}))),49.96);
   v('le PDF utilise le même arrondi que l\'écran',
     /const q=Number\(l\.qte\)\|\|0, pu=Number\(l\.pu\)\|\|0, tot=ligTotLigne\(l\);/.test(APP),true);
-  v('« Modèle générique » ne s\'imprime plus en tête du devis',
-    /const socNom=\/g\[ée\]n\[ée\]rique\|aucune\/i\.test\(String\(d\.rapportModele\|\|''\)\)\?'':String\(d\.rapportModele\|\|''\);/.test(APP),true);
+  /* v740 : la règle vit dans socNom/docEntete, que TOUS les documents appellent — la fabrique du
+     devis (docPdfStr) lit l'en-tête par docEntete(d.rapportModele), et socNom est EXÉCUTÉE ici. */
+  v('« Modèle générique » ne s\'imprime plus en tête du devis — la fabrique passe par docEntete',
+    /const h=docEntete\(d\.rapportModele\), ent=h\.nom;/.test(APP),true);
+  { const socNom=new Function('m',decoupe('function socNom(m){').replace(/^function socNom\(m\)\{/,'').replace(/\}\s*$/,''));
+    v('… et socNom rend vide le générique, pas la société',[socNom('Modèle générique'),socNom('modele generique'),socNom(''),socNom(' Alpha ')],['','','','Alpha']); }
 }
 
 console.log('\nLa virgule décimale — mesurée sur Chromium en fr-FR');
@@ -112,17 +116,19 @@ console.log('\nLa virgule décimale — mesurée sur Chromium en fr-FR');
 }
 
 console.log('\nLe stock ne compte plus ce qui n\'est pas sorti');
-{ v('la clôture inscrit ce qui est SORTI, pas ce qui était demandé',
-    /if\(pris>0\) db\.mouvements\.unshift\(\{[^\n]*qte:pris,/.test(APP),true);
-  v('et le stock se plafonne sur le même nombre',/p\.qte=Math\.max\(0,dispo-pris\);/.test(APP),true);
+{ /* v741 — Justin, 24 septembre 2026 : « le produit ne doit pas se déduire par intervention, on doit
+     juste savoir ce qu'il a utilisé ». La clôture n'écrit plus rien au stock : il n'y a plus de
+     quantité « demandée » à plafonner là. Ce qui reste à garder, c'est qu'elle n'y revienne pas. */
+  v('⛔ une intervention ne déduit plus rien : ni intStockDeduire, ni intStockAjuste',
+    [/function intStockDeduire\(/.test(APP), /intStockAjuste\(/.test(APP)], [false,false]);
   v('la validation DR en lot trace le delta réel',
     /if\(du\)\{ const av=cur\.u\|\|0; cur\.u=Math\.max\(0,av\+du\); ru=cur\.u-av; if\(ru\) traceBox\(b,l\.produitId,ru,'u'/.test(APP),true);
   v('le mouvement isolé aussi',
     /if\(du\)\{ const av=cur\.u\|\|0; cur\.u=Math\.max\(0,av\+du\); ru=cur\.u-av; if\(ru\) traceBox\(b,m\.produitId,ru,'u'/.test(APP),true);
   v('boxAdj aussi, et il s\'arrête si rien ne bouge',
     /const reel=b\.stock\[pid\]\[field\]-avAdj;\s*\n\s*if\(!reel\)\{/.test(APP),true);
-  v('changer l\'unité après la quantité rend puis reprend le stock',
-    /if\(q&&av!==u\)\{ intStockAjuste\(i,l\.produitId,-q,av\); intStockAjuste\(i,l\.produitId,q,u\); \}/.test(APP),true);
+  v('changer l\'unité d\'une ligne d\'intervention ne touche plus au stock (la ligne est une trace)',
+    /function t3dProdUnit\(intId,ix,u\)\{[^\n]*\n  const l=\(i\.produitsUtilises\|\|\[\]\)\[ix\]; if\(!l\) return;\n  l\.unite=u; save\(\); t3dRefresh\(intId\); \}/.test(APP),true);
 }
 
 console.log('\nLe bon de remise distingue les unités des cartons');
@@ -140,8 +146,11 @@ console.log('\nLe bon de remise distingue les unités des cartons');
 
 console.log('\nOuvrir un écran n\'écrit jamais dans les données de l\'entreprise');
 { v('boxAutoNouveautes a disparu',/function boxAutoNouveautes\(/.test(APP),false);
+  /* v741 : la porte revérifie l'accès au stockage AVANT de poser la vue — une lecture et un message,
+     rien qui écrive. On garde la forme de la suite, et on exige que ce qui la précède n'écrive pas. */
+  const OB=APP.match(/function openBox\(id,opts\)\{([\s\S]{0,1200}?)boxView=id; boxProdSearch=''; _doublonsOuvert=false; _doublonsUnParUn=false;\s+\/\//);
   v('openBox n\'appelle plus rien qui écrive',
-    /function openBox\(id,opts\)\{ boxView=id; boxProdSearch=''; _doublonsOuvert=false; _doublonsUnParUn=false;\s+\/\//.test(APP),true);
+    !!OB && !/save\(|\.push\(|\.unshift\(|db\.[A-Za-z_]+\s*=[^=]|\.stock\[/.test(OB[1].replace(/\/\*[\s\S]*?\*\//g,'')),true);
   v('la pastille « \\+N » reste, elle : on prévient sans écrire',
     (APP.match(/bxp-pastille/g)||[]).length>=3,true);
 }
@@ -149,6 +158,9 @@ console.log('\nOuvrir un écran n\'écrit jamais dans les données de l\'entrepr
 console.log('\nLe plan d\'appâtage ne se perd plus à la synchro');
 { const code=['const COLLS_HORS_FUSION=','function collsFusion(d){','const COLLS_DICT=','function dictFusion(prio,autre){',
     'function tombesUnion(','function numMaxUnion(a,b){','function boxFusionFine(gagnante,perdante){',
+    /* v744 : `plansSite` passe par la maille fine (plansSiteFusion), et la signature en tient compte
+       (recEmpreinte) — une fonction ajoutée à ce qu'un banc extrait doit lui être fournie. */
+    'function plansFusionFine(','function plansSiteFusion(','function recEmpreinte(',
     'function fusionnerBases(local,remote,prioriteLocale){','function baseSignature(d){'].map(d=>decoupe(d)).join('\n');
   const bac=new Function('',`${code}; return {fusionnerBases,baseSignature};`)();
   const A={clients:[{id:'c1',nom:'A'}],plansSite:{c1:{postes:new Array(24).fill(0).map((_,i)=>({id:'po'+i}))}},planNotes:{'2026-09-10':'note A'},_tombes:{}};

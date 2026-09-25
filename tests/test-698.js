@@ -66,8 +66,10 @@ v('… un réseau muet aussi', /Pas de réseau : ton mot de passe n.?.?a PAS ét
 v('⛔ « rien à déposer » n\'est PAS un échec', /if\(!v\|\|v\.ok!==false\) return null;/.test(ID), true);
 
 /* ── Les TROIS écrans passent par là. Un oublié, et le défaut revient par cette porte. ── */
-[['forcePwdSave', 'async function forcePwdSave(){'],
- ['monComptePwdSave', 'async function monComptePwdSave(){'],
+/* Ancrages sans la parenthèse fermante : un paramètre ajouté ne fait plus rougir un banc qui
+   ne parle pas de la signature (17 septembre 2026, ajout du bouton en argument). */
+[['forcePwdSave', 'async function forcePwdSave('],
+ ['monComptePwdSave', 'async function monComptePwdSave('],
  ['pwdForgotSave', 'async function pwdForgotSave(){']].forEach(([nom, entete]) => {
   const f = corps(entete);
   v(nom + ' attend le verdict', /await identifiantsDeposer\(/.test(f), true);
@@ -76,7 +78,7 @@ v('⛔ « rien à déposer » n\'est PAS un échec', /if\(!v\|\|v\.ok!==false\) 
 });
 
 /* ⚠️ ET ON N'ENFERME PERSONNE : la fenêtre forcée n'a pas de croix. */
-const FPS = corps('async function forcePwdSave(){');
+const FPS = corps('async function forcePwdSave(');
 v('⛔ sur échec, la fenêtre forcée cesse de l\'être', /_modalForcee=false; const s=\$\('fp-sortie'\); if\(s\) s\.style\.display='';/.test(FPS), true);
 v('… et une sortie existe dans la fenêtre', /id="fp-sortie"/.test(APP), true);
 v('… qui dit qu\'on redemandera', /Continuer sans changer — on te le redemandera/.test(APP), true);

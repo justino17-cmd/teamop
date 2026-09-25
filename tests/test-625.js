@@ -9,7 +9,7 @@ const morceaux=['const norm = s =>','function produitCle(p){','function boxStock
   'let _pushProduitLot=','function produitCreer(fiche,opts){','function produitCreePrevenir(p){'].map(decoupe).join('\n');
 const bac=new Function('etat',`let db=etat.db, currentUser=etat.currentUser, journal=[], toasts=[], pushes=[], timers=[], boxView='bx', current='boxes', rendus=0;
   const logEvent=(a,b)=>journal.push(a+' · '+b); const save=()=>{ etat.saves++; }; const toast=t=>toasts.push(t); const toastAnnuler=(t,a)=>toasts.push(t+' ['+a+']');
-  const closeModal=()=>{}; const renderBoxDetail=()=>{ rendus++; }; const bxpRafraichir=()=>{}; const $=()=>null; const views={}; const visibleBoxes=l=>l||[];
+  const closeModal=()=>{}; const permGarde=()=>true; /* v738 : le droit (« Stock → Modifier ») est gardé par test-790 */ const renderBoxDetail=()=>{ rendus++; }; const bxpRafraichir=()=>{}; const $=()=>null; const views={}; const visibleBoxes=l=>l||[];
   const fullName=u=>u?((u.prenom?u.prenom+' ':'')+(u.nom||'')).trim():'—'; const produit=id=>db.produits.find(p=>p.id===id)||{};
   const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7); const userSeesModule=(u,k)=>u.role!=='client';
   const pushNotify=(t,c,u,d)=>pushes.push({t,c,d}); const setTimeout=(f,ms)=>{ timers.push(f); return timers.length; }; const clearTimeout=()=>{};

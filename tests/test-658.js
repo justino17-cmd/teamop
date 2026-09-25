@@ -38,6 +38,12 @@ let db = {}, currentUser = null;
 // usrSansBox — qu'elle interroge bien la VRAIE règle, et qu'elle repose currentUser derrière.
 let vuParVisibleBoxes = [];
 function visibleBoxes(list) { vuParVisibleBoxes.push(currentUser ? currentUser.login : null); return (list || []).filter(b => (b.userIds || []).includes(currentUser && currentUser.id)); }
+/* v741 : le stockage n'est pas une box (voir app.html, « LE STOCKAGE ») — la règle qui le
+   reconnaît est extraite du fichier livré, comme le reste. */
+// eslint-disable-next-line no-eval
+eval(APP.slice(APP.indexOf("const STOCKAGE_ID="), APP.indexOf('\n', APP.indexOf("const STOCKAGE_ID="))).replace('const ', 'var '));
+// eslint-disable-next-line no-eval
+eval(extraire('estStockage'));
 // eslint-disable-next-line no-eval
 eval(extraire('usrSansBox'));
 /* boxADuStock est extraite ici parce que le cadre ET le filtre s'en servent : la charger une
@@ -68,6 +74,12 @@ console.log('Un écran vide dit pourquoi, et « jamais connecté » n’est pas 
   db = { boxes: [{ id: 'b1', userIds: ['u1'] }], users: [] };
   v('un compte désactivé n’est pas marqué', usrSansBox({ id: 'u3', login: 'parti', actif: false }), false);
   v('ni null ni undefined ne cassent', [usrSansBox(null), usrSansBox(undefined)], [false, false]);
+  /* ⛔ v741 : le STOCKAGE n'est pas une box. Il s'ouvre à ceux qui s'y servent, pas à tous : une
+     entreprise qui n'a QUE lui n'a « oublié » personne, et le marquer pousserait à l'ouvrir à tous. */
+  db = { boxes: [{ id: STOCKAGE_ID, userIds: [] }], users: [{ id: 'u2', login: 'sansbox' }] };
+  v('⛔ une entreprise qui n’a QUE le stockage ne marque personne', usrSansBox(db.users[0]), false);
+  db = { boxes: [{ id: STOCKAGE_ID, userIds: ['u2'] }, { id: 'b1', userIds: ['u1'] }], users: [{ id: 'u2', login: 'stockageSeul' }] };
+  v('⛔ … et quelqu’un qui ne voit QUE le stockage, quand l’entreprise a des box, est bien marqué', usrSansBox(db.users[0]), true);
 }
 
 // ── 3) ⛔ currentUser est reposé MÊME si la règle lève — sinon l'application reste
@@ -86,10 +98,10 @@ console.log('Un écran vide dit pourquoi, et « jamais connecté » n’est pas 
 {
   const i = APP.indexOf('function renderBoxesList(');
   const bloc = APP.slice(i, i + 2600);
-  v('le vide compte les box de l’ENTREPRISE avant de conclure', /const total=\(db\.boxes\|\|\[\]\)\.length;/.test(bloc), true);
+  v('le vide compte les box de l’ENTREPRISE avant de conclure — le stockage n’en est pas une (v741)', /const total=\(db\.boxes\|\|\[\]\)\.filter\(b=>!estStockage\(b\)\)\.length;/.test(bloc), true);
   v('et le dit quand il y en a', /Aucune box ne t'est attribuée pour l'instant — l'entreprise en compte \$\{total\}/.test(bloc), true);
   v('une recherche sans résultat ne dit PAS « aucune box attribuée »', /Aucune box ne correspond à cette recherche\./.test(bloc), true);
-  v('…et ne propose pas d’en créer une (le bouton ne répare pas une recherche)', /\(!q&&can\('supprimer'\)\)\?'Ajouter':''/.test(bloc), true);
+  v('…et ne propose pas d’en créer une (le bouton ne répare pas une recherche)', /\(!q&&boxGerer\('ajouter'\)\)\?'Ajouter':''/.test(bloc), true);
   v('la liste Utilisateurs porte le badge', /\$\{usrSansBox\(u\)\?'<span class="st st-org"/.test(APP), true);
 }
 
@@ -163,8 +175,14 @@ console.log('Un écran vide dit pourquoi, et « jamais connecté » n’est pas 
   v('rien ne casse sur une box sans stock', [boxTotalStock({}), boxTotalStock(null)], [{ u: 0, c: 0 }, { u: 0, c: 0 }]);
   /* ELAN, mesuré : Nantes 7 199 u, et treize box à zéro. */
   v('la pastille n’apparaît pas quand il n’y a rien à montrer', /if\(!t\.u&&!t\.c\) return '';/.test(APP), true);
-  v('elle est posée sur la ligne de la liste, avant le chevron',
-    APP.indexOf('title="Stock total de cette box"') < APP.indexOf('font-size:22px;font-weight:300">›'), true);
+  /* ⛔ Le « › » écrit a disparu le 24 septembre 2026 : la ligne `.pl-row[onclick]` porte déjà le
+     chevron de la feuille, et la liste en montrait DEUX (`test-798` garde « un chevron par ligne »).
+     La pastille reste la DERNIÈRE chose de la ligne — le chevron de la feuille se pose après elle. */
+  const iLigne = APP.indexOf('function boxLigneHtml(');
+  const ligne = iLigne > 0 ? APP.slice(iLigne, APP.indexOf('function renderBoxesList(', iLigne)) : '';
+  v('la ligne de box est trouvée', ligne.length > 200, true);
+  v('elle porte la pastille du stock total', /title="Stock total de cette box"/.test(ligne), true);
+  v('et plus aucun « › » écrit à côté du chevron de la feuille', /">›<\/span>/.test(ligne), false);
   v('les chiffres sont alignés en colonne (chasse fixe)', /font-variant-numeric:tabular-nums;white-space:nowrap/.test(APP), true);
   v('et écrits à la française', /t\.u\.toLocaleString\('fr-FR'\)\+' u'/.test(APP), true);
 }

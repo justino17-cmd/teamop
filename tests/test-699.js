@@ -43,7 +43,10 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
 {
   const SECU = (APP.match(/const SECU_MDP='([^']+)'/) || [])[1] || '';
   v('la campagne porte un marqueur daté', /^\d{4}-\d{2}$/.test(SECU), true);
-  const secuAFaire = new Function("const SECU_MDP='" + SECU + "';" + extraire(APP, 'function secuAFaire(') + '; return secuAFaire;')();
+  /* ⛔ La vraie fonction lit `BETA_ESSAI` depuis le 22 septembre 2026 : on le lui fournit.
+     Ici on monte la PRODUCTION — c'est ce que ce banc surveille ; `test-665` et `test-749`
+     tiennent le sens bêta. */
+  const secuAFaire = new Function("const BETA_ESSAI=false;const SECU_MDP='" + SECU + "';" + extraire(APP, 'function secuAFaire(') + '; return secuAFaire;')();
   v('⛔ un compte jamais passé par la campagne est retenu', secuAFaire({ pwdHash: 'a'.repeat(64), email: 'x@y.fr' }), true);
   v('⛔ un mot de passe provisoire est retenu', secuAFaire({ pwdHash: 'a'.repeat(64), mustChangePwd: true, email: 'x@y.fr', secu: SECU }), true);
   v('⛔ un compte sans mot de passe est retenu', secuAFaire({ email: 'x@y.fr', secu: SECU }), true);
@@ -57,9 +60,18 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
      changerait rien, la fiche locale et la vraie porte diraient deux choses différentes, et
      on réclamerait une adresse de récupération à un compte qui n'en a pas. */
   v('⛔ un accès bêta n’est jamais retenu', secuAFaire({ login: 'testeur', essai: true }), false);
-  v('… et la fenêtre d’e-mail non plus', /function emailRappelModal\(passe\)\{ if\(!currentUser\|\|currentUser\.essai\) return;/.test(APP), true);
+  /* ⛔ DEUX GARDES SUR CETTE PORTE, ET ON LES EXIGE TOUTES LES DEUX. Le motif d'avant
+     épousait une écriture sur UNE ligne : ajouter la garde de la bêta au-dessus le faisait
+     tomber alors que le code était bon. On vise donc le CORPS de la fonction, pas sa mise en
+     page — c'est la règle « un motif vise du code, jamais une forme de rédaction ». */
+  { const em = extraire(APP, 'function emailRappelModal(');
+    v('le corps d’emailRappelModal est trouvé (sinon les deux contrôles sont creux)', em.length > 60, true);
+    v('… et la fenêtre d’e-mail ne s’ouvre pas sur un accès bêta du serveur',
+      /if\(!currentUser\|\|currentUser\.essai\) return;/.test(em), true);
+    v('… ni sur la bêta elle-même (Justin, 22 septembre 2026)',
+      /if\(BETA_ESSAI\) return;/.test(em), true); }
 
-  const fps = extraire(APP, 'async function forcePwdSave()');
+  const fps = extraire(APP, 'async function forcePwdSave(');
   v('⛔ « changer » veut dire changer : le même mot de passe est refusé',
     /if\(currentUser\.pwdHash&&neufH===currentUser\.pwdHash\)/.test(fps), true);
   v('⛔ l’e-mail reste exigé, et validé pour de bon',
@@ -74,7 +86,7 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
 
   /* Les deux autres chemins de mot de passe marquent aussi la campagne — sinon on la
      redemanderait à quelqu'un qui vient de la faire. */
-  const mcs = extraire(APP, 'async function monComptePwdSave()');
+  const mcs = extraire(APP, 'async function monComptePwdSave(');
   v('changer son mot de passe soi-même vaut la campagne', /currentUser\.secu=SECU_MDP;/.test(mcs), true);
   v('… et le retour en arrière l’emporte aussi', /secu:currentUser\.secu\}/.test(mcs), true);
   const pfs = extraire(APP, 'async function pwdForgotSave()');
@@ -167,15 +179,40 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
 /* ══ 4. L'APPARENCE SUIT LA PERSONNE ═══════════════════════════════════════════════════ */
 {
   const cles = new Function('return ' + (APP.match(/const PREF_CLES=\{[^}]+\}/) || [''])[0].replace('const PREF_CLES=', '') + ';')();
-  v('quatre réglages voyagent', Object.keys(cles).sort(), ['accent', 'accentHex', 'lang', 'theme']);
+  /* ⚠️ CE NOMBRE EST UNE DÉCISION, PAS UN CONSTAT. Chaque entrée de `PREF_CLES` est un réglage
+     qui VOYAGE d'un appareil à l'autre avec la fiche de la personne. En ajouter un doit se
+     voir ici, une fois, par écrit — sinon on ferait voyager par mégarde quelque chose qui doit
+     rester sur l'appareil. La barre d'onglets a été ajoutée le 21 septembre 2026 : c'est un
+     choix de personne (« mes quatre rubriques »), pas un état d'appareil.
+     Le 22 septembre, deux de plus, et pour la même raison : les couleurs qu'on s'est
+     fabriquées (« Ma couleur », jusqu'à six) et les rubriques qu'on a épinglées en tête de
+     menu. Justin : « qu'on puisse bien aussi sauvegarder sa couleur par utilisateur ».
+     ⛔ Ce qui NE doit PAS entrer ici : le brouillon de multitâche, le rendu forcé de la carte
+     Appareil, le drapeau de vidage — ce sont des états d'APPAREIL. Les faire voyager les
+     répandrait sur les téléphones de toute l'équipe.
+     Le 21 septembre 2026, un huitième : le FOND DE CARTE (Jour / Nuit / Satellite). Il
+     voyage pour la même raison que le thème, dont il est le pendant sur la carte — c'est un
+     choix de lisibilité de la personne, pas une caractéristique de la machine. Il reste
+     DOUBLÉ dans le rangement de l'appareil, pour que la carte s'ouvre juste avant même que
+     la fiche du compte soit relue. */
+  /* Le 24 septembre 2026, un neuvième : le THÈME de couleurs (TEAM OP / OP GESTION, thème
+     final de Justin). Même raison que le mode et la teinte : il suit la personne. */
+  v('neuf réglages voyagent', Object.keys(cles).sort(),
+    ['accent', 'accentHex', 'accentsPerso', 'carte', 'favoris', 'lang', 'marque', 'onglets', 'theme']);
   v('… et ce sont les vraies clés de stockage',
-    [cles.theme, cles.accent, cles.accentHex, cles.lang], ['elan_theme', 'elan_accent', 'elan_accent_hex', 'elan_lang']);
+    [cles.theme, cles.marque, cles.accent, cles.accentHex, cles.accentsPerso, cles.lang, cles.onglets, cles.favoris, cles.carte],
+    ['elan_theme', 'elan_marque', 'elan_accent', 'elan_accent_hex', 'elan_accents_perso', 'elan_lang', 'elan_onglets', 'elan_favoris', 'elan_carte']);
 
   /* La vraie fonction, éprouvée sur un faux stockage. */
   const mem = {};
   const faux = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); } };
+  /* v747 : `prefAppliquer` range par `prefLocal` (la mémoire de repli d'un appareil plein) —
+     la garde ajoutée à une fonction qu'un banc extrait est fournie à ce banc (règle du dépôt).
+     Le cas « rangement plein » est joué dans test-808. */
   const prefAppliquer = new Function('localStorage', 'PREF_CLES',
-    extraire(APP, 'function prefAppliquer(') + '; return prefAppliquer;')(faux, cles);
+    'const _prefVue={}; const prefRangementPlein=()=>{};\n'
+    + extraire(APP, 'function prefLocal(') + '\n' + extraire(APP, 'function prefLocalLire(') + '\n'
+    + extraire(APP, 'function prefAppliquer(') + '; return prefAppliquer;')(faux, cles);
   const fiche = { id: 'u1', pref: { theme: 'light', accent: 'purple', accentHex: '#7A5AF8', lang: 'fr' } };
   v('⛔ le thème choisi ailleurs arrive sur cet appareil', prefAppliquer(fiche), true);
   v('… et il est bien posé', [mem.elan_theme, mem.elan_accent, mem.elan_accent_hex], ['light', 'purple', '#7A5AF8']);
@@ -189,11 +226,12 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
   v('⛔ appliquer n’écrit JAMAIS sur la fiche', JSON.stringify(fiche), avant);
   v('⛔ … et la fonction ne contient aucun save()', /save\(\)/.test(extraire(APP, 'function prefAppliquer(')), false);
 
-  /* Les quatre points de saisie écrivent, eux — c'est un tap, pas un chargement. */
-  v('le thème s’enregistre sur la fiche', /prefEcrire\('theme',p\)/.test(APP), true);
-  v('la couleur aussi', /prefEcrire\('accent',a\)/.test(APP), true);
-  v('la couleur personnalisée aussi', /prefEcrire\('accentHex',hex\); prefEcrire\('accent','custom'\)/.test(APP), true);
-  v('la langue aussi', /prefEcrire\('lang',l\)/.test(APP), true);
+  /* Les quatre points de saisie écrivent, eux — c'est un tap, pas un chargement. Depuis la v747
+     ils passent par `prefGarder` (l'enregistrement qui ne défait jamais le geste — test-808). */
+  v('le thème s’enregistre sur la fiche', /prefGarder\('theme',p\)/.test(APP), true);
+  v('la couleur aussi', /prefGarder\('accent',a\)/.test(APP), true);
+  v('la couleur personnalisée aussi', /prefGarder\('accentHex',hex\); prefGarder\('accent','custom'\)/.test(APP), true);
+  v('la langue aussi', /prefGarder\('lang',l\)/.test(APP), true);
   const pe = extraire(APP, 'function prefEcrire(');
   v('⛔ une valeur inchangée n’estampille pas la fiche', /if\(u\.pref\[cle\]===val\) return;/.test(pe), true);
   v('… et rien ne s’écrit sans personne connectée', /if\(!currentUser\|\|!PREF_CLES\[cle\]/.test(pe), true);

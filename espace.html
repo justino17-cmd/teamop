@@ -266,16 +266,343 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       .catch(function(){ err('Connexion impossible — réessaie dans un instant.'); });
   }
 </script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
   try { document.getElementById('year').textContent = new Date().getFullYear(); } catch(_) {}
   if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
-  const FB_CONFIG={ apiKey:"AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8", authDomain:"elan-gestion.firebaseapp.com", projectId:"elan-gestion", storageBucket:"elan-gestion.firebasestorage.app", messagingSenderId:"910528393731", appId:"1:910528393731:web:128d97b6a3269fb6d21436" };
   const ADMIN_EMAIL="justin.17553@gmail.com";
-  firebase.initializeApp(FB_CONFIG);
-  const auth=firebase.auth(), fs=firebase.firestore();
+  /* ⛔ LE PORTAIL PARLE À NOTRE SERVEUR, ET SEULEMENT À LUI — sortie de Firebase, décision de
+     Justin du 25 septembre 2026. Jusque-là, un interrupteur (`PORTAIL_SERVEUR`, fermé) gardait
+     Firebase en service ; il est parti avec les trois balises du kit de Google, parce qu'un
+     interrupteur qu'on referme sans ses balises ferait tomber la page sur `firebase` absent.
+     ⛔ Ce fichier ne se publie qu'APRÈS `comptes.actif` sur le VPS : sans lui, `/api/compte/*`
+     et `/api/portail/*` rendent 404, et le portail serait muet pour tous les clients.
+     ⚠ Un mot de passe Firebase ne se lit pas : un client déjà inscrit choisit le sien par
+     « Mot de passe oublié » — son compte l'attend, préparé à l'import (`preparer`, comptes.js). */
+
+  /* ══ L'IDENTITÉ ET LES DONNÉES DU PORTAIL, SERVIES PAR NOTRE SERVEUR ═══════════════════════
+   * ⛔ POURQUOI UN ADAPTATEUR PLUTÔT QU'UNE RÉÉCRITURE. Cette page appelle Firebase à une
+   * quarantaine d'endroits. Réécrire chaque appel, c'est quarante occasions de se tromper en
+   * silence ; reproduire la surface, c'est UN endroit à éprouver — et la page change d'une
+   * ligne, celle qui suit ce bloc. Même coup que `op-fs.js` pour OP MESSAGES.
+   *
+   * ⛔ IL NE SERT QUE SI LE SERVEUR SUIT : `/api/compte/*` et `/api/portail/*` sont derrière
+   * `comptes.actif` dans `config.json`. Sans lui, la page parle à des 404 — un portail muet
+   * pour tous les clients. Voir l'avertissement en tête de ce script.
+   *
+   * ⚠️ ET LA BASCULE N'EST PAS UNE MIGRATION DE DONNÉES. Un mot de passe Firebase ne se LIT
+   * pas : chaque personne devra en reposer un, ou les deux authentifications cohabiteront le
+   * temps qu'il faut. Ça s'annonce, ça se date, ça ne se découvre pas le jour J.
+   *
+   * ⛔ CE QUI N'EST PAS REPRODUIT, ET C'EST DÉLIBÉRÉ : l'écran d'administration de cette page.
+   * Mesuré le 20 septembre 2026 — il est MORT depuis la publication de `firestore.rules` le
+   * 18 : `allow read: if cestMoi(uid)` interdit toute requête sur la collection entière, et
+   * `allow write: if false` interdit de publier une nouveauté. Porter du code mort aurait
+   * coûté le double et laissé croire à une fonctionnalité. La Tour fait ce travail. */
+  const API_PORTAIL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? '' : 'https://api.teamop.fr';
+
+  function portailMaison(){
+    const CLE_JETON = 'teamop_portail_jeton';
+    let jeton = ''; try{ jeton = localStorage.getItem(CLE_JETON) || ''; }catch(_){ }
+    let moi = null;                 // { uid, email, ... }
+    const ecouteursAuth = [];
+    /* ⛔⛔ FIRESTORE POUSSAIT ; NOUS, ON INTERROGE — DONC UNE ÉCRITURE DOIT SE POUSSER
+       ELLE-MÊME. Mesuré au navigateur le 21 septembre 2026, sur la page RÉELLE avec
+       l'interrupteur ouvert : après une inscription, le nom de l'entreprise mettait
+       18,1 SECONDES à paraître, et le message qu'on venait d'envoyer 12,6 SECONDES.
+       Rien n'était « cassé » — la resonde finissait par arriver (20 s pour le dossier, 15 s
+       pour le fil) et tout s'affichait. C'est précisément la panne qu'un banc ne peut pas
+       voir : `test-740` fait parler la vraie page au vrai serveur, et les deux ont raison
+       chacun de son côté. Ce qui manquait, c'est le TEMPS — que seul un vrai navigateur donne.
+       ⚠️ Et ce n'est pas cosmétique : quelqu'un qui envoie un message et ne le voit pas
+       paraître le RENVOIE. On fabriquait des doublons dans la conversation du support.
+       Avec Firestore, `onSnapshot` poussait l'écriture au même instant. On rend ce contrat :
+       toute écriture qui a réussi prévient les écouteurs vivants, tout de suite.
+       ⚠️ Les minuteries sont désormais LOCALES à chaque abonnement. Une seule variable
+       partagée perdait la poignée du précédent dès qu'un second abonnement s'ouvrait : le
+       premier resondait alors pour toujours, sans personne pour l'arrêter. */
+    const ecouteursDossier = new Set(), ecouteursFil = new Set();
+    /* ⛔ LA FENÊTRE DE RÉAUTHENTIFICATION. Firebase en ouvrait une après
+       `reauthenticateWithCredential` ; on fait pareil, et on la BORNE. Sans elle,
+       `updatePassword(nouveau)` n'aurait aucun moyen de prouver l'ancien : la page appelle
+       `accReauth(actuel)` dans un écran, puis `updatePassword` dans le suivant. */
+    const REAUTH_VIE_MS = 10 * 60000;
+    let reauth = null;                 // { h, ts }
+
+    /* Le mot de passe ne quitte JAMAIS le navigateur : on envoie une empreinte, comme le fait
+       déjà la page de connexion d'OP GESTION. Le serveur la repasse au PBKDF2 avec son sel. */
+    async function empreinte(mdp){
+      const b = new TextEncoder().encode('teamop-portail:' + String(mdp));
+      const h = await crypto.subtle.digest('SHA-256', b);
+      return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('');
+    }
+    async function appel(chemin, corps){
+      const o = { method: corps===undefined ? 'GET' : 'POST', headers: { 'Content-Type':'application/json' } };
+      if(corps!==undefined) o.body = JSON.stringify(corps);
+      if(jeton) o.headers['Authorization'] = 'Bearer ' + jeton;
+      const r = await fetch(API_PORTAIL + chemin, o);
+      let j = null; try{ j = await r.json(); }catch(_){ }
+      return { code:r.status, j:j||{} };
+    }
+    /* ⛔ UN REFUS DOIT REMONTER AVEC SON MOTIF, JAMAIS DEVENIR UN SILENCE. La page attrape des
+       erreurs Firebase et les traduit (`authMsg`) : on lui rend donc un objet de la MÊME
+       forme, avec un `code`. Sans ça, un mot de passe faux et un serveur éteint donneraient
+       le même écran — et c'est exactement la panne `_mailboxes` de ce dépôt. */
+    const jeter = (code, message) => { const e = new Error(message||code); e.code = code; throw e; };
+
+    function poserJeton(j){ jeton = j||''; try{ j ? localStorage.setItem(CLE_JETON,j) : localStorage.removeItem(CLE_JETON); }catch(_){ } }
+    function direAuth(u){ moi = u; for(const cb of ecouteursAuth){ try{ cb(u); }catch(_){ } } }
+
+    async function relireMoi(){
+      if(!jeton){ direAuth(null); return null; }
+      const r = await appel('/api/compte/moi');
+      if(r.code !== 200 || !r.j.compte){ poserJeton(''); direAuth(null); return null; }
+      const c = r.j.compte;
+      direAuth(utilisateur(c));
+      return moi;
+    }
+
+    function utilisateur(c){
+      return {
+        uid: c.email, email: c.email, emailVerified: !!c.verifie,
+        /* Ces quatre-là passent par le même chemin que « mot de passe oublié » : un lien par
+           courriel. On ne réauthentifie pas au mot de passe côté page — c'est le serveur qui
+           tient l'identité, et un lien prouve l'adresse mieux qu'un formulaire. */
+        updateEmail: async () => jeter('auth/operation-not-allowed', "Le changement d'adresse se fait depuis le support."),
+        /* ⛔ IL CHANGE VRAIMENT LE MOT DE PASSE. Première version : on envoyait un lien par
+           courriel et on jetait. L'écran, lui, venait de faire saisir le mot de passe actuel,
+           d'envoyer un code à six chiffres, de le faire retaper, puis le nouveau mot de passe
+           DEUX FOIS — pour finir sur « consultez vos courriels ». Une cérémonie complète qui
+           refuse à la fin est pire que pas de cérémonie : elle fait croire que ça a marché
+           jusqu'à la dernière seconde. */
+        updatePassword: async (nouveau) => {
+          if(!reauth || (Date.now() - reauth.ts) > REAUTH_VIE_MS)
+            jeter('auth/requires-recent-login', 'Ressaisissez votre mot de passe actuel, la confirmation a expiré.');
+          const hn = await empreinte(nouveau);
+          const r = await appel('/api/compte/mdp/changer', { h: reauth.h, hNouveau: hn });
+          if(r.code === 400 && r.j.error === 'mot_de_passe_identique') jeter('auth/weak-password', 'Le nouveau mot de passe doit être différent de l\'ancien.');
+          if(r.code === 429) jeter('auth/too-many-requests', 'Trop de tentatives — réessayez plus tard.');
+          if(r.code !== 200) jeter('auth/wrong-password', 'Mot de passe actuel incorrect.');
+          /* Le serveur a coupé TOUTES les sessions, y compris la nôtre, et nous en rend une
+             neuve : sans la ranger, la personne se ferait déconnecter de la page où elle se
+             tient, juste après avoir réussi son changement. */
+          poserJeton(r.j.jeton || '');
+          reauth = null;
+          return true;
+        },
+        delete: async () => jeter('auth/operation-not-allowed', 'La suppression du compte se demande au support.'),
+        reauthenticateWithCredential: async () => true,
+        /* ⛔ SANS ELLE, `cliSync` SE TAISAIT — ET TOUT LE CIRCUIT D'INSCRIPTION AVEC LUI. La fiche
+           envoyée à la Tour (`/api/clients/sync`) ne part que si `user.getIdToken` existe : avec
+           Firebase, c'était le jeton de Google ; ici, c'est la session de notre serveur, qu'il
+           reconnaît à sa forme. Sans cette ligne, une demande déposée sur le portail ne créait
+           plus d'espace, n'envoyait plus son code au client ni le récapitulatif au patron, et un
+           code promo activé ici n'atteignait jamais l'application — sans une erreur à l'écran. */
+        getIdToken: async () => { if(!jeton) jeter('auth/user-token-expired', 'Session expirée — reconnectez-vous.'); return jeton; },
+      };
+    }
+
+    const auth = {
+      languageCode: 'fr',
+      get currentUser(){ return moi; },
+      onAuthStateChanged(cb){ ecouteursAuth.push(cb); relireMoi(); return () => { const i = ecouteursAuth.indexOf(cb); if(i>=0) ecouteursAuth.splice(i,1); }; },
+      async signOut(){ try{ await appel('/api/compte/deconnexion', {}); }catch(_){ } poserJeton(''); direAuth(null); },
+      async createUserWithEmailAndPassword(email, pass){
+        const h = await empreinte(pass);
+        const r = await appel('/api/compte/creer', { email, h });
+        if(r.code === 429) jeter('auth/too-many-requests', 'Trop de tentatives — réessayez plus tard.');
+        if(r.code !== 200) jeter('auth/invalid-email', 'Adresse ou mot de passe refusé.');
+        /* ⛔ LE SERVEUR NE DIT JAMAIS SI L'ADRESSE EXISTE DÉJÀ — c'est voulu, sinon cette API
+           devient l'annuaire des clients. On enchaîne donc sur une connexion : si le compte
+           était déjà pris avec un AUTRE mot de passe, c'est elle qui refuse, proprement. */
+        const c = await appel('/api/compte/connexion', { email, h });
+        if(c.code !== 200) jeter('auth/email-already-in-use', 'Cette adresse a déjà un compte.');
+        poserJeton(c.j.jeton); direAuth(utilisateur(c.j.compte));
+        return { user: moi };
+      },
+      async signInWithEmailAndPassword(email, pass){
+        const h = await empreinte(pass);
+        const r = await appel('/api/compte/connexion', { email, h });
+        if(r.code === 429) jeter('auth/too-many-requests', 'Trop de tentatives — réessayez plus tard.');
+        if(r.code !== 200) jeter('auth/wrong-password', 'Adresse ou mot de passe incorrect.');
+        poserJeton(r.j.jeton); direAuth(utilisateur(r.j.compte));
+        return { user: moi };
+      },
+      async sendPasswordResetEmail(email){ await appel('/api/compte/mdp/demander', { email }); return true; },
+      /* ⛔ CE QUE `accReauth()` APPELAIT DANS LE VIDE. Trois écrans d'`espace.html` redemandent
+         le mot de passe avant un geste grave ; avec Firebase, `reauthenticateWithCredential`
+         le vérifiait. Ici il faut le demander au serveur — sinon le champ « mot de passe
+         actuel » n'est qu'un décor, et la page ment à celui qui le remplit. */
+      async confirmerMdp(pass){
+        const h = await empreinte(pass);
+        const r = await appel('/api/compte/mdp/confirmer', { h });
+        if(r.code === 429) jeter('auth/too-many-requests', 'Trop de tentatives — réessayez plus tard.');
+        if(r.code !== 200) jeter('auth/wrong-password', 'Mot de passe incorrect.');
+        reauth = { h, ts: Date.now() };
+        return true;
+      },
+    };
+
+    /* ── LES DONNÉES ───────────────────────────────────────────────────────────────────────
+       Trois collections seulement, parce que la page n'en utilise que trois. Ce qui n'est pas
+       mesuré n'est pas écrit : du code que personne n'appelle est du code que personne ne
+       teste. */
+    const MARQUE = '__pv__';
+    const FieldValue = {
+      serverTimestamp: () => ({ [MARQUE]:'ts' }),
+      arrayUnion: (...v) => ({ [MARQUE]:'union', v }),
+      delete: () => ({ [MARQUE]:'del' }),
+    };
+    const estMarque = x => !!x && typeof x==='object' && typeof x[MARQUE]==='string';
+    /* Les valeurs spéciales se résolvent ICI : le serveur range un dossier libre, il ne
+       l'interprète pas. ⚠️ `arrayUnion` n'est donc pas atomique entre deux onglets — la page
+       ne s'en sert que pour `promoUsed` et `docs`, jamais pour un compte qui doit être juste. */
+    function resoudre(avant, patch){
+      const base = (avant && typeof avant==='object') ? avant : {};
+      const out = Object.assign({}, base);
+      for(const k of Object.keys(patch||{})){
+        const v = patch[k];
+        if(!estMarque(v)){ out[k] = v; continue; }
+        if(v[MARQUE]==='ts') out[k] = Date.now();
+        else if(v[MARQUE]==='del') delete out[k];
+        else if(v[MARQUE]==='union'){
+          const l = Array.isArray(base[k]) ? base[k].slice() : [];
+          for(const x of v.v) if(l.indexOf(x)<0) l.push(x);
+          out[k] = l;
+        }
+      }
+      return out;
+    }
+
+    let dossierCache = null;
+    const instantane = (d) => ({ exists: !!d, id: (d&&d.email)||'', data: () => d ? Object.assign({}, d) : undefined });
+
+    function docDemande(){
+      return {
+        async get(){ const r = await appel('/api/portail/moi'); dossierCache = r.j.dossier||null; return instantane(dossierCache); },
+        async set(data, opts){
+          const fusion = !!(opts && opts.merge);
+          if(!fusion) dossierCache = null;
+          const patch = resoudre(fusion ? (dossierCache||{}) : {}, data);
+          delete patch.email;
+          const r = await appel('/api/portail/demande', patch);
+          dossierCache = r.j.dossier || dossierCache;
+          for(const cb of ecouteursDossier){ try{ cb(instantane(dossierCache)); }catch(_){ } }
+          return true;
+        },
+        async delete(){ return jeter('auth/operation-not-allowed', 'La suppression se demande au support.'); },
+        /* ⛔ FIRESTORE POUSSE, NOTRE SERVEUR EST INTERROGÉ. On tire TOUT DE SUITE avec l'état
+           courant — comme `onSnapshot` — puis on resonde. Sans le premier tir immédiat,
+           l'écran resterait vide à l'ouverture, et c'est la panne qu'on veut éviter. */
+        onSnapshot(cb, onErr){
+          let vivant = true, minuterie = null;
+          ecouteursDossier.add(cb);
+          const tour = async () => {
+            if(!vivant) return;
+            try{ const r = await appel('/api/portail/moi');
+              if(r.code===200){ dossierCache = r.j.dossier||null; cb(instantane(dossierCache)); }
+              else if(onErr) onErr(new Error('portail indisponible'));
+            }catch(e){ if(onErr) onErr(e); }
+            if(vivant) minuterie = setTimeout(tour, 20000);
+          };
+          tour();
+          return () => { vivant = false; ecouteursDossier.delete(cb); if(minuterie) clearTimeout(minuterie); };
+        },
+      };
+    }
+
+    const fs = {
+      collection(nom){
+        if(nom==='teamop_requests') return {
+          doc: () => docDemande(),
+          /* ⛔ L'ÉCRAN D'ADMINISTRATION DE CETTE PAGE EST MORT DEPUIS LE 18 SEPTEMBRE 2026 :
+             `firestore.rules:59` dit `allow read: if cestMoi(uid)`, et Firestore refuse toute
+             requête de COLLECTION qu'elle ne peut pas garantir entièrement lisible. On ne le
+             porte donc pas — mais on ne laisse pas non plus la page JETER une `TypeError` qui
+             emporterait le reste de l'écran. Elle rend une liste vide ET le dit dans la
+             console : un refus muet est ce qui a permis à ce défaut de vivre deux jours. */
+          orderBy(){ return this; }, limit(){ return this; },
+          async get(){ return { forEach(){}, docs:[], size:0, empty:true }; },
+          onSnapshot(cb, onErr){
+            try{ console.warn('portail : la liste des clients se lit depuis la Tour de contr\u00f4le, pas ici.'); }catch(_){ }
+            try{ cb({ forEach(){}, docs:[], size:0, empty:true }); }catch(_){ }
+            if(onErr) { try{ onErr(new Error('liste des clients : voir la Tour de contr\u00f4le')); }catch(_){ } }
+            return () => {};
+          },
+        };
+        /* ⛔ LE FIL SE LIT AUTANT QU'IL S'ÉCRIT — et il ne portait QUE `add`. `listenMsgs()`
+           appelle `.orderBy('ts','asc').onSnapshot(…)` : sans ces méthodes, l'écran « Messages »
+           jetait une `TypeError` au premier affichage, donc TOUT le rendu de la vue tombait.
+           C'est très exactement la couture que CLAUDE.md décrit — deux moitiés justes, chacune
+           avec son banc, qui ne se parlent pas. Un banc qui ne fait pas parler la VRAIE fonction
+           de la page au VRAI serveur ne la voit jamais.
+           ⚠️ `access` est recopié tel quel : c'est le code d'activation de l'espace, et le
+           bouton « 🚀 Activer mon espace » n'apparaît que s'il est là. Le perdre, c'est murer
+           l'entrée d'un nouveau client dans OP GESTION. */
+        if(nom==='teamop_threads') return { doc: () => ({ collection: () => {
+          const lire = async () => { const r = await appel('/api/portail/messages');
+            const l = (r.j.messages||[]).map((m,i) => ({ id:'m'+i, data: () => ({
+              from: m.de, text: m.t, ts: m.ts, access: m.access, accessName: m.accessName }) }));
+            return { forEach: f => l.forEach(f), docs: l, size: l.length, empty: !l.length }; };
+          const q = {
+            orderBy: () => q, limit: () => q, get: lire,
+            async add(m){
+              await appel('/api/portail/message', { texte: String((m&&m.text)||'') });
+              /* Son propre message doit paraître TOUT DE SUITE. Mesuré à 12,6 s d'attente sans
+                 cette ligne : ça ressemble à un envoi qui n'est pas parti, donc on le renvoie. */
+              try{ const inst = await lire(); for(const cb of ecouteursFil){ try{ cb(inst); }catch(_){ } } }catch(_){ }
+              return true;
+            },
+            /* Même conduite que le dossier : on tire TOUT DE SUITE, puis on resonde. Le fil est
+               la conversation avec le support — un écran qui reste sur « Chargement… » parce
+               qu'on attend un premier battement est un écran qui a l'air en panne. */
+            onSnapshot(cb, onErr){
+              let vivant = true, minuterie = null;
+              ecouteursFil.add(cb);
+              const tour = async () => {
+                if(!vivant) return;
+                try{ cb(await lire()); }catch(e){ if(onErr) onErr(e); }
+                if(vivant) minuterie = setTimeout(tour, 15000);
+              };
+              tour();
+              return () => { vivant = false; ecouteursFil.delete(cb); if(minuterie) clearTimeout(minuterie); };
+            },
+          };
+          return q;
+        } }) };
+        if(nom==='teamop_news'){
+          const lire = async () => { const r = await appel('/api/portail/actus');
+            const l = (r.j.actus||[]).map(a => ({ id:a.id, data: () => ({ title:a.titre, text:a.texte, tag:a.tag, url:a.url, ts:a.ts }) }));
+            return { forEach: f => l.forEach(f), docs: l, size: l.length, empty: !l.length }; };
+          const q = { orderBy: () => q, limit: () => q, get: lire,
+            /* Publier et supprimer une nouveauté se font depuis la TOUR. Ces deux chemins
+               étaient déjà MORTS ici (`allow write: if false`) : on refuse clairement plutôt
+               que d'échouer en silence comme Firestore le faisait. */
+            add: async () => jeter('portail/tour-seule', 'Les nouveautés se publient depuis la Tour de contrôle.'),
+            doc: () => ({ delete: async () => jeter('portail/tour-seule', 'Les nouveautés se suppriment depuis la Tour de contrôle.') }) };
+          return q;
+        }
+        return { doc: () => ({ get: async () => instantane(null), set: async () => true, onSnapshot: () => (()=>{}) }) };
+      },
+    };
+
+    /* ⛔ UN CODE PROMO S'ACTIVE CHEZ LE SERVEUR (`/api/portail/promo`) : il vérifie le code et
+       calcule l'échéance. La page écrivait `promo` elle-même dans son dossier — c'était Firestore ;
+       notre serveur réserve ce champ, et l'écriture était jetée sans un mot. */
+    async function promoActiver(code){ return appel('/api/portail/promo', { code }); }
+    /* Le lien qui prouve l'adresse : tant qu'il n'est pas ouvert, le serveur ne crée pas l'espace
+       et n'envoie pas de code d'accès (`/api/clients/sync` refuse une adresse non prouvée). */
+    async function verifRenvoyer(){ return appel('/api/compte/verifier/renvoyer', {}); }
+
+    return { auth, fs, FieldValue, promoActiver, verifRenvoyer };
+  }
+
+  const _pv = portailMaison();
+  const auth = _pv.auth, fs = _pv.fs;
+  /* ⛔ UN SEUL NOM POUR LES VALEURS SPÉCIALES. `FV` était écrit à
+     vingt-trois endroits : en laisser un seul derrière l'interrupteur, c'est le jour où la
+     page cherche `firebase` alors qu'il n'a pas été initialisé — et l'écran tombe sans un mot. */
+  const FV = _pv.FieldValue;
   const $=id=>document.getElementById(id);
   const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const isAdmin=u=>u&&u.email&&u.email.toLowerCase()===ADMIN_EMAIL.toLowerCase();
@@ -297,10 +624,12 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   let _signupBusy=false;
   auth.onAuthStateChanged(user=>{
     if(_unsubMsgs){_unsubMsgs();_unsubMsgs=null;} if(_unsubReqs){_unsubReqs();_unsubReqs=null;} if(_unsubNews){_unsubNews();_unsubNews=null;}
-    /* ⛔ UNE SESSION ANONYME N'EST PAS UN CLIENT — ne pas retirer ce filtre.
-       OP GESTION (app.html) ouvre une session Firebase ANONYME sur CE MÊME projet et ce même
-       domaine : c'est syncAuth() qui le fait, parce que les règles Firestore exigent un
-       utilisateur connecté pour synchroniser. Cette session sert aux données de l'entreprise,
+    /* ⛔ UNE SESSION ANONYME N'EST PAS UN CLIENT — un filtre de l'ère Firebase, gardé par prudence.
+       Jusqu'à la v747, OP GESTION (app.html) ouvrait une session Firebase ANONYME sur ce même
+       projet et ce même domaine (`syncAuth()`, retirée en v748 avec tout le SDK), parce que les
+       règles Firestore exigeaient un utilisateur connecté pour synchroniser. Nos comptes
+       (`portailMaison`) n'ont jamais de session anonyme : le filtre ne se déclenche plus, et il
+       ne coûte rien. Cette session sert aux données de l'entreprise,
        jamais à l'espace client. Sans ce filtre, ouvrir l'application puis revenir ici ouvrait
        « Mon espace » sur ce compte sans e-mail : en-tête affichant « null », « Bonjour » sans
        nom, et l'impression d'être connecté au compte de quelqu'un d'autre — y compris au beau
@@ -332,6 +661,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       <button class="btn block" id="a-submit" onclick="authSubmit()">Se connecter</button>
       <p class="center" style="margin-top:10px"><a href="#" onclick="motDePasseOublie();return false" style="color:var(--t3);font-size:12.5px;text-decoration:underline">Mot de passe oublié ?</a></p>
       <p class="muted center" style="margin-top:10px">« Se connecter » = vous avez déjà un compte. « Créer un compte » = nouveau client.</p>
+      <p class="muted center" id="avis-demenagement" style="margin-top:8px;font-size:12.5px;line-height:1.5">Déjà client avant fin septembre 2026 ? Votre espace a changé de serveur : la première fois, touchez « Mot de passe oublié ? » pour choisir votre mot de passe. Vos informations vous attendent.</p>
     </div>
     <p class="center" style="margin-top:12px"><a href="#" id="lnk-equipe" onclick="renderTeamAuth();return false" style="color:var(--t3);font-size:12.5px;text-decoration:none">🛠 Équipe TeamOP</a></p>`;
     if(RETOUR_PAIEMENT) authTab('signup');
@@ -352,10 +682,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         if(pass!==pass2) return err('Les deux mots de passe ne sont pas identiques.');
         _signupBusy=true;
         const cred=await auth.createUserWithEmailAndPassword(email,pass);
-        await fs.collection('teamop_requests').doc(cred.user.uid).set({uid:cred.user.uid,email,prenom,nom,name:(prenom+' '+nom).trim(),company,apps:[],app:'',besoin:'',status:'compte',createdAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-        /* L'équipe est prévenue par e-mail : le serveur ne voit pas passer les inscriptions,
-           puisqu'elles vont directement de la page à Firebase. Volontairement non bloquant —
-           un e-mail d'alerte qui échoue ne doit jamais empêcher un client de créer son compte. */
+        await fs.collection('teamop_requests').doc(cred.user.uid).set({uid:cred.user.uid,email,prenom,nom,name:(prenom+' '+nom).trim(),company,apps:[],app:'',besoin:'',status:'compte',createdAt:FV.serverTimestamp()},{merge:true});
+        /* L'équipe est prévenue par e-mail, avec le nom et l'entreprise que `comptes.js` ne garde
+           pas pour elle. Volontairement non bloquant — un e-mail d'alerte qui échoue ne doit
+           jamais empêcher un client de créer son compte. L'espace, lui, n'est créé qu'une fois
+           l'adresse PROUVÉE (le lien du courriel) : voir `verifBanner`. */
         try{ fetch('https://api.teamop.fr/api/nouveau-compte',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,prenom:prenom,nom:nom,company:company})}).catch(()=>{}); }catch(_){}
         _signupBusy=false;
         if(RETOUR_PAIEMENT){ location.href=RETOUR_PAIEMENT; return; }
@@ -370,13 +701,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      domaine servi par Firebase Hosting, et teamop.fr est sur GitHub Pages — d'où ce
      détour. Si le serveur ne peut pas répondre, on retombe sur l'envoi Firebase :
      gabarit brut et lien firebaseapp.com, mais l'utilisateur n'est jamais bloqué. */
+  /* ⛔ PLUS JAMAIS `/api/mdp/lien` : cette route fabrique un lien de réinitialisation FIREBASE.
+     Tant que la clé d'administration est sur le VPS, elle répondait « envoyé » — le client
+     changeait un mot de passe qui ne sert plus à rien, et la voie maison n'était jamais appelée
+     (relevé le 25 septembre 2026, avant la bascule). Le lien part de `/api/compte/mdp/demander`. */
   async function mdpLien(email, suite){
-    try{
-      const r = await fetch('https://api.teamop.fr/api/mdp/lien',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,suite:suite})});
-      if(r.ok) return;
-      if(r.status===400){ const e=new Error('adresse invalide'); e.code='auth/invalid-email'; throw e; }
-    }catch(e){ if(e && e.code==='auth/invalid-email') throw e; }
-    auth.languageCode='fr';
     await auth.sendPasswordResetEmail(email,{url:suite});
   }
   async function motDePasseOublie(){
@@ -423,7 +752,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      une seule fois par visite — et de nouveau si le client change quelque chose.
      Jamais de mot de passe ni de contenu privé. Totalement invisible et non bloquant :
      si le serveur ne répond pas, l'espace client fonctionne exactement comme avant. */
-  const CLI_SYNC_URL='https://api.teamop.fr/api/clients/sync', CLI_SYNC_KEY='top_client_sync', CLI_SYNC_DELAI=600000;
+  /* La même base que l'adaptateur (`API_PORTAIL`) : en production c'est l'adresse d'avant, et un
+     banc qui fait parler la page à un serveur local l'atteint sans retouche. */
+  const CLI_SYNC_URL=API_PORTAIL+'/api/clients/sync', CLI_SYNC_KEY='top_client_sync', CLI_SYNC_DELAI=600000;
   function cliSigne(s){ let h=5381; for(let i=0;i<s.length;i++){ h=((h*33)^s.charCodeAt(i))>>>0; } return h.toString(36); }
   function cliResume(user,d){
     d=d||{};
@@ -460,8 +791,20 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     }).catch(function(){});
   }catch(e){} }
 
-  /* 🎁 Codes promo : accès aux applications pendant N mois */
-  const PROMO_CODES={ 'TEAMOP3MOIS': {mois:3, apps:['elan','opmsg'], label:'3 mois offerts'} };
+  /* 🎁 Codes promo : accès aux applications pendant N mois.
+     ⛔ LE CODE N'EST PLUS ÉCRIT DANS CETTE PAGE. Il l'était — une table `PROMO_CODES` en dur,
+     avec son libellé et sa durée — dans un fichier SERVI AU PUBLIC : n'importe qui faisait
+     « afficher le code source », lisait le code, créait un compte et s'attribuait trois mois —
+     sans aucun plafond d'utilisation, et sans qu'une seule ligne n'apparaisse côté serveur.
+     Un code promo dans une page publique n'est pas un code promo : c'est un cadeau à tous.
+     La liste vit donc dans `config.promos` sur le VPS, et c'est le serveur qui dit si un code
+     existe, combien de mois il donne et s'il a atteint son plafond — puis qui l'écrit dans le
+     dossier (`/api/portail/promo`, depuis la sortie de Firebase). La page ne pose plus `promo`
+     elle-même : du temps de Firestore elle le faisait, et quelqu'un qui connaissait un code
+     valide choisissait aussi sa durée. Le compteur `maxUtilisations`, lui, bouge au relais
+     (`/api/clients/sync`), quand le code est accordé à une entreprise — une fois par entreprise.
+     L'autorité de paiement n'a jamais été ici : c'est `espacePaye()` côté serveur. */
+  const APPS_PROMO=['elan','opmsg'];   // ce qu'un code ouvre sur le portail, comme avant
   function promoInfo(d){ try{ const p=d&&d.promo; if(!p||!p.until) return null; const until=(p.until&&p.until.toMillis)?p.until.toMillis():p.until; const rest=until-Date.now(); if(rest<=0) return null;
     return {code:p.code||'',label:p.label||'3 mois offerts',until,jours:Math.ceil(rest/86400000),apps:(Array.isArray(p.apps)?p.apps:Object.keys(APPS)).filter(k=>APPS[k])}; }catch(e){ return null; } }
   function clientApps(user,d){ if(((user&&user.email)||'').toLowerCase().endsWith('@teamop.fr')) return Object.keys(APPS);
@@ -471,18 +814,41 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const code=(inp.value||'').trim().toUpperCase().replace(/\s+/g,'');
     const err=s=>{ if(msg) msg.innerHTML='<div class="err">'+esc(s)+'</div>'; };
     if(!code) return err('Entrez votre code promo.');
-    const def=PROMO_CODES[code]; if(!def) return err('Code inconnu ou expiré.');
     const d=_meDoc||{};
     if(Array.isArray(d.promoUsed)&&d.promoUsed.includes(code)) return err('Ce code a déjà été utilisé sur ce compte.');
     if(promoInfo(d)) return err('Une offre est déjà active sur votre compte.');
-    const until=Date.now()+def.mois*30*86400000;
-    const promo={code,label:def.label,apps:def.apps,activatedAt:Date.now(),until};
-    try{
-      await fs.collection('teamop_requests').doc(uid).set({promo,promoUsed:firebase.firestore.FieldValue.arrayUnion(code)},{merge:true});
-      _meDoc=Object.assign({},_meDoc,{promo,promoUsed:(d.promoUsed||[]).concat([code])});
-      try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'🎁 Code « '+code+' » activé : '+def.label+' sur vos applications, jusqu\'au '+new Date(until).toLocaleDateString('fr-FR')+'. Profitez bien !',ts:firebase.firestore.FieldValue.serverTimestamp()}); }catch(e){}
-      openView('abo');
-    }catch(e){ err('Erreur : '+(e.message||e)); } }
+    /* ⛔ C'EST LE SERVEUR QUI DIT SI LE CODE EXISTE, COMBIEN DE MOIS IL DONNE, ET QUI L'ÉCRIT DANS
+       LE DOSSIER (`/api/portail/promo`) : la page ne pose plus `promo` elle-même. ⚠️ Un refus doit
+       SE VOIR : si l'API ne répond pas, on le dit au lieu de laisser croire que le code est mauvais.
+       Trois états, jamais deux. */
+    if(msg) msg.innerHTML='<div class="muted">Vérification du code…</div>';
+    let r=null;
+    try{ r=await _pv.promoActiver(code); }catch(e){ r=null; }
+    if(!r) return err('Impossible de vérifier le code pour le moment. Réessayez dans un instant.');
+    if(r.code===404) return err('Code inconnu ou expiré.');
+    if(r.code===410) return err('Ce code a atteint son nombre maximum d\'utilisations.');
+    if(r.code===409&&r.j.error==='deja_utilise') return err('Ce code a déjà été utilisé sur ce compte.');
+    if(r.code===409) return err('Une offre est déjà active sur votre compte.');
+    if(r.code===429) return err('Trop de tentatives — réessayez plus tard.');
+    if(r.code!==200||!r.j.dossier) return err('Impossible de vérifier le code pour le moment. Réessayez dans un instant.');
+    _meDoc=r.j.dossier;
+    openView('abo'); }
+  /* 📧 L'ADRESSE N'EST PAS ENCORE PROUVÉE — ET TANT QU'ELLE NE L'EST PAS, RIEN NE S'ACTIVE.
+     Le serveur refuse la fiche d'une adresse non prouvée (`/api/clients/sync`, `gardien` G1) :
+     sans ce bandeau, le client attendrait un espace et un code d'accès qui ne viennent pas, sans
+     savoir pourquoi — un refus qui ne se dit pas est une panne pour celui qui la vit. */
+  function verifBanner(user){ if(!user||user.emailVerified!==false) return '';
+    return '<div class="panel" id="verif-banner" style="padding:14px 18px;margin-bottom:16px;border-color:rgba(96,165,250,.55);background:rgba(96,165,250,.08)"><b style="font-size:14px">📧 Confirmez votre adresse e-mail</b><p class="muted" style="margin-top:6px;line-height:1.55">Un lien vous a été envoyé à <b>'+esc(user.email||'')+'</b>. Tant que vous ne l\'avez pas ouvert, vos demandes d\'accès restent en attente. Pensez à regarder dans les indésirables.</p><button class="btn sm" style="margin-top:10px" onclick="verifLien(this)">Renvoyer le lien</button><div id="verif-msg" style="margin-top:8px"></div></div>'; }
+  async function verifLien(b){ const m=$('verif-msg'); if(b) b.disabled=true;
+    let r=null; try{ r=await _pv.verifRenvoyer(); }catch(e){ r=null; }
+    if(b) b.disabled=false;
+    if(!m) return;
+    /* Confirmée ailleurs (le lien ouvert dans un autre onglet) : la page relit le compte. */
+    if(r&&r.code===200&&r.j&&r.j.deja){ m.innerHTML='<div class="ok">✅ Votre adresse est déjà confirmée.</div>'; setTimeout(function(){ location.reload(); },1200); return; }
+    if(r&&r.code===200){ m.innerHTML='<div class="ok">📬 Un nouveau lien vient de partir. Regardez aussi dans les indésirables.</div>'; return; }
+    if(r&&r.code===429){ m.innerHTML='<div class="err">Trois liens sont déjà partis cette heure-ci : regardez dans les indésirables, ou réessayez plus tard.</div>'; return; }
+    if(r&&r.code===401){ m.innerHTML='<div class="err">Votre session a expiré : reconnectez-vous.</div>'; return; }
+    m.innerHTML='<div class="err">Envoi impossible pour le moment. Réessayez dans un instant.</div>'; }
   /* ⏳ Alerte J-2 avant la fin de l'offre : bannière + message + notification (une seule fois) */
   function promoBanner(d){ const pi=promoInfo(d); if(!pi||pi.jours>2) return '';
     return '<div class="panel" style="padding:14px 18px;margin-bottom:16px;border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08)"><b style="font-size:14px">⏳ Votre offre « '+esc(pi.label)+' » se termine dans '+pi.jours+' jour'+(pi.jours>1?'s':'')+'</b><p class="muted" style="margin-top:6px;line-height:1.55">Pour garder l\'accès à vos applications, choisissez votre abonnement dès maintenant. <b>Vos données ne sont jamais perdues</b>, quoi qu\'il arrive.</p><a class="btn sm" style="margin-top:10px;display:inline-block" href="recap-abonnement.html?formule=premium">Choisir mon abonnement →</a></div>'; }
@@ -490,7 +856,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     await fs.collection('teamop_requests').doc(uid).set({promoAlerte:pi.code},{merge:true});
     _meDoc=Object.assign({},_meDoc,{promoAlerte:pi.code});
     const txt='⏳ Plus que '+pi.jours+' jour'+(pi.jours>1?'s':'')+' avant la fin de votre offre « '+pi.label+' ». Choisissez votre abonnement sur teamop.fr/recap-abonnement.html pour garder vos applications — vos données ne sont jamais perdues.';
-    try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:txt,ts:firebase.firestore.FieldValue.serverTimestamp()}); }catch(e){}
+    try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:txt,ts:FV.serverTimestamp()}); }catch(e){}
     try{ fetch('https://api.teamop.fr/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:'opmsg-user-'+uid,title:'⏳ Votre offre se termine bientôt — TeamOP',body:txt,url:'/espace.html'})}).catch(()=>{}); }catch(e){}
   }catch(e){} }
   function _cliBadge(d){ return d.status==='nouveau'?'<span class="badge b-new">Demande envoyée</span>':d.status==='encours'?'<span class="badge b-prog">Demande en cours</span>':d.status==='fourni'?'<span class="badge b-done">Accès activé</span>':''; }
@@ -506,6 +872,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const ROW=(v,ic,title,sub,badge)=>`<div class="setrow" onclick="openView('${v}')"><span class="si">${ic}</span><div class="sl"><b>${title}${badge||''}</b><span>${sub}</span></div><span class="sc">›</span></div>`;
     $('space').innerHTML=`
       <div class="hero-cli"><div class="cli-ava">${avaL}</div><div style="flex:1;min-width:0"><div class="hi">Bonjour ${esc(prenom||'👋')} 👋</div><div class="hs">${esc(d.company||'Ton espace TeamOP')} ${_cliBadge(d)}</div></div></div>
+      ${verifBanner(user)}
       ${(()=>{ const steps=[['Compte créé',true],['Profil complété',!!(d.prenom&&d.nom&&d.company)],['Accès demandé',d.status==='nouveau'||d.status==='encours'||d.status==='fourni'||(apps.length>0)],['Application activée',apps.length>0]]; const done=steps.filter(x=>x[1]).length; if(done>=4) return '';
         return `<div class="panel" style="padding:16px 18px;margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><b style="font-size:14px">🚀 Prise en main</b><span class="muted">${done}/4 · ${Math.round(done/4*100)}%</span></div><div class="prog"><div class="prog-b" style="width:${done/4*100}%"></div></div></div>`; })()}
 
@@ -656,8 +1023,30 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   }
 
     async function accReauth(pass){ const u=auth.currentUser; if(!u) throw {message:'Session expirée, reconnectez-vous.'};
-    const cred=firebase.auth.EmailAuthProvider.credential(u.email,pass); await u.reauthenticateWithCredential(cred); }
+    /* ⛔ AVEC LE PORTAIL MAISON, C'EST LE SERVEUR QUI TIENT L'IDENTITÉ — mais il faut quand
+       même le lui DEMANDER. Cette ligne a rendu `true` sans rien contrôler pendant une
+       journée : les trois écrans qui redemandent le mot de passe avant un geste grave
+       (adresse, mot de passe, suppression) n'en vérifiaient plus aucun. */
+    await _pv.auth.confirmerMdp(pass); return true; }
   function _err(id,t){ const e=$(id); if(e) e.innerHTML='<div class="err">'+esc(t)+'</div>'; }
+  /* ⛔⛔ UN REFUS NE SURVIT PAS À LA RÉUSSITE QUI LE DÉMENT. `_err()` ne fait que POSER : le
+     verdict d'un essai raté restait à l'écran pendant l'essai suivant — et, mesuré au
+     navigateur le 21 septembre 2026, pendant un changement de mot de passe qui AVAIT RÉUSSI.
+     Les deux routes rendaient 200, le nouveau mot de passe fonctionnait, l'ancien était refusé
+     en 401 : le serveur avait tout fait juste, et l'écran affichait « E-mail ou mot de passe
+     incorrect ».
+     ⚠️ MESURE HONNÊTE DE LA PORTÉE, parce qu'une première rédaction disait plus que ce qui a
+     été mesuré : la page annonce BIEN la réussite par ailleurs — pwConfirm fait un alert
+     « ✅ Mot de passe modifié. ». Le défaut n'est donc pas qu'on croie à un échec, c'est que
+     l'écran porte DEUX messages contraires au même instant. Le moment vraiment trompeur est
+     l'étape d'AVANT : on s'est trompé de mot de passe actuel, on le corrige, le champ du code
+     apparaît — et le refus rouge d'avant est toujours là, sans rien pour le démentir.
+     ⚠️ Ce défaut-là n'a RIEN à voir avec l'interrupteur du portail : c'est du code partagé,
+     donc il est dans la page servie aux clients aujourd'hui, avec Firebase.
+     C'est le pendant exact de la règle `_mailboxes` de CLAUDE.md — un refus doit savoir se
+     dire, et une réussite doit savoir effacer le refus d'avant. Chaque essai écrit SON verdict
+     et efface celui du précédent, sinon l'écran ment sur ce qui vient de se passer. */
+  function _vider(id){ const e=$(id); if(e) e.innerHTML=''; }
   function _ok(id,t){ const e=$(id); if(e){ e.innerHTML='<div class="ok">'+esc(t)+'</div>'; setTimeout(()=>{ const x=$(id); if(x) x.innerHTML=''; },4000); } }
   /* Vigie : toute erreur JavaScript est signalée au serveur TeamOP (anonyme) */
   (function(){ const sent={};
@@ -678,23 +1067,30 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   async function _checkCode(purpose,code){ const r=await fetch('https://api.teamop.fr/api/checkcode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:'acct-'+(_myUid||'x'),code,purpose})}); if(!r.ok){ const d=await r.json().catch(()=>({})); throw {message:d.error==='code incorrect'?'Code incorrect.':'Code expiré ou invalide.'}; } }
 
   async function infoSave(uid){ const prenom=($('in-prenom').value||'').trim(),nom=($('in-nom').value||'').trim(),company=($('in-company').value||'').trim();
-    try{ await fs.collection('teamop_requests').doc(uid).set({prenom,nom,name:(prenom+' '+nom).trim(),company,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}); _ok('info-msg','✅ Informations enregistrées.'); }
+    try{ await fs.collection('teamop_requests').doc(uid).set({prenom,nom,name:(prenom+' '+nom).trim(),company,updatedAt:FV.serverTimestamp()},{merge:true}); _ok('info-msg','✅ Informations enregistrées.'); }
     catch(e){ _err('info-msg',e.message||'Erreur'); } }
 
-  async function emSend(){ const em=($('em-new').value||'').trim(),pass=$('em-pass').value||'';
+  async function emSend(){ _vider('em-err'); const em=($('em-new').value||'').trim(),pass=$('em-pass').value||'';
+    /* ⛔ ON REFUSE AVANT LA CÉRÉMONIE, PAS APRÈS. Avec le portail maison, l'adresse est la CLÉ
+       du compte : en changer veut dire déménager le compte, le dossier et le fil de messages,
+       qui vivent dans DEUX fichiers tenus par deux modules. Tant que ce déménagement n'est pas
+       écrit et éprouvé, on le dit tout de suite — envoyer un code à six chiffres, le faire
+       retaper, puis refuser, c'est faire croire que ça marche jusqu'à la dernière seconde.
+       Voir REPRISE.md : le déménagement d'adresse est un chantier nommé, pas un oubli. */
+    if(_pv) return _err('em-err','Le changement d\'adresse se fait avec le support pour le moment — écrivez-nous depuis « Messages », on s\'en occupe.');
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return _err('em-err','Adresse e-mail invalide.');
     if(!pass) return _err('em-err','Entrez votre mot de passe actuel.');
     try{ $('em-send').disabled=true; await accReauth(pass); await _sendCode('email');
       $('em-code').innerHTML=`<div class="field" style="margin-top:10px"><label>Code reçu par e-mail</label><input id="em-codev" inputmode="numeric" maxlength="6" placeholder="6 chiffres" style="letter-spacing:4px;text-align:center;font-size:18px"></div><button class="btn sm block" onclick="emConfirm()">Confirmer le changement</button>`;
       $('em-send').style.display='none';
     }catch(e){ $('em-send').disabled=false; _err('em-err',authMsg(e)); } }
-  async function emConfirm(){ const code=($('em-codev').value||'').trim(),em=($('em-new').value||'').trim();
+  async function emConfirm(){ _vider('em-err'); const code=($('em-codev').value||'').trim(),em=($('em-new').value||'').trim();
     if(code.length<6) return _err('em-err','Entrez le code à 6 chiffres.');
     try{ await _checkCode('email',code); await auth.currentUser.updateEmail(em);
-      await fs.collection('teamop_requests').doc(_myUid).set({email:em,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}); alert('✅ E-mail mis à jour. Utilisez-le à la prochaine connexion.');
+      await fs.collection('teamop_requests').doc(_myUid).set({email:em,updatedAt:FV.serverTimestamp()},{merge:true}); alert('✅ E-mail mis à jour. Utilisez-le à la prochaine connexion.');
     }catch(e){ _err('em-err',authMsg(e)); } }
 
-  async function pwSend(){ const cur=$('pw-cur').value||'',np=$('pw-new').value||'',np2=$('pw-new2').value||'';
+  async function pwSend(){ _vider('pw-err'); const cur=$('pw-cur').value||'',np=$('pw-new').value||'',np2=$('pw-new2').value||'';
     if(!cur) return _err('pw-err','Entrez votre mot de passe actuel.');
     if(np.length<8) return _err('pw-err','Le nouveau mot de passe doit faire au moins 8 caractères.');
     if(np!==np2) return _err('pw-err','Les deux mots de passe ne sont pas identiques.');
@@ -702,12 +1098,15 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       $('pw-code').innerHTML=`<div class="field" style="margin-top:10px"><label>Code reçu par e-mail</label><input id="pw-codev" inputmode="numeric" maxlength="6" placeholder="6 chiffres" style="letter-spacing:4px;text-align:center;font-size:18px"></div><button class="btn sm block" onclick="pwConfirm()">Confirmer le changement</button>`;
       $('pw-send').style.display='none';
     }catch(e){ $('pw-send').disabled=false; _err('pw-err',authMsg(e)); } }
-  async function pwConfirm(){ const code=($('pw-codev').value||'').trim(),np=$('pw-new').value||'';
+  async function pwConfirm(){ _vider('pw-err'); const code=($('pw-codev').value||'').trim(),np=$('pw-new').value||'';
     if(code.length<6) return _err('pw-err','Entrez le code à 6 chiffres.');
     try{ await _checkCode('pwd',code); await auth.currentUser.updatePassword(np); alert('✅ Mot de passe modifié.');
     }catch(e){ _err('pw-err',authMsg(e)); } }
 
   async function delGo(){ const pass=$('del-pass').value||''; if(!pass) return _err('del-err','Entrez votre mot de passe.');
+    /* Même règle : on ne fait pas confirmer une suppression définitive pour refuser ensuite.
+       Supprimer le compte d'un client qui paye est un geste de support, pas un bouton. */
+    if(_pv) return _err('del-err','La suppression d\'un compte se fait avec le support — écrivez-nous depuis « Messages ».');
     if(!confirm('Supprimer définitivement votre compte ? Cette action est irréversible.')) return;
     try{ await accReauth(pass); const uid=auth.currentUser.uid; try{ await fs.collection('teamop_requests').doc(uid).delete(); }catch(_){}
       await auth.currentUser.delete(); alert('Compte supprimé.');
@@ -715,7 +1114,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
   async function accSaveBilling(uid){
     const g=id=>($(id)||{}).value||'';
-    const data={adresse:g('bi-adresse').trim(),cp:g('bi-cp').trim(),ville:g('bi-ville').trim(),siret:g('bi-siret').trim(),tva:g('bi-tva').trim(),tel:g('bi-tel').trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    const data={adresse:g('bi-adresse').trim(),cp:g('bi-cp').trim(),ville:g('bi-ville').trim(),siret:g('bi-siret').trim(),tva:g('bi-tva').trim(),tel:g('bi-tel').trim(),updatedAt:FV.serverTimestamp()};
     try{ await fs.collection('teamop_requests').doc(uid).set(data,{merge:true}); const el=$('bill-msg'); if(el){ el.innerHTML='<div class="ok">✅ Coordonnées enregistrées.</div>'; setTimeout(()=>{ if($('bill-msg')) $('bill-msg').innerHTML=''; },4000); } }
     catch(e){ const el=$('bill-msg'); if(el) el.innerHTML='<div class="err">'+esc(e.message||'Erreur')+'</div>'; }
   }
@@ -840,14 +1239,14 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         dem=Object.assign({},(i>=0?liste[i]:{}),{app,company,besoin,users:users||null,formule,tel,lien:lienNom,code:codeInfo?codeInfo.code:'',modifie:Date.now()});
         if(!dem.date) dem.date=Date.now();
         if(i>=0) liste[i]=dem; else liste.push(dem);
-        await fs.collection('teamop_requests').doc(uid).set({app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,demandes:liste,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'✏️ Demande modifiée : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+' — '+besoin,ts:firebase.firestore.FieldValue.serverTimestamp()});
+        await fs.collection('teamop_requests').doc(uid).set({app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,demandes:liste,updatedAt:FV.serverTimestamp()},{merge:true});
+        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'✏️ Demande modifiée : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+' — '+besoin,ts:FV.serverTimestamp()});
       } else {
         dem={app,company,besoin,users:users||null,formule,tel,lien:lienNom,code:codeInfo?codeInfo.code:'',date:Date.now(),statut:'nouveau'};
         liste.push(dem);
-        await fs.collection('teamop_requests').doc(uid).set({app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,status:'nouveau',email:auth.currentUser.email,uid,demandes:liste,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'📩 Demande : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+' — '+besoin,ts:firebase.firestore.FieldValue.serverTimestamp()});
-        try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'✅ Votre demande a bien été prise en compte ! Notre équipe l\'étudie et revient vers vous au plus vite. Si nous avons besoin de renseignements supplémentaires, nous vous contacterons ici même. Vous pouvez modifier votre demande à tout moment dans « Mes demandes d\'accès ».',ts:firebase.firestore.FieldValue.serverTimestamp()}); }catch(e){}
+        await fs.collection('teamop_requests').doc(uid).set({app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,status:'nouveau',email:auth.currentUser.email,uid,demandes:liste,updatedAt:FV.serverTimestamp()},{merge:true});
+        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'📩 Demande : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+' — '+besoin,ts:FV.serverTimestamp()});
+        try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'✅ Votre demande a bien été prise en compte ! Notre équipe l\'étudie et revient vers vous au plus vite. Si nous avons besoin de renseignements supplémentaires, nous vous contacterons ici même. Vous pouvez modifier votre demande à tout moment dans « Mes demandes d\'accès ».',ts:FV.serverTimestamp()}); }catch(e){}
       }
       _meDoc=Object.assign({},_meDoc,{status:(window._demEdit?(_meDoc&&_meDoc.status)||'nouveau':'nouveau'),app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,demandes:liste});
       window._demConfirm=!window._demEdit; window._demEdit=null;
@@ -858,8 +1257,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   function demEdit(date){ window._demEdit=date; openView('demandes'); const f=document.getElementById('r-besoin'); if(f){ f.scrollIntoView({behavior:'smooth',block:'center'}); } }
   async function demRemove(uid,date){ if(!confirm('Retirer cette demande ?')) return;
     try{ const d=_meDoc||{}; const liste=(Array.isArray(d.demandes)?d.demandes:[]).filter(x=>x.date!==date);
-      await fs.collection('teamop_requests').doc(uid).set({demandes:liste,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-      await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'🗑️ Demande retirée.',ts:firebase.firestore.FieldValue.serverTimestamp()});
+      await fs.collection('teamop_requests').doc(uid).set({demandes:liste,updatedAt:FV.serverTimestamp()},{merge:true});
+      await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'🗑️ Demande retirée.',ts:FV.serverTimestamp()});
       _meDoc=Object.assign({},_meDoc,{demandes:liste}); window._demEdit=null; openView('demandes');
     }catch(e){ alert('Erreur : '+(e.message||e)); } }
 
@@ -889,7 +1288,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const url=(($('n-url')||{}).value||'').trim();
     if(!title){ alert('Donne un titre.'); return; }
     if(url&&!/^https?:\/\//.test(url)){ alert('Le lien doit commencer par https://'); return; }
-    try{ await fs.collection('teamop_news').add({title,text,tag,audience,url,ts:firebase.firestore.FieldValue.serverTimestamp()});
+    try{ await fs.collection('teamop_news').add({title,text,tag,audience,url,ts:FV.serverTimestamp()});
       // notifie les clients ciblés (push) si le serveur est joignable
       try{ const t2=(NEWS_TAGS[tag]||['Info'])[0];
         if(audience==='clients'||audience==='public'){ /* diffusion large gérée à l'ouverture de l'espace */ }
@@ -944,25 +1343,25 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   async function grantApps(uid){
     const apps=[]; if($('gr-elan-'+uid)&&$('gr-elan-'+uid).checked) apps.push('elan'); if($('gr-opmsg-'+uid)&&$('gr-opmsg-'+uid).checked) apps.push('opmsg');
     try{
-      await fs.collection('teamop_requests').doc(uid).set({apps,status:apps.length?'fourni':'compte',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-      if(apps.length) await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'🎉 Vos applications sont activées : '+apps.map(k=>APPS[k].name).join(' + ')+'. Elles vous attendent dans « Mes applications » en haut de votre espace !',ts:firebase.firestore.FieldValue.serverTimestamp()});
+      await fs.collection('teamop_requests').doc(uid).set({apps,status:apps.length?'fourni':'compte',updatedAt:FV.serverTimestamp()},{merge:true});
+      if(apps.length) await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'🎉 Vos applications sont activées : '+apps.map(k=>APPS[k].name).join(' + ')+'. Elles vous attendent dans « Mes applications » en haut de votre espace !',ts:FV.serverTimestamp()});
       alert(apps.length?'Accès activés ✅ ('+apps.map(k=>APPS[k].name).join(', ')+')':'Accès retirés (aucune application cochée)');
     }catch(e){ alert('Erreur : '+(e.message||e)); }
   }
   async function setPlan(uid){ const plan=prompt("Nom de l'offre (ex. Découverte, Pro, Entreprise) :",'Pro'); if(plan===null) return;
     const st=(prompt('Statut : actif / essai / suspendu','actif')||'actif').trim().toLowerCase();
-    try{ await fs.collection('teamop_requests').doc(uid).set({plan:plan.trim(),planStatus:st,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}); alert('Offre mise à jour ✅'); }catch(e){ alert('Erreur : '+(e.message||e)); } }
+    try{ await fs.collection('teamop_requests').doc(uid).set({plan:plan.trim(),planStatus:st,updatedAt:FV.serverTimestamp()},{merge:true}); alert('Offre mise à jour ✅'); }catch(e){ alert('Erreur : '+(e.message||e)); } }
   async function addDoc(uid){ const name=prompt('Nom du document (ex. Contrat 2026, Facture n°12) :'); if(!name) return;
     const url=prompt('Lien du document (URL https…) :'); if(!url) return;
     const doc={name:name.trim(),url:url.trim(),ic:'📄',date:new Date().toLocaleDateString('fr-FR')};
-    try{ await fs.collection('teamop_requests').doc(uid).set({docs:firebase.firestore.FieldValue.arrayUnion(doc),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-      await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'📄 Nouveau document disponible : '+name.trim()+' (voir « Mes documents »).',ts:firebase.firestore.FieldValue.serverTimestamp()});
+    try{ await fs.collection('teamop_requests').doc(uid).set({docs:FV.arrayUnion(doc),updatedAt:FV.serverTimestamp()},{merge:true});
+      await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'📄 Nouveau document disponible : '+name.trim()+' (voir « Mes documents »).',ts:FV.serverTimestamp()});
       alert('Document ajouté ✅'); }catch(e){ alert('Erreur : '+(e.message||e)); } }
   async function provision(uid, company){
     if(!confirm('Créer un espace OP GESTION pour « '+company+' » et envoyer l\'accès ?')) return;
     const sp=genSpace(company);
-    try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'🏢 Votre espace « '+company+' » est prêt ! Cliquez sur « Activer mon espace » pour créer votre compte administrateur. Accès à usage unique.',access:sp.code,accessName:company,ts:firebase.firestore.FieldValue.serverTimestamp()});
-      await fs.collection('teamop_requests').doc(uid).set({status:'fourni',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'🏢 Votre espace « '+company+' » est prêt ! Cliquez sur « Activer mon espace » pour créer votre compte administrateur. Accès à usage unique.',access:sp.code,accessName:company,ts:FV.serverTimestamp()});
+      await fs.collection('teamop_requests').doc(uid).set({status:'fourni',updatedAt:FV.serverTimestamp()},{merge:true});
       alert('Espace créé et accès envoyé ✅\n\nCode (à garder) :\n'+sp.code);
     }catch(e){ alert('Erreur : '+(e.message||e)); }
   }
@@ -987,7 +1386,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     }, err=>{ const b=$('msgs'); if(b) b.innerHTML='<div class="err">'+esc(err.message)+'</div>'; });
   }
   async function sendMsg(uid, role){ const inp=$('m-text'); const text=(inp.value||'').trim(); if(!text) return; inp.value='';
-    try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:role,text,ts:firebase.firestore.FieldValue.serverTimestamp()}); }catch(e){ alert('Erreur : '+(e.message||e)); } }
+    try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:role,text,ts:FV.serverTimestamp()}); }catch(e){ alert('Erreur : '+(e.message||e)); } }
   function activate(code){ let o=null; try{ o=JSON.parse(decodeURIComponent(escape(atob(code)))); }catch(e){}
     if(!o||!o.t||!o.k){ alert('Code invalide.'); return; }
     if(!confirm('Activer votre espace « '+(o.n||o.t)+' » et créer votre compte administrateur OP GESTION ?')) return;
@@ -1010,6 +1409,10 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       ['elan_anthropic_key','elan_devis_code','op_devis_code','elan_sync_cfg','elan_annuaire_cache','elan_mail_lus','elan_mail_supp','elan_usage','elan_espace_admin',
        'elan_lien_lisible','elan_lien_lisible_t','elan_lien_lisible_ts','elan_lien_lisible_kh','elan_lien_lisible_nom','elan_lien_lisible_motif']
         .forEach(function(k){ try{ localStorage.removeItem(k); }catch(_){} });
+      /* Les clés du socle portent l'espace dans leur nom (`elan_op_haut_<espace>`) : une liste
+         fixe les raterait. Même balayage que dans espaceQuitter() — et pour la même raison :
+         une borne haute qui survit à un changement d'espace fait taire la seconde écriture. */
+      Object.keys(localStorage).forEach(function(k){ if(k.indexOf('elan_op_')===0){ try{ localStorage.removeItem(k); }catch(_){} } });
       sessionStorage.setItem('elan_create_admin','1');
     }catch(e){}
     try{ indexedDB.deleteDatabase('elan_cote'); }catch(e){}

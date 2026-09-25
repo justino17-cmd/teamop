@@ -25,6 +25,29 @@ function extraire(nom) {
   for (let k = j; k < APP.length; k++) { const c = APP[k]; if (c === '{') p++; else if (c === '}') { p--; if (p === 0) { j = k; break; } } }
   return APP.slice(i, j + 1);
 }
+/* ⛔ `syncAlleger` APPELLE `syncSortirPieces` DEPUIS LE POINT 4 de l'étape 0 : une pièce
+   déjà déposée sur le VPS n'a plus à voyager dans le document de l'équipe. Sans cette ligne,
+   ce banc PLANTE — et c'est ce qu'il a fait, immédiatement, ce qui est le comportement
+   voulu : un banc qui exécute la vraie fonction doit tomber quand elle change de dépendances,
+   pas continuer à certifier une version qu'il n'exécute plus. */
+/* ⛔ `PH_MARQUE` EST UNE DÉPENDANCE DE CES TROIS FONCTIONS, ET ELLE SE PREND DANS LE FICHIER.
+   Depuis que `syncRegreffer` apparie les photos par leur identifiant, elle en a besoin comme
+   les deux autres. Ce banc est tombé au moment exact où la dépendance est apparue — c'est le
+   comportement voulu, écrit juste au-dessus. ⚠️ On l'EXTRAIT, on ne la recopie pas : une copie
+   figée dirait « ça marche » sur une expression que le fichier n'utilise plus.
+   ⚠️ Et le silence est le vrai danger ici : `syncRegreffer` est enveloppée d'un `try/catch` qui
+   rend 0. Une constante manquante ne plante donc pas — elle fait rendre 0 à TOUTE la fonction,
+   documents compris, sans un mot. C'est exactement ce qu'on a vu : trois contrôles rouges dont
+   DEUX sur les documents, qu'on n'avait pas touchés. `tests/test-714.js` exige donc aussi que
+   la constante soit déclarée AVANT la fonction dans le fichier. */
+/* ⚠️ `const` → `var`, ET C'EST INDISPENSABLE : un `const` déclaré dans un `eval` ne sort PAS
+   de la portée de l'eval, alors qu'un `var` la rejoint. Sans cette substitution, la constante
+   restait invisible pour les fonctions évaluées juste après, et les trois contrôles restaient
+   rouges — en accusant les documents, qu'on n'avait pas touchés. */
+// eslint-disable-next-line no-eval
+eval(((APP.match(/const PH_MARQUE=[^\n]+/) || [''])[0]).replace('const ', 'var '));
+// eslint-disable-next-line no-eval
+eval(extraire('syncSortirPieces'));
 // eslint-disable-next-line no-eval
 eval(extraire('syncAlleger'));
 // eslint-disable-next-line no-eval
@@ -173,7 +196,16 @@ v('⛔ la trace ne porte que des noms de collection et des tailles',
   /parColl\.join\(', '\)/.test(APP), true);
 
 v('regreffe à la réception ET avant l\'écriture', (APP.match(/syncRegreffer\((db|_localAvant),(remote|db)\)/g) || []).length, 2);
-v('ouvrir une pièce restée locale le dit au lieu de planter', /if\(!d\.data\)\{ toast\('Cette pièce est restée sur l/.test(APP), true);
+/* ⚠️ RÉEXPRIMÉ, PAS AFFAIBLI. Cette ligne épinglait la FORME exacte de l'ancienne condition
+   (`if(!d.data){ toast(…`). Le point 4 de l'étape 0 l'a changée — une pièce sans `data` peut
+   désormais être sur le VPS — et le contrôle rougissait pour une réécriture juste. Épingler une
+   forme, c'est se condamner à rouvrir le banc à chaque amélioration, donc à apprendre à passer
+   outre. On demande donc ce qui compte vraiment, et il y en a PLUS qu'avant : les trois issues
+   doivent être dites, et distinctes. */
+{ const open = APP.slice(APP.indexOf('async function intDocOpen('), APP.indexOf('function intDocDel('));
+  v('ouvrir une pièce restée locale le dit au lieu de planter', /Cette pièce est restée sur l/.test(open), true);
+  v('⛔ … une pièce supprimée du serveur le dit AUTREMENT', /supprimé du serveur/.test(open), true);
+  v('⛔ … et un échec de réseau ne dit NI l\'un NI l\'autre', /Impossible de récupérer/.test(open), true); }
 
 
 /* ── v646 : l'allègement couvre TOUTES les collections, et une écriture qui ne passe pas
@@ -209,7 +241,19 @@ console.log('\nLa regreffe couvre aussi ces champs et ces collections');
 
 console.log('\nUne écriture non acquittée ne bloque plus si le réseau répond');
 v('on mesure le réseau avant de décider', /const r2=await fetch\(PUSH_API\+'\/health',\{method:'HEAD'/.test(APP), true);
-v('réseau absent → écran hors ligne (inchangé)', /if\(!reseau\)\{ _horsLignePush=true; try\{ horsLigneDebut\('écriture sans réponse'\)/.test(APP), true);
+/* ⛔ RÉ-EXPRIMÉ SUR L'INTENTION LE 17 SEPTEMBRE 2026 — et RENFORCÉ. Il épinglait l'adjacence
+   exacte de deux instructions ; une ligne insérée entre elles le faisait rougir alors que le
+   comportement était intact. On vérifie maintenant ce qui compte vraiment : dans la branche
+   « pas de réseau », le travail est marqué en attente ET l'écran hors ligne est appelé avec
+   son motif — et la fonction sort sans écrire. Trois faits au lieu d'une chaîne de caractères. */
+{
+  const iB = APP.indexOf('if(!reseau){');
+  const br = iB < 0 ? '' : APP.slice(iB, iB + 400);
+  v('réseau absent → la branche existe', iB > 0, true);
+  v('réseau absent → le travail est marqué en attente', /_horsLignePush=true/.test(br), true);
+  v('réseau absent → écran hors ligne, avec son motif', /horsLigneDebut\('écriture sans réponse'\)/.test(br), true);
+  v('réseau absent → et on sort sans écrire', /horsLigneDebut\('écriture sans réponse'\)[\s\S]{0,60}return;/.test(br), true);
+}
 v('réseau présent → on prévient, on ne bloque pas', /Tes modifications ne partent pas encore vers l/.test(APP), true);
 
 
