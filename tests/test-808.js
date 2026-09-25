@@ -81,7 +81,7 @@ console.log('\n══ 1. LE RANGEMENT EST PLEIN — le geste s\'applique quand m
   vrai('⛔ toucher « Bleu » applique le bleu (l\'affichage LIT « blue »)', J.includes('apply:auto/teamop/blue'));
   vrai('la fenêtre se redessine sur le choix (la coche bouge)', J.includes('fenetre'));
   v('le choix est sur la fiche de la personne', M.u().pref.accent, 'blue');
-  vrai('… avec l\'heure du choix (maintenant, pas zéro)', Math.abs(Date.now()-(+M.u().prefTs.accent||0))<60000);
+  vrai('… avec l\'heure du choix (maintenant, pas zéro)', Math.abs(Date.now()-(+(M.u().prefTs||{}).accent||0))<60000);
   v('rien n\'est rangé sur l\'appareil (il est plein)', M.lire('elan_accent'), undefined);
   v('⛔ on le DIT à l\'écran — une fois', plein(M), 1);
   const s=M.signaux.filter(x=>/Rangement de l’appareil plein/.test(x.m));
