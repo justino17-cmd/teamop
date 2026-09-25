@@ -7749,8 +7749,14 @@ function tmQui(){
   }catch(_){ return {login:'',espace:''}; }
 }
 function tmUA(){ try{ var u=navigator.userAgent||'', ap=/iPhone|iPad|iPod/i.test(u)?'iPhone':(/Android/i.test(u)?'Android':'PC'), nv=/Edg\//.test(u)?'Edge':(/OPR\//.test(u)?'Opera':(/Chrome\//.test(u)?'Chrome':(/Firefox\//.test(u)?'Firefox':(/Safari\//.test(u)?'Safari':'Navigateur')))); return ap+' · '+nv; }catch(_){ return '?'; } }
-function tmLoad(){ try{ var q=JSON.parse(localStorage.getItem(TM_KEY)||'[]'); return Array.isArray(q)?q:[]; }catch(_){ return []; } }
-function tmSaveQ(q){ try{ localStorage.setItem(TM_KEY,JSON.stringify(q.slice(-40))); }catch(_){ } }
+/* ⛔ UN APPAREIL PLEIN NE PEUT PAS RANGER SA FILE — et elle se perdait : `tmSaveQ` échouait en
+   silence, `tmFlush` relisait le rangement… vide, et RIEN ne partait (25 septembre 2026, rejoué
+   sur la bêta 746 : aucun envoi). C'est justement l'appareil dont la Tour a le plus besoin
+   d'entendre parler — l'erreur « QuotaExceededError » de « Thème et couleur » n'y serait jamais
+   arrivée. Refusée par le rangement, la file tient en MÉMOIRE jusqu'à l'envoi. */
+var tmMem=null;
+function tmLoad(){ if(tmMem) return tmMem.slice(); try{ var q=JSON.parse(localStorage.getItem(TM_KEY)||'[]'); return Array.isArray(q)?q:[]; }catch(_){ return []; } }
+function tmSaveQ(q){ q=q.slice(-40); try{ localStorage.setItem(TM_KEY,JSON.stringify(q)); tmMem=null; }catch(_){ tmMem=q; } }
 function tmPush(type,message,stack,src,line){ try{
   message=String(message||'').slice(0,300); if(!message) return;
   if(/ResizeObserver|^Script error/i.test(message)) return;
@@ -7822,7 +7828,62 @@ try{
 }catch(_){ }
 try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
+/* ⛔ LA SEULE PORTE DE LA SENTINELLE VERS LE RESTE DE LA PAGE. Tout ce bloc est une fonction
+   isolée : `tmPush` n'existe pas en dehors. Mesuré le 25 septembre 2026 : `syncDiagnostic`
+   testait `typeof tmPush==='function'` depuis l'extérieur — toujours faux, donc le diagnostic de
+   synchro n'a JAMAIS atteint la Tour (un `console.warn` que personne n'ouvre). Ce qui est
+   RATTRAPÉ ailleurs (un réglage que l'appareil n'a pas pu ranger, une synchro en panne) passe par
+   ici — rattraper une erreur ne doit pas la faire disparaître de la Tour. */
+try{ window.tmSignaler=function(type,message,stack,src){ tmPush(type,message,stack||'',src||'',0); }; }catch(_){ }
 })();
+/* ══ LES RÉGLAGES D'APPARENCE DE L'APPAREIL — ils se voient, même quand l'appareil ne peut pas les ranger ══
+   ⛔⛔ Justin, 25 septembre 2026, sur son iPhone : « les couleurs en dessous, je veux qu'elles
+   marchent » — toucher Bleu ou Rose dans « Thème et couleur » ne changeait RIEN, pas même le
+   « + Créer ». Le navigateur de test disait que tout marchait : son rangement est vide et il n'a
+   pas de synchro. Rejoué sur la bêta PUBLIÉE (746), agent Safari d'iPhone, vrais touchers
+   (`scratchpad/sonde-teintes-iphone.js`), trois chemins mènent exactement à « rien ne change » :
+   1. le rangement est PLEIN — il est partagé par toute l'origine teamop.fr (la base d'app.html,
+      celle de la bêta, la Tour) et Safari le borne à 5 Mo. `localStorage.setItem` jetait
+      QuotaExceededError à la PREMIÈRE ligne du geste : ni rangement, ni fiche, ni couleur, ni coche ;
+   2. un maillon de l'enregistrement JETTE après avoir rangé (`save()` → un rafraîchissement
+      d'écran) : le choix est écrit, jamais appliqué, jamais envoyé ;
+   3. la synchro ramène une copie PLUS ANCIENNE de la fiche : voir `prefFusion`.
+   D'où les règles des gestes d'apparence (`tcTeinte`, `tcMode`, `setMarque`, `setAccent`…) : le
+   choix se garde AUSSI en mémoire, et la mémoire se lit AVANT le rangement (`prefLocalLire`) ; il
+   s'APPLIQUE avant de s'enregistrer ; chaque enregistrement est gardé à part (`prefGarder`).
+   ⚠ Elles vivent ICI, tout en haut du script — un `const` lu avant sa ligne est en zone morte
+   temporelle, et l'apparence se lit dès le premier rendu — mais HORS du bloc de la sentinelle
+   juste au-dessus : écrites dedans (première version, mesurée), elles n'existaient pas pour le
+   reste de la page, et le thème ne se posait plus du tout. */
+/* ⚠ La mémoire ne sert QUE de repli : tant que le rangement accepte, c'est lui qui fait foi et
+   la mémoire est vidée. Tenue en permanence, elle masquerait ce que d'autres fonctions rangent
+   DIRECTEMENT (la carte : `setMapSat`) — et `prefAppliquer`, la croyant à jour, sauterait le
+   réglage venu d'un autre appareil. */
+const _prefVue={};
+function prefLocal(k,v){
+  try{ localStorage.setItem(k,v); delete _prefVue[k]; return true; }
+  catch(e){ _prefVue[k]=v; prefRangementPlein(k,e); return false; } }
+function prefLocalLire(k){ if(Object.prototype.hasOwnProperty.call(_prefVue,k)) return _prefVue[k];
+  try{ return localStorage.getItem(k); }catch(e){ return null; } }
+/* Une fois par séance : on le DIT (sinon on retombe dans « rien ne change », en silence cette
+   fois) et la Tour le reçoit avec ce qui occupe la place — par FAMILLE de clés, jamais un
+   contenu ni un nom de clé entier (certains portent l'identifiant d'un compte). */
+let _prefPleinDit=false;
+function prefRangementPlein(k,e){
+  if(_prefPleinDit) return; _prefPleinDit=true;
+  let m=''; try{ m=rangementMesure(); }catch(_){}
+  try{ if(typeof window.tmSignaler==='function') window.tmSignaler('erreur','Rangement de l’appareil plein : réglage d’apparence gardé en mémoire ('+String(k).replace(/^elanB?_/,'')+', '+((e&&e.name)||'erreur')+')'+(m?' — '+m:'')); }catch(_){}
+  try{ toast('⚠️ Cet appareil n’a plus de place pour ranger tes réglages : ton choix s’applique quand même, et il suit ton compte.',9000); }catch(_){}
+}
+function rangementMesure(){
+  const fam={}; let tot=0;
+  for(let i=0;i<localStorage.length;i++){ const k=String(localStorage.key(i)||''); const n=k.length+String(localStorage.getItem(k)||'').length;
+    const f=/^elanB_gestion/.test(k)?'base bêta':/^elan_gestion/.test(k)?'base application':/^elanB_/.test(k)?'bêta (réglages)'
+      :/^elan_/.test(k)?'application (réglages)':/^teamop/.test(k)?'Tour / portail':'autre';
+    fam[f]=(fam[f]||0)+n; tot+=n; }
+  const ko=n=>Math.round(n*2/1024)+' Ko';   // Safari compte deux octets par caractère
+  return ko(tot)+' occupés : '+Object.keys(fam).sort((a,b)=>fam[b]-fam[a]).map(f=>f+' '+ko(fam[f])).join(', ');
+}
 const APP_VERSION = '747';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
@@ -10538,7 +10599,7 @@ function syncDiagnostic(motif){
       +' · cle propre '+(localStorage.getItem('elan_sync_secret')?'oui':'non')
       +' · role '+((typeof currentUser!=='undefined'&&currentUser&&currentUser.role)||'non connecte');
     try{ console.warn(msg); }catch(_e){}
-    if(typeof tmPush==='function') tmPush('synchro',msg,'','sync',0);
+    if(typeof window.tmSignaler==='function') window.tmSignaler('synchro',msg,'','sync');
   }catch(e){}
 }
 async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_syncOn||_syncDemarre) return; _syncDemarre=true;
@@ -10622,11 +10683,16 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
              donc rien, et notre vue corrigée restait prisonnière de cet appareil. */
           const sigDe=l=>(l||[]).map(u=>String((u&&u.id)||'')+':'+String((u&&u.login)||'').toLowerCase()).sort().join('|');
           const sigAvant=sigDe(remote.users), tombAvant=usersTombes(remote).length;
+          /* … et les réglages : un choix plus récent gardé ICI (`prefFusion`) doit repartir, sinon
+             le nuage garde l'ancien et le repousse au prochain appareil qui se connecte. */
+          const sigPref=l=>(l||[]).map(u=>String((u&&u.id)||'')+':'+JSON.stringify((u&&u.prefTs)||{})).sort().join('|');
+          const prefAvant=sigPref(remote.users);
           /* priorité au DISTANT : le document reçu est plus récent que nous, par construction
              (on a vérifié d.ts > _syncTs juste au-dessus). */
           remote.users=usersFusionner(db.users,remote.users,tomb,false);
           if(tomb.length) remote.usersSupprimes=tomb;
           _repousser = (sigDe(remote.users)!==sigAvant)
+                    || (sigPref(remote.users)!==prefAvant)
                     || (tomb.length!==tombAvant)
                     || (usersTombes(db).length>0 && usersTombes(db).length!==tomb.length)
                     || (baseSignature(remote)!==_sigAvantFusion);   // nous avions quelque chose que l'équipe n'avait pas
@@ -10724,12 +10790,39 @@ function usersTombes(base){ const t=(base&&base.usersSupprimes)||[]; return Arra
    renommer quelqu'un, changer son e-mail, le désactiver revenait alors en arrière tout seul.
    Le sens de priorité est donc devenu un paramètre, décidé par l'appelant, qui seul sait
    lequel des deux côtés porte la version fraîche. */
+/* ⛔⛔ LES RÉGLAGES D'UNE PERSONNE SE FUSIONNENT RÉGLAGE PAR RÉGLAGE, À L'HEURE DU CHOIX — PAS
+   AVEC LA FICHE. La fiche entière suit la priorité de la fusion (le distant à la réception, le
+   local à l'envoi) : juste pour un e-mail ou un rôle, FAUX pour une couleur. Un appareil qui
+   pousse sa copie de la fiche AVANT d'avoir reçu le choix fait sur un autre (un Mac resté ouvert,
+   un téléphone qui se réveille, la présence qui écrit toutes les minutes) remettait l'ancienne
+   teinte chez tout le monde : rejoué le 25 septembre 2026 sur la bêta 746, le choix s'applique,
+   la réception d'une copie plus ancienne le défait, et `prefAppliquer` repose l'ancien.
+   Chaque réglage porte donc l'heure où il a été choisi (`prefTs`, posé par `prefEcrire`) et le
+   plus récent gagne, quelle que soit la copie qui gagne la fiche. Sans heure des deux côtés
+   (versions d'avant), rien ne change : c'est la fiche qui tranche, comme avant. Même règle des
+   deux côtés, même résultat sur chaque appareil : la fusion converge.
+   ⚠ Écrit DANS la copie gagnante, qui est celle qu'on garde : le document reçu à la réception,
+   notre propre fiche à l'envoi. Rend le nombre de réglages repris de l'autre copie. */
+function prefFusion(gagnant,autre){
+  if(!gagnant||!autre||gagnant===autre) return 0;
+  const ta=(gagnant.prefTs&&typeof gagnant.prefTs==='object')?gagnant.prefTs:{};
+  const tb=(autre.prefTs&&typeof autre.prefTs==='object')?autre.prefTs:{};
+  const pb=(autre.pref&&typeof autre.pref==='object')?autre.pref:{};
+  let pris=0;
+  Object.keys(tb).forEach(k=>{ const b=+tb[k]||0;
+    if(b<=(+ta[k]||0)||typeof pb[k]!=='string') return;
+    if(!gagnant.pref||typeof gagnant.pref!=='object') gagnant.pref={};
+    if(!gagnant.prefTs||typeof gagnant.prefTs!=='object') gagnant.prefTs={};
+    gagnant.pref[k]=pb[k]; gagnant.prefTs[k]=b; pris++; });
+  return pris;
+}
 function usersFusionner(localUsers,remoteUsers,tombes,prioriteLocale){
   const s=new Set((tombes||[]).map(x=>(x&&x.id)||x).filter(Boolean));
   const out=[], vus=new Set();
   const premier=prioriteLocale?(localUsers||[]):(remoteUsers||[]);
   const second =prioriteLocale?(remoteUsers||[]):(localUsers||[]);
-  premier.forEach(u=>{ if(u&&u.id&&!s.has(u.id)&&!vus.has(u.id)){ out.push(u); vus.add(u.id); } });
+  const autreDe=new Map(); second.forEach(u=>{ if(u&&u.id&&!autreDe.has(u.id)) autreDe.set(u.id,u); });
+  premier.forEach(u=>{ if(u&&u.id&&!s.has(u.id)&&!vus.has(u.id)){ prefFusion(u,autreDe.get(u.id)); out.push(u); vus.add(u.id); } });
   second .forEach(u=>{ if(u&&u.id&&!s.has(u.id)&&!vus.has(u.id)){ out.push(u); vus.add(u.id); } });
   return usersSansDoublonLogin(out);
 }
@@ -11173,6 +11266,9 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
           /* priorité au LOCAL : ce qu'on s'apprête à écrire est ce qu'on vient de modifier. */
           db.users=usersFusionner(db.users,remote.users,tomb,true);
           if(tomb.length) db.usersSupprimes=tomb;
+          /* un réglage plus récent choisi sur un autre appareil vient d'entrer dans NOTRE fiche
+             (`prefFusion`) : il s'applique ici aussi, sans attendre la prochaine réception. */
+          try{ const moi=currentUser&&(db.users||[]).find(u=>u&&u.id===currentUser.id); if(moi) prefAppliquer(moi); }catch(_e){}
           /* ⛔ ON NE POUSSE JAMAIS UNE BASE AMPUTÉE. Si le nuage connaît des lignes que nous n'avons
              pas — beaucoup, dans une même collection — c'est que CET appareil est en retard, pas
              que l'équipe a supprimé. Écrire, ce serait rejouer la panne d'ELAN sur les
@@ -20288,7 +20384,7 @@ function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('bra
     pl.style.display='block'; }
   const se=$('suite-ic-elan'); if(se) se.src=PLAN_BADGE[f]||'icons/plan-gestion.png';
   // Couleur de l'entreprise (Business Premium) : appliquée à toute l'équipe, sauf choix perso de l'utilisateur
-  try{ if(!localStorage.getItem('elan_accent')){ const r=document.documentElement, want=entCouleur()||'';
+  try{ if(!prefLocalLire('elan_accent')){ const r=document.documentElement, want=entCouleur()||'';
     if(want!==(r.style.getPropertyValue('--acc')||'').trim()) applyTheme(); } }catch(e){} }
 /* Écusson à afficher sur l'avatar : logo de l'entreprise si elle en a un (Business / Premium), sinon logo du forfait */
 function brandBadgeSrc(){ try{ const E=(db&&db.entreprise)||{}, f=forfait(); if(['business','premium'].includes(f)&&E.logo) return E.logo; return PLAN_BADGE[f]||'icons/plan-gestion.png'; }catch(e){ return 'icons/plan-gestion.png'; } }
@@ -38404,7 +38500,7 @@ async function submitCreateAdmin(e){ e.preventDefault();
 /* ── Photo de profil : photo perso ou avatar généré sur le fond du logo ELAN ── */
 const ACC_SW={green:'#1E7A4E',blue:'#2563EB',purple:'#7C3AED',orange:'#EA580C',teamop:'#152340',marine:'#152340',opgestion:'#0F4A3A'};
 const ACC_DARK={green:'#0E3B24',blue:'#12306E',purple:'#341B66',orange:'#7C2D0C',teamop:'#0B1426',marine:'#0B1426',opgestion:'#0B3B2E'};
-function accentHex(){ if(getAccent()==='custom') return localStorage.getItem('elan_accent_hex')||'#7A5AF8'; return ACC_SW[getAccent()]||'#1E7A4E'; }
+function accentHex(){ if(getAccent()==='custom') return prefLocalLire('elan_accent_hex')||'#7A5AF8'; return ACC_SW[getAccent()]||'#1E7A4E'; }
 function accentDark(){ return ACC_DARK[getAccent()]||'#0E3B24'; }
 function userAvatarApply(){ if(!currentUser) return;
   ['brand-ini','foot-ava'].forEach(id=>{ const el=$(id); if(!el) return;
@@ -39815,12 +39911,12 @@ const MARQUES = {
   teamop:   { l:'TEAM OP',    sous:'Marine et gris-bleu',  accent:'teamop',    clair:'#F0F3F8', fonce:'#0B1426' },
   opgestion:{ l:'OP GESTION', sous:'Vert forêt et menthe', accent:'opgestion', clair:'#E4EFEA', fonce:'#0B3B2E' }
 };
-function getMarque(){ try{ const m=localStorage.getItem('elan_marque'); return MARQUES[m]?m:'teamop'; }catch(e){ return 'teamop'; } }
+function getMarque(){ const m=prefLocalLire('elan_marque'); return MARQUES[m]?m:'teamop'; }
 const THEME_LBL = { auto:'Auto (système)', light:'Mode jour', dark:'Mode sombre' };
 const THEME_ICO = { auto:'🌗', light:'☀️', dark:'🌙' };
-function getThemePref(){ return localStorage.getItem('elan_theme')||'auto'; }
+function getThemePref(){ return prefLocalLire('elan_theme')||'auto'; }
 /* Sans choix, la teinte est celle du THÈME — plus le vert d'avant. */
-function getAccent(){ return localStorage.getItem('elan_accent')||MARQUES[getMarque()].accent; }
+function getAccent(){ return prefLocalLire('elan_accent')||MARQUES[getMarque()].accent; }
 /* ⛔ L'APPARENCE SUIT LA PERSONNE, PAS LE TÉLÉPHONE. Justin, 15 septembre 2026, capture à
    l'appui : violet choisi sur son Mac, iPhone resté vert — « il faut que ça synchronise bien
    entre chaque appareil ». Thème, couleur d'accent et langue ne vivaient que dans
@@ -39842,15 +39938,32 @@ function prefEcrire(cle,val){
   if(!u.pref||typeof u.pref!=='object') u.pref={};
   if(u.pref[cle]===val) return;
   u.pref[cle]=val;
-  if(u!==currentUser) currentUser.pref=u.pref;
+  /* L'HEURE du choix, réglage par réglage : c'est elle qui départage deux copies de la fiche à la
+     synchro (`prefFusion`). Sans elle, la copie d'un appareil en retard remettait l'ancienne
+     teinte chez tout le monde. */
+  if(!u.prefTs||typeof u.prefTs!=='object') u.prefTs={};
+  u.prefTs[cle]=Date.now();
+  if(u!==currentUser){ currentUser.pref=u.pref; currentUser.prefTs=u.prefTs; }
   save();
 }
+/* ⛔ ENREGISTRER UN RÉGLAGE NE DÉFAIT JAMAIS LE GESTE QUI L'A CHOISI. `save()` range la base, PUIS
+   rafraîchit l'écran, PUIS pousse : un rafraîchissement qui jette laissait le choix rangé ici,
+   jamais envoyé, et le geste s'arrêtait avant d'appliquer la couleur (chemin 2, en tête du
+   script). L'échec est signalé à la Tour, et le choix part quand même vers l'équipe. */
+function prefGarder(cle,val){
+  try{ prefEcrire(cle,val); }
+  catch(e){ try{ if(typeof window.tmSignaler==='function') window.tmSignaler('erreur','Réglage « '+cle+' » : l’enregistrement a échoué — '+String((e&&e.message)||e).slice(0,160),e&&e.stack); }catch(_){}
+    try{ if(typeof syncPush==='function') syncPush(); }catch(_){} }
+}
+/* ⚠ La mémoire (`prefLocal`) passe AVANT le rangement : sur un appareil plein, le réglage venu de
+   la fiche s'applique quand même, et il est repris de la fiche à chaque ouverture. */
 function prefAppliquer(u){
   const p=u&&u.pref; if(!p||typeof p!=='object') return false;
   let change=false;
   Object.keys(PREF_CLES).forEach(k=>{ const v=p[k];
     if(typeof v!=='string'||!v) return;
-    try{ if(localStorage.getItem(PREF_CLES[k])===v) return; localStorage.setItem(PREF_CLES[k],v); change=true; }catch(e){} });
+    if(prefLocalLire(PREF_CLES[k])===v) return;
+    prefLocal(PREF_CLES[k],v); change=true; });
   if(change){ try{ applyTheme(); }catch(e){} try{ avatarAccentSync(); }catch(e){} }
   return change;
 }
@@ -39873,8 +39986,8 @@ function applyTheme(){
   r.setAttribute('data-accent', a||'green');
   // 🎨 Couleur personnalisée : la teinte choisie remplace le vert PARTOUT (contours, survols, sélections…)
   // Sans choix perso, la couleur de l'entreprise (Business Premium) sert de thème de couleur pour toute l'équipe
-  const hx = a==='custom' ? (localStorage.getItem('elan_accent_hex')||'#7A5AF8')
-    : (!localStorage.getItem('elan_accent') && typeof entCouleur==='function' ? entCouleur() : null);
+  const hx = a==='custom' ? (prefLocalLire('elan_accent_hex')||'#7A5AF8')
+    : (!prefLocalLire('elan_accent') && typeof entCouleur==='function' ? entCouleur() : null);
   if(hx){
     /* ⛔⛔ ON POSE LA SOURCE, PAS LES DÉRIVÉS. Cette fonction tenait CINQ jetons à la main
        (`--acc`, `--acc2`, `--on-acc`, `--acc-fill`, `--acc-fill-hover`) pendant que la feuille
@@ -39920,14 +40033,14 @@ function applyTheme(){
   // La carte suit le mode jour/nuit — par la teinte des tuiles, sans reconstruire la vue
   try{ mapNuitSync(); }catch(e){}
 }
-function setThemePref(p){ localStorage.setItem('elan_theme',p); prefEcrire('theme',p); applyTheme(); toast(THEME_ICO[p]+' '+THEME_LBL[p]); if(current==='parametres') views.parametres(); }
+function setThemePref(p){ prefLocal('elan_theme',p); applyTheme(); prefGarder('theme',p); toast(THEME_ICO[p]+' '+THEME_LBL[p]); if(current==='parametres') views.parametres(); }
 /* Le thème (TEAM OP / OP GESTION) pose SA teinte, comme dans la maquette : on choisit un thème,
    puis on peut changer la teinte. Il voyage avec la personne (`u.pref.marque`), comme le reste. */
 function setMarque(k){
   if(!MARQUES[k]) return;
-  try{ localStorage.setItem('elan_marque',k); localStorage.setItem('elan_accent',MARQUES[k].accent); }catch(e){}
-  prefEcrire('marque',k); prefEcrire('accent',MARQUES[k].accent);
+  prefLocal('elan_marque',k); prefLocal('elan_accent',MARQUES[k].accent);
   applyTheme(); try{ avatarAccentSync(); }catch(e){}
+  prefGarder('marque',k); prefGarder('accent',MARQUES[k].accent);
   if(current==='parametres') views.parametres();
 }
 /* ══ L'ÉCRAN « THÈME ET COULEUR » — la maquette de Justin (Réglages › Thème et couleur) ══════
@@ -39938,7 +40051,7 @@ function setMarque(k){
    n'est montré qu'à qui le porte déjà (retirer sa pastille le laisserait sans choix visible). */
 function themeCouleur(){
   const t=getThemePref(), a=getAccent(), mq=getMarque(), nuit=effectiveTheme()==='dark';
-  const perso=accentsPerso(), hexPerso=(localStorage.getItem('elan_accent_hex')||'').toUpperCase();
+  const perso=accentsPerso(), hexPerso=(prefLocalLire('elan_accent_hex')||'').toUpperCase();
   const liste=ACCENTS_PROPOSES.concat(a==='red'?['red']:[]);
   const coche='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>';
   const pastille=(k)=>{ const c=(ACC_PASTILLE[k]||['#8E8E93','#8E8E93'])[nuit?1:0], on=a===k;
@@ -39971,9 +40084,10 @@ function themeCouleur(){
     </div>
     <button class="btn tc-termine" onclick="closeModal()">Terminé</button></div>`);
 }
-function tcMode(k){ localStorage.setItem('elan_theme',k); prefEcrire('theme',k); applyTheme(); if(current==='parametres') views.parametres(); themeCouleur(); }
+function tcMode(k){ prefLocal('elan_theme',k); applyTheme(); prefGarder('theme',k); if(current==='parametres') views.parametres(); themeCouleur(); }
 function tcMarque(k){ setMarque(k); themeCouleur(); }
-function tcTeinte(k){ localStorage.setItem('elan_accent',k); prefEcrire('accent',k); applyTheme(); try{ avatarAccentSync(); }catch(e){}
+function tcTeinte(k){ prefLocal('elan_accent',k); applyTheme(); try{ avatarAccentSync(); }catch(e){}
+  prefGarder('accent',k);
   if(current==='parametres') views.parametres(); themeCouleur(); }
 function toggleTheme(ev){
   const o=['auto','light','dark'], suivant=o[(o.indexOf(getThemePref())+1)%3];
@@ -40421,7 +40535,7 @@ function avatarAccentSync(){ try{ if(!currentUser) return; const u=db.users.find
   else if(m.type==='avb'&&m.avb){ _avb=JSON.parse(JSON.stringify(m.avb)); avbSave(true); }
   else if(m.type==='insta'&&m.ava){ _ig=JSON.parse(JSON.stringify(m.ava)); igSave(true); }
 }catch(e){} }
-function setAccent(a){ localStorage.setItem('elan_accent',a); prefEcrire('accent',a); applyTheme(); avatarAccentSync();
+function setAccent(a){ prefLocal('elan_accent',a); applyTheme(); avatarAccentSync(); prefGarder('accent',a);
   toast('Couleur « '+(ACCENTS[a]||'personnalisée')+' » appliquée'); if(current==='parametres') views.parametres(); }
 /* Un mélange vers le noir, calculé en JavaScript — `color-mix` ne se lit pas depuis ici, et
    `encreSur` a besoin d'une couleur, pas d'une expression CSS. */
@@ -40437,32 +40551,36 @@ function melangeNoir(hex,pc){
    palette qu'on ne peut plus lire d'un coup d'œil ne sert plus à choisir. */
 const ACC_PERSO_MAX=6;
 function accentsPerso(){
-  try{ const l=JSON.parse(localStorage.getItem('elan_accents_perso')||'[]');
+  try{ const l=JSON.parse(prefLocalLire('elan_accents_perso')||'[]');
     return Array.isArray(l) ? l.filter(h=>/^#[0-9a-fA-F]{6}$/.test(h)).slice(0,ACC_PERSO_MAX) : []; }
   catch(e){ return []; }
 }
+/* Range la palette sur l'appareil et rend ce qu'il faudra enregistrer : l'appelant APPLIQUE
+   d'abord, puis enregistre (`prefGarder('accentsPerso',…)`) — la règle des gestes d'apparence. */
 function accentsPersoEcrire(l){
   const v=JSON.stringify(l.slice(0,ACC_PERSO_MAX));
-  localStorage.setItem('elan_accents_perso',v); prefEcrire('accentsPerso',v);
+  prefLocal('elan_accents_perso',v); return v;
 }
 function setAccentCustom(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
   hex=hex.toUpperCase();
   const l=accentsPerso().filter(h=>h.toUpperCase()!==hex);
-  l.unshift(hex); accentsPersoEcrire(l);
-  localStorage.setItem('elan_accent_hex',hex); localStorage.setItem('elan_accent','custom');
-  prefEcrire('accentHex',hex); prefEcrire('accent','custom');
-  applyTheme(); avatarAccentSync(); toast('🎨 Couleur ajoutée à ta palette');
+  l.unshift(hex); const v=accentsPersoEcrire(l);
+  prefLocal('elan_accent_hex',hex); prefLocal('elan_accent','custom');
+  applyTheme(); avatarAccentSync();
+  prefGarder('accentsPerso',v); prefGarder('accentHex',hex); prefGarder('accent','custom');
+  toast('🎨 Couleur ajoutée à ta palette');
   if(current==='parametres') views.parametres(); }
 function accentPersoRetirer(ev,hex){
   if(ev){ ev.stopPropagation(); ev.preventDefault(); }
   const l=accentsPerso().filter(h=>h.toUpperCase()!==String(hex).toUpperCase());
-  accentsPersoEcrire(l);
+  const v=accentsPersoEcrire(l);
   /* Retirer la couleur QU'ON PORTE laisserait l'interface teinte par une couleur absente de la
      palette : on revient à la teinte du thème, c'est le seul choix qui ne ment pas. */
-  if(getAccent()==='custom' && (localStorage.getItem('elan_accent_hex')||'').toUpperCase()===String(hex).toUpperCase()){
+  if(getAccent()==='custom' && (prefLocalLire('elan_accent_hex')||'').toUpperCase()===String(hex).toUpperCase()){
     const ac=MARQUES[getMarque()].accent;
-    localStorage.setItem('elan_accent',ac); prefEcrire('accent',ac); applyTheme(); avatarAccentSync();
+    prefLocal('elan_accent',ac); applyTheme(); avatarAccentSync(); prefGarder('accent',ac);
   }
+  prefGarder('accentsPerso',v);
   toast('Couleur retirée'); if(current==='parametres') views.parametres(); }
 /* Suit le thème système en direct quand le réglage est sur « Auto » */
 if(window.matchMedia){ try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){} }

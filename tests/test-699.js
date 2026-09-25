@@ -206,8 +206,13 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
   /* La vraie fonction, éprouvée sur un faux stockage. */
   const mem = {};
   const faux = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); } };
+  /* v747 : `prefAppliquer` range par `prefLocal` (la mémoire de repli d'un appareil plein) —
+     la garde ajoutée à une fonction qu'un banc extrait est fournie à ce banc (règle du dépôt).
+     Le cas « rangement plein » est joué dans test-808. */
   const prefAppliquer = new Function('localStorage', 'PREF_CLES',
-    extraire(APP, 'function prefAppliquer(') + '; return prefAppliquer;')(faux, cles);
+    'const _prefVue={}; const prefRangementPlein=()=>{};\n'
+    + extraire(APP, 'function prefLocal(') + '\n' + extraire(APP, 'function prefLocalLire(') + '\n'
+    + extraire(APP, 'function prefAppliquer(') + '; return prefAppliquer;')(faux, cles);
   const fiche = { id: 'u1', pref: { theme: 'light', accent: 'purple', accentHex: '#7A5AF8', lang: 'fr' } };
   v('⛔ le thème choisi ailleurs arrive sur cet appareil', prefAppliquer(fiche), true);
   v('… et il est bien posé', [mem.elan_theme, mem.elan_accent, mem.elan_accent_hex], ['light', 'purple', '#7A5AF8']);
@@ -221,10 +226,11 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
   v('⛔ appliquer n’écrit JAMAIS sur la fiche', JSON.stringify(fiche), avant);
   v('⛔ … et la fonction ne contient aucun save()', /save\(\)/.test(extraire(APP, 'function prefAppliquer(')), false);
 
-  /* Les quatre points de saisie écrivent, eux — c'est un tap, pas un chargement. */
-  v('le thème s’enregistre sur la fiche', /prefEcrire\('theme',p\)/.test(APP), true);
-  v('la couleur aussi', /prefEcrire\('accent',a\)/.test(APP), true);
-  v('la couleur personnalisée aussi', /prefEcrire\('accentHex',hex\); prefEcrire\('accent','custom'\)/.test(APP), true);
+  /* Les quatre points de saisie écrivent, eux — c'est un tap, pas un chargement. Depuis la v747
+     ils passent par `prefGarder` (l'enregistrement qui ne défait jamais le geste — test-808). */
+  v('le thème s’enregistre sur la fiche', /prefGarder\('theme',p\)/.test(APP), true);
+  v('la couleur aussi', /prefGarder\('accent',a\)/.test(APP), true);
+  v('la couleur personnalisée aussi', /prefGarder\('accentHex',hex\); prefGarder\('accent','custom'\)/.test(APP), true);
   v('la langue aussi', /prefEcrire\('lang',l\)/.test(APP), true);
   const pe = extraire(APP, 'function prefEcrire(');
   v('⛔ une valeur inchangée n’estampille pas la fiche', /if\(u\.pref\[cle\]===val\) return;/.test(pe), true);

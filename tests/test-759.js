@@ -197,7 +197,8 @@ console.log('\n══ 3. LES TEINTES — lues dans le document (§ 3) ══\n')
     v('   son voile (rubrique active, action de liste)', rgb, t.rgb);
   }
   vrai('⛔ sans choix, la teinte est celle du THÈME (TEAM OP par défaut)',
-    /function getAccent\(\)\{ return localStorage\.getItem\('elan_accent'\)\|\|MARQUES\[getMarque\(\)\]\.accent; \}/.test(NU)
+    /* v747 : lu par `prefLocalLire` (la mémoire de repli d'un appareil plein, puis le rangement) — test-808 */
+    /function getAccent\(\)\{ return prefLocalLire\('elan_accent'\)\|\|MARQUES\[getMarque\(\)\]\.accent; \}/.test(NU)
     && /return MARQUES\[m\]\?m:'teamop'/.test(NU));
 }
 

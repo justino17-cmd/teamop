@@ -252,7 +252,7 @@ const blocCss = (titre) => {
      par défaut », et la teinte par défaut est celle du thème. Qui a CHOISI une teinte la garde
      (elle est rangée) ; qui n'a rien choisi suit le thème. */
   vrai('⛔ sans choix, la teinte est celle du thème (TEAM OP par défaut)',
-    /getAccent\(\)\{ return localStorage\.getItem\('elan_accent'\)\|\|MARQUES\[getMarque\(\)\]\.accent/.test(NU)
+    /getAccent\(\)\{ return prefLocalLire\('elan_accent'\)\|\|MARQUES\[getMarque\(\)\]\.accent/.test(NU)
     && /function getMarque\(\)\{[^}]*return MARQUES\[m\]\?m:'teamop'/.test(NU));
 }
 

@@ -43,7 +43,10 @@ function decoupe(h){ const d=APP.indexOf(h); if(d<0) throw new Error('introuvabl
     try{ new Function(t); return t; }catch(e){ bout=bout.slice(0,k); } }
   throw new Error('fin introuvable : '+h); }
 
-const CODE=['const PREF_CLES=','function prefEcrire(cle,val){','function prefAppliquer(u){',
+/* v747 : `prefAppliquer` et `getThemePref` lisent et rangent par `prefLocal`/`prefLocalLire` (la
+   mémoire de repli d'un appareil plein, test-808) — fournies ici avec la chaîne. */
+const CODE=['const _prefVue={};','function prefLocal(k,v){','function prefLocalLire(k){',
+  'const PREF_CLES=','function prefEcrire(cle,val){','function prefAppliquer(u){',
   'function systemDark(){','function effectiveTheme(){','function getThemePref(){',
   'function mapSatOn(){','function mapFond(){','function mapFondBarre(){',
   'function setMapSat(on){','function mapNuitSync(){'].map(h=>decoupe(h)).join('\n');
@@ -55,7 +58,7 @@ function bac(nuitSysteme){
   const M=new Function('PANES','SYS_NUIT',`
     const LS={};
     let db={users:[]}; let currentUser=null; let current=''; const views={};
-    const save=()=>{}; const applyTheme=()=>{}; const avatarAccentSync=()=>{};
+    const save=()=>{}; const applyTheme=()=>{}; const avatarAccentSync=()=>{}; const prefRangementPlein=()=>{};
     const localStorage={ getItem:k=>(k in LS?LS[k]:null), setItem:(k,x)=>{LS[k]=String(x);}, removeItem:k=>{delete LS[k];} };
     const window={ matchMedia:q=>({matches:!!SYS_NUIT}) };
     const document={ querySelectorAll:()=>PANES.map(p=>({classList:{toggle:(c,on)=>{ on?p.cl.add(c):p.cl.delete(c); }}})) };

@@ -612,7 +612,7 @@ console.log('\n══ 5. « MA COULEUR » EST UNE PALETTE, PAS UNE CASE ══\n
      de la palette : on revient à la teinte du THÈME (thème final : TEAM OP ou OP GESTION), le
      seul choix qui ne ment pas. */
   vrai('⛔ retirer celle qu’on porte ramène à la teinte du thème',
-    /accentPersoRetirer\(ev,hex\)\{[\s\S]{0,800}const ac=MARQUES\[getMarque\(\)\]\.accent;\s*localStorage\.setItem\('elan_accent',ac\)/.test(NU));
+    /accentPersoRetirer\(ev,hex\)\{[\s\S]{0,800}const ac=MARQUES\[getMarque\(\)\]\.accent;\s*prefLocal\('elan_accent',ac\)/.test(NU));
   vrai('la liste voyage avec la personne', /accentsPerso:'elan_accents_perso'/.test(NU));
   vrai('⛔ le mélange vers le noir est calculé en JavaScript (color-mix ne se lit pas d’ici)',
     /function melangeNoir\(hex,pc\)\{/.test(NU));

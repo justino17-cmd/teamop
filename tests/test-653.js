@@ -28,8 +28,10 @@ console.log('L\'appareil remonte son diagnostic tout seul');
     /if\(!_syncGotInitial && _syncOn\) syncDiagnostic\('bloquée : premier instantané jamais reçu après 25 s'\);/.test(APP), true);
   v('…et quand une écriture n\'est pas acquittée',
     /syncDiagnostic\('ecriture non acquittee en 15 s/.test(APP), true);
+  /* ⛔ Le canal est la PORTE de la sentinelle : `tmPush` vit dans une fonction isolée et valait
+     `undefined` ici — le diagnostic n'a jamais atteint la Tour jusqu'à la v747. test-808 le JOUE. */
   v('elle emprunte le canal existant vers la Tour',
-    /if\(typeof tmPush==='function'\) tmPush\('synchro',msg,'','sync',0\);/.test(APP), true);
+    /if\(typeof window\.tmSignaler==='function'\) window\.tmSignaler\('synchro',msg,'','sync'\);/.test(APP), true);
 }
 
 console.log('\nElle ne remonte que des compteurs — jamais une donnée de client');
