@@ -10615,6 +10615,150 @@ function syncDiagnostic(motif){
     if(typeof window.tmSignaler==='function') window.tmSignaler('synchro',msg,'','sync');
   }catch(e){}
 }
+/* ══ LE DOCUMENT D'ÉQUIPE CHEZ NOUS — L'ADAPTATEUR QUI REMPLACE FIREBASE ════════════════════
+   Décision de Justin, 25 septembre 2026 : « quand j'envoie la mise à jour, Firebase est
+   supprimé ». Côté serveur : `server/documents.js`.
+
+   ⛔ LES TROIS GESTES QUE LA SYNCHRO FAISAIT À FIRESTORE, ET RIEN D'AUTRE : `get()`, `set()` (en
+   entier, ou `{merge:true}` pour la version) et `onSnapshot()`. Tout le reste — fusion, allègement,
+   garde du retard, mise de côté, regreffe des photos — ne bouge pas d'une ligne : c'est la logique
+   qu'ELAN emploie depuis des mois, éprouvée par des pannes réelles. On change le TRANSPORT, ni les
+   données ni la façon de les réunir.
+
+   ⛔ LE SDK POUSSAIT ; ICI ON ÉCOUTE, SANS PERDRE UN CHANGEMENT. `onSnapshot` devient une attente
+   longue (`/api/doc/attendre`, 25 s au plus) : le serveur répond dès qu'une écriture arrive. Après
+   une coupure (réseau, onglet mis en veille, serveur redémarré), on RELIT avant de réécouter — une
+   écriture a pu passer pendant qu'on n'écoutait pas. Et le premier instantané n'est JAMAIS « vide »
+   sur un échec : on réessaie, comme le SDK, jusqu'à avoir la vraie réponse du serveur.
+
+   ⛔ UNE ÉCRITURE QUI NE PASSE PAS NE SE PERD PAS, ET UNE ANCIENNE NE PASSE JAMAIS APRÈS UNE PLUS
+   RÉCENTE. Le SDK gardait ses écritures en file et les rejouait dans l'ordre. On en garde UNE — la
+   plus récente, qui contient les précédentes puisque la synchro pousse toujours la base entière —
+   et on la réessaie tant que le réseau manque. La promesse reste en attente pendant ce temps,
+   exactement comme chez Firestore : l'alerte des 15 s de `syncPush` garde donc tout son sens.
+
+   ⛔ LES REFUS PARLENT LA LANGUE DE FIREBASE. Version trop ancienne, entreprise fermée, clé fausse
+   ou partagée : `permission-denied`, ce que la règle Firestore rendait. Les chemins d'erreur de
+   l'application (réessais de `syncInit`, `versionRefuseeParNuage`, le toast « pas de connexion à
+   l'espace ») restent justes sans être touchés. */
+async function docPreuve(){ const c=await sauvKh(); return {t:syncTeam(), kh:(c&&c.kh)||''}; }
+function docErreur(statut,motif){ const e=new Error('document d\'équipe : '+(motif||statut||'réseau'));
+  e.code=([403,404,409,426].indexOf(statut)>=0)?'permission-denied':([400,413].indexOf(statut)>=0)?'invalid-argument':'unavailable';
+  e.statut=statut||0; e.motif=motif||''; return e; }
+async function docAppel(route,corps,ms){ const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),ms||20000);
+  try{ const r=await fetch(PUSH_API+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps),signal:ctl.signal,cache:'no-store'});
+    let j=null; try{ j=await r.json(); }catch(e){}
+    return {statut:r.status,j:j}; }
+  finally{ clearTimeout(to); } }
+/* Ce que `onSnapshot` et `get()` rendaient : `data()` rend `undefined` quand le document n'existe
+   pas, et l'instantané ne vient JAMAIS du cache — le récepteur l'attend (voir `fromCache` dans
+   `syncInit`). `_v` est notre numéro de version, que la synchro ne lit pas. */
+function docInstantane(j){ const d=(j&&j.doc&&typeof j.doc==='object')?j.doc:null;
+  return {exists:!!d, data:()=>d||undefined, metadata:{fromCache:false,hasPendingWrites:false}, _v:(j&&+j.v)||0}; }
+function docEquipe(){
+  let ecriture=null, enVol=false;   // { doc, attentes:[{ok,ko}] } : l'écriture la plus récente, en attente
+  const lire=async()=>{ const p=await docPreuve(); let r;
+    try{ r=await docAppel('/api/doc/lire',p,20000); }catch(e){ throw docErreur(0,'reseau'); }
+    if(r.statut!==200) throw docErreur(r.statut,r.j&&r.j.motif);
+    return docInstantane(r.j); };
+  const dormir=ms=>new Promise(r=>setTimeout(r,ms));
+  /* ⛔ LE SOMMEIL DE LA FILE SE COUPE — MESURÉ le 25 septembre 2026, deux appareils au navigateur :
+     le travail fait hors réseau arrivait 2,8 s après le retour du réseau à un essai, et 52 s à
+     l'essai suivant. L'écriture en attente dormait dans son délai de réessai (jusqu'à 30 s), et
+     l'envoi neuf que l'application relance au retour du réseau (`_horsLignePush`) ne faisait que
+     remplacer le document EN ATTENTE, sans réveiller personne. Un nouvel envoi, le retour du
+     réseau et le retour au premier plan coupent donc le sommeil, et le réessai repart de 1 s. */
+  let reveilPompe=null;
+  const dormirCoupable=ms=>new Promise(r=>{ const to=setTimeout(()=>{ reveilPompe=null; r(false); },ms);
+    reveilPompe=()=>{ clearTimeout(to); reveilPompe=null; r(true); }; });
+  const relancer=()=>{ if(reveilPompe) reveilPompe(); };
+  try{ window.addEventListener('online',relancer);
+    document.addEventListener('visibilitychange',()=>{ try{ if(document.visibilityState!=='hidden') relancer(); }catch(e){} }); }catch(e){}
+  async function pomper(){
+    if(enVol||!ecriture) return; enVol=true; let pause=1000;
+    try{ while(ecriture){
+      const lot=ecriture, doc=lot.doc, n=lot.attentes.length;
+      let r=null, reseau=false;
+      try{ const p=await docPreuve(); r=await docAppel('/api/doc/ecrire',{t:p.t,kh:p.kh,doc:doc},20000); }catch(e){ reseau=true; }
+      if(!reseau&&r.statut===200){
+        /* Acquittée. Si une écriture plus récente est arrivée pendant le vol, elle repart ; on ne
+           rend que les promesses que CE document couvrait. */
+        const faites=lot.attentes.splice(0,n);
+        if(lot.doc===doc){ ecriture=null; faites.push.apply(faites,lot.attentes.splice(0)); }
+        faites.forEach(a=>{ try{ a.ok(); }catch(e){} }); pause=1000; continue;
+      }
+      if(!reseau&&[400,403,404,409,413,426].indexOf(r.statut)>=0){
+        /* Un refus DÉFINITIF (forme, porte, version) : le réessayer ne le changera pas. On le rend
+           à tous ceux qui attendent, comme Firestore rendait `permission-denied`. */
+        const e=docErreur(r.statut,r.j&&r.j.motif); const tous=lot.attentes.splice(0);
+        if(ecriture===lot) ecriture=null; tous.forEach(a=>{ try{ a.ko(e); }catch(_e){} }); continue;
+      }
+      /* Réseau, 429, 503 : on réessaie, en espaçant — 15 s au plus, et tout de suite si on nous réveille. */
+      const coupe=await dormirCoupable(pause); pause=coupe?1000:Math.min(pause*2,15000);
+    } }finally{ enVol=false; }
+  }
+  return {
+    get:()=>lire(),
+    set:(doc,opts)=>{
+      /* La version de l'appareil (`{ver,verNum}`, `{merge:true}`) : petite, sans file — un essai. */
+      if(opts&&opts.merge) return (async()=>{ const p=await docPreuve(); let r;
+        try{ r=await docAppel('/api/doc/ecrire',{t:p.t,kh:p.kh,doc:doc,fusion:true},15000); }catch(e){ throw docErreur(0,'reseau'); }
+        if(r.statut!==200) throw docErreur(r.statut,r.j&&r.j.motif); })();
+      return new Promise((ok,ko)=>{
+        if(ecriture){ ecriture.doc=doc; ecriture.attentes.push({ok:ok,ko:ko}); }
+        else ecriture={doc:doc,attentes:[{ok:ok,ko:ko}]};
+        relancer(); pomper(); });
+    },
+    onSnapshot:(cb,errCb)=>{
+      let actif=true, ctl=null, v=0, livre=false;
+      /* Revenir au premier plan ou retrouver le réseau RÉVEILLE l'écoute : on coupe l'attente en
+         cours, et la boucle relit tout de suite au lieu d'attendre la fin des 25 s. */
+      const reveil=()=>{ if(!actif) return; try{ if(document.visibilityState==='hidden') return; }catch(e){} try{ if(ctl) ctl.abort(); }catch(e){} };
+      try{ window.addEventListener('online',reveil); document.addEventListener('visibilitychange',reveil); }catch(e){}
+      const arreter=()=>{ actif=false; try{ if(ctl) ctl.abort(); }catch(e){}
+        try{ window.removeEventListener('online',reveil); document.removeEventListener('visibilitychange',reveil); }catch(e){} };
+      const refus=e=>{ actif=false; arreter(); try{ if(errCb) errCb(e); }catch(_e){} };
+      (async()=>{
+        let aRelire=true, pause=1000;
+        while(actif){
+          try{
+            if(aRelire){
+              const s=await lire(); if(!actif) break; aRelire=false; pause=1000;
+              if(!livre||s._v!==v){ livre=true; v=s._v; try{ cb(s); }catch(e){} }
+              continue;
+            }
+            const p=await docPreuve(); ctl=new AbortController(); const c=ctl; const to=setTimeout(()=>c.abort(),40000); const t0=Date.now();
+            let r; try{ r=await fetch(PUSH_API+'/api/doc/attendre',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:p.t,kh:p.kh,v:v}),signal:c.signal,cache:'no-store'}); }
+            finally{ clearTimeout(to); }
+            let j=null; try{ j=await r.json(); }catch(e){}
+            if(!actif) break;
+            if(r.status===200&&j){
+              const nv=+j.v||0;
+              if(j.doc&&nv>v){ v=nv; pause=1000; try{ cb(docInstantane(j)); }catch(e){} continue; }
+              /* Le serveur est revenu EN ARRIÈRE (une restauration) : on relit tout plutôt que
+                 d'attendre pour toujours une version qu'il n'atteindra jamais. */
+              if(nv<v){ aRelire=true; continue; }
+              /* Rien de neuf : on repose la question. ⚠️ Si la réponse est revenue TOUT DE SUITE
+                 (le serveur a trop d'appareils à l'écoute et répond sans attendre), on marque une
+                 pause — sinon cette boucle deviendrait une rafale contre notre propre serveur. */
+              pause=1000; if(Date.now()-t0<1000) await dormir(2000); continue;
+            }
+            throw docErreur(r.status,j&&j.motif);
+          }catch(e){
+            if(!actif) break;
+            if(e&&e.code==='permission-denied'){ refus(e); break; }
+            /* Réseau, 429, 5xx, ou écoute réveillée : on RELIT ensuite — un changement a pu passer
+               pendant qu'on n'écoutait pas. Un réveil volontaire repart tout de suite. */
+            aRelire=true;
+            const volontaire=e&&e.name==='AbortError';
+            await dormir(volontaire?150:pause); if(!volontaire) pause=Math.min(pause*2,30000);
+          }
+        }
+      })();
+      return arreter;
+    }
+  };
+}
 async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_syncOn||_syncDemarre) return; _syncDemarre=true;
   /* ⛔ LE FLUX DU SOCLE S'AMORCE ICI, ET IL NE COÛTE RIEN TANT QU'IL EST ÉTEINT. Sa première
      boucle demande une session, reçoit `lecture:'firestore'` — servi par le cache du verdict
@@ -10624,8 +10768,10 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
      ⚠️ Jamais `await` : c'est une boucle infinie, l'attendre gèlerait le démarrage de la
      synchro — donc l'application entière, sur le chemin le plus chaud qui soit. */
   try{ opSocleFlux(); }catch(e){}
-  try{ await loadFirebase(); await syncAuth(); const fs=fbApp().firestore();   // application NOMMÉE : voir fbApp(), la session ne se mélange pas avec celle du portail client
-    _fbDoc=fs.collection('elan_teams').doc(syncTeam()); _syncOn=true; _syncGotInitial=false; try{updateSyncBtn();}catch(e){}
+  /* ⛔ PLUS DE FIREBASE (décision de Justin, 25 septembre 2026) : le document de l'équipe vit sur
+     NOTRE serveur, et `docEquipe()` en offre les trois gestes que la synchro faisait à Firestore.
+     Aucun SDK n'est plus téléchargé, aucune session anonyme n'est plus ouverte chez Google. */
+  try{ _fbDoc=docEquipe(); _syncOn=true; _syncGotInitial=false; try{updateSyncBtn();}catch(e){}
     /* ⛔ L'APPLICATION DIT ELLE-MÊME QUAND SA SYNCHRO NE PART PAS. Justin, 11 septembre 2026 :
        « c'est à nous de trouver les problèmes, ce n'est pas normal de leur faire faire ça ».
        Demander à quelqu'un chez un client de coller une commande dans une console de navigateur
@@ -10637,9 +10783,9 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
        existe déjà (tmPush → /api/bug) : visible dans la Tour et envoyé par mail. Des COMPTEURS
        et l'identifiant d'espace, jamais un nom ni une adresse — même règle que /health. */
     setTimeout(()=>{ if(!_syncGotInitial && _syncOn) syncDiagnostic('bloquée : premier instantané jamais reçu après 25 s'); },25000);
-    /* Le minimum exigé vit aussi dans Firestore (teamop_config/version) : c'est ce que la règle
-       de sécurité lit. On le lit aussi d'ici, pour se bloquer avant même de tenter une écriture. */
-    try{ fs.collection('teamop_config').doc('version').get().then(sn=>{ try{ if(sn&&sn.exists){ const x=sn.data()||{}; versionMinAppliquer(x.min); } }catch(e){} }).catch(()=>{}); }catch(e){}
+    /* Le minimum exigé ne vit plus dans Firestore : le serveur le tient (`/api/version`, que
+       `versionVerifier` lit au démarrage, au retour au premier plan et tous les quarts d'heure) et
+       refuse lui-même une écriture en dessous (`documents.js`, 426). */
     _fbUnsub=_fbDoc.onSnapshot(async snap=>{
       // Hors ligne (ou réseau trop lent), le SDK livre un instantané « depuis le cache », VIDE : il ne doit jamais
       // servir à amorcer l'espace ni à pousser quoi que ce soit — on attend un vrai instantané du serveur.
