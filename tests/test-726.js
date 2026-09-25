@@ -372,6 +372,10 @@ const menage = async () => {
            ⛔ Plus de `suivis`, `jours`, `jamaisAbonnes` depuis le 24 septembre 2026 : des
            COMPTES commerciaux publiés à qui passe — ils vivent sur la route gardée. */
         'conservation.actif',
+        /* Le document d'équipe (`documents.js`) : `copieFirebase` est un RÉGLAGE (passé à `false`
+           le jour où le projet Firebase est supprimé), pas un état qui se dégrade — `actif` et
+           les trois échecs de la dernière heure portent l'alarme. */
+        'documents.copieFirebase',
       ];
       const chemins = (o, prefixe) => Object.entries(o || {}).flatMap(([k, val]) => {
         const c = prefixe ? prefixe + '.' + k : k;

@@ -169,6 +169,13 @@ const PLAFOND_PIECES = 900;    // /api/pieces/* seules, par minute et par IP, ho
    APRÈS la preuve, dans `op-socle.js` : compté avant, il deviendrait une arme de déni de
    service — n'importe qui épuiserait le quota d'une entreprise en tapant son identifiant. */
 const PLAFOND_DONNEES = 1200;  // /api/op/* seules, par minute et par IP
+/* ⛔ LE DOCUMENT D'ÉQUIPE AUSSI — la synchro d'OP GESTION tout entière passe par là depuis la
+   sortie de Firebase (`documents.js`). Un téléphone qui écoute repose sa question toutes les
+   25 s, relit avant chaque envoi, puis écrit : vingt appareils derrière la box d'un bureau
+   dépassent les 120/min du budget global en une matinée ordinaire, et un 429 sur la synchro,
+   c'est le 11 septembre par une autre porte. Même règle que les pièces : les TROIS chemins qui
+   existent, pas le préfixe, et un vrai plafond, jamais une exemption. */
+const PLAFOND_DOCUMENTS = 1200; // /api/doc/(lire|ecrire|attendre) seules, par minute et par IP
 
 /* « espaces/(ouvrir|relance) » et non « espaces » tout court : /api/espaces/etat est appelé à
    chaque reprise d'onglet par une entreprise en attente de paiement, et le palier strict est
@@ -216,6 +223,15 @@ app.use((req, res, next) => {
     const d = (compteurs.get('d:' + ip) || 0) + 1;
     compteurs.set('d:' + ip, d);
     if (d > PLAFOND_DONNEES) return tropDeRequetes(res);
+    return next();
+  }
+
+  /* Le document d'équipe compte à part — voir PLAFOND_DOCUMENTS. `/i` pour la même raison que
+     les pièces : Express route sans tenir compte de la casse. */
+  if (documentsMod && /^\/api\/doc\/(lire|ecrire|attendre)\/?$/i.test(req.path)) {
+    const dd = (compteurs.get('doc:' + ip) || 0) + 1;
+    compteurs.set('doc:' + ip, dd);
+    if (dd > PLAFOND_DOCUMENTS) return tropDeRequetes(res);
     return next();
   }
 
@@ -416,6 +432,12 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      seul — une alarme qui sonne sur un état voulu devient du bruit, puis une alarme qu'on
      ignore, puis une alarme qui ne sert plus à rien le jour où elle dit vrai. */
   portail: etatPortail,
+  /* Le document d'équipe rangé chez nous (`documents.js`) — la synchro d'OP GESTION depuis la
+     sortie de Firebase. Des compteurs et des booléens, jamais un identifiant d'espace.
+     `surveillance.js` crie sur un module non monté, un document illisible, une écriture ou une
+     copie depuis Firebase qui échouent : chacun de ces états est une entreprise qui ne se
+     synchronise plus, et aucun ne se voit depuis l'application d'une autre. */
+  documents: documentsMod ? documentsMod.sante() : { actif: false, erreur: 'montage' },
   /* L'horloge des 24 mois : tourne-t-elle, son dernier balayage a-t-il réussi, y a-t-il AU
      MOINS une entreprise en préavis, AU MOINS une échue. ⛔⛔ DES BOOLÉENS, PLUS AUCUN NOMBRE
      (24 septembre 2026, relevé par `gardien`) : les comptes — combien ne paient pas, combien de
@@ -3293,6 +3315,9 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
       const r = await fbAdminFetch('https://firestore.googleapis.com/v1/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t), { method: 'DELETE' }, tok);
       efface = r.ok;
     } catch (err) { console.error('renaitre effacement :', err.message); } }
+    /* Et sa copie CHEZ NOUS (`documents.js`), sans condition : c'est nous qui la tenons, aucun
+       réseau ne peut la faire échouer. Oubliée, l'ancienne entreprise renaîtrait ici. */
+    if (documentsMod) { try { documentsMod.effacer(t); } catch (err) {} }
   }
   /* ⛔ LA QUATRIÈME PORTE, trouvée par `gardien` le 11 septembre. Celle-ci n'ajoute PAS à
      `entFermes` — elle fait repartir un espace à neuf — mais elle efface le document Firestore
@@ -5178,7 +5203,7 @@ async function fbAdminJeton() {
     const tm = setTimeout(() => ctrl.abort(), 10000);
     let r;
     try {
-      r = await fetch('https://oauth2.googleapis.com/token', { method: 'POST',
+      r = await fetch(process.env.TEAMOP_FB_OAUTH_URL || 'https://oauth2.googleapis.com/token', { method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer') + '&assertion=' + jwtSans + '.' + sig,
         signal: ctrl.signal });
@@ -5265,6 +5290,28 @@ async function fbAdminFetch(url, opts, tok) {
   const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 10000);
   try { return await fetch(url, Object.assign({}, opts, { headers: Object.assign({ 'Authorization': 'Bearer ' + tok }, (opts || {}).headers || {}), signal: ctrl.signal })); }
   finally { clearTimeout(tm); }
+}
+/* ⛔ LE DOCUMENT D'ÉQUIPE TEL QUE FIREBASE LE GARDE — pour la copie vers `documents.js`, et pour
+   elle seule. Trois réponses, jamais deux : `{existe:false}` sur un 404 (cette entreprise n'a
+   JAMAIS rien écrit), `{existe:true, champs}` sur un 200, et `null` pour TOUT le reste — clé
+   d'administration absente, jeton refusé, réseau, 5xx. `null` veut dire « on ne sait pas » :
+   le prendre pour « vide » ferait croire à l'application que l'équipe est neuve.
+   ⚠️ `TEAMOP_FIRESTORE_URL` ne sert qu'aux bancs, qui parlent à un Firestore de banc sur
+   127.0.0.1 ; il ne se pose pas sur le VPS. */
+const FIRESTORE_URL = process.env.TEAMOP_FIRESTORE_URL || 'https://firestore.googleapis.com/v1';
+async function fbLireDocument(collection, t) {
+  const tok = await fbAdminJeton();
+  if (!tok) return null;
+  let r;
+  try {
+    r = await fbAdminFetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/'
+      + encodeURIComponent(collection) + '/' + encodeURIComponent(t), { method: 'GET' }, tok);
+  } catch (e) { return null; }
+  if (r.status === 404) return { existe: false };
+  if (!r.ok) { console.error('copie firebase : lecture refusée — HTTP', r.status); return null; }
+  let j = null; try { j = await r.json(); } catch (e) { return null; }
+  if (!j || typeof j !== 'object') return null;
+  return { existe: true, champs: require('./documents').champsFirestore(j.fields || {}), majFirebase: String(j.updateTime || '') };
 }
 // supprime le compte du site (connexion) + fiche + messagerie d'un client — via la clé admin
 async function fbSupprimerCompteSite(email) {
@@ -5475,6 +5522,8 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
       clearTimeout(tm);
       if (r.ok) effaces++; else console.error('effacement firestore', t, ': HTTP', r.status);
     } catch (e) { console.error('effacement firestore', t, ':', e.message); }
+    /* Le document rangé chez nous part aussi — voir `documents.js`, `effacer`. */
+    if (documentsMod) { try { documentsMod.effacer(t); } catch (e) {} }
   }
   /* ⛔ LES PIÈCES JOINTES PARTENT AVEC LE DOCUMENT (16 septembre 2026). Le commentaire
      au-dessus promet « plus rien n'est enregistré, la place est libérée » : à partir du moment
@@ -5969,6 +6018,10 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
     fait.donneesEffacees = r.ok;
     if (!r.ok) console.error('suppression firestore', t, ': HTTP', r.status);
   } catch (e) { console.error('suppression firestore', t, ':', e.message); }
+  /* Le document rangé chez nous (`documents.js`) : effacé sans condition, et DIT — la Tour
+     affiche ce que la suppression a vraiment fait, pas ce qu'on croit qu'elle a fait. */
+  fait.documentEfface = false;
+  if (documentsMod) { try { fait.documentEfface = documentsMod.effacer(t); } catch (e) {} }
   if (jeton && !jetonAdmin) { try { await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
 
@@ -8021,6 +8074,22 @@ function rappelsEcheances() {
 }
 setTimeout(rappelsEcheances, 90 * 1000);      // un premier passage peu après le démarrage
 setInterval(rappelsEcheances, 6 * 3600000);   // puis toutes les 6 heures
+
+/* ══ LE DOCUMENT D'ÉQUIPE, CHEZ NOUS — LA SORTIE DE FIREBASE (voir `server/documents.js`) ════
+   ⛔ MONTÉ ICI, EN FIN DE FICHIER, ET C'EST UNE PRÉCAUTION MESURÉE. Le module a besoin de
+   `sauvRefus` (qui lit `ESPACES_INTOUCHABLES`), de `versionsCfg` et de `FB_PROJET` : trois
+   `const`/`let` déclarés des centaines de lignes après le montage des pièces jointes. Monté
+   là-haut, le premier appel au montage aurait touché une zone morte temporelle — la faute exacte
+   qui a éteint toute la sauvegarde hors site le 19 septembre 2026, avalée par un `catch`.
+   `versionMin` est une FONCTION pour la même raison : lue à chaque requête, jamais au montage.
+   Et s'il refuse de se monter, le reste du serveur continue — `/health` dit `actif:false`. */
+let documentsMod = null;
+try {
+  documentsMod = require('./documents').monterDocuments(app, { config, DATA_DIR, sauvRefus, cleEstPublique, quotaOk, monStr,
+    versionMin: () => versionsCfg.min, fbLireDocument });
+} catch (e) {
+  console.error('documents d\'équipe non montés :', e.message);
+}
 
 /* ══ AUCUNE ROUTE NE DOIT ÊTRE DÉCLARÉE DEUX FOIS ══════════════════════════════════════════
    ⛔ LA PREMIÈRE ENREGISTRÉE GAGNE, ET LA SECONDE NE RÉPOND JAMAIS — sans un mot. C'est arrivé :

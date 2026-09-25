@@ -66,3 +66,7 @@ tests/test-803.js
 # 24 septembre 2026 : `restaurer.js` exécuté comme le jour du sinistre — sans config.json, contre un
 # coffre local qui porte copies du jour ET mensuelle. Il ne lit aucune page : il passe partout.
 tests/test-805.js
+# 25 septembre 2026 : la sortie de Firebase — le document d'équipe rangé chez nous (`documents.js`),
+# sa copie depuis un Firestore de banc sur 127.0.0.1, ses portes et son écoute. Il ne lit aucune page :
+# il passe contre `main` comme contre la branche.
+tests/test-809.js
