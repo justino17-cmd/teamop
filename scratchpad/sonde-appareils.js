@@ -36,7 +36,10 @@ const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { k
       currentUser=db.users[0]; try{ localStorage.setItem('elanB_onboarded_'+currentUser.id,'1'); localStorage.setItem('elanB_lang','fr'); }catch(e){} enterApp(currentUser); return 1;`);
     await dormir(1300);
     await S.ev(`window.confirm=()=>true; window.alert=()=>{}; try{ betaRemplir(false); }catch(e){} return 1;`); await dormir(2500);
-    await S.ev(`window.confirm=()=>false; try{ closeModal(); }catch(e){} setPlatForce('${P.plat}'); setThemePref('${P.theme}'); try{ localStorage.setItem('elanB_aside','1'); renderNav(); }catch(e){} return 1;`);
+    /* MARQUE=logo|opgestion|teamop : le THÈME (data-marque) sous lequel on parcourt — le troisième,
+       « Logo OP GESTION » (v747), change la forme de l'en-tête du tableau de bord. */
+    await S.ev(`window.confirm=()=>false; try{ closeModal(); }catch(e){} setPlatForce('${P.plat}'); setThemePref('${P.theme}'); ${process.env.MARQUE ? "try{ setMarque(" + JSON.stringify(process.env.MARQUE) + "); }catch(e){}" : ''} try{ localStorage.setItem('elanB_aside','1'); renderNav(); }catch(e){} return 1;`);
+    if (process.env.MARQUE) console.log('  thème : ' + await S.ev(`return document.documentElement.getAttribute('data-marque');`));
     await dormir(1500);
     /* LONGUES=1 : les données de démonstration sont COURTES (« 0h00 », « Client de test 3 ») et
        flattent toute mise en page. On pose les valeurs les plus longues plausibles avant de
