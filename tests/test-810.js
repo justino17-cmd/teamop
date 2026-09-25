@@ -69,7 +69,8 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
   inscrire('ent-a', 'ent-a810', 'CLE-A-810-QWZX', 1);
   inscrire('ent-p', 'ent-p810', 'CLE-P-810-QWZX', 2);   // Firebase en panne au premier accès
   inscrire('ent-f', 'ent-f810', 'CLE-F-810-QWZX', 3);   // fermée
-  inscrire('ent-s', 'ent-s810', 'ELAN-GESTION-7F3A9C2E-cloud-2026', 4);   // encore sur la clé partagée (écrite en clair dans app.html)
+  inscrire('ent-s', 'ent-s810', 'ELAN-GESTION-7F3A9C2E-cloud-2026', 4);
+  inscrire('ent-c', 'ent-c810', 'CLE-C-810-QWZX', 5);   // l'entreprise qu'un appareil rejoint en quittant A   // encore sur la clé partagée (écrite en clair dans app.html)
   fs.mkdirSync(path.join(banc, 'data'), { recursive: true });
   fs.writeFileSync(path.join(banc, 'data', 'espaces.json'), JSON.stringify(annuaire));
   fs.writeFileSync(path.join(banc, 'data', 'entreprises-fermees.json'), JSON.stringify({ emails: [], espaces: ['ent-f810'], suspendus: [], suspendusLe: {} }));
@@ -195,6 +196,39 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
     for (let i = 0; i < 80 && (R.compte['/api/doc/lire'] || 0) === lecturesAvant; i++) await dormir(100);
     v('⛔ une version plus basse sans coupure : l\'écoute RELIT au lieu d\'attendre pour toujours', (R.compte['/api/doc/lire'] || 0) > lecturesAvant, true);
     A.api(B); relais.close();
+
+    /* ── ⛔ UNE ÉCRITURE EN ATTENTE N'ÉCHOIT JAMAIS À L'ENTREPRISE D'APRÈS. Changer d'entreprise écrit
+       la nouvelle puis recharge 0,6 s plus tard ; `docPreuve()` lit l'entreprise COURANTE. Sans la
+       garde, le document chiffré pour A partait chez C au retour du réseau. ── */
+    const vA0 = (await dA.get())._v;
+    const Y = appareil('ent-a810', E['ent-a810']); const dY = Y.docEquipe();
+    Y.api(MORT);
+    let finY = null;
+    const py = dY.set(Object.assign({}, DOC_A, { enc: 'RUNSSVQtUE9VUi1B', writer: 'dev-y', ts: 1727000007000, ver: '748', verNum: 748 })).then(() => { finY = 'faite'; }, e => { finY = 'abandonnée:' + (e && e.motif); });
+    await dormir(1500);
+    Y.stock.elan_sync_team = 'ent-c810'; Y.stock.elan_sync_secret = E['ent-c810'];   // le lien d'une autre entreprise, AVANT le rechargement
+    Y.api(B); Y.declencher('online');
+    await Promise.race([py, dormir(6000)]);
+    v('⛔ l\'écriture chiffrée pour A n\'est JAMAIS envoyée à l\'entreprise d\'après : abandonnée', finY, 'abandonnée:espace_change');
+    const lireC = await fetch(B + '/api/doc/lire', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: 'ent-c810', kh: kh(E['ent-c810']) }) }).then(r => r.json());
+    v('   rien n\'est arrivé chez C', lireC.doc, null);
+    v('   ni chez A', (await dA.get())._v, vA0);
+    let eY = null; await dY.set(Object.assign({}, DOC_A, { ver: '748', verNum: 748 })).catch(e => { eY = e; });
+    v('   et un NOUVEL envoi de cette instance est refusé sur-le-champ, sans rien envoyer', [eY && eY.motif, (await dA.get())._v], ['espace_change', vA0]);
+
+    /* ── ⛔ « DÉSACTIVER LA SYNCHRO » ARRÊTE LA FILE — l'écoute s'arrêtait, pas l'écriture en réessai ── */
+    const Z = appareil('ent-a810', E['ent-a810']); const dZ = Z.docEquipe();
+    vrai('l\'adaptateur sait s\'arrêter (`arreter`)', typeof dZ.arreter === 'function');
+    Z.api(MORT);
+    let finZ = null;
+    const pz = dZ.set(Object.assign({}, DOC_A, { enc: 'REVTQUNUSVZFRQ==', writer: 'dev-z', ts: 1727000008000, ver: '748', verNum: 748 })).then(() => { finZ = 'faite'; }, e => { finZ = 'abandonnée:' + (e && e.motif); });
+    await dormir(1200);
+    if (typeof dZ.arreter === 'function') dZ.arreter();
+    Z.api(B); Z.declencher('online');
+    await Promise.race([pz, dormir(5000)]);
+    v('⛔ la synchro désactivée : l\'écriture en attente est rendue SANS être envoyée', [finZ, (await dA.get())._v], ['abandonnée:arret', vA0]);
+    const dis = bloc('async function syncDisable(').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    vrai('⛔ et `syncDisable` l\'arrête vraiment (`_fbDoc.arreter()` avant d\'oublier `_fbDoc`)', /_fbDoc\.arreter\(\)[\s\S]*_fbDoc\s*=\s*null/.test(dis));
 
     /* ── les refus parlent la langue de Firebase ── */
     let e1 = null; await dA.set(Object.assign({}, DOC_A, { verNum: 695, ver: '695' })).catch(e => { e1 = e; });

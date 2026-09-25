@@ -10570,8 +10570,22 @@ function docRefusVu(e){ try{ if(e&&(e.statut===403||e.statut===409)){ _jetonRefu
 function docInstantane(j){ const d=(j&&j.doc&&typeof j.doc==='object')?j.doc:null;
   return {exists:!!d, data:()=>d||undefined, metadata:{fromCache:false,hasPendingWrites:false}, _v:(j&&+j.v)||0}; }
 function docEquipe(){
-  let ecriture=null, enVol=false;   // { doc, attentes:[{ok,ko}] } : l'écriture la plus récente, en attente
-  const lire=async()=>{ const p=await docPreuve(); let r;
+  let ecriture=null, enVol=false, arrete=false;   // { doc, attentes:[{ok,ko}] } : l'écriture la plus récente, en attente
+  /* ⛔ UNE SYNCHRO APPARTIENT À UNE ENTREPRISE, POUR TOUJOURS. Changer d'entreprise (le lien, le
+     « Code espace ») écrit la nouvelle PUIS recharge la page 0,6 s plus tard, et `docPreuve()` lit
+     l'entreprise COURANTE à chaque appel. Pendant ce battement, une écriture en attente — ou un
+     envoi que `syncPush` venait de chiffrer avec la NOUVELLE clé, sur la base de l'ANCIENNE —
+     partait chez la nouvelle entreprise, qui l'aurait lue et fusionnée : les clients d'une
+     entreprise chez une autre. Firestore, lui, gardait l'écriture attachée au document d'origine.
+     L'instance retient donc l'entreprise pour laquelle elle est née, et se tait dès qu'elle a
+     changé. ⚠️ La CLÉ, elle, peut changer sans rechargement (`syncSetSecret`) : ce n'est pas une
+     autre entreprise, et l'envoi qui suit la suit. */
+  const tEq=syncTeam();
+  const horsJeu=()=>arrete||syncTeam()!==tEq;
+  const motifHorsJeu=()=>arrete?'arret':'espace_change';
+  /* Rendre une écriture sans l'envoyer : ceux qui l'attendaient l'apprennent (la synchro le journalise). */
+  const abandonner=(lot,motif)=>{ const e=docErreur(0,motif); const tous=lot.attentes.splice(0); if(ecriture===lot) ecriture=null; tous.forEach(a=>{ try{ a.ko(e); }catch(_e){} }); };
+  const lire=async()=>{ if(horsJeu()) throw docErreur(0,motifHorsJeu()); const p=await docPreuve(); if(p.t!==tEq) throw docErreur(0,'espace_change'); let r;
     try{ r=await docAppel('/api/doc/lire',p,20000); }catch(e){ throw docErreur(0,'reseau'); }
     if(r.statut!==200) throw docErreur(r.statut,r.j&&r.j.motif);
     return docInstantane(r.j); };
@@ -10592,8 +10606,9 @@ function docEquipe(){
     if(enVol||!ecriture) return; enVol=true; let pause=1000;
     try{ while(ecriture){
       const lot=ecriture, doc=lot.doc, n=lot.attentes.length;
+      if(horsJeu()){ abandonner(lot,motifHorsJeu()); continue; }
       let r=null, reseau=false;
-      try{ const p=await docPreuve(); r=await docAppel('/api/doc/ecrire',{t:p.t,kh:p.kh,doc:doc},20000); }catch(e){ reseau=true; }
+      try{ const p=await docPreuve(); if(p.t!==tEq){ abandonner(lot,'espace_change'); continue; } r=await docAppel('/api/doc/ecrire',{t:p.t,kh:p.kh,doc:doc},20000); }catch(e){ reseau=true; }
       if(!reseau&&r.statut===200){
         /* Acquittée. Si une écriture plus récente est arrivée pendant le vol, elle repart ; on ne
            rend que les promesses que CE document couvrait. */
@@ -10614,8 +10629,9 @@ function docEquipe(){
   return {
     get:()=>lire(),
     set:(doc,opts)=>{
+      if(horsJeu()) return Promise.reject(docErreur(0,motifHorsJeu()));
       /* La version de l'appareil (`{ver,verNum}`, `{merge:true}`) : petite, sans file — un essai. */
-      if(opts&&opts.merge) return (async()=>{ const p=await docPreuve(); let r;
+      if(opts&&opts.merge) return (async()=>{ const p=await docPreuve(); if(p.t!==tEq) throw docErreur(0,'espace_change'); let r;
         try{ r=await docAppel('/api/doc/ecrire',{t:p.t,kh:p.kh,doc:doc,fusion:true},15000); }catch(e){ throw docErreur(0,'reseau'); }
         if(r.statut!==200) throw docErreur(r.statut,r.j&&r.j.motif); })();
       return new Promise((ok,ko)=>{
@@ -10635,13 +10651,14 @@ function docEquipe(){
       (async()=>{
         let aRelire=true, pause=1000;
         while(actif){
+          if(horsJeu()){ arreter(); break; }   // une autre entreprise, ou la synchro désactivée : on se tait
           try{
             if(aRelire){
               const s=await lire(); if(!actif) break; aRelire=false; pause=1000;
               if(!livre||s._v!==v){ livre=true; v=s._v; try{ cb(s); }catch(e){} }
               continue;
             }
-            const p=await docPreuve(); ctl=new AbortController(); const c=ctl; const to=setTimeout(()=>c.abort(),40000); const t0=Date.now();
+            const p=await docPreuve(); if(p.t!==tEq){ arreter(); break; } ctl=new AbortController(); const c=ctl; const to=setTimeout(()=>c.abort(),40000); const t0=Date.now();
             let r; try{ r=await fetch(PUSH_API+'/api/doc/attendre',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:p.t,kh:p.kh,v:v}),signal:c.signal,cache:'no-store'}); }
             finally{ clearTimeout(to); }
             let j=null; try{ j=await r.json(); }catch(e){}
@@ -10670,7 +10687,11 @@ function docEquipe(){
         }
       })();
       return arreter;
-    }
+    },
+    /* « Désactiver la synchro » : la file se vide SANS envoyer, et plus rien ne part de cette
+       instance. Avant, l'écoute s'arrêtait mais une écriture en réessai continuait, et partait
+       au retour du réseau — après que la personne eut dit « stop ». */
+    arreter:()=>{ arrete=true; if(ecriture) abandonner(ecriture,'arret'); relancer(); }
   };
 }
 async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_syncOn||_syncDemarre) return; _syncDemarre=true;
@@ -12522,7 +12543,7 @@ function miseDeCoteExporter(ts){ miseDeCoteListe().then(l=>{ const x=l.find(y=>y
 async function syncDisable(){
   if(!await cleCodeExiger('Désactiver la synchronisation sur cet appareil')) return;
   localStorage.setItem('elanB_sync_on','0');
-  try{ if(_fbUnsub) _fbUnsub(); }catch(e){} _fbUnsub=null; _fbDoc=null; _syncOn=false; _syncDemarre=false; _syncGotInitial=false;   // l'écoute est vraiment coupée ; « Réactiver » repart de zéro
+  try{ if(_fbUnsub) _fbUnsub(); }catch(e){} try{ if(_fbDoc&&_fbDoc.arreter) _fbDoc.arreter(); }catch(e){} _fbUnsub=null; _fbDoc=null; _syncOn=false; _syncDemarre=false; _syncGotInitial=false;   // l'écoute est vraiment coupée ; « Réactiver » repart de zéro
   toast('Synchro désactivée sur cet appareil'); if(current==='parametres') views.parametres(); }
 /* ── Notifications push — serveur api.teamop.fr ── */
 const PUSH_API='https://api.teamop.fr';
