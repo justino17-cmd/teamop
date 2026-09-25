@@ -159,7 +159,7 @@ console.log('\n══ 3. UNE COPIE PLUS ANCIENNE DE LA FICHE NE DÉFAIT PLUS UN 
   v('un compte présent d\'un seul côté reste tel quel', M.usersFusionner(cp(seul),[],[],false)[0].pref, {accent:'teal'});
   v('prefFusion rend le nombre de réglages repris', M.prefFusion(cp(labas),cp(ici)), 1);
   /* LA CHAÎNE ENTIÈRE : le VRAI geste pose l'heure, puis une copie qui ne l'a jamais reçu arrive */
-  const {M:Ap}=bac({}); Ap.tcTeinte('blue');
+  const {M:Ap}=bac({}); joue('le vrai geste', ()=>Ap.tcTeinte('blue'));
   const perime=[{id:'u1',login:'justin',actif:true,pref:{accent:'teamop'}}];
   v('⛔ le vrai geste, puis la copie d\'un appareil en retard : la teinte choisie reste', Ap.usersFusionner([Ap.u()],cp(perime),[],false)[0].pref.accent, 'blue');
   v('… zéro contre elle-même', (o=>M.prefFusion(o,o))(cp(ici)), 0);
@@ -177,9 +177,9 @@ console.log('\n══ 4. AU CHARGEMENT : on APPLIQUE la fiche, on n\'écrit rien
 
 console.log('\n══ 4 bis. LA MÉMOIRE N\'EST QU\'UN REPLI — elle ne masque jamais le rangement qui accepte ══\n');
 { const O={plein:true}, {M}=bac(O);
-  M.tcTeinte('blue');
+  joue('« Bleu » sur un appareil plein', ()=>M.tcTeinte('blue'));
   v('appareil plein : la teinte vit en mémoire', M.prefLocalLire('elan_accent'), 'blue');
-  O.plein=false; M.tcTeinte('pink');
+  O.plein=false; joue('« Rose » quand la place revient', ()=>M.tcTeinte('pink'));
   v('la place revient : la teinte est RANGÉE', M.lire('elan_accent'), 'pink');
   v('… et c\'est le rangement qui fait foi', M.prefLocalLire('elan_accent'), 'pink');
   const fiche={id:'u1',pref:{carte:'s'}};
