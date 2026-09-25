@@ -157,9 +157,9 @@ console.log('\n══ 3. UNE COPIE PLUS ANCIENNE DE LA FICHE NE DÉFAIT PLUS UN 
   v('un compte présent d\'un seul côté reste tel quel', M.usersFusionner(cp(seul),[],[],false)[0].pref, {accent:'teal'});
   v('prefFusion rend le nombre de réglages repris', M.prefFusion(cp(labas),cp(ici)), 1);
   /* LA CHAÎNE ENTIÈRE : le VRAI geste pose l'heure, puis une copie qui ne l'a jamais reçu arrive */
-  const {M:A}=bac({}); A.tcTeinte('blue');
+  const {M:Ap}=bac({}); Ap.tcTeinte('blue');
   const perime=[{id:'u1',login:'justin',actif:true,pref:{accent:'teamop'}}];
-  v('⛔ le vrai geste, puis la copie d\'un appareil en retard : la teinte choisie reste', A.usersFusionner([A.u()],cp(perime),[],false)[0].pref.accent, 'blue');
+  v('⛔ le vrai geste, puis la copie d\'un appareil en retard : la teinte choisie reste', Ap.usersFusionner([Ap.u()],cp(perime),[],false)[0].pref.accent, 'blue');
   v('… zéro contre elle-même', (o=>M.prefFusion(o,o))(cp(ici)), 0);
 }
 
