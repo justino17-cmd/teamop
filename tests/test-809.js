@@ -321,6 +321,18 @@ console.log('\n── 809 · le document d\'équipe rangé chez nous — la sort
     const rendu = await ecoute;
     v('   l\'appareil qui écoutait est relâché tout de suite', rendu && rendu.inchange, true);
     v('un nom dangereux ne peut rien effacer', [mod.effacer('../documents'), mod.effacer('')], [false, false]);
+    /* ⛔ ICI LA GARDE DU NOM EST SEULE. Sur le vrai serveur, `sauvRefus` refuse d'abord tout espace
+       inconnu — la mutation « nom non contrôlé » y passait donc SANS RIEN CASSER (mesuré : 68 ✓).
+       Mais deux chemins ne passent pas par `sauvRefus` : les espaces techniques, et `effacer`,
+       appelé par les portes de la Tour. On retire donc la première garde (`sauvRefus` rend `null`
+       dans ce module de banc) et on regarde ce que fait un nom qui SORT du dossier. */
+    fs.writeFileSync(path.join(dir2, 'victime.json'), '{"a":1}');
+    const hors = await fetch(B2 + '/api/doc/lire', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ t: '../victime', kh: 'x' }) });
+    v('⛔ « ../victime » : refusé (400) avant de toucher un fichier', hors.status, 400);
+    v('⛔ effacer(« ../victime ») ne sort pas du dossier', [mod.effacer('../victime'), fs.existsSync(path.join(dir2, 'victime.json'))], [false, true]);
+    const ailleurs = fs.readdirSync(dir2).filter(f => f !== 'documents' && f !== 'victime.json');
+    v('   et rien n\'a été écrit hors du dossier des documents', ailleurs, []);
     srv2.close(); try { fs.rmSync(dir2, { recursive: true, force: true }); } catch (e) {}
   }
 
