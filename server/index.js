@@ -38,6 +38,23 @@ if (config.smtp && config.smtp.host) {
 }
 
 const app = express();
+/* ⛔ UNE ROUTE `async` QUI REJETTE LAISSAIT LA REQUÊTE PENDUE (`gardien`, N1). Express 4 ne
+   regarde pas la promesse que rend un gestionnaire : une exception après un `await` devenait un
+   rejet orphelin (compté par le filet du processus, plus bas), et la personne en face attendait
+   jusqu'au délai du mandataire — une minute — une réponse qui ne viendrait jamais. Chaque
+   gestionnaire est enveloppé à l'enregistrement : un rejet va au middleware d'erreur final, qui
+   répond en texte brut, sans pile, et compte l'incident. Fait main plutôt qu'une dépendance de
+   plus (`express-async-errors` réécrit les entrailles du routeur). Un middleware d'erreur (quatre
+   paramètres) n'est pas touché : Express le reconnaît à son arité, et l'enveloppe en a trois. */
+const enveloppe = (fn) => (typeof fn !== 'function' || fn.length >= 4) ? fn : function (req, res, next) {
+  let r; try { r = fn.apply(this, arguments); } catch (e) { return next(e); }
+  if (r && typeof r.then === 'function') r.then(null, next);
+  return r;
+};
+for (const m of ['get', 'post', 'put', 'delete', 'patch', 'all', 'use']) {
+  const brut = app[m].bind(app);
+  app[m] = (...a) => brut(...a.map(enveloppe));
+}
 
 // Le serveur n'écoute que sur 127.0.0.1, derrière un proxy : sans ceci, toutes
 // les requêtes auraient la même IP (celle du proxy) et l'anti-abus plus bas

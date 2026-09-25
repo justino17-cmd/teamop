@@ -41,6 +41,36 @@ console.log('\n── 812 · le filet du serveur : jamais une pile dans une rép
     v('⛔ et jamais son MESSAGE (qui peut porter une adresse ou un nom de client)', /client@exemple\.fr/.test(r.stderr + r.stdout), false);
   }
 
+  /* ── 1 bis. une route `async` qui rejette (`gardien`, N1) : l'enveloppe ET le filet final du
+     fichier réel, joués sur une application neuve — on ne peut pas faire rejeter une route du
+     serveur sans lui ajouter une porte pour ça. ── */
+  {
+    const i = SRC.indexOf('const enveloppe = (fn) =>'), j = SRC.indexOf("// Le serveur n'écoute que sur 127.0.0.1", i);
+    const k = SRC.indexOf("app.use((req, res) => { res.status(404)"), l = SRC.indexOf('const PORT = process.env.PORT', k);
+    vrai('l\'enveloppe des routes et le filet final existent dans le serveur', i > 0 && j > i && k > 0 && l > k);
+    const script = 'const express = require(' + JSON.stringify(path.join(RACINE, 'server', 'node_modules', 'express')) + '); const app = express();\n'
+      + 'const incidentNoter = () => {}; const incidentOu = () => "";\n' + SRC.slice(i, j) + `
+      app.set('trust proxy', 1);
+      app.get('/async', async (req, res) => { await null; throw new Error('boum'); });
+      app.get('/sync', (req, res) => { throw new Error('boum'); });
+      app.get('/bon', async (req, res) => { await null; res.json({ ok: true }); });
+      app.get('/perso', async (req, res) => { await null; throw Object.assign(new Error('x'), { code: 'PERSO' }); });
+      app.use((err, req, res, next) => { if (err && err.code === 'PERSO') return res.status(418).type('text/plain').send('perso'); next(err); });
+      ` + SRC.slice(k, l) + `
+      const s = app.listen(0, '127.0.0.1', async () => { const b = 'http://127.0.0.1:' + s.address().port; const out = {};
+        for (const r of ['/async', '/sync', '/bon', '/perso']) { const t0 = Date.now(); const c = new AbortController(); const to = setTimeout(() => c.abort(), 5000);
+          try { const x = await fetch(b + r, { signal: c.signal }); out[r] = [x.status, (await x.text()).slice(0, 40), Date.now() - t0 < 3000]; } catch (e) { out[r] = ['PENDUE']; } clearTimeout(to); }
+        out.reglage = app.get('trust proxy');
+        console.log(JSON.stringify(out)); s.close(); process.exit(0); });`;
+    const r = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8', timeout: 30000 });
+    let o = {}; try { o = JSON.parse(String(r.stdout || '').trim().split('\n').pop()); } catch (e) {}
+    v('⛔ N1 — une route async qui rejette RÉPOND (500, texte brut), au lieu de pendre jusqu\'au délai du mandataire', o['/async'], [500, 'erreur du serveur', true]);
+    v('   une exception synchrone, pareil', o['/sync'], [500, 'erreur du serveur', true]);
+    v('   une route qui marche n\'est pas touchée', o['/bon'], [200, '{"ok":true}', true]);
+    v('   un middleware d\'erreur (quatre paramètres) en reste un — il n\'est pas enveloppé', o['/perso'], [418, 'perso', true]);
+    v('   et `app.get(réglage)` lit toujours un réglage, il n\'est pas pris pour une route', o.reglage, 1);
+  }
+
   /* ── 2. le vrai serveur ── */
   let webpush; try { webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push')); }
   catch (e) { console.log('  … partie serveur SAUTÉE : server/node_modules absent'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
