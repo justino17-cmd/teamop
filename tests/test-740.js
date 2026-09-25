@@ -40,7 +40,7 @@ let enfant = null;
    donc entre deux déclarations réelles. */
 function extraire() {
   const i = PAGE.indexOf('const API_PORTAIL');
-  const j = PAGE.indexOf('const _pv = PORTAIL_SERVEUR');
+  const j = PAGE.indexOf('const _pv = portailMaison();');
   if (i < 0 || j < 0 || j <= i) return null;
   return PAGE.slice(i, j);
 }
@@ -108,20 +108,25 @@ const arreter = async () => {
 };
 
 (async () => {
-  console.log('\n══ 1. L\'INTERRUPTEUR EST FERMÉ, ET LA PAGE N\'A PAS BOUGÉ ══\n');
+  console.log('\n══ 1. LE PORTAIL NE PARLE PLUS QU\'À NOTRE SERVEUR ══\n');
   {
-    /* ⛔ LE CONTRÔLE QUI PROTÈGE LES CLIENTS D'AUJOURD'HUI. Tant que `PORTAIL_SERVEUR` est faux,
-       `espace.html` doit se comporter EXACTEMENT comme avant : Firebase initialisé, `auth` et
-       `fs` venus de lui. Un interrupteur qu'on croit fermé et qui ne l'est pas, c'est un
-       portail muet pour tout le monde du jour au lendemain. */
-    vrai('⛔ PORTAIL_SERVEUR est FAUX dans le fichier servi', /const PORTAIL_SERVEUR\s*=\s*false\s*;/.test(PAGE));
-    vrai('   Firebase n\'est initialisé QUE si l\'adaptateur ne sert pas', /if\(!_pv\)\s*firebase\.initializeApp/.test(PAGE));
-    vrai('   et `auth`/`fs` basculent sur le même `_pv`', /const auth = _pv \? _pv\.auth : firebase\.auth\(\), fs = _pv \? _pv\.fs : firebase\.firestore\(\)/.test(PAGE));
-    /* ⛔ Les valeurs spéciales ne doivent plus référencer `firebase` ailleurs que dans la
-       définition de `FV` : sinon la page cherche `firebase` alors qu'il n'est pas initialisé. */
-    const sansCom = PAGE.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-    v('⛔ une seule référence à firebase.firestore.FieldValue, celle de la définition',
-      (sansCom.match(/firebase\.firestore\.FieldValue/g) || []).length, 1);
+    /* ⛔ SORTIE DE FIREBASE, décision de Justin du 25 septembre 2026. Ce bloc gardait jusque-là
+       l'inverse — l'interrupteur `PORTAIL_SERVEUR` fermé, Firebase en service. Il est parti avec
+       les trois balises du kit : un interrupteur qu'on refermerait sans elles ferait tomber la
+       page sur `firebase` absent. `auth`, `fs` et `FV` viennent de l'adaptateur, sans repli. */
+    const sansCom = PAGE.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    v('⛔ plus aucune trace de Firebase dans le code du portail',
+      ['firebase', 'FB_CONFIG', 'PORTAIL_SERVEUR', 'gstatic.com/firebasejs'].filter(x => sansCom.indexOf(x) >= 0), []);
+    vrai('   l\'adaptateur est monté sans condition', /const _pv = portailMaison\(\);\s*const auth = _pv\.auth, fs = _pv\.fs;/.test(sansCom));
+    vrai('   et les valeurs spéciales viennent de lui', /const FV = _pv\.FieldValue;/.test(sansCom));
+    /* ⛔ « MOT DE PASSE OUBLIÉ » NE PASSE PLUS PAR `/api/mdp/lien`, QUI FABRIQUE UN LIEN FIREBASE.
+       Relevé le 25 septembre 2026 : tant que la clé d'administration est sur le VPS, cette route
+       répondait « envoyé » — le client changeait un mot de passe Google qui ne sert plus, et la
+       voie maison n'était jamais appelée. */
+    v('⛔ « Mot de passe oublié » ne fabrique plus de lien Firebase', /\/api\/mdp\/lien/.test(sansCom), false);
+    vrai('   il passe par l\'adaptateur (/api/compte/mdp/demander)', /async function mdpLien\(email, suite\)\{\s*await auth\.sendPasswordResetEmail\(email,\{url:suite\}\);/.test(sansCom)
+      && /sendPasswordResetEmail\(email\)\{ await appel\('\/api\/compte\/mdp\/demander'/.test(sansCom));
+    vrai('   et l\'écran de connexion dit aux clients déjà inscrits comment retrouver leur accès', /id="avis-demenagement"[^>]*>[^<]*Mot de passe oubli/.test(PAGE));
   }
 
   console.log('\n══ 2. LA VRAIE FONCTION DE LA PAGE, EXTRAITE ══\n');
@@ -254,7 +259,7 @@ const arreter = async () => {
        `reauthenticateWithCredential` le vérifiait. Un champ « mot de passe actuel » qui ne
        regarde rien est pire qu'un champ absent : il fait croire à une garde. */
     vrai('⛔ `accReauth` NE rend plus `true` sans contrôler (le fichier servi)',
-      /if\(_pv\)\{\s*await _pv\.auth\.confirmerMdp\(pass\); return true; \}/.test(PAGE));
+      /async function accReauth\(pass\)\{[^}]*\}[\s\S]{0,900}?await _pv\.auth\.confirmerMdp\(pass\); return true; \}/.test(PAGE));
     vrai('   l\'adaptateur porte `confirmerMdp`', typeof auth.confirmerMdp === 'function');
     let mauvais = '';
     try { await auth.confirmerMdp('pas-le-bon-du-tout'); } catch (e) { mauvais = e.code || ''; }

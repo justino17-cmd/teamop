@@ -266,21 +266,18 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       .catch(function(){ err('Connexion impossible — réessaie dans un instant.'); });
   }
 </script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
   try { document.getElementById('year').textContent = new Date().getFullYear(); } catch(_) {}
   if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
-  const FB_CONFIG={ apiKey:"AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8", authDomain:"elan-gestion.firebaseapp.com", projectId:"elan-gestion", storageBucket:"elan-gestion.firebasestorage.app", messagingSenderId:"910528393731", appId:"1:910528393731:web:128d97b6a3269fb6d21436" };
   const ADMIN_EMAIL="justin.17553@gmail.com";
-  /* ⛔ L'INTERRUPTEUR DU PORTAIL MAISON — FERMÉ, ET IL DOIT LE RESTER JUSQU'À CE QUE LE
-     SERVEUR SUIVE. `/api/compte/*` et `/api/portail/*` sont derrière `comptes.actif` dans
-     `config.json`, faux en production. Lever celui-ci sans lever celui-là ferait parler la
-     page à des 404 — donc un portail muet pour tous les clients. Les deux se lèvent dans le
-     même geste. ⚠ Et la bascule n'est pas une migration : un mot de passe Firebase ne se LIT
-     pas, chaque personne devra en reposer un. */
-  const PORTAIL_SERVEUR = false;
+  /* ⛔ LE PORTAIL PARLE À NOTRE SERVEUR, ET SEULEMENT À LUI — sortie de Firebase, décision de
+     Justin du 25 septembre 2026. Jusque-là, un interrupteur (`PORTAIL_SERVEUR`, fermé) gardait
+     Firebase en service ; il est parti avec les trois balises du kit de Google, parce qu'un
+     interrupteur qu'on referme sans ses balises ferait tomber la page sur `firebase` absent.
+     ⛔ Ce fichier ne se publie qu'APRÈS `comptes.actif` sur le VPS : sans lui, `/api/compte/*`
+     et `/api/portail/*` rendent 404, et le portail serait muet pour tous les clients.
+     ⚠ Un mot de passe Firebase ne se lit pas : un client déjà inscrit choisit le sien par
+     « Mot de passe oublié » — son compte l'attend, préparé à l'import (`preparer`, comptes.js). */
 
   /* ══ L'IDENTITÉ ET LES DONNÉES DU PORTAIL, SERVIES PAR NOTRE SERVEUR ═══════════════════════
    * ⛔ POURQUOI UN ADAPTATEUR PLUTÔT QU'UNE RÉÉCRITURE. Cette page appelle Firebase à une
@@ -288,11 +285,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
    * silence ; reproduire la surface, c'est UN endroit à éprouver — et la page change d'une
    * ligne, celle qui suit ce bloc. Même coup que `op-fs.js` pour OP MESSAGES.
    *
-   * ⛔ L'INTERRUPTEUR EST FERMÉ, ET IL DOIT LE RESTER JUSQU'À CE QUE LE SERVEUR SUIVE. Les
-   * routes `/api/compte/*` et `/api/portail/*` sont derrière `comptes.actif` dans
-   * `config.json`, faux en production. Lever `PORTAIL_SERVEUR` sans lever ce drapeau-là ferait
-   * parler la page à des 404 — donc un portail muet pour tous les clients. Les deux se lèvent
-   * dans le même geste.
+   * ⛔ IL NE SERT QUE SI LE SERVEUR SUIT : `/api/compte/*` et `/api/portail/*` sont derrière
+   * `comptes.actif` dans `config.json`. Sans lui, la page parle à des 404 — un portail muet
+   * pour tous les clients. Voir l'avertissement en tête de ce script.
    *
    * ⚠️ ET LA BASCULE N'EST PAS UNE MIGRATION DE DONNÉES. Un mot de passe Firebase ne se LIT
    * pas : chaque personne devra en reposer un, ou les deux authentifications cohabiteront le
@@ -587,15 +582,12 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     return { auth, fs, FieldValue };
   }
 
-  const _pv = PORTAIL_SERVEUR ? portailMaison() : null;
-  /* On n'initialise Firebase QUE si on s'en sert : autrement la page garde une connexion
-     ouverte vers Google pour rien, ce qui est exactement ce que ce chantier veut arrêter. */
-  if(!_pv) firebase.initializeApp(FB_CONFIG);
-  const auth = _pv ? _pv.auth : firebase.auth(), fs = _pv ? _pv.fs : firebase.firestore();
+  const _pv = portailMaison();
+  const auth = _pv.auth, fs = _pv.fs;
   /* ⛔ UN SEUL NOM POUR LES VALEURS SPÉCIALES. `FV` était écrit à
      vingt-trois endroits : en laisser un seul derrière l'interrupteur, c'est le jour où la
      page cherche `firebase` alors qu'il n'a pas été initialisé — et l'écran tombe sans un mot. */
-  const FV = _pv ? _pv.FieldValue : firebase.firestore.FieldValue;
+  const FV = _pv.FieldValue;
   const $=id=>document.getElementById(id);
   const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const isAdmin=u=>u&&u.email&&u.email.toLowerCase()===ADMIN_EMAIL.toLowerCase();
@@ -652,6 +644,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       <button class="btn block" id="a-submit" onclick="authSubmit()">Se connecter</button>
       <p class="center" style="margin-top:10px"><a href="#" onclick="motDePasseOublie();return false" style="color:var(--t3);font-size:12.5px;text-decoration:underline">Mot de passe oublié ?</a></p>
       <p class="muted center" style="margin-top:10px">« Se connecter » = vous avez déjà un compte. « Créer un compte » = nouveau client.</p>
+      <p class="muted center" id="avis-demenagement" style="margin-top:8px;font-size:12.5px;line-height:1.5">Déjà client avant fin septembre 2026 ? Votre espace a changé de serveur : la première fois, touchez « Mot de passe oublié ? » pour choisir votre mot de passe. Vos informations vous attendent.</p>
     </div>
     <p class="center" style="margin-top:12px"><a href="#" id="lnk-equipe" onclick="renderTeamAuth();return false" style="color:var(--t3);font-size:12.5px;text-decoration:none">🛠 Équipe TeamOP</a></p>`;
     if(RETOUR_PAIEMENT) authTab('signup');
@@ -690,13 +683,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      domaine servi par Firebase Hosting, et teamop.fr est sur GitHub Pages — d'où ce
      détour. Si le serveur ne peut pas répondre, on retombe sur l'envoi Firebase :
      gabarit brut et lien firebaseapp.com, mais l'utilisateur n'est jamais bloqué. */
+  /* ⛔ PLUS JAMAIS `/api/mdp/lien` : cette route fabrique un lien de réinitialisation FIREBASE.
+     Tant que la clé d'administration est sur le VPS, elle répondait « envoyé » — le client
+     changeait un mot de passe qui ne sert plus à rien, et la voie maison n'était jamais appelée
+     (relevé le 25 septembre 2026, avant la bascule). Le lien part de `/api/compte/mdp/demander`. */
   async function mdpLien(email, suite){
-    try{
-      const r = await fetch('https://api.teamop.fr/api/mdp/lien',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,suite:suite})});
-      if(r.ok) return;
-      if(r.status===400){ const e=new Error('adresse invalide'); e.code='auth/invalid-email'; throw e; }
-    }catch(e){ if(e && e.code==='auth/invalid-email') throw e; }
-    auth.languageCode='fr';
     await auth.sendPasswordResetEmail(email,{url:suite});
   }
   async function motDePasseOublie(){
@@ -1007,11 +998,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     /* ⛔ AVEC LE PORTAIL MAISON, C'EST LE SERVEUR QUI TIENT L'IDENTITÉ — mais il faut quand
        même le lui DEMANDER. Cette ligne a rendu `true` sans rien contrôler pendant une
        journée : les trois écrans qui redemandent le mot de passe avant un geste grave
-       (adresse, mot de passe, suppression) n'en vérifiaient plus aucun. `firebase.auth`
-       n'étant pas initialisé dans ce mode, on ne peut pas non plus tomber sur la ligne
-       d'après — d'où le retour, mais après le vrai contrôle. */
-    if(_pv){ await _pv.auth.confirmerMdp(pass); return true; }
-    const cred=firebase.auth.EmailAuthProvider.credential(u.email,pass); await u.reauthenticateWithCredential(cred); }
+       (adresse, mot de passe, suppression) n'en vérifiaient plus aucun. */
+    await _pv.auth.confirmerMdp(pass); return true; }
   function _err(id,t){ const e=$(id); if(e) e.innerHTML='<div class="err">'+esc(t)+'</div>'; }
   /* ⛔⛔ UN REFUS NE SURVIT PAS À LA RÉUSSITE QUI LE DÉMENT. `_err()` ne fait que POSER : le
      verdict d'un essai raté restait à l'écran pendant l'essai suivant — et, mesuré au

@@ -244,8 +244,14 @@ function monterPortail(app, deps) {
       repris++;
     }
     ecrire();
-    journal('import : ' + repris + ' repris, ' + ignores + ' déjà là, ' + sansAdresse + ' sans adresse');
-    return res.json({ ok: true, repris, ignores, sansAdresse, total: (venus || []).length });
+    /* ⛔ ET CHAQUE ADRESSE REPRISE REÇOIT SON COMPTE « À POSER » (voir `preparer`, comptes.js) :
+       un dossier repris sans compte à son adresse se laisserait prendre par le premier venu
+       qui « crée un compte » avec elle. Le client, lui, passe par « Mot de passe oublié ». */
+    const comptesPrepares = typeof d.preparer === 'function'
+      ? d.preparer((venus || []).map(x => ({ email: norm(x && x.email), prenom: x && x.prenom, nom: x && x.nom, societe: x && (x.company || x.societe) })).filter(x => x.email))
+      : 0;
+    journal('import : ' + repris + ' repris, ' + ignores + ' déjà là, ' + sansAdresse + ' sans adresse, ' + comptesPrepares + ' compte(s) à poser');
+    return res.json({ ok: true, repris, ignores, sansAdresse, comptesPrepares, total: (venus || []).length });
   });
 
   return {

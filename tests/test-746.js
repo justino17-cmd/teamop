@@ -50,7 +50,7 @@ let enfant = null;
 /* ── L'EXTRACTION, MÊMES BORNES QUE test-740 ─────────────────────────────────────────── */
 function extraire() {
   const i = PAGE.indexOf('const API_PORTAIL');
-  const j = PAGE.indexOf('const _pv = PORTAIL_SERVEUR');
+  const j = PAGE.indexOf('const _pv = portailMaison();');
   if (i < 0 || j < 0 || j <= i) return null;
   return PAGE.slice(i, j);
 }
@@ -200,34 +200,15 @@ async function monter() {
     vrai('   `_err` pose toujours un refus visible', /function\s+_err\s*\(\s*id\s*,\s*t\s*\)\s*\{[^}]*class="err"/.test(NU));
   }
 
-  console.log('\n══ 5. ⛔ L\'INTERRUPTEUR RESTE FERMÉ DANS LE FICHIER SERVI ══\n');
+  console.log('\n══ 5. ⛔ LE PORTAIL EST OUVERT — ET FIREBASE EST PARTI AVEC L\'INTERRUPTEUR ══\n');
   {
-    /* Tout ce banc éprouve du code qui ne tourne PAS encore chez les clients. Le jour où
-       l'interrupteur se lève, c'est un geste conscient — pas un effet de bord d'un correctif. */
-    const ouvert = /const PORTAIL_SERVEUR\s*=\s*true\s*;/.test(NU);
-    vrai('⛔ PORTAIL_SERVEUR est FAUX dans le fichier servi', !ouvert);
-
-    /* ⛔⛔ LE JOUR OÙ L'INTERRUPTEUR SE LÈVE, LES TROIS BALISES FIREBASE DOIVENT PARTIR —
-       ET CE BANC REFUSE QU'ON OUBLIE. Mesuré au navigateur le 21 septembre 2026 : avec
-       l'interrupteur ouvert, `typeof firebase` vaut `undefined` (le conteneur n'atteint pas
-       gstatic) et la page fonctionne DE BOUT EN BOUT — inscription, dossier, fil de messages,
-       changement de mot de passe, déconnexion, reconnexion. Elle n'a donc plus besoin de
-       Firebase du tout. Mais les trois `<script src="https://www.gstatic.com/firebasejs/…">`
-       sont INCONDITIONNELLES : lever l'interrupteur sans les retirer laisserait chaque client
-       du portail télécharger trois paquets chez Google à chaque visite, pour rien — et le
-       chantier « TOUT SUR LE SERVEUR » se raconterait fini tout en restant branché chez eux.
-       ⚠️ POURQUOI UN CONTRÔLE CONDITIONNEL PLUTÔT QU'UN CORRECTIF TOUT DE SUITE : tant que
-       l'interrupteur est FERMÉ, la page a VRAIMENT besoin de ces balises — `firebase.auth()`
-       et `firebase.firestore()` sont appelés pendant l'exécution du script. Les rendre
-       paresseuses aujourd'hui voudrait dire réécrire tout l'amorçage pour un gain nul. On
-       attache donc la règle à l'interrupteur : les deux se lèvent dans le même geste, et
-       c'est le banc qui le tient, pas un souvenir. */
-    const balises = (PAGE.match(/<script src="https:\/\/www\.gstatic\.com\/firebasejs/g) || []).length;
-    if (ouvert) {
-      v('⛔⛔ interrupteur OUVERT → plus AUCUNE balise Firebase de gstatic', balises, 0);
-    } else {
-      vrai('   interrupteur fermé : les ' + balises + ' balises Firebase restent nécessaires', balises === 3);
-    }
+    /* ⛔ LE JOUR PRÉVU EST ARRIVÉ (sortie de Firebase, 25 septembre 2026). Ce bloc disait :
+       « le jour où l'interrupteur se lève, les trois balises Firebase doivent partir — et ce
+       banc refuse qu'on oublie ». Mesuré au navigateur le 21 septembre : sans Firebase, la page
+       fonctionne de bout en bout. L'interrupteur est retiré avec les balises, pour qu'aucun
+       retour en arrière à moitié ne fasse chercher `firebase` à une page qui ne l'a plus. */
+    v('⛔⛔ plus AUCUNE balise Firebase de gstatic', (PAGE.match(/<script src="https:\/\/www\.gstatic\.com\/firebasejs/g) || []).length, 0);
+    v('   et plus d\'interrupteur à refermer par erreur', /PORTAIL_SERVEUR/.test(NU), false);
   }
 
   try { enfant.kill('SIGKILL'); } catch (e) {}

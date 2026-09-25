@@ -206,7 +206,11 @@ function monterComptes(app, deps) {
     if (!emp) return res.status(400).json({ error: 'empreinte_invalide' });
     if (!quotaOk(quota, 'cnx:' + mail, 30, 3600000)) return res.status(429).json({ error: 'trop_de_tentatives' });
 
-    const c = compte(mail);
+    const c0 = compte(mail);
+    /* Un compte « à poser » (repris de Google, voir `preparer`) n'a pas encore de mot de passe :
+       il se refuse exactement comme une adresse inconnue — même durée, même réponse, et aucun
+       essai compté contre lui. */
+    const c = (c0 && !c0.ap) ? c0 : null;
     const maintenant = Date.now();
     /* ⛔ ON DÉRIVE MÊME QUAND LE COMPTE N'EXISTE PAS. PBKDF2 à 120 000 tours coûte ~100 ms :
        répondre tout de suite sur une adresse inconnue et lentement sur une adresse connue
@@ -362,6 +366,9 @@ function monterComptes(app, deps) {
     try { cle = await deriver(emp, sel); }
     catch (err) { journal('dérivation impossible —', err.code || 'erreur'); return res.status(503).json({ error: 'indisponible' }); }
     c.s = sel; c.e = cle; c.ech = 0; c.bloq = 0; c.maj = Date.now();
+    /* Un compte « à poser » vient d'être ouvert par le lien reçu à SON adresse : c'est la preuve
+       qu'on attendait de lui, il devient un compte ordinaire, adresse vérifiée. */
+    if (c.ap) { delete c.ap; if (!c.v) c.v = Date.now(); }
     /* Les sessions en cours tombent — c'est le geste qu'on fait quand on pense s'être fait
        voler quelque chose, et c'est la faute déjà payée côté Firebase (refuser les nouveaux
        jetons sans couper les sessions déjà échangées). Le lien de VÉRIFICATION, lui, survit :
@@ -380,6 +387,26 @@ function monterComptes(app, deps) {
        Rend l'adresse, ou '' — jamais un objet qu'on pourrait prendre pour une autorisation. */
     parJeton: (brut) => { const e = jetonLire(brut, 'session'); return (e && compte(e.m)) ? e.m : ''; },
     vue,
+    /* ⛔ LES COMPTES « À POSER », CRÉÉS À L'IMPORT DES DOSSIERS DE GOOGLE (`portail.js`).
+       Un dossier repris est rangé sous une ADRESSE ; sans compte maison à cette adresse,
+       n'importe qui pouvait le créer AVANT son propriétaire — la connexion n'exige pas une
+       adresse vérifiée — et lire le dossier d'un client. Un compte « à poser » ferme la porte :
+       « Créer un compte » y tombe sur « déjà existant » (son propriétaire est prévenu par
+       courriel, `creer`), la connexion le refuse comme une adresse inconnue, et SEUL le lien de
+       « Mot de passe oublié », reçu dans la boîte du client, y pose un mot de passe (`poser`).
+       Ne touche jamais un compte existant. Rend le nombre de comptes préparés. */
+    preparer: (liste) => {
+      let n = 0;
+      for (const x of (liste || [])) {
+        const mail = normMail(x && x.email);
+        if (!mailOk(mail) || compte(mail)) continue;
+        reg.c[mail] = { s: '', e: '', ap: 1, pr: borne(x.prenom, 60), no: borne(x.nom, 60), so: borne(x.societe, 120),
+          v: 0, cree: Date.now(), maj: Date.now(), ech: 0, bloq: 0 };
+        n++;
+      }
+      if (n) ecrire();
+      return n;
+    },
     combien: () => Object.keys(reg.c).length,
     sessions: () => Object.keys(reg.j).filter(k => reg.j[k] && reg.j[k].g === 'session').length,
     _reg: () => reg, _relire: lire,

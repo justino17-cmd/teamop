@@ -171,7 +171,7 @@ const POST = async (B, c, corps) => {
        l'explication juste au-dessus du code, et un motif qui tombe dedans ne garde rien. */
     const nu = REINIT.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     vrai('⛔ la page lit `jeton` dans l\'adresse', /Q\.get\('jeton'\)/.test(nu));
-    vrai('   et lit toujours `oobCode` — les courriels Firebase déjà partis doivent marcher',
+    vrai('   et reconnaît encore `oobCode` — pour dire à qui clique un vieux lien Firebase quoi faire',
       /Q\.get\('oobCode'\)/.test(nu));
     vrai('⛔ c\'est le PARAMÈTRE qui décide, pas un interrupteur', /var MAISON = !!JETON;/.test(nu));
     vrai('⛔ et elle appelle nos deux routes', /\/api\/compte\/mdp\/poser/.test(nu) && /\/api\/compte\/verifier/.test(nu));
@@ -180,8 +180,15 @@ const POST = async (B, c, corps) => {
        Google. Dire « tout est sur le serveur » pendant que la page appelle Google est
        l'écart que ce chantier existe pour fermer. */
     v('⛔ plus aucune balise `<script src>` vers gstatic', (REINIT.match(/<script src="https:\/\/www\.gstatic/g) || []).length, 0);
-    vrai('   Firebase se charge à la demande, sur la branche `oobCode` seulement',
-      /chargerFirebase\(\)\.then\(suiteFirebase\)/.test(nu));
+    /* ⛔ SORTIE DE FIREBASE (25 septembre 2026) : plus de moitié Firebase du tout. Un vieux lien
+       ne pourrait changer qu'un mot de passe Google qui ne sert plus — on le dit, et on renvoie
+       vers « Mot de passe oublié ». Joué ci-dessous sur la vraie page, pas relu. */
+    v('⛔ plus aucun code Firebase dans la page', ['firebase', 'chargerFirebase', 'FB_CONFIG', 'gstatic'].filter(x => nu.indexOf(x) >= 0), []);
+    const V = fabriquerReinit('http://127.0.0.1:1', '?mode=resetPassword&oobCode=ANCIEN-LIEN-FIREBASE');
+    await dormir(50);
+    v('⛔ un vieux lien Firebase : l\'écran d\'échec, qui dit de redemander un lien — et rien ne se charge',
+      [V.montre(), /ancien syst\u00e8me/.test(V.bac.elem('ko-txt').textContent), /Mot de passe oubli/.test(V.bac.elem('ko-txt').textContent), V.bac.charges.length],
+      ['etape-ko', true, true, 0]);
   }
 
   console.log('\n══ 2. ⛔ LA MÊME EMPREINTE QUE `espace.html`, AU CARACTÈRE PRÈS ══\n');

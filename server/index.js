@@ -3869,7 +3869,7 @@ let portail = null;
 try {
   if (comptes) {
     portail = require('./portail').monterPortail(app, {
-      dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, quotaOk,
+      dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, quotaOk, preparer: comptes.preparer,
       journal: (...a) => console.log('portail:', ...a),
       /* La reprise des dossiers déjà chez Google. Le serveur a déjà la clé d'administration et
          s'en sert trois fois plus bas pour `teamop_requests` : on réutilise ce chemin-là

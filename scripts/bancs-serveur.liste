@@ -70,3 +70,6 @@ tests/test-805.js
 # sa copie depuis un Firestore de banc sur 127.0.0.1, ses portes et son écoute. Il ne lit aucune page :
 # il passe contre `main` comme contre la branche.
 tests/test-809.js
+# 25 septembre 2026 : les clients du portail repris de Google — comptes « à poser », que seul le
+# lien reçu dans leur boîte ouvre. Il monte comptes.js et portail.js, sans page.
+tests/test-811.js
