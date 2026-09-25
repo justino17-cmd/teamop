@@ -37,8 +37,8 @@ de ligne du tout.
 7. L'annonce (e-mail aux entreprises) : **pas encore envoyée** — à la main de Justin, Tour → Entreprises.
 
 **Relecture « grosse base, beaucoup d'appareils » (demande de Justin : « je veux pas attendre qu'il y
-ait des bugs pour que tu testes ») : faite.** Deux risques confirmés, corrigés dans la **v750 (bêta,
-`8520b37`) — PAS publiée, elle attend « publie » de Justin** :
+ait des bugs pour que tu testes ») : faite.** Deux risques confirmés, corrigés dans la **v750 — bêta publiée
+sur `main` (`22695fb`, `beta.html` seul, servie en `750-beta`) ; `app.html` reste en v749 et attend « publie » de Justin** :
 - **les marques du journal grossissaient sans fin** dans le document de l'équipe (une par ligne
   chassée du plafond de 500 ; la fusion les réunit sans jamais rien retirer). Vraies fonctions, deux
   appareils, 8 000 gestes : **v749 = 8 000 marques / 203 Ko, v750 = 0**. `estampiller` ne marque plus
@@ -54,8 +54,10 @@ Preuves v750 : `test-817` 45 ✓ (12/12 mutations mordent), `scratchpad/sonde-pl
 Dettes MINEURES relevées, non corrigées : `interventionsArchive` peut dépasser 500 après une union ; coût
 d'une rafale de réceptions ; trois écrans un peu lents sur grosse base ; les marques des VRAIES
 suppressions restent non bornées dans le nuage (lentes : une par suppression).
-**Demain 26 septembre, 7 h (heure de Paris) : vérification de A à Z** (demande de Justin) — un rappel
-est programmé dans la session (`trig_0192vZPb3VJaCgujcuwjEmVu`).
+**Vérification de A à Z (demande de Justin) : LANCÉE dans la nuit du 25 au 26**, workflow `wf_e473851b-062`
+(14 familles : écrans × appareils, rôles, clics, droits, parcours terrain / stock / ventes, synchro, performance, visuel,
+connexion et portail, code, serveur et budgets par IP, production — chaque constat contre-vérifié). Point et rapport
+programmés le 26 à 7 h, heure de Paris (`trig_0192vZPb3VJaCgujcuwjEmVu`).
 
 **À J+30 (25 octobre 2026)** : `reglage.js documents.copieFirebase=false`, puis supprimer les données
 Firebase d'OP GESTION (promis par `sous-traitance.html`).
