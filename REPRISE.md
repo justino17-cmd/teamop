@@ -74,6 +74,111 @@ de passe Firebase ne se lit pas).
 ⚠️ **Le déploiement des trois correctifs serveur a été REFUSÉ par la protection de la session**
 (« Production Deploy ») le 25 septembre à 10 h 05 UTC : commit `338f6ee` préparé sur
 `main = 0f630c0`, 35 suites · 2 081 vérifications. Il attend l'autorisation explicite de Justin.
+⚠️ **Ce commit-là est PÉRIMÉ** (son arbre a été retiré le 25 au soir) : le serveur a changé depuis. Le
+commit de déploiement se REFABRIQUE avec `bash scripts/preparer-deploiement-serveur.sh` au moment de
+pousser — voir « la procédure du jour J » plus bas.
+
+## ✅ 25 SEPTEMBRE 2026, SOIR — LA SORTIE DE FIREBASE EST ÉCRITE ET ÉPROUVÉE : IL NE RESTE QUE LES GESTES DE JUSTIN
+
+⚠️ **La liste « À construire » juste au-dessus décrivait la voie du socle. Ce n'est PAS celle qui a
+été construite**, et il faut le savoir avant de relire `PLAN-OP-SOCLE.md` : le socle (conversion
+ligne à ligne, double écriture) reste un chantier pour plus tard. Ce qui part le jour J est plus
+simple et réversible.
+
+### La méthode retenue : le MÊME document, rangé chez nous
+
+- `server/documents.js` range le document d'équipe **tel que l'appareil l'a chiffré**
+  (`{enc,iv,salt,z,ts,writer,at,by,ver,verNum}`) : `/api/doc/lire`, `/api/doc/ecrire`,
+  `/api/doc/attendre` (écoute longue). Aucune conversion, aucune donnée déchiffrée par le serveur.
+- **Copie paresseuse depuis Firebase** au premier accès d'une entreprise ; l'original est gardé à
+  part, jamais réécrit (`<t>.firebase.json`) — c'est le point de retour.
+- ⛔ **La copie attend la porte de version CONFIRMÉE chez Google** (`VERSION_SANS_FIREBASE = 748`,
+  `versionsCfg.minFirestore`) : sans elle, un vieux téléphone pourrait encore écrire chez Google
+  APRÈS la copie. Refus 503 `attente_version`, compté dans `/health` (`copiesEnAttente1h`).
+- `copieFirebase:false` n'est suivi qu'avec un **inventaire complet** (chaque entreprise recopiée ou
+  confirmée absente) ; un inventaire incomplet ne remplace jamais un complet (409).
+- `app.html` v748 : `docEquipe` imite `get`/`set`/`onSnapshot` de Firestore sur ces routes ; plus
+  AUCUN code Firebase dans la page (`test-640`). Les refus 403/409 montrent l'écran « rattaché à
+  aucune entreprise » (`docRefusVu`, `test-687`), le 404 est passager.
+- Le portail (`espace.html`, `reinit.html`) parle à nos comptes (`comptes.js`) et à nos dossiers
+  (`portail.js`) ; les clients de Google reçoivent un compte « à poser » à l'import et choisissent
+  leur mot de passe par « Mot de passe oublié ».
+
+### Trouvé et corrigé le 25 au soir — ce qui aurait cassé EN SILENCE le jour J
+
+La bascule du portail ne couvrait que la page. Tout l'arrière-guichet parlait encore à Google :
+1. `cliSync` n'envoyait la fiche qu'avec un jeton Google → **plus aucune inscription** (espace créé,
+   code d'accès envoyé, récapitulatif au patron) et plus de relais des codes promo. Corrigé :
+   l'utilisateur maison a son jeton, `/api/clients/sync` reconnaît une session maison ;
+2. « accès activé » et la formule payée s'écrivaient chez Google → le portail monté, ils s'écrivent
+   dans le dossier, et **plus rien ne part chez Google** (ce que disent les pages juridiques) ;
+3. supprimer un compte du site (3 portes) n'effaçait que Google → compte, dossier et fil effacés ici ;
+4. la liste des comptes du site ne lisait que Google → les comptes maison y figurent ;
+5. l'activation d'un code promo était jetée sans un mot → route serveur `/api/portail/promo`,
+   code vérifié dans `config.promos`, échéance calculée par le serveur ;
+6. l'import ne reprenait que huit champs → il reprend tout le dossier (facturation, demandes…).
+Plus la seconde passe de `gardien` (B1 rejoué : un compte créé AVANT l'import récupérait le dossier
+d'un client de Google ; B2 dossier sans borne ; C1–C6, N2–N5) : tout corrigé.
+⛔ **La leçon** : `relecteur` a déclaré les pages « prêtes à publier » — il cherchait des erreurs, et
+`cliSync` ne jette rien, il se tait. Le banc de COUTURE (`test-813` : la vraie page, le vrai serveur,
+un faux Google, un faux facteur) est ce qui garde ce circuit désormais.
+
+### Les preuves (25 septembre 2026, soir)
+
+- Bancs neufs ou réécrits : `test-809` (132 ✓), `test-810` (32), `test-811` (68), `test-812` (12),
+  `test-813` (40, stable sur trois passes), `test-814` (18), `test-739` (54), `test-740` (59).
+- Mutations : 19/19 (documents), 21/21 (portail et arrière-guichet), 7/7 (promo), 3/3 (Tour).
+- Déploiement serveur seul préparé par `scripts/preparer-deploiement-serveur.sh` contre les pages
+  de `main` : **38 suites · 2 297 vérifications, vertes** — plancher relevé à 2 250. `test-640` et
+  `test-687` passent contre les DEUX pages (v695 de `main`, v748 de la branche).
+- Commits de la branche (dans l'ordre) : `afbd032` (page sans Firebase), `c719d6a` (gardien 1),
+  `b593424` (portail), `ea72a27` (filet), `9d73f43` (v748), `f422b41` (pages juridiques du jour J),
+  `d57022b` (gardien 2 + arrière-guichet), `880e5f6` (test-813), `232d37c` (promo serveur),
+  `fc44239`, `b3a6be3` (Tour v2.65 : gestes du jour J), puis le registre des traitements.
+
+### ⛔ AVANT LE JOUR J — UNE DÉCISION QUI N'EST PAS TECHNIQUE
+
+`sous-traitance.html` (publié, article 5) : « toute addition ou remplacement vous sera notifié
+**30 jours à l'avance** par courriel ; vous pourrez vous y opposer et, à défaut d'accord, résilier
+sans frais ». Passer les données de Google à IONOS en relève. Donc, AVANT de publier : soit
+envoyer le préavis et attendre 30 jours, soit obtenir l'accord écrit de chaque entreprise (un
+« d'accord » en réponse). Brouillon du préavis et de la note à ELAN : remis à Justin le 25 au soir
+(texte repris ci-dessous en substance : ce qui change, où, la copie de 30 jours, la mise à jour de
+chaque téléphone, le mot de passe de l'espace client, le droit de s'opposer). À faire confirmer
+par le juriste, comme les pages elles-mêmes.
+
+### ⛔ LA PROCÉDURE DU JOUR J — dans cet ordre, sans en sauter
+
+| # | Qui | Geste | Ce qui prouve que c'est fait |
+|---|---|---|---|
+| 0 | Justin | Préavis envoyé depuis 30 jours, ou accord écrit reçu de chaque entreprise | les réponses |
+| 1 | Justin autorise, l'agent pousse | Déploiement du serveur seul : `bash scripts/preparer-deploiement-serveur.sh` puis la commande qu'il affiche | `/health` : `documents.actif:true`, `copieFirebase:true` ; job `bancs` vert |
+| 2 | Justin (geste guidé, aucun secret) | Sur le VPS : `"comptes": {"actif": true}` dans `/opt/teamop/config.json`, puis `systemctl restart teamop-api` | `/health` : `portail.comptes.actif:true`, `portail.dossiers.actif:true` ; la Tour, encadré « Sortie de Firebase » |
+| 3 | Justin, dans la Tour | « Reprendre les dossiers du portail » | le résultat affiché (repris, comptes à poser) |
+| 4 | Justin dit « publie » | `app.html` v748, `sw.js`, `beta.html`, `espace.html`, `reinit.html`, `tour.html` v2.65, les trois pages juridiques, `registre-traitements.html`, `VERSION-STABLE.md` | `curl teamop.fr/app.html | grep APP_VERSION` → 748 |
+| 5 | Justin, dans la Tour, AUSSITÔT | « Exiger la dernière version » (748) | encadré : « porte de version chez Google : v748 » (confirmée, pas seulement posée) |
+| 6 | Justin, dans la Tour | l'annonce v748 (préparée dans `server/index.js`) | nombre d'entreprises prévenues |
+| 7 | l'agent | surveiller `/health` : `copiesEchec1h`, `copiesEnAttente1h`, `illisibles1h`, `processus` | zéros |
+| 8 | Justin, J+quelques jours | « Faire l'inventaire » dans la Tour | « complet » |
+| 9 | Justin, J+30 | `"documents": {"copieFirebase": false}` sur le VPS, puis supprimer les données Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore, fermée) | `/health` : `copieFirebase:false` |
+
+⚠️ Entre 4 et 5, quelques minutes : un vieux téléphone peut encore écrire chez Google, et la copie
+attend la porte (étape 5) — c'est voulu. ⚠️ Retour arrière possible pendant 30 jours (republier la
+695) — **mais ce qui a été saisi depuis le jour J reste sur notre serveur**, sans outil de recopie
+inverse à ce jour.
+
+### Reste ouvert après le jour J (dettes connues, aucune ne bloque)
+
+- `guide-firebase.html` (sans lien, explique un projet Firebase personnel qui n'existe plus) : à retirer.
+- Les mots de passe des boîtes mail connectées (`mailboxes.json`) ne sont pas chiffrés au repos —
+  dit dans le registre, à chiffrer avec la clé maître.
+- Une route `async` qui rejette laisse la requête pendue (Express 4) — aucune route anonyme n'en a
+  montré ; un enrobage `catch(next)` la fermerait (`gardien`, N1).
+- `app.html` : deux commentaires d'avant la v748 (`forfaitServeurSync`), et un bloc
+  `resource-exhausted` devenu du code mort (`relecteur`, notes 2 et 3).
+- Une écriture en cours de réessai continue après « Désactiver la synchro » (marginal, `relecteur`).
+- Les sauvegardes gardent une donnée supprimée jusqu'à 24 mois (rotation mensuelle) — à trancher
+  avec le juriste (registre, point 1).
 
 ## 🧭 25 SEPTEMBRE 2026 — CE QUI RESTE POUR QUE LES ENTREPRISES TRAVAILLENT SUR NOTRE SERVEUR
 
