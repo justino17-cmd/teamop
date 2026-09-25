@@ -48,7 +48,10 @@ const copie = o => JSON.parse(JSON.stringify(o));
 const alle = f.syncAlleger(copie(base), 300000);
 vrai('la population : la copie poussée a bien été COUPÉE (' + alle.copie.journal.length + ' lignes sur 500)', alle.journalCoupe > 0 && alle.copie.journal.length < 500);
 v('   et syncAlleger coupe exactement la liste que la réception écarte', f.syncJournaux(), ['journal', 'planJournal']);
-vrai('   la liste est lue par syncAlleger, jamais recopiée', /const JOURNAUX=syncJournaux\(\);/.test(APP));
+{ const m = /const JOURNAUX=\(typeof syncJournaux==='function'\)\?syncJournaux\(\):(\[[^\]]*\]);/.exec(APP);
+  vrai('   syncAlleger lit la liste commune (syncJournaux) dans la page', !!m);
+  /* le repli n'existe que pour les bancs qui l'extraient seule : il doit rester IDENTIQUE */
+  v('   et son repli est la même liste, mot pour mot', m ? JSON.parse(m[1].replace(/'/g, '"')) : null, f.syncJournaux()); }
 
 /* 2. la réception, telle qu'elle décide : signature avant fusion / après fusion avec la base locale */
 const recevoir = (local, recu, sig) => { const avant = sig(recu); const fus = f.fusionnerBases(copie(local), copie(recu), false); return sig(fus) !== avant; };

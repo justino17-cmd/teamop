@@ -11228,7 +11228,10 @@ function syncAlleger(base, budget){
      un document, ça se règle par la compression.
      La fusion étant une UNION par identifiant, une copie poussée plus courte ne retire rien
      à personne : chaque appareil garde son propre journal. */
-  const JOURNAUX=syncJournaux();   // la MÊME liste que celle que la réception écarte de sa décision de renvoi
+  /* La MÊME liste que celle que la réception écarte de sa décision de renvoi (`sigRenvoi`). Le repli
+     ne sert qu'aux bancs qui extraient cette fonction seule : dans la page, syncJournaux existe
+     toujours (déclaration remontée), et `tests/test-816.js` exige que les deux listes soient égales. */
+  const JOURNAUX=(typeof syncJournaux==='function')?syncJournaux():['journal','planJournal'];
   let coupes=0;
   for(const c of JOURNAUX){ if(excedent<=0) break;
     const src=copie[c]||base[c]; if(!Array.isArray(src)||src.length<60) continue;
