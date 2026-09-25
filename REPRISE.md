@@ -83,6 +83,12 @@ la place, par famille (base de l'application, base de la bêta, Tour…).
   réglage par réglage (`prefFusion`) : la copie d'un appareil en retard ne défait plus un choix plus
   récent, dans un sens comme dans l'autre ; la réception repousse ce qu'elle a gardé, l'envoi
   applique ce qui est arrivé. Sans heure des deux côtés (versions d'avant), rien ne change.
+- **Et les quatre autres réglages qui suivent la personne** — la langue, les onglets de la barre du
+  bas, les favoris du menu, le satellite de la carte — avaient EXACTEMENT la même fragilité (relevé
+  par la relecture indépendante : `setLang` faisait un `setItem` sans garde) : même règle pour eux.
+- Le message d'un appareil plein part APRÈS le geste (celui de `save()`, « réduis le nombre/poids
+  des photos », passait par-dessus : un seul bandeau, le dernier gagne), et dit « plein » seulement
+  si c'est le quota — « refusé » sinon.
 
 ### Trouvé en chemin, et corrigé
 
@@ -96,16 +102,20 @@ la place, par famille (base de l'application, base de la bêta, Tour…).
 
 ### Les preuves
 
-- **`tests/test-808.js` — 97 ✓** : les vrais gestes joués dans les trois états, la fusion dans les
-  deux sens (convergence, égalités, versions d'avant, une copie en retard après le VRAI geste), la
-  mémoire qui ne masque pas un rangement direct, ce que la Tour reçoit (des familles, jamais un nom de
-  clé), le câblage de la réception et de l'envoi, la porte et la file de la sentinelle.
-  **21 mutations sur 21 le font tomber**, dont la 746 remise telle quelle (15 ✗).
-- **`scratchpad/sonde-teintes-iphone.js` — 44 ✓** au doigt sur la 747, quatre états ;
+- **`tests/test-808.js` — 120 ✓** : les vrais gestes joués dans les trois états (les neuf réglages
+  de `PREF_CLES`), la fusion dans les deux sens (convergence, égalités, versions d'avant, une copie en
+  retard après le VRAI geste), la mémoire qui ne masque pas un rangement direct, le message qui passe
+  APRÈS `save()`, ce que la Tour reçoit (des familles, jamais un nom de clé), le câblage de la
+  réception et de l'envoi, la porte et la file de la sentinelle. **29 mutations sur 29 le font
+  tomber**, dont la 746 remise telle quelle (16 ✗).
+- **`scratchpad/sonde-teintes-iphone.js` — 46 ✓** au doigt sur la 747, quatre états ;
   **contre-épreuve sur la 746 publiée : 13 ✗** dans les états plein, badges et retour, aucun dans
   l'état propre — exactement ce que Justin voyait, et ce que nos essais ne voyaient pas.
-- Bancs mis à jour, délibérément : 699, 750, 757, 759, 762 (les nouvelles formes et les fonctions
-  fournies aux bancs qui extraient), 653 (le canal de la Tour).
+- **Relecture indépendante** (agent `relecteur`) : pas de bloquant — fusion convergente et monotone,
+  rien ne fuit vers la Tour, pas de zone morte ; le seul point à corriger (les quatre autres
+  réglages) l'est.
+- Bancs mis à jour, délibérément : 699, 750, 751, 757, 759, 760, 762 (les nouvelles formes et les
+  fonctions fournies aux bancs qui extraient), 653 (le canal de la Tour).
 - **Suite complète** : relancée après le correctif — son résultat s'écrit ici quand elle a fini (pas avant).
 
 ### Ce qui attend Justin
@@ -125,9 +135,16 @@ la place, par famille (base de l'application, base de la bêta, Tour…).
   chantier à part, PAS commencé et pas encore décidé ; la 747 ne fait que rendre les réglages
   d'apparence insensibles au problème, et le rendre VISIBLE (le message, et la Tour qui reçoit ce
   qui occupe la place).
-- Les autres réglages qui voyagent (langue, onglets, favoris, carte) se rangent encore directement :
-  sur un appareil plein, ils échouent en silence comme les teintes avant la 747.
 - La bulle de nuit (marine sous les deux thèmes) : toujours sa question de goût, plus bas.
+
+### ✅ Justin a testé — sur la 746, avant la publication de la 747
+
+« Je viens de tester sur la bêta, les couleurs marchent bien en changement dans les deux modes, ça
+change que ce que je voulais, c'est parfait. » ⚠️ La bêta en ligne était encore la **746** (relu sur
+teamop.fr au même moment) : la panne du matin était donc PASSAGÈRE sur son iPhone, et on ne saura
+pas laquelle des trois causes c'était. La 747 ne change rien à ce qu'il a validé (même geste, même
+portée : boutons, liens, onglets) ; elle empêche les trois de revenir, et elle le dira si c'était le
+rangement.
 
 ## ✅ 24 SEPTEMBRE 2026 (nuit) — LE THÈME FINAL D'OP GESTION, STYLE APPLE (v745 puis v746, bêta)
 

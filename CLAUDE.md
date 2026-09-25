@@ -912,11 +912,13 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   et sans synchro. Rejoué sur la 746 publiée, trois chemins y mènent : le rangement plein (Safari
   borne à 5 Mo, PARTAGÉS par toute l'origine teamop.fr — app.html, la bêta, la Tour ; `setItem`
   jetait à la première ligne du geste), un `save()` qui jette après avoir rangé, une copie plus
-  ancienne de la fiche par la synchro. Les règles depuis la v747 : un réglage d'apparence se range
-  par `prefLocal`/`prefLocalLire` (mémoire de REPLI, jamais tenue quand le rangement accepte — elle
-  masquerait ce que d'autres fonctions rangent directement), s'APPLIQUE avant `prefGarder`, et
-  porte l'heure de son choix (`u.prefTs`) : la synchro le fusionne réglage par réglage
-  (`prefFusion`). `test-808` refuse tout accès direct au rangement pour ces clés.
+  ancienne de la fiche par la synchro. Les règles depuis la v747, pour les NEUF réglages de
+  `PREF_CLES` (apparence, mais aussi langue, onglets, favoris, satellite de la carte — même
+  fragilité, relevée par la relecture) : ils se rangent par `prefLocal`/`prefLocalLire` (mémoire de
+  REPLI, jamais tenue quand le rangement accepte — elle masquerait ce qu'une autre fonction range
+  directement), s'APPLIQUENT avant `prefGarder`, et portent l'heure de leur choix (`u.prefTs`) : la
+  synchro les fusionne réglage par réglage (`prefFusion`). `test-808` refuse tout accès direct au
+  rangement pour ces neuf clés — un dixième réglage qui voyage passe par là ou n'existe pas.
   ⚠️ **Un navigateur de test au rangement vide ne voit rien de tout ça** : la sonde
   `scratchpad/sonde-teintes-iphone.js` REMPLIT le rangement avant de toucher, et sa contre-épreuve
   sur la 746 rend 13 ✗. Toute fonctionnalité qui range sur l'appareil se mesure aussi plein.
