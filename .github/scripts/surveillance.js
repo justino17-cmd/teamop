@@ -160,6 +160,12 @@ function get(url) {
     if (j.documents && j.documents.ecrituresEchec1h > 0) {
       problems.push('⛔ ' + j.documents.ecrituresEchec1h + ' écriture(s) de document d’équipe refusée(s) par le disque dans l’heure — le travail ne part plus. Sur le VPS : df -h');
     }
+    /* La copie attend que la porte de version soit fermée CHEZ GOOGLE (`VERSION_SANS_FIREBASE`,
+       documents.js) : des appareils à jour travaillent sans synchro tant que ce n'est pas fait.
+       Le jour de la publication, c'est le geste qui manque — il se fait depuis la Tour. */
+    if (j.documents && j.documents.copiesEnAttente1h > 0) {
+      problems.push('⛔ ' + j.documents.copiesEnAttente1h + ' copie(s) de document d’équipe en attente dans l’heure : des appareils à jour ne se synchronisent pas tant que la version minimale n’est pas exigée ET confirmée chez Firestore. Tour → Exiger la dernière version (et vérifier que Firestore est « à jour »).');
+    }
     if (j.documents && j.documents.copiesEchec1h > 0) {
       problems.push('⚠️ ' + j.documents.copiesEchec1h + ' copie(s) depuis Firebase impossible(s) dans l’heure — les appareils réessaient. Si ça dure : la clé d’administration Firebase (/opt/teamop/firebase-admin.json), puis journalctl -u teamop-api | grep "copie firebase"');
     }

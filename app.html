@@ -10547,10 +10547,13 @@ function syncDiagnostic(motif){
    ⛔ LES REFUS PARLENT LA LANGUE DE FIREBASE. Version trop ancienne, entreprise fermée, clé fausse
    ou partagée : `permission-denied`, ce que la règle Firestore rendait. Les chemins d'erreur de
    l'application (réessais de `syncInit`, `versionRefuseeParNuage`, le toast « pas de connexion à
-   l'espace ») restent justes sans être touchés. */
+   l'espace ») restent justes sans être touchés.
+   ⚠️ « Espace inconnu » (404) n'est PAS définitif ici (`gardien`, 25 septembre 2026) : un annuaire
+   illisible côté serveur le rendait à TOUTES les entreprises d'un coup, et chaque appareil coupait
+   son écoute et rejetait ses écritures pour de bon. On réessaie, comme pour un 503. */
 async function docPreuve(){ const c=await sauvKh(); return {t:syncTeam(), kh:(c&&c.kh)||''}; }
 function docErreur(statut,motif){ const e=new Error('document d\'équipe : '+(motif||statut||'réseau'));
-  e.code=([403,404,409,426].indexOf(statut)>=0)?'permission-denied':([400,413].indexOf(statut)>=0)?'invalid-argument':'unavailable';
+  e.code=([403,409,426].indexOf(statut)>=0)?'permission-denied':([400,413].indexOf(statut)>=0)?'invalid-argument':'unavailable';
   e.statut=statut||0; e.motif=motif||''; return e; }
 async function docAppel(route,corps,ms){ const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),ms||20000);
   try{ const r=await fetch(PUSH_API+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps),signal:ctl.signal,cache:'no-store'});
@@ -10598,13 +10601,13 @@ function docEquipe(){
         if(lot.doc===doc){ ecriture=null; faites.push.apply(faites,lot.attentes.splice(0)); }
         faites.forEach(a=>{ try{ a.ok(); }catch(e){} }); pause=1000; continue;
       }
-      if(!reseau&&[400,403,404,409,413,426].indexOf(r.statut)>=0){
+      if(!reseau&&[400,403,409,413,426].indexOf(r.statut)>=0){
         /* Un refus DÉFINITIF (forme, porte, version) : le réessayer ne le changera pas. On le rend
            à tous ceux qui attendent, comme Firestore rendait `permission-denied`. */
         const e=docErreur(r.statut,r.j&&r.j.motif); const tous=lot.attentes.splice(0); docRefusVu(e);
         if(ecriture===lot) ecriture=null; tous.forEach(a=>{ try{ a.ko(e); }catch(_e){} }); continue;
       }
-      /* Réseau, 429, 503 : on réessaie, en espaçant — 15 s au plus, et tout de suite si on nous réveille. */
+      /* Réseau, 404, 429, 503 : on réessaie, en espaçant — 15 s au plus, et tout de suite si on nous réveille. */
       const coupe=await dormirCoupable(pause); pause=coupe?1000:Math.min(pause*2,15000);
     } }finally{ enVol=false; }
   }

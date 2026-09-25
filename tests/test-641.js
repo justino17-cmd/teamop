@@ -149,7 +149,13 @@ console.log('\nFermer une entreprise coupe ses sessions Firebase, et le DIT');
   /* Le jeton d'administration est maintenant sur le chemin de quatre fermetures : sans délai,
      une fermeture pouvait rester bloquée plusieurs minutes sur un cache froid. */
   v('le jeton d\'administration a un délai d\'expiration',
-    /ctrl\.abort\(\), 10000\);[\s\S]{0,300}?oauth2\.googleapis\.com\/token/.test(SRV), true);
+    /ctrl\.abort\(\), 10000\);[\s\S]{0,300}?fetch\(FB_OAUTH_URL,/.test(SRV) && /const FB_OAUTH_URL = urlBanc\(process\.env\.TEAMOP_FB_OAUTH_URL, 'https:\/\/oauth2\.googleapis\.com\/token'\);/.test(SRV), true);
+  /* ⛔ ET LE DÉLAI COUVRE LE CORPS (`gardien`, 25 septembre 2026, C1) : levé aux en-têtes, un
+     serveur qui se tait ensuite laissait `r.json()` pendre — et avec lui la copie d'un document
+     d'équipe, qui tient le verrou de son entreprise. La lecture doit précéder `clearTimeout`. */
+  { const jt = (SRV.match(/async function fbAdminJeton\(\) \{[\s\S]*?\n\}/) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const iJson = jt.indexOf('await r.json()'), iFin = jt.indexOf('finally { clearTimeout(tm); }');
+    v('   jusqu\'au bout du corps : la réponse se lit AVANT que le délai ne soit levé', iJson > 0 && iFin > 0 && iJson < iFin, true); }
   /* Une affirmation sans fait derrière, c'est ce que ce correctif combat — y compris la sienne. */
   v('aucun espace relié ne se dit pas « coupé »', /aucun espace relié — rien à couper/.test(SRV), true);
 

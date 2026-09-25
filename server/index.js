@@ -3317,7 +3317,7 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
     } catch (err) { console.error('renaitre effacement :', err.message); } }
     /* Et sa copie CHEZ NOUS (`documents.js`), sans condition : c'est nous qui la tenons, aucun
        réseau ne peut la faire échouer. Oubliée, l'ancienne entreprise renaîtrait ici. */
-    if (documentsMod) { try { documentsMod.effacer(t); } catch (err) {} }
+    if (documentsMod) { try { await documentsMod.effacer(t); } catch (err) {} }
   }
   /* ⛔ LA QUATRIÈME PORTE, trouvée par `gardien` le 11 septembre. Celle-ci n'ajoute PAS à
      `entFermes` — elle fait repartir un espace à neuf — mais elle efface le document Firestore
@@ -5168,6 +5168,10 @@ app.post('/api/monitor/version-min', monPatronStrict, async (req, res) => {
   versionsCfg.min = min; versionsCfg.enLigne = enLigne; versionsCfg.maj = Date.now(); versionsCfg.par = (req.tourUser && req.tourUser.nom) || '';
   if (!versionsSave()) return res.status(500).json({ error: 'réglage non enregistré' });
   const fsr = await versionsPousserFirestore();
+  /* ⛔ LE MINIMUM CONFIRMÉ CHEZ GOOGLE, gardé à part : tant qu'il n'atteint pas la première
+     version sans Firebase, une v695 peut encore écrire chez Firestore, et `documents.js` ne
+     recopie pas (`VERSION_SANS_FIREBASE`, `gardien` C4). Un envoi raté ne le bouge pas. */
+  if (fsr.fait) { versionsCfg.minFirestore = min; versionsSave(); }
   monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'version minimale v' + min + ' · ' + enLigne + (fsr.fait ? '' : ' · Firestore KO'));
   console.log('version minimale exigée :', min, '· mode', enLigne, '· Firestore', fsr.fait ? 'à jour' : ('NON (' + fsr.motif + ')'));
   res.json({ ok: true, min, enLigne, firestore: fsr });
@@ -5180,6 +5184,13 @@ const retraitCodes = new Map();   // email -> { code, exp, tries }
    la fermeture d'une entreprise supprime AUSSI son compte du site (espace client),
    sa fiche et sa messagerie — plus rien n'est enregistré nulle part. */
 const FB_ADMIN_PATH = process.env.TEAMOP_FB_ADMIN || '/opt/teamop/firebase-admin.json';
+/* ⛔ LES ADRESSES DE BANC NE VISENT QUE 127.0.0.1 (`gardien`, 25 septembre 2026, N3). Posée par
+   erreur sur le VPS, `TEAMOP_FB_OAUTH_URL` enverrait une assertion SIGNÉE par la clé
+   d'administration (échangeable une heure contre un jeton qui passe au-dessus des règles), et
+   `TEAMOP_FIRESTORE_URL` le jeton lui-même. Hors 127.0.0.1, la variable est ignorée. */
+const urlBanc = (v, defaut) => (typeof v === 'string' && /^http:\/\/127\.0\.0\.1:\d{2,5}(\/|$)/.test(v)) ? v : defaut;
+const FB_OAUTH_URL = urlBanc(process.env.TEAMOP_FB_OAUTH_URL, 'https://oauth2.googleapis.com/token');
+const FIRESTORE_URL = urlBanc(process.env.TEAMOP_FIRESTORE_URL, 'https://firestore.googleapis.com/v1');
 let fbAdminCle = null;
 try { fbAdminCle = JSON.parse(fs.readFileSync(FB_ADMIN_PATH, 'utf8')); } catch (e) {}
 const fbAdminTok = { jeton: '', exp: 0 };
@@ -5201,14 +5212,17 @@ async function fbAdminJeton() {
        60 s, et l'opérateur relancer une route DESTRUCTIVE en plein vol. */
     const ctrl = new AbortController();
     const tm = setTimeout(() => ctrl.abort(), 10000);
-    let r;
+    let r, j = {};
     try {
-      r = await fetch(process.env.TEAMOP_FB_OAUTH_URL || 'https://oauth2.googleapis.com/token', { method: 'POST',
+      r = await fetch(FB_OAUTH_URL, { method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer') + '&assertion=' + jwtSans + '.' + sig,
         signal: ctrl.signal });
+      /* ⛔ LE CORPS AUSSI, SOUS LE MÊME DÉLAI (`gardien`, C1) : levé dès les en-têtes, un serveur
+         qui se tait ensuite laissait `r.json()` pendre pour toujours — et avec lui la copie d'un
+         document d'équipe, qui tient le verrou de son entreprise. */
+      j = await r.json().catch(() => ({}));
     } finally { clearTimeout(tm); }
-    const j = await r.json().catch(() => ({}));
     if (!j.access_token) { console.error('clé admin firebase : jeton refusé', j.error || r.status); return ''; }
     fbAdminTok.jeton = j.access_token; fbAdminTok.exp = Date.now() + 50 * 60000;
     return j.access_token;
@@ -5285,7 +5299,9 @@ app.post('/api/fb/jeton', async (req, res) => {
     return res.json({ ok: true, jeton: sans + '.' + sig });
   } catch (e) { console.error('jeton équipe : signature impossible —', e.message); return res.status(500).json({ error: 'signature impossible' }); }
 });
-const fsBase = () => 'https://firestore.googleapis.com/v1/projects/' + FB_PROJET + '/databases/(default)/documents';
+/* Par `FIRESTORE_URL` (Google en production, 127.0.0.1 dans un banc) : c'est ce qui permet à un
+   banc de jouer la confirmation de la version minimale chez Firestore, dont dépend la copie. */
+const fsBase = () => FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents';
 async function fbAdminFetch(url, opts, tok) {
   const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 10000);
   try { return await fetch(url, Object.assign({}, opts, { headers: Object.assign({ 'Authorization': 'Bearer ' + tok }, (opts || {}).headers || {}), signal: ctrl.signal })); }
@@ -5298,20 +5314,35 @@ async function fbAdminFetch(url, opts, tok) {
    le prendre pour « vide » ferait croire à l'application que l'équipe est neuve.
    ⚠️ `TEAMOP_FIRESTORE_URL` ne sert qu'aux bancs, qui parlent à un Firestore de banc sur
    127.0.0.1 ; il ne se pose pas sur le VPS. */
-const FIRESTORE_URL = process.env.TEAMOP_FIRESTORE_URL || 'https://firestore.googleapis.com/v1';
+/* ⛔ UN 404 DE GOOGLE N'EST « ENTREPRISE NEUVE » QUE S'IL NOMME LE DOCUMENT (`gardien`, C2,
+   mesuré). « The database (default) does not exist », un projet supprimé, un `projectId` faux :
+   autant de 404 qui ne disent RIEN de cette entreprise — et les prendre pour « jamais rien écrit »
+   envoyait l'appareil dans la branche « espace neuf », qui pousse sa base comme celle de l'équipe.
+   Firestore répond, pour un document absent : `Document "projects/…/documents/<coll>/<id>" not
+   found.` — on exige ce chemin exact, guillemet fermant compris (`ent-a` n'est pas `ent-ab`).
+   ⛔ Et le délai couvre TOUT, corps compris (C1) : `fbAdminFetch` le lève aux en-têtes. */
+function fbDocumentAbsent(j, collection, t) {
+  const m = String((j && j.error && j.error.message) || '');
+  return /not found/i.test(m) && m.indexOf('/documents/' + collection + '/' + t + '"') >= 0;
+}
 async function fbLireDocument(collection, t) {
   const tok = await fbAdminJeton();
   if (!tok) return null;
-  let r;
+  const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 20000);
   try {
-    r = await fbAdminFetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/'
-      + encodeURIComponent(collection) + '/' + encodeURIComponent(t), { method: 'GET' }, tok);
+    const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/'
+      + encodeURIComponent(collection) + '/' + encodeURIComponent(t), { method: 'GET', headers: { 'Authorization': 'Bearer ' + tok }, signal: ctrl.signal });
+    let j = null; try { j = await r.json(); } catch (e) { j = null; }
+    if (r.status === 404) {
+      if (fbDocumentAbsent(j, collection, t)) return { existe: false };
+      console.error('copie firebase : un 404 qui ne nomme pas le document — on ne conclut rien');
+      return null;
+    }
+    if (!r.ok) { console.error('copie firebase : lecture refusée — HTTP', r.status); return null; }
+    if (!j || typeof j !== 'object') return null;
+    return { existe: true, champs: require('./documents').champsFirestore(j.fields || {}), majFirebase: String(j.updateTime || '') };
   } catch (e) { return null; }
-  if (r.status === 404) return { existe: false };
-  if (!r.ok) { console.error('copie firebase : lecture refusée — HTTP', r.status); return null; }
-  let j = null; try { j = await r.json(); } catch (e) { return null; }
-  if (!j || typeof j !== 'object') return null;
-  return { existe: true, champs: require('./documents').champsFirestore(j.fields || {}), majFirebase: String(j.updateTime || '') };
+  finally { clearTimeout(tm); }
 }
 // supprime le compte du site (connexion) + fiche + messagerie d'un client — via la clé admin
 async function fbSupprimerCompteSite(email) {
@@ -5523,7 +5554,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
       if (r.ok) effaces++; else console.error('effacement firestore', t, ': HTTP', r.status);
     } catch (e) { console.error('effacement firestore', t, ':', e.message); }
     /* Le document rangé chez nous part aussi — voir `documents.js`, `effacer`. */
-    if (documentsMod) { try { documentsMod.effacer(t); } catch (e) {} }
+    if (documentsMod) { try { await documentsMod.effacer(t); } catch (e) {} }
   }
   /* ⛔ LES PIÈCES JOINTES PARTENT AVEC LE DOCUMENT (16 septembre 2026). Le commentaire
      au-dessus promet « plus rien n'est enregistré, la place est libérée » : à partir du moment
@@ -6021,7 +6052,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   /* Le document rangé chez nous (`documents.js`) : effacé sans condition, et DIT — la Tour
      affiche ce que la suppression a vraiment fait, pas ce qu'on croit qu'elle a fait. */
   fait.documentEfface = false;
-  if (documentsMod) { try { fait.documentEfface = documentsMod.effacer(t); } catch (e) {} }
+  if (documentsMod) { try { fait.documentEfface = await documentsMod.effacer(t); } catch (e) {} }
   if (jeton && !jetonAdmin) { try { await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
 
@@ -8086,7 +8117,17 @@ setInterval(rappelsEcheances, 6 * 3600000);   // puis toutes les 6 heures
 let documentsMod = null;
 try {
   documentsMod = require('./documents').monterDocuments(app, { config, DATA_DIR, sauvRefus, cleEstPublique, quotaOk, monStr,
-    versionMin: () => versionsCfg.min, fbLireDocument });
+    versionMin: () => versionsCfg.min, fbLireDocument,
+    /* Le minimum que Firestore a CONFIRMÉ (la copie l'attend), l'annuaire illisible (503, pas
+       404), et, pour l'inventaire d'avant l'extinction, le patron et la liste des entreprises. */
+    versionFirestore: () => +versionsCfg.minFirestore || 0,
+    annuaireIllisible: () => espacesIllisible,
+    monPatronStrict,
+    espacesConnus: () => Object.values(espacesReg).map(e => {
+      if (!e) return '';
+      if (e.t) return String(e.t);
+      try { return String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) { return ''; }
+    }).filter(Boolean) });
 } catch (e) {
   console.error('documents d\'équipe non montés :', e.message);
 }

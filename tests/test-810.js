@@ -55,7 +55,9 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
     const m = /documents\/([^/]+)\/([^/?]+)$/.exec(q.url);
     if (q.method === 'GET' && m) { G.lectures++; if (G.panne) { r.writeHead(503); return r.end('{}'); }
       const d = G.docs[decodeURIComponent(m[1]) + '/' + decodeURIComponent(m[2])];
-      if (!d) { r.writeHead(404); return r.end('{}'); } r.writeHead(200, { 'Content-Type': 'application/json' }); return r.end(JSON.stringify(d)); }
+      if (!d) { r.writeHead(404, { 'Content-Type': 'application/json' });
+        return r.end(JSON.stringify({ error: { code: 404, status: 'NOT_FOUND', message: 'Document "projects/elan-gestion/databases/(default)/documents/' + decodeURIComponent(m[1]) + '/' + decodeURIComponent(m[2]) + '" not found.' } })); }
+      r.writeHead(200, { 'Content-Type': 'application/json' }); return r.end(JSON.stringify(d)); }
     r.writeHead(404); r.end(); }); });
   await new Promise(res => faux.listen(0, '127.0.0.1', res));
   const GURL = 'http://127.0.0.1:' + faux.address().port;
@@ -71,7 +73,8 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
   fs.mkdirSync(path.join(banc, 'data'), { recursive: true });
   fs.writeFileSync(path.join(banc, 'data', 'espaces.json'), JSON.stringify(annuaire));
   fs.writeFileSync(path.join(banc, 'data', 'entreprises-fermees.json'), JSON.stringify({ emails: [], espaces: ['ent-f810'], suspendus: [], suspendusLe: {} }));
-  fs.writeFileSync(path.join(banc, 'data', 'versions.json'), JSON.stringify({ min: 700, enLigne: 'enLigne', maj: 1, par: 'banc' }));
+  /* `minFirestore` : Firestore a confirmé la v748 minimum — sans lui, la copie attend (`VERSION_SANS_FIREBASE`). */
+  fs.writeFileSync(path.join(banc, 'data', 'versions.json'), JSON.stringify({ min: 700, enLigne: 'enLigne', maj: 1, par: 'banc', minFirestore: 748 }));
   const vap = webpush.generateVAPIDKeys();
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc' }));
   fs.writeFileSync(path.join(banc, 'fb.json'), JSON.stringify({ client_email: 'banc@exemple.iam', private_key: paire.privateKey }));
@@ -216,6 +219,16 @@ v('⛔ syncInit ne charge plus Firebase (ni SDK, ni session, ni Firestore)', ['l
     dS.onSnapshot(() => { cbS++; }, e => { errS = e; });
     for (let i = 0; i < 40 && !errS; i++) await dormir(50);
     v('⛔ une entreprise sur la clé PARTAGÉE : refusée (409), rien livré, et l\'écran le dit', [errS && errS.statut, cbS, S.ecrans.map(x => x.statut + ':' + x.motif)], [409, 0, ['409:cle_partagee']]);
+    /* ⛔ « ESPACE INCONNU » (404) N'EST PAS DÉFINITIF (`gardien`, N6) : un annuaire illisible côté
+       serveur le rendait à toutes les entreprises à la fois, et chaque appareil coupait son écoute
+       et rejetait ses écritures pour de bon. L'appareil doit réessayer, comme pour un 503. */
+    const I = appareil('ent-inconnue810', 'CLE-I-810-QWZX'); const dI = I.docEquipe();
+    let errI = null, cbI = 0, finI = null;
+    const arreterI = dI.onSnapshot(() => { cbI++; }, e => { errI = e; });
+    dI.set(Object.assign({}, DOC_A, { ver: '748', verNum: 748 })).then(() => { finI = 'faite'; }, e => { finI = 'rejetée:' + (e && e.statut); });
+    await dormir(2500);
+    v('⛔ un espace inconnu (404) : l\'écoute continue, l\'écriture attend — ni refus, ni écran', [errI, cbI, finI, I.ecrans.length], [null, 0, null, 0]);
+    arreterI();
     const contenuAvant = (await dA.get()).data().enc;
     let e3 = null; await dA.set({ ver: '749', verNum: 749 }, { merge: true }).catch(e => { e3 = e; });
     const apresFusion = await dA.get();
