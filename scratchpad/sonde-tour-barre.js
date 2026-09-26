@@ -141,7 +141,9 @@ async function main() {
       const pj = await tapLigne('journal');
       const r2 = await ev(`return {l:[...document.querySelectorAll('#feuille [data-barre]')].filter(b=>b.querySelector('.rang').textContent).map(b=>b.dataset.barre+b.querySelector('.rang').textContent),
         compte:document.getElementById('barre-compte').textContent, st:document.getElementById('feuille').scrollTop, lignes:document.querySelectorAll('#feuille [data-barre]').length};`);
-      v('toucher une vue choisie la retire, toucher une autre la prend à la suite', r2.l.join(',') === 'accueil1,surveillance2,entreprises3,journal4', r2.l.join(','));
+      /* v2.68 : lues dans l'ordre des RANGS — l'ordre du DOM est celui du menu, qui range par sujet (Clients avant Support) */
+      const parRang = l => l.slice().sort((a, b) => +a.replace(/\D+/g, '') - +b.replace(/\D+/g, '')).join(',');
+      v('toucher une vue choisie la retire, toucher une autre la prend à la suite', parRang(r2.l) === 'accueil1,surveillance2,entreprises3,journal4', parRang(r2.l));
       v('la feuille ne remonte pas en haut à chaque toucher (on repeint, on ne réécrit pas)', r2.st === pj.st && r2.lignes === r1.l.length, 'défilement ' + pj.st + ' → ' + r2.st);
       /* une cinquième est refusée, et le dit */
       await tapLigne('equipe');
@@ -192,7 +194,7 @@ async function main() {
       gs = await geo();
       v('…qui ouvre « Ma barre »', gs.feuille && gs.reglage > 0, gs.reglage + ' lignes');
       await ev(`barreDefaut(); return 1;`);
-      const rd = await ev(`return [...document.querySelectorAll('#feuille [data-barre]')].filter(b=>b.querySelector('.rang').textContent).map(b=>b.dataset.barre).join(',');`);
+      const rd = await ev(`return [...document.querySelectorAll('#feuille [data-barre]')].filter(b=>b.querySelector('.rang').textContent).map(b=>({t:b.dataset.barre,r:+b.querySelector('.rang').textContent})).sort((a,b)=>a.r-b.r).map(x=>x.t).join(',');`);
       v('« Réinitialiser » remet la barre d’origine dans le choix', rd === 'accueil,surveillance,entreprises,essais', rd);
       await ev(`barreValider(); return 1;`); await ev(REPOS + 'return 1;');
       g = await geo();
@@ -259,7 +261,9 @@ async function main() {
       await o.ev(`MYROLE='collaborateur'; localStorage.setItem('tour_barre_gestion','essais,equipe,journal'); renderTabs(); setTab('accueil',true); return 1;`);
       await o.ev(REPOS + 'return 1;');
       const g = await o.ev(GEO);
-      v('un collaborateur : ni Accès ni Équipe, même « choisis » — le reste se complète par la barre d’origine', g.tabs.map(t => t.t).join(',') === 'journal,accueil,surveillance,entreprises,_plus', g.tabs.map(t => t.t).join(','));
+      /* v2.68 : le Journal est au patron seul, comme Accès et Équipe (le serveur le lui refusait déjà) — rien de son
+         choix ne passe, et sa barre est celle d'un collaborateur : le Courrier à la place d'Accès */
+      v('un collaborateur : ni Accès, ni Équipe, ni Journal, même « choisis » — sa barre d’origine', g.tabs.map(t => t.t).join(',') === 'accueil,surveillance,entreprises,support,_plus', g.tabs.map(t => t.t).join(','));
       await o.ev(`localStorage.removeItem('tour_barre_gestion'); renderBarreBas(); return 1;`); await o.ev(REPOS + 'return 1;');
       const g2 = await o.ev(GEO);
       v('…et sans choix, sa barre d’origine : Accueil · Surveill. · Entreprises · Courrier', g2.tabs.map(t => t.t).join(',') === 'accueil,surveillance,entreprises,support,_plus', g2.tabs.map(t => t.t).join(','));
