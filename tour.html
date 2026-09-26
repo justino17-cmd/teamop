@@ -5828,11 +5828,12 @@ function vueSurveillance(){
      lui, au téléphone elle s'enroulait autour (« passe en « » à droite du bouton, le reste en dessous). */
   var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
     '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">passe en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
-  /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses trois segments. Les segments ne sont
-     qu'un RACCOURCI vers le filtre de statut qui existait déjà (incF) : même état, même rendu, et
-     le sélecteur « statut » plus bas garde ses neuf choix (écartés, mis en veille…). Un segment ne
-     s'allume que si le filtre posé est exactement le sien. Chaque chiffre est compté sur la liste
-     de CETTE console — jamais inventé. */
+  /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses segments (incSegStatut) : Ouverts · Corrigés ·
+     Écartés · Tout, posés par le même filtre de statut (incF). ⛔ v2.68 : le menu déroulant à neuf choix
+     qui doublait ces segments a été RETIRÉ (ici et dans la fiche d'une entreprise) — les quatre états mis
+     de côté (ignoré, veille, équipe, passager) sont la famille « Écartés », et chaque ligne dit le sien ;
+     les cartes « Nouveaux » / « En cours » affinent « Ouverts », qui reste allumé (pastille .filtre-pose).
+     Chaque chiffre est compté sur la liste de CETTE console, exactement comme la liste qu'il ouvre. */
   var sSt=incSegStatut(incDeLaConsole());
   var teteL=teteListe('Entreprises touchées','Statut des problèmes',sSt.segs,sSt.cour,"incF('statut',");
   return enTete('Surveillance',SURV_DESC)+kpis+zeroBtn+teteL+filtres+
