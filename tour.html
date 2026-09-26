@@ -281,6 +281,9 @@ input[type=number].inp{font-variant-numeric:tabular-nums}
 .code{background:var(--inset);border-radius:var(--r-2);padding:12px 13px;font-family:var(--fm);font-size:12px;color:var(--code);white-space:pre;overflow-x:auto;line-height:1.55}
 .encart{display:flex;gap:12px;align-items:flex-start;background:var(--accBg);border-radius:var(--r-3);padding:14px 16px;margin-top:16px}
 .encart-tx{font-size:13px;color:var(--muted);line-height:1.55}
+/* v2.68 — un encart qui porte un BOUTON le pose sous sa phrase : en rangée, « ↺ Repartir à zéro pour cette
+   entreprise » tenait sur cinq lignes de 96 px à côté du texte (sonde du thème, 26 septembre 2026) */
+.encart.encart-pile{flex-direction:column;align-items:flex-start;gap:10px}
 .encart-tx b{color:var(--text2);font-weight:600}
 .expl-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:14px}
 .expl-l{display:flex;gap:9px;font-size:13px;line-height:1.55;color:var(--muted);margin-top:8px}
@@ -911,12 +914,15 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
    --dim tombe à 4,27:1 sur le fond de page en thème jour : le socle le réserve au chevron
    et au compteur de groupe. Une phrase qu'on lit passe en --muted. */
 .svl-compte{margin:0 2px 18px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-/* v2.68 : l'affinage d'un segment (« Nouveaux seulement ✕ ») — un bouton, qui dit ce qu'il retire */
-.svl-affine{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:4px 10px;min-height:30px;border:0;
+/* v2.68 — LE FILTRE POSÉ, UNE PIÈCE POUR TOUTE LA TOUR : ce qu'une tuile ou un affinage a retenu, dit en
+   clair, et qui se retire d'un toucher (« Nouveau seulement ✕ », « avec des échecs de connexion ✕ »).
+   Entreprises avait son petit bouton fantôme, la Surveillance le sien : même idée, un seul dessin. */
+.filtre-pose{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;min-height:30px;border:0;
   border-radius:var(--r-pill);background:var(--accBg);color:var(--acc-txt);font:inherit;font-size:12px;font-weight:600;
   cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;vertical-align:middle}
-.svl-affine:hover{filter:brightness(.97)}
-@media(pointer:coarse),(max-width:760px){ .svl-affine{min-height:44px;padding:0 14px} }
+.filtre-pose:hover{filter:brightness(.97)}
+.svl-compte .filtre-pose{margin-left:10px}
+@media(pointer:coarse),(max-width:760px){ .filtre-pose{min-height:44px;padding:0 14px} }
 .svl-sous{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45}
 /* La légende n'ouvre plus l'écran : elle le referme. */
 .svl-legende{margin-top:32px}
@@ -1177,15 +1183,27 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
    fait ~550 px, et les quatre commandes d'une ligne (GESTION, MESSAGES, Couper l'accès, Supprimer) y
    laissaient 40 px au nom : « S. », « C. », « d.. » (capture de la sonde du thème, 26 septembre 2026).
    Les commandes passent TOUJOURS sous le texte, alignées sur lui ; au téléphone elles s'étirent (plus bas). */
-.reg-l.eqp-l{flex-wrap:wrap}
-.reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:10px;padding-left:46px}
+/* row-gap:0 — l'écart de colonnes (12 px) valait aussi entre les rangées : 22 px entre le nom et ses commandes (mesuré) */
+.reg-l.eqp-l{flex-wrap:wrap;row-gap:0}
+.reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:6px;padding-left:46px}
+/* v2.68 — LES COMPTES D'UNE ENTREPRISE, DANS SA FICHE : la même règle. La fiche range ses cartes sur deux
+   colonnes d'environ 485 px ; les pastilles d'état et les deux commandes (Mot de passe, Supprimer) — un
+   .reg-fin qui ne rétrécit jamais — laissaient 13 px à l'identifiant : « t o m », une lettre par ligne
+   (sonde du thème, textes écrasés, 26 septembre 2026). Les pastilles et les commandes passent dessous. */
+/* L'écart de COLONNES de la ligne (12 px) vaut aussi entre ses RANGÉES une fois repliée : sans row-gap:0,
+   20 px de vide séparaient le nom de ses commandes (mesuré). Les pastilles à gauche, les commandes à
+   droite, et sur une rangée à elles quand la place manque — jamais « Supprimer » seul sous le reste. */
+.reg-l.cpt-l{flex-wrap:wrap;row-gap:0}
+.reg-l.cpt-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:2px;row-gap:4px}
+.reg-l.cpt-l .reg-alertes{max-width:none;justify-content:flex-start}
+.reg-l.cpt-l .cpt-act{display:flex;gap:6px;margin-left:auto}
 
 @media(max-width:640px){
   .eqp-deux>.col-liste,.eqp-deux>.col-detail{flex-basis:100%}
   /* Les deux actions passent sous le texte, une par rangée : à 390 px, « Supprimer » collé à
      « Couper l'accès » est le montage qui produit les erreurs de doigt. */
-  .reg-l.eqp-l{flex-wrap:wrap}
-  .reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:10px;padding-left:46px}
+  .reg-l.eqp-l{flex-wrap:wrap;row-gap:0}
+  .reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:6px;padding-left:46px}
   .reg-l.eqp-l .eqp-actions{flex:1;min-width:0}
   .reg-l.eqp-l .eqp-act{flex:1;min-width:0}
 }
@@ -2843,7 +2861,7 @@ function setApp(app,sansAnim,tabVoulu){
 /* La cellule INACTIVE de l'interrupteur porte le compteur d'incidents ouverts de l'autre console. */
 function majCompteursApp(){
   var n={gestion:0,messages:0};
-  try{ (INC.list||[]).filter(function(i){ return i.statut==='nouveau'||i.statut==='encours'; }).forEach(function(i){ var a=appDe(i.app); if(a==='*') a='gestion'; n[a]++; }); }catch(e){}
+  try{ (INC.list||[]).filter(function(i){ var st=i.statut||'nouveau'; return st==='nouveau'||st==='encours'; }).forEach(function(i){ var a=appDe(i.app); if(a==='*') a='gestion'; n[a]++; }); }catch(e){}
   ['gestion','messages'].forEach(function(a){ var el=$('app-n-'+a); if(!el) return; el.textContent=n[a]; el.hidden=!n[a]; });
   var sw=$('app-sw'); if(sw) sw.hidden=!(MYAPPS.length>1);
   var pill=$('app-pill'); if(pill) pill.classList.toggle('seul',!(MYAPPS.length>1));
@@ -3797,6 +3815,9 @@ function entQ(v){ ENT.q=v; rafraichirSiConcerne(); }
    de cet ecran, donc il doit etre reversible sans chercher un bouton « tout voir »
    ailleurs. La selection en cours est conservee : on filtre ce qu'on regarde, on ne
    perd pas la fiche ouverte. */
+/* ce qu'un filtre d'Entreprises retient, dit en clair — chaque tuile qui filtre y a sa phrase (test-829) */
+var ENT_FILTRE_LIB={erreurs:'avec des erreurs',echecs:'avec des échecs de connexion',retard:'sans la dernière mise à jour',
+  horsAnnuaire:'hors annuaire',migrer:'à migrer (clé partagée)'};
 function entFiltre(f){ ENT.filtre=(ENT.filtre===f?'':f); rafraichirSiConcerne(); }
 /* Un segment POSE son filtre (le retoucher ne le retire pas : c'est le segment « Toutes » qui le fait). */
 function entFiltrePoser(f){ ENT.filtre=f||''; rafraichirSiConcerne(); }
@@ -5181,7 +5202,9 @@ function incDeLaConsole(){ return INC.list.filter(function(i){ return appVisible
 /* Les compteurs aussi : INC.cnt vient du serveur, TOUTES consoles confondues — « 5 nouveaux » sur un
    accueil qui n'en montre que 2, c'est ce qu'on aurait lu. */
 function incCompteurs(){ var c={}; incDeLaConsole().forEach(function(i){ var k=i.statut||'nouveau'; c[k]=(c[k]||0)+1; }); return c; }
-function incOuverts(){ return incDeLaConsole().filter(function(i){ return i.statut==='nouveau'||i.statut==='encours'; }); }
+/* un problème sans statut est NOUVEAU, ici comme dans incCompteurs, incFiltres et incSegStatut : un compteur
+   qui ne compte pas comme sa liste filtre annonce un chiffre que la liste ne montre pas (v2.68) */
+function incOuverts(){ return incDeLaConsole().filter(function(i){ var st=i.statut||'nouveau'; return st==='nouveau'||st==='encours'; }); }
 /* Le titre part du MESSAGE ; à défaut, l'origine (qui désigne le coupable) avant l'écran
    ouvert (qui ne désigne rien). */
 function incTitre(i){ return String(i.message||i.origine||i.categorie||'Incident').split('\n')[0].slice(0,120); }
@@ -5197,7 +5220,7 @@ function vueAccueil(){
      affichait « 9 nouveau(x) », c'est-à-dire neuf problèmes clients dont personne ne s'était
      occupé. Un incident neuf est à traiter, quelle que soit sa gravité. */
   var hautes=incOuverts().filter(function(i){ return gravite(i)==='haute'; });
-  var neufs=incOuverts().filter(function(i){ return i.statut==='nouveau' && gravite(i)!=='haute'; });
+  var neufs=incOuverts().filter(function(i){ return (i.statut||'nouveau')==='nouveau' && gravite(i)!=='haute'; });
   var tousLus=(MSG.messages||[]).filter(function(m){ return !m.lu; });
   var tousImp=(ABO.paiements||[]).filter(function(p){ return !paieOk(p); });
   var nonLus=tousLus.slice(0,4), impayes=tousImp.slice(0,3);
@@ -5443,7 +5466,7 @@ function incFiltres(){
   return incDeLaConsole().filter(function(i){
     if(f.type&&(i.type||'')!==f.type) return false;
     if(f.grav&&gravite(i)!==f.grav) return false;
-    if(f.statut==='actifs'){ if(i.statut!=='nouveau'&&i.statut!=='encours') return false; }
+    if(f.statut==='actifs'){ var st=i.statut||'nouveau'; if(st!=='nouveau'&&st!=='encours') return false; }
     else if(f.statut==='ecartes'){ if(ST_ECARTES.indexOf(i.statut||'nouveau')<0) return false; }
     else if(f.statut&&(i.statut||'nouveau')!==f.statut) return false;
     if(f.app&&(i.app||'')!==f.app) return false;
@@ -5461,16 +5484,16 @@ function incF(k,v){ INC.f[k]=v; renderNav('fondu'); }
 var ST_ECARTES=['ignore','veille','interne','transitoire'];
 function incSegStatut(liste){
   var st=INC.f.statut||'', parent=(st==='nouveau'||st==='encours')?'actifs':(ST_ECARTES.indexOf(st)>=0?'ecartes':st);
-  var c=function(ok){ return liste.filter(ok).length; };
-  var segs=[['actifs','Ouverts',c(function(i){ return i.statut==='nouveau'||i.statut==='encours'||!i.statut; })],
-    ['corrige','Corrigés',c(function(i){ return i.statut==='corrige'; })],
-    ['ecartes','Écartés',c(function(i){ return ST_ECARTES.indexOf(i.statut)>=0; })],
+  var c=function(ok){ return liste.filter(function(i){ return ok(i.statut||'nouveau'); }).length; };
+  var segs=[['actifs','Ouverts',c(function(x){ return x==='nouveau'||x==='encours'; })],
+    ['corrige','Corrigés',c(function(x){ return x==='corrige'; })],
+    ['ecartes','Écartés',c(function(x){ return ST_ECARTES.indexOf(x)>=0; })],
     ['','Tout',liste.length]];
   return {segs:segs, cour:parent, affine:(st!==parent)?(ST_L[st]||st):''};
 }
 /* la pastille d'affinage : « Nouveaux seulement ✕ » — la retirer remonte au segment parent */
 function incAffinePastille(s){
-  return s.affine?'<button type="button" class="svl-affine" onclick="incF(\'statut\',\''+s.cour+'\')" title="Revenir à « '+esc(s.segs.filter(function(x){ return x[0]===s.cour; })[0][1])+' »">'+esc(s.affine)+' seulement <span aria-hidden="true">✕</span></button>':''; }
+  return s.affine?'<button type="button" class="filtre-pose" onclick="incF(\'statut\',\''+s.cour+'\')" title="Revenir à « '+esc(s.segs.filter(function(x){ return x[0]===s.cour; })[0][1])+' »">'+esc(s.affine)+' seulement <span aria-hidden="true">✕</span></button>':''; }
 function selIncident(id){ INC.sel=id; marquerTitre(window.event); renderNav('avant'); window.scrollTo(0,0); }
 function incRetour(){ INC.sel=null; renderNav('retour'); window.scrollTo(0,0); }
 function selEnt(nom){ INC.grp=nom; INC.sel=null; marquerTitre(window.event); renderNav('avant'); window.scrollTo(0,0); }
@@ -7190,9 +7213,8 @@ function vueEntreprises(){
     '<div class="rech" style="margin-bottom:12px">'+svg('loupe',16)+'<input placeholder="Rechercher (nom, adresse, identifiant d’espace)…" value="'+esc(ENT.q)+'" oninput="entQ(this.value)"></div>'+
     '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
       '<span>'+l.length+' sur '+(ENT.liste||[]).length+'</span>'+
-      (ENT.filtre?'<button class="btn-fant" style="padding:2px 10px;font-size:11px" onclick="entFiltre(\''+ENT.filtre+'\')">'+
-        esc({erreurs:'avec des erreurs',echecs:'avec des échecs de connexion',retard:'sans la dernière mise à jour',
-             horsAnnuaire:'hors annuaire',migrer:'à migrer (clé partagée)'}[ENT.filtre]||'')+' ✕</button>':'')+
+      (ENT.filtre?'<button type="button" class="filtre-pose" onclick="entFiltre(\''+ENT.filtre+'\')" title="Revenir à toutes les entreprises">'+
+        esc(ENT_FILTRE_LIB[ENT.filtre]||'')+' <span aria-hidden="true">✕</span></button>':'')+
     '</div>'+
     liste;
 }
@@ -7649,7 +7671,7 @@ function blocUtilisateurs(){
       if(jamais&&u.dansAnnuaire) p+='<span class="past p-gris">inutilisé</span>';
       if(u.attente) p+='<span class="past p-ambre" title="ordonnée depuis la Tour ; exécutée au premier appareil de l’entreprise qui s’ouvre">⏳ suppression en attente</span>';
       if(u.supprime) p+='<span class="past p-gris" title="exécutée par un appareil de l’entreprise ; l’identifiant reste banni de l’annuaire tant que tu ne le réautorises pas">🚫 supprimé · banni</span>';
-      return '<div class="reg-l inerte">'+
+      return '<div class="reg-l inerte cpt-l">'+
         '<span class="reg-txt">'+
           /* L'identifiant seul sur sa ligne : c'est LUI qu'on cherche des yeux, et il se lit
              caractère par caractère. Le rôle et le nom viennent en dessous — collés derrière
@@ -7661,8 +7683,9 @@ function blocUtilisateurs(){
             (u.appareils?' · '+u.appareils+' appareil'+(u.appareils>1?'s':''):'')+
             (u.version?' · v'+esc(u.version):'')+'</span></span>'+
         '<span class="reg-fin"><span class="reg-alertes">'+p+'</span>'+
-          (MYROLE==='patron'&&u.dansAnnuaire&&!u.attente&&!u.supprime?'<button type="button" class="pill-act" title="Refaire le mot de passe provisoire de « '+esc(u.login)+' » — son mot de passe actuel ne marchera plus" onclick="compteMdpRefaire(\''+jsq(u.login)+'\')">Mot de passe</button>':'')+
-          (MYROLE==='patron'&&!u.attente&&!u.supprime?'<button type="button" class="pill-act" title="Supprimer le compte « '+esc(u.login)+' »" onclick="compteSupprimer(\''+jsq(u.login)+'\')">Supprimer</button>':'')+
+          ((MYROLE==='patron'&&!u.attente&&!u.supprime)?'<span class="cpt-act">'+
+          (u.dansAnnuaire?'<button type="button" class="pill-act" title="Refaire le mot de passe provisoire de « '+esc(u.login)+' » — son mot de passe actuel ne marchera plus" onclick="compteMdpRefaire(\''+jsq(u.login)+'\')">Mot de passe</button>':'')+
+          '<button type="button" class="pill-act" title="Supprimer le compte « '+esc(u.login)+' »" onclick="compteSupprimer(\''+jsq(u.login)+'\')">Supprimer</button></span>':'')+
         '</span></div>'; };
   var sv=d.sauvegarde||{}, bannis=d.bannis||[];
   var inut=vrais.filter(function(u){ return u.dansAnnuaire&&!u.derniere&&!u.attente&&!u.supprime; });
@@ -8031,11 +8054,11 @@ function blocDossier(){
      c'est se rassurer sur un écran qu'on a soi-même vidé. */
   var _oZ=((ENT.liste||[]).find(function(x){ return x.t===ENT.sel; })||{});
   var _depuis=+_oZ.zeroDepuis||0;
-  t+='<div class="sous-sec"><div class="encart"><div class="encart-tx">'+
+  t+='<div class="sous-sec"><div class="encart encart-pile"><div class="encart-tx">'+
     (_depuis
       ? '↺ <b>Compteurs repartis de zéro le '+esc(fmtJour(_depuis))+'.</b> Les problèmes d’avant ne sont pas effacés — ils ne sont plus comptés. Tout ce qui arrive depuis s’affiche normalement.'
       : 'Les pastilles 🐛 et 🔑 cumulent depuis l’ouverture de l’espace. Repartir à zéro pose une date : rien n’est effacé, et tout nouveau problème réapparaît aussitôt.')+
-    '</div><div style="margin-top:10px">'+
+    '</div><div>'+
     (_depuis
       ? '<button type="button" class="btn-fant" onclick="entZeroCompteurs(false)">Annuler — remontrer tout l’historique</button>'
       : '<button type="button" class="btn-fant" onclick="entZeroCompteurs(true)">↺ Repartir à zéro pour cette entreprise</button>')+
@@ -8744,7 +8767,8 @@ function vueEquipe(){
     var apps=Array.isArray(u.apps)&&u.apps.length?u.apps:(pat?['gestion','messages']:['gestion']);
     var appsTx=apps.map(function(a){ return APPS_TOUR[a]?APPS_TOUR[a].nom:a; }).join(' + ');
     var l2='<b>'+(ROLE_L[u.role]||'Collaborateur')+'</b> · '+esc(appsTx)+
-      (pat?' · tous les onglets, y compris Équipe, Accès et Journal':' · ni Équipe, ni Accès, ni Journal')+
+      /* ⛔ déduit du menu (libsPatronSeul) : écrite à la main, la phrase avait oublié les Sauvegardes (v2.68) */
+      (pat?' · tous les onglets, y compris '+esc(enPhrase(libsPatronSeul(),'et')):' · ni '+esc(libsPatronSeul().join(', ni ')))+
       (JR.loaded&&!JR.err?' · '+(a.last?'vu '+esc(fmtAgo(a.last)):'aucune trace dans les 100 dernières connexions'):'');
     /* Chaque fait absent disparaît : jamais de « — » de remplissage. Et « Jamais connecté »
        était faux — u.ts est une date de CRÉATION. */
@@ -8809,9 +8833,12 @@ function eqNoteCollaborateur(){
   var voit=[], pas=[];
   MENU.forEach(function(g){ g.vues.forEach(function(x){ if((x[2]||'').split(' ').indexOf('gestion')<0) return;
     (PATRON_SEUL.indexOf(x[0])<0?voit:pas).push(x[1]); }); });
-  var et=function(l,mot){ return l.length>1?l.slice(0,-1).join(', ')+' '+mot+' '+l[l.length-1]:(l[0]||''); };
-  return 'Il voit '+esc(et(voit,'et'))+(pas.length?' — pas '+esc(et(pas,'ni')):'')+'.';
+  return 'Il voit '+esc(enPhrase(voit,'et'))+(pas.length?' — pas '+esc(enPhrase(pas,'ni')):'')+'.';
 }
+/* les NOMS du menu des vues réservées au patron, dans l'ordre du menu, toutes consoles confondues */
+function libsPatronSeul(){ var l=[]; MENU.forEach(function(g){ g.vues.forEach(function(x){ if(PATRON_SEUL.indexOf(x[0])>=0&&l.indexOf(x[1])<0) l.push(x[1]); }); }); return l; }
+/* « A, B et C » — ou « A, B ni C » */
+function enPhrase(l,mot){ return l.length>1?l.slice(0,-1).join(', ')+' '+mot+' '+l[l.length-1]:(l[0]||''); }
 
 /* ══════════ 7. JOURNAL ══════════ */
 /* Les trois compteurs deviennent les trois filtres. JR.f vaut 'tout' au repos ; recliquer
