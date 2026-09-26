@@ -227,6 +227,31 @@ const proche = (a, b, tol) => Array.isArray(a) && Array.isArray(b) && a.every((v
     vrai('⛔⛔ validé : Karim remplacé par Nina, Léo et Sofia gardés', JSON.stringify(k4.techIds) === JSON.stringify([T.nina, T.leo, T.sofia]) && k4.techId === T.nina, k4);
     await ev(`try{ window._planCtxDe=null; closeModal(true); }catch(e){} return 1;`);
 
+    console.log('\n── L. un technicien qui part ne change la couleur de PERSONNE (relecture v758) ──');
+    /* une équipe plus nombreuse, pour qu'un départ fasse bouger quelqu'un SANS la règle (la population), puis le
+       VRAI geste : « Supprimer » sur la fiche, confirmation acceptée */
+    const L1 = await ev(`const id=(j,s)=>Date.parse(j).toString(36)+s;
+      ['Ana Lopez','Ben Morel','Chloé Faure','Dan Petit','Emma Roux','Farid Nadir','Gina Colas','Hugo Blanc','Inès Vidal'].forEach((n,k)=>{
+        const tid=id('2025-0'+(1+k)+'-2'+k,'eqp'+k+'x'); if(!db.techniciens.some(t=>t.id===tid)) db.techniciens.push({id:tid,nom:n}); });
+      save();
+      const avant={}; db.techniciens.forEach(t=>avant[t.id]=techColor(t.id));
+      let cible=null, victimes=[];
+      for(const t of db.techniciens){ if(t.couleur) continue; const sans=techCouleursDe(db.techniciens.filter(x=>x.id!==t.id));
+        const v=db.techniciens.filter(x=>x.id!==t.id&&sans[x.id]!==avant[x.id]).map(x=>x.nom); if(v.length){ cible=t; victimes=v; break; } }
+      if(!cible) return {cible:null};
+      const conf=window.confirm; window.confirm=()=>true;
+      try{ delItem('techniciens',cible.id); } finally{ window.confirm=conf; }
+      const apres={}; db.techniciens.forEach(t=>apres[t.id]=techColor(t.id));
+      return {cible:cible.nom, victimes, parti:!db.techniciens.some(t=>t.id===cible.id),
+        changes:db.techniciens.filter(t=>apres[t.id]!==avant[t.id]).map(t=>t.nom+' '+avant[t.id]+'→'+apres[t.id]),
+        figes:db.techniciens.filter(t=>t.couleur&&String(t.couleur).toUpperCase()===String(avant[t.id]).toUpperCase()).map(t=>t.nom)};`);
+    vrai('population : un départ qui, sans la règle, aurait fait changer la couleur d’un autre', !!L1.cible && L1.victimes.length > 0, L1);
+    vrai('le vrai geste « Supprimer le technicien » l’a retiré', L1.parti, L1);
+    vrai('⛔ personne d’autre n’a changé de couleur', L1.changes && L1.changes.length === 0, L1.changes);
+    vrai('   … ceux qui auraient changé gardent la leur, écrite sur leur fiche', L1.victimes && L1.victimes.every(n => L1.figes.includes(n)), L1);
+    /* le choix de couleur de l'un d'eux dit bien « choisie » désormais — et le planning les peint comme avant */
+    await ev(`try{ closeModal(true); }catch(e){} go('planningGeneral'); return 1;`); await dormir(800);
+
     console.log('\n── J. aucune erreur de script ──');
     vrai('aucune exception pendant tout le parcours', S.exceptions.length === 0, S.exceptions.slice(0, 5));
   } catch (e) {
