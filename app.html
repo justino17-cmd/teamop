@@ -7942,7 +7942,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '753';
+const APP_VERSION = '754';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13939,7 +13939,11 @@ function valideursDR(){ return (db.users||[]).filter(x=>x&&x.actif!==false&&user
    monde si l'entreprise l'a décidé (Paramètres), sinon par la case de sa fiche. Un valideur ne l'est
    jamais : il se validerait lui-même. UNE définition : boxValidRequis (la personne connectée) et le menu
    (n'importe quel compte, validationsOuvertes) la lisent toutes les deux. */
-function valideSoumis(u){ return !!u && !userCap(u,'validerDR') && !!(db.validDRTous || u.boxValidDR); }
+/* ⛔ v754 — UN PROFIL N'EST JAMAIS « SOUMIS » : l'être tient à la personne (sa fiche) ou à la règle d'entreprise
+   appliquée à une personne. Sans ça, sous « Toute sortie de stock passe par le DR », un profil neuf naissait
+   « Validations DR » coché et verrouillé — pas « tout décoché ». La ligne de la personne le montre une fois le
+   profil posé ; la case de validation du profil, elle, ouvre toujours le menu (c'est une case du profil). */
+function valideSoumis(u){ return !!u && u.role!=='__profil__' && !userCap(u,'validerDR') && !!(db.validDRTous || u.boxValidDR); }
 /* v753 : « Validations DR » est ouvert d'office aux deux bouts de la validation (userSeesModule). */
 function validationsOuvertes(u){ return !!u && (userCap(u,'validerDR') || valideSoumis(u)); }
 /* Ce que la ligne d'une personne dit sous « Validations DR » quand il est ouvert d'office — une seule
@@ -32531,7 +32535,7 @@ function usrDroitsHtml(u,admin){
     const nom=(m.parent?'↳ ':'')+m.ic+' '+esc(t(m.l)), sous=m.parent?'dans '+esc(navLabel(m.parent)):'';
     if(m.k!=='validations'||planBloque(m.k)||metierBloque(m.k)) return ligne(nom,sous,swH('mod_'+m.k,userSeesModule(u,m.k)));
     const force=validationsOuvertes(u), r=moduleReglage(u,'validations'), propre=r?r.v:false;
-    const extra=' data-val="1" data-val-soumis="'+(db.validDRTous||u.boxValidDR?1:0)+'" data-val-av="'+(propre?1:0)+'"'+(force?' data-val-force="1"'+(admin?' disabled':''):'');
+    const extra=' data-val="1" data-val-soumis="'+(u.role!=='__profil__'&&(db.validDRTous||u.boxValidDR)?1:0)+'" data-val-av="'+(propre?1:0)+'"'+(force?' data-val-force="1"'+(admin?' disabled':''):'');
     return '<div class="perm-row"><div class="pn">'+nom+'<div class="pn-d" data-val-note style="'+(force?'':'display:none')+'">'+(force?esc(validationsNote(userCap(u,'validerDR'))):'')+'</div></div>'+swH('mod_validations',force||propre,extra)+'</div>';
   };
   const cats=PERM_GRPS.map(([g,titre])=>{
@@ -32696,15 +32700,27 @@ function profilRenommer(pid){
    ⛔ Le RÔLE choisi ici ne sert qu'à préremplir la grille : il ne part PAS avec le profil.
    C'est à la création du compte qu'on choisit le rôle, et il ne change jamais ensuite. */
 let _profilEdit=null;
+/* ⛔ v754 — UN PROFIL NEUF PART TOUT DÉCOCHÉ. Justin, 26 septembre 2026 : « un profil neuf, tout est décoché » —
+   il l'avait décidé le 9 septembre (« on nomme, on coche »). Jusqu'ici ses MENUS arrivaient cochés comme ceux du
+   technicien (depuis la v613), et « Ajouter » / « Modifier » ouverts dans chaque catégorie. Chaque interrupteur
+   de la grille part donc à NON — menus, droits spéciaux, gestes de catégorie — sauf les cases DÉDUITES, qu'on ne
+   pose pas : elles suivent leurs bases (toutes à non, donc non elles aussi) et continuent de les suivre une fois
+   le profil enregistré (profilLireZone ne les écrit pas). Poser une case déduite à non la figerait : cocher
+   « Tout voir » ne cocherait plus « Voir les fiches de son équipe ». */
+function profilVierge(){
+  const caps={}, modules={};
+  USER_CAPS.forEach(([k])=>{ if(!capDeduitRegle(k)) caps[k]=false; });
+  PERM_GRPS.forEach(([g])=>['ajouter','modifier','supprimer'].forEach(d=>{ if(!catDeduitRegle(g,d)) caps['cat_'+g+'_'+d]=false; }));
+  avecSousCats(NAV.flatMap(x=>x.items)).forEach(m=>{ modules[m.k]=false; });
+  return {caps,modules}; }
 function profilNouveau(pid){
   if(!currentUser||currentUser.role!=='admin'){ toast('Réservé aux administrateurs'); return; }
-  const pr=pid?profilDroits(pid):null;
-  /* Un profil neuf ne tient AUCUN droit de la liste du technicien : le compte fictif porte un rôle
-     (`__profil__`) que tableDuRole n'ouvre pas aux droits. ⚠️ Ses MENUS, eux, partent de la liste du
-     technicien (depuis la v613) : ce n'est PAS « tout décoché », que Justin avait demandé le
-     9 septembre 2026 (« on nomme, on coche ») — écart relevé dans REPRISE, décision à prendre. */
+  const pr=pid?profilDroits(pid):null, vierge=pr?null:profilVierge();
+  /* Un profil neuf part TOUT DÉCOCHÉ (profilVierge) ; un profil existant se montre tel qu'il est enregistré.
+     Le compte fictif (`__profil__`) ne tient aucun droit de la liste du technicien (tableDuRole) et n'est
+     jamais « soumis » à la validation (valideSoumis). */
   _profilEdit={id:pr?pr.id:'', nom:pr?pr.nom:'',
-               caps:Object.assign({},(pr&&pr.caps)||{}), modules:Object.assign({},(pr&&pr.modules)||{})};
+               caps:pr?Object.assign({},pr.caps||{}):vierge.caps, modules:pr?Object.assign({},pr.modules||{}):vierge.modules};
   profilEditRender();
 }
 

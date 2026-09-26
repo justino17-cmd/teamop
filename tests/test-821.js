@@ -19,6 +19,9 @@
    4. (relecture) LES COMPTES FICTIFS DE L'ÉDITEUR N'EN PROFITENT PAS. `__profil__` (« ＋ Nouveau profil »)
       et `__zone__` (les cases déduites) passent par les mêmes fonctions : sans garde, un profil neuf
       naissait « Modifier les plans d'appâtage » coché, et l'enregistrer l'écrivait. Règle de la v752.
+   5. (v754) UN PROFIL NEUF PART TOUT DÉCOCHÉ — Justin, 26 septembre 2026 : « un profil neuf, tout est
+      décoché ». Ses menus arrivaient cochés comme ceux du technicien, « Ajouter » / « Modifier » ouverts ;
+      et sous « Toute sortie de stock passe par le DR », « Validations DR » coché et verrouillé.
    Tout est EXÉCUTÉ : les vraies fonctions du fichier livré, les vraies listes (NAV, USER_CAPS, la liste
    de départ, la reprise). Le rendu dans la vraie page est mesuré par `scratchpad/sonde-droits-v753.js`. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -55,10 +58,12 @@ const P = {
   usrMenuLu: bloc('function usrMenuLu(zone,k){'), profilLireZone: bloc('function profilLireZone(zone){'), profilPoserZone: bloc('function profilPoserZone(zone,pr){'),
   usrDeduireZone: bloc('function usrDeduireZone(z){'), usrDeduire: bloc('function usrDeduire(el){'), usrVoirTout: bloc('function usrVoirTout(cb){'),
   usrDroitsValider: bloc('function usrDroitsValider(uid,btn){'), usrDroitsHtml: bloc('function usrDroitsHtml(u,admin){'),
+  profilVierge: bloc('function profilVierge(){'), profilDroits: ligne('function profilDroits(pid){'), profilNouveau: bloc('function profilNouveau(pid){'),
+  profilEditRender: bloc('function profilEditRender(){'),
 };
 v('toutes les pièces sont trouvées dans le fichier réel', Object.keys(P).filter(k => !P[k]), []);
 v('une seule définition de chaque règle neuve (deux copies divergent toujours)',
-  ['tableDuRole', 'valideSoumis', 'validationsOuvertes', 'validationsNote', 'usrMenuLu', 'boxValidRequis'].map(n => compte('function ' + n + '(')), [1, 1, 1, 1, 1, 1]);
+  ['tableDuRole', 'valideSoumis', 'validationsOuvertes', 'validationsNote', 'usrMenuLu', 'boxValidRequis', 'profilVierge'].map(n => compte('function ' + n + '(')), [1, 1, 1, 1, 1, 1, 1]);
 vrai('⛔ la liste d’un rôle ne se lit plus qu’à un endroit : plus aucune lecture directe de db.permissions[rôle] ailleurs',
   (SRC.match(/db\.permissions\s*(&&\s*db\.permissions)?\[\s*u\.role\s*\]/g) || []).length === 0 && (SRC.match(/\(db\.permissions\|\|\{\}\)\[u\.role\]/g) || []).length === 0,
   SRC.match(/db\.permissions\s*(&&\s*db\.permissions)?\[\s*u\.role\s*\]|\(db\.permissions\|\|\{\}\)\[u\.role\]/g));
@@ -76,6 +81,7 @@ function monde(opts) {
     function estStockage(){ return false; } function showAside(){ return false; }
     function userBoxVoit(){} function userVehiculeVoit(){} function fullName(u){ return ((u.prenom||'')+' '+(u.nom||'')).trim()||u.login||''; }
     function btnFait(){ return false; } var views = { utilisateurs(){} };
+    var __modal = ''; function openModal(h){ __modal = h; } function setTimeout(){} let _profilEdit = null;
     ${P.NAV}
     ${P.SOUS_CATS}
     ${P.avecSousCats}
@@ -92,6 +98,7 @@ function monde(opts) {
        P.navLabel, P.profilsDroits, P.profilCompte].join('\n')}
     ${P.profilNomSw}
     ${[P.usrMenuLu, P.profilLireZone, P.profilPoserZone, P.usrDeduireZone, P.usrDeduire, P.usrVoirTout, P.usrDroitsValider, P.usrDroitsHtml].join('\n')}
+    ${[P.profilVierge, P.profilDroits, P.profilNouveau, P.profilEditRender].join('\n')}
     db.permissions = defaultPerms(); reprendreDroitsImplicites();
     this.db = db; this.NAV = NAV; this.SOUS_CATS = SOUS_CATS; this.USER_CAPS = USER_CAPS; this.PERM_GRPS = PERM_GRPS;
     this.defaultPerms = defaultPerms; this.tableDuRole = tableDuRole; this.userSeesModule = userSeesModule; this.userCap = userCap;
@@ -99,6 +106,8 @@ function monde(opts) {
     this.boxValidRequis = boxValidRequis; this.notifVoitModule = notifVoitModule; this.droitsBorner = droitsBorner;
     this.usrMenuLu = usrMenuLu; this.profilLireZone = profilLireZone; this.profilPoserZone = profilPoserZone; this.usrDeduireZone = usrDeduireZone;
     this.usrDeduire = usrDeduire; this.usrDroitsValider = usrDroitsValider; this.usrDroitsHtml = usrDroitsHtml;
+    this.profilVierge = profilVierge; this.profilNouveau = profilNouveau; this.capDeduitRegle = capDeduitRegle; this.catDeduitRegle = catDeduitRegle;
+    this.modale = () => __modal; this.profilEdit = () => _profilEdit;
     this.poser = (k, x) => { if (k === 'currentUser') currentUser = x; if (k === 'document') document = x; };
   `, ctx);
   return ctx;
@@ -311,6 +320,55 @@ console.log('\n── 821 · 6. ⛔⛔ les comptes FICTIFS de l’éditeur ne so
   const hX = Mc.usrDroitsHtml({ id: '__profil__', role: '__profil__', acces: { caps: pr.caps, modules: pr.modules } }, true);
   vrai('… et un profil EXISTANT montre ses propres cases, rien de la liste du technicien', / data-d="cap_voirTout"[^>]* checked/.test(hX) && !/ data-d="cap_modifierPlans"[^>]* checked/.test(hX),
     [(/<input[^>]*data-d="cap_voirTout"[^>]*>/.exec(hX) || [''])[0], (/<input[^>]*data-d="cap_modifierPlans"[^>]*>/.exec(hX) || [''])[0]]);
+}
+
+console.log('\n── 821 · 7. ⛔⛔ (v754) « ＋ Nouveau profil » part TOUT DÉCOCHÉ ──');
+{ /* La vraie fonction du bouton, jouée par un administrateur : on lit la grille qu'elle dessine (openModal), puis
+     ce qu'« Enregistrer » en tirerait (profilLireZone, sur une zone rebâtie depuis ces interrupteurs). */
+  const inputs = h => (h.match(/<input type="checkbox" data-d="[^"]+"[^>]*>/g) || []).map(t => {
+    const ds = {}; let checked = false, disabled = false;
+    for (const m of t.slice(6, -1).matchAll(/([\w-]+)(?:="([^"]*)")?/g)) {
+      if (m[1] === 'checked') checked = true; else if (m[1] === 'disabled') disabled = true;
+      else if (m[1].startsWith('data-')) ds[m[1].slice(5).replace(/-(\w)/g, (x, c) => c.toUpperCase())] = m[2] || '';
+    }
+    return { checked, disabled, dataset: ds };
+  });
+  const zoneDe = h => { const ins = inputs(h);
+    return { querySelector: sel => { const m = /\[data-d="([^"]+)"\]/.exec(sel); return m ? ins.find(i => i.dataset.d === m[1]) || null : null; } }; };
+  const neuf = (Mx) => { Mx.poser('currentUser', { id: 'adm', role: 'admin' }); Mx.profilNouveau(); Mx.poser('currentUser', null); return Mx.modale(); };
+  const Mn = monde(); Object.assign(Mn.db.permissions.technicien.caps, { gererBoxes: true, supprimer: true });
+  const h = neuf(Mn), I = inputs(h);
+  vrai('population : la grille d’un profil neuf est dessinée (' + I.length + ' interrupteurs, menus, droits et gestes)',
+    I.length > 80 && I.some(i => i.dataset.d.startsWith('mod_')) && I.some(i => i.dataset.d.startsWith('cap_')) && I.some(i => i.dataset.d.startsWith('cat_')), I.length);
+  v('⛔⛔ aucun interrupteur coché', I.filter(i => i.checked).map(i => i.dataset.d), []);
+  const vierge = Mn.profilVierge();
+  const sansVierge = inputs(Mn.usrDroitsHtml({ id: '__profil__', role: '__profil__', acces: { caps: {}, modules: {} } }, true)).filter(i => i.checked).length;
+  vrai('… et ce n’est pas le hasard d’une grille muette : sans profilVierge, la même grille en cocherait ' + sansVierge + ' (menus du technicien, « Ajouter », « Modifier »)',
+    sansVierge > 20, sansVierge);
+  const deduits = I.filter(i => i.dataset.deduit === '1').map(i => i.dataset.d);
+  vrai('⛔ les cases DÉDUITES restent déduites (elles suivront « Tout voir », « Supprimer »…) : ' + deduits.length + ' marquées',
+    deduits.length >= 10 && deduits.every(d => !((d.startsWith('cap_') ? d.slice(4) : d) in vierge.caps)), deduits);
+  v('… profilVierge ne pose aucune case déduite', Object.keys(vierge.caps).filter(k => k.startsWith('cat_') ? !!Mn.catDeduitRegle(k.split('_')[1], k.split('_')[2]) : !!Mn.capDeduitRegle(k)), []);
+  const lu = Mn.profilLireZone(zoneDe(h));
+  v('⛔⛔ « Enregistrer » sans rien toucher : aucun menu, aucun droit à OUI', Object.entries(lu.modules).concat(Object.entries(lu.caps)).filter(([, x]) => x).map(([k]) => k), []);
+  vrai('… et les menus sont bien écrits (à NON), pas oubliés', Object.keys(lu.modules).length >= 40 && Object.values(lu.modules).every(x => x === false), Object.keys(lu.modules).length);
+  /* sous « Toute sortie de stock passe par le DR », un profil n'est pas une personne : jamais « soumis » */
+  const Mt = monde(); Mt.db.validDRTous = true;
+  const ht = neuf(Mt), it = inputs(ht).find(i => i.dataset.d === 'mod_validations');
+  v('⛔⛔ « Toute sortie de stock passe par le DR » : un profil neuf reste tout décoché', inputs(ht).filter(i => i.checked).map(i => i.dataset.d), []);
+  vrai('… « Validations DR » n’y est ni ouvert d’office, ni verrouillé, ni « soumis »', !!it && !it.checked && !it.disabled && it.dataset.valForce !== '1' && it.dataset.valSoumis === '0', it);
+  vrai('… mais une PERSONNE sans la case de validation, elle, reste soumise (la règle d’entreprise n’a pas bougé)', Mt.valideSoumis({ id: 'p', role: 'technicien' }) === true && Mt.userSeesModule({ id: 'p', role: 'technicien' }, 'validations') === true);
+  const hv = Mt.usrDroitsHtml({ id: '__profil__', role: '__profil__', acces: { caps: Object.assign({}, Mt.profilVierge().caps, { validerDR: true }), modules: Mt.profilVierge().modules } }, true);
+  const iv = inputs(hv).find(i => i.dataset.d === 'mod_validations');
+  vrai('⛔ la case de validation DU PROFIL ouvre toujours le menu d’office (c’est une case du profil)', !!iv && iv.checked && iv.dataset.valForce === '1', iv);
+  /* un profil EXISTANT se montre tel qu'il est enregistré : la règle ne vise que « ＋ Nouveau profil » */
+  const Me = monde(); Me.db.profilsDroits = [{ id: 'pE', nom: 'Poseur', caps: { voirTout: true, modifierPlans: true }, modules: { stock: true, planning: false } }];
+  Me.poser('currentUser', { id: 'adm', role: 'admin' }); Me.profilNouveau('pE'); Me.poser('currentUser', null);
+  const ie = inputs(Me.modale()), cochee = d => (ie.find(i => i.dataset.d === d) || {}).checked;
+  vrai('un profil existant garde ses cases (Tout voir, Modifier les plans, Stock cochés ; Planning décoché)',
+    cochee('cap_voirTout') === true && cochee('cap_modifierPlans') === true && cochee('mod_stock') === true && cochee('mod_planning') === false,
+    ['cap_voirTout', 'cap_modifierPlans', 'mod_stock', 'mod_planning'].map(cochee));
+  vrai('… et son identifiant', (Me.profilEdit() || {}).id === 'pE');
 }
 
 console.log(`\n════ test-821 : ${ok} ✓ ${ko} ✗ ════`);
