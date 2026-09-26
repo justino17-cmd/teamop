@@ -80,9 +80,11 @@ faisant naître une version à chaque fois (une fusion qui ne change que `ver`) 
 espace et par heure, `notifier` compris ; un anonyme peut encore faire crier l'alarme ⚠️ `refusSynchro1h` en
 inondant `/api/doc/*` depuis une IP (le seau compte avant la clé — ne compter que si `sauvRefus(t,kh)` passe) ; la
 bêta, qui passe sans clé, peut être figée une heure par un anonyme (accepté, en-tête de `documents.js`).
-Ni annonce (celle du lot reste la v748 — à Justin, Tour → Entreprises, si elle n'est pas partie), ni version à
-exiger : la v751 ne change pas le format des données. « Exiger 751 » depuis la Tour reste possible pour faire
-passer tout le parc sur les correctifs (un écran de mise à jour, un bouton).
+Pas d'annonce : celle du lot reste la v748 (à Justin, Tour → Entreprises, si elle n'est pas partie). La v751 ne
+change pas le format des données, donc l'exiger n'était pas obligatoire — ✅ **Justin l'a exigée quand même, le
+26 au matin** (relu à 9 h 44 UTC : `GET /api/version` rend `min: 751`) : tout appareil encore en v749 reçoit
+l'écran de mise à jour, et une écriture d'une version plus ancienne reçoit 426. Qui reste en dessous : Tour →
+version (`/api/monitor/version`, liste `sous`). Ça remplace le clic « Exiger 749 » resté en suspens.
 Au passage, `test-738` est tombé une fois sur la CI de `main` (écart de temps connue/inconnue > 40 %, 1 à 9 % en
 local) : les deux médianes se mesuraient en deux blocs, une rafale de charge sur un seul suffisait ; alternées
 requête par requête (`a099ad7`, test seul) : 0 à 7 % machine saturée, la mutation tombe à 92-94 %.
