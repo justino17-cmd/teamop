@@ -13,6 +13,53 @@ de ligne du tout.
 
 ---
 
+# 🟢 26 SEPTEMBRE 2026, NUIT — BÊTA v758 : CHAQUE TECHNICIEN ET SA COULEUR (+ L'APPUI LONG) — PUBLIÉE SUR LA BÊTA
+
+**Justin, 26 septembre 2026 : « je veux que chaque technicien et sa couleur soient référencés sur les interventions,
+sur les cartes — ça évite de se perdre quand on associe plusieurs techniciens sur la même carte ».** Fait sur la
+bêta (v757 puis v758, jamais sur `app.html` en production) :
+- **seize couleurs vraiment distinctes** et une attribution **sans doublon** (`techCouleurs`) : avant, seize cases
+  qui n'étaient que huit teintes en deux nuances — à cinq techniciens, deux avaient la même une fois sur deux ;
+- **une intervention partagée est dans la ligne de CHACUN** (Planning général, Tableau de bord) — avant, seul le
+  premier technicien la voyait ; chaque carte prend la couleur de SA ligne et montre les collègues (pastilles) ;
+- **la liste, la fiche, « Ma journée »** nomment chaque technicien avec son disque de couleur (« Avec Léo Martin ») ;
+- **le choix de la couleur** d'un technicien : des pastilles, avec les initiales de qui porte déjà laquelle ;
+- **déplacer une intervention partagée ne retire personne** (`planPoserEquipe`) : seul le technicien de la ligne
+  d'où on la glisse est remplacé.
+
+**Trouvé par la relecture de la v758, reproduit, corrigé :**
+- ⛔ **un technicien qui part faisait changer la couleur d'un AUTRE.** L'attribution se déduit de la liste : le
+  départ d'un ancien libérait une case qu'un plus jeune reprenait (six techniciens : retirer le plus ancien faisait
+  passer le plus jeune de l'orange au violet). `techCouleursFiger` : au moment du GESTE (retirer, fusionner, modifier
+  ou créer une fiche — jamais au chargement), ceux dont la couleur changerait sans que le choix l'ait annoncé
+  gardent la leur, écrite sur leur fiche comme choisie. Le choix annonce la couleur automatique telle qu'elle sera
+  (`techCouleursSimuler`). test-825 : 3 000 départs et 2 000 choix tirés au hasard ; sonde : le vrai « Supprimer ».
+- **la pile des collègues coupait le TITRE** des cartes partagées (vues Jour et Multi : « Dératisation parta… ») :
+  elle va au bout de la ligne du client dès que la carte a cette ligne (`planInfosPlace`, la règle de
+  `planCarteInfos`). `scratchpad/sonde-pile-client.js` : 11 ✓ (la bêta d'avant : 3 ✗).
+- (sans rapport, dans la même passe) **l'appui long sur la barre d'onglets** : le clic du relâcher tombait dans la
+  fenêtre « Barre d'onglets » montée sous le doigt ; avalé où qu'il tombe, et un nouvel appui ferme la fenêtre
+  (`sonde-appui-long.js` 21 ✓ ; la bêta d'avant 9 ✓ 12 ✗). **La production (v757) a ce défaut** — pas « quelqu'un
+  ne peut pas travailler » : il attend la prochaine publication.
+
+**Preuves :** test-825 177 ✓ · 12 mutations sur 12 mordent (`scratchpad/mutations-couleurs-v758.py`) · sonde des
+couleurs 52 ✓ (jour, nuit, téléphone, pixels ; la bêta v756 en rate 26, la v758 d'avant le correctif 2) · sonde des
+cartes 11 ✓ · suite complète 184 suites · 9 201 vérifications, code 0 · relecture (`relecteur`) : 184 suites vertes, aucun oubli sur les écritures
+de `techIds`.
+
+**⚠️ À SAVOIR AVANT DE PUBLIER `app.html` (relecture) :**
+- **flotte mélangée** : les interventions se fusionnent ENREGISTREMENT ENTIER (le plus récent gagne). Un appareil
+  resté en v757 qui glisse une intervention partagée écrit `techIds=[un seul]` — l'ancien algorithme — et, s'il
+  enregistre après, efface le second technicien chez toute l'équipe. Ce n'est pas un changement de FORMAT qu'une
+  version peut garder : c'est l'ancien défaut, chez qui n'a pas rechargé. Publier, puis EXIGER la version vite
+  (Tour → Connexions), comme pour les photos.
+- **deux doigts à la fois** (relecture) : l'appui long garde UN état pour toute la page ; un second doigt qui tape
+  ailleurs PENDANT que le premier tient encore la barre peut faire passer le clic du relâcher. Étroit, non corrigé.
+- Alt + glisser (dupliquer) crée une copie à UN technicien, celui de la case d'arrivée — comportement d'avant,
+  voulu ; à dire si Justin veut que la copie garde l'équipe.
+
+---
+
 # 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.67 : « MA BARRE » ET LA BULLE QU'ON ATTRAPE — EN APERÇU, ATTEND « REMPLACE LA TOUR »
 
 **Justin, capture de la barre de la Tour à l'appui : « j'aimerais qu'en restant appuyé sur la barre, je puisse la
