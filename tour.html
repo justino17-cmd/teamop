@@ -3040,6 +3040,11 @@ function renderTabs(){
   $('tabs').innerHTML=h;
   var ind=document.createElement('i'); ind.className='tab-indic'; ind.setAttribute('aria-hidden','true');
   $('tabs').appendChild(ind); $('tabs').classList.add('a-indic'); placerIndic(false);
+  /* Redessiner le menu recréait ses compteurs à « 0 », cachés : après un changement de console,
+     Surveillance et Courrier restaient muets jusqu'au prochain relevé (une minute). On repose ce
+     qu'on SAIT déjà — et pour la console ouverte : incOuverts() ne compte que les siens. */
+  var poser=function(id,n){ var e=$(id); if(e){ e.textContent=n; e.style.display=n?'inline-block':'none'; } };
+  try{ if(INC.loaded) poser('bdg-surv',incOuverts().length); if(MSG.loaded) poser('bdg-supp',MSG.nonLus||0); }catch(x){}
   renderBarreBas();
   majHaut();
 }
