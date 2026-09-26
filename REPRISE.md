@@ -104,6 +104,48 @@ Vérification des pages, déploiement Pages). Aucun fichier `server/` : le VPS n
 format de données ne change, et une entreprise existante ne voit aucune différence) **et rien à annoncer** (le seul
 effet visible est le menu de départ d'une entreprise NEUVE).
 
+🟡 **v753 SUR LA BÊTA SEULEMENT — le 26 septembre 2026, sur la demande de Justin « Fait se qu'il faut faire pour
+ça » : les trois points relevés en écrivant le guide des droits.** `app.html` reste en v752 sur `main` : il attend sa
+phrase (« Publie »). Branche : `a9fce9c` (le code), `196a0f4`/`0ccc217` (banc), `a074cbc` (sonde), `3c1c120` (guide),
+puis le correctif de la relecture.
+- **« aucun profil » ne ment plus.** L'option disait « le compte partira sans droits » : il suit la liste de son rôle.
+  Même correction dans l'aide « Aucun profil pour l'instant », sous le choix du rôle, et dans « 🏷 Rôles ».
+- **« Validations DR » s'ouvre d'office** (`validationsOuvertes(u)`, UNE définition) à qui a la case `validerDR` (il y
+  valide ; les alertes « à valider » suivent, `notifVoitModule`) et à qui est soumis (`valideSoumis(u)` : `boxValidDR`
+  sur sa fiche, ou « Toute sortie de stock passe par le DR », sans la case de validation ; il y suit ses mouvements).
+  Après le forfait et le métier, AVANT la ligne de la personne et la liste du rôle — la règle « des deux côtés »
+  existait depuis la v585, mais après la liste du rôle, donc elle ne jouait jamais. `boxValidRequis()` lit
+  `valideSoumis(currentUser)` : même verdict que la v752 sur 32 combinaisons (joué dans `test-821`). Dans l'éditeur,
+  l'interrupteur paraît ouvert et verrouillé, la raison dessous (`validationsNote`), et suit la case EN DIRECT ; ce
+  qui s'enregistre est sa valeur PROPRE (`data-val-av`, lue par `usrMenuLu`) — jamais l'ouverture d'office, sinon
+  retirer la case laisserait le menu ouvert pour toujours. `droitsBorner` ne le « retient » pas à qui l'a d'office.
+- **un rôle créé à la main part de la liste du technicien, droits compris** (`tableDuRole(role)`, UNE définition, lue
+  par `moduleReglage`, `userCap`, `catDroit` et l'éditeur). Avant : les menus en partaient, pas les droits spéciaux
+  ni les gestes de catégorie (pas même « Modifier les plans d'appâtage »). DR, chef d'équipe et administrateur ne se
+  replient jamais sur la liste du technicien.
+  ⛔ **Et les comptes FICTIFS de l'éditeur n'en profitent pas** — trouvé par `relecteur`, reproduit, corrigé :
+  « ＋ Nouveau profil » dessine un compte `__profil__`, les cases déduites un compte `__zone__` ; sans garde, un
+  profil neuf naissait « Modifier les plans d'appâtage » COCHÉ, et l'enregistrer l'écrivait (sonde sur la v753
+  d'avant : 3 ✗, exactement ceux-là). Ils gardent la règle de la v752 : les menus du technicien, aucun de ses droits.
+Preuves : `test-821` 72 ✓ (les vraies fonctions, l'éditeur compris) ; mutations 21/22 sur la première version (la 22ᵉ
+équivalente, nommée dans le banc) puis 5/5 sur la garde des comptes fictifs ; neuf bancs et
+`scripts/verifier-permissions.js` ont reçu les nouvelles fonctions dans leur bac à sable ; sonde
+`scratchpad/sonde-droits-v753.js` (vrais clics souris, vraies connexions) : 30 ✓ ; contre-épreuves 14 ✗ sur la v752,
+3 ✗ sur la v753 d'avant la relecture ; suite complète 177 suites · 8 732 ✓.
+**Chez ELAN à la publication** — rien d'effacé, rien d'écrit dans leur base, trois effets visibles :
+· qui a la case de validation sans le menu voit « Validations DR » et reçoit les alertes « à valider » ;
+· qui est soumis à la validation voit « Validations DR » (ses seuls mouvements) — si « Toute sortie de stock passe
+  par le DR » est allumé, c'est TOUT compte sans la case de validation ;
+· un compte d'un rôle créé à la main, dont la ligne n'a jamais été validée et créé sans profil, reçoit les droits
+  spéciaux de la liste du technicien.
+Rien à exiger (aucun format de données ne change). Le guide PDF est à regénérer à la publication
+(`node scratchpad/droits-pdf/gen.js`, qui refuse une page antérieure à la v753).
+⚠️ **Vu en passant, PAS touché — décisions de Justin :**
+· un profil NEUF ne « part pas de rien » comme il l'a décidé le 9 septembre (« on nomme, on coche ») : il montre les
+  MENUS de la liste du technicien déjà cochés, depuis la v613. Le commentaire de `profilNouveau` le dit désormais ;
+· `CLAUDE.md` nomme encore l'espace de la bêta `elan-gestion-beta` (deux endroits) : il s'appelle `opgestion-beta`
+  depuis le 17 septembre (`beta-build.js`). Documentation seule, le code isole bien la bêta.
+
 **Corrigés dans la v751 (branche `e5e7fd5`, `b9089ff`, `0c10fe8`, `17a3426` ; en production depuis le 26 à 9 h 12
 UTC)** — deux BLOQUANTS étaient dans la v749 :
 - ⛔ **la cloche plantait** (`bx is not defined`, une déclaration écrite DANS un commentaire) dès qu'un arrivage
@@ -153,7 +195,8 @@ déclaration), bancs serveur 40 suites · 2 345 ✓.
   ⚠️ Chez ELAN (et toute entreprise d'avant), « Assistant devis » reste sans doute au menu des rôles sans « Utiliser
   Devis IA » : leurs tables sont écrites et on n'y touche pas. L'administrateur peut décocher la rubrique ou cocher
   le droit, compte par compte.
-- ⚠️ **Trouvé en passant, PAS touché — « Validations DR » ne paraît jamais à qui attend une validation.**
+- ✅ **CORRIGÉ SUR LA BÊTA (v753, voir le bloc plus haut) — Justin : « Fait se qu'il faut faire pour ça ».** Le
+  constat d'origine, pour l'histoire — **« Validations DR » ne paraissait jamais à qui attend une validation.**
   `userSeesModule` veut qu'une validation se voie « des deux côtés » (le valideur par sa case `validerDR`, et
   `boxValidDR` : celui qui attend) — mais cette règle passe APRÈS la table du rôle, qui dit `validations:false` pour
   le technicien, le commercial et la compta. Mesuré avec les vraies fonctions (`node scratchpad/validations-mesure.js`) :
