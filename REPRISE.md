@@ -61,15 +61,32 @@ au pixel, connexion et portail, code, serveur et budgets, production), chaque co
 **17 défauts confirmés**, plus de 80 faux positifs écartés et nommés. Puis une contre-vérification de la v751
 (`wf_1f0951aa-5c1`) : chaque correctif rejoué au navigateur contre la v750, plus `relecteur` et `gardien`.
 
-**Bêta v751 PUBLIÉE sur `main` (`600de09`, `beta.html` seul) et servie en `751-beta` ; `app.html` reste en v749
-(il porte les deux bloquants ci-dessous) et attend « publie » ; le serveur attend « pousse le serveur » — commit
-prêt, NON poussé, fabriqué par `scripts/preparer-deploiement-serveur.sh` sur `main` = `a099ad7` (40 suites ·
-2 345 ✓).** Au passage, `test-738` est tombé une fois sur la CI de `main` (écart de temps connue/inconnue > 40 %,
-1 à 9 % en local) : les deux médianes se mesuraient en deux blocs, une rafale de charge sur un seul suffisait ;
-alternées requête par requête (`a099ad7`, test seul) : 0 à 7 % machine saturée, la mutation tombe à 92-94 %.
+✅ **v751 EN PRODUCTION — le 26 septembre 2026 à 9 h 12 UTC, sur la phrase de Justin « Publie et pousse sur le
+serveur ».** Deux commits sur `main`, poussés séparément, dans cet ordre :
+1. **serveur `f971359`** (déploiement n° 96 : bancs 53 s puis VPS, verts) — `/health` relu après redémarrage :
+   `limites.refusSynchro1h` 0, `refusAutres1h` 0, `documents.quotaRefus1h` 0, `documents.actif` vrai, aucune erreur ;
+2. **application `69c0444`** — `app.html` v751 (servie octet pour octet identique à la branche), `sw.js` cache v951,
+   `VERSION-STABLE.md`, et les bancs qui l'accompagnent (817, 818, 645, 660, 694, 776, 799, 806).
+Vérification complète rejouée sur `69c0444` AVANT de pousser : VERT — 175 suites · 8 605 ✓, liste serveur 40 · 2 346.
+⚠️ **Avant de pousser, `gardien` a relu les correctifs serveur (`0c10fe8`) : « DÉPLOYABLE », avec un point
+prioritaire, corrigé AVANT le déploiement (`17a3426`)** : la borne « 2 000 corps par version » s'appliquait aussi à
+la LECTURE — le client v751 relit avant chaque envoi et n'écrit pas si la relecture est refusée, donc une version
+épuisée ne changeait plus jamais (entreprise figée jusqu'à une heure ; un v749, lui, écrivait à l'aveugle). La borne
+ne vise plus que l'attente EN RETARD, qui fait relire le client (`aRelire`, v749 comme v751). `test-819` 26 ✓ (3/3).
+**Restent de cette relecture (à faire, rien de bloquant)** : un détenteur de clé contourne la borne par version en
+faisant naître une version à chaque fois (une fusion qui ne change que `ver`) — la vraie borne est en OCTETS par
+espace et par heure, `notifier` compris ; un anonyme peut encore faire crier l'alarme ⚠️ `refusSynchro1h` en
+inondant `/api/doc/*` depuis une IP (le seau compte avant la clé — ne compter que si `sauvRefus(t,kh)` passe) ; la
+bêta, qui passe sans clé, peut être figée une heure par un anonyme (accepté, en-tête de `documents.js`).
+Ni annonce (celle du lot reste la v748 — à Justin, Tour → Entreprises, si elle n'est pas partie), ni version à
+exiger : la v751 ne change pas le format des données. « Exiger 751 » depuis la Tour reste possible pour faire
+passer tout le parc sur les correctifs (un écran de mise à jour, un bouton).
+Au passage, `test-738` est tombé une fois sur la CI de `main` (écart de temps connue/inconnue > 40 %, 1 à 9 % en
+local) : les deux médianes se mesuraient en deux blocs, une rafale de charge sur un seul suffisait ; alternées
+requête par requête (`a099ad7`, test seul) : 0 à 7 % machine saturée, la mutation tombe à 92-94 %.
 
-**Corrigés dans la v751 (bêta ; branche `e5e7fd5`, `b9089ff`, `0c10fe8`)** — deux BLOQUANTS sont aussi dans la
-v749 de production :
+**Corrigés dans la v751 (branche `e5e7fd5`, `b9089ff`, `0c10fe8`, `17a3426` ; en production depuis le 26 à 9 h 12
+UTC)** — deux BLOQUANTS étaient dans la v749 :
 - ⛔ **la cloche plantait** (`bx is not defined`, une déclaration écrite DANS un commentaire) dès qu'un arrivage
   attendait le DR : écran vide à la connexion de l'administrateur et du DR, et `save()` ne synchronisait plus rien.
   Rejoué : v750 `#content` 0 caractère, `syncPush` 0 appel ; v751 7 443 caractères, la notification avec sa box ;
@@ -84,10 +101,10 @@ v749 de production :
   18 ✓ ; contre-épreuves `e5e7fd5` et `79c8a44` 14 ✓ 4 ✗ chacune) ;
 - planning « Créer ici » affiche l'heure touchée ; changement de métier journalisé ; titres de section 4,38 → 6,66:1 ;
 - deux bancs anciens (`test-660`, `test-694`) suivaient l'ancienne forme — remis d'accord (le `relecteur` les avait vus rouges) ;
-- **serveur (NON déployé, attend « pousse le serveur »)** : budget d'attentes 20 000 → 100 000 (15 appareils
+- **serveur (déployé le 26 à 9 h 12 UTC, `f971359`)** : budget d'attentes 20 000 → 100 000 (15 appareils
   l'épuisaient en 43 min, puis la synchro freinée jusqu'à la fin de l'heure) ; refus comptés et surveillés, PAR
   FAMILLE (un robot ne fait plus crier), sans les espaces techniques (un anonyme faisait crier via la bêta) ;
-  corps servis bornés par version (le relèvement multipliait par 4,6 ce qu'un détenteur de clé pouvait tirer) ;
+  retours immédiats d'une attente EN RETARD bornés par version (jamais la lecture — voir plus haut) ;
   premier refus écrit au journal avec une empreinte de l'espace. `test-819` 25 ✓, 6/6 mutations.
 Preuves : `test-818` 39 ✓ (3/3 mutations sur Mouvements, 21/22 sur le reste — la 22ᵉ neutralisée par la vraie
 déclaration), bancs serveur 40 suites · 2 345 ✓.
