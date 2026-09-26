@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# ✅ 26 SEPTEMBRE 2026, SOIR — BÊTA v756 PUBLIÉE (LENTEUR + PHOTO DE PROFIL), APERÇU DE LA TOUR v2.66 EN LIGNE
+# ✅ 26 SEPTEMBRE 2026, SOIR — v756 EN PRODUCTION (LENTEUR + PHOTO DE PROFIL), TOUR v2.66 EN PRODUCTION
 
 **Justin : « Fait le » (la lenteur sur une grosse base, téléphone lent), « thème de la tour à installer aussi, tu
 testes et vérifies » (maquette `tour.zip`, version validée « HIG »), puis « quand je choisis une photo, j'aimerais
@@ -21,8 +21,11 @@ pouvoir la redimensionner, et elle ne s'affiche pas ici — pourquoi ».**
 
 **Publié et vérifié en ligne :** bêta v756 (`35156f1`, `beta.html` seul, servie octet pour octet, CI de main verte
 2/2) ; aperçu de la Tour v2.66 (`02eea6b`, `apercu/tour.html` seul, servi octet pour octet — teamop.fr/apercu/tour.html).
-**`app.html` reste en v755 et `tour.html` en v2.65 : les deux attendent une phrase de Justin.** Preuves de la
-v756 : suite complète 180 suites · 8 877 vérifications (deux passes) ; relecture `relecteur` : un constat, corrigé.
+**Puis, sur la phrase de Justin « Oui publier » et « Remplace la tour » : `app.html` + `sw.js` en v756 (`d4d0393`,
+cache v956, bancs 776/823/824 et leurs outils portés) et `tour.html` v2.66 (`24e452a`), servis octet pour octet,
+CI de main verte 3/3** (suite complète sur une copie de main avant l'envoi : 180 suites · 8 877 vérifications ;
+`beta.html` rejouée identique à sa génération). Preuves de la v756 : suite complète 180 suites · 8 877
+vérifications (deux passes) ; relecture `relecteur` : un constat, corrigé.
 
 **Lenteur — la cause principale : des règles `:has()` de la refonte faisaient restyler la page ENTIÈRE** (prouvé
 règle par règle, `scratchpad/perf-has-glouton.js`, téléphone ET bureau) :
