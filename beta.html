@@ -3372,8 +3372,12 @@ html[data-refonte] .av{
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tc,var(--wc,var(--acier))) 40%,transparent)}
 /* Même chose pour .avatar, l'autre pastille d'initiales de l'application : sa version par défaut
    écrivait le vert d'accent sur un disque vert à 20 % — 4,25:1, mesuré sur la liste des clients.
-   Les pastilles qui reçoivent une couleur EN LIGNE (planning, techniciens) ne sont pas touchées :
-   un style en ligne passe devant, et c'est bien leur couleur qui porte l'identité. */
+   ⚠️ Cette phrase disait ensuite : « les pastilles qui reçoivent une couleur EN LIGNE (planning,
+   techniciens) ne sont pas touchées : un style en ligne passe devant ». C'est FAUX, mesuré le
+   26 septembre 2026 : un `!important` de la feuille bat un style en ligne ordinaire — une pastille
+   écrite `background:#E0524D;color:#fff` sort à la teinte (disque gris-bleu, encre sombre), et
+   `encreLisible()` n'y peut rien non plus. La couleur d'un technicien ne se voit donc PAS sur ces
+   pastilles ; la rendre (ou non) est une décision de Justin, notée dans REPRISE.md. */
 /* ⛔⛔ v756 — LA COULEUR DU DISQUE, PAS SON FOND ENTIER. Justin, 26 septembre 2026, capture à l'appui :
    « quand je choisis une photo, elle ne s'affiche pas ici » — un disque lilas VIDE dans Paramètres →
    Apparence. La photo était bien enregistrée (les initiales avaient disparu) ; c'est cette règle qui
