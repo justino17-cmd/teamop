@@ -120,26 +120,33 @@ Preuves : `test-818` 39 ✓ (3/3 mutations sur Mouvements, 21/22 sur le reste �
 déclaration), bancs serveur 40 suites · 2 345 ✓.
 
 **Restent — non corrigés, dits à Justin :**
-- ⚠️ **À DÉCIDER (Justin) — deux tables de droits par défaut.** Pour technicien, commercial et compta, c'est
-  l'ANCIENNE table (`defaultPerms`, écrite avant la v737) qui décide, pas le modèle « chaque règle est une case »
-  (`moduleHeriteRole`) : un technicien neuf voit Brouillon, Mes demandes, Commandes en cours, Carte des box,
-  Registre sanitaire et Consommation produits, que le nouveau modèle cacherait. Rien de faux aujourd'hui, mais
-  deux sources qui divergent en silence. Proposition : une seule source qui REPRODUIT ce que voient les
-  techniciens aujourd'hui (aucun changement chez ELAN) ;
-  **Précisé le 26 septembre, mesuré avec les vraies fonctions** (`node scratchpad/droits-defaut.js beta.html` :
-  `defaultPerms` → `reprendreDroitsImplicites` → `userSeesModule`, 41 rubriques). ⚠️ Ça ne vise que les
-  NOUVELLES entreprises : `defaultPerms` ne sert que si la base n'a pas de table de rôle, et la reprise ne
-  tourne qu'une fois — chez ELAN, tout est déjà écrit dans la base (un nouveau compte y prend la table d'ELAN).
-  Les deux sources divergent dans LES DEUX SENS : technicien, l'ancienne table ouvre 7 rubriques mises de côté
-  que la règle générale fermerait, et ferme Devis, Factures, Contrats qu'elle ouvrirait ; commercial, +2 / −5 ;
-  **compta : la règle générale lui retirerait Comptabilité, Statistiques et Enveloppes** — l'adopter telle
-  quelle serait absurde. Ce qui est venu APRÈS l'ancienne table n'a jamais été décidé par rôle : la reprise ouvre
-  à tous Planning général, Tâches, Absences, Assistant devis (+ Télécollecte au technicien et au commercial) —
-  et **« Assistant devis » mène le technicien à un écran verrouillé** (il exige « Utiliser Devis IA » et
-  « Ventes → Ajouter »). Et la reprise dépend du TÉLÉPHONE qui la fait (`showAside()`, réglage d'appareil) :
-  « Devis xylophage » s'ouvre à tous ou à personne selon lui. Proposition précisée : une table par rôle, pour
-  toutes les rubriques, égale à ce qu'une entreprise neuve reçoit aujourd'hui, sauf Assistant devis fermé au
-  technicien et au commercial, et sans dépendre d'un appareil ;
+- ✅ **FAIT sur la bêta v752 — les droits de départ, UNE liste (Justin, 26 septembre : « Fais ta liste »).**
+  `defaultPerms()` est désormais COMPLÈTE : cinq rôles (technicien, commercial, compta, DR, chef d'équipe) × 42
+  rubriques (le menu + « Produits donnés »), une ligne par groupe du menu. Valeurs = exactement ce qu'une entreprise
+  neuve recevait en v751 (mesuré avec les vraies fonctions, `node scratchpad/droits-defaut.js beta.html`), sauf :
+  « Assistant devis » fermé aux cinq rôles (aucun n'a « Utiliser Devis IA » d'office : l'écran n'était qu'un
+  cadenas) et plus rien qui dépende du téléphone (la reprise remplissait « Devis xylophage » selon `showAside`,
+  réglage d'APPAREIL). Trois clés mortes retirées (`conso`, `histoDemandes`, `techniciens`).
+  ⛔ Ne vise que les NOUVELLES entreprises : la liste ne se lit que pour une base sans table de rôle. Chez ELAN, rien
+  ne bouge (`test-820` le rejoue avec deux listes empoisonnées), et une entreprise d'avant qui fait sa reprise
+  retrouve la règle d'hier à l'identique (`moduleHeriteRole` intact, commenté pour qu'on ne le « corrige » pas).
+  Pourquoi pas la règle générale : elle divergeait dans les deux sens et aurait retiré Comptabilité à la
+  comptabilité. Preuves : `test-820` 50 ✓ et 8/8 mutations ; `test-779` exécute la vraie liste au lieu de lire son
+  texte ; sonde `scratchpad/sonde-droits-depart.js` dans la vraie page (base enregistrée, menu DESSINÉ des cinq
+  rôles, deux appareils) : 27 ✓ sur la v752, 16 ✗ sur la v751 (contre-épreuve).
+  **Restent à Justin, s'il le veut** — les choix hérités que la liste garde tels quels : le technicien a Planning
+  général, Tâches, Absences et Télécollecte ; le DR et le chef d'équipe ont tout sauf Utilisateurs (Comptabilité,
+  Boîte mail, Modules OP compris).
+  ⚠️ Chez ELAN (et toute entreprise d'avant), « Assistant devis » reste sans doute au menu des rôles sans « Utiliser
+  Devis IA » : leurs tables sont écrites et on n'y touche pas. L'administrateur peut décocher la rubrique ou cocher
+  le droit, compte par compte.
+- ⚠️ **Trouvé en passant, PAS touché — « Validations DR » ne paraît jamais à qui attend une validation.**
+  `userSeesModule` veut qu'une validation se voie « des deux côtés » (le valideur par sa case `validerDR`, et
+  `boxValidDR` : celui qui attend) — mais cette règle passe APRÈS la table du rôle, qui dit `validations:false` pour
+  le technicien, le commercial et la compta. Mesuré avec les vraies fonctions (`node scratchpad/validations-mesure.js`) :
+  ni le technicien valideur, ni celui qui attend ne voient la rubrique ; seul un réglage personnel l'ouvre. Pas un
+  recul de la v748 : la v695 avait la même règle et la même reprise (depuis la v585). Corriger changerait ce que
+  voient les techniciens d'ELAN → décision de Justin ;
 - performance sur base « façon ELAN » à CPU ralenti : `save()` ≈ 100 ms à ×4 (145 à ×6), ouvrir puis clore une
   intervention 220 à 800 ms, ouverture de l'application 4,4 s à ×6 — chantiers #50 et #52 ;
 - mineurs : le message d'accueil et les initiales du haut ne s'affichent jamais (ids `brand-ini`, `brand-hi`,
