@@ -98,7 +98,8 @@ const ATTENTES_MAX_TECHNIQUE = 30;     // une équipe de développement, pas une
    ⚠️ Ce qu'ils ne voient plus (gardien) : 100 000 attentes sont hors d'atteinte d'une seule IP (le seau en laisse
    72 000 par heure, toutes routes du document confondues) — une boucle d'attentes d'un seul bureau sous
    1 200/min ne produit donc ni refus ni alarme. La boucle d'ÉCRITURE de la v748, elle, reste attrapée (6 000
-   inchangé), et ce qu'une boucle de lecture peut TIRER est borné par version (`corpsOk`, plus bas). */
+   inchangé), et ce qu'une boucle d'attentes EN RETARD peut tirer est borné par version (`corpsOk`, plus bas) ;
+   la lecture, elle, n'est bornée que par `l` — jamais par version, sinon verrou (voir `corpsOk`). */
 const QUOTAS = { l: 20000, e: 6000, a: 100000 };
 const QUOTAS_TECHNIQUE = { l: 1500, e: 2000, a: 5000 };
 /* ⛔ LA COPIE DEPUIS FIREBASE A UN DÉLAI TOTAL — jeton, lecture ET corps. Elle tient le verrou de
@@ -393,16 +394,23 @@ function monterDocuments(app, d) {
   const budget = (cle, t) => { const tech = technique(t);
     const ok = quotaOk(quotas, cle + ':' + t, (tech ? QUOTAS_TECHNIQUE : QUOTAS)[cle], 3600000);
     if (!ok && !tech) { noter('quota'); direRefus(cle, t); } return ok; };
-  /* ⛔ LE MÊME DOCUMENT NE SE SERT PAS SANS FIN (gardien, contre-vérification de la v751). Relever les budgets pour
-     tenir 15 appareils a multiplié par 4,6 ce qu'un détenteur de la clé peut TIRER du serveur : `attendre` avec une
-     version en retard rend le document entier tout de suite (budget d'attentes, 100 000 par heure), `lire` aussi
-     (20 000). Un appareil volé, un ancien salarié tant que la clé n'est pas renouvelée ou une boucle cliente
-     pouvaient servir des centaines de Go par heure (5,5 Mo × 72 000 depuis une seule IP) et saturer le lien du VPS
-     pour TOUTES les entreprises. Ce n'est pas une fuite — il lit déjà ce document — c'est un déni de service.
-     Un appareil n'a besoin de chaque VERSION qu'une fois : on borne les corps servis par (espace, version) et par
-     heure. 2 000, c'est trente appareils qui rouvriraient chacun l'application plus de soixante fois dans l'heure
-     sans que personne n'écrive — hors d'atteinte d'un usage réel. Les réveils poussés à l'écriture (`notifier`) ne
-     comptent pas : ils sont déjà bornés par le budget d'écritures. `tests/test-819.js`. */
+  /* ⛔ UNE ATTENTE EN RETARD NE SE SERT PAS SANS FIN (gardien, contre-vérification de la v751). Relever les budgets
+     pour tenir 15 appareils a multiplié ce qu'un appareil peut TIRER du serveur : `attendre` avec une version en
+     retard rend le document entier tout de suite, sur le seul budget d'attentes (100 000 par heure). Une boucle
+     cliente — un appareil qui répète `v:0` — servait des centaines de Go par heure (5,5 Mo × 72 000 depuis une seule
+     IP) et saturait le lien du VPS pour TOUTES les entreprises. Un appareil n'a besoin de chaque VERSION qu'une fois :
+     les retours immédiats de `attendre` se bornent par (espace, version) et par heure — 2 000, soit trente appareils
+     en retard soixante fois chacun sur la même version, hors d'atteinte d'un usage réel. Refusée, une attente fait
+     RELIRE le client (`aRelire`, en v749 comme en v751) : il n'est jamais bloqué. Les réveils poussés à l'écriture
+     (`notifier`) ne comptent pas.
+     ⛔ JAMAIS SUR `lire` (gardien, relecture du correctif, avant le déploiement). Le client v751 relit AVANT chaque
+     envoi et n'écrit pas si la relecture est refusée : bornée par version, une version épuisée ne changeait plus
+     jamais — plus personne n'écrit, donc la version reste celle qui est épuisée — et l'entreprise entière restait
+     figée jusqu'à une heure. Un appareil v749, lui, écrit À L'AVEUGLE quand sa relecture est refusée, sans fusionner.
+     La lecture n'est bornée que par son budget `l`.
+     ⚠️ Ce que la borne n'arrête PAS : un détenteur de la clé qui fait naître une version à chaque fois (une fusion
+     qui ne change que `ver` en crée une). Il reste freiné par le budget d'écritures et par le seau par IP ; la vraie
+     borne serait en OCTETS par espace et par heure, `notifier` compris — à écrire, voir `REPRISE.md`. `tests/test-819.js`. */
   const CORPS_PAR_VERSION = 2000, CORPS_PAR_VERSION_TECHNIQUE = 300;
   const corpsServis = new Map();
   const corpsOk = (t, v) => { const tech = technique(t);
@@ -418,8 +426,7 @@ function monterDocuments(app, d) {
     if (!budget('l', t)) return refuser(res, 429, 'trop de lectures — réessaie plus tard', 'quota');
     try {
       const e = await verrou(t, () => { porteSousVerrou(t, kh); return obtenir(t); });
-      if (e && !corpsOk(t, e.v)) return refuser(res, 429, 'trop de lectures — réessaie plus tard', 'quota');
-      if (e) return envoyer(res, corpsDe(t, e));
+      if (e) return envoyer(res, corpsDe(t, e));   // ⛔ jamais bornée par version : voir `corpsOk`
       res.set('Cache-Control', 'no-store');
       res.json({ v: 0, doc: null });
     } catch (x) { erreurDe(res, x); }

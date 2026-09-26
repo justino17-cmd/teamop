@@ -77,15 +77,23 @@ vrai('   et quand les refus de la SYNCHRO par IP se comptent par centaines (pas 
     const w2 = await post('/api/doc/ecrire', { t: T, kh: KH, doc: DOC });
     v('   sans refus, l\'écriture passe (version 1)', [w2.statut, w2.j && w2.j.v], [200, 1]);
 
-    /* ⛔ LE MÊME DOCUMENT NE SE SERT PAS SANS FIN (gardien) : les corps servis se bornent par (espace, version) */
+    /* ⛔ UNE LECTURE N'EST JAMAIS BORNÉE PAR VERSION (gardien, relecture avant le déploiement) : le client v751 relit
+       avant chaque envoi et n'écrit pas si la relecture est refusée — une version épuisée ne changeait plus jamais,
+       l'entreprise restait figée jusqu'à une heure ; un v749 écrivait à l'aveugle. */
     const l1 = await post('/api/doc/lire', { t: T, kh: KH });
-    v('⛔ une lecture sert le document ET se compte contre la borne de SA version (2 000 par heure)', [l1.statut, demandes[T]], [200, 2000]);
+    v('⛔ une lecture sert le document SANS passer par la borne par version', [l1.statut, l1.j && l1.j.v, T in demandes], [200, 1, false]);
+    /* ⛔ UNE ATTENTE EN RETARD NE SE SERT PAS SANS FIN (gardien) : bornée par (espace, version) */
+    const a1 = await post('/api/doc/attendre', { t: T, kh: KH, v: 0 });
+    v('⛔ une attente EN RETARD rend le document tout de suite ET se compte contre la borne de SA version (2 000 par heure)',
+      [a1.statut, a1.j && a1.j.v, demandes[T]], [200, 1, 2000]);
     v('   sans refus, rien ne se compte de plus', d.sante().quotaRefus1h, 2);
     refuser = T;   // la borne de la version refuse désormais — les budgets l/e/a, eux, passent
-    const l2 = await post('/api/doc/lire', { t: T, kh: KH });
-    v('⛔ au-delà, la lecture rend 429 « quota » au lieu du document, et le refus se compte', [l2.statut, l2.j && l2.j.motif, d.sante().quotaRefus1h], [429, 'quota', 3]);
     const a2 = await post('/api/doc/attendre', { t: T, kh: KH, v: 0 });
-    v('⛔ une attente EN RETARD aussi (elle rendait le document tout de suite, sans borne)', [a2.statut, a2.j && a2.j.motif, d.sante().quotaRefus1h], [429, 'quota', 4]);
+    v('⛔ au-delà, l\'attente en retard rend 429 « quota » au lieu du document, et le refus se compte',
+      [a2.statut, a2.j && a2.j.motif, d.sante().quotaRefus1h], [429, 'quota', 3]);
+    const l2 = await post('/api/doc/lire', { t: T, kh: KH });
+    v('⛔ ET LA LECTURE DE LA MÊME VERSION PASSE TOUJOURS — pas de verrou : l\'appareil refusé relit, et peut écrire',
+      [l2.statut, l2.j && l2.j.v, d.sante().quotaRefus1h], [200, 1, 3]);
     refuser = null;
 
     /* la bêta (espaces techniques) garde ses budgets serrés : une équipe de développement */
@@ -97,7 +105,7 @@ vrai('   et quand les refus de la SYNCHRO par IP se comptent par centaines (pas 
          sonde de l'équipe — faisait crier « une entreprise ne se synchronise plus » à volonté. */
       refuser = 'l';
       const rb = await post('/api/doc/lire', { t: TB });
-      v('⛔ un refus sur un espace technique (sans clé) rend bien 429… mais ne se compte PAS', [rb.statut, d.sante().quotaRefus1h], [429, 4]);
+      v('⛔ un refus sur un espace technique (sans clé) rend bien 429… mais ne se compte PAS', [rb.statut, d.sante().quotaRefus1h], [429, 3]);
       refuser = null;
     }
     const empreinte = s => require('crypto').createHash('sha256').update(s).digest('hex').slice(0, 8);
