@@ -212,10 +212,14 @@ const MESURE_DEBORDEMENT = `
   const y=window.scrollY; window.scrollTo(9999,y); ${STABLE} const x1=window.scrollX, sw1=document.documentElement.scrollWidth; window.scrollTo(0,y);
   await new Promise(r=>setTimeout(r,700)); ${STABLE}
   window.scrollTo(9999,y); ${STABLE} const x2=window.scrollX, sw2=document.documentElement.scrollWidth; window.scrollTo(0,y);
+  /* ⛔ une page qui s'élargit emporte innerWidth avec elle (règle du dépôt) : sur un téléphone la
+     fenêtre de mise en page GRANDIT au lieu de défiler, scrollX reste à 0 et la vue entière se
+     réduit. On compare donc aussi à la largeur POSÉE du profil, 390. */
+  const iw=innerWidth, swf=document.documentElement.scrollWidth;
   let coupable='';
-  if(x1>0&&x2>0){ const l=[...document.querySelectorAll('#app *')].filter(e=>{ const r=e.getBoundingClientRect(); return r.width&&r.right>391; });
+  if((x1>0&&x2>0)||iw>390||swf>390){ const l=[...document.querySelectorAll('#app *')].filter(e=>{ const r=e.getBoundingClientRect(); return r.width&&r.right>391; });
     coupable=l.slice(-3).map(e=>e.tagName+'.'+String(e.className).slice(0,40)+' →'+Math.round(e.getBoundingClientRect().right)).join(' | '); }
-  return {x1,x2,sw1,sw2,coupable};`;
+  return {x1,x2,sw1,sw2,iw,swf,coupable};`;
 
 /* La ZONE QUI RÉPOND : un doigt touche un point ; on sonde la verticale et l'horizontale du centre
    à ±22 px et on regarde si le point déclenche encore l'élément (lui, un descendant, son label). */
@@ -234,7 +238,9 @@ const MESURE_CIBLES = `
   let n=0;
   for(const e of vus){
     e.scrollIntoView({block:'center',inline:'nearest'}); await new Promise(r=>requestAnimationFrame(r));
-    const r=e.getBoundingClientRect(); if(r.bottom<0||r.top>innerHeight) continue;
+    /* un lien EN LIGNE coupé sur deux lignes : le centre de sa boîte tombe entre les deux
+       morceaux, chez le parent — on vise son premier morceau, là où le doigt se pose */
+    const rs=e.getClientRects(), r=(rs.length>1?rs[0]:e.getBoundingClientRect()); if(r.bottom<0||r.top>innerHeight) continue;
     /* ce qui dort sous la barre du bas ou sous l'en-tête collé n'est pas mesurable ici */
     /* amené au milieu de l'écran, son centre DOIT le toucher — sinon quelque chose est posé
        dessus, et un doigt n'atteint pas la cible : on le NOMME au lieu de l'écarter en silence */
@@ -429,7 +435,7 @@ async function main() {
         fs.writeFileSync(path.join(CAPTURES, nomCap), Buffer.from(cap.data, 'base64')); bilan.captures++;
         if (appareil === 'telephone') {
           const d = await o.ev(MESURE_DEBORDEMENT);
-          if (d.x1 > 0 && d.x2 > 0) bilan.debordements.push(V.cle + ' ' + mode + ' : ' + d.x2 + ' px (' + d.coupable + ')');
+          if ((d.x1 > 0 && d.x2 > 0) || d.iw > 390 || d.swf > 390) bilan.debordements.push(V.cle + ' ' + mode + ' : défile ' + d.x2 + ' px, page ' + Math.max(d.iw, d.swf) + ' px pour 390 (' + d.coupable + ')');
           const t = await o.ev(MESURE_CIBLES);
           (t.recouverts || []).forEach(p => bilan.cibles.recouverts.push(V.cle + ' ' + mode + ' : « ' + p.t + ' » sous ' + p.sous));
           bilan.cibles.n += t.n; t.petits.forEach(p => bilan.cibles.petits.push(V.cle + ' ' + mode + ' : « ' + p.t + ' » ' + p.tag + '.' + p.cls + ' ' + p.w + '×' + p.h));

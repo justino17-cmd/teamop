@@ -2216,7 +2216,8 @@ body.plans .reg-l.cli::before{display:none}
    portent du blanc à 4,0:1 et 3,6:1 — sous le seuil de 4,5 pour un libellé de 15 px. Le bouton
    plein prend donc #0071E3 le jour (le bleu des boutons d'apple.com, 4,7:1) et #0A6FE0 la nuit
    (4,8:1), le texte en teinte #0060C0 le jour ; le gris secondaire HIG (rgba(60,60,67,.6), 3,4:1 sur
-   blanc) monte à .78. La nuit, le rouge d'état s'éclaircit (#FF7B73) pour se lire sur son voile.
+   blanc) monte à .78. La nuit, les encres d'état s'éclaircissent (rouge #FFADA6, ambre #FFB340, bleu #80B8FF) pour
+   se lire sur leur voile, mesuré au pixel sur les halos du fond — pas seulement sur l'aplat marine.
    ⛔ Un `backdrop-filter` et la surface qu'il filtre se déclarent ENSEMBLE, dans la même règle —
    sinon une règle plus spécifique retire l'un et laisse l'autre (CLAUDE.md, « une loupe »). */
 
@@ -2240,7 +2241,7 @@ body,body[data-app="messages"]{
   --sel:rgba(10,132,255,.24);--tint:rgba(10,132,255,.22);--tint-gris:rgba(255,255,255,.10);
   --avatar:rgba(10,132,255,.20);--avatarBorder:rgba(100,168,255,.30);
   --green:#30D158;--green-txt:#30D158;--vert:#30D158;
-  --amber:#FFB340;--red:#FF6961;--redText:#FF8C84;--on-red:#1A0606;--gray:#BAC0CC;--bleu:#80B8FF;--violet:#C98BFF;
+  --amber:#FFB340;--red:#FF6961;--redText:#FFADA6;--on-red:#1A0606;--gray:#BAC0CC;--bleu:#80B8FF;--violet:#C98BFF;
   --vertBg:rgba(48,209,88,.18);--ambreBg:rgba(255,159,10,.18);--rougeBg:rgba(255,69,58,.18);--grisBg:rgba(255,255,255,.10);--bleuBg:rgba(10,132,255,.20);--violetBg:rgba(191,90,242,.20);
   --ic-neutre:rgba(0,0,0,0);--ic-encre:#64A8FF;
   --ombre-1:none;--ombre-2:0 18px 44px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.18);--ombre-3:0 24px 64px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.1);
@@ -2452,6 +2453,8 @@ body.jour .lg-carte,body.jour .vide,body.jour .encart,body.jour .groupe,body.jou
 .svl-kpi{margin-bottom:22px}
 .pill-act{background:var(--tint-gris);border:0;color:var(--text2)}
 .btn-icone{border-radius:50%}
+/* au doigt, un bouton rond fait 44 × 44 : « Actualiser » du Courrier n'en faisait que 34 de large */
+@media(pointer:coarse){ .btn-icone{min-width:44px;min-height:44px} }
 .btn-plein:active,.btn-fant:active,.pill-act:active{transform:scale(.97);opacity:.85}
 
 /* champs : en creux, sans bord (HIG) */
@@ -2497,7 +2500,10 @@ body.jour .kpi.sel{box-shadow:inset 0 0 0 2px var(--acc)}
 /* ⛔ et à côté de son bouton, un titre COLLÉ glissait sur lui : mesuré à 390 px, le titre de la
    porte bêta descendait de 54 px et recouvrait « Ouvrir un accès bêta » (le bouton disparaissait,
    son tap tombait sur le titre). Un titre qui porte son action ne colle pas. */
-.ac-tete>.reg-tete{position:static}
+.ac-tete>.reg-tete{position:relative;top:auto}
+/* relative et non static : le chevron du titre est posé en absolu contre SON titre ; sans
+   ancêtre positionné il partait au bord de la page, tourné de 90°, et élargissait la page à
+   410 px sur un téléphone de 390 (mesuré : innerWidth 410, toute la vue réduite à 95 %) */
 .reg-nom{font-size:17px;font-weight:600;letter-spacing:-.02em}
 .reg-n{font-size:13px;color:var(--muted)}
 .reg-l{min-height:56px;padding:10px 16px}
@@ -2515,6 +2521,10 @@ body.jour .kpi.sel{box-shadow:inset 0 0 0 2px var(--acc)}
 /* le chevron d'une LIGNE se centre sur elle : la règle `position:absolute;top:0` était écrite pour
    le titre de groupe (44 px) et collait le chevron de chaque ligne dans son coin haut */
 .reg-l .reg-fin>.reg-chev{position:static;height:auto;align-self:center}
+/* le chevron d'un TITRE de groupe tourne de 90° quand le groupe est ouvert : posé dans une boîte
+   de 6 × 44, tourné, il dépassait de 19 px à droite et la page mesurait 394 px pour 390. Une
+   boîte CARRÉE, centrée sur la hauteur du titre, tourne sur place. */
+.reg-tete>.reg-chev{top:10px;width:24px;height:24px;justify-content:center}
 .reg-tech{background:var(--tt-carte);border-radius:12px;box-shadow:none}
 body:not(.jour) .reg-tech{box-shadow:inset 0 0 0 1px var(--tt-carte-bord)}
 
@@ -2529,6 +2539,9 @@ body:not(.jour) .reg-tech{box-shadow:inset 0 0 0 1px var(--tt-carte-bord)}
 .tbl .rw,.tbl td{padding:12px 16px;border-top:1px solid var(--hairline);font-size:14px}
 .sec{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted)}
 .kv>div{font-size:14px;padding:9px 0}
+/* un lien de fiche (e-mail, téléphone) se touche au doigt : 16 px de haut ne se visent pas. Un
+   rembourrage VERTICAL sur un élément en ligne agrandit la zone qui répond sans bouger la ligne. */
+@media(pointer:coarse){ .kv .v a[href]{padding:14px 0} }
 
 /* la fiche : les faits à gauche, l'adresse et ses trois gestes à droite (une colonne au téléphone) */
 .tt-fiche-acces{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px 28px}
