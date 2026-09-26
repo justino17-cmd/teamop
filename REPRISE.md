@@ -104,6 +104,18 @@ Vérification des pages, déploiement Pages). Aucun fichier `server/` : le VPS n
 format de données ne change, et une entreprise existante ne voit aucune différence) **et rien à annoncer** (le seul
 effet visible est le menu de départ d'une entreprise NEUVE).
 
+✅ **v755 EN PRODUCTION — le 26 septembre 2026 à 15 h 33 UTC, sur la phrase de Justin « ça, si c'est à faire tu le
+fais, et après tu publies ».** Un commit sur `main`, **`f21a034`** : `app.html` v755, `sw.js` cache v955, `beta.html`
+755-beta, `VERSION-STABLE.md`, et les bancs portés avec l'application (`test-821`, `test-822` neufs ; les bacs à sable
+de 775, 778, 779, 786, 789, 790, 791, 820 et `scripts/verifier-permissions.js`). Porte les v753 (les trois points des
+droits) et v754 (profil neuf tout décoché). Vérification complète rejouée sur ce commit AVANT de pousser : VERT —
+178 suites · 8 767 ✓, liste serveur 40 · 2 346, bêta = génération d'`app.html`, arbre propre. Servie octet pour octet
+(`app.html` en 22 s, `sw.js`, `beta.html`) ; `/health` ok ; CI de `main` verte, trois workflows sur trois
+(Vérifications, Vérification des pages, déploiement Pages). Aucun fichier `server/` : le VPS n'a pas bougé. **Rien à
+exiger** (aucun format ne change). **Pas d'annonce préparée** : l'effet visible est surtout pour l'administrateur,
+et une annonce passe par `server/index.js` (donc un déploiement du serveur) — à proposer à Justin s'il veut prévenir.
+Guide PDF des droits regénéré en v755 (9 pages) et envoyé à Justin.
+
 🟡 **v755 — le 26 septembre 2026, sur la phrase de Justin « ça, si c'est à faire tu le fais, et après tu
 publies » (la liste « restent » ci-dessous).** Chaque point MESURÉ avant d'être touché — et l'un d'eux était faux :
 - **l'accueil et les initiales du haut** : leurs éléments (`brand-ini`, `brand-hi`, `brand-role`, `topbar-ava`) ont
