@@ -1185,7 +1185,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
    Les commandes passent TOUJOURS sous le texte, alignées sur lui ; au téléphone elles s'étirent (plus bas). */
 /* row-gap:0 — l'écart de colonnes (12 px) valait aussi entre les rangées : 22 px entre le nom et ses commandes (mesuré) */
 .reg-l.eqp-l{flex-wrap:wrap;row-gap:0}
-.reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:6px;padding-left:46px}
+.reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:6px;padding-left:44px}
 /* v2.68 — LES COMPTES D'UNE ENTREPRISE, DANS SA FICHE : la même règle. La fiche range ses cartes sur deux
    colonnes d'environ 485 px ; les pastilles d'état et les deux commandes (Mot de passe, Supprimer) — un
    .reg-fin qui ne rétrécit jamais — laissaient 13 px à l'identifiant : « t o m », une lettre par ligne
@@ -1203,7 +1203,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
   /* Les deux actions passent sous le texte, une par rangée : à 390 px, « Supprimer » collé à
      « Couper l'accès » est le montage qui produit les erreurs de doigt. */
   .reg-l.eqp-l{flex-wrap:wrap;row-gap:0}
-  .reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:6px;padding-left:46px}
+  .reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:6px;padding-left:44px}
   .reg-l.eqp-l .eqp-actions{flex:1;min-width:0}
   .reg-l.eqp-l .eqp-act{flex:1;min-width:0}
 }
@@ -2380,7 +2380,8 @@ body.jour .carte,body.jour .kpi,body.jour .tbl,body.jour .item,body.jour .reg-cl
 body.jour .lg-carte,body.jour .vide,body.jour .encart,body.jour .groupe,body.jour .tt-carte{border-color:rgba(0,0,0,0);-webkit-backdrop-filter:none;backdrop-filter:none}
 /* UNE vitre, pas deux : une liste posée DANS une carte ne s'empile pas en second verre (deux blancs à
    8 % font 16 %, et le texte secondaire y tombait à 4,3:1, mesuré au pixel). Elle devient un creux
-   bordé d'un filet, jour comme nuit. */
+   bordé d'un filet (de nuit : de jour, `body.jour` efface toutes les bordures). v2.68 : la LISTE (.reg-bloc)
+   n'en a plus du tout — voir « CHAQUE TEXTE SUR SA COLONNE », 17. */
 .carte .reg-bloc,.carte .reg-cli,.carte .reg-haut,.carte .item,.carte .tbl,.carte .vide,.carte .squel-l,
 #tour-panneau .reg-bloc,#tour-panneau .item,#tour-panneau .vide,.mail .reg-bloc,.mail .reg-cli,.mail .vide{
   background:rgba(0,0,0,0);box-shadow:none;border:1px solid var(--hairline);-webkit-backdrop-filter:none;backdrop-filter:none}
@@ -2715,9 +2716,10 @@ body.jour #toast{background:rgba(255,255,255,.92)}
   body.jour .reg-tete,body:not(.jour) .reg-tete{background:rgba(0,0,0,0)!important}
 }
 
-/* 3 · Les lignes de compte et les notes de bas de liste avaient 2 px de retrait (18 au lieu de 16) */
+/* 3 · Les lignes de compte et les notes de bas de liste (dont le pied du Journal, trouvé au bureau) avaient 2 px de
+       retrait (18 au lieu de 16) */
 .svl-compte{margin-left:0;margin-right:0}
-.jr-vide,.abn-tete-code{padding-left:0;padding-right:0}
+.jr-vide,.jr-fin,.abn-tete-code{padding-left:0;padding-right:0}
 
 /* 4 · Un lien posé en bas d'une liste (« Ouvrir le journal → ») : son TEXTE part de la colonne, et son fond,
        au survol, déborde de la même façon que celui d'une ligne. */
@@ -2762,10 +2764,11 @@ body.jour #toast{background:rgba(255,255,255,.92)}
 }
 
 /* 11 · Équipe : « Couper l'accès » sortait de la carte, coupé au bord (quatre boutons sur une rangée qui
-        ne passe pas à la ligne) ; et « Compte fixe » partait 2 px après le nom. Deux par rangée, sous le nom. */
+        ne passe pas à la ligne) ; et « Compte fixe » partait 2 px après le nom — au bureau aussi : la colonne
+        des gestes (46 px) datait d'un avatar de 34 px, il en fait 32 (+ 12 d'écart = 44, posé là où la règle
+        naît). Deux par rangée au téléphone, sous le nom. */
 .reg-l.eqp-l .reg-fin{min-width:0}
 @media(max-width:899px){
-  .reg-l.eqp-l .reg-fin{padding-left:44px}
   .reg-l.eqp-l .eqp-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
 }
 
@@ -2789,6 +2792,13 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
 
 /* 16 · « En un coup d'œil » : le filet entre deux lignes partait 4 px AVANT leur texte (12 contre 16). */
 .ac-aside .reg-bloc>.reg-l+.reg-l::before{left:16px}
+
+/* 17 · (mesuré de NUIT, relecture de ce passage) Une liste posée dans une carte : de jour, son cadre n'existe pas
+        (`body.jour …{border-color:…0}` efface toutes les bordures) ; de nuit il gardait un filet blanc à 8 %, et
+        ses lignes, posées sur la colonne de la carte (9), touchaient ce cadre. La liste n'a de cadre ni de jour ni
+        de nuit — ses lignes restent séparées par leurs filets — et son bord invisible ne décale plus le texte d'un
+        pixel. Une ligne CLIQUABLE dans une carte garderait ses 16 px (le fond de survol a besoin de sa marge). */
+.carte .reg-bloc{border-width:0}
 </style>
 </head>
 <body>
@@ -4096,7 +4106,9 @@ function rafraichirSiConcerne(){
   /* 'abonnements' manquait : les codes promo arrivaient dans PRO sans que l'écran qui les
      affiche soit redessiné. */
   /* l'accueil aussi : ses compteurs (clientes, ouvertes à OP MESSAGES) lisent la liste des entreprises */
-  try{ if(TAB==='essais') renderVue('essais'); else if(TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}
+  /* v2.68 (relecture) — renderVue attend l'ÉLÉMENT de la vue : renderVue('essais') jetait (un texte n'a pas de
+     classList), l'exception était avalée, et l'écran Accès ne se redessinait jamais quand ses données changeaient. */
+  try{ if(TAB==='essais'||TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}
 }
 var JR={cnx:[],loaded:false,err:'',actions:[],f:'tout'};
 /* ── Connexions des applications : toutes les entreprises, le moindre détail ── */
@@ -6986,8 +6998,10 @@ document.addEventListener('click',descDeplier);
    (sonde-tour-telephone.js) : des lignes qui commençaient par « : », par « · » ou par « » », un « « »
    resté seul en fin de ligne, loin de son mot, un « € » séparé de son montant. L'espace qui précède
    : ; ! ? » · — € % et celle qui suit « deviennent insécables : le navigateur ne peut plus couper là.
-   UN seul passage, sur ce que la vue ajoute (MutationObserver) : les données des clients (un message
-   d'erreur, un nom) sont couvertes comme les phrases de la console. Jamais dans du code ni dans un champ. */
+   UN seul passage, sur ce que la PAGE ajoute (MutationObserver) : les données des clients (un message
+   d'erreur, un nom) sont couvertes comme les phrases de la console. Jamais dans du code ni dans un champ.
+   (relecture) La page, pas seulement #vue : les toasts, les panneaux (lien de connexion, mots de passe
+   provisoires) et le titre monté dans l'en-tête vivent HORS de la vue — ils gardaient le défaut. */
 var TYPO_RX=/[:;!?»·—€%]|« /;
 function typoTexte(s){
   return s.replace(/« /g,'« ').replace(/ ([:;!?»·—])/g,' $1').replace(/(\d) ([€%])/g,'$1 $2');
@@ -6999,7 +7013,7 @@ function typoFr(racine){
   l.forEach(function(n){ var p=n.parentElement; if(!p||p.closest('pre,code,script,style,textarea,[contenteditable]')) return;
     var e=typoTexte(n.data); if(e!==n.data) n.data=e; });
 }
-try{ (function(){ var v=document.getElementById('vue'); if(!v||typeof MutationObserver!=='function') return;
+try{ (function(){ var v=document.body; if(!v||typeof MutationObserver!=='function') return;
   new MutationObserver(function(ms){ ms.forEach(function(m){ for(var i=0;i<m.addedNodes.length;i++){ var x=m.addedNodes[i];
     typoFr(x.nodeType===3?x.parentNode:x); } }); }).observe(v,{childList:true,subtree:true});
   typoFr(v); })(); }catch(e){}
@@ -7902,7 +7916,7 @@ function blocUtilisateurs(){
       (inut.length>1?'<button type="button" class="btn-fant" onclick="comptesInutilisesSupprimer()">Supprimer les '+inut.length+' comptes jamais utilisés</button>':'')+
     '</div>':'')+
     '<div class="note">🗂 Copies de sauvegarde chiffrées sur notre serveur : '+
-      (sv.possible===false?'<b class="att">impossible — espace hors annuaire, aucune clé d’équipe connue du serveur</b>':((sv.n||0)+(sv.derniere?' · dernière '+cnxDepuis(sv.derniere):' · aucune encore (elles arrivent avec la v621, au plus une par demi-heure et par appareil)')))+'</div>'+
+      (sv.possible===false?'<b class="att">impossible — espace hors annuaire, aucune clé d’équipe connue du serveur</b>':((sv.n||0)+(sv.derniere?' · dernière '+cnxDepuis(sv.derniere):' · aucune encore (elles se font toutes seules, au plus une par demi-heure et par appareil)')))+'</div>'+
     /* Les identifiants supprimés depuis la Tour restent bannis de l'annuaire — un appareil ne peut
        pas lever ça, seul le patron le peut, ici. Sans ce bloc, un ban invisible serait un ban
        qu'on ne comprend plus le jour où l'entreprise embauche quelqu'un du même nom. */

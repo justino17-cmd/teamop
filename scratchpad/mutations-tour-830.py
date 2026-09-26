@@ -5,7 +5,7 @@ import os, subprocess, sys, tempfile
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = open(os.path.join(RACINE, 'tour.html'), encoding='utf-8').read()
 NB = ' '
-FIN = '\n.ac-aside .reg-bloc>.reg-l+.reg-l::before{left:16px}\n</style>'   # la dernière règle de la page : on AJOUTE après elle
+FIN = '\n.carte .reg-bloc{border-width:0}\n</style>'   # la dernière règle de la page : on AJOUTE après elle
 M = [
  # 1 · l'en-tête
  ('le nom ne s’efface plus sous le titre court', 'body.titre-cache .hnom,body.titre-cache .app-pill{opacity:0;pointer-events:none}', 'body.titre-cache .app-pill{opacity:0;pointer-events:none}'),
@@ -37,11 +37,16 @@ M = [
  ('…et son filet repart à 56 px', '.carte .reg-bloc>.reg-l.inerte+.reg-l.inerte::before{left:0;right:0}\n', ''),
  ('« Son espace » repart à 16 px', '.sous-sec>.item{padding-left:0;padding-right:0}\n', ''),
  ('les chiffres « chez eux » décalés d’un pixel', '.dsr-rang{margin-left:-9px}', '.dsr-rang{margin-left:-8px}'),
- ('« En un coup d’œil » : le filet part avant le texte', '.ac-aside .reg-bloc>.reg-l+.reg-l::before{left:16px}\n</style>', '</style>'),
+ ('« En un coup d’œil » : le filet part avant le texte', '.ac-aside .reg-bloc>.reg-l+.reg-l::before{left:16px}\n\n/* 17', '\n/* 17'),
  ('« libellé : valeur » de nouveau sur deux colonnes étroites', '.kv>div{grid-template-columns:minmax(0,1fr);row-gap:2px}', '.kv>div{row-gap:2px}'),
  ('Journal : le pied de ligne repart sous l’icône', '.reg-l.inerte.jr-l>.reg-fin{padding-left:42px}', '.reg-l.inerte.jr-l>.reg-fin{padding-left:34px}'),
  ('Journal : une fabrique perd sa classe', '\'<div class="reg-l inerte jr-l">', '\'<div class="reg-l inerte">'),
- ('Équipe : les gestes repartent à 46 px', '.reg-l.eqp-l .reg-fin{padding-left:44px}', '.reg-l.eqp-l .reg-fin{padding-left:46px}'),
+ ('Équipe : au bureau les gestes repartent à 46 px', 'margin-top:6px;padding-left:44px}\n/* v2.68 — LES COMPTES', 'margin-top:6px;padding-left:46px}\n/* v2.68 — LES COMPTES'),
+ ('de nuit, la liste d’une carte retrouve son cadre (le texte le touche)', '\n.carte .reg-bloc{border-width:0}\n</style>', '\n</style>'),
+ ('le pied du Journal garde ses 2 px', '.jr-vide,.jr-fin,.abn-tete-code{padding-left:0;padding-right:0}', '.jr-vide,.abn-tete-code{padding-left:0;padding-right:0}'),
+ ('l’écran Accès ne se redessine plus', "try{ if(TAB==='essais'||TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}", "try{ if(TAB==='essais') renderVue('essais'); else if(TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}"),
+ ('la typographie redevient limitée à la vue', "(function(){ var v=document.body; if(!v||", "(function(){ var v=document.getElementById('vue'); if(!v||"),
+ ('la note promet de nouveau « la v621 »', "aucune encore (elles se font toutes seules, au plus une par demi-heure et par appareil)", "aucune encore (elles arrivent avec la v621, au plus une par demi-heure et par appareil)"),
  ('Équipe : les quatre gestes de nouveau sur une rangée', '.reg-l.eqp-l .eqp-actions{display:grid;grid-template-columns:1fr 1fr;', '.reg-l.eqp-l .eqp-actions{grid-template-columns:1fr 1fr;'),
  # 4 · menus
  ('les menus perdent leur chevron', 'select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;background-size:16px 16px}\n', ''),

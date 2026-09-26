@@ -44,7 +44,10 @@ async function main() {
       const lignes = [];
       for (const r of (m.matchedCSSRules || [])) {
         const st = r.rule.style; if (!st || !st.cssProperties) continue;
-        const decl = st.cssProperties.filter(p => PROPS.some(q => p.name === q || (q.startsWith(p.name + '-') && /^(margin|padding|border|inset|flex|grid|gap)$/.test(p.name))) && !p.disabled && p.text);
+        /* une propriété longue est posée par elle-même, par son raccourci (margin, padding, border, inset, flex, grid,
+           gap) ou par un raccourci intermédiaire (border-color, border-left) */
+        const decl = st.cssProperties.filter(p => PROPS.some(q => p.name === q || (q.startsWith(p.name + '-') && /^(margin|padding|border|inset|flex|grid|gap)$/.test(p.name))
+          || (/^border-(left|right|top|bottom)-(color|width|style)$/.test(q) && (p.name === 'border-' + q.split('-')[2] || p.name === 'border-' + q.split('-')[1]))) && !p.disabled && p.text);
         if (!decl.length) continue;
         const h = feuilles[r.rule.styleSheetId]; let ligne = '?';
         if (h && st.range) ligne = (h.startLine || 0) + st.range.startLine + 1;

@@ -227,6 +227,7 @@ const SOURCES = {
   'background-image': ['background'], 'background-position': ['background'], 'background-repeat': ['background'], 'background-color': ['background'],
   'grid-template-columns': ['grid-template', 'grid'], 'column-gap': ['gap', 'grid-gap', 'grid-column-gap'], 'flex-basis': ['flex'],
   'white-space': ['text-wrap-mode'],
+  'border-left-width': ['border', 'border-left', 'border-width'], 'border-left-color': ['border', 'border-left', 'border-color'],
 };
 const plusFort = (a, b) => a.d.imp !== b.d.imp ? a.d.imp : (cmp(a.sp, b.sp) || (a.r.ordre - b.r.ordre) || (a.d.n - b.d.n)) > 0;
 function gagnant(prop, el, chaine, x) {
@@ -251,6 +252,12 @@ function valeur(g, prop) {
   if (/-inline$/.test(d.prop)) return /(left|start)$/.test(prop) ? t[0] : (t[1] ?? t[0]);
   if (d.prop === 'gap' || d.prop === 'grid-gap') return t[1] ?? t[0];
   if (d.prop === 'flex') return t.length === 3 ? t[2] : (t.length === 1 && /^[\d.]+$/.test(t[0]) ? '0%' : d.val);
+  if (d.prop === 'border' || d.prop === 'border-left') {
+    const epais = x => /^(-?[\d.]+(px|em|rem)?|thin|medium|thick)$/.test(x), style = x => /^(none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset)$/.test(x);
+    if (prop === 'border-left-width') return t.find(epais) || (t.some(style) ? 'medium' : '0');
+    if (prop === 'border-left-color') return t.find(x => !epais(x) && !style(x)) || 'currentcolor';
+  }
+  if (d.prop === 'border-width' || d.prop === 'border-color') return t[3] ?? t[1] ?? t[0];
   return d.val;
 }
 const elem = s => { const c = compose(s); return { tag: c.tag, ids: c.ids, classes: c.classes, pseudoEl: c.pseudoEl, etats: c.etats }; };
@@ -389,7 +396,7 @@ const COURRIER = PAGE().concat(['div.carte', 'div.mail-rows']);
 console.log('\n3. Chaque texte sur sa colonne — lignes, notes, cartes');
 const casTB = [TEL(390), TEL(600), BUREAU(1280)];
 partout('les lignes de compte et les notes de bas de liste partent du bord (elles avaient 2 px de trop)', casTB, x => {
-  for (const [c, ch] of [['div.svl-compte', PAGE()], ['div.jr-vide', PAGE()], ['div.abn-tete-code', PAGE()]]) {
+  for (const [c, ch] of [['div.svl-compte', PAGE()], ['div.jr-vide', PAGE()], ['div.jr-fin', PAGE()], ['div.abn-tete-code', PAGE()]]) {
     const d = depart(c, ch, x); if (d.n !== 0) return x.largeur + ' px, ' + c + ' : ' + d.n + ' (' + d.dit + ')';
   }
 });
@@ -434,6 +441,14 @@ partout('dans une carte, une liste sans cadre part sur la colonne de la carte, e
   const f = lire('left', 'div.reg-l.inerte::before', ch, x); if (px(f.val) !== 0) return x.largeur + ' px : filet à ' + f.val + ' par ' + qui(f.g);
   const s = depart('div.item', PAGE().concat(['div.carte', 'div.sous-sec']), x); if (s.n !== 0) return x.largeur + ' px : « Son espace » à ' + s.n + ' (' + s.dit + ')';
 });
+/* de NUIT le cadre d'une surface reste (de jour, body.jour efface toutes les bordures) : une ligne posée sur la colonne
+   de la carte ne doit toucher aucun cadre visible — mesuré le 26 septembre 2026, le texte collait au filet */
+const transparent = c => /^(transparent|rgba\(0, ?0, ?0, ?0\))$/.test(String(c).trim());
+partout('une liste dans une carte : ses lignes sur la colonne ne touchent aucun cadre, de jour comme de nuit', [].concat(...[TEL(390), BUREAU(1280)].map(x => ['body', 'body.jour'].map(c => ({ x, c })))), ({ x, c }) => {
+  const ch = PAGE(c).concat(['div.carte']), w = lire('border-left-width', 'div.reg-bloc', ch, x), col = lire('border-left-color', 'div.reg-bloc', ch, x);
+  const cadre = px(w.val) > 0 && !transparent(col.val), retrait = px(lire('padding-left', 'div.reg-l.inerte', ch.concat(['div.reg-bloc']), x).val);
+  if (cadre && retrait < 8) return x.largeur + ' px, ' + (c === 'body' ? 'nuit' : 'jour') + ' : cadre ' + w.val + ' ' + col.val + ' (' + qui(w.g) + ') et lignes à ' + retrait + ' px';
+});
 partout('« Ce qui se passe chez eux » : le CHIFFRE est sur la colonne, le fond de son bouton déborde', casTB, x => {
   const r = lire('margin-left', 'div.dsr-rang', PAGE().concat(['div.carte']), x), p = lire('padding-left', 'button.dsr-p', PAGE().concat(['div.carte', 'div.dsr-rang']), x);
   if (px(r.val) + px(p.val) !== 0) return x.largeur + ' px : rangée ' + r.val + ' (' + qui(r.g) + ') + bouton ' + p.val + ' (' + qui(p.g) + ')';
@@ -452,10 +467,11 @@ partout('Journal, au doigt : la pastille et l’heure partent sous le TEXTE (ic�
   if (px(f.val) !== px(ic.val) + px(gap.val)) return x.largeur + ' px : ' + f.val + ' (' + qui(f.g) + ') contre icône ' + ic.val + ' + écart ' + gap.val;
 });
 vrai('…et les lignes du Journal portent bien cette classe (les deux fabriques)', /'<div class="reg-l inerte ko jr-l">/.test(CODE) && /'<div class="reg-l inerte jr-l">/.test(CODE));
-partout('Équipe, au téléphone : les gestes passent sous le nom, deux par rangée, sur la colonne du nom', [TEL(360), TEL(390), TEL(430)], x => {
+partout('Équipe : les gestes partent sur la colonne du nom (avatar + écart), au téléphone deux par rangée', [TEL(360), TEL(390), TEL(430), TEL(768), BUREAU(1280)], x => {
   const ch = PAGE().concat(['div.carte', 'div.reg-bloc', 'div.reg-l.eqp-l']);
   const f = lire('padding-left', 'div.reg-fin', ch, x), av = lire('width', 'div.reg-av', ch, x), gap = lire('column-gap', 'div.reg-l.eqp-l', ch.slice(0, -1), x);
   if (px(f.val) !== px(av.val) + px(gap.val)) return x.largeur + ' px : ' + f.val + ' (' + qui(f.g) + ') contre avatar ' + av.val + ' + écart ' + gap.val + ' (' + qui(gap.g) + ')';
+  if (x.largeur >= 900) return;
   const g = lire('display', 'div.eqp-actions', ch.concat(['div.reg-fin']), x), c = lire('grid-template-columns', 'div.eqp-actions', ch.concat(['div.reg-fin']), x);
   if (g.val !== 'grid' || c.val !== '1fr 1fr') return x.largeur + ' px : ' + g.val + ' / ' + c.val + ' par ' + qui(c.g);
 });
@@ -504,9 +520,9 @@ v('le filtre ne laisse passer AUCUN texte qui avait besoin d’être corrigé', 
   v('typoFr : le texte de la page est corrigé, pas le code, ni un champ, ni une zone éditable', textes.map(t => t.data),
     ['Suivi' + NB + ': fait', 'Suivi : fait', 'Suivi : fait', 'Suivi : fait', 'Rien']);
 }
-vrai('…et elle passe sur tout ce que la vue AJOUTE (observateur de #vue, sous-arbre compris, un texte seul par son parent)',
+vrai('…et elle passe sur tout ce que la PAGE ajoute — toasts, panneaux et titre de l’en-tête vivent hors de #vue (relecture)',
   /new MutationObserver\(function\(ms\)\{[^]*?typoFr\(x\.nodeType===3\?x\.parentNode:x\);[^]*?\.observe\(v,\{childList:true,subtree:true\}\)/.test(CODE)
-  && /var v=document\.getElementById\('vue'\)/.test(CODE));
+  && /\(function\(\)\{ var v=document\.body; if\(!v\|\|typeof MutationObserver!=='function'\) return;/.test(CODE));
 vrai('la mémoire des groupes pliés ne dépend pas du moment où la typographie passe (la clé ignore les insécables)',
   /var cle=APP\+'\/'\+TAB\+'\/'\+nom\.replace\(\/\\u00A0\/g,' '\)\.trim\(\);/.test(fonction('regPliage')));
 vrai('⛔ l’observateur ne regarde pas characterData : corriger un texte ne le fait pas repasser (pas de boucle)',
@@ -582,6 +598,18 @@ function remise(cnt, apps, repondre) {
     ['🐛 1 problème ouvert, signalé par leur application. [bouton]', '🐛 3 problèmes ouverts, signalés par leur application. [bouton]']);
   v('…et sans problème, une phrase qui le dit', rendu(0), '✅ Aucun problème ouvert signalé par leur application');
 }
+
+console.log('\n7. Ce que la relecture a trouvé en chemin');
+{
+  const f = fonction('rafraichirSiConcerne'); vrai('population : rafraichirSiConcerne est extraite', /function rafraichirSiConcerne\(\)/.test(f));
+  const joue = tab => { const vu = { rendus: 0, jete: '' };
+    const ctx = { TAB: tab, render: () => { vu.rendus++; }, renderVue: v => { if (typeof v === 'string') { vu.jete = 'renderVue(« ' + v + ' »)'; throw new TypeError('v.classList'); } vu.rendus++; } };
+    executer(f + '\nrafraichirSiConcerne();', ctx); return vu.rendus + (vu.jete ? ' — ' + vu.jete : ''); };
+  v('l’écran Accès se redessine quand ses données changent (renderVue recevait un texte, l’exception était avalée)',
+    ['essais', 'entreprises', 'abonnements', 'accueil', 'journal'].map(joue), ['1', '1', '1', '1', '0']);
+}
+vrai('la note des copies de sauvegarde ne promet plus « la v621 » (toute la flotte est bien au-delà)',
+  CH.some(s => /aucune encore \(elles se font toutes seules, au plus une par demi-heure et par appareil\)/.test(s)) && !CH.some(s => /arrivent avec la v\d/.test(s)));
 
 console.log('\n══ test-830 : ' + ok + ' ✓ ' + ko + ' ✗ ══');
 process.exit(ko ? 1 : 0);
