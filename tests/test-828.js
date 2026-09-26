@@ -54,7 +54,7 @@ NOMS.forEach(n => v('une seule définition de ' + n, (CODE.match(new RegExp('\\n
 console.log('\n2. Le choix, joué avec les vraies fonctions');
 const MENU = bloc('var MENU=[', '];');
 vrai('le menu est trouvé (population)', MENU.length > 300, MENU.length);
-const JEU = [MENU, fonction('menuVisible'), ligne('var BAS_DEFAUT='), ligne('var BAS_MAX='), ligne('var BAS=BAS_DEFAUT'),
+const JEU = [MENU, ligne('var PATRON_SEUL='), fonction('vuePermise'), fonction('menuVisible'), ligne('var BAS_DEFAUT='), ligne('var BAS_MAX='), ligne('var BAS=BAS_DEFAUT'),
   bloc('var BAS_LIB={', '};'), fonction('barreDispo'), fonction('barreDe'), ligne('var _barreRepli='), fonction('barreLire'),
   ligne('var _barreBrouillon='), fonction('barreBascule'), fonction('barreCompteTxt'), fonction('barreRepeindre'),
   fonction('barreDefaut'), fonction('barreValider')].join('\n');
@@ -79,7 +79,7 @@ function bac(role, app) {
   const m = bac('patron', 'messages');
   v('par défaut (console MESSAGES) : Accès n’y existe pas, le Courrier prend sa place', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
   v('la liste des vues suit le menu visible (patron, GESTION : 11 vues)', p.ctx.barreDispo().length, 11);
-  v('…(collaborateur : ni Accès ni Équipe)', c.ctx.barreDispo().map(o => o.t).filter(t => t === 'essais' || t === 'equipe'), []);
+  v('…(collaborateur : ni Accès, ni Équipe, ni Journal, ni Sauvegardes — ce que le serveur lui refuse)', c.ctx.barreDispo().map(o => o.t).filter(t => ['essais', 'equipe', 'journal', 'donnees'].includes(t)), []);
 }
 {
   const p = bac('patron', 'gestion');
@@ -92,7 +92,7 @@ function bac(role, app) {
   const m = bac('patron', 'messages'); m.rangement.set('tour_barre_gestion', 'journal,equipe');
   v('une console, une barre : le choix de GESTION ne touche pas MESSAGES', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
   const c = bac('collaborateur', 'gestion'); c.rangement.set('tour_barre_gestion', 'essais,equipe,journal');
-  v('⛔ une vue que le compte ne voit pas n’entre jamais dans sa barre, même « choisie »', c.ctx.barreLire(), ['journal', 'accueil', 'surveillance', 'entreprises']);
+  v('⛔ une vue que le compte ne voit pas n’entre jamais dans sa barre, même « choisie »', c.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
   const mv = bac('patron', 'messages'); mv.rangement.set('tour_barre_messages', 'devisia,abonnements,journal');
   v('…ni une vue d’une AUTRE console (Devis IA n’existe pas dans MESSAGES)', mv.ctx.barreLire(), ['journal', 'accueil', 'surveillance', 'entreprises']);
 }

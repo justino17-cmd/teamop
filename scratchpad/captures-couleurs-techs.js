@@ -93,7 +93,7 @@ async function jouer(source, nom) {
         <div style="padding:22px 26px 8px;font-size:26px;font-weight:800">${titres[k]}</div>
         <div style="display:flex;gap:26px;padding:10px 26px 26px;align-items:flex-start">
           <figure style="margin:0;flex:1"><figcaption style="padding:6px 0 10px;color:#86868b">Avant (v756)</figcaption>${a ? `<img style="max-width:100%;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.12)" src="data:image/png;base64,${a}">` : '<i>(cet écran n’existait pas)</i>'}</figure>
-          <figure style="margin:0;flex:1"><figcaption style="padding:6px 0 10px;color:#1E7A4E">Après (v757)</figcaption><img style="max-width:100%;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.12)" src="data:image/png;base64,${b}"></figure>
+          <figure style="margin:0;flex:1"><figcaption style="padding:6px 0 10px;color:#1E7A4E">Après (v758)</figcaption><img style="max-width:100%;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.12)" src="data:image/png;base64,${b}"></figure>
         </div></body>`;
       const f = path.join(SORTIE, 'couleurs-' + k + '.html'); fs.writeFileSync(f, html);
       await S.c.envoyer('Emulation.setDeviceMetricsOverride', { width: 1800, height: 1200, deviceScaleFactor: 1, mobile: false });

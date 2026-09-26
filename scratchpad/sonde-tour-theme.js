@@ -248,7 +248,7 @@ const MESURE_CIBLES = `
     /* amené au milieu de l'écran, son centre DOIT le toucher — sinon quelque chose est posé
        dessus, et un doigt n'atteint pas la cible : on le NOMME au lieu de l'écarter en silence */
     const t0=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
-    if(!agit(t0,e)){ if(r.top>70&&r.bottom<innerHeight-120) recouverts.push({t:(e.getAttribute('aria-label')||e.title||e.textContent||e.tagName).trim().replace(/\s+/g,' ').slice(0,40),sous:t0?(t0.tagName+'.'+String(t0.className).slice(0,30)):'rien'}); continue; }
+    if(!agit(t0,e)){ if(r.top>70&&r.bottom<innerHeight-120) recouverts.push({t:(e.getAttribute('aria-label')||e.title||e.textContent||e.tagName).trim().replace(/\\s+/g,' ').slice(0,40),sous:t0?(t0.tagName+'.'+String(t0.className).slice(0,30)):'rien'}); continue; }
     n++;
     const cx=r.left+r.width/2, cy=r.top+r.height/2;
     let h=r.height, w=r.width;
@@ -258,6 +258,41 @@ const MESURE_CIBLES = `
   }
   window.scrollTo(0,0);
   return {n,petits,recouverts};`;
+
+/* ⛔ v2.68 — CE QUE LA VUE COUVRE D'ELLE-MÊME À L'OUVERTURE, ET CE QU'ELLE ÉCRASE. Les deux défauts
+   d'Équipe trouvés à l'œil sur les captures du 26 septembre 2026 : « Accès ouverts », en-tête collant
+   dans une colonne à bords arrondis, posé sur la ligne du patron sans qu'on ait rien fait défiler ; et
+   des noms réduits à « S. », « C. » par quatre commandes sur la même ligne. Rien ne débordait : aucun
+   contrôle de la sonde ne pouvait les voir.
+   Population : le DOM — tout élément de #vue qui porte son PROPRE texte —, jamais une liste de classes.
+   Couvert = hors de la lignée ET une chaîne qui peint un fond (règle du dépôt), à défilement 0 : plus
+   bas, un en-tête collant couvre ce qui passe dessous, c'est son rôle. Seul ce que la VUE pose sur
+   elle-même compte ; les barres fixes du haut et du bas sont du chrome sous lequel on défile.
+   Écrasé = coupé en ellipse sous 64 px, ou replié sur 4 lignes et plus à moins de 12 signes par ligne. */
+const MESURE_TEXTES = `
+  window.scrollTo(0,0); ${STABLE}
+  const out={n:0,couverts:[],ecrases:[]};
+  const alpha=bg=>{ const m=String(bg).match(/rgba?\\(([^)]+)\\)/); if(!m) return /transparent/.test(bg)?0:1; const p=m[1].split(/[ ,\\/]+/).filter(Boolean); return p.length>3?parseFloat(p[3]):1; };
+  const peint=el=>{ const cs=getComputedStyle(el); return alpha(cs.backgroundColor)>.05||cs.backgroundImage!=='none'||(cs.backdropFilter&&cs.backdropFilter!=='none'); };
+  const els=[...document.querySelectorAll('#vue *')].filter(e=>[...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim().length>=2));
+  for(const e of els){
+    const r=e.getBoundingClientRect(); if(r.width<4||r.height<4) continue;
+    const cs=getComputedStyle(e); if(cs.visibility==='hidden'||cs.display==='none'||parseFloat(cs.opacity||1)<.3||e.closest('[hidden]')) continue;
+    out.n++;
+    const txt=e.textContent.trim().replace(/\\s+/g,' ');
+    if(e.scrollWidth>e.clientWidth+1&&e.clientWidth<64&&txt.length>6&&(cs.textOverflow==='ellipsis'||cs.overflowX!=='visible'))
+      out.ecrases.push({t:txt.slice(0,40),cls:String(e.className).slice(0,40),w:e.clientWidth,sw:e.scrollWidth});
+    else { const rg=document.createRange(); rg.selectNodeContents(e);
+      const lignes=new Set([...rg.getClientRects()].filter(q=>q.width>1).map(q=>Math.round(q.top))).size;
+      if(lignes>=4&&txt.length/lignes<12) out.ecrases.push({t:txt.slice(0,40),cls:String(e.className).slice(0,40),lignes,w:Math.round(r.width)}); }
+    if(r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth) continue;
+    const rg2=document.createRange(); rg2.selectNodeContents(e); const q=[...rg2.getClientRects()].find(z=>z.width>1)||r;
+    const x=Math.min(Math.max(q.left+Math.min(q.width,40)/2,r.left+1),r.right-1), y=Math.min(Math.max(q.top+q.height/2,r.top+1),r.bottom-1);
+    const t=document.elementFromPoint(x,y); if(!t||t===e||e.contains(t)||t.contains(e)||!t.closest('#vue')) continue;
+    let c=t, couvre=false; while(c&&!c.contains(e)){ if(peint(c)){ couvre=true; break; } c=c.parentElement; }
+    if(couvre) out.couverts.push({t:txt.slice(0,40),sous:t.tagName+'.'+String(t.className).slice(0,40)+(t.textContent?' « '+t.textContent.trim().replace(/\\s+/g,' ').slice(0,24)+' »':'')});
+  }
+  return out;`;
 
 /* Les textes dont on lit le contraste AU PIXEL : une population NOMMÉE, qui doit exister. */
 const FAMILLES_TEXTE = {
@@ -334,7 +369,8 @@ async function parcours(S, v, bilan) {
     }
     v('bureau · console ' + app + ' : les ' + attendu.length + ' vues du menu s’ouvrent depuis le menu', ouvertes === attendu.length && n === attendu.length, ouvertes + '/' + n + (perdues.length ? ' · ' + perdues.join(', ') : ''));
     const sections = await o.ev('return [...document.querySelectorAll("nav.tabs .grp span")].map(e=>e.textContent)');
-    v('bureau · console ' + app + ' : les sections de la maquette', sections.join('·') === (app === 'gestion' ? 'Tour·Gestion·Facturation·Système' : 'Tour·Gestion·Facturation·Système'), sections.join(' · '));
+    /* v2.68 : les catégories rangées par SUJET (Justin : « range tout bien… un truc pro ») */
+    v('bureau · console ' + app + ' : les catégories de la Tour', sections.join('·') === 'Tour·Clients·Support·Administration', sections.join(' · '));
     o.exceptions.forEach(e => bilan.exceptions.push('parcours ' + app + ' : ' + e));
     await o.fermer();
   }
@@ -413,7 +449,7 @@ async function main() {
   const vues = VUES.filter(v => !seules.length || seules.includes(v.cle));
   const S = await demarrer();
   console.log('Sonde du thème de la Tour — tour.html ' + S.version + ' · ' + vues.length + ' vues × ' + APPAREILS.length + ' appareils × ' + MODES.length + ' modes');
-  const bilan = { vues: 0, captures: 0, exceptions: [], debordements: [], cibles: { n: 0, petits: [], recouverts: [] }, contrastes: { n: 0, faibles: [], parFam: {} }, nav: [], modes: [] };
+  const bilan = { vues: 0, captures: 0, exceptions: [], debordements: [], cibles: { n: 0, petits: [], recouverts: [] }, textes: { n: 0, couverts: [], ecrases: [] }, contrastes: { n: 0, faibles: [], parFam: {} }, nav: [], modes: [] };
   const ok = [], ko = [];
   const v = (t, cond, detail) => { (cond ? ok : ko).push(t + (detail ? ' — ' + detail : '')); console.log((cond ? '  ✓ ' : '  ✗ ') + t + (detail ? ' — ' + detail : '')); };
   try {
@@ -443,6 +479,12 @@ async function main() {
           (t.recouverts || []).forEach(p => bilan.cibles.recouverts.push(V.cle + ' ' + mode + ' : « ' + p.t + ' » sous ' + p.sous));
           bilan.cibles.n += t.n; t.petits.forEach(p => bilan.cibles.petits.push(V.cle + ' ' + mode + ' : « ' + p.t + ' » ' + p.tag + '.' + p.cls + ' ' + p.w + '×' + p.h));
         }
+        {
+          const x = await o.ev(MESURE_TEXTES);
+          bilan.textes.n += x.n;
+          x.couverts.forEach(p => bilan.textes.couverts.push(V.cle + ' ' + appareil + ' ' + mode + ' : « ' + p.t + ' » sous ' + p.sous));
+          x.ecrases.forEach(p => bilan.textes.ecrases.push(V.cle + ' ' + appareil + ' ' + mode + ' : « ' + p.t + ' » .' + p.cls + ' ' + (p.lignes ? p.lignes + ' lignes sur ' + p.w + ' px' : p.w + ' px visibles pour ' + p.sw)));
+        }
         /* deux écrans relevés : le haut de la vue, puis un écran plus bas (les lignes, les pastilles) */
         const dsf = appareil === 'telephone' ? 3 : 1;
         for (const decal of [0, 1]) {
@@ -468,10 +510,12 @@ async function main() {
   console.log('débordements latéraux RÉELS au téléphone : ' + bilan.debordements.length); bilan.debordements.forEach(e => console.log('   ' + e));
   console.log('cibles tactiles mesurées : ' + bilan.cibles.n + ' · sous 44 px (zone qui répond) : ' + bilan.cibles.petits.length); bilan.cibles.petits.slice(0, 60).forEach(e => console.log('   ' + e));
   console.log('cibles RECOUVERTES (le doigt touche autre chose) : ' + bilan.cibles.recouverts.length); bilan.cibles.recouverts.slice(0, 40).forEach(e => console.log('   ' + e));
+  console.log('textes relevés dans le DOM : ' + bilan.textes.n + ' · couverts par la vue à l’ouverture : ' + bilan.textes.couverts.length); bilan.textes.couverts.slice(0, 40).forEach(e => console.log('   ' + e));
+  console.log('textes écrasés (ellipse sous 64 px, ou 4 lignes et plus à moins de 12 signes) : ' + bilan.textes.ecrases.length); bilan.textes.ecrases.slice(0, 40).forEach(e => console.log('   ' + e));
   console.log('textes lus au pixel : ' + bilan.contrastes.n + ' ' + JSON.stringify(bilan.contrastes.parFam) + ' · sous 4,5:1 : ' + bilan.contrastes.faibles.length); bilan.contrastes.faibles.slice(0, 60).forEach(e => console.log('   ' + e));
-  const faute = ko.length + bilan.cibles.recouverts.length + bilan.exceptions.length + bilan.debordements.length + bilan.cibles.petits.length + bilan.contrastes.faibles.length;
+  const faute = ko.length + bilan.textes.couverts.length + bilan.textes.ecrases.length + bilan.cibles.recouverts.length + bilan.exceptions.length + bilan.debordements.length + bilan.cibles.petits.length + bilan.contrastes.faibles.length;
   /* une population vide est un échec, pas un zéro */
-  if (!bilan.vues || (!bilan.cibles.n && APPAREILS.includes('telephone')) || !bilan.contrastes.n) { console.log('⛔ POPULATION VIDE — la sonde n’a rien mesuré'); process.exit(1); }
+  if (!bilan.vues || (!bilan.cibles.n && APPAREILS.includes('telephone')) || !bilan.contrastes.n || !bilan.textes.n) { console.log('⛔ POPULATION VIDE — la sonde n’a rien mesuré'); process.exit(1); }
   console.log('\n' + ok.length + ' ✓  ' + ko.length + ' ✗  (contrôles de parcours) · ' + faute + ' défaut(s) au total');
   process.exit(faute ? 1 : 0);
 }
