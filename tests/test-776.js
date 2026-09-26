@@ -280,8 +280,11 @@ console.log('\n── 776 · 13. « Ma journée », l’écran du technicien, ti
   vrai('… et il se pose juste au-dessus de la barre d’onglets, comme les messages',
     /body\.rf-onglets #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 10px\)!important\}/.test(SRC)
     && /body\.rf-onglets \.toast\{bottom:calc\(var\(--tabh\) \+ 10px\)!important/.test(SRC));
-  vrai('⛔ … et il monte au-dessus du bouton d’OP MESSAGES SEULEMENT quand celui-ci est affiché (:has)',
-    /body\.rf-onglets:has\(#msg-flot\[style\*="flex"\]\) #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 80px\)!important\}/.test(SRC));
+  /* v756 : par une CLASSE que pose le seul écrivain du bouton (renderMsgFlottant) — plus par `:has()` sur son
+     style, qui faisait restyler la page à chaque écriture de style en ligne. test-823 l'exécute. */
+  vrai('⛔ … et il monte au-dessus du bouton d’OP MESSAGES SEULEMENT quand celui-ci est affiché (classe msg-flot-on)',
+    /body\.rf-onglets\.msg-flot-on #fdr-banner\{bottom:calc\(var\(--tabh\) \+ 80px\)!important\}/.test(SRC)
+    && !/:has\(#msg-flot/.test(SRC));
   vrai('la preuve au navigateur existe (en technicien, quatre appareils)', fs.existsSync(path.join(__dirname, '..', 'scratchpad', 'sonde-ma-journee.js'))); }
 
 console.log('\n── 776 · 14. une boîte centrée par « left:50% » se mesure sur la moitié de son cadre ──');

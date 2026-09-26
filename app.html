@@ -4475,16 +4475,15 @@ html[data-refonte] .content{padding-top:10px}
   html[data-refonte] .pf-nav b{white-space:normal;text-align:center;flex:1 1 auto;min-width:0;line-height:1.2}
   html[data-refonte] .pf-row{row-gap:8px!important}
 
-  /* LES LIGNES DE LISTE À AVATAR : sur 390 px, le compteur et les deux boutons de droite
-     laissaient 160 px au nom du client — « Boulangerie / du Marché » sur deux lignes et le
-     téléphone coupé en trois. Le bloc de nom prend toute la largeur restante et ce qui suit
-     descend d'une ligne, aligné sous le nom.
-     La condition « :has(> div > .avatar) » n'est pas une précaution de style : sans elle, la
-     barre de filtres du planning — une carte cliquable elle aussi — recevait le décalage de
-     57 px destiné aux boutons de fin de ligne, et TOUTE la barre partait vers la droite. */
-  html[data-refonte] .content > .card[onclick]:not(.pf-bar):has(> div > .avatar) > div{flex-wrap:wrap;row-gap:10px}
-  html[data-refonte] .content > .card[onclick]:not(.pf-bar):has(> div > .avatar) > div > div[style*="flex:1"]{flex:1 1 calc(100% - 60px)}
-  html[data-refonte] .content > .card[onclick]:not(.pf-bar):has(> div > .avatar) > div > *:not(.avatar):not([style*="flex:1"]){margin-left:57px}
+  /* ⛔⛔ v756 — LES « LIGNES DE LISTE À AVATAR » SONT PARTIES, ET LEURS TROIS RÈGLES AVEC. Elles
+     visaient la liste des clients en cartes cliquables (`.card[onclick] > div > .avatar`), seule
+     structure de ce genre à leur naissance (7 septembre 2026) ; la liste a depuis changé de forme
+     et PLUS AUCUN gabarit ne la produit (recherché dans tout le fichier, et mesuré : 0 élément
+     visé sur 44 écrans, scratchpad/sonde-selecteurs-equivalents.js). Mais leur `:has()`, lui,
+     travaillait toujours : ancré sur chaque carte, avec pour cible ses PETITS-ENFANTS, il faisait
+     restyler ~2 000 éléments sur huit gestes mesurés (scratchpad/perf-has-glouton.js) — pour ne
+     rien peindre. Une règle morte n'est pas gratuite quand elle porte un `:has()`.
+     `tests/test-823.js` refuse leur retour. */
 
   /* L'ÉTAT VIDE tenait la moitié de l'écran avec un émoji au centre pour dire « il n'y a rien ».
      Il dit la même chose en trois fois moins de place, et l'action qui le suit reste au pouce. */
@@ -4653,12 +4652,19 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      10 px de la barre, comme la bulle l'était.
      ⚠️ Un seul bouton peut encore occuper ce coin : celui d'OP MESSAGES (`#msg-flot`, 56 px à
      14 px de la barre), quand l'application rouvrira. Le message et le rappel passent alors
-     au-dessus de lui — SEULEMENT s'il est là (`:has`), pour ne pas rouvrir le trou le reste du
-     temps. Le JavaScript l'allume en écrivant `display:flex` dans son style. */
+     au-dessus de lui — SEULEMENT s'il est là, pour ne pas rouvrir le trou le reste du temps.
+     ⛔⛔ v756 — PAR UNE CLASSE, PLUS PAR `body:has(#msg-flot[style*="flex"])`. Mesuré le 26 septembre
+     2026 (scratchpad/perf-ecriture-style.js, téléphone, processeur ×4) : ce sélecteur faisait
+     réévaluer `:has()` à CHAQUE écriture d'un attribut `style`, n'importe où dans la page — et
+     restyler la page entière. Une seule écriture de style en ligne (la bulle de la barre d'onglets
+     en fait une à chaque mouvement du doigt) coûtait 31,7 ms et 605 éléments restylés ; sans lui,
+     1,4 ms et 69. Et il ne s'appliquait JAMAIS : OP MESSAGES est fermée, le bouton reste caché.
+     `msg-flot-on` est posée par renderMsgFlottant(), le SEUL écrivain de ce style, avec le même
+     booléen : la condition est exactement la même. `tests/test-823.js`. */
   html[data-refonte] body.rf-onglets .toast{bottom:calc(var(--tabh) + 10px)!important;max-width:min(90vw,440px)}
   html[data-refonte] body.rf-onglets #fdr-banner{bottom:calc(var(--tabh) + 10px)!important}
-  html[data-refonte] body.rf-onglets:has(#msg-flot[style*="flex"]) .toast,
-  html[data-refonte] body.rf-onglets:has(#msg-flot[style*="flex"]) #fdr-banner{bottom:calc(var(--tabh) + 80px)!important}
+  html[data-refonte] body.rf-onglets.msg-flot-on .toast,
+  html[data-refonte] body.rf-onglets.msg-flot-on #fdr-banner{bottom:calc(var(--tabh) + 80px)!important}
   /* ⛔⛔ DEUX BOUTONS FLOTTANTS DANS LE MÊME COIN — PUIS LA PILE A COUVERT LE PLANNING.
      Justin, capture à l'appui, 22 septembre 2026 : sur le Planning, « Voir sur la carte »
      cachait la bulle d'assistance — recouverte à 83 % et INATTEIGNABLE (`elementFromPoint` en
@@ -5081,7 +5087,12 @@ html[data-refonte] #mail-list > div[onclick]:active{transform:scale(.99);transit
    de lecture qui n'aura jamais de message à lire — c'est trois fois la place pour zéro
    information. On les retire et on ne garde que la seule chose à faire : brancher une boîte.
    :has() reconnaît cet état sans rien demander à l'application : la carte d'accueil n'est rendue
-   dans #mail-list QUE là (les lignes de message et les états « aucun message » sont des div nus). */
+   dans #mail-list QUE là (les lignes de message et les états « aucun message » sont des div nus).
+   ⛔ v756 — `:has()` SEULEMENT pour les ANCÊTRES de la carte (le volet, les colonnes). Les règles dont
+   la cible est DANS la carte (`#mail-list > .card …`) le portaient aussi, pour rien : viser un élément
+   de la carte, c'est déjà dire que la carte est là. Il leur coûtait cher — la plus lourde visait
+   `.rf-ic`, une icône posée partout, et faisait restyler ~40 éléments de plus à CHAQUE geste, sur
+   tous les écrans (scratchpad/perf-has-glouton.js : −315 au téléphone, −526 au bureau). */
 html[data-refonte] #mail-app:has(#mail-list > .card){
   display:block!important;height:auto!important;min-height:0!important;
   border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
@@ -5091,25 +5102,25 @@ html[data-refonte] #mail-app:has(#mail-list > .card) #mail-mid{
   border:0!important;padding:0!important;overflow:visible!important}
 /* Le champ de recherche part avec eux : il n'y a rien à chercher. */
 html[data-refonte] #mail-app:has(#mail-list > .card) #mail-mid > div:first-child{display:none!important}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card{
+html[data-refonte] #mail-app #mail-list > .card{
   max-width:600px;margin:6px auto 0!important;padding:44px 34px 38px!important;
   background:var(--card)!important;box-shadow:var(--rf-relief)!important;
   border-radius:var(--rf-r-carte)!important}
 /* L'émoji de 50 px posé sur du vide devient le disque de matière des autres états vides. */
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card > div:first-child{
+html[data-refonte] #mail-app #mail-list > .card > div:first-child{
   width:68px;height:68px;margin:0 auto 20px!important;border-radius:21px;
   display:flex;align-items:center;justify-content:center;font-size:27px!important;
   background:var(--rf-2nd);color:var(--t2)}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card > div:first-child .rf-ic{
+html[data-refonte] #mail-app #mail-list > .card > div:first-child .rf-ic{
   width:31px;height:31px;stroke-width:1.5}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card > div:nth-child(2){
+html[data-refonte] #mail-app #mail-list > .card > div:nth-child(2){
   font-size:21px!important;font-weight:700!important;letter-spacing:-.024em;margin-bottom:10px!important}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card p{
+html[data-refonte] #mail-app #mail-list > .card p{
   max-width:44ch;margin-left:auto!important;margin-right:auto!important;
   font-size:14.5px!important;line-height:1.6!important;color:var(--t2)!important}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card p:last-of-type{
+html[data-refonte] #mail-app #mail-list > .card p:last-of-type{
   font-size:12.5px!important;color:var(--t3)!important;margin-top:18px!important}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card .btn{
+html[data-refonte] #mail-app #mail-list > .card .btn{
   min-height:48px;padding:0 26px!important;font-size:15.5px!important;font-weight:650!important}
 
 /* ── UNE SEULE ACTION PRINCIPALE, ET UNE SEULE FOIS ──
@@ -5440,58 +5451,15 @@ html[data-refonte] [onclick^="intSelDay='"][style*="background:var(--acc)"]{
 html[data-refonte] [onclick^="intSelDay='"][style*="var(--acc) 14%"]{
   background:var(--rf-auj)!important;color:var(--acc-txt)!important}
 
-/* ── LA LIGNE DE LISTE ── on la lit debout, sur un chantier : l'HEURE d'abord, le client ensuite.
-   Elle était en dernier, sous l'adresse, au même poids que tout le reste. */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]{
-  padding:15px 17px!important;margin-bottom:0!important;border-left-width:3px!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child{
-  display:flex;flex-direction:column;gap:7px}
-/* l'horaire remonte en tête et prend le poids */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div:last-child{
-  order:-1;font-size:15px!important;margin-bottom:2px!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div:last-child b,
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div:last-child span{
-  font-size:15px!important;font-weight:650!important;color:var(--t1)!important}
-/* le titre cesse d'être vert : une ligne sur deux en accent, ce n'est plus un accent */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div:first-child{
-  color:var(--t1)!important;font-size:15.5px!important;letter-spacing:.005em!important;margin-bottom:0!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div{margin-bottom:0!important}
-/* la colonne de droite : un vrai bouton d'icône, et l'état sous lui */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:last-child{
-  align-items:flex-end!important;gap:8px!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] span[title="Voir au planning"]{
-  width:36px;height:36px;border-radius:50%;background:var(--rf-2nd);color:var(--t2)!important;
-  display:inline-flex;align-items:center;justify-content:center;font-size:0!important;
-  transition:background-color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] span[title="Voir au planning"] .rf-ic{
-  width:19px;height:19px}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] span[title="Voir au planning"]:active{
-  transform:scale(.9);transition-duration:var(--d-0)}
-/* Une suite de cartes cliquables EST une liste : filets entre elles, coins ronds aux extrémités,
-   exactement la grammaire posée pour les autres écrans. */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] + .card[draggable]{
-  border-top:1px solid var(--rf-filet)!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]:has(+ .card[draggable]){
-  border-bottom-left-radius:0!important;border-bottom-right-radius:0!important}
-
-/* ── LA PLACE PERDUE ── en 1400 px et au-delà, les deux tiers bas de l'écran étaient vides
-   pendant que la liste restait sur une colonne étroite. Elle passe à deux colonnes : la page
-   tient sur un écran au lieu de deux, et la largeur sert enfin à quelque chose. */
-@media (min-width:1240px){
-  html[data-refonte] #content:has(> .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]){
-    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;align-content:start}
-  html[data-refonte] #content:has(> .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]) > *:not(.card[draggable]){
-    grid-column:1/-1}
-  /* En deux colonnes, chaque carte redevient une carte : les filets de liste n'ont plus de sens. */
-  html[data-refonte] #content:has(> .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]) > .card[draggable]{
-    border-radius:var(--rf-r-carte)!important;border-top:0!important;margin-bottom:16px!important}
-}
-@media (max-width:1239px){
-  html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]:last-child{margin-bottom:16px!important}
-}
-@media (prefers-reduced-motion: reduce){
-  html[data-refonte] .card[draggable] span[title="Voir au planning"]:active{transform:none!important}
-}
+/* ⛔⛔ v756 — L'ANCIENNE LISTE DES INTERVENTIONS EN CARTES (`.card[draggable]` au style en ligne
+   « padding:15px 16px;margin-bottom:12px ») EST PARTIE, ET SES DIX-SEPT RÈGLES AVEC. La liste est
+   devenue les rangées `.tf-rangee` du thème final ; plus AUCUN gabarit n'écrit ce style en ligne
+   (il ne figurait plus que dans ces règles). Elles ne peignaient donc rien — mais trois d'entre
+   elles portaient `#content:has(> .card[draggable][style*=…])` : un `:has()` qui lit un attribut
+   `style`, réévalué à chaque écriture de style sous #content. Mesuré au bureau le 26 septembre
+   2026 (scratchpad/perf-has-glouton.js, BUREAU=1) : 1 617 éléments restylés en trop sur neuf
+   gestes, la plus coûteuse de toutes les règles de la feuille. `tests/test-823.js` refuse leur
+   retour et, plus largement, tout `:has()` qui lit un attribut `style`. */
 
 /* ══ UNE FENÊTRE PLUS HAUTE QUE L'ÉCRAN RESTE ATTEIGNABLE PAR LE HAUT ══
    openModal(…,'carte') centre la feuille dans le voile. Quand elle dépasse la hauteur de
@@ -14910,7 +14878,11 @@ function msgFlottantOn(){
 }
 function renderMsgFlottant(){
   const b=document.getElementById('msg-flot'); if(!b) return;
-  b.style.display = msgFlottantOn() ? 'flex' : 'none';
+  const on=msgFlottantOn();
+  b.style.display = on ? 'flex' : 'none';
+  /* la place du message et du rappel du matin suit le bouton — par une classe, jamais par
+     `:has()` sur son style (v756, voir la règle `msg-flot-on`) */
+  document.body.classList.toggle('msg-flot-on', on);
 }
 /* ⛔ UN LIBELLÉ TRONQUÉ NE NOMME RIEN. Mesuré au navigateur sur un iPhone de 430 px :
    cinq onglets dans 406 px donnaient « Tablea… », « Interv… », « Planni… » — trois
