@@ -1,5 +1,25 @@
 # Point stable TeamOP
 
+**Version stable : v752** — publiée le 26 septembre 2026, sur la phrase de Justin « Publie ».
+
+v752 — les droits de départ, une seule liste rôle par rôle (Justin : « Fais ta liste »). Ce qu'un
+compte voit au menu dans une entreprise NEUVE, tant que personne n'a rien coché, vient d'une liste
+complète (`defaultPerms`) : cinq rôles (technicien, commercial, compta, DR, chef d'équipe), 42
+rubriques chacun — exactement ce qu'une entreprise neuve recevait en v751, sauf :
+- « Assistant devis » fermé à qui n'a pas « Utiliser Devis IA » d'office : son écran n'était qu'un
+  cadenas ;
+- plus rien ne dépend du téléphone qui fait la reprise : « Devis xylophage » suivait son réglage
+  d'affichage, pour toute l'entreprise.
+Rien ne change pour une entreprise existante (ELAN) : la liste ne se lit que pour une base sans
+table de rôle — `test-820` le rejoue avec deux listes empoisonnées.
+Preuves : suite complète 176 suites · 8 660 vérifications ; `test-820` 53 ✓ (les 210 valeurs
+comparées à la règle d'hier, écarts déclarés), 11/11 mutations ; sonde dans la vraie page 27 ✓
+(la v751 en rate 16) ; `relecteur` — son constat, un banc qui gardait la forme et pas les valeurs,
+corrigé avant publication.
+Aucun changement de format des données : rien à exiger.
+
+## Ancien point
+
 **Version stable : v751** — publiée le 26 septembre 2026 au matin, après la vérification de A à Z.
 
 v751 — ce que la vérification de A à Z de la nuit du 25 au 26 septembre a trouvé (14 familles,

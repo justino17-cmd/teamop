@@ -219,7 +219,12 @@ vrai('⛔ … et l’interrupteur est RELU à l’enregistrement (sinon on coche
   && /avecSousCats\(NAV\.flatMap\(x=>x\.items\)\)\.forEach\(m=>\{ const v=val\('mod_'\+m\.k\); if\(v!==null\) modules\[m\.k\]=v; \}\);/.test(fLire));
 vrai('les libellés (retour, menu de référence) la connaissent aussi',
   /function navLabel\(k\)\{ try\{ const it=avecSousCats\(/.test(SRC) && /function menuLabel\(v\)\{ const it=avecSousCats\(/.test(SRC));
-vrai('le commercial et la comptable restent fermés par défaut', /produitsDonnes:false,\s*$/m.test(SRC.slice(SRC.indexOf('function defaultPerms'), SRC.indexOf('function defaultPerms') + 4000)) || (SRC.match(/saisieConso:false, produitsDonnes:false/g) || []).length === 2);
+/* v752 : la liste de départ est EXÉCUTÉE (la vraie `defaultPerms`), plus lue comme un texte — sa mise en
+   forme a changé (une ligne par groupe du menu), et un motif sur la forme ne garde pas la valeur. */
+const departs = (() => { try { return new Function(bloc('function defaultPerms(){') + '\nreturn defaultPerms();')(); } catch (e) { return null; } })();
+vrai('population : la vraie liste de départ s’exécute et porte les trois rôles', !!(departs && departs.technicien && departs.commercial && departs.compta));
+vrai('le commercial et la comptable restent fermés par défaut', !!departs && departs.commercial.produitsDonnes === false && departs.compta.produitsDonnes === false, departs && [departs.commercial.produitsDonnes, departs.compta.produitsDonnes]);
+vrai('… et le technicien l’a d’office (c’est lui qui donne)', !!departs && departs.technicien.produitsDonnes === true);
 
 console.log('\n── 779 · 9. retirer un écran n’est pas retirer une donnée ──');
 vrai('⛔ produitsDonnes reste une collection synchronisée', /const COLLECTIONS_DONNEES=\[[^\]]*'produitsDonnes'/.test(SRC) && /produitsDonnes: 'liste'/.test(SRC));
