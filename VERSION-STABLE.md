@@ -1,5 +1,30 @@
 # Point stable TeamOP
 
+**Version stable : v756** — publiée le 26 septembre 2026, sur la phrase de Justin « Oui publier ».
+
+v756 — la lenteur, et la photo de profil. Elle porte la v756 restée sur la bêta depuis le matin :
+- la lenteur : des règles `:has()` qui lisaient l'attribut `style` faisaient restyler toute la page à
+  chaque écriture de style (894 éléments, 36,6 ms par écriture → 9 éléments, 2,1 ms). Remplacées par une
+  classe que pose le seul écrivain du bouton ; deux familles mortes retirées ; le démarrage ne relance
+  plus l'animation d'entrée sans raison. Mesuré au calme, processeur ralenti ×4, base façon ELAN :
+  ouvrir une fiche 65 → 33 ms, Tableau de bord 80 → 34, Interventions 39 → 12, Produits 71 → 25,
+  Boxes 75 → 31, Clients 136 → 73, Validations 35 → 10, Historique 89 → 53, Mouvements 58 → 38,
+  Planning 149 → 113 ; les styles à l'ouverture 526 → 205 ms. Inchangés : Factures et Devis (~160 ms),
+  `save()` (~78 ms), le premier écran (~1,4 s) — ceux-là sont l'architecture, décision de Justin ;
+- la photo de profil s'affiche enfin (Paramètres, pied du menu) : `html[data-refonte] .avatar` posait un
+  raccourci `background:…!important`, qui effaçait l'image écrite en ligne — aucune photo n'avait été
+  peinte depuis la refonte. Et elle se recadre : glisser, pincer, curseur de zoom, clavier ; sortie
+  256 × 256 en JPEG.
+Chez ELAN : rien d'effacé, rien d'écrit dans leurs données ; les photos déjà choisies apparaissent (elles
+étaient enregistrées, jamais peintes). Aucun changement de format des données : rien à exiger.
+Preuves : suite complète 180 suites · 8 877 vérifications ; `test-823` 43 ✓ (les `:has()` qui lisent
+`style` refusés, exécuté), `test-824` 67 ✓ (1 000 gestes au hasard, l'image couvre toujours le rond) ;
+style calculé identique avant/après sur 45 écrans ; sonde photo dans la vraie page 34 ✓ (au doigt et au
+pixel), la bêta d'avant en rate 3 ; relecture : un défaut trouvé (recadrage resté ouvert après Échap ou
+un changement d'écran) et corrigé avant publication.
+
+## Ancien point
+
 **Version stable : v755** — publiée le 26 septembre 2026, sur la phrase de Justin (« si c'est à faire tu le fais,
 et après tu publies »).
 
