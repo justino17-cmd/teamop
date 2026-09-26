@@ -381,7 +381,11 @@ const MESURE_ENTETE = `
   const t=document.getElementById('titre-court'); const ot=t?parseFloat(getComputedStyle(t).opacity):0;
   const out={titre:(t&&t.textContent)||'',visible:ot>.5,chevauche:[]};
   if(out.visible){ const rt=t.getBoundingClientRect(); const rg=document.createRange(); rg.selectNodeContents(t);
-    const q=[...rg.getClientRects()].find(z=>z.width>1)||rt;
+    /* ⚠️ un texte coupé en « … » DÉBORDE de sa boîte dans un Range (CLAUDE.md) : on ne compte que ce qui est peint,
+       c'est-à-dire la part du Range qui tombe dans la boîte. Sans ça, un titre de dossier long « touchait » l'avatar
+       alors qu'il s'arrêtait 30 px avant lui (vérifié à l'image, 26 septembre 2026). */
+    const q0=[...rg.getClientRects()].find(z=>z.width>1)||rt;
+    const q={left:Math.max(q0.left,rt.left),right:Math.min(q0.right,rt.right),top:Math.max(q0.top,rt.top),bottom:Math.min(q0.bottom,rt.bottom)};
     for(const e of document.querySelectorAll('.bandeau .hbar *')){ if(e===t||t.contains(e)||e.contains(t)) continue;
       if(![...e.childNodes].some(x=>x.nodeType===3&&x.textContent.trim())) continue;
       let op=1; for(let a=e;a&&a!==document.body;a=a.parentElement){ const c=getComputedStyle(a); if(c.display==='none'||c.visibility==='hidden'){ op=0; break; } op*=parseFloat(c.opacity); }
