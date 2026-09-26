@@ -211,13 +211,21 @@ const emp = (mdp) => sha('teamop-portail:' + mdp);
        et lentement sur une connue dit lesquelles existent, sans qu'un seul mot de passe soit
        juste — et ça se mesure depuis n'importe où avec une boucle. Le module dérive donc même
        quand le compte n'existe pas, sur un sel tiré au hasard. */
-    const mesurer = async (mail) => {
-      const t = [];
-      for (let i = 0; i < 7; i++) t.push((await appel(B, '/api/compte/connexion', { email: mail, h: emp('faux') })).ms);
-      t.sort((a, b) => a - b); return t[3];   // la médiane, insensible à un pic
-    };
-    const connu = await mesurer('justin@exemple.fr');
-    const inconnu = await mesurer('jamais-vu@exemple.fr');
+    /* ⛔ EN ALTERNANCE, PAS L'UNE APRÈS L'AUTRE. Mesurées en deux blocs de 7, une rafale de charge sur la
+       machine de CI tombait sur UN seul bloc et fabriquait l'écart : le 26 septembre 2026, sur `main`, ce
+       contrôle a rendu plus de 40 % pour un commit qui ne changeait que `beta.html` — et 1 à 9 % en local,
+       cinq fois de suite. Les deux adresses alternent donc requête par requête (le bruit frappe les deux),
+       et on compare les médianes. Un serveur qui ne dériverait pas pour l'adresse inconnue rendrait toujours
+       un écart de ~95 % : la mutation le prouve.
+       ⚠️ SEPT tours, pas plus : ce sont des ÉCHECS sur le compte connu, et `ECHECS_MAX` (8) le bloquerait —
+       la section 5 a besoin de lui ouvert (essayé à 15 : cinq contrôles de la section 5 tombaient). */
+    const tc = [], ti = [];
+    for (let i = 0; i < 7; i++) {
+      tc.push((await appel(B, '/api/compte/connexion', { email: 'justin@exemple.fr', h: emp('faux') })).ms);
+      ti.push((await appel(B, '/api/compte/connexion', { email: 'jamais-vu@exemple.fr', h: emp('faux') })).ms);
+    }
+    const mediane = t => t.slice().sort((a, b) => a - b)[t.length >> 1];
+    const connu = mediane(tc), inconnu = mediane(ti);
     /* ⛔ LE TÉMOIN EST LA MÊME ROUTE, SANS DÉRIVATION. Ce contrôle exigeait « plus de 20 ms » :
        un seuil ABSOLU, réglé sur une machine plus lente. Mesuré le 22 septembre 2026 sur le
        conteneur des sessions : PBKDF2 à 120 000 tours y coûte 20 à 21 ms — le banc tombait une
