@@ -208,10 +208,16 @@ let compteurs = new Map();
 setInterval(() => { compteurs = new Map(); }, 60000).unref();
 
 /* Chaque 429 du seau par IP se compte (dates seulement, rien sur l'adresse) : `/health` publie le
-   nombre de la dernière heure. Avant le 26 septembre 2026, un bureau entier refusé ne se voyait nulle part. */
-const refus429 = [];
-function tropDeRequetes(res) {
-  refus429.push(Date.now()); if (refus429.length > 2000) refus429.splice(0, refus429.length - 2000);
+   nombre de la dernière heure. Avant le 26 septembre 2026, un bureau entier refusé ne se voyait nulle part.
+   ⛔ PAR FAMILLE (gardien, contre-vérification de la v751) : compté en un seul tas, n'importe quel robot qui
+   balaie le site (180 requêtes par minute sur n'importe quelle route, ou 25 par minute sur `/api/mdp/lien`)
+   dépassait le seuil et faisait crier la surveillance — le vrai signal, « un bureau entier ne se synchronise
+   plus », était noyé. Seule la famille `synchro` (document d'équipe, socle, photos : les routes qu'un appareil
+   au travail appelle en boucle) porte l'alarme ; les autres sont publiées, lues depuis la Tour, pas criées. */
+const refus429 = { synchro: [], autres: [] };
+function tropDeRequetes(res, famille) {
+  const a = refus429[famille === 'synchro' ? 'synchro' : 'autres'];
+  a.push(Date.now()); if (a.length > 2000) a.splice(0, a.length - 2000);
   res.setHeader('Retry-After', '60');
   return res.status(429).json({ error: 'trop de requêtes' });
 }
@@ -231,7 +237,7 @@ app.use((req, res, next) => {
   if (req.path === '/health') {
     const bat = (compteurs.get('h:' + ip) || 0) + 1;
     compteurs.set('h:' + ip, bat);
-    if (bat > PLAFOND_BATTEMENT) return tropDeRequetes(res);
+    if (bat > PLAFOND_BATTEMENT) return tropDeRequetes(res, 'autres');
     return next();
   }
 
@@ -243,7 +249,7 @@ app.use((req, res, next) => {
   if (opSocle && opSocle.actif && req.path.startsWith('/api/op/')) {
     const d = (compteurs.get('d:' + ip) || 0) + 1;
     compteurs.set('d:' + ip, d);
-    if (d > PLAFOND_DONNEES) return tropDeRequetes(res);
+    if (d > PLAFOND_DONNEES) return tropDeRequetes(res, 'synchro');
     return next();
   }
 
@@ -252,7 +258,7 @@ app.use((req, res, next) => {
   if (documentsMod && /^\/api\/doc\/(lire|ecrire|attendre)\/?$/i.test(req.path)) {
     const dd = (compteurs.get('doc:' + ip) || 0) + 1;
     compteurs.set('doc:' + ip, dd);
-    if (dd > PLAFOND_DOCUMENTS) return tropDeRequetes(res);
+    if (dd > PLAFOND_DOCUMENTS) return tropDeRequetes(res, 'synchro');
     return next();
   }
 
@@ -269,18 +275,18 @@ app.use((req, res, next) => {
   if (pieces && /^\/api\/pieces\/(deposer|lire|supprimer|etat)\/?$/i.test(req.path)) {
     const p2 = (compteurs.get('p:' + ip) || 0) + 1;
     compteurs.set('p:' + ip, p2);
-    if (p2 > PLAFOND_PIECES) return tropDeRequetes(res);
+    if (p2 > PLAFOND_PIECES) return tropDeRequetes(res, 'synchro');
     return next();
   }
 
   const global = (compteurs.get('g:' + ip) || 0) + 1;
   compteurs.set('g:' + ip, global);
-  if (global > PLAFOND_GLOBAL) return tropDeRequetes(res);
+  if (global > PLAFOND_GLOBAL) return tropDeRequetes(res, 'autres');
 
   if (ROUTES_SENSIBLES.test(req.path)) {
     const strict = (compteurs.get('s:' + ip) || 0) + 1;
     compteurs.set('s:' + ip, strict);
-    if (strict > PLAFOND_STRICT) return tropDeRequetes(res);
+    if (strict > PLAFOND_STRICT) return tropDeRequetes(res, 'autres');
   }
 
   next();
@@ -480,7 +486,8 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
   /* Le filet du processus (voir plus haut) : des nombres de la dernière heure, rien sur personne. */
   processus: { rejets1h: incidentsHeure('rejet'), erreurs1h: incidentsHeure('erreur') },
   /* Les 429 du seau par IP dans la dernière heure : un nombre, jamais une adresse. */
-  limites: { refusIp1h: refus429.filter(t => t > Date.now() - 3600000).length },
+  limites: { refusSynchro1h: refus429.synchro.filter(t => t > Date.now() - 3600000).length,
+             refusAutres1h: refus429.autres.filter(t => t > Date.now() - 3600000).length },
   /* L'horloge des 24 mois : tourne-t-elle, son dernier balayage a-t-il réussi, y a-t-il AU
      MOINS une entreprise en préavis, AU MOINS une échue. ⛔⛔ DES BOOLÉENS, PLUS AUCUN NOMBRE
      (24 septembre 2026, relevé par `gardien`) : les comptes — combien ne paient pas, combien de

@@ -94,7 +94,11 @@ const ATTENTES_MAX_TECHNIQUE = 30;     // une équipe de développement, pas une
    la synchro de toute l'entreprise freinée jusqu'à la fin de l'heure (fenêtre fixe). 100 000 couvrent une trentaine
    d'appareils à 2 000 écritures par heure ; la lecture suit l'écriture (une relecture avant chaque envoi) plus les
    reprises. Ce sont des bornes contre un emballement, pas un tarif : le seau PAR IP (index.js) reste la garde
-   contre un tiers. Et chaque refus se COMPTE (`quotaRefus1h`), la surveillance le lit. `tests/test-819.js`. */
+   contre un tiers. Et chaque refus se COMPTE (`quotaRefus1h`), la surveillance le lit. `tests/test-819.js`.
+   ⚠️ Ce qu'ils ne voient plus (gardien) : 100 000 attentes sont hors d'atteinte d'une seule IP (le seau en laisse
+   72 000 par heure, toutes routes du document confondues) — une boucle d'attentes d'un seul bureau sous
+   1 200/min ne produit donc ni refus ni alarme. La boucle d'ÉCRITURE de la v748, elle, reste attrapée (6 000
+   inchangé), et ce qu'une boucle de lecture peut TIRER est borné par version (`corpsOk`, plus bas). */
 const QUOTAS = { l: 20000, e: 6000, a: 100000 };
 const QUOTAS_TECHNIQUE = { l: 1500, e: 2000, a: 5000 };
 /* ⛔ LA COPIE DEPUIS FIREBASE A UN DÉLAI TOTAL — jeton, lecture ET corps. Elle tient le verrou de
@@ -369,9 +373,43 @@ function monterDocuments(app, d) {
      quota d'une entreprise en tapant son identifiant (la règle de `op-socle.js`). Les plafonds
      sont larges : un téléphone qui écoute repose sa question toutes les 25 s, et un bureau
      entier partage une seule adresse IP. */
-  /* un refus de budget se COMPTE : sans lui, une entreprise freinée par son quota ne se voyait nulle part */
-  const budget = (cle, t) => { const ok = quotaOk(quotas, cle + ':' + t, (technique(t) ? QUOTAS_TECHNIQUE : QUOTAS)[cle], 3600000);
-    if (!ok) noter('quota'); return ok; };
+  /* un refus de budget se COMPTE : sans lui, une entreprise freinée par son quota ne se voyait nulle part.
+     ⛔ SAUF SUR UN ESPACE TECHNIQUE (gardien, contre-vérification de la v751) : la bêta passe la porte SANS clé
+     (`porte()` → `technique(t)`), donc un anonyme — ou une simple sonde de l'équipe — épuisait son petit budget en
+     une minute et faisait crier « ⛔ une entreprise ne se synchronise plus » toutes les heures, à volonté. Une équipe
+     de développement freinée n'est pas une entreprise bloquée ; une alarme qu'on peut déclencher exprès finit ignorée.
+     Et le premier refus de chaque fenêtre S'ÉCRIT au journal — l'alarme renvoie à `journalctl`, qui ne disait rien —
+     avec une empreinte courte de l'espace, jamais son identifiant. */
+  const NOM_BUDGET = { l: 'lectures', e: 'écritures', a: 'attentes', c: 'envois d\'une même version' };
+  const refusDits = new Map();   // budget:espace → fin de la fenêtre déjà écrite au journal
+  const direRefus = (cle, t) => {
+    const k = cle + ':' + t, maintenant = Date.now();
+    if ((refusDits.get(k) || 0) > maintenant) return;
+    if (refusDits.size > 5000) refusDits.clear();
+    refusDits.set(k, maintenant + 3600000);
+    console.warn('documents : budget de ' + NOM_BUDGET[cle] + ' épuisé pour l\'espace #'
+      + crypto.createHash('sha256').update(String(t)).digest('hex').slice(0, 8) + ' — refusé jusqu\'à la fin de sa fenêtre d\'une heure');
+  };
+  const budget = (cle, t) => { const tech = technique(t);
+    const ok = quotaOk(quotas, cle + ':' + t, (tech ? QUOTAS_TECHNIQUE : QUOTAS)[cle], 3600000);
+    if (!ok && !tech) { noter('quota'); direRefus(cle, t); } return ok; };
+  /* ⛔ LE MÊME DOCUMENT NE SE SERT PAS SANS FIN (gardien, contre-vérification de la v751). Relever les budgets pour
+     tenir 15 appareils a multiplié par 4,6 ce qu'un détenteur de la clé peut TIRER du serveur : `attendre` avec une
+     version en retard rend le document entier tout de suite (budget d'attentes, 100 000 par heure), `lire` aussi
+     (20 000). Un appareil volé, un ancien salarié tant que la clé n'est pas renouvelée ou une boucle cliente
+     pouvaient servir des centaines de Go par heure (5,5 Mo × 72 000 depuis une seule IP) et saturer le lien du VPS
+     pour TOUTES les entreprises. Ce n'est pas une fuite — il lit déjà ce document — c'est un déni de service.
+     Un appareil n'a besoin de chaque VERSION qu'une fois : on borne les corps servis par (espace, version) et par
+     heure. 2 000, c'est trente appareils qui rouvriraient chacun l'application plus de soixante fois dans l'heure
+     sans que personne n'écrive — hors d'atteinte d'un usage réel. Les réveils poussés à l'écriture (`notifier`) ne
+     comptent pas : ils sont déjà bornés par le budget d'écritures. `tests/test-819.js`. */
+  const CORPS_PAR_VERSION = 2000, CORPS_PAR_VERSION_TECHNIQUE = 300;
+  const corpsServis = new Map();
+  const corpsOk = (t, v) => { const tech = technique(t);
+    if (corpsServis.size > 20000) { const maintenant = Date.now(); for (const [k, q] of corpsServis) if (q.reset < maintenant) corpsServis.delete(k); }
+    if (corpsServis.size > 20000) corpsServis.clear();
+    const ok = quotaOk(corpsServis, t + ':' + v, tech ? CORPS_PAR_VERSION_TECHNIQUE : CORPS_PAR_VERSION, 3600000);
+    if (!ok && !tech) { noter('quota'); direRefus('c', t); } return ok; };
 
   app.post('/api/doc/lire', async (req, res) => {
     const b = req.body || {};
@@ -380,6 +418,7 @@ function monterDocuments(app, d) {
     if (!budget('l', t)) return refuser(res, 429, 'trop de lectures — réessaie plus tard', 'quota');
     try {
       const e = await verrou(t, () => { porteSousVerrou(t, kh); return obtenir(t); });
+      if (e && !corpsOk(t, e.v)) return refuser(res, 429, 'trop de lectures — réessaie plus tard', 'quota');
       if (e) return envoyer(res, corpsDe(t, e));
       res.set('Cache-Control', 'no-store');
       res.json({ v: 0, doc: null });
@@ -438,7 +477,10 @@ function monterDocuments(app, d) {
     let e;
     try { e = charger(t); } catch (x) { return erreurDe(res, x); }
     const v = e ? e.v : 0;
-    if (v > connu) return envoyer(res, corpsDe(t, e));   // déjà en retard : tout de suite
+    if (v > connu) {   // déjà en retard : tout de suite — mais pas sans fin pour une même version
+      if (!corpsOk(t, v)) return refuser(res, 429, 'trop d\'attentes — réessaie plus tard', 'quota');
+      return envoyer(res, corpsDe(t, e));
+    }
     const s = attentes.get(t) || (attentes.set(t, new Set()), attentes.get(t));
     if (s.size >= (technique(t) ? ATTENTES_MAX_TECHNIQUE : ATTENTES_MAX)) return res.json({ v, inchange: true });
     const a = { minuteur: null, rendre: null, envoyer: null };
