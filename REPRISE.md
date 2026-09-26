@@ -105,7 +105,9 @@ format de données ne change, et une entreprise existante ne voit aucune différ
 effet visible est le menu de départ d'une entreprise NEUVE).
 
 🟡 **v754 SUR LA BÊTA SEULEMENT — le 26 septembre 2026, sur la réponse de Justin « Oui un profil neuf tout est
-décoché ».** « ＋ Nouveau profil » part de `profilVierge()` : chaque interrupteur de la grille à NON — menus, droits
+décoché ».** Bêta publiée seule (**`960e6a2`**, `beta.html` seul, comprend la v753), servie en 21 s octet pour
+octet ; contrôles de `main` rejoués avant de pousser : VERT ; CI de `main` verte 3/3. `app.html` reste en v752.
+« ＋ Nouveau profil » part de `profilVierge()` : chaque interrupteur de la grille à NON — menus, droits
 spéciaux, gestes de catégorie. Les cases DÉDUITES ne sont pas posées : elles suivent leurs bases (à non, donc non) et
 continuent de les suivre une fois le profil enregistré. Un profil n'est jamais « soumis » (`valideSoumis`) : sous
 « Toute sortie de stock passe par le DR », « Validations DR » n'y naît plus coché et verrouillé ; la case de
