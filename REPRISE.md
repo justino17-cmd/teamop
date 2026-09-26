@@ -13,67 +13,73 @@ de ligne du tout.
 
 ---
 
-# 🟡 26 SEPTEMBRE 2026, SOIR — CHANTIER LENTEUR (v756, BÊTA) ET THÈME DE LA TOUR — EN COURS
+# ✅ 26 SEPTEMBRE 2026, SOIR — BÊTA v756 PUBLIÉE (LENTEUR + PHOTO DE PROFIL), APERÇU DE LA TOUR v2.66 EN LIGNE
 
-**Justin : « Fait le » (la lenteur sur une grosse base, téléphone lent), puis « thème de la tour à installer aussi,
-tu testes et vérifies » (maquette `tour.zip`, version validée « HIG »).**
+**Justin : « Fait le » (la lenteur sur une grosse base, téléphone lent), « thème de la tour à installer aussi, tu
+testes et vérifies » (maquette `tour.zip`, version validée « HIG »), puis « quand je choisis une photo, j'aimerais
+pouvoir la redimensionner, et elle ne s'affiche pas ici — pourquoi ».**
 
-**Lenteur — la cause principale est TROUVÉE, CORRIGÉE sur la branche (`ece263b`, `3f5d9d1`), pas encore publiée.**
-Mesuré sur la bêta, base « façon ELAN » de 696 Ko passée par les migrations uniques (`scratchpad/perf-chauffer.js`),
-processeur ×4 : le JavaScript d'un écran coûte 20 à 30 ms, le NAVIGATEUR qui recalcule les styles en coûte deux à cinq
-fois plus. Cause, prouvée règle par règle (`scratchpad/perf-has-glouton.js`, téléphone ET bureau) : quelques règles
-`:has()` de la refonte faisaient restyler la page ENTIÈRE à chaque changement.
-- `body.rf-onglets:has(#msg-flot[style*="flex"])` : un `:has()` qui lit un attribut `style` → CHAQUE écriture de style en
-  ligne restylait la page. Mesuré (`perf-ecriture-style.js`) : **894 éléments / 36,6 ms par écriture → 9 éléments /
-  2,1 ms** sur la nouvelle bêta. La bulle de la barre d'onglets écrit un style à chaque mouvement du doigt. La règle
-  ne s'appliquait jamais (OP MESSAGES fermée) → classe `msg-flot-on` posée par `renderMsgFlottant()`.
-- deux familles MORTES (plus aucun gabarit ne les produit, 0 élément sur 44 écrans) dont les `:has()` coûtaient
-  quand même ~2 000 (téléphone) et 1 617 (bureau) restylages : les « lignes de liste à avatar » et l'ancienne liste des
-  interventions en cartes (`.card[draggable]` au style en ligne). Retirées.
-- la carte d'accueil du courrier : `:has()` retiré des sept règles dont la cible est DANS la carte (équivalence exacte).
-- l'entrée dans l'application ne force plus un calcul de page pour relancer une animation absente (`enterApp`).
-Sur huit gestes au téléphone : **8 595 éléments restylés → ~3 100** (plancher sans aucun `:has()` : 2 339).
-Plafond du gain en temps (tous les `:has()` neutralisés, ×4) : fiche d'intervention 61 → 29 ms, tableau de bord 89 → 32,
-box 123 → 24, clients 114 → 61, produits 66 → 21 ms. **Les temps avant/après de la version corrigée restent à mesurer
-machine CALME** (`scratchpad/perf-avant-apres.js`, versions alternées, médianes).
-Preuves déjà faites : `test-823` 43 ✓ (8/8 mutations mordent), `test-776` mis à jour ; contre-épreuve « rien ne change
-à l'écran » (`scratchpad/sonde-styles-identiques.js` : style calculé de CHAQUE élément, ancienne bêta contre nouvelle,
-45 écrans) : au téléphone jour et nuit, 31 256 éléments comparés, seules différences = une fenêtre qui s'ouvre seule à
-un moment différent dans chaque page et l'opacité d'un message en transition (sonde corrigée pour les neutraliser) ;
-passes « bureau » en cours.
-**Ce qui reste, et c'est à Justin de trancher (architecture) :** `save()` coûte ~80 ms par geste à ×4, dont **43 ms pour
-réécrire TOUTE la base** dans le rangement (sérialiser 700 Ko + écriture synchrone) — l'écriture différée ou découpée
-par collection (#50) ; et l'ouverture paie l'analyse d'un fichier de 3,9 Mo — sans commentaires ni espaces il ferait
-**2 756 Ko (−30 %), 719 Ko compressé au lieu de 1 165 (−38 %)** (copie de mesure seulement, `esbuild` hors du dépôt ;
-gain à l'ouverture à mesurer) : c'est une étape de fabrication, que ce dépôt refuse aujourd'hui (#52).
+**Publié et vérifié en ligne :** bêta v756 (`35156f1`, `beta.html` seul, servie octet pour octet, CI de main verte
+2/2) ; aperçu de la Tour v2.66 (`02eea6b`, `apercu/tour.html` seul, servi octet pour octet — teamop.fr/apercu/tour.html).
+**`app.html` reste en v755 et `tour.html` en v2.65 : les deux attendent une phrase de Justin.** Preuves de la
+v756 : suite complète 180 suites · 8 877 vérifications (deux passes) ; relecture `relecteur` : un constat, corrigé.
+
+**Lenteur — la cause principale : des règles `:has()` de la refonte faisaient restyler la page ENTIÈRE** (prouvé
+règle par règle, `scratchpad/perf-has-glouton.js`, téléphone ET bureau) :
+- `body.rf-onglets:has(#msg-flot[style*="flex"])`, un `:has()` qui lit un attribut `style` : chaque écriture de style
+  en ligne restylait la page — **894 éléments / 36,6 ms par écriture → 9 / 2,1 ms** (la bulle de la barre d'onglets
+  écrit un style à chaque mouvement du doigt). Remplacé par la classe `msg-flot-on` de `renderMsgFlottant()` ;
+- deux familles MORTES (0 élément visé sur 44 écrans) retirées ; sept règles du courrier sans `:has()` ; `enterApp`
+  ne force plus un calcul de page pour rien. Sur huit gestes au téléphone : **8 595 éléments restylés → ~3 100**.
+- **Temps mesurés au calme** (`scratchpad/perf-avant-apres.js`, 3 + 3 passages alternés, processeur ×4, base « façon
+  ELAN » de 696 Ko chauffée) : ouvrir une intervention 65 → 33 ms (−49 %), tableau de bord 80 → 34 (−57 %),
+  Interventions 39 → 12, Produits 71 → 25, Box 75 → 31, Clients 136 → 73, Validations 35 → 10, Historique 89 → 53,
+  Mouvements 58 → 38, Planning 149 → 113 ; styles pendant l'ouverture 526 → 205 ms (−61 %). **Inchangés** : Factures et
+  Devis (~160 ms, c'est leur JavaScript), `save()` (~78 ms) et le premier écran (~1,4 s, dans le bruit).
+- Contre-épreuve « rien ne change à l'écran » : style calculé de CHAQUE élément, ancienne bêta contre nouvelle,
+  45 écrans × 4 passes (390/1280, jour/nuit) : 0 différence. `test-823` 43 ✓ (8/8 mutations).
+**❓ Ce qui reste est de l'ARCHITECTURE, à Justin de trancher :**
+- `save()` : ~78 ms par geste à ×4, dont **43 ms pour réécrire TOUTE la base** (sérialiser 700 Ko + écriture
+  synchrone) → écriture différée ou découpée par collection (#50) ;
+- l'ouverture paie l'analyse d'un fichier de 3,9 Mo. Une copie SANS commentaires ni espaces (mesure seulement,
+  `esbuild` hors du dépôt) : **2,8 Mo (−30 %), 737 Ko compressé au lieu de 1 194 (−38 % à télécharger)**, et l'ouverture
+  **1 422 → 1 251 ms à ×4 (−12 %)**. C'est une étape de fabrication, que ce dépôt refuse aujourd'hui (« ce qui est écrit
+  est ce qui est servi ») (#52).
 ⚠️ L'empreinte accélérée de `recEmpreinte` a été ÉPROUVÉE puis abandonnée : exacte (0 différence sur 200 000 cas),
 mais aucun gain mesurable — le découpage de chaînes coûte autant que le filtre qu'il évite.
 
-**Photo de profil (v756, bêta) — elle s'affiche enfin, et elle se recadre.** Justin, capture à l'appui : « quand je
-choisis une photo, j'aimerais pouvoir la redimensionner, et elle ne s'affiche pas ici — pourquoi ? ». Pourquoi :
+**Photo de profil — elle s'affiche enfin, et elle se recadre.** Pourquoi elle ne s'affichait pas :
 `html[data-refonte] .avatar{background:…!important}` — le raccourci effaçait l'image posée en ligne ; aucune photo de
 profil n'était peinte depuis la refonte (Paramètres, pied du menu), alors qu'elles étaient enregistrées et
-synchronisées. Corrigé (`background-color` seul) ; le recadrage est ajouté (glisser, pincer, curseur, molette,
-clavier ; le rond montre ce que verra l'équipe ; 256 px enregistrés comme avant). Preuves : `test-824` 57 ✓
-(14/14 mutations mordent), `scratchpad/sonde-photo-profil.js` 31 ✓ au doigt et au pixel (contre-épreuve sur la bêta
-d'avant : disque lilas, style `none`), contre-épreuve du style calculé sur 45 écrans × 2 : 0 différence ailleurs.
-⚠️ **ELAN a le même défaut en production (v755)** — ce n'est pas « quelqu'un ne peut pas travailler » : ça attend la
-phrase de Justin, avec le reste de la v756.
+synchronisées. Corrigé (`background-color` seul) ; recadrage ajouté (glisser, pincer, curseur, molette, clavier ; le
+rond montre ce que verra l'équipe ; 256 px enregistrés comme avant ; Échap, retour et navigation l'oublient).
+Preuves : `test-824` 67 ✓ (14/14 puis 3/3 mutations), `scratchpad/sonde-photo-profil.js` 34 ✓ au doigt et au pixel
+(la bêta d'avant : disque lilas, style `none`), 0 différence de style ailleurs.
+⚠️ **ELAN a le même défaut en production (v755)** — pas « quelqu'un ne peut pas travailler » : ça attend la phrase de
+Justin, avec le reste de la v756.
 ❓ **Décision de Justin** : les pastilles des techniciens (planning, fiche technicien) portent leur couleur EN LIGNE,
 et la même règle la remplace par la teinte depuis la refonte (mesuré : `#E0524D` écrit en ligne sort gris-bleu). Le
 commentaire promettait l'inverse ; il est corrigé, le comportement NON — rendre la couleur du technicien changerait
-l'écran du planning (et le contraste de l'encre blanche sur une couleur claire), c'est à lui de dire s'il la veut.
+l'écran du planning (et le contraste de l'encre blanche sur une couleur claire).
 
-Relecture (`relecteur`) de la v756 : un seul constat, corrigé (`closeModal` oublie le recadrage : Échap, retour et
-navigation le laissaient tenu ; `test-824` 67 ✓, 3/3 mutations, sonde 34 ✓). Et une trouvaille ANTÉRIEURE, hors v756 :
-**`compteJour()` est morte** — elle cherche `#content > .card[draggable]`, or la liste du jour s'écrit en `.tf-rangee`
-depuis le thème final ; le repère « N affichées ce jour · M à d'autres dates » (et `regrouperJour`) ne paraît plus. À
-mesurer sur la bêta puis rebrancher ou retirer (si ça change l'écran : à Justin).
+**Thème de la Tour v2.66 (« TeamOp Tour HIG ») — intégré sur la branche, en APERÇU.** Fait par l'agent `concepteur`
+en copie isolée, relu et intégré (`f747521`…`20279de`, plus `4cb6316` : l'explication de « Tout remettre à zéro » passe
+sous le bouton au téléphone). Logique inchangée : 69 routes appelées, les mêmes ; aucune vue, aucun bouton, aucune
+action retirés ; seuls le bouton de mode et son gestionnaire disparaissent (le mode suit le système, en direct).
+Preuves : `scratchpad/sonde-tour-theme.js` (API simulée, SwiftShader) — 20 vues × jour/nuit × bureau/téléphone :
+0 exception, 0 débordement, 802 cibles ≥ 44 px, 2 270 textes au pixel ≥ 4,5:1, 25 contrôles de parcours ; les 21 bancs
+qui lisent `tour.html` : 892 ✓. Écarts CHOISIS à la maquette, mesurés : bleu et rouge système assombris (le blanc
+dessus tombait à 4,0 et 3,6:1), gris secondaire à .78, encres d'état de nuit éclaircies, barre d'onglets de nuit en
+marine dense, bascule menu/onglets à 900 px (le JavaScript raisonne à 900), un seul accent bleu pour les deux consoles,
+pas d'écran « Réglages » (la Tour n'en a pas), « Bêta » reste dans « Comptes & accès » avec la version publique.
+Non prouvé : un vrai appareil (SF Pro absent du conteneur) et l'accord du JSON simulé avec le vrai serveur — c'est
+ce que l'aperçu sert à voir. La maquette est dans le bloc-notes de la session, PAS dans le dépôt (exemples qui
+ressemblent à de vraies données). Pour remplacer `tour.html` : sa phrase, puis publier `tour.html` seul.
 
-**Thème de la Tour : confié à l'agent `concepteur`, en copie de travail isolée** (tour.html seul + bancs + une sonde
-qui simule l'API). À relire, rejouer, fusionner, puis aperçu `apercu/tour.html` pour que Justin teste avant de
-remplacer `tour.html`. La maquette est dans le bloc-notes de la session, PAS dans le dépôt : elle contient des
-exemples qui ressemblent à de vraies données (« ELAN », « elan-34oc »).
+**Trouvé en passant, ANTÉRIEUR à la v756 :** `compteJour()` est morte — elle cherche `#content > .card[draggable]`,
+or la liste du jour s'écrit en `.tf-rangee` depuis le thème final ; le repère « N affichées ce jour · M à d'autres
+dates » (et `regrouperJour`) ne paraît plus. À mesurer sur la bêta puis rebrancher ou retirer (si ça change l'écran :
+à Justin). Et le champ « Espace » de l'écran Données de la Tour a pour exemple l'identifiant d'espace réel d'ELAN.
 
 ---
 
