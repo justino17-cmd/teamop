@@ -121,6 +121,8 @@ déclaration), bancs serveur 40 suites · 2 345 ✓.
 
 **Restent — non corrigés, dits à Justin :**
 - ✅ **FAIT sur la bêta v752 — les droits de départ, UNE liste (Justin, 26 septembre : « Fais ta liste »).**
+  **Bêta publiée** (`569e033`, beta.html seule, le 26 à 10 h 33 UTC) : servie en 26 s, octet pour octet celle de
+  la branche ; CI de `main` verte (Vérifications, Vérification des pages) ; `app.html` reste en v751, `sw.js` en v951.
   `defaultPerms()` est désormais COMPLÈTE : cinq rôles (technicien, commercial, compta, DR, chef d'équipe) × 42
   rubriques (le menu + « Produits donnés »), une ligne par groupe du menu. Valeurs = exactement ce qu'une entreprise
   neuve recevait en v751 (mesuré avec les vraies fonctions, `node scratchpad/droits-defaut.js beta.html`), sauf :
