@@ -104,8 +104,16 @@ for (const f of ['app.html', 'beta.html']) {
     vrai('   … l’orange « à répartir » prend l’encre SOMBRE (le blanc y tombait à 2,16)', encreSur('#E8A33D') === '#12202F');
     vrai('   … un vert profond garde le blanc', encreSur('#1E7A4E') === '#FFFFFF');
   }
+  /* v757 : la case prend la couleur de la personne de la LIGNE (une intervention partagée est dans la ligne de
+     chacun, test-825) — l'encre suit toujours la couleur posée, c'est ce que ce contrôle garde.
+     ⛔ LES DEUX ÉCRITURES SONT ACCEPTÉES, ET C'EST VOULU : `main` porte à la fois la production (app.html,
+     v757 : `planCardColor(i)`) et la bêta publiée (beta.html, v758 : `planCouleurDans(i,p.id)`). Le banc de
+     main n'exigeait que l'ancienne et la publication de la bêta v758 l'a fait tomber (CI du 26 septembre
+     2026, 4cf4cb7) ; celui de la branche n'exigeait que la nouvelle et serait tombé sur app.html de main.
+     La propriété gardée est la même dans les deux : l'encre est calculée sur LA couleur posée. Quand la
+     production aura rejoint la v758, la première alternative pourra partir. */
   vrai('⛔ les cases du planning général posent leur encre (--ci) à côté de leur couleur',
-    /const cc=planCardColor\(i\); cel\+=`<div class="pg-pt \$\{dense\?'mini':''\}" style="--cc:\$\{cc\};--ci:\$\{encreSur\(cc\)\}"/.test(SRC)
+    /const cc=(?:planCardColor\(i\)|planCouleurDans\(i,p\.id\), pa=planBoutAutres\(i,p\.id\)); cel\+=`<div class="pg-pt [^"`]*" style="--cc:\$\{cc\};--ci:\$\{encreSur\(cc\)\}/.test(SRC)
     && /\.pg-pt\{[^}]*color:var\(--ci,#fff\);/.test(SRC));
   vrai('⛔ les numéros de tournée aussi, « à répartir » compris',
     /<span class="pn" style="background:\$\{techColor\(t\.id\)\};color:\$\{encreSur\(techColor\(t\.id\)\)\}">/.test(SRC));
