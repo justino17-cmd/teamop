@@ -64,6 +64,12 @@ et la même règle la remplace par la teinte depuis la refonte (mesuré : `#E052
 commentaire promettait l'inverse ; il est corrigé, le comportement NON — rendre la couleur du technicien changerait
 l'écran du planning (et le contraste de l'encre blanche sur une couleur claire), c'est à lui de dire s'il la veut.
 
+Relecture (`relecteur`) de la v756 : un seul constat, corrigé (`closeModal` oublie le recadrage : Échap, retour et
+navigation le laissaient tenu ; `test-824` 67 ✓, 3/3 mutations, sonde 34 ✓). Et une trouvaille ANTÉRIEURE, hors v756 :
+**`compteJour()` est morte** — elle cherche `#content > .card[draggable]`, or la liste du jour s'écrit en `.tf-rangee`
+depuis le thème final ; le repère « N affichées ce jour · M à d'autres dates » (et `regrouperJour`) ne paraît plus. À
+mesurer sur la bêta puis rebrancher ou retirer (si ça change l'écran : à Justin).
+
 **Thème de la Tour : confié à l'agent `concepteur`, en copie de travail isolée** (tour.html seul + bancs + une sonde
 qui simule l'API). À relire, rejouer, fusionner, puis aperçu `apercu/tour.html` pour que Justin teste avant de
 remplacer `tour.html`. La maquette est dans le bloc-notes de la session, PAS dans le dépôt : elle contient des
