@@ -18,12 +18,15 @@ console.log('\n── 814 · la Tour : les gestes du jour J (sortie de Firebase)
 const i = TOUR.indexOf('var SFB={'), j = TOUR.indexOf('function vueSurveillance(){');
 const src = (i > 0 && j > i) ? TOUR.slice(i, j) : '';
 vrai('le bloc s\'extrait de la page, entier', src.length > 2000 && /function blocSortieFirebase\(\)/.test(src));
+/* v2.68 — le bloc accorde ses nombres par nMot() (tour.html, à côté d'esc) : le bac à sable la reçoit, lue dans la page */
+const k = TOUR.indexOf('\nfunction nMot('), NMOT = k > 0 ? TOUR.slice(k + 1, TOUR.indexOf('\n', k + 1)) : '';
+vrai('   l\'assistant des accords s\'extrait aussi', /^function nMot\(n,un,plusieurs\)\{/.test(NMOT));
 vrai('⛔ il est affiché sous les versions, dans la surveillance d\'OP GESTION', /\(APP==='gestion'\?blocVersions\(\)\+blocSortieFirebase\(\):''\)/.test(TOUR));
 
 function monter(env) {
   const appels = [];
   const f = new Function('MYROLE', 'API', 'VER', 'fetch', 'apiPost', 'confirm', 'msgErreur', 'squelListe', 'esc', 'journal',
-    'var TAB="surveillance"; function render(){ journal.rendus++; }\n' + src +
+    'var TAB="surveillance"; function render(){ journal.rendus++; }\n' + NMOT + '\n' + src +
     '\nreturn { bloc: blocSortieFirebase, importer: sfbImporter, inventaire: sfbInventaire, charger: chargerSortieFirebase, etat: function(){ return SFB; } };');
   const journal = { rendus: 0 };
   const api = f(env.role || 'patron', 'https://api.banc', env.ver || { d: { minFirestore: 0 } },
@@ -60,7 +63,7 @@ const reponses = {
 
     await m.api.importer(null); await attendre();
     const h2 = m.api.bloc();
-    vrai('⛔ la reprise du portail passe par la vraie route, et son résultat s\'affiche', m.appels.indexOf('POST /api/monitor/portail/importer') >= 0 && /3 dossier\(s\) repris/.test(h2) && /1 compte\(s\) jamais vérifié\(s\) remis à poser/.test(h2));
+    vrai('⛔ la reprise du portail passe par la vraie route, et son résultat s\'affiche', m.appels.indexOf('POST /api/monitor/portail/importer') >= 0 && /3 dossiers repris/.test(h2) && /1 compte jamais vérifié remis à poser/.test(h2) && /2 comptes à poser/.test(h2));
   }
   {
     const m = monter({ sante: santeBase, reponses, ver: { d: { minFirestore: 748 } } });

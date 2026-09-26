@@ -2787,7 +2787,6 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
         16 px plus loin (plus le filet de 1 px de la liste) — le titre les suit. */
 @media(max-width:899px){ .mail-rows .reg-tete{padding-left:17px} }
 
-
 /* 16 · « En un coup d'œil » : le filet entre deux lignes partait 4 px AVANT leur texte (12 contre 16). */
 .ac-aside .reg-bloc>.reg-l+.reg-l::before{left:16px}
 </style>
@@ -2993,6 +2992,10 @@ function poserApps(liste){
 var INJOIGNABLE='Serveur injoignable — nouvelle tentative dans un instant.';
 
 function $(i){ return document.getElementById(i); }
+/* v2.68 — un nombre et son mot, accordés : « 1 problème », « 3 problèmes », et « 0 problème » (zéro et un
+   sont au singulier). La console écrivait « problème(s) classé(s) » : un outil qu'on veut propre ne fait
+   pas lire la grammaire au patron. test-830 refuse tout « (s) » écrit dans une chaîne. */
+function nMot(n,un,plusieurs){ n=+n||0; return n+' '+(n>1?plusieurs:un); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 /* jsq sert UNIQUEMENT à poser une valeur dans une chaîne JavaScript écrite à l'intérieur d'un
    attribut HTML (onclick="…('ICI')"). Elle n'échappait que l'antislash et l'apostrophe : un
@@ -3928,8 +3931,8 @@ function incToutIgnorer(){
   if(!confirm('Remettre Surveillance à zéro ?\n\n'+n+(n>1?' problèmes passent':' problème passe')+' en « ignoré »'+(deux?', dans les deux consoles (OP GESTION et OP MESSAGES)':'')+'. Rien n’est effacé — ils restent consultables, et un problème qui se reproduit reviendra de lui-même en « nouveau ». Aucun courriel n’est envoyé aux clients.')) return;
   apiPost('/api/monitor/issues/tout-ignorer',{}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
-    toast((r.d.classes||0)+' problème(s) classé(s)');
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a remis Surveillance à zéro ('+(r.d.classes||0)+' problème(s))'});
+    toast(nMot(r.d.classes,'problème classé','problèmes classés'));
+    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a remis Surveillance à zéro ('+nMot(r.d.classes,'problème','problèmes')+')'});
     chargerIncidents();
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -5113,7 +5116,7 @@ function tourRetirerEntreprise(email){
         /* Même raison qu'à la suspension : une coupure ratée laisse les appareils déjà
            connectés lire ET repousser la base qu'on vient d'effacer. Ça ne se tait pas. */
         var _cp=(r2.d.coupure===false)?' · ⚠️ SESSIONS NON COUPÉES ('+((r2.d.coupureMotif)||'raison inconnue')+')':' · sessions coupées ✔';
-        toast('🗑 Entreprise fermée — données effacées ('+(r2.d.donneesEffacees||0)+'/'+(r2.d.espaces||0)+' espace(s))'+((r2.d.compteSite&&r2.d.compteSite.fait)?' · compte du site supprimé ✔':' · compte du site : '+((r2.d.compteSite&&r2.d.compteSite.motif)||'—'))+_cp, r2.d.coupure===false?8000:0);
+        toast('🗑 Entreprise fermée — données effacées ('+(r2.d.donneesEffacees||0)+'/'+nMot(r2.d.espaces,'espace','espaces')+')'+((r2.d.compteSite&&r2.d.compteSite.fait)?' · compte du site supprimé ✔':' · compte du site : '+((r2.d.compteSite&&r2.d.compteSite.motif)||'—'))+_cp, r2.d.coupure===false?8000:0);
         CLI.sel=null; chargerClients(); }
       else toast((r2&&r2.d&&r2.d.error)||'Code refusé');
     }).catch(function(){ toast('Serveur injoignable'); });
@@ -5774,8 +5777,8 @@ function blocSortieFirebase(){
       '<button class="btn-plein" onclick="sfbImporter(this)"'+(dos.actif?'':' disabled')+'>Reprendre les dossiers du portail</button>'+
       '<button class="btn-fant" onclick="sfbInventaire(this)"'+(doc.actif&&ok748?'':' disabled')+'>Faire l’inventaire (avant d’éteindre Google)</button>'+
     '</div>'+
-    ligne('Reprise du portail', SFB.imp, function(r){ return (r.repris||0)+' dossier(s) repris, '+(r.ignores||0)+' déjà là, '+(r.comptesPrepares||0)+' compte(s) à poser'+(r.comptesRemis?', '+r.comptesRemis+' compte(s) jamais vérifié(s) remis à poser':'')+(r.sansAdresse?', '+r.sansAdresse+' sans adresse':'')+(r.champsRefuses?' · '+r.champsRefuses+' champ(s) trop gros écarté(s)':''); })+
-    ligne('Inventaire', SFB.inv, function(r){ return (r.complet?'<b>complet</b>':'<b style="color:var(--redText)">incomplet</b>')+' — '+(r.entreprises||0)+' entreprise(s) : '+(r.documents||0)+' document(s), '+(r.absents||0)+' absente(s) de Google, '+(r.ignores||0)+' fermée(s)'+(r.echecs?', <b>'+r.echecs+' échec(s)</b>':''); });
+    ligne('Reprise du portail', SFB.imp, function(r){ return nMot(r.repris,'dossier repris','dossiers repris')+', '+(r.ignores||0)+' déjà là, '+nMot(r.comptesPrepares,'compte à poser','comptes à poser')+(r.comptesRemis?', '+nMot(r.comptesRemis,'compte jamais vérifié remis à poser','comptes jamais vérifiés remis à poser'):'')+(r.sansAdresse?', '+r.sansAdresse+' sans adresse':'')+(r.champsRefuses?' · '+nMot(r.champsRefuses,'champ trop gros écarté','champs trop gros écartés'):''); })+
+    ligne('Inventaire', SFB.inv, function(r){ return (r.complet?'<b>complet</b>':'<b style="color:var(--redText)">incomplet</b>')+' — '+nMot(r.entreprises,'entreprise','entreprises')+' : '+nMot(r.documents,'document','documents')+', '+nMot(r.absents,'absente de Google','absentes de Google')+', '+nMot(r.ignores,'fermée','fermées')+(r.echecs?', <b>'+nMot(r.echecs,'échec','échecs')+'</b>':''); });
 }
 function vueSurveillance(){
   if(!INC.loaded) return enTete('Surveillance',SURV_DESC)+acSquel();
@@ -5794,7 +5797,7 @@ function vueSurveillance(){
   for(var k=6;k>=0;k--){ var d0=new Date(); d0.setHours(0,0,0,0); d0.setDate(d0.getDate()-k); var t0=d0.getTime();
     var n=incDeLaConsole().filter(function(i){ return (i.lastTs||0)>=t0&&(i.lastTs||0)<t0+86400000; }).length;
     j7.push(n); if(n>max)max=n; }
-  var bars=j7.map(function(n){ return '<i style="height:'+Math.max(10,Math.round(n/max*100))+'%'+(n?'':';opacity:.18')+'" title="'+n+' incident(s)"></i>'; }).join('');
+  var bars=j7.map(function(n){ return '<i style="height:'+Math.max(10,Math.round(n/max*100))+'%'+(n?'':';opacity:.18')+'" title="'+nMot(n,'incident','incidents')+'"></i>'; }).join('');
   var st=INC.f.statut;
   var kpi=function(filtre,nb,coul,titre,sous){
     return '<div class="kpi clic'+(st===filtre?' sel':'')+'" onclick="incF(\'statut\',\''+filtre+'\')">'+
@@ -6109,7 +6112,7 @@ function vueIncident(i){
       var app=[q.appareil,q.os,q.nav].filter(Boolean).join(' · ');
       var nSuite=x.suiteTotal||(x.suite||[]).length;
       var suite=nSuite
-        ? '<div style="font-size:12px;color:var(--amber);margin-top:4px">↳ '+nSuite+' échec(s) de connexion dans l’heure qui a suivi</div>' : '';
+        ? '<div style="font-size:12px;color:var(--amber);margin-top:4px">↳ '+nMot(nSuite,'échec de connexion','échecs de connexion')+' dans l’heure qui a suivi</div>' : '';
       return '<div style="padding:9px 0;border-top:1px solid var(--hairline)">'+t1+
         '<div style="font-size:13px;margin-top:3px">'+esc(q.nom||q.login||'—')+
           (q.login&&q.nom?'<span style="color:var(--muted)"> · '+esc(q.login)+'</span>':'')+
@@ -6125,7 +6128,7 @@ function vueIncident(i){
        entreprises touchées » là où il y en avait soixante. */
     var reste=(cx.total||0)-(cx.rendues||0);
     quiHtml=(lignes||'<div style="font-size:13px;color:var(--muted);padding-top:6px">Aucune entreprise rattachée à un journal de connexion pour ce problème.</div>')
-      +(reste>0?'<div style="font-size:12px;color:var(--muted);padding-top:9px;border-top:1px solid var(--hairline);margin-top:2px">'+reste+' autre(s) entreprise(s) touchée(s) — non croisées ici, la recherche s’arrête à '+(cx.rendues||0)+'.</div>':'');
+      +(reste>0?'<div style="font-size:12px;color:var(--muted);padding-top:9px;border-top:1px solid var(--hairline);margin-top:2px">'+nMot(reste,'autre entreprise touchée','autres entreprises touchées')+' — non croisée'+(reste>1?'s':'')+' ici, la recherche s’arrête à '+(cx.rendues||0)+'.</div>':'');
   }
 
   var ents=(i.entreprises||[]);
@@ -6190,7 +6193,7 @@ function vueIncident(i){
         '<button type="button" class="pill-act" onclick="incCause(\''+jsq(i.id)+'\')">🔎 '+(i.explication?'Refaire la recherche de cause':'Chercher la cause')+'</button>'+
         (i.explication&&i.explication.codeLu&&MYROLE==='patron'?'<button type="button" class="pill-act" onclick="incProposer(\''+jsq(i.id)+'\')">🛠 '+(i.proposition?'Refaire la proposition':'Proposer une correction')+'</button>':'')+
         '<button type="button" class="pill-act" onclick="incCopier(\''+jsq(i.id)+'\')">📋 Copier le dossier complet</button></div>'+
-      (st!=='corrige'&&nbMail?'<div class="note">« Marquer corrigé » enverra automatiquement l’e-mail « Votre application a été améliorée ✅ » aux '+nbMail+' entreprise(s) touchée(s) ayant un e-mail.</div>':'')+
+      (st!=='corrige'&&nbMail?'<div class="note">« Marquer corrigé » enverra automatiquement l’e-mail « Votre application a été améliorée ✅ » '+(nbMail>1?'aux '+nbMail+' entreprises touchées':'à l’entreprise touchée')+' ayant un e-mail.</div>':'')+
     '</div>'+
     incCarteCause(i)+
     incCarteProposition(i)+
@@ -6256,7 +6259,7 @@ function incCarteProposition(i){
     (p.verifier?'<div class="inc-verif"><b>À vérifier :</b> '+esc(p.verifier)+'</div>':'')+
     '<div class="inc-cta"><a class="btn-plein" href="'+esc(p.url||'#')+'" target="_blank" rel="noopener">Ouvrir la proposition #'+esc(String(p.numero||''))+' sur GitHub</a></div>'+
     '<div class="inc-pied">'+
-      'Fichier(s) : '+esc((p.fichiers||[]).join(', ')||'?')+' · proposée par '+esc(p.par||'?')+' le '+fmtDateLong(p.ts)+'<br>'+
+      ((p.fichiers||[]).length>1?'Fichiers':'Fichier')+' : '+esc((p.fichiers||[]).join(', ')||'?')+' · proposée par '+esc(p.par||'?')+' le '+fmtDateLong(p.ts)+'<br>'+
       'Elle n’est pas fusionnée, et rien dans le serveur ne peut la fusionner. Le correctif a été vérifié <b>analysable</b>, pas vérifié <b>juste</b> — personne n’a fait tourner l’application avec.</div>'+
     '</div>';
 }
@@ -6283,7 +6286,7 @@ function incStatut(id,st,note){
     setBdg('bdg-surv',incOuverts().length);
     renderNav('fondu');
     var n=(x.d.mails||0)+(x.d.mailsSimules||0);
-    toast(st==='corrige'?('\u2713 Corrig\u00e9'+(n?' \u2014 '+n+' e-mail(s) client(s)':'')):(note?'\ud83d\udcdd Note enregistr\u00e9e':'Dossier #'+String(id).slice(-6)+' \u2192 '+ST_L[st]));
+    toast(st==='corrige'?('\u2713 Corrig\u00e9'+(n?' \u2014 '+nMot(n,'e-mail client','e-mails clients'):'')):(note?'\ud83d\udcdd Note enregistr\u00e9e':'Dossier #'+String(id).slice(-6)+' \u2192 '+ST_L[st]));
     chargerIncidents();
   });
 }
@@ -6303,7 +6306,7 @@ function incCopier(id){
   d.push('TYPE        : '+(TYPE_L[i.type]||i.type||'\u2014')+' \u00b7 gravit\u00e9 '+GRAV_L[gravite(i)]);
   d.push('MESSAGE     : '+(i.message||''));
   if(i.src) d.push('FICHIER     : '+i.src+(i.line?' ligne '+i.line:''));
-  d.push('FR\u00c9QUENCE   : '+(i.count||0)+' occurrence(s) \u00b7 premi\u00e8re fois '+fmtDate(i.firstTs)+' \u00b7 derni\u00e8re fois '+fmtDate(i.lastTs));
+  d.push('FR\u00c9QUENCE   : '+nMot(i.count,'occurrence','occurrences')+' \u00b7 premi\u00e8re fois '+fmtDate(i.firstTs)+' \u00b7 derni\u00e8re fois '+fmtDate(i.lastTs));
   var ap=Object.keys(i.appareils||{}).map(function(k){ return k+' ('+i.appareils[k]+'\u00d7)'; }).join(' \u00b7 ');
   if(ap) d.push('APPAREILS   : '+ap);
   if((i.entreprises||[]).length){ d.push(''); d.push('ENTREPRISES TOUCH\u00c9ES :');
@@ -6724,7 +6727,7 @@ function supGroupe(titre,n,sous,opt,bloc,lignes,pied){
 function supLigne(o){
   var sig=[],reste=0;
   var push=function(h){ if(sig.length<2) sig.push(h); else reste++; };
-  if(o.pieces) push('<span class="sup-sig" title="'+o.pieces+' pièce(s) jointe(s)">📎 '+o.pieces+'</span>');
+  if(o.pieces) push('<span class="sup-sig" title="'+nMot(o.pieces,'pièce jointe','pièces jointes')+'">📎 '+o.pieces+'</span>');
   if(o.marque) push('<span class="sup-sig" title="Marqué">⚑</span>');
   if(o.repondu) push('<span class="sup-sig" title="Une réponse est partie">↩</span>');
   if(reste) sig.push('<span class="reg-plus">+'+reste+'</span>');
@@ -7162,8 +7165,8 @@ function cliCopierAdresses(btn){
   var txt=l.join('\n');
   var fini=function(){ if(btn){ var t=btn.textContent; btn.textContent='✅ '+l.length+' adresses copiées'; setTimeout(function(){ btn.textContent=t; },2200); } };
   try{
-    navigator.clipboard.writeText(txt).then(fini,function(){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+l.length+' adresse(s)</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); });
-  }catch(e){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+l.length+' adresse(s)</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); }
+    navigator.clipboard.writeText(txt).then(fini,function(){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+nMot(l.length,'adresse','adresses')+'</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); });
+  }catch(e){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+nMot(l.length,'adresse','adresses')+'</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); }
 }
 function vueEntreprises(){
   var st=ENT.stats||{};
@@ -7263,7 +7266,7 @@ function vueEntreprises(){
     /* Au plus deux pastilles, puis « +n » : une rangée qui déborde en silence hors de
        l'écran est le piège classique des filtres. */
     var al=[];
-    if(o.erreurs) al.push('<span class="past p-rouge" title="'+o.erreurs+' erreur(s) signalée(s)">🐛 '+o.erreurs+'</span>');
+    if(o.erreurs) al.push('<span class="past p-rouge" title="'+nMot(o.erreurs,'erreur signalée','erreurs signalées')+'">🐛 '+o.erreurs+'</span>');
     if(o.echecs24) al.push('<span class="past p-ambre" title="essais de connexion refusés sur 24 h">🔑 '+o.echecs24+' refus</span>');
     if(eV.retard) al.push('<span class="past p-ambre" title="Version en ligne : v'+refV+'">⬇ v'+eV.haute+' en retard</span>');
     /* Ces deux-là ne portaient qu'un pictogramme : « ⏸ » pour un espace suspendu — le fait le
@@ -7720,13 +7723,13 @@ function comptesInutilisesSupprimer(){
   /* Le nom à côté de l'identifiant : c'est la seule relecture avant de valider, et c'est
      exactement ce qui manquait le matin même quand deux « florent » se ressemblaient. */
   var liste=cibles.map(function(u){ return '  · '+u.login+(u.nom?'  ('+u.nom+')':''); }).join('\n');
-  if(!confirm('Supprimer les '+logins.length+' compte(s) jamais utilisé(s) chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun ne s’est jamais connecté : personne ne perd son travail.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
+  if(!confirm('Supprimer '+(logins.length>1?'les '+logins.length+' comptes jamais utilisés':'le compte jamais utilisé')+' chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun ne s’est jamais connecté : personne ne perd son travail.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
   apiPost('/api/monitor/comptes/supprimer',{t:d.t,logins:logins}).then(function(x){
     if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
     var code=prompt('Code reçu par mail'+((x.d&&x.d.dest)?' ('+x.d.dest+')':'')+' :'); if(!code) return;
     return apiPost('/api/monitor/comptes/supprimer',{t:d.t,logins:logins,code:String(code).trim()}).then(function(y){
       if(!(y&&y.ok)){ toast('⚠️ '+((y&&y.d&&y.d.error)||'refusé')); return; }
-      toast((y.d&&y.d.n||0)+' compte(s) supprimé(s) — ils ne peuvent plus entrer ; ils partent de l’application au prochain appareil ouvert'); chargerDossier(DOS.nom); });
+      var nb=(y.d&&y.d.n)||0; toast(nMot(nb,'compte supprimé','comptes supprimés')+(nb>1?' — ils ne peuvent plus entrer ; ils partent':' — il ne peut plus entrer ; il part')+' de l’application au prochain appareil ouvert'); chargerDossier(DOS.nom); });
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 /* ══ REFAIRE UN MOT DE PASSE PROVISOIRE, DEPUIS ICI ═══════════════════════════════════════
@@ -7780,7 +7783,7 @@ function comptesMdpRefaire(){
   var mdps=mdpTirer(cibles.length);
   var lignes=cibles.map(function(u,i){ return {login:u.login, nom:u.nom||'', mdp:mdps[i]}; });
   var liste=lignes.map(function(x){ return '  · '+x.login+(x.nom?'  ('+x.nom+')':''); }).join('\n');
-  if(!confirm('Refaire le mot de passe provisoire de ces '+lignes.length+' compte(s) chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun n’a encore choisi le sien : personne ne perd un mot de passe qu’il utilise.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
+  if(!confirm('Refaire le mot de passe provisoire '+(lignes.length>1?'de ces '+lignes.length+' comptes':'de ce compte')+' chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun n’a encore choisi le sien : personne ne perd un mot de passe qu’il utilise.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
   Promise.all(lignes.map(function(x){ return tourSha256(x.mdp).then(function(h){ return {login:x.login,h:h}; }); })).then(function(comptes){
     return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:comptes}).then(function(x){
       if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
@@ -7791,9 +7794,9 @@ function comptesMdpRefaire(){
            accepté six ferait dicter au téléphone deux mots de passe qui n'ouvrent rien. */
         var pris={}; (y.d&&y.d.logins||[]).forEach(function(l){ pris[l]=1; });
         var sortis=lignes.filter(function(x2){ return pris[x2.login]; });
-        mdpFiche('🔑 '+sortis.length+' mot(s) de passe provisoire(s)', sortis);
+        mdpFiche('🔑 '+nMot(sortis.length,'mot de passe provisoire','mots de passe provisoires'), sortis);
         var ref=(y.d&&y.d.refuses)||[];
-        if(ref.length) toast('⚠️ '+ref.length+' refusé(s) : '+ref.map(function(r){ return r.login+' — '+r.raison; }).join(' · '),9000);
+        if(ref.length) toast('⚠️ '+nMot(ref.length,'refusé','refusés')+' : '+ref.map(function(r){ return r.login+' — '+r.raison; }).join(' · '),9000);
         chargerDossier(DOS.nom); });
     });
   }).catch(function(){ toast('Serveur injoignable'); });
@@ -7803,10 +7806,10 @@ function comptesMdpRefaire(){
 function tentativesEffacer(){
   var d=(DOS&&DOS.d)||{}; var tapes=(d.utilisateurs||[]).filter(function(u){ return !u.derniere&&!u.dansAnnuaire; }).map(function(u){ return u.login; });
   if(!tapes.length||!d.t) return;
-  if(!confirm('Effacer du journal les '+tapes.length+' identifiant(s) tapé(s) qui n’existent pas ?\n\n'+tapes.join(', ')+'\n\nCe ne sont pas des comptes : rien ne change chez l’entreprise. Seules ces tentatives disparaissent d’ici.')) return;
+  if(!confirm('Effacer du journal '+(tapes.length>1?'les '+tapes.length+' identifiants tapés qui n’existent pas':'l’identifiant tapé qui n’existe pas')+' ?\n\n'+tapes.join(', ')+'\n\nCe ne sont pas des comptes : rien ne change chez l’entreprise. Seules ces tentatives disparaissent d’ici.')) return;
   apiPost('/api/monitor/connexions/effacer-tentatives',{t:d.t,logins:tapes}).then(function(x){
     if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
-    toast((x.d.effacees||0)+' tentative(s) effacée(s)'); chargerDossier(DOS.nom);
+    toast(nMot(x.d.effacees,'tentative effacée','tentatives effacées')); chargerDossier(DOS.nom);
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 function blocUtilisateurs(){
@@ -7902,7 +7905,7 @@ function blocUtilisateurs(){
        qu'on ne comprend plus le jour où l'entreprise embauche quelqu'un du même nom. */
     /* Les mots de passe en attente d'exécution : tant qu'ils vivent, l'annuaire de ces comptes
        est gelé. Le dire, et donner le moyen d'en sortir — sinon on cherche une panne ailleurs. */
-    ((d.mdpAttente&&d.mdpAttente.length)?'<div class="note">🔑 Mot(s) de passe provisoire(s) <b class="att">en attente d’exécution</b> — leur annuaire est gelé jusqu’à ce qu’un appareil de l’entreprise s’ouvre (ou 30 jours) : '+d.mdpAttente.map(function(m){ return '<span class="mono">'+esc(m.login)+'</span>'+(MYROLE==='patron'?' <a onclick="compteMdpAnnuler(\''+jsq(m.login)+'\')">annuler</a>':''); }).join(' · ')+'</div>':'')+
+    ((d.mdpAttente&&d.mdpAttente.length)?'<div class="note">🔑 '+(d.mdpAttente.length>1?'Mots de passe provisoires':'Mot de passe provisoire')+' <b class="att">en attente d’exécution</b> — leur annuaire est gelé jusqu’à ce qu’un appareil de l’entreprise s’ouvre (ou 30 jours) : '+d.mdpAttente.map(function(m){ return '<span class="mono">'+esc(m.login)+'</span>'+(MYROLE==='patron'?' <a onclick="compteMdpAnnuler(\''+jsq(m.login)+'\')">annuler</a>':''); }).join(' · ')+'</div>':'')+
     (bannis.length?'<div class="note">🚫 Identifiants bannis de l’annuaire (supprimés depuis la Tour) : '+bannis.map(function(b){ return '<span class="mono">'+esc(b.login)+'</span>'+(b.fait?'':' <b class="att">(pas encore exécuté)</b>')+(MYROLE==='patron'?' <a onclick="compteReautoriser(\''+jsq(b.login)+'\')">réautoriser</a>':''); }).join(' · ')+'</div>':'')+
     (tapes.length?'<div class="sous-sec"><div class="sec att">'+tapes.length+' IDENTIFIANT'+(tapes.length>1?'S':'')+' TAPÉ'+(tapes.length>1?'S':'')+' QUI N’EXISTE'+(tapes.length>1?'NT':'')+' PAS</div>'+
       '<div class="note">Quelqu’un a tapé ces identifiants et ça a échoué. Ce ne sont pas des comptes : il n’y a rien à supprimer — le compte n’a jamais été créé, ou il a été perdu avant d’être déposé dans l’annuaire. Si la personne doit travailler, l’entreprise crée son compte.</div>'+
@@ -8069,7 +8072,7 @@ function blocGestionClient(){
       var tr=traites[x.i];
       var lig=[];
       if(d.formule) lig.push('💼 '+d.formule);
-      if(d.users) lig.push('👥 '+d.users+' utilisateur(s)');
+      if(d.users) lig.push('👥 '+nMot(d.users,'utilisateur','utilisateurs'));
       if(d.lien) lig.push('🔗 '+d.lien);
       if(d.code) lig.push('🎁 '+d.code);
       return '<div class="reg-l inerte"><span class="reg-txt">'+
@@ -8193,7 +8196,7 @@ function blocDossier(){
       (vCles.length
         ? '<div class="dsr-chips">'+vCles.map(function(v){
             var vieux=!!ref&&verNum(v)<ref;
-            return '<span class="past '+(vieux?'p-ambre':'p-vert')+'" title="'+vObj[v]+' appareil(s) vu(s) sur cette version">v'+esc(v)+' · '+vObj[v]+' appareil'+(vObj[v]>1?'s':'')+'</span>';
+            return '<span class="past '+(vieux?'p-ambre':'p-vert')+'" title="'+nMot(vObj[v],'appareil vu','appareils vus')+' sur cette version">v'+esc(v)+' · '+vObj[v]+' appareil'+(vObj[v]>1?'s':'')+'</span>';
           }).join('')+'</div>'
         : '<div class="dsr-chips"><span class="chip mono">v'+esc(u.version)+'</span></div>')+
       '<div class="note">'+
@@ -8253,7 +8256,7 @@ function blocDossier(){
         '<span class="reg-l3">'+esc(fmtJour(b.ts))+(b.version?' · <span class="mono">v'+esc(b.version)+'</span>':'')+(b.src?' · '+esc(b.src):'')+'</span></span>'+
         (perimee?'<span class="reg-fin"><span class="past p-ambre" title="enregistrée sur une version que l’entreprise n’utilise plus">version dépassée</span></span>':'')+
       '</div>'; }).join('')+'</div>'+
-    (er.length>6?'<div class="note">+ '+(er.length-6)+' autre(s)</div>':'')+'</div>';
+    (er.length>6?'<div class="note">+ '+nMot(er.length-6,'autre','autres')+'</div>':'')+'</div>';
   if(!er.length&&!ech.length) t+='<div class="note ok">✓ Aucune erreur ni échec de connexion enregistré.</div>';
   var vues=(u.vues||[]).slice(0,6);
   if(vues.length) t+='<div class="sous-sec"><div class="sec">ÉCRANS LES PLUS OUVERTS</div>'+
@@ -9077,8 +9080,8 @@ function donAppliquer(){
        l'espace est plein : un retour peut donc s'arrêter au milieu. Annoncer les remises sans
        les refus laisserait croire l'entreprise revenue alors que la moitié ne l'est pas. */
     var n=r.d.nRefuses||0;
-    toast(r.d.restaures+' remise(s) en place, '+r.d.enterres+' supprimée(s)'+
-      (n?' — ⛔ '+n+' refusée(s) : '+((r.d.refus||[])[0]||{}).motif+'. Le retour est INCOMPLET.':'.'), n?9000:0);
+    toast(nMot(r.d.restaures,'remise en place','remises en place')+', '+nMot(r.d.enterres,'supprimée','supprimées')+
+      (n?' — ⛔ '+nMot(n,'refusée','refusées')+' : '+((r.d.refus||[])[0]||{}).motif+'. Le retour est INCOMPLET.':'.'), n?9000:0);
     donApercu();
   });
 }
@@ -9131,7 +9134,7 @@ function vueDonnees(){
   else if(a){
     var lignes=Object.keys(a.par||{}).map(function(c){
       var p=a.par[c];
-      return '<div class="lg"><span class="mono">'+esc(c)+'</span><b>'+(p.restaure||0)+' remise(s)'+(p.enterre?' · '+p.enterre+' supprimée(s)':'')+(p.illisible?' · <span class="p-ambre">'+p.illisible+' hors de portée</span>':'')+'</b></div>';
+      return '<div class="lg"><span class="mono">'+esc(c)+'</span><b>'+nMot(p.restaure,'remise','remises')+(p.enterre?' · '+nMot(p.enterre,'supprimée','supprimées'):'')+(p.illisible?' · <span class="p-ambre">'+p.illisible+' hors de portée</span>':'')+'</b></div>';
     }).join('');
     /* ⛔ UN CORPS PURGÉ SE NOMME, IL NE SE SAUTE PAS. Au-delà de 90 jours le contenu est vidé :
        un retour qui traverse cette frontière ne PEUT PAS rendre ces enregistrements, et les
@@ -9144,7 +9147,8 @@ function vueDonnees(){
        AUCUNE case — « Appliquer le retour » échouait en 409 pour toujours, sans recours visible.
        Un écran qui montre un refus sans montrer comment le lever est un écran qui bloque. */
     var trop=a.troploin?'<div class="note note-ambre">Cet instant est <b>plus ancien que le plus vieux contenu gardé</b> ('+(a.corpsDepuis?esc(new Date(a.corpsDepuis).toLocaleString('fr-FR')):'—')+'). Le retour serait très partiel.</div>':'';
-    var quoiDeBloquant=a.nIllisibles?(a.nIllisibles+' enregistrement(s) ne peuvent pas être ramenés</b> — leur contenu a été purgé (90 jours). On sait qu’ils ont changé, pas ce qu’ils contenaient.')
+    var quoiDeBloquant=a.nIllisibles?(a.nIllisibles>1?a.nIllisibles+' enregistrements ne peuvent pas être ramenés</b> — leur contenu a été purgé (90 jours). On sait qu’ils ont changé, pas ce qu’ils contenaient.'
+        :'1 enregistrement ne peut pas être ramené</b> — son contenu a été purgé (90 jours). On sait qu’il a changé, pas ce qu’il contenait.')
       :('Une partie de ce retour est hors de portée</b> — l’instant visé précède le plus vieux contenu gardé.');
     var alerte=(a.nIllisibles||a.troploin)?'<div class="note note-ambre"><b>'+quoiDeBloquant+' '+
       '<label class="don-coche"><input type="checkbox" '+(DON.sansIllisibles?'checked':'')+' onchange="DON.sansIllisibles=this.checked"> Revenir quand même, <b>sans eux</b></label></div>':'';
