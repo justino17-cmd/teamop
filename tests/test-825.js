@@ -228,6 +228,33 @@ for (const f of ['app.html', 'beta.html']) {
   vrai('⛔ le pire des 64 couples passe 4,5:1 (initiales lisibles partout)', pire.k >= 4.5, pire);
 }
 
+/* ⛔ DÉPLACER UNE INTERVENTION PARTAGÉE NE DÉFAIT PAS L'ÉQUIPE. Glisser la carte depuis la ligne de Karim
+   vers celle de Sofia remplaçait toute l'équipe par Sofia : Léo, qui était aussi dessus, disparaissait de
+   l'intervention sans que personne l'ait demandé. Seule la personne de la ligne de DÉPART est remplacée.
+   Joué sur les vraies fonctions extraites d'app.html. */
+console.log('\n── 825 · 8c. déplacer une intervention partagée : seul le technicien de la ligne change ──');
+{
+  const SRC = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8'), C = nu(SRC);
+  const f1 = fonction(C, 'intTechIds'), f2 = fonction(C, 'planEquipeApres'), f3 = fonction(C, 'planPoserEquipe'), f4 = fonction(C, 'planLigneDe');
+  vrai('les quatre fonctions sont trouvées', [f1, f2, f3, f4].every(x => x.length > 40), [f1.length, f2.length, f3.length, f4.length]);
+  const api = new Function(f1 + '\n' + f2 + '\n' + f3 + '\n' + f4 + '\nreturn {planEquipeApres, planPoserEquipe, planLigneDe};')();
+  const E = (t, vers, depuis) => api.planEquipeApres({ techIds: t.slice(), techId: t[0] || '' }, vers, depuis);
+  vrai('seul sur l’intervention → le nouveau le remplace', JSON.stringify(E(['leo'], 'sofia', 'leo')) === '["sofia"]');
+  vrai('seul, glissé vers « non assigné » → plus personne', JSON.stringify(E(['leo'], '', 'leo')) === '[]');
+  vrai('⛔ à deux, depuis la ligne de Karim vers Sofia → Léo RESTE', JSON.stringify(E(['leo', 'karim'], 'sofia', 'karim')) === '["leo","sofia"]', E(['leo', 'karim'], 'sofia', 'karim'));
+  vrai('⛔ …et la place de Karim est gardée (Sofia prend sa place, pas la tête)', JSON.stringify(E(['karim', 'leo'], 'sofia', 'karim')) === '["sofia","leo"]', E(['karim', 'leo'], 'sofia', 'karim'));
+  vrai('déposé chez quelqu’un qui y est DÉJÀ → rien ne change', JSON.stringify(E(['leo', 'karim'], 'leo', 'karim')) === '["leo","karim"]');
+  vrai('à deux, depuis Karim vers « non assigné » → Karim seul quitte l’intervention', JSON.stringify(E(['leo', 'karim'], '', 'karim')) === '["leo"]');
+  vrai('à trois, ligne de départ inconnue → c’est le premier qui est remplacé, les autres restent', JSON.stringify(E(['a', 'b', 'c'], 'x', null)) === '["x","b","c"]');
+  const i = { techIds: ['leo', 'karim'], techId: 'leo' }; api.planPoserEquipe(i, 'sofia', 'leo');
+  vrai('poser l’équipe : la liste ET le principal suivent', JSON.stringify([i.techIds, i.techId]) === '[["sofia","karim"],"sofia"]', i);
+  const el = attr => ({ closest: () => ({ hasAttribute: n => n in attr, getAttribute: n => attr[n] }) });
+  vrai('la ligne de départ se lit sur la case du planning (cell:jour:technicien)', api.planLigneDe(el({ 'data-drop': 'cell:2026-09-26:karim' })) === 'karim');
+  vrai('…sur la colonne des heures (time:technicien:heure)', api.planLigneDe(el({ 'data-drop': 'time:karim:8' })) === 'karim');
+  vrai('…et sur une ligne marquée data-ligne', api.planLigneDe(el({ 'data-ligne': 'sofia' })) === 'sofia');
+  vrai('hors planning : aucune ligne (null), jamais un technicien deviné', api.planLigneDe({ closest: () => null }) === null);
+}
+
 console.log('\n── 825 · 9. la preuve dans la vraie page existe ──');
 vrai('scratchpad/sonde-couleurs-techs.js', fs.existsSync(path.join(RACINE, 'scratchpad', 'sonde-couleurs-techs.js')));
 vrai('scratchpad/palette-techs.js et palette-encre.js (le choix de la palette, mesuré)', fs.existsSync(path.join(RACINE, 'scratchpad', 'palette-techs.js')) && fs.existsSync(path.join(RACINE, 'scratchpad', 'palette-encre.js')));

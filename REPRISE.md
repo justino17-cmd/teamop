@@ -44,11 +44,39 @@ d'une entreprise neuve était le compte du semis — celui-là même qui fabriqu
 `tests/test-826.js` 30 ✓ (la vraie fonction extraite et jouée) ; **5/5 mutations font tomber le banc ET la sonde** ;
 `test-688` mis à jour (savedLoginPoser sortie de `boot()`).
 
-**En production, rien n'est encore parti.** Un candidat « v756 + ce correctif seul » est prêt en v757 (sans les
-couleurs des techniciens, qui restent sur la bêta et passeront en v758). **Il attend la phrase de Justin.**
-**À faire par Justin, quel que soit le choix :** supprimer « OP Admin @florent-3 » (Utilisateurs → le compte →
-Supprimer), et l'autre « OP Admin » si c'est aussi un compte jamais utilisé (🔑 à définir, sans e-mail) — jamais
-« Folrent Bruno @florent », le vrai. Un correctif arrête la cause, il ne range pas derrière lui.
+**La même famille, par le PORTAIL — trouvée en cherchant « tout ce qui fabrique un compte ».** Le bouton
+« 🚀 Activer mon espace » d'`espace.html` reste dans le fil des messages pour toujours ; retouché pour une
+entreprise EXISTANTE, il ouvrait « Créez votre compte administrateur » AVANT d'avoir lu l'équipe. Rejoué sur la
+v756 (sonde, cas C) : un SECOND administrateur « Bruno Folrent @florent-3 » partait chez toute l'équipe.
+Corrigé : rattaché et sans compte, le formulaire attend la première lecture de l'équipe (vide → formulaire ;
+habitée → connexion). Et vérifié au passage : les DROITS de l'équipe ne sont pas ramenés aux droits de départ par
+un navigateur neuf (les droits du semis ne portent pas de date, ceux de l'équipe gagnent — sonde, cas A).
+
+**Supprimer un compte : plus de code par e-mail** — Justin, capture à l'appui : « je veux plus que ça envoie un
+code par mail ; un message “êtes-vous sûr de vouloir supprimer ce compte”, que ça coche la case, et qui clique oui ».
+Le code partait à l'adresse du compte CONNECTÉ (chez ELAN : la boîte de Florent). Désormais une question, une case,
+« Oui, supprimer » désactivé tant qu'elle n'est pas cochée — et relue au moment de supprimer. `test-827` (vraies
+fonctions jouées), `scratchpad/sonde-suppression-compte.js` (au doigt). ❓ **La Tour demande encore un code pour
+ses suppressions** (compte, lot de comptes, client, entreprise) — mais ce code part à l'adresse de TEAM OP, pas à
+celle du client : laissé tel quel, question posée à Justin.
+
+**Les e-mails (question de Justin : « tout passe par le serveur, plus par Google ? »).** Recensé dans le code :
+les 22 sortes d'e-mails de TEAM OP partent toutes de `mailerEnvoi` (serveur), par la boîte contact@teamop.fr chez
+OVH (`server/set-smtp.sh`, `smtp.mail.ovh.net` — réglage documenté, la configuration elle-même vit sur le VPS).
+Le portail réinitialise par `/api/compte/mdp/demander` (comptes maison) ; `app.html`, `espace.html`,
+`connexion.html`, `reinit.html`, `tour.html` ne chargent plus Firebase. Restes Google, connus : OP MESSAGES
+(fermée), et la route serveur `/api/mdp/lien` qui fabrique encore un lien Firebase mais que plus AUCUNE page
+n'appelle (à retirer avec l'étape F). Les documents qu'une entreprise envoie à SES clients partent de SA boîte si
+elle l'a connectée (« E-mail pro », éventuellement une Gmail — c'est son adresse), sinon de celle de TEAM OP.
+
+**À faire par Justin :** supprimer « OP Admin @florent-3 » (Utilisateurs → 🗑 → la case → « Oui »), et l'autre
+« OP Admin » si c'est aussi un compte jamais utilisé (🔑 à définir, sans e-mail) — jamais « Folrent Bruno
+@florent », le vrai. Un correctif arrête la cause, il ne range pas derrière lui.
+⚠️ Remarque de relecture, PRÉEXISTANTE et non corrigée ici : un lien de la Tour sans mot de passe provisoire (`mh`)
+pour une entreprise dont le document d'équipe serait réellement vide pose le code par défaut « 1234 » sur la porte
+d'entrée — comme avant. Et `boot()` donne ce même code à tout compte sans aucun mot de passe : un compte jamais
+utilisé garde son mot de passe de départ tant que personne ne s'en sert (la Tour sait lister et supprimer en lot les
+comptes inutilisés).
 
 ---
 

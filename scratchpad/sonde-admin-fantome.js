@@ -56,6 +56,10 @@ const EQUIPE_EXISTANTE = `
   const base=JSON.parse(JSON.stringify(db)); base.users=[
     {id:'u-bruno-essai',prenom:'Bruno',nom:'Folrent',login:'florent',role:'admin',pwdHash:'${H('b')}',email:'bruno@exemple.invalid',actif:true},
     {id:'u-ancien-fantome',prenom:'OP',nom:'Admin',login:'florent-2',role:'admin',pinHash:'${H('c')}',actif:true,loginConflit:'florent'}];
+  /* Les droits RÉGLÉS par l'entreprise, datés d'hier : un appareil neuf ne doit pas les ramener aux droits de départ. */
+  base.permissions=JSON.parse(JSON.stringify(base.permissions||{}));
+  Object.keys(base.permissions).forEach(r=>{ if(base.permissions[r]&&typeof base.permissions[r]==='object'){ base.permissions[r].__equipe='oui'; base.permissions[r]._m=Date.now()-86400000; } });
+  if(base.permissions.technicien) base.permissions.technicien.stock=false;
   return JSON.stringify({db:JSON.stringify(base),ts:Date.now()-1000,writer:'un-autre-appareil'});`;
 
 async function rejoindre(S, docEquipe) {
@@ -110,6 +114,17 @@ async function cas(nom, fichier, jeu) {
     if (f) console.log('    ⚠ @florent-3 : ' + f.prenom + ' ' + f.nom + ', rôle ' + f.role + ', mot de passe = '
       + (f.emp === mh ? 'le mot de passe PROVISOIRE du lien' : f.emp ? 'une empreinte posée' : 'aucun') + ', annuaire : ' + r.ann.includes('florent-3'));
     vrai('les clés du lien sont consommées (rien ne traîne pour plus tard)', r.cles[0] === null && r.cles[1] === null, r.cles);
+    /* ⛔ LA MÊME FAMILLE, PAR LES DROITS : le semis porte les droits de départ ; s'ils gagnaient la fusion, un
+       navigateur neuf remettrait à zéro ce que l'entreprise a réglé. */
+    const dr = await S.ev(`const p=db.permissions||{}; const ecrit=JSON.parse(sessionStorage.getItem('__ecrits')||'[]').filter(Boolean).pop();
+      let envoye=null; if(ecrit){ try{ const x=await syncReadRemote(ecrit); envoye=x?(JSON.parse(x).permissions||{}):null; }catch(e){} }
+      const roles=Object.keys(p).filter(r=>p[r]&&typeof p[r]==='object');
+      return {roles:roles.length, marques:roles.filter(r=>p[r].__equipe==='oui').length, stockTech:p.technicien?p.technicien.stock:null,
+              envoyeMarques:envoye?Object.keys(envoye).filter(r=>envoye[r]&&envoye[r].__equipe==='oui').length:null, envoyeStock:envoye&&envoye.technicien?envoye.technicien.stock:null};`);
+    console.log('    droits : ' + JSON.stringify(dr));
+    vrai('population : les droits de l’équipe sont lus (plusieurs rôles)', dr.roles >= 3, dr);
+    vrai('⛔ les droits réglés par l’entreprise restent ceux de l’entreprise sur l’appareil', dr.marques === dr.roles && dr.stockTech === false, dr);
+    vrai('⛔ …et ce qui repart au serveur aussi', dr.envoyeMarques === null || (dr.envoyeMarques === dr.roles && dr.envoyeStock === false), dr);
   });
 
   await cas('B. Une entreprise NEUVE (document d’équipe vide) : la porte d’entrée existe, une seule', fichier, async S => {
