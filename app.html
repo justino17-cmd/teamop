@@ -10948,10 +10948,15 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
             if(!porte.pinHash&&!porte.sansMdp&&!porte.compteSite) porte.pinHash=await sha256('1234');   // la même porte qu'avant : boot() posait ce code d'office à un compte sans mot de passe
             save(); try{ renderLogin(); }catch(_e){}
           } }catch(_e){}
+          /* Le portail a demandé de créer l'administrateur, et l'équipe est VIDE : le formulaire est la porte. */
+          try{ if(!currentUser && sessionStorage.getItem('elan_create_admin')==='1') renderCreateAdmin(); }catch(_e){}
           if(currentUser) syncPush(true); return; }   // équipe vide → on amorce avec nos données
         /* L'équipe EXISTE : il n'y a aucune porte à poser. Les clés du lien sont oubliées ici, sinon
            elles attendraient un chargement futur pour renommer un compte qui n'est pas le leur. */
         adminDepartOublier();
+        /* …et le portail qui demandait de créer un administrateur n'a rien à créer : c'est la connexion. */
+        try{ if(sessionStorage.getItem('elan_create_admin')==='1'){ sessionStorage.removeItem('elan_create_admin');
+          if(!currentUser){ renderLogin(); toast('Votre entreprise a déjà ses comptes : connectez-vous avec votre identifiant.',8000); } } }catch(_e){}
         if(d.enc&&plain===null){ try{toast('Clé d\'équipe différente — données non lues');}catch(e){} return; }   // chiffré avec une autre clé → ne rien écraser
         /* Plus de « notre base est plus lourde, on garde la nôtre » : la fusion ci-dessous réunit les
            deux, et repousse si la nôtre avait quelque chose que l'équipe n'avait pas. */
@@ -33578,60 +33583,41 @@ function resetPin(id){ return resetPwd(id); }
    ne peut ni lire ni écrire ses comptes : la Tour ORDONNE, et le premier appareil de
    l'entreprise qui s'ouvre EXÉCUTE (mécanisme d'`ordres.json`, déjà en place pour les
    suppressions de compte). Son texte est dans l'historique git, commit v685. */
-/* ── Suppression d'un compte : confirmée par un code envoyé par e-mail à CELUI qui supprime.
-   Sans e-mail enregistré sur son propre compte, impossible de supprimer. ── */
+/* ── Suppression d'un compte : une question, une case, « Oui ». ──
+   ⛔ PLUS DE CODE PAR E-MAIL — Justin, 26 septembre 2026, capture à l'appui : « quand on supprime un
+   compte, je veux plus que ça envoie un code par mail ; je veux que ça mette un message “êtes-vous sûr
+   de vouloir supprimer ce compte”, que ça coche la case, et qui clique oui, je supprime ce compte ».
+   Le code partait à l'adresse du compte CONNECTÉ : pour supprimer chez ELAN un « OP Admin » fantôme, il
+   fallait le code reçu dans la boîte de Florent. La garde de rôle reste (`adminSeul`, première ligne de
+   chaque porte) ; le geste reste en deux temps (cocher, puis « Oui »), et la case se RELIT au moment
+   de supprimer — un bouton qu'on aurait réactivé à la main ne suffit pas.
+   Ce qui ne change pas : la pierre tombale (sans elle, le premier appareil qui a encore le compte le
+   ferait revenir), le ménage partout (`utilisateurNettoyer`), et la ligne du journal. */
 let delUserCible='';
-function delUser(id){ if(!adminSeul()) return; 
+function delUser(id){ if(!adminSeul()) return;
   if(id===currentUser.id){ toast('Impossible de supprimer votre compte'); return; }
   const u=db.users.find(x=>x.id===id); if(!u) return;
-  if(!(currentUser.email||'').trim()){
-    openModal(`<div class="modal-head"><h3>🗑 Supprimer ${esc(fullName(u))}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-      <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Par sécurité, supprimer un compte se confirme par un <b>code envoyé par e-mail à celui qui supprime</b>. Aucun e-mail n'est enregistré sur <b>ton</b> compte — enregistre-le d'abord :</p>
-      <div class="field"><label>Ton adresse e-mail</label><input id="du-mail" type="email" placeholder="prenom@entreprise.fr" autocapitalize="off"></div>
-      <div id="du-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
-      <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="delUserMailSave('${id}')">Enregistrer et recevoir le code</button>`);
-    return;
-  }
-  delUserEnvoyer(id);
-}
-function delUserMailSave(id){ const m=(($('du-mail')||{}).value||'').trim();
-  const err=$('du-err'); const show=t=>{ if(err){ err.textContent='⚠ '+t; err.style.display='block'; } };
-  if(!/.+@.+\..+/.test(m)){ show('Entre une adresse e-mail valide.'); return; }
-  currentUser.email=m; logEvent('E-mail de sécurité enregistré','@'+(currentUser.login||''),'auth'); save(); delUserEnvoyer(id); }
-async function delUserEnvoyer(id){ if(!adminSeul()) return; 
-  const u=db.users.find(x=>x.id===id); if(!u) return;
   delUserCible=id;
-  try{
-    const r=await fetch(PUSH_API+'/api/sendcode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),email:(currentUser.email||'').trim(),purpose:'deluser-'+currentUser.id})});
-    const j=await r.json().catch(()=>({}));
-    if(!r.ok){ toast(j.error==='email_off'?'L\'envoi d\'e-mails n\'est pas configuré sur le serveur':(j.error||'Erreur serveur')); return; }
-    openModal(`<div class="modal-head"><h3>🗑 Supprimer ${esc(fullName(u))}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-      <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Un code à 6 chiffres vient d'être envoyé à <b>${esc(currentUser.email)}</b> (valable 10 minutes — regarde aussi les indésirables). Entre-le pour confirmer la suppression <b>définitive</b> du compte de <b>${esc(fullName(u))}</b>.</p>
-      <div class="field"><label>Code reçu</label><input id="du-code" inputmode="numeric" maxlength="6" placeholder="123456" style="letter-spacing:6px;text-align:center;font-size:20px"></div>
-      <div id="du-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
-      <button class="btn danger" style="width:100%;justify-content:center;padding:13px" onclick="delUserConfirme()">Supprimer définitivement</button>
-      <button class="btn ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="delUserCible='';closeModal()">Annuler</button>`);
-    setTimeout(()=>{ const el=$('du-code'); if(el) el.focus(); },60);
-  }catch(e){ toast('Le serveur ne répond pas — vérifie ta connexion.'); }
+  openModal(`<div class="modal-head"><h3>🗑 Supprimer ${esc(fullName(u))}</h3><button class="modal-close" onclick="delUserCible='';closeModal()">✕</button></div>
+    <p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:14px"><b>Êtes-vous sûr de vouloir supprimer ce compte ?</b><br>${esc(fullName(u))} (@${esc(u.login||'')}) ne pourra plus se connecter. Son historique — interventions, mouvements, documents — reste, à son nom.</p>
+    <label style="display:flex;gap:10px;align-items:center;min-height:44px;margin-bottom:12px;cursor:pointer;font-size:14px"><input type="checkbox" id="du-ok" style="width:22px;height:22px;flex-shrink:0" onchange="const b=document.getElementById('du-oui'); if(b) b.disabled=!this.checked"> <span>Oui, je veux supprimer ce compte</span></label>
+    <div id="du-err" style="display:none;color:var(--red);font-size:13px;margin-bottom:10px"></div>
+    <button id="du-oui" class="btn danger" disabled style="width:100%;justify-content:center;padding:13px" onclick="delUserConfirme()">Oui, supprimer</button>
+    <button class="btn ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="delUserCible='';closeModal()">Annuler</button>`);
 }
-async function delUserConfirme(){ if(!adminSeul()) return; 
-  const code=(($('du-code')||{}).value||'').trim();
+function delUserConfirme(){ if(!adminSeul()) return;
   const err=$('du-err'); const show=t=>{ if(err){ err.textContent='⚠ '+t; err.style.display='block'; } };
   const u=db.users.find(x=>x.id===delUserCible); if(!u){ closeModal(); return; }
-  if(!/^\d{6}$/.test(code)){ show('Entre le code à 6 chiffres reçu par e-mail.'); return; }
-  try{
-    const r=await fetch(PUSH_API+'/api/checkcode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),code,purpose:'deluser-'+currentUser.id})});
-    const j=await r.json().catch(()=>({}));
-    if(!r.ok||!j.ok){ show(j.error==='expiré'?'Code expiré — relance la suppression.':'Code incorrect.'); return; }
-    db.users=db.users.filter(x=>x.id!==delUserCible);
-    /* PIERRE TOMBALE — sans elle, la fusion des comptes (syncPush / réception) ferait revenir
-       ce compte au premier appareil qui l'a encore en mémoire. Une suppression doit voyager
-       aussi sûrement qu'une création. */
-    db.usersSupprimes=usersTombesFusion(db,{usersSupprimes:[{id:delUserCible,ts:Date.now()}]});
-    utilisateurNettoyer(u);   // retiré partout : fiche technicien archivée, box, groupes, planning à venir
-    logEvent('Utilisateur supprimé (confirmé par code e-mail)','@'+(u.login||''),'auth');
-    save(); delUserCible=''; closeModal(); toast('Compte supprimé'); views.utilisateurs();
-  }catch(e){ show('Le serveur ne répond pas — vérifie ta connexion.'); }
+  if(u.id===currentUser.id){ toast('Impossible de supprimer votre compte'); return; }
+  if(!($('du-ok')||{}).checked){ show('Cochez la case pour confirmer.'); return; }
+  db.users=db.users.filter(x=>x.id!==delUserCible);
+  /* PIERRE TOMBALE — sans elle, la fusion des comptes (syncPush / réception) ferait revenir
+     ce compte au premier appareil qui l'a encore en mémoire. Une suppression doit voyager
+     aussi sûrement qu'une création. */
+  db.usersSupprimes=usersTombesFusion(db,{usersSupprimes:[{id:delUserCible,ts:Date.now()}]});
+  utilisateurNettoyer(u);   // retiré partout : fiche technicien archivée, box, groupes, planning à venir
+  logEvent('Utilisateur supprimé','@'+(u.login||''),'auth');
+  save(); delUserCible=''; closeModal(); toast('Compte supprimé'); views.utilisateurs();
 }
 /* ── Accès au cas par cas (par utilisateur) ── */
 function formAccess(id){ const u=db.users.find(x=>x.id===id); if(!u)return; if(currentUser.role!=='admin'){ toast('Réservé à l\'administrateur'); return; }
@@ -34538,7 +34524,7 @@ function delItem(coll,id){
     (db.demandes||[]).forEach(x=>{ if(x.boxId===id) x.boxId=''; });
   } else if(coll==='techniciens'){ const t=db.techniciens.find(x=>x.id===id)||{}; const lu=db.users.find(u=>u.techId===id);
     if(lu){ if(lu.id===currentUser.id){ toast('Impossible de supprimer ta propre fiche'); return; }
-      toast('Ce technicien a un compte (@'+(lu.login||'')+') : sa suppression passe par le code de confirmation, la fiche technicien part avec'); delUser(lu.id); return; }
+      toast('Ce technicien a un compte (@'+(lu.login||'')+') : on supprime le compte, la fiche technicien part avec'); delUser(lu.id); return; }
     if(!confirm('Supprimer le technicien « '+(t.nom||'')+' » ?\n\nIl est retiré des box, des véhicules et du planning à venir ; son historique garde son nom.')) return;
     techArchiver(id); logEvent('Technicien supprimé',t.nom||'','crud'); save(); closeModal(); toast('Technicien retiré partout'); go(current); return;
   } else if(!confirm('Supprimer cet élément ?'))return;
@@ -39113,11 +39099,31 @@ async function boot(){
     }
   }catch(e){}
   if(ch) save();
-  if(sessionStorage.getItem('elan_create_admin')==='1'){ renderCreateAdmin(); return; }
+  if(sessionStorage.getItem('elan_create_admin')==='1'){
+    /* ⛔ LE FORMULAIRE « CRÉEZ VOTRE COMPTE ADMINISTRATEUR » ATTEND QUE L'ÉQUIPE AIT PARLÉ. Le bouton
+       « 🚀 Activer mon espace » du portail (espace.html) reste dans le fil des messages POUR TOUJOURS.
+       Rejoué au navigateur sur la v756 (26 septembre 2026, `scratchpad/sonde-admin-fantome.js`, cas C) :
+       le retoucher depuis un nouveau téléphone, pour une entreprise qui EXISTE, ouvrait ce formulaire
+       AVANT d'avoir lu l'équipe — la personne y retapait son nom et son identifiant, et un SECOND
+       administrateur « Bruno Folrent @florent-3 » partait chez toute l'équipe. Rattaché et sans compte,
+       on lit donc l'équipe d'abord : vide, le formulaire est la porte ; habitée, c'est la connexion
+       (syncInit, premier instantané). */
+    if(!BETA_ESSAI && espaceRattache() && !(db.users||[]).length && syncEnabled()){
+      renderCreateAdminAttente(); try{ syncInit(); }catch(e){} return; }
+    renderCreateAdmin(); return; }
   const u=db.users.find(x=>x.id===getSession()&&x.actif); if(u){ _cnxVia='session'; enterApp(u); }
   else { try{ if(syncEnabled()) syncInit(); }catch(e){} renderLogin();   // les comptes de l'entreprise arrivent AVANT la connexion (appareil neuf via le lien)
     // on venait de « Mot de passe oublié » avant la bascule d'espace : on rouvre la fenêtre, identifiant et e-mail pré-remplis
     try{ if(localStorage.getItem('elan_apres_bascule')==='mdp-oublie'){ localStorage.removeItem('elan_apres_bascule'); setTimeout(pwdForgotModal,500); } }catch(e){} } }
+/* L'attente du premier instantané, quand le portail demande de créer l'administrateur : on ne sait pas
+   encore si l'entreprise est neuve. Sans réseau, on le dit, et on offre de réessayer — personne ne
+   reste devant une attente sans fin. */
+function renderCreateAdminAttente(){ $('app-root').style.display='none'; $('login').style.display='flex';
+  $('login-box').innerHTML=`<img class="login-logo" src="icons/logo-day.png" alt="OP GESTION"><h2>Préparation de votre espace…</h2>
+    <p id="ca-attente" style="color:var(--t3);font-size:14px;margin:6px 0 0">On vérifie si votre entreprise a déjà ses comptes.</p>`;
+  setTimeout(()=>{ try{ if(_syncGotInitial) return; const p=$('ca-attente'); if(!p) return;
+    p.innerHTML='Pas de réponse du serveur : vérifiez la connexion à internet.<br><button class="btn" style="margin-top:12px" onclick="location.reload()">Réessayer</button>'; }catch(e){} },20000);
+}
 /* Premier accès à un nouvel espace entreprise : le client crée son compte administrateur */
 function renderCreateAdmin(){ $('app-root').style.display='none'; $('login').style.display='flex';
   $('login-box').innerHTML=`<img class="login-logo" src="icons/logo-day.png" alt="OP GESTION"><h2>Bienvenue 👋</h2>

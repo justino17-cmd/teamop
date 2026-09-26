@@ -124,6 +124,59 @@ async function cas(nom, fichier, jeu) {
     vrai('les clés du lien sont consommées', r.cles[0] === null && r.cles[1] === null, r.cles);
   });
 
+  /* ── Le PORTAIL : « 🚀 Activer mon espace » (espace.html, `activate`) pose les clés de l'entreprise,
+     retire la base et le drapeau de vidage, et demande `elan_create_admin` : l'application ouvre
+     « Créez votre compte administrateur ». Le bouton reste dans le fil des messages POUR TOUJOURS :
+     le retoucher depuis un nouveau téléphone, pour une entreprise qui EXISTE, ne doit rien créer. */
+  const activerPortail = async (S, docEquipe) => {
+    await S.c.envoyer('Page.addScriptToEvaluateOnNewDocument', { source: FAUX_SERVEUR });
+    await S.ev(`${docEquipe ? `sessionStorage.setItem('__doc_faux', (function(){ ${docEquipe} })());` : `sessionStorage.removeItem('__doc_faux');`}
+      sessionStorage.removeItem('__ecrits');
+      localStorage.setItem('elanB_sync_team','t-essai-fantome'); localStorage.setItem('elanB_sync_secret','k-essai-fantome-0123456789'); localStorage.setItem('elanB_sync_on','1');
+      localStorage.removeItem(STORE_KEY); localStorage.removeItem('elanB_vierge_v1'); localStorage.setItem('elanB_frais','1');
+      sessionStorage.setItem('elanB_create_admin','1');
+      window.horsLigneDebut=function(){};
+      setTimeout(()=>location.reload(),50); return 1;`);
+    await dormir(2500);
+    let etat = null;
+    for (let i = 0; i < 120; i++) { await dormir(300);
+      try { etat = await S.ev(`if(typeof db==='undefined'||!db) return null; return {formulaire:!!document.getElementById('ca-prenom'), connexion:!!document.getElementById('li-login'), recu:(typeof _syncGotInitial!=='undefined'&&_syncGotInitial===true)};`);
+        if (etat && (etat.recu || etat.formulaire)) break; } catch (e) {} }
+    await dormir(2500);
+    try { etat = await S.ev(`return {formulaire:!!document.getElementById('ca-prenom'), connexion:!!document.getElementById('li-login'), recu:(typeof _syncGotInitial!=='undefined'&&_syncGotInitial===true)};`); } catch (e) {}
+    return etat || {};
+  };
+  /* La personne remplit le formulaire comme elle le ferait : SON nom, l'identifiant de l'entreprise. */
+  const remplir = async S => {
+    await S.ev(`window.horsLigneDebut=function(){}; const v=(i,x)=>{ const e=document.getElementById(i); if(e) e.value=x; };
+      v('ca-prenom','Bruno'); v('ca-nom','Folrent'); v('ca-login','florent'); v('ca-pin','MotDePasse-2026'); v('ca-pin2','MotDePasse-2026');
+      await submitCreateAdmin({preventDefault(){}}); return 1;`);
+    for (let i = 0; i < 60; i++) { await dormir(300); try { if (await S.ev(`return typeof _syncGotInitial!=='undefined'&&_syncGotInitial===true`)) break; } catch (e) {} }
+    await dormir(3000);
+  };
+
+  await cas('C. Portail : « Activer mon espace » retouché pour une entreprise EXISTANTE', fichier, async S => {
+    const e = await activerPortail(S, EQUIPE_EXISTANTE);
+    console.log('    écran : ' + (e.formulaire ? '« Créez votre compte administrateur »' : e.connexion ? 'connexion' : '?') + (e.recu ? ' · équipe lue' : ' · équipe PAS encore lue'));
+    vrai('⛔ le formulaire « Créez votre compte administrateur » n’est PAS proposé (l’équipe a déjà ses comptes)', !e.formulaire, e);
+    vrai('…c’est l’écran de connexion qui s’ouvre, une fois l’équipe lue', !!e.connexion && !!e.recu, e);
+    if (e.formulaire) await remplir(S);   // l'ancienne version : on joue le geste jusqu'au bout pour voir ce qu'il fabrique
+    const r = await S.ev(LIRE);
+    console.log('    comptes : ' + JSON.stringify(r.users.map(u => '@' + u.login + ' ' + u.prenom + ' ' + u.nom)) + ' · envoyés : ' + JSON.stringify(r.envoyes));
+    const neufs = r.users.filter(u => u.id !== 'u-bruno-essai' && u.id !== 'u-ancien-fantome');
+    vrai('aucun compte fabriqué, rien de neuf envoyé à l’équipe', neufs.length === 0 && (!r.envoyes || r.envoyes.every(l => l === 'florent' || l === 'florent-2')), { neufs: neufs.map(u => '@' + u.login), envoyes: r.envoyes });
+  });
+
+  await cas('D. Portail : « Activer mon espace » pour une entreprise NEUVE — le formulaire est la porte', fichier, async S => {
+    const e = await activerPortail(S, null);
+    vrai('le formulaire « Créez votre compte administrateur » est proposé', !!e.formulaire, e);
+    if (e.formulaire) await remplir(S);
+    const r = await S.ev(LIRE);
+    console.log('    comptes : ' + JSON.stringify(r.users.map(u => '@' + u.login + ' (' + u.role + ')')) + ' · envoyés : ' + JSON.stringify(r.envoyes));
+    vrai('un seul compte, administrateur, à l’identifiant choisi', r.users.length === 1 && r.users[0].role === 'admin' && r.users[0].login === 'florent', r.users);
+    vrai('…et il part à l’équipe', Array.isArray(r.envoyes) && r.envoyes.length === 1 && r.envoyes[0] === 'florent', r.envoyes);
+  });
+
   console.log('\n' + ok + ' ✓ ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

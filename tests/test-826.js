@@ -119,6 +119,22 @@ function suite() {
      appareil rattaché) et du portail (qui nomme la personne, avec SON mot de passe). */
   const fabriques = (CODE.match(/prenom:'OP',nom:'Admin'/g) || []).length;
   v('trois endroits seulement écrivent « OP Admin » : le semis, migrate() hors entreprise, la porte', fabriques, 3);
+
+  /* ⛔ LA MÊME FAMILLE, PAR LE PORTAIL. « 🚀 Activer mon espace » (espace.html) reste dans le fil des
+     messages pour toujours ; le retoucher pour une entreprise qui EXISTE ouvrait « Créez votre compte
+     administrateur » avant d'avoir lu l'équipe — rejoué sur la v756 (sonde, cas C) : un SECOND
+     administrateur « Bruno Folrent @florent-3 » partait chez toute l'équipe. */
+  console.log('\n4. Le portail : le formulaire « Créez votre compte administrateur » attend que l\'équipe ait parlé');
+  v('⛔ boot() : rattaché et sans compte, le formulaire ATTEND (écran d\'attente + synchro), il ne s\'ouvre pas d\'office',
+    /if\(!BETA_ESSAI && espaceRattache\(\) && !\(db\.users\|\|\[\]\)\.length && syncEnabled\(\)\)\{\s*renderCreateAdminAttente\(\); try\{ syncInit\(\); \}catch\(e\)\{\} return; \}\s*renderCreateAdmin\(\); return; \}/.test(boot), true);
+  v('équipe vide : le formulaire est la porte', /try\{ if\(!currentUser && sessionStorage\.getItem\('elan_create_admin'\)==='1'\) renderCreateAdmin\(\); \}catch\(_e\)\{\}/.test(neuf), true);
+  /* ce bloc vit APRÈS le « return » de l'équipe vide et AVANT la lecture chiffrée : dans la tranche */
+  v('⛔ équipe habitée : la demande est oubliée et c\'est la CONNEXION qui s\'ouvre',
+    /adminDepartOublier\(\);[\s\S]{0,200}sessionStorage\.removeItem\('elan_create_admin'\);\s*if\(!currentUser\)\{ renderLogin\(\);/.test(neuf), true);
+  const att = (CODE.match(/function renderCreateAdminAttente\(\)\{[\s\S]*?\n\}/) || [''])[0];
+  v('l\'écran d\'attente existe, et sans réponse il le DIT et propose de réessayer', att.length > 100 && /Réessayer/.test(att) && /_syncGotInitial/.test(att), true);
+  v('la preuve au navigateur (cas C et D de la sonde) existe', fs.existsSync(__dirname + '/../scratchpad/sonde-admin-fantome.js')
+    && /Activer mon espace/.test(fs.readFileSync(__dirname + '/../scratchpad/sonde-admin-fantome.js', 'utf8')), true);
   fin();
 }
 function fin() { console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
