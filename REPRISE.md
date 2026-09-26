@@ -34,7 +34,8 @@ de ligne du tout.
    24 ✓ ; suite complète 172 suites · 8 495 ✓ ; `test-816` (12 ✓, mutations mordent). Quatre anciens
    bancs extrayaient `syncAlleger` seule et sont morts à la première passe : repli identique dans la
    page, exigé égal par `test-816`.
-7. L'annonce (e-mail aux entreprises) : **pas encore envoyée** — à la main de Justin, Tour → Entreprises.
+7. ✅ L'annonce (e-mail aux entreprises, texte v748) : **envoyée par Justin le 26 septembre au matin**, depuis
+   la Tour, après la publication et l'exigence de la v751. ⚠️ Ne pas la renvoyer : voir la dette ci-dessous.
 
 **Relecture « grosse base, beaucoup d'appareils » (demande de Justin : « je veux pas attendre qu'il y
 ait des bugs pour que tu testes ») : faite.** Deux risques confirmés, corrigés dans la **v750 — bêta publiée
@@ -80,7 +81,12 @@ faisant naître une version à chaque fois (une fusion qui ne change que `ver`) 
 espace et par heure, `notifier` compris ; un anonyme peut encore faire crier l'alarme ⚠️ `refusSynchro1h` en
 inondant `/api/doc/*` depuis une IP (le seau compte avant la clé — ne compter que si `sauvRefus(t,kh)` passe) ; la
 bêta, qui passe sans clé, peut être figée une heure par un anonyme (accepté, en-tête de `documents.js`).
-Pas d'annonce : celle du lot reste la v748 (à Justin, Tour → Entreprises, si elle n'est pas partie). La v751 ne
+✅ L'annonce du lot (texte v748) est partie : Justin l'a envoyée le 26 au matin, après l'exigence de la v751.
+⚠️ **Dette : le serveur ne garde AUCUNE trace de l'envoi.** `POST /api/monitor/annonce` envoie à chaque appel ;
+la Tour ne grise son bouton que pour la page ouverte — rechargée, un second clic renverrait le même e-mail à
+toutes les entreprises. À faire au prochain lot serveur : retenir la version annoncée (fichier écrit par
+temporaire puis renommage) et refuser un second envoi de la même version ; et au prochain lot qui mérite une
+annonce, réécrire `ANNONCE` (texte et numéro) du point de vue de l'entreprise. La v751 ne
 change pas le format des données, donc l'exiger n'était pas obligatoire — ✅ **Justin l'a exigée quand même, le
 26 au matin** (relu à 9 h 44 UTC : `GET /api/version` rend `min: 751`) : tout appareil encore en v749 reçoit
 l'écran de mise à jour, et une écriture d'une version plus ancienne reçoit 426. Qui reste en dessous : Tour →
@@ -328,7 +334,7 @@ pour le retour arrière puis supprimée (étape 9) — promis par `sous-traitanc
 | 3 | Justin, dans la Tour | « Reprendre les dossiers du portail » | le résultat affiché (repris, comptes à poser) |
 | 4 | Justin dit « publie » | `app.html` v748, `sw.js`, `beta.html`, `espace.html`, `reinit.html`, `tour.html` v2.65, les trois pages juridiques, `registre-traitements.html`, `VERSION-STABLE.md` | `curl teamop.fr/app.html | grep APP_VERSION` → 748 |
 | 5 | Justin, dans la Tour, AUSSITÔT | « Exiger la dernière version » (748) | encadré : « porte de version chez Google : v748 » (confirmée, pas seulement posée) |
-| 6 | Justin, dans la Tour | l'annonce v748 (préparée dans `server/index.js`) | nombre d'entreprises prévenues |
+| 6 | Justin, dans la Tour | ✅ l'annonce v748 — envoyée le 26 septembre au matin | nombre d'entreprises prévenues (affiché par la Tour à l'envoi ; le serveur ne l'écrit qu'à son journal) |
 | 7 | l'agent | surveiller `/health` : `copiesEchec1h`, `copiesEnAttente1h`, `illisibles1h`, `processus` | zéros |
 | 8 | Justin, J+quelques jours | « Faire l'inventaire » dans la Tour | « complet » |
 | 9 | Justin, J+30 | `node /opt/teamop/repo/server/reglage.js documents.copieFirebase=false`, redémarrer, puis supprimer les données Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore, fermée) | `/health` : `copieFirebase:false` |
