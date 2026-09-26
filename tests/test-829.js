@@ -187,14 +187,27 @@ vrai('un encart qui porte un bouton le pose sous sa phrase (encart-pile)', /\.en
 /* la phrase d'en-tête dépliable : l'écouteur RÉEL, exécuté sur de faux éléments — un motif sur son texte passait
    sous un `if(false)` (mutation vivante, 26 septembre 2026) */
 {
-  const iDesc = CODE.indexOf("closest('#vue .page-tete .desc')");
-  const debut = CODE.lastIndexOf("document.addEventListener('click',function(e){", iDesc), fin = CODE.indexOf('\n});', iDesc) + 4;
-  const ecouteur = iDesc > 0 && debut > 0 && fin > debut ? CODE.slice(debut, fin) : '';
+  const POSE = "\ndocument.addEventListener('click',descDeplier);";
+  const debut = CODE.indexOf('\nfunction descDeplier(e){'), pose = CODE.indexOf(POSE, debut);
+  const ecouteur = debut > 0 && pose > debut ? CODE.slice(debut, pose + POSE.length) : '';
   let h = null; const D = { document: { addEventListener: (t, f) => { if (t === 'click') h = f; } } };
   vm.createContext(D); try { vm.runInContext(ecouteur, D); } catch (e) {}
   vrai('population : l’écouteur de la phrase d’en-tête est extrait et posé', typeof h === 'function', ecouteur.length);
+  /* LES DEUX MOITIÉS D'UN ACCORD : ce que la règle du téléphone replie, l'écouteur doit pouvoir le déplier — ni
+     plus étroit, ni ailleurs. Écrit pour `#vue .page-tete .desc` pendant que la règle visait `.desc`, il laissait
+     la fiche d'une entreprise repliée sans recours (relecture v2.68). On compare les SÉLECTEURS réels. */
+  const selJs = ((/closest\('([^']+)'\); if\(!d\|\|/.exec(ecouteur) || [])[1]) || '';
+  const selCss = ((/\n\s*([^{}\n]+)\{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden\}/.exec(CODE) || [])[1] || '').trim();
+  v('l’écouteur vise exactement ce que la règle du téléphone replie', { js: selJs, css: selCss, egaux: !!selJs && selJs === selCss }, { js: '.desc', css: '.desc', egaux: true });
+  vrai('…et la règle qui la déplie porte le même sélecteur', !!selCss && CODE.includes(selCss + '.ouverte{display:block;-webkit-line-clamp:unset;overflow:visible}'));
+  /* toute phrase d'en-tête naît dans le gabarit commun (`.page-tete`) : la fiche d'une entreprise était la seule
+     bâtie à la main — hors gabarit, sans section, et sa phrase ne se dépliait pas */
+  const naissances = []; for (let i = CODE.indexOf('class="desc"'); i >= 0; i = CODE.indexOf('class="desc"', i + 1)) {
+    const r = CODE.lastIndexOf("return '", i); naissances.push({ i, dansGabarit: r >= 0 && CODE.slice(r, i).includes('class="page-tete"') }); }
+  vrai('population : les phrases d’en-tête de la page sont trouvées (4 fabriques)', naissances.length >= 4, naissances.length);
+  v('chacune naît dans un .page-tete (accueil ×2, fiche d’une entreprise, enTete)', naissances.filter(n => !n.dansGabarit).length, 0);
   const faux = (sh, ch) => { const cl = new Set(); return { scrollHeight: sh, clientHeight: ch, classList: { contains: c => cl.has(c), toggle: c => { cl.has(c) ? cl.delete(c) : cl.add(c); } } }; };
-  const evt = (d, lien) => ({ target: { closest: q => q === '#vue .page-tete .desc' ? d : (q === 'a,button' ? (lien ? {} : null) : null) } });
+  const evt = (d, lien) => ({ target: { closest: q => q === selJs ? d : (q === 'a,button' ? (lien ? {} : null) : null) } });
   const r = { ouvre: false, referme: false, bureau: false, lien: false };
   if (h) {
     const d1 = faux(90, 42); h(evt(d1)); r.ouvre = d1.classList.contains('ouverte'); h(evt(d1)); r.referme = !d1.classList.contains('ouverte');

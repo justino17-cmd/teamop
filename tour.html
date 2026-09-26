@@ -5878,17 +5878,25 @@ function vueEntreprise(nom){
   /* v2.68 : la même commande de statut que la Surveillance (incSegStatut), comptée sur les problèmes de
      CETTE entreprise — le menu à neuf choix recopié mot pour mot n'existe plus. */
   var sStE=incSegStatut(incDeLaConsole().filter(function(i){ return incEnts(i).indexOf(nom)>=0; }));
-  var filtreSt='<div style="margin:18px 0 0">'+teteListe('Ses problèmes','Statut des problèmes',sStE.segs,sStE.cour,"incF('statut',")+
+  var filtreSt='<div>'+teteListe('Ses problèmes','Statut des problèmes',sStE.segs,sStE.cour,"incF('statut',")+
     (sStE.affine?'<div class="svl-compte">'+incAffinePastille(sStE)+'</div>':'')+'</div>';
   /* Le passage vers la fiche complète de l'entreprise : ici on voit ses incidents, là-bas
      tout le reste — qui s'y connecte, qui n'y arrive pas, sa formule, ce qu'elle utilise.
      Sans ce lien il fallait retenir le nom, changer d'onglet et la retrouver à la main. */
-  return '<button class="btn-fant" onclick="entRetour()">← Toutes les entreprises</button> '+
-    '<button class="btn-fant" onclick="allerFicheEntreprise(\''+jsq(nom)+'\')">📇 Voir sa fiche complète</button>'+
-    '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:18px">'+
-      '<div class="ttl-page">'+esc(nom)+'</div>'+
-      (mail?'<span class="chip">'+esc(mail)+'</span>':'')+'</div>'+
-    '<div class="desc">Les problèmes de cette entreprise, regroupés par application. Cliquez sur un problème pour ouvrir son dossier complet.</div>'+
+  /* v2.68 (relecture) — LE MÊME GABARIT QUE LES AUTRES PAGES. Cet en-tête était bâti à la main : deux boutons
+     côte à côte, le titre, la phrase — hors de `.page-tete`. La phrase y était repliée au téléphone sans pouvoir
+     se déplier, et la page ne disait pas où l'on était. Le retour se range comme sur les trois autres fiches
+     (`.ent-retour`), la ligne de section dit « Support · Surveillance » (le titre est le nom de l'entreprise,
+     comme « Bonjour … » sur l'accueil), et « Voir sa fiche complète » est l'action de la page. */
+  var vi=vueInfo('surveillance');
+  return '<div class="ent-retour"><button type="button" class="btn-fant" onclick="entRetour()">← Toutes les entreprises</button></div>'+
+    '<div class="page-tete"><div class="page-txt">'+
+      '<div class="tt-section">'+esc(vi.section+' · '+vi.lib)+'</div>'+
+      '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">'+
+        '<div class="ttl-page">'+esc(nom)+'</div>'+
+        (mail?'<span class="chip">'+esc(mail)+'</span>':'')+'</div>'+
+      '<div class="desc">Les problèmes de cette entreprise, regroupés par application. Cliquez sur un problème pour ouvrir son dossier complet.</div></div>'+
+      '<div class="page-act"><button type="button" class="btn-fant" onclick="allerFicheEntreprise(\''+jsq(nom)+'\')">📇 Voir sa fiche complète</button></div></div>'+
     filtreSt+
     (tous.length?'<div class="reg" style="margin-top:22px">'+sections+'</div>'
       :'<div class="svl-vide"><b>Rien à signaler pour cette entreprise.</b>Aucun problème ne correspond au filtre posé.<div><button type="button" class="btn-fant" onclick="incReset()">Retirer tous les filtres</button></div></div>');
@@ -6829,11 +6837,16 @@ try{ if(localStorage.getItem('tour_barre_repliee')==='1') document.body.classLis
    poussait le travail à trois écrans plus bas) ; sa fin — « elles vivent dans l'onglet Entreprises », « le retour ne
    touche qu'un espace » — ne se lisait alors NULLE PART. Un second toucher la replie ; un lien dans la phrase reste
    un lien. Un seul écouteur, sur le document : les vues se redessinent, lui reste. Sans effet au bureau, où la
-   phrase n'est jamais repliée (rien ne dépasse, rien ne bascule). */
-document.addEventListener('click',function(e){
-  var d=e.target&&e.target.closest&&e.target.closest('#vue .page-tete .desc'); if(!d||e.target.closest('a,button')) return;
+   phrase n'est jamais repliée (rien ne dépasse, rien ne bascule).
+   ⛔ IL VISE EXACTEMENT CE QUE LA RÈGLE REPLIE (`.desc`, au téléphone) — ni plus étroit, ni ailleurs. Écrit
+   d'abord pour `#vue .page-tete .desc`, il laissait la fiche d'une entreprise (Surveillance), dont l'en-tête
+   était bâti à la main hors de `.page-tete`, repliée sans aucun moyen de la déplier (relecture v2.68). Deux
+   moitiés d'un accord : test-829 compare les deux sélecteurs. */
+function descDeplier(e){
+  var d=e.target&&e.target.closest&&e.target.closest('.desc'); if(!d||e.target.closest('a,button')) return;
   if(d.classList.contains('ouverte')||d.scrollHeight>d.clientHeight+1) d.classList.toggle('ouverte');
-});
+}
+document.addEventListener('click',descDeplier);
 function enTete(titre, phrase, actions){
   /* Tous les onglets s'annoncent pareil : on sait immédiatement où l'on est, à quoi sert
      l'écran, et ce qu'on peut y faire. Le carré coloré devant le titre est l'écho de la tuile
