@@ -31,6 +31,10 @@ M = [
  ('les comptes de la fiche, commandes de nouveau sur la ligne', "      return '<div class=\"reg-l inerte cpt-l\">'+", "      return '<div class=\"reg-l inerte\">'+", None),
  ('« Corrigés ce mois » compte de nouveau toutes les consoles', "  var corrigesMois=incDeLaConsole().filter(", "  var corrigesMois=INC.list.filter(", None),
  ('la phrase d’en-tête ne se déplie plus', "  if(d.classList.contains('ouverte')||d.scrollHeight>d.clientHeight+1) d.classList.toggle('ouverte');", "  if(false) d.classList.toggle('ouverte');", None),
+ ('l’écouteur de nouveau plus étroit que la règle qui replie', "e.target.closest('.desc'); if(!d||", "e.target.closest('#vue .page-tete .desc'); if(!d||", None),
+ ('la règle qui replie visée ailleurs que l’écouteur', "  .desc{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;", "  .page-tete .desc{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;", None),
+ ('la fiche d’une entreprise de nouveau hors gabarit', "  return '<div class=\"ent-retour\"><button type=\"button\" class=\"btn-fant\" onclick=\"entRetour()\">← Toutes les entreprises</button></div>'+\n    '<div class=\"page-tete\"><div class=\"page-txt\">'+",
+   "  return '<div class=\"ent-retour\"><button type=\"button\" class=\"btn-fant\" onclick=\"entRetour()\">← Toutes les entreprises</button></div>'+\n    '<div class=\"fiche-tete\"><div class=\"page-txt\">'+", None),
 ]
 morts, vivants = 0, []
 for nom, a, b, _ in M:

@@ -316,6 +316,29 @@ const FAMILLES_TEXTE = {
 /* Les rectangles des textes VISIBLES dans la fenêtre, en coordonnées de fenêtre : on lit leurs
    pixels dans UNE capture de l'écran (une par écran relevé) — une capture par texte coûtait une
    minute par vue sur une machine chargée, sous le verre SwiftShader. */
+/* v2.68 (relecture) — CHAQUE PHRASE REPLIÉE SE DÉPLIE, SUR TOUTES LES VUES, et chaque phrase d'en-tête vit dans le
+   gabarit commun. La fiche d'une entreprise (Surveillance) bâtissait son en-tête à la main, hors de `.page-tete` :
+   la règle du téléphone la repliait, l'écouteur ne la voyait jamais — le toucher joué sur Accès ne pouvait pas le
+   voir. Ici le clic est ÉMIS sur l'élément réel (il remonte jusqu'à l'écouteur du document, comme un vrai) ; le doigt,
+   lui, se joue dans le parcours. On referme aussitôt : les mesures suivantes lisent la vue telle qu'elle s'ouvre. */
+const MESURE_PHRASES = `
+  window.scrollTo(0,0); ${STABLE}
+  const out={n:0,repliees:0,muettes:[],horsGabarit:[]};
+  for(const d of document.querySelectorAll('#vue .desc')){
+    const r=d.getBoundingClientRect(); if(r.width<4||r.height<4) continue;
+    out.n++;
+    if(!d.closest('.page-tete')) out.horsGabarit.push(d.textContent.trim().replace(/\\s+/g,' ').slice(0,40));
+    if(d.scrollHeight<=d.clientHeight+1) continue;
+    out.repliees++;
+    const h0=d.clientHeight;
+    d.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+    const ouverte=d.classList.contains('ouverte')&&d.clientHeight>h0&&d.clientHeight>=d.scrollHeight-1;
+    d.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+    const refermee=!d.classList.contains('ouverte')&&d.clientHeight===h0;
+    if(!ouverte||!refermee) out.muettes.push({t:d.textContent.trim().replace(/\\s+/g,' ').slice(0,40),ouverte,refermee});
+  }
+  return out;`;
+
 const RECT_TEXTES = `
   const F=${JSON.stringify(FAMILLES_TEXTE)}, out=[];
   for(const [fam,sel] of Object.entries(F)){
@@ -428,6 +451,19 @@ async function parcours(S, v, bilan) {
       const f2 = await frapper(o, '#vue .page-tete .desc'); await dormir(350);
       const re = await o.ev(lire);
       v('…et se replie d’un second', f2.porte && !!re && !re.ouverte && re.h === avant.h, JSON.stringify(re));
+      /* …et celle de la fiche d'une entreprise (Surveillance), bâtie à la main hors du gabarit jusqu'à la relecture :
+         repliée par la règle, jamais atteinte par l'écouteur. On vise `.desc` sans `.page-tete` : la contre-épreuve
+         sur la version d'avant doit tomber sur le GESTE, pas sur un sélecteur qui ne trouve rien. */
+      await o.ev(`setTab('surveillance',true); INC.sel=null; INC.grp="Boulangerie Martin"; render(); return 1;`); await dormir(700);
+      const lireE = STABLE + ' const d=document.querySelector("#vue .desc"); return d?{h:d.clientHeight,sh:d.scrollHeight,ouverte:d.classList.contains("ouverte"),gabarit:!!d.closest(".page-tete")}:null;';
+      const avE = await o.ev(APAISER + lireE);
+      const e1 = await frapper(o, '#vue .desc'); await dormir(350);
+      const apE = await o.ev(lireE);
+      v('téléphone : …comme celle de la fiche d’une entreprise (Surveillance), dans le gabarit commun', !!avE && avE.gabarit && avE.sh > avE.h + 1 && e1.porte && !!apE && apE.ouverte && apE.h > avE.h && apE.h >= apE.sh - 1, JSON.stringify({ avant: avE, apres: apE }));
+      const e2 = await frapper(o, '#vue .desc'); await dormir(350);
+      const reE = await o.ev(lireE);
+      v('…et se replie d’un second (fiche d’une entreprise)', e2.porte && !!reE && !reE.ouverte && !!avE && reE.h === avE.h, JSON.stringify(reE));
+      await o.ev('INC.grp=null; return 1;');
     }
     o.exceptions.forEach(e => bilan.exceptions.push('feuille ' + app + ' : ' + e));
     await o.fermer();
@@ -474,7 +510,7 @@ async function main() {
   const vues = VUES.filter(v => !seules.length || seules.includes(v.cle));
   const S = await demarrer();
   console.log('Sonde du thème de la Tour — tour.html ' + S.version + ' · ' + vues.length + ' vues × ' + APPAREILS.length + ' appareils × ' + MODES.length + ' modes');
-  const bilan = { vues: 0, captures: 0, exceptions: [], debordements: [], cibles: { n: 0, petits: [], recouverts: [] }, textes: { n: 0, couverts: [], ecrases: [] }, contrastes: { n: 0, faibles: [], parFam: {} }, nav: [], modes: [] };
+  const bilan = { vues: 0, captures: 0, exceptions: [], debordements: [], cibles: { n: 0, petits: [], recouverts: [] }, textes: { n: 0, couverts: [], ecrases: [] }, phrases: { n: 0, repliees: 0, muettes: [], horsGabarit: [] }, contrastes: { n: 0, faibles: [], parFam: {} }, nav: [], modes: [] };
   const ok = [], ko = [];
   const v = (t, cond, detail) => { (cond ? ok : ko).push(t + (detail ? ' — ' + detail : '')); console.log((cond ? '  ✓ ' : '  ✗ ') + t + (detail ? ' — ' + detail : '')); };
   try {
@@ -510,6 +546,12 @@ async function main() {
           x.couverts.forEach(p => bilan.textes.couverts.push(V.cle + ' ' + appareil + ' ' + mode + ' : « ' + p.t + ' » sous ' + p.sous));
           x.ecrases.forEach(p => bilan.textes.ecrases.push(V.cle + ' ' + appareil + ' ' + mode + ' : « ' + p.t + ' » .' + p.cls + ' ' + (p.lignes ? p.lignes + ' lignes sur ' + p.w + ' px' : p.w + ' px visibles pour ' + p.sw)));
         }
+        {
+          const ph = await o.ev(MESURE_PHRASES);
+          bilan.phrases.n += ph.n; bilan.phrases.repliees += ph.repliees;
+          ph.muettes.forEach(p => bilan.phrases.muettes.push(V.cle + ' ' + appareil + ' ' + mode + ' : « ' + p.t + ' » ' + (p.ouverte ? 'ne se replie pas' : 'ne se déplie pas')));
+          ph.horsGabarit.forEach(t => bilan.phrases.horsGabarit.push(V.cle + ' ' + appareil + ' ' + mode + ' : « ' + t + ' »'));
+        }
         /* deux écrans relevés : le haut de la vue, puis un écran plus bas (les lignes, les pastilles) */
         const dsf = appareil === 'telephone' ? 3 : 1;
         for (const decal of [0, 1]) {
@@ -537,10 +579,12 @@ async function main() {
   console.log('cibles RECOUVERTES (le doigt touche autre chose) : ' + bilan.cibles.recouverts.length); bilan.cibles.recouverts.slice(0, 40).forEach(e => console.log('   ' + e));
   console.log('textes relevés dans le DOM : ' + bilan.textes.n + ' · couverts par la vue à l’ouverture : ' + bilan.textes.couverts.length); bilan.textes.couverts.slice(0, 40).forEach(e => console.log('   ' + e));
   console.log('textes écrasés (ellipse sous 64 px, ou 4 lignes et plus à moins de 12 signes) : ' + bilan.textes.ecrases.length); bilan.textes.ecrases.slice(0, 40).forEach(e => console.log('   ' + e));
+  console.log('phrases d’en-tête : ' + bilan.phrases.n + ' relevées · repliées au téléphone : ' + bilan.phrases.repliees + ' · qui ne se déplient pas : ' + bilan.phrases.muettes.length + ' · hors du gabarit commun : ' + bilan.phrases.horsGabarit.length);
+  bilan.phrases.muettes.slice(0, 40).forEach(e => console.log('   ' + e)); bilan.phrases.horsGabarit.slice(0, 40).forEach(e => console.log('   hors gabarit — ' + e));
   console.log('textes lus au pixel : ' + bilan.contrastes.n + ' ' + JSON.stringify(bilan.contrastes.parFam) + ' · sous 4,5:1 : ' + bilan.contrastes.faibles.length); bilan.contrastes.faibles.slice(0, 60).forEach(e => console.log('   ' + e));
-  const faute = ko.length + bilan.textes.couverts.length + bilan.textes.ecrases.length + bilan.cibles.recouverts.length + bilan.exceptions.length + bilan.debordements.length + bilan.cibles.petits.length + bilan.contrastes.faibles.length;
+  const faute = ko.length + bilan.phrases.muettes.length + bilan.phrases.horsGabarit.length + bilan.textes.couverts.length + bilan.textes.ecrases.length + bilan.cibles.recouverts.length + bilan.exceptions.length + bilan.debordements.length + bilan.cibles.petits.length + bilan.contrastes.faibles.length;
   /* une population vide est un échec, pas un zéro */
-  if (!bilan.vues || (!bilan.cibles.n && APPAREILS.includes('telephone')) || !bilan.contrastes.n || !bilan.textes.n) { console.log('⛔ POPULATION VIDE — la sonde n’a rien mesuré'); process.exit(1); }
+  if (!bilan.vues || (!bilan.cibles.n && APPAREILS.includes('telephone')) || !bilan.contrastes.n || !bilan.textes.n || !bilan.phrases.n || (!bilan.phrases.repliees && APPAREILS.includes('telephone'))) { console.log('⛔ POPULATION VIDE — la sonde n’a rien mesuré'); process.exit(1); }
   console.log('\n' + ok.length + ' ✓  ' + ko.length + ' ✗  (contrôles de parcours) · ' + faute + ' défaut(s) au total');
   process.exit(faute ? 1 : 0);
 }
