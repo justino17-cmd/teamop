@@ -95,6 +95,15 @@ Au passage, `test-738` est tombé une fois sur la CI de `main` (écart de temps 
 local) : les deux médianes se mesuraient en deux blocs, une rafale de charge sur un seul suffisait ; alternées
 requête par requête (`a099ad7`, test seul) : 0 à 7 % machine saturée, la mutation tombe à 92-94 %.
 
+✅ **v752 EN PRODUCTION — le 26 septembre 2026 à 11 h 22 UTC, sur la phrase de Justin « Publie ».** Un commit sur
+`main`, **`f2bc111`** : `app.html` v752, `sw.js` cache v952, `VERSION-STABLE.md`, `test-820` et `test-779` — les
+droits de départ, une liste par rôle (détail plus bas). Vérification complète rejouée sur ce commit AVANT de pousser :
+VERT — 176 suites · 8 660 ✓, liste serveur 40 · 2 346, arbre propre. Servie octet pour octet identique à la branche
+(`app.html` 752, `sw.js` v952, `beta.html` 752-beta) ; CI de `main` verte, trois workflows sur trois (Vérifications,
+Vérification des pages, déploiement Pages). Aucun fichier `server/` : le VPS n'a pas bougé. **Rien à exiger** (aucun
+format de données ne change, et une entreprise existante ne voit aucune différence) **et rien à annoncer** (le seul
+effet visible est le menu de départ d'une entreprise NEUVE).
+
 **Corrigés dans la v751 (branche `e5e7fd5`, `b9089ff`, `0c10fe8`, `17a3426` ; en production depuis le 26 à 9 h 12
 UTC)** — deux BLOQUANTS étaient dans la v749 :
 - ⛔ **la cloche plantait** (`bx is not defined`, une déclaration écrite DANS un commentaire) dès qu'un arrivage
@@ -120,9 +129,9 @@ Preuves : `test-818` 39 ✓ (3/3 mutations sur Mouvements, 21/22 sur le reste �
 déclaration), bancs serveur 40 suites · 2 345 ✓.
 
 **Restent — non corrigés, dits à Justin :**
-- ✅ **FAIT sur la bêta v752 — les droits de départ, UNE liste (Justin, 26 septembre : « Fais ta liste »).**
-  **Bêta publiée** (`569e033`, beta.html seule, le 26 à 10 h 33 UTC) : servie en 26 s, octet pour octet celle de
-  la branche ; CI de `main` verte (Vérifications, Vérification des pages) ; `app.html` reste en v751, `sw.js` en v951.
+- ✅ **FAIT et EN PRODUCTION (v752, `f2bc111`, le 26 à 11 h 22 UTC) — les droits de départ, UNE liste (Justin, 26
+  septembre : « Fais ta liste », puis « Publie »).** Bêta publiée d'abord (`569e033`, beta.html seule, à 10 h 33 UTC),
+  servie en 26 s, octet pour octet celle de la branche ; puis `app.html` et `sw.js` (voir le bloc v752 plus haut).
   `defaultPerms()` est désormais COMPLÈTE : cinq rôles (technicien, commercial, compta, DR, chef d'équipe) × 42
   rubriques (le menu + « Produits donnés »), une ligne par groupe du menu. Valeurs = exactement ce qu'une entreprise
   neuve recevait en v751 (mesuré avec les vraies fonctions, `node scratchpad/droits-defaut.js beta.html`), sauf :
