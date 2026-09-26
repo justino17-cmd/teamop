@@ -104,6 +104,24 @@ Vérification des pages, déploiement Pages). Aucun fichier `server/` : le VPS n
 format de données ne change, et une entreprise existante ne voit aucune différence) **et rien à annoncer** (le seul
 effet visible est le menu de départ d'une entreprise NEUVE).
 
+🟡 **v754 SUR LA BÊTA SEULEMENT — le 26 septembre 2026, sur la réponse de Justin « Oui un profil neuf tout est
+décoché ».** « ＋ Nouveau profil » part de `profilVierge()` : chaque interrupteur de la grille à NON — menus, droits
+spéciaux, gestes de catégorie. Les cases DÉDUITES ne sont pas posées : elles suivent leurs bases (à non, donc non) et
+continuent de les suivre une fois le profil enregistré. Un profil n'est jamais « soumis » (`valideSoumis`) : sous
+« Toute sortie de stock passe par le DR », « Validations DR » n'y naît plus coché et verrouillé ; la case de
+validation DU profil ouvre toujours le menu. Un profil EXISTANT se montre tel qu'il est enregistré, et
+« 💾 Enregistrer comme profil » (la photo d'une personne) ne change pas. APP_VERSION 754, cache v954.
+Preuves : `test-821` 85 ✓ (§ 7), 8/8 mutations ; sonde (vrais clics, « Toute sortie… » allumé) 33 ✓ — 91
+interrupteurs, aucun coché, aucun verrouillé, le profil enregistré porte 0 menu, 0 geste, 0 droit ; la v753 publiée
+tombe sur ces 3 contrôles ; suite complète 177 suites · 8 745 ✓ ; `relecteur` : aucun défaut — il a posé un profil
+vierge sur un vrai compte, au navigateur : le compte garde « Tableau de bord » (jamais dans la grille) et les
+réglages de son compte. Guide PDF : la carte des profils le dit (toujours 9 pages).
+⚠️ À savoir, pas un défaut (sémantique d'avant) : « Bons de commande : consultation seule » est un droit À L'ENVERS —
+décoché veut dire « peut commander ». Un profil qui ouvre plus tard « Bons de commande » doit cocher « consultation
+seule » si c'est l'intention.
+**Chez ELAN à la publication** : rien ne change pour les comptes ni pour les profils déjà enregistrés ; seul
+« ＋ Nouveau profil » part désormais tout décoché.
+
 🟡 **v753 SUR LA BÊTA SEULEMENT — le 26 septembre 2026, sur la demande de Justin « Fait se qu'il faut faire pour
 ça » : les trois points relevés en écrivant le guide des droits.** Bêta publiée seule sur `main` (**`7e33c37`**, à
 13 h 05 UTC, `beta.html` seul), servie en 21 s, octet pour octet celle de la branche ; contrôles de `main` rejoués
@@ -144,8 +162,8 @@ Preuves : `test-821` 72 ✓ (les vraies fonctions, l'éditeur compris) ; mutatio
 Rien à exiger (aucun format de données ne change). Le guide PDF est à regénérer à la publication
 (`node scratchpad/droits-pdf/gen.js`, qui refuse une page antérieure à la v753).
 ⚠️ **Vu en passant, PAS touché — décisions de Justin :**
-· un profil NEUF ne « part pas de rien » comme il l'a décidé le 9 septembre (« on nomme, on coche ») : il montre les
-  MENUS de la liste du technicien déjà cochés, depuis la v613. Le commentaire de `profilNouveau` le dit désormais ;
+· ✅ RÉGLÉ EN v754 (bloc au-dessus) — un profil neuf ne « partait pas de rien » (menus du technicien cochés depuis la
+  v613) ; Justin : « Oui un profil neuf tout est décoché » ;
 · `CLAUDE.md` nomme encore l'espace de la bêta `elan-gestion-beta` (deux endroits) : il s'appelle `opgestion-beta`
   depuis le 17 septembre (`beta-build.js`). Documentation seule, le code isole bien la bêta.
 
