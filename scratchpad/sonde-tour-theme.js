@@ -282,12 +282,24 @@ const MESURE_TEXTES = `
     const txt=e.textContent.trim().replace(/\\s+/g,' ');
     if(e.scrollWidth>e.clientWidth+1&&e.clientWidth<64&&txt.length>6&&(cs.textOverflow==='ellipsis'||cs.overflowX!=='visible'))
       out.ecrases.push({t:txt.slice(0,40),cls:String(e.className).slice(0,40),w:e.clientWidth,sw:e.scrollWidth});
-    else { const rg=document.createRange(); rg.selectNodeContents(e);
-      const lignes=new Set([...rg.getClientRects()].filter(q=>q.width>1).map(q=>Math.round(q.top))).size;
+    else {
+      /* les LIGNES se comptent sur les boîtes du TEXTE, regroupées quand elles se chevauchent : une case
+         à cocher, une pastille ou un <span> plus petit ont leur propre sommet sans faire une ligne de plus
+         (« OP MESSAGES (en travaux) » comptait 4 lignes sur UNE — mesuré le 26 septembre 2026) */
+      const bx=[]; const tw=document.createTreeWalker(e,NodeFilter.SHOW_TEXT); let tn;
+      while((tn=tw.nextNode())){ if(!tn.textContent.trim()) continue; const rg=document.createRange(); rg.selectNodeContents(tn);
+        for(const q of rg.getClientRects()) if(q.width>1) bx.push([q.top,q.bottom]); }
+      bx.sort((u,w)=>u[0]-w[0]); let lignes=0, bas=-1e9; for(const [ht,bs] of bx){ if(ht>=bas-2){ lignes++; bas=bs; } else bas=Math.max(bas,bs); }
       if(lignes>=4&&txt.length/lignes<12) out.ecrases.push({t:txt.slice(0,40),cls:String(e.className).slice(0,40),lignes,w:Math.round(r.width)}); }
     if(r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth) continue;
     const rg2=document.createRange(); rg2.selectNodeContents(e); const q=[...rg2.getClientRects()].find(z=>z.width>1)||r;
     const x=Math.min(Math.max(q.left+Math.min(q.width,40)/2,r.left+1),r.right-1), y=Math.min(Math.max(q.top+q.height/2,r.top+1),r.bottom-1);
+    /* un texte ROGNÉ par un ancêtre (description repliée à deux lignes au téléphone, liste qui défile)
+       n'est pas couvert : il est caché exprès, et son point tombe sur ce qui suit (faux constat du
+       26 septembre 2026 : le « Entreprises » de la 4ᵉ ligne d'une description repliée) */
+    let rogne=false; for(let a=e.parentElement;a&&a.id!=='vue';a=a.parentElement){ const ca=getComputedStyle(a);
+      if(ca.overflowX!=='visible'||ca.overflowY!=='visible'){ const ra=a.getBoundingClientRect(); if(x<ra.left-1||x>ra.right+1||y<ra.top-1||y>ra.bottom+1){ rogne=true; break; } } }
+    if(rogne) continue;
     const t=document.elementFromPoint(x,y); if(!t||t===e||e.contains(t)||t.contains(e)||!t.closest('#vue')) continue;
     let c=t, couvre=false; while(c&&!c.contains(e)){ if(peint(c)){ couvre=true; break; } c=c.parentElement; }
     if(couvre) out.couverts.push({t:txt.slice(0,40),sous:t.tagName+'.'+String(t.className).slice(0,40)+(t.textContent?' « '+t.textContent.trim().replace(/\\s+/g,' ').slice(0,24)+' »':'')});
