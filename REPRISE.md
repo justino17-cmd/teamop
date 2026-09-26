@@ -104,6 +104,30 @@ Vérification des pages, déploiement Pages). Aucun fichier `server/` : le VPS n
 format de données ne change, et une entreprise existante ne voit aucune différence) **et rien à annoncer** (le seul
 effet visible est le menu de départ d'une entreprise NEUVE).
 
+🟡 **v755 — le 26 septembre 2026, sur la phrase de Justin « ça, si c'est à faire tu le fais, et après tu
+publies » (la liste « restent » ci-dessous).** Chaque point MESURÉ avant d'être touché — et l'un d'eux était faux :
+- **l'accueil et les initiales du haut** : leurs éléments (`brand-ini`, `brand-hi`, `brand-role`, `topbar-ava`) ont
+  disparu à la refonte ; l'identité vit dans le pied du menu, l'accueil dans le toast « 👋 Bienvenue ». Écritures
+  mortes retirées — et un vrai défaut avec elles : se renommer soi-même laissait les ANCIENNES initiales au menu
+  (`saveUser` écrivait dans `brand-ini`) et le rôle y perdait le nom de l'entreprise. Rétabli (`userAvatarApply`).
+  On n'a PAS remis de message d'accueil dans la barre du haut : c'est le thème que Justin a validé le 24.
+- **code mort** : `teleTechSwitch` (+ `_teleDetId`), les retraits de `#update-banner`, l'écran du créateur d'avatar
+  « avb ». ⛔ `avb*` n'était PAS tout mort, contrairement à ce que disait cette page : `avbSvg`/`avbSave`
+  recolorent, quand la teinte change, les avatars déjà créés avec lui (`avatarAccentSync`). Gardés, et EXÉCUTÉS
+  par `test-822` et la sonde.
+- **journal** : « Métier de l'entreprise » — et quatre autres types écrits par le code (intervention, planning,
+  commercial, synchro) — tombaient sur la puce générique ; chacun a celle de sa rubrique. `test-822` recense chaque
+  type passé à `logEvent` et exige sa puce.
+- **`CLAUDE.md`** : l'espace de la bêta s'appelle `opgestion-beta` (depuis le 17 septembre).
+- **le 25 octobre (J+30)** : rappel programmé dans cette session (`trig_01MPuFwNnQEN7YYLr98Ysv19`, 10 h de Paris)
+  pour l'étape 9 — `copieFirebase=false`, puis supprimer les données Firebase d'OP GESTION ; gestes de Justin.
+- ⚠️ **la lenteur sur base lourde (chantiers #50, #52) N'EST PAS dans ce lot** : c'est un chantier de plusieurs
+  jours (mesurer à CPU ralenti sur une base « façon ELAN », bêta d'abord) — le glisser avant une publication
+  l'aurait retardée et risquée. Dit à Justin ; c'est le prochain.
+Preuves : `test-822` 22 ✓, 8/8 mutations, la v754 y tombe 10 fois ; sonde `scratchpad/sonde-v755.js` (vrai formulaire,
+vrai clic) 12 ✓, la v754 tombe 4 fois (initiales « JR » gardées, rôle sans entreprise, puces génériques) ; suite
+complète 178 suites · 8 767 ✓ ; `relecteur` : aucun appelant orphelin, aucun défaut.
+
 🟡 **v754 SUR LA BÊTA SEULEMENT — le 26 septembre 2026, sur la réponse de Justin « Oui un profil neuf tout est
 décoché ».** Bêta publiée seule (**`960e6a2`**, `beta.html` seul, comprend la v753), servie en 21 s octet pour
 octet ; contrôles de `main` rejoués avant de pousser : VERT ; CI de `main` verte 3/3. `app.html` reste en v752.
