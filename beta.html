@@ -15302,9 +15302,9 @@ function ongletsGeste(){
    défilement commence toujours par un appui. */
 function ongletsPresse(bar){
   if(bar._presse) return; bar._presse=true;
-  let minuterie=null, long=false, px=0, py=0;
+  let minuterie=null, long=false, px=0, py=0, leveA=0;
   const desarmer=()=>{ if(minuterie){ clearTimeout(minuterie); minuterie=null; } };
-  bar.addEventListener('pointerdown',e=>{ long=false; desarmer(); px=e.clientX; py=e.clientY;
+  bar.addEventListener('pointerdown',e=>{ long=false; leveA=0; desarmer(); px=e.clientX; py=e.clientY;
     minuterie=setTimeout(()=>{ minuterie=null;
       /* ⛔ UN APPUI TENU SUR LA BULLE EST UNE PRISE, PAS UN MENU. Depuis qu'on l'attrape pour
          la déplacer (`ongletsBulle`), on la tient souvent une demi-seconde avant de glisser :
@@ -15322,7 +15322,24 @@ function ongletsPresse(bar){
      long n'aurait plus jamais abouti. Huit pixels, c'est un doigt qui glisse. */
   bar.addEventListener('pointermove',e=>{ if(minuterie && Math.hypot(e.clientX-px,e.clientY-py)>8) desarmer(); });
   ['pointerup','pointercancel','pointerleave'].forEach(ev=>bar.addEventListener(ev,desarmer));
-  bar.addEventListener('click',e=>{ if(long){ e.preventDefault(); e.stopPropagation(); long=false; } },true);
+  /* ⛔⛔ ET CE TAP-LÀ PEUT TOMBER AILLEURS QUE SUR LA BARRE. La fenêtre « Barre d'onglets » s'ouvre
+     SOUS le doigt encore posé, et le relâcher produit le `click` de ce qui s'y trouve MAINTENANT.
+     Mesuré le 26 septembre 2026 sur un téléphone de 430 × 932 : un appui long sur « Planning »
+     ouvrait la fenêtre… et le relâcher touchait « Enregistrer », qui la refermait aussitôt. Avaler
+     le clic sur la seule barre ne suffisait pas : on avale le premier clic qui suit le relâcher, OÙ
+     QU'IL TOMBE — et seulement celui-là : un appui long n'en produit pas toujours, et passé une
+     demi-seconde c'est un nouveau geste. Même défaut, même parade que la Tour (v2.67). */
+  const lever=()=>{ if(long) leveA=Date.now(); };
+  document.addEventListener('pointerup',lever,true);
+  document.addEventListener('touchend',lever,true);
+  /* ⛔ et un NOUVEL appui ferme la fenêtre : si le navigateur n'a produit aucun clic au relâcher, le
+     prochain clic est celui d'un autre geste, qui commence par son propre appui (relecture de la Tour). */
+  const nouvelAppui=()=>{ if(long && leveA){ long=false; leveA=0; } };
+  document.addEventListener('pointerdown',nouvelAppui,true);
+  document.addEventListener('touchstart',nouvelAppui,{capture:true,passive:true});
+  document.addEventListener('click',e=>{ if(!long) return; long=false;
+    if(!leveA || Date.now()-leveA>500) return;
+    e.preventDefault(); e.stopPropagation(); },true);
 }
 
 /* ══ LA BULLE QU'ON ATTRAPE ══════════════════════════════════════════════════════════════
@@ -15436,8 +15453,12 @@ function ongletsBulle(bar){
        pos0:0,tEng:0,j:-1,raf:0};
     if(surBulle) soulever();
   };
+  /* une fenêtre ouverte sous ce doigt (l'appui long vient d'ouvrir « Barre d'onglets ») : la bulle
+     n'emmène plus nulle part — sinon on naviguait derrière la fenêtre en lâchant */
+  const fenetreOuverte=()=>{ const ov=document.getElementById('overlay'); return !!(ov && ov.classList.contains('open')); };
   const bouger=(x,y)=>{
     if(!s) return false;
+    if(fenetreOuverte()){ abandon(); return false; }
     s.x=x; s.y=y;
     if(!s.engage){
       const ax=Math.abs(x-s.x0), ay=Math.abs(y-s.y0);
@@ -15454,6 +15475,7 @@ function ongletsBulle(bar){
   };
   const lacher=()=>{
     if(!s) return;
+    if(fenetreOuverte()){ abandon(); return; }
     const st=s; s=null;
     const j=st.j>=0?st.j:plusProche(st.cols,st.pos);
     nettoyer(st);
@@ -31723,7 +31745,6 @@ views.carteBox=function(){
 
 /* ── CARTE DES INTERVENTIONS + temps de trajet auto ── */
 let carteIntDay=null, showSecteurs=true;
-const TECH_PALETTE=['#1E7A4E','#2563EB','#7C3AED','#EA580C','#DC2626','#0891B2','#CA8A04','#DB2777'];
 function autoColor(i){ const hue=Math.round((i*137.508)%360); return `hsl(${hue} 64% 45%)`; }
 /* ⛔⛔ DEUX TECHNICIENS NE PORTENT JAMAIS LA MÊME COULEUR — tant que la palette suffit (seize).
    Justin, 26 septembre 2026 : « chaque technicien et sa couleur référencés sur les interventions,
@@ -31818,7 +31839,6 @@ function techPile(i,max){ const ids=intTechsAff(i); if(!ids.length) return ''; m
   const vus=ids.slice(0,max), reste=ids.length-vus.length, noms=ids.map(techName).join(', ');
   return `<span class="tpil" role="img" aria-label="${esc((ids.length>1?'Techniciens : ':'Technicien : ')+noms)}" title="${esc(noms)}">`
     +vus.map(id=>techPastille(id)).join('')+(reste>0?`<span class="tpu-plus">+${reste}</span>`:'')+`</span>`; }
-function techColorFixe(id){ return techColor(id); }            // même couleur partout (cartes, pastilles, planning)
 /* ⛔ L'ENCRE D'UNE COULEUR D'IDENTITÉ SE CALCULE, ELLE NE SE SUPPOSE PAS. Les cases du planning
    général et les numéros de tournée écrivaient du blanc sur la couleur de la personne : 2,16:1
    sur l'orange « à répartir » (#E8A33D), et la palette elle-même en a d'autres sous la barre —

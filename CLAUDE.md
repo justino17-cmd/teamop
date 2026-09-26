@@ -1358,6 +1358,16 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   avec la distance (8,5 px à deux onglets). La position va dans `translate`, qui passe avant
   `scale` : l'objet grossit sur place. Le signe : un écart qui grandit régulièrement avec la
   distance, jamais un écart constant.
+- ⛔⛔ **UN APPUI LONG QUI OUVRE QUELQUE CHOSE SOUS LE DOIGT : LE CLIC DU RELÂCHER TOMBE DEDANS.**
+  Tour v2.67, 26 septembre 2026 : l'appui long sur la barre ouvre « Ma barre », une feuille qui monte
+  du BAS — donc sous le doigt encore posé. Au relâcher, le navigateur produit le `click` de ce qui est
+  MAINTENANT sous le doigt : une ligne de la feuille (« Devis IA » se cochait tout seul) ou, barre
+  pleine, le refus « Quatre vues au maximum » avant qu'on ait rien touché. Avaler ce clic sur la
+  BARRE ne suffit pas (c'est ce que fait `ongletsPresse`) : on avale le premier clic qui suit le
+  relâcher, OÙ QU'IL TOMBE, et seulement celui-là — un appui long n'en produit pas toujours, et passé
+  une demi-seconde c'est un nouveau geste. Même mesure, même jour : **un toast posé au-dessus d'une
+  liste avalait pendant 2,5 s le toucher de la ligne qu'il couvrait** — un toast est du texte :
+  `pointer-events:none`. `scratchpad/sonde-tour-barre.js`, `tests/test-828.js`.
 - ⛔⛔ **CE CHROMIUM PILOTÉ NE TRANSMET AUCUN `touchmove` DE MOINS DE ~15 PX — ET IL LES LIVRE AU
   RYTHME DES IMAGES.** Mesuré le 23 septembre 2026 : mouvements de 1, 2, 4, 8, 13 px envoyés par
   `Input.dispatchTouchEvent`, rien reçu par la page ; 17,6 px reçu — même quand la page retient

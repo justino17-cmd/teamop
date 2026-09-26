@@ -3223,10 +3223,16 @@ function barrePresse(bar){
   var lever=function(){ if(long) leveA=Date.now(); };
   document.addEventListener('pointerup',lever,true);
   document.addEventListener('touchend',lever,true);
+  /* ⛔ ET UN NOUVEL APPUI FERME LA FENÊTRE (relecture v2.67) : si le navigateur n'a produit aucun clic
+     au relâcher, le prochain clic est celui d'un AUTRE geste — le tap qui suit sur une ligne de la
+     feuille, ou sur le voile. Il commence par son propre appui : c'est à lui qu'on le reconnaît. */
+  var nouvelAppui=function(){ if(long&&leveA){ long=false; leveA=0; } };
+  document.addEventListener('pointerdown',nouvelAppui,true);
+  document.addEventListener('touchstart',nouvelAppui,{capture:true,passive:true});
   document.addEventListener('click',function(e){
     if(!long) return;
     long=false;
-    if(leveA&&Date.now()-leveA>500) return;
+    if(!leveA||Date.now()-leveA>500) return;
     e.preventDefault(); e.stopPropagation(); },true);
 }
 /* ══ LA BULLE QU'ON ATTRAPE ══ la même que celle d'OP GESTION (`ongletsBulle`), que Justin y a réglée
@@ -3389,8 +3395,9 @@ function barreValider(){
   toast(range?'Barre enregistrée':'Barre changée — mais l’appareil est plein : elle reviendra comme avant au prochain démarrage',range?2500:6000);
 }
 /* LA FEUILLE — un seul composant, trois contenus : 'app' (choisir la console), 'plus' (TOUTES les
-   vues, rangées comme le menu latéral, puis quitter) et 'barre' (choisir les vues de la barre). Elle monte du bas : un tiroir latéral part du
-   bord gauche, hors de portée du pouce droit. « Apparence » n'y est plus : le mode suit le système. */
+   vues, rangées comme le menu latéral, puis quitter) et 'barre' (choisir les vues de la barre). Elle
+   monte du bas : un tiroir latéral part du bord gauche, hors de portée du pouce droit. « Apparence »
+   n'y est plus : le mode suit le système. */
 var _feuilleY=0,_feuilleY0=0,_feuilleGlisse=false,_feuilleOuverte=false;
 var APP_FILL={gestion:'var(--app-gestion-fill)',messages:'var(--app-messages-fill)'};
 var APP_TEINTE={gestion:'var(--app-gestion)',messages:'var(--app-messages)'};

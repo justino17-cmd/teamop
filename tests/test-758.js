@@ -303,7 +303,16 @@ console.log('\n══ 6. L’APPUI LONG ET LA FEUILLE DE RÉGLAGE ══\n');
   vrai('⛔ l’appui long est branché sur la barre et ouvre la feuille',
     /formOnglets\(\)/.test(pr) && /550/.test(pr));
   vrai('⛔ … et le clic qui termine l’appui est avalé (sinon on change de rubrique en lâchant)',
-    /if\(long\)\{ e\.preventDefault\(\); e\.stopPropagation\(\)/.test(pr));
+    /document\.addEventListener\('click',e=>\{ if\(!long\) return; long=false;\s*if\(!leveA \|\| Date\.now\(\)-leveA>500\) return;\s*e\.preventDefault\(\); e\.stopPropagation\(\); \},true\);/.test(pr));
+  vrai('⛔ … et un NOUVEL appui ferme la fenêtre (sans clic au relâcher, le tap suivant passe)',
+    /const nouvelAppui=\(\)=>\{ if\(long && leveA\)\{ long=false; leveA=0; \} \};/.test(pr) && /document\.addEventListener\('pointerdown',nouvelAppui,true\);/.test(pr));
+  /* ⛔⛔ OÙ QU'IL TOMBE (v758) : la fenêtre s'ouvre sous le doigt, et à 430 × 932 le relâcher touchait
+     « Enregistrer », qui la refermait aussitôt. Le relâcher est daté, à la souris comme au doigt. */
+  vrai('⛔ … sur le DOCUMENT, pas sur la seule barre (la fenêtre monte sous le doigt)',
+    /document\.addEventListener\('pointerup',lever,true\);/.test(pr) && /document\.addEventListener\('touchend',lever,true\);/.test(pr) && !/bar\.addEventListener\('click'/.test(pr));
+  const bu = corpsDe('ongletsBulle');
+  vrai('⛔ … et la bulle n’emmène plus nulle part sous une fenêtre ouverte (on naviguait derrière elle)',
+    /const bouger=\(x,y\)=>\{\s*if\(!s\) return false;\s*if\(fenetreOuverte\(\)\)\{ abandon\(\); return false; \}/.test(bu) && /const lacher=\(\)=>\{\s*if\(!s\) return;\s*if\(fenetreOuverte\(\)\)\{ abandon\(\); return; \}/.test(bu));
   vrai('⛔ … les écouteurs ne s’empilent pas', /bar\._presse/.test(pr));
 }
 

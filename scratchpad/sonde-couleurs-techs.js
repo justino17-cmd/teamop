@@ -196,6 +196,37 @@ const proche = (a, b, tol) => Array.isArray(a) && Array.isArray(b) && a.every((v
     await c.envoyer('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
     await ev(`try{ localStorage.setItem('elanB_theme','light'); }catch(e){} try{ document.documentElement.setAttribute('data-theme','light'); applyTheme(); }catch(e){} return 1;`);
 
+    console.log('\n── K. déplacer une intervention partagée : seul le technicien de la ligne change ──');
+    /* le VRAI glisser-déposer de la vue Semaine (dragstart sur la carte de la ligne de Karim, drop dans la case de
+       Sofia), puis le panneau « Déplacer » — les deux portes qui passent par planPoserEquipe */
+    await ev(`planMode='semaine'; planWeekRef=todayISO(); planSel=todayISO(); planTechM=null; go('planning'); return 1;`); await dormir(1100);
+    const deposer = async (intId, de, vers) => ev(`const auj=todayISO();
+      const carte=[...document.querySelectorAll('.plg-mh')].find(e=>e.getAttribute('data-int')===${JSON.stringify(intId)}&&(e.closest('[data-drop]')||{getAttribute:()=>''}).getAttribute('data-drop').endsWith(':'+${JSON.stringify(de)}));
+      const cible=document.querySelector('[data-drop="cell:'+auj+':'+${JSON.stringify(vers)}+'"]');
+      if(!carte||!cible) return {trouve:false,carte:!!carte,cible:!!cible};
+      const dt=new DataTransfer();
+      carte.dispatchEvent(new DragEvent('dragstart',{bubbles:true,cancelable:true,dataTransfer:dt}));
+      const r=cible.getBoundingClientRect(), o={bubbles:true,cancelable:true,dataTransfer:dt,clientX:r.left+12,clientY:r.top+12};
+      cible.dispatchEvent(new DragEvent('dragover',o)); cible.dispatchEvent(new DragEvent('drop',o));
+      try{ carte.dispatchEvent(new DragEvent('dragend',{bubbles:true,dataTransfer:dt})); }catch(e){}
+      const i=db.interventions.find(x=>x.id===${JSON.stringify(intId)});
+      return {trouve:true,de:window._planDragDe,techIds:(i.techIds||[]).slice(),techId:i.techId};`);
+    const k1 = await deposer(I.a, T.karim, T.sofia);
+    vrai('population : la carte partagée est dans la ligne de Karim, la case de Sofia existe', k1.trouve, k1);
+    vrai('le geste part bien de la ligne de KARIM', k1.de === T.karim, k1);
+    vrai('⛔⛔ glissée de la ligne de Karim à celle de Sofia : Karim est remplacé par Sofia, LÉO RESTE', JSON.stringify(k1.techIds) === JSON.stringify([T.leo, T.sofia]) && k1.techId === T.leo, k1);
+    await ev(`go('planning'); return 1;`); await dormir(900);
+    const k2 = await deposer(I.d, T.karim, T.leo);
+    vrai('⛔ glissée vers la ligne de quelqu’un DÉJÀ sur l’intervention : l’équipe ne change pas', k2.trouve && JSON.stringify(k2.techIds) === JSON.stringify([T.karim, T.leo, T.sofia]), k2);
+    /* le panneau « Déplacer », ouvert depuis la ligne de Karim */
+    await ev(`window._planCtxDe=${JSON.stringify(T.karim)}; planDeplacerModal(${JSON.stringify(I.d)}); planDeplacerSet('tech',${JSON.stringify(T.nina)}); return 1;`); await dormir(500);
+    const k3 = await ev(`const a=document.querySelector('#overlay .dep-avec'); return {avec:a?a.textContent.replace(/\\s+/g,' ').trim():''};`);
+    vrai('⛔ le panneau « Déplacer » dit qui RESTE sur l’intervention (Léo et Sofia)', /Léo Martin/.test(k3.avec) && /Sofia Rossi/.test(k3.avec) && /restent/.test(k3.avec) && !/Karim/.test(k3.avec), k3);
+    await ev(`planDeplacerValider(); return 1;`); await dormir(500);
+    const k4 = await ev(`const i=db.interventions.find(x=>x.id===${JSON.stringify(I.d)}); return {techIds:(i.techIds||[]).slice(),techId:i.techId};`);
+    vrai('⛔⛔ validé : Karim remplacé par Nina, Léo et Sofia gardés', JSON.stringify(k4.techIds) === JSON.stringify([T.nina, T.leo, T.sofia]) && k4.techId === T.nina, k4);
+    await ev(`try{ window._planCtxDe=null; closeModal(true); }catch(e){} return 1;`);
+
     console.log('\n── J. aucune erreur de script ──');
     vrai('aucune exception pendant tout le parcours', S.exceptions.length === 0, S.exceptions.slice(0, 5));
   } catch (e) {

@@ -154,15 +154,19 @@ console.log('\n3. La barre et la bulle, relues dans le code (le geste se mesure 
   vrai('l’appui long : 550 ms', /\},550\);/.test(pr));
   vrai('⛔ un appui tenu SUR la bulle est une prise, pas un menu', /if\(bar\.classList\.contains\('tire'\)\|\|feuilleVisible\(\)\) return;\s*long=true;/.test(pr));
   vrai('on désarme au MOUVEMENT (8 px), pas au premier pointermove', /Math\.hypot\(e\.clientX-px,e\.clientY-py\)>8\) desarmer\(\)/.test(pr));
-  vrai('⛔ le clic qui suit le relâcher est avalé OÙ QU’IL TOMBE (la feuille monte sous le doigt)', /document\.addEventListener\('click',function\(e\)\{\s*if\(!long\) return;\s*long=false;\s*if\(leveA&&Date\.now\(\)-leveA>500\) return;\s*e\.preventDefault\(\); e\.stopPropagation\(\); \},true\);/.test(pr));
+  vrai('⛔ le clic qui suit le relâcher est avalé OÙ QU’IL TOMBE (la feuille monte sous le doigt)', /document\.addEventListener\('click',function\(e\)\{\s*if\(!long\) return;\s*long=false;\s*if\(!leveA\|\|Date\.now\(\)-leveA>500\) return;\s*e\.preventDefault\(\); e\.stopPropagation\(\); \},true\);/.test(pr));
+  vrai('⛔ …et un NOUVEL appui ferme la fenêtre (sans clic au relâcher, le tap suivant n’est pas avalé)', /var nouvelAppui=function\(\)\{ if\(long&&leveA\)\{ long=false; leveA=0; \} \};/.test(pr) && /document\.addEventListener\('pointerdown',nouvelAppui,true\);/.test(pr));
   vrai('…et seulement celui-là : le relâcher est daté, à la souris comme au doigt', /document\.addEventListener\('pointerup',lever,true\);/.test(pr) && /document\.addEventListener\('touchend',lever,true\);/.test(pr));
   const b = fonction('barreBulle');
   vrai('le DOIGT par les événements tactiles (le navigateur annule le flux de pointeur au premier mouvement horizontal)', /addEventListener\('touchstart'/.test(b) && /addEventListener\('touchmove',[\s\S]*?\},\{passive:false\}\);/.test(b) && /addEventListener\('touchend'/.test(b) && /addEventListener\('touchcancel'/.test(b));
   vrai('la SOURIS par les événements de pointeur, et seulement elle', (b.match(/if\(e\.pointerType!=='mouse'/g) || []).length === 4);
   vrai('⛔ la capture du pointeur n’est posée qu’une fois le geste ENGAGÉ (sinon un clic de souris n’ouvrirait plus rien)', /s\.engage=true;[\s\S]{0,200}bar\.setPointerCapture\(s\.pid\)/.test(b) && (b.match(/setPointerCapture/g) || []).length === 1);
   vrai('le seuil : six pixels, en deçà c’est un tap', /var SEUIL=6/.test(b));
+  vrai('« sur la bulle » se lit sous son rectangle VISUEL (elle peut être encore en route)', /var surBulle=iOn>=0&&visible&&x>=r\.left-4&&x<=r\.right\+4;/.test(b) && /if\(surBulle\) soulever\(\);/.test(b));
   vrai('« Plus » n’est pas une place pour la bulle (les colonnes l’écartent)', /if\(b\.classList\.contains\('plus'\)\) return;/.test(b));
   vrai('le ressort au bord', /var elastique=function\(d,dim\)\{ return \(d\*dim\*0\.55\)\/\(dim\+0\.55\*d\); \};/.test(b));
+  /* la définition ne suffit pas : une mutation qui retire l'EMPLOI laissait ce banc vert (M12) */
+  vrai('…et il s’applique aux deux bords, là où la bulle se pose', /if\(t<a\) t=a-elastique\(a-t,dim\); else if\(t>z\) t=z\+elastique\(t-z,dim\);/.test(b));
   vrai('parti d’un autre onglet : rattrapée en 170 ms', /\(now-s\.tEng\)\/170/.test(b));
   vrai('⛔ UN GESTE, UNE NAVIGATION : le clic d’après est avalé, en capture, 350 ms', /bar\.addEventListener\('click',function\(e\)\{ if\(Date\.now\(\)-finBulle>350\) return; e\.preventDefault\(\); e\.stopPropagation\(\); \},true\);/.test(b));
   vrai('reposée sur la vue ouverte, elle ne navigue pas', /if\(!dest\|\|dest===TAB\)\{ bbCurPlacer\(true\); return; \}/.test(b));

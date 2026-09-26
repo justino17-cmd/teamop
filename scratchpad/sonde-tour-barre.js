@@ -207,6 +207,19 @@ async function main() {
       v('un appui tenu sur la bulle la soulève sans ouvrir le réglage', gs.tire && !gs.feuille && !gf.feuille, 'tire=' + gs.tire + ', feuille=' + gs.feuille + '/' + gf.feuille);
       v('…et relâchée sur place, elle se repose, rien ne change', gf.tab === 'surveillance' && !gf.tire && pres(gf.cur.c, gf.tabs[1].c) && gf.nav.filter(x => x !== 'surveillance').length === 0, gf.tab + ' · ' + JSON.stringify(gf.nav));
 
+      /* 9 bis. ⛔ un navigateur qui ne produit AUCUN clic au relâcher d'un appui long (ça arrive) : le tap
+         suivant est un autre geste, il ne doit pas être avalé (relecture v2.67). On mange le clic du
+         relâcher AVANT la page (écouteur de fenêtre), puis on touche le voile dans la demi-seconde. */
+      await ev(`setTab('surveillance',true); return 1;`); await ev(REPOS + PREPARER); g = await geo();
+      await ev(`window.__mange=1; if(!window.__mangeur){ window.__mangeur=1; window.addEventListener('click',e=>{ if(window.__mange){ window.__mange=0; e.stopImmediatePropagation(); e.preventDefault(); } },true); } return 1;`);
+      await touche('touchStart', g.tabs[0].c, g.tabs[0].y); await dormir(750); await touche('touchEnd'); await dormir(120);
+      const av = await ev(`return {feuille:!document.getElementById('feuille').hidden, mange:window.__mange};`);
+      await touche('touchStart', 195, 110); await dormir(40); await touche('touchEnd'); await ev(REPOS + 'return 1;');
+      const ap = await ev(`const f=document.getElementById('feuille'); return {ouverte:!f.hidden&&f.classList.contains('on')};`);
+      v('population : la feuille est ouverte, et le clic du relâcher n’a jamais atteint la page', av.feuille && av.mange === 0, JSON.stringify(av));
+      v('⛔ sans clic au relâcher, le tap suivant (sur le voile) n’est PAS avalé : la feuille se ferme', !ap.ouverte, JSON.stringify(ap));
+      await ev(`window.__mange=0; try{ fermerFeuille(); }catch(e){} return 1;`); await ev(REPOS + 'return 1;');
+
       /* 10. le rangement plein : le choix s'applique quand même, et on le dit */
       await ev(`window.__setItem=Storage.prototype.setItem; Storage.prototype.setItem=function(){ throw new DOMException('plein','QuotaExceededError'); };
         ouvrirFeuille('barre'); barreBascule('essais'); barreBascule('journal'); barreValider(); return 1;`);
