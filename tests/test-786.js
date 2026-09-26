@@ -135,8 +135,9 @@ function mondeEcran(moi, reglage) {
     setHeader: () => {}, $: () => ({ set innerHTML(h) { out.html = h; } }), keyForClient: id => id.slice(1), parseTechDepts: s => String(s || '').split(',').map(x => x.trim()).filter(Boolean),
     techColor: () => '#123', initials: n => n[0], keyLabel: d => d, deptColor: () => '#456', encreSur: () => '#fff', esc: x => String(x == null ? '' : x),
     techForKey: dep => techs.find(t => t.departements === dep) || null, badge: (o, k) => '<b>' + o[k].l + '</b>', canCat: () => true,
-    permGarde: () => true, toast: m => out.toasts.push(m), openModal: h => { out.modal = h; }, TECH_PALETTE: ['#0a0'],
-    techCouleurChoix: () => '<span class="tcc"></span>' };   // v757 : le choix de couleur en pastilles (test-825 l'exécute)
+    permGarde: () => true, toast: m => out.toasts.push(m), openModal: h => { out.modal = h; },
+    techCouleurChoix: () => '<span class="tcc"></span>',   // v757 : le choix de couleur en pastilles (test-825 l'exécute)
+    techCouleurPrevenus: () => [], techCouleursFiger: () => 0 };   // v758 : les couleurs des autres figées au geste (test-825 les exécute)
   vm.createContext(ctx); vm.runInContext(CODE.join('\n') + '\n' + SECT + '\n' + FT, ctx);
   ctx.out = out; return ctx;
 }
@@ -230,6 +231,8 @@ async function partieSaveTech() {
       /* v738 : saveTech borne le compte qu'elle crée (droitsBorner, exécuté pour de vrai par test-789) —
          ici un témoin qui NOTE l'appel : la règle est ailleurs, ce banc vérifie qu'elle est appelée */
       droitsBorner: (nu, par) => { bornes.push([nu.role, par && par.id]); return []; },
+      /* v758 : les couleurs des autres figées au geste — la règle est exécutée par test-825, ici des bouchons */
+      techCouleurPrevenus: () => [], techCouleursFiger: () => 0,
       FormData: function (t) { return Object.entries(t); } };
     ctx.db.pointages = [];
     vm.createContext(ctx); vm.runInContext(CODE.join('\n') + '\n' + st, ctx);

@@ -53,8 +53,8 @@ function de00(A, B) { const [L1, a1, b1] = lab(A), [L2, a2, b2] = lab(B), rad = 
 let graine = 7; const hasard = () => { graine = (graine * 1103515245 + 12345) % 2147483648; return graine / 2147483648; };
 const uidAu = t => t.toString(36) + Array.from({ length: 5 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(hasard() * 36)]).join('');
 
-for (const f of ['app.html', 'beta.html']) {
-  const BRUT = fs.readFileSync(path.join(RACINE, f), 'utf8'), CODE = nu(BRUT), R = regles(BRUT);
+for (const f of (process.env.APP_FICHIER ? [process.env.APP_FICHIER] : ['app.html', 'beta.html'])) {
+  const BRUT = fs.readFileSync(path.isAbsolute(f) ? f : path.join(RACINE, f), 'utf8'), CODE = nu(BRUT), R = regles(BRUT);
 
   console.log(`\n── 825 · 1. ${f} — seize couleurs VRAIMENT distinctes ──`);
   const mP = CODE.match(/const TECH_PALETTE16=\[([^\]]+)\];/), mN = CODE.match(/const TECH_NOMS16=\[([^\]]+)\];/);
@@ -153,11 +153,13 @@ for (const f of ['app.html', 'beta.html']) {
     const m1 = A.techCouleursDe(apres);
     if (T.some(t => t.id !== x.id && !prev.includes(t.id) && m1[t.id] !== m0[t.id])) autresBougent++;
     if (prev.some(id => m1[id] === C)) prevenusRestent++;
-    /* puis revenir en « Automatique » : la couleur ANNONCÉE est celle qu'il aura vraiment */
-    A.set(apres); const annonce = A.techCouleursSimuler(apres, apres.map(t => t.id === x.id ? { ...t, couleur: '' } : t), [x.id])[x.id];
+    /* puis revenir en « Automatique » : la couleur ANNONCÉE par le vrai choix (« Automatique — Violet
+       aujourd'hui ») est celle qu'il aura vraiment */
+    A.set(apres); A.techCouleurChoix(x.id, C); const annonce = String(global.window._tccDit ? global.window._tccDit('') : '');
     const retour = apres.map(t => t.id === x.id ? { ...t, couleur: '' } : { ...t });
     A.techCouleursFiger(apres.map(t => ({ ...t })), retour, [x.id]);
-    if (A.techCouleursDe(retour)[x.id] !== annonce) annonceFausse++;
+    const vraie = A.techCouleurNom(A.techCouleursDe(retour)[x.id]);
+    if (annonce.indexOf('Automatique — ' + vraie + ' aujourd’hui') !== 0) annonceFausse++;
   }
   vrai('population : des choix qui prennent la couleur automatique d’un collègue (celui-là est prévenu)', prevN > 50, prevN + ' prévenus sur ' + jeux + ' choix');
   vrai('⛔ choisir une couleur ne change que la fiche touchée et ceux que « en prendra une autre » a prévenus', autresBougent === 0, autresBougent);
@@ -306,7 +308,7 @@ for (const f of ['app.html', 'beta.html']) {
    Joué sur les vraies fonctions extraites d'app.html. */
 console.log('\n── 825 · 8c. déplacer une intervention partagée : seul le technicien de la ligne change ──');
 {
-  const SRC = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8'), C = nu(SRC);
+  const SRC = fs.readFileSync(process.env.APP_FICHIER || path.join(RACINE, 'app.html'), 'utf8'), C = nu(SRC);
   const f1 = fonction(C, 'intTechIds'), f2 = fonction(C, 'planEquipeApres'), f3 = fonction(C, 'planPoserEquipe'), f4 = fonction(C, 'planLigneDe');
   vrai('les quatre fonctions sont trouvées', [f1, f2, f3, f4].every(x => x.length > 40), [f1.length, f2.length, f3.length, f4.length]);
   const api = new Function(f1 + '\n' + f2 + '\n' + f3 + '\n' + f4 + '\nreturn {planEquipeApres, planPoserEquipe, planLigneDe};')();
