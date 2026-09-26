@@ -1289,6 +1289,16 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   l'ordre des règles (trier avant de comparer) ; et les fenêtres ou messages qui s'ouvrent seuls
   (photo de profil, notifications, « 👋 Bienvenue ») tombent à un moment différent dans chaque
   page — les neutraliser, sinon on accuse la feuille d'un décalage d'horloge.
+- ⛔⛔ **UN RACCOURCI `background:…!important` EFFACE L'IMAGE POSÉE EN LIGNE — AUCUNE PHOTO DE
+  PROFIL N'A ÉTÉ PEINTE DEPUIS LA REFONTE.** Justin, 26 septembre 2026, capture à l'appui : « je
+  choisis une photo, elle ne s'affiche pas ici ». Elle était enregistrée (les initiales avaient
+  disparu) ; `html[data-refonte] .avatar{background:…!important}` remettait `background-image` à
+  `none`, parce qu'un RACCOURCI pose toutes ses sous-propriétés, et parce qu'un `!important` de la
+  feuille **bat un style en ligne ordinaire**. Le commentaire juste au-dessus affirmait l'inverse
+  (« un style en ligne passe devant ») — mesuré faux : la couleur d'un technicien écrite en ligne
+  sur sa pastille sort, elle aussi, à la teinte. **Pour changer une couleur, on écrit
+  `background-color`** ; et une affirmation de cascade dans un commentaire se vérifie au style
+  calculé, pas à la lecture. `test-824`, `scratchpad/sonde-photo-profil.js` (au doigt et au pixel).
 - ⛔ **UNE RÈGLE ÉCRITE POUR UN ÉCRAN NE COUVRE PAS LE COMPOSANT — ET L'ÉCRAN QUI SORT DU
   CADRE REND DU BRUT.** Toutes les règles du segmenté visaient `.plg-pl .seg span` : la barre
   du planning, et seulement des `span`. Pointage est le seul écran qui met des `<button>` dans

@@ -49,6 +49,21 @@ gain à l'ouverture à mesurer) : c'est une étape de fabrication, que ce dépô
 ⚠️ L'empreinte accélérée de `recEmpreinte` a été ÉPROUVÉE puis abandonnée : exacte (0 différence sur 200 000 cas),
 mais aucun gain mesurable — le découpage de chaînes coûte autant que le filtre qu'il évite.
 
+**Photo de profil (v756, bêta) — elle s'affiche enfin, et elle se recadre.** Justin, capture à l'appui : « quand je
+choisis une photo, j'aimerais pouvoir la redimensionner, et elle ne s'affiche pas ici — pourquoi ? ». Pourquoi :
+`html[data-refonte] .avatar{background:…!important}` — le raccourci effaçait l'image posée en ligne ; aucune photo de
+profil n'était peinte depuis la refonte (Paramètres, pied du menu), alors qu'elles étaient enregistrées et
+synchronisées. Corrigé (`background-color` seul) ; le recadrage est ajouté (glisser, pincer, curseur, molette,
+clavier ; le rond montre ce que verra l'équipe ; 256 px enregistrés comme avant). Preuves : `test-824` 57 ✓
+(14/14 mutations mordent), `scratchpad/sonde-photo-profil.js` 31 ✓ au doigt et au pixel (contre-épreuve sur la bêta
+d'avant : disque lilas, style `none`), contre-épreuve du style calculé sur 45 écrans × 2 : 0 différence ailleurs.
+⚠️ **ELAN a le même défaut en production (v755)** — ce n'est pas « quelqu'un ne peut pas travailler » : ça attend la
+phrase de Justin, avec le reste de la v756.
+❓ **Décision de Justin** : les pastilles des techniciens (planning, fiche technicien) portent leur couleur EN LIGNE,
+et la même règle la remplace par la teinte depuis la refonte (mesuré : `#E0524D` écrit en ligne sort gris-bleu). Le
+commentaire promettait l'inverse ; il est corrigé, le comportement NON — rendre la couleur du technicien changerait
+l'écran du planning (et le contraste de l'encre blanche sur une couleur claire), c'est à lui de dire s'il la veut.
+
 **Thème de la Tour : confié à l'agent `concepteur`, en copie de travail isolée** (tour.html seul + bancs + une sonde
 qui simule l'API). À relire, rejouer, fusionner, puis aperçu `apercu/tour.html` pour que Justin teste avant de
 remplacer `tour.html`. La maquette est dans le bloc-notes de la session, PAS dans le dépôt : elle contient des
