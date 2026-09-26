@@ -2240,7 +2240,7 @@ body,body[data-app="messages"]{
   --sel:rgba(10,132,255,.24);--tint:rgba(10,132,255,.22);--tint-gris:rgba(255,255,255,.10);
   --avatar:rgba(10,132,255,.20);--avatarBorder:rgba(100,168,255,.30);
   --green:#30D158;--green-txt:#30D158;--vert:#30D158;
-  --amber:#FF9F0A;--red:#FF6961;--redText:#FF8C84;--on-red:#1A0606;--gray:#BAC0CC;--bleu:#80B8FF;--violet:#C98BFF;
+  --amber:#FFB340;--red:#FF6961;--redText:#FF8C84;--on-red:#1A0606;--gray:#BAC0CC;--bleu:#80B8FF;--violet:#C98BFF;
   --vertBg:rgba(48,209,88,.18);--ambreBg:rgba(255,159,10,.18);--rougeBg:rgba(255,69,58,.18);--grisBg:rgba(255,255,255,.10);--bleuBg:rgba(10,132,255,.20);--violetBg:rgba(191,90,242,.20);
   --ic-neutre:rgba(0,0,0,0);--ic-encre:#64A8FF;
   --ombre-1:none;--ombre-2:0 18px 44px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.18);--ombre-3:0 24px 64px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.1);
@@ -2520,6 +2520,17 @@ body:not(.jour) .reg-tech{box-shadow:inset 0 0 0 1px var(--tt-carte-bord)}
 .tbl .rw,.tbl td{padding:12px 16px;border-top:1px solid var(--hairline);font-size:14px}
 .sec{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted)}
 .kv>div{font-size:14px;padding:9px 0}
+
+/* la fiche : les faits à gauche, l'adresse et ses trois gestes à droite (une colonne au téléphone) */
+.tt-fiche-acces{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px 28px}
+.tt-fiche-acces .kv{margin-top:10px}
+.tt-fiche-lien{display:flex;flex-direction:column;gap:10px}
+.tt-adresse{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:var(--tt-seg);color:var(--acc-txt);min-width:0}
+.tt-adresse .mono{font-size:14px;color:var(--text);min-width:0;overflow-wrap:anywhere}
+.tt-adresse-etat{margin-left:auto;font-size:12px;font-weight:600;color:var(--green-txt);white-space:nowrap}
+.tt-adresse.vide-adr{color:var(--muted);font-size:13px}
+.tt-fiche-lien .note{margin-top:0;font-size:13px;line-height:18px;color:var(--muted)}
+.tt-gestes{margin-top:auto}
 
 /* la fenêtre (tour-panneau) et le toast : verre dense, pas une vitre sur le voile */
 #tour-panneau>div{background:var(--tt-feuille)!important;-webkit-backdrop-filter:blur(40px) saturate(220%);backdrop-filter:blur(40px) saturate(220%);border-radius:20px!important}
@@ -3374,6 +3385,8 @@ function entQ(v){ ENT.q=v; rafraichirSiConcerne(); }
    ailleurs. La selection en cours est conservee : on filtre ce qu'on regarde, on ne
    perd pas la fiche ouverte. */
 function entFiltre(f){ ENT.filtre=(ENT.filtre===f?'':f); rafraichirSiConcerne(); }
+/* Un segment POSE son filtre (le retoucher ne le retire pas : c'est le segment « Toutes » qui le fait). */
+function entFiltrePoser(f){ ENT.filtre=f||''; rafraichirSiConcerne(); }
 /* Selection par identifiant d'espace : c'est la seule cle que TOUTES les sources partagent.
    L'e-mail manque aux espaces hors annuaire, le nom se renomme. */
 function entSel(t){
@@ -6731,7 +6744,11 @@ function vueEntreprises(){
      l'attente, et vingt chaînes tronquées faute de place, dont l'adresse e-mail de CHAQUE
      cliente et le nombre d'appareils, coupé pour dix-sept pixels. Le commentaire qui suivait
      promettait déjà « elle n'occupe plus la moitié de l'écran pour rien » : c'est fait. */
-  return tete+kpi+
+  /* Le tableau filtrable de la maquette : trois segments, qui POSENT le filtre (entFiltrePoser)
+     là où un compteur le bascule. Mêmes clés que les compteurs, mêmes chiffres que le serveur. */
+  var segE=[['','Toutes',(ENT.liste||[]).length],['erreurs','Avec erreurs',st.avecErreurs||0],['horsAnnuaire','Hors annuaire',st.horsAnnuaire||0]];
+  var teteL=teteListe('Espaces clients','Filtrer les entreprises',segE,ENT.filtre||'','entFiltrePoser(');
+  return tete+kpi+teteL+
     '<div class="rech" style="margin-bottom:12px">'+svg('loupe',16)+'<input placeholder="Rechercher (nom, adresse, identifiant d’espace)…" value="'+esc(ENT.q)+'" oninput="entQ(this.value)"></div>'+
     '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
       '<span>'+l.length+' sur '+(ENT.liste||[]).length+'</span>'+
@@ -6971,6 +6988,10 @@ function ficheEntreprise(){
   /* Chaque bloc devient une carte de la grille. Sur 1100 px et plus, deux colonnes ;
      l'identite et la formule, elles, tiennent toute la largeur : c'est ce qu'on lit
      en premier et ce qui doit rester au-dessus du reste. */
+  /* L'ACCÈS, juste sous l'identité : c'est la fiche de la maquette validée — ce qu'on donne au
+     client (l'adresse de l'annuaire, l'identifiant de départ) et les trois gestes qu'on fait pour
+     lui. Pleine largeur : deux colonnes, les faits et l'adresse. */
+  (function(){ var h=blocAccesFiche(o); return h?'<div class="carte p24 pleine">'+h+'</div>':''; })()+
   carteSi(blocUtilisateurs())+
   carteSi(blocDossier())+
   carteSi(blocEspaceDe(o))+
@@ -7255,6 +7276,44 @@ function blocUtilisateurs(){
 }
 
 /* SON espace — pas ceux de tout le monde. Même carte qu'avant, filtrée sur l'entreprise. */
+/* ══ L'ACCÈS D'UNE ENTREPRISE, EN UN COUP D'ŒIL — la fiche de la maquette « TeamOp Tour HIG » ══
+   ⛔ RIEN N'EST FABRIQUÉ ICI. L'adresse vient de l'ANNUAIRE DU SERVEUR (`/api/monitor/espaces/liste`,
+   son champ `slug`) — jamais de `espSlugJs(nom)` en repli : un nom recalculé dans le navigateur est
+   exactement ce qui avait produit « elan-gq3k » (tests/test-668.js). Sans entrée d'annuaire, le bloc
+   le DIT et ne propose rien à envoyer.
+   ⛔ Le mot de passe provisoire ne s'affiche pas : le serveur n'en garde que l'empreinte. Les trois
+   gestes réemploient les chemins qui existent — `tourCopie`, `tourMailAcces` (le serveur envoie
+   l'adresse et les identifiants), et pour un nouveau mot de passe : `tourIdentModifier` tant que
+   personne ne s'est connecté, `compteMdpRefaire` ensuite (tiré ici, haché ici, code par courriel). */
+function blocAccesFiche(o){
+  if(!PBL.loaded) return '';
+  var e=(PBL.liste||[]).filter(function(x){
+    if(o.email&&x.email&&String(x.email).toLowerCase()===String(o.email).toLowerCase()) return true;
+    return !!(x.nom||x.slug)&&espSlugJs(x.nom||x.slug||'')===espSlugJs(o.nom||o.slug||'');
+  })[0];
+  var fait=function(k,v,mono){ return '<div><span class="k">'+k+'</span><span class="v'+(mono?' mono':'')+'">'+v+'</span></div>'; };
+  var r=(e&&e.resume)||{};
+  var champs='<div class="sec">FICHE '+esc((o.nom||o.slug||o.t||'').toUpperCase())+'</div><div class="kv">'+
+    fait('Adresse (slug)',e&&e.slug?esc(e.slug):'<span class="g">aucune — hors annuaire</span>',!!(e&&e.slug))+
+    fait('Espace',esc(o.t||'—'),true)+
+    fait('Identifiant de départ',e&&e.ident?esc(e.ident):'<span class="g">—</span>',!!(e&&e.ident))+
+    fait('Mot de passe provisoire',e&&e.annuaire?'haché · jamais relisible d’ici':'<span class="g">—</span>')+
+    fait('Formule',esc(o.formule||'aucune'))+'</div>';
+  var adresse=(e&&e.slug)
+    ? '<div class="tt-adresse"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'+
+        '<span class="mono" id="fiche-adr">teamop.fr/e/'+esc(e.slug)+'</span><span class="tt-adresse-etat">'+(e.suspendu?'suspendue':(r.derniere?'en service':'jamais ouverte'))+'</span></div>'
+    : '<div class="tt-adresse vide-adr"><span>Pas d’adresse : cet espace n’a pas d’entrée d’annuaire. Rien à envoyer tant qu’il n’en a pas.</span></div>';
+  var mdp=!e?'':(r.derniere
+      ? (e.ident?'<button type="button" class="btn-fant danger" onclick="compteMdpRefaire(\''+jsq(e.ident)+'\')">Nouveau mot de passe provisoire</button>':'')
+      : '<button type="button" class="btn-fant danger" onclick="tourIdentModifier(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\',\''+jsq(e.ident||'')+'\')">Nouveau mot de passe provisoire</button>');
+  var gestes=(e&&e.slug)?'<div class="sous-act tt-gestes">'+
+      '<button type="button" class="btn-plein" onclick="tourCopie(\'fiche-adr\',this)">Copier l’adresse</button>'+
+      '<button type="button" class="btn-fant" onclick="tourMailAcces(\''+jsq(e.nom||o.nom||'')+'\',this)">Envoyer par e-mail</button>'+mdp+'</div>':'';
+  return '<div class="tt-fiche-acces"><div>'+champs+'</div>'+
+    '<div class="tt-fiche-lien"><div class="sec">ADRESSE D’ACCÈS <span class="n">— vient du serveur</span></div>'+adresse+
+      '<div class="note">Le serveur nomme l’espace ; la Tour ne fabrique jamais d’adresse depuis le navigateur. Un 404 seul autorise une création ; 409, 403, 500 ou serveur muet : on ne fabrique rien.</div>'+
+      gestes+'</div></div>';
+}
 function blocEspaceDe(o){
   var e=(PBL.liste||[]).filter(function(x){
     if(o.email&&x.email&&String(x.email).toLowerCase()===o.email) return true;
