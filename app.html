@@ -1473,6 +1473,9 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .plg-mini .pnum,.plt-blk .pnum,.plg-mh .pnum{ position:absolute; top:2px; right:2px; width:15px; height:15px; border-radius:50%; color:#fff; font-size:8.5px; font-weight:900; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.35); }
 .plg-mini .who~.pnum,.plt-blk .who~.pnum{ right:19px; }
 .plg-mh .pnum{ width:13px; height:13px; font-size:8px; top:1px; right:1px; }
+.plg-mh .tpil,.plt-blk .tpil,.plm-card .tpil,.plg-mini .tpil{ margin-right:4px; vertical-align:-3px; }
+.plt-blk .tpu-p,.plm-card .tpu-p,.plg-mini .tpu-p{ width:15px; height:15px; font-size:6.5px; }
+.plg-mh .tpu-p{ width:11px; height:11px; font-size:0; }
 /* colonne planning quand la carte est collee a droite en Jour / Semaine / Mois */
 .plm-gauche{ min-width:0; }
 .plm-split.carte-haut .plm-gauche{ position:relative; z-index:1; }
@@ -1780,6 +1783,29 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .pg-pt{ height:15px; border-radius:4px; background:var(--cc); margin-bottom:2px; font-size:8.5px; font-weight:800; color:var(--ci,#fff);
   display:flex; align-items:center; padding:0 4px; overflow:hidden; white-space:nowrap; }
 .pg-pt.mini{ height:6px; padding:0; margin-bottom:2px; }
+.pg-pt.pt-part{ background:var(--pt-autres) right/calc(var(--pt-n,1)*6px + 1px) 100% no-repeat,var(--cc);
+  padding-right:calc(var(--pt-n,1)*6px + 5px); }
+.pg-pt.mini.pt-part{ padding:0; }
+.pl-avec{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:3px 8px; margin-left:8px; font-size:.92em; color:var(--t2); font-weight:600; }
+.pl-avec .tpu-p{ width:16px; height:16px; font-size:7.5px; }
+.mj-avec{ margin-top:5px; font-size:12.5px; }
+/* v757 — le choix de couleur d'un technicien : une pastille par couleur, 44 px au doigt. Des <span> et pas des
+   <label> : `html[data-refonte] .field label` pose taille, graisse et marge en !important sur tout libellé du
+   champ. Le bouton radio, invisible, couvre la pastille entière : c'est lui qu'on touche. */
+.tcc{display:grid;grid-template-columns:repeat(auto-fill,44px);gap:2px 4px;margin-top:2px}
+.tcc .tcc-o{position:relative;width:44px;height:44px;display:grid;place-items:center;border-radius:50%}
+.tcc .tcc-o input{position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;padding:0;opacity:0;cursor:pointer;z-index:1}
+.tcc .tcc-p{width:30px;height:30px;border-radius:50%;background-color:var(--tc);color:var(--ti,#fff);display:grid;place-items:center;
+  font-size:10px;font-weight:800;letter-spacing:-.02em;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);transition:box-shadow .15s}
+.tcc .tcc-p.auto{outline:2px dashed color-mix(in srgb,var(--tc) 70%,transparent);outline-offset:2px}
+.tcc .tcc-o input:checked+.tcc-p{box-shadow:0 0 0 3px var(--card,#fff),0 0 0 5.5px var(--tc)}
+.tcc .tcc-o input:checked+.tcc-p.auto{outline-color:transparent}
+.tcc .tcc-o input:focus-visible+.tcc-p{box-shadow:0 0 0 3px var(--card,#fff),0 0 0 5.5px var(--acc)}
+.tcc-dit{font-size:12px;color:var(--t2);margin-top:6px;min-height:1.35em;line-height:1.35}
+.mj-avec .pl-avec{ margin-left:0; color:var(--t2); }
+.mj-avec .tpu-p{ width:20px; height:20px; font-size:8.5px; }
+.tf-l1 .tpil{ margin-left:auto; align-self:center; }
+.tf-l1 .tpil+.tf-fin{ margin-left:2px; }
 .pg-act{ height:13px; border-radius:4px; margin-bottom:2px; font-size:8px; font-weight:800; color:var(--org);
   background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--org) 12%,transparent) 0 6px,color-mix(in srgb,var(--org) 22%,transparent) 6px 12px);
   border:1px dashed color-mix(in srgb,var(--org) 50%,transparent); display:flex; align-items:center; padding:0 4px;
@@ -1872,6 +1898,10 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .tdb-pc b{ font-size:11px; font-weight:700; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .tdb-pc b .hh{ color:var(--cc); font-weight:800; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10.5px; }
 .tdb-pc small{ font-size:9.8px; color:var(--t3); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tdb-pc small .tpil{ margin-right:5px; }
+.tdb-pc .tpu-p{ width:14px; height:14px; font-size:6.5px; }
+.td-li small .tpil{ margin-right:5px; vertical-align:-3px; }
+.td-li small .tpu-p{ width:15px; height:15px; font-size:6.5px; }
 .tdb-act{ background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--org) 10%,transparent) 0 7px,color-mix(in srgb,var(--org) 18%,transparent) 7px 14px);
   border:1px dashed color-mix(in srgb,var(--org) 50%,transparent); border-radius:6px; padding:2px 6px; margin-bottom:3px; }
 .tdb-act b{ font-size:9px; font-weight:800; color:var(--org); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -3393,6 +3423,37 @@ html[data-refonte] .avatar{
   background-color:color-mix(in srgb,var(--acc) 18%,var(--card))!important;
   border-color:transparent!important;
   color:color-mix(in srgb,var(--acc) 55%,var(--t1))!important}
+/* ══ LES PASTILLES DE TECHNICIENS SUR LES INTERVENTIONS (v757) ══
+   Justin, 26 septembre 2026 : « chaque technicien et sa couleur, référencés sur les interventions,
+   sur les cartes — ça évite de se perdre quand on associe plusieurs techniciens sur la même carte ».
+   Un disque PLEIN à la couleur de la personne, ses initiales dans l'encre calculée (`encreSur`,
+   que test-773 tient sur les seize couleurs) : à 18 px, une teinte à 24 % ne se distingue plus de
+   sa voisine (lavande, violet, bleu) — le plein, si. Un anneau à la couleur de la carte sépare deux
+   disques qui se chevauchent. ⛔ La couleur passe par des VARIABLES (--tc, --ti) posées en ligne :
+   aucune règle de la feuille n'écrit le fond de `.tpu-p`, et aucune ne doit le faire — c'est la
+   leçon de `.avatar` (v756), dont le `!important` effaçait ce qu'on écrivait en ligne. */
+.tpu-p{flex:0 0 auto;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;
+  background-color:var(--tc,#8E8E93);color:var(--ti,#fff);font-size:8.5px;font-weight:800;line-height:1;
+  letter-spacing:-.02em;text-transform:uppercase;box-shadow:0 0 0 1.5px var(--tpu-anneau,var(--card,#fff))}
+html[data-theme="dark"] .tpu-p{box-shadow:0 0 0 1.5px var(--tpu-anneau,var(--card,#1c1c1e)),0 0 0 2.5px rgba(255,255,255,.16)}
+.tpus{display:inline-flex;flex-wrap:wrap;align-items:center;gap:3px 10px;min-width:0;max-width:100%;vertical-align:middle}
+.tpu{display:inline-flex;align-items:center;gap:5px;min-width:0;max-width:100%}
+.tpu-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpu-p.g{width:22px;height:22px;font-size:9.5px}
+.tpil{display:inline-flex;align-items:center;flex:0 0 auto;vertical-align:middle}
+.tpil .tpu-p+.tpu-p{margin-left:-5px}
+.tpil .tpu-plus{margin-left:3px;font-size:9.5px;font-weight:800;color:var(--t3)}
+/* Les pastilles d'identité des EN-TÊTES (planning Semaine et Jour, liste des techniciens, secteurs) portent
+   la couleur de la personne par `--tc` et la classe `av-tc` : même dessin que `.av` — un disque teinté à 24 %,
+   les initiales à la couleur ramenée vers l'encre — au lieu de la teinte de l'application, que la règle
+   `.avatar` ci-dessus leur imposait depuis la refonte (question posée à Justin le 26 septembre, tranchée
+   le même soir : « chaque technicien et sa couleur »). Le second sélecteur pèse plus que la règle de nuit
+   `html[data-marque][data-theme="dark"] .avatar`, qui repeignait les initiales à la teinte. */
+.avatar.av-tc{background-color:color-mix(in srgb,var(--tc) 24%,var(--card,#fff));color:color-mix(in srgb,var(--tc) 55%,var(--t1,#1d1d1f));border-color:transparent}
+html[data-refonte] .avatar.av-tc,html[data-refonte][data-marque] .avatar.av-tc{
+  background-color:color-mix(in srgb,var(--tc) 24%,var(--card))!important;
+  color:color-mix(in srgb,var(--tc) 55%,var(--t1))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tc) 40%,transparent)}
 
 /* L'heure d'une intervention est écrite à la couleur de la personne qui la fait. Sur les cartes
    sombres du tableau de bord, un violet ou un bleu saisis par l'utilisateur tombent à 2,8:1 : on ne
@@ -7943,7 +8004,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '756';
+const APP_VERSION = '757';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13218,7 +13279,7 @@ function techArchiver(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) ret
   (db.boxes||[]).forEach(b=>{ if(Array.isArray(b.techIds)) b.techIds=b.techIds.filter(x=>x!==id); });
   (db.techniciens||[]).forEach(x=>{ if(x.chef===id) x.chef=''; });
   (db.vehicules||[]).forEach(v=>{ if(v.techId===id) v.techId=''; });
-  (db.interventions||[]).forEach(i=>{ if((i.date||'')>=auj){ if(i.techId===id) i.techId=''; if(Array.isArray(i.techIds)&&i.techIds.includes(id)) i.techIds=i.techIds.filter(x=>x!==id); } });   // le passé garde son nom
+  (db.interventions||[]).forEach(i=>{ if((i.date||'')>=auj){ if(Array.isArray(i.techIds)&&i.techIds.includes(id)) i.techIds=i.techIds.filter(x=>x!==id); if(i.techId===id) i.techId=(i.techIds&&i.techIds[0])||''; } });   // le passé garde son nom ; v757 : s'il reste un collègue, il devient le principal (techId suivait `''` et la carte montrait « non assigné »)
   return true; }
 function utilisateurNettoyer(u){ if(!u) return;
   (db.boxes||[]).forEach(b=>{ if(b.respUserId===u.id) b.respUserId=''; if((b.userIds||[]).includes(u.id)) b.userIds=b.userIds.filter(x=>x!==u.id); });
@@ -15972,7 +16033,7 @@ function pgPersSeuls(ids){ const s2=pgPersSet(); s2.clear(); (ids||[]).forEach(i
 function pgPersOccupes(){
   const jours=[]; const n=pgPortee(); for(let k=0;k<n;k++) jours.push(shiftDay(pgRef||todayISO(),k));
   const ok={};
-  visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee').forEach(i=>{ ok[planTechsOf(i)[0]||'']=1; });
+  visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee').forEach(i=>{ const t=planTechsOf(i); (t.length?t:['']).forEach(x=>{ ok[x]=1; }); });
   actAll().filter(a=>jours.indexOf(a.date)>=0).forEach(a=>{ ok[a.techId||'']=1; });
   (db.absences||[]).filter(a=>absValidee(a)&&jours.some(j=>a.du<=j&&j<=(a.au||a.du))).forEach(a=>{ ok[a.techId]=1; });
   return Object.keys(ok);
@@ -15983,7 +16044,7 @@ function pgPersRender(){
   const q=norm(pgPersQ||'');
   const jours=[]; const n=pgPortee(); for(let k=0;k<n;k++) jours.push(shiftDay(pgRef||todayISO(),k));
   const nomDe=id=>id===''?'Non assigné':((db.techniciens.find(t=>t.id===id)||{}).nom||'—');
-  const nbDe=id=>visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee'&&(planTechsOf(i)[0]||'')===id).length;
+  const nbDe=id=>visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee'&&planIntDe(i,id)).length;
   const chefs=(db.techniciens||[]).filter(t=>techEstChef(t.id));
   const occ=pgPersOccupes();
   const raccourcis=[
@@ -16095,7 +16156,7 @@ views.planningGeneral=function(){
   g+=`<div class="pg-hd tot">Total</div>`;
   gens.forEach(p=>{
     const c=techColor(p.id);
-    const mesInts=SRC.filter(i=>(planTechsOf(i)[0]||'')===p.id);
+    const mesInts=SRC.filter(i=>planIntDe(i,p.id));
     const mesAbs=(db.absences||[]).filter(a=>a.techId===p.id&&absValidee(a));
     const mn=mesInts.reduce((s,i)=>s+(parseInt(i.duree)||60),0);
     const jAbs=mesAbs.filter(a=>jours.some(j=>a.du<=j&&j<=(a.au||a.du))).length;
@@ -16118,8 +16179,8 @@ views.planningGeneral=function(){
       } else {
         const max=dense?4:3;
         acts.slice(0,1).forEach(a=>{ cel+=`<div class="pg-act ${dense?'mini':''}" title="${esc(actTitre(a))}">${dense?'':esc(actTitre(a))}</div>`; });
-        mine.slice(0,max).forEach(i=>{ const cc=planCardColor(i); cel+=`<div class="pg-pt ${dense?'mini':''}" style="--cc:${cc};--ci:${encreSur(cc)}"
-            title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}"
+        mine.slice(0,max).forEach(i=>{ const cc=planCouleurDans(i,p.id), pa=planBoutAutres(i,p.id); cel+=`<div class="pg-pt ${dense?'mini':''}${pa?' pt-part':''}" style="--cc:${cc};--ci:${encreSur(cc)}${pa?';'+pa.style:''}"
+            title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||'')+(pa?' · avec '+pa.noms:''))}"
             onclick="event.stopPropagation();detailIntervention('${i.id}')">${dense?'':esc((i.heure?i.heure+' ':'')+(i.titre||''))}</div>`; });
         if(!dense&&mine.length>max) cel+=`<div style="font-size:8.5px;color:var(--t3);font-weight:700;text-align:center">+ ${mine.length-max}</div>`;
       }
@@ -16186,8 +16247,8 @@ function pgFocusBande(p,jours,mesInts,mesAbs){
     let ev='';
     if(ab){ const v=absInfo(ab.type); ev+=`<span class="pgf-ev" style="--c:${v.c}"><b>—</b>${esc(v.l)}${absDemiLib(ab)?' · '+esc(absDemiLib(ab)):''}</span>`; }
     aa.forEach(a=>{ ev+=`<span class="pgf-ev" style="--c:var(--org)"><b>${esc(a.heure||'—')}</b>${esc(actTitre(a))}</span>`; });
-    ii.forEach(i=>{ ev+=`<span class="pgf-ev" style="--c:${planCardColor(i)}" onclick="event.stopPropagation();detailIntervention('${i.id}')">
-        <b>${esc(i.heure||'—')}</b>${esc(i.titre||'Intervention')}${i.clientId?' — '+esc(clientName(i.clientId)):''}</span>`; });
+    ii.forEach(i=>{ ev+=`<span class="pgf-ev" style="--c:${planCouleurDans(i,p.id)}" onclick="event.stopPropagation();detailIntervention('${i.id}')">
+        <b>${esc(i.heure||'—')}</b>${esc(i.titre||'Intervention')}${i.clientId?' — '+esc(clientName(i.clientId)):''}${planAvec(i,p.id)}</span>`; });
     return `<div class="pgf-jr">${esc(fmtJourCourt(j))}</div><div class="pgf-ln">${ev}</div>`;
   }).filter(Boolean).join('');
   return `<div class="pg-foc" style="--tc:${c}">
@@ -16337,7 +16398,7 @@ function tdbDetail(k){
     return `<div class="td-li" onclick="tdbDetailFerme();detailIntervention('${i.id}')">
       <span class="h">${esc(i.heure||'—')}</span>
       <span class="av" style="--tc:${techColor(t)}">${t?initials(techName(t)):'NA'}</span>
-      <span class="nm"><b>${esc(i.titre||'Intervention')}</b><small>${esc(clientName(i.clientId)||'')}${adr?' · '+esc(adr):''}</small></span>
+      <span class="nm"><b>${esc(i.titre||'Intervention')}</b><small>${planPileAutres(i,t)}${esc(clientName(i.clientId)||'')}${adr?' · '+esc(adr):''}</small></span>
       ${extra||st(i)}</div>`; };
   let titre='', corps='', pied='';
   if(k==='int'){
@@ -16427,10 +16488,10 @@ function tdbPlanning(){
   const toutVoir=can('voirTout'), tidMoi=myTechId();
   const groupes=(toutVoir?db.techniciens:db.techniciens.filter(t=>t.id===tidMoi)).map(t=>({id:t.id,nom:t.nom})).concat(toutVoir?[{id:'',nom:'Non assigné'}]:[]);
   const SRC=visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee');
-  const parJT={}; SRC.forEach(i=>{ const k=(planTechsOf(i)[0]||'')+'|'+i.date; (parJT[k]=parJT[k]||[]).push(i); });
+  const parJT={}; SRC.forEach(i=>{ const t=planTechsOf(i); (t.length?t:['']).forEach(x=>{ const k=x+'|'+i.date; (parJT[k]=parJT[k]||[]).push(i); }); });
   const ABS=tdbAbsences(), ACTS=tdbActs();
   /* on ne montre que les lignes qui ont quelque chose, sauf « Non assigné » qui reste utile */
-  const util=groupes.filter(g=>g.id===''||SRC.some(i=>(planTechsOf(i)[0]||'')===g.id)
+  const util=groupes.filter(g=>g.id===''||SRC.some(i=>planIntDe(i,g.id))
     ||ACTS.some(a=>(a.techId||'')===g.id&&jours.indexOf(a.date)>=0)
     ||ABS.some(a=>a.techId===g.id&&absValidee(a)&&jours.some(j=>a.du<=j&&j<=(a.au||a.du))));
   const lignes=util.length?util:groupes.slice(0,4);
@@ -16454,8 +16515,8 @@ function tdbPlanning(){
   lignes.forEach(gr=>{
     const c=techColor(gr.id);
     const absSem=ABS.filter(a=>a.techId===gr.id&&absValidee(a)&&jours.some(j=>a.du<=j&&j<=(a.au||a.du)));
-    const mnT=SRC.filter(i=>(planTechsOf(i)[0]||'')===gr.id).reduce((s,i)=>s+(parseInt(i.duree)||60),0);
-    const nInt=SRC.filter(i=>(planTechsOf(i)[0]||'')===gr.id).length;
+    const mnT=SRC.filter(i=>planIntDe(i,gr.id)).reduce((s,i)=>s+(parseInt(i.duree)||60),0);
+    const nInt=SRC.filter(i=>planIntDe(i,gr.id)).length;
     const sous=gr.id===''?(nInt?nInt+' à répartir':'—'):(absSem.length?absInfo(absSem[0].type).l.toLowerCase():(nInt?fmtHmin(mnT):'libre'));
     g+=`<div class="tdb-tec" style="--tc:${c}" title="${esc(gr.nom)}" ${gr.id?`onclick="planVersTech('${gr.id}')"`:''}>
         <span class="av">${gr.id?initials(gr.nom):'NA'}</span>
@@ -16468,11 +16529,11 @@ function tdbPlanning(){
       if(ab){ cel=`<div class="tdb-abs" style="--ac:${absInfo(ab.type).c}"><b>${esc(absInfo(ab.type).l)}</b></div>`; }
       else {
         acts.slice(0,2).forEach(a=>{ cel+=`<div class="tdb-act" title="${esc(actTitre(a))}"><b>${esc(actTitre(a))}</b></div>`; });
-        mine.slice(0,4).forEach(i=>{ cel+=`<div class="tdb-pc" style="--cc:${planCardColor(i)}"
-            title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}"
+        mine.slice(0,4).forEach(i=>{ const av=planAutres(i,gr.id); cel+=`<div class="tdb-pc${av.length?' pt-part':''}" style="--cc:${planCouleurDans(i,gr.id)}"
+            title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||'')+(av.length?' · avec '+av.map(techName).join(', '):''))}"
             onclick="event.stopPropagation();detailIntervention('${i.id}')">
             <b>${i.heure?`<span class="hh">${esc(i.heure)}</span> `:''}${esc(i.titre||'Intervention')}</b>
-            <small>${esc(clientName(i.clientId)||'')}</small></div>`; });
+            <small>${planPileAutres(i,gr.id)}${esc(clientName(i.clientId)||'')}</small></div>`; });
         if(mine.length>4) cel+=`<div class="tdb-plus">+ ${mine.length-4} autre${mine.length-4>1?'s':''}</div>`;
       }
       g+=`<div class="tdb-cel ${j===todayISO()?'auj':''}" title="Ouvrir le planning du ${esc(fmtShort(j))}"
@@ -16587,11 +16648,11 @@ let planWeekRef=null;
 let planMode='semaine';
 /* En-tête de jour cliquable (vue semaine) → bascule en vue jour sur cette date */
 function planOpenDay(iso){ if(!iso) return; planSel=iso; planWeekRef=iso; planMode='jour'; views.planning(); }
-function planIntCard(i,opts){ opts=opts||{}; const sc=opts.couleurTech?planCardColor(i):(INT_STCOLOR[i.statut]||'var(--t3)');
+function planIntCard(i,opts){ opts=opts||{}; const sc=opts.couleurTech?planCouleurDans(i,opts.ligne):(INT_STCOLOR[i.statut]||'var(--t3)');
   const cf=i.date&&i.heure&&i.techId?intConflictOf(i,i.id):null;
   return `<div class="pl-row lh" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
     <div style="text-align:center;min-width:48px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:15px;color:var(--t1)">${esc(i.heure||'—')}</div><div style="font-size:10px;color:var(--t3)">${i.date?(opts.showDate?fmtShort(i.date):(i.duree||60)+' min'):'—'}</div></div>
-    <div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''} ${cf?'<span class="tag hot" style="font-size:9px" title="Chevauchement avec une autre intervention">Conflit</span>':''}</div><div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?esc(i.type)+' · ':''}${esc(clientName(i.clientId))}${(i.checklist&&i.checklist.length)?` · ☑ ${i.checklist.filter(x=>x.done).length}/${i.checklist.length}`:''}</div>${opts.hideTech?'':`<div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(techNames(i))}${i.recurrence&&i.recurrence!=='aucune'?' · 🔁 '+(INT_RECUR[i.recurrence]||''):''}</div>`}</div>
+    <div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''} ${cf?'<span class="tag hot" style="font-size:9px" title="Chevauchement avec une autre intervention">Conflit</span>':''}</div><div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?esc(i.type)+' · ':''}${esc(clientName(i.clientId))}${(i.checklist&&i.checklist.length)?` · ☑ ${i.checklist.filter(x=>x.done).length}/${i.checklist.length}`:''}</div>${opts.hideTech?(planAutres(i,opts.ligne).length?`<div class="int-techs" style="font-size:11px;color:var(--t3);margin-top:3px">${planAvec(i,opts.ligne)}</div>`:''):`<div class="int-techs" style="font-size:11px;color:var(--t3);margin-top:3px">${techPuces(i)}${i.recurrence&&i.recurrence!=='aucune'?' · 🔁 '+(INT_RECUR[i.recurrence]||''):''}</div>`}</div>
     ${badge(STATUT_INT,i.statut)}</div>`; }
 function planFilterSrc(){
   let SRC=visibleInts(db.interventions,true);
@@ -17028,6 +17089,28 @@ function typeColor(t){ if(!t) return ''; let h=0; const s=String(t); for(let k=0
    Réassigner l'intervention à quelqu'un d'autre la repeint automatiquement, et la
    couleur est exactement celle de sa pin sur la carte : on lit qui fait quoi d'un coup d'œil. */
 function planCardColor(i){ return techColor(planTechsOf(i)[0]||''); }
+/* ⛔ v757 — UNE INTERVENTION APPARTIENT À LA LIGNE DE CHACUN DE SES TECHNICIENS. Le Planning général et le
+   Tableau de bord ne la montraient que dans la ligne du PREMIER (`planTechsOf(i)[0]===id`) : le second y
+   paraissait libre ce jour-là. Justin, 26 septembre 2026 : « on se perd quand on associe plusieurs techniciens
+   sur la même carte ». Les vues Semaine, Jour et Multi le faisaient déjà (`includes`) ; les deux autres
+   suivent. La ligne « Non assigné » (id '') prend celles qui n'en ont aucun. */
+function planIntDe(i,id){ const t=planTechsOf(i); return id?t.indexOf(id)>=0:!t.length; }
+/* La couleur d'une carte posée dans la ligne d'UNE personne est celle de la personne de la ligne : sinon, dans
+   la ligne de Karim, une intervention partagée avec Léo portait la couleur de Léo. Hors d'une ligne : le premier. */
+function planCouleurDans(i,id){ return (id&&planTechsOf(i).indexOf(id)>=0)?techColor(id):planCardColor(i); }
+/* Les AUTRES techniciens d'une intervention partagée, vue depuis la ligne de l'un d'eux. */
+function planAutres(i,id){ const t=planTechsOf(i); return t.length>1?t.filter(x=>x!==id):[]; }
+/* … en bout de case, chacun à sa couleur, pour les cases trop petites pour un nom (Planning général) … */
+function planBoutAutres(i,id){ const a=planAutres(i,id); if(!a.length) return null;
+  const n=Math.min(a.length,3), pas=100/n;
+  const seg=a.slice(0,n).map((x,k)=>`${techColor(x)} ${k?(k*pas).toFixed(1)+'%':'1px'} ${((k+1)*pas).toFixed(1)}%`).join(',');
+  return {style:`--pt-autres:linear-gradient(90deg,var(--card,#fff) 0 1px,${seg});--pt-n:${n}`, noms:a.map(techName).join(', ')}; }
+/* … en disques seuls, pour une carte qui a la place d'une ligne mais pas de trois noms … */
+function planPileAutres(i,id){ const a=planAutres(i,id); if(!a.length) return ''; const noms='avec '+a.map(techName).join(', ');
+  return `<span class="tpil" role="img" aria-label="${esc(noms)}" title="${esc(noms)}">${a.slice(0,3).map(x=>techPastille(x)).join('')}${a.length>3?`<span class="tpu-plus">+${a.length-3}</span>`:''}</span>`; }
+/* … ou nommés, chacun avec son disque, là où la place le permet. */
+function planAvec(i,id,mot){ const a=planAutres(i,id); if(!a.length) return '';
+  return `<span class="pl-avec">${mot||'avec'} ${a.map(x=>`<span class="tpu">${techPastille(x)}<span class="tpu-n">${esc(techName(x))}</span></span>`).join('')}</span>`; }
 /* Capacité / jauge de charge (P16 : capMin sur la fiche technicien, défaut 7 h) */
 function techCap(id){ const t=db.techniciens.find(x=>x.id===id); return (t&&parseInt(t.capMin))||420; }
 function planGauge(min,cap,title,coul){ if(!cap) return ''; const pc=Math.round(min/cap*100);
@@ -17226,7 +17309,7 @@ function planMini(i){ const sc=planCardColor(i); const cf=(i.date&&i.heure)?intC
   const nT=planNumOf(i.id), pn=nT?`<span class="pnum" style="background:${planCoulOf(i)}" title="Intervention n°${nT} de la tournée">${nT}</span>`:'';
   const badges=(i.passageTotal>1?`<span class="bdg">${(i.passageNum||'?')}/${i.passageTotal}</span>`:'')+(i.sousGarantie?'<span class="bdg gar" title="Sous garantie">garantie</span>':'')+(i.obligation?'<span class="bdg alr" title="Placée malgré un congé">congé</span>':'');
   return `<div class="plg-mini ${i.propose?'prop':''} ${planMatch(i)?'':'dim'}" draggable="${canPlan()?'true':'false'}" data-drag-int="${i.id}" ondragstart="planDragStart(event,'${i.id}')" onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}" style="border-left-color:${sc};${cf?'outline:1.5px solid var(--red);':''}">
-    ${by}${pn}<b>${i.heure?`<span class="hh">${esc(i.heure)}</span> · `:''}<span class="tt">${esc(i.titre||'Intervention')}</span>${i.prio==='haute'?'<span class="bdg urg" title="Priorité haute">urgent</span>':''}${badges}</b>${planCarteInfos(i)}${i.obligation?'<small class="ci" style="color:var(--org)">placée malgré un congé</small>':''}</div>`; }
+    ${by}${pn}<b>${techPile(i,3)}${i.heure?`<span class="hh">${esc(i.heure)}</span> · `:''}<span class="tt">${esc(i.titre||'Intervention')}</span>${i.prio==='haute'?'<span class="bdg urg" title="Priorité haute">urgent</span>':''}${badges}</b>${planCarteInfos(i)}${i.obligation?'<small class="ci" style="color:var(--org)">placée malgré un congé</small>':''}</div>`; }
 function planDragStart(e,id){ if(!canPlan()){ try{ e.preventDefault(); }catch(_){ } return; }
   try{ e.dataTransfer.setData('text/plain',id); }catch(_){ }
   window._planDragging=true; window._planDragId=id;
@@ -18524,7 +18607,7 @@ function planMultiBarre(SRC){
     <div class="plm-mh"><span class="btn sm" onclick="planTechMTous(true)">✓ Tous</span><span class="btn ghost sm" onclick="planTechMTous(false)">✕ Aucun</span></div>
     ${tous.map(t=>`<div class="plm-row ${s.has(t.id)?'on':''}" onclick="planTechMToggle('${t.id}')">
       <span class="cb">${s.has(t.id)?'✓':''}</span>
-      <span class="av" style="background:${t.id===''?'var(--card2)':techColor(t.id)}">${t.id===''?'NA':initials(t.nom)}</span>
+      <span class="av" style="--tc:${techColor(t.id)}">${t.id===''?'NA':initials(t.nom)}</span>
       <span class="nm">${esc(t.nom)}</span><small>${nbInt(t)} int.</small></div>`).join('')}
   </div>`:'';
   const ints=SRC.filter(i=>planJours.includes(i.date)&&planTechVisible(i));
@@ -18612,7 +18695,7 @@ function planMultiHtml(SRC){
             <span><b>${esc(fmtJourCourt(j))}</b><small>${mien.length} int.${mn?' · '+fmtHmin(mn):''}</small></span></div>`
         : `<div class="plm-th${fin} plg-tete${t.id?' clic':''}" style="--ct:${t.id===''?'var(--org)':techColor(t.id)}"
           ${t.id?`onclick="planVersTech('${t.id}')" data-tip="N’afficher que le planning de ${esc(t.nom)}"`:''}>
-        <span class="av" style="background:${t.id===''?'var(--card2)':techColor(t.id)}">${t.id===''?'NA':initials(t.nom)}</span>
+        <span class="av" style="--tc:${techColor(t.id)}">${t.id===''?'NA':initials(t.nom)}</span>
         <span style="min-width:0;flex:1"><b title="${esc(t.nom)}">${esc(t.nom)}</b><small>${mien.length} intervention${mien.length>1?'s':''}</small>
           ${t.id?planGauge(mn,capM,'Charge de la journée ('+fmtHmin(mn)+' sur '+fmtHmin(capM)+')',techColor(t.id)):''}</span>
         ${t.id?`<span class="plg-go">›</span>`:''}</div>`;
@@ -18627,7 +18710,7 @@ function planMultiHtml(SRC){
         const m=toMinH(i.heure); if(m===null) return;
         const top=Math.max(0,(m-h0*60)/60*PPH), haut=Math.max(34,(parseInt(i.duree)||60)/60*PPH-3);
         const c=db.clients.find(x=>x.id===i.clientId);
-        const coul=planCardColor(i);
+        const coul=planCouleurDans(i,t.id);
         const st=STATUT_INT[i.statut]||{};
         const pos=cote[i.id];
         /* ⚠️ LE TEXTE COMPLET RESTE ATTEIGNABLE, comme sur les cases voisines. Audit du
@@ -18637,10 +18720,10 @@ function planMultiHtml(SRC){
            `.plm-card` était la SEULE à ne rien porter — là le mot coupé ne se retrouvait
            nulle part sans ouvrir la fiche. Un libellé tronqué ne nomme rien. */
         col+=`<div class="plm-card${(pos&&pos.n>1)?' chev':''}" data-int="${i.id}" data-drag-int="${i.id}" draggable="${canPlan()?'true':'false'}" ondragstart="planDragStart(event,'${i.id}')"
-          title="${esc((i.heure?i.heure+' · ':'')+(i.titre||'Intervention')+(c?' — '+(c.nom||''):''))}"
+          title="${esc((i.heure?i.heure+' · ':'')+(i.titre||'Intervention')+(c?' — '+(c.nom||''):'')+(planAutres(i,t.id).length?' · avec '+planAutres(i,t.id).map(techName).join(', '):''))}"
           onclick="event.stopPropagation();detailIntervention('${i.id}')"
           style="top:${top}px;height:${haut}px;border-left-color:${coul};${planCoteStyle(pos)}">
-          <b>${i.heure?`<span class="hh">${esc(i.heure)}</span> · `:''}<span class="tt">${esc(i.titre||'Intervention')}</span></b>
+          <b>${planPileAutres(i,t.id)}${i.heure?`<span class="hh">${esc(i.heure)}</span> · `:''}<span class="tt">${esc(i.titre||'Intervention')}</span></b>
           ${planCarteInfos(i,{h:haut})}${planCartePied(i,haut)}
           <span class="pn" style="background:${techColor(t.id)};color:${encreSur(techColor(t.id))}">${num[i.id]||''}</span>
           ${(haut>44&&!planCartePiedOk(i,haut))?`<span class="stt st-${esc(i.statut)}">${esc(st.l||i.statut)}</span>`:''}
@@ -18766,7 +18849,7 @@ function plHovHtml(i){
       <div class="hv-l"><i>${ico('cli')}</i><span><b>${esc(c.nom||'Client non renseigné')}</b>${c.contact?'<br>'+esc(c.contact):''}${c.typeClient?' — '+(c.typeClient==='pro'?'professionnel':'particulier'):''}</span></div>
       ${adr?`<div class="hv-l"><i>${ico('pin')}</i><span>${esc(adr)}</span></div>`:''}
       ${tel?`<div class="hv-l"><i>${ico('tel')}</i><span>${esc(tel)}</span></div>`:''}
-      <div class="hv-l"><i>${ico('equipe')}</i><span><b>${esc(techNames(i)||'Non assigné')}</b>${n?' · tournée n°'+n:''}</span></div>
+      <div class="hv-l"><i>${ico('equipe')}</i><span><b>${techPuces(i)}</b>${n?' · tournée n°'+n:''}</span></div>
     </div>
     ${chips.length?`<div class="hv-ch">${chips.map(x=>`<span>${x}</span>`).join('')}</div>`:''}
     ${av?`<div class="hv-tj">${av.leg.min} min · ${planKm(av.leg.km)} depuis ${esc(av.prevNom||'l’intervention précédente')} — arrivée ${clockFromMin(av.arr)}${m!==null?(av.arr<=m?'':' — en retard sur '+esc(i.heure)):''}</div>`:''}
@@ -18942,9 +19025,9 @@ function planMultiCarte(SRC){
     const coords=[];
     pts.forEach(p=>{
       const t=planTechsOf(p.i)[0]||'', n=num[p.i.id]||'';
-      const mk=L.marker([p.lat,p.lng],{icon:numIcon(n,techColor(t)),opacity:(jours.length>1&&p.i.date!==jours[0])?0.78:1})
+      const mk=L.marker([p.lat,p.lng],{icon:numIcon(n,techColor(t),planTechsOf(p.i).slice(1).map(techColor)),opacity:(jours.length>1&&p.i.date!==jours[0])?0.78:1})
         .addTo(_planMap)
-        .bindPopup(`<b>${n?n+'. ':''}${esc(p.i.titre||'')}</b><br>${esc(fmtShort(p.i.date))} · ${esc(p.i.heure||'')} · 👷 ${esc(techNames(p.i))}<br>${esc(p.nom||'')}<br><span style="color:#666">${esc(p.adresse||'')}</span>${planPopStatut(p.i)}${typeof gpsLinks==='function'?gpsLinks(p.lat+','+p.lng):''}<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" onclick="detailIntervention('${p.i.id}')">Ouvrir la fiche</button><button class="btn ghost sm" onclick="planVersPlanning('${p.i.id}')">📅 Dans le planning</button></div>`);
+        .bindPopup(`<b>${n?n+'. ':''}${esc(p.i.titre||'')}</b><br>${esc(fmtShort(p.i.date))} · ${esc(p.i.heure||'')} · ${techPuces(p.i)}<br>${esc(p.nom||'')}<br><span style="color:#666">${esc(p.adresse||'')}</span>${planPopStatut(p.i)}${typeof gpsLinks==='function'?gpsLinks(p.lat+','+p.lng):''}<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" onclick="detailIntervention('${p.i.id}')">Ouvrir la fiche</button><button class="btn ghost sm" onclick="planVersPlanning('${p.i.id}')">📅 Dans le planning</button></div>`);
       mk.on('mouseover',function(){ planLierPlanning([p.i.id],true); });
       mk.on('mouseout',function(){ planLierPlanning([p.i.id],false); });
       mk.on('click',function(){ planFocusSet(t,false); });   // le clic allume toutes les tournées de ce technicien
@@ -19169,7 +19252,7 @@ function planWeekHtml(SRC){ if((window.innerWidth||1200)<700) return planWeekLis
     const cW=techColor(gr.id||'');
     /* une barre pleine largeur entre deux personnes : on ne les confond plus */
     if(ig>0) g+=`<div class="plg-sepl" style="--cs:${cW}"></div>`;
-    g+=`<div class="plg-tech plg-tete${gr.id?' clic':''}" style="--ct:${cW}" ${gr.id?`onclick="planVersTech('${gr.id}')" title="Voir uniquement le planning de ${esc(gr.nom)}"`:''}><span class="avatar" style="width:24px;height:24px;font-size:10px;flex-shrink:0;background:${cW};color:#fff">${initials(gr.nom)}</span><span style="min-width:0;overflow:hidden;flex:1">${esc(gr.nom)}${online?' <span class="dot-on"></span>':''}<span class="sub">${wk.length?wk.length+' int. cette semaine':'libre'}</span>${gr.id?planGauge(totW,capW,'Charge de la semaine ('+fmtHmin(totW)+' / '+fmtHmin(capW)+' sur 5 jours)',cW):''}</span>${gr.id?`<span class="plg-go">›</span>`:''}</div>`;
+    g+=`<div class="plg-tech plg-tete${gr.id?' clic':''}" style="--ct:${cW}" ${gr.id?`onclick="planVersTech('${gr.id}')" title="Voir uniquement le planning de ${esc(gr.nom)}"`:''}><span class="avatar av-tc" style="width:24px;height:24px;font-size:10px;flex-shrink:0;--tc:${cW}">${initials(gr.nom)}</span><span style="min-width:0;overflow:hidden;flex:1">${esc(gr.nom)}${online?' <span class="dot-on"></span>':''}<span class="sub">${wk.length?wk.length+' int. cette semaine':'libre'}</span>${gr.id?planGauge(totW,capW,'Charge de la semaine ('+fmtHmin(totW)+' / '+fmtHmin(capW)+' sur 5 jours)',cW):''}</span>${gr.id?`<span class="plg-go">›</span>`:''}</div>`;
     // colonne des heures, propre à cette ligne
     const eid='plgech-'+(gr.id||'na');
     let ech=`<div class="plg-ech" id="${eid}" style="height:${HW}px">`;
@@ -19195,7 +19278,7 @@ function planWeekHtml(SRC){ if((window.innerWidth||1200)<700) return planWeekLis
       const nVoies=Math.max(1,finVoie.length);
       const cartes=ints.map(i=>{
         const m=toMinH(i.heure), dur=Math.max(15,parseInt(i.duree)||60);
-        const sc=planCardColor(i), cf=(i.date&&i.heure)?intConflictOf(i,i.id):null;
+        const sc=planCouleurDans(i,gr.id), cf=(i.date&&i.heure)?intConflictOf(i,i.id):null, av=planAutres(i,gr.id);
         const nT=planNumOf(i.id);
         let pos, hpx;
         if(m===null){ hpx=16; pos=`bottom:${1+sh*17}px`; sh++; }
@@ -19206,11 +19289,11 @@ function planWeekHtml(SRC){ if((window.innerWidth||1200)<700) return planWeekLis
         const lg=(m===null||nVoies<2)?'left:2px;right:2px'
           :`left:calc(2px + ${(100/nVoies*v).toFixed(3)}%);width:calc(${(100/nVoies).toFixed(3)}% - 3px)`;
         return `<div class="plg-mh ${hpx>=25?'deux':''} ${m===null?'sh':''} ${cf?'cf':''} ${planMatch(i)?'':'dim'}" data-int="${i.id}" data-drag-int="${i.id}"
-          title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}"
+          title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||'')+(av.length?' · avec '+av.map(techName).join(', '):''))}"
           draggable="${canPlan()?'true':'false'}" ondragstart="planDragStart(event,'${i.id}')"
           onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}"
           style="${lg};${pos};height:${Math.round(hpx)}px;--cc:${sc}">
-          ${pn}<b>${i.heure?`<span class="hh">${esc(i.heure)}</span> `:''}${esc(i.titre||'Intervention')}</b>${detail}</div>`;
+          ${pn}<b>${planPileAutres(i,gr.id)}${i.heure?`<span class="hh">${esc(i.heure)}</span> `:''}${esc(i.titre||'Intervention')}</b>${detail}</div>`;
       }).join('');
       g+=`<div class="plg-cell heur ${iso===todayISO()?'today':''} ${abs?'absx':''}" data-drop="cell:${iso}:${gr.id}" data-ech="${eid}"
         style="height:${HW}px"
@@ -19323,7 +19406,7 @@ function planDayHtml(SRC){ if((window.innerWidth||1200)<700) return planDayListH
     heads.push(`<div class="plt-h plg-tete${gr.id?' clic':''}" style="flex-direction:column;gap:3px;padding:7px 5px;--ct:${cTech}"
         ${gr.id?`onclick="planVersTech('${gr.id}')" title="Voir uniquement le planning de ${esc(gr.nom)}"`:''}>
       <span style="display:flex;gap:7px;align-items:center;justify-content:center;min-width:0;max-width:100%">
-        <span class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;background:${cTech};color:#fff">${initials(gr.nom)}</span>
+        <span class="avatar av-tc" style="width:26px;height:26px;font-size:10px;flex-shrink:0;--tc:${cTech}">${initials(gr.nom)}</span>
         <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(gr.nom)}${online?' <span class="dot-on"></span>':''}</span></span>
       <span style="color:var(--t3);font-weight:600;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${ints.length} intervention${ints.length>1?'s':''}${abs?' · absent':''}</span>
       ${gr.id?planGauge(tot,techCap(gr.id),'',cTech):`<span style="color:var(--t3);font-weight:600;font-size:10px">${ints.length?fmtHmin(tot):'libre'}</span>`}
@@ -19342,7 +19425,7 @@ function planDayHtml(SRC){ if((window.innerWidth||1200)<700) return planDayListH
     const timed=ints.filter(i=>toMinH(i.heure)!==null).sort((a,b)=>toMinH(a.heure)-toMinH(b.heure));
     ints.sort((a,b)=>(a.heure||'').localeCompare(b.heure||'')).forEach(i=>{
       const m=toMinH(i.heure); const dur=Math.max(30,parseInt(i.duree)||60);
-      const sc=planCardColor(i);
+      const sc=planCouleurDans(i,gr.id), av=planAutres(i,gr.id);
       const cf=i.heure?intConflictOf(i,i.id):null;
       const by=(i.planBy&&i.planBy.nom)?`<span class="who" title="Dernier déplacement : ${esc(i.planBy.nom)}">${initials(i.planBy.nom)}</span>`:'';
       const badges=(i.passageTotal>1?`<span class="bdg">${(i.passageNum||'?')}/${i.passageTotal}</span>`:'')+(i.sousGarantie?'<span class="bdg gar" title="Sous garantie">garantie</span>':'')+(i.obligation?'<span class="bdg alr" title="Placée malgré un congé">congé</span>':'');
@@ -19350,8 +19433,8 @@ function planDayHtml(SRC){ if((window.innerWidth||1200)<700) return planDayListH
       if(m===null){ top=4+sansHeure*40; hpx=36; sansHeure++; dash='border-style:dashed;'; }
       else { top=Math.max(0,(m-h0*60)/60*PPH); hpx=Math.max(34,dur/60*PPH-4); }   // la case fait la durée ; le contenu s'adapte
       const posJ=(m===null)?null:coteJ[i.id];
-      blocks+=`<div class="plt-blk ${cf?'cf':''} ${(posJ&&posJ.n>1)?'chev':''} ${i.propose?'prop':''} ${planMatch(i)?'':'dim'}" title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||''))}" draggable="${canPlan()?'true':'false'}" data-drag-int="${i.id}" ondragstart="planDragStart(event,'${i.id}')" onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}" style="top:${top}px;height:${hpx}px;border-left-color:${sc};${dash}${planCoteStyle(posJ)}">
-        ${by}${(function(){ const n=planNumOf(i.id); return n?`<span class="pnum" style="background:${planCoulOf(i)}" title="Intervention n°${n} de la tournée">${n}</span>`:''; })()}<b>${i.heure?`<span class="hh">${esc(i.heure)}</span>`:'— sans heure'} · <span class="tt">${esc(i.titre||'')}</span>${badges}</b>${planCarteInfos(i,{h:hpx})}${planCartePied(i,hpx)}${(i.obligation&&hpx>=110)?'<small class="ci" style="color:var(--org)">placée malgré un congé</small>':''}</div>`; });
+      blocks+=`<div class="plt-blk ${cf?'cf':''} ${(posJ&&posJ.n>1)?'chev':''} ${i.propose?'prop':''} ${planMatch(i)?'':'dim'}" title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||'')+(av.length?' · avec '+av.map(techName).join(', '):''))}" draggable="${canPlan()?'true':'false'}" data-drag-int="${i.id}" ondragstart="planDragStart(event,'${i.id}')" onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}" style="top:${top}px;height:${hpx}px;border-left-color:${sc};${dash}${planCoteStyle(posJ)}">
+        ${by}${(function(){ const n=planNumOf(i.id); return n?`<span class="pnum" style="background:${planCoulOf(i)}" title="Intervention n°${n} de la tournée">${n}</span>`:''; })()}<b>${planPileAutres(i,gr.id)}${i.heure?`<span class="hh">${esc(i.heure)}</span>`:'— sans heure'} · <span class="tt">${esc(i.titre||'')}</span>${badges}</b>${planCarteInfos(i,{h:hpx})}${planCartePied(i,hpx)}${(i.obligation&&hpx>=110)?'<small class="ci" style="color:var(--org)">placée malgré un congé</small>':''}</div>`; });
     // Battement entre 2 interventions consécutives d'un même technicien (P4) — clients différents
     for(let k=0;k<timed.length-1;k++){ const a=timed[k], b=timed[k+1];
       if(!a.clientId||!b.clientId||a.clientId===b.clientId) continue;
@@ -19403,8 +19486,8 @@ function planDayListHtml(SRC){
     const tot=ints.reduce((s,i)=>s+(parseInt(i.duree)||60),0);
     const abs=g.id?absentOn(g.id,planSel):null;
     return `<div ondragover="event.preventDefault();this.style.outline='2px solid var(--acc)'" ondragleave="this.style.outline=''" ondrop="this.style.outline='';planDropTech(event,'${g.id}')" style="border-radius:14px;padding:2px;margin-bottom:12px;${abs?'opacity:.75':''}">
-      <div style="display:flex;align-items:center;gap:8px;margin:0 2px 6px"><span class="avatar" style="width:26px;height:26px;font-size:11px">${initials(g.nom)}</span><b style="font-size:13.5px">${esc(g.nom)}</b>${abs?`<span style="font-size:11px;color:var(--org);font-weight:700">${esc(ABS_TYPES[abs.type]||abs.type)}</span>`:''}<span style="font-size:11px;color:var(--t3)">${ints.length?ints.length+' int. · '+Math.floor(tot/60)+'h'+String(tot%60).padStart(2,'0'):'libre'}</span></div>
-      ${ints.length?ints.map(i=>planIntCard(i,{hideTech:true,couleurTech:true})).join(''):`<div style="border:1px dashed var(--brd);border-radius:12px;padding:12px;text-align:center;color:var(--t3);font-size:12px">Déposez une intervention ici</div>`}
+      <div style="display:flex;align-items:center;gap:8px;margin:0 2px 6px"><span class="avatar av-tc" style="width:26px;height:26px;font-size:11px;--tc:${techColor(g.id)}">${initials(g.nom)}</span><b style="font-size:13.5px">${esc(g.nom)}</b>${abs?`<span style="font-size:11px;color:var(--org);font-weight:700">${esc(ABS_TYPES[abs.type]||abs.type)}</span>`:''}<span style="font-size:11px;color:var(--t3)">${ints.length?ints.length+' int. · '+Math.floor(tot/60)+'h'+String(tot%60).padStart(2,'0'):'libre'}</span></div>
+      ${ints.length?ints.map(i=>planIntCard(i,{hideTech:true,couleurTech:true,ligne:g.id})).join(''):`<div style="border:1px dashed var(--brd);border-radius:12px;padding:12px;text-align:center;color:var(--t3);font-size:12px">Déposez une intervention ici</div>`}
     </div>`; }).join('');
   return nav+`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">Glissez une carte sur un technicien pour la réassigner${canPlan()?' · sur un jour (vue Semaine/Mois) pour changer la date':''}</div>`+secs;
 }
@@ -20028,7 +20111,7 @@ function planNextCreate(id,mode){ const i=db.interventions.find(x=>x.id===id); i
 function planProposeModal(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   if(!canPlan()){ detailIntervention(id); return; }
   openModal(`<div class="modal-head"><h3>Créneau proposé</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">« <b>${esc(i.titre)}</b> »${i.passageTotal>1?' (passage '+(i.passageNum||'?')+'/'+i.passageTotal+')':''}<br>${esc(fmtLong(i.date))} à <b>${esc(i.heure||'—')}</b> · ${esc(techNames(i))}<br><span style="color:var(--org);font-size:12px">Proposition automatique — glissez la carte pour ajuster, ou confirmez.</span></p>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">« <b>${esc(i.titre)}</b> »${i.passageTotal>1?' (passage '+(i.passageNum||'?')+'/'+i.passageTotal+')':''}<br>${esc(fmtLong(i.date))} à <b>${esc(i.heure||'—')}</b> · ${techPuces(i)}<br><span style="color:var(--org);font-size:12px">Proposition automatique — glissez la carte pour ajuster, ou confirmez.</span></p>
     <div class="modal-foot" style="flex-wrap:wrap"><button class="btn ghost" onclick="closeModal();detailIntervention('${id}')">Ouvrir la fiche</button>
       <button class="btn" onclick="planProposeConfirm('${id}')">✅ Confirmer ce créneau</button></div>`); }
 function planProposeConfirm(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
@@ -20425,7 +20508,7 @@ views.absences=function(){ db.absences=db.absences||[];
     if(absCompteSolde(a)&&st==='attente'){ const so=absSolde(a.techId);
       soldeInfo=` · reste ${absNb(so.reste)} jour${so.reste>1?'s':''} après`; }
     return `<div class="abs-row" style="--c:${st==='attente'?'var(--org)':st==='refusee'?'var(--red)':c}">
-      <span class="av" style="background:${techColor(a.techId)}">${initials(techName(a.techId)||'—')}</span>
+      <span class="av" style="--tc:${techColor(a.techId)}">${initials(techName(a.techId)||'—')}</span>
       <span class="nm" onclick="formAbsence('${a.id}')">
         <b>${esc(techName(a.techId)||'—')}<span class="ty" style="background:color-mix(in srgb,${c} 18%,transparent);color:${c}">${esc(ABS_TYPES[a.type]||a.type)}</span>${jus}</b>
         <small>${periode} · ${absNbTexte(a)}${soldeInfo}${a.creeLe?' · demandé le '+esc(fmtShort(a.creeLe)):''}</small>
@@ -20982,7 +21065,7 @@ views.interventions=function(){
       <div class="pl-info">
         <div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">⚠️ Urgent</span>':''}</div>
         <div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?`<span style="color:${encreDonnee(typeColor(i.type))};font-weight:700">${esc(i.type)}</span> · `:''}${esc(clientName(i.clientId))}</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(techNames(i))}${intBadges(i)}</div>
+        <div class="int-techs" style="font-size:11px;color:var(--t3);margin-top:3px">${techPuces(i)}${intBadges(i)}</div>
         ${i.statut==='annulee'&&i.motifAnnulation?`<div style="font-size:11px;color:var(--red);font-weight:700;margin-top:2px">🚫 ${esc(i.motifAnnulation)}</div>`:''}
         ${intCkBar(i)}
       </div>
@@ -21092,7 +21175,7 @@ views.interventions=function(){
     return `<div class="tf-rangee" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" onclick="detailIntervention('${i.id}')" style="--tf-c:${sc}">
       <span class="tf-badge">${esc(String(i.num||'—'))}</span>
       <div class="tf-corps">
-        <div class="tf-l1"><b class="tf-titre" title="${esc(i.titre||'Intervention')}">${esc(i.titre||'Intervention')}</b><span class="tf-fin">${esc(i.heure||'—')}</span></div>
+        <div class="tf-l1"><b class="tf-titre" title="${esc(i.titre||'Intervention')}">${esc(i.titre||'Intervention')}</b>${techPile(i,3)}<span class="tf-fin">${esc(i.heure||'—')}</span></div>
         <div class="tf-l2"><i class="tf-pt" aria-hidden="true"></i><span title="${esc(l2t)}">${i.statut==='planifiee'?'':esc(st)+' · '}${i.prio==='haute'?'<b style="color:var(--red)">Urgent</b> · ':''}${esc(clientName(i.clientId)||'—')}</span></div>
         ${l3?`<div class="tf-l3"><span title="${esc(l3t)}">${l3}</span></div>`:''}
       </div>
@@ -21133,6 +21216,7 @@ function intTechCard(i,opts){ opts=opts||{}; const cli=db.clients.find(c=>c.id==
         <div style="font-weight:800;font-size:${opts.big?'15.5px':'14px'};color:var(--t1)">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">⚠️ Urgent</span>':''}</div>
         <div style="font-size:13px;color:var(--t2);margin-top:3px">${esc(clientName(i.clientId)||'—')}</div>
         ${adr?`<div style="font-size:12px;color:var(--t3);margin-top:2px">📍 ${esc(adr)}</div>`:''}
+        ${(()=>{ const av=planAvec(i,myTechId(),'Avec'); return av?`<div class="mj-avec">${av}</div>`:''; })()}
         <div style="font-size:11.5px;color:var(--t3);margin-top:3px">${i.type?`<span style="color:${encreDonnee(tc)};font-weight:700">${esc(i.type)}</span>`:''}${intBadges(i)}</div>
         ${intCkBar(i)}
       </div>
@@ -23461,7 +23545,7 @@ function renderIntDetail(id){
       <details open class="olsec"><summary><span class="olsec-ic">${fic('list',19)}</span>Éléments clés</summary><div class="olsec-b">
         <div style="display:flex;align-items:center;gap:6px;padding:2px 0 10px"><b style="font-size:13.5px;white-space:nowrap">Société</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right">${esc(rapportSociete(i.rapportModele))}</span></div>
         <b style="font-size:13.5px">Intervenants</b>
-        <div style="margin:6px 0 12px;border-left:3px solid var(--brd);padding-left:10px">${intTechIds(i).length?intTechIds(i).map((tid,k)=>`<div style="display:flex;gap:8px;align-items:center;padding:3px 0"><span style="width:20px;height:20px;border-radius:5px;background:var(--acc);color:var(--on-acc);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">${(techName(tid)||'?').slice(0,1)}</span><span style="font-size:13.5px">${esc(techName(tid))}${k===0?' <span style="color:var(--t3)">(Leader)</span>':''}</span></div>`).join(''):'<span style="color:var(--t3);font-size:13px">Non assignée</span>'}</div>
+        <div style="margin:6px 0 12px;border-left:3px solid var(--brd);padding-left:10px">${intTechsAff(i).length?intTechsAff(i).map((tid,k)=>`<div style="display:flex;gap:8px;align-items:center;padding:3px 0">${techPastille(tid,'g')}<span style="font-size:13.5px">${esc(techName(tid))}${k===0?' <span style="color:var(--t3)">(Leader)</span>':''}</span></div>`).join(''):'<span style="color:var(--t3);font-size:13px">Non assignée</span>'}</div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 0"><b style="font-size:13.5px;white-space:nowrap">Rapport personnalisé</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right;max-width:55%">${esc(i.rapportModele||'')||'Modèle générique'}</span></div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 0"><b style="font-size:13.5px;white-space:nowrap">Catégorie</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right">${esc(i.type||'')||'—'}</span></div>
         <div style="padding:8px 0 2px"><b style="font-size:13.5px">Demandes client</b><div style="font-size:12.5px;color:var(--t2);margin-top:5px;border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding-left:12px;min-height:17px;white-space:pre-wrap">${esc(i.desc||'')}</div></div>
@@ -23490,7 +23574,7 @@ function renderIntDetail(id){
         ${entSocUnique()?`<div class="field" style="margin-bottom:12px"><label>Société</label><input value="${esc(rapportSociete(i.rapportModele||entSocUnique()))}" disabled style="opacity:.65"></div>`
           :`<div class="field" style="margin-bottom:12px"><label>Société (documents, e-mails, SMS)</label><select onchange="intEditField('${id}','rapportModele',this.value);renderIntDetail('${id}')">${entSocietes().map(t=>`<option ${(i.rapportModele||'Modèle générique')===t?'selected':''}>${esc(t)}</option>`).join('')}${i.rapportModele&&!entSocietes().includes(i.rapportModele)?`<option selected>${esc(i.rapportModele)}</option>`:''}</select></div>`}
         <b style="font-size:13px">Intervenants</b>
-        <div style="margin:7px 0 12px"><span style="display:inline-block;background:color-mix(in srgb,var(--acc) 16%,transparent);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:10px;padding:9px 13px;font-size:13px;font-weight:600">${esc(techNames(i))}${intTechIds(i).length?' (Leader)':''}</span></div>
+        <div style="margin:7px 0 12px"><span style="display:inline-block;background:color-mix(in srgb,var(--acc) 16%,transparent);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:10px;padding:9px 13px;font-size:13px;font-weight:600">${techPuces(i,{leader:true})}</span></div>
         <b style="font-size:13px">Demandes client</b>
         ${i.desc?`<div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);margin:7px 0;white-space:pre-wrap">${esc(i.desc)}</div>`:''}
         <button class="btn" style="width:100%;justify-content:center;border-radius:100px;margin-top:8px;padding:12px" onclick="intAddDemande('${id}')">Ajouter une demande client</button>
@@ -24134,7 +24218,7 @@ function intHistoriquePassages(id){ const i=db.interventions.find(x=>x.id===id);
       return `<div class="pl-row" onclick="closeModal();detailIntervention('${x.id}')" style="border-left:3px solid ${INT_STCOLOR[x.statut]||'var(--t3)'}">
       <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;background:${done?'rgba(34,197,94,.15)':cancel?'rgba(148,163,184,.15)':'rgba(248,113,113,.14)'};color:${done?'#22c55e':cancel?'var(--t3)':'var(--red)'}">${done?'✓':cancel?'—':'✕'}</div>
       <div class="pl-info"><div class="pl-title">${esc(x.titre)}${x.passageTotal>1?` <span class="tag" style="font-size:9px">${x.passageNum}/${x.passageTotal}</span>`:''}</div>
-      <div class="pl-meta">${x.date?fmtShort(x.date)+(x.heure?' à '+x.heure:''):'À planifier'} · ${esc(techNames(x))}${(()=>{ const lv=intInfOf(x); if(!lv) return ''; const cfg=INF_LV.find(z=>z[0]===lv)||[]; return ` · <b style="color:${encreDonnee(cfg[2]||'var(--t3)')}">infestation ${cfg[1]||lv}</b>`; })()}</div></div>
+      <div class="pl-meta">${x.date?fmtShort(x.date)+(x.heure?' à '+x.heure:''):'À planifier'} · ${techPuces(x)}${(()=>{ const lv=intInfOf(x); if(!lv) return ''; const cfg=INF_LV.find(z=>z[0]===lv)||[]; return ` · <b style="color:${encreDonnee(cfg[2]||'var(--t3)')}">infestation ${cfg[1]||lv}</b>`; })()}</div></div>
       ${badge(STATUT_INT,x.statut)}</div>`; }).join('')}
     ${(i.histo&&i.histo.length)?`<div class="dt-lbl" style="margin:14px 2px 6px">Journal de cette fiche</div>${i.histo.slice(-8).reverse().map(h=>`<div style="display:flex;gap:10px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--brd)"><span style="color:var(--t3);white-space:nowrap">${new Date(h.ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})} ${new Date(h.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><span style="flex:1">${esc(h.txt)}${h.par?` <span style="color:var(--t3)">· ${esc(h.par)}</span>`:''}</span></div>`).join('')}`:''}`); }
 function _copieInt(i,extra){ const n={id:uid(),num:intNum(),titre:i.titre,type:i.type,clientId:i.clientId,techId:i.techId,techIds:intTechIds(i).slice(),adresse:i.adresse,date:i.date,heure:i.heure,duree:i.duree,prio:i.prio,statut:'planifiee',recurrence:i.recurrence,desc:i.desc||'',montant:i.montant||0,rapportModele:i.rapportModele||'',nuisibles:(i.nuisibles||[]).slice(),nuisible:i.nuisible||'—',methodes:(i.methodes||[]).slice(),traitementNuis:JSON.parse(JSON.stringify(i.traitementNuis||{})),checklist:(i.checklist||[]).map(x=>({t:x.t,done:false})),compteRendu:'',...extra}; return n; }
@@ -24340,7 +24424,7 @@ views.registre=function(){
     return `<div class="pl-row" onclick="detailIntervention('${i.id}')">
       <div style="text-align:center;min-width:54px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:14px">${fmtShort(i.date)}</div><div style="font-size:10px;color:var(--t3)">${esc(i.heure||'')}</div></div>
       <div class="pl-info"><div class="pl-title">${esc(i.type||i.titre)}${i.nuisible&&i.nuisible!=='—'?' · '+esc(i.nuisible):''}</div>
-        <div class="pl-meta">🧑‍🔧 ${esc(techNames(i))}${co.recommandations?' · '+esc(co.recommandations.slice(0,40)):''}</div></div>
+        <div class="pl-meta">${techPuces(i)}${co.recommandations?' · '+esc(co.recommandations.slice(0,40)):''}</div></div>
       <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">${co.infestation?`<span class="st ${inf}" style="font-size:9px">${esc(co.infestation)}</span>`:''}${co.conformite?`<span class="st ${cf}" style="font-size:9px">${esc(co.conformite)}</span>`:''}</div>
     </div>`;}).join('');
   const bioRows=bio.map(l=>`<div class="pl-row" onclick="detailIntervention('${l.intId}')">
@@ -24443,7 +24527,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
         <button class="btn sm" onclick="papDossierSanitaire('${c.id}')">Générer le dossier complet (PDF)</button></div>
       <div style="font-size:11.5px;color:var(--t3);margin-top:5px">Plan de lutte, relevés des 12 derniers passages, produits & n° AMM, Certibiocide des techniciens, courbe d'activité par zone, attestation de passage.</div>
     </div>`:''}
-    ${sec('Dernières interventions',ints,i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(techNames(i))}</div></div>${badge(STATUT_INT,i.statut)}</div>`)}
+    ${sec('Dernières interventions',ints,i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`)}
     ${sec('Factures',facts,f=>`<div class="pl-row" onclick="closeModal();go('factures')"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(docTot(f).ttc)}</div><div class="pl-meta">${fmtShort(f.date)}</div></div>${badge(FACT_ST,f.statut)}</div>`)}
     <div class="modal-foot" style="flex-wrap:wrap"><button class="btn ghost" onclick="closeModal();formClient('${c.id}')">Modifier</button>
       ${canCat('crm','supprimer')?`<button class="btn danger" onclick="closeModal();delItem('clients','${c.id}')">Supprimer</button>`:''}
@@ -31550,7 +31634,10 @@ function mapTiles(map){
   // Nuit : on garde la carte Google lisible, juste légèrement assombrie (pas de fond tout noir)
   try{ const tp=map.getPanes().tilePane; tp.classList.toggle('tiles-night',dark); }catch(e){}
 }
-function numIcon(n,color){ return L.divIcon({html:`<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;background:${color};transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.4);border:2px solid #fff"><span style="transform:rotate(45deg);color:#fff;font-weight:700;font-size:13px">${n}</span></div>`,className:'',iconSize:[30,30],iconAnchor:[15,28]}); }
+/* v757 : une intervention à plusieurs techniciens porte, au coin de son repère, une pastille à la couleur de
+   chaque collègue (deux au plus) — sur la carte aussi, on voit qu'on n'y va pas seul. */
+function numIcon(n,color,autres){ const pts=(autres||[]).slice(0,2).map((c,k)=>`<i style="position:absolute;top:${-4+k*12}px;right:-7px;width:12px;height:12px;border-radius:50%;background:${c};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35)"></i>`).join('');
+  return L.divIcon({html:`<div style="position:relative;width:30px;height:30px"><div style="width:30px;height:30px;border-radius:50% 50% 50% 0;background:${color};transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.4);border:2px solid #fff"><span style="transform:rotate(45deg);color:${encreSur(color)};font-weight:700;font-size:13px">${n}</span></div>${pts}</div>`,className:'',iconSize:[30,30],iconAnchor:[15,28]}); }
 function haversine(a,b){ const R=6371,r=x=>x*Math.PI/180; const dLa=r(b.lat-a.lat),dLo=r(b.lng-a.lng); const s=Math.sin(dLa/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2; return R*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s)); }
 async function travelLeg(a,b){ try{ const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=false`); const j=await r.json(); if(j.routes&&j.routes[0]) return {min:Math.max(1,Math.round(j.routes[0].duration/60)),km:+(j.routes[0].distance/1000).toFixed(1)}; }catch(e){} const km=haversine(a,b); return {min:Math.max(1,Math.round(km/40*60)),km:+km.toFixed(1),est:true}; }
 
@@ -31575,17 +31662,99 @@ views.carteBox=function(){
 let carteIntDay=null, showSecteurs=true;
 const TECH_PALETTE=['#1E7A4E','#2563EB','#7C3AED','#EA580C','#DC2626','#0891B2','#CA8A04','#DB2777'];
 function autoColor(i){ const hue=Math.round((i*137.508)%360); return `hsl(${hue} 64% 45%)`; }
-/* La couleur d'un technicien est TOUJOURS la même : elle vient de son identifiant, jamais de sa
-   position dans la liste. Ajouter ou retirer un collègue ne décale plus les couleurs des autres. */
-const TECH_PALETTE16=['#1E7A4E','#2563EB','#7C3AED','#EA580C','#DC2626','#0891B2','#CA8A04','#DB2777',
-                      '#15803D','#1D4ED8','#6D28D9','#C2410C','#B91C1C','#0E7490','#A16207','#BE185D'];
+/* ⛔⛔ DEUX TECHNICIENS NE PORTENT JAMAIS LA MÊME COULEUR — tant que la palette suffit (seize).
+   Justin, 26 septembre 2026 : « chaque technicien et sa couleur référencés sur les interventions,
+   sur les cartes : ça évite de se perdre quand on associe plusieurs techniciens sur la même carte ».
+   Mesuré le même jour (scratchpad/palette-techs.js) : la couleur automatique venait d'un hachage de
+   l'identifiant sur seize cases, qui n'étaient que HUIT teintes en deux nuances — vert / vert foncé,
+   bleu / bleu foncé… (ΔE00 5,3 pour la paire la plus proche : indiscernable sur une pastille). Dans
+   une équipe de 5 techniciens, deux portaient la MÊME couleur une fois sur deux, la même famille
+   8 fois sur 10 ; à 8 techniciens, toujours. Montrer la couleur de chacun ne sert à rien si deux
+   collègues ont la même. D'où deux règles :
+   · seize couleurs vraiment distinctes, dont les sept premières sont celles d'avant : la paire la
+     plus proche est l'orange et le rouge d'origine (ΔE00 14,4), chaque couleur ajoutée est à 17 au
+     moins de toutes les autres — contre 5,3 avant (scratchpad/palette-encre.js les a choisies) ;
+     chacune garde une encre lisible (test-773) et reste visible en rond sur une carte de jour comme
+     de nuit ; aucune ne ressemble à l'orange « Non assigné » ;
+   · une attribution SANS DOUBLON (`techCouleurs`) : chacun garde la case que lui donne son
+     identifiant — la même famille qu'avant : qui était « vert foncé » devient « vert » — et seul
+     celui qui arrive APRÈS sur une case déjà prise (par une couleur choisie à la main, ou par un
+     collègue plus ancien) passe à la suivante libre. Les huit premières servent d'abord, les huit
+     autres ensuite. Arriver dans l'équipe ne change la couleur de personne ; une couleur choisie à
+     la main gagne toujours. Rien n'est écrit : la couleur se déduit, identique sur chaque appareil
+     qui a la même liste de techniciens. */
+const TECH_PALETTE16=['#1E7A4E','#2563EB','#7C3AED','#EA580C','#DC2626','#0891B2','#DB2777','#7B6012',
+                      '#889C16','#A987C5','#C38581','#3EA394','#885741','#18AA52','#E234E2','#35686E'];
+const TECH_NOMS16=['Vert','Bleu','Violet','Orange','Rouge','Cyan','Rose','Bronze',
+                   'Olive','Lavande','Vieux rose','Menthe','Brun','Vert vif','Fuchsia','Pétrole'];
 function techColorHash(id){ const s=String(id||''); let h=0; for(let k=0;k<s.length;k++){ h=(h*31+s.charCodeAt(k))>>>0; } return h; }
+let _techCoulSig=null, _techCoulMap=null;
+function techCouleurs(){
+  const T=(db&&db.techniciens)||[];
+  let sig=''; for(const t of T) sig+=t.id+'='+(t.couleur||'')+';';
+  if(_techCoulMap&&sig===_techCoulSig) return _techCoulMap;
+  _techCoulSig=sig; _techCoulMap=techCouleursDe(T); return _techCoulMap;
+}
+function techCouleursDe(T){
+  const m={}, prises=new Set(), P=TECH_PALETTE16;
+  T.forEach(t=>{ if(t.couleur){ m[t.id]=t.couleur; prises.add(String(t.couleur).toUpperCase()); } });
+  /* les plus anciens d'abord : l'identifiant porte sa date de création (uidTs) */
+  const auto=T.filter(t=>!t.couleur&&t.id).sort((a,b)=>((uidTs(a.id)||9e15)-(uidTs(b.id)||9e15))||String(a.id).localeCompare(String(b.id)));
+  auto.forEach(t=>{ const d=techColorHash(t.id)%8; let c='';
+    for(let k=0;k<16&&!c;k++){ const x=P[(k<8?0:8)+((d+k)%8)]; if(!prises.has(x)) c=x; }
+    if(!c) c=P[techColorHash(t.id)%16];          // plus de seize techniciens sans couleur choisie : le doublon est inévitable
+    m[t.id]=c; prises.add(c); });
+  return m;
+}
 function techColor(id){
   if(!id) return '#E8A33D';                                   // non assigné : toujours orange
-  const t=db.techniciens.find(x=>x.id===id);
-  if(t&&t.couleur) return t.couleur;                           // couleur choisie à la main : elle gagne toujours
-  return TECH_PALETTE16[techColorHash(id)%TECH_PALETTE16.length];
+  const c=techCouleurs()[id]; if(c) return c;                  // couleur choisie à la main, ou attribuée sans doublon
+  return TECH_PALETTE16[techColorHash(id)%8];                  // technicien qui n'est plus dans la liste (le passé)
 }
+function techCouleurNom(c){ const i=TECH_PALETTE16.indexOf(String(c||'').toUpperCase()); return i>=0?TECH_NOMS16[i]:(String(c||'').toUpperCase()==='#CA8A04'?'Jaune':'Couleur choisie'); }
+/* ── v757 : CHOISIR LA COULEUR D'UN TECHNICIEN, EN PASTILLES ──
+   Le menu déroulant ne montrait pas les couleurs sur un iPhone (Safari ignore le fond d'une <option>) et
+   ne disait pas qui porte déjà laquelle. Seize pastilles nommées ; « Auto » montre la couleur que
+   l'attribution sans doublon lui donne ; une couleur déjà CHOISIE pour un collègue porte ses initiales et la
+   phrase dessous le dit — elle reste possible (c'est un choix délibéré), mais on sait ce qu'on fait. Une
+   couleur qu'un collègue n'a qu'en automatique se prend sans rien lui voler : son automatique s'écarte. */
+function techCouleurChoix(id,courante){
+  const T=db.techniciens||[], cur=String(courante||'').toUpperCase();
+  const sans=techCouleursDe(T.map(t=>t.id===id?{...t,couleur:''}:t));        // chacun, si CE technicien était en automatique
+  const auto=id?sans[id]:'';
+  const choisiePour={}, autoPour={};
+  T.forEach(t=>{ if(t.id===id) return; const c=String(sans[t.id]||'').toUpperCase(); if(!c) return;
+    (t.couleur?choisiePour:autoPour)[c]=((t.couleur?choisiePour:autoPour)[c]||[]).concat([t.nom||'—']); });
+  const liste=TECH_PALETTE16.map((c,k)=>[c,TECH_NOMS16[k]]);
+  if(cur&&!TECH_PALETTE16.includes(cur)) liste.push([cur,techCouleurNom(cur)]);   // une couleur d'avant (le jaune) reste affichée
+  const dit=c=>{ const C=String(c||'').toUpperCase();
+    if(!C) return auto?`Automatique — ${techCouleurNom(auto)} aujourd’hui, une couleur que personne d’autre n’a`:'Automatique — une couleur que personne d’autre n’a';
+    const ch=choisiePour[C], au=autoPour[C];
+    return techCouleurNom(C)+(ch?` — ⚠️ déjà choisie pour ${ch.join(', ')} : leurs cartes se confondront`:au?` — ${au.join(', ')} l’a en automatique et en prendra une autre`:''); };
+  window._tccDit=dit;
+  return `<div class="tcc" role="radiogroup" aria-label="Couleur du technicien">
+    <span class="tcc-o" title="${esc(dit(''))}"><input type="radio" name="couleur" value="" ${cur?'':'checked'} onchange="tccMaj(this)" aria-label="Automatique"><span class="tcc-p auto" style="--tc:${auto||'#8E8E93'};--ti:${auto?encreSur(auto):'#fff'}">A</span></span>
+    ${liste.map(([c,n])=>{ const ch=choisiePour[c]; return `<span class="tcc-o" title="${esc(dit(c))}"><input type="radio" name="couleur" value="${c}" ${cur===c?'checked':''} onchange="tccMaj(this)" aria-label="${esc(n)}"><span class="tcc-p${ch?' prise':''}" style="--tc:${c};--ti:${encreSur(c)}">${ch?esc(initials(ch[0])):''}</span></span>`; }).join('')}
+  </div><div class="tcc-dit" aria-live="polite">${esc(dit(cur))}</div>`;
+}
+function tccMaj(el){ const d=el.closest('.field')&&el.closest('.field').querySelector('.tcc-dit'); if(d&&window._tccDit) d.textContent=window._tccDit(el.value); }
+/* ── PASTILLES DE TECHNICIENS (v757) : chaque technicien d'une intervention, avec SA couleur ──
+   Le NOM reste dans le texte (title, aria-label) : une couleur ne suffit jamais à dire qui — un
+   daltonien, deux couleurs choisies à la main identiques. `techPuces` pour une ligne qui a la place
+   (le disque et le nom de chacun), `techPile` pour une carte du planning (les disques seuls, serrés).
+   Le passé garde ses noms : un technicien retiré de l'équipe (`techArchive`) reste nommé sur les
+   interventions qu'il a faites, comme le faisait `techNames`. */
+function techConnu(id){ return !!id&&((db.techniciens||[]).some(t=>t.id===id)||(db.techArchive||[]).some(t=>t.id===id)); }
+function intTechsAff(i){ return intTechIds(i).filter(techConnu); }
+function techPastille(id,taille){ const c=techColor(id||''), nom=id?techName(id):'Non assigné';
+  return `<span class="tpu-p${taille?' '+taille:''}" style="--tc:${c};--ti:${encreSur(c)}" title="${esc(nom)}">${esc(id?initials(nom):'?')}</span>`; }
+function techPuces(i,opts){ opts=opts||{}; const ids=intTechsAff(i);
+  if(!ids.length) return `<span class="tpus"><span class="tpu">${techPastille('')}<span class="tpu-n">Non assigné</span></span></span>`;
+  return `<span class="tpus">`+ids.map((id,k)=>`<span class="tpu">${techPastille(id)}<span class="tpu-n">${esc(techName(id))}${opts.leader&&k===0?' <span style="color:var(--t3);font-weight:500">(Leader)</span>':''}</span></span>`).join('')+`</span>`; }
+function techPile(i,max){ const ids=intTechsAff(i); if(!ids.length) return ''; max=max||4;
+  const vus=ids.slice(0,max), reste=ids.length-vus.length, noms=ids.map(techName).join(', ');
+  return `<span class="tpil" role="img" aria-label="${esc((ids.length>1?'Techniciens : ':'Technicien : ')+noms)}" title="${esc(noms)}">`
+    +vus.map(id=>techPastille(id)).join('')+(reste>0?`<span class="tpu-plus">+${reste}</span>`:'')+`</span>`; }
 function techColorFixe(id){ return techColor(id); }            // même couleur partout (cartes, pastilles, planning)
 /* ⛔ L'ENCRE D'UNE COULEUR D'IDENTITÉ SE CALCULE, ELLE NE SE SUPPOSE PAS. Les cases du planning
    général et les numéros de tournée écrivaient du blanc sur la couleur de la personne : 2,16:1
@@ -31672,7 +31841,7 @@ views.carteInt=function(){
   const secteurs=deptSectors();
   setHeader('Carte interventions',`Tournée du ${fmtShort(carteIntDay)} · ${pts.length} intervention(s)`,
     `<button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,-1);views.carteInt()">‹</button> <button class="btn ghost sm" onclick="carteIntDay=todayISO();views.carteInt()">Aujourd'hui</button> <button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,1);views.carteInt()">›</button> <button class="btn ghost sm" onclick="showSecteurs=!showSecteurs;views.carteInt()">${showSecteurs?'Masquer secteurs':'Secteurs'}</button> ${mapFondBarre()}`);
-  const techsJour=[...new Set(pts.map(p=>p.techId||''))];
+  const techsJour=[...new Set(pts.flatMap(p=>{ const t=planTechsOf(p); return t.length?t:['']; }))];   // v757 : les seconds aussi
   const legTech = techsJour.length?`<div class="card" style="margin-top:12px;padding:10px 12px"><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
     <b style="font-size:12px;color:var(--t2)">Couleur = technicien :</b>
     ${techsJour.map(id=>`<span style="display:flex;align-items:center;gap:6px;font-size:12.5px"><span style="width:13px;height:13px;border-radius:50%;background:${techColor(id)};border:1.5px solid #fff"></span>${esc(id?techName(id):'Non assigné')}</span>`).join('')}
@@ -31696,9 +31865,9 @@ views.carteInt=function(){
         L.geoJSON(geo,{filter:f=>depKeys.has(f.properties.code), style:f=>{ const c=deptColor(f.properties.code); return {color:c,weight:2,fillColor:c,fillOpacity:.18}; }, onEachFeature:(f,l)=>{ const t=techForKey(f.properties.code); l.bindPopup(`<b>${esc(f.properties.nom)} (${f.properties.code})</b><br>${esc(t?t.nom:'Non assigné')}`); }}).addTo(_map);
       }).catch(()=>{});
     }
-    const coords=[]; pts.forEach((p,i)=>{ const _mk=L.marker([p.lat,p.lng],{icon:numIcon(i+1,techColorFixe(p.techId))}).addTo(_map);
+    const coords=[]; pts.forEach((p,i)=>{ const _mk=L.marker([p.lat,p.lng],{icon:numIcon(i+1,planCardColor(p),planTechsOf(p).slice(1).map(techColor))}).addTo(_map);
       try{ const me=_mk.getElement(); if(me) me.setAttribute('data-drag-int',p.id); }catch(_){ }
-      _mk.bindPopup(`<b>${i+1}. ${esc(p.titre)}</b><br>${p.heure} · 👷 ${esc(techName(p.techId))}<br>${esc(keyLabel(deptOf(p)))} · ${esc(p.clientNom||'')}<br><span style="color:#666">${esc(p.adresse||'')}</span>${planPopStatut(db.interventions.find(z=>z.id===p.id)||p)}${gpsLinks(p.lat+','+p.lng)}`); coords.push([p.lat,p.lng]); });
+      _mk.bindPopup(`<b>${i+1}. ${esc(p.titre)}</b><br>${p.heure} · ${techPuces(p)}<br>${esc(keyLabel(deptOf(p)))} · ${esc(p.clientNom||'')}<br><span style="color:#666">${esc(p.adresse||'')}</span>${planPopStatut(db.interventions.find(z=>z.id===p.id)||p)}${gpsLinks(p.lat+','+p.lng)}`); coords.push([p.lat,p.lng]); });
     if(coords.length>1) L.polyline(coords,{color:'#1E7A4E',weight:4,opacity:.7,dashArray:'6,8'}).addTo(_map);
     const allPts=coords.concat(showSecteurs?secteurs.map(s=>[s.lat,s.lng]):[]);
     if(allPts.length)_map.fitBounds(allPts,{padding:[50,50],maxZoom:13}); setTimeout(()=>{try{fitMapHeightInt();_map.invalidateSize();}catch(e){}},180);
@@ -31711,7 +31880,7 @@ async function renderTournee(pts){
   if(!pts.length){ el.innerHTML='<div style="color:var(--t3);font-size:13px">Aucune intervention géolocalisée ce jour (le client doit avoir une adresse localisée).</div>'; return; }
   el.innerHTML = pts.map((p,i)=>`
     <div class="pl-row lh" style="cursor:pointer" onclick="detailIntervention('${p.id}')"><div class="pl-time">${p.heure}</div>
-      <div class="pl-info"><div class="pl-title"><span style="display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--acc);color:var(--on-acc);align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-right:6px">${i+1}</span>${esc(p.titre)}</div><div class="pl-meta">${esc(p.clientNom||'')} · ${esc(p.adresse||'')}</div></div>${badge(STATUT_INT,p.statut)}</div>
+      <div class="pl-info"><div class="pl-title"><span style="display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--acc);color:var(--on-acc);align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-right:6px">${i+1}</span>${esc(p.titre)}</div><div class="pl-meta">${esc(p.clientNom||'')} · ${esc(p.adresse||'')}</div><div class="pl-meta" style="margin-top:3px">${techPuces(p)}</div></div>${badge(STATUT_INT,p.statut)}</div>
     ${i<pts.length-1?`<div id="leg-${i}" style="display:flex;align-items:center;gap:8px;padding:4px 0 4px 50px;color:var(--t3);font-size:13px">calcul du trajet…</div>`:''}`).join('')
     + `<div id="tournee-total" style="margin-top:10px;text-align:right;font-size:14px;color:var(--t2)"></div>`;
   // calcul auto des temps de trajet entre chaque intervention
@@ -32316,15 +32485,15 @@ views.techniciens=function(){
   /* La fusion des doublons réécrit des fiches de TOUTE l'entreprise : réservée à qui la voit entière. */
   const nbDbl=(peutModif&&L.length===(db.techniciens||[]).length)?techDoublons().length:0;
   setHeader('Techniciens',`${L.length} membre(s)`,`${nbDbl?`<button class="btn ghost" onclick="techFusionnerDoublons()" title="Des fiches portent le même nom">🧹 Fusionner ${nbDbl} doublon(s)</button> `:''}${peutAjout?`<button class="btn" onclick="formTech()">＋ Technicien</button>`:''}`);
-  const rows=L.map(t=>{ const n=db.interventions.filter(i=>i.techId===t.id).length;
-    return `<tr class="row-clk" onclick="ficheTech('${t.id}')"><td><div class="ppl"><span class="avatar">${initials(t.nom)}</span> <span class="strong">${esc(t.nom)}</span></div></td><td>${esc(t.metier)||'—'}</td><td>${esc(t.tel)||'—'}</td><td>${certibBadge(t)}</td><td>${n}</td>
+  const rows=L.map(t=>{ const n=db.interventions.filter(i=>intTechIds(i).indexOf(t.id)>=0).length;   // v757 : second compris, pas seulement le premier
+    return `<tr class="row-clk" onclick="ficheTech('${t.id}')"><td><div class="ppl"><span class="avatar av-tc" style="--tc:${techColor(t.id)}">${initials(t.nom)}</span> <span class="strong">${esc(t.nom)}</span></div></td><td>${esc(t.metier)||'—'}</td><td>${esc(t.tel)||'—'}</td><td>${certibBadge(t)}</td><td>${n}</td>
     <td style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">${peutModif?`<button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button>`:''}${peutModif&&peutSuppr?' ':''}${peutSuppr?`<button class="btn danger sm" onclick="delItem('techniciens','${t.id}')">🗑</button>`:''}</td></tr>`;}).join('');
   $('content').innerHTML=L.length? tableCard(['Technicien','Rôle','Téléphone','Certibiocide','Interv.',''],rows)
     :`<div class="card">${peutAjout?emptyState('👷','Aucun technicien.','Ajouter','formTech()'):emptyState('👷','Aucune fiche du personnel n’est rattachée à ton compte.','','')}</div>`;
 }
 function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id===id);
   if(!t){ if((db.techniciens||[]).some(x=>x.id===id)) toast('Cette fiche ne te concerne pas'); return; }
-  const ints=db.interventions.filter(i=>i.techId===id).sort((a,b)=>(b.date+b.heure).localeCompare(a.date+a.heure));
+  const ints=db.interventions.filter(i=>intTechIds(i).indexOf(id)>=0).sort((a,b)=>(b.date+b.heure).localeCompare(a.date+a.heure));   // v757 : second compris
   const pts=db.pointages.filter(p=>p.techId===id);
   const totMin=pts.reduce((s,p)=>s+Math.max(0,minutes(p.debut,p.fin)-(p.pause||0)),0);
   const veh=db.vehicules.find(v=>v.techId===id);
@@ -32432,7 +32601,7 @@ function formTech(id){ if(!permGarde('equipe', id?'modifier':'ajouter','un techn
       <div class="field"><label>Rôle</label><select name="metier" ${id&&currentUser&&currentUser.role!=='admin'?'disabled title="Changer le rôle d’un compte est réservé à l’administrateur"':''}><option ${(t.metier||'Technicien')==='Technicien'?'selected':''}>Technicien</option><option ${t.metier==="Chef d'équipe"?'selected':''}>Chef d'équipe</option></select></div>
       <div class="field-row"><div class="field"><label>Téléphone</label><input name="tel" value="${esc(t.tel)}"></div><div class="field"><label>Email</label><input type="email" name="email" value="${esc(t.email)}"></div></div>
       <div class="field"><label>Secteur — départements</label><input name="departements"${fg} value="${esc(t.departements)}" placeholder="Ex : 85 Vendée, 44, Paris 75011"><div style="font-size:11px;color:var(--t3);margin-top:4px">Un département entier (n° ou nom). Grandes villes : par arrondissement (ex. 75011).</div></div>
-      <div class="field"><label>Couleur (carte)</label><select name="couleur"><option value="" ${!t.couleur?'selected':''}>Auto (couleur unique)</option>${TECH_PALETTE.map((c,i)=>`<option value="${c}" ${t.couleur===c?'selected':''} style="background:${c}">${['Vert','Bleu','Violet','Orange','Rouge','Cyan','Jaune','Rose'][i]}</option>`).join('')}</select></div>
+      <div class="field"><label>Couleur (planning, cartes, interventions)</label>${techCouleurChoix(id||'',t.couleur)}</div>
       <div class="field-row"><div class="field"><label>Capacité par jour (heures)</label><input name="capH"${fg} type="number" min="1" max="14" step="0.5" value="${t.capMin?(t.capMin/60):7}" style="text-align:right"></div>
         <div class="field"><label>Jours de congés par an</label><input name="droitConges"${fg} type="number" min="0" max="60" step="0.5" value="${t.droitConges!=null&&t.droitConges!==''?t.droitConges:25}" style="text-align:right"></div></div>
       <div class="field"><label>Rattaché à</label><select name="chef"${fg}><option value="">Personne — travaille seul</option>${db.techniciens.filter(x=>x.id!==id&&(gere||x.id===t.chef)).map(x=>`<option value="${x.id}" ${t.chef===x.id?'selected':''}>${esc(x.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">Sert à choisir toute une équipe d'un coup dans le planning général.</div></div>
@@ -33026,7 +33195,7 @@ function formUser(id){ const u=id?db.users.find(x=>x.id===id):{}; window._formUs
         <div class="form-sec" style="margin:2px 0 10px">Fiche technicien <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t3)">— créée automatiquement</span></div>
         <div class="field"><label>Téléphone</label><input name="tel" value="${esc(lt?lt.tel:'')}"></div>
         <div class="field"><label>Secteur — départements</label><input name="departements" value="${esc(lt?lt.departements:'')}" placeholder="Ex : 85 Vendée, 17, 44"><div style="font-size:11px;color:var(--t3);margin-top:4px">Sert à l'affectation auto et à « ses » interventions.</div></div>
-        <div class="field"><label>Couleur (carte)</label><select name="couleur"><option value="">Auto</option>${(TECH_PALETTE||[]).map((c,i)=>`<option value="${c}" ${lt&&lt.couleur===c?'selected':''}>${['Vert','Bleu','Violet','Orange','Rouge','Cyan','Jaune','Rose'][i]||c}</option>`).join('')}</select></div>
+        <div class="field"><label>Couleur (planning, cartes, interventions)</label>${techCouleurChoix(lt?lt.id:'',lt?lt.couleur:'')}</div>
       </div>
       ${accSection}
       ${id?`<div class="field"><label>Statut</label><select name="actif"><option value="true" ${u.actif?'selected':''}>Actif</option><option value="false" ${!u.actif?'selected':''}>Désactivé</option></select></div>`
@@ -37648,7 +37817,7 @@ views.archives=function(){
       <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">⏱️</div><div class="kpi-val">${dureeStr(s.minTot)}</div><div class="kpi-lbl">Temps pointé</div></div>
     </div></div>
     <div class="card"><div class="card-head"><h3>Interventions du mois (${s.ints.length})</h3></div>
-      ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))} · ${esc(techNames(i))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
+      ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
     </div>`;
 };
 function shiftMonth(ym,n){ const [y,m]=ym.split('-').map(Number); return new Date(y,m-1+n,1).toLocaleDateString('sv-SE').slice(0,7); }
@@ -38117,7 +38286,7 @@ views.secteurs=function(){
      périmètre se dit « Couvert », sans le nom. */
   const vis=visibleTechniciens(db.techniciens), visIds=new Set(vis.map(t=>t.id)), peutModif=canCat('equipe','modifier');
   const techCards=vis.map(t=>{ const deps=parseTechDepts(t.departements);
-    return `<div class="pl-row"${peutModif?` onclick="formTech('${t.id}')"`:' style="cursor:default"'}><span class="avatar" style="background:${techColor(t.id)};color:#fff">${initials(t.nom)}</span>
+    return `<div class="pl-row"${peutModif?` onclick="formTech('${t.id}')"`:' style="cursor:default"'}><span class="avatar av-tc" style="--tc:${techColor(t.id)}">${initials(t.nom)}</span>
       <div class="pl-info"><div class="pl-title">${esc(t.nom)}</div><div class="pl-meta">${deps.length? deps.map(d=>`<span class="tag">${esc(keyLabel(d))}</span>`).join(' '):'<span style="color:var(--org)">Aucun secteur</span>'}</div></div>
       ${peutModif?`<span onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="formTech('${t.id}')" aria-label="Modifier le secteur">✎</button></span>`:''}</div>`;}).join('');
   const depCards=depList.map(dep=>{ const t0=techForKey(dep), t=t0&&visIds.has(t0.id)?t0:null;

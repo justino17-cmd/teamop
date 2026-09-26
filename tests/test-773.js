@@ -104,8 +104,10 @@ for (const f of ['app.html', 'beta.html']) {
     vrai('   … l’orange « à répartir » prend l’encre SOMBRE (le blanc y tombait à 2,16)', encreSur('#E8A33D') === '#12202F');
     vrai('   … un vert profond garde le blanc', encreSur('#1E7A4E') === '#FFFFFF');
   }
+  /* v757 : la case prend la couleur de la personne de la LIGNE (une intervention partagée est dans la ligne de
+     chacun, test-825) — l'encre suit toujours la couleur posée, c'est ce que ce contrôle garde. */
   vrai('⛔ les cases du planning général posent leur encre (--ci) à côté de leur couleur',
-    /const cc=planCardColor\(i\); cel\+=`<div class="pg-pt \$\{dense\?'mini':''\}" style="--cc:\$\{cc\};--ci:\$\{encreSur\(cc\)\}"/.test(SRC)
+    /const cc=planCouleurDans\(i,p\.id\), pa=planBoutAutres\(i,p\.id\); cel\+=`<div class="pg-pt \$\{dense\?'mini':''\}\$\{pa\?' pt-part':''\}" style="--cc:\$\{cc\};--ci:\$\{encreSur\(cc\)\}/.test(SRC)
     && /\.pg-pt\{[^}]*color:var\(--ci,#fff\);/.test(SRC));
   vrai('⛔ les numéros de tournée aussi, « à répartir » compris',
     /<span class="pn" style="background:\$\{techColor\(t\.id\)\};color:\$\{encreSur\(techColor\(t\.id\)\)\}">/.test(SRC));
