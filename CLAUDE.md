@@ -1491,6 +1491,17 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   n'existe pas (`tests/test-795.js`, qui exécute la vraie `saveUser`). ⚠️ Et RENOMMER compte autant que
   créer : la fiche technicien se renommait sans aucune règle (deux cartes « Léo Martin » au planning, que
   la liste des utilisateurs ne voyait pas — elle compare les COMPTES). Relecture v742, `test-786`.
+- ⛔⛔ **UN CORRECTIF QUI FERME UNE PORTE N'A PAS FERMÉ LES AUTRES — L'« OP ADMIN » FANTÔME EST REVENU PAR LE
+  SEMIS.** 11 septembre 2026 : la v656 ferme la création du compte de départ dans `migrate()`, et on écrit « réglé ».
+  26 septembre : « OP Admin @florent-3 » chez ELAN. `seed()` portait LE MÊME compte (identifiant aléatoire) et
+  `users` n'est pas dans `COLLECTIONS_DONNEES` : il passait les deux vidages de `load()` sur tout navigateur neuf
+  qui ouvrait le lien d'une entreprise existante — administrateur, avec le mot de passe PROVISOIRE du lien, envoyé à
+  toute l'équipe. `grep "prenom:'OP',nom:'Admin'"` rendait trois fabriques ; on en avait fermé une. Avant de dire
+  « réglé » : **recenser TOUT ce qui fabrique la chose, et rejouer le chemin de la personne au navigateur**, pas la
+  fonction qu'on vient de corriger. Et quand un chemin légitime lit une clé, vérifier que personne ne l'efface
+  avant lui : `boot()` effaçait `elan_admin_login` avant « ESPACE NEUF », qui était donc du code mort depuis sa
+  naissance. Rattaché à une entreprise, un appareil ne fabrique AUCUN compte ; c'est le premier instantané qui dit si
+  l'équipe est vide (`adminDepartAppliquer`, `tests/test-826.js`, `scratchpad/sonde-admin-fantome.js`).
 - **Retirer un produit d'une box s'écrit TOUJOURS dans `db.boxDecisions`** (`boxDecider`). Quatre
   chemins le font : la feuille « Retirer », la croix ✕ de « Modifier la box », le retrait direct de la
   fiche, et le retrait validé par le DR. Sans cette trace, le catalogue repose tout seul ce qu'une

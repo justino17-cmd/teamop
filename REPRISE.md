@@ -13,6 +13,45 @@ de ligne du tout.
 
 ---
 
+# ⛔ 26 SEPTEMBRE 2026, NUIT — ELAN : UN « OP ADMIN » FANTÔME RÉAPPARU (@florent-3) — CORRIGÉ SUR LA BÊTA, PRODUCTION EN ATTENTE DE LA PHRASE DE JUSTIN
+
+**Justin, capture à l'appui : « chez elan ça a recréé un compte admin, pourquoi, je croyais que ce problème était
+réglé ».** La liste des comptes d'ELAN montrait « OP Admin · Administrateur · @florent-3 · 🔑 à définir · 👥 même
+nom qu'un autre compte ».
+
+**Ce n'est pas l'ancien qui revient : c'est un NOUVEAU, fabriqué par un chemin que la v656 (11 septembre) n'avait
+pas fermé.** Rejoué au navigateur sur le code de la v756 de production (`scratchpad/sonde-admin-fantome.js` : copie
+de la bêta où seul `BETA_ESSAI` vaut `false`, le vrai lien, les vrais rechargements, la vraie synchro contre un faux
+serveur posé dans la page) — **7 ✓ 5 ✗** :
+- un navigateur NEUF (ou dont le stockage a été vidé) ouvre le lien d'une entreprise EXISTANTE ;
+- `load()` : « pas de base → `migrate(seed())` » ; `seed()` porte en production un « OP Admin » à identifiant
+  ALÉATOIRE, et `users` n'est pas dans `COLLECTIONS_DONNEES` — les deux vidages le laissent passer ;
+- `boot()` le renomme « florent » (identifiant de départ du lien) avec **l'empreinte du mot de passe provisoire du
+  lien** ; la fusion du premier instantané le renomme « florent-3 » (florent et florent-2 existent) ;
+- l'appareil l'**envoie à toute l'équipe**, et il partirait dans l'annuaire de connexion du serveur.
+⚠️ **C'est un administrateur dont le mot de passe est celui qu'on donnait à l'ouverture de l'espace** (ou « 1234 »
+si le lien n'en portait pas). Sur un appareil d'ELAN, n'importe qui qui le connaît entre en administrateur.
+« florent-3 » est probablement banni de l'annuaire du serveur par l'ordre de la Tour du 11 septembre (les ordres de
+suppression bannissent l'identifiant tant que le patron ne le réautorise pas) — **pas vérifiable d'ici**. Le
+prochain fantôme, lui (« florent-4 »), ne le serait pas.
+**Et « ESPACE NEUF » était mort** : `boot()` effaçait `elan_admin_login` AVANT le premier instantané. La seule porte
+d'une entreprise neuve était le compte du semis — celui-là même qui fabriquait les fantômes.
+
+**Corrigé sur la branche (`60f368b`, bêta v757)** — **12 ✓ 0 ✗** à la même sonde :
+- `load()` : rattaché et sans base, AUCUN compte sur l'appareil ;
+- `adminDepartAppliquer()` (le renommage, sorti de `boot()`) : rattaché et sans compte, elle GARDE les clés du lien ;
+- `syncInit` : équipe vide → la porte à l'identifiant FIXE, avec les clés du lien ; équipe existante → clés oubliées.
+`tests/test-826.js` 30 ✓ (la vraie fonction extraite et jouée) ; **5/5 mutations font tomber le banc ET la sonde** ;
+`test-688` mis à jour (savedLoginPoser sortie de `boot()`).
+
+**En production, rien n'est encore parti.** Un candidat « v756 + ce correctif seul » est prêt en v757 (sans les
+couleurs des techniciens, qui restent sur la bêta et passeront en v758). **Il attend la phrase de Justin.**
+**À faire par Justin, quel que soit le choix :** supprimer « OP Admin @florent-3 » (Utilisateurs → le compte →
+Supprimer), et l'autre « OP Admin » si c'est aussi un compte jamais utilisé (🔑 à définir, sans e-mail) — jamais
+« Folrent Bruno @florent », le vrai. Un correctif arrête la cause, il ne range pas derrière lui.
+
+---
+
 # ✅ 26 SEPTEMBRE 2026, SOIR — v756 EN PRODUCTION (LENTEUR + PHOTO DE PROFIL), TOUR v2.66 EN PRODUCTION
 
 **Justin : « Fait le » (la lenteur sur une grosse base, téléphone lent), « thème de la tour à installer aussi, tu
