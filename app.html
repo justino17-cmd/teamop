@@ -440,8 +440,10 @@
   .pp-cadre:active{cursor:grabbing}
   .pp-cadre:focus-visible{box-shadow:0 0 0 3px var(--acc)}
   .pp-cadre canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  /* le liseré est une ombre INTÉRIEURE, pas un `outline` : avant Safari 16.4, un contour ne suit pas l'arrondi —
+     un iPhone un peu ancien aurait dessiné un carré autour du rond */
   .pp-cadre .pp-rond{position:absolute;inset:20px;border-radius:50%;pointer-events:none;
-    box-shadow:0 0 0 999px rgba(10,12,16,.58);outline:2px solid rgba(255,255,255,.92);outline-offset:-1px}
+    box-shadow:0 0 0 999px rgba(10,12,16,.58),inset 0 0 0 2px rgba(255,255,255,.92)}
   .pp-zoom{display:flex;align-items:center;gap:12px;width:min(100%,320px);margin:0 auto}
   .pp-zoom input[type=range]{flex:1;min-width:0;min-height:44px;accent-color:var(--acc);margin:0}
   .pp-zoom .pp-z{flex-shrink:0;color:var(--t2);line-height:1}
@@ -7941,7 +7943,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '755';
+const APP_VERSION = '756';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
