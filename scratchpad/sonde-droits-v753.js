@@ -8,9 +8,10 @@
    C. connecté comme technicien SOUMIS : le menu, l'écran, et SON mouvement « En attente du DR » dedans ;
    D. un technicien ordinaire : rien de tout ça ;
    E. un rôle créé à la main : les droits du technicien (« Modifier les plans d'appâtage ») et son menu ;
-   F. les textes : le choix « aucun profil », l'aide du rôle, la fenêtre « 🏷 Rôles ».
+   F. les textes : le choix « aucun profil », l'aide du rôle, la fenêtre « 🏷 Rôles » ;
+   G. « ＋ Nouveau profil », au clic : aucun droit de la liste du technicien coché d'avance, ni enregistré.
    ⛔ Bêta locale, 127.0.0.1, données fictives. SOURCE=<bêta d'avant> pour la contre-épreuve : la v752
-   doit tomber sur A, B, C, E et F. */
+   doit tomber sur A, B, C, E et F ; la v753 d'avant la relecture, sur G. */
 const path = require('path');
 const { ouvrir, dormir } = require(path.join(__dirname, 'pilote.js'));
 let ok = 0, ko = 0; const vrai = (t, c, d) => { c ? ok++ : ko++; console.log((c ? '  ✓ ' : '  ✗ ') + t + (c || d === undefined ? '' : '  → ' + JSON.stringify(d))); };
@@ -124,6 +125,25 @@ const interrupteur = (S, uid) => S.ev(`const i=document.querySelector('#usr-d-${
   vrai('⛔ le choix sans profil dit « il suit la liste de son rôle »', txt.option === '— aucun : il suit la liste de son rôle —', txt.option);
   vrai('⛔ l’aide du rôle dit « un nom, et un point de départ », plus rien de faux', txt.aide && !txt.faux, txt);
   vrai('⛔ la fenêtre « 🏷 Rôles » dit d’où part un rôle créé à la main', txt.roles && !txt.faux2, txt);
+
+  console.log('\n── G. « ＋ Nouveau profil » ne naît avec aucun droit du technicien (relecture v753) ──');
+  await S.ev(`profilsGerer(); await new Promise(r=>setTimeout(r,300)); return 1;`);
+  const cN = await cliquer(S, '.modal button[onclick="profilNouveau()"]');
+  vrai('le clic atteint « ＋ Nouveau profil »', cN === true, cN);
+  await dormir(400);
+  const pN = await S.ev(`const z=document.getElementById('usr-d-__profil__'); if(!z) return null;
+    const c=z.querySelector('input[data-d="cap_modifierPlans"]');
+    return {plans:c?c.checked:null, coches:[...z.querySelectorAll('input[data-d^="cap_"]')].filter(i=>i.checked).map(i=>i.dataset.d)};`);
+  vrai('population : la grille du profil neuf est dessinée, « Modifier les plans d’appâtage » compris', !!pN && pN.plans !== null, pN);
+  vrai('⛔⛔ « Modifier les plans d’appâtage » n’y est PAS coché (la liste du technicien l’ouvre ; un profil n’en tient rien)', !!pN && pN.plans === false, pN);
+  vrai('⛔ … aucun droit spécial coché d’avance', !!pN && pN.coches.length === 0, pN && pN.coches);
+  await S.ev(`const i=document.getElementById('pf-nom'); if(i) i.value='Profil de la sonde'; return 1;`);
+  const cE = await cliquer(S, '.modal button[onclick="profilEditValider()"]');
+  await dormir(400);
+  const pE = await S.ev(`const p=(db.profilsDroits||[]).find(x=>x.nom==='Profil de la sonde'); return p?{plans:p.caps&&p.caps.modifierPlans, oui:Object.keys(p.caps||{}).filter(k=>p.caps[k]&&k.indexOf('cat_')!==0)}:null;`);
+  vrai('« Enregistrer » est atteint et crée le profil', cE === true && !!pE, [cE, pE]);
+  vrai('⛔⛔ … le profil enregistré ne porte PAS « Modifier les plans d’appâtage », ni aucun droit spécial', !!pE && pE.plans === false && pE.oui.length === 0, pE);
+  await S.ev(`try{ closeModal(true); }catch(e){} return 1;`);
 
   vrai('aucune exception dans la page', !S.exceptions.length, S.exceptions.slice(0, 3));
   S.fermer();

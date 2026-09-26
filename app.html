@@ -13847,9 +13847,17 @@ function setForfait(p){ if(!PLANS[p]) return; db.forfait=p; logEvent('Forfait ch
    du technicien. Jusqu'à la v752, seuls les MENUS faisaient ce repli — `userCap` et `catDroit` lisaient
    `db.permissions[rôle]` sans lui, donc un « Technicien 3D » voyait les menus du technicien sans en
    avoir aucun droit (pas même « Modifier les plans d'appâtage »). Trois lectures, trois règles ; une
-   seule désormais. DR et chef d'équipe sans liste ne se replient pas sur celle du technicien (comme avant). */
+   seule désormais. DR et chef d'équipe sans liste ne se replient pas sur celle du technicien (comme avant).
+   ⛔ LES COMPTES FICTIFS DE L'ÉDITEUR NE SONT PAS DES RÔLES MAISON (relecture v753). « ＋ Nouveau profil »
+   dessine un compte `__profil__`, l'évaluation en direct des cases déduites un compte `__zone__` : avec le
+   repli, un profil neuf naissait « Modifier les plans d'appâtage » COCHÉ (la liste du technicien l'ouvre),
+   et l'enregistrer l'écrivait dans le profil — donc chez tous ceux qui le recevraient. Ils gardent la règle
+   de la v752 : les menus de la liste du technicien, AUCUN de ses droits. */
 function tableDuRole(role){ const p=db.permissions||{};
-  return p[role]||((role==='dr'||role==='chefEquipe'||role==='admin')?null:p.technicien)||null; }
+  if(p[role]) return p[role];
+  if(role==='dr'||role==='chefEquipe'||role==='admin'||!p.technicien) return null;
+  if(/^__\w+__$/.test(String(role))){ const {caps,...menus}=p.technicien; return menus; }
+  return p.technicien; }
 function moduleReglage(u,k){ if(!u) return null;
   const ov=u.acces&&u.acces.modules; if(ov && Object.prototype.hasOwnProperty.call(ov,k)) return {src:'perso',v:ov[k]!==false};
   const pr=tableDuRole(u.role);
@@ -32691,8 +32699,10 @@ let _profilEdit=null;
 function profilNouveau(pid){
   if(!currentUser||currentUser.role!=='admin'){ toast('Réservé aux administrateurs'); return; }
   const pr=pid?profilDroits(pid):null;
-  /* Un profil neuf part TOUT DÉCOCHÉ : le compte fictif porte un rôle qui n'ouvre rien
-     (`__profil__`), donc la grille montre exactement ce que le profil contient, ni plus. */
+  /* Un profil neuf ne tient AUCUN droit de la liste du technicien : le compte fictif porte un rôle
+     (`__profil__`) que tableDuRole n'ouvre pas aux droits. ⚠️ Ses MENUS, eux, partent de la liste du
+     technicien (depuis la v613) : ce n'est PAS « tout décoché », que Justin avait demandé le
+     9 septembre 2026 (« on nomme, on coche ») — écart relevé dans REPRISE, décision à prendre. */
   _profilEdit={id:pr?pr.id:'', nom:pr?pr.nom:'',
                caps:Object.assign({},(pr&&pr.caps)||{}), modules:Object.assign({},(pr&&pr.modules)||{})};
   profilEditRender();

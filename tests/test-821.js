@@ -16,6 +16,9 @@
    3. UN RÔLE CRÉÉ À LA MAIN AVAIT LES MENUS DU TECHNICIEN, MAIS AUCUN DE SES DROITS. `moduleReglage`
       se repliait sur la liste du technicien, `userCap` et `catDroit` non. Une seule définition
       désormais (`tableDuRole`), lue par les trois.
+   4. (relecture) LES COMPTES FICTIFS DE L'ÉDITEUR N'EN PROFITENT PAS. `__profil__` (« ＋ Nouveau profil »)
+      et `__zone__` (les cases déduites) passent par les mêmes fonctions : sans garde, un profil neuf
+      naissait « Modifier les plans d'appâtage » coché, et l'enregistrer l'écrivait. Règle de la v752.
    Tout est EXÉCUTÉ : les vraies fonctions du fichier livré, les vraies listes (NAV, USER_CAPS, la liste
    de départ, la reprise). Le rendu dans la vraie page est mesuré par `scratchpad/sonde-droits-v753.js`. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -276,6 +279,38 @@ console.log('\n── 821 · 5. ⛔⛔ un rôle créé à la main part de la lis
   const sans = monde(); delete sans.db.permissions.dr; delete sans.db.permissions.chefEquipe;
   vrai('DR et chef d’équipe sans liste ne se replient PAS sur celle du technicien (comme avant)', sans.tableDuRole('dr') === null && sans.tableDuRole('chefEquipe') === null && sans.tableDuRole('admin') === null);
   vrai('… ni un rôle inconnu quand l’entreprise n’a aucune liste', (() => { const w = monde(); w.db.permissions = {}; return w.tableDuRole('r_x') === null; })());
+}
+
+console.log('\n── 821 · 6. ⛔⛔ les comptes FICTIFS de l’éditeur ne sont pas des rôles maison — la règle de la v752 ──');
+{ /* « ＋ Nouveau profil » dessine un compte `__profil__`, l'évaluation en direct des cases déduites un compte
+     `__zone__` : ils passent par les mêmes fonctions qu'une personne. Avec le repli du rôle maison, un profil neuf
+     naissait « Modifier les plans d'appâtage » COCHÉ, et l'enregistrer l'écrivait dans le profil (relecture v753).
+     Deux mondes : la liste du technicien SANS droits, puis AVEC des droits qui changent le verdict. Un compte
+     fictif ne doit pas voir la différence — le rôle maison, si (sinon la comparaison ne mesure rien). */
+  const Mc = monde(); Object.assign(Mc.db.permissions.technicien.caps, { cat_stock_supprimer: true, gererBoxes: true, supprimer: true });
+  const M0 = monde(); M0.db.permissions.technicien.caps = {};
+  const caps = M.USER_CAPS.map(c => c[0]), gestes = M.PERM_GRPS.flatMap(([g]) => ['ajouter', 'modifier', 'supprimer'].map(d => [g, d]));
+  const ecarts = u => caps.filter(k => Mc.userCap(u, k) !== M0.userCap(u, k))
+    .concat(gestes.filter(([g, d]) => Mc.catDroit(u, g, d) !== M0.catDroit(u, g, d)).map(x => x.join('.')));
+  const maison = { id: 'm', role: 'r_technicien3d_ab12', acces: { caps: {}, modules: {} } };
+  const eM = ecarts(maison);
+  vrai('population : entre les deux mondes, le verdict du rôle maison change (' + eM.length + ' écarts, dont « Modifier les plans »)',
+    eM.length >= 10 && eM.includes('modifierPlans'), eM);
+  const fauxP = { id: '__profil__', role: '__profil__', acces: { caps: {}, modules: {} } };
+  const fauxZ = { id: '__zone__', role: '__zone__', acces: { caps: {}, modules: {} } };
+  v('⛔⛔ un profil neuf (`__profil__`) ne tient AUCUN droit de la liste du technicien', ecarts(fauxP), []);
+  v('⛔ ni l’évaluation des cases déduites (`__zone__`)', ecarts(fauxZ), []);
+  v('⛔ « Modifier les plans d’appâtage » : décoché dans un profil neuf, comme en v752', Mc.userCap(fauxP, 'modifierPlans'), false);
+  const tech = { id: 't', role: 'technicien' };
+  v('… ses MENUS, eux, partent toujours de la liste du technicien (la v752 le faisait déjà)', CLES.filter(k => Mc.userSeesModule(fauxP, k) !== Mc.userSeesModule(tech, k)), []);
+  vrai('… et la liste du technicien, elle, garde ses droits (le repli des comptes fictifs ne l’abîme pas)', !!Mc.db.permissions.technicien.caps.modifierPlans && Mc.userCap(tech, 'modifierPlans') === true);
+  const hP = Mc.usrDroitsHtml(fauxP, true), h0 = M0.usrDroitsHtml(fauxP, true);
+  vrai('⛔ l’éditeur d’un profil neuf se dessine à l’identique, que la liste du technicien porte des droits ou non (cases et marques « suit »)',
+    hP === h0 && hP.length > 5000, [hP.length, h0.length]);
+  const pr = { id: 'pX', caps: { voirTout: true }, modules: { stock: true } };
+  const hX = Mc.usrDroitsHtml({ id: '__profil__', role: '__profil__', acces: { caps: pr.caps, modules: pr.modules } }, true);
+  vrai('… et un profil EXISTANT montre ses propres cases, rien de la liste du technicien', / data-d="cap_voirTout"[^>]* checked/.test(hX) && !/ data-d="cap_modifierPlans"[^>]* checked/.test(hX),
+    [(/<input[^>]*data-d="cap_voirTout"[^>]*>/.exec(hX) || [''])[0], (/<input[^>]*data-d="cap_modifierPlans"[^>]*>/.exec(hX) || [''])[0]]);
 }
 
 console.log(`\n════ test-821 : ${ok} ✓ ${ko} ✗ ════`);
