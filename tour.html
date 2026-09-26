@@ -2464,6 +2464,8 @@ body.jour .lg-carte,body.jour .vide,body.jour .encart,body.jour .groupe,body.jou
 .kpi .l{order:0;font-size:13px;font-weight:400;color:var(--muted);line-height:1.3}
 .kpi .n{order:1;font-family:var(--fs-titre);font-size:34px;line-height:1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .kpi .n.mot{font-size:17px;line-height:1.3;letter-spacing:-.01em}
+/* une tuile qui filtre est un <button> (Abonnements) : il centrait son texte, ses trois voisines non */
+button.kpi{width:100%;text-align:left;align-items:stretch;font:inherit;color:inherit}
 .kpi .svl-sous,.kpi .d,.kpi .s{order:2;font-size:12.5px;color:var(--muted)}
 .kpi.clic:hover{background:var(--tt-carte);filter:brightness(1.04)}
 body.jour .kpi.clic:hover{filter:brightness(.98)}
@@ -2489,6 +2491,13 @@ body.jour .kpi.sel{box-shadow:inset 0 0 0 2px var(--acc)}
 /* listes : l'encart groupé. Lignes ≥ 56 px, séparateurs gris système, avatar arrondi */
 .reg-tete{background:var(--tt-collant);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-radius:12px;padding:6px 30px 6px 4px;margin:0 0 8px}
 @media(min-width:900px){ .reg-tete{top:48px} }
+/* la bande collée n'a de sens qu'au niveau de la page : dans une carte, ou à côté du bouton de sa
+   porte (Accès), elle dessinait un pavé gris au milieu d'un encart blanc */
+.ac-tete .reg-tete,.carte .reg-tete{background:rgba(0,0,0,0);-webkit-backdrop-filter:none;backdrop-filter:none}
+/* ⛔ et à côté de son bouton, un titre COLLÉ glissait sur lui : mesuré à 390 px, le titre de la
+   porte bêta descendait de 54 px et recouvrait « Ouvrir un accès bêta » (le bouton disparaissait,
+   son tap tombait sur le titre). Un titre qui porte son action ne colle pas. */
+.ac-tete>.reg-tete{position:static}
 .reg-nom{font-size:17px;font-weight:600;letter-spacing:-.02em}
 .reg-n{font-size:13px;color:var(--muted)}
 .reg-l{min-height:56px;padding:10px 16px}
@@ -3199,6 +3208,9 @@ function setBdg(id,n){ var e=$(id); if(!e) return;
   var avant=e.textContent; e.textContent=n; e.style.display=n?'inline-block':'none';
   /* Le compteur sautille quand sa valeur change — pas quand il est simplement réaffiché. */
   if(n&&String(n)!==avant){ e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); }
+  /* le compteur de la barre du bas (et celui de « Plus », qui porte le Courrier quand il n'a pas
+     sa place dans la barre) suit TOUT DE SUITE : il ne dépend plus du prochain rendu d'une vue */
+  try{ majBarreBas(); }catch(x){}
 }
 
 /* ═══ LES DONNÉES (toutes réelles) ═══ */
@@ -3773,7 +3785,11 @@ function vueConnexions(){
             'Elles arrivent dès qu’un appareil de cette entreprise se connecte — les applications le signalent à partir de la v550.',''))+
         '</div>'))+'</div>'; }
   if(CNX.sel) return tete+det;
-  return tete+bandeau+'<div class="rech-rang"><div class="rech">'+svg('loupe',16)+'<input placeholder="Rechercher une entreprise…" value="'+esc(CNX.q)+'" oninput="cnxQ(this.value)"></div>'+filtres+'</div>'+table;
+  var nAct=CNX.list.filter(function(x){ return x.resume&&x.resume.derniere>now-7*86400000; }).length,
+      nEch=CNX.list.filter(function(x){ return x.resume&&x.resume.echecs24>0; }).length;
+  var teteL=teteListe('Entreprises','Filtrer les connexions',[['toutes','Toutes',CNX.list.length],['actives','Actives 7 j',nAct],['echecs','Avec échecs',nEch]],
+    (CNX.f&&CNX.f!=='toutes')?CNX.f:'toutes','cnxF(');
+  return tete+bandeau+teteL+'<div class="rech-rang"><div class="rech">'+svg('loupe',16)+'<input placeholder="Rechercher une entreprise…" value="'+esc(CNX.q)+'" oninput="cnxQ(this.value)"></div>'+filtres+'</div>'+table;
 }
 function tourConnexionsCharge(nm){
   apiPost('/api/monitor/espaces/connexions',{nom:nm,n:8}).then(function(r){
@@ -7856,7 +7872,8 @@ function vueAbonnements(){
   else if(annules.length) pied='<div class="reg-tech"><b>'+annules.length+' abonnement'+(annules.length>1?'s annulés':' annulé')+'.</b> Stripe les conserve ; rien ne se modifie ici.<div>'+
     annules.map(function(a){ return '<button type="button" class="reg-tech-l" onclick="abnStripe(\''+jsq(a.id||'')+'\')">'+esc(a.clientNom||a.clientEmail||'—')+'</button>'; }).join('')+'</div></div>';
 
-  return tete+kpi+corps+pied+blocPromos()+
+  var teteL=teteListe('Formules et paiements','Filtrer les abonnements',[['','Tous',abos.length],['active','Payants',payants],['past_due','Impayés',ABO.impayes||0]],f,'aboF(');
+  return tete+kpi+teteL+corps+pied+blocPromos()+
     '<div class="encart" style="margin-top:18px">'+
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg>'+
       '<div class="encart-tx">Pour modifier ou annuler un abonnement, utilisez le bouton « Ouvrir dans Stripe » — rien ne se modifie depuis cette console.</div></div>';
@@ -8210,7 +8227,7 @@ function vueEssais(){
   /* Quand il faut numéroter les sections dans une phrase d'introduction, c'est que la mise
      en page ne les sépare pas. Maintenant elle les sépare : le détail de chaque porte
      descend dans la phrase de son groupe, où il est lu au moment où il sert. */
-  var tete=enTete('Accès',
+  var tete=enTete('Comptes & accès',
     'Ce que l’équipe s’ouvre à elle-même, et rien d’autre. Deux portes, à ne jamais confondre — elles sont séparées ci-dessous. Les entreprises inscrites sur le site sont des clientes : elles vivent dans l’onglet <b>Entreprises</b>.');
   /* PAS de return anticipé sur BT.loaded ni BT.err : une restriction sur une porte ne doit
      pas fermer l'autre, ni faire croire que l'écran est en panne. « Réservé au patron »
@@ -8364,6 +8381,7 @@ function vueEquipe(){
 /* Les trois compteurs deviennent les trois filtres. JR.f vaut 'tout' au repos ; recliquer
    sur un filtre actif le retire — pas de bouton « effacer » de plus à dessiner. */
 function jrFiltre(f){ JR.f=(JR.f===f?'tout':f); render(); }
+function jrFiltrePoser(f){ JR.f=f||'tout'; render(); }
 function jrGroupe(titre,n,sous,opt,corps){
   return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+titre+'</span>'+
     (n===null?'':'<span class="reg-n">'+n+'</span>')+
@@ -8614,7 +8632,8 @@ function vueJournal(){
 
   return enTete('Journal de la console',
     'Ce qui a été fait dans cette console, et qui s’y est connecté. Aucune ligne ne peut être effacée à la main.')+
-    kpis+'<div class="reg">'+bloc+'</div>'+
+    kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length],['echecs','Refusées',ko.length],['actions','Mes actions',A.length]],f,'jrFiltrePoser(')+
+    '<div class="reg">'+bloc+'</div>'+
     '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console. Au-delà, elles sont effacées — y compris depuis ici.</div>'+
     '<div class="reg-tech jr-mails"><div><b>📧 Les e-mails envoyés sont dans Support → Envoyés.</b> Rangés par entreprise, avec la recherche et le contenu de chaque message. Ils étaient dupliqués ici en liste plate : une seule place vaut mieux que deux.</div>'+
     '<button type="button" class="btn-plein" onclick="setTab(\'support\');envoyesOuvrir()">Ouvrir les envois</button></div>';

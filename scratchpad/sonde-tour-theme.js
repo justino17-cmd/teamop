@@ -80,7 +80,7 @@ const MOCK = String.raw`
     '/api/monitor/journal':{journal:[{ts:N-10*60000,qui:'Justin',ok:true,appareil:'Mac · Safari'},{ts:N-5*H,qui:'Sonia',ok:true,appareil:'iPhone · Safari'},{ts:N-3*H,qui:'justine',ok:false,appareil:'Navigateur inconnu',motif:'mot de passe incorrect'},{ts:N-J-2*H,qui:'Justin',ok:true,appareil:'Mac · Safari'}]},
     '/api/monitor/users':{users:[{nom:'Justin',role:'patron',actif:true,apps:['gestion','messages'],cree:N-200*J,derniere:N-10*60000},{nom:'Sonia',role:'collaborateur',actif:true,apps:['gestion'],cree:N-30*J,derniere:N-2*J}]},
     '/api/monitor/beta':{comptes:[{login:'marc',nom:'Marc',chantier:'Écran Planning',actif:true,cree:N-20*J,derniere:N-J},{login:'sofia',nom:'Sofia',chantier:'',actif:false,cree:N-40*J}]},
-    '/api/monitor/mail/dossiers':{boites:[{adresse:'support@teamop.test',nom:'Support',nonLus:2,ok:true,dossiers:[{chemin:'INBOX',nom:'Boîte de réception',special:'inbox',nonLus:2,total:5},{chemin:'Sent',nom:'Envoyés',special:'sent',total:3}]}]},
+    '/api/monitor/mail/dossiers':{boites:[{boite:{id:'b1',email:'support@teamop.test'},nonLus:2,dossiers:[{chemin:'INBOX',nom:'Boîte de réception',role:'inbox',nonLus:2,total:5},{chemin:'Sent',nom:'Envoyés',role:'sent',total:3}]},{boite:{id:'b2',email:'controle@teamop.test'},nonLus:0,dossiers:[{chemin:'INBOX',nom:'Boîte de réception',role:'inbox',total:1}]}]},
     '/api/monitor/mail/liste':{messages:[{uid:1,boite:'support@teamop.test',dossier:'INBOX',de:'Claire Martin',deAdr:'contact@boulangerie-martin.test',objet:'Question sur la box du dépôt',date:N-2*H,lu:false,extrait:'Bonjour, la box du dépôt n’affiche plus le stock…'},{uid:2,boite:'support@teamop.test',dossier:'INBOX',de:'Léa Durand',deAdr:'gerance@hotel-pins.test',objet:'Facture de septembre',date:N-2*J,lu:true,extrait:'Pouvez-vous me renvoyer la facture ?'}],total:2},
     '/api/monitor/mails':{mails:[{ts:N-J,a:'contact@boulangerie-martin.test',objet:'Nous avons corrigé',par:'Justin'}]},
     '/api/monitor/devisia':{equipes:{'boulmartin-7k2q':{actif:true,n:12}},noms:{'boulmartin-7k2q':'Boulangerie Martin'},entreprises:[{t:'boulmartin-7k2q',nom:'Boulangerie Martin',n:12,actif:true,derniere:N-J}],cle:true,quotaJour:100,utilises:12},
@@ -230,13 +230,16 @@ const MESURE_CIBLES = `
     if(e.closest('[hidden]')) return false;
     return true; });
   const agit=(t,e)=>{ if(!t) return false; if(t===e||e.contains(t)) return true; const lb=t.closest&&t.closest('label'); if(lb&&(lb.contains(e)||(e.id&&lb.htmlFor===e.id))) return true; return false; };
-  const petits=[];
+  const petits=[], recouverts=[];
   let n=0;
   for(const e of vus){
     e.scrollIntoView({block:'center',inline:'nearest'}); await new Promise(r=>requestAnimationFrame(r));
     const r=e.getBoundingClientRect(); if(r.bottom<0||r.top>innerHeight) continue;
     /* ce qui dort sous la barre du bas ou sous l'en-tête collé n'est pas mesurable ici */
-    const t0=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); if(!agit(t0,e)) continue;
+    /* amené au milieu de l'écran, son centre DOIT le toucher — sinon quelque chose est posé
+       dessus, et un doigt n'atteint pas la cible : on le NOMME au lieu de l'écarter en silence */
+    const t0=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+    if(!agit(t0,e)){ if(r.top>70&&r.bottom<innerHeight-120) recouverts.push({t:(e.getAttribute('aria-label')||e.title||e.textContent||e.tagName).trim().replace(/\s+/g,' ').slice(0,40),sous:t0?(t0.tagName+'.'+String(t0.className).slice(0,30)):'rien'}); continue; }
     n++;
     const cx=r.left+r.width/2, cy=r.top+r.height/2;
     let h=r.height, w=r.width;
@@ -245,7 +248,7 @@ const MESURE_CIBLES = `
     if(h<44||w<44) petits.push({t:(e.getAttribute('aria-label')||e.title||e.textContent||e.value||e.tagName).trim().replace(/\\s+/g,' ').slice(0,40),cls:String(e.className||'').slice(0,40),tag:e.tagName,w:Math.round(r.width),h:Math.round(r.height)});
   }
   window.scrollTo(0,0);
-  return {n,petits};`;
+  return {n,petits,recouverts};`;
 
 /* Les textes dont on lit le contraste AU PIXEL : une population NOMMÉE, qui doit exister. */
 const FAMILLES_TEXTE = {
@@ -401,7 +404,7 @@ async function main() {
   const vues = VUES.filter(v => !seules.length || seules.includes(v.cle));
   const S = await demarrer();
   console.log('Sonde du thème de la Tour — tour.html ' + S.version + ' · ' + vues.length + ' vues × ' + APPAREILS.length + ' appareils × ' + MODES.length + ' modes');
-  const bilan = { vues: 0, captures: 0, exceptions: [], debordements: [], cibles: { n: 0, petits: [] }, contrastes: { n: 0, faibles: [], parFam: {} }, nav: [], modes: [] };
+  const bilan = { vues: 0, captures: 0, exceptions: [], debordements: [], cibles: { n: 0, petits: [], recouverts: [] }, contrastes: { n: 0, faibles: [], parFam: {} }, nav: [], modes: [] };
   const ok = [], ko = [];
   const v = (t, cond, detail) => { (cond ? ok : ko).push(t + (detail ? ' — ' + detail : '')); console.log((cond ? '  ✓ ' : '  ✗ ') + t + (detail ? ' — ' + detail : '')); };
   try {
@@ -418,6 +421,9 @@ async function main() {
         const etat = await o.ev(`return {tab:TAB,app:APP,len:(document.getElementById('vue').textContent||'').length,titre:((document.querySelector('#vue .ttl-page')||{}).textContent||'').trim()}`);
         if (etat.tab !== tab || etat.len < 40) { v(V.cle + ' (' + appareil + ', ' + mode + ') s’ouvre', false, JSON.stringify(etat)); continue; }
         bilan.vues++;
+        /* RELEVE=<fichier> : un relevé ponctuel (le corps d'une fonction, « return … ») lu dans un
+           fichier et joué dans la vue ouverte — pour diagnostiquer sans réécrire la sonde */
+        if (process.env.RELEVE) console.log('   RELEVÉ ' + V.cle + ' : ' + JSON.stringify(await o.ev(fs.readFileSync(process.env.RELEVE, 'utf8'))));
         const nomCap = V.cle + '-' + (mode === 'dark' ? 'nuit' : 'jour') + '-' + appareil + '.png';
         const cap = await o.c.envoyer('Page.captureScreenshot', { format: 'png' });
         fs.writeFileSync(path.join(CAPTURES, nomCap), Buffer.from(cap.data, 'base64')); bilan.captures++;
@@ -425,6 +431,7 @@ async function main() {
           const d = await o.ev(MESURE_DEBORDEMENT);
           if (d.x1 > 0 && d.x2 > 0) bilan.debordements.push(V.cle + ' ' + mode + ' : ' + d.x2 + ' px (' + d.coupable + ')');
           const t = await o.ev(MESURE_CIBLES);
+          (t.recouverts || []).forEach(p => bilan.cibles.recouverts.push(V.cle + ' ' + mode + ' : « ' + p.t + ' » sous ' + p.sous));
           bilan.cibles.n += t.n; t.petits.forEach(p => bilan.cibles.petits.push(V.cle + ' ' + mode + ' : « ' + p.t + ' » ' + p.tag + '.' + p.cls + ' ' + p.w + '×' + p.h));
         }
         /* deux écrans relevés : le haut de la vue, puis un écran plus bas (les lignes, les pastilles) */
@@ -451,8 +458,9 @@ async function main() {
   console.log('exceptions JavaScript : ' + bilan.exceptions.length); bilan.exceptions.slice(0, 20).forEach(e => console.log('   ' + e));
   console.log('débordements latéraux RÉELS au téléphone : ' + bilan.debordements.length); bilan.debordements.forEach(e => console.log('   ' + e));
   console.log('cibles tactiles mesurées : ' + bilan.cibles.n + ' · sous 44 px (zone qui répond) : ' + bilan.cibles.petits.length); bilan.cibles.petits.slice(0, 60).forEach(e => console.log('   ' + e));
+  console.log('cibles RECOUVERTES (le doigt touche autre chose) : ' + bilan.cibles.recouverts.length); bilan.cibles.recouverts.slice(0, 40).forEach(e => console.log('   ' + e));
   console.log('textes lus au pixel : ' + bilan.contrastes.n + ' ' + JSON.stringify(bilan.contrastes.parFam) + ' · sous 4,5:1 : ' + bilan.contrastes.faibles.length); bilan.contrastes.faibles.slice(0, 60).forEach(e => console.log('   ' + e));
-  const faute = ko.length + bilan.exceptions.length + bilan.debordements.length + bilan.cibles.petits.length + bilan.contrastes.faibles.length;
+  const faute = ko.length + bilan.cibles.recouverts.length + bilan.exceptions.length + bilan.debordements.length + bilan.cibles.petits.length + bilan.contrastes.faibles.length;
   /* une population vide est un échec, pas un zéro */
   if (!bilan.vues || (!bilan.cibles.n && APPAREILS.includes('telephone')) || !bilan.contrastes.n) { console.log('⛔ POPULATION VIDE — la sonde n’a rien mesuré'); process.exit(1); }
   console.log('\n' + ok.length + ' ✓  ' + ko.length + ' ✗  (contrôles de parcours) · ' + faute + ' défaut(s) au total');
