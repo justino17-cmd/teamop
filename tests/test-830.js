@@ -507,6 +507,8 @@ v('le filtre ne laisse passer AUCUN texte qui avait besoin d’être corrigé', 
 vrai('…et elle passe sur tout ce que la vue AJOUTE (observateur de #vue, sous-arbre compris, un texte seul par son parent)',
   /new MutationObserver\(function\(ms\)\{[^]*?typoFr\(x\.nodeType===3\?x\.parentNode:x\);[^]*?\.observe\(v,\{childList:true,subtree:true\}\)/.test(CODE)
   && /var v=document\.getElementById\('vue'\)/.test(CODE));
+vrai('la mémoire des groupes pliés ne dépend pas du moment où la typographie passe (la clé ignore les insécables)',
+  /var cle=APP\+'\/'\+TAB\+'\/'\+nom\.replace\(\/\\u00A0\/g,' '\)\.trim\(\);/.test(fonction('regPliage')));
 vrai('⛔ l’observateur ne regarde pas characterData : corriger un texte ne le fait pas repasser (pas de boucle)',
   !/observe\(v,\{[^}]*characterData/.test(CODE));
 

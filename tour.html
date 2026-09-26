@@ -5223,7 +5223,10 @@ function regPliage(){
   [].forEach.call(gs,function(g){
     var tete=g.querySelector('.reg-tete'); if(!tete||tete.dataset.pli) return;
     var nom=(g.querySelector('.reg-nom')||{}).textContent||('g'+i);
-    var cle=APP+'/'+TAB+'/'+nom.trim();   /* par console : un groupe plié en GESTION ne l'est pas en MESSAGES */
+    /* v2.68 — la clé ignore les espaces insécables : typoFr() les pose APRÈS ce rendu (observateur de #vue). Lue ici
+       avant elle, lue ailleurs après, la même clé changerait, et le choix « plié » d'un groupe à ponctuation (« · »,
+       « : », « — ») serait oublié. */
+    var cle=APP+'/'+TAB+'/'+nom.replace(/\u00A0/g,' ').trim();   /* par console : un groupe plié en GESTION ne l'est pas en MESSAGES */
     /* La règle, une seule, valable partout : le PREMIER groupe reste ouvert, et parmi les
        suivants seuls les LONGS se replient. Mesurée ici, pas devinée par une liste d'écrans —
        une liste aurait vieilli au premier écran ajouté. Le seuil de 300 px, c'est à peu près

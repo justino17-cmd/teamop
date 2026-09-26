@@ -13,7 +13,11 @@
 const fs = require('fs'), path = require('path');
 const { demarrer, onglet, STABLE, APAISER, dormir, VUES } = require('./sonde-tour-theme.js');
 
-const CAPT = process.env.CAPT_TEL || '/tmp/claude-0/-home-user-teamop/2b5579ae-09a0-571f-9bc9-ac0e61b4c7de/scratchpad/tour-tel';
+/* APPAREIL=bureau : la même lecture au bureau (1280 × 900 par défaut, LARGEUR / HAUTEUR pour une autre fenêtre) —
+   un correctif posé pour le téléphone doit laisser le bureau sur SA colonne. */
+const APPAREIL = process.env.APPAREIL || 'telephone', TEL = APPAREIL === 'telephone';
+const LARG = +(process.env.LARGEUR || (TEL ? 390 : 1280)), HAUT = +(process.env.HAUTEUR || (TEL ? 844 : 900));
+const CAPT = process.env.CAPT_TEL || ('/tmp/claude-0/-home-user-teamop/2b5579ae-09a0-571f-9bc9-ac0e61b4c7de/scratchpad/' + (TEL ? 'tour-tel' : 'tour-bureau'));
 const SEULES = (process.env.SEULES || '').split(',').filter(Boolean);
 const AVEC_IMAGES = process.env.CAPTURES_TEL !== '0';
 const MODE = process.env.MODE || 'light';
@@ -59,8 +63,8 @@ async function main() {
   try {
     for (const V of VUES) {
       if (SEULES.length && !SEULES.includes(V.cle)) continue;
-      const o = await onglet(S, 'telephone', MODE);
-      await o.c.envoyer('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+      const o = await onglet(S, APPAREIL, MODE);
+      await o.c.envoyer('Emulation.setDeviceMetricsOverride', { width: LARG, height: HAUT, deviceScaleFactor: TEL ? 2 : 1, mobile: TEL });
       const tab = V.tab || V.cle;
       await o.ev(`setApp('${V.app}',true); setTab('${tab}',true); return 1;`);
       await dormir(500);
@@ -70,7 +74,7 @@ async function main() {
       releves[V.cle] = rel;
       if (AVEC_IMAGES) {
         await o.ev(FILETS);
-        const H = rel.H, pas = 844 - 150;   // chevauchement : la barre du haut et celle du bas cachent chacune un bandeau
+        const H = rel.H, pas = HAUT - 150;   // chevauchement : la barre du haut et celle du bas cachent chacune un bandeau
         let n = 0;
         for (let y = 0; y < H - 200 || n === 0; y += pas) {
           await o.ev('window.scrollTo(0,' + y + '); ' + STABLE + ' await new Promise(r=>setTimeout(r,120)); return 1;');
