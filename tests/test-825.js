@@ -72,7 +72,8 @@ for (const f of ['app.html', 'beta.html']) {
 
   /* le bac à sable : les vraies fonctions de la page */
   const src = ['uidTs', 'techColorHash', 'techCouleurs', 'techCouleursDe', 'techColor', 'techCouleurNom', 'techConnu', 'intTechsAff', 'techPastille', 'techPuces', 'techPile',
-    'planIntDe', 'planCouleurDans', 'planAutres', 'planBoutAutres', 'planPileAutres', 'planAvec', 'techCouleurChoix', 'numIcon', 'encreSur', 'intTechIds', 'planTechsOf', 'planCardColor'].map(n => [n, fonction(CODE, n)]);
+    'planIntDe', 'planCouleurDans', 'planAutres', 'planBoutAutres', 'planPileAutres', 'planAvec', 'techCouleurChoix', 'numIcon', 'encreSur', 'intTechIds', 'planTechsOf', 'planCardColor',
+    'techCouleursFiger', 'techCouleursSimuler', 'techCouleurPrevenus'].map(n => [n, fonction(CODE, n)]);
   const manque = src.filter(([, c]) => c.length < 20).map(([n]) => n);
   vrai('population : les fonctions de la couleur et des pastilles sont trouvées', manque.length === 0, manque);
   if (manque.length) continue;
@@ -84,7 +85,7 @@ for (const f of ['app.html', 'beta.html']) {
     const techName=id=>{ const t=db.techniciens.find(t=>t.id===id); if(t) return t.nom||'Non assigné'; const a=(db.techArchive||[]).find(t=>t.id===id); return a?(a.nom||'Ancien technicien'):'Non assigné'; };
     const L={divIcon:o=>o};
     ${src.map(([, c]) => c).join('\n')}
-    return {set:(T,A)=>{ db=ctx.db={techniciens:T,techArchive:A||[]}; }, techCouleurs,techCouleursDe,techColor,techPastille,techPuces,techPile,planIntDe,planCouleurDans,planAutres,planBoutAutres,planPileAutres,planAvec,techCouleurChoix,numIcon,encreSur,techCouleurNom,
+    return {set:(T,A)=>{ db=ctx.db={techniciens:T,techArchive:A||[]}; }, techCouleurs,techCouleursDe,techColor,techPastille,techPuces,techPile,planIntDe,planCouleurDans,planAutres,planBoutAutres,planPileAutres,planAvec,techCouleurChoix,numIcon,encreSur,techCouleurNom,techCouleursFiger,techCouleursSimuler,techCouleurPrevenus,
       get dit(){ return typeof window!=='undefined'?window._tccDit:null; }};`);
   let A;
   try { global.window = {}; A = bac(ctx); } catch (e) { vrai('le bac à sable se construit', false, e.message); continue; }
@@ -113,7 +114,67 @@ for (const f of ['app.html', 'beta.html']) {
   Tm[1].couleur = '#DC2626'; const mm2 = A.techCouleurs();
   vrai('changer une couleur à la main se voit tout de suite (la mémoire se refait)', mm2[Tm[1].id] === '#DC2626', mm2);
   vrai('« non assigné » reste l’orange', A.techColor('') === '#E8A33D');
+
+  /* v758 (relecture) — UN DÉPART NE CHANGE LA COULEUR DE PERSONNE. Reproduit avant d'écrire : six techniciens,
+     retirer le plus ancien faisait passer le plus jeune de l'orange au violet. On joue les VRAIES fonctions sur
+     des équipes tirées au hasard, en comptant d'abord ce qui AURAIT bougé sans la règle (la population). */
+  console.log(`\n── 825 · 2 bis. ${f} — un geste sur un technicien ne change la couleur d'aucun autre ──`);
+  let bougeait = 0, bouge = 0, figes = 0, doubl = 0, essais = 0, figeFaux = 0;
+  for (let e = 0; e < 3000; e++) {
+    const n = 3 + e % 13; let t0 = Date.parse('2025-01-01'); const T = [];
+    for (let k = 0; k < n; k++) { t0 += 86400000 * (1 + Math.floor(hasard() * 30)); T.push({ id: uidAu(t0), nom: 'T' + k }); }
+    if (e % 4 === 0) T[Math.floor(hasard() * n)].couleur = P[Math.floor(hasard() * 16)];   // de temps en temps, une couleur choisie à la main
+    const m0 = A.techCouleursDe(T), k = Math.floor(hasard() * n), avant = T.map(t => ({ ...t }));
+    const apres = avant.filter((t, j) => j !== k), sans = A.techCouleursDe(apres);
+    if (apres.some(t => sans[t.id] !== m0[t.id])) bougeait++;
+    figes += A.techCouleursFiger(T.map(t => ({ ...t })), apres);
+    /* une fiche figée l'est à la couleur qu'elle AVAIT, et seulement si elle n'en avait pas de choisie */
+    apres.forEach(t => { const o = T.find(x => x.id === t.id); if (t.couleur !== o.couleur && (o.couleur || t.couleur !== m0[t.id])) figeFaux++; });
+    const m1 = A.techCouleursDe(apres); essais++;
+    if (apres.some(t => m1[t.id] !== m0[t.id])) bouge++;
+    if (n <= 16 && new Set(apres.map(t => m1[t.id])).size < apres.length) doubl++;
+  }
+  vrai('population : sans la règle, un départ faisait CHANGER la couleur d’un autre (la trouvaille, reproduite)', bougeait > 50, bougeait + ' équipes sur ' + essais);
+  vrai('⛔ avec la règle : un départ ne change la couleur de PERSONNE', bouge === 0, bouge);
+  vrai('   … sans créer de doublon', doubl === 0, doubl);
+  vrai('   … en figeant chacun à la couleur qu’il AVAIT, jamais par-dessus une couleur choisie', figes > 0 && figeFaux === 0, figes + ' fiches figées pour ' + bougeait + ' équipes · ' + figeFaux + ' fausse(s)');
+
+  let annonceFausse = 0, autresBougent = 0, prevenusRestent = 0, jeux = 0, prevN = 0;
+  for (let e = 0; e < 2000; e++) {
+    const n = 3 + e % 12; let t0 = Date.parse('2025-01-01'); const T = [];
+    for (let k = 0; k < n; k++) { t0 += 86400000 * (1 + Math.floor(hasard() * 30)); T.push({ id: uidAu(t0), nom: 'T' + k }); }
+    const m0 = A.techCouleursDe(T), x = T[Math.floor(hasard() * n)], C = P[Math.floor(hasard() * 16)];
+    if (T.some(t => t.couleur && t.couleur === C)) continue;          // un doublon CHOISI à la main se dit autrement (« leurs cartes se confondront »)
+    jeux++;
+    /* choisir une couleur pour x : seuls x et ceux que le choix prévient ont le droit de changer */
+    const prev = A.techCouleurPrevenus(T, x.id, C); prevN += prev.length;
+    const avant = T.map(t => ({ ...t })), apres = T.map(t => t.id === x.id ? { ...t, couleur: C } : { ...t });
+    A.techCouleursFiger(avant, apres, [x.id].concat(prev));
+    const m1 = A.techCouleursDe(apres);
+    if (T.some(t => t.id !== x.id && !prev.includes(t.id) && m1[t.id] !== m0[t.id])) autresBougent++;
+    if (prev.some(id => m1[id] === C)) prevenusRestent++;
+    /* puis revenir en « Automatique » : la couleur ANNONCÉE est celle qu'il aura vraiment */
+    A.set(apres); const annonce = A.techCouleursSimuler(apres, apres.map(t => t.id === x.id ? { ...t, couleur: '' } : t), [x.id])[x.id];
+    const retour = apres.map(t => t.id === x.id ? { ...t, couleur: '' } : { ...t });
+    A.techCouleursFiger(apres.map(t => ({ ...t })), retour, [x.id]);
+    if (A.techCouleursDe(retour)[x.id] !== annonce) annonceFausse++;
+  }
+  vrai('population : des choix qui prennent la couleur automatique d’un collègue (celui-là est prévenu)', prevN > 50, prevN + ' prévenus sur ' + jeux + ' choix');
+  vrai('⛔ choisir une couleur ne change que la fiche touchée et ceux que « en prendra une autre » a prévenus', autresBougent === 0, autresBougent);
+  vrai('   … et le prévenu prend bien une autre couleur', prevenusRestent === 0, prevenusRestent);
+  vrai('⛔ revenir en « Automatique » : la couleur annoncée est celle qu’il a vraiment, une fois les autres figés', annonceFausse === 0, annonceFausse);
+  A.set(Tm);
   vrai('un technicien qui n’est plus dans la liste garde une couleur (le passé)', /^#[0-9A-F]{6}$/.test(A.techColor('zzzzzzzzzzzzz')));
+
+  const arch = fonction(CODE, 'techArchiver'), fus = fonction(CODE, 'techFusionnerDoublons');
+  const sav = (() => { const k = CODE.indexOf('\nasync function saveTech('); if (k < 0) return ''; const fin = CODE.slice(k + 12).search(/\n(?:async function |function |const |let |var |views\.)/); return fin < 0 ? '' : CODE.slice(k + 1, k + 12 + fin); })();
+  vrai('population : les trois gestes qui retirent ou changent un technicien sont trouvés', arch.length > 200 && sav.length > 1500 && fus.length > 300, [arch.length, sav.length, fus.length]);
+  vrai('⛔ retirer un technicien fige les autres APRÈS l’avoir retiré de la liste',
+    /const avantT=db\.techniciens\.slice\(\);\s*db\.techniciens=db\.techniciens\.filter\(x=>x\.id!==id\);\s*techCouleursFiger\(avantT,db\.techniciens\);/.test(arch));
+  vrai('⛔ la fiche — modifier ET créer — fige tout le monde sauf elle et les prévenus',
+    (sav.match(/techCouleursFiger\(avantT,db\.techniciens,\[(?:id|tid)\]\.concat\(prev\)\);/g) || []).length === 2 && (sav.match(/prev=techCouleurPrevenus\(avantT,/g) || []).length === 2);
+  vrai('   fusionner des doublons aussi (seules les fiches gardées peuvent changer)', /techCouleursFiger\(avantT,db\.techniciens,gardes\);/.test(fus));
+  vrai('   et le choix annonce la couleur automatique telle qu’elle sera (simulation, les autres figés)', /const sans=id\?techCouleursSimuler\(T,/.test(fonction(CODE, 'techCouleurChoix')));
 
   console.log(`\n── 825 · 3. ${f} — les pastilles : chacun, sa couleur, son nom ──`);
   const Tp = [{ id: 'mleoaaaaaaaaa', nom: 'Léo Martin' }, { id: 'mkarimaaaaaaa', nom: 'Karim Benali' }, { id: 'msofiaaaaaaaa', nom: 'Sofia Rossi' }];
@@ -152,6 +213,17 @@ for (const f of ['app.html', 'beta.html']) {
   const sem = fonction(CODE, 'planWeekHtml'), jour = fonction(CODE, 'planDayHtml'), multi = fonction(CODE, 'planMultiHtml');
   vrai('⛔ Semaine, Jour, Multi : la carte prend la couleur de sa colonne', /const sc=planCouleurDans\(i,gr\.id\)/.test(sem) && /const sc=planCouleurDans\(i,gr\.id\)/.test(jour) && /const coul=planCouleurDans\(i,t\.id\)/.test(multi));
   vrai('   … et montre les collègues', /planPileAutres\(i,gr\.id\)/.test(sem) && /planPileAutres\(i,gr\.id\)/.test(jour) && /planPileAutres\(i,t\.id\)/.test(multi));
+  /* v758 — la pile des collègues ne prend plus sa place au TITRE (Jour, Multi) : « Dératisation parta… » sur toutes
+     les cartes partagées. Elle va en bout de ligne du client dès que la carte a cette ligne (planInfosPlace), et la
+     preuve dans la vraie page — titre entier, pile entière et touchable — est scratchpad/sonde-pile-client.js. */
+  vrai('⛔ Jour : la pile va sur la ligne du client quand elle existe, sinon sur celle du titre',
+    /const pileA=planPileAutres\(i,gr\.id\), pileBas=!!pileA&&planInfosPlace\(i,hpx\)>=1;/.test(jour) && /<b>\$\{pileBas\?'':pileA\}/.test(jour) && /planCarteInfos\(i,\{h:hpx,pile:pileBas\?pileA:''\}\)/.test(jour));
+  vrai('⛔ Multi : la même règle', /const pileA=planPileAutres\(i,t\.id\), pileBas=!!pileA&&planInfosPlace\(i,haut\)>=1;/.test(multi) && /<b>\$\{pileBas\?'':pileA\}/.test(multi) && /planCarteInfos\(i,\{h:haut,pile:pileBas\?pileA:''\}\)/.test(multi));
+  const infos = fonction(CODE, 'planCarteInfos');
+  vrai('   planCarteInfos pose la pile au bout du nom du client, et compte ses lignes par la MÊME règle (planInfosPlace)',
+    /const cli=opts\.pile\?`<small class="ci ci-av">\$\{ico\('cli'\)\}<span class="ci-t">\$\{nomCli\}<\/span>\$\{opts\.pile\}<\/small>`/.test(infos) && /const place=planInfosPlace\(i,opts\.h\);/.test(infos));
+  const rc = R.filter(([sel]) => /\.ci\.ci-av/.test(sel));
+  vrai('   le nom du client se coupe, la pile jamais (flex, min-width:0 sur le nom)', rc.some(([sel, d]) => /\.ci-t/.test(sel) && /min-width:0/.test(d) && /text-overflow:ellipsis/.test(d)) && rc.some(([sel, d]) => /\.tpil/.test(sel) && /margin:0 0 0 auto/.test(d)), rc.map(([sel]) => sel));
   vrai('⛔ les en-têtes du planning portent la couleur de la personne (av-tc + --tc), plus `background:…;color:#fff` écrasé par la refonte',
     /class="avatar av-tc" style="width:24px;height:24px;font-size:10px;flex-shrink:0;--tc:\$\{cW\}"/.test(sem) && /class="avatar av-tc" style="width:26px;height:26px;font-size:10px;flex-shrink:0;--tc:\$\{cTech\}"/.test(jour)
     && !/class="avatar" style="[^"]*background:\$\{(?:cW|cTech|techColor\(t\.id\))\};color:#fff"/.test(CODE));

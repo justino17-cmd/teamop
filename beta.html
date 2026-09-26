@@ -1375,6 +1375,12 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .plt-blk .ci.typ,.plm-card .ci.typ,.plg-mini .ci.typ{ color:var(--t2); font-weight:700; display:flex; align-items:center; gap:4px; }
 .plt-blk .ci.typ i,.plm-card .ci.typ i,.plg-mini .ci.typ i{ width:7px; height:7px; border-radius:2px; display:inline-block; flex-shrink:0; }
 .plt-blk .ci.tel,.plm-card .ci.tel,.plg-mini .ci.tel{ color:var(--t2); font-variant-numeric:tabular-nums; }
+/* v758 : la ligne du client porte la pile des collègues à son bout — le nom se coupe, la pile jamais */
+.plt-blk .ci.ci-av,.plm-card .ci.ci-av{ display:flex; align-items:center; }
+.ci.ci-av .ci-t{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.ci.ci-av svg.ic{ flex:none; }
+.ci.ci-av .tpil{ margin:0 0 0 auto; padding-left:4px; vertical-align:0; }
+.ci.ci-av .tpu-p{ width:14px; height:14px; font-size:6px; }
 .plt-blk,.plm-card{ padding-bottom:4px; display:flex; flex-direction:column; }
 .plt-blk>b,.plm-card>b{ flex:none; }
 /* les informations s'étalent au lieu de rester collées en haut */
@@ -13309,7 +13315,9 @@ function techRemap(de,vers){ let n=0; Object.keys(db).forEach(k=>{ const c=db[k]
     if(r.chef===de){ r.chef=vers||''; n++; } }); }); return n; }
 function techArchiver(id){ const t=db.techniciens.find(x=>x.id===id); if(!t) return false;
   db.techArchive=db.techArchive||[]; db.techArchive.push({...t,archiveLe:todayISO()}); if(db.techArchive.length>500) db.techArchive.splice(0,db.techArchive.length-500);
+  const avantT=db.techniciens.slice();
   db.techniciens=db.techniciens.filter(x=>x.id!==id);
+  techCouleursFiger(avantT,db.techniciens);   // v758 : son départ ne change la couleur de personne
   const auj=todayISO();
   (db.boxes||[]).forEach(b=>{ if(Array.isArray(b.techIds)) b.techIds=b.techIds.filter(x=>x!==id); });
   (db.techniciens||[]).forEach(x=>{ if(x.chef===id) x.chef=''; });
@@ -13326,11 +13334,12 @@ function techDoublons(){ const g={}; (db.techniciens||[]).forEach(t=>{ const k=n
 function techFusionnerDoublons(){ if(!permGarde('equipe','modifier','les fiches du personnel')) return;
   const grp=techDoublons(); if(!grp.length){ toast('Aucun doublon de technicien'); return; }
   if(!confirm(grp.length+' nom(s) en double : '+grp.map(l=>l[0].nom+' ×'+l.length).join(', ')+'.\n\nFusionner ? Pour chaque nom, une seule fiche est gardée (celle reliée à un compte, sinon la plus ancienne) ; interventions, pointages, box et véhicules des doublons lui sont rattachés.')) return;
-  let fusions=0;
-  grp.forEach(l=>{ const garde=l.find(t=>db.users.some(u=>u.techId===t.id))||l[0];
+  let fusions=0; const avantT=db.techniciens.slice(), gardes=[];
+  grp.forEach(l=>{ const garde=l.find(t=>db.users.some(u=>u.techId===t.id))||l[0]; gardes.push(garde.id);
     l.filter(t=>t!==garde).forEach(t=>{ techRemap(t.id,garde.id); ['tel','email','departements','couleur','certibiocide','certibiocideExp'].forEach(f=>{ if(!garde[f]&&t[f]) garde[f]=t[f]; });
       (db.users||[]).forEach(u=>{ if(u.techId===t.id) u.techId=garde.id; });
       db.techniciens=db.techniciens.filter(x=>x.id!==t.id); fusions++; }); });
+  techCouleursFiger(avantT,db.techniciens,gardes);   // v758 : la fusion ne change la couleur que des fiches fusionnées
   logEvent('Doublons de techniciens fusionnés',fusions+' fiche(s)','crud'); save(); toast('🧹 '+fusions+' doublon(s) fusionné(s)'); views.techniciens(); }
 const clientName = id => (db.clients.find(c=>c.id===id)||{}).nom || '—';
 const produit = id => db.produits.find(p=>p.id===id) || {};
@@ -17357,14 +17366,17 @@ function planCarteInfos(i,opts){
   const adr=[i.adresse||c.adresse||'',c.codePostal||'',c.ville||''].filter(Boolean).join(' ').trim();
   const tel=(c.tel||'').trim();
   const typ=(i.type||'').trim();
-  const cli=`<small class="ci">${ico('cli')}${esc(c.nom||clientName(i.clientId)||'—')}</small>`;
+  const nomCli=esc(c.nom||clientName(i.clientId)||'—');
+  /* v758 — LA PILE DES COLLÈGUES EN BOUT DE LIGNE DU CLIENT (vues Jour et Multi). Posée devant l'heure, elle
+     prenait sa place au TITRE : « Dératisation parta… » sur toutes les cartes partagées, dans des colonnes où le
+     titre tenait sans elle. Le nom du client se coupe, la pile jamais ; une carte trop basse pour cette ligne
+     garde la pile sur la ligne du titre (planInfosPlace). */
+  const cli=opts.pile?`<small class="ci ci-av">${ico('cli')}<span class="ci-t">${nomCli}</span>${opts.pile}</small>`:`<small class="ci">${ico('cli')}${nomCli}</small>`;
   const lTyp=(typ&&typ!==(i.titre||'').trim())?`<small class="ci typ"><i style="background:${typeColor(typ)}"></i>${esc(typ)}</small>`:'';
   const lAdr=adr?`<small class="ci">${ico('pin')}${esc(adr)}</small>`:'';
   const lTel=tel?`<small class="ci tel">${ico('tel')}${esc(tel)}</small>`:'';
   if(!opts.h) return [lTyp,cli,lAdr,lTel].filter(Boolean).join('');
-  /* 20 px pour le titre, 22 px pour le pied s'il y en a un, 13 px par ligne */
-  const pied=planCartePiedOk(i,opts.h)?22:0;
-  const place=Math.max(0,Math.floor((opts.h-20-pied)/13));
+  const place=planInfosPlace(i,opts.h);
   let corps='';
   if(place<=0) corps='';
   else if(place===1) corps=cli;
@@ -17375,6 +17387,10 @@ function planCarteInfos(i,opts){
 }
 /* le pied de case : statut et horaire complet, dès qu'il y a la place */
 function planCartePiedOk(i,h){ return h>=74; }
+/* combien de lignes d'informations tiennent sous le titre (0 : le titre seul) : 20 px pour le titre, 22 px pour
+   le pied s'il y en a un, 13 px par ligne. UNE règle — planCarteInfos la suit, et les vues Jour et Multi la lisent
+   pour savoir si la ligne du client sera là avant d'y poser la pile des collègues. */
+function planInfosPlace(i,h){ const pied=planCartePiedOk(i,h)?22:0; return Math.max(0,Math.floor((h-20-pied)/13)); }
 function planCartePied(i,h){
   if(!planCartePiedOk(i,h)) return '';
   const st=STATUT_INT[i.statut]||{};
@@ -18793,6 +18809,7 @@ function planMultiHtml(SRC){
         const coul=planCouleurDans(i,t.id);
         const st=STATUT_INT[i.statut]||{};
         const pos=cote[i.id];
+        const pileA=planPileAutres(i,t.id), pileBas=!!pileA&&planInfosPlace(i,haut)>=1;
         /* ⚠️ LE TEXTE COMPLET RESTE ATTEIGNABLE, comme sur les cases voisines. Audit du
            22 septembre 2026 : dans une colonne de 137 px, « 08:30 · Dératisation — passage
            2/3 — Boulangerie… » est forcément coupé ; c'est la densité voulue d'un planning.
@@ -18803,8 +18820,8 @@ function planMultiHtml(SRC){
           title="${esc((i.heure?i.heure+' · ':'')+(i.titre||'Intervention')+(c?' — '+(c.nom||''):'')+(planAutres(i,t.id).length?' · avec '+planAutres(i,t.id).map(techName).join(', '):''))}"
           onclick="event.stopPropagation();detailIntervention('${i.id}')"
           style="top:${top}px;height:${haut}px;border-left-color:${coul};${planCoteStyle(pos)}">
-          <b>${planPileAutres(i,t.id)}${i.heure?`<span class="hh">${esc(i.heure)}</span> · `:''}<span class="tt">${esc(i.titre||'Intervention')}</span></b>
-          ${planCarteInfos(i,{h:haut})}${planCartePied(i,haut)}
+          <b>${pileBas?'':pileA}${i.heure?`<span class="hh">${esc(i.heure)}</span> · `:''}<span class="tt">${esc(i.titre||'Intervention')}</span></b>
+          ${planCarteInfos(i,{h:haut,pile:pileBas?pileA:''})}${planCartePied(i,haut)}
           <span class="pn" style="background:${techColor(t.id)};color:${encreSur(techColor(t.id))}">${num[i.id]||''}</span>
           ${(haut>44&&!planCartePiedOk(i,haut))?`<span class="stt st-${esc(i.statut)}">${esc(st.l||i.statut)}</span>`:''}
         </div>`;
@@ -19513,8 +19530,9 @@ function planDayHtml(SRC){ if((window.innerWidth||1200)<700) return planDayListH
       if(m===null){ top=4+sansHeure*40; hpx=36; sansHeure++; dash='border-style:dashed;'; }
       else { top=Math.max(0,(m-h0*60)/60*PPH); hpx=Math.max(34,dur/60*PPH-4); }   // la case fait la durée ; le contenu s'adapte
       const posJ=(m===null)?null:coteJ[i.id];
+      const pileA=planPileAutres(i,gr.id), pileBas=!!pileA&&planInfosPlace(i,hpx)>=1;
       blocks+=`<div class="plt-blk ${cf?'cf':''} ${(posJ&&posJ.n>1)?'chev':''} ${i.propose?'prop':''} ${planMatch(i)?'':'dim'}" title="${esc((i.heure||'')+' '+(i.titre||'')+' — '+(clientName(i.clientId)||'')+(av.length?' · avec '+av.map(techName).join(', '):''))}" draggable="${canPlan()?'true':'false'}" data-drag-int="${i.id}" ondragstart="planDragStart(event,'${i.id}')" onclick="event.stopPropagation();${i.propose?`planProposeModal('${i.id}')`:`detailIntervention('${i.id}')`}" style="top:${top}px;height:${hpx}px;border-left-color:${sc};${dash}${planCoteStyle(posJ)}">
-        ${by}${(function(){ const n=planNumOf(i.id); return n?`<span class="pnum" style="background:${planCoulOf(i)}" title="Intervention n°${n} de la tournée">${n}</span>`:''; })()}<b>${planPileAutres(i,gr.id)}${i.heure?`<span class="hh">${esc(i.heure)}</span>`:'— sans heure'} · <span class="tt">${esc(i.titre||'')}</span>${badges}</b>${planCarteInfos(i,{h:hpx})}${planCartePied(i,hpx)}${(i.obligation&&hpx>=110)?'<small class="ci" style="color:var(--org)">placée malgré un congé</small>':''}</div>`; });
+        ${by}${(function(){ const n=planNumOf(i.id); return n?`<span class="pnum" style="background:${planCoulOf(i)}" title="Intervention n°${n} de la tournée">${n}</span>`:''; })()}<b>${pileBas?'':pileA}${i.heure?`<span class="hh">${esc(i.heure)}</span>`:'— sans heure'} · <span class="tt">${esc(i.titre||'')}</span>${badges}</b>${planCarteInfos(i,{h:hpx,pile:pileBas?pileA:''})}${planCartePied(i,hpx)}${(i.obligation&&hpx>=110)?'<small class="ci" style="color:var(--org)">placée malgré un congé</small>':''}</div>`; });
     // Battement entre 2 interventions consécutives d'un même technicien (P4) — clients différents
     for(let k=0;k<timed.length-1;k++){ const a=timed[k], b=timed[k+1];
       if(!a.clientId||!b.clientId||a.clientId===b.clientId) continue;
@@ -31790,6 +31808,30 @@ function techCouleursDe(T){
     m[t.id]=c; prises.add(c); });
   return m;
 }
+/* v758 — UN GESTE SUR UN TECHNICIEN NE CHANGE LA COULEUR D'AUCUN AUTRE (relecture de la v758, reproduit avec les
+   vraies fonctions). L'attribution se DÉDUIT de la liste : le départ d'un ancien libérait sa case, et un plus jeune
+   qui avait été poussé plus loin la reprenait — sur six techniciens, retirer le plus ancien faisait passer le plus
+   jeune de l'orange au violet ; libérer une couleur choisie à la main faisait de même. Une couleur qui change quand
+   un COLLÈGUE part n'est plus un repère. Au moment du geste (jamais au chargement), ceux dont la couleur changerait
+   sans que le choix l'ait annoncé GARDENT celle qu'ils avaient : elle est écrite sur leur fiche, comme choisie.
+   `permis` : ceux que le geste a le droit de changer — la fiche touchée, et ceux que « … l'a en automatique et en
+   prendra une autre » a prévenus. Rend le nombre de fiches figées. */
+function techCouleursFiger(avantT, apresT, permis){
+  const av=techCouleursDe(avantT||[]), ok=new Set(permis||[]); let n=0;
+  for(let tour=0; tour<=16; tour++){
+    const ap=techCouleursDe(apresT||[]); let chg=0;
+    (apresT||[]).forEach(t=>{ if(t&&t.id&&!t.couleur&&!ok.has(t.id)&&av[t.id]&&ap[t.id]!==av[t.id]){ t.couleur=av[t.id]; chg++; } });
+    n+=chg; if(!chg) break;
+  }
+  return n;
+}
+/* la même chose SANS rien écrire, pour ANNONCER juste : « Automatique — Violet aujourd'hui » doit dire la couleur
+   que la fiche aura vraiment une fois les autres figés, pas celle d'une liste où ils bougeraient encore */
+function techCouleursSimuler(avantT, apresT, permis){ const copie=(apresT||[]).map(t=>t?{...t}:t);
+  techCouleursFiger(avantT, copie, permis); return techCouleursDe(copie); }
+/* ceux qu'un choix de couleur prévient (« … l'a en automatique et en prendra une autre ») */
+function techCouleurPrevenus(T, sauf, couleur){ const C=String(couleur||'').toUpperCase(); if(!C) return [];
+  const m=techCouleursDe(T||[]); return (T||[]).filter(t=>t&&t.id!==sauf&&!t.couleur&&String(m[t.id]||'').toUpperCase()===C).map(t=>t.id); }
 function techColor(id){
   if(!id) return '#E8A33D';                                   // non assigné : toujours orange
   const c=techCouleurs()[id]; if(c) return c;                  // couleur choisie à la main, ou attribuée sans doublon
@@ -31804,7 +31846,7 @@ function techCouleurNom(c){ const i=TECH_PALETTE16.indexOf(String(c||'').toUpper
    couleur qu'un collègue n'a qu'en automatique se prend sans rien lui voler : son automatique s'écarte. */
 function techCouleurChoix(id,courante){
   const T=db.techniciens||[], cur=String(courante||'').toUpperCase();
-  const sans=techCouleursDe(T.map(t=>t.id===id?{...t,couleur:''}:t));        // chacun, si CE technicien était en automatique
+  const sans=id?techCouleursSimuler(T,T.map(t=>t.id===id?{...t,couleur:''}:t),[id]):techCouleursDe(T);   // chacun, si CE technicien était en automatique (les autres figés : v758)
   const auto=id?sans[id]:'';
   const choisiePour={}, autoPour={};
   T.forEach(t=>{ if(t.id===id) return; const c=String(sans[t.id]||'').toUpperCase(); if(!c) return;
@@ -32635,7 +32677,9 @@ async function saveTech(e,id){ e.preventDefault();
       if((db.techniciens||[]).some(x=>x.id!==id&&nomNorm(x.nom)===nomNorm(d.nom))){ toast('Un autre technicien porte déjà ce nom — ajoute une initiale ou un second prénom pour distinguer les deux personnes',5200); return; }
       const lie=(db.users||[]).find(u=>u&&u.techId===id), h=compteHomonyme(ps[0],ps.slice(1).join(' '),lie?lie.id:'');
       if(h){ toast(homonymeMessage(h,ps[0],ps.slice(1).join(' ')),7500); return; } } }
-  if(id){ const ix=db.techniciens.findIndex(x=>x.id===id); db.techniciens[ix]={...db.techniciens[ix],...obj};
+  if(id){ const ix=db.techniciens.findIndex(x=>x.id===id), avantT=db.techniciens.slice(), prev=techCouleurPrevenus(avantT,id,obj.couleur);
+    db.techniciens[ix]={...db.techniciens[ix],...obj};
+    techCouleursFiger(avantT,db.techniciens,[id].concat(prev));   // v758 : seuls elle, et ceux que le choix a prévenus
     // Le rôle du compte suit la fiche — SAUF pour un administrateur : « Chef d'équipe » sur une
     // fiche technicien ne doit pas rétrograder le patron, qui perdrait Utilisateurs et Permissions.
     const u=db.users.find(x=>x.techId===id); if(admin&&u&&u.role!=='admin'){ u.role=role; }
@@ -32649,7 +32693,8 @@ async function saveTech(e,id){ e.preventDefault();
     const h=compteHomonyme(ps[0],ps.slice(1).join(' '),'');
     if(h&&h.techId){ toast(homonymeMessage(h,ps[0],ps.slice(1).join(' ')),7500); return; } }
   if(db.techniciens.some(x=>nomNorm(x.nom)===nomNorm(d.nom))){ toast('Un technicien porte déjà ce nom — modifie sa fiche plutôt que d\'en créer une deuxième'); return; }
-  const tid=uid(); db.techniciens.push({id:tid,...obj});
+  const tid=uid(), avantT=db.techniciens.slice(), prev=techCouleurPrevenus(avantT,'',obj.couleur); db.techniciens.push({id:tid,...obj});
+  techCouleursFiger(avantT,db.techniciens,[tid].concat(prev));
   const parts=(d.nom||'').trim().split(/\s+/); const prenom=parts[0]||''; const nom=parts.slice(1).join(' ')||'';
   const dejaU=db.users.find(u=>!u.techId && nomNorm((u.prenom||'')+' '+(u.nom||''))===nomNorm(d.nom));
   if(dejaU){ dejaU.techId=tid; if(admin&&dejaU.role!=='admin') dejaU.role=role; /* jamais rétrograder un administrateur ; et changer le rôle d'un compte existant est une modification de compte */ logEvent('Technicien créé (relié au compte existant)',d.nom+' (@'+dejaU.login+')','crud'); save(); closeModal(); views.techniciens(); toast('Fiche technicien créée et reliée au compte existant @'+dejaU.login); return; }

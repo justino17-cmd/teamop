@@ -35,6 +35,21 @@ async function capturer(S, sel, marge) {
   return cap.data;
 }
 
+async function capturerChamp(S, motif) {
+  const r = await S.ev(`const b=document.getElementById('fdr-banner'); if(b) b.style.display='none';
+    const m=document.querySelector('#overlay .modal'); if(!m) return null;
+    const lab=[...m.querySelectorAll('.field > label')].find(l=>${motif}.test(l.textContent.trim())); if(!lab) return null;
+    const f=lab.parentElement; f.scrollIntoView({block:'center'});
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void f.offsetWidth; const q=f.getBoundingClientRect();
+    const dessus=document.elementFromPoint(q.left+q.width/2, q.top+q.height/2);
+    return {x:q.left+scrollX,y:q.top+scrollY,w:q.width,h:q.height,libre:!!dessus&&f.contains(dessus)};`);
+  if (!r || !r.w) return null;
+  if (!r.libre) throw new Error('le champ de la couleur est recouvert au moment de la capture');
+  const m = 16;
+  const cap = await S.c.envoyer('Page.captureScreenshot', { format: 'png', clip: { x: Math.max(0, r.x - m), y: Math.max(0, r.y - m), width: r.w + 2 * m, height: r.h + 2 * m, scale: 1 } });
+  return cap.data;
+}
+
 async function jouer(source, nom) {
   const S = await ouvrir(source ? { source } : {});
   const imgs = {};
@@ -52,9 +67,12 @@ async function jouer(source, nom) {
     await S.ev(`currentUser=db.users.find(u=>u.id==='u-karim'); enterApp(currentUser); return 1;`); await dormir(1200);
     await S.ev(`intView='liste'; go('interventions'); return 1;`); await dormir(900);
     imgs.journee = await capturer(S, '#content', 0);
+    /* la fiche se lit au BUREAU, et seulement le champ de la couleur : au téléphone, le rappel « Ta journée »
+       de Karim couvrait la palette, et la fenêtre (fixe) laissait voir la page sous elle dans la capture */
+    await S.c.envoyer('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 2, mobile: false });
     await S.ev(`currentUser=db.users.find(u=>u.id==='beta-justin'); enterApp(currentUser); return 1;`); await dormir(1000);
     await S.ev(`formTech(window.__T.karim); return 1;`); await dormir(700);
-    imgs.choix = await capturer(S, '#overlay .modal', 0);
+    imgs.choix = await capturerChamp(S, /^Couleur/);
   } finally { S.fermer(); }
   console.log(nom + ' : ' + Object.entries(imgs).map(([k, v]) => k + (v ? '' : ' (absent)')).join(', '));
   return imgs;
@@ -79,11 +97,29 @@ async function jouer(source, nom) {
         </div></body>`;
       const f = path.join(SORTIE, 'couleurs-' + k + '.html'); fs.writeFileSync(f, html);
       await S.c.envoyer('Emulation.setDeviceMetricsOverride', { width: 1800, height: 1200, deviceScaleFactor: 1, mobile: false });
-      await S.c.envoyer('Page.navigate', { url: 'data:text/html;base64,' + Buffer.from(html).toString('base64') }); await dormir(900);
+      /* ⛔ PAS d'adresse data: — Chromium refuse une adresse de plus de 2 Mo SANS RIEN DIRE : la page d'avant
+         reste affichée, et la capture de « Planning, vue Jour » (2,5 Mo en base64) sortait identique, octet
+         pour octet, à celle de la liste. On pose le document directement, puis on PROUVE qu'il est là. */
+      await S.c.envoyer('Page.navigate', { url: 'about:blank' }); await dormir(300);
+      const ft = await S.c.envoyer('Page.getFrameTree', {});
+      await S.c.envoyer('Page.setDocumentContent', { frameId: ft.frameTree.frame.id, html }); await dormir(900);
+      const preuve = await S.ev(`const t=document.querySelector('div'); const im=[...document.images];
+        return {titre:t?t.textContent.trim():'', images:im.length, chargees:im.filter(i=>i.complete&&i.naturalWidth>0).length};`);
+      if (preuve.titre !== titres[k] || preuve.chargees !== preuve.images || !preuve.images)
+        throw new Error('assemblage « ' + k + ' » non affiché : ' + JSON.stringify(preuve));
       const h = await S.ev(`return document.body.scrollHeight;`);
       const cap = await S.c.envoyer('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width: 1800, height: Math.min(h, 4000), scale: 1 } });
       fs.writeFileSync(path.join(SORTIE, 'couleurs-' + k + '.png'), Buffer.from(cap.data, 'base64'));
       console.log('  → ' + path.join(SORTIE, 'couleurs-' + k + '.png'));
     }
   } finally { S.fermer(); }
+  /* deux captures identiques = une capture fausse (c'est ce qui a trahi l'adresse data: trop longue) */
+  const vus = {};
+  for (const k of ['general', 'liste', 'jour', 'journee', 'choix']) {
+    const f = path.join(SORTIE, 'couleurs-' + k + '.png'); if (!fs.existsSync(f)) continue;
+    const e = require('crypto').createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+    if (vus[e]) throw new Error('captures identiques : ' + vus[e] + ' et ' + k);
+    vus[e] = k;
+  }
+  console.log('captures toutes distinctes : ' + Object.keys(vus).length);
 })().catch(e => { console.error(e); process.exit(2); });
