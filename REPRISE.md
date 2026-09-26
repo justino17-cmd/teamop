@@ -126,6 +126,20 @@ déclaration), bancs serveur 40 suites · 2 345 ✓.
   Registre sanitaire et Consommation produits, que le nouveau modèle cacherait. Rien de faux aujourd'hui, mais
   deux sources qui divergent en silence. Proposition : une seule source qui REPRODUIT ce que voient les
   techniciens aujourd'hui (aucun changement chez ELAN) ;
+  **Précisé le 26 septembre, mesuré avec les vraies fonctions** (`node scratchpad/droits-defaut.js beta.html` :
+  `defaultPerms` → `reprendreDroitsImplicites` → `userSeesModule`, 41 rubriques). ⚠️ Ça ne vise que les
+  NOUVELLES entreprises : `defaultPerms` ne sert que si la base n'a pas de table de rôle, et la reprise ne
+  tourne qu'une fois — chez ELAN, tout est déjà écrit dans la base (un nouveau compte y prend la table d'ELAN).
+  Les deux sources divergent dans LES DEUX SENS : technicien, l'ancienne table ouvre 7 rubriques mises de côté
+  que la règle générale fermerait, et ferme Devis, Factures, Contrats qu'elle ouvrirait ; commercial, +2 / −5 ;
+  **compta : la règle générale lui retirerait Comptabilité, Statistiques et Enveloppes** — l'adopter telle
+  quelle serait absurde. Ce qui est venu APRÈS l'ancienne table n'a jamais été décidé par rôle : la reprise ouvre
+  à tous Planning général, Tâches, Absences, Assistant devis (+ Télécollecte au technicien et au commercial) —
+  et **« Assistant devis » mène le technicien à un écran verrouillé** (il exige « Utiliser Devis IA » et
+  « Ventes → Ajouter »). Et la reprise dépend du TÉLÉPHONE qui la fait (`showAside()`, réglage d'appareil) :
+  « Devis xylophage » s'ouvre à tous ou à personne selon lui. Proposition précisée : une table par rôle, pour
+  toutes les rubriques, égale à ce qu'une entreprise neuve reçoit aujourd'hui, sauf Assistant devis fermé au
+  technicien et au commercial, et sans dépendre d'un appareil ;
 - performance sur base « façon ELAN » à CPU ralenti : `save()` ≈ 100 ms à ×4 (145 à ×6), ouvrir puis clore une
   intervention 220 à 800 ms, ouverture de l'application 4,4 s à ×6 — chantiers #50 et #52 ;
 - mineurs : le message d'accueil et les initiales du haut ne s'affichent jamais (ids `brand-ini`, `brand-hi`,
