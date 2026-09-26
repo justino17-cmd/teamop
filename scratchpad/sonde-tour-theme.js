@@ -339,6 +339,58 @@ const MESURE_PHRASES = `
   }
   return out;`;
 
+/* v2.68 (téléphone, « beaucoup de décalage d'écriture ») — trois défauts que ni les captures du haut de page
+   ni les autres mesures ne voyaient, relevés vue par vue de haut en bas (sonde-tour-telephone.js) :
+   · COUPÉ : un texte qui dépasse d'un ancêtre qui le rogne (« Couper l'a… » au bord de la carte d'Équipe),
+     et l'étiquette d'un menu déroulant plus large que sa case (« Toutes les applicationſ ») ;
+   · EN-TÊTE : en défilant, le titre qui entre dans l'en-tête ne doit toucher aucun texte VISIBLE de
+     l'en-tête (il s'écrivait sur « GESTION ») ;
+   · TYPOGRAPHIE : aucune espace ORDINAIRE devant : ; ! ? » · — ni derrière « — c'est elle qui laissait
+     une ligne commencer par « : » ou un « « » seul en fin de ligne. */
+const MESURE_TEL = `
+  window.scrollTo(0,0); ${STABLE}
+  const out={coupes:[],nCoupes:0,typo:[],nTypo:0,selects:0};
+  const vue=document.getElementById('vue');
+  /* 1. coupé par un ancêtre qui rogne (pas une zone qui défile : là, dépasser est le principe) */
+  const rogne=a=>{ const c=getComputedStyle(a); return /hidden|clip/.test(c.overflowX)&&!(a.scrollWidth>a.clientWidth+2&&/auto|scroll/.test(c.overflowX)); };
+  for(const e of vue.querySelectorAll('button,a,.past,.chip,.pill-act,.reg-t1,.reg-l2,.sec,.ttl-page,.tt-section')){
+    const r=e.getBoundingClientRect(); if(r.width<2||r.height<2) continue;
+    const cs=getComputedStyle(e); if(cs.visibility==='hidden'||cs.display==='none'||e.closest('[hidden]')) continue;
+    out.nCoupes++;
+    for(let a=e.parentElement;a&&a!==vue;a=a.parentElement){ const ca=getComputedStyle(a);
+      if(/auto|scroll/.test(ca.overflowX)) break;
+      if(rogne(a)){ const ra=a.getBoundingClientRect(); if(r.right>ra.right+1.5||r.left<ra.left-1.5){ out.coupes.push({t:(e.textContent||'').trim().replace(/\\s+/g,' ').slice(0,30),de:Math.round(Math.max(r.right-ra.right,ra.left-r.left)),dans:String(a.className).slice(0,30)}); } break; } }
+  }
+  /* l'étiquette d'un menu déroulant : mesurée à la police du menu, contre sa case sans rembourrage */
+  const cv=document.createElement('canvas').getContext('2d');
+  for(const s of vue.querySelectorAll('select')){ const r=s.getBoundingClientRect(); if(r.width<2) continue; out.selects++;
+    const cs=getComputedStyle(s); cv.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;
+    const lib=(s.options[s.selectedIndex]||{}).text||''; const w=cv.measureText(lib).width;
+    const dispo=s.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+    if(w>dispo+1) out.coupes.push({t:lib.slice(0,30),de:Math.round(w-dispo),dans:'select'}); }
+  /* 3. typographie : dans le texte de la vue, hors code et champs */
+  const tw=document.createTreeWalker(vue,NodeFilter.SHOW_TEXT,null); let n;
+  while((n=tw.nextNode())){ const p=n.parentElement; if(!p||p.closest('pre,code,script,style,textarea')) continue;
+    if(/[:;!?»·—]|«/.test(n.data)) out.nTypo++;
+    const m=n.data.match(/.{0,12}(?: [:;!?»·—]|« ).{0,8}/); if(m) out.typo.push(m[0]); }
+  return out;`;
+/* 2. l'en-tête pendant le défilement : descendre, attendre que le titre y soit entré, relever les boîtes */
+const MESURE_ENTETE = `
+  const H=document.documentElement.scrollHeight; if(H<innerHeight+300) return {sans:true};
+  window.scrollTo(0,Math.min(700,H-innerHeight)); await new Promise(r=>setTimeout(r,450)); ${STABLE}
+  const t=document.getElementById('titre-court'); const ot=t?parseFloat(getComputedStyle(t).opacity):0;
+  const out={titre:(t&&t.textContent)||'',visible:ot>.5,chevauche:[]};
+  if(out.visible){ const rt=t.getBoundingClientRect(); const rg=document.createRange(); rg.selectNodeContents(t);
+    const q=[...rg.getClientRects()].find(z=>z.width>1)||rt;
+    for(const e of document.querySelectorAll('.bandeau .hbar *')){ if(e===t||t.contains(e)||e.contains(t)) continue;
+      if(![...e.childNodes].some(x=>x.nodeType===3&&x.textContent.trim())) continue;
+      let op=1; for(let a=e;a&&a!==document.body;a=a.parentElement){ const c=getComputedStyle(a); if(c.display==='none'||c.visibility==='hidden'){ op=0; break; } op*=parseFloat(c.opacity); }
+      if(op<.1) continue;
+      const r=e.getBoundingClientRect(); if(r.width<1) continue;
+      if(r.left<q.right&&r.right>q.left&&r.top<q.bottom&&r.bottom>q.top) out.chevauche.push((e.textContent||'').trim().slice(0,20)); } }
+  window.scrollTo(0,0); await new Promise(r=>setTimeout(r,300));
+  return out;`;
+
 const RECT_TEXTES = `
   const F=${JSON.stringify(FAMILLES_TEXTE)}, out=[];
   for(const [fam,sel] of Object.entries(F)){
@@ -510,7 +562,7 @@ async function main() {
   const vues = VUES.filter(v => !seules.length || seules.includes(v.cle));
   const S = await demarrer();
   console.log('Sonde du thème de la Tour — tour.html ' + S.version + ' · ' + vues.length + ' vues × ' + APPAREILS.length + ' appareils × ' + MODES.length + ' modes');
-  const bilan = { vues: 0, captures: 0, exceptions: [], debordements: [], cibles: { n: 0, petits: [], recouverts: [] }, textes: { n: 0, couverts: [], ecrases: [] }, phrases: { n: 0, repliees: 0, muettes: [], horsGabarit: [] }, contrastes: { n: 0, faibles: [], parFam: {} }, nav: [], modes: [] };
+  const bilan = { vues: 0, captures: 0, exceptions: [], debordements: [], cibles: { n: 0, petits: [], recouverts: [] }, textes: { n: 0, couverts: [], ecrases: [] }, phrases: { n: 0, repliees: 0, muettes: [], horsGabarit: [] }, tel: { nCoupes: 0, coupes: [], nTypo: 0, typo: [], selects: 0, entetes: 0, chevauche: [] }, contrastes: { n: 0, faibles: [], parFam: {} }, nav: [], modes: [] };
   const ok = [], ko = [];
   const v = (t, cond, detail) => { (cond ? ok : ko).push(t + (detail ? ' — ' + detail : '')); console.log((cond ? '  ✓ ' : '  ✗ ') + t + (detail ? ' — ' + detail : '')); };
   try {
@@ -552,6 +604,14 @@ async function main() {
           ph.muettes.forEach(p => bilan.phrases.muettes.push(V.cle + ' ' + appareil + ' ' + mode + ' : « ' + p.t + ' » ' + (p.ouverte ? 'ne se replie pas' : 'ne se déplie pas')));
           ph.horsGabarit.forEach(t => bilan.phrases.horsGabarit.push(V.cle + ' ' + appareil + ' ' + mode + ' : « ' + t + ' »'));
         }
+        if (appareil === 'telephone') {
+          const tl = await o.ev(MESURE_TEL);
+          bilan.tel.nCoupes += tl.nCoupes; bilan.tel.nTypo += tl.nTypo; bilan.tel.selects += tl.selects;
+          tl.coupes.forEach(c => bilan.tel.coupes.push(V.cle + ' ' + mode + ' : « ' + c.t + ' » dépasse de ' + c.de + ' px (' + c.dans + ')'));
+          tl.typo.forEach(t => bilan.tel.typo.push(V.cle + ' ' + mode + ' : « ' + t + ' »'));
+          const en = await o.ev(MESURE_ENTETE);
+          if (!en.sans && en.visible) { bilan.tel.entetes++; en.chevauche.forEach(c => bilan.tel.chevauche.push(V.cle + ' ' + mode + ' : le titre « ' + en.titre + ' » touche « ' + c + ' »')); }
+        }
         /* deux écrans relevés : le haut de la vue, puis un écran plus bas (les lignes, les pastilles) */
         const dsf = appareil === 'telephone' ? 3 : 1;
         for (const decal of [0, 1]) {
@@ -581,14 +641,17 @@ async function main() {
   console.log('textes écrasés (ellipse sous 64 px, ou 4 lignes et plus à moins de 12 signes) : ' + bilan.textes.ecrases.length); bilan.textes.ecrases.slice(0, 40).forEach(e => console.log('   ' + e));
   console.log('phrases d’en-tête : ' + bilan.phrases.n + ' relevées · repliées au téléphone : ' + bilan.phrases.repliees + ' · qui ne se déplient pas : ' + bilan.phrases.muettes.length + ' · hors du gabarit commun : ' + bilan.phrases.horsGabarit.length);
   bilan.phrases.muettes.slice(0, 40).forEach(e => console.log('   ' + e)); bilan.phrases.horsGabarit.slice(0, 40).forEach(e => console.log('   hors gabarit — ' + e));
+  console.log('téléphone — textes relevés : ' + bilan.tel.nCoupes + ' (dont ' + bilan.tel.selects + ' menus) · coupés par un bord : ' + bilan.tel.coupes.length); bilan.tel.coupes.slice(0, 40).forEach(e => console.log('   ' + e));
+  console.log('téléphone — en-têtes où le titre est entré en défilant : ' + bilan.tel.entetes + ' · titre qui touche un texte visible : ' + bilan.tel.chevauche.length); bilan.tel.chevauche.slice(0, 40).forEach(e => console.log('   ' + e));
+  console.log('téléphone — textes à ponctuation française : ' + bilan.tel.nTypo + ' · espace ordinaire devant : ; ! ? » · — ou derrière « : ' + bilan.tel.typo.length); bilan.tel.typo.slice(0, 40).forEach(e => console.log('   ' + e));
   console.log('textes lus au pixel : ' + bilan.contrastes.n + ' ' + JSON.stringify(bilan.contrastes.parFam) + ' · sous 4,5:1 : ' + bilan.contrastes.faibles.length); bilan.contrastes.faibles.slice(0, 60).forEach(e => console.log('   ' + e));
-  const faute = ko.length + bilan.phrases.muettes.length + bilan.phrases.horsGabarit.length + bilan.textes.couverts.length + bilan.textes.ecrases.length + bilan.cibles.recouverts.length + bilan.exceptions.length + bilan.debordements.length + bilan.cibles.petits.length + bilan.contrastes.faibles.length;
+  const faute = ko.length + bilan.phrases.muettes.length + bilan.phrases.horsGabarit.length + bilan.tel.coupes.length + bilan.tel.chevauche.length + bilan.tel.typo.length + bilan.textes.couverts.length + bilan.textes.ecrases.length + bilan.cibles.recouverts.length + bilan.exceptions.length + bilan.debordements.length + bilan.cibles.petits.length + bilan.contrastes.faibles.length;
   /* une population vide est un échec, pas un zéro */
-  if (!bilan.vues || (!bilan.cibles.n && APPAREILS.includes('telephone')) || !bilan.contrastes.n || !bilan.textes.n || !bilan.phrases.n || (!bilan.phrases.repliees && APPAREILS.includes('telephone'))) { console.log('⛔ POPULATION VIDE — la sonde n’a rien mesuré'); process.exit(1); }
+  if (!bilan.vues || (!bilan.cibles.n && APPAREILS.includes('telephone')) || !bilan.contrastes.n || !bilan.textes.n || !bilan.phrases.n || (APPAREILS.includes('telephone') && (!bilan.phrases.repliees || !bilan.tel.nCoupes || !bilan.tel.nTypo || !bilan.tel.selects || !bilan.tel.entetes))) { console.log('⛔ POPULATION VIDE — la sonde n’a rien mesuré'); process.exit(1); }
   console.log('\n' + ok.length + ' ✓  ' + ko.length + ' ✗  (contrôles de parcours) · ' + faute + ' défaut(s) au total');
   process.exit(faute ? 1 : 0);
 }
 /* Chargée par une autre sonde (`require`) : elle prête son banc — l'API simulée, le lancement, l'onglet
    piloté — sans rien lancer elle-même. */
 if (require.main === module) main().catch(e => { console.error('SONDE MORTE : ' + (e && e.stack || e)); process.exit(2); });
-else module.exports = { MOCK, demarrer, onglet, STABLE, APAISER, dormir };
+else module.exports = { MOCK, demarrer, onglet, STABLE, APAISER, dormir, VUES, frapper };

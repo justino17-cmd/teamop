@@ -2676,6 +2676,120 @@ body.jour #toast{background:rgba(255,255,255,.92)}
   .bb-cur{transition:opacity .15s ease!important} .barre-bas.tire .bb-cur{scale:1}
   .bb:active,.btn-plein:active,.btn-fant:active,.pill-act:active{transform:none!important}
 }
+
+/* ── CHAQUE TEXTE SUR SA COLONNE — v2.68, 26 septembre 2026 au soir ──────────────────────────────────────
+   Justin, au téléphone : « il y a beaucoup de décalage d'écriture ». Relevé vue par vue, de haut en bas
+   (scratchpad/sonde-tour-telephone.js : filets aux marges, départ de chaque texte), puis demandé au
+   navigateur QUELLE règle posait chaque décalage (scratchpad/sonde-regles.js) — rien n'est deviné ici.
+   La règle qui en sort : une page a UNE colonne de texte, au bord de la page ; une carte en a UNE, au bord
+   de son contenu. Ce qui en sortait de 2 à 17 px sans rien signifier y revient. */
+
+/* 1 · En défilant, le titre de la page entrait dans l'en-tête… PAR-DESSUS « GESTION » : les deux textes
+       se chevauchaient, sur toutes les pages. L'identité et la pastille d'application s'effacent tant que le
+       titre est là (l'interrupteur reste dans la feuille, sous l'avatar), et il prend la place entre le logo
+       et l'avatar. Aucune boîte ne bouge : on change l'opacité, pas la mise en page. */
+@media(max-width:899px){
+  .hnom,.app-pill{transition:opacity var(--d-2) var(--e-sortie)}
+  body.titre-cache .hnom,body.titre-cache .app-pill{opacity:0;pointer-events:none}
+  .titre-court{max-width:calc(100% - 140px)}
+}
+
+/* 2 · Titres de groupe (« Urgent », « Clientes »…) : la bande collée gardait 4 px de retrait intérieur, et le
+       titre partait 4 px après tout le reste. Au téléphone il ne colle plus — sa phrase le suit, et la bande
+       qui portait les deux couvrait jusqu'au tiers de l'écran en défilant (Journal, Sauvegardes) — et il part
+       du bord de la page. Au bureau la bande colle encore : c'est elle qui déborde de 4 px, le TEXTE part du
+       bord. Dans une carte (Courrier, Équipe), ni bande ni collage : le titre y était un pavé gris. */
+.col-liste .reg-tete{background:rgba(0,0,0,0);-webkit-backdrop-filter:none;backdrop-filter:none}
+@media(max-width:899px){
+  .reg-tete{position:relative;top:auto;background:rgba(0,0,0,0);-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:0;padding-left:0}
+  .col-liste .reg-tete{padding-left:16px}
+}
+@media(min-width:900px){
+  .reg-tete{margin-left:-4px}
+  .carte .reg-tete,.col-liste .reg-tete{margin-left:0}
+}
+@media(prefers-reduced-transparency:reduce){
+  body.jour .col-liste .reg-tete,body:not(.jour) .col-liste .reg-tete{background:rgba(0,0,0,0)!important}
+}
+@media(max-width:899px) and (prefers-reduced-transparency:reduce){
+  body.jour .reg-tete,body:not(.jour) .reg-tete{background:rgba(0,0,0,0)!important}
+}
+
+/* 3 · Les lignes de compte et les notes de bas de liste avaient 2 px de retrait (18 au lieu de 16) */
+.svl-compte{margin-left:0;margin-right:0}
+.jr-vide,.abn-tete-code{padding-left:0;padding-right:0}
+
+/* 4 · Un lien posé en bas d'une liste (« Ouvrir le journal → ») : son TEXTE part de la colonne, et son fond,
+       au survol, déborde de la même façon que celui d'une ligne. */
+.ac-plus{margin-left:-14px}
+
+/* 5 · Activité de la console : l'heure et le texte sont deux COLONNES. Une ligne longue passait sous l'heure
+       et cassait la colonne des autres. */
+.ac-jr>div{padding-left:0;padding-right:0}
+@media(max-width:899px){
+  .ac-jr>div{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px;align-items:baseline}
+}
+
+/* 6 · « Le suivi » : les pastilles n'ont pas la même largeur, et chaque phrase partait donc ailleurs ;
+       « Corrigé » s'étirait sur la hauteur de la sienne. Deux colonnes, alignées sur la première ligne. */
+.expl-suivi{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:10px;row-gap:8px;margin-top:8px;align-items:baseline}
+.expl-suivi>.expl-l{display:contents}
+.expl-suivi .past{justify-self:start}
+
+/* 7 · Derniers paiements : la date passait sur deux lignes (« 8 sept. » / « 2026 ») dans ses 78 px ; tenue
+       sur une ligne sans largeur fixe, c'est le NOM qui partait ailleurs à chaque date (« 8 sept. » contre
+       « 10 juil. »). Une colonne de treize chiffres : la plus longue date, sans coupure. */
+.abn-j .d{flex:0 0 13ch;white-space:nowrap}
+
+/* 8 · Au téléphone, une carte à 24 px posée entre des cartes à 16 décalait son texte de 8 px par rapport à
+       ses voisines (et mangeait 16 px de largeur utile) : toutes les cartes ont 16. */
+@media(max-width:899px){ .carte.p24{padding:16px} }
+
+/* 9 · Dans une carte, une liste sans cadre (les utilisateurs, les comptes du site, l'activité récente, les
+       entreprises touchées) : ses lignes gardaient leur propre retrait de 16 px, ajouté à celui de la carte —
+       le texte partait 17 px après le titre de sa section. Idem pour « Son espace » (10 px) et les chiffres
+       de « Ce qui se passe chez eux » (9 px : leur fond de bouton déborde, le chiffre est sur la colonne). */
+.carte .reg-bloc>.reg-l.inerte{padding-left:0;padding-right:0}
+.carte .reg-bloc>.reg-l.inerte+.reg-l.inerte::before{left:0;right:0}
+.sous-sec>.item{padding-left:0;padding-right:0}
+.dsr-rang{margin-left:-9px}
+
+/* 10 · Au téléphone, « libellé : valeur » sur deux colonnes coupait les libellés (« OP / MESSAGES »,
+        « Identifiant de / départ ») et les adresses dans la valeur. Le libellé passe AU-DESSUS. */
+@media(max-width:600px){
+  .kv>div{grid-template-columns:minmax(0,1fr);row-gap:2px}
+  .kv .k{font-size:12.5px}
+}
+
+/* 11 · Équipe : « Couper l'accès » sortait de la carte, coupé au bord (quatre boutons sur une rangée qui
+        ne passe pas à la ligne) ; et « Compte fixe » partait 2 px après le nom. Deux par rangée, sous le nom. */
+.reg-l.eqp-l .reg-fin{min-width:0}
+@media(max-width:899px){
+  .reg-l.eqp-l .reg-fin{padding-left:44px}
+  .reg-l.eqp-l .eqp-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+}
+
+/* 12 · Journal : au doigt, la pastille et l'heure passent sous le texte ; elles partaient sous l'ICÔNE,
+        42 px avant le texte qu'elles complètent. */
+@media(max-width:640px){ .reg-l.inerte.jr-l>.reg-fin{padding-left:42px} }
+
+/* 13 · Les menus déroulants avaient perdu leur chevron : `.inp,.sel-f{background:…}` (raccourci) effaçait
+        l'image posée plus haut — une moitié de règle survivait à l'autre. Sans lui, un menu est un rectangle
+        gris qu'on ne sait pas toucher. */
+select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;background-size:16px 16px}
+@media(max-width:900px){ select.sel-f{background-position:right 10px center} }
+
+/* 14 · Deux encadrés empilés dans le dossier d'un problème : « Ce que ça veut dire » part à 16 px de son
+        bord, la barre « Suivi » partait à 10 — 6 px d'écart d'un cadre à l'autre. */
+.barre-act{padding-left:16px;padding-right:16px}
+
+/* 15 · Courrier au téléphone : le titre d'un groupe collait au bord de la carte blanche, ses lignes partent
+        16 px plus loin (plus le filet de 1 px de la liste) — le titre les suit. */
+@media(max-width:899px){ .mail-rows .reg-tete{padding-left:17px} }
+
+
+/* 16 · « En un coup d'œil » : le filet entre deux lignes partait 4 px AVANT leur texte (12 contre 16). */
+.ac-aside .reg-bloc>.reg-l+.reg-l::before{left:16px}
 </style>
 </head>
 <body>
@@ -3530,7 +3644,12 @@ document.addEventListener('pointercancel',function(){ _feuilleLacher(true); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var f=$('feuille'); if(f&&!f.hidden) fermerFeuille(); } });
 /* Le titre court apparaît dans l'en-tête quand le grand titre sort de l'écran (opacité seule). */
 var _obsTitre=null;
-function observerTitre(){ try{ if(_obsTitre) _obsTitre.disconnect(); var t=document.querySelector('#vue .ttl-page'); var c=$('titre-court'); if(!t||!c) return;
+/* v2.68 — la page qu'on quitte ne laisse plus son état dans l'en-tête : la classe restait posée, et
+   l'en-tête d'un dossier gardait le titre de la liste d'où l'on venait. Une fiche a son titre à elle
+   (le nom de l'entreprise, le titre du dossier) : c'est lui qui monte quand il sort de l'écran. */
+function observerTitre(){ try{ if(_obsTitre) _obsTitre.disconnect(); _obsTitre=null; document.body.classList.remove('titre-cache');
+  var t=document.querySelector('#vue .ttl-page')||document.querySelector('#vue .fiche-nom')||document.querySelector('#vue .inc-titre');
+  var c=$('titre-court'); if(c) c.textContent=''; if(!t||!c) return;
   c.textContent=(t.textContent||'').trim();
   _obsTitre=new IntersectionObserver(function(en){ document.body.classList.toggle('titre-cache',!en[0].isIntersecting); },{rootMargin:'-56px 0px 0px 0px'});
   _obsTitre.observe(t); }catch(e){} }
@@ -3804,7 +3923,9 @@ function entZeroCompteurs(poser){
 function incToutIgnorer(){
   var n=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
   if(!n){ toast('Rien à classer'); return; }
-  if(!confirm('Remettre Surveillance à zéro ?\n\n'+n+' problème(s) passent en « ignoré ». Rien n’est effacé — ils restent consultables, et un problème qui se reproduit reviendra de lui-même en « nouveau ». Aucun courriel n’est envoyé aux clients.')) return;
+  /* v2.68 — le serveur classe ceux de TOUTES les consoles du compte : la question le dit. */
+  var deux=MYAPPS.length>1;
+  if(!confirm('Remettre Surveillance à zéro ?\n\n'+n+(n>1?' problèmes passent':' problème passe')+' en « ignoré »'+(deux?', dans les deux consoles (OP GESTION et OP MESSAGES)':'')+'. Rien n’est effacé — ils restent consultables, et un problème qui se reproduit reviendra de lui-même en « nouveau ». Aucun courriel n’est envoyé aux clients.')) return;
   apiPost('/api/monitor/issues/tout-ignorer',{}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
     toast((r.d.classes||0)+' problème(s) classé(s)');
@@ -4543,7 +4664,9 @@ function tourActiviteCharge(nm){
     var L={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning général',interventions:'Interventions',clients:'Clients',boxes:'Boxes',stock:'Stock',produits:'Produits',mouvements:'Mouvements stock',devis:'Devis',factures:'Factures',rapports:'Rapports',validations:'Validations DR',messagerie:'Messagerie',parametres:'Paramètres',utilisateurs:'Utilisateurs',taches:'Tâches',vehicules:'Véhicules',commandes:'Commandes en cours',bons:'Bons de commande',statistiques:'Statistiques',historique:'Historique',conso:'Dashboard conso',saisieConso:'Saisie conso',fournisseurs:'Fournisseurs',demandes:'Mes demandes',contrats:'Contrats',pointage:'Pointage',carteInt:'Carte interventions',carteBox:'Carte des box',boiteMail:'Boîte mail'};
     /* La barre de proportion est le seul endroit de la Tour où une largeur DOIT être calculée :
        elle porte la donnée elle-même. Tout le reste du bloc passe par les classes. */
-    var bugs='<div class="act-bugs">'+(d.bugs?('🐛 <b class="ko">'+d.bugs+' problème(s) ouvert(s)</b> signalé(s) par leur application — <button type="button" class="pill-act" onclick="setTab(\'surveillance\')">Voir dans Surveillance</button>'):'✅ Aucun problème ouvert signalé par leur application')+'</div>';
+    /* v2.68 — un vrai pluriel, et une phrase qui ne se coupe pas en trois au téléphone (le tiret orphelin
+       en fin de ligne, le bouton seul dessous) : la phrase, puis le bouton. */
+    var bugs='<div class="act-bugs">'+(d.bugs?('🐛 <b class="ko">'+d.bugs+(d.bugs>1?' problèmes ouverts':' problème ouvert')+'</b>, '+(d.bugs>1?'signalés':'signalé')+' par leur application. <button type="button" class="pill-act" onclick="setTab(\'surveillance\')">Voir dans Surveillance</button>'):'✅ Aucun problème ouvert signalé par leur application')+'</div>';
     if(!d.total){ el.innerHTML=bugs+videTour('Pas encore d’activité remontée','Elle apparaît dès qu’ils utilisent l’application — les écrans ouverts sont signalés à partir de la v545.','','entreprises'); return; }
     var max=(d.vues[0]&&d.vues[0].n)||1;
     el.innerHTML=bugs+'<div class="act-tot">'+d.total+' écrans ouverts au total · dernière activité : '+(d.dernier?fmtDate(d.dernier):'—')+(d.version?' · application v'+esc(d.version):'')+'</div>'+
@@ -5710,11 +5833,13 @@ function vueSurveillance(){
         '<div class="expl-l">'+pt(GRAV_C.haute)+'<span><b>À traiter maintenant</b> — le code a planté, ou plusieurs clients sont touchés, ou le problème revient très souvent.</span></div>'+
         '<div class="expl-l">'+pt(GRAV_C.moyenne)+'<span><b>À regarder</b> — gênant, mais l’application fonctionne.</span></div>'+
         '<div class="expl-l">'+pt(GRAV_C.faible)+'<span><b>Pour information</b> — rare et sans conséquence visible.</span></div></div>'+
-      '<div><div class="ttl-carte" style="font-size:13px">Le suivi</div>'+
+      /* v2.68 — deux colonnes : la pastille, puis sa phrase. Les pastilles n'ont pas la même largeur ;
+         chaque phrase partait donc ailleurs, et « Corrigé » s'étirait sur la hauteur de la sienne. */
+      '<div><div class="ttl-carte" style="font-size:13px">Le suivi</div><div class="expl-suivi">'+
         '<div class="expl-l"><span class="past p-info">Nouveau</span><span>vient d’arriver, à regarder.</span></div>'+
         '<div class="expl-l"><span class="past p-ambre">En cours</span><span>quelqu’un s’en occupe déjà.</span></div>'+
         '<div class="expl-l"><span class="past p-vert">Corrigé</span><span>réglé — un e-mail peut prévenir les clients touchés.</span></div>'+
-        '<div class="expl-l"><span class="past p-gris">Ignoré</span><span>mis de côté volontairement (fausse alerte).</span></div></div>'+
+        '<div class="expl-l"><span class="past p-gris">Ignoré</span><span>mis de côté volontairement (fausse alerte).</span></div></div></div>'+
     '</div></div>';
 
   /* le menu « Toutes les entreprises » ne propose que celles que CETTE console a à montrer */
@@ -5723,7 +5848,7 @@ function vueSurveillance(){
   var filtres='<div class="filtres svl-filtres">'+
     '<select class="sel-f" onchange="incF(\'type\',this.value)">'+opt('',INC.f.type,'Tous les types')+opt('erreur',INC.f.type,'Erreurs')+opt('lenteur',INC.f.type,'Lenteurs')+opt('reseau',INC.f.type,'Réseau')+'</select>'+
     '<select class="sel-f" onchange="incF(\'grav\',this.value)">'+opt('',INC.f.grav,'Toutes gravités')+opt('haute',INC.f.grav,'Haute')+opt('moyenne',INC.f.grav,'Moyenne')+opt('faible',INC.f.grav,'Faible')+'</select>'+
-    '<select class="sel-f" onchange="incF(\'app\',this.value)">'+opt('',INC.f.app,'Toutes les applications')+opt('opgestion',INC.f.app,'OP GESTION')+opt('opmessages',INC.f.app,'OP MESSAGES')+opt('espace',INC.f.app,'Espace client')+'</select>'+
+    '<select class="sel-f large" onchange="incF(\'app\',this.value)">'+opt('',INC.f.app,'Toutes les applications')+opt('opgestion',INC.f.app,'OP GESTION')+opt('opmessages',INC.f.app,'OP MESSAGES')+opt('espace',INC.f.app,'Espace client')+'</select>'+
     '<select class="sel-f large" onchange="incF(\'ent\',this.value)">'+opt('',INC.f.ent,'Toutes les entreprises')+Object.keys(ents).sort().map(function(n){ return opt(n,INC.f.ent,n); }).join('')+'</select>'+
   '</div>';
 
@@ -5826,8 +5951,12 @@ function vueSurveillance(){
   var _aClasser=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
   /* L'explication se range À CÔTÉ du bouton quand il y a la place, DESSOUS sinon : écrite en ligne derrière
      lui, au téléphone elle s'enroulait autour (« passe en « » à droite du bouton, le reste en dessous). */
+  /* v2.68 — la phrase est une PHRASE : au téléphone elle passe sous le bouton, et « passe en « ignoré »… »
+     y commençait par une minuscule, orpheline. Et le chiffre compte les problèmes de TOUTES les consoles
+     du compte (le serveur les classe toutes) : dans la Tour OP MESSAGES, « 4 problèmes » à côté
+     d'« Ouverts 1 » avait l'air d'une erreur. On le dit. */
   var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
-    '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">passe en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
+    '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">'+(MYAPPS.length>1?'Dans les deux consoles, ils passent':'Ils passent')+' en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
   /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses segments (incSegStatut) : Ouverts · Corrigés ·
      Écartés · Tout, posés par le même filtre de statut (incF). ⛔ v2.68 : le menu déroulant à neuf choix
      qui doublait ces segments a été RETIRÉ (ici et dans la fiche d'une entreprise) — les quatre états mis
@@ -6039,7 +6168,7 @@ function vueIncident(i){
     fait('Page / fichier',i.src?('<span class="mono">'+esc(String(i.src).split('/').pop())+(i.line?' · ligne '+esc(String(i.line)):'')+'</span>'):'non transmis');
 
   return '<div class="ent-retour"><button type="button" class="btn-fant" onclick="incRetour()">← Retour'+(INC.grp?' à '+esc(INC.grp):' à la surveillance')+'</button></div>'+
-    '<div class="carte p24 inc-tete">'+
+    '<div class="carte inc-tete">'+
       '<div class="inc-ref"><span class="mono">DOSSIER #'+esc(String(i.id).slice(-6))+'</span>'+
         '<span class="past '+ST_P[st]+'">'+ST_L[st]+(i.par&&st!=='nouveau'?' — '+esc(i.par):'')+'</span></div>'+
       '<h2 class="inc-titre">'+esc(incTitre(i))+'</h2>'+
@@ -6847,6 +6976,27 @@ function descDeplier(e){
   if(d.classList.contains('ouverte')||d.scrollHeight>d.clientHeight+1) d.classList.toggle('ouverte');
 }
 document.addEventListener('click',descDeplier);
+/* v2.68 — LA TYPOGRAPHIE FRANÇAISE, PARTOUT OÙ LA VUE ÉCRIT. Relevé au téléphone, écran par écran
+   (sonde-tour-telephone.js) : des lignes qui commençaient par « : », par « · » ou par « » », un « « »
+   resté seul en fin de ligne, loin de son mot, un « € » séparé de son montant. L'espace qui précède
+   : ; ! ? » · — € % et celle qui suit « deviennent insécables : le navigateur ne peut plus couper là.
+   UN seul passage, sur ce que la vue ajoute (MutationObserver) : les données des clients (un message
+   d'erreur, un nom) sont couvertes comme les phrases de la console. Jamais dans du code ni dans un champ. */
+var TYPO_RX=/[:;!?»·—€%]|« /;
+function typoTexte(s){
+  return s.replace(/« /g,'« ').replace(/ ([:;!?»·—])/g,' $1').replace(/(\d) ([€%])/g,'$1 $2');
+}
+function typoFr(racine){
+  if(!racine||!racine.ownerDocument) return;
+  var tw=document.createTreeWalker(racine,NodeFilter.SHOW_TEXT,null), n, l=[];
+  while((n=tw.nextNode())) if(TYPO_RX.test(n.data)) l.push(n);
+  l.forEach(function(n){ var p=n.parentElement; if(!p||p.closest('pre,code,script,style,textarea,[contenteditable]')) return;
+    var e=typoTexte(n.data); if(e!==n.data) n.data=e; });
+}
+try{ (function(){ var v=document.getElementById('vue'); if(!v||typeof MutationObserver!=='function') return;
+  new MutationObserver(function(ms){ ms.forEach(function(m){ for(var i=0;i<m.addedNodes.length;i++){ var x=m.addedNodes[i];
+    typoFr(x.nodeType===3?x.parentNode:x); } }); }).observe(v,{childList:true,subtree:true});
+  typoFr(v); })(); }catch(e){}
 function enTete(titre, phrase, actions){
   /* Tous les onglets s'annoncent pareil : on sait immédiatement où l'on est, à quoi sert
      l'écran, et ce qu'on peut y faire. Le carré coloré devant le titre est l'écho de la tuile
@@ -9056,7 +9206,7 @@ function vueJournal(){
      plus ni ombre ni filet — neuf dalles flottantes sans arête. L'identifiant est une SAISIE,
      pas un nom propre : mono, et jamais tronqué en silence. */
   var ligneKo=function(j){
-    return '<div class="reg-l inerte ko"><span class="jr-ic" aria-hidden="true">⛔</span>'+
+    return '<div class="reg-l inerte ko jr-l"><span class="jr-ic" aria-hidden="true">⛔</span>'+
       '<span class="reg-txt"><span class="reg-t1 ident">'+esc(j.qui||'(identifiant vide)')+'</span>'+
       '<span class="reg-l2">'+esc(j.motif||'refusée')+'</span>'+
       '<span class="reg-l3">'+esc(j.appareil||'appareil inconnu')+'</span></span>'+
@@ -9081,7 +9231,7 @@ function vueJournal(){
      le seul accent de la marque. L'absence de rouge dit déjà que tout va bien. */
   var ligneOk=function(j){
     var a=String(j.appareil||'');
-    return '<div class="reg-l inerte"><span class="jr-ic" aria-hidden="true">'+(/iPhone|iPad|Android|Mobile/i.test(a)?'📱':'💻')+'</span>'+
+    return '<div class="reg-l inerte jr-l"><span class="jr-ic" aria-hidden="true">'+(/iPhone|iPad|Android|Mobile/i.test(a)?'📱':'💻')+'</span>'+
       '<span class="reg-txt"><span class="reg-t1">'+esc(j.qui||'—')+'</span>'+
       '<span class="reg-l2">'+esc(j.appareil||'appareil inconnu')+'</span></span>'+
       '<span class="reg-fin"><span class="reg-h">'+esc(fmtHeure(j.ts))+'</span></span></div>'; };
