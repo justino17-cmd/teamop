@@ -13,6 +13,49 @@ de ligne du tout.
 
 ---
 
+# 🟡 26 SEPTEMBRE 2026, SOIR — CHANTIER LENTEUR (v756, BÊTA) ET THÈME DE LA TOUR — EN COURS
+
+**Justin : « Fait le » (la lenteur sur une grosse base, téléphone lent), puis « thème de la tour à installer aussi,
+tu testes et vérifies » (maquette `tour.zip`, version validée « HIG »).**
+
+**Lenteur — la cause principale est TROUVÉE, CORRIGÉE sur la branche (`ece263b`, `3f5d9d1`), pas encore publiée.**
+Mesuré sur la bêta, base « façon ELAN » de 696 Ko passée par les migrations uniques (`scratchpad/perf-chauffer.js`),
+processeur ×4 : le JavaScript d'un écran coûte 20 à 30 ms, le NAVIGATEUR qui recalcule les styles en coûte deux à cinq
+fois plus. Cause, prouvée règle par règle (`scratchpad/perf-has-glouton.js`, téléphone ET bureau) : quelques règles
+`:has()` de la refonte faisaient restyler la page ENTIÈRE à chaque changement.
+- `body.rf-onglets:has(#msg-flot[style*="flex"])` : un `:has()` qui lit un attribut `style` → CHAQUE écriture de style en
+  ligne restylait la page. Mesuré (`perf-ecriture-style.js`) : **894 éléments / 36,6 ms par écriture → 9 éléments /
+  2,1 ms** sur la nouvelle bêta. La bulle de la barre d'onglets écrit un style à chaque mouvement du doigt. La règle
+  ne s'appliquait jamais (OP MESSAGES fermée) → classe `msg-flot-on` posée par `renderMsgFlottant()`.
+- deux familles MORTES (plus aucun gabarit ne les produit, 0 élément sur 44 écrans) dont les `:has()` coûtaient
+  quand même ~2 000 (téléphone) et 1 617 (bureau) restylages : les « lignes de liste à avatar » et l'ancienne liste des
+  interventions en cartes (`.card[draggable]` au style en ligne). Retirées.
+- la carte d'accueil du courrier : `:has()` retiré des sept règles dont la cible est DANS la carte (équivalence exacte).
+- l'entrée dans l'application ne force plus un calcul de page pour relancer une animation absente (`enterApp`).
+Sur huit gestes au téléphone : **8 595 éléments restylés → ~3 100** (plancher sans aucun `:has()` : 2 339).
+Plafond du gain en temps (tous les `:has()` neutralisés, ×4) : fiche d'intervention 61 → 29 ms, tableau de bord 89 → 32,
+box 123 → 24, clients 114 → 61, produits 66 → 21 ms. **Les temps avant/après de la version corrigée restent à mesurer
+machine CALME** (`scratchpad/perf-avant-apres.js`, versions alternées, médianes).
+Preuves déjà faites : `test-823` 43 ✓ (8/8 mutations mordent), `test-776` mis à jour ; contre-épreuve « rien ne change
+à l'écran » (`scratchpad/sonde-styles-identiques.js` : style calculé de CHAQUE élément, ancienne bêta contre nouvelle,
+45 écrans) : au téléphone jour et nuit, 31 256 éléments comparés, seules différences = une fenêtre qui s'ouvre seule à
+un moment différent dans chaque page et l'opacité d'un message en transition (sonde corrigée pour les neutraliser) ;
+passes « bureau » en cours.
+**Ce qui reste, et c'est à Justin de trancher (architecture) :** `save()` coûte ~80 ms par geste à ×4, dont **43 ms pour
+réécrire TOUTE la base** dans le rangement (sérialiser 700 Ko + écriture synchrone) — l'écriture différée ou découpée
+par collection (#50) ; et l'ouverture paie l'analyse d'un fichier de 3,9 Mo — sans commentaires ni espaces il ferait
+**2 756 Ko (−30 %), 719 Ko compressé au lieu de 1 165 (−38 %)** (copie de mesure seulement, `esbuild` hors du dépôt ;
+gain à l'ouverture à mesurer) : c'est une étape de fabrication, que ce dépôt refuse aujourd'hui (#52).
+⚠️ L'empreinte accélérée de `recEmpreinte` a été ÉPROUVÉE puis abandonnée : exacte (0 différence sur 200 000 cas),
+mais aucun gain mesurable — le découpage de chaînes coûte autant que le filtre qu'il évite.
+
+**Thème de la Tour : confié à l'agent `concepteur`, en copie de travail isolée** (tour.html seul + bancs + une sonde
+qui simule l'API). À relire, rejouer, fusionner, puis aperçu `apercu/tour.html` pour que Justin teste avant de
+remplacer `tour.html`. La maquette est dans le bloc-notes de la session, PAS dans le dépôt : elle contient des
+exemples qui ressemblent à de vraies données (« ELAN », « elan-34oc »).
+
+---
+
 # ✅ 25 SEPTEMBRE 2026, NUIT — LE JOUR J EST FAIT : OP GESTION TOURNE SUR NOTRE SERVEUR (v749)
 
 **Fait, vérifié en ligne, dans l'ordre :**

@@ -26,7 +26,9 @@ async function monter(source) {
     localStorage.setItem('elanB_lang','fr');
     /* la proposition de photo de profil s'ouvre UNE fois par compte, 900 ms après l'entrée : dans une page elle tombait
        pendant un écran, dans l'autre pendant le suivant — une différence de moment, pas de feuille. Déjà proposée. */
-    localStorage.setItem('elanB_photo_prompt_u0','1'); return 1;`);
+    localStorage.setItem('elanB_photo_prompt_u0','1');
+    /* même chose pour la proposition de notifications (1,8 s après l'entrée, une fois par compte) */
+    localStorage.setItem('elanB_push_ask_u0','1'); return 1;`);
   /* l'heure et le hasard sont FIGÉS, les mêmes dans les deux pages : « il y a 3 min », la ligne de l'heure du planning
      ou un identifiant tiré au sort différeraient sinon pour une raison qui n'a rien à voir avec la feuille */
   await S.c.envoyer('Page.addScriptToEvaluateOnNewDocument', { source: `(()=>{ const T0=Date.UTC(2026,8,24,8,30); const D=Date; let k=0;
@@ -54,7 +56,11 @@ const ECRANS = `const v=[]; NAV.forEach(s=>s.items.forEach(it=>{ if(views[it.k])
 const RELEVE = e => `try{ closeModal(true); }catch(_){}
   try{ const t=${JSON.stringify(e.t)}, k=${JSON.stringify(e.k)};
     if(t==='vue'){ current=k; rendreVueSure(k); } else if(t==='int') detailIntervention(k); else if(t==='cli') ficheClient(k); else if(t==='box') openBox(k); else toast('Message de contre-épreuve'); }catch(err){ return {err:String(err)}; }
-  await new Promise(r=>setTimeout(r,${e.k === 'boiteMail' ? 700 : 200}));
+  await new Promise(r=>setTimeout(r,${e.k === 'boiteMail' ? 700 : e.t === 'toast' ? 500 : 200}));
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  /* le message « 👋 Bienvenue » (2,2 s après l'entrée) peut être encore là dans une page et déjà parti dans l'autre :
+     un décalage de moment entre les deux chargements, pas de feuille — on le range, sauf sur l'écran du message */
+  if(${JSON.stringify(e.t)}!=='toast'){ const t=document.getElementById('toast'); if(t){ clearTimeout(t._t); t.classList.remove('show'); } }
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   document.getAnimations().forEach(a=>{ try{ a.pause(); a.currentTime=0; }catch(_){} });
   const chemin=el=>{ const p=[]; while(el&&el!==document.documentElement){ const par=el.parentElement; if(!par) break; p.push(el.tagName+[...par.children].indexOf(el)); el=par; } return p.reverse().join('/'); };
@@ -66,7 +72,7 @@ const RELEVE = e => `try{ closeModal(true); }catch(_){}
   for(const el of els){ const cs=getComputedStyle(el); const e=[]; for(let i=0;i<cs.length;i++){ const p=cs[i]; e.push(p+':'+cs.getPropertyValue(p)); }
     for(const ps of ['::before','::after']){ const c2=getComputedStyle(el,ps); if(c2.content&&c2.content!=='none'&&c2.content!=='normal'){ for(let i=0;i<c2.length;i++){ const p=c2[i]; e.push(ps+' '+p+':'+c2.getPropertyValue(p)); } } }
     const s=e.sort().join(';')+';'; const c=chemin(el); tout[c]=s; emp[c]=h(s);
-    desc[c]=el.tagName.toLowerCase()+(el.id?'#'+el.id:'')+(typeof el.className==='string'&&el.className.trim()?'.'+el.className.trim().split(/\s+/).slice(0,3).join('.'):''); }
+    desc[c]=(el.id==='toast'?'« '+String(el.textContent||'').trim().slice(0,50)+' » ':'')+el.tagName.toLowerCase()+(el.id?'#'+el.id:'')+(typeof el.className==='string'&&el.className.trim()?'.'+el.className.trim().split(' ').filter(Boolean).slice(0,3).join('.'):''); }
   window.__desc=desc;
   window.__releve=tout;
   return {n:els.length, emp};`;
