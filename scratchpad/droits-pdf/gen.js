@@ -53,6 +53,9 @@ Object.values(PERM_SPECIAUX).flat().forEach(k => assert(USER_CAPS.some(c => c[0]
 ['Cette rubrique n\\\'est pas ouverte à ton compte', 'Toute sortie de stock passe par le DR', 'Ses mouvements de box passent par la validation DR',
  'Effacer ce qui est réglé à part — revenir au rôle', 'Valider ses droits', 'Enregistrer comme profil', 'Appliquer un profil…', 'Directeur régional responsable',
  'que tu n\\\'as pas toi-même', 'Utiliser Devis IA', 'Ventes → Ajouter'].forEach(t => assert(SRC.includes(t), 'phrase de l’application : ' + t));
+/* v753 : le texte ci-dessous décrit « Validations DR » ouvert d'office et le rôle maison qui part de la liste du
+   technicien (droits compris) — sur une page plus ancienne il dirait faux : on refuse d'écrire. */
+['function validationsOuvertes(u){', 'function tableDuRole(role){', 'il suit la liste de son rôle'].forEach(t => assert(SRC.includes(t), 'v753 attendue : ' + t));
 
 /* ── les règles, telles que le code les écrit (capDeduitRegle, catDeduitRegle) ── */
 const capsRole = r => Object.fromEntries(Object.entries(CAPS_HERITE[r] || {}).map(([k, v]) => [k, !!v]));
@@ -120,7 +123,7 @@ ${h2('ordre', 'Dans quel ordre l’application décide')}
   <div class="etape"><b>1</b><div><h3>Le forfait et le métier</h3><p>La rubrique en est exclue&#8239;? Fermée pour tout le monde (section&nbsp;${N.forfait}).</p></div></div>
   <div class="etape"><b>2</b><div><h3>L’administrateur</h3><p>C’est un administrateur&#8239;? Oui à tout.</p></div></div>
   <div class="etape"><b>3</b><div><h3>Ce qui est réglé pour la personne</h3><p>Ce qui a été validé sur sa ligne — ou posé par un profil — fait loi.</p></div></div>
-  <div class="etape"><b>4</b><div><h3>La liste de son rôle</h3><p>Sinon, le réglage de son rôle&#8239;: le point de départ de ses comptes (section&nbsp;${N.depart}).</p></div></div>
+  <div class="etape"><b>4</b><div><h3>La liste de son rôle</h3><p>Sinon, le réglage de son rôle&#8239;: le point de départ de ses comptes (section&nbsp;${N.depart})&#8239;; un rôle créé à la main part de celle du technicien.</p></div></div>
   <div class="etape"><b>5</b><div><h3>Le défaut</h3><p>Sinon, une case qui <b>suit</b> une autre (section&nbsp;${N.suivent}). Le reste&#8239;: droits spéciaux fermés, Ajouter et Modifier ouverts.</p></div></div>
 </div>
 <div class="encart"><b>Changer le rôle de quelqu’un</b> ne touche pas à ce qui a été réglé à part pour lui&#8239;: seul ce qui suivait son rôle change. Pour qu’il suive de nouveau entièrement son rôle&#8239;: ${q('↩ Effacer ce qui est réglé à part — revenir au rôle')}, sur sa ligne.</div>
@@ -228,7 +231,7 @@ ${h2('valid', 'La validation DR')}
     <tr><th>Pendant ses congés</th><td>Un DR peut donner la main à un collègue, avec des dates. Le remplaçant valide à sa place et voit ce qu’il faut pour le faire, sans devenir le DR de l’équipe&#8239;; tout s’éteint seul au retour.</td></tr>
   </tbody>
 </table>
-<div class="encart alerte"><b>À savoir&#8239;:</b> ${q('Validations DR')} est un menu comme les autres. Donner la case de validation <b>ne l’affiche pas</b> si la liste du rôle le ferme&#8239;: il faut aussi l’allumer dans ses menus (catégorie Achats internes). Dans la liste de départ, seuls Chef d’équipe et Directeur Régional l’ont.</div>
+<div class="encart"><b>D’office&#8239;:</b> ${q('Validations DR')} s’ouvre de lui-même à qui a la case de validation (il y valide, et reçoit les alertes ${q('à valider')}) et à qui est soumis à la validation (il y suit ses mouvements et la décision du DR). Sur sa ligne, l’interrupteur paraît alors ouvert et verrouillé, avec la raison écrite dessous. Seul le forfait passe avant.</div>
 
 ${h2('creer', 'Créer un compte')}
 <ol class="pas">
@@ -242,7 +245,7 @@ ${h2('creer', 'Créer un compte')}
   <div class="carte"><h3>Sans profil</h3><p>Le compte suit la liste de son rôle. On ajuste ensuite sur sa ligne.</p></div>
   <div class="carte"><h3>Créé par un non-administrateur</h3><p>Ce que le créateur n’a pas est retiré au nouveau compte, et le message le dit (${q('Compte créé sans N droits que tu n’as pas toi-même…')}). Seul un administrateur crée un administrateur, et seul un administrateur modifie un compte existant.</p></div>
   <div class="carte"><h3>Ce qu’un rôle règle vraiment</h3><p>En plus de sa liste de départ, deux choses seulement (🏷 Rôles)&#8239;: il <b>crée une fiche technicien</b> (nécessaire pour les interventions, un véhicule, le pointage) et il <b>peut être chef</b> de quelqu’un.</p></div>
-  <div class="carte"><h3>Un rôle créé à la main</h3><p>Il n’a pas de liste à lui&#8239;: ses menus partent de la liste ${q('Technicien')}, ses droits spéciaux sont fermés. Lui appliquer un profil, ou régler la personne.</p></div>
+  <div class="carte"><h3>Un rôle créé à la main</h3><p>Il n’a pas de liste à lui&#8239;: il part de celle du ${q('Technicien')} — ses menus comme ses droits spéciaux. On l’ajuste ensuite, ou on lui applique un profil.</p></div>
 </div>
 
 ${h2('profils', 'Les profils de droits')}
