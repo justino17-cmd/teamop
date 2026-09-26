@@ -128,6 +128,12 @@ for (const f of ['app.html', 'beta.html']) {
     vrai('⛔ un doigt : la photo suit le doigt, du même déplacement', Math.abs(B2.lire().x - a.x - 30) < 1e-9 && Math.abs(B2.lire().y - a.y + 10) < 1e-9, { avant: [a.x, a.y], apres: [B2.lire().x, B2.lire().y] });
     B2.ppSuivre(B2.ppContact([{ x: 100, y: 100 }]), B2.ppContact([{ x: 100, y: 100 }, { x: 200, y: 100 }]));
     vrai('   un doigt qui devient deux : ce mouvement-là ne fait rien (pas de saut)', Math.abs(B2.lire().x - a.x - 30) < 1e-9 && B2.lire().z === 2, B2.lire().z); }
+  /* l'appareil tourne (le puits change de taille) : le point de la photo qui était au centre du rond y reste */
+  { const { B } = monter(1200, 800, 320); B.ppZoomer(2.2, 90, 170); B.ppDeplacer(-15, 8); const p = B.lire();
+    const u = (p.D / 2 - p.x) / p.k, v = (p.D / 2 - p.y) / p.k, z = p.z;
+    p.st.offsetWidth = 260; B.ppMesurer(false); const q = B.lire();
+    vrai('⛔ l’appareil tourne : le même agrandissement, et le point au centre du rond y reste',
+      q.D === 220 && Math.abs(q.z - z) < 1e-9 && Math.abs(q.x + u * q.k - q.D / 2) < 1e-6 && Math.abs(q.y + v * q.k - q.D / 2) < 1e-6, { D: q.D, z: q.z, x: q.x, y: q.y }); }
   /* le puits dessine la photo à sa place : marge + décalage, taille × k */
   { const { B, cv } = monter(1200, 800, 320); B.ppZoomer(2, 50, 60); const p = B.lire(); const d = cv.dessins[cv.dessins.length - 1];
     vrai('le puits peint la photo là où elle est (marge + décalage, taille × k), à la densité de l’écran',
