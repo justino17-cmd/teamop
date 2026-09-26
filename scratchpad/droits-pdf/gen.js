@@ -56,6 +56,8 @@ Object.values(PERM_SPECIAUX).flat().forEach(k => assert(USER_CAPS.some(c => c[0]
 /* v753 : le texte ci-dessous décrit « Validations DR » ouvert d'office et le rôle maison qui part de la liste du
    technicien (droits compris) — sur une page plus ancienne il dirait faux : on refuse d'écrire. */
 ['function validationsOuvertes(u){', 'function tableDuRole(role){', 'il suit la liste de son rôle'].forEach(t => assert(SRC.includes(t), 'v753 attendue : ' + t));
+/* v754 : « ＋ Nouveau profil » part tout décoché — la carte des profils le dit. */
+['function profilVierge(){', '＋ Nouveau profil'].forEach(t => assert(SRC.includes(t), 'v754 attendue : ' + t));
 
 /* ── les règles, telles que le code les écrit (capDeduitRegle, catDeduitRegle) ── */
 const capsRole = r => Object.fromEntries(Object.entries(CAPS_HERITE[r] || {}).map(([k, v]) => [k, !!v]));
@@ -250,7 +252,7 @@ ${h2('creer', 'Créer un compte')}
 
 ${h2('profils', 'Les profils de droits')}
 <div class="grille2">
-  <div class="carte"><h3>Une photo des droits</h3><p>Les menus, les actions et les droits spéciaux d’une personne, enregistrés sous un nom de métier réel (${q('Technicien 3D')}, ${q('Chef d’équipe Nord')}). Pour en créer un&#8239;: régler quelqu’un, puis ${q('💾 Enregistrer comme profil')}.</p></div>
+  <div class="carte"><h3>Une photo des droits</h3><p>Menus, actions et droits spéciaux, enregistrés sous un nom de métier réel (${q('Technicien 3D')}). On en crée un en réglant quelqu’un, puis ${q('💾 Enregistrer comme profil')} — ou par ${q('＋ Nouveau profil')}, qui part <b>tout décoché</b>.</p></div>
   <div class="carte"><h3>Le poser</h3><p>À la création (menu ${q('Profil de droits')}), il est posé directement. Sur la ligne d’une personne (${q('🎛 Appliquer un profil…')}), il <b>coche</b>&#8239;: on relit, puis on valide. Modifier ou supprimer un profil&#8239;: ${q('🎛 Profils')}, en haut de Utilisateurs.</p></div>
   <div class="carte"><h3>Jamais les box</h3><p>Une box dépend du secteur de la personne, pas de son métier&#8239;: on les coche sur sa ligne.</p></div>
   <div class="carte"><h3>Le rôle ne change pas</h3><p>Le profil habille le compte&#8239;; il ne remplace pas son rôle.</p></div>
