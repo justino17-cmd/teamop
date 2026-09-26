@@ -1487,6 +1487,15 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 .bandeau{view-transition-name:bandeau}
 ::view-transition-group(bandeau){animation:none}
 ::view-transition-old(bandeau),::view-transition-new(bandeau){animation:none;mix-blend-mode:normal}
+/* La barre du bas non plus : sa bulle GLISSE pendant que la vue change. ⛔ Et on ne montre qu'UNE des
+   deux captures — deux copies empilées d'une barre en verre doublent sa teinte le temps de la
+   transition (app.html, « `animation:none` SUR LES DEUX IMAGES LES PEINT TOUTES LES DEUX », le défaut
+   que Justin a filmé le 22 septembre 2026). La nouvelle est VIVANTE : la bulle y glisse. */
+.barre-bas{view-transition-name:barre}
+::view-transition-group(barre){animation:none}
+::view-transition-image-pair(barre){isolation:auto}
+::view-transition-old(barre){animation:none;mix-blend-mode:normal;opacity:0}
+::view-transition-new(barre){animation:none;mix-blend-mode:normal;opacity:1}
 
 /* ══ ARRIVÉE DU CONTENU ═══ les cartes et les lignes se posent, elles n'apparaissent pas ══════════════════
    Un décalage de 18 ms entre les six premières : assez pour lire un ordre, trop court pour attendre.
@@ -2409,6 +2418,31 @@ body.jour .lg-carte,body.jour .vide,body.jour .encart,body.jour .groupe,body.jou
   .bb:active svg{transform:none}
   .bb.plus.on::after{display:none}
   .bb .bdg-r{top:4px}
+  /* LA BULLE (voir `barreBulle`) : une seule pastille qui glisse. Elle prend la place du fond de
+     `.bb.on` dès qu'elle est posée (`cur-on`) — la règle se garde elle-même : sans bulle, l'onglet
+     garde son fond, il ne reste jamais ZÉRO marque. Sa place vit dans `translate`, jamais dans
+     `transform` : `scale` passe AVANT `transform` et multiplierait le déplacement de la bulle tenue
+     en main (règle du dépôt, 8,5 px de retard mesurés sur OP GESTION). Et `translate` en pourcentage
+     se rapporte à la bulle elle-même, c'est-à-dire à UNE colonne : aucun chiffre en dur. */
+  .barre-bas{--bb-n:5;--bb-i:0;--bb-dx:0px;--bb-gout:2px;--bb-pad:7px;
+    touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .bb-cur{position:absolute;z-index:0;pointer-events:none;opacity:0;left:var(--bb-pad);top:var(--bb-pad);bottom:var(--bb-pad);
+    width:calc((100% - 2*var(--bb-pad) - (var(--bb-n) - 1)*var(--bb-gout)) / var(--bb-n));
+    translate:calc(var(--bb-i) * (100% + var(--bb-gout)) + var(--bb-dx)) 0;scale:1;
+    border-radius:26px;background:var(--tt-onglet-on);box-shadow:var(--tt-onglet-ombre);
+    transition:translate .42s cubic-bezier(.32,.72,0,1),opacity .22s ease,scale .26s cubic-bezier(.32,.72,0,1),box-shadow .26s ease}
+  .barre-bas.cur-on .bb-cur{opacity:1}
+  .bb{z-index:1}
+  .barre-bas.cur-on .bb.on{background:transparent;box-shadow:none}
+  /* soulevée, elle grandit plus en HAUTEUR qu'en largeur — elle sort de la barre au lieu de
+     s'étaler sur les voisins — et son ombre s'élargit : on voit qu'elle est dans la main */
+  .barre-bas.tire .bb-cur{scale:1.06 1.16;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+  /* l'onglet sous la bulle s'allume en passant : c'est lui qu'on obtiendra en lâchant ; celui de
+     départ s'éteint tant que la bulle l'a quitté — deux onglets allumés, deux réponses à une question */
+  .barre-bas .bb.survol{color:var(--tt-onglet-encre)}
+  .barre-bas.tire .bb.on:not(.survol){color:var(--muted);font-weight:500}
+  /* l'onglet où le doigt s'est posé garde `:active` pendant TOUT le geste : il resterait rétréci */
+  .barre-bas.tire .bb:active{transform:none}
 }
 .scrim{background:rgba(0,0,0,.35)}
 .feuille{border-radius:34px 34px 0 0;max-height:80vh;padding:8px 16px calc(28px + env(safe-area-inset-bottom));
@@ -2430,6 +2464,14 @@ body.jour .lg-carte,body.jour .vide,body.jour .encart,body.jour .groupe,body.jou
 .groupe .chev{color:var(--dim)}
 .groupe button.rouge{color:var(--redText)}
 .feuille .app-sw{margin:0 0 6px}
+/* « Ma barre » : un numéro dit la place de chaque vue choisie ; un rond vide, une place à prendre */
+.barre-aide{margin:0 4px 4px;font-size:13px;line-height:18px;color:var(--muted)}
+.barre-compte{margin:0 4px 2px;font-size:12.5px;line-height:17px;color:var(--muted)}
+.groupe .rang{margin-left:auto;width:26px;height:26px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;
+  border:1.5px solid var(--muted);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--app-on)}
+.groupe .rang.pris{border-color:transparent;background:var(--app-fill)}
+.barre-pied{display:flex;gap:10px;margin:14px 0 4px}
+.barre-pied button{flex:1;justify-content:center;min-height:48px;font-size:16px}
 
 /* ── LE GABARIT COMMUN DES VUES — section, titre, description, bouton ── */
 .page-tete{border-bottom:0;padding-bottom:0;margin-bottom:22px;gap:14px}
@@ -2560,6 +2602,10 @@ body.jour #tour-panneau>div{background:#FFFFFF!important}
 #toast{border-radius:999px;background:var(--tt-feuille);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);border:1px solid var(--tt-carte-bord);box-shadow:var(--tt-barre-ombre)}
 body.jour #toast{background:rgba(255,255,255,.92)}
 @media(max-width:899px){ #toast{bottom:calc(96px + env(safe-area-inset-bottom))} }
+/* ⛔ UN TOAST NE MANGE JAMAIS UN TAP : c'est du texte, rien dedans ne se touche (il ne reçoit que
+   `textContent`). Posé au-dessus de la feuille « Ma barre », il avalait pendant deux secondes et demie
+   le toucher de la ligne qu'il couvrait — mesuré au doigt le 26 septembre 2026. */
+#toast{pointer-events:none}
 
 /* connexion */
 .lg-sous{color:var(--acc-txt)}
@@ -2576,6 +2622,7 @@ body.jour #toast{background:rgba(255,255,255,.92)}
 @media(prefers-reduced-motion:reduce){
   .tt-srv.ok>i{animation:none}
   .bb,.tt-seg button,.feuille,.feuille.on{transition:none!important}
+  .bb-cur{transition:opacity .15s ease!important} .barre-bas.tire .bb-cur{scale:1}
   .bb:active,.btn-plein:active,.btn-fant:active,.pill-act:active{transform:none!important}
 }
 </style>
@@ -2606,7 +2653,7 @@ body.jour #toast{background:rgba(255,255,255,.92)}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.66</div>
+    <div class="lg-pied">console interne · v2.67</div>
   </div>
 </div>
 
@@ -2645,7 +2692,7 @@ body.jour #toast{background:rgba(255,255,255,.92)}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.66</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.67</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2657,7 +2704,7 @@ body.jour #toast{background:rgba(255,255,255,.92)}
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.66</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.67</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2878,7 +2925,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.66';
+var TOUR_VERSION='v2.67';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -3048,32 +3095,309 @@ function renderTabs(){
   renderBarreBas();
   majHaut();
 }
-/* ══ TÉLÉPHONE ═══ la barre d'onglets FLOTTANTE, en verre : Accueil · Surveill. · Entreprises · Accès
-   · Plus (maquette). Accès n'existe que pour le patron et en console GESTION ; ailleurs, sa place
-   revient au Courrier — le pouce garde quatre destinations, jamais un trou. Le Courrier qui part
-   dans « Plus » y emporte son compteur : la pastille de « Plus » dit ce qui attend derrière. */
-var BAS=['accueil','surveillance','entreprises','essais'];
-var BAS_LIB={accueil:'Accueil',surveillance:'Surveill.',entreprises:'Entreprises',essais:'Accès',support:'Courrier'};
+/* ══ TÉLÉPHONE ═══ la barre d'onglets FLOTTANTE, en verre : quatre vues · Plus (maquette).
+   Justin, 26 septembre 2026, capture de la barre à l'appui : « j'aimerais qu'en restant appuyé sur
+   la barre, je puisse la personnaliser et choisir ce que je veux dans la barre, et aussi que le
+   glissement de la bulle marche comme sur OP GESTION ». Les deux mécaniques sont celles
+   d'OP GESTION — `ongletsPresse`, `ongletsBulle`, `formOnglets` dans app.html —, récrites ici : la
+   Tour ne partage aucun code avec l'application.
+   LE CHOIX : quatre vues, dans l'ordre où on les touche, PAR CONSOLE (GESTION et MESSAGES n'ont pas
+   les mêmes vues) et par appareil (`tour_barre_<console>`). Il se relit TOUJOURS contre ce que ce
+   compte voit (`menuVisible`) : une vue retirée à un rôle ne laisse ni un trou ni une porte vers un
+   écran refusé. On complète par la barre d'origine, puis par l'ordre du menu : la barre a toujours
+   quatre vues valides. Sans choix, c'est la barre d'avant, à l'identique : Accueil · Surveill. ·
+   Entreprises · Accès — le Courrier pour qui n'a pas Accès.
+   LES COMPTEURS suivent la vue, où qu'elle soit : dans la barre, elle porte le sien ; rangée derrière
+   « Plus », elle l'y emporte, et la pastille de « Plus » dit la somme de ce qui attend derrière. */
+var BAS_DEFAUT=['accueil','surveillance','entreprises','essais','support'];
+var BAS_MAX=4;
+var BAS=BAS_DEFAUT.slice(0,BAS_MAX);
+/* Un nom qui tient sous l'icône, dans une colonne d'une soixantaine de pixels. Le nom COMPLET reste
+   dans `aria-label` : un lecteur d'écran ne lit pas des abréviations. */
+var BAS_LIB={accueil:'Accueil',surveillance:'Surveill.',entreprises:'Entreprises',connexions:'Connexions',essais:'Accès',
+  abonnements:'Abonn.',devisia:'Devis IA',support:'Courrier',donnees:'Données',equipe:'Équipe',journal:'Journal'};
+/* Les vues que CE compte voit dans CETTE console, à plat, dans l'ordre du menu, avec leur compteur. */
+function barreDispo(){
+  var l=[]; menuVisible().forEach(function(g){ g.vues.forEach(function(x){ l.push({t:x[0],lib:x[1],bdg:x[3]||''}); }); });
+  return l;
+}
+/* Ce que la barre montre pour un choix enregistré : relu contre ce qu'on voit, dédoublonné, complété. */
+function barreDe(brut){
+  var dispo=barreDispo().map(function(o){ return o.t; }), l=[];
+  var ajoute=function(t){ t=String(t||'').trim(); if(l.length<BAS_MAX&&dispo.indexOf(t)>=0&&l.indexOf(t)<0) l.push(t); };
+  String(brut||'').split(',').forEach(ajoute);
+  BAS_DEFAUT.forEach(ajoute); dispo.forEach(ajoute);
+  return l;
+}
+/* ⛔ LE RANGEMENT DE L'APPAREIL PEUT ÊTRE PLEIN — et il est PARTAGÉ par toute l'origine teamop.fr
+   (l'application, la bêta, la Tour : 5 Mo sous Safari). Le choix s'APPLIQUE d'abord ; s'il ne peut
+   pas se ranger, il tient en mémoire le temps de la visite, et on le DIT (règle du dépôt, v747). */
+var _barreRepli={};
+function barreLire(){
+  var brut='';
+  if(Object.prototype.hasOwnProperty.call(_barreRepli,APP)) brut=_barreRepli[APP];
+  else { try{ brut=localStorage.getItem('tour_barre_'+APP)||''; }catch(e){} }
+  return barreDe(brut);
+}
 function renderBarreBas(){
   var el=$('barre-bas'); if(!el) return;
-  BAS=['accueil','surveillance','entreprises',(vues().indexOf('essais')>=0&&MYROLE==='patron')?'essais':'support'];
-  el.innerHTML=BAS.map(function(t){ return '<button type="button" class="bb" data-t="'+t+'" onclick="setTab(\''+t+'\')" aria-label="'+esc(vueInfo(t).lib||BAS_LIB[t])+'">'+svg(t,22)+'<span>'+BAS_LIB[t]+'</span>'+
-      (t==='surveillance'?'<span class="bdg-r" id="bdg-surv-bas">0</span>':t==='support'?'<span class="bdg-r" id="bdg-supp-bas">0</span>':'')+'</button>'; }).join('')+
-    '<button type="button" class="bb plus" onclick="ouvrirFeuille(\'plus\')" aria-haspopup="dialog" aria-label="Plus — toutes les vues">'+svg('menu',22)+'<span>Plus</span>'+
-      (BAS.indexOf('support')<0?'<span class="bdg-r" id="bdg-supp-bas">0</span>':'')+'</button>';
-  majBarreBas();
+  BAS=barreLire();
+  /* ⛔ ON NE RÉÉCRIT PAS UNE BARRE QUI N'A PAS CHANGÉ : `innerHTML=` détruit la bulle, et une bulle
+     neuve se pose sans glisser — elle SAUTE (mesuré sur OP GESTION, `renderOnglets`). */
+  var sig=APP+'|'+BAS.join(',');
+  if(el.getAttribute('data-sig')===sig&&el.querySelector('.bb')){ majBarreBas(); return; }
+  el.setAttribute('data-sig',sig);
+  var info={}; barreDispo().forEach(function(o){ info[o.t]=o; });
+  el.innerHTML='<span class="bb-cur" id="bb-cur" aria-hidden="true"></span>'+BAS.map(function(t){ var o=info[t]||{};
+      return '<button type="button" class="bb" data-t="'+t+'" onclick="setTab(\''+t+'\')" aria-label="'+esc(o.lib||BAS_LIB[t]||t)+'">'+svg(t,22)+'<span>'+esc(BAS_LIB[t]||o.lib||t)+'</span>'+
+        (o.bdg?'<span class="bdg-r" id="'+o.bdg+'-bas">0</span>':'')+'</button>'; }).join('')+
+    '<button type="button" class="bb plus" onclick="ouvrirFeuille(\'plus\')" aria-haspopup="dialog" aria-label="Plus — toutes les vues">'+svg('menu',22)+'<span>Plus</span><span class="bdg-r" id="bdg-plus-bas">0</span></button>';
+  barrePresse(el); barreBulle(el);
+  majBarreBas(true);
 }
-function majBarreBas(){
-  var feuilleOuverte=_feuilleOuverte;
+function majBarreBas(sansAnim){
+  var ouverte=_feuilleOuverte, dans=BAS.indexOf(TAB)>=0;
   [].forEach.call(document.querySelectorAll('.bb'),function(b){
     var plus=b.classList.contains('plus');
-    b.classList.toggle('on',plus?(feuilleOuverte||BAS.indexOf(TAB)<0):(b.dataset.t===TAB&&!feuilleOuverte));
-    if(plus) b.setAttribute('aria-expanded',String(feuilleOuverte)); else if(b.dataset.t===TAB) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
-  ['surv','supp'].forEach(function(k){ var o=$('bdg-'+k), d=$('bdg-'+k+'-bas'); if(o&&d){ d.textContent=o.textContent; d.style.display=(o.style.display==='none'||!(+o.textContent))?'none':''; } });
+    b.classList.toggle('on',plus?(ouverte||!dans):(b.dataset.t===TAB&&!ouverte));
+    if(plus) b.setAttribute('aria-expanded',String(ouverte)); else if(b.dataset.t===TAB) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  var derriere=0;
+  barreDispo().forEach(function(o){ if(!o.bdg) return;
+    var src=$(o.bdg), n=(src&&src.style.display!=='none')?(+src.textContent||0):0;
+    if(BAS.indexOf(o.t)<0){ derriere+=n; return; }
+    var d=$(o.bdg+'-bas'); if(d){ d.textContent=n; d.style.display=n?'':'none'; } });
+  var p=$('bdg-plus-bas'); if(p){ p.textContent=derriere; p.style.display=derriere?'':'none'; }
+  bbCurPlacer(!sansAnim);
 }
-/* LA FEUILLE — un seul composant, deux contenus : 'app' (choisir la console) et 'plus' (TOUTES les
-   vues, rangées comme le menu latéral, puis quitter). Elle monte du bas : un tiroir latéral part du
-   bord gauche, hors de portée du pouce droit. « Apparence » n'y est plus : le mode suit le système. */
+/* ══ LA BULLE ══ une seule pastille qui GLISSE d'un onglet à l'autre, au lieu d'un fond qui s'allume
+   ailleurs : l'œil la suit, il sait d'où elle vient (app.html, « LA PASTILLE QUI GLISSE »). Elle
+   repose sur l'onglet de la vue ouverte, et sur « Plus » quand cette vue est rangée derrière lui ou
+   que la feuille est ouverte — exactement là où la pastille d'avant s'allumait.
+   On ne pose qu'un NUMÉRO de colonne ; le CSS calcule la place. Une géométrie recopiée en JavaScript
+   dépend du moment où on la copie (règle du dépôt : 143 px pour un onglet de 76). */
+function bbCurPlacer(anime){
+  var bar=$('barre-bas'); if(!bar) return;
+  /* ⛔ PENDANT QU'UN DOIGT TIENT LA BULLE, ELLE EST À LUI : un compteur qui change en plein geste
+     (`setBdg` → `majBarreBas`) ne doit pas la renvoyer à sa place sous le doigt. */
+  if(bar.classList.contains('tire')) return;
+  var cur=$('bb-cur'); if(!cur) return;
+  var tabs=bar.querySelectorAll('.bb'), i=-1;
+  for(var n=0;n<tabs.length;n++) if(tabs[n].classList.contains('on')){ i=n; break; }
+  if(i<0){ bar.classList.remove('cur-on'); return; }
+  cur.style.transition=anime?'':'none';
+  bar.style.setProperty('--bb-n',tabs.length);
+  bar.style.setProperty('--bb-i',i);
+  bar.style.setProperty('--bb-dx','0px');
+  bar.classList.add('cur-on');
+  if(!anime){ void cur.offsetWidth; cur.style.transition=''; }
+}
+function feuilleVisible(){ var f=$('feuille'); return !!(f&&!f.hidden); }
+/* ⛔ L'APPUI LONG NE DOIT PAS DÉCLENCHER LE TAP QUI LE SUIT, ET LES ÉCOUTEURS NE S'EMPILENT PAS :
+   la barre est réécrite à chaque changement de console, pas l'élément qui la porte (`_presse`).
+   On désarme au MOUVEMENT (8 px), pas au premier `pointermove` : la barre porte `touch-action:none`
+   et un doigt posé tremble toujours d'un pixel. */
+function barrePresse(bar){
+  if(!bar||bar._presse) return; bar._presse=true;
+  var minuterie=null, long=false, px=0, py=0;
+  var desarmer=function(){ if(minuterie){ clearTimeout(minuterie); minuterie=null; } };
+  bar.addEventListener('pointerdown',function(e){ long=false; leveA=0; desarmer(); px=e.clientX; py=e.clientY;
+    minuterie=setTimeout(function(){ minuterie=null;
+      /* ⛔ UN APPUI TENU SUR LA BULLE EST UNE PRISE, PAS UN MENU : on la tient souvent une
+         demi-seconde avant de glisser, ouvrir le réglage à ce moment-là arracherait le geste de la
+         main. La bulle se signale en portant `tire`. Le réglage reste à un appui long sur un AUTRE
+         onglet, et dans « Plus ». */
+      if(bar.classList.contains('tire')||feuilleVisible()) return;
+      long=true;
+      try{ if(navigator.vibrate) navigator.vibrate(12); }catch(x){}
+      ouvrirFeuille('barre'); },550); });
+  bar.addEventListener('pointermove',function(e){ if(minuterie&&Math.hypot(e.clientX-px,e.clientY-py)>8) desarmer(); });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ bar.addEventListener(ev,desarmer); });
+  /* ⛔ ET CE TAP-LÀ PEUT TOMBER AILLEURS QUE SUR LA BARRE : la feuille monte SOUS le doigt encore
+     posé, et le relâcher produit le `click` de la ligne qui s'y trouve. Mesuré au doigt le
+     26 septembre 2026 : « Devis IA » se cochait tout seul à l'ouverture du réglage — ou, barre
+     pleine, « Quatre vues au maximum » s'affichait avant qu'on ait rien touché. On avale donc le
+     premier clic qui suit le relâcher, OÙ QU'IL TOMBE ; et seulement celui-là : un navigateur qui
+     n'en produit pas (un appui long n'en donne pas toujours) ne doit pas faire perdre le vrai tap
+     suivant — passé une demi-seconde après le relâcher, un clic est un nouveau geste. */
+  var leveA=0;
+  var lever=function(){ if(long) leveA=Date.now(); };
+  document.addEventListener('pointerup',lever,true);
+  document.addEventListener('touchend',lever,true);
+  /* ⛔ ET UN NOUVEL APPUI FERME LA FENÊTRE (relecture v2.67) : si le navigateur n'a produit aucun clic
+     au relâcher, le prochain clic est celui d'un AUTRE geste — le tap qui suit sur une ligne de la
+     feuille, ou sur le voile. Il commence par son propre appui : c'est à lui qu'on le reconnaît. */
+  var nouvelAppui=function(){ if(long&&leveA){ long=false; leveA=0; } };
+  document.addEventListener('pointerdown',nouvelAppui,true);
+  document.addEventListener('touchstart',nouvelAppui,{capture:true,passive:true});
+  document.addEventListener('click',function(e){
+    if(!long) return;
+    long=false;
+    if(!leveA||Date.now()-leveA>500) return;
+    e.preventDefault(); e.stopPropagation(); },true);
+}
+/* ══ LA BULLE QU'ON ATTRAPE ══ la même que celle d'OP GESTION (`ongletsBulle`), que Justin y a réglée
+   au doigt le 23 septembre 2026 : « je voudrais qu'on soit appuyé sur la bulle et qu'on déplace la
+   bulle avec notre doigt ».
+   · le doigt se pose SUR la bulle : elle se soulève au contact ; il glisse : elle le suit 1:1, à
+     l'endroit exact où on l'a prise ; l'onglet dessous s'allume en passant ; on lâche : la vue s'ouvre ;
+   · parti d'un AUTRE onglet : la bulle vient sous le doigt en 170 ms, puis le suit ;
+   · pas de projection de vitesse : ce qui est allumé quand on lâche est ce qu'on obtient ;
+   · « Plus » n'est pas une place où la POSER (c'est le tiroir) : elle résiste au bord comme un
+     ressort. Elle peut y REPOSER, et c'est alors de là qu'elle part ;
+   · le TACTILE pour un doigt, le POINTEUR pour une souris : le navigateur annule le flux de pointeur
+     au premier mouvement horizontal d'un doigt (règle du dépôt) ; et la capture de pointeur ne se
+     pose qu'une fois le geste engagé, sinon un clic de souris n'ouvrirait plus rien. */
+function barreBulle(bar){
+  if(!bar||bar._bulle) return; bar._bulle=true;
+  var SEUIL=6, s=null, finBulle=0;
+  /* le ressort d'Apple : plus on tire au-delà du bord, moins la bulle suit */
+  var elastique=function(d,dim){ return (d*dim*0.55)/(dim+0.55*d); };
+  /* les centres se MESURENT au contact, et seulement là : une mesure qu'on emploie tout de suite */
+  var colonnes=function(){ var l=[];
+    [].forEach.call(bar.querySelectorAll('.bb'),function(b,n){ if(b.classList.contains('plus')) return;
+      var r=b.getBoundingClientRect(); l.push({b:b,n:n,k:b.dataset.t,c:r.left+r.width/2,w:r.width}); });
+    return l; };
+  var plusProche=function(cols,x){ var m=0,d=Infinity; cols.forEach(function(o,n){ var e=Math.abs(o.c-x); if(e<d){ d=e; m=n; } }); return m; };
+  var survoler=function(j,muet){ if(!s||j===s.j) return; s.j=j;
+    s.cols.forEach(function(o,n){ o.b.classList.toggle('survol',n===j); });
+    if(!muet){ try{ if(navigator.vibrate) navigator.vibrate(6); }catch(e){} } };
+  var nettoyer=function(st){ if(st.raf){ cancelAnimationFrame(st.raf); st.raf=0; }
+    bar.classList.remove('tire'); st.cols.forEach(function(o){ o.b.classList.remove('survol'); }); st.cur.style.transition=''; };
+  var abandon=function(){ if(!s) return; var st=s; s=null; nettoyer(st); bbCurPlacer(true); };
+  var poser=function(){ if(!s) return; s.raf=0;
+    if(!s.cur.isConnected){ abandon(); return; }             // la barre a été réécrite sous le doigt
+    var now=performance.now(), t=s.x-s.prise;
+    var a=s.cols[0].c, z=s.cols[s.cols.length-1].c, dim=s.cols[0].w/2;
+    if(t<a) t=a-elastique(a-t,dim); else if(t>z) t=z+elastique(t-z,dim);
+    /* elle VIENT sous le doigt, elle ne s'y téléporte pas — et le rattrapage a une FIN : au bout de
+       170 ms elle est exactement sous le doigt, et le suit 1:1 */
+    if(s.rattrape){ var k=Math.min(1,(now-s.tEng)/170), e=1-Math.pow(1-k,3); s.pos=s.pos0+(t-s.pos0)*e; if(k>=1) s.rattrape=false; }
+    else s.pos=t;
+    bar.style.setProperty('--bb-dx',(s.pos-s.cBase).toFixed(1)+'px');
+    survoler(plusProche(s.cols,s.pos),false);
+    if(s.rattrape) s.raf=requestAnimationFrame(poser); };
+  var demander=function(){ if(s&&!s.raf) s.raf=requestAnimationFrame(poser); };
+  /* hors rattrapage, la bulle se pose DANS l'événement du doigt : une image de retard, c'est cinq
+     pixels sous un doigt qui glisse */
+  var suivreDoigt=function(){ if(!s) return; if(s.rattrape){ demander(); return; }
+    if(s.raf){ cancelAnimationFrame(s.raf); s.raf=0; } poser(); };
+  /* elle se soulève : elle quitte la transition de position (elle suit la main) mais garde celle de
+     sa PRISE — `scale` est une propriété à part, c'est ce qui permet les deux à la fois */
+  var soulever=function(){
+    s.cur.style.transition='scale .26s cubic-bezier(.32,.72,0,1),box-shadow .26s ease,opacity .22s ease';
+    bar.style.setProperty('--bb-n',s.n); bar.style.setProperty('--bb-i',s.base);
+    bar.style.setProperty('--bb-dx',(s.pos-s.cBase).toFixed(1)+'px');
+    bar.classList.add('cur-on','tire');
+    survoler(plusProche(s.cols,s.pos),true); };
+  var debut=function(x,y,cible,pid){
+    if(s) abandon();
+    var tab=cible&&cible.closest?cible.closest('.bb'):null;
+    if(!tab||!bar.contains(tab)||tab.classList.contains('plus')) return;
+    if(feuilleVisible()) return;                              // une feuille ouverte : la barre dort
+    var cur=$('bb-cur'); if(!cur) return;
+    var cols=colonnes(); if(cols.length<2) return;
+    var iOn=-1, iTab=-1;
+    cols.forEach(function(o,n){ if(o.b.classList.contains('on')) iOn=n; if(o.b===tab) iTab=n; });
+    var visible=bar.classList.contains('cur-on');
+    var r=cur.getBoundingClientRect(), pc=r.left+r.width/2;
+    /* « sur la bulle », c'est sous son rectangle VISUEL — elle peut être encore en route : on la prend
+       là où on la voit, pas là où elle va */
+    var surBulle=iOn>=0&&visible&&x>=r.left-4&&x<=r.right+4;
+    var b=iOn>=0?iOn:iTab;
+    s={x0:x,y0:y,x:x,y:y,pid:pid,cur:cur,cols:cols,n:bar.querySelectorAll('.bb').length,base:cols[b].n,cBase:cols[b].c,
+       surBulle:surBulle,pos:visible?pc:x,prise:surBulle?x-pc:0,engage:false,rattrape:false,pos0:0,tEng:0,j:-1,raf:0};
+    if(surBulle) soulever(); };
+  var bouger=function(x,y){
+    if(!s) return false;
+    /* un appui long vient d'ouvrir le réglage sous ce doigt : la bulle n'emmène plus nulle part */
+    if(feuilleVisible()){ abandon(); return false; }
+    s.x=x; s.y=y;
+    if(!s.engage){
+      var ax=Math.abs(x-s.x0), ay=Math.abs(y-s.y0);
+      /* parti d'un autre onglet, un doigt qui monte n'emmène pas la bulle : c'est un tap qu'on annule
+         en s'éloignant, la grammaire de tous les boutons d'iOS */
+      if(!s.surBulle&&ay>=SEUIL&&ay>ax){ var st=s; s=null; nettoyer(st); return false; }
+      if(ax<SEUIL){ if(s.surBulle) suivreDoigt(); return false; }
+      s.engage=true;
+      if(!s.surBulle){ s.rattrape=true; s.tEng=performance.now(); s.pos0=s.pos; soulever(); }
+      if(s.pid!=null){ try{ bar.setPointerCapture(s.pid); }catch(e){} }
+    }
+    suivreDoigt();
+    return true; };
+  var lacher=function(){
+    if(!s) return;
+    if(feuilleVisible()){ abandon(); return; }
+    var st=s; s=null;
+    var j=st.j>=0?st.j:plusProche(st.cols,st.pos);
+    nettoyer(st);
+    if(!st.engage){ if(st.surBulle) bbCurPlacer(true); return; }     // un tap : le clic de l'onglet fait le reste
+    finBulle=Date.now();
+    var dest=st.cols[j]&&st.cols[j].k;
+    /* reposée sur la vue ouverte, on reste où l'on est : lâcher la bulle là où elle était, c'est ne
+       rien demander */
+    if(!dest||dest===TAB){ bbCurPlacer(true); return; }
+    setTab(dest); };
+  bar.addEventListener('touchstart',function(e){
+    if(!e.touches||e.touches.length!==1){ abandon(); return; }
+    var t=e.touches[0]; debut(t.clientX,t.clientY,e.target,null); },{passive:true});
+  /* ⚠ non passif, et seulement celui-ci : une fois le geste engagé, le doigt est à la bulle. Il est
+     posé sur la BARRE, qui ne défile pas — il ne ralentit aucun défilement. */
+  bar.addEventListener('touchmove',function(e){
+    if(!s) return;
+    if(!e.touches||e.touches.length!==1){ abandon(); return; }
+    var t=e.touches[0]; if(bouger(t.clientX,t.clientY)&&e.cancelable) e.preventDefault(); },{passive:false});
+  bar.addEventListener('touchend',function(){ lacher(); },{passive:true});
+  bar.addEventListener('touchcancel',function(){ abandon(); },{passive:true});
+  bar.addEventListener('pointerdown',function(e){ if(e.pointerType!=='mouse'||e.button!==0) return; debut(e.clientX,e.clientY,e.target,e.pointerId); });
+  bar.addEventListener('pointermove',function(e){ if(e.pointerType!=='mouse') return; bouger(e.clientX,e.clientY); });
+  bar.addEventListener('pointerup',function(e){ if(e.pointerType!=='mouse') return; lacher(); });
+  bar.addEventListener('pointercancel',function(e){ if(e.pointerType!=='mouse') return; abandon(); });
+  /* ⛔ UN GESTE, UNE NAVIGATION : le doigt lâché au-dessus d'un onglet peut encore produire le `click`
+     de cet onglet — on l'avale, et seulement juste après un geste ENGAGÉ (un tap ne l'est jamais : il
+     faut six pixels). En capture : les onglets portent un `onclick` en ligne, qu'un ancêtre en
+     capture devance. */
+  bar.addEventListener('click',function(e){ if(Date.now()-finBulle>350) return; e.preventDefault(); e.stopPropagation(); },true);
+}
+/* LE RÉGLAGE — une feuille, comme « Plus » : on touche les vues dans l'ordre voulu, un numéro dit leur
+   place. ⛔ ON REPEINT, ON NE RÉÉCRIT PAS (app.html, `ongletsRepeindre`) : réécrire la feuille à chaque
+   toucher la ramènerait en haut sous le doigt. */
+var _barreBrouillon=null;
+function barreBascule(t){
+  var l=_barreBrouillon||(_barreBrouillon=[]), i=l.indexOf(t);
+  if(i>=0) l.splice(i,1);
+  else if(l.length<BAS_MAX) l.push(t);
+  else { toast('Quatre vues au maximum — retires-en une d’abord'); return; }
+  barreRepeindre();
+}
+function barreCompteTxt(n){
+  return n+' / '+BAS_MAX+' choisie'+(n>1?'s':'')+
+    (n>=BAS_MAX?' — touche une vue choisie pour la retirer':n?' — les places libres reprennent la barre d’origine':' — la barre d’origine');
+}
+function barreRepeindre(){
+  var l=_barreBrouillon||[];
+  [].forEach.call(document.querySelectorAll('#feuille [data-barre]'),function(b){
+    var i=l.indexOf(b.getAttribute('data-barre')), pris=i>=0;
+    b.setAttribute('aria-pressed',String(pris));
+    b.setAttribute('aria-label',(b.getAttribute('data-lib')||'')+(pris?', place '+(i+1):''));
+    var r=b.querySelector('.rang'); if(r){ r.textContent=pris?String(i+1):''; r.classList.toggle('pris',pris); } });
+  var c=$('barre-compte'); if(c) c.textContent=barreCompteTxt(l.length);
+}
+function barreDefaut(){ _barreBrouillon=barreDe(''); barreRepeindre(); }
+function barreValider(){
+  var l=(_barreBrouillon||[]).slice(0,BAS_MAX);
+  /* la barre d'origine ne s'écrit pas : tant qu'on n'a rien choisi, une barre d'origine qui change un
+     jour change aussi chez soi */
+  var v=(!l.length||l.join(',')===barreDe('').join(','))?'':l.join(','), range=true;
+  try{ if(v) localStorage.setItem('tour_barre_'+APP,v); else localStorage.removeItem('tour_barre_'+APP); delete _barreRepli[APP]; }
+  catch(e){ range=false; _barreRepli[APP]=v; }
+  _barreBrouillon=null;
+  renderBarreBas(); fermerFeuille();
+  toast(range?'Barre enregistrée':'Barre changée — mais l’appareil est plein : elle reviendra comme avant au prochain démarrage',range?2500:6000);
+}
+/* LA FEUILLE — un seul composant, trois contenus : 'app' (choisir la console), 'plus' (TOUTES les
+   vues, rangées comme le menu latéral, puis quitter) et 'barre' (choisir les vues de la barre). Elle
+   monte du bas : un tiroir latéral part du bord gauche, hors de portée du pouce droit. « Apparence »
+   n'y est plus : le mode suit le système. */
 var _feuilleY=0,_feuilleY0=0,_feuilleGlisse=false,_feuilleOuverte=false;
 var APP_FILL={gestion:'var(--app-gestion-fill)',messages:'var(--app-messages-fill)'};
 var APP_TEINTE={gestion:'var(--app-gestion)',messages:'var(--app-messages)'};
@@ -3083,6 +3407,18 @@ function ouvrirFeuille(quoi){
   if(quoi==='app'){
     h+='<div class="groupe">'+['gestion','messages'].filter(function(a){ return MYAPPS.indexOf(a)>=0; }).map(function(a){ var A=APPS_TOUR[a];
       return '<button type="button" class="'+(a===APP?'on':'')+'" onclick="setApp(\''+a+'\');fermerFeuille()"><span class="ic" style="background:'+APP_FILL[a]+'">'+svg(a==='gestion'?'entreprises':'messages',16)+'</span><span><b>'+A.nom+'</b><span class="sous">'+(a==='gestion'?'interventions, clients, devis, stock':'messagerie d’équipe')+'</span></span>'+(a===APP?'<span class="coche">✓</span>':'<span class="chev">›</span>')+'</button>'; }).join('')+'</div>';
+  } else if(quoi==='barre'){
+    /* le réglage de la barre (voir `barreBascule`) : les vues de CETTE console, rangées comme le menu */
+    _barreBrouillon=barreLire();
+    h+='<div class="feuille-tete"><img src="icons/teamop-192.png" alt="" width="32" height="32"><div><b>Ma barre</b><span>Quatre vues sous le pouce · '+esc(APPS_TOUR[APP].nom)+'</span></div></div>'+
+       '<p class="barre-aide">Touche les vues dans l’ordre où tu les veux. « Plus » reste au bout, avec tout le reste.</p>'+
+       '<div class="barre-compte" id="barre-compte" aria-live="polite"></div>';
+    menuVisible().forEach(function(g){
+      h+='<div class="feuille-sec">'+g.section+'</div><div class="groupe">'+g.vues.map(function(x){
+        return '<button type="button" data-barre="'+x[0]+'" data-lib="'+esc(x[1])+'" aria-pressed="false" onclick="barreBascule(\''+x[0]+'\')"><span class="ic">'+svg(x[0],16)+'</span>'+x[1]+
+          '<span class="rang" aria-hidden="true"></span></button>'; }).join('')+'</div>';
+    });
+    h+='<div class="barre-pied"><button type="button" class="btn-fant" onclick="barreDefaut()">Réinitialiser</button><button type="button" class="btn-plein" onclick="barreValider()">Enregistrer</button></div>';
   } else {
     h+='<div class="feuille-tete"><img src="icons/teamop-192.png" alt="" width="32" height="32"><div><b>La Tour</b><span>Toutes les vues · '+esc(APPS_TOUR[APP].nom)+'</span></div></div>';
     if(MYAPPS.length>1) h+='<div class="app-sw" role="group" aria-label="Application pilotée">'+['gestion','messages'].map(function(a){ return '<button type="button" data-app="'+a+'" aria-pressed="'+(a===APP)+'" onclick="setApp(\''+a+'\');fermerFeuille()"><i style="--c:'+APP_TEINTE[a]+'"></i>'+APPS_TOUR[a].court+'</button>'; }).join('')+'</div>';
@@ -3092,9 +3428,12 @@ function ouvrirFeuille(quoi){
         return '<button type="button" data-t="'+x[0]+'" class="'+(x[0]===TAB?'on':'')+'"'+(x[0]===TAB?' aria-current="page"':'')+' onclick="setTab(\''+x[0]+'\');fermerFeuille()"><span class="ic">'+svg(x[0],16)+'</span>'+x[1]+
           (n?'<span class="bdg-r" style="display:inline-block;margin-left:auto">'+n+'</span>':'')+'<span class="chev"'+(n?' style="margin-left:8px"':'')+'>›</span></button>'; }).join('')+'</div>';
     });
+    /* l'appui long sur la barre ne se devine pas : le réglage a aussi sa porte, là où on cherche tout */
+    h+='<div class="groupe"><button type="button" onclick="ouvrirFeuille(\'barre\')"><span class="ic">'+svg('crayon',16)+'</span>Personnaliser la barre<span class="chev">›</span></button></div>';
     h+='<div class="groupe"><button type="button" class="rouge" onclick="doLogout()">Quitter la console</button></div>';
   }
   f.innerHTML=h; f.hidden=false; sc.hidden=false; _feuilleOuverte=(quoi==='plus');
+  if(quoi==='barre') barreRepeindre();
   requestAnimationFrame(function(){ f.classList.add('on'); });
   f.style.transform='';
   majBarreBas();

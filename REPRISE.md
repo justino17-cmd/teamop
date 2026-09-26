@@ -13,6 +13,47 @@ de ligne du tout.
 
 ---
 
+# 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.67 : « MA BARRE » ET LA BULLE QU'ON ATTRAPE — EN APERÇU, ATTEND « REMPLACE LA TOUR »
+
+**Justin, capture de la barre de la Tour à l'appui : « j'aimerais qu'en restant appuyé sur la barre, je puisse la
+personnaliser et choisir ce que je veux dans la barre, et aussi que le glissement de la bulle marche comme sur
+OP GESTION ».** Fait sur la branche (`tour.html` v2.67), mis en aperçu (`teamop.fr/apercu/tour.html`) :
+- **appui long** (0,55 s) sur un onglet → feuille « Ma barre » : les vues de la console, un numéro dit leur place,
+  quatre au plus, dans l'ordre où on les touche ; aussi par « Plus » → « Personnaliser la barre » (l'appui long ne se
+  devine pas). Rangé PAR CONSOLE et par appareil (`tour_barre_gestion`, `tour_barre_messages`), relu à chaque fois
+  contre ce que le compte voit (`menuVisible`) et complété par la barre d'origine ; sans choix, la barre d'avant à
+  l'identique ; « Réinitialiser » ne s'écrit pas ; rangement plein (partagé par toute l'origine teamop.fr) : le choix
+  s'applique pour la visite, et le toast le dit ;
+- **la bulle** : une pastille qui GLISSE (elle repose sur « Plus » quand la vue ouverte est derrière lui, là où
+  s'allumait la pastille d'avant) ; on la prend, elle se soulève au contact et suit le doigt 1:1, l'onglet dessous
+  s'allume, on lâche → la vue ; partie d'un autre onglet, elle vient sous le doigt en 170 ms ; « Plus » n'est pas une
+  place (ressort au bord) ; un appui tenu SUR la bulle est une prise, pas un menu ; la souris aussi ; mouvement réduit :
+  elle apparaît sans glisser ; elle sort de la transition de vue (une seule capture montrée) ;
+- **les compteurs** suivent leur vue ; « Plus » porte la somme de ce qui est rangé derrière lui.
+**Deux défauts trouvés en mesurant, corrigés dans la même version** : le relâcher de l'appui long tombait sur la
+feuille montée SOUS le doigt (« Devis IA » se cochait tout seul) ; le toast avalait pendant 2,5 s le toucher de la
+ligne qu'il couvrait (`#toast{pointer-events:none}` — c'est du texte, partout dans la Tour). Leçon dans CLAUDE.md.
+**Preuves** : sonde au doigt `scratchpad/sonde-tour-barre.js` **120 ✓** (jour et nuit, collaborateur, souris ; la v2.66
+n'a ni bulle ni choix) ; `test-828` **87 ✓** (les vraies fonctions du choix jouées, les gardes du geste relues dans le
+code) ; **14 mutations sur 14 font tomber le banc ou la sonde** (M10 et M14 : le banc seul — ce Chromium ne produit pas de clic après un glissé ; M11 et M12 : la sonde, et le banc depuis qu'il vérifie l'EMPLOI du ressort et de la prise) ; sonde du thème complète sur la v2.67 : 0 exception, 0 débordement, 802 cibles
+≥ 44 px, 2 270 textes ≥ 4,5:1 dont 400 libellés d'onglets, 25 parcours ; les 21 bancs qui lisent `tour.html` passent.
+Outils : les sondes (`sonde-tour-theme.js`, `pilote.js`) tuent désormais tout le GROUPE de processus du navigateur —
+onze processus orphelins d'il y a une heure tournaient encore.
+**Relecture (`relecteur`)** : un ⛔ réel — sans clic produit au relâcher, le drapeau restait armé et le tap suivant
+(une ligne, le voile) était avalé ; mesuré sur `b8bd91f` (la feuille reste ouverte quand on touche le voile), corrigé
+(un NOUVEL appui ferme la fenêtre, `fe3d381`), la sonde le garde. Deux remarques mesurées FAUSSES : « `essais` et `menu`
+n'ont pas d'icône » (elles sont posées après l'objet, `IC.essais=IC.cadenas`, `IC.menu=…`). ❓ **À confirmer par Justin** :
+la bulle REPOSE sur « Plus » quand la vue ouverte est rangée derrière lui (c'était la pastille d'avant) ; dans OP GESTION
+elle disparaît. Garder, ou faire comme OP GESTION ?
+**Même défaut dans OP GESTION, trouvé en le cherchant : corrigé sur la bêta v758.** La fenêtre « Barre d'onglets » s'ouvre
+sous le doigt ; le clic du relâcher y arrivait (le pied, le fond ; sur un téléphone de 430 × 932, sans animations
+réduites, il a une fois refermé la fenêtre). `scratchpad/sonde-appui-long.js` : 21 ✓ sur trois tailles (bêta d'avant :
+9 ✓ 12 ✗). La production (v757) a le défaut : pas « quelqu'un ne peut pas travailler » (« Choisir mes onglets » reste dans
+les Paramètres) — il attend la prochaine publication.
+**Pour la mettre en production : sa phrase (« Remplace la tour »), puis `tour.html` seul sur main.**
+
+---
+
 # ✅ 26 SEPTEMBRE 2026, NUIT — ELAN : UN « OP ADMIN » FANTÔME RÉAPPARU (@florent-3) — CORRIGÉ, v757 EN PRODUCTION
 
 **Publiée (`75a6475` sur main) sur la phrase de Justin « fait tout ce qu'il y a à faire, s'il te plaît, que ça
