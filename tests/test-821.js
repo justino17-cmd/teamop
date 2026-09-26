@@ -164,6 +164,12 @@ console.log('\n── 821 · 3. ⛔ un compte créé par un non-administrateur :
   const ret = M.droitsBorner(nu, par);
   vrai('⛔ le message ne prétend pas avoir retenu « Validations DR » à une personne soumise (elle l’a d’office)', !ret.some(x => /Validations DR/.test(x)), ret);
   vrai('… et elle le voit bien', M.userSeesModule(nu, 'validations') === true);
+  /* soumise par l'interrupteur d'entreprise, sans la case de sa fiche : la v752 ne regardait que la fiche */
+  M.db.validDRTous = true;
+  const nuT = { id: 'nT', role: 'technicien', acces: { caps: {}, modules: {} } };
+  const retT = M.droitsBorner(nuT, par);
+  M.db.validDRTous = false;
+  vrai('⛔ … ni à une personne soumise par « Toute sortie de stock passe par le DR »', !retT.some(x => /Validations DR/.test(x)), retT);
   const nu2 = { id: 'n2', role: 'technicien', acces: { caps: { validerDR: true }, modules: {} } };
   const ret2 = M.droitsBorner(nu2, par);
   vrai('⛔ la case de validation reste bornée : un créateur qui ne valide pas ne la donne pas — et le menu tombe avec elle',
@@ -243,7 +249,12 @@ function zoneFactice(o) {
 }
 
 console.log('\n── 821 · 5. ⛔⛔ un rôle créé à la main part de la liste du technicien — menus ET droits ──');
-{ const maison = { id: 'm', role: 'r_technicien3d_ab12' }, tech = { id: 't', role: 'technicien' };
+{ /* un monde à part : la liste du technicien y règle AUSSI des gestes et une case déduite, pour que lire la
+     liste ailleurs que par tableDuRole (userCap, catDroit, l'éditeur) se voie */
+  const M = monde(); Object.assign(M.db.permissions.technicien.caps, { cat_stock_supprimer: true, gererBoxes: true });
+  const maison = { id: 'm', role: 'r_technicien3d_ab12' }, tech = { id: 't', role: 'technicien' };
+  vrai('population : la liste du technicien règle « Stock → Supprimer » et « Gérer les box » à OUI (le défaut dirait non)',
+    M.catDroit(tech, 'stock', 'supprimer') === true && M.userCap(tech, 'gererBoxes') === true);
   vrai('population : le rôle maison n’a pas de liste à lui', !M.db.permissions[maison.role]);
   vrai('⛔ « Modifier les plans d’appâtage » : comme le technicien (v752 : refusé au rôle maison)', M.userCap(maison, 'modifierPlans') === true && M.userCap(tech, 'modifierPlans') === true);
   v('⛔ toutes les cases : exactement celles du technicien', M.USER_CAPS.map(c => c[0]).filter(k => M.userCap(maison, k) !== M.userCap(tech, k)), []);
