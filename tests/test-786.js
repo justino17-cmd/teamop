@@ -135,7 +135,8 @@ function mondeEcran(moi, reglage) {
     setHeader: () => {}, $: () => ({ set innerHTML(h) { out.html = h; } }), keyForClient: id => id.slice(1), parseTechDepts: s => String(s || '').split(',').map(x => x.trim()).filter(Boolean),
     techColor: () => '#123', initials: n => n[0], keyLabel: d => d, deptColor: () => '#456', encreSur: () => '#fff', esc: x => String(x == null ? '' : x),
     techForKey: dep => techs.find(t => t.departements === dep) || null, badge: (o, k) => '<b>' + o[k].l + '</b>', canCat: () => true,
-    permGarde: () => true, toast: m => out.toasts.push(m), openModal: h => { out.modal = h; }, TECH_PALETTE: ['#0a0'] };
+    permGarde: () => true, toast: m => out.toasts.push(m), openModal: h => { out.modal = h; }, TECH_PALETTE: ['#0a0'],
+    techCouleurChoix: () => '<span class="tcc"></span>' };   // v757 : le choix de couleur en pastilles (test-825 l'exécute)
   vm.createContext(ctx); vm.runInContext(CODE.join('\n') + '\n' + SECT + '\n' + FT, ctx);
   ctx.out = out; return ctx;
 }
