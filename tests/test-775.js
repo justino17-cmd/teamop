@@ -62,9 +62,11 @@ for (const f of ['permSetMod', 'permSetCap', 'permSetBox', 'permResetGrp', 'perm
 vrai('⛔ aucun appel ne vise encore un écran retiré',
   !/go\(\s*'(audit|permissions)'\s*\)|views\.(audit|permissions)\s*\(/.test(SRC),
   (SRC.match(/go\(\s*'(audit|permissions)'\s*\)|views\.(audit|permissions)\s*\(/g) || []));
-vrai('les réglages par rôle déjà posés restent LUS (userSeesModule → moduleReglage → db.permissions)',
-  /moduleReglage\(u,k\)/.test(corps('function userSeesModule(')) && /db\.permissions/.test(corps('function moduleReglage(')));
-vrai('… et les droits d’action par rôle aussi (catDroit)', /db\.permissions/.test(corps('function catDroit(')));
+/* v753 : la liste d'un rôle se lit à UN endroit, tableDuRole — menus, droits spéciaux et gestes de catégorie. */
+vrai('les réglages par rôle déjà posés restent LUS (userSeesModule → moduleReglage → tableDuRole → db.permissions)',
+  /moduleReglage\(u,k\)/.test(corps('function userSeesModule(')) && /tableDuRole\(u\.role\)/.test(corps('function moduleReglage('))
+  && /db\.permissions/.test(corps('function tableDuRole(')));
+vrai('… et les droits d’action par rôle aussi (catDroit, userCap)', /tableDuRole\(u\.role\)/.test(corps('function catDroit(')) && /tableDuRole\(u\.role\)/.test(corps('function userCap(')));
 vrai('les restes de carte d’« Audit » sont partis (couleur, trait, libellé traduit, forfait)',
   !/\baudit:'(gris|bouclier|Historique)'/.test(SRC) && !/'Audit':'/.test(SRC) && !/'statistiques','audit'/.test(SRC));
 

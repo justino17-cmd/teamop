@@ -36,6 +36,8 @@ const MORCEAUX = [
   'const fullName = u =>',
   'const CAPS_HERITE = {',
   'const CAPS = Object.fromEntries',
+  /* userCap lit la liste du rôle par tableDuRole depuis la v753 (un rôle maison part de celle du technicien) */
+  'function tableDuRole(role){',
   /* userCap lit le DÉFAUT d'une case sans réglage dans capDeduitRegle depuis la v737 */
   'function capDeduitRegle(cap){',
   'function userCap(u,cap){',
@@ -65,6 +67,8 @@ const MORCEAUX = [
   /* un pointage SANS fiche se range sous son compte (v733) — visiblePointages le lit */
   'function ptEstAMoi(p){',
   'function visiblePointages(list){',
+  /* boxValidRequis lit la règle « soumis à la validation » dans valideSoumis depuis la v753 (le menu la lit aussi) */
+  'function valideSoumis(u){',
   'function boxValidRequis(){',
   /* Les quatre filtres qui ignoraient le périmètre d'un DR (v622, 10 septembre 2026) */
   'const todayISO = () =>',

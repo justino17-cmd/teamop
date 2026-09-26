@@ -214,9 +214,12 @@ console.log('\n── 779 · 8. les droits se règlent là où on les voit ─�
 const fDroits = bloc('function usrDroitsHtml(u,admin){'), fLire = bloc('function profilLireZone(zone){'), fValider = bloc('function usrDroitsValider(uid,btn){');
 vrai('population : la grille, la lecture d’un profil, l’enregistrement', [fDroits, fLire, fValider].every(x => x.length > 300));
 vrai('⛔ la grille des droits montre la sous-catégorie sous son parent', /const ms=avecSousCats\(NAV\.filter\(x=>PERM_GRP_OF\[x\.g\]===g\)/.test(fDroits) && /m\.parent\?'↳ ':''/.test(fDroits));
+/* v753 : le menu se relit par usrMenuLu (un menu ouvert d'office se lit à sa valeur propre) — il lit bien l'interrupteur */
+const fMenuLu = bloc('function usrMenuLu(zone,k){');
 vrai('⛔ … et l’interrupteur est RELU à l’enregistrement (sinon on coche pour rien)',
-  /avecSousCats\(NAV\.flatMap\(x=>x\.items\)\)\.forEach\(m=>\{ const v=val\('mod_'\+m\.k\); if\(v!==null\) u\.acces\.modules\[m\.k\]=v; \}\);/.test(fValider)
-  && /avecSousCats\(NAV\.flatMap\(x=>x\.items\)\)\.forEach\(m=>\{ const v=val\('mod_'\+m\.k\); if\(v!==null\) modules\[m\.k\]=v; \}\);/.test(fLire));
+  /avecSousCats\(NAV\.flatMap\(x=>x\.items\)\)\.forEach\(m=>\{ const v=usrMenuLu\(zone,m\.k\); if\(v!==null\) u\.acces\.modules\[m\.k\]=v; \}\);/.test(fValider)
+  && /avecSousCats\(NAV\.flatMap\(x=>x\.items\)\)\.forEach\(m=>\{ const v=usrMenuLu\(zone,m\.k\); if\(v!==null\) modules\[m\.k\]=v; \}\);/.test(fLire)
+  && /zone\.querySelector\('\[data-d="mod_'\+k\+'"\]'\)/.test(fMenuLu) && /return !!c\.checked;/.test(fMenuLu));
 vrai('les libellés (retour, menu de référence) la connaissent aussi',
   /function navLabel\(k\)\{ try\{ const it=avecSousCats\(/.test(SRC) && /function menuLabel\(v\)\{ const it=avecSousCats\(/.test(SRC));
 /* v752 : la liste de départ est EXÉCUTÉE (la vraie `defaultPerms`), plus lue comme un texte — sa mise en

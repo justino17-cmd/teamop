@@ -46,6 +46,10 @@ const P = {
   valider: bloc('function usrDroitsValider(uid,btn){'), lire: bloc('function profilLireZone(zone){'),
   USER_CAPS: constante('const USER_CAPS=[', '\n];'), PERM_GRPS: ligne('const PERM_GRPS=['), PERM_SPECIAUX: ligne('const PERM_SPECIAUX={'),
   CAPS_HERITE: constante('const CAPS_HERITE = {', '\n};'), CAPS: ligne('const CAPS = Object.fromEntries('),
+  /* v753 : la liste d'un rôle se lit par tableDuRole ; « Validations DR » s'ouvre d'office (validationsOuvertes,
+     valideSoumis) ; l'éditeur lit un menu ouvert d'office à sa valeur propre (usrMenuLu) et en écrit la raison (validationsNote) */
+  table: bloc('function tableDuRole(role){'), soumis: bloc('function valideSoumis(u){'), ouvertes: bloc('function validationsOuvertes(u){'),
+  menuLu: bloc('function usrMenuLu(zone,k){'), note: bloc('function validationsNote(valideur){'),
 };
 v('toutes les pièces sont trouvées dans le fichier réel', Object.keys(P).filter(k => !P[k]), []);
 for (const n of ['capDeduitRegle', 'userCap', 'droitsBorner', 'usrDeduireZone'])
@@ -57,7 +61,7 @@ function monde(opts) {
   const o = opts || {};
   const ctx = { db: { users: [], permissions: {}, boxes: [], vehicules: [] }, currentUser: null, Object, JSON, String, Set, Array };
   vm.createContext(ctx);
-  vm.runInContext([P.USER_CAPS, P.PERM_GRPS, P.PERM_SPECIAUX, P.CAPS_HERITE, P.CAPS, P.regle, P.userCap, P.can, P.catRegle, P.catDroit, P.borner].join('\n')
+  vm.runInContext([P.USER_CAPS, P.PERM_GRPS, P.PERM_SPECIAUX, P.CAPS_HERITE, P.CAPS, P.table, P.soumis, P.ouvertes, P.regle, P.userCap, P.can, P.catRegle, P.catDroit, P.borner].join('\n')
     + '\nthis.USER_CAPS=USER_CAPS; this.PERM_GRPS=PERM_GRPS; this.PERM_SPECIAUX=PERM_SPECIAUX; this.CAPS_HERITE=CAPS_HERITE;', ctx);
   if (o.reprise !== false) for (const [r, c] of Object.entries(ctx.CAPS_HERITE)) if (r !== 'admin')
     ctx.db.permissions[r] = { caps: Object.fromEntries(Object.entries(c).map(([k, x]) => [k, !!x])) };
@@ -70,8 +74,8 @@ function monde(opts) {
   /* v742 : le défaut de « Se servir dans le stockage » lit le périmètre (qui voit tout SANS équipe) */
   ctx.perimetreTechIds = u => (o.perim && u && o.perim[u.id]) ? new Set(o.perim[u.id]) : null;
   ctx.userSeesModule = (u, k) => { if (!u) return false; if (u.role === 'admin') return true;
+    if (k === 'validations' && ctx.validationsOuvertes(u)) return true;   // v753 : d'office, AVANT tout réglage (le vrai userSeesModule)
     const ov = u.acces && u.acces.modules; if (ov && Object.prototype.hasOwnProperty.call(ov, k)) return ov[k] !== false;
-    if (k === 'validations' && (ctx.userCap(u, 'validerDR') || u.boxValidDR)) return true;
     return (MENUS[u.role] || []).includes(k); };
   return ctx;
 }
@@ -135,7 +139,7 @@ function zoneFactice(etat) {
 }
 function mondeEditeur() {
   const M = monde();
-  vm.runInContext(P.zone + '\n' + P.deduire + '\n' + P.valider + '\n' + P.lire, M);
+  vm.runInContext(P.menuLu + '\n' + P.note + '\n' + P.zone + '\n' + P.deduire + '\n' + P.valider + '\n' + P.lire, M);
   return M;
 }
 { const M = mondeEditeur();
@@ -261,17 +265,18 @@ vrai('… et rolesGerer se garde elle-même', /function rolesGerer\(\)\{\n  if\(
 
 console.log('\n── 789 · 8. ⛔⛔ plus AUCUNE décision prise sur le nom d’un rôle ──');
 /* Recensement sur tout le fichier, commentaires retirés : `role==='dr'`, `['admin','dr',…].includes(…role)`…
-   Deux lectures restent, NOMMÉES : ce sont des DÉFAUTS, pas des décisions — et elles ne donnent
-   aucun droit d'action. */
+   Deux lectures restent, NOMMÉES : ce sont des DÉFAUTS, pas des décisions — elles choisissent quelle
+   LISTE sert de point de départ (v753 : celle du technicien pour un rôle maison, droits compris), jamais
+   un droit par le nom. */
 const PERMIS = {
-  moduleReglage: 'le gabarit de menus par défaut d’un rôle sans réglage (un rôle maison part de celui du technicien)',
+  tableDuRole: 'le gabarit par défaut d’un rôle sans liste à lui (un rôle maison part de celle du technicien — menus et droits depuis la v753)',
   moduleHeriteRole: 'la reprise de la v585 : ce que chaque rôle voyait d’office AVANT que le rôle devienne un nom',
 };
 const fns = [...SRC.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_$]+)\s*\(|views\.([A-Za-z0-9_]+)\s*=\s*function/g)].map(x => ({ nom: x[1] || ('views.' + x[2]), i: x.index }));
 const RX = /role\s*[!=]==?\s*["'](dr|chefEquipe|commercial|compta|technicien)["']|\[[^\]\n]*["'](dr|chefEquipe|commercial|compta)["'][^\]\n]*\]\.includes\([^)]*role/g;
 const trouves = []; let m;
 while ((m = RX.exec(SRC))) { let f = null; for (const x of fns) { if (x.i < m.index) f = x; else break; } trouves.push((f ? f.nom : '?') + ' : ' + m[0]); }
-vrai('population : le recensement trouve bien les deux lectures permises (il regarde au bon endroit)', trouves.some(x => x.startsWith('moduleReglage')) && trouves.some(x => x.startsWith('moduleHeriteRole')), trouves);
+vrai('population : le recensement trouve bien les deux lectures permises (il regarde au bon endroit)', trouves.some(x => x.startsWith('tableDuRole')) && trouves.some(x => x.startsWith('moduleHeriteRole')), trouves);
 v('⛔⛔ aucune AUTRE décision sur un nom de rôle', trouves.filter(x => !PERMIS[x.split(' : ')[0]]), []);
 /* les dix endroits d'hier, un par un, lisent leur case */
 const accueil = bloc('function accueilJournee(){');

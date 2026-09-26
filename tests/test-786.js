@@ -32,7 +32,7 @@ console.log('\n── 786 · 0. la population ──');
    les pointages », « Régler les fiches du personnel »), dont le défaut se DÉDUIT d'autres cases.
    Le bac à sable reçoit donc les VRAIS userCap / can / capDeduitRegle — un faux `can` qui connaît
    « voirTout » ne connaissait pas les nouvelles cases, et le banc aurait gardé une copie. */
-const NOMS = ['function capDeduitRegle(cap){', 'function userCap(u,cap){', 'function can(cap){', 'function equipeDe(u){', 'function perimetreTechIds(u){', 'function myTechId(){', 'function ptEstAMoi(p){',
+const NOMS = ['function tableDuRole(role){', 'function capDeduitRegle(cap){', 'function userCap(u,cap){', 'function can(cap){', 'function equipeDe(u){', 'function perimetreTechIds(u){', 'function myTechId(){', 'function ptEstAMoi(p){',
   'function visiblePointages(list){', 'function ptPeutVoirAutres(){', 'function fichesGere(){', 'function ptPeutCorriger(p){', 'function visibleTechniciens(list){',
   /* v742 : la fiche crée un compte — prénom ET nom, jamais celui d'un autre technicien qui a son compte */
   'function compteHomonyme(prenom,nom,sauf){', 'function homonymeMessage(h,prenom,nom){'];

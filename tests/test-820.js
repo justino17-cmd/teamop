@@ -47,6 +47,8 @@ const P = {
   NAV: constante('const NAV = [', '\n];'), SOUS_CATS: ligne('const SOUS_CATS=['), CAPS_HERITE: constante('const CAPS_HERITE = {', '\n};'),
   defaultPerms: bloc('function defaultPerms(){'), moduleHeriteRole: bloc('function moduleHeriteRole(role,k){'),
   reprise: bloc('function reprendreDroitsImplicites(){'), moduleReglage: bloc('function moduleReglage(u,k){'),
+  /* v753 : moduleReglage lit la liste du rôle par tableDuRole ; « Validations DR » s'ouvre d'office (validationsOuvertes) */
+  tableDuRole: bloc('function tableDuRole(role){'), valideSoumis: bloc('function valideSoumis(u){'), validationsOuvertes: bloc('function validationsOuvertes(u){'),
   userSeesModule: bloc('function userSeesModule(u,k){'), seed: bloc('function seed(){'), migrate: bloc('function migrate('),
   slugNom: bloc('function slugNom('), idCatalogue: bloc('function idCatalogue('), vueAssistant: bloc('views.assistantDevis=function(){'),
 };
@@ -75,6 +77,9 @@ function monde(opts) {
     ${liste}
     ${P.moduleHeriteRole}
     ${P.reprise}
+    ${P.tableDuRole}
+    ${P.valideSoumis}
+    ${P.validationsOuvertes}
     ${P.moduleReglage}
     ${P.userSeesModule}
     ${P.seed}

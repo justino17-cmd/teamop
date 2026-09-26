@@ -55,7 +55,7 @@ const UC = decoupe('const USER_CAPS=['), PS = decoupe('const PERM_SPECIAUX=');
 const W = { Object, JSON, Set, Array, String, db: { users: [], permissions: {} }, currentUser: null, __t: [] };
 vm.createContext(W);
 vm.runInContext([UC, PS, decoupe('const CAPS_HERITE = {'), decoupe('const CAPS = Object.fromEntries'),
-  decoupe('function capDeduitRegle(cap){'), decoupe('function userCap(u,cap){'), decoupe('function can(cap){'),
+  decoupe('function tableDuRole(role){'), decoupe('function capDeduitRegle(cap){'), decoupe('function userCap(u,cap){'), decoupe('function can(cap){'),
   'function toast(m){ __t.push(m); }', decoupe('function caseGarde(cap,libelle){'),
   'this.USER_CAPS=USER_CAPS; this.PERM_SPECIAUX=PERM_SPECIAUX; this.CAPS_HERITE=CAPS_HERITE;'].join('\n'), W);
 const cles = W.USER_CAPS.map(x => x[0]);

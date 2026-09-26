@@ -47,6 +47,8 @@ const fAcc = bloc('function accueilJournee(){'), fTech = bloc('function intTechI
    `catch` de la règle, et TOUS les cas rendaient « cloche » : les trois responsables passaient au
    vert pour une mauvaise raison, et seul le technicien le trahissait. */
 const fCap = bloc('function userCap(u,cap){'), fCan = bloc('function can(cap){'), fRegle = bloc('function capDeduitRegle(cap){');
+/* v753 : userCap lit la liste du rôle par tableDuRole (un rôle maison part de celle du technicien) */
+const fTable = bloc('function tableDuRole(role){');
 vrai('population : userCap, can et capDeduitRegle sont trouvés', fCap.length > 200 && fCan.length > 40 && fRegle.length > 200, [fCap.length, fCan.length, fRegle.length]);
 vrai('population : accueilJournee, intTechIds et myTechId sont trouvés', fAcc.length > 150 && fTech.length > 40 && fMy.length > 60,
   [fAcc.length, fTech.length, fMy.length]);
@@ -57,7 +59,7 @@ v1: {
     const bac = { currentUser: user, db: { interventions, techniciens: [] }, todayISO: () => AUJ, CAPS: { technicien: {} },
                   fullName: u => ((u.prenom || '') + ' ' + (u.nom || '')).trim() };
     vm.createContext(bac);
-    vm.runInContext(fRegle + '\n' + fCap + '\n' + fCan + '\n' + fTech + '\n' + fMy + '\n' + fAcc + '\nthis.r = accueilJournee();', bac);
+    vm.runInContext(fTable + '\n' + fRegle + '\n' + fCap + '\n' + fCan + '\n' + fTech + '\n' + fMy + '\n' + fAcc + '\nthis.r = accueilJournee();', bac);
     return bac.r;
   };
   const tech = { id: 'u1', role: 'technicien', techId: 't1' };
