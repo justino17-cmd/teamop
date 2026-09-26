@@ -20,7 +20,9 @@
    5. les décisions de métier tiennent (ancres) ;
    6. ⛔ RIEN NE CHANGE CHEZ UNE ENTREPRISE QUI EXISTE (ELAN) : avec la vraie liste ou une liste
       EMPOISONNÉE, chaque rôle voit la même chose — la liste ne se lit que pour une base neuve ;
-   7. une entreprise d'AVANT qui fait sa reprise maintenant retrouve la règle d'hier, à l'identique.
+   7. une entreprise d'AVANT qui fait sa reprise maintenant retrouve la règle d'hier, à l'identique ;
+   8. ⛔ CHAQUE valeur de la liste (5 rôles × 42) égale la règle d'hier, sauf les écarts DÉCLARÉS —
+      ajouté après la relecture : sans lui, le banc gardait la forme de la liste, pas ses valeurs.
    Le comportement dans la vraie page (menu d'un technicien d'une entreprise neuve, après un vrai
    `save()`) est dans `scratchpad/sonde-droits-depart.js`.                                        */
 const fs = require('fs'), path = require('path');
@@ -180,6 +182,26 @@ M.migrate(avant); M.reprise(avant);
 for (const r of ROLES) v(`${r} : la reprise d’aujourd’hui rend exactement la règle d’hier`, CLES.filter(k => M.voit(avant, r, k)), CLES.filter(k => hier(r, k)));
 vrai('… et migrate() n’a pas complété ses tables avec la nouvelle liste (dr et chef d’équipe viennent de la reprise)',
   !Object.prototype.hasOwnProperty.call(ANCIENNE, 'dr') && avant.permissions.dr.assistantDevis === true);
+
+console.log('\n── 820 · 8. ⛔ CHAQUE valeur de la liste = la règle d’hier, sauf les écarts DÉCLARÉS ──');
+/* Relecture du 26 septembre 2026 : les sections 2 et 3 gardent la FORME de la liste et sa cohérence
+   avec le menu, pas ses VALEURS — retirer le Temps de travail au DR, ou les Clients au technicien,
+   laissait ce banc au vert. Chaque couple (rôle, rubrique) est donc comparé à ce qu'une entreprise
+   neuve recevait en v751 — la règle d'hier ci-dessus, calculée ici, jamais recopiée de la liste —
+   et un écart n'est admis que DÉCLARÉ, avec sa raison. Changer la liste, c'est écrire une ligne
+   ici : un geste conscient, jamais un oubli. */
+const ECARTS = {};
+for (const r of ROLES) ECARTS[r + '.assistantDevis'] = { v: false, pourquoi: 'l’écran exige « Utiliser Devis IA », qu’aucun de ces rôles n’a d’office : c’était un cadenas' };
+let compares = 0; const faux = [];
+for (const r of ROLES) for (const k of CLES) {
+  compares++;
+  const e = ECARTS[r + '.' + k], attendu = e ? e.v : hier(r, k);
+  if (L[r][k] !== attendu) faux.push(`${r}.${k} = ${L[r][k]} (attendu ${attendu}${e ? ', écart déclaré' : ', règle d’hier'})`);
+}
+vrai('population : les ' + ROLES.length + ' rôles × ' + CLES.length + ' rubriques sont tous comparés (' + compares + ')', compares === ROLES.length * CLES.length && compares >= 200);
+v('⛔ aucune valeur ne s’écarte de la règle d’hier sans être déclarée', faux, []);
+v('… et chaque écart déclaré en est VRAIMENT un (une déclaration qui ne change rien est une décision prise pour du vide)',
+  Object.entries(ECARTS).filter(([rk, e]) => { const [r, k] = rk.split('.'); return hier(r, k) === e.v || !CLES.includes(k); }).map(([rk]) => rk), []);
 
 console.log(`\n════ test-820 : ${ok} ✓ ${ko} ✗ ════`);
 process.exit(ko ? 1 : 0);
