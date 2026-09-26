@@ -209,6 +209,21 @@ const coul = p => !Array.isArray(p) ? '?' : (p[0] > 170 && p[1] < 100 && p[2] < 
     const d = await ev(`return {ouvert:document.getElementById('overlay').classList.contains('open'), toasts:window._toasts.slice()};`);
     vrai('⛔ un message le dit, et aucune fenêtre vide ne s’ouvre', !d.ouvert && d.toasts.some(t => /n'a pas pu être lue/.test(t)), d);
 
+    /* ── F. fermer par Échap, puis par une navigation : le recadrage est oublié (relecture v756) ── */
+    console.log('\n── F. Échap et navigation : le recadrage ne survit pas à sa fenêtre ──');
+    await choisir('#pp-file2'); vrai('population : le recadrage est ouvert', await attendreCadre());
+    await ev(`document.getElementById('pp-cadre').focus(); return 1;`);
+    await c.envoyer('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await c.envoyer('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await dormir(400);
+    const f1 = await ev(`return {ouvert:document.getElementById('overlay').classList.contains('open'), pp:_pp===null};`);
+    vrai('⛔ Échap ferme la fenêtre ET oublie le recadrage', !f1.ouvert && f1.pp, f1);
+    await choisir('#pp-file2'); await attendreCadre();
+    await ev(`go('dashboard'); return 1;`); await dormir(700);
+    const f2 = await ev(`return {ouvert:document.getElementById('overlay').classList.contains('open'), pp:_pp===null, vue:current};`);
+    vrai('⛔ une navigation (le geste « retour » y mène) ferme la fenêtre ET oublie le recadrage', !f2.ouvert && f2.pp && f2.vue === 'dashboard', f2);
+    await ev(`go('parametres'); return 1;`); await dormir(700);
+
     /* ── E. la première connexion propose aussi une photo : même chemin ── */
     console.log('\n── E. la fenêtre « Photo de profil » de la première connexion ──');
     await ev(`setProfilePhoto('',null,true); try{ localStorage.removeItem('elanB_photo_prompt_beta-justin'); }catch(e){} closeModal(); maybeProfilePhoto(); return 1;`); await dormir(500);

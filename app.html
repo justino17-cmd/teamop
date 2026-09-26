@@ -13448,7 +13448,7 @@ function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html ||
   m.classList.add('pose'); clearTimeout(window._poseT); window._poseT=setTimeout(()=>m.classList.remove('pose'),620); }
 /* Écran obligatoire (mot de passe personnel à la 1re connexion) : ni Échap ni fermeture tant qu'il n'est pas validé */
 let _modalForcee=false;
-function closeModal(force){ if(_modalForcee&&force!==true) return; $('overlay').classList.remove('open'); if(scanTimer){clearInterval(scanTimer);scanTimer=null;} if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;} stopBoxScanCamera(); }
+function closeModal(force){ if(_modalForcee&&force!==true) return; $('overlay').classList.remove('open'); _pp=null; if(scanTimer){clearInterval(scanTimer);scanTimer=null;} if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;} stopBoxScanCamera(); }
 /* Une fenêtre ouverte NE se ferme QUE par sa croix ✕ ou son bouton Annuler —
    plus jamais par un clic à côté (qui faisait perdre la saisie en revenant
    d'une autre fenêtre : le clic de reprise tombait sur le fond sombre). */
@@ -38945,7 +38945,13 @@ function setProfilePhoto(d,meta,quiet){ if(!currentUser) return; const u=db.user
    • la source est ramenée à 1 600 px au plus AVANT tout : une photo de téléphone de 12 Mpx décodée pèse
      48 Mo, et le puits la redessine à chaque mouvement du doigt. */
 const PP_SORTIE=256, PP_SOURCE_MAX=1600, PP_MARGE=20, PP_ZOOM_MAX=4;
-let _pp=null;   /* le recadrage en cours : la source, le puits, l'échelle (k), le décalage (x, y) dans le rond */
+/* le recadrage en cours : la source, le puits, l'échelle (k), le décalage (x, y) dans le rond.
+   ⚠ `var` et non `let` : `closeModal()` l'oublie, et elle est écrite 25 000 lignes plus haut — un `let` aurait une
+   zone morte temporelle si une fenêtre se fermait pendant le chargement du script (la leçon du 10 septembre).
+   ⛔ Et c'est closeModal qui l'oublie, pas les seuls boutons « Annuler » et « Choisir » : Échap, le geste « retour »
+   et toute navigation (`go()`) ferment la fenêtre par elle. Relecture v756 : sans ça, le puits caché restait tenu,
+   et chaque rotation de l'appareil le remesurait à 0 px. */
+var _pp=null;
 async function profilePhotoPick(e){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
   const src=await ppCharger(f);
   if(!src){ toast("Cette photo n'a pas pu être lue — choisis une photo JPEG ou PNG"); return; }
@@ -38975,7 +38981,7 @@ function ppOuvrir(src){
 function ppFermer(){ _pp=null; closeModal(); }
 /* D : le diamètre du rond, en pixels d'écran. Au premier passage, la photo remplit le rond et se centre ;
    ensuite (l'appareil tourne), on garde le point de la photo qui était au centre du rond. */
-function ppMesurer(init){ const p=_pp; if(!p||!p.st.isConnected) return;
+function ppMesurer(init){ const p=_pp; if(!p||!p.st.isConnected||!p.st.offsetWidth) return;   /* caché : 0 px, rien à mesurer */
   const D=Math.max(40,p.st.offsetWidth-2*PP_MARGE), iw=p.src.width, ih=p.src.height, kmin=D/Math.min(iw,ih);
   if(init||!p.D){ p.z=1; p.k=kmin; p.x=(D-iw*kmin)/2; p.y=(D-ih*kmin)/2; }
   else { const u=(p.D/2-p.x)/p.k, v=(p.D/2-p.y)/p.k; p.k=kmin*p.z; p.x=D/2-u*p.k; p.y=D/2-v*p.k; }

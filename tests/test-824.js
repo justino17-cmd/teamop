@@ -69,6 +69,16 @@ for (const f of ['app.html', 'beta.html']) {
   const cadreCss = R.find(([s]) => s === '.pp-cadre');
   vrai('   `touch-action:none` sur le puits SEUL (il ne contient que la photo et le rond)',
     !!cadreCss && /touch-action:none/.test(cadreCss[1]) && R.filter(([, d]) => /touch-action:none/.test(d)).every(([s]) => !/#content|\.plg|\.card\b|body|html(?!\[)/.test(s)));
+  /* relecture v756 : Échap, le geste « retour » et toute navigation ferment la fenêtre par closeModal, jamais par
+     « Annuler » — c'est ELLE qui doit oublier le recadrage. On l'EXÉCUTE. */
+  const cm = fonction(CODE, 'closeModal');
+  vrai('population : closeModal est trouvée', cm.length > 60, cm.length);
+  const apresFermeture = forcee => new Function(`var _pp={src:1}; let _modalForcee=${forcee}; let scanTimer=null, scanStream=null;
+      const $=id=>({classList:{remove(){}}}); function stopBoxScanCamera(){}
+      ${cm} closeModal(); return _pp;`)();
+  vrai('⛔ toute fermeture (Échap, retour, navigation) oublie le recadrage en cours', apresFermeture(false) === null);
+  vrai('   … sauf une fenêtre obligatoire, qui ne se ferme pas (le recadrage ne peut pas y être ouvert)', apresFermeture(true) !== null);
+  vrai('⛔ `_pp` est un `var` : closeModal, écrite bien plus haut, le lit sans zone morte temporelle', /\nvar _pp=null;/.test(CODE) && !/\nlet _pp\b/.test(CODE));
   vrai('   ce qui part pèse comme avant : 256 px (la photo voyage dans la synchro de l’équipe)', /const PP_SORTIE=256, PP_SOURCE_MAX=1600, PP_MARGE=20, PP_ZOOM_MAX=4;/.test(CODE));
 
   console.log(`\n── 824 · 3. ${f} — la géométrie, EXÉCUTÉE ──`);
@@ -134,6 +144,9 @@ for (const f of ['app.html', 'beta.html']) {
     p.st.offsetWidth = 260; B.ppMesurer(false); const q = B.lire();
     vrai('⛔ l’appareil tourne : le même agrandissement, et le point au centre du rond y reste',
       q.D === 220 && Math.abs(q.z - z) < 1e-9 && Math.abs(q.x + u * q.k - q.D / 2) < 1e-6 && Math.abs(q.y + v * q.k - q.D / 2) < 1e-6, { D: q.D, z: q.z, x: q.x, y: q.y }); }
+  /* un puits caché (fenêtre fermée par un autre chemin, écran recouvert) ne se remesure pas à 0 px */
+  { const { B } = monter(1200, 800, 320); B.ppZoomer(2); const p = { ...B.lire() }; B.lire().st.offsetWidth = 0; B.ppMesurer(false); const q = B.lire();
+    vrai('⛔ un puits caché (0 px) ne se remesure pas : le cadrage reste tel qu’il était', q.D === p.D && q.k === p.k && q.x === p.x && q.y === p.y, { D: q.D, k: q.k }); }
   /* le puits dessine la photo à sa place : marge + décalage, taille × k */
   { const { B, cv } = monter(1200, 800, 320); B.ppZoomer(2, 50, 60); const p = B.lire(); const d = cv.dessins[cv.dessins.length - 1];
     vrai('le puits peint la photo là où elle est (marge + décalage, taille × k), à la densité de l’écran',
