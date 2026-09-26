@@ -123,7 +123,7 @@ function cdpClient(ws) {
 
 async function demarrer() {
   const BANC = fs.mkdtempSync(path.join(os.tmpdir(), 'tour-theme-'));
-  const PAGE = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');   // la copie À NOUS, prise maintenant
+  const PAGE = fs.readFileSync(process.env.TOUR_FICHIER || path.join(RACINE, 'tour.html'), 'utf8');   // la copie À NOUS, prise maintenant (TOUR_FICHIER : une autre version, pour une contre-épreuve)
   const version = (PAGE.match(/console interne · (v[\d.]+)/) || [])[1] || '?';
   const pp = await portLibre(), pc = await portLibre();
   const statique = http.createServer((q, r) => {
@@ -137,8 +137,11 @@ async function demarrer() {
   await new Promise(res => statique.listen(pp, '127.0.0.1', res));
   const chrome = spawn(CHROME, ['--headless=new', '--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
     '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--disable-dev-shm-usage', '--hide-scrollbars', '--lang=fr-FR',
-    '--remote-debugging-port=' + pc, '--user-data-dir=' + path.join(BANC, 'ch'), 'about:blank'], { stdio: ['ignore', 'pipe', 'pipe'] });
-  const tuer = () => { try { chrome.kill('SIGKILL'); } catch (e) {} };
+    '--remote-debugging-port=' + pc, '--user-data-dir=' + path.join(BANC, 'ch'), 'about:blank'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+  /* ⛔ tuer le GROUPE, pas le seul processus principal : ses enfants (GPU, rendu) lui survivaient et
+     tournaient encore une heure plus tard — des fantômes qui font tomber les mesures de temps
+     (règle du dépôt, 23 septembre 2026 ; retrouvés le 26 : onze processus orphelins). */
+  const tuer = () => { try { process.kill(-chrome.pid, 'SIGKILL'); } catch (e) { try { chrome.kill('SIGKILL'); } catch (x) {} } };
   for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.once(sig, () => { tuer(); process.exit(130); });
   process.once('exit', tuer);
   let vivant = false;
@@ -472,4 +475,7 @@ async function main() {
   console.log('\n' + ok.length + ' ✓  ' + ko.length + ' ✗  (contrôles de parcours) · ' + faute + ' défaut(s) au total');
   process.exit(faute ? 1 : 0);
 }
-main().catch(e => { console.error('SONDE MORTE : ' + (e && e.stack || e)); process.exit(2); });
+/* Chargée par une autre sonde (`require`) : elle prête son banc — l'API simulée, le lancement, l'onglet
+   piloté — sans rien lancer elle-même. */
+if (require.main === module) main().catch(e => { console.error('SONDE MORTE : ' + (e && e.stack || e)); process.exit(2); });
+else module.exports = { MOCK, demarrer, onglet, STABLE, APAISER, dormir };
