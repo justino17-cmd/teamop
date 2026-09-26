@@ -1789,6 +1789,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .pl-avec{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:3px 8px; margin-left:8px; font-size:.92em; color:var(--t2); font-weight:600; }
 .pl-avec .tpu-p{ width:16px; height:16px; font-size:7.5px; }
 .mj-avec{ margin-top:5px; font-size:12.5px; }
+.dep-avec{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }
 /* v757 — le choix de couleur d'un technicien : une pastille par couleur, 44 px au doigt. Des <span> et pas des
    <label> : `html[data-refonte] .field label` pose taille, graisse et marge en !important sur tout libellé du
    champ. Le bouton radio, invisible, couvre la pastille entière : c'est lui qu'on touche. */
@@ -10211,6 +10212,20 @@ function load(){ try{ suspensionCharger(); }catch(e){}
      base. Dans les deux cas, une base VIDE est la bonne réponse : la synchro la remplit.
      Même vidage que le drapeau, pour n'avoir qu'une seule définition de « base propre ». */
   if(neuve && (APPAREIL_DEJA_VU || espaceRattache())) COLLECTIONS_DONNEES.forEach(c=>d[c]=[]);
+  /* ⛔⛔ ET LES COMPTES AUSSI, SUR UN APPAREIL RATTACHÉ — c'était la dernière porte des « OP Admin »
+     fantômes. ELAN, 26 septembre 2026, capture à l'appui : « OP Admin · Administrateur · @florent-3 »,
+     quinze jours après le correctif du 11 septembre. Rejoué au navigateur sur la v756
+     (`scratchpad/sonde-admin-fantome.js`) : un navigateur neuf qui ouvre le lien d'une entreprise
+     EXISTANTE reçoit le compte « OP Admin » du SEMIS (identifiant aléatoire), boot() le renomme
+     vers l'identifiant de départ de l'entreprise avec le mot de passe PROVISOIRE du lien, la fusion
+     le renomme « -2 », « -3 »… et l'appareil l'ENVOIE à toute l'équipe — un administrateur de plus,
+     dont le mot de passe est celui qu'on donnait à l'ouverture de l'espace.
+     Le correctif du 11 septembre (v656) avait fermé la création dans migrate() et oublié celle-ci :
+     `users` n'est pas dans COLLECTIONS_DONNEES (le vidage garde « le compte de connexion »), donc le
+     compte du semis passait les deux vidages. Rattaché, les comptes viennent de l'équipe ; et si
+     l'équipe est VIDE, c'est le premier instantané qui pose la porte d'entrée (« ESPACE NEUF »,
+     syncInit), avec l'identifiant FIXE — jamais un compte fabriqué ici au hasard. */
+  if(neuve && espaceRattache()) d.users=[];
   // Démarrage vierge : on supprime une seule fois les données de démonstration (le compte de connexion est conservé)
   if(!localStorage.getItem('elanB_vierge_v1')){
     COLLECTIONS_DONNEES.forEach(c=>d[c]=[]);
@@ -10918,10 +10933,19 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
              est passé sur cet appareil. Le faire plus tôt (dans migrate) revenait à le créer chez
              TOUTE personne ouvrant son lien sur un navigateur neuf : @florent-2, -3, -4 chez ELAN. */
           try{ if(!BETA_ESSAI && !(db.users||[]).length && localStorage.getItem('elanB_admin_login')){
-            db.users=[{id:ID_ADMIN_DEPART,prenom:'OP',nom:'Admin',login:'admin',role:'admin',pinHash:'',actif:true}];
+            const porte={id:ID_ADMIN_DEPART,prenom:'OP',nom:'Admin',login:'admin',role:'admin',pinHash:'',actif:true};
+            db.users=[porte];
+            /* L'identifiant et le mot de passe provisoire du lien — boot() les a GARDÉS pour ici
+               (adminDepartAppliquer). Sans eux, la porte s'appellerait « admin » et n'aurait aucun
+               mot de passe : personne ne pourrait entrer. */
+            await adminDepartAppliquer();
+            if(!porte.pinHash&&!porte.sansMdp&&!porte.compteSite) porte.pinHash=await sha256('1234');   // la même porte qu'avant : boot() posait ce code d'office à un compte sans mot de passe
             save(); try{ renderLogin(); }catch(_e){}
           } }catch(_e){}
           if(currentUser) syncPush(true); return; }   // équipe vide → on amorce avec nos données
+        /* L'équipe EXISTE : il n'y a aucune porte à poser. Les clés du lien sont oubliées ici, sinon
+           elles attendraient un chargement futur pour renommer un compte qui n'est pas le leur. */
+        adminDepartOublier();
         if(d.enc&&plain===null){ try{toast('Clé d\'équipe différente — données non lues');}catch(e){} return; }   // chiffré avec une autre clé → ne rien écraser
         /* Plus de « notre base est plus lourde, on garde la nôtre » : la fusion ci-dessous réunit les
            deux, et repousse si la nôtre avait quelque chose que l'équipe n'avait pas. */
@@ -16650,7 +16674,7 @@ let planMode='semaine';
 function planOpenDay(iso){ if(!iso) return; planSel=iso; planWeekRef=iso; planMode='jour'; views.planning(); }
 function planIntCard(i,opts){ opts=opts||{}; const sc=opts.couleurTech?planCouleurDans(i,opts.ligne):(INT_STCOLOR[i.statut]||'var(--t3)');
   const cf=i.date&&i.heure&&i.techId?intConflictOf(i,i.id):null;
-  return `<div class="pl-row lh" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}')" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
+  return `<div class="pl-row lh" draggable="${can('planifDeplacer')?'true':'false'}" ondragstart="event.dataTransfer.setData('text/plain','${i.id}');window._planDragDe=planLigneDe(this)" style="border-left:3px solid ${sc}" onclick="detailIntervention('${i.id}')">
     <div style="text-align:center;min-width:48px;flex-shrink:0"><div class="mono" style="font-weight:800;font-size:15px;color:var(--t1)">${esc(i.heure||'—')}</div><div style="font-size:10px;color:var(--t3)">${i.date?(opts.showDate?fmtShort(i.date):(i.duree||60)+' min'):'—'}</div></div>
     <div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''} ${cf?'<span class="tag hot" style="font-size:9px" title="Chevauchement avec une autre intervention">Conflit</span>':''}</div><div class="pl-meta">${i.num?`<span class="mono">${esc(i.num)}</span> · `:''}${i.type?esc(i.type)+' · ':''}${esc(clientName(i.clientId))}${(i.checklist&&i.checklist.length)?` · ☑ ${i.checklist.filter(x=>x.done).length}/${i.checklist.length}`:''}</div>${opts.hideTech?(planAutres(i,opts.ligne).length?`<div class="int-techs" style="font-size:11px;color:var(--t3);margin-top:3px">${planAvec(i,opts.ligne)}</div>`:''):`<div class="int-techs" style="font-size:11px;color:var(--t3);margin-top:3px">${techPuces(i)}${i.recurrence&&i.recurrence!=='aucune'?' · 🔁 '+(INT_RECUR[i.recurrence]||''):''}</div>`}</div>
     ${badge(STATUT_INT,i.statut)}</div>`; }
@@ -17109,6 +17133,28 @@ function planBoutAutres(i,id){ const a=planAutres(i,id); if(!a.length) return nu
 function planPileAutres(i,id){ const a=planAutres(i,id); if(!a.length) return ''; const noms='avec '+a.map(techName).join(', ');
   return `<span class="tpil" role="img" aria-label="${esc(noms)}" title="${esc(noms)}">${a.slice(0,3).map(x=>techPastille(x)).join('')}${a.length>3?`<span class="tpu-plus">+${a.length-3}</span>`:''}</span>`; }
 /* … ou nommés, chacun avec son disque, là où la place le permet. */
+/* ⛔⛔ v757 — DÉPLACER UNE INTERVENTION PARTAGÉE NE RETIRE PERSONNE. Glisser une carte d'une case à l'autre, ou la
+   déplacer par le panneau « Déplacer », écrivait `techIds=[celui de la case d'arrivée]` : sur une intervention à
+   deux, le collègue disparaissait sans un mot (relecture de la v757 — c'était vrai avant, mais la carte partagée est
+   maintenant dans la ligne de CHACUN, donc on la saisit aussi depuis la ligne du second). Une seule règle, pour les
+   cinq dépôts du planning, le glisser au doigt et le panneau :
+   · arrivée dans la ligne de quelqu'un qui est DÉJÀ dessus → l'équipe ne change pas (jour et heure seulement) ;
+   · ailleurs → le technicien de la ligne de DÉPART cède sa place à celui d'arrivée, les autres restent ;
+   · départ inconnu (le tiroir « À planifier ») → celui d'arrivée prend la place du premier ;
+   · « Non assigné » ne retire que le technicien de départ.
+   Une intervention à un seul technicien se déplace exactement comme avant. Changer TOUTE l'équipe reste le geste
+   de la fiche de l'intervention, où l'on coche chacun. */
+function planEquipeApres(i,vers,depuis){ const t=intTechIds(i).slice();
+  if(t.length<2) return vers?[vers]:[];
+  if(vers&&t.indexOf(vers)>=0) return t;
+  const k=(depuis&&t.indexOf(depuis)>=0)?t.indexOf(depuis):0;
+  if(!vers){ t.splice(k,1); return t; }
+  t[k]=vers; return t; }
+function planPoserEquipe(i,vers,depuis){ const t=planEquipeApres(i,vers,depuis); i.techIds=t; i.techId=t[0]||''; return t; }
+/* la ligne (le technicien) d'où part un geste : lue sur la case ou la colonne qui porte la carte */
+function planLigneDe(el){ const c=el&&el.closest?el.closest('[data-drop],[data-ligne]'):null; if(!c) return null;
+  if(c.hasAttribute('data-ligne')) return c.getAttribute('data-ligne');
+  const d=(c.getAttribute('data-drop')||'').split(':'); return d[0]==='cell'?(d[2]||''):d[0]==='time'?(d[1]||''):null; }
 function planAvec(i,id,mot){ const a=planAutres(i,id); if(!a.length) return '';
   return `<span class="pl-avec">${mot||'avec'} ${a.map(x=>`<span class="tpu">${techPastille(x)}<span class="tpu-n">${esc(techName(x))}</span></span>`).join('')}</span>`; }
 /* Capacité / jauge de charge (P16 : capMin sur la fiche technicien, défaut 7 h) */
@@ -17313,6 +17359,7 @@ function planMini(i){ const sc=planCardColor(i); const cf=(i.date&&i.heure)?intC
 function planDragStart(e,id){ if(!canPlan()){ try{ e.preventDefault(); }catch(_){ } return; }
   try{ e.dataTransfer.setData('text/plain',id); }catch(_){ }
   window._planDragging=true; window._planDragId=id;
+  window._planDragDe=planLigneDe(e.currentTarget||e.target);   // v757 : la ligne de départ (une intervention partagée n'y perd personne)
   /* On retient à quelle hauteur la carte a été attrapée : la règle et l'heure
      enregistrée suivent le BORD HAUT de la carte, pas la position du doigt. */
   window._planGrabDy=0;
@@ -18700,7 +18747,7 @@ function planMultiHtml(SRC){
           ${t.id?planGauge(mn,capM,'Charge de la journée ('+fmtHmin(mn)+' sur '+fmtHmin(capM)+')',techColor(t.id)):''}</span>
         ${t.id?`<span class="plg-go">›</span>`:''}</div>`;
       const absM=t.id?absentOn(t.id,j):null;
-      let col=`<div class="plm-col${fin}${absM?' absx':''}" ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${h0},${PPH},'${techColor(t.id)}')" ondragleave="this.classList.remove('drop');planGuideOff()" ondrop="this.classList.remove('drop');planGuideOff();planMultiDrop(event,'${j}','${t.id}',${h0},${PPH})" ondblclick="planMultiVide(event,'${j}','${t.id}',${h0},${PPH})">`;
+      let col=`<div class="plm-col${fin}${absM?' absx':''}" data-ligne="${t.id}" ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${h0},${PPH},'${techColor(t.id)}')" ondragleave="this.classList.remove('drop');planGuideOff()" ondrop="this.classList.remove('drop');planGuideOff();planMultiDrop(event,'${j}','${t.id}',${h0},${PPH})" ondblclick="planMultiVide(event,'${j}','${t.id}',${h0},${PPH})">`;
       for(let h=h0;h<h1;h++) col+=`<div class="plm-cell" style="height:${PPH}px"></div>`;
       col+=absBloc(absM,'plm-abs');
       actM.forEach(a=>{ const m=toMinH(a.heure); if(m===null) return;
@@ -18785,14 +18832,14 @@ function planMultiDrop(e,iso,techId,h0,PPH){
   const deSnap=planSnap(i);
   if(typeof planAbsGate==='function'&&!planAbsGate(i,iso,techId)) return;
   i.date=iso; i.heure=heure;
-  if(techId){ i.techId=techId; i.techIds=[techId]; } else { i.techId=''; i.techIds=[]; }
+  planPoserEquipe(i,techId||'',window._planDragDe);
   if(i.statut==='aplanifier') i.statut='planifiee';
   save();
   try{ planStamp(i,deSnap); }catch(e){}
   try{ if(typeof serieShiftPropose==='function') serieShiftPropose(i,avantD,iso); }catch(e){}
   if(planJours.indexOf(iso)<0){ planJours.push(iso); planJours.sort(); }
   views.planning();
-  toast('Déplacé au '+fmtShort(iso)+' à '+heure+(techId?' · '+techName(techId):' · non assigné'));
+  toast('Déplacé au '+fmtShort(iso)+' à '+heure+' · '+techNames(i));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -19333,9 +19380,9 @@ function planWeekDrop(e,iso,techId,h0,PPH){
     planDup(i,{date:iso,heure:heure,techId:techId||'',techIds:techId?[techId]:[]}); return; }
   const de=planSnap(i);
   if(!planAbsGate(techId,iso,i)) return;
-  i.date=iso; i.heure=heure; i.techId=techId||''; i.techIds=techId?[techId]:[];
+  i.date=iso; i.heure=heure; planPoserEquipe(i,techId||'',window._planDragDe);
   if(i.statut==='aplanifier') i.statut='planifiee';
-  intHisto(i,'Replanifiée au '+fmtShort(iso)+' à '+heure+' · '+(techName(techId)||'Non assigné'));
+  intHisto(i,'Replanifiée au '+fmtShort(iso)+' à '+heure+' · '+techNames(i));
   try{ planStamp(i,de); }catch(err){}
   save(); toast('📅 '+(i.titre||'Intervention')+' → '+fmtShort(iso)+' '+heure);
   views.planning();
@@ -19485,7 +19532,7 @@ function planDayListHtml(SRC){
     const ints=dayInts.filter(i=>g.id?intTechIds(i).includes(g.id):!intTechIds(i).length).sort((a,b)=>(a.heure||'').localeCompare(b.heure||''));
     const tot=ints.reduce((s,i)=>s+(parseInt(i.duree)||60),0);
     const abs=g.id?absentOn(g.id,planSel):null;
-    return `<div ondragover="event.preventDefault();this.style.outline='2px solid var(--acc)'" ondragleave="this.style.outline=''" ondrop="this.style.outline='';planDropTech(event,'${g.id}')" style="border-radius:14px;padding:2px;margin-bottom:12px;${abs?'opacity:.75':''}">
+    return `<div data-ligne="${g.id}" ondragover="event.preventDefault();this.style.outline='2px solid var(--acc)'" ondragleave="this.style.outline=''" ondrop="this.style.outline='';planDropTech(event,'${g.id}')" style="border-radius:14px;padding:2px;margin-bottom:12px;${abs?'opacity:.75':''}">
       <div style="display:flex;align-items:center;gap:8px;margin:0 2px 6px"><span class="avatar av-tc" style="width:26px;height:26px;font-size:11px;--tc:${techColor(g.id)}">${initials(g.nom)}</span><b style="font-size:13.5px">${esc(g.nom)}</b>${abs?`<span style="font-size:11px;color:var(--org);font-weight:700">${esc(ABS_TYPES[abs.type]||abs.type)}</span>`:''}<span style="font-size:11px;color:var(--t3)">${ints.length?ints.length+' int. · '+Math.floor(tot/60)+'h'+String(tot%60).padStart(2,'0'):'libre'}</span></div>
       ${ints.length?ints.map(i=>planIntCard(i,{hideTech:true,couleurTech:true,ligne:g.id})).join(''):`<div style="border:1px dashed var(--brd);border-radius:12px;padding:12px;text-align:center;color:var(--t3);font-size:12px">Déposez une intervention ici</div>`}
     </div>`; }).join('');
@@ -19527,11 +19574,11 @@ function planDropDay(e,iso){ e.preventDefault(); if(!canPlan()){ toast('Droit «
 function planDropTech(e,techId){ e.preventDefault(); if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i)return;
   const de=planSnap(i);
   if(!planAbsGate(techId,i.date||planSel,i)) return;
-  i.techId=techId||''; i.techIds=techId?[techId]:[]; if(!i.date){ i.date=planSel; } if(i.statut==='aplanifier') i.statut='planifiee';
-  intHisto(i,'Assignée à '+(techName(techId)||'Non assigné'));
+  planPoserEquipe(i,techId||'',window._planDragDe); if(!i.date){ i.date=planSel; } if(i.statut==='aplanifier') i.statut='planifiee';
+  intHisto(i,'Assignée à '+techNames(i));
   planStamp(i,de);
   const cf=intConflictOf(i,i.id); delete i._oblig; save(); views.planning();
-  toast(cf?('Assignée à '+ (techName(techId)||'Non assigné')+' — chevauche « '+(cf.titre||'')+' »'):('Assignée à '+(techName(techId)||'Non assigné'))); }
+  toast(cf?('Assignée à '+techNames(i)+' — chevauche « '+(cf.titre||'')+' »'):('Assignée à '+techNames(i))); }
 /* ── Duplication (Alt + glisser) ── */
 function planDup(i,patch){ if(!permGarde('int','ajouter','une intervention')) return; const c=JSON.parse(JSON.stringify(i)); c.id=uid(); c.num=''; c.statut='planifiee'; delete c.rapport; delete c.signature; delete c.sigTech; c.histo=[]; delete c.propose; delete c.obligation;
   Object.assign(c,patch||{}); db.interventions.push(c); intHisto(c,'Créée par duplication (planning)'); planStamp(c,null); save(); views.planning(); toast('Intervention dupliquée'); }
@@ -19551,7 +19598,8 @@ function planDropCell(e,iso,techId){ e.preventDefault(); if(!canPlan()){ toast('
   const chg=[];
   if(i.date!==iso){ i.date=iso; chg.push('au '+fmtShort(iso)); }
   const cur=intTechIds(i);
-  if((techId||'')!==(cur[0]||'') || cur.length!==(techId?1:0)){ i.techId=techId||''; i.techIds=techId?[techId]:[]; chg.push(techId?('→ '+techName(techId)):'→ non assigné'); intHisto(i,'Réassignée à '+(techName(techId)||'Non assigné')+' ('+fmtShort(iso)+')'); }
+  const apres=planEquipeApres(i,techId||'',window._planDragDe);
+  if(apres.join()!==cur.join()){ i.techIds=apres; i.techId=apres[0]||''; chg.push(apres.length?('→ '+techNames(i)):'→ non assigné'); intHisto(i,'Réassignée à '+techNames(i)+' ('+fmtShort(iso)+')'); }
   if(i.statut==='aplanifier') i.statut='planifiee';
   planStamp(i,de);
   const forced=!!i._oblig; delete i._oblig;
@@ -19573,14 +19621,14 @@ function planDropTime(e,techId,h0,PPH){ PPH=PPH||48; e.preventDefault(); if(!can
   if(e.altKey){ if(!planAbsGate(techId,planSel,null)) return; planDup(i,{date:planSel,heure:hh,techId:techId||'',techIds:techId?[techId]:[]}); return; }
   const de=planSnap(i);
   if(!planAbsGate(techId,planSel,i)) return;
-  i.date=planSel; i.heure=hh; i.techId=techId||''; i.techIds=techId?[techId]:[];
+  i.date=planSel; i.heure=hh; planPoserEquipe(i,techId||'',window._planDragDe);
   if(i.statut==='aplanifier') i.statut='planifiee';
-  intHisto(i,'Replanifiée à '+hh+' · '+(techName(techId)||'Non assigné'));
+  intHisto(i,'Replanifiée à '+hh+' · '+techNames(i));
   planStamp(i,de);
   const forced=!!i._oblig; delete i._oblig;
   const cf=intConflictOf(i,i.id);
   save(); views.planning();
-  toast('→ '+hh+' · '+(techName(techId)||'Non assigné')+(forced?' · ⚠️ malgré congé':'')+(cf?' · ⚠️ chevauchement':''));
+  toast('→ '+hh+' · '+techNames(i)+(forced?' · ⚠️ malgré congé':'')+(cf?' · ⚠️ chevauchement':''));
   serieShiftPropose(i,(de||{}).date||''); }
 /* ── Glisser au doigt (iPhone/iPad) : appui long puis déplacement ── */
 let _tpDrag=null;
@@ -19588,7 +19636,7 @@ document.addEventListener('pointerdown',e=>{ if(e.pointerType!=='touch'||(curren
   if(!canPlan()) return;   // sans le droit « Déplacer le planning », pas de glisser tactile
   const c=e.target.closest('[data-drag-int]'); if(!c) return;
   const id=c.getAttribute('data-drag-int');
-  _tpDrag={id,x:e.clientX,y:e.clientY,timer:setTimeout(()=>{ if(!_tpDrag) return; _tpDrag.on=true; window._planDragging=true;
+  _tpDrag={id,x:e.clientX,y:e.clientY,timer:setTimeout(()=>{ if(!_tpDrag) return; _tpDrag.on=true; window._planDragging=true; window._planDragDe=planLigneDe(c);
     const gh=c.cloneNode(true); Object.assign(gh.style,{position:'fixed',left:'0',top:'0',width:c.offsetWidth+'px',zIndex:999,pointerEvents:'none',opacity:.92,margin:0,transform:'translate('+(e.clientX+10)+'px,'+(e.clientY+10)+'px) rotate(-2deg)'});
     document.body.appendChild(gh); _tpDrag.ghost=gh; if(navigator.vibrate) try{navigator.vibrate(12);}catch(_){}
   },260)};
@@ -19779,16 +19827,17 @@ function planCtxItemsTech(id,x,y){
     const mien=db.interventions.filter(z=>z.id!==id&&z.date===jour&&(t.id?planTechsOf(z).includes(t.id):!planTechsOf(z).length));
     const mn=mien.reduce((a,z)=>a+(parseInt(z.duree)||60),0);
     const sous=abs?((ABS_TYPES[abs.type]||abs.type)):(mien.length?(mien.length+' int. · '+fmtHmin(mn)):'libre');
-    items.push({coul:techColor(t.id), l:(t.id===cur?'✓ ':'')+t.nom, sous:sous, fn:()=>planDeplacerModal(id,t.id)});
+    items.push({coul:techColor(t.id), l:((t.id?planTechsOf(i).indexOf(t.id)>=0:!planTechsOf(i).length)?'✓ ':'')+t.nom, sous:sous, fn:()=>planDeplacerModal(id,t.id)});
   });
   return items;
 }
 /* ═══ Déplacer une intervention : technicien + date + heure, en un seul panneau ═══ */
-let DEP={id:'',tech:'',date:'',heure:''};
+let DEP={id:'',tech:'',date:'',heure:'',depuis:''};
 function planDeplacerModal(id,techPre){
   const i=db.interventions.find(z=>z.id===id); if(!i) return;
   if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; }
-  DEP={id:id, tech:(techPre!==undefined?techPre:(planTechsOf(i)[0]||'')), date:i.date||todayISO(), heure:i.heure||'09:00'};
+  const de=(window._planCtxDe!=null&&planTechsOf(i).indexOf(window._planCtxDe)>=0)?window._planCtxDe:(planTechsOf(i)[0]||'');
+  DEP={id:id, tech:(techPre!==undefined?techPre:de), date:i.date||todayISO(), heure:i.heure||'09:00', depuis:de};
   openModal(`<div class="modal-head"><h3>Déplacer l'intervention</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div style="font-size:12.5px;color:var(--t3);margin:-6px 0 12px">${esc(i.titre||'Intervention')}${i.clientId?' · '+esc(clientName(i.clientId)):''}</div>
     <div id="dep-corps"></div>`);
@@ -19832,6 +19881,7 @@ function planDeplacerRender(){
       ${liste.map(t=>`<option value="${t.id}" ${DEP.tech===t.id?'selected':''}>${esc(t.nom)}${t.id?'':' (personne)'}</option>`).join('')}
     </select>
     <div class="dep-sous"><span class="pt" style="background:${techColor(DEP.tech)}"></span>${mien.length?(mien.length+' intervention'+(mien.length>1?'s':'')+' · '+fmtHmin(mn)+' ce jour-là'):'libre ce jour-là'}${abs?' · '+esc(ABS_TYPES[abs.type]||abs.type):''}</div>
+    ${(()=>{ const au=planEquipeApres(i,DEP.tech||'',DEP.depuis).filter(x=>x!==DEP.tech); return (intTechIds(i).length>1&&au.length)?`<div class="dep-sous dep-avec">${au.map(x=>`<span class="tpu">${techPastille(x)}<span class="tpu-n">${esc(techName(x))}</span></span>`).join(' ')} <span>${au.length>1?'restent':'reste'} sur l’intervention</span></div>`:''; })()}
     <div class="dep-grid">
       <div><div class="dep-lbl">Date</div><input type="date" class="dep-in" value="${esc(DEP.date)}" onchange="planDeplacerSet('date',this.value)"></div>
       <div><div class="dep-lbl">Heure</div><input type="time" step="300" class="dep-in" value="${esc(DEP.heure)}" onchange="planDeplacerSet('heure',this.value)"></div>
@@ -19851,18 +19901,18 @@ function planDeplacerRender(){
 function planDeplacerValider(){
   const i=db.interventions.find(z=>z.id===DEP.id); if(!i) return;
   if(DEP.tech&&typeof planAbsGate==='function'&&!planAbsGate(DEP.tech,DEP.date,i)) return;
-  const de=planSnap(i), avTech=planTechsOf(i)[0]||'', avD=i.date, avH=i.heure;
+  const de=planSnap(i), avTech=planTechsOf(i)[0]||'', avIds=intTechIds(i).slice(), avD=i.date, avH=i.heure;
   i.date=DEP.date; i.heure=DEP.heure;
-  if(DEP.tech){ i.techId=DEP.tech; i.techIds=[DEP.tech]; } else { i.techId=''; i.techIds=[]; }
+  planPoserEquipe(i,DEP.tech||'',DEP.depuis);
   if(i.statut==='aplanifier') i.statut='planifiee';
   save();
   try{ planStamp(i,de); }catch(e){}
   try{ if(avD!==i.date&&typeof serieShiftPropose==='function') serieShiftPropose(i,avD,i.date); }catch(e){}
-  window._planUndoTech={id:DEP.id,tech:avTech,date:avD,heure:avH};
+  window._planUndoTech={id:DEP.id,tech:avTech,techIds:avIds,date:avD,heure:avH};
   closeModal();
   if(planJours.indexOf(i.date)<0&&planMode==='multi'){ planJours.push(i.date); planJours.sort(); }
   views.planning();
-  const chg=[]; if(avTech!==(DEP.tech||'')) chg.push('👤 '+(DEP.tech?techName(DEP.tech):'non assigné'));
+  const chg=[]; if(avIds.join()!==intTechIds(i).join()) chg.push('👤 '+techNames(i));
   if(avD!==i.date) chg.push('📅 '+fmtShort(i.date)); if(avH!==i.heure) chg.push('🕐 '+i.heure);
   toastAnnuler(chg.length?('Déplacée · '+chg.join(' · ')):'Aucun changement','planDeplacerAnnuler()');
 }
@@ -19871,7 +19921,8 @@ function planDeplacerAnnuler(){
   const i=db.interventions.find(z=>z.id===u.id); if(!i) return;
   const de=planSnap(i);
   if(u.date) i.date=u.date; if(u.heure) i.heure=u.heure;
-  if(u.tech){ i.techId=u.tech; i.techIds=[u.tech]; } else { i.techId=''; i.techIds=[]; }
+  if(Array.isArray(u.techIds)){ i.techIds=u.techIds.slice(); i.techId=i.techIds[0]||''; }   // v757 : toute l'équipe revient
+  else if(u.tech){ i.techId=u.tech; i.techIds=[u.tech]; } else { i.techId=''; i.techIds=[]; }
   save(); try{ planStamp(i,de); }catch(e){}
   window._planUndoTech=null; views.planning();
   toast('↩︎ Intervention remise comme avant');
@@ -19890,11 +19941,11 @@ function planChangerTech(id,tid){
       &&Math.max(toMinH(z.heure),a)<Math.min(toMinH(z.heure)+Math.max(0,parseInt(z.duree)||60),b));
     if(ch&&!confirm('⚠️ '+techName(tid)+' a déjà « '+(ch.titre||'une intervention')+' » à '+(ch.heure||'')+' sur ce créneau.\n\nL\'assigner quand même ?')) return;
   }
-  const de=planSnap(i);
-  if(tid){ i.techId=tid; i.techIds=[tid]; } else { i.techId=''; i.techIds=[]; }
+  const de=planSnap(i), avIds=intTechIds(i).slice();
+  planPoserEquipe(i,tid||'',av);
   save();
   try{ planStamp(i,de); }catch(e){}
-  window._planUndoTech={id:id,tech:av};
+  window._planUndoTech={id:id,tech:av,techIds:avIds};
   views.planning();
   toastAnnuler('👤 Passée de '+(av?techName(av):'Non assigné')+' à '+(tid?techName(tid):'Non assigné'),'planDeplacerAnnuler()');
 }
@@ -19902,7 +19953,8 @@ function planChangerTechAnnuler(){
   const u=window._planUndoTech; if(!u) return;
   const i=db.interventions.find(z=>z.id===u.id); if(!i) return;
   const de=planSnap(i);
-  if(u.tech){ i.techId=u.tech; i.techIds=[u.tech]; } else { i.techId=''; i.techIds=[]; }
+  if(Array.isArray(u.techIds)){ i.techIds=u.techIds.slice(); i.techId=i.techIds[0]||''; }
+  else if(u.tech){ i.techId=u.tech; i.techIds=[u.tech]; } else { i.techId=''; i.techIds=[]; }
   save();
   try{ planStamp(i,de); }catch(e){}
   window._planUndoTech=null;
@@ -19938,10 +19990,10 @@ function planCtxIndispo(iso,techId,heure){
   }catch(e){} },80); }
 function planCtxTarget(x,y,target){   // items selon la cible : carte d'intervention ou case/créneau vide
   const card=target&&target.closest?target.closest('[data-drag-int]'):null;
-  if(card) return planCtxItemsCard(card.getAttribute('data-drag-int'),x,y);
+  if(card){ window._planCtxDe=planLigneDe(card); return planCtxItemsCard(card.getAttribute('data-drag-int'),x,y); }
   /* les lignes de « Tournées & temps de trajet », sous la carte, ont le même menu */
   const tr=target&&target.closest?target.closest('[data-tr]'):null;
-  if(tr) return planCtxItemsCard(tr.getAttribute('data-tr'),x,y);
+  if(tr){ window._planCtxDe=null; return planCtxItemsCard(tr.getAttribute('data-tr'),x,y); }
   const dz=target&&target.closest?target.closest('[data-drop]'):null;
   if(!dz) return null;
   const parts=(dz.getAttribute('data-drop')||'').split(':');
@@ -38918,6 +38970,56 @@ function menageDemoBox(db){
   }catch(e){}
   return ch;
 }
+/* ══ LE COMPTE DE DÉPART D'UNE ENTREPRISE NEUVE — une seule fonction, deux appelants ══════════
+   Le lien d'une entreprise porte son identifiant de départ (« a »), l'empreinte du mot de passe
+   provisoire (« mh ») et son adresse (« e ») : `teamopLienCheck` les range, et le compte « admin »
+   jamais activé les prend. boot() l'appelle à chaque démarrage ; « ESPACE NEUF » (syncInit)
+   l'appelle quand le premier instantané dit que l'équipe est VIDE.
+   ⛔ Rattaché à une entreprise et sans AUCUN compte, on ne décide rien : seule l'équipe sait si elle
+   est neuve. On GARDE donc les clés pour le premier instantané. Avant, boot() les effaçait toujours —
+   « ESPACE NEUF » ne les trouvait jamais, et la seule porte d'une entreprise neuve était le compte du
+   SEMIS, celui-là même qui fabriquait les « OP Admin » fantômes chez ELAN (voir load()).
+   ⛔ Et une équipe qui existe les fait OUBLIER (`adminDepartOublier`, dans syncInit) : laissées là,
+   elles attendraient un chargement futur pour renommer un compte qui n'est pas le leur. */
+const ADMIN_DEPART_CLES=['elanB_admin_login','elanB_admin_mdp','elanB_admin_mdph','elanB_admin_mail'];
+function adminDepartOublier(){ ADMIN_DEPART_CLES.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} }); }
+/* ⛔ MAIS IL N'ÉCRASE PAS CELUI DE QUELQU'UN QUI VIENT DE S'AUTHENTIFIER. Vidéo de Justin,
+   14 septembre 2026 : il se connecte en « justin » sur teamop.fr/e/elan, le serveur vérifie
+   son mot de passe, l'application s'ouvre — et son écran de connexion propose « florent ».
+   `elan_admin_login` porte l'identifiant DE DÉPART DE L'ESPACE (le champ « a » du code,
+   choisi le jour de sa création), et il écrasait `elan_savedLogin` que connexion.html venait
+   d'écrire avec la personne réelle. Résultat : on propose à quelqu'un d'entrer sous le
+   compte d'un autre, juste après lui avoir demandé le sien. Ce n'est pas un défaut
+   d'affichage, c'est une confusion d'identité.
+   L'identifiant de départ ne sert QUE quand personne n'a encore de compte ici : on ne
+   l'écrit donc que si rien n'est retenu, ou si ce qui l'est est le générique « admin ». */
+function savedLoginPoser(v){ try{
+  const av=String(localStorage.getItem('elanB_savedLogin')||'').trim().toLowerCase();
+  if(av&&av!=='admin') return;            // quelqu'un s'est identifié : c'est lui qu'on propose
+  localStorage.setItem('elanB_savedLogin',v);
+}catch(_e){} }
+async function adminDepartAppliquer(){
+  const _al=localStorage.getItem('elanB_admin_login');
+  if(!_al||_al==='admin') return false;
+  if(!(db.users||[]).length && espaceRattache()) return false;   // l'équipe dira, au premier instantané, si elle est neuve
+  let ch=false;
+  // identifiant de départ choisi par TeamOP (via le lien) : le compte « admin » jamais activé le prend
+  const _u=db.users.find(x=>x.login==='admin'&&!x.pwdHash);
+  const _amdp=localStorage.getItem('elanB_admin_mdp'), _amdph=localStorage.getItem('elanB_admin_mdph'), _amail=localStorage.getItem('elanB_admin_mail');
+  if(_u&&!db.users.some(x=>(x.login||'').toLowerCase()===_al)){ _u.login=_al;
+    if(_amdp||_amdph){
+      // identifiants donnés à la demande : identifiant = prénom, mot de passe provisoire
+      // = nom + caractères spéciaux — l'app fait choisir le vrai mot de passe à la 1re connexion
+      // le lien ne porte plus le mot de passe, seulement son empreinte (_amdph) ;
+      // _amdp reste accepte pour les liens deja partis avant ce correctif
+      _u.pinHash=_amdph||await sha256(_amdp); delete _u.sansMdp; delete _u.compteSite;
+      savedLoginPoser(_al);
+    } else if(_al.indexOf('@')>0){ _u.compteSite=true; delete _u.pinHash; delete _u.sansMdp; savedLoginPoser(_al); }
+    if(_amail&&!_u.email) _u.email=_amail;   // le « mot de passe oublié » marche dès le premier jour
+    ch=true; }
+  adminDepartOublier();
+  return ch;
+}
 async function boot(){
   try{ if(await teamopLienCheck()) return; }catch(e){}   // lien d'entreprise : bascule d'espace avant tout
   try{ regMigration(); }catch(e){} let ch=false; for(const u of db.users){ if(!u.pinHash && !u.sansMdp && !u.compteSite && !BETA_ESSAI){ u.pinHash=await sha256('1234'); ch=true; } }
@@ -38973,41 +39075,7 @@ async function boot(){
       if(s&&(s.ctn||0)>0){ const p=produit(pid); s.u=(s.u||0)+(s.ctn||0)*((p&&p.qteCarton>0)?p.qteCarton:1); s.ctn=0; ch=true; } }); });
   }catch(e){}
   if(ch) save();
-  // identifiant de départ choisi par TeamOP (via le lien) : le compte « admin » jamais activé le prend
-  /* ⛔ MAIS IL N'ÉCRASE PAS CELUI DE QUELQU'UN QUI VIENT DE S'AUTHENTIFIER. Vidéo de Justin,
-     14 septembre 2026 : il se connecte en « justin » sur teamop.fr/e/elan, le serveur vérifie
-     son mot de passe, l'application s'ouvre — et son écran de connexion propose « florent ».
-     `elan_admin_login` porte l'identifiant DE DÉPART DE L'ESPACE (le champ « a » du code,
-     choisi le jour de sa création), et il écrasait `elan_savedLogin` que connexion.html venait
-     d'écrire avec la personne réelle. Résultat : on propose à quelqu'un d'entrer sous le
-     compte d'un autre, juste après lui avoir demandé le sien. Ce n'est pas un défaut
-     d'affichage, c'est une confusion d'identité.
-     L'identifiant de départ ne sert QUE quand personne n'a encore de compte ici : on ne
-     l'écrit donc que si rien n'est retenu, ou si ce qui l'est est le générique « admin ». */
-  const savedLoginPoser=(v)=>{ try{
-    const av=String(localStorage.getItem('elanB_savedLogin')||'').trim().toLowerCase();
-    if(av&&av!=='admin') return;            // quelqu'un s'est identifié : c'est lui qu'on propose
-    localStorage.setItem('elanB_savedLogin',v);
-  }catch(_e){} };
-  try{
-    const _al=localStorage.getItem('elanB_admin_login');
-    if(_al&&_al!=='admin'){
-      const _u=db.users.find(x=>x.login==='admin'&&!x.pwdHash);
-      const _amdp=localStorage.getItem('elanB_admin_mdp'), _amdph=localStorage.getItem('elanB_admin_mdph'), _amail=localStorage.getItem('elanB_admin_mail');
-      if(_u&&!db.users.some(x=>(x.login||'').toLowerCase()===_al)){ _u.login=_al;
-        if(_amdp||_amdph){
-          // identifiants donnés à la demande : identifiant = prénom, mot de passe provisoire
-          // = nom + caractères spéciaux — l'app fait choisir le vrai mot de passe à la 1re connexion
-          // le lien ne porte plus le mot de passe, seulement son empreinte (_amdph) ;
-          // _amdp reste accepte pour les liens deja partis avant ce correctif
-          _u.pinHash=_amdph||await sha256(_amdp); delete _u.sansMdp; delete _u.compteSite;
-          savedLoginPoser(_al);
-        } else if(_al.indexOf('@')>0){ _u.compteSite=true; delete _u.pinHash; delete _u.sansMdp; savedLoginPoser(_al); }
-        if(_amail&&!_u.email) _u.email=_amail;   // le « mot de passe oublié » marche dès le premier jour
-        ch=true; }
-      localStorage.removeItem('elanB_admin_login'); localStorage.removeItem('elanB_admin_mdp'); localStorage.removeItem('elanB_admin_mdph'); localStorage.removeItem('elanB_admin_mail');
-    }
-  }catch(e){}
+  try{ if(await adminDepartAppliquer()) ch=true; }catch(e){}
   try{ if(adminAnnuaireRetablir()) ch=true; }catch(e){}
   try{ if(reprendreDroitsImplicites()) ch=true; }catch(e){}
   /* Références mortes. Une personne supprimée disparaît de la liste des comptes, mais son

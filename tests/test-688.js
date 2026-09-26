@@ -28,8 +28,10 @@ console.log('\n── 688 · l\'identifiant proposé est celui de la personne, j
 
 /* La garde, éprouvée sur la vraie fonction extraite du fichier. */
 /* ⚠️ La fonction s'arrête à SON catch, pas au prochain « }; » venu : sans cette borne le
-   motif avalait le bloc suivant, et le banc échouait sur un `await` qui n'était pas à lui. */
-const src = APP.match(/const savedLoginPoser=\(v\)=>\{[\s\S]*?\}catch\(_e\)\{\} \};/);
+   motif avalait le bloc suivant, et le banc échouait sur un `await` qui n'était pas à lui.
+   v757 : elle est sortie de boot() (une fonction de premier niveau) parce que DEUX appelants
+   s'en servent désormais — boot() et « ESPACE NEUF » (adminDepartAppliquer, test-826). */
+const src = APP.match(/function savedLoginPoser\(v\)\{ try\{[\s\S]*?\}catch\(_e\)\{\} \}/);
 v('savedLoginPoser est trouvée dans app.html', !!src, true);
 if (src) {
   const faire = (avant) => {

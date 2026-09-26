@@ -10212,6 +10212,20 @@ function load(){ try{ suspensionCharger(); }catch(e){}
      base. Dans les deux cas, une base VIDE est la bonne réponse : la synchro la remplit.
      Même vidage que le drapeau, pour n'avoir qu'une seule définition de « base propre ». */
   if(neuve && (APPAREIL_DEJA_VU || espaceRattache())) COLLECTIONS_DONNEES.forEach(c=>d[c]=[]);
+  /* ⛔⛔ ET LES COMPTES AUSSI, SUR UN APPAREIL RATTACHÉ — c'était la dernière porte des « OP Admin »
+     fantômes. ELAN, 26 septembre 2026, capture à l'appui : « OP Admin · Administrateur · @florent-3 »,
+     quinze jours après le correctif du 11 septembre. Rejoué au navigateur sur la v756
+     (`scratchpad/sonde-admin-fantome.js`) : un navigateur neuf qui ouvre le lien d'une entreprise
+     EXISTANTE reçoit le compte « OP Admin » du SEMIS (identifiant aléatoire), boot() le renomme
+     vers l'identifiant de départ de l'entreprise avec le mot de passe PROVISOIRE du lien, la fusion
+     le renomme « -2 », « -3 »… et l'appareil l'ENVOIE à toute l'équipe — un administrateur de plus,
+     dont le mot de passe est celui qu'on donnait à l'ouverture de l'espace.
+     Le correctif du 11 septembre (v656) avait fermé la création dans migrate() et oublié celle-ci :
+     `users` n'est pas dans COLLECTIONS_DONNEES (le vidage garde « le compte de connexion »), donc le
+     compte du semis passait les deux vidages. Rattaché, les comptes viennent de l'équipe ; et si
+     l'équipe est VIDE, c'est le premier instantané qui pose la porte d'entrée (« ESPACE NEUF »,
+     syncInit), avec l'identifiant FIXE — jamais un compte fabriqué ici au hasard. */
+  if(neuve && espaceRattache()) d.users=[];
   // Démarrage vierge : on supprime une seule fois les données de démonstration (le compte de connexion est conservé)
   if(!localStorage.getItem('elan_vierge_v1')){
     COLLECTIONS_DONNEES.forEach(c=>d[c]=[]);
@@ -10919,10 +10933,19 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
              est passé sur cet appareil. Le faire plus tôt (dans migrate) revenait à le créer chez
              TOUTE personne ouvrant son lien sur un navigateur neuf : @florent-2, -3, -4 chez ELAN. */
           try{ if(!BETA_ESSAI && !(db.users||[]).length && localStorage.getItem('elan_admin_login')){
-            db.users=[{id:ID_ADMIN_DEPART,prenom:'OP',nom:'Admin',login:'admin',role:'admin',pinHash:'',actif:true}];
+            const porte={id:ID_ADMIN_DEPART,prenom:'OP',nom:'Admin',login:'admin',role:'admin',pinHash:'',actif:true};
+            db.users=[porte];
+            /* L'identifiant et le mot de passe provisoire du lien — boot() les a GARDÉS pour ici
+               (adminDepartAppliquer). Sans eux, la porte s'appellerait « admin » et n'aurait aucun
+               mot de passe : personne ne pourrait entrer. */
+            await adminDepartAppliquer();
+            if(!porte.pinHash&&!porte.sansMdp&&!porte.compteSite) porte.pinHash=await sha256('1234');   // la même porte qu'avant : boot() posait ce code d'office à un compte sans mot de passe
             save(); try{ renderLogin(); }catch(_e){}
           } }catch(_e){}
           if(currentUser) syncPush(true); return; }   // équipe vide → on amorce avec nos données
+        /* L'équipe EXISTE : il n'y a aucune porte à poser. Les clés du lien sont oubliées ici, sinon
+           elles attendraient un chargement futur pour renommer un compte qui n'est pas le leur. */
+        adminDepartOublier();
         if(d.enc&&plain===null){ try{toast('Clé d\'équipe différente — données non lues');}catch(e){} return; }   // chiffré avec une autre clé → ne rien écraser
         /* Plus de « notre base est plus lourde, on garde la nôtre » : la fusion ci-dessous réunit les
            deux, et repousse si la nôtre avait quelque chose que l'équipe n'avait pas. */
@@ -38947,6 +38970,56 @@ function menageDemoBox(db){
   }catch(e){}
   return ch;
 }
+/* ══ LE COMPTE DE DÉPART D'UNE ENTREPRISE NEUVE — une seule fonction, deux appelants ══════════
+   Le lien d'une entreprise porte son identifiant de départ (« a »), l'empreinte du mot de passe
+   provisoire (« mh ») et son adresse (« e ») : `teamopLienCheck` les range, et le compte « admin »
+   jamais activé les prend. boot() l'appelle à chaque démarrage ; « ESPACE NEUF » (syncInit)
+   l'appelle quand le premier instantané dit que l'équipe est VIDE.
+   ⛔ Rattaché à une entreprise et sans AUCUN compte, on ne décide rien : seule l'équipe sait si elle
+   est neuve. On GARDE donc les clés pour le premier instantané. Avant, boot() les effaçait toujours —
+   « ESPACE NEUF » ne les trouvait jamais, et la seule porte d'une entreprise neuve était le compte du
+   SEMIS, celui-là même qui fabriquait les « OP Admin » fantômes chez ELAN (voir load()).
+   ⛔ Et une équipe qui existe les fait OUBLIER (`adminDepartOublier`, dans syncInit) : laissées là,
+   elles attendraient un chargement futur pour renommer un compte qui n'est pas le leur. */
+const ADMIN_DEPART_CLES=['elan_admin_login','elan_admin_mdp','elan_admin_mdph','elan_admin_mail'];
+function adminDepartOublier(){ ADMIN_DEPART_CLES.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} }); }
+/* ⛔ MAIS IL N'ÉCRASE PAS CELUI DE QUELQU'UN QUI VIENT DE S'AUTHENTIFIER. Vidéo de Justin,
+   14 septembre 2026 : il se connecte en « justin » sur teamop.fr/e/elan, le serveur vérifie
+   son mot de passe, l'application s'ouvre — et son écran de connexion propose « florent ».
+   `elan_admin_login` porte l'identifiant DE DÉPART DE L'ESPACE (le champ « a » du code,
+   choisi le jour de sa création), et il écrasait `elan_savedLogin` que connexion.html venait
+   d'écrire avec la personne réelle. Résultat : on propose à quelqu'un d'entrer sous le
+   compte d'un autre, juste après lui avoir demandé le sien. Ce n'est pas un défaut
+   d'affichage, c'est une confusion d'identité.
+   L'identifiant de départ ne sert QUE quand personne n'a encore de compte ici : on ne
+   l'écrit donc que si rien n'est retenu, ou si ce qui l'est est le générique « admin ». */
+function savedLoginPoser(v){ try{
+  const av=String(localStorage.getItem('elan_savedLogin')||'').trim().toLowerCase();
+  if(av&&av!=='admin') return;            // quelqu'un s'est identifié : c'est lui qu'on propose
+  localStorage.setItem('elan_savedLogin',v);
+}catch(_e){} }
+async function adminDepartAppliquer(){
+  const _al=localStorage.getItem('elan_admin_login');
+  if(!_al||_al==='admin') return false;
+  if(!(db.users||[]).length && espaceRattache()) return false;   // l'équipe dira, au premier instantané, si elle est neuve
+  let ch=false;
+  // identifiant de départ choisi par TeamOP (via le lien) : le compte « admin » jamais activé le prend
+  const _u=db.users.find(x=>x.login==='admin'&&!x.pwdHash);
+  const _amdp=localStorage.getItem('elan_admin_mdp'), _amdph=localStorage.getItem('elan_admin_mdph'), _amail=localStorage.getItem('elan_admin_mail');
+  if(_u&&!db.users.some(x=>(x.login||'').toLowerCase()===_al)){ _u.login=_al;
+    if(_amdp||_amdph){
+      // identifiants donnés à la demande : identifiant = prénom, mot de passe provisoire
+      // = nom + caractères spéciaux — l'app fait choisir le vrai mot de passe à la 1re connexion
+      // le lien ne porte plus le mot de passe, seulement son empreinte (_amdph) ;
+      // _amdp reste accepte pour les liens deja partis avant ce correctif
+      _u.pinHash=_amdph||await sha256(_amdp); delete _u.sansMdp; delete _u.compteSite;
+      savedLoginPoser(_al);
+    } else if(_al.indexOf('@')>0){ _u.compteSite=true; delete _u.pinHash; delete _u.sansMdp; savedLoginPoser(_al); }
+    if(_amail&&!_u.email) _u.email=_amail;   // le « mot de passe oublié » marche dès le premier jour
+    ch=true; }
+  adminDepartOublier();
+  return ch;
+}
 async function boot(){
   try{ if(await teamopLienCheck()) return; }catch(e){}   // lien d'entreprise : bascule d'espace avant tout
   try{ regMigration(); }catch(e){} let ch=false; for(const u of db.users){ if(!u.pinHash && !u.sansMdp && !u.compteSite && !BETA_ESSAI){ u.pinHash=await sha256('1234'); ch=true; } }
@@ -39002,41 +39075,7 @@ async function boot(){
       if(s&&(s.ctn||0)>0){ const p=produit(pid); s.u=(s.u||0)+(s.ctn||0)*((p&&p.qteCarton>0)?p.qteCarton:1); s.ctn=0; ch=true; } }); });
   }catch(e){}
   if(ch) save();
-  // identifiant de départ choisi par TeamOP (via le lien) : le compte « admin » jamais activé le prend
-  /* ⛔ MAIS IL N'ÉCRASE PAS CELUI DE QUELQU'UN QUI VIENT DE S'AUTHENTIFIER. Vidéo de Justin,
-     14 septembre 2026 : il se connecte en « justin » sur teamop.fr/e/elan, le serveur vérifie
-     son mot de passe, l'application s'ouvre — et son écran de connexion propose « florent ».
-     `elan_admin_login` porte l'identifiant DE DÉPART DE L'ESPACE (le champ « a » du code,
-     choisi le jour de sa création), et il écrasait `elan_savedLogin` que connexion.html venait
-     d'écrire avec la personne réelle. Résultat : on propose à quelqu'un d'entrer sous le
-     compte d'un autre, juste après lui avoir demandé le sien. Ce n'est pas un défaut
-     d'affichage, c'est une confusion d'identité.
-     L'identifiant de départ ne sert QUE quand personne n'a encore de compte ici : on ne
-     l'écrit donc que si rien n'est retenu, ou si ce qui l'est est le générique « admin ». */
-  const savedLoginPoser=(v)=>{ try{
-    const av=String(localStorage.getItem('elan_savedLogin')||'').trim().toLowerCase();
-    if(av&&av!=='admin') return;            // quelqu'un s'est identifié : c'est lui qu'on propose
-    localStorage.setItem('elan_savedLogin',v);
-  }catch(_e){} };
-  try{
-    const _al=localStorage.getItem('elan_admin_login');
-    if(_al&&_al!=='admin'){
-      const _u=db.users.find(x=>x.login==='admin'&&!x.pwdHash);
-      const _amdp=localStorage.getItem('elan_admin_mdp'), _amdph=localStorage.getItem('elan_admin_mdph'), _amail=localStorage.getItem('elan_admin_mail');
-      if(_u&&!db.users.some(x=>(x.login||'').toLowerCase()===_al)){ _u.login=_al;
-        if(_amdp||_amdph){
-          // identifiants donnés à la demande : identifiant = prénom, mot de passe provisoire
-          // = nom + caractères spéciaux — l'app fait choisir le vrai mot de passe à la 1re connexion
-          // le lien ne porte plus le mot de passe, seulement son empreinte (_amdph) ;
-          // _amdp reste accepte pour les liens deja partis avant ce correctif
-          _u.pinHash=_amdph||await sha256(_amdp); delete _u.sansMdp; delete _u.compteSite;
-          savedLoginPoser(_al);
-        } else if(_al.indexOf('@')>0){ _u.compteSite=true; delete _u.pinHash; delete _u.sansMdp; savedLoginPoser(_al); }
-        if(_amail&&!_u.email) _u.email=_amail;   // le « mot de passe oublié » marche dès le premier jour
-        ch=true; }
-      localStorage.removeItem('elan_admin_login'); localStorage.removeItem('elan_admin_mdp'); localStorage.removeItem('elan_admin_mdph'); localStorage.removeItem('elan_admin_mail');
-    }
-  }catch(e){}
+  try{ if(await adminDepartAppliquer()) ch=true; }catch(e){}
   try{ if(adminAnnuaireRetablir()) ch=true; }catch(e){}
   try{ if(reprendreDroitsImplicites()) ch=true; }catch(e){}
   /* Références mortes. Une personne supprimée disparaît de la liste des comptes, mais son
