@@ -35,7 +35,7 @@ jobs:
       # commit : « verifier-version.js » n'aurait alors aucun point de comparaison et ne
       # pourrait plus dire si APP_VERSION a monté. Il échouerait franchement (il refuse de se
       # taire en CI), mais autant lui donner ce qu'il lui faut.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 2
       - uses: actions/setup-node@v4
