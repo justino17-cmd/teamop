@@ -145,7 +145,7 @@
   .main{flex:1;min-width:0;display:flex;flex-direction:column;}
   .topbar{display:flex;align-items:center;gap:16px;row-gap:10px;flex-wrap:wrap;padding:18px 30px;border-bottom:1px solid var(--brd);background:var(--toolbar);backdrop-filter:blur(8px);position:sticky;top:0;z-index:5;}   /* wrap : les boutons passent à la ligne au lieu d'élargir toute la page */
   .topbar-title{min-width:0;}
-  .topbar-brand{display:none;} .topbar-ava{display:none;} .page-head{display:none;}
+  .topbar-brand{display:none;} .page-head{display:none;}
   #sync-btn.spin svg{animation:syncspin 1s linear infinite;}
   @keyframes syncspin{to{transform:rotate(360deg)}}
   /* ⛔ LA ROTATION EST UN CONFORT, PAS LE MESSAGE. Sans elle, l'état reste lisible : c'est la
@@ -597,9 +597,8 @@
     #theme-btn{display:none;}
     .topbar-bell{margin-left:auto;}
     .topbar .bell{width:34px;height:34px;font-size:15px;}
-    .topbar-ava{display:flex;width:36px;height:36px;cursor:pointer;}
     /* Barre contextuelle : ◀ + titre + actions de la catégorie */
-    body.ctx .topbar-brand,body.ctx #sync-btn,body.ctx .topbar-ava,body.ctx #search-btn{display:none;}
+    body.ctx .topbar-brand,body.ctx #sync-btn,body.ctx #search-btn{display:none;}
     body.ctx .menu-btn{width:34px;height:34px;font-size:15px;flex-shrink:0;}
     body.ctx #topbar-back{display:flex !important;align-items:center;justify-content:center;}
     body.ctx .topbar-title{display:block;flex:1;min-width:0;}
@@ -2262,7 +2261,7 @@ html[data-theme="light"] body.defile .topbar{box-shadow:0 10px 26px rgba(14,21,3
   :root.theme-vt::view-transition-new(root){animation:none!important}
 }
 
-@media print{ .sidebar,.topbar,#update-banner,.filters{display:none!important} .content{padding:0!important} .plg-wrap{overflow:visible} }
+@media print{ .sidebar,.topbar,.filters{display:none!important} .content{padding:0!important} .plg-wrap{overflow:visible} }
 </style>
 <style id="apple-css">
 /* ══ LE DESSIN D'APPLE ═══ le même langage que la Tour de contrôle, aux couleurs d'OP GESTION ══════════
@@ -7942,7 +7941,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '754-beta';
+const APP_VERSION = '755-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -32228,7 +32227,9 @@ function consoAnalyseHTML(){
 }
 
 /* ═══════════════ HISTORIQUE & AUDIT ═══════════════ */
-const TYPE_ICO={auth:'🔑',stock:'📦',crud:'✏️',demande:'✈️',commande:'✉️',finance:'💶',support:'🆘',general:'•'};
+/* v755 — une puce par type d'entrée que le code écrit (logEvent), l'icône de sa rubrique au menu : cinq types
+   (intervention, planning, commercial, synchro, réglages d'entreprise) tombaient sur la puce générique. */
+const TYPE_ICO={auth:'🔑',stock:'📦',crud:'✏️',demande:'✈️',commande:'✉️',finance:'💶',support:'🆘',intervention:'🧰',plan:'🗓️',commercial:'💰',sync:'🔄',admin:'🛠️',general:'•'};
 let histFilter='all';
 /* Clic sur une ligne d'Audit / Historique → ouvre la fiche ou la page liée */
 function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
@@ -33259,7 +33260,7 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
   const appliquerRattaches=(cible)=>{ if(!cible) return; (db.users||[]).forEach(x=>{ if(!x||x.id===cible) return;
     if(drRattaches.has(x.id)) x.drId=cible; else if(x.drId===cible) x.drId=''; }); };
   if(id){ const ix=db.users.findIndex(x=>x.id===id); db.users[ix]={...db.users[ix],prenom:d.prenom,nom:d.nom,login:loginNorm,email:(d.email||'').trim(),drId:(d.drId||''),chefId:(d.chefId||''),role:d.role,techId,actif:d.actif==='true',acces,boxValidDR:(d.boxValidDR!==undefined)};
-    if(currentUser.id===id){ currentUser=db.users[ix]; const fn=fullName(currentUser); const bi=$('brand-ini'); if(bi) bi.textContent=initials(fn); const fn2=$('foot-name'); if(fn2) fn2.textContent=fn; const fr=$('foot-role'); if(fr) fr.textContent=roleLbl(currentUser.role)||'Technicien'; renderNav(); } toast('Mis à jour'); }
+    if(currentUser.id===id){ currentUser=db.users[ix]; const fn=fullName(currentUser); userAvatarApply(); const fn2=$('foot-name'); if(fn2) fn2.textContent=fn; const fr=$('foot-role'); if(fr) fr.textContent=(roleLbl(currentUser.role)||'Technicien')+(db.entreprise&&db.entreprise.nom?' · '+db.entreprise.nom:''); renderNav(); } toast('Mis à jour'); }
   else{ if(db.users.length>=500){toast('Limite de 500 comptes atteinte');return;}
     if((d.pwd||'').length>0 && (d.pwd||'').length<8){ toast('Mot de passe provisoire : 8 caractères minimum (ou laisse-le vide)'); return; }
     // un non-administrateur (droit « Créer des utilisateurs ») ne peut créer que des rôles terrain
@@ -36350,7 +36351,7 @@ const TELE_CHAMPS=[
 function teleTotal(r){ return ['cb','esp','chq','vmt','smupLdp','troisQuatre'].reduce((s,k)=>s+(Number(r[k])||0),0); }
 /* Nom du déclarant d'une télécollecte — fonctionne pour TOUT LE MONDE (technicien, chef, commercial, compta…) */
 function teleWho(r){ if(!r) return '—'; if(r.declarantNom) return r.declarantNom; const tid=r.techId; if(tid){ const n=techName(tid); if(n&&n!=='—') return n; } const u=(db.users||[]).find(x=>x.id===r.auteurId); return u?fullName(u):'—'; }
-let telePhoto='', _teleDetId='';
+let telePhoto='';
 /* les photos ligne par ligne, en attente d'enregistrement : {CB:'…',ESP:'…'} */
 let telePhotosMode={};
 function telePhotosRaz(r){ telePhotosMode=Object.assign({},(r&&r.photos)||{}); }
@@ -36401,8 +36402,6 @@ async function teleTicketAdd(ev,pfx){
   if(!d){ toast('Ce fichier n\u2019est pas une image lisible'); return; }
   telePhoto=d; teleTicketMaj(pfx); toast('Ticket TPE joint ✓');
 }
-function teleTechSwitch(manual){ const show=$('tele-tech-show'), pick=$('tele-tech-pick'), hid=$('tele-techid'); if(show) show.style.display=manual?'none':'block'; if(pick) pick.style.display=manual?'block':'none';
-  if(hid){ if(manual){ const sel=$('tele-techsel'); hid.value=sel?sel.value:''; } else hid.value=_teleDetId; } }
 function renderTelePhoto(){ const el=$('tele-photo'); if(!el)return; el.innerHTML= telePhoto? `<div style="position:relative;display:inline-block"><img src="${telePhoto}" style="max-width:160px;border-radius:10px;border:1px solid var(--brd)"><button type="button" class="btn danger sm" style="position:absolute;top:4px;right:4px" onclick="telePhoto='';renderTelePhoto()">✕</button></div>` : '<span style="color:var(--t3);font-size:13px">Aucune photo</span>'; }
 async function teleAddPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f); if(d){ telePhoto=d; renderTelePhoto(); } e.target.value=''; }
 function formTelecollecte(id){
@@ -38920,7 +38919,7 @@ const ACC_DARK={green:'#0E3B24',blue:'#12306E',purple:'#341B66',orange:'#7C2D0C'
 function accentHex(){ if(getAccent()==='custom') return prefLocalLire('elanB_accent_hex')||'#7A5AF8'; return ACC_SW[getAccent()]||'#1E7A4E'; }
 function accentDark(){ return ACC_DARK[getAccent()]||'#0E3B24'; }
 function userAvatarApply(){ if(!currentUser) return;
-  ['brand-ini','foot-ava'].forEach(id=>{ const el=$(id); if(!el) return;
+  ['foot-ava'].forEach(id=>{ const el=$(id); if(!el) return;
     if(currentUser.photo){ el.textContent=''; el.style.backgroundImage='url('+currentUser.photo+')'; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; }
     else { el.style.backgroundImage=''; el.textContent=initials(fullName(currentUser)); } }); }
 function setProfilePhoto(d,meta,quiet){ if(!currentUser) return; const u=db.users.find(x=>x.id===currentUser.id);
@@ -38936,15 +38935,10 @@ function makeAvatar(quiet){ if(!currentUser) return; const c=document.createElem
   g.fillStyle='#fff'; g.font='700 100px "Space Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
   g.fillText(initials(fullName(currentUser)).slice(0,2),128,134);
   if(!quiet){ try{ closeModal(); }catch(_){ } } setProfilePhoto(c.toDataURL('image/png'),{type:'ini'},quiet); }
-/* ── Créateur d'avatar : personnage personnalisable (SVG → PNG) ── */
+/* ── Créateur d'avatar : personnage personnalisable (SVG → PNG). v755 : son écran a disparu (plus aucun
+   appelant) ; restent le dessin et l'enregistrement, qui recolorent les avatars déjà créés avec lui quand la
+   teinte change (avatarAccentSync). ── */
 let _avb=null;
-const AVB_SKINS=['#F6CBA6','#EAB38B','#D89E6A','#B97F52','#94603A','#6E442A'];
-const AVB_HAIRC=['#1F2430','#3B2A1D','#6B4226','#A56B2C','#C99245','#8E9AA8','#D9D9D9','#C2410C'];
-const AVB_SHIRTS=['#1E7A4E','#2563EB','#7C3AED','#EA580C','#0F172A','#B91C1C','#0E7490'];
-const AVB_BGS=['elan','#2563EB','#7C3AED','#F59E0B','#111827','#0EA5E9','#DB2777'];
-const AVB_HAIRS=[['chauve','Chauve'],['ras','Rasé'],['court','Court'],['bol','Au bol'],['boucle','Bouclé'],['long','Long']];
-const AVB_BARBES=[['non','Aucune'],['mousta','Moustache'],['barbe','Barbe']];
-const AVB_LUN=[['non','Sans'],['rond','Rondes'],['carre','Carrées']];
 function avbSvg(a,sz){
   const bg = a.bg==='elan'
     ? `<defs><linearGradient id="avbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${accentDark()}"/><stop offset="1" stop-color="${accentHex()}"/></linearGradient></defs><rect width="200" height="200" fill="url(#avbg)"/><rect x="10" y="10" width="180" height="180" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="6"/>`
@@ -38977,15 +38971,6 @@ function avbSvg(a,sz){
     ${a.barbe==='barbe'?'':'<path d="M87 122 Q100 131 113 122" stroke="#7C3A21" stroke-width="4" fill="none" stroke-linecap="round"/>'}
     ${barbe}${lun}</svg>`;
 }
-function avbRandom(){ const r=a=>a[Math.floor(Math.random()*a.length)];
-  _avb={skin:r(AVB_SKINS),hair:r(AVB_HAIRS)[0],hairColor:r(AVB_HAIRC),barbe:r(AVB_BARBES)[0],lun:r(AVB_LUN)[0],shirt:r(AVB_SHIRTS),bg:r(AVB_BGS)}; avbRender(); }
-function avbSet(k,v){ if(!_avb) return; _avb[k]=v; avbRender(); }
-function avbRender(){ const p=$('avb-prev'); if(!p) return; p.innerHTML=avbSvg(_avb,150);
-  const chips=(id,list,key)=>{ const el=$(id); if(el) el.innerHTML=list.map(([k,l])=>`<div class="chip ${_avb[key]===k?'active':''}" onclick="avbSet('${key}','${k}')">${l}</div>`).join(''); };
-  chips('avb-hair',AVB_HAIRS,'hair'); chips('avb-barbe',AVB_BARBES,'barbe'); chips('avb-lun',AVB_LUN,'lun');
-  const sw=(id,list,key)=>{ const el=$(id); if(el) el.innerHTML=list.map(c=>{ const col=c==='elan'?('linear-gradient(135deg,'+accentDark()+','+accentHex()+')'):c;
-    return `<div onclick="avbSet('${key}','${c}')" style="width:30px;height:30px;border-radius:50%;cursor:pointer;background:${col};border:3px solid ${_avb[key]===c?'var(--t1)':'transparent'};box-shadow:0 0 0 1px var(--brd)"></div>`; }).join(''); };
-  sw('avb-skin',AVB_SKINS,'skin'); sw('avb-hairc',AVB_HAIRC,'hairColor'); sw('avb-shirt',AVB_SHIRTS,'shirt'); sw('avb-bg',AVB_BGS,'bg'); }
 /* ── Studio d'avatar « à la Instagram » — moteur DiceBear Avataaars (open source) ── */
 let _ig=null, _igCat='top';
 const IG_SKINS=['614335','ae5d29','d08b5b','edb98a','f8d25c','fd9841','ffdbb4'];
@@ -39146,15 +39131,15 @@ function enterApp(u){ currentUser=u;
   }catch(e){}
   try{ const _p=(u&&(u.prenom||fullName(u).split(' ')[0]))||''; if(_p) setTimeout(()=>toast('👋 Bienvenue, '+_p),320); }catch(e){}
   const av=$('app-ver'); if(av) av.textContent=APP_VERSION;
-  const fn=fullName(u); const bi=$('brand-ini'); if(bi) bi.textContent=initials(fn); userAvatarApply();
-  const bh=$('brand-hi'); if(bh) bh.textContent='Bonjour '+(u.prenom||fn.split(' ')[0]||'')+',';
-  const br=$('brand-role'); if(br) br.textContent=roleLbl(u.role)||'Technicien';
+  /* v755 — l'identité du compte vit dans le pied du menu (foot-ava / foot-name / foot-role) et le mot
+     d'accueil dans le toast « 👋 Bienvenue » ci-dessus : l'accueil et les initiales de la barre du haut
+     (brand-ini, brand-hi, brand-role, topbar-ava) ont disparu à la refonte, leurs écritures aussi. */
+  const fn=fullName(u); userAvatarApply();
   const fa=$('foot-ava'); if(fa&&!u.photo) fa.textContent=initials(fn);
   const fn2=$('foot-name'); if(fn2) fn2.textContent=fn;
   const fr=$('foot-role'); if(fr) fr.textContent=(roleLbl(u.role)||'Technicien')+(db.entreprise&&db.entreprise.nom?' · '+db.entreprise.nom:'');
   suiteRefresh();
   try{ notifSeenCharger(); }catch(e){}   // notifications « vues » propres à ce compte
-  const ta=$('topbar-ava'); if(ta) ta.textContent=initials(fn);
   startI18n(); renderNav();
   /* ⛔ PAS UNE LIGNE PAR OUVERTURE D'APPLICATION. Mesuré chez ELAN le 11 septembre 2026 :
      443 des 500 lignes du journal étaient des « Connexion », 83 Ko — les deux tiers du
@@ -40625,9 +40610,6 @@ function majEcranBloquant(min,cause){
      sous les yeux un bouton qui recharge sans rien réparer, c'est-à-dire exactement la boucle
      qu'on vient de fermer, réouverte par un retour anticipé. */
   if(e){ if(e.getAttribute('data-cause')===(cause||'version')) return e; e.remove(); }
-  /* On retire la bannière d'avant si elle traîne : deux invites pour la même chose, dont une
-     qu'on peut fermer, ce serait exactement le trou qu'on vient de boucher. */
-  try{ const b=$('update-banner'); if(b) b.remove(); }catch(_e){}
   try{ const a=$('maj-ecran'); if(a) a.remove(); }catch(_e){}
   e=document.createElement('div'); e.id='maj-bloque';
   e.setAttribute('role','alertdialog'); e.setAttribute('aria-modal','true');
@@ -40668,7 +40650,7 @@ function majProgres(recu,total){ const b=$('maj-barre'), s=$('maj-etat'); if(!b)
   let pct=(total>0)?Math.min(99,Math.round(recu/total*100)):Math.min(95,4+Math.round(recu/30000));
   b.style.width=Math.max(4,pct)+'%';
   if(s) s.textContent='Téléchargement de la nouvelle version… '+(recu>=1048576?(recu/1048576).toFixed(1)+' Mo':Math.round(recu/1024)+' Ko'); }
-function majAppliquer(){ try{ const b=$('update-banner'); if(b) b.remove(); }catch(e){}
+function majAppliquer(){
   try{ const z=$('maj-bloque'); if(z) z.remove(); }catch(e){}
   _majEnRoute=true; try{ clearTimeout(_majAutoTimer); }catch(e){}
   try{ _majNuit=false; clearTimeout(_majNuitTimer); }catch(e){}

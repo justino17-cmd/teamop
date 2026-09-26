@@ -135,6 +135,7 @@ v('… et chacune de ses six tuiles dit laquelle', (CE.match(/peut:\(\)=>/g) || 
 console.log('\n── 790 · 3. la règle des actions de catégorie — EXÉCUTÉE ──');
 const P = { catRegle: bloc('function catDeduitRegle(grp,droit){'), catDroit: bloc('function catDroit(u,grp,droit){'),
   capRegle: bloc('function capDeduitRegle(cap){'), userCap: bloc('function userCap(u,cap){'), can: bloc('function can(cap){'),
+  table: bloc('function tableDuRole(role){'),   // v753 : userCap et catDroit lisent la liste du rôle par tableDuRole
   canCat: bloc('function canCat(grp,droit){'), boxGerer: bloc('function boxGerer(droit){'), boxGarde: bloc('function boxGererGarde(droit){'),
   permGarde: bloc('function permGarde(grp,droit,quoi){'), statut: bloc('function intStatutPermis(i,st){'),
   proposes: bloc('function clientsProposes(garde){'), propose: bloc('function clientPropose(id,garde){') };
@@ -144,7 +145,7 @@ function monde() {
   const ctx = { db: { users: [], permissions: {}, clients: [] }, currentUser: null, Object, JSON, Set, Array, __t: [] };
   vm.createContext(ctx);
   vm.runInContext('const CAPS={technicien:{supprimer:0,creerIntervention:0},chefEquipe:{supprimer:0,creerIntervention:0}};\nfunction toast(m){ __t.push(m); }\n'
-    + [P.capRegle, P.userCap, P.can, P.catRegle, P.catDroit, P.canCat, P.permGarde, P.boxGerer, P.boxGarde, P.statut, P.proposes, P.propose].join('\n'), ctx);
+    + [P.table, P.capRegle, P.userCap, P.can, P.catRegle, P.catDroit, P.canCat, P.permGarde, P.boxGerer, P.boxGarde, P.statut, P.proposes, P.propose].join('\n'), ctx);
   return ctx;
 }
 const W = monde();
