@@ -54,10 +54,49 @@ Preuves v750 : `test-817` 45 ✓ (12/12 mutations mordent), `scratchpad/sonde-pl
 Dettes MINEURES relevées, non corrigées : `interventionsArchive` peut dépasser 500 après une union ; coût
 d'une rafale de réceptions ; trois écrans un peu lents sur grosse base ; les marques des VRAIES
 suppressions restent non bornées dans le nuage (lentes : une par suppression).
-**Vérification de A à Z (demande de Justin) : LANCÉE dans la nuit du 25 au 26**, workflow `wf_e473851b-062`
-(14 familles : écrans × appareils, rôles, clics, droits, parcours terrain / stock / ventes, synchro, performance, visuel,
-connexion et portail, code, serveur et budgets par IP, production — chaque constat contre-vérifié). Point et rapport
-programmés le 26 à 7 h, heure de Paris (`trig_0192vZPb3VJaCgujcuwjEmVu`).
+**Vérification de A à Z (demande de Justin : « vérifie tout l'application de A à Z pour être sûr de notre produit
+à 100 % ») : FAITE dans la nuit du 25 au 26 septembre.** Workflow `wf_e473851b-062` : 14 familles (écrans × 6
+appareils, rôles, clics, droits, parcours terrain / stock / ventes, synchro par le vrai serveur, performance, visuel
+au pixel, connexion et portail, code, serveur et budgets, production), chaque constat rejoué par un second agent.
+**17 défauts confirmés**, plus de 80 faux positifs écartés et nommés. Puis une contre-vérification de la v751
+(`wf_1f0951aa-5c1`) : chaque correctif rejoué au navigateur contre la v750, plus `relecteur` et `gardien`.
+
+**Corrigés dans la v751 (bêta ; branche `e5e7fd5`, `b9089ff`, `0c10fe8`)** — deux BLOQUANTS sont aussi dans la
+v749 de production :
+- ⛔ **la cloche plantait** (`bx is not defined`, une déclaration écrite DANS un commentaire) dès qu'un arrivage
+  attendait le DR : écran vide à la connexion de l'administrateur et du DR, et `save()` ne synchronisait plus rien.
+  Rejoué : v750 `#content` 0 caractère, `syncPush` 0 appel ; v751 7 443 caractères, la notification avec sa box ;
+- ⛔ **TVA 5,5 % et 2,1 % refusées en silence** par le formulaire devis/facture (et une quantité de 1,75) : le
+  bouton « Créer » ne faisait rien. v751 : devis 5,5 % TTC 150,07 €, facture 2,1 % TTC 122,52 €, par vrais clics ;
+- montants toujours à deux décimales (« 170,70 € » écran = PDF) ; tuiles chiffrées qui tiennent (5/5 profils, 1/5 avant) ;
+- synchro : une coupure courte ne recharge plus la page (brouillon perdu avant) ; l'écoute sous 429 ne tourne plus
+  en rafale (≈ 657 → 30 lectures/min pour 15 appareils) ; un envoi sous 429 n'écrit plus sans avoir relu ;
+- segmentés en une seule mise en page : rendu à CPU ×4 Paramètres 162 → 105 ms, Clients 124 → 69, Produits 77 → 45, Bons 55 → 26 ;
+- Mouvements : « Rechercher » répond menu ouvert — et, **régression trouvée par la contre-vérification** puis
+  corrigée (`b9089ff`), la barre ne vole plus la barre du haut au défilement (`scratchpad/sonde-mvt-barre.js`
+  18 ✓ ; contre-épreuves `e5e7fd5` et `79c8a44` 14 ✓ 4 ✗ chacune) ;
+- planning « Créer ici » affiche l'heure touchée ; changement de métier journalisé ; titres de section 4,38 → 6,66:1 ;
+- deux bancs anciens (`test-660`, `test-694`) suivaient l'ancienne forme — remis d'accord (le `relecteur` les avait vus rouges) ;
+- **serveur (NON déployé, attend « pousse le serveur »)** : budget d'attentes 20 000 → 100 000 (15 appareils
+  l'épuisaient en 43 min, puis la synchro freinée jusqu'à la fin de l'heure) ; refus comptés et surveillés, PAR
+  FAMILLE (un robot ne fait plus crier), sans les espaces techniques (un anonyme faisait crier via la bêta) ;
+  corps servis bornés par version (le relèvement multipliait par 4,6 ce qu'un détenteur de clé pouvait tirer) ;
+  premier refus écrit au journal avec une empreinte de l'espace. `test-819` 25 ✓, 6/6 mutations.
+Preuves : `test-818` 39 ✓ (3/3 mutations sur Mouvements, 21/22 sur le reste — la 22ᵉ neutralisée par la vraie
+déclaration), bancs serveur 40 suites · 2 345 ✓.
+
+**Restent — non corrigés, dits à Justin :**
+- ⚠️ **À DÉCIDER (Justin) — deux tables de droits par défaut.** Pour technicien, commercial et compta, c'est
+  l'ANCIENNE table (`defaultPerms`, écrite avant la v737) qui décide, pas le modèle « chaque règle est une case »
+  (`moduleHeriteRole`) : un technicien neuf voit Brouillon, Mes demandes, Commandes en cours, Carte des box,
+  Registre sanitaire et Consommation produits, que le nouveau modèle cacherait. Rien de faux aujourd'hui, mais
+  deux sources qui divergent en silence. Proposition : une seule source qui REPRODUIT ce que voient les
+  techniciens aujourd'hui (aucun changement chez ELAN) ;
+- performance sur base « façon ELAN » à CPU ralenti : `save()` ≈ 100 ms à ×4 (145 à ×6), ouvrir puis clore une
+  intervention 220 à 800 ms, ouverture de l'application 4,4 s à ×6 — chantiers #50 et #52 ;
+- mineurs : le message d'accueil et les initiales du haut ne s'affichent jamais (ids `brand-ini`, `brand-hi`,
+  `brand-role`, `topbar-ava` disparus d'une refonte) ; du code mort (`avb*`, `teleTechSwitch`, `update-banner`) ;
+  l'entrée « Métier de l'entreprise » du journal a la puce générique.
 
 **À J+30 (25 octobre 2026)** : `reglage.js documents.copieFirebase=false`, puis supprimer les données
 Firebase d'OP GESTION (promis par `sous-traitance.html`).
