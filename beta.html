@@ -7942,7 +7942,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '751-beta';
+const APP_VERSION = '752-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -12986,25 +12986,92 @@ async function teamopJoin(code){
   toast('Connexion à l\'espace « '+(o.n||o.t)+' »…');
   setTimeout(()=>location.reload(),700);
 }
+/* ══ LES DROITS DE DÉPART — UNE SEULE LISTE, RÔLE PAR RÔLE (v752) ═══════════════════════════
+   Justin, 26 septembre 2026 : « Fais ta liste ». Ce qu'un compte voit au menu dans une
+   entreprise NEUVE, tant que personne n'a coché ni décoché quoi que ce soit (Utilisateurs →
+   le compte → ses droits). L'administrateur a tout : il n'est pas ici.
+   ⛔ ELLE NE SE LIT QUE POUR UNE BASE SANS TABLE DE RÔLE — `migrate()` et `seed()`. Une
+   entreprise qui existe (ELAN) a ses tables écrites dans sa base, et un nouveau compte y prend
+   la table de son rôle : changer cette liste ne change RIEN chez elle (`test-820` le rejoue avec
+   une liste empoisonnée).
+   Jusqu'à la v751, le départ venait de DEUX endroits qui ne disaient pas la même chose : une
+   ancienne table de trois rôles et, pour tout le reste, la règle générale de la reprise
+   (`moduleHeriteRole` : « ouvert, sauf l'administration et les modules mis de côté »). Mesuré
+   avec les vraies fonctions : elles divergeaient dans les deux sens, et la règle générale aurait
+   retiré Comptabilité à la comptabilité. Les valeurs ci-dessous sont EXACTEMENT ce qu'une
+   entreprise neuve recevait, avec deux corrections :
+   · « Assistant devis » est fermé à qui n'a pas « Utiliser Devis IA » d'office — tous les rôles
+     ici : son écran n'affichait qu'un cadenas ;
+   · plus rien ne dépend du téléphone : la reprise remplissait « Devis xylophage » selon le
+     réglage d'AFFICHAGE de l'appareil qui la faisait (`showAside`), pour toute l'entreprise.
+   ⛔ Chaque rubrique du menu (NAV) et chaque sous-catégorie (SOUS_CATS) a sa valeur, pour chaque
+   rôle — `test-820` les compte. Une rubrique neuve, c'est une valeur DÉCIDÉE par rôle.
+   Trois clés de l'ancienne table sont retirées parce que rien ne les lit : `conso`,
+   `histoDemandes` (une redirection vers Mes demandes) et `techniciens` (l'écran Équipe fait
+   son propre tri). Une ligne par groupe du menu, dans son ordre.
+   ⚠️ Une fonction, pas une constante : `migrate()` l'appelle très tôt au chargement. */
 function defaultPerms(){
-  // Modules accessibles par rôle (l'admin a tout ; DR et chef ont un accès large géré dans canSee)
   return {
-    technicien:{ dashboard:true, planning:true, interventions:true, clients:true, rapports:true, registre:true,
-      produits:true, boxes:true, stock:true, mouvements:true, enveloppes:false, demandes:true,
-      commandes:true, vehicules:true, carteInt:true, carteBox:true, conso:false, historique:true,
-      pointage:true, devis:false, factures:false, contrats:false,
-      messagerie:true, conducteurs:true, produitsDonnes:true, brouillon:true, histoDemandes:true, saisieConso:true,
-      techniciens:false },
-    commercial:{ dashboard:true, planning:true, interventions:true, clients:true, rapports:true, registre:true,
-      devis:true, factures:true, contrats:true, messagerie:true, carteInt:true, historique:true, pointage:true, demandes:true,
-      produits:false, boxes:false, stock:false, mouvements:false, saisieConso:false, produitsDonnes:false,
-      vehicules:false, conducteurs:false, carteBox:false, commandes:false, brouillon:false, histoDemandes:false,
-      enveloppes:false, conso:false, techniciens:false },
-    compta:{ dashboard:true, comptabilite:true, telecollecte:true, factures:true, devis:true, contrats:true, enveloppes:true,
-      clients:true, planning:true, interventions:true, historique:true, rapports:true, messagerie:true, conso:true, statistiques:true,
-      registre:false, produits:false, boxes:false, stock:false, mouvements:false, saisieConso:false, produitsDonnes:false,
-      vehicules:false, conducteurs:false, carteBox:false, carteInt:false, commandes:false, brouillon:false, histoDemandes:false,
-      demandes:false, archives:false, fournisseurs:false, secteurs:false, pointage:false, techniciens:false }
+    technicien:{
+      dashboard:true, statistiques:false, historique:true, archives:false,
+      planning:true, planningGeneral:true, taches:true, absences:true,
+      interventions:true, rapports:true, carteInt:true, registre:true, carteBox:true,
+      clients:true,
+      devis:false, assistantDevis:false, factures:false, contrats:false, comptabilite:false, devisXylo:false, telecollecte:true,
+      produits:true, stock:true, mouvements:true, boxes:true, produitsDonnes:true, saisieConso:true, enveloppes:false,
+      pointage:true, vehicules:true, conducteurs:true,
+      messagerie:true, boiteMail:false, fournisseurs:false, bons:false,
+      brouillon:true, demandes:true, validations:false, commandes:true,
+      secteurs:false, utilisateurs:false, modulesElan:false,
+    },
+    commercial:{
+      dashboard:true, statistiques:false, historique:true, archives:false,
+      planning:true, planningGeneral:true, taches:true, absences:true,
+      interventions:true, rapports:true, carteInt:true, registre:true, carteBox:false,
+      clients:true,
+      devis:true, assistantDevis:false, factures:true, contrats:true, comptabilite:false, devisXylo:false, telecollecte:true,
+      produits:false, stock:false, mouvements:false, boxes:false, produitsDonnes:false, saisieConso:false, enveloppes:false,
+      pointage:true, vehicules:false, conducteurs:false,
+      messagerie:true, boiteMail:false, fournisseurs:false, bons:false,
+      brouillon:false, demandes:true, validations:false, commandes:false,
+      secteurs:false, utilisateurs:false, modulesElan:false,
+    },
+    compta:{
+      dashboard:true, statistiques:true, historique:true, archives:false,
+      planning:true, planningGeneral:true, taches:true, absences:true,
+      interventions:true, rapports:true, carteInt:false, registre:false, carteBox:false,
+      clients:true,
+      devis:true, assistantDevis:false, factures:true, contrats:true, comptabilite:true, devisXylo:false, telecollecte:true,
+      produits:false, stock:false, mouvements:false, boxes:false, produitsDonnes:false, saisieConso:false, enveloppes:true,
+      pointage:false, vehicules:false, conducteurs:false,
+      messagerie:true, boiteMail:false, fournisseurs:false, bons:false,
+      brouillon:false, demandes:false, validations:false, commandes:false,
+      secteurs:false, utilisateurs:false, modulesElan:false,
+    },
+    dr:{
+      dashboard:true, statistiques:true, historique:true, archives:true,
+      planning:true, planningGeneral:true, taches:true, absences:true,
+      interventions:true, rapports:true, carteInt:true, registre:true, carteBox:true,
+      clients:true,
+      devis:true, assistantDevis:false, factures:true, contrats:true, comptabilite:true, devisXylo:true, telecollecte:true,
+      produits:true, stock:true, mouvements:true, boxes:true, produitsDonnes:true, saisieConso:true, enveloppes:true,
+      pointage:true, vehicules:true, conducteurs:true,
+      messagerie:true, boiteMail:true, fournisseurs:true, bons:true,
+      brouillon:true, demandes:true, validations:true, commandes:true,
+      secteurs:true, utilisateurs:false, modulesElan:true,
+    },
+    chefEquipe:{
+      dashboard:true, statistiques:true, historique:true, archives:true,
+      planning:true, planningGeneral:true, taches:true, absences:true,
+      interventions:true, rapports:true, carteInt:true, registre:true, carteBox:true,
+      clients:true,
+      devis:true, assistantDevis:false, factures:true, contrats:true, comptabilite:true, devisXylo:true, telecollecte:true,
+      produits:true, stock:true, mouvements:true, boxes:true, produitsDonnes:true, saisieConso:true, enveloppes:true,
+      pointage:true, vehicules:true, conducteurs:true,
+      messagerie:true, boiteMail:true, fournisseurs:true, bons:true,
+      brouillon:true, demandes:true, validations:true, commandes:true,
+      secteurs:true, utilisateurs:false, modulesElan:true,
+    },
   };
 }
 
@@ -13790,6 +13857,8 @@ function userSeesModule(u,k){ if(!u) return false; if(planBloque(k)) return fals
   const it=NAV.flatMap(s=>s.items).find(x=>x.k===k);
   // défaut des autres rôles : rubriques « admin » fermées, rubriques « mises de côté » fermées tant qu'elles ne sont pas
   // affichées dans le menu (Modules OP) ni réglées — le reste ouvert. Une seule règle pour le menu, Permissions et la fiche.
+  // ⛔ Ce n'est PAS la liste de départ d'une entreprise neuve (`defaultPerms`, complète) : on n'arrive ici que pour une
+  // clé absente d'une table écrite AVANT elle — la règle d'hier, gardée telle quelle pour que rien ne bouge chez ELAN.
   return !(it && (it.admin || (it.aside && !showAside())));
 }
 function canSee(item){ if(!currentUser) return false; return userSeesModule(currentUser,item.k); }
@@ -13817,7 +13886,10 @@ const CAPS_HERITE = {
    chaque rôle donnait d'office AVANT ce changement — il ne sert qu'une fois, à la reprise, pour
    que personne ne perde son accès du jour au lendemain. L'administrateur, lui, garde tout. */
 const CAPS = Object.fromEntries(Object.entries(CAPS_HERITE).map(([r,c])=>[r, r==='admin' ? c : Object.fromEntries(Object.keys(c).map(k=>[k,0]))]));
-/* Ce qu'un rôle voyait d'office avant la bascule — reproduit à l'identique pour la reprise. */
+/* Ce qu'un rôle voyait d'office avant la bascule — reproduit à l'identique pour la reprise.
+   ⛔ Ce n'est PAS la liste de départ (`defaultPerms`) : pour une entreprise neuve, ses tables sont
+   déjà complètes et la reprise n'y ajoute que les cases d'action. Ne pas la « corriger » : elle
+   reproduit ce qu'une entreprise d'AVANT voyait, et une entreprise pas encore reprise en dépend. */
 function moduleHeriteRole(role,k){
   if(role==='admin') return true;
   if(role==='dr'||role==='chefEquipe') return !['utilisateurs','permissions'].includes(k);
