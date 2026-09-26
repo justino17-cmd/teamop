@@ -131,8 +131,10 @@ déclaration), bancs serveur 40 suites · 2 345 ✓.
   ne bouge (`test-820` le rejoue avec deux listes empoisonnées), et une entreprise d'avant qui fait sa reprise
   retrouve la règle d'hier à l'identique (`moduleHeriteRole` intact, commenté pour qu'on ne le « corrige » pas).
   Pourquoi pas la règle générale : elle divergeait dans les deux sens et aurait retiré Comptabilité à la
-  comptabilité. Preuves : `test-820` 50 ✓ et 8/8 mutations ; `test-779` exécute la vraie liste au lieu de lire son
-  texte ; sonde `scratchpad/sonde-droits-depart.js` dans la vraie page (base enregistrée, menu DESSINÉ des cinq
+  comptabilité. Preuves : `test-820` 53 ✓ et 11/11 mutations — dont les deux de la relecture (`relecteur` : le banc
+  gardait la FORME de la liste, pas ses valeurs ; le DR sans Temps de travail ou le technicien sans Clients passaient :
+  les 210 valeurs sont désormais comparées à la règle d'hier, écarts DÉCLARÉS) ; `test-779` exécute la vraie liste au
+  lieu de lire son texte ; sonde `scratchpad/sonde-droits-depart.js` dans la vraie page (base enregistrée, menu DESSINÉ des cinq
   rôles, deux appareils) : 27 ✓ sur la v752, 16 ✗ sur la v751 (contre-épreuve).
   **Restent à Justin, s'il le veut** — les choix hérités que la liste garde tels quels : le technicien a Planning
   général, Tâches, Absences et Télécollecte ; le DR et le chef d'équipe ont tout sauf Utilisateurs (Comptabilité,
