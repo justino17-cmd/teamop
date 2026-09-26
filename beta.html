@@ -427,6 +427,27 @@
 
   .avatar{width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--acc) 20%,transparent);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--acc-txt);flex-shrink:0;}
   .ppl{display:flex;align-items:center;gap:9px;}
+  /* ── RECADRER LA PHOTO DE PROFIL (v756) ── Justin, 26 septembre 2026 : « quand je choisis une photo,
+     j'aimerais pouvoir la redimensionner ». Le geste d'un iPhone (« Déplacer et ajuster ») : la photo
+     sur un puits sombre, le ROND de l'avatar par-dessus, ce qui déborde du rond voilé — on voit ce qui
+     sera gardé ET ce qui sera coupé. Le puits reste sombre de jour comme de nuit : c'est une chambre
+     noire pour juger une photo, pas une surface de l'interface.
+     ⚠ `touch-action:none` sur le puits SEUL : c'est lui qui reçoit le doigt (déplacer, pincer), et il
+     ne contient rien d'autre — la règle du dépôt refuse ce réglage sur un conteneur qui porterait le
+     défilement d'une liste ou d'un planning, pas sur une surface de geste dédiée. */
+  .pp-cadre{position:relative;width:min(100%,320px);aspect-ratio:1;margin:6px auto 14px;border-radius:22px;overflow:hidden;
+    background:#16181d;touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab;outline:none}
+  .pp-cadre:active{cursor:grabbing}
+  .pp-cadre:focus-visible{box-shadow:0 0 0 3px var(--acc)}
+  .pp-cadre canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  /* le liseré est une ombre INTÉRIEURE, pas un `outline` : avant Safari 16.4, un contour ne suit pas l'arrondi —
+     un iPhone un peu ancien aurait dessiné un carré autour du rond */
+  .pp-cadre .pp-rond{position:absolute;inset:20px;border-radius:50%;pointer-events:none;
+    box-shadow:0 0 0 999px rgba(10,12,16,.58),inset 0 0 0 2px rgba(255,255,255,.92)}
+  .pp-zoom{display:flex;align-items:center;gap:12px;width:min(100%,320px);margin:0 auto}
+  .pp-zoom input[type=range]{flex:1;min-width:0;min-height:44px;accent-color:var(--acc);margin:0}
+  .pp-zoom .pp-z{flex-shrink:0;color:var(--t2);line-height:1}
+  .pp-aide{font-size:13px;color:var(--t2);text-align:center;margin:8px auto 2px;max-width:320px;line-height:1.45}
 
   /* CHARTS */
   .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:13px;}
@@ -3353,10 +3374,23 @@ html[data-refonte] .av{
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tc,var(--wc,var(--acier))) 40%,transparent)}
 /* Même chose pour .avatar, l'autre pastille d'initiales de l'application : sa version par défaut
    écrivait le vert d'accent sur un disque vert à 20 % — 4,25:1, mesuré sur la liste des clients.
-   Les pastilles qui reçoivent une couleur EN LIGNE (planning, techniciens) ne sont pas touchées :
-   un style en ligne passe devant, et c'est bien leur couleur qui porte l'identité. */
+   ⚠️ Cette phrase disait ensuite : « les pastilles qui reçoivent une couleur EN LIGNE (planning,
+   techniciens) ne sont pas touchées : un style en ligne passe devant ». C'est FAUX, mesuré le
+   26 septembre 2026 : un `!important` de la feuille bat un style en ligne ordinaire — une pastille
+   écrite `background:#E0524D;color:#fff` sort à la teinte (disque gris-bleu, encre sombre), et
+   `encreLisible()` n'y peut rien non plus. La couleur d'un technicien ne se voit donc PAS sur ces
+   pastilles ; la rendre (ou non) est une décision de Justin, notée dans REPRISE.md. */
+/* ⛔⛔ v756 — LA COULEUR DU DISQUE, PAS SON FOND ENTIER. Justin, 26 septembre 2026, capture à l'appui :
+   « quand je choisis une photo, elle ne s'affiche pas ici » — un disque lilas VIDE dans Paramètres →
+   Apparence. La photo était bien enregistrée (les initiales avaient disparu) ; c'est cette règle qui
+   l'effaçait : `background:…!important` est un RACCOURCI, il remet aussi `background-image` à `none`,
+   en `!important`, et un `!important` de la feuille bat un style en ligne ordinaire. Le disque du pied
+   du menu était dans le même cas : depuis la refonte, aucune photo de profil n'a jamais été peinte.
+   Mesuré (scratchpad/sonde-photo-profil.js) : style calculé `none` et pixels lilas (232,219,238).
+   On ne pose donc que la COULEUR : pour tout disque sans image, rien ne change (la contre-épreuve du
+   style calculé le prouve) ; un disque qui porte une photo la montre. */
 html[data-refonte] .avatar{
-  background:color-mix(in srgb,var(--acc) 18%,var(--card))!important;
+  background-color:color-mix(in srgb,var(--acc) 18%,var(--card))!important;
   border-color:transparent!important;
   color:color-mix(in srgb,var(--acc) 55%,var(--t1))!important}
 
@@ -4475,16 +4509,15 @@ html[data-refonte] .content{padding-top:10px}
   html[data-refonte] .pf-nav b{white-space:normal;text-align:center;flex:1 1 auto;min-width:0;line-height:1.2}
   html[data-refonte] .pf-row{row-gap:8px!important}
 
-  /* LES LIGNES DE LISTE À AVATAR : sur 390 px, le compteur et les deux boutons de droite
-     laissaient 160 px au nom du client — « Boulangerie / du Marché » sur deux lignes et le
-     téléphone coupé en trois. Le bloc de nom prend toute la largeur restante et ce qui suit
-     descend d'une ligne, aligné sous le nom.
-     La condition « :has(> div > .avatar) » n'est pas une précaution de style : sans elle, la
-     barre de filtres du planning — une carte cliquable elle aussi — recevait le décalage de
-     57 px destiné aux boutons de fin de ligne, et TOUTE la barre partait vers la droite. */
-  html[data-refonte] .content > .card[onclick]:not(.pf-bar):has(> div > .avatar) > div{flex-wrap:wrap;row-gap:10px}
-  html[data-refonte] .content > .card[onclick]:not(.pf-bar):has(> div > .avatar) > div > div[style*="flex:1"]{flex:1 1 calc(100% - 60px)}
-  html[data-refonte] .content > .card[onclick]:not(.pf-bar):has(> div > .avatar) > div > *:not(.avatar):not([style*="flex:1"]){margin-left:57px}
+  /* ⛔⛔ v756 — LES « LIGNES DE LISTE À AVATAR » SONT PARTIES, ET LEURS TROIS RÈGLES AVEC. Elles
+     visaient la liste des clients en cartes cliquables (`.card[onclick] > div > .avatar`), seule
+     structure de ce genre à leur naissance (7 septembre 2026) ; la liste a depuis changé de forme
+     et PLUS AUCUN gabarit ne la produit (recherché dans tout le fichier, et mesuré : 0 élément
+     visé sur 44 écrans, scratchpad/sonde-selecteurs-equivalents.js). Mais leur `:has()`, lui,
+     travaillait toujours : ancré sur chaque carte, avec pour cible ses PETITS-ENFANTS, il faisait
+     restyler ~2 000 éléments sur huit gestes mesurés (scratchpad/perf-has-glouton.js) — pour ne
+     rien peindre. Une règle morte n'est pas gratuite quand elle porte un `:has()`.
+     `tests/test-823.js` refuse leur retour. */
 
   /* L'ÉTAT VIDE tenait la moitié de l'écran avec un émoji au centre pour dire « il n'y a rien ».
      Il dit la même chose en trois fois moins de place, et l'action qui le suit reste au pouce. */
@@ -4653,12 +4686,19 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
      10 px de la barre, comme la bulle l'était.
      ⚠️ Un seul bouton peut encore occuper ce coin : celui d'OP MESSAGES (`#msg-flot`, 56 px à
      14 px de la barre), quand l'application rouvrira. Le message et le rappel passent alors
-     au-dessus de lui — SEULEMENT s'il est là (`:has`), pour ne pas rouvrir le trou le reste du
-     temps. Le JavaScript l'allume en écrivant `display:flex` dans son style. */
+     au-dessus de lui — SEULEMENT s'il est là, pour ne pas rouvrir le trou le reste du temps.
+     ⛔⛔ v756 — PAR UNE CLASSE, PLUS PAR `body:has(#msg-flot[style*="flex"])`. Mesuré le 26 septembre
+     2026 (scratchpad/perf-ecriture-style.js, téléphone, processeur ×4) : ce sélecteur faisait
+     réévaluer `:has()` à CHAQUE écriture d'un attribut `style`, n'importe où dans la page — et
+     restyler la page entière. Une seule écriture de style en ligne (la bulle de la barre d'onglets
+     en fait une à chaque mouvement du doigt) coûtait 31,7 ms et 605 éléments restylés ; sans lui,
+     1,4 ms et 69. Et il ne s'appliquait JAMAIS : OP MESSAGES est fermée, le bouton reste caché.
+     `msg-flot-on` est posée par renderMsgFlottant(), le SEUL écrivain de ce style, avec le même
+     booléen : la condition est exactement la même. `tests/test-823.js`. */
   html[data-refonte] body.rf-onglets .toast{bottom:calc(var(--tabh) + 10px)!important;max-width:min(90vw,440px)}
   html[data-refonte] body.rf-onglets #fdr-banner{bottom:calc(var(--tabh) + 10px)!important}
-  html[data-refonte] body.rf-onglets:has(#msg-flot[style*="flex"]) .toast,
-  html[data-refonte] body.rf-onglets:has(#msg-flot[style*="flex"]) #fdr-banner{bottom:calc(var(--tabh) + 80px)!important}
+  html[data-refonte] body.rf-onglets.msg-flot-on .toast,
+  html[data-refonte] body.rf-onglets.msg-flot-on #fdr-banner{bottom:calc(var(--tabh) + 80px)!important}
   /* ⛔⛔ DEUX BOUTONS FLOTTANTS DANS LE MÊME COIN — PUIS LA PILE A COUVERT LE PLANNING.
      Justin, capture à l'appui, 22 septembre 2026 : sur le Planning, « Voir sur la carte »
      cachait la bulle d'assistance — recouverte à 83 % et INATTEIGNABLE (`elementFromPoint` en
@@ -5081,7 +5121,12 @@ html[data-refonte] #mail-list > div[onclick]:active{transform:scale(.99);transit
    de lecture qui n'aura jamais de message à lire — c'est trois fois la place pour zéro
    information. On les retire et on ne garde que la seule chose à faire : brancher une boîte.
    :has() reconnaît cet état sans rien demander à l'application : la carte d'accueil n'est rendue
-   dans #mail-list QUE là (les lignes de message et les états « aucun message » sont des div nus). */
+   dans #mail-list QUE là (les lignes de message et les états « aucun message » sont des div nus).
+   ⛔ v756 — `:has()` SEULEMENT pour les ANCÊTRES de la carte (le volet, les colonnes). Les règles dont
+   la cible est DANS la carte (`#mail-list > .card …`) le portaient aussi, pour rien : viser un élément
+   de la carte, c'est déjà dire que la carte est là. Il leur coûtait cher — la plus lourde visait
+   `.rf-ic`, une icône posée partout, et faisait restyler ~40 éléments de plus à CHAQUE geste, sur
+   tous les écrans (scratchpad/perf-has-glouton.js : −315 au téléphone, −526 au bureau). */
 html[data-refonte] #mail-app:has(#mail-list > .card){
   display:block!important;height:auto!important;min-height:0!important;
   border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
@@ -5091,25 +5136,25 @@ html[data-refonte] #mail-app:has(#mail-list > .card) #mail-mid{
   border:0!important;padding:0!important;overflow:visible!important}
 /* Le champ de recherche part avec eux : il n'y a rien à chercher. */
 html[data-refonte] #mail-app:has(#mail-list > .card) #mail-mid > div:first-child{display:none!important}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card{
+html[data-refonte] #mail-app #mail-list > .card{
   max-width:600px;margin:6px auto 0!important;padding:44px 34px 38px!important;
   background:var(--card)!important;box-shadow:var(--rf-relief)!important;
   border-radius:var(--rf-r-carte)!important}
 /* L'émoji de 50 px posé sur du vide devient le disque de matière des autres états vides. */
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card > div:first-child{
+html[data-refonte] #mail-app #mail-list > .card > div:first-child{
   width:68px;height:68px;margin:0 auto 20px!important;border-radius:21px;
   display:flex;align-items:center;justify-content:center;font-size:27px!important;
   background:var(--rf-2nd);color:var(--t2)}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card > div:first-child .rf-ic{
+html[data-refonte] #mail-app #mail-list > .card > div:first-child .rf-ic{
   width:31px;height:31px;stroke-width:1.5}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card > div:nth-child(2){
+html[data-refonte] #mail-app #mail-list > .card > div:nth-child(2){
   font-size:21px!important;font-weight:700!important;letter-spacing:-.024em;margin-bottom:10px!important}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card p{
+html[data-refonte] #mail-app #mail-list > .card p{
   max-width:44ch;margin-left:auto!important;margin-right:auto!important;
   font-size:14.5px!important;line-height:1.6!important;color:var(--t2)!important}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card p:last-of-type{
+html[data-refonte] #mail-app #mail-list > .card p:last-of-type{
   font-size:12.5px!important;color:var(--t3)!important;margin-top:18px!important}
-html[data-refonte] #mail-app:has(#mail-list > .card) #mail-list > .card .btn{
+html[data-refonte] #mail-app #mail-list > .card .btn{
   min-height:48px;padding:0 26px!important;font-size:15.5px!important;font-weight:650!important}
 
 /* ── UNE SEULE ACTION PRINCIPALE, ET UNE SEULE FOIS ──
@@ -5440,58 +5485,15 @@ html[data-refonte] [onclick^="intSelDay='"][style*="background:var(--acc)"]{
 html[data-refonte] [onclick^="intSelDay='"][style*="var(--acc) 14%"]{
   background:var(--rf-auj)!important;color:var(--acc-txt)!important}
 
-/* ── LA LIGNE DE LISTE ── on la lit debout, sur un chantier : l'HEURE d'abord, le client ensuite.
-   Elle était en dernier, sous l'adresse, au même poids que tout le reste. */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]{
-  padding:15px 17px!important;margin-bottom:0!important;border-left-width:3px!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child{
-  display:flex;flex-direction:column;gap:7px}
-/* l'horaire remonte en tête et prend le poids */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div:last-child{
-  order:-1;font-size:15px!important;margin-bottom:2px!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div:last-child b,
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div:last-child span{
-  font-size:15px!important;font-weight:650!important;color:var(--t1)!important}
-/* le titre cesse d'être vert : une ligne sur deux en accent, ce n'est plus un accent */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div:first-child{
-  color:var(--t1)!important;font-size:15.5px!important;letter-spacing:.005em!important;margin-bottom:0!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:first-child > div{margin-bottom:0!important}
-/* la colonne de droite : un vrai bouton d'icône, et l'état sous lui */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] > div > div:last-child{
-  align-items:flex-end!important;gap:8px!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] span[title="Voir au planning"]{
-  width:36px;height:36px;border-radius:50%;background:var(--rf-2nd);color:var(--t2)!important;
-  display:inline-flex;align-items:center;justify-content:center;font-size:0!important;
-  transition:background-color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] span[title="Voir au planning"] .rf-ic{
-  width:19px;height:19px}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] span[title="Voir au planning"]:active{
-  transform:scale(.9);transition-duration:var(--d-0)}
-/* Une suite de cartes cliquables EST une liste : filets entre elles, coins ronds aux extrémités,
-   exactement la grammaire posée pour les autres écrans. */
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"] + .card[draggable]{
-  border-top:1px solid var(--rf-filet)!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
-html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]:has(+ .card[draggable]){
-  border-bottom-left-radius:0!important;border-bottom-right-radius:0!important}
-
-/* ── LA PLACE PERDUE ── en 1400 px et au-delà, les deux tiers bas de l'écran étaient vides
-   pendant que la liste restait sur une colonne étroite. Elle passe à deux colonnes : la page
-   tient sur un écran au lieu de deux, et la largeur sert enfin à quelque chose. */
-@media (min-width:1240px){
-  html[data-refonte] #content:has(> .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]){
-    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;align-content:start}
-  html[data-refonte] #content:has(> .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]) > *:not(.card[draggable]){
-    grid-column:1/-1}
-  /* En deux colonnes, chaque carte redevient une carte : les filets de liste n'ont plus de sens. */
-  html[data-refonte] #content:has(> .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]) > .card[draggable]{
-    border-radius:var(--rf-r-carte)!important;border-top:0!important;margin-bottom:16px!important}
-}
-@media (max-width:1239px){
-  html[data-refonte] .card[draggable][style*="padding:15px 16px;margin-bottom:12px"]:last-child{margin-bottom:16px!important}
-}
-@media (prefers-reduced-motion: reduce){
-  html[data-refonte] .card[draggable] span[title="Voir au planning"]:active{transform:none!important}
-}
+/* ⛔⛔ v756 — L'ANCIENNE LISTE DES INTERVENTIONS EN CARTES (`.card[draggable]` au style en ligne
+   « padding:15px 16px;margin-bottom:12px ») EST PARTIE, ET SES DIX-SEPT RÈGLES AVEC. La liste est
+   devenue les rangées `.tf-rangee` du thème final ; plus AUCUN gabarit n'écrit ce style en ligne
+   (il ne figurait plus que dans ces règles). Elles ne peignaient donc rien — mais trois d'entre
+   elles portaient `#content:has(> .card[draggable][style*=…])` : un `:has()` qui lit un attribut
+   `style`, réévalué à chaque écriture de style sous #content. Mesuré au bureau le 26 septembre
+   2026 (scratchpad/perf-has-glouton.js, BUREAU=1) : 1 617 éléments restylés en trop sur neuf
+   gestes, la plus coûteuse de toutes les règles de la feuille. `tests/test-823.js` refuse leur
+   retour et, plus largement, tout `:has()` qui lit un attribut `style`. */
 
 /* ══ UNE FENÊTRE PLUS HAUTE QUE L'ÉCRAN RESTE ATTEIGNABLE PAR LE HAUT ══
    openModal(…,'carte') centre la feuille dans le voile. Quand elle dépasse la hauteur de
@@ -7941,7 +7943,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '755-beta';
+const APP_VERSION = '756-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13446,7 +13448,7 @@ function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html ||
   m.classList.add('pose'); clearTimeout(window._poseT); window._poseT=setTimeout(()=>m.classList.remove('pose'),620); }
 /* Écran obligatoire (mot de passe personnel à la 1re connexion) : ni Échap ni fermeture tant qu'il n'est pas validé */
 let _modalForcee=false;
-function closeModal(force){ if(_modalForcee&&force!==true) return; $('overlay').classList.remove('open'); if(scanTimer){clearInterval(scanTimer);scanTimer=null;} if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;} stopBoxScanCamera(); }
+function closeModal(force){ if(_modalForcee&&force!==true) return; $('overlay').classList.remove('open'); _pp=null; if(scanTimer){clearInterval(scanTimer);scanTimer=null;} if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;} stopBoxScanCamera(); }
 /* Une fenêtre ouverte NE se ferme QUE par sa croix ✕ ou son bouton Annuler —
    plus jamais par un clic à côté (qui faisait perdre la saisie en revenant
    d'une autre fenêtre : le clic de reprise tombait sur le fond sombre). */
@@ -14910,7 +14912,11 @@ function msgFlottantOn(){
 }
 function renderMsgFlottant(){
   const b=document.getElementById('msg-flot'); if(!b) return;
-  b.style.display = msgFlottantOn() ? 'flex' : 'none';
+  const on=msgFlottantOn();
+  b.style.display = on ? 'flex' : 'none';
+  /* la place du message et du rappel du matin suit le bouton — par une classe, jamais par
+     `:has()` sur son style (v756, voir la règle `msg-flot-on`) */
+  document.body.classList.toggle('msg-flot-on', on);
 }
 /* ⛔ UN LIBELLÉ TRONQUÉ NE NOMME RIEN. Mesuré au navigateur sur un iPhone de 430 px :
    cinq onglets dans 406 px donnaient « Tablea… », « Interv… », « Planni… » — trois
@@ -38926,8 +38932,112 @@ function setProfilePhoto(d,meta,quiet){ if(!currentUser) return; const u=db.user
   if(meta) meta.accent=getAccent();
   if(u){ u.photo=d||''; u.photoMeta=d?(meta||null):null; currentUser=u; } else { currentUser.photo=d||''; currentUser.photoMeta=d?(meta||null):null; }
   save(); userAvatarApply(); if(!quiet){ toast(d?'Photo de profil enregistrée':'Photo retirée'); if(current==='parametres') views.parametres(); } }
-async function profilePhotoPick(e){ const f=e.target.files&&e.target.files[0]; if(!f) return;
-  const d=await compressImage(f,256,0.82); if(d){ try{ closeModal(); }catch(_){ } setProfilePhoto(d); } e.target.value=''; }
+/* ══ CHOISIR UNE PHOTO, PUIS LA RECADRER (v756) ════════════════════════════════════════════════════════════
+   Justin, 26 septembre 2026 : « quand je choisis une photo, j'aimerais pouvoir la redimensionner ». Avant, la
+   photo partait telle quelle, réduite à 256 px, et le disque la coupait au milieu : un visage en bas d'une
+   photo en hauteur n'apparaissait jamais. Le geste est celui d'un iPhone (« Déplacer et ajuster ») : on
+   glisse pour déplacer, on pince (ou le curseur, ou la molette) pour agrandir, et le ROND montre ce que
+   l'équipe verra. L'image enregistrée est exactement le carré du rond.
+   Trois règles :
+   • la photo COUVRE toujours le rond (`ppBorner`) — ni bord vide, ni zoom arrière au-delà du cadre ;
+   • l'image qui part fait 256 px, comme avant : elle vit dans la fiche du compte, donc dans la synchro de
+     toute l'équipe — recadrer ne doit pas l'alourdir ;
+   • la source est ramenée à 1 600 px au plus AVANT tout : une photo de téléphone de 12 Mpx décodée pèse
+     48 Mo, et le puits la redessine à chaque mouvement du doigt. */
+const PP_SORTIE=256, PP_SOURCE_MAX=1600, PP_MARGE=20, PP_ZOOM_MAX=4;
+/* le recadrage en cours : la source, le puits, l'échelle (k), le décalage (x, y) dans le rond.
+   ⚠ `var` et non `let` : `closeModal()` l'oublie, et elle est écrite 25 000 lignes plus haut — un `let` aurait une
+   zone morte temporelle si une fenêtre se fermait pendant le chargement du script (la leçon du 10 septembre).
+   ⛔ Et c'est closeModal qui l'oublie, pas les seuls boutons « Annuler » et « Choisir » : Échap, le geste « retour »
+   et toute navigation (`go()`) ferment la fenêtre par elle. Relecture v756 : sans ça, le puits caché restait tenu,
+   et chaque rotation de l'appareil le remesurait à 0 px. */
+var _pp=null;
+async function profilePhotoPick(e){ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
+  const src=await ppCharger(f);
+  if(!src){ toast("Cette photo n'a pas pu être lue — choisis une photo JPEG ou PNG"); return; }
+  ppOuvrir(src); }
+/* La photo décodée, orientée comme sur le téléphone (le navigateur applique l'orientation de l'appareil photo
+   en dessinant), ramenée à PP_SOURCE_MAX. Rend un canevas, ou null si le format n'est pas lisible ici. */
+function ppCharger(f){ return new Promise(res=>{ let url='';
+  try{ url=URL.createObjectURL(f); }catch(e){ return res(null); }
+  const img=new Image(), fin=v=>{ try{ URL.revokeObjectURL(url); }catch(e){} res(v); };
+  img.onload=()=>{ try{ const iw=img.naturalWidth, ih=img.naturalHeight; if(!iw||!ih) return fin(null);
+      const r=Math.min(1,PP_SOURCE_MAX/Math.max(iw,ih)), w=Math.max(1,Math.round(iw*r)), h=Math.max(1,Math.round(ih*r));
+      const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d');
+      g.imageSmoothingQuality='high'; g.drawImage(img,0,0,w,h); fin(c); }catch(e){ fin(null); } };
+  img.onerror=()=>fin(null); img.src=url; }); }
+function ppOuvrir(src){
+  openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="ppFermer()">Annuler</button><h3>Recadrer la photo</h3><button type="button" class="btn sm" id="pp-ok" onclick="ppValider()">Choisir</button></div>
+    <div class="pp-cadre" id="pp-cadre" tabindex="0" role="application" aria-roledescription="recadrage" aria-label="Photo à recadrer : glisse pour la déplacer, pince pour l'agrandir. Au clavier : les flèches déplacent, plus et moins agrandissent."><canvas></canvas><div class="pp-rond"></div></div>
+    <div class="pp-zoom"><span class="pp-z" aria-hidden="true" style="font-size:14px">－</span><input type="range" id="pp-zoom" min="1" max="${PP_ZOOM_MAX}" step="0.01" value="1" aria-label="Agrandir la photo" oninput="ppZoomer(parseFloat(this.value)||1)"><span class="pp-z" aria-hidden="true" style="font-size:20px">＋</span></div>
+    <div class="pp-aide">Glisse pour déplacer la photo, pince ou fais glisser le curseur pour l'agrandir. Le rond montre ce que verra l'équipe.</div>`);
+  /* Un recadrage ne se « reprend » pas depuis le multitâche : la photo est un FICHIER, et le multitâche n'en
+     garde jamais (multiCapturer). Sans ça, « Reprendre » rouvrirait un puits vide. */
+  _multiHtml='';
+  const st=$('pp-cadre'); if(!st) return;
+  _pp={src:src, st:st, cv:st.querySelector('canvas'), k:1, z:1, x:0, y:0, kmin:1, D:0, raf:0};
+  ppMesurer(true); ppGestes(st);
+  try{ st.focus({preventScroll:true}); }catch(e){} }
+function ppFermer(){ _pp=null; closeModal(); }
+/* D : le diamètre du rond, en pixels d'écran. Au premier passage, la photo remplit le rond et se centre ;
+   ensuite (l'appareil tourne), on garde le point de la photo qui était au centre du rond. */
+function ppMesurer(init){ const p=_pp; if(!p||!p.st.isConnected||!p.st.offsetWidth) return;   /* caché : 0 px, rien à mesurer */
+  const D=Math.max(40,p.st.offsetWidth-2*PP_MARGE), iw=p.src.width, ih=p.src.height, kmin=D/Math.min(iw,ih);
+  if(init||!p.D){ p.z=1; p.k=kmin; p.x=(D-iw*kmin)/2; p.y=(D-ih*kmin)/2; }
+  else { const u=(p.D/2-p.x)/p.k, v=(p.D/2-p.y)/p.k; p.k=kmin*p.z; p.x=D/2-u*p.k; p.y=D/2-v*p.k; }
+  p.D=D; p.kmin=kmin; ppBorner(); ppPeindre(); }
+/* La photo couvre toujours le rond : son bord gauche jamais à droite du rond, son bord droit jamais à gauche. */
+function ppBorner(){ const p=_pp; if(!p) return; const w=p.src.width*p.k, h=p.src.height*p.k;
+  p.x=Math.min(0,Math.max(p.D-w,p.x)); p.y=Math.min(0,Math.max(p.D-h,p.y)); }
+/* Agrandir autour d'un point (le centre des deux doigts, la souris) : ce point de la photo ne bouge pas. */
+function ppZoomer(z,fx,fy){ const p=_pp; if(!p) return; z=Math.max(1,Math.min(PP_ZOOM_MAX,+z||1));
+  if(fx==null||fy==null){ fx=p.D/2; fy=p.D/2; }
+  const u=(fx-p.x)/p.k, v=(fy-p.y)/p.k; p.z=z; p.k=p.kmin*z; p.x=fx-u*p.k; p.y=fy-v*p.k; ppBorner(); ppPeindre(); }
+function ppDeplacer(dx,dy){ const p=_pp; if(!p) return; p.x+=dx; p.y+=dy; ppBorner(); ppPeindre(); }
+/* Une image par trame, au plus : le doigt envoie plus de mouvements que l'écran n'affiche d'images. */
+function ppPeindre(){ const p=_pp; if(!p||p.raf) return;
+  p.raf=requestAnimationFrame(()=>{ p.raf=0; if(_pp!==p||!p.cv.isConnected) return;
+    const S=p.st.offsetWidth, dpr=Math.min(3,window.devicePixelRatio||1), N=Math.round(S*dpr);
+    if(p.cv.width!==N){ p.cv.width=N; p.cv.height=N; }
+    const g=p.cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,S,S); g.imageSmoothingQuality='high';
+    g.drawImage(p.src,PP_MARGE+p.x,PP_MARGE+p.y,p.src.width*p.k,p.src.height*p.k);
+    const zi=$('pp-zoom'); if(zi&&document.activeElement!==zi) zi.value=String(p.z); }); }
+/* Un doigt déplace, deux doigts pincent (et déplacent). Le TACTILE pour un doigt, le POINTEUR pour une souris :
+   la règle du dépôt (le navigateur annule le flux de pointeur au premier mouvement horizontal d'un doigt). */
+function ppContact(q){ if(!q||!q.length) return null; if(q.length===1) return {n:1,x:q[0].x,y:q[0].y};
+  const a=q[0], b=q[1]; return {n:2,x:(a.x+b.x)/2,y:(a.y+b.y)/2,d:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))}; }
+function ppSuivre(t,n){ const p=_pp; if(!p||!t||!n||t.n!==n.n) return;
+  if(n.n===2) ppZoomer(p.z*n.d/t.d,t.x,t.y);
+  ppDeplacer(n.x-t.x,n.y-t.y); }
+function ppGestes(st){ let t=null, souris=null;
+  const dans=(cx,cy)=>{ const r=st.getBoundingClientRect(), f=r.width?st.offsetWidth/r.width:1;   /* la fenêtre peut entrer en s'agrandissant */
+    return {x:(cx-r.left)*f-PP_MARGE, y:(cy-r.top)*f-PP_MARGE}; };
+  const doigts=e=>[...e.touches].slice(0,2).map(x=>dans(x.clientX,x.clientY));
+  st.addEventListener('touchstart',e=>{ if(!_pp) return; e.preventDefault(); t=ppContact(doigts(e)); },{passive:false});
+  st.addEventListener('touchmove',e=>{ if(!_pp||!t) return; e.preventDefault(); const n=ppContact(doigts(e)); ppSuivre(t,n); t=n; },{passive:false});
+  st.addEventListener('touchend',e=>{ t=(_pp&&e.touches.length)?ppContact(doigts(e)):null; });
+  st.addEventListener('touchcancel',()=>{ t=null; });
+  st.addEventListener('pointerdown',e=>{ if(!_pp||e.pointerType==='touch'||e.button!==0) return; souris=dans(e.clientX,e.clientY); try{ st.setPointerCapture(e.pointerId); }catch(_){} });
+  st.addEventListener('pointermove',e=>{ if(!_pp||!souris||e.pointerType==='touch') return; const n=dans(e.clientX,e.clientY); ppDeplacer(n.x-souris.x,n.y-souris.y); souris=n; });
+  const lacher=e=>{ if(e.pointerType==='touch') return; souris=null; };
+  st.addEventListener('pointerup',lacher); st.addEventListener('pointercancel',lacher);
+  st.addEventListener('wheel',e=>{ if(!_pp) return; e.preventDefault(); const q=dans(e.clientX,e.clientY); ppZoomer(_pp.z*Math.exp(-e.deltaY*0.0015),q.x,q.y); },{passive:false});
+  st.addEventListener('keydown',e=>{ if(!_pp) return; const k=e.key, pas=e.shiftKey?40:10;
+    const d={ArrowLeft:[pas,0],ArrowRight:[-pas,0],ArrowUp:[0,pas],ArrowDown:[0,-pas]}[k];
+    if(d){ e.preventDefault(); ppDeplacer(d[0],d[1]); }
+    else if(k==='+'||k==='='){ e.preventDefault(); ppZoomer(_pp.z*1.1); }
+    else if(k==='-'||k==='_'){ e.preventDefault(); ppZoomer(_pp.z/1.1); }
+    else if(k==='Enter'){ e.preventDefault(); ppValider(); } }); }
+/* Ce qui part : le carré du rond, 256 px, en JPEG. Un fond blanc sous une photo transparente (un PNG) : le
+   JPEG n'a pas de transparence, et sans fond elle deviendrait noire. */
+function ppValider(){ const p=_pp; if(!p) return; const N=PP_SORTIE, f=N/p.D;
+  let d='';
+  try{ const c=document.createElement('canvas'); c.width=c.height=N; const g=c.getContext('2d'); g.imageSmoothingQuality='high';
+    g.fillStyle='#fff'; g.fillRect(0,0,N,N); g.drawImage(p.src,p.x*f,p.y*f,p.src.width*p.k*f,p.src.height*p.k*f);
+    d=c.toDataURL('image/jpeg',0.85); }catch(e){ d=''; }
+  _pp=null; closeModal();
+  if(d) setProfilePhoto(d); else toast("La photo n'a pas pu être enregistrée"); }
+window.addEventListener('resize',()=>{ if(_pp) ppMesurer(false); });
 function makeAvatar(quiet){ if(!currentUser) return; const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
   const gr=g.createLinearGradient(0,0,256,256); gr.addColorStop(0,accentDark()); gr.addColorStop(1,accentHex());
   g.fillStyle=gr; g.fillRect(0,0,256,256);
@@ -39125,7 +39235,11 @@ function enterApp(u){ currentUser=u;
      changé d'écran ou si la page a rechargé. La classe se retire à la fin — sinon une
      seconde connexion dans la même session ne rejouerait rien — et un filet la retire aussi
      quand il n'y a pas d'animation du tout (mouvement réduit, onglet en arrière-plan). */
-  try{ const _r=$('app-root'); _r.classList.remove('op-entree'); void _r.offsetWidth; _r.classList.add('op-entree');
+  /* ⛔ v756 — la lecture de `offsetWidth` ne sert qu'à RELANCER une animation déjà posée (seconde
+     connexion dans la même séance). Au premier affichage la classe n'est pas là : la lire forçait
+     quand même un calcul complet de la page (styles 15 ms + mise en page 57 ms, processeur ×4,
+     trace de l'ouverture — scratchpad/perf-lenteur.js), refait juste après pour dessiner. */
+  try{ const _r=$('app-root'); if(_r.classList.contains('op-entree')){ _r.classList.remove('op-entree'); void _r.offsetWidth; } _r.classList.add('op-entree');
     _r.addEventListener('animationend',()=>_r.classList.remove('op-entree'),{once:true});
     setTimeout(()=>_r.classList.remove('op-entree'),900);
   }catch(e){}
