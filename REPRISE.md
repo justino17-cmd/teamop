@@ -61,6 +61,13 @@ au pixel, connexion et portail, code, serveur et budgets, production), chaque co
 **17 défauts confirmés**, plus de 80 faux positifs écartés et nommés. Puis une contre-vérification de la v751
 (`wf_1f0951aa-5c1`) : chaque correctif rejoué au navigateur contre la v750, plus `relecteur` et `gardien`.
 
+**Bêta v751 PUBLIÉE sur `main` (`600de09`, `beta.html` seul) et servie en `751-beta` ; `app.html` reste en v749
+(il porte les deux bloquants ci-dessous) et attend « publie » ; le serveur attend « pousse le serveur » — commit
+prêt, NON poussé, fabriqué par `scripts/preparer-deploiement-serveur.sh` sur `main` = `a099ad7` (40 suites ·
+2 345 ✓).** Au passage, `test-738` est tombé une fois sur la CI de `main` (écart de temps connue/inconnue > 40 %,
+1 à 9 % en local) : les deux médianes se mesuraient en deux blocs, une rafale de charge sur un seul suffisait ;
+alternées requête par requête (`a099ad7`, test seul) : 0 à 7 % machine saturée, la mutation tombe à 92-94 %.
+
 **Corrigés dans la v751 (bêta ; branche `e5e7fd5`, `b9089ff`, `0c10fe8`)** — deux BLOQUANTS sont aussi dans la
 v749 de production :
 - ⛔ **la cloche plantait** (`bx is not defined`, une déclaration écrite DANS un commentaire) dès qu'un arrivage
