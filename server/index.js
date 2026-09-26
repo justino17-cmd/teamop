@@ -207,7 +207,11 @@ const ROUTES_SENSIBLES = /^\/api\/(stripe|devis|sendcode|mdp|beta|promo|espaces\
 let compteurs = new Map();
 setInterval(() => { compteurs = new Map(); }, 60000).unref();
 
+/* Chaque 429 du seau par IP se compte (dates seulement, rien sur l'adresse) : `/health` publie le
+   nombre de la dernière heure. Avant le 26 septembre 2026, un bureau entier refusé ne se voyait nulle part. */
+const refus429 = [];
 function tropDeRequetes(res) {
+  refus429.push(Date.now()); if (refus429.length > 2000) refus429.splice(0, refus429.length - 2000);
   res.setHeader('Retry-After', '60');
   return res.status(429).json({ error: 'trop de requêtes' });
 }
@@ -475,6 +479,8 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
   documents: documentsMod ? documentsMod.sante() : { actif: false, erreur: 'montage' },
   /* Le filet du processus (voir plus haut) : des nombres de la dernière heure, rien sur personne. */
   processus: { rejets1h: incidentsHeure('rejet'), erreurs1h: incidentsHeure('erreur') },
+  /* Les 429 du seau par IP dans la dernière heure : un nombre, jamais une adresse. */
+  limites: { refusIp1h: refus429.filter(t => t > Date.now() - 3600000).length },
   /* L'horloge des 24 mois : tourne-t-elle, son dernier balayage a-t-il réussi, y a-t-il AU
      MOINS une entreprise en préavis, AU MOINS une échue. ⛔⛔ DES BOOLÉENS, PLUS AUCUN NOMBRE
      (24 septembre 2026, relevé par `gardien`) : les comptes — combien ne paient pas, combien de

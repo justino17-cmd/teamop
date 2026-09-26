@@ -376,7 +376,10 @@
   .modal-close:hover{color:var(--t1);}
   .sheet-head{gap:10px;}
   .sheet-head h3{flex:1;text-align:center;font-size:16px;}
-  .form-sec{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);font-weight:800;margin:20px 0 10px;}
+  /* v751 : à mi-chemin entre --t3 et --t1 — --t3 seul tombait à 4,46:1 sur le point le plus sombre de la vitre
+     des fenêtres en thème jour (audit au pixel, vérification de A à Z du 26 septembre 2026), pour un texte de
+     10,5 px qui n'a pas droit au seuil du « grand texte ». */
+  .form-sec{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:color-mix(in srgb,var(--t3) 65%,var(--t1));font-weight:800;margin:20px 0 10px;}
   .form-sec:first-of-type{margin-top:6px;}
   .field{margin-bottom:15px;}
   .field label{display:block;font-size:13px;font-weight:500;color:var(--t2);margin-bottom:7px;}
@@ -3593,6 +3596,11 @@ html[data-refonte] .modal.carte:has(#rf-reglages) #rf-reglages{
    22 septembre 2026 par l'audit des écrans profonds, champ de recherche à x −84, sur les
    deux passages. C'est la règle écrite : un panneau flottant se mesure sur l'ÉCRAN, pas sur
    son bouton. On lui donne la barre entière pour bloc conteneur. */
+/* ⛔ v751 — LE VOILE QUI FERME LE MENU COUVRAIT LE CHAMP DE RECHERCHE. Le voile plein écran (z-index 50) qui
+   referme « Filtrer par box » au toucher passait AUSSI sur le reste de la barre : « Rechercher » répondait sur
+   0 px tant que le menu restait ouvert (vérification de A à Z du 26 septembre 2026, `sonde-cibles.js`), au
+   téléphone comme au bureau. La barre entière passe au-dessus du voile ; le menu garde son propre rang dedans. */
+.mvt-bar{position:relative;z-index:51}
 @media(max-width:560px){
   .mvt-bar{position:relative}
   .mvt-dd{position:static!important}
@@ -7287,9 +7295,17 @@ html[data-marque][data-theme="dark"] .avatar{color:color-mix(in srgb,var(--acc) 
 /* ── 13. LES TUILES CHIFFRÉES DU TABLEAU DE BORD ── 40 pt, la tuile d'icône colorée au-dessus */
 html[data-marque][data-refonte] .kpis{gap:12px!important}
 html[data-marque][data-refonte] .kpis .kpi{padding:18px!important;display:flex;flex-direction:column;gap:16px}
+/* ⛔ v751 — 40 PX FIXES DÉBORDAIENT AVEC DES VALEURS RÉELLES. Vérification de A à Z du 26 septembre 2026,
+   `scratchpad/kpi-longs.js` : « 1523h30 » et « 12 345,67 € » sortaient de leur tuile sur les trois téléphones
+   ET au bureau (1/5, seul l'iPad passait) — la régression exacte que le correctif historique avait levée.
+   La taille suit donc la largeur de la tuile (`cqi`, la tuile est son propre conteneur) ET la longueur de la
+   valeur (`--kpi-n`, le NOMBRE de caractères, posé par `kpiTailler()` — un compte, pas une mesure) : un « 12 »
+   reste à 40 px, un montant à onze signes descend juste ce qu'il faut. Le repli `overflow-wrap` ne sert
+   qu'à ce qu'aucune valeur ne sorte jamais de sa tuile, même si le compte manque. */
+html[data-marque][data-refonte] .kpis .kpi{container-type:inline-size;min-width:0}
 html[data-marque][data-refonte] .kpis .kpi-val{
-  font-family:var(--fs)!important;font-size:40px!important;line-height:1!important;
-  font-weight:700!important;letter-spacing:-.035em!important;color:var(--t1)!important;
+  font-family:var(--fs)!important;font-size:clamp(17px,calc(150cqi / var(--kpi-n,5)),40px)!important;line-height:1.05!important;
+  font-weight:700!important;letter-spacing:-.035em!important;color:var(--t1)!important;min-width:0;overflow-wrap:anywhere;
 }
 html[data-marque][data-refonte] .kpis .kpi-lbl{font-size:15px!important;color:var(--t3)!important;letter-spacing:-.01em;margin-top:2px!important}
 html[data-marque][data-refonte] .kpis .kpi:active{transform:scale(.97)}
@@ -7921,7 +7937,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '750';
+const APP_VERSION = '751';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -8425,9 +8441,12 @@ const _fd=(d,cle,loc,opts)=>{ const f=_F(cle,loc,opts); return f?f.format(d):d.t
    clé de données : un caractère d'écart déplacerait des enregistrements de jour. */
 const isoDe = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 let _NF;
+/* ⛔ v751 — un montant s'écrit TOUJOURS avec deux décimales. `Intl.NumberFormat('fr-FR')` sans option en rendait
+   0, 1 ou 2 selon que les centimes tombaient juste : « 170,7 € » à l'écran pour « 170,70 EUR » dans le PDF du
+   même devis, « 25 € » à côté de « 12,50 € » dans la même colonne (vérification de A à Z du 26 septembre 2026). */
 const eur = n => { const v=Number(n)||0;
-  if(_NF===undefined){ try{ _NF=new Intl.NumberFormat('fr-FR'); }catch(e){ _NF=null; } }
-  return (_NF?_NF.format(v):v.toLocaleString('fr-FR')) + ' €'; };
+  if(_NF===undefined){ try{ _NF=new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}); }catch(e){ _NF=null; } }
+  return (_NF?_NF.format(v):v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})) + ' €'; };
 /* ══ UNE FRAPPE NE REDESSINE PLUS UNE LISTE ENTIÈRE ═════════════════════════════════════════
    ⛔ Signalé par Justin le 15 septembre 2026 au soir, chez ELAN : « dès qu'ils cherchent un
    produit, où ils écrivent, l'application rame, on doit taper lettre par lettre ».
@@ -8712,7 +8731,8 @@ function metierSet(id){
   const av=metierId(); if(av===id){ toast('C’est déjà ton métier'); return; }
   if(!confirm('Passer l’application en « '+METIERS[id].nom+' » ?\n\nCe qui change : les catégories d’intervention, la fiche de rapport et les modules affichés.\nTes clients, ton planning et tes interventions ne sont pas touchés — tu peux revenir en arrière à tout moment.')) return;
   db.metier=id; save();
-  try{ logJournal('crud','Métier de l’entreprise : '+METIERS[id].nom); }catch(e){}
+  /* v751 : `logJournal` n'a jamais existé — la ligne ne s'écrivait pas, en silence (ESLint, vérification de A à Z). */
+  try{ logEvent('Métier de l’entreprise',METIERS[id].nom,'admin'); }catch(e){}
   toast(METIERS[id].ic+' Métier « '+METIERS[id].nom+' » activé');
   views.parametres();
 }
@@ -10321,7 +10341,17 @@ function numMaxUnion(a,b){ const o={};
   new Set([].concat(Object.keys(a||{}),Object.keys(b||{}))).forEach(k=>{ o[k]=Math.max(+((a||{})[k])||0,+((b||{})[k])||0); });
   return o; }
 function numPlafond(prefixe,annee){ return +((db&&db.numMax)||{})[prefixe+'-'+annee]||0; }
-function save(){ try{ numPlafondRelever(); }catch(e){} try{ estampiller(); }catch(e){} let range=false; try{ localStorage.setItem(STORE_KEY, JSON.stringify(db)); range=true; }catch(e){ try{ baseRangementPlein(e); }catch(_){} } if(range) try{ baseRangementRetabli(); }catch(_){} refreshBadges(); updateBell(); if(typeof syncPush==='function') syncPush(); if(typeof annuaireVeille==='function') annuaireVeille(); }
+/* ⛔ v751 — UN RAFRAÎCHISSEMENT D'AFFICHAGE NE COUPE JAMAIS LA SYNCHRO. `refreshBadges()` et `updateBell()`
+   passaient sans filet entre l'enregistrement et `syncPush()` : une erreur dans le calcul de la cloche
+   (le `bx` de computeNotifs, vérification de A à Z du 26 septembre 2026) sortait de save() et plus rien ne
+   partait à l'équipe, sans un mot. On rattrape — et on le DIT à la Tour, une fois par erreur et par séance :
+   rattraper ne doit pas faire disparaître une panne. `tests/test-818.js`. */
+function saveAffichageErreur(ou,e){ const m=ou+' : '+String((e&&e.message)||e);
+  /* sur window, pas en `const` de premier niveau : save() peut tourner avant cette ligne (zone morte) */
+  const dit=(window.__saveAffichageDit=window.__saveAffichageDit||new Set());
+  if(dit.has(m)) return; dit.add(m);
+  try{ if(typeof window.tmSignaler==='function') window.tmSignaler('erreur','save() — affichage en erreur, synchro maintenue ('+m+')',(e&&e.stack)||''); }catch(_){} }
+function save(){ try{ numPlafondRelever(); }catch(e){} try{ estampiller(); }catch(e){} let range=false; try{ localStorage.setItem(STORE_KEY, JSON.stringify(db)); range=true; }catch(e){ try{ baseRangementPlein(e); }catch(_){} } if(range) try{ baseRangementRetabli(); }catch(_){} try{ refreshBadges(); }catch(e){ try{ saveAffichageErreur('refreshBadges',e); }catch(_){} } try{ updateBell(); }catch(e){ try{ saveAffichageErreur('updateBell',e); }catch(_){} } if(typeof syncPush==='function') syncPush(); if(typeof annuaireVeille==='function') annuaireVeille(); }
 
 /* ════════ SYNCHRONISATION TEMPS RÉEL (équipe) — le document d'équipe, sur NOTRE serveur ════════
    Un document unique par entreprise, contenant toute la base chiffrée, écouté en continu
@@ -10347,7 +10377,7 @@ let _syncOkJusqu=0;
    ne travaille QU'EN LIGNE (Justin, 9 septembre 2026 : « le mode hors ligne crée trop de problèmes,
    on l'oublie complètement »). La v616 gardait un interrupteur d'urgence dans la Tour ; il est retiré
    en v617 — un interrupteur qu'on peut rallumer est un interrupteur qu'on rallumera. */
-let _versionMin=0,_versionBloquee=false,_horsLigne=false,_horsLigneDepuis=0,_horsLignePush=false,_presencePush=0;
+let _versionMin=0,_versionBloquee=false,_horsLigne=false,_horsLigneDepuis=0,_horsLignePush=false,_horsLignePushRisque=false,_presencePush=0;
 /* ⛔ DÉCLARÉES ICI, ET PAS À CÔTÉ DE majNuitArmer QUI S'EN SERT. `majAppliquer` les éteint, et
    il est écrit 200 lignes PLUS HAUT : un `let` plus bas les mettrait en zone morte temporelle
    pour lui. Le piège est muet — la ligne est dans un try/catch, l'erreur serait avalée et le
@@ -10721,7 +10751,13 @@ function docEquipe(){
           if(horsJeu()){ arreter(); break; }   // une autre entreprise, ou la synchro désactivée : on se tait
           try{
             if(aRelire){
-              const s=await lire(); if(!actif) break; aRelire=false; pause=1000;
+              /* ⛔ v751 — la pause NE revient PAS à 1 s ici. On relit parce que l'écoute a ÉCHOUÉ (réseau, 429, 503) :
+                 une lecture qui réussit ne dit rien de l'écoute. Remise à 1 s à chaque relecture, la pause ne doublait
+                 jamais, et une écoute refusée durablement (budget d'attentes de l'espace épuisé : 15 appareils, une
+                 heure chargée) devenait « relire le document ENTIER chaque seconde » — 657 lectures/min mesurées,
+                 jusqu'à épuiser la lecture à son tour, et plus personne ne recevait rien (vérification de A à Z du
+                 26 septembre 2026). Seule une écoute qui aboutit (200) remet la pause à 1 s. `tests/test-818.js`. */
+              const s=await lire(); if(!actif) break; aRelire=false;
               if(!livre||s._v!==v){ livre=true; v=s._v; try{ cb(s); }catch(e){} }
               continue;
             }
@@ -10749,6 +10785,9 @@ function docEquipe(){
                pendant qu'on n'écoutait pas. Un réveil volontaire repart tout de suite. */
             aRelire=true;
             const volontaire=e&&e.name==='AbortError';
+            /* Un 429 est un « pas maintenant » du serveur : on attend au moins 30 s avant de revenir,
+               au lieu de repartir sur la pause courante (qui peut être d'une seconde). */
+            if(!volontaire&&e&&e.statut===429) pause=Math.max(pause,30000);
             await dormir(volontaire?150:pause); if(!volontaire) pause=Math.min(pause*2,30000);
           }
         }
@@ -11464,7 +11503,15 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
             try{ localStorage.setItem(STORE_KEY,JSON.stringify(db)); }catch(e){} }
         }
       }
-    }catch(e){}
+    }catch(e){
+      /* ⛔ v751 — UN 429 EST UN « PAS MAINTENANT », PAS UNE PANNE : on n'écrit pas sans avoir relu. Écrire
+         ici remplacerait le document de l'équipe par la seule base de cet appareil, sans la fusion — et
+         sous un budget épuisé, TOUS les appareils le faisaient à tour de rôle (vérification de A à Z du
+         26 septembre 2026). Le travail reste rangé sur l'appareil ; l'envoi repart dans 30 à 45 s, et un
+         geste entre-temps le relance (clearTimeout en tête de syncPush). Réseau coupé ou 5xx : inchangé,
+         « mieux vaut enregistrer que perdre le travail en cours ». `tests/test-818.js`. */
+      if(e&&e.statut===429){ _syncTimer=setTimeout(()=>{ try{ syncPush(true); }catch(_e){} },30000+Math.floor(Math.random()*15000)); return; }
+    }
     _retraitVoulu=0;
     try{ ombreRelever(); }catch(e){}   // l'ombre = ce qu'on pousse
     /* La copie poussée tient dans le document Firestore — la base locale, elle, garde tout. */
@@ -11557,7 +11604,9 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
       try{ const c2=new AbortController(); const t2=setTimeout(()=>c2.abort(),6000);
         const r2=await fetch(PUSH_API+'/health',{method:'HEAD',cache:'no-store',signal:c2.signal}); clearTimeout(t2); reseau=!!(r2&&r2.ok); }catch(_e){}
       if(_acquitte) return;
-      if(!reseau){ _horsLignePush=true; _syncEnCours=false; try{ updateSyncBtn(); }catch(_e){} try{ horsLigneDebut('écriture sans réponse'); }catch(_e){} return; }
+      /* ⛔ v751 : les drapeaux APRÈS horsLigneDebut(), qui les remet à zéro — posés avant, ils étaient effacés
+         aussitôt, et une écriture réellement partie sans réponse ne faisait plus recharger. */
+      if(!reseau){ _syncEnCours=false; try{ horsLigneDebut('écriture sans réponse'); }catch(_e){} _horsLignePush=true; _horsLignePushRisque=true; try{ updateSyncBtn(); }catch(_e){} return; }
       try{ console.warn('synchro : écriture non acquittée en 15 s alors que le réseau répond — base '+Math.round(alle.taille/1024)+' Ko'+(alle.gros&&alle.gros.length?' · plus lourds : '+alle.gros.join(', '):'')); }catch(_e){}
       _alerte=true;
       try{ toast('⚠️ Tes modifications ne partent pas encore vers l\'équipe — elles sont enregistrées sur cet appareil',7000); }catch(_e){}
@@ -13320,7 +13369,7 @@ function multiProposer(vue){
 function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html || '');
   if(taille==='carte'){ m.className='modal carte'; $('overlay').classList.remove('full'); $('overlay').classList.add('centre'); }
   else { m.className='modal full'; $('overlay').classList.remove('centre'); $('overlay').classList.add('full'); }
-  m.innerHTML=html; $('overlay').classList.add('open'); m.scrollTop=0;
+  m.innerHTML=html; $('overlay').classList.add('open'); m.scrollTop=0; kpiTailler(m);
   /* Le contenu arrive bloc par bloc. La classe se retire ensuite : « both » laisserait
      une transformation figée sur ces blocs, qui bloquerait tout déplacement ultérieur. */
   m.classList.add('pose'); clearTimeout(window._poseT); window._poseT=setTimeout(()=>m.classList.remove('pose'),620); }
@@ -14441,17 +14490,46 @@ function segPoser(g,ch,anime,fam){
 /* Appelée après CHAQUE écriture d'écran. Elle ne touche que les groupes éligibles et ne
    change AUCUN contenu : elle ajoute un curseur et écoute les clics. */
 function segInit(racine){
+  /* ⛔ v751 — TROIS TEMPS, UNE SEULE MISE EN PAGE. Chaque groupe mesurait (segTient, scrollWidth, deux
+     getBoundingClientRect) juste après que le précédent eut écrit ses classes et son curseur : autant de mises
+     en page forcées que de groupes, à chaque rendu. Profilé sur un téléphone ralenti ×4 (vérification de A à Z
+     du 26 septembre 2026) : un tiers du temps de rendu de Paramètres et de Clients passait là (120 à 370 ms).
+     On pose d'abord toutes les classes, on LIT ensuite tout d'un coup, on écrit enfin. `tests/test-818.js`. */
+  const groupes=[];
+  /* 1. écrire : classes et curseurs manquants (le segmenté se mesure classe posée — il a ses marges) */
   (racine||document).querySelectorAll(SEG_FAMILLES.map(f=>f.sel).join(',')).forEach(g=>{
     const fam=segFamille(g);
     const ch=segEligible(g,fam);
     if(!ch){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
     g.classList.add('seg-on');
-    if(fam.sel==='.filters' && !segTient(g)){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
+    const actif=ch.find(c=>c.classList.contains(fam.actif))||null;
+    let cur=g.querySelector(':scope > .seg-cur');
+    if(actif&&!cur){ cur=document.createElement('span'); cur.className='seg-cur'; cur.setAttribute('aria-hidden','true'); g.insertBefore(cur,g.firstChild); }
+    groupes.push({g,fam,ch,actif,cur});
+  });
+  /* 2. lire : tout, d'un seul coup */
+  groupes.forEach(o=>{
+    o.tient=!(o.fam.sel==='.filters' && !segTient(o.g));
+    if(!o.tient) return;
+    o.deborde=o.g.scrollWidth>o.g.clientWidth+1;
+    if(o.actif){ o.rg=o.g.getBoundingClientRect(); o.ra=o.actif.getBoundingClientRect(); }
+  });
+  /* 3. écrire : ce qu'on a lu */
+  groupes.forEach(o=>{ const g=o.g, fam=o.fam, cur=o.cur;
+    if(!o.tient){ g.classList.remove('seg-on'); const c=g.querySelector(':scope > .seg-cur'); if(c) c.remove(); return; }
     /* ⚠ LE FONDU « IL Y A UNE SUITE » NE VA QU'À CE QUI DÉFILE. Sur téléphone toute rangée `.filters`
        porte un fondu à droite ; sur un segmenté qui tient, il effaçait le bout du contrôle, bord
-       compris (Boxes : « Liste · Carte · Produits donnés », mesuré le 24 septembre 2026). */
-    g.classList.toggle('seg-deborde', g.scrollWidth>g.clientWidth+1);
-    segPoser(g,ch,false,fam);
+       compris (Boxes : « Liste · Carte · Produits donnés », mesuré le 24 septembre 2026). Le fondu
+       n'est qu'un masque : il ne change aucune géométrie, la lecture d'avant reste juste. */
+    g.classList.toggle('seg-deborde', o.deborde);
+    if(cur){
+      /* même règle que segPoser : pas de chip actif, ou groupe caché (largeur nulle) → curseur éteint */
+      if(!o.actif||!o.rg.width||!o.ra.width) cur.style.opacity='0';
+      else { cur.style.transition='none'; cur.style.opacity='1';
+        cur.style.width=o.ra.width+'px'; cur.style.height=o.ra.height+'px';
+        cur.style.transform='translate('+(o.ra.left-o.rg.left)+'px,'+(o.ra.top-o.rg.top)+'px)';
+        requestAnimationFrame(()=>{ cur.style.transition=''; }); }
+    }
     if(g._seg) return; g._seg=true;
     segGeste(g,fam);
     /* ⛔ ON ÉCOUTE, ON NE REMPLACE PAS. Les `onclick` des chips appellent la vue, qui se
@@ -15451,6 +15529,10 @@ function rendreDirige(sens,rendu){
    Ici, on est juste après l'écriture de la vue — y compris sur un rafraîchissement automatique,
    ce qui est voulu : la barre doit survivre au rafraîchissement, sinon elle disparaît toute
    seule au bout de quelques secondes. */
+/* Le nombre de caractères de chaque valeur de tuile, pour la règle « 13. LES TUILES CHIFFRÉES » : un compte
+   du texte, jamais une géométrie (une taille lue au mauvais moment fausse tout — CLAUDE.md). */
+function kpiTailler(racine){ try{ (racine||document).querySelectorAll('.kpis .kpi-val').forEach(el=>{
+  const n=Math.max(1,String(el.textContent||'').trim().length); el.style.setProperty('--kpi-n',n); }); }catch(e){} }
 function rendreVueSure(view){
   /* ⛔ PERSONNE CONNECTÉ, AUCUNE VUE. `go()` rend la vue dans une transition de vue, donc PLUS TARD,
      hors de l'appel : si la déconnexion passe entre les deux (un compte désactivé par la synchro juste
@@ -15469,6 +15551,7 @@ function rendreVueSure(view){
   /* Le gabarit des listes se pose ici, pour la meme raison que la barre ci-dessus :
      c'est la seule fonction qui ecrit vraiment l'ecran. */
   try{ segInit($('content')); segObserver(); }catch(_e){}
+  try{ kpiTailler($('content')); }catch(_e){}
 }
 /* Les chiffres montent jusqu'à leur valeur à l'arrivée d'un écran voulu — jamais sur un
    rafraîchissement automatique, jamais si l'utilisateur a demandé moins d'animation.
@@ -19639,7 +19722,11 @@ function planCtxCreate(iso,techId,heure){
   formIntervention('',iso);
   setTimeout(()=>{ try{
     const f=document.getElementById('intform'); if(!f) return;
-    if(heure){ const h=f.querySelector('[name=heure]'); if(h){ h.value=heure; try{ intSyncFin('duree'); }catch(e){} } }
+    /* ⛔ v751 — l'heure touchée dans le planning s'AFFICHE aussi. Le champ `heure` est caché ; ce qu'on voit est
+       « Début » (#deb-aff) et « Fin prévue » (intFinDit). intSyncFin() cherchait un formulaire « int-form » qui
+       n'existe pas et un champ heureFin disparu : l'écran montrait 09:00 pendant que la fiche enregistrait
+       l'heure touchée (vérification de A à Z du 26 septembre 2026). */
+    if(heure){ const h=f.querySelector('[name=heure]'); if(h){ h.value=heure; const a=document.getElementById('deb-aff'); if(a) a.textContent=heure; try{ intFinDit(); }catch(e){} } }
     if(techId){ const chip=f.querySelector('.int-tech[data-tid="'+techId+'"]'); if(chip) chip.classList.add('active'); }
   }catch(e){} },120); }
 function planCtxIndispo(iso,techId,heure){
@@ -23685,10 +23772,6 @@ function intSetStatutDo(id,st){ const i=db.interventions.find(x=>x.id===id); if(
 function intTechIds(i){ return (i&&i.techIds&&i.techIds.length)?i.techIds:(i&&i.techId?[i.techId]:[]); }
 function techNames(i){ const ids=intTechIds(i); return ids.length?ids.map(id=>techName(id)).filter(Boolean).join(', '):'Non assigné'; }
 function intHisto(i,txt){ if(!i) return; i.histo=i.histo||[]; i.histo.push({ts:Date.now(),txt,par:(currentUser&&fullName(currentUser))||''}); if(i.histo.length>30) i.histo=i.histo.slice(-30); }
-function intSyncFin(srcField){ const f=document.getElementById('int-form')||document.querySelector('.modal form'); if(!f) return;
-  const h=f.querySelector('[name=heure]'), fin=f.querySelector('[name=heureFin]'), du=f.querySelector('[name=duree]'); if(!h||!fin||!du) return;
-  if(srcField==='fin'){ const d=toMin(fin.value)-toMin(h.value); if(d>0) du.value=d; }
-  else if(h.value){ fin.value=addMin(h.value, parseInt(du.value)||60); } }
 /* ── LES HEURES EN DEUX GESTES ──
    Le début se règle, la durée se touche (30 min, 1 h, 2 h…), la fin se
    calcule toute seule et s'affiche — plus trois champs à refaire. */
@@ -34529,7 +34612,7 @@ let formLignes=[];
 function renderLignes(){ const el=$('lignes-box'); if(!el) return;
   el.innerHTML = formLignes.map((l,i)=>`<div style="display:flex;gap:7px;margin-bottom:7px;align-items:center">
     <input style="flex:2" placeholder="Désignation" value="${esc(l.designation)}" oninput="formLignes[${i}].designation=this.value">
-    <input style="width:58px" type="number" min="0" step="0.5" value="${l.qte}" title="Qté" oninput="formLignes[${i}].qte=parseFloat(this.value)||0;ligTot()">
+    <input style="width:58px" type="number" min="0" step="any" value="${l.qte}" title="Qté" oninput="formLignes[${i}].qte=parseFloat(this.value)||0;ligTot()">
     <input style="width:80px" type="number" min="0" step="0.01" value="${l.pu}" title="P.U. €" oninput="formLignes[${i}].pu=parseFloat(this.value)||0;ligTot()">
     <button type="button" class="btn danger sm" onclick="formLignes.splice(${i},1);renderLignes()">✕</button></div>`).join('')
     + `<button type="button" class="btn ghost sm" onclick="formLignes.push({designation:'',qte:1,pu:0});renderLignes()">＋ Ligne</button>`;
@@ -34581,10 +34664,10 @@ function formDevisXylo(){ if(!permGarde('ventes','ajouter','un devis')) return;
         <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Traitement</span>
           <input name="trait" id="dx-trait-search" class="soc-search" autocomplete="off" value="${esc(XYLO_TRAIT[0])}" placeholder="Choisir dans la liste ou écrire…" oninput="dxFilter('trait',this.value)" onfocus="this.select();dxFilter('trait','')" onblur="setTimeout(()=>{const b=document.getElementById('dx-trait-list');if(b)b.style.display='none'},180)">
           <div id="dx-trait-list" class="soc-list" style="display:none"></div></div>
-        <div class="frow"><span class="frow-lbl">Surface (m²)</span><input name="surface" type="number" style="text-align:right" placeholder="ex : 120"></div>
+        <div class="frow"><span class="frow-lbl">Surface (m²)</span><input name="surface" type="number" step="any" min="0" style="text-align:right" placeholder="ex : 120"></div>
         <div class="frow"><span class="frow-lbl">Niveau d'infestation</span><div class="frow-val"><select name="infest"><option>Faible</option><option selected>Moyen</option><option>Fort</option></select></div></div>
         <div class="frow"><span class="frow-lbl">Taux d'humidité (%)</span><input name="humidite" type="number" inputmode="decimal" step="0.1" min="0" max="100" style="text-align:right" placeholder="ex : 18"></div>
-        <div class="frow"><span class="frow-lbl">Prix total HT estimé (€)</span><input name="prix" type="number" style="text-align:right" placeholder="optionnel"></div>
+        <div class="frow"><span class="frow-lbl">Prix total HT estimé (€)</span><input name="prix" type="number" step="0.01" min="0" style="text-align:right" placeholder="optionnel"></div>
       </div>
       <div class="form-sec">Photos</div>
       <div class="fgroup">
@@ -36497,6 +36580,12 @@ function docCliBlock(c){ c=c||{}; const ville=((c.codePostal||'')+' '+(c.ville||
       <div class="field"><label>Téléphone</label><input id="doc-cli-tel" value="${esc(c.tel||'')}" placeholder="Téléphone"></div></div>
     <div class="field"><label>Email du client</label><input id="doc-cli-email" type="email" value="${esc(c.email||'')}" placeholder="Email"></div>`; }
 function docCliInfo(id){ const el=document.getElementById('doc-cli-info'); if(!el)return; el.innerHTML=docCliBlock(db.clients.find(x=>x.id===id)||{}); }
+/* ⛔ v751 — UN CHAMP NUMÉRIQUE SANS `step` N'ACCEPTE QUE DES ENTIERS, ET DANS UN FORMULAIRE LE NAVIGATEUR
+   BLOQUE L'ENVOI AVANT NOTRE CODE. « TVA (%) » n'avait pas de pas : 5,5 % et 2,1 % (les taux réduits légaux)
+   rendaient `stepMismatch`, « Créer » ne faisait rien et saveDoc() n'était jamais appelé — mesuré par la
+   vérification de A à Z du 26 septembre 2026. La « Qté » d'une ligne (pas de 0,5) refusait 1,75. Un champ qui
+   porte une valeur décimale légitime déclare son pas ; un champ relu par parseInt reste entier EXPRÈS (un
+   2,5 tronqué en 2 sans un mot serait pire que la bulle du navigateur). `tests/test-818.js`. */
 function formDoc(kind,id){
   const cfg=DOC[kind], d=id?db[cfg.coll].find(x=>x.id===id):{};
   formLignes = id ? JSON.parse(JSON.stringify(d.lignes||[])) : [{designation:'',qte:1,pu:0}];
@@ -36509,7 +36598,7 @@ function formDoc(kind,id){
       <div class="field"><label>Société (nom sur le document)</label><select name="rapportModele">${entSocietes().map(t=>`<option ${(d.rapportModele||entSocUnique()||'Modèle générique')===t?'selected':''}>${esc(t)}</option>`).join('')}</select>${(db.societes||[]).length?`<div style="font-size:11px;color:var(--t3);margin-top:4px">Le document prend le nom, la couleur et le logo de la société choisie (Paramètres → Mes sociétés) — comme les bons de commande.</div>`:''}</div>
       <div class="field"><label>Lignes</label><div id="lignes-box"></div></div>
       <div id="lig-tot" style="text-align:right;font-size:14px;color:var(--t2);margin:6px 0 14px"></div>
-      <div class="field-row"><div class="field"><label>TVA (%)</label><input id="f-tva" type="number" name="tva" value="${d.tva??20}" oninput="ligTot()"></div>
+      <div class="field-row"><div class="field"><label>TVA (%)</label><input id="f-tva" type="number" step="0.01" min="0" name="tva" value="${d.tva??20}" oninput="ligTot()"></div>
         <div class="field"><label>Statut</label><select name="statut">${Object.entries(cfg.st).map(([k,v])=>`<option value="${k}" ${d.statut===k?'selected':''}>${v.l}</option>`).join('')}</select></div></div>
       <div class="field"><label>Notes</label><input name="notes" value="${esc(d.notes)}"></div>
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`);
@@ -38107,7 +38196,14 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
   // Bons réceptionnés en attente de la validation du DR (admin / DR, sur les box qu'ils voient)
   if(can('validerDR')&&(notifVoitModule('commandes')||notifVoitModule('validations'))){
     (db.bons||[]).filter(b=>b.statut==='arrivageNote'&&bonAttenteDR(b)&&!notifMoi(b.recuPar)
-      &&visibleBoxMvts((db.boxMvtAttente||[]).filter(m=>m.bcId===b.id&&m.statut==='enAttente')).length).forEach(b=>{   // v738 : « sur les box qu'ils voient » n'était écrit que dans le commentaire const bx=b.boxId?(db.boxes||[]).find(x=>x.id===b.boxId):null;
+      &&visibleBoxMvts((db.boxMvtAttente||[]).filter(m=>m.bcId===b.id&&m.statut==='enAttente')).length).forEach(b=>{   // v738 : « sur les box qu'ils voient » n'était écrit que dans le commentaire
+      /* ⛔ v751 — CETTE DÉCLARATION VIVAIT À LA FIN DU COMMENTAIRE CI-DESSUS, donc ne s'exécutait jamais :
+         `bx` lu deux lignes plus bas jetait « bx is not defined » dès qu'un arrivage attendait le DR.
+         computeNotifs() est appelée par updateBell() DANS save(), sans filet : l'exception sortait de
+         save() avant syncPush() — plus aucun geste de l'administrateur ou du DR ne partait à l'équipe —
+         et, à la connexion, enterApp() s'arrêtait avant go() : écran vide (vérification de A à Z du
+         26 septembre 2026, reproduit deux fois). `tests/test-818.js`. */
+      const bx=b.boxId?(db.boxes||[]).find(x=>x.id===b.boxId):null;
       out.push({id:'bonarr:'+b.id,ic:'📥',txt:`Bon <b>${esc(bonNum(b))}</b> réceptionné${b.recuPar?' par <b>'+esc(b.recuPar)+'</b>':''} — <b>en attente de ta validation</b>${bx?' · '+esc(bx.nom||bx.numero||''):''}`,act:"go('validations');cible('mvt','"+(((db.boxMvtAttente||[]).find(function(x){return x.bcId===b.id&&x.statut==='enAttente';})||{}).id||"")+"')"}); });
   }
   // élague les éléments « vus » qui n'existent plus
@@ -40497,7 +40593,7 @@ async function versionVerifier(force){ try{
    SDK aurait mise en file. Partout, sans exception — l'écran de connexion compris : sans réseau,
    il n'y a ni espace à reconnaître ni annuaire à interroger. */
 function horsLigneDebut(motif){
-  if(_horsLigne) return; _horsLigne=true; _horsLigneDepuis=Date.now(); _horsLignePush=false; try{ updateSyncBtn(); }catch(e){}
+  if(_horsLigne) return; _horsLigne=true; _horsLigneDepuis=Date.now(); _horsLignePush=false; _horsLignePushRisque=false; try{ updateSyncBtn(); }catch(e){}
   let e=$('hl-ecran');
   if(!e){ e=document.createElement('div'); e.id='hl-ecran';
     e.style.cssText='position:fixed;inset:0;z-index:99997;background:var(--bg,#0D1624);color:var(--t1,#eef2fa);display:flex;align-items:center;justify-content:center;padding:28px;text-align:center';
@@ -40516,7 +40612,16 @@ async function horsLigneReprise(manuel){
   let ok=false; try{ const c=new AbortController(); const t=setTimeout(()=>c.abort(),8000); const r=await fetch(PUSH_API+'/health',{cache:'no-store',signal:c.signal}); clearTimeout(t); ok=!!(r&&r.ok); }catch(e){}
   if(!ok){ if(s) s.textContent='Toujours pas de réseau — nouvel essai dans quelques secondes.'; _hlEssai=setTimeout(()=>horsLigneReprise(false),6000); return; }
   const duree=Date.now()-_horsLigneDepuis;
-  if(duree<60000&&!_horsLignePush){ horsLigneFin(); return; }
+  /* ⛔ v751 — UN ENREGISTREMENT TENTÉ HORS LIGNE NE FAIT PLUS RECHARGER. Depuis la sortie de Firebase, un save()
+     pendant la coupure n'envoie RIEN (syncPush s'arrête à `_horsLigne`) : la base est rangée sur l'appareil, et
+     il n'existe aucune écriture périmée en file à jeter. Recharger ne protégeait donc rien, et faisait perdre la
+     saisie en cours et l'écran — mesuré deux fois, même après quelques secondes de coupure (vérification de A à Z
+     du 26 septembre 2026). Seule une écriture PARTIE sans réponse (`_horsLignePushRisque`) ou une longue coupure
+     recharge encore. Le travail en attente repart au retour, par l'envoi normal : il relit et fusionne avant
+     d'écrire. `tests/test-818.js`. */
+  if(duree<60000&&!_horsLignePushRisque){ const enAttente=_horsLignePush; horsLigneFin();
+    if(enAttente){ _horsLignePush=false; setTimeout(()=>{ try{ syncPush(true); }catch(e){} },300); }
+    return; }
   if(s) s.textContent='Connexion rétablie — l\'application se recharge pour repartir à jour.';
   setTimeout(()=>{ try{ location.reload(); }catch(e){} },900);
 }

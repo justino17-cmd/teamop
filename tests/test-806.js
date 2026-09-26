@@ -234,7 +234,7 @@ console.log('\n── 9. La passe des DOUZE teintes, au pixel (les deux thèmes,
   vrai('⛔ le fondu « il y a une suite » ne va qu’à ce qui défile (tc-modes et segmentés qui tiennent)', /html\[data-refonte\] \.filters\.tc-modes,html\[data-refonte\] \.filters\.seg-on:not\(\.seg-deborde\)\{-webkit-mask-image:none!important;mask-image:none!important\}/.test(NU));
   /* segInit pose `seg-deborde` AVANT le curseur, et seulement sur un groupe qui défile vraiment */
   const si = NU.slice(NU.indexOf('function segInit('), NU.indexOf('\nfunction segGeste('));
-  vrai('   … et segInit le pose sur un groupe qui défile vraiment', si.length > 200 && /g\.classList\.toggle\('seg-deborde', g\.scrollWidth>g\.clientWidth\+1\);\s*segPoser\(g,ch,false,fam\);/.test(si));
+  vrai('   … et segInit le pose sur un groupe qui défile vraiment', si.length > 200 && /o\.deborde=o\.g\.scrollWidth>o\.g\.clientWidth\+1;/.test(si) && /g\.classList\.toggle\('seg-deborde', o\.deborde\);/.test(si));
   vrai('⛔ OP GESTION de nuit : l’indigo à 70 % de blanc (la teinte la plus sombre)', /\[data-accent="indigo"\]\{--acc-txt:color-mix\(in srgb,#fff 70%,var\(--acc-src\)\)\}/.test(NU));
   vrai('⛔ de nuit, un texte à la teinte ne se pose pas sur un voile de la même teinte (frise, bandeau du jour)', /html\[data-marque\]\[data-theme="dark"\] \.tdb-jh\.auj,html\[data-marque\]\[data-theme="dark"\] \.plm-bande:not\(\.alt\):not\(\.pers\)\{color:var\(--t1\)!important\}/.test(NU));
   vrai('⛔ TEAM OP de nuit : l’indigo à 58 % de blanc', /html\[data-marque="teamop"\]\[data-verre\]\[data-theme="dark"\]\[data-accent="indigo"\]\{--acc-txt:color-mix\(in srgb,#fff 58%,var\(--acc-src\)\)\}/.test(NU));

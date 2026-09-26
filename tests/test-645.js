@@ -256,7 +256,9 @@ v('on mesure le réseau avant de décider', /const r2=await fetch\(PUSH_API\+'\/
   v('réseau absent → la branche existe', iB > 0, true);
   v('réseau absent → le travail est marqué en attente', /_horsLignePush=true/.test(br), true);
   v('réseau absent → écran hors ligne, avec son motif', /horsLigneDebut\('écriture sans réponse'\)/.test(br), true);
-  v('réseau absent → et on sort sans écrire', /horsLigneDebut\('écriture sans réponse'\)[\s\S]{0,60}return;/.test(br), true);
+  /* v751 : les drapeaux se posent désormais APRÈS horsLigneDebut() (qui les remet à zéro) — le `return` reste
+     dans la même branche, quelques instructions plus loin. */
+  v('réseau absent → et on sort sans écrire', (() => { const l = br.split('\n')[0].trim(); return /horsLigneDebut\('écriture sans réponse'\)/.test(l) && /return; \}$/.test(l); })(), true);
 }
 v('réseau présent → on prévient, on ne bloque pas', /Tes modifications ne partent pas encore vers l/.test(APP), true);
 

@@ -118,7 +118,9 @@ if (mT) {
 }
 const iI = SRC.indexOf('function segInit(');
 const corpsInit = iI > 0 ? SRC.slice(iI, SRC.indexOf('\n}', iI)) : '';
-vrai('⛔ segInit retire la classe quand un groupe de FILTRES ne tient pas', /fam\.sel==='\.filters' && !segTient\(g\)\)\{ g\.classList\.remove\('seg-on'\)/.test(corpsInit));
+/* v751 : segInit lit tout d'abord (segTient), écrit ensuite — le retrait vit dans la troisième passe. */
+vrai('⛔ segInit retire la classe quand un groupe de FILTRES ne tient pas',
+  /o\.tient=!\(o\.fam\.sel==='\.filters' && !segTient\(o\.g\)\)/.test(corpsInit) && /if\(!o\.tient\)\{ g\.classList\.remove\('seg-on'\)/.test(corpsInit));
 vrai('… le clic n’y pose plus de curseur', /if\(!g\.classList\.contains\('seg-on'\)\) return;/.test(corpsInit));
 const iG = SRC.indexOf('function segGeste(');
 vrai('… le glissement du doigt non plus', iG > 0 && /const debut=\(x,y\)=>\{\s*if\(!g\.classList\.contains\('seg-on'\)\) return;/.test(SRC.slice(iG, iG + 1200)));

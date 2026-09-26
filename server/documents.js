@@ -88,7 +88,14 @@ const ATTENTES_MAX = 200;              // attentes ouvertes par espace (borne m�
 const ATTENTES_MAX_TECHNIQUE = 30;     // une équipe de développement, pas une entreprise
 /* Par espace et par heure : lectures, écritures, attentes. Un téléphone qui écoute repose sa
    question toutes les 25 s (144 par heure) ; une écriture réveille tous les appareils. */
-const QUOTAS = { l: 6000, e: 6000, a: 20000 };
+/* ⛔ 26 septembre 2026 (vérification de A à Z) : « a: 20000 » ne tenait pas une entreprise de 15 appareils. Une
+   écriture réveille TOUS les appareils à l'écoute, donc les attentes croissent comme N × écritures, pas 144 × N :
+   15 appareils, deux gestes par minute chacun → 27 600 attentes projetées à l'heure, budget épuisé en 43 min, puis
+   la synchro de toute l'entreprise freinée jusqu'à la fin de l'heure (fenêtre fixe). 100 000 couvrent une trentaine
+   d'appareils à 2 000 écritures par heure ; la lecture suit l'écriture (une relecture avant chaque envoi) plus les
+   reprises. Ce sont des bornes contre un emballement, pas un tarif : le seau PAR IP (index.js) reste la garde
+   contre un tiers. Et chaque refus se COMPTE (`quotaRefus1h`), la surveillance le lit. `tests/test-819.js`. */
+const QUOTAS = { l: 20000, e: 6000, a: 100000 };
 const QUOTAS_TECHNIQUE = { l: 1500, e: 2000, a: 5000 };
 /* ⛔ LA COPIE DEPUIS FIREBASE A UN DÉLAI TOTAL — jeton, lecture ET corps. Elle tient le verrou de
    l'espace : un Firestore qui envoie ses en-têtes puis se tait gardait l'entreprise bloquée
@@ -122,7 +129,7 @@ function monterDocuments(app, d) {
      un seul échec passager ferait crier la surveillance TOUTES LES HEURES jusqu'au prochain
      déploiement — la leçon de `mailRefus` (CLAUDE.md). On garde des horodatages, bornés, et
      `/health` publie ce qui tombe dans la dernière heure. */
-  const recents = { copie: [], illisible: [], ecriture: [], attente: [] };
+  const recents = { copie: [], illisible: [], ecriture: [], attente: [], quota: [] };
   const noter = (k) => { const a = recents[k]; a.push(Date.now()); if (a.length > 500) a.splice(0, a.length - 500); };
   const dansLHeure = (k) => { const lim = Date.now() - 3600000; return recents[k].filter(ts => ts > lim).length; };
 
@@ -362,7 +369,9 @@ function monterDocuments(app, d) {
      quota d'une entreprise en tapant son identifiant (la règle de `op-socle.js`). Les plafonds
      sont larges : un téléphone qui écoute repose sa question toutes les 25 s, et un bureau
      entier partage une seule adresse IP. */
-  const budget = (cle, t) => quotaOk(quotas, cle + ':' + t, (technique(t) ? QUOTAS_TECHNIQUE : QUOTAS)[cle], 3600000);
+  /* un refus de budget se COMPTE : sans lui, une entreprise freinée par son quota ne se voyait nulle part */
+  const budget = (cle, t) => { const ok = quotaOk(quotas, cle + ':' + t, (technique(t) ? QUOTAS_TECHNIQUE : QUOTAS)[cle], 3600000);
+    if (!ok) noter('quota'); return ok; };
 
   app.post('/api/doc/lire', async (req, res) => {
     const b = req.body || {};
@@ -512,7 +521,7 @@ function monterDocuments(app, d) {
   /* Pour `/health` : des compteurs et des booléens, jamais un identifiant d'espace. */
   function sante() {
     return { actif: true, copieFirebase: copieActive(), copiesEchec1h: dansLHeure('copie'), illisibles1h: dansLHeure('illisible'),
-      ecrituresEchec1h: dansLHeure('ecriture'), copiesEnAttente1h: dansLHeure('attente') };
+      ecrituresEchec1h: dansLHeure('ecriture'), copiesEnAttente1h: dansLHeure('attente'), quotaRefus1h: dansLHeure('quota') };
   }
 
   return { effacer, sante, ESPACES_TECHNIQUES, ATTENTE_MS, DOC_MAX,
