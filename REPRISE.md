@@ -107,7 +107,8 @@ effet visible est le menu de départ d'une entreprise NEUVE).
 🟡 **v753 SUR LA BÊTA SEULEMENT — le 26 septembre 2026, sur la demande de Justin « Fait se qu'il faut faire pour
 ça » : les trois points relevés en écrivant le guide des droits.** Bêta publiée seule sur `main` (**`7e33c37`**, à
 13 h 05 UTC, `beta.html` seul), servie en 21 s, octet pour octet celle de la branche ; contrôles de `main` rejoués
-AVANT de pousser : VERT (176 suites · 8 657 ✓, liste serveur 40 · 2 346, arbre propre). `app.html` reste en v752 et
+AVANT de pousser : VERT (176 suites · 8 657 ✓, liste serveur 40 · 2 346, arbre propre) ; CI de `main` verte, trois
+workflows sur trois (Vérifications, Vérification des pages, déploiement Pages). `app.html` reste en v752 et
 `sw.js` en v952 : ils attendent sa phrase (« Publie »). Branche : `a9fce9c` (le code), `196a0f4`/`0ccc217` (banc), `a074cbc` (sonde), `3c1c120` (guide),
 puis le correctif de la relecture.
 - **« aucun profil » ne ment plus.** L'option disait « le compte partira sans droits » : il suit la liste de son rôle.
