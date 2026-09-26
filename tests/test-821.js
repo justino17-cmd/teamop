@@ -168,6 +168,10 @@ console.log('\n── 821 · 3. ⛔ un compte créé par un non-administrateur :
   M.db.validDRTous = true;
   const nuT = { id: 'nT', role: 'technicien', acces: { caps: {}, modules: {} } };
   const retT = M.droitsBorner(nuT, par);
+  /* ⚠️ Revenir à la seule case de la fiche dans droitsBorner ne changerait RIEN ici, et c'est structurel :
+     sous l'interrupteur d'entreprise, un créateur qui ne valide pas est lui-même soumis — il voit le menu,
+     la retenue ne peut pas partir. La mutation est équivalente ; on l'écrit au lieu de la croire mordue. */
+  vrai('… (sous l’interrupteur, le créateur non valideur est lui-même soumis : il voit le menu)', M.userSeesModule(par, 'validations') === true);
   M.db.validDRTous = false;
   vrai('⛔ … ni à une personne soumise par « Toute sortie de stock passe par le DR »', !retT.some(x => /Validations DR/.test(x)), retT);
   const nu2 = { id: 'n2', role: 'technicien', acces: { caps: { validerDR: true }, modules: {} } };
@@ -195,6 +199,11 @@ const noteDe = h => { const m = /<div class="pn-d" data-val-note style="([^"]*)"
   vrai('un technicien ordinaire : fermé, libre, sans raison affichée', !/ checked/.test(iTech) && !/ disabled/.test(iTech) && !/data-val-force/.test(iTech) && !!nTech && /display:none/.test(nTech.style), [iTech, nTech]);
   vrai('le compte de la catégorie compte le menu ouvert d’office (« Achats internes » du valideur : un menu de plus)',
     (/Achats internes<\/b><span class="usr-cn">(\d+)\//.exec(hVal) || [])[1] - (/Achats internes<\/b><span class="usr-cn">(\d+)\//.exec(hTech) || [])[1] === 1);
+  /* une liste de rôle qui ne dit RIEN de ce menu (écrite avant lui) : la valeur propre est « fermé », comme toute
+     rubrique d'administration — pas « ouvert » parce que la case l'ouvre en ce moment */
+  const Mv = monde(); delete Mv.db.permissions.technicien.validations;
+  const iSans = interrupteur(Mv.usrDroitsHtml({ id: 'tv', role: 'technicien', acces: { caps: { validerDR: true } } }, true));
+  vrai('⛔ liste muette sur ce menu : ouvert d’office, valeur propre « fermé »', /data-val-force="1"/.test(iSans) && /data-val-av="0"/.test(iSans), iSans);
   const hLect = M.usrDroitsHtml({ id: 'tv', role: 'technicien', acces: { caps: { validerDR: true } } }, false);
   vrai('pour qui ne peut pas modifier, un seul « disabled » (pas d’attribut en double)', (interrupteur(hLect).match(/disabled/g) || []).length === 1, interrupteur(hLect));
 }
@@ -240,8 +249,8 @@ function zoneFactice(o) {
   v('⛔⛔ « Valider ses droits » écrit la valeur PROPRE du menu (fermé), pas l’ouverture d’office', u.acces.modules.validations, false);
   v('… et la case, elle, est bien écrite', u.acces.caps.validerDR, true);
   vrai('… donc, la case retirée plus tard, le menu tombe avec elle', (u.acces.caps.validerDR = false, M.userSeesModule(u, 'validations') === false));
-  const zp = zoneFactice({ valide: true, force: true, av: true });
-  v('⛔ un profil enregistré depuis cette ligne garde la valeur PROPRE', M.profilLireZone(zp).modules.validations, true);
+  const zp = zoneFactice({ valide: true, force: true, av: false });   // valeur propre « fermé » : l'interrupteur, lui, est ouvert
+  v('⛔ un profil enregistré depuis cette ligne garde la valeur PROPRE (fermé), pas l’ouverture d’office', M.profilLireZone(zp).modules.validations, false);
   const zq = zoneFactice({ valide: true, force: true, av: true });
   M.profilPoserZone(zq, { caps: { validerDR: false }, modules: { validations: false } });
   vrai('⛔ poser un profil sur un menu verrouillé : sa valeur va de côté, et revient quand la case tombe', !zq.mv.checked && !zq.mv.disabled && zq.mv.dataset.valAv === '0', zq.mv);
