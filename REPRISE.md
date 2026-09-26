@@ -13,6 +13,53 @@ de ligne du tout.
 
 ---
 
+# 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.68 : TOUT RANGÉ PAR SUJET — EN APERÇU, ATTEND « REMPLACE LA TOUR »
+
+**Justin, 26 septembre 2026 : « je veux que dans la tour tu ranges tout bien comme il faut… que tu regardes toutes
+les catégories et sous-catégories… je veux un truc pro ».** Sur la branche puis en aperçu (`apercu/tour.html`) ;
+`tour.html` en service reste la v2.66 jusqu'à « Remplace la tour ». La v2.68 CONTIENT la v2.67 (« Ma barre »,
+la bulle au doigt), qui attendait déjà la même phrase.
+
+**Ce qui a changé :**
+- **quatre catégories, rangées par sujet** : Tour (Accueil) · Clients (Entreprises, Abonnements, Connexions,
+  Devis IA) · Support (Surveillance, Courrier) · Administration (Accès, Équipe, Journal, Sauvegardes). La maquette
+  « TeamOp Tour HIG » rangeait par forme (Gestion, Facturation, Système) et trois vues y tombaient à côté ;
+- **un nom par vue, partout** : menu, barre du bas (qui n'a droit qu'à une abréviation du même mot), feuille
+  « Plus », titre de chaque page, fil d'Ariane. « Données » est devenu « Sauvegardes » (ce qu'on y fait),
+  « Comptes & accès » → « Accès », « Connexions clients » → « Connexions », « Journal de la console » → « Journal » ;
+- **la liste des vues n'est plus tenue à la main** : `VUES_PAR_APP` se déduit du menu (elle avait déjà oublié une vue) ;
+- **ce que le serveur réserve au patron** (Accès, Équipe, Journal, Sauvegardes : `monPatronStrict`) sort du menu
+  d'un collaborateur ET de sa navigation (`PATRON_SEUL`, `vuePermise` : menu, `setTab`, `setApp`, `renderVue`,
+  retour de `/moi`) — avant, le Journal et les Sauvegardes restaient au menu pour n'y montrer qu'un refus ;
+- **les phrases de droits se déduisent du menu** (note d'Équipe, ligne de chaque compte) : elles mentaient ;
+- **le statut des problèmes : une commande** (Surveillance et fiche d'une entreprise) — segments Ouverts ·
+  Corrigés · Écartés · Tout ; les cartes Nouveaux / En cours affinent « Ouverts » (pastille « … seulement ✕ ») ;
+  le menu déroulant à neuf choix a disparu. « Sans statut = nouveau » partout : chaque segment annonce
+  exactement ce que sa liste montre ;
+- chaque tuile qui filtre se voit filtrer (segment « En essai » d'Abonnements ; Entreprises dit son filtre
+  par la même pastille `.filtre-pose`) ; six chiffres en 3 + 3 au lieu de 5 + 1 ;
+- **mise en page** : Équipe (l'en-tête « Accès ouverts » recouvrait la ligne du patron ; noms écrasés à 40 px),
+  fiche d'une entreprise (ses comptes écrasés à 13 px, « t o m » une lettre par ligne ; « Repartir à zéro » sur
+  cinq lignes), Sauvegardes (pastilles, écarts) ;
+- plus aucun identifiant d'espace d'ELAN dans la page servie (commentaires compris).
+
+**Preuves :** test-829 (nouveau, 75 ✓) · 21/21 mutations mordent (`scratchpad/mutations-tour-268.py`) · les 22
+autres bancs de la Tour verts · sonde du thème complète (80 vues, bureau + téléphone, jour + nuit) avec deux
+mesures NOUVELLES — textes couverts à l'ouverture et textes écrasés, sur le DOM entier (contre-épreuve : la
+v2.67 rend 4 défauts, la v2.68 0 ; puis elle a trouvé la fiche d'entreprise, 8 textes écrasés, corrigés) ·
+sonde de la barre au doigt · relecture (`relecteur`) : aucun bloquant, un commentaire faux corrigé.
+
+**⚠️ À savoir :**
+- un collaborateur ne voit plus Journal ni Sauvegardes : c'est ce que le serveur lui refusait déjà ;
+- au téléphone, la phrase d'en-tête reste repliée à deux lignes (décision d'avant) mais se déplie d'un toucher ;
+- les chiffres de la Surveillance (« Corrigés ce mois », « 7 derniers jours », le menu des entreprises) comptent
+  la console ouverte : dans GESTION, un problème d'OP MESSAGES y entrait (la tuile disait 1, le segment 0) ;
+- la CI de main était rouge depuis la bêta v758 (test-773 n'acceptait que l'écriture de la production) —
+  corrigé et poussé (5a02952) ; test-735 est tombé une fois en CI (223 ✓ 2 ✗) et reste vert en local : l'étape
+  affiche désormais les lignes ✗, pour qu'une récidive se lise.
+
+---
+
 # 🟢 26 SEPTEMBRE 2026, NUIT — BÊTA v758 : CHAQUE TECHNICIEN ET SA COULEUR (+ L'APPUI LONG) — PUBLIÉE SUR LA BÊTA
 
 **Justin, 26 septembre 2026 : « je veux que chaque technicien et sa couleur soient référencés sur les interventions,
@@ -60,7 +107,7 @@ de `techIds`.
 
 ---
 
-# 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.67 : « MA BARRE » ET LA BULLE QU'ON ATTRAPE — EN APERÇU, ATTEND « REMPLACE LA TOUR »
+# 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.67 : « MA BARRE » ET LA BULLE QU'ON ATTRAPE — COMPRISE DANS LA v2.68 (APERÇU), ATTEND « REMPLACE LA TOUR »
 
 **Justin, capture de la barre de la Tour à l'appui : « j'aimerais qu'en restant appuyé sur la barre, je puisse la
 personnaliser et choisir ce que je veux dans la barre, et aussi que le glissement de la bulle marche comme sur
