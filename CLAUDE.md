@@ -1755,7 +1755,7 @@ de la page ouverte. Sur `app.html` en production, ce sont des noms, des adresses
 coordonnées de vrais clients — un flux de données qui n'est pas couvert par
 `sous-traitance.html`. On ne pointe donc le navigateur piloté que sur `beta.html` ou une
 copie d'aperçu : la bêta est isolée par construction (préfixe `elanB_`, espace
-`elan-gestion-beta`, jamais de données d'entreprise). Cette règle est écrite aussi dans les
+`opgestion-beta`, jamais de données d'entreprise). Cette règle est écrite aussi dans les
 agents `concepteur` et `testeur`.
 
 ⛔ **Mais ces deux agents ne PEUVENT pas s'en servir, et il faut le savoir avant d'essayer.**
@@ -2006,7 +2006,8 @@ Il n'y aura pas de « bêta publique » — ce mot désigne ici un canal interne
   réécrivable par `POST /api/monitor/beta/chantier` (`monPatronStrict`), affiché sur la ligne.
   Un accès sans chantier renseigné le dit en ambre plutôt que de se taire : un accès dont on
   ne sait plus à quoi il servait est un accès qu'on n'ose plus couper.
-- **Jamais de données d'entreprise** : espace `elan-gestion-beta`, préfixe `elanB_`. Un accès
+- **Jamais de données d'entreprise** : espace `opgestion-beta` (il s'appelait `elan-gestion-beta` jusqu'au
+  17 septembre 2026 — `beta-build.js`), préfixe `elanB_`. Un accès
   bêta n'ouvre que la bêta.
 - **L'onglet s'appelle « Accès » et porte DEUX portes, à ne jamais confondre** : la bêta
   (`beta.html`, comptes portés par le serveur, n'ouvre que la bêta) et la version publique
