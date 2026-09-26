@@ -163,6 +163,20 @@ function get(url) {
     /* La copie attend que la porte de version soit fermée CHEZ GOOGLE (`VERSION_SANS_FIREBASE`,
        documents.js) : des appareils à jour travaillent sans synchro tant que ce n'est pas fait.
        Le jour de la publication, c'est le geste qui manque — il se fait depuis la Tour. */
+    /* Une entreprise a atteint le budget horaire de son document d'équipe : sa synchro est freinée
+       jusqu'à la fin de l'heure. Avec 100 000 attentes par heure, ça n'arrive plus en usage normal —
+       donc le premier refus est un signal (vérification de A à Z du 26 septembre 2026). */
+    if (j.documents && j.documents.quotaRefus1h > 0) {
+      problems.push('⛔ ' + j.documents.quotaRefus1h + ' refus de budget du document d’équipe dans l’heure : une entreprise ne se synchronise plus normalement. Sur le VPS : journalctl -u teamop-api --since "1 hour ago"');
+    }
+    /* Le seau PAR IP, famille SYNCHRO seulement (document d'équipe, socle, photos) : un bureau entier derrière une
+       même adresse. ⛔ Pas le total : n'importe quel robot qui balaie le site dépassait le seuil (gardien,
+       contre-vérification de la v751), et une alarme qu'on déclenche exprès finit ignorée. Les refus des autres
+       routes (`refusAutres1h`) sont publiés, pas criés. Quelques refus arrivent ; des centaines disent qu'une vraie
+       équipe est freinée (un appareil freiné réessaie toutes les 30 s). */
+    if (j.limites && j.limites.refusSynchro1h > 300) {
+      problems.push('⚠️ ' + j.limites.refusSynchro1h + ' refus « trop de requêtes » sur la synchro (document d’équipe, socle, photos) par adresse IP dans l’heure — un bureau entier freiné, ou un robot qui vise ces routes. Les adresses ne sont pas publiées : voir dans la Tour quelle entreprise a beaucoup d’appareils en ligne.');
+    }
     if (j.documents && j.documents.copiesEnAttente1h > 0) {
       problems.push('⛔ ' + j.documents.copiesEnAttente1h + ' copie(s) de document d’équipe en attente dans l’heure : des appareils à jour ne se synchronisent pas tant que la version minimale n’est pas exigée ET confirmée chez Firestore. Tour → Exiger la dernière version (et vérifier que Firestore est « à jour »).');
     }

@@ -81,3 +81,6 @@ tests/test-812.js
 # 25 septembre 2026 : les deux interrupteurs du jour J (`server/reglage.js`) — exécuté contre une
 # configuration de banc : rien d'autre ne bouge, droits 600, aucun secret affiché. Sans page.
 tests/test-815.js
+# 26 septembre 2026 : le budget du document d'équipe tient une entreprise de 15 à 30 appareils, et chaque
+# refus (budget par espace, seau par IP) se compte et se surveille. Le vrai module, sans page.
+tests/test-819.js

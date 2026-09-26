@@ -376,6 +376,10 @@ const menage = async () => {
            le jour où le projet Firebase est supprimé), pas un état qui se dégrade — `actif` et
            les trois échecs de la dernière heure portent l'alarme. */
         'documents.copieFirebase',
+        /* Les 429 du seau par IP HORS synchro (battement, budget global, routes sensibles) : n'importe quel robot
+           qui balaie le site les fait monter — ils sont publiés pour la Tour, pas criés. C'est `refusSynchro1h`
+           (document d'équipe, socle, photos) qui porte l'alarme (gardien, contre-vérification de la v751). */
+        'limites.refusAutres1h',
       ];
       const chemins = (o, prefixe) => Object.entries(o || {}).flatMap(([k, val]) => {
         const c = prefixe ? prefixe + '.' + k : k;
