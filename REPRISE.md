@@ -13,7 +13,14 @@ de ligne du tout.
 
 ---
 
-# ⛔ 26 SEPTEMBRE 2026, NUIT — ELAN : UN « OP ADMIN » FANTÔME RÉAPPARU (@florent-3) — CORRIGÉ SUR LA BÊTA, PRODUCTION EN ATTENTE DE LA PHRASE DE JUSTIN
+# ✅ 26 SEPTEMBRE 2026, NUIT — ELAN : UN « OP ADMIN » FANTÔME RÉAPPARU (@florent-3) — CORRIGÉ, v757 EN PRODUCTION
+
+**Publiée (`75a6475` sur main) sur la phrase de Justin « fait tout ce qu'il y a à faire, s'il te plaît, que ça
+marche bien »**, en réponse à « dis-moi “publie la correction” » : `app.html` + `sw.js` (cache v957) = v756 + les
+trois correctifs ci-dessous, RIEN d'autre (les couleurs des techniciens restent sur la bêta, désormais **v758**).
+Preuves sur le candidat de publication lui-même (copie de main + les trois correctifs) : sonde des fantômes v756
+13 ✓ 8 ✗ → v757 21 ✓ 0 ✗ ; suppression au doigt 13 ✓ (v756 4 ✓ 9 ✗) ; `test-826` 35 ✓, `test-827` 19 ✓ ; suite
+complète 182 suites · 8 931 vérifications ; deux relectures `relecteur`, sans point bloquant.
 
 **Justin, capture à l'appui : « chez elan ça a recréé un compte admin, pourquoi, je croyais que ce problème était
 réglé ».** La liste des comptes d'ELAN montrait « OP Admin · Administrateur · @florent-3 · 🔑 à définir · 👥 même
