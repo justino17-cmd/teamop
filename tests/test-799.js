@@ -24,10 +24,10 @@ v('rendreVueSure est trouvée dans le fichier réel', i > 0 && fin > i, true);
 const jouer = (utilisateur) => {
   const trace = { vues: 0, erreurs: [], ecrit: '' };
   const contenu = { set innerHTML(x) { trace.ecrit = x; }, get innerHTML() { return trace.ecrit; } };
-  const f = new Function('views', 'currentUser', '$', 'console', 'multiProposer', 'segInit', 'segObserver', 'esc',
+  const f = new Function('views', 'currentUser', '$', 'console', 'multiProposer', 'segInit', 'segObserver', 'esc', 'kpiTailler',
     SRC.slice(i, fin) + '\nreturn rendreVueSure;')(
     { dashboard: () => { trace.vues++; if (!utilisateur) throw new TypeError("Cannot read properties of null (reading 'role')"); } },
-    utilisateur, () => contenu, { error: (...a) => trace.erreurs.push(a.join(' ')) }, () => {}, () => {}, () => {}, x => String(x));
+    utilisateur, () => contenu, { error: (...a) => trace.erreurs.push(a.join(' ')) }, () => {}, () => {}, () => {}, x => String(x), () => {});
   f('dashboard');
   return trace;
 };

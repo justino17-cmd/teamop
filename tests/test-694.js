@@ -37,7 +37,10 @@ const M = new Function(SRC + '; return {eur,todayISO,jourDe,isoDe,fmtDate,fmtSho
 
 /* Les anciennes écritures, telles qu'elles étaient avant la v690 — la référence. */
 const REF = {
-  eur: n => (Number(n) || 0).toLocaleString('fr-FR') + ' €',
+  /* v751 : un montant s'écrit TOUJOURS avec deux décimales (« 170,70 € » à l'écran comme dans le PDF — vérification
+     de A à Z du 26 septembre 2026). La référence suit la décision ; ce que ce banc garde reste le même : le
+     formateur mis en cache rend exactement ce que rendrait l'écriture directe. */
+  eur: n => (Number(n) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €',
   jourDe: ts => new Date(ts || 0).toLocaleDateString('sv-SE'),
   fmtDate: iso => { if (!iso) return '—'; return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); },
   fmtShort: iso => { if (!iso) return '—'; return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }); },

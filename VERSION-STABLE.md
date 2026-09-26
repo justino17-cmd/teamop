@@ -1,5 +1,32 @@
 # Point stable TeamOP
 
+**Version stable : v751** — publiée le 26 septembre 2026 au matin, après la vérification de A à Z.
+
+v751 — ce que la vérification de A à Z de la nuit du 25 au 26 septembre a trouvé (14 familles,
+chaque constat rejoué par un second agent, chaque correctif rejoué au navigateur contre la v750).
+Elle porte aussi la v750, restée sur la bêta jusque-là :
+- ⛔ **la cloche plantait** dès qu'un arrivage attendait la validation du DR (`const bx` écrite
+  DANS un commentaire) : écran vide à la connexion de l'administrateur et du DR, et `save()` jetait
+  avant `syncPush()` — plus rien ne partait vers l'équipe. Corrigé, et `save()` isole désormais
+  l'affichage de l'enregistrement (`saveAffichageErreur`) ;
+- ⛔ **TVA 5,5 % / 2,1 % et quantité 1,75 refusées en silence** par le formulaire devis/facture
+  (`step`) : « Créer » ne faisait rien ;
+- montants toujours à deux décimales (`eur`), comme dans le PDF ; tuiles chiffrées qui tiennent
+  sur tous les appareils (`kpiTailler`) ;
+- synchro : une coupure courte ne recharge plus la page ; l'écoute et l'envoi restent calmes sous
+  un refus 429 (plus de rafale de relectures, plus d'écriture sans relecture) ;
+- segmentés en une seule mise en page (`segInit`) ; Mouvements : la recherche répond menu ouvert,
+  et la barre de filtres ne vole plus la barre du haut au défilement ;
+- planning « Créer ici » affiche l'heure touchée ; changement de métier journalisé ; contraste
+  des titres de section ;
+- v750 : une ligne chassée du journal ne pose plus de marque (le document de l'équipe ne grossit
+  plus sans fin) ; un appareil au rangement plein le dit, et la Tour le sait.
+Preuves : suite complète 175 suites · 8 604 vérifications ; `test-817` 45 ✓, `test-818` 39 ✓ ;
+contre-vérification au navigateur 6/6 sujets, plus `relecteur` et `gardien`.
+Aucun changement de format des données : rien à exiger dans l'urgence.
+
+## Ancien point
+
 **Version stable : v749** — correctif du 25 septembre 2026 au soir, publié le soir même.
 
 v749 — deux appareils ouverts ne se renvoient plus la base sans fin. Chez ELAN (base au-delà du
