@@ -5394,8 +5394,10 @@ function vueSurveillance(){
      réflexe, et une surveillance qu'on vide par réflexe ne surveille plus rien. Il disparaît
      quand il n'y a rien à classer : un bouton qui ne fait rien apprend à cliquer pour rien. */
   var _aClasser=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
-  var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
-    '<span style="font-size:12px;color:var(--muted);margin-left:10px">passe en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
+  /* L'explication se range À CÔTÉ du bouton quand il y a la place, DESSOUS sinon : écrite en ligne derrière
+     lui, au téléphone elle s'enroulait autour (« passe en « » à droite du bouton, le reste en dessous). */
+  var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
+    '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">passe en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
   /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses trois segments. Les segments ne sont
      qu'un RACCOURCI vers le filtre de statut qui existait déjà (incF) : même état, même rendu, et
      le sélecteur « statut » plus bas garde ses neuf choix (écartés, mis en veille…). Un segment ne
