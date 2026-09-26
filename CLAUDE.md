@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**176 suites dans `tests/`**, sans dépendance ni installation (recompté le 26 septembre 2026, `test-820` compris —
+**177 suites dans `tests/`**, sans dépendance ni installation (recompté le 26 septembre 2026, `test-821` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 176 suites · 8 660 vérifications (mesuré en local le 26/09/2026, v752)
+bash scripts/bancs-ci.sh        # 177 suites · 8 724 vérifications (mesuré en local le 26/09/2026, v753)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
