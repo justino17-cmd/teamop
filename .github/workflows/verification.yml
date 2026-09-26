@@ -85,6 +85,10 @@ jobs:
             # d'erreur. Un échec silencieux déguisé en échec illisible.
             if sortie=$(node "$f" 2>&1); then :; else
               rouge=1; echecs="$echecs $f"; echo "::error::$f échoue"
+              # ⛔ ET LES ✗ EUX-MÊMES, PAS SEULEMENT LA QUEUE : elle ne les montre que s'ils sont à la fin.
+              # Le 26 septembre 2026, test-735 est tombé en CI (223 ✓ 2 ✗) avec ses deux ✗ plus haut :
+              # impossible de savoir lesquels, et cinq passages en local sont restés verts.
+              echo "$sortie" | grep '✗' | grep -vE '(^|[^0-9])0 ✗' | head -12 | sed 's/^/      /' || true
               echo "$sortie" | tail -8 | sed 's/^/      /'
             fi
             echo "$sortie" | tail -1
