@@ -1270,6 +1270,25 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ⚠️ Corollaire payé le même jour : **un correctif posé sur une cause fausse se retire.** Le
   réglage des halos, validé avec Justin en septembre, a été remis tel quel. Un correctif
   inutile occupe le terrain et fait croire le problème traité.
+- ⛔⛔ **UN `:has()` QUI LIT UN ATTRIBUT `style` FAIT RESTYLER TOUTE LA PAGE À CHAQUE ÉCRITURE DE
+  STYLE — C'ÉTAIT LA LENTEUR.** Mesuré le 26 septembre 2026 (chantier lenteur, bêta, ×4) : le code
+  d'un écran coûtait 20 à 30 ms, le recalcul des styles deux à cinq fois plus ; le tableau de bord
+  (118 éléments) payait autant que Factures (700). `body.rf-onglets:has(#msg-flot[style*="flex"])`
+  réévaluait `:has()` à chaque `el.style.x = …` de la page : **894 éléments restylés, 36,6 ms par
+  écriture → 9 éléments, 2,1 ms** une fois remplacé par une classe que pose le seul écrivain du
+  bouton. Et la règle ne s'appliquait JAMAIS. `test-823` refuse tout `:has(… [style…] …)`.
+  ⛔ **Une règle morte n'est pas gratuite quand elle porte un `:has()`** : deux familles qui ne
+  visaient plus rien (0 élément sur 44 écrans) coûtaient encore ~2 000 restylages par série de
+  gestes. Le coupable ne se lit pas, il se MESURE : `scratchpad/perf-has-glouton.js` neutralise
+  chaque règle à son tour et compte les éléments restylés (`UpdateLayoutTree.elementCount`) sur
+  des gestes réels — au téléphone ET au bureau, les règles de chaque format n'étant pas les mêmes.
+  ⚠️ Et une réécriture « sans rien changer » se PROUVE : `scratchpad/sonde-styles-identiques.js`
+  compare le style calculé de chaque élément, ancienne version contre nouvelle, sur 45 écrans.
+  Trois pièges de l'outil lui-même : un relevé de 7 Mo renvoyé par le protocole de pilotage ne
+  revient JAMAIS (empreinte par élément, détail à la demande) ; l'ordre des variables CSS suit
+  l'ordre des règles (trier avant de comparer) ; et les fenêtres ou messages qui s'ouvrent seuls
+  (photo de profil, notifications, « 👋 Bienvenue ») tombent à un moment différent dans chaque
+  page — les neutraliser, sinon on accuse la feuille d'un décalage d'horloge.
 - ⛔ **UNE RÈGLE ÉCRITE POUR UN ÉCRAN NE COUVRE PAS LE COMPOSANT — ET L'ÉCRAN QUI SORT DU
   CADRE REND DU BRUT.** Toutes les règles du segmenté visaient `.plg-pl .seg span` : la barre
   du planning, et seulement des `span`. Pointage est le seul écran qui met des `<button>` dans
