@@ -1,5 +1,30 @@
 # Point stable TeamOP
 
+**Version stable : v757** — publiée le 26 septembre 2026, sur la phrase de Justin « fait tout ce qu'il y a à faire, s'il te plaît, que ça marche bien » (en réponse à « dis-moi “publie la correction” »).
+
+v757 — trois choses, rien d'autre (les couleurs des techniciens, en cours sur la bêta, passent en v758) :
+- **plus aucun « OP Admin » fantôme chez une entreprise qui existe.** ELAN, le soir même, capture à l'appui :
+  « OP Admin · Administrateur · @florent-3 », quinze jours après le correctif du 11 septembre. Tout navigateur
+  neuf (ou dont le stockage avait été vidé) qui ouvrait le lien d'une entreprise EXISTANTE fabriquait le compte
+  « OP Admin » du démarrage, le renommait vers l'identifiant de départ de l'entreprise avec le mot de passe
+  PROVISOIRE du lien, puis la synchro l'appelait « -2 », « -3 »… et l'envoyait à toute l'équipe. Rattaché à une
+  entreprise, un appareil ne fabrique plus aucun compte : c'est la première lecture de l'équipe qui dit si elle
+  est neuve (alors seulement, la porte d'entrée est posée, à identifiant fixe, avec le lien) ;
+- **le portail : « 🚀 Activer mon espace » ne crée plus de second administrateur.** Le bouton reste dans le fil
+  des messages ; retouché pour une entreprise qui existe, il ouvrait « Créez votre compte administrateur » avant
+  d'avoir lu l'équipe. Désormais : équipe vide → le formulaire ; équipe habitée → la connexion ;
+- **supprimer un compte : une question, une case, « Oui ».** Justin : « je veux plus que ça envoie un code par
+  mail ». Le code partait à l'adresse du compte CONNECTÉ. La pierre tombale, le ménage et le journal ne changent pas.
+Chez ELAN : rien n'est effacé ni écrit dans leurs données. Les « OP Admin » déjà entrés y RESTENT : ils se
+suppriment à la main, désormais en deux gestes (la case, « Oui »). Aucun changement de format : rien à exiger.
+Preuves : sonde au navigateur sur le vrai lien, la vraie synchro contre un faux serveur et le code de production —
+v756 13 ✓ 8 ✗, v757 21 ✓ 0 ✗ (entreprise existante, entreprise neuve, portail existant, portail neuf, droits de
+l'équipe intacts) ; suppression au doigt dans la vraie page 13 ✓ (v756 : 4 ✓ 9 ✗, /api/sendcode appelé) ;
+`test-826` 35 ✓, `test-827` 19 ✓ ; 5 + 7 mutations font tomber leur banc ET leur sonde ; suite complète
+182 suites · 8 931 vérifications ; deux relectures indépendantes, sans point bloquant (deux remarques sans effet mesuré, notées dans REPRISE).
+
+## Ancien point
+
 **Version stable : v756** — publiée le 26 septembre 2026, sur la phrase de Justin « Oui publier ».
 
 v756 — la lenteur, et la photo de profil. Elle porte la v756 restée sur la bêta depuis le matin :
@@ -22,8 +47,6 @@ Preuves : suite complète 180 suites · 8 877 vérifications ; `test-823` 43 ✓
 style calculé identique avant/après sur 45 écrans ; sonde photo dans la vraie page 34 ✓ (au doigt et au
 pixel), la bêta d'avant en rate 3 ; relecture : un défaut trouvé (recadrage resté ouvert après Échap ou
 un changement d'écran) et corrigé avant publication.
-
-## Ancien point
 
 **Version stable : v755** — publiée le 26 septembre 2026, sur la phrase de Justin (« si c'est à faire tu le fais,
 et après tu publies »).

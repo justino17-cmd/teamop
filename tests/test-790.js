@@ -95,7 +95,7 @@ const GARDES = [
   ['exportData', 'adminSeul()'], ['importData', 'adminSeul()'], ['sauvegardesModal', 'adminSeul()'], ['sauvegardeOuvrir', 'adminSeul()'],
   ['sauvegardeRemettre', 'adminSeul()'], ['sauvegardeRemettreStock', 'adminSeul()'], ['mailSimpleSave', 'adminSeul()'], ['mailBoxForm', 'adminSeul()'],
   ['mailBoxSave', 'adminSeul()'], ['mailBoxDel', 'adminSeul()'], ['mailAssignSet', 'adminSeul()'], ['resetPwd', 'adminSeul()'],
-  ['delUser', 'adminSeul()'], ['delUserEnvoyer', 'adminSeul()'], ['delUserConfirme', 'adminSeul()'], ['validDRTousSet', 'adminSeul()'], ['bonsRemiseSet', 'adminSeul()'],
+  ['delUser', 'adminSeul()'], ['delUserConfirme', 'adminSeul()'],   /* v757 : plus de delUserEnvoyer — la suppression ne passe plus par un code (test-827) */ ['validDRTousSet', 'adminSeul()'], ['bonsRemiseSet', 'adminSeul()'],
 ];
 const introuvables = GARDES.filter(([n]) => !fonction(n)).map(([n]) => n);
 v('les ' + GARDES.length + ' fonctions gardées sont trouvées dans le fichier réel', introuvables, []);
