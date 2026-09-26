@@ -3449,11 +3449,17 @@ html[data-theme="dark"] .tpu-p{box-shadow:0 0 0 1.5px var(--card,#1c1c1e),0 0 0 
    les initiales à la couleur ramenée vers l'encre — au lieu de la teinte de l'application, que la règle
    `.avatar` ci-dessus leur imposait depuis la refonte (question posée à Justin le 26 septembre, tranchée
    le même soir : « chaque technicien et sa couleur »). Le second sélecteur pèse plus que la règle de nuit
-   `html[data-marque][data-theme="dark"] .avatar`, qui repeignait les initiales à la teinte. */
-.avatar.av-tc{background-color:color-mix(in srgb,var(--tc) 24%,var(--card,#fff));color:color-mix(in srgb,var(--tc) 55%,var(--t1,#1d1d1f));border-color:transparent}
+   `html[data-marque][data-theme="dark"] .avatar`, qui repeignait les initiales à la teinte.
+   ⛔ L'ENCRE NE PREND QUE 30 % DE LA COULEUR. À 55 % (première écriture, relue le 26 septembre), les initiales
+   tombaient sous le seuil de lecture en OP GESTION : 4,30:1 de jour (Vert vif), 3,43:1 de nuit (Pétrole) —
+   la carte y est teintée, et une encre trop colorée se fond dans le disque teinté. À 30 %, sur les seize
+   couleurs et les quatre combinaisons (TEAM OP / OP GESTION × jour / nuit), le pire est 4,77:1 (OP GESTION
+   de nuit, Vert vif) ; l'identité, elle, est portée par le DISQUE (24 %) et son liseré (40 %).
+   `scratchpad/contraste-avatar.js` refait le calcul ; `test-825` le garde. */
+.avatar.av-tc{background-color:color-mix(in srgb,var(--tc) 24%,var(--card,#fff));color:color-mix(in srgb,var(--tc) 30%,var(--t1,#1d1d1f));border-color:transparent}
 html[data-refonte] .avatar.av-tc,html[data-refonte][data-marque] .avatar.av-tc{
   background-color:color-mix(in srgb,var(--tc) 24%,var(--card))!important;
-  color:color-mix(in srgb,var(--tc) 55%,var(--t1))!important;
+  color:color-mix(in srgb,var(--tc) 30%,var(--t1))!important;
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tc) 40%,transparent)}
 
 /* L'heure d'une intervention est écrite à la couleur de la personne qui la fait. Sur les cartes

@@ -199,6 +199,33 @@ for (const f of ['app.html', 'beta.html']) {
   vrai('⛔ les pastilles d’en-tête `.avatar.av-tc` passent devant la teinte de la refonte ET la règle de nuit — par la couleur seule',
     !!avtc && /background-color:color-mix\(in srgb,var\(--tc\) 24%,var\(--card\)\)!important/.test(avtc[1]) && !/(^|;|\s)background\s*:/.test(avtc[1]), avtc && avtc[1]);
   vrai('   le choix de couleur : des <span>, pas des <label> (la refonte impose sa taille à tout libellé d’un champ)', !/<label class="tcc-o"/.test(CODE) && /<span class="tcc-o"/.test(CODE));
+
+  /* ⛔ LES INITIALES D'UN AVATAR TEINTÉ SE LISENT, SOUS LES DEUX THÈMES, DE JOUR ET DE NUIT. La première
+     écriture mettait 55 % de la couleur dans l'encre : 4,30:1 en OP GESTION de jour, 3,43:1 de nuit
+     (relecture du 26 septembre). Le calcul part des VALEURS DU FICHIER — la part de couleur du fond et de
+     l'encre dans la règle qui gagne, `--card` et `--t1` de chaque thème, les seize couleurs de la palette —
+     jamais de chiffres recopiés ici : un banc qui recopie des valeurs garde une croyance. */
+  console.log(`\n── 825 · 8b. ${f} — les initiales d’un avatar teinté se lisent (seize couleurs × deux thèmes × jour/nuit) ──`);
+  const pct = avtc ? { fond: +((avtc[1].match(/background-color:color-mix\(in srgb,var\(--tc\) (\d+)%/) || [])[1]), encre: +((avtc[1].match(/(?:^|;|\s)color:color-mix\(in srgb,var\(--tc\) (\d+)%/) || [])[1]) } : {};
+  vrai('population : les deux parts de couleur sont lues dans la règle qui gagne', pct.fond > 0 && pct.encre > 0, pct);
+  const bloc = sel => { const r = R.find(([s]) => s === sel); return r ? r[1] : ''; };
+  const decl = (txt, nom) => { const m = txt.match(new RegExp('(?:^|;|\\s)' + nom + ':\\s*(#[0-9A-Fa-f]{6})\\b')); return m ? m[1] : null; };
+  const THEMES = [['teamop', 'light'], ['teamop', 'dark'], ['opgestion', 'light'], ['opgestion', 'dark']].map(([m, t]) => {
+    const propre = bloc(`html[data-marque="${m}"][data-verre][data-theme="${t}"]`), base = bloc(`html[data-marque][data-verre][data-theme="${t}"]`);
+    return { nom: m + ' ' + (t === 'light' ? 'jour' : 'nuit'), card: decl(propre, '--card') || decl(base, '--card'), t1: decl(propre, '--t1') || decl(base, '--t1') };
+  });
+  vrai('population : --card et --t1 trouvés pour les quatre combinaisons', THEMES.every(x => x.card && x.t1), THEMES);
+  const PAL = ((CODE.match(/const TECH_PALETTE16=\[([^\]]*)\]/) || [])[1] || '').match(/#[0-9A-Fa-f]{6}/g) || [];
+  vrai('population : les seize couleurs de la palette sont lues', PAL.length === 16, PAL.length);
+  const rgbDe = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const melange = (a, b, p) => { const A = rgbDe(a), B = rgbDe(b); return A.map((x, i) => Math.round(x * p / 100 + B[i] * (100 - p) / 100)); };
+  const lumi = c => { const s = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2]; };
+  const ctr = (a, b) => { const x = lumi(a), y = lumi(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  let pire = { k: 99 }, n = 0;
+  if (pct.fond > 0 && pct.encre > 0) THEMES.filter(x => x.card && x.t1).forEach(th => PAL.forEach(c => { n++;
+    const k = ctr(melange(c, th.card, pct.fond), melange(c, th.t1, pct.encre)); if (k < pire.k) pire = { k: +k.toFixed(2), theme: th.nom, couleur: c }; }));
+  vrai('population : 64 couples calculés', n === 64, n);
+  vrai('⛔ le pire des 64 couples passe 4,5:1 (initiales lisibles partout)', pire.k >= 4.5, pire);
 }
 
 console.log('\n── 825 · 9. la preuve dans la vraie page existe ──');
