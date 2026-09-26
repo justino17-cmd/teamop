@@ -173,7 +173,19 @@ console.log('\n── 818 · 8. les tuiles chiffrées, les montants, Mouvements,
     /\.kpis \.kpi\{container-type:inline-size;min-width:0\}/.test(APP)
     && /font-size:clamp\(17px,calc\(150cqi \/ var\(--kpi-n,5\)\),40px\)!important;[^}]*overflow-wrap:anywhere/.test(APP));
   vrai('   posée après chaque rendu d\'écran et chaque fenêtre', /try\{ kpiTailler\(\$\('content'\)\); \}catch\(_e\)\{\}/.test(NU) && /m\.scrollTop=0; kpiTailler\(m\);/.test(NU));
-  vrai('⛔ la barre de Mouvements passe au-dessus du voile du menu (la recherche répond)', /\n\.mvt-bar\{position:relative;z-index:51\}/.test(APP));
+  vrai('⛔ la barre de Mouvements passe au-dessus du voile du menu (la recherche répond)',
+    /\n\.mvt-voile \+ \.mvt-bar\{position:relative;z-index:51\}/.test(APP)
+    && /const voile=mvtMenuOuvert\?`<div class="mvt-voile" /.test(NU) && /`\$\{voile\}<div class="mvt-bar"/.test(NU));
+  /* ⛔ ET SEULEMENT QUAND LE VOILE EST LÀ (contre-vérification v751) : posé en permanence, le rang faisait passer la
+     barre — qui DÉFILE — au-dessus de la barre du haut collante (☰, Créer, synchro, cloche, loupe inertes). Aucune
+     règle ne doit donner de rang à `.mvt-bar` sans la condition du voile. */
+  {
+    const regles = []; const re = /([^{}]*\.mvt-bar)\{([^}]*)\}/g; let m;
+    while ((m = re.exec(APP))) if (/z-index/.test(m[2])) regles.push(m[1].trim());
+    v('   population : les règles qui donnent un rang à .mvt-bar sont trouvées', regles.length >= 1, true);
+    v('   et jamais en permanence : chacune est conditionnée au voile (.mvt-voile + .mvt-bar)',
+      regles.filter(sel => !/\.mvt-voile \+ \.mvt-bar$/.test(sel)), []);
+  }
   vrai('⛔ l\'heure touchée dans le planning s\'affiche (Début et Fin prévue)',
     /h\.value=heure; const a=document\.getElementById\('deb-aff'\); if\(a\) a\.textContent=heure; try\{ intFinDit\(\); \}catch\(e\)\{\}/.test(NU));
   v('   et plus aucun appel à intSyncFin (qui visait un formulaire disparu)', (NU.match(/intSyncFin\(/g) || []).length, 0);

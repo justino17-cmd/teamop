@@ -80,7 +80,9 @@ v('la fenêtre de lecture atteint bien l’accusé de réception', bloc.indexOf(
 // ── 3) Ce que le correctif ne doit PAS avoir cassé : le repère rendu, et la vraie coupure.
 {
   v('le repère est toujours rendu quand l’écriture n’aboutit pas', /if\(_syncTs===ts\) _syncTs=_tsAvant;/.test(bloc), true);
-  v('une vraie coupure réseau garde son écran hors ligne', /if\(!reseau\)\{ _horsLignePush=true;/.test(bloc), true);
+  /* v751 : la ligne s'est enrichie (l'écran hors ligne posé tout de suite, `_horsLignePushRisque`) ; ce qu'on garde
+     ne change pas — sur une vraie coupure, l'envoi reste EN ATTENTE, et on sort sans écrire. */
+  v('une vraie coupure réseau garde son écran hors ligne', /if\(!reseau\)\{[^\n]*?_horsLignePush=true;[^\n]*?return; \}/.test(bloc), true);
   v('le diagnostic part toujours vers la Tour', /syncDiagnostic\('ecriture non acquittee/.test(bloc), true);
   v('l’accusé de réception dépose toujours la copie de sauvegarde', /sauvegardeDeposer\(e\)/.test(bloc), true);
 }

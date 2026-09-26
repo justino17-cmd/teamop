@@ -3599,8 +3599,13 @@ html[data-refonte] .modal.carte:has(#rf-reglages) #rf-reglages{
 /* ⛔ v751 — LE VOILE QUI FERME LE MENU COUVRAIT LE CHAMP DE RECHERCHE. Le voile plein écran (z-index 50) qui
    referme « Filtrer par box » au toucher passait AUSSI sur le reste de la barre : « Rechercher » répondait sur
    0 px tant que le menu restait ouvert (vérification de A à Z du 26 septembre 2026, `sonde-cibles.js`), au
-   téléphone comme au bureau. La barre entière passe au-dessus du voile ; le menu garde son propre rang dedans. */
-.mvt-bar{position:relative;z-index:51}
+   téléphone comme au bureau. La barre entière passe au-dessus du voile ; le menu garde son propre rang dedans.
+   ⛔ SEULEMENT QUAND LE VOILE EST LÀ (contre-vérification de la v751, `relecteur` + preuve au navigateur) : posée
+   en permanence, la barre (un élément du flux, qui défile) passait AUSSI au-dessus de la barre du haut collante
+   (z-index 5 au bureau, 30 au téléphone) dès que la liste défilait sous elle — ☰, « + Créer », la synchro, la
+   cloche et la loupe ne répondaient plus sur ~150 px de défilement. Menu fermé, il n'y a aucun voile à battre :
+   la barre n'a aucune raison de monter. Le rang se pose donc sur la barre qui SUIT le voile. */
+.mvt-voile + .mvt-bar{position:relative;z-index:51}
 @media(max-width:560px){
   .mvt-bar{position:relative}
   .mvt-dd{position:static!important}
@@ -26449,7 +26454,7 @@ views.mouvements=function(){
   const chip=(k,ico,l)=>{ const on=mvtFType===k;
     return `<button type="button" onclick="mvtChoisirType('${on?'':k}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:37px;padding:0 17px;border-radius:100px;font-size:12.5px;font-weight:700;white-space:nowrap;transition:.15s;border:1px solid ${on?'transparent':'var(--brd)'};background:${on?'var(--acc)':'var(--card)'};color:${on?'var(--on-acc)':'var(--t2)'};box-shadow:${on?'0 3px 12px color-mix(in srgb,var(--acc) 42%,transparent)':'0 1px 3px rgba(0,0,0,.07)'}">${ico}${l}</button>`; };
   const chercheur=`<div style="flex:1;min-width:200px;max-width:390px;height:37px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:11px;background:color-mix(in srgb,var(--t3) 11%,transparent);border:1.5px solid ${mvtFQ?'var(--acc)':'transparent'};transition:.15s"><span style="color:var(--t3);display:inline-flex">${ICO.loupe}</span><input id="mvt-q" value="${esc(mvtFQ)}" oninput="mvtSetQ(this.value)" placeholder="Rechercher" style="flex:1;min-width:0;border:none;background:transparent;color:var(--t1);font-size:13.2px;outline:none">${mvtFQ?`<button type="button" onclick="mvtSetQ('')" style="border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--t3) 30%,transparent);color:var(--card);border-radius:50%;width:17px;height:17px;font-size:10px;font-weight:800;line-height:1;flex:none;padding:0">✕</button>`:''}</div>`;
-  const voile=mvtMenuOuvert?`<div onclick="mvtMenu('')" style="position:fixed;inset:0;z-index:50"></div>`:'';
+  const voile=mvtMenuOuvert?`<div class="mvt-voile" onclick="mvtMenu('')" style="position:fixed;inset:0;z-index:50"></div>`:'';
   const PALETTE=['#2EB872','#2563EB','#E79A3C','#A78BFA','#E0524D','#0EA5A4','#D96BB0','#8B5A2B'];
   const boxTeinte=b=>PALETTE[Math.abs(String(b.nom||b.numero||'').split('').reduce((s,c)=>s+c.charCodeAt(0),0))%PALETTE.length];
   const tuileBox=b=>`<span style="width:26px;height:26px;flex:none;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:color-mix(in srgb,${boxTeinte(b)} 16%,transparent);color:${boxTeinte(b)}">${esc(String(b.nom||b.numero||'B').trim()[0].toUpperCase())}</span>`;
