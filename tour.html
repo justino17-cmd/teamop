@@ -1529,12 +1529,8 @@ nav.tabs.a-indic .tab.on,nav.tabs.a-indic .tab.on:hover{background:transparent}
 .bdg-r.pop,.bdg-b.pop{animation:pop var(--d-4) var(--e-sortie)}
 @keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.28)}100%{transform:scale(1)}}
 
-/* ══ JOUR / NUIT EN CERCLE ═══ le nouveau thème se révèle depuis le bouton pressé ══ */
-:root.theme-vt::view-transition-old(root){animation:none}
-:root.theme-vt::view-transition-new(root){animation:revele 520ms var(--e-sortie) both}
-@keyframes revele{from{clip-path:circle(0 at var(--rx,50%) var(--ry,50%))}to{clip-path:circle(var(--rr,150vmax) at var(--rx,50%) var(--ry,50%))}}
-:root.theme-vt .bandeau{view-transition-name:none}
-:root.theme-vt *{transition:none!important}
+/* (Le cercle qui révélait le nouveau thème depuis le bouton pressé est parti avec le bouton :
+   depuis la v2.66 le mode suit le système, personne n'appuie sur rien — 26 septembre 2026.) */
 
 /* ══ CONNEXION → CONSOLE ═══ la carte s'efface en reculant, la console arrive ══ */
 #login{view-transition-name:connexion}
@@ -1598,7 +1594,7 @@ body,.bandeau,.carte,.item,.kpi,.tbl,.mail,.mail-doss,.inp,.sel-f,.rech,.code,.l
   .carte::after,.item::after,.kpi::after,.lg-carte::after{display:none}
   .item:hover,.kpi.clic:hover,.btn-plein:hover,.btn-fant:hover{transform:none!important}
   #tour-panneau>div>*,.mail-lect.entre .lec,#vue.entre .kpi .bars i,.bdg-r.pop,.bdg-b.pop{animation:none!important}
-  :root.theme-vt::view-transition-new(root),::view-transition-old(connexion){animation:none!important}
+  ::view-transition-old(connexion){animation:none!important}
   /* la pression se lit par la couleur, pas par l'échelle */
   .btn-plein:active,.btn-fant:active,.btn-icone:active,.pill-act:active,.mode-fixe:active,.kpi.clic:active{transform:none}
   /* le soulignement d'onglet apparaît, il ne pousse plus */
@@ -1646,7 +1642,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 html,body{font-size:14px;line-height:1.45;letter-spacing:var(--suivi-corps);font-variant-numeric:tabular-nums}
 @media(hover:hover) and (pointer:fine){html,body{font-size:13px}}
 .ttl-page{font-size:clamp(22px,2.2vw,26px);font-weight:600;letter-spacing:-.02em;line-height:1.15;display:flex;align-items:center;gap:12px}
-.ic-page{width:28px;height:28px;border-radius:8px;background:var(--ic,var(--inset));color:#fff;display:grid;place-items:center;flex-shrink:0}
+.ic-page{width:28px;height:28px;border-radius:8px;background:var(--ic-neutre);color:#fff;display:grid;place-items:center;flex-shrink:0}
 .ic-page svg{width:16px;height:16px;stroke-width:2.2}
 .page-tete{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
 .desc{font-size:14px;color:var(--muted);max-width:68ch;margin-top:4px}
@@ -1810,7 +1806,7 @@ body.plans .reg-l.cli::before{display:none}
   #replier-barre{width:32px;height:32px;min-height:32px;margin-left:auto}
   .app-pill,.titre-court{display:none}
   .tab{display:flex;align-items:center;gap:10px;padding:0 8px;border-radius:var(--r-1);font-size:13px;font-weight:500;color:var(--text);justify-content:flex-start}
-  .tab .ic{width:20px;height:20px;border-radius:6px;background:var(--ic);display:grid;place-items:center;flex-shrink:0;color:#fff}
+  .tab .ic{width:20px;height:20px;border-radius:6px;background:var(--ic-neutre);display:grid;place-items:center;flex-shrink:0;color:#fff}
   .tab .ic svg{width:13px;height:13px;stroke-width:2.2;opacity:1;color:#fff}
   .tab:hover{background:var(--hover);color:var(--text)}
   .tab.on,nav.tabs.a-indic .tab.on,nav.tabs.a-indic .tab.on:hover{background:var(--app-bg);color:var(--app-txt);font-weight:600}
@@ -1895,7 +1891,7 @@ body.plans .reg-l.cli::before{display:none}
 .groupe{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-bottom:16px}
 .groupe button{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:0 14px;border:0;background:transparent;color:var(--text);font-size:15px;font-family:var(--fs);text-align:left;-webkit-tap-highlight-color:transparent;cursor:pointer}
 .groupe button+button{border-top:1px solid var(--hairline)} .groupe button:active{background:var(--hover)}
-.groupe .ic{width:28px;height:28px;border-radius:7px;background:var(--ic);color:#fff;display:grid;place-items:center;flex-shrink:0} .groupe .ic svg{width:16px;height:16px;stroke-width:2.2}
+.groupe .ic{width:28px;height:28px;border-radius:7px;background:var(--ic-neutre);color:#fff;display:grid;place-items:center;flex-shrink:0} .groupe .ic svg{width:16px;height:16px;stroke-width:2.2}
 .groupe .chev{margin-left:auto;color:var(--dim)} .groupe button.rouge{color:var(--redText);justify-content:center}
 .groupe button.on{background:var(--app-bg);color:var(--app-txt)} .groupe .coche{margin-left:auto;color:var(--app-txt)}
 .groupe .sous{display:block;font-size:12px;color:var(--muted);margin-top:1px}
@@ -2204,12 +2200,357 @@ body.plans .reg-l.cli::before{display:none}
 @media(prefers-reduced-motion:reduce){ .dos-chev{ transition:none } }
 
 </style>
+<style id="theme-tour">
+/* ══ THÈME DE LA TOUR ═══ maquette « TeamOp Tour HIG », validée par Justin (26 septembre 2026) ══════════
+   « Thème de la Tour à installer aussi — tu testes et tu vérifies. » Cette couche vit APRÈS la grande
+   feuille : elle ne réécrit aucun composant, elle en change la matière. Les jetons d'abord (les
+   composants lisent --surface, --text, --acc… depuis le 10 septembre : les changer ici suffit à
+   repeindre les dix-sept écrans), puis la charpente (barre latérale, barre du haut, barre d'onglets
+   flottante), puis le gabarit commun des vues.
+   Deux modes, décidés par le SYSTÈME (voir modeLu) :
+   · JOUR = HIG pur : fond #F2F2F7, encarts blancs sans bord ni ombre, séparateurs gris système,
+     teinte bleu système ;
+   · NUIT = marine profond + verre : dégradé #1A2A4D / #1C1636 sur #0F1A30 → #070B16, cartes en
+     verre (blanc 8 %, flou 40, saturation 200 %), liseré blanc 14 %, reflet en haut.
+   ⚠️ Écarts DÉCLARÉS à la maquette, chacun mesuré : le bleu système #007AFF et le rouge #FF3B30
+   portent du blanc à 4,0:1 et 3,6:1 — sous le seuil de 4,5 pour un libellé de 15 px. Le bouton
+   plein prend donc #0071E3 le jour (le bleu des boutons d'apple.com, 4,7:1) et #0A6FE0 la nuit
+   (4,8:1), le texte en teinte #0060C0 le jour ; le gris secondaire HIG (rgba(60,60,67,.6), 3,4:1 sur
+   blanc) monte à .78. La nuit, le rouge d'état s'éclaircit (#FF7B73) pour se lire sur son voile.
+   ⛔ Un `backdrop-filter` et la surface qu'il filtre se déclarent ENSEMBLE, dans la même règle —
+   sinon une règle plus spécifique retire l'un et laisse l'autre (CLAUDE.md, « une loupe »). */
+
+/* ── jetons : NUIT (le défaut, et la console MESSAGES avec : une seule teinte, le bleu système ;
+   l'identité de chaque application reste portée par son carré dans l'interrupteur) ── */
+body,body[data-app="messages"]{
+  color-scheme:dark;
+  --bg:#0F1A30;--surface:rgba(255,255,255,.08);--inset:rgba(118,118,128,.24);--eleve:rgba(255,255,255,.12);--hover:rgba(255,255,255,.06);--chip:rgba(255,255,255,.10);
+  --fond2:rgba(118,118,128,.24);--barre:rgba(255,255,255,.04);--headerBg:rgba(15,26,48,.62);--scrim:rgba(2,6,16,.55);
+  --border:rgba(255,255,255,.14);--line:rgba(255,255,255,.12);--hairline:rgba(255,255,255,.08);
+  --trait-ui:rgba(220,228,245,.42);--inpBorder:rgba(255,255,255,.16);
+  --text:#FFFFFF;--strong:#FFFFFF;--text2:rgba(235,240,250,.86);--muted:rgba(220,228,245,.70);--dim:rgba(220,228,245,.62);--code:#C9D4EA;
+  --app-gestion:#30D158;--app-gestion-fill:#248A3D;--app-gestion-txt:#4CD964;--app-gestion-bg:rgba(48,209,88,.18);--app-gestion-brd:rgba(48,209,88,.4);
+  --app-messages:#0A84FF;--app-messages-fill:#0A6FE0;--app-messages-txt:#64A8FF;--app-messages-bg:rgba(10,132,255,.2);--app-messages-brd:rgba(10,132,255,.45);
+  --app:#0A84FF;--app-fill:#0A6FE0;--app-fill-hover:#0A63CC;--app-fill-press:#0957B4;--app-txt:#64A8FF;
+  --app-bg:rgba(10,132,255,.22);--app-brd:rgba(100,168,255,.45);--app-on:#FFFFFF;
+  --badge-bg:#0A6FE0;--badge-txt:#FFFFFF;
+  --acc:#0A84FF;--acc-hover:#64A8FF;--acc-press:#0A6FE0;
+  --acc-fill:#0A6FE0;--acc-fill-hover:#0A63CC;--acc-fill-press:#0957B4;--on-acc:#FFFFFF;
+  --accBg:rgba(10,132,255,.22);--accBrd:rgba(100,168,255,.45);--acc-txt:#64A8FF;--link:#64A8FF;--blueSoft:#64A8FF;
+  --sel:rgba(10,132,255,.24);--tint:rgba(10,132,255,.22);--tint-gris:rgba(255,255,255,.10);
+  --avatar:rgba(10,132,255,.20);--avatarBorder:rgba(100,168,255,.30);
+  --green:#30D158;--green-txt:#30D158;--vert:#30D158;
+  --amber:#FF9F0A;--red:#FF6961;--redText:#FF8C84;--on-red:#1A0606;--gray:#BAC0CC;--bleu:#80B8FF;--violet:#C98BFF;
+  --vertBg:rgba(48,209,88,.18);--ambreBg:rgba(255,159,10,.18);--rougeBg:rgba(255,69,58,.18);--grisBg:rgba(255,255,255,.10);--bleuBg:rgba(10,132,255,.20);--violetBg:rgba(191,90,242,.20);
+  --ic-neutre:rgba(0,0,0,0);--ic-encre:#64A8FF;
+  --ombre-1:none;--ombre-2:0 18px 44px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.18);--ombre-3:0 24px 64px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.1);
+  --anneau:0 0 0 2px #0F1A30,0 0 0 4px #64A8FF;--anneau-int:inset 0 0 0 2px #64A8FF;--focus-champ:0 0 0 3px rgba(10,132,255,.35);
+  --plan-cli:rgba(0,0,0,0);--plan-cli-survol:rgba(255,255,255,.06);
+  /* la matière, nommée une fois : une carte, une barre, une feuille */
+  --tt-carte:rgba(255,255,255,.08);--tt-carte-bord:rgba(255,255,255,.14);
+  --tt-ombre:0 18px 44px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.18);
+  --tt-verre:blur(40px) saturate(200%);
+  --tt-barre:rgba(255,255,255,.06);--tt-lateral:rgba(255,255,255,.04);
+  /* la barre d'onglets flotte AU-DESSUS du contenu le plus vif : à 8 % de blanc (maquette) ses
+     libellés tombaient à 1,4–3,2:1 sur une carte passant dessous (mesuré au pixel). Elle garde son
+     verre mais prend un fond marine dense — une barre se mesure sur l'écran le plus coloré. */
+  --tt-onglets:rgba(18,30,54,.82);--tt-onglet-encre:#9CC8FF;
+  --tt-feuille:rgba(15,26,48,.9);--tt-collant:rgba(15,26,48,.72);
+  --tt-onglet-on:rgba(255,255,255,.14);--tt-onglet-ombre:inset 0 1px 0 rgba(255,255,255,.22);
+  --tt-barre-ombre:0 18px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);
+  --tt-actif:rgba(10,132,255,.28);--tt-seg:rgba(118,118,128,.24);--tt-seg-on:#636366;--tt-seg-on-encre:#FFFFFF;
+  --tt-champ:rgba(118,118,128,.24);--tt-sep:rgba(255,255,255,.08);
+  --tt-page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),
+    radial-gradient(120% 90% at 0% 0%,#1A2A4D 0%,rgba(26,42,77,0) 55%),
+    radial-gradient(110% 80% at 100% 100%,#1C1636 0%,rgba(28,22,54,0) 60%),
+    linear-gradient(160deg,#0F1A30 0%,#070B16 100%);
+  --fs:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,system-ui,sans-serif;
+  --fs-titre:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Helvetica,system-ui,sans-serif;
+  --fm:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r-1:7px;--r-2:10px;--r-3:12px;--r-4:12px;
+}
+/* ── jetons : JOUR — 100 % HIG ── */
+body.jour,body.jour[data-app="messages"]{
+  color-scheme:light;
+  --bg:#F2F2F7;--surface:#FFFFFF;--inset:rgba(118,118,128,.12);--eleve:#FFFFFF;--hover:rgba(0,0,0,.04);--chip:rgba(118,118,128,.12);
+  --fond2:rgba(118,118,128,.12);--barre:rgba(242,242,247,.82);--headerBg:rgba(249,249,249,.85);--scrim:rgba(0,0,0,.28);
+  --border:rgba(60,60,67,.18);--line:rgba(60,60,67,.20);--hairline:rgba(60,60,67,.14);
+  --trait-ui:rgba(60,60,67,.36);--inpBorder:rgba(60,60,67,.20);
+  --text:#000000;--strong:#000000;--text2:rgba(60,60,67,.88);--muted:rgba(60,60,67,.78);--dim:rgba(60,60,67,.74);--code:#3A3A3C;
+  --app-gestion:#34C759;--app-gestion-fill:#1E7E36;--app-gestion-txt:#1C7A3A;--app-gestion-bg:rgba(52,199,89,.16);--app-gestion-brd:rgba(28,122,58,.3);
+  --app-messages:#007AFF;--app-messages-fill:#0071E3;--app-messages-txt:#0060C0;--app-messages-bg:rgba(0,122,255,.12);--app-messages-brd:rgba(0,96,192,.3);
+  --app:#007AFF;--app-fill:#0071E3;--app-fill-hover:#0066CC;--app-fill-press:#005BB8;--app-txt:#0060C0;
+  --app-bg:rgba(0,122,255,.12);--app-brd:rgba(0,96,192,.32);--app-on:#FFFFFF;
+  --badge-bg:#0071E3;--badge-txt:#FFFFFF;
+  --acc:#007AFF;--acc-hover:#0066CC;--acc-press:#005BB8;
+  --acc-fill:#0071E3;--acc-fill-hover:#0066CC;--acc-fill-press:#005BB8;--on-acc:#FFFFFF;
+  --accBg:rgba(0,122,255,.12);--accBrd:rgba(0,96,192,.32);--acc-txt:#0060C0;--link:#0060C0;--blueSoft:#0060C0;
+  --sel:rgba(0,122,255,.12);--tint:rgba(0,122,255,.12);--tint-gris:rgba(118,118,128,.12);
+  --avatar:rgba(0,122,255,.12);--avatarBorder:rgba(0,96,192,.18);
+  --green:#1C7A3A;--green-txt:#1C7A3A;--vert:#1C7A3A;
+  --amber:#8A5300;--red:#D70015;--redText:#B3261E;--on-red:#FFFFFF;--gray:#5E5E63;--bleu:#0060C0;--violet:#7A3FB0;
+  --vertBg:rgba(52,199,89,.16);--ambreBg:rgba(255,149,0,.16);--rougeBg:rgba(255,59,48,.12);--grisBg:rgba(118,118,128,.12);--bleuBg:rgba(0,122,255,.12);--violetBg:rgba(175,82,222,.12);
+  --ic-neutre:rgba(0,0,0,0);--ic-encre:#007AFF;
+  --ombre-1:none;--ombre-2:0 8px 24px rgba(0,0,0,.12);--ombre-3:0 24px 64px rgba(0,0,0,.18),0 0 0 .5px rgba(0,0,0,.08);
+  --anneau:0 0 0 2px #FFFFFF,0 0 0 4px #007AFF;--anneau-int:inset 0 0 0 2px #007AFF;--focus-champ:0 0 0 3px rgba(0,122,255,.25);
+  --plan-cli:rgba(0,0,0,0);--plan-cli-survol:rgba(0,0,0,.04);
+  --tt-carte:#FFFFFF;--tt-carte-bord:rgba(0,0,0,0);--tt-ombre:none;
+  --tt-barre:rgba(249,249,249,.85);--tt-lateral:rgba(242,242,247,.82);--tt-onglets:rgba(249,249,249,.78);
+  --tt-feuille:rgba(249,249,249,.96);--tt-collant:rgba(242,242,247,.9);
+  --tt-onglet-on:rgba(255,255,255,.95);--tt-onglet-ombre:0 2px 8px rgba(0,0,0,.12);--tt-onglet-encre:#0060C0;
+  --tt-barre-ombre:0 8px 24px rgba(0,0,0,.12);
+  --tt-actif:rgba(0,122,255,.14);--tt-seg:rgba(118,118,128,.12);--tt-seg-on:#FFFFFF;--tt-seg-on-encre:#000000;
+  --tt-champ:rgba(118,118,128,.12);--tt-sep:rgba(60,60,67,.29);
+  --tt-page:#F2F2F7;
+}
+
+/* ── la page : le fond vit sur <html> (il se propage au canevas et se peint en premier — un fond
+   sur body passerait devant tout décor posé en dessous, règle du dépôt) ── */
+html{background:#070B16}
+html:has(body.jour){background:#F2F2F7}
+body{background:transparent;font-family:var(--fs);-webkit-font-smoothing:antialiased}
+body:not(.jour){background:var(--tt-page);background-attachment:fixed;min-height:100vh}
+#login{background:transparent}
+
+/* ── la matière des surfaces : un encart blanc le jour, une vitre la nuit ── */
+.carte,.kpi,.tbl,.item,.reg-cli,.reg-haut,.reg-bloc,.squel-l,.mail,.lg-carte,.vide,.encart,.groupe,.tt-carte{
+  background:var(--tt-carte);border:1px solid var(--tt-carte-bord);box-shadow:var(--tt-ombre);
+  -webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre)}
+body.jour .carte,body.jour .kpi,body.jour .tbl,body.jour .item,body.jour .reg-cli,body.jour .reg-haut,body.jour .reg-bloc,body.jour .squel-l,body.jour .mail,
+body.jour .lg-carte,body.jour .vide,body.jour .encart,body.jour .groupe,body.jour .tt-carte{border-color:rgba(0,0,0,0);-webkit-backdrop-filter:none;backdrop-filter:none}
+/* UNE vitre, pas deux : une liste posée DANS une carte ne s'empile pas en second verre (deux blancs à
+   8 % font 16 %, et le texte secondaire y tombait à 4,3:1, mesuré au pixel). Elle devient un creux
+   bordé d'un filet, jour comme nuit. */
+.carte .reg-bloc,.carte .reg-cli,.carte .reg-haut,.carte .item,.carte .tbl,.carte .vide,.carte .squel-l,
+#tour-panneau .reg-bloc,#tour-panneau .item,#tour-panneau .vide,.mail .reg-bloc,.mail .reg-cli,.mail .vide{
+  background:rgba(0,0,0,0);box-shadow:none;border:1px solid var(--hairline);-webkit-backdrop-filter:none;backdrop-filter:none}
+.carte,.kpi,.tbl,.reg-cli,.reg-haut,.reg-bloc,.squel-l,.mail,.groupe,.tt-carte{border-radius:12px}
+.item{border-radius:12px;margin-bottom:8px}
+.lg-carte{border-radius:20px}
+.vide{background:var(--tt-carte)}
+.encart{background:var(--accBg);border-color:rgba(0,0,0,0);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+
+/* ── CHARPENTE ── */
+.hlogo{background:transparent;box-shadow:none}
+.hnom{display:flex;flex-direction:column;font-size:14px;font-weight:700;letter-spacing:-.012em;line-height:1.2;color:var(--text)}
+.hsous{font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hsous:empty{display:none}
+.tt-haut{display:none}
+@media(min-width:900px){
+  #app.on{grid-template-columns:var(--barre-l,236px) minmax(0,1fr);grid-template-rows:auto 1fr auto}
+  body.barre-repliee #app.on{--barre-l:60px}
+  .bandeau{grid-row:1/4;background:var(--tt-lateral);-webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre);
+    border-right:1px solid var(--line);padding:14px 10px 12px}
+  body.jour .bandeau{border-right:.5px solid var(--tt-sep)}
+  .tt-haut{grid-column:2;grid-row:1;position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:14px;height:48px;padding:0 20px;
+    background:var(--tt-barre);-webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre);border-bottom:1px solid var(--line)}
+  body.jour .tt-haut{border-bottom:.5px solid var(--tt-sep)}
+  main{grid-column:2;grid-row:2;padding:clamp(16px,2.5vw,28px) clamp(16px,2.5vw,28px) 96px}
+  .pied{grid-column:2;grid-row:3}
+  .hg{padding:4px 8px 12px;gap:10px}
+  .hlogo{width:36px;height:36px;border-radius:9px;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+  #replier-barre{width:32px;height:32px;min-height:32px;margin-left:auto;color:var(--muted)}
+  .hd .hchip{display:none}
+  .hd{grid-template-columns:1fr auto;border-top:1px solid var(--line)}
+  body.jour .hd{border-top:.5px solid var(--tt-sep)}
+  .hd-tour{grid-column:1;grid-row:1;align-self:center;font-size:11px;color:var(--muted)}
+  .grp{margin:0;padding:14px 10px 4px}
+  .grp span{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  nav.tabs{gap:2px}
+  .tab{gap:9px;padding:4px 8px;border-radius:8px;font-size:13px;font-weight:400;letter-spacing:-.008em;color:var(--text)}
+  .tab .ic{width:24px;height:24px;border-radius:7px;background:transparent}
+  .tab .ic svg{width:15px;height:15px;stroke-width:1.9;color:var(--ic-encre)}
+  .tab:hover,nav.tabs.a-indic .tab:hover{background:var(--hover);color:var(--text)}
+  .tab.on,nav.tabs.a-indic .tab.on,nav.tabs.a-indic .tab.on:hover{background:var(--tt-actif);color:var(--text);font-weight:600}
+  .tab.on .ic{background:transparent}.tab.on .ic svg{color:var(--ic-encre)}
+  .tab .bdg-r,.tab .bdg-b{font-size:11px;font-weight:700;padding:1px 7px;min-width:20px}
+  /* le fond de sélection est porté par l'onglet lui-même : la maquette ne fait pas glisser un
+     calque, et une géométrie recopiée en JavaScript dépend du moment où on la copie */
+  .tab-indic{display:none}
+  body.barre-repliee .hsous{display:none}
+}
+.tt-ou{flex:1;min-width:0;display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.tt-ou b{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis}
+.tt-ou i{font-style:normal;color:var(--dim)}
+.tt-droite{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.tt-mode{font-size:12px;color:var(--muted)}
+.tt-srv{display:flex;align-items:center;gap:8px;padding:5px 11px;border-radius:999px;background:var(--tt-seg);font-size:12px;font-weight:500;color:var(--text)}
+.tt-srv>i{width:7px;height:7px;border-radius:50%;background:var(--gray)}
+.tt-srv.ok>i{background:#34C759;animation:ttPouls 2s infinite}
+.tt-srv.ko>i{background:var(--red)}
+.tt-srv time{color:var(--muted);font-variant-numeric:tabular-nums}
+@keyframes ttPouls{0%{box-shadow:0 0 0 0 rgba(52,199,89,.5)}70%{box-shadow:0 0 0 7px rgba(52,199,89,0)}100%{box-shadow:0 0 0 0 rgba(52,199,89,0)}}
+
+/* l'interrupteur d'application : un segmenté HIG (rail gris, curseur blanc le jour, gris la nuit) */
+.app-sw{background:var(--tt-seg);border:0;border-radius:9px;padding:2px;gap:2px}
+.app-sw button{border-radius:7px;color:var(--text);font-weight:500}
+.app-sw button[aria-pressed="true"]{background:var(--tt-seg-on);color:var(--tt-seg-on-encre);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+/* ── TÉLÉPHONE : en-tête en verre, barre d'onglets FLOTTANTE, feuille « Plus » ── */
+@media(max-width:899px){
+  .bandeau{border-top:0;background:var(--tt-barre);-webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre);border-bottom:1px solid var(--line)}
+  body.jour .bandeau{border-bottom:.5px solid var(--tt-sep)}
+  .app-pill{color:var(--acc-txt)}
+  .hava{background:var(--avatar);color:var(--acc-txt);box-shadow:none}
+  main{padding:18px 16px calc(112px + env(safe-area-inset-bottom))}
+  .page-cta{bottom:calc(98px + env(safe-area-inset-bottom))}
+  #app.on~.barre-bas,body:has(#app.on) .barre-bas{display:grid}
+  .barre-bas{left:calc(14px + env(safe-area-inset-left));right:calc(14px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));
+    height:auto;padding:7px;gap:2px;border-radius:34px;
+    background:var(--tt-onglets);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+    border:1px solid var(--tt-carte-bord);box-shadow:var(--tt-barre-ombre)}
+  body.jour .barre-bas{border-color:rgba(60,60,67,.12)}
+  .bb{min-height:50px;border-radius:26px;gap:3px;color:var(--muted);font-weight:500;
+    transition:background-color var(--d-2) var(--e-sortie),color var(--d-2) var(--e-sortie),transform var(--d-2) var(--ressort-vif)}
+  .bb span:not(.bdg-r){font-size:11px;letter-spacing:.01em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bb.on{background:var(--tt-onglet-on);color:var(--tt-onglet-encre);font-weight:600;box-shadow:var(--tt-onglet-ombre)}
+  .bb:active{transform:scale(.93);transition-duration:var(--d-0)}
+  .bb:active svg{transform:none}
+  .bb.plus.on::after{display:none}
+  .bb .bdg-r{top:4px}
+}
+.scrim{background:rgba(0,0,0,.35)}
+.feuille{border-radius:34px 34px 0 0;max-height:80vh;padding:8px 16px calc(28px + env(safe-area-inset-bottom));
+  background:var(--tt-feuille);-webkit-backdrop-filter:blur(40px) saturate(220%);backdrop-filter:blur(40px) saturate(220%);
+  border:1px solid var(--tt-carte-bord);border-bottom:0;box-shadow:0 -16px 44px rgba(0,0,0,.24)}
+.feuille.on{transition:transform 500ms cubic-bezier(.32,.72,0,1)}
+.feuille .poignee{background:var(--muted);opacity:.5;margin-bottom:10px}
+.feuille-tete{display:flex;align-items:center;gap:10px;padding:0 4px 12px}
+.feuille-tete img{width:32px;height:32px;border-radius:8px;display:block}
+.feuille-tete b{display:block;font-size:16px;font-weight:700;letter-spacing:-.014em;color:var(--text)}
+.feuille-tete span{display:block;font-size:12.5px;color:var(--muted)}
+.feuille-sec{padding:14px 12px 6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.feuille .groupe{border-radius:14px;margin-bottom:6px;overflow:hidden}
+.groupe button{min-height:50px;font-size:16px;letter-spacing:-.014em;gap:12px;padding:0 14px}
+.groupe button+button{border-top:1px solid var(--hairline)}
+.groupe .ic{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--ic-encre)}
+.groupe .ic svg{stroke-width:1.9;color:var(--ic-encre)}
+.groupe button.on{background:var(--tt-actif);color:var(--text);font-weight:600}
+.groupe .chev{color:var(--dim)}
+.groupe button.rouge{color:var(--redText)}
+.feuille .app-sw{margin:0 0 6px}
+
+/* ── LE GABARIT COMMUN DES VUES — section, titre, description, bouton ── */
+.page-tete{border-bottom:0;padding-bottom:0;margin-bottom:22px;gap:14px}
+.tt-section{font-size:13px;font-weight:400;color:var(--muted);margin-bottom:2px}
+.ttl-page{font-family:var(--fs-titre);font-size:34px;line-height:41px;letter-spacing:.37px;font-weight:700;color:var(--text)}
+.ttl-page .ic-page{display:none}
+.desc{font-size:15px;line-height:20px;color:var(--muted);max-width:60ch;margin-top:4px;text-wrap:pretty}
+@media(max-width:760px){ .ttl-page{font-size:28px;line-height:34px;letter-spacing:.36px} }
+
+/* boutons : capsules. Plein = l'action, teinté = le reste (HIG) */
+.btn-plein,.btn-fant,.pill-act{border-radius:999px}
+.btn-plein{background:var(--acc-fill);color:var(--on-acc);box-shadow:none;font-size:14px;font-weight:600;padding:0 16px}
+.btn-plein:hover{background:var(--acc-fill-hover)}.btn-plein:active{background:var(--acc-fill-press)}
+.btn-fant,.btn-fant.teinte{background:var(--tint);color:var(--acc-txt);border:0;box-shadow:none;font-size:14px;font-weight:600;padding:0 14px}
+.btn-fant:hover{background:var(--accBg);filter:brightness(.97)}
+.btn-fant.danger,.btn-fant[style*="--redText"]{background:var(--rougeBg)!important;color:var(--redText)!important;border-color:rgba(0,0,0,0)!important}
+.page-act .btn-fant,.page-act .btn-plein{font-size:15px;min-height:34px}
+@media(pointer:coarse){ .page-act .btn-fant,.page-act .btn-plein{min-height:44px} }
+/* le bouton « Tout remettre à zéro » remonte de 8 px sous les chiffres (style en ligne) : la
+   grille garde sa marge pour qu'il ne mange plus le pied des cartes */
+.svl-kpi{margin-bottom:22px}
+.pill-act{background:var(--tint-gris);border:0;color:var(--text2)}
+.btn-icone{border-radius:50%}
+.btn-plein:active,.btn-fant:active,.pill-act:active{transform:scale(.97);opacity:.85}
+
+/* champs : en creux, sans bord (HIG) */
+.inp,.sel-f,.rech{background-color:var(--tt-champ);border:1px solid rgba(0,0,0,0);box-shadow:none;border-radius:10px}
+.inp:focus,.inp:focus-visible,.sel-f:focus-visible,.rech:focus-within{border-color:var(--acc);box-shadow:var(--focus-champ)}
+
+/* chiffres clés : libellé, chiffre, précision — dans cet ordre (maquette) */
+.grille-kpi{gap:12px}
+.kpi{padding:16px;gap:6px;justify-content:flex-start}
+.kpi .l{order:0;font-size:13px;font-weight:400;color:var(--muted);line-height:1.3}
+.kpi .n{order:1;font-family:var(--fs-titre);font-size:34px;line-height:1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.kpi .n.mot{font-size:17px;line-height:1.3;letter-spacing:-.01em}
+.kpi .svl-sous,.kpi .d,.kpi .s{order:2;font-size:12.5px;color:var(--muted)}
+.kpi.clic:hover{background:var(--tt-carte);filter:brightness(1.04)}
+body.jour .kpi.clic:hover{filter:brightness(.98)}
+.kpi.sel{background:var(--tt-carte);box-shadow:var(--tt-ombre),inset 0 0 0 2px var(--acc)}
+body.jour .kpi.sel{box-shadow:inset 0 0 0 2px var(--acc)}
+@media(max-width:760px){
+  .grille-kpi,.grille-kpi.simple{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi .n{font-size:26px}
+}
+
+/* le segmenté (trois segments d'un tableau filtrable) */
+.tt-liste-tete{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:22px 0 12px}
+.tt-liste-tete h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-.02em;color:var(--text);flex:1 1 auto}
+.tt-seg{display:flex;padding:2px;gap:2px;border-radius:9px;background:var(--tt-seg)}
+.tt-seg button{border:0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:400;color:var(--text);padding:5px 14px;min-height:32px;border-radius:7px;background:transparent;
+  -webkit-tap-highlight-color:transparent;transition:background-color .25s ease-out,box-shadow .25s ease-out}
+.tt-seg button[aria-pressed="true"]{background:var(--tt-seg-on);color:var(--tt-seg-on-encre);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tt-seg button .n{margin-left:5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tt-seg button[aria-pressed="true"] .n{color:inherit;opacity:.7}
+@media(pointer:coarse){ .tt-seg button{min-height:44px} }
+@media(max-width:760px){ .tt-seg{width:100%} .tt-seg button{flex:1;padding:5px 8px} }
+
+/* listes : l'encart groupé. Lignes ≥ 56 px, séparateurs gris système, avatar arrondi */
+.reg-tete{background:var(--tt-collant);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-radius:12px;padding:6px 30px 6px 4px;margin:0 0 8px}
+@media(min-width:900px){ .reg-tete{top:48px} }
+.reg-nom{font-size:17px;font-weight:600;letter-spacing:-.02em}
+.reg-n{font-size:13px;color:var(--muted)}
+.reg-l{min-height:56px;padding:10px 16px}
+.reg-bloc>.reg-l{min-height:56px}
+.reg-l.cli,.reg-l.haut{min-height:60px;padding:12px 16px}
+.reg-l+.reg-l::before,.reg-bloc>.reg-l+.reg-l::before{background:var(--hairline);left:62px}
+.reg-l:hover,.reg-bloc>.reg-l:hover,.reg-l.cli:hover,.reg-l.haut:hover{background:var(--hover)}
+.reg-l.cli.on,.reg-l.haut.on{background:var(--sel);box-shadow:inset 3px 0 0 var(--acc)}
+.reg-av{width:32px;height:32px;border-radius:9px;background:var(--avatar);color:var(--acc-txt);box-shadow:none;font-family:var(--fm);font-size:11.5px;font-weight:700}
+.reg-av.gris{width:32px;height:32px;border-radius:9px}
+.reg-av.sans{width:32px;height:32px;border-radius:9px;background:var(--tint-gris);box-shadow:none}
+.reg-l.cli .reg-t1,.reg-l.haut .reg-t1,.reg-bloc .reg-t1{font-size:14.5px;font-weight:600;letter-spacing:-.014em;color:var(--text)}
+.reg-l2{font-size:13px;color:var(--text2)}
+.reg-l3,.reg-bloc .reg-l2,.reg-bloc .reg-l3{font-size:12.5px;color:var(--muted)}
+/* le chevron d'une LIGNE se centre sur elle : la règle `position:absolute;top:0` était écrite pour
+   le titre de groupe (44 px) et collait le chevron de chaque ligne dans son coin haut */
+.reg-l .reg-fin>.reg-chev{position:static;height:auto;align-self:center}
+.reg-tech{background:var(--tt-carte);border-radius:12px;box-shadow:none}
+body:not(.jour) .reg-tech{box-shadow:inset 0 0 0 1px var(--tt-carte-bord)}
+
+/* pastilles d'état : capsules, 12 px, le mot porte le sens */
+.past{border-radius:999px;font-size:12px;font-weight:600;padding:3px 10px;line-height:1.35;box-shadow:none}
+.p-gris{box-shadow:none}
+.chip{border-radius:999px;border:0}
+.bdg-r{background:var(--red);color:var(--on-red)}
+
+/* tableaux : en-têtes de colonnes 11 px capitales, lignes aérées */
+.tbl .hd,.tbl th{background:var(--tt-collant);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--muted);padding:10px 16px}
+.tbl .rw,.tbl td{padding:12px 16px;border-top:1px solid var(--hairline);font-size:14px}
+.sec{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted)}
+.kv>div{font-size:14px;padding:9px 0}
+
+/* la fenêtre (tour-panneau) et le toast : verre dense, pas une vitre sur le voile */
+#tour-panneau>div{background:var(--tt-feuille)!important;-webkit-backdrop-filter:blur(40px) saturate(220%);backdrop-filter:blur(40px) saturate(220%);border-radius:20px!important}
+body.jour #tour-panneau>div{background:#FFFFFF!important}
+#toast{border-radius:999px;background:var(--tt-feuille);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);border:1px solid var(--tt-carte-bord);box-shadow:var(--tt-barre-ombre)}
+body.jour #toast{background:rgba(255,255,255,.92)}
+@media(max-width:899px){ #toast{bottom:calc(96px + env(safe-area-inset-bottom))} }
+
+/* connexion */
+.lg-sous{color:var(--acc-txt)}
+
+/* ── préférences du système ── */
+@media(prefers-reduced-transparency:reduce){
+  .carte,.kpi,.tbl,.item,.reg-cli,.reg-haut,.reg-bloc,.squel-l,.mail,.lg-carte,.vide,.groupe,.tt-carte,.bandeau,.tt-haut,.barre-bas,.feuille,.reg-tete,#toast,#tour-panneau>div,.tbl .hd,.tbl th{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  body:not(.jour) .carte,body:not(.jour) .kpi,body:not(.jour) .tbl,body:not(.jour) .item,body:not(.jour) .reg-cli,body:not(.jour) .reg-haut,
+  body:not(.jour) .reg-bloc,body:not(.jour) .squel-l,body:not(.jour) .mail,body:not(.jour) .lg-carte,body:not(.jour) .vide,body:not(.jour) .groupe,body:not(.jour) .tt-carte{background:#1E2A42}
+  body:not(.jour) .bandeau,body:not(.jour) .tt-haut,body:not(.jour) .barre-bas,body:not(.jour) .feuille,body:not(.jour) .reg-tete,body:not(.jour) #toast,body:not(.jour) #tour-panneau>div{background:#15213A!important}
+  body.jour .bandeau,body.jour .tt-haut,body.jour .barre-bas,body.jour .feuille,body.jour .reg-tete,body.jour #toast{background:#F9F9F9!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .tt-srv.ok>i{animation:none}
+  .bb,.tt-seg button,.feuille,.feuille.on{transition:none!important}
+  .bb:active,.btn-plein:active,.btn-fant:active,.pill-act:active{transform:none!important}
+}
+</style>
 </head>
 <body>
 
 <!-- ══════════ CONNEXION ══════════ -->
 <div id="login">
-  <button class="mode-fixe" onclick="modeBascule(event)" title="Changer de mode" id="lg-mode"></button>
   <div class="lg-col">
     <div class="lg-marque">
       <img class="lg-logo" src="icons/teamop-192.png" alt="TEAM OP" width="56" height="56">
@@ -2232,7 +2573,7 @@ body.plans .reg-l.cli::before{display:none}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.65</div>
+    <div class="lg-pied">console interne · v2.66</div>
   </div>
 </div>
 
@@ -2247,7 +2588,8 @@ body.plans .reg-l.cli::before{display:none}
     <div class="hbar">
       <div class="hg">
         <img class="hlogo" src="icons/teamop-192.png" alt="TEAM OP" width="28" height="28">
-        <div class="hnom">TEAM OP</div>
+        <!-- « La Tour », et dessous qui la conduit (maquette) : le logo dit déjà TEAM OP -->
+        <div class="hnom">La Tour<span class="hsous" id="h-sous"></span></div>
         <!-- la puce « CONTRÔLE » a disparu : l'interrupteur dit mieux où l'on est -->
         <button class="btn-icone" id="replier-barre" onclick="barreBasculer()" aria-label="Replier le menu" title="Replier le menu"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
       </div>
@@ -2267,17 +2609,22 @@ body.plans .reg-l.cli::before{display:none}
           <div class="hqui"><b id="h-nom">—</b><span id="h-role"> · patron</span></div>
         </div>
         <div class="hd-act">
-          <button class="btn-icone" onclick="modeBascule(event)" title="Changer de thème" id="ap-mode"></button>
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.65</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.66</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
   </div>
+  <!-- LA BARRE DU HAUT (bureau) — maquette validée : à gauche où l'on est (section › vue), à droite
+       l'état du serveur et l'heure, et le mode, qui suit le système. Au téléphone elle s'efface :
+       l'en-tête collé et la barre d'onglets disent déjà tout ça. -->
+  <div class="tt-haut" id="tt-haut"><div class="tt-ou" id="tt-ou"></div>
+    <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
+      <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.65</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.66</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2341,7 +2688,7 @@ function setApp(app,sansAnim,tabVoulu){
   if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; }catch(e){} }
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
   var nom=APPS_TOUR[app].nom;
-  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · v2.65';
+  var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · '+TOUR_VERSION;
   var pn=$('app-pill-nom'); if(pn) pn.textContent=APPS_TOUR[app].court;
   /* l'onglet demandé par le hash prime (un lien #gestion/entreprises tapé depuis MESSAGES) ; sinon
      le dernier onglet ouvert dans cette console ; sinon l'accueil */
@@ -2422,7 +2769,23 @@ function verEtat(o,ref){
 function hAuth(){ return { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN }; }
 /* Le statut voyage avec l'erreur. Sans lui, un 403 « tu n'as pas ce droit » était rapporté
    comme « Serveur injoignable » : le message envoyait chercher une panne réseau inexistante. */
-function apiGet(u){ return fetch(API+u,{headers:hAuth()}).then(function(r){ if(r.status===401){ doLogout(); return null; }
+/* ══ L'ÉTAT DU SERVEUR, dans la barre du haut ══ Il se DÉDUIT des appels que la console fait déjà
+   (les incidents toutes les minutes, chaque vue ouverte) : aucune requête de plus pour le savoir.
+   Trois états, jamais deux — « on ne sait pas encore » n'est pas « en ligne » : avant la première
+   réponse la pastille reste grise. Une réponse 5xx est un serveur qui répond MAL : pas en ligne. */
+var SRV={ok:null,ts:0};
+function srvEtat(ok){ SRV.ok=ok; SRV.ts=Date.now(); majHaut(); }
+function srvRepond(r){ srvEtat(r.status<500); return r; }
+function srvMuet(e){ srvEtat(false); throw e; }
+function majHaut(){
+  var ou=$('tt-ou'); if(ou){ var v=vueInfo(TAB); ou.innerHTML=(v.section?'<span>'+esc(v.section)+'</span><i aria-hidden="true">›</i>':'')+'<b>'+esc(v.lib||'')+'</b>'; }
+  var s=$('tt-srv'), l=$('tt-srv-l'), h=$('tt-heure');
+  if(s){ s.className='tt-srv'+(SRV.ok===true?' ok':SRV.ok===false?' ko':''); }
+  if(l) l.textContent=SRV.ok===true?'Serveur en ligne':SRV.ok===false?'Serveur injoignable':'Serveur…';
+  if(h) h.textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(function(){ if(document.visibilityState==='visible') majHaut(); },30000);
+function apiGet(u){ return fetch(API+u,{headers:hAuth()}).then(srvRepond,srvMuet).then(function(r){ if(r.status===401){ doLogout(); return null; }
   if(!r.ok){ var e=new Error('http'); e.status=r.status;
     /* un 403 peut porter « app » : l'action appartient à l'autre console — le corps le dit */
     return r.json().catch(function(){ return {}; }).then(function(d){ e.app=d&&d.app; e.corps=d&&d.error; throw e; }); }
@@ -2476,32 +2839,28 @@ function fmtAgo(ts){ if(!ts) return '—'; var m=Math.round((Date.now()-ts)/6000
 function fmtEur(n){ n=Number(n)||0; return n.toLocaleString('fr-FR',{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})+' €'; }
 function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}); }
 
-/* ══ MODE JOUR / NUIT ══ le choix reste sur cet appareil ══ */
-var SOLEIL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"></path></svg>';
-var LUNE='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"></path></svg>';
-function modeLu(){ try{ return localStorage.getItem('teamop-theme')||'nuit'; }catch(e){ return 'nuit'; } }
+/* ══ MODE JOUR / NUIT ══ le SYSTÈME décide, en direct — thème validé par Justin (26 septembre 2026)
+   Plus de bouton : la Tour suit prefers-color-scheme, et bascule d'elle-même quand le Mac ou
+   l'iPhone passe en mode sombre le soir. Le choix rangé par l'ancien bouton (« teamop-theme »)
+   n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
+   `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
+   rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
+var TOUR_VERSION='v2.66';
+var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
+var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
+function modeLu(){
+  if(MODE_FORCE) return MODE_FORCE==='light'?'jour':'nuit';
+  return (_mqSombre&&!_mqSombre.matches)?'jour':'nuit';   /* sans réponse du système : la nuit, comme avant */
+}
 function modeApplique(m){
   document.body.classList.toggle('jour',m==='jour');
-  var t=(m==='jour')?'Passer en mode nuit':'Passer en mode jour';
-  var ic=(m==='jour')?LUNE:SOLEIL;
-  ['lg-mode','ap-mode'].forEach(function(id){ var b=$(id); if(b){ b.innerHTML=ic; b.title=t; } });
+  var l=$('tt-mode'); if(l) l.textContent=(m==='jour'?'mode jour':'mode nuit')+(MODE_FORCE?' (forcé)':' (système)');
 }
-function modeBascule(ev){ var m=(modeLu()==='jour')?'nuit':'jour';
-  try{ localStorage.setItem('teamop-theme',m); }catch(e){}
-  var sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(!document.startViewTransition||sobre){ modeApplique(m); return; }
-  /* Le nouveau thème se révèle en cercle depuis le bouton qu'on vient de presser :
-     le changement part de la main, il ne tombe pas du ciel. */
-  var b=(ev&&ev.currentTarget)||$('ap-mode')||$('lg-mode');
-  var r=b?b.getBoundingClientRect():{left:innerWidth-40,top:20,width:0,height:0};
-  var x=r.left+r.width/2, y=r.top+r.height/2;
-  var rayon=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+40;
-  var root=document.documentElement;
-  root.style.setProperty('--rx',x+'px'); root.style.setProperty('--ry',y+'px'); root.style.setProperty('--rr',rayon+'px');
-  root.classList.add('theme-vt');
-  var vt=document.startViewTransition(function(){ modeApplique(m); });
-  vt.finished.then(function(){ root.classList.remove('theme-vt'); },function(){ root.classList.remove('theme-vt'); });
-}
+/* Écouté EN DIRECT : un changement du système pendant que la console est ouverte se voit tout de
+   suite. Pas de transition de vue ici — personne n'a appuyé sur rien, le changement ne part pas
+   d'une main ; les couleurs glissent seules (transitions de la couche du thème). */
+if(_mqSombre&&!MODE_FORCE){ var _suitMode=function(){ modeApplique(modeLu()); };
+  if(_mqSombre.addEventListener) _mqSombre.addEventListener('change',_suitMode); else if(_mqSombre.addListener) _mqSombre.addListener(_suitMode); }
 modeApplique(modeLu());
 
 /* ══ CONNEXION ══ */
@@ -2538,6 +2897,7 @@ function entrer(){
     $('login').style.display='none'; $('app').classList.add('on');
     $('h-nom').textContent=MYNOM; $('h-ini').textContent=ini(MYNOM);
     $('h-role').textContent=' · '+(MYROLE==='patron'?'patron':'collaborateur');
+    var hs=$('h-sous'); if(hs) hs.textContent=MYNOM+' · '+(MYROLE==='patron'?'patron':'collaborateur');
     renderTabs(); setTab(t,true); majCompteursApp(); compterKpi($('vue'));
   };
   var sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2578,6 +2938,8 @@ var IC={
   devisia:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path><path d="M18.5 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"></path>'
 };
 IC.essais=IC.cadenas;   /* l'accès bêta est une porte : le cadenas le dit */
+/* « Plus » ouvre TOUTES les vues : trois traits (le menu), comme la maquette — trois points disaient « autres actions », pas « toutes les destinations ». */
+IC.menu='<path d="M4 7h16M4 12h16M4 17h16"></path>';
 function svg(n,t){ t=t||17; return '<svg width="'+t+'" height="'+t+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(IC[n]||'')+'</svg>'; }
 
 /* ══ LES TROIS ÉTATS QUE PERSONNE NE DESSINE ════════════════════════════════════
@@ -2600,79 +2962,130 @@ function squelListe(n){
   return '<div class="squel-l" aria-hidden="true">'+h+'</div>';
 }
 
+/* ══ LE MENU — la structure de la maquette validée par Justin (« TeamOp Tour HIG », 26 septembre
+   2026) : Tour · Gestion · Facturation · Système. UNE table, et cinq lecteurs — la barre latérale,
+   la barre du bas, la feuille « Plus », l'en-tête des vues, la barre du haut. Un libellé changé ici
+   change partout ; deux listes auraient fini par se contredire (c'est ce qui était arrivé à VUES,
+   qui oubliait « connexions » pendant que la barre la dessinait).
+   Chaque vue qui existait est rangée ici, aucune n'est retirée. La maquette montre aussi « Bêta » et
+   « Réglages » : la Tour n'a pas d'écran Réglages — on n'en fabrique pas un vide — et la bêta vit
+   DANS « Comptes & accès », à côté de la version publique : ce sont deux portes qui ne doivent
+   jamais se voir l'une sans l'autre (vueEssais, reg-g-fixe).
+   La console MESSAGES ne dessine pas Devis IA, Connexions, Abonnements, Données ni Accès — ils n'ont
+   rien à y montrer aujourd'hui (REPRISE.md, « une console par application »). */
+var MENU=[
+  {section:'Tour',vues:[['accueil','Tableau de bord','gestion messages']]},
+  {section:'Gestion',vues:[['surveillance','Surveillance','gestion messages','bdg-surv'],['entreprises','Entreprises','gestion messages'],
+    ['connexions','Connexions clients','gestion'],['essais','Comptes & accès','gestion']]},
+  {section:'Facturation',vues:[['abonnements','Abonnements','gestion'],['devisia','Devis IA','gestion'],['support','Support','gestion messages','bdg-supp']]},
+  {section:'Système',vues:[['donnees','Données','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal','gestion messages']]}
+];
+/* Ce que CE compte voit dans CETTE console : Équipe et Accès restent au patron, comme avant. */
+function menuVisible(){
+  return MENU.map(function(g){ return {section:g.section,vues:g.vues.filter(function(x){
+      if((x[0]==='equipe'||x[0]==='essais')&&MYROLE!=='patron') return false;
+      return (x[2]||'').split(' ').indexOf(APP)>=0; })}; })
+    .filter(function(g){ return g.vues.length; });
+}
+function vueInfo(t){
+  for(var i=0;i<MENU.length;i++) for(var j=0;j<MENU[i].vues.length;j++)
+    if(MENU[i].vues[j][0]===t) return {section:MENU[i].section,lib:MENU[i].vues[j][1]};
+  return {section:'',lib:''};
+}
 function renderTabs(){
-  /* Une seule liste, portant l'application de chaque onglet : la console MESSAGES ne dessine pas
-     Devis IA, Connexions, Abonnements ni Accès — ils n'ont rien à y montrer aujourd'hui (voir
-     REPRISE.md, « une console par application »). Chaque onglet porte sa TUILE colorée (--ic-*) :
-     une teinte par destination, jamais un état — le badge rouge chiffré fait le travail. */
-  var t=[['accueil','Accueil','gestion messages'],null,['surveillance','Surveillance','gestion messages','bdg-surv'],['support','Support','gestion messages','bdg-supp'],
-         null,['entreprises','Entreprises','gestion messages'],['connexions','Connexions clients','gestion'],['abonnements','Abonnements','gestion'],['devisia','Devis IA','gestion'],null,
-         ['essais','Accès','gestion'],['donnees','Données','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal de la console','gestion messages']];
-  var grp=['Activité','Clients','Console'], gi=0, h='', dansGroupe=0, tampon='';
-  var pousse=function(){ if(dansGroupe) h+=tampon; tampon=''; dansGroupe=0; };
-  t.forEach(function(x){
-    if(x&&(x[0]==='equipe'||x[0]==='essais')&&MYROLE!=='patron') return;
-    if(!x){ pousse(); tampon='<div class="grp"><i></i><span>'+grp[gi++]+'</span></div>'; return; }
-    if((x[2]||'').split(' ').indexOf(APP)<0) return;   /* pas dans cette console */
-    dansGroupe++;
-    tampon+='<button class="tab" data-t="'+x[0]+'" data-apps="'+x[2]+'" style="--ic:var(--ic-'+x[0]+')" onclick="setTab(\''+x[0]+'\')" title="'+x[1]+'"><i class="ic">'+svg(x[0],13)+'</i><span class="lib">'+x[1]+'</span>'+
-       (x[3]?'<span class="'+(x[0]==='surveillance'?'bdg-r':'bdg-b')+'" id="'+x[3]+'">0</span>':'')+'</button>';
-    if(!gi) { h+=tampon; tampon=''; dansGroupe=0; }
+  /* La tuile d'icône est transparente et le glyphe prend la teinte : c'est le dessin de la
+     maquette (Réglages, Mail). Le badge chiffré fait le travail d'alerte — la couleur d'une
+     destination ne dit jamais un état. */
+  var h='';
+  menuVisible().forEach(function(g){
+    h+='<div class="grp"><i></i><span>'+g.section+'</span></div>';
+    g.vues.forEach(function(x){
+      h+='<button class="tab" data-t="'+x[0]+'" data-apps="'+x[2]+'" onclick="setTab(\''+x[0]+'\')" title="'+x[1]+'"><i class="ic">'+svg(x[0],13)+'</i><span class="lib">'+x[1]+'</span>'+
+         (x[3]?'<span class="'+(x[0]==='surveillance'?'bdg-r':'bdg-b')+'" id="'+x[3]+'">0</span>':'')+'</button>';
+    });
   });
-  pousse();
   $('tabs').innerHTML=h;
   var ind=document.createElement('i'); ind.className='tab-indic'; ind.setAttribute('aria-hidden','true');
   $('tabs').appendChild(ind); $('tabs').classList.add('a-indic'); placerIndic(false);
   renderBarreBas();
+  majHaut();
 }
-/* ══ TÉLÉPHONE ═══ la barre du bas : les MÊMES quatre destinations dans les deux consoles — le pouce
-   apprend une fois — et « Plus » pour le reste. Glyphes monochromes : les tuiles colorées ne vivent
-   pas sur 56 px, elles se battraient avec la teinte d'application. */
-var BAS=['accueil','surveillance','entreprises','support'];
+/* ══ TÉLÉPHONE ═══ la barre d'onglets FLOTTANTE, en verre : Accueil · Surveill. · Entreprises · Accès
+   · Plus (maquette). Accès n'existe que pour le patron et en console GESTION ; ailleurs, sa place
+   revient au Courrier — le pouce garde quatre destinations, jamais un trou. Le Courrier qui part
+   dans « Plus » y emporte son compteur : la pastille de « Plus » dit ce qui attend derrière. */
+var BAS=['accueil','surveillance','entreprises','essais'];
+var BAS_LIB={accueil:'Accueil',surveillance:'Surveill.',entreprises:'Entreprises',essais:'Accès',support:'Courrier'};
 function renderBarreBas(){
   var el=$('barre-bas'); if(!el) return;
-  var libs={accueil:'Accueil',surveillance:'Alertes',entreprises:'Entreprises',support:'Courrier'};
-  el.innerHTML=BAS.map(function(t){ return '<button type="button" class="bb" data-t="'+t+'" onclick="setTab(\''+t+'\')">'+svg(t,22)+'<span>'+libs[t]+'</span>'+
+  BAS=['accueil','surveillance','entreprises',(vues().indexOf('essais')>=0&&MYROLE==='patron')?'essais':'support'];
+  el.innerHTML=BAS.map(function(t){ return '<button type="button" class="bb" data-t="'+t+'" onclick="setTab(\''+t+'\')" aria-label="'+esc(vueInfo(t).lib||BAS_LIB[t])+'">'+svg(t,22)+'<span>'+BAS_LIB[t]+'</span>'+
       (t==='surveillance'?'<span class="bdg-r" id="bdg-surv-bas">0</span>':t==='support'?'<span class="bdg-r" id="bdg-supp-bas">0</span>':'')+'</button>'; }).join('')+
-    '<button type="button" class="bb plus" onclick="ouvrirFeuille(\'plus\')">'+svg('plus',22)+'<span>Plus</span></button>';
+    '<button type="button" class="bb plus" onclick="ouvrirFeuille(\'plus\')" aria-haspopup="dialog" aria-label="Plus — toutes les vues">'+svg('menu',22)+'<span>Plus</span>'+
+      (BAS.indexOf('support')<0?'<span class="bdg-r" id="bdg-supp-bas">0</span>':'')+'</button>';
   majBarreBas();
 }
 function majBarreBas(){
-  [].forEach.call(document.querySelectorAll('.bb'),function(b){ b.classList.toggle('on',b.dataset.t===TAB||(b.classList.contains('plus')&&BAS.indexOf(TAB)<0)); });
+  var feuilleOuverte=_feuilleOuverte;
+  [].forEach.call(document.querySelectorAll('.bb'),function(b){
+    var plus=b.classList.contains('plus');
+    b.classList.toggle('on',plus?(feuilleOuverte||BAS.indexOf(TAB)<0):(b.dataset.t===TAB&&!feuilleOuverte));
+    if(plus) b.setAttribute('aria-expanded',String(feuilleOuverte)); else if(b.dataset.t===TAB) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
   ['surv','supp'].forEach(function(k){ var o=$('bdg-'+k), d=$('bdg-'+k+'-bas'); if(o&&d){ d.textContent=o.textContent; d.style.display=(o.style.display==='none'||!(+o.textContent))?'none':''; } });
 }
-/* LA FEUILLE — un seul composant, deux contenus : 'app' (choisir la console) et 'plus' (le reste des
-   onglets avec leurs tuiles, l'apparence, quitter). Elle monte du bas : un tiroir latéral part du
-   bord gauche, hors de portée du pouce droit. */
-var _feuilleY=0,_feuilleY0=0,_feuilleGlisse=false;
+/* LA FEUILLE — un seul composant, deux contenus : 'app' (choisir la console) et 'plus' (TOUTES les
+   vues, rangées comme le menu latéral, puis quitter). Elle monte du bas : un tiroir latéral part du
+   bord gauche, hors de portée du pouce droit. « Apparence » n'y est plus : le mode suit le système. */
+var _feuilleY=0,_feuilleY0=0,_feuilleGlisse=false,_feuilleOuverte=false;
+var APP_FILL={gestion:'var(--app-gestion-fill)',messages:'var(--app-messages-fill)'};
+var APP_TEINTE={gestion:'var(--app-gestion)',messages:'var(--app-messages)'};
 function ouvrirFeuille(quoi){
   var f=$('feuille'), sc=$('scrim'); if(!f) return;
   var h='<div class="poignee" aria-hidden="true"></div>';
   if(quoi==='app'){
     h+='<div class="groupe">'+['gestion','messages'].filter(function(a){ return MYAPPS.indexOf(a)>=0; }).map(function(a){ var A=APPS_TOUR[a];
-      return '<button type="button" class="'+(a===APP?'on':'')+'" onclick="setApp(\''+a+'\');fermerFeuille()"><span class="ic" style="background:var(--app-'+a+'-fill)">'+svg(a==='gestion'?'entreprises':'messages',16)+'</span><span><b>'+A.nom+'</b><span class="sous">'+(a==='gestion'?'interventions, clients, devis, stock':'messagerie d’équipe')+'</span></span>'+(a===APP?'<span class="coche">✓</span>':'<span class="chev">›</span>')+'</button>'; }).join('')+'</div>';
+      return '<button type="button" class="'+(a===APP?'on':'')+'" onclick="setApp(\''+a+'\');fermerFeuille()"><span class="ic" style="background:'+APP_FILL[a]+'">'+svg(a==='gestion'?'entreprises':'messages',16)+'</span><span><b>'+A.nom+'</b><span class="sous">'+(a==='gestion'?'interventions, clients, devis, stock':'messagerie d’équipe')+'</span></span>'+(a===APP?'<span class="coche">✓</span>':'<span class="chev">›</span>')+'</button>'; }).join('')+'</div>';
   } else {
-    if(MYAPPS.length>1) h+='<div class="app-sw" role="group" aria-label="Application pilotée">'+['gestion','messages'].map(function(a){ return '<button type="button" data-app="'+a+'" aria-pressed="'+(a===APP)+'" onclick="setApp(\''+a+'\');fermerFeuille()"><i style="--c:var(--app-'+a+')"></i>'+APPS_TOUR[a].court+'</button>'; }).join('')+'</div>';
-    var reste=[].map.call(document.querySelectorAll('nav.tabs .tab'),function(b){ return {t:b.dataset.t,lib:b.title}; }).filter(function(x){ return BAS.indexOf(x.t)<0; });
-    if(reste.length) h+='<div class="groupe">'+reste.map(function(x){ return '<button type="button" class="'+(x.t===TAB?'on':'')+'" onclick="setTab(\''+x.t+'\');fermerFeuille()"><span class="ic" style="--ic:var(--ic-'+x.t+');background:var(--ic)">'+svg(x.t,16)+'</span>'+x.lib+'<span class="chev">›</span></button>'; }).join('')+'</div>';
-    var jour=document.body.classList.contains('jour');
-    h+='<div class="groupe"><button type="button" onclick="modeBascule(event);fermerFeuille()"><span class="ic" style="background:var(--inset);color:var(--text)">'+(jour?LUNE:SOLEIL)+'</span>Apparence<span class="sous" style="margin-left:auto">'+(jour?'Clair':'Sombre')+'</span></button></div>';
+    h+='<div class="feuille-tete"><img src="icons/teamop-192.png" alt="" width="32" height="32"><div><b>La Tour</b><span>Toutes les vues · '+esc(APPS_TOUR[APP].nom)+'</span></div></div>';
+    if(MYAPPS.length>1) h+='<div class="app-sw" role="group" aria-label="Application pilotée">'+['gestion','messages'].map(function(a){ return '<button type="button" data-app="'+a+'" aria-pressed="'+(a===APP)+'" onclick="setApp(\''+a+'\');fermerFeuille()"><i style="--c:'+APP_TEINTE[a]+'"></i>'+APPS_TOUR[a].court+'</button>'; }).join('')+'</div>';
+    menuVisible().forEach(function(g){
+      h+='<div class="feuille-sec">'+g.section+'</div><div class="groupe">'+g.vues.map(function(x){
+        var bd=x[3]?$(x[3]):null, n=bd&&bd.style.display!=='none'?(+bd.textContent||0):0;
+        return '<button type="button" data-t="'+x[0]+'" class="'+(x[0]===TAB?'on':'')+'"'+(x[0]===TAB?' aria-current="page"':'')+' onclick="setTab(\''+x[0]+'\');fermerFeuille()"><span class="ic">'+svg(x[0],16)+'</span>'+x[1]+
+          (n?'<span class="bdg-r" style="display:inline-block;margin-left:auto">'+n+'</span>':'')+'<span class="chev"'+(n?' style="margin-left:8px"':'')+'>›</span></button>'; }).join('')+'</div>';
+    });
     h+='<div class="groupe"><button type="button" class="rouge" onclick="doLogout()">Quitter la console</button></div>';
   }
-  f.innerHTML=h; f.hidden=false; sc.hidden=false;
+  f.innerHTML=h; f.hidden=false; sc.hidden=false; _feuilleOuverte=(quoi==='plus');
   requestAnimationFrame(function(){ f.classList.add('on'); });
   f.style.transform='';
+  majBarreBas();
 }
-function fermerFeuille(){ var f=$('feuille'), sc=$('scrim'); if(!f) return; f.classList.remove('on');
+function fermerFeuille(){ var f=$('feuille'), sc=$('scrim'); if(!f) return; f.classList.remove('on'); _feuilleOuverte=false; majBarreBas();
   var fin=function(){ f.hidden=true; if(sc) sc.hidden=true; f.style.transform=''; };
   var sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(sobre) fin(); else setTimeout(fin,300); }
-/* Le glissé qui referme : la feuille suit le doigt 1:1, et au lâcher, la vitesse décide. */
+/* Le glissé qui referme : la feuille suit le doigt 1:1 ; au lâcher, on PROJETTE où l'élan
+   l'emmènerait (la décélération du défilement d'iOS, 0,998 par milliseconde) et c'est ce point qui
+   décide — un petit coup sec vers le bas ferme, une traînée lente relâchée tôt revient.
+   ⛔ LA CAPTURE DU POINTEUR N'EST PRISE QU'UNE FOIS LE GLISSÉ ENGAGÉ (6 px). Prise dès l'appui, elle
+   changeait chaque tap en tap sur la FEUILLE : la cible d'un clic est l'ancêtre commun de l'appui
+   et du relâcher, et le relâcher capturé tombe sur elle. Les rubriques du haut de « Plus » ne
+   s'ouvraient donc pas — seules celles d'une feuille déjà défilée répondaient (sonde du thème,
+   26 septembre 2026 : 8 sur 11). */
+var _feuilleCapt=false,_feuilleV=0,_feuilleT=0;
 document.addEventListener('pointerdown',function(e){ var f=$('feuille'); if(!f||f.hidden||!f.contains(e.target)) return;
-  if(f.scrollTop>0) return; _feuilleGlisse=true; _feuilleY0=e.clientY; _feuilleY=0; f.setPointerCapture&&f.setPointerCapture(e.pointerId); f.style.transition='none'; },{passive:true});
-document.addEventListener('pointermove',function(e){ if(!_feuilleGlisse) return; var f=$('feuille'); _feuilleY=Math.max(0,e.clientY-_feuilleY0); f.style.transform='translateY('+_feuilleY+'px)'; },{passive:true});
-document.addEventListener('pointerup',function(e){ if(!_feuilleGlisse) return; _feuilleGlisse=false; var f=$('feuille'); f.style.transition='';
-  if(_feuilleY>90) fermerFeuille(); else f.style.transform=''; });
+  if(f.scrollTop>0) return; _feuilleGlisse=true; _feuilleCapt=false; _feuilleY0=e.clientY; _feuilleY=0; _feuilleV=0; _feuilleT=e.timeStamp; },{passive:true});
+document.addEventListener('pointermove',function(e){ if(!_feuilleGlisse) return; var f=$('feuille'), dy=e.clientY-_feuilleY0;
+  if(!_feuilleCapt){ if(dy<6) return; _feuilleCapt=true; try{ f.setPointerCapture(e.pointerId); }catch(x){} f.style.transition='none'; }
+  var y=Math.max(0,dy), dt=Math.max(1,e.timeStamp-_feuilleT); _feuilleV=(y-_feuilleY)/dt; _feuilleT=e.timeStamp; _feuilleY=y;
+  f.style.transform='translateY('+y+'px)'; },{passive:true});
+function _feuilleLacher(annule){ if(!_feuilleGlisse) return; _feuilleGlisse=false; if(!_feuilleCapt) return; _feuilleCapt=false;
+  var f=$('feuille'); f.style.transition='';
+  var projete=_feuilleY+Math.max(0,_feuilleV)*0.998/(1-0.998);
+  if(!annule&&projete>Math.min(160,f.offsetHeight/3)) fermerFeuille(); else f.style.transform=''; }
+document.addEventListener('pointerup',function(){ _feuilleLacher(false); });
+document.addEventListener('pointercancel',function(){ _feuilleLacher(true); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var f=$('feuille'); if(f&&!f.hidden) fermerFeuille(); } });
 /* Le titre court apparaît dans l'en-tête quand le grand titre sort de l'écran (opacité seule). */
 var _obsTitre=null;
@@ -2743,7 +3156,7 @@ function setTab(t,sansAnim){
   TAB=t; ecrireHash(); try{ localStorage.setItem('tour_tab_'+APP,t); }catch(e){}
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on',b.getAttribute('data-t')===t); });
   placerIndic(!sansAnim);
-  amenerOngletEnVue(); majBarreBas();
+  amenerOngletEnVue(); majBarreBas(); majHaut();
   if(sansAnim) render(); else renderAnime();
   /* Le Courrier range par ENTREPRISE : sans l'annuaire ni les clients du site, il n'a aucun
      moyen de savoir à qui appartient une adresse, et tout retomberait dans « pas encore
@@ -4446,7 +4859,7 @@ function vueAccueil(){
       (j.ok?'connexion réussie':'tentative refusée'+(j.motif?' ('+esc(j.motif)+')':''))+'</span></div>';
   }).join('')||videTour('','Aucune connexion à la console enregistrée.','',false);
 
-  return '<div class="page-tete"><div class="page-txt">'+
+  return '<div class="page-tete"><div class="page-txt"><div class="tt-section">Tour · Tableau de bord</div>'+
       '<div class="ttl-page">Bonjour '+esc(MYNOM)+'</div>'+
       '<div class="desc" style="margin-top:5px">'+esc(jour)+'</div></div>'+
       (n?'<div class="page-act"><span class="past p-ambre ac-total">'+n+' point'+(n>1?'s':'')+' à traiter</span></div>':'')+
@@ -4504,7 +4917,7 @@ function vueAccueilMsg(){
   var sup=(MSG.loaded&&!MSG.err&&(MSG.messages||[]).length)?acGroupe({titre:'Support',n:Math.min(4,(MSG.messages||[]).filter(function(m){ return !m.lu; }).length),tot:(MSG.messages||[]).filter(function(m){ return !m.lu; }).length,
       sous:'Le courrier est commun aux deux consoles : un message lu ici l’est aussi dans OP GESTION.',bloc:'reg-bloc',voir:"setTab('support')",
       l:(MSG.messages||[]).filter(function(m){ return !m.lu; }).slice(0,4).map(function(m){ return ligneAc({ico:'support',ton:'bleu',titre:m.objet||'',t1:esc(m.deNom||m.de||'—'),l2:esc(m.objet||''),action:"setTab('support')"}); })}):'';
-  return '<div class="page-tete"><div class="page-txt"><div class="ttl-page">Bonjour '+esc(MYNOM)+'</div><div class="desc">'+jour+' · Tour OP MESSAGES</div></div></div>'+etat+'<div style="height:16px"></div>'+kpis+'<div class="reg">'+sup+'</div>';
+  return '<div class="page-tete"><div class="page-txt"><div class="tt-section">Tour · Tableau de bord</div><div class="ttl-page">Bonjour '+esc(MYNOM)+'</div><div class="desc">'+jour+' · Tour OP MESSAGES</div></div></div>'+etat+'<div style="height:16px"></div>'+kpis+'<div class="reg">'+sup+'</div>';
 }
 function opmBascule(){
   var projet=prompt('Nom du projet Firebase OP MESSAGES (tel qu’il apparaît dans la console) :',''); if(!projet) return;
@@ -4936,7 +5349,16 @@ function vueSurveillance(){
   var _aClasser=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
   var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
     '<span style="font-size:12px;color:var(--muted);margin-left:10px">passe en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
-  return enTete('Surveillance',SURV_DESC)+kpis+zeroBtn+filtres+
+  /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses trois segments. Les segments ne sont
+     qu'un RACCOURCI vers le filtre de statut qui existait déjà (incF) : même état, même rendu, et
+     le sélecteur « statut » plus bas garde ses neuf choix (écartés, mis en veille…). Un segment ne
+     s'allume que si le filtre posé est exactement le sien. Chaque chiffre est compté sur la liste
+     de CETTE console — jamais inventé. */
+  var cOuv=incOuverts().length, cTout=incDeLaConsole().length,
+      cCor=incDeLaConsole().filter(function(i){ return i.statut==='corrige'; }).length;
+  var segSt=[['actifs','Ouverts',cOuv],['','Tout',cTout],['corrige','Corrigés',cCor]];
+  var teteL=teteListe('Entreprises touchées','Statut des problèmes',segSt,INC.f.statut,"incF('statut',");
+  return enTete('Surveillance',SURV_DESC)+kpis+zeroBtn+teteL+filtres+
     '<div class="svl-compte">'+nomsG.length+' entreprise'+(nomsG.length>1?'s':'')+' · '+l.length+' problème'+(l.length>1?'s':'')+' affiché'+(l.length>1?'s':'')+' · '+ouverts+' ouvert'+(ouverts>1?'s':'')+'</div>'+
     (groupesRendus?'<div class="reg">'+groupesRendus+'</div>':listeVide)+saines+legende+
     /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents,
@@ -5927,10 +6349,23 @@ function enTete(titre, phrase, actions){
   /* Tous les onglets s'annoncent pareil : on sait immédiatement où l'on est, à quoi sert
      l'écran, et ce qu'on peut y faire. Le carré coloré devant le titre est l'écho de la tuile
      de la barre — une seule fois par page. Le bouton de repli vit désormais dans la barre. */
-  return '<div class="page-tete"><div class="page-txt">'+
-    '<div class="ttl-page"><i class="ic-page" style="--ic:var(--ic-'+TAB+')" aria-hidden="true">'+svg(TAB,16)+'</i>'+esc(titre)+'</div>'+
+  /* La SECTION au-dessus du titre (maquette : « Gestion », puis « Surveillance ») : on sait dans
+     quelle partie de la console on est sans regarder le menu — au téléphone il est caché. */
+  var sec=vueInfo(TAB).section;
+  return '<div class="page-tete"><div class="page-txt">'+(sec?'<div class="tt-section">'+esc(sec)+'</div>':'')+
+    '<div class="ttl-page"><i class="ic-page" aria-hidden="true">'+svg(TAB,16)+'</i>'+esc(titre)+'</div>'+
     (phrase?'<div class="desc">'+phrase+'</div>':'')+'</div>'+
     (actions?'<div class="page-act">'+actions+'</div>':'')+'</div>';
+}
+/* LE TABLEAU FILTRABLE DE LA MAQUETTE — un titre et ses segments, écrit UNE fois pour toutes les vues.
+   Un segment n'est qu'un raccourci vers le filtre que la vue possédait déjà (même état, même
+   rendu) ; il ne s'allume que si le filtre posé est exactement le sien. Les chiffres sont comptés
+   par l'appelant sur les données de la vue — jamais inventés, et absents plutôt que faux.
+   `fn` porte l'appel jusqu'à sa parenthèse ouvrante : « incF('statut', » ou « aboF( ». */
+function teteListe(titre,aria,segs,cour,fn){
+  return '<div class="tt-liste-tete"><h2>'+esc(titre)+'</h2><div class="tt-seg" role="group" aria-label="'+esc(aria)+'">'+
+    segs.map(function(x){ return '<button type="button" aria-pressed="'+(cour===x[0])+'" onclick="'+fn+'\''+x[0]+'\')">'+esc(x[1])+
+      (x[2]!=null?'<span class="n">'+x[2]+'</span>':'')+'</button>'; }).join('')+'</div></div>';
 }
 /* Passer du téléphone au bureau change le nombre de volets : on redessine au franchissement. */
 var _etroitAvant=null;
@@ -7819,7 +8254,7 @@ function vueEquipe(){
     var act=pat?'<span class="eqp-fixe">Compte fixe</span>'
       :'<span class="eqp-actions">'+
         (MYROLE==='patron'?['gestion','messages'].map(function(a){ var on=apps.indexOf(a)>=0;
-            return '<button type="button" class="eqp-act app'+(on?' on':'')+'" aria-pressed="'+on+'" onclick="eqApps(\''+jsq(u.id)+'\',\''+a+'\')" title="'+(on?'Retirer':'Donner')+' la Tour '+APPS_TOUR[a].nom+'"><i style="--c:var(--app-'+a+')"></i>'+APPS_TOUR[a].court+'</button>'; }).join(''):'')+
+            return '<button type="button" class="eqp-act app'+(on?' on':'')+'" aria-pressed="'+on+'" onclick="eqApps(\''+jsq(u.id)+'\',\''+a+'\')" title="'+(on?'Retirer':'Donner')+' la Tour '+APPS_TOUR[a].nom+'"><i style="--c:'+APP_TEINTE[a]+'"></i>'+APPS_TOUR[a].court+'</button>'; }).join(''):'')+
         (haut?'<button type="button" class="eqp-act" onclick="eqToggle(\''+jsq(u.id)+'\')">Couper l’accès</button>'
              :'<button type="button" class="eqp-act rou" onclick="eqToggle(\''+jsq(u.id)+'\')">Rouvrir</button>')+
         '<button type="button" class="eqp-act sup" onclick="eqSuppr(\''+jsq(u.id)+'\',\''+jsq(u.nom)+'\')">Supprimer</button></span>';
