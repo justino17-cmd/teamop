@@ -39097,7 +39097,11 @@ function enterApp(u){ currentUser=u;
      changé d'écran ou si la page a rechargé. La classe se retire à la fin — sinon une
      seconde connexion dans la même session ne rejouerait rien — et un filet la retire aussi
      quand il n'y a pas d'animation du tout (mouvement réduit, onglet en arrière-plan). */
-  try{ const _r=$('app-root'); _r.classList.remove('op-entree'); void _r.offsetWidth; _r.classList.add('op-entree');
+  /* ⛔ v756 — la lecture de `offsetWidth` ne sert qu'à RELANCER une animation déjà posée (seconde
+     connexion dans la même séance). Au premier affichage la classe n'est pas là : la lire forçait
+     quand même un calcul complet de la page (styles 15 ms + mise en page 57 ms, processeur ×4,
+     trace de l'ouverture — scratchpad/perf-lenteur.js), refait juste après pour dessiner. */
+  try{ const _r=$('app-root'); if(_r.classList.contains('op-entree')){ _r.classList.remove('op-entree'); void _r.offsetWidth; } _r.classList.add('op-entree');
     _r.addEventListener('animationend',()=>_r.classList.remove('op-entree'),{once:true});
     setTimeout(()=>_r.classList.remove('op-entree'),900);
   }catch(e){}

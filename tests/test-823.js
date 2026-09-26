@@ -92,7 +92,19 @@ for (const f of ['app.html', 'beta.html']) {
   vrai('   les ancêtres (le volet, ses colonnes) gardent leur :has() — lui seul voit la carte depuis au-dessus', ancetres.length >= 4, ancetres.length);
 }
 
-console.log('\n── 823 · 5. la preuve au navigateur existe ──');
+console.log('\n── 823 · 5. l’ouverture ne force plus de calcul de page pour relancer une animation absente ──');
+for (const f of ['app.html', 'beta.html']) {
+  const CODE = nu(fs.readFileSync(path.join(RACINE, f), 'utf8'));
+  const i = CODE.indexOf('function enterApp(u){'), corps = i < 0 ? '' : CODE.slice(i, i + 6000);
+  const iR = corps.indexOf("const _r=$('app-root');"), bout = iR < 0 ? '' : corps.slice(iR, iR + 260);
+  vrai(f + ' — population : l’entrée de enterApp est trouvée', bout.length > 100);
+  /* la lecture de offsetWidth ne doit se faire QUE si la classe est déjà là (seconde connexion) */
+  vrai('⛔ ' + f + ' — offsetWidth n’est lu que pour RELANCER une animation déjà posée',
+    /if\(_r\.classList\.contains\('op-entree'\)\)\{\s*_r\.classList\.remove\('op-entree'\);\s*void _r\.offsetWidth;\s*\}\s*_r\.classList\.add\('op-entree'\)/.test(bout)
+    && (bout.match(/void _r\.offsetWidth/g) || []).length === 1);
+}
+
+console.log('\n── 823 · 6. la preuve au navigateur existe ──');
 for (const s of ['perf-has-glouton.js', 'perf-ecriture-style.js', 'sonde-styles-identiques.js', 'sonde-selecteurs-equivalents.js', 'perf-lenteur.js'])
   vrai('scratchpad/' + s, fs.existsSync(path.join(RACINE, 'scratchpad', s)));
 
