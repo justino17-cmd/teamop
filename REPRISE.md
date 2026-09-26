@@ -68,6 +68,8 @@ serveur ».** Deux commits sur `main`, poussés séparément, dans cet ordre :
 2. **application `69c0444`** — `app.html` v751 (servie octet pour octet identique à la branche), `sw.js` cache v951,
    `VERSION-STABLE.md`, et les bancs qui l'accompagnent (817, 818, 645, 660, 694, 776, 799, 806).
 Vérification complète rejouée sur `69c0444` AVANT de pousser : VERT — 175 suites · 8 605 ✓, liste serveur 40 · 2 346.
+Et APRÈS, la CI de `main` est verte sur les deux commits, cinq workflows sur cinq : `f971359` (Vérifications,
+Déploiement n° 96, Vérification des pages à 9 h 16) et `69c0444` (Vérifications, Vérification des pages à 9 h 19 UTC).
 ⚠️ **Avant de pousser, `gardien` a relu les correctifs serveur (`0c10fe8`) : « DÉPLOYABLE », avec un point
 prioritaire, corrigé AVANT le déploiement (`17a3426`)** : la borne « 2 000 corps par version » s'appliquait aussi à
 la LECTURE — le client v751 relit avant chaque envoi et n'écrit pas si la relecture est refusée, donc une version
