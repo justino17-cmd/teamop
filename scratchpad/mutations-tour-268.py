@@ -29,6 +29,8 @@ M = [
  ('le menu déroulant du statut revient', "var filtres='<div class=\"filtres svl-filtres\">'+", "var filtres='<div class=\"filtres svl-filtres\">'+'<select class=\"sel-f\" onchange=\"incF(\\'statut\\',this.value)\"></select>'+", None),
  ('six chiffres rangés « 5 + 1 »', "grille-kpi simple k6", "grille-kpi simple", None),
  ('les comptes de la fiche, commandes de nouveau sur la ligne', "      return '<div class=\"reg-l inerte cpt-l\">'+", "      return '<div class=\"reg-l inerte\">'+", None),
+ ('« Corrigés ce mois » compte de nouveau toutes les consoles', "  var corrigesMois=incDeLaConsole().filter(", "  var corrigesMois=INC.list.filter(", None),
+ ('la phrase d’en-tête ne se déplie plus', "  if(d.classList.contains('ouverte')||d.scrollHeight>d.clientHeight+1) d.classList.toggle('ouverte');", "  if(false) d.classList.toggle('ouverte');", None),
 ]
 morts, vivants = 0, []
 for nom, a, b, _ in M:

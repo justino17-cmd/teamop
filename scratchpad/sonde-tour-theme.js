@@ -416,6 +416,19 @@ async function parcours(S, v, bilan) {
       if (g.porte && e.tab === g.p.t && e.fermee) parFeuille++; else console.log('     feuille : ' + JSON.stringify(g.p) + ' → ' + JSON.stringify(e));
     }
     v('téléphone · ' + app + ' : chaque vue s’ouvre depuis la feuille', parFeuille === attendu.length, parFeuille + '/' + attendu.length);
+    /* v2.68 — au téléphone la phrase d'en-tête se replie sur deux lignes : sa fin (« …elles vivent dans l'onglet
+       Entreprises ») ne se lisait NULLE PART. Un toucher la déplie, un second la replie — joué au doigt. */
+    if (app === 'gestion') {
+      await o.ev(`setTab('essais',true); return 1;`); await dormir(700);
+      const lire = STABLE + ' const d=document.querySelector("#vue .page-tete .desc"); return d?{h:d.clientHeight,sh:d.scrollHeight,ouverte:d.classList.contains("ouverte")}:null;';
+      const avant = await o.ev(APAISER + lire);
+      const f1 = await frapper(o, '#vue .page-tete .desc'); await dormir(350);
+      const apres = await o.ev(lire);
+      v('téléphone : la phrase d’en-tête repliée se déplie d’un toucher (Accès)', !!avant && avant.sh > avant.h + 1 && f1.porte && !!apres && apres.ouverte && apres.h > avant.h && apres.h >= apres.sh - 1, JSON.stringify({ avant, apres }));
+      const f2 = await frapper(o, '#vue .page-tete .desc'); await dormir(350);
+      const re = await o.ev(lire);
+      v('…et se replie d’un second', f2.porte && !!re && !re.ouverte && re.h === avant.h, JSON.stringify(re));
+    }
     o.exceptions.forEach(e => bilan.exceptions.push('feuille ' + app + ' : ' + e));
     await o.fermer();
   }

@@ -154,6 +154,13 @@ vrai('la pastille dit l’affinage et le RETIRE en remontant au parent', /class=
 v('…et n’existe pas sans affinage', S.incAffinePastille(seg('actifs')), '');
 vrai('⛔ plus de menu déroulant du statut (Surveillance, fiche d’une entreprise)', !/onchange="incF\(\\'statut\\'/.test(CODE));
 vrai('les deux écrans passent par incSegStatut', /incSegStatut\(/.test(fonction('vueSurveillance')) && /incSegStatut\(/.test(fonction('vueEntreprise')));
+/* ⛔ UNE CONSOLE PAR APPLICATION : dans GESTION, « Corrigés ce mois » et « 7 derniers jours » comptaient AUSSI les
+   problèmes d'OP MESSAGES (INC.list), et le menu « Toutes les entreprises » proposait des entreprises dont la
+   console n'a rien à montrer — la tuile disait 1 quand le segment « Corrigés » disait 0 (capture, 26 septembre). */
+const surv = fonction('vueSurveillance');
+vrai('les chiffres et le filtre des entreprises de la Surveillance comptent la console OUVERTE (incDeLaConsole)',
+  /var corrigesMois=incDeLaConsole\(\)\.filter\(/.test(surv) && /var n=incDeLaConsole\(\)\.filter\(/.test(surv) && /var ents=\{\}; incDeLaConsole\(\)\.forEach\(/.test(surv)
+  && !/INC\.list\.(filter|forEach)\(function\(i\)/.test(surv));
 
 console.log('\n5. Chaque tuile qui filtre se voit filtrer');
 const abo = fonction('vueAbonnements');
@@ -177,6 +184,27 @@ vrai('Équipe : les commandes passent sous le nom, sans écart de rangée', /\.r
 vrai('fiche d’une entreprise : ses comptes aussi (« t o m », une lettre par ligne)', /\.reg-l\.cpt-l\{flex-wrap:wrap;row-gap:0\}/.test(CODE) && /class="reg-l inerte cpt-l"/.test(CODE));
 vrai('…les commandes d’un compte à droite, groupées (cpt-act)', /\.reg-l\.cpt-l \.cpt-act\{display:flex;gap:6px;margin-left:auto\}/.test(CODE) && /<span class="cpt-act">/.test(CODE));
 vrai('un encart qui porte un bouton le pose sous sa phrase (encart-pile)', /\.encart\.encart-pile\{flex-direction:column/.test(CODE) && /class="encart encart-pile"/.test(CODE));
+/* la phrase d'en-tête dépliable : l'écouteur RÉEL, exécuté sur de faux éléments — un motif sur son texte passait
+   sous un `if(false)` (mutation vivante, 26 septembre 2026) */
+{
+  const iDesc = CODE.indexOf("closest('#vue .page-tete .desc')");
+  const debut = CODE.lastIndexOf("document.addEventListener('click',function(e){", iDesc), fin = CODE.indexOf('\n});', iDesc) + 4;
+  const ecouteur = iDesc > 0 && debut > 0 && fin > debut ? CODE.slice(debut, fin) : '';
+  let h = null; const D = { document: { addEventListener: (t, f) => { if (t === 'click') h = f; } } };
+  vm.createContext(D); try { vm.runInContext(ecouteur, D); } catch (e) {}
+  vrai('population : l’écouteur de la phrase d’en-tête est extrait et posé', typeof h === 'function', ecouteur.length);
+  const faux = (sh, ch) => { const cl = new Set(); return { scrollHeight: sh, clientHeight: ch, classList: { contains: c => cl.has(c), toggle: c => { cl.has(c) ? cl.delete(c) : cl.add(c); } } }; };
+  const evt = (d, lien) => ({ target: { closest: q => q === '#vue .page-tete .desc' ? d : (q === 'a,button' ? (lien ? {} : null) : null) } });
+  const r = { ouvre: false, referme: false, bureau: false, lien: false };
+  if (h) {
+    const d1 = faux(90, 42); h(evt(d1)); r.ouvre = d1.classList.contains('ouverte'); h(evt(d1)); r.referme = !d1.classList.contains('ouverte');
+    const d2 = faux(42, 42); h(evt(d2)); r.bureau = !d2.classList.contains('ouverte');
+    const d3 = faux(90, 42); h(evt(d3, true)); r.lien = !d3.classList.contains('ouverte');
+  }
+  v('au téléphone, la phrase repliée se déplie d’un toucher, se replie d’un second ; rien ne bascule quand rien ne dépasse ; un lien dedans reste un lien',
+    r, { ouvre: true, referme: true, bureau: true, lien: true });
+  vrai('…et la règle qui la déplie existe', /\.desc\.ouverte\{display:block;-webkit-line-clamp:unset;overflow:visible\}/.test(CODE));
+}
 vrai('la sonde du thème mesure les textes couverts et écrasés (DOM entier)', (() => { try { const s = fs.readFileSync(path.join(RACINE, 'scratchpad', 'sonde-tour-theme.js'), 'utf8'); return /const MESURE_TEXTES = /.test(s) && /couverts par la vue à l’ouverture/.test(s) && /textes écrasés/.test(s); } catch (e) { return false; } })());
 
 console.log('\n7. Rien d’ELAN dans la page servie');

@@ -1921,6 +1921,8 @@ body.plans .reg-l.cli::before{display:none}
   /* au téléphone, la phrase d'en-tête se replie sur deux lignes et les actions se rangent sur une rangée :
      la liste d'Entreprises commençait à 1 400 px — trois écrans de préambule avant le travail */
   .desc{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* v2.68 — …et un toucher la déplie (descDeplier) : sa fin ne se lisait nulle part au téléphone */
+  .desc.ouverte{display:block;-webkit-line-clamp:unset;overflow:visible}
   .page-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px} .page-act .btn-plein,.page-act .btn-fant{flex:1 1 auto;justify-content:center;font-size:13px}
   .grille-kpi.simple .kpi{padding:10px 12px} .grille-kpi.simple .kpi .n{font-size:20px} .grille-kpi.simple .kpi .l{font-size:11px}
   .reg-l2{font-size:14px} .reg-l3{font-size:13px}
@@ -5662,10 +5664,12 @@ function vueSurveillance(){
 
   /* les chiffres du haut */
   var deb=new Date(); deb.setDate(1); deb.setHours(0,0,0,0);
-  var corrigesMois=INC.list.filter(function(i){ return i.statut==='corrige'&&(i.lastTs||0)>=deb.getTime(); }).length;
+  /* ⛔ la console OUVERTE (incDeLaConsole), comme « Nouveaux », « En cours » et les segments : dans GESTION, ces deux
+     chiffres comptaient aussi OP MESSAGES — la tuile disait 1 corrigé quand le segment « Corrigés » disait 0 (v2.68) */
+  var corrigesMois=incDeLaConsole().filter(function(i){ return i.statut==='corrige'&&(i.lastTs||0)>=deb.getTime(); }).length;
   var j7=[],max=1;
   for(var k=6;k>=0;k--){ var d0=new Date(); d0.setHours(0,0,0,0); d0.setDate(d0.getDate()-k); var t0=d0.getTime();
-    var n=INC.list.filter(function(i){ return (i.lastTs||0)>=t0&&(i.lastTs||0)<t0+86400000; }).length;
+    var n=incDeLaConsole().filter(function(i){ return (i.lastTs||0)>=t0&&(i.lastTs||0)<t0+86400000; }).length;
     j7.push(n); if(n>max)max=n; }
   var bars=j7.map(function(n){ return '<i style="height:'+Math.max(10,Math.round(n/max*100))+'%'+(n?'':';opacity:.18')+'" title="'+n+' incident(s)"></i>'; }).join('');
   var st=INC.f.statut;
@@ -5713,7 +5717,8 @@ function vueSurveillance(){
         '<div class="expl-l"><span class="past p-gris">Ignoré</span><span>mis de côté volontairement (fausse alerte).</span></div></div>'+
     '</div></div>';
 
-  var ents={}; INC.list.forEach(function(i){ (i.entreprises||[]).forEach(function(e){ var n=e.nom||e.entreprise; if(n) ents[n]=1; }); });
+  /* le menu « Toutes les entreprises » ne propose que celles que CETTE console a à montrer */
+  var ents={}; incDeLaConsole().forEach(function(i){ (i.entreprises||[]).forEach(function(e){ var n=e.nom||e.entreprise; if(n) ents[n]=1; }); });
   var opt=function(v,cur,txt){ return '<option value="'+esc(v)+'"'+(cur===v?' selected':'')+'>'+esc(txt)+'</option>'; };
   var filtres='<div class="filtres svl-filtres">'+
     '<select class="sel-f" onchange="incF(\'type\',this.value)">'+opt('',INC.f.type,'Tous les types')+opt('erreur',INC.f.type,'Erreurs')+opt('lenteur',INC.f.type,'Lenteurs')+opt('reseau',INC.f.type,'Réseau')+'</select>'+
@@ -6819,6 +6824,15 @@ function barreBasculer(){
   else if(actif===g&&!r&&b) b.focus();
 }
 try{ if(localStorage.getItem('tour_barre_repliee')==='1') document.body.classList.add('barre-repliee'); }catch(e){}
+/* v2.68 — AU TÉLÉPHONE, LA PHRASE D'EN-TÊTE REPLIÉE SE DÉPLIE D'UN TOUCHER. Elle tient sur deux lignes (le préambule
+   poussait le travail à trois écrans plus bas) ; sa fin — « elles vivent dans l'onglet Entreprises », « le retour ne
+   touche qu'un espace » — ne se lisait alors NULLE PART. Un second toucher la replie ; un lien dans la phrase reste
+   un lien. Un seul écouteur, sur le document : les vues se redessinent, lui reste. Sans effet au bureau, où la
+   phrase n'est jamais repliée (rien ne dépasse, rien ne bascule). */
+document.addEventListener('click',function(e){
+  var d=e.target&&e.target.closest&&e.target.closest('#vue .page-tete .desc'); if(!d||e.target.closest('a,button')) return;
+  if(d.classList.contains('ouverte')||d.scrollHeight>d.clientHeight+1) d.classList.toggle('ouverte');
+});
 function enTete(titre, phrase, actions){
   /* Tous les onglets s'annoncent pareil : on sait immédiatement où l'on est, à quoi sert
      l'écran, et ce qu'on peut y faire. Le carré coloré devant le titre est l'écho de la tuile
