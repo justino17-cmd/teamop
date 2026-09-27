@@ -123,6 +123,21 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
         vrai(lbl + ' : les dix cases ont leur appareil, image chargée', vues.length === 10 && vues.every(x => x.img), JSON.stringify(vues));
         vrai(lbl + ' : aucun appareil n\'a glissé dans sa case (défilement 0, posé en haut)', vues.every(x => x.st === 0 && x.d >= 0 && x.d <= 20), JSON.stringify(vues.filter(x => x.st || x.d < 0 || x.d > 20)));
       }
+      /* ── 27 septembre au soir, la photo de Justin (iPhone, nuit) : la carte mise en avant était BLANCHE de nuit, et une
+         bande vide restait sous le Mac. La carte reste sombre dans les deux modes (de nuit : bleu, halo) ; une case à Mac
+         prend la hauteur du Mac sur téléphone (24 px sous le socle) et reste coupée par la case au bureau. */
+      if (pg === 'elan' || pg === 'opmessages') {
+        const inv = await ev(`const t=document.querySelector('.tuile-f.inv'); if(!t) return null; const c=getComputedStyle(t), m=c.backgroundColor.match(/[\\d.]+/g).map(Number);
+          const f=x=>{x/=255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)}; return {fond:c.backgroundColor, lum:+(.2126*f(m[0])+.7152*f(m[1])+.0722*f(m[2])).toFixed(3), halo:c.backgroundImage.slice(0,40), page:getComputedStyle(document.body).backgroundColor};`);
+        vrai(lbl + ' : ⛔ la carte mise en avant reste sombre (jamais un aplat blanc)', inv && inv.lum < .06, JSON.stringify(inv));
+        if (inv) vrai(lbl + ' : ' + (mode === 'dark' ? 'de nuit elle se détache de la page (bleu + halo)' : 'de jour, la carte de la maquette, sans halo'), mode === 'dark' ? inv.fond !== inv.page && /radial-gradient/.test(inv.halo) : inv.halo === 'none', JSON.stringify(inv));
+      }
+      if (pg === 'elan') {
+        const macs = await ev(`return [...document.querySelectorAll('.tuile-f .vue.v-mac')].map(v=>Math.round(v.getBoundingClientRect().bottom - v.querySelector('.ap-mac').getBoundingClientRect().bottom));`);
+        vrai(lbl + ' : population — deux cases à Mac seul', macs.length === 2, JSON.stringify(macs));
+        vrai(lbl + ' : ' + (P.w < 500 ? 'sur téléphone, le Mac entier et 24 px sous son socle (plus de bande vide)' : 'le Mac dépasse et la case le coupe (on voit le haut de l\'écran)'),
+          macs.length === 2 && macs.every(g => P.w < 500 ? g >= 20 && g <= 28 : g < 0), 'vide sous le Mac : ' + JSON.stringify(macs));
+      }
       if (!P.tac && pg === 'index') {
         const r = await rect('.nav-liens a[data-fly="applications"]');
         await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x, y: r.y }); await dormir(500);

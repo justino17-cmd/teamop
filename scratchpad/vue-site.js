@@ -25,6 +25,13 @@ const VUES = [
   { nom: 'case-partout-hd', page: 'elan', p: 'bureau2', mode: 'light', cadre: '.bento .tuile-f:nth-child(10)' },
   { nom: 'case-stock-debug', page: 'elan', p: 'bureau2', mode: 'light', cadre: '.bento .tuile-f:nth-child(3)', geste: `const st=document.createElement('style'); st.textContent='.tuile-f .vue{outline:4px solid red!important;outline-offset:-4px} .tuile-f .ap-iphone{outline:4px solid blue!important}'; document.head.appendChild(st);` },
   { nom: 'accueil-telephone-nuit', page: 'index', p: 'telephone', mode: 'dark' },
+  /* la carte mise en avant, de nuit (Justin, 27 septembre au soir : « pourquoi là c'est blanc ? ») */
+  { nom: 'elan-telephone-nuit', page: 'elan', p: 'telephone', mode: 'dark', cadre: '#fonctions', hMax: 1500 },
+  { nom: 'elan-bureau-nuit-bouton', page: 'elan', p: 'bureau', mode: 'light', clic: '.mode', cadre: '#fonctions', hMax: 1100 },
+  { nom: 'case-partout-telephone', page: 'elan', p: 'telephone', mode: 'dark', cadre: '.bento .tuile-f:nth-child(10)' },
+  { nom: 'case-equipe-telephone', page: 'elan', p: 'telephone', mode: 'light', cadre: '.bento .tuile-f:nth-child(7)' },
+  { nom: 'opmessages-bureau-nuit', page: 'opmessages', p: 'bureau', mode: 'dark', cadre: '.bento' },
+  { nom: 'opmessages-bureau-jour', page: 'opmessages', p: 'bureau', mode: 'light', cadre: '.bento' },
 ];
 
 (async () => {
@@ -75,7 +82,7 @@ const VUES = [
     /* les images paresseuses : on descend jusqu'à chacune, on attend qu'elles soient là */
     const img = await ev(`const L=[...document.images]; for(const i of L){ i.scrollIntoView({block:'center'}); await new Promise(r=>setTimeout(r,40)); }
       await Promise.all(L.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r; setTimeout(r,4000);}))); scrollTo(0,0);
-      return {n:L.length, ok:L.filter(i=>i.complete&&i.naturalWidth>0).length, nuit:L.filter(i=>/-nuit/.test(i.currentSrc)).length, jour:L.filter(i=>/-jour/.test(i.currentSrc)).length};`);
+      return {n:L.length, ok:L.filter(i=>i.complete&&i.naturalWidth>0).length, nuit:L.filter(i=>/-nuit(-1x)?\.webp$/.test(i.currentSrc)).length, jour:L.filter(i=>/-jour(-1x)?\.webp$/.test(i.currentSrc)).length, lesJour:L.filter(i=>/-jour(-1x)?\.webp$/.test(i.currentSrc)).map(i=>i.currentSrc.split('/').pop()), lesNuit:L.filter(i=>/-nuit(-1x)?\.webp$/.test(i.currentSrc)).map(i=>i.currentSrc.split('/').pop())};`);
     const etat = await ev(`return {theme:document.documentElement.getAttribute('data-theme'), fond:getComputedStyle(document.body).backgroundColor, mode:localStorage.getItem('teamop_site_mode'),
       phare:[...document.querySelectorAll('.formule.phare .n b')].map(b=>b.textContent), mesure:(()=>{ const t=document.querySelectorAll('.tuile-f')[2]; if(!t||!t.querySelector('.vue')) return null; const R=e=>{const b=e.getBoundingClientRect(); return [Math.round(b.top),Math.round(b.bottom)]}; const a=t.querySelector('.ap-iphone'); return {vue:R(t.querySelector('.vue')), app:R(a), corps:R(a.querySelector('.ap-iphone-corps')), ecran:R(a.querySelector('.ap-iphone-ecran')), img:R(a.querySelector('img'))}; })()};`);
     let clip = null;
@@ -84,7 +91,7 @@ const VUES = [
     await dormir(250);
     const cap = await cdp('Page.captureScreenshot', { format: 'png', clip, captureBeyondViewport: true });
     const f = path.join(SORTIE, V.nom + '.png'); fs.writeFileSync(f, Buffer.from(cap.data, 'base64'));
-    rapport.push({ vue: V.nom, images: img.ok + '/' + img.n, ecransNuit: img.nuit, ecransJour: img.jour, theme: etat.theme, fond: etat.fond, memoire: etat.mode, bleue: etat.phare.join(' / '), mesure: etat.mesure, erreurs: EXC.slice() });
+    rapport.push({ vue: V.nom, images: img.ok + '/' + img.n, ecransNuit: img.nuit, ecransJour: img.jour, lesJour: img.lesJour, lesNuit: img.lesNuit, theme: etat.theme, fond: etat.fond, memoire: etat.mode, bleue: etat.phare.join(' / '), mesure: etat.mesure, erreurs: EXC.slice() });
     console.log(V.nom, JSON.stringify(rapport[rapport.length - 1]));
   }
   ws.close(); srv.close(); tuer();
