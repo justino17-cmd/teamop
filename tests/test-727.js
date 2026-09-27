@@ -153,16 +153,26 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   finR = SRC.indexOf(');', finR) + 2;
   vrai('la route de paiement est trouv\u00e9e dans le fichier r\u00e9el', iR > 0 && finR > iR);
 
-  const appeler = async (body) => {
-    let envoye = '', statut = 0, sortie = null;
+  /* ⛔ ET DEPUIS LE 27 SEPTEMBRE 2026, PAS DE PAIEMENT SANS COMPTE (Justin : « ils peuvent pas payer s'ils ont pas de
+     compte créé »). La route lit la session dans l'en-tête `Authorization` et demande à `comptes` QUI parle et si son
+     adresse est PROUVÉE. `comptes` est un faux fidèle à `comptes.js` : `parJeton` rend l'adresse ou '', jamais un
+     objet ; `verifie` dit si l'adresse a été prouvée. Trois sessions : une prouvée, une pas encore, une inconnue. */
+  const JETON_PROUVE = 'a'.repeat(64), JETON_A_CONFIRMER = 'b'.repeat(64), JETON_INCONNU = 'c'.repeat(64);
+  const COMPTES = {
+    parJeton: (j) => ({ [JETON_PROUVE]: 'paie@entreprise-banc.fr', [JETON_A_CONFIRMER]: 'pas-encore@entreprise-banc.fr' }[j] || ''),
+    verifie: (m) => m === 'paie@entreprise-banc.fr',
+  };
+  const appeler = async (body, entetes, comptes) => {
+    let envoye = '', statut = 0, sortie = null, appels = 0;
     const faux = { post: (chemin, h) => { faux._h = h; } };
-    new Function('app', 'config', 'fetch', 'URLSearchParams',
+    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes',
       SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' } },
-      async (url, opts) => { envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
-      URLSearchParams);
-    await faux._h({ body }, { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
-    return { envoye, statut, sortie };
+      async (url, opts) => { appels++; envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
+      URLSearchParams, comptes === undefined ? COMPTES : comptes);
+    await faux._h({ body, headers: entetes === undefined ? { authorization: 'Bearer ' + JETON_PROUVE } : entetes },
+      { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
+    return { envoye, statut, sortie, appels };
   };
 
   {
@@ -175,13 +185,42 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   }
   {
     const r = await appeler({ price: 'price_1Abc', quantity: 1 });
-    v('sans r\u00e9f\u00e9rence, la page de paiement s\'ouvre quand m\u00eame (prospect)',
-      /subscription_data/.test(r.envoye), false);
+    v('sans r\u00e9f\u00e9rence, la page de paiement s\'ouvre quand m\u00eame (prospect), sans r\u00e9f\u00e9rence d\'espace grav\u00e9e',
+      /subscription_data%5Bmetadata%5D%5Bespace%5D/.test(r.envoye), false);
     vrai('   et elle s\'ouvre vraiment', r.sortie && !!r.sortie.url);
   }
   {
     const r = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'pas valide ; drop' });
-    v('⛔ une r\u00e9f\u00e9rence mal form\u00e9e n\'est PAS grav\u00e9e', /subscription_data/.test(r.envoye), false);
+    v('⛔ une r\u00e9f\u00e9rence mal form\u00e9e n\'est PAS grav\u00e9e', /subscription_data%5Bmetadata%5D%5Bespace%5D/.test(r.envoye), false);
+  }
+
+  /* c) ⛔ PAS DE PAIEMENT SANS COMPTE PROUVÉ — et rien ne part chez Stripe tant que ce n'est pas le cas. */
+  {
+    const ok = await appeler({ price: 'price_1Abc', quantity: 2, ref: 'monclient-9f2a' });
+    v('un compte PROUVÉ ouvre la page de paiement', [ok.statut || 200, !!(ok.sortie && ok.sortie.url)], [200, true]);
+    vrai('⛔ l\'adresse du compte est celle du client que Stripe crée (customer_email) — celle que la Tour affiche',
+      new URLSearchParams(ok.envoye).get('customer_email') === 'paie@entreprise-banc.fr');
+    vrai('⛔ … et gravée sur l\'ABONNEMENT (qui a payé ; survit si l\'adresse change chez Stripe)',
+      new URLSearchParams(ok.envoye).get('subscription_data[metadata][compte]') === 'paie@entreprise-banc.fr');
+    vrai('   … et sur la session', new URLSearchParams(ok.envoye).get('metadata[compte]') === 'paie@entreprise-banc.fr');
+    vrai('   la référence d\'espace voyage toujours avec', new URLSearchParams(ok.envoye).get('subscription_data[metadata][espace]') === 'monclient-9f2a');
+
+    const sans = await appeler({ price: 'price_1Abc', quantity: 1 }, {});
+    v('⛔ sans session : 401 « compte_requis », et RIEN ne part chez Stripe', [sans.statut, sans.sortie && sans.sortie.error, sans.appels], [401, 'compte_requis', 0]);
+    const inconnue = await appeler({ price: 'price_1Abc', quantity: 1 }, { authorization: 'Bearer ' + JETON_INCONNU });
+    v('⛔ une session inconnue (expirée, brûlée) : 401, rien chez Stripe', [inconnue.statut, inconnue.appels], [401, 0]);
+    const forme = await appeler({ price: 'price_1Abc', quantity: 1 }, { authorization: 'Bearer pas-une-session' });
+    v('   un en-tête qui n\'a pas la forme d\'une session : 401', [forme.statut, forme.appels], [401, 0]);
+    const nue = await appeler({ price: 'price_1Abc', quantity: 1 }, { authorization: JETON_PROUVE });
+    v('   la session nue, sans « Bearer » (la lecture de comptes.js ne l\'accepte pas non plus) : 401', [nue.statut, nue.appels], [401, 0]);
+    const aConfirmer = await appeler({ price: 'price_1Abc', quantity: 1 }, { authorization: 'Bearer ' + JETON_A_CONFIRMER });
+    v('⛔ une adresse PAS ENCORE PROUVÉE : 403 « adresse_non_verifiee », rien chez Stripe', [aConfirmer.statut, aConfirmer.sortie && aConfirmer.sortie.error, aConfirmer.appels], [403, 'adresse_non_verifiee', 0]);
+    /* Le corps ne décide de rien (CLAUDE.md : « une valeur du CORPS d'une requête ne décide jamais… ») : une adresse
+       glissée dans le corps n'est ni lue ni envoyée. */
+    const corps = await appeler({ price: 'price_1Abc', quantity: 1, email: 'autre@ailleurs.fr', compte: 'autre@ailleurs.fr', customer_email: 'autre@ailleurs.fr' });
+    v('⛔ une adresse écrite dans le CORPS n\'est jamais celle envoyée à Stripe', [new URLSearchParams(corps.envoye).getAll('customer_email'), /ailleurs/.test(corps.envoye)], [['paie@entreprise-banc.fr'], false]);
+    const eteints = await appeler({ price: 'price_1Abc', quantity: 1 }, undefined, null);
+    v('les comptes du portail éteints : 503, et rien chez Stripe (jamais un paiement anonyme par défaut)', [eteints.statut, eteints.appels], [503, 0]);
   }
 
   /* 6. ⛔ ET LES TROIS APPELANTS DOIVENT VOIR LA MÊME ENTREPRISE.

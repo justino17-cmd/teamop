@@ -622,11 +622,33 @@ app.get('/api/stripe/prices', async (req, res) => {
 });
 
 // ── Stripe : création d'une page de paiement avec la quantité déjà réglée + champ code promo
-//    Le site envoie { price, quantity, ref? } ; la clé secrète vit uniquement dans /opt/teamop/config.json (set-stripe.sh)
+//    Le site envoie { price, quantity, ref? } AVEC la session du compte (en-tête Authorization) ; la clé secrète vit
+//    uniquement dans /opt/teamop/config.json (set-stripe.sh)
 app.post('/api/stripe/checkout', async (req, res) => {
   try {
     const sk = config.stripe && config.stripe.secretKey;
     if (!sk) return res.status(501).json({ error: 'stripe non configuré' });
+    /* ⛔ PAS DE PAIEMENT SANS COMPTE — Justin, 27 septembre 2026 : « ils peuvent pas payer s'ils ont pas de compte
+       créé, pour que nous on ait un vrai suivi de qui fait quoi ». Cette route ouvrait une page de paiement à
+       n'importe qui : l'abonnement ne se rattachait à personne, et la page Stripe laissait saisir n'importe quelle
+       adresse. Désormais, dans cet ordre :
+       · la session est celle des comptes du portail (`comptes.js`), lue dans l'en-tête `Authorization` — jamais
+         dans le corps, qu'un visiteur écrit comme il veut ;
+       · une adresse PAS ENCORE PROUVÉE ne paie pas (403) : une session prouve un mot de passe, pas une adresse
+         (CLAUDE.md, `gardien` G1). Or c'est elle qui devient l'adresse du client chez Stripe, donc la clé de repli
+         d'`espacePaye()` : payée par un compte non prouvé, elle rattacherait l'abonnement à l'entreprise d'un autre ;
+       · l'adresse du compte est donnée à Stripe pour le client qu'il crée (`customer_email`) — c'est celle que la Tour
+         affiche pour chaque abonnement — et gravée sur la session ET sur l'abonnement (`metadata[compte]`), qui la
+         garde même si l'adresse du client change un jour chez Stripe.
+       ⚠️ `comptes` est déclaré bien plus bas dans ce fichier : on le lit ici au moment de l'APPEL, dans un `try`,
+       comme `/api/clients/sync`. Une zone morte temporelle a déjà éteint une fonction entière de ce serveur. */
+    let cm = null; try { cm = comptes; } catch (e) { cm = null; }
+    if (!cm) return res.status(503).json({ error: 'comptes_indisponibles' });
+    /* la même lecture que `porteur()` de comptes.js : « Bearer » et 64 hexadécimaux, rien d'autre */
+    const m = /^Bearer\s+([A-Fa-f0-9]{64})$/.exec(String(req.headers.authorization || ''));
+    const payeur = m ? cm.parJeton(m[1]) : '';
+    if (!payeur) return res.status(401).json({ error: 'compte_requis' });
+    if (!cm.verifie(payeur)) return res.status(403).json({ error: 'adresse_non_verifiee' });
     const { price, quantity, ref } = req.body || {};
     if (!/^price_[A-Za-z0-9]+$/.test(String(price || ''))) return res.status(400).json({ error: 'tarif invalide' });
     const qty = Math.min(50, Math.max(1, parseInt(quantity, 10) || 1));
@@ -637,6 +659,9 @@ app.post('/api/stripe/checkout', async (req, res) => {
     p.append('allow_promotion_codes', 'true');
     p.append('success_url', 'https://teamop.fr/merci.html');
     p.append('cancel_url', 'https://teamop.fr/recap-abonnement.html');
+    p.append('customer_email', payeur);
+    p.append('metadata[compte]', payeur);
+    p.append('subscription_data[metadata][compte]', payeur);
     /* ⛔ LA RÉFÉRENCE DOIT VOYAGER JUSQU'À L'ABONNEMENT, PAS S'ARRÊTER À LA SESSION.
        `client_reference_id` vit sur la SESSION de paiement ; `espacePaye()`, lui, lit la liste
        des ABONNEMENTS — qui ne la portent pas. Le rattachement se faisait donc sur la seule
