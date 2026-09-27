@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**186 suites dans `tests/`**, sans dépendance ni installation (recompté le 27 septembre 2026 à 0 h, `test-830` compris —
+**187 suites dans `tests/`**, sans dépendance ni installation (recompté le 27 septembre 2026 dans la nuit, `test-831` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -69,7 +69,7 @@ Quatre familles visent `server/`, et elles ne se remplacent pas :
 | `test-641`, `test-724` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
 | `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces du SERVEUR sont branchées |
 | `test-735`, `test-803` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
-| `test-740`, `test-741` | les fonctions RÉELLES d'`espace.html` et de `reinit.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent |
+| `test-740`, `test-741`, `test-831` | les fonctions RÉELLES d'`espace.html`, de `reinit.html` et de `connexion.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent — et que l'écran DIT ce que le serveur a répondu |
 | `test-744` | le VRAI `op-fs.js` contre le vrai serveur, deux appareils | que le filtre de lecture ne CACHE rien |
 
 ⛔ Les deux dernières lignes existent parce que les deux premières ne peuvent pas voir un défaut
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 186 suites · 9 350 vérifications (mesuré en local le 27/09/2026, bêta v758 · Tour v2.68)
+bash scripts/bancs-ci.sh        # 187 suites · 9 379 vérifications (mesuré en local le 27/09/2026, bêta v758 · Tour v2.68)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -360,6 +360,10 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   `catch`. Ne jamais reconfondre les deux derniers : on ne propose de connecter une boîte que
   quand on SAIT qu'il n'y en a aucune. Corollaire général : avant de faire refuser une route,
   aller REGARDER au navigateur ce que l'écran affiche — pas ce qu'on croit qu'il affiche.
+  ⚠️ Repris le 27 septembre 2026, par l'autre bout : **`fetch` ne jette pas sur un refus.** « Mot de passe
+  oublié » (portail) et « me renvoyer le lien » (`connexion.html`) annonçaient « vient de partir » sur un 400,
+  un 429, un 502 et une coupure — la version en ligne, mesurée : 6 cas faux sur 9. Un écran qui annonce un envoi
+  lit le code AVANT (`tests/test-831.js`, `scratchpad/sonde-portail-envoi.js`).
 - ⛔ **Le refus de `/api/replies` n'est PAS du JSON.** `loadMailReplies()` (`app.html`) fait
   `const d = await r.json(); _mailReplies = d.replies||[]` : un refus en JSON se parse sans
   erreur, la liste devient **vide** au lieu de **nulle**, et l'écran affiche « 📭 Aucun

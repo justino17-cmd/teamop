@@ -28,7 +28,11 @@ connue ou inconnue (pas d'annuaire des clients), et le commentaire qui promettai
 compte ce qui part) — **14 ✗ sur le code d'avant, 29 ✓ après** ; **11 mutations sur 11** mordent
 (`scratchpad/mutations-831.py` de la session) ; sonde au navigateur `scratchpad/sonde-portail-envoi.js` (vrai toucher,
 format téléphone, toute requête `https://` interceptée — rien ne part vers `api.teamop.fr`) : **9/9 justes** sur la
-branche, **6 faux** sur `origin/main` ; `test-740` 59 ✓ (une regex suivait l'ancienne écriture).
+branche, **6 faux** sur `origin/main` ; `test-740` 59 ✓ (une regex suivait l'ancienne écriture) ; suite complète
+**187 suites · 9 379 vérifications, code 0** ; `relecteur` : aucun bloquant (il a rejoué le banc sur les fichiers
+d'avant : 15 ✓ 14 ✗). Sur sa remarque, les **dix messages client** du portail encore au tutoiement (ce parcours, la
+vérification du nom de l'espace, celle d'un code) passent au vouvoiement, comme les 88 autres ; la connexion interne
+de l'équipe TEAM OP garde le sien. `connexion.html` reste au tutoiement de bout en bout (elle parle aux équipes).
 
 **Publication :** `espace.html` et `connexion.html` seuls, sur `main` — **attend la phrase de Justin** (« publie le
 portail »). Rien côté serveur. Le service worker sert les pages réseau d'abord : pas de cache à monter.
@@ -38,6 +42,11 @@ changement de mot de passe / d'adresse) lisaient déjà leur réponse. ⚠️ Et
 suite : la nouvelle sonde a d'abord été écrite SUR `scratchpad/sonde-mdp-oublie.js`, une sonde suivie (v686-v688) —
 l'outil a dit « mis à jour » au lieu de « créé ». Restaurée depuis le commit, diff vide. **Chercher le nom avant
 d'écrire un fichier neuf.**
+
+❓ **Question posée à Justin** : `tour-v1.html` — une ANCIENNE Tour de contrôle (144 Ko) — est toujours servie à
+`teamop.fr/tour-v1.html` (HTTP 200, vérifié le 27 septembre 2026), et plus rien dans le dépôt n'y mène. Le serveur
+exige toujours la connexion du patron, donc rien ne fuit ; mais une vieille console ouverte par erreur agirait avec
+des gestes d'avant. Retirer un fichier servi est une publication : on attend sa réponse.
 
 # 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.68 : TOUT RANGÉ PAR SUJET, ET LE TÉLÉPHONE REVU — EN APERÇU, ATTEND « REMPLACE LA TOUR »
 
