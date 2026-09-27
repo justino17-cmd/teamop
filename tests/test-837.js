@@ -9,14 +9,16 @@
    “175 € TTC” pour le même montant : HT ou TTC ? », Justin : « TTC ». Le pied des huit pages et l'introduction des
    tarifs disaient « Prix HT » ; une page servie qui écrirait encore « HT » pour un prix TEAM OP fait tomber le §4.
 
-   Trois endroits portent la règle, et ils doivent dire la même chose :
+   Quatre endroits portent la règle, et ils doivent dire la même chose :
    1. les huit pages EN SERVICE (la v1 de la racine). On les relit, et on prouve qu'on n'y a touché QUE ce qui parle
       des places et de la taxe : en défaisant les retouches, on retrouve octet pour octet chacune des huit pages
       publiées le 27 septembre (`fe599df`) ;
    2. le générateur du site (v2, en aperçu) : gardé par `test-835` §3, qui déclare l'écart avec l'application ;
    3. la page de paiement — en service à la racine de `main`, au thème sur la branche, et sa copie d'aperçu. Ici on
       EXÉCUTE son vrai script, sur un faux document : ce que la page affiche, ce que font « − », « + » et le champ, et
-      la quantité qu'elle envoie VRAIMENT au serveur de paiement.
+      la quantité qu'elle envoie VRAIMENT au serveur de paiement ;
+   4. les pages voisines (la page « merci » après le paiement, les mentions légales) — §1 bis. Le CONTRAT du portail,
+      lui, se régénère pour les entreprises déjà abonnées : il suit l'application et change avec elle (écart déclaré, §4).
 
    ⚠️ L'application n'est PAS encore à la règle (`maxU` 2 et 3 dans `app.html`) : c'est une publication à part, sur la
    phrase de Justin, avec une question sur les entreprises déjà abonnées (`REPRISE.md`). D'ici là elle donne PLUS
@@ -106,6 +108,32 @@ for (const f of Object.keys(V1_PUBLIEE).filter(f => f !== 'tarifs.html')) {
 const GEN_HT = Object.keys(GEN.PAGES).filter(cle => { const g = GEN.page(cle); return !g.includes(PIED[1]) || /\bHT\b/.test(texte(g)); });
 v('le générateur du site (aperçu) : les huit pages disent « Prix TTC », aucune « HT »', GEN_HT, []);
 vrai('… et l\'introduction des tarifs « Prix TTC par mois »', texte(GEN.page('tarifs')).includes('Prix TTC par mois, sans engagement.'));
+
+/* ── 1 bis. deux pages du portail EN SERVICE : une phrase de l'ancienne règle chacune, et rien d'autre ────────── */
+/* Trouvées le soir même, en relisant la chaîne du paiement jusqu'au bout : la page qu'on voit JUSTE APRÈS avoir payé
+   (« le nombre inclus dépend de ta formule ») et les mentions légales (« Chaque abonnement inclut un nombre de comptes
+   utilisateurs selon la formule »). Aucun chiffre dedans : le premier recensement (§4), qui cherchait « 2 utilisateurs
+   inclus », ne pouvait pas les voir. Sur `main` ce sont les pages EN SERVICE : on prouve qu'on n'y a touché que cette
+   phrase ; sur la branche elles sont au thème, et `test-836` garde le reste. */
+console.log('1 bis. deux pages du portail en service');
+const PV1 = existe('vitrine/portail-v1.json') ? JSON.parse(lire('vitrine/portail-v1.json')) : null;
+const PORTAIL_AVANT = {   // les pages EN SERVICE avant la retouche (main, 115ce42) — écrites ICI, pas relues dans portail-v1.json
+  'merci.html': '545be1a59387e73be5e2e180ca3831257a0677c5066a04270c2c39b1bdf4623f',
+  'mentions-legales.html': 'c7556951f682d1ba0f657902f8eebb746f3eac9a0918e6446e14f790bfad248c',
+};
+const PORTAIL_RETOUCHES = {
+  'merci.html': ['— le nombre inclus dépend de ta formule, chacun aura son propre accès.', '— un abonnement par utilisateur, chacun avec son propre accès.'],
+  'mentions-legales.html': ['Chaque abonnement inclut un nombre de comptes utilisateurs selon la formule ;', 'Chaque abonnement ouvre un compte utilisateur, quelle que soit la formule ;'],
+};
+for (const f of Object.keys(PORTAIL_AVANT)) {
+  const [avant, apres] = PORTAIL_RETOUCHES[f];
+  for (const g of [f, 'apercu/' + f].filter(existe)) vrai(g + ' : « ' + apres.replace(/^— /, '').slice(0, 48) + '… », et plus l\'ancienne phrase', lire(g).includes(apres) && !lire(g).includes(avant));
+  const P = lire(f);
+  if (P.includes('/vitrine/v2/theme.css')) { vrai(f + ' : au thème (branche) — test-836 garde le reste de la page', true); continue; }
+  v(f + ' (en service) : la retouche s\'y trouve une fois', P.split(apres).length - 1, 1);
+  v('⛔ ' + f + ' (en service) : en la défaisant, on retrouve la page d\'avant, octet pour octet', sha(P.split(apres).join(avant)), PORTAIL_AVANT[f]);
+  vrai(f + ' : l\'empreinte du portail la connaît (vitrine/portail-v1.json)', PV1 && PV1.pages[f] === sha(P));
+}
 
 /* ── 2. la page de paiement, EXÉCUTÉE ─────────────────────────────────────────────────────────────────────── */
 /* Le plafond du serveur : `/api/stripe/checkout` borne la quantité. La page ne doit pas afficher un total que Stripe
@@ -224,15 +252,24 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
      qu'elle donne 2 places. Le jour où elle passe à 1, cette exception ne sert plus, et le banc le dit. */
   const ECART_APPLICATION = ['app.html', 'beta.html'];
   const PROMESSE = /[2-9] utilisateurs? inclus|\(\s*[2-9] utilisateurs|u:'[2-9] utilisateurs|\b[2-9] en Business\b|Business\s*×\s*2\s*=\s*[3-9]/;
+  /* ⛔ ET SANS CHIFFRE : « le nombre inclus dépend de ta formule », « un nombre de comptes utilisateurs selon la formule »
+     disent la même chose que « 2 utilisateurs inclus » — et c'est ainsi que deux pages en service ont échappé au premier
+     recensement (§1 bis). */
+  const SELON_LA_FORMULE = /nombre (?:de comptes(?: utilisateurs)?|d'utilisateurs|inclus) (?:selon|dépend de) (?:ta |votre |la )?formule|disponibles suit la formule|nombre de comptes utilisateurs qu\\?'elle inclut/;
+  /* ⛔ LE CONTRAT DU PORTAIL, écart DÉCLARÉ : il se RÉGÉNÈRE à chaque ouverture, pour les entreprises déjà abonnées
+     aussi — le changer aujourd'hui changerait ce qu'ELAN lit de son propre contrat. Il décrit ce que l'application
+     DONNE (2 et 3 places) et change avec elle, sur la réponse de Justin (les abonnés d'avant gardent-ils leurs places ?). */
+  const ECART_CONTRAT = ['espace.html', 'apercu/espace.html'];
   const fautifs = [];
   for (const f of SERVIS) {
     if (ECART_APPLICATION.includes(f)) continue;
     let t = ''; try { t = fs.readFileSync(path.join(RACINE, f), 'utf8'); } catch (e) { continue; }
     t = sansCommentaires(t).replace(/<!--[\s\S]*?-->/g, ' ').replace(/[\u202f\u00a0]/g, ' ');
-    const m = PROMESSE.exec(t);
+    const m = PROMESSE.exec(t) || (ECART_CONTRAT.includes(f) ? null : SELON_LA_FORMULE.exec(t));
     if (m) fautifs.push(f + ' : « ' + t.slice(Math.max(0, m.index - 30), m.index + m[0].length + 10).replace(/\s+/g, ' ') + ' »');
   }
-  v('⛔ aucune page ni aucun script servi ne vend plusieurs utilisateurs par abonnement', fautifs, []);
+  v('⛔ aucune page ni aucun script servi ne vend plusieurs utilisateurs par abonnement (avec ou sans chiffre)', fautifs, []);
+  for (const f of ECART_CONTRAT) if (existe(f)) vrai('l\'écart déclaré pour le contrat de ' + f + ' sert encore (sinon : le retirer d\'ici)', SELON_LA_FORMULE.test(sansCommentaires(lire(f))));
 
   /* ⛔ « TTC » (Justin). Aucune page servie n'écrit « HT » pour un prix TEAM OP — le même recensement, les mêmes
      commentaires retirés. Les APPLICATIONS en sont écartées, nommées : elles fabriquent des devis et des factures, où
