@@ -15,6 +15,11 @@
    n'envoie pas `confirme` — son premier appel doit toujours envoyer un code et ne RIEN supprimer,
    sinon elle détruirait sans la question qu'elle pose avant.
 
+   Et les deux protections qui doublent la case (Justin : « Oui rajoute ça ») doivent se DIRE dans la
+   Tour : au-delà de trois entreprises en 24 heures, le code revient et la question dit pourquoi
+   (`limite`) — pas « serveur pas à jour » ; et l'e-mail d'avis qui suit chaque suppression, s'il n'est
+   pas parti, se dit dans le verdict (`supprToast`).
+
    ⛔ LE VRAI SERVEUR (isolé, 127.0.0.1), LES VRAIES FONCTIONS DE LA TOUR. Un facteur SMTP de banc
    compte les courriels, un Google de banc répond à tout ce que les suppressions appellent (jeton
    anonyme, effacement Firestore) — rien ne sort d'ici. Un « serveur d'avant » est simulé par un
@@ -54,20 +59,23 @@ function fonction(nom) {
 /* Un bac à sable par scénario : `API` vise le serveur voulu (le vrai, ou le relais « d'avant »),
    `prompt` est ce que le patron taperait — et on compte ce qu'on lui a demandé. */
 function tour(API, TOKEN, repondre) {
-  const noms = ['hAuth', 'apiPost', 'supprReussi', 'supprAppel'];
+  const noms = ['hAuth', 'apiPost', 'supprReussi', 'supprAppel', 'supprAvisMot', 'supprToast'];
   const src = noms.map(fonction);
   if (src.some(x => !x)) return null;
-  const demandes = [];
-  const ctx = { fetch, API, TOKEN, Object, String, JSON, Promise,
-    prompt: (q) => { demandes.push(q); return repondre ? repondre(q) : null; } };
+  const demandes = [], toasts = [];
+  const ctx = { fetch, API, TOKEN, Object, String, JSON, Promise, Math,
+    prompt: (q) => { demandes.push(q); return repondre ? repondre(q) : null; },
+    toast: (t, ms) => { toasts.push([t, ms || 0]); } };
   vm.createContext(ctx);
   vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(TOKEN) + ';\n' + src.join('\n'), ctx);
-  return { ctx, demandes };
+  return { ctx, demandes, toasts };
 }
 
-/* Le facteur du banc (le même que `test-813`) : ce que le serveur envoie, on le lit. */
+/* Le facteur du banc (le même que `test-813`) : ce que le serveur envoie, on le lit. Humeur `refuse` :
+   un 550 à l'expéditeur, comme un serveur d'e-mails qui dit non — l'avis ne part pas. */
 function facteur() {
   const recus = [];
+  const f = { recus, mode: 'normal' };
   const s = require('net').createServer(c => {
     let tampon = '', corps = false, msg = '';
     c.write('220 banc\r\n');
@@ -76,10 +84,11 @@ function facteur() {
       let i;
       while ((i = tampon.indexOf('\r\n')) >= 0) {
         const l = tampon.slice(0, i); tampon = tampon.slice(i + 2);
-        if (corps) { if (l === '.') { corps = false; recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += l + '\n'; continue; }
+        if (corps) { if (l === '.') { corps = false; recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }   // le point doublé (RFC 5321 §4.5.2)
         const h = l.toUpperCase();
         if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
         else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
+        else if (h.startsWith('MAIL FROM') && f.mode === 'refuse') c.write('550 refusé par le facteur du banc\r\n');
         else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
         else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
         else c.write('250 ok\r\n');
@@ -87,7 +96,8 @@ function facteur() {
     });
     c.on('error', () => {});
   });
-  return { s, recus };
+  f.s = s;
+  return f;
 }
 const lisible = (m) => Buffer.from(String(m || '').replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8');
 const dernierCode = () => { const l = facteurSrv.recus.map(lisible); for (let i = l.length - 1; i >= 0; i--) { const m = /Code de confirmation : (\d{6})/.exec(l[i]); if (m) return m[1]; } return ''; };
@@ -137,6 +147,8 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
   fs.writeFileSync(path.join(D, 'clients.json'), JSON.stringify({
     'beta@exemple-832.fr': { email: 'beta@exemple-832.fr', entreprise: 'Beta Hygiène', inscrit: Date.now() - 86400000 },
     'gamma@exemple-832.fr': { email: 'gamma@exemple-832.fr', entreprise: 'Gamma Services', inscrit: Date.now() - 86400000 } }));
+  /* Trois entreprises déjà supprimées ce matin : la prochaine, même confirmée, bute sur la limite. */
+  fs.writeFileSync(path.join(D, 'tour-suppressions.json'), JSON.stringify([3, 2, 1].map(h => Date.now() - h * 3600000)));
   const lire = (f) => { try { return JSON.parse(fs.readFileSync(path.join(D, f), 'utf8')); } catch (e) { return null; } };
   const dansAnnuaire = (t, l) => !!((lire('comptes.json') || {})[t] || { c: {} }).c[l];
   const ordres = (t, l) => (((lire('ordres.json') || {})[t]) || []).filter(o => o.login === l && o.type !== 'mdp').length;
@@ -190,7 +202,8 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
     if (!T) throw new Error('extraction impossible');
     n0 = courriels();
     let x = await T.ctx.supprAppel('/api/monitor/compte/supprimer', { t: A, login: 'luc' });
-    v('supprimer « luc » : réussi en un appel, sans rien demander au patron', [T.ctx.supprReussi(x), T.demandes.length, courriels() - n0], [true, 0, 0]);
+    v('supprimer « luc » : réussi en un appel, sans rien demander au patron — un seul e-mail, l\'avis (pas un code)',
+      [T.ctx.supprReussi(x), T.demandes.length, courriels() - n0, /Une suppression vient d'être faite/.test(lisible(facteurSrv.recus[n0])), /Code de confirmation/.test(lisible(facteurSrv.recus[n0]))], [true, 0, 1, true, false]);
     vrai('   luc sort de l\'annuaire', !dansAnnuaire(A, 'luc'));
     v('⛔ une réponse « code envoyé » n\'est PAS une réussite', T.ctx.supprReussi({ ok: true, status: 200, d: { ok: true, codeEnvoye: true, dest: 'p***@x' } }), false);
     /* …quoi qu'elle porte d'autre : un code parti veut dire « premier temps », rien n'est encore fait.
@@ -203,15 +216,44 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
     T = tour(VIEUX, PATRON, () => dernierCode());
     n0 = courriels();
     x = await T.ctx.supprAppel('/api/monitor/compte/supprimer', { t: A, login: 'nora' });
-    v('elle voit le code parti et le DEMANDE, puis la suppression passe', [T.demandes.length, courriels() - n0, T.ctx.supprReussi(x)], [1, 1, true]);
+    /* Deux e-mails : le code, puis l'avis — le relais retire `confirme`, mais derrière lui c'est le serveur neuf. */
+    v('elle voit le code parti et le DEMANDE, puis la suppression passe', [T.demandes.length, courriels() - n0, T.ctx.supprReussi(x)], [1, 2, true]);
     vrai('   la question nomme la boîte où le code est parti', /p.*@.*banc-832|\*/.test(T.demandes[0] || ''));
+    vrai('   et dit que le serveur n\'est pas à jour — pas une limite', /n’est pas encore à jour/.test(T.demandes[0] || '') && !/Trois entreprises/.test(T.demandes[0] || ''));
     vrai('   nora sort de l\'annuaire', !dansAnnuaire(A, 'nora'));
     T = tour(VIEUX, PATRON, () => null);
     x = await T.ctx.supprAppel('/api/monitor/entreprise/supprimer', { t: 't-zeta-832' });
     v('⛔ code non saisi : pas de réussite annoncée, rien de supprimé', [T.demandes.length, x.annule, T.ctx.supprReussi(x), slugs().includes('zeta')], [1, true, false, true]);
 
-    /* ══ 8. LES PORTES DE LA TOUR : toutes par supprAppel, plus aucune par code ═══════════════════ */
-    console.log('\n3. Les portes de la Tour');
+    /* ══ 8. LA LIMITE ET L'AVIS, DITS PAR LA TOUR ════════════════════════════════════════════════ */
+    console.log('\n3. Ce que les deux protections font dire à la Tour');
+    T = tour(B, PATRON, () => dernierCode());
+    n0 = courriels();
+    x = await T.ctx.supprAppel('/api/monitor/entreprise/supprimer', { t: 't-delta-832' });
+    v('la 4e entreprise en 24 heures : la Tour demande le code et dit POURQUOI, puis la suppression passe',
+      [T.demandes.length, /Trois entreprises ont déjà été supprimées ces dernières 24\u00a0heures\u00a0: au-delà, la case ne suffit plus/.test(T.demandes[0] || ''),
+        /pas encore à jour/.test(T.demandes[0] || ''), T.ctx.supprReussi(x), courriels() - n0], [1, true, false, true, 2]);
+    vrai('   delta est partie', !slugs().includes('delta'));
+    vrai('   la question nomme la boîte', /p\*\*\*@banc-832\.fr/.test(T.demandes[0] || ''));
+    facteurSrv.mode = 'refuse';
+    T = tour(B, PATRON);
+    x = await T.ctx.supprAppel('/api/monitor/compte/supprimer', { t: A, login: 'marc' });
+    facteurSrv.mode = 'normal';
+    vrai('l\'e-mail d\'avis refusé : la suppression a réussi, et la réponse le dit', T.ctx.supprReussi(x) && x.d.avis && x.d.avis.parti === false && !dansAnnuaire(A, 'marc'));
+    T.ctx.supprToast(x, 'Suppression ordonnée');
+    const tt = T.toasts[0] || ['', 0];
+    v('   ⛔ le verdict le DIT, avec la raison, et reste affiché 9 s',
+      [/^Suppression ordonnée · ⚠️ L’e-mail d’avis n’est pas parti \(.*550.*\)$/.test(tt[0]), tt[1]], [true, 9000]);
+    T.ctx.supprToast({ ok: true, d: { attente: true, avis: { parti: true } } }, 'Fait', 0);
+    T.ctx.supprToast({ ok: true, d: { attente: true } }, 'Fait (serveur d’avant)', 0);
+    v('   parti, ou serveur d\'avant sans `avis` : le verdict seul, rien d\'inventé', T.toasts.slice(1), [['Fait', 0], ['Fait (serveur d’avant)', 0]]);
+    T.ctx.supprToast({ ok: true, d: { supprime: true, avis: { parti: false } } }, '⚠️ incomplet', 8000);
+    v('   un avertissement déjà long garde au moins sa durée', T.toasts[3], ['⚠️ incomplet · ⚠️ L’e-mail d’avis n’est pas parti', 9000]);
+    v('⛔ les trois écrans disent leur verdict par supprToast (un quatrième le devra aussi)',
+      ['compteSupprimer', 'comptesInutilisesSupprimer', 'entSupprimer'].map(f => /fin:function\(\w*\)\{[\s\S]*?supprToast\(\w+,/.test(fonction(f))), [true, true, true]);
+
+    /* ══ 9. LES PORTES DE LA TOUR : toutes par supprAppel, plus aucune par code ═══════════════════ */
+    console.log('\n4. Les portes de la Tour');
     const routes = ['compte/supprimer', 'comptes/supprimer', 'entreprise/supprimer'];
     for (const rt of routes) {
       v('⛔ ' + rt + ' : aucun appel direct (apiPost) — seulement par le panneau', (CODE.match(new RegExp("apiPost\\('/api/monitor/" + rt + "'", 'g')) || []).length, 0);
