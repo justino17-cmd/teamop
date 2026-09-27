@@ -13,6 +13,59 @@ de ligne du tout.
 
 ---
 
+# 🟡 27 SEPTEMBRE 2026, SOIR — LE PORTAIL ET SES NEUF VOISINES AU THÈME DU SITE, EN APERÇU — ATTEND « REMPLACE »
+
+Justin, sur son iPhone (capture de « Mon espace », encore dans l'ancien noir) : **« au niveau des connexions ou création
+de compte, j'ai pas mon thème, pourquoi ? »**. Le site v2 avait sa palette Marine jour ET nuit ; les pages vers lesquelles
+il envoie gardaient chacune leur vieille feuille. Recensé depuis les liens du site et du portail : **dix pages** —
+`espace.html` (portail), `connexion.html` (porte des équipes), `reinit.html` (lien du courriel), `recap-abonnement.html`
+(on paie), `merci.html` (retour de Stripe), `mentions-legales.html`, `confidentialite.html`, `sous-traitance.html`,
+`registre-traitements.html`, `404.html` (aiguillage des adresses d'entreprise). Trois portaient le logo VERT d'OP GESTION
+à côté de « TEAM OP » ; polices DM Sans, Space Mono, Courier.
+
+✅ **Fait sur la branche** (`31776a6`, `5970197`) — ⛔ **les dix pages EN SERVICE ne bougent pas** :
+· `vitrine/v2/theme.css` : la palette du site sous des noms à part (`--m-…`), **valeurs identiques à `site.css`**
+  (`test-836` les compare jeton par jeton), plus les couleurs d'état MESURÉES (≥ 4,5 dans les deux modes) et
+  l'indication des champs (celle du navigateur tombait à 2,43 la nuit).
+· `vitrine/v2/mode.js` : le jour / nuit sorti de `site.js`, tel quel, partagé (même clé `teamop_site_mode` : le choix
+  fait sur le site suit sur le portail, et inversement — mesuré). La tête du mode est désormais dans une fonction
+  (plus de variable globale `m` dans les pages qui l'embarquent) ; les 8 pages du site régénérées avec.
+· Les dix pages : même tête, même bouton ☀︎/☾ (au coin quand la page n'a pas de barre), messages de connexion en
+  JETONS (le rouge de nuit était illisible sur le blanc), champs à 16 px (Safari zoomait à 15), commandes à 44 px au
+  doigt (l'œil des mots de passe, le nombre d'utilisateurs de recap), recap : toutes les formules à la couleur du
+  site (plus de violet ni de bleu ciel), « Ouvrir » d'OP MESSAGES lisible (1,83 → texte clair sur le bleu nuit).
+· ⛔ **Les pages juridiques gardent leurs numéros de ligne** : « `mentions-legales.html:74` » est cité par
+  `server/index.js`, `server/op-socle.js`, `CLAUDE.md`, trois bancs et les plans. La nouvelle tête tient EXACTEMENT dans
+  les lignes de l'ancienne feuille (`scratchpad/theme-juridique.py` le vérifie en l'écrivant ; `test-836` §6 le garde).
+· ⛔ **`404.html` aiguille AVANT tout** : la tête du mode passe après le script d'aiguillage, que
+  `scripts/verifier-adresses.js` exécute (premier jet : il était devenu le 2ᵉ script, la vérification est tombée).
+· **Trouvé en chemin** : « Pour le compte votre compte. » (reinit, et vous/tu mêlés) ; un guillemet ouvrant seul en
+  bout de ligne au téléphone (portail) ; « https:// » qui mangeait la moitié du champ d'adresse ; la pastille d'une adresse
+  longue qui sortait de sa carte ; le champ du Support NU (styles du navigateur) ; le code promo de l'administration
+  en vert logo sur carte claire (2,81).
+· `scripts/apercu.sh portail` : les dix copies se renvoient ENTRE ELLES et au site d'aperçu (`/apercu/site/`), une
+  adresse d'entreprise reste dans l'aperçu, le retour au paiement aussi, `noindex` posé ; `APERCU_SORTIE` pour
+  refaire les copies ailleurs. `vitrine/portail-v1.json` : l'empreinte des dix pages EN SERVICE — une page est SOIT
+  celle-là, SOIT au thème entier (`test-836` §3), jamais à moitié ; les dix changent ENSEMBLE.
+· **Preuves** : `test-836` **309 ✓** (18/18 contre-épreuves mordent, `scratchpad/mut-836.py` — l'une a révélé que la
+  règle des 16 px ne voyait pas `.inp`, corrigé) ; `scratchpad/sonde-portail-theme.js` (VRAI serveur derrière la même
+  origine, compte créé par la page) **1 505 ✓ 0 ✗** : 24 états des dix pages + le portail connecté (menu, 13 écrans,
+  administration) × jour/nuit × téléphone/bureau, fonds, grandes surfaces, contraste de CHAQUE texte sur son fond
+  réel, débordement, 44 px, polices, bouton ; sa contre-épreuve sur les pages EN SERVICE tombe (fond sombre le jour,
+  Space Mono, pas de bouton, cibles à 37–43 px). `test-835` 246 ✓, bancs de la connexion et du portail verts
+  (`test-686` et `test-831` suivent les jetons — **branche seulement** : sur `main` ils lisent les pages en service).
+  Suite complète de la branche **192 suites · 10 190 ✓**.
+
+**Ce qui attend Justin :** tester https://teamop.fr/apercu/espace.html (et `connexion.html?choix=1`, `recap-abonnement.html?formule=pro`,
+`mentions-legales.html`, `404.html`…), jour, nuit, bouton. ⚠️ L'aperçu du portail parle au VRAI serveur : se connecter
+y ouvre son vrai espace (c'est le même compte, habillé autrement). **Le jour de « remplace »** (site et portail vont
+ENSEMBLE : le site remplacé envoie vers `/espace.html`) : publier les dix pages de la branche + `test-686`/`test-831`
+de la branche, retirer `vitrine/portail-v1.json` (et son état « en service » de `test-836`), et ⛔ **monter le `CACHE`
+de `sw.js`** en y ajoutant `/vitrine/v2/theme.css` et `/vitrine/v2/mode.js` : il garde `espace.html`, `connexion.html`,
+`recap`, `mentions`, `merci`, et sert les feuilles et scripts « copie d'abord » (la nouvelle n'arrive qu'à la visite
+SUIVANTE). ⚠️ Toucher `sw.js` est une publication à part entière : la demander dans la même phrase.
+`fond-anime-teamop.js` part avec l'ancien `espace.html` (et sa ligne d'`ASSETS` avec lui).
+
 # 🟡 27 SEPTEMBRE 2026, SOIR — SITE v2 EN APERÇU : UNE VRAIE CAPTURE PAR CASE, LA CARTE TOUCHÉE EN BLEU, UN BOUTON JOUR / NUIT — ATTEND « REMPLACE LE SITE »
 
 Justin, sur les tarifs en ligne : « pourquoi il y en a un qui est en bleu et les autres sont noirs ? […] ça serait
