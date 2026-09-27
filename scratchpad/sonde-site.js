@@ -19,7 +19,9 @@ const PROFILS = [
   { nom: 'tablette', w: 820, h: 1180, tac: true, dpr: 2 },
   { nom: 'téléphone', w: 390, h: 844, tac: true, dpr: 2 },
 ];
-const PAGES = ['index', 'applications', 'elan', 'opmessages', 'creer', 'metiers', 'tarifs', 'pourquoi'];
+const PAGES = (process.env.PAGES || 'index,applications,elan,opmessages,creer,metiers,tarifs,pourquoi').split(',');
+if (process.env.PROFILS) { const garder = process.env.PROFILS.split(','); PROFILS.splice(0, PROFILS.length, ...PROFILS.filter(p => garder.includes(p.nom))); }
+const MODES = (process.env.MODES || 'light,dark').split(',');
 
 (async () => {
   const pp = await libre(), pc = await libre();
@@ -55,7 +57,7 @@ const PAGES = ['index', 'applications', 'elan', 'opmessages', 'creer', 'metiers'
   const touche = async k => { const codes = { Escape: 27, ArrowRight: 39, ArrowLeft: 37, Tab: 9 };
     await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code: k, windowsVirtualKeyCode: codes[k] }); await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: k, windowsVirtualKeyCode: codes[k] }); await dormir(350); };
 
-  for (const P of PROFILS) for (const mode of ['light', 'dark']) {
+  for (const P of PROFILS) for (const mode of MODES) {
     await cdp('Emulation.setDeviceMetricsOverride', { width: P.w, height: P.h, deviceScaleFactor: P.dpr, mobile: P.tac });
     await cdp('Emulation.setTouchEmulationEnabled', { enabled: P.tac, maxTouchPoints: P.tac ? 5 : 1 });
     await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: mode }, { name: 'prefers-reduced-motion', value: 'no-preference' }] });
