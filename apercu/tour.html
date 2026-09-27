@@ -5037,17 +5037,29 @@ function tourPanneauFermer(){
    à une réussite : un serveur d'avant ignore `confirme` et répond `ok:true` avec un code parti par
    e-mail. Annoncer « supprimé » là-dessus serait la panne du portail (« vient de partir » sur un
    refus), à l'envers. On demande alors le code, comme avant, et rien n'est perdu.
-   ⛔ Une réussite se lit à ce que la route a FAIT (`supprime` ou `attente`), jamais au seul `ok`. */
+   ⛔ Une réussite se lit à ce que la route a FAIT (`supprime` ou `attente`), jamais au seul `ok`.
+   Deux protections du serveur doublent la case (Justin : « Oui rajoute ça » — `APRÈS CHAQUE SUPPRESSION,
+   UN E-MAIL`, server/index.js), et la Tour doit les DIRE : au-delà de trois entreprises en 24 heures, le
+   code revient (`limite`) — le message dit pourquoi, pas « serveur pas à jour » ; et l'e-mail d'avis qui
+   suit chaque suppression, s'il n'est pas parti (`avis.parti===false`), se dit dans le verdict. */
 var SUPPR=null;
 function supprReussi(r){ return !!(r&&r.ok&&r.d&&!r.d.codeEnvoye&&(r.d.supprime===true||r.d.attente===true)); }
 function supprAppel(chemin,corps){
   return apiPost(chemin,Object.assign({},corps,{confirme:true})).then(function(r){
     if(!(r&&r.ok&&r.d&&r.d.codeEnvoye)) return r;
-    var code=prompt('Le serveur n’est pas encore à jour\u00a0: il demande le code qui vient de partir sur '+(r.d.dest||'ta boîte')+'.\n\nEntre le code à 6 chiffres\u00a0:');   // un message natif échappe à typoFr : les insécables à la main
+    var ou=r.d.dest||'ta boîte';
+    var code=prompt(r.d.limite   // un message natif échappe à typoFr : les insécables à la main
+      ? 'Trois entreprises ont déjà été supprimées ces dernières 24\u00a0heures\u00a0: au-delà, la case ne suffit plus. Un code vient de partir sur '+ou+'.\n\nEntre le code à 6 chiffres\u00a0:'
+      : 'Le serveur n’est pas encore à jour\u00a0: il demande le code qui vient de partir sur '+ou+'.\n\nEntre le code à 6 chiffres\u00a0:');
     if(!code) return {ok:false,status:0,annule:true,d:{}};
     return apiPost(chemin,Object.assign({},corps,{code:String(code).trim()}));
   });
 }
+/* Le verdict d'une suppression réussie, et l'e-mail d'avis quand il n'est PAS parti : une alerte qui ne
+   part pas doit se voir ici, sinon personne ne le sait. Un serveur d'avant n'envoie pas `avis` : on se
+   tait, faute de savoir. Les trois écrans passent par là — un quatrième aussi. */
+function supprAvisMot(r){ var a=r&&r.d&&r.d.avis; return (a&&a.parti===false)?' · ⚠️ L’e-mail d’avis n’est pas parti'+(a.motif?' ('+a.motif+')':''):''; }
+function supprToast(r,msg,ms){ var av=supprAvisMot(r); toast(msg+av,av?Math.max(ms||0,9000):ms); }
 function supprPanneau(o){
   SUPPR=o;
   tourPanneau('<div class="suppr-titre">🗑 '+esc(o.titre)+'</div>'+
@@ -7640,7 +7652,7 @@ function entSupprimer(t,nm){
         /* On ne dit jamais « tout est propre » si le serveur signale qu'une écriture a
            échoué : un ménage à moitié fait qu'on croit terminé est pire qu'un ménage
            annoncé incomplet. */
-        toast(x.d.avertissement?('⚠️ '+x.d.avertissement):'🗑 « '+nm+' » supprimée partout', x.d.avertissement?8000:0);
+        supprToast(x, x.d.avertissement?('⚠️ '+x.d.avertissement):'🗑 « '+nm+' » supprimée partout', x.d.avertissement?8000:0);
         ENT.sel=null; DOS={nom:'',loaded:false,err:'',d:null};
         chargerEntreprises(); chargerClients(); chargerComptesSite();
       } });
@@ -7758,7 +7770,7 @@ function compteSupprimer(login){
       ' ne pourra plus entrer : l’identifiant est retiré de l’annuaire tout de suite, et le compte est supprimé de l’application au premier appareil de l’entreprise qui s’ouvre.</p>',
     question:'Es-tu sûr de vouloir supprimer ce compte ?', caseTxt:'Oui, je veux supprimer ce compte',
     chemin:'/api/monitor/compte/supprimer', corps:{t:d.t,login:login},
-    fin:function(){ toast('Suppression ordonnée — l’identifiant ne peut plus entrer ; le compte part au prochain appareil ouvert'); chargerDossier(DOS.nom); } });
+    fin:function(y){ supprToast(y,'Suppression ordonnée — l’identifiant ne peut plus entrer ; le compte part au prochain appareil ouvert'); chargerDossier(DOS.nom); } });
 }
 /* ⛔ LA PORTE DE SORTIE D'UN MOT DE PASSE ORDONNÉ, ET ELLE DOIT ÊTRE VISIBLE. Tant que l'ordre
    vit, l'annuaire de ce compte est GELÉ sur l'empreinte qu'on vient d'écrire : aucun dépôt de
@@ -7804,7 +7816,7 @@ function comptesInutilisesSupprimer(){
     chemin:'/api/monitor/comptes/supprimer', corps:{t:d.t,logins:cibles.map(function(u){ return u.login; })},
     fin:function(y){
       var nb=(y.d&&y.d.n)||0, gardes=(y.d&&y.d.refuses)||[];
-      toast(nMot(nb,'compte supprimé','comptes supprimés')+(nb>1?' — ils ne peuvent plus entrer ; ils partent':' — il ne peut plus entrer ; il part')+' de l’application au prochain appareil ouvert'+
+      supprToast(y, nMot(nb,'compte supprimé','comptes supprimés')+(nb>1?' — ils ne peuvent plus entrer ; ils partent':' — il ne peut plus entrer ; il part')+' de l’application au prochain appareil ouvert'+
         (gardes.length?' · '+nMot(gardes.length,'compte gardé','comptes gardés')+' ('+gardes.map(function(x){ return x.login+' : '+x.raison; }).join(', ')+')':''), gardes.length?8000:0);
       chargerDossier(DOS.nom); } });
 }
