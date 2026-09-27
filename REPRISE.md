@@ -20,7 +20,7 @@ Le site vendait 2 utilisateurs par abonnement Business et 3 en Business Premium 
 la page de paiement DIVISAIT le nombre de personnes par ces chiffres : sept personnes en Business faisaient quatre
 abonnements.
 
-✅ **Fait** (branche `5bd5fa6`, `1aca904`, `a0becc6`) — ⏳ **publication sur `main` en cours** (suites et relecture d'abord) :
+✅ **Fait et EN SERVICE** (`437af22` sur `main` ; branche `5bd5fa6`, `1aca904`, `a0becc6`, `8699f2a`) :
 · `tarifs.html` (la v1 de la racine) : « 1 utilisateur par abonnement » sur les cinq formules payantes, l'introduction
   (« Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements »), la FAQ (« Business × 3 =
   3 comptes », en insécables — au téléphone l'exemple se coupait en deux) et la description. `vitrine/racine-v1.json`
@@ -35,8 +35,12 @@ abonnements.
   « − », plafond, et la quantité envoyée au paiement), racine ET aperçu ; **19/19 contre-épreuves**
   (`scratchpad/mut-837.py` — dont une retouche cachée derrière une empreinte « mise à jour ») ; `test-835` 253 ✓ ; sonde
   du portail **229 ✓ 0 ✗** sur six états de la page de paiement ; photos téléphone et bureau, jour et nuit
-  (`scratchpad/vue-site.js`, vues `un-…`, `RACINE_SERVIE` pour photographier la copie de main). Suites (branche,
-  puis copie de main) : en cours. ⚠️ La copie de main a d'abord fait tomber `test-837` : son motif « 250 »
+  (`scratchpad/vue-site.js`, vues `un-…`, `RACINE_SERVIE` pour photographier la copie de main). Suites : branche
+  **193 suites · 10 263 ✓**, copie de main **192 suites · 9 945 ✓** (0 échec). Relecture (`relecteur`) : prête à
+  publier — elle a trouvé DEUX pages servies sans `noindex` qui vendaient encore 2 et 3 utilisateurs
+  (`apercu/tarifs.html`, restée d'un cycle d'aperçu antérieur — elle disait même « 3 en Business, 5 en Business
+  Premium » —, et la maquette `apercu/site-apple.html`) : alignées, et `test-837` §4 relit désormais TOUT ce que le
+  dépôt sert (69 fichiers, l'application en écart déclaré) — 70 ✓, **23/23 contre-épreuves** en tout. ⚠️ La copie de main a d'abord fait tomber `test-837` : son motif « 250 »
   tombait dans une couleur de la page en service (`rgba(96,165,250,…)`) — resserré sur la forme du code.
 
 ⏳ **L'APPLICATION N'Y EST PAS ENCORE — c'est une question pour Justin.** Dans `app.html`, `PLANS.maxU` vaut 2
