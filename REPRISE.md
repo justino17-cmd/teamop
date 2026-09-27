@@ -63,6 +63,16 @@ que ce soit des vrais iPhone avec un vrai Mac, avec des vraies captures d'écran
 page (repris du site actuel), et « Business Premium » écrit en entier (comme l'application ; la maquette écrivait
 « Premium »).
 
+**Soir, Justin (capture de la barre du bas) : « Dans la tour, j'ai pas le glissement de la bulle avec le doigt comme
+OP GESTION ».** Diagnostic : la Tour EN SERVICE (`teamop.fr/tour.html`) est la **v2.66**, qui n'a ni bulle ni
+glissement — la pastille blanche y est le fond de l'onglet allumé (`.bb.on`), rien ne se prend au doigt. La bulle
+qu'on attrape est dans la v2.67+, donc dans l'aperçu v2.69 : `sonde-tour-barre.js` rejouée ce soir, **128 ✓ 0 ✗** ;
+contre-épreuve sur la v2.66 : « une bulle existe » ✗ (elle n'existe pas). Au passage, un vrai défaut de l'aperçu :
+le pied de l'écran de connexion et celui de la page disaient **« v2.68 » dans la v2.69** — c'est là qu'on lit quelle
+Tour on a sous les yeux. Corrigé, `test-829` §8 relit chaque numéro affiché contre `TOUR_VERSION` (5/5 mutations),
+aperçu republié (`0391c4e` sur `main`). Pour trancher « quelle Tour ? » d'un coup d'œil : l'aperçu porte la pastille
+orange « APERÇU · refonte en cours » en bas de l'écran. **La bulle arrive chez lui avec « Remplace la tour ».**
+
 # 🟡 27 SEPTEMBRE 2026, MATIN — « FAIT LES 4 », PUIS « OUI RAJOUTE ÇA » : PORTAIL PUBLIÉ, ANCIENNE TOUR RETIRÉE ; TOUR v2.69 EN APERÇU (SUPPRIMER SANS CODE, AVIS PAR E-MAIL, LIMITE, LA BULLE) — ATTEND « REMPLACE LA TOUR » ET « POUSSE LE SERVEUR »
 
 Justin, à quatre questions (le portail, `tour-v1.html`, les suppressions de la Tour, la bulle sur « Plus ») :
