@@ -298,6 +298,23 @@
   .btn-payer:active { transform: scale(.98); }
   .btn-payer:disabled { opacity: .6; cursor: default; }
   .btn-payer svg { width: 17px; height: 17px; }
+  /* ⛔ LE COMPTE AVANT LE PAIEMENT (27 septembre 2026, Justin : « ils peuvent pas payer s'ils ont pas de compte
+     créé »). Un bloc sous le bouton dit où l'on en est — pas de compte, adresse à confirmer, prêt, service injoignable —
+     et donne le geste suivant. Couleurs d'état du thème (mesurées ≥ 4,5 dans les deux modes). */
+  .compte-bloc { margin-top: 12px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.55;
+    color: var(--m-body); background: color-mix(in srgb, var(--m-link) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--m-link) 20%, transparent); overflow-wrap: anywhere; }
+  .compte-bloc b { color: var(--m-text); font-weight: 600; }
+  .compte-bloc.attention { background: var(--m-warn-fond); border-color: color-mix(in srgb, var(--m-warn) 45%, transparent); }
+  .compte-bloc.ok { background: var(--m-ok-fond); border-color: color-mix(in srgb, var(--m-ok) 25%, transparent); }
+  .compte-bloc.erreur { background: var(--m-err-fond); border-color: color-mix(in srgb, var(--m-err) 30%, transparent); }
+  .compte-gestes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .compte-geste { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px;
+    border: 1px solid var(--m-line); background: var(--m-tile); color: var(--m-text); font: inherit; font-size: 13.5px;
+    font-weight: 600; cursor: pointer; }
+  .compte-geste:disabled { opacity: .6; cursor: default; }
+  .compte-msg { margin-top: 10px; font-size: 13px; line-height: 1.5; color: var(--m-text); }
+  .compte-msg.erreur { color: var(--m-err); font-weight: 600; }
   .note-paiement {
     display: flex;
     align-items: center;
@@ -408,7 +425,7 @@
   </div>
 
   <h1 class="titre-page">Votre formule en détail</h1>
-  <p class="sous-titre">Vérifiez ce qui est inclus avant de passer au paiement.</p>
+  <p class="sous-titre">Vérifiez ce qui est inclus avant de passer au paiement. Le paiement se fait depuis votre compte TEAM OP&nbsp;: pas encore de compte&nbsp;? Créez-le d'abord, c'est gratuit.</p>
 
   <div class="autres-formules" id="selecteurFormules" style="margin: 0 0 28px;"></div>
 
@@ -430,40 +447,23 @@
    Ouvrir avec ?formule=gratuit | pro | business | premium
    Exemple : recap-abonnement.html?formule=business
 
-   >>> CONFIGURATION STRIPE — LA SEULE CHOSE À MODIFIER <<<
-   Colle tes Payment Links Stripe ci-dessous (un par formule et par cycle).
-   Tant qu'un lien contient "A_REMPLACER", le bouton affiche une alerte
-   au lieu de rediriger — impossible d'envoyer un client vers un lien mort.
+   Le paiement se fait depuis un COMPTE TEAM OP (voir « LE COMPTE » plus bas) :
+   ?utilisateurs=N et ?cycle=annuel reviennent intacts du portail.
    ===================================================================== */
 
+/* ⛔ PLUS AUCUN LIEN DE PAIEMENT ANONYME ICI — Justin, 27 septembre 2026 : « ils peuvent pas payer s'ils ont pas de
+   compte créé, pour que nous on ait un vrai suivi de qui fait quoi ». Cette page servait cinq paires de liens Stripe,
+   un repli quand le serveur ne répondait pas : un paiement qui ne passait par aucun compte, rattaché à personne. Le
+   paiement passe désormais par le serveur, AVEC la session du compte — ou il n'a pas lieu, et la page le dit.
+   ⚠️ Ces liens existent toujours chez Stripe tant qu'ils n'y sont pas désactivés : les retirer d'ici empêche de les
+   trouver sur le site, pas de s'en servir (geste de Justin : tableau de bord Stripe → Liens de paiement). */
 const CONFIG_STRIPE = {
-  pro: {
-    mensuel: 'https://buy.stripe.com/dRm5kD3IF6Aybsb2Wyes000',
-    annuel:  'https://buy.stripe.com/28E14ncfb8IG2VF7cOes006'
-  },
-  business: {
-    mensuel: 'https://buy.stripe.com/14A5kD2EB2kiao768Kes001',
-    annuel:  'https://buy.stripe.com/cNi9ATenj8IGfIrbt4es007'
-  },
-  premium: {
-    mensuel: 'https://buy.stripe.com/bJeeVd4MJbUSdAjgNoes002',
-    annuel:  'https://buy.stripe.com/bJe28rbb70ca1RB40Ces008'
-  },
-  msgpro: {
-    mensuel: 'https://buy.stripe.com/eVq8wP6UR0cadAjgNoes003',
-    annuel:  'https://buy.stripe.com/bJeeVd4MJ7EC0Nx40Ces009'
-  },
-  msgpremium: {
-    mensuel: 'https://buy.stripe.com/14A8wP0wtgb82VFdBces004',
-    annuel:  'https://buy.stripe.com/eVq8wP3IF7EC3ZJ1Sues00a'
-  },
   /* Le Gratuit ne passe pas par Stripe : */
   inscriptionGratuite: '/apercu/espace.html'
 };
 
 /* ---------- DONNÉES DES FORMULES ---------- */
-/* Identifiants de tarifs Stripe — utilisés par le paiement automatique (quantité pré-remplie).
-   Mensuels : à compléter (les paiements mensuels passent par les liens classiques en attendant). */
+/* Identifiants de tarifs Stripe — le serveur ouvre la page de paiement avec la quantité déjà réglée, au nom du compte. */
 const STRIPE_PRICES = {
   pro:        { mensuel: 'price_1TwV4RFKFKIrVWLDfGwAHMMh', annuel: 'price_1TwgbqFKFKIrVWLDQQ6xFRtf' },
   business:   { mensuel: 'price_1TwV4sFKFKIrVWLDvYSD9AWp', annuel: 'price_1TwgcVFKFKIrVWLDpFbHY1lM' },
@@ -645,9 +645,86 @@ const OPMSG_BIENTOT = true;
 const params = new URLSearchParams(window.location.search);
 let formuleActive = params.get('formule') || 'business';
 if (!FORMULES[formuleActive]) formuleActive = 'business';
-let cycleAnnuel = false;
+let cycleAnnuel = params.get('cycle') === 'annuel';   // revient du portail avec le cycle choisi (lienPortail)
 /* Préremplissage : recap-abonnement.html?formule=business&utilisateurs=7 */
 let nbUsersVoulu = Math.min(MAX_ABONNEMENTS, parseInt(params.get('utilisateurs'), 10) || 0);   // 0 = automatique (1 : un abonnement)
+
+/* ---------- LE COMPTE — PAS DE PAIEMENT SANS LUI ---------- */
+/* ⛔ PAS DE PAIEMENT SANS COMPTE — Justin, 27 septembre 2026 : « il faut bien préciser aux personnes qu'elles doivent
+   créer un compte d'abord avant de payer, elles ne peuvent pas payer si elles n'ont pas de compte créé, pour que nous
+   on ait un vrai suivi de qui fait quoi ». La règle, dans l'ordre :
+   · la session est celle du portail : `espace.html` la range sous `teamop_portail_jeton`, sur la même origine. La page
+     ne la croit pas sur parole, elle demande au serveur QUI elle est (`/api/compte/moi`) ;
+   · pas de compte → « Créer mon compte pour payer » mène au portail, qui ramène ici avec la formule, le nombre et le
+     cycle choisis (`RETOUR_PAIEMENT` d'/apercu/espace.html n'accepte qu'un nom de page nu suivi de `[\w=&%.-]`) ;
+   · adresse pas encore confirmée → on ne paie pas : une session prouve un mot de passe, pas une adresse (CLAUDE.md).
+     La page le dit, renvoie le lien, et se relit d'elle-même quand on revient sur l'onglet ;
+   · compte prêt → le paiement part AVEC la session, et le serveur rattache l'abonnement au compte ;
+   · le service ne répond pas → on le DIT, et on ne paie pas : plus aucun lien anonyme ne sert de repli.
+   ⛔ Un refus se lit AVANT d'annoncer quoi que ce soit : `fetch` ne jette pas sur un 401, un 403 ou un 429 (CLAUDE.md). */
+const API_TEAMOP = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '' : 'https://api.teamop.fr';
+const CLE_SESSION = 'teamop_portail_jeton';
+const sessionPortail = () => { try { const j = String(localStorage.getItem(CLE_SESSION) || ''); return /^[0-9a-f]{64}$/i.test(j) ? j : ''; } catch (e) { return ''; } };
+const oublierSession = () => { try { localStorage.removeItem(CLE_SESSION); } catch (e) {} };
+let compte = { etat: sessionPortail() ? 'lecture' : 'aucun' };   // lecture · aucun · a_confirmer · pret · injoignable
+let compteMsg = null;                                             // { texte, erreur } : ce qu'a donné le dernier geste
+async function lireCompte() {
+  const jeton = sessionPortail();
+  if (!jeton) { compte = { etat: 'aucun' }; return compte; }
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const r = await fetch(API_TEAMOP + '/api/compte/moi', { headers: { 'Authorization': 'Bearer ' + jeton }, signal: ctl.signal });
+    if (r.status === 401) { oublierSession(); compte = { etat: 'aucun' }; return compte; }
+    const j = r.ok ? await r.json().catch(() => null) : null;
+    const c = j && j.compte;
+    if (!c || !c.email) { compte = { etat: 'injoignable' }; return compte; }
+    compte = { etat: c.verifie ? 'pret' : 'a_confirmer', email: String(c.email), nom: [c.prenom, c.nom].filter(Boolean).join(' ') };
+  } catch (e) { compte = { etat: 'injoignable' }; }
+  finally { clearTimeout(to); }
+  return compte;
+}
+/* Le chemin vers le portail, et le retour : la formule, le nombre et le cycle survivent à l'aller-retour. ⚠️ Le nom de la
+   page de retour s'écrit DANS `encodeURIComponent(` : `scripts/apercu.sh` réécrit tout autre `'/apercu/recap-abonnement.html`
+   vers l'aperçu, et `RETOUR_PAIEMENT` refuserait alors le retour. */
+const lienPortail = () => '/apercu/espace.html?retour=' + encodeURIComponent('recap-abonnement.html?formule=' + formuleActive
+  + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : ''));
+/* Revenir sur l'onglet — après avoir confirmé son adresse ailleurs, ou depuis la page Stripe — relit le compte : c'est le
+   geste que la personne fait, elle n'a pas à recharger la page pour qu'il compte. */
+let relectureEnCours = false;
+async function relireCompte() {
+  if (relectureEnCours) return;
+  relectureEnCours = true;
+  const avant = compte.etat;
+  try { await lireCompte(); } finally { relectureEnCours = false; }
+  if (compte.etat !== avant) compteMsg = null;   // « un lien vient de partir » ne survit pas à l'adresse confirmée
+  rendrePaiement();
+}
+async function renvoyerLien(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
+  let r = null, j = null;
+  try {
+    r = await fetch(API_TEAMOP + '/api/compte/verifier/renvoyer', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionPortail() }, body: '{}' });
+    j = await r.json().catch(() => null);
+  } catch (e) { r = null; }
+  if (r && r.ok && j && j.deja) { compteMsg = null; await lireCompte(); }
+  else if (r && r.ok) compteMsg = { texte: 'Un nouveau lien vient de partir à ' + compte.email + '. Pensez aux courriers indésirables.' };
+  else if (r && r.status === 401) { oublierSession(); compte = { etat: 'aucun' }; compteMsg = { texte: 'Votre session a expiré : reconnectez-vous, vous reviendrez ici.', erreur: true }; }
+  else if (r && r.status === 429) compteMsg = { texte: 'Plusieurs liens sont déjà partis : patientez un moment avant d\'en redemander un.', erreur: true };
+  else compteMsg = { texte: 'Le lien n\'a pas pu partir — réessayez dans un instant.', erreur: true };
+  rendrePaiement();
+}
+async function changerCompte() {
+  const jeton = sessionPortail();
+  try { await fetch(API_TEAMOP + '/api/compte/deconnexion', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jeton }, body: '{}' }); } catch (e) {}
+  oublierSession();
+  window.location.href = lienPortail();
+}
+if (typeof document.addEventListener === 'function') document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && compte.etat !== 'pret') relireCompte();
+});
+/* Retour arrière depuis la page Stripe : le navigateur rend la page telle qu'on l'a quittée, bouton grisé sur
+   « Préparation du paiement… ». On la redessine, et on relit le compte (la session a pu changer entre-temps). */
+if (typeof window.addEventListener === 'function') window.addEventListener('pageshow', (e) => { if (e && e.persisted) { compteMsg = null; relireCompte(); } });
 
 /* ---------- RENDU : SÉLECTEUR ---------- */
 function rendreSelecteur() {
@@ -713,6 +790,32 @@ function rendreDroits() {
   `;
 }
 
+/* ---------- RENDU : LE COMPTE, SOUS LE BOUTON ---------- */
+const echapper = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ICONE_COMPTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+const ICONE_CARTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>';
+const ICONE_RELIRE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>';
+function boutonCompte(f) {
+  switch (compte.etat) {
+    case 'lecture': return 'Vérification de votre compte…';
+    case 'aucun': return ICONE_COMPTE + 'Créer mon compte pour payer';
+    case 'a_confirmer': return ICONE_RELIRE + 'J\'ai confirmé mon adresse';
+    case 'injoignable': return ICONE_RELIRE + 'Réessayer';
+    default: return ICONE_CARTE + f.boutonTexte;
+  }
+}
+function blocCompte(f, nbAbos) {
+  const msg = compteMsg ? `<div class="compte-msg${compteMsg.erreur ? ' erreur' : ''}" role="status">${echapper(compteMsg.texte)}</div>` : '';
+  const qui = compte.nom ? `<b>${echapper(compte.nom)}</b> · ${echapper(compte.email)}` : `<b>${echapper(compte.email)}</b>`;
+  switch (compte.etat) {
+    case 'lecture': return '';
+    case 'aucun': return `<div class="compte-bloc" role="note"><b>Un compte TEAM OP d'abord.</b> Le paiement se fait depuis votre compte&nbsp;: créez-le (c'est gratuit) ou connectez-vous — vous revenez ici ensuite, avec votre choix (${nbAbos}&nbsp;abonnement${nbAbos > 1 ? 's' : ''} ${echapper(f.nom)}).${msg}</div>`;
+    case 'a_confirmer': return `<div class="compte-bloc attention" role="note"><b>Confirmez votre adresse e-mail.</b> Un lien vous a été envoyé à <b>${echapper(compte.email)}</b>&nbsp;: ouvrez-le, puis revenez sur cette page — le paiement s'ouvrira.<div class="compte-gestes"><button type="button" class="compte-geste" id="btnRenvoiLien">Renvoyer le lien</button><button type="button" class="compte-geste" id="btnAutreCompte">Changer de compte</button></div>${msg}</div>`;
+    case 'injoignable': return `<div class="compte-bloc erreur" role="alert"><b>Le service TEAM OP ne répond pas.</b> Sans lui, le paiement ne peut pas se faire — rien n'a été payé. Réessayez dans un instant.${msg}</div>`;
+    default: return `<div class="compte-bloc ok" role="note">Paiement rattaché à votre compte&nbsp;: ${qui}.<div class="compte-gestes"><button type="button" class="compte-geste" id="btnAutreCompte">Ce n'est pas vous&nbsp;? Changer de compte</button></div>${msg}</div>`;
+  }
+}
+
 /* ---------- RENDU : PAIEMENT ---------- */
 function rendrePaiement() {
   const f = FORMULES[formuleActive];
@@ -730,8 +833,8 @@ function rendrePaiement() {
   const gratuit = f.prixMensuel === 0;
   if (nbUsersVoulu < 1) nbUsersVoulu = f.utilisateurs;   // par défaut : 1 (un abonnement = un utilisateur)
   const nbAbos = gratuit ? 1 : Math.max(1, Math.ceil(nbUsersVoulu / f.utilisateurs));
-  // L'option annuelle n'apparaît que si son lien Stripe est configuré
-  const annuelDispo = !gratuit && CONFIG_STRIPE[formuleActive] && CONFIG_STRIPE[formuleActive].annuel && !CONFIG_STRIPE[formuleActive].annuel.includes('A_REMPLACER');
+  // L'option annuelle n'apparaît que si son tarif Stripe existe (le paiement passe par le serveur, jamais par un lien)
+  const annuelDispo = !gratuit && !!(STRIPE_PRICES[formuleActive] || {}).annuel;
   if (!annuelDispo) cycleAnnuel = false;
 
   const prixAffiche = cycleAnnuel && !gratuit
@@ -791,16 +894,14 @@ function rendrePaiement() {
       </div>
     ` : ''}
 
-    <button class="btn-payer" id="btnPayer" style="background:${f.boutonFond};">
-      ${gratuit
-        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
-        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>'}
-      ${f.boutonTexte}
+    <button class="btn-payer" id="btnPayer" style="background:${f.boutonFond};"${!gratuit && compte.etat === 'lecture' ? ' disabled' : ''}>
+      ${gratuit ? ICONE_COMPTE + f.boutonTexte : boutonCompte(f)}
     </button>
+    ${gratuit ? '' : blocCompte(f, nbAbos)}
 
     <div class="note-paiement">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      ${gratuit ? 'Aucune carte bancaire demandée' : 'Paiement sécurisé par Stripe'}
+      ${gratuit ? 'Aucune carte bancaire demandée' : 'Paiement sécurisé par Stripe, depuis votre compte TEAM OP'}
     </div>
     ${gratuit ? '' : `<div style="margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--m-ok-fond);border:1px solid color-mix(in srgb,var(--m-ok) 25%,transparent);">
       <div style="font-size:13.5px;font-weight:600;color:var(--m-ok);margin-bottom:8px;">🎁 Vous avez un code promo ?</div>
@@ -812,12 +913,6 @@ function rendrePaiement() {
       <div id="promo-msg" style="display:none;font-size:12px;margin-top:8px;line-height:1.5;"></div>
     </div>`}
 
-    ${gratuit ? '' : `
-    <div style="margin-top:12px;padding:12px 14px;border-radius:16px;background:color-mix(in srgb,var(--m-link) 6%,transparent);border:1px solid color-mix(in srgb,var(--m-link) 20%,transparent);font-size:13px;line-height:1.55;color:var(--m-body);">
-      Pas encore de compte TEAM OP ?
-      <a href="/apercu/espace.html?retour=${encodeURIComponent('recap-abonnement.html?formule=' + formuleActive)}" style="color:var(--m-link);font-weight:600;">Créez votre compte d'abord</a>
-      — vous reviendrez automatiquement ici pour payer.
-    </div>`}
 
     <div class="garanties">
       <div class="garantie">
@@ -849,11 +944,17 @@ function rendrePaiement() {
     });
   });
 
+  const br = document.getElementById('btnRenvoiLien'); if (br) br.addEventListener('click', () => renvoyerLien(br));
+  const ba = document.getElementById('btnAutreCompte'); if (ba) ba.addEventListener('click', () => changerCompte());
+
   document.getElementById('btnPayer').addEventListener('click', async () => {
     if (formuleActive === 'gratuit' || formuleActive === 'msggratuit') {
       window.location.href = CONFIG_STRIPE.inscriptionGratuite;
       return;
     }
+    if (compte.etat === 'lecture') return;
+    if (compte.etat === 'aucun') { window.location.href = lienPortail(); return; }
+    if (compte.etat !== 'pret') { compteMsg = null; compte = Object.assign({}, compte, { etat: 'lecture' }); rendrePaiement(); await relireCompte(); return; }
     /* ⛔ SANS CETTE RÉFÉRENCE, LE CORRECTIF STRIPE DU SERVEUR NE SERT À RIEN.
        `/api/stripe/checkout` ne grave `subscription_data[metadata][espace]` sur l'abonnement
        que si la page lui envoie un `ref` — et cette page, la SEULE du site qui ouvre une page
@@ -863,31 +964,27 @@ function rendrePaiement() {
        bloquée après le paiement, sans un mot.
        `elan_sync_team` est le marqueur d'espace rattaché, le même que lit `promoValider()`
        plus bas. Il peut être vide — un prospect paie avant d'avoir un espace — et c'est
-       prévu : le serveur ignore un `ref` vide, et le repli par adresse reste en place. */
+       prévu : le serveur ignore un `ref` vide, et l'adresse du COMPTE rattache à sa place. */
     const espaceRattacheRef = () => {
       try { return String(localStorage.getItem('elan_sync_team') || '').trim(); } catch (e) { return ''; }
     };
     const btn = document.getElementById('btnPayer');
-    // 1) Paiement automatique via le serveur TeamOP : quantité déjà réglée + champ code promo
     const priceId = (STRIPE_PRICES[formuleActive] || {})[cycleAnnuel ? 'annuel' : 'mensuel'];
-    if (priceId) {
-      const txt = btn.innerHTML;
-      btn.disabled = true; btn.innerHTML = 'Préparation du paiement…';
-      try {
-        const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 7000);
-        const r = await fetch('https://api.teamop.fr/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef() }), signal: ctl.signal });
-        clearTimeout(to);
-        if (r.ok) { const j = await r.json(); if (j && j.url) { window.location.href = j.url; return; } }
-      } catch (e) {}
-      btn.disabled = false; btn.innerHTML = txt;
-    }
-    // 2) Repli : lien de paiement classique (quantité à régler sur la page Stripe)
-    const lien = CONFIG_STRIPE[formuleActive][cycleAnnuel ? 'annuel' : 'mensuel'];
-    if (!lien || lien.includes('A_REMPLACER')) {
-      alert('Le paiement annuel arrive très bientôt.\nEn attendant, choisissez le paiement mensuel — sans engagement.');
-      return;
-    }
-    window.location.href = lien;
+    if (!priceId) { compteMsg = { texte: 'Cette formule ne se paie pas encore en ligne : écrivez à support@teamop.fr.', erreur: true }; rendrePaiement(); return; }
+    btn.disabled = true; btn.innerHTML = 'Préparation du paiement…';
+    let r = null, j = null;
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
+    try {
+      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionPortail() }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef() }), signal: ctl.signal });
+      j = await r.json().catch(() => null);
+    } catch (e) { r = null; }
+    finally { clearTimeout(to); }
+    if (r && r.ok && j && j.url) { window.location.href = j.url; return; }
+    if (r && r.status === 401) { oublierSession(); compte = { etat: 'aucun' }; compteMsg = { texte: 'Votre session a expiré : reconnectez-vous, vous reviendrez ici.', erreur: true }; }
+    else if (r && r.status === 403 && j && j.error === 'adresse_non_verifiee') { compte = Object.assign({}, compte, { etat: 'a_confirmer' }); compteMsg = null; }
+    else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
+    else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
+    rendrePaiement();
   });
 }
 
@@ -947,6 +1044,8 @@ function rendreTout() {
 }
 
 rendreTout();
+/* La page se dessine tout de suite, puis lit le compte : sans session, pas même un aller-retour au serveur. */
+const compteLu = lireCompte().then(rendrePaiement);
 </script>
 <script src="/vitrine/v2/mode.js" defer></script>
 <div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>

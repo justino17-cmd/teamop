@@ -11,8 +11,8 @@
 
    Quatre endroits portent la règle, et ils doivent dire la même chose :
    1. les huit pages EN SERVICE (la v1 de la racine). On les relit, et on prouve qu'on n'y a touché QUE ce qui parle
-      des places et de la taxe : en défaisant les retouches, on retrouve octet pour octet chacune des huit pages
-      publiées le 27 septembre (`fe599df`) ;
+      des places, de la taxe et du compte à créer avant de payer : en défaisant les retouches, on retrouve octet pour
+      octet chacune des huit pages publiées le 27 septembre (`fe599df`) ;
    2. le générateur du site (v2, en aperçu) : gardé par `test-835` §3, qui déclare l'écart avec l'application ;
    3. la page de paiement — en service à la racine de `main`, au thème sur la branche, et sa copie d'aperçu. Ici on
       EXÉCUTE son vrai script, sur un faux document : ce que la page affiche, ce que font « − », « + » et le champ, et
@@ -44,17 +44,27 @@ console.log('1. les pages en service');
 const N = '\u202f', NB = '\u00a0';   // l'exemple de la FAQ ne se coupe pas : « Business × 3 = 3 comptes » d'un bloc
 /* les retouches du 27 septembre au soir — et RIEN d'autre : les défaire doit rendre la v1 publiée, octet pour octet.
    Les places d'abord, dans l'ordre de la page (Pro, Business, Business Premium, Messages Pro, Messages Business Premium),
-   puis les trois phrases [avant, après]. */
+   puis les phrases [avant, après] — quatre depuis « un compte avant de payer ». */
 const PLACE_NEUVE = '<div class="places">1 utilisateur par abonnement</div>';
 const PLACES_AVANT = ['1 utilisateur inclus', '2 utilisateurs inclus', '3 utilisateurs inclus', '1 utilisateur inclus', '3 utilisateurs inclus'];
+/* ⛔ ET UN COMPTE AVANT DE PAYER — Justin, même nuit : « dans les tarifs il faut bien préciser aux personnes qui doivent créer
+   un compte d'abord avant de payer, ils peuvent pas payer s'ils ont pas de compte créé ». Deux retouches de plus, et rien
+   d'autre : une phrase au bout de l'introduction, et une question EN TÊTE de la FAQ (identifiant `r6`, pour ne renuméroter
+   aucune des six autres). `test-839` garde la règle elle-même (la page de paiement, la route, le générateur). */
+const COMPTE_INTRO = 'Pour payer, il faut un compte TEAM OP' + N + ': créez-le d\'abord, c\'est gratuit.';
+const COMPTE_FAQ = '<div class="q"><button type="button" aria-expanded="false" aria-controls="r6"><b>Faut-il un compte pour payer' + N + '?</b>'
+  + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>'
+  + '<div class="r" id="r6"><div><p>Oui. Créez d\'abord votre compte TEAM OP — c\'est gratuit — et confirmez votre adresse e-mail' + N + ': le paiement se fait ensuite depuis ce compte. '
+  + 'Sans compte, il n\'est pas possible de payer' + N + ': c\'est ce qui rattache chaque abonnement à la personne qui l\'a souscrit et à son entreprise.</p></div></div></div>';
 const PHRASES = [
   ['content="Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 € (2 utilisateurs), Business Premium 50 € (3 utilisateurs + service 24h/24). OP MESSAGES a ses propres formules, à part."',
    'content="Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 €, Business Premium 50 € (service 24h/24), par mois et par utilisateur. OP MESSAGES a ses propres formules, à part."'],
   ['<p class="intro">Prix HT par mois, sans engagement. Chaque abonnement inclut un nombre d\'utilisateurs — besoin de plus' + N + '? Ajoutez un abonnement, les places s\'additionnent.</p>',
-   '<p class="intro">Prix TTC par mois, sans engagement. Un abonnement par utilisateur' + N + ': pour une équipe de cinq, prenez cinq abonnements.</p>'],
+   '<p class="intro">Prix TTC par mois, sans engagement. Un abonnement par utilisateur' + N + ': pour une équipe de cinq, prenez cinq abonnements. ' + COMPTE_INTRO + '</p>'],
   ['<p>Chaque abonnement inclut un nombre de comptes' + N + ': 1 en Gratuit, 1 en Pro, 2 en Business, 3 en Business Premium. Besoin de plus' + N + '? Ajoutez un abonnement' + N + ': les places s\'additionnent (par exemple, Business × 2 = 4 comptes).</p>',
    '<p>Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus' + N + '? Ajoutez un abonnement par personne' + N + ': les places s\'additionnent (par exemple, ' + ['Business', '×', '3', '=', '3', 'comptes'].join(NB) + ').</p>'],
 ];
+PHRASES.push(['<div class="liste">', '<div class="liste">' + COMPTE_FAQ]);
 /* le pied des huit pages : « Prix HT » → « Prix TTC » (Justin : « TTC ») */
 const PIED = ['Prix HT, sans engagement.', 'Prix TTC, sans engagement.'];
 /* les huit pages publiées le 27 septembre (`fe599df`), octet pour octet — écrites ICI et pas lues dans
@@ -87,7 +97,7 @@ vrai('la description (moteurs de recherche) dit « par mois et par utilisateur �
 if (racineGeneree) {
   vrai('la racine est la sortie du générateur (remplacée) — test-835 la garde', true);
 } else {
-  v('chaque retouche se trouve le bon nombre de fois (5 places, 3 phrases, le pied)', [TAR.split(PLACE_NEUVE).length - 1].concat([...PHRASES, PIED].map(([, apres]) => TAR.split(apres).length - 1)), [5, 1, 1, 1, 1]);
+  v('chaque retouche se trouve le bon nombre de fois (5 places, 4 phrases, le pied)', [TAR.split(PLACE_NEUVE).length - 1].concat([...PHRASES, PIED].map(([, apres]) => TAR.split(apres).length - 1)), [5, 1, 1, 1, 1, 1]);
   let i = 0;
   let defaite = TAR.split(PLACE_NEUVE).reduce((acc, morceau, k) => k ? acc + '<div class="places">' + PLACES_AVANT[i++] + '</div>' + morceau : morceau, '');
   for (const [avant, apres] of [...PHRASES, PIED]) defaite = defaite.split(apres).join(avant);
@@ -159,10 +169,15 @@ function executer(PAGE, recherche) {
   const document = { title: '', querySelectorAll() { return []; }, querySelector() { return null; },
     getElementById(id) { return /^(selecteurFormules|carteDroits|cartePaiement)$/.test(id) ? (conteneurs[id] || (conteneurs[id] = nouveau(id))) : nouveau(id); } };
   const window = { location: { search: recherche, href: '' } };
-  const fetchFaux = async (url, opts) => { envoye.push({ url, corps: JSON.parse(opts.body) }); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/c/banc' }) }; };
+  /* ⛔ ON NE PAIE QU'AVEC UN COMPTE PROUVÉ (Justin, 27 septembre 2026 — `test-839` garde la règle) : ce faux navigateur
+     porte donc la session d'un compte prouvé, et le faux serveur répond « qui suis-je ». */
+  const fetchFaux = async (url, opts) => {
+    if (/\/api\/compte\/moi$/.test(url)) return { ok: true, status: 200, json: async () => ({ ok: true, compte: { email: 'paie@entreprise-banc.fr', prenom: 'Camille', nom: 'Banc', verifie: true } }) };
+    envoye.push({ url, corps: JSON.parse(opts.body) }); return { ok: true, status: 200, json: async () => ({ url: 'https://checkout.stripe.com/c/banc' }) };
+  };
   const api = new Function('window', 'document', 'history', 'localStorage', 'fetch', 'alert',
-    bloc + '\n;return { etat: () => ({ nbUsersVoulu, formuleActive }), FORMULES, MAX_ABONNEMENTS, STRIPE_PRICES };')(
-    window, document, { replaceState() {} }, { getItem: () => null }, fetchFaux, () => {});
+    bloc + '\n;return { etat: () => ({ nbUsersVoulu, formuleActive }), FORMULES, MAX_ABONNEMENTS, STRIPE_PRICES, compteLu };')(
+    window, document, { replaceState() {} }, { getItem: k => (k === 'teamop_portail_jeton' ? 'e'.repeat(64) : null), removeItem() {} }, fetchFaux, () => {});
   const paiement = () => texte(conteneurs.cartePaiement.innerHTML);
   const droits = () => texte(conteneurs.carteDroits.innerHTML);
   const html = () => conteneurs.cartePaiement.innerHTML;
@@ -179,6 +194,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     const b = executer(PAGE, '?formule=business&utilisateurs=7');
     vrai('le script de la page s\'exécute', !!b);
     if (!b) continue;
+    await b.api.compteLu;   // la page lit le compte au chargement, puis se redessine
     const F = b.api.FORMULES, cles = Object.keys(F);
     v('population : sept formules (4 OP GESTION, 3 OP MESSAGES)', cles.length, 7);
     v('⛔ chaque formule compte 1 utilisateur par abonnement', cles.filter(k => F[k].utilisateurs !== 1), []);
@@ -216,6 +232,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
 
     // Business Premium, sans nombre dans l'adresse : un abonnement, 50 €
     const pr = executer(PAGE, '?formule=premium');
+    await pr.api.compteLu;
     v('Business Premium sans nombre donné : 1 personne, 1 abonnement', pr.api.etat().nbUsersVoulu, 1);
     vrai('… 50 € par mois, et « Formule Business Premium · 1 utilisateur par abonnement »', pr.paiement().includes('50 € TTC') && pr.paiement().includes('Formule Business Premium · 1 utilisateur par abonnement'));
     await pr.derniers.btnPayer._h.click[0]();

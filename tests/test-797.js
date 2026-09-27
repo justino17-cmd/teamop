@@ -34,25 +34,52 @@ const vrai = (t, a) => v(t, !!a, true);
      qui explique le correctif, vingt lignes plus haut. Chercher `/api/stripe/checkout` tout
      court tombait dessus et évaluait le mauvais corps — la même faute que celle qu'on vient
      de corriger ici. Un motif de banc doit viser du CODE, jamais une phrase. */
-  const iCo = PAGE.indexOf("fetch('https://api.teamop.fr/api/stripe/checkout'");
+  /* ⛔ DEPUIS LE 27 SEPTEMBRE 2026, L'APPEL PART AVEC LA SESSION DU COMPTE (Justin : « ils peuvent pas payer s'ils ont
+     pas de compte créé »), et l'adresse du serveur se lit dans `API_TEAMOP` (vide sur 127.0.0.1, pour les sondes). */
+  const iCo = PAGE.indexOf("fetch(API_TEAMOP + '/api/stripe/checkout'");
   vrai('   la page appelle bien la route de paiement', iCo > 0);
-  const mBody = /body: JSON\.stringify\((\{.*?\})\), signal/.exec(PAGE.slice(iCo, iCo + 800));
+  const appel = PAGE.slice(iCo, iCo + 800);
+  const mBody = /body: JSON\.stringify\((\{.*?\})\), signal/.exec(appel);
   vrai('   et le corps du paiement est trouvable', !!mBody);
-  let corps = null;
-  if (mFn && mBody) {
-    corps = new Function('localStorage', 'priceId', 'nbAbos',
-      mFn[0] + '\nreturn JSON.stringify(' + mBody[1] + ');')(
-      { getItem: (k) => (k === 'elan_sync_team' ? 'monclient-9f2a' : null) }, 'price_1Abc', 3);
-    corps = JSON.parse(corps);
+  /* Les EN-TÊTES que la page envoie, évalués avec sa vraie lecture de session (`sessionPortail`) : c'est la couture qui a
+     déjà cassé trois fois dans ce dépôt (`X-OP-Jeton` contre `Authorization: Bearer`, CLAUDE.md). */
+  const mSess = /const CLE_SESSION = '([^']+)';\s*const sessionPortail = \(\) => \{[\s\S]*?\};/.exec(PAGE);
+  vrai('la page sait lire la session du portail', !!mSess);
+  const mEntetes = /headers: (\{[^}]*\}), body: JSON\.stringify/.exec(appel);
+  vrai('   et les en-têtes du paiement sont trouvables', !!mEntetes);
+  const SESSION = 'd'.repeat(64);
+  let corps = null, entetes = null;
+  if (mFn && mBody && mSess && mEntetes) {
+    const stockage = (cle) => (cle === 'elan_sync_team' ? 'monclient-9f2a' : cle === mSess[1] ? SESSION : null);
+    const evaluer = (ls, expr) => new Function('localStorage', 'priceId', 'nbAbos',
+      mFn[0] + '\n' + mSess[0] + '\nreturn ' + expr + ';')({ getItem: ls }, 'price_1Abc', 3);
+    corps = JSON.parse(evaluer(stockage, 'JSON.stringify(' + mBody[1] + ')'));
+    entetes = evaluer(stockage, mEntetes[1]);
     v('⛔ le corps envoy\u00e9 par la page PORTE la r\u00e9f\u00e9rence de l\'espace', corps.ref, 'monclient-9f2a');
     v('   et garde le tarif et la quantit\u00e9', [corps.price, corps.quantity], ['price_1Abc', 3]);
+    v('⛔ la page envoie la session du compte dans Authorization, sous la forme que le serveur lit', entetes.Authorization, 'Bearer ' + SESSION);
+    v('   la session est celle du portail (espace.html la range sous cette clé)', mSess[1], 'teamop_portail_jeton');
     /* Un prospect qui paie AVANT d'avoir un espace : pas de référence, et c'est prévu — le
-       serveur l'ignore, le repli par adresse reste. Ce n'est pas une panne, c'est le cas
+       serveur l'ignore, et l'adresse du COMPTE rattache à sa place. Ce n'est pas une panne, c'est le cas
        nominal du site public : le banc l'écrit pour qu'on ne le « répare » pas un jour. */
-    const vide = new Function('localStorage', 'priceId', 'nbAbos',
-      mFn[0] + '\nreturn JSON.stringify(' + mBody[1] + ');')(
-      { getItem: () => null }, 'price_1Abc', 1);
-    v('un prospect sans espace envoie une r\u00e9f\u00e9rence vide, sans casser', JSON.parse(vide).ref, '');
+    const vide = JSON.parse(evaluer((cle) => (cle === mSess[1] ? SESSION : null), 'JSON.stringify(' + mBody[1] + ')'));
+    v('un prospect sans espace envoie une r\u00e9f\u00e9rence vide, sans casser', vide.ref, '');
+  }
+  /* Et la page d'espace (`espace.html`, ses trois versions) accepte bien le retour que la page de paiement fabrique : sinon
+     « Créer mon compte pour payer » ramènerait au portail… et jamais au paiement. */
+  const mLien = /const lienPortail = \(\) => ([\s\S]*?\)\));/.exec(PAGE);
+  vrai('la page fabrique le chemin vers le portail (lienPortail)', !!mLien);
+  if (mLien) {
+    const lien = new Function('formuleActive', 'nbUsersVoulu', 'cycleAnnuel', 'return ' + mLien[1] + ';')('business', 7, true);
+    const retour = decodeURIComponent(lien.split('?retour=')[1] || '');
+    v('   … vers le portail, avec la formule, le nombre et le cycle choisis', [lien.split('?')[0], retour], ['espace.html', 'recap-abonnement.html?formule=business&utilisateurs=7&cycle=annuel']);
+    for (const e of ['espace.html', 'apercu/espace.html'].filter(x => fs.existsSync(path.join(__dirname, '..', x)))) {
+      const E = fs.readFileSync(path.join(__dirname, '..', e), 'utf8');
+      const mR = /const RETOUR_PAIEMENT=\(\(\)=>\{ try\{ const r=new URLSearchParams\(location\.search\)\.get\('retour'\)\|\|''; return (\/.*?\/)\.test\(r\)\?r:''; \}/.exec(E);
+      vrai('   ' + e + ' : sa garde du retour est trouvée', !!mR);
+      if (mR) vrai('⛔ ' + e + ' accepte le retour fabriqué par la page de paiement (sinon on ne revient jamais payer)',
+        new Function('return ' + mR[1])().test(new URLSearchParams(lien.split('?')[1]).get('retour')));
+    }
   }
 
 
@@ -64,24 +91,32 @@ const vrai = (t, a) => v(t, !!a, true);
   for (let k = SRC.indexOf('{', iR); k < SRC.length; k++) { if (SRC[k] === '{') dR++; else if (SRC[k] === '}') { dR--; if (!dR) { finR = k + 1; break; } } }
   finR = SRC.indexOf(');', finR) + 2;
   vrai('la route de paiement est trouvée dans le fichier réel', iR > 0 && finR > iR);
-  const appeler = async (body) => {
+  /* `comptes`, un faux fidèle à `comptes.js` : la session de la page est celle d'un compte PROUVÉ. Les en-têtes passent
+     tels qu'Express les rend (noms en minuscules). */
+  const COMPTES = { parJeton: (j) => (j === SESSION ? 'paie@entreprise-banc.fr' : ''), verifie: (m) => m === 'paie@entreprise-banc.fr' };
+  const appeler = async (body, hdr) => {
     let envoye = '', statut = 0, sortie = null;
     const faux = { post: (chemin, h) => { faux._h = h; } };
-    new Function('app', 'config', 'fetch', 'URLSearchParams', SRC.slice(iR, finR))(faux,
+    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' } },
       async (url, opts) => { envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
-      URLSearchParams);
-    await faux._h({ body }, { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
+      URLSearchParams, COMPTES);
+    const headers = {}; for (const k of Object.keys(hdr || {})) headers[k.toLowerCase()] = hdr[k];
+    await faux._h({ body, headers }, { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie };
   };
   /* ⛔ ET C'EST LE CORPS DE LA PAGE QUI PART, PAS UN LITTÉRAL : sans lui, ce banc redeviendrait
      `test-727`, et la couture ne serait plus gardée par personne. */
   vrai('⛔ le corps éprouvé est bien celui de la PAGE', !!corps);
-  if (corps) {
-    const r = await appeler(corps);
+  if (corps && entetes) {
+    const r = await appeler(corps, entetes);
     vrai('⛔ ce que la page envoie fait graver la référence sur l\'ABONNEMENT',
       /subscription_data%5Bmetadata%5D%5Bespace%5D=monclient-9f2a/.test(r.envoye));
     vrai('   et la page de paiement s\'ouvre', r.sortie && /checkout\.stripe\.com/.test(r.sortie.url || ''));
+    v('⛔ la session envoyée par la PAGE est reconnue par la ROUTE : l\'abonnement part au nom du compte',
+      new URLSearchParams(r.envoye).get('customer_email'), 'paie@entreprise-banc.fr');
+    const sansEntete = await appeler(corps, { 'Content-Type': 'application/json' });
+    v('   contre-épreuve : le même corps SANS la session de la page est refusé (401)', sansEntete.statut, 401);
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

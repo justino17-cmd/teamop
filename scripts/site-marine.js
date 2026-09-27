@@ -313,14 +313,15 @@ const PAGES = {
   tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 €, Business Premium 50 € (service 24h/24), par mois et par utilisateur. OP MESSAGES a ses propres formules, à part.',
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Commencez gratuitement, passez à la vitesse supérieure quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
       + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="opmessages"></span><div class="tarifs-in">
-        <p class="intro">${fr('Prix TTC par mois, sans engagement. Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements.')}</p>
+        <p class="intro">${fr('Prix TTC par mois, sans engagement. Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements. Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.')}</p>
         <div class="segment" role="tablist" aria-label="Application"><button type="button" role="tab" id="onglet-gestion" aria-controls="formules-gestion" aria-selected="true">OP GESTION</button><button type="button" role="tab" id="onglet-msg" aria-controls="formules-msg" aria-selected="false" tabindex="-1">OP MESSAGES</button></div>
         <div class="formules" id="formules-gestion" role="tabpanel" aria-labelledby="onglet-gestion" style="--n:4">${formules(FORMULES_GESTION)}</div>
         <div class="formules" id="formules-msg" role="tabpanel" aria-labelledby="onglet-msg" style="--n:3" hidden>${formules(FORMULES_MESSAGES, true)}</div>
         <p class="note-msg">${fr('OP MESSAGES change d\'infrastructure : ses formules ouvriront avec la nouvelle version, et rien n\'est facturé d\'ici là.')}</p>
       </div></section>
       <section class="faq" id="faq"><h2 class="h2 moyen">Questions fréquentes.</h2><div class="liste">`
-      + [['Puis-je changer de formule à tout moment ?', 'Oui. Vous passez de Gratuit à Pro, Business ou Business Premium quand vous voulez, et vous pouvez redescendre ou arrêter à tout moment — aucun engagement de durée.'],
+      + [['Faut-il un compte pour payer ?', 'Oui. Créez d\'abord votre compte TEAM OP — c\'est gratuit — et confirmez votre adresse e-mail : le paiement se fait ensuite depuis ce compte. Sans compte, il n\'est pas possible de payer : c\'est ce qui rattache chaque abonnement à la personne qui l\'a souscrit et à son entreprise.'],
+        ['Puis-je changer de formule à tout moment ?', 'Oui. Vous passez de Gratuit à Pro, Business ou Business Premium quand vous voulez, et vous pouvez redescendre ou arrêter à tout moment — aucun engagement de durée.'],
         ['Comment fonctionnent les places utilisateur ?', 'Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus ? Ajoutez un abonnement par personne : les places s\'additionnent (par exemple, Business\u00a0×\u00a03\u00a0=\u00a03\u00a0comptes).'],
         ['Faut-il installer quelque chose ?', 'Non. TEAM OP est une vraie application qui s\'installe en un clic sur iPhone, Android, Mac et Windows. Elle s\'ouvre aussi dans le navigateur, sans rien télécharger.'],
         ['Mes données sont-elles en sécurité ?', 'Oui : chiffrement AES-256, un espace totalement isolé par entreprise, et une sauvegarde complète exportable à tout moment.'],
