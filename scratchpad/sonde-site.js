@@ -134,6 +134,11 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
       }
       if (pg === 'elan') {
         const macs = await ev(`return [...document.querySelectorAll('.tuile-f .vue.v-mac')].map(v=>Math.round(v.getBoundingClientRect().bottom - v.querySelector('.ap-mac').getBoundingClientRect().bottom));`);
+        /* au bureau et sur tablette, la case garde EXACTEMENT sa hauteur d'avant (clamp(280px, 29vw, 420px)) : sans ce
+           contrôle, un plafond perdu raccourcissait la case de 418 à 340 px sans que le Mac cesse d'être coupé */
+        const hMacs = await ev(`return [...document.querySelectorAll('.tuile-f .vue.v-mac')].map(v=>Math.round(v.getBoundingClientRect().height));`);
+        const hAvant = Math.round(Math.min(420, Math.max(280, .29 * P.w)));
+        if (P.w >= 500) vrai(lbl + ' : les cases à Mac gardent leur hauteur d\'avant (' + hAvant + ' px)', hMacs.length === 2 && hMacs.every(h => Math.abs(h - hAvant) <= 1), JSON.stringify(hMacs));
         vrai(lbl + ' : population — deux cases à Mac seul', macs.length === 2, JSON.stringify(macs));
         vrai(lbl + ' : ' + (P.w < 500 ? 'sur téléphone, le Mac entier et 24 px sous son socle (plus de bande vide)' : 'le Mac dépasse et la case le coupe (on voit le haut de l\'écran)'),
           macs.length === 2 && macs.every(g => P.w < 500 ? g >= 20 && g <= 28 : g < 0), 'vide sous le Mac : ' + JSON.stringify(macs));
