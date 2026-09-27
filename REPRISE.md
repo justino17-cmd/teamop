@@ -13,7 +13,94 @@ de ligne du tout.
 
 ---
 
-# 🟡 27 SEPTEMBRE 2026, APRÈS-MIDI — SITE VITRINE : LE ZIP DE JUSTIN (8 PAGES « MARINE »), LE LOGO DANS GOOGLE, DE VRAIS iPHONE ET MAC — EN APERÇU, ATTEND « REMPLACE LE SITE »
+# 🟡 27 SEPTEMBRE 2026, SOIR — SITE v2 EN APERÇU : UNE VRAIE CAPTURE PAR CASE, LA CARTE TOUCHÉE EN BLEU, UN BOUTON JOUR / NUIT — ATTEND « REMPLACE LE SITE »
+
+Justin, sur les tarifs en ligne : « pourquoi il y en a un qui est en bleu et les autres sont noirs ? […] ça serait
+bien que quand on clique sur les cases, ça affiche en bleu », « les mêmes couleurs pour OP MESSAGES » (qui revient :
+« on va travailler dessus à partir de ce soir »), « je veux vraiment un mode jour et un mode nuit […] je voudrais
+voir ce que tu m'as fait, j'aimerais bien te tester. Avant. » Puis, sur « Ce que fait OP GESTION » (elan.html) :
+« dans chaque petite case, une capture d'écran, téléphone, Mac […] que on vende l'application, c'est le but ».
+Les captures d'OP MESSAGES : « pour l'instant, on va attendre ».
+
+✅ **Fait sur la branche** (`1a563e7`, bêta `d920dbc`) — **le site EN SERVICE ne bouge pas** : l'aperçu lit
+`vitrine/v2/`, la racine garde `vitrine/` (v1, `fe599df`), dont l'empreinte est dans `vitrine/racine-v1.json`,
+relue par `test-835` §10. ⛔ Le générateur écrit l'aperçu par défaut ; `--racine` n'est pour le remplacement.
+· **Le bleu** = la formule mise en avant (« Le plus choisi »). Il suit désormais le doigt : toucher une carte
+  (clic ou clavier) lui donne la bordure et le bouton bleus, dans SON groupe ; l'étiquette « Le plus choisi » reste
+  où elle est. OP MESSAGES a les mêmes couleurs ; ses boutons disent toujours « Bientôt disponible ».
+· **Jour / nuit** : bouton ☀︎/☾ dans la barre, sur les 8 pages. Il force l'autre mode, gardé sur l'appareil
+  (`teamop_site_mode`), posé AVANT le premier rendu (pas d'éclair blanc) ; revenir au mode de l'appareil efface le
+  choix. Les écrans des iPhone et Mac suivent (le `media` de leurs `<source>` est réécrit).
+· **Une capture par case** : les dix cases d'elan.html montrent chacune SON écran — Mac pour les grandes, iPhone pour
+  les petites, les deux pour « Partout » —, de jour et de nuit : 13 écrans, 34 images (3,3 Mo), toujours
+  « Démo Hygiène Services » (inventé). Sous-titres réécrits pour dire ce que ça change ; « Code PIN » retiré.
+  En regardant les captures, la démonstration a été corrigée (vrais rôles, « 7 / 9 » places au lieu de « 7 / 3 »,
+  comptes-rendus rédigés et envoyés, encaissements du jour) et quatre accords de l'application aussi (bêta v759).
+· **Trouvé en route** : une case en `overflow:hidden` reste défilable par PROGRAMME — un `scrollIntoView` remontait
+  l'iPhone de 92 px, tête coupée. `overflow:clip` (repli `hidden`), prouvé par contour et mesure.
+· **Preuves** : `test-835` **209 ✓** ; `scratchpad/sonde-site.js` **354 ✓** sur les 8 pages, gestes neufs (accueil,
+  OP GESTION, tarifs) **214 ✓** ; **6 contre-épreuves sur 6** mordent (`scratchpad/mut-site.py`) ; photos regardées
+  une à une (`scratchpad/vue-site.js`, 0 erreur JavaScript). APERÇU_PUBLIÉ
+**Ce qui attend Justin :** tester l'aperçu (https://teamop.fr/apercu/site/, jour, nuit, bouton, iPhone et Mac), puis
+« remplace le site » → `node scripts/site-marine.js --racine`, et le manifeste `vitrine/racine-v1.json` se retire
+avec l'ancien `vitrine/`. **Plus tard** : les vraies captures d'OP MESSAGES (quand il le dira).
+
+# 🟡 27 SEPTEMBRE 2026, SOIR — « FAIT LES 3 » : SERVEUR, TOUR v2.69 ET SITE EN LIGNE ; LA COURSE DU CONTRÔLE DU SOCLE (BÊTA v759)
+
+Justin, aux trois phrases qui attendaient (« remplace le site », « pousse le serveur », « remplace la tour ») :
+**« fait les. 3 »**.
+
+✅ **En ligne et vérifié** (`main` : `aaea42e` serveur, `8742511` Tour, `fe599df` site) :
+· **Serveur** — le VPS a pris `fe599df` (« dépôt : f971359c → fe599df6, commit vérifié », run 97 : bancs d'abord,
+  puis le VPS) ; `/health` propre juste après (uptime 3 s, 0 erreur, documents et portail actifs, sauvegarde ok).
+  Suppression sans code, protections, avis par e-mail et correctifs du gardien sont partis ENSEMBLE.
+· **Tour v2.69** — `teamop.fr/tour.html` servie octet pour octet identique à `main` (la bulle au doigt, « Ma barre »,
+  supprimer par question + case + « Oui », tout rangé par sujet).
+· **Site** — les huit pages (accueil, applications, créer, elan, métiers, OP MESSAGES, pourquoi, tarifs) servies
+  octet pour octet identiques à `main`, sans « noindex » ; générées par `scripts/site-marine.js --racine`.
+  Noms des formules gardés tels qu'en service (« Business Premium », « Messages Business Premium ») ; « Fondée et
+  développée par Justin Biret » en pied, comme dans l'aperçu.
+· **CI de `main` verte 4/4** sur `fe599df` (Pages, déploiement, Vérifications, Vérification des pages).
+Trouvé sur la copie de `main` AVANT de pousser (donc jamais parti rouge) : le contrôle de syntaxe prenait les blocs
+`<script type="application/json">` d'elan.html et d'opmessages.html pour du code cassé (il lit désormais ce JSON) ;
+`server/test-connexion.js` et `server/test-acces.js` tombaient contre le nouveau serveur (un « repartir à neuf »
+sans e-mail prêt rend 503 — ils ont maintenant un facteur SMTP de banc) ; `test-756` exigeait « Messages Business
+Premium » dans tarifs.html (gardé) ; le message du commit de déploiement annonçait « v695 » (le script lit
+désormais la version d'`app.html`).
+
+⚠️ **CE QUI ATTEND JUSTIN, UNE FOIS :** poser son adresse de sécurité — tant qu'elle n'est pas réglée, les e-mails
+de sécurité partent sur `contact@teamop.fr`, que la Tour relève, et **la 4ᵉ entreprise supprimée en 24 h sera
+refusée**. Aucune sortie secrète :
+`ssh -t root@api.teamop.fr "cd /opt/teamop/repo && git pull -q && bash server/set-securite.sh"`.
+
+**La CI de `main` était rouge sur `0391c4e` (l'aperçu du pied v2.69) : `test-735`, 223 ✓ 2 ✗ — la 2ᵉ fois après
+le 26.** « Rien n'a été remonté à la Tour ». Ce n'était pas un hasard, et pas le banc : **une vraie course dans
+`opSocleControle`**. La pousse lance le contrôle en arrière-plan ; il décomposait `db` AU RETOUR de
+`/api/op/etat`, donc une fiche modifiée pendant l'attente (pas encore poussée) passait pour une DIVERGENCE —
+diagnostic à la Tour, borne remise à zéro, toute la base repoussée. Le commentaire de la fonction promettait
+l'inverse (« il ne compare QUE ce que l'appareil a réellement poussé »). Prouvé par une copie du banc qui retarde
+d'un seul tour de boucle la réponse : 223 ✓ 2 ✗ à chaque exécution. **Inerte aujourd'hui** (`/health` :
+`socle.actif:false`), mais c'est le contrôle qui décidera de la condition (d) de l'étape 5.
+· **Correctif (branche, bêta v759)** — `1c82e10` : le contrôle compare la PHOTO que la pousse vient de traiter
+  (appelé seul, il la prend avant l'attente et renonce si une pousse est en vol) ; si une autre pousse part pendant
+  l'attente (`_opPousses`), il ne conclut rien et repasse dans dix minutes ; une collection dont une fiche est
+  retenue (pièce pas encore partie — une box emporte `boxes`, `box_stock` et sa forme) est laissée de côté et
+  nommée, et un contrôle incomplet n'envoie pas de verdict « identique ».
+· **Banc** — `test-735` §« f bis » : une seconde entreprise, la requête retenue exprès, trois scénarios et la
+  contre-épreuve (une vraie divergence ailleurs se voit toujours) ; **8 mutations sur 8 mordent** ; la reproduction
+  d'origine passe à 0, 5, 50 et 400 ms de retard. Et le banc ATTEND désormais le contrôle lancé par sa première
+  pousse avant de modifier la base (`44ce4f7`) — pur ordonnancement, la course reste jouée exprès en « f bis ».
+· **`main` garde la course** tant qu'`app.html` n'y est pas publiée (v757). L'attente du banc, elle, vaut pour les
+  deux : contre-épreuve sur l'`app.html` de `main`, banc d'origine 223 ✓ 2 ✗ deux fois, avec l'attente 226 ✓ à
+  0, 5, 50 et 400 ms. ⛔ **Cette attente n'est PAS sur `main`** : la poussée
+  du seul `tests/test-735.js` a été REFUSÉE par les permissions de la session, et on ne la contourne pas. Prêt sur une
+  copie de `main` : 190 suites · 9 544 ✓. Tant que Justin ne l'a pas autorisée, **la CI de `main` peut retomber sur
+  `test-735`** à n'importe quelle poussée — ce n'est pas la poussée, c'est la course (voir ci-dessus).
+· **La bêta v759 n'est pas publiée** (`beta.html` sur la branche seulement) : elle porte le correctif de la course et
+  quatre accords (« 6 produits à réapprovisionner dont 1 épuisé », « 14 produits », « 0 / 4 Journées validées »). Il
+  reste d'autres « (s) » dans l'application : un passage complet, comme `nMot` dans la Tour, est un chantier à part.
+
+# ✅ 27 SEPTEMBRE 2026, APRÈS-MIDI — SITE VITRINE : LE ZIP DE JUSTIN (8 PAGES « MARINE »), LE LOGO DANS GOOGLE, DE VRAIS iPHONE ET MAC — À LA RACINE DEPUIS LE SOIR (« FAIT LES 3 », `fe599df`)
 
 Justin, avec `design_handoff_teamop_leger` (zip) et une capture de Google : « le logo n'est pas le bon. C'est le
 logo de OP Gestion et non celui de Team OP. […] Partout où il y a des captures d'écran qui sont affichées, je veux
@@ -73,7 +160,7 @@ Tour on a sous les yeux. Corrigé, `test-829` §8 relit chaque numéro affiché 
 aperçu republié (`0391c4e` sur `main`). Pour trancher « quelle Tour ? » d'un coup d'œil : l'aperçu porte la pastille
 orange « APERÇU · refonte en cours » en bas de l'écran. **La bulle arrive chez lui avec « Remplace la tour ».**
 
-# 🟡 27 SEPTEMBRE 2026, MATIN — « FAIT LES 4 », PUIS « OUI RAJOUTE ÇA » : PORTAIL PUBLIÉ, ANCIENNE TOUR RETIRÉE ; TOUR v2.69 EN APERÇU (SUPPRIMER SANS CODE, AVIS PAR E-MAIL, LIMITE, LA BULLE) — ATTEND « REMPLACE LA TOUR » ET « POUSSE LE SERVEUR »
+# ✅ 27 SEPTEMBRE 2026, MATIN — « FAIT LES 4 », PUIS « OUI RAJOUTE ÇA » : PORTAIL PUBLIÉ, ANCIENNE TOUR RETIRÉE ; TOUR v2.69 (SUPPRIMER SANS CODE, AVIS PAR E-MAIL, LIMITE, LA BULLE) — EN SERVICE DEPUIS LE SOIR, SERVEUR COMPRIS (« FAIT LES 3 »)
 
 Justin, à quatre questions (le portail, `tour-v1.html`, les suppressions de la Tour, la bulle sur « Plus ») :
 **« Fait les 4 »**.
@@ -226,7 +313,7 @@ d'écrire un fichier neuf.**
 sans connexion à la Tour — vérifié route par route : ses 28 appels portent `monAdmin` ou `monPatronStrict` côté
 serveur —, mais une vieille console ouverte par erreur agirait avec des gestes d'avant. Retirer un fichier servi est une publication : on attend sa réponse.
 
-# 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.68 : TOUT RANGÉ PAR SUJET, ET LE TÉLÉPHONE REVU — EN APERÇU, ATTEND « REMPLACE LA TOUR »
+# ✅ 26 SEPTEMBRE 2026, NUIT — TOUR v2.68 : TOUT RANGÉ PAR SUJET, ET LE TÉLÉPHONE REVU — EN SERVICE DANS LA v2.69 (27 AU SOIR)
 
 **Le passage au téléphone (Justin, le même soir : « sur le téléphone il y a beaucoup de décalage d'écriture… tu te
 connectes et tu me corriges »).** Fait sur une COPIE (API simulée, noms fictifs et longs) — la règle du dépôt interdit
@@ -362,7 +449,7 @@ de `techIds`.
 
 ---
 
-# 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.67 : « MA BARRE » ET LA BULLE QU'ON ATTRAPE — COMPRISE DANS LA v2.68 (APERÇU), ATTEND « REMPLACE LA TOUR »
+# ✅ 26 SEPTEMBRE 2026, NUIT — TOUR v2.67 : « MA BARRE » ET LA BULLE QU'ON ATTRAPE — EN SERVICE DANS LA v2.69 (27 AU SOIR)
 
 **Justin, capture de la barre de la Tour à l'appui : « j'aimerais qu'en restant appuyé sur la barre, je puisse la
 personnaliser et choisir ce que je veux dans la barre, et aussi que le glissement de la bulle marche comme sur
