@@ -56,7 +56,10 @@ const AUDIT = `(async (largeur) => {
     if (h && h[3] > 0.5) return h; if (b && b[3] > 0.5) return b; return [255, 255, 255, 1]; })();
   const fondDe = e => { const ch = []; for (let x = e; x && x.nodeType === 1; x = x.parentElement) ch.unshift(x);
     let f = racineFond.slice(), degrade = false;
-    for (const x of ch) { const s = getComputedStyle(x); if (s.backgroundImage && s.backgroundImage !== 'none') degrade = true; const c = lire(s.backgroundColor); if (c && c[3] > 0) f = sur(c, f); }
+    for (const x of ch) { const s = getComputedStyle(x); const c = lire(s.backgroundColor);
+      if (s.backgroundImage && s.backgroundImage !== 'none') degrade = true;
+      else if (c && c[3] >= 0.95) degrade = false;   // une surface OPAQUE recouvre le dégradé d'un ancêtre : on repart d'elle
+      if (c && c[3] > 0) f = sur(c, f); }
     return { f, degrade }; };
   const r = { textes: 0, faibles: [], degrades: 0, cibles: [], debord: null, grossier: matchMedia('(pointer:coarse)').matches };
   for (const e of document.querySelectorAll('#cartePaiement *, #auth-err, .compte-bloc, body > *')) {
@@ -151,10 +154,19 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
     if (m.method === 'Runtime.exceptionThrown') EXC.push((m.params.exceptionDetails.exception || {}).description || m.params.exceptionDetails.text); });
   const cdp = (me, pa) => new Promise((res, rej) => { const i = ++id; A.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method: me, params: pa || {} })); });
   await cdp('Page.enable'); await cdp('Runtime.enable');
+  /* ⛔ AUCUN service worker ne s'installe : ici l'API est relayée sur la MÊME origine, et sw.js sert « le reste » (tout ce
+     qui n'est pas une page) copie d'abord — il gardait donc la PREMIÈRE réponse de « qui suis-je » : « à confirmer » pour
+     toujours (mesuré sur la page en service, 27 septembre 2026). En service, api.teamop.fr est une AUTRE origine, que
+     sw.js laisse passer (« le reste du web ne nous regarde pas ») : ce n'est pas un défaut de la page, c'est la sonde. */
+  await cdp('Page.addScriptToEvaluateOnNewDocument', { source: "try{ Object.defineProperty(navigator, 'serviceWorker', { get: () => ({ register: () => Promise.reject(new Error('sonde : pas de service worker')), getRegistrations: () => Promise.resolve([]), addEventListener(){}, controller: null }) }); }catch(e){}" });
   /* ⛔ rien ne sort : toute adresse qui n'est pas 127.0.0.1 est coupée net — et NOTÉE (c'est ainsi qu'on voit partir vers Stripe) */
   await cdp('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   ws.addEventListener('message', ev => { const m = JSON.parse(ev.data); if (m.method !== 'Fetch.requestPaused') return;
-    const u = m.params.request.url; if (/^https?:\/\/127\.0\.0\.1[:/]/.test(u) || u.startsWith('data:')) cdp('Fetch.continueRequest', { requestId: m.params.requestId }).catch(() => {});
+    const u = m.params.request.url;
+    /* ⛔ pas de service worker ici : l'API est relayée sur la MÊME origine, il mettrait « qui suis-je » en cache et la page
+       croirait un vieil état. En service, api.teamop.fr est une AUTRE origine, que sw.js laisse passer. */
+    if (/\/sw\.js(\?|$)/.test(u)) { cdp('Fetch.failRequest', { requestId: m.params.requestId, errorReason: 'BlockedByClient' }).catch(() => {}); return; }
+    if (/^https?:\/\/127\.0\.0\.1[:/]/.test(u) || u.startsWith('data:')) cdp('Fetch.continueRequest', { requestId: m.params.requestId }).catch(() => {});
     else { BLOQUES.push(u); cdp('Fetch.failRequest', { requestId: m.params.requestId, errorReason: 'BlockedByClient' }).catch(() => {}); } });
   const ev = async (e) => { const r = await cdp('Runtime.evaluate', { expression: e, awaitPromise: true, returnByValue: true });
     if (r.exceptionDetails) throw new Error((r.exceptionDetails.exception || {}).description || r.exceptionDetails.text); return r.result.value; };
@@ -177,12 +189,42 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   };
   const taper = async (sel, texte) => ev(`(()=>{ const e=document.querySelector(${JSON.stringify(sel)}); e.focus(); e.value=${JSON.stringify(texte)}; e.dispatchEvent(new Event('input',{bubbles:true})); return 1; })()`);
   const texteCarte = () => ev(`(document.getElementById('cartePaiement')||document.body).innerText.replace(/\\s+/g,' ')`);
-  const attendre = async (fn, max = 60) => { for (let i = 0; i < max; i++) { if (await fn()) return true; await dormir(100); } return false; };
+  /* une lecture qui tombe pendant une navigation (« Inspected target navigated or closed ») compte pour « pas encore » :
+     c'est justement le moment qu'on attend — la page part vers une autre */
+  const attendre = async (fn, max = 60) => { for (let i = 0; i < max; i++) { let bon = false; try { bon = await fn(); } catch (e) {} if (bon) return true; await dormir(100); } return false; };
+  /* ⛔ LA PAGE EN SERVICE PEINT SON FOND EN DÉGRADÉ, sous des cartes translucides : composer les fonds des ancêtres y
+     devinerait. Le bloc du compte s'y mesure donc AU PIXEL (CLAUDE.md : « sous le verre, un contraste se lit au pixel ») :
+     on capture le bloc, on lit son fond dans la bande de rembourrage du haut (médiane de 9 points), et on compare l'encre
+     de chaque texte du bloc à CE fond-là. */
+  const PNG = require(path.join(DEPOT, 'scratchpad', 'png.js'));
+  const pixels = async () => {
+    const blocs = await ev(`[...document.querySelectorAll('.compte-bloc')].filter(b => b.getClientRects().length).map(b => { b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect();
+      const encres = [...b.querySelectorAll('*')].concat([b]).filter(e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && e.getClientRects().length && !e.closest('button'))
+        .map(e => ({ t: e.textContent.trim().slice(0, 40), c: getComputedStyle(e).color, g: +getComputedStyle(e).fontWeight >= 700, f: parseFloat(getComputedStyle(e).fontSize) }));
+      return { x: r.left, y: r.top, w: r.width, h: r.height, encres }; })`);
+    const faibles = []; let n = 0;
+    for (const b of blocs) {
+      const cap = await cdp('Page.captureScreenshot', { format: 'png', clip: { x: b.x, y: b.y, width: b.w, height: b.h, scale: 1 } });
+      const img = PNG.decoder(Buffer.from(cap.data, 'base64')), k = img.w / b.w;
+      const pts = []; for (const fx of [0.2, 0.35, 0.5, 0.65, 0.8]) for (const fy of [3, 5]) pts.push(PNG.px(img, b.w * fx * k, fy * k));
+      const med = [0, 1, 2].map(i => pts.map(q => q[i]).sort((a, c) => a - c)[Math.floor(pts.length / 2)]);
+      for (const e of b.encres) { const c = PNG.lireCouleur(e.c); if (!c) continue; n++;
+        const ct = PNG.contraste(c, med), seuil = (e.f >= 24 || (e.f >= 18.66 && e.g)) ? 3 : 4.5;
+        if (ct < seuil) faibles.push('« ' + e.t + ' » ' + ct + ' < ' + seuil + ' sur rgb(' + med.join(',') + ')'); }
+    }
+    return { faibles, n, blocs: blocs.length };
+  };
   const juger = async (etiquette, p) => {
     const r = await ev(AUDIT + `(${P[p].w})`);
     v(etiquette + ' : aucune erreur JavaScript', EXC.splice(0), []);
-    vrai(etiquette + ' : des textes mesurés (' + r.textes + ')', r.textes >= 5);
-    v(etiquette + ' : chaque texte se lit sur son fond réel', r.faibles, []);
+    if (THEME) {
+      vrai(etiquette + ' : des textes mesurés (' + r.textes + ')', r.textes >= 5);
+      v(etiquette + ' : chaque texte se lit sur son fond réel', r.faibles, []);
+    } else {
+      const px = await pixels();
+      vrai(etiquette + ' : le bloc du compte, mesuré au pixel (' + px.blocs + ' bloc, ' + px.n + ' textes)', px.blocs >= 1 && px.n >= 1);
+      v(etiquette + ' : chaque texte du bloc se lit sur son fond PEINT', px.faibles, []);
+    }
     if (p === 'telephone') { v(etiquette + ' : au doigt, le bouton et les gestes du compte font 44 px', r.cibles, []); v(etiquette + ' : rien ne dépasse de côté', r.debord, 0); }
   };
   const photo = async nomf => { if (!PHOTOS) return;

@@ -456,9 +456,10 @@ globalThis.fetch = async function (url, opts) {
         await p3.api.compteLu;
         v('reconnecté par le portail : une nouvelle page est « prête »', p3.api.etat().compte.etat, 'pret');
         await portail.auth.signOut();
+        const n3 = stripeRecu().length;   // compté ICI : contre la route d'avant, la session morte plus haut a, elle, payé
         await p3.clic('btnPayer');
         v('⛔ déconnecté dans un autre onglet puis « Payer » : la page relit le vrai serveur, redit « pas de compte », rien chez Stripe',
-          [p3.api.etat().compte.etat, stripeRecu().length], ['aucun', n0 + 1]);
+          [p3.api.etat().compte.etat, stripeRecu().length], ['aucun', n3]);
 
         // sans en-tête du tout, ou mal formé : le vrai serveur refuse
         if (REGLE) {
