@@ -2,273 +2,38 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0a1020">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <title>Métiers — TEAM OP</title>
 <meta name="description" content="TEAM OP s'adapte à votre métier : 3D anti-nuisibles, plomberie, électricité, chauffage, BTP, paysagistes, nettoyage et plus encore.">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/teamop-favicon-32.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-html { background: rgb(10, 16, 32); } body { margin: 0; padding: 0; background: transparent; }
-  a { color: rgb(124, 198, 255); text-decoration: none; }
-  a:hover { color: rgb(183, 225, 255); }
-  .nav-dd .dd { opacity: 0; visibility: hidden; transition: opacity 0.18s ease, visibility 0.18s; }
-  .nav-dd:hover .dd { opacity: 1; visibility: visible; }
-
-  @media (max-width: 1100px) {
-    div[style*="repeat(4, 1fr)"] { grid-template-columns: 1fr 1fr !important; }
-  }
-  @media (max-width: 860px) {
-    .topnav { padding: 12px 18px !important; gap: 10px !important; flex-wrap: wrap !important; }
-    .navlinks { order: 3; width: 100%; gap: 18px !important; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; white-space: nowrap; }
-    .nav-dd .dd { display: none !important; }
-    h1 { font-size: 36px !important; letter-spacing: -1px !important; }
-    div[style*="repeat(3, 1fr)"], div[style*="repeat(4, 1fr)"], div[style*="grid-template-columns: 1fr 1fr"], div[style*="grid-template-columns: 1fr 0.72fr"] { grid-template-columns: 1fr !important; }
-    div[style*="justify-content: center; gap: 14px"] { flex-wrap: wrap; }
-    div[style*="padding: 110px 40px"], div[style*="padding: 64px 40px"], div[style*="padding: 60px 40px"] { padding-left: 20px !important; padding-right: 20px !important; }
-  }
-</style>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
+<link rel="manifest" href="/manifest-teamop.webmanifest">
+<link rel="stylesheet" href="/vitrine/site.css">
+<link rel="stylesheet" href="/vitrine/appareils.css">
 </head>
 <body>
-<div style="min-height: 100vh; font-family: Manrope, sans-serif; color: rgb(168, 188, 228); position: relative;">
-
-  <div class="topnav" style="position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 15px 48px; border-bottom: 1px solid rgba(90, 140, 220, 0.18); background: rgba(10, 16, 32, 0.85); backdrop-filter: blur(10px);">
-    <a href="index.html" style="display: flex; align-items: center; gap: 12px;">
-      <img src="icons/teamop-512.png" alt="TEAM OP" width="36" height="36" style="border-radius: 9px; display: block;">
-      <span style="color: rgb(242, 247, 255); font-weight: 800; font-size: 17px;">TEAM OP</span>
-    </a>
-    <div class="navlinks" style="display: flex; gap: 28px; font-size: 14.5px; font-weight: 600;">
-      <a href="index.html" style="color: rgb(159, 180, 221);">Accueil</a>
-      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="applications.html" style="color: rgb(159, 180, 221);">Applications</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="elan.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opgestion-512.png" alt="OP GESTION" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(37, 99, 235), rgb(56, 189, 248)); color: rgb(234, 246, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>OP GESTION</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Gestion tout-en-un : interventions, stock, compta</span></span></a><a href="opmessages.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opmsg-512.png" alt="OP MESSAGES" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(124, 58, 237), rgb(56, 189, 248)); color: rgb(234, 246, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>OP MESSAGES</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Messagerie d'équipe : chat, vocaux, sondages</span></span></a><a href="creer.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🚀</span><span style="display: flex; flex-direction: column;"><span>Créer votre application</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Décrivez votre besoin, on le construit</span></span></a><a href="applications.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 12.5px; font-weight: 700;">Toutes les applications →</a></div></div></div>
-      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="metiers.html" style="color: rgb(56, 189, 248); border-bottom: 2px solid rgb(56, 189, 248); padding-bottom: 4px;">Métiers</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="metiers.html#m-3d" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🐀</span><span style="display: flex; flex-direction: column;"><span>3D — Anti-nuisibles</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Pack complet : registre sanitaire, biocides</span></span></a><a href="metiers.html#m-plomberie" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🔧</span><span style="display: flex; flex-direction: column;"><span>Plomberie</span></span></a><a href="metiers.html#m-electricite" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">⚡</span><span style="display: flex; flex-direction: column;"><span>Électricité</span></span></a><a href="metiers.html#m-chauffage" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🔥</span><span style="display: flex; flex-direction: column;"><span>Chauffage / Climatisation</span></span></a><a href="metiers.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 12.5px; font-weight: 700;">Tous les métiers →</a></div></div></div>
-      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="tarifs.html" style="color: rgb(159, 180, 221);">Tarifs</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="tarifs.html#elan" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opgestion-512.png" alt="OP GESTION" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(37, 99, 235), rgb(56, 189, 248)); color: rgb(234, 246, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>Tarifs OP GESTION</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Gratuit · Pro 15 € · Business 25 € · Premium 50 €</span></span></a><a href="tarifs.html#opmessages" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opmsg-512.png" alt="OP MESSAGES" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(124, 58, 237), rgb(56, 189, 248)); color: rgb(234, 246, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>Tarifs OP MESSAGES</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Perso 0 € · Pro 15 € · Premium 25 €</span></span></a><a href="tarifs.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 12.5px; font-weight: 700;">Comparer toutes les formules →</a></div></div></div>
-      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="pourquoi.html" style="color: rgb(159, 180, 221);">Pourquoi TEAM OP</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="pourquoi.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🤝</span><span style="display: flex; flex-direction: column;"><span>Au service des entreprises</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">On écoute, on adapte, on construit avec vous</span></span></a><a href="pourquoi.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🛡️</span><span style="display: flex; flex-direction: column;"><span>Sécurité &amp; engagements</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Chiffrement AES-256, vos données à vous</span></span></a><a href="pourquoi.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 12.5px; font-weight: 700;">Découvrir pourquoi TEAM OP →</a></div></div></div>
-    </div>
-    <a href="espace.html" style="background: linear-gradient(135deg, rgb(56, 189, 248), rgb(37, 99, 235)); color: rgb(234, 246, 255); font-weight: 700; font-size: 14px; padding: 10px 22px; border-radius: 10px;">Espace client →</a>
-  </div>
-
-  <div style="max-width: 1240px; margin: 0 auto; padding: 64px 40px 36px;">
-    <div style="color: rgb(100, 120, 159); font-size: 13px; font-weight: 600;"><a href="index.html" style="color: rgb(100, 120, 159);">Accueil</a> <span style="color: rgb(56, 189, 248);">/ Métiers</span></div>
-    <h1 style="margin: 18px 0 0; color: rgb(242, 247, 255); font-size: 48px; font-weight: 800; letter-spacing: -1.4px;">Un outil qui parle votre métier</h1>
-    <p style="margin: 16px 0 0; max-width: 720px; color: rgb(168, 188, 228); font-size: 17px; line-height: 1.65;">Dites-nous ce que vous faites, TEAM OP se règle sur votre métier : vos types d'intervention, votre fiche de rapport et les modules utiles sont prêts dès le départ. Vos produits et vos fournisseurs, c'est vous qui les ajoutez — une liste entière se colle en une fois. Vous démarrez en quelques minutes, pas en quelques semaines.</p>
-  </div>
-
-  <div style="max-width: 1240px; margin: 0 auto; padding: 0 40px 44px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-    <div style="background: rgba(13, 21, 42, 0.45); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 7px;">
-      <span style="width: 28px; height: 28px; border-radius: 50%; background: rgb(56, 189, 248); color: rgb(6, 16, 31); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">1</span>
-      <span style="color: rgb(242, 247, 255); font-size: 15.5px; font-weight: 800;">Renseignez votre entreprise</span>
-      <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">Nom, coordonnées… et surtout votre métier, au moment de créer votre espace.</span>
-    </div>
-    <div style="background: rgba(13, 21, 42, 0.45); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 7px;">
-      <span style="width: 28px; height: 28px; border-radius: 50%; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.5); color: rgb(159, 220, 255); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">2</span>
-      <span style="color: rgb(242, 247, 255); font-size: 15.5px; font-weight: 800;">Tout se met en place</span>
-      <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">Types d'intervention, fiche de rapport et modules de votre métier se règlent tout seuls. Vos produits et fournisseurs, vous les ajoutez à votre rythme.</span>
-    </div>
-    <div style="background: rgba(13, 21, 42, 0.45); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; gap: 7px;">
-      <span style="width: 28px; height: 28px; border-radius: 50%; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.5); color: rgb(159, 220, 255); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">3</span>
-      <span style="color: rgb(242, 247, 255); font-size: 15.5px; font-weight: 800;">Vous travaillez</span>
-      <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">Planning, rapports, stock, bons de commande : votre équipe est opérationnelle dès le premier jour.</span>
-    </div>
-  </div>
-
-  <div style="max-width: 1240px; margin: 0 auto; padding: 0 40px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap;">
-    <h2 style="margin: 0; color: rgb(242, 247, 255); font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Les métiers couverts</h2>
-    <span style="color: rgb(100, 120, 159); font-size: 13px;">6 packs pré-configurés déjà disponibles — l'application fonctionne pour tous les autres métiers de terrain</span>
-  </div>
-
-  <div style="max-width: 1240px; margin: 0 auto; padding: 14px 40px 50px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
-
-    <div id="m-3d" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgb(56, 189, 248); color: rgb(6, 16, 31); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK COMPLET</span>
-      <span style="font-size: 26px;">🐀</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">3D — Hygiène anti-nuisibles</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Dératisation · désinsectisation · désinfection</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Registre sanitaire &amp; biocides (AMM, Certibiocide)</span>
-        <span>✓ Fiches de traitement par nuisible</span>
-        <span>✓ Plans d'appâtage et postes par site</span>
-        <span>✓ Courbe d'évolution de l'infestation</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Démarrer en 3D →</a>
-    </div>
-
-    <div id="m-plomberie" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(52, 211, 153, 0.18); border: 1px solid rgba(52, 211, 153, 0.55); color: rgb(110, 231, 183); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK DISPONIBLE</span>
-      <span style="font-size: 26px;">🔧</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Plomberie</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Dépannage · sanitaire · réseaux</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Interventions type : fuite, chauffe-eau, débouchage…</span>
-        <span>✓ Stock de pièces &amp; consommables</span>
-        <span>✓ Devis-factures et photos avant/après</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Démarrer avec ce pack →</a>
-    </div>
-
-    <div id="m-electricite" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(52, 211, 153, 0.18); border: 1px solid rgba(52, 211, 153, 0.55); color: rgb(110, 231, 183); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK DISPONIBLE</span>
-      <span style="font-size: 26px;">⚡</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Électricité</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Installation · mise aux normes · dépannage</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Interventions type : tableau, câblage, contrôle…</span>
-        <span>✓ Matériel électrique en stock avec seuils</span>
-        <span>✓ Rapports signés sur place</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Démarrer avec ce pack →</a>
-    </div>
-
-    <div id="m-chauffage" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(52, 211, 153, 0.18); border: 1px solid rgba(52, 211, 153, 0.55); color: rgb(110, 231, 183); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK DISPONIBLE</span>
-      <span style="font-size: 26px;">🔥</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Chauffage / Climatisation</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">CVC · entretien · contrats annuels</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Contrats d'entretien à récurrence automatique</span>
-        <span>✓ Passages planifiés et rappels d'échéance</span>
-        <span>✓ Historique complet par client</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Démarrer avec ce pack →</a>
-    </div>
-
-    <div id="m-maconnerie" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(90, 140, 220, 0.25); border: 1px solid rgba(90, 140, 220, 0.5); color: rgb(159, 180, 221); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK BIENTÔT</span>
-      <span style="font-size: 26px;">🧱</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Maçonnerie / Gros œuvre</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Construction · rénovation · chantiers</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Chantiers &amp; projets suivis dans la durée</span>
-        <span>✓ Matériaux et quantités par chantier</span>
-        <span>✓ Bons de commande aux négoces</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Utiliser TEAM OP →</a>
-    </div>
-
-    <div id="m-menuiserie" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(90, 140, 220, 0.25); border: 1px solid rgba(90, 140, 220, 0.5); color: rgb(159, 180, 221); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK BIENTÔT</span>
-      <span style="font-size: 26px;">🪚</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Menuiserie</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Pose · agencement · fabrication</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Prises de cotes et photos dans le rapport</span>
-        <span>✓ Planning de pose par équipe</span>
-        <span>✓ Suivi des commandes fournisseurs</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Utiliser TEAM OP →</a>
-    </div>
-
-    <div id="m-peinture" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(90, 140, 220, 0.25); border: 1px solid rgba(90, 140, 220, 0.5); color: rgb(159, 180, 221); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK BIENTÔT</span>
-      <span style="font-size: 26px;">🎨</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Peinture / Finitions</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Intérieur · extérieur · décoration</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Chantiers multi-passages (préparation, couches…)</span>
-        <span>✓ Consommation de peintures &amp; consommables</span>
-        <span>✓ Avant/après photo pour le client</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Utiliser TEAM OP →</a>
-    </div>
-
-    <div id="m-paysagiste" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(90, 140, 220, 0.25); border: 1px solid rgba(90, 140, 220, 0.5); color: rgb(159, 180, 221); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK BIENTÔT</span>
-      <span style="font-size: 26px;">🌿</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Paysagiste / Espaces verts</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Entretien · création · élagage</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Tournées d'entretien récurrentes</span>
-        <span>✓ Cartes &amp; secteurs par équipe</span>
-        <span>✓ Suivi du matériel et des végétaux</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Utiliser TEAM OP →</a>
-    </div>
-
-    <div id="m-nettoyage" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(52, 211, 153, 0.18); border: 1px solid rgba(52, 211, 153, 0.55); color: rgb(110, 231, 183); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK DISPONIBLE</span>
-      <span style="font-size: 26px;">🧽</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Nettoyage / Propreté</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Bureaux · copropriétés · fin de chantier</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Passages planifiés par site et par agent</span>
-        <span>✓ Contrôles qualité avec photos</span>
-        <span>✓ Produits &amp; consommables suivis en stock</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Démarrer avec ce pack →</a>
-    </div>
-
-    <div id="m-couverture" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(90, 140, 220, 0.25); border: 1px solid rgba(90, 140, 220, 0.5); color: rgb(159, 180, 221); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK BIENTÔT</span>
-      <span style="font-size: 26px;">🏠</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Couverture / Toiture</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Réparation · isolation · zinguerie</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Interventions d'urgence géolocalisées</span>
-        <span>✓ Photos de toiture dans les rapports</span>
-        <span>✓ Devis rapides sur place</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Utiliser TEAM OP →</a>
-    </div>
-
-    <div id="m-serrurerie" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(52, 211, 153, 0.18); border: 1px solid rgba(52, 211, 153, 0.55); color: rgb(110, 231, 183); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK DISPONIBLE</span>
-      <span style="font-size: 26px;">🔑</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Serrurerie</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Dépannage · blindage · contrôle d'accès</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Interventions d'urgence horodatées</span>
-        <span>✓ Stock de cylindres et pièces</span>
-        <span>✓ Facturation immédiate</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Démarrer avec ce pack →</a>
-    </div>
-
-    <div id="m-multiservices" style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 9px; position: relative;">
-      <span style="position: absolute; top: -11px; left: 20px; background: rgba(90, 140, 220, 0.25); border: 1px solid rgba(90, 140, 220, 0.5); color: rgb(159, 180, 221); font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.5px;">PACK BIENTÔT</span>
-      <span style="font-size: 26px;">🛠️</span>
-      <span style="color: rgb(242, 247, 255); font-size: 17px; font-weight: 800;">Multiservices / Maintenance</span>
-      <span style="color: rgb(100, 120, 159); font-size: 12.5px; font-weight: 600;">Petits travaux · maintenance de sites</span>
-      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: rgb(168, 188, 228); line-height: 1.5;">
-        <span>✓ Tous types d'intervention dans un même planning</span>
-        <span>✓ Combinez plusieurs packs métier</span>
-        <span>✓ Contrats de maintenance récurrents</span>
-      </div>
-      <a href="espace.html" style="font-size: 13.5px; font-weight: 700; margin-top: auto;">Utiliser TEAM OP →</a>
-    </div>
-
-  </div>
-
-  <div style="max-width: 1240px; margin: 0 auto; padding: 0 40px 70px;">
-    <div style="background: rgba(13, 21, 42, 0.45); border: 1px dashed rgba(90, 140, 220, 0.35); border-radius: 18px; padding: 30px 34px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center;">
-      <span style="color: rgb(242, 247, 255); font-size: 19px; font-weight: 800;">Votre métier n'est pas dans la liste ?</span>
-      <span style="color: rgb(147, 169, 212); font-size: 14.5px; line-height: 1.6; max-width: 640px;">TEAM OP fonctionne déjà pour tous les métiers de terrain — et on construit les packs avec nos premiers utilisateurs. Écrivez-nous, votre métier peut être le prochain.</span>
-      <a href="mailto:contact@teamop.fr?subject=Mon%20m%C3%A9tier%20sur%20TEAM%20OP" style="border: 1px solid rgba(124, 198, 255, 0.4); color: rgb(207, 231, 255); font-weight: 700; font-size: 14px; padding: 12px 26px; border-radius: 10px; margin-top: 6px;">Parler de mon métier</a>
-    </div>
-  </div>
-
-  <div style="border-top: 1px solid rgba(90, 140, 220, 0.15); background: rgba(10, 16, 32, 0.75);">
-    <div style="max-width: 1240px; margin: 0 auto; padding: 30px 40px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: rgb(100, 120, 159);">
-      <span>© 2026 TEAM OP · Fondé et développé par Justin Biret</span>
-      <div style="display: flex; gap: 24px;">
-        <a href="mailto:contact@teamop.fr">contact@teamop.fr</a>
-        <a href="espace.html">Espace client</a>
-      </div>
-    </div>
-  </div>
-
-</div>
-<script>
-/* Survols (équivalent des style-hover des maquettes) */
-document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('[style-hover]').forEach(function (el) {
-    var base = el.getAttribute('style') || '', hov = el.getAttribute('style-hover');
-    el.addEventListener('mouseenter', function () { el.setAttribute('style', base + ';' + hov); });
-    el.addEventListener('mouseleave', function () { el.setAttribute('style', base); });
-  });
-});
-</script>
-
-<script>window.FOND_MOT = 'NOS MÉTIERS'; window.FOND_Y = 0.3;</script>
-<script src="fond-anime-teamop.js" defer></script>
+<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
+      <a class="marque" href="index.html"><img src="/icons/teamop-192.png" width="22" height="22" alt=""><span>TEAM OP</span></a>
+      <div class="nav-liens"><a href="applications.html" data-fly="applications" aria-haspopup="true" aria-expanded="false">Applications</a><a href="metiers.html" data-fly="metiers" aria-haspopup="true" aria-expanded="false" aria-current="page">Métiers</a><a href="tarifs.html" data-fly="tarifs" aria-haspopup="true" aria-expanded="false">Tarifs</a><a href="pourquoi.html" data-fly="pourquoi" aria-haspopup="true" aria-expanded="false">Pourquoi TEAM OP</a></div>
+      <div class="nav-droite"><a class="pilule" href="/espace.html">Espace client</a>
+        <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    </div><div class="fly" id="fly-applications"><div class="fly-in"><div><div class="fly-t">Explorer les applications</div><div class="fly-grand"><a href="elan.html"><b>OP GESTION</b><small>Gestion tout-en-un : interventions, stock, compta</small></a><a href="opmessages.html"><b>OP MESSAGES</b><small>Messagerie d'équipe — bientôt disponible</small></a><a href="creer.html"><b>Créer votre application</b><small>Décrivez votre besoin, on le construit</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="applications.html">Toutes les applications</a></div></div></div></div><div class="fly" id="fly-metiers"><div class="fly-in"><div><div class="fly-t">Explorer les métiers</div><div class="fly-grand"><a href="metiers.html#m-3d"><b>3D — Anti-nuisibles</b><small>Pack complet : registre sanitaire, biocides</small></a><a href="metiers.html#m-plomberie"><b>Plomberie</b></a><a href="metiers.html#m-electricite"><b>Électricité</b></a><a href="metiers.html#m-chauffage"><b>Chauffage / Climatisation</b></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="metiers.html">Tous les métiers</a></div></div></div></div><div class="fly" id="fly-tarifs"><div class="fly-in"><div><div class="fly-t">Explorer les tarifs</div><div class="fly-grand"><a href="tarifs.html#elan"><b>Tarifs OP GESTION</b><small>Gratuit · Pro 15 € · Business 25 € · Business Premium 50 €</small></a><a href="tarifs.html#opmessages"><b>Tarifs OP MESSAGES</b><small>Perso · Pro · Premium — bientôt disponible</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="tarifs.html">Comparer toutes les formules</a><a href="tarifs.html#faq">Questions fréquentes</a></div></div></div></div><div class="fly" id="fly-pourquoi"><div class="fly-in"><div><div class="fly-t">Pourquoi TEAM OP</div><div class="fly-grand"><a href="pourquoi.html#partenaire"><b>Au service des entreprises</b><small>On écoute, on adapte, on construit avec vous</small></a><a href="pourquoi.html#engagements"><b>Sécurité et engagements</b><small>Chiffrement AES-256, vos données à vous</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="pourquoi.html#services">Nos services</a><a href="pourquoi.html">Découvrir pourquoi TEAM OP</a></div></div></div></div></nav>
+    <div class="menu-mobile" id="menu-mobile"><section><div class="fly-t">TEAM OP</div><a href="index.html">Accueil</a></section><section><div class="fly-t">Applications</div><a href="elan.html">OP GESTION</a><a href="opmessages.html">OP MESSAGES</a><a href="creer.html">Créer votre application</a><a href="applications.html">Toutes les applications</a></section><section><div class="fly-t">Métiers</div><a href="metiers.html#m-3d">3D — Anti-nuisibles</a><a href="metiers.html#m-plomberie">Plomberie</a><a href="metiers.html#m-electricite">Électricité</a><a href="metiers.html#m-chauffage">Chauffage / Climatisation</a><a href="metiers.html">Tous les métiers</a></section><section><div class="fly-t">Tarifs</div><a href="tarifs.html#elan">Tarifs OP GESTION</a><a href="tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="tarifs.html">Comparer toutes les formules</a><a href="tarifs.html#faq">Questions fréquentes</a></section><section><div class="fly-t">Pourquoi TEAM OP</div><a href="pourquoi.html#partenaire">Au service des entreprises</a><a href="pourquoi.html#engagements">Sécurité et engagements</a><a href="pourquoi.html#services">Nos services</a><a href="pourquoi.html">Découvrir pourquoi TEAM OP</a></section></div>
+  </header><div class="voile" aria-hidden="true"></div>
+<main>
+<section class="scene" id="apercu"><p class="surtitre">Métiers</p><h1>Un outil qui parle votre métier.</h1><p class="chapeau">Dites-nous ce que vous faites, TEAM OP se règle sur votre métier : types d'intervention, fiche de rapport et modules utiles sont prêts dès le départ. Vous démarrez en quelques minutes, pas en quelques semaines.</p><div class="actions"><a class="bouton" href="/espace.html">Créer mon espace</a></div></section><section class="page" style="padding-top:10px;padding-bottom:20px"><div class="cartes-3"><div class="etape-carte"><b class="n">1</b><b class="t">Renseignez votre entreprise</b><span>Nom, coordonnées… et surtout votre métier, au moment de créer votre espace.</span></div><div class="etape-carte"><b class="n">2</b><b class="t">Tout se met en place</b><span>Types d'intervention, fiche de rapport et modules de votre métier se règlent tout seuls. Vos produits et fournisseurs, vous les ajoutez à votre rythme.</span></div><div class="etape-carte"><b class="n">3</b><b class="t">Vous travaillez</b><span>Planning, rapports, stock, bons de commande : votre équipe est opérationnelle dès le premier jour.</span></div></div></section><section class="page" style="padding-top:60px;padding-bottom:20px"><h2 class="h2">Les métiers couverts.</h2><p class="intro">6 packs préconfigurés déjà disponibles — l'application fonctionne pour tous les autres métiers de terrain.</p><div class="packs"><article class="pack" id="m-3d"><span class="tag pret">PACK COMPLET</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20a6 6 0 0 0 6-6v-3a6 6 0 0 0-12 0v3a6 6 0 0 0 6 6Zm0 0v-9M6 11H3m18 0h-3M7 6 5 4m12 2 2-2M4 17l2-1m14 1-2-1"/></svg></span><span><b>3D — Hygiène anti-nuisibles</b><small>Dératisation · désinsectisation · désinfection</small></span></span><ul><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Registre sanitaire et biocides (AMM, Certibiocide)</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Fiches de traitement par nuisible</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Plans d'appâtage et postes par site</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Courbe d'évolution de l'infestation</span></li></ul><a href="/espace.html">Démarrer avec ce pack ›</a></article><article class="pack" id="m-plomberie"><span class="tag pret">PACK DISPONIBLE</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h6v10H4zM10 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4M14 10v4h6"/></svg></span><span><b>Plomberie</b><small>Dépannage · sanitaire · réseaux</small></span></span><ul><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Interventions type : fuite, chauffe-eau, débouchage…</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Stock de pièces et consommables</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Devis-factures et photos avant/après</span></li></ul><a href="/espace.html">Démarrer avec ce pack ›</a></article><article class="pack" id="m-electricite"><span class="tag pret">PACK DISPONIBLE</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6l1-7Z"/></svg></span><span><b>Électricité</b><small>Installation · mise aux normes · dépannage</small></span></span><ul><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Interventions type : tableau, câblage, contrôle…</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Matériel électrique en stock avec seuils</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Rapports signés sur place</span></li></ul><a href="/espace.html">Démarrer avec ce pack ›</a></article><article class="pack" id="m-chauffage"><span class="tag pret">PACK DISPONIBLE</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s5 4 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3 1-6 1-8Z"/></svg></span><span><b>Chauffage / Climatisation</b><small>CVC · entretien · contrats annuels</small></span></span><ul><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Contrats d'entretien à récurrence automatique</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Passages planifiés et rappels d'échéance</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Historique complet par client</span></li></ul><a href="/espace.html">Démarrer avec ce pack ›</a></article><article class="pack" id="m-serrurerie"><span class="tag pret">PACK DISPONIBLE</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 10a4 4 0 1 1-1.2-2.8L21 15v3h-3v-2h-2v-2"/></svg></span><span><b>Serrurerie</b><small>Ouverture · sécurité · accès</small></span></span><a href="/espace.html">Démarrer avec ce pack ›</a></article><article class="pack" id="m-nettoyage"><span class="tag pret">PACK DISPONIBLE</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9h6v11H8zM10 9V6h2v3M15 6h1m2-2h1m-1 4h1M6 11H4"/></svg></span><span><b>Nettoyage / Propreté</b><small>Bureaux · remise en état · vitrerie</small></span></span><a href="/espace.html">Démarrer avec ce pack ›</a></article><article class="pack" id="m-maconnerie"><span class="tag">PACK BIENTÔT</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v4H3zM3 10h18v4H3zM3 14h18v4H3zM9 6v4m6 4v4M12 10v4"/></svg></span><span><b>Maçonnerie / Gros œuvre</b><small>Construction · rénovation · chantiers</small></span></span><ul><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Chantiers suivis dans la durée</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Matériaux et quantités par chantier</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Bons de commande aux négoces</span></li></ul><a href="creer.html">En parler avec nous ›</a></article><article class="pack" id="m-menuiserie"><span class="tag">PACK BIENTÔT</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 17 3l4 4L7 21H3v-4Zm4-4 2 2m2-6 2 2m2-6 2 2"/></svg></span><span><b>Menuiserie</b><small>Pose · agencement · fabrication</small></span></span><ul><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Prises de cotes et photos dans le rapport</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Planning de pose par équipe</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Suivi des commandes fournisseurs</span></li></ul><a href="creer.html">En parler avec nous ›</a></article><article class="pack" id="m-peinture"><span class="tag">PACK BIENTÔT</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4l6 6-8 8H6v-6l8-8Zm-8 14-3 3"/></svg></span><span><b>Peinture / Finitions</b><small>Intérieur · extérieur · décoration</small></span></span><ul><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Chantiers en plusieurs passages (préparation, couches…)</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Consommation de peintures et consommables</span></li><li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>Photos avant/après pour le client</span></li></ul><a href="creer.html">En parler avec nous ›</a></article><article class="pack" id="m-paysagiste"><span class="tag">PACK BIENTÔT</span><span class="tete"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19c0-8 5-14 14-14 0 9-6 14-14 14Zm0 0 7-7"/></svg></span><span><b>Paysagiste / Espaces verts</b><small>Entretien · création · élagage</small></span></span><a href="creer.html">En parler avec nous ›</a></article></div></section>
+<section class="commencer" id="commencer"><div class="commencer-in"><div><h2>Prêt en trois étapes.</h2><ol>
+    <li><b>1</b><span>Créez votre compte gratuitement.</span></li><li><b>2</b><span>Demandez l'accès à une application.</span></li><li><b>3</b><span>Votre équipe travaille, tout se synchronise.</span></li></ol></div>
+    <div class="boutons"><a href="/espace.html">Créer mon compte gratuit</a><a href="/connexion.html?choix=1">Se connecter ›</a></div></div></section>
+</main>
+<footer class="pied"><div class="pied-in"><div class="cols"><div><b>Applications</b><a href="elan.html">OP GESTION</a><a href="opmessages.html">OP MESSAGES</a><a href="creer.html">Créer votre application</a><a href="applications.html">Toutes les applications</a></div><div><b>Métiers</b><a href="metiers.html#m-3d">3D — Anti-nuisibles</a><a href="metiers.html#m-plomberie">Plomberie</a><a href="metiers.html#m-electricite">Électricité</a><a href="metiers.html#m-chauffage">Chauffage / Climatisation</a><a href="metiers.html">Tous les métiers</a></div><div><b>Tarifs</b><a href="tarifs.html#elan">Tarifs OP GESTION</a><a href="tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="tarifs.html">Comparer toutes les formules</a><a href="tarifs.html#faq">Questions fréquentes</a></div><div><b>TEAM OP</b><a href="pourquoi.html#partenaire">Au service des entreprises</a><a href="pourquoi.html#engagements">Sécurité et engagements</a><a href="/espace.html">Espace client</a><a href="/connexion.html?choix=1">Se connecter</a></div></div>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Prix HT, sans engagement.</p>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="/confidentialite.html">Confidentialité</a><a href="/mentions-legales.html">Mentions légales et CGV</a><a href="mailto:support@teamop.fr">support@teamop.fr</a><span class="fin">France</span></div>
+  </div></footer>
+<script src="/vitrine/site.js" defer></script>
 </body>
 </html>

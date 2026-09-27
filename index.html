@@ -2,374 +2,51 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0a1020">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <title>TEAM OP — Vos applications métier, au même endroit</title>
 <meta name="description" content="TEAM OP : votre espace professionnel. Interventions, stock, encaissements et communication d'équipe — sur mobile, tablette et ordinateur, partout, en temps réel.">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/teamop-favicon-32.png">
-<link rel="manifest" href="manifest-teamop.webmanifest">
-<link rel="apple-touch-icon" href="icons/teamop-apple-touch.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/teamop-192.png">
-<script>/* Lanceur TeamOP : ouvre directement la dernière application choisie (?hub=1 pour revenir au choix) */
-try{ const pwa=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true||document.referrer.indexOf('android-app://')===0; const d=localStorage.getItem('teamop_app'); if(pwa&&(d==='app.html'||d==='messages.html')&&!/hub/.test(location.search)) location.replace(d); }catch(e){}</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-html { background: rgb(10, 16, 32); } body { margin: 0; padding: 0; background: transparent; }
-  a { color: rgb(124, 198, 255); text-decoration: none; }
-  a:hover { color: rgb(183, 225, 255); }
-  .nav-dd .dd { opacity: 0; visibility: hidden; transition: opacity 0.18s ease, visibility 0.18s; }
-  .nav-dd:hover .dd { opacity: 1; visibility: visible; }
-  @keyframes fondCycle { 0% { opacity: 1; } 28% { opacity: 1; } 36% { opacity: 0; } 92% { opacity: 0; } 100% { opacity: 1; } }
-
-  @media (max-width: 1100px) {
-    div[style*="repeat(4, 1fr)"] { grid-template-columns: 1fr 1fr !important; }
-  }
-  @media (max-width: 860px) {
-    .topnav { padding: 12px 18px !important; gap: 10px !important; flex-wrap: wrap !important; }
-    .navlinks { order: 3; width: 100%; gap: 18px !important; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; white-space: nowrap; }
-    .nav-dd .dd { display: none !important; }
-    h1 { font-size: 36px !important; letter-spacing: -1px !important; }
-    div[style*="repeat(3, 1fr)"], div[style*="repeat(4, 1fr)"], div[style*="grid-template-columns: 1fr 1fr"], div[style*="grid-template-columns: 1fr 0.72fr"] { grid-template-columns: 1fr !important; }
-    div[style*="justify-content: center; gap: 14px"] { flex-wrap: wrap; }
-    div[style*="padding: 110px 40px"], div[style*="padding: 64px 40px"], div[style*="padding: 60px 40px"] { padding-left: 20px !important; padding-right: 20px !important; }
-  }
-</style>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
+<link rel="manifest" href="/manifest-teamop.webmanifest">
+<script>try{var pwa=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true||document.referrer.indexOf('android-app://')===0,d=localStorage.getItem('teamop_app');if(pwa&&(d==='app.html'||d==='messages.html')&&!/hub/.test(location.search))location.replace('/'+d);}catch(e){}</script>
+<link rel="stylesheet" href="/vitrine/site.css">
+<link rel="stylesheet" href="/vitrine/appareils.css">
 </head>
 <body>
-<div style="min-height: 100vh; font-family: Manrope, sans-serif; color: rgb(168, 188, 228); position: relative;">
-
-  <div class="topnav" style="position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 15px 48px; border-bottom: 1px solid rgba(90, 140, 220, 0.18); background: rgba(10, 16, 32, 0.85); backdrop-filter: blur(10px);">
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="icons/teamop-512.png" alt="TEAM OP" width="36" height="36" style="border-radius: 9px; display: block;">
-      <span style="color: rgb(242, 247, 255); font-weight: 800; font-size: 17px;">TEAM OP</span>
-    </div>
-    <div class="navlinks" style="display: flex; gap: 28px; font-size: 14.5px; font-weight: 600;">
-      <a href="index.html" style="color: rgb(56, 189, 248); border-bottom: 2px solid rgb(56, 189, 248); padding-bottom: 4px;">Accueil</a>
-      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="applications.html" style="color: rgb(159, 180, 221);">Applications</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="elan.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opgestion-512.png" alt="OP GESTION" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(37, 99, 235), rgb(56, 189, 248)); color: rgb(234, 246, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>OP GESTION</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Gestion tout-en-un : interventions, stock, compta</span></span></a><a href="opmessages.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opmsg-512.png" alt="OP MESSAGES" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(124, 58, 237), rgb(56, 189, 248)); color: rgb(234, 246, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>OP MESSAGES</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Messagerie d'équipe : chat, vocaux, sondages</span></span></a><a href="creer.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🚀</span><span style="display: flex; flex-direction: column;"><span>Créer votre application</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Décrivez votre besoin, on le construit</span></span></a><a href="applications.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 12.5px; font-weight: 700;">Toutes les applications →</a></div></div></div>
-      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="metiers.html" style="color: rgb(159, 180, 221);">Métiers</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="metiers.html#m-3d" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🐀</span><span style="display: flex; flex-direction: column;"><span>3D — Anti-nuisibles</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Pack complet : registre sanitaire, biocides</span></span></a><a href="metiers.html#m-plomberie" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🔧</span><span style="display: flex; flex-direction: column;"><span>Plomberie</span></span></a><a href="metiers.html#m-electricite" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">⚡</span><span style="display: flex; flex-direction: column;"><span>Électricité</span></span></a><a href="metiers.html#m-chauffage" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🔥</span><span style="display: flex; flex-direction: column;"><span>Chauffage / Climatisation</span></span></a><a href="metiers.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 12.5px; font-weight: 700;">Tous les métiers →</a></div></div></div>
-      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="tarifs.html" style="color: rgb(159, 180, 221);">Tarifs</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="tarifs.html#elan" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opgestion-512.png" alt="OP GESTION" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(37, 99, 235), rgb(56, 189, 248)); color: rgb(234, 246, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>Tarifs OP GESTION</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Gratuit · Pro 15 € · Business 25 € · Premium 50 €</span></span></a><a href="tarifs.html#opmessages" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><img src="icons/opmsg-512.png" alt="OP MESSAGES" style="width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, rgb(124, 58, 237), rgb(56, 189, 248)); color: rgb(234, 246, 255); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex: none; object-fit: cover;"><span style="display: flex; flex-direction: column;"><span>Tarifs OP MESSAGES</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Perso 0 € · Pro 15 € · Premium 25 €</span></span></a><a href="tarifs.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 12.5px; font-weight: 700;">Comparer toutes les formules →</a></div></div></div>
-      <div class="nav-dd" style="position: relative; display: flex; align-items: center;"><a href="pourquoi.html" style="color: rgb(159, 180, 221);">Pourquoi TEAM OP</a><div class="dd" style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 18px; z-index: 60;"><div style="background: rgba(10, 16, 32, 0.97); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); padding: 10px; display: flex; flex-direction: column; gap: 2px; width: 280px;"><a href="pourquoi.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🤝</span><span style="display: flex; flex-direction: column;"><span>Au service des entreprises</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">On écoute, on adapte, on construit avec vous</span></span></a><a href="pourquoi.html" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; color: rgb(207, 224, 255); font-size: 13.5px; font-weight: 600;" style-hover="background: rgba(56, 189, 248, 0.1)"><span style="width: 30px; height: 30px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(90, 140, 220, 0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none;">🛡️</span><span style="display: flex; flex-direction: column;"><span>Sécurité & engagements</span><span style="color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">Chiffrement AES-256, vos données à vous</span></span></a><a href="pourquoi.html" style="display: block; padding: 9px 12px 4px; margin-top: 4px; border-top: 1px solid rgba(90, 140, 220, 0.18); color: rgb(56, 189, 248); font-size: 12.5px; font-weight: 700;">Découvrir pourquoi TEAM OP →</a></div></div></div>
-    </div>
-    <a href="espace.html" style="background: linear-gradient(135deg, rgb(56, 189, 248), rgb(37, 99, 235)); color: rgb(234, 246, 255); font-weight: 700; font-size: 14px; padding: 10px 22px; border-radius: 10px;">Espace client →</a>
-  </div>
-
-  <div style="text-align: center; padding: 110px 40px 80px; background: radial-gradient(800px 380px at 50% -80px, rgba(37, 99, 235, 0.22), transparent 70%);">
-    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.35); color: rgb(159, 220, 255); font-size: 13px; font-weight: 700; padding: 7px 16px; border-radius: 999px;">👋 Votre espace d'applications professionnelles</div>
-    <h1 style="margin: 26px auto 0; max-width: 900px; color: rgb(242, 247, 255); font-size: 64px; font-weight: 800; letter-spacing: -2.2px; line-height: 1.06; text-wrap: balance;">Bienvenue sur TEAM OP.</h1>
-    <p style="margin: 18px auto 0; max-width: 700px; color: rgb(207, 224, 255); font-size: 21px; font-weight: 700; line-height: 1.5;">Toutes vos applications métier, au même endroit.</p>
-    <p style="margin: 14px auto 0; max-width: 660px; color: rgb(168, 188, 228); font-size: 17px; line-height: 1.65;">Gérez vos interventions, votre stock, vos encaissements et la communication de votre équipe — sur mobile, tablette et ordinateur, partout, en temps réel.</p>
-    <div style="display: flex; justify-content: center; gap: 14px; margin-top: 36px;">
-      <a href="espace.html" style="background: linear-gradient(135deg, rgb(56, 189, 248), rgb(37, 99, 235)); color: rgb(234, 246, 255); font-weight: 700; font-size: 15.5px; padding: 15px 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);">Créer mon compte</a>
-      <a href="connexion.html?choix=1" style="border: 1px solid rgba(124, 198, 255, 0.35); color: rgb(207, 231, 255); font-weight: 700; font-size: 15.5px; padding: 15px 30px; border-radius: 12px;">Se connecter</a>
-    </div>
-    <div style="margin-top: 44px; color: rgb(127, 150, 196); font-size: 13.5px; font-weight: 600; display: flex; justify-content: center; gap: 26px; flex-wrap: wrap;">
-      <span>🔒 Chiffré AES-256</span><span>⚡ Temps réel</span><span>📲 iPhone · Android · Mac · PC</span>
-    </div>
-  </div>
-
-  <div style="max-width: 1180px; margin: 0 auto; padding: 30px 40px 60px;">
-    <div style="text-align: center; margin-bottom: 30px;">
-      <h2 style="margin: 0; color: rgb(242, 247, 255); font-size: 30px; font-weight: 800; letter-spacing: -0.6px;">Ce que TEAM OP vous propose</h2>
-      <p style="margin: 8px 0 0; color: rgb(100, 120, 159); font-size: 14.5px;">En bref — le détail est sur chaque page</p>
-    </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 16px;">
-        <div style="display: flex; gap: 18px; align-items: flex-start;">
-        <img src="icons/opgestion-512.png" alt="OP GESTION" style="width: 50px; height: 50px; border-radius: 13px; background: linear-gradient(135deg, rgb(37, 99, 235), rgb(56, 189, 248)); display: flex; align-items: center; justify-content: center; color: rgb(234, 246, 255); font-weight: 800; font-size: 15px; flex: none; object-fit: cover;">
-        <div style="display: flex; flex-direction: column; gap: 7px;">
-          <span style="color: rgb(242, 247, 255); font-size: 18px; font-weight: 800;">OP GESTION — gérer votre activité</span>
-          <span style="color: rgb(168, 188, 228); font-size: 14.5px; line-height: 1.6;">Interventions avec rapports signés, planning &amp; tournées, stock &amp; box, encaissements, devis-factures, équipe.</span>
-          <a href="elan.html" style="font-size: 14px; font-weight: 700;">Découvrir ›</a>
-        </div>
-        </div>
-        <div style="position: relative; height: 290px;">
-          <div style="position: absolute; inset: 0; opacity: 1; animation: fondCycle 12s linear infinite; background: rgba(13, 23, 48, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; overflow: hidden;">
-            <div style="display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1px solid rgba(90, 140, 220, 0.2);">
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(255, 95, 87);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(254, 188, 46);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(40, 200, 64);"></span>
-              <span style="margin-left: 8px; color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">📊 Tableau de bord</span>
-            </div>
-            <div style="padding: 14px; display: flex; flex-direction: column; gap: 9px;">
-              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; min-width: 0;">
-                <div style="background: rgba(16, 28, 56, 0.55); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 9px; padding: 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                  <span style="color: rgb(242, 247, 255); font-weight: 800; font-size: 12.5px; white-space: nowrap;">12 480 €</span>
-                  <span style="color: rgb(134, 239, 172); font-size: 10px; font-weight: 700; white-space: nowrap;">▲ +8 %</span>
-                  <span style="color: rgb(100, 120, 159); font-size: 9.5px; white-space: nowrap;">CA du mois</span>
-                </div>
-                <div style="background: rgba(16, 28, 56, 0.55); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 9px; padding: 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                  <span style="color: rgb(242, 247, 255); font-weight: 800; font-size: 12.5px; white-space: nowrap;">42/60</span>
-                  <span style="color: rgb(100, 120, 159); font-size: 9.5px; white-space: nowrap;">Box occupés</span>
-                </div>
-                <div style="background: rgba(16, 28, 56, 0.55); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 9px; padding: 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                  <span style="color: rgb(252, 211, 77); font-weight: 800; font-size: 12.5px; white-space: nowrap;">3</span>
-                  <span style="color: rgb(100, 120, 159); font-size: 9.5px; white-space: nowrap;">Alertes stock</span>
-                </div>
-              </div>
-              <div style="background: rgba(16, 28, 56, 0.45); border-radius: 8px; padding: 9px 11px; color: rgb(168, 188, 228); font-size: 11.5px;">09:00 — Dératisation cuisine · Marc <span style="color: rgb(134, 239, 172);">Confirmé</span></div>
-              <div style="background: rgba(16, 28, 56, 0.45); border-radius: 8px; padding: 9px 11px; color: rgb(168, 188, 228); font-size: 11.5px;">Stock faible : raticide <span style="color: rgb(252, 211, 77);">⚠️</span></div>
-            </div>
-          </div>
-          <div style="position: absolute; inset: 0; opacity: 0; animation: fondCycle 12s linear infinite; animation-delay: 4s; background: rgba(13, 23, 48, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; overflow: hidden;">
-            <div style="display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1px solid rgba(90, 140, 220, 0.2);">
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(255, 95, 87);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(254, 188, 46);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(40, 200, 64);"></span>
-              <span style="margin-left: 8px; color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">🗓️ Planning — aujourd'hui</span>
-            </div>
-            <div style="padding: 14px; display: flex; flex-direction: column; gap: 8px;">
-              <div style="display: flex; align-items: center; gap: 8px; background: rgba(16, 28, 56, 0.45); border-radius: 8px; padding: 9px 11px;">
-                <span style="background: rgba(56, 189, 248, 0.15); color: rgb(159, 220, 255); font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">09:00</span>
-                <span style="color: rgb(207, 224, 255); font-size: 11.5px;">Dératisation — Restaurant Le Port · Marc</span>
-                <span style="margin-left: auto; color: rgb(134, 239, 172); font-size: 10px; font-weight: 800;">Confirmé</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px; background: rgba(16, 28, 56, 0.45); border-radius: 8px; padding: 9px 11px;">
-                <span style="background: rgba(56, 189, 248, 0.15); color: rgb(159, 220, 255); font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">11:30</span>
-                <span style="color: rgb(207, 224, 255); font-size: 11.5px;">Contrôle box n°12 · Julie</span>
-                <span style="margin-left: auto; color: rgb(56, 189, 248); font-size: 10px; font-weight: 800;">En cours</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px; background: rgba(16, 28, 56, 0.45); border-radius: 8px; padding: 9px 11px;">
-                <span style="background: rgba(56, 189, 248, 0.15); color: rgb(159, 220, 255); font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">14:00</span>
-                <span style="color: rgb(207, 224, 255); font-size: 11.5px;">Désinsectisation cave · Marc</span>
-                <span style="margin-left: auto; color: rgb(252, 211, 77); font-size: 10px; font-weight: 800;">À planifier</span>
-              </div>
-              <span style="color: rgb(100, 120, 159); font-size: 10.5px;">↔ Glissez-déposez pour réorganiser — conflits détectés automatiquement</span>
-            </div>
-          </div>
-          <div style="position: absolute; inset: 0; opacity: 0; animation: fondCycle 12s linear infinite; animation-delay: 8s; background: rgba(13, 23, 48, 0.8); border: 1px solid rgba(90, 140, 220, 0.3); border-radius: 14px; overflow: hidden;">
-            <div style="display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1px solid rgba(90, 140, 220, 0.2);">
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(255, 95, 87);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(254, 188, 46);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(40, 200, 64);"></span>
-              <span style="margin-left: 8px; color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">📦 Stock &amp; box</span>
-            </div>
-            <div style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="color: rgb(207, 224, 255); font-size: 11.5px; width: 100px; flex: none;">Bloc raticide</span>
-                <span style="flex: 1; height: 6px; border-radius: 4px; background: rgba(90, 140, 220, 0.18); overflow: hidden; display: block;"><span style="display: block; width: 22%; height: 100%; background: rgb(248, 113, 113);"></span></span>
-                <span style="color: rgb(248, 113, 113); font-size: 10.5px; font-weight: 800; white-space: nowrap;">12 ⚠️</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="color: rgb(207, 224, 255); font-size: 11.5px; width: 100px; flex: none;">Gel anti-cafards</span>
-                <span style="flex: 1; height: 6px; border-radius: 4px; background: rgba(90, 140, 220, 0.18); overflow: hidden; display: block;"><span style="display: block; width: 55%; height: 100%; background: rgb(56, 189, 248);"></span></span>
-                <span style="color: rgb(159, 220, 255); font-size: 10.5px; font-weight: 800;">46</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="color: rgb(207, 224, 255); font-size: 11.5px; width: 100px; flex: none;">Gants nitrile</span>
-                <span style="flex: 1; height: 6px; border-radius: 4px; background: rgba(90, 140, 220, 0.18); overflow: hidden; display: block;"><span style="display: block; width: 72%; height: 100%; background: rgb(74, 222, 128);"></span></span>
-                <span style="color: rgb(134, 239, 172); font-size: 10.5px; font-weight: 800;">84</span>
-              </div>
-              <div style="background: rgba(16, 28, 56, 0.45); border-radius: 8px; padding: 9px 11px; color: rgb(168, 188, 228); font-size: 11.5px;">📷 Arrivage BC-2046 reçu — stock crédité automatiquement</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 16px;">
-        <div style="display: flex; gap: 18px; align-items: flex-start;">
-        <img src="icons/opmsg-512.png" alt="OP MESSAGES" style="width: 50px; height: 50px; border-radius: 13px; background: linear-gradient(135deg, rgb(124, 58, 237), rgb(56, 189, 248)); display: flex; align-items: center; justify-content: center; color: rgb(234, 246, 255); font-weight: 800; font-size: 15px; flex: none; object-fit: cover;">
-        <div style="display: flex; flex-direction: column; gap: 7px;">
-          <span style="color: rgb(242, 247, 255); font-size: 18px; font-weight: 800;">OP MESSAGES — communiquer en équipe</span><span style="display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; background: rgba(167, 139, 250, 0.16); border: 1px solid rgba(167, 139, 250, 0.5); color: rgb(221, 214, 254); font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 999px;">⏳ Bientôt disponible</span>
-          <span style="color: rgb(168, 188, 228); font-size: 14.5px; line-height: 1.6;">Toute votre équipe, une seule conversation : chat temps réel, groupes, photos, vocaux, sondages — réservé à votre entreprise.</span>
-          <a href="opmessages.html" style="font-size: 14px; font-weight: 700;">Découvrir ›</a>
-        </div>
-        </div>
-        <div style="position: relative; height: 290px;">
-          <div style="position: absolute; inset: 0; opacity: 1; animation: fondCycle 12s linear infinite; background: rgba(13, 23, 48, 0.8); border: 1px solid rgba(124, 90, 220, 0.35); border-radius: 14px; overflow: hidden;">
-            <div style="display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1px solid rgba(90, 140, 220, 0.2);">
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(255, 95, 87);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(254, 188, 46);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(40, 200, 64);"></span>
-              <span style="margin-left: 8px; color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">💬 # général</span>
-            </div>
-            <div style="padding: 14px; display: flex; flex-direction: column; gap: 8px;">
-              <div style="align-self: flex-start; max-width: 88%; background: rgba(90, 140, 220, 0.18); color: rgb(207, 224, 255); font-size: 12px; padding: 7px 11px; border-radius: 11px 11px 11px 4px;"><b style="color: rgb(159, 220, 255);">Julie</b><br>Tu peux m'envoyer une photo du compteur ?</div>
-              <div style="align-self: flex-end; max-width: 88%; background: linear-gradient(135deg, rgb(124, 58, 237), rgb(56, 189, 248)); color: rgb(234, 246, 255); font-size: 12px; padding: 7px 11px; border-radius: 11px 11px 4px 11px;">Oui, deux secondes 👍</div>
-              <div style="align-self: flex-end; display: flex; gap: 6px;">
-                <span style="width: 52px; height: 38px; border-radius: 8px; background: rgba(56, 189, 248, 0.12); border: 1px dashed rgba(140, 160, 220, 0.45); display: flex; align-items: center; justify-content: center; font-size: 14px;">📷</span>
-                <span style="width: 52px; height: 38px; border-radius: 8px; background: rgba(56, 189, 248, 0.12); border: 1px dashed rgba(140, 160, 220, 0.45); display: flex; align-items: center; justify-content: center; font-size: 14px;">📷</span>
-              </div>
-              <span style="color: rgb(100, 120, 159); font-size: 10.5px; font-style: italic;">Marc est en train d'écrire…</span>
-            </div>
-          </div>
-          <div style="position: absolute; inset: 0; opacity: 0; animation: fondCycle 12s linear infinite; animation-delay: 4s; background: rgba(13, 23, 48, 0.8); border: 1px solid rgba(124, 90, 220, 0.35); border-radius: 14px; overflow: hidden;">
-            <div style="display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1px solid rgba(90, 140, 220, 0.2);">
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(255, 95, 87);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(254, 188, 46);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(40, 200, 64);"></span>
-              <span style="margin-left: 8px; color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">📊 Sondage — # général</span>
-            </div>
-            <div style="padding: 14px; display: flex; flex-direction: column; gap: 9px;">
-              <span style="color: rgb(242, 247, 255); font-size: 12.5px; font-weight: 800;">Quel créneau pour la réunion d'équipe ?</span>
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="color: rgb(207, 224, 255); font-size: 11.5px; width: 76px; flex: none;">Mardi 14 h</span>
-                  <span style="flex: 1; height: 8px; border-radius: 5px; background: rgba(90, 140, 220, 0.18); overflow: hidden; display: block;"><span style="display: block; width: 70%; height: 100%; background: linear-gradient(90deg, rgb(124, 58, 237), rgb(56, 189, 248));"></span></span>
-                  <span style="color: rgb(159, 220, 255); font-size: 10.5px; font-weight: 800;">4 votes</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="color: rgb(207, 224, 255); font-size: 11.5px; width: 76px; flex: none;">Jeudi 9 h</span>
-                  <span style="flex: 1; height: 8px; border-radius: 5px; background: rgba(90, 140, 220, 0.18); overflow: hidden; display: block;"><span style="display: block; width: 35%; height: 100%; background: rgba(124, 140, 250, 0.6);"></span></span>
-                  <span style="color: rgb(159, 180, 221); font-size: 10.5px; font-weight: 800;">2 votes</span>
-                </div>
-              </div>
-              <span style="color: rgb(100, 120, 159); font-size: 10.5px;">Julie, Marc et 4 autres ont voté</span>
-              <div style="background: rgba(16, 28, 56, 0.45); border-radius: 8px; padding: 9px 11px; color: rgb(168, 188, 228); font-size: 11.5px;">🗓️ Événement créé : Réunion d'équipe — mardi 14 h</div>
-            </div>
-          </div>
-          <div style="position: absolute; inset: 0; opacity: 0; animation: fondCycle 12s linear infinite; animation-delay: 8s; background: rgba(13, 23, 48, 0.8); border: 1px solid rgba(124, 90, 220, 0.35); border-radius: 14px; overflow: hidden;">
-            <div style="display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1px solid rgba(90, 140, 220, 0.2);">
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(255, 95, 87);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(254, 188, 46);"></span>
-              <span style="width: 9px; height: 9px; border-radius: 50%; background: rgb(40, 200, 64);"></span>
-              <span style="margin-left: 8px; color: rgb(100, 120, 159); font-size: 11.5px; font-weight: 600;">👤 Marc — message privé</span>
-            </div>
-            <div style="padding: 14px; display: flex; flex-direction: column; gap: 8px;">
-              <div style="align-self: flex-start; max-width: 88%; background: rgba(90, 140, 220, 0.18); color: rgb(207, 224, 255); font-size: 12px; padding: 8px 11px; border-radius: 11px 11px 11px 4px; display: flex; align-items: center; gap: 8px;">
-                <span style="width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, rgb(124, 58, 237), rgb(56, 189, 248)); color: rgb(234, 246, 255); display: flex; align-items: center; justify-content: center; font-size: 10px;">▶</span>
-                <span style="color: rgb(159, 220, 255); letter-spacing: 2px;">▂▄▆▄▂▄▆▂</span>
-                <span style="color: rgb(207, 224, 255); font-size: 11px;">0:12</span>
-              </div>
-              <div style="align-self: flex-end; max-width: 88%; background: linear-gradient(135deg, rgb(124, 58, 237), rgb(56, 189, 248)); color: rgb(234, 246, 255); font-size: 12px; padding: 7px 11px; border-radius: 11px 11px 4px 11px;">Bien reçu 👍 ✓✓</div>
-              <div style="background: rgba(16, 28, 56, 0.45); border-radius: 8px; padding: 9px 11px; color: rgb(168, 188, 228); font-size: 11.5px;">🔔 Notifié même application fermée</div>
-              <div style="background: rgba(16, 28, 56, 0.45); border-radius: 8px; padding: 9px 11px; color: rgb(168, 188, 228); font-size: 11.5px;">🔒 Messages éphémères activés — 24 h</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 18px;">
-      <div style="background: rgba(13, 21, 42, 0.45); border: 1px solid rgba(90, 140, 220, 0.18); border-radius: 16px; padding: 24px 26px; display: flex; flex-direction: column; gap: 7px;">
-        <span style="color: rgb(242, 247, 255); font-size: 16px; font-weight: 800;">🛠️ Adapté à votre métier</span>
-        <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">3D anti-nuisibles, plomberie, électricité, chauffage, BTP, paysagistes, nettoyage…</span>
-        <a href="metiers.html" style="font-size: 13.5px; font-weight: 700;">Page Métiers ›</a>
-      </div>
-      <div style="background: rgba(13, 21, 42, 0.45); border: 1px solid rgba(90, 140, 220, 0.18); border-radius: 16px; padding: 24px 26px; display: flex; flex-direction: column; gap: 7px;">
-        <span style="color: rgb(242, 247, 255); font-size: 16px; font-weight: 800;">💶 Des tarifs clairs</span>
-        <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">De 0 € à 50 €/mois — commencez gratuitement, sans engagement.</span>
-        <a href="tarifs.html" style="font-size: 13.5px; font-weight: 700;">Page Tarifs ›</a>
-      </div>
-      <div style="background: rgba(13, 21, 42, 0.45); border: 1px solid rgba(90, 140, 220, 0.18); border-radius: 16px; padding: 24px 26px; display: flex; flex-direction: column; gap: 7px;">
-        <span style="color: rgb(242, 247, 255); font-size: 16px; font-weight: 800;">🛡️ Sécurisé &amp; fiable</span>
-        <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">AES-256, temps réel, tous appareils.</span>
-        <a href="pourquoi.html" style="font-size: 13.5px; font-weight: 700;">Pourquoi TEAM OP ›</a>
-      </div>
-    </div>
-  </div>
-
-  <div style="max-width: 1180px; margin: 0 auto; padding: 20px 40px 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 44px; align-items: start; border-top: 1px solid rgba(90, 140, 220, 0.15);">
-    <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 40px;">
-      <div style="color: rgb(56, 189, 248); font-size: 12.5px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">Le projet</div>
-      <h2 style="margin: 0; color: rgb(242, 247, 255); font-size: 30px; font-weight: 800; letter-spacing: -0.6px;">TEAM OP, c'est quoi ?</h2>
-      <p style="margin: 0; font-size: 15px; line-height: 1.7;">TEAM OP est né sur le terrain, d'un constat simple : les petites entreprises jonglent entre carnets, tableurs, SMS et applications grand public qui ne se parlent pas. Résultat — des informations perdues, des doubles saisies, du temps gaspillé.</p>
-      <p style="margin: 0; font-size: 15px; line-height: 1.7;">Nous construisons donc une plateforme unique : des applications métier simples, qui partagent le même compte, le même espace sécurisé et la même logique. Vous activez ce dont vous avez besoin, votre équipe est opérationnelle en quelques minutes — sans formation, sans installation compliquée.</p>
-      <p style="margin: 0; font-size: 15px; line-height: 1.7;">Développé en France par Justin Biret, TEAM OP évolue chaque semaine avec les retours directs de ses utilisateurs.</p>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 40px;">
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 14px; padding: 18px 22px; display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: center;">
-        <span style="font-size: 22px;">🎯</span>
-        <div style="display: flex; flex-direction: column; gap: 3px;">
-          <span style="color: rgb(242, 247, 255); font-size: 15px; font-weight: 800;">Notre mission</span>
-          <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">Donner aux pros du terrain des outils aussi bons que ceux des grandes entreprises.</span>
-        </div>
-      </div>
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 14px; padding: 18px 22px; display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: center;">
-        <span style="font-size: 22px;">🧑‍🔧</span>
-        <div style="display: flex; flex-direction: column; gap: 3px;">
-          <span style="color: rgb(242, 247, 255); font-size: 15px; font-weight: 800;">Pensé avec le terrain</span>
-          <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">Chaque fonctionnalité vient d'un besoin réel : interventions, stock, encaissements, communication.</span>
-        </div>
-      </div>
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 14px; padding: 18px 22px; display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: center;">
-        <span style="font-size: 22px;">🔁</span>
-        <div style="display: flex; flex-direction: column; gap: 3px;">
-          <span style="color: rgb(242, 247, 255); font-size: 15px; font-weight: 800;">Mises à jour continues</span>
-          <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">Nouvelles fonctionnalités régulières, sans rien réinstaller — tout est à jour, partout.</span>
-        </div>
-      </div>
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 14px; padding: 18px 22px; display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: center;">
-        <span style="font-size: 22px;">🤝</span>
-        <div style="display: flex; flex-direction: column; gap: 3px;">
-          <span style="color: rgb(242, 247, 255); font-size: 15px; font-weight: 800;">Un interlocuteur direct</span>
-          <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.55;">Pas de hotline anonyme : vous parlez à ceux qui développent l'outil (support@teamop.fr).</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div style="max-width: 1180px; margin: 0 auto 60px; padding: 0 40px;">
-    <div style="background: rgba(13, 21, 42, 0.45); border: 1px solid rgba(90, 140, 220, 0.22); border-radius: 18px; padding: 30px 34px; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
-      <div style="display: flex; flex-direction: column; gap: 6px;">
-        <span style="color: rgb(242, 247, 255); font-size: 19px; font-weight: 800;">Comment ça marche ?</span>
-        <span style="color: rgb(147, 169, 212); font-size: 14.5px; line-height: 1.6;">1. Créez votre compte gratuitement &nbsp;→&nbsp; 2. Demandez l'accès à une application &nbsp;→&nbsp; 3. Votre équipe travaille, tout se synchronise.</span>
-      </div>
-      <a href="espace.html" style="background: linear-gradient(135deg, rgb(56, 189, 248), rgb(37, 99, 235)); color: rgb(234, 246, 255); font-weight: 700; font-size: 14.5px; padding: 13px 26px; border-radius: 12px; flex: none;">Commencer →</a>
-    </div>
-  </div>
-
-  <div style="max-width: 1180px; margin: 0 auto; padding: 0 40px 70px;">
-    <h2 style="margin: 0 0 22px; color: rgb(242, 247, 255); font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Questions fréquentes</h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 6px;">
-        <span style="color: rgb(242, 247, 255); font-size: 15px; font-weight: 800;">Faut-il installer quelque chose ?</span>
-        <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.6;">Non — TEAM OP <b style="color: rgb(207, 224, 255);">est</b> une vraie application, qui s'installe en un clic sur iPhone, Android, Mac et Windows. Elle s'ouvre aussi dans le navigateur, sans rien télécharger.</span>
-      </div>
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 6px;">
-        <span style="color: rgb(242, 247, 255); font-size: 15px; font-weight: 800;">Mes données sont-elles en sécurité ?</span>
-        <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.6;">Oui — chiffrement AES-256 et un espace totalement isolé par entreprise : vos données ne croisent jamais celles des autres.</span>
-      </div>
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 6px;">
-        <span style="color: rgb(242, 247, 255); font-size: 15px; font-weight: 800;">Faut-il du réseau sur le terrain ?</span>
-        <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.6;">Oui : l'application travaille en ligne, c'est ce qui garantit que toute l'équipe voit les mêmes données au même moment. Une connexion mobile ordinaire suffit ; si le réseau tombe, elle vous le dit et reprend dès qu'il revient.</span>
-      </div>
-      <div style="background: rgba(14, 23, 46, 0.5); border: 1px solid rgba(90, 140, 220, 0.2); border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 6px;">
-        <span style="color: rgb(242, 247, 255); font-size: 15px; font-weight: 800;">Comment obtenir l'accès à une application ?</span>
-        <span style="color: rgb(147, 169, 212); font-size: 13.5px; line-height: 1.6;">Créez votre compte gratuit, faites votre demande depuis l'espace client et suivez son avancement — vous êtes prévenu dès l'activation.</span>
-      </div>
-    </div>
-  </div>
-
-  <div style="border-top: 1px solid rgba(90, 140, 220, 0.15); background: rgba(10, 16, 32, 0.75);">
-    <div style="max-width: 1180px; margin: 0 auto; padding: 40px; display: flex; justify-content: space-between; gap: 40px; flex-wrap: wrap;">
-      <div style="display: flex; flex-direction: column; gap: 10px; max-width: 320px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <img src="icons/teamop-512.png" alt="TEAM OP" width="28" height="28" style="border-radius: 7px; display: block;">
-          <span style="color: rgb(242, 247, 255); font-weight: 800; font-size: 15px;">TEAM OP</span>
-        </div>
-        <span style="color: rgb(100, 120, 159); font-size: 13px; line-height: 1.55;">Votre espace d'applications professionnelles.</span>
-        <span style="color: rgb(100, 120, 159); font-size: 12.5px;">Fondé et développé par Justin Biret · © 2026 TEAM OP</span>
-      </div>
-      <div style="display: flex; gap: 70px; flex-wrap: wrap;">
-        <div style="display: flex; flex-direction: column; gap: 9px; font-size: 13.5px;">
-          <span style="color: rgb(159, 180, 221); font-weight: 800; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">Site</span>
-          <a href="applications.html">Applications</a>
-          <a href="metiers.html">Métiers</a>
-          <a href="tarifs.html">Tarifs</a>
-          <a href="pourquoi.html">Pourquoi TEAM OP</a>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 9px; font-size: 13.5px;">
-          <span style="color: rgb(159, 180, 221); font-weight: 800; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">Contact</span>
-          <a href="mailto:support@teamop.fr">support@teamop.fr</a>
-          <a href="mailto:contact@teamop.fr">contact@teamop.fr</a>
-          <a href="espace.html">Espace client</a>
-        <a href="mentions-legales.html">Mentions légales &amp; CGV</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
-<script>
-/* Survols (équivalent des style-hover des maquettes) */
-document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('[style-hover]').forEach(function (el) {
-    var base = el.getAttribute('style') || '', hov = el.getAttribute('style-hover');
-    el.addEventListener('mouseenter', function () { el.setAttribute('style', base + ';' + hov); });
-    el.addEventListener('mouseleave', function () { el.setAttribute('style', base); });
-  });
-});
-</script>
-
-<script src="fond-anime-teamop.js" defer></script>
+<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
+      <a class="marque" href="index.html"><img src="/icons/teamop-192.png" width="22" height="22" alt=""><span>TEAM OP</span></a>
+      <div class="nav-liens"><a href="applications.html" data-fly="applications" aria-haspopup="true" aria-expanded="false">Applications</a><a href="metiers.html" data-fly="metiers" aria-haspopup="true" aria-expanded="false">Métiers</a><a href="tarifs.html" data-fly="tarifs" aria-haspopup="true" aria-expanded="false">Tarifs</a><a href="pourquoi.html" data-fly="pourquoi" aria-haspopup="true" aria-expanded="false">Pourquoi TEAM OP</a></div>
+      <div class="nav-droite"><a class="pilule" href="/espace.html">Espace client</a>
+        <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    </div><div class="fly" id="fly-applications"><div class="fly-in"><div><div class="fly-t">Explorer les applications</div><div class="fly-grand"><a href="elan.html"><b>OP GESTION</b><small>Gestion tout-en-un : interventions, stock, compta</small></a><a href="opmessages.html"><b>OP MESSAGES</b><small>Messagerie d'équipe — bientôt disponible</small></a><a href="creer.html"><b>Créer votre application</b><small>Décrivez votre besoin, on le construit</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="applications.html">Toutes les applications</a></div></div></div></div><div class="fly" id="fly-metiers"><div class="fly-in"><div><div class="fly-t">Explorer les métiers</div><div class="fly-grand"><a href="metiers.html#m-3d"><b>3D — Anti-nuisibles</b><small>Pack complet : registre sanitaire, biocides</small></a><a href="metiers.html#m-plomberie"><b>Plomberie</b></a><a href="metiers.html#m-electricite"><b>Électricité</b></a><a href="metiers.html#m-chauffage"><b>Chauffage / Climatisation</b></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="metiers.html">Tous les métiers</a></div></div></div></div><div class="fly" id="fly-tarifs"><div class="fly-in"><div><div class="fly-t">Explorer les tarifs</div><div class="fly-grand"><a href="tarifs.html#elan"><b>Tarifs OP GESTION</b><small>Gratuit · Pro 15 € · Business 25 € · Business Premium 50 €</small></a><a href="tarifs.html#opmessages"><b>Tarifs OP MESSAGES</b><small>Perso · Pro · Premium — bientôt disponible</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="tarifs.html">Comparer toutes les formules</a><a href="tarifs.html#faq">Questions fréquentes</a></div></div></div></div><div class="fly" id="fly-pourquoi"><div class="fly-in"><div><div class="fly-t">Pourquoi TEAM OP</div><div class="fly-grand"><a href="pourquoi.html#partenaire"><b>Au service des entreprises</b><small>On écoute, on adapte, on construit avec vous</small></a><a href="pourquoi.html#engagements"><b>Sécurité et engagements</b><small>Chiffrement AES-256, vos données à vous</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="pourquoi.html#services">Nos services</a><a href="pourquoi.html">Découvrir pourquoi TEAM OP</a></div></div></div></div></nav>
+    <div class="menu-mobile" id="menu-mobile"><section><div class="fly-t">TEAM OP</div><a href="index.html">Accueil</a></section><section><div class="fly-t">Applications</div><a href="elan.html">OP GESTION</a><a href="opmessages.html">OP MESSAGES</a><a href="creer.html">Créer votre application</a><a href="applications.html">Toutes les applications</a></section><section><div class="fly-t">Métiers</div><a href="metiers.html#m-3d">3D — Anti-nuisibles</a><a href="metiers.html#m-plomberie">Plomberie</a><a href="metiers.html#m-electricite">Électricité</a><a href="metiers.html#m-chauffage">Chauffage / Climatisation</a><a href="metiers.html">Tous les métiers</a></section><section><div class="fly-t">Tarifs</div><a href="tarifs.html#elan">Tarifs OP GESTION</a><a href="tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="tarifs.html">Comparer toutes les formules</a><a href="tarifs.html#faq">Questions fréquentes</a></section><section><div class="fly-t">Pourquoi TEAM OP</div><a href="pourquoi.html#partenaire">Au service des entreprises</a><a href="pourquoi.html#engagements">Sécurité et engagements</a><a href="pourquoi.html#services">Nos services</a><a href="pourquoi.html">Découvrir pourquoi TEAM OP</a></section></div>
+  </header><div class="voile" aria-hidden="true"></div>
+<main>
+<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Toutes vos applications métier. Au même endroit.</h1>
+      <p class="chapeau">Interventions, stock, encaissements et communication d'équipe — sur iPhone, Android, Mac et PC, en temps réel.</p>
+      <div class="actions"><a class="bouton" href="/espace.html">Créer mon compte</a><a class="lien-suite" href="applications.html">Découvrir les applications ›</a></div>
+      <div class="gages"><span>Chiffré AES-256</span><span>Temps réel</span><span>Sans installation</span></div>
+      <div class="appareils"><div class="ap-duo"><figure class="ap-mac" style="margin:0"><div class="ap-mac-couvercle"><div class="ap-mac-ecran"><picture><source media="(prefers-color-scheme: dark)" srcset="/vitrine/captures/mac-tableau-nuit.webp 3024w, /vitrine/captures/mac-tableau-nuit-1x.webp 1512w" sizes="(max-width: 700px) 94vw, 1120px"><img src="/vitrine/captures/mac-tableau-jour-1x.webp" srcset="/vitrine/captures/mac-tableau-jour.webp 3024w, /vitrine/captures/mac-tableau-jour-1x.webp 1512w" sizes="(max-width: 700px) 94vw, 1120px" width="1512" height="982" alt="OP GESTION sur un Mac : le tableau de bord d'une entreprise de démonstration" loading="eager" fetchpriority="high" decoding="async"></picture><span class="ap-mac-encoche"></span></div></div><div class="ap-mac-socle"></div></figure><figure class="ap-iphone" style="margin:0"><span class="ap-iphone-bouton g action"></span><span class="ap-iphone-bouton g vol1"></span><span class="ap-iphone-bouton g vol2"></span><span class="ap-iphone-bouton d marche"></span><span class="ap-iphone-bouton d photo"></span><div class="ap-iphone-corps"><div class="ap-iphone-bord"><div class="ap-iphone-ecran"><picture><source media="(prefers-color-scheme: dark)" srcset="/vitrine/captures/iphone-tableau-nuit.webp"><img src="/vitrine/captures/iphone-tableau-jour.webp" width="804" height="1748" alt="OP GESTION sur un iPhone : le tableau de bord" loading="eager" decoding="async"></picture></div></div></div></figure></div></div></section>
+      <div class="plateformes"><span>Mac · Windows</span><span>iPhone · Android</span><span>Navigateur</span></div>
+      <section class="duo">
+        <div class="grande-carte"><div class="haut"><div class="petit-titre">Sur le terrain</div><h3>La fiche d'intervention, dans la poche.</h3><p>Client, adresse, produits, photos et signature : tout est sur la fiche.</p></div>
+          <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)"><figure class="ap-iphone" style="margin:0"><span class="ap-iphone-bouton g action"></span><span class="ap-iphone-bouton g vol1"></span><span class="ap-iphone-bouton g vol2"></span><span class="ap-iphone-bouton d marche"></span><span class="ap-iphone-bouton d photo"></span><div class="ap-iphone-corps"><div class="ap-iphone-bord"><div class="ap-iphone-ecran"><picture><source media="(prefers-color-scheme: dark)" srcset="/vitrine/captures/iphone-intervention-nuit.webp"><img src="/vitrine/captures/iphone-intervention-jour.webp" width="804" height="1748" alt="OP GESTION sur un iPhone : une fiche d'intervention en cours" loading="lazy" decoding="async"></picture></div></div></div></figure></div></div></div>
+        <div class="grande-carte nuit"><div class="haut"><div class="petit-titre">Au dépôt</div><h3>Le stock de chaque box, à jour.</h3><p>Scan, arrivage, relevé. Chaque mouvement est tracé et crédite le stock.</p></div>
+          <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)"><figure class="ap-iphone" style="margin:0"><span class="ap-iphone-bouton g action"></span><span class="ap-iphone-bouton g vol1"></span><span class="ap-iphone-bouton g vol2"></span><span class="ap-iphone-bouton d marche"></span><span class="ap-iphone-bouton d photo"></span><div class="ap-iphone-corps"><div class="ap-iphone-bord"><div class="ap-iphone-ecran"><picture><source media="(prefers-color-scheme: dark)" srcset="/vitrine/captures/iphone-box-nuit.webp"><img src="/vitrine/captures/iphone-box-jour.webp" width="804" height="1748" alt="OP GESTION sur un iPhone : la fiche d'une box et ses gestes" loading="lazy" decoding="async"></picture></div></div></div></figure></div></div></div>
+      </section>
+      <section class="page" style="padding-top:90px;padding-bottom:40px"><h2 class="h2">Tout TEAM OP, en un coup d'œil.</h2><div class="teasers"><a class="teaser" href="metiers.html"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19V9Zm4 0V6.5A1.5 1.5 0 0 1 9.5 5h5A1.5 1.5 0 0 1 16 6.5V9M4 13h16"/></svg></span><b>Adapté à votre métier</b><span class="t">Anti-nuisibles, plomberie, électricité, chauffage… TEAM OP se règle sur votre métier dès la création.</span><span class="l">Page Métiers ›</span></a><a class="teaser" href="tarifs.html"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 6.5A6.5 6.5 0 1 0 17 17.5M4 10.5h9M4 13.5h9"/></svg></span><b>Des tarifs clairs</b><span class="t">Gratuit pour commencer, sans engagement. Les places s'additionnent quand l'équipe grandit.</span><span class="l">Page Tarifs ›</span></a><a class="teaser" href="pourquoi.html"><span class="tuile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg></span><b>Pourquoi TEAM OP</b><span class="t">Chiffrement AES-256, un espace par entreprise et un interlocuteur direct.</span><span class="l">Pourquoi TEAM OP ›</span></a></div></section>
+<section class="commencer" id="commencer"><div class="commencer-in"><div><h2>Prêt en trois étapes.</h2><ol>
+    <li><b>1</b><span>Créez votre compte gratuitement.</span></li><li><b>2</b><span>Demandez l'accès à une application.</span></li><li><b>3</b><span>Votre équipe travaille, tout se synchronise.</span></li></ol></div>
+    <div class="boutons"><a href="/espace.html">Créer mon compte gratuit</a><a href="/connexion.html?choix=1">Se connecter ›</a></div></div></section>
+</main>
+<footer class="pied"><div class="pied-in"><div class="cols"><div><b>Applications</b><a href="elan.html">OP GESTION</a><a href="opmessages.html">OP MESSAGES</a><a href="creer.html">Créer votre application</a><a href="applications.html">Toutes les applications</a></div><div><b>Métiers</b><a href="metiers.html#m-3d">3D — Anti-nuisibles</a><a href="metiers.html#m-plomberie">Plomberie</a><a href="metiers.html#m-electricite">Électricité</a><a href="metiers.html#m-chauffage">Chauffage / Climatisation</a><a href="metiers.html">Tous les métiers</a></div><div><b>Tarifs</b><a href="tarifs.html#elan">Tarifs OP GESTION</a><a href="tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="tarifs.html">Comparer toutes les formules</a><a href="tarifs.html#faq">Questions fréquentes</a></div><div><b>TEAM OP</b><a href="pourquoi.html#partenaire">Au service des entreprises</a><a href="pourquoi.html#engagements">Sécurité et engagements</a><a href="/espace.html">Espace client</a><a href="/connexion.html?choix=1">Se connecter</a></div></div>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Prix HT, sans engagement.</p>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="/confidentialite.html">Confidentialité</a><a href="/mentions-legales.html">Mentions légales et CGV</a><a href="mailto:support@teamop.fr">support@teamop.fr</a><span class="fin">France</span></div>
+  </div></footer>
+<script src="/vitrine/site.js" defer></script>
 </body>
 </html>

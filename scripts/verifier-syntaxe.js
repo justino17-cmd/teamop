@@ -13,7 +13,12 @@ const path = require('path');
 
 const RACINE = path.join(__dirname, '..');
 const pages = fs.readdirSync(RACINE).filter(f => f.endsWith('.html')).sort();
-const BLOC = /<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+const BLOC = /<script(?![^>]*\ssrc=)([^>]*)>([\s\S]*?)<\/script>/gi;
+/* ⛔ UN BLOC DE DONNÉES N'EST PAS DU CODE. Le 27 septembre 2026, le site « Marine » (elan.html, opmessages.html) a
+   porté les fiches de ses fonctions dans un <script type="application/json"> : passé à `new Function`, un objet JSON
+   est une erreur de syntaxe, et la CI de main serait tombée au rouge sur des pages justes. Un bloc JSON se vérifie
+   par JSON.parse — plus strict que `new Function`, qui aurait accepté un objet mal fermé dans une expression. */
+const TYPE = /\stype\s*=\s*["']?([^"'\s>]+)/i;
 
 let erreurs = 0, blocs = 0;
 for (const page of pages) {
@@ -21,7 +26,14 @@ for (const page of pages) {
   let m, n = 0;
   while ((m = BLOC.exec(html))) {
     n++; blocs++;
-    const code = m[1];
+    const type = ((TYPE.exec(m[1]) || [])[1] || '').toLowerCase(), code = m[2];
+    if (/(^|[\/+])json$/.test(type) || type === 'importmap') {
+      try { JSON.parse(code); } catch (e) {
+        erreurs++;
+        console.error('✗ ' + page + ' — bloc <script type="' + type + '"> n°' + n + ' (vers la ligne ' + html.slice(0, m.index).split('\n').length + ') : JSON illisible — ' + e.message);
+      }
+      continue;
+    }
     try { new Function(code); }
     catch (e) {
       // « await » à la racine d'un module est légitime : on retente dans un contexte async
