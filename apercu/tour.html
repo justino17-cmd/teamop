@@ -281,6 +281,9 @@ input[type=number].inp{font-variant-numeric:tabular-nums}
 .code{background:var(--inset);border-radius:var(--r-2);padding:12px 13px;font-family:var(--fm);font-size:12px;color:var(--code);white-space:pre;overflow-x:auto;line-height:1.55}
 .encart{display:flex;gap:12px;align-items:flex-start;background:var(--accBg);border-radius:var(--r-3);padding:14px 16px;margin-top:16px}
 .encart-tx{font-size:13px;color:var(--muted);line-height:1.55}
+/* v2.68 — un encart qui porte un BOUTON le pose sous sa phrase : en rangée, « ↺ Repartir à zéro pour cette
+   entreprise » tenait sur cinq lignes de 96 px à côté du texte (sonde du thème, 26 septembre 2026) */
+.encart.encart-pile{flex-direction:column;align-items:flex-start;gap:10px}
 .encart-tx b{color:var(--text2);font-weight:600}
 .expl-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:14px}
 .expl-l{display:flex;gap:9px;font-size:13px;line-height:1.55;color:var(--muted);margin-top:8px}
@@ -302,6 +305,11 @@ input[type=number].inp{font-variant-numeric:tabular-nums}
    tombait seule sur une deuxième rangée — une tuile orpheline qui casse la lecture d'un coup
    d'œil. Le défaut reste 190 px : les autres écrans ne changent pas. */
 .grille-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(var(--kpi-min,190px),1fr));gap:14px}
+/* v2.68 — SIX CHIFFRES NE SE RANGENT PAS « 5 + 1 ». En auto-fit, Entreprises posait cinq cartes sur une
+   ligne et la sixième (« à migrer ») seule dessous : un chiffre orphelin a l'air d'un oubli. Deux rangées
+   de trois ; six de front quand la page est vraiment large ; deux colonnes au téléphone (plus bas). */
+.grille-kpi.k6{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(min-width:1500px){ .grille-kpi.k6{grid-template-columns:repeat(6,minmax(0,1fr))} }
 .kpi.clic{cursor:pointer}
 .kpi.clic:hover{background:var(--hover);box-shadow:var(--ombre-2)}
 .kpi.clic:active{transform:scale(.985);transition-duration:var(--d-0)}
@@ -906,6 +914,15 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
    --dim tombe à 4,27:1 sur le fond de page en thème jour : le socle le réserve au chevron
    et au compteur de groupe. Une phrase qu'on lit passe en --muted. */
 .svl-compte{margin:0 2px 18px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* v2.68 — LE FILTRE POSÉ, UNE PIÈCE POUR TOUTE LA TOUR : ce qu'une tuile ou un affinage a retenu, dit en
+   clair, et qui se retire d'un toucher (« Nouveau seulement ✕ », « avec des échecs de connexion ✕ »).
+   Entreprises avait son petit bouton fantôme, la Surveillance le sien : même idée, un seul dessin. */
+.filtre-pose{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;min-height:30px;border:0;
+  border-radius:var(--r-pill);background:var(--accBg);color:var(--acc-txt);font:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;vertical-align:middle}
+.filtre-pose:hover{filter:brightness(.97)}
+.svl-compte .filtre-pose{margin-left:10px}
+@media(pointer:coarse),(max-width:760px){ .filtre-pose{min-height:44px;padding:0 14px} }
 .svl-sous{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45}
 /* La légende n'ouvre plus l'écran : elle le referme. */
 .svl-legende{margin-top:32px}
@@ -1162,13 +1179,31 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
 .eqp-deux>.col-detail{flex:1 1 330px}
 .eqp-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:14px}
 .eqp-note b{color:var(--text2);font-weight:600}
+/* v2.68 — C'EST LA LARGEUR DE LA LISTE QUI DÉCIDE, PAS CELLE DE L'ÉCRAN (CLAUDE.md). Au bureau la colonne
+   fait ~550 px, et les quatre commandes d'une ligne (GESTION, MESSAGES, Couper l'accès, Supprimer) y
+   laissaient 40 px au nom : « S. », « C. », « d.. » (capture de la sonde du thème, 26 septembre 2026).
+   Les commandes passent TOUJOURS sous le texte, alignées sur lui ; au téléphone elles s'étirent (plus bas). */
+/* row-gap:0 — l'écart de colonnes (12 px) valait aussi entre les rangées : 22 px entre le nom et ses commandes (mesuré) */
+.reg-l.eqp-l{flex-wrap:wrap;row-gap:0}
+.reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:6px;padding-left:44px}
+/* v2.68 — LES COMPTES D'UNE ENTREPRISE, DANS SA FICHE : la même règle. La fiche range ses cartes sur deux
+   colonnes d'environ 485 px ; les pastilles d'état et les deux commandes (Mot de passe, Supprimer) — un
+   .reg-fin qui ne rétrécit jamais — laissaient 13 px à l'identifiant : « t o m », une lettre par ligne
+   (sonde du thème, textes écrasés, 26 septembre 2026). Les pastilles et les commandes passent dessous. */
+/* L'écart de COLONNES de la ligne (12 px) vaut aussi entre ses RANGÉES une fois repliée : sans row-gap:0,
+   20 px de vide séparaient le nom de ses commandes (mesuré). Les pastilles à gauche, les commandes à
+   droite, et sur une rangée à elles quand la place manque — jamais « Supprimer » seul sous le reste. */
+.reg-l.cpt-l{flex-wrap:wrap;row-gap:0}
+.reg-l.cpt-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:2px;row-gap:4px}
+.reg-l.cpt-l .reg-alertes{max-width:none;justify-content:flex-start}
+.reg-l.cpt-l .cpt-act{display:flex;gap:6px;margin-left:auto}
 
 @media(max-width:640px){
   .eqp-deux>.col-liste,.eqp-deux>.col-detail{flex-basis:100%}
   /* Les deux actions passent sous le texte, une par rangée : à 390 px, « Supprimer » collé à
      « Couper l'accès » est le montage qui produit les erreurs de doigt. */
-  .reg-l.eqp-l{flex-wrap:wrap}
-  .reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:10px;padding-left:46px}
+  .reg-l.eqp-l{flex-wrap:wrap;row-gap:0}
+  .reg-l.eqp-l .reg-fin{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;margin-top:6px;padding-left:44px}
   .reg-l.eqp-l .eqp-actions{flex:1;min-width:0}
   .reg-l.eqp-l .eqp-act{flex:1;min-width:0}
 }
@@ -1796,6 +1831,19 @@ body.plans .reg-l.cli::before{display:none}
 .item:hover{background:var(--hover);transform:none;box-shadow:none}
 .item.on{background:var(--sel);box-shadow:inset 3px 0 0 var(--app)}
 .col-liste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
+/* ⛔ v2.68 — UN EN-TÊTE COLLANT DANS UNE COLONNE À BORDS ARRONDIS SE POSE PAR-DESSUS SA PREMIÈRE LIGNE.
+   `overflow:hidden` fait de .col-liste le conteneur du collage, et au bureau `.reg-tete{top:48px}` (le
+   dégagement de la barre du haut, qui vaut pour la PAGE) le poussait 48 px plus bas, fond compris : sur
+   Équipe, « Accès ouverts » recouvrait la ligne du patron sans qu'on ait rien fait défiler. Le jumeau
+   de `.mail-rows .reg-tete{top:0}` (14 septembre). Ces listes sont courtes : on ne colle pas. */
+.col-liste .reg-tete{position:relative;top:auto}
+/* v2.68 — DANS UNE COLONNE-CARTE, LE TITRE D'UN GROUPE S'ALIGNE SUR SES LIGNES. Les lignes ont 16 px de
+   retrait, le titre 4 : dans Accès et Équipe il touchait le bord de la carte, et « Ouvrir un accès bêta »
+   s'y collait coin contre coin (capture de la sonde du thème, 26 septembre 2026). */
+.col-liste>.reg{padding:14px 0 6px}
+.col-liste .reg-tete{padding-left:16px}
+.col-liste .ac-tete{margin:0 0 12px;padding:0 16px}
+.col-liste .ac-tete>.reg-tete{padding-left:0}
 
 /* ── MOUVEMENT : la bascule d'application glisse ; une seule orchestration ── */
 .tab.on,.btn-plein,.hava,.reg-av,.tab-indic,.kpi .bars i:last-child,.app-sw button,.app-pill,.bb.on{transition:background-color var(--d-2) var(--e-sortie),color var(--d-2) var(--e-sortie),box-shadow var(--d-2) var(--e-sortie)}
@@ -1873,6 +1921,8 @@ body.plans .reg-l.cli::before{display:none}
   /* au téléphone, la phrase d'en-tête se replie sur deux lignes et les actions se rangent sur une rangée :
      la liste d'Entreprises commençait à 1 400 px — trois écrans de préambule avant le travail */
   .desc{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* v2.68 — …et un toucher la déplie (descDeplier) : sa fin ne se lisait nulle part au téléphone */
+  .desc.ouverte{display:block;-webkit-line-clamp:unset;overflow:visible}
   .page-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px} .page-act .btn-plein,.page-act .btn-fant{flex:1 1 auto;justify-content:center;font-size:13px}
   .grille-kpi.simple .kpi{padding:10px 12px} .grille-kpi.simple .kpi .n{font-size:20px} .grille-kpi.simple .kpi .l{font-size:11px}
   .reg-l2{font-size:14px} .reg-l3{font-size:13px}
@@ -2330,7 +2380,8 @@ body.jour .carte,body.jour .kpi,body.jour .tbl,body.jour .item,body.jour .reg-cl
 body.jour .lg-carte,body.jour .vide,body.jour .encart,body.jour .groupe,body.jour .tt-carte{border-color:rgba(0,0,0,0);-webkit-backdrop-filter:none;backdrop-filter:none}
 /* UNE vitre, pas deux : une liste posée DANS une carte ne s'empile pas en second verre (deux blancs à
    8 % font 16 %, et le texte secondaire y tombait à 4,3:1, mesuré au pixel). Elle devient un creux
-   bordé d'un filet, jour comme nuit. */
+   bordé d'un filet (de nuit : de jour, `body.jour` efface toutes les bordures). v2.68 : la LISTE (.reg-bloc)
+   n'en a plus du tout — voir « CHAQUE TEXTE SUR SA COLONNE », 17. */
 .carte .reg-bloc,.carte .reg-cli,.carte .reg-haut,.carte .item,.carte .tbl,.carte .vide,.carte .squel-l,
 #tour-panneau .reg-bloc,#tour-panneau .item,#tour-panneau .vide,.mail .reg-bloc,.mail .reg-cli,.mail .vide{
   background:rgba(0,0,0,0);box-shadow:none;border:1px solid var(--hairline);-webkit-backdrop-filter:none;backdrop-filter:none}
@@ -2518,6 +2569,7 @@ body.jour .kpi.clic:hover{filter:brightness(.98)}
 body.jour .kpi.sel{box-shadow:inset 0 0 0 2px var(--acc)}
 @media(max-width:760px){
   .grille-kpi,.grille-kpi.simple{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .grille-kpi.k6{grid-template-columns:repeat(2,minmax(0,1fr))}
   .kpi .n{font-size:26px}
 }
 
@@ -2625,6 +2677,128 @@ body.jour #toast{background:rgba(255,255,255,.92)}
   .bb-cur{transition:opacity .15s ease!important} .barre-bas.tire .bb-cur{scale:1}
   .bb:active,.btn-plein:active,.btn-fant:active,.pill-act:active{transform:none!important}
 }
+
+/* ── CHAQUE TEXTE SUR SA COLONNE — v2.68, 26 septembre 2026 au soir ──────────────────────────────────────
+   Justin, au téléphone : « il y a beaucoup de décalage d'écriture ». Relevé vue par vue, de haut en bas
+   (scratchpad/sonde-tour-telephone.js : filets aux marges, départ de chaque texte), puis demandé au
+   navigateur QUELLE règle posait chaque décalage (scratchpad/sonde-regles.js) — rien n'est deviné ici.
+   La règle qui en sort : une page a UNE colonne de texte, au bord de la page ; une carte en a UNE, au bord
+   de son contenu. Ce qui en sortait de 2 à 17 px sans rien signifier y revient. */
+
+/* 1 · En défilant, le titre de la page entrait dans l'en-tête… PAR-DESSUS « GESTION » : les deux textes
+       se chevauchaient, sur toutes les pages. L'identité et la pastille d'application s'effacent tant que le
+       titre est là (l'interrupteur reste dans la feuille, sous l'avatar), et il prend la place entre le logo
+       et l'avatar. Aucune boîte ne bouge : on change l'opacité, pas la mise en page. */
+@media(max-width:899px){
+  .hnom,.app-pill{transition:opacity var(--d-2) var(--e-sortie)}
+  body.titre-cache .hnom,body.titre-cache .app-pill{opacity:0;pointer-events:none}
+  .titre-court{max-width:calc(100% - 140px)}
+}
+
+/* 2 · Titres de groupe (« Urgent », « Clientes »…) : la bande collée gardait 4 px de retrait intérieur, et le
+       titre partait 4 px après tout le reste. Au téléphone il ne colle plus — sa phrase le suit, et la bande
+       qui portait les deux couvrait jusqu'au tiers de l'écran en défilant (Journal, Sauvegardes) — et il part
+       du bord de la page. Au bureau la bande colle encore : c'est elle qui déborde de 4 px, le TEXTE part du
+       bord. Dans une carte (Courrier, Équipe), ni bande ni collage : le titre y était un pavé gris. */
+.col-liste .reg-tete{background:rgba(0,0,0,0);-webkit-backdrop-filter:none;backdrop-filter:none}
+@media(max-width:899px){
+  .reg-tete{position:relative;top:auto;background:rgba(0,0,0,0);-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:0;padding-left:0}
+  .col-liste .reg-tete{padding-left:16px}
+}
+@media(min-width:900px){
+  .reg-tete{margin-left:-4px}
+  .carte .reg-tete,.col-liste .reg-tete{margin-left:0}
+}
+@media(prefers-reduced-transparency:reduce){
+  body.jour .col-liste .reg-tete,body:not(.jour) .col-liste .reg-tete{background:rgba(0,0,0,0)!important}
+}
+@media(max-width:899px) and (prefers-reduced-transparency:reduce){
+  body.jour .reg-tete,body:not(.jour) .reg-tete{background:rgba(0,0,0,0)!important}
+}
+
+/* 3 · Les lignes de compte et les notes de bas de liste (dont le pied du Journal, trouvé au bureau) avaient 2 px de
+       retrait (18 au lieu de 16) */
+.svl-compte{margin-left:0;margin-right:0}
+.jr-vide,.jr-fin,.abn-tete-code{padding-left:0;padding-right:0}
+
+/* 4 · Un lien posé en bas d'une liste (« Ouvrir le journal → ») : son TEXTE part de la colonne, et son fond,
+       au survol, déborde de la même façon que celui d'une ligne. */
+.ac-plus{margin-left:-14px}
+
+/* 5 · Activité de la console : l'heure et le texte sont deux COLONNES. Une ligne longue passait sous l'heure
+       et cassait la colonne des autres. */
+.ac-jr>div{padding-left:0;padding-right:0}
+@media(max-width:899px){
+  .ac-jr>div{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px;align-items:baseline}
+}
+
+/* 6 · « Le suivi » : les pastilles n'ont pas la même largeur, et chaque phrase partait donc ailleurs ;
+       « Corrigé » s'étirait sur la hauteur de la sienne. Deux colonnes, alignées sur la première ligne. */
+.expl-suivi{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:10px;row-gap:8px;margin-top:8px;align-items:baseline}
+.expl-suivi>.expl-l{display:contents}
+.expl-suivi .past{justify-self:start}
+
+/* 7 · Derniers paiements : la date passait sur deux lignes (« 8 sept. » / « 2026 ») dans ses 78 px ; tenue
+       sur une ligne sans largeur fixe, c'est le NOM qui partait ailleurs à chaque date (« 8 sept. » contre
+       « 10 juil. »). Une colonne de treize chiffres : la plus longue date, sans coupure. */
+.abn-j .d{flex:0 0 13ch;white-space:nowrap}
+
+/* 8 · Au téléphone, une carte à 24 px posée entre des cartes à 16 décalait son texte de 8 px par rapport à
+       ses voisines (et mangeait 16 px de largeur utile) : toutes les cartes ont 16. */
+@media(max-width:899px){ .carte.p24{padding:16px} }
+
+/* 9 · Dans une carte, une liste sans cadre (les utilisateurs, les comptes du site, l'activité récente, les
+       entreprises touchées) : ses lignes gardaient leur propre retrait de 16 px, ajouté à celui de la carte —
+       le texte partait 17 px après le titre de sa section. Idem pour « Son espace » (10 px) et les chiffres
+       de « Ce qui se passe chez eux » (9 px : leur fond de bouton déborde, le chiffre est sur la colonne). */
+.carte .reg-bloc>.reg-l.inerte{padding-left:0;padding-right:0}
+.carte .reg-bloc>.reg-l.inerte+.reg-l.inerte::before{left:0;right:0}
+.sous-sec>.item{padding-left:0;padding-right:0}
+.dsr-rang{margin-left:-9px}
+
+/* 10 · Au téléphone, « libellé : valeur » sur deux colonnes coupait les libellés (« OP / MESSAGES »,
+        « Identifiant de / départ ») et les adresses dans la valeur. Le libellé passe AU-DESSUS. */
+@media(max-width:600px){
+  .kv>div{grid-template-columns:minmax(0,1fr);row-gap:2px}
+  .kv .k{font-size:12.5px}
+}
+
+/* 11 · Équipe : « Couper l'accès » sortait de la carte, coupé au bord (quatre boutons sur une rangée qui
+        ne passe pas à la ligne) ; et « Compte fixe » partait 2 px après le nom — au bureau aussi : la colonne
+        des gestes (46 px) datait d'un avatar de 34 px, il en fait 32 (+ 12 d'écart = 44, posé là où la règle
+        naît). Deux par rangée au téléphone, sous le nom. */
+.reg-l.eqp-l .reg-fin{min-width:0}
+@media(max-width:899px){
+  .reg-l.eqp-l .eqp-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+}
+
+/* 12 · Journal : au doigt, la pastille et l'heure passent sous le texte ; elles partaient sous l'ICÔNE,
+        42 px avant le texte qu'elles complètent. */
+@media(max-width:640px){ .reg-l.inerte.jr-l>.reg-fin{padding-left:42px} }
+
+/* 13 · Les menus déroulants avaient perdu leur chevron : `.inp,.sel-f{background:…}` (raccourci) effaçait
+        l'image posée plus haut — une moitié de règle survivait à l'autre. Sans lui, un menu est un rectangle
+        gris qu'on ne sait pas toucher. */
+select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;background-size:16px 16px}
+@media(max-width:900px){ select.sel-f{background-position:right 10px center} }
+
+/* 14 · Deux encadrés empilés dans le dossier d'un problème : « Ce que ça veut dire » part à 16 px de son
+        bord, la barre « Suivi » partait à 10 — 6 px d'écart d'un cadre à l'autre. */
+.barre-act{padding-left:16px;padding-right:16px}
+
+/* 15 · Courrier au téléphone : le titre d'un groupe collait au bord de la carte blanche, ses lignes partent
+        16 px plus loin (plus le filet de 1 px de la liste) — le titre les suit. */
+@media(max-width:899px){ .mail-rows .reg-tete{padding-left:17px} }
+
+/* 16 · « En un coup d'œil » : le filet entre deux lignes partait 4 px AVANT leur texte (12 contre 16). */
+.ac-aside .reg-bloc>.reg-l+.reg-l::before{left:16px}
+
+/* 17 · (mesuré de NUIT, relecture de ce passage) Une liste posée dans une carte : de jour, son cadre n'existe pas
+        (`body.jour …{border-color:…0}` efface toutes les bordures) ; de nuit il gardait un filet blanc à 8 %, et
+        ses lignes, posées sur la colonne de la carte (9), touchaient ce cadre. La liste n'a de cadre ni de jour ni
+        de nuit — ses lignes restent séparées par leurs filets — et son bord invisible ne décale plus le texte d'un
+        pixel. Une ligne CLIQUABLE dans une carte garderait ses 16 px (le fond de survol a besoin de sa marge). */
+.carte .reg-bloc{border-width:0}
 </style>
 </head>
 <body>
@@ -2653,7 +2827,7 @@ body.jour #toast{background:rgba(255,255,255,.92)}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.67</div>
+    <div class="lg-pied">console interne · v2.68</div>
   </div>
 </div>
 
@@ -2692,7 +2866,7 @@ body.jour #toast{background:rgba(255,255,255,.92)}
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.67</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.68</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2704,7 +2878,7 @@ body.jour #toast{background:rgba(255,255,255,.92)}
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.67</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.68</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2732,12 +2906,41 @@ var MYAPPS=['gestion'], APP='gestion';
 var APPS_TOUR={
   gestion:{cle:'gestion',nom:'OP GESTION',court:'GESTION',tags:['opgestion','elan','elan-gestion','elangestion','espace','stripe','inconnue','autre','']},
   messages:{cle:'messages',nom:'OP MESSAGES',court:'MESSAGES',tags:['opmessages','opmsg','messages']} };
-/* VUES oubliait 'connexions' alors que renderTabs le dessinait : #connexions ne marchait pas. */
-var VUES_PAR_APP={
-  gestion:['accueil','surveillance','support','entreprises','connexions','abonnements','devisia','essais','donnees','equipe','journal'],
-  messages:['accueil','surveillance','entreprises','support','equipe','journal'] };
-function vues(){ return VUES_PAR_APP[APP]||VUES_PAR_APP.gestion; }
-var VUES=VUES_PAR_APP.gestion;   /* compatibilité : quelques lecteurs l'utilisent encore */
+/* ══ LE MENU — les CATÉGORIES de la Tour (v2.68). Justin, 26 septembre 2026 : « range tout bien comme il
+   faut, que ce soit bien organisé — toutes les catégories et sous-catégories — je veux un truc pro ».
+   La maquette « TeamOp Tour HIG » rangeait par FORME (Gestion, Facturation, Système) et trois vues
+   tombaient à côté : le Courrier dans « Facturation », les Accès dans « Gestion », les Sauvegardes
+   sous un nom (« Données ») qui ne disait pas ce qu'on y fait. On range par SUJET, comme une console
+   professionnelle : ce qui concerne les CLIENTS, ce qui REMONTE d'eux (Support), et ce qui fait
+   tourner la maison (Administration).
+   UNE table, et tous ses lecteurs : la barre latérale, la barre du bas, la feuille « Plus », le fil
+   d'Ariane, le titre de chaque page (enTete relit vueInfo) et la liste des vues d'une console
+   (VUES_PAR_APP en est DÉDUITE : elle en était une copie tenue à la main, qui avait déjà oublié
+   « connexions » une fois et divergeait d'ordre). ⛔ UN NOM PAR VUE, partout : « Support » au menu et
+   « Courrier » en titre, « Comptes & accès » au menu et « Accès » dans la barre, c'était deux écrans
+   pour qui lit. La barre du bas n'a le droit qu'à une ABRÉVIATION du même mot (BAS_LIB).
+   Chaque vue qui existait est rangée ici, aucune n'est retirée ; la bêta vit toujours DANS « Accès »,
+   à côté de la version publique : deux portes qui ne doivent jamais se voir l'une sans l'autre
+   (vueEssais, reg-g-fixe). La console MESSAGES ne dessine pas Devis IA, Connexions, Abonnements,
+   Sauvegardes ni Accès — ils n'y ont rien à montrer (REPRISE.md, « une console par application »).
+   Colonnes : [clé, nom, consoles, compteur?]. */
+var MENU=[
+  {section:'Tour',vues:[['accueil','Accueil','gestion messages']]},
+  {section:'Clients',vues:[['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion'],
+    ['connexions','Connexions','gestion'],['devisia','Devis IA','gestion']]},
+  {section:'Support',vues:[['surveillance','Surveillance','gestion messages','bdg-surv'],['support','Courrier','gestion messages','bdg-supp']]},
+  {section:'Administration',vues:[['essais','Accès','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal','gestion messages'],['donnees','Sauvegardes','gestion']]}
+];
+/* ⛔ CE QUI EST AU PATRON SEUL, ET LE SERVEUR LE DIT AUSSI : Accès, Équipe, Journal et Sauvegardes
+   répondent « Réservé au patron » à tout autre compte (monPatronStrict). Le Journal et les Sauvegardes
+   restaient pourtant au menu d'un collaborateur, pour n'y montrer qu'un refus ; et une adresse tapée à
+   la main (#gestion/equipe) ouvrait un écran retiré du menu. La liste sert au menu ET à la navigation. */
+var PATRON_SEUL=['essais','equipe','journal','donnees'];
+function vuePermise(t){ return PATRON_SEUL.indexOf(t)<0||MYROLE==='patron'; }
+function vuesDe(app){ var l=[]; MENU.forEach(function(g){ g.vues.forEach(function(x){ if((x[2]||'').split(' ').indexOf(app)>=0) l.push(x[0]); }); }); return l; }
+var VUES_PAR_APP={gestion:vuesDe('gestion'),messages:vuesDe('messages')};
+/* les vues de la console ouverte que CE compte peut ouvrir — c'est la porte de setTab */
+function vues(){ return (VUES_PAR_APP[APP]||VUES_PAR_APP.gestion).filter(vuePermise); }
 /* À quelle console appartient un tag d'incident, de connexion… 'espace' et 'stripe' sont communs. */
 function appDe(code){ code=String(code||'').toLowerCase();
   if(APPS_TOUR.messages.tags.indexOf(code)>=0) return 'messages';
@@ -2783,7 +2986,7 @@ function setApp(app,sansAnim,tabVoulu){
 /* La cellule INACTIVE de l'interrupteur porte le compteur d'incidents ouverts de l'autre console. */
 function majCompteursApp(){
   var n={gestion:0,messages:0};
-  try{ (INC.list||[]).filter(function(i){ return i.statut==='nouveau'||i.statut==='encours'; }).forEach(function(i){ var a=appDe(i.app); if(a==='*') a='gestion'; n[a]++; }); }catch(e){}
+  try{ (INC.list||[]).filter(function(i){ var st=i.statut||'nouveau'; return st==='nouveau'||st==='encours'; }).forEach(function(i){ var a=appDe(i.app); if(a==='*') a='gestion'; n[a]++; }); }catch(e){}
   ['gestion','messages'].forEach(function(a){ var el=$('app-n-'+a); if(!el) return; el.textContent=n[a]; el.hidden=!n[a]; });
   var sw=$('app-sw'); if(sw) sw.hidden=!(MYAPPS.length>1);
   var pill=$('app-pill'); if(pill) pill.classList.toggle('seul',!(MYAPPS.length>1));
@@ -2799,6 +3002,10 @@ function poserApps(liste){
 var INJOIGNABLE='Serveur injoignable — nouvelle tentative dans un instant.';
 
 function $(i){ return document.getElementById(i); }
+/* v2.68 — un nombre et son mot, accordés : « 1 problème », « 3 problèmes », et « 0 problème » (zéro et un
+   sont au singulier). La console écrivait « problème(s) classé(s) » : un outil qu'on veut propre ne fait
+   pas lire la grammaire au patron. test-830 refuse tout « (s) » écrit dans une chaîne. */
+function nMot(n,un,plusieurs){ n=+n||0; return n+' '+(n>1?plusieurs:un); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 /* jsq sert UNIQUEMENT à poser une valeur dans une chaîne JavaScript écrite à l'intérieur d'un
    attribut HTML (onclick="…('ICI')"). Elle n'échappait que l'antislash et l'apostrophe : un
@@ -2925,7 +3132,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.67';
+var TOUR_VERSION='v2.68';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -2968,6 +3175,8 @@ function entrer(){
      prochaine connexion. Un serveur d'avant répond 404 : on garde ce qu'on a. */
   apiGet('/api/monitor/moi').then(function(d){ if(!d||!d.apps) return;
     var avant=MYAPPS.join('+'); poserApps(d.apps); if(d.role) MYROLE=d.role;
+    /* v2.68 : un rôle relu qui n'a plus droit à l'écran ouvert (Accès, Équipe, Journal, Sauvegardes) en sort */
+    if(!vuePermise(TAB)){ renderTabs(); setTab('accueil',true); }
     if(MYAPPS.join('+')!==avant){ try{ (localStorage.getItem('tour_token')?localStorage:sessionStorage).setItem('tour_apps',JSON.stringify(MYAPPS)); }catch(e){}
       if(MYAPPS.indexOf(APP)<0) setApp(MYAPPS[0],true); else { renderTabs(); majCompteursApp(); } }
   }).catch(function(){});
@@ -3042,28 +3251,10 @@ function squelListe(n){
   return '<div class="squel-l" aria-hidden="true">'+h+'</div>';
 }
 
-/* ══ LE MENU — la structure de la maquette validée par Justin (« TeamOp Tour HIG », 26 septembre
-   2026) : Tour · Gestion · Facturation · Système. UNE table, et cinq lecteurs — la barre latérale,
-   la barre du bas, la feuille « Plus », l'en-tête des vues, la barre du haut. Un libellé changé ici
-   change partout ; deux listes auraient fini par se contredire (c'est ce qui était arrivé à VUES,
-   qui oubliait « connexions » pendant que la barre la dessinait).
-   Chaque vue qui existait est rangée ici, aucune n'est retirée. La maquette montre aussi « Bêta » et
-   « Réglages » : la Tour n'a pas d'écran Réglages — on n'en fabrique pas un vide — et la bêta vit
-   DANS « Comptes & accès », à côté de la version publique : ce sont deux portes qui ne doivent
-   jamais se voir l'une sans l'autre (vueEssais, reg-g-fixe).
-   La console MESSAGES ne dessine pas Devis IA, Connexions, Abonnements, Données ni Accès — ils n'ont
-   rien à y montrer aujourd'hui (REPRISE.md, « une console par application »). */
-var MENU=[
-  {section:'Tour',vues:[['accueil','Tableau de bord','gestion messages']]},
-  {section:'Gestion',vues:[['surveillance','Surveillance','gestion messages','bdg-surv'],['entreprises','Entreprises','gestion messages'],
-    ['connexions','Connexions clients','gestion'],['essais','Comptes & accès','gestion']]},
-  {section:'Facturation',vues:[['abonnements','Abonnements','gestion'],['devisia','Devis IA','gestion'],['support','Support','gestion messages','bdg-supp']]},
-  {section:'Système',vues:[['donnees','Données','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal','gestion messages']]}
-];
-/* Ce que CE compte voit dans CETTE console : Équipe et Accès restent au patron, comme avant. */
+/* Ce que CE compte voit dans CETTE console : ce qui est au patron (PATRON_SEUL) lui reste. */
 function menuVisible(){
   return MENU.map(function(g){ return {section:g.section,vues:g.vues.filter(function(x){
-      if((x[0]==='equipe'||x[0]==='essais')&&MYROLE!=='patron') return false;
+      if(!vuePermise(x[0])) return false;
       return (x[2]||'').split(' ').indexOf(APP)>=0; })}; })
     .filter(function(g){ return g.vues.length; });
 }
@@ -3078,9 +3269,9 @@ function renderTabs(){
      destination ne dit jamais un état. */
   var h='';
   menuVisible().forEach(function(g){
-    h+='<div class="grp"><i></i><span>'+g.section+'</span></div>';
+    h+='<div class="grp"><i></i><span>'+esc(g.section)+'</span></div>';
     g.vues.forEach(function(x){
-      h+='<button class="tab" data-t="'+x[0]+'" data-apps="'+x[2]+'" onclick="setTab(\''+x[0]+'\')" title="'+x[1]+'"><i class="ic">'+svg(x[0],13)+'</i><span class="lib">'+x[1]+'</span>'+
+      h+='<button class="tab" data-t="'+x[0]+'" data-apps="'+x[2]+'" onclick="setTab(\''+x[0]+'\')" title="'+esc(x[1])+'"><i class="ic">'+svg(x[0],13)+'</i><span class="lib">'+esc(x[1])+'</span>'+
          (x[3]?'<span class="'+(x[0]==='surveillance'?'bdg-r':'bdg-b')+'" id="'+x[3]+'">0</span>':'')+'</button>';
     });
   });
@@ -3115,7 +3306,7 @@ var BAS=BAS_DEFAUT.slice(0,BAS_MAX);
 /* Un nom qui tient sous l'icône, dans une colonne d'une soixantaine de pixels. Le nom COMPLET reste
    dans `aria-label` : un lecteur d'écran ne lit pas des abréviations. */
 var BAS_LIB={accueil:'Accueil',surveillance:'Surveill.',entreprises:'Entreprises',connexions:'Connexions',essais:'Accès',
-  abonnements:'Abonn.',devisia:'Devis IA',support:'Courrier',donnees:'Données',equipe:'Équipe',journal:'Journal'};
+  abonnements:'Abonn.',devisia:'Devis IA',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal'};
 /* Les vues que CE compte voit dans CETTE console, à plat, dans l'ordre du menu, avec leur compteur. */
 function barreDispo(){
   var l=[]; menuVisible().forEach(function(g){ g.vues.forEach(function(x){ l.push({t:x[0],lib:x[1],bdg:x[3]||''}); }); });
@@ -3414,8 +3605,8 @@ function ouvrirFeuille(quoi){
        '<p class="barre-aide">Touche les vues dans l’ordre où tu les veux. « Plus » reste au bout, avec tout le reste.</p>'+
        '<div class="barre-compte" id="barre-compte" aria-live="polite"></div>';
     menuVisible().forEach(function(g){
-      h+='<div class="feuille-sec">'+g.section+'</div><div class="groupe">'+g.vues.map(function(x){
-        return '<button type="button" data-barre="'+x[0]+'" data-lib="'+esc(x[1])+'" aria-pressed="false" onclick="barreBascule(\''+x[0]+'\')"><span class="ic">'+svg(x[0],16)+'</span>'+x[1]+
+      h+='<div class="feuille-sec">'+esc(g.section)+'</div><div class="groupe">'+g.vues.map(function(x){
+        return '<button type="button" data-barre="'+x[0]+'" data-lib="'+esc(x[1])+'" aria-pressed="false" onclick="barreBascule(\''+x[0]+'\')"><span class="ic">'+svg(x[0],16)+'</span>'+esc(x[1])+
           '<span class="rang" aria-hidden="true"></span></button>'; }).join('')+'</div>';
     });
     h+='<div class="barre-pied"><button type="button" class="btn-fant" onclick="barreDefaut()">Réinitialiser</button><button type="button" class="btn-plein" onclick="barreValider()">Enregistrer</button></div>';
@@ -3423,9 +3614,9 @@ function ouvrirFeuille(quoi){
     h+='<div class="feuille-tete"><img src="icons/teamop-192.png" alt="" width="32" height="32"><div><b>La Tour</b><span>Toutes les vues · '+esc(APPS_TOUR[APP].nom)+'</span></div></div>';
     if(MYAPPS.length>1) h+='<div class="app-sw" role="group" aria-label="Application pilotée">'+['gestion','messages'].map(function(a){ return '<button type="button" data-app="'+a+'" aria-pressed="'+(a===APP)+'" onclick="setApp(\''+a+'\');fermerFeuille()"><i style="--c:'+APP_TEINTE[a]+'"></i>'+APPS_TOUR[a].court+'</button>'; }).join('')+'</div>';
     menuVisible().forEach(function(g){
-      h+='<div class="feuille-sec">'+g.section+'</div><div class="groupe">'+g.vues.map(function(x){
+      h+='<div class="feuille-sec">'+esc(g.section)+'</div><div class="groupe">'+g.vues.map(function(x){
         var bd=x[3]?$(x[3]):null, n=bd&&bd.style.display!=='none'?(+bd.textContent||0):0;
-        return '<button type="button" data-t="'+x[0]+'" class="'+(x[0]===TAB?'on':'')+'"'+(x[0]===TAB?' aria-current="page"':'')+' onclick="setTab(\''+x[0]+'\');fermerFeuille()"><span class="ic">'+svg(x[0],16)+'</span>'+x[1]+
+        return '<button type="button" data-t="'+x[0]+'" class="'+(x[0]===TAB?'on':'')+'"'+(x[0]===TAB?' aria-current="page"':'')+' onclick="setTab(\''+x[0]+'\');fermerFeuille()"><span class="ic">'+svg(x[0],16)+'</span>'+esc(x[1])+
           (n?'<span class="bdg-r" style="display:inline-block;margin-left:auto">'+n+'</span>':'')+'<span class="chev"'+(n?' style="margin-left:8px"':'')+'>›</span></button>'; }).join('')+'</div>';
     });
     /* l'appui long sur la barre ne se devine pas : le réglage a aussi sa porte, là où on cherche tout */
@@ -3466,7 +3657,12 @@ document.addEventListener('pointercancel',function(){ _feuilleLacher(true); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var f=$('feuille'); if(f&&!f.hidden) fermerFeuille(); } });
 /* Le titre court apparaît dans l'en-tête quand le grand titre sort de l'écran (opacité seule). */
 var _obsTitre=null;
-function observerTitre(){ try{ if(_obsTitre) _obsTitre.disconnect(); var t=document.querySelector('#vue .ttl-page'); var c=$('titre-court'); if(!t||!c) return;
+/* v2.68 — la page qu'on quitte ne laisse plus son état dans l'en-tête : la classe restait posée, et
+   l'en-tête d'un dossier gardait le titre de la liste d'où l'on venait. Une fiche a son titre à elle
+   (le nom de l'entreprise, le titre du dossier) : c'est lui qui monte quand il sort de l'écran. */
+function observerTitre(){ try{ if(_obsTitre) _obsTitre.disconnect(); _obsTitre=null; document.body.classList.remove('titre-cache');
+  var t=document.querySelector('#vue .ttl-page')||document.querySelector('#vue .fiche-nom')||document.querySelector('#vue .inc-titre');
+  var c=$('titre-court'); if(c) c.textContent=''; if(!t||!c) return;
   c.textContent=(t.textContent||'').trim();
   _obsTitre=new IntersectionObserver(function(en){ document.body.classList.toggle('titre-cache',!en[0].isIntersecting); },{rootMargin:'-56px 0px 0px 0px'});
   _obsTitre.observe(t); }catch(e){} }
@@ -3740,11 +3936,13 @@ function entZeroCompteurs(poser){
 function incToutIgnorer(){
   var n=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
   if(!n){ toast('Rien à classer'); return; }
-  if(!confirm('Remettre Surveillance à zéro ?\n\n'+n+' problème(s) passent en « ignoré ». Rien n’est effacé — ils restent consultables, et un problème qui se reproduit reviendra de lui-même en « nouveau ». Aucun courriel n’est envoyé aux clients.')) return;
+  /* v2.68 — le serveur classe ceux de TOUTES les consoles du compte : la question le dit. */
+  var deux=MYAPPS.length>1;
+  if(!confirm('Remettre Surveillance à zéro ?\n\n'+n+(n>1?' problèmes passent':' problème passe')+' en « ignoré »'+(deux?', dans les deux consoles (OP GESTION et OP MESSAGES)':'')+'. Rien n’est effacé — ils restent consultables, et un problème qui se reproduit reviendra de lui-même en « nouveau ». Aucun courriel n’est envoyé aux clients.')) return;
   apiPost('/api/monitor/issues/tout-ignorer',{}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
-    toast((r.d.classes||0)+' problème(s) classé(s)');
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a remis Surveillance à zéro ('+(r.d.classes||0)+' problème(s))'});
+    toast(nMot(r.d.classes,'problème classé','problèmes classés'));
+    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a remis Surveillance à zéro ('+nMot(r.d.classes,'problème','problèmes')+')'});
     chargerIncidents();
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -3753,6 +3951,9 @@ function entQ(v){ ENT.q=v; rafraichirSiConcerne(); }
    de cet ecran, donc il doit etre reversible sans chercher un bouton « tout voir »
    ailleurs. La selection en cours est conservee : on filtre ce qu'on regarde, on ne
    perd pas la fiche ouverte. */
+/* ce qu'un filtre d'Entreprises retient, dit en clair — chaque tuile qui filtre y a sa phrase (test-829) */
+var ENT_FILTRE_LIB={erreurs:'avec des erreurs',echecs:'avec des échecs de connexion',retard:'sans la dernière mise à jour',
+  horsAnnuaire:'hors annuaire',migrer:'à migrer (clé partagée)'};
 function entFiltre(f){ ENT.filtre=(ENT.filtre===f?'':f); rafraichirSiConcerne(); }
 /* Un segment POSE son filtre (le retoucher ne le retire pas : c'est le segment « Toutes » qui le fait). */
 function entFiltrePoser(f){ ENT.filtre=f||''; rafraichirSiConcerne(); }
@@ -3905,7 +4106,9 @@ function rafraichirSiConcerne(){
   /* 'abonnements' manquait : les codes promo arrivaient dans PRO sans que l'écran qui les
      affiche soit redessiné. */
   /* l'accueil aussi : ses compteurs (clientes, ouvertes à OP MESSAGES) lisent la liste des entreprises */
-  try{ if(TAB==='essais') renderVue('essais'); else if(TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}
+  /* v2.68 (relecture) — renderVue attend l'ÉLÉMENT de la vue : renderVue('essais') jetait (un texte n'a pas de
+     classList), l'exception était avalée, et l'écran Accès ne se redessinait jamais quand ses données changeaient. */
+  try{ if(TAB==='essais'||TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}
 }
 var JR={cnx:[],loaded:false,err:'',actions:[],f:'tout'};
 /* ── Connexions des applications : toutes les entreprises, le moindre détail ── */
@@ -3981,7 +4184,7 @@ function cnxResumeHtml(r,nom){ if(!r) return '';
       fait('Applications',apps+' <span class="g">sur 30 j</span>')+fait('Appareils',appareils+' <span class="g">sur 30 j</span>')+'</div>'; }
 function vueConnexions(){
   var g=CNX.global||{};
-  var tete=enTete('Connexions clients',
+  var tete=enTete('Connexions',
     'Qui se connecte, quand, depuis quel appareil, avec quelle version, par quel chemin — et les échecs. Remonté par les applications à chaque connexion (à partir de la v550).',
     '<button class="btn-fant" onclick="chargerConnexions()">↻ Actualiser</button>');
   /* Le squelette porte la FORME de ce qui arrive : « Chargement des connexions… » en texte
@@ -4352,12 +4555,12 @@ async function tourEspaceDe(email,nom,ident,mdp,neuf,origine){
     if(maj){ reg[email]=sp; localStorage.setItem('tour_liens',JSON.stringify(reg)); } }
   /* ⛔ LE SERVEUR EST LA SOURCE DE VÉRITÉ DU LIEN, PAS CE NAVIGATEUR. Mesuré le 12 septembre
      2026 sur la fiche d'ELAN, capture à l'appui : l'adresse affichait `teamop.fr/e/elan` — le
-     vrai espace, `elan-34oc` — pendant que le lien juste en dessous portait `elan-gq3k`,
+     vrai espace de l'entreprise — pendant que le lien juste en dessous en portait un autre,
      inventé à la seconde. Les deux sortaient pourtant du même objet : l'adresse venait du
      serveur, le lien de `tour_liens` en localStorage. Sur le téléphone du patron plutôt que sur
      son Mac, l'entrée manquait — et on FABRIQUAIT un espace neuf, clé aléatoire comprise, qu'on
      présentait comme celui du client. Envoyé, ce lien met la personne dans une base VIDE : c'est
-     l'histoire de `elan-d4v8` et de `elan-tzl2`.
+     l'histoire des deux espaces orphelins de septembre.
      On demande donc d'abord au serveur, TOUJOURS, même quand ce navigateur croit savoir. */
   if(!neuf){
     var connu=await tourLienServeur(nom);
@@ -4476,7 +4679,9 @@ function tourActiviteCharge(nm){
     var L={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning général',interventions:'Interventions',clients:'Clients',boxes:'Boxes',stock:'Stock',produits:'Produits',mouvements:'Mouvements stock',devis:'Devis',factures:'Factures',rapports:'Rapports',validations:'Validations DR',messagerie:'Messagerie',parametres:'Paramètres',utilisateurs:'Utilisateurs',taches:'Tâches',vehicules:'Véhicules',commandes:'Commandes en cours',bons:'Bons de commande',statistiques:'Statistiques',historique:'Historique',conso:'Dashboard conso',saisieConso:'Saisie conso',fournisseurs:'Fournisseurs',demandes:'Mes demandes',contrats:'Contrats',pointage:'Pointage',carteInt:'Carte interventions',carteBox:'Carte des box',boiteMail:'Boîte mail'};
     /* La barre de proportion est le seul endroit de la Tour où une largeur DOIT être calculée :
        elle porte la donnée elle-même. Tout le reste du bloc passe par les classes. */
-    var bugs='<div class="act-bugs">'+(d.bugs?('🐛 <b class="ko">'+d.bugs+' problème(s) ouvert(s)</b> signalé(s) par leur application — <button type="button" class="pill-act" onclick="setTab(\'surveillance\')">Voir dans Surveillance</button>'):'✅ Aucun problème ouvert signalé par leur application')+'</div>';
+    /* v2.68 — un vrai pluriel, et une phrase qui ne se coupe pas en trois au téléphone (le tiret orphelin
+       en fin de ligne, le bouton seul dessous) : la phrase, puis le bouton. */
+    var bugs='<div class="act-bugs">'+(d.bugs?('🐛 <b class="ko">'+d.bugs+(d.bugs>1?' problèmes ouverts':' problème ouvert')+'</b>, '+(d.bugs>1?'signalés':'signalé')+' par leur application. <button type="button" class="pill-act" onclick="setTab(\'surveillance\')">Voir dans Surveillance</button>'):'✅ Aucun problème ouvert signalé par leur application')+'</div>';
     if(!d.total){ el.innerHTML=bugs+videTour('Pas encore d’activité remontée','Elle apparaît dès qu’ils utilisent l’application — les écrans ouverts sont signalés à partir de la v545.','','entreprises'); return; }
     var max=(d.vues[0]&&d.vues[0].n)||1;
     el.innerHTML=bugs+'<div class="act-tot">'+d.total+' écrans ouverts au total · dernière activité : '+(d.dernier?fmtDate(d.dernier):'—')+(d.version?' · application v'+esc(d.version):'')+'</div>'+
@@ -4561,7 +4766,7 @@ async function tourLienEntreprise(email,nom,neuf,identConnu){
        · il portait `k`, LA CLÉ QUI DÉCHIFFRE TOUTES LES DONNÉES DE L'ENTREPRISE, dans une URL —
          un objet fait pour être transféré, photographié, collé dans un groupe ;
        · il était fabriqué de travers dès qu'on ouvrait la Tour depuis un autre appareil (voir
-         `tourEspaceDe`), et c'est ce qui a produit elan-d4v8, elan-tzl2, elan-gq3k.
+         `tourEspaceDe`), et c'est ce qui a produit trois espaces orphelins.
        Une adresse, un code. Éprouvé sur banc : nom + code d'accès → l'espace s'ouvre, clé
        comprise, sans qu'elle ne voyage en clair. */
     /* ⛔ AFFICHÉ SEULEMENT QUAND IL SERT ENCORE. Tant que l'espace n'a aucun compte, le
@@ -4886,11 +5091,11 @@ function tourStatutPack(nom){
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 function supConnecterBoite(){
-  var email=prompt('Adresse de la boîte à connecter au Support :','contact@teamop.fr'); if(!email) return;
+  var email=prompt('Adresse de la boîte à connecter au Courrier :','contact@teamop.fr'); if(!email) return;
   var pass=prompt('Mot de passe de cette boîte (celui du webmail OVH) :'); if(!pass) return;
   toast('Connexion à '+email+'…');
   apiPost('/api/monitor/support/connect',{email:email.trim(),pass:pass}).then(function(r){
-    if(r&&r.ok){ toast('📬 Boîte '+email.trim()+' connectée — ses mails arrivent dans Support'); setTimeout(function(){ location.reload(); },900); }
+    if(r&&r.ok){ toast('📬 Boîte '+email.trim()+' connectée — ses mails arrivent dans le Courrier'); setTimeout(function(){ location.reload(); },900); }
     else toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron');
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -4923,7 +5128,7 @@ function tourRetirerEntreprise(email){
         /* Même raison qu'à la suspension : une coupure ratée laisse les appareils déjà
            connectés lire ET repousser la base qu'on vient d'effacer. Ça ne se tait pas. */
         var _cp=(r2.d.coupure===false)?' · ⚠️ SESSIONS NON COUPÉES ('+((r2.d.coupureMotif)||'raison inconnue')+')':' · sessions coupées ✔';
-        toast('🗑 Entreprise fermée — données effacées ('+(r2.d.donneesEffacees||0)+'/'+(r2.d.espaces||0)+' espace(s))'+((r2.d.compteSite&&r2.d.compteSite.fait)?' · compte du site supprimé ✔':' · compte du site : '+((r2.d.compteSite&&r2.d.compteSite.motif)||'—'))+_cp, r2.d.coupure===false?8000:0);
+        toast('🗑 Entreprise fermée — données effacées ('+(r2.d.donneesEffacees||0)+'/'+nMot(r2.d.espaces,'espace','espaces')+')'+((r2.d.compteSite&&r2.d.compteSite.fait)?' · compte du site supprimé ✔':' · compte du site : '+((r2.d.compteSite&&r2.d.compteSite.motif)||'—'))+_cp, r2.d.coupure===false?8000:0);
         CLI.sel=null; chargerClients(); }
       else toast((r2&&r2.d&&r2.d.error)||'Code refusé');
     }).catch(function(){ toast('Serveur injoignable'); });
@@ -5030,7 +5235,10 @@ function regPliage(){
   [].forEach.call(gs,function(g){
     var tete=g.querySelector('.reg-tete'); if(!tete||tete.dataset.pli) return;
     var nom=(g.querySelector('.reg-nom')||{}).textContent||('g'+i);
-    var cle=APP+'/'+TAB+'/'+nom.trim();   /* par console : un groupe plié en GESTION ne l'est pas en MESSAGES */
+    /* v2.68 — la clé ignore les espaces insécables : typoFr() les pose APRÈS ce rendu (observateur de #vue). Lue ici
+       avant elle, lue ailleurs après, la même clé changerait, et le choix « plié » d'un groupe à ponctuation (« · »,
+       « : », « — ») serait oublié. */
+    var cle=APP+'/'+TAB+'/'+nom.replace(/\u00A0/g,' ').trim();   /* par console : un groupe plié en GESTION ne l'est pas en MESSAGES */
     /* La règle, une seule, valable partout : le PREMIER groupe reste ouvert, et parmi les
        suivants seuls les LONGS se replient. Mesurée ici, pas devinée par une liste d'écrans —
        une liste aurait vieilli au premier écran ajouté. Le seuil de 300 px, c'est à peu près
@@ -5090,6 +5298,7 @@ function renderAnime(){
   document.startViewTransition(function(){ v.classList.add('entre'); renderVue(v); });
 }
 function renderVue(v){
+  if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
   if(TAB==='accueil') v.innerHTML=(APP==='messages')?vueAccueilMsg():vueAccueil();
   else if(TAB==='surveillance') v.innerHTML=vueSurveillance();
@@ -5136,7 +5345,9 @@ function incDeLaConsole(){ return INC.list.filter(function(i){ return appVisible
 /* Les compteurs aussi : INC.cnt vient du serveur, TOUTES consoles confondues — « 5 nouveaux » sur un
    accueil qui n'en montre que 2, c'est ce qu'on aurait lu. */
 function incCompteurs(){ var c={}; incDeLaConsole().forEach(function(i){ var k=i.statut||'nouveau'; c[k]=(c[k]||0)+1; }); return c; }
-function incOuverts(){ return incDeLaConsole().filter(function(i){ return i.statut==='nouveau'||i.statut==='encours'; }); }
+/* un problème sans statut est NOUVEAU, ici comme dans incCompteurs, incFiltres et incSegStatut : un compteur
+   qui ne compte pas comme sa liste filtre annonce un chiffre que la liste ne montre pas (v2.68) */
+function incOuverts(){ return incDeLaConsole().filter(function(i){ var st=i.statut||'nouveau'; return st==='nouveau'||st==='encours'; }); }
 /* Le titre part du MESSAGE ; à défaut, l'origine (qui désigne le coupable) avant l'écran
    ouvert (qui ne désigne rien). */
 function incTitre(i){ return String(i.message||i.origine||i.categorie||'Incident').split('\n')[0].slice(0,120); }
@@ -5152,7 +5363,7 @@ function vueAccueil(){
      affichait « 9 nouveau(x) », c'est-à-dire neuf problèmes clients dont personne ne s'était
      occupé. Un incident neuf est à traiter, quelle que soit sa gravité. */
   var hautes=incOuverts().filter(function(i){ return gravite(i)==='haute'; });
-  var neufs=incOuverts().filter(function(i){ return i.statut==='nouveau' && gravite(i)!=='haute'; });
+  var neufs=incOuverts().filter(function(i){ return (i.statut||'nouveau')==='nouveau' && gravite(i)!=='haute'; });
   var tousLus=(MSG.messages||[]).filter(function(m){ return !m.lu; });
   var tousImp=(ABO.paiements||[]).filter(function(p){ return !paieOk(p); });
   var nonLus=tousLus.slice(0,4), impayes=tousImp.slice(0,3);
@@ -5176,7 +5387,7 @@ function vueAccueil(){
       t1:esc(incTitre(i)),titre:incTitre(i),
       l2:esc(entNom(i))+' · '+esc(APP_L[i.app]||i.app||'—')+' · ×'+(i.count||1),
       action:"allerIncident('"+jsq(i.id)+"')"}); })});
-  if(nonLus.length) G.push({titre:'Support',n:Math.min(4,MSG.nonLus||nonLus.length),tot:MSG.nonLus||nonLus.length,bloc:'reg-bloc',
+  if(nonLus.length) G.push({titre:'Courrier',n:Math.min(4,MSG.nonLus||nonLus.length),tot:MSG.nonLus||nonLus.length,bloc:'reg-bloc',
     sous:'Courriels reçus sur les boîtes reliées, pas encore ouverts.',opt:true,
     voir:"setTab('support')",
     l:nonLus.map(function(m){ return ligneAc({ton:'bleu',ico:'support',
@@ -5245,7 +5456,7 @@ function vueAccueil(){
       (j.ok?'connexion réussie':'tentative refusée'+(j.motif?' ('+esc(j.motif)+')':''))+'</span></div>';
   }).join('')||videTour('','Aucune connexion à la console enregistrée.','',false);
 
-  return '<div class="page-tete"><div class="page-txt"><div class="tt-section">Tour · Tableau de bord</div>'+
+  return '<div class="page-tete"><div class="page-txt"><div class="tt-section">'+esc(vueInfo('accueil').section+' · '+vueInfo('accueil').lib)+'</div>'+
       '<div class="ttl-page">Bonjour '+esc(MYNOM)+'</div>'+
       '<div class="desc" style="margin-top:5px">'+esc(jour)+'</div></div>'+
       (n?'<div class="page-act"><span class="past p-ambre ac-total">'+n+' point'+(n>1?'s':'')+' à traiter</span></div>':'')+
@@ -5300,10 +5511,10 @@ function vueAccueilMsg(){
     tuile('Entreprises ouvertes à OP MESSAGES',ouvertes,"setTab('entreprises')")+
     tuile('Incidents OP MESSAGES ouverts',inc,"setTab('surveillance')",inc?'ko':'')+
     tuile('Messages non lus',nonLus,"setTab('support')",nonLus?'att':'')+'</div>';
-  var sup=(MSG.loaded&&!MSG.err&&(MSG.messages||[]).length)?acGroupe({titre:'Support',n:Math.min(4,(MSG.messages||[]).filter(function(m){ return !m.lu; }).length),tot:(MSG.messages||[]).filter(function(m){ return !m.lu; }).length,
+  var sup=(MSG.loaded&&!MSG.err&&(MSG.messages||[]).length)?acGroupe({titre:'Courrier',n:Math.min(4,(MSG.messages||[]).filter(function(m){ return !m.lu; }).length),tot:(MSG.messages||[]).filter(function(m){ return !m.lu; }).length,
       sous:'Le courrier est commun aux deux consoles : un message lu ici l’est aussi dans OP GESTION.',bloc:'reg-bloc',voir:"setTab('support')",
       l:(MSG.messages||[]).filter(function(m){ return !m.lu; }).slice(0,4).map(function(m){ return ligneAc({ico:'support',ton:'bleu',titre:m.objet||'',t1:esc(m.deNom||m.de||'—'),l2:esc(m.objet||''),action:"setTab('support')"}); })}):'';
-  return '<div class="page-tete"><div class="page-txt"><div class="tt-section">Tour · Tableau de bord</div><div class="ttl-page">Bonjour '+esc(MYNOM)+'</div><div class="desc">'+jour+' · Tour OP MESSAGES</div></div></div>'+etat+'<div style="height:16px"></div>'+kpis+'<div class="reg">'+sup+'</div>';
+  return '<div class="page-tete"><div class="page-txt"><div class="tt-section">'+esc(vueInfo('accueil').section+' · '+vueInfo('accueil').lib)+'</div><div class="ttl-page">Bonjour '+esc(MYNOM)+'</div><div class="desc">'+jour+' · Tour OP MESSAGES</div></div></div>'+etat+'<div style="height:16px"></div>'+kpis+'<div class="reg">'+sup+'</div>';
 }
 function opmBascule(){
   var projet=prompt('Nom du projet Firebase OP MESSAGES (tel qu’il apparaît dans la console) :',''); if(!projet) return;
@@ -5313,8 +5524,7 @@ function opmBascule(){
 }
 /* Le seul écran ACTIONNABLE d'OP MESSAGES aujourd'hui : qui y est ouvert, et l'ouvrir ou le fermer. */
 function vueEntreprisesMsg(){
-  var tete=enTete('Entreprises','Les entreprises ouvertes à OP MESSAGES. Ouvrir ajoute la rangée SUITE dans leur OP GESTION ; la messagerie elle-même n’est pas disponible tant que la bascule n’est pas faite.',
-    MYROLE==='patron'?'':'');
+  var tete=enTete('Entreprises','Les entreprises ouvertes à OP MESSAGES. Ouvrir ajoute la rangée SUITE dans leur OP GESTION ; la messagerie elle-même n’est pas disponible tant que la bascule n’est pas faite.');   /* v2.68 : le 3ᵉ argument (un ternaire vide des deux côtés) ne dessinait rien */
   if(!ENT.loaded) return tete+acSquel();
   if(ENT.err) return tete+acErr('Impossible de charger les entreprises',ENT.err,'chargerEntreprises()');
   /* tour.html n'a pas de norm() : on neutralise casse et accents ici, comme fait la recherche d'Entreprises */
@@ -5399,7 +5609,8 @@ function incFiltres(){
   return incDeLaConsole().filter(function(i){
     if(f.type&&(i.type||'')!==f.type) return false;
     if(f.grav&&gravite(i)!==f.grav) return false;
-    if(f.statut==='actifs'){ if(i.statut!=='nouveau'&&i.statut!=='encours') return false; }
+    if(f.statut==='actifs'){ var st=i.statut||'nouveau'; if(st!=='nouveau'&&st!=='encours') return false; }
+    else if(f.statut==='ecartes'){ if(ST_ECARTES.indexOf(i.statut||'nouveau')<0) return false; }
     else if(f.statut&&(i.statut||'nouveau')!==f.statut) return false;
     if(f.app&&(i.app||'')!==f.app) return false;
     if(f.ent&&!(i.entreprises||[]).some(function(e){ return (e.nom||e.entreprise||'')===f.ent; })) return false;
@@ -5407,6 +5618,25 @@ function incFiltres(){
   });
 }
 function incF(k,v){ INC.f[k]=v; renderNav('fondu'); }
+/* ══ v2.68 — LES SOUS-CATÉGORIES DU STATUT : UNE COMMANDE, PAS TROIS. La Surveillance filtrait le même
+   statut par quatre cartes, trois segments (Ouverts · Tout · Corrigés) ET un menu à neuf choix ; la fiche
+   d'une entreprise recopiait ce menu mot pour mot. Il reste les segments — les quatre familles qu'on
+   regarde vraiment — et les cartes « Nouveaux » / « En cours », qui AFFINENT « Ouverts » (le segment
+   parent reste allumé, et une pastille dit l'affinage et le retire). Les quatre états mis de côté
+   (ignoré, veille, équipe, passager) sont UNE famille, « Écartés » : chaque ligne porte déjà son état. */
+var ST_ECARTES=['ignore','veille','interne','transitoire'];
+function incSegStatut(liste){
+  var st=INC.f.statut||'', parent=(st==='nouveau'||st==='encours')?'actifs':(ST_ECARTES.indexOf(st)>=0?'ecartes':st);
+  var c=function(ok){ return liste.filter(function(i){ return ok(i.statut||'nouveau'); }).length; };
+  var segs=[['actifs','Ouverts',c(function(x){ return x==='nouveau'||x==='encours'; })],
+    ['corrige','Corrigés',c(function(x){ return x==='corrige'; })],
+    ['ecartes','Écartés',c(function(x){ return ST_ECARTES.indexOf(x)>=0; })],
+    ['','Tout',liste.length]];
+  return {segs:segs, cour:parent, affine:(st!==parent)?(ST_L[st]||st):''};
+}
+/* la pastille d'affinage : « Nouveaux seulement ✕ » — la retirer remonte au segment parent */
+function incAffinePastille(s){
+  return s.affine?'<button type="button" class="filtre-pose" onclick="incF(\'statut\',\''+s.cour+'\')" title="Revenir à « '+esc(s.segs.filter(function(x){ return x[0]===s.cour; })[0][1])+' »">'+esc(s.affine)+' seulement <span aria-hidden="true">✕</span></button>':''; }
 function selIncident(id){ INC.sel=id; marquerTitre(window.event); renderNav('avant'); window.scrollTo(0,0); }
 function incRetour(){ INC.sel=null; renderNav('retour'); window.scrollTo(0,0); }
 function selEnt(nom){ INC.grp=nom; INC.sel=null; marquerTitre(window.event); renderNav('avant'); window.scrollTo(0,0); }
@@ -5562,8 +5792,8 @@ function blocSortieFirebase(){
       '<button class="btn-plein" onclick="sfbImporter(this)"'+(dos.actif?'':' disabled')+'>Reprendre les dossiers du portail</button>'+
       '<button class="btn-fant" onclick="sfbInventaire(this)"'+(doc.actif&&ok748?'':' disabled')+'>Faire l’inventaire (avant d’éteindre Google)</button>'+
     '</div>'+
-    ligne('Reprise du portail', SFB.imp, function(r){ return (r.repris||0)+' dossier(s) repris, '+(r.ignores||0)+' déjà là, '+(r.comptesPrepares||0)+' compte(s) à poser'+(r.comptesRemis?', '+r.comptesRemis+' compte(s) jamais vérifié(s) remis à poser':'')+(r.sansAdresse?', '+r.sansAdresse+' sans adresse':'')+(r.champsRefuses?' · '+r.champsRefuses+' champ(s) trop gros écarté(s)':''); })+
-    ligne('Inventaire', SFB.inv, function(r){ return (r.complet?'<b>complet</b>':'<b style="color:var(--redText)">incomplet</b>')+' — '+(r.entreprises||0)+' entreprise(s) : '+(r.documents||0)+' document(s), '+(r.absents||0)+' absente(s) de Google, '+(r.ignores||0)+' fermée(s)'+(r.echecs?', <b>'+r.echecs+' échec(s)</b>':''); });
+    ligne('Reprise du portail', SFB.imp, function(r){ return nMot(r.repris,'dossier repris','dossiers repris')+', '+(r.ignores||0)+' déjà là, '+nMot(r.comptesPrepares,'compte à poser','comptes à poser')+(r.comptesRemis?', '+nMot(r.comptesRemis,'compte jamais vérifié remis à poser','comptes jamais vérifiés remis à poser'):'')+(r.sansAdresse?', '+r.sansAdresse+' sans adresse':'')+(r.champsRefuses?' · '+nMot(r.champsRefuses,'champ trop gros écarté','champs trop gros écartés'):''); })+
+    ligne('Inventaire', SFB.inv, function(r){ return (r.complet?'<b>complet</b>':'<b style="color:var(--redText)">incomplet</b>')+' — '+nMot(r.entreprises,'entreprise','entreprises')+' : '+nMot(r.documents,'document','documents')+', '+nMot(r.absents,'absente de Google','absentes de Google')+', '+nMot(r.ignores,'fermée','fermées')+(r.echecs?', <b>'+nMot(r.echecs,'échec','échecs')+'</b>':''); });
 }
 function vueSurveillance(){
   if(!INC.loaded) return enTete('Surveillance',SURV_DESC)+acSquel();
@@ -5575,12 +5805,14 @@ function vueSurveillance(){
 
   /* les chiffres du haut */
   var deb=new Date(); deb.setDate(1); deb.setHours(0,0,0,0);
-  var corrigesMois=INC.list.filter(function(i){ return i.statut==='corrige'&&(i.lastTs||0)>=deb.getTime(); }).length;
+  /* ⛔ la console OUVERTE (incDeLaConsole), comme « Nouveaux », « En cours » et les segments : dans GESTION, ces deux
+     chiffres comptaient aussi OP MESSAGES — la tuile disait 1 corrigé quand le segment « Corrigés » disait 0 (v2.68) */
+  var corrigesMois=incDeLaConsole().filter(function(i){ return i.statut==='corrige'&&(i.lastTs||0)>=deb.getTime(); }).length;
   var j7=[],max=1;
   for(var k=6;k>=0;k--){ var d0=new Date(); d0.setHours(0,0,0,0); d0.setDate(d0.getDate()-k); var t0=d0.getTime();
-    var n=INC.list.filter(function(i){ return (i.lastTs||0)>=t0&&(i.lastTs||0)<t0+86400000; }).length;
+    var n=incDeLaConsole().filter(function(i){ return (i.lastTs||0)>=t0&&(i.lastTs||0)<t0+86400000; }).length;
     j7.push(n); if(n>max)max=n; }
-  var bars=j7.map(function(n){ return '<i style="height:'+Math.max(10,Math.round(n/max*100))+'%'+(n?'':';opacity:.18')+'" title="'+n+' incident(s)"></i>'; }).join('');
+  var bars=j7.map(function(n){ return '<i style="height:'+Math.max(10,Math.round(n/max*100))+'%'+(n?'':';opacity:.18')+'" title="'+nMot(n,'incident','incidents')+'"></i>'; }).join('');
   var st=INC.f.statut;
   var kpi=function(filtre,nb,coul,titre,sous){
     return '<div class="kpi clic'+(st===filtre?' sel':'')+'" onclick="incF(\'statut\',\''+filtre+'\')">'+
@@ -5619,20 +5851,22 @@ function vueSurveillance(){
         '<div class="expl-l">'+pt(GRAV_C.haute)+'<span><b>À traiter maintenant</b> — le code a planté, ou plusieurs clients sont touchés, ou le problème revient très souvent.</span></div>'+
         '<div class="expl-l">'+pt(GRAV_C.moyenne)+'<span><b>À regarder</b> — gênant, mais l’application fonctionne.</span></div>'+
         '<div class="expl-l">'+pt(GRAV_C.faible)+'<span><b>Pour information</b> — rare et sans conséquence visible.</span></div></div>'+
-      '<div><div class="ttl-carte" style="font-size:13px">Le suivi</div>'+
+      /* v2.68 — deux colonnes : la pastille, puis sa phrase. Les pastilles n'ont pas la même largeur ;
+         chaque phrase partait donc ailleurs, et « Corrigé » s'étirait sur la hauteur de la sienne. */
+      '<div><div class="ttl-carte" style="font-size:13px">Le suivi</div><div class="expl-suivi">'+
         '<div class="expl-l"><span class="past p-info">Nouveau</span><span>vient d’arriver, à regarder.</span></div>'+
         '<div class="expl-l"><span class="past p-ambre">En cours</span><span>quelqu’un s’en occupe déjà.</span></div>'+
         '<div class="expl-l"><span class="past p-vert">Corrigé</span><span>réglé — un e-mail peut prévenir les clients touchés.</span></div>'+
-        '<div class="expl-l"><span class="past p-gris">Ignoré</span><span>mis de côté volontairement (fausse alerte).</span></div></div>'+
+        '<div class="expl-l"><span class="past p-gris">Ignoré</span><span>mis de côté volontairement (fausse alerte).</span></div></div></div>'+
     '</div></div>';
 
-  var ents={}; INC.list.forEach(function(i){ (i.entreprises||[]).forEach(function(e){ var n=e.nom||e.entreprise; if(n) ents[n]=1; }); });
+  /* le menu « Toutes les entreprises » ne propose que celles que CETTE console a à montrer */
+  var ents={}; incDeLaConsole().forEach(function(i){ (i.entreprises||[]).forEach(function(e){ var n=e.nom||e.entreprise; if(n) ents[n]=1; }); });
   var opt=function(v,cur,txt){ return '<option value="'+esc(v)+'"'+(cur===v?' selected':'')+'>'+esc(txt)+'</option>'; };
   var filtres='<div class="filtres svl-filtres">'+
     '<select class="sel-f" onchange="incF(\'type\',this.value)">'+opt('',INC.f.type,'Tous les types')+opt('erreur',INC.f.type,'Erreurs')+opt('lenteur',INC.f.type,'Lenteurs')+opt('reseau',INC.f.type,'Réseau')+'</select>'+
     '<select class="sel-f" onchange="incF(\'grav\',this.value)">'+opt('',INC.f.grav,'Toutes gravités')+opt('haute',INC.f.grav,'Haute')+opt('moyenne',INC.f.grav,'Moyenne')+opt('faible',INC.f.grav,'Faible')+'</select>'+
-    '<select class="sel-f" onchange="incF(\'statut\',this.value)">'+opt('actifs',INC.f.statut,'Nouveaux + en cours')+opt('',INC.f.statut,'Tout, corrigés inclus')+opt('nouveau',INC.f.statut,'Nouveaux')+opt('encours',INC.f.statut,'En cours')+opt('corrige',INC.f.statut,'Corrigés')+opt('ignore',INC.f.statut,'Ignorés')+opt('veille',INC.f.statut,'Écartés — mises en veille')+opt('interne',INC.f.statut,'Écartés — équipe TeamOP')+opt('transitoire',INC.f.statut,'Écartés — passagers')+'</select>'+
-    '<select class="sel-f" onchange="incF(\'app\',this.value)">'+opt('',INC.f.app,'Toutes les applications')+opt('opgestion',INC.f.app,'OP GESTION')+opt('opmessages',INC.f.app,'OP MESSAGES')+opt('espace',INC.f.app,'Espace client')+'</select>'+
+    '<select class="sel-f large" onchange="incF(\'app\',this.value)">'+opt('',INC.f.app,'Toutes les applications')+opt('opgestion',INC.f.app,'OP GESTION')+opt('opmessages',INC.f.app,'OP MESSAGES')+opt('espace',INC.f.app,'Espace client')+'</select>'+
     '<select class="sel-f large" onchange="incF(\'ent\',this.value)">'+opt('',INC.f.ent,'Toutes les entreprises')+Object.keys(ents).sort().map(function(n){ return opt(n,INC.f.ent,n); }).join('')+'</select>'+
   '</div>';
 
@@ -5735,19 +5969,22 @@ function vueSurveillance(){
   var _aClasser=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
   /* L'explication se range À CÔTÉ du bouton quand il y a la place, DESSOUS sinon : écrite en ligne derrière
      lui, au téléphone elle s'enroulait autour (« passe en « » à droite du bouton, le reste en dessous). */
+  /* v2.68 — la phrase est une PHRASE : au téléphone elle passe sous le bouton, et « passe en « ignoré »… »
+     y commençait par une minuscule, orpheline. Et le chiffre compte les problèmes de TOUTES les consoles
+     du compte (le serveur les classe toutes) : dans la Tour OP MESSAGES, « 4 problèmes » à côté
+     d'« Ouverts 1 » avait l'air d'une erreur. On le dit. */
   var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
-    '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">passe en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
-  /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses trois segments. Les segments ne sont
-     qu'un RACCOURCI vers le filtre de statut qui existait déjà (incF) : même état, même rendu, et
-     le sélecteur « statut » plus bas garde ses neuf choix (écartés, mis en veille…). Un segment ne
-     s'allume que si le filtre posé est exactement le sien. Chaque chiffre est compté sur la liste
-     de CETTE console — jamais inventé. */
-  var cOuv=incOuverts().length, cTout=incDeLaConsole().length,
-      cCor=incDeLaConsole().filter(function(i){ return i.statut==='corrige'; }).length;
-  var segSt=[['actifs','Ouverts',cOuv],['','Tout',cTout],['corrige','Corrigés',cCor]];
-  var teteL=teteListe('Entreprises touchées','Statut des problèmes',segSt,INC.f.statut,"incF('statut',");
+    '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">'+(MYAPPS.length>1?'Dans les deux consoles, ils passent':'Ils passent')+' en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
+  /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses segments (incSegStatut) : Ouverts · Corrigés ·
+     Écartés · Tout, posés par le même filtre de statut (incF). ⛔ v2.68 : le menu déroulant à neuf choix
+     qui doublait ces segments a été RETIRÉ (ici et dans la fiche d'une entreprise) — les quatre états mis
+     de côté (ignoré, veille, équipe, passager) sont la famille « Écartés », et chaque ligne dit le sien ;
+     les cartes « Nouveaux » / « En cours » affinent « Ouverts », qui reste allumé (pastille .filtre-pose).
+     Chaque chiffre est compté sur la liste de CETTE console, exactement comme la liste qu'il ouvre. */
+  var sSt=incSegStatut(incDeLaConsole());
+  var teteL=teteListe('Entreprises touchées','Statut des problèmes',sSt.segs,sSt.cour,"incF('statut',");
   return enTete('Surveillance',SURV_DESC)+kpis+zeroBtn+teteL+filtres+
-    '<div class="svl-compte">'+nomsG.length+' entreprise'+(nomsG.length>1?'s':'')+' · '+l.length+' problème'+(l.length>1?'s':'')+' affiché'+(l.length>1?'s':'')+' · '+ouverts+' ouvert'+(ouverts>1?'s':'')+'</div>'+
+    '<div class="svl-compte">'+nomsG.length+' entreprise'+(nomsG.length>1?'s':'')+' · '+l.length+' problème'+(l.length>1?'s':'')+' affiché'+(l.length>1?'s':'')+' · '+ouverts+' ouvert'+(ouverts>1?'s':'')+incAffinePastille(sSt)+'</div>'+
     (groupesRendus?'<div class="reg">'+groupesRendus+'</div>':listeVide)+saines+legende+
     /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents,
        et n'existe qu'en console GESTION : versions.json gouverne app.html */
@@ -5785,18 +6022,28 @@ function vueEntreprise(nom){
     return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+esc(APP_L[a]||a)+'</span>'+
       '<span class="reg-n">'+g.length+'</span></div>'+lignes+'</div>';
   }).join('');
-  var opt=function(v,cur,txt){ return '<option value="'+esc(v)+'"'+(cur===v?' selected':'')+'>'+esc(txt)+'</option>'; };
-  var filtreSt='<div class="filtres" style="margin:18px 0 0">'+
-    '<select class="sel-f" onchange="incF(\'statut\',this.value)">'+opt('actifs',INC.f.statut,'Nouveaux + en cours')+opt('',INC.f.statut,'Tout, corrigés inclus')+opt('nouveau',INC.f.statut,'Nouveaux')+opt('encours',INC.f.statut,'En cours')+opt('corrige',INC.f.statut,'Corrigés')+opt('ignore',INC.f.statut,'Ignorés')+opt('veille',INC.f.statut,'Écartés — mises en veille')+opt('interne',INC.f.statut,'Écartés — équipe TeamOP')+opt('transitoire',INC.f.statut,'Écartés — passagers')+'</select></div>';
+  /* v2.68 : la même commande de statut que la Surveillance (incSegStatut), comptée sur les problèmes de
+     CETTE entreprise — le menu à neuf choix recopié mot pour mot n'existe plus. */
+  var sStE=incSegStatut(incDeLaConsole().filter(function(i){ return incEnts(i).indexOf(nom)>=0; }));
+  var filtreSt='<div>'+teteListe('Ses problèmes','Statut des problèmes',sStE.segs,sStE.cour,"incF('statut',")+
+    (sStE.affine?'<div class="svl-compte">'+incAffinePastille(sStE)+'</div>':'')+'</div>';
   /* Le passage vers la fiche complète de l'entreprise : ici on voit ses incidents, là-bas
      tout le reste — qui s'y connecte, qui n'y arrive pas, sa formule, ce qu'elle utilise.
      Sans ce lien il fallait retenir le nom, changer d'onglet et la retrouver à la main. */
-  return '<button class="btn-fant" onclick="entRetour()">← Toutes les entreprises</button> '+
-    '<button class="btn-fant" onclick="allerFicheEntreprise(\''+jsq(nom)+'\')">📇 Voir sa fiche complète</button>'+
-    '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:18px">'+
-      '<div class="ttl-page">'+esc(nom)+'</div>'+
-      (mail?'<span class="chip">'+esc(mail)+'</span>':'')+'</div>'+
-    '<div class="desc">Les problèmes de cette entreprise, regroupés par application. Cliquez sur un problème pour ouvrir son dossier complet.</div>'+
+  /* v2.68 (relecture) — LE MÊME GABARIT QUE LES AUTRES PAGES. Cet en-tête était bâti à la main : deux boutons
+     côte à côte, le titre, la phrase — hors de `.page-tete`. La phrase y était repliée au téléphone sans pouvoir
+     se déplier, et la page ne disait pas où l'on était. Le retour se range comme sur les trois autres fiches
+     (`.ent-retour`), la ligne de section dit « Support · Surveillance » (le titre est le nom de l'entreprise,
+     comme « Bonjour … » sur l'accueil), et « Voir sa fiche complète » est l'action de la page. */
+  var vi=vueInfo('surveillance');
+  return '<div class="ent-retour"><button type="button" class="btn-fant" onclick="entRetour()">← Toutes les entreprises</button></div>'+
+    '<div class="page-tete"><div class="page-txt">'+
+      '<div class="tt-section">'+esc(vi.section+' · '+vi.lib)+'</div>'+
+      '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">'+
+        '<div class="ttl-page">'+esc(nom)+'</div>'+
+        (mail?'<span class="chip">'+esc(mail)+'</span>':'')+'</div>'+
+      '<div class="desc">Les problèmes de cette entreprise, regroupés par application. Cliquez sur un problème pour ouvrir son dossier complet.</div></div>'+
+      '<div class="page-act"><button type="button" class="btn-fant" onclick="allerFicheEntreprise(\''+jsq(nom)+'\')">📇 Voir sa fiche complète</button></div></div>'+
     filtreSt+
     (tous.length?'<div class="reg" style="margin-top:22px">'+sections+'</div>'
       :'<div class="svl-vide"><b>Rien à signaler pour cette entreprise.</b>Aucun problème ne correspond au filtre posé.<div><button type="button" class="btn-fant" onclick="incReset()">Retirer tous les filtres</button></div></div>');
@@ -5880,7 +6127,7 @@ function vueIncident(i){
       var app=[q.appareil,q.os,q.nav].filter(Boolean).join(' · ');
       var nSuite=x.suiteTotal||(x.suite||[]).length;
       var suite=nSuite
-        ? '<div style="font-size:12px;color:var(--amber);margin-top:4px">↳ '+nSuite+' échec(s) de connexion dans l’heure qui a suivi</div>' : '';
+        ? '<div style="font-size:12px;color:var(--amber);margin-top:4px">↳ '+nMot(nSuite,'échec de connexion','échecs de connexion')+' dans l’heure qui a suivi</div>' : '';
       return '<div style="padding:9px 0;border-top:1px solid var(--hairline)">'+t1+
         '<div style="font-size:13px;margin-top:3px">'+esc(q.nom||q.login||'—')+
           (q.login&&q.nom?'<span style="color:var(--muted)"> · '+esc(q.login)+'</span>':'')+
@@ -5896,7 +6143,7 @@ function vueIncident(i){
        entreprises touchées » là où il y en avait soixante. */
     var reste=(cx.total||0)-(cx.rendues||0);
     quiHtml=(lignes||'<div style="font-size:13px;color:var(--muted);padding-top:6px">Aucune entreprise rattachée à un journal de connexion pour ce problème.</div>')
-      +(reste>0?'<div style="font-size:12px;color:var(--muted);padding-top:9px;border-top:1px solid var(--hairline);margin-top:2px">'+reste+' autre(s) entreprise(s) touchée(s) — non croisées ici, la recherche s’arrête à '+(cx.rendues||0)+'.</div>':'');
+      +(reste>0?'<div style="font-size:12px;color:var(--muted);padding-top:9px;border-top:1px solid var(--hairline);margin-top:2px">'+nMot(reste,'autre entreprise touchée','autres entreprises touchées')+' — non croisée'+(reste>1?'s':'')+' ici, la recherche s’arrête à '+(cx.rendues||0)+'.</div>':'');
   }
 
   var ents=(i.entreprises||[]);
@@ -5939,7 +6186,7 @@ function vueIncident(i){
     fait('Page / fichier',i.src?('<span class="mono">'+esc(String(i.src).split('/').pop())+(i.line?' · ligne '+esc(String(i.line)):'')+'</span>'):'non transmis');
 
   return '<div class="ent-retour"><button type="button" class="btn-fant" onclick="incRetour()">← Retour'+(INC.grp?' à '+esc(INC.grp):' à la surveillance')+'</button></div>'+
-    '<div class="carte p24 inc-tete">'+
+    '<div class="carte inc-tete">'+
       '<div class="inc-ref"><span class="mono">DOSSIER #'+esc(String(i.id).slice(-6))+'</span>'+
         '<span class="past '+ST_P[st]+'">'+ST_L[st]+(i.par&&st!=='nouveau'?' — '+esc(i.par):'')+'</span></div>'+
       '<h2 class="inc-titre">'+esc(incTitre(i))+'</h2>'+
@@ -5961,7 +6208,7 @@ function vueIncident(i){
         '<button type="button" class="pill-act" onclick="incCause(\''+jsq(i.id)+'\')">🔎 '+(i.explication?'Refaire la recherche de cause':'Chercher la cause')+'</button>'+
         (i.explication&&i.explication.codeLu&&MYROLE==='patron'?'<button type="button" class="pill-act" onclick="incProposer(\''+jsq(i.id)+'\')">🛠 '+(i.proposition?'Refaire la proposition':'Proposer une correction')+'</button>':'')+
         '<button type="button" class="pill-act" onclick="incCopier(\''+jsq(i.id)+'\')">📋 Copier le dossier complet</button></div>'+
-      (st!=='corrige'&&nbMail?'<div class="note">« Marquer corrigé » enverra automatiquement l’e-mail « Votre application a été améliorée ✅ » aux '+nbMail+' entreprise(s) touchée(s) ayant un e-mail.</div>':'')+
+      (st!=='corrige'&&nbMail?'<div class="note">« Marquer corrigé » enverra automatiquement l’e-mail « Votre application a été améliorée ✅ » '+(nbMail>1?'aux '+nbMail+' entreprises touchées':'à l’entreprise touchée')+' ayant un e-mail.</div>':'')+
     '</div>'+
     incCarteCause(i)+
     incCarteProposition(i)+
@@ -6027,7 +6274,7 @@ function incCarteProposition(i){
     (p.verifier?'<div class="inc-verif"><b>À vérifier :</b> '+esc(p.verifier)+'</div>':'')+
     '<div class="inc-cta"><a class="btn-plein" href="'+esc(p.url||'#')+'" target="_blank" rel="noopener">Ouvrir la proposition #'+esc(String(p.numero||''))+' sur GitHub</a></div>'+
     '<div class="inc-pied">'+
-      'Fichier(s) : '+esc((p.fichiers||[]).join(', ')||'?')+' · proposée par '+esc(p.par||'?')+' le '+fmtDateLong(p.ts)+'<br>'+
+      ((p.fichiers||[]).length>1?'Fichiers':'Fichier')+' : '+esc((p.fichiers||[]).join(', ')||'?')+' · proposée par '+esc(p.par||'?')+' le '+fmtDateLong(p.ts)+'<br>'+
       'Elle n’est pas fusionnée, et rien dans le serveur ne peut la fusionner. Le correctif a été vérifié <b>analysable</b>, pas vérifié <b>juste</b> — personne n’a fait tourner l’application avec.</div>'+
     '</div>';
 }
@@ -6054,7 +6301,7 @@ function incStatut(id,st,note){
     setBdg('bdg-surv',incOuverts().length);
     renderNav('fondu');
     var n=(x.d.mails||0)+(x.d.mailsSimules||0);
-    toast(st==='corrige'?('\u2713 Corrig\u00e9'+(n?' \u2014 '+n+' e-mail(s) client(s)':'')):(note?'\ud83d\udcdd Note enregistr\u00e9e':'Dossier #'+String(id).slice(-6)+' \u2192 '+ST_L[st]));
+    toast(st==='corrige'?('\u2713 Corrig\u00e9'+(n?' \u2014 '+nMot(n,'e-mail client','e-mails clients'):'')):(note?'\ud83d\udcdd Note enregistr\u00e9e':'Dossier #'+String(id).slice(-6)+' \u2192 '+ST_L[st]));
     chargerIncidents();
   });
 }
@@ -6074,7 +6321,7 @@ function incCopier(id){
   d.push('TYPE        : '+(TYPE_L[i.type]||i.type||'\u2014')+' \u00b7 gravit\u00e9 '+GRAV_L[gravite(i)]);
   d.push('MESSAGE     : '+(i.message||''));
   if(i.src) d.push('FICHIER     : '+i.src+(i.line?' ligne '+i.line:''));
-  d.push('FR\u00c9QUENCE   : '+(i.count||0)+' occurrence(s) \u00b7 premi\u00e8re fois '+fmtDate(i.firstTs)+' \u00b7 derni\u00e8re fois '+fmtDate(i.lastTs));
+  d.push('FR\u00c9QUENCE   : '+nMot(i.count,'occurrence','occurrences')+' \u00b7 premi\u00e8re fois '+fmtDate(i.firstTs)+' \u00b7 derni\u00e8re fois '+fmtDate(i.lastTs));
   var ap=Object.keys(i.appareils||{}).map(function(k){ return k+' ('+i.appareils[k]+'\u00d7)'; }).join(' \u00b7 ');
   if(ap) d.push('APPAREILS   : '+ap);
   if((i.entreprises||[]).length){ d.push(''); d.push('ENTREPRISES TOUCH\u00c9ES :');
@@ -6495,7 +6742,7 @@ function supGroupe(titre,n,sous,opt,bloc,lignes,pied){
 function supLigne(o){
   var sig=[],reste=0;
   var push=function(h){ if(sig.length<2) sig.push(h); else reste++; };
-  if(o.pieces) push('<span class="sup-sig" title="'+o.pieces+' pièce(s) jointe(s)">📎 '+o.pieces+'</span>');
+  if(o.pieces) push('<span class="sup-sig" title="'+nMot(o.pieces,'pièce jointe','pièces jointes')+'">📎 '+o.pieces+'</span>');
   if(o.marque) push('<span class="sup-sig" title="Marqué">⚑</span>');
   if(o.repondu) push('<span class="sup-sig" title="Une réponse est partie">↩</span>');
   if(reste) sig.push('<span class="reg-plus">+'+reste+'</span>');
@@ -6733,6 +6980,43 @@ function barreBasculer(){
   else if(actif===g&&!r&&b) b.focus();
 }
 try{ if(localStorage.getItem('tour_barre_repliee')==='1') document.body.classList.add('barre-repliee'); }catch(e){}
+/* v2.68 — AU TÉLÉPHONE, LA PHRASE D'EN-TÊTE REPLIÉE SE DÉPLIE D'UN TOUCHER. Elle tient sur deux lignes (le préambule
+   poussait le travail à trois écrans plus bas) ; sa fin — « elles vivent dans l'onglet Entreprises », « le retour ne
+   touche qu'un espace » — ne se lisait alors NULLE PART. Un second toucher la replie ; un lien dans la phrase reste
+   un lien. Un seul écouteur, sur le document : les vues se redessinent, lui reste. Sans effet au bureau, où la
+   phrase n'est jamais repliée (rien ne dépasse, rien ne bascule).
+   ⛔ IL VISE EXACTEMENT CE QUE LA RÈGLE REPLIE (`.desc`, au téléphone) — ni plus étroit, ni ailleurs. Écrit
+   d'abord pour `#vue .page-tete .desc`, il laissait la fiche d'une entreprise (Surveillance), dont l'en-tête
+   était bâti à la main hors de `.page-tete`, repliée sans aucun moyen de la déplier (relecture v2.68). Deux
+   moitiés d'un accord : test-829 compare les deux sélecteurs. */
+function descDeplier(e){
+  var d=e.target&&e.target.closest&&e.target.closest('.desc'); if(!d||e.target.closest('a,button')) return;
+  if(d.classList.contains('ouverte')||d.scrollHeight>d.clientHeight+1) d.classList.toggle('ouverte');
+}
+document.addEventListener('click',descDeplier);
+/* v2.68 — LA TYPOGRAPHIE FRANÇAISE, PARTOUT OÙ LA VUE ÉCRIT. Relevé au téléphone, écran par écran
+   (sonde-tour-telephone.js) : des lignes qui commençaient par « : », par « · » ou par « » », un « « »
+   resté seul en fin de ligne, loin de son mot, un « € » séparé de son montant. L'espace qui précède
+   : ; ! ? » · — € % et celle qui suit « deviennent insécables : le navigateur ne peut plus couper là.
+   UN seul passage, sur ce que la PAGE ajoute (MutationObserver) : les données des clients (un message
+   d'erreur, un nom) sont couvertes comme les phrases de la console. Jamais dans du code ni dans un champ.
+   (relecture) La page, pas seulement #vue : les toasts, les panneaux (lien de connexion, mots de passe
+   provisoires) et le titre monté dans l'en-tête vivent HORS de la vue — ils gardaient le défaut. */
+var TYPO_RX=/[:;!?»·—€%]|« /;
+function typoTexte(s){
+  return s.replace(/« /g,'« ').replace(/ ([:;!?»·—])/g,' $1').replace(/(\d) ([€%])/g,'$1 $2');
+}
+function typoFr(racine){
+  if(!racine||!racine.ownerDocument) return;
+  var tw=document.createTreeWalker(racine,NodeFilter.SHOW_TEXT,null), n, l=[];
+  while((n=tw.nextNode())) if(TYPO_RX.test(n.data)) l.push(n);
+  l.forEach(function(n){ var p=n.parentElement; if(!p||p.closest('pre,code,script,style,textarea,[contenteditable]')) return;
+    var e=typoTexte(n.data); if(e!==n.data) n.data=e; });
+}
+try{ (function(){ var v=document.body; if(!v||typeof MutationObserver!=='function') return;
+  new MutationObserver(function(ms){ ms.forEach(function(m){ for(var i=0;i<m.addedNodes.length;i++){ var x=m.addedNodes[i];
+    typoFr(x.nodeType===3?x.parentNode:x); } }); }).observe(v,{childList:true,subtree:true});
+  typoFr(v); })(); }catch(e){}
 function enTete(titre, phrase, actions){
   /* Tous les onglets s'annoncent pareil : on sait immédiatement où l'on est, à quoi sert
      l'écran, et ce qu'on peut y faire. Le carré coloré devant le titre est l'écho de la tuile
@@ -6898,8 +7182,8 @@ function cliCopierAdresses(btn){
   var txt=l.join('\n');
   var fini=function(){ if(btn){ var t=btn.textContent; btn.textContent='✅ '+l.length+' adresses copiées'; setTimeout(function(){ btn.textContent=t; },2200); } };
   try{
-    navigator.clipboard.writeText(txt).then(fini,function(){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+l.length+' adresse(s)</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); });
-  }catch(e){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+l.length+' adresse(s)</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); }
+    navigator.clipboard.writeText(txt).then(fini,function(){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+nMot(l.length,'adresse','adresses')+'</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); });
+  }catch(e){ tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:10px">📋 '+nMot(l.length,'adresse','adresses')+'</div><textarea readonly style="width:100%;height:60vh;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--champ-fond);color:var(--text)">'+esc(txt)+'</textarea>'); }
 }
 function vueEntreprises(){
   var st=ENT.stats||{};
@@ -6957,7 +7241,7 @@ function vueEntreprises(){
     ((aMigrer===0&&cleInconnues>0)
       ? '<span style="display:block;margin-top:4px;font-size:11px;line-height:1.45;color:var(--amber);font-weight:700">mesure incomplète — '+cleInconnues+' espace'+(cleInconnues>1?'s':'')+' dont la clé est inconnue</span>'
       : '');
-  var kpi='<div class="grille-kpi simple" style="--kpi-min:170px;margin-bottom:20px">'+
+  var kpi='<div class="grille-kpi simple k6" style="--kpi-min:170px;margin-bottom:20px">'+
     compteur(st.total||0,'entreprises connues','','')+
     compteur(st.avecErreurs||0,'erreurs signalées','--redText','erreurs')+
     compteur(st.avecEchecs||0,'échecs de connexion','--amber','echecs')+
@@ -6999,7 +7283,7 @@ function vueEntreprises(){
     /* Au plus deux pastilles, puis « +n » : une rangée qui déborde en silence hors de
        l'écran est le piège classique des filtres. */
     var al=[];
-    if(o.erreurs) al.push('<span class="past p-rouge" title="'+o.erreurs+' erreur(s) signalée(s)">🐛 '+o.erreurs+'</span>');
+    if(o.erreurs) al.push('<span class="past p-rouge" title="'+nMot(o.erreurs,'erreur signalée','erreurs signalées')+'">🐛 '+o.erreurs+'</span>');
     if(o.echecs24) al.push('<span class="past p-ambre" title="essais de connexion refusés sur 24 h">🔑 '+o.echecs24+' refus</span>');
     if(eV.retard) al.push('<span class="past p-ambre" title="Version en ligne : v'+refV+'">⬇ v'+eV.haute+' en retard</span>');
     /* Ces deux-là ne portaient qu'un pictogramme : « ⏸ » pour un espace suspendu — le fait le
@@ -7127,9 +7411,8 @@ function vueEntreprises(){
     '<div class="rech" style="margin-bottom:12px">'+svg('loupe',16)+'<input placeholder="Rechercher (nom, adresse, identifiant d’espace)…" value="'+esc(ENT.q)+'" oninput="entQ(this.value)"></div>'+
     '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
       '<span>'+l.length+' sur '+(ENT.liste||[]).length+'</span>'+
-      (ENT.filtre?'<button class="btn-fant" style="padding:2px 10px;font-size:11px" onclick="entFiltre(\''+ENT.filtre+'\')">'+
-        esc({erreurs:'avec des erreurs',echecs:'avec des échecs de connexion',retard:'sans la dernière mise à jour',
-             horsAnnuaire:'hors annuaire',migrer:'à migrer (clé partagée)'}[ENT.filtre]||'')+' ✕</button>':'')+
+      (ENT.filtre?'<button type="button" class="filtre-pose" onclick="entFiltre(\''+ENT.filtre+'\')" title="Revenir à toutes les entreprises">'+
+        esc(ENT_FILTRE_LIB[ENT.filtre]||'')+' <span aria-hidden="true">✕</span></button>':'')+
     '</div>'+
     liste;
 }
@@ -7457,13 +7740,13 @@ function comptesInutilisesSupprimer(){
   /* Le nom à côté de l'identifiant : c'est la seule relecture avant de valider, et c'est
      exactement ce qui manquait le matin même quand deux « florent » se ressemblaient. */
   var liste=cibles.map(function(u){ return '  · '+u.login+(u.nom?'  ('+u.nom+')':''); }).join('\n');
-  if(!confirm('Supprimer les '+logins.length+' compte(s) jamais utilisé(s) chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun ne s’est jamais connecté : personne ne perd son travail.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
+  if(!confirm('Supprimer '+(logins.length>1?'les '+logins.length+' comptes jamais utilisés':'le compte jamais utilisé')+' chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun ne s’est jamais connecté : personne ne perd son travail.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
   apiPost('/api/monitor/comptes/supprimer',{t:d.t,logins:logins}).then(function(x){
     if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
     var code=prompt('Code reçu par mail'+((x.d&&x.d.dest)?' ('+x.d.dest+')':'')+' :'); if(!code) return;
     return apiPost('/api/monitor/comptes/supprimer',{t:d.t,logins:logins,code:String(code).trim()}).then(function(y){
       if(!(y&&y.ok)){ toast('⚠️ '+((y&&y.d&&y.d.error)||'refusé')); return; }
-      toast((y.d&&y.d.n||0)+' compte(s) supprimé(s) — ils ne peuvent plus entrer ; ils partent de l’application au prochain appareil ouvert'); chargerDossier(DOS.nom); });
+      var nb=(y.d&&y.d.n)||0; toast(nMot(nb,'compte supprimé','comptes supprimés')+(nb>1?' — ils ne peuvent plus entrer ; ils partent':' — il ne peut plus entrer ; il part')+' de l’application au prochain appareil ouvert'); chargerDossier(DOS.nom); });
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 /* ══ REFAIRE UN MOT DE PASSE PROVISOIRE, DEPUIS ICI ═══════════════════════════════════════
@@ -7517,7 +7800,7 @@ function comptesMdpRefaire(){
   var mdps=mdpTirer(cibles.length);
   var lignes=cibles.map(function(u,i){ return {login:u.login, nom:u.nom||'', mdp:mdps[i]}; });
   var liste=lignes.map(function(x){ return '  · '+x.login+(x.nom?'  ('+x.nom+')':''); }).join('\n');
-  if(!confirm('Refaire le mot de passe provisoire de ces '+lignes.length+' compte(s) chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun n’a encore choisi le sien : personne ne perd un mot de passe qu’il utilise.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
+  if(!confirm('Refaire le mot de passe provisoire '+(lignes.length>1?'de ces '+lignes.length+' comptes':'de ce compte')+' chez '+(DOS.nom||'cette entreprise')+' ?\n\n'+liste+'\n\nAucun n’a encore choisi le sien : personne ne perd un mot de passe qu’il utilise.\nUn seul code de confirmation va t’être envoyé par mail, pour tout le lot.')) return;
   Promise.all(lignes.map(function(x){ return tourSha256(x.mdp).then(function(h){ return {login:x.login,h:h}; }); })).then(function(comptes){
     return apiPost('/api/monitor/comptes/mdp',{t:d.t,comptes:comptes}).then(function(x){
       if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
@@ -7528,9 +7811,9 @@ function comptesMdpRefaire(){
            accepté six ferait dicter au téléphone deux mots de passe qui n'ouvrent rien. */
         var pris={}; (y.d&&y.d.logins||[]).forEach(function(l){ pris[l]=1; });
         var sortis=lignes.filter(function(x2){ return pris[x2.login]; });
-        mdpFiche('🔑 '+sortis.length+' mot(s) de passe provisoire(s)', sortis);
+        mdpFiche('🔑 '+nMot(sortis.length,'mot de passe provisoire','mots de passe provisoires'), sortis);
         var ref=(y.d&&y.d.refuses)||[];
-        if(ref.length) toast('⚠️ '+ref.length+' refusé(s) : '+ref.map(function(r){ return r.login+' — '+r.raison; }).join(' · '),9000);
+        if(ref.length) toast('⚠️ '+nMot(ref.length,'refusé','refusés')+' : '+ref.map(function(r){ return r.login+' — '+r.raison; }).join(' · '),9000);
         chargerDossier(DOS.nom); });
     });
   }).catch(function(){ toast('Serveur injoignable'); });
@@ -7540,10 +7823,10 @@ function comptesMdpRefaire(){
 function tentativesEffacer(){
   var d=(DOS&&DOS.d)||{}; var tapes=(d.utilisateurs||[]).filter(function(u){ return !u.derniere&&!u.dansAnnuaire; }).map(function(u){ return u.login; });
   if(!tapes.length||!d.t) return;
-  if(!confirm('Effacer du journal les '+tapes.length+' identifiant(s) tapé(s) qui n’existent pas ?\n\n'+tapes.join(', ')+'\n\nCe ne sont pas des comptes : rien ne change chez l’entreprise. Seules ces tentatives disparaissent d’ici.')) return;
+  if(!confirm('Effacer du journal '+(tapes.length>1?'les '+tapes.length+' identifiants tapés qui n’existent pas':'l’identifiant tapé qui n’existe pas')+' ?\n\n'+tapes.join(', ')+'\n\nCe ne sont pas des comptes : rien ne change chez l’entreprise. Seules ces tentatives disparaissent d’ici.')) return;
   apiPost('/api/monitor/connexions/effacer-tentatives',{t:d.t,logins:tapes}).then(function(x){
     if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
-    toast((x.d.effacees||0)+' tentative(s) effacée(s)'); chargerDossier(DOS.nom);
+    toast(nMot(x.d.effacees,'tentative effacée','tentatives effacées')); chargerDossier(DOS.nom);
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 function blocUtilisateurs(){
@@ -7586,7 +7869,7 @@ function blocUtilisateurs(){
       if(jamais&&u.dansAnnuaire) p+='<span class="past p-gris">inutilisé</span>';
       if(u.attente) p+='<span class="past p-ambre" title="ordonnée depuis la Tour ; exécutée au premier appareil de l’entreprise qui s’ouvre">⏳ suppression en attente</span>';
       if(u.supprime) p+='<span class="past p-gris" title="exécutée par un appareil de l’entreprise ; l’identifiant reste banni de l’annuaire tant que tu ne le réautorises pas">🚫 supprimé · banni</span>';
-      return '<div class="reg-l inerte">'+
+      return '<div class="reg-l inerte cpt-l">'+
         '<span class="reg-txt">'+
           /* L'identifiant seul sur sa ligne : c'est LUI qu'on cherche des yeux, et il se lit
              caractère par caractère. Le rôle et le nom viennent en dessous — collés derrière
@@ -7598,8 +7881,9 @@ function blocUtilisateurs(){
             (u.appareils?' · '+u.appareils+' appareil'+(u.appareils>1?'s':''):'')+
             (u.version?' · v'+esc(u.version):'')+'</span></span>'+
         '<span class="reg-fin"><span class="reg-alertes">'+p+'</span>'+
-          (MYROLE==='patron'&&u.dansAnnuaire&&!u.attente&&!u.supprime?'<button type="button" class="pill-act" title="Refaire le mot de passe provisoire de « '+esc(u.login)+' » — son mot de passe actuel ne marchera plus" onclick="compteMdpRefaire(\''+jsq(u.login)+'\')">Mot de passe</button>':'')+
-          (MYROLE==='patron'&&!u.attente&&!u.supprime?'<button type="button" class="pill-act" title="Supprimer le compte « '+esc(u.login)+' »" onclick="compteSupprimer(\''+jsq(u.login)+'\')">Supprimer</button>':'')+
+          ((MYROLE==='patron'&&!u.attente&&!u.supprime)?'<span class="cpt-act">'+
+          (u.dansAnnuaire?'<button type="button" class="pill-act" title="Refaire le mot de passe provisoire de « '+esc(u.login)+' » — son mot de passe actuel ne marchera plus" onclick="compteMdpRefaire(\''+jsq(u.login)+'\')">Mot de passe</button>':'')+
+          '<button type="button" class="pill-act" title="Supprimer le compte « '+esc(u.login)+' »" onclick="compteSupprimer(\''+jsq(u.login)+'\')">Supprimer</button></span>':'')+
         '</span></div>'; };
   var sv=d.sauvegarde||{}, bannis=d.bannis||[];
   var inut=vrais.filter(function(u){ return u.dansAnnuaire&&!u.derniere&&!u.attente&&!u.supprime; });
@@ -7632,13 +7916,13 @@ function blocUtilisateurs(){
       (inut.length>1?'<button type="button" class="btn-fant" onclick="comptesInutilisesSupprimer()">Supprimer les '+inut.length+' comptes jamais utilisés</button>':'')+
     '</div>':'')+
     '<div class="note">🗂 Copies de sauvegarde chiffrées sur notre serveur : '+
-      (sv.possible===false?'<b class="att">impossible — espace hors annuaire, aucune clé d’équipe connue du serveur</b>':((sv.n||0)+(sv.derniere?' · dernière '+cnxDepuis(sv.derniere):' · aucune encore (elles arrivent avec la v621, au plus une par demi-heure et par appareil)')))+'</div>'+
+      (sv.possible===false?'<b class="att">impossible — espace hors annuaire, aucune clé d’équipe connue du serveur</b>':((sv.n||0)+(sv.derniere?' · dernière '+cnxDepuis(sv.derniere):' · aucune encore (elles se font toutes seules, au plus une par demi-heure et par appareil)')))+'</div>'+
     /* Les identifiants supprimés depuis la Tour restent bannis de l'annuaire — un appareil ne peut
        pas lever ça, seul le patron le peut, ici. Sans ce bloc, un ban invisible serait un ban
        qu'on ne comprend plus le jour où l'entreprise embauche quelqu'un du même nom. */
     /* Les mots de passe en attente d'exécution : tant qu'ils vivent, l'annuaire de ces comptes
        est gelé. Le dire, et donner le moyen d'en sortir — sinon on cherche une panne ailleurs. */
-    ((d.mdpAttente&&d.mdpAttente.length)?'<div class="note">🔑 Mot(s) de passe provisoire(s) <b class="att">en attente d’exécution</b> — leur annuaire est gelé jusqu’à ce qu’un appareil de l’entreprise s’ouvre (ou 30 jours) : '+d.mdpAttente.map(function(m){ return '<span class="mono">'+esc(m.login)+'</span>'+(MYROLE==='patron'?' <a onclick="compteMdpAnnuler(\''+jsq(m.login)+'\')">annuler</a>':''); }).join(' · ')+'</div>':'')+
+    ((d.mdpAttente&&d.mdpAttente.length)?'<div class="note">🔑 '+(d.mdpAttente.length>1?'Mots de passe provisoires':'Mot de passe provisoire')+' <b class="att">en attente d’exécution</b> — leur annuaire est gelé jusqu’à ce qu’un appareil de l’entreprise s’ouvre (ou 30 jours) : '+d.mdpAttente.map(function(m){ return '<span class="mono">'+esc(m.login)+'</span>'+(MYROLE==='patron'?' <a onclick="compteMdpAnnuler(\''+jsq(m.login)+'\')">annuler</a>':''); }).join(' · ')+'</div>':'')+
     (bannis.length?'<div class="note">🚫 Identifiants bannis de l’annuaire (supprimés depuis la Tour) : '+bannis.map(function(b){ return '<span class="mono">'+esc(b.login)+'</span>'+(b.fait?'':' <b class="att">(pas encore exécuté)</b>')+(MYROLE==='patron'?' <a onclick="compteReautoriser(\''+jsq(b.login)+'\')">réautoriser</a>':''); }).join(' · ')+'</div>':'')+
     (tapes.length?'<div class="sous-sec"><div class="sec att">'+tapes.length+' IDENTIFIANT'+(tapes.length>1?'S':'')+' TAPÉ'+(tapes.length>1?'S':'')+' QUI N’EXISTE'+(tapes.length>1?'NT':'')+' PAS</div>'+
       '<div class="note">Quelqu’un a tapé ces identifiants et ça a échoué. Ce ne sont pas des comptes : il n’y a rien à supprimer — le compte n’a jamais été créé, ou il a été perdu avant d’être déposé dans l’annuaire. Si la personne doit travailler, l’entreprise crée son compte.</div>'+
@@ -7654,7 +7938,7 @@ function blocUtilisateurs(){
 /* ══ L'ACCÈS D'UNE ENTREPRISE, EN UN COUP D'ŒIL — la fiche de la maquette « TeamOp Tour HIG » ══
    ⛔ RIEN N'EST FABRIQUÉ ICI. L'adresse vient de l'ANNUAIRE DU SERVEUR (`/api/monitor/espaces/liste`,
    son champ `slug`) — jamais de `espSlugJs(nom)` en repli : un nom recalculé dans le navigateur est
-   exactement ce qui avait produit « elan-gq3k » (tests/test-668.js). Sans entrée d'annuaire, le bloc
+   exactement ce qui avait produit un espace orphelin (tests/test-668.js). Sans entrée d'annuaire, le bloc
    le DIT et ne propose rien à envoyer.
    ⛔ Le mot de passe provisoire ne s'affiche pas : le serveur n'en garde que l'empreinte. Les trois
    gestes réemploient les chemins qui existent — `tourCopie`, `tourMailAcces` (le serveur envoie
@@ -7805,7 +8089,7 @@ function blocGestionClient(){
       var tr=traites[x.i];
       var lig=[];
       if(d.formule) lig.push('💼 '+d.formule);
-      if(d.users) lig.push('👥 '+d.users+' utilisateur(s)');
+      if(d.users) lig.push('👥 '+nMot(d.users,'utilisateur','utilisateurs'));
       if(d.lien) lig.push('🔗 '+d.lien);
       if(d.code) lig.push('🎁 '+d.code);
       return '<div class="reg-l inerte"><span class="reg-txt">'+
@@ -7929,7 +8213,7 @@ function blocDossier(){
       (vCles.length
         ? '<div class="dsr-chips">'+vCles.map(function(v){
             var vieux=!!ref&&verNum(v)<ref;
-            return '<span class="past '+(vieux?'p-ambre':'p-vert')+'" title="'+vObj[v]+' appareil(s) vu(s) sur cette version">v'+esc(v)+' · '+vObj[v]+' appareil'+(vObj[v]>1?'s':'')+'</span>';
+            return '<span class="past '+(vieux?'p-ambre':'p-vert')+'" title="'+nMot(vObj[v],'appareil vu','appareils vus')+' sur cette version">v'+esc(v)+' · '+vObj[v]+' appareil'+(vObj[v]>1?'s':'')+'</span>';
           }).join('')+'</div>'
         : '<div class="dsr-chips"><span class="chip mono">v'+esc(u.version)+'</span></div>')+
       '<div class="note">'+
@@ -7968,11 +8252,11 @@ function blocDossier(){
      c'est se rassurer sur un écran qu'on a soi-même vidé. */
   var _oZ=((ENT.liste||[]).find(function(x){ return x.t===ENT.sel; })||{});
   var _depuis=+_oZ.zeroDepuis||0;
-  t+='<div class="sous-sec"><div class="encart"><div class="encart-tx">'+
+  t+='<div class="sous-sec"><div class="encart encart-pile"><div class="encart-tx">'+
     (_depuis
       ? '↺ <b>Compteurs repartis de zéro le '+esc(fmtJour(_depuis))+'.</b> Les problèmes d’avant ne sont pas effacés — ils ne sont plus comptés. Tout ce qui arrive depuis s’affiche normalement.'
       : 'Les pastilles 🐛 et 🔑 cumulent depuis l’ouverture de l’espace. Repartir à zéro pose une date : rien n’est effacé, et tout nouveau problème réapparaît aussitôt.')+
-    '</div><div style="margin-top:10px">'+
+    '</div><div>'+
     (_depuis
       ? '<button type="button" class="btn-fant" onclick="entZeroCompteurs(false)">Annuler — remontrer tout l’historique</button>'
       : '<button type="button" class="btn-fant" onclick="entZeroCompteurs(true)">↺ Repartir à zéro pour cette entreprise</button>')+
@@ -7989,7 +8273,7 @@ function blocDossier(){
         '<span class="reg-l3">'+esc(fmtJour(b.ts))+(b.version?' · <span class="mono">v'+esc(b.version)+'</span>':'')+(b.src?' · '+esc(b.src):'')+'</span></span>'+
         (perimee?'<span class="reg-fin"><span class="past p-ambre" title="enregistrée sur une version que l’entreprise n’utilise plus">version dépassée</span></span>':'')+
       '</div>'; }).join('')+'</div>'+
-    (er.length>6?'<div class="note">+ '+(er.length-6)+' autre(s)</div>':'')+'</div>';
+    (er.length>6?'<div class="note">+ '+nMot(er.length-6,'autre','autres')+'</div>':'')+'</div>';
   if(!er.length&&!ech.length) t+='<div class="note ok">✓ Aucune erreur ni échec de connexion enregistré.</div>';
   var vues=(u.vues||[]).slice(0,6);
   if(vues.length) t+='<div class="sous-sec"><div class="sec">ÉCRANS LES PLUS OUVERTS</div>'+
@@ -8231,7 +8515,9 @@ function vueAbonnements(){
   else if(annules.length) pied='<div class="reg-tech"><b>'+annules.length+' abonnement'+(annules.length>1?'s annulés':' annulé')+'.</b> Stripe les conserve ; rien ne se modifie ici.<div>'+
     annules.map(function(a){ return '<button type="button" class="reg-tech-l" onclick="abnStripe(\''+jsq(a.id||'')+'\')">'+esc(a.clientNom||a.clientEmail||'—')+'</button>'; }).join('')+'</div></div>';
 
-  var teteL=teteListe('Formules et paiements','Filtrer les abonnements',[['','Tous',abos.length],['active','Payants',payants],['past_due','Impayés',ABO.impayes||0]],f,'aboF(');
+  /* v2.68 — CHAQUE TUILE A SON SEGMENT. « En essai » filtrait depuis sa tuile, mais le bandeau n'avait
+     pas de segment pour lui : filtre posé, aucun segment allumé — deux commandes qui ne se répondaient pas. */
+  var teteL=teteListe('Formules et paiements','Filtrer les abonnements',[['','Tous',abos.length],['active','Payants',payants],['trialing','En essai',enEssai],['past_due','Impayés',ABO.impayes||0]],f,'aboF(');
   return tete+kpi+teteL+corps+pied+blocPromos()+
     '<div class="encart" style="margin-top:18px">'+
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg>'+
@@ -8586,7 +8872,7 @@ function vueEssais(){
   /* Quand il faut numéroter les sections dans une phrase d'introduction, c'est que la mise
      en page ne les sépare pas. Maintenant elle les sépare : le détail de chaque porte
      descend dans la phrase de son groupe, où il est lu au moment où il sert. */
-  var tete=enTete('Comptes & accès',
+  var tete=enTete('Accès',
     'Ce que l’équipe s’ouvre à elle-même, et rien d’autre. Deux portes, à ne jamais confondre — elles sont séparées ci-dessous. Les entreprises inscrites sur le site sont des clientes : elles vivent dans l’onglet <b>Entreprises</b>.');
   /* PAS de return anticipé sur BT.loaded ni BT.err : une restriction sur une porte ne doit
      pas fermer l'autre, ni faire croire que l'écran est en panne. « Réservé au patron »
@@ -8679,7 +8965,8 @@ function vueEquipe(){
     var apps=Array.isArray(u.apps)&&u.apps.length?u.apps:(pat?['gestion','messages']:['gestion']);
     var appsTx=apps.map(function(a){ return APPS_TOUR[a]?APPS_TOUR[a].nom:a; }).join(' + ');
     var l2='<b>'+(ROLE_L[u.role]||'Collaborateur')+'</b> · '+esc(appsTx)+
-      (pat?' · tous les onglets, y compris Équipe, Accès et Journal':' · ni Équipe, ni Accès, ni Journal')+
+      /* ⛔ déduit du menu (libsPatronSeul) : écrite à la main, la phrase avait oublié les Sauvegardes (v2.68) */
+      (pat?' · tous les onglets, y compris '+esc(enPhrase(libsPatronSeul(),'et')):' · ni '+esc(libsPatronSeul().join(', ni ')))+
       (JR.loaded&&!JR.err?' · '+(a.last?'vu '+esc(fmtAgo(a.last)):'aucune trace dans les 100 dernières connexions'):'');
     /* Chaque fait absent disparaît : jamais de « — » de remplissage. Et « Jamais connecté »
        était faux — u.ts est une date de CRÉATION. */
@@ -8729,12 +9016,27 @@ function vueEquipe(){
     '</div>'+
     /* Le <select> promettait « Patron » et créait un collaborateur : le serveur ignore le
        rôle envoyé. Un menu qui ment sur un droit d'accès n'est pas une décoration. */
-    '<div class="eqp-note"><b>Le compte créé est un collaborateur.</b> Il voit Surveillance, Support, Entreprises, Connexions clients, Abonnements et Devis IA — pas Équipe, pas Accès, pas le Journal de la console. Il n’y a pas d’autre rôle à donner depuis ici.</div>'+
+    /* ⛔ LA PHRASE SE DÉDUIT DU MENU, elle ne s'écrit plus à la main : elle disait « pas le Journal »
+       pendant que le menu du collaborateur le montrait, et oubliait l'Accueil et les Données. */
+    '<div class="eqp-note"><b>Le compte créé est un collaborateur.</b> '+eqNoteCollaborateur()+' Il n’y a pas d’autre rôle à donner depuis ici.</div>'+
     '<div class="eqp-note">Les comptes équipe se créent uniquement ici, sans e-mail. Le collaborateur se connecte ensuite avec ce nom et ce mot de passe via « Équipe TeamOP » sur la page Mon espace de teamop.fr.</div>'+
   '</div>':videTour('','Seul le patron peut créer des comptes.','',false);
   return tete+'<div class="deux eqp-deux"><div class="col-liste">'+liste+'</div>'+
     '<div class="col-detail">'+form+'</div></div>';
 }
+
+/* Ce qu'un collaborateur voit dans la console GESTION, lu dans MENU et PATRON_SEUL — la même source que
+   son menu : « Il voit Accueil, Entreprises, … — pas Accès, Équipe, Journal ni Sauvegardes. » */
+function eqNoteCollaborateur(){
+  var voit=[], pas=[];
+  MENU.forEach(function(g){ g.vues.forEach(function(x){ if((x[2]||'').split(' ').indexOf('gestion')<0) return;
+    (PATRON_SEUL.indexOf(x[0])<0?voit:pas).push(x[1]); }); });
+  return 'Il voit '+esc(enPhrase(voit,'et'))+(pas.length?' — pas '+esc(enPhrase(pas,'ni')):'')+'.';
+}
+/* les NOMS du menu des vues réservées au patron, dans l'ordre du menu, toutes consoles confondues */
+function libsPatronSeul(){ var l=[]; MENU.forEach(function(g){ g.vues.forEach(function(x){ if(PATRON_SEUL.indexOf(x[0])>=0&&l.indexOf(x[1])<0) l.push(x[1]); }); }); return l; }
+/* « A, B et C » — ou « A, B ni C » */
+function enPhrase(l,mot){ return l.length>1?l.slice(0,-1).join(', ')+' '+mot+' '+l[l.length-1]:(l[0]||''); }
 
 /* ══════════ 7. JOURNAL ══════════ */
 /* Les trois compteurs deviennent les trois filtres. JR.f vaut 'tout' au repos ; recliquer
@@ -8795,15 +9097,15 @@ function donAppliquer(){
        l'espace est plein : un retour peut donc s'arrêter au milieu. Annoncer les remises sans
        les refus laisserait croire l'entreprise revenue alors que la moitié ne l'est pas. */
     var n=r.d.nRefuses||0;
-    toast(r.d.restaures+' remise(s) en place, '+r.d.enterres+' supprimée(s)'+
-      (n?' — ⛔ '+n+' refusée(s) : '+((r.d.refus||[])[0]||{}).motif+'. Le retour est INCOMPLET.':'.'), n?9000:0);
+    toast(nMot(r.d.restaures,'remise en place','remises en place')+', '+nMot(r.d.enterres,'supprimée','supprimées')+
+      (n?' — ⛔ '+nMot(n,'refusée','refusées')+' : '+((r.d.refus||[])[0]||{}).motif+'. Le retour est INCOMPLET.':'.'), n?9000:0);
     donApercu();
   });
 }
 function donChamp(quoi,val){ DON[quoi]=val; }
 
 function vueDonnees(){
-  var tete=enTete('Données',
+  var tete=enTete('Sauvegardes',
     'La sauvegarde hors site, et le retour en arrière d’une entreprise. <b>Le retour ne touche qu’un espace</b> — il n’existe pas de bouton qui remette tout le monde en arrière, et c’est voulu : l’archive du coffre est commune à toutes les entreprises.');
 
   /* ── 1. La sauvegarde ─────────────────────────────────────────────────────────────── */
@@ -8813,13 +9115,14 @@ function vueDonnees(){
   else {
     var d=s.derniere||{}, m=s.mensuel||{};
     var quand=d.ts?new Date(d.ts).toLocaleString('fr-FR'):'—';
-    var etatNuit=d.ok?'<span class="p-vert">Réussie</span>':(d.ts?'<span class="p-rouge">En échec</span>':'<span class="p-gris">Jamais lancée</span>');
+    /* v2.68 : un état est une PASTILLE (.past), comme partout dans la Tour — pas un surlignage de texte */
+    var etatNuit=d.ok?'<span class="past p-vert">Réussie</span>':(d.ts?'<span class="past p-rouge">En échec</span>':'<span class="past p-gris">Jamais lancée</span>');
     /* ⛔ LA PHRASE DES DEUX CLÉS VIENT DU SERVEUR, ELLE N'EST PAS RÉÉCRITE ICI. Un écran qui
        annonce « copie mensuelle : OK » sans dire que DEUX clés sont nécessaires pour l'ouvrir
        ailleurs prépare exactement la mauvaise surprise : celle du jour où on en a besoin. */
     var cles=(m.clesNecessaires||[]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('');
-    var etatMois=m.actif===false?'<span class="p-gris">Désactivée</span>'
-      :(m.ok?'<span class="p-vert">Déposée</span>':'<span class="p-ambre">Pas encore ce mois-ci</span>');
+    var etatMois=m.actif===false?'<span class="past p-gris">Désactivée</span>'
+      :(m.ok?'<span class="past p-vert">Déposée</span>':'<span class="past p-ambre">Pas encore ce mois-ci</span>');
     gSauv='<div class="reg-g reg-g-fixe"><div class="reg-tete"><span class="reg-nom">Sauvegarde hors site</span>'+
       '<div class="reg-sous">Une archive chiffrée par nuit, relue après dépôt. '+esc(String(s.garder||30))+' conservées.</div></div>'+
       '<div class="carte"><div class="lg"><span>Dernière nuit</span><b>'+etatNuit+' · '+esc(quand)+'</b></div>'+
@@ -8836,7 +9139,7 @@ function vueDonnees(){
   var a=DON.apercu;
   var form='<div class="carte"><div class="ttl-carte">Ramener une entreprise à un instant</div>'+
     '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
-    '<label>Espace (identifiant <span class="mono">t</span>)<input class="inp" id="don-ent" value="'+esc(DON.ent)+'" oninput="donChamp(\'ent\',this.value)" placeholder="elan-34oc" autocomplete="off"></label>'+
+    '<label>Espace (identifiant <span class="mono">t</span>)<input class="inp" id="don-ent" value="'+esc(DON.ent)+'" oninput="donChamp(\'ent\',this.value)" placeholder="ex. boulangerie-7k2q" autocomplete="off"></label>'+
     '<label>Revenir à<input class="inp" id="don-inst" type="datetime-local" value="'+esc(DON.instant)+'" oninput="donChamp(\'instant\',this.value)"></label>'+
     '<div class="sous">L’instant est celui où <b>le serveur a reçu</b> les données, pas la date que l’appareil leur donne. Un téléphone resté hors ligne une journée pousse d’anciennes dates aujourd’hui : pour défaire ce qu’il a envoyé, viser l’instant d’avant <i>son</i> arrivée.</div>'+
     '<div><button type="button" class="btn-plein" onclick="donApercu()">Voir ce que ça changerait</button></div>'+
@@ -8848,7 +9151,7 @@ function vueDonnees(){
   else if(a){
     var lignes=Object.keys(a.par||{}).map(function(c){
       var p=a.par[c];
-      return '<div class="lg"><span class="mono">'+esc(c)+'</span><b>'+(p.restaure||0)+' remise(s)'+(p.enterre?' · '+p.enterre+' supprimée(s)':'')+(p.illisible?' · <span class="p-ambre">'+p.illisible+' hors de portée</span>':'')+'</b></div>';
+      return '<div class="lg"><span class="mono">'+esc(c)+'</span><b>'+nMot(p.restaure,'remise','remises')+(p.enterre?' · '+nMot(p.enterre,'supprimée','supprimées'):'')+(p.illisible?' · <span class="p-ambre">'+p.illisible+' hors de portée</span>':'')+'</b></div>';
     }).join('');
     /* ⛔ UN CORPS PURGÉ SE NOMME, IL NE SE SAUTE PAS. Au-delà de 90 jours le contenu est vidé :
        un retour qui traverse cette frontière ne PEUT PAS rendre ces enregistrements, et les
@@ -8861,7 +9164,8 @@ function vueDonnees(){
        AUCUNE case — « Appliquer le retour » échouait en 409 pour toujours, sans recours visible.
        Un écran qui montre un refus sans montrer comment le lever est un écran qui bloque. */
     var trop=a.troploin?'<div class="note note-ambre">Cet instant est <b>plus ancien que le plus vieux contenu gardé</b> ('+(a.corpsDepuis?esc(new Date(a.corpsDepuis).toLocaleString('fr-FR')):'—')+'). Le retour serait très partiel.</div>':'';
-    var quoiDeBloquant=a.nIllisibles?(a.nIllisibles+' enregistrement(s) ne peuvent pas être ramenés</b> — leur contenu a été purgé (90 jours). On sait qu’ils ont changé, pas ce qu’ils contenaient.')
+    var quoiDeBloquant=a.nIllisibles?(a.nIllisibles>1?a.nIllisibles+' enregistrements ne peuvent pas être ramenés</b> — leur contenu a été purgé (90 jours). On sait qu’ils ont changé, pas ce qu’ils contenaient.'
+        :'1 enregistrement ne peut pas être ramené</b> — son contenu a été purgé (90 jours). On sait qu’il a changé, pas ce qu’il contenait.')
       :('Une partie de ce retour est hors de portée</b> — l’instant visé précède le plus vieux contenu gardé.');
     var alerte=(a.nIllisibles||a.troploin)?'<div class="note note-ambre"><b>'+quoiDeBloquant+' '+
       '<label class="don-coche"><input type="checkbox" '+(DON.sansIllisibles?'checked':'')+' onchange="DON.sansIllisibles=this.checked"> Revenir quand même, <b>sans eux</b></label></div>':'';
@@ -8891,7 +9195,7 @@ function vueDonnees(){
     '<div class="reg-sous">Le journal du socle garde chaque version de chaque fiche pendant 90 jours, par entreprise. Le retour repose l’ancien contenu comme une modification d’aujourd’hui : les appareils l’adoptent, et le retour lui-même reste réversible.</div></div>'+
     form+res+'</div>';
 
-  return tete+gSauv+gRetour;
+  return tete+'<div class="reg">'+gSauv+gRetour+'</div>';   /* v2.68 : l'écart des autres écrans entre deux groupes */
 }
 function donSauvLancer(){
   toast('Sauvegarde lancée…');
@@ -8923,7 +9227,7 @@ function vueJournal(){
      plus ni ombre ni filet — neuf dalles flottantes sans arête. L'identifiant est une SAISIE,
      pas un nom propre : mono, et jamais tronqué en silence. */
   var ligneKo=function(j){
-    return '<div class="reg-l inerte ko"><span class="jr-ic" aria-hidden="true">⛔</span>'+
+    return '<div class="reg-l inerte ko jr-l"><span class="jr-ic" aria-hidden="true">⛔</span>'+
       '<span class="reg-txt"><span class="reg-t1 ident">'+esc(j.qui||'(identifiant vide)')+'</span>'+
       '<span class="reg-l2">'+esc(j.motif||'refusée')+'</span>'+
       '<span class="reg-l3">'+esc(j.appareil||'appareil inconnu')+'</span></span>'+
@@ -8948,7 +9252,7 @@ function vueJournal(){
      le seul accent de la marque. L'absence de rouge dit déjà que tout va bien. */
   var ligneOk=function(j){
     var a=String(j.appareil||'');
-    return '<div class="reg-l inerte"><span class="jr-ic" aria-hidden="true">'+(/iPhone|iPad|Android|Mobile/i.test(a)?'📱':'💻')+'</span>'+
+    return '<div class="reg-l inerte jr-l"><span class="jr-ic" aria-hidden="true">'+(/iPhone|iPad|Android|Mobile/i.test(a)?'📱':'💻')+'</span>'+
       '<span class="reg-txt"><span class="reg-t1">'+esc(j.qui||'—')+'</span>'+
       '<span class="reg-l2">'+esc(j.appareil||'appareil inconnu')+'</span></span>'+
       '<span class="reg-fin"><span class="reg-h">'+esc(fmtHeure(j.ts))+'</span></span></div>'; };
@@ -8989,12 +9293,12 @@ function vueJournal(){
     bloc=g.join('');
   }
 
-  return enTete('Journal de la console',
+  return enTete('Journal',
     'Ce qui a été fait dans cette console, et qui s’y est connecté. Aucune ligne ne peut être effacée à la main.')+
     kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length],['echecs','Refusées',ko.length],['actions','Mes actions',A.length]],f,'jrFiltrePoser(')+
     '<div class="reg">'+bloc+'</div>'+
     '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console. Au-delà, elles sont effacées — y compris depuis ici.</div>'+
-    '<div class="reg-tech jr-mails"><div><b>📧 Les e-mails envoyés sont dans Support → Envoyés.</b> Rangés par entreprise, avec la recherche et le contenu de chaque message. Ils étaient dupliqués ici en liste plate : une seule place vaut mieux que deux.</div>'+
+    '<div class="reg-tech jr-mails"><div><b>📧 Les e-mails envoyés sont dans Courrier → Envois TeamOP.</b> Rangés par entreprise, avec la recherche et le contenu de chaque message. Ils étaient dupliqués ici en liste plate : une seule place vaut mieux que deux.</div>'+
     '<button type="button" class="btn-plein" onclick="setTab(\'support\');envoyesOuvrir()">Ouvrir les envois</button></div>';
 }
 
