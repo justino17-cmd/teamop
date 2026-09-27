@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# 🟡 27 SEPTEMBRE 2026, NUIT — « 1 UTILISATEUR PAR ABONNEMENT », « TTC » ET v760 : TOUT EST EN SERVICE (`909bcfd`) — « UN COMPTE AVANT DE PAYER » EN COURS ; L'APPLICATION ATTEND UNE RÉPONSE
+# 🟡 27 SEPTEMBRE 2026, NUIT — « 1 UTILISATEUR PAR ABONNEMENT », « TTC » ET v760 EN SERVICE (`909bcfd`) ; « UN COMPTE AVANT DE PAYER » : PAGE ET TARIFS EN SERVICE (`2d31fe7`), LA ROUTE ATTEND « POUSSE LE SERVEUR » ; L'APPLICATION ATTEND UNE RÉPONSE
 
 Justin : **« Aussi à faire sur le site à partir d'aujourd'hui c'est 1 utilisateur par abonnement merci de corriger ça »**.
 Le site vendait 2 utilisateurs par abonnement Business et 3 en Business Premium (et en Messages Business Premium), et
@@ -59,12 +59,55 @@ Publiée sur la phrase de Justin **« Une fois que tu as tout fini, tu publie au
 candidat **193 suites · 10 052 vérifications**, aucun échec ; relecture sans point bloquant ; servi octet pour octet
 (28/28 fichiers, les dix pages du portail conformes à `vitrine/portail-v1.json`), CI de `main` verte 3/3.
 
-⏳ **« UN COMPTE AVANT DE PAYER » — EN COURS sur la branche.** Justin : « dans les tarifs il faut bien préciser aux
-personnes qui doivent créer un compte d'abord avant de payer, ils peuvent pas payer s'ils ont pas de compte créé pour que
-nous on ait un vrai suivi de qui fait quoi ». Tarifs (texte), page de paiement (sans compte : « Créer mon compte pour
-payer » ; adresse à confirmer ; plus aucun lien de paiement Stripe anonyme servi) et `/api/stripe/checkout` (session
-prouvée exigée, adresse du compte imposée à Stripe et gravée sur l'abonnement) — le serveur part sur « pousse le
-serveur ». Détail à la fin du chantier.
+✅ **« UN COMPTE AVANT DE PAYER » — la page et les tarifs EN SERVICE (`2d31fe7`), la route du serveur PRÊTE (`f97d32a`,
+NON poussée : attend « pousse le serveur »).** Justin : « dans les tarifs il faut bien préciser aux personnes qui doivent
+créer un compte d'abord avant de payer, ils peuvent pas payer s'ils ont pas de compte créé pour que nous on ait un vrai
+suivi de qui fait quoi ».
+· **Tarifs** (la v1 de la racine, le générateur du site v2 et ses huit aperçus, les deux anciennes pages d'aperçu) :
+  l'introduction dit « Pour payer, il faut un compte TEAM OP : créez-le d'abord, c'est gratuit. » et la FAQ s'ouvre sur
+  « Faut-il un compte pour payer ? ».
+· **Page de paiement** (`recap-abonnement.html` en service, au thème, aperçu) : elle lit la session du portail
+  (`teamop_portail_jeton`, même origine) et demande au serveur QUI elle est (`/api/compte/moi`). Cinq états : lecture ;
+  aucun (« Créer mon compte pour payer » → portail, qui ramène ici formule, nombre et cycle) ; adresse à confirmer
+  (renvoyer le lien, changer de compte, relecture au retour sur l'onglet) ; prêt (« Paiement rattaché à votre compte :
+  … », on ne paie qu'au nom AFFICHÉ — une session changée dans un autre onglet se relit d'abord, `gardien` l'avait
+  rejoué) ; injoignable (« rien n'a été payé »). ⛔ **Les dix liens Stripe anonymes (`buy.stripe.com`) ne sont plus
+  servis nulle part** (`test-839` §2, 69 fichiers) — ⚠️ **mais ils existent toujours chez Stripe : GESTE DE JUSTIN,
+  tableau de bord Stripe → Liens de paiement → désactiver les dix.** Une copie ancienne de la page (cache d'un appareil,
+  réseau lent) ou une adresse gardée ailleurs les ouvre encore, sans compte.
+· **Portail** (`espace.html`, en service et au thème) : un défaut EN SERVICE depuis toujours, trouvé en jouant le
+  parcours au navigateur — arriver de la page de paiement (`?retour=…`) ouvrait « Se connecter » au lieu de « Créer un
+  compte » : `let _authMode` était déclaré APRÈS l'écouteur qui rappelle tout de suite, zone morte avalée par un `try`.
+· **Serveur** (`/api/stripe/checkout`, branche) : exige `Authorization: Bearer <session>` d'un compte à l'adresse
+  CONFIRMÉE (401 `compte_requis`, 403 `adresse_non_verifiee`, 503 si les comptes ne sont pas montés), impose à Stripe
+  `customer_email` = l'adresse du compte (celle que la Tour affiche) et grave `metadata[compte]` sur la session et
+  l'abonnement (personne ne le LIT encore : c'est la trace). ⚠️ **Tant qu'il n'est pas déployé, la garde est dans la
+  page seulement** : le serveur en service ignore la session — rien ne casse (le paiement s'ouvre), mais un appel direct
+  à la route passe sans compte. Ordre : page d'abord (fait), liens Stripe désactivés, PUIS « pousse le serveur ».
+  Le commit qui le déploie est PRÊT : **`f97d32a`** sur `main` = `2d31fe7`, fabriqué par
+  `scripts/preparer-deploiement-serveur.sh` (42 suites · 2 534 vérifications), NON poussé. Il vit dans un arbre du
+  scratchpad de la session : perdu, il se refait en une commande (le script repart du `main` du moment).
+  ⚠️ **La première préparation est TOMBÉE, et c'est la porte qui a bien fait** : `test-686` n'acceptait plus que
+  l'écriture AU THÈME de `connexion.html` (`31776a6`), or la préparation lance les bancs de la branche contre les
+  pages de `main` — aucun commit fabriqué. Corrigé (`fa4b011` : les deux écritures, deux contre-épreuves). Tout banc
+  de `scripts/bancs-serveur.liste` qui lit une page du portail accepte les deux tant que « remplace » n'est pas dit.
+· **Preuves** : `test-839` (branche 146 ✓ · en service 144 ✓, 19/19 contre-épreuves), `test-727` 50 ✓, `test-797`,
+  `test-837`, `test-838` ; sonde au doigt `scratchpad/sonde-compte-paiement.js` (vrai portail, vrai serveur, Stripe
+  intercepté, contraste au pixel) branche 177 ✓ · en service 173 ✓ ; suite complète **195 suites · 10 536
+  vérifications** (branche) et **194 suites · 10 206** (copie de `main`), aucun échec ; relecture `gardien` : deux
+  points corrigés (session changée ailleurs, page servie face au nouveau serveur), un à trancher ci-dessous ; servi
+  octet pour octet (12/12 fichiers, les dix pages de la racine conformes à `vitrine/portail-v1.json`, aucun
+  `buy.stripe.com` sur les pages servies) ; CI de `main` verte 3/3 (Vérifications,
+  Vérification des pages, déploiement Pages).
+· ❓ **À trancher par Justin — la référence d'espace (`ref`) n'est pas liée au compte qui paie** (`gardien`) : la page
+  envoie l'espace rattaché sur l'appareil (`elan_sync_team`) et le serveur le grave sur l'abonnement tel quel. Un compte
+  confirmé peut donc rattacher SON paiement à l'espace d'une autre entreprise, qui devient « payée ». L'attaquant n'y
+  gagne rien (c'est lui qui paie), mais une carte volée ou une contestation fausserait qui paie quoi. La restreindre
+  (le compte doit appartenir à l'espace) casserait le cas pour lequel elle existe : la comptable qui paie avec une autre
+  adresse.
+· ℹ️ Pourquoi l'adresse CONFIRMÉE et pas seulement le compte : une session prouve un mot de passe, pas une adresse
+  (`CLAUDE.md`) — sans confirmation, n'importe qui paierait au nom de l'adresse de contact d'une entreprise, publique.
+  Se relâche sur une phrase de Justin (une ligne du serveur, une de la page).
 
 ⏳ **L'APPLICATION N'EST PAS ENCORE À 1 — question posée à Justin, toujours sans réponse.** `PLANS.maxU` vaut 2
 (Business) et 3 (Business Premium), `planPlaces()` = `maxU × abonnements` : l'application donne PLUS que ce que le site
