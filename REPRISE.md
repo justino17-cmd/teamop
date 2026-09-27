@@ -40,7 +40,11 @@ relue par `test-835` §10. ⛔ Le générateur écrit l'aperçu par défaut ; `-
   l'iPhone de 92 px, tête coupée. `overflow:clip` (repli `hidden`), prouvé par contour et mesure.
 · **Preuves** : `test-835` **209 ✓** ; `scratchpad/sonde-site.js` **354 ✓** sur les 8 pages, gestes neufs (accueil,
   OP GESTION, tarifs) **214 ✓** ; **6 contre-épreuves sur 6** mordent (`scratchpad/mut-site.py`) ; photos regardées
-  une à une (`scratchpad/vue-site.js`, 0 erreur JavaScript). APERÇU_PUBLIÉ
+  une à une (`scratchpad/vue-site.js`, 0 erreur JavaScript).
+✅ **Publié en aperçu** (`6d44fa7` sur `main`, 48 fichiers : `apercu/site/`, `vitrine/v2/`, le manifeste, le
+générateur et son banc — ni `app.html`, ni `sw.js`, ni `beta.html`, ni les pages de la racine). Vérifié : copie de
+`main` avant la poussée **190 suites · 9 638 ✓** + les 8 contrôles de `verification.yml` ; en ligne, **46 fichiers
+servis octet pour octet** et la racine inchangée ; **CI de `main` verte 3/3**. Branche : **191 suites · 9 844 ✓**.
 **Ce qui attend Justin :** tester l'aperçu (https://teamop.fr/apercu/site/, jour, nuit, bouton, iPhone et Mac), puis
 « remplace le site » → `node scripts/site-marine.js --racine`, et le manifeste `vitrine/racine-v1.json` se retire
 avec l'ancien `vitrine/`. **Plus tard** : les vraies captures d'OP MESSAGES (quand il le dira).
