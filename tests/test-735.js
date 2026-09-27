@@ -425,6 +425,15 @@ function basePetite(m) {
     vrai('⛔ la pousse a ENVOYÉ quelque chose (le nom du champ est le bon)', r && r.envoyees > 0);
     v('⛔ et le serveur a accepté TOUTES les lignes décomposées', r && r.envoyees, attendues);
     v('   aucun refus', r && r.refus, 0);
+    /* ⛔ LE CONTRÔLE QUE CETTE PREMIÈRE POUSSE LANCE EN ARRIÈRE-PLAN, ON L'ATTEND. Laissé à
+       l'ordonnanceur, il finissait parfois pendant la section suivante, sur une base que le banc
+       venait de modifier : c'est ce qui a fait tomber ce banc deux fois en CI (26 et 27 septembre
+       2026, « rien n'a été remonté à la Tour »), et jamais ici. La course elle-même est jouée
+       EXPRÈS, requête retenue, en « f bis » ; les autres sections ne doivent pas dépendre de
+       l'horloge de la machine qui les fait tourner. */
+    for (let i = 0; i < 150 && compte.combien('/api/op/controle') === 0; i++) await dormir(20);
+    v('   le contrôle qu\'elle a lancé a rendu son verdict, sans rien remonter à la Tour',
+      [compte.combien('/api/op/controle'), diagnostics.length], [1, 0]);
 
     const e = await appel('POST', '/api/op/session', { corps: { t: T, kh: sha(CLE), app_id: 'dev-controle' } });
     vrai('⛔ le socle n\'est plus vide, vu par une AUTRE session', e.j && e.j.seq >= attendues);
