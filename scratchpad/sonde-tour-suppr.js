@@ -160,6 +160,33 @@ async function main() {
       v('⛔ code non saisi : rien n’est annoncé réussi, le panneau le dit', e.ouvert && /Code non saisi — rien n’a été supprimé/.test(e.err) && !/Suppression ordonnée/.test(e.toast), e.err + ' | ' + e.toast);
       await ev('tourPanneauFermer(); return 1;'); await dormir(500);
 
+      /* ══ 3 bis. La limite (« Oui rajoute ça ») : au-delà de trois entreprises en 24 heures, le serveur
+         redemande le code — et la question doit dire POURQUOI, pas « serveur pas à jour ». ══ */
+      await ev(`window.__corps=[]; window.__prompts=[]; window.__repPrompt='715204';
+        window.__script['/api/monitor/entreprise/supprimer']=[{d:{ok:true,codeEnvoye:true,limite:true,dest:'p***@teamop.fr',apercu:{}}},
+          {d:{ok:true,supprime:true,t:'boulmartin-7k2q',nom:'Boulangerie Martin',fait:{},ecrit:true,avertissement:'',avis:{parti:true}}}]; return 1;`);
+      await ouvrirFiche();
+      await frapper(`[...document.querySelectorAll('#vue button')].find(b=>/entSupprimer\\(/.test(b.getAttribute('onclick')||''))`, 'Supprimer partout (limite)');
+      await dormir(500);
+      await frapper(`document.getElementById('suppr-ok')`, 'la case'); await frapper(`document.getElementById('suppr-oui')`, 'Oui');
+      await dormir(800); e = await etat(); c = await corps();
+      const prL = (await ev('return window.__prompts.slice();')).map(x => String(x).replace(/[\u00a0\u202f]/g, ' '));
+      v('la limite : le code est demandé en disant POURQUOI (trois entreprises en 24 heures)', prL.length === 1 && /Trois entreprises ont déjà été supprimées ces dernières 24 heures/.test(prL[0]) && !/pas encore à jour/.test(prL[0]), JSON.stringify(prL));
+      v('…puis envoyé, et la suppression passe', c.length === 2 && c[0].b.confirme === true && c[1].b.code === '715204' && !e.ouvert && /supprimée partout/.test(e.toast), JSON.stringify(c) + ' | ' + e.toast);
+      await ev('try{tourPanneauFermer()}catch(x){} return 1;'); await dormir(400);
+
+      /* ══ 3 ter. L'e-mail d'avis n'est pas parti : la suppression est faite, le verdict le DIT et reste lisible ══ */
+      await ev(`window.__corps=[]; window.__prompts=[];
+        window.__script['/api/monitor/compte/supprimer']=[{d:{ok:true,attente:true,avis:{parti:false,motif:'Mail command failed: 550 refusé'}}}]; return 1;`);
+      await ouvrirFiche();
+      await frapper(`[...document.querySelectorAll('#vue button')].find(b=>/compteSupprimer\\('tom'\\)/.test(b.getAttribute('onclick')||''))`, 'Supprimer (tom, avis refusé)');
+      await dormir(400);
+      await frapper(`document.getElementById('suppr-ok')`, 'la case'); await frapper(`document.getElementById('suppr-oui')`, 'Oui');
+      await dormir(600); e = await etat();
+      v('avis refusé : la réussite se dit ET l’avis manqué aussi, avec sa raison', !e.ouvert && /Suppression ordonnée/.test(e.toast) && /L’e-mail d’avis n’est pas parti \(Mail command failed: 550 refusé\)/.test(e.toast), e.toast);
+      await dormir(3200); e = await etat();
+      v('…et reste affiché au-delà d’un toast ordinaire (3,8 s après)', /L’e-mail d’avis n’est pas parti/.test(e.toast), e.toast || '(éteint)');
+
       /* ══ 4. Supprimer une entreprise partout : la question vit sous l'inventaire ══ */
       await ev(`window.__corps=[]; window.__prompts=[]; window.__script['/api/monitor/entreprise/supprimer']=[{d:{ok:true,supprime:true,t:'boulmartin-7k2q',nom:'Boulangerie Martin',fait:{},ecrit:true,avertissement:''}}]; return 1;`);
       await ouvrirFiche();
