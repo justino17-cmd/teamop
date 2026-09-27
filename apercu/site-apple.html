@@ -360,27 +360,27 @@ footer{border-top:1px solid var(--ligne);padding:38px 0;color:var(--second);font
   try{ if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){
     if(h.getAttribute('data-mode')==='auto') poseMode('auto'); }); }catch(e){}
 
-  /* ── Les tarifs : ceux de `tarifs.html`, pas des chiffres réinventés ── */
+  /* ── Les tarifs : ceux de `tarifs.html`, pas des chiffres réinventés — un abonnement = un utilisateur (27 septembre 2026) ── */
   var TARIFS={
     gestion:[
       {n:'Gratuit', d:'Pour découvrir TEAM OP et gérer ses premières interventions.', p:'0 €', u:'1 utilisateur',
        l:['Interventions et rapports','Clients et planning','Vos données exportables']},
-      {n:'Pro', d:'Pour les équipes terrain qui veulent un planning et des rapports impeccables.', p:'15 €', u:'1 utilisateur',
+      {n:'Pro', d:'Pour les équipes terrain qui veulent un planning et des rapports impeccables.', p:'15 €', u:'1 utilisateur par abonnement',
        l:['Tout le Gratuit, plus…','Devis et factures','Contrats et archives']},
-      {n:'Business', d:"Pour piloter toute l'entreprise : stock, achats, réglementaire et compta.", p:'25 €', u:'2 utilisateurs',
+      {n:'Business', d:"Pour piloter toute l'entreprise : stock, achats, réglementaire et compta.", p:'25 €', u:'1 utilisateur par abonnement',
        tag:'⭐ LE PLUS CHOISI', phare:true,
        l:['Tout le Pro, plus…','Stock, box et mouvements','Bons de commande et achats','Registre biocide']},
-      {n:'Business Premium', d:"Le maximum : messagerie d'équipe, espace client et service 24 h/24.", p:'50 €', u:'3 utilisateurs',
+      {n:'Business Premium', d:"Le maximum : messagerie d'équipe, espace client et service 24 h/24.", p:'50 €', u:'1 utilisateur par abonnement',
        tag:'👑 PREMIUM',
        l:['Tout le Business, plus…','OP MESSAGES inclus','Espace client','Support prioritaire']}
     ],
     messages:[
       {n:'Perso', d:'La messagerie classique, gratuite : messages, appels et vidéo.', p:'0 €', u:'',
        l:['Messages et vocaux','Appels et vidéo','Groupes']},
-      {n:'Messages Pro', d:'La messagerie de votre entreprise, propre et séparée du perso.', p:'15 €', u:'1 utilisateur',
+      {n:'Messages Pro', d:'La messagerie de votre entreprise, propre et séparée du perso.', p:'15 €', u:'1 utilisateur par abonnement',
        tag:'⭐ ÉQUIPES', phare:true,
        l:['Espace réservé à l’entreprise','Sondages et événements','Messages éphémères']},
-      {n:'Messages Business Premium', d:'La totale : visio illimitée et priorité au support.', p:'25 €', u:'3 utilisateurs',
+      {n:'Messages Business Premium', d:'La totale : visio illimitée et priorité au support.', p:'25 €', u:'1 utilisateur par abonnement',
        tag:'👑 PREMIUM',
        l:['Visio illimitée','Support prioritaire','Inclus avec le Business Premium de la suite']}
     ]

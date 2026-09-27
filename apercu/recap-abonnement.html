@@ -472,6 +472,13 @@ const STRIPE_PRICES = {
   msgpremium: { mensuel: 'price_1TwV6mFKFKIrVWLD7DkH3P9f', annuel: 'price_1TwgeFFKFKIrVWLDgqaRlO6V' }
 };
 
+/* ⛔ UN ABONNEMENT = UN UTILISATEUR, dans toutes les formules — Justin, 27 septembre 2026 au soir : « à partir
+   d'aujourd'hui c'est 1 utilisateur par abonnement ». Avant : 2 en Business, 3 en Business Premium et en Messages
+   Business Premium. `utilisateurs` reste écrit pour chaque formule, et vaut 1 partout : `tests/test-837.js` le relit.
+   Le nombre d'abonnements est donc le nombre de personnes. */
+/* Le serveur plafonne la quantité à 50 (`/api/stripe/checkout`) : au-delà, la page afficherait un total que Stripe
+   ne facturerait pas. Le plafond de la page est celui-là, pas un autre. */
+const MAX_ABONNEMENTS = 50;
 const FORMULES = {
   gratuit: {
     groupe: 'gestion',
@@ -523,7 +530,7 @@ const FORMULES = {
     nom: 'Business',
     desc: 'Pour piloter toute l\'entreprise : stock, achats, réglementaire et compta',
     prixMensuel: 25,
-    utilisateurs: 2,
+    utilisateurs: 1,
     couleur: 'var(--m-link)',
     fond: 'color-mix(in srgb, var(--m-link) 12%, transparent)',
     badge: { texte: 'Le plus choisi', fond: 'var(--m-link)', couleur: 'var(--m-bg)' },
@@ -547,7 +554,7 @@ const FORMULES = {
     nom: 'Business Premium',
     desc: 'Le maximum : messagerie d\'équipe, espace client et service 24h/24',
     prixMensuel: 50,
-    utilisateurs: 3,
+    utilisateurs: 1,
     couleur: 'var(--m-link)',
     fond: 'color-mix(in srgb, var(--m-link) 12%, transparent)',
     badge: { texte: 'Premium', fond: 'var(--m-link)', couleur: 'var(--m-bg)' },
@@ -610,7 +617,7 @@ const FORMULES = {
     nom: 'Messages Business Premium',
     desc: 'La totale : visio illimitée et priorité au support',
     prixMensuel: 25,
-    utilisateurs: 3,
+    utilisateurs: 1,
     couleur: 'var(--m-link)',
     fond: 'color-mix(in srgb, var(--m-link) 12%, transparent)',
     badge: { texte: '👑 Premium', fond: 'var(--m-link)', couleur: 'var(--m-bg)' },
@@ -640,7 +647,7 @@ let formuleActive = params.get('formule') || 'business';
 if (!FORMULES[formuleActive]) formuleActive = 'business';
 let cycleAnnuel = false;
 /* Préremplissage : recap-abonnement.html?formule=business&utilisateurs=7 */
-let nbUsersVoulu = Math.min(250, parseInt(params.get('utilisateurs'), 10) || 0);   // 0 = automatique (places incluses de la formule)
+let nbUsersVoulu = Math.min(MAX_ABONNEMENTS, parseInt(params.get('utilisateurs'), 10) || 0);   // 0 = automatique (1 : un abonnement)
 
 /* ---------- RENDU : SÉLECTEUR ---------- */
 function rendreSelecteur() {
@@ -684,8 +691,8 @@ function rendreDroits() {
     <div class="bloc-utilisateurs" style="background:${f.fond}; border-color:color-mix(in srgb, ${f.couleur} 25%, transparent);">
       <div class="avatars">${avatars}</div>
       <div class="texte-u">
-        <div class="gros">${f.utilisateurs} utilisateur${f.utilisateurs > 1 ? 's' : ''} inclus</div>
-        <div class="petit">Avec cette offre, vous avez le droit de créer ${f.utilisateurs > 1 ? 'jusqu\'à ' + f.utilisateurs + ' comptes utilisateurs' : '1 compte utilisateur'} avec le même abonnement — chacun avec son propre accès et ses permissions.</div>
+        <div class="gros">1 utilisateur par abonnement</div>
+        <div class="petit">${f.prixMensuel === 0 ? 'Avec cette offre, vous avez 1 compte utilisateur, avec son propre accès et ses permissions.' : 'Chaque abonnement ouvre 1 compte utilisateur, avec son propre accès et ses permissions. Plusieurs personnes\u202f? Un abonnement chacune.'}</div>
       </div>
     </div>
 
@@ -721,9 +728,8 @@ function rendrePaiement() {
     return;
   }
   const gratuit = f.prixMensuel === 0;
-  if (nbUsersVoulu < 1) nbUsersVoulu = f.utilisateurs;   // par défaut : les places incluses
+  if (nbUsersVoulu < 1) nbUsersVoulu = f.utilisateurs;   // par défaut : 1 (un abonnement = un utilisateur)
   const nbAbos = gratuit ? 1 : Math.max(1, Math.ceil(nbUsersVoulu / f.utilisateurs));
-  const nbPlaces = f.utilisateurs * nbAbos;
   // L'option annuelle n'apparaît que si son lien Stripe est configuré
   const annuelDispo = !gratuit && CONFIG_STRIPE[formuleActive] && CONFIG_STRIPE[formuleActive].annuel && !CONFIG_STRIPE[formuleActive].annuel.includes('A_REMPLACER');
   if (!annuelDispo) cycleAnnuel = false;
@@ -741,7 +747,7 @@ function rendrePaiement() {
       <span class="prix-grand">${gratuit ? '0 €' : totalAffiche + ' €'} <small>${suffixe}</small></span>
     </div>
     <div style="text-align:center; font-size:12.5px; color:var(--texte-2); margin-bottom: 6px;">
-      Formule ${f.nom} · ${f.utilisateurs} utilisateur${f.utilisateurs > 1 ? 's' : ''} inclus
+      Formule ${f.nom} · 1 utilisateur par abonnement
       ${parUtilisateur ? `<br>soit ${parUtilisateur.toFixed(2).replace('.', ',').replace(',00','')} € / mois par utilisateur` : ''}
     </div>
 
@@ -751,8 +757,8 @@ function rendrePaiement() {
       <div style="display:flex;align-items:center;gap:12px;">
         <button id="aboMoins" type="button" style="width:44px;height:44px;border-radius:999px;border:1px solid var(--m-line);background:var(--m-tile);color:var(--m-text);font-size:20px;font-weight:600;cursor:pointer;flex-shrink:0;">\u2212</button>
         <div style="flex:1;text-align:center;">
-          <div style="display:flex;align-items:baseline;justify-content:center;gap:7px;font-size:22px;font-weight:800;"><input id="nbUsers" type="number" min="1" max="250" value="${nbUsersVoulu}" title="Tapez votre nombre d'utilisateurs" style="width:${String(nbUsersVoulu).length+0.8}ch;text-align:center;font-size:22px;font-weight:800;background:transparent;border:none;outline:none;color:inherit;font-family:inherit;padding:0;border-bottom:1px dashed color-mix(in srgb,var(--m-link) 45%,transparent);"><span>utilisateur${nbUsersVoulu>1?'s':''}</span></div>
-          <div style="font-size:12px;color:var(--m-sub);margin-top:4px;">${nbAbos} abonnement${nbAbos>1?'s':''} ${f.nom} \u00d7 ${f.utilisateurs} place${f.utilisateurs>1?'s':''}${nbPlaces>nbUsersVoulu?' \u00b7 '+nbPlaces+' places au total':''}</div>
+          <div style="display:flex;align-items:baseline;justify-content:center;gap:7px;font-size:22px;font-weight:800;"><input id="nbUsers" type="number" min="1" max="${MAX_ABONNEMENTS}" value="${nbUsersVoulu}" title="Tapez votre nombre d'utilisateurs" style="width:${String(nbUsersVoulu).length+0.8}ch;text-align:center;font-size:22px;font-weight:800;background:transparent;border:none;outline:none;color:inherit;font-family:inherit;padding:0;border-bottom:1px dashed color-mix(in srgb,var(--m-link) 45%,transparent);"><span>utilisateur${nbUsersVoulu>1?'s':''}</span></div>
+          <div style="font-size:12px;color:var(--m-sub);margin-top:4px;">${nbAbos} abonnement${nbAbos>1?'s':''} ${f.nom} \u00b7 un\u00a0par\u00a0utilisateur${nbUsersVoulu>=MAX_ABONNEMENTS?'<br>Au-del\u00e0 de '+MAX_ABONNEMENTS+', \u00e9crivez \u00e0 support@teamop.fr':''}</div>
         </div>
         <button id="aboPlus" type="button" style="width:44px;height:44px;border-radius:999px;border:1px solid var(--m-line);background:var(--m-tile);color:var(--m-text);font-size:20px;font-weight:600;cursor:pointer;flex-shrink:0;">+</button>
       </div>
@@ -832,8 +838,8 @@ function rendrePaiement() {
   const bm=document.getElementById('aboMoins'), bp=document.getElementById('aboPlus'), ni=document.getElementById('nbUsers');
   const abosActuels = () => Math.max(1, Math.ceil(nbUsersVoulu / f.utilisateurs));
   if(bm) bm.addEventListener('click', ()=>{ if(abosActuels()>1){ nbUsersVoulu=(abosActuels()-1)*f.utilisateurs; rendrePaiement(); } });
-  if(bp) bp.addEventListener('click', ()=>{ if(abosActuels()<50){ nbUsersVoulu=(abosActuels()+1)*f.utilisateurs; rendrePaiement(); } });
-  if(ni){ ni.addEventListener('change', ()=>{ nbUsersVoulu=Math.min(250,Math.max(1,parseInt(ni.value,10)||1)); rendrePaiement(); });
+  if(bp) bp.addEventListener('click', ()=>{ if(abosActuels()<MAX_ABONNEMENTS){ nbUsersVoulu=(abosActuels()+1)*f.utilisateurs; rendrePaiement(); } });
+  if(ni){ ni.addEventListener('change', ()=>{ nbUsersVoulu=Math.min(MAX_ABONNEMENTS,Math.max(1,parseInt(ni.value,10)||1)); rendrePaiement(); });
     ni.addEventListener('input', ()=>{ ni.style.width=(Math.max(1,String(ni.value||'').length)+0.8)+'ch'; });
     ni.addEventListener('keyup', e=>{ if(e.key==='Enter') ni.blur(); }); }
   c.querySelectorAll('.cycle').forEach(b => {
