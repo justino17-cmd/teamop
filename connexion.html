@@ -278,10 +278,17 @@ try{
     var nom=ADRESSE||slugDe((($id('adr-nom')||{}).value)||'');
     var msg=ADRESSE?cxMsg:adrMsg;
     if(!nom){ msg('#f87171','Écris d\'abord l\'adresse de ton entreprise.'); return; }
+    var r;
     try{
-      await fetch('https://api.teamop.fr/api/espaces/relance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:nom})});
-      msg('#34d399','📧 Si « '+nom.replace(/</g,'&lt;')+' » est bien inscrite chez TEAM OP, son lien de connexion vient de partir à son adresse e-mail. Ouvre ce lien sur cet appareil.');
-    }catch(e){ msg('#f87171','Connexion internet requise — réessaie.'); }
+      r=await fetch('https://api.teamop.fr/api/espaces/relance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:nom})});
+    }catch(e){ msg('#f87171','Connexion internet requise — réessaie.'); return; }
+    /* ⛔ `fetch` NE JETTE PAS SUR UN REFUS : un 429 (dix demandes par heure depuis un appareil) ou un
+       502 (le serveur tombé derrière nginx) se résolvent comme une réussite. Jusqu'au 27 septembre
+       2026, cet écran disait alors « vient de partir » — et on attendait un e-mail qui ne viendrait
+       pas. La réussite, elle, reste la même pour toute adresse : elle ne dit pas qui est inscrit. */
+    if(r.ok){ msg('#34d399','📧 Si « '+nom.replace(/</g,'&lt;')+' » est bien inscrite chez TEAM OP, son lien de connexion vient de partir à son adresse e-mail. Ouvre ce lien sur cet appareil.'); return; }
+    if(r.status===429){ msg('#f87171','Trop de demandes depuis cet appareil. Regarde d\'abord dans les e-mails de ton entreprise (et les indésirables), ou réessaie dans une heure.'); return; }
+    msg('#f87171','Envoi impossible pour le moment&nbsp;: rien n\'est parti. Réessaie dans un instant.');
   }
   /* Le lien a son propre chemin : il connecte tout de suite, sans identifiant. */
   function entLienColler(){

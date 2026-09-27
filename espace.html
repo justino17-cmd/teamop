@@ -428,7 +428,17 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         poserJeton(r.j.jeton); direAuth(utilisateur(r.j.compte));
         return { user: moi };
       },
-      async sendPasswordResetEmail(email){ await appel('/api/compte/mdp/demander', { email }); return true; },
+      /* ⛔ LE SERVEUR RÉPOND 200 À UNE ADRESSE CONNUE COMME À UNE INCONNUE — c'est voulu, sinon ce
+         formulaire devient l'annuaire des clients. Mais un 400, un 429, une route absente ou un
+         serveur tombé ne sont pas « envoyé » : jusqu'au 27 septembre 2026, ce retour était jeté, et
+         l'écran annonçait « un e-mail vient de partir » à qui n'en recevrait jamais. `tests/test-831.js`. */
+      async sendPasswordResetEmail(email){
+        const r = await appel('/api/compte/mdp/demander', { email });
+        if(r.code === 200) return true;
+        if(r.code === 400) jeter('auth/invalid-email', 'E-mail invalide.');
+        if(r.code === 429) jeter('auth/too-many-requests', 'Trop de demandes — réessayez plus tard.');
+        jeter('auth/network-request-failed', 'Envoi impossible pour le moment.');
+      },
       /* ⛔ CE QUE `accReauth()` APPELAIT DANS LE VIDE. Trois écrans d'`espace.html` redemandent
          le mot de passe avant un geste grave ; avec Firebase, `reauthenticateWithCredential`
          le vérifiait. Ici il faut le demander au serveur — sinon le champ « mot de passe
@@ -693,14 +703,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       } else { await auth.signInWithEmailAndPassword(email,pass); }
     }catch(e){ err(authMsg(e)); }
   }
-  /* Mot de passe oublié : Firebase envoie l'email de réinitialisation.
-     On répond la même chose que le compte existe ou non — pas d'indice
-     donné à un curieux qui testerait des adresses. */
-  /* Mot de passe oublié : l'e-mail part de NOTRE serveur, avec notre gabarit et un
-     lien sur teamop.fr. Firebase n'accepte une URL d'action personnalisée que sur un
-     domaine servi par Firebase Hosting, et teamop.fr est sur GitHub Pages — d'où ce
-     détour. Si le serveur ne peut pas répondre, on retombe sur l'envoi Firebase :
-     gabarit brut et lien firebaseapp.com, mais l'utilisateur n'est jamais bloqué. */
+  /* Mot de passe oublié : l'e-mail part de NOTRE serveur (`/api/compte/mdp/demander`, par
+     l'adaptateur), avec notre gabarit et un lien sur teamop.fr/reinit.html. Il n'y a PLUS de repli
+     Firebase : la page ne charge plus le kit de Google depuis le 25 septembre 2026. On répond la
+     même chose que le compte existe ou non — pas d'indice donné à un curieux qui testerait des
+     adresses. Mais un refus se DIT : si rien n'est parti, l'écran ne dit pas « parti ». */
   /* ⛔ PLUS JAMAIS `/api/mdp/lien` : cette route fabrique un lien de réinitialisation FIREBASE.
      Tant que la clé d'administration est sur le VPS, elle répondait « envoyé » — le client
      changeait un mot de passe qui ne sert plus à rien, et la voie maison n'était jamais appelée
@@ -711,11 +718,14 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   async function motDePasseOublie(){
     const email=($('a-email').value||'').trim();
     const box=$('auth-err');
-    if(!email){ box.innerHTML='<div class="err">Écris d\'abord ton e-mail dans le champ ci-dessus, puis reclique.</div>'; return; }
+    if(!email){ box.innerHTML='<div class="err">Écrivez d\'abord votre e-mail dans le champ ci-dessus, puis cliquez de nouveau sur le lien.</div>'; return; }
     box.innerHTML='<div class="muted" style="padding:8px 2px">Envoi en cours…</div>';
     try{ await mdpLien(email,'https://teamop.fr/espace.html'); }
-    catch(e){ if((e&&e.code)==='auth/invalid-email'){ box.innerHTML='<div class="err">E-mail invalide.</div>'; return; } }
-    box.innerHTML='<div class="ok">📬 Si un compte existe pour <b>'+esc(email)+'</b>, un e-mail de réinitialisation vient de partir. Regarde aussi les indésirables.</div>';
+    catch(e){ const c=(e&&e.code)||'';
+      if(c==='auth/invalid-email'){ box.innerHTML='<div class="err">E-mail invalide.</div>'; return; }
+      if(c==='auth/too-many-requests'){ box.innerHTML='<div class="err">Trop de demandes en peu de temps. Regardez d\'abord dans vos e-mails (et les indésirables)&nbsp;: un lien est peut-être déjà arrivé. Sinon, réessayez dans une heure.</div>'; return; }
+      box.innerHTML='<div class="err">Envoi impossible pour le moment&nbsp;: rien n\'est parti. Vérifiez votre connexion et réessayez dans un instant.</div>'; return; }
+    box.innerHTML='<div class="ok">📬 Si un compte existe pour <b>'+esc(email)+'</b>, un e-mail de réinitialisation vient de partir. Regardez aussi dans les indésirables.</div>';
   }
   function authMsg(e){ const c=(e&&e.code)||'';
     if(c==='auth/email-already-in-use') return 'Cet e-mail a déjà un compte. Connectez-vous.';
@@ -1176,16 +1186,16 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const nom=(inp.value||'').trim(), slug=lienSlug(nom);
     _lienEtat=null;
     if(!nom){ msg.innerHTML=''; return; }
-    if(!slug){ msg.innerHTML='<span style="color:#f87171">Utilise des lettres ou des chiffres.</span>'; return; }
+    if(!slug){ msg.innerHTML='<span style="color:#f87171">Utilisez des lettres ou des chiffres.</span>'; return; }
     msg.innerHTML='<span class="muted">Vérification…</span>';
     _lienTimer=setTimeout(async ()=>{
       try{
         const r=await fetch('https://api.teamop.fr/api/espaces/libre',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom})});
         const j=await r.json().catch(()=>({}));
-        if(r.ok&&j.libre===false){ _lienEtat={nom,slug,libre:false}; msg.innerHTML='<span style="color:#f87171">❌ « '+esc(nom)+' » est déjà pris — choisis une variante (ajoute la ville, par exemple).</span>'; }
+        if(r.ok&&j.libre===false){ _lienEtat={nom,slug,libre:false}; msg.innerHTML='<span style="color:#f87171">❌ « '+esc(nom)+' » est déjà pris — choisissez une variante (ajoutez la ville, par exemple).</span>'; }
         else if(r.ok&&j.libre===true){ _lienEtat={nom,slug,libre:true}; msg.innerHTML='<span style="color:#34d399">✅ Disponible</span>'; }
-        else { _lienEtat=null; msg.innerHTML='<span style="color:#f87171">Vérification impossible — réessaie.</span>'; }
-      }catch(e){ msg.innerHTML='<span style="color:#f87171">Vérification impossible — réessaie.</span>'; }
+        else { _lienEtat=null; msg.innerHTML='<span style="color:#f87171">Vérification impossible — réessayez.</span>'; }
+      }catch(e){ msg.innerHTML='<span style="color:#f87171">Vérification impossible — réessayez.</span>'; }
     },450);
   }
   /* Code teste / code promo sur la demande : s'il est valide, il DIT la formule à
@@ -1205,7 +1215,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       if(f){ [...f.options].forEach(o=>{ o.selected=(o.textContent===lib); }); f.disabled=true; }
       msg.innerHTML='<div style="margin-top:8px;padding:10px 12px;border:1px solid rgba(52,211,153,.5);background:rgba(52,211,153,.08);border-radius:10px;font-size:13px">🎁 Code valide : avec ce code, vous avez droit à la formule <b>'+esc(lib)+'</b> — offerte <b>'+j.mois+' mois</b>, sans carte bancaire.</div>';
       return window._demCode;
-    }catch(e){ msg.innerHTML='<div class="err" style="margin-top:8px">Vérification impossible — réessaie.</div>'; return null; }
+    }catch(e){ msg.innerHTML='<div class="err" style="margin-top:8px">Vérification impossible — réessayez.</div>'; return null; }
   }
   async function sendRequest(uid){
     const app=$('r-app').value, company=($('r-company').value||'').trim(), besoin=($('r-besoin').value||'').trim();
@@ -1229,7 +1239,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     try{
       const rl=await fetch('https://api.teamop.fr/api/espaces/libre',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:lienNom})});
       const jl=await rl.json().catch(()=>({}));
-      if(rl.ok&&jl.libre===false){ $('req-msg').innerHTML='<div class="err">⚠️ Le nom de lien « '+esc(lienNom)+' » est déjà pris — choisis une variante (ajoute la ville, par exemple).</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
+      if(rl.ok&&jl.libre===false){ $('req-msg').innerHTML='<div class="err">⚠️ Le nom de lien « '+esc(lienNom)+' » est déjà pris — choisissez une variante (ajoutez la ville, par exemple).</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
     }catch(e){}   // annuaire injoignable : on laisse passer, le serveur choisira une variante si besoin
     try{
       const d=_meDoc||{}; const liste=Array.isArray(d.demandes)?d.demandes.slice():[];
