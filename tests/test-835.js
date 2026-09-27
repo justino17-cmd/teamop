@@ -129,11 +129,11 @@ console.log('6 bis. tarifs : la formule touchée devient la bleue');
 vrai('le script rend les cartes choisissables (classe « choix », phare déplacé)', /g\.classList\.add\('choix'\)/.test(jsv2) && /x\.classList\.toggle\('phare', x === c\)/.test(jsv2));
 vrai('OP MESSAGES : ses boutons prennent les couleurs d\'OP GESTION (plus de fond gris)', /\.formule \.cta\.attente \{ cursor: inherit; \}/.test(css) && !/\.cta\.attente \{[^}]*background/.test(css));
 
-/* 27 septembre au soir, Justin, sur son iPhone en mode sombre : « pourquoi là c'est blanc ? ». La maquette retournait
-   la carte mise en avant (sombre de jour, BLANCHE de nuit) : un aplat blanc de 700 px dans une page de nuit. Elle reste
-   sombre dans les deux modes ; de nuit, c'est un bleu plus clair et un halo qui la distinguent. Les contrastes se
-   recalculent ici, au point le plus éclairé du halo — là où sont posés le titre et le sous-titre. */
-console.log('6 ter. la carte mise en avant : sombre de jour ET de nuit, lisible sous son halo');
+/* 27 septembre au soir, Justin, sur son iPhone : « pourquoi là c'est blanc ? » (de nuit), puis « et là, sur le même
+   jour, il y a du sombre, pourquoi ? ». La maquette RETOURNAIT la carte mise en avant (sombre de jour, blanche de nuit).
+   Elle suit désormais le mode, et une teinte + un halo la distinguent des autres cases. Les contrastes se recalculent
+   ici, au point le plus éclairé du halo — là où sont posés le titre et le sous-titre. */
+console.log('6 ter. la carte mise en avant suit le mode, se distingue des autres cases, et reste lisible sous son halo');
 const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, ' ');
 const jourBloc = (cssCode.match(/(?:^|\n):root \{([^}]*)\}/) || [])[1] || '';
 const jeton = (bloc, n) => ((bloc || '').match(new RegExp('--' + n + ':\\s*([^;]+);')) || [])[1];
@@ -147,18 +147,40 @@ for (const [mode, bloc, page] of [['jour', jourBloc, jeton(jourBloc, 'bg')], ['n
   const bg = rgb(jeton(bloc, 'inv-bg')), fg = rgb(jeton(bloc, 'inv-fg')), sub = rgb(jeton(bloc, 'inv-sub')), fond = rgb(page);
   vrai(mode + ' : les jetons de la carte se lisent (' + [jeton(bloc, 'inv-bg'), jeton(bloc, 'inv-fg'), jeton(bloc, 'inv-sub')].join(' · ') + ')', bg && fg && sub && fond);
   if (!(bg && fg && sub && fond)) continue;
-  vrai(mode + ' : ⛔ la carte est SOMBRE (luminance ' + lum(bg).toFixed(3) + ', jamais un aplat clair)', lum(bg) < .06);
+  const carte = rgb(jeton(bloc, 'card'));
+  vrai(mode + ' : ⛔ la carte suit le mode (luminance ' + lum(bg).toFixed(3) + (mode === 'jour' ? ', claire le jour' : ', sombre la nuit') + ')', mode === 'jour' ? lum(bg) > .6 : lum(bg) < .06);
+  vrai(mode + ' : et se distingue des autres cases (' + (carte ? contraste(bg, carte).toFixed(3) : '?') + ' ≥ 1,08)', carte && contraste(bg, carte) >= 1.08);
   const halo = (jeton(bloc, 'inv-halo') || '').trim(), voile = halo === 'none' ? null : rgb((halo.match(/rgba\([^)]*\)/) || [])[0]);
-  vrai(mode + ' : le halo se lit (' + (voile ? 'rgba ' + voile.join(',') : 'aucun') + ')', halo === 'none' || !!voile);
+  vrai(mode + ' : le halo se lit (' + (voile ? 'rgba ' + voile.join(',') : 'aucun') + ')', !!voile);
   const eclaire = voile ? sur(bg, voile) : bg;
   for (const [nom, c] of [['titre', fg], ['sous-titre', sub]]) {
     const r = Math.min(contraste(c, bg), contraste(c, eclaire));
     vrai(mode + ' : ' + nom + ' lisible partout sur la carte, halo compris (' + r.toFixed(2) + ' ≥ 4,5)', r >= 4.5);
   }
-  if (mode === 'nuit') vrai('nuit : la carte se détache de la page (' + contraste(bg, fond).toFixed(2) + ' ≥ 1,25)', contraste(bg, fond) >= 1.25);
+  vrai(mode + ' : la carte se détache de la page (' + contraste(bg, fond).toFixed(2) + ' ≥ 1,2)', contraste(bg, fond) >= 1.2);
 }
 vrai('la règle peint la couleur, le halo et le filet de la carte', /\.tuile-f\.inv \{ background-color: var\(--inv-bg\); background-image: var\(--inv-halo\); box-shadow: var\(--inv-bord\); color: var\(--inv-fg\); \}/.test(cssCode));
-vrai('le jour n\'a ni halo ni filet (la carte de la maquette, inchangée)', /--inv-halo: none;/.test(jourBloc) && /--inv-bord: none;/.test(jourBloc));
+
+console.log('6 quinquies. un mode est un mode : aucune couleur qui ne suive pas le mode');
+/* La maquette avait une famille de jetons « toujours sombres » (--nuit, --nuit-2…) : « Au dépôt », « Prêt en trois
+   étapes », la carte OP MESSAGES, la conversation — sombres le jour, et de la couleur exacte de la page la nuit (la carte
+   disparaissait). Chaque jeton de couleur du jour doit avoir sa valeur de nuit ; la sonde, elle, recense au navigateur
+   toutes les grandes surfaces de chaque page (§ « rien de sombre sur la page de jour »). */
+const nomsJetons = b => [...(b || '').matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].filter(m => /#|rgba?\(|gradient/.test(m[2])).map(m => m[1]);
+const duJour = nomsJetons(jourBloc), deNuit = new Set(nomsJetons(nuitSys));
+vrai('population : ' + duJour.length + ' jetons de couleur le jour', duJour.length >= 15);
+const orphelins = duJour.filter(n => !deNuit.has(n));
+vrai('chaque jeton de couleur du jour a sa valeur de nuit' + (orphelins.length ? ' — sans nuit : ' + orphelins.join(', ') : ''), orphelins.length === 0);
+vrai('plus aucun jeton « toujours sombre » (--nuit…)', !/var\(--nuit/.test(cssCode) && !/--nuit[a-z0-9-]*:/.test(cssCode));
+/* un fond peint en couleur écrite EN DUR ne suit pas le mode : seuls les voiles (derrière un menu ou une fenêtre) et le
+   ruban d'aperçu en ont un, par nature — ils sont nommés ici, un par un */
+const fondsEnDur = [];
+for (const m of cssCode.matchAll(/([^{}]+)\{([^}]*)\}/g)) { const sel = m[1].trim(); if (/^:root|data-theme/.test(sel)) continue;
+  for (const d of m[2].split(';')) if (/^\s*background(-color)?\s*:/.test(d) && /#[0-9a-f]{3,8}\b|rgba?\(/i.test(d)) fondsEnDur.push(sel.split(/\s+/).pop()); }
+vrai('population : les règles de la feuille se lisent (' + [...cssCode.matchAll(/\{/g)].length + ' blocs)', [...cssCode.matchAll(/\{/g)].length > 200);
+vrai('aucun fond en couleur écrite en dur, sauf les voiles et le ruban d\'aperçu (' + fondsEnDur.join(', ') + ')', JSON.stringify(fondsEnDur.sort()) === JSON.stringify(['.fenetre', '.ruban-apercu', '.voile']));
+const genTexte = fs.readFileSync(path.join(RACINE, 'scripts', 'site-marine.js'), 'utf8');
+vrai('le générateur n\'écrit plus de carte « nuit » ni de couleur de sondage en dur', !/class="(grande-carte|app-carte) nuit"/.test(genTexte) && !/<i style="[^"]*background:#/.test(genTexte));
 
 /* Même soirée, la photo de son iPhone : sous le Mac de la case « Interventions », une bande vide. Mesuré : 48 à 88 px
    de 430 à 360 px de large. La case prend la hauteur du Mac, l'ancienne hauteur devient un plafond — le bureau ne
