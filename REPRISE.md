@@ -13,6 +13,51 @@ de ligne du tout.
 
 ---
 
+# 🟡 27 SEPTEMBRE 2026, NUIT — « 1 UTILISATEUR PAR ABONNEMENT » : LE SITE ET LE PAIEMENT EN SERVICE — L'APPLICATION ATTEND UNE RÉPONSE
+
+Justin : **« Aussi à faire sur le site à partir d'aujourd'hui c'est 1 utilisateur par abonnement merci de corriger ça »**.
+Le site vendait 2 utilisateurs par abonnement Business et 3 en Business Premium (et en Messages Business Premium), et
+la page de paiement DIVISAIT le nombre de personnes par ces chiffres : sept personnes en Business faisaient quatre
+abonnements.
+
+✅ **Fait** (branche `5bd5fa6`, `1aca904`, `a0becc6`) — ⏳ **publication sur `main` en cours** (suites et relecture d'abord) :
+· `tarifs.html` (la v1 de la racine) : « 1 utilisateur par abonnement » sur les cinq formules payantes, l'introduction
+  (« Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements »), la FAQ (« Business × 3 =
+  3 comptes », en insécables — au téléphone l'exemple se coupait en deux) et la description. `vitrine/racine-v1.json`
+  porte l'empreinte retouchée, et `test-837` prouve qu'on n'a touché QUE ça : défaire les retouches rend la v1
+  publiée le 27 septembre, octet pour octet.
+· `recap-abonnement.html` EN SERVICE (et sa version au thème, et l'aperçu) : chaque formule compte 1, le nombre
+  d'abonnements EST le nombre de personnes, et le plafond de la page est celui du serveur (50, `/api/stripe/checkout`).
+  ⚠️ Avant, la page acceptait jusqu'à 250 : elle affichait un total que Stripe ne facturait pas. Au-delà de 50, elle
+  dit d'écrire à support@teamop.fr. Empreinte : `vitrine/portail-v1.json`.
+· Le générateur du site (v2, aperçu) dit la même chose ; `test-835` §3 déclare l'écart avec l'application (ci-dessous).
+· **Preuves** : `test-837` **66 ✓** — le VRAI script de la page, exécuté (7 personnes = 7 abonnements = 175 €, « + »,
+  « − », plafond, et la quantité envoyée au paiement), racine ET aperçu ; **19/19 contre-épreuves**
+  (`scratchpad/mut-837.py` — dont une retouche cachée derrière une empreinte « mise à jour ») ; `test-835` 253 ✓ ; sonde
+  du portail **229 ✓ 0 ✗** sur six états de la page de paiement ; photos téléphone et bureau, jour et nuit
+  (`scratchpad/vue-site.js`, vues `un-…`, `RACINE_SERVIE` pour photographier la copie de main). Suites (branche,
+  puis copie de main) : en cours. ⚠️ La copie de main a d'abord fait tomber `test-837` : son motif « 250 »
+  tombait dans une couleur de la page en service (`rgba(96,165,250,…)`) — resserré sur la forme du code.
+
+⏳ **L'APPLICATION N'Y EST PAS ENCORE — c'est une question pour Justin.** Dans `app.html`, `PLANS.maxU` vaut 2
+(Business) et 3 (Business Premium), et `planPlaces()` = `maxU × abonnements` : l'application donne donc PLUS que ce que
+le site vend, jamais moins. `test-835` §3 déclare cet écart valeur par valeur et le referme tout seul le jour où
+l'application passe à 1. La Tour écrit aussi « Business · 2 places ».
+**Avant** de passer l'application à 1 : les entreprises déjà abonnées (ELAN…) gardent-elles leurs places ? Si oui, leur
+régler dans la Tour une quantité égale à leurs places d'aujourd'hui (Business × 3 = 6 places → quantité 6), PUIS
+publier l'application (`maxU:1`, textes du forfait, libellés de la Tour, clause 4 du contrat d'`espace.html`, retrait
+de l'écart de `test-835`) — sur sa phrase, comme toute version.
+
+🔎 **Trouvé en chemin, à trancher par Justin — rien n'a été changé :**
+1. **HT ou TTC ?** Le site dit « Prix HT par mois » ; la page de paiement écrit « Total mensuel 175 € TTC » pour le
+   même montant. L'un des deux est faux, et c'est une mention qui engage.
+2. **« Ajouter un utilisateur » depuis l'application** (`proposerAbonnement`) ouvre le paiement avec le nombre TOTAL
+   de personnes (`db.users.length + 1`), pas celles qui manquent : une entreprise de sept qui veut un huitième se
+   verrait proposer huit abonnements NEUFS. C'était déjà vrai avant (divisé par 2 ou 3) ; c'est plus visible à 1.
+3. **Payer ne crée pas de places.** Le serveur reconnaît qu'un espace a payé (référence d'espace, sinon adresse), mais
+   le NOMBRE d'abonnements payés sur Stripe ne pose jamais `quantite` : les places viennent de la Tour ou de la demande
+   faite au portail. Une entreprise qui paie cinq abonnements n'a pas cinq places sans un geste dans la Tour.
+
 # 🟡 27 SEPTEMBRE 2026, SOIR — LE PORTAIL ET SES NEUF VOISINES AU THÈME DU SITE, EN APERÇU — ATTEND « REMPLACE »
 
 Justin, sur son iPhone (capture de « Mon espace », encore dans l'ancien noir) : **« au niveau des connexions ou création
@@ -55,6 +100,9 @@ il envoie gardaient chacune leur vieille feuille. Recensé depuis les liens du s
   Space Mono, pas de bouton, cibles à 37–43 px). `test-835` 246 ✓, bancs de la connexion et du portail verts
   (`test-686` et `test-831` suivent les jetons — **branche seulement** : sur `main` ils lisent les pages en service).
   Suite complète de la branche **192 suites · 10 190 ✓**.
+
+✅ **Publié en aperçu** (`8b31217`) : servi octet pour octet (22 fichiers sur 22), les pages de la racine intactes
+(11 sur 11), CI de `main` verte 3/3.
 
 **Ce qui attend Justin :** tester https://teamop.fr/apercu/espace.html (et `connexion.html?choix=1`, `recap-abonnement.html?formule=pro`,
 `mentions-legales.html`, `404.html`…), jour, nuit, bouton. ⚠️ L'aperçu du portail parle au VRAI serveur : se connecter
