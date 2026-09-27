@@ -79,6 +79,17 @@ serveur, relecture `gardien`, « pousse le serveur ».
 ℹ️ Petit écart relevé au passage : le formulaire de demande du portail accepte jusqu'à 250 utilisateurs, le serveur en
 retient 50 (`Math.min(50, …)`).
 
+⏳ **LE LOGO DANS GOOGLE — rien à corriger chez nous, c'est un geste de Justin dans la Search Console.** Justin, capture
+de Google à l'appui (27 septembre, nuit) : « sur Internet je veux le logo Team op ». Revérifié ce soir-là : l'accueil
+servi ne déclare QUE des icônes TEAM OP (`/favicon.ico` depuis `7423e94`, 16/32/48/64 px — le 48 est la taille que
+Google exige ; `icons/teamop-favicon-32.png`, `teamop-apple-touch.png`, le manifeste `teamop-192/512`) ; `robots.txt`
+rend 404 (rien n'est interdit). L'icône de la capture est EXACTEMENT `icons/apple-touch-icon.png` (« GESTION / OP »,
+vert), que l'accueil déclarait avant le 5 septembre : c'est la copie que Google a gardée. Aucun fichier de
+vérification Google dans le dépôt : si teamop.fr n'est pas encore dans la Search Console, l'ajouter (propriété
+« Domaine », enregistrement TXT chez le registraire), puis « Inspection de l'URL » → `https://teamop.fr/` →
+« Demander une indexation ». Le délai est celui de Google (quelques jours, parfois quelques semaines).
+⛔ Ne pas « corriger » `icons/apple-touch-icon.png` : c'est l'icône de l'APPLICATION OP GESTION (manifeste d'`app.html`).
+
 # 🟡 27 SEPTEMBRE 2026, SOIR — LE PORTAIL ET SES NEUF VOISINES AU THÈME DU SITE, EN APERÇU — ATTEND « REMPLACE »
 
 Justin, sur son iPhone (capture de « Mon espace », encore dans l'ancien noir) : **« au niveau des connexions ou création
