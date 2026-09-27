@@ -188,7 +188,8 @@ console.log('D’un incident à la personne qui l’a vécu');
   /* ⛔ (4) UNE TRONCATURE MUETTE SE LIT COMME UN TOTAL. */
   v('⛔ le total voyage avec la tranche', /total: \(issue\.entreprises \|\| \[\]\)\.length, rendues: sortie\.length/.test(r), true);
   v('…et les échecs aussi', /suiteTotal: apres\.length/.test(r), true);
-  v('…et l’écran annonce ce qu’il ne montre pas', /autre\(s\) entreprise\(s\) touchée\(s\) — non croisées ici/.test(f), true);
+  /* v2.68 : accordé (nMot) — « 1 autre entreprise touchée — non croisée ici », « 3 autres entreprises touchées — non croisées ici » */
+  v('…et l’écran annonce ce qu’il ne montre pas', /nMot\(reste,'autre entreprise touchée','autres entreprises touchées'\)\+' — non croisée'\+\(reste>1\?'s':''\)\+' ici/.test(f), true);
 
   /* (5) Sans horodatage, la fenêtre devient « epoch » et rend un vide indiscernable. */
   v('un incident sans date le dit', /sansDate: true/.test(r), true);
