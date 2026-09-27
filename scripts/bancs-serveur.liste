@@ -27,7 +27,8 @@
 # `main`), puis +26 avec `test-805`. Le relever quand on ajoute une suite, jamais le baisser pour passer.
 # 25 septembre 2026 : 2 297 contre les pages de `main` (38 suites), après la sortie de Firebase et la
 # seconde passe du gardien sur le portail — plancher relevé à 2 250.
-#plancher 2250
+# 27 septembre 2026 : 2 396 contre les pages de `main` (41 suites), `test-832` compris — plancher relevé à 2 350.
+#plancher 2350
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
