@@ -20,7 +20,7 @@
   --nav: rgba(240,243,248,.82); --fly: rgba(250,251,253,.97); --line: rgba(11,20,38,.1);
   --card: #f0f3f8; --tile: #fff; --stage: linear-gradient(180deg,#f0f3f8,#dfe5ee);
   --seg: #e0e6ef; --seg-on: #fff; --accent: #0b1426; --on-accent: #f0f3f8;
-  --inv-bg: #0b1426; --inv-fg: #f0f3f8; --inv-sub: #8e9aae; --inv-tile: rgba(240,243,248,.1);
+  --inv-bg: #0b1426; --inv-fg: #f0f3f8; --inv-sub: #8e9aae; --inv-tile: rgba(240,243,248,.1); --inv-halo: none; --inv-bord: none;
   /* les cartes sombres restent sombres dans les deux modes (maquette) */
   --nuit: #0b1426; --nuit-2: #1a2640; --nuit-3: #24304a; --nuit-lien: #7fb2ff; --nuit-sub: #8e9aae; --nuit-body: #c5cddb;
   --titre: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, sans-serif;
@@ -34,7 +34,8 @@
     --nav: rgba(11,20,38,.82); --fly: rgba(11,20,38,.97); --line: rgba(240,243,248,.14);
     --card: #121d33; --tile: #1a2640; --stage: linear-gradient(180deg,#141f36,#0b1426);
     --seg: #1a2640; --seg-on: #2b3a58; --accent: #f0f3f8; --on-accent: #0b1426;
-    --inv-bg: #f0f3f8; --inv-fg: #0b1426; --inv-sub: #3a4557; --inv-tile: rgba(11,20,38,.08);
+    --inv-bg: #1a2e58; --inv-fg: #f0f3f8; --inv-sub: #b3bfd3; --inv-tile: rgba(240,243,248,.1);
+    --inv-halo: radial-gradient(120% 80% at 0% 0%, rgba(127,178,255,.18), rgba(127,178,255,0) 60%); --inv-bord: inset 0 0 0 1px rgba(127,178,255,.16);
   }
 }
 :root[data-theme="dark"] {
@@ -42,7 +43,8 @@
     --nav: rgba(11,20,38,.82); --fly: rgba(11,20,38,.97); --line: rgba(240,243,248,.14);
     --card: #121d33; --tile: #1a2640; --stage: linear-gradient(180deg,#141f36,#0b1426);
     --seg: #1a2640; --seg-on: #2b3a58; --accent: #f0f3f8; --on-accent: #0b1426;
-    --inv-bg: #f0f3f8; --inv-fg: #0b1426; --inv-sub: #3a4557; --inv-tile: rgba(11,20,38,.08);
+    --inv-bg: #1a2e58; --inv-fg: #f0f3f8; --inv-sub: #b3bfd3; --inv-tile: rgba(240,243,248,.1);
+    --inv-halo: radial-gradient(120% 80% at 0% 0%, rgba(127,178,255,.18), rgba(127,178,255,0) 60%); --inv-bord: inset 0 0 0 1px rgba(127,178,255,.16);
 }
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
@@ -216,7 +218,13 @@ h1, h2, h3 { text-wrap: balance; }
 .tuile-f:hover { transform: scale(1.012); }
 .tuile-f:active { transform: scale(.99); }
 .tuile-f.large { min-height: clamp(340px,30vw,460px); }
-.tuile-f.inv { background: var(--inv-bg); color: var(--inv-fg); }
+/* LA CARTE MISE EN AVANT (la première grande case) : sombre sur la page claire, comme la maquette. De nuit, la
+   maquette la retournait en BLANC (#f0f3f8 sur une page #0b1426) — Justin, 27 septembre 2026 au soir, sur son
+   iPhone : « pourquoi là c'est blanc ? Sur le mode sombre ». Un aplat blanc de 700 px dans une page de nuit
+   éblouit et casse le mode. Elle reste donc sombre, et c'est la LUMIÈRE qui la distingue : un bleu nuit un cran
+   plus clair que les autres cases, un halo venu du coin haut-gauche et un filet bleuté. Contrastes calculés au
+   point le plus éclairé du halo : titre 8,41, sous-titre 5,04 (tests/test-835.js les recalcule). */
+.tuile-f.inv { background-color: var(--inv-bg); background-image: var(--inv-halo); box-shadow: var(--inv-bord); color: var(--inv-fg); }
 .tuile-f .ic { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 15px; background: var(--tile); }
 .tuile-f.inv .ic { background: var(--inv-tile); }
 .tuile-f .esp { flex: 1; min-height: 24px; }
@@ -244,6 +252,14 @@ h1, h2, h3 { text-wrap: balance; }
 .tuile-f.large .vue { height: clamp(280px, 29vw, 420px); }
 .tuile-f .vue .ap-iphone { --ap-l: min(250px, 60%); margin-top: 8px; }
 .tuile-f .vue.v-mac .ap-mac { --ap-l: 94%; margin-top: 10px; }
+/* ⚠️ UN MAC PLUS PETIT QUE SA CASE LAISSE UNE BANDE VIDE. Au bureau, l'écran du Mac est plus haut que la case et c'est
+   elle qui le coupe (on voit le haut de l'écran, voulu). Sur un téléphone, le Mac entier (socle compris) tient dans
+   moins que les 280 px réservés : mesuré le 27 septembre 2026, 48 à 88 px de vide sous le socle de 430 à 360 px de
+   large (Interventions, Équipe). La case prend donc la hauteur du Mac, et la hauteur d'avant devient un PLAFOND : au
+   bureau et sur tablette rien ne bouge (le Mac la dépasse toujours), sur téléphone il reste 24 px sous le socle.
+   « Partout » garde sa hauteur : l'iPhone posé devant le Mac occupe ce bas-là, exprès. */
+.tuile-f .vue.v-mac { height: auto; max-height: clamp(260px, 25vw, 340px); padding-bottom: 24px; }
+.tuile-f.large .vue.v-mac { max-height: clamp(280px, 29vw, 420px); }
 /* « Partout » : le Mac entier, l'iPhone posé devant lui en bas à droite — le même écran d'accueil sur les deux */
 .tuile-f .vue.duo { justify-content: flex-start; }
 .tuile-f .vue.duo .ap-mac { --ap-l: 92%; margin: 16px 0 0 4%; flex: none; }
@@ -251,6 +267,7 @@ h1, h2, h3 { text-wrap: balance; }
 @media (max-width: 820px) {
   .tuile-f .vue { height: min(78vw, 340px); }
   .tuile-f .vue .ap-iphone { --ap-l: min(230px, 58%); }
+  .tuile-f .vue.v-mac { max-height: min(78vw, 340px); }
 }
 
 /* la fenêtre d'une fonction */

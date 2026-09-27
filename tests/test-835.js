@@ -129,6 +129,48 @@ console.log('6 bis. tarifs : la formule touchée devient la bleue');
 vrai('le script rend les cartes choisissables (classe « choix », phare déplacé)', /g\.classList\.add\('choix'\)/.test(jsv2) && /x\.classList\.toggle\('phare', x === c\)/.test(jsv2));
 vrai('OP MESSAGES : ses boutons prennent les couleurs d\'OP GESTION (plus de fond gris)', /\.formule \.cta\.attente \{ cursor: inherit; \}/.test(css) && !/\.cta\.attente \{[^}]*background/.test(css));
 
+/* 27 septembre au soir, Justin, sur son iPhone en mode sombre : « pourquoi là c'est blanc ? ». La maquette retournait
+   la carte mise en avant (sombre de jour, BLANCHE de nuit) : un aplat blanc de 700 px dans une page de nuit. Elle reste
+   sombre dans les deux modes ; de nuit, c'est un bleu plus clair et un halo qui la distinguent. Les contrastes se
+   recalculent ici, au point le plus éclairé du halo — là où sont posés le titre et le sous-titre. */
+console.log('6 ter. la carte mise en avant : sombre de jour ET de nuit, lisible sous son halo');
+const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, ' ');
+const jourBloc = (cssCode.match(/(?:^|\n):root \{([^}]*)\}/) || [])[1] || '';
+const jeton = (bloc, n) => ((bloc || '').match(new RegExp('--' + n + ':\\s*([^;]+);')) || [])[1];
+const rgb = c => { c = (c || '').trim().replace(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i, '#$1$1$2$2$3$3'); let m = c.match(/^#([0-9a-f]{6})$/i); if (m) return [0, 2, 4].map(i => parseInt(m[1].substr(i, 2), 16)).concat(1);
+  m = c.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+))?\s*\)$/); return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null; };
+const lum = c => { const f = x => { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }; return .2126 * f(c[0]) + .7152 * f(c[1]) + .0722 * f(c[2]); };
+const contraste = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+const sur = (fond, voile) => fond.slice(0, 3).map((x, i) => x + (voile[i] - x) * voile[3]);
+vrai('population : le bloc de jour et le bloc de nuit se lisent', jourBloc.length > 200 && (nuitSys || '').length > 200);
+for (const [mode, bloc, page] of [['jour', jourBloc, jeton(jourBloc, 'bg')], ['nuit', nuitSys, jeton(nuitSys, 'bg')]]) {
+  const bg = rgb(jeton(bloc, 'inv-bg')), fg = rgb(jeton(bloc, 'inv-fg')), sub = rgb(jeton(bloc, 'inv-sub')), fond = rgb(page);
+  vrai(mode + ' : les jetons de la carte se lisent (' + [jeton(bloc, 'inv-bg'), jeton(bloc, 'inv-fg'), jeton(bloc, 'inv-sub')].join(' · ') + ')', bg && fg && sub && fond);
+  if (!(bg && fg && sub && fond)) continue;
+  vrai(mode + ' : ⛔ la carte est SOMBRE (luminance ' + lum(bg).toFixed(3) + ', jamais un aplat clair)', lum(bg) < .06);
+  const halo = (jeton(bloc, 'inv-halo') || '').trim(), voile = halo === 'none' ? null : rgb((halo.match(/rgba\([^)]*\)/) || [])[0]);
+  vrai(mode + ' : le halo se lit (' + (voile ? 'rgba ' + voile.join(',') : 'aucun') + ')', halo === 'none' || !!voile);
+  const eclaire = voile ? sur(bg, voile) : bg;
+  for (const [nom, c] of [['titre', fg], ['sous-titre', sub]]) {
+    const r = Math.min(contraste(c, bg), contraste(c, eclaire));
+    vrai(mode + ' : ' + nom + ' lisible partout sur la carte, halo compris (' + r.toFixed(2) + ' ≥ 4,5)', r >= 4.5);
+  }
+  if (mode === 'nuit') vrai('nuit : la carte se détache de la page (' + contraste(bg, fond).toFixed(2) + ' ≥ 1,25)', contraste(bg, fond) >= 1.25);
+}
+vrai('la règle peint la couleur, le halo et le filet de la carte', /\.tuile-f\.inv \{ background-color: var\(--inv-bg\); background-image: var\(--inv-halo\); box-shadow: var\(--inv-bord\); color: var\(--inv-fg\); \}/.test(cssCode));
+vrai('le jour n\'a ni halo ni filet (la carte de la maquette, inchangée)', /--inv-halo: none;/.test(jourBloc) && /--inv-bord: none;/.test(jourBloc));
+
+/* Même soirée, la photo de son iPhone : sous le Mac de la case « Interventions », une bande vide. Mesuré : 48 à 88 px
+   de 430 à 360 px de large. La case prend la hauteur du Mac, l'ancienne hauteur devient un plafond — le bureau ne
+   bouge pas (scratchpad/sonde-site.js le mesure, largeur par largeur). */
+console.log('6 quater. une case à Mac prend la hauteur du Mac, jamais plus que la hauteur d\'avant');
+const hLarge = (cssCode.match(/\.tuile-f\.large \.vue \{ height: (clamp\([^)]*\)); \}/) || [])[1];
+const hBase = (cssCode.match(/\.tuile-f \.vue \{ position: relative;[^}]*height: (clamp\([^)]*\));/) || [])[1];
+vrai('les hauteurs d\'avant se lisent (' + hBase + ' · ' + hLarge + ')', !!hLarge && !!hBase);
+vrai('case à Mac : hauteur du contenu, plafond = la hauteur d\'avant, 24 px sous le socle', cssCode.includes('.tuile-f .vue.v-mac { height: auto; max-height: ' + hBase + '; padding-bottom: 24px; }'));
+vrai('grande case à Mac : plafond = la hauteur d\'avant des grandes cases', cssCode.includes('.tuile-f.large .vue.v-mac { max-height: ' + hLarge + '; }'));
+vrai('« Partout » garde sa hauteur (l\'iPhone posé devant occupe le bas)', !/\.vue\.duo \{[^}]*height/.test(cssCode));
+
 console.log('7. OP MESSAGES : bientôt disponible, rien ne se choisit');
 const msg = (PAGES.tarifs.match(/<div class="formules" id="formules-msg"[\s\S]*?<\/div>\s*<p class="note-msg">/) || [''])[0];
 vrai('le bloc des formules OP MESSAGES est trouvé', msg.length > 500);
