@@ -11,9 +11,9 @@
        strict — à la place du code, sur les quatre routes ;
      · la Tour (`supprAppel`, tour.html) l'envoie, et lit `codeEnvoye` AVANT de croire à une
        réussite : face au serveur d'avant, la route répond `ok:true` avec un code parti.
-   Et ce qui ne doit PAS bouger : la Tour en service (v2.68 et avant) n'envoie pas `confirme` — son
-   premier appel doit toujours envoyer un code et ne RIEN supprimer, sinon elle détruirait sans la
-   question qu'elle pose avant.
+   Et ce qui ne doit PAS bouger : la Tour en service (v2.66, comme toute Tour d'avant la v2.69)
+   n'envoie pas `confirme` — son premier appel doit toujours envoyer un code et ne RIEN supprimer,
+   sinon elle détruirait sans la question qu'elle pose avant.
 
    ⛔ LE VRAI SERVEUR (isolé, 127.0.0.1), LES VRAIES FONCTIONS DE LA TOUR. Un facteur SMTP de banc
    compte les courriels, un Google de banc répond à tout ce que les suppressions appellent (jeton

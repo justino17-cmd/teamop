@@ -7,9 +7,9 @@
        strict — à la place du code, sur les quatre routes ;
      · la Tour (`supprAppel`, tour.html) l'envoie, et lit `codeEnvoye` AVANT de croire à une
        réussite : face au serveur d'avant, la route répond `ok:true` avec un code parti.
-   Et ce qui ne doit PAS bouger : la Tour en service (v2.68 et avant) n'envoie pas `confirme` — son
-   premier appel doit toujours envoyer un code et ne RIEN supprimer, sinon elle détruirait sans la
-   question qu'elle pose avant.
+   Et ce qui ne doit PAS bouger : la Tour en service (v2.66, comme toute Tour d'avant la v2.69)
+   n'envoie pas `confirme` — son premier appel doit toujours envoyer un code et ne RIEN supprimer,
+   sinon elle détruirait sans la question qu'elle pose avant.
 
    ⛔ LE VRAI SERVEUR, isolé sur 127.0.0.1 : un facteur SMTP de banc compte les courriels, un Google
    de banc répond à tout ce que les suppressions appellent (jeton anonyme, effacement Firestore) —
@@ -57,6 +57,7 @@ function facteur() {
   return { s, recus };
 }
 const lisible = (m) => Buffer.from(String(m || '').replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8');
+const mauvais = (c) => c === '000000' ? '111111' : '000000';
 const dernierCode = () => { const l = facteurSrv.recus.map(lisible); for (let i = l.length - 1; i >= 0; i--) { const m = /Code de confirmation : (\d{6})/.exec(l[i]); if (m) return m[1]; } return ''; };
 
 console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui » — le code n\'est plus demandé ──');
@@ -144,6 +145,10 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     let r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'jean' }, PATRON);
     v('compte : 1er appel → un code part, rien d\'autre', [r.s, r.j.codeEnvoye, courriels() - n0], [200, true, 1]);
     vrai('   jean est toujours dans l\'annuaire, aucun ordre', dansAnnuaire(A, 'jean') && ordres(A, 'jean') === 0);
+    /* ⛔ un MAUVAIS code, sur CHACUNE des quatre routes (`gardien` : retirer la vérification sur deux d'entre
+       elles laissait ce banc vert — une Tour d'avant qui envoie n'importe quel code aurait tout supprimé) */
+    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'jean', code: mauvais(dernierCode()) }, PATRON);
+    v('   ⛔ un mauvais code est refusé, rien supprimé', [r.s, dansAnnuaire(A, 'jean'), ordres(A, 'jean')], [400, true, 0]);
     r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'jean', code: dernierCode() }, PATRON);
     v('   avec le code : suppression ordonnée', [r.s, r.j.attente], [200, true]);
     vrai('   jean sort de l\'annuaire, un ordre', !dansAnnuaire(A, 'jean') && ordres(A, 'jean') === 1);
@@ -152,6 +157,8 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     r = await appel('/api/monitor/comptes/supprimer', { t: A, logins: ['neuf1'] }, PATRON);
     v('lot : 1er appel → un code, la liste relue par le serveur', [r.s, r.j.codeEnvoye, r.j.logins, courriels() - n0], [200, true, ['neuf1'], 1]);
     vrai('   neuf1 est toujours là', dansAnnuaire(A, 'neuf1'));
+    r = await appel('/api/monitor/comptes/supprimer', { t: A, logins: ['neuf1'], code: mauvais(dernierCode()) }, PATRON);
+    v('   ⛔ un mauvais code est refusé, rien supprimé', [r.s, dansAnnuaire(A, 'neuf1'), ordres(A, 'neuf1')], [400, true, 0]);
     r = await appel('/api/monitor/comptes/supprimer', { t: A, logins: ['neuf1'], code: dernierCode() }, PATRON);
     v('   avec le code : 1 compte supprimé', [r.s, r.j.n], [200, 1]);
 
@@ -170,6 +177,8 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     r = await appel('/api/monitor/entreprise/supprimer', { t: 't-epsilon-832' }, PATRON);
     v('supprimer partout : 1er appel → un code, un aperçu', [r.s, r.j.codeEnvoye, !!r.j.apercu, courriels() - n0], [200, true, true, 1]);
     vrai('   epsilon est toujours là', slugs().includes('epsilon'));
+    r = await appel('/api/monitor/entreprise/supprimer', { t: 't-epsilon-832', code: mauvais(dernierCode()) }, PATRON);
+    v('   ⛔ un mauvais code est refusé, rien supprimé', [r.s, slugs().includes('epsilon'), fermes().espaces.includes('t-epsilon-832')], [400, true, false]);
     r = await appel('/api/monitor/entreprise/supprimer', { t: 't-epsilon-832', code: dernierCode() }, PATRON);
     v('   avec le code : supprimée', [r.s, r.j.supprime], [200, true]);
     vrai('   epsilon est partie, et fermée', !slugs().includes('epsilon') && fermes().espaces.includes('t-epsilon-832'));
@@ -196,6 +205,14 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     v('supprimer partout : supprimée en UN appel', [r.s, r.j.supprime, r.j.t], [200, true, 't-delta-832']);
     vrai('   delta est partie, fermée, son annuaire aussi', !slugs().includes('delta') && fermes().espaces.includes('t-delta-832') && !(lire('comptes.json') || {})['t-delta-832']);
     v('⛔ les quatre suppressions confirmées n\'ont envoyé AUCUN courriel', courriels() - n0, 0);
+    /* Le journal de la Tour dit le CHEMIN (`gardien`) : après une session volée, c'est ce qui distingue une
+       suppression confirmée d'une suppression par code — sans adresse ni identifiant dans le motif. */
+    const jr = await fetch(B + '/api/monitor/journal', { headers: { Authorization: 'Bearer ' + PATRON } }).then(x => x.json()).catch(() => ({}));
+    const motifs = (jr.journal || []).map(x => x.motif || '');
+    const compte = re => motifs.filter(m => re.test(m)).length;
+    v('le journal de la Tour dit le chemin de chaque suppression (4 par code, 4 confirmées)',
+      [compte(/· par code$/), compte(/· confirmée$/)], [4, 4]);
+    vrai('   sans adresse ni identifiant dans le motif', motifs.every(m => !/@|t-[a-z]+-832|jean|paul|neuf/.test(m)));
 
     /* ══ 6. CE QUE `confirme` N'OUVRE PAS ═════════════════════════════════════════════════════════ */
     console.log('\n3. Ce que la confirmation n\'ouvre pas');

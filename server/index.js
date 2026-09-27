@@ -2636,16 +2636,17 @@ function cleEstPublique(t) { return cleEtat(espaceParT(t)) === 'partagee'; }
    question en gras, une case à cocher, puis « Oui, supprimer », éteint tant que la case est vide.
    La Tour l'annonce par `confirme: true` — un BOOLÉEN strict : « true » en chaîne, 1, ou tout
    autre valeur retombent sur le chemin du code, qui ne supprime rien au premier appel.
-   ⚠️ LE CHEMIN DU CODE RESTE, ET IL LE FAUT : la Tour en service (v2.68 et avant) n'envoie pas
-   `confirme` et attend `codeEnvoye` au premier appel. Si ce premier appel supprimait directement,
-   elle détruirait sans même la question qu'elle pose avant. Et dans l'autre sens, une Tour neuve
-   face au serveur d'avant reçoit `codeEnvoye` : elle redemande le code (`supprAppel`, tour.html)
-   au lieu d'annoncer une suppression qui n'a pas eu lieu.
+   ⚠️ LE CHEMIN DU CODE RESTE, ET IL LE FAUT : la Tour en service (v2.66, comme toute Tour d'avant
+   la v2.69) n'envoie pas `confirme` et attend `codeEnvoye` au premier appel. Si ce premier appel
+   supprimait directement, elle détruirait sans même la question qu'elle pose avant. Et dans
+   l'autre sens, une Tour neuve face au serveur d'avant reçoit `codeEnvoye` : elle redemande le
+   code (`supprAppel`, tour.html) au lieu d'annoncer une suppression qui n'a pas eu lieu.
    ⛔ CE QUE ÇA RETIRE, et c'est une décision, pas un oubli : le code était un SECOND facteur —
    une session de la Tour volée (trente jours avec « rester connecté ») ne suffisait pas à
    détruire. Désormais `monPatronStrict` est la seule porte. Les règles de fond ne bougent pas :
-   « jamais utilisé » prouvé ici, journal saturé refusé, espaces intouchables, chaque geste au
-   journal de la Tour (`monLog`). `tests/test-832.js` joue les deux chemins sur le vrai serveur. */
+   « jamais utilisé » prouvé ici, journal saturé refusé, espaces intouchables, et chaque geste au
+   journal de la Tour (`monLog`) avec le chemin qui l'a permis (« confirmée » ou « par code »).
+   `tests/test-832.js` joue les deux chemins sur le vrai serveur. */
 app.post('/api/monitor/compte/supprimer', monPatronStrict, async (req, res) => {
   const b = req.body || {};
   const t = monStr(b.t, 80), login = monStr(b.login, 40).toLowerCase().trim();
@@ -2682,7 +2683,9 @@ app.post('/api/monitor/compte/supprimer', monPatronStrict, async (req, res) => {
   l.push({ login, ts: Date.now(), par: (req.tourUser && req.tourUser.nom) || '', fait: 0 });
   ordresSave();
   if (comptesReg[t] && comptesReg[t].c && Object.prototype.hasOwnProperty.call(comptesReg[t].c, login)) { delete comptesReg[t].c[login]; comptesReg[t].maj = Date.now(); comptesEcrire(); }
-  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'suppression de compte ordonnée');
+  /* Le CHEMIN au journal (`gardien`, 27 septembre 2026) : après une session volée, c'est ce qui distingue une
+     suppression confirmée dans la Tour d'une suppression par code. Motif borné à 60 caractères par monLog. */
+  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'suppression de compte ordonnée · ' + (confirme ? 'confirmée' : 'par code'));
   res.json({ ok: true, attente: true });
 });
 /* ── Supprimer d'un coup les comptes JAMAIS UTILISÉS ─────────────────────────────────────────
@@ -2768,7 +2771,7 @@ app.post('/api/monitor/comptes/supprimer', monPatronStrict, async (req, res) => 
   }
   ordresSave();
   if (touche) { comptesReg[t].maj = Date.now(); comptesEcrire(); }
-  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'suppression de ' + logins.length + ' compte(s) inutilisé(s) ordonnée');
+  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'suppression de ' + logins.length + ' compte(s) inutilisé(s) · ' + (confirme ? 'confirmée' : 'par code'));
   res.json({ ok: true, attente: true, n: logins.length, logins, refuses });
 });
 /* ══ REFAIRE LES MOTS DE PASSE PROVISOIRES, DEPUIS LA TOUR (Justin, 15 septembre 2026) ══════
@@ -5698,7 +5701,8 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
   // et le compte créé sur le site (connexion espace client) : supprimé aussi, si la clé admin est là
   const compteSite = await compteSiteSupprimer(email);
-  console.log('Tour :', req.tourUser.nom, 'a FERMÉ l\'entreprise', masqueMail(email), '— données effacées :', effaces + '/' + espacesAEffacer.length, '· compte du site :', compteSite.motif);
+  console.log('Tour :', req.tourUser.nom, 'a FERMÉ l\'entreprise', masqueMail(email), confirme ? '(confirmée)' : '(par code)', '— données effacées :', effaces + '/' + espacesAEffacer.length, '· compte du site :', compteSite.motif);
+  monLog(req.tourUser.nom || 'patron', true, req, 'fermeture d\'entreprise · ' + (confirme ? 'confirmée' : 'par code'));   // sans l'adresse : le journal de la Tour se relit à plusieurs
   /* La coupure se DIT. Si la clé d'administration manque, les appareils déjà pourvus gardent
      leur session jusqu'à une heure ET peuvent repousser la base qu'on vient d'effacer :
      c'est exactement ce qu'il faut savoir avant de croire l'entreprise fermée. */
@@ -6190,7 +6194,8 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   if (jeton && !jetonAdmin) { try { await fetch(IDTK_URL + '/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
 
-  console.log('Tour :', req.tourUser.nom, 'a SUPPRIMÉ TOTALEMENT l\'espace', t,
+  monLog(req.tourUser.nom || 'patron', true, req, 'suppression totale d\'un espace · ' + (confirme ? 'confirmée' : 'par code'));
+  console.log('Tour :', req.tourUser.nom, 'a SUPPRIMÉ TOTALEMENT l\'espace', t, confirme ? '(confirmée)' : '(par code)',
     '— annuaire', fait.entreesAnnuaire, '· boîtes', fait.boites, '· push', fait.abonnesPush,
     '· connexions', fait.connexions, '· erreurs', fait.erreurs, '· Firestore', fait.donneesEffacees ? 'effacé' : 'ÉCHEC');
 
