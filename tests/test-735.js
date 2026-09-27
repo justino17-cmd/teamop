@@ -575,6 +575,9 @@ function basePetite(m) {
     const dbC = {
       clients: [{ id: 'k1', nom: 'Course Un', ville: 'Pau', _m: m0 }, { id: 'k2', nom: 'Course Deux', ville: 'Dax', _m: m0 }],
       interventions: [{ id: 'ki1', num: 'INT-K1', client: 'k1', statut: 'planifiee', _m: m0 }],
+      /* Une box éclate en TROIS collections (la box, une ligne par produit, sa forme) : retenue,
+         elle doit les emporter toutes les trois. Ses lignes de stock ne partent que datées (`_ms`). */
+      boxes: [{ id: 'kb1', nom: 'Box de la course', stock: { kp1: 4 }, _ms: { kp1: m0 }, _m: m0 }],
     };
     const apiC = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
       'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math', 'indexedDB',
@@ -621,11 +624,13 @@ function basePetite(m) {
     await apiC.opSoclePousser();
     const ki1 = dbC.interventions[0];
     ki1.statut = 'faite'; ki1.photosHorsNuage = 1; ki1._m = plusTard();
+    dbC.boxes[0].photosHorsNuage = 1;
     const r4 = await apiC.opSoclePousser();
-    v('une fiche dont la photo n\'est pas partie est RETENUE par la pousse', r4 && r4.retenus, 1);
+    v('une fiche et une box dont la photo n\'est pas partie sont RETENUES par la pousse', r4 && r4.retenus, 2);
     const borne4 = apiC.opHautLire(T2), v4 = verdicts();
     const c4 = await apiC.opSocleControle();
-    v('⛔ sa collection est laissée de côté, et le contrôle le dit', c4 && c4.attente, ['interventions']);
+    v('⛔ leurs collections sont laissées de côté — la box avec ses deux sœurs — et le contrôle le dit',
+      c4 && c4.attente && c4.attente.slice().sort(), ['_box_forme', 'box_stock', 'boxes', 'interventions']);
     v('   sans inventer de divergence', [c4 && c4.ok, diagC.length], [true, 0]);
     v('   la borne est intacte', apiC.opHautLire(T2), borne4);
     v('⛔ et un contrôle incomplet n\'envoie PAS de verdict « identique »', verdicts() - v4, 0);
@@ -634,8 +639,8 @@ function basePetite(m) {
     dbC.clients.push({ id: 'k9', nom: 'Course Neuf', ville: 'Auch', _m: 1 });
     const c5 = await apiC.opSocleControle();
     v('⛔ contre-épreuve : une VRAIE divergence ailleurs se voit toujours', c5 && c5.ok, false);
-    vrai('   elle nomme sa collection, pas celle qui attend',
-      !!(c5 && c5.ecarts.some(x => x.coll === 'clients') && !c5.ecarts.some(x => x.coll === 'interventions')));
+    vrai('   elle nomme sa collection, pas celles qui attendent',
+      !!(c5 && c5.ecarts.some(x => x.coll === 'clients') && !c5.ecarts.some(x => /^(interventions|boxes|box_stock|_box_forme)$/.test(x.coll))));
     vrai('   elle est remontée à la Tour', diagC.length >= 1);
     v('   et le verdict en échec est parti', verdicts() - v4, 1);
   }
