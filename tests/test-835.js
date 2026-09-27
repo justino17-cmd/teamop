@@ -89,19 +89,45 @@ console.log('5. chaque écran d\'appareil, jour et nuit');
 let ecrans = 0;
 for (const c of CLES) for (const m of PAGES[c].matchAll(/<picture>([\s\S]*?)<\/picture>/g)) {
   ecrans++;
-  const nuit = (m[1].match(/<source media="\(prefers-color-scheme: dark\)" srcset="([^"]+)"/) || [])[1] || '';
+  const nuit = (m[1].match(/<source data-nuit media="\(prefers-color-scheme: dark\)" srcset="([^"]+)"/) || [])[1] || '';
+  vrai(c + ' : l\'écran se lit dans la v2 (vitrine/v2/captures/)', /src="\/vitrine\/v2\/captures\//.test(m[1]));
+  for (const u of (m[1].match(/\/vitrine\/[^"\s,]+\.webp/g) || [])) if (!fs.existsSync(path.join(RACINE, u))) vrai(c + ' : ' + u + ' existe', false);
   const jour = (m[1].match(/<img src="([^"]+)"/) || [])[1] || '';
   const racineJ = jour.replace(/-jour(-1x)?\.webp$/, ''), racineN = nuit.split(/[\s,]/)[0].replace(/-nuit(-1x)?\.webp$/, '');
   vrai(c + ' : ' + path.basename(racineJ) + ' a son jour et sa nuit', /-jour(-1x)?\.webp$/.test(jour) && /-nuit(-1x)?\.webp$/.test(nuit.split(/[\s,]/)[0]) && racineJ === racineN);
   vrai(c + ' : l\'écran a un texte de remplacement', /<img [^>]*alt="[^"]{12,}"/.test(m[1]));
 }
-vrai('population : ' + ecrans + ' écrans d\'appareil', ecrans >= 6);
-for (const f of fs.readdirSync(path.join(RACINE, 'vitrine', 'captures'))) vrai('captures : ' + f + ' pèse moins de 400 Ko', fs.statSync(path.join(RACINE, 'vitrine', 'captures', f)).size < 400 * 1024);
+vrai('population : ' + ecrans + ' écrans d\'appareil', ecrans >= 16);
+for (const f of fs.readdirSync(path.join(RACINE, 'vitrine', 'v2', 'captures'))) vrai('captures : ' + f + ' pèse moins de 400 Ko', fs.statSync(path.join(RACINE, 'vitrine', 'v2', 'captures', f)).size < 400 * 1024);
 
-console.log('6. pas de bouton de mode');
-for (const c of CLES) vrai(c + ' : ni « Mode jour » ni « Mode nuit » ni data-theme', !/Mode jour|Mode nuit|data-theme|setMode/.test(PAGES[c]));
-const css = fs.readFileSync(path.join(RACINE, 'vitrine', 'site.css'), 'utf8');
-vrai('la nuit vient du système (prefers-color-scheme: dark)', /@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{/.test(css));
+console.log('5 bis. chaque case de « Ce que fait OP GESTION » montre son écran (Justin, 27 septembre au soir)');
+const bento = (PAGES.elan.match(/<div class="bento">[\s\S]*?<\/div><script type="application\/json"/) || [''])[0];
+const cases = bento.split('<button type="button" class="tuile-f').slice(1);
+v('dix cases', cases.length, 10);
+v('les dix ont leur appareil', cases.filter(x => /class="vue /.test(x) && /<picture>/.test(x)).length, 10);
+vrai('les grandes montrent un Mac, les petites un iPhone', cases.every(x => /^[^"]*large/.test(x) ? /class="vue v-mac"/.test(x) : /class="vue (v-iphone|duo)"/.test(x)));
+v('dix écrans DIFFÉRENTS (une capture ne sert pas deux cases)', new Set(cases.map(x => (x.match(/src="([^"]+)"/) || [])[1])).size, 10);
+vrai('plus de « Code PIN » (l\'application est au mot de passe depuis septembre)', !/code PIN/i.test(PAGES.elan));
+
+/* 27 septembre au soir, Justin : « je veux vraiment un mode jour et un mode nuit ». Le site suit toujours
+   l'appareil ; un bouton force l'autre mode et le garde. Ce banc gardait l'inverse (« pas de bouton ») : c'était
+   la maquette, c'est désormais sa phrase qui décide. */
+console.log('6. jour et nuit : l\'appareil, et un bouton qui force');
+for (const c of CLES) vrai(c + ' : le bouton ☀︎/☾ est dans la barre, caché tant que le script ne l\'a pas branché', /<button class="mode" type="button" hidden aria-label="Passer en mode nuit"/.test(PAGES[c]));
+for (const c of CLES) vrai(c + ' : le mode choisi se pose AVANT le premier rendu (script dans <head>)', /<head>[\s\S]*localStorage\.getItem\('teamop_site_mode'\)[\s\S]*<\/head>/.test(PAGES[c]));
+const css = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.css'), 'utf8');
+const nuitSys = (css.match(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{([^}]*)\}/) || [])[1];
+const nuitForcee = (css.match(/\n:root\[data-theme="dark"\]\s*\{([^}]*)\}/) || [])[1];
+vrai('la nuit de l\'appareil ne s\'applique pas quand on a forcé le jour', !!nuitSys);
+vrai('la nuit forcée a son bloc', !!nuitForcee);
+vrai('⛔ et les deux blocs de nuit sont IDENTIQUES (deux copies d\'une palette divergent toujours)', !!nuitSys && nuitSys.replace(/\s+/g, ' ').trim() === (nuitForcee || '').replace(/\s+/g, ' ').trim());
+const jsv2 = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
+vrai('les écrans de nuit suivent le bouton (le media des <source> est réécrit)', /\$\$\('source\[data-nuit\]'\)\.forEach/.test(jsv2));
+vrai('la même clé dans la page et dans le script', /var CLE_MODE = 'teamop_site_mode'/.test(jsv2));
+
+console.log('6 bis. tarifs : la formule touchée devient la bleue');
+vrai('le script rend les cartes choisissables (classe « choix », phare déplacé)', /g\.classList\.add\('choix'\)/.test(jsv2) && /x\.classList\.toggle\('phare', x === c\)/.test(jsv2));
+vrai('OP MESSAGES : ses boutons prennent les couleurs d\'OP GESTION (plus de fond gris)', /\.formule \.cta\.attente \{ cursor: inherit; \}/.test(css) && !/\.cta\.attente \{[^}]*background/.test(css));
 
 console.log('7. OP MESSAGES : bientôt disponible, rien ne se choisit');
 const msg = (PAGES.tarifs.match(/<div class="formules" id="formules-msg"[\s\S]*?<\/div>\s*<p class="note-msg">/) || [''])[0];
@@ -113,7 +139,7 @@ vrai('la page OP MESSAGES le dit', texte(PAGES.opmessages).includes('Bientôt di
 console.log('8. « Créer » part par e-mail, et le dit');
 vrai('le formulaire n\'a pas d\'action serveur', /<form class="demande" id="demande" novalidate>/.test(PAGES.creer));
 vrai('jamais « demande envoyée »', !/demande envoy[ée]/i.test(texte(PAGES.creer)));
-const js = fs.readFileSync(path.join(RACINE, 'vitrine', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
+const js = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
 vrai('site.js prépare un mailto vers support@teamop.fr', /location\.href = 'mailto:support@teamop\.fr\?subject='/.test(js));
 vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : '/.test(js));
 v('12 métiers proposés, 6 packs prêts', [(PAGES.creer.match(/class="metier-puce"/g) || []).length, (PAGES.creer.match(/data-pret="1"/g) || []).length], [12, 6]);
@@ -139,12 +165,20 @@ const TAR_T = texte(GEN.page('tarifs', { racine: true }));
 v('les trois formules OP MESSAGES gardent leurs noms en service', ['Perso', 'Messages Pro', 'Messages Business Premium'].filter(n => !TAR_T.includes(n)), []);
 vrai('plus de « Messages Premium » tout court', !/Messages Premium/.test(TAR_T));
 
+/* ⛔ LA RACINE EST EN SERVICE : elle ne bouge que sur « remplace le site ». Jusque-là, elle est la v1 publiée le
+   27 septembre (fe599df), empreinte gardée dans vitrine/racine-v1.json — pages ET ressources qu'elles lisent. Le
+   jour du remplacement, elle devient la sortie du générateur, et ce fichier d'empreintes se retire. */
 console.log('10. la racine et la CI');
+const crypto = require('crypto'), h = f => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+const V1 = fs.existsSync(path.join(RACINE, 'vitrine', 'racine-v1.json')) ? JSON.parse(fs.readFileSync(path.join(RACINE, 'vitrine', 'racine-v1.json'), 'utf8')) : null;
 for (const c of CLES) {
   const f = path.join(RACINE, c + '.html');
   const lu = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
-  vrai(c + '.html (racine) est la sortie du générateur (sinon : node scripts/site-marine.js --racine)', lu && lu === GEN.page(c, { racine: true }));
+  const genere = lu && lu === GEN.page(c, { racine: true });
+  const v1 = V1 && lu && h(f) === V1.pages[c + '.html'];
+  vrai(c + '.html (racine) est ' + (genere ? 'la sortie du générateur' : 'la v1 publiée, intacte') + ' (ni retouchée à la main, ni remplacée sans la phrase de Justin)', genere || v1);
 }
+if (V1) for (const r of Object.keys(V1.ressources)) vrai('la v1 en service garde ' + r + ' à l\'identique', fs.existsSync(path.join(RACINE, r)) && h(path.join(RACINE, r)) === V1.ressources[r]);
 const blocsJson = CLES.reduce((n, c) => n + (GEN.page(c, { racine: true }).match(/<script type="application\/json"/g) || []).length, 0);
 vrai('population : des blocs de données JSON dans les pages (' + blocsJson + ')', blocsJson >= 2);
 const syntaxe = require('child_process').spawnSync(process.execPath, [path.join(RACINE, 'scripts', 'verifier-syntaxe.js')], { encoding: 'utf8' });
