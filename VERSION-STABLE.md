@@ -15,7 +15,8 @@ toutes les places sont prises. Aucun changement de format : rien à exiger.
 Preuves : `test-838` 57 ✓ — les vraies fonctions d'`app.html` et de `beta.html`, puis l'adresse ouverte LUE par le vrai
 script de la page de paiement en service (1 abonnement pour « 7 pour 7 », 3 pour « 8 pour 6 », 2 pour « Gratuit →
 Pro ») ; 12/12 contre-épreuves ; sonde au doigt dans la vraie page, générée depuis ce candidat de production :
-18 ✓ 0 ✗ (la v757 en service : 8 ✓ 10 ✗, « nombre prérempli : 8 ») ; SUITE_A_REMPLIR.
+18 ✓ 0 ✗ (la v757 en service : 8 ✓ 10 ✗, « nombre prérempli : 8 ») ; suite complète :
+193 suites · 10 052 vérifications, aucun échec ; relecture sans point bloquant.
 Publiés avec elle, hors application : « Prix TTC » sur tout le site (le pied des huit pages, les tarifs) ; la phrase
 de l'ancienne règle retirée de la page « merci » et des mentions légales.
 
