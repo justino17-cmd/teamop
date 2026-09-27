@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# 🟡 27 SEPTEMBRE 2026, APRÈS-MIDI — SITE VITRINE : LE ZIP DE JUSTIN (8 PAGES « MARINE »), LE LOGO DANS GOOGLE, DE VRAIS iPHONE ET MAC — EN COURS
+# 🟡 27 SEPTEMBRE 2026, APRÈS-MIDI — SITE VITRINE : LE ZIP DE JUSTIN (8 PAGES « MARINE »), LE LOGO DANS GOOGLE, DE VRAIS iPHONE ET MAC — EN APERÇU, ATTEND « REMPLACE LE SITE »
 
 Justin, avec `design_handoff_teamop_leger` (zip) et une capture de Google : « le logo n'est pas le bon. C'est le
 logo de OP Gestion et non celui de Team OP. […] Partout où il y a des captures d'écran qui sont affichées, je veux
@@ -30,6 +30,38 @@ que ce soit des vrais iPhone avec un vrai Mac, avec des vraies captures d'écran
   et mode hors-ligne » — **retirés du site par Justin le 23 septembre** (`f1cc223`) : on garde sa décision. Le
   formulaire « Créer » part par `mailto:` (pas de route serveur) : l'écran ne dira donc pas « Demande envoyée ».
 · **Captures** : de la bêta, sur une base FICTIVE (jamais une donnée d'ELAN), jour et nuit, iPhone et Mac.
+
+✅ **FAIT et publié en aperçu** (`7ae73a7` sur `main`, servi octet pour octet) : **https://teamop.fr/apercu/site/**
+· **Les vraies captures** — `scratchpad/captures-site.js` pose « Démo Hygiène Services » (4 techniciens, 9 clients,
+  25 interventions, 3 box : tout inventé) dans une copie locale de la bêta, l'ouvre en iPhone installé (`ios27`,
+  îlot, encoches) et en Mac installé (`macos27`), **un mardi à 9 h 41** (l'horloge de la PAGE est déplacée : le
+  27 septembre était un dimanche), polices d'un vrai appareil (Inter à la place de SF Pro, téléchargée une fois),
+  puis compose barre d'état / barre des menus autour. 5 écrans × jour/nuit, 14 WebP, 1,4 Mo (`vitrine/captures/`).
+  Refaire après un changement de l'application : `node scratchpad/captures-site.js` (puis régénérer les pages).
+· **Les cadres** (`vitrine/appareils.css`) : iPhone 16 Pro (titane, boutons, bordure) et MacBook Pro 14 (encoche,
+  socle), tout en unités de largeur — mêmes proportions à 240 px et à 1 100 px.
+· **Les huit pages** sont GÉNÉRÉES par `scripts/site-marine.js` (texte, navigation, appareils à un seul endroit ;
+  ressources dans `vitrine/`) ; `tests/test-835.js` exige que les pages soient sa sortie exacte. ⛔ On corrige le
+  générateur, jamais une page.
+· **Ce qui ne vient pas de la maquette, exprès** : aucune promesse de hors-ligne (décision du 23) ; places et prix lus
+  dans `PLANS` d'app.html — **la FAQ du site en ligne dit « 3 en Business, 5 en Business Premium » : FAUX** (1, 1, 2,
+  3), corrigé dans le nouveau ; OP MESSAGES « Bientôt disponible », aucune formule ne se choisit ; « Créer » part par
+  e-mail (bouton « Préparer ma demande », jamais « envoyée ») ; gris secondaire de jour assombri (#6b7688 → #5c6575 :
+  4,13:1 sur les cartes et 3,63 sur les scènes → 5,28 et 4,64) ; formules → `recap-abonnement.html?formule=…`
+  comme aujourd'hui ; le lanceur d'application de l'accueil (PWA) est gardé.
+· **Preuves** : `test-835` **102 ✓** ; `scratchpad/sonde-site.js` au navigateur **354 ✓ 0 ✗** (bureau souris,
+  tablette et téléphone au doigt, jour et nuit : images, débordement contre la largeur de l'appareil, cibles ≥ 44 px,
+  volet du menu au survol, menu du téléphone, fenêtres des fonctions au clavier, onglets et ancre des tarifs,
+  questions, demande « Créer » jusqu'au mailto) ; **12 contre-épreuves sur 12** mordent ; suite complète
+  **191 suites · 9 710 vérifications, code 0**. La sonde a trouvé deux vrais défauts avant publication : un
+  identifiant en double (`#fonctions`) empêchait TOUTE fenêtre de fonction de s'ouvrir, et le volet du menu
+  dépendait d'une détection de souris faite au chargement. Et une mesure fausse de l'outil (la page élargissait sa
+  fenêtre sur téléphone — le piège décrit dans CLAUDE.md), corrigée.
+**Ce qui attend Justin :** regarder l'aperçu (iPhone, Mac, jour et nuit) ; puis « remplace le site » →
+`node scripts/site-marine.js --racine` (les huit pages à la racine, SANS « noindex ») et publier ces huit fichiers
++ `vitrine/` sur `main`. ⚠️ À lui de confirmer deux textes : « Fondée et développée par Justin Biret » en pied de
+page (repris du site actuel), et « Business Premium » écrit en entier (comme l'application ; la maquette écrivait
+« Premium »).
 
 # 🟡 27 SEPTEMBRE 2026, MATIN — « FAIT LES 4 », PUIS « OUI RAJOUTE ÇA » : PORTAIL PUBLIÉ, ANCIENNE TOUR RETIRÉE ; TOUR v2.69 EN APERÇU (SUPPRIMER SANS CODE, AVIS PAR E-MAIL, LIMITE, LA BULLE) — ATTEND « REMPLACE LA TOUR » ET « POUSSE LE SERVEUR »
 
