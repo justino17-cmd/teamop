@@ -13,9 +13,48 @@ de ligne du tout.
 
 ---
 
-# 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.68 : TOUT RANGÉ PAR SUJET — EN APERÇU, ATTEND « REMPLACE LA TOUR »
+# 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.68 : TOUT RANGÉ PAR SUJET, ET LE TÉLÉPHONE REVU — EN APERÇU, ATTEND « REMPLACE LA TOUR »
 
-**Justin, 26 septembre 2026 : « je veux que dans la tour tu ranges tout bien comme il faut… que tu regardes toutes
+**Le passage au téléphone (Justin, le même soir : « sur le téléphone il y a beaucoup de décalage d'écriture… tu te
+connectes et tu me corriges »).** Fait sur une COPIE (API simulée, noms fictifs et longs) — la règle du dépôt interdit
+de piloter un navigateur sur des données de clients. Les vingt vues relevées de haut en bas en iPhone, filets aux
+marges (`scratchpad/sonde-tour-telephone.js`, `analyse-alignement.js`), chaque décalage demandé au navigateur —
+QUELLE règle le posait (`scratchpad/sonde-regles.js`). Corrigé :
+- **en défilant, le titre de la page s'écrivait PAR-DESSUS « GESTION »** dans l'en-tête, sur toutes les pages (le nom
+  était caché au téléphone, une règle du thème écrite plus loin le remontrait) : le nom et la pastille s'effacent tant
+  que le titre est là ; l'en-tête ne garde plus le titre de la page quittée ; une fiche et un dossier y montent le leur ;
+- **chaque texte sur sa colonne** : titres de groupe (4 px, et une bande collée qui couvrait le tiers de l'écran en
+  défilant), lignes dans les cartes (9 à 17 px de trop), notes (2 px), une carte à 24 px entre des cartes à 16, la
+  barre « Suivi » du dossier (6 px), le Courrier, l'activité de l'accueil, les dates des paiements, le pied des lignes
+  du Journal ;
+- **textes coupés** : « Couper l'accès » (Équipe), « Toutes les applications » ; les menus déroulants avaient perdu
+  leur chevron (un raccourci `background:` écrit plus loin effaçait l'image) ;
+- **typographie française** : plus de ligne qui commence par « : », « · », « » », plus de « € » séparé de son montant
+  (`typoFr`, un observateur de la vue ; jamais dans le code ni un champ) ;
+- **plus aucun « (s) »** : 32 phrases accordées (`nMot`) ; la phrase sous « Tout remettre à zéro » commence par une
+  majuscule et dit, sur un compte à deux consoles, que les DEUX sont touchées (c'est ce que fait le serveur).
+**Trouvé ensuite (relecture `relecteur`, mesures au bureau et de nuit), corrigé dans la même version :**
+- de NUIT, une liste posée dans une carte garde un filet (de jour, `body.jour` efface toutes les bordures) : ses
+  lignes, mises sur la colonne de la carte, touchaient ce cadre — vu à l'image. La liste n'a plus de cadre du tout ;
+- la typographie ne passait que dans `#vue` : les toasts, les panneaux (lien de connexion, mots de passe provisoires)
+  et le titre de l'en-tête gardaient le défaut → elle passe sur toute la page (2 000 lignes ajoutées : 18 ms) ;
+- Équipe au bureau : les gestes à 46 px pour un nom à 44 ; le pied du Journal à 2 px ;
+- l'écran **Accès ne se redessinait jamais** quand ses données changeaient (`renderVue('essais')` : un texte là où
+  il faut l'élément, l'exception avalée — défaut ancien) ; la note des copies de sauvegarde promettait « la v621 » ;
+- deux « défauts » de la sonde étaient FAUX (un titre coupé en « … » déborde de sa boîte dans un `Range`), et une
+  hypothèse CALCULÉE (des titres collants transparents au bureau) a été démentie par la mesure : 0 sur 35.
+**Preuves :** `test-830` (nouveau, 69 ✓) rejoue la CASCADE CSS sur les vraies feuilles (média, spécificité, ordre,
+!important) — il garde ce qu'une règle GAGNE, pas son texte — et exécute typographie, titre de l'en-tête, remise à
+zéro, accords, l'écran Accès ; sur la Tour d'avant (08fbf9d) il rend 20 ✓ 49 ✗ ; **53 mutations sur 53 le font
+tomber** (`scratchpad/mutations-tour-830.py`). Au téléphone, la sonde du thème sur la Tour d'avant : 24 textes
+coupés, 24 en-têtes où le titre s'écrit sur « GESTION », 362 textes à espace fautive ; après : 0, 0, 0. Sonde du thème finale (80 vues, téléphone + bureau, jour + nuit) :
+**0 défaut** — 0 exception, 0 débordement, 810 cibles ≥ 44 px, 3 302 textes (aucun couvert ni écrasé), 786 textes
+téléphone (aucun coupé), 26 en-têtes où le titre monte (aucun contact), 408 textes à ponctuation (aucune espace
+fautive), 2 338 contrastes ≥ 4,5:1, 29/29 parcours ; titres collants au bureau : 0 sans fond sur 35 ; barre au doigt
+124 ✓ ; colonnes relevées (téléphone 817 textes, bureau 867) : ce qui reste proche est du texte EN LIGNE (la suite
+d'une phrase, des pastilles calées à droite), plus aucune colonne. Suite complète : 186 suites · 9 350 vérifications.
+
+**Le rangement, d'abord — Justin, 26 septembre 2026 : « je veux que dans la tour tu ranges tout bien comme il faut… que tu regardes toutes
 les catégories et sous-catégories… je veux un truc pro ».** Sur la branche puis en aperçu (`apercu/tour.html`) ;
 `tour.html` en service reste la v2.66 jusqu'à « Remplace la tour ». La v2.68 CONTIENT la v2.67 (« Ma barre »,
 la bulle au doigt), qui attendait déjà la même phrase.
@@ -43,7 +82,7 @@ la bulle au doigt), qui attendait déjà la même phrase.
   cinq lignes), Sauvegardes (pastilles, écarts) ;
 - plus aucun identifiant d'espace d'ELAN dans la page servie (commentaires compris).
 
-**Preuves :** test-829 (nouveau, 75 ✓) · 21/21 mutations mordent (`scratchpad/mutations-tour-268.py`) · les 22
+**Preuves :** test-829 (nouveau, 79 ✓) · 24/24 mutations mordent (`scratchpad/mutations-tour-268.py`) · les 22
 autres bancs de la Tour verts · sonde du thème complète (80 vues, bureau + téléphone, jour + nuit) avec deux
 mesures NOUVELLES — textes couverts à l'ouverture et textes écrasés, sur le DOM entier (contre-épreuve : la
 v2.67 rend 4 défauts, la v2.68 0 ; puis elle a trouvé la fiche d'entreprise, 8 textes écrasés, corrigés) ·

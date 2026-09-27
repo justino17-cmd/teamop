@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**180 suites dans `tests/`**, sans dépendance ni installation (recompté le 26 septembre 2026 au soir, `test-824` compris —
+**186 suites dans `tests/`**, sans dépendance ni installation (recompté le 27 septembre 2026 à 0 h, `test-830` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -123,7 +123,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 180 suites · 8 867 vérifications (mesuré en local le 26/09/2026, v756)
+bash scripts/bancs-ci.sh        # 186 suites · 9 350 vérifications (mesuré en local le 27/09/2026, bêta v758 · Tour v2.68)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -240,6 +240,10 @@ fichier ne se parse plus du tout (`unexpected EOF while looking for matching '"'
 aucune commande exécutée). ⚠️ Le message d'erreur ne nomme ni la variable ni la ligne fautive :
 il pointe la fin du fichier. `tests/test-728.js` refuse désormais toute quote dans le mot d'un
 `${var:?…}` des workflows, et passe à `bash -n` le corps de chaque heredoc destiné à un shell.
+
+⛔ **POUR UNE MISE EN PAGE, `tests/test-830.js` REJOUE LA CASCADE CSS** (toutes les feuilles, média, spécificité, ordre,
+!important, raccourcis) pour un élément décrit par ses classes et ses ancêtres : il garde ce qu'une règle GAGNE, pas son
+texte — c'est ce qui voit « une moitié de règle survit à l'autre ». Le réutiliser plutôt qu'écrire un motif sur une déclaration.
 
 Quand une suite ne peut pas exécuter (un ordre d'opérations, un balisage, une fonction qui touche
 le DOM), elle lit le texte du fichier réel — et la preuve fonctionnelle vit alors dans une sonde
@@ -1076,6 +1080,9 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   SAUTENT à gauche au premier défilement du tableau de bord, la barre tassée à 360 px
   (`display:none` retire aussi la PLACE ; `visibility:hidden` la garde), et un `gap:8px` du
   palier téléphone qui n'avait JAMAIS pris contre un `!important` écrit plus loin.
+  ⚠️ Et **de jour ET de nuit** : dans la Tour, de jour `body.jour` efface TOUTES les bordures, de nuit elles restent.
+  Des lignes alignées sur la colonne d'une carte (mesuré de jour, parfait) touchaient de nuit le filet de leur liste
+  (Tour v2.68, 26 septembre 2026). Un alignement se mesure dans les deux modes.
 - ⛔⛔ **UN AUDIT SUR DEUX APPAREILS NE DIT RIEN DES DIX AUTRES — ET UNE TABLETTE N'EST NI UN
   TÉLÉPHONE NI UN ORDINATEUR.** Jusqu'au 23 septembre 2026, toutes les sondes tournaient sur un
   iPhone et un Mac. Étendues à douze profils (`scratchpad/profils.js`), elles ont trouvé en une
