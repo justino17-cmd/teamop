@@ -168,13 +168,22 @@ async function main() {
       const cle = await ev(`return localStorage.getItem('tour_barre_gestion');`);
       v('enregistré : la barre devient Accueil · Surveill. · Entreprises · Journal · Plus', g.tabs.map(t => t.t).join(',') === 'accueil,surveillance,entreprises,journal,_plus' && !g.feuille, g.tabs.map(t => t.t).join(','));
       v('…rangé pour CETTE console seulement', cle === 'accueil,surveillance,entreprises,journal', cle);
-      v('…la vue ouverte (Accès) est désormais derrière « Plus » : la bulle repose sur « Plus »', g.tab === 'essais' && pres(g.cur.c, g.tabs[4].c) && g.tabs[4].on, 'bulle ' + g.cur.c.toFixed(1) + ' / Plus ' + g.tabs[4].c.toFixed(1));
+      /* v2.69 (« Fait les 4 ») : comme dans OP GESTION, une vue rangée derrière « Plus » n'a PAS de bulle —
+         la poser sur « Plus » désignait un bouton, pas l'écran où l'on est. */
+      v('…la vue ouverte (Accès) est désormais derrière « Plus » : aucun onglet allumé, « Plus » compris, et plus de bulle',
+        g.tab === 'essais' && !g.curOn && g.tabs.every(t => !t.on) && g.cur.op < 0.05, 'cur-on=' + g.curOn + ' · allumés=' + g.tabs.filter(t => t.on).map(t => t.t).join(',') + ' · opacité ' + g.cur.op);
+      /* …et la feuille « Plus » ouverte, c'est lui qu'on vient de toucher : il s'allume, la bulle y va */
+      await touche('touchStart', g.tabs[4].c, g.tabs[4].y); await dormir(40); await touche('touchEnd'); await ev(REPOS + 'return 1;');
+      let gp = await geo();
+      v('feuille « Plus » ouverte : « Plus » s’allume et porte la bulle', gp.feuille && gp.tabs[4].on && gp.curOn, 'feuille=' + gp.feuille + ' · Plus=' + gp.tabs[4].on + ' · cur-on=' + gp.curOn);
+      await ev('fermerFeuille(); return 1;'); await ev(REPOS + 'return 1;'); gp = await geo();
+      v('refermée sans rien choisir : la vue est toujours derrière « Plus », la bulle repart', !gp.feuille && !gp.curOn && gp.tabs.every(t => !t.on), 'cur-on=' + gp.curOn);
 
-      /* 6. partir d'un onglet quand la bulle repose sur « Plus » : elle en VIENT, sans sauter */
+      /* 6. SANS bulle, partir d'un onglet : elle NAÎT sous le doigt (pas ailleurs), puis le suit */
       await ev(PREPARER); g = await geo();
       await touche('touchStart', g.tabs[3].c, g.tabs[3].y); await touche('touchMove', g.tabs[3].c - 20, g.tabs[3].y);
       await ev('return 1;'); const gdeb = await geo();
-      v('prise depuis un onglet, la bulle part de « Plus » (là où on la voit), pas du doigt', gdeb.cur.c > gdeb.doigt + 10, 'bulle ' + gdeb.cur.c.toFixed(1) + ' / doigt ' + gdeb.doigt);
+      v('prise depuis un onglet sans bulle, elle apparaît là où le doigt s’est posé (pas sur « Plus »)', gdeb.curOn && gdeb.cur.c < g.tabs[4].c - g.tabs[4].w / 2 && Math.abs(gdeb.cur.c - g.tabs[3].c) <= 22, 'bulle ' + gdeb.cur.c.toFixed(1) + ' / onglet ' + g.tabs[3].c.toFixed(1) + ' / doigt ' + gdeb.doigt);
       await dormir(260); await touche('touchMove', g.tabs[3].c - 40, g.tabs[3].y); await ev(STABLE + 'return 1;'); gs = await geo();
       v('…et arrive sous le doigt', pres(gs.cur.c, gs.doigt, 2.5), 'bulle ' + gs.cur.c.toFixed(1) + ' / doigt ' + gs.doigt);
       await touche('touchEnd'); await ev(REPOS + 'return 1;'); g = await geo();

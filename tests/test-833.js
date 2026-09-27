@@ -193,6 +193,9 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
     v('supprimer « luc » : réussi en un appel, sans rien demander au patron', [T.ctx.supprReussi(x), T.demandes.length, courriels() - n0], [true, 0, 0]);
     vrai('   luc sort de l\'annuaire', !dansAnnuaire(A, 'luc'));
     v('⛔ une réponse « code envoyé » n\'est PAS une réussite', T.ctx.supprReussi({ ok: true, status: 200, d: { ok: true, codeEnvoye: true, dest: 'p***@x' } }), false);
+    /* …quoi qu'elle porte d'autre : un code parti veut dire « premier temps », rien n'est encore fait.
+       (Sans ce cas, retirer `!r.d.codeEnvoye` ne changeait rien — neutralisé par le contrôle voisin.) */
+    v('⛔ …même si elle porte aussi une marque de réussite', T.ctx.supprReussi({ ok: true, status: 200, d: { ok: true, codeEnvoye: true, attente: true } }), false);
     v('⛔ « ok » tout seul non plus (il faut ce que la route a FAIT)', T.ctx.supprReussi({ ok: true, status: 200, d: { ok: true } }), false);
     v('   un refus non plus', T.ctx.supprReussi({ ok: false, status: 409, d: { error: 'x' } }), false);
 
@@ -224,6 +227,34 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
     v('⛔ plus aucun « code » demandé pour supprimer : le seul prompt restant est celui du serveur d\'avant',
       ['compteSupprimer', 'comptesInutilisesSupprimer', 'entSupprimer'].map(f => /prompt\(/.test(fonction(f))), [false, false, false]);
     v('   et la question est posée dans les trois', ['compteSupprimer', 'comptesInutilisesSupprimer', 'entSupprimer'].map(f => /question:/.test(fonction(f)) && /supprPanneau\(\{/.test(fonction(f))), [true, true, true]);
+
+    /* ⛔ LA RÉUSSITE SE DIT, ET LE TOAST QUI LA DIT RESTE AFFICHÉ. La sonde l'a vu éteint 0,67 s après
+       son appel : l'écouteur de sortie d'un toast précédent, resté accroché, l'éteignait à la fin de son
+       entrée — et en laissait un autre pour le suivant. La vraie `toast`, un faux élément dont on
+       déclenche les fins d'animation à la main, des minuteries qu'on fait tourner nous-mêmes. */
+    {
+      const decl = CODE.match(/\nvar _tt=[^\n]*/), f = fonction('toast');
+      vrai('la vraie fonction toast s\'extrait', decl && f);
+      const jouer = (masquerAvant) => {
+        const cls = new Set(), ec = [], mins = []; let annul = new Set();
+        const el = { textContent: '', style: {}, offsetWidth: 0,
+          classList: { add: x => cls.add(x), remove: x => cls.delete(x), contains: x => cls.has(x) },
+          addEventListener: (t, fn, o) => ec.push({ fn, once: !!(o && o.once) }),
+          removeEventListener: (t, fn) => { const i = ec.findIndex(x => x.fn === fn); if (i >= 0) ec.splice(i, 1); } };
+        const finAnim = () => ec.slice().forEach(x => { if (x.once) ec.splice(ec.indexOf(x), 1); x.fn(); });
+        const ctx = { $: () => el, setTimeout: (fn, ms) => { mins.push({ fn, ms }); return mins.length; }, clearTimeout: id => annul.add(id) };
+        vm.createContext(ctx); vm.runInContext(decl[0] + '\n' + f, ctx);
+        const tourner = (ms) => { mins.forEach((m, i) => { if (!m.fait && !annul.has(i + 1) && m.ms === ms) { m.fait = true; m.fn(); } }); };
+        ctx.toast('premier');
+        if (masquerAvant) el.style.display = 'none';   // déjà masqué quand sa sortie commence : l'animation n'aura pas lieu
+        tourner(2600);                                  // la sortie du premier commence
+        ctx.toast('second');                            // …et le second arrive pendant qu'il s'efface
+        finAnim();                                      // l'entrée du second se termine
+        return { aff: el.style.display, txt: el.textContent, ecouteurs: ec.length };
+      };
+      v('⛔ un toast arrivé pendant que le précédent s\'efface reste affiché après son entrée', jouer(false), { aff: 'block', txt: 'second', ecouteurs: 0 });
+      v('⛔ …même si le précédent était déjà masqué quand sa sortie a commencé', jouer(true), { aff: 'block', txt: 'second', ecouteurs: 0 });
+    }
 
     v('⛔ du début à la fin, rien n\'est parti ailleurs qu\'au Google de banc (127.0.0.1)', G.requetes.every(q => !/googleapis|google\.com/.test(q)), true);
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }

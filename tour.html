@@ -3105,15 +3105,23 @@ function msgErreur(err){ if(err&&err.status===403){
 function apiPost(u,b){ return fetch(API+u,{method:'POST',headers:hAuth(),body:JSON.stringify(b)})
   .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ return {ok:r.ok,status:r.status,d:d||{}}; }); }); }
 
-var _tt=null;
+var _tt=null, _ttFin=null;
 /* Le toast apparaissait et disparaissait sec. Il monte du bas — d'où il vit — et
    redescend par le même chemin : ce qui entre par un côté sort par le même. */
 function toast(t,ms){ var e=$('toast'); e.textContent=t;
+  /* ⛔ v2.69 — L'ÉCOUTEUR DE SORTIE D'UN TOAST N'ÉTEINT QUE CE TOAST-LÀ. Accroché à la sortie, il attend la
+     fin de SON animation ; si elle n'a pas lieu (un nouveau toast arrive pendant qu'il s'efface, ou il était
+     déjà masqué), il restait accroché et éteignait le toast SUIVANT à la fin de son entrée — 0,3 s au lieu de
+     2,6 — puis ce toast-là en laissait un autre : tous les toasts de la séance clignaient. Mesuré par
+     `scratchpad/sonde-tour-suppr.js` (un toast lu éteint 0,67 s après son appel). On décroche l'ancien, et il
+     ne masque que pendant une sortie (`part`). */
+  if(_ttFin){ e.removeEventListener('animationend',_ttFin); _ttFin=null; }
   e.classList.remove('part'); e.style.display='block';
   void e.offsetWidth;                       // on force le calcul, sinon l'animation d'entrée est sautée
   clearTimeout(_tt); _tt=setTimeout(function(){
     e.classList.add('part');
-    e.addEventListener('animationend',function f(){ e.style.display='none'; e.classList.remove('part'); e.removeEventListener('animationend',f); },{once:true});
+    _ttFin=function(){ _ttFin=null; if(!e.classList.contains('part')) return; e.style.display='none'; e.classList.remove('part'); };
+    e.addEventListener('animationend',_ttFin,{once:true});
     setTimeout(function(){ if(e.classList.contains('part')){ e.style.display='none'; e.classList.remove('part'); } },400);  // filet si l'animation ne joue pas
   },ms||2600); }
 
