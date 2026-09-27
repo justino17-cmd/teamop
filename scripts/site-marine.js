@@ -221,7 +221,7 @@ const PAGES = {
       <section class="duo">
         <div class="grande-carte"><div class="haut"><div class="petit-titre">Sur le terrain</div><h3>${fr('La fiche d\'intervention, dans la poche.')}</h3><p>${fr('Client, adresse, produits, photos et signature : tout est sur la fiche.')}</p></div>
           <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-intervention', 'OP GESTION sur un iPhone : une fiche d\'intervention en cours')}</div></div></div>
-        <div class="grande-carte nuit"><div class="haut"><div class="petit-titre">Au dépôt</div><h3>Le stock de chaque box, à jour.</h3><p>${fr('Scan, arrivage, relevé. Chaque mouvement est tracé et crédite le stock.')}</p></div>
+        <div class="grande-carte"><div class="haut"><div class="petit-titre">Au dépôt</div><h3>Le stock de chaque box, à jour.</h3><p>${fr('Scan, arrivage, relevé. Chaque mouvement est tracé et crédite le stock.')}</p></div>
           <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-box', 'OP GESTION sur un iPhone : la fiche d\'une box et ses gestes')}</div></div></div>
       </section>
       <section class="page" style="padding-top:90px;padding-bottom:40px"><h2 class="h2">${fr('Tout TEAM OP, en un coup d\'œil.')}</h2><div class="teasers">`
@@ -236,10 +236,10 @@ const PAGES = {
       + `<section class="page" id="applications" style="padding-top:20px;padding-bottom:20px"><h2 class="h2 moyen">Deux applications. Un seul compte.</h2><p class="intro">Le même espace sécurisé, la même logique. Vous activez ce dont vous avez besoin.</p><div class="apps">
         <article class="app-carte"><img class="ico" src="/icons/opgestion-512.png" width="64" height="64" alt=""><div><div class="nom">OP GESTION</div><div class="desc">${fr('Interventions avec rapports signés, planning et tournées, stock et box, devis-factures, encaissements, équipe.')}</div></div><a href="elan.html">Découvrir OP GESTION ›</a>
           <div class="rogne-mac">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord', { tailles: '(max-width: 700px) 90vw, 620px' })}</div></article>
-        <article class="app-carte nuit"><img class="ico" src="/icons/opmsg-512.png" width="64" height="64" alt=""><div><div class="nom">OP MESSAGES</div><div class="desc">${fr('Toute votre équipe, une seule conversation : chat en temps réel, groupes, photos, vocaux, sondages — réservé à votre entreprise. Bientôt disponible.')}</div></div><a href="opmessages.html">Découvrir OP MESSAGES ›</a>
+        <article class="app-carte"><img class="ico" src="/icons/opmsg-512.png" width="64" height="64" alt=""><div><div class="nom">OP MESSAGES</div><div class="desc">${fr('Toute votre équipe, une seule conversation : chat en temps réel, groupes, photos, vocaux, sondages — réservé à votre entreprise. Bientôt disponible.')}</div></div><a href="opmessages.html">Découvrir OP MESSAGES ›</a>
           <div class="sondage" aria-hidden="true"><b>Quel créneau pour la réunion d'équipe ?</b>
-            <div class="l"><span>Mardi 14 h</span><span class="barre"><i style="width:70%;background:#7fb2ff"></i></span><span>4 votes</span></div>
-            <div class="l"><span>Jeudi 9 h</span><span class="barre"><i style="width:35%;background:#3d4d6b"></i></span><span>2 votes</span></div>
+            <div class="l"><span>Mardi 14 h</span><span class="barre"><i class="v1" style="width:70%"></i></span><span>4 votes</span></div>
+            <div class="l"><span>Jeudi 9 h</span><span class="barre"><i class="v2" style="width:35%"></i></span><span>2 votes</span></div>
             <small>${fr('Événement créé : Réunion d\'équipe — mardi 14 h')}</small></div></article></div></section>
       <section class="page" style="padding-top:20px;padding-bottom:40px"><a class="bandeau-creer" href="creer.html"><span class="tuile">${ic('rocket', 24)}</span><span><b>Créer votre application</b><small>${fr('Décrivez votre besoin, on le construit avec vous — de A à Z.')}</small></span><span class="l">Décrire mon besoin ›</span></a></section>` },
 
