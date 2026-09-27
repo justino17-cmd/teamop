@@ -181,7 +181,7 @@ const ROUGE = '#f87171';
     v('   sans que rien parte chez elle', facteurSrv.recus.slice(avant).filter(m => /personne-ici@exemple\.fr/.test(m)).length, 0);
     v('⛔ et les deux écrans sont IDENTIQUES à l\'adresse près (sinon le formulaire devient un annuaire)',
       connu.replace('zoe@exemple.fr', 'X'), inconnu.replace('personne-ici@exemple.fr', 'X'));
-    v('un champ vide ne demande rien au serveur et le dit', /Écris d'abord ton e-mail/.test(await P.oublie('')), true);
+    v('un champ vide ne demande rien au serveur et le dit', /Écrivez d'abord votre e-mail/.test(await P.oublie('')), true);
   }
 
   console.log('\n══ 2. ⛔ « MOT DE PASSE OUBLIÉ » — QUAND RIEN NE PART, L\'ÉCRAN NE DIT PAS « PARTI » ══\n');
@@ -194,7 +194,7 @@ const ROUGE = '#f87171';
     for (let i = 0; i < 5; i++) await P.oublie('quota@exemple.fr');
     const trop = await P.oublie('quota@exemple.fr');
     vrai('⛔ trop de demandes (429) : pas de « vient de partir »', !PARTI(trop));
-    vrai('   mais un refus qui dit d\'attendre et de regarder ses e-mails', refusPortail(trop) && /Trop de demandes/.test(trop) && /réessaie dans une heure/.test(trop));
+    vrai('   mais un refus qui dit d\'attendre et de regarder ses e-mails', refusPortail(trop) && /Trop de demandes/.test(trop) && /réessayez dans une heure/.test(trop));
 
     const absent = await portail(S.B + '/route-absente').oublie('zoe@exemple.fr');
     vrai('⛔ route absente (404, un serveur sans les comptes maison) : pas de « vient de partir »', !PARTI(absent));
