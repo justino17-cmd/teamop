@@ -225,5 +225,17 @@ const ids = SRC.match(/\belan-[a-z0-9]{4}\b/g) || [];
 v('aucun identifiant d’espace « elan-xxxx » (commentaires compris : la page est servie telle quelle)', ids, []);
 vrai('l’exemple du champ « Espace » est fictif', /placeholder="ex\. boulangerie-7k2q"/.test(CODE));
 
+/* 27 septembre 2026 : le pied de l'écran de connexion et celui de la page disaient « v2.68 » dans la v2.69
+   — c'est pourtant là qu'on lit quelle Tour on a sous les yeux (Justin : « j'ai pas le glissement de la
+   bulle », sur une Tour dont il fallait savoir si c'était la v2.66 en service ou l'aperçu). Un numéro écrit
+   en dur dans le balisage ne suit pas TOUR_VERSION : il se relit ici. */
+console.log('\n8. La version affichée est celle du fichier');
+const versionFichier = (/\bvar TOUR_VERSION='(v[\d.]+)'/.exec(CODE) || [])[1] || '';
+vrai('TOUR_VERSION se lit dans la page', /^v\d+\.\d+$/.test(versionFichier), versionFichier);
+const affichees = [...SRC.matchAll(/· (v\d+\.\d+)</g)].map(m => m[1]);
+vrai('population : les numéros écrits dans le balisage sont trouvés (connexion, en-tête, pied)', affichees.length >= 3, affichees.length);
+v('chacun est TOUR_VERSION', affichees.filter(x => x !== versionFichier), []);
+vrai('l’en-tête, lui, se réécrit depuis TOUR_VERSION', /\$\('hd-tour'\);\s*if\(hd\) hd\.textContent='Tour '\+nom\+' · '\+TOUR_VERSION/.test(CODE));
+
 console.log(`\n════ test-829 : ${ok} ✓ ${ko} ✗ ════`);
 process.exit(ko ? 1 : 0);
