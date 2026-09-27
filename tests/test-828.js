@@ -173,6 +173,38 @@ console.log('\n3. La barre et la bulle, relues dans le code (le geste se mesure 
   vrai('une feuille ouverte (le réglage, par un appui long) : la bulle n’emmène plus nulle part', /var bouger=function\(x,y\)\{\s*if\(!s\) return false;\s*if\(feuilleVisible\(\)\)\{ abandon\(\); return false; \}/.test(b) && /var lacher=function\(\)\{\s*if\(!s\) return;\s*if\(feuilleVisible\(\)\)\{ abandon\(\); return; \}/.test(b));
 }
 
+console.log('\n3 bis. La bulle, jouée avec les vraies fonctions (majBarreBas, bbCurPlacer)');
+{
+  /* v2.69 — Justin, 27 septembre 2026 (« Fait les 4 ») : une vue rangée derrière « Plus » n'a PAS de bulle,
+     comme dans OP GESTION (`ongletsActif`, où « Plus » n'est jamais une vue). La bulle ne se pose sur
+     « Plus » que tant que sa feuille est ouverte. Un DOM minimal : les onglets de la barre, la barre, la bulle. */
+  const el = (cls, t) => { const c = new Set(cls.split(' ')); const o = { dataset: t ? { t } : {}, attrs: {}, props: {},
+    style: { setProperty: (k, x) => { o.props[k] = x; } },
+    classList: { contains: x => c.has(x), add: (...x) => x.forEach(y => c.add(y)), remove: (...x) => x.forEach(y => c.delete(y)),
+      toggle: (x, f) => { if (f === undefined ? !c.has(x) : f) c.add(x); else c.delete(x); } },
+    setAttribute: (k, x) => { o.attrs[k] = String(x); }, removeAttribute: k => { delete o.attrs[k]; }, offsetWidth: 0 }; return o; };
+  const jouer = (tab, feuille) => {
+    const p = bac('patron', 'gestion');
+    vm.runInContext(fonction('majBarreBas') + '\n' + fonction('bbCurPlacer') + '\nvar TAB=' + JSON.stringify(tab) + ', _feuilleOuverte=' + feuille + ';', p.ctx);
+    const bas = vm.runInContext('BAS', p.ctx);
+    const tabs = bas.map(t => el('bb', t)).concat([el('bb plus')]), bar = el('barre-bas'), cur = el('bb-cur');
+    bar.querySelectorAll = () => tabs;
+    p.ctx.document = { querySelectorAll: () => tabs };
+    p.ctx.$ = id => ({ 'barre-bas': bar, 'bb-cur': cur })[id] || null;
+    p.ctx.majBarreBas(true);
+    return { bas, on: tabs.map(b => b.classList.contains('on')), bulle: bar.classList.contains('cur-on'), i: bar.props['--bb-i'] };
+  };
+  let x = jouer('surveillance', false);
+  v('la vue ouverte est dans la barre : son onglet s’allume, la bulle y repose', [x.on, x.bulle, x.i], [[false, true, false, false, false], true, 1]);
+  x = jouer('journal', false);
+  vrai('(population : « journal » n’est PAS dans la barre par défaut)', x.bas.indexOf('journal') < 0 && x.bas.length === 4);
+  v('⛔ une vue rangée derrière « Plus » : aucun onglet allumé, « Plus » compris, et PAS de bulle', [x.on, x.bulle], [[false, false, false, false, false], false]);
+  x = jouer('journal', true);
+  v('la feuille « Plus » ouverte : « Plus » s’allume, la bulle y va', [x.on, x.bulle, x.i], [[false, false, false, false, true], true, 4]);
+  x = jouer('accueil', true);
+  v('…même quand la vue ouverte est dans la barre (c’est la feuille qu’on regarde)', [x.on, x.i], [[false, false, false, false, true], 4]);
+}
+
 console.log('\n4. La feuille « Ma barre » et sa porte dans « Plus »');
 {
   const f = fonction('ouvrirFeuille');

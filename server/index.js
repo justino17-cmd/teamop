@@ -2629,6 +2629,23 @@ function cleEtat(e) {
    que `sauvRefus` tranche AVANT — 404 sur l'espace inconnu, 403 sur le code illisible.
    ⛔ Ne jamais l'appeler seule, sans cette garde devant. */
 function cleEstPublique(t) { return cleEtat(espaceParT(t)) === 'partagee'; }
+/* ══ SUPPRIMER SANS CODE : UNE QUESTION, UNE CASE, « OUI » (Justin, 27 septembre 2026) ════════
+   Les quatre suppressions de la Tour — un compte, les comptes jamais utilisés, fermer un client,
+   supprimer une entreprise partout — demandaient un code envoyé par e-mail. Justin, à la question
+   posée : « Fait les 4 ». Elles se confirment désormais comme dans OP GESTION (`delUser`) : une
+   question en gras, une case à cocher, puis « Oui, supprimer », éteint tant que la case est vide.
+   La Tour l'annonce par `confirme: true` — un BOOLÉEN strict : « true » en chaîne, 1, ou tout
+   autre valeur retombent sur le chemin du code, qui ne supprime rien au premier appel.
+   ⚠️ LE CHEMIN DU CODE RESTE, ET IL LE FAUT : la Tour en service (v2.68 et avant) n'envoie pas
+   `confirme` et attend `codeEnvoye` au premier appel. Si ce premier appel supprimait directement,
+   elle détruirait sans même la question qu'elle pose avant. Et dans l'autre sens, une Tour neuve
+   face au serveur d'avant reçoit `codeEnvoye` : elle redemande le code (`supprAppel`, tour.html)
+   au lieu d'annoncer une suppression qui n'a pas eu lieu.
+   ⛔ CE QUE ÇA RETIRE, et c'est une décision, pas un oubli : le code était un SECOND facteur —
+   une session de la Tour volée (trente jours avec « rester connecté ») ne suffisait pas à
+   détruire. Désormais `monPatronStrict` est la seule porte. Les règles de fond ne bougent pas :
+   « jamais utilisé » prouvé ici, journal saturé refusé, espaces intouchables, chaque geste au
+   journal de la Tour (`monLog`). `tests/test-832.js` joue les deux chemins sur le vrai serveur. */
 app.post('/api/monitor/compte/supprimer', monPatronStrict, async (req, res) => {
   const b = req.body || {};
   const t = monStr(b.t, 80), login = monStr(b.login, 40).toLowerCase().trim();
@@ -2639,7 +2656,8 @@ app.post('/api/monitor/compte/supprimer', monPatronStrict, async (req, res) => {
   if (!connu) return res.status(404).json({ error: 'compte inconnu de cet espace' });
   const cle = 'c:' + t + ':' + login;
   const codeRecu = monStr(b.code, 10).trim();
-  if (!codeRecu) {   // 1er temps : le code part par mail
+  const confirme = b.confirme === true;   // question + case + « Oui » dans la Tour — voir `SUPPRIMER SANS CODE` plus haut
+  if (!codeRecu && !confirme) {   // 1er temps : le code part par mail (la Tour d'avant la v2.69)
     if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
     if (retraitCodes.size > 500) for (const [k, v] of retraitCodes) if (Date.now() > v.exp) retraitCodes.delete(k);   // balayage des codes périmés
     const code = String(crypto.randomInt(100000, 1000000));
@@ -2653,10 +2671,12 @@ app.post('/api/monitor/compte/supprimer', monPatronStrict, async (req, res) => {
     } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
     return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest) });
   }
-  const c = retraitCodes.get(cle);   // 2e temps : le code revient
-  if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance la suppression' }); }
-  if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
-  retraitCodes.delete(cle);
+  if (!confirme) {   // 2e temps : le code revient
+    const c = retraitCodes.get(cle);
+    if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance la suppression' }); }
+    if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
+  }
+  retraitCodes.delete(cle);   // un code demandé avant, resté en attente, ne sert plus
   const l = ordresData[t] = ordresData[t] || [];
   l.forEach(o => { if (estSuppr(o) && o.login === login) o.banni = false; });   // un ancien ordre réautorisé ne compte plus : celui-ci prend le relais
   l.push({ login, ts: Date.now(), par: (req.tourUser && req.tourUser.nom) || '', fait: 0 });
@@ -2718,7 +2738,8 @@ app.post('/api/monitor/comptes/supprimer', monPatronStrict, async (req, res) => 
   const emp = crypto.createHash('sha256').update(logins.join(',')).digest('hex').slice(0, 16);
   const cle = 'cl:' + t + ':' + emp;
   const codeRecu = monStr(b.code, 10).trim();
-  if (!codeRecu) {   // 1er temps : le code part par mail
+  const confirme = b.confirme === true;   // question + case + « Oui » dans la Tour — la règle « jamais utilisé » ci-dessus tient toujours
+  if (!codeRecu && !confirme) {   // 1er temps : le code part par mail (la Tour d'avant la v2.69)
     if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
     if (retraitCodes.size > 500) for (const [k, v] of retraitCodes) if (Date.now() > v.exp) retraitCodes.delete(k);
     const code = String(crypto.randomInt(100000, 1000000));
@@ -2732,9 +2753,11 @@ app.post('/api/monitor/comptes/supprimer', monPatronStrict, async (req, res) => 
     } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
     return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest), logins, refuses });
   }
-  const c = retraitCodes.get(cle);   // 2e temps : le code revient
-  if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance la suppression' }); }
-  if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
+  if (!confirme) {   // 2e temps : le code revient
+    const c = retraitCodes.get(cle);
+    if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance la suppression' }); }
+    if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
+  }
   retraitCodes.delete(cle);
   const ords = ordresData[t] = ordresData[t] || [];
   let touche = false;
@@ -5564,7 +5587,8 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
   const email = monStr((req.body || {}).email, 120).toLowerCase();
   if (!clientsData[email]) return res.status(404).json({ error: 'entreprise introuvable' });
   const codeRecu = monStr((req.body || {}).code, 10).trim();
-  if (!codeRecu) {   // 1er temps : on envoie le code de confirmation au patron
+  const confirme = (req.body || {}).confirme === true;   // question + case + « Oui » dans la Tour — voir `SUPPRIMER SANS CODE`
+  if (!codeRecu && !confirme) {   // 1er temps : on envoie le code de confirmation au patron (la Tour d'avant la v2.69)
     if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
     const code = String(Math.floor(100000 + Math.random() * 900000));
     retraitCodes.set(email, { code, exp: Date.now() + 10 * 60000, tries: 0 });
@@ -5582,10 +5606,12 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
     console.log('Tour : code de fermeture envoyé pour', masqueMail(email), '→', masqueMail(dest));
     return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest) });
   }
-  const c = retraitCodes.get(email);
-  if (!c || Date.now() > c.exp) { retraitCodes.delete(email); return res.status(400).json({ error: 'code expiré — recommence' }); }
-  c.tries++; if (c.tries > 5) { retraitCodes.delete(email); return res.status(429).json({ error: 'trop d\'essais — recommence' }); }
-  if (codeRecu !== c.code) return res.status(400).json({ error: 'code incorrect (' + (6 - c.tries) + ' essai(s) restants)' });
+  if (!confirme) {   // 2e temps : le code revient
+    const c = retraitCodes.get(email);
+    if (!c || Date.now() > c.exp) { retraitCodes.delete(email); return res.status(400).json({ error: 'code expiré — recommence' }); }
+    c.tries++; if (c.tries > 5) { retraitCodes.delete(email); return res.status(429).json({ error: 'trop d\'essais — recommence' }); }
+    if (codeRecu !== c.code) return res.status(400).json({ error: 'code incorrect (' + (6 - c.tries) + ' essai(s) restants)' });
+  }
   retraitCodes.delete(email);
   // fermeture effective : liste, annuaire (nom + lien + formule), et blocage des espaces reliés
   if (!entFermes.emails.includes(email)) entFermes.emails.push(email);
@@ -5923,7 +5949,8 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   const etiquette = inv.nom || t;
 
   const codeRecu = monStr((req.body || {}).code, 10).trim();
-  if (!codeRecu) {   // 1er temps : le code part par e-mail, comme pour une fermeture
+  const confirme = (req.body || {}).confirme === true;   // question + case + « Oui » dans la Tour — voir `SUPPRIMER SANS CODE`
+  if (!codeRecu && !confirme) {   // 1er temps : le code part par e-mail, comme pour une fermeture (la Tour d'avant la v2.69)
     if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
     const code = String(Math.floor(100000 + Math.random() * 900000));
     /* Indexé par teamId, PAS par e-mail : deux espaces sans adresse se marcheraient dessus,
@@ -5978,10 +6005,12 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
     return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest), apercu: (delete inv._boites, delete inv._abos, inv) });
   }
 
-  const c = retraitCodes.get('t:' + t);
-  if (!c || Date.now() > c.exp) { retraitCodes.delete('t:' + t); return res.status(400).json({ error: 'code expiré — recommence' }); }
-  c.tries++; if (c.tries > 5) { retraitCodes.delete('t:' + t); return res.status(429).json({ error: 'trop d\'essais — recommence' }); }
-  if (codeRecu !== c.code) return res.status(400).json({ error: 'code incorrect (' + (6 - c.tries) + ' essai(s) restants)' });
+  if (!confirme) {   // 2e temps : le code revient
+    const c = retraitCodes.get('t:' + t);
+    if (!c || Date.now() > c.exp) { retraitCodes.delete('t:' + t); return res.status(400).json({ error: 'code expiré — recommence' }); }
+    c.tries++; if (c.tries > 5) { retraitCodes.delete('t:' + t); return res.status(429).json({ error: 'trop d\'essais — recommence' }); }
+    if (codeRecu !== c.code) return res.status(400).json({ error: 'code incorrect (' + (6 - c.tries) + ' essai(s) restants)' });
+  }
   retraitCodes.delete('t:' + t);
 
   const fait = {};
