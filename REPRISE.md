@@ -54,6 +54,9 @@ fautive), 2 338 contrastes ≥ 4,5:1, 29/29 parcours ; titres collants au bureau
 124 ✓ ; colonnes relevées (téléphone 817 textes, bureau 867) : ce qui reste proche est du texte EN LIGNE (la suite
 d'une phrase, des pastilles calées à droite), plus aucune colonne. Suite complète : 186 suites · 9 350 vérifications.
 
+**En aperçu depuis le 27 septembre 2026 à 0 h 19 (`f6f793d` sur main, `apercu/tour.html` seul) : servi octet pour octet
+(empreinte relue sur teamop.fr), CI de main verte 3/3 ; `tour.html` en service reste la v2.66.**
+
 **Le rangement, d'abord — Justin, 26 septembre 2026 : « je veux que dans la tour tu ranges tout bien comme il faut… que tu regardes toutes
 les catégories et sous-catégories… je veux un truc pro ».** Sur la branche puis en aperçu (`apercu/tour.html`) ;
 `tour.html` en service reste la v2.66 jusqu'à « Remplace la tour ». La v2.68 CONTIENT la v2.67 (« Ma barre »,
