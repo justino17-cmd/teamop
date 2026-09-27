@@ -13,54 +13,71 @@ de ligne du tout.
 
 ---
 
-# 🟡 27 SEPTEMBRE 2026, NUIT — « 1 UTILISATEUR PAR ABONNEMENT » : LE SITE ET LE PAIEMENT EN SERVICE — L'APPLICATION ATTEND UNE RÉPONSE
+# 🟡 27 SEPTEMBRE 2026, NUIT — « 1 UTILISATEUR PAR ABONNEMENT » ET « TTC » : SITE ET PAIEMENT EN SERVICE ; TTC, MERCI, MENTIONS ET BÊTA v759 PRÊTS, PUBLICATION EN COURS — L'APPLICATION ATTEND UNE RÉPONSE
 
 Justin : **« Aussi à faire sur le site à partir d'aujourd'hui c'est 1 utilisateur par abonnement merci de corriger ça »**.
 Le site vendait 2 utilisateurs par abonnement Business et 3 en Business Premium (et en Messages Business Premium), et
 la page de paiement DIVISAIT le nombre de personnes par ces chiffres : sept personnes en Business faisaient quatre
-abonnements.
+abonnements. Puis, à nos trois constats : **« TTC / 2 oui il faudrait faire ça / 3 j'ai pas compris »**.
 
-✅ **Fait et EN SERVICE** (`437af22` sur `main` ; branche `5bd5fa6`, `1aca904`, `a0becc6`, `8699f2a`) :
-· `tarifs.html` (la v1 de la racine) : « 1 utilisateur par abonnement » sur les cinq formules payantes, l'introduction
-  (« Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements »), la FAQ (« Business × 3 =
-  3 comptes », en insécables — au téléphone l'exemple se coupait en deux) et la description. `vitrine/racine-v1.json`
-  porte l'empreinte retouchée, et `test-837` prouve qu'on n'a touché QUE ça : défaire les retouches rend la v1
-  publiée le 27 septembre, octet pour octet.
-· `recap-abonnement.html` EN SERVICE (et sa version au thème, et l'aperçu) : chaque formule compte 1, le nombre
-  d'abonnements EST le nombre de personnes, et le plafond de la page est celui du serveur (50, `/api/stripe/checkout`).
-  ⚠️ Avant, la page acceptait jusqu'à 250 : elle affichait un total que Stripe ne facturait pas. Au-delà de 50, elle
-  dit d'écrire à support@teamop.fr. Empreinte : `vitrine/portail-v1.json`.
-· Le générateur du site (v2, aperçu) dit la même chose ; `test-835` §3 déclare l'écart avec l'application (ci-dessous).
-· **Preuves** : `test-837` **66 ✓** — le VRAI script de la page, exécuté (7 personnes = 7 abonnements = 175 €, « + »,
-  « − », plafond, et la quantité envoyée au paiement), racine ET aperçu ; **19/19 contre-épreuves**
-  (`scratchpad/mut-837.py` — dont une retouche cachée derrière une empreinte « mise à jour ») ; `test-835` 253 ✓ ; sonde
-  du portail **229 ✓ 0 ✗** sur six états de la page de paiement ; photos téléphone et bureau, jour et nuit
-  (`scratchpad/vue-site.js`, vues `un-…`, `RACINE_SERVIE` pour photographier la copie de main). Suites : branche
-  **193 suites · 10 263 ✓**, copie de main **192 suites · 9 945 ✓** (0 échec). Relecture (`relecteur`) : prête à
-  publier — elle a trouvé DEUX pages servies sans `noindex` qui vendaient encore 2 et 3 utilisateurs
-  (`apercu/tarifs.html`, restée d'un cycle d'aperçu antérieur — elle disait même « 3 en Business, 5 en Business
-  Premium » —, et la maquette `apercu/site-apple.html`) : alignées, et `test-837` §4 relit désormais TOUT ce que le
-  dépôt sert (69 fichiers, l'application en écart déclaré) — 70 ✓, **23/23 contre-épreuves** en tout. ⚠️ La copie de main a d'abord fait tomber `test-837` : son motif « 250 »
-  tombait dans une couleur de la page en service (`rgba(96,165,250,…)`) — resserré sur la forme du code.
+✅ **1 utilisateur par abonnement — EN SERVICE** (`437af22` sur `main`, CI verte 3/3) :
+· `tarifs.html` (la v1 de la racine) : « 1 utilisateur par abonnement » sur les cinq formules payantes, l'introduction,
+  la FAQ (« Business × 3 = 3 comptes », en insécables) et la description ; `recap-abonnement.html` EN SERVICE (et au
+  thème, et l'aperçu) : chaque formule compte 1, le nombre d'abonnements EST le nombre de personnes, plafond 50 (celui
+  du serveur, `/api/stripe/checkout` — la page acceptait 250 et affichait un total que Stripe ne facturait pas).
+· ⚠️ **Deux phrases oubliées, trouvées en relisant la chaîne du paiement jusqu'au bout** — sans aucun chiffre, donc
+  invisibles au premier recensement : `merci.html` (la page vue JUSTE APRÈS avoir payé : « le nombre inclus dépend de ta
+  formule ») et `mentions-legales.html` (« Chaque abonnement inclut un nombre de comptes utilisateurs selon la
+  formule »). Corrigées sur la copie de main (`a8d41cb`, ⏳ publication en cours : suite complète et relecture d'abord), au thème et en aperçu (branche `b4e20cc`) ; `test-837` §1 bis défait la
+  phrase et retrouve la page d'avant octet pour octet, §4 cherche désormais l'ancienne règle AVEC ET SANS chiffre.
+· ⛔ **Le CONTRAT du portail (`espace.html`, clauses 1 et 4) n'est PAS changé, exprès** : il se RÉGÉNÈRE à chaque
+  ouverture, pour les entreprises déjà abonnées aussi — le réécrire aujourd'hui changerait ce qu'ELAN lit de son propre
+  contrat. Il décrit ce que l'application DONNE (2 et 3 places) et change avec elle. Écart déclaré dans `test-837` §4.
 
-⏳ **L'APPLICATION N'Y EST PAS ENCORE — c'est une question pour Justin.** Dans `app.html`, `PLANS.maxU` vaut 2
-(Business) et 3 (Business Premium), et `planPlaces()` = `maxU × abonnements` : l'application donne donc PLUS que ce que
-le site vend, jamais moins. `test-835` §3 déclare cet écart valeur par valeur et le referme tout seul le jour où
-l'application passe à 1. La Tour écrit aussi « Business · 2 places ».
-**Avant** de passer l'application à 1 : les entreprises déjà abonnées (ELAN…) gardent-elles leurs places ? Si oui, leur
-régler dans la Tour une quantité égale à leurs places d'aujourd'hui (Business × 3 = 6 places → quantité 6), PUIS
-publier l'application (`maxU:1`, textes du forfait, libellés de la Tour, clause 4 du contrat d'`espace.html`, retrait
-de l'écart de `test-835`) — sur sa phrase, comme toute version.
+✅ **TTC — PRÊT, ⏳ publication en cours** (copie de main `0581435` ; branche `182faed`) : « Prix HT » ne s'écrit plus nulle part — le pied des
+huit pages de la racine (« Prix TTC, sans engagement. »), l'introduction des tarifs (« Prix TTC par mois »), le
+générateur du site v2 et ses huit pages d'aperçu, les deux anciennes pages d'aperçu (`apercu/tarifs.html`, la maquette
+`apercu/site-apple.html`, « TTC / mois »). `test-837` §1 défait les retouches et retrouve CHACUNE des huit pages de
+`fe599df` octet pour octet ; §4 bis : aucune page servie n'écrit « Prix HT », « HT / mois », « € HT » ni « hors taxes »
+(les applications sont écartées, nommées : leurs devis et factures écrivent « HT » à juste titre). 28/28 contre-épreuves
+et 2 neutres qui laissent le banc vert (« HT » dans un commentaire, dans un devis de l'application).
+ℹ️ Cohérent avec les mentions légales, qui disent « TVA non applicable (article 293 B du CGI) » : le prix affiché est
+celui que le client paie.
 
-🔎 **Trouvé en chemin, à trancher par Justin — rien n'a été changé :**
-1. **HT ou TTC ?** Le site dit « Prix HT par mois » ; la page de paiement écrit « Total mensuel 175 € TTC » pour le
-   même montant. L'un des deux est faux, et c'est une mention qui engage.
-2. **« Ajouter un utilisateur » depuis l'application** (`proposerAbonnement`) ouvre le paiement avec le nombre TOTAL
-   de personnes (`db.users.length + 1`), pas celles qui manquent : une entreprise de sept qui veut un huitième se
-   verrait proposer huit abonnements NEUFS. C'était déjà vrai avant (divisé par 2 ou 3) ; c'est plus visible à 1.
-3. **Payer ne crée pas de places.** Le serveur reconnaît qu'un espace a payé (référence d'espace, sinon adresse), mais
-   le NOMBRE d'abonnements payés sur Stripe ne pose jamais `quantite` : les places viennent de la Tour ou de la demande
-   faite au portail. Une entreprise qui paie cinq abonnements n'a pas cinq places sans un geste dans la Tour.
+✅ **« Ajouter un utilisateur » propose ce qui MANQUE — bêta v759** (branche `8607501`, sonde `5077253` ; bêta prête sur la
+copie de main `8791150`, ⏳ publiée avec les deux corrections du site) : `proposerAbonnement()` ouvrait la page de paiement pour le nombre
+de PERSONNES (`db.users.length+1`) ; elle demande désormais `abosManquants()` = personnes + 1 − places (au moins 1).
+Depuis Gratuit, toute l'équipe passe en Pro (la place gratuite ne s'ajoute pas à un abonnement payant). Trois cas
+n'ouvrent plus d'abonnement neuf, et le faisaient : qui n'est pas administrateur (« plus de place — seul
+l'administrateur peut en ajouter », sans un mot sur le paiement), un abonnement en attente de règlement et une formule
+réservée (→ l'espace client). Le message dit « TEAM OP ajoute la place » : rien d'automatique n'est promis (point 3).
+`test-838` **57 ✓** : les vraies fonctions d'`app.html` ET de `beta.html`, puis l'adresse ouverte LUE par le vrai script
+de la page de paiement (racine et aperçu) — la quantité envoyée vers Stripe est celle qui manque ; **12/12
+contre-épreuves** (`scratchpad/mut-838.py`). Sonde au doigt `scratchpad/sonde-ajout-utilisateur.js` **18 ✓ 0 ✗** ;
+contre-épreuve sur la bêta d'avant **8 ✓ 10 ✗** (« nombre prérempli : 8 », et le chef se voyait proposer le paiement).
+⛔ `app.html` ne suit pas sans la phrase de Justin (et la règle du 23 septembre : rien en version publique tant que le
+serveur n'est pas séparé de Firebase).
+
+⏳ **L'APPLICATION N'EST PAS ENCORE À 1 — question posée à Justin, toujours sans réponse.** `PLANS.maxU` vaut 2
+(Business) et 3 (Business Premium), `planPlaces()` = `maxU × abonnements` : l'application donne PLUS que ce que le site
+vend, jamais moins (`test-835` §3 déclare l'écart et le referme tout seul). **Avant** de passer à 1 : les entreprises
+déjà abonnées (ELAN…) gardent-elles leurs places ? Si oui, leur régler dans la Tour une quantité égale à leurs places
+d'aujourd'hui, PUIS publier l'application (`maxU:1`, textes du forfait et « Chaque abonnement ajoute N place(s) » des
+Paramètres, libellés de la Tour, clauses 1 et 4 du contrat d'`espace.html`, retrait des écarts de `test-835` et
+`test-837`) — sur sa phrase.
+
+⏳ **POINT 3 — expliqué à Justin en mots simples, attend sa décision : PAYER NE DONNE PAS DE PLACES.** Vérifié dans le
+code : `espacePaye()` ne lit chez Stripe que « un abonnement vivant, oui ou non » (référence d'espace, sinon adresse) —
+jamais la QUANTITÉ ni la formule payées. `/api/espaces/etat` rend `e.formule` et `e.quantite` du registre, posés par la
+Tour (`/api/monitor/espaces/formule` et `/abonnement`), par un code promo, ou par la demande faite au portail
+(`espaceAutoPour`, le « Nombre d'utilisateurs » saisi). Donc : une entreprise qui paie un abonnement de plus garde ses
+places tant que Justin ne règle pas la Tour ; à l'inverse, résilier un abonnement ne retire rien tant qu'il en reste un
+vivant. Et un espace SANS formule réglée au serveur choisit librement formule et nombre d'abonnements dans ses
+Paramètres (« La facturation arrive bientôt — le choix est libre pour l'instant »), en production aussi.
+Proposition faite : que le serveur lise la quantité (et la formule) des abonnements Stripe rattachés — changement
+serveur, relecture `gardien`, « pousse le serveur ».
+ℹ️ Petit écart relevé au passage : le formulaire de demande du portail accepte jusqu'à 250 utilisateurs, le serveur en
+retient 50 (`Math.min(50, …)`).
 
 # 🟡 27 SEPTEMBRE 2026, SOIR — LE PORTAIL ET SES NEUF VOISINES AU THÈME DU SITE, EN APERÇU — ATTEND « REMPLACE »
 
