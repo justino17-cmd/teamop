@@ -428,7 +428,17 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         poserJeton(r.j.jeton); direAuth(utilisateur(r.j.compte));
         return { user: moi };
       },
-      async sendPasswordResetEmail(email){ await appel('/api/compte/mdp/demander', { email }); return true; },
+      /* ⛔ LE SERVEUR RÉPOND 200 À UNE ADRESSE CONNUE COMME À UNE INCONNUE — c'est voulu, sinon ce
+         formulaire devient l'annuaire des clients. Mais un 400, un 429, une route absente ou un
+         serveur tombé ne sont pas « envoyé » : jusqu'au 27 septembre 2026, ce retour était jeté, et
+         l'écran annonçait « un e-mail vient de partir » à qui n'en recevrait jamais. `tests/test-831.js`. */
+      async sendPasswordResetEmail(email){
+        const r = await appel('/api/compte/mdp/demander', { email });
+        if(r.code === 200) return true;
+        if(r.code === 400) jeter('auth/invalid-email', 'E-mail invalide.');
+        if(r.code === 429) jeter('auth/too-many-requests', 'Trop de demandes — réessayez plus tard.');
+        jeter('auth/network-request-failed', 'Envoi impossible pour le moment.');
+      },
       /* ⛔ CE QUE `accReauth()` APPELAIT DANS LE VIDE. Trois écrans d'`espace.html` redemandent
          le mot de passe avant un geste grave ; avec Firebase, `reauthenticateWithCredential`
          le vérifiait. Ici il faut le demander au serveur — sinon le champ « mot de passe
@@ -693,14 +703,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       } else { await auth.signInWithEmailAndPassword(email,pass); }
     }catch(e){ err(authMsg(e)); }
   }
-  /* Mot de passe oublié : Firebase envoie l'email de réinitialisation.
-     On répond la même chose que le compte existe ou non — pas d'indice
-     donné à un curieux qui testerait des adresses. */
-  /* Mot de passe oublié : l'e-mail part de NOTRE serveur, avec notre gabarit et un
-     lien sur teamop.fr. Firebase n'accepte une URL d'action personnalisée que sur un
-     domaine servi par Firebase Hosting, et teamop.fr est sur GitHub Pages — d'où ce
-     détour. Si le serveur ne peut pas répondre, on retombe sur l'envoi Firebase :
-     gabarit brut et lien firebaseapp.com, mais l'utilisateur n'est jamais bloqué. */
+  /* Mot de passe oublié : l'e-mail part de NOTRE serveur (`/api/compte/mdp/demander`, par
+     l'adaptateur), avec notre gabarit et un lien sur teamop.fr/reinit.html. Il n'y a PLUS de repli
+     Firebase : la page ne charge plus le kit de Google depuis le 25 septembre 2026. On répond la
+     même chose que le compte existe ou non — pas d'indice donné à un curieux qui testerait des
+     adresses. Mais un refus se DIT : si rien n'est parti, l'écran ne dit pas « parti ». */
   /* ⛔ PLUS JAMAIS `/api/mdp/lien` : cette route fabrique un lien de réinitialisation FIREBASE.
      Tant que la clé d'administration est sur le VPS, elle répondait « envoyé » — le client
      changeait un mot de passe qui ne sert plus à rien, et la voie maison n'était jamais appelée
@@ -714,7 +721,10 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     if(!email){ box.innerHTML='<div class="err">Écris d\'abord ton e-mail dans le champ ci-dessus, puis reclique.</div>'; return; }
     box.innerHTML='<div class="muted" style="padding:8px 2px">Envoi en cours…</div>';
     try{ await mdpLien(email,'https://teamop.fr/espace.html'); }
-    catch(e){ if((e&&e.code)==='auth/invalid-email'){ box.innerHTML='<div class="err">E-mail invalide.</div>'; return; } }
+    catch(e){ const c=(e&&e.code)||'';
+      if(c==='auth/invalid-email'){ box.innerHTML='<div class="err">E-mail invalide.</div>'; return; }
+      if(c==='auth/too-many-requests'){ box.innerHTML='<div class="err">Trop de demandes en peu de temps. Regarde d\'abord dans tes e-mails (et les indésirables) : un lien est peut-être déjà arrivé. Sinon, réessaie dans une heure.</div>'; return; }
+      box.innerHTML='<div class="err">Envoi impossible pour le moment : rien n\'est parti. Vérifie ta connexion et réessaie dans un instant.</div>'; return; }
     box.innerHTML='<div class="ok">📬 Si un compte existe pour <b>'+esc(email)+'</b>, un e-mail de réinitialisation vient de partir. Regarde aussi les indésirables.</div>';
   }
   function authMsg(e){ const c=(e&&e.code)||'';

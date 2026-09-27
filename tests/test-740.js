@@ -157,7 +157,8 @@ const arreter = async () => {
        voie maison n'était jamais appelée. */
     v('⛔ « Mot de passe oublié » ne fabrique plus de lien Firebase', /\/api\/mdp\/lien/.test(sansCom), false);
     vrai('   il passe par l\'adaptateur (/api/compte/mdp/demander)', /async function mdpLien\(email, suite\)\{\s*await auth\.sendPasswordResetEmail\(email,\{url:suite\}\);/.test(sansCom)
-      && /sendPasswordResetEmail\(email\)\{ await appel\('\/api\/compte\/mdp\/demander'/.test(sansCom));
+      && /sendPasswordResetEmail\(email\)\{\s*const r = await appel\('\/api\/compte\/mdp\/demander'/.test(sansCom));
+    /* Ce que l'écran DIT de la réponse (400, 429, 404, 502, réseau coupé) se joue dans `test-831`. */
     vrai('   et l\'écran de connexion dit aux clients déjà inscrits comment retrouver leur accès', /id="avis-demenagement"[^>]*>[^<]*Mot de passe oubli/.test(PAGE));
   }
 
