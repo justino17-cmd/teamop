@@ -13,6 +13,32 @@ de ligne du tout.
 
 ---
 
+# 🟡 27 SEPTEMBRE 2026, NUIT — PORTAIL ET PAGE DE CONNEXION : UN E-MAIL QUI N'EST PAS PARTI NE S'ANNONCE PLUS « PARTI » — SUR LA BRANCHE, ATTEND « PUBLIE LE PORTAIL »
+
+**Trouvé en vérifiant la question de Justin** (« les e-mails passent-ils tous par le serveur ? » — oui, voir plus
+bas). Deux écrans publics demandent un courriel au serveur et annonçaient « vient de partir » **quelle que soit la
+réponse** : « Mot de passe oublié » du portail (`espace.html`, l'adaptateur jetait le code HTTP) et « me renvoyer le
+lien par e-mail » de `connexion.html` (`fetch` ne jette pas sur un refus). Mesuré au navigateur sur la version EN
+LIGNE : **6 cas faux sur 9** — adresse mal tapée (« Si un compte existe pour pas-une-adresse… »), trop de demandes
+(429), serveur tombé (502), coupure réseau : « 📬 … vient de partir », en vert. Le client attendait un courriel qui
+ne viendrait pas. Corrigé sur la branche : chaque refus a son message, la réussite reste IDENTIQUE pour une adresse
+connue ou inconnue (pas d'annuaire des clients), et le commentaire qui promettait un « repli Firebase » dit vrai.
+
+**Preuves :** `tests/test-831.js` (vraies fonctions des deux pages contre le vrai serveur, un relais de courriel qui
+compte ce qui part) — **14 ✗ sur le code d'avant, 29 ✓ après** ; **11 mutations sur 11** mordent
+(`scratchpad/mutations-831.py` de la session) ; sonde au navigateur `scratchpad/sonde-portail-envoi.js` (vrai toucher,
+format téléphone, toute requête `https://` interceptée — rien ne part vers `api.teamop.fr`) : **9/9 justes** sur la
+branche, **6 faux** sur `origin/main` ; `test-740` 59 ✓ (une regex suivait l'ancienne écriture).
+
+**Publication :** `espace.html` et `connexion.html` seuls, sur `main` — **attend la phrase de Justin** (« publie le
+portail »). Rien côté serveur. Le service worker sert les pages réseau d'abord : pas de cache à monter.
+
+**Au passage, vérifié et juste :** `verifLien` (renvoi du lien de confirmation, même page) et `_sendCode` (codes de
+changement de mot de passe / d'adresse) lisaient déjà leur réponse. ⚠️ Et une maladresse de méthode, réparée tout de
+suite : la nouvelle sonde a d'abord été écrite SUR `scratchpad/sonde-mdp-oublie.js`, une sonde suivie (v686-v688) —
+l'outil a dit « mis à jour » au lieu de « créé ». Restaurée depuis le commit, diff vide. **Chercher le nom avant
+d'écrire un fichier neuf.**
+
 # 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.68 : TOUT RANGÉ PAR SUJET, ET LE TÉLÉPHONE REVU — EN APERÇU, ATTEND « REMPLACE LA TOUR »
 
 **Le passage au téléphone (Justin, le même soir : « sur le téléphone il y a beaucoup de décalage d'écriture… tu te
