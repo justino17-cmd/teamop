@@ -54,6 +54,16 @@ maintenant la hauteur du Mac (24 px sous le socle), le bureau et la tablette ne 
 (dont une que seule la hauteur exacte au bureau voyait : ajoutée à la sonde), suite **191 · 9 862 ✓**, copie de `main`
 **190 · 9 656 ✓**. Publié en aperçu (`235586d`), servi octet pour octet, racine inchangée, **CI de `main` verte 3/3**.
 ⚠️ La racine EN SERVICE (v1, `vitrine/site.css`) garde la carte blanche de nuit jusqu'à « remplace le site ».
+**Puis, même soirée : « et là, sur le même jour, il y a du sombre, pourquoi ? »** (« Prêt en trois étapes », « Au dépôt »).
+La maquette avait une famille de jetons « toujours sombres » (`--nuit…`) : sombres dans la page de jour, et de la couleur
+EXACTE de la page la nuit (#0b1426), où « Au dépôt » et « Prêt en trois étapes » disparaissaient. Recensé depuis le DOM sur
+la version publiée : « Au dépôt », « Prêt en trois étapes » (7 pages), la carte OP MESSAGES et son sondage, la conversation
+dessinée, les deux cartes mises en avant. **Un mode est un mode** : tout suit les jetons du mode, les `--nuit…` n'existent
+plus, et la carte mise en avant n'est plus inversée (bleu pâle + halo blanc le jour, bleu nuit + halo bleu la nuit).
+`test-835` **235 ✓** (§ 6 quinquies : chaque jeton de couleur du jour a sa valeur de nuit ; aucun fond en couleur écrite en
+dur hors voiles et ruban), sonde **550 ✓** (elle recense TOUTES les grandes surfaces de chaque page : rien de sombre le jour,
+rien de clair la nuit), **5 contre-épreuves sur 5**, suite **191 · 9 870 ✓**, copie de `main` **190 · 9 664 ✓**. Publié en
+aperçu (`115ce42`), servi octet pour octet, racine inchangée, **CI de `main` verte 3/3**.
 **Ce qui attend Justin :** tester l'aperçu (https://teamop.fr/apercu/site/, jour, nuit, bouton, iPhone et Mac), puis
 « remplace le site » → `node scripts/site-marine.js --racine`, et le manifeste `vitrine/racine-v1.json` se retire
 avec l'ancien `vitrine/`. **Plus tard** : les vraies captures d'OP MESSAGES (quand il le dira).
