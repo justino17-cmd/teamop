@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# 🟡 27 SEPTEMBRE 2026, NUIT — « 1 UTILISATEUR PAR ABONNEMENT » ET « TTC » : SITE ET PAIEMENT EN SERVICE ; TTC, MERCI, MENTIONS ET BÊTA v759 PRÊTS, PUBLICATION EN COURS — L'APPLICATION ATTEND UNE RÉPONSE
+# 🟡 27 SEPTEMBRE 2026, NUIT — « 1 UTILISATEUR PAR ABONNEMENT », « TTC » ET v760 : TOUT EST EN SERVICE (`909bcfd`) — « UN COMPTE AVANT DE PAYER » EN COURS ; L'APPLICATION ATTEND UNE RÉPONSE
 
 Justin : **« Aussi à faire sur le site à partir d'aujourd'hui c'est 1 utilisateur par abonnement merci de corriger ça »**.
 Le site vendait 2 utilisateurs par abonnement Business et 3 en Business Premium (et en Messages Business Premium), et
@@ -28,13 +28,13 @@ abonnements. Puis, à nos trois constats : **« TTC / 2 oui il faudrait faire ç
 · ⚠️ **Deux phrases oubliées, trouvées en relisant la chaîne du paiement jusqu'au bout** — sans aucun chiffre, donc
   invisibles au premier recensement : `merci.html` (la page vue JUSTE APRÈS avoir payé : « le nombre inclus dépend de ta
   formule ») et `mentions-legales.html` (« Chaque abonnement inclut un nombre de comptes utilisateurs selon la
-  formule »). Corrigées sur la copie de main (`a8d41cb`, ⏳ publication en cours : suite complète et relecture d'abord), au thème et en aperçu (branche `b4e20cc`) ; `test-837` §1 bis défait la
+  formule »). Corrigées en service (`a8d41cb`, publié avec `909bcfd`), au thème et en aperçu (branche `b4e20cc`) ; `test-837` §1 bis défait la
   phrase et retrouve la page d'avant octet pour octet, §4 cherche désormais l'ancienne règle AVEC ET SANS chiffre.
 · ⛔ **Le CONTRAT du portail (`espace.html`, clauses 1 et 4) n'est PAS changé, exprès** : il se RÉGÉNÈRE à chaque
   ouverture, pour les entreprises déjà abonnées aussi — le réécrire aujourd'hui changerait ce qu'ELAN lit de son propre
   contrat. Il décrit ce que l'application DONNE (2 et 3 places) et change avec elle. Écart déclaré dans `test-837` §4.
 
-✅ **TTC — PRÊT, ⏳ publication en cours** (copie de main `0581435` ; branche `182faed`) : « Prix HT » ne s'écrit plus nulle part — le pied des
+✅ **TTC — EN SERVICE** (`0581435`, publié avec `909bcfd` ; branche `182faed`) : « Prix HT » ne s'écrit plus nulle part — le pied des
 huit pages de la racine (« Prix TTC, sans engagement. »), l'introduction des tarifs (« Prix TTC par mois »), le
 générateur du site v2 et ses huit pages d'aperçu, les deux anciennes pages d'aperçu (`apercu/tarifs.html`, la maquette
 `apercu/site-apple.html`, « TTC / mois »). `test-837` §1 défait les retouches et retrouve CHACUNE des huit pages de
@@ -44,8 +44,8 @@ et 2 neutres qui laissent le banc vert (« HT » dans un commentaire, dans un de
 ℹ️ Cohérent avec les mentions légales, qui disent « TVA non applicable (article 293 B du CGI) » : le prix affiché est
 celui que le client paie.
 
-✅ **« Ajouter un utilisateur » propose ce qui MANQUE — bêta v759** (branche `8607501`, sonde `5077253` ; bêta prête sur la
-copie de main `8791150`, ⏳ publiée avec les deux corrections du site) : `proposerAbonnement()` ouvrait la page de paiement pour le nombre
+✅ **« Ajouter un utilisateur » propose ce qui MANQUE — EN PRODUCTION, v760** (`909bcfd` : la v757 en service + ce
+correctif, RIEN d'autre ; la bêta v761 porte en plus les couleurs des techniciens, le contrôle du socle et trois accords) : `proposerAbonnement()` ouvrait la page de paiement pour le nombre
 de PERSONNES (`db.users.length+1`) ; elle demande désormais `abosManquants()` = personnes + 1 − places (au moins 1).
 Depuis Gratuit, toute l'équipe passe en Pro (la place gratuite ne s'ajoute pas à un abonnement payant). Trois cas
 n'ouvrent plus d'abonnement neuf, et le faisaient : qui n'est pas administrateur (« plus de place — seul
@@ -55,8 +55,16 @@ réservée (→ l'espace client). Le message dit « TEAM OP ajoute la place » :
 de la page de paiement (racine et aperçu) — la quantité envoyée vers Stripe est celle qui manque ; **12/12
 contre-épreuves** (`scratchpad/mut-838.py`). Sonde au doigt `scratchpad/sonde-ajout-utilisateur.js` **18 ✓ 0 ✗** ;
 contre-épreuve sur la bêta d'avant **8 ✓ 10 ✗** (« nombre prérempli : 8 », et le chef se voyait proposer le paiement).
-⛔ `app.html` ne suit pas sans la phrase de Justin (et la règle du 23 septembre : rien en version publique tant que le
-serveur n'est pas séparé de Firebase).
+Publiée sur la phrase de Justin **« Une fois que tu as tout fini, tu publie aussi s'il te plaît merci »** : suite complète du
+candidat **193 suites · 10 052 vérifications**, aucun échec ; relecture sans point bloquant ; servi octet pour octet
+(28/28 fichiers, les dix pages du portail conformes à `vitrine/portail-v1.json`), CI de `main` verte 3/3.
+
+⏳ **« UN COMPTE AVANT DE PAYER » — EN COURS sur la branche.** Justin : « dans les tarifs il faut bien préciser aux
+personnes qui doivent créer un compte d'abord avant de payer, ils peuvent pas payer s'ils ont pas de compte créé pour que
+nous on ait un vrai suivi de qui fait quoi ». Tarifs (texte), page de paiement (sans compte : « Créer mon compte pour
+payer » ; adresse à confirmer ; plus aucun lien de paiement Stripe anonyme servi) et `/api/stripe/checkout` (session
+prouvée exigée, adresse du compte imposée à Stripe et gravée sur l'abonnement) — le serveur part sur « pousse le
+serveur ». Détail à la fin du chantier.
 
 ⏳ **L'APPLICATION N'EST PAS ENCORE À 1 — question posée à Justin, toujours sans réponse.** `PLANS.maxU` vaut 2
 (Business) et 3 (Business Premium), `planPlaces()` = `maxU × abonnements` : l'application donne PLUS que ce que le site
