@@ -107,6 +107,47 @@ encore à jour »).
 **Pas touché, exprès :** refaire un mot de passe provisoire depuis la Tour demande encore un code (ce n'est pas une
 suppression) ; « Supprimer l'accès » (écran Accès) fait écrire le nom, sans code.
 
+**Relecture `gardien` des deux protections (27 septembre, après-midi) — six contournements, tous fermés** (branche,
+`585dcd6`, `aa240a5`, Tour `9acd27a`, rien de poussé sur `main`) :
+· **plusieurs espaces sous une adresse** — fermer un client effaçait TOUS les espaces de son adresse pour « une »
+  entreprise, et l'annuaire laissait rattacher l'espace d'un autre client à son adresse. Chaque espace effacé compte
+  désormais (`supprEntLimite(n)`, `supprEntCompter(n)`), la limite regarde ce qui VA être effacé, le code est lié à
+  la LISTE des espaces (empreinte), l'annuaire refuse de changer l'adresse d'un espace existant et de reprendre
+  l'espace d'un autre client (409) ;
+· **l'espace partagé** (`ESPACES_INTOUCHABLES`) — l'annuaire le refuse (403), « fermer un client » le DÉTACHE sans
+  l'effacer ni le fermer (l'avis le dit), « repartir à neuf » refuse ;
+· **« repartir à neuf »** effaçait un espace sans compter ni prévenir : même régime que les trois autres (compte,
+  limite, avis ; au-delà de la limite, la Tour d'avant reçoit 429 au lieu d'un code qu'elle ne sait pas lire, la
+  v2.69 passe par `supprAppel`) ;
+· **une adresse de sécurité que la Tour relève** (la boîte support, une boîte de la Messagerie) : une session volée y
+  lisait le code demandé. Les e-mails de sécurité portent un identifiant protégé (`mails-proteges.json`) : la relève
+  du support ne les importe pas, la Messagerie les montre mais refuse de les déplacer, marquer ou supprimer (403) et
+  ne les marque pas « lus ». Et au-delà de la limite, si la destination est lue par la Tour, le serveur REFUSE (409)
+  plutôt que d'envoyer un code inutile. Remède : une adresse que Justin seul lit, `securiteEmail`, posée par
+  `bash server/set-securite.sh` (saisie ; l'adresse n'est affichée que masquée) ;
+· **un avis qui ne part pas** — il est retenu (`avisManques` dans `tour-suppressions.json`), et plus RIEN ne se
+  supprime tant qu'un e-mail de rattrapage n'est pas parti (503) ; nouvel essai toutes les 15 minutes ; le journal
+  des e-mails dit « ⚠️ NON PARTI », « ⚠️ PAS ENCORE PARTI », « (parti en retard) ». Une écriture refusée sur disque
+  répond 500 (« rien n'est garanti »), jamais « supprimé » ;
+· **le reste** — aucune adresse dans un motif d'erreur rendu à la Tour ; un nom à retour à la ligne ne fabrique plus
+  de faux paragraphe dans l'avis ; les effacements Firestore d'un client partent en parallèle (trois espaces lents
+  dépassaient le délai de la Tour).
+⚠️ **Ce que ça change en production dès « pousse le serveur »** : la configuration du VPS n'a probablement ni
+`securiteEmail` ni `notifDemandes`, donc l'adresse de sécurité retombe sur l'expéditeur SMTP — `contact@teamop.fr`,
+qui est AUSSI la boîte support que la Tour relève. Les trois premières entreprises supprimées en 24 h passent (avec
+leur avis) ; **la quatrième est refusée** jusqu'à ce que Justin règle son adresse :
+`ssh -t root@api.teamop.fr "cd /opt/teamop/repo && git pull -q && bash server/set-securite.sh"`. Pour le vérifier
+sans rien afficher de secret : `journalctl -u teamop-api | grep 'suppressions de la Tour' | tail -1` (la ligne dit
+« adresse par défaut / réglée à part » et si la Tour relève cette boîte — aucune adresse n'y figure).
+**Risques qui restent, dits :** une suppression peut échapper à son avis si le SMTP tombe à cet instant précis (le
+rattrapage part ensuite, et rien d'autre ne se supprime avant) ; le NOMBRE de codes émis n'est pas plafonné ; la
+veille de la Messagerie saute les e-mails protégés — vérifié sur le module, pas observé de bout en bout.
+**Preuves :** `test-834` (nouveau : vrai serveur, fausse boîte IMAP glissée par `node -r`, trois vies de serveur)
+**58 ✓** ; `test-832` **116 ✓** ; `test-833` **48 ✓** ; `test-726` et `test-803` 144 ✓ (un facteur SMTP de banc :
+sans e-mail, plus rien ne se supprime) ; **33 mutations sur 33** mordent (`scratchpad/mutations-gardien.py` de la
+session : 27 serveur, 3 Messagerie, 3 Tour) ; suite complète **190 suites · 9 608 vérifications, code 0** ; bancs
+serveur contre les pages de `main` : **42 suites · 2 522 vérifications** (plancher relevé à 2 450).
+
 # ✅ 27 SEPTEMBRE 2026, NUIT — PORTAIL ET PAGE DE CONNEXION : UN E-MAIL QUI N'EST PAS PARTI NE S'ANNONCE PLUS « PARTI » — PUBLIÉ (f53656d)
 
 **Trouvé en vérifiant la question de Justin** (« les e-mails passent-ils tous par le serveur ? » — oui, voir plus

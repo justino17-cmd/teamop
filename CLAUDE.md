@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**189 suites dans `tests/`**, sans dépendance ni installation (recompté le 27 septembre 2026 au matin, `test-833` compris —
+**190 suites dans `tests/`**, sans dépendance ni installation (recompté le 27 septembre 2026 après-midi, `test-834` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -66,7 +66,7 @@ Quatre familles visent `server/`, et elles ne se remplacent pas :
 | | ce qu'elle monte | ce qu'elle peut voir |
 |---|---|---|
 | `test-716`, `test-722`, `test-723`, `test-725` | un MODULE, dépendances injectées | la logique d'une pièce |
-| `test-641`, `test-724`, `test-832` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
+| `test-641`, `test-724`, `test-832`, `test-834` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
 | `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces du SERVEUR sont branchées |
 | `test-735`, `test-803` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
 | `test-740`, `test-741`, `test-831` | les fonctions RÉELLES d'`espace.html`, de `reinit.html` et de `connexion.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent — et que l'écran DIT ce que le serveur a répondu |
@@ -124,7 +124,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 189 suites · 9 520 vérifications (mesuré en local le 27/09/2026, bêta v758 · Tour v2.69)
+bash scripts/bancs-ci.sh        # 190 suites · 9 608 vérifications (mesuré en local le 27/09/2026 après-midi, bêta v758 · Tour v2.69)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```

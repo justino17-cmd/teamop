@@ -28,7 +28,9 @@
 # 25 septembre 2026 : 2 297 contre les pages de `main` (38 suites), après la sortie de Firebase et la
 # seconde passe du gardien sur le portail — plancher relevé à 2 250.
 # 27 septembre 2026 : 2 396 contre les pages de `main` (41 suites), `test-832` compris — plancher relevé à 2 350.
-#plancher 2350
+# 27 septembre 2026, après `gardien` : 2 522 contre les pages de `main` (42 suites), `test-834` compris — plancher
+# relevé à 2 450.
+#plancher 2450
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
