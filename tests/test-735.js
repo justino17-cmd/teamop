@@ -602,6 +602,11 @@ function basePetite(m) {
     vrai('la première pousse envoie la base', r1 && r1.envoyees >= 3);
     vrai('   et lance le contrôle, retenu à la porte du serveur', typeof lacher === 'function');
     const borne1 = apiC.opHautLire(T2), v1 = verdicts();
+    /* Une pousse SANS rien à envoyer part pendant l'attente : elle ne change pas le serveur, donc
+       elle ne doit pas faire renoncer le contrôle (sinon, chez une équipe active, il ne conclurait
+       jamais). */
+    const vide = await apiC.opSoclePousser();
+    v('   une pousse sans rien de neuf part pendant l\'attente', vide && vide.envoyees, 0);
     dbC.clients[0].ville = 'Bayonne'; dbC.clients[0]._m = plusTard();   // pas encore poussée
     lacher();
     for (let i = 0; i < 60 && verdicts() === v1; i++) await dormir(50);

@@ -11823,7 +11823,7 @@ async function sauvKh(){ const t=localStorage.getItem('elanB_sync_team'), k=loca
    rien. */
 let _opJeton = null;          // { jeton, exp, double, lotMax } — EN MÉMOIRE SEULEMENT
 let _opEnVol = null;          // la pousse en cours, s'il y en a une
-let _opPousses = 0;           // combien de pousses sont parties — le contrôle compte avant et après son attente
+let _opPousses = 0;           // combien de pousses ont envoyé quelque chose — le contrôle compte avant et après son attente
 const OP_HAUT_CLE = 'elanB_op_haut';   // le plus haut `_m` déjà poussé, par espace
 const OP_NON_CLE = 'elanB_op_non';     // jusqu'à quand le serveur a dit « pas de double écriture »
 
@@ -11896,7 +11896,6 @@ async function opSocleSession(force) {
    ce qui est exactement ce qu'il voulait. */
 function opSoclePousser() {
   if (_opEnVol) return _opEnVol;
-  _opPousses++;
   _opEnVol = opSoclePousserVraiment().catch(() => null);
   /* ⚠️ Le `finally` est ce qui fait qu'un échec ne condamne pas la suite : sans lui, une
      pousse qui casse laisserait `_opEnVol` figé sur une promesse morte, et plus RIEN ne
@@ -11927,6 +11926,10 @@ async function opSoclePousserVraiment() {
        est exactement ce qu'on veut, puisque son contenu n'a pas bougé non plus. */
     const aEnvoyer = lignes.filter(l => (+l.m || 0) > haut);
     if (!aEnvoyer.length) return { envoyees: 0, retenus: retenus.length };
+    /* Compté ICI, au moment où quelque chose PART : une pousse sans rien à envoyer ne change pas le
+       serveur, et la compter ferait renoncer un contrôle en cours pour rien — chez une équipe très
+       active, indéfiniment (relecture du 27 septembre 2026). */
+    _opPousses++;
     let acceptes = 0, refus = [], plusHaut = haut;
     for (let i = 0; i < aEnvoyer.length; i += s.lotMax) {
       const lot = aEnvoyer.slice(i, i + s.lotMax);
