@@ -1,0 +1,145 @@
+/* ══ LES APPAREILS DU SITE — un vrai iPhone, un vrai Mac ═══════════════════════════════════════════
+   Justin, 27 septembre 2026 : « partout où il y a des captures d'écran, je veux des vrais iPhone avec un
+   vrai Mac, avec des vraies captures d'écran de l'application ». La maquette du zip avait des cadres
+   noirs aux écrans VIDES ; ici, le cadre est dessiné en CSS, l'écran est une image de l'application.
+
+   ⛔ L'IMAGE PORTE CE QUE L'ÉCRAN AFFICHE, LE CSS PORTE LE MATÉRIEL. La barre d'état de l'iPhone, l'îlot
+   dynamique, la barre des menus et la fenêtre du Mac sont DANS l'image (scratchpad/captures-site.js les
+   compose) ; le titane, la bordure noire, les boutons, l'encoche de l'écran et le socle du Mac sont ici.
+   Une capture refaite demain retombe donc exactement dans le même cadre.
+
+   ⛔ TOUT SE MESURE EN LARGEUR DE L'APPAREIL (`cqw`), jamais en pixels : un cadre posé à 240 px sur un
+   téléphone et à 330 px sur un écran de bureau doit garder les mêmes proportions, bordure et rayons
+   compris. Les dimensions viennent des appareils réels (en points) :
+   · iPhone 16 Pro — écran 402 × 874, appareil 430 × 902 (bande de titane 5, bordure noire 9),
+     rayons 69 / 64 / 55 ;
+   · MacBook Pro 14 pouces — écran 1512 × 982 (encoche 200 × 32), couvercle à 88 % du socle.
+
+   Le cadre est le même de jour et de nuit (titane noir, gris sidéral) : c'est l'écran qui change, par
+   <picture> et `prefers-color-scheme` — la règle du site (jour/nuit automatique, sans bouton). */
+
+/* ── iPhone ─────────────────────────────────────────────────────────────────────────────────────── */
+.ap-iphone {
+  container-type: inline-size;
+  position: relative;
+  width: var(--ap-l, 300px);
+  aspect-ratio: 430 / 902;
+  flex: none;
+}
+.ap-iphone-corps {
+  position: absolute; inset: 0;
+  border-radius: 16.05cqw;
+  /* la bande de titane : plus claire sur ses arêtes, là où la lumière accroche */
+  background: linear-gradient(90deg, #4a4a4e 0%, #232326 3.5%, #2e2e31 50%, #232326 96.5%, #4a4a4e 100%);
+  box-shadow:
+    inset 0 0 0 .23cqw rgba(255,255,255,.16),
+    inset 0 0 0 .7cqw rgba(0,0,0,.35),
+    0 3cqw 7cqw rgba(0,0,0,.32),
+    0 12cqw 24cqw -6cqw rgba(0,0,0,.35);
+  padding: 1.163cqw;
+}
+.ap-iphone-bord {
+  position: relative; height: 100%;
+  border-radius: 14.88cqw;
+  background: #030304;
+  padding: 2.093cqw;
+}
+.ap-iphone-ecran {
+  position: relative; height: 100%;
+  border-radius: 12.79cqw;
+  overflow: hidden;
+  background: #0b1426;
+  /* un voile de verre à peine visible : l'écran est derrière une vitre, pas une impression */
+  isolation: isolate;
+}
+.ap-iphone-ecran img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ap-iphone-ecran::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: linear-gradient(125deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 38%);
+}
+/* les boutons : action et volume à gauche, marche et « Commande de l'appareil photo » à droite */
+.ap-iphone-bouton {
+  position: absolute; width: .7cqw; border-radius: .35cqw;
+  background: linear-gradient(90deg, #1b1b1d, #4a4a4e 60%, #2a2a2d);
+}
+.ap-iphone-bouton.g { left: -.47cqw; }
+.ap-iphone-bouton.d { right: -.47cqw; background: linear-gradient(90deg, #2a2a2d, #4a4a4e 40%, #1b1b1d); }
+.ap-iphone-bouton.action { top: 19.4%; height: 3.6%; }
+.ap-iphone-bouton.vol1   { top: 26.4%; height: 6.9%; }
+.ap-iphone-bouton.vol2   { top: 34.9%; height: 6.9%; }
+.ap-iphone-bouton.marche { top: 29.3%; height: 11.1%; }
+.ap-iphone-bouton.photo  { top: 56.5%; height: 4.4%; width: .5cqw; right: -.3cqw; }
+
+/* ── MacBook Pro ────────────────────────────────────────────────────────────────────────────────── */
+.ap-mac {
+  container-type: inline-size;
+  position: relative;
+  width: var(--ap-l, 100%);
+  flex: none;
+}
+.ap-mac-couvercle {
+  position: relative;
+  width: 88cqw; margin: 0 auto;
+  border-radius: 1.7cqw 1.7cqw .5cqw .5cqw;
+  background: #0a0a0b;
+  /* l'arête d'aluminium du couvercle */
+  box-shadow: inset 0 0 0 .14cqw #5b5b60, inset 0 0 0 .3cqw #1a1a1c;
+  padding: 1.15cqw 1.15cqw 1.9cqw;
+}
+.ap-mac-ecran {
+  position: relative;
+  aspect-ratio: 1512 / 982;
+  border-radius: .95cqw .95cqw 0 0;
+  overflow: hidden;
+  background: #0b1426;
+}
+.ap-mac-ecran img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ap-mac-ecran::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(120deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 42%);
+}
+/* l'encoche de la caméra : 200 × 32 points sur 1512, posée SUR l'écran comme sur l'appareil */
+.ap-mac-encoche {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 2;
+  width: 11.35cqw; height: 1.82cqw;
+  background: #0a0a0b;
+  border-radius: 0 0 .55cqw .55cqw;
+}
+.ap-mac-encoche::after {
+  content: ""; position: absolute; top: 50%; left: 50%; width: .42cqw; height: .42cqw; border-radius: 50%;
+  transform: translate(-50%, -60%);
+  background: radial-gradient(circle at 35% 35%, #2c3548 0%, #0d1119 60%);
+}
+/* la charnière, puis le socle en aluminium gris sidéral, plus large que le couvercle */
+.ap-mac-socle {
+  position: relative;
+  height: 2.1cqw;
+  margin-top: -.05cqw;
+  border-radius: .25cqw .25cqw 2.4cqw 2.4cqw / .25cqw .25cqw 1.3cqw 1.3cqw;
+  background: linear-gradient(180deg, #7b7b80 0%, #3a3a3d 16%, #2b2b2e 55%, #1c1c1e 100%);
+  box-shadow: 0 1.6cqw 3cqw -1cqw rgba(0,0,0,.45), 0 4cqw 7cqw -3cqw rgba(0,0,0,.35);
+}
+.ap-mac-socle::before {  /* la charnière, sombre, sur la largeur du couvercle */
+  content: ""; position: absolute; top: 0; left: 6cqw; right: 6cqw; height: .45cqw;
+  border-radius: 0 0 .4cqw .4cqw;
+  background: linear-gradient(180deg, #111113, #2a2a2d);
+}
+.ap-mac-socle::after {   /* l'encoche où l'on glisse le pouce pour ouvrir */
+  content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 13cqw; height: .75cqw;
+  border-radius: 0 0 .9cqw .9cqw;
+  background: linear-gradient(180deg, #151517, #2f2f32);
+}
+
+/* ── ensemble : un Mac et un iPhone posé devant, à droite ───────────────────────────────────────── */
+.ap-duo { position: relative; width: min(1120px, 92vw); margin: 0 auto; }
+.ap-duo .ap-mac { --ap-l: 100%; }
+.ap-duo .ap-iphone {
+  --ap-l: 22%;
+  position: absolute; right: -1%; bottom: -2%;
+  filter: drop-shadow(0 1.2vw 1.6vw rgba(0,0,0,.22));
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .ap-iphone-ecran::after, .ap-mac-ecran::after { display: none; }
+}

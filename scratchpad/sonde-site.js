@@ -83,7 +83,7 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
       vrai(lbl + ' : fond ' + fond, mode === 'dark' ? fond === 'rgb(11, 20, 38)' : fond === 'rgb(255, 255, 255)');
       /* au doigt : ce qui se touche fait 44 px de haut au moins */
       if (P.tac) {
-        const petites = await ev(`const S='.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a';
+        const petites = await ev(`const S='.mode,.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a';
           return [...document.querySelectorAll(S)].filter(e=>{ const b=e.getBoundingClientRect(); return b.width>0&&b.height>0&&getComputedStyle(e).visibility!=='hidden'; })
             .map(e=>{ const b=e.getBoundingClientRect(), a=getComputedStyle(e,'::after'); const ext=a.content&&a.content!=='none'&&a.position==='absolute'?Math.max(0,-parseFloat(a.top||0))+Math.max(0,-parseFloat(a.bottom||0)):0;
               return {t:(e.textContent||e.getAttribute('aria-label')||'').trim().slice(0,30), h:Math.round(b.height+ext)}; }).filter(x=>x.h<44);`);
@@ -92,6 +92,37 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
 
       /* ── les gestes ── (une page qui plante se COMPTE comme un échec : elle n'arrête pas la sonde) */
       try {
+      /* ── v2, 27 septembre au soir : le bouton jour / nuit (Justin : « je veux vraiment un mode jour et un mode nuit ») ──
+         Toucher force l'autre mode, les ÉCRANS DES APPAREILS suivent (leurs <source> suivent l'appareil sinon), le choix
+         survit au rechargement ; toucher encore revient au mode de l'appareil et efface le choix. */
+      if (pg === 'index') {
+        const nuitVoulue = mode === 'light', FOND = { dark: 'rgb(11, 20, 38)', light: 'rgb(255, 255, 255)' };
+        const lire = `const imgs=[...document.querySelectorAll('.ap-iphone img,.ap-mac img')]; for(const i of imgs){ i.scrollIntoView({block:'center'}); await new Promise(r=>setTimeout(r,40)); }
+          await Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r; setTimeout(r,3000);}))); scrollTo(0,0);
+          return {theme:document.documentElement.getAttribute('data-theme'), fond:getComputedStyle(document.body).backgroundColor, memo:localStorage.getItem('teamop_site_mode'),
+            n:imgs.length, nuit:imgs.filter(i=>/-nuit(-1x)?\.webp$/.test(i.currentSrc)).length, jour:imgs.filter(i=>/-jour(-1x)?\.webp$/.test(i.currentSrc)).length,
+            dit:document.querySelector('.mode').getAttribute('aria-label'), vu:!document.querySelector('.mode').hidden};`;
+        await toucher(P, '.mode'); await dormir(300);
+        const a = await ev(lire);
+        vrai(lbl + ' : ☀︎/☾ passe ' + (nuitVoulue ? 'en nuit' : 'en jour') + ' (fond, mémoire, libellé)', a.vu && a.theme === (nuitVoulue ? 'dark' : 'light') && a.fond === FOND[nuitVoulue ? 'dark' : 'light']
+          && a.memo === (nuitVoulue ? 'nuit' : 'jour') && a.dit === (nuitVoulue ? 'Passer en mode jour' : 'Passer en mode nuit'), JSON.stringify(a));
+        vrai(lbl + ' : et les ' + a.n + ' écrans d\'appareil passent ' + (nuitVoulue ? 'de nuit' : 'de jour'), a.n >= 3 && (nuitVoulue ? a.nuit : a.jour) === a.n, JSON.stringify(a));
+        await cdp('Page.reload', {}); await dormir(1000);
+        const b = await ev(lire);
+        vrai(lbl + ' : le choix survit au rechargement (posé avant le premier rendu)', b.theme === a.theme && b.fond === a.fond && (nuitVoulue ? b.nuit : b.jour) === b.n, JSON.stringify(b));
+        await toucher(P, '.mode'); await dormir(300);
+        const c = await ev(lire);
+        vrai(lbl + ' : toucher encore revient au mode de l\'appareil, et oublie le choix', c.theme === null && c.memo === null && c.fond === FOND[mode] && (mode === 'dark' ? c.nuit : c.jour) === c.n, JSON.stringify(c));
+      }
+      /* ── v2 : chaque case de « Ce que fait OP GESTION » a son appareil, et il ne glisse pas dans sa case ──
+         (la boucle des images, plus haut, vient d'appeler scrollIntoView sur chacune : en `overflow:hidden` la case
+         défilait et l'iPhone perdait sa tête — c'est ce contrôle-ci qui le voit) */
+      if (pg === 'elan') {
+        const vues = await ev(`return [...document.querySelectorAll('.tuile-f .vue')].map(v=>{ const a=v.querySelector('.ap-iphone,.ap-mac'), i=v.querySelector('img');
+          return {st:v.scrollTop, d:Math.round(a.getBoundingClientRect().top - v.getBoundingClientRect().top), img:!!(i&&i.complete&&i.naturalWidth>0)}; });`);
+        vrai(lbl + ' : les dix cases ont leur appareil, image chargée', vues.length === 10 && vues.every(x => x.img), JSON.stringify(vues));
+        vrai(lbl + ' : aucun appareil n\'a glissé dans sa case (défilement 0, posé en haut)', vues.every(x => x.st === 0 && x.d >= 0 && x.d <= 20), JSON.stringify(vues.filter(x => x.st || x.d < 0 || x.d > 20)));
+      }
       if (!P.tac && pg === 'index') {
         const r = await rect('.nav-liens a[data-fly="applications"]');
         await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x, y: r.y }); await dormir(500);
@@ -135,6 +166,21 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
         await dormir(400);
         const q = await ev(`const b=document.querySelector('.faq .q button'); return {exp:b.getAttribute('aria-expanded'), h:b.parentElement.querySelector('.r').getBoundingClientRect().height};`);
         vrai(lbl + ' : une question s\'ouvre', q.exp === 'true' && q.h > 30, JSON.stringify(q));
+        /* v2 : la formule touchée devient la bleue — dans SON groupe, et le toucher ne quitte pas la page */
+        await cdp('Page.navigate', { url: 'http://127.0.0.1:' + pp + '/apercu/site/tarifs.html' }); await dormir(900);
+        const bleues = g => ev(`await new Promise(r=>setTimeout(r,400)); const L=getComputedStyle(document.documentElement).getPropertyValue('--link').trim();
+          const x=document.createElement('i'); x.style.color=L; document.body.appendChild(x); const lien=getComputedStyle(x).color; x.remove();
+          const ph=[...document.querySelectorAll('${g} .formule.phare')]; return {noms:ph.map(f=>f.querySelector('.n b').textContent), cta:ph.map(f=>getComputedStyle(f.querySelector('.cta')).backgroundColor), lien, url:location.pathname};`);
+        const d0 = await bleues('#formules-gestion');
+        vrai(lbl + ' : au départ, la bleue est la recommandée (Business)', d0.noms.join() === 'Business' && d0.cta[0] === d0.lien, JSON.stringify(d0));
+        await toucher(P, '#formules-gestion .formule:nth-child(2) .d');
+        const d1 = await bleues('#formules-gestion');
+        vrai(lbl + ' : toucher « Pro » la rend bleue — elle seule, bouton compris, sans quitter la page', d1.noms.join() === 'Pro' && d1.cta[0] === d1.lien && /tarifs\.html$/.test(d1.url), JSON.stringify(d1));
+        await toucher(P, '#onglet-msg');
+        await toucher(P, '#formules-msg .formule:nth-child(1) .d');
+        const d2 = await bleues('#formules-msg'), d3 = await bleues('#formules-gestion');
+        vrai(lbl + ' : OP MESSAGES aussi (« Perso » devient la bleue, bouton compris)', d2.noms.join() === 'Perso' && d2.cta[0] === d2.lien, JSON.stringify(d2));
+        vrai(lbl + ' : et OP GESTION garde la sienne (Pro)', d3.noms.join() === 'Pro', JSON.stringify(d3));
         await cdp('Page.navigate', { url: 'http://127.0.0.1:' + pp + '/apercu/site/tarifs.html#opmessages' }); await dormir(900);
         vrai(lbl + ' : l\'ancre #opmessages ouvre sur OP MESSAGES', await ev(`return document.getElementById('onglet-msg').getAttribute('aria-selected')==='true' && document.getElementById('formules-msg').offsetHeight>100;`));
       }

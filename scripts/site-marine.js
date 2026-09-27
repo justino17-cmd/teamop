@@ -6,8 +6,11 @@
 
    Il écrit les HUIT pages du site (accueil, applications, créer, OP GESTION, métiers, OP MESSAGES,
    pourquoi, tarifs) en HTML statique complet : lisibles sans JavaScript, référencées par Google comme les
-   pages d'aujourd'hui. Ressources communes : `vitrine/site.css`, `vitrine/site.js`, `vitrine/appareils.css`,
-   `vitrine/captures/` (refaites par `scratchpad/captures-site.js`).
+   pages d'aujourd'hui. Ressources communes : `vitrine/v2/` (site.css, site.js, appareils.css, captures/ —
+   refaites par `scratchpad/captures-site.js`).
+   ⛔ LA RACINE EN SERVICE LIT `vitrine/` (la v1 publiée le 27 septembre, `fe599df`), L'APERÇU LIT `vitrine/v2/`.
+   Tant que Justin n'a pas dit « remplace le site », on ne touche ni aux pages de la racine ni à `vitrine/`
+   hors de `v2/` : `vitrine/racine-v1.json` en garde l'empreinte, et `tests/test-835.js` la relit.
      node scripts/site-marine.js                 → apercu/site/ (avec « noindex » : un aperçu ne se référence pas)
      node scripts/site-marine.js --racine        → à la racine, le jour où Justin dit de remplacer le site
    ⛔ ON CORRIGE ICI, JAMAIS DANS UNE PAGE : `tests/test-835.js` régénère et exige des pages IDENTIQUES.
@@ -66,13 +69,14 @@ const COCHE = (t) => `<svg width="${t || 14}" height="${t || 14}" viewBox="0 0 2
 const PLUS = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`;
 
 /* ── les appareils : le cadre (vitrine/appareils.css) et l'écran jour/nuit ── */
-const CAP = '/vitrine/captures/';
+const RES = '/vitrine/v2/';
+const CAP = RES + 'captures/';
 function mac(nom, alt, o) {
   o = o || {};
   const tailles = o.tailles || '(max-width: 700px) 94vw, 1120px';
   const charge = o.tot ? 'eager" fetchpriority="high' : 'lazy';
   return `<figure class="ap-mac" style="margin:0"><div class="ap-mac-couvercle"><div class="ap-mac-ecran"><picture>`
-    + `<source media="(prefers-color-scheme: dark)" srcset="${CAP}${nom}-nuit.webp 3024w, ${CAP}${nom}-nuit-1x.webp 1512w" sizes="${tailles}">`
+    + `<source data-nuit media="(prefers-color-scheme: dark)" srcset="${CAP}${nom}-nuit.webp 3024w, ${CAP}${nom}-nuit-1x.webp 1512w" sizes="${tailles}">`
     + `<img src="${CAP}${nom}-jour-1x.webp" srcset="${CAP}${nom}-jour.webp 3024w, ${CAP}${nom}-jour-1x.webp 1512w" sizes="${tailles}" width="1512" height="982" alt="${esc(alt)}" loading="${charge}" decoding="async">`
     + `</picture><span class="ap-mac-encoche"></span></div></div><div class="ap-mac-socle"></div></figure>`;
 }
@@ -82,7 +86,7 @@ function iphone(nom, alt, o) {
   return `<figure class="ap-iphone" style="margin:0${o.largeur ? ';--ap-l:' + o.largeur : ''}">`
     + '<span class="ap-iphone-bouton g action"></span><span class="ap-iphone-bouton g vol1"></span><span class="ap-iphone-bouton g vol2"></span><span class="ap-iphone-bouton d marche"></span><span class="ap-iphone-bouton d photo"></span>'
     + `<div class="ap-iphone-corps"><div class="ap-iphone-bord"><div class="ap-iphone-ecran"><picture>`
-    + `<source media="(prefers-color-scheme: dark)" srcset="${CAP}${nom}-nuit.webp">`
+    + `<source data-nuit media="(prefers-color-scheme: dark)" srcset="${CAP}${nom}-nuit.webp">`
     + `<img src="${CAP}${nom}-jour.webp" width="804" height="1748" alt="${esc(alt)}" loading="${charge}" decoding="async">`
     + `</picture></div></div></div></figure>`;
 }
@@ -117,7 +121,7 @@ function entete(section, sousnav) {
   return `<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
       <a class="marque" href="index.html"><img src="/icons/teamop-192.png" width="22" height="22" alt=""><span>TEAM OP</span></a>
       <div class="nav-liens">${liens}</div>
-      <div class="nav-droite"><a class="pilule" href="${ESPACE}">Espace client</a>
+      <div class="nav-droite"><button class="mode" type="button" hidden aria-label="Passer en mode nuit" title="Passer en mode nuit"><svg class="lune" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="soleil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg></button><a class="pilule" href="${ESPACE}">Espace client</a>
         <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     </div>${volets}</nav>
     <div class="menu-mobile" id="menu-mobile">${mobile}</div>
@@ -142,9 +146,21 @@ const scene = (surtitre, titre, chapeau, actions, o) => `<section class="scene${
 
 /* ── les fonctions en tuiles, et leur fenêtre ── */
 const LARGEURS = { elan: [2, 1, 1, 1, 1, 1, 2, 1, 1, 1], msg: [2, 1, 3] };
+/* ── l'écran de chaque case (Justin, 27 septembre au soir : « dans chaque petite case, une capture — téléphone,
+   Mac — de ce qui est concerné ; ça fait plus pro, et le but c'est de vendre l'application »). Une case large
+   montre un Mac, une petite un iPhone ; la dernière (« Partout ») montre les deux. L'appareil déborde en bas
+   de la case, coupé par elle : on voit le haut de l'écran, là où l'application dit ce qu'elle fait. */
+const VUE_TAILLES = { mac: '(max-width: 820px) 92vw, 640px' };
+function vue(v, titre) {
+  if (!v) return '';
+  const alt = 'OP GESTION — ' + titre;
+  if (v.duo) return `<span class="vue duo" aria-hidden="true">${mac(v.duo[0], alt, { tailles: VUE_TAILLES.mac })}${iphone(v.duo[1], alt)}</span>`;
+  if (v.mac) return `<span class="vue v-mac">${mac(v.mac, alt, { tailles: VUE_TAILLES.mac })}</span>`;
+  return `<span class="vue v-iphone">${iphone(v.iphone, alt)}</span>`;
+}
 function tuiles(k, app, liste) {
-  const html = liste.map(([i, t, s], n) => { const span = LARGEURS[k][n] || 1, large = span > 1, inv = large && n === 0;
-    return `<button type="button" class="tuile-f${large ? ' large' : ''}${inv ? ' inv' : ''}" style="--span:${span}" data-i="${n}" aria-haspopup="dialog"><span class="ic">${ic(i, 26)}</span><span class="esp"></span><b>${fr(t)}</b><span class="t">${fr(s)}</span><span class="plus">${PLUS}</span></button>`; }).join('');
+  const html = liste.map(([i, t, s, , v], n) => { const span = LARGEURS[k][n] || 1, large = span > 1, inv = large && n === 0;
+    return `<button type="button" class="tuile-f${large ? ' large' : ''}${inv ? ' inv' : ''}${v ? ' avec-vue' : ''}" style="--span:${span}" data-i="${n}" aria-haspopup="dialog"><span class="ic">${ic(i, 26)}</span>${v ? '' : '<span class="esp"></span>'}<b>${fr(t)}</b><span class="t">${fr(s)}</span>${vue(v, t)}<span class="plus">${PLUS}</span></button>`; }).join('');
   const donnees = { app, coche: COCHE(16), liste: liste.map(([i, t, s, p]) => ({ ic: ic(i, 28), titre: t, sous: s, points: p })) };
   return `<div class="bento">${html}</div><script type="application/json" id="fonctions-donnees">${JSON.stringify(donnees).replace(/</g, '\\u003c')}</script>`;
 }
@@ -154,16 +170,16 @@ const FENETRE = `<div class="fenetre" role="dialog" aria-modal="true" aria-hidde
   <div class="pied"><button type="button" class="prec"></button><span class="pos"></span><button type="button" class="suiv"></button></div></div></div>`;
 
 const F_GESTION = [
-  ['tool', 'Interventions', 'Planifier, intervenir, rendre compte', ['Fiche détaillée en 4 onglets, du planning au rapport signé par le client', 'Chronomètre automatique par GPS : démarre à l\'arrivée, s\'arrête au départ', 'Checklist, photos avant/après, signatures client et technicien horodatées', 'Statuts en temps réel : à planifier → planifiée → en cours → terminée', 'Passages multiples et récurrences (1/3, 2/3, 3/3…) automatiques']],
-  ['cal', 'Planning et tournées', 'Jour, semaine, mois, tournées', ['Vues Jour / Semaine / Mois avec la charge de chaque technicien', 'Glisser-déposer vers un autre jour ou un autre technicien', 'Tournées optimisées : ordre des étapes, temps de trajet réels et carte', 'Conflits, absences et congés détectés automatiquement', 'Affectation automatique selon le secteur du client']],
-  ['box', 'Stock et box', 'Postes d\'appâtage, arrivages, scanner', ['Chaque box / poste : produits, codes d\'accès, relevés horodatés avec photo', 'Arrivages fournisseurs avec photo du bon de livraison', 'Scanner sécurisé, seuils d\'alerte, réapprovisionnement', 'Mouvements tracés par produit, technicien et box', 'Carte géolocalisée des box, partage en PDF']],
-  ['euro', 'Encaissements et compta', 'Télécollecte, paiements, exports', ['Télécollecte terrain : encaissements du jour par technicien', 'CB, espèces, chèque, virement, financement…', 'Récapitulatif à la comptable et export Excel en un clic', 'Suivi payé / impayé, TVA, export Factur-X']],
-  ['doc', 'Devis, factures et contrats', 'Du devis au règlement', ['Devis avec photos, transformés en facture en un clic', 'Factures générées depuis les interventions', 'Contrats récurrents planifiés automatiquement', 'Envoi au nom de votre entreprise, statuts suivis']],
-  ['file', 'Rapports et documents', 'Envoyés en un clic, à votre nom', ['Rapports personnalisés : votre logo, vos champs, vos mentions', 'Envoi par e-mail ou SMS depuis la fiche', 'Avis de passage, rappels, confirmations de rendez-vous', 'Photos et documents archivés sur chaque fiche']],
-  ['users', 'Équipe et rôles', 'Chacun voit ce qui le concerne', ['Comptes pour toute l\'équipe : admin, technicien, commercial, comptable…', 'Permissions menu par menu et action par action', 'Un technicien ne voit que ses interventions et ses box', 'Pointage des heures, parc de véhicules']],
-  ['bell', 'Notifications', 'Même application fermée', ['Sur le téléphone et l\'ordinateur, même application fermée', 'Intervention assignée, arrivage, seuil de stock, message', 'Un clic ouvre directement la bonne fiche']],
-  ['lock', 'Sécurisé', 'Chiffrement et espace isolé', ['Code PIN et chiffrement AES-256 de bout en bout', 'Espace isolé par entreprise : chaque société a sa clé', 'Sauvegardes complètes en un clic']],
-  ['device', 'Partout, sur tous vos appareils', 'iPhone, Android, Mac, Windows', ['Une vraie application sur tous les appareils', 'Synchronisée en temps réel entre les appareils de l\'équipe']],
+  ['tool', 'Interventions', 'Du planning au rapport signé, sans papier', ['Fiche détaillée en 4 onglets, du planning au rapport signé par le client', 'Chronomètre automatique par GPS : démarre à l\'arrivée, s\'arrête au départ', 'Checklist, photos avant/après, signatures client et technicien horodatées', 'Statuts en temps réel : à planifier → planifiée → en cours → terminée', 'Passages multiples et récurrences (1/3, 2/3, 3/3…) automatiques'], { mac: 'mac-interventions' }],
+  ['cal', 'Planning et tournées', 'Chaque technicien sait où aller, et quand', ['Vues Jour / Semaine / Mois avec la charge de chaque technicien', 'Glisser-déposer vers un autre jour ou un autre technicien', 'Tournées optimisées : ordre des étapes, temps de trajet réels et carte', 'Conflits, absences et congés détectés automatiquement', 'Affectation automatique selon le secteur du client'], { iphone: 'iphone-journee' }],
+  ['box', 'Stock et box', 'Chaque produit tracé, jusque dans le camion', ['Chaque box / poste : produits, codes d\'accès, relevés horodatés avec photo', 'Arrivages fournisseurs avec photo du bon de livraison', 'Scanner sécurisé, seuils d\'alerte, réapprovisionnement', 'Mouvements tracés par produit, technicien et box', 'Carte géolocalisée des box, partage en PDF'], { iphone: 'iphone-box' }],
+  ['euro', 'Encaissements et compta', 'Ce qui est prévu, ce qui est encaissé, le jour même', ['Télécollecte terrain : encaissements du jour par technicien', 'CB, espèces, chèque, virement, financement…', 'Récapitulatif à la comptable et export Excel en un clic', 'Suivi payé / impayé, TVA, export Factur-X'], { iphone: 'iphone-compta' }],
+  ['doc', 'Devis, factures et contrats', 'Du devis au règlement, en un clic', ['Devis avec photos, transformés en facture en un clic', 'Factures générées depuis les interventions', 'Contrats récurrents planifiés automatiquement', 'Envoi au nom de votre entreprise, statuts suivis'], { iphone: 'iphone-factures' }],
+  ['file', 'Rapports et documents', 'Envoyés depuis la fiche, à votre nom', ['Rapports personnalisés : votre logo, vos champs, vos mentions', 'Envoi par e-mail ou SMS depuis la fiche', 'Avis de passage, rappels, confirmations de rendez-vous', 'Photos et documents archivés sur chaque fiche'], { iphone: 'iphone-rapports' }],
+  ['users', 'Équipe et rôles', 'Chacun voit ce qui le concerne', ['Comptes pour toute l\'équipe : admin, technicien, commercial, comptable…', 'Permissions menu par menu et action par action', 'Un technicien ne voit que ses interventions et ses box', 'Pointage des heures, parc de véhicules'], { mac: 'mac-utilisateurs' }],
+  ['bell', 'Notifications', 'Même application fermée', ['Sur le téléphone et l\'ordinateur, même application fermée', 'Intervention assignée, arrivage, seuil de stock, message', 'Un clic ouvre directement la bonne fiche'], { iphone: 'iphone-notifs' }],
+  ['lock', 'Sécurisé', 'Chiffré, isolé, et à vous seul', ['Un mot de passe personnel par compte, chiffrement AES-256 de bout en bout', 'Espace isolé par entreprise : chaque société a sa clé', 'Sauvegardes complètes en un clic'], { iphone: 'iphone-connexion' }],
+  ['device', 'Partout, sur tous vos appareils', 'iPhone, Android, Mac, Windows', ['Une vraie application sur tous les appareils', 'Synchronisée en temps réel entre les appareils de l\'équipe'], { duo: ['mac-tableau', 'iphone-tableau'] }],
 ];
 const F_MESSAGES = [
   ['bolt', 'Chat en temps réel', 'Canal général, groupes, messages privés', ['Canal Général, groupes par chantier ou service, messages privés', 'Réponse par glissement, mentions @collègue', 'Instantané sur tous les appareils']],
@@ -324,17 +340,19 @@ function page(cle, o) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)" data-jour>
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)" data-nuit>
 <meta name="color-scheme" content="light dark">
+<script>/* le mode choisi (☀︎/☾), posé AVANT le premier rendu : sans ça, la page s'afficherait d'abord dans l'autre */
+try { var m = localStorage.getItem('teamop_site_mode'); if (m === 'jour' || m === 'nuit') document.documentElement.setAttribute('data-theme', m === 'nuit' ? 'dark' : 'light'); } catch (e) {}</script>
 ${racine ? '' : '<meta name="robots" content="noindex">\n'}<title>${esc(P.titre)}</title>
 <meta name="description" content="${esc(P.desc)}">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
 <link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
 <link rel="manifest" href="/manifest-teamop.webmanifest">
-${cle === 'index' ? LANCEUR + '\n' : ''}<link rel="stylesheet" href="/vitrine/site.css">
-<link rel="stylesheet" href="/vitrine/appareils.css">
+${cle === 'index' ? LANCEUR + '\n' : ''}<link rel="stylesheet" href="${RES}site.css">
+<link rel="stylesheet" href="${RES}appareils.css">
 </head>
 <body>
 ${entete(P.section, P.sousnav)}
@@ -343,7 +361,7 @@ ${P.corps()}
 ${P.cta === false ? '' : commencer()}
 </main>
 ${pied()}
-<script src="/vitrine/site.js" defer></script>
+<script src="${RES}site.js" defer></script>
 </body>
 </html>
 `;
