@@ -98,9 +98,13 @@ v('le champ montre ce qu\'il va envoyer, à la frappe',
    milieu d'un mot devient impossible. La position se garde. */
 v('⛔ le curseur ne saute pas en fin de champ à chaque frappe',
   /el\.setSelectionRange\(Math\.max\(0,pos-d\),Math\.max\(0,pos-d\)\)/.test(cnx), true);
-/* Précision de Justin : l'adresse d'entreprise n'ouvre QUE OP GESTION. */
+/* Précision de Justin : l'adresse d'entreprise n'ouvre QUE OP GESTION.
+   ⚠️ DEUX ÉCRITURES JUSTES tant que Justin n'a pas dit « remplace » : la page EN SERVICE (`main`, encre en ligne,
+   espace ordinaire) et la page AU THÈME (branche, `31776a6` : classe `fort`, espace insécable). Ce banc est dans
+   `scripts/bancs-serveur.liste` : le déploiement du serveur seul le lance CONTRE LES PAGES DE `main`. N'accepter que
+   l'écriture au thème a fait tomber la porte du déploiement du 27 septembre 2026 (nuit) sur une page juste. */
 v('l\'adresse d\'entreprise n\'ouvre qu\'OP GESTION, et le dit',
-  /te connecte à <b class="fort">OP&nbsp;GESTION<\/b>, et à lui seul/.test(cnx), true);
+  /te connecte à <b (?:class="fort"|style="color:#eef2fa")>OP(?:&nbsp;| )GESTION<\/b>, et à lui seul/.test(cnx), true);
 v('… et OP MESSAGES est annoncé hors forfait',
   /ne fait pas partie du forfait/.test(cnx), true);
 
