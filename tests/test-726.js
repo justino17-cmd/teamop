@@ -192,6 +192,27 @@ const webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push'))
 const vap = webpush.generateVAPIDKeys();
 const vivants = [];
 
+/* ⛔ UN FACTEUR DE BANC : depuis la relecture de `gardien` (27 septembre 2026), « repartir à neuf » part
+   toujours avec son e-mail d'avis — sans serveur d'e-mails, le serveur refuse (503, `supprMailPret`).
+   Celui-ci accepte tout et ne garde rien : ce banc ne lit pas les e-mails, il lui en faut seulement un. */
+let _facteurPort = null;
+async function facteurBanc() {
+  if (_facteurPort) return _facteurPort;
+  const s = require('net').createServer(c => {
+    c.on('error', () => {}); let t = '', corps = false; c.write('220 banc\r\n');
+    c.on('data', d => { t += d; let i;
+      while ((i = t.indexOf('\r\n')) >= 0) { const l = t.slice(0, i); t = t.slice(i + 2);
+        if (corps) { if (l === '.') { corps = false; c.write('250 ok\r\n'); } continue; }
+        const h = l.toUpperCase();
+        if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
+        else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
+        else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
+        else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
+        else c.write('250 ok\r\n'); } });
+  });
+  await new Promise(r => s.listen(0, '127.0.0.1', r)); s.unref();
+  _facteurPort = s.address().port; return _facteurPort;
+}
 async function assembler(nom, opts) {
   const dir = path.join(BANC, nom);
   const data = opts.data || path.join(dir, 'data');
@@ -200,9 +221,11 @@ async function assembler(nom, opts) {
   fs.mkdirSync(dir, { recursive: true });
   fs.mkdirSync(data, { recursive: true });
   const cfgPath = path.join(dir, 'config.json');
+  const portSmtp = await facteurBanc();
   fs.writeFileSync(cfgPath, JSON.stringify(Object.assign({
     vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc',
-    adminPassHash: sha(MDP),
+    adminPassHash: sha(MDP), notifDemandes: 'patron@banc-726.fr',
+    smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' },
     socle: { actif: !!opts.socle },
     sauvegarde: opts.sansCoffre ? undefined : {
       cle: CLE_SAUV, endpoint: opts.endpoint, bucket: BUCKET,

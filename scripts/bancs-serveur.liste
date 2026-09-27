@@ -88,3 +88,7 @@ tests/test-819.js
 # 27 septembre 2026 : supprimer depuis la Tour sans code par e-mail (« Fait les 4 ») — le chemin du code
 # de la Tour en service ne bouge pas, `confirme: true` ne passe que booléen et patron. Sans page.
 tests/test-832.js
+# 27 septembre 2026, après `gardien` : les contournements des deux protections — plusieurs espaces sous une
+# adresse, l'espace partagé, « repartir à neuf », une boîte que la Tour relève (fausse boîte IMAP glissée par
+# `node -r`), une écriture refusée, un nom piégé, des effacements en parallèle. Le vrai serveur, sans page.
+tests/test-834.js

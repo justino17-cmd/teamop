@@ -19,6 +19,10 @@
        e-mail configuré, rien ne se supprime ;
      · au-delà de TROIS ENTREPRISES en 24 heures, `confirme` ne suffit plus : le code revient
        (`limite`). Le compteur survit à un redémarrage, et illisible il reste FERMÉ.
+   Et, après la relecture de `gardien` (même jour) : un avis qui ne part pas est RETENU, et la suppression
+   suivante attend qu'il parte (`supprRattraper`) ; le journal des e-mails dit « NON PARTI » ; le motif
+   d'un envoi raté ne recopie pas d'adresse. Les contournements eux-mêmes (plusieurs espaces sous une
+   adresse, l'espace partagé, « repartir à neuf », une boîte que la Tour lit) sont joués par `test-834`.
 
    ⛔ LE VRAI SERVEUR, isolé sur 127.0.0.1 : un facteur SMTP de banc compte les courriels (et sait
    refuser, ou se taire), un Google de banc répond à tout ce que les suppressions appellent (jeton
@@ -40,7 +44,7 @@ const fin = () => { try { if (enfant) enfant.kill('SIGKILL'); } catch (e) {} try
   try { if (facteurSrv) facteurSrv.s.close(); } catch (e) {}
   try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
 process.on('exit', fin);
-setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 150 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 150000).unref();
+setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 240 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 240000).unref();
 
 /* Le facteur du banc (le même que `test-813`) : ce que le serveur envoie, on le lit. Deux humeurs de
    plus pour l'avis : `refuse` (un 550 à l'expéditeur, comme un serveur d'e-mails qui dit non) et
@@ -59,11 +63,16 @@ function facteur() {
         const l = tampon.slice(0, i); tampon = tampon.slice(i + 2);
         /* ⚠️ le point doublé (RFC 5321 §4.5.2) : une ligne qui commence par « . » arrive « .. ». Un vrai serveur le
            retire ; sans ça, un repli quoted-printable juste avant « .sh » faisait lire « set-admin..sh » au banc. */
-        if (corps) { if (l === '.') { corps = false; f.recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }
+        if (corps) {
+          if (l === '.') { corps = false; const m = msg; msg = '';
+            if (f.mode === 'lent') setTimeout(() => { f.recus.push(m); try { c.write('250 ok\r\n'); } catch (e) {} }, 9500);   // accepte, mais répond après le délai de l'avis
+            else { f.recus.push(m); c.write('250 ok\r\n'); } }
+          else msg += (l.startsWith('.') ? l.slice(1) : l) + '\n';
+          continue; }
         const h = l.toUpperCase();
         if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
         else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
-        else if (h.startsWith('MAIL FROM') && f.mode === 'refuse') c.write('550 refusé par le facteur du banc\r\n');
+        else if (h.startsWith('MAIL FROM') && f.mode === 'refuse') c.write('550 refusé par le facteur du banc pour patron@banc-832.fr\r\n');
         else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
         else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
         else c.write('250 ok\r\n');
@@ -119,7 +128,7 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces));
   const entree = (n) => ({ s: hx(16), e: hx(32), n });
   const A = 't-alpha-832';
-  const LOGINS = ['jean', 'paul', 'marc', 'luc', 'nora', 'ines', 'olga', 'remi', 'yves', 'neuf1', 'neuf2', 'neuf3', 'neuf4', 'jean2'];
+  const LOGINS = ['jean', 'paul', 'marc', 'luc', 'nora', 'ines', 'olga', 'remi', 'yves', 'neuf1', 'neuf2', 'neuf3', 'neuf4', 'jean2', 'zoe', 'tom', 'ugo', 'vic', 'wil'];
   const comptes = { [A]: { c: {}, maj: Date.now() }, 't-sature-832': { c: { x1: entree('X Un'), x2: entree('X Deux') }, maj: Date.now() },
     't-delta-832': { c: { d1: entree('D Un') }, maj: Date.now() }, 't-epsilon-832': { c: { e1: entree('E Un') }, maj: Date.now() } };
   for (const l of LOGINS) comptes[A].c[l] = entree('Nom ' + l);
@@ -152,6 +161,9 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' } };
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify(CONF));
   fs.writeFileSync(path.join(banc, 'config-sans-mail.json'), JSON.stringify(Object.assign({}, CONF, { smtp: undefined })));
+  /* Un serveur d'e-mails réglé SANS adresse (ni `notifDemandes`, ni expéditeur, ni identifiant) : l'avis n'aurait
+     nulle part où aller (`gardien`, C1). */
+  fs.writeFileSync(path.join(banc, 'config-sans-adresse.json'), JSON.stringify(Object.assign({}, CONF, { notifDemandes: undefined, smtp: { host: '127.0.0.1', port: portSmtp, secure: false } })));
   const PORT = 9300 + (process.pid % 300);
   const B = 'http://127.0.0.1:' + PORT;
   let journal = '';
@@ -227,7 +239,7 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     v('   le bon code ferme, l\'avis est parti', [r.s, r.j.supprime, r.j.avis], [200, true, { parti: true }]);
     vrai('   gamma est parti de l\'annuaire', !slugs().includes('gamma'));
     avisVu('   l\'avis de la fermeture', COMMUN.concat([/Quoi : l'entreprise « Gamma Services » \(gamma@exemple-832\.fr\) — fermée définitivement/,
-      /son espace est effacé\./, /Confirmée : par le code/, /entreprise « Gamma Services » fermée/,
+      /son espace « Gamma Services » est effacé\./, /Confirmée : par le code/, /entreprise « Gamma Services » fermée/,
       /C'est la 1re entreprise supprimée en 24 heures\. À partir de la 4e, la Tour redemande un code par e-mail\./]));
     vrai('   ⛔ les cinq suppressions d\'avant-hier ne comptent pas (1re, pas 6e)', /la 1re entreprise/.test(lisible(dernier())));
 
@@ -291,10 +303,10 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     r = await appel('/api/monitor/clients/retirer', { email: 'eta@exemple-832.fr', confirme: true }, PATRON);
     v('fermer un client, 5e entreprise, CONFIRMÉE : le code aussi', [r.s, r.j.codeEnvoye, r.j.limite, courriels() - n0], [200, true, true, 1]);
     vrai('   ⛔ eta n\'est pas fermée', slugs().includes('eta') && !fermes().emails.includes('eta@exemple-832.fr'));
-    vrai('   le courriel dit pourquoi', /Pourquoi un code : 3 entreprises/.test(lisible(dernier())));
+    vrai('   le courriel dit pourquoi, avec le VRAI nombre (4, pas « 3 » écrit en dur)', /Pourquoi un code : 4 entreprises ont déjà été supprimées ces dernières 24 heures : au-delà de 3/.test(lisible(dernier())));
     r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'luc', confirme: true }, PATRON);
     v('⛔ les comptes ne comptent pas : un compte se supprime encore en UN appel', [r.s, r.j.attente, r.j.codeEnvoye, r.j.limite], [200, true, undefined, undefined]);
-    const surDisque = lire('tour-suppressions.json') || [];
+    const surDisque = (lire('tour-suppressions.json') || {}).ts || [];
     v('le compteur sur disque : quatre dates, toutes de moins de 24 heures (celles d\'avant-hier balayées)',
       [surDisque.length, surDisque.every(x => typeof x === 'number' && Date.now() - x < 3600000)], [4, true]);
     jr = await fetch(B + '/api/monitor/journal', { headers: { Authorization: 'Bearer ' + PATRON } }).then(x => x.json()).catch(() => ({}));
@@ -309,7 +321,9 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
       v('⛔ confirme = ' + nom + ' → le chemin du code, rien de supprimé', [r.s, r.j.codeEnvoye, dansAnnuaire(A, 'marc'), courriels() - n0], [200, true, true, 1]);
     }
     r = await appel('/api/monitor/entreprise/supprimer', { t: 't-zeta-832', confirme: 'true' }, PATRON);
-    v('⛔ même chose pour « supprimer partout » (et ce n\'est pas la limite qui parle)', [r.s, r.j.codeEnvoye, r.j.limite, slugs().includes('zeta')], [200, true, undefined, true]);
+    /* Le compteur est à 4 : la réponse DIT la limite, et c'est vrai. Que la chaîne « true » ne confirme rien SOUS la limite,
+       les trois comptes juste au-dessus le prouvent (les comptes ne comptent pas). */
+    v('⛔ même chose pour « supprimer partout » — un code, rien de supprimé', [r.s, r.j.codeEnvoye, r.j.limite, slugs().includes('zeta')], [200, true, true, true]);
 
     const sans = [['compte/supprimer', { t: A, login: 'nora' }], ['comptes/supprimer', { t: A, logins: ['neuf4'] }],
       ['clients/retirer', { email: 'eta@exemple-832.fr' }], ['entreprise/supprimer', { t: 't-zeta-832' }]];
@@ -340,29 +354,76 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'ines', code: codeInes }, PATRON);
     v('⛔ le code demandé avant est périmé : pas de second ordre', [r.s, ordres(A, 'ines')], [400, 1]);
 
-    /* ══ 8. L'AVIS QUI NE PART PAS SE DIT — et la suppression, elle, est faite ══════════════════════ */
-    console.log('\n5. Un avis qui ne part pas : la réponse le dit');
+    /* ══ 8. L'AVIS QUI NE PART PAS : LA RÉPONSE LE DIT, LE JOURNAL AUSSI, ET LA SUIVANTE ATTEND QU'IL PARTE ══ */
+    console.log('\n5. Un avis qui ne part pas : dit, retenu, et rattrapé avant la suppression suivante');
+    const etat = () => lire('tour-suppressions.json') || {};
+    const mails = async () => ((await fetch(B + '/api/monitor/mails', { headers: { Authorization: 'Bearer ' + PATRON } }).then(x => x.json()).catch(() => ({}))).mails || []);
     facteurSrv.mode = 'refuse';
     n0 = courriels();
     r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'olga', confirme: true }, PATRON);
     v('le serveur d\'e-mails refuse : la suppression est faite, et la réponse DIT que l\'avis n\'est pas parti',
       [r.s, r.j.attente, r.j.avis && r.j.avis.parti, /550|refus/i.test((r.j.avis && r.j.avis.motif) || ''), courriels() - n0], [200, true, false, true, 0]);
     vrai('   olga est bien supprimée', !dansAnnuaire(A, 'olga') && ordres(A, 'olga') === 1);
+    const motif = (r.j.avis && r.j.avis.motif) || '';
+    vrai('   ⛔ le motif ne recopie pas l\'adresse en clair (' + motif.slice(0, 60) + '…)', !/patron@banc-832\.fr/.test(motif) && /p\*\*\*@banc-832\.fr/.test(motif));
+    let mj = await mails();
+    vrai('   ⛔ le journal des e-mails ne dit pas « parti » : l\'avis y est marqué NON PARTI',
+      mj.some(m => m.sujet === '⚠️ NON PARTI — (objet confidentiel)' && m.txt === 'avis de suppression · compte · confirmée'));
+    v('   l\'avis manqué est RETENU sur le disque', (etat().avisManques || []).map(x => /compte « olga » supprimé chez Alpha Nettoyage/.test(x.sujet)), [true]);
+
+    n0 = courriels();
+    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'remi', confirme: true }, PATRON);
+    v('⛔ la suppression SUIVANTE attend : le serveur d\'e-mails refuse toujours → 503, rien de supprimé',
+      [r.s, /avis d'une suppression précédente n'est pas parti/.test(r.j.error || ''), dansAnnuaire(A, 'remi'), ordres(A, 'remi')], [503, true, true, 0]);
+    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'remi' }, PATRON);
+    v('⛔ …par le chemin du code non plus (la Tour d\'avant) : 503, aucun code parti', [r.s, r.j.codeEnvoye, courriels() - n0], [503, undefined, 0]);
+    r = await appel('/api/monitor/entreprise/supprimer', { t: 't-zeta-832', confirme: true }, PATRON);
+    v('⛔ …ni une entreprise', [r.s, slugs().includes('zeta')], [503, true]);
+
+    facteurSrv.mode = 'normal';
+    n0 = courriels();
+    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'remi', confirme: true }, PATRON);
+    v('le serveur d\'e-mails revient : l\'avis manqué part D\'ABORD, puis la suppression et son avis', [r.s, r.j.attente, r.j.avis, courriels() - n0], [200, true, { parti: true }, 2]);
+    const rattrape = lisible(facteurSrv.recus[n0] || ''), sujetR = sujetDe(facteurSrv.recus[n0] || '');
+    vrai('   le premier e-mail est le rattrapage : il nomme la suppression d\'olga et dit ce qu\'il faut faire',
+      /Tour — une suppression sans e-mail d'avis/.test(sujetR) && /compte « olga » supprimé chez Alpha Nettoyage/.test(rattrape)
+      && /Tant que cet e-mail n'était pas parti, la Tour ne supprimait plus rien/.test(rattrape) && /bash server\/set-admin\.sh/.test(rattrape));
+    vrai('   le second est l\'avis de remi', EST_AVIS.test(lisible(dernier())) && /compte « remi »/.test(lisible(dernier())));
+    v('   la liste des avis manqués est vide sur le disque', (etat().avisManques || []).length, 0);
+    vrai('   remi est bien supprimé', !dansAnnuaire(A, 'remi') && ordres(A, 'remi') === 1);
+
     facteurSrv.mode = 'muet';
     const t0 = Date.now();
-    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'remi', confirme: true }, PATRON);
+    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'zoe', confirme: true }, PATRON);
     const duree = Date.now() - t0;
     v('le serveur d\'e-mails se tait : la réponse arrive quand même, en 8 s et des poussières — pas en deux minutes',
       [r.s, r.j.attente, r.j.avis && r.j.avis.parti, duree >= 7500 && duree < 12000], [200, true, false, true]);
     vrai('   et elle dit pourquoi (' + ((r.j.avis && r.j.avis.motif) || '—') + ')', /8 s/.test((r.j.avis && r.j.avis.motif) || ''));
-    vrai('   remi est bien supprimé', !dansAnnuaire(A, 'remi') && ordres(A, 'remi') === 1);
+    vrai('   zoe est bien supprimée', !dansAnnuaire(A, 'zoe') && ordres(A, 'zoe') === 1);
     facteurSrv.mode = 'normal';
+    n0 = courriels();
+    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'tom', confirme: true }, PATRON);
+    v('la suivante rattrape l\'avis de zoe, puis passe', [r.s, r.j.avis, courriels() - n0, /compte « zoe »/.test(lisible(facteurSrv.recus[n0] || ''))], [200, { parti: true }, 2, true]);
+
+    /* Un avis EN RETARD n'est pas un avis perdu : il retire lui-même sa ligne quand il finit par partir. */
+    facteurSrv.mode = 'lent';
+    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'ugo', confirme: true }, PATRON);
+    v('le serveur d\'e-mails répond après le délai : « pas parti » sur le moment, et retenu', [r.s, r.j.avis && r.j.avis.parti, (etat().avisManques || []).length], [200, false, 1]);
+    facteurSrv.mode = 'normal';
+    for (let i = 0; i < 40 && (etat().avisManques || []).length; i++) await dormir(100);
+    v('   …puis il part, et retire lui-même sa ligne (il n\'était pas perdu)', (etat().avisManques || []).length, 0);
+    n0 = courriels();
+    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'vic', confirme: true }, PATRON);
+    v('   la suivante passe sans rattrapage : un seul e-mail, son avis', [r.s, r.j.avis, courriels() - n0], [200, { parti: true }, 1]);
+
     /* Le journal des e-mails garde la TRACE de l'avis, jamais son contenu : il se relit à plusieurs. */
-    const mj = await fetch(B + '/api/monitor/mails', { headers: { Authorization: 'Bearer ' + PATRON } }).then(x => x.json()).catch(() => ({}));
-    const avisJ = (mj.mails || []).filter(m => /^avis de suppression · /.test(m.txt || ''));
-    vrai('le journal des e-mails a gardé la trace des avis (' + avisJ.length + ')', avisJ.length >= 10);
+    mj = await mails();
+    const avisJ = mj.filter(m => /^avis de suppression · /.test(m.txt || ''));
+    vrai('le journal des e-mails a gardé la trace des avis (' + avisJ.length + ')', avisJ.length >= 14);
     vrai('   ⛔ sans objet, sans nom d\'entreprise, sans identifiant ni adresse',
-      avisJ.every(m => m.sujet === '(objet confidentiel)' && !/@|t-[a-z]+-832|Alpha|Gamma|Beta|Delta|Epsilon|jean|paul|neuf|olga|remi/.test(m.txt)));
+      avisJ.every(m => /^(⚠️ (NON PARTI|PAS ENCORE PARTI) — )?\(objet confidentiel\)( \(parti en retard\))?$/.test(m.sujet) && !/@|t-[a-z]+-832|Alpha|Gamma|Beta|Delta|Epsilon|jean|paul|neuf|olga|remi|zoe|tom|ugo|vic/.test(m.txt)));
+    v('   ⛔ chaque avis raté porte SA marque : olga refusé, zoe en suspens (serveur muet), ugo parti en retard',
+      [avisJ.filter(m => /^⚠️ NON PARTI/.test(m.sujet)).length, avisJ.filter(m => /^⚠️ PAS ENCORE PARTI/.test(m.sujet)).length, avisJ.filter(m => /\(parti en retard\)$/.test(m.sujet)).length], [1, 1, 1]);
 
     /* ══ 9. LE COMPTEUR SURVIT À UN REDÉMARRAGE — et illisible, il reste FERMÉ ═══════════════════════ */
     console.log('\n6. Le compteur : un redémarrage ne le remet pas à zéro ; illisible, il reste fermé');
@@ -380,7 +441,7 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     v('⛔ illisible, le compteur ne s\'ouvre pas : le code est demandé', [r.s, r.j.codeEnvoye, r.j.limite, slugs().includes('eta')], [200, true, true, true]);
     r = await appel('/api/monitor/clients/retirer', { email: 'eta@exemple-832.fr', code: dernierCode() }, PATRON);
     v('   avec le code, la fermeture passe', [r.s, r.j.supprime, r.j.avis], [200, true, { parti: true }]);
-    v('   et le compteur est réécrit, lisible (une date)', (lire('tour-suppressions.json') || []).length, 1);
+    v('   et le compteur est réécrit, lisible (une date)', ((lire('tour-suppressions.json') || {}).ts || []).length, 1);
     r = await appel('/api/monitor/entreprise/supprimer', { t: 't-zeta-832', confirme: true }, PATRON);
     v('   la suppression confirmée suivante repasse en UN appel (2e sur ce compteur)', [r.s, r.j.supprime, r.j.limite], [200, true, undefined]);
 
@@ -394,6 +455,13 @@ console.log('\n── 832 · supprimer depuis la Tour : question, case, « Oui �
     v('⛔ lot confirmé : 503, neuf4 est toujours là', [r.s, dansAnnuaire(A, 'neuf4')], [503, true]);
     r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'yves' }, PATRON);
     v('⛔ et le chemin du code non plus (503, comme avant)', [r.s, dansAnnuaire(A, 'yves')], [503, true]);
+    await arreter();
+    vrai('le serveur redémarre avec un serveur d\'e-mails mais SANS adresse de destination', await demarrer('config-sans-adresse.json'));
+    r = await appel('/api/monitor/compte/supprimer', { t: A, login: 'wil', confirme: true }, PATRON);
+    v('⛔ l\'avis n\'aurait nulle part où aller : 503, wil est toujours là (`gardien`, C1)', [r.s, /avis/.test(r.j.error || ''), dansAnnuaire(A, 'wil'), ordres(A, 'wil')], [503, true, true, 0]);
+    r = await appel('/api/monitor/entreprise/supprimer', { t: 't-sature-832', confirme: true }, PATRON);
+    v('⛔ une entreprise non plus', [r.s, slugs().includes('sature')], [503, true]);
+    vrai('⛔ du début à la fin, l\'adresse du patron n\'est jamais écrite en clair dans le journal du serveur (`gardien`, R3)', !/patron@banc-832\.fr/.test(journal));
 
     v('⛔ du début à la fin, rien n\'est parti ailleurs qu\'au Google de banc (127.0.0.1)', G.requetes.every(q => !/googleapis|google\.com/.test(q)), true);
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }

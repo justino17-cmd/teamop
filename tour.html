@@ -4727,11 +4727,17 @@ function tourMailAcces(nomEnt,btn){
     else { toast((r&&r.d&&r.d.error)||'Envoi impossible'); if(btn){ btn.disabled=false; btn.textContent='📧 Envoyer par e-mail au client'; } }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='📧 Envoyer par e-mail au client'; } });
 }
+/* « Repartir à neuf » et « Supprimer l'accès » effacent une entreprise autant qu'une suppression : le serveur
+   les compte, envoie l'avis, et au-delà de trois entreprises en 24 heures demande le code (`gardien`, B3).
+   Elles passent donc par `supprAppel`, comme les quatre autres — qui sait demander ce code — et une réussite
+   ne se lit qu'à une réponse SANS `codeEnvoye`. Leur question d'avant (confirm, nom à taper) ne bouge pas. */
+function renaitreReussi(r){ return !!(r&&r.ok&&r.d&&r.d.ok&&!r.d.codeEnvoye); }
 function tourRepartirNeuf(email,nom){
   if(!confirm('🔄 REPARTIR À NEUF pour « '+nom+' » ?\n\n⚠️ DÉFINITIF :\n• leur espace actuel et TOUTES leurs données sont effacés des serveurs\n• tous leurs utilisateurs disparaissent\n• un espace tout neuf et VIDE est créé, avec de nouveaux identifiants\n\nÀ utiliser seulement pour les faire repartir de zéro sur une version propre.')) return;
-  apiPost('/api/monitor/espaces/renaitre',{nom:nom}).then(function(r){
-    if(!(r&&r.ok&&r.d&&r.d.ok)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron'); return; }
-    toast('🧹 Ancien espace effacé — création du nouveau…');
+  supprAppel('/api/monitor/espaces/renaitre',{nom:nom}).then(function(r){
+    if(r&&r.annule){ toast('Code non saisi — rien n’a été effacé'); return; }
+    if(!renaitreReussi(r)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron',12000); return; }
+    supprToast(r,'🧹 Ancien espace effacé — création du nouveau…');
     var p=document.getElementById('tour-panneau'); if(p) p.remove();
     setTimeout(function(){ tourLienEntreprise(email,nom,true); },250);
   }).catch(function(){ toast('Serveur injoignable'); });
@@ -4981,16 +4987,17 @@ function tourAccesSupprimer(slug,nom){
   if(tape===null) return;
   var norm=function(x){ return String(x||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,''); };
   if(norm(tape)!==norm(cible)){ toast('Nom différent — rien n’a été supprimé'); return; }
-  apiPost('/api/monitor/espaces/renaitre',{nom:cible}).then(function(r){
-    if(!(r&&r.ok&&r.d&&r.d.ok)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron'); return; }
+  supprAppel('/api/monitor/espaces/renaitre',{nom:cible}).then(function(r){
+    if(r&&r.annule){ toast('Code non saisi — rien n’a été supprimé'); return; }
+    if(!renaitreReussi(r)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron',12000); return; }
     JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a supprimé l’accès « '+cible+' »'});
     /* Le cas où une coupure ratée coûte le plus : l'espace est supprimé et sort de l'annuaire,
        mais un appareil qui garde sa session le fait RENAÎTRE hors annuaire, orphelin — la
        genèse même des « espaces hors annuaire ». L'autre appelant de cette route (repartir à
        neuf) enchaîne aussitôt sur la création du nouvel espace : y mettre un avertissement
        serait du bruit au milieu d'un geste. Ici, non : c'est la fin du geste. */
-    if(r.d.coupure===false) toast('⚠️ Espace supprimé, mais les sessions ne sont PAS coupées ('+((r.d.coupureMotif)||'raison inconnue')+') — un appareil resté connecté peut le faire renaître',8000);
-    else toast((r.d.efface?'🗑 Espace et données supprimés':'🗑 Espace supprimé (données déjà absentes)')+' · sessions coupées');
+    if(r.d.coupure===false) supprToast(r,'⚠️ Espace supprimé, mais les sessions ne sont PAS coupées ('+((r.d.coupureMotif)||'raison inconnue')+') — un appareil resté connecté peut le faire renaître',8000);
+    else supprToast(r,(r.d.efface?'🗑 Espace et données supprimés':'🗑 Espace supprimé (données déjà absentes)')+' · sessions coupées');
     chargerAccesPublics(); chargerClients();
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -5048,8 +5055,13 @@ function supprAppel(chemin,corps){
   return apiPost(chemin,Object.assign({},corps,{confirme:true})).then(function(r){
     if(!(r&&r.ok&&r.d&&r.d.codeEnvoye)) return r;
     var ou=r.d.dest||'ta boîte';
+    /* La raison vient du serveur (`pourquoi`) : lui seul sait combien d'espaces une fermeture efface — une
+       fermeture qui en efface quatre bute sur la limite dès la première, et « trois entreprises ont déjà été
+       supprimées » y serait faux. */
+    var pq=String((r.d.limite&&r.d.pourquoi)||'').replace(/ ([:;!?])/g,'\u00a0$1');
     var code=prompt(r.d.limite   // un message natif échappe à typoFr : les insécables à la main
-      ? 'Trois entreprises ont déjà été supprimées ces dernières 24\u00a0heures\u00a0: au-delà, la case ne suffit plus. Un code vient de partir sur '+ou+'.\n\nEntre le code à 6 chiffres\u00a0:'
+      ? (pq ? pq.charAt(0).toUpperCase()+pq.slice(1)+'.\n\nUn code vient de partir sur '+ou+'.\n\nEntre le code à 6 chiffres\u00a0:'
+           : 'Trois entreprises ont déjà été supprimées ces dernières 24\u00a0heures\u00a0: au-delà, la case ne suffit plus. Un code vient de partir sur '+ou+'.\n\nEntre le code à 6 chiffres\u00a0:')
       : 'Le serveur n’est pas encore à jour\u00a0: il demande le code qui vient de partir sur '+ou+'.\n\nEntre le code à 6 chiffres\u00a0:');
     if(!code) return {ok:false,status:0,annule:true,d:{}};
     return apiPost(chemin,Object.assign({},corps,{code:String(code).trim()}));

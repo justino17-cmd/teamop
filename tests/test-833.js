@@ -39,7 +39,7 @@ const fin = () => { try { if (enfant) enfant.kill('SIGKILL'); } catch (e) {} try
   try { if (relais) relais.close(); } catch (e) {} try { if (facteurSrv) facteurSrv.s.close(); } catch (e) {}
   try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
 process.on('exit', fin);
-setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 120 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 120000).unref();
+setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 150 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 150000).unref();
 
 /* ── Les fonctions de la Tour, ancrées sur leur DÉCLARATION (le fichier est très commenté) ── */
 const CODE = SRC_TOUR.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
@@ -59,7 +59,7 @@ function fonction(nom) {
 /* Un bac à sable par scénario : `API` vise le serveur voulu (le vrai, ou le relais « d'avant »),
    `prompt` est ce que le patron taperait — et on compte ce qu'on lui a demandé. */
 function tour(API, TOKEN, repondre) {
-  const noms = ['hAuth', 'apiPost', 'supprReussi', 'supprAppel', 'supprAvisMot', 'supprToast'];
+  const noms = ['hAuth', 'apiPost', 'supprReussi', 'supprAppel', 'supprAvisMot', 'supprToast', 'renaitreReussi'];
   const src = noms.map(fonction);
   if (src.some(x => !x)) return null;
   const demandes = [], toasts = [];
@@ -128,7 +128,8 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
   const code64 = (t) => Buffer.from(JSON.stringify({ t, k: 'cle-propre-' + t })).toString('base64');
   const ESP = { alpha: ['t-alpha-832', 'Alpha Nettoyage', ''], sature: ['t-sature-832', 'Saturée Hygiène', ''],
     beta: ['t-beta-832', 'Beta Hygiène', 'beta@exemple-832.fr'], gamma: ['t-gamma-832', 'Gamma Services', 'gamma@exemple-832.fr'],
-    delta: ['t-delta-832', 'Delta Propreté', ''], epsilon: ['t-epsilon-832', 'Epsilon Désinfection', ''], zeta: ['t-zeta-832', 'Zeta Vapeur', ''] };
+    delta: ['t-delta-832', 'Delta Propreté', ''], epsilon: ['t-epsilon-832', 'Epsilon Désinfection', ''], zeta: ['t-zeta-832', 'Zeta Vapeur', ''],
+    iotahygiene: ['t-iota-832', 'Iota Hygiène', ''], kappaservices: ['t-kappa-832', 'Kappa Services', ''] };
   const espaces = {};
   for (const [slug, [t, nom, email]] of Object.entries(ESP)) espaces[slug] = Object.assign({ t, nom, code: code64(t), ts: Date.now() }, email ? { email } : {});
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces));
@@ -230,11 +231,35 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
     T = tour(B, PATRON, () => dernierCode());
     n0 = courriels();
     x = await T.ctx.supprAppel('/api/monitor/entreprise/supprimer', { t: 't-delta-832' });
+    /* La raison vient du serveur (`pourquoi`) : c'est lui qui sait combien d'espaces une suppression efface. */
     v('la 4e entreprise en 24 heures : la Tour demande le code et dit POURQUOI, puis la suppression passe',
-      [T.demandes.length, /Trois entreprises ont déjà été supprimées ces dernières 24\u00a0heures\u00a0: au-delà, la case ne suffit plus/.test(T.demandes[0] || ''),
+      [T.demandes.length, /^3 entreprises ont déjà été supprimées ces dernières 24 heures\u00a0: au-delà de 3, la confirmation de la Tour ne suffit plus\.\n\nUn code vient de partir sur /.test(T.demandes[0] || ''),
         /pas encore à jour/.test(T.demandes[0] || ''), T.ctx.supprReussi(x), courriels() - n0], [1, true, false, true, 2]);
     vrai('   delta est partie', !slugs().includes('delta'));
     vrai('   la question nomme la boîte', /p\*\*\*@banc-832\.fr/.test(T.demandes[0] || ''));
+
+    /* « Repartir à neuf » efface une entreprise autant qu'une suppression (`gardien`, B3) : même porte (`supprAppel`),
+       même limite — et une réussite ne se lit qu'à une réponse SANS code en attente (`renaitreReussi`). */
+    T = tour(B, PATRON, () => dernierCode());
+    n0 = courriels();
+    x = await T.ctx.supprAppel('/api/monitor/espaces/renaitre', { nom: 'Iota Hygiène' });
+    v('« repartir à neuf », 5e entreprise : la Tour demande le code, dit pourquoi, puis l\'espace est effacé (code + avis)',
+      [T.demandes.length, /^4 entreprises ont déjà été supprimées/.test(T.demandes[0] || ''), T.ctx.renaitreReussi(x), x.d && x.d.supprime, x.d && x.d.avis, courriels() - n0],
+      [1, true, true, true, { parti: true }, 2]);
+    vrai('   iota a quitté l\'annuaire', !slugs().includes('iotahygiene'));
+    v('⛔ « code envoyé » n\'est pas une réussite de « repartir à neuf » (sinon la Tour créerait l\'espace neuf à côté de l\'ancien)',
+      T.ctx.renaitreReussi({ ok: true, status: 200, d: { ok: true, codeEnvoye: true, limite: true } }), false);
+    v('   un nom sans espace (rien à effacer) laisse la Tour créer le neuf', T.ctx.renaitreReussi({ ok: true, status: 200, d: { ok: true, rien: true } }), true);
+    T = tour(VIEUX, PATRON, () => dernierCode());
+    n0 = courriels();
+    x = await T.ctx.supprAppel('/api/monitor/espaces/renaitre', { nom: 'Kappa Services' });
+    v('⛔ la Tour d\'avant (sans `confirme`) au-delà de la limite : refus 429, aucune question, aucun e-mail, rien d\'effacé',
+      [x.status, T.demandes.length, T.ctx.renaitreReussi(x), courriels() - n0, slugs().includes('kappaservices')], [429, 0, false, 0, true]);
+    vrai('   et le refus dit pourquoi', /ne sait pas demander/.test((x.d && x.d.error) || ''));
+    const rn = fonction('tourRepartirNeuf'), as = fonction('tourAccesSupprimer');
+    v('⛔ les deux portes de « repartir à neuf » passent par supprAppel, et lisent renaitreReussi et `annule`',
+      [rn, as].map(f => /supprAppel\('\/api\/monitor\/espaces\/renaitre'/.test(f) && /renaitreReussi\(r\)/.test(f) && /r&&r\.annule/.test(f)), [true, true]);
+    v('⛔ plus aucun appel direct à la route', (CODE.match(/apiPost\('\/api\/monitor\/espaces\/renaitre'/g) || []).length, 0);
     facteurSrv.mode = 'refuse';
     T = tour(B, PATRON);
     x = await T.ctx.supprAppel('/api/monitor/compte/supprimer', { t: A, login: 'marc' });

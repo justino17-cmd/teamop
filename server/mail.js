@@ -17,7 +17,21 @@ const MAX_PIECES_OCTETS = 12 * 1024 * 1024;   // 12 Mo au total pour un envoi
 const PAR_PAGE = 30;
 
 module.exports = function monterMessagerie(app, ctx) {
-  const { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif } = ctx;
+  const { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege } = ctx;
+  /* ⛔ LES E-MAILS DE SÉCURITÉ DU SERVEUR (`gardien`, 27 septembre 2026, B4). Le code d'une suppression et
+     l'avis qui la suit partent à la boîte de TEAM OP — que cette Messagerie relève. Une session de la Tour
+     volée lisait le code qu'on lui demandait, puis supprimait l'avis qui l'aurait dénoncée. Ils restent
+     LISIBLES (c'est le patron qu'ils préviennent, et il lit peut-être sa boîte ici), mais la Tour ne les
+     déplace plus, ne les supprime plus, ne les marque plus — ni « lu » en les ouvrant — et ne les annonce
+     pas en notification. Le serveur les reconnaît à leur identifiant (`mailProtege`, server/index.js),
+     tiré au sort à l'envoi : rien qu'un expéditeur du dehors puisse imiter. */
+  const protege = typeof mailProtege === 'function' ? mailProtege : () => false;
+  const REFUS_PROTEGE = 'E-mail de sécurité (code ou avis d\'une suppression) : la Tour ne le déplace pas, ne le supprime pas, ne le marque pas. Fais-le depuis ta messagerie habituelle.';
+  const erreurProtege = () => Object.assign(new Error('protege'), { protege: true });
+  async function verifierNonProtege(client, uid) {   // à appeler DANS la boîte ouverte, avant d'agir sur un message
+    const m = await client.fetchOne(String(uid), { uid: true, envelope: true }, { uid: true });
+    if (m && m.envelope && protege(m.envelope.messageId)) throw erreurProtege();
+  }
   const BOITES_PATH = path.join(DATA_DIR, 'mail-boites.json');
   const SUIVI_PATH = path.join(DATA_DIR, 'mail-suivi.json');
   const REGLAGES_PATH = path.join(DATA_DIR, 'mail-reglages.json');
@@ -267,6 +281,7 @@ module.exports = function monterMessagerie(app, ctx) {
               repondu: fl.has ? fl.has('\\Answered') : false,
               pieces: comptePieces(m.bodyStructure), taille: m.size || 0,
               mid: String(env.messageId || '').slice(0, 300),
+              protege: protege(env.messageId),
               auto: estNotification(de.adr, env.subject),
               suivi: (function () { const sv = suivi[String(env.messageId || '')]; return sv ? { statut: sv.statut, assigne: sv.assigne || '' } : null; })() });
           }
@@ -322,10 +337,11 @@ module.exports = function monterMessagerie(app, ctx) {
           const texte = String(p.text || '').trim() || htmlEnTexte(typeof p.html === 'string' ? p.html : '');
           const pieces = (p.attachments || []).map((a, i) => ({ idx: i, nom: String(a.filename || 'piece-' + (i + 1)).slice(0, 140), taille: a.size || 0, type: String(a.contentType || '').slice(0, 80) }))
             .filter(a => a.nom).slice(0, MAX_PIECES);
-          // à l'ouverture, le message est marqué lu (comme dans une vraie messagerie)
-          if (!(msg.flags && msg.flags.has && msg.flags.has('\\Seen'))) { try { await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true }); } catch (_) {} }
+          // à l'ouverture, le message est marqué lu (comme dans une vraie messagerie) — sauf un e-mail de sécurité
+          const estProtege = protege(env.messageId);
+          if (!estProtege && !(msg.flags && msg.flags.has && msg.flags.has('\\Seen'))) { try { await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true }); } catch (_) {} }
           const midCle = String(env.messageId || '');
-          if (midCle && !suivi[midCle] && roleDe({ path: chemin }) === 'inbox') {
+          if (!estProtege && midCle && !suivi[midCle] && roleDe({ path: chemin }) === 'inbox') {
             const deAdr = de.adr;
             suivi[midCle] = { statut: estNotification(deAdr, env.subject) ? 'resolu' : 'aTraiter', assigne: '', par: '',
               ts: Date.now(), recuTs: env.date ? new Date(env.date).getTime() : Date.now(), repTs: 0,
@@ -339,7 +355,7 @@ module.exports = function monterMessagerie(app, ctx) {
             objet: String(env.subject || '(sans objet)').slice(0, 300),
             ts: env.date ? new Date(env.date).getTime() : 0,
             texte: texte.slice(0, 40000), html: (typeof p.html === 'string' ? p.html : '').slice(0, 400000),
-            pieces, mid: String(env.messageId || '').slice(0, 300),
+            pieces, mid: String(env.messageId || '').slice(0, 300), protege: estProtege,
             marque: msg.flags && msg.flags.has ? msg.flags.has('\\Flagged') : false };
         } finally { lock.release(); }
       });
@@ -386,6 +402,7 @@ module.exports = function monterMessagerie(app, ctx) {
       await avecImap(b, async client => {
         const lock = await client.getMailboxLock(monStr(dossier, 200) || 'INBOX');
         try {
+          await verifierNonProtege(client, u);
           if (lu === true) await client.messageFlagsAdd(String(u), ['\\Seen'], { uid: true });
           if (lu === false) await client.messageFlagsRemove(String(u), ['\\Seen'], { uid: true });
           if (marque === true) await client.messageFlagsAdd(String(u), ['\\Flagged'], { uid: true });
@@ -393,7 +410,10 @@ module.exports = function monterMessagerie(app, ctx) {
         } finally { lock.release(); }
       });
       res.json({ ok: true });
-    } catch (e) { res.status(502).json({ error: 'action impossible' }); }
+    } catch (e) {
+      if (e && e.protege) return res.status(403).json({ error: REFUS_PROTEGE });
+      res.status(502).json({ error: 'action impossible' });
+    }
   });
 
   /* ═════════════════════ DÉPLACER / CORBEILLE ═════════════════════ */
@@ -410,10 +430,13 @@ module.exports = function monterMessagerie(app, ctx) {
       if (dest === src) return res.json({ ok: true, deja: true });
       await avecImap(b, async client => {
         const lock = await client.getMailboxLock(src);
-        try { await client.messageMove(String(u), dest, { uid: true }); } finally { lock.release(); }
+        try { await verifierNonProtege(client, u); await client.messageMove(String(u), dest, { uid: true }); } finally { lock.release(); }
       });
       res.json({ ok: true, vers: dest });
-    } catch (e) { res.status(502).json({ error: 'déplacement impossible : ' + String(e.message || e).slice(0, 120) }); }
+    } catch (e) {
+      if (e && e.protege) return res.status(403).json({ error: REFUS_PROTEGE });
+      res.status(502).json({ error: 'déplacement impossible : ' + String(e.message || e).slice(0, 120) });
+    }
   });
 
   // suppression : vers la corbeille ; déjà dans la corbeille → définitive
@@ -429,12 +452,16 @@ module.exports = function monterMessagerie(app, ctx) {
       await avecImap(b, async client => {
         const lock = await client.getMailboxLock(src);
         try {
+          await verifierNonProtege(client, u);
           if (definitif) { await client.messageFlagsAdd(String(u), ['\\Deleted'], { uid: true }); try { await client.messageDelete(String(u), { uid: true }); } catch (_) {} }
           else await client.messageMove(String(u), corbeille, { uid: true });
         } finally { lock.release(); }
       });
       res.json({ ok: true, definitif });
-    } catch (e) { res.status(502).json({ error: 'suppression impossible : ' + String(e.message || e).slice(0, 120) }); }
+    } catch (e) {
+      if (e && e.protege) return res.status(403).json({ error: REFUS_PROTEGE });
+      res.status(502).json({ error: 'suppression impossible : ' + String(e.message || e).slice(0, 120) });
+    }
   });
 
   /* ═════════════════════ ENVOI ═════════════════════ */
@@ -607,6 +634,7 @@ module.exports = function monterMessagerie(app, ctx) {
               const out = [];
               for await (const m of client.fetch({ uid: frais.slice(-10).join(',') }, { uid: true, envelope: true }, { uid: true })) {
                 const env = m.envelope || {}; const de = adr1(env.from);
+                if (protege(env.messageId)) continue;   // un e-mail de sécurité ne part pas en notification à toute la Tour
                 out.push({ uid: m.uid, de: de.adr, deNom: de.nom, objet: String(env.subject || '(sans objet)').slice(0, 120), auto: estNotification(de.adr, env.subject) });
               }
               vus[b.id] = Math.max(dernier, Math.max.apply(null, uids));
