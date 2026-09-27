@@ -170,9 +170,9 @@ async function main() {
       v('⛔ plus rien à retaper, plus de code : aucune fenêtre du navigateur', (await ev('return window.__prompts.length;')) === 0);
       /* au téléphone, tout se voit et se touche */
       if (doigt) {
-        v('le panneau tient dans la largeur de l’écran (rien ne dépasse)', e.box.l >= 0 && e.box.r <= e.vw && e.sx <= e.vw, JSON.stringify(e.box) + ' / ' + e.vw);
+        v('le panneau tient dans la largeur de l’écran (rien ne dépasse)', !!e.box && e.box.l >= 0 && e.box.r <= e.vw && e.sx <= e.vw, JSON.stringify(e.box) + ' / ' + e.vw);
         v('la case se touche sur toute sa ligne : ≥ 44 px', e.lab && e.lab.h >= 44, e.lab && e.lab.h + ' px');
-        v('« Oui » et « Annuler » : ≥ 44 px', e.oui.h >= 44 && e.ann.h >= 44, e.oui.h + ' / ' + e.ann.h + ' px');
+        v('« Oui » et « Annuler » : ≥ 44 px', !!(e.oui && e.ann) && e.oui.h >= 44 && e.ann.h >= 44, (e.oui && e.oui.h) + ' / ' + (e.ann && e.ann.h) + ' px');
       }
       await frapper(`document.getElementById('sup-ok')`, 'la case'); await frapper(`document.getElementById('sup-oui')`, 'Oui, supprimer partout');
       await dormir(800); e = await etat(); c = await corps();
