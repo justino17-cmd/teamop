@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><base href="/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Connexion — TEAM OP</title>
+<link rel="icon" href="/icons/teamop-512.png">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)" data-jour>
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)" data-nuit>
+<meta name="color-scheme" content="light dark">
+<script>/* le mode choisi (☀︎/☾), posé AVANT le premier rendu : sans ça, la page s'afficherait d'abord dans l'autre (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { var m = localStorage.getItem('teamop_site_mode'); if (m === 'jour' || m === 'nuit') document.documentElement.setAttribute('data-theme', m === 'nuit' ? 'dark' : 'light'); } catch (e) {} })();</script>
+<link rel="stylesheet" href="/vitrine/v2/theme.css">
+<script>
+/* Porte d'entrée directe : si l'appareil connaît déjà son application, on y va tout de suite.
+   ?choix=1 pour re-choisir. EXCEPTION : une adresse d'entreprise (?e=…) doit s'ouvrir même sur
+   un appareil déjà réglé — c'est justement par là qu'on change d'entreprise. */
+try{
+  const d=localStorage.getItem('teamop_app');
+  if((d==='app.html'||d==='messages.html')&&!/choix|[?&]e=/.test(location.search)) location.replace('/'+d);
+}catch(e){}
+</script>
+<style>
+  /* ══ LA PORTE DES ÉQUIPES, AU THÈME DU SITE (27 septembre 2026 au soir) ═══════════════════════════════════════════
+     Justin, sur son iPhone : « au niveau des connexions ou création de compte, j'ai pas mon thème ». Cette page
+     gardait un fond toujours sombre, « TEAM OP » en Space Mono, des encres claires écrites en dur. Elle lit
+     désormais la palette du site (/vitrine/v2/theme.css, --m-…), jour ET nuit, et le bouton ☀︎/☾
+     (/vitrine/v2/mode.js, le même choix que sur le site et le portail).
+     ⛔ Les classes et les identifiants n'ont pas bougé : les scripts de la page, et les bancs qui les exécutent
+     (test-666, 686, 831…), ne voient aucune différence. Les messages prennent la couleur d'un JETON
+     (`var(--m-err)`…), jamais un code en dur : il ne suivrait pas le mode, et le rouge de nuit est illisible
+     sur le blanc du jour. Champs à 16 px : en dessous, Safari zoome au toucher — ils étaient à 15. */
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{min-height:100vh;background:var(--m-bg);font-family:var(--m-corps);color:var(--m-text);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(64px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));line-height:1.5;-webkit-font-smoothing:antialiased}
+  /* le ☀︎/☾ du site, au coin : cette page n'a pas de barre, il prend la place qu'il a dans celle du portail */
+  .coin-mode{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right))}
+  .logo{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .logo img{width:40px;height:40px;border-radius:10px}
+  .logo b{font-family:var(--m-titre);font-size:22px;font-weight:600;letter-spacing:-.01em}
+  .sous{color:var(--m-sub);font-size:15px;margin-bottom:28px;text-align:center;max-width:440px;line-height:1.55}
+  .bloc{width:100%;max-width:460px;background:var(--m-card);border:1px solid transparent;border-radius:24px;padding:24px 22px 20px;margin-bottom:20px}
+  .titre{font-family:var(--m-titre);font-size:19px;font-weight:700;letter-spacing:-.015em;margin-bottom:6px}
+  .aide{color:var(--m-body);font-size:14px;line-height:1.6;margin-bottom:16px}
+  .fort{color:var(--m-text)}
+  .lbl{display:block;font-size:13px;font-weight:500;color:var(--m-sub);margin-bottom:6px}
+  .inp{width:100%;background:var(--m-tile);border:1px solid var(--m-line);border-radius:12px;outline:none;color:var(--m-text);font-size:16px;font-family:inherit;padding:12px 14px;min-height:48px}
+  .inp:focus{border-color:var(--m-link)}
+  /* L'adresse de l'entreprise, encadrée par son préfixe — on voit qu'on écrit DANS une adresse,
+     pas dans un champ de recherche. Même idée que « https:// [       ] .organilog.com ». */
+  .adr{display:flex;align-items:stretch;background:var(--m-tile);border:1px solid var(--m-line);border-radius:12px;overflow:hidden;min-height:48px}
+  .adr:focus-within{border-color:var(--m-link)}
+  .adr .pre{display:flex;align-items:center;padding:0 2px 0 14px;color:var(--m-sub);font-size:16px;font-family:var(--m-mono);white-space:nowrap;user-select:none}
+  /* au téléphone, « https:// » mangeait la moitié du champ (« ton-entr… ») : « teamop.fr/e/ » suffit à dire
+     qu'on écrit dans une adresse */
+  @media (max-width:480px){.adr .proto{display:none}}
+  .adr input{flex:1;min-width:60px;background:transparent;border:none;outline:none;color:var(--m-text);font-size:16px;font-family:var(--m-mono);padding:12px 14px 12px 0}
+  .btn{width:100%;margin-top:16px;background:var(--m-accent);color:var(--m-on-accent);border:none;border-radius:999px;padding:12px 22px;min-height:48px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer}
+  .btn:hover{opacity:.92}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.6;cursor:default}
+  .liens{border-top:1px solid var(--m-line);margin-top:18px;padding-top:14px;color:var(--m-sub);font-size:13px;line-height:1.9}
+  .liens a{color:var(--m-link);text-decoration:none}
+  /* une adresse longue passe à la ligne DANS la pastille au lieu de sortir de la carte (60 signes permis) */
+  .chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;background:color-mix(in srgb,var(--m-link) 10%,transparent);border:1px solid color-mix(in srgb,var(--m-link) 28%,transparent);border-radius:999px;padding:8px 16px;font-size:14px;font-weight:600;font-family:var(--m-mono)}
+  #cx-adr{min-width:0;overflow-wrap:anywhere}
+  .astuce{width:100%;max-width:460px;background:color-mix(in srgb,var(--m-link) 8%,transparent);border:1px solid color-mix(in srgb,var(--m-link) 24%,transparent);border-radius:16px;padding:13px 16px;margin-bottom:16px;color:var(--m-body);font-size:13px;line-height:1.6}
+  .cartes{display:flex;flex-direction:column;gap:12px;width:100%;max-width:460px}
+  a.carte{display:flex;align-items:center;gap:16px;background:var(--m-card);border:1px solid transparent;border-radius:20px;padding:16px 18px;text-decoration:none;color:var(--m-text);transition:border-color .2s ease-out,transform .2s ease-out}
+  a.carte:hover{border-color:var(--m-link);transform:translateY(-1px)}
+  .ico{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+  .carte .txt b{display:block;font-family:var(--m-titre);font-size:17px;font-weight:600;letter-spacing:-.01em;margin-bottom:2px}
+  .carte .txt span{color:var(--m-sub);font-size:13px;line-height:1.45;display:block}
+  .fleche{margin-left:auto;color:var(--m-sub);font-size:20px}
+  .note{margin-top:26px;color:var(--m-sub);font-size:13px;text-align:center;line-height:1.7;max-width:440px}
+  .note b{color:var(--m-body);white-space:nowrap}
+  .note a{color:var(--m-link);text-decoration:none}
+  /* Œil sur le mot de passe — le même geste que partout ailleurs sur le site. Sur un chantier,
+     au téléphone, avec des gants, on ne voit pas ce qu'on tape : sans lui cet écran serait le
+     seul du site à s'en passer, et c'est justement celui qu'on ouvre depuis un camion. */
+  .mdp-wrap{position:relative;display:block;width:100%}
+  .mdp-wrap>input{padding-right:48px!important;width:100%;box-sizing:border-box}
+  .mdp-oeil{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;padding:0;margin:0;background:transparent;color:var(--m-sub);border-radius:10px;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,color .12s ease}
+  .mdp-oeil:hover{background:var(--m-seg);color:var(--m-text)}
+  .mdp-oeil:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--m-link) 40%,transparent)}
+  .mdp-oeil[aria-pressed="true"]{color:var(--m-link)}
+  /* au doigt, l'œil prend les 44 px que le champ (48) lui laisse */
+  @media (pointer:coarse){.mdp-oeil{width:44px;height:44px;right:2px}}
+  /* Le remplissage automatique de Safari peint les champs en jaune : on repeint par-dessous avec le fond du
+     champ et l'encre du thème, dans les deux modes. */
+  input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:var(--m-text);caret-color:var(--m-text);-webkit-box-shadow:0 0 0 1000px var(--m-tile) inset;box-shadow:0 0 0 1000px var(--m-tile) inset;transition:background-color 9999s ease-out 0s}
+  @media (prefers-reduced-motion: reduce){a.carte,.mdp-oeil{transition:none}}
+</style>
+</head>
+<body>
+  <div class="coin-mode"><button class="mode" type="button" hidden aria-label="Passer en mode nuit" title="Passer en mode nuit"><svg class="lune" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="soleil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg></button></div>
+  <div class="logo"><img src="/icons/teamop-512.png" alt=""><b>TEAM OP</b></div>
+  <div class="sous" id="sous">Chaque entreprise a sa propre adresse et son propre espace, séparé de tous les autres.</div>
+
+  <!-- ══ ÉTAPE 1 — l'adresse de l'entreprise ══════════════════════════════════════════════
+       Une seule chose est demandée ici : OÙ. Pas encore qui. C'est ce qui manquait — on
+       mélangeait l'adresse, le nom, le lien et le code dans une même case, et les quatre ne
+       faisaient pas la même chose. -->
+  <div class="bloc" id="etape-adresse" style="display:none">
+    <div class="titre">Comment te connecter ?</div>
+    <div class="aide">Entre l'<b class="fort">adresse de ton entreprise</b> — juste son nom, après <b class="fort">teamop.fr/e/</b>. Tu la retrouves dans l'e-mail reçu à l'inscription, ou auprès de ton responsable.</div>
+    <label class="lbl" for="adr-nom">Adresse de ton espace</label>
+    <div class="adr">
+      <span class="pre"><span class="proto">https://</span>teamop.fr/e/</span>
+      <!-- ⛔ LE CHAMP MONTRE CE QU'IL VA ENVOYER. slugDe() abaisse déjà la casse, et le serveur
+           aussi (espSlug) : taper « ELAN » a toujours fonctionné. Mais le champ affichait
+           « ELAN » en capitales, donc plus rien ne disait que c'était bon — et on n'ose pas
+           valider une adresse qui a l'air fausse. Justin, 14 septembre 2026 : « il faut que ça
+           soit en minuscule et pas en grand, pour éviter les bugs ». On normalise donc À LA
+           FRAPPE : ce qui est à l'écran est exactement ce qui part, y compris quand on colle
+           une adresse entière (« https://teamop.fr/e/ELAN » se réduit sous les doigts).
+           `text-transform` seul ne suffirait pas : il change l'apparence, pas la valeur. -->
+      <input id="adr-nom" placeholder="ton-entreprise" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" inputmode="url" style="text-transform:lowercase" oninput="adrNormaliser(this)" onkeydown="if(event.key==='Enter')adrAller()">
+    </div>
+    <div id="adr-err" style="display:none;color:var(--m-err);font-size:14px;margin-top:10px;line-height:1.55"></div>
+    <button class="btn" id="adr-btn" onclick="adrAller()">Accéder à mon compte</button>
+    <div class="liens">
+      <a href="#" onclick="entLienColler();return false">J'ai un lien de connexion</a> — colle-le, il connecte directement.<br>
+      <a href="#" onclick="adrOubliee();return false">Je ne connais pas l'adresse de mon entreprise</a>
+    </div>
+  </div>
+
+  <!-- ══ ÉTAPE 1 bis — L'ADRESSE EST-ELLE LA NÔTRE ? ═══════════════════════════════════════
+       Un écran d'attente plutôt qu'un formulaire qu'on retire ensuite : montrer la connexion
+       puis l'enlever sous les doigts se lit comme un bug, pas comme une vérification. -->
+  <div class="bloc" id="etape-verif" style="display:none">
+    <div class="titre">Vérification de l'adresse…</div>
+    <div class="aide" id="verif-txt">🔎 On regarde si <b class="fort" id="verif-adr"></b> est bien une entreprise inscrite chez TEAM OP.</div>
+    <div id="verif-sortie" style="display:none;margin-top:14px"></div>
+  </div>
+
+  <div id="cx-favori" class="astuce" style="display:none">💡 Mets cette page en favori — c'est l'adresse de ton entreprise, elle te ramènera toujours ici.</div>
+
+  <!-- ══ ÉTAPE 2 — l'écran de connexion de CETTE entreprise ═══════════════════════════════
+       On est arrivé sur teamop.fr/son-nom : l'adresse reste dans la barre du navigateur, et
+       c'est elle qu'on garde en favori. Ici on demande QUI. -->
+  <div class="bloc" id="etape-connexion" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="chip">🏢 <span id="cx-adr">teamop.fr/…</span></span>
+      <a href="/apercu/connexion.html" style="color:var(--m-link);font-size:13px;text-decoration:none">ce n'est pas mon entreprise</a>
+    </div>
+    <div class="titre">Connexion</div>
+    <div class="aide">Ton identifiant et ton mot de passe — les mêmes que dans l'application, sur n'importe quel appareil.</div>
+    <label class="lbl" for="cx-login">Identifiant</label>
+    <input id="cx-login" class="inp" placeholder="ex. marc" autocapitalize="off" autocomplete="username" spellcheck="false" onkeydown="if(event.key==='Enter')document.getElementById('cx-mdp').focus()">
+    <label class="lbl" for="cx-mdp" style="margin-top:12px">Mot de passe</label>
+    <input id="cx-mdp" class="inp" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')cxEntrer()">
+    <div id="bloc-code" style="display:none;margin-top:12px">
+      <label class="lbl" for="cx-code">Code d'accès de l'entreprise</label>
+      <input id="cx-code" class="inp" placeholder="10 caractères" autocapitalize="characters" autocomplete="off" spellcheck="false" style="letter-spacing:.16em;font-family:var(--m-mono)" onkeydown="if(event.key==='Enter')cxEntrer()">
+      <div style="color:var(--m-sub);font-size:13px;margin-top:6px;line-height:1.5">Celui que ton responsable te donne. Une seule fois : ensuite ton identifiant suffira, partout.</div>
+    </div>
+    <label style="display:flex;align-items:center;gap:9px;margin-top:14px;font-size:14px;color:var(--m-body);cursor:pointer;min-height:44px"><input type="checkbox" id="cx-souvenir" checked style="width:18px;height:18px;accent-color:var(--m-link)"> Se souvenir de moi</label>
+    <div id="cx-err" style="display:none;color:var(--m-err);font-size:14px;margin-top:10px;line-height:1.55"></div>
+    <button class="btn" id="cx-btn" onclick="cxEntrer()">Se connecter</button>
+    <div class="liens">
+      <a href="#" onclick="cxCodeAfficher();return false">Première connexion de l'entreprise ?</a> — utilise son code d'accès.<br>
+      <a href="#" onclick="cxOublie();return false">Identifiant ou mot de passe oublié ?</a>
+    </div>
+  </div>
+
+  <script>
+  function $id(x){ return document.getElementById(x); }
+  function slugDe(v){
+    return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+      .replace(/^https?:\/\//,'').replace(/^(www\.)?teamop\.fr\/?/,'')
+      /* ⛔ ET LE « /e/ » DE L'ADRESSE. Sans ce retrait, coller l'adresse entière —
+         « https://teamop.fr/e/elan », c'est-à-dire exactement ce qu'on donne aux équipes et
+         ce qu'on met en favori — rendait « eelan » : le « e » du préfixe restait collé au nom,
+         et l'entreprise devenait introuvable. Mesuré au navigateur le 14 septembre 2026, sur
+         les quatre saisies qu'une personne fait vraiment. Un « e/ » en tête ne peut venir que
+         du préfixe : aucun nom d'entreprise ne commence par une barre oblique. */
+      .replace(/^e\//,'')
+      .replace(/^connexion\.html.*$/,'').replace(/[^a-z0-9]+/g,'').slice(0,60);
+  }
+  /* L'adresse de l'entreprise se lit dans ?e= (posé par 404.html quand on arrive sur
+     teamop.fr/son-nom). On la remet aussitôt dans la barre du navigateur : c'est CETTE
+     adresse qu'on met en favori et qu'on redonne à son équipe, pas « connexion.html?e=… ». */
+  function adresseDemandee(){
+    try{
+      var m=location.pathname.replace(/^\/+|\/+$/g,'').split('/');
+      // la forme longue, celle qu'on donne partout : /e/nom-entreprise
+      if(m.length===2&&m[0].toLowerCase()==='e'&&!/\./.test(m[1])) return slugDe(m[1]);
+      // la forme courte, quand elle ne heurte aucun fichier du site
+      if(m.length===1&&m[0]&&!/\./.test(m[0])&&m[0].toLowerCase()!=='e') return slugDe(m[0]);
+      var q=location.search.match(/[?&]e=([^&]{1,80})/);
+      if(q) return slugDe(decodeURIComponent(q[1]));
+    }catch(e){}
+    return '';
+  }
+  /* ⛔ UNE ADRESSE QUI N'EST PAS LA NÔTRE NE DOIT MENER À RIEN. Demande de Justin, 11 septembre
+     2026 : « si le lien n'est pas dans notre base de données, ça marche pas ». Avant, n'importe
+     quoi tapé ici ouvrait un formulaire de connexion COMPLET pour une entreprise inexistante : la
+     personne essayait son mot de passe et s'entendait répondre « identifiant ou mot de passe
+     incorrect » — un mensonge, puisque le problème était l'adresse. Elle appelait ensuite son
+     responsable pour faire remettre à zéro un mot de passe qui était bon.
+     ⚠️ TROIS ÉTATS, jamais deux : « connue », « inconnue », et « on n'a pas pu savoir ». Le
+     troisième LAISSE PASSER — refuser sur une réponse qu'on n'a pas reçue, ce serait fermer la
+     porte à toute une équipe dès que le réseau hoquette. Et passer n'accorde rien : il reste
+     l'identifiant et le mot de passe à donner derrière. C'est la même discipline que la Réception
+     du courrier dans l'application — on ne propose une porte que quand on SAIT. */
+  async function espaceExiste(slug){
+    if(!slug) return 'inconnue';
+    try{
+      var c=new AbortController(); var tm=setTimeout(function(){ c.abort(); },6000); var r=null;
+      try{ r=await fetch('https://api.teamop.fr/api/espaces/libre',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:slug}),signal:c.signal}); }
+      finally{ clearTimeout(tm); }
+      if(!r||!r.ok) return 'incertain';
+      var d=await r.json().catch(function(){ return null; });
+      if(!d||typeof d.libre!=='boolean') return 'incertain';   // réponse qu'on ne comprend pas : on ne tranche pas
+      return d.libre?'inconnue':'connue';
+    }catch(e){ return 'incertain'; }
+  }
+  /* Le rouge porte le VERDICT, pas le paragraphe entier : tout peindre en rouge noie la phrase
+     qui compte et rend le lien de secours illisible comme lien. Et le sens ne tient pas à la
+     couleur seule — il est écrit. */
+  function adrPasBonne(n){
+    /* On réécrit ce que la personne a TAPÉ, pas le slug : lui renvoyer « plombierducoin »
+       quand elle a écrit « plombier-du-coin » se lit comme une faute de l'application. */
+    return '<span style="color:var(--m-err)">⛔ <b>« '+String(n||'').slice(0,60).replace(/[<>&]/g,'')+' » n\'est pas une adresse TEAM OP.</b></span><br>'+
+      '<span style="color:var(--m-body)">Aucune entreprise de ce nom n\'est inscrite chez nous. Demande son adresse à ton responsable — c\'est lui qui a le lien de connexion de l\'entreprise.</span><br>'+
+      '<a href="#" onclick="entRelance();return false" style="color:var(--m-link);display:inline-flex;align-items:center;margin-top:4px;min-height:44px">✉️ me renvoyer le lien par e-mail</a>';
+  }
+  /* On garde la position du curseur : réécrire la valeur le renverrait en fin de champ à
+     chaque caractère, ce qui rend toute correction au milieu du mot impossible. */
+  function adrNormaliser(el){
+    try{
+      var av=el.value, pos=el.selectionStart, ap=slugDe(av);
+      if(ap===av) return;
+      el.value=ap;
+      var d=av.length-ap.length;
+      try{ el.setSelectionRange(Math.max(0,pos-d),Math.max(0,pos-d)); }catch(e){}
+    }catch(e){}
+  }
+  async function adrAller(){
+    var v=slugDe(($id('adr-nom')||{}).value), btn=$id('adr-btn');
+    if(!v){ adrMsg('var(--m-err)','Écris l\'adresse de ton entreprise — la partie après teamop.fr/'); return; }
+    if(btn){ btn.disabled=true; btn.textContent='Vérification…'; }
+    var etat=await espaceExiste(v);
+    if(btn){ btn.disabled=false; btn.textContent='Accéder à mon compte'; }
+    if(etat==='inconnue'){ adrMsg('var(--m-body)',adrPasBonne((($id('adr-nom')||{}).value||'').trim()||v)); return; }
+    location.href='/apercu/connexion.html?e='+encodeURIComponent(v);
+  }
+  function adrOubliee(){
+    adrMsg('var(--m-body)','Ton adresse figure dans l\'e-mail de bienvenue TEAM OP. Sinon, ton responsable la retrouve dans l\'application (Paramètres → Entreprise), et tu peux aussi te faire renvoyer ton lien de connexion :<br><a href="#" onclick="entRelance();return false" style="color:var(--m-link)">me renvoyer le lien par e-mail</a>');
+  }
+  function adrMsg(c,h){ var e=$id('adr-err'); e.style.color=c; e.innerHTML=h; e.style.display='block'; }
+  function cxMsg(c,h){ var e=$id('cx-err'); e.style.color=c; e.innerHTML=h; e.style.display='block'; }
+  function cxCodeAfficher(){ var b=$id('bloc-code'); if(b){ b.style.display='block'; var c=$id('cx-code'); if(c) c.focus(); } }
+  function cxOublie(){
+    cxMsg('var(--m-body)','Ton responsable remet ton mot de passe à zéro depuis l\'application (Utilisateurs → ton compte → Réinitialiser). Il te donne le nouveau, et l\'application te fait choisir le tien à la connexion suivante.');
+  }
+  /* L'empreinte du mot de passe, jamais le mot de passe : c'est elle que le serveur compare à
+     son vérificateur. Exactement la même fonction que dans l'application. */
+  async function cxSha256(str){
+    try{ if(window.crypto&&crypto.subtle){ var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+      return [].slice.call(new Uint8Array(b)).map(function(x){ return x.toString(16).padStart(2,'0'); }).join(''); } }catch(e){}
+    return '';
+  }
+  var ADRESSE='';
+  async function cxEntrer(){
+    var lg=$id('cx-login'), mp=$id('cx-mdp'), cod=$id('cx-code'), btn=$id('cx-btn'), err=$id('cx-err');
+    var acces=((cod&&cod.value)||'').trim();
+    /* Le code d'accès, quand il est saisi, prime : c'est le chemin de la toute première
+       connexion d'une entreprise, celle dont le serveur ne connaît encore aucun compte. */
+    if(acces){
+      btn.textContent='Vérification…'; err.style.display='none';
+      try{
+        var r0=await fetch('https://api.teamop.fr/api/espaces/ouvrir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:ADRESSE,acces:acces})});
+        var d0=await r0.json().catch(function(){ return {}; });
+        btn.textContent='Se connecter';
+        if(r0.ok&&d0.code){ cxRetenir(lg); location.href='/app.html#entreprise='+d0.code; return; }
+        cxMsg('var(--m-err)',d0.error||'Adresse ou code d\'accès incorrect.');
+      }catch(e){ btn.textContent='Se connecter'; cxMsg('var(--m-err)','Connexion internet requise — réessaie.'); }
+      return;
+    }
+    var login=((lg&&lg.value)||'').trim(), mdp=((mp&&mp.value)||'');
+    if(!login){ cxMsg('var(--m-err)','Écris ton identifiant — le même que dans l\'application.'); lg.focus(); return; }
+    if(!mdp){ cxMsg('var(--m-err)','Écris ton mot de passe.'); mp.focus(); return; }
+    var h=await cxSha256(mdp);
+    if(!h){ cxMsg('var(--m-err)','Ce navigateur ne sait pas chiffrer le mot de passe. Utilise le code d\'accès de l\'entreprise, ou un navigateur à jour.'); cxCodeAfficher(); return; }
+    btn.textContent='Vérification…'; err.style.display='none';
+    try{
+      var r=await fetch('https://api.teamop.fr/api/espaces/connexion',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:ADRESSE,login:login,h:h})});
+      var d=await r.json().catch(function(){ return {}; });
+      btn.textContent='Se connecter';
+      if(r.ok&&d.code){
+        /* Le serveur vient de vérifier ce couple identifiant / mot de passe : refaire taper le
+           mot de passe dans l'application juste après serait une deuxième porte pour la même
+           clé. On passe le jeton d'ouverture à l'application par sessionStorage — même origine,
+           même onglet, effacé dès qu'il a servi, et mort avec l'onglet. */
+        try{ localStorage.setItem('elan_savedLogin',login); }catch(e){}
+        try{ sessionStorage.setItem('elan_cnx_auto',JSON.stringify({login:login,h:h,rester:!!($id('cx-souvenir')||{}).checked,ts:Date.now()})); }catch(e){}
+        location.href='/app.html#entreprise='+d.code; return;
+      }
+      if(d.motif==='sans-annuaire'){
+        cxCodeAfficher();
+        cxMsg('var(--m-warn)',(d.error||'Cette entreprise ne connaît pas encore la connexion par identifiant.')+'<br>Entre son <b>code d\'accès</b> ci-dessus pour cette fois — ensuite ton identifiant suffira.');
+        return;
+      }
+      cxMsg('var(--m-err)',d.error||'Identifiant ou mot de passe incorrect.');
+    }catch(e){ btn.textContent='Se connecter'; cxMsg('var(--m-err)','Connexion internet requise — réessaie.'); }
+  }
+  function cxRetenir(lg){ try{ var v=((lg&&lg.value)||'').trim(); if(v) localStorage.setItem('elan_savedLogin',v); }catch(e){} }
+  /* Le secours quand tout est perdu : le lien repart à l'adresse e-mail déjà enregistrée pour
+     l'entreprise. Ce n'est plus le chemin normal, c'est le filet du filet. */
+  async function entRelance(){
+    var nom=ADRESSE||slugDe((($id('adr-nom')||{}).value)||'');
+    var msg=ADRESSE?cxMsg:adrMsg;
+    if(!nom){ msg('var(--m-err)','Écris d\'abord l\'adresse de ton entreprise.'); return; }
+    var r;
+    try{
+      r=await fetch('https://api.teamop.fr/api/espaces/relance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:nom})});
+    }catch(e){ msg('var(--m-err)','Connexion internet requise — réessaie.'); return; }
+    /* ⛔ `fetch` NE JETTE PAS SUR UN REFUS : un 429 (dix demandes par heure depuis un appareil) ou un
+       502 (le serveur tombé derrière nginx) se résolvent comme une réussite. Jusqu'au 27 septembre
+       2026, cet écran disait alors « vient de partir » — et on attendait un e-mail qui ne viendrait
+       pas. La réussite, elle, reste la même pour toute adresse : elle ne dit pas qui est inscrit. */
+    if(r.ok){ msg('var(--m-ok)','📧 Si « '+nom.replace(/</g,'&lt;')+' » est bien inscrite chez TEAM OP, son lien de connexion vient de partir à son adresse e-mail. Ouvre ce lien sur cet appareil.'); return; }
+    if(r.status===429){ msg('var(--m-err)','Trop de demandes depuis cet appareil. Regarde d\'abord dans les e-mails de ton entreprise (et les indésirables), ou réessaie dans une heure.'); return; }
+    msg('var(--m-err)','Envoi impossible pour le moment&nbsp;: rien n\'est parti. Réessaie dans un instant.');
+  }
+  /* Le lien a son propre chemin : il connecte tout de suite, sans identifiant. */
+  function entLienColler(){
+    var l=prompt('Colle ton lien de connexion :\n(il ressemble à teamop.fr/app.html#entreprise=…)');
+    if(l===null) return;
+    var m=String(l).match(/#entreprise=([A-Za-z0-9+\/=_-]{8,})/);
+    if(m){ location.href='/app.html#entreprise='+m[1]; return; }
+    var s=slugDe(l);
+    /* Un lien collé qui ne porte pas de code n'est qu'une adresse : il passe par la même porte
+       que la saisie à la main, sinon la vérification se contourne en collant au lieu de taper. */
+    if(s){ var i=$id('adr-nom'); if(i) i.value=s; adrAller(); return; }
+    adrMsg('var(--m-err)','Ce lien ne porte pas de code d\'espace. Redemande-le à ton entreprise, ou entre son adresse ci-dessus.');
+  }
+  /* Le même bloc que sur les autres pages du site, à l'identique : les champs apparaissent au
+     fil du JavaScript, on équipe donc ce qui arrive, quand ça arrive. */
+  (function(){
+    var OEIL='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+    var OEIL_BARRE='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 0 0 4.2 4.2"/><path d="M9.9 5.2A10.5 10.5 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2"/><path d="M6.6 6.6A17.4 17.4 0 0 0 2 12s3.5 7 10 7a10.6 10.6 0 0 0 4.4-.9"/></svg>';
+    function equiper(inp){
+      if(inp.getAttribute('data-oeil')||inp.type!=='password'||!inp.parentNode) return;
+      inp.setAttribute('data-oeil','1');
+      var w=document.createElement('span'); w.className='mdp-wrap';
+      inp.parentNode.insertBefore(w,inp); w.appendChild(inp);
+      var b=document.createElement('button'); b.type='button'; b.className='mdp-oeil';
+      b.setAttribute('aria-label','Afficher le mot de passe'); b.setAttribute('aria-pressed','false'); b.title='Afficher le mot de passe'; b.innerHTML=OEIL;
+      b.addEventListener('click',function(){
+        var voir=inp.type==='password'; inp.type=voir?'text':'password';
+        b.setAttribute('aria-pressed',String(voir)); b.title=voir?'Masquer le mot de passe':'Afficher le mot de passe'; b.setAttribute('aria-label',b.title);
+        b.innerHTML=voir?OEIL_BARRE:OEIL;
+        try{ inp.focus({preventScroll:true}); var n=inp.value.length; inp.setSelectionRange(n,n); }catch(e){}
+      });
+      w.appendChild(b);
+    }
+    function tout(){ var l=document.querySelectorAll('input[type="password"]:not([data-oeil])'); for(var i=0;i<l.length;i++) equiper(l[i]); }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',tout); else tout();
+    var t=null;
+    try{ new MutationObserver(function(){ clearTimeout(t); t=setTimeout(tout,60); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+  })();
+  window.addEventListener('DOMContentLoaded',function(){
+    var adr=adresseDemandee();
+    try{
+      var _ent=localStorage.getItem('elan_entreprise_nom'), _esp=localStorage.getItem('elan_sync_team');
+      /* ⛔ L'ESPACE PAR DÉFAUT N'EST PAS UNE ENTREPRISE, ET CET ÉCRAN LE PRÉSENTAIT COMME TELLE.
+         Capture de Justin, 14 septembre 2026, sur son téléphone : « Ton appareil est déjà relié
+         à ton entreprise · 🏢 Ton espace : elan-gestion ». C'est l'espace de repli, partagé par
+         toutes les entreprises sans clé personnalisée — donc exactement là où PERSONNE ne doit
+         travailler. La page l'annonçait comme un fait acquis, proposait les applications, et
+         la seule issue était un lien bleu de douze pixels. Cinq personnes d'ELAN y travaillent
+         encore à cause de ça.
+         Quand l'appareil est sur le repli, on ne propose donc PLUS les applications : on
+         demande son adresse d'entreprise, et on dit pourquoi. */
+      var REPLI=['elan-gestion','elan-gestion-beta','opgestion-beta'];
+      if(_esp&&REPLI.indexOf(_esp)>=0&&!adr){
+        $id('sous').textContent='Cet appareil n’est relié à aucune entreprise.';
+        var br=$id('etape-adresse');
+        br.style.display='block';
+        /* ⛔ ON AJOUTE L'AVERTISSEMENT, ON NE REMPLACE PAS LE BLOC. Il porte déjà le champ
+           d'adresse, « J'ai un lien de connexion » et « Je ne connais pas l'adresse » — les
+           trois sorties. Écraser son contenu pour poser un message laisserait la personne
+           devant une explication sans aucun moyen d'en sortir, ce qui est précisément le
+           défaut qu'on corrige. */
+        var av=document.createElement('div');
+        av.style.cssText='background:var(--m-warn-fond);border:1px solid color-mix(in srgb,var(--m-warn) 35%,transparent);border-radius:14px;padding:12px 14px;margin-bottom:16px;font-size:14px;line-height:1.6;color:var(--m-warn)';
+        av.innerHTML='⚠️ <b>Cet appareil travaille sur l’espace par défaut de l’application</b>, pas sur celui de ton entreprise — ce que tu y saisis ne rejoint pas ton équipe.<br>Entre ci-dessous l’adresse de ton entreprise pour le remettre au bon endroit.';
+        br.insertBefore(av,br.firstChild);
+        return;
+      }
+      /* Appareil relié à une VRAIE entreprise et pas d'adresse demandée : on ne redemande rien,
+         on propose les applications — c'est le cas de tous les jours.
+         ⛔ MAIS ON NE MANGE PLUS LA CONSIGNE. Justin, 15 septembre 2026 : « ici le lien il faut
+         vraiment que ça les ramène à la 2e photo et que les utilisateurs suivent les consignes ».
+         Cette page EST ce qu'on donne à quelqu'un avec ses identifiants (`userIdentifiantsModal`,
+         app.html) — et sur un téléphone déjà relié à un espace, elle écrasait le bloc « Comment
+         te connecter ? » par cette bannière : ni champ d'adresse, ni consigne. La personne ne
+         POUVAIT pas suivre les quatre lignes qu'elle venait de recevoir, et repartait dans
+         l'espace où son téléphone était déjà — le mauvais, dans le cas qui a coûté la journée.
+         Les deux cohabitent maintenant : le raccourci du quotidien en premier, la consigne
+         juste en dessous, champ compris, mot pour mot celle d'un appareil neuf. */
+      if(_esp&&!adr){
+        $id('sous').textContent='Ton appareil est déjà relié à ton entreprise.';
+        var b=$id('etape-adresse');
+        b.style.display='block';
+        var ban=document.createElement('div'); ban.className='bloc'; ban.id='bloc-relie';
+        b.parentNode.insertBefore(ban,b);
+        ban.innerHTML='<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap">'+
+          '<div style="font-size:14px">🏢 Ton espace : <b>'+String(_ent||_esp).replace(/</g,'&lt;')+'</b></div>'+
+          /* ⛔ « changer d'entreprise » n'est pas un cas limite : c'est la SEULE sortie quand
+             l'appareil est au mauvais endroit, et un lien de douze pixels ne la donnait pas. */
+          '<a href="#" onclick="localStorage.removeItem(\'elan_entreprise_nom\');localStorage.removeItem(\'elan_sync_team\');localStorage.removeItem(\'elan_sync_secret\');location.reload();return false" style="display:inline-block;color:var(--m-link);font-size:14px;font-weight:600;text-decoration:none;border:1px solid color-mix(in srgb,var(--m-link) 35%,transparent);border-radius:999px;padding:9px 16px;min-height:44px;line-height:26px">Changer d\'entreprise</a>'+
+          /* ⛔ « ET À LUI SEUL » — précision de Justin, 14 septembre 2026 : « ça connecte que OP
+             GESTION, OP MESSAGES n'est plus dans les forfaits, ils sont à part ». La phrase
+             d'avant nommait les deux applications à la suite : on pouvait comprendre que
+             l'adresse d'entreprise ouvrait les deux. Elle n'en ouvre qu'une. */
+          '<div style="width:100%;color:var(--m-body);font-size:13px;margin-top:4px">Ton adresse d\'entreprise te connecte à <b class="fort">OP&nbsp;GESTION</b>, et à lui seul.<br><b class="fort">OP&nbsp;MESSAGES</b> ne fait pas partie du forfait : c\'est une application à part, avec son compte personnel et son abonnement.</div></div>';
+        var cartes=$id('cartes-apps'); if(cartes) cartes.style.display='flex';
+        /* La consigne reçue par message dit « ouvre la page, tape le nom de l'entreprise » :
+           sur un appareil déjà relié, il faut dire pourquoi ce champ est là malgré la bannière,
+           sinon on croit que la question ne nous concerne pas. */
+        var aide=b.querySelector('.aide');
+        if(aide) aide.innerHTML='<b class="fort">On vient de te donner des identifiants ?</b> Entre ci-dessous l’adresse de l’entreprise qu’on t’a indiquée — <b class="fort">même si cet appareil est déjà relié</b> à un autre espace. C’est juste son nom, après <b class="fort">teamop.fr/e/</b>.';
+        return;
+      }
+      if(!_esp){ var lec=$id('lien-espace-client'); if(lec) lec.style.display='block'; }
+    }catch(e){}
+    if(adr){
+      /* ⛔ MÊME PORTE POUR L'ARRIVÉE DIRECTE. C'est le chemin du LIEN — celui qu'on colle,
+         qu'on met en favori, qu'on reçoit par message. Vérifier la saisie à la main et pas
+         celle-là n'aurait rien fermé : il suffisait d'ouvrir teamop.fr/e/nimporte-quoi. */
+      $id('etape-verif').style.display='block';
+      $id('verif-adr').textContent='teamop.fr/e/'+adr;
+      espaceExiste(adr).then(function(etat){
+        if(etat==='inconnue'){
+          $id('sous').textContent='Cette adresse ne correspond à aucune entreprise.';
+          $id('etape-verif').querySelector('.titre').textContent='Adresse inconnue';
+          $id('verif-txt').innerHTML=adrPasBonne(adr);
+          var so=$id('verif-sortie'); so.style.display='block';
+          so.innerHTML='<a href="/apercu/connexion.html" style="color:var(--m-link);font-size:14px;text-decoration:none">← Entrer une autre adresse</a>';
+          return;
+        }
+        $id('etape-verif').style.display='none';
+        cxAfficher(adr);
+      });
+      return;
+    }
+    $id('etape-adresse').style.display='block';
+    setTimeout(function(){ var el=$id('adr-nom'); if(el) el.focus(); },80);
+  });
+  /* L'étape 2 : QUI. On n'y arrive qu'une fois l'adresse reconnue — ou non tranchée. */
+  function cxAfficher(adr){
+      ADRESSE=adr;
+      $id('cx-adr').textContent='teamop.fr/e/'+adr;
+      $id('etape-connexion').style.display='block';
+      $id('cx-favori').style.display='block';
+      $id('sous').textContent='L\'espace de ton entreprise, séparé de tous les autres.';
+      /* L'adresse revient dans la barre, TOUJOURS sous sa forme longue : c'est elle qu'on met
+         en favori et qu'on redonne à son équipe. Quelqu'un arrivé par la forme courte repart
+         donc avec la bonne — une seule adresse à retenir, pas deux. */
+      try{ if(location.pathname!=='/e/'+adr) history.replaceState(null,'','/apercu/connexion.html?e='+adr); }catch(e){}
+      try{ var sv=localStorage.getItem('elan_savedLogin'); if(sv) $id('cx-login').value=sv; }catch(e){}
+      setTimeout(function(){ var el=$id($id('cx-login').value?'cx-mdp':'cx-login'); if(el) el.focus(); },80);
+  }
+  </script>
+
+  <div class="cartes" id="cartes-apps" style="display:none">
+    <a class="carte" id="carte-gestion" href="/app.html" onclick="try{localStorage.setItem('teamop_app','app.html')}catch(e){}">
+      <span class="ico" style="background:rgba(52,211,153,.14)">🧰</span>
+      <span class="txt"><b>OP GESTION</b><span>Interventions, planning, clients, stock, devis &amp; factures — pour toute l'équipe.</span></span>
+      <span class="fleche">›</span>
+    </a>
+    <a class="carte" id="carte-messages" href="/messages.html" onclick="try{localStorage.setItem('teamop_app','messages.html')}catch(e){}">
+      <span class="ico" style="background:rgba(59,130,246,.14)">💬</span>
+      <span class="txt"><b>OP MESSAGES</b><span>La messagerie — compte personnel, abonnement à part.</span></span>
+      <span class="fleche">›</span>
+    </a>
+    <a class="carte" href="/apercu/espace.html">
+      <span class="ico" style="background:rgba(167,139,250,.14)">👤</span>
+      <span class="txt"><b>Espace client</b><span>Ton compte TeamOP : abonnement, factures, documents.</span></span>
+      <span class="fleche">›</span>
+    </a>
+  </div>
+  <div id="lien-espace-client" style="margin-top:18px;display:none"><a href="/apercu/espace.html" style="color:var(--m-link);font-size:14px;text-decoration:none">👤 Espace client TeamOP (abonnement, factures)</a></div>
+  <div class="note">💡 Chaque entreprise a son adresse : <b>teamop.fr/e/son-nom</b>. Donne-la à tes équipes — identifiant et mot de passe suffisent, sur n'importe quel téléphone.<br><a href="/apercu/site/index.html?hub=1">← Revenir au site TeamOP</a> · <a href="/apercu/connexion.html?choix=1">Changer d'application</a></div>
+<script src="/vitrine/v2/mode.js" defer></script>
+<div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
+</html>

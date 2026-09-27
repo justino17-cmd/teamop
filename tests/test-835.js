@@ -83,7 +83,10 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
 }
 vrai('population : ' + liens + ' liens et sources relus', liens > 300);
 v('aucun lien mort', morts, []);
-vrai('les formules mènent à la page d\'abonnement (4 formules)', ['gratuit', 'pro', 'business', 'premium'].every(k => PAGES.tarifs.includes('href="/recap-abonnement.html?formule=' + k + '"')));
+vrai('les formules mènent à la page d\'abonnement — son aperçu dans l\'aperçu (4 formules)', ['gratuit', 'pro', 'business', 'premium'].every(k => PAGES.tarifs.includes('href="/apercu/recap-abonnement.html?formule=' + k + '"')));
+const tarifsRacine = GEN.page('tarifs', { racine: true });
+vrai('… et la vraie page à la racine (4 formules)', ['gratuit', 'pro', 'business', 'premium'].every(k => tarifsRacine.includes('href="/recap-abonnement.html?formule=' + k + '"')));
+vrai('⛔ la racine n\'envoie jamais vers un aperçu', Object.keys(GEN.PAGES).every(c => !/href="\/apercu\//.test(GEN.page(c, { racine: true }))));
 
 console.log('5. chaque écran d\'appareil, jour et nuit');
 let ecrans = 0;
@@ -122,8 +125,13 @@ vrai('la nuit de l\'appareil ne s\'applique pas quand on a forcé le jour', !!nu
 vrai('la nuit forcée a son bloc', !!nuitForcee);
 vrai('⛔ et les deux blocs de nuit sont IDENTIQUES (deux copies d\'une palette divergent toujours)', !!nuitSys && nuitSys.replace(/\s+/g, ' ').trim() === (nuitForcee || '').replace(/\s+/g, ' ').trim());
 const jsv2 = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
-vrai('les écrans de nuit suivent le bouton (le media des <source> est réécrit)', /\$\$\('source\[data-nuit\]'\)\.forEach/.test(jsv2));
-vrai('la même clé dans la page et dans le script', /var CLE_MODE = 'teamop_site_mode'/.test(jsv2));
+/* le jour et la nuit vivent dans vitrine/v2/mode.js depuis le 27 septembre au soir : les pages hors du site (portail,
+   connexion…) le partagent — test-836 garde leur côté */
+const modeJs = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'mode.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
+vrai('les écrans de nuit suivent le bouton (le media des <source> est réécrit)', /\$\$\('source\[data-nuit\]'\)\.forEach/.test(modeJs));
+vrai('la même clé dans la page et dans le script', /var CLE_MODE = 'teamop_site_mode'/.test(modeJs));
+vrai('site.js ne porte plus de seconde copie du jour / nuit', !/CLE_MODE|teamop_site_mode|choisirMode/.test(jsv2));
+for (const c of CLES) vrai(c + ' : mode.js est chargé, avant site.js', /<script src="\/vitrine\/v2\/mode\.js" defer><\/script>\s*<script src="\/vitrine\/v2\/site\.js" defer><\/script>/.test(PAGES[c]));
 
 console.log('6 bis. tarifs : la formule touchée devient la bleue');
 vrai('le script rend les cartes choisissables (classe « choix », phare déplacé)', /g\.classList\.add\('choix'\)/.test(jsv2) && /x\.classList\.toggle\('phare', x === c\)/.test(jsv2));
