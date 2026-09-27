@@ -2795,18 +2795,18 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
 
 /* 18 · (v2.69) SUPPRIMER : UNE QUESTION, UNE CASE, « OUI » — comme `delUser` d'OP GESTION. La case se touche sur toute
         sa ligne (44 px au doigt), « Oui » s'éteint tant qu'elle est vide, « Annuler » ferme sans rien faire. */
-.sup-titre{font-size:18px;font-weight:700;color:var(--redText);line-height:1.3}
-.sup-sous{font-size:12px;color:var(--muted);margin-top:4px}
-.sup-txt{font-size:13px;line-height:1.6;color:var(--text2)}
-.sup-txt ul{margin:8px 0 0;padding-left:20px;line-height:1.9}
-.sup-liste{margin-top:14px}
-.sup-q{margin:16px 0 4px;font-size:15px;line-height:1.5;color:var(--text)}
-.sup-case{display:flex;gap:10px;align-items:center;min-height:44px;margin:6px 0 8px;cursor:pointer;font-size:14px;line-height:1.4;color:var(--text)}
-.sup-case input{width:22px;height:22px;flex-shrink:0;margin:0;accent-color:var(--red);cursor:pointer}
-.sup-err{color:var(--redText);font-size:13px;line-height:1.5;margin:0 0 10px}
-.sup-err[hidden]{display:none}
-.sup-actions{display:grid;gap:8px;margin-top:6px}
-.sup-actions .btn-fant{justify-content:center;min-height:44px}
+.suppr-titre{font-size:18px;font-weight:700;color:var(--redText);line-height:1.3}
+.suppr-sous{font-size:12px;color:var(--muted);margin-top:4px}
+.suppr-txt{font-size:13px;line-height:1.6;color:var(--text2)}
+.suppr-txt ul{margin:8px 0 0;padding-left:20px;line-height:1.9}
+.suppr-liste{margin-top:14px}
+.suppr-q{margin:16px 0 4px;font-size:15px;line-height:1.5;color:var(--text)}
+.suppr-case{display:flex;gap:10px;align-items:center;min-height:44px;margin:6px 0 8px;cursor:pointer;font-size:14px;line-height:1.4;color:var(--text)}
+.suppr-case input{width:22px;height:22px;flex-shrink:0;margin:0;accent-color:var(--red);cursor:pointer}
+.suppr-err{color:var(--redText);font-size:13px;line-height:1.5;margin:0 0 10px}
+.suppr-err[hidden]{display:none}
+.suppr-actions{display:grid;gap:8px;margin-top:6px}
+.suppr-actions .btn-fant{justify-content:center;min-height:44px}
 
 /* 17 · (mesuré de NUIT, relecture de ce passage) Une liste posée dans une carte : de jour, son cadre n'existe pas
         (`body.jour …{border-color:…0}` efface toutes les bordures) ; de nuit il gardait un filet blanc à 8 %, et
@@ -5043,28 +5043,28 @@ function supprReussi(r){ return !!(r&&r.ok&&r.d&&!r.d.codeEnvoye&&(r.d.supprime=
 function supprAppel(chemin,corps){
   return apiPost(chemin,Object.assign({},corps,{confirme:true})).then(function(r){
     if(!(r&&r.ok&&r.d&&r.d.codeEnvoye)) return r;
-    var code=prompt('Le serveur n’est pas encore à jour : il demande le code qui vient de partir sur '+(r.d.dest||'ta boîte')+'.\n\nEntre le code à 6 chiffres :');
+    var code=prompt('Le serveur n’est pas encore à jour\u00a0: il demande le code qui vient de partir sur '+(r.d.dest||'ta boîte')+'.\n\nEntre le code à 6 chiffres\u00a0:');   // un message natif échappe à typoFr : les insécables à la main
     if(!code) return {ok:false,status:0,annule:true,d:{}};
     return apiPost(chemin,Object.assign({},corps,{code:String(code).trim()}));
   });
 }
 function supprPanneau(o){
   SUPPR=o;
-  tourPanneau('<div class="sup-titre">🗑 '+esc(o.titre)+'</div>'+
-    (o.sous?'<div class="sup-sous">'+o.sous+'</div>':'')+
+  tourPanneau('<div class="suppr-titre">🗑 '+esc(o.titre)+'</div>'+
+    (o.sous?'<div class="suppr-sous">'+o.sous+'</div>':'')+
     (o.detail||'')+
-    '<p class="sup-q"><b>'+esc(o.question)+'</b></p>'+
-    '<label class="sup-case"><input type="checkbox" id="sup-ok" onchange="supprCase(this)"><span>'+esc(o.caseTxt)+'</span></label>'+
-    '<div id="sup-err" class="sup-err" role="alert" hidden></div>'+
-    '<div class="sup-actions">'+
-      '<button type="button" id="sup-oui" class="btn-plein danger large" disabled onclick="supprOui()">'+esc(o.oui||'Oui, supprimer')+'</button>'+
+    '<p class="suppr-q"><b>'+esc(o.question)+'</b></p>'+
+    '<label class="suppr-case"><input type="checkbox" id="suppr-ok" onchange="supprCase(this)"><span>'+esc(o.caseTxt)+'</span></label>'+
+    '<div id="suppr-err" class="suppr-err" role="alert" hidden></div>'+
+    '<div class="suppr-actions">'+
+      '<button type="button" id="suppr-oui" class="btn-plein danger large" disabled onclick="supprOui()">'+esc(o.oui||'Oui, supprimer')+'</button>'+
       '<button type="button" class="btn-fant" onclick="tourPanneauFermer()">Annuler</button>'+
     '</div>',{sansFermer:true});
 }
-function supprErr(t){ var e=document.getElementById('sup-err'); if(!e) return; e.textContent=t?'⚠️ '+t:''; e.hidden=!t; }
-function supprCase(cb){ var b=document.getElementById('sup-oui'); if(b&&!b.dataset.enCours) b.disabled=!cb.checked; if(cb.checked) supprErr(''); }
+function supprErr(t){ var e=document.getElementById('suppr-err'); if(!e) return; e.textContent=t?'⚠️ '+t:''; e.hidden=!t; }
+function supprCase(cb){ var b=document.getElementById('suppr-oui'); if(b&&!b.dataset.enCours) b.disabled=!cb.checked; if(cb.checked) supprErr(''); }
 function supprOui(){
-  var o=SUPPR, cb=document.getElementById('sup-ok'), b=document.getElementById('sup-oui');
+  var o=SUPPR, cb=document.getElementById('suppr-ok'), b=document.getElementById('suppr-oui');
   if(!o||!b) return;
   if(!(cb&&cb.checked)){ supprErr('Coche la case pour confirmer.'); return; }
   if(b.dataset.enCours) return;
@@ -7606,14 +7606,14 @@ function entSupprimer(t,nm){
       : '';
     var sous='<span class="mono">'+esc(t)+'</span>';
     /* Rien à perdre : pas de question à poser, l'aperçu le dit et s'arrête là. */
-    if(rien){ tourPanneau('<div class="sup-titre">🗑 Supprimer « '+esc(nm)+' » partout</div><div class="sup-sous">'+sous+'</div>'+
-      '<div class="sup-txt" style="margin-top:16px">Il ne reste rien à supprimer pour cet espace.</div>'+reste+alerte+msg); return; }
+    if(rien){ tourPanneau('<div class="suppr-titre">🗑 Supprimer « '+esc(nm)+' » partout</div><div class="suppr-sous">'+sous+'</div>'+
+      '<div class="suppr-txt" style="margin-top:16px">Il ne reste rien à supprimer pour cet espace.</div>'+reste+alerte+msg); return; }
     /* v2.69 — la question, la case et « Oui » vivent SOUS l'inventaire : on décide en voyant ce
        qu'on perd. Avant, « Continuer la suppression » refermait cet aperçu, faisait retaper le nom,
        puis attendait un code par e-mail. */
     supprPanneau({ titre:'Supprimer « '+nm+' » partout', sous:sous,
-      detail:'<div class="sup-txt" style="margin-top:16px">Voici ce qui va disparaître :</div>'+
-        '<div class="sup-txt"><ul>'+
+      detail:'<div class="suppr-txt" style="margin-top:16px">Voici ce qui va disparaître :</div>'+
+        '<div class="suppr-txt"><ul>'+
             l((a.slugs||[]).length,'entrée d’annuaire','entrées d’annuaire')+
             l(a.comptesAnnuaire,'compte de connexion','comptes de connexion')+
             l(a.boites,'boîte mail reliée','boîtes mail reliées')+
@@ -7631,7 +7631,7 @@ function entSupprimer(t,nm){
             (a.devisIA?'<li>son accès au Devis IA</li>':'')+
             '<li>ses données chiffrées</li>'+
           '</ul></div>'+reste+alerte+msg+
-        '<p class="sup-txt" style="margin-top:12px">Cette action ne se défait pas : rien n’est récupérable ensuite.</p>',
+        '<p class="suppr-txt" style="margin-top:12px">Cette action ne se défait pas : rien n’est récupérable ensuite.</p>',
       question:'Es-tu sûr de vouloir supprimer définitivement cette entreprise ?',
       caseTxt:'Oui, je veux supprimer « '+nm+' » partout', oui:'Oui, supprimer partout',
       chemin:'/api/monitor/entreprise/supprimer', corps:{t:t},
@@ -7754,7 +7754,7 @@ function compteSupprimer(login){
   var u=(d.utilisateurs||[]).find(function(x){ return x.login===login; })||{};
   var ent=DOS.nom||'cette entreprise';
   supprPanneau({ titre:'Supprimer le compte « '+login+' »', sous:esc(ent),
-    detail:'<p class="sup-txt" style="margin-top:14px"><b class="mono">'+esc(login)+'</b>'+(u.nom?' ('+esc(u.nom)+')':'')+
+    detail:'<p class="suppr-txt" style="margin-top:14px"><b class="mono">'+esc(login)+'</b>'+(u.nom?' ('+esc(u.nom)+')':'')+
       ' ne pourra plus entrer : l’identifiant est retiré de l’annuaire tout de suite, et le compte est supprimé de l’application au premier appareil de l’entreprise qui s’ouvre.</p>',
     question:'Es-tu sûr de vouloir supprimer ce compte ?', caseTxt:'Oui, je veux supprimer ce compte',
     chemin:'/api/monitor/compte/supprimer', corps:{t:d.t,login:login},
@@ -7796,9 +7796,9 @@ function comptesInutilisesSupprimer(){
   /* Le nom à côté de l'identifiant : c'est la seule relecture avant de valider, et c'est
      exactement ce qui manquait le 11 septembre au matin, quand deux « florent » se ressemblaient. */
   supprPanneau({ titre:n>1?'Supprimer les '+n+' comptes jamais utilisés':'Supprimer le compte jamais utilisé', sous:esc(ent),
-    detail:'<div class="reg-bloc sup-liste">'+cibles.map(function(u){
+    detail:'<div class="reg-bloc suppr-liste">'+cibles.map(function(u){
         return '<div class="reg-l inerte"><span class="reg-txt"><span class="reg-t1 mono">'+esc(u.login)+'</span>'+(u.nom?'<span class="reg-l2">'+esc(u.nom)+'</span>':'')+'</span></div>'; }).join('')+'</div>'+
-      '<p class="sup-txt">'+(n>1?'Aucun ne s’est jamais connecté':'Il ne s’est jamais connecté')+' : personne ne perd son travail.</p>',
+      '<p class="suppr-txt">'+(n>1?'Aucun ne s’est jamais connecté':'Il ne s’est jamais connecté')+' : personne ne perd son travail.</p>',
     question:n>1?'Es-tu sûr de vouloir supprimer ces '+n+' comptes ?':'Es-tu sûr de vouloir supprimer ce compte ?',
     caseTxt:n>1?'Oui, je veux supprimer ces '+n+' comptes':'Oui, je veux supprimer ce compte',
     chemin:'/api/monitor/comptes/supprimer', corps:{t:d.t,logins:cibles.map(function(u){ return u.login; })},

@@ -51,10 +51,10 @@ const PANNEAU = `${STABLE}
   const tt=document.getElementById('toast'), toast=tt&&getComputedStyle(tt).display!=='none'?n(tt.textContent):'';
   const d=document.getElementById('tour-panneau'); if(!d) return {ouvert:false,toast};
   const box=d.firstElementChild, rb=box.getBoundingClientRect();
-  const q=box.querySelector('.sup-q'), cb=document.getElementById('sup-ok'), oui=document.getElementById('sup-oui'), err=document.getElementById('sup-err');
+  const q=box.querySelector('.suppr-q'), cb=document.getElementById('suppr-ok'), oui=document.getElementById('suppr-oui'), err=document.getElementById('suppr-err');
   const lab=cb&&cb.closest('label'), ann=[...box.querySelectorAll('button')].find(b=>/Annuler/.test(b.textContent));
   const r=e=>{ if(!e) return null; const x=e.getBoundingClientRect(); return {l:Math.round(x.left),r:Math.round(x.right),t:Math.round(x.top),b:Math.round(x.bottom),h:Math.round(x.height),w:Math.round(x.width)}; };
-  return {ouvert:!d.classList.contains('part'),titre:n((box.querySelector('.sup-titre')||{}).textContent),question:q?n(q.textContent):'',
+  return {ouvert:!d.classList.contains('part'),titre:n((box.querySelector('.suppr-titre')||{}).textContent),question:q?n(q.textContent):'',
     coche:!!(cb&&cb.checked),ouiEteint:!!(oui&&oui.disabled),ouiTxt:oui?n(oui.textContent):'',err:err&&!err.hidden?n(err.textContent):'',
     li:box.querySelectorAll('li').length,fermer:[...box.querySelectorAll('button')].filter(b=>/^Fermer$/.test(b.textContent.trim())).length,
     box:r(box),lab:r(lab),oui:r(oui),ann:r(ann),vw:innerWidth,vh:innerHeight,sx:document.documentElement.scrollWidth,
@@ -104,16 +104,16 @@ async function main() {
       v('la question est posée, en gras', e.question === 'Es-tu sûr de vouloir supprimer ce compte ?', e.question);
       v('« Oui » naît éteint, la case vide', e.ouiEteint && !e.coche, 'éteint=' + e.ouiEteint + ' coché=' + e.coche);
       v('un seul bouton pour renoncer (« Annuler », pas de « Fermer » en plus)', !!e.ann && e.fermer === 0, 'Fermer ×' + e.fermer);
-      await frapper(`document.getElementById('sup-oui')`, 'Oui (éteint)').catch(() => {});
+      await frapper(`document.getElementById('suppr-oui')`, 'Oui (éteint)').catch(() => {});
       v('⛔ « Oui » éteint touché : rien ne part', (await corps()).length === 0, JSON.stringify(await corps()));
-      await frapper(`document.querySelector('.sup-case span')`, 'la phrase de la case');
+      await frapper(`document.querySelector('.suppr-case span')`, 'la phrase de la case');
       e = await etat();
       v('toucher la PHRASE coche la case (toute la ligne répond), « Oui » s’allume', e.coche && !e.ouiEteint, 'coché=' + e.coche + ' éteint=' + e.ouiEteint);
       await ev(`window.__script['/api/monitor/compte/supprimer']=[{d:{ok:true,attente:true},lent:400}]; return 1;`);
-      await frapper(`document.getElementById('sup-oui')`, 'Oui');
+      await frapper(`document.getElementById('suppr-oui')`, 'Oui');
       e = await etat();
       v('pendant l’appel, « Oui » est éteint et le dit', e.ouiEteint && /Suppression…/.test(e.ouiTxt), e.ouiTxt);
-      await ev(`document.getElementById('sup-oui')&&document.getElementById('sup-oui').click(); return 1;`);   // un second toucher, programmé
+      await ev(`document.getElementById('suppr-oui')&&document.getElementById('suppr-oui').click(); return 1;`);   // un second toucher, programmé
       await dormir(700);
       let c = await corps();
       v('⛔ un toucher, un ordre : UNE requête, avec confirme:true, sans code', c.length === 1 && c[0].b.confirme === true && c[0].b.login === 'claire' && c[0].b.t === 'boulmartin-7k2q' && !('code' in c[0].b), JSON.stringify(c));
@@ -126,8 +126,8 @@ async function main() {
       await frapper(`[...document.querySelectorAll('#vue button')].find(b=>/comptesInutilisesSupprimer/.test(b.getAttribute('onclick')||''))`, 'Supprimer les comptes jamais utilisés');
       await dormir(400); e = await etat();
       v('le lot : la question nomme le nombre, la liste montre chaque compte', e.question === 'Es-tu sûr de vouloir supprimer ces 2 comptes ?' && await ev(`return [...document.querySelectorAll('#tour-panneau .reg-t1')].map(x=>x.textContent).join(',')`) === 'tom,zoe', e.question);
-      await frapper(`document.getElementById('sup-ok')`, 'la case');
-      await frapper(`document.getElementById('sup-oui')`, 'Oui');
+      await frapper(`document.getElementById('suppr-ok')`, 'la case');
+      await frapper(`document.getElementById('suppr-oui')`, 'Oui');
       await dormir(500); e = await etat();
       c = await corps();
       v('le corps porte la liste relue et confirme:true', c.length === 1 && c[0].b.confirme === true && JSON.stringify(c[0].b.logins) === '["tom","zoe"]', JSON.stringify(c));
@@ -143,7 +143,7 @@ async function main() {
       await ouvrirFiche();
       await frapper(`[...document.querySelectorAll('#vue button')].find(b=>/compteSupprimer\\('tom'\\)/.test(b.getAttribute('onclick')||''))`, 'Supprimer (tom)');
       await dormir(400);
-      await frapper(`document.getElementById('sup-ok')`, 'la case'); await frapper(`document.getElementById('sup-oui')`, 'Oui');
+      await frapper(`document.getElementById('suppr-ok')`, 'la case'); await frapper(`document.getElementById('suppr-oui')`, 'Oui');
       await dormir(700); e = await etat(); c = await corps();
       const pr = await ev('return window.__prompts.slice();');
       v('serveur d’avant : le code est demandé une fois, en disant pourquoi', pr.length === 1 && /pas encore à jour/.test(pr[0]) && /p\*\*\*@teamop\.fr/.test(pr[0]), JSON.stringify(pr));
@@ -155,7 +155,7 @@ async function main() {
       await ouvrirFiche();
       await frapper(`[...document.querySelectorAll('#vue button')].find(b=>/compteSupprimer\\('zoe'\\)/.test(b.getAttribute('onclick')||''))`, 'Supprimer (zoe)');
       await dormir(400);
-      await frapper(`document.getElementById('sup-ok')`, 'la case'); await frapper(`document.getElementById('sup-oui')`, 'Oui');
+      await frapper(`document.getElementById('suppr-ok')`, 'la case'); await frapper(`document.getElementById('suppr-oui')`, 'Oui');
       await dormir(600); e = await etat();
       v('⛔ code non saisi : rien n’est annoncé réussi, le panneau le dit', e.ouvert && /Code non saisi — rien n’a été supprimé/.test(e.err) && !/Suppression ordonnée/.test(e.toast), e.err + ' | ' + e.toast);
       await ev('tourPanneauFermer(); return 1;'); await dormir(500);
@@ -174,7 +174,7 @@ async function main() {
         v('la case se touche sur toute sa ligne : ≥ 44 px', e.lab && e.lab.h >= 44, e.lab && e.lab.h + ' px');
         v('« Oui » et « Annuler » : ≥ 44 px', !!(e.oui && e.ann) && e.oui.h >= 44 && e.ann.h >= 44, (e.oui && e.oui.h) + ' / ' + (e.ann && e.ann.h) + ' px');
       }
-      await frapper(`document.getElementById('sup-ok')`, 'la case'); await frapper(`document.getElementById('sup-oui')`, 'Oui, supprimer partout');
+      await frapper(`document.getElementById('suppr-ok')`, 'la case'); await frapper(`document.getElementById('suppr-oui')`, 'Oui, supprimer partout');
       await dormir(800); e = await etat(); c = await corps();
       v('supprimée : une requête { t, confirme:true }, le panneau se ferme, le toast le dit', c.length === 1 && c[0].b.t === 'boulmartin-7k2q' && c[0].b.confirme === true && !e.ouvert && /supprimée partout/.test(e.toast), JSON.stringify(c) + ' · ' + e.toast);
 

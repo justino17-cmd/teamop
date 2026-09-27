@@ -219,7 +219,7 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
     }
     v('⛔ « fermer un client » n\'a plus de bouton depuis le 8 septembre : sa fonction est retirée, rien ne l\'appelle', /clients\/retirer/.test(CODE), false);
     const oui = fonction('supprOui'), pan = fonction('supprPanneau'), cse = fonction('supprCase');
-    vrai('« Oui » naît ÉTEINT', /id="sup-oui" class="btn-plein danger large" disabled/.test(pan));
+    vrai('« Oui » naît ÉTEINT', /id="suppr-oui" class="btn-plein danger large" disabled/.test(pan));
     vrai('la case le rallume, et seulement elle', /b\.disabled=!cb\.checked/.test(cse));
     vrai('⛔ « Oui » relit la case avant d\'agir', /if\(!\(cb&&cb\.checked\)\)\{ supprErr\('Coche la case pour confirmer\.'\); return; \}/.test(oui));
     vrai('⛔ un toucher, un ordre : « Oui » s\'éteint pendant l\'appel', /b\.dataset\.enCours='1'; b\.disabled=true;/.test(oui) && /if\(b\.dataset\.enCours\) return;/.test(oui));
