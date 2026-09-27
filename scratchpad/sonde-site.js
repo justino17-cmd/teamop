@@ -74,8 +74,10 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
       /* la page bouge-t-elle de côté ? on le lui demande, en haut ET en bas */
       const cote = await ev(`const r=[]; for(const y of [0, document.documentElement.scrollHeight]){ scrollTo(9999,y); await new Promise(q=>requestAnimationFrame(()=>requestAnimationFrame(q))); r.push(scrollX); } scrollTo(0,0);
         let pire=null; for(const e of document.querySelectorAll('body *')){ const b=e.getBoundingClientRect(); if(b.width&&b.right>innerWidth+1&&getComputedStyle(e).position!=='fixed'){ let p=e.parentElement, cache=false; while(p){ const s=getComputedStyle(p); if(/hidden|clip|auto|scroll/.test(s.overflowX)){cache=true;break;} p=p.parentElement; } if(!cache){ pire=(e.className||e.tagName)+' '+Math.round(b.right-innerWidth)+' px'; break; } } }
-        return {r, pire};`);
-      vrai(lbl + ' : aucun défilement de côté', cote.r.every(x => x === 0), JSON.stringify(cote));
+        return {r, pire, large:document.documentElement.scrollWidth, fen:innerWidth};`);
+      /* ⛔ contre la largeur POSÉE de l'appareil, pas contre innerWidth : sur un téléphone, une page trop large
+         élargit sa fenêtre avec elle, et « la page ne bouge pas » passait au vert (règle du dépôt, et contre-épreuve M12) */
+      vrai(lbl + ' : aucun défilement de côté', cote.r.every(x => x === 0) && cote.large <= P.w && cote.fen === P.w, JSON.stringify(cote));
       /* la nuit est bien la nuit (et le jour le jour) : le fond du document suit le système */
       const fond = await ev(`return getComputedStyle(document.body).backgroundColor;`);
       vrai(lbl + ' : fond ' + fond, mode === 'dark' ? fond === 'rgb(11, 20, 38)' : fond === 'rgb(255, 255, 255)');
@@ -88,7 +90,8 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
         vrai(lbl + ' : cibles au doigt ≥ 44 px', petites.length === 0, petites.slice(0, 6).map(x => x.t + ' ' + x.h).join(' · '));
       }
 
-      /* ── les gestes ── */
+      /* ── les gestes ── (une page qui plante se COMPTE comme un échec : elle n'arrête pas la sonde) */
+      try {
       if (!P.tac && pg === 'index') {
         const r = await rect('.nav-liens a[data-fly="applications"]');
         await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x, y: r.y }); await dormir(500);
@@ -152,6 +155,7 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
           vrai(lbl + ' : le métier en tête, puis les champs et les besoins', /^MÉTIER CHOISI : 3D — Anti-nuisibles  \[pack 3d\]\nPack : prêt/.test(corps) && /E-mail : marie@exemple\.fr/.test(corps) && /Besoins cochés : /.test(corps), corps.slice(0, 200));
         } else vrai(lbl + ' : la navigation mailto est observée', false, 'aucune navigation vue : ' + JSON.stringify(NAVS));
       }
+      } catch (e) { vrai(lbl + ' : les gestes se jouent jusqu\'au bout', false, e.message.slice(0, 160)); }
       vrai(lbl + ' : aucune exception JavaScript', EXC.length === 0, EXC.slice(0, 3).join(' | '));
     }
   }
