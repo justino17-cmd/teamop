@@ -1,14 +1,14 @@
 {
  "publie": "main au 27 septembre 2026 au soir (115ce42) — les dix pages EN SERVICE, avant le thème du site",
  "pourquoi": "tests/test-836.js : une page à la racine est soit exactement celle-ci (en service, main), soit au thème ENTIER (branche) — jamais à moitié. Le jour où Justin dit « remplace », ce fichier se retire avec la publication.",
- "retouche": "recap-abonnement.html, 27 septembre 2026 au soir — Justin : « à partir d'aujourd'hui c'est 1 utilisateur par abonnement ». La version EN SERVICE compte désormais un abonnement par personne (plafond 50, celui du serveur) ; rien d'autre n'y change (tests/test-837.js).",
+ "retouche": "27 septembre 2026 au soir — Justin : « à partir d'aujourd'hui c'est 1 utilisateur par abonnement ». recap-abonnement.html compte désormais un abonnement par personne (plafond 50, celui du serveur) ; merci.html et mentions-legales.html perdent chacune leur phrase de l'ancienne règle, celle qui liait le nombre de comptes à la formule ; rien d'autre n'y change (tests/test-837.js).",
  "pages": {
   "espace.html": "a2d7d1bc2b844721bae755f655b186da58f61ca7f5896bc66605abbba39aec9d",
   "connexion.html": "eeac7968bd2d02c935ae8e58619085a2096dfcbab6b1d28780c4d78e973e940d",
   "reinit.html": "2f43a983c9f4e554e025f3dd033e5973e42352f6d4e57b87f0ca8935659ec9c2",
   "recap-abonnement.html": "390561ca24bcc5b7fe78ffb554999a3eb498e1160d8b86d4bce0184b645add5b",
-  "merci.html": "545be1a59387e73be5e2e180ca3831257a0677c5066a04270c2c39b1bdf4623f",
-  "mentions-legales.html": "c7556951f682d1ba0f657902f8eebb746f3eac9a0918e6446e14f790bfad248c",
+  "merci.html": "eb791eac15c0577a693e349188cb50463b5fb3de8934ff24ffd536d52e44b51a",
+  "mentions-legales.html": "1e316ab9a5252731d807f04f6f61f63ace6a80deb8918f4b5a7c3b404c97a10d",
   "confidentialite.html": "d8991d54ab87d61a662a43d98afacb851cd1bb3b4fe795ff8497bd18896381ad",
   "sous-traitance.html": "262d6eba065df1a8e66d4fcd2b3d075e265a02c41b2f29b220e3acc8d5e6644c",
   "registre-traitements.html": "86f0ec44bb4e445c024104f0c01adbd08e0ac0ffaac7b824a3ff2bf75167fbc9",
