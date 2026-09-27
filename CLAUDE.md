@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**187 suites dans `tests/`**, sans dépendance ni installation (recompté le 27 septembre 2026 dans la nuit, `test-831` compris —
+**189 suites dans `tests/`**, sans dépendance ni installation (recompté le 27 septembre 2026 au matin, `test-833` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -66,11 +66,12 @@ Quatre familles visent `server/`, et elles ne se remplacent pas :
 | | ce qu'elle monte | ce qu'elle peut voir |
 |---|---|---|
 | `test-716`, `test-722`, `test-723`, `test-725` | un MODULE, dépendances injectées | la logique d'une pièce |
-| `test-641`, `test-724` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
+| `test-641`, `test-724`, `test-832` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
 | `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces du SERVEUR sont branchées |
 | `test-735`, `test-803` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
 | `test-740`, `test-741`, `test-831` | les fonctions RÉELLES d'`espace.html`, de `reinit.html` et de `connexion.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent — et que l'écran DIT ce que le serveur a répondu |
 | `test-744` | le VRAI `op-fs.js` contre le vrai serveur, deux appareils | que le filtre de lecture ne CACHE rien |
+| `test-833` | les fonctions RÉELLES de `tour.html`, plus le vrai serveur — et un serveur d'AVANT (un relais qui retire le champ neuf) | que la TOUR et le SERVEUR se parlent, dans les deux ordres de publication |
 
 ⛔ Les deux dernières lignes existent parce que les deux premières ne peuvent pas voir un défaut
 de CÂBLAGE — et c'est là que naissent les pires. Le 19 septembre 2026, une seule expression
@@ -123,7 +124,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 187 suites · 9 379 vérifications (mesuré en local le 27/09/2026, bêta v758 · Tour v2.68)
+bash scripts/bancs-ci.sh        # 189 suites · 9 465 vérifications (mesuré en local le 27/09/2026, bêta v758 · Tour v2.69)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -1379,6 +1380,11 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   une demi-seconde c'est un nouveau geste. Même mesure, même jour : **un toast posé au-dessus d'une
   liste avalait pendant 2,5 s le toucher de la ligne qu'il couvrait** — un toast est du texte :
   `pointer-events:none`. `scratchpad/sonde-tour-barre.js`, `tests/test-828.js`.
+- ⛔ **UN ÉCOUTEUR `animationend` EN `{once:true}` NE SE DÉCROCHE QUE SI L'ANIMATION A LIEU.** Tour, 27 septembre 2026 :
+  le toast accrochait son écouteur à sa SORTIE ; un nouveau toast pendant l'effacement annulait l'animation, l'écouteur
+  restait, éteignait le toast suivant à la fin de son ENTRÉE (0,3 s au lieu de 2,6) et en laissait un autre — tous les
+  toasts de la séance clignaient. Un écouteur d'animation se décroche quand l'état qu'il attend est remplacé, et vérifie
+  en entrant que cet état est toujours là (`toast`, `_ttFin` ; `test-833`, `scratchpad/sonde-tour-suppr.js`).
 - ⛔⛔ **CE CHROMIUM PILOTÉ NE TRANSMET AUCUN `touchmove` DE MOINS DE ~15 PX — ET IL LES LIVRE AU
   RYTHME DES IMAGES.** Mesuré le 23 septembre 2026 : mouvements de 1, 2, 4, 8, 13 px envoyés par
   `Input.dispatchTouchEvent`, rien reçu par la page ; 17,6 px reçu — même quand la page retient

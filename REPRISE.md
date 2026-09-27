@@ -13,7 +13,63 @@ de ligne du tout.
 
 ---
 
-# 🟡 27 SEPTEMBRE 2026, NUIT — PORTAIL ET PAGE DE CONNEXION : UN E-MAIL QUI N'EST PAS PARTI NE S'ANNONCE PLUS « PARTI » — SUR LA BRANCHE, ATTEND « PUBLIE LE PORTAIL »
+# 🟡 27 SEPTEMBRE 2026, MATIN — « FAIT LES 4 » : PORTAIL PUBLIÉ, ANCIENNE TOUR RETIRÉE ; TOUR v2.69 EN APERÇU (SUPPRIMER SANS CODE, LA BULLE) — ATTEND « REMPLACE LA TOUR » ET « POUSSE LE SERVEUR »
+
+Justin, à quatre questions (le portail, `tour-v1.html`, les suppressions de la Tour, la bulle sur « Plus ») :
+**« Fait les 4 »**.
+
+1. ✅ **Portail publié** — `espace.html` et `connexion.html` sur `main` (`f53656d`), servis octet pour octet ; CI de
+   `main` verte 3/3. Ce qu'ils corrigent : la section suivante.
+2. ✅ **`tour-v1.html` retirée** (`8844475`, branche `56bc231`) : `teamop.fr/tour-v1.html` rend 404 ; CI verte 3/3.
+3. 🟡 **Supprimer depuis la Tour : une question, une case, « Oui »** — plus de code par e-mail, comme `delUser`
+   d'OP GESTION. Un compte, les comptes jamais utilisés, une entreprise partout : `supprPanneau` (ce qui va se
+   passer, la question en gras, la case, « Oui, supprimer » éteint tant qu'elle est vide ET pendant l'appel) ; pour
+   une entreprise, la question vit SOUS l'inventaire de ce qui disparaît (plus de nom à retaper). Classes
+   `.suppr-*` (`.sup-*` est au Support). ⚠️ **« Fermer un client » n'avait plus AUCUN bouton depuis la refonte du
+   8 septembre** (`1a75278` ; le commentaire de `blocGestionClient` dit pourquoi : un seul geste destructif
+   complet, « Supprimer cette entreprise ») : `tourRetirerEntreprise` est retirée, la route reste — et prend
+   `confirme` comme les trois autres. Justin croyait peut-être avoir quatre écrans : il en a trois.
+   **Serveur** (« SUPPRIMER SANS CODE », `server/index.js`) : les quatre routes acceptent `confirme: true`
+   (booléen strict, session de patron) ; le chemin du code est INTACT pour la Tour en service (v2.66), dont le
+   premier appel envoie toujours un code et ne supprime rien ; un code en attente ne sert plus après une
+   suppression confirmée ; le journal de la Tour dit le chemin (« · confirmée » / « · par code »).
+   ⛔ **Ce que ça retire, écrit dans le code** : le code était un second facteur — une session de Tour volée
+   (30 jours avec « rester connecté ») ne suffisait pas à détruire. Décision de Justin. `gardien` rappelle le
+   vecteur concret : `tour_token` vit dans le `localStorage` de l'origine teamop.fr, partagée avec `app.html`,
+   `beta.html` et `apercu/` — une faille XSS sur l'une d'elles lit la session du patron (antérieur, chantier à
+   part). Deux protections qui ne changent pas ses gestes, proposées par `gardien`, **posées en question à
+   Justin, pas écrites** : un avis par e-mail APRÈS chaque suppression confirmée ; au-delà de 3 entreprises (ou
+   10 comptes) supprimées en 24 h, le code revient (la Tour v2.69 sait déjà le demander).
+   **L'ordre des deux publications n'importe pas** : Tour neuve + serveur d'avant → la Tour voit `codeEnvoye` et
+   redemande le code (« le serveur n'est pas encore à jour »), rien n'est annoncé à tort ; serveur neuf + Tour
+   d'avant → rien ne change pour elle.
+4. 🟡 **La bulle ne se pose plus sur « Plus »** quand la vue ouverte est rangée derrière lui (comme `ongletsActif`
+   d'OP GESTION) ; « Plus » ne s'allume que feuille ouverte.
+5. 🟡 **Trouvé en mesurant : les toasts de la Tour pouvaient ne durer que 0,3 s au lieu de 2,6, pour toute la
+   séance.** L'écouteur de fin d'animation accroché à la sortie d'un toast restait accroché quand l'animation
+   n'avait pas lieu (un nouveau toast pendant l'effacement), éteignait le suivant à la fin de son entrée, et en
+   laissait un autre. Corrigé dans la v2.69 ; la v2.66 en service l'a. OP GESTION n'est pas touchée.
+
+**Preuves :** `test-832` (serveur seul, inscrit dans `scripts/bancs-serveur.liste`, plancher relevé à 2 350)
+**50 ✓**, 10/10 mutations + la vérification du code retirée route par route, 4/4 ; `test-833` (la Tour contre le
+vrai serveur ET contre un « serveur d'avant » simulé par un relais qui retire `confirme`) **31 ✓**, 10/10 mutations,
+le toast 2 ✗ sans son correctif ; `test-828` joue la bulle avec les vraies fonctions, 95 ✓ (1 ✗ sur la v2.68) ; au
+doigt, `scratchpad/sonde-tour-suppr.js` **79 ✓** (téléphone jour et nuit, bureau ; 30 ✗ sur la v2.68) et
+`scratchpad/sonde-tour-barre.js` **128 ✓** (3 ✗ sur la v2.68) ; suite complète **189 suites · 9 465 vérifications, code 0** ; `gardien` : aucun
+bloquant (trois points corrigés : un mauvais code joué sur les quatre routes, le chemin au journal, la version
+citée) ; `relecteur` : aucun bloquant (préfixe `.suppr-`, insécables du `prompt()` natif).
+⚠️ **Les bancs 828 à 833 lisent `tour.html` : ils restent sur la branche** et partent avec « Remplace la tour » (sur
+`main`, `tour.html` est la v2.66). `test-832` ne lit aucune page : il part avec le serveur.
+
+**Publié :** l'aperçu v2.69 (`c045ba5` sur `main`), servi octet pour octet à `teamop.fr/apercu/tour.html` ; la Tour
+en service reste la v2.66. ⚠️ L'aperçu agit sur les VRAIES données : une suppression essayée là supprime.
+**Ce qui attend Justin :** « Remplace la tour » (la v2.69 : v2.67 + v2.68 + ceci) ; « pousse le serveur » —
+préparé par `scripts/preparer-deploiement-serveur.sh` (commit `bdffd8e` sur `main` = `c045ba5` : 41 suites · 2 396 vérifications contre les pages de `main`, rien de poussé ; seule différence avec `main` : ce
+changement) ; relancer le script repart du `main` du jour, puis `git -C <arbre> push origin HEAD:main`.
+**Pas touché, exprès :** refaire un mot de passe provisoire depuis la Tour demande encore un code (ce n'est pas une
+suppression) ; « Supprimer l'accès » (écran Accès) fait écrire le nom, sans code.
+
+# ✅ 27 SEPTEMBRE 2026, NUIT — PORTAIL ET PAGE DE CONNEXION : UN E-MAIL QUI N'EST PAS PARTI NE S'ANNONCE PLUS « PARTI » — PUBLIÉ (f53656d)
 
 **Trouvé en vérifiant la question de Justin** (« les e-mails passent-ils tous par le serveur ? » — oui, voir plus
 bas). Deux écrans publics demandent un courriel au serveur et annonçaient « vient de partir » **quelle que soit la
@@ -34,8 +90,8 @@ d'avant : 15 ✓ 14 ✗). Sur sa remarque, les **dix messages client** du portai
 vérification du nom de l'espace, celle d'un code) passent au vouvoiement, comme les 88 autres ; la connexion interne
 de l'équipe TEAM OP garde le sien. `connexion.html` reste au tutoiement de bout en bout (elle parle aux équipes).
 
-**Publication :** `espace.html` et `connexion.html` seuls, sur `main` — **attend la phrase de Justin** (« publie le
-portail »). Rien côté serveur. Le service worker sert les pages réseau d'abord : pas de cache à monter.
+**Publication :** ✅ `espace.html` et `connexion.html` seuls, sur `main` (`f53656d`, « Fait les 4 »), servis octet pour
+octet, CI verte 3/3. Rien côté serveur. Le service worker sert les pages réseau d'abord : pas de cache à monter.
 
 **Au passage, vérifié et juste :** `verifLien` (renvoi du lien de confirmation, même page) et `_sendCode` (codes de
 changement de mot de passe / d'adresse) lisaient déjà leur réponse. ⚠️ Et une maladresse de méthode, réparée tout de
@@ -43,7 +99,7 @@ suite : la nouvelle sonde a d'abord été écrite SUR `scratchpad/sonde-mdp-oubl
 l'outil a dit « mis à jour » au lieu de « créé ». Restaurée depuis le commit, diff vide. **Chercher le nom avant
 d'écrire un fichier neuf.**
 
-❓ **Question posée à Justin** : `tour-v1.html` — une ANCIENNE Tour de contrôle (144 Ko) — est toujours servie à
+✅ **Tranché (« Fait les 4 ») et fait : retirée (`8844475`).** La question telle qu'elle était posée : `tour-v1.html` — une ANCIENNE Tour de contrôle (144 Ko) — est toujours servie à
 `teamop.fr/tour-v1.html` (HTTP 200, vérifié le 27 septembre 2026), et plus rien dans le dépôt n'y mène. Rien ne fuit
 sans connexion à la Tour — vérifié route par route : ses 28 appels portent `monAdmin` ou `monPatronStrict` côté
 serveur —, mais une vieille console ouverte par erreur agirait avec des gestes d'avant. Retirer un fichier servi est une publication : on attend sa réponse.
