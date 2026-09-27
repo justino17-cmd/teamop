@@ -5,9 +5,14 @@
    Business Premium (et en Messages Business Premium), et la page de paiement DIVISAIT le nombre de personnes par ces
    chiffres pour compter les abonnements : sept personnes en Business faisaient quatre abonnements.
 
+   ⛔ ET LES PRIX SONT TTC. Même soir, à la question « le site dit “Prix HT par mois”, la page de paiement dit
+   “175 € TTC” pour le même montant : HT ou TTC ? », Justin : « TTC ». Le pied des huit pages et l'introduction des
+   tarifs disaient « Prix HT » ; une page servie qui écrirait encore « HT » pour un prix TEAM OP fait tomber le §4.
+
    Trois endroits portent la règle, et ils doivent dire la même chose :
-   1. la page tarifs EN SERVICE (la v1 de la racine). On la relit, et on prouve qu'on n'y a touché QUE ce qui parle
-      des places : en défaisant les retouches, on retrouve octet pour octet la v1 publiée le 27 septembre ;
+   1. les huit pages EN SERVICE (la v1 de la racine). On les relit, et on prouve qu'on n'y a touché QUE ce qui parle
+      des places et de la taxe : en défaisant les retouches, on retrouve octet pour octet chacune des huit pages
+      publiées le 27 septembre (`fe599df`) ;
    2. le générateur du site (v2, en aperçu) : gardé par `test-835` §3, qui déclare l'écart avec l'application ;
    3. la page de paiement — en service à la racine de `main`, au thème sur la branche, et sa copie d'aperçu. Ici on
       EXÉCUTE son vrai script, sur un faux document : ce que la page affiche, ce que font « − », « + » et le champ, et
@@ -31,9 +36,9 @@ const texte = h => h.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<style[
    une ligne sont des commentaires d'explication ici. */
 const sansCommentaires = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 
-/* ── 1. la page tarifs EN SERVICE ─────────────────────────────────────────────────────────────────────────── */
-console.log('\n── 837 · un abonnement = un utilisateur ──');
-console.log('1. la page tarifs en service');
+/* ── 1. les huit pages EN SERVICE ─────────────────────────────────────────────────────────────────────────── */
+console.log('\n── 837 · un abonnement = un utilisateur, prix TTC ──');
+console.log('1. les pages en service');
 const N = '\u202f', NB = '\u00a0';   // l'exemple de la FAQ ne se coupe pas : « Business × 3 = 3 comptes » d'un bloc
 /* les retouches du 27 septembre au soir — et RIEN d'autre : les défaire doit rendre la v1 publiée, octet pour octet.
    Les places d'abord, dans l'ordre de la page (Pro, Business, Business Premium, Messages Pro, Messages Business Premium),
@@ -44,11 +49,27 @@ const PHRASES = [
   ['content="Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 € (2 utilisateurs), Business Premium 50 € (3 utilisateurs + service 24h/24). OP MESSAGES a ses propres formules, à part."',
    'content="Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 €, Business Premium 50 € (service 24h/24), par mois et par utilisateur. OP MESSAGES a ses propres formules, à part."'],
   ['<p class="intro">Prix HT par mois, sans engagement. Chaque abonnement inclut un nombre d\'utilisateurs — besoin de plus' + N + '? Ajoutez un abonnement, les places s\'additionnent.</p>',
-   '<p class="intro">Prix HT par mois, sans engagement. Un abonnement par utilisateur' + N + ': pour une équipe de cinq, prenez cinq abonnements.</p>'],
+   '<p class="intro">Prix TTC par mois, sans engagement. Un abonnement par utilisateur' + N + ': pour une équipe de cinq, prenez cinq abonnements.</p>'],
   ['<p>Chaque abonnement inclut un nombre de comptes' + N + ': 1 en Gratuit, 1 en Pro, 2 en Business, 3 en Business Premium. Besoin de plus' + N + '? Ajoutez un abonnement' + N + ': les places s\'additionnent (par exemple, Business × 2 = 4 comptes).</p>',
    '<p>Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus' + N + '? Ajoutez un abonnement par personne' + N + ': les places s\'additionnent (par exemple, ' + ['Business', '×', '3', '=', '3', 'comptes'].join(NB) + ').</p>'],
 ];
-const V1_PUBLIEE = '5cc21091b9faa0a182e8d0e0be18151c948ffcb4d92db4387460c745ea507a28';   // tarifs.html de fe599df
+/* le pied des huit pages : « Prix HT » → « Prix TTC » (Justin : « TTC ») */
+const PIED = ['Prix HT, sans engagement.', 'Prix TTC, sans engagement.'];
+/* les huit pages publiées le 27 septembre (`fe599df`), octet pour octet — écrites ICI et pas lues dans
+   `vitrine/racine-v1.json`, qui suit les retouches : un banc qui relirait l'empreinte qu'il doit contrôler ne
+   contrôlerait rien. */
+const V1_PUBLIEE = {
+  'index.html': 'fdb1ed6a43b15b22fb1518392c3418731021d7ca888a2026e76f6c0e5ecfb6b0',
+  'applications.html': '03a23af865485a71c3f3732f2c6f7f38d4d52f4d3af65acfd6595797b95f823c',
+  'creer.html': '3f4b40f14491f1f415e63f9a4d7ca83dc79cdc95ce174a41a6a451b99777ac1c',
+  'elan.html': 'd142bfedcb4891e524179a5166f5f89bc252e338a59b7eaf578407dfbf652dc4',
+  'metiers.html': '8ea76f630a62a70feda3947dfc886db54a78562b57869e8f79f511a1a688a1c6',
+  'opmessages.html': '49ab9b8b033476df2f836c1c6d3121ed6e99b61f4ce9c8a4d66fe8b05f9a0593',
+  'pourquoi.html': '803ad93983a9a716d9e335e084a20dc58f957a3892172fa2d1801271e5520c67',
+  'tarifs.html': '5cc21091b9faa0a182e8d0e0be18151c948ffcb4d92db4387460c745ea507a28',
+};
+const sha = t => crypto.createHash('sha256').update(t).digest('hex');
+const V1 = existe('vitrine/racine-v1.json') ? JSON.parse(lire('vitrine/racine-v1.json')) : null;
 const TAR = lire('tarifs.html');
 const GEN = require(path.join(RACINE, 'scripts', 'site-marine.js'));
 const racineGeneree = TAR === GEN.page('tarifs', { racine: true });
@@ -57,20 +78,34 @@ vrai('la page porte bien les formules (population : ' + (TAR.match(/<div class="
 vrai('⛔ plus aucune formule ne vend plusieurs utilisateurs', !/[2-9] utilisateurs inclus/.test(tt) && !/\(\d utilisateurs/.test(meta));
 v('les cinq formules payantes disent « 1 utilisateur par abonnement »', (TAR.match(/<div class="places">1 utilisateur par abonnement<\/div>/g) || []).length, 5);
 vrai('l\'introduction le dit : « Un abonnement par utilisateur »', tt.includes('Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements.'));
+vrai('⛔ l\'introduction dit « Prix TTC par mois », et plus « HT »', tt.includes('Prix TTC par mois, sans engagement.') && !/\bHT\b/.test(tt));
 vrai('la FAQ le dit, avec un exemple qui compte juste (Business × 3 = 3 comptes)', tt.includes('Un abonnement donne un compte utilisateur, quelle que soit la formule') && tt.includes('Business × 3 = 3 comptes'));
 vrai('… et l\'exemple ne se coupe pas en fin de ligne (insécables)', TAR.includes(['Business', '×', '3', '=', '3', 'comptes'].join(NB)));
 vrai('la description (moteurs de recherche) dit « par mois et par utilisateur »', meta.includes('par mois et par utilisateur'));
 if (racineGeneree) {
   vrai('la racine est la sortie du générateur (remplacée) — test-835 la garde', true);
 } else {
-  v('chaque retouche se trouve le bon nombre de fois (5 places, 3 phrases)', [TAR.split(PLACE_NEUVE).length - 1].concat(PHRASES.map(([, apres]) => TAR.split(apres).length - 1)), [5, 1, 1, 1]);
+  v('chaque retouche se trouve le bon nombre de fois (5 places, 3 phrases, le pied)', [TAR.split(PLACE_NEUVE).length - 1].concat([...PHRASES, PIED].map(([, apres]) => TAR.split(apres).length - 1)), [5, 1, 1, 1, 1]);
   let i = 0;
   let defaite = TAR.split(PLACE_NEUVE).reduce((acc, morceau, k) => k ? acc + '<div class="places">' + PLACES_AVANT[i++] + '</div>' + morceau : morceau, '');
-  for (const [avant, apres] of PHRASES) defaite = defaite.split(apres).join(avant);
-  v('⛔ en les défaisant, on retrouve octet pour octet la v1 publiée : rien d\'autre n\'a bougé', crypto.createHash('sha256').update(defaite).digest('hex'), V1_PUBLIEE);
-  const V1 = existe('vitrine/racine-v1.json') ? JSON.parse(lire('vitrine/racine-v1.json')) : null;
-  vrai('l\'empreinte de la racine connaît la page retouchée (vitrine/racine-v1.json)', V1 && V1.pages['tarifs.html'] === crypto.createHash('sha256').update(TAR).digest('hex'));
+  for (const [avant, apres] of [...PHRASES, PIED]) defaite = defaite.split(apres).join(avant);
+  v('⛔ en les défaisant, on retrouve octet pour octet la v1 publiée : rien d\'autre n\'a bougé', sha(defaite), V1_PUBLIEE['tarifs.html']);
+  vrai('l\'empreinte de la racine connaît la page retouchée (vitrine/racine-v1.json)', V1 && V1.pages['tarifs.html'] === sha(TAR));
 }
+/* les sept autres pages : le pied, et RIEN d'autre */
+v('population : huit pages publiées, dont les sept qui ne vendent rien', Object.keys(V1_PUBLIEE).length, 8);
+for (const f of Object.keys(V1_PUBLIEE).filter(f => f !== 'tarifs.html')) {
+  const P = lire(f);
+  vrai(f + ' : le pied dit « Prix TTC, sans engagement. », et plus « HT »', P.includes(PIED[1]) && !/\bHT\b/.test(texte(P)));
+  if (P === GEN.page(f.replace(/\.html$/, ''), { racine: true })) { vrai(f + ' : sortie du générateur (remplacée) — test-835 la garde', true); continue; }
+  v(f + ' : la retouche s\'y trouve une fois', P.split(PIED[1]).length - 1, 1);
+  v('⛔ ' + f + ' : en la défaisant, on retrouve octet pour octet la v1 publiée', sha(P.split(PIED[1]).join(PIED[0])), V1_PUBLIEE[f]);
+  vrai(f + ' : l\'empreinte de la racine la connaît (vitrine/racine-v1.json)', V1 && V1.pages[f] === sha(P));
+}
+/* l'aperçu (le site v2) : `test-835` exige que ses pages soient la sortie du générateur — on lit donc le générateur */
+const GEN_HT = Object.keys(GEN.PAGES).filter(cle => { const g = GEN.page(cle); return !g.includes(PIED[1]) || /\bHT\b/.test(texte(g)); });
+v('le générateur du site (aperçu) : les huit pages disent « Prix TTC », aucune « HT »', GEN_HT, []);
+vrai('… et l\'introduction des tarifs « Prix TTC par mois »', texte(GEN.page('tarifs')).includes('Prix TTC par mois, sans engagement.'));
 
 /* ── 2. la page de paiement, EXÉCUTÉE ─────────────────────────────────────────────────────────────────────── */
 /* Le plafond du serveur : `/api/stripe/checkout` borne la quantité. La page ne doit pas afficher un total que Stripe
@@ -198,6 +233,23 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     if (m) fautifs.push(f + ' : « ' + t.slice(Math.max(0, m.index - 30), m.index + m[0].length + 10).replace(/\s+/g, ' ') + ' »');
   }
   v('⛔ aucune page ni aucun script servi ne vend plusieurs utilisateurs par abonnement', fautifs, []);
+
+  /* ⛔ « TTC » (Justin). Aucune page servie n'écrit « HT » pour un prix TEAM OP — le même recensement, les mêmes
+     commentaires retirés. Les APPLICATIONS en sont écartées, nommées : elles fabriquent des devis et des factures, où
+     « Total HT » et « prix unitaire HT » sont justes et obligatoires. */
+  console.log('4 bis. le prix se dit TTC partout');
+  const APPLICATIONS = /^(apercu\/)?(app|beta|tour|messages|messages-beta)\.html$/;
+  const DIT_HT = /\bPrix HT\b|\bHT\s*\/\s*mois|\bHT par mois|€\s*HT\b/, HORS_TAXES = /hors[ -]taxes?/i;
+  const relus = SERVIS.filter(f => !APPLICATIONS.test(f));
+  vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);
+  const ht = [];
+  for (const f of relus) {
+    let t = ''; try { t = fs.readFileSync(path.join(RACINE, f), 'utf8'); } catch (e) { continue; }
+    t = sansCommentaires(t).replace(/<!--[\s\S]*?-->/g, ' ').replace(/[\u202f\u00a0]/g, ' ');
+    const m = DIT_HT.exec(t) || HORS_TAXES.exec(t);
+    if (m) ht.push(f + ' : « ' + t.slice(Math.max(0, m.index - 30), m.index + m[0].length + 10).replace(/\s+/g, ' ') + ' »');
+  }
+  v('⛔ aucune page servie n\'écrit « HT » pour un prix', ht, []);
   for (const f of ECART_APPLICATION) if (existe(f)) vrai('l\'écart déclaré pour ' + f + ' sert encore (sinon : le retirer d\'ici et de test-835)', PROMESSE.test(sansCommentaires(lire(f))));
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

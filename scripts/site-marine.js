@@ -140,7 +140,7 @@ function pied() {
   const cols = [['Applications', VOLETS.applications], ['Métiers', VOLETS.metiers], ['Tarifs', VOLETS.tarifs]].map(([t, v]) => `<div><b>${t}</b>` + v.grands.concat(v.petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div>').join('')
     + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
-    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Prix HT, sans engagement.</p>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Prix TTC, sans engagement.</p>
     <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a><a href="mailto:support@teamop.fr">support@teamop.fr</a><span class="fin">France</span></div>
   </div></footer>`;
 }
@@ -313,7 +313,7 @@ const PAGES = {
   tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 €, Business Premium 50 € (service 24h/24), par mois et par utilisateur. OP MESSAGES a ses propres formules, à part.',
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Commencez gratuitement, passez à la vitesse supérieure quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
       + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="opmessages"></span><div class="tarifs-in">
-        <p class="intro">${fr('Prix HT par mois, sans engagement. Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements.')}</p>
+        <p class="intro">${fr('Prix TTC par mois, sans engagement. Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements.')}</p>
         <div class="segment" role="tablist" aria-label="Application"><button type="button" role="tab" id="onglet-gestion" aria-controls="formules-gestion" aria-selected="true">OP GESTION</button><button type="button" role="tab" id="onglet-msg" aria-controls="formules-msg" aria-selected="false" tabindex="-1">OP MESSAGES</button></div>
         <div class="formules" id="formules-gestion" role="tabpanel" aria-labelledby="onglet-gestion" style="--n:4">${formules(FORMULES_GESTION)}</div>
         <div class="formules" id="formules-msg" role="tabpanel" aria-labelledby="onglet-msg" style="--n:3" hidden>${formules(FORMULES_MESSAGES, true)}</div>
