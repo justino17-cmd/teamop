@@ -8017,7 +8017,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '759-beta';
+const APP_VERSION = '761-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13745,7 +13745,7 @@ const PLANS={
 /* Places incluses : nombre d'abonnements × places par abonnement (reprendre un abonnement = places qui s'additionnent) */
 function planPlaces(){ return (PLANS[forfait()].maxU||1)*Math.max(1,db.forfaitQty||1); }
 function planPlaceLibre(){ return db.users.length<planPlaces(); }
-/* ⛔ PLUS DE PLACE → LA PAGE DE PAIEMENT, POUR CE QUI MANQUE — PAS POUR TOUTE L'ÉQUIPE (v759).
+/* ⛔ PLUS DE PLACE → LA PAGE DE PAIEMENT, POUR CE QUI MANQUE — PAS POUR TOUTE L'ÉQUIPE (v760).
    Justin, 27 septembre 2026 : un abonnement = un utilisateur. La page de paiement compte donc un abonnement par
    personne, et elle ouvre un abonnement NEUF, à côté de ceux qui courent déjà. Préremplir le nombre de PERSONNES
    (`db.users.length+1`) proposait à une équipe de sept qui veut un huitième… huit abonnements de plus.
