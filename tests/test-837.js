@@ -120,7 +120,9 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     v('population : sept formules (4 OP GESTION, 3 OP MESSAGES)', cles.length, 7);
     v('⛔ chaque formule compte 1 utilisateur par abonnement', cles.filter(k => F[k].utilisateurs !== 1), []);
     v('⛔ le plafond de la page est celui du serveur (' + PLAFOND_SERVEUR + ')', b.api.MAX_ABONNEMENTS, PLAFOND_SERVEUR);
-    vrai('plus aucun « utilisateurs inclus », « places au total » ni plafond à 250 dans le code', !/utilisateurs inclus|places au total|\b250\b/.test(CODE));
+    /* ⚠️ le plafond d'avant se cherche sous la forme du CODE (`Math.min(250,`, `max="250"`) : « 250 » tout court tombe dans
+       une couleur de la page en service (`rgba(96,165,250,…)`) — c'est ce que la copie de main a montré au premier essai. */
+    vrai('plus aucun « utilisateurs inclus », « places au total » ni plafond à 250 dans le code', !/utilisateurs inclus|places au total|Math\.min\(\s*250\b|max="250"/.test(CODE));
 
     // Business, sept personnes : sept abonnements, 175 €
     let p = b.paiement();
