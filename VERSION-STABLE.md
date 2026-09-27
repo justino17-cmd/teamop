@@ -1,5 +1,27 @@
 # Point stable TeamOP
 
+**Version stable : v760** — publiée le 27 septembre 2026, sur la phrase de Justin « Une fois que tu as tout fini, tu publie aussi s'il te plaît merci » (après « 2 oui il faudrait faire ça », au constat qu'une équipe de sept qui veut un huitième se voyait proposer huit abonnements).
+
+v760 — une chose, rien d'autre (les couleurs des techniciens, le contrôle du socle et trois accords restent sur la bêta, désormais v761) :
+- **« ＋ Utilisateur » quand toutes les places sont prises propose ce qui MANQUE.** Depuis le 27 septembre, un
+  abonnement = un utilisateur, et la page de paiement ouvre un abonnement NEUF, à côté de ceux qui courent déjà : une
+  équipe de sept qui voulait un huitième se voyait proposer huit abonnements de plus — elle en voit un. Depuis Gratuit,
+  toute l'équipe passe en Pro, un abonnement par personne. Qui n'est pas administrateur lit seulement « Plus de place
+  utilisateur libre — seul l'administrateur peut en ajouter » ; un abonnement en attente de règlement, ou une formule
+  réservée pas encore payée, renvoient à l'espace client. Le message dit « Après le paiement, TEAM OP ajoute la place à
+  ton espace » : le nombre de places se règle dans la Tour, le paiement seul ne le change pas.
+Chez ELAN : rien n'est effacé ni écrit dans leurs données ; le changement ne se voit qu'en ajoutant un compte quand
+toutes les places sont prises. Aucun changement de format : rien à exiger.
+Preuves : `test-838` 57 ✓ — les vraies fonctions d'`app.html` et de `beta.html`, puis l'adresse ouverte LUE par le vrai
+script de la page de paiement en service (1 abonnement pour « 7 pour 7 », 3 pour « 8 pour 6 », 2 pour « Gratuit →
+Pro ») ; 12/12 contre-épreuves ; sonde au doigt dans la vraie page, générée depuis ce candidat de production :
+18 ✓ 0 ✗ (la v757 en service : 8 ✓ 10 ✗, « nombre prérempli : 8 ») ; suite complète :
+193 suites · 10 052 vérifications, aucun échec ; relecture sans point bloquant.
+Publiés avec elle, hors application : « Prix TTC » sur tout le site (le pied des huit pages, les tarifs) ; la phrase
+de l'ancienne règle retirée de la page « merci » et des mentions légales.
+
+## Ancien point
+
 **Version stable : v757** — publiée le 26 septembre 2026, sur la phrase de Justin « fait tout ce qu'il y a à faire, s'il te plaît, que ça marche bien » (en réponse à « dis-moi “publie la correction” »).
 
 v757 — trois choses, rien d'autre (les couleurs des techniciens, en cours sur la bêta, passent en v758) :

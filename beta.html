@@ -8017,7 +8017,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '758-beta';
+const APP_VERSION = '761-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -11823,6 +11823,7 @@ async function sauvKh(){ const t=localStorage.getItem('elanB_sync_team'), k=loca
    rien. */
 let _opJeton = null;          // { jeton, exp, double, lotMax } — EN MÉMOIRE SEULEMENT
 let _opEnVol = null;          // la pousse en cours, s'il y en a une
+let _opPousses = 0;           // combien de pousses ont envoyé quelque chose — le contrôle compte avant et après son attente
 const OP_HAUT_CLE = 'elanB_op_haut';   // le plus haut `_m` déjà poussé, par espace
 const OP_NON_CLE = 'elanB_op_non';     // jusqu'à quand le serveur a dit « pas de double écriture »
 
@@ -11925,6 +11926,10 @@ async function opSoclePousserVraiment() {
        est exactement ce qu'on veut, puisque son contenu n'a pas bougé non plus. */
     const aEnvoyer = lignes.filter(l => (+l.m || 0) > haut);
     if (!aEnvoyer.length) return { envoyees: 0, retenus: retenus.length };
+    /* Compté ICI, au moment où quelque chose PART : une pousse sans rien à envoyer ne change pas le
+       serveur, et la compter ferait renoncer un contrôle en cours pour rien — chez une équipe très
+       active, indéfiniment (relecture du 27 septembre 2026). */
+    _opPousses++;
     let acceptes = 0, refus = [], plusHaut = haut;
     for (let i = 0; i < aEnvoyer.length; i += s.lotMax) {
       const lot = aEnvoyer.slice(i, i + s.lotMax);
@@ -11993,7 +11998,7 @@ async function opSoclePousserVraiment() {
       const du = parseInt(localStorage.getItem(ctlCle), 10) || 0;
       if (Date.now() > du) {
         localStorage.setItem(ctlCle, String(Date.now() + 72000000 + Math.floor(Math.random() * 28800000)));
-        opSocleControle();
+        opSocleControle(lignes);
       }
     } catch (e) {}
     return { envoyees: acceptes, refus: refus.length, retenus: retenus.length };
@@ -12178,11 +12183,25 @@ async function opSocleFlux() {
    Personne ne LIT le socle pendant l'étape 4 : si une ligne n'arrive pas, rien ne le montre.
    L'appareil calcule donc la signature de ce qu'il a, demande la sienne au serveur, et compare.
    ⚠️ Il compare COLLECTION PAR COLLECTION : « ça diverge » sans dire OÙ fait chercher une
-   heure. Et il ne compare QUE les collections que l'appareil a réellement poussées — celles
-   dont le `_m` dépasse encore la borne n'ont pas eu leur chance. */
-async function opSocleControle() {
+   heure. Et il ne compare que ce que l'appareil a réellement présenté au serveur : la photo que
+   la pousse vient de traiter, jamais la base telle qu'elle est devenue pendant l'attente. */
+async function opSocleControle(photo) {
   try {
     const s = await opSocleSession(); if (!s || !s.double) return null;
+    /* ⛔ LA PHOTO SE PREND AVANT L'ATTENTE, JAMAIS APRÈS — test-735 est tombé deux fois en CI
+       (26 et 27 septembre 2026) sur ce seul point. Décomposer `db` au RETOUR de `/api/op/etat`
+       comparait le serveur à une base qui avait bougé pendant l'attente : une fiche modifiée
+       entre-temps, pas encore poussée, passait pour une DIVERGENCE — diagnostic à la Tour, borne
+       remise à zéro, donc toute la base repoussée. Rejoué avec un seul tour de boucle de retard
+       sur la réponse : 223 ✓ 2 ✗ à chaque exécution.
+       Lancé par la pousse, le contrôle compare donc les lignes MÊMES qu'elle vient de traiter :
+       chacune était déjà sous la borne, ou a été présentée au serveur — acceptée, ou refusée, et
+       c'est alors une vraie écriture perdue, qu'on doit voir. */
+    const pousses0 = _opPousses;
+    if (!photo && _opEnVol) return null;   // une pousse en vol changera le serveur pendant qu'on compare
+    let lignes = Array.isArray(photo) ? photo : null;
+    if (!lignes) { try { lignes = opDecomposer(db); } catch (e) { return null; } }
+    const ctlCle = 'elanB_op_ctl_' + s.t;
     const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 12000);
     let r = null;
     try { r = await fetch(PUSH_API + '/api/op/etat', { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal }); }
@@ -12191,8 +12210,14 @@ async function opSocleControle() {
     if (!r || !r.ok) return null;
     const j = await r.json().catch(() => null);
     if (!j || !j.canon) return null;
-    let lignes = null;
-    try { lignes = opDecomposer(db); } catch (e) { return null; }
+    /* ⛔ ET SI UNE AUTRE POUSSE EST PARTIE PENDANT L'ATTENTE, ON NE CONCLUT RIEN. Le serveur a pu
+       l'accepter AVANT de signer : il parlerait d'un instant plus récent que la photo, et l'écart
+       serait fabriqué par nous. On ne crie pas, on ne répare rien, et on repasse à une pousse
+       d'ici dix minutes plutôt que dans vingt heures. */
+    if (_opPousses !== pousses0) {
+      try { localStorage.setItem(ctlCle, String(Date.now() + 600000)); } catch (e) {}
+      return null;
+    }
     /* Les enregistrements retenus (pièce pas encore téléversée) ne sont pas dans les lignes,
        donc pas dans notre signature : les deux côtés parlent bien de la même chose. */
     /* ⛔ ET ON NE COMPARE QUE CE QUI PEUT PARTIR — MESURÉ AU NAVIGATEUR, 20 SEPTEMBRE 2026.
@@ -12211,14 +12236,30 @@ async function opSocleControle() {
       try { console.warn('socle : ' + muettes.length + ' ligne(s) sans date, hors comparaison — '
         + [...new Set(muettes.map(l => l.c))].join(', ')); } catch (e) {}
     }
+    /* ⚠️ UNE FICHE RETENUE (sa pièce n'est pas encore partie) n'est pas dans les lignes, mais le
+       serveur peut en tenir la version d'AVANT : sa collection n'est pas comparable tant
+       qu'elle attend — une box retenue emporte ses trois collections. On la laisse de côté et
+       on le dit ; et un contrôle incomplet n'envoie pas de verdict « identique » : la
+       condition (d) compte des journées de signatures identiques, pas des demi-journées. */
+    const enAttente = new Set();
+    (lignes.retenus || []).forEach(x => {
+      const c = String(x && x.c); enAttente.add(c);
+      if (c === 'boxes') { enAttente.add('box_stock'); enAttente.add(OP_BOX_FORME); }
+    });
     const moi = opSignature(poussables);
     const ecarts = [];
     const toutes = new Set(Object.keys(moi.par).concat(Object.keys(j.canon.par || {})));
     toutes.forEach(c => {
+      if (enAttente.has(c)) return;
       const a = moi.par[c] || { n: 0, sig: '' }, b = (j.canon.par || {})[c] || { n: 0, sig: '' };
       if (a.sig !== b.sig) ecarts.push({ coll: c, appareil: a.n, serveur: b.n });
     });
-    const ok = moi.sig === j.canon.sig;
+    const complet = !enAttente.size;
+    const ok = complet ? moi.sig === j.canon.sig : !ecarts.length;
+    if (ok && !complet) {
+      try { localStorage.setItem(ctlCle, String(Date.now() + 600000)); } catch (e) {}
+      return { ok, ecarts, muettes: muettes.length, attente: [...enAttente] };
+    }
     if (!ok) {
       try { console.warn('socle : DIVERGENCE sur ' + ecarts.length + ' collection(s) — ' + ecarts.slice(0, 4).map(e => e.coll + ' (' + e.appareil + ' ici / ' + e.serveur + ' là-bas)').join(', ')); } catch (e) {}
       /* ⛔ ET ON LE REMONTE À LA TOUR. Une divergence que seul le navigateur du client connaît
@@ -12255,7 +12296,7 @@ async function opSocleControle() {
         body: JSON.stringify({ ok: ok, ecarts: ecarts.slice(0, 12) }), signal: ctl2.signal });
       clearTimeout(to2);
     } catch (e) {}
-    return { ok, ecarts, muettes: muettes.length };
+    return { ok, ecarts, muettes: muettes.length, attente: [] };
   } catch (e) { return null; }
 }
 /* ══ ÉTAPE 7 — LA RELECTURE, CONTRE LA PHOTO PRISE AVANT ═══════════════════════════════════
@@ -13704,10 +13745,33 @@ const PLANS={
 /* Places incluses : nombre d'abonnements × places par abonnement (reprendre un abonnement = places qui s'additionnent) */
 function planPlaces(){ return (PLANS[forfait()].maxU||1)*Math.max(1,db.forfaitQty||1); }
 function planPlaceLibre(){ return db.users.length<planPlaces(); }
-/* Plus de place → propose d'ouvrir la page d'abonnement avec le bon nombre d'utilisateurs prérempli */
-function proposerAbonnement(){ const f=forfait(), cible=(f==='gratuit')?'pro':f, n=db.users.length+1;
-  if(confirm('Forfait '+PLANS[f].l+' : '+planPlaces()+' place(s) utilisateur incluse(s), toutes utilisées.\n\nOuvrir la page d\'abonnement pour ajouter des utilisateurs ? (nombre prérempli : '+n+')'))
-    window.open('https://teamop.fr/recap-abonnement.html?formule='+cible+'&utilisateurs='+n,'_blank'); }
+/* ⛔ PLUS DE PLACE → LA PAGE DE PAIEMENT, POUR CE QUI MANQUE — PAS POUR TOUTE L'ÉQUIPE (v760).
+   Justin, 27 septembre 2026 : un abonnement = un utilisateur. La page de paiement compte donc un abonnement par
+   personne, et elle ouvre un abonnement NEUF, à côté de ceux qui courent déjà. Préremplir le nombre de PERSONNES
+   (`db.users.length+1`) proposait à une équipe de sept qui veut un huitième… huit abonnements de plus.
+   Depuis le forfait Gratuit, c'est l'inverse : on CHANGE de formule, et la place gratuite ne s'ajoute pas à un
+   abonnement payant — toute l'équipe passe en Pro, un abonnement par personne.
+   Trois cas n'ont pas à ouvrir un abonnement neuf, et le faisaient :
+   · qui n'est pas administrateur : ce n'est pas à lui d'abonner l'entreprise (« c'est pas aux utilisateurs de
+     savoir si l'entreprise paye ou pas ») — on lui dit seulement qu'il n'y a plus de place ;
+   · un abonnement en attente de règlement : un abonnement de plus ne règle pas celui qui est dû (et le serveur
+     tiendrait l'espace pour payé dès qu'UN abonnement vit) — on renvoie à l'espace client, comme le rappel ;
+   · une formule réservée qui attend son paiement : c'est ELLE qu'il faut payer, comme le dit le bandeau.
+   ⚠️ Les places ne viennent PAS de Stripe : le serveur ne lit que « payé ou pas ». C'est TEAM OP (la Tour) qui
+   règle le nombre — d'où la dernière phrase du message, qui ne promet rien d'automatique. */
+function abosManquants(){ return forfait()==='gratuit' ? db.users.length+1 : Math.max(1, db.users.length+1-planPlaces()); }
+function proposerAbonnement(){
+  if(!currentUser||currentUser.role!=='admin'){ toast('Plus de place utilisateur libre — seul l\'administrateur peut en ajouter',4500); return; }
+  if(_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, tes places reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  const att=db.formuleAttente;
+  if(att&&PLANS[att.formule]){ if(confirm('Ta formule '+PLANS[att.formule].l+(att.quantite>1?' ×'+att.quantite:'')+' attend son paiement : ses places s\'ouvrent dès qu\'elle est payée.\n\nOuvrir l\'espace client pour la payer ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  const f=forfait(), cible=(f==='gratuit')?'pro':f, n=abosManquants(), u=db.users.length, p=planPlaces(), s=k=>k>1?'s':'';
+  const msg=(f==='gratuit'
+    ? 'Formule Gratuit : 1 place utilisateur, déjà prise.\n\nPour travailler à '+n+', passe en Pro : un abonnement par utilisateur, soit '+n+' abonnements.'
+    : 'Formule '+PLANS[f].l+' : '+u+' utilisateur'+s(u)+' pour '+p+' place'+s(p)+'.\n\nUn abonnement = un utilisateur : pour en ajouter un, il faut '+n+' abonnement'+s(n)+' '+PLANS[f].l+' de plus.')
+    +'\n\nAprès le paiement, TEAM OP '+(f==='gratuit'?'active la formule Pro sur ton espace.':'ajoute '+(n>1?'les places':'la place')+' à ton espace.')
+    +'\n\nOuvrir la page de paiement ?';
+  if(confirm(msg)) window.open('https://teamop.fr/recap-abonnement.html?formule='+cible+'&utilisateurs='+n,'_blank'); }
 function setForfaitQty(d){ const q=Math.max(1,(db.forfaitQty||1)+d);
   if(d<0 && db.users.length>(PLANS[forfait()].maxU||1)*q){ toast('Impossible : '+db.users.length+' comptes utilisent les places actuelles'); return; }
   db.forfaitQty=q; logEvent('Abonnements '+PLANS[forfait()].l,'×'+q,'auth'); save(); toast(q+' abonnement(s) — '+planPlaces()+' place(s)'); if(current==='parametres') views.parametres(); }
@@ -27193,7 +27257,7 @@ function renderBoxDetail(){
       ${!stk&&canCat('stock','supprimer')?`<button onclick="delItem('boxes','${b.id}')" title="Supprimer" style="background:none;border:none;color:var(--red);cursor:pointer;padding:4px 2px 4px 10px;line-height:1">${fic('trash',20)}</button>`:''}
     </div>
     <div style="font-size:17px;font-weight:600;color:var(--acc-txt);margin:2px 2px 3px;line-height:1.3">${esc(b.nom||b.numero||'Box')}</div>
-    <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">${esc(b.ville||'')}${b.ville&&nbProd?' · ':''}${nbProd?nbProd+' produit(s)':''}</div>
+    <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">${esc(b.ville||'')}${b.ville&&nbProd?' · ':''}${nbProd?nbProd+' produit'+(nbProd>1?'s':''):''}</div>
     ${stk?`<div style="font-size:12.5px;color:var(--t2);line-height:1.55;margin:-4px 2px 12px;max-width:620px">Le stock de l’entreprise, hors des box. Il baisse quand quelqu’un s’y sert — une intervention ne déduit rien — et chaque sortie dit <b>qui a pris quoi</b>.</div>`:''}
     <div style="max-width:620px">
     <div style="display:flex;gap:8px;margin:0 0 8px">
@@ -30704,7 +30768,7 @@ function bonSuggere(){ if(!peutCommander()){ refusCommander(); return; }
   bonLignes=pids.map(pid=>{ const p=produit(pid);
     return {produitId:pid,reference:p.ref||'',designation:p.nom||'',categorie:p.categorie||'',cartons:0,upc:p.qteCarton||0,quantite:need[pid],prixUnitaireHT:p.prix||0,tvaRate:20,commentaire:''}; });
   renderBonLignes(); bonQtyOpen();
-  toast('⚡ '+pids.length+' produit(s) à réapprovisionner — ajuste les quantités puis valide (séparation par fournisseur automatique)');
+  toast('⚡ '+pids.length+' produit'+(pids.length>1?'s':'')+' à réapprovisionner — ajuste les quantités puis valide (séparation par fournisseur automatique)');
 }
 /* Mémorisation : les prix et « unités/carton » saisis dans un bon mettent à jour la fiche produit (préremplis la prochaine fois) */
 function bonMemorise(lignes){ (lignes||[]).forEach(l=>{ if(!l.produitId) return; const p=produit(l.produitId); if(!p.id) return;
@@ -35743,7 +35807,7 @@ function comptaControle(){
     <div class="kpi" onclick="ctrlOnglet='afaire';views.comptabilite()" style="cursor:pointer" title="Voir ce qui reste à valider"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">📋</div><div class="kpi-val">${eur(prevuJour)}</div><div class="kpi-lbl">Prévu ${d===today?"aujourd'hui":'ce jour-là'} (${intsJour.length} intervention${intsJour.length>1?'s':''})</div></div>
     <div class="kpi" onclick="closeModal();regFOrigine='terrain';comptaTab='registre';views.comptabilite()" style="cursor:pointer" title="Ouvrir le registre des encaissements"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(encJour)}</div><div class="kpi-lbl">Encaissé ce jour</div></div>
     <div class="kpi" onclick="ctrlOnglet='ecart';views.comptabilite()" style="cursor:pointer" title="Voir uniquement les personnes en écart"><div class="kpi-ico" style="background:${bon?'rgba(74,222,128,.16)':'rgba(239,68,68,.14)'}">⚖️</div><div class="kpi-val" style="color:${bon?'var(--acc-txt)':'var(--red)'}">${bon?'On est bon ✓':(ecartJour>0?'+':'')+eur(ecartJour)}</div><div class="kpi-lbl">${bon?'Écart du jour : aucun':'Écart du jour — à vérifier'}</div></div>
-    <div class="kpi" onclick="ctrlOnglet='valides';views.comptabilite()" style="cursor:pointer" title="Voir les journées validées"><div class="kpi-ico" style="background:rgba(232,163,61,.14)">🌙</div><div class="kpi-val">${valides} / ${fiches.length}</div><div class="kpi-lbl">Journée${fiches.length>1?'s':''} validée${valides>1?'s':''} (télécollecte)</div></div></div>`;
+    <div class="kpi" onclick="ctrlOnglet='valides';views.comptabilite()" style="cursor:pointer" title="Voir les journées validées"><div class="kpi-ico" style="background:rgba(232,163,61,.14)">🌙</div><div class="kpi-val">${valides} / ${fiches.length}</div><div class="kpi-lbl">Journée${fiches.length>1?'s':''} validée${fiches.length>1?'s':''} (télécollecte)</div></div></div>`;
   /* la barre d'essai n'apparaît que s'il RESTE des données d'essai à retirer — un espace propre ne voit rien */
   const demoBar=(isFinanceMgr()&&demoComptaCompte())?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px">
       <button class="btn ghost sm" onclick="demoComptaRetire()">🧹 Retirer la journée d'essai</button>
@@ -38504,7 +38568,7 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
       const lows=Object.keys(st).map(pid=>({pid,p:produit(pid),u:(st[pid]||{}).u||0})).filter(x=>x.p&&x.p.id&&x.u<=2);
       if(!lows.length) return; const nEp=lows.filter(x=>x.u<=0).length;
       const names=lows.slice(0,3).map(x=>esc(x.p.nom)+(x.u<=0?' <b>épuisé</b>':' ('+x.u+' u)')).join(', ')+(lows.length>3?'…':'');
-      out.push({id:'boxlow:'+b.id+':'+lows.map(x=>x.pid+'.'+x.u).join('|'),ic:nEp?'🟥':'🟠',txt:`Box <b>${esc(b.nom||b.numero||'')}</b> — ${lows.length} produit(s) à réapprovisionner${nEp?` dont <b>${nEp} épuisé(s)</b>`:''} : ${names}`,act:"openBox('"+b.id+"');cible('pid','"+lows.map(function(x){return x.pid;}).join(",")+"','retrait')"});
+      out.push({id:'boxlow:'+b.id+':'+lows.map(x=>x.pid+'.'+x.u).join('|'),ic:nEp?'🟥':'🟠',txt:`Box <b>${esc(b.nom||b.numero||'')}</b> — ${lows.length} produit${lows.length>1?'s':''} à réapprovisionner${nEp?` dont <b>${nEp} épuisé${nEp>1?'s':''}</b>`:''} : ${names}`,act:"openBox('"+b.id+"');cible('pid','"+lows.map(function(x){return x.pid;}).join(",")+"','retrait')"});
     });
     if(can('validerDR') && notifVoitModule('validations')){   // toute personne qui a le droit de valider (DR, admin, ou droit accordé)
       visibleDemandes(db.demandes.filter(d=>d.statut==='enAttente')).forEach(d=>out.push({id:'dem:'+d.id,ic:'✈️',txt:`Demande à valider : <b>${esc(d.num)}</b>${(d.chefNom||d.chefId)?' · '+esc(d.chefNom||userName(d.chefId)):''}`,act:"go('validations');cible('dem','"+d.id+"')"}));

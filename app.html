@@ -7943,7 +7943,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '757';
+const APP_VERSION = '760';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13627,10 +13627,33 @@ const PLANS={
 /* Places incluses : nombre d'abonnements × places par abonnement (reprendre un abonnement = places qui s'additionnent) */
 function planPlaces(){ return (PLANS[forfait()].maxU||1)*Math.max(1,db.forfaitQty||1); }
 function planPlaceLibre(){ return db.users.length<planPlaces(); }
-/* Plus de place → propose d'ouvrir la page d'abonnement avec le bon nombre d'utilisateurs prérempli */
-function proposerAbonnement(){ const f=forfait(), cible=(f==='gratuit')?'pro':f, n=db.users.length+1;
-  if(confirm('Forfait '+PLANS[f].l+' : '+planPlaces()+' place(s) utilisateur incluse(s), toutes utilisées.\n\nOuvrir la page d\'abonnement pour ajouter des utilisateurs ? (nombre prérempli : '+n+')'))
-    window.open('https://teamop.fr/recap-abonnement.html?formule='+cible+'&utilisateurs='+n,'_blank'); }
+/* ⛔ PLUS DE PLACE → LA PAGE DE PAIEMENT, POUR CE QUI MANQUE — PAS POUR TOUTE L'ÉQUIPE (v760).
+   Justin, 27 septembre 2026 : un abonnement = un utilisateur. La page de paiement compte donc un abonnement par
+   personne, et elle ouvre un abonnement NEUF, à côté de ceux qui courent déjà. Préremplir le nombre de PERSONNES
+   (`db.users.length+1`) proposait à une équipe de sept qui veut un huitième… huit abonnements de plus.
+   Depuis le forfait Gratuit, c'est l'inverse : on CHANGE de formule, et la place gratuite ne s'ajoute pas à un
+   abonnement payant — toute l'équipe passe en Pro, un abonnement par personne.
+   Trois cas n'ont pas à ouvrir un abonnement neuf, et le faisaient :
+   · qui n'est pas administrateur : ce n'est pas à lui d'abonner l'entreprise (« c'est pas aux utilisateurs de
+     savoir si l'entreprise paye ou pas ») — on lui dit seulement qu'il n'y a plus de place ;
+   · un abonnement en attente de règlement : un abonnement de plus ne règle pas celui qui est dû (et le serveur
+     tiendrait l'espace pour payé dès qu'UN abonnement vit) — on renvoie à l'espace client, comme le rappel ;
+   · une formule réservée qui attend son paiement : c'est ELLE qu'il faut payer, comme le dit le bandeau.
+   ⚠️ Les places ne viennent PAS de Stripe : le serveur ne lit que « payé ou pas ». C'est TEAM OP (la Tour) qui
+   règle le nombre — d'où la dernière phrase du message, qui ne promet rien d'automatique. */
+function abosManquants(){ return forfait()==='gratuit' ? db.users.length+1 : Math.max(1, db.users.length+1-planPlaces()); }
+function proposerAbonnement(){
+  if(!currentUser||currentUser.role!=='admin'){ toast('Plus de place utilisateur libre — seul l\'administrateur peut en ajouter',4500); return; }
+  if(_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, tes places reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  const att=db.formuleAttente;
+  if(att&&PLANS[att.formule]){ if(confirm('Ta formule '+PLANS[att.formule].l+(att.quantite>1?' ×'+att.quantite:'')+' attend son paiement : ses places s\'ouvrent dès qu\'elle est payée.\n\nOuvrir l\'espace client pour la payer ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  const f=forfait(), cible=(f==='gratuit')?'pro':f, n=abosManquants(), u=db.users.length, p=planPlaces(), s=k=>k>1?'s':'';
+  const msg=(f==='gratuit'
+    ? 'Formule Gratuit : 1 place utilisateur, déjà prise.\n\nPour travailler à '+n+', passe en Pro : un abonnement par utilisateur, soit '+n+' abonnements.'
+    : 'Formule '+PLANS[f].l+' : '+u+' utilisateur'+s(u)+' pour '+p+' place'+s(p)+'.\n\nUn abonnement = un utilisateur : pour en ajouter un, il faut '+n+' abonnement'+s(n)+' '+PLANS[f].l+' de plus.')
+    +'\n\nAprès le paiement, TEAM OP '+(f==='gratuit'?'active la formule Pro sur ton espace.':'ajoute '+(n>1?'les places':'la place')+' à ton espace.')
+    +'\n\nOuvrir la page de paiement ?';
+  if(confirm(msg)) window.open('https://teamop.fr/recap-abonnement.html?formule='+cible+'&utilisateurs='+n,'_blank'); }
 function setForfaitQty(d){ const q=Math.max(1,(db.forfaitQty||1)+d);
   if(d<0 && db.users.length>(PLANS[forfait()].maxU||1)*q){ toast('Impossible : '+db.users.length+' comptes utilisent les places actuelles'); return; }
   db.forfaitQty=q; logEvent('Abonnements '+PLANS[forfait()].l,'×'+q,'auth'); save(); toast(q+' abonnement(s) — '+planPlaces()+' place(s)'); if(current==='parametres') views.parametres(); }
