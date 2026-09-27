@@ -34,7 +34,7 @@ const sansCommentaires = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replac
 /* ── 1. la page tarifs EN SERVICE ─────────────────────────────────────────────────────────────────────────── */
 console.log('\n── 837 · un abonnement = un utilisateur ──');
 console.log('1. la page tarifs en service');
-const N = ' ';
+const N = '\u202f', NB = '\u00a0';   // l'exemple de la FAQ ne se coupe pas : « Business × 3 = 3 comptes » d'un bloc
 /* les retouches du 27 septembre au soir — et RIEN d'autre : les défaire doit rendre la v1 publiée, octet pour octet.
    Les places d'abord, dans l'ordre de la page (Pro, Business, Business Premium, Messages Pro, Messages Business Premium),
    puis les trois phrases [avant, après]. */
@@ -46,7 +46,7 @@ const PHRASES = [
   ['<p class="intro">Prix HT par mois, sans engagement. Chaque abonnement inclut un nombre d\'utilisateurs — besoin de plus' + N + '? Ajoutez un abonnement, les places s\'additionnent.</p>',
    '<p class="intro">Prix HT par mois, sans engagement. Un abonnement par utilisateur' + N + ': pour une équipe de cinq, prenez cinq abonnements.</p>'],
   ['<p>Chaque abonnement inclut un nombre de comptes' + N + ': 1 en Gratuit, 1 en Pro, 2 en Business, 3 en Business Premium. Besoin de plus' + N + '? Ajoutez un abonnement' + N + ': les places s\'additionnent (par exemple, Business × 2 = 4 comptes).</p>',
-   '<p>Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus' + N + '? Ajoutez un abonnement par personne' + N + ': les places s\'additionnent (par exemple, Business × 3 = 3 comptes).</p>'],
+   '<p>Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus' + N + '? Ajoutez un abonnement par personne' + N + ': les places s\'additionnent (par exemple, ' + ['Business', '×', '3', '=', '3', 'comptes'].join(NB) + ').</p>'],
 ];
 const V1_PUBLIEE = '5cc21091b9faa0a182e8d0e0be18151c948ffcb4d92db4387460c745ea507a28';   // tarifs.html de fe599df
 const TAR = lire('tarifs.html');
@@ -58,6 +58,7 @@ vrai('⛔ plus aucune formule ne vend plusieurs utilisateurs', !/[2-9] utilisate
 v('les cinq formules payantes disent « 1 utilisateur par abonnement »', (TAR.match(/<div class="places">1 utilisateur par abonnement<\/div>/g) || []).length, 5);
 vrai('l\'introduction le dit : « Un abonnement par utilisateur »', tt.includes('Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements.'));
 vrai('la FAQ le dit, avec un exemple qui compte juste (Business × 3 = 3 comptes)', tt.includes('Un abonnement donne un compte utilisateur, quelle que soit la formule') && tt.includes('Business × 3 = 3 comptes'));
+vrai('… et l\'exemple ne se coupe pas en fin de ligne (insécables)', TAR.includes(['Business', '×', '3', '=', '3', 'comptes'].join(NB)));
 vrai('la description (moteurs de recherche) dit « par mois et par utilisateur »', meta.includes('par mois et par utilisateur'));
 if (racineGeneree) {
   vrai('la racine est la sortie du générateur (remplacée) — test-835 la garde', true);
@@ -101,7 +102,8 @@ function executer(PAGE, recherche) {
     window, document, { replaceState() {} }, { getItem: () => null }, fetchFaux, () => {});
   const paiement = () => texte(conteneurs.cartePaiement.innerHTML);
   const droits = () => texte(conteneurs.carteDroits.innerHTML);
-  return { api, derniers, envoye, window, paiement, droits };
+  const html = () => conteneurs.cartePaiement.innerHTML;
+  return { api, derniers, envoye, window, paiement, droits, html };
 }
 
 const PAGES_PAIEMENT = ['recap-abonnement.html', 'apercu/recap-abonnement.html'].filter(existe);
@@ -137,7 +139,8 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     // le champ : 60 tapés → plafond du serveur, et la page dit pourquoi
     b.derniers.nbUsers.value = '60'; b.derniers.nbUsers._h.change[0]();
     v('60 tapés dans le champ : la page s\'arrête au plafond du serveur', b.api.etat().nbUsersVoulu, PLAFOND_SERVEUR);
-    vrai('… et le dit : « au-delà de 50, écrivez à support@teamop.fr »', b.paiement().includes('au-delà de 50, écrivez à support@teamop.fr'));
+    vrai('… et le dit, sur sa ligne : « Au-delà de 50, écrivez à support@teamop.fr »', b.paiement().includes('Au-delà de 50, écrivez à support@teamop.fr') && /<br>Au-delà de 50/.test(b.html()));
+    vrai('« un par utilisateur » ne se coupe pas en fin de ligne', b.html().includes('un\u00a0par\u00a0utilisateur'));
     vrai('… le « + » ne passe pas au-dessus', (b.derniers.aboPlus._h.click[0](), b.api.etat().nbUsersVoulu === PLAFOND_SERVEUR));
     b.derniers.nbUsers.value = '5'; b.derniers.nbUsers._h.change[0]();
     // le paiement : la quantité qui part est le nombre de personnes

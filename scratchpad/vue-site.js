@@ -4,7 +4,8 @@
    Usage : node scratchpad/vue-site.js            SEULES=elan-bureau-jour node scratchpad/vue-site.js */
 const fs = require('fs'), path = require('path'), http = require('http'), net = require('net'), os = require('os');
 const { spawn } = require('child_process');
-const RACINE = path.join(__dirname, '..');
+/* RACINE_SERVIE : servir une autre copie (la copie de main, par exemple) — c'est ELLE qu'on photographie alors */
+const RACINE = process.env.RACINE_SERVIE || path.join(__dirname, '..');
 const SORTIE = process.env.SORTIE || path.join(__dirname, 'vues-site');
 fs.mkdirSync(SORTIE, { recursive: true });
 const dormir = ms => new Promise(r => setTimeout(r, ms));
@@ -84,6 +85,22 @@ const VUES = [
   { nom: 'portail-404-tel-nuit', pleine: true, chemin: '/404.html', p: 'telephone', mode: 'dark' },
   { nom: 'opmessages-bureau-nuit', page: 'opmessages', p: 'bureau', mode: 'dark', cadre: '.bento' },
   { nom: 'opmessages-bureau-jour', page: 'opmessages', p: 'bureau', mode: 'light', cadre: '.bento' },
+  /* « 1 utilisateur par abonnement » (Justin, 27 septembre 2026 au soir) : la page tarifs EN SERVICE (v1, racine), celle
+     de l'aperçu (v2), et la page de paiement — en service (racine de main) et au thème (aperçu) */
+  { nom: 'un-tarifs-service-bureau-jour', chemin: '/tarifs.html', p: 'bureau', mode: 'light', cadre: '#formules-gestion' },
+  { nom: 'un-tarifs-service-bureau-nuit', chemin: '/tarifs.html', p: 'bureau', mode: 'dark', cadre: '#formules-gestion' },
+  { nom: 'un-tarifs-service-bureau-msg', chemin: '/tarifs.html', p: 'bureau', mode: 'light', cadre: '#formules-msg', geste: `document.getElementById('onglet-msg').click();` },
+  { nom: 'un-tarifs-service-tel-jour', pleine: true, chemin: '/tarifs.html', p: 'telephone', mode: 'light', hMax: 2600 },
+  { nom: 'un-tarifs-service-faq', chemin: '/tarifs.html', p: 'telephone', mode: 'light', cadre: '#faq', geste: `document.querySelectorAll('#faq .q button')[1].click();` },
+  { nom: 'un-tarifs-apercu-bureau-jour', page: 'tarifs', p: 'bureau', mode: 'light', cadre: '#formules-gestion' },
+  { nom: 'un-tarifs-apercu-tel-nuit', pleine: true, page: 'tarifs', p: 'telephone', mode: 'dark', hMax: 2600 },
+  { nom: 'un-paiement-service-tel', pleine: true, chemin: '/recap-abonnement.html?formule=business&utilisateurs=7', p: 'telephone', mode: 'dark' },
+  { nom: 'un-paiement-service-bureau', pleine: true, chemin: '/recap-abonnement.html?formule=business&utilisateurs=7', p: 'bureau', mode: 'dark' },
+  { nom: 'un-paiement-apercu-tel-jour', pleine: true, chemin: '/apercu/recap-abonnement.html?formule=business&utilisateurs=7', p: 'telephone', mode: 'light' },
+  { nom: 'un-paiement-apercu-tel-nuit', pleine: true, chemin: '/apercu/recap-abonnement.html?formule=business&utilisateurs=7', p: 'telephone', mode: 'dark' },
+  { nom: 'un-paiement-apercu-bureau-jour', pleine: true, chemin: '/apercu/recap-abonnement.html?formule=business&utilisateurs=7', p: 'bureau', mode: 'light' },
+  { nom: 'un-paiement-apercu-plafond', pleine: true, chemin: '/apercu/recap-abonnement.html?formule=pro&utilisateurs=80', p: 'telephone', mode: 'light' },
+  { nom: 'un-paiement-apercu-premium', pleine: true, chemin: '/apercu/recap-abonnement.html?formule=premium', p: 'telephone', mode: 'dark' },
 ];
 
 (async () => {

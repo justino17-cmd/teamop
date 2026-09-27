@@ -128,6 +128,9 @@ const ETATS = [
   { nom: 'recap-premium-annuel', chemin: '/apercu/recap-abonnement.html?formule=premium', geste: `document.querySelector('.cycle[data-cycle=annuel]').click();` },
   { nom: 'recap-gratuit', chemin: '/apercu/recap-abonnement.html?formule=gratuit' },
   { nom: 'recap-messages', chemin: '/apercu/recap-abonnement.html?formule=msgpro' },
+  /* un abonnement = un utilisateur (27 septembre au soir) : sept personnes, puis le plafond du serveur et sa phrase */
+  { nom: 'recap-business-7', chemin: '/apercu/recap-abonnement.html?formule=business&utilisateurs=7' },
+  { nom: 'recap-plafond', chemin: '/apercu/recap-abonnement.html?formule=pro&utilisateurs=80' },
   { nom: 'merci', chemin: '/apercu/merci.html' },
   { nom: 'mentions', chemin: '/apercu/mentions-legales.html' },
   { nom: 'confidentialite', chemin: '/apercu/confidentialite.html' },

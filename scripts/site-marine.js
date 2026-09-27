@@ -321,7 +321,7 @@ const PAGES = {
       </div></section>
       <section class="faq" id="faq"><h2 class="h2 moyen">Questions fréquentes.</h2><div class="liste">`
       + [['Puis-je changer de formule à tout moment ?', 'Oui. Vous passez de Gratuit à Pro, Business ou Business Premium quand vous voulez, et vous pouvez redescendre ou arrêter à tout moment — aucun engagement de durée.'],
-        ['Comment fonctionnent les places utilisateur ?', 'Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus ? Ajoutez un abonnement par personne : les places s\'additionnent (par exemple, Business × 3 = 3 comptes).'],
+        ['Comment fonctionnent les places utilisateur ?', 'Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus ? Ajoutez un abonnement par personne : les places s\'additionnent (par exemple, Business\u00a0×\u00a03\u00a0=\u00a03\u00a0comptes).'],
         ['Faut-il installer quelque chose ?', 'Non. TEAM OP est une vraie application qui s\'installe en un clic sur iPhone, Android, Mac et Windows. Elle s\'ouvre aussi dans le navigateur, sans rien télécharger.'],
         ['Mes données sont-elles en sécurité ?', 'Oui : chiffrement AES-256, un espace totalement isolé par entreprise, et une sauvegarde complète exportable à tout moment.'],
         ['Y a-t-il des frais d\'installation ?', 'Non, aucun frais caché. L\'accompagnement à la mise en route est inclus dans Business Premium.'],
