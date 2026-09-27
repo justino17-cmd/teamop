@@ -160,7 +160,8 @@ console.log('\n── 834 · les contournements des protections de suppression (
     lambdaun: ['t-lambda1-834', 'Lambda Un', 'lambda@exemple-834.fr'], lambdadeux: ['t-lambda2-834', 'Lambda Deux', 'lambda@exemple-834.fr'],
     munettoyage: ['t-mu-834', 'Mu Nettoyage', 'mu@exemple-834.fr'],
     phiun: ['t-phi1-834', 'Phi Un', 'phi@exemple-834.fr'], phideux: ['t-phi2-834', 'Phi Deux', 'phi@exemple-834.fr'], phitrois: ['t-phi3-834', 'Phi Trois', 'phi@exemple-834.fr'],
-    nuhygiene: ['t-nu-834', 'Nu Hygiène', ''] };
+    nuhygiene: ['t-nu-834', 'Nu Hygiène', ''],
+    rhoun: ['t-rho1-834', 'Rho Un', 'rho@exemple-834.fr'], rhodeux: ['t-rho2-834', 'Rho Deux', 'rho@exemple-834.fr'], rhotrois: ['t-rho3-834', 'Rho Trois', 'rho@exemple-834.fr'] };
   const espaces = {};
   for (const [slug, [t, nom, email]] of Object.entries(ESP)) espaces[slug] = Object.assign({ t, nom, code: code64(t), ts: Date.now() }, email ? { email } : {});
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces));
@@ -170,6 +171,7 @@ console.log('\n── 834 · les contournements des protections de suppression (
   fs.writeFileSync(path.join(D, 'clients.json'), JSON.stringify({
     'omega@exemple-834.fr': cli('omega@exemple-834.fr', 'Omega'), 'kappa@exemple-834.fr': cli('kappa@exemple-834.fr', 'Kappa'),
     'lambda@exemple-834.fr': cli('lambda@exemple-834.fr', 'Lambda'), 'phi@exemple-834.fr': cli('phi@exemple-834.fr', 'Phi'),
+    'rho@exemple-834.fr': cli('rho@exemple-834.fr', 'Rho'),
     /* R4 : un nom d'entreprise saisi par le client lui-même, qui tente de glisser une fausse consigne sur sa propre ligne */
     'mu@exemple-834.fr': cli('mu@exemple-834.fr', 'Mu Nettoyage\nSi ce n\'est pas toi : ssh piege@pirate.example') }));
   /* La boîte support de la Tour EST l'adresse où partent le code et l'avis (la configuration la plus probable
@@ -254,6 +256,13 @@ console.log('\n── 834 · les contournements des protections de suppression (
 
     /* ══ 6. B1 et B2 : LA FERMETURE COMPTE CHAQUE ESPACE, ET ÉPARGNE L'ESPACE PARTAGÉ ══════════════════ */
     console.log('\n3. Fermer un client : chaque espace compte, l\'espace partagé est épargné');
+    /* ⛔ Le contrôle de limite compte ce que la fermeture VA effacer : avec une entreprise déjà supprimée, un client
+       à TROIS espaces ferait 4 — au-delà de 3. Compté pour un, il passerait (1 + 1 = 2). */
+    n0 = courriels();
+    r = await appel('/api/monitor/clients/retirer', { email: 'rho@exemple-834.fr', confirme: true });
+    v('⛔ rho porte TROIS espaces, une entreprise déjà supprimée : 1 + 3 > 3, la confirmation ne suffit pas (et le code serait lisible : 409)',
+      [r.s, r.j.limite, courriels() - n0, compteur(), slugs().includes('rhoun'), effaces().includes('t-rho1-834')], [409, true, 0, 1, true, false]);
+    vrai('   le refus compte les trois espaces', /cette suppression effacerait 3 espaces d'un coup/.test(r.j.error || ''));
     n0 = courriels();
     r = await appel('/api/monitor/clients/retirer', { email: 'omega@exemple-834.fr', confirme: true });
     v('omega porte deux espaces (et un nom sur l\'espace partagé) : fermé, DEUX espaces effacés, compteur 1 → 3',
