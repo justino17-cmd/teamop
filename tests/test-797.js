@@ -108,15 +108,21 @@ const vrai = (t, a) => v(t, !!a, true);
   /* ⛔ ET C'EST LE CORPS DE LA PAGE QUI PART, PAS UN LITTÉRAL : sans lui, ce banc redeviendrait
      `test-727`, et la couture ne serait plus gardée par personne. */
   vrai('⛔ le corps éprouvé est bien celui de la PAGE', !!corps);
+  /* ⚠️ LA PAGE PART AVANT LE SERVEUR : la route exige un compte depuis le 27 septembre 2026, mais elle ne part en service
+     que sur « pousse le serveur ». Entre les deux (c'est `main`), la page doit tenir SEULE contre la route d'avant — le
+     paiement s'ouvre avec ses en-têtes. La route elle-même est gardée, sans tolérance, par `test-727`. */
+  const ROUTE_REGLE = /cm\.verifie\(payeur\)/.test(SRC.slice(iR, finR)) && /customer_email/.test(SRC.slice(iR, finR));
   if (corps && entetes) {
     const r = await appeler(corps, entetes);
     vrai('⛔ ce que la page envoie fait graver la référence sur l\'ABONNEMENT',
       /subscription_data%5Bmetadata%5D%5Bespace%5D=monclient-9f2a/.test(r.envoye));
     vrai('   et la page de paiement s\'ouvre', r.sortie && /checkout\.stripe\.com/.test(r.sortie.url || ''));
-    v('⛔ la session envoyée par la PAGE est reconnue par la ROUTE : l\'abonnement part au nom du compte',
-      new URLSearchParams(r.envoye).get('customer_email'), 'paie@entreprise-banc.fr');
-    const sansEntete = await appeler(corps, { 'Content-Type': 'application/json' });
-    v('   contre-épreuve : le même corps SANS la session de la page est refusé (401)', sansEntete.statut, 401);
+    if (ROUTE_REGLE) {
+      v('⛔ la session envoyée par la PAGE est reconnue par la ROUTE : l\'abonnement part au nom du compte',
+        new URLSearchParams(r.envoye).get('customer_email'), 'paie@entreprise-banc.fr');
+      const sansEntete = await appeler(corps, { 'Content-Type': 'application/json' });
+      v('   contre-épreuve : le même corps SANS la session de la page est refusé (401)', sansEntete.statut, 401);
+    } else console.log('  ⚠️ route d\'avant (le serveur part sur « pousse le serveur ») : la page tient seule, et le paiement s\'ouvre');
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

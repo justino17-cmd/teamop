@@ -382,8 +382,10 @@ globalThis.fetch = async function (url, opts) {
         await dormir(0);
         v('⛔ « J\'ai confirmé mon adresse » : la page relit le vrai serveur et passe « prête »', p1.api.etat().compte.etat, 'pret');
         vrai('   « Paiement rattaché à votre compte : camille@entreprise-banc.fr »', p1.texte().includes('Paiement rattaché à votre compte : camille@entreprise-banc.fr'));
+        /* on compte à partir d'ICI : contre le serveur d'avant, l'appel direct plus haut a, lui, ouvert une page */
+        const n0 = stripeRecu().length;
         await p1.clic('btnPayer');
-        const s1 = stripeRecu();
+        const s1 = stripeRecu().slice(n0);
         v('⛔ « Payer » : le vrai serveur a ouvert UNE page de paiement chez Stripe, et la page y part', [s1.length, p1.window.location.href], [1, 'https://checkout.stripe.com/c/pay/banc-839']);
         const envoye = new URLSearchParams(s1[0] ? s1[0].corps : '');
         v('   pour la quantité choisie (3)', envoye.get('line_items[0][quantity]'), '3');
@@ -400,14 +402,14 @@ globalThis.fetch = async function (url, opts) {
         rangement.set('teamop_portail_jeton', 'a'.repeat(64));   // une session que le serveur ne connaît pas (brûlée, périmée)
         await p2.clic('btnPayer');
         if (REGLE) v('⛔ session morte au moment de payer : le vrai serveur refuse (401), la page dit « Votre session a expiré », rien chez Stripe',
-          [p2.api.etat().compte.etat, p2.texte().includes('Votre session a expiré'), stripeRecu().length], ['aucun', true, 1]);
+          [p2.api.etat().compte.etat, p2.texte().includes('Votre session a expiré'), stripeRecu().length], ['aucun', true, n0 + 1]);
         else vrai('   (serveur d\'avant : une session morte ne se découvre qu\'à la relecture du compte)', true);
 
         // sans en-tête du tout, ou mal formé : le vrai serveur refuse
         if (REGLE) {
           const sans = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: 'price_1Banc', quantity: 1 }) });
           const faux = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + 'e'.repeat(64) }, body: JSON.stringify({ price: 'price_1Banc', quantity: 1 }) });
-          v('⛔ le vrai serveur : sans session 401, session inventée 401 — et rien de plus chez Stripe', [sans.status, faux.status, stripeRecu().length], [401, 401, 1]);
+          v('⛔ le vrai serveur : sans session 401, session inventée 401 — et rien de plus chez Stripe', [sans.status, faux.status, stripeRecu().length], [401, 401, n0 + 1]);
         }
       }
     } finally {
