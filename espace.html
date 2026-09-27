@@ -723,8 +723,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     try{ await mdpLien(email,'https://teamop.fr/espace.html'); }
     catch(e){ const c=(e&&e.code)||'';
       if(c==='auth/invalid-email'){ box.innerHTML='<div class="err">E-mail invalide.</div>'; return; }
-      if(c==='auth/too-many-requests'){ box.innerHTML='<div class="err">Trop de demandes en peu de temps. Regarde d\'abord dans tes e-mails (et les indésirables) : un lien est peut-être déjà arrivé. Sinon, réessaie dans une heure.</div>'; return; }
-      box.innerHTML='<div class="err">Envoi impossible pour le moment : rien n\'est parti. Vérifie ta connexion et réessaie dans un instant.</div>'; return; }
+      if(c==='auth/too-many-requests'){ box.innerHTML='<div class="err">Trop de demandes en peu de temps. Regarde d\'abord dans tes e-mails (et les indésirables)&nbsp;: un lien est peut-être déjà arrivé. Sinon, réessaie dans une heure.</div>'; return; }
+      box.innerHTML='<div class="err">Envoi impossible pour le moment&nbsp;: rien n\'est parti. Vérifie ta connexion et réessaie dans un instant.</div>'; return; }
     box.innerHTML='<div class="ok">📬 Si un compte existe pour <b>'+esc(email)+'</b>, un e-mail de réinitialisation vient de partir. Regarde aussi les indésirables.</div>';
   }
   function authMsg(e){ const c=(e&&e.code)||'';
