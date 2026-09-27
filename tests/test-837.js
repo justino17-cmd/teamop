@@ -175,6 +175,31 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   v('population : six formules comparées', Object.keys(prixSite).length, 6);
   v('chaque formule coûte le même prix sur le site et au paiement', Object.keys(prixSite).filter(k => !R || !R.api.FORMULES[k] || R.api.FORMULES[k].prixMensuel !== prixSite[k]), []);
 
+  /* ── 4. tout ce que le dépôt SERT, recensé — pas une liste écrite à la main ─────────────────────────────────── */
+  /* La première version de ce banc ne relisait que les pages qu'on savait concernées : la relecture en a trouvé deux autres,
+     servies et sans `noindex`, qui vendaient encore 2 et 3 utilisateurs (`apercu/tarifs.html`, restée d'un cycle d'aperçu
+     antérieur, et la maquette `apercu/site-apple.html`). « Un recensement part du dépôt, jamais d'une liste » (CLAUDE.md). */
+  console.log('4. aucune page servie ne vend plusieurs utilisateurs par abonnement');
+  const { execSync } = require('child_process');
+  let suivis = [];
+  try { suivis = execSync('git ls-files', { cwd: RACINE, encoding: 'utf8' }).split('\n').filter(Boolean); } catch (e) {}
+  const SERVIS = suivis.filter(f => /\.(html|js|json)$/.test(f) && !/^(scratchpad|design|tests|server|\.github|scripts)\//.test(f) && !/node_modules/.test(f));
+  vrai('population : ' + SERVIS.length + ' fichiers servis relus', SERVIS.length > 50);
+  /* ⛔ L'APPLICATION, écart DÉCLARÉ (test-835 §3) : ses textes de forfait disent encore « 2 utilisateurs inclus » tant
+     qu'elle donne 2 places. Le jour où elle passe à 1, cette exception ne sert plus, et le banc le dit. */
+  const ECART_APPLICATION = ['app.html', 'beta.html'];
+  const PROMESSE = /[2-9] utilisateurs? inclus|\(\s*[2-9] utilisateurs|u:'[2-9] utilisateurs|\b[2-9] en Business\b|Business\s*×\s*2\s*=\s*[3-9]/;
+  const fautifs = [];
+  for (const f of SERVIS) {
+    if (ECART_APPLICATION.includes(f)) continue;
+    let t = ''; try { t = fs.readFileSync(path.join(RACINE, f), 'utf8'); } catch (e) { continue; }
+    t = sansCommentaires(t).replace(/<!--[\s\S]*?-->/g, ' ').replace(/[\u202f\u00a0]/g, ' ');
+    const m = PROMESSE.exec(t);
+    if (m) fautifs.push(f + ' : « ' + t.slice(Math.max(0, m.index - 30), m.index + m[0].length + 10).replace(/\s+/g, ' ') + ' »');
+  }
+  v('⛔ aucune page ni aucun script servi ne vend plusieurs utilisateurs par abonnement', fautifs, []);
+  for (const f of ECART_APPLICATION) if (existe(f)) vrai('l\'écart déclaré pour ' + f + ' sert encore (sinon : le retirer d\'ici et de test-835)', PROMESSE.test(sansCommentaires(lire(f))));
+
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ le banc a jeté : ' + (e && e.stack || e)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });
