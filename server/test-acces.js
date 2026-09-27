@@ -20,6 +20,7 @@ const { spawn } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 
 const PORT = 8199;
+const PORT_SMTP = PORT + 100;   // le facteur de banc (voir plus bas)
 const BASE = 'http://127.0.0.1:' + PORT;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'teamop-acces-'));
 const data = path.join(dir, 'data');
@@ -29,7 +30,8 @@ const sha = (p) => crypto.createHash('sha256').update(String(p)).digest('hex');
 const MDP = 'essai-' + crypto.randomBytes(6).toString('hex');
 fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({
   vapidPublicKey: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkTF6oDZoV8HGDzT9K1YfJTNqjcMhLU_pP6HqJdBnbfGwqNfhKW1CTk',
-  vapidPrivateKey: 'UUxI4O8-FbRouAevSmBQ6o18hgE4nSG3qwvJTfKc-ls'
+  vapidPrivateKey: 'UUxI4O8-FbRouAevSmBQ6o18hgE4nSG3qwvJTfKc-ls',
+  smtp: { host: '127.0.0.1', port: PORT_SMTP, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' }
 }));
 fs.writeFileSync(path.join(dir, 'monitor.json'), JSON.stringify({
   issues: [], journal: [], archive: [],
@@ -84,12 +86,39 @@ const surDisque = () => { try { return JSON.parse(fs.readFileSync(path.join(data
   } catch (e) { /* rien n'écoute : c'est ce qu'on veut */ }
 })();
 
+/* ⛔ UN FACTEUR SMTP DE BANC (celui de tests/test-834.js). Depuis le 27 septembre 2026, le serveur n'efface plus
+   rien — « repartir à neuf » compris — tant qu'il ne peut pas envoyer l'avis de suppression (`supprMailPret`) :
+   sans serveur d'e-mail, ce contrôle lisait « rien n'a été effacé » et tombait sur un serveur juste (vu sur une
+   copie de main avant le déploiement). Il reçoit, retire le point doublé (RFC 5321 §4.5.2), et c'est tout. */
+const facteur = { recus: [] };
+facteur.s = require('net').createServer(c => {
+  c.on('error', () => {});
+  let tampon = '', corps = false, msg = '';
+  c.write('220 banc\r\n');
+  c.on('data', d => {
+    tampon += d.toString('utf8');
+    let i;
+    while ((i = tampon.indexOf('\r\n')) >= 0) {
+      const l = tampon.slice(0, i); tampon = tampon.slice(i + 2);
+      if (corps) { if (l === '.') { corps = false; facteur.recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }
+      const h = l.toUpperCase();
+      if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
+      else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
+      else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
+      else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
+      else c.write('250 ok\r\n');
+    }
+  });
+});
+facteur.s.listen(PORT_SMTP, '127.0.0.1');
+const lisible = (m) => Buffer.from(String(m || '').replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8');
+const avisParti = async () => { for (let i = 0; i < 40; i++) { if (facteur.recus.some(m => /Une suppression vient d'être faite/.test(lisible(m)))) return true; await new Promise(r => setTimeout(r, 50)); } return false; };
 const srv = spawn(process.execPath, [path.join(__dirname, 'index.js')], {
   env: { ...process.env, TEAMOP_CONFIG: path.join(dir, 'config.json'), TEAMOP_DATA: data, PORT: String(PORT) },
   stdio: ['ignore', 'pipe', 'pipe']
 });
 if (process.env.BAVARD) { srv.stdout.on('data', d => process.stdout.write('[srv] ' + d)); srv.stderr.on('data', d => process.stdout.write('[srv!] ' + d)); }
-const fin = (code) => { try { srv.kill(); } catch (e) {} try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {} process.exit(code); };
+const fin = (code) => { try { srv.kill(); } catch (e) {} try { facteur.s.close(); } catch (e) {} try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {} process.exit(code); };
 
 (async () => {
   for (let i = 0; i < 40; i++) {
@@ -168,7 +197,9 @@ const fin = (code) => { try { srv.kill(); } catch (e) {} try { fs.rmSync(dir, { 
 
   console.log('\n── un espace qui repart à neuf perd son code ──');
   dit('le code marche avant', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Neuve', acces: 'NEUVE12345' })).statut === 200);
-  await post('/api/monitor/espaces/renaitre', { nom: 'Entreprise Neuve' }, T);
+  /* la Tour v2.69 : une question, une case, « Oui » → confirme:true (sous la limite, pas de code) */
+  await post('/api/monitor/espaces/renaitre', { nom: 'Entreprise Neuve', confirme: true }, T);
+  dit('l\'avis de suppression est parti (sinon rien n\'aurait été effacé)', await avisParti());
   dit('il est effacé du registre', !(surDisque() || {})['neuve-t5']);
   dit('et il n\'ouvre plus rien', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Neuve', acces: 'NEUVE12345' })).statut !== 200);
 

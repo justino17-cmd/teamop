@@ -133,6 +133,12 @@ v('aucun identifiant en double (#fonctions l\'était : la section ET les donnée
    · le contrôle de syntaxe de la CI les accepte. Il passait chaque <script> à `new Function` : le bloc de
      données JSON d'elan.html et d'opmessages.html y était une erreur, et la CI de main serait tombée au rouge
      sur des pages justes (vu sur la copie de main, avant de pousser). */
+/* le nom commercial d'une formule ne change pas avec le dessin du site : la maquette écrivait « Messages Premium »,
+   le site en service et la page d'avant disaient « Messages Business Premium » (test-756 le relit dans tarifs.html) */
+const TAR_T = texte(GEN.page('tarifs', { racine: true }));
+v('les trois formules OP MESSAGES gardent leurs noms en service', ['Perso', 'Messages Pro', 'Messages Business Premium'].filter(n => !TAR_T.includes(n)), []);
+vrai('plus de « Messages Premium » tout court', !/Messages Premium/.test(TAR_T));
+
 console.log('10. la racine et la CI');
 for (const c of CLES) {
   const f = path.join(RACINE, c + '.html');
