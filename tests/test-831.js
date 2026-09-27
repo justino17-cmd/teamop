@@ -150,7 +150,9 @@ function connexion(base) {
 /* Ce que l'écran DIT, rangé en trois familles : l'annonce d'un envoi, un refus, autre chose. */
 const PARTI = h => /vient de partir/.test(h);
 const refusPortail = h => /class="err"/.test(h) && !PARTI(h);
-const ROUGE = '#f87171';
+/* Les couleurs sont des JETONS du thème du site (/vitrine/v2/theme.css) depuis que la page suit le jour et la nuit
+   (27 septembre 2026 au soir) : un rouge écrit en dur ne se lirait que dans un des deux modes. */
+const ROUGE = 'var(--m-err)', VERT = 'var(--m-ok)';
 
 (async () => {
   console.log('\n══ 0. LES TRANCHES SONT TROUVÉES (une tranche vide passerait au vert sur tout) ══\n');
@@ -213,7 +215,7 @@ const ROUGE = '#f87171';
   {
     const C = connexion(S.B);
     const bon = await C.relance('bernard-hygiene');
-    vrai('une demande acceptée : « vient de partir », en vert', PARTI(bon.h) && bon.c !== ROUGE);
+    vrai('une demande acceptée : « vient de partir », en vert', PARTI(bon.h) && bon.c === VERT);
     vrai('   (et la phrase ne dit pas si l\'entreprise existe : « si … est bien inscrite »)', /Si « bernardhygiene » est bien inscrite/.test(bon.h));
     const vide = await C.relance('');
     vrai('un nom vide ne demande rien et le dit', /Écris d'abord l'adresse/.test(vide.h) && vide.c === ROUGE);

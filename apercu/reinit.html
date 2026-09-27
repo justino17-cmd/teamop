@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr">
-<head>
+<head><base href="/">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TEAM OP — Nouveau mot de passe</title>
@@ -74,8 +74,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     <div class="err" id="err"></div>
     <button id="go" onclick="enregistrer()">Enregistrer mon mot de passe</button>
   </div>
-  <div class="ok" id="etape-ok">✅ <b>Mot de passe enregistré.</b><br>Tu peux te connecter dès maintenant avec ton e-mail et ce nouveau mot de passe.<br><br><a id="suite" href="espace.html">Se connecter →</a></div>
-  <div id="etape-ko" style="display:none"><h1>Lien invalide ou expiré</h1><p id="ko-txt">Ce lien de réinitialisation ne fonctionne plus : il a peut-être déjà servi, ou il date de plus d'une heure. Redemande un nouveau lien depuis « Mot de passe oublié ».</p><a class="retour" href="espace.html">Retour à Mon espace →</a></div>
+  <div class="ok" id="etape-ok">✅ <b>Mot de passe enregistré.</b><br>Tu peux te connecter dès maintenant avec ton e-mail et ce nouveau mot de passe.<br><br><a id="suite" href="/apercu/espace.html">Se connecter →</a></div>
+  <div id="etape-ko" style="display:none"><h1>Lien invalide ou expiré</h1><p id="ko-txt">Ce lien de réinitialisation ne fonctionne plus : il a peut-être déjà servi, ou il date de plus d'une heure. Redemande un nouveau lien depuis « Mot de passe oublié ».</p><a class="retour" href="/apercu/espace.html">Retour à Mon espace →</a></div>
   <div class="pied">TEAM OP · la suite de gestion des pros du terrain · teamop.fr</div>
 </div>
 <script>
@@ -92,7 +92,7 @@ var MAISON = !!JETON;
 var API = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? '' : 'https://api.teamop.fr';
 function montre(id){ ['etape-chargement','etape-form','etape-ok','etape-ko'].forEach(function(x){ var e=document.getElementById(x); if(e) e.style.display=(x===id)?'block':'none'; }); }
 function ko(txt){ if(txt){ var t=document.getElementById('ko-txt'); if(t) t.textContent=txt; } montre('etape-ko'); }
-function suiteHref(){ try{ if(SUITE&&/^https:\/\/(www\.)?teamop\.fr\//.test(SUITE)) return SUITE; }catch(e){} return 'espace.html'; }
+function suiteHref(){ try{ if(SUITE&&/^https:\/\/(www\.)?teamop\.fr\//.test(SUITE)) return SUITE; }catch(e){} return '/apercu/espace.html'; }
 
 /* ⛔ LA MÊME EMPREINTE QUE `espace.html`, AU CARACTÈRE PRÈS.
    Le mot de passe ne quitte jamais le navigateur : on envoie `SHA-256('teamop-portail:'+mdp)`,
@@ -192,5 +192,5 @@ function enregistrer(){
 })();
 </script>
 <script src="/vitrine/v2/mode.js" defer></script>
-</body>
+<div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
 </html>

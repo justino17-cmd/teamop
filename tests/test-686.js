@@ -100,7 +100,7 @@ v('⛔ le curseur ne saute pas en fin de champ à chaque frappe',
   /el\.setSelectionRange\(Math\.max\(0,pos-d\),Math\.max\(0,pos-d\)\)/.test(cnx), true);
 /* Précision de Justin : l'adresse d'entreprise n'ouvre QUE OP GESTION. */
 v('l\'adresse d\'entreprise n\'ouvre qu\'OP GESTION, et le dit',
-  /te connecte à <b style="color:#eef2fa">OP GESTION<\/b>, et à lui seul/.test(cnx), true);
+  /te connecte à <b class="fort">OP&nbsp;GESTION<\/b>, et à lui seul/.test(cnx), true);
 v('… et OP MESSAGES est annoncé hors forfait',
   /ne fait pas partie du forfait/.test(cnx), true);
 

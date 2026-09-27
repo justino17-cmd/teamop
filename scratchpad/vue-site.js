@@ -44,6 +44,44 @@ const VUES = [
   { nom: 'bloc-inv-jour', page: 'elan', p: 'bureau', mode: 'light', cadre: '.bento', hMax: 700 },
   { nom: 'bloc-inv-tel-jour', page: 'elan', p: 'telephone', mode: 'light', cadre: '.bento .tuile-f:nth-child(1)' },
   { nom: 'bloc-apps-tel-jour', page: 'applications', p: 'telephone', mode: 'light', cadre: '.apps' },
+  /* les pages hors du site : le portail et ses voisines (Justin : « au niveau des connexions ou création de compte, j'ai pas mon thème ») */
+  { nom: 'portail-espace-tel-jour', pleine: true, chemin: '/espace.html', p: 'telephone', mode: 'light' },
+  { nom: 'portail-espace-tel-nuit', pleine: true, chemin: '/espace.html', p: 'telephone', mode: 'dark' },
+  { nom: 'portail-connexion-tel-jour', pleine: true, chemin: '/connexion.html', p: 'telephone', mode: 'light' },
+  { nom: 'portail-connexion-tel-nuit', pleine: true, chemin: '/connexion.html', p: 'telephone', mode: 'dark' },
+  { nom: 'portail-connexion-relie-tel-jour', pleine: true, chemin: '/connexion.html?choix=1', p: 'telephone', mode: 'light', avant: `localStorage.setItem('elan_sync_team','entreprise-exemple'); localStorage.setItem('elan_entreprise_nom','Entreprise Exemple');` },
+  { nom: 'portail-connexion-relie-tel-nuit', pleine: true, chemin: '/connexion.html?choix=1', p: 'telephone', mode: 'dark', avant: `localStorage.setItem('elan_sync_team','entreprise-exemple'); localStorage.setItem('elan_entreprise_nom','Entreprise Exemple');` },
+  { nom: 'portail-connexion-e-tel-jour', pleine: true, chemin: '/connexion.html?e=entreprise-exemple', p: 'telephone', mode: 'light', attente: 2500, geste: `cxMsg('var(--m-warn)','Cette entreprise ne connaît pas encore la connexion par identifiant.<br>Entre son <b>code d\\'accès</b> ci-dessus pour cette fois — ensuite ton identifiant suffira.'); cxCodeAfficher(); document.activeElement.blur();` },
+  { nom: 'portail-connexion-e-tel-nuit', pleine: true, chemin: '/connexion.html?e=entreprise-exemple', p: 'telephone', mode: 'dark', attente: 2500, geste: `cxMsg('var(--m-warn)','Cette entreprise ne connaît pas encore la connexion par identifiant.<br>Entre son <b>code d\\'accès</b> ci-dessus pour cette fois — ensuite ton identifiant suffira.'); cxCodeAfficher(); document.activeElement.blur();` },
+  { nom: 'portail-connexion-err-tel-jour', pleine: true, chemin: '/connexion.html', p: 'telephone', mode: 'light', geste: `adrMsg('var(--m-body)',adrPasBonne('plombier-du-coin')); document.activeElement.blur();` },
+  { nom: 'portail-connexion-err-tel-nuit', pleine: true, chemin: '/connexion.html', p: 'telephone', mode: 'dark', geste: `adrMsg('var(--m-body)',adrPasBonne('plombier-du-coin')); document.activeElement.blur();` },
+  { nom: 'portail-connexion-bureau-jour', pleine: true, chemin: '/connexion.html', p: 'bureau', mode: 'light' },
+  { nom: 'portail-connexion-bureau-nuit', pleine: true, chemin: '/connexion.html', p: 'bureau', mode: 'dark' },
+  { nom: 'portail-reinit-tel-jour', pleine: true, chemin: '/reinit.html?mode=resetPassword&jeton=exemple', p: 'telephone', mode: 'light', geste: `document.getElementById('p1').value='court'; enregistrer(); document.activeElement.blur();` },
+  { nom: 'portail-reinit-tel-nuit', pleine: true, chemin: '/reinit.html?mode=resetPassword&jeton=exemple', p: 'telephone', mode: 'dark', geste: `document.getElementById('p1').value='court'; enregistrer(); document.activeElement.blur();` },
+  { nom: 'portail-reinit-ok-tel-jour', pleine: true, chemin: '/reinit.html?mode=resetPassword&jeton=exemple', p: 'telephone', mode: 'light', geste: `montre('etape-ok');` },
+  { nom: 'portail-reinit-ok-tel-nuit', pleine: true, chemin: '/reinit.html?mode=resetPassword&jeton=exemple', p: 'telephone', mode: 'dark', geste: `montre('etape-ok');` },
+  { nom: 'portail-reinit-ko-tel-jour', pleine: true, chemin: '/reinit.html', p: 'telephone', mode: 'light' },
+  { nom: 'portail-reinit-ko-tel-nuit', pleine: true, chemin: '/reinit.html', p: 'telephone', mode: 'dark' },
+  { nom: 'portail-recap-tel-jour', pleine: true, chemin: '/recap-abonnement.html?formule=pro', p: 'telephone', mode: 'light' },
+  { nom: 'portail-recap-tel-nuit', pleine: true, chemin: '/recap-abonnement.html?formule=pro', p: 'telephone', mode: 'dark' },
+  { nom: 'portail-recap-annuel-tel-jour', pleine: true, chemin: '/recap-abonnement.html?formule=premium', p: 'telephone', mode: 'light', geste: `document.querySelector('.cycle[data-cycle=annuel]').click(); promoValider();` },
+  { nom: 'portail-recap-annuel-tel-nuit', pleine: true, chemin: '/recap-abonnement.html?formule=premium', p: 'telephone', mode: 'dark', geste: `document.querySelector('.cycle[data-cycle=annuel]').click(); promoValider();` },
+  { nom: 'portail-recap-msg-tel-nuit', pleine: true, chemin: '/recap-abonnement.html?formule=msgpro', p: 'telephone', mode: 'dark' },
+  { nom: 'portail-recap-gratuit-tel-jour', pleine: true, chemin: '/recap-abonnement.html?formule=gratuit', p: 'telephone', mode: 'light' },
+  { nom: 'portail-recap-bureau-jour', pleine: true, chemin: '/recap-abonnement.html?formule=business', p: 'bureau', mode: 'light' },
+  { nom: 'portail-recap-bureau-nuit', pleine: true, chemin: '/recap-abonnement.html?formule=business', p: 'bureau', mode: 'dark' },
+  { nom: 'portail-merci-tel-jour', pleine: true, chemin: '/merci.html', p: 'telephone', mode: 'light' },
+  { nom: 'portail-merci-tel-nuit', pleine: true, chemin: '/merci.html', p: 'telephone', mode: 'dark' },
+  { nom: 'portail-mentions-tel-jour', pleine: true, chemin: '/mentions-legales.html', p: 'telephone', mode: 'light' },
+  { nom: 'portail-mentions-tel-nuit', pleine: true, chemin: '/mentions-legales.html', p: 'telephone', mode: 'dark' },
+  { nom: 'portail-confidentialite-tel-jour', pleine: true, hMax: 1800, chemin: '/confidentialite.html', p: 'telephone', mode: 'light' },
+  { nom: 'portail-confidentialite-tel-nuit', pleine: true, hMax: 1800, chemin: '/confidentialite.html', p: 'telephone', mode: 'dark' },
+  { nom: 'portail-soustraitance-bureau-jour', pleine: true, hMax: 2400, chemin: '/sous-traitance.html', p: 'bureau', mode: 'light' },
+  { nom: 'portail-soustraitance-bureau-nuit', pleine: true, hMax: 2400, chemin: '/sous-traitance.html', p: 'bureau', mode: 'dark' },
+  { nom: 'portail-registre-tel-jour', pleine: true, hMax: 1800, chemin: '/registre-traitements.html', p: 'telephone', mode: 'light' },
+  { nom: 'portail-404-tel-jour', pleine: true, chemin: '/404.html', p: 'telephone', mode: 'light' },
+  { nom: 'portail-404-tel-nuit', pleine: true, chemin: '/404.html', p: 'telephone', mode: 'dark' },
   { nom: 'opmessages-bureau-nuit', page: 'opmessages', p: 'bureau', mode: 'dark', cadre: '.bento' },
   { nom: 'opmessages-bureau-jour', page: 'opmessages', p: 'bureau', mode: 'light', cadre: '.bento' },
 ];
@@ -80,9 +118,13 @@ const VUES = [
     await cdp('Emulation.setTouchEmulationEnabled', { enabled: pr.tac, maxTouchPoints: pr.tac ? 5 : 1 });
     await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: V.mode }, { name: 'prefers-reduced-motion', value: 'reduce' }] });
     EXC.length = 0;
-    await cdp('Page.navigate', { url: 'http://127.0.0.1:' + pp + '/apercu/site/' + V.page + '.html' }); await dormir(900);
-    await ev(`try{ localStorage.removeItem('teamop_site_mode'); }catch(e){} document.documentElement.removeAttribute('data-theme'); return 1;`);
-    await cdp('Page.reload', {}); await dormir(900);
+    const adresse = 'http://127.0.0.1:' + pp + (V.chemin || ('/apercu/site/' + V.page + '.html'));
+    await cdp('Page.navigate', { url: adresse }); await dormir(900);
+    await ev(`try{ localStorage.clear(); sessionStorage.clear(); }catch(e){} document.documentElement.removeAttribute('data-theme'); return 1;`);
+    /* avant : ce que l'appareil sait déjà (un espace relié, un choix de mode…), posé AVANT le rechargement */
+    if (V.avant) await ev(V.avant + ' return 1;');
+    /* on RENAVIGUE plutôt que recharger : une page peut avoir réécrit son adresse (connexion.html pose /e/nom) */
+    await cdp('Page.navigate', { url: adresse }); await dormir(V.attente || 900);
     /* le ruban « Aperçu » n'est pas la page : masqué pour la photo */
     await ev(`const r=document.querySelector('.ruban-apercu'); if(r) r.style.display='none'; return 1;`);
     if (V.geste) { await ev(V.geste + ' return 1;'); await dormir(300); }
@@ -101,6 +143,8 @@ const VUES = [
       phare:[...document.querySelectorAll('.formule.phare .n b')].map(b=>b.textContent), mesure:(()=>{ const t=document.querySelectorAll('.tuile-f')[2]; if(!t||!t.querySelector('.vue')) return null; const R=e=>{const b=e.getBoundingClientRect(); return [Math.round(b.top),Math.round(b.bottom)]}; const a=t.querySelector('.ap-iphone'); return {vue:R(t.querySelector('.vue')), app:R(a), corps:R(a.querySelector('.ap-iphone-corps')), ecran:R(a.querySelector('.ap-iphone-ecran')), img:R(a.querySelector('img'))}; })()};`);
     let clip = null;
     if (V.cadre) clip = await ev(`const e=document.querySelector(${JSON.stringify(V.cadre)}); e.scrollIntoView({block:'start'}); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); const b=e.getBoundingClientRect(); return {x:0, y:b.top+scrollY, width:innerWidth, height:Math.min(b.height, ${V.hMax || 4000}), scale:1};`);
+    /* pleine : toute la page, pas seulement l'écran (les pages du portail sont longues) */
+    else if (V.pleine) clip = await ev(`scrollTo(0,0); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); return {x:0,y:0,width:innerWidth,height:Math.min(${V.hMax || 3200},document.documentElement.scrollHeight),scale:1};`);
     else clip = await ev(`scrollTo(0,0); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); return {x:0,y:0,width:innerWidth,height:innerHeight,scale:1};`);
     await dormir(250);
     const cap = await cdp('Page.captureScreenshot', { format: 'png', clip, captureBeyondViewport: true });

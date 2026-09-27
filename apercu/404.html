@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
+<head><base href="/">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
@@ -40,11 +40,11 @@
     var m=p.split('/');
     // forme longue, celle qu'on donne partout : /e/nom-entreprise
     if(m.length===2 && m[0].toLowerCase()==='e' && forme(m[1])){
-      location.replace('/connexion.html?e='+encodeURIComponent(m[1])); return;
+      location.replace('/apercu/connexion.html?e='+encodeURIComponent(m[1])); return;
     }
     // forme courte : /nom-entreprise — pratique, mais elle ne peut pas heurter un fichier du site
     if(m.length===1 && bon(m[0])){
-      location.replace('/connexion.html?e='+encodeURIComponent(m[0])); return;
+      location.replace('/apercu/connexion.html?e='+encodeURIComponent(m[0])); return;
     }
   }catch(e){}
 })();
@@ -78,8 +78,8 @@
   <div class="logo"><img src="/icons/teamop-512.png" alt=""><b>TEAM OP</b></div>
   <h1>Cette page n'existe pas</h1>
   <p>L'adresse demandée est introuvable. Si tu cherchais la connexion de ton entreprise, son adresse ressemble à <b style="white-space:nowrap">teamop.fr/e/nom-de-ton-entreprise</b>.</p>
-  <a class="btn" href="/connexion.html">Aller à la connexion</a>
-  <p style="margin-top:18px;font-size:12.5px"><a class="lien" href="/index.html">← Site TeamOP</a></p>
+  <a class="btn" href="/apercu/connexion.html">Aller à la connexion</a>
+  <p style="margin-top:18px;font-size:12.5px"><a class="lien" href="/apercu/site/index.html">← Site TeamOP</a></p>
 <script src="/vitrine/v2/mode.js" defer></script>
-</body>
+<div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
 </html>

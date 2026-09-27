@@ -107,7 +107,13 @@ const VOLETS = {
     grands: [L('Au service des entreprises', 'pourquoi.html#partenaire', 'On écoute, on adapte, on construit avec vous'), L('Sécurité et engagements', 'pourquoi.html#engagements', 'Chiffrement AES-256, vos données à vous')],
     petits: [L('Nos services', 'pourquoi.html#services'), L('Découvrir pourquoi TEAM OP', 'pourquoi.html')] },
 };
-const ESPACE = '/espace.html', CONNEXION = '/connexion.html?choix=1';
+/* Les pages hors du site (portail, connexion, formule, mentions) : à la racine, les vraies ; dans l'aperçu, LEURS
+   aperçus (apercu/espace.html…, au thème du site) — sinon « Espace client » menait de l'aperçu au portail en service,
+   encore à l'ancien thème (Justin, 27 septembre au soir : « au niveau des connexions ou création de compte, j'ai pas
+   mon thème »). `page()` pose POUR_LA_RACINE avant d'écrire la page. */
+let POUR_LA_RACINE = A_LA_RACINE;
+const hors = c => (POUR_LA_RACINE ? '' : '/apercu') + c;
+const ESPACE = () => hors('/espace.html'), CONNEXION = () => hors('/connexion.html?choix=1');
 
 function entete(section, sousnav) {
   const liens = Object.keys(VOLETS).map(k => `<a href="${VOLETS[k].href}" data-fly="${k}" aria-haspopup="true" aria-expanded="false"${section === k ? ' aria-current="page"' : ''}>${esc(VOLETS[k].label)}</a>`).join('');
@@ -117,11 +123,11 @@ function entete(section, sousnav) {
   const mobile = `<section><div class="fly-t">TEAM OP</div><a href="index.html">Accueil</a></section>`
     + Object.keys(VOLETS).map(k => `<section><div class="fly-t">${esc(VOLETS[k].label)}</div>` + VOLETS[k].grands.concat(VOLETS[k].petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</section>').join('');
   const sn = sousnav ? `<div class="sousnav"><div class="sousnav-in"><a class="sousnav-t" href="${sousnav.href}">${esc(sousnav.titre)}</a><nav class="sousnav-liens" aria-label="${esc(sousnav.titre)}">`
-    + sousnav.liens.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `</nav>${sousnav.cta}</div></div>` : '';
+    + sousnav.liens.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `</nav>${typeof sousnav.cta === 'function' ? sousnav.cta() : sousnav.cta}</div></div>` : '';
   return `<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
       <a class="marque" href="index.html"><img src="/icons/teamop-192.png" width="22" height="22" alt=""><span>TEAM OP</span></a>
       <div class="nav-liens">${liens}</div>
-      <div class="nav-droite"><button class="mode" type="button" hidden aria-label="Passer en mode nuit" title="Passer en mode nuit"><svg class="lune" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="soleil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg></button><a class="pilule" href="${ESPACE}">Espace client</a>
+      <div class="nav-droite">${BOUTON_MODE}<a class="pilule" href="${ESPACE()}">Espace client</a>
         <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     </div>${volets}</nav>
     <div class="menu-mobile" id="menu-mobile">${mobile}</div>
@@ -130,16 +136,16 @@ function entete(section, sousnav) {
 
 function pied() {
   const cols = [['Applications', VOLETS.applications], ['Métiers', VOLETS.metiers], ['Tarifs', VOLETS.tarifs]].map(([t, v]) => `<div><b>${t}</b>` + v.grands.concat(v.petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div>').join('')
-    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="${ESPACE}">Espace client</a><a href="${CONNEXION}">Se connecter</a></div>`;
+    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
     <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Prix HT, sans engagement.</p>
-    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="/confidentialite.html">Confidentialité</a><a href="/mentions-legales.html">Mentions légales et CGV</a><a href="mailto:support@teamop.fr">support@teamop.fr</a><span class="fin">France</span></div>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a><a href="mailto:support@teamop.fr">support@teamop.fr</a><span class="fin">France</span></div>
   </div></footer>`;
 }
 
 const commencer = () => `<section class="commencer" id="commencer"><div class="commencer-in"><div><h2>Prêt en trois étapes.</h2><ol>
     <li><b>1</b><span>Créez votre compte gratuitement.</span></li><li><b>2</b><span>Demandez l'accès à une application.</span></li><li><b>3</b><span>Votre équipe travaille, tout se synchronise.</span></li></ol></div>
-    <div class="boutons"><a href="${ESPACE}">Créer mon compte gratuit</a><a href="${CONNEXION}">Se connecter ›</a></div></div></section>`;
+    <div class="boutons"><a href="${ESPACE()}">Créer mon compte gratuit</a><a href="${CONNEXION()}">Se connecter ›</a></div></div></section>`;
 
 const scene = (surtitre, titre, chapeau, actions, o) => `<section class="scene${o && o.courte ? ' courte' : ''}" id="apercu"><p class="surtitre">${fr(surtitre)}</p><h1>${fr(titre)}</h1>`
   + (chapeau ? `<p class="chapeau">${fr(chapeau)}</p>` : '') + (actions ? `<div class="actions">${actions}</div>` : '') + '</section>';
@@ -205,7 +211,7 @@ function formules(liste, attente) {
     + `<div class="prix"><b>${f.prix}</b><span>${fr(f.per)}</span></div><div class="places">${fr(f.places)}</div><div class="d">${fr(f.desc)}</div></div>`
     + `<div class="inclus"><small>${fr(f.tete)}</small><ul>${f.points.map(p => `<li>${COCHE()}<span>${fr(p)}</span></li>`).join('')}</ul></div>`
     + (attente ? '<span class="cta attente">Bientôt disponible</span>'
-      : `<a class="cta" href="/recap-abonnement.html?formule=${f.cle}">${f.prix === '0' ? 'Créer mon compte' : 'Choisir ' + fr(f.nom)}</a>`)
+      : `<a class="cta" href="${hors('/recap-abonnement.html')}?formule=${f.cle}">${f.prix === '0' ? 'Créer mon compte' : 'Choisir ' + fr(f.nom)}</a>`)
     + '</article>').join('');
 }
 
@@ -214,7 +220,7 @@ const PAGES = {
   index: { titre: 'TEAM OP — Vos applications métier, au même endroit', desc: 'TEAM OP : votre espace professionnel. Interventions, stock, encaissements et communication d\'équipe — sur mobile, tablette et ordinateur, partout, en temps réel.',
     corps: () => `<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Toutes vos applications métier. Au même endroit.</h1>
       <p class="chapeau">${fr('Interventions, stock, encaissements et communication d\'équipe — sur iPhone, Android, Mac et PC, en temps réel.')}</p>
-      <div class="actions"><a class="bouton" href="${ESPACE}">Créer mon compte</a><a class="lien-suite" href="applications.html">Découvrir les applications ›</a></div>
+      <div class="actions"><a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="applications.html">Découvrir les applications ›</a></div>
       <div class="gages"><span>Chiffré AES-256</span><span>Temps réel</span><span>Sans installation</span></div>
       <div class="appareils"><div class="ap-duo">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration', { tot: true })}${iphone('iphone-tableau', 'OP GESTION sur un iPhone : le tableau de bord', { tot: true })}</div></div></section>
       <div class="plateformes"><span>Mac · Windows</span><span>iPhone · Android</span><span>Navigateur</span></div>
@@ -244,9 +250,9 @@ const PAGES = {
       <section class="page" style="padding-top:20px;padding-bottom:40px"><a class="bandeau-creer" href="creer.html"><span class="tuile">${ic('rocket', 24)}</span><span><b>Créer votre application</b><small>${fr('Décrivez votre besoin, on le construit avec vous — de A à Z.')}</small></span><span class="l">Décrire mon besoin ›</span></a></section>` },
 
   elan: { section: 'applications', titre: 'OP GESTION — Pilotez votre activité terrain | TEAM OP', desc: 'OP GESTION : interventions, planning & tournées, stock & box, encaissements, devis-factures et équipe — tout votre quotidien dans une application simple et rapide.',
-    sousnav: { titre: 'OP GESTION', href: 'elan.html', liens: [L('Vue d\'ensemble', 'elan.html#apercu'), L('Fonctions', 'elan.html#fonctions'), L('Tarifs', 'tarifs.html#elan')], cta: `<a class="pilule" href="${ESPACE}">Demander un accès</a>` },
+    sousnav: { titre: 'OP GESTION', href: 'elan.html', liens: [L('Vue d\'ensemble', 'elan.html#apercu'), L('Fonctions', 'elan.html#fonctions'), L('Tarifs', 'tarifs.html#elan')], cta: () => `<a class="pilule" href="${ESPACE()}">Demander un accès</a>` },
     corps: () => scene('Application de gestion tout-en-un', 'Pilotez votre activité terrain en un seul endroit.', 'Interventions, planning et tournées, stock et box, encaissements, devis-factures et équipe : OP GESTION réunit tout votre quotidien dans une application simple, rapide et accessible partout.',
-        `<a class="bouton" href="${ESPACE}">Demander un accès</a><a class="lien-suite" href="tarifs.html#elan">Voir les tarifs ›</a>`)
+        `<a class="bouton" href="${ESPACE()}">Demander un accès</a><a class="lien-suite" href="tarifs.html#elan">Voir les tarifs ›</a>`)
       + `<section class="scene-mac">${mac('mac-planning', 'OP GESTION sur un Mac : le planning de la semaine, technicien par technicien', { tot: false })}</section>
       <section id="fonctions" style="padding:clamp(70px,9vw,120px) 12px 12px"><div class="page" style="padding:0 10px"><h2 class="h2">Ce que fait OP GESTION.</h2><p class="intro">Ouvrez une carte pour tout voir.</p></div>${tuiles('elan', 'OP GESTION', F_GESTION)}</section>${FENETRE}` },
 
@@ -282,7 +288,7 @@ const PAGES = {
 
   metiers: { section: 'metiers', titre: 'Métiers — TEAM OP', desc: 'TEAM OP s\'adapte à votre métier : 3D anti-nuisibles, plomberie, électricité, chauffage, BTP, paysagistes, nettoyage et plus encore.',
     corps: () => scene('Métiers', 'Un outil qui parle votre métier.', 'Dites-nous ce que vous faites, TEAM OP se règle sur votre métier : types d\'intervention, fiche de rapport et modules utiles sont prêts dès le départ. Vous démarrez en quelques minutes, pas en quelques semaines.',
-        `<a class="bouton" href="${ESPACE}">Créer mon espace</a>`)
+        `<a class="bouton" href="${ESPACE()}">Créer mon espace</a>`)
       + `<section class="page" style="padding-top:10px;padding-bottom:20px"><div class="cartes-3">`
       + [['1', 'Renseignez votre entreprise', 'Nom, coordonnées… et surtout votre métier, au moment de créer votre espace.'], ['2', 'Tout se met en place', 'Types d\'intervention, fiche de rapport et modules de votre métier se règlent tout seuls. Vos produits et fournisseurs, vous les ajoutez à votre rythme.'], ['3', 'Vous travaillez', 'Planning, rapports, stock, bons de commande : votre équipe est opérationnelle dès le premier jour.']]
         .map(([n, t, d]) => `<div class="etape-carte"><b class="n">${n}</b><b class="t">${fr(t)}</b><span>${fr(d)}</span></div>`).join('')
@@ -299,7 +305,7 @@ const PAGES = {
         ['m-paysagiste', 'PACK BIENTÔT', 'leaf', 'Paysagiste / Espaces verts', 'Entretien · création · élagage', [], 0]]
         .map(([id, tag, i, t, s, pts, pret]) => `<article class="pack" id="${id}"><span class="tag${pret ? ' pret' : ''}">${tag}</span><span class="tete"><span class="tuile">${ic(i)}</span><span><b>${fr(t)}</b><small>${fr(s)}</small></span></span>`
           + (pts.length ? `<ul>${pts.map(p => `<li>${COCHE(13)}<span>${fr(p)}</span></li>`).join('')}</ul>` : '')
-          + (pret ? `<a href="${ESPACE}">Démarrer avec ce pack ›</a>` : '<a href="creer.html">En parler avec nous ›</a>') + '</article>').join('')
+          + (pret ? `<a href="${ESPACE()}">Démarrer avec ce pack ›</a>` : '<a href="creer.html">En parler avec nous ›</a>') + '</article>').join('')
       + '</div></section>' },
 
   tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 € (2 utilisateurs), Business Premium 50 € (3 utilisateurs + service 24h/24). OP MESSAGES a ses propres formules, à part.',
@@ -330,21 +336,27 @@ const PAGES = {
         <section class="bloc" id="engagements"><div class="bloc-in"><h2 class="h2">Nos engagements techniques.</h2><div style="height:28px"></div>${cartes([['lock', 'Sécurité AES-256', 'Vos données sont chiffrées de bout en bout et hébergées de façon sécurisée. Personne d\'autre que votre équipe n\'y accède.'], ['bolt', 'Temps réel', 'Chaque action est visible immédiatement par toute l\'équipe, sans rafraîchir la page — au bureau comme sur le terrain.'], ['flag', 'Développé en France', 'Conçu et maintenu par TEAM OP — un interlocuteur unique, réactif, qui connaît votre métier.']])}</div></section>`; } },
 };
 
+/* Le jour et la nuit, écrits UNE fois : le site et les pages hors du site (espace.html, connexion.html…) portent ces deux
+   morceaux à l'identique — tests/test-836.js relit chaque page contre ces constantes. */
+const TETE_MODE = `<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)" data-jour>
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)" data-nuit>
+<meta name="color-scheme" content="light dark">
+<script>/* le mode choisi (☀︎/☾), posé AVANT le premier rendu : sans ça, la page s'afficherait d'abord dans l'autre (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { var m = localStorage.getItem('teamop_site_mode'); if (m === 'jour' || m === 'nuit') document.documentElement.setAttribute('data-theme', m === 'nuit' ? 'dark' : 'light'); } catch (e) {} })();</script>`;
+const BOUTON_MODE = `<button class="mode" type="button" hidden aria-label="Passer en mode nuit" title="Passer en mode nuit"><svg class="lune" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="soleil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg></button>`;
+
 /* le lanceur de l'écran d'accueil : une PWA installée rouvre la dernière application choisie (?hub=1 pour revenir au choix) */
 const LANCEUR = `<script>try{var pwa=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true||document.referrer.indexOf('android-app://')===0,d=localStorage.getItem('teamop_app');if(pwa&&(d==='app.html'||d==='messages.html')&&!/hub/.test(location.search))location.replace('/'+d);}catch(e){}</script>`;
 
 function page(cle, o) {
   const P = PAGES[cle], racine = o ? !!o.racine : A_LA_RACINE;
+  POUR_LA_RACINE = racine;
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)" data-jour>
-<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)" data-nuit>
-<meta name="color-scheme" content="light dark">
-<script>/* le mode choisi (☀︎/☾), posé AVANT le premier rendu : sans ça, la page s'afficherait d'abord dans l'autre */
-try { var m = localStorage.getItem('teamop_site_mode'); if (m === 'jour' || m === 'nuit') document.documentElement.setAttribute('data-theme', m === 'nuit' ? 'dark' : 'light'); } catch (e) {}</script>
+${TETE_MODE}
 ${racine ? '' : '<meta name="robots" content="noindex">\n'}<title>${esc(P.titre)}</title>
 <meta name="description" content="${esc(P.desc)}">
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -361,6 +373,7 @@ ${P.corps()}
 ${P.cta === false ? '' : commencer()}
 </main>
 ${pied()}
+<script src="${RES}mode.js" defer></script>
 <script src="${RES}site.js" defer></script>
 </body>
 </html>
@@ -375,4 +388,4 @@ if (require.main === module) {
     console.log('✓', path.relative(RACINE, f), Math.round(fs.statSync(f).size / 1024) + ' Ko');
   }
 }
-module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST };
+module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, BOUTON_MODE };

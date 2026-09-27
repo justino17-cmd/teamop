@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
+<head><base href="/"><meta name="robots" content="noindex">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)" data-jour>
@@ -155,7 +155,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       <button class="mode" type="button" hidden aria-label="Passer en mode nuit" title="Passer en mode nuit"><svg class="lune" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="soleil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg></button>
       <span id="u-email" class="uemail hide"></span>
       <span id="btn-logout" class="pill hide" onclick="opLogout()">Déconnexion</span>
-      <a class="back" href="index.html">← Accueil</a>
+      <a class="back" href="/apercu/site/index.html">← Accueil</a>
     </div>
   </nav>
 
@@ -164,7 +164,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
   <div id="space"><div class="panel center"><p class="muted">Chargement…</p></div></div>
 
-  <footer>Support : <a href="mailto:support@teamop.fr" style="color:var(--op-l)">support@teamop.fr</a> · <a href="mentions-legales.html" style="color:var(--op-l)">Mentions légales &amp; CGV</a> · © <span id="year">2026</span> TEAM OP</footer>
+  <footer>Support : <a href="mailto:support@teamop.fr" style="color:var(--op-l)">support@teamop.fr</a> · <a href="/apercu/mentions-legales.html" style="color:var(--op-l)">Mentions légales &amp; CGV</a> · © <span id="year">2026</span> TEAM OP</footer>
 </div>
 </div>
 
@@ -283,7 +283,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 </script>
 <script>
   try { document.getElementById('year').textContent = new Date().getFullYear(); } catch(_) {}
-  if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+  if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ (function(){return Promise.reject(new Error('aperçu : pas de service worker'))})('sw.js').catch(function(){}); }); }
   const ADMIN_EMAIL="justin.17553@gmail.com";
   /* ⛔ LE PORTAIL PARLE À NOTRE SERVEUR, ET SEULEMENT À LUI — sortie de Firebase, décision de
      Justin du 25 septembre 2026. Jusque-là, un interrupteur (`PORTAIL_SERVEUR`, fermé) gardait
@@ -662,7 +662,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
        Un client de l'espace a toujours une adresse e-mail. Tout le reste retourne à l'écran
        de connexion. */
     if(user && (user.isAnonymous || !user.email)) user=null;
-    if(user && RETOUR_PAIEMENT && !_signupBusy){ location.href=RETOUR_PAIEMENT; return; }
+    if(user && RETOUR_PAIEMENT && !_signupBusy){ location.href='/apercu/'+RETOUR_PAIEMENT; return; }
     if(!user){ $('u-email').classList.add('hide'); $('btn-logout').classList.add('hide'); renderAuth(); return; }
     $('u-email').textContent=(isAdmin(user)?'👑 ':'')+user.email; $('u-email').classList.remove('hide'); $('btn-logout').classList.remove('hide');
     if(isAdmin(user)) renderAdmin(user); else renderClient(user);
@@ -714,7 +714,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
            l'adresse PROUVÉE (le lien du courriel) : voir `verifBanner`. */
         try{ fetch('https://api.teamop.fr/api/nouveau-compte',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,prenom:prenom,nom:nom,company:company})}).catch(()=>{}); }catch(_){}
         _signupBusy=false;
-        if(RETOUR_PAIEMENT){ location.href=RETOUR_PAIEMENT; return; }
+        if(RETOUR_PAIEMENT){ location.href='/apercu/'+RETOUR_PAIEMENT; return; }
       } else { await auth.signInWithEmailAndPassword(email,pass); }
     }catch(e){ err(authMsg(e)); }
   }
@@ -876,13 +876,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     m.innerHTML='<div class="err">Envoi impossible pour le moment. Réessayez dans un instant.</div>'; }
   /* ⏳ Alerte J-2 avant la fin de l'offre : bannière + message + notification (une seule fois) */
   function promoBanner(d){ const pi=promoInfo(d); if(!pi||pi.jours>2) return '';
-    return '<div class="panel" style="padding:14px 18px;margin-bottom:16px;border-color:color-mix(in srgb,var(--m-warn) 45%,transparent);background:var(--m-warn-fond)"><b style="font-size:14px">⏳ Votre offre « '+esc(pi.label)+' » se termine dans '+pi.jours+' jour'+(pi.jours>1?'s':'')+'</b><p class="muted" style="margin-top:6px;line-height:1.55">Pour garder l\'accès à vos applications, choisissez votre abonnement dès maintenant. <b>Vos données ne sont jamais perdues</b>, quoi qu\'il arrive.</p><a class="btn sm" style="margin-top:10px;display:inline-block" href="recap-abonnement.html?formule=premium">Choisir mon abonnement →</a></div>'; }
+    return '<div class="panel" style="padding:14px 18px;margin-bottom:16px;border-color:color-mix(in srgb,var(--m-warn) 45%,transparent);background:var(--m-warn-fond)"><b style="font-size:14px">⏳ Votre offre « '+esc(pi.label)+' » se termine dans '+pi.jours+' jour'+(pi.jours>1?'s':'')+'</b><p class="muted" style="margin-top:6px;line-height:1.55">Pour garder l\'accès à vos applications, choisissez votre abonnement dès maintenant. <b>Vos données ne sont jamais perdues</b>, quoi qu\'il arrive.</p><a class="btn sm" style="margin-top:10px;display:inline-block" href="/apercu/recap-abonnement.html?formule=premium">Choisir mon abonnement →</a></div>'; }
   async function promoAlerteJ2(uid,d){ try{ const pi=promoInfo(d); if(!pi||pi.jours>2) return; if(d.promoAlerte===pi.code) return;
     await fs.collection('teamop_requests').doc(uid).set({promoAlerte:pi.code},{merge:true});
     _meDoc=Object.assign({},_meDoc,{promoAlerte:pi.code});
     const txt='⏳ Plus que '+pi.jours+' jour'+(pi.jours>1?'s':'')+' avant la fin de votre offre « '+pi.label+' ». Choisissez votre abonnement sur teamop.fr/recap-abonnement.html pour garder vos applications — vos données ne sont jamais perdues.';
     try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:txt,ts:FV.serverTimestamp()}); }catch(e){}
-    try{ fetch('https://api.teamop.fr/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:'opmsg-user-'+uid,title:'⏳ Votre offre se termine bientôt — TeamOP',body:txt,url:'/espace.html'})}).catch(()=>{}); }catch(e){}
+    try{ fetch('https://api.teamop.fr/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:'opmsg-user-'+uid,title:'⏳ Votre offre se termine bientôt — TeamOP',body:txt,url:'/apercu/espace.html'})}).catch(()=>{}); }catch(e){}
   }catch(e){} }
   function _cliBadge(d){ return d.status==='nouveau'?'<span class="badge b-new">Demande envoyée</span>':d.status==='encours'?'<span class="badge b-prog">Demande en cours</span>':d.status==='fourni'?'<span class="badge b-done">Accès activé</span>':''; }
   function renderMenu(){ _curView='menu';
@@ -1012,13 +1012,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:14px">🎁 ${esc(pi.label)} — code « ${esc(pi.code)} »</b><span class="badge ${pi.jours<=2?'b-prog':'b-done'}">⏳ Reste ${pi.jours} jour${pi.jours>1?'s':''}</span></div>
           <div class="prog" style="margin-top:10px"><div class="prog-b" style="width:${pct}%"></div></div>
           <p class="muted" style="margin-top:8px;font-size:12.5px">Fin de l'offre le <b>${new Date(pi.until).toLocaleDateString('fr-FR')}</b>. Ensuite, choisissez votre abonnement — <b>vos données ne sont jamais perdues</b>.</p>
-          <a class="btn sm" style="margin-top:8px;display:inline-block" href="recap-abonnement.html">Choisir mon abonnement →</a>
+          <a class="btn sm" style="margin-top:8px;display:inline-block" href="/apercu/recap-abonnement.html">Choisir mon abonnement →</a>
         </div>`; }
       else { body+=`<div class="grp2" style="margin-top:18px">Code promo</div>
         <p class="muted" style="margin-bottom:10px">Vous avez un code (ex. 3 mois offerts) ? Activez-le ici : vos applications se débloquent immédiatement, avec un compte à rebours visible.</p>
         <div id="promo-msg"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><input id="promo-code" placeholder="VOTRE CODE" style="flex:1;min-width:160px;text-transform:uppercase"><button class="btn sm" onclick="promoActivate('${user.uid}')">🎁 Activer</button></div>`; }
-      body+=`<p class="muted" style="margin-top:16px;line-height:1.6">Pour souscrire ou faire évoluer votre offre : <a href="recap-abonnement.html" style="color:inherit"><b>la page d'abonnement</b></a>, le <b>Support</b> ou <b>contact@teamop.fr</b>.</p>`;
+      body+=`<p class="muted" style="margin-top:16px;line-height:1.6">Pour souscrire ou faire évoluer votre offre : <a href="/apercu/recap-abonnement.html" style="color:inherit"><b>la page d'abonnement</b></a>, le <b>Support</b> ou <b>contact@teamop.fr</b>.</p>`;
     }
     else if(v==='docs'){
       const pi=promoInfo(d);
@@ -1187,7 +1187,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       <h2>6. Résiliation</h2><p>Sans engagement : le client peut arrêter à tout moment depuis son espace ou par e-mail à contact@teamop.fr. L'accès payant cesse à la fin de la période en cours ; le compte repasse alors en formule Gratuit, données conservées.</p>
       <h2>7. Droit applicable</h2><p>Le présent contrat est soumis au droit français.</p>
       <div class="sig"><div>TEAM OP<br>Justin Biret</div><div>Le client<br>${esc((d.prenom||'')+' '+(d.nom||''))}</div></div>
-      </body></html>`);
+      <div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body></html>`);
     w.document.close(); }
 
   /* Nom du lien de connexion : vérifié EN DIRECT auprès de l'annuaire TeamOP — « disponible »
@@ -1317,7 +1317,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       // notifie les clients ciblés (push) si le serveur est joignable
       try{ const t2=(NEWS_TAGS[tag]||['Info'])[0];
         if(audience==='clients'||audience==='public'){ /* diffusion large gérée à l'ouverture de l'espace */ }
-        else if(audience){ fetch('https://api.teamop.fr/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:'opmsg-user-'+audience,title:'📣 '+t2+' — TeamOP',body:title,url:'/espace.html'})}).catch(()=>{}); }
+        else if(audience){ fetch('https://api.teamop.fr/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:'opmsg-user-'+audience,title:'📣 '+t2+' — TeamOP',body:title,url:'/apercu/espace.html'})}).catch(()=>{}); }
       }catch(_){}
       $('n-title').value=''; $('n-text').value=''; const nu=$('n-url'); if(nu) nu.value=''; loadNews('adm-news',true);
       alert('Nouveauté publiée ✅');

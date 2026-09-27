@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
+<head><base href="/">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
@@ -140,7 +140,7 @@ try{
   <div class="bloc" id="etape-connexion" style="display:none">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px">
       <span class="chip">🏢 <span id="cx-adr">teamop.fr/…</span></span>
-      <a href="/connexion.html" style="color:var(--m-link);font-size:13px;text-decoration:none">ce n'est pas mon entreprise</a>
+      <a href="/apercu/connexion.html" style="color:var(--m-link);font-size:13px;text-decoration:none">ce n'est pas mon entreprise</a>
     </div>
     <div class="titre">Connexion</div>
     <div class="aide">Ton identifiant et ton mot de passe — les mêmes que dans l'application, sur n'importe quel appareil.</div>
@@ -242,7 +242,7 @@ try{
     var etat=await espaceExiste(v);
     if(btn){ btn.disabled=false; btn.textContent='Accéder à mon compte'; }
     if(etat==='inconnue'){ adrMsg('var(--m-body)',adrPasBonne((($id('adr-nom')||{}).value||'').trim()||v)); return; }
-    location.href='/e/'+encodeURIComponent(v);
+    location.href='/apercu/connexion.html?e='+encodeURIComponent(v);
   }
   function adrOubliee(){
     adrMsg('var(--m-body)','Ton adresse figure dans l\'e-mail de bienvenue TEAM OP. Sinon, ton responsable la retrouve dans l\'application (Paramètres → Entreprise), et tu peux aussi te faire renvoyer ton lien de connexion :<br><a href="#" onclick="entRelance();return false" style="color:var(--m-link)">me renvoyer le lien par e-mail</a>');
@@ -438,7 +438,7 @@ try{
           $id('etape-verif').querySelector('.titre').textContent='Adresse inconnue';
           $id('verif-txt').innerHTML=adrPasBonne(adr);
           var so=$id('verif-sortie'); so.style.display='block';
-          so.innerHTML='<a href="/connexion.html" style="color:var(--m-link);font-size:14px;text-decoration:none">← Entrer une autre adresse</a>';
+          so.innerHTML='<a href="/apercu/connexion.html" style="color:var(--m-link);font-size:14px;text-decoration:none">← Entrer une autre adresse</a>';
           return;
         }
         $id('etape-verif').style.display='none';
@@ -459,7 +459,7 @@ try{
       /* L'adresse revient dans la barre, TOUJOURS sous sa forme longue : c'est elle qu'on met
          en favori et qu'on redonne à son équipe. Quelqu'un arrivé par la forme courte repart
          donc avec la bonne — une seule adresse à retenir, pas deux. */
-      try{ if(location.pathname!=='/e/'+adr) history.replaceState(null,'','/e/'+adr); }catch(e){}
+      try{ if(location.pathname!=='/e/'+adr) history.replaceState(null,'','/apercu/connexion.html?e='+adr); }catch(e){}
       try{ var sv=localStorage.getItem('elan_savedLogin'); if(sv) $id('cx-login').value=sv; }catch(e){}
       setTimeout(function(){ var el=$id($id('cx-login').value?'cx-mdp':'cx-login'); if(el) el.focus(); },80);
   }
@@ -476,14 +476,14 @@ try{
       <span class="txt"><b>OP MESSAGES</b><span>La messagerie — compte personnel, abonnement à part.</span></span>
       <span class="fleche">›</span>
     </a>
-    <a class="carte" href="/espace.html">
+    <a class="carte" href="/apercu/espace.html">
       <span class="ico" style="background:rgba(167,139,250,.14)">👤</span>
       <span class="txt"><b>Espace client</b><span>Ton compte TeamOP : abonnement, factures, documents.</span></span>
       <span class="fleche">›</span>
     </a>
   </div>
-  <div id="lien-espace-client" style="margin-top:18px;display:none"><a href="/espace.html" style="color:var(--m-link);font-size:14px;text-decoration:none">👤 Espace client TeamOP (abonnement, factures)</a></div>
-  <div class="note">💡 Chaque entreprise a son adresse : <b>teamop.fr/e/son-nom</b>. Donne-la à tes équipes — identifiant et mot de passe suffisent, sur n'importe quel téléphone.<br><a href="/index.html?hub=1">← Revenir au site TeamOP</a> · <a href="/connexion.html?choix=1">Changer d'application</a></div>
+  <div id="lien-espace-client" style="margin-top:18px;display:none"><a href="/apercu/espace.html" style="color:var(--m-link);font-size:14px;text-decoration:none">👤 Espace client TeamOP (abonnement, factures)</a></div>
+  <div class="note">💡 Chaque entreprise a son adresse : <b>teamop.fr/e/son-nom</b>. Donne-la à tes équipes — identifiant et mot de passe suffisent, sur n'importe quel téléphone.<br><a href="/apercu/site/index.html?hub=1">← Revenir au site TeamOP</a> · <a href="/apercu/connexion.html?choix=1">Changer d'application</a></div>
 <script src="/vitrine/v2/mode.js" defer></script>
-</body>
+<div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
 </html>
