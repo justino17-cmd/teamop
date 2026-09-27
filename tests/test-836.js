@@ -150,7 +150,8 @@ function auTheme(nom, s, etiquette, apercu) {
   v(etiquette + '    et aucun écart qui ne sert plus', Object.keys(ecarts).filter(e => dur.indexOf(e) < 0), []);
   /* Safari zoome sur un champ sous 16 px — et la page reste zoomée */
   const styles = [...s.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(m => m[1]).join('\n').replace(/\/\*[\s\S]*?\*\//g, ' ');
-  const champsPetits = [...styles.matchAll(/([^{}]*\b(?:input|select|textarea|\.inp)\b[^{}]*)\{([^}]*)\}/g)]
+  /* ⚠️ `\b.inp` ne trouve rien : il n'y a pas de frontière de mot devant un point — la contre-épreuve l'a montré */
+  const champsPetits = [...styles.matchAll(/([^{}]*(?:\binput\b|\bselect\b|\btextarea\b|\.inp\b)[^{}]*)\{([^}]*)\}/g)]
     .filter(m => !/::?-webkit|autofill|spin-button|checkbox|radio/.test(m[1]))
     .map(m => [m[1].trim(), (/(?:^|;)\s*font-size\s*:\s*([\d.]+)px/.exec(m[2]) || [])[1]]).filter(x => x[1] && +x[1] < 16);
   const enLigne = [...code.matchAll(/<input\b[^>]*style="[^"]*font-size:\s*([\d.]+)px/g)].map(m => +m[1]).filter(x => x < 16);

@@ -15,12 +15,16 @@
      l'écran de l'équipe TeamOP et celui de l'administration.
    127.0.0.1 seulement : le dépôt est servi ici, l'API est le VRAI serveur (server/index.js) monté à côté, avec un
    facteur SMTP local. Données fictives (« Hygiène Exemple », camille@exemple.fr, code BIENVENUE3).
-   Usage : node scratchpad/sonde-portail-theme.js        PHOTOS=1 : une capture par état (scratchpad/vues-portail/) */
+   Usage : node scratchpad/sonde-portail-theme.js        PHOTOS=1 : une capture par état (scratchpad/vues-portail/)
+           SEULS=connexion-adresse,404  PROFILS=telephone  PARTIES=etats  (etats, bascule, connecte) pour une passe courte */
 const fs = require('fs'), path = require('path'), http = require('http'), net = require('net'), os = require('os'), crypto = require('crypto');
 const { spawn } = require('child_process');
 const RACINE = path.join(__dirname, '..');
 const SORTIE = path.join(__dirname, 'vues-portail');
 const PHOTOS = !!process.env.PHOTOS;
+const SEULS = process.env.SEULS ? process.env.SEULS.split(',') : null;
+const PROFILS = process.env.PROFILS ? process.env.PROFILS.split(',') : ['telephone', 'bureau'];
+const PARTIES = process.env.PARTIES ? process.env.PARTIES.split(',') : ['etats', 'bascule', 'connecte'];
 if (PHOTOS) fs.mkdirSync(SORTIE, { recursive: true });
 const dormir = ms => new Promise(r => setTimeout(r, ms));
 const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
@@ -224,9 +228,10 @@ const ETATS = [
 
   /* ── 4. les états des dix pages ── */
   console.log('\n══ LES DIX PAGES, JOUR ET NUIT, TÉLÉPHONE ET BUREAU ══');
-  for (const p of ['telephone', 'bureau']) for (const mode of ['light', 'dark']) {
+  if (PARTIES.includes('etats')) for (const p of PROFILS) for (const mode of ['light', 'dark']) {
     await profil(p, mode);
     for (const E of ETATS) {
+      if (SEULS && !SEULS.includes(E.nom)) continue;
       await aller(E.chemin, E.avant, E.attente);
       if (E.geste) { await ev(`(()=>{ ${E.geste} ; try{ document.activeElement.blur(); }catch(e){} return 1; })()`); await dormir(400); }
       await juger(E.nom + ' · ' + p + ' · ' + (mode === 'light' ? 'jour' : 'nuit'), p, mode);
@@ -236,6 +241,7 @@ const ETATS = [
 
   /* ── 5. le bouton ☀︎/☾ bascule la page ET la mémoire, et le choix passe du site au portail ── */
   console.log('\n══ LE CHOIX ☀︎/☾ : IL BASCULE, IL SE SOUVIENT, IL VOYAGE ══');
+  if (PARTIES.includes('bascule')) {
   await profil('telephone', 'light');
   const toucher = async sel => { const b = await ev(`(()=>{ const e=document.querySelector(${JSON.stringify(sel)}); const r=e.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2}; })()`);
     await cdp('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: b.x, y: b.y }] }); await dormir(60);
@@ -257,6 +263,7 @@ const ETATS = [
   v('   et sur le portail', [e.theme, e.fond], ['dark', FOND.dark]);
   await toucher('.mode'); await cdp('Page.navigate', { url: B + '/apercu/site/tarifs.html' }); await dormir(900); e = await etat();
   v('   le jour repris sur le portail se retrouve sur le site', [e.theme, e.fond, e.memoire], [null, 'rgb(255, 255, 255)', null]);
+  }
 
   /* ── 6. le portail CONNECTÉ : un compte créé par la page elle-même, puis chaque écran ── */
   console.log('\n══ LE PORTAIL CONNECTÉ (VRAI SERVEUR) : LE MENU ET SES TREIZE ÉCRANS ══');
@@ -265,7 +272,7 @@ const ETATS = [
     demandes:[{ date: Date.now()-86400000, app:'OP GESTION', users:5, formule:'Business', besoin:'Planning des interventions et stock des box pour une équipe de cinq.', company:'Hygiène Exemple', tel:'06 00 00 00 00', lien:'hygiene-exemple', statut:'encours' },
               { date: Date.now()-9*86400000, app:'OP GESTION', users:2, formule:'Pro', besoin:'Premier essai.', statut:'fourni' }],
     docs:[{ name:'Facture n°12 — septembre 2026', url:'#' }] }`;
-  for (const p of ['telephone', 'bureau']) for (const mode of ['light', 'dark']) {
+  if (PARTIES.includes('connecte')) for (const p of PROFILS) for (const mode of ['light', 'dark']) {
     await profil(p, mode);
     await aller('/apercu/espace.html');
     const cree = await ev(`(async()=>{ try{ await auth.createUserWithEmailAndPassword('camille.${p}.${mode}@exemple.fr','un-mot-de-passe-solide'); }catch(e){ return 'refus : '+((e&&e.code)||e); }
