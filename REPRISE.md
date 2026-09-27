@@ -45,6 +45,15 @@ relue par `test-835` §10. ⛔ Le générateur écrit l'aperçu par défaut ; `-
 générateur et son banc — ni `app.html`, ni `sw.js`, ni `beta.html`, ni les pages de la racine). Vérifié : copie de
 `main` avant la poussée **190 suites · 9 638 ✓** + les 8 contrôles de `verification.yml` ; en ligne, **46 fichiers
 servis octet pour octet** et la racine inchangée ; **CI de `main` verte 3/3**. Branche : **191 suites · 9 844 ✓**.
+**Retour de Justin sur son iPhone, en nuit : « C'est parfait, pourquoi là c'est blanc ? ».** La maquette retournait la
+première grande case (sombre de jour, BLANCHE de nuit — vérifié sur ses captures du zip). Elle reste sombre ; de nuit,
+un bleu un cran plus clair, un halo et un filet (titre 8,43, sous-titre 5,05 au point le plus éclairé) — OP GESTION et
+OP MESSAGES. Sa photo montrait aussi une bande vide sous le Mac : 48 à 88 px sur téléphone ; la case à Mac prend
+maintenant la hauteur du Mac (24 px sous le socle), le bureau et la tablette ne bougent pas (mesuré à 600, 820, 1 024,
+1 440 px). `test-835` **227 ✓** (§ 6 ter, 6 quater), sonde **454 ✓** sur les 8 pages, **6 contre-épreuves sur 6**
+(dont une que seule la hauteur exacte au bureau voyait : ajoutée à la sonde), suite **191 · 9 862 ✓**, copie de `main`
+**190 · 9 656 ✓**. Publié en aperçu (`235586d`), servi octet pour octet, racine inchangée, **CI de `main` verte 3/3**.
+⚠️ La racine EN SERVICE (v1, `vitrine/site.css`) garde la carte blanche de nuit jusqu'à « remplace le site ».
 **Ce qui attend Justin :** tester l'aperçu (https://teamop.fr/apercu/site/, jour, nuit, bouton, iPhone et Mac), puis
 « remplace le site » → `node scripts/site-marine.js --racine`, et le manifeste `vitrine/racine-v1.json` se retire
 avec l'ancien `vitrine/`. **Plus tard** : les vraies captures d'OP MESSAGES (quand il le dira).
