@@ -44,9 +44,9 @@ l'outil a dit « mis à jour » au lieu de « créé ». Restaurée depuis le co
 d'écrire un fichier neuf.**
 
 ❓ **Question posée à Justin** : `tour-v1.html` — une ANCIENNE Tour de contrôle (144 Ko) — est toujours servie à
-`teamop.fr/tour-v1.html` (HTTP 200, vérifié le 27 septembre 2026), et plus rien dans le dépôt n'y mène. Le serveur
-exige toujours la connexion du patron, donc rien ne fuit ; mais une vieille console ouverte par erreur agirait avec
-des gestes d'avant. Retirer un fichier servi est une publication : on attend sa réponse.
+`teamop.fr/tour-v1.html` (HTTP 200, vérifié le 27 septembre 2026), et plus rien dans le dépôt n'y mène. Rien ne fuit
+sans connexion à la Tour — vérifié route par route : ses 28 appels portent `monAdmin` ou `monPatronStrict` côté
+serveur —, mais une vieille console ouverte par erreur agirait avec des gestes d'avant. Retirer un fichier servi est une publication : on attend sa réponse.
 
 # 🟡 26 SEPTEMBRE 2026, NUIT — TOUR v2.68 : TOUT RANGÉ PAR SUJET, ET LE TÉLÉPHONE REVU — EN APERÇU, ATTEND « REMPLACE LA TOUR »
 
