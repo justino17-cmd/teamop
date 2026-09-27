@@ -127,7 +127,24 @@ vrai('le logo de la barre est celui de TEAM OP', CLES.every(c => PAGES[c].includ
 const idsDoubles = CLES.map(c => { const n = {}; for (const m of PAGES[c].matchAll(/\sid="([^"]+)"/g)) n[m[1]] = (n[m[1]] || 0) + 1; return Object.keys(n).filter(k => n[k] > 1).map(k => c + '#' + k); }).flat();
 v('aucun identifiant en double (#fonctions l\'était : la section ET les données des fenêtres — aucune ne s\'ouvrait)', idsDoubles, []);
 
-console.log('10. la preuve au navigateur existe');
+/* 27 septembre 2026 : le site passe à la racine (« fait les 3 »). Deux choses se gardent à partir de là :
+   · les pages de la RACINE sont, elles aussi, la sortie du générateur (--racine) — une retouche à la main
+     disparaîtrait au passage suivant, et c'est désormais le site servi ;
+   · le contrôle de syntaxe de la CI les accepte. Il passait chaque <script> à `new Function` : le bloc de
+     données JSON d'elan.html et d'opmessages.html y était une erreur, et la CI de main serait tombée au rouge
+     sur des pages justes (vu sur la copie de main, avant de pousser). */
+console.log('10. la racine et la CI');
+for (const c of CLES) {
+  const f = path.join(RACINE, c + '.html');
+  const lu = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
+  vrai(c + '.html (racine) est la sortie du générateur (sinon : node scripts/site-marine.js --racine)', lu && lu === GEN.page(c, { racine: true }));
+}
+const blocsJson = CLES.reduce((n, c) => n + (GEN.page(c, { racine: true }).match(/<script type="application\/json"/g) || []).length, 0);
+vrai('population : des blocs de données JSON dans les pages (' + blocsJson + ')', blocsJson >= 2);
+const syntaxe = require('child_process').spawnSync(process.execPath, [path.join(RACINE, 'scripts', 'verifier-syntaxe.js')], { encoding: 'utf8' });
+vrai('le contrôle de syntaxe de la CI passe sur les pages de la racine — ' + (syntaxe.stdout || '').trim().split('\n').pop(), syntaxe.status === 0);
+
+console.log('11. la preuve au navigateur existe');
 vrai('scratchpad/sonde-site.js existe', fs.existsSync(path.join(RACINE, 'scratchpad', 'sonde-site.js')));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
