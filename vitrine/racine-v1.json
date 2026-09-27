@@ -1,6 +1,6 @@
 {
  "publie": "fe599df, 27 septembre 2026 (« fait les 3 »)",
- "retouche": "27 septembre 2026 au soir, deux retouches et rien d'autre (tests/test-837.js : les défaire rend chaque page de fe599df octet pour octet). 1) tarifs.html — Justin : « à partir d'aujourd'hui c'est 1 utilisateur par abonnement » : les places, l'introduction, la FAQ et la description. 2) les huit pages — Justin, à la question de la taxe : « TTC » ; le pied et l'introduction des tarifs disent désormais « Prix TTC ».",
+ "retouche": "27 septembre 2026 au soir, trois retouches et rien d'autre (tests/test-837.js : les défaire rend chaque page de fe599df octet pour octet). 1) tarifs.html — Justin : « à partir d'aujourd'hui c'est 1 utilisateur par abonnement » : les places, l'introduction, la FAQ et la description. 2) les huit pages — Justin, à la question de la taxe : « TTC » ; le pied et l'introduction des tarifs disent désormais « Prix TTC ». 3) tarifs.html — Justin : « il faut bien préciser aux personnes qui doivent créer un compte d'abord avant de payer » : une phrase au bout de l'introduction, une question en tête de la FAQ.",
  "pages": {
   "index.html": "2adc32b277041d2911ee861ad2c9347e8758345ad4f66daca0e530977e6badcb",
   "applications.html": "5b271b3581889ff0bf894ebe59b30abca616ceabd0a8896ce2f5a19372e5fb61",
@@ -9,7 +9,7 @@
   "metiers.html": "ebd4f18c4c612cc801f3021d32dd9601cef825cd7a66117a30e71dc4a5ff6f38",
   "opmessages.html": "ff6f27ca782571adbf1541610e37decb5aaa7cf5a07fa3b9d7d156df1a34615f",
   "pourquoi.html": "81d87ba9972b24eda9df0c725f5dd5fc49b411cf9ef9b17941beeafe760cd354",
-  "tarifs.html": "3c3abf151a0dfb1836e025ed38afa646191be1aee25f50bb3166bd895e469a3d"
+  "tarifs.html": "a25f4beab09d4a9497ddbf9cb2a93025cedb937d8adf4fd2a2dcc16b5aec17b4"
  },
  "ressources": {
   "vitrine/site.css": "d514f70bbc2a47d1742d37eac4f30673c4918fa2e6cf2b9057d750612be1c716",

@@ -40,10 +40,15 @@ function paiement(PAGE, recherche) {
   const document = { title: '', querySelectorAll() { return []; }, querySelector() { return null; },
     getElementById(id) { return /^(selecteurFormules|carteDroits|cartePaiement)$/.test(id) ? (conteneurs[id] || (conteneurs[id] = nouveau(id))) : nouveau(id); } };
   const window = { location: { search: recherche, href: '' } };
-  const fetchFaux = async (url, opts) => { envoye.push({ url, corps: JSON.parse(opts.body) }); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/c/banc' }) }; };
+  /* ⛔ ON NE PAIE QU'AVEC UN COMPTE PROUVÉ (Justin, 27 septembre 2026 — `test-839` garde la règle) : ce faux navigateur
+     porte donc la session d'un compte prouvé, et le faux serveur répond « qui suis-je ». */
+  const fetchFaux = async (url, opts) => {
+    if (/\/api\/compte\/moi$/.test(url)) return { ok: true, status: 200, json: async () => ({ ok: true, compte: { email: 'paie@entreprise-banc.fr', prenom: 'Camille', nom: 'Banc', verifie: true } }) };
+    envoye.push({ url, corps: JSON.parse(opts.body) }); return { ok: true, status: 200, json: async () => ({ url: 'https://checkout.stripe.com/c/banc' }) };
+  };
   const api = new Function('window', 'document', 'history', 'localStorage', 'fetch', 'alert',
-    bloc + '\n;return { etat: () => ({ nbUsersVoulu, formuleActive }) };')(
-    window, document, { replaceState() {} }, { getItem: () => null }, fetchFaux, () => {});
+    bloc + '\n;return { etat: () => ({ nbUsersVoulu, formuleActive }), compteLu };')(
+    window, document, { replaceState() {} }, { getItem: k => (k === 'teamop_portail_jeton' ? 'e'.repeat(64) : null), removeItem() {} }, fetchFaux, () => {});
   return { api, derniers, envoye, texte: () => texte(conteneurs.cartePaiement.innerHTML) };
 }
 const PAGES_PAIEMENT = ['recap-abonnement.html', 'apercu/recap-abonnement.html'].filter(existe);
@@ -150,6 +155,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
         const u = adresse(jouer(o));
         const p = paiement(lire(PAGE), u.slice(u.indexOf('?')));
         if (!p) { vrai(PAGE + ' : le script de la page s\'exécute', false); continue; }
+        await p.api.compteLu;   // la page lit le compte au chargement, puis se redessine
         await p.derniers.btnPayer._h.click[0]();
         v('⛔ ' + APPLI + ' → ' + PAGE + ' (' + cas + ') : la page compte ' + attendu + ' abonnement(s), et « Payer » envoie la quantité ' + attendu,
           [p.api.etat().nbUsersVoulu, p.envoye.map(e => e.corps.quantity)], [attendu, [attendu]]);
