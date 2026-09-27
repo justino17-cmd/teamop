@@ -51,17 +51,30 @@ vrai('PLANS se lit dans app.html', bloc.length > 100);
 const PLANS = {};
 for (const m of bloc.matchAll(/(\w+):\{l:'([^']+)',prix:'([^']+)',maxU:(\d+)/g)) PLANS[m[1]] = { nom: m[2], prix: m[3], places: +m[4] };
 v('quatre formules dans l\'application', Object.keys(PLANS), ['gratuit', 'pro', 'business', 'premium']);
+/* ⛔ UN ABONNEMENT = UN UTILISATEUR — Justin, 27 septembre 2026 au soir : « à partir d'aujourd'hui c'est 1 utilisateur par
+   abonnement ». Le site (et la page de paiement, `test-837`) le disent tout de suite. L'application, elle, le fera avec la
+   version qui porte `maxU:1` — publiée sur SA phrase, comme toute version. ENTRE LES DEUX, l'application en service donne
+   PLUS que ce que le site promet (2 places par abonnement Business, 3 en Business Premium) — jamais moins : personne n'a
+   moins que ce qu'il a payé. Cet écart est DÉCLARÉ ici, valeur par valeur, et il se referme tout seul : une formule dont
+   l'application donne 1 exige l'égalité, et un écart déclaré qui ne sert plus fait tomber le banc — on le retire alors
+   d'ici, dans le même geste que l'application. */
+const PLACES_VENDUES = 1;
+const ECART_APPLICATION = { business: 2, premium: 3 };   // l'ancienne règle, tant que l'application la porte encore
 for (const f of GEN.FORMULES_GESTION) {
   const p = PLANS[f.cle];
   vrai(f.cle + ' : nom « ' + f.nom + ' » = « ' + (p && p.nom) + ' »', p && p.nom === f.nom);
   vrai(f.cle + ' : prix ' + f.prix + ' = ' + (p && p.prix), p && p.prix.startsWith(f.prix + ' '));
-  vrai(f.cle + ' : ' + f.places + ' (' + (p && p.places) + ' dans l\'application)', p && new RegExp('^' + p.places + ' utilisateur').test(f.places));
+  vrai(f.cle + ' : le site vend ' + PLACES_VENDUES + ' utilisateur (« ' + f.places + ' »)', new RegExp('^' + PLACES_VENDUES + ' utilisateur(?!s)').test(f.places));
+  const dansApp = p && p.places;
+  vrai(f.cle + ' : l\'application donne ' + dansApp + ' — ' + (dansApp === PLACES_VENDUES ? 'la même chose' : 'l\'écart déclaré, jamais moins'),
+    dansApp === PLACES_VENDUES || (dansApp === ECART_APPLICATION[f.cle] && dansApp > PLACES_VENDUES));
 }
+for (const cle of Object.keys(ECART_APPLICATION)) vrai('l\'écart déclaré pour « ' + cle + ' » sert encore (sinon : le retirer d\'ici)', PLANS[cle] && PLANS[cle].places === ECART_APPLICATION[cle]);
 const faq = texte(PAGES.tarifs);
-const attendu = `1 en Gratuit, 1 en Pro, ${PLANS.business.places} en Business, ${PLANS.premium.places} en Business Premium`;
-vrai('la FAQ dit « ' + attendu + ' »', faq.includes(attendu));
-vrai('l\'exemple de la FAQ compte juste (Business × 2 = ' + 2 * PLANS.business.places + ' comptes)', faq.includes('Business × 2 = ' + 2 * PLANS.business.places + ' comptes'));
-vrai('plus aucune trace de « 5 en Business Premium »', !/5 en Business Premium|3 en Business,/.test(faq));
+vrai('la FAQ dit « Un abonnement donne un compte utilisateur, quelle que soit la formule »', faq.includes('Un abonnement donne un compte utilisateur, quelle que soit la formule'));
+vrai('l\'exemple de la FAQ compte juste (Business × 3 = ' + 3 * PLACES_VENDUES + ' comptes)', faq.includes('Business × 3 = ' + 3 * PLACES_VENDUES + ' comptes'));
+vrai('plus aucune trace des places d\'avant (« 2 en Business », « 3 en Business Premium », « Business × 2 = 4 »)', !/[2-5] en Business|Business × 2 = 4/.test(faq));
+vrai('⛔ le site ne promet nulle part plusieurs utilisateurs par abonnement', CLES.every(c => !/\b[2-9] utilisateurs inclus|\(\d utilisateurs/.test(texte(PAGES[c]) + ' ' + ((PAGES[c].match(/<meta name="description" content="([^"]*)"/) || [])[1] || ''))));
 
 console.log('4. chaque lien mène quelque part');
 let liens = 0, morts = [];

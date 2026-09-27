@@ -18,8 +18,10 @@
    Ce qui NE vient PAS de la maquette, et pourquoi (décisions de Justin, antérieures au zip) :
    · aucune promesse de « hors-ligne » / « même sans réseau » — retirées du site le 23 septembre 2026
      (`f1cc223`), la maquette les réécrivait ;
-   · les places par formule sont celles de l'application (`PLANS` d'app.html : 1, 1, 2, 3) — la FAQ du
-     site d'avant disait « 3 en Business, 5 en Business Premium », faux ;
+   · UN ABONNEMENT = UN UTILISATEUR, dans toutes les formules (Justin, 27 septembre 2026 au soir : « à partir
+     d'aujourd'hui c'est 1 utilisateur par abonnement »). Avant : 2 en Business, 3 en Business Premium. L'application
+     suivra avec la version qui porte `maxU:1` ; d'ici là elle donne PLUS que ce que le site promet, jamais moins,
+     et `test-835` §3 garde cet écart déclaré ;
    · OP MESSAGES : « Bientôt disponible », aucune formule ne se choisit (l'application est fermée) ;
    · « Créer » part par e-mail (pas de route serveur) : l'écran ne dit jamais « demande envoyée » ;
    · les boutons de formule mènent à `recap-abonnement.html?formule=…`, comme aujourd'hui. */
@@ -193,18 +195,18 @@ const F_MESSAGES = [
   ['clip', 'Photos, vocaux et fichiers', 'Tout se partage', ['Photos, vocaux, documents, fiches contact', 'Sondages pour décider ensemble', 'Événements pour caler les rendez-vous d\'équipe']],
 ];
 
-/* ── les formules (les places viennent de `PLANS` d'app.html : 1, 1, 2, 3) ── */
+/* ── les formules : un abonnement = un utilisateur, quelle que soit la formule (Justin, 27 septembre 2026) ── */
 const F = (cle, nom, prix, per, places, desc, tete, points, phare, tag) => ({ cle, nom, prix, per, places, desc, tete, points, phare, tag });
 const FORMULES_GESTION = [
   F('gratuit', 'Gratuit', '0', '€ pour toujours', '1 utilisateur', 'Pour découvrir TEAM OP et gérer ses premières interventions.', 'Inclus', ['Planning des interventions (jour · semaine · mois)', 'Fiches clients et historique des passages', 'Rapports d\'intervention simples', 'App web + mobile (iPhone, Android, Mac, PC)', 'Temps réel, sur tous vos appareils', 'Données chiffrées AES-256, espace isolé', 'Support par e-mail']),
-  F('pro', 'Pro', '15', '€ / mois', '1 utilisateur inclus', 'Pour les équipes terrain qui veulent un planning et des rapports impeccables.', 'Tout Gratuit, plus', ['Rapports complets : photos, signatures, compte-rendu assisté', 'Tournées du jour : carte, temps de trajet, ordre optimisé', 'Récurrences (contrats) et passages multiples', 'Détection des conflits de planning et absences', 'Devis et factures', 'Exports CSV, notifications push']),
-  F('business', 'Business', '25', '€ / mois', '2 utilisateurs inclus', 'Pour piloter toute l\'entreprise : stock, achats, réglementaire et compta.', 'Tout Pro, plus', ['Stock et box : inventaire, seuils, alertes automatiques', 'Bons de commande fournisseurs : PDF pro, envoi en 1 clic', 'Commande suggérée, réception qui crédite le stock', 'Boîte mail intégrée rattachée aux bons', 'Registre sanitaire et biocides (AMM, Certibiocide, courbes)', 'Télécollecte et comptabilité, rôles fins', 'Votre logo dans l\'application', 'Support prioritaire'], true, 'Le plus choisi'),
-  F('premium', 'Business Premium', '50', '€ / mois', '3 utilisateurs inclus', 'Le maximum : espace client, service 24h/24 — et la messagerie d\'équipe à sa réouverture.', 'Tout Business, plus', ['100 % des fonctions d\'OP GESTION, sans limite', 'OP MESSAGES inclus dès sa réouverture', 'Espace client : vos clients suivent leurs interventions', 'Statistiques avancées, multi-sites / multi-équipes', 'Personnalisation complète : logo, nom, votre couleur', '3 mois offerts sur chaque future application', 'Création sur mesure d\'une application selon vos besoins', 'Service 24h/24, 7j/7 et accompagnement à la mise en route']),
+  F('pro', 'Pro', '15', '€ / mois', '1 utilisateur par abonnement', 'Pour les équipes terrain qui veulent un planning et des rapports impeccables.', 'Tout Gratuit, plus', ['Rapports complets : photos, signatures, compte-rendu assisté', 'Tournées du jour : carte, temps de trajet, ordre optimisé', 'Récurrences (contrats) et passages multiples', 'Détection des conflits de planning et absences', 'Devis et factures', 'Exports CSV, notifications push']),
+  F('business', 'Business', '25', '€ / mois', '1 utilisateur par abonnement', 'Pour piloter toute l\'entreprise : stock, achats, réglementaire et compta.', 'Tout Pro, plus', ['Stock et box : inventaire, seuils, alertes automatiques', 'Bons de commande fournisseurs : PDF pro, envoi en 1 clic', 'Commande suggérée, réception qui crédite le stock', 'Boîte mail intégrée rattachée aux bons', 'Registre sanitaire et biocides (AMM, Certibiocide, courbes)', 'Télécollecte et comptabilité, rôles fins', 'Votre logo dans l\'application', 'Support prioritaire'], true, 'Le plus choisi'),
+  F('premium', 'Business Premium', '50', '€ / mois', '1 utilisateur par abonnement', 'Le maximum : espace client, service 24h/24 — et la messagerie d\'équipe à sa réouverture.', 'Tout Business, plus', ['100 % des fonctions d\'OP GESTION, sans limite', 'OP MESSAGES inclus dès sa réouverture', 'Espace client : vos clients suivent leurs interventions', 'Statistiques avancées, multi-sites / multi-équipes', 'Personnalisation complète : logo, nom, votre couleur', '3 mois offerts sur chaque future application', 'Création sur mesure d\'une application selon vos besoins', 'Service 24h/24, 7j/7 et accompagnement à la mise en route']),
 ];
 const FORMULES_MESSAGES = [
   F('', 'Perso', '0', '€ pour toujours', 'Compte personnel', 'La messagerie classique, gratuite : messages, appels et vidéo.', 'Inclus', ['Messages privés et groupes entre contacts', 'Appels audio illimités', 'Appels vidéo en tête-à-tête', 'Photos, vidéos, fichiers et messages vocaux', 'App web + mobile, synchro en temps réel']),
-  F('', 'Messages Pro', '15', '€ / mois', '1 utilisateur inclus', 'La messagerie de votre entreprise, propre et séparée du perso.', 'Tout Perso, plus', ['Espace entreprise (SIRET) : vos équipes, vos règles', 'Canaux d\'équipe (# équipe, # dépôt…) et canal général', 'Épingles, favoris, archivage, recherche', 'Mentions @, réponses, messages vocaux', 'Notifications push, gestion des membres'], true, 'Équipes'),
-  F('', 'Messages Business Premium', '25', '€ / mois', '3 utilisateurs inclus', 'La totale : visio illimitée et priorité au support.', 'Tout Messages Pro, plus', ['Réunions visio illimitées : HD, partage d\'écran', 'Réunions planifiées avec invitations, appels de groupe', 'Couleurs de conversation et personnalisation avancée', 'Support prioritaire', 'Inclus avec le Business Premium d\'OP GESTION']),
+  F('', 'Messages Pro', '15', '€ / mois', '1 utilisateur par abonnement', 'La messagerie de votre entreprise, propre et séparée du perso.', 'Tout Perso, plus', ['Espace entreprise (SIRET) : vos équipes, vos règles', 'Canaux d\'équipe (# équipe, # dépôt…) et canal général', 'Épingles, favoris, archivage, recherche', 'Mentions @, réponses, messages vocaux', 'Notifications push, gestion des membres'], true, 'Équipes'),
+  F('', 'Messages Business Premium', '25', '€ / mois', '1 utilisateur par abonnement', 'La totale : visio illimitée et priorité au support.', 'Tout Messages Pro, plus', ['Réunions visio illimitées : HD, partage d\'écran', 'Réunions planifiées avec invitations, appels de groupe', 'Couleurs de conversation et personnalisation avancée', 'Support prioritaire', 'Inclus avec le Business Premium d\'OP GESTION']),
 ];
 function formules(liste, attente) {
   return liste.map(f => `<article class="formule${f.phare ? ' phare' : ''}"><div><div class="n">${f.tag ? `<i>${fr(f.tag)}</i>` : ''}<b>${fr(f.nom)}</b></div>`
@@ -308,10 +310,10 @@ const PAGES = {
           + (pret ? `<a href="${ESPACE()}">Démarrer avec ce pack ›</a>` : '<a href="creer.html">En parler avec nous ›</a>') + '</article>').join('')
       + '</div></section>' },
 
-  tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 € (2 utilisateurs), Business Premium 50 € (3 utilisateurs + service 24h/24). OP MESSAGES a ses propres formules, à part.',
+  tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 €, Business Premium 50 € (service 24h/24), par mois et par utilisateur. OP MESSAGES a ses propres formules, à part.',
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Commencez gratuitement, passez à la vitesse supérieure quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
       + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="opmessages"></span><div class="tarifs-in">
-        <p class="intro">${fr('Prix HT par mois, sans engagement. Chaque abonnement inclut un nombre d\'utilisateurs — besoin de plus ? Ajoutez un abonnement, les places s\'additionnent.')}</p>
+        <p class="intro">${fr('Prix HT par mois, sans engagement. Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements.')}</p>
         <div class="segment" role="tablist" aria-label="Application"><button type="button" role="tab" id="onglet-gestion" aria-controls="formules-gestion" aria-selected="true">OP GESTION</button><button type="button" role="tab" id="onglet-msg" aria-controls="formules-msg" aria-selected="false" tabindex="-1">OP MESSAGES</button></div>
         <div class="formules" id="formules-gestion" role="tabpanel" aria-labelledby="onglet-gestion" style="--n:4">${formules(FORMULES_GESTION)}</div>
         <div class="formules" id="formules-msg" role="tabpanel" aria-labelledby="onglet-msg" style="--n:3" hidden>${formules(FORMULES_MESSAGES, true)}</div>
@@ -319,7 +321,7 @@ const PAGES = {
       </div></section>
       <section class="faq" id="faq"><h2 class="h2 moyen">Questions fréquentes.</h2><div class="liste">`
       + [['Puis-je changer de formule à tout moment ?', 'Oui. Vous passez de Gratuit à Pro, Business ou Business Premium quand vous voulez, et vous pouvez redescendre ou arrêter à tout moment — aucun engagement de durée.'],
-        ['Comment fonctionnent les places utilisateur ?', 'Chaque abonnement inclut un nombre de comptes : 1 en Gratuit, 1 en Pro, 2 en Business, 3 en Business Premium. Besoin de plus ? Ajoutez un abonnement : les places s\'additionnent (par exemple, Business × 2 = 4 comptes).'],
+        ['Comment fonctionnent les places utilisateur ?', 'Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus ? Ajoutez un abonnement par personne : les places s\'additionnent (par exemple, Business × 3 = 3 comptes).'],
         ['Faut-il installer quelque chose ?', 'Non. TEAM OP est une vraie application qui s\'installe en un clic sur iPhone, Android, Mac et Windows. Elle s\'ouvre aussi dans le navigateur, sans rien télécharger.'],
         ['Mes données sont-elles en sécurité ?', 'Oui : chiffrement AES-256, un espace totalement isolé par entreprise, et une sauvegarde complète exportable à tout moment.'],
         ['Y a-t-il des frais d\'installation ?', 'Non, aucun frais caché. L\'accompagnement à la mise en route est inclus dans Business Premium.'],
