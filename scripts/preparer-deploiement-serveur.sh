@@ -2,7 +2,7 @@
 # ⛔ PRÉPARE — SANS RIEN POUSSER — LE COMMIT QUI DÉPLOIE LE SERVEUR SEUL SUR `main`.
 #
 # Justin, 23 septembre 2026 : « on ne publie rien en version publique tant que le serveur n'est
-# pas fait à part de Firebase ». `app.html` et `sw.js` restent donc en v695 sur `main` ; seul
+# pas fait à part de Firebase ». `app.html` et `sw.js` ne bougent pas sur `main` ; seul
 # `server/` part, avec ce qui le SURVEILLE (`.github/scripts/surveillance.js`, qui lit les champs
 # de `/health`) et ce qui le GARDE (les suites de `scripts/bancs-serveur.liste`, lancées par le
 # job `bancs` dont le déploiement dépend).
@@ -72,13 +72,17 @@ BANCS_PLANCHER="$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste)" bash s
 rm server/node_modules
 
 # 4. Le commit — dans l'arbre à part, JAMAIS poussé par ce script.
+# La version d'application se LIT sur le main de l'arbre : écrite en dur (« v695 »), elle a menti dans le message
+# du déploiement du 27 septembre 2026, main étant alors en v757.
+VAPP="$(sed -n "s/.*APP_VERSION *= *'\([0-9]*\)'.*/\1/p" app.html | head -1)"
+[ -n "$VAPP" ] || { echo "✗ APP_VERSION illisible dans app.html de main"; exit 1; }
 git add server .github/scripts/surveillance.js .github/workflows/deploiement.yml .github/workflows/ci.yml \
         scripts/bancs-ci.sh scripts/bancs-serveur.liste scripts/preparer-deploiement-serveur.sh "${SUITES[@]}"
 git diff --cached --name-only | grep -q 'node_modules' && { echo "✗ node_modules dans le commit — rien ne se fait"; exit 1; }
 git -c user.name="$(git -C "$RACINE" config user.name || echo TeamOP)" \
     -c user.email="$(git -C "$RACINE" config user.email || echo noreply@teamop.fr)" \
     commit -q -F - <<MSG
-Serveur seul : déploiement depuis ${SOURCE:0:8} (app.html et sw.js restent en v695)
+Serveur seul : déploiement depuis ${SOURCE:0:8} (app.html et sw.js ne bougent pas : v${VAPP})
 
 server/, sa surveillance (.github/scripts/surveillance.js) et ses bancs
 (scripts/bancs-serveur.liste, lancés par le job « bancs » dont le déploiement dépend).

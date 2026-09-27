@@ -217,14 +217,37 @@ const enfants = [];
 function arreterTout() { for (const e of enfants) { try { if (e.exitCode === null) e.kill('SIGKILL'); } catch (x) {} } }
 process.on('exit', () => { arreterTout(); try { fs.rmSync(BANC, { recursive: true, force: true }); } catch (e) {} });
 
+/* ⛔ UN FACTEUR DE BANC : depuis la relecture de `gardien` (27 septembre 2026), « repartir à neuf » part
+   toujours avec son e-mail d'avis — sans serveur d'e-mails, le serveur refuse (503, `supprMailPret`).
+   Celui-ci accepte tout et ne garde rien : ce banc ne lit pas les e-mails, il lui en faut seulement un. */
+let _facteurPort = null, _dernierCode = '';
+async function facteurBanc() {
+  if (_facteurPort) return _facteurPort;
+  const s = require('net').createServer(c => {
+    c.on('error', () => {}); let t = '', corps = false; c.write('220 banc\r\n');
+    c.on('data', d => { t += d; let i;
+      while ((i = t.indexOf('\r\n')) >= 0) { const l = t.slice(0, i); t = t.slice(i + 2);
+        if (corps) { if (l === '.') { corps = false; c.write('250 ok\r\n'); } else { const m = /Code de confirmation : (\d{6})/.exec(l); if (m) _dernierCode = m[1]; } continue; }
+        const h = l.toUpperCase();
+        if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
+        else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
+        else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
+        else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
+        else c.write('250 ok\r\n'); } });
+  });
+  await new Promise(r => s.listen(0, '127.0.0.1', r)); s.unref();
+  _facteurPort = s.address().port; return _facteurPort;
+}
 async function monter(nom, espaces, usagesTexte) {
   const dir = path.join(BANC, nom), data = path.join(dir, 'data');
   fs.mkdirSync(data, { recursive: true });
   const webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push'));
   const vap = webpush.generateVAPIDKeys();
   const cfgPath = path.join(dir, 'config.json');
+  const portSmtp = await facteurBanc();
   fs.writeFileSync(cfgPath, JSON.stringify({
     vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: sha(MDP),
+    notifDemandes: 'patron@banc-803.fr', smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' },
     /* Rien ne doit toucher au vrai projet : « repartir à neuf » essaie d'effacer chez Google. */
     firebase: { apiKey: 'cle-de-banc-invalide', projectId: 'projet-de-banc-803' },
     promos: [{ code: CODE, formule: 'premium', mois: 3, maxUtilisations: 50 }, { code: AUTRE, formule: 'pro', mois: 1 }, { code: TROISIEME, formule: 'business', mois: 2 }],
@@ -430,7 +453,12 @@ const USAGES = { [CODE]: { n: 3, equipes: {
     const avant = n(CODE);
     r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-at-1' }, kh(K.at));
     v('   il sert le code', [r.code, r.json.dejaUtilise, n(CODE)], [200, false, avant + 1]);
-    await S.appel('POST', '/api/monitor/espaces/renaitre', { nom: 'atelierrejeu' }, T);
+    /* C'est le 4e « repartir à neuf » de ce serveur dans la journée : au-delà de trois entreprises en 24 heures, il faut
+       le code (relecture de `gardien`, 27 septembre 2026). La Tour v2.69 le demande ; on fait comme elle. */
+    r = await S.appel('POST', '/api/monitor/espaces/renaitre', { nom: 'atelierrejeu', confirme: true }, T);
+    v('   la Tour le supprime (4e de la journée : le code est demandé)', [r.code, r.json.codeEnvoye, r.json.limite], [200, true, true]);
+    r = await S.appel('POST', '/api/monitor/espaces/renaitre', { nom: 'atelierrejeu', code: _dernierCode }, T);
+    v('   … avec le code, l\'accès est effacé', [r.code, r.json.supprime], [200, true]);
     r = await S.appel('POST', '/api/monitor/espaces', { nom: 'atelierrejeu', code: b64({ t: 'ent-at-2', k: K.at2, n: 'Atelier' }), origine: 'tour' }, T);
     v('   la Tour le supprime, puis ouvre une AUTRE entreprise sous le même nom', r.code, 200);
     r = await S.appel('POST', '/api/promo/valider', { code: CODE, teamId: 'ent-at-2' }, kh(K.at2));

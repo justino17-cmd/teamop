@@ -27,7 +27,10 @@
 # `main`), puis +26 avec `test-805`. Le relever quand on ajoute une suite, jamais le baisser pour passer.
 # 25 septembre 2026 : 2 297 contre les pages de `main` (38 suites), après la sortie de Firebase et la
 # seconde passe du gardien sur le portail — plancher relevé à 2 250.
-#plancher 2250
+# 27 septembre 2026 : 2 396 contre les pages de `main` (41 suites), `test-832` compris — plancher relevé à 2 350.
+# 27 septembre 2026, après `gardien` : 2 522 contre les pages de `main` (42 suites), `test-834` compris — plancher
+# relevé à 2 450.
+#plancher 2450
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -84,3 +87,10 @@ tests/test-815.js
 # 26 septembre 2026 : le budget du document d'équipe tient une entreprise de 15 à 30 appareils, et chaque
 # refus (budget par espace, seau par IP) se compte et se surveille. Le vrai module, sans page.
 tests/test-819.js
+# 27 septembre 2026 : supprimer depuis la Tour sans code par e-mail (« Fait les 4 ») — le chemin du code
+# de la Tour en service ne bouge pas, `confirme: true` ne passe que booléen et patron. Sans page.
+tests/test-832.js
+# 27 septembre 2026, après `gardien` : les contournements des deux protections — plusieurs espaces sous une
+# adresse, l'espace partagé, « repartir à neuf », une boîte que la Tour relève (fausse boîte IMAP glissée par
+# `node -r`), une écriture refusée, un nom piégé, des effacements en parallèle. Le vrai serveur, sans page.
+tests/test-834.js

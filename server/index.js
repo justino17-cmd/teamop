@@ -113,20 +113,52 @@ function masqueMail(a) {
   return s[0] + '***@' + s.slice(i + 1);
 }
 /* Une entrée du journal des e-mails. Un secret n'y entre JAMAIS — ni par le texte, ni par
-   l'OBJET : c'est par l'objet que le code de confirmation était conservé en clair. */
+   l'OBJET : c'est par l'objet que le code de confirmation était conservé en clair.
+   Rend l'entrée : `mailerEnvoi` la marque si l'envoi échoue ensuite (voir plus bas). */
 function mailsJournal(to, sujet, txt, secret, trace) {
   try {
-    mailsLog.unshift({ ts: Date.now(), a: String(to || ''),
+    const ent = { ts: Date.now(), a: String(to || ''),
       sujet: secret ? '(objet confidentiel)' : String(sujet || '').slice(0, 140),
-      txt: secret ? (trace ? String(trace).slice(0, 400) : '(contenu confidentiel — code de sécurité ou mot de passe, jamais conservé)') : String(txt || '').slice(0, 2000) });
+      txt: secret ? (trace ? String(trace).slice(0, 400) : '(contenu confidentiel — code de sécurité ou mot de passe, jamais conservé)') : String(txt || '').slice(0, 2000) };
+    mailsLog.unshift(ent);
     if (mailsLog.length > 300) mailsLog.length = 300; mailsSave();
-  } catch (e) {}
+    return ent;
+  } catch (e) { return null; }
+}
+/* ══ LES E-MAILS DE SÉCURITÉ QUE LA TOUR NE DOIT NI CACHER NI EFFACER ══════════════════════════════
+   `gardien`, 27 septembre 2026 (B4) : le code d'une suppression et l'avis qui la suit partent à NOTRE
+   boîte (`supprDest`, plus bas) — chez TEAM OP, contact@teamop.fr, que la Tour relève elle-même : la
+   Messagerie (`mail.js`) reprend d'office la boîte support, et la relève du support range tout ce
+   qui arrive dans une liste que TOUT compte de la Tour lit. Une session volée y lisait donc le code
+   qu'on lui demandait, puis effaçait l'avis qui l'aurait dénoncée.
+   Chacun de ces e-mails porte désormais un identifiant (`Message-ID`) tiré au sort ICI et retenu sur
+   le disque : la relève du support ne le range pas, la Messagerie refuse de le déplacer, de le
+   supprimer ou de le marquer, et ne le marque pas « lu » en l'ouvrant. Il reste lisible par qui lit
+   cette boîte — c'est le patron qu'il doit prévenir.
+   ⚠️ Ce qui n'est PAS réglé par là : un code qu'on peut LIRE dans la Tour ne protège rien. Au-delà de
+   trois entreprises, si la destination est une boîte que la Tour lit (`supprDestLisible`), la
+   suppression attend plutôt que d'envoyer un code inutile. */
+const MAILS_PROTEGES_PATH = path.join(DATA_DIR, 'mails-proteges.json');
+let mailsProteges = [];
+try { const l = JSON.parse(fs.readFileSync(MAILS_PROTEGES_PATH, 'utf8')); if (Array.isArray(l)) mailsProteges = l.filter(x => typeof x === 'string').slice(-3000); } catch (e) {}
+let mailsProtegesSet = new Set(mailsProteges);
+function midNorm(m) { return String(m || '').trim().replace(/^<+|>+$/g, '').toLowerCase(); }
+function mailProtege(mid) { const k = midNorm(mid); return !!k && mailsProtegesSet.has(k); }
+function mailProtegeNouveau() {
+  const dom = (adrNue((config.smtp && (config.smtp.from || config.smtp.user)) || '').split('@')[1] || '').replace(/[^a-z0-9.-]/g, '') || 'teamop.fr';
+  const id = require('crypto').randomBytes(16).toString('hex') + '.securite@' + dom;
+  mailsProteges.push(id);
+  if (mailsProteges.length > 3000) mailsProteges = mailsProteges.slice(-3000);
+  mailsProtegesSet = new Set(mailsProteges);
+  try { fs.writeFileSync(MAILS_PROTEGES_PATH + '.tmp', JSON.stringify(mailsProteges)); fs.renameSync(MAILS_PROTEGES_PATH + '.tmp', MAILS_PROTEGES_PATH); }
+  catch (e) { console.error('mails-proteges.json non écrit :', e.code || 'erreur disque'); }
+  return '<' + id + '>';
 }
 function mailerEnvoi(opts) {
   // confidentiel : code de sécurité ou mot de passe → jamais journalisé ni copié
   const secret = opts.confidentiel === true || /code/i.test(String(opts.subject || ''));
   // trace : ce qu'on garde d'un e-mail confidentiel (destinataire, lien envoyé, espace…) — jamais le secret lui-même
-  mailsJournal(opts.to, opts.subject, opts.text, secret, opts.trace);
+  const ent = mailsJournal(opts.to, opts.subject, opts.text, secret, opts.trace);
   const o2 = Object.assign({}, opts); delete o2.confidentiel; delete o2.trace; delete o2.diffusion;
   try {
     const moi = String(config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').toLowerCase();
@@ -135,11 +167,26 @@ function mailerEnvoi(opts) {
        ENTREPRISE dans la boîte support. Avec deux entreprises c'est déjà deux copies ; avec
        cinquante, les vrais messages clients sont noyés. */
     if (moi && !secret && !opts.diffusion && String(opts.to || '').toLowerCase() !== moi) o2.bcc = moi;
+    // un e-mail confidentiel adressé à notre boîte de sécurité : la Tour ne le cache ni ne l'efface (voir plus haut)
+    if (secret && adrNue(opts.to) && adrNue(opts.to) === adrNue(supprDest())) o2.messageId = mailProtegeNouveau();
   } catch (e) {}
   // Une diffusion (annonce) doit offrir une sortie : les messageries lisent cet
   // en-tête, et son absence pèse dans le classement en spam.
   if (opts.diffusion) o2.headers = Object.assign({}, o2.headers, { 'List-Unsubscribe': '<mailto:contact@teamop.fr?subject=Stop%20annonces>' });
-  return mailer.sendMail(o2);
+  const envoi = mailer.sendMail(o2);
+  /* ⛔ LE JOURNAL NE DIT PAS « PARTI » POUR UN E-MAIL QUI N'EST PAS PARTI (`gardien`, C2). L'entrée
+     s'écrit AVANT l'envoi : sans ce marquage, l'avis d'une suppression refusé par le serveur d'e-mails
+     se lisait dans « Journal des e-mails » comme envoyé. L'objet porte la marque : c'est ce que toute
+     Tour affiche déjà, sans changer une ligne de la page. Un envoi qui dépasse le délai de son appelant
+     (l'avis d'une suppression : huit secondes) se dit « PAS ENCORE PARTI », puis « parti en retard » ou
+     « NON PARTI » — sinon un serveur d'e-mails muet laissait l'entrée muette, elle aussi, trente secondes. */
+  const base = ent ? ent.sujet : '';
+  const marquer = (avant, apres) => { if (ent) { ent.sujet = avant + base + apres; mailsSave(); } };
+  envoi.then(
+    () => { if (ent && ent.retard) { delete ent.retard; marquer('', ' (parti en retard)'); } },
+    () => { if (ent && !ent.echec) { ent.echec = 1; delete ent.retard; marquer('⚠️ NON PARTI — ', ''); } });
+  envoi.enRetard = () => { if (ent && !ent.echec && !ent.retard) { ent.retard = 1; marquer('⚠️ PAS ENCORE PARTI — ', ''); } };
+  return envoi;
 }
 
 // ── Anti-abus : deux paliers ────────────────────────────────────────────────
@@ -2006,6 +2053,21 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
   const prev = espacesReg[slug] || {};
   // un nom = une seule entreprise : refus si le nom est déjà pris par un AUTRE espace
   if (prev.t && t && prev.t !== t) return res.status(409).json({ error: 'Ce nom est déjà utilisé par une autre entreprise — choisis une variante (ex. ajoute la ville)' });
+  /* ⛔ L'ANNUAIRE NE RATTACHE NI L'ESPACE PARTAGÉ, NI L'ESPACE D'UN AUTRE CLIENT (`gardien`, 27 septembre
+     2026, B1 et B2). Cette route acceptait n'importe quel `t` et n'importe quelle adresse : une session
+     de la Tour rattachait l'espace de cinq autres entreprises — ou l'espace partagé de l'application —
+     à l'adresse d'UN client, puis une seule « fermeture » les effaçait tous. La fermeture compte
+     désormais chaque espace et saute l'espace partagé ; ici, on ne laisse plus faire le rattachement.
+     La Tour n'écrit ici que pour un nom que le serveur ne connaît pas (`tourEspaceDe`) : un espace déjà
+     relié à une AUTRE adresse, ou un nom déjà relié, n'est jamais un geste qu'elle fait. */
+  if (t && ESPACES_INTOUCHABLES.includes(t)) return res.status(403).json({ error: REFUS_INTOUCHABLE });
+  const emailNeuf = monStr((req.body || {}).email, 120).toLowerCase();
+  if (emailNeuf && prev.email && String(prev.email).toLowerCase() !== emailNeuf)
+    return res.status(409).json({ error: 'Ce nom est déjà relié à une autre adresse : on ne rattache pas un espace à un autre client par ici.' });
+  if (t && emailNeuf) for (const [s2, e2] of Object.entries(espacesReg)) {
+    if (s2 === slug || !e2 || espaceT(e2) !== t || !e2.email || String(e2.email).toLowerCase() === emailNeuf) continue;
+    return res.status(409).json({ error: 'Cet espace appartient déjà à « ' + (espNomPropre(e2) || s2) + ' », relié à une autre adresse : on ne le rattache pas à un second client.' });
+  }
   /* Le code d'accès ne figure PAS ici : il vit dans son propre registre, indexé par l'identifiant
      d'équipe (voir /api/espaces/ouvrir). Le reporter depuis « prev » ressuscitait un code révoqué
      dès qu'on rouvrait le panneau d'un ancien nom du même espace. */
@@ -2019,7 +2081,7 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
      elle est appelée par « Revoir le lien de connexion » aussi bien que par l'ouverture d'un
      accès : sans ce report, redonner son lien à une entreprise lui REFERMAIT OP MESSAGES —
      sans erreur, sans journal, sans que rien à l'écran ne le dise. Mesuré par le gardien. */
-  espacesReg[slug] = { nom, code, t, ts: Date.now(), par: req.tourUser.nom, origine, email: monStr((req.body || {}).email, 120).toLowerCase() || prev.email || '',
+  espacesReg[slug] = { nom, code, t, ts: Date.now(), par: req.tourUser.nom, origine, email: emailNeuf || prev.email || '',
     opMessages: prev.opMessages,
     formule: prev.formule, quantite: prev.quantite, formulePar: prev.formulePar, formuleTs: prev.formuleTs };
   /* ⛔ ÉCRIT, OU ON LE DIT — et on défait l'entrée en mémoire. Répondre `ok` sur une écriture
@@ -2629,7 +2691,261 @@ function cleEtat(e) {
    que `sauvRefus` tranche AVANT — 404 sur l'espace inconnu, 403 sur le code illisible.
    ⛔ Ne jamais l'appeler seule, sans cette garde devant. */
 function cleEstPublique(t) { return cleEtat(espaceParT(t)) === 'partagee'; }
+/* ══ SUPPRIMER SANS CODE : UNE QUESTION, UNE CASE, « OUI » (Justin, 27 septembre 2026) ════════
+   Les quatre suppressions de la Tour — un compte, les comptes jamais utilisés, fermer un client,
+   supprimer une entreprise partout — demandaient un code envoyé par e-mail. Justin, à la question
+   posée : « Fait les 4 ». Elles se confirment désormais comme dans OP GESTION (`delUser`) : une
+   question en gras, une case à cocher, puis « Oui, supprimer », éteint tant que la case est vide.
+   La Tour l'annonce par `confirme: true` — un BOOLÉEN strict : « true » en chaîne, 1, ou tout
+   autre valeur retombent sur le chemin du code, qui ne supprime rien au premier appel.
+   ⚠️ LE CHEMIN DU CODE RESTE, ET IL LE FAUT : la Tour en service (v2.66, comme toute Tour d'avant
+   la v2.69) n'envoie pas `confirme` et attend `codeEnvoye` au premier appel. Si ce premier appel
+   supprimait directement, elle détruirait sans même la question qu'elle pose avant. Et dans
+   l'autre sens, une Tour neuve face au serveur d'avant reçoit `codeEnvoye` : elle redemande le
+   code (`supprAppel`, tour.html) au lieu d'annoncer une suppression qui n'a pas eu lieu.
+   ⛔ CE QUE ÇA RETIRE, et c'est une décision, pas un oubli : le code était un SECOND facteur —
+   une session de la Tour volée (trente jours avec « rester connecté ») ne suffisait pas à
+   détruire. Désormais `monPatronStrict` est la première porte, et deux protections la doublent
+   (`APRÈS CHAQUE SUPPRESSION, UN E-MAIL`, juste en dessous). Les règles de fond ne bougent pas :
+   « jamais utilisé » prouvé ici, journal saturé refusé, espaces intouchables, et chaque geste au
+   journal de la Tour (`monLog`) avec le chemin qui l'a permis (« confirmée » ou « par code »).
+   `tests/test-832.js` joue les deux chemins sur le vrai serveur. */
+/* ══ APRÈS CHAQUE SUPPRESSION, UN E-MAIL ; AU-DELÀ DE TROIS ENTREPRISES EN 24 HEURES, LE CODE REVIENT ══
+   Justin, 27 septembre 2026, aux deux protections proposées en échange du code : « Oui rajoute ça ».
+   Aucune n'ajoute un geste à qui supprime :
+   · APRÈS chaque suppression — les quatre routes, confirmée ou par code — un e-mail part à la boîte
+     du patron : quoi, par qui, quand, depuis quel appareil, et le geste à faire si ce n'est pas lui.
+     Rien à lire AVANT de supprimer. L'envoi est ATTENDU, huit secondes au plus, et la réponse DIT
+     s'il est parti (`avis`) : une alerte qui ne part pas sans que personne le sache n'est pas une
+     alerte — et sans borne, un serveur d'e-mails muet (deux minutes d'attente par défaut chez
+     nodemailer) faisait rendre 504 à nginx sur une suppression FAITE, que la Tour aurait crue ratée.
+     Sans e-mail configuré, rien ne se supprime (503) : c'était déjà vrai du code.
+   · Au-delà de TROIS ENTREPRISES supprimées en 24 heures glissantes — fermer un client, supprimer
+     partout, par confirmation ou par code — `confirme` ne suffit plus : le code par e-mail revient,
+     et la réponse porte `limite: true` pour que la Tour dise pourquoi. Une session volée détruit
+     trois entreprises au plus avant de buter sur la boîte du patron, et chacune l'a déjà prévenu.
+     Les comptes ne comptent pas : c'est « entreprises » que Justin a dit.
+   ⚠️ Le compteur vit sur disque (`tour-suppressions.json` : des dates, rien d'autre) — un
+   redémarrage ne le remet pas à zéro. Illisible, il reste FERMÉ : le code est demandé pour toute
+   entreprise jusqu'à la prochaine écriture réussie. ⛔ Ni le journal de la Tour ni celui des
+   e-mails ne servent de compteur : tous deux sont plafonnés, et des connexions ratées suffiraient
+   à en pousser les suppressions dehors (la leçon de « jamais connecté », plus bas).
+   `tests/test-832.js` joue l'avis sur les quatre routes et la limite, redémarrage compris. */
+const SUPPR_ENT_PATH = path.join(DATA_DIR, 'tour-suppressions.json');
+const SUPPR_ENT_MAX = 3, SUPPR_ENT_FENETRE = 24 * 3600000;
+/* Sur le disque : les dates des entreprises supprimées (`ts`), les avis qui ne sont pas partis
+   (`avisManques`, voir `supprRattraper`) et `ferme` — un compteur qui n'a pas pu être relu reste
+   FERMÉ même quand on réécrit le fichier pour autre chose (un avis manqué) : seule une suppression
+   passée par le code le rouvre. Un tableau nu est la forme de la première version (des dates
+   seules) : il se relit tel quel. */
+let supprEntTs = [], supprAvisManques = [], supprEntIllisible = false;
+try {
+  const l = JSON.parse(fs.readFileSync(SUPPR_ENT_PATH, 'utf8'));
+  const ts = Array.isArray(l) ? l : (l && Array.isArray(l.ts) ? l.ts : null);
+  if (!ts) throw new Error('forme inattendue');
+  supprEntTs = ts.filter(x => typeof x === 'number' && isFinite(x));
+  if (!Array.isArray(l)) {
+    if (l.ferme === true) { supprEntIllisible = true; console.error('tour-suppressions.json : compteur resté fermé — le code est demandé pour toute entreprise jusqu\'à la prochaine suppression par code'); }
+    if (Array.isArray(l.avisManques)) supprAvisManques = l.avisManques
+      .filter(x => x && typeof x.ts === 'number' && isFinite(x.ts)).slice(-30)
+      .map(x => ({ id: String(x.id || '').slice(0, 40), ts: x.ts, sujet: uneLigne(x.sujet, 200) }));
+  }
+} catch (e) {
+  if (e.code !== 'ENOENT') { supprEntIllisible = true; console.error('tour-suppressions.json illisible — le code est demandé pour toute entreprise jusqu\'à la prochaine écriture'); }
+}
+function supprEtatEcrire() {
+  try {
+    const etat = { ts: supprEntTs, avisManques: supprAvisManques };
+    if (supprEntIllisible) etat.ferme = true;
+    fs.writeFileSync(SUPPR_ENT_PATH + '.tmp', JSON.stringify(etat));
+    fs.renameSync(SUPPR_ENT_PATH + '.tmp', SUPPR_ENT_PATH);
+    return true;
+  } catch (e) { console.error('tour-suppressions.json non écrit :', e.code || 'erreur disque'); return false; }
+}
+function supprEntRecentes() { const lim = Date.now() - SUPPR_ENT_FENETRE; supprEntTs = supprEntTs.filter(x => x > lim); return supprEntTs.length; }
+/* ⛔ `n` : les entreprises que CETTE suppression effacerait, et chacune compte (`gardien`, 27 septembre
+   2026, B1). Fermer un client efface TOUS les espaces reliés à son adresse : cinq espaces d'autres
+   entreprises rattachés à une seule adresse, puis une seule fermeture confirmée, et le compteur
+   disait « une » — six entreprises détruites sous la limite de trois. On compte AVANT d'effacer, sur
+   ce qui va vraiment disparaître. Vrai : la confirmation de la Tour ne suffit plus, le code revient. */
+function supprEntLimite(n) { return supprEntIllisible || supprEntRecentes() + Math.max(1, n || 0) > SUPPR_ENT_MAX; }
+function supprEntCompter(n) {   // `n` entreprises viennent d'être supprimées ; rend le total sur 24 heures
+  supprEntRecentes();
+  const k = Math.max(1, n || 0), h = Date.now();
+  for (let i = 0; i < k; i++) supprEntTs.push(h);
+  const etait = supprEntIllisible; supprEntIllisible = false;
+  if (!supprEtatEcrire()) supprEntIllisible = etait;   // non écrit : un compteur fermé le reste
+  return supprEntTs.length;
+}
+/* Quand la confirmation de la Tour suffira de nouveau pour `n` entreprises : il faut que les plus
+   anciennes suppressions sortent de la fenêtre. 0 : tout de suite ; Infinity : jamais (`n` dépasse
+   la limite à lui seul, ou le compteur est fermé). */
+function supprEntLibreA(n) {
+  if (supprEntIllisible) return Infinity;
+  const r = supprEntRecentes(), besoin = r + Math.max(1, n || 0) - SUPPR_ENT_MAX;
+  if (besoin <= 0) return 0;
+  if (besoin > r) return Infinity;
+  return supprEntTs.slice().sort((a, b) => a - b)[besoin - 1] + SUPPR_ENT_FENETRE;
+}
+/* ══ OÙ PARTENT LE CODE ET L'AVIS — ET CE QUE LA TOUR PEUT EN LIRE (`gardien`, B4) ══════════════════
+   `securiteEmail` (config.json, `bash server/set-securite.sh`) est l'adresse des e-mails de sécurité ;
+   sans elle, c'est l'adresse de toujours (`notifDemandes`, sinon celle d'où partent les e-mails).
+   Une boîte que la Tour RELÈVE (la boîte support, une boîte de la Messagerie, une boîte d'entreprise)
+   rend le code lisible à qui tient une session de la Tour : un code qu'on y lit ne protège rien.
+   `supprDestLisible` le dit, sans jamais afficher l'adresse. */
+function uneLigne(s, max) {   // une ligne, sans caractère de contrôle ni séparateur de ligne Unicode (U+2028, U+2029)
+  const brut = String(s == null ? '' : s).slice(0, 4 * (max || 200));
+  let out = '';
+  for (const c of brut) { const k = c.charCodeAt(0); out += (k < 32 || k === 127 || k === 0x2028 || k === 0x2029) ? ' ' : c; }
+  return out.replace(/ {2,}/g, ' ').trim().slice(0, max || 200);
+}
+function adrNue(s) { const m = /<([^<>]*)>\s*$/.exec(String(s || '')); return String(m ? m[1] : (s || '')).trim().toLowerCase(); }
+function supprDest() { return String(config.securiteEmail || config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').trim(); }
+function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
+let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
+function supprDestLisible() {
+  const d = adrNue(supprDest()); if (!d) return false;
+  try { if (supportBox && adrNue(supportBox.email) === d) return true; } catch (e) {}
+  try { if (messagerieTour && (messagerieTour.boites() || []).some(b => b && adrNue(b.email) === d)) return true; } catch (e) {}
+  try { if (Object.values(mailboxes || {}).some(b => b && adrNue(b.email) === d)) return true; } catch (e) {}
+  return false;
+}
+/* Une erreur d'envoi recopie souvent l'adresse du destinataire en clair (`gardien`, R3) : elle va dans la
+   réponse et dans le journal système, qui se relisent à plusieurs. */
+function sansAdresses(s) { return String(s || '').replace(/[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g, a => masqueMail(a)); }
+function heureParis(ts) { return new Date(ts).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }); }
+const SUPPR_PAS_DE_MAIL = 'e-mail non configuré — une suppression part toujours avec son e-mail d\'avis, rien n\'a été supprimé';
+const SUPPR_TOI = 'Si ce n\'est pas toi qui supprimes, ne donne ce code à personne : quelqu\'un se sert de ta session de la Tour — change son mot de passe (bash server/set-admin.sh, sur le serveur).\n\n';
+/* Pourquoi la confirmation ne suffit plus, en une phrase — `n` : les entreprises que cette suppression effacerait. */
+function supprLimiteRaison(n) {
+  if (supprEntIllisible) return 'le compteur des suppressions n\'a pas pu être relu sur le serveur : tant qu\'une suppression par code ne l\'a pas réécrit, chaque entreprise demande le code';
+  const r = supprEntRecentes(), k = Math.max(1, n || 0);
+  return (k > 1 ? 'cette suppression effacerait ' + k + ' espaces d\'un coup (chacun compte pour une entreprise)' + (r ? ', et ' : '') : '')
+    + (r ? r + ' ' + (r > 1 ? 'entreprises ont déjà été supprimées' : 'entreprise a déjà été supprimée') + ' ces dernières 24 heures' : '')
+    + ' : au-delà de ' + SUPPR_ENT_MAX + ', la confirmation de la Tour ne suffit plus';
+}
+function supprLimiteTxt(n) { return 'Pourquoi un code : ' + supprLimiteRaison(n) + '.\n' + SUPPR_TOI; }
+function supprQuandTxt(n) {
+  const a = supprEntLibreA(n);
+  return (isFinite(a) && a > Date.now()) ? ' La confirmation de la Tour suffira de nouveau à partir de ' + heureParis(a) + ' (heure de Paris).' : '';
+}
+/* La limite est atteinte, et le code partirait dans une boîte que la Tour lit : on n'envoie pas un code
+   inutile, on attend. Rien n'est supprimé. */
+function supprLisibleTxt(n) {
+  return 'Il faudrait un code par e-mail — ' + supprLimiteRaison(n) + ' —, mais il partirait dans '
+    + masqueMail(adrNue(supprDest())) + ', une boîte que la Tour lit elle-même : il n\'y protégerait rien. Rien n\'a été supprimé.'
+    + supprQuandTxt(n)
+    + ' Pour ne plus attendre : fais envoyer ces e-mails à une adresse que toi seul lis (sur le serveur : bash server/set-securite.sh).';
+}
+/* Un e-mail de sécurité à la boîte du patron, attendu `delai` ms au plus. Rend { parti:true }, ou
+   { parti:false, motif, envoi } — `envoi` est la promesse de l'envoi, qui peut encore aboutir après
+   le délai (voir `supprAvis`). Sans borne, un serveur d'e-mails muet (deux minutes d'attente par
+   défaut chez nodemailer) faisait rendre 504 à nginx sur une suppression FAITE, que la Tour aurait
+   crue ratée. */
+async function supprEnvoiBorne(o) {
+  const dest = supprDest();
+  if (!mailer || !adrNue(dest)) return { parti: false, motif: 'e-mail non configuré' };
+  let minuterie = null, envoi = null;
+  try {
+    envoi = mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, confidentiel: true, trace: o.trace, subject: o.sujet, text: o.text });
+    await Promise.race([envoi, new Promise((_, non) => { minuterie = setTimeout(() => non(new Error('pas de réponse du serveur d\'e-mails en ' + Math.round(o.delai / 1000) + ' s')), o.delai); })]);
+    return { parti: true };
+  } catch (e) {
+    if (envoi && typeof envoi.enRetard === 'function') envoi.enRetard();   // sans effet sur un envoi déjà refusé
+    return { parti: false, motif: sansAdresses(String((e && e.message) || e)).slice(0, 120), envoi };
+  } finally { clearTimeout(minuterie); }
+}
+const SUPPR_SI_PAS_TOI = 'Si ce n\'est pas toi, quelqu\'un se sert de ta session de la Tour. Change tout de suite son mot de passe, depuis un ordinateur :\n\n'
+  + '    ssh -t root@api.teamop.fr "cd /opt/teamop/repo && bash server/set-admin.sh"\n\n'
+  + 'Toutes les sessions ouvertes du compte patron sont fermées aussitôt, même celles restées connectées trente jours.';
+/* L'avis. `o` : sujet, quoi (la phrase qui dit ce qui a disparu), trace (ce que garde le journal des
+   e-mails — ni nom ni adresse : il se relit à plusieurs), confirme, confirmeTxt (comment la Tour a
+   confirmé), rang et n (entreprises), attention, t0 (le début de la route : le délai de l'avis se
+   prend sur ce qui reste avant les 60 s de nginx — `gardien`, R5). */
+async function supprAvis(req, o) {
+  const quand = new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const n = Math.max(1, o.n || 1);
+  const rang = o.rang ? '\n' + (n > 1 ? 'Elle compte pour ' + n + ' entreprises (une par espace effacé) : ' + o.rang + ' supprimées en 24 heures. '
+      : 'C\'est la ' + o.rang + (o.rang === 1 ? 're' : 'e') + ' entreprise supprimée en 24 heures. ')
+    + (o.rang > SUPPR_ENT_MAX ? 'Au-delà de ' + SUPPR_ENT_MAX + ', le code par e-mail a été demandé.' : 'À partir de la ' + (SUPPR_ENT_MAX + 1) + 'e, la Tour redemande un code par e-mail.') + '\n' : '';
+  const text = 'Une suppression vient d\'être faite depuis la Tour de contrôle.\n\n'
+    + 'Quoi : ' + o.quoi + '\n'
+    + 'Par : ' + (uneLigne(req.tourUser && req.tourUser.nom, 60) || 'patron') + '\n'
+    + 'Quand : ' + quand + ' (heure de Paris)\n'
+    + 'Appareil : ' + monUA(req) + '\n'
+    + 'Confirmée : ' + (o.confirme ? (o.confirmeTxt || 'dans la Tour, par la question et la case') : 'par le code envoyé par e-mail') + '\n'
+    + (o.attention ? '\nAttention : ' + o.attention + '\n' : '')
+    + rang
+    + '\nSi c\'est toi, il n\'y a rien à faire.\n\n'
+    + SUPPR_SI_PAS_TOI;
+  const delai = o.t0 ? Math.max(1000, Math.min(8000, 50000 - (Date.now() - o.t0))) : 8000;
+  const r = await supprEnvoiBorne({ sujet: o.sujet, text, trace: 'avis de suppression · ' + o.trace, delai });
+  if (r.parti) return { parti: true };
+  console.error('avis de suppression non parti :', r.motif);   // ni l'entreprise ni l'identifiant : ce journal se relit à plusieurs
+  /* ⛔ UN AVIS QUI NE PART PAS EST RETENU, ET LA SUPPRESSION SUIVANTE ATTEND QU'IL PARTE (`gardien`, C1) —
+     voir `supprRattraper`. Arrivé en retard (au-delà du délai), il retire lui-même sa ligne : il
+     n'était pas perdu. */
+  const id = crypto.randomBytes(6).toString('hex');
+  supprAvisManques.push({ id, ts: Date.now(), sujet: uneLigne(o.sujet, 200) });
+  if (supprAvisManques.length > 30) supprAvisManques = supprAvisManques.slice(-30);
+  supprEtatEcrire();
+  if (r.envoi) r.envoi.then(() => {
+    const avant = supprAvisManques.length;
+    supprAvisManques = supprAvisManques.filter(x => x.id !== id);
+    if (supprAvisManques.length !== avant) supprEtatEcrire();
+  }, () => {});
+  return { parti: false, motif: r.motif };
+}
+/* ══ UN AVIS QUI NE PART PAS NE LAISSE PAS PASSER LA SUIVANTE (`gardien`, 27 septembre 2026, C1) ═══════
+   Une session volée qui épuisait d'abord le quota d'envoi (la Messagerie envoie par la même boîte)
+   supprimait ensuite autant qu'elle voulait sans qu'un seul avis parte. Un avis manqué est désormais
+   RETENU sur le disque, et AVANT toute nouvelle suppression — n'importe laquelle des cinq routes, par
+   confirmation ou par code — le serveur envoie au patron la liste de ce qu'il n'a pas pu lui dire.
+   Parti : la liste se vide et la suppression suit. Pas parti : RIEN ne se supprime (503) — une
+   suppression part toujours avec son avis, et celles d'avant aussi. Une seule suppression peut donc
+   échapper à l'avis sur le moment, celle qui a trouvé le serveur d'e-mails en panne, et le patron
+   l'apprend dès qu'il repart : le serveur réessaie tout seul toutes les quinze minutes. */
+let supprRattrapageEnCours = null;
+function supprRattraper() {
+  if (!supprAvisManques.length) return Promise.resolve(true);
+  if (supprRattrapageEnCours) return supprRattrapageEnCours;
+  const lot = supprAvisManques.slice();
+  supprRattrapageEnCours = (async () => {
+    const text = (lot.length > 1 ? lot.length + ' suppressions faites depuis la Tour n\'ont pas eu leur e-mail d\'avis sur le moment'
+        : 'Une suppression faite depuis la Tour n\'a pas eu son e-mail d\'avis sur le moment') + ' : le serveur d\'e-mails ne répondait pas.\n\n'
+      + lot.map(x => '  · ' + x.sujet + ' — ' + heureParis(x.ts)).join('\n') + '\n\n'
+      + 'Tant que cet e-mail n\'était pas parti, la Tour ne supprimait plus rien.\n\n'
+      + SUPPR_SI_PAS_TOI;
+    const r = await supprEnvoiBorne({ sujet: '⚠️ Tour — ' + (lot.length > 1 ? lot.length + ' suppressions' : 'une suppression') + ' sans e-mail d\'avis',
+      text, trace: 'rattrapage de ' + lot.length + ' avis de suppression', delai: 8000 });
+    if (r.parti) {
+      const ids = new Set(lot.map(x => x.id));
+      supprAvisManques = supprAvisManques.filter(x => !ids.has(x.id));
+      supprEtatEcrire();
+    } else console.error('avis de suppression en retard, toujours pas partis :', r.motif);
+    return r.parti;
+  })().finally(() => { supprRattrapageEnCours = null; });
+  return supprRattrapageEnCours;
+}
+setInterval(() => { if (supprAvisManques.length) supprRattraper().catch(() => {}); }, 15 * 60000).unref();
+/* Au démarrage, une ligne au journal système : l'adresse de sécurité est-elle réglée, et la Tour relève-t-elle
+   cette boîte ? Deux réponses, jamais l'adresse. `setImmediate` : la Messagerie et la boîte support ne sont
+   montées que plus bas dans ce fichier. */
+setImmediate(() => {
+  try {
+    const d = adrNue(supprDest());
+    console.log('suppressions de la Tour — e-mails de sécurité : ' + (!d ? 'AUCUNE adresse, rien ne se supprime'
+      : (config.securiteEmail ? 'adresse réglée à part' : 'adresse par défaut') + (supprDestLisible()
+        ? ' · ⚠ la Tour relève cette boîte : au-delà de ' + SUPPR_ENT_MAX + ' entreprises en 24 h, les suppressions attendront (bash server/set-securite.sh)'
+        : ' · la Tour ne relève pas cette boîte')));
+  } catch (e) {}
+});
+const SUPPR_NON_ECRIT = 'La suppression n\'a pas pu être enregistrée sur le disque du serveur : elle vaut jusqu\'au prochain redémarrage, pas au-delà. Vérifie le serveur (disque plein ?), puis recommence.';
+const SUPPR_NON_ECRIT_AVIS = 'l\'écriture sur le disque du serveur a échoué — cette suppression vaut jusqu\'au prochain redémarrage du serveur, pas au-delà.';
+const SUPPR_AVIS_BLOQUE = 'L\'e-mail d\'avis d\'une suppression précédente n\'est pas parti, et le serveur d\'e-mails ne répond toujours pas : '
+  + 'rien ne se supprime tant que les avis ne partent pas. Rien n\'a été supprimé — réessaie dans quelques minutes.';
 app.post('/api/monitor/compte/supprimer', monPatronStrict, async (req, res) => {
+  const t0 = Date.now();
   const b = req.body || {};
   const t = monStr(b.t, 80), login = monStr(b.login, 40).toLowerCase().trim();
   if (!t || !login) return res.status(400).json({ error: 't et login requis' });
@@ -2639,31 +2955,47 @@ app.post('/api/monitor/compte/supprimer', monPatronStrict, async (req, res) => {
   if (!connu) return res.status(404).json({ error: 'compte inconnu de cet espace' });
   const cle = 'c:' + t + ':' + login;
   const codeRecu = monStr(b.code, 10).trim();
-  if (!codeRecu) {   // 1er temps : le code part par mail
-    if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
+  const confirme = b.confirme === true;   // question + case + « Oui » dans la Tour — voir `SUPPRIMER SANS CODE` plus haut
+  /* Ni l'avis ni le code ne partiraient : rien ne se supprime (une adresse de destination vide compte aussi — `gardien`, C1). */
+  if (!supprMailPret()) return res.status(503).json({ error: confirme ? SUPPR_PAS_DE_MAIL : 'e-mail non configuré — impossible d\'envoyer le code' });
+  if (!(await supprRattraper())) return res.status(503).json({ error: SUPPR_AVIS_BLOQUE });   // un avis d'avant n'est pas parti : il part d'abord
+  const loginL = uneLigne(login, 40), nomE = uneLigne(espNomPropre(e), 80);   // un nom ne glisse pas de fausse ligne dans un e-mail (`gardien`, R4)
+  if (!codeRecu && !confirme) {   // 1er temps : le code part par mail (la Tour d'avant la v2.69)
     if (retraitCodes.size > 500) for (const [k, v] of retraitCodes) if (Date.now() > v.exp) retraitCodes.delete(k);   // balayage des codes périmés
     const code = String(crypto.randomInt(100000, 1000000));
     retraitCodes.set(cle, { code, exp: Date.now() + 10 * 60000, tries: 0 });
-    const dest = config.notifDemandes || config.smtp.from || config.smtp.user;
+    const dest = supprDest();
     try {
       await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
         confidentiel: true, trace: 'code de suppression de compte · espace ' + t.slice(0, 12),   // ni l'identifiant ni le code au journal
-        subject: '🗑 Code de confirmation — suppression du compte « ' + login + ' » chez ' + espNomPropre(e),
-        text: 'Tu es sur le point de SUPPRIMER le compte « ' + login + ' » de l\'entreprise ' + espNomPropre(e) + '.\n\nCode de confirmation : ' + code + '\n\nValable 10 minutes. Après validation : l\'identifiant est retiré de l\'annuaire tout de suite (la personne ne peut plus entrer), et le compte est supprimé de l\'application au premier appareil de l\'entreprise qui s\'ouvre.\n\nSi ce n\'est pas toi, ignore ce message : rien ne se passe sans le code.' });
-    } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
-    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest) });
+        subject: '🗑 Code de confirmation — suppression du compte « ' + loginL + ' » chez ' + nomE,
+        text: 'Tu es sur le point de SUPPRIMER le compte « ' + loginL + ' » de l\'entreprise ' + nomE + '.\n\nCode de confirmation : ' + code + '\n\nValable 10 minutes. Après validation : l\'identifiant est retiré de l\'annuaire tout de suite (la personne ne peut plus entrer), et le compte est supprimé de l\'application au premier appareil de l\'entreprise qui s\'ouvre.\n\nSi ce n\'est pas toi, ignore ce message : rien ne se passe sans le code.' });
+    } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + sansAdresses(String(err.message)).slice(0, 120) }); }
+    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(adrNue(dest)) });
   }
-  const c = retraitCodes.get(cle);   // 2e temps : le code revient
-  if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance la suppression' }); }
-  if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
-  retraitCodes.delete(cle);
+  if (!confirme) {   // 2e temps : le code revient
+    const c = retraitCodes.get(cle);
+    if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance la suppression' }); }
+    if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
+  }
+  retraitCodes.delete(cle);   // un code demandé avant, resté en attente, ne sert plus
   const l = ordresData[t] = ordresData[t] || [];
   l.forEach(o => { if (estSuppr(o) && o.login === login) o.banni = false; });   // un ancien ordre réautorisé ne compte plus : celui-ci prend le relais
   l.push({ login, ts: Date.now(), par: (req.tourUser && req.tourUser.nom) || '', fait: 0 });
-  ordresSave();
-  if (comptesReg[t] && comptesReg[t].c && Object.prototype.hasOwnProperty.call(comptesReg[t].c, login)) { delete comptesReg[t].c[login]; comptesReg[t].maj = Date.now(); comptesEcrire(); }
-  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'suppression de compte ordonnée');
-  res.json({ ok: true, attente: true });
+  /* ⛔ ÉCRIT, OU ON LE DIT (`gardien`, C3) : sans ces deux contrôles, la réponse — et l'avis — disaient
+     « retiré de l'annuaire » quand le disque avait refusé. La suppression vaut alors jusqu'au prochain
+     redémarrage du serveur, pas au-delà, et c'est ce que la Tour et l'avis disent. */
+  let ecrit = ordresSave();
+  if (comptesReg[t] && comptesReg[t].c && Object.prototype.hasOwnProperty.call(comptesReg[t].c, login)) { delete comptesReg[t].c[login]; comptesReg[t].maj = Date.now(); if (!comptesEcrire()) ecrit = false; }
+  /* Le CHEMIN au journal (`gardien`, 27 septembre 2026) : après une session volée, c'est ce qui distingue une
+     suppression confirmée dans la Tour d'une suppression par code. Motif borné à 60 caractères par monLog. */
+  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'suppression de compte ordonnée · ' + (confirme ? 'confirmée' : 'par code'));
+  const avis = await supprAvis(req, { t0, confirme, trace: 'compte · ' + (confirme ? 'confirmée' : 'par code'),
+    sujet: '🗑 Tour — compte « ' + loginL + ' » supprimé chez ' + (nomE || t),
+    quoi: 'le compte « ' + loginL + ' » de ' + (nomE || 'l\'espace ' + t) + ' — retiré de l\'annuaire tout de suite (la personne ne peut plus entrer), supprimé de l\'application au premier appareil de l\'entreprise qui s\'ouvre.',
+    attention: ecrit ? '' : SUPPR_NON_ECRIT_AVIS });
+  if (!ecrit) return res.status(500).json({ error: SUPPR_NON_ECRIT, ecrit: false, avis });
+  res.json({ ok: true, attente: true, avis });
 });
 /* ── Supprimer d'un coup les comptes JAMAIS UTILISÉS ─────────────────────────────────────────
    Demandé par Justin le 11 septembre 2026 devant la liste d'ELAN (« et ça c'est pareil, faut
@@ -2679,6 +3011,7 @@ app.post('/api/monitor/compte/supprimer', monPatronStrict, async (req, res) => {
    large avait failli emporter l'administrateur d'ELAN ; la règle vit donc DANS la route, où
    aucun bouton ne peut la contourner, et pas dans la page qui l'appelle. */
 app.post('/api/monitor/comptes/supprimer', monPatronStrict, async (req, res) => {
+  const t0 = Date.now();
   const b = req.body || {};
   const t = monStr(b.t, 80);
   if (!t) return res.status(400).json({ error: 't requis' });
@@ -2718,23 +3051,28 @@ app.post('/api/monitor/comptes/supprimer', monPatronStrict, async (req, res) => 
   const emp = crypto.createHash('sha256').update(logins.join(',')).digest('hex').slice(0, 16);
   const cle = 'cl:' + t + ':' + emp;
   const codeRecu = monStr(b.code, 10).trim();
-  if (!codeRecu) {   // 1er temps : le code part par mail
-    if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
+  const confirme = b.confirme === true;   // question + case + « Oui » dans la Tour — la règle « jamais utilisé » ci-dessus tient toujours
+  if (!supprMailPret()) return res.status(503).json({ error: confirme ? SUPPR_PAS_DE_MAIL : 'e-mail non configuré — impossible d\'envoyer le code' });
+  if (!(await supprRattraper())) return res.status(503).json({ error: SUPPR_AVIS_BLOQUE });   // un avis d'avant n'est pas parti : il part d'abord
+  const nomE = uneLigne(espNomPropre(e), 80), lignes = logins.map(l => uneLigne(l, 40));
+  if (!codeRecu && !confirme) {   // 1er temps : le code part par mail (la Tour d'avant la v2.69)
     if (retraitCodes.size > 500) for (const [k, v] of retraitCodes) if (Date.now() > v.exp) retraitCodes.delete(k);
     const code = String(crypto.randomInt(100000, 1000000));
     retraitCodes.set(cle, { code, exp: Date.now() + 10 * 60000, tries: 0 });
-    const dest = config.notifDemandes || config.smtp.from || config.smtp.user;
+    const dest = supprDest();
     try {
       await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
         confidentiel: true, trace: 'code de suppression de ' + logins.length + ' compte(s) · espace ' + t.slice(0, 12),   // ni les identifiants ni le code au journal
-        subject: '🗑 Code de confirmation — suppression de ' + logins.length + ' compte(s) inutilisé(s) chez ' + espNomPropre(e),
-        text: 'Tu es sur le point de SUPPRIMER ' + logins.length + ' compte(s) de l\'entreprise ' + espNomPropre(e) + ' :\n\n' + logins.map(l => '  · ' + l).join('\n') + '\n\nAucun de ces identifiants ne s\'est jamais connecté : personne ne perd son travail.\n\nCode de confirmation : ' + code + '\n\nValable 10 minutes. Après validation : ces identifiants sont retirés de l\'annuaire tout de suite, et les comptes sont supprimés de l\'application au premier appareil de l\'entreprise qui s\'ouvre.\n\nSi ce n\'est pas toi, ignore ce message : rien ne se passe sans le code.' });
-    } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
-    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest), logins, refuses });
+        subject: '🗑 Code de confirmation — suppression de ' + logins.length + ' compte(s) inutilisé(s) chez ' + nomE,
+        text: 'Tu es sur le point de SUPPRIMER ' + logins.length + ' compte(s) de l\'entreprise ' + nomE + ' :\n\n' + lignes.map(l => '  · ' + l).join('\n') + '\n\nAucun de ces identifiants ne s\'est jamais connecté : personne ne perd son travail.\n\nCode de confirmation : ' + code + '\n\nValable 10 minutes. Après validation : ces identifiants sont retirés de l\'annuaire tout de suite, et les comptes sont supprimés de l\'application au premier appareil de l\'entreprise qui s\'ouvre.\n\nSi ce n\'est pas toi, ignore ce message : rien ne se passe sans le code.' });
+    } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + sansAdresses(String(err.message)).slice(0, 120) }); }
+    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(adrNue(dest)), logins, refuses });
   }
-  const c = retraitCodes.get(cle);   // 2e temps : le code revient
-  if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance la suppression' }); }
-  if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
+  if (!confirme) {   // 2e temps : le code revient
+    const c = retraitCodes.get(cle);
+    if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance la suppression' }); }
+    if (c.code !== codeRecu) { c.tries++; if (c.tries >= 5) retraitCodes.delete(cle); return res.status(400).json({ error: 'code incorrect' }); }
+  }
   retraitCodes.delete(cle);
   const ords = ordresData[t] = ordresData[t] || [];
   let touche = false;
@@ -2743,10 +3081,17 @@ app.post('/api/monitor/comptes/supprimer', monPatronStrict, async (req, res) => 
     ords.push({ login, ts: Date.now(), par: (req.tourUser && req.tourUser.nom) || '', fait: 0 });
     if (comptesReg[t] && comptesReg[t].c && Object.prototype.hasOwnProperty.call(comptesReg[t].c, login)) { delete comptesReg[t].c[login]; touche = true; }
   }
-  ordresSave();
-  if (touche) { comptesReg[t].maj = Date.now(); comptesEcrire(); }
-  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'suppression de ' + logins.length + ' compte(s) inutilisé(s) ordonnée');
-  res.json({ ok: true, attente: true, n: logins.length, logins, refuses });
+  let ecrit = ordresSave();   // écrit, ou on le dit (`gardien`, C3) — voir la suppression d'un compte
+  if (touche) { comptesReg[t].maj = Date.now(); if (!comptesEcrire()) ecrit = false; }
+  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'suppression de ' + logins.length + ' compte(s) inutilisé(s) · ' + (confirme ? 'confirmée' : 'par code'));
+  const plus = logins.length > 1, chez = nomE || t;
+  const avis = await supprAvis(req, { t0, confirme, trace: logins.length + (plus ? ' comptes jamais utilisés' : ' compte jamais utilisé') + ' · ' + (confirme ? 'confirmée' : 'par code'),
+    sujet: '🗑 Tour — ' + (plus ? logins.length + ' comptes jamais utilisés supprimés' : 'compte jamais utilisé « ' + lignes[0] + ' » supprimé') + ' chez ' + chez,
+    quoi: (plus ? logins.length + ' comptes jamais utilisés de ' : 'le compte jamais utilisé de ') + (nomE || 'l\'espace ' + t) + ' :\n' + lignes.map(l => '    · ' + l).join('\n')
+      + '\n  ' + (plus ? 'Retirés' : 'Retiré') + ' de l\'annuaire tout de suite, ' + (plus ? 'supprimés' : 'supprimé') + ' de l\'application au premier appareil de l\'entreprise qui s\'ouvre.',
+    attention: ecrit ? '' : SUPPR_NON_ECRIT_AVIS });
+  if (!ecrit) return res.status(500).json({ error: SUPPR_NON_ECRIT, ecrit: false, n: logins.length, logins, refuses, avis });
+  res.json({ ok: true, attente: true, n: logins.length, logins, refuses, avis });
 });
 /* ══ REFAIRE LES MOTS DE PASSE PROVISOIRES, DEPUIS LA TOUR (Justin, 15 septembre 2026) ══════
    « Je veux pas un bouton dans le truc utilisateur. Je veux un bouton moi dans la tour de
@@ -2820,19 +3165,19 @@ app.post('/api/monitor/comptes/mdp', monPatronStrict, async (req, res) => {
   const emp = crypto.createHash('sha256').update(cibles.map(x => x.login).join(',')).digest('hex').slice(0, 16);
   const cle = 'mdp:' + t + ':' + emp;
   const codeRecu = monStr(b.code, 10).trim();
-  if (!codeRecu) {   // 1er temps : le code part par mail
-    if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
+  if (!codeRecu) {   // 1er temps : le code part par mail — à l'adresse des e-mails de sécurité, comme les suppressions (`supprDest`)
+    if (!supprMailPret()) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
     if (retraitCodes.size > 500) for (const [k, v] of retraitCodes) if (Date.now() > v.exp) retraitCodes.delete(k);
     const code = String(crypto.randomInt(100000, 1000000));
     retraitCodes.set(cle, { code, exp: Date.now() + 10 * 60000, tries: 0 });
-    const dest = config.notifDemandes || config.smtp.from || config.smtp.user;
+    const dest = supprDest();
     try {
       await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
         confidentiel: true, trace: 'code de remise à zéro de ' + cibles.length + ' mot(s) de passe · espace ' + t.slice(0, 12),   // ni les identifiants ni le code au journal
         subject: '🔑 Code de confirmation — ' + cibles.length + ' mot(s) de passe provisoire(s) chez ' + espNomPropre(e),
         text: 'Tu es sur le point de REFAIRE le mot de passe de ' + cibles.length + ' compte(s) de l\'entreprise ' + espNomPropre(e) + ' :\n\n' + cibles.map(x => '  · ' + x.login).join('\n') + '\n\nLeur mot de passe actuel ne marchera plus. Chacun devra en choisir un nouveau à sa prochaine ouverture.\n\nCode de confirmation : ' + code + '\n\nValable 10 minutes. Après validation : l\'annuaire est mis à jour tout de suite (la page de connexion accepte le nouveau mot de passe), et les fiches suivent au premier appareil de l\'entreprise qui s\'ouvre.\n\nSi ce n\'est pas toi, ignore ce message : rien ne se passe sans le code.' });
-    } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(err.message).slice(0, 120) }); }
-    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest), logins: cibles.map(x => x.login), refuses });
+    } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + sansAdresses(String(err.message)).slice(0, 120) }); }
+    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(adrNue(dest)), logins: cibles.map(x => x.login), refuses });
   }
   const c = retraitCodes.get(cle);   // 2e temps : le code revient
   if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — relance l\'opération' }); }
@@ -3340,19 +3685,71 @@ app.get('/api/monitor/connexions', monAdmin, (req, res) => {
 });
 // repartir à neuf : libère le nom et EFFACE l'ancien espace (données Firestore comprises),
 // SANS bloquer l'entreprise — elle repart aussitôt sur un espace propre et vide
+/* ⛔ « REPARTIR À NEUF » EFFACE UNE ENTREPRISE AUTANT QU'UNE SUPPRESSION (`gardien`, 27 septembre 2026, B3).
+   Document chiffré, base du socle, copie de `documents.js`, pièces jointes, annuaire de connexion : tout
+   part — seule la fermeture manque. Cette route passait pourtant sans avis et hors compteur : une session
+   volée bouclait sur les noms de l'annuaire et vidait toutes les entreprises en silence. Elle suit donc
+   le régime des deux routes d'entreprise : un avis après, une entreprise au compteur, et au-delà de trois
+   en 24 heures le code — que seule une Tour qui confirme (`confirme:true`, v2.69) sait demander. La Tour
+   d'avant n'envoie ni l'un ni l'autre : elle croit « ok » et fabrique aussitôt l'espace neuf. À elle, au-delà
+   de la limite, on REFUSE (429) : un `codeEnvoye` lui ferait créer un espace neuf à côté d'un ancien qui
+   n'a PAS été effacé. Et l'espace partagé de l'application n'est pas une entreprise : 403. */
 app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
-  const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
-  const e = espacesReg[slug];
+  const t0 = Date.now();
+  const b = req.body || {};
+  const slug = espSlug(monStr(b.nom, 80));   // borné : voir /api/espaces/ouvrir
+  if (!espacesReg[slug]) return res.json({ ok: true, rien: true });
+  if (ESPACES_INTOUCHABLES.includes(espaceT(espacesReg[slug]))) return res.status(403).json({ error: REFUS_INTOUCHABLE });
+  const codeRecu = monStr(b.code, 10).trim();
+  const confirme = b.confirme === true;
+  if (!supprMailPret()) return res.status(503).json({ error: SUPPR_PAS_DE_MAIL });
+  if (!(await supprRattraper())) return res.status(503).json({ error: SUPPR_AVIS_BLOQUE });
+  const e = espacesReg[slug];   // relu APRÈS l'attente : une autre requête a pu passer
   if (!e) return res.json({ ok: true, rien: true });
-  let t = e.t; try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
-  if (t && accesReg[t]) { delete accesReg[t]; accesEcrire(); }   // l'espace repart à neuf : son code aussi
-  if (t && comptesReg[t]) { delete comptesReg[t]; comptesEcrire(); }   // et son annuaire de connexion : sinon d'anciens identifiants ouvrent le nouvel espace
+  const t = espaceT(e);
+  if (ESPACES_INTOUCHABLES.includes(t)) return res.status(403).json({ error: REFUS_INTOUCHABLE });
+  const nomE = uneLigne(espNomPropre(e), 80) || slug;
+  const nEnt = t ? 1 : 0;   // un nom sans espace lisible derrière : rien d'effacé, rien au compteur
+  const limite = nEnt > 0 && supprEntLimite(nEnt);
+  const cle = 'r:' + slug + ':' + t;
+  if (limite && supprDestLisible()) return res.status(409).json({ error: supprLisibleTxt(nEnt), limite: true, lisible: true });
+  if (limite && !codeRecu) {
+    if (!confirme) return res.status(429).json({ limite: true, error: 'Rien n\'a été effacé : ' + supprLimiteRaison(nEnt)
+      + ', et « Repartir à neuf » efface toutes les données de l\'espace. Il faut désormais un code par e-mail, que cette version de la Tour ne sait pas demander.'
+      + supprQuandTxt(nEnt) });
+    if (retraitCodes.size > 500) for (const [k, v] of retraitCodes) if (Date.now() > v.exp) retraitCodes.delete(k);
+    const code = String(crypto.randomInt(100000, 1000000));
+    retraitCodes.set(cle, { code, exp: Date.now() + 10 * 60000, tries: 0 });
+    const dest = supprDest();
+    try {
+      await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
+        confidentiel: true, trace: 'code de « repartir à neuf » · espace ' + t.slice(0, 12),
+        subject: '🗑 Code de confirmation — « ' + nomE + ' » repart à neuf',
+        text: 'Tu es sur le point de faire REPARTIR À NEUF « ' + nomE + ' » (' + t + ') : son espace actuel et TOUTES ses données sont effacés, '
+          + 'ses comptes et son code d\'accès aussi. L\'entreprise n\'est pas fermée : elle repart sur un espace vide.\n\n'
+          + supprLimiteTxt(nEnt) + 'Code de confirmation : ' + code + '\n\nValable 10 minutes.\nSi ce n\'est pas toi, ignore ce message.' });
+    } catch (err) { return res.status(500).json({ error: 'envoi du code impossible : ' + sansAdresses(String(err.message)).slice(0, 120) }); }
+    return res.json({ ok: true, codeEnvoye: true, limite: true, pourquoi: supprLimiteRaison(nEnt), dest: masqueMail(adrNue(dest)) });
+  }
+  if (codeRecu) {   // le code revient (au-delà de la limite) — vérifié même si la limite s'est levée entre-temps
+    const c = retraitCodes.get(cle);
+    if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — recommence' }); }
+    c.tries++; if (c.tries > 5) { retraitCodes.delete(cle); return res.status(429).json({ error: 'trop d\'essais — recommence' }); }
+    if (codeRecu !== c.code) return res.status(400).json({ error: 'code incorrect (' + (6 - c.tries) + ' essai(s) restants)' });
+  }
+  retraitCodes.delete(cle);
   /* ⛔ UN CODE PROMO NE SERT QU'UNE FOIS PAR ENTREPRISE, ET « REPARTIR À NEUF » NE L'OUBLIE PAS
      (Justin, 24 septembre 2026) : ses utilisations passées portent désormais son adresse et
      l'empreinte de son e-mail, AVANT que l'annuaire ne les oublie (voir `promoPresente`). */
   if (t) promoMarquerAvantRenaitre(t, slug, e.email);
   delete espacesReg[slug];
-  espacesEcrire();
+  /* ÉCRIT, OU RIEN : l'annuaire d'abord, et un refus du disque arrête tout AVANT d'effacer — sinon les
+     données partaient pendant que le nom restait, au redémarrage, sur un espace vide. */
+  if (!espacesEcrire()) { espacesReg[slug] = e; return res.status(500).json({ error: 'L\'annuaire n\'a pas pu être enregistré — rien n\'a été effacé. Vérifie le serveur (disque plein ?) avant de recommencer.' }); }
+  let ecrit = true;
+  if (t && accesReg[t]) { delete accesReg[t]; if (!accesEcrire()) ecrit = false; }   // l'espace repart à neuf : son code aussi
+  if (t && comptesReg[t]) { delete comptesReg[t]; if (!comptesEcrire()) ecrit = false; }   // et son annuaire de connexion : sinon d'anciens identifiants ouvrent le nouvel espace
+  const rang = nEnt ? supprEntCompter(nEnt) : 0;   // l'annuaire est écrit : l'effacement a commencé, il compte
   let efface = false;
   if (t) {
     let tok = await fbAdminJeton(), viaAdmin = !!tok;
@@ -3390,9 +3787,20 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
      survivent à un espace que plus rien ne référence — un orphelin que personne ne saura plus
      rattacher à une entreprise, donc que personne n'effacera jamais. */
   let piecesEffacees = 0;
-  if (t && pieces) { try { piecesEffacees = pieces.effacerEntreprise(t); } catch (e) { console.error('renaitre pièces :', e.message); } }
+  if (t && pieces) { try { piecesEffacees = pieces.effacerEntreprise(t); } catch (e2) { console.error('renaitre pièces :', e2.message); } }
   console.log('Tour :', req.tourUser.nom, 'fait repartir « ' + slug + ' » à neuf — ancien espace', t, efface ? 'effacé' : 'NON effacé', '· pièces :', piecesEffacees);
-  res.json({ ok: true, ancien: t, efface, piecesEffacees, coupure: cut.fait, coupureMotif: cut.motif });
+  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, '« repartir à neuf » · ' + (codeRecu ? 'par code' : 'confirmée'));
+  const ennuis = [];
+  if (!ecrit) ennuis.push('le code d\'accès ou l\'annuaire de connexion n\'a pas pu être réécrit sur le disque — d\'anciens identifiants peuvent encore ouvrir un espace, jusqu\'au prochain redémarrage.');
+  if (t && !efface) ennuis.push('le document chiffré n\'a pas pu être effacé chez Firebase.');
+  if (!cut.fait) ennuis.push('les sessions n\'ont pas pu être coupées (' + uneLigne(cut.motif, 160) + ').');
+  const avis = await supprAvis(req, { t0, confirme: !codeRecu, confirmeTxt: 'dans la Tour', rang, n: nEnt,
+    trace: '« repartir à neuf » · ' + (codeRecu ? 'par code' : 'confirmée'),
+    sujet: '🗑 Tour — « ' + nomE + ' » repart à neuf (ancien espace effacé)',
+    quoi: t ? 'l\'espace de « ' + nomE + ' » (' + t + ') — effacé pour repartir à neuf : ses données, ses comptes de connexion, son code d\'accès et ses pièces jointes. L\'entreprise n\'est pas fermée : un espace neuf et vide lui est recréé.'
+      : 'l\'entrée d\'annuaire « ' + nomE + ' » — retirée ; aucun espace lisible derrière, aucune donnée effacée.',
+    attention: ennuis.join(' ') });
+  res.json({ ok: true, supprime: true, ancien: t, efface, piecesEffacees, coupure: cut.fait, coupureMotif: cut.motif, ecrit, avis });
 });
 // le patron active un code promo pour une entreprise, directement depuis la Tour
 app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
@@ -5561,14 +5969,37 @@ async function fbMajFicheClient(email, champs) {
 }
 const FORMULE_LBL = { gratuit: 'Gratuit', pro: 'Pro', business: 'Business', premium: 'Business Premium' };
 app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
+  const t0 = Date.now();
   const email = monStr((req.body || {}).email, 120).toLowerCase();
   if (!clientsData[email]) return res.status(404).json({ error: 'entreprise introuvable' });
   const codeRecu = monStr((req.body || {}).code, 10).trim();
-  if (!codeRecu) {   // 1er temps : on envoie le code de confirmation au patron
-    if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    retraitCodes.set(email, { code, exp: Date.now() + 10 * 60000, tries: 0 });
-    const dest = config.notifDemandes || config.smtp.from || config.smtp.user;
+  let confirme = (req.body || {}).confirme === true;   // question + case + « Oui » dans la Tour — voir `SUPPRIMER SANS CODE`
+  if (!supprMailPret()) return res.status(503).json({ error: confirme ? SUPPR_PAS_DE_MAIL : 'e-mail non configuré — impossible d\'envoyer le code' });
+  if (!(await supprRattraper())) return res.status(503).json({ error: SUPPR_AVIS_BLOQUE });   // un avis d'avant n'est pas parti : il part d'abord
+  if (!clientsData[email]) return res.status(404).json({ error: 'entreprise introuvable' });   // relu après l'attente
+  const nomCli = uneLigne(clientsData[email].entreprise, 80) || email;
+  /* ⛔ CE QUE LA FERMETURE VA EFFACER, RELU ICI, AVANT LE CODE ET AVANT LA LIMITE (`gardien`, 27 septembre 2026,
+     B1 et B2). Tous les espaces reliés à cette adresse partent — et chacun compte pour une entreprise :
+     compter « une fermeture » laissait détruire six entreprises sous une limite de trois. L'espace partagé
+     de l'application n'est jamais effacé ni fermé : une entrée d'annuaire qui le porte est seulement
+     détachée (`REFUS_INTOUCHABLE` dit pourquoi). Aucun `await` d'ici à `supprEntCompter` sur le chemin
+     confirmé : deux fermetures simultanées ne passent pas toutes les deux sous la limite. */
+  const liens = [];
+  for (const [slug, e] of Object.entries(espacesReg)) if (e && (e.email || '').toLowerCase() === email) liens.push({ slug, t: espaceT(e), nom: uneLigne(espNomPropre(e), 80) || slug });
+  const aEffacer = [...new Set(liens.map(x => x.t).filter(t => t && !ESPACES_INTOUCHABLES.includes(t)))];
+  const nEnt = Math.max(1, aEffacer.length);
+  const limite = supprEntLimite(nEnt);
+  if (limite && supprDestLisible()) return res.status(409).json({ error: supprLisibleTxt(nEnt), limite: true, lisible: true });
+  if (limite) confirme = false;   // au-delà de trois entreprises en 24 heures : le code revient (`APRÈS CHAQUE SUPPRESSION`)
+  /* Le code vaut pour CETTE liste d'espaces : un espace rattaché entre l'envoi du code et sa saisie le
+     rend caduc — on ne ferme pas plus que ce que l'e-mail a nommé. */
+  const cle = email + '|' + crypto.createHash('sha256').update(aEffacer.slice().sort().join(',')).digest('hex').slice(0, 16);
+  const nommes = liens.filter(x => aEffacer.includes(x.t)).map(x => '« ' + x.nom + ' »');
+  if (!codeRecu && !confirme) {   // 1er temps : on envoie le code de confirmation au patron (la Tour d'avant la v2.69)
+    if (retraitCodes.size > 500) for (const [k, v] of retraitCodes) if (Date.now() > v.exp) retraitCodes.delete(k);
+    const code = String(crypto.randomInt(100000, 1000000));   // `crypto` : au-delà de trois entreprises, ce code est le verrou d'une session volée
+    retraitCodes.set(cle, { code, exp: Date.now() + 10 * 60000, tries: 0 });
+    const dest = supprDest();
     try {
       await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
         /* Comme pour la suppression totale : le code n'échappait au journal des e-mails que
@@ -5576,31 +6007,36 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
            un code à 6 chiffres dans un fichier lisible en monAdmin. On le dit explicitement
            plutôt que de dépendre d'un mot. */
         confidentiel: true, trace: 'code de fermeture d\'entreprise · ' + masqueMail(email),
-        subject: '🗑 Code de confirmation — fermeture de « ' + (clientsData[email].entreprise || email) + ' »',
-        text: 'Tu es sur le point de FERMER DÉFINITIVEMENT l\'entreprise « ' + (clientsData[email].entreprise || email) + ' » (' + email + ').\n\nCode de confirmation : ' + code + '\n\nValable 10 minutes. Après validation : plus de nom, plus de lien, plus de formule, et les applications de ses appareils se vident à leur prochain lancement.\nSi ce n\'est pas toi, ignore ce message.' });
-    } catch (e) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(e.message).slice(0, 120) }); }
-    console.log('Tour : code de fermeture envoyé pour', masqueMail(email), '→', masqueMail(dest));
-    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest) });
+        subject: '🗑 Code de confirmation — fermeture de « ' + nomCli + ' »',
+        text: 'Tu es sur le point de FERMER DÉFINITIVEMENT l\'entreprise « ' + nomCli + ' » (' + email + ').\n\n' + (limite ? supprLimiteTxt(nEnt) : '')
+          + (aEffacer.length ? (aEffacer.length > 1 ? 'Les ' + aEffacer.length + ' espaces reliés à cette adresse seront effacés' : 'Son espace sera effacé') + ', avec toutes leurs données : ' + nommes.join(', ') + '.\n\n'
+            : 'Aucun espace n\'est relié à cette adresse : seule sa fiche est fermée.\n\n')
+          + 'Code de confirmation : ' + code + '\n\nValable 10 minutes. Après validation : plus de nom, plus de lien, plus de formule, et les applications de ses appareils se vident à leur prochain lancement.\nSi ce n\'est pas toi, ignore ce message.' });
+    } catch (e) { return res.status(500).json({ error: 'envoi du code impossible : ' + sansAdresses(String(e.message)).slice(0, 120) }); }
+    console.log('Tour : code de fermeture envoyé pour', masqueMail(email), '→', masqueMail(adrNue(dest)), limite ? '(limite de 24 h atteinte)' : '');
+    return res.json(Object.assign({ ok: true, codeEnvoye: true, dest: masqueMail(adrNue(dest)), espaces: aEffacer.length }, limite ? { limite: true, pourquoi: supprLimiteRaison(nEnt) } : {}));
   }
-  const c = retraitCodes.get(email);
-  if (!c || Date.now() > c.exp) { retraitCodes.delete(email); return res.status(400).json({ error: 'code expiré — recommence' }); }
-  c.tries++; if (c.tries > 5) { retraitCodes.delete(email); return res.status(429).json({ error: 'trop d\'essais — recommence' }); }
-  if (codeRecu !== c.code) return res.status(400).json({ error: 'code incorrect (' + (6 - c.tries) + ' essai(s) restants)' });
-  retraitCodes.delete(email);
+  if (!confirme) {   // 2e temps : le code revient
+    const c = retraitCodes.get(cle);
+    if (!c || Date.now() > c.exp) { retraitCodes.delete(cle); return res.status(400).json({ error: 'code expiré — recommence' }); }
+    c.tries++; if (c.tries > 5) { retraitCodes.delete(cle); return res.status(429).json({ error: 'trop d\'essais — recommence' }); }
+    if (codeRecu !== c.code) return res.status(400).json({ error: 'code incorrect (' + (6 - c.tries) + ' essai(s) restants)' });
+  }
+  retraitCodes.delete(cle);
   // fermeture effective : liste, annuaire (nom + lien + formule), et blocage des espaces reliés
   if (!entFermes.emails.includes(email)) entFermes.emails.push(email);
-  const espacesAEffacer = [];
-  for (const [slug, e] of Object.entries(espacesReg)) {
-    if ((e.email || '').toLowerCase() === email) {
-      let t = e.t;
-      try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
-      /* ⛔ FERMER DÉFINITIVEMENT RETIRE LA SUSPENSION : sinon une entreprise suspendue puis
-         fermée restait « suspendue », donc ouverte (voir `espaceEstSuspendu`). */
-      if (t) { if (!entFermes.espaces.includes(t)) entFermes.espaces.push(t); espacesAEffacer.push(t);
-        entFermes.suspendus = (entFermes.suspendus || []).filter(x => x !== t); delete (entFermes.suspendusLe || {})[t];
-        delete accesReg[t]; delete comptesReg[t]; }   // le code d'accès ET l'annuaire de connexion s'en vont avec l'espace, sinon ils ouvrent encore
-      delete espacesReg[slug];
-    }
+  const espacesAEffacer = aEffacer;
+  let detache = false;
+  for (const lien of liens) {
+    if (!espacesReg[lien.slug]) continue;
+    const t = lien.t;
+    if (t && ESPACES_INTOUCHABLES.includes(t)) { delete espacesReg[lien.slug]; detache = true; continue; }   // le nom s'en va, l'espace partagé reste entier
+    /* ⛔ FERMER DÉFINITIVEMENT RETIRE LA SUSPENSION : sinon une entreprise suspendue puis
+       fermée restait « suspendue », donc ouverte (voir `espaceEstSuspendu`). */
+    if (t) { if (!entFermes.espaces.includes(t)) entFermes.espaces.push(t);
+      entFermes.suspendus = (entFermes.suspendus || []).filter(x => x !== t); delete (entFermes.suspendusLe || {})[t];
+      delete accesReg[t]; delete comptesReg[t]; }   // le code d'accès ET l'annuaire de connexion s'en vont avec l'espace, sinon ils ouvrent encore
+    delete espacesReg[lien.slug];
   }
   /* Les trois écritures se testent. Un disque plein les fait échouer ENSEMBLE : sans ce contrôle,
      la route répondait « fermée » pendant que rien n'était écrit, et au redémarrage l'entreprise
@@ -5611,6 +6047,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
   if (!comptesEcrire()) ecrit = false;
   if (!fermesSave()) ecrit = false;
   if (!ecrit) return res.status(500).json({ error: 'La fermeture n\'a pas pu être enregistrée — rien n\'est garanti. Vérifie le serveur avant de recommencer.' });
+  const rang = supprEntCompter(nEnt);   // la fermeture est écrite : elle compte — un par espace effacé — quoi qu'il arrive ensuite
   delete clientsData[email]; cliSave();
   /* ⛔ COUPER AVANT D'EFFACER — mais la fenêtre est RACCOURCIE, pas fermée, et il faut le dire
      dans ces termes. `validSince` n'invalide que le RAFRAÎCHISSEMENT : un appareil qui tient
@@ -5650,17 +6087,22 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
       if (!jeton) console.error('effacement firestore : jeton anonyme refusé (active la connexion Anonyme dans Firebase)');
     } catch (e) { console.error('effacement firestore jeton :', e.message); }
   }
-  for (const t of espacesAEffacer) {
+  /* En parallèle, comme les coupures au-dessus (`gardien`, R5) : huit secondes par espace, en série, puis
+     l'avis — une fermeture de plusieurs espaces dépassait les 60 s de nginx, qui rendait 504 sur une
+     fermeture FAITE. */
+  effaces = (await Promise.all(espacesAEffacer.map(async t => {
+    let fait = false;
     try {
       const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
       const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
         { method: 'DELETE', headers: jeton ? { 'Authorization': 'Bearer ' + jeton } : {}, signal: ctrl.signal });
       clearTimeout(tm);
-      if (r.ok) effaces++; else console.error('effacement firestore', t, ': HTTP', r.status);
+      if (r.ok) fait = true; else console.error('effacement firestore', t, ': HTTP', r.status);
     } catch (e) { console.error('effacement firestore', t, ':', e.message); }
     /* Le document rangé chez nous part aussi — voir `documents.js`, `effacer`. */
     if (documentsMod) { try { await documentsMod.effacer(t); } catch (e) {} }
-  }
+    return fait;
+  }))).filter(Boolean).length;
   /* ⛔ LES PIÈCES JOINTES PARTENT AVEC LE DOCUMENT (16 septembre 2026). Le commentaire
      au-dessus promet « plus rien n'est enregistré, la place est libérée » : à partir du moment
      où des photos vivent sur le VPS, cette phrase devient fausse si on ne les efface pas ici.
@@ -5672,7 +6114,8 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
   // et le compte créé sur le site (connexion espace client) : supprimé aussi, si la clé admin est là
   const compteSite = await compteSiteSupprimer(email);
-  console.log('Tour :', req.tourUser.nom, 'a FERMÉ l\'entreprise', masqueMail(email), '— données effacées :', effaces + '/' + espacesAEffacer.length, '· compte du site :', compteSite.motif);
+  console.log('Tour :', req.tourUser.nom, 'a FERMÉ l\'entreprise', masqueMail(email), confirme ? '(confirmée)' : '(par code)', '— données effacées :', effaces + '/' + espacesAEffacer.length, '· compte du site :', compteSite.motif);
+  monLog(req.tourUser.nom || 'patron', true, req, 'fermeture d\'entreprise · ' + (confirme ? 'confirmée' : 'par code'));   // sans l'adresse : le journal de la Tour se relit à plusieurs
   /* La coupure se DIT. Si la clé d'administration manque, les appareils déjà pourvus gardent
      leur session jusqu'à une heure ET peuvent repousser la base qu'on vient d'effacer :
      c'est exactement ce qu'il faut savoir avant de croire l'entreprise fermée. */
@@ -5680,11 +6123,18 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      « sessions coupées » alors que rien n'avait été tenté. C'est la même famille d'affirmation
      sans fait derrière que ce correctif combat — elle ne s'autorise pas ici non plus. */
   const coupOk = coupures.every(c => c.fait);
-  res.json({ ok: true, supprime: true, espaces: espacesAEffacer.length, donneesEffacees: effaces, piecesEffacees, compteSite,
-    coupure: coupOk,
-    coupureMotif: !coupures.length ? 'aucun espace relié — rien à couper'
-      : coupOk ? 'sessions Firebase coupées — effectif sous une heure'
-      : (coupures.find(c => !c.fait) || {}).motif || '' });
+  const coupureMotif = !coupures.length ? 'aucun espace relié — rien à couper'
+    : coupOk ? 'sessions Firebase coupées — effectif sous une heure'
+    : (coupures.find(c => !c.fait) || {}).motif || '';
+  const nEsp = espacesAEffacer.length;
+  const avis = await supprAvis(req, { t0, confirme, rang, n: nEnt, trace: 'fermeture d\'entreprise · ' + (confirme ? 'confirmée' : 'par code'),
+    sujet: '🗑 Tour — entreprise « ' + nomCli + ' » fermée',
+    quoi: 'l\'entreprise « ' + nomCli + ' » (' + email + ') — fermée définitivement : plus de nom, plus de lien, plus de formule ; '
+      + (!nEsp ? 'aucun espace relié.' : nEsp === 1 ? 'son espace ' + nommes[0] + ' est effacé.' : 'ses ' + nEsp + ' espaces sont effacés : ' + nommes.join(', ') + '.')
+      + (detache ? ' L\'espace partagé de l\'application, qui lui était rattaché, n\'est pas touché.' : ''),
+    attention: coupOk ? '' : 'les sessions n\'ont pas pu être coupées (' + uneLigne(coupureMotif, 160) + ').' });
+  res.json({ ok: true, supprime: true, espaces: nEsp, donneesEffacees: effaces, piecesEffacees, compteSite,
+    coupure: coupOk, coupureMotif, avis });
 });
 
 /* ══ SUPPRIMER UNE ENTREPRISE, PARTOUT ═══════════════════════════════════════════
@@ -5916,20 +6366,26 @@ app.post('/api/monitor/entreprise/apercu-suppression', monPatronStrict, (req, re
 });
 
 app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) => {
+  const t0 = Date.now();
   const t = monStr((req.body || {}).t, 80).trim();
   if (!t) return res.status(400).json({ error: 'identifiant d\'espace manquant' });
   if (ESPACES_INTOUCHABLES.includes(t)) return res.status(403).json({ error: REFUS_INTOUCHABLE });
-  const inv = entInventaire(t);
-  const etiquette = inv.nom || t;
 
   const codeRecu = monStr((req.body || {}).code, 10).trim();
-  if (!codeRecu) {   // 1er temps : le code part par e-mail, comme pour une fermeture
-    if (!mailer) return res.status(503).json({ error: 'e-mail non configuré — impossible d\'envoyer le code' });
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+  let confirme = (req.body || {}).confirme === true;   // question + case + « Oui » dans la Tour — voir `SUPPRIMER SANS CODE`
+  if (!supprMailPret()) return res.status(503).json({ error: confirme ? SUPPR_PAS_DE_MAIL : 'e-mail non configuré — impossible d\'envoyer le code' });
+  if (!(await supprRattraper())) return res.status(503).json({ error: SUPPR_AVIS_BLOQUE });   // un avis d'avant n'est pas parti : il part d'abord
+  const inv = entInventaire(t);   // relu APRÈS l'attente : c'est ce qui va vraiment disparaître
+  const etiquette = uneLigne(inv.nom, 80) || t;
+  const limite = supprEntLimite(1);   // la 4e entreprise en 24 heures : le code revient (`APRÈS CHAQUE SUPPRESSION`)
+  if (limite && supprDestLisible()) return res.status(409).json({ error: supprLisibleTxt(1), limite: true, lisible: true });
+  if (limite) confirme = false;
+  if (!codeRecu && !confirme) {   // 1er temps : le code part par e-mail, comme pour une fermeture (la Tour d'avant la v2.69)
+    const code = String(crypto.randomInt(100000, 1000000));   // `crypto` : au-delà de trois entreprises, ce code est le verrou d'une session volée
     /* Indexé par teamId, PAS par e-mail : deux espaces sans adresse se marcheraient dessus,
        et c'est justement le cas des espaces hors annuaire qu'on cherche à nettoyer. */
     retraitCodes.set('t:' + t, { code, exp: Date.now() + 10 * 60000, tries: 0 });
-    const dest = config.notifDemandes || config.smtp.from || config.smtp.user;
+    const dest = supprDest();
     const detail = [
       inv.dansAnnuaire ? inv.slugs.length + ' entrée(s) d\'annuaire' : 'aucune entrée d\'annuaire',
       inv.comptesAnnuaire + ' compte(s) de connexion',
@@ -5967,21 +6423,24 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
         confidentiel: true, trace: 'code de suppression totale · espace ' + t,
         subject: '🗑 Code de confirmation — suppression totale de « ' + etiquette + ' »',
         text: 'Tu es sur le point de SUPPRIMER TOTALEMENT l\'espace « ' + etiquette + ' » (' + t + ').\n\n'
+          + (limite ? supprLimiteTxt(1) : '')
           + 'Ce qui va être effacé :\n· ' + detail + '\n\n'
           + 'Code de confirmation : ' + code + '\n\nValable 10 minutes.\n\n'
           + 'Après validation, rien n\'est récupérable : les données chiffrées sont détruites côté Firestore, '
           + 'et les applications des appareils se vident à leur prochain lancement.\nSi ce n\'est pas toi, ignore ce message.' });
-    } catch (e) { return res.status(500).json({ error: 'envoi du code impossible : ' + String(e.message).slice(0, 120) }); }
-    console.log('Tour : code de suppression totale envoyé pour', t, '→', masqueMail(dest));
+    } catch (e) { return res.status(500).json({ error: 'envoi du code impossible : ' + sansAdresses(String(e.message)).slice(0, 120) }); }
+    console.log('Tour : code de suppression totale envoyé pour', t, '→', masqueMail(adrNue(dest)), limite ? '(limite de 24 h atteinte)' : '');
     /* Masqué comme dans le journal juste au-dessus : la Tour n'a besoin que de reconnaître
        la boîte, pas de l'afficher en entier. */
-    return res.json({ ok: true, codeEnvoye: true, dest: masqueMail(dest), apercu: (delete inv._boites, delete inv._abos, inv) });
+    return res.json(Object.assign({ ok: true, codeEnvoye: true, dest: masqueMail(adrNue(dest)), apercu: (delete inv._boites, delete inv._abos, inv) }, limite ? { limite: true, pourquoi: supprLimiteRaison(1) } : {}));
   }
 
-  const c = retraitCodes.get('t:' + t);
-  if (!c || Date.now() > c.exp) { retraitCodes.delete('t:' + t); return res.status(400).json({ error: 'code expiré — recommence' }); }
-  c.tries++; if (c.tries > 5) { retraitCodes.delete('t:' + t); return res.status(429).json({ error: 'trop d\'essais — recommence' }); }
-  if (codeRecu !== c.code) return res.status(400).json({ error: 'code incorrect (' + (6 - c.tries) + ' essai(s) restants)' });
+  if (!confirme) {   // 2e temps : le code revient
+    const c = retraitCodes.get('t:' + t);
+    if (!c || Date.now() > c.exp) { retraitCodes.delete('t:' + t); return res.status(400).json({ error: 'code expiré — recommence' }); }
+    c.tries++; if (c.tries > 5) { retraitCodes.delete('t:' + t); return res.status(429).json({ error: 'trop d\'essais — recommence' }); }
+    if (codeRecu !== c.code) return res.status(400).json({ error: 'code incorrect (' + (6 - c.tries) + ' essai(s) restants)' });
+  }
   retraitCodes.delete('t:' + t);
 
   const fait = {};
@@ -5995,6 +6454,7 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   for (const m of inv.emails) if (!entFermes.emails.includes(m)) entFermes.emails.push(m);
   const fermesOk = fermesSave();
   if (!fermesOk) return res.status(500).json({ error: 'Le blocage de l\'espace n\'a pas pu être enregistré — RIEN n\'a été supprimé. Vérifie le serveur (disque plein ?) avant de recommencer.' });
+  const rang = supprEntCompter(1);   // le blocage est écrit : la suppression a commencé, elle compte
   fait.bloque = true;
   /* Le blocage dit « n'écris plus » à une application qui veut bien demander. La coupure, elle,
      retire le droit d'écrire à un appareil qui ne redemande rien — c'est ce qui empêche la base
@@ -6161,7 +6621,8 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   if (jeton && !jetonAdmin) { try { await fetch(IDTK_URL + '/accounts:delete?key=' + FB_CLE,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: jeton }) }); } catch (e) {} }
 
-  console.log('Tour :', req.tourUser.nom, 'a SUPPRIMÉ TOTALEMENT l\'espace', t,
+  monLog(req.tourUser.nom || 'patron', true, req, 'suppression totale d\'un espace · ' + (confirme ? 'confirmée' : 'par code'));
+  console.log('Tour :', req.tourUser.nom, 'a SUPPRIMÉ TOTALEMENT l\'espace', t, confirme ? '(confirmée)' : '(par code)',
     '— annuaire', fait.entreesAnnuaire, '· boîtes', fait.boites, '· push', fait.abonnesPush,
     '· connexions', fait.connexions, '· erreurs', fait.erreurs, '· Firestore', fait.donneesEffacees ? 'effacé' : 'ÉCHEC');
 
@@ -6180,8 +6641,12 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   const ennuis = [];
   if (!(ecrit && fait.donneesEffacees)) ennuis.push('Une partie n\'a pas pu être écrite ou effacée — relance l\'aperçu de suppression pour voir ce qu\'il reste.');
   if (!fait.coupure) ennuis.push('Les sessions Firebase n\'ont pas pu être coupées (' + (fait.coupureMotif || 'raison inconnue') + ') : les appareils déjà connectés gardent l\'accès et peuvent repousser la base effacée.');
+  const avis = await supprAvis(req, { t0, confirme, rang, trace: 'suppression totale d\'un espace · ' + (confirme ? 'confirmée' : 'par code'),
+    sujet: '🗑 Tour — « ' + etiquette + ' » supprimée partout',
+    quoi: 'l\'espace « ' + etiquette + ' » (' + t + ') — supprimé partout : annuaire, comptes de connexion, archives, données chiffrées.',
+    attention: ennuis.join(' ') });
   res.json({ ok: true, supprime: true, t, nom: inv.nom, fait, ecrit,
-    avertissement: ennuis.join(' · ') });
+    avertissement: ennuis.join(' · '), avis });
 });
 
 // liste des problèmes + compteurs (admin)
@@ -6769,6 +7234,7 @@ async function releveSupport(importHisto) {   // même mécanique que la relève
           for await (const msg of client.fetch(Math.max(1, total - 29) + ':*', { envelope: true, source: { maxLength: 600000 } })) {
             const env = msg.envelope || {}; const mid = String(env.messageId || '').slice(0, 200);
             if (mid && supMids.has(mid)) continue;
+            if (mailProtege(env.messageId)) continue;   // un code ou un avis de suppression : pas dans la liste que toute la Tour lit (`mailProtege`)
             supportMails.push(supEntry(env, await supCorps(msg.source), true)); if (mid) supMids.add(mid);
           }
         }
@@ -6777,6 +7243,9 @@ async function releveSupport(importHisto) {   // même mécanique que la relève
       for await (const msg of client.fetch({ seen: false }, { envelope: true, source: { maxLength: 600000 } })) nouveaux.push(msg);
       for (const msg of nouveaux) {
         const env = msg.envelope || {}; const mid = String(env.messageId || '').slice(0, 200);
+        /* Un e-mail de sécurité (code, avis de suppression) n'entre pas dans la liste du support — que TOUT
+           compte de la Tour lit — et il n'est pas marqué lu : il doit se voir non lu chez le patron. */
+        if (mailProtege(env.messageId)) continue;
         if (mid && supMids.has(mid)) { try { await client.messageFlagsAdd(msg.seq, ['\\Seen']); } catch (_) {} continue; }
         supportMails.push(supEntry(env, await supCorps(msg.source)));
         if (mid) supMids.add(mid);
@@ -7642,7 +8111,10 @@ try {
     }
     return cibles.length;
   };
-  require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif });
+  /* `mailProtege` : les e-mails de sécurité que la Messagerie montre sans jamais les déplacer, les supprimer
+     ni les marquer (voir plus haut). Et on garde ses boîtes (sans mot de passe) : `supprDestLisible` doit
+     savoir si le code d'une suppression y atterrirait. */
+  messagerieTour = require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege });
   console.log('messagerie : module chargé');
 } catch (e) { console.error('messagerie indisponible :', e.message); }
 
