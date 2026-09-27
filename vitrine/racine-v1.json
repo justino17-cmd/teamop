@@ -1,15 +1,15 @@
 {
  "publie": "fe599df, 27 septembre 2026 (« fait les 3 »)",
- "retouche": "tarifs.html, 27 septembre 2026 au soir — Justin : « à partir d'aujourd'hui c'est 1 utilisateur par abonnement ». Seules les places, l'introduction, la FAQ et la description changent ; le reste de la v1 est intact (tests/test-837.js).",
+ "retouche": "27 septembre 2026 au soir, deux retouches et rien d'autre (tests/test-837.js : les défaire rend chaque page de fe599df octet pour octet). 1) tarifs.html — Justin : « à partir d'aujourd'hui c'est 1 utilisateur par abonnement » : les places, l'introduction, la FAQ et la description. 2) les huit pages — Justin, à la question de la taxe : « TTC » ; le pied et l'introduction des tarifs disent désormais « Prix TTC ».",
  "pages": {
-  "index.html": "fdb1ed6a43b15b22fb1518392c3418731021d7ca888a2026e76f6c0e5ecfb6b0",
-  "applications.html": "03a23af865485a71c3f3732f2c6f7f38d4d52f4d3af65acfd6595797b95f823c",
-  "creer.html": "3f4b40f14491f1f415e63f9a4d7ca83dc79cdc95ce174a41a6a451b99777ac1c",
-  "elan.html": "d142bfedcb4891e524179a5166f5f89bc252e338a59b7eaf578407dfbf652dc4",
-  "metiers.html": "8ea76f630a62a70feda3947dfc886db54a78562b57869e8f79f511a1a688a1c6",
-  "opmessages.html": "49ab9b8b033476df2f836c1c6d3121ed6e99b61f4ce9c8a4d66fe8b05f9a0593",
-  "pourquoi.html": "803ad93983a9a716d9e335e084a20dc58f957a3892172fa2d1801271e5520c67",
-  "tarifs.html": "6b9d3d0418b6c5353028b5caa33b458eb7916ea4f54bc21ef998cdc923c57c08"
+  "index.html": "2adc32b277041d2911ee861ad2c9347e8758345ad4f66daca0e530977e6badcb",
+  "applications.html": "5b271b3581889ff0bf894ebe59b30abca616ceabd0a8896ce2f5a19372e5fb61",
+  "creer.html": "c40eb4be8a6550ccb02f085002be02e561196d241e6569947f798e9199e19fcd",
+  "elan.html": "3c1b4bfb3491f88ce243a3e7c42e918f0157fa53bc9630c819d85de01eb63112",
+  "metiers.html": "ebd4f18c4c612cc801f3021d32dd9601cef825cd7a66117a30e71dc4a5ff6f38",
+  "opmessages.html": "ff6f27ca782571adbf1541610e37decb5aaa7cf5a07fa3b9d7d156df1a34615f",
+  "pourquoi.html": "81d87ba9972b24eda9df0c725f5dd5fc49b411cf9ef9b17941beeafe760cd354",
+  "tarifs.html": "3c3abf151a0dfb1836e025ed38afa646191be1aee25f50bb3166bd895e469a3d"
  },
  "ressources": {
   "vitrine/site.css": "d514f70bbc2a47d1742d37eac4f30673c4918fa2e6cf2b9057d750612be1c716",
