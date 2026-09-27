@@ -98,10 +98,11 @@ citée) ; `relecteur` : aucun bloquant (préfixe `.suppr-`, insécables du `prom
 **Publié :** l'aperçu v2.69 avec les protections (`f821ca5` sur `main`) à `teamop.fr/apercu/tour.html` ; la Tour
 en service reste la v2.66. ⚠️ L'aperçu agit sur les VRAIES données : une suppression essayée là supprime.
 **Ce qui attend Justin :** « Remplace la tour » (la v2.69 : v2.67 + v2.68 + ceci) ; « pousse le serveur » —
-préparé par `scripts/preparer-deploiement-serveur.sh` (commit `96c07b9` sur `main` = `f821ca5` : 41 suites · 2 442
-vérifications contre les pages de `main`, rien de poussé ; seule différence avec `main` : ce changement) ; relancer
-le script repart du `main` du jour, puis `git -C <arbre> push origin HEAD:main`. Suppression sans code et protections
-partent ENSEMBLE, dans ce même commit : il n'y a aucun moment où l'une existe sans les autres. Tant qu'il n'est pas
+préparé par `scripts/preparer-deploiement-serveur.sh` (commit `9bede4a` sur `main` = `7423e94`, correctifs du gardien
+compris : 42 suites · 2 522 vérifications contre les pages de `main`, rien de poussé ; seule différence avec `main` :
+ce changement) ; relancer
+le script repart du `main` du jour, puis `git -C <arbre> push origin HEAD:main`. Suppression sans code, protections et
+correctifs du gardien partent ENSEMBLE, dans ce même commit : il n'y a aucun moment où l'une existe sans les autres. Tant qu'il n'est pas
 poussé, le serveur en service ignore `confirme` et la v2.69 (aperçu) redemande le code (« le serveur n'est pas
 encore à jour »).
 **Pas touché, exprès :** refaire un mot de passe provisoire depuis la Tour demande encore un code (ce n'est pas une
