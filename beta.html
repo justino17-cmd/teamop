@@ -8017,7 +8017,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '758-beta';
+const APP_VERSION = '759-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -11823,6 +11823,7 @@ async function sauvKh(){ const t=localStorage.getItem('elanB_sync_team'), k=loca
    rien. */
 let _opJeton = null;          // { jeton, exp, double, lotMax } — EN MÉMOIRE SEULEMENT
 let _opEnVol = null;          // la pousse en cours, s'il y en a une
+let _opPousses = 0;           // combien de pousses sont parties — le contrôle compte avant et après son attente
 const OP_HAUT_CLE = 'elanB_op_haut';   // le plus haut `_m` déjà poussé, par espace
 const OP_NON_CLE = 'elanB_op_non';     // jusqu'à quand le serveur a dit « pas de double écriture »
 
@@ -11895,6 +11896,7 @@ async function opSocleSession(force) {
    ce qui est exactement ce qu'il voulait. */
 function opSoclePousser() {
   if (_opEnVol) return _opEnVol;
+  _opPousses++;
   _opEnVol = opSoclePousserVraiment().catch(() => null);
   /* ⚠️ Le `finally` est ce qui fait qu'un échec ne condamne pas la suite : sans lui, une
      pousse qui casse laisserait `_opEnVol` figé sur une promesse morte, et plus RIEN ne
@@ -11993,7 +11995,7 @@ async function opSoclePousserVraiment() {
       const du = parseInt(localStorage.getItem(ctlCle), 10) || 0;
       if (Date.now() > du) {
         localStorage.setItem(ctlCle, String(Date.now() + 72000000 + Math.floor(Math.random() * 28800000)));
-        opSocleControle();
+        opSocleControle(lignes);
       }
     } catch (e) {}
     return { envoyees: acceptes, refus: refus.length, retenus: retenus.length };
@@ -12178,11 +12180,25 @@ async function opSocleFlux() {
    Personne ne LIT le socle pendant l'étape 4 : si une ligne n'arrive pas, rien ne le montre.
    L'appareil calcule donc la signature de ce qu'il a, demande la sienne au serveur, et compare.
    ⚠️ Il compare COLLECTION PAR COLLECTION : « ça diverge » sans dire OÙ fait chercher une
-   heure. Et il ne compare QUE les collections que l'appareil a réellement poussées — celles
-   dont le `_m` dépasse encore la borne n'ont pas eu leur chance. */
-async function opSocleControle() {
+   heure. Et il ne compare que ce que l'appareil a réellement présenté au serveur : la photo que
+   la pousse vient de traiter, jamais la base telle qu'elle est devenue pendant l'attente. */
+async function opSocleControle(photo) {
   try {
     const s = await opSocleSession(); if (!s || !s.double) return null;
+    /* ⛔ LA PHOTO SE PREND AVANT L'ATTENTE, JAMAIS APRÈS — test-735 est tombé deux fois en CI
+       (26 et 27 septembre 2026) sur ce seul point. Décomposer `db` au RETOUR de `/api/op/etat`
+       comparait le serveur à une base qui avait bougé pendant l'attente : une fiche modifiée
+       entre-temps, pas encore poussée, passait pour une DIVERGENCE — diagnostic à la Tour, borne
+       remise à zéro, donc toute la base repoussée. Rejoué avec un seul tour de boucle de retard
+       sur la réponse : 223 ✓ 2 ✗ à chaque exécution.
+       Lancé par la pousse, le contrôle compare donc les lignes MÊMES qu'elle vient de traiter :
+       chacune était déjà sous la borne, ou a été présentée au serveur — acceptée, ou refusée, et
+       c'est alors une vraie écriture perdue, qu'on doit voir. */
+    const pousses0 = _opPousses;
+    if (!photo && _opEnVol) return null;   // une pousse en vol changera le serveur pendant qu'on compare
+    let lignes = Array.isArray(photo) ? photo : null;
+    if (!lignes) { try { lignes = opDecomposer(db); } catch (e) { return null; } }
+    const ctlCle = 'elanB_op_ctl_' + s.t;
     const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 12000);
     let r = null;
     try { r = await fetch(PUSH_API + '/api/op/etat', { headers: { 'Authorization': 'Bearer ' + s.jeton }, signal: ctl.signal }); }
@@ -12191,8 +12207,14 @@ async function opSocleControle() {
     if (!r || !r.ok) return null;
     const j = await r.json().catch(() => null);
     if (!j || !j.canon) return null;
-    let lignes = null;
-    try { lignes = opDecomposer(db); } catch (e) { return null; }
+    /* ⛔ ET SI UNE AUTRE POUSSE EST PARTIE PENDANT L'ATTENTE, ON NE CONCLUT RIEN. Le serveur a pu
+       l'accepter AVANT de signer : il parlerait d'un instant plus récent que la photo, et l'écart
+       serait fabriqué par nous. On ne crie pas, on ne répare rien, et on repasse à une pousse
+       d'ici dix minutes plutôt que dans vingt heures. */
+    if (_opPousses !== pousses0) {
+      try { localStorage.setItem(ctlCle, String(Date.now() + 600000)); } catch (e) {}
+      return null;
+    }
     /* Les enregistrements retenus (pièce pas encore téléversée) ne sont pas dans les lignes,
        donc pas dans notre signature : les deux côtés parlent bien de la même chose. */
     /* ⛔ ET ON NE COMPARE QUE CE QUI PEUT PARTIR — MESURÉ AU NAVIGATEUR, 20 SEPTEMBRE 2026.
@@ -12211,14 +12233,30 @@ async function opSocleControle() {
       try { console.warn('socle : ' + muettes.length + ' ligne(s) sans date, hors comparaison — '
         + [...new Set(muettes.map(l => l.c))].join(', ')); } catch (e) {}
     }
+    /* ⚠️ UNE FICHE RETENUE (sa pièce n'est pas encore partie) n'est pas dans les lignes, mais le
+       serveur peut en tenir la version d'AVANT : sa collection n'est pas comparable tant
+       qu'elle attend — une box retenue emporte ses trois collections. On la laisse de côté et
+       on le dit ; et un contrôle incomplet n'envoie pas de verdict « identique » : la
+       condition (d) compte des journées de signatures identiques, pas des demi-journées. */
+    const enAttente = new Set();
+    (lignes.retenus || []).forEach(x => {
+      const c = String(x && x.c); enAttente.add(c);
+      if (c === 'boxes') { enAttente.add('box_stock'); enAttente.add(OP_BOX_FORME); }
+    });
     const moi = opSignature(poussables);
     const ecarts = [];
     const toutes = new Set(Object.keys(moi.par).concat(Object.keys(j.canon.par || {})));
     toutes.forEach(c => {
+      if (enAttente.has(c)) return;
       const a = moi.par[c] || { n: 0, sig: '' }, b = (j.canon.par || {})[c] || { n: 0, sig: '' };
       if (a.sig !== b.sig) ecarts.push({ coll: c, appareil: a.n, serveur: b.n });
     });
-    const ok = moi.sig === j.canon.sig;
+    const complet = !enAttente.size;
+    const ok = complet ? moi.sig === j.canon.sig : !ecarts.length;
+    if (ok && !complet) {
+      try { localStorage.setItem(ctlCle, String(Date.now() + 600000)); } catch (e) {}
+      return { ok, ecarts, muettes: muettes.length, attente: [...enAttente] };
+    }
     if (!ok) {
       try { console.warn('socle : DIVERGENCE sur ' + ecarts.length + ' collection(s) — ' + ecarts.slice(0, 4).map(e => e.coll + ' (' + e.appareil + ' ici / ' + e.serveur + ' là-bas)').join(', ')); } catch (e) {}
       /* ⛔ ET ON LE REMONTE À LA TOUR. Une divergence que seul le navigateur du client connaît
@@ -12255,7 +12293,7 @@ async function opSocleControle() {
         body: JSON.stringify({ ok: ok, ecarts: ecarts.slice(0, 12) }), signal: ctl2.signal });
       clearTimeout(to2);
     } catch (e) {}
-    return { ok, ecarts, muettes: muettes.length };
+    return { ok, ecarts, muettes: muettes.length, attente: [] };
   } catch (e) { return null; }
 }
 /* ══ ÉTAPE 7 — LA RELECTURE, CONTRE LA PHOTO PRISE AVANT ═══════════════════════════════════
