@@ -9,7 +9,7 @@ v760 — une chose, rien d'autre (les couleurs des techniciens, le contrôle du 
   toute l'équipe passe en Pro, un abonnement par personne. Qui n'est pas administrateur lit seulement « Plus de place
   utilisateur libre — seul l'administrateur peut en ajouter » ; un abonnement en attente de règlement, ou une formule
   réservée pas encore payée, renvoient à l'espace client. Le message dit « Après le paiement, TEAM OP ajoute la place à
-  votre espace » : le nombre de places se règle dans la Tour, le paiement seul ne le change pas.
+  ton espace » : le nombre de places se règle dans la Tour, le paiement seul ne le change pas.
 Chez ELAN : rien n'est effacé ni écrit dans leurs données ; le changement ne se voit qu'en ajoutant un compte quand
 toutes les places sont prises. Aucun changement de format : rien à exiger.
 Preuves : `test-838` 57 ✓ — les vraies fonctions d'`app.html` et de `beta.html`, puis l'adresse ouverte LUE par le vrai

@@ -13762,14 +13762,14 @@ function planPlaceLibre(){ return db.users.length<planPlaces(); }
 function abosManquants(){ return forfait()==='gratuit' ? db.users.length+1 : Math.max(1, db.users.length+1-planPlaces()); }
 function proposerAbonnement(){
   if(!currentUser||currentUser.role!=='admin'){ toast('Plus de place utilisateur libre — seul l\'administrateur peut en ajouter',4500); return; }
-  if(_susp.suspendu){ if(confirm('Abonnement en attente de règlement : réglez-le d\'abord, vos places reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  if(_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, tes places reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
   const att=db.formuleAttente;
-  if(att&&PLANS[att.formule]){ if(confirm('Votre formule '+PLANS[att.formule].l+(att.quantite>1?' ×'+att.quantite:'')+' attend son paiement : ses places s\'ouvrent dès qu\'elle est payée.\n\nOuvrir l\'espace client pour la payer ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  if(att&&PLANS[att.formule]){ if(confirm('Ta formule '+PLANS[att.formule].l+(att.quantite>1?' ×'+att.quantite:'')+' attend son paiement : ses places s\'ouvrent dès qu\'elle est payée.\n\nOuvrir l\'espace client pour la payer ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
   const f=forfait(), cible=(f==='gratuit')?'pro':f, n=abosManquants(), u=db.users.length, p=planPlaces(), s=k=>k>1?'s':'';
   const msg=(f==='gratuit'
-    ? 'Formule Gratuit : 1 place utilisateur, déjà prise.\n\nPour travailler à '+n+', passez en Pro : un abonnement par utilisateur, soit '+n+' abonnements.'
+    ? 'Formule Gratuit : 1 place utilisateur, déjà prise.\n\nPour travailler à '+n+', passe en Pro : un abonnement par utilisateur, soit '+n+' abonnements.'
     : 'Formule '+PLANS[f].l+' : '+u+' utilisateur'+s(u)+' pour '+p+' place'+s(p)+'.\n\nUn abonnement = un utilisateur : pour en ajouter un, il faut '+n+' abonnement'+s(n)+' '+PLANS[f].l+' de plus.')
-    +'\n\nAprès le paiement, TEAM OP '+(f==='gratuit'?'active la formule Pro sur votre espace.':'ajoute '+(n>1?'les places':'la place')+' à votre espace.')
+    +'\n\nAprès le paiement, TEAM OP '+(f==='gratuit'?'active la formule Pro sur ton espace.':'ajoute '+(n>1?'les places':'la place')+' à ton espace.')
     +'\n\nOuvrir la page de paiement ?';
   if(confirm(msg)) window.open('https://teamop.fr/recap-abonnement.html?formule='+cible+'&utilisateurs='+n,'_blank'); }
 function setForfaitQty(d){ const q=Math.max(1,(db.forfaitQty||1)+d);

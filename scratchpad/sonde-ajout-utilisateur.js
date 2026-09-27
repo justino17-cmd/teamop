@@ -88,7 +88,7 @@ let navigateur = null;
   v('⛔ aucun compte créé', e.n, 7);
   vrai('la question : « Formule Pro : 7 utilisateurs pour 7 places. »', (e.questions[0] || '').includes('Formule Pro : 7 utilisateurs pour 7 places.'), e.questions[0]);
   vrai('… « Un abonnement = un utilisateur : pour en ajouter un, il faut 1 abonnement Pro de plus. »', (e.questions[0] || '').includes('Un abonnement = un utilisateur : pour en ajouter un, il faut 1 abonnement Pro de plus.'), e.questions[0]);
-  vrai('… « Après le paiement, TEAM OP ajoute la place à votre espace. »', (e.questions[0] || '').includes('Après le paiement, TEAM OP ajoute la place à votre espace.'), e.questions[0]);
+  vrai('… « Après le paiement, TEAM OP ajoute la place à ton espace. »', (e.questions[0] || '').includes('Après le paiement, TEAM OP ajoute la place à ton espace.'), e.questions[0]);
   v('⛔⛔ l\'onglet ouvert : la page de paiement pour UN abonnement Pro', e.ouverts, [['https://teamop.fr/recap-abonnement.html?formule=pro&utilisateurs=1', '_blank']]);
   await cap('1-question-un-abonnement');
 
@@ -116,7 +116,7 @@ let navigateur = null;
   await S.ev(`suspensionPoser({suspendu:true, sursisJours:3}); await new Promise(r=>setTimeout(r,500)); window.__questions=[]; window.__ouverts=[]; return 1;`);
   g = await essayer('Martin', 'Léa', 'lm-au');
   e = await etat();
-  vrai('« réglez-le d\'abord, vos places reviennent avec lui »', (e.questions[0] || '').includes('réglez-le d\'abord, vos places reviennent avec lui'), e.questions[0]);
+  vrai('« règle-le d\'abord, tes places reviennent avec lui »', (e.questions[0] || '').includes('règle-le d\'abord, tes places reviennent avec lui'), e.questions[0]);
   v('⛔ l\'espace client, jamais un abonnement de plus', e.ouverts, [['https://teamop.fr/espace.html', '_blank']]);
   await S.ev(`suspensionPoser({suspendu:false}); await new Promise(r=>setTimeout(r,500)); return 1;`);
 
@@ -125,7 +125,7 @@ let navigateur = null;
     .then(p => v('population : une personne, Gratuit, sa place prise', p, { n: 1, places: 1, libre: false }));
   g = await essayer('Martin', 'Léa', 'lm-au');
   e = await etat();
-  vrai('« passez en Pro : un abonnement par utilisateur, soit 2 abonnements »', (e.questions[0] || '').includes('passez en Pro : un abonnement par utilisateur, soit 2 abonnements.'), e.questions[0]);
+  vrai('« passe en Pro : un abonnement par utilisateur, soit 2 abonnements »', (e.questions[0] || '').includes('passe en Pro : un abonnement par utilisateur, soit 2 abonnements.'), e.questions[0]);
   v('⛔ la page de paiement pour Pro × 2 (la place gratuite ne s\'ajoute pas à un abonnement payant)', e.ouverts, [['https://teamop.fr/recap-abonnement.html?formule=pro&utilisateurs=2', '_blank']]);
 
   v('aucune erreur JavaScript pendant les gestes', S.exceptions, []);

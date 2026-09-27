@@ -98,7 +98,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     vrai('… sur la page de paiement du site, dans un nouvel onglet', /^https:\/\/teamop\.fr\/recap-abonnement\.html\?/.test(adresse(m)) && m.__ouverts[0][1] === '_blank');
     const q = m.__questions[0] || '';
     vrai('… et la question le dit : « 7 utilisateurs pour 7 places », « il faut 1 abonnement Pro de plus »', q.includes('Formule Pro : 7 utilisateurs pour 7 places.') && q.includes('il faut 1 abonnement Pro de plus.'), q);
-    vrai('… « Un abonnement = un utilisateur », et qui ajoute la place : TEAM OP (rien d\'automatique n\'est promis)', q.includes('Un abonnement = un utilisateur') && q.includes('TEAM OP ajoute la place à votre espace.'), q);
+    vrai('… « Un abonnement = un utilisateur », et qui ajoute la place : TEAM OP (rien d\'automatique n\'est promis)', q.includes('Un abonnement = un utilisateur') && q.includes('TEAM OP ajoute la place à ton espace.'), q);
 
     /* 2. la place manquante se CALCULE sur les vraies places (Business donne encore 2 places par abonnement dans
           l'application — l'écart déclaré par test-835 ; le jour où il passe à 1, ce cas reste juste) */
@@ -108,7 +108,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     /* 3. une équipe déjà au-delà de ses places (la Tour a baissé le nombre) : tout ce qui manque, d'un coup */
     m = jouer({ f: 'pro', qty: 6, n: 8 });
     v('Pro, 8 personnes pour 6 places : 3 abonnements de plus (8 + 1 − 6)', qs(adresse(m)), { formule: 'pro', utilisateurs: '3' });
-    vrai('… « il faut 3 abonnements Pro de plus », « les places »', (m.__questions[0] || '').includes('il faut 3 abonnements Pro de plus.') && (m.__questions[0] || '').includes('ajoute les places à votre espace.'), m.__questions[0]);
+    vrai('… « il faut 3 abonnements Pro de plus », « les places »', (m.__questions[0] || '').includes('il faut 3 abonnements Pro de plus.') && (m.__questions[0] || '').includes('ajoute les places à ton espace.'), m.__questions[0]);
     /* 4. Business Premium : même règle */
     m = jouer({ f: 'premium', qty: 1, n: vm.runInContext('planPlaces()', monde({ f: 'premium', qty: 1 })) });
     v('Business Premium plein : 1 abonnement de plus', qs(adresse(m)), { formule: 'premium', utilisateurs: '1' });
@@ -116,8 +116,8 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     /* 5. depuis le forfait Gratuit : on change de formule — TOUTE l'équipe passe en Pro */
     m = jouer({ f: 'gratuit', qty: 1, n: 1 });
     v('Gratuit, 1 personne, une 2ᵉ : Pro pour 2 (la place gratuite ne s\'ajoute pas à un abonnement payant)', qs(adresse(m)), { formule: 'pro', utilisateurs: '2' });
-    vrai('… « passez en Pro : un abonnement par utilisateur, soit 2 abonnements », « active la formule Pro »',
-      (m.__questions[0] || '').includes('passez en Pro : un abonnement par utilisateur, soit 2 abonnements.') && (m.__questions[0] || '').includes('TEAM OP active la formule Pro sur votre espace.'), m.__questions[0]);
+    vrai('… « passe en Pro : un abonnement par utilisateur, soit 2 abonnements », « active la formule Pro »',
+      (m.__questions[0] || '').includes('passe en Pro : un abonnement par utilisateur, soit 2 abonnements.') && (m.__questions[0] || '').includes('TEAM OP active la formule Pro sur ton espace.'), m.__questions[0]);
 
     /* 6. « Annuler » : rien ne s'ouvre */
     m = jouer({ f: 'pro', qty: 7, n: 7, oui: false });
@@ -136,13 +136,13 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     for (const sursis of [3, 0]) {
       m = jouer({ f: 'business', qty: 3, n: 6, susp: true, sursis });
       vrai('abonnement en attente de règlement (sursis ' + sursis + ' j) : l\'espace client, jamais un abonnement de plus',
-        m.__ouverts.length === 1 && m.__ouverts[0][0] === 'https://teamop.fr/espace.html' && /réglez-le d'abord/.test(m.__questions[0] || ''), m.__ouverts);
+        m.__ouverts.length === 1 && m.__ouverts[0][0] === 'https://teamop.fr/espace.html' && /règle-le d'abord/.test(m.__questions[0] || ''), m.__ouverts);
     }
 
     /* 9. une formule réservée qui attend son paiement : c'est elle qu'il faut payer */
     m = jouer({ f: 'gratuit', qty: 1, n: 1, attente: { formule: 'business', quantite: 3 } });
     vrai('formule Business ×3 réservée, pas encore payée : l\'espace client, pour la payer', m.__ouverts.length === 1 && m.__ouverts[0][0] === 'https://teamop.fr/espace.html', m.__ouverts);
-    vrai('… « Votre formule Business ×3 attend son paiement »', (m.__questions[0] || '').includes('Votre formule Business ×3 attend son paiement'), m.__questions[0]);
+    vrai('… « Ta formule Business ×3 attend son paiement »', (m.__questions[0] || '').includes('Ta formule Business ×3 attend son paiement'), m.__questions[0]);
 
     /* 10. ⛔ LA COUTURE : l'adresse ouverte par l'application, lue par le VRAI script de la page de paiement */
     for (const PAGE of PAGES_PAIEMENT) {
