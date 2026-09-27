@@ -13,7 +13,25 @@ de ligne du tout.
 
 ---
 
-# 🟡 27 SEPTEMBRE 2026, MATIN — « FAIT LES 4 » : PORTAIL PUBLIÉ, ANCIENNE TOUR RETIRÉE ; TOUR v2.69 EN APERÇU (SUPPRIMER SANS CODE, LA BULLE) — ATTEND « REMPLACE LA TOUR » ET « POUSSE LE SERVEUR »
+# 🟡 27 SEPTEMBRE 2026, APRÈS-MIDI — SITE VITRINE : LE ZIP DE JUSTIN (8 PAGES « MARINE »), LE LOGO DANS GOOGLE, DE VRAIS iPHONE ET MAC — EN COURS
+
+Justin, avec `design_handoff_teamop_leger` (zip) et une capture de Google : « le logo n'est pas le bon. C'est le
+logo de OP Gestion et non celui de Team OP. […] Partout où il y a des captures d'écran qui sont affichées, je veux
+que ce soit des vrais iPhone avec un vrai Mac, avec des vraies captures d'écran de l'application. »
+· **Le logo dans Google** : mesuré, `teamop.fr` sert le BON logo TEAM OP depuis le 5 septembre (`592993a`), octet
+  pour octet identique au dépôt ; avant, l'accueil déclarait `icons/apple-touch-icon.png`, le logo d'OP GESTION —
+  c'est la copie qu'a gardée Google. Le site n'a pas de `/favicon.ico` (404), le premier fichier que Google va
+  chercher. À faire : le poser au logo TEAM OP ; la réindexation (Search Console) est un geste de Justin.
+· **Le site** : le zip décrit les 8 pages du site actuel (accueil, applications, créer, elan, métiers, OP MESSAGES,
+  pourquoi, tarifs) en palette « Marine », jour/nuit automatique SANS bouton ; ses cadres d'appareils ont des
+  écrans VIDES. Architecture retenue : les pages neuves vivent dans `apercu/site/` (testables sur teamop.fr sans
+  toucher aux vraies pages), leurs ressources communes dans `/vitrine/` ; le remplacement recopiera les pages à la
+  racine, sur phrase de Justin. ⚠️ La maquette réécrit « Fonctionne hors-ligne », « même sans réseau », « Temps réel
+  et mode hors-ligne » — **retirés du site par Justin le 23 septembre** (`f1cc223`) : on garde sa décision. Le
+  formulaire « Créer » part par `mailto:` (pas de route serveur) : l'écran ne dira donc pas « Demande envoyée ».
+· **Captures** : de la bêta, sur une base FICTIVE (jamais une donnée d'ELAN), jour et nuit, iPhone et Mac.
+
+# 🟡 27 SEPTEMBRE 2026, MATIN — « FAIT LES 4 », PUIS « OUI RAJOUTE ÇA » : PORTAIL PUBLIÉ, ANCIENNE TOUR RETIRÉE ; TOUR v2.69 EN APERÇU (SUPPRIMER SANS CODE, AVIS PAR E-MAIL, LIMITE, LA BULLE) — ATTEND « REMPLACE LA TOUR » ET « POUSSE LE SERVEUR »
 
 Justin, à quatre questions (le portail, `tour-v1.html`, les suppressions de la Tour, la bulle sur « Plus ») :
 **« Fait les 4 »**.
@@ -37,9 +55,21 @@ Justin, à quatre questions (le portail, `tour-v1.html`, les suppressions de la 
    (30 jours avec « rester connecté ») ne suffisait pas à détruire. Décision de Justin. `gardien` rappelle le
    vecteur concret : `tour_token` vit dans le `localStorage` de l'origine teamop.fr, partagée avec `app.html`,
    `beta.html` et `apercu/` — une faille XSS sur l'une d'elles lit la session du patron (antérieur, chantier à
-   part). Deux protections qui ne changent pas ses gestes, proposées par `gardien`, **posées en question à
-   Justin, pas écrites** : un avis par e-mail APRÈS chaque suppression confirmée ; au-delà de 3 entreprises (ou
-   10 comptes) supprimées en 24 h, le code revient (la Tour v2.69 sait déjà le demander).
+   part). ✅ **Les deux protections, écrites** — Justin : « Oui rajoute ça » (`APRÈS CHAQUE SUPPRESSION, UN
+   E-MAIL`, `server/index.js`), sans un geste de plus pour lui :
+   · **un e-mail APRÈS chaque suppression** — quatre routes, confirmée ou par code — à la boîte du patron : quoi,
+     par qui, quand (heure de Paris), l'appareil, par quel chemin, et le geste si ce n'est pas lui
+     (`ssh -t root@api.teamop.fr "cd /opt/teamop/repo && bash server/set-admin.sh"` : un nouveau compte patron,
+     donc toutes ses sessions fermées). L'envoi est ATTENDU 8 s au plus et la réponse dit s'il est parti
+     (`avis`) ; la Tour le dit dans le verdict (`supprToast`, 9 s). Sans e-mail configuré, rien ne se supprime
+     (503). Au journal des e-mails : une trace sans nom ni identifiant ;
+   · **au-delà de TROIS ENTREPRISES en 24 heures glissantes** (fermer un client, supprimer partout, confirmées ou
+     par code — les comptes ne comptent pas, c'est « entreprises » que Justin a dit), `confirme` ne suffit plus :
+     le code revient, `limite: true`, et la question de la Tour dit « Trois entreprises ont déjà été supprimées
+     ces dernières 24 heures » (pas « serveur pas à jour »). Compteur sur disque (`tour-suppressions.json`, des
+     dates), qui survit à un redémarrage et reste FERMÉ s'il est illisible. Les codes d'entreprise sont tirés
+     par `crypto.randomInt` (ils redeviennent un verrou). « 24 heures glissantes » plutôt que « la même
+     journée » : sinon 23 h 59 puis 0 h 01 font six suppressions en deux minutes.
    **L'ordre des deux publications n'importe pas** : Tour neuve + serveur d'avant → la Tour voit `codeEnvoye` et
    redemande le code (« le serveur n'est pas encore à jour »), rien n'est annoncé à tort ; serveur neuf + Tour
    d'avant → rien ne change pour elle.
@@ -51,21 +81,29 @@ Justin, à quatre questions (le portail, `tour-v1.html`, les suppressions de la 
    laissait un autre. Corrigé dans la v2.69 ; la v2.66 en service l'a. OP GESTION n'est pas touchée.
 
 **Preuves :** `test-832` (serveur seul, inscrit dans `scripts/bancs-serveur.liste`, plancher relevé à 2 350)
-**50 ✓**, 10/10 mutations + la vérification du code retirée route par route, 4/4 ; `test-833` (la Tour contre le
-vrai serveur ET contre un « serveur d'avant » simulé par un relais qui retire `confirme`) **31 ✓**, 10/10 mutations,
-le toast 2 ✗ sans son correctif ; `test-828` joue la bulle avec les vraies fonctions, 95 ✓ (1 ✗ sur la v2.68) ; au
-doigt, `scratchpad/sonde-tour-suppr.js` **79 ✓** (téléphone jour et nuit, bureau ; 30 ✗ sur la v2.68) et
-`scratchpad/sonde-tour-barre.js` **128 ✓** (3 ✗ sur la v2.68) ; suite complète **189 suites · 9 465 vérifications, code 0** ; `gardien` : aucun
+**96 ✓** — avis sur les quatre routes et les deux chemins, limite, redémarrage, compteur illisible, e-mail refusé
+ou muet (la réponse arrive en 8 s, pas en deux minutes), sans e-mail configuré ; 10/10 mutations de « sans code »,
+4/4 sur la vérification du code, **19/19 sur les protections** (14 serveur, 5 Tour) ; ⚠️ son facteur retirait mal le
+point doublé du SMTP (« set-admin..sh ») — c'était le banc, pas le serveur ; `test-833` (la Tour contre le vrai
+serveur ET contre un « serveur d'avant » simulé par un relais qui retire `confirme`) **40 ✓**, le toast 2 ✗ sans son
+correctif ; `test-828` joue la bulle avec les vraies fonctions, 95 ✓ (1 ✗ sur la v2.68) ; au doigt,
+`scratchpad/sonde-tour-suppr.js` **91 ✓** (téléphone jour et nuit, bureau ; 82 ✓ 9 ✗ sur la Tour d'avant les
+protections, 30 ✗ sur la v2.68) et `scratchpad/sonde-tour-barre.js` **128 ✓** (3 ✗ sur la v2.68) ; suite complète
+**189 suites · 9 520 vérifications, code 0** ; `gardien` (avant les protections) : aucun
 bloquant (trois points corrigés : un mauvais code joué sur les quatre routes, le chemin au journal, la version
 citée) ; `relecteur` : aucun bloquant (préfixe `.suppr-`, insécables du `prompt()` natif).
 ⚠️ **Les bancs 828 à 833 lisent `tour.html` : ils restent sur la branche** et partent avec « Remplace la tour » (sur
 `main`, `tour.html` est la v2.66). `test-832` ne lit aucune page : il part avec le serveur.
 
-**Publié :** l'aperçu v2.69 (`c045ba5` sur `main`), servi octet pour octet à `teamop.fr/apercu/tour.html` ; la Tour
+**Publié :** l'aperçu v2.69 avec les protections (`f821ca5` sur `main`) à `teamop.fr/apercu/tour.html` ; la Tour
 en service reste la v2.66. ⚠️ L'aperçu agit sur les VRAIES données : une suppression essayée là supprime.
 **Ce qui attend Justin :** « Remplace la tour » (la v2.69 : v2.67 + v2.68 + ceci) ; « pousse le serveur » —
-préparé par `scripts/preparer-deploiement-serveur.sh` (commit `bdffd8e` sur `main` = `c045ba5` : 41 suites · 2 396 vérifications contre les pages de `main`, rien de poussé ; seule différence avec `main` : ce
-changement) ; relancer le script repart du `main` du jour, puis `git -C <arbre> push origin HEAD:main`.
+préparé par `scripts/preparer-deploiement-serveur.sh` (commit `96c07b9` sur `main` = `f821ca5` : 41 suites · 2 442
+vérifications contre les pages de `main`, rien de poussé ; seule différence avec `main` : ce changement) ; relancer
+le script repart du `main` du jour, puis `git -C <arbre> push origin HEAD:main`. Suppression sans code et protections
+partent ENSEMBLE, dans ce même commit : il n'y a aucun moment où l'une existe sans les autres. Tant qu'il n'est pas
+poussé, le serveur en service ignore `confirme` et la v2.69 (aperçu) redemande le code (« le serveur n'est pas
+encore à jour »).
 **Pas touché, exprès :** refaire un mot de passe provisoire depuis la Tour demande encore un code (ce n'est pas une
 suppression) ; « Supprimer l'accès » (écran Accès) fait écrire le nom, sans code.
 

@@ -124,7 +124,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 189 suites · 9 465 vérifications (mesuré en local le 27/09/2026, bêta v758 · Tour v2.69)
+bash scripts/bancs-ci.sh        # 189 suites · 9 520 vérifications (mesuré en local le 27/09/2026, bêta v758 · Tour v2.69)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -233,6 +233,12 @@ Mesuré : **21,8 % des empreintes contiennent « a1 »** — le banc accusait do
 fuiter une donnée de client environ une fois sur cinq, au hasard. Un banc qui crie faux se fait
 ignorer, puis désactiver : c'est comme ça qu'on perd un garde-fou. Tout jeton cherché dans une
 sortie qui peut contenir une empreinte doit porter des lettres **hors de `[0-9a-f]`**.
+
+⛔ **UN FACTEUR SMTP DE BANC RETIRE LE POINT DOUBLÉ (RFC 5321 §4.5.2), SINON IL ACCUSE LE SERVEUR.** Une ligne de
+courriel qui commence par « . » voyage « .. » ; le quoted-printable replie les lignes longues, donc n'importe quel
+mot peut se retrouver en tête de ligne. Pris le 27 septembre 2026 : `test-832` lisait « set-admin..sh » dans l'avis
+de suppression, sur une partie seulement des messages — le défaut était dans le facteur. Le facteur de `test-813`
+(et de tout banc qui le recopie) ne le fait pas encore : à corriger le jour où il lira un texte long.
 
 ⛔ **UNE APOSTROPHE DANS LE MOT DE `${var:?mot}` CASSE LE PARSE DU SCRIPT ENTIER.** Bash
 re-interprète les quotes à l'intérieur du mot, **même entre guillemets doubles** :
