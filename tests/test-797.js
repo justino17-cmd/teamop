@@ -51,8 +51,10 @@ const vrai = (t, a) => v(t, !!a, true);
   let corps = null, entetes = null;
   if (mFn && mBody && mSess && mEntetes) {
     const stockage = (cle) => (cle === 'elan_sync_team' ? 'monclient-9f2a' : cle === mSess[1] ? SESSION : null);
+    /* `compte.jeton` : la session que `lireCompte()` a lue pour CE compte (test-839 joue lireCompte lui-même) — la page
+       ne paie qu'avec elle, jamais avec une session changée entre-temps dans un autre onglet. */
     const evaluer = (ls, expr) => new Function('localStorage', 'priceId', 'nbAbos',
-      mFn[0] + '\n' + mSess[0] + '\nreturn ' + expr + ';')({ getItem: ls }, 'price_1Abc', 3);
+      mFn[0] + '\n' + mSess[0] + '\nconst compte = { jeton: sessionPortail() };\nreturn ' + expr + ';')({ getItem: ls }, 'price_1Abc', 3);
     corps = JSON.parse(evaluer(stockage, 'JSON.stringify(' + mBody[1] + ')'));
     entetes = evaluer(stockage, mEntetes[1]);
     v('⛔ le corps envoy\u00e9 par la page PORTE la r\u00e9f\u00e9rence de l\'espace', corps.ref, 'monclient-9f2a');

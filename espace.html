@@ -647,6 +647,12 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   /* 🛒 Retour au paiement : espace.html?retour=recap-abonnement.html?formule=... (chemin strictement contrôlé) */
   const RETOUR_PAIEMENT=(()=>{ try{ const r=new URLSearchParams(location.search).get('retour')||''; return /^recap-abonnement\.html(\?[\w=&%.-]*)?$/.test(r)?r:''; }catch(e){ return ''; } })();
   let _signupBusy=false;
+  /* ⛔ DÉCLARÉE AVANT L'ÉCOUTEUR, PAS APRÈS LE FORMULAIRE (27 septembre 2026). Sans session, `onAuthStateChanged`
+     rappelle TOUT DE SUITE (`relireMoi` n'attend rien), donc `renderAuth()` → `authTab('signup')` s'exécutait avant la
+     ligne `let _authMode` : zone morte, l'exception avalée par le `try` de `direAuth` — et le portail restait sur
+     « Se connecter » quand on arrivait de la page de paiement, qui promet « créez votre compte d'abord ». Trouvé en
+     jouant le parcours au navigateur (`scratchpad/sonde-compte-paiement.js`). */
+  let _authMode='login';
   auth.onAuthStateChanged(user=>{
     if(_unsubMsgs){_unsubMsgs();_unsubMsgs=null;} if(_unsubReqs){_unsubReqs();_unsubReqs=null;} if(_unsubNews){_unsubNews();_unsubNews=null;}
     /* ⛔ UNE SESSION ANONYME N'EST PAS UN CLIENT — un filtre de l'ère Firebase, gardé par prudence.
@@ -691,7 +697,6 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     <p class="center" style="margin-top:12px"><a href="#" id="lnk-equipe" onclick="renderTeamAuth();return false" style="color:var(--t3);font-size:12.5px;text-decoration:none">🛠 Équipe TeamOP</a></p>`;
     if(RETOUR_PAIEMENT) authTab('signup');
   }
-  let _authMode='login';
   function authTab(m){ _authMode=m; $('tab-login').classList.toggle('active',m==='login'); $('tab-signup').classList.toggle('active',m==='signup'); $('signup-fields').classList.toggle('hide',m!=='signup'); $('signup-fields2').classList.toggle('hide',m!=='signup'); $('a-submit').textContent=m==='signup'?'Créer mon compte':'Se connecter'; $('auth-err').innerHTML=''; }
   async function authSubmit(){
     const email=($('a-email').value||'').trim(), pass=$('a-pass').value||'';

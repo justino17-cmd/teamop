@@ -637,15 +637,16 @@ app.post('/api/stripe/checkout', async (req, res) => {
        · une adresse PAS ENCORE PROUVÉE ne paie pas (403) : une session prouve un mot de passe, pas une adresse
          (CLAUDE.md, `gardien` G1). Or c'est elle qui devient l'adresse du client chez Stripe, donc la clé de repli
          d'`espacePaye()` : payée par un compte non prouvé, elle rattacherait l'abonnement à l'entreprise d'un autre ;
-       · l'adresse du compte est IMPOSÉE à la page Stripe (`customer_email` : non modifiable par le payeur) et gravée
-         sur la session ET sur l'abonnement (`metadata[compte]`) : la Tour lit « qui a payé » sur l'abonnement, et
-         ça survit au renouvellement.
+       · l'adresse du compte est donnée à Stripe pour le client qu'il crée (`customer_email`) — c'est celle que la Tour
+         affiche pour chaque abonnement — et gravée sur la session ET sur l'abonnement (`metadata[compte]`), qui la
+         garde même si l'adresse du client change un jour chez Stripe.
        ⚠️ `comptes` est déclaré bien plus bas dans ce fichier : on le lit ici au moment de l'APPEL, dans un `try`,
        comme `/api/clients/sync`. Une zone morte temporelle a déjà éteint une fonction entière de ce serveur. */
-    const brut = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
     let cm = null; try { cm = comptes; } catch (e) { cm = null; }
     if (!cm) return res.status(503).json({ error: 'comptes_indisponibles' });
-    const payeur = /^[0-9a-f]{64}$/i.test(brut) ? cm.parJeton(brut) : '';
+    /* la même lecture que `porteur()` de comptes.js : « Bearer » et 64 hexadécimaux, rien d'autre */
+    const m = /^Bearer\s+([A-Fa-f0-9]{64})$/.exec(String(req.headers.authorization || ''));
+    const payeur = m ? cm.parJeton(m[1]) : '';
     if (!payeur) return res.status(401).json({ error: 'compte_requis' });
     if (!cm.verifie(payeur)) return res.status(403).json({ error: 'adresse_non_verifiee' });
     const { price, quantity, ref } = req.body || {};

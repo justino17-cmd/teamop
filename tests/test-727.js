@@ -198,9 +198,9 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   {
     const ok = await appeler({ price: 'price_1Abc', quantity: 2, ref: 'monclient-9f2a' });
     v('un compte PROUVÉ ouvre la page de paiement', [ok.statut || 200, !!(ok.sortie && ok.sortie.url)], [200, true]);
-    vrai('⛔ l\'adresse du compte est IMPOSÉE à la page Stripe (customer_email)',
+    vrai('⛔ l\'adresse du compte est celle du client que Stripe crée (customer_email) — celle que la Tour affiche',
       new URLSearchParams(ok.envoye).get('customer_email') === 'paie@entreprise-banc.fr');
-    vrai('⛔ … et gravée sur l\'ABONNEMENT (qui a payé, lu par la Tour, survit au renouvellement)',
+    vrai('⛔ … et gravée sur l\'ABONNEMENT (qui a payé ; survit si l\'adresse change chez Stripe)',
       new URLSearchParams(ok.envoye).get('subscription_data[metadata][compte]') === 'paie@entreprise-banc.fr');
     vrai('   … et sur la session', new URLSearchParams(ok.envoye).get('metadata[compte]') === 'paie@entreprise-banc.fr');
     vrai('   la référence d\'espace voyage toujours avec', new URLSearchParams(ok.envoye).get('subscription_data[metadata][espace]') === 'monclient-9f2a');
@@ -211,6 +211,8 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ une session inconnue (expirée, brûlée) : 401, rien chez Stripe', [inconnue.statut, inconnue.appels], [401, 0]);
     const forme = await appeler({ price: 'price_1Abc', quantity: 1 }, { authorization: 'Bearer pas-une-session' });
     v('   un en-tête qui n\'a pas la forme d\'une session : 401', [forme.statut, forme.appels], [401, 0]);
+    const nue = await appeler({ price: 'price_1Abc', quantity: 1 }, { authorization: JETON_PROUVE });
+    v('   la session nue, sans « Bearer » (la lecture de comptes.js ne l\'accepte pas non plus) : 401', [nue.statut, nue.appels], [401, 0]);
     const aConfirmer = await appeler({ price: 'price_1Abc', quantity: 1 }, { authorization: 'Bearer ' + JETON_A_CONFIRMER });
     v('⛔ une adresse PAS ENCORE PROUVÉE : 403 « adresse_non_verifiee », rien chez Stripe', [aConfirmer.statut, aConfirmer.sortie && aConfirmer.sortie.error, aConfirmer.appels], [403, 'adresse_non_verifiee', 0]);
     /* Le corps ne décide de rien (CLAUDE.md : « une valeur du CORPS d'une requête ne décide jamais… ») : une adresse

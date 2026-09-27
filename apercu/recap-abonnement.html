@@ -659,7 +659,9 @@ let nbUsersVoulu = Math.min(MAX_ABONNEMENTS, parseInt(params.get('utilisateurs')
      cycle choisis (`RETOUR_PAIEMENT` d'/apercu/espace.html n'accepte qu'un nom de page nu suivi de `[\w=&%.-]`) ;
    · adresse pas encore confirmée → on ne paie pas : une session prouve un mot de passe, pas une adresse (CLAUDE.md).
      La page le dit, renvoie le lien, et se relit d'elle-même quand on revient sur l'onglet ;
-   · compte prêt → le paiement part AVEC la session, et le serveur rattache l'abonnement au compte ;
+   · compte prêt → le paiement part AVEC la session lue pour CE compte, et le serveur rattache l'abonnement au compte.
+     ⛔ Si la session a changé entre-temps (quelqu'un d'autre s'est connecté dans un autre onglet — `gardien`, rejoué :
+     la page montrait Alice et payait au nom de Bruno), on RELIT au lieu de payer : on ne paie qu'au nom affiché ;
    · le service ne répond pas → on le DIT, et on ne paie pas : plus aucun lien anonyme ne sert de repli.
    ⛔ Un refus se lit AVANT d'annoncer quoi que ce soit : `fetch` ne jette pas sur un 401, un 403 ou un 429 (CLAUDE.md). */
 const API_TEAMOP = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '' : 'https://api.teamop.fr';
@@ -678,7 +680,7 @@ async function lireCompte() {
     const j = r.ok ? await r.json().catch(() => null) : null;
     const c = j && j.compte;
     if (!c || !c.email) { compte = { etat: 'injoignable' }; return compte; }
-    compte = { etat: c.verifie ? 'pret' : 'a_confirmer', email: String(c.email), nom: [c.prenom, c.nom].filter(Boolean).join(' ') };
+    compte = { etat: c.verifie ? 'pret' : 'a_confirmer', email: String(c.email), nom: [c.prenom, c.nom].filter(Boolean).join(' '), jeton };
   } catch (e) { compte = { etat: 'injoignable' }; }
   finally { clearTimeout(to); }
   return compte;
@@ -703,7 +705,7 @@ async function renvoyerLien(btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
   let r = null, j = null;
   try {
-    r = await fetch(API_TEAMOP + '/api/compte/verifier/renvoyer', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionPortail() }, body: '{}' });
+    r = await fetch(API_TEAMOP + '/api/compte/verifier/renvoyer', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (compte.jeton || sessionPortail()) }, body: '{}' });
     j = await r.json().catch(() => null);
   } catch (e) { r = null; }
   if (r && r.ok && j && j.deja) { compteMsg = null; await lireCompte(); }
@@ -714,14 +716,17 @@ async function renvoyerLien(btn) {
   rendrePaiement();
 }
 async function changerCompte() {
-  const jeton = sessionPortail();
+  const jeton = compte.jeton || sessionPortail();
   try { await fetch(API_TEAMOP + '/api/compte/deconnexion', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jeton }, body: '{}' }); } catch (e) {}
   oublierSession();
   window.location.href = lienPortail();
 }
+/* ⚠️ « prête » comprise : on a pu se déconnecter, ou changer de compte, ailleurs entre-temps. */
 if (typeof document.addEventListener === 'function') document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && compte.etat !== 'pret') relireCompte();
+  if (document.visibilityState === 'visible') relireCompte();
 });
+/* Une session posée ou retirée par un AUTRE onglet (le portail, sur la même origine) : on relit tout de suite. */
+if (typeof window.addEventListener === 'function') window.addEventListener('storage', (e) => { if (e && e.key === CLE_SESSION) relireCompte(); });
 /* Retour arrière depuis la page Stripe : le navigateur rend la page telle qu'on l'a quittée, bouton grisé sur
    « Préparation du paiement… ». On la redessine, et on relit le compte (la session a pu changer entre-temps). */
 if (typeof window.addEventListener === 'function') window.addEventListener('pageshow', (e) => { if (e && e.persisted) { compteMsg = null; relireCompte(); } });
@@ -955,6 +960,8 @@ function rendrePaiement() {
     if (compte.etat === 'lecture') return;
     if (compte.etat === 'aucun') { window.location.href = lienPortail(); return; }
     if (compte.etat !== 'pret') { compteMsg = null; compte = Object.assign({}, compte, { etat: 'lecture' }); rendrePaiement(); await relireCompte(); return; }
+    /* ⛔ on ne paie qu'au nom AFFICHÉ : une session changée ailleurs se relit d'abord (et se montre) */
+    if (sessionPortail() !== compte.jeton) { compteMsg = null; compte = { etat: 'lecture' }; rendrePaiement(); await relireCompte(); return; }
     /* ⛔ SANS CETTE RÉFÉRENCE, LE CORRECTIF STRIPE DU SERVEUR NE SERT À RIEN.
        `/api/stripe/checkout` ne grave `subscription_data[metadata][espace]` sur l'abonnement
        que si la page lui envoie un `ref` — et cette page, la SEULE du site qui ouvre une page
@@ -975,7 +982,7 @@ function rendrePaiement() {
     let r = null, j = null;
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
     try {
-      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionPortail() }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef() }), signal: ctl.signal });
+      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef() }), signal: ctl.signal });
       j = await r.json().catch(() => null);
     } catch (e) { r = null; }
     finally { clearTimeout(to); }

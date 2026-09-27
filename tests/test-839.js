@@ -225,6 +225,39 @@ const PHRASE = 'Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'e
       vrai('   une réponse 200 SANS adresse de paiement ne fait partir nulle part', q.window.location.href === '' && q.texte().includes('Le paiement n\'a pas pu s\'ouvrir'));
     }
 
+    // d bis) ⛔ quelqu'un d'autre se connecte dans un AUTRE onglet : la page ne paie jamais au nom qu'elle n'affiche pas
+    {
+      const AUTRE = 'e'.repeat(64);
+      const p = page(f, '?formule=business&utilisateurs=4', { stockage: avecSession(), serveur: a => {
+        if (/compte\/moi$/.test(a.url)) return a.entetes.Authorization === 'Bearer ' + AUTRE
+          ? rep(200, { ok: true, compte: { email: 'bruno@societe-b.fr', prenom: 'Bruno', nom: 'Autre', verifie: true } }) : MOI(true);
+        if (/stripe\/checkout$/.test(a.url)) return rep(200, { url: 'https://checkout.stripe.com/c/pay/banc' });
+        return rep(500, {});
+      } });
+      await p.api.compteLu;
+      vrai('la page montre Camille', p.texte().includes('Camille Banc · camille@entreprise-banc.fr'));
+      p.stockage.set('teamop_portail_jeton', AUTRE);   // le portail, dans un autre onglet, vient de connecter Bruno
+      await p.clic('btnPayer');
+      v('⛔ « Payer » avec une session changée ailleurs : on ne paie PAS, on relit', [aucunVersStripe(p), p.window.location.href], [true, '']);
+      vrai('   et la page montre maintenant Bruno (c\'est lui qui paiera, s\'il retouche « Payer »)', p.texte().includes('Bruno Autre · bruno@societe-b.fr'));
+      await p.clic('btnPayer');
+      const c = p.appels.filter(a => /stripe\/checkout$/.test(a.url));
+      v('   retouché : le paiement part, avec la session de Bruno — celle qui est affichée', [c.length, c[0] && c[0].entetes.Authorization], [1, 'Bearer ' + AUTRE]);
+      const q = page(f, '?formule=pro', { stockage: avecSession(), serveur: a => /compte\/moi$/.test(a.url)
+        ? (a.entetes.Authorization === 'Bearer ' + AUTRE ? rep(200, { ok: true, compte: { email: 'bruno@societe-b.fr', verifie: true } }) : MOI(true)) : rep(500, {}) });
+      await q.api.compteLu;
+      q.stockage.set('teamop_portail_jeton', AUTRE);
+      for (const fn of (q.ecouteurs['w:storage'] || [])) fn({ key: 'teamop_portail_jeton' });
+      await dormir(0); await dormir(0);
+      vrai('⛔ une session posée par un autre onglet (événement « storage ») : la page se relit d\'elle-même', q.texte().includes('bruno@societe-b.fr'));
+      const r2 = page(f, '?formule=pro', { stockage: avecSession(), serveur: a => /compte\/moi$/.test(a.url) ? (a.entetes.Authorization ? MOI(true) : rep(401, {})) : rep(500, {}) });
+      await r2.api.compteLu;
+      r2.stockage.delete('teamop_portail_jeton');   // déconnecté ailleurs
+      for (const fn of (r2.ecouteurs['d:visibilitychange'] || [])) fn();
+      await dormir(0); await dormir(0);
+      v('⛔ revenir sur l\'onglet d\'une page « prête » après une déconnexion ailleurs : elle se relit, et redit « pas de compte »', r2.api.etat().compte.etat, 'aucun');
+    }
+
     // e) le service ne répond pas : on le dit, on ne paie pas, on peut réessayer
     {
       let panne = true;
@@ -270,6 +303,18 @@ const PHRASE = 'Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'e
       await p.clic('btnPayer');
       v('   il mène au portail, sans rien demander au serveur', [p.window.location.href, p.appels.length], ['espace.html', 0].map((x, i) => i === 0 && apercu ? '/apercu/espace.html' : x));
     }
+  }
+
+  /* ── 3 bis. le portail s'ouvre sur « Créer un compte » quand on arrive du paiement ─────────────────────────── */
+  /* ⛔ ZONE MORTE, trouvée en jouant le parcours au navigateur (scratchpad/sonde-compte-paiement.js). Sans session,
+     `auth.onAuthStateChanged` rappelle TOUT DE SUITE, donc `renderAuth()` → `authTab('signup')` s'exécutait avant la ligne
+     `let _authMode` : l'exception était avalée par le `try` de `direAuth`, et le portail restait sur « Se connecter ». On
+     lit l'ordre RÉEL des deux déclarations dans chaque portail servi — la preuve au navigateur est dans la sonde. */
+  console.log('3 bis. le portail ouvre « Créer un compte » quand on arrive du paiement');
+  for (const e of ['espace.html', 'apercu/espace.html'].filter(existe)) {
+    const E = lire(e), iMode = E.indexOf("let _authMode='login';"), iEcoute = E.indexOf('auth.onAuthStateChanged(user=>{'), iTab = E.indexOf("if(RETOUR_PAIEMENT) authTab('signup');");
+    vrai(e + ' : les trois lignes sont trouvées (l\'onglet, l\'écouteur, l\'ouverture sur « Créer un compte »)', iMode > 0 && iEcoute > 0 && iTab > 0);
+    vrai('⛔ ' + e + ' : l\'onglet choisi est déclaré AVANT l\'écouteur de connexion (sinon zone morte, et l\'onglet reste « Se connecter »)', iMode > 0 && iMode < iEcoute);
   }
 
   /* ── 4. la couture : le VRAI portail, la VRAIE page, le VRAI serveur ───────────────────────────────────────── */
@@ -390,20 +435,30 @@ globalThis.fetch = async function (url, opts) {
         const envoye = new URLSearchParams(s1[0] ? s1[0].corps : '');
         v('   pour la quantité choisie (3)', envoye.get('line_items[0][quantity]'), '3');
         if (REGLE) {
-          v('⛔ au nom du COMPTE : l\'adresse est imposée à Stripe (customer_email)', envoye.get('customer_email'), 'camille@entreprise-banc.fr');
-          v('⛔ et gravée sur l\'ABONNEMENT (la Tour lit « qui a payé »)', envoye.get('subscription_data[metadata][compte]'), 'camille@entreprise-banc.fr');
+          v('⛔ au nom du COMPTE : c\'est son adresse que Stripe reçoit pour le client (customer_email)', envoye.get('customer_email'), 'camille@entreprise-banc.fr');
+          v('⛔ et elle est gravée sur l\'ABONNEMENT (metadata[compte])', envoye.get('subscription_data[metadata][compte]'), 'camille@entreprise-banc.fr');
         } else vrai('   (serveur d\'avant : l\'adresse du compte n\'est pas encore imposée à Stripe — elle le sera avec « pousse le serveur »)', true);
 
         // la session brûlée ailleurs (déconnexion depuis le portail) : la page le découvre en payant, et le dit
         const p2 = recap('?formule=pro&utilisateurs=2');
         await p2.api.compteLu;
         v('une nouvelle page, même session : « prête »', p2.api.etat().compte.etat, 'pret');
-        await portail.auth.signOut();
-        rangement.set('teamop_portail_jeton', 'a'.repeat(64));   // une session que le serveur ne connaît pas (brûlée, périmée)
+        /* la session meurt CÔTÉ SERVEUR (périmée, mot de passe changé ailleurs) — l'appareil la garde encore */
+        const morte = rangement.get('teamop_portail_jeton');
+        await fetch(B + '/api/compte/deconnexion', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + morte }, body: '{}' });
         await p2.clic('btnPayer');
-        if (REGLE) v('⛔ session morte au moment de payer : le vrai serveur refuse (401), la page dit « Votre session a expiré », rien chez Stripe',
-          [p2.api.etat().compte.etat, p2.texte().includes('Votre session a expiré'), stripeRecu().length], ['aucun', true, n0 + 1]);
+        if (REGLE) v('⛔ session morte au moment de payer : le vrai serveur refuse (401), la page dit « Votre session a expiré », l\'oublie, rien chez Stripe',
+          [p2.api.etat().compte.etat, p2.texte().includes('Votre session a expiré'), rangement.has('teamop_portail_jeton'), stripeRecu().length], ['aucun', true, false, n0 + 1]);
         else vrai('   (serveur d\'avant : une session morte ne se découvre qu\'à la relecture du compte)', true);
+        /* et déconnecté AILLEURS (le portail, dans un autre onglet, a retiré la session) : la page relit, ne paie pas */
+        await portail.auth.signInWithEmailAndPassword('camille@entreprise-banc.fr', 'un-mot-de-passe-solide-839');
+        const p3 = recap('?formule=pro&utilisateurs=2');
+        await p3.api.compteLu;
+        v('reconnecté par le portail : une nouvelle page est « prête »', p3.api.etat().compte.etat, 'pret');
+        await portail.auth.signOut();
+        await p3.clic('btnPayer');
+        v('⛔ déconnecté dans un autre onglet puis « Payer » : la page relit le vrai serveur, redit « pas de compte », rien chez Stripe',
+          [p3.api.etat().compte.etat, stripeRecu().length], ['aucun', n0 + 1]);
 
         // sans en-tête du tout, ou mal formé : le vrai serveur refuse
         if (REGLE) {
