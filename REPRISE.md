@@ -51,10 +51,23 @@ aussi je voudrais la mise à jour dessus »** ; **« le logo aussi »** (capture
   places de l'abonnement gravé à l'ancien nom (la Tour les règle) ; une quantité augmentée chez Stripe sur un abonnement
   d'avant est multipliée.
 
-⏳ **Mise en ligne n° 2 — la v763 (`app.html`, `sw.js`, « Mon espace » au contrat v762, bancs, CI) : préparée, suite complète en cours au moment d'écrire ces lignes.**
+✅ **Mise en ligne n° 1 vérifiée** : 30 pages servies octet pour octet, `/api/espaces/ouvrir` → 410 en production,
+`/health` propre (0 erreur), CI de `main` verte 3/3 (bancs du déploiement, « Vérifications », « Vérification des pages »).
+
+✅ **Mise en ligne n° 2 — la v763** (le commit qui suit `71c682d` sur `main`) : `app.html` + `sw.js` v763 (cache v963, qui
+garde les feuilles du site et du portail), « Mon espace » au contrat v762 (« un compte par abonnement », « un code promo
+couvre tous les comptes »), les bancs de la branche (écarts de `test-835`/`test-837` refermés, `test-735` avec l'attente,
+`test-825` et ses trois sondes), `VERSION-STABLE.md`, et **la CI réparée** : ESLint 10.1.0 installé dans
+`verification.yml` pour que la partie « aucun nom lu sans exister » de `test-818` se joue aussi sur GitHub, et le filet
+« SAUTÉ » (qui couvre « SAUTÉE ») dans `verification.yml` et `scripts/bancs-ci.sh`.
+L'application v763 lit `places` (en mémoire, jamais dans la base : une v760 et une v763 écrivent le même
+`forfaitQty`) ; le message « plus de place » dit que la place s'ajoute d'elle-même après le paiement (le serveur relit
+Stripe toutes les cinq minutes) ; passer du Gratuit à Pro reste un geste de la Tour. ELAN (code promo en cours) : le code
+couvre toute l'équipe, rien ne change pour eux.
 
 **Preuves** : liste serveur 47 suites · 2 899 vérifications (plancher relevé à 2 850) ; suite complète de l'arbre de la
-mise en ligne n° 1 : 197 suites · 10 514.
+mise en ligne n° 1 : 197 suites · 10 514 ; arbre de la v763 : 198 suites · 10 752, liste serveur avec le nouveau
+compteur 47 suites · 2 904.
 
 ⏳ **Ce qui reste à Justin** : Search Console → « Inspection de l'URL » → `https://teamop.fr/` → « Demander une
 indexation » (le logo) ; supprimer l'ancienne paire de clés du coffre IONOS (#132) ; regarder chez Stripe qu'aucun code
