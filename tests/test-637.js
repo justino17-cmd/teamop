@@ -31,7 +31,9 @@ console.log('Quitter un espace remet l\'appareil VRAIMENT à neuf — les QUATRE
     ['anthropic_key','devis_code','sync_cfg','espace_admin'].every(k=>q.indexOf("'"+k+"'")>=0),true);
   v('et les bases mises de côté',/deleteDatabase\(P\+'cote'\)/.test(q),true);
   const appels=APP.split(/\bespaceQuitter\(\);/).length-1;
-  v('les trois portes d\'app.html y passent',appels,3);
+  /* Deux depuis le 28 septembre 2026 : le « Code espace » collé (teamopJoin) a été retiré — « que des liens pour les
+     connexions ». Restent le lien de connexion (teamopLienCheck) et la fermeture par la Tour. */
+  v('les deux portes d\'app.html y passent (le lien, la fermeture par la Tour)',appels,2);
   v('plus une seule sortie d\'espace qui retire la base à la main',
     (APP.match(/removeItem\(STORE_KEY\)/g)||[]).length,1);
   v('resetData() a disparu — elle rejouait le semis sur un appareil resté rattaché',

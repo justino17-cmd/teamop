@@ -22,14 +22,18 @@ s = s.replace(/const APP_VERSION = '([0-9]+)'/, "const APP_VERSION = '$1-beta'")
 s = s.split("const BETA_ESSAI=false;").join("const BETA_ESSAI=true;");
 // Sur la bêta, il n'y a ni entreprise à nommer ni espace à rejoindre : l'identifiant et le mot
 // de passe viennent de la Tour, rien d'autre. On retire le champ « Entreprise » et le lien
-// « Rejoindre un espace » de l'écran de connexion — y taper un nom envoyait la page chercher
+// « changer d'entreprise » de l'écran de connexion — y taper un nom envoyait la page chercher
 // une entreprise et expédier un lien de connexion à son adresse.
 const ENT_AVANT = "${_surEspace?'':`<div class=\"field\"><label>Entreprise";
 if (s.indexOf(ENT_AVANT) < 0) { console.error('ÉCHEC : le champ Entreprise de la connexion est introuvable'); process.exit(1); }
 s = s.split(ENT_AVANT).join("${true?'':`<div class=\"field\"><label>Entreprise");
-const LIEN_AVANT = '<div style="text-align:center;margin-top:14px"><a onclick="teamopJoinPrompt()"';
-if (s.indexOf(LIEN_AVANT) < 0) { console.error('ÉCHEC : le lien « Rejoindre un espace » est introuvable'); process.exit(1); }
-s = s.split(LIEN_AVANT).join('<div style="display:none"><a onclick="teamopJoinPrompt()"');
+/* Le lien « Rejoindre un espace (code entreprise) » n'existe plus dans app.html depuis la v763 (Justin, 28 septembre 2026 :
+   « que des liens pour les connexions ») : il ne reste que « changer d'entreprise », qu'on éteint ici comme avant. On
+   vérifie l'ABSENCE de l'ancien lien : s'il revenait dans app.html, la bêta ne le cacherait plus. */
+if (s.indexOf('teamopJoinPrompt') >= 0) { console.error('ÉCHEC : une entrée par code (teamopJoinPrompt) est revenue dans app.html'); process.exit(1); }
+const LIEN_AVANT = '${(_surEspace&&_entNom)?`<div style="text-align:center;margin-top:14px"><a href="connexion.html?choix=1"';
+if (s.indexOf(LIEN_AVANT) < 0) { console.error('ÉCHEC : le lien « changer d\'entreprise » de la connexion est introuvable'); process.exit(1); }
+s = s.split(LIEN_AVANT).join('${false?`<div style="text-align:center;margin-top:14px"><a href="connexion.html?choix=1"');
 /* On vérifie l'ABSENCE de la déclaration d'origine, pas la présence de la nouvelle. Chercher
    « const BETA_ESSAI=true; » n'importe où dans le fichier devenait creux : il suffisait qu'un
    commentaire de app.html cite cette ligne en exemple pour que l'assertion passe alors que le

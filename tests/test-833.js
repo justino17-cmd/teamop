@@ -323,48 +323,41 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
       v('⛔ …même si le précédent était déjà masqué quand sa sortie a commencé', jouer(true), { aff: 'block', txt: 'second', ecouteurs: 0 });
     }
 
-    /* ══ 10. v2.70 — « CODE ESPACE COLLÉ » AVEC UNE CLÉ DIFFÉRENTE (Justin, 28 septembre 2026 : « on ne la rattachera pas,
-       sauf si je le confirme moi-même »). La moitié serveur (409 `cle_differente`, `confirmeCle` booléen strict) est gardée par
-       `test-834` ; ici, la COUTURE : la vraie `tourEspaceDe` pose la question, n'envoie la confirmation qu'après un « OK »,
-       et oublie le code refusé. kappa est une entreprise ouverte SANS adresse — la cible du code forgé. ══ */
-    console.log('\n5. La Tour v2.70 : un code collé avec une clé différente — la question, et seul « OK » confirme');
-    const codeColle = (t, k) => Buffer.from(JSON.stringify({ t, k, n: 'Collée', a: 'pirate', m: 'Mot-De-Passe-Pirate-833' })).toString('base64');
-    const espaceDe = (repondre, colle) => {
+    /* ══ 10. v2.72 — PLUS AUCUN « CODE ESPACE » (Justin, 28 septembre 2026 : « je veux plus de code, que des liens pour les
+       connexions » ; « c'est nous qui créons les liens pour les entreprises une fois leur demande faite »). La Tour ne propose
+       plus de coller un code : un nom que le serveur ne connaît pas reçoit un espace NEUF. Le seul code encore envoyé d'ici
+       est celui que CE navigateur a gardé (`tour_liens`) : s'il porte une clé qui n'est plus celle de l'entreprise (409
+       `cle_differente`, gardé côté serveur par `test-834`), il est OUBLIÉ, rien n'est créé, et on le dit — sans question ni
+       confirmation (la v2.70 en posait une : elle n'avait de sens que pour un code collé). kappa est une entreprise ouverte
+       SANS adresse. ══ */
+    console.log('\n5. La Tour v2.72 : plus de code à coller ; un lien gardé périmé est oublié');
+    const garde = (email, t, k) => ({ [email]: { t, k, n: 'Gardée', a: 'kappa', m: 'Mdp-833', e: email } });
+    const espaceDe = (gardes) => {
       const src = ['hAuth', 'apiPost', 'tourSha256', 'tourLienServeur', 'tourEspaceDe'].map(fonction);
       if (src.some(x => !x)) return null;
-      const stock = {}, confirms = [], toasts = [], prompts = [], posts = [];
+      const stock = { tour_liens: JSON.stringify(gardes || {}) }, confirms = [], toasts = [], prompts = [], posts = [];
       const ctx = { JSON, Object, String, Math, Promise, Uint8Array, TextEncoder, crypto: globalThis.crypto, atob, btoa,
         fetch: (u, o) => { if (o && o.method === 'POST' && /\/api\/monitor\/espaces$/.test(u)) posts.push(JSON.parse(o.body)); return fetch(u, o); },
         localStorage: { getItem: k => (k in stock ? stock[k] : null), setItem: (k, x) => { stock[k] = String(x); }, removeItem: k => { delete stock[k]; } },
-        prompt: (q) => { prompts.push(q); return colle; }, confirm: (q) => { confirms.push(q); return repondre; }, toast: (t) => { toasts.push(t); } };
+        prompt: (q) => { prompts.push(q); return ''; }, confirm: (q) => { confirms.push(q); return true; }, toast: (t) => { toasts.push(t); } };
       vm.createContext(ctx);
       vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + ';\n' + src.join('\n'), ctx);
       return { ctx, stock, confirms, toasts, prompts, posts };
     };
-    let E = espaceDe(false, codeColle('t-kappa-832', 'cle-forgee-833'));
-    vrai('les vraies fonctions de la Tour s\'extraient (tourEspaceDe et ce qu\'elle appelle)', E);
-    let res = await E.ctx.tourEspaceDe('pirate@exemple-833.fr', 'Kappa Collée', 'pirate', 'Mdp-833', false, 'tour');
     const oublie = (x) => { try { return Object.keys(JSON.parse(x.stock.tour_liens || '{}')).length; } catch (e) { return -1; } };
-    v('⛔ clé forgée, « Annuler » : une question, un seul envoi (sans confirmation), rien d\'enregistré, le code oublié sur l\'appareil',
-      [E.prompts.length, E.confirms.length, E.posts.map(p => p.confirmeCle === true), res, slugs().includes('kappacollee'), E.toasts.some(t => /Code non utilisé/.test(t)), oublie(E)],
-      [1, 1, [false], null, false, true, 0]);
-    vrai('   la question dit ce qui est en jeu : clé DIFFÉRENTE, récupéré toi-même, un faux', E.confirms[0] && /clé DIFFÉRENTE/.test(E.confirms[0]) && /récupéré ce code toi-même/.test(E.confirms[0]) && /un faux/.test(E.confirms[0]));
-    E = espaceDe(true, codeColle('t-kappa-832', 'cle-neuve-833'));
-    res = await E.ctx.tourEspaceDe('kappa@exemple-833.fr', 'Kappa Clé Neuve', 'kappa', 'Mdp-833', false, 'tour');
-    const kc = (lire('espaces.json') || {}).kappacleneuve || {};
-    v('« OK » : un second envoi AVEC la confirmation, l\'entrée enregistrée avec la nouvelle clé, et qui l\'a confirmée',
-      [E.confirms.length, E.posts.map(p => p.confirmeCle === true), !!(res && res.slug), /cle-neuve-833/.test(Buffer.from(kc.code || '', 'base64').toString('utf8')), (kc.cleConfirmee || {}).par],
-      [1, [false, true], true, true, 'Patron']);
-    /* Le code ACTUEL — la clé de la référence, ici la nouvelle — passe sans question. Et l'ANCIEN, après le changement
-       confirmé, redemande : l'ancienne clé ne redevient jamais la bonne (`gardien`, 28 septembre 2026 — la première
-       version du serveur la laissait passer, et ce banc l'attendait). */
-    E = espaceDe(true, codeColle('t-kappa-832', 'cle-neuve-833'));
+    let E = espaceDe(garde('pirate@exemple-833.fr', 't-kappa-832', 'cle-forgee-833'));
+    vrai('les vraies fonctions de la Tour s\'extraient (tourEspaceDe et ce qu\'elle appelle)', E);
+    let res = await E.ctx.tourEspaceDe('pirate@exemple-833.fr', 'Kappa Gardée', 'pirate', 'Mdp-833', false, 'tour');
+    v('⛔ un lien gardé dont la clé n\'est plus la bonne : AUCUNE question (ni à coller, ni à confirmer), un seul envoi sans confirmation, rien d\'enregistré, le lien oublié',
+      [E.prompts.length, E.confirms.length, E.posts.map(p => p.confirmeCle === true), res, slugs().includes('kappagardee'), oublie(E)],
+      [0, 0, [false], null, false, 0]);
+    vrai('   et le toast le dit : périmé, oublié, rien de créé', E.toasts.some(t => /périmé/.test(t) && /rien n'a été créé/.test(t)));
+    E = espaceDe({});
+    res = await E.ctx.tourEspaceDe('neuf@exemple-833.fr', 'Omicron Neuve', 'omicron', 'Mdp-833', false, 'tour');
+    v('un nom que le serveur ne connaît pas, rien de gardé : un espace NEUF, sans aucune question', [E.prompts.length, E.confirms.length, E.posts.length, !!(res && res.slug)], [0, 0, 1, true]);
+    E = espaceDe(garde('kappa@exemple-833.fr', 't-kappa-832', 'cle-propre-t-kappa-832'));
     res = await E.ctx.tourEspaceDe('kappa@exemple-833.fr', 'Kappa Services Bis', 'kappa', 'Mdp-833', false, 'tour');
-    v('le code ACTUEL (la clé de la référence) : aucune question, un seul envoi, enregistré', [E.confirms.length, E.posts.length, !!(res && res.slug)], [0, 1, true]);
-    E = espaceDe(false, code64('t-kappa-832'));
-    res = await E.ctx.tourEspaceDe('kappa@exemple-833.fr', 'Kappa Ancien Code', 'kappa', 'Mdp-833', false, 'tour');
-    v('⛔ l\'ANCIEN code, après le changement confirmé : la question revient, « Annuler » n\'enregistre rien',
-      [E.confirms.length, E.posts.map(p => p.confirmeCle === true), res, slugs().includes('kappaanciencode')], [1, [false], null, false]);
+    v('le lien gardé À JOUR (la clé de la référence) : aucune question, un seul envoi, enregistré', [E.prompts.length, E.confirms.length, E.posts.length, !!(res && res.slug)], [0, 0, 1, true]);
 
     v('⛔ du début à la fin, rien n\'est parti ailleurs qu\'au Google de banc (127.0.0.1)', G.requetes.every(q => !/googleapis|google\.com/.test(q)), true);
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }

@@ -8017,7 +8017,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '762';
+const APP_VERSION = '763';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -12901,49 +12901,13 @@ async function syncSetSecret(){ const v=(($('sync-secret')||{}).value||'').trim(
 /* ═══════ ESPACES ENTREPRISE (TeamOP) — multi-entreprises isolés ═══════
    Un « espace » = un identifiant d'équipe + une clé de chiffrement uniques.
    Chaque entreprise a son espace : données séparées et illisibles par les autres.
-   Le « Code espace » encode (identifiant + clé + nom) pour rejoindre l'espace en 1 saisie. */
+   Le LIEN de connexion porte l'identifiant, la clé et le nom (`#entreprise=…`) : on n'entre plus jamais par un code tapé
+   ou collé (Justin, 28 septembre 2026 — « que des liens pour les connexions »), et c'est TEAM OP qui crée les liens. */
 /* Affichage seulement. Depuis que le repli est fermé, répondre FB_TEAM ici serait un
    mensonge : un appareil non rattaché ne synchronise avec rien, il faut que ça se lise. */
 function teamopCurrentSpace(){ return localStorage.getItem('elan_sync_team')||'aucun (appareil non rattaché)'; }
-function teamopGenSpace(name){
-  const slug=(name||'espace').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,20)||'espace';
-  const rnd=Array.from(crypto.getRandomValues(new Uint8Array(4))).map(b=>b.toString(16).padStart(2,'0')).join('');
-  const t=slug+'-'+rnd;
-  const k=_b64e(crypto.getRandomValues(new Uint8Array(24))).replace(/[^A-Za-z0-9]/g,'').slice(0,28);
-  const code=btoa(unescape(encodeURIComponent(JSON.stringify({t,k,n:name||''})))).replace(/=+$/,'');
-  return {t,k,code,name:name||''};
-}
 function teamopDecode(code){ try{ const o=JSON.parse(decodeURIComponent(escape(atob((code||'').trim())))); if(o&&o.t&&o.k) return o; }catch(e){} return null; }
-function teamopCreateSpace(){
-  const name=prompt('Nom de l\'entreprise (espace) :'); if(name===null) return;
-  if(!name.trim()){ toast('Indique un nom'); return; }
-  const sp=teamopGenSpace(name.trim());
-  // enregistre la fiche espace dans un registre local (pour ta gestion)
-  let reg=[]; try{ reg=JSON.parse(localStorage.getItem('teamop_spaces')||'[]'); }catch(e){}
-  reg.push({t:sp.t,k:sp.k,name:sp.name,at:new Date().toISOString()}); localStorage.setItem('teamop_spaces',JSON.stringify(reg));
-  teamopShowCode(sp);
-}
-function teamopShowCode(sp){
-  openModal(`<div class="modal-head"><h3>Espace créé : ${esc(sp.name)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div style="padding:6px">
-      <p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:12px">Voici le <b>Code espace</b> de cette entreprise. Donne-le à l'entreprise : ses membres l'entrent une fois dans l'app pour accéder à <b>leurs données isolées et chiffrées</b>.</p>
-      <div class="form-sec" style="margin-bottom:8px">🔗 Lien de connexion (recommandé)</div>
-      <p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:8px">Envoie <b>ce lien</b> à l'entreprise : chacun clique dessus, l'app se met toute seule sur le bon espace — il ne reste qu'à taper identifiant + mot de passe. Aucun risque de se retrouver chez une autre entreprise.</p>
-      <div style="background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:12px;word-break:break-all;font-family:var(--mono,monospace);font-size:12px;color:var(--acc-txt)">${esc(teamopLien(sp.code))}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <button class="btn" onclick="teamopCopy('${esc(teamopLien(sp.code))}',this)">🔗 Copier le lien</button>
-      </div>
-      <div class="form-sec" style="margin:16px 0 8px">Code espace (à l'ancienne)</div>
-      <div style="background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:14px;word-break:break-all;font-family:var(--mono,monospace);font-size:13px;color:var(--acc-txt)">${esc(sp.code)}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-        <button class="btn ghost" onclick="teamopCopy('${esc(sp.code)}',this)">Copier le code</button>
-      </div>
-      <p style="color:var(--t3);font-size:12px;margin-top:12px">Garde ce code : il contient la clé de chiffrement de l'espace. Sans lui, impossible d'accéder aux données de cette entreprise.</p>
-    </div>`);
-}
 function teamopCopy(code,btn){ try{ navigator.clipboard.writeText(code); if(btn){ const o=btn.textContent; btn.textContent='Copié !'; setTimeout(()=>btn.textContent=o,1600); } }catch(e){ toast('Copie manuelle : '+code); } }
-function teamopSpaces(){ try{ return JSON.parse(localStorage.getItem('teamop_spaces')||'[]'); }catch(e){ return []; } }
-function teamopShowSavedCode(t){ const s=teamopSpaces().find(x=>x.t===t); if(!s){ toast('Espace introuvable'); return; } const code=btoa(unescape(encodeURIComponent(JSON.stringify({t:s.t,k:s.k,n:s.name})))).replace(/=+$/,''); teamopShowCode({t:s.t,k:s.k,name:s.name,code}); }
 /* ── Lien de connexion par entreprise (comme « monsite.organilog.com » mais en un lien) ──
    teamop.fr/app.html#entreprise=CODE : l'appareil rejoint tout seul le bon espace,
    il ne reste qu'à taper identifiant + mot de passe. Zéro mélange entre entreprises. */
@@ -12956,12 +12920,10 @@ function teamopLienActuel(){
   const n=entrepriseNom();
   return teamopLien(btoa(unescape(encodeURIComponent(JSON.stringify({t,k,n})))).replace(/=+$/,''));
 }
-function teamopCopieLienSauve(t){ const s=teamopSpaces().find(x=>x.t===t); if(!s){ toast('Espace introuvable'); return; }
-  const code=btoa(unescape(encodeURIComponent(JSON.stringify({t:s.t,k:s.k,n:s.name})))).replace(/=+$/,'');
-  teamopCopy(teamopLien(code)); toast('Lien de connexion copié — envoie-le à l\'entreprise'); }
-/* ⛔ QUITTER UN ESPACE — LE SEUL CHEMIN, POUR LES QUATRE PORTES.
-   On quitte un espace de quatre façons : Code espace, lien de connexion, lien client
-   (espace.html) et fermeture par la Tour. Chacune doit faire EXACTEMENT la même chose, et
+/* ⛔ QUITTER UN ESPACE — LE SEUL CHEMIN, POUR LES TROIS PORTES.
+   On quitte un espace de trois façons : lien de connexion, lien client (espace.html) et
+   fermeture par la Tour — la quatrième, le « Code espace » collé, a été retirée le
+   28 septembre 2026 (« que des liens pour les connexions »). Chacune doit faire EXACTEMENT la même chose, et
    trois d'entre elles ne la faisaient pas encore le 10 septembre 2026 — d'où cette fonction
    unique plutôt que quatre copies qui divergent. Ce qui doit partir, et pourquoi :
 
@@ -13109,26 +13071,6 @@ async function teamopLienCheck(){
   toast('Connexion à l\'espace « '+(o.n||o.t)+' »…');
   setTimeout(()=>location.reload(),600);
   return true;
-}
-function teamopJoinPrompt(){
-  const code=prompt('Colle le Code espace de ton entreprise :'); if(!code) return;
-  teamopJoin(code);
-}
-async function teamopJoin(code){
-  const o=teamopDecode(code); if(!o){ toast('Code espace invalide'); return; }
-  if(syncTeam()===o.t){ toast('Cet appareil est déjà sur cet espace'); return; }
-  /* Même contrôle que le lien dans l'adresse, et par la même fonction : deux vérifications
-     séparées finiraient par ne plus refuser les mêmes liens. */
-  if(await lienEspaceConnu(o)==='inconnu'){ toast(LIEN_PAS_BON,10000); return; }
-  if(!confirm('Rejoindre l\'espace « '+(o.n||o.t)+' » ?\n\nCet appareil va se connecter UNIQUEMENT aux données de cet espace (il repart propre et adopte les données de cet espace).')) return;
-  localStorage.setItem('elan_sync_team',o.t);
-  localStorage.setItem('elan_sync_secret',o.k);
-  localStorage.setItem('elan_sync_on','1');
-  espaceQuitter();   // repart propre → pas de fuite de données entre espaces
-  _ck={}; _syncTs=0;
-  try{ localStorage.setItem('elan_entreprise_nom',o.n||''); if(o.a) localStorage.setItem('elan_admin_login',o.a); if(o.m) localStorage.setItem('elan_admin_mdp',o.m); if(o.mh) localStorage.setItem('elan_admin_mdph',o.mh); if(o.e) localStorage.setItem('elan_admin_mail',o.e); }catch(e){}
-  toast('Connexion à l\'espace « '+(o.n||o.t)+' »…');
-  setTimeout(()=>location.reload(),700);
 }
 /* ══ LES DROITS DE DÉPART — UNE SEULE LISTE, RÔLE PAR RÔLE (v752) ═══════════════════════════
    Justin, 26 septembre 2026 : « Fais ta liste ». Ce qu'un compte voit au menu dans une
@@ -34236,35 +34178,24 @@ views.parametres=function(){
       <p style="font-size:12.5px;color:var(--t3);margin-bottom:10px">Sur un nouvel appareil : ouvrir l'app + <b>Forcer la mise à jour</b>, et c'est relié.</p>
       <div style="margin:14px 0;padding:14px;border:1px solid var(--brd);border-radius:14px;background:color-mix(in srgb,var(--acc) 6%,transparent)">
         <div style="font-weight:700;margin-bottom:6px">Chiffrement de bout en bout</div>
-        <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:10px">Toutes les données envoyées dans le cloud sont <b>chiffrées (AES-256)</b>. Sans la clé d'équipe, elles sont <b>illisibles</b>, même par quelqu'un qui aurait accès au serveur. ${syncHasCustomSecret()?'<b style="color:var(--acc-txt)">Clé personnalisée active.</b>':'Une clé par défaut est utilisée — pour une sécurité maximale, définissez votre propre clé (la même sur tous les appareils).'}</p>
-        <div class="fgroup"><div class="frow"><input id="sync-secret" type="text" placeholder="Clé d'équipe (min. 8 caractères)" value="${esc(syncHasCustomSecret()?syncSecret():'')}" autocomplete="off"></div></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn sm" onclick="syncSetSecret()">Enregistrer la clé</button>${syncHasCustomSecret()?'<button class="btn ghost sm" onclick="$(\'sync-secret\').value=\'\';syncSetSecret()">Rétablir la clé par défaut</button>':''}</div>
-        <p style="color:var(--t3);font-size:12px;margin-top:8px">Notez bien cette clé. Tous les appareils doivent utiliser <b>exactement la même</b> pour se voir.</p>
+        <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:10px">Toutes les données envoyées dans le cloud sont <b>chiffrées (AES-256)</b>. Sans la clé d'équipe, elles sont <b>illisibles</b>, même par quelqu'un qui aurait accès au serveur. La clé est dans le <b>lien de connexion</b> de ton entreprise : il n'y a rien à taper ni à noter.</p>
       </div>
       <button class="btn ghost" onclick="syncDisable()">Désactiver sur cet appareil</button>`
       :`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:10px">La synchro est <b>désactivée sur cet appareil</b> (les données restent locales).</p>
       <button class="btn" onclick="syncReactivate()">Réactiver la synchro</button>`}</div>`:''}
-    ${currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>${espaceRattache()?'🔗 Le lien de connexion de ton entreprise':'Espaces entreprise (TeamOP)'}</h3></div>
+    ${currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>🔗 Le lien de connexion de ton entreprise</h3></div>
       ${espaceRattache()
         ? `<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:8px">Ce lien met l'appareil de chacun sur <b>l'espace de ton entreprise</b>, celui où vivent tes données. C'est le seul à distribuer.</p>`
-        : `<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:8px">Crée un <b>espace isolé</b> par entreprise cliente : chaque espace a ses <b>propres données</b>, chiffrées et séparées des autres. Donne le <b>Code espace</b> à l'entreprise pour qu'elle se connecte.</p>`}
+        : `<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:8px">Cet appareil n'est rattaché à <b>aucune entreprise</b>. Pour te connecter, ouvre le <b>lien de connexion</b> que TEAM OP t'a envoyé : c'est TEAM OP qui crée le lien de chaque entreprise, après sa demande.</p>`}
       <p style="font-size:12.5px;color:var(--t3);margin-bottom:12px">Espace actuel de cet appareil : <b style="color:var(--t2)">${esc(teamopCurrentSpace())}</b></p>
       ${teamopLienActuel()?`<div style="background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:10px 12px;margin-bottom:12px"><div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--t3);margin-bottom:5px">🔗 ADRESSE DE TON ENTREPRISE ${lienLisible()?'<span style="color:var(--acc-txt)">· activé ✓</span>':''}</div><div id="par-lien" style="word-break:break-all;font-family:var(--mono,monospace);font-size:${lienLisible()?'14px;font-weight:700':'11.5px'};color:var(--acc-txt);margin-bottom:8px">${esc(lienConnexionEntreprise())}</div><button class="btn sm" onclick="teamopCopy(document.getElementById('par-lien').textContent,this)">Copier le lien</button><span style="font-size:11.5px;color:var(--t3);margin-left:8px">la même adresse pour toute ton équipe, et elle ne change jamais — chacun y entre SON identifiant et SON mot de passe. Elle n'ouvre rien toute seule : on peut la donner, l'écrire sur un devis, la mettre en favori</span><div style="margin-top:8px;font-size:12px;color:var(--t3)">${lienLisible()?'Adresse vérifiée auprès de TEAM OP (revérifiée chaque jour, et à chaque changement de clé d\'équipe).':(localStorage.getItem('elan_lien_lisible_motif')==='cle_changee'?'<span style="color:var(--org,#e8a33d);font-weight:700">⚠️ La clé d\'équipe a changé depuis l\'inscription chez TEAM OP : le lien de l\'annuaire est suspendu (il mènerait à un espace illisible). Demande à TEAM OP de réinscrire ton espace ; en attendant, ce lien-ci fonctionne.</span>':'Le lien vérifié par TEAM OP apparaîtra ici dès que ton espace sera activé ; en attendant, ce lien fonctionne exactement pareil.')} <a onclick="lienLisibleCharger(true).then(()=>views.parametres())" style="cursor:pointer;text-decoration:underline">Vérifier maintenant</a></div>${entrepriseNom()?'':`<div style="margin-top:8px;font-size:12px;color:var(--org,#e8a33d);font-weight:700">⚠️ Renseigne le nom de ton entreprise (« Mon entreprise », plus bas) : il est mis dans le lien et affiché à tes utilisateurs.</div>`}</div>`:''}
-      ${/* ⛔ « CRÉER UN ESPACE ENTREPRISE » N'A RIEN À FAIRE CHEZ UN CLIENT DÉJÀ INSTALLÉ.
-             teamopCreateSpace() fabrique un espace NEUF et VIDE, en tire un lien, et l'enregistre
-             sur l'appareil — sans rien demander à TEAM OP. Une entreprise qui a déjà le sien n'en
-             a aucun usage, et le bouton n'a qu'un effet possible : produire un second lien, du
-             même nom que le vrai, qui mène à une base vierge. C'est ce qu'on a retrouvé le
-             11 septembre 2026 — « elan-d4v8 », jamais connecté, à côté du vrai « elan-34oc » —
-             et la remarque de Justin qui va avec : « quand un lien n'existe pas, ça ne devrait
-             rien faire ». Le bouton ne s'affiche donc que sur un appareil qui n'est rattaché à
-             aucune entreprise, c'est-à-dire au premier démarrage, là où il sert vraiment.
-             « Rejoindre un espace » reste : c'est le chemin qui REMET un appareil au bon endroit
-             — mais il dit maintenant qu'il fera quitter l'entreprise en cours. */''}
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${espaceRattache()?'':`<button class="btn" onclick="teamopCreateSpace()">＋ Créer un espace entreprise</button>`}
-      <button class="btn ghost" onclick="teamopJoinPrompt()">${espaceRattache()?'Changer d’espace (code)':'Rejoindre un espace (code)'}</button></div>
-      ${espaceRattache()?`<p style="font-size:12px;color:var(--t3);margin-top:8px;line-height:1.6">⚠️ « Changer d'espace » <b>quitte l'entreprise en cours</b> sur cet appareil : les données de ${esc(entrepriseNom()||'ton entreprise')} y sont retirées et remplacées par celles de l'espace rejoint. Elles restent intactes pour tes collègues, et le lien ci-dessus te ramène ici.</p>`:''}
-      ${(!espaceRattache()&&teamopSpaces().length)?`<div style="margin-top:14px;border-top:1px solid var(--brd);padding-top:12px"><div style="font-size:12px;color:var(--t3);margin-bottom:8px">Espaces créés (enregistrés sur cet appareil)</div>${teamopSpaces().map(s=>`<div class="perm-row"><div class="pn">${esc(s.name||s.t)}<div style="font-size:11px;color:var(--t3);font-weight:400">${esc(s.t)}</div></div><div style="display:flex;gap:6px"><button class="btn sm" onclick="teamopCopieLienSauve('${esc(s.t)}')">🔗 Lien</button><button class="btn ghost sm" onclick="teamopShowSavedCode('${esc(s.t)}')">Voir le code</button></div></div>`).join('')}</div>`:''}
+      ${/* ⛔⛔ PLUS AUCUN CODE : UNE ENTREPRISE ENTRE PAR SON LIEN, ET C'EST TEAM OP QUI LE CRÉE. Justin, 28 septembre 2026 :
+             « je veux plus de code, que des liens pour les connexions » ; « c'est nous qui créons les liens pour les entreprises
+             une fois leur demande faite ». Cette carte proposait « ＋ Créer un espace entreprise » (un espace NEUF fabriqué sur
+             l'appareil, sans TEAM OP — c'est ainsi qu'« elan-d4v8 » est né à côté du vrai « elan-34oc » le 11 septembre),
+             « Rejoindre / Changer d'espace (code) » et la liste des espaces créés avec « Voir le code ». Tout est retiré : il
+             reste le lien de l'entreprise, à copier et à distribuer. Le lien porte toujours l'identifiant et la clé
+             (`#entreprise=…`, lu par `teamopLienCheck`) — personne n'a plus à les voir ni à les taper. */''}
     </div>`:''}
     ${currentUser.role==='admin'?(()=>{ const E=db.entreprise||{};
       return `<div class="card"><div class="card-head"><h3>🏢 Mon entreprise</h3></div>
@@ -39742,7 +39673,7 @@ function renderLogin(){ $('app-root').style.display='none'; $('login').style.dis
       </div>
     </form>
     <div style="text-align:center;margin-top:12px"><a onclick="pwdForgotModal()" style="cursor:pointer;color:var(--t3);font-size:12.5px;text-decoration:underline">Mot de passe oublié ?</a></div>
-    <div style="text-align:center;margin-top:14px"><a onclick="teamopJoinPrompt()" style="cursor:pointer;color:var(--t3);font-size:12.5px;text-decoration:underline">Rejoindre un espace TeamOP (code entreprise)</a>${(_surEspace&&_entNom)?` · <a href="connexion.html?choix=1" style="color:var(--t3);font-size:12.5px;text-decoration:underline">changer d'entreprise</a>`:''}</div>
+    ${(_surEspace&&_entNom)?`<div style="text-align:center;margin-top:14px"><a href="connexion.html?choix=1" style="color:var(--t3);font-size:12.5px;text-decoration:underline">changer d'entreprise</a></div>`:''}
     <div style="text-align:center;margin-top:12px"><a href="index.html?hub=1" style="color:var(--t3);font-size:12.5px;text-decoration:none;border:1px solid var(--brd);border-radius:100px;padding:7px 14px;display:inline-block">🏠 Accueil TeamOP</a></div>
     </div>`;
   setTimeout(()=>{ const el=$(saved?'li-pin':'li-login'); if(el) el.focus(); },60);

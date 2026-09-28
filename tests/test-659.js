@@ -23,44 +23,34 @@ const APP = fs.readFileSync(__dirname + '/../app.html', 'utf8');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + JSON.stringify(b) + '\n      obtenu  : ' + JSON.stringify(a)); } };
 
-console.log('Un client installé ne fabrique plus de second espace vide');
+console.log('Un client installé ne fabrique plus de second espace vide — et plus aucun code ne sert à se connecter');
 
-/* On travaille sur la carte elle-même, pas sur tout le fichier : « teamopCreateSpace » est
-   aussi nommée dans sa propre définition, et un test qui la cherche partout passerait au vert
-   en ayant tout raté. */
-const iCarte = APP.indexOf('Espaces entreprise (TeamOP)');
+/* ⛔⛔ 28 SEPTEMBRE 2026 — PLUS AUCUN CODE. Justin : « je veux plus de code, que des liens pour les connexions » ; « c'est
+   nous qui créons les liens pour les entreprises une fois leur demande faite ». Ce banc gardait « le bouton de création
+   n'apparaît que sur un appareil non rattaché » et « Rejoindre un espace (code) reste » : les deux sont RETIRÉS, avec la
+   liste des espaces créés (« Voir le code »), l'entrée « code entreprise » de l'écran de connexion et la clé d'équipe à
+   taper. On vise la FORME DU CODE (onclick, définitions, balises), jamais une phrase : les commentaires qui expliquent le
+   retrait nomment ces fonctions. */
+const iCarte = APP.indexOf('<h3>🔗 Le lien de connexion de ton entreprise</h3>');
 v('la carte existe toujours', iCarte > -1, true);
-/* Le titre est un ternaire : le nom pour un client installé précède celui de l'opérateur dans
-   le fichier. On remonte donc jusqu'au début de la carte, sinon la moitié du bloc est hors champ. */
 const carte = APP.slice(APP.lastIndexOf('<div class="card">', iCarte), APP.indexOf('🏢 Mon entreprise', iCarte));
+v('la carte est trouvée entière (population)', carte.length > 1500, true);
 
-// ── 1) Le bouton de création est conditionné à l'ABSENCE de rattachement.
-{
-  /* On compte les APPELS (onclick), pas les mentions : le commentaire qui explique la règle
-     nomme la fonction lui aussi, et un test qui compterait les deux serait au vert par hasard. */
-  const appels = (carte.match(/onclick="teamopCreateSpace\(\)"/g) || []).length;
-  v('un seul bouton de création dans la carte', appels, 1);
-  const i = carte.indexOf('onclick="teamopCreateSpace()"');
-  const avant = carte.slice(Math.max(0, i - 90), i);
-  v('⛔ il est précédé de la garde espaceRattache()', /\$\{espaceRattache\(\)\?''\s*:\s*`<button/.test(avant), true);
-}
+// ── 1) Plus de création d'espace depuis l'application : c'est TEAM OP qui crée les liens.
+v('⛔ aucun bouton « Créer un espace entreprise »', /onclick="teamopCreateSpace\(\)"/.test(APP), false);
+v('⛔ et la fonction n\'existe plus', /function teamopCreateSpace\(|function teamopGenSpace\(|function teamopShowCode\(/.test(APP), false);
 
-// ── 2) La liste des espaces fabriqués disparaît elle aussi : elle porte les mêmes liens.
-{
-  v('la liste « Espaces créés » est conditionnée de la même façon',
-    carte.indexOf('(!espaceRattache()&&teamopSpaces().length)?') > -1, true);
-}
+// ── 2) Plus de liste d'espaces créés ni de « Voir le code ».
+v('⛔ ni liste des espaces créés, ni « Voir le code »', /teamopSpaces\(\)\.map|onclick="teamopShowSavedCode|function teamopSpaces\(/.test(APP), false);
 
-// ── 3) « Rejoindre » RESTE — c'est le chemin de réparation — mais il se nomme et s'annonce.
-{
-  v('le bouton « Rejoindre » n’a pas été retiré', carte.indexOf('teamopJoinPrompt()') > -1, true);
-  v('il se renomme quand l’appareil est déjà rattaché',
-    carte.indexOf("espaceRattache()?'Changer d’espace (code)':'Rejoindre un espace (code)'") > -1, true);
-  v('⛔ et il prévient qu’il quitte l’entreprise en cours',
-    /quitte l.entreprise en cours/.test(carte) && carte.indexOf('${espaceRattache()?`<p') > -1, true);
-  v('l’avertissement dit aussi que les collègues ne perdent rien',
-    /restent intactes pour tes collègues/.test(carte), true);
-}
+// ── 3) Plus d'entrée par code : ni dans la carte, ni à l'écran de connexion.
+v('⛔ aucun « Rejoindre / Changer d\'espace (code) »', /onclick="teamopJoinPrompt\(\)"|function teamopJoinPrompt\(|async function teamopJoin\(/.test(APP), false);
+v('⛔ l\'écran de connexion n\'offre plus « code entreprise »', />Rejoindre un espace TeamOP \(code entreprise\)</.test(APP), false);
+v('⛔ la clé d\'équipe ne se tape plus (le champ a disparu)', /<input id="sync-secret"/.test(APP), false);
+v('un appareil rattaché à personne est renvoyé au LIEN que TEAM OP a envoyé',
+  /ouvre le <b>lien de connexion<\/b> que TEAM OP t'a envoyé/.test(carte), true);
+v('… et le lien d\'une entreprise s\'ouvre toujours (teamopLienCheck lit #entreprise=…)',
+  /async function teamopLienCheck\(\)\{/.test(APP) && /entreprise=\(\[A-Za-z0-9\+\/=_-\]\{8,\}\)/.test(APP), true);
 
 // ── 4) L'adresse de l'entreprise, elle, ne bouge pas : c'est la seule chose à distribuer.
 /* ⚠️ Le libellé disait « LIEN DE CONNEXION DE TON ENTREPRISE » jusqu'au 14 septembre 2026. Il
@@ -72,7 +62,7 @@ const carte = APP.slice(APP.lastIndexOf('<div class="card">', iCarte), APP.index
 {
   v('l’adresse de l’entreprise reste affichée', carte.indexOf('ADRESSE DE TON ENTREPRISE') > -1, true);
   v('⛔ et c’est bien la fonction filtrée qui la fournit', /id="par-lien"[^>]*>\$\{esc\(lienConnexionEntreprise\(\)\)\}/.test(carte), true);
-  v('et la carte se renomme pour un client installé',
+  v('et la carte s\'appelle « Le lien de connexion de ton entreprise »',
     carte.indexOf('Le lien de connexion de ton entreprise') > -1, true);
 }
 

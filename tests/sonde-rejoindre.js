@@ -15,11 +15,13 @@ let pw; try{ pw=require('playwright-core'); }catch(e){
   /* ── 1. un appareil qui a DÉJÀ SERVI : son vidage unique a eu lieu, le drapeau est posé ── */
   await p.evaluate(()=>{ localStorage.setItem('elanB_vierge_v1','1'); localStorage.setItem('elanB_prod_v2','1');
     localStorage.setItem('elanB_gestion_v2',JSON.stringify({produits:[{id:'p',nom:'Un produit à moi'}],boxes:[],users:[]})); });
-  /* ── 2. il REJOINT un espace en appelant LE VRAI teamopJoin, pas une imitation ── */
-  const joint=await p.evaluate(()=>{
+  /* ── 2. il REJOINT un espace par LE LIEN, avec LE VRAI teamopLienCheck, pas une imitation. Le « Code espace » collé
+        (teamopJoin) a été retiré le 28 septembre 2026 — « que des liens pour les connexions » : le lien est la seule porte. ── */
+  const joint=await p.evaluate(async ()=>{
     const code=btoa(unescape(encodeURIComponent(JSON.stringify({t:'espace-elan-test',k:'cle-test',n:'ELAN'}))));
-    if(typeof teamopJoin!=='function') return 'teamopJoin absent';
-    teamopJoin(code);
+    if(typeof teamopLienCheck!=='function') return 'teamopLienCheck absent';
+    window.confirm=()=>true; history.replaceState(null,'','#entreprise='+code);
+    await teamopLienCheck();
     return { team:localStorage.getItem('elanB_sync_team'), frais:localStorage.getItem('elanB_frais'),
       storeKey:localStorage.getItem('elanB_gestion_v2'), vierge:localStorage.getItem('elanB_vierge_v1') }; });
   await p.reload({waitUntil:'load',timeout:60000}); await att(1800);

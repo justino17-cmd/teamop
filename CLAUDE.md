@@ -1541,9 +1541,10 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   équipe a retiré à la main — et une pose multi-box efface en silence les décisions de trente équipes.
   Règle jumelle : **une décision « Pas dans cette box » ne se lève que sur la box qu'on a sous les
   yeux** (`boxPoserProduits(b,ids,{respecterEcartes})`).
-- ⛔ **Quitter un espace passe par `espaceQuitter()`, jamais à la main.** Il y a QUATRE portes —
-  Code espace, lien de connexion, lien client (`espace.html`) et fermeture par la Tour — et le
-  10 septembre 2026 trois d'entre elles avaient le même défaut. La fonction retire `STORE_KEY`, le
+- ⛔ **Quitter un espace passe par `espaceQuitter()`, jamais à la main.** Il y a TROIS portes —
+  lien de connexion, lien client (`espace.html`) et fermeture par la Tour ; la quatrième, le « Code
+  espace » collé, a été retirée le 28 septembre 2026 (Justin : « je veux plus de code, que des liens
+  pour les connexions ») — et le 10 septembre 2026 trois d'entre elles avaient le même défaut. La fonction retire `STORE_KEY`, le
   drapeau de vidage, pose `elan_frais`, emporte les secrets de l'entreprise quittée (clé Anthropic,
   code d'équipe devis, projet Firebase personnel, annuaire, marques de lecture, compteurs d'usage,
   administrateur déclaré) et efface les bases mises de côté en IndexedDB. Le préfixe se lit sur
