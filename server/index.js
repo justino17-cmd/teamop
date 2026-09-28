@@ -2263,7 +2263,10 @@ app.post('/api/monitor/espaces/formule', monPatronStrict, (req, res) => {
   const f = monStr((req.body || {}).formule, 20);
   if (!['gratuit', 'pro', 'business', 'premium'].includes(f)) return res.status(400).json({ error: 'formule inconnue' });
   const q = Math.max(1, Math.min(50, parseInt((req.body || {}).quantite, 10) || 1));
-  e.formule = f; e.quantite = q; e.formulePar = req.tourUser.nom; e.formuleTs = Date.now();
+  /* ⛔ la date ne bouge que si la formule ou le nombre change (`gardien`) : un simple réenregistrement effaçait les
+     places d'avant la v763 (`placesServies`) sans que la Tour le montre */
+  if (e.formule !== f || placesQ(e) !== q) { e.formulePar = req.tourUser.nom; e.formuleTs = Date.now(); }
+  e.formule = f; e.quantite = q;
   try { if (!e.t) { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); e.t = String(o.t || ''); } } catch (err) {}
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'attribue', f, '×' + q, 'à', slug);
@@ -2286,8 +2289,11 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
   const fin = monStr(b.fin, 10);
   if (fin && !/^\d{4}-\d{2}-\d{2}$/.test(fin)) return res.status(400).json({ error: 'date de fin invalide (AAAA-MM-JJ)' });
   const q = Math.max(1, Math.min(50, parseInt(b.quantite, 10) || 1));
-  e.formule = f; e.quantite = q; e.formulePar = req.tourUser.nom; e.formuleTs = Date.now();
-  e.aboStatut = st === 'auto' ? '' : st; e.aboFin = fin; e.aboPar = req.tourUser.nom; e.aboTs = Date.now();
+  if (e.formule !== f || placesQ(e) !== q) { e.formulePar = req.tourUser.nom; e.formuleTs = Date.now(); }
+  e.formule = f; e.quantite = q;
+  const stNeuf = st === 'auto' ? '' : st;
+  if ((e.aboStatut || '') !== stNeuf) { e.aboPar = req.tourUser.nom; e.aboTs = Date.now(); }   // une entrée ancienne sans date le reste : « d'avant »
+  e.aboStatut = stNeuf; e.aboFin = fin;
   try { if (!e.t) { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); e.t = String(o.t || ''); } } catch (err) {}
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'règle l\'abonnement de', slug, ':', f, '×' + q, st, fin || '');
@@ -2399,45 +2405,86 @@ async function espacePaye(e, opts) {
       }
       /* ⛔ LES PLACES SE PAIENT (Justin, 28 septembre 2026 : « oui, automatique »). Jusque-là on ne lisait chez Stripe
          que « un abonnement vivant, oui ou non » : payer un abonnement de plus ne donnait AUCUNE place tant que TEAM OP
-         ne réglait pas la Tour. Un abonnement = un utilisateur : on additionne les QUANTITÉS de tous les abonnements
-         vivants rattachés par le MÊME chemin que celui qui vient de répondre (référence d'espace, sinon adresse) — une
-         entreprise peut en avoir souscrit deux, ou un seul à quantité 3. Borné à 50, comme la Tour.
-         Ce nombre ne remplace pas le réglage de la Tour, il le complète : `/api/espaces/etat` rend le PLUS GRAND des deux
-         (les places reprises d'avant la v763 et les gestes commerciaux de TEAM OP ne se perdent pas quand on paie). */
+         ne réglait pas la Tour. On compte donc les abonnements VIVANTS de CETTE entreprise (voir `placesStripe`), et
+         c'est ce nombre que l'application v763 lit (`places` de `/api/espaces/etat`). Relu par `gardien` le même soir. */
       if (abo) {
+        const monT = String(espaceT(e) || '').toLowerCase();
+        const tDe = r => { const x = espacesReg[r]; return String((x && espaceT(x)) || r).toLowerCase(); };
+        const aMoi = sb => { const m = String((sb.metadata && sb.metadata.espace) || '').toLowerCase(); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT)); };
+        /* par adresse : seulement les abonnements SANS référence d'espace — un abonnement gravé pour une autre entreprise
+           de la même adresse n'est pas à celle-ci (`gardien`, remarque 7) */
         const memes = (espStripeCache.data || []).filter(sb => vivant(sb) && (parQuoi === 'adresse e-mail'
-          ? (sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').trim().toLowerCase() === mel)
-          : (sb.metadata && refs.includes(String(sb.metadata.espace || '').toLowerCase()))));
-        const qteAbo = sb => {
-          const n = ((sb.items && sb.items.data) || []).reduce((s, it) => s + Math.max(0, parseInt(it && it.quantity, 10) || 0), 0);
-          return n || Math.max(1, parseInt(sb.quantity, 10) || 1);
-        };
-        const quantiteStripe = Math.min(50, memes.reduce((s, sb) => s + qteAbo(sb), 0) || 1);
-        return { paye: true, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '', quantiteStripe };
+          ? (!(sb.metadata && sb.metadata.espace) || aMoi(sb)) && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').trim().toLowerCase() === mel
+          : aMoi(sb)));
+        return { paye: true, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '', placesStripe: placesStripe(e, memes) };
       }
     } catch (err) { console.error('espacePaye stripe:', err.message); }
   }
   return { paye: false, motif: 'aucun paiement ni code promo' };
 }
-/* ══ LE NOMBRE DE PLACES QU'UNE ENTREPRISE A — CE QUE L'APPLICATION LIT DANS `quantite` ══════════════════════
+/* ══ LE NOMBRE DE PLACES QU'UNE ENTREPRISE A — CE QUE L'APPLICATION v763 LIT DANS `places` ══════════════════════
    Depuis la v763, l'application donne UN compte par abonnement dans toutes les formules (avant : 2 en Business, 3 en
-   Business Premium). Justin, 28 septembre 2026 : « les entreprises déjà abonnées gardent leurs places ». Deux règles :
-   · UNE ENTREPRISE QUI PAIE, dont la formule Business ou Business Premium a été posée AVANT la bascule, garde ce que la
-     v760 lui donnait : quantite × 2 ou × 3. Calculé à la volée, JAMAIS écrit dans le registre : rien d'irréversible, et
-     le jour où la Tour règle de nouveau sa formule (`formuleTs` après la bascule), c'est le nouveau réglage qui compte.
-     ⛔ Pas pour une période OFFERTE (code promo, essai) : à la fin d'un code, on paie chaque utilisateur (Justin, même
-     jour) — et pendant le code, l'application couvre déjà toute l'équipe (`essaiCouvreEquipe`).
-   · CE QUI EST PAYÉ CHEZ STRIPE compte (`quantiteStripe`, voir `espacePaye`) : on rend le PLUS GRAND des deux, jamais
-     moins que ce que TEAM OP a donné, jamais moins que ce qui est payé. */
+   Business Premium). Justin, 28 septembre 2026 : « les entreprises déjà abonnées gardent leurs places » et « oui,
+   automatique » (les places suivent le paiement). Relu par `gardien` le même soir — ses six constats ont décidé de ce qui
+   suit :
+   · ⛔ `quantite` GARDE SON SENS D'AVANT (le nombre d'abonnements réglé dans la Tour) : la v760 encore en service calcule
+     2 × ou 3 × quantite ; lui rendre des places déjà multipliées les aurait comptées deux fois (× 4, × 9). Les places
+     servies ont leur champ, `places`, que seule la v763 lit — et ne range jamais dans la base synchronisée (une v760 et
+     une v763 y écriraient deux nombres différents et se les renverraient).
+   · PAYÉ CHEZ STRIPE : on compte les abonnements vivants de l'entreprise, ligne par ligne, et seulement les tarifs de SA
+     formule (un tarif Pro ne donne pas de places Business Premium, un abonnement OP MESSAGES n'en donne pas à OP
+     GESTION). Le réglage de la Tour n'y ajoute rien : ce nombre-là peut venir de la demande tapée par le client.
+   · LES ABONNÉS D'AVANT : une entreprise qui payait AVANT la bascule — un abonnement Stripe souscrit avant, ou un
+     abonnement « actif » réglé dans la Tour avant, formule et nombre inchangés depuis — garde ce que la v760 lui donnait
+     (quantite × 2 ou × 3), et ce qu'elle achète APRÈS s'y AJOUTE (un abonnement de plus donne une place de plus).
+   · ⛔ JAMAIS pour une entreprise qui a eu un code promo (en cours ou fini) ni pour un essai : à la fin d'un code, on paie
+     chaque utilisateur (Justin, même jour) — et pendant le code, l'application couvre déjà toute l'équipe.
+   · Calculé à chaque lecture, JAMAIS écrit dans le registre : rien d'irréversible. */
 const PLACES_BASCULE = Date.parse('2026-09-28T21:00:00Z');
 const PLACES_AVANT = { business: 2, premium: 3 };
+/* Les tarifs de chaque formule — les MÊMES que `STRIPE_PRICES` de recap-abonnement.html (publics, pas des secrets) ;
+   `test-842` compare les deux listes : un tarif changé d'un seul côté, et des clients qui paient n'auraient plus de places. */
+const STRIPE_PRIX_FORMULE = {
+  pro: ['price_1TwV4RFKFKIrVWLDfGwAHMMh', 'price_1TwgbqFKFKIrVWLDQQ6xFRtf'],
+  business: ['price_1TwV4sFKFKIrVWLDvYSD9AWp', 'price_1TwgcVFKFKIrVWLDpFbHY1lM'],
+  premium: ['price_1TwV5qFKFKIrVWLD1iFJDsaR', 'price_1Twgd8FKFKIrVWLDavn9cJvz'],
+  msgpro: ['price_1TwV6EFKFKIrVWLD3Dvl6lzb', 'price_1TwgdtFKFKIrVWLDJ4xBhFlM'],
+  msgpremium: ['price_1TwV6mFKFKIrVWLD7DkH3P9f', 'price_1TwgeFFKFKIrVWLDgqaRlO6V'] };
+const STRIPE_PRIX_MESSAGES = STRIPE_PRIX_FORMULE.msgpro.concat(STRIPE_PRIX_FORMULE.msgpremium);
+function placesQ(e) { return Math.max(1, Math.min(50, parseInt(e && e.quantite, 10) || 1)); }
+/* a-t-elle eu un code promo, un jour ? Le repère « (code) » de `formulePar` s'efface quand la Tour règle la formule
+   ensuite : on lit `codePromo` et le registre des codes, qui restent. Registre illisible → oui, dans le doute. */
+function placesPromoDejaEu(e) {
+  if (!e) return false;
+  if (e.codePromo || /\bcode\b/i.test(String(e.formulePar || ''))) return true;
+  const t = espaceT(e);
+  try { return !!t && Object.values(promoUsages || {}).some(u => u && u.equipes && u.equipes[t]); } catch (err) { return true; }
+}
+function placesStripe(e, abos) {
+  const f = e && e.formule, sesPrix = STRIPE_PRIX_FORMULE[f] || [];
+  const avantB = sb => (parseInt(sb && sb.created, 10) || 0) * 1000 < PLACES_BASCULE;
+  const prixDe = it => { const p = it && it.price; return typeof p === 'string' ? p : String((p && p.id) || ''); };
+  const estMessages = it => STRIPE_PRIX_MESSAGES.includes(prixDe(it)) || /messages/i.test(String((it && it.price && it.price.product && it.price.product.name) || ''));
+  /* un abonnement d'AVANT a pu être pris par un ancien lien de paiement (autre tarif) : il compte, sauf OP MESSAGES ;
+     un abonnement d'APRÈS ne compte que s'il est au tarif de la formule */
+  const compte = sb => ((sb.items && sb.items.data) || []).reduce((n, it) =>
+    n + ((avantB(sb) ? !estMessages(it) : sesPrix.includes(prixDe(it))) ? Math.max(0, parseInt(it && it.quantity, 10) || 0) : 0), 0);
+  const m = PLACES_AVANT[f];
+  const payaitAvant = !!m && !placesPromoDejaEu(e) && abos.some(avantB);
+  /* qui payait avant : ses abonnements d'avant valent ce que la v760 donnait (2 ou 3 par abonnement — le nombre réglé
+     dans la Tour, ou ce qu'elle payait si c'est plus), et ceux d'après s'y AJOUTENT, un par abonnement */
+  const avant = payaitAvant ? m * Math.max(placesQ(e), Math.min(50, abos.filter(avantB).reduce((n, sb) => n + compte(sb), 0))) : 0;
+  const autres = abos.filter(sb => !(payaitAvant && avantB(sb))).reduce((n, sb) => n + compte(sb), 0);
+  return Math.max(1, Math.min(150, avant + Math.min(50, autres)));
+}
 function placesServies(e, p) {
-  const q = Math.max(1, Math.min(50, parseInt(e && e.quantite, 10) || 1));
-  const avant = !!(e && p && p.paye && PLACES_AVANT[e.formule]
-    && (!e.formuleTs || e.formuleTs < PLACES_BASCULE)
-    && !p.promoCode && e.aboStatut !== 'essai'
-    && !/\bcode\b/i.test(String(e.formulePar || '')));
-  return Math.max(avant ? Math.min(150, q * PLACES_AVANT[e.formule]) : q, Math.min(50, (p && p.quantiteStripe) || 0));
+  const q = placesQ(e);
+  if (!p || !p.paye || p.promoCode || p.doute) return q;
+  if (p.placesStripe != null) return p.placesStripe;
+  const m = PLACES_AVANT[e.formule];
+  if (m && e.aboStatut === 'actif' && (!e.aboTs || e.aboTs < PLACES_BASCULE) && (!e.formuleTs || e.formuleTs < PLACES_BASCULE)
+    && !placesPromoDejaEu(e)) return Math.min(150, q * m);
+  return q;
 }
 // liste complète des espaces (formule attribuée, payé/promo) — pour l'onglet Abonnements de la Tour
 app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
@@ -2451,7 +2498,7 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
        référence gravée vaut le SLUG, l'application dirait « payé » et la Tour « impayé »,
        sur la même entreprise, au même instant — et on chercherait du côté de Stripe. */
     try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
-    sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', quantite: e.quantite || 1,
+    sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p),
       paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
       // qui a ouvert l'espace et quand : la Tour en a besoin pour lister les accès publics
       ouvertLe: e.ts || 0, ouvertPar: e.par || '', t: espaceT(e), resume: cnxResume(espaceT(e)),
@@ -2495,7 +2542,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const e = espacesReg[slug];
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
-  res.json({ ok: true, formule: e.formule || '', quantite: e.quantite || 1, email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
+  res.json({ ok: true, formule: e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
 });
 // ── Activité par onglet (anonyme : noms d'écrans + compteurs, par espace) ──
 const USAGE_PATH = path.join(DATA_DIR, 'usage.json');
@@ -4274,7 +4321,7 @@ app.post('/api/espaces/etat', (req, res) => {
   const opMessages = !!(e && e.opMessages);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
   if (!e || !e.formule) return res.json({ ok: true, opMessages, versionMin, enLigne, suspendu, sursisJours });
-  espacePaye(e).then(p => res.json({ ok: true, formule: e.formule, quantite: placesServies(e, p), paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours }))
+  espacePaye(e).then(p => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, places: placesServies(e, p), paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours }))
     .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, versionMin, enLigne, suspendu, sursisJours }));
 });
 /* nom d'entreprise présentable (jamais une adresse e-mail mise là faute de mieux) */

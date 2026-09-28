@@ -13687,7 +13687,15 @@ const PLANS={
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR, QUELLE QUE SOIT LA FORMULE — Justin, 27 septembre 2026 (le site et la page de
    paiement), puis 28 septembre pour l'application : « c'est un utilisateur par abonnement ». Jusqu'à la v761, Business en
    donnait 2 et Business Premium 3 : l'écart que `test-835` déclarait se referme ici. Les places = le nombre d'abonnements. */
-function planPlaces(){ return (PLANS[forfait()].maxU||1)*Math.max(1,db.forfaitQty||1); }
+/* ⛔ LES PLACES SERVIES PAR LE SERVEUR (`places` de /api/espaces/etat, 28 septembre 2026) : ce qui est payé chez Stripe, et les
+   places gardées par les entreprises abonnées avant la v763 (2 ou 3 par abonnement). Gardées EN MÉMOIRE sur l'appareil,
+   JAMAIS dans `db` : `db.forfaitQty` voyage à la synchro, et une v760 (qui y écrit le nombre d'abonnements) et une v763
+   (qui y écrirait les places) se renverraient deux nombres différents sans fin. `quantite` garde son sens, `places` est
+   à part — relecture `gardien`. Sans réponse du serveur (hors ligne, premier instant), on retombe sur le calcul d'avant. */
+var _placesSrv=null;
+function planPlaces(){ const s=(typeof _placesSrv!=='undefined')?_placesSrv:null;
+  if(s!=null&&db.forfaitSrv==='teamop') return s;
+  return (PLANS[forfait()].maxU||1)*Math.max(1,db.forfaitQty||1); }
 /* ⛔ PENDANT LA PÉRIODE OFFERTE PAR UN CODE PROMO, LE CODE COUVRE TOUTE L'ÉQUIPE — Justin, 28 septembre 2026 : ELAN
    « est en démo pendant trois mois avec le code, donc le code comprend tous les utilisateurs qu'ils utilisent ». Aucune
    place ne manque tant que la période court, ni pour les comptes d'aujourd'hui ni pour ceux qu'on ajoute : un essai ne
@@ -13913,8 +13921,10 @@ async function forfaitServeurSync(silencieux){
        qu'`opMessages` juste au-dessus : un espace sans formule attribuée sortait par le
        `return` ci-dessous, et serait resté suspendu sans que rien ne grise jamais. */
     try{ suspensionPoser(j); suspensionRappel(); }catch(e){}
-    if(!(j&&j.formule&&PLANS[j.formule])) return;
+    if(!(j&&j.formule&&PLANS[j.formule])){ _placesSrv=null; return; }
     const q=Math.max(1,parseInt(j.quantite,10)||1);
+    { const av=_placesSrv; _placesSrv=(j.paye&&j.places!=null)?Math.max(1,parseInt(j.places,10)||1):null;
+      if(av!==_placesSrv&&(current==='parametres'||current==='utilisateurs')) try{ views[current](); }catch(e){} }
     const avaitAttente=!!db.formuleAttente;
     if(j.paye){
       db.formuleAttente=null;
