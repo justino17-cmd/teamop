@@ -2814,6 +2814,86 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
         de nuit — ses lignes restent séparées par leurs filets — et son bord invisible ne décale plus le texte d'un
         pixel. Une ligne CLIQUABLE dans une carte garderait ses 16 px (le fond de survol a besoin de sa marge). */
 .carte .reg-bloc{border-width:0}
+
+/* 19 · (v2.75) LA PASTILLE DU MENU ET SON TIROIR — Justin, 27 septembre 2026, deux captures : la pastille ≡ d'OP
+        GESTION (« je voudrais aussi ça pour avoir accès à toutes les catégories »), puis le menu du bureau de la Tour
+        (« sur téléphone je [veux] aussi ce menu »). La pastille reprend la matière de celle d'OP GESTION : 44 px, ronde,
+        en verre, le trait à la teinte. Le tiroir reprend le menu du bureau, dessiné pour le doigt.
+        ⛔ Rien de tout ça n'existe au bureau : le menu y est déjà là, en colonne. */
+.menu-rond,.tiroir,#scrim-tiroir{display:none}
+@media(max-width:899px){
+  .menu-rond{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;margin:0;padding:0;border-radius:50%;
+    background:var(--tt-carte);border:1px solid var(--tt-carte-bord);color:var(--acc-txt);cursor:pointer;
+    -webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre);box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 16px rgba(0,0,0,.08);
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+    transition:transform var(--d-2) var(--ressort-vif),background-color var(--d-2) var(--e-sortie)}
+  /* de jour la vitre est blanche sur une barre presque blanche : un filet la dessine (celui de la barre du bas) */
+  body.jour .menu-rond{border-color:rgba(60,60,67,.12)}
+  .menu-rond svg{display:block}
+  .menu-rond:active{transform:scale(.92);transition-duration:var(--d-0)}
+  /* le titre de la page monte dans l'en-tête : le logo s'efface avec le nom (il tomberait sous le titre) ; la
+     pastille, elle, reste — c'est la porte du menu, et le titre commence après elle (70 px contre 56) */
+  .hlogo{transition:opacity var(--d-2) var(--e-sortie)}
+  body.titre-cache .hlogo{opacity:0}
+
+  #scrim-tiroir{display:block;z-index:40;opacity:0;transition:opacity 300ms ease;touch-action:none}
+  #scrim-tiroir[hidden]{display:none}
+  #scrim-tiroir.on{opacity:1}
+  .tiroir{display:block;position:fixed;top:0;bottom:0;left:0;z-index:50;width:min(320px,calc(100vw - 56px));
+    overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-user-select:none;user-select:none;
+    padding:calc(12px + env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+    background:var(--tt-feuille);-webkit-backdrop-filter:blur(40px) saturate(220%);backdrop-filter:blur(40px) saturate(220%);
+    border:1px solid var(--tt-carte-bord);border-left:0;border-radius:0 28px 28px 0;box-shadow:16px 0 44px rgba(0,0,0,.24);
+    transform:translateX(-104%);will-change:transform;transition:transform 360ms cubic-bezier(.32,.72,0,1)}
+  /* de jour, le gris du menu du bureau (celui de la capture), pas le blanc d'une feuille */
+  body.jour .tiroir{background:rgba(242,242,247,.96)}
+  .tiroir[hidden]{display:none}
+  .tiroir.on{transform:none;transition:transform 500ms cubic-bezier(.32,.72,0,1)}
+  html.tiroir-ouvert,html.tiroir-ouvert body{overflow:hidden}
+
+  .ti-tete{display:flex;align-items:center;gap:12px;padding:4px 0 12px 6px}
+  .ti-logo{width:40px;height:40px;border-radius:10px;display:block;flex-shrink:0;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+  .ti-nom{flex:1;min-width:0}
+  .ti-nom b{display:block;font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.2;color:var(--text)}
+  .ti-nom span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ti-replier{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:50%;
+    background:transparent;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .ti-replier:active{background:var(--hover)}
+  .tiroir .app-sw{margin:4px 2px 4px}
+  .tiroir .app-sw button{min-height:44px;font-size:14px}
+  .tiroir .app-sw .app-n{height:18px;min-width:18px;font-size:11px}
+  .ti-sec{padding:18px 12px 6px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .ti{display:flex;align-items:center;gap:14px;width:100%;min-height:48px;margin:0;padding:0 12px;border:0;border-radius:12px;
+    background:transparent;color:var(--text);font-family:var(--fs);font-size:17px;font-weight:400;letter-spacing:-.02em;line-height:1.25;
+    text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background-color var(--d-1) var(--e-sortie)}
+  .ti+.ti{margin-top:2px}
+  .ti .ic{display:grid;place-items:center;width:24px;height:24px;flex-shrink:0}
+  .ti .ic svg{width:20px;height:20px;stroke-width:1.9;color:var(--ic-encre)}
+  .ti .lib{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ti.on{background:var(--tt-actif);font-weight:600}
+  .ti:active{background:var(--hover)}
+  .ti.on:active{background:var(--tt-actif)}
+  .tiroir .bdg-r,.tiroir .bdg-b{display:inline-block;flex-shrink:0;margin-left:auto;min-width:24px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;line-height:16px;text-align:center}
+  .ti-pied{margin-top:18px;padding-top:10px;border-top:1px solid var(--line)}
+  body.jour .ti-pied{border-top:.5px solid var(--tt-sep)}
+  .ti-quitter{color:var(--redText)} .ti-quitter .ic svg{color:var(--redText)}
+  .ti-version{padding:12px 12px 0;font-size:12px;color:var(--muted)}
+}
+@media(min-width:900px){.menu-rond,.tiroir,#scrim-tiroir{display:none!important}}
+@media(prefers-reduced-motion:reduce){
+  .tiroir,.tiroir.on{transition:opacity var(--d-2) ease!important;transform:none!important;opacity:0}
+  .tiroir.on{opacity:1}
+  #scrim-tiroir{transition:none}
+  .menu-rond:active{transform:none}
+}
+@media(prefers-reduced-transparency:reduce){
+  .menu-rond,.tiroir{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  body:not(.jour) .tiroir{background:#15213A!important} body.jour .tiroir{background:#F2F2F7!important}
+  body:not(.jour) .menu-rond{background:#1E2A42}
+}
+@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  body:not(.jour) .tiroir{background:#15213A} body.jour .tiroir{background:#F2F2F7}
+}
 </style>
 </head>
 <body>
@@ -2842,7 +2922,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.74</div>
+    <div class="lg-pied">console interne · v2.75</div>
   </div>
 </div>
 
@@ -2855,6 +2935,9 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
   <div class="bandeau">
     <div class="hbar">
+      <!-- v2.75 — téléphone seulement : la pastille du menu, celle d'OP GESTION (Justin, 27 septembre 2026, capture
+           à l'appui : « je voudrais aussi ça pour avoir accès à toutes les catégories »). Elle ouvre le tiroir. -->
+      <button type="button" class="menu-rond" id="menu-rond" onclick="tiroirBasculer()" aria-label="Ouvrir le menu" title="Ouvrir le menu" aria-expanded="false" aria-controls="tiroir"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="hg">
         <img class="hlogo" src="icons/teamop-192.png" alt="TEAM OP" width="28" height="28">
         <!-- « La Tour », et dessous qui la conduit (maquette) : le logo dit déjà TEAM OP -->
@@ -2881,7 +2964,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.74</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.75</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2893,11 +2976,14 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.74</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.75</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
   <div class="feuille" id="feuille" role="dialog" aria-modal="true" hidden></div>
+  <!-- v2.75 — le tiroir de la pastille du menu : il part du bord gauche, là d'où on l'appelle (tiroirOuvrir) -->
+  <div class="scrim" id="scrim-tiroir" hidden onclick="fermerTiroir()"></div>
+  <div class="tiroir" id="tiroir" role="dialog" aria-modal="true" aria-label="Menu de la Tour" hidden></div>
 </div>
 
 <div id="toast"></div>
@@ -3155,7 +3241,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.74';
+var TOUR_VERSION='v2.75';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -3661,6 +3747,111 @@ function fermerFeuille(){ var f=$('feuille'), sc=$('scrim'); if(!f) return; f.cl
   var fin=function(){ f.hidden=true; if(sc) sc.hidden=true; f.style.transform=''; };
   var sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(sobre) fin(); else setTimeout(fin,300); }
+/* ══ LE TIROIR DE LA PASTILLE DU MENU (téléphone) ══ v2.75 — Justin, 27 septembre 2026, capture de la pastille ≡
+   d'OP GESTION à l'appui : « je voudrais aussi ça pour avoir accès à toutes les catégories dans la tour ».
+   Puis, capture du menu du bureau à l'appui : « sur la tour sur téléphone je [veux] aussi ce menu ». C'est donc LUI :
+   la marque et qui conduit, l'interrupteur GESTION / MESSAGES, les sections en capitales, chaque vue avec son icône
+   teintée et son compteur (rouge : Surveillance ; bleu : Courrier), la vue ouverte sur son fond — dessiné au doigt
+   (48 px, 17 px). Il lit `menuVisible()`, comme le menu du bureau et « Plus » : trois dessins, UNE liste.
+   · il part du bord GAUCHE, là où est la pastille : un menu naît de ce qui l'ouvre, et repart par où il est venu ;
+   · « Plus » reste la porte sous le pouce, et garde sa feuille ;
+   · ce qu'OP GESTION ne fait pas (beta.html relu le même jour) et que ce tiroir fait : Échap le ferme, le focus y
+     entre puis revient à la pastille, `aria-expanded` dit s'il est ouvert, et on le repousse au doigt vers la
+     gauche, comme la feuille se repousse vers le bas ;
+   · une vue choisie s'ouvre SANS transition de vue : le mouvement est celui du tiroir qui repart. Les deux à la
+     fois, la transition photographiait le tiroir encore ouvert et le faisait fondre au lieu de glisser ;
+   · jamais deux panneaux l'un sur l'autre : il ferme la feuille s'il la trouve ouverte. */
+var _tiroirOuvert=false,_tiroirFin=0,_tiroirGlisseFin=0;
+/* ⛔ AUCUN id dans le tiroir : ceux du menu du bureau (bdg-surv, app-n-gestion…) y sont déjà, et `setBdg` les vise.
+   Le tiroir RECOPIE ce qu'ils disent à l'ouverture — il est réécrit à chaque fois, comme la feuille. */
+function tiroirHtml(){
+  var hs=$('h-sous'), sous=hs?(hs.textContent||'').trim():'';
+  var h='<div class="ti-tete"><img class="ti-logo" src="icons/teamop-192.png" alt="TEAM OP" width="40" height="40">'+
+    '<div class="ti-nom"><b>La Tour</b>'+(sous?'<span>'+esc(sous)+'</span>':'')+'</div>'+
+    '<button type="button" class="ti-replier" onclick="fermerTiroir()" aria-label="Fermer le menu" title="Fermer le menu">'+svg('menu',22)+'</button></div>';
+  if(MYAPPS.length>1) h+='<div class="app-sw" role="group" aria-label="Application pilotée">'+['gestion','messages'].map(function(a){
+    var n=$('app-n-'+a), nv=n&&!n.hidden?(n.textContent||''):'';
+    return '<button type="button" data-app="'+a+'" aria-pressed="'+(a===APP)+'" onclick="tiroirApp(\''+a+'\')"><i style="--c:var(--app-'+a+')"></i>'+APPS_TOUR[a].court+
+      '<span class="app-n"'+(nv?'':' hidden')+'>'+esc(nv||'0')+'</span></button>'; }).join('')+'</div>';
+  menuVisible().forEach(function(g){
+    h+='<div class="ti-sec">'+esc(g.section)+'</div>';
+    g.vues.forEach(function(x){
+      var on=(x[0]===TAB), bd=x[3]?$(x[3]):null, n=bd&&bd.style.display!=='none'?(+bd.textContent||0):0;
+      h+='<button type="button" class="ti'+(on?' on':'')+'" data-t="'+x[0]+'"'+(on?' aria-current="page"':'')+' onclick="tiroirAller(\''+x[0]+'\')">'+
+        '<span class="ic">'+svg(x[0],20)+'</span><span class="lib">'+esc(x[1])+'</span>'+
+        (n?'<span class="'+(x[0]==='surveillance'?'bdg-r':'bdg-b')+'">'+n+'</span>':'')+'</button>';
+    });
+  });
+  h+='<div class="ti-pied">'+
+    '<button type="button" class="ti" onclick="fermerTiroir(true);ouvrirFeuille(\'barre\')"><span class="ic">'+svg('crayon',20)+'</span><span class="lib">Personnaliser la barre</span></button>'+
+    '<button type="button" class="ti ti-quitter" onclick="doLogout()"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></span><span class="lib">Quitter la console</span></button>'+
+    '<div class="ti-version">Tour '+esc(APPS_TOUR[APP].nom)+' · '+TOUR_VERSION+'</div></div>';
+  return h;
+}
+
+function tiroirBasculer(){ if(_tiroirOuvert) fermerTiroir(); else ouvrirTiroir(); }
+function tiroirPastille(ouvert){ var b=$('menu-rond'); if(!b) return; var l=ouvert?'Fermer le menu':'Ouvrir le menu';
+  b.setAttribute('aria-expanded',String(ouvert)); b.setAttribute('aria-label',l); b.title=l; }
+function ouvrirTiroir(){
+  var t=$('tiroir'), sc=$('scrim-tiroir'); if(!t||!sc) return;
+  if(feuilleVisible()) fermerFeuille();
+  clearTimeout(_tiroirFin);
+  t.innerHTML=tiroirHtml(); t.style.transform=''; t.style.transition='';
+  t.hidden=false; sc.hidden=false; _tiroirOuvert=true; tiroirPastille(true);
+  document.documentElement.classList.add('tiroir-ouvert');
+  requestAnimationFrame(function(){ if(!_tiroirOuvert) return; t.classList.add('on'); sc.classList.add('on'); });
+  /* la vue ouverte est à portée de vue : Sauvegardes, tout en bas, restait sous le pli */
+  var on=t.querySelector('.ti.on');
+  if(on&&on.offsetTop+on.offsetHeight>t.clientHeight) t.scrollTop=on.offsetTop-t.clientHeight/2;
+  try{ (on||t.querySelector('button')).focus({preventScroll:true}); }catch(e){}
+}
+function fermerTiroir(sansAnim){
+  var t=$('tiroir'), sc=$('scrim-tiroir'); if(!t||t.hidden) return;
+  var dedans=t.contains(document.activeElement);
+  _tiroirOuvert=false; tiroirPastille(false);
+  /* le transform posé par le doigt s'efface EN MÊME TEMPS que la classe : le tiroir repart d'où le doigt l'a laissé */
+  t.style.transform=''; t.style.transition=''; t.classList.remove('on'); sc.classList.remove('on');
+  document.documentElement.classList.remove('tiroir-ouvert');
+  var fin=function(){ if(_tiroirOuvert) return; t.hidden=true; sc.hidden=true; };
+  var sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  clearTimeout(_tiroirFin); if(sansAnim||sobre) fin(); else _tiroirFin=setTimeout(fin,420);
+  var b=$('menu-rond'); if(dedans&&b) try{ b.focus({preventScroll:true}); }catch(e){}
+}
+function tiroirAller(v){ fermerTiroir(); setTab(v,true); }
+function tiroirApp(a){ setApp(a,true); if(!_tiroirOuvert) return; var t=$('tiroir'); t.innerHTML=tiroirHtml();
+  var b=t.querySelector('.app-sw button[data-app="'+a+'"]'); if(b) try{ b.focus({preventScroll:true}); }catch(e){} }
+/* Le doigt repousse le tiroir : il suit 1:1 vers la gauche ; au lâcher, l'élan PROJETÉ décide (la même
+   décélération que la feuille). Un doigt qui part d'abord à la verticale fait défiler la liste, rien d'autre.
+   ⛔ Le TACTILE pour un doigt (règle du dépôt : le navigateur annule le flux de pointeur au premier mouvement
+   horizontal) ; et le tap qui suivrait un glissé engagé est avalé — une ligne lâchée sous le doigt ne s'ouvre pas. */
+(function(){ var s=null;
+  document.addEventListener('touchstart',function(e){ var t=$('tiroir'); s=null;
+    if(!_tiroirOuvert||!t||!e.touches||e.touches.length!==1||!t.contains(e.target)) return;
+    var p=e.touches[0]; s={t:t,x0:p.clientX,y0:p.clientY,x:0,v:0,ts:e.timeStamp,engage:false}; },{passive:true});
+  document.addEventListener('touchmove',function(e){ if(!s) return; var p=e.touches&&e.touches[0]; if(!p) return;
+    var dx=p.clientX-s.x0, dy=p.clientY-s.y0;
+    if(!s.engage){ if(Math.abs(dy)>=6&&Math.abs(dy)>Math.abs(dx)){ s=null; return; } if(dx>-6) return;
+      s.engage=true; s.t.style.transition='none'; }
+    var x=Math.min(0,dx), dt=Math.max(1,e.timeStamp-s.ts); s.v=(x-s.x)/dt; s.ts=e.timeStamp; s.x=x;
+    s.t.style.transform='translateX('+x+'px)'; if(e.cancelable) e.preventDefault(); },{passive:false});
+  var lacher=function(annule){ if(!s) return; var st=s; s=null; if(!st.engage) return; _tiroirGlisseFin=Date.now();
+    var projete=-st.x+Math.max(0,-st.v)*0.998/(1-0.998);
+    if(!annule&&projete>Math.min(120,st.t.offsetWidth/3)) fermerTiroir();
+    else { st.t.style.transition=''; st.t.style.transform=''; } };
+  document.addEventListener('touchend',function(){ lacher(false); },{passive:true});
+  document.addEventListener('touchcancel',function(){ lacher(true); },{passive:true});
+  document.addEventListener('click',function(e){ if(Date.now()-_tiroirGlisseFin>350) return; var t=$('tiroir');
+    if(t&&t.contains(e.target)){ e.preventDefault(); e.stopPropagation(); } },true);
+  /* au clavier, le tiroir garde la main : Tab tourne dans ses boutons */
+  document.addEventListener('keydown',function(e){ if(e.key!=='Tab'||!_tiroirOuvert) return; var t=$('tiroir');
+    var l=[].slice.call(t.querySelectorAll('button')); if(!l.length) return; var a=l[0], z=l[l.length-1];
+    if(!t.contains(document.activeElement)){ e.preventDefault(); a.focus(); }
+    else if(e.shiftKey&&document.activeElement===a){ e.preventDefault(); z.focus(); }
+    else if(!e.shiftKey&&document.activeElement===z){ e.preventDefault(); a.focus(); } });
+  /* une tablette qui tourne ou une fenêtre qu'on élargit passe au menu du bureau : le tiroir n'a plus de raison d'être */
+  try{ var mq=matchMedia('(min-width:900px)'), f=function(){ if(mq.matches&&_tiroirOuvert) fermerTiroir(true); };
+    if(mq.addEventListener) mq.addEventListener('change',f); else mq.addListener(f); }catch(e){}
+})();
 /* Le glissé qui referme : la feuille suit le doigt 1:1 ; au lâcher, on PROJETTE où l'élan
    l'emmènerait (la décélération du défilement d'iOS, 0,998 par milliseconde) et c'est ce point qui
    décide — un petit coup sec vers le bas ferme, une traînée lente relâchée tôt revient.
@@ -3682,7 +3873,7 @@ function _feuilleLacher(annule){ if(!_feuilleGlisse) return; _feuilleGlisse=fals
   if(!annule&&projete>Math.min(160,f.offsetHeight/3)) fermerFeuille(); else f.style.transform=''; }
 document.addEventListener('pointerup',function(){ _feuilleLacher(false); });
 document.addEventListener('pointercancel',function(){ _feuilleLacher(true); });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var f=$('feuille'); if(f&&!f.hidden) fermerFeuille(); } });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ if(_tiroirOuvert){ fermerTiroir(); return; } var f=$('feuille'); if(f&&!f.hidden) fermerFeuille(); } });
 /* Le titre court apparaît dans l'en-tête quand le grand titre sort de l'écran (opacité seule). */
 var _obsTitre=null;
 /* v2.68 — la page qu'on quitte ne laisse plus son état dans l'en-tête : la classe restait posée, et
