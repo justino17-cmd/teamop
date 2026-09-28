@@ -14,7 +14,10 @@
      · une seule fois par échéance, même après un redémarrage — et un envoi REFUSÉ se retente au passage suivant
        (avant, la marque posée avant l'envoi le perdait pour toujours) ;
      · la grille de prix du serveur est celle de la page de paiement (`recap-abonnement.html`) : deux grilles
-       finissent par dire deux prix.
+       finissent par dire deux prix ;
+     · (`gardien`, même jour) un code retiré de la configuration n'annonce AUCUN prix (le repli sur Premium chiffrait
+       50 € un code Pro) ; un client refusé par sa messagerie pendant que la copie passe n'est pas dit « prévenu » ; et
+       le journal ne recopie jamais l'adresse qu'un serveur d'e-mails cite dans son refus.
    Rien ne sort d'ici : 127.0.0.1, un facteur de banc, des entreprises fictives. Ce fichier ne lit qu'une page, la page
    de paiement (pour sa grille) : il part avec le déploiement du serveur seul. */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
@@ -33,7 +36,9 @@ process.on('exit', fin);
 setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 120 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 120000).unref();
 
 /* Le facteur du banc (celui de `test-833`, point doublé compris — RFC 5321 §4.5.2). Humeur `refuse` : un 550 à
-   l'expéditeur, comme un serveur d'e-mails qui dit non. */
+   l'expéditeur, comme un serveur d'e-mails qui dit non — et qui CITE une adresse, comme le font les vrais (« 554 5.7.1
+   <client@…> ») : c'est ce qui voit une adresse passer en clair dans le journal. Et en tout temps, une adresse dont la
+   boîte n'existe pas (`…-inconnue@`) est refusée au RCPT : la copie cachée passe, le client non. */
 function facteur() {
   const recus = [];
   const f = { recus, mode: 'normal' };
@@ -49,7 +54,8 @@ function facteur() {
         const h = l.toUpperCase();
         if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
         else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
-        else if (h.startsWith('MAIL FROM') && f.mode === 'refuse') c.write('550 refusé par le facteur du banc\r\n');
+        else if (h.startsWith('MAIL FROM') && f.mode === 'refuse') c.write('550 5.7.1 <omicron@exemple-840.fr>: refusé par le facteur du banc\r\n');
+        else if (h.startsWith('RCPT TO') && /-inconnue@/i.test(l)) c.write('550 5.1.1 <lambda-inconnue@exemple-840.fr>: boîte inconnue\r\n');
         else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
         else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
         else c.write('250 ok\r\n');
@@ -116,7 +122,9 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     phi: ['t-phi-840', 'Phi Fermée', 'phi@exemple-840.fr', 'ESSAI-PREMIUM-840', 4],         // fermée par TEAM OP
     chi: ['t-chi-840', 'Chi Couverte', 'chi@exemple-840.fr', 'ESSAI-PREMIUM-840', 4, { aboStatut: 'actif', aboFin: '' }],
     psi: ['t-psi-840', 'Psi Essai Court', 'psi@exemple-840.fr', 'ESSAI-PREMIUM-840', 4, { aboStatut: 'essai', aboFin: jour(2) }],
-    omega: ['t-omega-840', 'Omega Prévenue', 'omega@exemple-840.fr', 'ESSAI-PREMIUM-840', 4] };
+    omega: ['t-omega-840', 'Omega Prévenue', 'omega@exemple-840.fr', 'ESSAI-PREMIUM-840', 4],
+    mu: ['t-mu-840', 'Mu Code Retiré', 'mu@exemple-840.fr', 'ESSAI-RETIRE-840', 3],                   // code retiré de la configuration
+    lambda: ['t-lambda-840', 'Lambda Boîte Inconnue', 'lambda-inconnue@exemple-840.fr', 'ESSAI-PREMIUM-840', 3] };   // refusée au RCPT
   const espaces = {}, usages = {};
   for (const [slug, [t, nom, email, code, d, plus]] of Object.entries(ENT)) {
     espaces[slug] = Object.assign({ t, nom, code: code64(t), ts: MAINTENANT - 1000, formule: 'premium' }, email ? { email } : {}, plus || {});
@@ -139,7 +147,8 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     't-omicron-840': annuaire(['Alain', 'Berthe', 'Camille', 'Dora', 'Emile', 'Fanny', 'Gaston']),   // 7 utilisateurs actifs
     't-pi-840': annuaire(['Solo']),                                                                   // 1
     't-kappa-840': annuaire(['Kim', 'Karl']),                                                         // 2
-    't-psi-840': annuaire(['Paul', 'Pia', 'Pat']) }));                                                // 3
+    't-psi-840': annuaire(['Paul', 'Pia', 'Pat']),                                                    // 3
+    't-mu-840': annuaire(['Marc', 'Mia', 'Max', 'Mona']) }));                                          // 4
 
   /* ══ 2. LE VRAI SERVEUR ═══════════════════════════════════════════════════════════════════════════════ */
   const kh = k => crypto.createHash('sha256').update(k).digest('hex');
@@ -177,10 +186,11 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     await dormir(600);
     const e1 = lireEsp();
     v('aucun e-mail n\'a été accepté par le facteur', facteurSrv.recus.length, 0);
-    vrai('le journal dit que le rappel n\'est PAS parti, et qu\'il sera retenté — sans adresse en clair',
-      /rappel échéance non parti .* nouvel essai au prochain passage/.test(journal) && !ADRESSE_EN_CLAIR.test(journal));
+    vrai('le journal dit que le rappel n\'est PAS parti, POURQUOI (le motif du facteur), et qu\'il sera retenté',
+      /rappel échéance non parti \(.*refusé par le facteur du banc.*\) — nouvel essai au prochain passage/.test(journal));
+    vrai('⛔ … sans recopier en clair l\'adresse que le facteur cite dans son refus (`sansAdresses`)', /o\*+@exemple-840\.fr/.test(journal) && !ADRESSE_EN_CLAIR.test(journal));
     v('la marque posée avant l\'envoi s\'est RETIRÉE partout (sinon le rappel était perdu pour toujours)',
-      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien'].map(s => e1[s].rappelFin || null), [null, null, null, null, null, null]);
+      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien', 'mu', 'lambda'].map(s => e1[s].rappelFin || null), [null, null, null, null, null, null, null, null]);
     v('… et la marque d\'omega, déjà prévenue sous son ancien nom, n\'a pas bougé', e1.omegaancien.rappelFin, jour(4));
     await arreter();
 
@@ -188,11 +198,11 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     console.log('\n2. Le rappel part — à qui il doit, et dit ce qu\'il faut');
     facteurSrv.mode = 'normal';
     vrai('le serveur redémarre (facteur normal)', await demarrer());
-    await attendrePassage(5);
+    await attendrePassage(7);
     const recus = facteurSrv.recus.map(lisible);
     const dest = recus.map(destinataire).sort();
-    v('CINQ rappels, aux bonnes adresses (omicron, pi, rho, psi, kappa — la plus récente des deux)',
-      dest, ['kappa@exemple-840.fr', 'omicron@exemple-840.fr', 'pi@exemple-840.fr', 'psi@exemple-840.fr', 'rho@exemple-840.fr']);
+    v('SEPT rappels, aux bonnes adresses (omicron, pi, rho, psi, kappa — la plus récente des deux —, mu, et lambda dont seule la copie cachée passe)',
+      dest, ['kappa@exemple-840.fr', 'lambda-inconnue@exemple-840.fr', 'mu@exemple-840.fr', 'omicron@exemple-840.fr', 'pi@exemple-840.fr', 'psi@exemple-840.fr', 'rho@exemple-840.fr']);
     vrai('⛔ aucun rappel à sigma (période encore loin), tau (finie), upsilon (sans adresse), phi (fermée), chi (abonnement de la Tour au-delà), omega (déjà prévenue), ni à l\'ancienne adresse de kappa',
       !recus.some(m => /(sigma|tau|phi|chi|omega|kappa-ancien)@exemple-840\.fr/.test(destinataire(m))));
     const de = (qui) => recus.find(m => destinataire(m) === qui + '@exemple-840.fr') || '';
@@ -223,11 +233,25 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
       && /recap-abonnement\.html\?formule=premium"/.test(R));
     vrai('psi — son essai réglé dans la Tour finit AVANT le code : le rappel part bien (3 utilisateurs)', /3 utilisateurs actifs/.test(de('psi')));
     vrai('kappa — 2 utilisateurs, envoyé à l\'adresse du nom le plus récent', /2 utilisateurs actifs/.test(de('kappa')));
+    /* ⛔ UN CODE RETIRÉ DE LA CONFIGURATION : sa formule n'est plus connue — aucun prix inventé (le repli sur Premium
+       chiffrait 50 € par utilisateur une entreprise dont le code était peut-être un Pro) */
+    const M = de('mu');
+    vrai('mu — code retiré de la configuration : le NOMBRE (4 utilisateurs), mais AUCUN prix ni formule inventés',
+      /Nous avons trouvé 4 utilisateurs actifs dans votre espace/.test(M) && /un abonnement par utilisateur, dans la formule de votre choix/i.test(M)
+      && !/€/.test(M) && !/Formule <b>/.test(M) && !/Business Premium/.test(M));
+    vrai('mu — « Choisir mon abonnement », lien sans formule imposée (utilisateurs=4)',
+      /Choisir mon abonnement/.test(M) && !/Continuer avec/.test(M) && /href="https:\/\/teamop\.fr\/recap-abonnement\.html\?utilisateurs=4"/.test(M));
+    vrai('mu — le journal le dit : « formule inconnue »', /rappel échéance envoyé → m\*+@exemple-840\.fr \(fin [0-9-]+, 4 utilisateur\(s\), formule inconnue\)/.test(journal));
+    /* ⛔ LE CLIENT REFUSÉ PENDANT QUE LA COPIE PASSE : l'envoi « réussit » — le journal ne le dit pas prévenu */
+    vrai('lambda — refusée au RCPT, copie cachée passée : le journal dit REFUSÉ (adresse masquée), jamais « envoyé » pour elle',
+      /rappel échéance REFUSÉ par la messagerie du client → l\*+@exemple-840\.fr \(fin [0-9-]+\) — à prévenir autrement/.test(journal)
+      && !/rappel échéance envoyé → l\*+@exemple-840\.fr/.test(journal));
     const e2 = lireEsp();
-    v('la marque est posée sur TOUS les noms prévenus (kappa : les deux)',
-      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien'].map(s => e2[s].rappelFin), [jour(5), jour(2), jour(6), jour(4), jour(3), jour(3)]);
+    v('la marque est posée sur TOUS les noms prévenus (kappa : les deux) — lambda aussi : une boîte inconnue ne se retente pas',
+      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien', 'mu', 'lambda'].map(s => e2[s].rappelFin), [jour(5), jour(2), jour(6), jour(4), jour(3), jour(3), jour(3), jour(3)]);
     v('… et nulle part ailleurs', ['sigma', 'tau', 'upsilon', 'phi', 'chi'].map(s => e2[s].rappelFin || null), [null, null, null, null, null]);
-    vrai('le journal compte les envois sans écrire une adresse en clair', (journal.match(/rappel échéance envoyé →/g) || []).length === 5 && !ADRESSE_EN_CLAIR.test(journal));
+    v('le journal compte six envois et un refus (population), sans écrire une adresse en clair',
+      [(journal.match(/rappel échéance envoyé →/g) || []).length, (journal.match(/rappel échéance REFUSÉ/g) || []).length, ADRESSE_EN_CLAIR.test(journal)], [6, 1, false]);
     fs.writeFileSync(path.join(banc, 'apercu-rappel.eml'), recus[0]);   // pour qui veut le regarder (le banc s'efface en sortant)
     await arreter();
 

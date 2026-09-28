@@ -163,9 +163,14 @@ console.log('\n── 834 · les contournements des protections de suppression (
     nuhygiene: ['t-nu-834', 'Nu Hygiène', ''],
     rhoun: ['t-rho1-834', 'Rho Un', 'rho@exemple-834.fr'], rhodeux: ['t-rho2-834', 'Rho Deux', 'rho@exemple-834.fr'], rhotrois: ['t-rho3-834', 'Rho Trois', 'rho@exemple-834.fr'],
     /* la clé d'un code collé (§1 bis) : psi ouverte par la Tour SANS adresse — la cible du code forgé —, chi avec */
-    psihygiene: ['t-psi-834', 'Psi Hygiène', ''], chinettoyage: ['t-chi-834', 'Chi Nettoyage', 'chi@exemple-834.fr'] };
+    psihygiene: ['t-psi-834', 'Psi Hygiène', ''], chinettoyage: ['t-chi-834', 'Chi Nettoyage', 'chi@exemple-834.fr'],
+    /* … et l'ANCIEN nom de chi, qui garde la clé d'avant le changement (`gardien` : elle ne doit jamais redevenir la bonne) */
+    chiancien: ['t-chi-834', 'Chi Ancien', 'chi@exemple-834.fr'] };
   const espaces = {};
   for (const [slug, [t, nom, email]] of Object.entries(ESP)) espaces[slug] = Object.assign({ t, nom, code: code64(t), ts: Date.now() }, email ? { email } : {});
+  /* §1 bis, toujours `gardien` : une référence SANS clé lisible ne prouve rien — eta n'a pas de code, theta un code sans `k` */
+  espaces.etasanscode = { t: 't-eta-834', nom: 'Eta Sans Code', ts: Date.now() };
+  espaces.thetasanscle = { t: 't-theta-834', nom: 'Theta Sans Clé', code: Buffer.from(JSON.stringify({ t: 't-theta-834' })).toString('base64'), ts: Date.now() };
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces));
   const entree = (n) => ({ s: crypto.randomBytes(16).toString('hex'), e: crypto.randomBytes(32).toString('hex'), n });
   fs.writeFileSync(path.join(D, 'comptes.json'), JSON.stringify({ 't-nu-834': { c: { alain: entree('Alain N'), berthe: entree('Berthe N') }, maj: Date.now() } }));
@@ -275,7 +280,24 @@ console.log('\n── 834 · les contournements des protections de suppression (
     v('… avec la confirmation du patron : 200, la nouvelle clé est enregistrée, et QUI l\'a confirmée aussi',
       [r.s, /cle-neuve-834/.test(Buffer.from(chi.code || '', 'base64').toString('utf8')), (chi.cleConfirmee || {}).par, typeof (chi.cleConfirmee || {}).ts],
       [200, true, 'Patron', 'number']);
-    vrai('… et le journal du serveur le dit (qui, quel espace — sans adresse)', /Tour : Patron confirme une clé DIFFÉRENTE pour l'espace t-chi-834/.test(journal) && !/chi@exemple-834\.fr/.test(journal));
+    vrai('… et le journal du serveur le dit (qui, quel identifiant — sans adresse, ni le nom d\'accès, souvent celui d\'une personne)',
+      /Tour : Patron confirme une clé DIFFÉRENTE pour l'espace t-chi-834\n/.test(journal) && !/chi@exemple-834\.fr|\(chinettoyage\)/.test(journal));
+    /* ⛔ L'ANCIENNE CLÉ NE REDEVIENT JAMAIS LA RÉFÉRENCE (`gardien`, rejoué sur la première version) : elle comparait à
+       « une des clés connues », et « Chi Ancien » gardait celle d'avant le changement. L'ancien code recollé sous un nom
+       neuf passait donc sans question, devenait l'entrée la plus récente — celle qu'`espaceParT` sert —, et les appareils
+       de chi, passés à la nouvelle clé, tombaient en verdict invalide. Le cache `tour_liens` de la Tour suffisait. */
+    r = await appel('/api/monitor/espaces', { nom: 'Chi Relance', code: code64('t-chi-834'), email: 'chi@exemple-834.fr' });
+    v('⛔ l\'ANCIEN code de chi (clé d\'avant le changement, encore portée par son ancien nom) recollé sous un nom neuf : 409, rien d\'écrit, la nouvelle clé reste la référence',
+      [r.s, r.j.motif, slugs().includes('chirelance'), /cle-neuve-834/.test(Buffer.from((lire('espaces.json').chinettoyage || {}).code || '', 'base64').toString('utf8'))],
+      [409, 'cle_differente', false, true]);
+    r = await appel('/api/monitor/espaces', { nom: 'Chi Second Nom', code: code64k('t-chi-834', 'cle-neuve-834'), email: 'chi@exemple-834.fr' });
+    v('… la clé ACTUELLE sous un nom neuf passe, sans question (rien à confirmer)', [r.s, slugs().includes('chisecondnom'), !!(lire('espaces.json').chisecondnom || {}).cleConfirmee], [200, true, false]);
+    r = await appel('/api/monitor/espaces', { nom: 'Eta Collée', code: code64k('t-eta-834', 'cle-forgee-834'), email: 'eta@exemple-834.fr' });
+    v('⛔ une entreprise dont l\'entrée n\'a AUCUN code (rien à comparer) : 409 — la clé forgée ne devient pas la référence', [r.s, r.j.motif, slugs().includes('etacollee')], [409, 'cle_differente', false]);
+    r = await appel('/api/monitor/espaces', { nom: 'Theta Collée', code: code64k('t-theta-834', 'cle-forgee-834'), email: 'theta@exemple-834.fr' });
+    v('⛔ … ni un code sans clé : 409', [r.s, r.j.motif, slugs().includes('thetacollee')], [409, 'cle_differente', false]);
+    r = await appel('/api/monitor/espaces', { nom: 'Eta Vide', code: Buffer.from(JSON.stringify({ t: 't-eta-834' })).toString('base64'), email: 'eta@exemple-834.fr' });
+    v('⛔ … et un code SANS clé collé pour eta, qui n\'en a pas non plus : 409 — deux absences ne font pas une preuve', [r.s, r.j.motif, slugs().includes('etavide')], [409, 'cle_differente', false]);
     r = await appel('/api/monitor/espaces', { nom: 'Xi Neuve', code: code64k('t-xi-834', 'cle-quelconque-834'), email: 'xi@exemple-834.fr' });
     v('un identifiant que le serveur ne connaît pas : 200 sans question (c\'est une entreprise neuve)', [r.s, slugs().includes('xineuve')], [200, true]);
 
