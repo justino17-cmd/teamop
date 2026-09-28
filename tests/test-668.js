@@ -61,8 +61,10 @@ console.log('Le lien d’une entreprise vient du serveur, jamais du navigateur')
 {
   const t = corps(TOUR, 'async function tourEspaceDe(');
   v('⛔ on demande au serveur AVANT de regarder le localStorage', /var connu=await tourLienServeur\(nom\);/.test(t), true);
-  v('…et avant la question « a-t-elle déjà un Code espace ? »',
-    t.indexOf('tourLienServeur(nom)') < t.indexOf('a-t-elle DÉJÀ un Code espace'), true);
+  /* ⛔ v2.72 — la question « a-t-elle déjà un Code espace ? » n'existe plus (Justin, 28 septembre 2026 : « que des liens
+     pour les connexions ») : tourEspaceDe ne demande plus RIEN à coller. */
+  v('⛔ plus aucune question « Code espace » : tourEspaceDe ne demande rien à coller',
+    [/a-t-elle DÉJÀ un Code espace/.test(t), (t.match(/\bprompt\(/g) || []).length], [false, 0]);
   v('⛔ un serveur injoignable ne fabrique RIEN', /if\(connu==='incertain'\)\{/.test(t), true);
   v('…et il le dit', /on ne fabrique pas d\\'espace à l\\'aveugle/.test(t), true);
   /* ⚠️ CETTE LIGNE A CHANGÉ LE 12 SEPTEMBRE, et son intention n'a pas bougé : c'est le SERVEUR
