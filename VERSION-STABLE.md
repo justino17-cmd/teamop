@@ -1,5 +1,28 @@
 # Point stable TeamOP
 
+**Version stable : v763** — publiée le 28 septembre 2026 au soir, sur la réponse de Justin « Oui, publie ce soir » (à
+« L'application OP GESTION v763 […] je la publie ce soir pour tout le monde (ELAN compris) ? »), avec « Oui, elles gardent »
+(les entreprises déjà abonnées gardent leurs places) et « Oui, automatique » (les places suivent le paiement).
+
+v763 — ce qui change pour une entreprise :
+- **On n'entre plus que par un lien.** Le « Code espace » à coller (Paramètres) n'existe plus : TEAM OP crée le lien de
+  l'entreprise dans la Tour après sa demande, et l'envoie avec les identifiants.
+- **Un abonnement = un utilisateur, dans toutes les formules.** Pendant une période offerte par un code promo, TOUTE
+  l'équipe est couverte (ELAN, sous code, ne voit aucune différence). Les entreprises qui payaient déjà gardent leurs
+  places (× 2 en Business, × 3 en Business Premium, calculé par le serveur), et ce qui est payé chez Stripe donne ses
+  places tout seul. Le contrat de « Mon espace » le dit dans les mêmes termes.
+- **Chaque technicien a sa couleur**, sans doublon, sur le planning, le tableau de bord, la liste, la fiche et « Ma
+  journée » ; une intervention partagée paraît dans la ligne de CHACUN ; le choix de la couleur se fait en pastilles.
+- L'appui long sur la barre du bas ne déclenche plus ce qui passe sous le doigt ; des nombres accordés (« 1 épuisé »,
+  « 14 produits ») ; le contrôle du socle ne conclut plus sur une photo en retard (il est encore éteint).
+Chez ELAN : rien n'est effacé ni écrit dans leurs données ; aucun changement de format — rien à exiger (une v760 et une
+v763 travaillent ensemble).
+Publiés avec elle : le site et le portail au nouveau thème (jour / nuit), l'icône TEAM OP déclarée en 192 px pour Google,
+la page de connexion sans code, la Tour v2.73, le serveur (plus de code d'accès, places payées), la CI de `main` réparée
+(ESLint pour `test-818`, le filet « SAUTÉ »).
+
+## Ancien point
+
 **Version stable : v760** — publiée le 27 septembre 2026, sur la phrase de Justin « Une fois que tu as tout fini, tu publie aussi s'il te plaît merci » (après « 2 oui il faudrait faire ça », au constat qu'une équipe de sept qui veut un huitième se voyait proposer huit abonnements).
 
 v760 — une chose, rien d'autre (les couleurs des techniciens, le contrôle du socle et trois accords restent sur la bêta, désormais v761) :

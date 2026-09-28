@@ -19,7 +19,13 @@ const ASSETS = [
   'espace.html',
   'messages.html',
   'app.html',
-  'fond-anime-teamop.js',
+  /* le site et le portail au thème du site (28 septembre 2026) lisent ces cinq fichiers ; `fond-anime-teamop.js`, que
+     lisait l'ancien portail, n'est plus lu par aucune page servie */
+  'vitrine/v2/theme.css',
+  'vitrine/v2/mode.js',
+  'vitrine/v2/site.css',
+  'vitrine/v2/site.js',
+  'vitrine/v2/appareils.css',
   'manifest.webmanifest',
   'manifest-teamop.webmanifest',
   'manifest-opmsg.webmanifest',
