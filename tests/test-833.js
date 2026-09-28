@@ -355,9 +355,16 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
     v('« OK » : un second envoi AVEC la confirmation, l\'entrée enregistrée avec la nouvelle clé, et qui l\'a confirmée',
       [E.confirms.length, E.posts.map(p => p.confirmeCle === true), !!(res && res.slug), /cle-neuve-833/.test(Buffer.from(kc.code || '', 'base64').toString('utf8')), (kc.cleConfirmee || {}).par],
       [1, [false, true], true, true, 'Patron']);
-    E = espaceDe(true, code64('t-kappa-832'));
+    /* Le code ACTUEL — la clé de la référence, ici la nouvelle — passe sans question. Et l'ANCIEN, après le changement
+       confirmé, redemande : l'ancienne clé ne redevient jamais la bonne (`gardien`, 28 septembre 2026 — la première
+       version du serveur la laissait passer, et ce banc l'attendait). */
+    E = espaceDe(true, codeColle('t-kappa-832', 'cle-neuve-833'));
     res = await E.ctx.tourEspaceDe('kappa@exemple-833.fr', 'Kappa Services Bis', 'kappa', 'Mdp-833', false, 'tour');
-    v('le VRAI code (une clé connue) : aucune question, un seul envoi, enregistré', [E.confirms.length, E.posts.length, !!(res && res.slug)], [0, 1, true]);
+    v('le code ACTUEL (la clé de la référence) : aucune question, un seul envoi, enregistré', [E.confirms.length, E.posts.length, !!(res && res.slug)], [0, 1, true]);
+    E = espaceDe(false, code64('t-kappa-832'));
+    res = await E.ctx.tourEspaceDe('kappa@exemple-833.fr', 'Kappa Ancien Code', 'kappa', 'Mdp-833', false, 'tour');
+    v('⛔ l\'ANCIEN code, après le changement confirmé : la question revient, « Annuler » n\'enregistre rien',
+      [E.confirms.length, E.posts.map(p => p.confirmeCle === true), res, slugs().includes('kappaanciencode')], [1, [false], null, false]);
 
     v('⛔ du début à la fin, rien n\'est parti ailleurs qu\'au Google de banc (127.0.0.1)', G.requetes.every(q => !/googleapis|google\.com/.test(q)), true);
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }
